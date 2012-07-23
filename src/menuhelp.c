@@ -90,7 +90,7 @@ void str_make_lowercase(char* s)
     while (*s) { *s = tolower(*s); s++; }
 }
 
-void menu_help_go_to_label(void* label)
+void menu_help_go_to_label(void* label, int delta)
 {
     int page = 1;
     

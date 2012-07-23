@@ -7,6 +7,12 @@
 void menu_open_submenu();
 extern void menu_easy_advanced_display(void* priv, int x0, int y0, int selected);
 
+static void menu_nav_help_open(void* priv, int delta)
+{
+    menu_help_go_to_label("Magic Lantern menu", 0);
+}
+
+
 struct menu_entry help_menus[] = {
     /*{
         .name = "Press MENU : Easy/Advanced mode",
@@ -14,11 +20,13 @@ struct menu_entry help_menus[] = {
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },*/
     {
+        .select = menu_nav_help_open,
         .name = "Press " INFO_BTN_NAME
                           " : Bring up Help menu",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
+        .select = menu_nav_help_open,
         #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
         .name = "Press Q    : Bring up submenu...",
         #elif defined(CONFIG_500D)
@@ -41,14 +49,17 @@ struct menu_entry help_menus[] = {
         }
     },
     {
+        .select = menu_nav_help_open,
         .name = "SET/PLAY   : Change values",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
+        .select = menu_nav_help_open,
         .name = "Zoom In    : Preview LiveView",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
+        .select = menu_nav_help_open,
         .name = "Press MENU : Show/hide items",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
