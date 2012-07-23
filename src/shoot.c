@@ -2646,7 +2646,7 @@ void zoom_focus_ring_engage() // called from shoot_task
     if (!DISPLAY_IS_ON) return;
     int zfr = ((zoom_focus_ring == 1 && is_manual_focus()) || (zoom_focus_ring == 2));
     if (!zfr) return;
-    zoom_focus_ring_disable_time = ms100_clock + 4000;
+    zoom_focus_ring_disable_time = ms100_clock + 5000;
     int zoom = zoom_disable_x10 ? 5 : 10;
     set_lv_zoom(zoom);
 }
