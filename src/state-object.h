@@ -34,7 +34,7 @@
 struct Manager      //~ size=0x30
 {
     const char *                    name;                   //~ off_0x00    name of manager. ie: PropMgr
-    const struct TaskClass *        taskclass_ptr;          //~ off_0x04    pointer to taskclass struct
+    struct TaskClass *              taskclass_ptr;          //~ off_0x04    pointer to taskclass struct
     const struct state_object *     stateobj_ptr;           //~ off_0x08    pointer to stateobject struct
     int                             debugmsg_class;         //~ off_0x0C    used with DebugMsg calls to determine arg0 (debug class)
     const struct unk_struct *       unk_struct_ptr;         //~ off_0x10    some unknown struct allocated, size varies
@@ -55,7 +55,7 @@ struct TaskClass    //~ size=0x18
     int                             off_0x08;               //~ unknown     initialized to 1 in CreateTaskClass
     const struct task *             task_struct_ptr;        //~ off_0x0c    ret_CreateTask (ptr to task struct) called from CreateTaskClass
     const struct msg_queue *        msg_queue_ptr_maybe;    //~ off_0x10    some kind of message queue pointer (very low level functions at work)
-    const void *                    eventdispatch_func_ptr; //~ off_0x14    event dispatch pointer. ie: propmgrEventDispatch
+    void *                          eventdispatch_func_ptr; //~ off_0x14    event dispatch pointer. ie: propmgrEventDispatch
 };
 
 
@@ -64,7 +64,7 @@ struct Module   //~ size=0x24
 {
     const char *                    name;                   //~ off_0x00    ie: "ShootCapture"
     int                             off_0x04;               //~ unknown
-    const struct StageClass *       stageclass_ptr;         //~ off_0x08    stageclass struct ptr
+    struct StageClass *             stageclass_ptr;         //~ off_0x08    stageclass struct ptr
     const struct state_object *     stateobj_ptr;           //~ off_0x0C    SCSState struct ptr
     int                             debugmsg_class;         //~ off_0x10    arg0 to SCS_Initialize, used for arg0 to SCS debug messages (debug class)
     int                             off_0x14;               //~ unknown
@@ -82,7 +82,7 @@ struct StageClass   //~ size=0x1C
     const struct task *             task_struct_ptr;        //~ off_0x0c    ret_CreateTask (ptr to task struct) called from CreateStageClass
     const struct msg_queue *        msg_queue_ptr_maybe;    //~ off_0x10    some kind of message queue pointer (very low level functions at work)
     const struct JobQueue *         jobqueue_struct_ptr;    //~ off_0x14    pointer to struct created in CreateJobQueue
-    const void *                    eventdispatch_func_ptr; //~ off_0x18    event dispatch function pointer. ie: scsEventDispatch
+    void *                          eventdispatch_func_ptr; //~ off_0x18    event dispatch function pointer. ie: scsEventDispatch
 };
 
 

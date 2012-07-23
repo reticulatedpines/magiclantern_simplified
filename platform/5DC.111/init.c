@@ -15,6 +15,7 @@
 #include "bmp.h"
 #include "gui.h"
 #include "menu.h"
+#include "state-object.h"
 
 /** Was this an autoboot or firmware file load? */
 int autoboot_loaded;
@@ -78,8 +79,68 @@ void dump_with_buffer(int addr, int len, char* filename)
     }
 }
 
-//~ 0x589240    <-- bmp vram buffer
-//~ 0x59E3C0    <-- end of bmp vram
+
+//~ Useful for intercepting state changes and events.
+//~ Modules
+#define ShootCapture (*(struct Module **)0x4E74)
+#define ShootDevelop (*(struct Module **)0x4E78)
+#define ShootBlack   (*(struct Module **)0x4EA4)
+#define Fcreate      (*(struct Module **)0x4ED0)
+#define Fstorage     (*(struct Module **)0x4ED8)
+#define Rstorage     (*(struct Module **)0x4EE0)
+#define Factory      (*(struct Module **)0xD148)
+
+//~ Managers
+#define GenMgr       (*(struct Manager **)0x1B9C)
+#define EventMgr     (*(struct Manager **)0x4EE8)
+#define FileCache    (*(struct Manager **)0x4F1C)
+#define RscMgr       (*(struct Manager **)0x4F28)
+#define DPMGR_T      (*(struct Manager **)0x504C)
+#define DPOFMGR_T    (*(struct Manager **)0x510C)
+#define TOMgr        (*(struct Manager **)0x5910)
+#define FileMgr      (*(struct Manager **)0x592C)
+#define PropMgr      (*(struct Manager **)0xF508)
+#define DbgMgr       (*(struct Manager **)0x101FC)
+
+int (*EventDispatchHandler)(int,int,int,int) = 0;
+static int eventdispatch_handler(int arg0, int arg1, int arg2, int arg3)
+{
+    int ans = EventDispatchHandler(arg0, arg1, arg2, arg3);
+    DryosDebugMsg(0, 3, "[MAGIC] name/arg1/arg2/arg3: %s/0x%x/0x%x/0x%x", MEM(arg0), arg1, arg2, arg3);
+    
+    return ans;
+}
+
+static int hijack_manager(struct Manager * manager)
+{
+    EventDispatchHandler = (void *)manager->taskclass_ptr->eventdispatch_func_ptr;
+    manager->taskclass_ptr->eventdispatch_func_ptr = (void *)eventdispatch_handler;
+    
+    return 0; //~ not used.
+}
+
+static int hijack_module(struct Module * module)
+{
+    EventDispatchHandler = (void *)module->stageclass_ptr->eventdispatch_func_ptr;
+    module->stageclass_ptr->eventdispatch_func_ptr = (void *)eventdispatch_handler;
+    
+    return 0; //~ not used.
+}
+
+/**
+ To hijack an EventDispatch of a manager or module, remember:
+ - Modules have a StageClass
+ - Managers have a TaskClass
+ 
+ The structures for these are already defined in state-object.h
+ NOTE: you can only hijack one manager or module at a time. Never try to hijack more than one! (could brick camera).
+ **/
+static void hijack_event_dispatches( void )
+{
+    //~ hijack_manager(PropMgr);
+    //~ hijack_module(ShootCapture);
+}
+
 
 int bmp_vram_idle_ptr;
 
@@ -89,6 +150,7 @@ void my_init_task()
     hijack_gui_main_task();
     bmp_vram_idle_ptr = malloc(360*240);
     my_big_init_task();
+    hijack_event_dispatches();
 }
 
 void Create5dplusInit()
@@ -172,7 +234,7 @@ void my_big_init_task()
                 //~ streq(task->name, "morse_task") ||
                 //~ streq(task->name, "movtweak_task") ||
                 streq(task->name, "ms100_clock_task") ||
-                //~ streq(task->name, "notifybox_task") ||
+                streq(task->name, "notifybox_task") ||
                 //~ streq(task->name, "plugins_task") ||
                 streq(task->name, "seconds_clock_task") ||
                 streq(task->name, "shoot_task") ||
