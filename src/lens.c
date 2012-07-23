@@ -1486,6 +1486,11 @@ PROP_HANDLER( PROP_ISO )
     iso_ack = buf[0];
 }
 
+void iso_auto_restore_hack()
+{
+    if (iso_ack == 0) lensinfo_set_iso(0);
+}
+
 PROP_HANDLER( PROP_ISO_AUTO )
 {
     uint32_t raw = *(uint32_t *) buf;
