@@ -1604,6 +1604,13 @@ PROP_HANDLER( PROP_WB_KELVIN_LV )
     lens_info.kelvin = value;
 }
 
+void bv_reset()
+{
+    prop_set_rawiso(iso_ack);
+    prop_set_rawshutter(shutter_ack);
+    prop_set_rawaperture(aperture_ack);
+}
+
 #ifndef CONFIG_5DC
 uint16_t custom_wb_gains[CUSTOM_WB_PROP_LEN];
 PROP_HANDLER(PROP_CUSTOM_WB)
