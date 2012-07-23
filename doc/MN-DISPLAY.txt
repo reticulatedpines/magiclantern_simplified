@@ -44,7 +44,10 @@ Color scheme
 ````````````
 
 This affects the colors and brightness for on-screen information (including LiveView overlays, Canon menus and ML menus).
-Choices: *Default*, *Dark*, *Bright Gray*, *Dark Gray*, *Dark Red*, *Dark Green*. Tip: dark themes may reduce the eye strain during night shooting.
+
+Choices: *Default*, *Dark*, *Bright Gray*, *Dark Gray*, *Dark Red*, *Dark Green*. 
+
+Tip: dark themes may reduce the eye strain during night shooting.
 
 .. _Clean LiveView display:
 
@@ -66,12 +69,12 @@ Clear bitmap overlays from LiveView display.
 Focus box (LV)
 ``````````````
 
-With this setting you can choose to show the Focus box in liveview or hide it when not needed.
+With this setting you can choose to show the Focus box in LiveView or hide it when not needed.
 
 Force HDMI-VGA
 ``````````````
 
-This option will force a low-resolution mode on HDMI displays (720x480), which avoids black screen when you start/stop recording.
+This option will force a low-resolution mode on HDMI displays (720x480), which avoids blank screen when you start/stop recording.
 
 Screen layout settings...
 `````````````````````````

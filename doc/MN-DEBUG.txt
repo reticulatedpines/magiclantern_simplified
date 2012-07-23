@@ -48,7 +48,7 @@ Displays the amount of available RAM.
 Shutter Count
 `````````````
 
-Displays the number of shutter actuations.
+Displays the number of shutter actuations (number of pictures taken plus number of liveview actuations).
 
 .. _CMOS temperature:
 
@@ -62,8 +62,8 @@ Ambient light (5D Mark II)
 
 Displays the value from ambient light sensor (under LCD display), expressed in EV steps. The scale is arbitrary (not calibrated in any way).
 
-Battery remaining (60D and 5D Mark II)
-``````````````````````````````````````
+Battery level (60D and 5D Mark II)
+``````````````````````````````````
 
 Displays battery percentage, estimated time remaining and battery discharging rate.
   

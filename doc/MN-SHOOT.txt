@@ -150,7 +150,7 @@ Bulb Timer
 
 Very long exposures with Bulb mode and ML timer. This feature is useful for night shots and astrophotography.
   
-Bulb timer is started by holdin the shutter pressed halfway for one second, or by remote triggers / intervalometer.
+Bulb timer is started by holding the shutter pressed halfway for one second, or by remote triggers / intervalometer.
   
 Tip: you can cancel the exposure earlier by half-pressing the shutter button.
 
