@@ -208,6 +208,7 @@ int should_draw_bottom_bar()
     if (is_canon_bottom_bar_dirty())
     {
         crop_set_dirty(5);
+        afframe_set_dirty();
         return 0;
     }
     if (lv_disp_mode == 0) return 1;
