@@ -197,4 +197,4 @@ Troubleshooting
 * **If the camera does not boot** (seems dead), **remove the battery and the card**. Then put the battery back and try to boot the camera without card. Then put a formatted card in the camera and try to boot **without** Magic Lantern. Only after you are sure the camera is OK, you can try to see what's wrong with Magic Lantern.
 * **If the camera asks for a firmware update**, place Canon firmware on the card (this was a problem in older versions).
 * **DO NOT use a bootable card without a working autoexec.bin on it!** If you do, remove the battery immediately, switching the camera off is not enough !!!
-* Check the `issue tracker <https://bitbucket.org/hudson/magic-lantern/issues issue tracker>`_ for similar problems; if you can't find the solution, create a new issue there.
+* Check our `support forum <http://www.magiclantern.fm/forum/index.php?board=4.0>`_ for similar problems; if you can't find the solution, just ask.
