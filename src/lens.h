@@ -223,4 +223,8 @@ void draw_ml_bottombar(int double_buffering, int clear);
 void SW1(int v, int wait);
 void SW2(int v, int wait);
 
+void iso_toggle( void * priv, int sign );
+void shutter_toggle(void* priv, int sign);
+void aperture_toggle( void* priv, int sign);
+
 #endif
