@@ -366,7 +366,7 @@ focus_show_a(
         focus_task_delta > 0 ? "+" : 
         focus_task_delta < 0 ? "-" : " ",
         ABS(focus_task_delta),
-        focus_task_delta ? "steps from here" : ", not configured."
+        focus_task_delta ? "steps from here" : " (here)"
     );
     menu_draw_icon(x, y, MNI_BOOL(focus_task_delta), 0);
 }

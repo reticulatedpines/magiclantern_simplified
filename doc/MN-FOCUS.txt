@@ -103,7 +103,7 @@ This is end point of rack focus (X focus steps from the start point, i.e. from c
   
 First you have to set the end point. Focus the lens, then press ``SET`` on this menu item.
   
-After pressing SET, ML will display ``Focus End Point: 0 steps from here.``.
+After pressing SET, ML will display ``Focus End Point: 0 (here)``.
 This means the end point is now assigned to current focus position.
   
 At this point, you will see the LiveView image and set the start point using left and right keys (just like with `follow focus`_) or the main dial (scrollwheel).
