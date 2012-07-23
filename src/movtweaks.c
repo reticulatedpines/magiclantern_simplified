@@ -823,8 +823,6 @@ void bv_disable()
     call("lvae_setcontrolbv", 0);
     CONTROL_BV_TV = CONTROL_BV_AV = CONTROL_BV_ISO = CONTROL_BV_ZERO = 0; // auto
     if (!lv) goto end;
-    
-    bv_reset();
 
     //~ bmp_printf(FONT_LARGE, 50, 50, "DISable");
     //~ lensinfo_set_iso(prop_iso);
