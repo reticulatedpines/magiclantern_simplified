@@ -41,6 +41,8 @@ void fps_show();
 int time_indic_x = 0;
 int time_indic_y = 0;
 
+void bitrate_mvr_log(){};
+
 int bv_auto = 0;
 int bv_tv = 0;
 int bv_av = 0;
