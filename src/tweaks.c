@@ -408,7 +408,7 @@ lv_metering_adjust()
 
 CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
 
-#if defined(CONFIG_500D) && defined(CONFIG_550D)
+#if defined(CONFIG_500D) || defined(CONFIG_550D)
 static void set_pic_quality(int q)
 {
     if (q == -1) return;
@@ -1817,7 +1817,7 @@ static struct menu_entry tweak_menus[] = {
         .display = night_vision_print,
         .help = "Maximize LV display gain for framing in darkness (photo)"
     },*/
-    #if defined(CONFIG_500D) && defined(CONFIG_550D) // high-end cameras doesn't need this (on 600D don't works)
+    #if defined(CONFIG_500D) || defined(CONFIG_550D) // high-end cameras doesn't need this (on 600D don't works)
     {
         .name = "Auto BurstPicQuality",
         .priv = &auto_burst_pic_quality, 
