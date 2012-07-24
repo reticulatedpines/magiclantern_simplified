@@ -380,7 +380,7 @@ movtweak_task( void* unused )
         msleep(DISPLAY_IS_ON || recording ? 50 : 1000);
         
         static int recording_prev = 0;
-        #ifdef CONFIG_5D2
+        #if defined(CONFIG_5D2) || defined(CONFIG_50D)
         if (recording == 0 && recording_prev && !movie_was_stopped_by_set)
         #else
         if (recording == 0 && recording_prev && wait_for_lv_err_msg(0))
@@ -993,7 +993,7 @@ static struct menu_entry mov_menus[] = {
         .display    = vbr_print,
         .select     = vbr_toggle,
     },*/
-    #if !defined(CONFIG_50D) && !defined(CONFIG_500D)
+    #ifndef CONFIG_500D
     {
         .name = "Movie Restart",
         .priv = &movie_restart,
