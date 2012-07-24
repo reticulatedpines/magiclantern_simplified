@@ -5333,6 +5333,7 @@ void display_trap_focus_info()
         fg = active ? COLOR_RED : COLOR_BG;
         x = 8; y = 160;
         if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? "TRAP \nFOCUS" : "     \n     ");
+        show_prev = show;
     }
     else
     {
@@ -5340,9 +5341,8 @@ void display_trap_focus_info()
         bg = bmp_getpixel(DISPLAY_TRAP_FOCUS_POS_X, DISPLAY_TRAP_FOCUS_POS_Y);
         fg = HALFSHUTTER_PRESSED ? COLOR_RED : COLOR_FG_NONLV;
         x = DISPLAY_TRAP_FOCUS_POS_X; y = DISPLAY_TRAP_FOCUS_POS_Y;
-        if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? DISPLAY_TRAP_FOCUS_MSG : DISPLAY_TRAP_FOCUS_MSG_BLANK);
+        if (show) bmp_printf(FONT(FONT_MED, fg, bg), x, y, DISPLAY_TRAP_FOCUS_MSG);
     }
-    show_prev = show;
 }
 
 int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear

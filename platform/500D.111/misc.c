@@ -16,19 +16,19 @@ void display_shooting_info() // called from debug task
 
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
-		bmp_printf(fnt, 320, 260, "%5dK", lens_info.kelvin);
+		bmp_printf(fnt, 315, 238, "      \n%5dK\n      ", lens_info.kelvin);
 	}
 	if (lens_info.wbs_gm || lens_info.wbs_ba)
 	{
 		fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
 
 		int ba = lens_info.wbs_ba;
-		if (ba) bmp_printf(fnt, 435, 240, "%s%d ", ba > 0 ? "A" : "B", ABS(ba));
-		else bmp_printf(fnt, 435, 240, "   ");
+		if (ba) bmp_printf(fnt, 402, 238, "%s%d ", ba > 0 ? "A" : "B", ABS(ba));
+		//else bmp_printf(fnt, 402, 238, "   "); // not needed, camera redraws the place itself
 
 		int gm = lens_info.wbs_gm;
-		if (gm) bmp_printf(fnt, 435, 270, "%s%d ", gm > 0 ? "G" : "M", ABS(gm));
-		else bmp_printf(fnt, 435, 270, "   ");
+		if (gm) bmp_printf(fnt, 402, 268, "%s%d ", gm > 0 ? "G" : "M", ABS(gm));
+		//else bmp_printf(fnt, 402, 268, "   "); // not needed, camera redraws the place itself
 	}
 
 	iso_refresh_display();
