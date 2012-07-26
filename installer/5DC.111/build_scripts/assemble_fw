@@ -1,0 +1,100 @@
+#!/usr/bin/perl
+# Assemble a hacked firmware image for the 5D Mark 2 from
+# the dumped images and the replacement user code
+# 
+# (c) Trammell Hudson
+#
+use warnings;
+use strict;
+use Getopt::Long;
+use File::Slurp;
+
+my $user_file		= "AUTOEXEC.bin";
+my $header_file		= "5d.header.bin";
+my $flasher_file	= "";
+my $output_file		= "5d.111.fir";
+my $offset		= 0x30;
+my $pad_bytes		= 24;
+my $zero_bytes;
+my $camera_id		= 0x80000213;	# 5D Classic
+
+GetOptions(
+	"header=s"		=> \$header_file,
+	"o|output=s"		=> \$output_file,
+	"flasher=s"		=> \$flasher_file,
+	"user=s"		=> \$user_file,
+	"offset=o"		=> \$offset,
+	"pad=o"			=> \$pad_bytes,
+	"z|zero+"		=> \$zero_bytes,
+	"id=o"			=> \$camera_id,
+) or die "$0: Unknown option (read the source for options)\n";
+
+my $header = read_file( $header_file, binmode => ':raw' )
+	or die "$0: Unable to open $header_file: $!\n";
+
+#my $flasher = read_file( $flasher_file, binmode => ':raw' )
+#	or die "$0: Unable to open $flasher_file: $!\n";
+
+my $user = '';
+if( $user_file )
+{
+	$user = read_file( $user_file, binmode=> ':raw' )
+		or die "$0: Unable to open $user_file: $!\n";
+}
+
+# Generate the image by concatenating everything
+#my $image = $header . $flasher;
+my $image = $header;
+my $user_len = length($user);
+
+# Replace the user code in the image
+substr( $image, $offset, $user_len ) = $user;
+
+# Add the pad bytes to the end
+$image .= (chr(0) x $pad_bytes);
+
+# replace the camera id in the image
+substr( $image, 0, 4 ) = pack( "V", $camera_id );
+
+# Zero the rest of the bytes if the user requests it
+my $zero_len = length($image) - $user_len - $offset;
+substr( $image, $offset + $user_len, $zero_len ) = chr(0) x $zero_len
+	if $zero_bytes;
+
+# Update the total file size
+substr( $image, 0x38, 4 ) = pack( "V", length $image );
+
+# Update the data offset and length
+
+# Set the offset from 0x120 to 0x110.  Why?
+substr( $image, 0x28, 4 ) = pack( "V", 0x110 );
+
+# Zero the CRC and recalc it
+my $old_crc = unpack( "V", substr( $image, 0x20, 4 ) );
+substr( $image, 0x20, 4 ) = chr(0) x 4;
+
+my $crc = checksum( $image );
+substr( $image, 0x20, 4 ) = pack( "V", $crc );
+printf "$output_file: New CRC: %08x OLD %08x\n", $crc, $old_crc;
+
+# Write out the file
+write_file( $output_file, { binmode => ':raw' }, $image );
+
+
+#
+# This is the Worst. Checksum algorithm. Ever.
+#
+# It has no security or ability to detect byte order
+# errors.  It is literally the sum of the bytes!
+#
+sub checksum
+{
+	my $image = shift;
+	my $sum = 0;
+	for( my $i=0 ; $i<length $image ; $i ++ )
+	{
+		$sum += ord( substr( $image, $i, 1 ) );
+	}
+
+	return ~$sum;
+}
