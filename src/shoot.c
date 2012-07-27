@@ -144,6 +144,8 @@ extern int lcd_release_running;
 //New option for the sensitivty of the motion release
 static CONFIG_INT( "motion.release-level", motion_detect_level, 8);
 static CONFIG_INT( "motion.trigger", motion_detect_trigger, 0);
+static CONFIG_INT( "motion.size", motion_detect_size, 100);
+static CONFIG_INT( "motion.position", motion_detect_position, 0);
 
 int get_silent_pic() { return silent_pic_enabled; } // silent pic will disable trap focus
 
@@ -560,7 +562,9 @@ motion_detect_display( void * priv, int x, int y, int selected )
         "Motion Detect   : %s, level=%d",
         motion_detect == 0 ? "OFF" :
         motion_detect_trigger == 0 ? "EXP" : "DIF",
-        motion_detect_level
+        motion_detect_level,
+		motion_detect_size,
+		motion_detect_position == 0 ? "Center" : "Focus Box"
     );
     menu_draw_icon(x, y, MNI_BOOL_LV(motion_detect));
 }
@@ -4220,6 +4224,21 @@ static struct menu_entry shoot_menus[] = {
                 .max = 30,
                 .help = "Picture is taken when frame difference is above threshold.",
             },
+	    	{
+                .name = "Detect Size",
+                .priv = &motion_detect_size, 
+                .min = 10,   
+                .max = 200,
+                .help = "Size of the area on which motion shall be detected",
+            },
+ 	    {
+		.name = "Position",
+                .priv = &motion_detect_position, 
+                .max = 1,
+                .choices = (const char *[]) {"Center", "Focus Box"},
+                .icon_type = IT_DICE,
+                .help = "Center of image or linked to focus box.",
+            },
             MENU_EOL
         },
     },
@@ -5333,7 +5352,6 @@ void display_trap_focus_info()
         fg = active ? COLOR_RED : COLOR_BG;
         x = 8; y = 160;
         if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? "TRAP \nFOCUS" : "     \n     ");
-        show_prev = show;
     }
     else
     {
@@ -5341,8 +5359,9 @@ void display_trap_focus_info()
         bg = bmp_getpixel(DISPLAY_TRAP_FOCUS_POS_X, DISPLAY_TRAP_FOCUS_POS_Y);
         fg = HALFSHUTTER_PRESSED ? COLOR_RED : COLOR_FG_NONLV;
         x = DISPLAY_TRAP_FOCUS_POS_X; y = DISPLAY_TRAP_FOCUS_POS_Y;
-        if (show) bmp_printf(FONT(FONT_MED, fg, bg), x, y, DISPLAY_TRAP_FOCUS_MSG);
+        if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? DISPLAY_TRAP_FOCUS_MSG : DISPLAY_TRAP_FOCUS_MSG_BLANK);
     }
+    show_prev = show;
 }
 
 int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
@@ -5672,6 +5691,17 @@ shoot_task( void* unused )
         {
             K = COERCE(K+1, 0, 1000);
             //~ bmp_printf(FONT_MED, 0, 50, "K= %d   ", K);
+			int xcb = os.x0 + os.x_ex/2;
+			int ycb = os.y0 + os.y_ex/2;
+
+			if (motion_detect_position) // AF frame
+			{
+				get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
+				xcb += os.x0;
+				ycb += os.y0;
+				xcb = COERCE(xcb, os.x0 + 50, os.x_max - 50);
+				ycb = COERCE(ycb, os.y0 + 50, os.y_max - 50);
+	 	    }
 
             if (motion_detect_trigger == 0)
             {
@@ -5693,9 +5723,10 @@ shoot_task( void* unused )
             }
             else if (motion_detect_trigger == 1)
             {
-                int d = get_spot_motion(100, get_global_draw());
-                if (K > 40) bmp_printf(FONT_MED, 0, 80, "Motion level: %d   ", d);
-                if (K > 40 && d >= (int)motion_detect_level)
+
+                int d = get_spot_motion(motion_detect_size, xcb, ycb, get_global_draw());
+                if (K > 20) bmp_printf(FONT_MED, 0, 80, "Motion level: %d   ", d);
+                if (K > 20 && d >= (int)motion_detect_level)
                 {
                     lens_take_picture(64,1);
                     K = 0;

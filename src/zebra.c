@@ -2427,7 +2427,7 @@ void get_spot_yuv(int dxb, int* Y, int* U, int* V)
     get_spot_yuv_ex(dxb, 0, 0, Y, U, V);
 }
 
-int get_spot_motion(int dxb, int draw)
+int get_spot_motion(int dxb, int xcb, int ycb, int draw)
 {
     struct vram_info *  vram = get_yuv422_vram();
 
@@ -2442,17 +2442,19 @@ int get_spot_motion(int dxb, int draw)
     //~ const unsigned      height = vram->height;
     int                 x, y;
 
-    int xcb = os.x0 + os.x_ex/2;
-    int ycb = os.y0 + os.y_ex/2;
+    //int xcb = os.x0 + os.x_ex/2;
+    //int ycb = os.y0 + os.y_ex/2;
     int xcl = BM2LV_X(xcb);
     int ycl = BM2LV_Y(ycb);
     int dxl = BM2LV_DX(dxb);
 
-    draw_line(xcb - dxb, ycb - dxb, xcb + dxb, ycb - dxb, COLOR_WHITE);
-    draw_line(xcb + dxb, ycb - dxb, xcb + dxb, ycb + dxb, COLOR_WHITE);
-    draw_line(xcb + dxb, ycb + dxb, xcb - dxb, ycb + dxb, COLOR_WHITE);
-    draw_line(xcb - dxb, ycb + dxb, xcb - dxb, ycb - dxb, COLOR_WHITE);
-    
+    for (int ddxb = dxb; ddxb < dxb+5; ddxb++) {
+	draw_line(xcb - ddxb, ycb - ddxb, xcb + ddxb, ycb - ddxb, COLOR_WHITE);
+	draw_line(xcb + ddxb, ycb - ddxb, xcb + ddxb, ycb + ddxb, COLOR_WHITE);
+	draw_line(xcb + ddxb, ycb + ddxb, xcb - ddxb, ycb + ddxb, COLOR_WHITE);
+	draw_line(xcb - ddxb, ycb + ddxb, xcb - ddxb, ycb - ddxb, COLOR_WHITE);
+    }
+
     unsigned D = 0;
     for( y = ycl - dxl ; y <= ycl + dxl ; y++ )
     {
