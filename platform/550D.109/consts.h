@@ -316,7 +316,7 @@
 #define ARROW_MODE_TOGGLE_KEY "Av/FLASH/LCDsen"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x245c)
-#define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+#define DISPLAY_IS_ON (MEM(0xc022010c) & 2) // from BackLightOn
 
 #define LV_STRUCT_PTR 0x1d14
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)
