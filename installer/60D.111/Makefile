@@ -66,4 +66,4 @@ clean:
 	rm -f *.fir *.o autoexec* magiclantern* updater* ml.bin
 
 install:
-	cp ml-60d-111.fir /media/EOS_DIGITAL/ && umount /media/EOS_DIGITAL 
+	cp $(UPDATE_NAME) /media/EOS_DIGITAL/ && umount /media/EOS_DIGITAL 

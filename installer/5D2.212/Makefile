@@ -67,4 +67,4 @@ clean:
 	rm -f *.fir *.o autoexec* magiclantern* updater* ml.bin
 
 install:
-	cp ml-5D2-212.fir /media/EOS_DIGITAL/ && umount /media/EOS_DIGITAL 
+	cp $(UPDATE_NAME) /media/EOS_DIGITAL/ && umount /media/EOS_DIGITAL 
