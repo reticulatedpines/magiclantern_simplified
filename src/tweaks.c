@@ -620,9 +620,9 @@ void clear_lv_afframe()
             // clear focus box (white pixels, and any black neighbouring pixels from bottom-right - shadow)
             if (p == COLOR_WHITE)
             {
-                for (int di = 2; di >= 0; di--)
+                for (int di = 2; di >= -1; di--)
                 {
-                    for (int dj = 2; dj >= 0; dj--)
+                    for (int dj = 2; dj >= -1; dj--)
                     {
                         int p = Pr(j+dj,i+di);
                         if (p == COLOR_WHITE || p == COLOR_BLACK)
