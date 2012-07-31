@@ -53,7 +53,7 @@ void play_continuous_test() // doesn't work well, it pauses
 }
 
 
-void cordic_ex(int theta, int* s, int* c, int n)
+static void cordic_ex(int theta, int* s, int* c, int n)
 {
     theta = mod(theta + 2*half_pi, 4*half_pi) - 2*half_pi; // range: -pi...pi
     if (theta < -half_pi || theta > half_pi)
