@@ -113,3 +113,8 @@ void RefreshBatteryLevel_1Hz()
 	}
 	old_battery_level = battery_level;
 }
+
+void* AllocateMemory(size_t size) // this won't throw ERR70
+{
+	return AllocateMemory_do(*(int*)0x2F80, size);
+}

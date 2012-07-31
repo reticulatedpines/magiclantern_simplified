@@ -107,7 +107,8 @@ NSTUB( 0x55500, vram_info )
  
 NSTUB( 0xff01891c, malloc )     
 NSTUB( 0xff018974, free )
-NSTUB( 0xff06f934, AllocateMemory ) 
+NSTUB( 0xff06f934, _AllocateMemory ) 
+NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure 
 NSTUB( 0xFF06FCC4, FreeMemory )
  	
 NSTUB( 0x2D1C, dm_names )                // in DebugMsg, before the 1st loop target
