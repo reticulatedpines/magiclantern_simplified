@@ -84,6 +84,7 @@ CONFIG_INT("audio.monitoring", audio_monitoring, 1);
 #endif
 int do_draw_meters = 0;
 
+
 /*
 int ext_cfg_draw_meters(void)
 {
@@ -414,8 +415,6 @@ int audio_meters_are_drawn()
 static void
 meter_task( void* unused )
 {
-        audio_menus_init();
-        
         TASK_LOOP
         {
                 msleep(DISPLAY_IS_ON ? 50 : 500);
@@ -828,6 +827,11 @@ int get_mic_power(int input_source)
 static void
 audio_configure( int force )
 {
+    #ifdef CONFIG_5D2
+    extern int beep_playing;
+    if (beep_playing) return; // don't interrupt beeps while playing
+    #endif
+    
 #ifdef CONFIG_600D
         return;
 #endif
@@ -1075,8 +1079,8 @@ audio_dgain_display( void * priv, int x, int y, int selected )
                FONT(fnt, val ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
                // 23456789012
-               "%s-DigitalGain : %d dB",
-               priv == &dgain_l ? "L" : "R",
+               "%s Digital Gain : %d dB",
+               priv == &dgain_l ? "Left " : "Right",
                val
                );
         check_sound_recording_warning(x, y);
@@ -1315,22 +1319,30 @@ static struct menu_entry audio_menus[] = {
         },
 #ifndef CONFIG_500D
         {
-                .name = "L-DigitalGain",
-                .priv           = &dgain_l,
-                .select         = audio_dgain_toggle,
-                .select_reverse = audio_dgain_toggle_reverse,
-                .display        = audio_dgain_display,
-                .help = "Digital gain (LEFT). Any nonzero value reduces quality.",
-                .edit_mode = EM_MANY_VALUES,
-        },
-        {
-                .name = "R-DigitalGain",
-                .priv           = &dgain_r,
-                .select         = audio_dgain_toggle,
-                .select_reverse = audio_dgain_toggle_reverse,
-                .display        = audio_dgain_display,
-                .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
-                .edit_mode = EM_MANY_VALUES,
+            .name = "Digital Gain...", 
+            .select = menu_open_submenu, 
+            .help = "Digital gain (not recommended, use only for headphones!)",
+            .children =  (struct menu_entry[]) {
+                {
+                        .name = "Left Digital Gain ",
+                        .priv           = &dgain_l,
+                        .select         = audio_dgain_toggle,
+                        .select_reverse = audio_dgain_toggle_reverse,
+                        .display        = audio_dgain_display,
+                        .help = "Digital gain (LEFT). Any nonzero value reduces quality.",
+                        .edit_mode = EM_MANY_VALUES,
+                },
+                {
+                        .name = "Right Digital Gain",
+                        .priv           = &dgain_r,
+                        .select         = audio_dgain_toggle,
+                        .select_reverse = audio_dgain_toggle_reverse,
+                        .display        = audio_dgain_display,
+                        .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
+                        .edit_mode = EM_MANY_VALUES,
+                },
+                MENU_EOL,
+            },
         },
 #endif
 #ifndef CONFIG_500D
@@ -1722,3 +1734,5 @@ void audio_reg_dump_600D()
 }
 #endif
 */
+
+INIT_FUNC("audio.init", audio_menus_init);

@@ -13,6 +13,17 @@
 #include "lens.h"
 #include "math.h"
 
+#ifdef CONFIG_4_3_SCREEN
+#define CONFIG_BLUE_LED 1
+#endif
+#ifdef CONFIG_BLUE_LED
+#define RECNOTIFY_LED (rec_notify == 3)
+#define RECNOTIFY_BEEP (rec_notify == 4)
+#else
+#define RECNOTIFY_LED 0
+#define RECNOTIFY_BEEP (rec_notify == 3)
+#endif
+
 void update_lvae_for_autoiso_n_displaygain();
 
 CONFIG_INT("hdmi.force.vga", hdmi_force_vga, 0);
@@ -629,12 +640,8 @@ static void rec_notify_print(
         rec_notify == 0 ? "OFF" :
         rec_notify == 1 ? "Red Crossout" :
         rec_notify == 2 ? "REC/STBY" :
-        #if !defined(CONFIG_5D2) && !defined(CONFIG_50D) && !defined(CONFIG_500D)
-        rec_notify == 3 ? "Beeps (start/stop)" :
-        #else
-        rec_notify == 3 ? "Blue LED" :
-        #endif
-        "err"
+        RECNOTIFY_BEEP  ? "Beeps (start/stop)" : 
+        RECNOTIFY_LED   ? "Blue LED" : "err"
     );
 }
 
@@ -642,7 +649,7 @@ void rec_notify_continuous(int called_from_menu)
 {
     if (!is_movie_mode()) return;
 
-    if (rec_notify == 3) // this is non-graphical notification, should also run when display is off
+    if (RECNOTIFY_LED) // this is non-graphical notification, should also run when display is off
     {
         static int k = 0;
         k++;
@@ -697,13 +704,20 @@ void rec_notify_continuous(int called_from_menu)
 void rec_notify_trigger(int rec)
 {
 #if !defined(CONFIG_600D)
-    if (rec_notify == 3)
+    if (RECNOTIFY_BEEP)
     {
         extern int ml_started;
-        if (rec != 2 && ml_started) { unsafe_beep(); info_led_on(); }
-        if (!rec) { msleep(100); beep(); info_led_off(); }
+        if (rec != 2 && ml_started) { unsafe_beep(); }
+        if (!rec) { msleep(200); unsafe_beep(); }
     }
 #endif
+
+    if (RECNOTIFY_LED)
+    {
+        extern int ml_started;
+        if (rec != 2 && ml_started) info_led_on();
+        if (!rec) info_led_off();
+    }
 
 #ifndef CONFIG_50D
     if (rec == 1 && sound_recording_mode == 1)
@@ -1036,7 +1050,9 @@ static struct menu_entry mov_menus[] = {
         .name = "REC/STBY notify", 
         .priv = &rec_notify, 
         .display = rec_notify_print, 
-        #ifndef CONFIG_600D
+        #ifdef CONFIG_5D2
+        .select = menu_quinternary_toggle, 
+        #elif defined(CONFIG_600D)
         .select = menu_quaternary_toggle, 
         #else
         .select = menu_ternary_toggle, 

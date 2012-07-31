@@ -202,3 +202,10 @@ NSTUB(0xff873440, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff873550, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0xff870af8, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff870518, GetMemoryAddressOfMemoryChunk)
+
+NSTUB(0xff85a890, PowerAudioOutput)
+NSTUB(0xff85828c, StartASIFDMADAC)
+NSTUB(0xFF858360, StopASIFDMADAC)
+NSTUB(0xFF859D74, SetSamplingRate )
+NSTUB(0xff85a344, SetAudioVolumeOut)
+
