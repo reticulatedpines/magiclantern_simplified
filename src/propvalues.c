@@ -24,7 +24,7 @@ volatile PROP_INT(PROP_LVAF_MODE, lvaf_mode);
 volatile PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
 volatile PROP_INT(PROP_MIRROR_DOWN, mirror_down);
 volatile PROP_INT(PROP_LCD_BRIGHTNESS, backlight_level);
-#if defined(CONFIG_5D2) || defined(CONFIG_60D)
+#if !defined(CONFIG_5D2) && !defined(CONFIG_60D) && !defined(CONFIG_600D)
 volatile PROP_INT(PROP_BEEP, beep_enabled);
 #endif
 volatile PROP_INT(PROP_LV_MOVIE_SELECT, lv_movie_select);

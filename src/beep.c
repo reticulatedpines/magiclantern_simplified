@@ -182,7 +182,7 @@ static void beep_task()
             generate_beep_tone(beep_buf, 5000);
             play_beep(beep_buf, 5000);
         }
-        msleep(500);
+        msleep(200);
     }
 }
 

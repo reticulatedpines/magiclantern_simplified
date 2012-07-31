@@ -207,7 +207,7 @@ static void dump_rom(void* priv)
 }
 #endif
 
-#if !defined(CONFIG_5D2) && !defined(CONFIG_60D) // see beep.c
+#if !defined(CONFIG_5D2) && !defined(CONFIG_60D) && !defined(CONFIG_600D) // see beep.c
 void unsafe_beep()
 {
     // on 60D, camera crashes after 105 beeps (figure out why!)

@@ -827,7 +827,7 @@ int get_mic_power(int input_source)
 static void
 audio_configure( int force )
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_60D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_60D) || defined(CONFIG_600D)
     extern int beep_playing;
     if (beep_playing) return; // don't interrupt beeps while playing
     #endif
@@ -1699,11 +1699,7 @@ void input_toggle()
 
 static void audio_menus_init()
 {
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
-        menu_add( "Audio", audio_menus, COUNT(audio_menus) );
-#else
-        menu_add( "Display", audio_menus, COUNT(audio_menus) );
-#endif
+    menu_add( "Audio", audio_menus, COUNT(audio_menus) );
 }
 
 /* Dump audio for 600D
