@@ -1146,7 +1146,7 @@ audio_alc_display( void * priv, int x, int y, int selected )
                FONT(fnt, alc_enable ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
                //23456789012
-               "AGC           : %s",
+               "AGC                : %s",
                alc_enable ? "ON " : "OFF"
                );
         check_sound_recording_warning(x, y);
@@ -1341,6 +1341,15 @@ static struct menu_entry audio_menus[] = {
                         .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
                         .edit_mode = EM_MANY_VALUES,
                 },
+                {
+                        .name = "AGC",
+                        .priv           = &alc_enable,
+                        .select         = audio_binary_toggle,
+                        .display        = audio_alc_display,
+                        .help = "Automatic Gain Control - turn it off :)",
+                        //~ .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
+                        //.essential = FOR_MOVIE, // nobody needs to toggle this, but newbies want to see "AGC:OFF", manual controls are not enough...
+                },
                 MENU_EOL,
             },
         },
@@ -1393,15 +1402,6 @@ static struct menu_entry audio_menus[] = {
                 .display        = audio_micpower_display,
                 .help = "Needed for int. and some other mics, but lowers impedance.",
                 //.essential = FOR_MOVIE,
-        },
-        {
-                .name = "AGC",
-                .priv           = &alc_enable,
-                .select         = audio_binary_toggle,
-                .display        = audio_alc_display,
-                .help = "Automatic Gain Control - turn it off :)",
-                //~ .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
-                //.essential = FOR_MOVIE, // nobody needs to toggle this, but newbies want to see "AGC:OFF", manual controls are not enough...
         },
         {
                 .name = "Output volume",
