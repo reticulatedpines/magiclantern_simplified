@@ -408,8 +408,12 @@ compute_audio_levels(
 
 int audio_meters_are_drawn()
 {
-        if (!SOUND_RECORDING_ENABLED)
+#ifdef CONFIG_600D
+// works without audio being enable in canon menu
+#else
+    if (!SOUND_RECORDING_ENABLED)
                 return 0;
+#endif
 
         return
       (
@@ -1350,6 +1354,9 @@ static void
 
 static void check_sound_recording_warning(int x, int y)
 {
+#ifdef CONFIG_600D
+    // works without audio being enable in canon menu
+#else
     if (!SOUND_RECORDING_ENABLED) 
     {
         if (was_sound_recording_disabled_by_fps_override())
@@ -1357,6 +1364,7 @@ static void check_sound_recording_warning(int x, int y)
         else
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
     }
+#endif
 }
 
 
