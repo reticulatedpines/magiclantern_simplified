@@ -102,8 +102,9 @@ NSTUB( 0xFF1E7C04, vram_get_pos_and_size )
 NSTUB( 0xFF018D58, malloc ) // maybe it's better to use Allocate/Free?
 NSTUB( 0xFF018DB0, free )
 
-NSTUB( 0xff0723f0, AllocateMemory ) // "[MEM] NG AllocateMemory"
+NSTUB( 0xff0723f0, _AllocateMemory ) // "[MEM] NG AllocateMemory"
 NSTUB( 0xFF072780, FreeMemory ) 
+NSTUB( 0xff072280, AllocateMemory_do) // no err70, malloc structure at 0x3070
 // FF05FECC WinSys_FreeMemory
 
 NSTUB( 0x2E0C, dm_names )                // in DebugMsg, before the 1st loop target
