@@ -424,6 +424,13 @@
 
 #define PROP_AEB 0x8000000B 
 
+
+#ifdef CONFIG_600D
+#define PROP_PLAYMODE_VOL_CHANGE_600D	0x205000F //volume change when playing a video by wheel
+#define PROP_AUDIO_VOL_CHANGE_600D	0x2050017 //volume change finished from Cannon Audio menu
+#define PROP_PLAYMODE_LAUNCH_600D	0x205000D //Playmode and Q(Quick setting menu) launched
+
+#endif
 /** Properties */
 extern void
 prop_register_slave(
