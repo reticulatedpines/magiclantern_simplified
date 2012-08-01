@@ -1563,7 +1563,7 @@ int handle_arrow_keys(struct event * event)
             {
                 case 1: out_volume_up(); break;
                 case 2: kelvin_toggle(-1, 1); break;
-                case 3: aperture_toggle(-1, 1); break;
+                case 3: aperture_toggle((void*)-1, 1); break;
                 case 4: adjust_saturation_level(1); break;
                 default: return 1;
             }
@@ -1577,7 +1577,7 @@ int handle_arrow_keys(struct event * event)
             {
                 case 1: out_volume_down(); break;
                 case 2: kelvin_toggle(-1, -1); break;
-                case 3: aperture_toggle(-1, -1); break;
+                case 3: aperture_toggle((void*)-1, -1); break;
                 case 4: adjust_saturation_level(-1); break;
                 default: return 1;
             }
@@ -1590,8 +1590,8 @@ int handle_arrow_keys(struct event * event)
             switch (arrow_keys_mode)
             {
                 case 1: volume_down(); break;
-                case 2: iso_toggle(-1, -1); break;
-                case 3: shutter_toggle(-1, -1); break;
+                case 2: iso_toggle((void*)-1, -1); break;
+                case 3: shutter_toggle((void*)-1, -1); break;
                 case 4: adjust_backlight_level(-1); break;
                 default: return 1;
             }
@@ -1604,8 +1604,8 @@ int handle_arrow_keys(struct event * event)
             switch (arrow_keys_mode)
             {
                 case 1: volume_up(); break;
-                case 2: iso_toggle(-1, 1); break;
-                case 3: shutter_toggle(-1, 1); break;
+                case 2: iso_toggle((void*)-1, 1); break;
+                case 3: shutter_toggle((void*)-1, 1); break;
                 case 4: adjust_backlight_level(1); break;
                 default: return 1;
             }
