@@ -35,7 +35,8 @@
 NSTUB( ROMBASEADDR, firmware_entry )       //0xff010000
 
 NSTUB(0xFF1E8B94, AcquireRecursiveLock)           // might be good (dumps=1, score=14)
-NSTUB(0xFF07096C, AllocateMemory)                 // might be good (dumps=1, score=1.7e+02)
+NSTUB(0xFF07096C, _AllocateMemory)                 // might be good (dumps=1, score=1.7e+02)
+NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
 NSTUB(0xFF31CAD8, CreateDialogBox)                // might be good (dumps=1, score=74)
 NSTUB(0xFF073A7C, CreateRecursiveLock)            // might be good (dumps=1, score=5.6)
 NSTUB(0xFF06C914, DryosDebugMsg)                       // might be good (dumps=1, score=1.1e+03)
@@ -185,3 +186,10 @@ NSTUB(0xff074b68, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff074c80, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0xff072114, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff071b5c, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature
+
+NSTUB(0xFF069E9C, PowerAudioOutput)
+NSTUB(0xff055678, StartASIFDMADAC)
+NSTUB(0xff05574c, StopASIFDMADAC)
+NSTUB(0xff069f88, SetSamplingRate )
+NSTUB(0xff069d88, SetAudioVolumeOut)
+

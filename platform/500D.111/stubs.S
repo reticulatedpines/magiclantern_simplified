@@ -197,3 +197,9 @@ NSTUB(0xff018338, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xff018180, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 
 NSTUB(0xff08eb90, SetGUIRequestMode)
+
+NSTUB(0xff056d70, PowerAudioOutput)
+NSTUB(0xff0537b0, StartASIFDMADAC)
+NSTUB(0xff053880, StopASIFDMADAC)
+NSTUB(0xFF056584, SetSamplingRate )
+NSTUB(0xff056810, SetAudioVolumeOut)

@@ -207,39 +207,6 @@ static void dump_rom(void* priv)
 }
 #endif
 
-#if !defined(CONFIG_5D2) && !defined(CONFIG_60D) && !defined(CONFIG_600D) // see beep.c
-void unsafe_beep()
-{
-    // on 60D, camera crashes after 105 beeps (figure out why!)
-    static int beep_count = 0;
-    beep_count++;
-    if (beep_count > 20) return;
-    
-    take_semaphore(beep_sem, 0);
-    call("StartPlayWaveData");
-    msleep(100);
-    call("StopPlayWaveData");
-    give_semaphore(beep_sem);
-}
-
-void beep()
-{
-    if (!recording) // breaks audio
-        unsafe_beep();
-}
-
-void beep_task()
-{
-    if (!recording) // breaks audio
-        unsafe_beep();
-}
-
-void Beep()
-{
-    task_create("beep", 0x1c, 0, beep_task, 0);
-}
-#endif
-
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
 unsigned int rand (void)
 {

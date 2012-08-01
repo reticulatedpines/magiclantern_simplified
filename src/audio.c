@@ -827,10 +827,8 @@ int get_mic_power(int input_source)
 static void
 audio_configure( int force )
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_60D) || defined(CONFIG_600D)
     extern int beep_playing;
     if (beep_playing) return; // don't interrupt beeps while playing
-    #endif
     
 #ifdef CONFIG_600D
         return;

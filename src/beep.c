@@ -3,6 +3,16 @@
 #include "config.h"
 #include "cordic-16bit.h"
 
+int beep_playing = 0;
+
+#if defined(CONFIG_50D) || defined(CONFIG_5DC) // beep not working, keep dummy stubs
+    void unsafe_beep(){}
+    void beep(){}
+    void Beep(){}
+    int beep_enabled = 0;
+#else // beep working
+
+
 CONFIG_INT("beep.enabled", beep_enabled, 1);
 CONFIG_INT("beep.volume", beep_volume, 3);
 CONFIG_INT("beep.freq.idx", beep_freq_idx, 11); // 1 KHz
@@ -14,7 +24,6 @@ static void generate_beep_tone(int16_t* buf, int N);
 
 static int16_t beep_buf[5000];
 
-int beep_playing = 0;
 static void asif_stopped_cbr()
 {
     beep_playing = 0;
@@ -252,3 +261,5 @@ static void beep_init()
 }
 
 INIT_FUNC("beep.init", beep_init);
+
+#endif
