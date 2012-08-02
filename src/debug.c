@@ -13,6 +13,7 @@
 #include "plugin.h"
 #include "version.h"
 //#include "lua.h"
+static void audio_reg_dump( int force );
 
 #define CONFIG_STRESS_TEST
 //~ #define CONFIG_HEXDUMP
@@ -533,6 +534,8 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
+    audio_reg_dump(1);
+
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)

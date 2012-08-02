@@ -1016,7 +1016,7 @@ audio_ic_set_input(){
 			audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_EXT); //
 			audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_INT); // 
 			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //
-            audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON | ML_AMP_VOLFUNC_ENA_AVMUTE );
+            audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON );
             audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
 			break;
     case 2:// LR external
