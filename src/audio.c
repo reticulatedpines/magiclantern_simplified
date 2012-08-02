@@ -414,7 +414,8 @@ int audio_meters_are_drawn()
      is_movie_mode() && cfg_draw_meters && do_draw_meters && (zebra_should_run() || get_halfshutter_pressed()) && !gui_menu_shown()
      )
     ||
-    (gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
+    (
+     gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
     );
 }
 /** Task to monitor the audio levels.
