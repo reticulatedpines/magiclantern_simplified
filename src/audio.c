@@ -95,9 +95,6 @@ CONFIG_INT("audio.monitoring", audio_monitoring, 0);
 #else
 CONFIG_INT("audio.monitoring", audio_monitoring, 1);
 #endif
-
-
-
 int do_draw_meters = 0;
 
 
@@ -229,47 +226,47 @@ draw_meter(
         const uint32_t pitch = BMPPITCH;
         uint32_t * row = (uint32_t*) bmp_vram();
         if( !row )
-            return;
+                return;
     
         // Skip to the desired y coord and over the
         // space for the numerical levels
         // .. and the space for showing the channel and source.
         row += (pitch/4) * y_origin + AUDIO_METER_OFFSET + x_origin/4;
-            
+    
         const int db_peak_fast = audio_level_to_db( level->peak_fast );
         const int db_peak = audio_level_to_db( level->peak );
-        
+    
         // levels go from -40 to 0, so -40 * 12 == 520 (=width)
         const uint32_t x_db_peak_fast = (width + db_peak_fast * 13) / 4;
         const uint32_t x_db_peak = (width + db_peak * 13) / 4;
-        
+    
         const uint8_t bar_color = db_to_color( db_peak_fast );
         const uint8_t peak_color = db_peak_to_color( db_peak );
-        
+    
         const uint32_t bar_color_word = color_word( bar_color );
         const uint32_t peak_color_word = color_word( peak_color );
         const uint32_t bg_color_word = color_word(COLOR_BLACK);
-        
+    
         // Write the meter an entire scan line at a time
         int y;
         for( y=0 ; y<meter_height ; y++, row += pitch/4 )
         {
-            uint32_t x;
-            for( x=0 ; x<width/4 ; x++ )
+                uint32_t x;
+                for( x=0 ; x<width/4 ; x++ )
                 {
-                    if( x < x_db_peak_fast )
-                        row[x] = bar_color_word;
-                    else
-                        if( x < x_db_peak )
-                            row[x] = bg_color_word;
+                        if( x < x_db_peak_fast )
+                                row[x] = bar_color_word;
                         else
-                            if( x < x_db_peak + 4 )
-                                row[x] = peak_color_word;
-                            else
-                                row[x] = bg_color_word;
+                if( x < x_db_peak )
+                    row[x] = bg_color_word;
+                else
+                    if( x < x_db_peak + 4 )
+                        row[x] = peak_color_word;
+                    else
+                        row[x] = bg_color_word;
                 }
         }
-        
+    
         // Write the current level
         bmp_printf( FONT(FONT_SMALL, COLOR_WHITE, COLOR_BLACK), x_origin, y_origin, "%s %02d", label, MIN(db_peak, -1) );
 }
@@ -286,7 +283,7 @@ draw_ticks(
         const uint32_t pitch = BMPPITCH;
         uint32_t * row = (uint32_t*) bmp_vram();
         if( !row )
-            return;
+                return;
         row += (pitch/4) * y + AUDIO_METER_OFFSET - 2 + x/4;//seems to need less of an offset
     
         const uint32_t white_word = 0
@@ -294,16 +291,16 @@ draw_ticks(
     | ( COLOR_WHITE << 16 )
     | ( COLOR_WHITE <<  8 )
     | ( COLOR_WHITE <<  0 );
-        
+    
         for( ; tick_height > 0 ; tick_height--, row += pitch/4 )
-            {
+        {
                 int db;
                 for( db=-40; db<= 0 ; db+=5 )
-                    {
+                {
                         const uint32_t x_db = width + db * 13;
                         row[x_db/4] = white_word;
-                    }
-            }
+                }
+        }
 }
 
 static int audio_cmd_to_gain_x1000(int cmd);
@@ -418,13 +415,14 @@ int audio_meters_are_drawn()
                 return 0;
 #endif
 
-        return
-      (
-       is_movie_mode() && cfg_draw_meters && do_draw_meters && (zebra_should_run() || get_halfshutter_pressed()) && !gui_menu_shown()
+        return 
+    (
+     is_movie_mode() && cfg_draw_meters && do_draw_meters && (zebra_should_run() || get_halfshutter_pressed()) && !gui_menu_shown()
      )
     ||
-    (gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
-    );
+    (
+     gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
+     );
 }
 /** Task to monitor the audio levels.
  *
@@ -1194,103 +1192,96 @@ audio_configure( int force )
 
 #else /* ^^^^^^^CONFIG_600D^^^^^^^ vvvvv except 600D vvvvvvvv*/
 
+        int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
 
-	int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
-#ifdef CONFIG_500D //500d only has internal mono audio :(
-	int input_source = 0;
-#else 
-	int input_source = get_input_source();
-#endif
-	
-    audio_set_meterlabel();
-
-	if( !force )
-	{
-		// Check for ALC configuration; do nothing if it is
-		// already disabled
-		if( audio_ic_read( AUDIO_IC_ALC1 ) == gain.alc1
+        audio_set_meterlabel();
+    
+        if( !force )
+        {
+                // Check for ALC configuration; do nothing if it is
+                // already disabled
+                if( audio_ic_read( AUDIO_IC_ALC1 ) == gain.alc1
            &&  audio_ic_read( AUDIO_IC_SIG1 ) == gain.sig1
            &&  audio_ic_read( AUDIO_IC_SIG2 ) == gain.sig2
            )
-			return;
-		DebugMsg( DM_AUDIO, 3, "%s: Reseting user settings", __func__ );
-	}
-
-	//~ static int iter=0;
-	//~ bmp_printf(FONT_MED, 0, 70, "audio configure(%d)", iter++);
+                        return;
+                DebugMsg( DM_AUDIO, 3, "%s: Reseting user settings", __func__ );
+        }
+        
+        //~ static int iter=0;
+        //~ bmp_printf(FONT_MED, 0, 70, "audio configure(%d)", iter++);
     
-	audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
-	
-	//mic_power is forced on if input source is 0 or 1
-	int mic_pow = get_mic_power(input_source);
+        audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
+        
+        //mic_power is forced on if input source is 0 or 1
+        int mic_pow = get_mic_power(input_source);
     
-	audio_ic_write( AUDIO_IC_SIG1
+        audio_ic_write( AUDIO_IC_SIG1
                    | 0x10
                    | ( mic_pow ? 0x4 : 0x0 )
                    ); // power up, no gain
     
-	audio_ic_write( AUDIO_IC_SIG2
+        audio_ic_write( AUDIO_IC_SIG2
                    | 0x04 // external, no gain
                    | ( lovl & 0x3) << 0 // line output level
                    );
-	
-	
+        
+        
+    
 #ifdef CONFIG_500D
     audio_ic_write( AUDIO_IC_SIG4 | pm3[input_source] );
 #else
     //PM3 is set according to the input choice
-	audio_ic_write( AUDIO_IC_PM3 | pm3[input_source] );
+        audio_ic_write( AUDIO_IC_PM3 | pm3[input_source] );
 #endif
     
-	gain.alc1 = alc_enable ? (1<<5) : 0;
-	audio_ic_write( AUDIO_IC_ALC1 | gain.alc1 ); // disable all ALC
+        gain.alc1 = alc_enable ? (1<<5) : 0;
+        audio_ic_write( AUDIO_IC_ALC1 | gain.alc1 ); // disable all ALC
     
 #ifndef CONFIG_500D
-	// Control left/right gain independently
-	audio_ic_write( AUDIO_IC_MODE4 | 0x00 );
-	
-	audio_ic_set_input_volume( 0, dgain_r );
-	audio_ic_set_input_volume( 1, dgain_l );
+        // Control left/right gain independently
+        audio_ic_write( AUDIO_IC_MODE4 | 0x00 );
+        
+        audio_ic_set_input_volume( 0, dgain_r );
+        audio_ic_set_input_volume( 1, dgain_l );
 #endif
-	
-	audio_ic_set_mgain( mgain );
+        
+        audio_ic_set_mgain( mgain );
     
 #ifdef CONFIG_500D
-	// nothing here yet.
+// nothing here yet.
 #else
-	
-#ifndef CONFIG_550D // no sound with external mic?!
-	audio_ic_write( AUDIO_IC_FIL1 | (enable_filters ? 0x1 : 0));
-#endif
-	
-	// Enable loop mode and output digital volume2
-	uint32_t mode3 = audio_ic_read( AUDIO_IC_MODE3 );
-	mode3 &= ~0x5C; // disable loop, olvc, datt0/1
-	audio_ic_write( AUDIO_IC_MODE3
-				   | mode3                              // old value
-				   | loopback << 6              // loop mode
-				   | (o2gain & 0x3) << 2        // output volume
-				   );
+
+        #ifndef CONFIG_550D // no sound with external mic?!
+        audio_ic_write( AUDIO_IC_FIL1 | (enable_filters ? 0x1 : 0));
+        #endif
+        
+        // Enable loop mode and output digital volume2
+        uint32_t mode3 = audio_ic_read( AUDIO_IC_MODE3 );
+        mode3 &= ~0x5C; // disable loop, olvc, datt0/1
+        audio_ic_write( AUDIO_IC_MODE3
+                                   | mode3                              // old value
+                                   | loopback << 6              // loop mode
+                                   | (o2gain & 0x3) << 2        // output volume
+                                   );
 #endif /* CONFIG_500D nothing here yet*/
 #endif /* CONFIG_600D */
     
-	//draw_audio_regs();
-	/*bmp_printf( FONT_SMALL, 500, 450,
+        //draw_audio_regs();
+        /*bmp_printf( FONT_SMALL, 500, 450,
      "Gain %d/%d Mgain %d Src %d",
      dgain_l,
      dgain_r,
      mgain_index2gain(mgain),
      input_source
      );*/
-
     
-	DebugMsg( DM_AUDIO, 3,
+        DebugMsg( DM_AUDIO, 3,
              "Gain mgain=%d dgain=%d/%d",
              mgain_index2gain(mgain),
              dgain_l,
              dgain_r
              );
-
 }
 
 
@@ -1464,15 +1455,15 @@ audio_dgain_display( void * priv, int x, int y, int selected )
 #ifdef CONFIG_600D
                FONT(fnt, dgainval > 0 ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
-               "%s-DigitalGain : %d ",
-               priv == &dgain_l ? "L" : "R",
+               "%s Digital Gain : %d ",
+               priv == &dgain_l ? "Left " : "Right",
                dgainval
 #else
                FONT(fnt, val ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
                // 23456789012
-               "%s-DigitalGain : %d dB",
-               priv == &dgain_l ? "L" : "R",
+               "%s Digital Gain : %d dB",
+               priv == &dgain_l ? "Left " : "Right",
                val
 #endif
                );
