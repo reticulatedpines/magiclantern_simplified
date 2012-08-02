@@ -71,9 +71,10 @@ CONFIG_INT( "audio.enable_dc",      cfg_filter_dc,        0 );
 CONFIG_INT( "audio.enable_hpf2",    cfg_filter_hpf2,      0 );
 CONFIG_INT( "audio.hpf2config",     cfg_filter_hpf2config,7 );
 
-CONFIG_INT( "audio.dgain.l",        dgain_l,          8 );
-CONFIG_INT( "audio.dgain.r",        dgain_r,          8 );
-CONFIG_INT( "audio.filters",        enable_filters,   0 ); 
+CONFIG_INT( "audio.dgain",          cfg_recdgain,       140 );
+CONFIG_INT( "audio.dgain.l",        dgain_l,              8 );
+CONFIG_INT( "audio.dgain.r",        dgain_r,              8 );
+CONFIG_INT( "audio.filters",        enable_filters,       0 ); 
 #else
 CONFIG_INT( "audio.dgain.l",    dgain_l,        0 );
 CONFIG_INT( "audio.dgain.r",    dgain_r,        0 );
@@ -1031,7 +1032,7 @@ audio_ic_set_input(){
 			audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_DIFFER_LR); //
 			audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_INT); // 
 			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //
-            audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON | ML_AMP_VOLFUNC_ENA_AVMUTE );
+            audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON);
             audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
 			break;
 	}
@@ -1091,6 +1092,12 @@ static void
 audio_ic_set_lineout_vol(){
     int vol = lovl + 0x0E;
     audio_ic_write(ML_HP_AMP_VOL | vol);
+}
+
+static void
+audio_ic_set_recdgain(){
+    int vol = 0xff - cfg_recdgain;
+    masked_audio_ic_write(ML_REC_DIGI_VOL, 0x70, vol);
 }
 
 
@@ -1732,6 +1739,35 @@ audio_filters_toggle_reverse( void * priv, int delta )
     audio_ic_set_filters();
 }
 
+static void
+audio_recdgain_toggle( void * priv, int delta )
+{
+    menu_numeric_toggle(priv, 4, 0, 140); //actually 143 but delta is 4 so we are using 140
+    audio_ic_set_recdgain();
+}
+
+static void
+audio_recdgain_toggle_reverse( void * priv, int delta )
+{
+    menu_numeric_toggle(priv, -4, 0, 140);
+    audio_ic_set_recdgain();
+}
+
+static void
+audio_recdgain_display( void * priv, int x, int y, int selected )
+{
+        bmp_printf(
+               selected ? MENU_FONT_SEL : MENU_FONT,
+               x, y,
+               "Rec Digital gain : -%d ",
+               *(unsigned*) priv
+               );
+        check_sound_recording_warning(x, y);
+        menu_draw_icon(x, y, MNI_PERCENT, 100 - (*(unsigned*) priv *140 /100));
+}
+
+
+
 #endif
 
 void audio_filters_display( void * priv, int x, int y, int selected )
@@ -1888,6 +1924,15 @@ static struct menu_entry audio_menus[] = {
             .select = menu_open_submenu, 
             .help = "Digital gain (not recommended, use only for headphones!)",
             .children =  (struct menu_entry[]) {
+                {
+                        .name = "Record Digital Volume ",
+                        .priv           = &cfg_recdgain,
+                        .select         = audio_recdgain_toggle,
+                        .select_reverse = audio_recdgain_toggle_reverse,
+                        .display        = audio_recdgain_display,
+                        .help = "Record Digital Volume. ",
+                        .edit_mode = EM_MANY_VALUES,
+                },
                 {
                         .name = "Left Digital Gain ",
                         .priv           = &dgain_l,
