@@ -408,12 +408,12 @@ compute_audio_levels(
 
 int audio_meters_are_drawn()
 {
-#ifdef CONFIG_600D
-// works without audio being enable in canon menu
-#else
+/*#ifdef CONFIG_600D
+// works without audio being enable in canon menu but not records audio, yet
+#else*/
     if (!SOUND_RECORDING_ENABLED)
                 return 0;
-#endif
+//#endif
 
         return 
     (
@@ -1196,10 +1196,10 @@ audio_configure( int force )
 #endif
 
 #ifdef CONFIG_600D
-        if(cfg_override_audio == 0){
-            audio_ic_off();
-            return;
-        }
+    if(cfg_override_audio == 0){
+        audio_ic_off();
+        return;
+    }
     audio_ic_on();
 	int msg;
 
@@ -1380,9 +1380,9 @@ static void
 
 static void check_sound_recording_warning(int x, int y)
 {
-#ifdef CONFIG_600D
-    // works without audio being enable in canon menu
-#else
+/*#ifdef CONFIG_600D
+    // works without audio being enable in canon menu but not records audio, yet
+#else*/
     if (!SOUND_RECORDING_ENABLED) 
     {
         if (was_sound_recording_disabled_by_fps_override())
@@ -1390,7 +1390,7 @@ static void check_sound_recording_warning(int x, int y)
         else
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
     }
-#endif
+//#endif
 }
 
 
@@ -1498,7 +1498,7 @@ audio_dgain_display( void * priv, int x, int y, int selected )
         check_sound_recording_warning(x, y);
         if (!alc_enable){
 #ifdef CONFIG_600D
-            menu_draw_icon(x, y, MNI_PERCENT, 100 - (val *50/8));
+            menu_draw_icon(x, y, MNI_PERCENT, val * 50 / 8);
 #else
             menu_draw_icon(x, y, MNI_PERCENT, val * 100 / 36);
 #endif
