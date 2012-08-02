@@ -2207,6 +2207,23 @@ void lcd_adjust_position_step()
     }
 }
 
+CONFIG_INT("display.shake", display_shake, 0);
+
+// called from LV state object, once per frame
+// this updates only odd frames; combined with the triple buffering scheme, 
+// this will exaggerate motion and camera shake
+void display_shake_step()
+{
+    if (!display_shake) return;
+    if (!lv) return;
+    if (!DISPLAY_IS_ON) return;
+    if (hdmi_code == 5) return;
+    static int k; k++;
+    if (k%2) return;
+    if (MEM(REG_EDMAC_WRITE_LV_ADDR) & 0xFFFF != YUV422_LV_BUFFER_1 & 0xFFFF) return;
+    MEM(REG_EDMAC_WRITE_LV_ADDR) += (vram_lv.pitch * vram_lv.height);
+}
+
 extern int clearscreen_enabled;
 extern int clearscreen_mode;
 extern void clearscreen_display( void * priv, int x, int y, int selected);
@@ -2282,6 +2299,12 @@ static struct menu_entry display_menus[] = {
             MENU_EOL
         },
         //.essential = FOR_LIVEVIEW,
+    },
+    {
+        .name = "Display Shake  ",
+        .priv     = &display_shake,
+        .max = 1,
+        .help = "Emphasizes camera shake on LiveView display.",
     },
 #ifdef CONFIG_KILL_FLICKER
     {
