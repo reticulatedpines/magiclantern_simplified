@@ -1445,15 +1445,15 @@ audio_dgain_display( void * priv, int x, int y, int selected )
 #ifdef CONFIG_600D
                FONT(fnt, dgainval > 0 ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
-               "%s-DigitalGain : %d ",
-               priv == &dgain_l ? "L" : "R",
+               "%s Digital Gain : %d ",
+               priv == &dgain_l ? "Left" : "Right",
                dgainval
 #else
                FONT(fnt, val ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
                // 23456789012
-               "%s-DigitalGain : %d dB",
-               priv == &dgain_l ? "L" : "R",
+               "%s Digital Gain : %d dB",
+               priv == &dgain_l ? "Left" : "Right",
                val
 #endif
                );
