@@ -709,7 +709,6 @@ static uint16_t audio_regs[] = {
     ML_PW_SPAMP_PW_MNG-0x100,
     ML_PW_ZCCMP_PW_MNG-0x100,
     ML_MICBIAS_VOLT-0x100,
-    ML_PW_MIC_IN_VOL-0x100,
     ML_MIC_IN_VOL-0x100,
     ML_MIC_BOOST_VOL1-0x100,
     ML_MIC_BOOST_VOL2-0x100,
@@ -756,7 +755,6 @@ static const char * audio_reg_names[] = {
     "ML_PW_SPAMP_PW_MNG",
     "ML_PW_ZCCMP_PW_MNG",
     "ML_MICBIAS_VOLT",
-    "ML_PW_MIC_IN_VOL",
     "ML_MIC_IN_VOL",
     "ML_MIC_BOOST_VOL1",
     "ML_MIC_BOOST_VOL2",
@@ -963,7 +961,7 @@ override_audio_setting(int phase){
 			audio_ic_write(ML_RECPLAY_STATE | 0x11); //
 			audio_ic_write(ML_PW_IN_PW_MNG | 0x0a);   //DAC(0010) and PGA(1000) power on
 			audio_ic_write(ML_DVOL_CTL_FUNC_EN | 0x2E);        //All(Play,Capture,DigitalVolFade,DigitalVol) switched on
-			audio_ic_write(ML_PW_MIC_IN_VOL | 0x3f);   
+			audio_ic_write(ML_MIC_IN_VOL | 0x3f);   
 			audio_ic_write(ML_FILTER_EN | 0x0f);       //All filter on
 			
 			//        audio_configure(0);
@@ -989,14 +987,14 @@ audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
 
 static void
 audio_ic_set_analog_gain(){
-	int volumes[] = { 0x00, 0x01, 0x03, 0x07, 0x0f, 0x10, 0x1f, 0x30, 0x3f};
+	int volumes[] = { 0x00, 0x01, 0x03, 0x07, 0x0f, 0x10, 0x1f, 0x3f};
     //mic in vol 0-7 0b1-0b111111
 	if(cfg_analog_gain > 7){
         int boost_vol = cfg_analog_gain - 7;
-        audio_ic_write(ML_PW_MIC_IN_VOL   | volumes[7]);   //override mic in volume
+        audio_ic_write(ML_MIC_IN_VOL   | volumes[7]);   //override mic in volume
         audio_ic_set_micboost(boost_vol);
     }else{
-        audio_ic_write(ML_PW_MIC_IN_VOL   | volumes[cfg_analog_gain]);   //override mic in volume
+        audio_ic_write(ML_MIC_IN_VOL   | volumes[cfg_analog_gain]);   //override mic in volume
         audio_ic_set_micboost(0);
     } 	
 }
@@ -1077,7 +1075,7 @@ audio_ic_set_agc(){
 static void
 audio_ic_off(){
     audio_ic_write(ML_MIC_BOOST_VOL2 | 0x01);
-    audio_ic_write(ML_PW_MIC_IN_VOL | 0x10);
+    audio_ic_write(ML_MIC_IN_VOL | 0x10);
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x02);
     audio_ic_write(ML_RECPLAY_STATE | 0x00);
     audio_ic_write(ML_MIC_IN_VOL | 0x10);
