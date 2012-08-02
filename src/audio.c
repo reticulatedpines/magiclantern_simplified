@@ -1447,15 +1447,20 @@ audio_dgain_display( void * priv, int x, int y, int selected )
 {
         unsigned val = *(unsigned*) priv;
         unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
+#ifdef CONFIG_600D
+        int dgainval = get_dgain_val(priv == &dgain_l ? 1 : 0);
+#endif
         bmp_printf(
+#ifdef CONFIG_600D
+               FONT(fnt, dgainval > 0 ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
+               x, y,
+               "%s-DigitalGain : %d ",
+               priv == &dgain_l ? "L" : "R",
+               dgainval
+#else
                FONT(fnt, val ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
                // 23456789012
-#ifdef CONFIG_600D
-               "%s-DigitalGain : %d dB",
-               priv == &dgain_l ? "L" : "R",
-               get_dgain_val(priv == &dgain_l ? 1 : 0)
-#else
                "%s-DigitalGain : %d dB",
                priv == &dgain_l ? "L" : "R",
                val
@@ -1463,7 +1468,9 @@ audio_dgain_display( void * priv, int x, int y, int selected )
                );
         check_sound_recording_warning(x, y);
         if (!alc_enable){
-#ifndef CONFIG_600D
+#ifdef CONFIG_600D
+            menu_draw_icon(x, y, MNI_PERCENT, 100 - (val *50/8));
+#else
             menu_draw_icon(x, y, MNI_PERCENT, val * 100 / 36);
 #endif
         }else{
@@ -1642,7 +1649,9 @@ static void override_audio_toggle( void * priv, int delta )
 
 static void analog_gain_display( void * priv, int x, int y, int selected )
 {
-    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
+    unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
+    bmp_printf(
+               FONT(fnt, cfg_analog_gain > 7 ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
                "Analog gain(0-12) : %d", 
                cfg_analog_gain
@@ -1753,17 +1762,37 @@ audio_recdgain_toggle_reverse( void * priv, int delta )
     audio_ic_set_recdgain();
 }
 
+static int
+get_recdgain_val(int val){
+    if(val == 0){
+        return 0;
+    }else if(val == 3){
+        cfg_recdgain = 0;
+        return 0;
+    }else{
+        return -val;
+    }
+}
 static void
 audio_recdgain_display( void * priv, int x, int y, int selected )
 {
         bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
-               "Rec Digital gain : -%d ",
-               *(unsigned*) priv
+               "Rec Digital gain : %d ",
+               get_recdgain_val(*(unsigned*) priv)
                );
         check_sound_recording_warning(x, y);
-        menu_draw_icon(x, y, MNI_PERCENT, 100 - (*(unsigned*) priv *140 /100));
+        if (!alc_enable){
+#ifdef CONFIG_600D
+            menu_draw_icon(x, y, MNI_PERCENT, 100 - (*(unsigned*) priv *140 /100));
+#else
+            menu_draw_icon(x, y, MNI_PERCENT, val * 100 / 36);
+#endif
+        }else{
+            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "AGC is enabled");
+        }
+
 }
 
 
