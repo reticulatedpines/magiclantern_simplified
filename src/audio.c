@@ -416,7 +416,7 @@ int audio_meters_are_drawn()
     ||
     (
      gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
-    );
+     );
 }
 /** Task to monitor the audio levels.
  *
