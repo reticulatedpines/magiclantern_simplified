@@ -973,15 +973,15 @@ override_audio_setting(int phase){
 struct msg_queue * override_audio_q = NULL;
 static void
 audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
-    if(lv > 8 ) lv = 8;
+    if(lv > 7 ) lv = 6;
 
     if(lv < 4){
-        audio_ic_write(ML_MIC_BOOST_VOL2 | 0x0);
         audio_ic_write(ML_MIC_BOOST_VOL1 | lv<<4);
+        audio_ic_write(ML_MIC_BOOST_VOL2 | 0x0);
     }else{
-        audio_ic_write(ML_MIC_BOOST_VOL2 | 0x1);
         lv = lv & 0x03;
         audio_ic_write(ML_MIC_BOOST_VOL1 | lv<<4);
+        audio_ic_write(ML_MIC_BOOST_VOL2 | 0x1);
     }
 }
 
@@ -1637,7 +1637,7 @@ static void analog_gain_display( void * priv, int x, int y, int selected )
 {
     bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
-               "Analog gain(0-16) : %d", 
+               "Analog gain(0-12) : %d", 
                cfg_analog_gain
                );
     menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_gain)/16);
@@ -1645,12 +1645,12 @@ static void analog_gain_display( void * priv, int x, int y, int selected )
 }
 static void analog_gain_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 1, 0, 16);
+    menu_numeric_toggle(priv, 1, 0, 12);
     audio_ic_set_analog_gain();
 }
 static void analog_gain_toggle_reverse( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, -1, 0, 16);
+    menu_numeric_toggle(priv, -1, 0, 12);
     audio_ic_set_analog_gain();
 }
 
@@ -1867,7 +1867,7 @@ static struct menu_entry audio_menus[] = {
             .select         = analog_gain_toggle,
             .select_reverse = analog_gain_toggle_reverse,
             .display        = analog_gain_display,
-            .help = "Analog gain (0-16)",
+            .help = "Analog gain (0-7 mic vol)(8-12 boost)",
 
         },
 #else /* ^^^CONFIG_600D^^^ vvv except 600D vvv */
