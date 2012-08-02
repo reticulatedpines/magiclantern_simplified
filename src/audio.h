@@ -229,7 +229,14 @@ audio_ic_sweep_message_queue( void );
 #define ML_AMP_VOLFUNC_ENA_AVMUTE	0x02 
 
 #define ML_AMP_VOL_FADE		0x4b00 /* Amplifier Volume Fader Control */
-
+#define ML_AMP_VOL_FADE_0		0x00 //    1/fs ￼	20.8us
+#define ML_AMP_VOL_FADE_1		0x01 //     4/fs ￼	83.3us
+#define ML_AMP_VOL_FADE_2		0x02 //    16/fs ￼	 333us
+#define ML_AMP_VOL_FADE_3		0x03 //    64/fs ￼	1.33ms
+#define ML_AMP_VOL_FADE_4		0x04 //   256/fs ￼	5.33ms
+#define ML_AMP_VOL_FADE_5		0x05 //  1024/fs ￼	21.3ms
+#define ML_AMP_VOL_FADE_6		0x06 //  4096/fs ￼	85.3ms
+#define ML_AMP_VOL_FADE_7		0x07 // 16384/fs 	 341ms
 
 /* Analog Path Control Register */
 #define ML_SPK_AMP_OUT		0x5500 /* DAC Switch + Line in loopback Switch + PGA Switch */ /* Speaker AMP Output Control */
@@ -243,7 +250,7 @@ audio_ic_sweep_message_queue( void );
 #define ML_MIC_IF_CTL_ANALOG_SINGLE  0x00
 #define ML_MIC_IF_CTL_ANALOG_DIFFER  0x02
 #define ML_MIC_IF_CTL_DIGITAL_SINGLE 0x01
-#define ML_MIC_IF_CTL_DIGITAL_DIFFER 0x03
+//#define ML_MIC_IF_CTL_DIGITAL_DIFFER 0x03 "This register is to select the usage of analog microphone input interface(MIN)" so I suspect this will not work...
 
 #define ML_RCH_MIXER_INPUT	0xe100 /* R-ch mic select */
 #define ML_RCH_MIXER_INPUT_SINGLE_EXT	0x01
