@@ -1640,7 +1640,7 @@ static void analog_gain_display( void * priv, int x, int y, int selected )
                "Analog gain(0-12) : %d", 
                cfg_analog_gain
                );
-    menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_gain)/16);
+    menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_gain)/12);
 
 }
 static void analog_gain_toggle( void * priv, int delta )
