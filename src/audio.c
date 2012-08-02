@@ -1104,19 +1104,18 @@ audio_ic_off(){
 
 static void
 audio_ic_on(){
-    //    audio_ic_write(ML_MIC_BOOST_VOL2 | 0x01);
-    audio_ic_write(ML_MIC_BOOST_VOL1 | 0x03); // max boost1
-    audio_ic_write(ML_MIC_BOOST_VOL2 | 0x00); // boos2 combo
+//    audio_ic_write(ML_MIC_BOOST_VOL2 | 0x01);
+//    audio_ic_write(ML_MIC_BOOST_VOL1 | 0x03); // max boost1
+//    audio_ic_write(ML_MIC_BOOST_VOL2 | 0x00); // boos2 combo
 //    audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_8); // max vol
-//    audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x02);
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x01); //power on
     
-    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON);
-    audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_8);
+    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_REC);
+//    audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_8);
 //    audio_ic_write(ML_HPF2_CUTOFF | ML_HPF2_CUTOFF_FREQ200);
 //    audio_ic_write(ML_AMP_VOLFUNC_ENA | 0x03); avmute and fade on?
-    audio_ic_write(ML_FILTER_EN | ML_FILTER_EN_HPF_BOTH);
-    audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_RCH_USE_LR);
+//    audio_ic_write(ML_FILTER_EN | ML_FILTER_EN_HPF_BOTH);
+//    audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_RCH_USE_LR);
 //    audio_ic_write(ML_REC_LR_BAL_VOL | 0x00);
 }
 
