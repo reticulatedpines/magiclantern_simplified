@@ -9,9 +9,16 @@ int beep_playing = 0;
     void unsafe_beep(){}
     void beep(){}
     void Beep(){}
+    void beep_times(int times){};
     int beep_enabled = 0;
 #else // beep working
 
+extern int recording; // don't beep while recording, it may break audio
+
+#define BEEP_LONG -1
+#define BEEP_SHORT 0
+// positive values: X beeps
+static int beep_type = 0;
 
 CONFIG_INT("beep.enabled", beep_enabled, 1);
 CONFIG_INT("beep.volume", beep_volume, 3);
@@ -117,7 +124,6 @@ static void generate_beep_tone(int16_t* buf, int N)
 
 static struct semaphore * beep_sem;
 
-int long_beep = 0;
 void play_test_tone()
 {
     if (beep_playing)
@@ -126,7 +132,7 @@ void play_test_tone()
     }
     else
     {
-        long_beep = 1;
+        beep_type = BEEP_LONG;
         give_semaphore(beep_sem);
     }
 }
@@ -145,14 +151,34 @@ void unsafe_beep()
     }
     else
     {
-        long_beep = 0;
+        beep_type = BEEP_SHORT;
+        give_semaphore(beep_sem);
+    }
+}
+
+void beep_times(int times)
+{
+    times = COERCE(times, 1, 10);
+    
+    if (!beep_enabled || recording)
+    {
+        info_led_blink(times,50,50); // silent warning
+        return;
+    }
+
+    if (beep_playing)
+    {
+        asif_stop_cbr();
+    }
+    else
+    {
+        beep_type = times;
         give_semaphore(beep_sem);
     }
 }
 
 void beep()
 {
-    extern int recording;
     if (!recording) // breaks audio
         unsafe_beep();
 }
@@ -168,7 +194,7 @@ static void beep_task()
     {
         take_semaphore( beep_sem, 0 );
         
-        if (long_beep)
+        if (beep_type == BEEP_LONG)
         {
             info_led_on();
             int N = 48000*5;
@@ -186,12 +212,24 @@ static void beep_task()
             FreeMemory(long_buf);
             info_led_off();
         }
-        else
+        else if (beep_type == BEEP_SHORT)
         {
             generate_beep_tone(beep_buf, 5000);
             play_beep(beep_buf, 5000);
+            while (beep_playing) msleep(20);
         }
-        msleep(200);
+        else if (beep_type > 0) // N beeps
+        {
+            int N = beep_type;
+            generate_beep_tone(beep_buf, 5000);
+            for (int i = 0; i < N; i++)
+            {
+                play_beep(beep_buf, 3000);
+                while (beep_playing) msleep(20);
+                msleep(70);
+            }
+        }
+        msleep(100);
     }
 }
 

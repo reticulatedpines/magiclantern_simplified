@@ -2941,8 +2941,8 @@ bulb_take_pic(int duration)
         // but blink it quickly every 10 seconds to have some feedback
         if (i % 10 == 1) { _card_led_on(); msleep(10); _card_led_off(); }
 
-        // blink twice every minute
-        if (i % 60 == 1) { msleep(200); _card_led_on(); msleep(10); _card_led_off(); }
+        // blink twice every minute, and beep as many times as elapsed minutes
+        if (i % 60 == 1) { msleep(200); _card_led_on(); msleep(10); _card_led_off(); if (i/60) beep_times(i/60); }
         
         // count one second (sync'ed to RTC)
         wait_till_next_second();
@@ -5550,6 +5550,7 @@ shoot_task( void* unused )
                 }
                 if (!get_halfshutter_pressed() || lens_info.job_state >= 10) { info_led_off(); continue; }
                 
+                beep();
                 info_led_blink(1,50,50); // short blink so you know bulb timer was triggered
                 info_led_on();
                 
