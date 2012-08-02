@@ -368,13 +368,15 @@ static void draw_meters(void)
                 draw_meter( x0, y0 + 8, 7, &audio_levels[1], right_label);
 #endif
         }
-#ifndef CONFIG_600D
         if (gui_menu_shown() && alc_enable)
         {
-                int dgain_x1000 = audio_cmd_to_gain_x1000(audio_ic_read(AUDIO_IC_ALCVOL));
+#ifdef CONFIG_600D
+            int dgain_x1000 = audio_cmd_to_gain_x1000(audio_ic_read(ML_ALC_TARGET_LEV-0x100));
+#else
+            int dgain_x1000 = audio_cmd_to_gain_x1000(audio_ic_read(AUDIO_IC_ALCVOL));
+#endif
                 bmp_printf(FONT_MED, 10, 410, "AGC:%s%d.%03d dB", dgain_x1000 < 0 ? "-" : " ", ABS(dgain_x1000) / 1000, ABS(dgain_x1000) % 1000);
         }
-#endif
 }
 
 #endif
@@ -1759,14 +1761,14 @@ audio_filters_toggle_reverse( void * priv, int delta )
 static void
 audio_recdgain_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 4, 0, 140); //actually 143 but delta is 4 so we are using 140
+    menu_numeric_toggle(priv, -4, 0, 140); //actually 143 but delta is 4 so we are using 140
     audio_ic_set_recdgain();
 }
 
 static void
 audio_recdgain_toggle_reverse( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, -4, 0, 140);
+    menu_numeric_toggle(priv, 4, 0, 140);
     audio_ic_set_recdgain();
 }
 
