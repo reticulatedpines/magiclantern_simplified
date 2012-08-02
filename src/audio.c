@@ -257,13 +257,13 @@ draw_meter(
                         if( x < x_db_peak_fast )
                                 row[x] = bar_color_word;
                         else
-                            if( x < x_db_peak )
-                                row[x] = bg_color_word;
-                            else
-                                if( x < x_db_peak + 4 )
-                                    row[x] = peak_color_word;
-                                else
-                                    row[x] = bg_color_word;
+                if( x < x_db_peak )
+                    row[x] = bg_color_word;
+                else
+                    if( x < x_db_peak + 4 )
+                        row[x] = peak_color_word;
+                    else
+                        row[x] = bg_color_word;
                 }
         }
     
@@ -409,7 +409,7 @@ int audio_meters_are_drawn()
         if (!SOUND_RECORDING_ENABLED)
                 return 0;
 
-        return
+        return 
     (
      is_movie_mode() && cfg_draw_meters && do_draw_meters && (zebra_should_run() || get_halfshutter_pressed()) && !gui_menu_shown()
      )
