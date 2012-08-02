@@ -1708,7 +1708,7 @@ static void audio_filter_hpf2_display( void * priv, int x, int y, int selected )
 
 static void audio_hpf2config_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, -1, 0, 7);
+    menu_numeric_toggle(priv, 1, 0, 7);
     audio_ic_set_filters();
 }
 
