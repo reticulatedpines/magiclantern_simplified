@@ -1742,14 +1742,14 @@ audio_filters_toggle_reverse( void * priv, int delta )
 static void
 audio_recdgain_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 4, 0, 140); //actually 143 but delta is 4 so we are using 140
+    menu_numeric_toggle(priv, -4, 0, 140); //actually 143 but delta is 4 so we are using 140
     audio_ic_set_recdgain();
 }
 
 static void
 audio_recdgain_toggle_reverse( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, -4, 0, 140);
+    menu_numeric_toggle(priv, 4, 0, 140);
     audio_ic_set_recdgain();
 }
 
