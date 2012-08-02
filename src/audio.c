@@ -71,9 +71,10 @@ CONFIG_INT( "audio.enable_dc",      cfg_filter_dc,        0 );
 CONFIG_INT( "audio.enable_hpf2",    cfg_filter_hpf2,      0 );
 CONFIG_INT( "audio.hpf2config",     cfg_filter_hpf2config,7 );
 
-CONFIG_INT( "audio.dgain.l",        dgain_l,          8 );
-CONFIG_INT( "audio.dgain.r",        dgain_r,          8 );
-CONFIG_INT( "audio.filters",        enable_filters,   0 ); 
+CONFIG_INT( "audio.dgain",          cfg_recdgain,       140 );
+CONFIG_INT( "audio.dgain.l",        dgain_l,              8 );
+CONFIG_INT( "audio.dgain.r",        dgain_r,              8 );
+CONFIG_INT( "audio.filters",        enable_filters,       0 ); 
 #else
 CONFIG_INT( "audio.dgain.l",    dgain_l,        0 );
 CONFIG_INT( "audio.dgain.r",    dgain_r,        0 );
@@ -713,7 +714,6 @@ static uint16_t audio_regs[] = {
     ML_PW_SPAMP_PW_MNG-0x100,
     ML_PW_ZCCMP_PW_MNG-0x100,
     ML_MICBIAS_VOLT-0x100,
-    ML_PW_MIC_IN_VOL-0x100,
     ML_MIC_IN_VOL-0x100,
     ML_MIC_BOOST_VOL1-0x100,
     ML_MIC_BOOST_VOL2-0x100,
@@ -760,7 +760,6 @@ static const char * audio_reg_names[] = {
     "ML_PW_SPAMP_PW_MNG",
     "ML_PW_ZCCMP_PW_MNG",
     "ML_MICBIAS_VOLT",
-    "ML_PW_MIC_IN_VOL",
     "ML_MIC_IN_VOL",
     "ML_MIC_BOOST_VOL1",
     "ML_MIC_BOOST_VOL2",
@@ -967,7 +966,7 @@ override_audio_setting(int phase){
 			audio_ic_write(ML_RECPLAY_STATE | 0x11); //
 			audio_ic_write(ML_PW_IN_PW_MNG | 0x0a);   //DAC(0010) and PGA(1000) power on
 			audio_ic_write(ML_DVOL_CTL_FUNC_EN | 0x2E);        //All(Play,Capture,DigitalVolFade,DigitalVol) switched on
-			audio_ic_write(ML_PW_MIC_IN_VOL | 0x3f);   
+			audio_ic_write(ML_MIC_IN_VOL | 0x3f);   
 			audio_ic_write(ML_FILTER_EN | 0x0f);       //All filter on
 			
 			//        audio_configure(0);
@@ -979,28 +978,28 @@ override_audio_setting(int phase){
 struct msg_queue * override_audio_q = NULL;
 static void
 audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
-    if(lv > 8 ) lv = 8;
+    if(lv > 7 ) lv = 6;
 
     if(lv < 4){
-        audio_ic_write(ML_MIC_BOOST_VOL2 | 0x0);
         audio_ic_write(ML_MIC_BOOST_VOL1 | lv<<4);
+        audio_ic_write(ML_MIC_BOOST_VOL2 | 0x0);
     }else{
-        audio_ic_write(ML_MIC_BOOST_VOL2 | 0x1);
         lv = lv & 0x03;
         audio_ic_write(ML_MIC_BOOST_VOL1 | lv<<4);
+        audio_ic_write(ML_MIC_BOOST_VOL2 | 0x1);
     }
 }
 
 static void
 audio_ic_set_analog_gain(){
-	int volumes[] = { 0x00, 0x01, 0x03, 0x07, 0x0f, 0x10, 0x1f, 0x30, 0x3f};
+	int volumes[] = { 0x00, 0x01, 0x03, 0x07, 0x0f, 0x10, 0x1f, 0x3f};
     //mic in vol 0-7 0b1-0b111111
 	if(cfg_analog_gain > 7){
         int boost_vol = cfg_analog_gain - 7;
-        audio_ic_write(ML_PW_MIC_IN_VOL   | volumes[7]);   //override mic in volume
+        audio_ic_write(ML_MIC_IN_VOL   | volumes[7]);   //override mic in volume
         audio_ic_set_micboost(boost_vol);
     }else{
-        audio_ic_write(ML_PW_MIC_IN_VOL   | volumes[cfg_analog_gain]);   //override mic in volume
+        audio_ic_write(ML_MIC_IN_VOL   | volumes[cfg_analog_gain]);   //override mic in volume
         audio_ic_set_micboost(0);
     } 	
 }
@@ -1022,7 +1021,7 @@ audio_ic_set_input(){
 			audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_EXT); //
 			audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_INT); // 
 			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //
-            audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON | ML_AMP_VOLFUNC_ENA_AVMUTE );
+            audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON );
             audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
 			break;
     case 2:// LR external
@@ -1037,7 +1036,7 @@ audio_ic_set_input(){
 			audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_DIFFER_LR); //
 			audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_INT); // 
 			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //
-            audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON | ML_AMP_VOLFUNC_ENA_AVMUTE );
+            audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON);
             audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
 			break;
 	}
@@ -1081,7 +1080,7 @@ audio_ic_set_agc(){
 static void
 audio_ic_off(){
     audio_ic_write(ML_MIC_BOOST_VOL2 | 0x01);
-    audio_ic_write(ML_PW_MIC_IN_VOL | 0x10);
+    audio_ic_write(ML_MIC_IN_VOL | 0x10);
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x02);
     audio_ic_write(ML_RECPLAY_STATE | 0x00);
     audio_ic_write(ML_MIC_IN_VOL | 0x10);
@@ -1097,6 +1096,12 @@ static void
 audio_ic_set_lineout_vol(){
     int vol = lovl + 0x0E;
     audio_ic_write(ML_HP_AMP_VOL | vol);
+}
+
+static void
+audio_ic_set_recdgain(){
+    int vol = 0xff - cfg_recdgain;
+    masked_audio_ic_write(ML_REC_DIGI_VOL, 0x70, vol);
 }
 
 
@@ -1450,15 +1455,20 @@ audio_dgain_display( void * priv, int x, int y, int selected )
 {
         unsigned val = *(unsigned*) priv;
         unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
+#ifdef CONFIG_600D
+        int dgainval = get_dgain_val(priv == &dgain_l ? 1 : 0);
+#endif
         bmp_printf(
+#ifdef CONFIG_600D
+               FONT(fnt, dgainval > 0 ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
+               x, y,
+               "%s-DigitalGain : %d ",
+               priv == &dgain_l ? "L" : "R",
+               dgainval
+#else
                FONT(fnt, val ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
                // 23456789012
-#ifdef CONFIG_600D
-               "%s-DigitalGain : %d dB",
-               priv == &dgain_l ? "L" : "R",
-               get_dgain_val(priv == &dgain_l ? 1 : 0)
-#else
                "%s-DigitalGain : %d dB",
                priv == &dgain_l ? "L" : "R",
                val
@@ -1466,7 +1476,9 @@ audio_dgain_display( void * priv, int x, int y, int selected )
                );
         check_sound_recording_warning(x, y);
         if (!alc_enable){
-#ifndef CONFIG_600D
+#ifdef CONFIG_600D
+            menu_draw_icon(x, y, MNI_PERCENT, 100 - (val *50/8));
+#else
             menu_draw_icon(x, y, MNI_PERCENT, val * 100 / 36);
 #endif
         }else{
@@ -1645,22 +1657,24 @@ static void override_audio_toggle( void * priv, int delta )
 
 static void analog_gain_display( void * priv, int x, int y, int selected )
 {
-    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
+    unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
+    bmp_printf(
+               FONT(fnt, cfg_analog_gain > 7 ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
-               "Analog gain(0-16) : %d", 
+               "Analog gain(0-12) : %d", 
                cfg_analog_gain
                );
-    menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_gain)/16);
+    menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_gain)/12);
 
 }
 static void analog_gain_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 1, 0, 16);
+    menu_numeric_toggle(priv, 1, 0, 12);
     audio_ic_set_analog_gain();
 }
 static void analog_gain_toggle_reverse( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, -1, 0, 16);
+    menu_numeric_toggle(priv, -1, 0, 12);
     audio_ic_set_analog_gain();
 }
 
@@ -1741,6 +1755,55 @@ audio_filters_toggle_reverse( void * priv, int delta )
     menu_numeric_toggle(priv, -1, 0, 1);
     audio_ic_set_filters();
 }
+
+static void
+audio_recdgain_toggle( void * priv, int delta )
+{
+    menu_numeric_toggle(priv, 4, 0, 140); //actually 143 but delta is 4 so we are using 140
+    audio_ic_set_recdgain();
+}
+
+static void
+audio_recdgain_toggle_reverse( void * priv, int delta )
+{
+    menu_numeric_toggle(priv, -4, 0, 140);
+    audio_ic_set_recdgain();
+}
+
+static int
+get_recdgain_val(int val){
+    if(val == 0){
+        return 0;
+    }else if(val == 3){
+        cfg_recdgain = 0;
+        return 0;
+    }else{
+        return -val;
+    }
+}
+static void
+audio_recdgain_display( void * priv, int x, int y, int selected )
+{
+        bmp_printf(
+               selected ? MENU_FONT_SEL : MENU_FONT,
+               x, y,
+               "Rec Digital gain : %d ",
+               get_recdgain_val(*(unsigned*) priv)
+               );
+        check_sound_recording_warning(x, y);
+        if (!alc_enable){
+#ifdef CONFIG_600D
+            menu_draw_icon(x, y, MNI_PERCENT, 100 - (*(unsigned*) priv *140 /100));
+#else
+            menu_draw_icon(x, y, MNI_PERCENT, val * 100 / 36);
+#endif
+        }else{
+            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "AGC is enabled");
+        }
+
+}
+
+
 
 #endif
 
@@ -1877,7 +1940,7 @@ static struct menu_entry audio_menus[] = {
             .select         = analog_gain_toggle,
             .select_reverse = analog_gain_toggle_reverse,
             .display        = analog_gain_display,
-            .help = "Analog gain (0-16)",
+            .help = "Analog gain (0-7 mic vol)(8-12 boost)",
 
         },
 #else /* ^^^CONFIG_600D^^^ vvv except 600D vvv */
@@ -1898,6 +1961,15 @@ static struct menu_entry audio_menus[] = {
             .select = menu_open_submenu, 
             .help = "Digital gain (not recommended, use only for headphones!)",
             .children =  (struct menu_entry[]) {
+                {
+                        .name = "Record Digital Volume ",
+                        .priv           = &cfg_recdgain,
+                        .select         = audio_recdgain_toggle,
+                        .select_reverse = audio_recdgain_toggle_reverse,
+                        .display        = audio_recdgain_display,
+                        .help = "Record Digital Volume. ",
+                        .edit_mode = EM_MANY_VALUES,
+                },
                 {
                         .name = "Left Digital Gain ",
                         .priv           = &dgain_l,

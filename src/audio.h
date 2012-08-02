@@ -207,16 +207,15 @@ audio_ic_sweep_message_queue( void );
 #define ML_MICBIAS_VOLT		0x3100 /* MICBIAS Voltage Control */
 
 /* Input/Output Amplifier Control Register */
-#define ML_PW_MIC_IN_VOL		0x3300 /* MIC Input Volume */
 #define ML_MIC_IN_VOL		0x3300 /* MIC Input Volume */
 #define ML_MIC_IN_VOL_0		0x00 /** -12dB */
 #define ML_MIC_IN_VOL_1		0x01 /** -12+0.75*num */
 #define ML_MIC_IN_VOL_2		0x03 /** -12+0.75*num */
 #define ML_MIC_IN_VOL_3		0x07 /** -12+0.75*num */
-#define ML_MIC_IN_VOL_4		0x0e /** -12+0.75*num */
-#define ML_MIC_IN_VOL_5		0x1e /** -12+0.75*num */
-#define ML_MIC_IN_VOL_6		0x3e /** -12+0.75*num */
-#define ML_MIC_IN_VOL_7		0x3F 
+#define ML_MIC_IN_VOL_4		0x0f /** -12+0.75*num */
+#define ML_MIC_IN_VOL_5		0x1f /** -12+0.75*num */
+#define ML_MIC_IN_VOL_7		0x3f /** -12+0.75*num */
+#define ML_MIC_IN_VOL_8		0x3F /** +35.25dB */
 
 #define ML_MIC_BOOST_VOL1		0x3900 /* Mic Boost Volume */
 #define ML_MIC_BOOST_VOL2		0xe300 /* Mic Boost Volume */
