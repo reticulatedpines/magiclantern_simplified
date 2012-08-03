@@ -97,20 +97,6 @@ CONFIG_INT("audio.monitoring", audio_monitoring, 1);
 #endif
 int do_draw_meters = 0;
 
-#ifdef CONFIG_AUDIO_600D_DEBUG
-int gYpos=220;
-int gYposMAX=420;
-void disp_logoutput(char *format, ...){
-	va_list argptr;
-
-	if(gYpos >= gYposMAX) gYpos=220;
-	bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 400, gYpos, "                                    ");
-	bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 400, gYpos, format,argptr);
-	gYpos = gYpos+20;
-	va_end(argptr);
-
-}
-#endif /* CONFIG_AUDIO_600D_DEBUG */
 
 /*
 int ext_cfg_draw_meters(void)
@@ -452,10 +438,6 @@ meter_task( void* unused )
 #ifdef CONFIG_600D
         //initialize audio config for 600D
         audio_configure(1);
-#ifdef CONFIG_AUDIO_600D_DEBUG
-        disp_logoutput("hook meter task launch");
-#endif /* CONFIG_AUDIO_600D_DEBUG */
-
 #endif
 
         TASK_LOOP
@@ -1179,10 +1161,6 @@ audio_configure( int force )
     if (beep_playing) return; // don't interrupt beeps while playing
     #endif
     
-#ifdef CONFIG_AUDIO_600D_DEBUG
-    disp_logoutput("hook audio_configure");
-#endif /* CONFIG_AUDIO_600D_DEBUG */
-
 #ifdef CONFIG_AUDIO_REG_LOG
         audio_reg_dump( force );
         return;
@@ -2193,10 +2171,6 @@ PROP_HANDLER( PROP_LV_ACTION )
 {
         const unsigned mode = buf[0];
         enable_meters( mode );
-#ifdef CONFIG_AUDIO_600D_DEBUG
-        disp_logoutput("hook lv action");
-#endif /* CONFIG_AUDIO_600D_DEBUG */
-
 }
 
 PROP_HANDLER( PROP_MVR_REC_START )
@@ -2440,22 +2414,13 @@ PROP_HANDLER( PROP_AUDIO_VOL_CHANGE_600D )
 	
     msg_queue_post(override_audio_q, 1); 
 
-#ifdef CONFIG_AUDIO_600D_DEBUG
-    disp_logoutput("hook audio vol change");
-#endif /* CONFIG_AUDIO_600D_DEBUG */
 }
 
 PROP_HANDLER( PROP_PLAYMODE_LAUNCH_600D )
 {
-#ifdef CONFIG_AUDIO_600D_DEBUG
-    disp_logoutput("hook playmode launch");
-#endif /* CONFIG_AUDIO_600D_DEBUG */
 }
 PROP_HANDLER( PROP_PLAYMODE_VOL_CHANGE_600D )
 {
-#ifdef CONFIG_AUDIO_600D_DEBUG
-    disp_logoutput("hook playmode vol change");
-#endif /* CONFIG_AUDIO_600D_DEBUG */
 }
 
 #endif
