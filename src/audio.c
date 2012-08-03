@@ -1087,14 +1087,14 @@ audio_ic_set_agc(){
 static void
 audio_ic_off(){
     //    audio_ic_write(ML_MIC_BOOST_VOL2 | 0x01);
-    audio_ic_write(ML_MIC_BOOST_VOL1 | 0x00);
-    audio_ic_write(ML_MIC_BOOST_VOL2 | 0x00);
-    audio_ic_write(ML_MIC_IN_VOL | 0x10);
+    audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_OFF);
+    audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
+    audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_5);
     //    audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x02);
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x00); //power off
     
     audio_ic_write(ML_RECPLAY_STATE | 0x00);
-    audio_ic_write(ML_MIC_IN_VOL | 0x10);
+    audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_5);
     audio_ic_write(ML_HPF2_CUTOFF | ML_HPF2_CUTOFF_FREQ200);
     //    audio_ic_write(ML_AMP_VOLFUNC_ENA | 0x03); avmute and fade on?
     audio_ic_write(ML_FILTER_EN | ML_FILTER_DIS_ALL);
@@ -1110,7 +1110,7 @@ audio_ic_on(){
 //    audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_8); // max vol
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x01); //power on
     
-    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_REC);
+    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_RECPLAY);
 //    audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_8);
 //    audio_ic_write(ML_HPF2_CUTOFF | ML_HPF2_CUTOFF_FREQ200);
 //    audio_ic_write(ML_AMP_VOLFUNC_ENA | 0x03); avmute and fade on?
