@@ -159,27 +159,27 @@ audio_ic_sweep_message_queue( void );
 //600D Audio write Registers
 /* Clock Control Register */
 #define ML_SMPLING_RATE			0x0100 /* Sampling Rate */
- #define ML_SMPLING_RATE_8kHz		0x0000 /* Sampling Rate */
- #define ML_SMPLING_RATE_11kHz		0x0001 /* 11,025 Sampling Rate */
- #define ML_SMPLING_RATE_12kHz		0x0002 /* Sampling Rate */
- #define ML_SMPLING_RATE_16kHz		0x0003 /* Sampling Rate */
- #define ML_SMPLING_RATE_22kHz		0x0004 /* 22,05 Sampling Rate */
- #define ML_SMPLING_RATE_24kHz		0x0005 /* Sampling Rate */
- #define ML_SMPLING_RATE_32kHz		0x0006 /* Sampling Rate */
- #define ML_SMPLING_RATE_44kHz		0x0007 /* 44,1 Sampling Rate */
- #define ML_SMPLING_RATE_48kHz		0x0008 /* Sampling Rate */
+ #define ML_SMPLING_RATE_8kHz		0x00 /* Sampling Rate */
+ #define ML_SMPLING_RATE_11kHz		0x01 /* 11,025 Sampling Rate */
+ #define ML_SMPLING_RATE_12kHz		0x02 /* Sampling Rate */
+ #define ML_SMPLING_RATE_16kHz		0x03 /* Sampling Rate */
+ #define ML_SMPLING_RATE_22kHz		0x04 /* 22,05 Sampling Rate */
+ #define ML_SMPLING_RATE_24kHz		0x05 /* Sampling Rate */
+ #define ML_SMPLING_RATE_32kHz		0x06 /* Sampling Rate */
+ #define ML_SMPLING_RATE_44kHz		0x07 /* 44,1 Sampling Rate */
+ #define ML_SMPLING_RATE_48kHz		0x08 /* Sampling Rate */
 
 #define ML_PLLNL				0x0300 /* PLL NL The value can be set from 0x001 to 0x1FF. */
 #define ML_PLLNH				0x0500 /* PLL NH The value can be set from 0x001 to 0x1FF. */
 #define ML_PLLML				0x0700 /* PLL ML The value can be set from 0x0020 to 0x3FFF. */
 #define ML_PLLMH				0x0900 /* MLL MH The value can be set from 0x0020 to 0x3FFF. */
 #define ML_PLLDIV				0x0b00 /* PLL DIV The value can be set from 0x01 to 0x1F. */
-#define ML_CLK_EN				0x0d00 /*MCLKEN + PLLEN +PLLOE */ /* Clock Enable */
+#define ML_CLK_EN				0x0d00 /* MCLKEN + PLLEN +PLLOE */ /* Clock Enable */
 #define ML_CLK_CTL				0x0f00 /* CLK Input/Output Control */
 
 /* System Control Register */
 #define ML_SW_RST				0x1100 /* Software RESET */
-#define ML_RECPLAY_STATE	0x1300 /* Record/Playback Run */
+#define ML_RECPLAY_STATE        0x1300 /* Record/Playback Run */
  #define ML_RECPLAY_STATE_STOP       0x00
  #define ML_RECPLAY_STATE_REC        0x01
  #define ML_RECPLAY_STATE_PLAY       0x02
@@ -187,15 +187,15 @@ audio_ic_sweep_message_queue( void );
  #define ML_RECPLAY_STATE_MON        0x07
  #define ML_RECPLAY_STATE_AUTO_ON    0x10
 
-#define ML_MIC_IN_CHARG_TIM			0x1500 /* This register is to select the wait time for microphone input load charge when starting reording or playback using AutoStart mode. The setting of this register is ignored except Auto Start mode.*/
+#define ML_MIC_IN_CHARG_TIM		0x1500 /* This register is to select the wait time for microphone input load charge when starting reording or playback using AutoStart mode. The setting of this register is ignored except Auto Start mode.*/
 
 /* Power Management Register */
 #define ML_PW_REF_PW_MNG		0x2100 /* MICBIAS */ /* Reference Power Management */
 #define ML_PW_IN_PW_MNG			0x2300 /* ADC "Capture" + PGA Power Management */
  #define ML_PW_IN_PW_MNG_OFF     0x00 /*  OFF */
- #define ML_PW_IN_PW_MNG_DAC		0x02 /* ADC "Capture" ON */
- #define ML_PW_IN_PW_MNG_PGA		0x08 /* PGA ON */
- #define ML_PW_IN_PW_MNG_BOTH	0x0a /* ADC "Capture" + PGA ON */
+ #define ML_PW_IN_PW_MNG_DAC	 0x02 /* ADC "Capture" ON */
+ #define ML_PW_IN_PW_MNG_PGA	 0x08 /* PGA ON */
+ #define ML_PW_IN_PW_MNG_BOTH	 0x0a /* ADC "Capture" + PGA ON */
 
 #define ML_PW_DAC_PW_MNG		0x2500 /* DAC Power Management */
  #define ML_PW_DAC_PW_MNG_PWROFF	0x00 
@@ -204,16 +204,16 @@ audio_ic_sweep_message_queue( void );
 #define ML_PW_SPAMP_PW_MNG		0x2700 /* Speaker AMP Power Management */
  #define ML_PW_SPAMP_PW_MNG_P_ON 0x13 /* BTL mode Pre amplifier power ON Can not make output only pre amplifier. Output can be available at 05h or 1Fh. */
  #define ML_PW_SPAMP_PW_MNG_ON   0x1f /* BTL mode Speaker amplifier power ON */
- #define ML_PW_SPAMP_PW_MNG_OFF	0x00 /* OFF */
- #define ML_PW_SPAMP_PW_MNG_RON	0x01 /* R Channel HeadPhone amplifier ON */
- #define ML_PW_SPAMP_PW_MNG_LON	0x04 /* L Channel HeadPhone amplifier ON */
- #define ML_PW_SPAMP_PW_MNG_STR	0x05 /* Stereo HeadPhone amp ON(HPMID not used) */
- #define ML_PW_SPAMP_PW_MNG_HPM	0x07 /* Stereo HeadPhone amp ON(HPMID used) */
+ #define ML_PW_SPAMP_PW_MNG_OFF	 0x00 /* OFF */
+ #define ML_PW_SPAMP_PW_MNG_RON	 0x01 /* R Channel HeadPhone amplifier ON */
+ #define ML_PW_SPAMP_PW_MNG_LON	 0x04 /* L Channel HeadPhone amplifier ON */
+ #define ML_PW_SPAMP_PW_MNG_STR	 0x05 /* Stereo HeadPhone amp ON(HPMID not used) */
+ #define ML_PW_SPAMP_PW_MNG_HPM	 0x07 /* Stereo HeadPhone amp ON(HPMID used) */
 
 #define ML_PW_ZCCMP_PW_MNG		0x2f00 /* ZC-CMP Power Management */
- #define ML_PW_ZCCMP_PW_MNG_OFF	0x00 /* PGA zero cross comparator power off
+ #define ML_PW_ZCCMP_PW_MNG_OFF	 0x00 /* PGA zero cross comparator power off
 PGA volume is effective right after setting value change. */
- #define ML_PW_ZCCMP_PW_MNG_ON	0x01 /* PGA zero cross comparator power on
+ #define ML_PW_ZCCMP_PW_MNG_ON	 0x01 /* PGA zero cross comparator power on
 PGA volume change is applied for zero cross. */
 
 
