@@ -534,7 +534,9 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
+#ifdef CONFIG_AUDIO_600D_DEBUG
     audio_reg_dump(1);
+#endif
 
 }
 
