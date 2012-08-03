@@ -1231,6 +1231,11 @@ audio_configure( int force )
     
         audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
         
+#ifdef CONFIG_500D //500d only has internal mono audio :(
+        int input_source = 0;
+#else
+        int input_source = get_input_source();
+#endif
         //mic_power is forced on if input source is 0 or 1
         int mic_pow = get_mic_power(input_source);
     
@@ -1972,6 +1977,7 @@ static struct menu_entry audio_menus[] = {
             .select = menu_open_submenu, 
             .help = "Digital gain (not recommended, use only for headphones!)",
             .children =  (struct menu_entry[]) {
+#ifdef CONFIG_600D
                 {
                         .name = "Record Digital Volume ",
                         .priv           = &cfg_recdgain,
@@ -1981,6 +1987,7 @@ static struct menu_entry audio_menus[] = {
                         .help = "Record Digital Volume. ",
                         .edit_mode = EM_MANY_VALUES,
                 },
+#endif
                 {
                         .name = "Left Digital Gain ",
                         .priv           = &dgain_l,

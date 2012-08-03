@@ -161,7 +161,7 @@ CFLAGS=\
 	-Wall \
 	-W \
         -mlong-calls \
-    	-DCONFIG_AUDIO_600D_DEBUG \
+        -DCONFIG_AUDIO_600D_DEBUG \
 	-mstructure-size-boundary=32 \
 	-Wno-unused-parameter \
 	-Wno-implicit-function-declaration \
