@@ -1122,26 +1122,16 @@ audio_ic_set_lineout_onoff(){
     //PDF p38
     if(audio_monitoring){
 
-/* < ML_MIXER_VOL_CTL 00 */
-/* --- */
-/* > ML_FILTER_EN 01 */
-/* > ML_DVOL_CTL_FUNC_EN 00 */
-
-/* ML_MIXER_VOL_CTL 10 */
-
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
 
-        //        masked_audio_ic_write(ML_PW_REF_PW_MNG,0x30,0x10); //HeadPhone amp-std voltage(HPCAP pin voltage) gen circuit power on.
         audio_ic_write(ML_PW_REF_PW_MNG | 0x26); //HeadPhone amp-std voltage(HPCAP pin voltage) gen circuit power on.
         audio_ic_write(ML_PW_IN_PW_MNG |0x0a); //adc pga on
         audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWRON); //DAC power on
-        audio_ic_write(ML_PW_SPAMP_PW_MNG | 0xFF);//<<<<new
-        audio_ic_write(ML_MIC_IN_VOL |0x3f);
+        audio_ic_write(ML_PW_SPAMP_PW_MNG | 0xFF);
+        audio_ic_write(ML_MIC_IN_VOL |0x3f); //<<<<<<<<<<<guess we can delete . need testing 
         audio_ic_write(ML_HP_AMP_OUT_CTL | ML_HP_AMP_OUT_CTL_ALL_ON);
         audio_ic_write(ML_FILTER_EN | 0x03);
-
-
 
 
 
@@ -1152,18 +1142,8 @@ audio_ic_set_lineout_onoff(){
         audio_ic_write(ML_MIXER_VOL_CTL | 0x00);
         audio_ic_write(ML_HPF2_CUTOFF | 0x04);
 
+        audio_ic_write(ML_PLYBAK_BOST_VOL | 0x10);
 
-        audio_ic_write(ML_PLYBAK_BOST_VOL | 0x10); //test
-
-        /*
-        audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY | ML_MIXER_VOL_CTL_RCH_USE_R_ONLY);
-        
-        audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x02); //power on
-
-        audio_ic_write(ML_PLAY_DIG_VOL | 0xff); //set vol , actually it's gain. max = 0 min = -71.5. setMAX
-
-
-        */
         audio_ic_set_lineout_vol();
 
     }else{
@@ -1267,7 +1247,7 @@ audio_configure( int force )
     audio_ic_set_RecLRbalance();
     audio_ic_set_filters();
     audio_ic_set_agc();
-    audio_ic_set_lineout_vol();
+    audio_ic_set_lineout_onoff();
 
 
 #else /* ^^^^^^^CONFIG_600D^^^^^^^ vvvvv except 600D vvvvvvvv*/
@@ -1385,14 +1365,14 @@ static void
 static void
 audio_lovl_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 1, 0, 50);
+    menu_numeric_toggle(priv, 1, 0, 49);
     audio_ic_set_lineout_vol();
 }
 
 static void
 audio_lovl_toggle_reverse( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, -1, 0, 50);
+    menu_numeric_toggle(priv, -1, 0, 49);
     audio_ic_set_lineout_vol();
 }
 #endif
