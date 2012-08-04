@@ -13,7 +13,11 @@
 #include "plugin.h"
 #include "version.h"
 //#include "lua.h"
-static void audio_reg_dump( int force );
+void call_audio_ic_set_lineout_onoff();
+
+#ifdef CONFIG_AUDIO_600D_DEBUG
+void audio_reg_dump( int force );
+#endif
 
 #define CONFIG_STRESS_TEST
 //~ #define CONFIG_HEXDUMP
@@ -1885,6 +1889,10 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                         redraw();
                         rca_warned = 1;
                     }
+#ifdef CONFIG_600D
+                    //Override headphone monitor setting
+                    call_audio_ic_set_lineout_onoff();
+#endif
                 }
             }
         }
