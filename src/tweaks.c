@@ -941,12 +941,49 @@ void play_lv_key_step()
 #endif
 }
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
+#ifdef CONFIG_5D2
+static int protect_running = 0;
+static void protect_image_task()
+{
+    protect_running = 1;
+    info_led_on();
+    StartPlayProtectGuideApp();
+    fake_simple_button(BGMT_PRESS_SET);
+    fake_simple_button(BGMT_UNPRESS_SET);
+    msleep(100);
+    intptr_t h = get_current_dialog_handler();
+    if (h == 0xffb6aebc) // ?! null code here...
+    {
+        StopPlayProtectGuideApp();
+        msleep(200);
+    }
+    info_led_off();
+    protect_running = 0;
+}
+#endif
+
+#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2)
 
 int handle_lv_play(struct event * event)
 {
     if (!play_lv_action) return 1;
-    
+
+#ifdef CONFIG_5D2
+    if (event->param == BGMT_LV && PLAY_MODE)
+    {
+        if (protect_running) return 0;
+
+        extern thunk PlayMain_handler;
+        extern thunk PlayMovieGuideApp_handler;
+        intptr_t h = get_current_dialog_handler();
+        if (h == (intptr_t)&PlayMain_handler || h == (intptr_t)&PlayMovieGuideApp_handler)
+        {
+            protect_running = 1;
+            task_create("protect_task", 0x1e, 0x1000, protect_image_task, 0);
+            return 0;
+        }
+    }
+#else
     if (event->param == BGMT_LV && PLAY_MODE)
     {
 
@@ -971,6 +1008,7 @@ int handle_lv_play(struct event * event)
         }
         return 0;
     }
+#endif
     return 1;
 }
 #endif
@@ -2850,13 +2888,18 @@ struct menu_entry play_menus[] = {
                 .icon_type = IT_BOOL,
             },
             #endif */
-        #if defined(CONFIG_60D) || defined(CONFIG_600D)
+        #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2)
             {
                 .name = "LV button",
                 .priv = &play_lv_action, 
-                .max = 2,
                 .display = play_lv_display,
+                #ifdef CONFIG_5D2
+                .max = 1,
+                .help = "You may use the LiveView button to Protect images quickly.",
+                #else
+                .max = 2,
                 .help = "You may use the LiveView button to Protect or Rate images.",
+                #endif
                 .icon_type = IT_BOOL,
                 //.essential = FOR_PHOTO,
             },
