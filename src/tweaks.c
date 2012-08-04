@@ -945,11 +945,10 @@ void play_lv_key_step()
 }
 
 #ifdef CONFIG_5D2
-static int protect_running = 0;
+static volatile int protect_running = 0;
 static void protect_image_task()
 {
     protect_running = 1;
-    info_led_on();
     StartPlayProtectGuideApp();
     fake_simple_button(BGMT_PRESS_SET);
     fake_simple_button(BGMT_UNPRESS_SET);
@@ -958,9 +957,7 @@ static void protect_image_task()
     if (h == 0xffb6aebc) // ?! null code here...
     {
         StopPlayProtectGuideApp();
-        msleep(200);
     }
-    info_led_off();
     protect_running = 0;
 }
 #endif
