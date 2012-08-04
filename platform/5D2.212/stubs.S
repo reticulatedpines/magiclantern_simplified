@@ -209,3 +209,5 @@ NSTUB(0xFF858360, StopASIFDMADAC)
 NSTUB(0xFF859D74, SetSamplingRate )
 NSTUB(0xff85a344, SetAudioVolumeOut)
 
+NSTUB(0xff864508, AsyncEnableImagePhysicalScreenParameter)
+NSTUB(0xff86412c, EnableImagePhysicalScreenParameter)

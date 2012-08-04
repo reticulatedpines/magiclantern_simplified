@@ -112,20 +112,29 @@ static void vsync_func() // called once per frame.. in theory :)
         lv_should_pause_updating = 0;
     }
     
-    display_shake_step();
+    //~ display_shake_step();
+
 }
 
 int (*StateTransition)(void*,int,int,int,int) = 0;
 static int stateobj_spy(struct state_object * self, int x, int input, int z, int t)
 {
+    int old_state = self->current_state;
+
     #ifdef DISPLAY_STATE
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
         hdr_kill_flicker();
     #endif
+    
+#ifdef CONFIG_5D2
+    if (self == LV_STATE && old_state == 2 && input == 2) // lvVdInterrupt
+    {
+        display_filter_lv_vsync(old_state, x, input, z, t);
+    }
+#endif
 
-    int old_state = self->current_state;
     int ans = StateTransition(self, x, input, z, t);
-
+    
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
     if (self == LV_STATE && input==4 && old_state==4) // AJ_ResetPSave_n_WB_n_LVREC_MVR_EV_EXPOSURESTARTED => perfect sync for digic on 5D2 :)
     #endif

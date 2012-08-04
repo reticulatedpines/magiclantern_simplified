@@ -53,7 +53,8 @@ static void transparent_overlay_from_play();
 static void transparent_overlay_offset_clear(void* priv, int delta);
 //~ static void draw_histogram_and_waveform();
 static void schedule_transparent_overlay();
-static void defish_draw();
+//~ static void defish_draw();
+//~ static void defish_draw_lv_color();
 static int zebra_color_word_row(int c, int y);
 static void spotmeter_step();
 
@@ -63,7 +64,7 @@ static int cropmark_cache_is_valid();
 static void default_movie_cropmarks();
 static void black_bars_16x9();
 static void black_bars();
-static void defish_draw_play();
+//~ static void defish_draw_play();
 
 extern unsigned int log_length(int x);
 extern void zoom_sharpen_step();
@@ -2866,25 +2867,6 @@ static void idle_timeout_toggle(void* priv, int sign)
     *(int*)priv = timeout_values[i];
 }
 
-static CONFIG_INT("defish.preview", defish_preview, 0);
-static CONFIG_INT("defish.projection", defish_projection, 0);
-static void
-defish_preview_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Defishing   : %s",
-        defish_preview ? (defish_projection ? "Panini" : "Rectilinear") : "OFF"
-    );
-    menu_draw_icon(x, y, MNI_BOOL_GDR(defish_preview));
-}
-
 
 CONFIG_INT("electronic.level", electronic_level, 0);
 static void
@@ -3120,24 +3102,6 @@ struct menu_entry zebra_menus[] = {
         .select = menu_binary_toggle,
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
         //.essential = FOR_PLAYBACK,
-    },
-    {
-        .name = "Defishing",
-        .priv = &defish_preview, 
-        .display = defish_preview_display, 
-        .select = menu_binary_toggle,
-        .help = "Preview straightened images from Samyang 8mm fisheye.",
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Projection",
-                .priv = &defish_projection, 
-                .max = 1,
-                .choices = (const char *[]) {"Rectilinear", "Panini"},
-                .icon_type = IT_DICE,
-                .help = "Projection used for defishing (Rectilinear or Panini).",
-            },
-            MENU_EOL
-        }
     },
     {
         .name = "Spotmeter",
@@ -4144,6 +4108,8 @@ void draw_livev_for_playback()
     livev_for_playback_running = 1;
     get_yuv422_vram(); // just to refresh VRAM params
     
+    extern int defish_preview;
+    
 BMP_LOCK(
 
     bvram_mirror_clear(); // may be filled with liveview cropmark / masking info, not needed in play mode
@@ -4867,6 +4833,8 @@ livev_hipriority_task( void* unused )
         //~ lv_vsync();
         guess_fastrefresh_direction();
 
+        display_filter_step(k);
+
         if (should_draw_zoom_overlay())
         {
             msleep(k % 50 == 0 ? MIN_MSLEEP : 10);
@@ -4887,11 +4855,11 @@ livev_hipriority_task( void* unused )
                 if (k % 4 == 0)
                     BMP_LOCK( if (lv) draw_false_downsampled(); )
             }
-            else if (defish_preview)
-            {
-                if (k % 2 == 0)
-                    BMP_LOCK( if (lv) defish_draw(); )
-            }
+            //~ else if (defish_preview)
+            //~ {
+                //~ if (k % 2 == 0)
+                    //~ BMP_LOCK( if (lv) defish_draw(); )
+            //~ }
             else
             {
                 #ifdef CONFIG_5D3
@@ -5116,7 +5084,7 @@ void update_disp_mode_bits_from_params()
         (zoom_overlay_enabled ? 1<<9 : 0) |
         (transparent_overlay  ? 1<<10: 0) |
         //~ (electronic_level     ? 1<<11: 0) |
-        (defish_preview       ? 1<<12: 0) |
+        //~ (defish_preview       ? 1<<12: 0) |
         (vectorscope_draw     ? 1<<13: 0) |
         0;
         
@@ -5146,7 +5114,7 @@ void update_disp_mode_params_from_bits()
     zoom_overlay_enabled = bits & (1<<9) ? 1 : 0;
     transparent_overlay  = bits & (1<<10)? 1 : 0;
     //~ electronic_level     = bits & (1<<11)? 1 : 0;
-    defish_preview       = bits & (1<<12)? 1 : 0;
+    //~ defish_preview       = bits & (1<<12)? 1 : 0;
     vectorscope_draw     = bits & (1<<13)? 1 : 0;
     global_draw = global_draw_0 + global_draw_1 * 2;
 //~ end:
@@ -5398,204 +5366,6 @@ static void transparent_overlay_from_play()
     msleep(1000);
     BMP_LOCK( show_overlay(); )
     //~ transparent_overlay = 1;
-}
-
-//~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "ML/SETTINGS/recti.lut");
-#if defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_5DC) // fullframe
-#define defish_lut_file_rectilin CARD_DRIVE "ML/DATA/ff8r.lut"
-#define defish_lut_file_panini CARD_DRIVE "ML/DATA/ff8p.lut"
-#else
-#define defish_lut_file_rectilin CARD_DRIVE "ML/DATA/apsc8r.lut"
-#define defish_lut_file_panini CARD_DRIVE "ML/DATA/apsc8p.lut"
-#endif
-
-static uint8_t* defish_lut = INVALID_PTR;
-static int defish_projection_loaded = -1;
-
-static void defish_lut_load()
-{
-    char* defish_lut_file = defish_projection ? defish_lut_file_panini : defish_lut_file_rectilin;
-    if ((int)defish_projection != defish_projection_loaded)
-    {
-        if (defish_lut && defish_lut != INVALID_PTR) free_dma_memory(defish_lut);
-        
-        int size = 0;
-        defish_lut = (uint8_t*) read_entire_file(defish_lut_file, &size);
-        defish_projection_loaded = defish_projection;
-    }
-    if (defish_lut == NULL)
-    {
-        bmp_printf(FONT_MED, 50, 50, "%s not loaded", defish_lut_file);
-        return;
-    }
-}
-
-static void defish_draw()
-{
-    defish_lut_load();
-    struct vram_info * vram = get_yuv422_vram();
-    uint8_t * const lvram = vram->vram;
-    uint8_t * const bvram = bmp_vram_real();
-    if (!bvram) return;
-
-    for (int y = os.y0 + (is_movie_mode() ? os.off_169 : 0); y < os.y0 + os.y_ex/2; y += 2)
-    {
-        for (int x = os.x0; x < os.x0 + os.x_ex/2; x += 4)
-        {
-            // i,j are normalized values: [0,0 ... 720x480)
-            int j = BM2N_X(x);
-            int i = BM2N_Y(y);
-
-            static int off_i[] = {0,  0,479,479};
-            static int off_j[] = {0,719,  0,719};
-
-            int id = defish_lut[(i * 360 + j) * 2 + 1];
-            int jd = defish_lut[(i * 360 + j) * 2] * 360 / 255;
-            int k;
-            for (k = 0; k < 4; k++)
-            {
-                int Y = (off_i[k] ? N2BM_Y(off_i[k]) - y + os.y0 - 1 : y);
-                int X = (off_j[k] ? N2BM_X(off_j[k]) - x + os.x0 : x);
-                int Id = (off_i[k] ? off_i[k] - id : id);
-                int Jd = (off_j[k] ? off_j[k] - jd : jd);
-                int lv_pixel = lvram[N2LV(Jd&~1,Id&~1) + 1];
-                uint32_t* bp = (uint32_t *)&(bvram[BM(X,Y)]);
-                uint32_t* mp = (uint32_t *)&(bvram_mirror[BM(X,Y)]);
-                if (*bp != 0 && *bp != *mp) continue;
-                if ((*mp & 0x80808080)) continue;
-                int c = (lv_pixel * 41 >> 8) + 38;
-                c = c | (c << 8);
-                c = c | (c << 16);
-                *bp = *mp = *(bp + BMPPITCH/4) = *(mp + BMPPITCH/4) = c;
-            }
-        }
-    }
-}
-
-
-static uint32_t get_yuv_pixel(uint32_t* buf, int pixoff)
-{
-    uint32_t* src = &buf[pixoff / 2];
-    
-    uint32_t chroma = (*src)  & 0x00FF00FF;
-    uint32_t luma1 = (*src >>  8) & 0xFF;
-    uint32_t luma2 = (*src >> 24) & 0xFF;
-    uint32_t luma = pixoff % 2 ? luma2 : luma1;
-    return (chroma | (luma << 8) | (luma << 24));
-}
-
-/* some sort of bilinear interpolation, doesn't seem to be correct
- * also too slow for real use
-static uint32_t get_yuv_pixel_averaged(uint32_t* buf, float i, float j)
-{
-    int ilo = (int)floorf(i); int ihi = (int)ceilf(i);
-    int jlo = (int)floorf(j); int jhi = (int)ceilf(j);
-    
-    float k1 = i - ilo;
-    float k2 = j - jlo;
-    float w1 = (1-k1) * (1-k2);
-    float w2 = k1 * k2;
-    float w3 = k1 * (1-k2);
-    float w4 = (1-k1) * k2;
-    
-    uint32_t ll = get_yuv_pixel(buf, LV(jlo,ilo)/2);
-    uint32_t hh = get_yuv_pixel(buf, LV(jhi,ihi)/2);
-    uint32_t hl = get_yuv_pixel(buf, LV(jhi,ilo)/2);
-    uint32_t lh = get_yuv_pixel(buf, LV(jlo,ihi)/2);
-    
-    uint32_t luma1 = (((ll >>  8) & 0xFF) * w1 + ((hh >>  8) & 0xFF) * w2 + ((hl >>  8) & 0xFF) * w3 + ((lh >>  8) & 0xFF) * w4) / (w1+w2+w3+w4);
-    uint32_t luma2 = (((ll >> 24) & 0xFF) * w1 + ((hh >> 24) & 0xFF) * w2 + ((hl >> 24) & 0xFF) * w3 + ((lh >> 24) & 0xFF) * w4) / (w1+w2+w3+w4);
-
-    uint32_t u = (int)((float)((int8_t)((ll >>  0) & 0xFF)) * w1 + (float)((int8_t)((hh >>  0) & 0xFF)) * w2 + (float)((int8_t)((hl >>  0) & 0xFF)) * w3 + ((float)((int8_t)((lh >>  0) & 0xFF)) * w4) / (w1+w2+w3+w4));
-    uint32_t v = (int)((float)((int8_t)((ll >> 16) & 0xFF)) * w1 + (float)((int8_t)((hh >> 16) & 0xFF)) * w2 + (float)((int8_t)((hl >> 16) & 0xFF)) * w3 + ((float)((int8_t)((lh >> 16) & 0xFF)) * w4) / (w1+w2+w3+w4));
-    
-    return (u & 0xFF) | ((v & 0xFF) << 16) | ((luma1 & 0xFF) << 8) | ((luma2 & 0xFF) << 24);
-}
-*/
-int defish_get_averaged_coord(uint8_t* lut, int i, int j, int num, int den)
-{
-    int acc = 0;
-    for (int di = -2; di <= 2; di++)
-    {
-        for (int dj = -2; dj <= 2; dj++)
-        {
-            int newi = COERCE(i+di, 0, 239);
-            int newj = COERCE(j+dj, 0, 359);
-            acc += lut[(newi * 360 + newj) * 2];
-        }
-    }
-    return acc * num / 25 / den;
-}
-
-
-static void defish_draw_play()
-{
-    defish_lut_load();
-    struct vram_info * vram = get_yuv422_vram();
-
-    uint32_t * lvram = (uint32_t *)vram->vram;
-    uint32_t * aux_buf = (void*)YUV422_HD_BUFFER_2;
-
-    uint8_t * const bvram = bmp_vram();
-    if (!bvram) return;
-
-    int w = vram->width;
-    int h = vram->height;
-    int buf_size = w * h * 2;
-    
-    if (!PLAY_OR_QR_MODE || !DISPLAY_IS_ON) return;
-
-    memcpy(aux_buf, lvram, buf_size);
-    
-    for (int y = BM2LV_Y(os.y0); y < BM2LV_Y(os.y0 + os.y_ex/2); y++)
-    {
-        for (int x = BM2LV_X(os.x0); x < BM2LV_X(os.x0 + os.x_ex/2); x++)
-        {
-            // i,j are normalized values: [0,0 ... 720x480)
-            int j = LV2N_X(x);
-            int i = LV2N_Y(y);
-
-            static int off_i[] = {0,  0,479,479};
-            static int off_j[] = {0,719,  0,719};
-
-            //~ int id = defish_lut[(i * 360 + j) * 2 + 1];
-            //~ int jd = defish_lut[(i * 360 + j) * 2] * 360 / 255;
-            
-            // this reduces the quantization error from the LUT 
-            int id = defish_get_averaged_coord(defish_lut + 1, i, j, 1, 1);
-            int jd = defish_get_averaged_coord(defish_lut, i, j, 360, 255);
-            
-            int k;
-            for (k = 0; k < 4; k++)
-            {
-                int Y = (off_i[k] ? N2LV_Y(off_i[k]) - y + BM2LV_Y(os.y0) - 1 : y);
-                int X = (off_j[k] ? N2LV_X(off_j[k]) - x + BM2LV_X(os.x0) : x);
-                int Id = (off_i[k] ? off_i[k] - id : id);
-                int Jd = (off_j[k] ? off_j[k] - jd : jd);
-                
-                //~ lvram[LV(X,Y)/4] = aux_buf[N2LV(Jd,Id)/4];
-
-                // Rather than copying an entire uyvy pair, copy only one pixel (and overwrite luma for both pixels in the bin)
-                // => slightly better image quality
-                
-                // Actually, IQ is far lower than what Nona does with proper interpolation
-                // but this is enough for preview purposes
-                
-                
-                //~ uint32_t new_color = get_yuv_pixel_averaged(aux_buf, Id, Jd);
-
-                int pixoff_src = N2LV(Jd,Id) / 2;
-                uint32_t new_color = get_yuv_pixel(aux_buf, pixoff_src);
-
-                int pixoff_dst = LV(X,Y) / 2;
-                uint32_t* dst = &lvram[pixoff_dst / 2];
-                uint32_t mask = (pixoff_dst % 2 ? 0xffFF00FF : 0x00FFffFF);
-                *(dst) = (new_color & mask) | (*(dst) & ~mask);
-            }
-        }
-        if (!PLAY_OR_QR_MODE || !DISPLAY_IS_ON) return;
-        if ((void*)get_yuv422_vram()->vram != (void*)lvram) break; // user moved to a new image?
-    }
 }
 
 PROP_HANDLER(PROP_LV_ACTION)
