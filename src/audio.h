@@ -436,7 +436,7 @@ PGA volume change is applied for zero cross. */
  #define ML_REC_DIGI_VOL_MAX		0xFF
 
 #define ML_REC_LR_BAL_VOL	    0x6f00 /*0x0-0xf Rvol, 0x00-0f0 Lvol*/
-#define ML_PLBAK_DIG_VOL		0x7100 /* Playback Digital Volume */
+#define ML_PLAY_DIG_VOL  		0x7100 /* Playback Digital Volume */
 #define ML_EQ_GAIN_BRAND0		0x7500 /* EQ Band0 Volume */
 #define ML_EQ_GAIN_BRAND1		0x7700 /* EQ Band1 Volume */
 #define ML_EQ_GAIN_BRAND2		0x7900 /* EQ Band2 Volume */
