@@ -1,9 +1,11 @@
 #!/bin/bash
 
+rm *.lut
+
 for f in $(ls *.pto); do
     echo `basename $f .pto`
     nona -o `basename $f .pto`.tif $f xy.tiff
-    octave defish-lut.m `basename $f .pto`
+    octave defish-lut16.m `basename $f .pto`
 done
 
 mv samyang8-panini-apsc.lut apsc8p.lut

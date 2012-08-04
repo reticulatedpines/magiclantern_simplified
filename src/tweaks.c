@@ -2321,7 +2321,7 @@ defish_preview_display(
 #define defish_lut_file_panini CARD_DRIVE "ML/DATA/apsc8p.lut"
 #endif
 
-static uint8_t* defish_lut = INVALID_PTR;
+static uint16_t* defish_lut = INVALID_PTR;
 static int defish_projection_loaded = -1;
 
 static void defish_lut_load()
@@ -2332,7 +2332,7 @@ static void defish_lut_load()
         if (defish_lut && defish_lut != INVALID_PTR) free_dma_memory(defish_lut);
         
         int size = 0;
-        defish_lut = (uint8_t*) read_entire_file(defish_lut_file, &size);
+        defish_lut = (uint16_t*) read_entire_file(defish_lut_file, &size);
         defish_projection_loaded = defish_projection;
     }
     if (defish_lut == NULL)
@@ -2352,21 +2352,6 @@ static uint32_t get_yuv_pixel(uint32_t* buf, int pixoff)
     uint32_t luma2 = (*src >> 24) & 0xFF;
     uint32_t luma = pixoff % 2 ? luma2 : luma1;
     return (chroma | (luma << 8) | (luma << 24));
-}
-
-int defish_get_averaged_coord(uint8_t* lut, int i, int j, int num, int den, int r)
-{
-    int acc = 0;
-    for (int di = -r; di <= r; di++)
-    {
-        for (int dj = -r; dj <= r; dj++)
-        {
-            int newi = COERCE(i+di, 0, 239);
-            int newj = COERCE(j+dj, 0, 359);
-            acc += lut[(newi * 360 + newj) * 2];
-        }
-    }
-    return acc * num / ((2*r+1)*(2*r+1)) / den;
 }
 
 void defish_draw_lv_color()
@@ -2416,13 +2401,13 @@ void defish_draw_lv_color()
                 int id, jd;
                 if (DEFISH_HD)
                 {
-                    id = defish_get_averaged_coord(defish_lut + 1, i, j, 16, 1, 5);
-                    jd = defish_get_averaged_coord(defish_lut, i, j, 360*16, 255, 5);
+                    id = (int)defish_lut[(i * 360 + j) * 2 + 1] / 16;
+                    jd = (int)defish_lut[(i * 360 + j) * 2] * 361 / 256 / 16;
                 }
                 else
                 {
-                    id = defish_lut[(i * 360 + j) * 2 + 1];
-                    jd = defish_lut[(i * 360 + j) * 2] * 360 / 255;
+                    id = (int)defish_lut[(i * 360 + j) * 2 + 1] / 256;
+                    jd = (int)defish_lut[(i * 360 + j) * 2] * 361 / 256 / 256;
                 }
                 
                 int k;
@@ -2490,9 +2475,11 @@ void defish_draw_play()
             //~ int id = defish_lut[(i * 360 + j) * 2 + 1];
             //~ int jd = defish_lut[(i * 360 + j) * 2] * 360 / 255;
             
-            // this reduces the quantization error from the LUT 
-            int id = defish_get_averaged_coord(defish_lut + 1, i, j, 1, 1, 2);
-            int jd = defish_get_averaged_coord(defish_lut, i, j, 360, 255, 2);
+            int id = (int)defish_lut[(i * 360 + j) * 2 + 1] / 256;
+            int jd = (int)defish_lut[(i * 360 + j) * 2] * 361 / 256 / 256;
+            
+            //~ bmp_printf(FONT_MED, 100, 100, "%d,%d => %x,%x  ", i,j,id,jd);
+            //~ msleep(200);
             
             int k;
             for (k = 0; k < 4; k++)
@@ -2682,11 +2669,11 @@ static struct menu_entry display_menus[] = {
                 .icon_type = IT_DICE,
                 .help = "Projection used for defishing (Rectilinear or Panini).",
             },
-            //~ {
-                //~ .name = "Use HD buffer", 
-                //~ .priv = &DEFISH_HD, 
-                //~ .max = 1,
-            //~ },
+            /*{
+                .name = "Use HD buffer", 
+                .priv = &DEFISH_HD, 
+                .max = 1,
+            },*/
             MENU_EOL
         }
     },
