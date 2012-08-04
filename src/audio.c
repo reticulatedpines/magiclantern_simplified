@@ -71,7 +71,7 @@ CONFIG_INT( "audio.enable_dc",      cfg_filter_dc,        0 );
 CONFIG_INT( "audio.enable_hpf2",    cfg_filter_hpf2,      0 );
 CONFIG_INT( "audio.hpf2config",     cfg_filter_hpf2config,7 );
 
-CONFIG_INT( "audio.dgain",          cfg_recdgain,       140 );
+CONFIG_INT( "audio.dgain",          cfg_recdgain,         0 );
 CONFIG_INT( "audio.dgain.l",        dgain_l,              8 );
 CONFIG_INT( "audio.dgain.r",        dgain_r,              8 );
 CONFIG_INT( "audio.filters",        enable_filters,       0 ); 
@@ -745,10 +745,10 @@ static uint16_t audio_regs[] = {
     ML_ALC_ZERO_TIMOUT-0x100,
     ML_PL_ATTACKTIME-0x100,
     ML_PL_DECAYTIME-0x100,
-    ML_PL_TARGETTIME-0x100,
+    ML_PL_TARGET_LEVEL-0x100,
     ML_PL_MAXMIN_GAIN-0x100,
     ML_PLYBAK_BOST_VOL-0x100,
-    ML_PL_0CROSS_TIMOUT-0x100,
+    ML_PL_0CROSS_TIMEOUT-0x100,
 };
 
 static const char * audio_reg_names[] = {
@@ -791,10 +791,10 @@ static const char * audio_reg_names[] = {
     "ML_ALC_ZERO_TIMOUT",
     "ML_PL_ATTACKTIME",
     "ML_PL_DECAYTIME",
-    "ML_PL_TARGETTIME",
+    "ML_PL_TARGET_LEVEL",
     "ML_PL_MAXMIN_GAIN",
     "ML_PLYBAK_BOST_VOL",
-    "ML_PL_0CROSS_TIMOUT",
+    "ML_PL_0CROSS_TIMEOUT",
 };
 
 #else
@@ -882,15 +882,6 @@ audio_reg_dump( int force )
 	}
     
     FIO_CloseFile(f);
-}
-
-
-void
-audio_reg_close( void )
-{
-        if( reg_file )
-                FIO_CloseFile( reg_file );
-        reg_file = NULL;
 }
 
 
@@ -1046,6 +1037,21 @@ audio_ic_set_input(){
             // microphone input interface: 0xabcd a,b, unused c: 0=Analog 1=Digital d: 0=single 1=differential (noly when analog selected) 
             audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
 			break;
+    case 4: //int out auto
+        if(mic_inserted){
+			audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_EXT); //
+            audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_EXT); //
+			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); // 
+            audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON );
+            audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
+        }else{
+			audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_INT); // 
+			audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_INT); // 
+			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICR2LCH_MICR2RCH); // 
+            audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON ); //0bxy x=mute y =fade. so this is fade ON.
+            audio_ic_write( ML_FILTER_EN | 0x0f); // all filter ON
+            audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
+        }
 	}
 
 }
@@ -1086,17 +1092,13 @@ audio_ic_set_agc(){
 
 static void
 audio_ic_off(){
-    //    audio_ic_write(ML_MIC_BOOST_VOL2 | 0x01);
     audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_OFF);
     audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
     audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_5);
-    //    audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x02);
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x00); //power off
     
     audio_ic_write(ML_RECPLAY_STATE | 0x00);
-    audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_5);
     audio_ic_write(ML_HPF2_CUTOFF | ML_HPF2_CUTOFF_FREQ200);
-    //    audio_ic_write(ML_AMP_VOLFUNC_ENA | 0x03); avmute and fade on?
     audio_ic_write(ML_FILTER_EN | ML_FILTER_DIS_ALL);
     audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY);
     audio_ic_write(ML_REC_LR_BAL_VOL | 0x00);
@@ -1240,6 +1242,11 @@ audio_configure( int force )
     
         audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
         
+#ifdef CONFIG_500D //500d only has internal mono audio :(
+        int input_source = 0;
+#else
+        int input_source = get_input_source();
+#endif
         //mic_power is forced on if input source is 0 or 1
         int mic_pow = get_mic_power(input_source);
     
@@ -1532,9 +1539,7 @@ audio_lovl_display( void * priv, int x, int y, int selected )
                );
         check_sound_recording_warning(x, y);
         if (audio_monitoring){
-  #ifndef CONFIG_600D /* ifNdef ?*/
-            menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
-  #endif
+//            menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
         }else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Headphone monitoring is disabled");
 }
 #else
@@ -1981,6 +1986,7 @@ static struct menu_entry audio_menus[] = {
             .select = menu_open_submenu, 
             .help = "Digital gain (not recommended, use only for headphones!)",
             .children =  (struct menu_entry[]) {
+#ifdef CONFIG_600D
                 {
                         .name = "Record Digital Volume ",
                         .priv           = &cfg_recdgain,
@@ -1990,6 +1996,7 @@ static struct menu_entry audio_menus[] = {
                         .help = "Record Digital Volume. ",
                         .edit_mode = EM_MANY_VALUES,
                 },
+#endif
                 {
                         .name = "Left Digital Gain ",
                         .priv           = &dgain_l,
@@ -2425,7 +2432,6 @@ static void audio_menus_init()
 {
     menu_add( "Audio", audio_menus, COUNT(audio_menus) );
 }
-
 
 
 #ifdef CONFIG_600D
