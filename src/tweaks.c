@@ -783,7 +783,9 @@ play_set_wheel_display(
         play_set_wheel_action == 0 ? "422 Preview" :
         play_set_wheel_action == 1 ? "Exposure Fusion" : 
         play_set_wheel_action == 2 ? "Compare Images" : 
-        play_set_wheel_action == 3 ? "Timelapse Play" : "err"
+        play_set_wheel_action == 3 ? "Timelapse Play" : 
+        play_set_wheel_action == 4 ? "Exposure Adjust" : 
+        "err"
     );
 }
 
@@ -812,6 +814,7 @@ void playback_set_wheel_action(int dir)
     else if (play_set_wheel_action == 1) expfuse_preview_update(dir);
     else if (play_set_wheel_action == 2) playback_compare_images(dir);
     else if (play_set_wheel_action == 3) timelapse_playback += dir;
+    else if (play_set_wheel_action == 4) expo_adjust_playback(dir);
 }
 
 int handle_set_wheel_play(struct event * event)
@@ -2841,7 +2844,7 @@ struct menu_entry play_menus[] = {
             {
                 .name = "SET+MainDial",
                 .priv = &play_set_wheel_action, 
-                .max = 3,
+                .max = 4,
                 .display = play_set_wheel_display,
                 .help = "What to do when you hold SET and turn MainDial scrollwheel",
                 //.essential = FOR_PHOTO,
