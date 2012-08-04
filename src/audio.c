@@ -732,7 +732,7 @@ static uint16_t audio_regs[] = {
     ML_MIXER_VOL_CTL-0x100,
     ML_REC_DIGI_VOL-0x100,
     ML_REC_LR_BAL_VOL-0x100,
-    ML_PLBAK_DIG_VOL-0x100,
+    ML_PLAY_DIG_VOL-0x100,
     ML_HPF2_CUTOFF-0x100,
     ML_SND_EFFECT_MODE-0x100,
     ML_ALC_MODE-0x100,
@@ -778,7 +778,7 @@ static const char * audio_reg_names[] = {
     "ML_MIXER_VOL_CTL",
     "ML_REC_DIGI_VOL",
     "ML_REC_LR_BAL_VOL",
-    "ML_PLBAK_DIG_VOL",
+    "ML_PLAY_DIG_VOL",
     "ML_HPF2_CUTOFF",
     "ML_SND_EFFECT_MODE",
     "ML_ALC_MODE",
@@ -1122,14 +1122,14 @@ audio_ic_set_lineout_onoff(){
     if(audio_monitoring){
         audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY | ML_MIXER_VOL_CTL_RCH_USE_R_ONLY);
                 
-        /*
-        ML_DVOL_CTL_FUNC_EN  //Play limitter on
+        masked_audio_ic_write(ML_DVOL_CTL_FUNC_EN,0x01,0x01);  //Play limitter on
         audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x01); //power on
 
-        ML_PLBAK_DIG_VOL //set vol
-        ML_REC_DIGI_VOL
+        audio_ic_write(ML_PLAY_DIG_VOL | 0xff); //set vol , actually it's gain. max = 0 min = -71.5. setMAX
+        masked_audio_ic_write(ML_DVOL_CTL_FUNC_EN ,ML_DVOL_CTL_FUNC_EN_MUTE,0x0); //mute off
+        audio_ic_set_lineout_vol();
+        audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_AVMUTE);
 
-        */
     }else{
     }
 }
@@ -1342,14 +1342,14 @@ static void
 audio_lovl_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 50);
-    audio_ic_set_lineout_onoff();
+    audio_ic_set_lineout_vol();
 }
 
 static void
 audio_lovl_toggle_reverse( void * priv, int delta )
 {
     menu_numeric_toggle(priv, -1, 0, 50);
-    audio_ic_set_lineout_onoff();
+    audio_ic_set_lineout_vol();
 }
 #endif
 
@@ -1950,7 +1950,11 @@ static void
     audio_monitoring_toggle( void * priv, int delta )
 {
         audio_monitoring = !audio_monitoring;
+#ifdef CONFIG_600D
+        audio_ic_set_lineout_onoff();
+#else
         audio_monitoring_update();
+#endif
 }
 
 static struct menu_entry audio_menus[] = {
