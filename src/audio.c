@@ -1084,10 +1084,8 @@ audio_ic_set_filters(){
 static void
 audio_ic_set_agc(){
     if(alc_enable){
-        audio_ic_write(ML_PW_IN_PW_MNG | ML_PW_IN_PW_MNG_BOTH);
         masked_audio_ic_write(ML_DVOL_CTL_FUNC_EN, 0x03, 0x03);
     }else{
-        audio_ic_write(ML_PW_IN_PW_MNG | ML_PW_IN_PW_MNG_OFF);
         masked_audio_ic_write(ML_DVOL_CTL_FUNC_EN, 0x03, 0x00);
     }
 }
