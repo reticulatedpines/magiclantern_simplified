@@ -719,7 +719,7 @@ static uint16_t audio_regs[] = {
     ML_MIC_BOOST_VOL2-0x100,
     ML_AMP_VOLFUNC_ENA-0x100,
     ML_AMP_VOL_FADE-0x100,
-    ML_HP_AMP_OUT-0x100,
+    ML_HP_AMP_OUT_CTL-0x100,
     ML_MIC_IF_CTL-0x100,
     ML_RCH_MIXER_INPUT-0x100,
     ML_LCH_MIXER_INPUT-0x100,
@@ -765,7 +765,7 @@ static const char * audio_reg_names[] = {
     "ML_MIC_BOOST_VOL2",
     "ML_AMP_VOLFUNC_ENA",
     "ML_AMP_VOL_FADE",
-    "ML_HP_AMP_OUT",
+    "ML_HP_AMP_OUT_CTL",
     "ML_MIC_IF_CTL",
     "ML_RCH_MIXER_INPUT",
     "ML_LCH_MIXER_INPUT",
@@ -1122,11 +1122,6 @@ audio_ic_set_lineout_onoff(){
     //PDF p38
     if(audio_monitoring){
 
-/* ML_RECPLAY_STATE 11 */
-/* ML_RECORD_PATH 06 */
-/* --- */
-/* > ML_RECORD_PATH 07 */
-
 /* < ML_MIXER_VOL_CTL 00 */
 /* --- */
 /* > ML_FILTER_EN 01 */
@@ -1134,26 +1129,31 @@ audio_ic_set_lineout_onoff(){
 
 /* ML_MIXER_VOL_CTL 10 */
 
-
-
+        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON);
+        masked_audio_ic_write(ML_PW_REF_PW_MNG,0x30,0x10);
         audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY | ML_MIXER_VOL_CTL_RCH_USE_R_ONLY);
-                
+
         audio_ic_write(ML_DVOL_CTL_FUNC_EN | 0x0D);  //Play limitter on
         audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x02); //power on
 
         audio_ic_write(ML_PLAY_DIG_VOL | 0xff); //set vol , actually it's gain. max = 0 min = -71.5. setMAX
         masked_audio_ic_write(ML_DVOL_CTL_FUNC_EN ,ML_DVOL_CTL_FUNC_EN_MUTE,0x0); //mute off
-        audio_ic_set_lineout_vol();
         audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON);
 
-        audio_ic_set_input();
+        audio_ic_write(ML_PLYBAK_BOST_VOL | 0x3f); //test
+
+        audio_ic_write(ML_HP_AMP_OUT_CTL | ML_HP_AMP_OUT_CTL_ALL_ON);
+
+        audio_ic_set_lineout_vol();
+
     }else{
-        audio_ic_set_input();
+        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
     }
 }
 
 void
 call_audio_ic_set_lineout_onoff(){
+    audio_ic_set_input();
     audio_ic_set_lineout_onoff();
 }
 
