@@ -1117,6 +1117,24 @@ audio_ic_set_lineout_vol(){
 }
 
 static void
+audio_ic_set_lineout_onoff(){
+    //PDF p38
+    if(audio_monitoring){
+        audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY | ML_MIXER_VOL_CTL_RCH_USE_R_ONLY);
+                
+        /*
+        ML_DVOL_CTL_FUNC_EN  //Play limitter on
+        audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x01); //power on
+
+        ML_PLBAK_DIG_VOL //set vol
+        ML_REC_DIGI_VOL
+
+        */
+    }else{
+    }
+}
+
+static void
 audio_ic_set_recdgain(){
     int vol = 0xff - cfg_recdgain;
     masked_audio_ic_write(ML_REC_DIGI_VOL, 0x70, vol);
@@ -1324,12 +1342,14 @@ static void
 audio_lovl_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 50);
+    audio_ic_set_lineout_onoff();
 }
 
 static void
 audio_lovl_toggle_reverse( void * priv, int delta )
 {
     menu_numeric_toggle(priv, -1, 0, 50);
+    audio_ic_set_lineout_onoff();
 }
 #endif
 
