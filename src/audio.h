@@ -215,8 +215,8 @@ audio_ic_sweep_message_queue( void );
 #define ML_MIC_IN_VOL_3		0x07 /** -12+0.75*num */
 #define ML_MIC_IN_VOL_4		0x0f /** -12+0.75*num */
 #define ML_MIC_IN_VOL_5		0x1f /** -12+0.75*num */
-#define ML_MIC_IN_VOL_7		0x3f /** -12+0.75*num */
-#define ML_MIC_IN_VOL_8		0x3F /** +35.25dB */
+#define ML_MIC_IN_VOL_6		0x3f /** -12+0.75*num */
+#define ML_MIC_IN_VOL_MAX	0x3F /** +35.25dB */
 
 #define ML_MIC_BOOST_VOL1		0x3900 /* Mic Boost Volume */
 #define ML_MIC_BOOST_VOL2		0xe300 /* Mic Boost Volume */

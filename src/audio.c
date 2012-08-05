@@ -983,11 +983,11 @@ audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
 
 static void
 audio_ic_set_analog_gain(){
-	int volumes[] = { 0x00, 0x01, 0x03, 0x07, 0x0f, 0x10, 0x1f, 0x3f};
+	int volumes[] = { 0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f};
     //mic in vol 0-7 0b1-0b111111
 	if(cfg_analog_gain > 7){
         int boost_vol = cfg_analog_gain - 7;
-        audio_ic_write(ML_MIC_IN_VOL   | volumes[7]);   //override mic in volume
+        audio_ic_write(ML_MIC_IN_VOL   | volumes[6]);   //override mic in volume
         audio_ic_set_micboost(boost_vol);
     }else{
         audio_ic_write(ML_MIC_IN_VOL   | volumes[cfg_analog_gain]);   //override mic in volume
