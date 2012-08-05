@@ -229,7 +229,7 @@ PGA volume change is applied for zero cross. */
  #define ML_MIC_IN_VOL_4		0x08 /** -8.25dB */
  #define ML_MIC_IN_VOL_5		0x10 /** 0dB */
  #define ML_MIC_IN_VOL_6		0x20 /** +12.75dB */
- #define ML_MIC_IN_VOL_7		0x3f /** +35.25dB */
+ #define ML_MIC_IN_VOL_MAX		0x3f /** +35.25dB */
 
 #define ML_MIC_BOOST_VOL1		0x3900 /* Mic Boost Volume 1 */
  #define ML_MIC_BOOST_VOL1_OFF	0x00 // 0
