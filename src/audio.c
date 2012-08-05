@@ -2170,7 +2170,7 @@ static struct menu_entry audio_menus[] = {
                 //~ .edit_mode = EM_MANY_VALUES,
         },
     #endif /* CONFIG_600D*/
-#endif /*CONFIG_600D*/
+#endif /*ifNNNdef CONFIG_500D*/
         {
                 .name = "Headphone Monitoring",
                 .priv = &audio_monitoring,
