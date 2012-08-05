@@ -2030,6 +2030,7 @@ struct menu_entry expo_tweak_menus[] = {
     },
 };
 
+CONFIG_INT("preview.brightness", preview_brightness, 0);
 CONFIG_INT("preview.contrast", preview_contrast, 3);
 CONFIG_INT("preview.saturation", preview_saturation, 1);
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
@@ -2057,17 +2058,31 @@ void preview_contrast_n_saturation_step()
     }
 
 
-    int contrast_register = 0xC0F141B8;
-    int current_contrast = shamem_read(contrast_register) & 0xFF;
+    int brightness_contrast_register = 0xC0F141B8;
+    int current_contrast = shamem_read(brightness_contrast_register);
 
-    static int contrast_values[] = {0x790000, 0x400040, 0x100070, 0x80, 0xE000A0, 0xC000C0};
-    int desired_contrast = contrast_values[preview_contrast];
+    // -------- xxxxxxxx -------- -------- brightness (offset): 8bit signed 
+    // -------- -------- -------- xxxxxxxx contrast (gain factor): 8bit unsigned, 0x80 = 1.0
+    // mid value = (int8_t)brightness + 128 * (uint8_t) contrast / 0x80
+    // default set (at brightness 0): mid value = 128
+    // at brightness 1: mid value = 160
+    // at brightness 2: mid value = 192
+    static int contrast_values_at_brigthness_0[] = {0x7F0000, 0x400040, 0x100070,     0x80, 0xE000A0, 0xC000C0};
+    static int contrast_values_at_brigthness_1[] = {0x7F0000, 0x600040, 0x300070, 0x200080, 0x0000A0, 0xe000C0};
+    static int contrast_values_at_brigthness_2[] = {0x7F0000, 0x7F0040, 0x500070, 0x400080, 0x2000A0, 0x0000C0};
+
+    int desired_contrast = 0x80;
+    
+         if (preview_brightness == 0) desired_contrast = contrast_values_at_brigthness_0[preview_contrast];
+    else if (preview_brightness == 1) desired_contrast = contrast_values_at_brigthness_1[preview_contrast];
+    else if (preview_brightness == 2) desired_contrast = contrast_values_at_brigthness_2[preview_contrast];
+    
     if (gui_menu_shown() && !menu_active_but_hidden())
-        desired_contrast = contrast_values[3]; // do not apply it while ML menu is on (so you can read it in low contrast modes)
+        desired_contrast = contrast_values_at_brigthness_0[3]; // do not apply this adjustment while ML menu is on (so you can read it in low contrast modes)
 
     if (current_contrast != desired_contrast)
     {
-        EngDrvOut(contrast_register, desired_contrast);
+        EngDrvOut(brightness_contrast_register, desired_contrast);
     }
 }
 
@@ -2627,6 +2642,15 @@ static struct menu_entry display_menus[] = {
         .submenu_width = 700,
         .help = "Contrast, saturation, color scheme. No effect on recording.",
         .children =  (struct menu_entry[]) {*/
+            {
+                .name = "LV brightness  ", 
+                .priv = &preview_brightness, 
+                .max = 2,
+                .choices = (const char *[]) {"Normal", "High", "Very high"},
+                .help = "Raises the shadows in LiveView and Playback mode.",
+                .icon_type = IT_BOOL,
+                .edit_mode = EM_MANY_VALUES_LV,
+            },
             {
                 .name = "LV contrast",
                 .priv     = &preview_contrast,
