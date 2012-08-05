@@ -1104,6 +1104,7 @@ audio_ic_off(){
 static void
 audio_ic_on(){
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x01); //power on 
+    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_REC);
 }
 
 static void
@@ -1111,6 +1112,7 @@ audio_ic_set_lineout_vol(){
     int vol = lovl + 0x0E;
     audio_ic_write(ML_HP_AMP_VOL | vol);
 }
+
 
 static void
 audio_ic_set_lineout_onoff(){
