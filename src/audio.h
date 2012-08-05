@@ -233,9 +233,9 @@ PGA volume change is applied for zero cross. */
 
 #define ML_MIC_BOOST_VOL1		0x3900 /* Mic Boost Volume 1 */
  #define ML_MIC_BOOST_VOL1_OFF	0x00 // 0
- #define ML_MIC_BOOST_VOL1_1	0x01 // +9.75dB
- #define ML_MIC_BOOST_VOL1_2    0x02 // +19.50dB
- #define ML_MIC_BOOST_VOL1_3	0x03 // +29.25dB (not valid with Boost vol2)
+ #define ML_MIC_BOOST_VOL1_1	0x10 // +9.75dB
+ #define ML_MIC_BOOST_VOL1_2    0x20 // +19.50dB
+ #define ML_MIC_BOOST_VOL1_3	0x30 // +29.25dB (not valid with Boost vol2)
 
 #define ML_MIC_BOOST_VOL2		0xe300 /* Mic Boost Volume 2 */
  #define ML_MIC_BOOST_VOL2_ON	0x01 // increase +4.875dB to boost vol1
@@ -414,9 +414,10 @@ PGA volume change is applied for zero cross. */
 #define ML_FILTER_DIS_ALL			0x00
 
 #define ML_DVOL_CTL_FUNC_EN				0x6900 /* Digital Volume Control Func Enable */ /* Play Limiter + Capture Limiter + Digital Volume Fade Switch +Digital Switch */ 
+ #define ML_DVOL_CTL_FUNC_EN_ALL_OFF	0x00 /* =all off */
  #define ML_DVOL_CTL_FUNC_EN_ALC_ON		0x02 /* =AGC Auto Level Control when recording */
- #define ML_DVOL_CTL_FUNC_EN_ALC_OFF	0x00 /* =all off */
  #define ML_DVOL_CTL_FUNC_EN_MUTE		0x10 /* =mute */
+ #define ML_DVOL_CTL_FUNC_EN_ALC_FADE   0x2c /* =ALC after all sound proces. + fade ON */
  #define ML_DVOL_CTL_FUNC_EN_ALL        0x2f /* =all ON */
 
 #define ML_MIXER_VOL_CTL		0x6b00 /* Mixer & Volume Control*/
@@ -443,14 +444,14 @@ PGA volume change is applied for zero cross. */
 #define ML_EQ_GAIN_BRAND3		0x7b00 /* EQ Band3 Volume */
 #define ML_EQ_GAIN_BRAND4		0x7d00 /* EQ Band4 Volume */
 #define ML_HPF2_CUTOFF          0x7f00 /* HPF2 CutOff*/
- #define ML_HPF2_CUTOFF_FREQ80		0x0
- #define ML_HPF2_CUTOFF_FREQ100		0x1
- #define ML_HPF2_CUTOFF_FREQ130		0x2
- #define ML_HPF2_CUTOFF_FREQ160		0x3
- #define ML_HPF2_CUTOFF_FREQ200		0x4
- #define ML_HPF2_CUTOFF_FREQ260		0x5
- #define ML_HPF2_CUTOFF_FREQ320		0x6
- #define ML_HPF2_CUTOFF_FREQ400		0x7
+ #define ML_HPF2_CUTOFF_FREQ80		0x00
+ #define ML_HPF2_CUTOFF_FREQ100		0x01
+ #define ML_HPF2_CUTOFF_FREQ130		0x02
+ #define ML_HPF2_CUTOFF_FREQ160		0x03
+ #define ML_HPF2_CUTOFF_FREQ200		0x04
+ #define ML_HPF2_CUTOFF_FREQ260		0x05
+ #define ML_HPF2_CUTOFF_FREQ320		0x06
+ #define ML_HPF2_CUTOFF_FREQ400		0x07
 
 #define ML_EQBRAND0_F0L		0x8100 /* EQ Band0 Coef0L */
 #define ML_EQBRAND0_F0H		0x8300
