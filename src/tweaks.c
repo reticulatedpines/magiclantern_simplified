@@ -2073,9 +2073,21 @@ void preview_contrast_n_saturation_step()
 
     int desired_contrast = 0x80;
     
-         if (preview_brightness == 0) desired_contrast = contrast_values_at_brigthness_0[preview_contrast];
-    else if (preview_brightness == 1) desired_contrast = contrast_values_at_brigthness_1[preview_contrast];
-    else if (preview_brightness == 2) desired_contrast = contrast_values_at_brigthness_2[preview_contrast];
+    if (preview_contrast== 6) // auto contrast
+    {
+        // normal brightness => normal contrast
+        // high brightness => low contrast
+        // very high brightness => very low contrast
+             if (preview_brightness == 0) desired_contrast = contrast_values_at_brigthness_0[3];
+        else if (preview_brightness == 1) desired_contrast = contrast_values_at_brigthness_1[2];
+        else if (preview_brightness == 2) desired_contrast = contrast_values_at_brigthness_2[1];
+    }
+    else // manual contrast
+    {
+             if (preview_brightness == 0) desired_contrast = contrast_values_at_brigthness_0[preview_contrast];
+        else if (preview_brightness == 1) desired_contrast = contrast_values_at_brigthness_1[preview_contrast];
+        else if (preview_brightness == 2) desired_contrast = contrast_values_at_brigthness_2[preview_contrast];
+    }
     
     if (gui_menu_shown() && !menu_active_but_hidden())
         desired_contrast = contrast_values_at_brigthness_0[3]; // do not apply this adjustment while ML menu is on (so you can read it in low contrast modes)
@@ -2152,11 +2164,17 @@ void preview_contrast_display(
         preview_contrast == 2 ? "Low" :
         preview_contrast == 3 ? "Normal" :
         preview_contrast == 4 ? "High" :
-                                "Very high"
+        preview_contrast == 5 ? "Very high" : 
+        (
+            preview_brightness == 0 ? "Auto (normal)" :
+            preview_brightness == 1 ? "Auto (low)" :
+            preview_brightness == 2 ? "Auto (very low)" : "err"
+        )
     );
 
     if (preview_contrast != 3 && EXT_MONITOR_CONNECTED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Does not work on external monitors.");
     if (preview_contrast == 3) menu_draw_icon(x, y, MNI_OFF, 0);
+    else if (preview_contrast == 6) menu_draw_icon(x, y, MNI_AUTO, 0);
     else menu_draw_icon(x, y, MNI_ON, 0);
     
     if (menu_active_but_hidden()) preview_show_contrast_curve();
@@ -2695,7 +2713,6 @@ static struct menu_entry display_menus[] = {
                 .name = "LV brightness  ", 
                 .priv = &preview_brightness, 
                 .max = 2,
-                .choices = (const char *[]) {"Normal", "High", "Very high"},
                 .help = "Raises the shadows in LiveView and Playback mode.",
                 .display = preview_brightness_display,
                 .edit_mode = EM_MANY_VALUES_LV,
@@ -2703,9 +2720,8 @@ static struct menu_entry display_menus[] = {
             {
                 .name = "LV contrast",
                 .priv     = &preview_contrast,
-                .max = 5,
+                .max = 6,
                 .display = preview_contrast_display,
-                .choices = (const char *[]) {"Normal", "Low", "High", "Very low", "Very high", "Zero"},
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
                 //.essential = FOR_LIVEVIEW,
