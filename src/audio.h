@@ -364,11 +364,12 @@ PGA volume change is applied for zero cross. */
 
 /* Analog Path Control Register */
 #define ML_SPK_AMP_OUT		0x5500 /* DAC Switch + Line in loopback Switch + PGA Switch */ /* Speaker AMP Output Control */
-#define ML_HP_AMP_OUT       0x5700 /* headphone amp control*/
- #define ML_HP_AMP_OUT_LCH_ON       0x20
- #define ML_HP_AMP_OUT_RCH_ON       0x10
- #define ML_HP_AMP_OUT_LCH_PGA_ON   0x02
- #define ML_HP_AMP_OUT_RCH_PGA_ON   0x01
+#define ML_HP_AMP_OUT_CTL       0x5700 /* headphone amp control*/
+ #define ML_HP_AMP_OUT_CTL_LCH_ON       0x20
+ #define ML_HP_AMP_OUT_CTL_RCH_ON       0x10
+ #define ML_HP_AMP_OUT_CTL_LCH_PGA_ON   0x02
+ #define ML_HP_AMP_OUT_CTL_RCH_PGA_ON   0x01
+ #define ML_HP_AMP_OUT_CTL_ALL_ON   0x33
 
 #define ML_MIC_IF_CTL		0x5b00 /* Mic IF Control */
  #define ML_MIC_IF_CTL_ANALOG_SINGLE  0x00

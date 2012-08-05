@@ -719,7 +719,7 @@ static uint16_t audio_regs[] = {
     ML_MIC_BOOST_VOL2-0x100,
     ML_AMP_VOLFUNC_ENA-0x100,
     ML_AMP_VOL_FADE-0x100,
-    ML_HP_AMP_OUT-0x100,
+    ML_HP_AMP_OUT_CTL-0x100,
     ML_MIC_IF_CTL-0x100,
     ML_RCH_MIXER_INPUT-0x100,
     ML_LCH_MIXER_INPUT-0x100,
@@ -765,7 +765,7 @@ static const char * audio_reg_names[] = {
     "ML_MIC_BOOST_VOL2",
     "ML_AMP_VOLFUNC_ENA",
     "ML_AMP_VOL_FADE",
-    "ML_HP_AMP_OUT",
+    "ML_HP_AMP_OUT_CTL",
     "ML_MIC_IF_CTL",
     "ML_RCH_MIXER_INPUT",
     "ML_LCH_MIXER_INPUT",
@@ -1126,7 +1126,7 @@ audio_ic_set_lineout_onoff(){
         audio_ic_write(ML_PW_IN_PW_MNG | ML_PW_IN_PW_MNG_BOTH ); //adc pga on
         audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWRON); //DAC power on
         audio_ic_write(ML_PW_SPAMP_PW_MNG | 0xFF);
-        audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_7 ); //<<<<<<<<<<<guess we can delete . need testing 
+        audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_MAX ); //<<<<<<<<<<<guess we can delete . need testing 
         audio_ic_write(ML_HP_AMP_OUT_CTL | ML_HP_AMP_OUT_CTL_ALL_ON);
         audio_ic_write(ML_FILTER_EN | ML_FILTER_EN_HPF_BOTH);
       
