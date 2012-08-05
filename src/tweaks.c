@@ -2067,9 +2067,9 @@ void preview_contrast_n_saturation_step()
     // default set (at brightness 0): mid value = 128
     // at brightness 1: mid value = 160
     // at brightness 2: mid value = 192
-    static int contrast_values_at_brigthness_0[] = {0x7F0000, 0x400040, 0x100070,     0x80, 0xE000A0, 0xC000C0};
-    static int contrast_values_at_brigthness_1[] = {0x7F0000, 0x600040, 0x300070, 0x200080, 0x0000A0, 0xe000C0};
-    static int contrast_values_at_brigthness_2[] = {0x7F0000, 0x7F0040, 0x500070, 0x400080, 0x2000A0, 0x0000C0};
+    static int contrast_values_at_brigthness_0[] = {0x7F0000, 0x400040, 0x200060,     0x80, 0xE000A0, 0xC000C0};
+    static int contrast_values_at_brigthness_1[] = {0x7F0000, 0x600040, 0x400060, 0x200080, 0x0000A0, 0xe000C0};
+    static int contrast_values_at_brigthness_2[] = {0x7F0000, 0x7F0040, 0x600060, 0x400080, 0x2000A0, 0x0000C0};
 
     int desired_contrast = 0x80;
     
@@ -2083,6 +2083,30 @@ void preview_contrast_n_saturation_step()
     if (current_contrast != desired_contrast)
     {
         EngDrvOut(brightness_contrast_register, desired_contrast);
+    }
+}
+
+void preview_show_contrast_curve()
+{
+    int brightness_contrast_register = 0xC0F141B8;
+    int value = shamem_read(brightness_contrast_register);
+    int contrast = value & 0xFF;
+    int brightness = (int8_t)(value >> 16);
+    
+    int x0 = 360-128;
+    int y0 = 300-128;
+    bmp_draw_rect(COLOR_BLACK, x0, y0, 255, 255 * 2/3);
+    bmp_draw_rect(COLOR_WHITE, x0-1, y0-1, 257, 255 * 2/3 + 2);
+    
+    for (int x = 0; x < 256; x++)
+    {
+        int y = COERCE(brightness + x * contrast / 0x80, 0, 255);
+        y = (256 - y) * 2/3;
+        bmp_putpixel(x0 + x, y0 + y - 2, COLOR_WHITE);
+        bmp_putpixel(x0 + x, y0 + y - 1, COLOR_RED);
+        bmp_putpixel(x0 + x, y0 + y    , COLOR_RED);
+        bmp_putpixel(x0 + x, y0 + y + 1, COLOR_RED);
+        bmp_putpixel(x0 + x, y0 + y + 2, COLOR_WHITE);
     }
 }
 
@@ -2134,6 +2158,31 @@ void preview_contrast_display(
     if (preview_contrast != 3 && EXT_MONITOR_CONNECTED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Does not work on external monitors.");
     if (preview_contrast == 3) menu_draw_icon(x, y, MNI_OFF, 0);
     else menu_draw_icon(x, y, MNI_ON, 0);
+    
+    if (menu_active_but_hidden()) preview_show_contrast_curve();
+}
+
+void preview_brightness_display(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "LV brightness  : %s",
+        preview_brightness == 0 ? "Normal" :
+        preview_brightness == 1 ? "High" :
+                                  "Very high"
+    );
+
+    if (preview_brightness && EXT_MONITOR_CONNECTED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Does not work on external monitors.");
+    if (preview_brightness == 0) menu_draw_icon(x, y, MNI_OFF, 0);
+    else menu_draw_icon(x, y, MNI_ON, 0);
+    
+    if (menu_active_but_hidden()) preview_show_contrast_curve();
 }
 
 void adjust_saturation_level(int delta)
@@ -2648,7 +2697,7 @@ static struct menu_entry display_menus[] = {
                 .max = 2,
                 .choices = (const char *[]) {"Normal", "High", "Very high"},
                 .help = "Raises the shadows in LiveView and Playback mode.",
-                .icon_type = IT_BOOL,
+                .display = preview_brightness_display,
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
