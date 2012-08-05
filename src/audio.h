@@ -256,14 +256,14 @@ audio_ic_sweep_message_queue( void );
 //#define ML_MIC_IF_CTL_DIGITAL_DIFFER 0x03 "This register is to select the usage of analog microphone input interface(MIN)" so I suspect this will not work...
 
 #define ML_RCH_MIXER_INPUT	0xe100 /* R-ch mic select */
-#define ML_RCH_MIXER_INPUT_SINGLE_EXT	0x01
-#define ML_RCH_MIXER_INPUT_SINGLE_INT	0x02
-#define ML_RCH_MIXER_INPUT_DIFFER_LR	    0x06
+#define ML_RCH_MIXER_INPUT_SINGLE_HOT	0x01
+#define ML_RCH_MIXER_INPUT_SINGLE_COLD	0x02
+#define ML_RCH_MIXER_INPUT_DIFFER_HOTCOLD	    0x06
 
 #define ML_LCH_MIXER_INPUT	0xe900 /* L-ch mic select */
-#define ML_LCH_MIXER_INPUT_SINGLE_INT	0x01
-#define ML_LCH_MIXER_INPUT_SINGLE_EXT	0x02
-#define ML_LCH_MIXER_INPUT_DIFFER_LR	    0x05
+#define ML_LCH_MIXER_INPUT_SINGLE_COLD	0x01
+#define ML_LCH_MIXER_INPUT_SINGLE_HOT	0x02
+#define ML_LCH_MIXER_INPUT_DIFFER_HOTCOLD	    0x05
 
 
 #define ML_RECORD_PATH      0xe500 /* analog record path */
