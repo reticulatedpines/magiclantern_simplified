@@ -1032,7 +1032,7 @@ audio_ic_set_input(){
             // set step time of the amplifier volume fader function
             audio_ic_write( ML_AMP_VOL_FADE | ML_AMP_VOL_FADE_2 );  // 16/fs  333us  0x0010
             // microphone input interface: 0xabcd a,b, unused c: 0=Analog 1=Digital d: 0=single 1=differential (noly when analog selected) 
-            audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
+            audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_DIFFER);
 			break;
     case 4: //int out auto
         if(mic_inserted){
@@ -1270,11 +1270,11 @@ audio_configure( int force )
     
         audio_ic_write( AUDIO_IC_PM1 | 0x6D ); // power up ADC and DAC
         
-#ifdef CONFIG_500D //500d only has internal mono audio :(
+  #ifdef CONFIG_500D //500d only has internal mono audio :(
         int input_source = 0;
-#else
+  #else
         int input_source = get_input_source();
-#endif
+  #endif
         //mic_power is forced on if input source is 0 or 1
         int mic_pow = get_mic_power(input_source);
     
@@ -1290,29 +1290,29 @@ audio_configure( int force )
         
         
     
-#ifdef CONFIG_500D
+  #ifdef CONFIG_500D
     audio_ic_write( AUDIO_IC_SIG4 | pm3[input_source] );
-#else
+  #else
     //PM3 is set according to the input choice
         audio_ic_write( AUDIO_IC_PM3 | pm3[input_source] );
-#endif
+  #endif
     
         gain.alc1 = alc_enable ? (1<<5) : 0;
         audio_ic_write( AUDIO_IC_ALC1 | gain.alc1 ); // disable all ALC
     
-#ifndef CONFIG_500D
+  #ifndef CONFIG_500D
         // Control left/right gain independently
         audio_ic_write( AUDIO_IC_MODE4 | 0x00 );
         
         audio_ic_set_input_volume( 0, dgain_r );
         audio_ic_set_input_volume( 1, dgain_l );
-#endif
+  #endif
         
         audio_ic_set_mgain( mgain );
     
-#ifdef CONFIG_500D
-// nothing here yet.
-#else
+  #ifdef CONFIG_500D
+  // nothing here yet.
+  #else
 
         #ifndef CONFIG_550D // no sound with external mic?!
         audio_ic_write( AUDIO_IC_FIL1 | (enable_filters ? 0x1 : 0));
@@ -1326,7 +1326,7 @@ audio_configure( int force )
                                    | loopback << 6              // loop mode
                                    | (o2gain & 0x3) << 2        // output volume
                                    );
-#endif /* CONFIG_500D nothing here yet*/
+  #endif /* CONFIG_500D nothing here yet*/
 #endif /* CONFIG_600D */
     
         //draw_audio_regs();
