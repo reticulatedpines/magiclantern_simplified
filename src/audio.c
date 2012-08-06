@@ -44,6 +44,7 @@ static void volume_display();
 
 static void audio_monitoring_display_headphones_connected_or_not();
 static void audio_menus_init();
+static void audio_monitoring_update();
 
 // Dump the audio registers to a file if defined
 #undef CONFIG_AUDIO_REG_LOG
@@ -1179,6 +1180,7 @@ audio_ic_set_lineout_onoff(){
 void
 call_audio_ic_set_lineout_onoff(){
     audio_ic_set_input();
+    audio_monitoring_update(); //call audio_monitoring_force_display()
     audio_ic_set_lineout_onoff();
 }
 
@@ -2015,7 +2017,7 @@ static void
 #ifdef CONFIG_600D
         audio_ic_set_lineout_onoff();
 #endif
-        audio_monitoring_update();
+        audio_monitoring_update(); //call audio_monitoring_force_display()
 
 }
 
