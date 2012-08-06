@@ -66,7 +66,7 @@ static struct gain_struct gain = {
 // Set defaults
 #ifdef CONFIG_600D
 CONFIG_INT( "audio.override_audio", cfg_override_audio,   0 );
-CONFIG_INT( "audio.analog_gain",    cfg_analog_gain,     17 );
+CONFIG_INT( "audio.analog_gain",    cfg_analog_gain,      2 );
 CONFIG_INT( "audio.enable_dc",      cfg_filter_dc,        0 );
 CONFIG_INT( "audio.enable_hpf2",    cfg_filter_hpf2,      0 );
 CONFIG_INT( "audio.hpf2config",     cfg_filter_hpf2config,7 );
@@ -969,9 +969,33 @@ override_audio_setting(int phase){
 struct msg_queue * override_audio_q = NULL;
 static void
 audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
-    if(lv > 7 ) lv = 6;
+//    if(lv > 7 ) lv = 6;
+    if(lv > 6 ) lv = 6;
 
-    if(lv < 4){
+    if(lv == 1 ){
+        audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_OFF);
+        audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_ON);
+    }
+    if(lv == 2 ){
+        audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_1);
+        audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
+    }
+    if(lv == 3 ){
+        audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_1);
+        audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_ON);
+    }
+    if(lv == 4 ){
+        audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_2);
+        audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
+    }
+    if(lv == 5 ){
+        audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_2);
+        audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_ON);
+    }
+    if(lv == 6 ){
+        audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_3);
+    }
+/*    if(lv < 4){
         audio_ic_write(ML_MIC_BOOST_VOL1 | lv<<4);
         audio_ic_write(ML_MIC_BOOST_VOL2 | 0x0);
     }else{
@@ -979,15 +1003,16 @@ audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
         audio_ic_write(ML_MIC_BOOST_VOL1 | lv<<4);
         audio_ic_write(ML_MIC_BOOST_VOL2 | 0x1);
     }
+*/
 }
 
 static void
 audio_ic_set_analog_gain(){
-	int volumes[] = { 0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f};
+	int volumes[] = { 0x00, 0x0c, 0x10, 0x18, 0x24, 0x30, 0x3c, 0x3f};
     //mic in vol 0-7 0b1-0b111111
-	if(cfg_analog_gain > 7){
-        int boost_vol = cfg_analog_gain - 7;
-        audio_ic_write(ML_MIC_IN_VOL   | volumes[6]);   //override mic in volume
+	if(cfg_analog_gain > 8){
+        int boost_vol = cfg_analog_gain - 8;
+        audio_ic_write(ML_MIC_IN_VOL   | volumes[7]);   //override mic in volume
         audio_ic_set_micboost(boost_vol);
     }else{
         audio_ic_write(ML_MIC_IN_VOL   | volumes[cfg_analog_gain]);   //override mic in volume
@@ -1091,7 +1116,7 @@ static void
 audio_ic_off(){
     audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_OFF);
     audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
-    audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_5);
+    audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_2);
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x00); //power off
     
     audio_ic_write(ML_RECPLAY_STATE | 0x00);
@@ -1711,26 +1736,41 @@ static void override_audio_toggle( void * priv, int delta )
     audio_configure(0);
 }
 
+static char *get_analog_gain_str(){
+    return (cfg_analog_gain == 0 ? "-12" :
+            (cfg_analog_gain == 1 ? " -3" :
+             (cfg_analog_gain == 2 ? "  0" :
+              (cfg_analog_gain == 3 ? " +6" :
+               (cfg_analog_gain == 4 ? "+15" :
+                (cfg_analog_gain == 5 ? "+24" :
+                 (cfg_analog_gain == 6 ? "+33" :
+                  (cfg_analog_gain == 7 ? "+35" :
+                   (cfg_analog_gain == 8 ? "+40" :
+                    (cfg_analog_gain == 9 ? "+45" :
+                     (cfg_analog_gain == 10 ? "+50" :
+                      (cfg_analog_gain == 11 ? "+55" :
+                       (cfg_analog_gain == 12 ? "+60" : "+65")))))))))))));
+}
 static void analog_gain_display( void * priv, int x, int y, int selected )
 {
     unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
     bmp_printf(
                FONT(fnt, cfg_analog_gain > 7 ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
-               "Analog gain(0-12) : %d", 
-               cfg_analog_gain
+               "Analog gain+boost : %sdB", 
+               get_analog_gain_str()
                );
-    menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_gain)/12);
+    menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_gain)/13);
 
 }
 static void analog_gain_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 1, 0, 12);
+    menu_numeric_toggle(priv, 1, 0, 13);
     audio_ic_set_analog_gain();
 }
 static void analog_gain_toggle_reverse( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, -1, 0, 12);
+    menu_numeric_toggle(priv, -1, 0, 13);
     audio_ic_set_analog_gain();
 }
 

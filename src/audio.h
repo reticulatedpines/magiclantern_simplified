@@ -223,12 +223,12 @@ PGA volume change is applied for zero cross. */
 /* Input/Output Amplifier Control Register */
 #define ML_MIC_IN_VOL		0x3300 /* MIC Input Volume */
  #define ML_MIC_IN_VOL_0		0x00 /** -12+0.75*num */
- #define ML_MIC_IN_VOL_1		0x01 /** -11.25dB */
- #define ML_MIC_IN_VOL_2		0x02 /** -10.50dB */
- #define ML_MIC_IN_VOL_3		0x04 /** -9dB */ 
- #define ML_MIC_IN_VOL_4		0x08 /** -8.25dB */
- #define ML_MIC_IN_VOL_5		0x10 /** 0dB */
- #define ML_MIC_IN_VOL_6		0x20 /** +12.75dB */
+ #define ML_MIC_IN_VOL_1		0x0c /** - 3dB */
+ #define ML_MIC_IN_VOL_2		0x10 /**   0dB */
+ #define ML_MIC_IN_VOL_3		0x18 /** + 6dB */ 
+ #define ML_MIC_IN_VOL_4		0x24 /** +15dB */
+ #define ML_MIC_IN_VOL_5		0x30 /** +24dB */
+ #define ML_MIC_IN_VOL_6		0x3c /** +33dB */
  #define ML_MIC_IN_VOL_MAX		0x3f /** +35.25dB */
 
 #define ML_MIC_BOOST_VOL1		0x3900 /* Mic Boost Volume 1 */
