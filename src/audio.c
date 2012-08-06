@@ -435,13 +435,12 @@ int audio_meters_are_drawn()
 static void
 meter_task( void* unused )
 {
-        
+
 #ifdef CONFIG_600D
         //initialize audio config for 600D
         audio_configure(1);
-        audio_monitoring_update();
 #endif
-
+        
         TASK_LOOP
         {
                 msleep(DISPLAY_IS_ON ? 50 : 500);
@@ -1275,6 +1274,7 @@ audio_configure( int force )
     audio_ic_set_filters();
     audio_ic_set_agc();
     audio_ic_set_lineout_onoff();
+    audio_monitoring_update(); //call audio_monitoring_force_display()
 
 #else /* ^^^^^^^CONFIG_600D^^^^^^^ vvvvv except 600D vvvvvvvv*/
 
