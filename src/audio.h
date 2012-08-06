@@ -433,9 +433,16 @@ PGA volume change is applied for zero cross. */
 
 #define ML_REC_DIGI_VOL		0x6d00 /* Capture/Record Digital Volume */
  #define ML_REC_DIGI_VOL_MUTE	0x00 //00-6f mute
- #define ML_REC_DIGI_VOL_MIN		0x70 //-71.5dB
- //        71-fe +0.5db step 
- #define ML_REC_DIGI_VOL_MAX		0xFF
+ #define ML_REC_DIGI_VOL_MIN	0x70 //-71.5dB +0.5db step
+ #define ML_REC_DIGI_VOL_1		0x80 //-63.5dB
+ #define ML_REC_DIGI_VOL_2		0x90 //-55.5dB
+ #define ML_REC_DIGI_VOL_3		0xa0 //-47.5dB
+ #define ML_REC_DIGI_VOL_4		0xb0 //-39.5dB
+ #define ML_REC_DIGI_VOL_5		0xc0 //-31.5dB
+ #define ML_REC_DIGI_VOL_6		0xd0 //-23.5dB
+ #define ML_REC_DIGI_VOL_7		0xe0 //-15.5dB
+ #define ML_REC_DIGI_VOL_8		0xf0 //-7.5dB
+ #define ML_REC_DIGI_VOL_MAX	0xFF // 0dB
 
 #define ML_REC_LR_BAL_VOL	    0x6f00 /*0x0-0xf Rvol, 0x00-0f0 Lvol*/
 #define ML_PLAY_DIG_VOL  		0x7100 /* Playback Digital Volume */
