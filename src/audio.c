@@ -2016,6 +2016,8 @@ static void
         audio_ic_set_lineout_onoff();
 #endif
         audio_monitoring_update();
+#endif
+
 }
 
 static struct menu_entry audio_menus[] = {
