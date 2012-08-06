@@ -2277,8 +2277,9 @@ enable_meters(
 
 PROP_HANDLER( PROP_LV_ACTION )
 {
-        const unsigned mode = buf[0];
+    const unsigned mode = buf[0];
         enable_meters( mode );
+        audio_monitoring_update();
 }
 
 PROP_HANDLER( PROP_MVR_REC_START )
@@ -2526,6 +2527,7 @@ PROP_HANDLER( PROP_AUDIO_VOL_CHANGE_600D )
 
 PROP_HANDLER( PROP_PLAYMODE_LAUNCH_600D )
 {
+    audio_monitoring_update();
 }
 PROP_HANDLER( PROP_PLAYMODE_VOL_CHANGE_600D )
 {
