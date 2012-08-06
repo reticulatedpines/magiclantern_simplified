@@ -972,28 +972,30 @@ audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
 //    if(lv > 7 ) lv = 6;
     if(lv > 6 ) lv = 6;
 
-    if(lv == 1 ){
+    switch(lv){
+    case 1:
         audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_OFF);
         audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_ON);
-    }
-    if(lv == 2 ){
+        break;
+    case 2:
         audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_1);
         audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
-    }
-    if(lv == 3 ){
+        break;
+    case 3:
         audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_1);
         audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_ON);
-    }
-    if(lv == 4 ){
+        break;
+    case 4:
         audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_2);
         audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
-    }
-    if(lv == 5 ){
+        break;
+    case 5:
         audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_2);
         audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_ON);
-    }
-    if(lv == 6 ){
+        break;
+    case 6:
         audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_3);
+        break;
     }
 /*    if(lv < 4){
         audio_ic_write(ML_MIC_BOOST_VOL1 | lv<<4);
@@ -1010,7 +1012,7 @@ static void
 audio_ic_set_analog_gain(){
 	int volumes[] = { 0x00, 0x0c, 0x10, 0x18, 0x24, 0x30, 0x3c, 0x3f};
     //mic in vol 0-7 0b1-0b111111
-	if(cfg_analog_gain > 8){
+	if(cfg_analog_gain > 7){
         int boost_vol = cfg_analog_gain - 8;
         audio_ic_write(ML_MIC_IN_VOL   | volumes[7]);   //override mic in volume
         audio_ic_set_micboost(boost_vol);
