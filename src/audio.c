@@ -1274,6 +1274,7 @@ audio_configure( int force )
     audio_ic_set_filters();
     audio_ic_set_agc();
     audio_ic_set_lineout_onoff();
+    audio_monitoring_update(); //call audio_monitoring_force_display()
 
 #else /* ^^^^^^^CONFIG_600D^^^^^^^ vvvvv except 600D vvvvvvvv*/
 
@@ -2281,7 +2282,6 @@ PROP_HANDLER( PROP_LV_ACTION )
 {
         const unsigned mode = buf[0];
         enable_meters( mode );
-        audio_monitoring_update();
 }
 
 PROP_HANDLER( PROP_MVR_REC_START )
