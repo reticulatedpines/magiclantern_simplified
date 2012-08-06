@@ -2277,7 +2277,7 @@ enable_meters(
 
 PROP_HANDLER( PROP_LV_ACTION )
 {
-    const unsigned mode = buf[0];
+        const unsigned mode = buf[0];
         enable_meters( mode );
         audio_monitoring_update();
 }
