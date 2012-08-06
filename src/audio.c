@@ -439,6 +439,7 @@ meter_task( void* unused )
 #ifdef CONFIG_600D
         //initialize audio config for 600D
         audio_configure(1);
+        audio_monitoring_update();
 #endif
 
         TASK_LOOP
@@ -2528,6 +2529,7 @@ PROP_HANDLER( PROP_AUDIO_VOL_CHANGE_600D )
 
 PROP_HANDLER( PROP_PLAYMODE_LAUNCH_600D )
 {
+    audio_monitoring_update();
 }
 PROP_HANDLER( PROP_PLAYMODE_VOL_CHANGE_600D )
 {
