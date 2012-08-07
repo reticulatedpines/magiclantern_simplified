@@ -2223,6 +2223,17 @@ static struct menu_entry audio_menus[] = {
      .display   = audio_loopback_display,
      },*/
 #if !defined(CONFIG_500D)
+    #ifdef CONFIG_600D
+        {
+                .name = "Output volume",
+                .priv           = &lovl,
+                .select         = audio_lovl_toggle,
+                .select_reverse = audio_lovl_toggle_reverse,
+                .display        = audio_lovl_display,
+                .help = "Output volume for audio monitoring (headphones only).",
+                //~ .edit_mode = EM_MANY_VALUES,
+        },
+    #else        
         {
                 .name = "Mic Power",
                 .priv           = &mic_power,
@@ -2234,17 +2245,13 @@ static struct menu_entry audio_menus[] = {
         {
                 .name = "Output volume",
                 .priv           = &lovl,
-    #ifdef CONFIG_600D
-                .select         = audio_lovl_toggle,
-                .select_reverse = audio_lovl_toggle_reverse,
-    #else
                 .select         = audio_3bit_toggle,
                 .select_reverse = audio_3bit_toggle_reverse,
-    #endif            
                 .display        = audio_lovl_display,
                 .help = "Output volume for audio monitoring (headphones only).",
                 //~ .edit_mode = EM_MANY_VALUES,
         },
+    #endif
 #endif /*ifNNNdef CONFIG_500D*/
         {
                 .name = "Headphone Monitoring",
