@@ -1231,8 +1231,8 @@ call_audio_ic_set_lineout_onoff(){
 
 static void
 audio_ic_set_recdgain(){
-	int dig_volumes[] = { 0x00, /*0x70, 0x80, 0x90, 0xa0, 0xb0,*/ 0xc0, 0xd0, 0xe0, 0xf0, 0xff };
-    audio_ic_write( ML_MIC_IN_VOL | dig_volumes[cfg_recdgain] ); 
+    int vol = 0xff - cfg_recdgain;
+    masked_audio_ic_write(ML_REC_DIGI_VOL, 0x7f, vol);
 }
 
 
@@ -1898,29 +1898,28 @@ audio_filters_toggle_reverse( void * priv, int delta )
 static void
 audio_recdgain_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 1, 0, 5); 
+    menu_numeric_toggle(priv, -2, 0, 128); 
     audio_ic_set_recdgain();
 }
 
 static void
 audio_recdgain_toggle_reverse( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, -1, 0, 5);
+    menu_numeric_toggle(priv, 2, 0, 128);
     audio_ic_set_recdgain();
 }
 
-static char *get_cfg_recdgain_str(){
-    return (cfg_recdgain == 0 ? "Mute" :
-/*            (cfg_recdgain == 1 ? "-71.5 dB" :
-             (cfg_recdgain == 2 ? "-63.5 dB" :
-              (cfg_recdgain == 3 ? "-55.5 dB" :
-               (cfg_recdgain == 4 ? "-47.5 dB" :
-                (cfg_recdgain == 5 ? "-39.5 dB" :*/
-                 (cfg_recdgain == 1 ? "-31.5 dB" :
-                  (cfg_recdgain == 2 ? "-23.5 dB" :
-                   (cfg_recdgain == 3 ? "-15.5 dB" :
-                    (cfg_recdgain == 4 ? "-07.5 dB" :
-                     "+0.0 dB")))))/*)))))*/;
+static int get_cfg_recdgain(){
+    //cfg_recdgain value correcting
+    if(cfg_recdgain%2){
+        cfg_recdgain = (cfg_recdgain/2)*2;
+    }
+
+    if(cfg_recdgain == 0){
+        return 0;
+    }else{
+        return -(cfg_recdgain/2);
+    }
 }
 static void
 audio_recdgain_display( void * priv, int x, int y, int selected )
@@ -1928,8 +1927,8 @@ audio_recdgain_display( void * priv, int x, int y, int selected )
         bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
-               "Rec Digital gain : %s",
-               get_cfg_recdgain_str(*(unsigned*) priv)
+               "Rec Digital gain : %d dB",
+               get_cfg_recdgain()
                );
         check_sound_recording_warning(x, y);
         if (!alc_enable){
