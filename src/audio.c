@@ -947,44 +947,16 @@ int get_mic_power(int input_source)
 
 void
 override_post_beep(){
-    /*  diff 80-normalint 81-afterbeep */
-    /* < ML_RECPLAY_STATE 11 */
-    /* < ML_MIC_IN_CHARG_TIM 00 */
-    /* --- */
-    /* > ML_RECPLAY_STATE 12 */
-    /* > ML_MIC_IN_CHARG_TIM 12 */
     override_audio_setting(0);
         
-    /* < ML_PW_DAC_PW_MNG 00 */
-    /* < ML_PW_SPAMP_PW_MNG 00 */
-    /* --- */
-    /* > ML_PW_DAC_PW_MNG 02 */
-    /* > ML_PW_SPAMP_PW_MNG 1f */
     audio_ic_write(ML_PW_DAC_PW_MNG | 0x00);
     audio_ic_write(ML_PW_SPAMP_PW_MNG | 0x00);
-
-
-    /* < ML_FILTER_EN 0e */
-    /* < ML_DVOL_CTL_FUNC_EN 2c */
-    /* < ML_MIXER_VOL_CTL 00 */
-    /* --- */
-    /* > ML_FILTER_EN 00 */
-    /* > ML_DVOL_CTL_FUNC_EN 2e */
-    /* > ML_MIXER_VOL_CTL 10 */
-    audio_ic_write(ML_FILTER_EN |0x0e);
     audio_ic_write(ML_DVOL_CTL_FUNC_EN | 0x2c);
     audio_ic_write(ML_MIXER_VOL_CTL | 0x00);
-
-    /* < ML_HPF2_CUTOFF 07 */
-    /* < ML_SND_EFFECT_MODE 00 */
-    /* --- */
-    /* > ML_HPF2_CUTOFF 00 */
-    /* > ML_SND_EFFECT_MODE 85 */
     audio_ic_write(ML_SND_EFFECT_MODE | 0x00);
     audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //Duplicate L to R
 
     audio_configure(0);
-
 }
 
 void
@@ -999,12 +971,11 @@ override_audio_setting(int phase){
 			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //Duplicate L to R
 			
 		case 1: //Phase 1 for finish recording->standy & change vol setting->standby
-			audio_ic_write(ML_RECPLAY_STATE | 0x0); //
+			audio_ic_write(ML_RECPLAY_STATE | 0x0); //recplay state need off->on
 			audio_ic_write(ML_RECPLAY_STATE | 0x11); //
 			audio_ic_write(ML_PW_IN_PW_MNG | 0x0a);   //DAC(0010) and PGA(1000) power on
 			audio_ic_write(ML_DVOL_CTL_FUNC_EN | 0x2E);        //All(Play,Capture,DigitalVolFade,DigitalVol) switched on
 			audio_ic_write(ML_MIC_IN_VOL | 0x3f);   
-			audio_ic_write(ML_FILTER_EN | 0x0f);       //All filter on
 			
 			//        audio_configure(0);
     }
@@ -1043,15 +1014,6 @@ audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
         audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_3);
         break;
     }
-/*    if(lv < 4){
-        audio_ic_write(ML_MIC_BOOST_VOL1 | lv<<4);
-        audio_ic_write(ML_MIC_BOOST_VOL2 | 0x0);
-    }else{
-        lv = lv & 0x03;
-        audio_ic_write(ML_MIC_BOOST_VOL1 | lv<<4);
-        audio_ic_write(ML_MIC_BOOST_VOL2 | 0x1);
-    }
-*/
 }
 
 static void
@@ -1080,22 +1042,18 @@ audio_ic_set_input(){
         audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_COLD); // 
         audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_COLD); // 
         audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICR2LCH_MICR2RCH); // 
-        audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON ); //0bxy x=mute y =fade. so this is fade ON.
-        audio_ic_write( ML_FILTER_EN | 0x0f); // all filter ON
         audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
         break;
     case 1:// L internal R extrenal
         audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_HOT); //
         audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_COLD); // 
         audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //
-        audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON );
         audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
         break;
     case 2:// LR external
         audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_HOT); //
         audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_HOT); //
         audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); // 
-        audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON );
         audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
         break;
     case 3://L internal R balranced (used for test)
@@ -1103,25 +1061,17 @@ audio_ic_set_input(){
         audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_DIFFER);       //2: 1and2 are combination value
         audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_COLD); // 
         audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //
-        // set fade on
-        audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON);
-        // set step time of the amplifier volume fader function
-        audio_ic_write( ML_AMP_VOL_FADE | ML_AMP_VOL_FADE_2 );  // 16/fs  333us  0x0010
-        // microphone input interface: 0xabcd a,b, unused c: 0=Analog 1=Digital d: 0=single 1=differential (noly when analog selected) 
         break;
     case 4: //int out auto
         if(mic_inserted){
 			audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_HOT); //
             audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_HOT); //
 			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); // 
-            audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON );
             audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
         }else{
 			audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_COLD); // 
 			audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_COLD); // 
 			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICR2LCH_MICR2RCH); // 
-            audio_ic_write( ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON ); //0bxy x=mute y =fade. so this is fade ON.
-            audio_ic_write( ML_FILTER_EN | 0x0f); // all filter ON
             audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
         }
         break;
@@ -1202,28 +1152,22 @@ audio_ic_set_lineout_onoff(){
     if(audio_monitoring){
 
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
 
         audio_ic_write(ML_PW_REF_PW_MNG | 0x26); //HeadPhone amp-std voltage(HPCAP pin voltage) gen circuit power on.
         audio_ic_write(ML_PW_IN_PW_MNG | ML_PW_IN_PW_MNG_BOTH ); //adc pga on
         audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWRON); //DAC power on
         audio_ic_write(ML_PW_SPAMP_PW_MNG | 0xFF);
-        audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_MAX ); //<<<<<<<<<<<guess we can delete . need testing 
         audio_ic_write(ML_HP_AMP_OUT_CTL | ML_HP_AMP_OUT_CTL_ALL_ON);
-        audio_ic_write(ML_FILTER_EN | ML_FILTER_EN_HPF_BOTH);
-      
-      
 
-        audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_2 );
-        audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL2_ON );
         audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON );
         audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICR2LCH_MICR2RCH );
         audio_ic_write(ML_DVOL_CTL_FUNC_EN | ML_DVOL_CTL_FUNC_EN_ALC_FADE );
         audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY );
-        audio_ic_write(ML_HPF2_CUTOFF | ML_HPF2_CUTOFF_FREQ200 );
 
         audio_ic_write(ML_PLYBAK_BOST_VOL | ML_PLYBAK_BOST_VOL_DEF );
         audio_ic_set_lineout_vol();
+
+        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
 
     }else{
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
