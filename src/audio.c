@@ -1284,10 +1284,8 @@ audio_set_meterlabel(){
 static void
 audio_configure( int force )
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_60D) || defined(CONFIG_600D)
     extern int beep_playing;
     if (beep_playing) return; // don't interrupt beeps while playing
-    #endif
     
 #ifdef CONFIG_AUDIO_REG_LOG
         audio_reg_dump( force );
