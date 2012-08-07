@@ -1186,8 +1186,8 @@ call_audio_ic_set_lineout_onoff(){
 
 static void
 audio_ic_set_recdgain(){
-    int vol = 0xff - cfg_recdgain;
-    masked_audio_ic_write(ML_REC_DIGI_VOL, 0x70, vol);
+	int dig_volumes[] = { 0x00, /*0x70, 0x80, 0x90, 0xa0, 0xb0,*/ 0xc0, 0xd0, 0xe0, 0xf0, 0xff };
+    audio_ic_write( ML_MIC_IN_VOL | dig_volumes[cfg_recdgain] ); 
 }
 
 
@@ -1270,6 +1270,7 @@ audio_configure( int force )
     audio_set_meterlabel();
     audio_ic_set_input();
     audio_ic_set_analog_gain();
+    audio_ic_set_recdgain();
     audio_ic_set_RecLRbalance();
     audio_ic_set_filters();
     audio_ic_set_agc();
@@ -1719,11 +1720,9 @@ audio_input_toggle_reverse( void * priv, int delta )
 }
 
 #ifdef CONFIG_600D
-
-
-char onoff[2][4];
 static void override_audio_display( void * priv, int x, int y, int selected )
 {
+    char onoff[2][4];
     memset(&onoff[0],'\0',4);
     strcpy((void *)&onoff[0],"OFF");
     memset(&onoff[1],'\0',4);
@@ -1762,7 +1761,7 @@ static void analog_gain_display( void * priv, int x, int y, int selected )
     bmp_printf(
                FONT(fnt, cfg_analog_gain > 7 ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
-               "Analog gain+boost : %sdB", 
+               "Analog gain+boost : %s dB", 
                get_analog_gain_str()
                );
     menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_gain)/13);
@@ -1860,27 +1859,29 @@ audio_filters_toggle_reverse( void * priv, int delta )
 static void
 audio_recdgain_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, -4, 0, 140); //actually 143 but delta is 4 so we are using 140
+    menu_numeric_toggle(priv, 1, 0, 5); 
     audio_ic_set_recdgain();
 }
 
 static void
 audio_recdgain_toggle_reverse( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 4, 0, 140);
+    menu_numeric_toggle(priv, -1, 0, 5);
     audio_ic_set_recdgain();
 }
 
-static int
-get_recdgain_val(int val){
-    if(val == 0){
-        return 0;
-    }else if(val == 3){
-        cfg_recdgain = 0;
-        return 0;
-    }else{
-        return -val;
-    }
+static char *get_cfg_recdgain_str(){
+    return (cfg_recdgain == 0 ? "Mute" :
+/*            (cfg_recdgain == 1 ? "-71.5 dB" :
+             (cfg_recdgain == 2 ? "-63.5 dB" :
+              (cfg_recdgain == 3 ? "-55.5 dB" :
+               (cfg_recdgain == 4 ? "-47.5 dB" :
+                (cfg_recdgain == 5 ? "-39.5 dB" :*/
+                 (cfg_recdgain == 1 ? "-31.5 dB" :
+                  (cfg_recdgain == 2 ? "-23.5 dB" :
+                   (cfg_recdgain == 3 ? "-15.5 dB" :
+                    (cfg_recdgain == 4 ? "-07.5 dB" :
+                     "+0.0 dB")))))/*)))))*/;
 }
 static void
 audio_recdgain_display( void * priv, int x, int y, int selected )
@@ -1888,13 +1889,13 @@ audio_recdgain_display( void * priv, int x, int y, int selected )
         bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
-               "Rec Digital gain : %d ",
-               get_recdgain_val(*(unsigned*) priv)
+               "Rec Digital gain : %s",
+               get_cfg_recdgain_str(*(unsigned*) priv)
                );
         check_sound_recording_warning(x, y);
         if (!alc_enable){
 #ifdef CONFIG_600D
-            menu_draw_icon(x, y, MNI_PERCENT, 100 - (*(unsigned*) priv *140 /100));
+            menu_draw_icon(x, y, MNI_PERCENT, (*(unsigned*) priv * 100/5));
 #else
             menu_draw_icon(x, y, MNI_PERCENT, val * 100 / 36);
 #endif
@@ -1904,9 +1905,7 @@ audio_recdgain_display( void * priv, int x, int y, int selected )
 
 }
 
-
-
-#endif
+#endif // 600D
 
 void audio_filters_display( void * priv, int x, int y, int selected )
 {
@@ -2185,17 +2184,6 @@ static struct menu_entry audio_menus[] = {
      .display   = audio_loopback_display,
      },*/
 #if !defined(CONFIG_500D)
-    #ifdef CONFIG_600D
-        {
-                .name = "Output volume",
-                .priv           = &lovl,
-                .select         = audio_lovl_toggle,
-                .select_reverse = audio_lovl_toggle_reverse,
-                .display        = audio_lovl_display,
-                .help = "Output volume for audio monitoring (headphones only).",
-                //~ .edit_mode = EM_MANY_VALUES,
-        },
-    #else
         {
                 .name = "Mic Power",
                 .priv           = &mic_power,
@@ -2207,13 +2195,17 @@ static struct menu_entry audio_menus[] = {
         {
                 .name = "Output volume",
                 .priv           = &lovl,
+    #ifdef CONFIG_600D
+                .select         = audio_lovl_toggle,
+                .select_reverse = audio_lovl_toggle_reverse,
+    #else
                 .select         = audio_3bit_toggle,
-                .select_reverse         = audio_3bit_toggle_reverse,
+                .select_reverse = audio_3bit_toggle_reverse,
+    #endif            
                 .display        = audio_lovl_display,
                 .help = "Output volume for audio monitoring (headphones only).",
                 //~ .edit_mode = EM_MANY_VALUES,
         },
-    #endif /* CONFIG_600D*/
 #endif /*ifNNNdef CONFIG_500D*/
         {
                 .name = "Headphone Monitoring",
