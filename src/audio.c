@@ -1127,7 +1127,11 @@ audio_ic_set_input(){
         break;
 	}
 
-    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC); //descrived in pdf p71
+    if(audio_monitoring){
+        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
+    }else{
+        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
+    }
 
 }
 
