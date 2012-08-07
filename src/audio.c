@@ -72,7 +72,7 @@ CONFIG_INT( "audio.enable_dc",      cfg_filter_dc,        0 );
 CONFIG_INT( "audio.enable_hpf2",    cfg_filter_hpf2,      0 );
 CONFIG_INT( "audio.hpf2config",     cfg_filter_hpf2config,7 );
 
-CONFIG_INT( "audio.dgain",          cfg_recdgain,         0 );
+CONFIG_INT( "audio.dgain",          cfg_recdgain,         5 );
 CONFIG_INT( "audio.dgain.l",        dgain_l,              8 );
 CONFIG_INT( "audio.dgain.r",        dgain_r,              8 );
 CONFIG_INT( "audio.filters",        enable_filters,       0 ); 
