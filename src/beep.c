@@ -185,11 +185,17 @@ static void beep_task()
             while (beep_playing) msleep(100);
             FreeMemory(long_buf);
             info_led_off();
+#ifdef CONFIG_600D
+            override_post_beep();
+#endif
         }
         else
         {
             generate_beep_tone(beep_buf, 5000);
             play_beep(beep_buf, 5000);
+#ifdef CONFIG_600D
+            override_post_beep();
+#endif
         }
         msleep(200);
     }

@@ -942,6 +942,46 @@ int get_mic_power(int input_source)
 
 #ifdef CONFIG_600D
 
+void
+override_post_beep(){
+    /*  diff 80-normalint 81-afterbeep */
+    /* < ML_RECPLAY_STATE 11 */
+    /* < ML_MIC_IN_CHARG_TIM 00 */
+    /* --- */
+    /* > ML_RECPLAY_STATE 12 */
+    /* > ML_MIC_IN_CHARG_TIM 12 */
+    override_audio_setting(0);
+        
+    /* < ML_PW_DAC_PW_MNG 00 */
+    /* < ML_PW_SPAMP_PW_MNG 00 */
+    /* --- */
+    /* > ML_PW_DAC_PW_MNG 02 */
+    /* > ML_PW_SPAMP_PW_MNG 1f */
+    audio_ic_write(ML_PW_DAC_PW_MNG | 0x00);
+    audio_ic_write(ML_PW_SPAMP_PW_MNG | 0x00);
+
+
+    /* < ML_FILTER_EN 0e */
+    /* < ML_DVOL_CTL_FUNC_EN 2c */
+    /* < ML_MIXER_VOL_CTL 00 */
+    /* --- */
+    /* > ML_FILTER_EN 00 */
+    /* > ML_DVOL_CTL_FUNC_EN 2e */
+    /* > ML_MIXER_VOL_CTL 10 */
+    audio_ic_write(ML_FILTER_EN |0x0e);
+    audio_ic_write(ML_DVOL_CTL_FUNC_EN | 0x2c);
+    audio_ic_write(ML_MIXER_VOL_CTL | 0x00);
+
+    /* < ML_HPF2_CUTOFF 07 */
+    /* < ML_SND_EFFECT_MODE 00 */
+    /* --- */
+    /* > ML_HPF2_CUTOFF 00 */
+    /* > ML_SND_EFFECT_MODE 85 */
+    audio_ic_write(ML_SND_EFFECT_MODE | 0x00);
+
+    audio_configure(0);
+
+}
 
 void
 override_audio_setting(int phase){
@@ -955,6 +995,7 @@ override_audio_setting(int phase){
 			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //Duplicate L to R
 			
 		case 1: //Phase 1 for finish recording->standy & change vol setting->standby
+			audio_ic_write(ML_RECPLAY_STATE | 0x0); //
 			audio_ic_write(ML_RECPLAY_STATE | 0x11); //
 			audio_ic_write(ML_PW_IN_PW_MNG | 0x0a);   //DAC(0010) and PGA(1000) power on
 			audio_ic_write(ML_DVOL_CTL_FUNC_EN | 0x2E);        //All(Play,Capture,DigitalVolFade,DigitalVol) switched on
