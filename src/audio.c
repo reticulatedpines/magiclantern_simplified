@@ -1071,6 +1071,9 @@ audio_ic_set_analog_gain(){
 static void
 audio_ic_set_input(){
 
+
+    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //descrived in pdf p71
+
 	switch (get_input_source())
 	{
     case 0: //LR internal mic
@@ -1096,7 +1099,8 @@ audio_ic_set_input(){
         audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
         break;
     case 3://L internal R balranced (used for test)
-        audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_DIFFER_HOTCOLD); //
+        audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_HOT); //1
+        audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_DIFFER);       //2: 1and2 are combination value
         audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_COLD); // 
         audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //
         // set fade on
@@ -1104,7 +1108,6 @@ audio_ic_set_input(){
         // set step time of the amplifier volume fader function
         audio_ic_write( ML_AMP_VOL_FADE | ML_AMP_VOL_FADE_2 );  // 16/fs  333us  0x0010
         // microphone input interface: 0xabcd a,b, unused c: 0=Analog 1=Digital d: 0=single 1=differential (noly when analog selected) 
-        audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_DIFFER);
         break;
     case 4: //int out auto
         if(mic_inserted){
@@ -1123,6 +1126,8 @@ audio_ic_set_input(){
         }
         break;
 	}
+
+    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC); //descrived in pdf p71
 
 }
 
@@ -1167,7 +1172,7 @@ audio_ic_off(){
     audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_2);
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x00); //power off
     
-    audio_ic_write(ML_RECPLAY_STATE | 0x00);
+    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP);
     audio_ic_write(ML_HPF2_CUTOFF | ML_HPF2_CUTOFF_FREQ200);
     audio_ic_write(ML_FILTER_EN | ML_FILTER_DIS_ALL);
     audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY);

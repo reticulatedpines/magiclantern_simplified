@@ -380,12 +380,12 @@ PGA volume change is applied for zero cross. */
 #define ML_RCH_MIXER_INPUT	0xe100 /* R-ch mic select. PGA control for MINR*/
  #define ML_RCH_MIXER_INPUT_SINGLE_HOT      0x01
  #define ML_RCH_MIXER_INPUT_SINGLE_COLD     0x02
- #define ML_RCH_MIXER_INPUT_DIFFER_HOTCOLD	0x06
+// only 2bit. If you want to use differential, combine ML_MIC_IF_CTL MICDIF bit
 
 #define ML_LCH_MIXER_INPUT	0xe900 /* L-ch mic select. PGA control for MINL */
  #define ML_LCH_MIXER_INPUT_SINGLE_COLD     0x01
  #define ML_LCH_MIXER_INPUT_SINGLE_HOT      0x02
- #define ML_LCH_MIXER_INPUT_DIFFER_HOTCOLD	0x05
+// only 2bit
 
 #define ML_RECORD_PATH      0xe500 /* analog record path */
  /* 0x04 is always on*/
