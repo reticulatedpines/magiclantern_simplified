@@ -1765,12 +1765,11 @@ audio_input_toggle_reverse( void * priv, int delta )
 #ifdef CONFIG_600D
 static void override_audio_display( void * priv, int x, int y, int selected )
 {
-    char onoff[2][4] = {"OFF","ON"};
     bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
                "Override Setting : %s", 
-               onoff[cfg_override_audio]
+               (cfg_override_audio ? "ON" : "OFF")
                );
 }
 static void override_audio_toggle( void * priv, int delta )
