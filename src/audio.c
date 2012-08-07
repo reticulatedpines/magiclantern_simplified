@@ -1919,7 +1919,7 @@ audio_recdgain_display( void * priv, int x, int y, int selected )
         check_sound_recording_warning(x, y);
         if (!alc_enable){
 #ifdef CONFIG_600D
-            menu_draw_icon(x, y, MNI_PERCENT, (*(unsigned*) priv * 100/5));
+            menu_draw_icon(x, y, MNI_PERCENT, 100 -((*(unsigned*) priv * 100/126)));
 #else
             menu_draw_icon(x, y, MNI_PERCENT, val * 100 / 36);
 #endif
