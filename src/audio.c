@@ -1763,9 +1763,9 @@ audio_input_toggle_reverse( void * priv, int delta )
 }
 
 #ifdef CONFIG_600D
+char onoff[2][4] = {"OFF","ON"};
 static void override_audio_display( void * priv, int x, int y, int selected )
 {
-    char onoff[2][4] = {"OFF","ON"};
     bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
@@ -1780,8 +1780,19 @@ static void override_audio_toggle( void * priv, int delta )
 }
 
 static char *get_analog_gain_str(){
-    char dbval[14][4] = {"-12", " -3", "  0", " +6", "+15", "+24", "+33", "+35","+40","+45","+50","+55","+60","+65"};
-    return (dbval[cfg_analog_gain]);
+    return (cfg_analog_gain == 0 ? "-12" :
+            (cfg_analog_gain == 1 ? " -3" :
+             (cfg_analog_gain == 2 ? "  0" :
+              (cfg_analog_gain == 3 ? " +6" :
+               (cfg_analog_gain == 4 ? "+15" :
+                (cfg_analog_gain == 5 ? "+24" :
+                 (cfg_analog_gain == 6 ? "+33" :
+                  (cfg_analog_gain == 7 ? "+35" :
+                   (cfg_analog_gain == 8 ? "+40" :
+                    (cfg_analog_gain == 9 ? "+45" :
+                     (cfg_analog_gain == 10 ? "+50" :
+                      (cfg_analog_gain == 11 ? "+55" :
+                       (cfg_analog_gain == 12 ? "+60" : "+65")))))))))))));
 }
 static void analog_gain_display( void * priv, int x, int y, int selected )
 {
