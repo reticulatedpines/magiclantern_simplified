@@ -2095,7 +2095,7 @@ static struct menu_entry audio_menus[] = {
             .select = menu_open_submenu, 
             .help = "Digital gain (not recommended, use only for headphones!)",
             .children =  (struct menu_entry[]) {
-#ifdef CONFIG_600D
+  #ifdef CONFIG_600D
                 {
                         .name = "Record Digital Volume ",
                         .priv           = &cfg_recdgain,
@@ -2105,7 +2105,7 @@ static struct menu_entry audio_menus[] = {
                         .help = "Record Digital Volume. ",
                         .edit_mode = EM_MANY_VALUES,
                 },
-#endif
+  #endif
                 {
                         .name = "Left Digital Gain ",
                         .priv           = &dgain_l,
@@ -2127,11 +2127,11 @@ static struct menu_entry audio_menus[] = {
                 {
                         .name = "AGC",
                         .priv           = &alc_enable,
-#ifdef CONFIG_600D
+  #ifdef CONFIG_600D
                         .select         = audio_alc_toggle,
-#else
+  #else
                         .select         = audio_binary_toggle,
-#endif
+  #endif
                         .display        = audio_alc_display,
                         .help = "Automatic Gain Control - turn it off :)",
                         //~ .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
@@ -2267,7 +2267,6 @@ enable_recording(
         case 0:
             // Movie recording stopped;  (fallthrough)
 #ifdef CONFIG_600D
-            //audio_configure(0); //crashed when finish recording......need change
             override_audio_setting(1);
 #endif
         case 2:
