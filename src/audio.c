@@ -1779,29 +1779,16 @@ static void override_audio_toggle( void * priv, int delta )
     audio_configure(0);
 }
 
-static char *get_analog_gain_str(){
-    return (cfg_analog_gain == 0 ? "-12" :
-            (cfg_analog_gain == 1 ? " -3" :
-             (cfg_analog_gain == 2 ? "  0" :
-              (cfg_analog_gain == 3 ? " +6" :
-               (cfg_analog_gain == 4 ? "+15" :
-                (cfg_analog_gain == 5 ? "+24" :
-                 (cfg_analog_gain == 6 ? "+33" :
-                  (cfg_analog_gain == 7 ? "+35" :
-                   (cfg_analog_gain == 8 ? "+40" :
-                    (cfg_analog_gain == 9 ? "+45" :
-                     (cfg_analog_gain == 10 ? "+50" :
-                      (cfg_analog_gain == 11 ? "+55" :
-                       (cfg_analog_gain == 12 ? "+60" : "+65")))))))))))));
-}
 static void analog_gain_display( void * priv, int x, int y, int selected )
 {
     unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
+    char dbval[14][4] = {"-12", " -3", "  0", " +6", "+15", "+24", "+33", "+35","+40","+45","+50","+55","+60","+65"};
+
     bmp_printf(
                FONT(fnt, cfg_analog_gain > 7 ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
                "Analog gain+boost : %s dB", 
-               get_analog_gain_str()
+               dbval[cfg_analog_gain]
                );
     menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_gain)/13);
 
