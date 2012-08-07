@@ -194,6 +194,7 @@ static void beep_task()
             generate_beep_tone(beep_buf, 5000);
             play_beep(beep_buf, 5000);
 #ifdef CONFIG_600D
+            msleep(500);
             override_post_beep();
 #endif
         }

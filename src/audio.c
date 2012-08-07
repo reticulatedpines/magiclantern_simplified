@@ -978,6 +978,7 @@ override_post_beep(){
     /* > ML_HPF2_CUTOFF 00 */
     /* > ML_SND_EFFECT_MODE 85 */
     audio_ic_write(ML_SND_EFFECT_MODE | 0x00);
+			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //Duplicate L to R
 
     audio_configure(0);
 
