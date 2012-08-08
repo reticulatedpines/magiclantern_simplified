@@ -1725,6 +1725,7 @@ static void
 {
         menu_quinternary_toggle(priv, 1);
 #ifdef CONFIG_600D
+        if(*(unsigned*)priv == 3) *(unsigned*)priv = 4; //tamporaly disabled Ext:balanced. We can't find it.
         audio_ic_set_input();
 #else
         audio_configure( 1 );
@@ -1735,6 +1736,7 @@ audio_input_toggle_reverse( void * priv, int delta )
 {
         menu_quinternary_toggle_reverse(priv, -1);
 #ifdef CONFIG_600D
+        if(*(unsigned*)priv == 3) *(unsigned*)priv = 2; //tamporaly disabled Ext:balanced. We can't find it.
         audio_ic_set_input();
 #else
         audio_configure( 1 );
