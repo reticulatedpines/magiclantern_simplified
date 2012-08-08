@@ -68,6 +68,7 @@ static struct gain_struct gain = {
 //Prototypes for 600D
 void override_audio_setting(int phase);
 static void audio_ic_set_lineout_vol();
+static void audio_ic_set_input();
 
 // Set defaults
 CONFIG_INT( "audio.override_audio", cfg_override_audio,   0 );
@@ -922,8 +923,11 @@ PROP_HANDLER( PROP_MIC_INSERTED )
         }
     
     mic_inserted = buf[0];
-    
+#ifdef CONFIG_600D
+    audio_ic_set_input(); //Need faster finish this prop on 600D. audio_configure() is slow.Then get hang
+#else
     audio_configure( 1 );
+#endif
     //~ menu_set_dirty();
 }
 
