@@ -67,6 +67,7 @@ static struct gain_struct gain = {
 #ifdef CONFIG_600D
 //Prototypes for 600D
 void override_audio_setting(int phase);
+static void audio_ic_set_lineout_vol();
 
 // Set defaults
 CONFIG_INT( "audio.override_audio", cfg_override_audio,   0 );
@@ -944,6 +945,21 @@ int get_mic_power(int input_source)
 }
 
 #ifdef CONFIG_600D
+static void
+audio_ic_set_mute_on(){
+    if(audio_monitoring){
+        audio_ic_write(ML_HP_AMP_VOL | 0x0E); // headphone mute
+    }
+    masked_audio_ic_write(ML_AMP_VOLFUNC_ENA,0x02,0x02); //mic in vol to -12
+}
+static void
+audio_ic_set_mute_off(){
+    masked_audio_ic_write(ML_AMP_VOLFUNC_ENA,0x02,0x00);
+    if(audio_monitoring){
+        audio_ic_set_lineout_vol();
+    }
+}
+
 
 void
 override_post_beep(){
@@ -1032,56 +1048,57 @@ audio_ic_set_analog_gain(){
 
 static void
 audio_ic_set_input(){
-
-
+    audio_ic_set_mute_on();
+    
     audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //descrived in pdf p71
-
-	switch (get_input_source())
-	{
-    case 0: //LR internal mic
-        audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_COLD); // 
-        audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_COLD); // 
-        audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICR2LCH_MICR2RCH); // 
-        audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
-        break;
-    case 1:// L internal R extrenal
-        audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_HOT); //
-        audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_COLD); // 
-        audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //
-        audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
-        break;
-    case 2:// LR external
-        audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_HOT); //
-        audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_HOT); //
-        audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); // 
-        audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
-        break;
-    case 3://L internal R balranced (used for test)
-        audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_HOT); //1
-        audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_DIFFER);       //2: 1and2 are combination value
-        audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_COLD); // 
-        audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //
-        break;
-    case 4: //int out auto
-        if(mic_inserted){
-			audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_HOT); //
+    
+    switch (get_input_source())
+        {
+        case 0: //LR internal mic
+            audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_COLD); // 
+            audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_COLD); // 
+            audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICR2LCH_MICR2RCH); // 
+            audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
+            break;
+        case 1:// L internal R extrenal
+            audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_HOT); //
+            audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_COLD); // 
+            audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //
+            audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
+            break;
+        case 2:// LR external
+            audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_HOT); //
             audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_HOT); //
-			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); // 
+            audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); // 
             audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
-        }else{
-			audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_COLD); // 
-			audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_COLD); // 
-			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICR2LCH_MICR2RCH); // 
-            audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
+            break;
+        case 3://L internal R balranced (used for test)
+            audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_HOT); //1
+            audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_DIFFER);       //2: 1and2 are combination value
+            audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_COLD); // 
+            audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //
+            break;
+        case 4: //int out auto
+            if(mic_inserted){
+                audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_HOT); //
+                audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_HOT); //
+                audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); // 
+                audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
+            }else{
+                audio_ic_write(ML_RCH_MIXER_INPUT | ML_RCH_MIXER_INPUT_SINGLE_COLD); // 
+                audio_ic_write(ML_LCH_MIXER_INPUT | ML_LCH_MIXER_INPUT_SINGLE_COLD); // 
+                audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICR2LCH_MICR2RCH); // 
+                audio_ic_write( ML_MIC_IF_CTL | ML_MIC_IF_CTL_ANALOG_SINGLE );
+            }
+            break;
         }
-        break;
-	}
-
+    
     if(audio_monitoring){
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
     }else{
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
     }
+    audio_ic_set_mute_off();
 
 }
 
@@ -1144,7 +1161,6 @@ audio_ic_set_lineout_vol(){
     int vol = lovl + 0x0E;
     audio_ic_write(ML_HP_AMP_VOL | vol);
 }
-
 
 static void
 audio_ic_set_lineout_onoff(){
