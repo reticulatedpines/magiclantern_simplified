@@ -952,7 +952,6 @@ int get_mic_power(int input_source)
 static void
 audio_ic_set_mute_on(){
     if(audio_monitoring){
-        //        audio_ic_write(ML_SPK_AMP_VOL | ML_SPK_AMP_VOL_MUTE);
         audio_ic_write(ML_HP_AMP_VOL | 0x0E); // headphone mute
     }
     masked_audio_ic_write(ML_AMP_VOLFUNC_ENA,0x02,0x02); //mic in vol to -12
@@ -970,12 +969,8 @@ void
 override_post_beep(){
     override_audio_setting(0);
         
-    audio_ic_write(ML_PW_DAC_PW_MNG | 0x00);
-    audio_ic_write(ML_PW_SPAMP_PW_MNG | 0x00);
-    audio_ic_write(ML_DVOL_CTL_FUNC_EN | 0x2c);
-    audio_ic_write(ML_MIXER_VOL_CTL | 0x00);
+    audio_ic_write(ML_MIC_IN_CHARG_TIM | 0x00);
     audio_ic_write(ML_SND_EFFECT_MODE | 0x00);
-    audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //Duplicate L to R
 
     audio_configure(0);
 }
@@ -1171,14 +1166,14 @@ audio_ic_set_lineout_vol(){
 static void
 audio_ic_set_lineout_onoff(){
     //PDF p38
-    if(audio_monitoring){
+    if(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED){
 
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
 
         audio_ic_write(ML_PW_REF_PW_MNG | 0x26); //HeadPhone amp-std voltage(HPCAP pin voltage) gen circuit power on.
         audio_ic_write(ML_PW_IN_PW_MNG | ML_PW_IN_PW_MNG_BOTH ); //adc pga on
         audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWRON); //DAC power on
-        audio_ic_write(ML_PW_SPAMP_PW_MNG | 0xFF);
+        audio_ic_write(ML_PW_SPAMP_PW_MNG | (0xFF & ~ML_PW_SPAMP_PW_MNG_ON));
         audio_ic_write(ML_HP_AMP_OUT_CTL | ML_HP_AMP_OUT_CTL_ALL_ON);
 
         audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON );
@@ -1186,7 +1181,7 @@ audio_ic_set_lineout_onoff(){
         audio_ic_write(ML_DVOL_CTL_FUNC_EN | ML_DVOL_CTL_FUNC_EN_ALC_FADE );
         audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY );
 
-        audio_ic_write(ML_PLYBAK_BOST_VOL | ML_PLYBAK_BOST_VOL_DEF );
+        audio_ic_write(ML_PLYBAK_BOST_VOL | 0x00 );
         audio_ic_set_lineout_vol();
 
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
@@ -2006,6 +2001,9 @@ static void audio_monitoring_update()
                 audio_monitoring_force_display(0);
                 msleep(1000);
                 audio_monitoring_display_headphones_connected_or_not();
+#ifdef CONFIG_600D
+                audio_ic_set_lineout_onoff();
+#endif
         }
 }
 
