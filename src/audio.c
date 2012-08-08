@@ -2041,7 +2041,7 @@ static struct menu_entry audio_menus[] = {
             .select         = analog_gain_toggle,
             .select_reverse = analog_gain_toggle_reverse,
             .display        = analog_gain_display,
-            .help = "Analog gain (0-7 mic vol)(8-12 boost)",
+            .help = "Analog gain (-12 +35 mic vol)(+40 +65 boost)",
 
         },
 #else /* ^^^CONFIG_600D^^^ vvv except 600D vvv */
@@ -2060,7 +2060,11 @@ static struct menu_entry audio_menus[] = {
         {
             .name = "Digital Gain...", 
             .select = menu_open_submenu, 
+  #ifdef CONFIG_600D
+            .help = "Digital Volume and R-L gain",
+  #else
             .help = "Digital gain (not recommended, use only for headphones!)",
+  #endif
             .children =  (struct menu_entry[]) {
   #ifdef CONFIG_600D
                 {
@@ -2130,8 +2134,8 @@ static struct menu_entry audio_menus[] = {
                 .name = "Wind Filter",
                  .priv              = &enable_filters,
                  .display           = audio_filters_display,
-                .help = "High pass filter for wind noise reduction. ML26121A.pdf p77",
         #ifdef CONFIG_600D
+                .help = "High pass filter for wind noise reduction. ML26121A.pdf p77",
                 .select            = audio_filters_toggle,
                 .submenu_width = 650,
                 .children =  (struct menu_entry[]) {
@@ -2141,7 +2145,7 @@ static struct menu_entry audio_menus[] = {
                      .select            = audio_filter_dc_toggle,
                      .select_reverse    = audio_filter_dc_toggle,
                      .display           = audio_filter_dc_display,
-                     .help = "first-order high pass filter for DC cu",
+                     .help = "first-order high pass filter for DC cut",
                  },
                  {
                      .name = "High Pass filter",
@@ -2157,11 +2161,12 @@ static struct menu_entry audio_menus[] = {
                      .select         = audio_hpf2config_toggle,
                      .select_reverse = audio_hpf2config_toggle_reverse,
                      .display        = audio_hpf2config_display,
-                     .help = "to set the cut off frequency for noise reduction",
+                     .help = "Set the cut off frequency for noise reduction",
                  },
                  MENU_EOL
              }
         #else /* ^^^CONFIG_600D^^^  vvv except 600D vvv*/
+             .help = "High pass filter for wind noise reduction.",
                  .select            = audio_binary_toggle,
                  //~ .icon_type = IT_DISABLE_SOME_FEATURE,
                  //.essential = FOR_MOVIE,
