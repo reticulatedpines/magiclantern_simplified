@@ -948,6 +948,7 @@ int get_mic_power(int input_source)
 static void
 audio_ic_set_mute_on(){
     if(audio_monitoring){
+        //        audio_ic_write(ML_SPK_AMP_VOL | ML_SPK_AMP_VOL_MUTE);
         audio_ic_write(ML_HP_AMP_VOL | 0x0E); // headphone mute
     }
     masked_audio_ic_write(ML_AMP_VOLFUNC_ENA,0x02,0x02); //mic in vol to -12
@@ -1049,7 +1050,7 @@ audio_ic_set_analog_gain(){
 static void
 audio_ic_set_input(){
     audio_ic_set_mute_on();
-    
+
     audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //descrived in pdf p71
     
     switch (get_input_source())
@@ -1098,6 +1099,7 @@ audio_ic_set_input(){
     }else{
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
     }
+    msleep(500);
     audio_ic_set_mute_off();
 
 }
