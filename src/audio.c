@@ -950,14 +950,16 @@ int get_mic_power(int input_source)
 
 #ifdef CONFIG_600D
 static void
-audio_ic_set_mute_on(){
+audio_ic_set_mute_on(unsigned int wait){
     if(audio_monitoring){
         audio_ic_write(ML_HP_AMP_VOL | 0x0E); // headphone mute
     }
     masked_audio_ic_write(ML_AMP_VOLFUNC_ENA,0x02,0x02); //mic in vol to -12
+    msleep(wait);
 }
 static void
-audio_ic_set_mute_off(){
+audio_ic_set_mute_off(unsigned int wait){
+    msleep(wait);
     masked_audio_ic_write(ML_AMP_VOLFUNC_ENA,0x02,0x00);
     if(audio_monitoring){
         audio_ic_set_lineout_vol();
@@ -1048,8 +1050,7 @@ audio_ic_set_analog_gain(){
 
 static void
 audio_ic_set_input(){
-    audio_ic_set_mute_on();
-
+    audio_ic_set_mute_on(100);
     audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //descrived in pdf p71
     
     switch (get_input_source())
@@ -1098,8 +1099,7 @@ audio_ic_set_input(){
     }else{
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
     }
-    msleep(500);
-    audio_ic_set_mute_off();
+    audio_ic_set_mute_off(400);
 
 }
 
@@ -1113,6 +1113,7 @@ audio_ic_set_RecLRbalance(){
 static void
 audio_ic_set_filters(){
     if(enable_filters){
+        audio_ic_set_mute_on(0);
         int val = 0;
         if(cfg_filter_dc) val = 0x1;
         if(cfg_filter_hpf2) val = 0x2;
@@ -1122,9 +1123,12 @@ audio_ic_set_filters(){
         }else{
             audio_ic_write(ML_FILTER_EN | 0x0f);
         }
+        audio_ic_set_mute_off(200);
     }else{
+        audio_ic_set_mute_on(0);
         masked_audio_ic_write(ML_FILTER_EN, 0x3, 0x0);
         audio_ic_write(ML_FILTER_EN | 0x0f);
+        audio_ic_set_mute_off(200);
     }
 }
 
@@ -1168,6 +1172,8 @@ audio_ic_set_lineout_onoff(){
     //PDF p38
     if(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED){
 
+        audio_ic_set_mute_on(100);
+        
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
 
         audio_ic_write(ML_PW_REF_PW_MNG | 0x26); //HeadPhone amp-std voltage(HPCAP pin voltage) gen circuit power on.
@@ -1175,20 +1181,23 @@ audio_ic_set_lineout_onoff(){
         audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWRON); //DAC power on
         audio_ic_write(ML_PW_SPAMP_PW_MNG | (0xFF & ~ML_PW_SPAMP_PW_MNG_ON));
         audio_ic_write(ML_HP_AMP_OUT_CTL | ML_HP_AMP_OUT_CTL_ALL_ON);
-
         audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON );
         audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICR2LCH_MICR2RCH );
         audio_ic_write(ML_DVOL_CTL_FUNC_EN | ML_DVOL_CTL_FUNC_EN_ALC_FADE );
         audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY );
-
         audio_ic_write(ML_PLYBAK_BOST_VOL | 0x00 );
         audio_ic_set_lineout_vol();
 
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
 
+        audio_ic_set_mute_off(400);
     }else{
+        audio_ic_set_mute_on(100);
+
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
+
+        audio_ic_set_mute_off(400);
     }
 }
 
