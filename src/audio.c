@@ -1299,7 +1299,11 @@ audio_configure( int force )
     audio_ic_on();
 
 	if (force){
-		override_audio_setting(1);
+        if(force == 2){
+            override_audio_setting(0);
+        }else{
+            override_audio_setting(1);
+        }
 	}
 
     audio_set_meterlabel();
@@ -1769,7 +1773,7 @@ static void override_audio_display( void * priv, int x, int y, int selected )
 static void override_audio_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 1);
-    audio_configure(0);
+    audio_configure(2);
 }
 
 static void analog_gain_display( void * priv, int x, int y, int selected )
