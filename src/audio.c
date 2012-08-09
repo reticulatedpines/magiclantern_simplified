@@ -1769,6 +1769,7 @@ static void override_audio_display( void * priv, int x, int y, int selected )
                "Override Setting : %s", 
                (cfg_override_audio ? "ON" : "OFF")
                );
+    check_sound_recording_warning(x, y);
 }
 static void override_audio_toggle( void * priv, int delta )
 {
