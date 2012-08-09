@@ -1002,6 +1002,26 @@ override_audio_setting(int phase){
 
 
 struct msg_queue * override_audio_q = NULL;
+/** override audio settings  */
+static void
+override_audio_task( void* unused )
+{
+    if(!override_audio_q)
+        override_audio_q = (struct msg_queue *) msg_queue_create("override_audio_q", 1);
+
+    TASK_LOOP
+        {
+            int msg;
+            msleep(1000);
+            int err = msg_queue_receive(override_audio_q, (struct event**)&msg, 500);
+            if (!err){
+                audio_configure(msg);
+            }
+        }
+}
+
+TASK_CREATE( "override_audio_do_task", override_audio_task, 0, 0x18, 0x1000 );
+
 static void
 audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
 //    if(lv > 7 ) lv = 6;
@@ -1214,10 +1234,6 @@ audio_ic_set_recdgain(){
     masked_audio_ic_write(ML_REC_DIGI_VOL, 0x7f, vol);
 }
 
-
-//Global
-struct msg_queue * reset_audio_q = NULL;
-
 //wrapper for audio_configure()
 void call_audio_configure(){ audio_configure(0); }
 
@@ -1281,11 +1297,8 @@ audio_configure( int force )
         return;
     }
     audio_ic_on();
-	int msg;
 
-    //for catching msg from finished Vol change
-	int err = msg_queue_receive(override_audio_q, (struct event**)&msg, 500);
-	if (!err || force){
+	if (force){
 		override_audio_setting(1);
 	}
 
@@ -2257,19 +2270,19 @@ enable_recording(
         case 0:
             // Movie recording stopped;  (fallthrough)
 #ifdef CONFIG_600D
-            override_audio_setting(1);
+            if(override_audio_q) msg_queue_post(override_audio_q, 1); 
 #endif
         case 2:
             // Movie recording started
             give_semaphore( gain.sem );
 #ifdef CONFIG_600D
-            audio_configure(0);
+            if(override_audio_q) msg_queue_post(override_audio_q, 0); 
 #endif
             break;
         case 1:
             // Movie recording about to start?
 #ifdef CONFIG_600D
-            audio_configure(0);
+            if(override_audio_q) msg_queue_post(override_audio_q, 0); 
 #endif
             break;
         default:
@@ -2531,10 +2544,7 @@ PROP_HANDLER( PROP_AUDIO_VOL_CHANGE_600D )
     /* Cannot overwrite audio config direct here!
        Cannon firmware is overwrite after finishing here.So you need to set value with delay
     */
-    if(!override_audio_q)
-		override_audio_q = (struct msg_queue *) msg_queue_create("override_audio_q", 1);
-	
-    msg_queue_post(override_audio_q, 1); 
+    if(override_audio_q) msg_queue_post(override_audio_q, 1); 
 
 }
 
