@@ -443,6 +443,9 @@ meter_task( void* unused )
 {
 
 #ifdef CONFIG_600D
+    //will delete this when we finish debugging
+    NotifyBox(4000, "600D audio test release 1");
+
         //initialize audio config for 600D
         audio_configure(1);
 #endif
@@ -713,6 +716,15 @@ audio_ic_set_input_volume(
 // Do not write the value; just read them and record to a logfile
 #ifdef CONFIG_600D
 static uint16_t audio_regs[] = {
+    ML_SMPLING_RATE-0x100,
+    ML_PLLNL-0x100,
+    ML_PLLNH-0x100,
+    ML_PLLML-0x100,
+    ML_PLLMH-0x100,
+    ML_PLLDIV-0x100,
+    ML_CLK_EN-0x100,
+    ML_CLK_CTL-0x100,
+    ML_SW_RST-0x100,
     ML_RECPLAY_STATE-0x100,
     ML_MIC_IN_CHARG_TIM-0x100,
     ML_PW_REF_PW_MNG-0x100,
@@ -724,8 +736,11 @@ static uint16_t audio_regs[] = {
     ML_MIC_IN_VOL-0x100,
     ML_MIC_BOOST_VOL1-0x100,
     ML_MIC_BOOST_VOL2-0x100,
+    ML_SPK_AMP_VOL-0x100,
+    ML_HP_AMP_VOL-0x100,
     ML_AMP_VOLFUNC_ENA-0x100,
     ML_AMP_VOL_FADE-0x100,
+    ML_SPK_AMP_OUT-0x100,
     ML_HP_AMP_OUT_CTL-0x100,
     ML_MIC_IF_CTL-0x100,
     ML_RCH_MIXER_INPUT-0x100,
@@ -735,12 +750,40 @@ static uint16_t audio_regs[] = {
     ML_SAI_RCV_CTL-0x100,
     ML_SAI_MODE_SEL-0x100,
     ML_FILTER_EN-0x100,
+    ML_FILTER_DIS_ALL-0x100,
     ML_DVOL_CTL_FUNC_EN-0x100,
     ML_MIXER_VOL_CTL-0x100,
     ML_REC_DIGI_VOL-0x100,
     ML_REC_LR_BAL_VOL-0x100,
     ML_PLAY_DIG_VOL-0x100,
+    ML_EQ_GAIN_BRAND0-0x100,
+    ML_EQ_GAIN_BRAND1-0x100,
+    ML_EQ_GAIN_BRAND2-0x100,
+    ML_EQ_GAIN_BRAND3-0x100,
+    ML_EQ_GAIN_BRAND4-0x100,
     ML_HPF2_CUTOFF-0x100,
+    ML_EQBRAND0_F0L-0x100,
+    ML_EQBRAND0_F0H-0x100,
+    ML_EQBRAND0_F1L-0x100,
+    ML_EQBRAND0_F1H-0x100,
+    ML_EQBRAND1_F0L-0x100,
+    ML_EQBRAND1_F0H-0x100,
+    ML_EQBRAND1_F1L-0x100,
+    ML_EQBRAND1_F1H-0x100,
+    ML_EQBRAND2_F0L-0x100,
+    ML_EQBRAND2_F0H-0x100,
+    ML_EQBRAND2_F1L-0x100,
+    ML_EQBRAND2_F1H-0x100,
+    ML_EQBRAND3_F0L-0x100,
+    ML_EQBRAND3_F0H-0x100,
+    ML_EQBRAND3_F1L-0x100,
+    ML_EQBRAND3_F1H-0x100,
+    ML_EQBRAND4_F0L-0x100,
+    ML_EQBRAND4_F0H-0x100,
+    ML_EQBRAND4_F1L-0x100,
+    ML_EQBRAND4_F1H-0x100,
+    ML_MIC_PARAM10-0x100,
+    ML_MIC_PARAM11-0x100,
     ML_SND_EFFECT_MODE-0x100,
     ML_ALC_MODE-0x100,
     ML_ALC_ATTACK_TIM-0x100,
@@ -759,6 +802,15 @@ static uint16_t audio_regs[] = {
 };
 
 static const char * audio_reg_names[] = {
+    "ML_SMPLING_RATE",
+    "ML_PLLNL",
+    "ML_PLLNH",
+    "ML_PLLML",
+    "ML_PLLMH",
+    "ML_PLLDIV",
+    "ML_CLK_EN",
+    "ML_CLK_CTL",
+    "ML_SW_RST",
     "ML_RECPLAY_STATE",
     "ML_MIC_IN_CHARG_TIM",
     "ML_PW_REF_PW_MNG",
@@ -770,8 +822,11 @@ static const char * audio_reg_names[] = {
     "ML_MIC_IN_VOL",
     "ML_MIC_BOOST_VOL1",
     "ML_MIC_BOOST_VOL2",
+    "ML_SPK_AMP_VOL",
+    "ML_HP_AMP_VOL",
     "ML_AMP_VOLFUNC_ENA",
     "ML_AMP_VOL_FADE",
+    "ML_SPK_AMP_OUT",
     "ML_HP_AMP_OUT_CTL",
     "ML_MIC_IF_CTL",
     "ML_RCH_MIXER_INPUT",
@@ -781,12 +836,40 @@ static const char * audio_reg_names[] = {
     "ML_SAI_RCV_CTL",
     "ML_SAI_MODE_SEL",
     "ML_FILTER_EN",
+    "ML_FILTER_DIS_ALL",
     "ML_DVOL_CTL_FUNC_EN",
     "ML_MIXER_VOL_CTL",
     "ML_REC_DIGI_VOL",
     "ML_REC_LR_BAL_VOL",
     "ML_PLAY_DIG_VOL",
+    "ML_EQ_GAIN_BRAND0",
+    "ML_EQ_GAIN_BRAND1",
+    "ML_EQ_GAIN_BRAND2",
+    "ML_EQ_GAIN_BRAND3",
+    "ML_EQ_GAIN_BRAND4",
     "ML_HPF2_CUTOFF",
+    "ML_EQBRAND0_F0L",
+    "ML_EQBRAND0_F0H",
+    "ML_EQBRAND0_F1L",
+    "ML_EQBRAND0_F1H",
+    "ML_EQBRAND1_F0L",
+    "ML_EQBRAND1_F0H",
+    "ML_EQBRAND1_F1L",
+    "ML_EQBRAND1_F1H",
+    "ML_EQBRAND2_F0L",
+    "ML_EQBRAND2_F0H",
+    "ML_EQBRAND2_F1L",
+    "ML_EQBRAND2_F1H",
+    "ML_EQBRAND3_F0L",
+    "ML_EQBRAND3_F0H",
+    "ML_EQBRAND3_F1L",
+    "ML_EQBRAND3_F1H",
+    "ML_EQBRAND4_F0L",
+    "ML_EQBRAND4_F0H",
+    "ML_EQBRAND4_F1L",
+    "ML_EQBRAND4_F1H",
+    "ML_MIC_PARAM10",
+    "ML_MIC_PARAM11",
     "ML_SND_EFFECT_MODE",
     "ML_ALC_MODE",
     "ML_ALC_ATTACK_TIM",
@@ -874,21 +957,18 @@ audio_reg_dump( int force )
     }
     
     FILE* f = FIO_CreateFileEx(log_filename);
-    //    uint16_t last_regs[ COUNT(audio_regs) ];
-    //    memset(last_regs,0,COUNT(audio_regs));
 
 	unsigned i;
 	for( i=0 ; i<COUNT(audio_regs) ; i++ )
 	{
 		const uint16_t reg = audio_ic_read( audio_regs[i] );
-        //		if( reg != last_regs[i] )
-        //		{
         my_fprintf(f, "%s %02x\n", audio_reg_names[i], reg);
-        //		}
-        //		last_regs[i] = reg;
+        msleep(10);
 	}
     
     FIO_CloseFile(f);
+
+    NotifyBox(4000, "log audio%02d.log saved", log_number );
 }
 
 
@@ -1003,6 +1083,26 @@ override_audio_setting(int phase){
 
 
 struct msg_queue * override_audio_q = NULL;
+/** override audio settings  */
+static void
+override_audio_task( void* unused )
+{
+    if(!override_audio_q)
+        override_audio_q = (struct msg_queue *) msg_queue_create("override_audio_q", 1);
+
+    TASK_LOOP
+        {
+            int msg;
+            msleep(1000);
+            int err = msg_queue_receive(override_audio_q, (struct event**)&msg, 500);
+            if (!err){
+                audio_configure(msg);
+            }
+        }
+}
+
+TASK_CREATE( "override_audio_do_task", override_audio_task, 0, 0x18, 0x1000 );
+
 static void
 audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
 //    if(lv > 7 ) lv = 6;
@@ -1220,10 +1320,6 @@ audio_ic_set_recdgain(){
     masked_audio_ic_write(ML_REC_DIGI_VOL, 0x7f, vol);
 }
 
-
-//Global
-struct msg_queue * reset_audio_q = NULL;
-
 //wrapper for audio_configure()
 void call_audio_configure(){ audio_configure(0); }
 
@@ -1287,12 +1383,13 @@ audio_configure( int force )
         return;
     }
     audio_ic_on();
-	int msg;
 
-    //for catching msg from finished Vol change
-	int err = msg_queue_receive(override_audio_q, (struct event**)&msg, 500);
-	if (!err || force){
-		override_audio_setting(1);
+	if (force){
+        if(force == 2){
+            override_audio_setting(0);
+        }else{
+            override_audio_setting(1);
+        }
 	}
 
     audio_set_meterlabel();
@@ -1758,11 +1855,12 @@ static void override_audio_display( void * priv, int x, int y, int selected )
                "Override Setting : %s", 
                (cfg_override_audio ? "ON" : "OFF")
                );
+    check_sound_recording_warning(x, y);
 }
 static void override_audio_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 1);
-    audio_configure(0);
+    audio_configure(2);
 }
 
 static void analog_gain_display( void * priv, int x, int y, int selected )
@@ -2297,19 +2395,19 @@ enable_recording(
         case 0:
             // Movie recording stopped;  (fallthrough)
 #ifdef CONFIG_600D
-            override_audio_setting(1);
+            if(override_audio_q) msg_queue_post(override_audio_q, 1); 
 #endif
         case 2:
             // Movie recording started
             give_semaphore( gain.sem );
 #ifdef CONFIG_600D
-            audio_configure(0);
+            if(override_audio_q) msg_queue_post(override_audio_q, 0); 
 #endif
             break;
         case 1:
             // Movie recording about to start?
 #ifdef CONFIG_600D
-            audio_configure(0);
+            if(override_audio_q) msg_queue_post(override_audio_q, 0); 
 #endif
             break;
         default:
@@ -2571,10 +2669,7 @@ PROP_HANDLER( PROP_AUDIO_VOL_CHANGE_600D )
     /* Cannot overwrite audio config direct here!
        Cannon firmware is overwrite after finishing here.So you need to set value with delay
     */
-    if(!override_audio_q)
-		override_audio_q = (struct msg_queue *) msg_queue_create("override_audio_q", 1);
-	
-    msg_queue_post(override_audio_q, 1); 
+    if(override_audio_q) msg_queue_post(override_audio_q, 1); 
 
 }
 
