@@ -442,9 +442,6 @@ meter_task( void* unused )
 {
 
 #ifdef CONFIG_600D
-    //will delete this when we finish debugging
-    NotifyBox(5000, " BETA BETA BETA BETA BETA \n     600D BETA audio 0.1\n Let's find bugs\n for stable operation\n");
-
         //initialize audio config for 600D
         audio_configure(1);
 #endif
