@@ -73,6 +73,7 @@ static void audio_ic_set_input();
 // Set defaults
 CONFIG_INT( "audio.override_audio", cfg_override_audio,   0 );
 CONFIG_INT( "audio.analog_gain",    cfg_analog_gain,      2 );
+CONFIG_INT( "audio.analog_boost",   cfg_analog_boost,     0 ); //test
 CONFIG_INT( "audio.enable_dc",      cfg_filter_dc,        0 );
 CONFIG_INT( "audio.enable_hpf2",    cfg_filter_hpf2,      0 );
 CONFIG_INT( "audio.hpf2config",     cfg_filter_hpf2config,7 );
@@ -441,9 +442,32 @@ static void
 meter_task( void* unused )
 {
 
+//will delete this when we finish debugging
+    NotifyBox(1500, "    ML2.3 TEST release:    ");
+    msleep(1500);
+    NotifyBox(1000, "      600D audio 0.1       ");
+    msleep(1000);
+    NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
+    msleep(500);
+    NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
+    msleep(500);
+    NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
+    msleep(500);
+    NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
+    msleep(500);
+    NotifyBox(1000, "   If you find problems    ");
+    msleep(1000);
+    NotifyBox(1000, "   please report them to   ");
+    msleep(1000);
+    NotifyBox(3000, "    www.magiclantern.fm    ");
+    msleep(3000);
+    NotifyBox(1000, "and use the stable release.");
+    msleep(1000);
+    NotifyBox(2000, " Last Stable release: 2.3  ");
+
 #ifdef CONFIG_600D
         //initialize audio config for 600D
-        audio_configure(1);
+        audio_configure(1);    
 #endif
         
         TASK_LOOP
@@ -1105,6 +1129,10 @@ audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
     if(lv > 6 ) lv = 6;
 
     switch(lv){
+    case 0:
+        audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_OFF);
+        audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
+        break;
     case 1:
         audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_OFF);
         audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_ON);
@@ -1127,6 +1155,7 @@ audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
         break;
     case 6:
         audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_3);
+        audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF); //to be sure
         break;
     }
 }
@@ -1858,7 +1887,7 @@ static void analog_gain_display( void * priv, int x, int y, int selected )
 {
     unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
     char dbval[14][4] = {"-12", " -3", "  0", " +6", "+15", "+24", "+33", "+35","+40","+45","+50","+55","+60","+65"};
-
+    
     bmp_printf(
                FONT(fnt, cfg_analog_gain > 7 ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
@@ -1866,7 +1895,7 @@ static void analog_gain_display( void * priv, int x, int y, int selected )
                dbval[cfg_analog_gain]
                );
     menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_gain)/13);
-
+    
 }
 static void analog_gain_toggle( void * priv, int delta )
 {
@@ -1879,12 +1908,37 @@ static void analog_gain_toggle_reverse( void * priv, int delta )
     audio_ic_set_analog_gain();
 }
 
+static void analog_boost_display( void * priv, int x, int y, int selected )
+{
+    unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
+    char dbval[7][4] = {"OFF","+5","+10","+15","+20","+25","+30"};
+    
+    bmp_printf(
+               FONT(fnt, cfg_analog_gain > 7 ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
+               x, y,
+               "Analog mic boost : %s dB", 
+               dbval[cfg_analog_boost]
+               );
+    menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_boost)/6);
+    
+}
+static void analog_boost_toggle( void * priv, int delta )
+{
+    menu_numeric_toggle(priv, 1, 0, 6);
+    audio_ic_set_micboost(cfg_analog_boost);
+}
+static void analog_boost_toggle_reverse( void * priv, int delta )
+{
+    menu_numeric_toggle(priv, -1, 0, 6);
+    audio_ic_set_micboost(cfg_analog_boost);
+}
+
     /*
 DSP Filter Function Enable Register p77 HPF1 HPF2
      */
 static void audio_filter_dc_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 1, 0, 1);
+    menu_numeric_toggle(priv, -1, 0, 1);
     audio_ic_set_filters();
 }
 
@@ -2149,6 +2203,15 @@ static struct menu_entry audio_menus[] = {
             .display        = analog_gain_display,
             .help = "Analog gain (-12 +35 mic vol)(+40 +65 boost)",
 
+        },
+        {
+            .name        = "Mic Boost",
+            .priv           = &cfg_analog_boost,
+            .select         = analog_boost_toggle,
+            .select_reverse = analog_boost_toggle_reverse,
+            .display        = analog_boost_display,
+            .help = "TEST: Analog mic +5dB boost only",
+        
         },
 #else /* ^^^CONFIG_600D^^^ vvv except 600D vvv */
         {
