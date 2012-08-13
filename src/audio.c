@@ -443,10 +443,8 @@ meter_task( void* unused )
 {
 
 //will delete this when we finish debugging
-    NotifyBox(1500, "    ML2.3 TEST release:    ");
-    msleep(1500);
-    NotifyBox(1000, "      600D audio 0.1       ");
-    msleep(1000);
+    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.1       ");
+    msleep(4000);
     NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
     msleep(500);
     NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
@@ -455,15 +453,15 @@ meter_task( void* unused )
     msleep(500);
     NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
     msleep(500);
-    NotifyBox(1000, "   If you find problems    ");
-    msleep(1000);
-    NotifyBox(1000, "   please report them to   ");
-    msleep(1000);
-    NotifyBox(3000, "    www.magiclantern.fm    ");
-    msleep(3000);
-    NotifyBox(1000, "and use the stable release.");
-    msleep(1000);
-    NotifyBox(2000, " Last Stable release: 2.3  ");
+    NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
+    msleep(500);
+    NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
+    msleep(500);
+    NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
+    msleep(500);
+    NotifyBox(4000, "   If you find problems    \n   please report them to   \n    www.magiclantern.fm    ");
+    msleep(5000);
+    NotifyBox(4000, "and use the stable release.\n Last Stable release: 2.3  ");
 
 #ifdef CONFIG_600D
         //initialize audio config for 600D
