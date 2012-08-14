@@ -443,7 +443,7 @@ meter_task( void* unused )
 {
 
 //will delete this when we finish debugging
-    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.1       ");
+    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.2       ");
     msleep(4000);
     NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
     msleep(500);
