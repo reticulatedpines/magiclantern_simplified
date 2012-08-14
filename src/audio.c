@@ -1068,6 +1068,8 @@ audio_ic_set_mute_off(unsigned int wait){
 
 void
 override_post_beep(){
+    if(cfg_override_audio == 0) return;
+
     override_audio_setting(0);
         
     audio_ic_write(ML_MIC_IN_CHARG_TIM | 0x00);
@@ -1105,6 +1107,8 @@ struct msg_queue * override_audio_q = NULL;
 static void
 override_audio_task( void* unused )
 {
+    if(cfg_override_audio == 0) return;
+
     if(!override_audio_q)
         override_audio_q = (struct msg_queue *) msg_queue_create("override_audio_q", 1);
 
@@ -1123,6 +1127,8 @@ TASK_CREATE( "override_audio_do_task", override_audio_task, 0, 0x18, 0x1000 );
 
 static void
 audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
+    if(cfg_override_audio == 0) return;
+
 //    if(lv > 7 ) lv = 6;
     if(lv > 6 ) lv = 6;
 
@@ -1160,6 +1166,8 @@ audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
 
 static void
 audio_ic_set_analog_gain(){
+    if(cfg_override_audio == 0) return;
+
 	int volumes[] = { 0x00, 0x0c, 0x10, 0x18, 0x24, 0x30, 0x3c, 0x3f};
     //mic in vol 0-7 0b1-0b111111
 	if(cfg_analog_gain > 7){
@@ -1174,6 +1182,8 @@ audio_ic_set_analog_gain(){
 
 static void
 audio_ic_set_input(){
+    if(cfg_override_audio == 0) return;
+
     audio_ic_set_mute_on(100);
     audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //descrived in pdf p71
     
@@ -1229,6 +1239,8 @@ audio_ic_set_input(){
 
 static void
 audio_ic_set_RecLRbalance(){
+    if(cfg_override_audio == 0) return;
+
     int val = dgain_l<<4;
     val = val | dgain_r;
     audio_ic_write( ML_REC_LR_BAL_VOL | val);
@@ -1236,6 +1248,8 @@ audio_ic_set_RecLRbalance(){
 
 static void
 audio_ic_set_filters(){
+    if(cfg_override_audio == 0) return;
+
     if(enable_filters){
         audio_ic_set_mute_on(0);
         int val = 0;
@@ -1258,6 +1272,8 @@ audio_ic_set_filters(){
 
 static void
 audio_ic_set_agc(){
+    if(cfg_override_audio == 0) return;
+
     if(alc_enable){
         masked_audio_ic_write(ML_DVOL_CTL_FUNC_EN, 0x03, 0x03);
     }else{
@@ -1281,6 +1297,7 @@ audio_ic_off(){
 
 static void
 audio_ic_on(){
+    if(cfg_override_audio == 0) return;
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x01); //power on
     audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_REC);
 }
@@ -1334,6 +1351,8 @@ call_audio_ic_set_lineout_onoff(){
 
 static void
 audio_ic_set_recdgain(){
+    if(cfg_override_audio == 0) return;
+
     int vol = 0xff - cfg_recdgain;
     masked_audio_ic_write(ML_REC_DIGI_VOL, 0x7f, vol);
 }
