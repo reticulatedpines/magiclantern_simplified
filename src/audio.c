@@ -2629,6 +2629,10 @@ static void volume_display()
 
 void volume_up()
 {
+#ifdef CONFIG_600D
+    menu_numeric_toggle(&cfg_analog_gain, 1, 0, 13);
+    audio_ic_set_analog_gain();
+#else
         int mgain_db = mgain_index2gain(mgain);
         if (mgain_db < 32)
                 audio_mgain_toggle(&mgain, 0);
@@ -2640,11 +2644,16 @@ void volume_up()
                         audio_dgain_toggle(&dgain_r, 0);
                 }
         }
+#endif
         volume_display();
 }
 
 void volume_down()
 {
+#ifdef CONFIG_600D
+    menu_numeric_toggle(&cfg_analog_gain, -1, 0, 13);
+    audio_ic_set_analog_gain();
+#else
         int mgain_db = mgain_index2gain(mgain);
     
         if( MIN(dgain_l, dgain_r) > 0 )
@@ -2654,6 +2663,7 @@ void volume_down()
         }
         else if (mgain_db > 0)
                 audio_mgain_toggle_reverse(&mgain, 0);
+#endif
         volume_display();
 }
 
