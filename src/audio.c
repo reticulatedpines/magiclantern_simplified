@@ -1739,7 +1739,7 @@ audio_dgain_display( void * priv, int x, int y, int selected )
 static int
 get_lovl_val(){
     if(lovl == 0){
-        return 0;
+        return -100;
     }else if(lovl == 38){
         return 0;
     }else if(lovl < 38){
