@@ -2638,8 +2638,7 @@ static void volume_display()
 {
 #ifdef CONFIG_600D
     char dbval[14][4] = {"-12", " -3", "  0", " +6", "+15", "+24", "+33", "+35","+40","+45","+50","+55","+60","+65"};
-    
-    NotifyBox(2000, "Volume: %d + (%d,%d) dB", dbval[cfg_analog_gain], get_dgain_val(1),get_dgain_val(0));
+    NotifyBox(2000, "Volume: %s + (%d,%d) dB", dbval[cfg_analog_gain], get_dgain_val(1),get_dgain_val(0));
 #else
         int mgain_db = mgain_index2gain(mgain);
         NotifyBox(2000, "Volume: %d + (%d,%d) dB", mgain_db, dgain_l, dgain_r);
@@ -2649,8 +2648,7 @@ static void volume_display()
 void volume_up()
 {
 #ifdef CONFIG_600D
-    menu_numeric_toggle(&cfg_analog_gain, 1, 0, 13);
-    audio_ic_set_analog_gain();
+    analog_gain_toggle(&cfg_analog_gain,0);
 #else
         int mgain_db = mgain_index2gain(mgain);
         if (mgain_db < 32)
@@ -2670,8 +2668,7 @@ void volume_up()
 void volume_down()
 {
 #ifdef CONFIG_600D
-    menu_numeric_toggle(&cfg_analog_gain, -1, 0, 13);
-    audio_ic_set_analog_gain();
+    analog_gain_toggle_reverse(&cfg_analog_gain,0);
 #else
         int mgain_db = mgain_index2gain(mgain);
     
@@ -2698,24 +2695,22 @@ static void out_volume_display()
 void out_volume_up()
 {
 #ifdef CONFIG_600D
-    menu_numeric_toggle(&lovl, 1, 0, 49);
-    audio_ic_set_lineout_vol();
+    audio_lovl_toggle(&lovl,0);
 #else
     int* p = (int*) &lovl;
     *p = COERCE(*p + 1, 0, 3);
-    out_volume_display();
 #endif
+    out_volume_display();
 }
 void out_volume_down()
 {
 #ifdef CONFIG_600D
-    menu_numeric_toggle(&lovl, -1, 0, 49);
-    audio_ic_set_lineout_vol();
+    audio_lovl_toggle_reverse(&lovl,0);
 #else
     int* p = (int*) &lovl;
     *p = COERCE(*p - 1, 0, 3);
-    out_volume_display();
 #endif
+    out_volume_display();
 }
 
 void input_toggle()
