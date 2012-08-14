@@ -2669,20 +2669,34 @@ void volume_down()
 
 static void out_volume_display()
 {
+#ifdef CONFIG_600D
+    NotifyBox(2000, "Out Volume: %d dB", get_lovl_val());
+#else
         //int mgain_db = mgain_index2gain(mgain);
         NotifyBox(2000, "Out Volume: %d dB", 2 * lovl);
+#endif
 }
 void out_volume_up()
 {
+#ifdef CONFIG_600D
+    menu_numeric_toggle(&lovl, 1, 0, 49);
+    audio_ic_set_lineout_vol();
+#else
     int* p = (int*) &lovl;
     *p = COERCE(*p + 1, 0, 3);
     out_volume_display();
+#endif
 }
 void out_volume_down()
 {
+#ifdef CONFIG_600D
+    menu_numeric_toggle(&lovl, -1, 0, 49);
+    audio_ic_set_lineout_vol();
+#else
     int* p = (int*) &lovl;
     *p = COERCE(*p - 1, 0, 3);
     out_volume_display();
+#endif
 }
 
 void input_toggle()
