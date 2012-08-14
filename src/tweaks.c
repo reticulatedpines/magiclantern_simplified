@@ -1377,7 +1377,7 @@ CONFIG_INT("arrows.set", arrow_keys_use_set, 1);
     CONFIG_INT("arrows.audio", arrow_keys_audio, 0);
     CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 0);
 #else
-    #if !defined(CONFIG_50D) && !defined(CONFIG_600D) && !defined(CONFIG_5D3)
+    #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
         CONFIG_INT("arrows.audio", arrow_keys_audio, 1);
     #else
         CONFIG_INT("arrows.audio", arrow_keys_audio_unused, 1);
@@ -1542,7 +1542,7 @@ int handle_arrow_keys(struct event * event)
         {
             switch (arrow_keys_mode)
             {
-                #if !defined(CONFIG_50D) && !defined(CONFIG_600D) && !defined(CONFIG_5D3)
+                #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
                 case 1: input_toggle(); break;
                 #endif
                 case 2: 
@@ -1725,7 +1725,7 @@ static struct menu_entry key_menus[] = {
         .submenu_width = 500,
         .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .children =  (struct menu_entry[]) {
-            #if !defined(CONFIG_50D) && !defined(CONFIG_600D) && !defined(CONFIG_5D3)
+#if !defined(CONFIG_50D) && /*!defined(CONFIG_600D) &&*/ !defined(CONFIG_5D3)
             {
                 .name = "Audio Gain",
                 .priv       = &arrow_keys_audio,

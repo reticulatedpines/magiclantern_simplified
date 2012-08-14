@@ -2617,8 +2617,14 @@ TASK_OVERRIDE( audio_level_task, my_audio_level_task );
 
 static void volume_display()
 {
+#ifdef CONFIG_600D
+    char dbval[14][4] = {"-12", " -3", "  0", " +6", "+15", "+24", "+33", "+35","+40","+45","+50","+55","+60","+65"};
+    
+    NotifyBox(2000, "Volume: %d + (%d,%d) dB", dbval[cfg_analog_gain], get_dgain_val(1),get_dgain_val(0));
+#else
         int mgain_db = mgain_index2gain(mgain);
         NotifyBox(2000, "Volume: %d + (%d,%d) dB", mgain_db, dgain_l, dgain_r);
+#endif
 }
 
 void volume_up()
