@@ -74,8 +74,8 @@ static void audio_ic_set_input();
 CONFIG_INT( "audio.override_audio", cfg_override_audio,   0 );
 CONFIG_INT( "audio.analog_gain",    cfg_analog_gain,      2 );
 CONFIG_INT( "audio.analog_boost",   cfg_analog_boost,     0 ); //test
-CONFIG_INT( "audio.enable_dc",      cfg_filter_dc,        0 );
-CONFIG_INT( "audio.enable_hpf2",    cfg_filter_hpf2,      0 );
+CONFIG_INT( "audio.enable_dc",      cfg_filter_dc,        1 );
+CONFIG_INT( "audio.enable_hpf2",    cfg_filter_hpf2,      1 );
 CONFIG_INT( "audio.hpf2config",     cfg_filter_hpf2config,7 );
 
 CONFIG_INT( "audio.dgain",          cfg_recdgain,         0 );
@@ -86,13 +86,13 @@ CONFIG_INT( "audio.filters",        enable_filters,       0 );
 CONFIG_INT( "audio.dgain.l",    dgain_l,        0 );
 CONFIG_INT( "audio.dgain.r",    dgain_r,        0 );
 CONFIG_INT( "audio.filters",    enable_filters,     1 ); //disable the HPF, LPF and pre-emphasis filters
-#endif
 CONFIG_INT( "audio.mgain",      mgain,          4 );
 CONFIG_INT( "audio.mic-power",  mic_power,      1 );
-CONFIG_INT( "audio.lovl",       lovl,           0 );
 CONFIG_INT( "audio.o2gain",     o2gain,         0 );
-CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
 //CONFIG_INT( "audio.mic-in",   mic_in,         0 ); // not used any more?
+#endif
+CONFIG_INT( "audio.lovl",       lovl,           0 );
+CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
 int loopback = 1;
 //CONFIG_INT( "audio.input-source",     input_source,           0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced
 CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
@@ -1042,11 +1042,6 @@ int get_input_source()
         return input_source;
 }
 
-int get_mic_power(int input_source)
-{
-        return (input_source >= 2) ? mic_power : 1;
-}
-
 #ifdef CONFIG_600D
 static void
 audio_ic_set_mute_on(unsigned int wait){
@@ -1360,6 +1355,12 @@ audio_ic_set_recdgain(){
 //wrapper for audio_configure()
 void call_audio_configure(){ audio_configure(0); }
 
+#else
+
+int get_mic_power(int input_source)
+{
+    return (input_source >= 2) ? mic_power : 1;
+}
 
 #endif /*CONFIG_600D*/
 
@@ -2137,6 +2138,9 @@ audio_monitoring_display( void * priv, int x, int y, int selected )
         check_sound_recording_warning(x, y);
 }
 
+#ifdef CONFIG_600D
+//we don't need micpower on 600D
+#else
 static void
 audio_micpower_display( void * priv, int x, int y, int selected )
 {
@@ -2150,7 +2154,7 @@ audio_micpower_display( void * priv, int x, int y, int selected )
         check_sound_recording_warning(x, y);
         if (mic_pow != mic_power) menu_draw_icon(x,y, MNI_WARNING, (intptr_t) "Mic power is required by internal mic.");
 }
-
+#endif
 
 PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
 
