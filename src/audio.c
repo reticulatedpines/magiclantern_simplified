@@ -1310,6 +1310,7 @@ audio_ic_set_lineout_vol(){
 
 static void
 audio_ic_set_lineout_onoff(){
+    if(cfg_override_audio == 0) return;
     //PDF p38
     if(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED){
 
@@ -1346,7 +1347,6 @@ void
 call_audio_ic_set_lineout_onoff(){
     audio_ic_set_input();
     audio_monitoring_update(); //call audio_monitoring_force_display()
-    audio_ic_set_lineout_onoff();
 }
 
 static void
@@ -2179,7 +2179,8 @@ static void audio_monitoring_update()
                 msleep(1000);
                 audio_monitoring_display_headphones_connected_or_not();
 #ifdef CONFIG_600D
-                audio_ic_set_lineout_onoff();
+                if(override_audio_q) msg_queue_post(override_audio_q, 1); 
+                //                audio_ic_set_lineout_onoff();
 #endif
         }
 }
@@ -2188,9 +2189,6 @@ static void
     audio_monitoring_toggle( void * priv, int delta )
 {
         audio_monitoring = !audio_monitoring;
-#ifdef CONFIG_600D
-        audio_ic_set_lineout_onoff();
-#endif
         audio_monitoring_update(); //call audio_monitoring_force_display()
 
 }
