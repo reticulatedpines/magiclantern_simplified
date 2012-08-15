@@ -2179,7 +2179,8 @@ static void audio_monitoring_update()
                 msleep(1000);
                 audio_monitoring_display_headphones_connected_or_not();
 #ifdef CONFIG_600D
-                audio_ic_set_lineout_onoff();
+                if(override_audio_q) msg_queue_post(override_audio_q, 1); 
+                //                audio_ic_set_lineout_onoff();
 #endif
         }
 }

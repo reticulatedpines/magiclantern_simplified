@@ -1892,10 +1892,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                         msleep(4000);
                         redraw();
                         rca_warned = 1;
-#ifdef CONFIG_600D
-                        //Override headphone monitor setting
-                        call_audio_ic_set_lineout_onoff();
-#endif
                     }
                 }
             }
