@@ -1419,6 +1419,10 @@ audio_configure( int force )
         audio_ic_off();
         return;
     }
+    if(is_movie_mode() == 0){
+        return;
+    }
+
     audio_ic_on();
 
 	if (force){
