@@ -1114,6 +1114,7 @@ override_audio_task( void* unused )
             int err = msg_queue_receive(override_audio_q, (struct event**)&msg, 500);
             if (!err){
                 audio_configure(msg);
+                NotifyBox(1000,"Audio Overridden");
             }
         }
 }
