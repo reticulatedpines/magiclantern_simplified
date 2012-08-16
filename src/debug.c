@@ -17,7 +17,7 @@ void call_audio_ic_set_lineout_onoff();
 
 #ifdef CONFIG_AUDIO_600D_DEBUG
 #ifdef CONFIG_600D
-void audio_reg_dump( int force );
+void audio_reg_dump_once();
 #endif
 #endif
 
@@ -542,7 +542,7 @@ void run_test()
     msleep(2000);
 #ifdef CONFIG_AUDIO_600D_DEBUG
     #ifdef CONFIG_600D
-    audio_reg_dump(1);
+    audio_reg_dump_once();
     #endif
 #endif
 

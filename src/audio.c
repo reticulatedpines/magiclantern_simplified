@@ -783,9 +783,70 @@ static const char * audio_reg_names[] = {
         "AUDIO_IC_LPF2",
         "AUDIO_IC_LPF3",
 };
+FILE * reg_file;
+
+static void
+audio_reg_dump( int force )
+{
+    if( !reg_file )
+        return;
+    static uint16_t last_regs[ COUNT(audio_regs) ];
+
+    unsigned i;
+    int output = 0;
+    for( i=0 ; i<COUNT(audio_regs) ; i++ )
+        {
+            const uint16_t reg = audio_ic_read( audio_regs[i] );
+        
+            if( reg != last_regs[i] || force )
+                {
+                    my_fprintf(
+                               reg_file,
+                               "%s %02x\n",
+                               audio_reg_names[i],
+                    reg
+                               );
+                    output = 1;
+                }
+        
+            last_regs[i] = reg;
+        }
+
+    if( output )
+        my_fprintf( reg_file, "%s\n", "" );
+}
+
+
+static void
+audio_reg_close( void )
+{
+    if( reg_file )
+        FIO_CloseFile( reg_file );
+    reg_file = NULL;
+}
+
+
+static void
+audio_reg_dump_screen()
+{
+        int i, x, y;
+        for( i=0 ; i<COUNT(audio_regs) ; i++ )
+        {
+                const uint16_t reg = audio_ic_read( audio_regs[i] );
+                x = 10 + (i / 30) * 200;
+                y = 50 + (i % 30) * 12;
+                bmp_printf(FONT_SMALL, x, y,
+                    "%s %02x\n",
+                    audio_reg_names[i],
+                    reg
+                    );
+        }
+}
+
 #endif
+
 #if defined(CONFIG_600D) && defined(CONFIG_AUDIO_600D_DEBUG)
-static uint16_t audio_regs[] = {
+static uint16_t audio_regs_once[] = {
     ML_SMPLING_RATE-0x100,
     ML_PLLNL-0x100,
     ML_PLLNH-0x100,
@@ -871,7 +932,7 @@ static uint16_t audio_regs[] = {
     ML_PL_0CROSS_TIMEOUT-0x100,
 };
 
-static const char * audio_reg_names[] = {
+static const char * audio_reg_names_once[] = {
     "ML_SMPLING_RATE",
     "ML_PLLNL",
     "ML_PLLNH",
@@ -974,10 +1035,10 @@ audio_reg_dump_once()
     FILE* f = FIO_CreateFileEx(log_filename);
 
 	unsigned i;
-	for( i=0 ; i<COUNT(audio_regs) ; i++ )
+	for( i=0 ; i<COUNT(audio_regs_once) ; i++ )
 	{
-		const uint16_t reg = audio_ic_read( audio_regs[i] );
-        my_fprintf(f, "%s %02x\n", audio_reg_names[i], reg);
+		const uint16_t reg = audio_ic_read( audio_regs_once[i] );
+        my_fprintf(f, "%s %02x\n", audio_reg_names_once[i], reg);
         msleep(10);
 	}
     
@@ -987,67 +1048,6 @@ audio_reg_dump_once()
 }
 #endif
 
-FILE * reg_file;
-
-static void
-audio_reg_dump( int force )
-{
-    if( !reg_file )
-        return;
-    static uint16_t last_regs[ COUNT(audio_regs) ];
-
-    unsigned i;
-    int output = 0;
-    for( i=0 ; i<COUNT(audio_regs) ; i++ )
-        {
-            const uint16_t reg = audio_ic_read( audio_regs[i] );
-        
-            if( reg != last_regs[i] || force )
-                {
-                    my_fprintf(
-                               reg_file,
-                               "%s %02x\n",
-                               audio_reg_names[i],
-                    reg
-                               );
-                    output = 1;
-                }
-        
-            last_regs[i] = reg;
-        }
-
-    if( output )
-        my_fprintf( reg_file, "%s\n", "" );
-}
-
-
-static void
-audio_reg_close( void )
-{
-    if( reg_file )
-        FIO_CloseFile( reg_file );
-    reg_file = NULL;
-}
-
-
-static void
-audio_reg_dump_screen()
-{
-        int i, x, y;
-        for( i=0 ; i<COUNT(audio_regs) ; i++ )
-        {
-                const uint16_t reg = audio_ic_read( audio_regs[i] );
-                x = 10 + (i / 30) * 200;
-                y = 50 + (i % 30) * 12;
-                bmp_printf(FONT_SMALL, x, y,
-                    "%s %02x\n",
-                    audio_reg_names[i],
-                    reg
-                    );
-        }
-}
-
-#endif
 
 int mic_inserted = -1;
 PROP_HANDLER( PROP_MIC_INSERTED )
