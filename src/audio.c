@@ -2449,10 +2449,7 @@ enable_recording(
 #endif
             break;
         case 1:
-            // Movie recording about to start?
-#ifdef CONFIG_600D
-            if(override_audio_q) msg_queue_post(override_audio_q, 0); 
-#endif
+            // Movie recording about to start? : 600D do not override audio here. Recording start/stop will call case2 and case 2 together. So twice audio_configre() need more cpu/mem overhead. will stop recording.because buffer will full.
             break;
         default:
             // Uh?
