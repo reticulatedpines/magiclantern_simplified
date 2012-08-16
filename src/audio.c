@@ -729,10 +729,62 @@ audio_ic_set_input_volume(
 #endif
 
 
-#if defined(CONFIG_AUDIO_REG_LOG) || defined(CONFIG_AUDIO_REG_BMP) || defined(CONFIG_AUDIO_600D_DEBUG) && !defined(CONFIG_500D)
+#if defined(CONFIG_AUDIO_REG_LOG) || defined(CONFIG_AUDIO_REG_BMP)
 
 // Do not write the value; just read them and record to a logfile
-#ifdef CONFIG_600D
+static uint16_t audio_regs[] = {
+        AUDIO_IC_PM1,
+        AUDIO_IC_PM2,
+        AUDIO_IC_SIG1,
+        AUDIO_IC_SIG2,
+        AUDIO_IC_ALC1,
+        AUDIO_IC_ALC2,
+        AUDIO_IC_IVL,
+        AUDIO_IC_IVR,
+        AUDIO_IC_OVL,
+        AUDIO_IC_OVR,
+        AUDIO_IC_ALCVOL,
+        AUDIO_IC_MODE3,
+        AUDIO_IC_MODE4,
+        AUDIO_IC_PM3,
+        AUDIO_IC_FIL1,
+        AUDIO_IC_HPF0,
+        AUDIO_IC_HPF1,
+        AUDIO_IC_HPF2,
+        AUDIO_IC_HPF3,
+        AUDIO_IC_LPF0,
+        AUDIO_IC_LPF1,
+        AUDIO_IC_LPF2,
+        AUDIO_IC_LPF3,
+};
+
+static const char * audio_reg_names[] = {
+        "AUDIO_IC_PM1",
+        "AUDIO_IC_PM2",
+        "AUDIO_IC_SIG1",
+        "AUDIO_IC_SIG2",
+        "AUDIO_IC_ALC1",
+        "AUDIO_IC_ALC2",
+        "AUDIO_IC_IVL",
+        "AUDIO_IC_IVR",
+        "AUDIO_IC_OVL",
+        "AUDIO_IC_OVR",
+        "AUDIO_IC_ALCVOL",
+        "AUDIO_IC_MODE3",
+        "AUDIO_IC_MODE4",
+        "AUDIO_IC_PM3",
+        "AUDIO_IC_FIL1",
+        "AUDIO_IC_HPF0",
+        "AUDIO_IC_HPF1",
+        "AUDIO_IC_HPF2",
+        "AUDIO_IC_HPF3",
+        "AUDIO_IC_LPF0",
+        "AUDIO_IC_LPF1",
+        "AUDIO_IC_LPF2",
+        "AUDIO_IC_LPF3",
+};
+#endif
+#if defined(CONFIG_600D) && defined(CONFIG_AUDIO_600D_DEBUG)
 static uint16_t audio_regs[] = {
     ML_SMPLING_RATE-0x100,
     ML_PLLNL-0x100,
@@ -905,63 +957,8 @@ static const char * audio_reg_names[] = {
     "ML_PL_0CROSS_TIMEOUT",
 };
 
-#else
-static uint16_t audio_regs[] = {
-        AUDIO_IC_PM1,
-        AUDIO_IC_PM2,
-        AUDIO_IC_SIG1,
-        AUDIO_IC_SIG2,
-        AUDIO_IC_ALC1,
-        AUDIO_IC_ALC2,
-        AUDIO_IC_IVL,
-        AUDIO_IC_IVR,
-        AUDIO_IC_OVL,
-        AUDIO_IC_OVR,
-        AUDIO_IC_ALCVOL,
-        AUDIO_IC_MODE3,
-        AUDIO_IC_MODE4,
-        AUDIO_IC_PM3,
-        AUDIO_IC_FIL1,
-        AUDIO_IC_HPF0,
-        AUDIO_IC_HPF1,
-        AUDIO_IC_HPF2,
-        AUDIO_IC_HPF3,
-        AUDIO_IC_LPF0,
-        AUDIO_IC_LPF1,
-        AUDIO_IC_LPF2,
-        AUDIO_IC_LPF3,
-};
-
-static const char * audio_reg_names[] = {
-        "AUDIO_IC_PM1",
-        "AUDIO_IC_PM2",
-        "AUDIO_IC_SIG1",
-        "AUDIO_IC_SIG2",
-        "AUDIO_IC_ALC1",
-        "AUDIO_IC_ALC2",
-        "AUDIO_IC_IVL",
-        "AUDIO_IC_IVR",
-        "AUDIO_IC_OVL",
-        "AUDIO_IC_OVR",
-        "AUDIO_IC_ALCVOL",
-        "AUDIO_IC_MODE3",
-        "AUDIO_IC_MODE4",
-        "AUDIO_IC_PM3",
-        "AUDIO_IC_FIL1",
-        "AUDIO_IC_HPF0",
-        "AUDIO_IC_HPF1",
-        "AUDIO_IC_HPF2",
-        "AUDIO_IC_HPF3",
-        "AUDIO_IC_LPF0",
-        "AUDIO_IC_LPF1",
-        "AUDIO_IC_LPF2",
-        "AUDIO_IC_LPF3",
-};
-#endif
-FILE * reg_file;
-
 void
-audio_reg_dump( int force )
+audio_reg_dump_once()
 {
     char log_filename[100];
     
@@ -987,6 +984,49 @@ audio_reg_dump( int force )
     FIO_CloseFile(f);
 
     NotifyBox(4000, "log audio%02d.log saved", log_number );
+}
+#endif
+
+FILE * reg_file;
+
+static void
+audio_reg_dump( int force )
+{
+    if( !reg_file )
+        return;
+    static uint16_t last_regs[ COUNT(audio_regs) ];
+
+    unsigned i;
+    int output = 0;
+    for( i=0 ; i<COUNT(audio_regs) ; i++ )
+        {
+            const uint16_t reg = audio_ic_read( audio_regs[i] );
+        
+            if( reg != last_regs[i] || force )
+                {
+                    my_fprintf(
+                               reg_file,
+                               "%s %02x\n",
+                               audio_reg_names[i],
+                    reg
+                               );
+                    output = 1;
+                }
+        
+            last_regs[i] = reg;
+        }
+
+    if( output )
+        my_fprintf( reg_file, "%s\n", "" );
+}
+
+
+static void
+audio_reg_close( void )
+{
+    if( reg_file )
+        FIO_CloseFile( reg_file );
+    reg_file = NULL;
 }
 
 
@@ -1022,6 +1062,7 @@ PROP_HANDLER( PROP_MIC_INSERTED )
         }
     
     mic_inserted = buf[0];
+    
 #ifdef CONFIG_600D
     audio_ic_set_input(); //Need faster finish this prop on 600D. audio_configure() is slow.Then get hang
 #else
@@ -1360,7 +1401,7 @@ void call_audio_configure(){ audio_configure(0); }
 
 int get_mic_power(int input_source)
 {
-    return (input_source >= 2) ? mic_power : 1;
+        return (input_source >= 2) ? mic_power : 1;
 }
 
 #endif /*CONFIG_600D*/
@@ -1820,6 +1861,7 @@ audio_o2gain_display( void * priv, int x, int y, int selected )
                );
 }
 #endif
+
 
 #ifdef CONFIG_600D
 static void

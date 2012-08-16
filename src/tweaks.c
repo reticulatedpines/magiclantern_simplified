@@ -1725,7 +1725,7 @@ static struct menu_entry key_menus[] = {
         .submenu_width = 500,
         .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .children =  (struct menu_entry[]) {
-#if !defined(CONFIG_50D) && /*!defined(CONFIG_600D) &&*/ !defined(CONFIG_5D3)
+            #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
             {
                 .name = "Audio Gain",
                 .priv       = &arrow_keys_audio,
