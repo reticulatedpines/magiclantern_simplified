@@ -783,46 +783,48 @@ static const char * audio_reg_names[] = {
         "AUDIO_IC_LPF2",
         "AUDIO_IC_LPF3",
 };
-FILE * reg_file;
+
+static FILE * reg_file;
 
 static void
 audio_reg_dump( int force )
 {
-    if( !reg_file )
-        return;
-    static uint16_t last_regs[ COUNT(audio_regs) ];
-
-    unsigned i;
-    int output = 0;
-    for( i=0 ; i<COUNT(audio_regs) ; i++ )
+        if( !reg_file )
+                return;
+    
+        static uint16_t last_regs[ COUNT(audio_regs) ];
+    
+        unsigned i;
+        int output = 0;
+        for( i=0 ; i<COUNT(audio_regs) ; i++ )
         {
-            const uint16_t reg = audio_ic_read( audio_regs[i] );
+                const uint16_t reg = audio_ic_read( audio_regs[i] );
         
-            if( reg != last_regs[i] || force )
+                if( reg != last_regs[i] || force )
                 {
-                    my_fprintf(
-                               reg_file,
-                               "%s %02x\n",
-                               audio_reg_names[i],
+                        my_fprintf(
+                    reg_file,
+                    "%s %02x\n",
+                    audio_reg_names[i],
                     reg
-                               );
-                    output = 1;
+                    );
+                        output = 1;
                 }
         
-            last_regs[i] = reg;
+                last_regs[i] = reg;
         }
-
-    if( output )
-        my_fprintf( reg_file, "%s\n", "" );
+    
+        if( output )
+                my_fprintf( reg_file, "%s\n", "" );
 }
 
 
 static void
 audio_reg_close( void )
 {
-    if( reg_file )
-        FIO_CloseFile( reg_file );
-    reg_file = NULL;
+        if( reg_file )
+                FIO_CloseFile( reg_file );
+        reg_file = NULL;
 }
 
 
