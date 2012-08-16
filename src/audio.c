@@ -443,7 +443,7 @@ meter_task( void* unused )
 {
 
 //will delete this when we finish debugging
-    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.3       ");
+    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.4       ");
     msleep(4000);
     NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
     msleep(500);
@@ -1145,7 +1145,6 @@ struct msg_queue * override_audio_q = NULL;
 static void
 override_audio_task( void* unused )
 {
-    if(cfg_override_audio == 0) return;
 
     if(!override_audio_q)
         override_audio_q = (struct msg_queue *) msg_queue_create("override_audio_q", 1);
@@ -1155,7 +1154,7 @@ override_audio_task( void* unused )
             int msg;
             msleep(1000);
             int err = msg_queue_receive(override_audio_q, (struct event**)&msg, 500);
-            if (!err){
+            if (!err && cfg_override_audio){
                 audio_configure(msg);
                 NotifyBox(1000,"Audio Overridden");
             }
