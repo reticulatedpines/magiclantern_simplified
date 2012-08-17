@@ -766,7 +766,7 @@ display_off_by_halfshutter_print(
 
 #endif
 
-CONFIG_INT("play.set.wheel", play_set_wheel_action, 2);
+CONFIG_INT("play.set.wheel", play_set_wheel_action, 4);
 
 static void
 play_set_wheel_display(
