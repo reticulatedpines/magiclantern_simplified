@@ -1161,7 +1161,7 @@ override_audio_task( void* unused )
         }
 }
 
-TASK_CREATE( "override_audio_do_task", override_audio_task, 0, 0x18, 0x1000 );
+TASK_CREATE( "override_audio_do_task", override_audio_task, 0, 0x17, 0x1000 );
 
 static void
 audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
