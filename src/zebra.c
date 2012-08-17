@@ -331,6 +331,7 @@ CONFIG_INT("idle.display.turn_off.after", idle_display_turn_off_after, 0); // th
 static CONFIG_INT("idle.display.dim.after", idle_display_dim_after, 0);
 static CONFIG_INT("idle.display.gdraw_off.after", idle_display_global_draw_off_after, 0);
 static CONFIG_INT("idle.rec", idle_rec, 0);
+static CONFIG_INT("idle.shortcut.key", idle_shortcut_key, 0);
 
 /**
  * Normal BMP VRAM has its origin in 720x480 center crop
@@ -3358,6 +3359,13 @@ struct menu_entry powersave_menus[] = {
         },
         #endif
         {
+            .name = "Use shortcut key   ",
+            .priv           = &idle_shortcut_key,
+            .max = 1,
+            .choices = (const char *[]) {"OFF", INFO_BTN_NAME},
+            .help = "Shortcut key for enabling powersave modes right away."
+        },
+        {
             .name = "Dim display",
             .priv           = &idle_display_dim_after,
             .display        = idle_display_dim_print,
@@ -4225,11 +4233,50 @@ static int idle_countdown_killflicker = 5;
 static int idle_countdown_killflicker_prev = 5;
 #endif
 
+int idle_is_powersave_enabled()
+{
+    return idle_display_dim_after || idle_display_turn_off_after || idle_display_global_draw_off_after;
+}
+
+int idle_is_powersave_active()
+{
+    return (idle_display_dim_after && !idle_countdown_display_dim_prev) || 
+           (idle_display_turn_off_after && !idle_countdown_display_off_prev) || 
+           (idle_display_global_draw_off_after && !idle_countdown_globaldraw_prev);
+}
+
 void idle_force_powersave_in_1s()
 {
-    idle_countdown_display_off = 10;
-    idle_countdown_display_dim = 10;
-    idle_countdown_globaldraw  = 10;
+    idle_countdown_display_off = MIN(idle_countdown_display_off, 10);
+    idle_countdown_display_dim = MIN(idle_countdown_display_dim, 10);
+    idle_countdown_globaldraw  = MIN(idle_countdown_globaldraw, 10);
+}
+
+void idle_force_powersave_now()
+{
+    idle_countdown_display_off = MIN(idle_countdown_display_off, 1);
+    idle_countdown_display_dim = MIN(idle_countdown_display_dim, 1);
+    idle_countdown_globaldraw  = MIN(idle_countdown_globaldraw, 1);
+}
+
+int handle_powersave_key(struct event * event)
+{
+    if (event->param == BGMT_INFO)
+    {
+        if (!idle_shortcut_key) return 1;
+        if (!lv) return 1;
+        if (!idle_is_powersave_enabled()) return 1;
+        if (IS_FAKE(event)) return 1;
+        if (gui_menu_shown()) return 1;
+
+        if (!idle_is_powersave_active())
+        {
+            idle_force_powersave_now();
+            info_led_blink(1,50,0);
+        }
+        return 0;
+    }
+    return 1;
 }
 
 void idle_wakeup_reset_counters(int reason) // called from handle_buttons
@@ -4367,32 +4414,21 @@ int ResumeLiveView()
     return ans;
 }
 
+static void idle_display_off_show_warning()
+{
+    extern int motion_detect;
+    if (motion_detect || recording)
+    {
+        NotifyBox(3000, "DISPLAY OFF...");
+    }
+    else
+    {
+        NotifyBox(3000, "DISPLAY AND SENSOR OFF...");
+    }
+}
 static void idle_display_off()
 {
     extern int motion_detect;
-    
-    if (!is_intervalometer_running())
-    {
-        wait_till_next_second();
-
-        if (motion_detect || recording)
-        {
-            NotifyBox(3000, "DISPLAY OFF...");
-        }
-        else
-        {
-            NotifyBox(3000, "DISPLAY AND SENSOR OFF...");
-        }
-
-        if (!(lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED))
-        {
-            for (int i = 0; i < 30; i++)
-            {
-                if (idle_countdown_display_off) { NotifyBoxHide(); return; }
-                msleep(100);
-            }
-        }
-    }
     if (!(motion_detect || recording)) PauseLiveView();
     display_off();
     msleep(100);
@@ -4608,7 +4644,11 @@ clearscreen_loop:
             idle_action_do(&idle_countdown_display_dim, &idle_countdown_display_dim_prev, idle_display_dim, idle_display_undim);
 
         if (idle_display_turn_off_after)
+        {
             idle_action_do(&idle_countdown_display_off, &idle_countdown_display_off_prev, idle_display_off, idle_display_on);
+            if (idle_countdown_display_off == 30)
+                idle_display_off_show_warning();
+        }
 
         if (idle_display_global_draw_off_after)
             idle_action_do(&idle_countdown_globaldraw, &idle_countdown_globaldraw_prev, idle_globaldraw_dis, idle_globaldraw_en);
@@ -5179,13 +5219,30 @@ static void do_disp_mode_change()
 
 int handle_disp_preset_key(struct event * event)
 {
-    if (!disp_profiles_0) return 1;
-    if (!lv) return 1;
-    if (IS_FAKE(event)) return 1;
-    if (gui_menu_shown()) return 1;
+    // the INFO key may be also used for enabling powersaving right away
+    // if display presets are off: pressing INFO will go to powersave (if any of those modes are enabled)
+    // if display presets are on: powersave will act somewhat like an extra display preset
+    
     if (event->param == BGMT_INFO)
     {
-        toggle_disp_mode();
+        if (!disp_profiles_0)
+            return handle_powersave_key(event);
+
+        if (!lv) return 1;
+        if (IS_FAKE(event)) return 1;
+        if (gui_menu_shown()) return 1;
+        
+        if (idle_is_powersave_enabled())
+        {
+            if (disp_mode == disp_profiles_0 && !idle_is_powersave_active())
+                return handle_powersave_key(event);
+            else
+                toggle_disp_mode();
+        }
+        else
+        {
+            toggle_disp_mode();
+        }
         return 0;
     }
     return 1;

@@ -109,6 +109,7 @@ int handle_common_events_by_feature(struct event * event)
         //~ return 0;
         //~ int ans = ResumeLiveView();
         idle_wakeup_reset_counters(event->param);
+        if (handle_disp_preset_key(event) == 0) return 0;
         return !ans;  // if LiveView was resumed, don't do anything else (just wakeup)
     }
     idle_wakeup_reset_counters(event->param);
