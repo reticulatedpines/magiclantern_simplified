@@ -4173,6 +4173,11 @@ void draw_histogram_and_waveform(int allow_play)
 
     if( hist_draw && !WAVEFORM_FULLSCREEN)
     {
+        #ifdef CONFIG_4_3_SCREEN
+        if (PLAY_OR_QR_MODE)
+            BMP_LOCK( hist_draw_image( os.x0 + 500,  1, -1); )
+        else
+        #endif
         if (should_draw_bottom_graphs())
             BMP_LOCK( hist_draw_image( os.x0 + 50,  480 - hist_height - 1, -1); )
         else
@@ -4188,6 +4193,11 @@ void draw_histogram_and_waveform(int allow_play)
         
     if( waveform_draw)
     {
+        #ifdef CONFIG_4_3_SCREEN
+        if (PLAY_OR_QR_MODE && WAVEFORM_FACTOR == 1)
+            BMP_LOCK( waveform_draw_image( os.x0 + 100,  1, 54); )
+        else
+        #endif
         if (should_draw_bottom_graphs() && WAVEFORM_FACTOR == 1)
             BMP_LOCK( waveform_draw_image( os.x0 + 250,  480 - 54, 54); )
         else
@@ -4760,6 +4770,16 @@ void draw_cropmark_area()
     draw_line(HD2BM_X(0), HD2BM_Y(vram_hd.height), HD2BM_X(vram_hd.width), HD2BM_Y(0), COLOR_RED);
 }
 
+void show_apsc_crop_factor()
+{
+    int x_ex_crop = os.x_ex * 10/16;
+    int y_ex_crop = os.y_ex * 10/16;
+    int x_off = (os.x_ex - x_ex_crop)/2;
+    int y_off = (os.y_ex - y_ex_crop)/2;
+    bmp_draw_rect(COLOR_WHITE, os.x0 + x_off, os.y0 + y_off, x_ex_crop, y_ex_crop);
+    bmp_draw_rect(COLOR_BLACK, os.x0 + x_off + 1, os.y0 + y_off + 1, x_ex_crop - 2, y_ex_crop - 2);
+}
+
 int is_focus_peaking_enabled()
 {
     return
@@ -4834,7 +4854,7 @@ livev_hipriority_task( void* unused )
         guess_fastrefresh_direction();
 
         display_filter_step(k);
-
+        
         if (should_draw_zoom_overlay())
         {
             msleep(k % 50 == 0 ? MIN_MSLEEP : 10);
