@@ -4179,7 +4179,7 @@ static struct menu_entry shoot_menus[] = {
         //~ .edit_mode = EM_MANY_VALUES,
     },
     #endif
-    #if !defined(CONFIG_600D) && !defined(CONFIG_50D) && !defined(CONFIG_5DC)
+    #if !defined(CONFIG_600D) && !defined(CONFIG_50D) && !defined(CONFIG_5DC) && !defined(CONFIG_1100D)
     {
         .name = "Audio RemoteShot",
         .priv       = &audio_release_running,

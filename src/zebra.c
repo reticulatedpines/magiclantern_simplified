@@ -2290,6 +2290,9 @@ zoom_overlay_display(
     int         selected
 )
 {
+#ifdef CONFIG_1100D
+	return;
+#endif
     zoom_overlay_size = mod(zoom_overlay_size, 3);
 
     if (!zoom_overlay_enabled)
@@ -2876,7 +2879,10 @@ defish_preview_display(
     int         selected
 )
 {
-    bmp_printf(
+#ifdef CONFIG_1100D
+	return;
+#endif
+	bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Defishing   : %s",
@@ -2884,7 +2890,6 @@ defish_preview_display(
     );
     menu_draw_icon(x, y, MNI_BOOL_GDR(defish_preview));
 }
-
 
 CONFIG_INT("electronic.level", electronic_level, 0);
 static void
@@ -3012,6 +3017,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
+#if !(defined(CONFIG_1100D))
     {
         .name = "Magic Zoom",
         .priv = &zoom_overlay_enabled,
@@ -3079,6 +3085,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
+#endif
     {
         .name = "Cropmarks",
         .priv = &crop_enabled,
@@ -3121,6 +3128,7 @@ struct menu_entry zebra_menus[] = {
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
         //.essential = FOR_PLAYBACK,
     },
+#if !(defined(CONFIG_1100D))
     {
         .name = "Defishing",
         .priv = &defish_preview, 
@@ -3139,6 +3147,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         }
     },
+#endif
     {
         .name = "Spotmeter",
         .priv           = &spotmeter_draw,
@@ -5432,6 +5441,9 @@ static void defish_lut_load()
 
 static void defish_draw()
 {
+#ifdef CONFIG_1100D
+	return;
+#endif
     defish_lut_load();
     struct vram_info * vram = get_yuv422_vram();
     uint8_t * const lvram = vram->vram;
@@ -5530,6 +5542,9 @@ int defish_get_averaged_coord(uint8_t* lut, int i, int j, int num, int den)
 
 static void defish_draw_play()
 {
+#ifdef CONFIG_1100D
+	return;
+#endif
     defish_lut_load();
     struct vram_info * vram = get_yuv422_vram();
 
