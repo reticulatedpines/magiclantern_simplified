@@ -43,11 +43,11 @@
 #define BGMT_AV_MOVIE (event->type == 0 && event->param == 0x61 && (is_movie_mode() && event->arg == 0xa))
 #define INT_EV_OBJ (*(int*)(event->obj))
 #define BGMT_PRESS_AV (BGMT_AV && ( \
-		(is_movie_mode && INT_EV_OBJ == 0x3010040) || \
+		(is_movie_mode() && INT_EV_OBJ == 0x3010040) || \
 		(shooting_mode == SHOOTMODE_M && INT_EV_OBJ == 0x1010006) || \
 		(INT_EV_OBJ == (0x1010040+2*shooting_mode)) ))
 #define BGMT_UNPRESS_AV (BGMT_AV && ( \
-		(is_movie_mode && INT_EV_OBJ == 0x1010040) || \
+		(is_movie_mode() && INT_EV_OBJ == 0x1010040) || \
 		(shooting_mode == SHOOTMODE_M && INT_EV_OBJ == 0x3010006) || \
 		(INT_EV_OBJ == (0x3010040+2*shooting_mode)) ))
 
