@@ -5926,7 +5926,30 @@ shoot_task( void* unused )
             
             if (dt <= 1) // crazy mode or 1 second - needs to be fast
             {
-                take_a_pic(0);
+                if (
+                    (
+                        drive_mode == DRIVE_CONTINUOUS 
+                        #ifdef DRIVE_HISPEED_CONTINUOUS
+                        || drivemode == DRIVE_HISPEED_CONTINUOUS
+                        #endif
+                    ) 
+                    &&
+                    (!silent_pic_enabled && !is_bulb_mode())
+                   )
+                {
+                    // continuous mode - simply hold shutter pressed 
+                    SW1(1,100);
+                    SW2(1,100);
+                    while (intervalometer_running && get_halfshutter_pressed()) msleep(100);
+                    beep();
+                    intervalometer_stop();
+                    SW2(0,100);
+                    SW1(0,100);
+                }
+                else
+                {
+                    take_a_pic(0);
+                }
             }
             else if (!is_movie_mode() || silent_pic_enabled || bulb_ramping_enabled)
             {
