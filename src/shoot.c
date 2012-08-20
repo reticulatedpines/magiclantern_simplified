@@ -5926,7 +5926,7 @@ shoot_task( void* unused )
             
             if (dt <= 1) // crazy mode or 1 second - needs to be fast
             {
-                if (
+                if ( dt == 0 &&
                     (
                         drive_mode == DRIVE_CONTINUOUS 
                         #ifdef DRIVE_HISPEED_CONTINUOUS
