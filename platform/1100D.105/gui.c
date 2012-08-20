@@ -42,7 +42,6 @@ static int handle_buttons(struct event * event)
 	extern int ml_started;
 	static int t_press = 0;
 	if (!ml_started) return 1;
-
 	if (BGMT_PRESS_AV) {
 		t_press = get_ms_clock_value();
 	}
