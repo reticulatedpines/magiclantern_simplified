@@ -35,9 +35,8 @@
 NSTUB( ROMBASEADDR, firmware_entry )       //0xff010000
 
 NSTUB(0xFF1E8B94, AcquireRecursiveLock)           // might be good (dumps=1, score=14)
-NSTUB(0xFF07096C, AllocateMemory)                 // might be good (dumps=1, score=1.7e+02)
-/*NSTUB(0xFF07096C, _AllocateMemory)                 // might be good (dumps=1, score=1.7e+02)
-NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48*/
+NSTUB(0xFF07096C, _AllocateMemory)                 // might be good (dumps=1, score=1.7e+02)
+NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
 NSTUB(0xFF31CAD8, CreateDialogBox)                // might be good (dumps=1, score=74)
 NSTUB(0xFF073A7C, CreateRecursiveLock)            // might be good (dumps=1, score=5.6)
 NSTUB(0xFF06C914, DryosDebugMsg)                       // might be good (dumps=1, score=1.1e+03)

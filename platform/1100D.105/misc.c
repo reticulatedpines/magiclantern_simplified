@@ -65,7 +65,7 @@ void display_lcd_remote_icon(int x0, int y0) {}
 void ChangeColorPalette(){}
 void HideBottomInfoDisp_maybe(){}
 
-/*void* AllocateMemory(size_t size) // this won't throw ERR70
+void* AllocateMemory(size_t size) // this won't throw ERR70
 {
-	return AllocateMemory_do(*(int*)0x2F80, size);
-}*/
+	return AllocateMemory_do(*(int*)0x2B48, size);
+}
