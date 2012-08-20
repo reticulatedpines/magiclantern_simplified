@@ -443,7 +443,7 @@ meter_task( void* unused )
 {
 
 //will delete this when we finish debugging
-    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.5       ");
+    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.6       ");
     msleep(4000);
     NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
     msleep(500);
@@ -2484,6 +2484,7 @@ enable_recording(
 #ifdef CONFIG_600D
             if(override_audio_q) msg_queue_post(override_audio_q, 1); 
 #endif
+            break;
         case 2:
             // Movie recording started
             give_semaphore( gain.sem );
@@ -2506,7 +2507,9 @@ enable_meters(
               )
 {
         loopback = do_draw_meters = !mode;
+#if !defined(CONFIG_600D)
         audio_configure( 1 );
+#endif
 }
 
 
