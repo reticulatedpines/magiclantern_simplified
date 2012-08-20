@@ -5699,8 +5699,8 @@ shoot_task( void* unused )
 				get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
 				xcb += os.x0;
 				ycb += os.y0;
-				xcb = COERCE(xcb, os.x0 + 50, os.x_max - 50);
-				ycb = COERCE(ycb, os.y0 + 50, os.y_max - 50);
+				xcb = COERCE(xcb, os.x0 + motion_detect_size, os.x_max - motion_detect_size);
+				ycb = COERCE(ycb, os.y0 + motion_detect_size, os.y_max - motion_detect_size);
 	 	    }
 
             if (motion_detect_trigger == 0)
@@ -5710,7 +5710,7 @@ shoot_task( void* unused )
                 static int old_ae_avg = 0;
                 int y,u,v;
                 //TODO: maybe get the spot yuv of the target box
-                get_spot_yuv(100, &y, &u, &v);
+                get_spot_yuv_ex(motion_detect_size, xcb-os.x_max/2, ycb-os.y_max/2, &y, &u, &v);
                 aev = y / 2;
                 if (K > 40) bmp_printf(FONT_MED, 0, 80, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
                 if (K > 40 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
@@ -5723,7 +5723,6 @@ shoot_task( void* unused )
             }
             else if (motion_detect_trigger == 1)
             {
-
                 int d = get_spot_motion(motion_detect_size, xcb, ycb, get_global_draw());
                 if (K > 20) bmp_printf(FONT_MED, 0, 80, "Motion level: %d   ", d);
                 if (K > 20 && d >= (int)motion_detect_level)
