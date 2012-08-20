@@ -34,7 +34,7 @@ PYTHON=python2
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 BUILDVER=$(shell whoami).$(shell hg id -i -r .)
-VERSION:=v2.3.RC5.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION)
+VERSION:=v2.3.NEXT.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
