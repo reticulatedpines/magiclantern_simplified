@@ -5930,7 +5930,7 @@ shoot_task( void* unused )
                     (
                         drive_mode == DRIVE_CONTINUOUS 
                         #ifdef DRIVE_HISPEED_CONTINUOUS
-                        || drivemode == DRIVE_HISPEED_CONTINUOUS
+                        || drive_mode == DRIVE_HISPEED_CONTINUOUS
                         #endif
                     ) 
                     &&
