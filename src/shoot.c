@@ -4277,7 +4277,7 @@ static struct menu_entry shoot_menus[] = {
         },
     },
 #endif
-#ifndef CONFIG_110D
+#ifndef CONFIG_1100D
     {
         .name = "Mirror Lockup",
         .priv = &mlu_auto,
