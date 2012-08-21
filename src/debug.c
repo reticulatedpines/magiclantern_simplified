@@ -532,7 +532,9 @@ void iso_movie_test()
 
 void run_test()
 {
-    msleep(2000);
+    NotifyBox(5000, "Speak your mind!");
+    WAV_Record(CARD_DRIVE "VOICE.WAV", 5);
+    WAV_Play(CARD_DRIVE "VOICE.WAV");
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1814,7 +1816,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
 
-        //~ bmp_printf(FONT_LARGE, 50, 50, "%x  ", FRAME_ISO);
         if (get_global_draw())
         {
             #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)

@@ -39,7 +39,7 @@
 int audio_thresholds[] = { 0x7fff, 0x7213, 0x65ab, 0x5a9d, 0x50c2, 0x47fa, 0x4026, 0x392c, 0x32f4, 0x2d6a, 0x2879, 0x2412, 0x2026, 0x1ca7, 0x1989, 0x16c2, 0x1449, 0x1214, 0x101d, 0xe5c, 0xccc, 0xb68, 0xa2a, 0x90f, 0x813, 0x732, 0x66a, 0x5b7, 0x518, 0x48a, 0x40c, 0x39b, 0x337, 0x2dd, 0x28d, 0x246, 0x207, 0x1ce, 0x19c, 0x16f, 0x147 };
 #endif
 
-static void audio_configure(int force);
+ void audio_configure(int force);
 static void volume_display();
 
 static void audio_monitoring_display_headphones_connected_or_not();
@@ -824,11 +824,15 @@ int get_mic_power(int input_source)
         return (input_source >= 2) ? mic_power : 1;
 }
 
-static void
+ void
 audio_configure( int force )
 {
     extern int beep_playing;
-    if (beep_playing) return; // don't interrupt beeps while playing
+    if (beep_playing && !(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED))
+        return; // don't redirect wav playing to headphones if they are not connected
+    
+    // redirect wav playing to headphones if they are connected
+    int loopback0 = beep_playing ? 0 : loopback;
     
 #ifdef CONFIG_600D
         return;
@@ -937,7 +941,7 @@ audio_configure( int force )
         mode3 &= ~0x5C; // disable loop, olvc, datt0/1
         audio_ic_write( AUDIO_IC_MODE3
                                    | mode3                              // old value
-                                   | loopback << 6              // loop mode
+                                   | loopback0 << 6              // loop mode
                                    | (o2gain & 0x3) << 2        // output volume
                                    );
 #endif
@@ -1452,6 +1456,12 @@ enable_recording(
             // Uh?
             break;
         }
+}
+
+// to be called from some other tasks that may mess with audio 
+void audio_force_reconfigure() 
+{
+    give_semaphore( gain.sem ); 
 }
 
 static void

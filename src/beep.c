@@ -27,24 +27,39 @@ CONFIG_INT("beep.wavetype", beep_wavetype, 0); // square, sine, white noise
 
 static int beep_freq_values[] = {55, 110, 220, 262, 294, 330, 349, 392, 440, 494, 880, 1000, 1760, 2000, 3520, 5000, 12000};
 
-static void generate_beep_tone(int16_t* buf, int N);
+void generate_beep_tone(int16_t* buf, int N);
 
 static int16_t beep_buf[5000];
 
 static void asif_stopped_cbr()
 {
     beep_playing = 0;
+    audio_force_reconfigure();
 }
 static void asif_stop_cbr()
 {
     StopASIFDMADAC(asif_stopped_cbr, 0);
+    audio_force_reconfigure();
 }
-static void play_beep(int16_t* buf, int N)
+void play_beep(int16_t* buf, int N)
 {
     beep_playing = 1;
     SetSamplingRate(48000, 1);
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
     PowerAudioOutput();
+    audio_force_reconfigure();
+    SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
+    StartASIFDMADAC(buf, N, buf, N, asif_stop_cbr, N);
+}
+
+void play_beep_ex(int16_t* buf, int N, int sample_rate)
+{
+    beep_playing = 1;
+    audio_force_reconfigure();
+    SetSamplingRate(sample_rate, 1);
+    MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
+    PowerAudioOutput();
+    audio_force_reconfigure();
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
     StartASIFDMADAC(buf, N, buf, N, asif_stop_cbr, N);
 }
@@ -53,8 +68,9 @@ static void asif_continue_cbr()
 {
     int16_t* buf = beep_buf;
     int N = 5000;
-    StartASIFDMADAC(buf, N, buf, N, asif_continue_cbr, N);
+    SetNextASIFADCBuffer(buf, N);
 }
+
 void play_continuous_test() // doesn't work well, it pauses
 {
     int16_t* buf = beep_buf;
@@ -66,6 +82,117 @@ void play_continuous_test() // doesn't work well, it pauses
     PowerAudioOutput();
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
     StartASIFDMADAC(buf, N, buf, N, asif_continue_cbr, N);
+}
+
+
+void normalize_audio(int16_t* buf, int N)
+{
+    int m = 0;
+    for (int i = 0; i < N/2; i++)
+        m = MAX(m, ABS(buf[i]));
+    
+    for (int i = 0; i < N/2; i++)
+        buf[i] = (int)buf[i] * 32767 / m;
+}
+
+// https://ccrma.stanford.edu/courses/422/projects/WaveFormat/
+// http://www.sonicspot.com/guide/wavefiles.html
+static uint8_t wav_header[44] = {
+    0x52, 0x49, 0x46, 0x46, // RIFF
+    0x00, 0x00, 0x00, 0x00, // chunk size: (file size) - 8
+    0x57, 0x41, 0x56, 0x45, // WAVE
+    0x66, 0x6d, 0x74, 0x20, // fmt 
+    0x10, 0x00, 0x00, 0x00, // subchunk size = 16
+    0x01, 0x00,             // PCM uncompressed
+    0x01, 0x00,             // mono
+    0x80, 0xbb, 0x00, 0x00, // 48000 Hz
+    0x00, 0x77, 0x01, 0x00, // 96000 bytes / second
+    0x02, 0x00,             // 2 bytes / sample
+    0x10, 0x00,             // 16 bits / sample
+    0x64, 0x61, 0x74, 0x61, // data
+    0x00, 0x00, 0x00, 0x00, // data size (bytes)
+};
+
+
+static void wav_set_size(uint8_t* header, int size)
+{
+    uint32_t* data_size = &header[40];
+    uint32_t* main_chunk_size = &header[4];
+    *data_size = size;
+    *main_chunk_size = size + 36;
+}
+
+static int wav_find_chunk(uint8_t* buf, int size, uint32_t chunk_code)
+{
+    int offset = 12; // start after RIFFnnnnWAVE
+    while (offset < size && *(uint32_t*)(buf + offset) != chunk_code)
+        offset += *(uint32_t*)(buf + offset + 4) + 8;
+    if (*(uint32_t*)(buf + offset) != chunk_code) 
+    { 
+        NotifyBox(5000, "WAV: subchunk not found");
+        return 0;
+    }
+    return offset;
+}
+
+void WAV_Play(char* filename)
+{
+    int size = 0;
+    uint8_t* buf = (uint8_t*)read_entire_file(filename, &size);
+    if (!size) return;
+    if (!buf) return;
+    extern int beep_playing;
+
+    // find the "fmt " subchunk
+    int fmt_offset = wav_find_chunk(buf, size, 0x20746d66);
+    if (!fmt_offset) goto end;
+    int sample_rate = *(uint32_t*)(buf + fmt_offset + 12);
+    
+    // find the "data" subchunk
+    int data_offset = wav_find_chunk(buf, size, 0x61746164);
+    if (!data_offset) goto end;
+    
+    uint32_t data_size = *(uint32_t*)(buf + data_offset + 4);
+    uint8_t* data = buf + data_offset + 8;
+    if (data_size > size - data_offset - 8) { NotifyBox(5000, "WAV: data size wrong"); goto end; }
+    
+    normalize_audio(data, data_size);
+    play_beep_ex(data, data_size, sample_rate);
+    while (beep_playing) msleep(100);
+
+end:
+    free_dma_memory(buf);
+}
+
+static int rec_done = 0;
+static void asif_rec_stop_cbr()
+{
+    rec_done = 1;
+}
+
+void WAV_Record(char* filename, int duration)
+{
+    int N = 48000 * 2 * duration;
+    uint8_t* wav_buf = alloc_dma_memory(sizeof(wav_header) + N);
+    int16_t* buf = (int16_t*)(wav_buf + sizeof(wav_header));
+    if (!buf) return;
+    
+    my_memcpy(wav_buf, wav_header, sizeof(wav_header));
+    wav_set_size(wav_buf, N);
+
+    info_led_on();
+    rec_done = 0;
+    SetSamplingRate(48000, 1);
+    MEM(0xC092011C) = 4; // SetASIFDACModeSingleINT16
+    StartASIFDMAADC(buf, N, 0, 0, asif_rec_stop_cbr, N);
+    while (!rec_done) msleep(100);
+    info_led_off();
+    msleep(1000);
+       
+    FILE* f = FIO_CreateFileEx(filename);
+    FIO_WriteFile(f, UNCACHEABLE(wav_buf), sizeof(wav_header) + N);
+    FIO_CloseFile(f);
+    free_dma_memory(wav_buf);
 }
 
 
@@ -87,7 +214,7 @@ static void cordic_ex(int theta, int* s, int* c, int n)
     }
 }
 
-static void generate_beep_tone(int16_t* buf, int N)
+ void generate_beep_tone(int16_t* buf, int N)
 {
     int beep_freq = beep_freq_values[beep_freq_idx];
     

@@ -206,7 +206,10 @@ NSTUB(0xff870518, GetMemoryAddressOfMemoryChunk)
 
 NSTUB(0xff85a890, PowerAudioOutput)
 NSTUB(0xff85828c, StartASIFDMADAC)
+NSTUB(0xff8580e8, StartASIFDMAADC)
 NSTUB(0xFF858360, StopASIFDMADAC)
+NSTUB(0xff858810, SetNextASIFADCBuffer) // called by SetNextUINT8ASIFADCBuffer and SetNextINT16ASIFADCBuffer
+NSTUB(0xff8588c8, SetNextASIFDACBuffer)
 NSTUB(0xFF859D74, SetSamplingRate )
 NSTUB(0xff85a344, SetAudioVolumeOut)
 
