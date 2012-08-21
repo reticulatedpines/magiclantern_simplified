@@ -15,6 +15,7 @@ int beep_playing = 0;
     void Beep(){}
     void beep_times(int times){};
     int beep_enabled = 0;
+    int handle_voice_tags(struct event * event) { return 1; }
 #else // beep working
 
 extern int recording; // don't beep while recording, it may break audio
@@ -74,7 +75,7 @@ static void asif_continue_cbr()
 {
     int16_t* buf = beep_buf;
     int N = 5000;
-    SetNextASIFADCBuffer(buf, N);
+    //~ SetNextASIFADCBuffer(buf, N);
 }
 
 void play_continuous_test() // doesn't work well, it pauses

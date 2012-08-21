@@ -532,9 +532,6 @@ void iso_movie_test()
 
 void run_test()
 {
-    NotifyBox(5000, "Speak your mind!");
-    WAV_Record(CARD_DRIVE "VOICE.WAV", 5);
-    WAV_Play(CARD_DRIVE "VOICE.WAV");
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
