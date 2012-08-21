@@ -41,24 +41,35 @@ static int handle_buttons(struct event * event)
 	if (handle_common_events_startup(event) == 0) return 0;
 	extern int ml_started;
 	static int t_press = 0;
+	static int t_opened = 0;
+	static int t_closed = 0;
 	if (!ml_started) return 1;
-	if (BGMT_PRESS_AV) {
-		t_press = get_ms_clock_value();
+	if (BGMT_PRESS_AV && !gui_menu_shown()) {
+		unsigned int dt = get_ms_clock_value() - t_closed;
+		if(dt > 500) {
+			t_press = get_ms_clock_value();
+		} else {
+			t_press = 0;
+		}
 	}
 
 	unsigned int is_idle = (gui_state == GUISTATE_IDLE);
-	if (BGMT_UNPRESS_AV) {
+	if (BGMT_UNPRESS_AV && !gui_menu_shown()) {
 		unsigned int dt = get_ms_clock_value() - t_press;
-		
-		if (dt < 200 && !gui_menu_shown() && is_idle) {
+		if (dt < 200 && is_idle) {
 			give_semaphore( gui_sem );
+			t_opened = get_ms_clock_value();
 			return 0;
 		}
 	} 
 	
-	if (event->param == BGMT_TRASH && gui_menu_shown())
+	if (((event->param == BGMT_TRASH || BGMT_UNPRESS_AV)) && gui_menu_shown())
 	{
-		gui_stop_menu();
+		unsigned int dt = get_ms_clock_value() - t_opened;
+		if(dt > 500) {
+			gui_stop_menu();
+			t_closed = get_ms_clock_value();
+		}
 		return 0;
 	}
 

@@ -43,6 +43,8 @@
 #define BGMT_AV_MOVIE (event->type == 0 && event->param == 0x61 && (is_movie_mode() && event->arg == 0xa))
 #define INT_EV_OBJ (*(int*)(event->obj))
 
+#define BGMT_TRASH (0xD)
+//#define BGMT_TRASH_LV (BGMT_AV && (INT_EV_OBJ == 0x3010040 || INT_EV_OBJ == 0x1010040)) // old value for BGMT_PRESS_ZOOMOUT_MAYBE, was 0xA
 #define BGMT_PRESS_AV (BGMT_AV && ( \
 		(is_movie_mode() && INT_EV_OBJ == 0x3010040) || \
 		(shooting_mode == SHOOTMODE_P && INT_EV_OBJ == 0x3010040) || \
@@ -89,76 +91,6 @@
 #define GMT_FUNCTABLE 0xff536108
 
 #define DIALOG_MnCardFormatBegin (0x12994+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
-
-// RESTARTSTART 0x7f000
-#if 0
-
-// below not changed yet (60d)
-
-// 720x480, changes when external monitor is connected
-#define YUV422_LV_PITCH 1440
-#define YUV422_LV_PITCH_RCA 1080
-#define YUV422_LV_PITCH_HDMI 3840
-#define YUV422_LV_HEIGHT 480
-#define YUV422_LV_HEIGHT_RCA 540
-#define YUV422_LV_HEIGHT_HDMI 1080
-
-
-#define YUV422_HD_PITCH_IDLE 2112
-#define YUV422_HD_HEIGHT_IDLE 704
-
-#define YUV422_HD_PITCH_ZOOM 2048
-#define YUV422_HD_HEIGHT_ZOOM 680
-
-#define YUV422_HD_PITCH_REC_FULLHD 3440
-#define YUV422_HD_HEIGHT_REC_FULLHD 974
-
-// guess
-#define YUV422_HD_PITCH_REC_720P 2560
-#define YUV422_HD_HEIGHT_REC_720P 580
-
-#define YUV422_HD_PITCH_REC_480P 1280
-#define YUV422_HD_HEIGHT_REC_480P 480
-
-#define FOCUS_CONFIRMATION 0x4698	// 60D: 0 - none; 1 - success; 2 - failed
-#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bdc) // only used to show trap focus status
-#define DISPLAY_SENSOR 0x2dec
-#define DISPLAY_SENSOR_MAYBE 0xC0220104
-
-// button codes as received by gui_main_task
-#define BGMT_PRESS_LEFT 0x1c
-#define BGMT_UNPRESS_LEFT 0x1d
-#define BGMT_PRESS_UP 0x1e
-#define BGMT_UNPRESS_UP 0x1f
-#define BGMT_PRESS_RIGHT 0x1a
-#define BGMT_UNPRESS_RIGHT 0x1b
-#define BGMT_PRESS_DOWN 0x20
-#define BGMT_UNPRESS_DOWN 0x21
-
-#define BGMT_PRESS_SET 0x4
-#define BGMT_UNPRESS_SET 0x5
-
-#define BGMT_TRASH 0xC
-#define BGMT_MENU 6
-#define BGMT_INFO 7
-#define BGMT_Q 8
-
-#define BGMT_PRESS_HALFSHUTTER 0x48
-#define BGMT_UNPRESS_HALFSHUTTER 0x49
-
-// these are not sent always
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xD
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xE
-
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xB
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
-
-#define SENSOR_RES_X 5202
-#define SENSOR_RES_Y 3465
-
-#define FLASH_BTN_MOVIE_MODE ((*(int*)0x14c1c) & 0x40000)
-#define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
-#endif
 
 #define DIALOG_MnCardFormatBegin   (0x12994+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x1570C+4) // similar
