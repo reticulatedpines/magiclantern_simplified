@@ -1874,12 +1874,15 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                     if (!rca_warned && !gui_menu_shown())
                     {
                         msleep(2000);
-                        bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, 
-                            "SD monitors NOT fully supported!\n"
-                            "RGB tools and MZoom won't work. ");
-                        msleep(4000);
-                        redraw();
-                        rca_warned = 1;
+                        if (ext_monitor_rca) // check again
+                        {
+                            bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, 
+                                "SD monitors NOT fully supported!\n"
+                                "RGB tools and MZoom won't work. ");
+                            msleep(4000);
+                            redraw();
+                            rca_warned = 1;
+                        }
                     }
                 }
             }
