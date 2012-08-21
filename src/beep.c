@@ -1,7 +1,11 @@
 #include "dryos.h"
 #include "menu.h"
+#include "bmp.h"
 #include "config.h"
 #include "cordic-16bit.h"
+
+extern int gui_state;
+extern int file_number;
 
 int beep_playing = 0;
 
@@ -17,8 +21,10 @@ extern int recording; // don't beep while recording, it may break audio
 
 #define BEEP_LONG -1
 #define BEEP_SHORT 0
+#define BEEP_WAV -2
 // positive values: X beeps
 static int beep_type = 0;
+static int record_flag = 0;
 
 CONFIG_INT("beep.enabled", beep_enabled, 1);
 CONFIG_INT("beep.volume", beep_volume, 3);
@@ -34,12 +40,12 @@ static int16_t beep_buf[5000];
 static void asif_stopped_cbr()
 {
     beep_playing = 0;
-    audio_force_reconfigure();
+    audio_configure(1);
 }
 static void asif_stop_cbr()
 {
     StopASIFDMADAC(asif_stopped_cbr, 0);
-    audio_force_reconfigure();
+    audio_configure(1);
 }
 void play_beep(int16_t* buf, int N)
 {
@@ -47,7 +53,7 @@ void play_beep(int16_t* buf, int N)
     SetSamplingRate(48000, 1);
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
     PowerAudioOutput();
-    audio_force_reconfigure();
+    audio_configure(1);
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
     StartASIFDMADAC(buf, N, buf, N, asif_stop_cbr, N);
 }
@@ -55,11 +61,11 @@ void play_beep(int16_t* buf, int N)
 void play_beep_ex(int16_t* buf, int N, int sample_rate)
 {
     beep_playing = 1;
-    audio_force_reconfigure();
+    audio_configure(1);
     SetSamplingRate(sample_rate, 1);
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
     PowerAudioOutput();
-    audio_force_reconfigure();
+    audio_configure(1);
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
     StartASIFDMADAC(buf, N, buf, N, asif_stop_cbr, N);
 }
@@ -156,36 +162,59 @@ void WAV_Play(char* filename)
     uint8_t* data = buf + data_offset + 8;
     if (data_size > size - data_offset - 8) { NotifyBox(5000, "WAV: data size wrong"); goto end; }
     
+    info_led_on();
     normalize_audio(data, data_size);
     play_beep_ex(data, data_size, sample_rate);
     while (beep_playing) msleep(100);
-
+    info_led_off();
+    
 end:
     free_dma_memory(buf);
 }
 
-static int rec_done = 0;
+static int audio_recording = 0;
+static int audio_recording_start_time = 0;
 static void asif_rec_stop_cbr()
 {
-    rec_done = 1;
+    audio_recording = 0;
 }
 
-void WAV_Record(char* filename, int duration)
+static void record_show_progress()
+{
+    int s = get_seconds_clock() - audio_recording_start_time;
+    bmp_printf(
+        FONT_LARGE,
+        50, 50,
+        "Recording... %02d:%02d", s/60, s%60
+    );
+}
+
+void WAV_Record(char* filename, int duration, int show_progress)
 {
     int N = 48000 * 2 * duration;
     uint8_t* wav_buf = alloc_dma_memory(sizeof(wav_header) + N);
+    if (!wav_buf) 
+    {
+        NotifyBox(2000, "WAV: not enough memory");
+        return;
+    }
+
     int16_t* buf = (int16_t*)(wav_buf + sizeof(wav_header));
-    if (!buf) return;
     
     my_memcpy(wav_buf, wav_header, sizeof(wav_header));
     wav_set_size(wav_buf, N);
 
     info_led_on();
-    rec_done = 0;
+    audio_recording = 1;
+    audio_recording_start_time = get_seconds_clock();
     SetSamplingRate(48000, 1);
     MEM(0xC092011C) = 4; // SetASIFDACModeSingleINT16
     StartASIFDMAADC(buf, N, 0, 0, asif_rec_stop_cbr, N);
-    while (!rec_done) msleep(100);
+    while (audio_recording) 
+    {
+        msleep(100);
+        if (show_progress) record_show_progress();
+    }
     info_led_off();
     msleep(1000);
        
@@ -193,6 +222,35 @@ void WAV_Record(char* filename, int duration)
     FIO_WriteFile(f, UNCACHEABLE(wav_buf), sizeof(wav_header) + N);
     FIO_CloseFile(f);
     free_dma_memory(wav_buf);
+}
+
+static void
+record_display(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    if (audio_recording)
+    {
+        int s = get_seconds_clock() - audio_recording_start_time;
+        bmp_printf(
+            MENU_FONT,
+            x, y,
+            "Recording... %02d:%02d", s/60, s%60
+        );
+        menu_draw_icon(x, y, MNI_WARNING, 0);
+    }
+    else
+    {
+        bmp_printf(
+            MENU_FONT,
+            x, y,
+            "Record new audio clip"
+        );
+        menu_draw_icon(x, y, MNI_ACTION, 0);
+    }
 }
 
 
@@ -315,13 +373,27 @@ void Beep()
     beep();
 }
 
+static void wav_playback_do();
+static void wav_record_do();
+
 static void beep_task()
 {
     TASK_LOOP
     {
         take_semaphore( beep_sem, 0 );
         
-        if (beep_type == BEEP_LONG)
+        if (record_flag)
+        {
+            wav_record_do();
+            record_flag = 0;
+            continue;
+        }
+        
+        if (beep_type == BEEP_WAV)
+        {
+            wav_playback_do();
+        }
+        else if (beep_type == BEEP_LONG)
         {
             info_led_on();
             int N = 48000*5;
@@ -357,10 +429,203 @@ static void beep_task()
             }
         }
         msleep(100);
+        audio_configure(1);
     }
 }
 
 TASK_CREATE( "beep_task", beep_task, 0, 0x18, 0x1000 );
+
+
+// that's extremely inefficient
+static int find_wav(int * index, char* fn)
+{
+    struct fio_file file;
+    struct fio_dirent * dirent = 0;
+    int N = 0;
+    
+    dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
+    if( IS_ERROR(dirent) )
+    {
+        bmp_printf( FONT_LARGE, 40, 40, "dir err" );
+        return 0;
+    }
+
+    do {
+        if (file.mode & 0x10) continue; // is a directory
+        int n = strlen(file.name);
+        if ((n > 4) && (streq(file.name + n - 4, ".WAV")))
+            N++;
+    } while( FIO_FindNextEx( dirent, &file ) == 0);
+    FIO_CleanupAfterFindNext_maybe(dirent);
+
+    static int old_N = 0;
+    if (N != old_N) // number of files was changed, select the last one
+    {
+        old_N = N;
+        *index = N-1;
+    }
+    
+    *index = mod(*index, N);
+
+    dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
+    if( IS_ERROR(dirent) )
+    {
+        bmp_printf( FONT_LARGE, 40, 40, "dir err" );
+        return 0;
+    }
+
+    int k = 0;
+    int found = 0;
+    do {
+        if (file.mode & 0x10) continue; // is a directory
+        int n = strlen(file.name);
+        if ((n > 4) && (streq(file.name + n - 4, ".WAV")))
+        {
+            if (k == *index)
+            {
+                snprintf(fn, 100, "%s/%s", get_dcim_dir(), file.name);
+                found = 1;
+            }
+            k++;
+        }
+    } while( FIO_FindNextEx( dirent, &file ) == 0);
+    FIO_CleanupAfterFindNext_maybe(dirent);
+    return found;
+}
+
+static char current_wav_filename[100];
+
+void find_next_wav(void* priv, int dir)
+{
+    static int index = -1;
+    static char ffn[100];
+    
+    index += dir;
+    
+    if (find_wav(&index, current_wav_filename))
+    {
+        // OK, nothing to do
+    }
+    else
+    {
+        snprintf(current_wav_filename, sizeof(current_wav_filename), "(no WAV files)");
+    }
+}
+
+static void
+filename_display(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    // display only the filename, without the path
+    char* fn = current_wav_filename + strlen(current_wav_filename) - 1;
+    while (fn > current_wav_filename && *fn != '/') fn--; fn++;
+    
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "File name     : %s", fn
+    );
+}
+
+static void wav_playback_do()
+{
+    if (beep_playing) return;
+    if (audio_recording) return;
+    WAV_Play(current_wav_filename);
+}
+
+static void playback_start(void* priv, int delta)
+{
+    if (beep_playing)
+    {
+        asif_stop_cbr();
+    }
+    else
+    {
+        beep_type = BEEP_WAV;
+        give_semaphore(beep_sem);
+    }
+}
+
+static char* wav_get_new_filename()
+{
+    static char imgname[100];
+    int wav_number = 1;
+    
+    if (QR_MODE)
+    {
+        snprintf(imgname, sizeof(imgname), "%s/IMG_%04d.WAV", get_dcim_dir(), file_number);
+        return imgname;
+    }
+    
+    for ( ; wav_number < 10000; wav_number++)
+    {
+        snprintf(imgname, sizeof(imgname), "%s/SND_%04d.WAV", get_dcim_dir(), wav_number);
+        unsigned size;
+        if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
+        if (size == 0) break;
+    }
+    return imgname;
+}
+
+static CONFIG_INT("audio.record.duration", record_duration, 10);
+
+static void record_duration_toggle(void* priv, int delta)
+{
+    record_duration = 5 * (mod(record_duration/5 - 1 + delta, 60/5) + 1);
+}
+
+static void wav_record_do()
+{
+    if (beep_playing) return;
+    if (audio_recording) return;
+    int q = QR_MODE;
+    char* fn = wav_get_new_filename();
+    snprintf(current_wav_filename, sizeof(current_wav_filename), fn);
+    msleep(300); // to avoid the noise from shortcut key
+    WAV_Record(fn, record_duration, q);
+    if (q)
+    {
+        redraw();
+        wav_playback_do();
+    }
+}
+
+static void record_start(void* priv, int delta)
+{
+    if (beep_playing)
+    {
+        asif_stop_cbr();
+    }
+    else
+    {
+        record_flag = 1;
+        give_semaphore(beep_sem);
+    }
+}
+
+static void delete_file(void* priv, int delta)
+{
+    FIO_RemoveFile(current_wav_filename);
+    find_next_wav(0,1);
+}
+
+static CONFIG_INT("voice.tags", voice_tags, 0);
+
+int handle_voice_tags(struct event * event)
+{
+    if (!voice_tags) return 1;
+    if (event->param == BGMT_PRESS_SET && QR_MODE)
+    {
+        record_start(0,0);
+        return 0;
+    }
+    return 1;
+}
 
 static struct menu_entry beep_menus[] = {
     {
@@ -417,14 +682,61 @@ static struct menu_entry beep_menus[] = {
             MENU_EOL,
         }
     },
+    {
+        .name = "Sound recorder...",
+        .select = menu_open_submenu,
+        .help = "Record short audio clips, add voice tags to pictures...",
+        .submenu_width = 700,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Record",
+                .display = record_display,
+                .select = record_start,
+                .help = "Press SET to start recording.",
+            },
+            {
+                .name = "Clip duration",
+                .priv = &record_duration,
+                .min = 0,
+                .max = 60,
+                .select = record_duration_toggle,
+                .help = "Duration of a recorded audio clip, in seconds.",
+            },
+            {
+                .name = "File name",
+                .display = filename_display,
+                .select = find_next_wav,
+                .help = "Select a file name for playback.",
+            },
+            {
+                .name = "Playback selected file",
+                .select = playback_start,
+                .help = "Play back a WAV file, in built-in speaker or headphones.",
+            },
+            {
+                .name = "Delete selected file",
+                .select = delete_file,
+                .help = "Be careful :)",
+            },
+            {
+                .name = "Voice tags", 
+                .priv = &voice_tags, 
+                .max = 1,
+                .help = "After you take a picture, press SET to add a voice tag.",
+            },
+            MENU_EOL,
+        }
+    },
 };
 
 static void beep_init()
 {
     beep_sem = create_named_semaphore( "beep_sem", 0 );
     menu_add( "Audio", beep_menus, COUNT(beep_menus) );
+    find_next_wav(0,1);
 }
 
 INIT_FUNC("beep.init", beep_init);
 
 #endif
+
