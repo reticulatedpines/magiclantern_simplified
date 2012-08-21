@@ -1,21 +1,6 @@
 #generic makefile
-
-# for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM-ABI=elf
-ARM_ABI=none-eabi
-
-ARM_PATH=~/arm-toolchain462
-ARM_BINPATH=$(ARM_PATH)/bin
-GCC_VERSION=4.6.2
-CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
-OBJCOPY=$(ARM_BINPATH)/arm-$(ARM_ABI)-objcopy
-AR=$(ARM_BINPATH)/arm-$(ARM_ABI)-ar
-RANLIB=$(ARM_BINPATH)/arm-$(ARM_ABI)-ranlib
-READELF=$(ARM_BINPATH)/arm-$(ARM_ABI)-readelf
-ARM_LIBC_A = $(ARM_PATH)/arm-$(ARM_ABI)/lib/libc.a
-LD=$(CC)
-HOST_CC=gcc
-HOST_CFLAGS=-g -O3 -W -Wall
-PYTHON=python2
+include $(TOP_DIR)/Makefile.paths.default
+-include $(TOP_DIR)/Makefile.paths
 
 # Naming convention for Magic Lantern builds:
 # General rules:
