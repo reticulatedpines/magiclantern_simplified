@@ -2292,6 +2292,9 @@ zoom_overlay_display(
     int         selected
 )
 {
+#ifdef CONFIG_1100D
+	return;
+#endif
     zoom_overlay_size = mod(zoom_overlay_size, 3);
 
     if (!zoom_overlay_enabled)
@@ -2995,6 +2998,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
+#if !(defined(CONFIG_1100D))
     {
         .name = "Magic Zoom",
         .priv = &zoom_overlay_enabled,
@@ -3062,6 +3066,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
+#endif
     {
         .name = "Cropmarks",
         .priv = &crop_enabled,

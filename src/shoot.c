@@ -3092,6 +3092,7 @@ bulb_display_submenu( void * priv, int x, int y, int selected )
 static void
     mlu_toggle( void * priv, int delta )
 {
+    #ifndef CONFIG_1100D
     // off, on, auto
     if (!mlu_auto && !get_mlu()) // off->on
     {
@@ -3107,6 +3108,7 @@ static void
         mlu_auto = 0;
         set_mlu(0);
     }
+    #endif
 }
 
 static void
@@ -4262,7 +4264,7 @@ static struct menu_entry shoot_menus[] = {
         //~ .edit_mode = EM_MANY_VALUES,
     },
     #endif
-    #if !defined(CONFIG_600D) && !defined(CONFIG_50D) && !defined(CONFIG_5DC)
+    #if !defined(CONFIG_600D) && !defined(CONFIG_50D) && !defined(CONFIG_5DC) && !defined(CONFIG_1100D)
     {
         .name = "Audio RemoteShot",
         .priv       = &audio_release_running,
@@ -4358,6 +4360,7 @@ static struct menu_entry shoot_menus[] = {
         },
     },
 #endif
+#ifndef CONFIG_1100D
     {
         .name = "Mirror Lockup",
         .priv = &mlu_auto,
@@ -4366,6 +4369,7 @@ static struct menu_entry shoot_menus[] = {
         .help = "MLU setting can be linked with self-timer and LCD remote.",
         //.essential = FOR_PHOTO,
     },
+#endif
     /*{
         .display = picq_display, 
         .select = picq_toggle_raw,
@@ -5493,6 +5497,9 @@ void wait_till_next_second()
 
 static void mlu_step()
 {
+#ifdef CONFIG_1100D
+    return;
+#endif
     if (!mlu_auto) return;
     
     int mlu_current_value = get_mlu() ? 1 : 0;

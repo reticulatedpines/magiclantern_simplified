@@ -48,12 +48,14 @@
 
 void SafeEngDrvOut(int reg, int val)
 {
+#ifndef CONFIG_1100D
     //~ info_led_blink(1,50,50);
     if (!lv) return;
     if (!DISPLAY_IS_ON && !recording) return;
     if (lens_info.job_state) return;
     if (ml_shutdown_requested) return;
     _EngDrvOut(reg, val);
+#endif
 }
 
 
@@ -69,6 +71,7 @@ static int fps_timer_b_orig;
 static int fps_values_x1000[] = {150, 200, 250, 333, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 12500, 14000, 15000, 16000, 17000, 18000, 19000, 20000, 21000, 22000, 23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 31000, 32000, 33000, 33333, 34000, 35000, 40000, 48000, 50000, 60000, 65000};
 
 static CONFIG_INT("fps.override", fps_override, 0);
+
 static CONFIG_INT("fps.override.idx", fps_override_index, 10);
 
 // in simple menu, FPS override is only displayed in movie mode
@@ -273,7 +276,7 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
 
 int get_current_shutter_reciprocal_x1000()
 {
-#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D3)
+#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D3) || defined(CONFIG_1100D)
     if (!lens_info.raw_shutter) return 0;
     return (int) roundf(powf(2.0, (lens_info.raw_shutter - 136) / 8.0) * 1000.0 * 1000.0);
 #else
@@ -1099,7 +1102,9 @@ static struct menu_entry fps_menu[] = {
 
 static void fps_init()
 {
-    menu_add( "Movie", fps_menu, COUNT(fps_menu) );
+#ifndef CONFIG_1100D
+	menu_add( "Movie", fps_menu, COUNT(fps_menu) );
+#endif
 }
 
 INIT_FUNC("fps", fps_init);

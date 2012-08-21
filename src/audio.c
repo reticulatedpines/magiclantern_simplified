@@ -29,7 +29,7 @@
 #include "gui.h"
 
 
-#if defined(CONFIG_50D) || defined(CONFIG_1100D)
+#if defined(CONFIG_50D)
 #include "disable-this-module.h"
 #endif
 
@@ -342,7 +342,7 @@ static void draw_meters(void)
         {
                 draw_meter( x0, y0 + 0, 10, &audio_levels[0], left_label);
                 draw_ticks( x0, y0 + 10, 3 );
-#ifndef CONFIG_500D         // mono mic on 500d :(
+#if !(defined(CONFIG_500D) || defined(CONFIG_1100D))         // mono mic on 500d and 1100d
                 draw_meter( x0, y0 + 12, 10, &audio_levels[1], right_label);
 #endif
         }
@@ -350,7 +350,7 @@ static void draw_meters(void)
         {
                 draw_meter( x0, y0 + 0, 7, &audio_levels[0], left_label);
                 draw_ticks( x0, y0 + 7, 2 );
-#ifndef CONFIG_500D
+#if !(defined(CONFIG_500D) || defined(CONFIG_1100D))
                 draw_meter( x0, y0 + 8, 7, &audio_levels[1], right_label);
 #endif
         }
@@ -875,7 +875,9 @@ audio_configure( int force )
                         snprintf(right_label, sizeof(right_label), "R BAL");
                         break;
         }
-    
+#ifdef CONFIG_1100D
+		return;
+#endif
         if( !force )
         {
                 // Check for ALC configuration; do nothing if it is
@@ -1301,7 +1303,7 @@ static void
 }
 
 static struct menu_entry audio_menus[] = {
-#ifndef CONFIG_600D
+#if !(defined(CONFIG_600D) || defined(CONFIG_1100D))
 #if 0
         {
                 .priv           = &o2gain,
