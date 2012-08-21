@@ -48,14 +48,12 @@
 
 void SafeEngDrvOut(int reg, int val)
 {
-#ifndef CONFIG_1100D
     //~ info_led_blink(1,50,50);
     if (!lv) return;
     if (!DISPLAY_IS_ON && !recording) return;
     if (lens_info.job_state) return;
     if (ml_shutdown_requested) return;
     _EngDrvOut(reg, val);
-#endif
 }
 
 
@@ -157,9 +155,9 @@ static void fps_read_current_timer_values();
 #elif defined(CONFIG_1100D)
     #define NEW_FPS_METHOD 1
     #undef TG_FREQ_BASE
-    #define TG_FREQ_BASE 32200000
+    #define TG_FREQ_BASE 32070000
     #undef FPS_TIMER_A_MIN
-    #define FPS_TIMER_A_MIN fps_timer_a_orig // Safe bet for now
+    #define FPS_TIMER_A_MIN fps_timer_a_orig
     #define SENSOR_TIMING_TABLE MEM(0xce98)
     #define VIDEO_PARAMETERS_SRC_3 0x70C0C
     static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
@@ -610,7 +608,11 @@ static void flip_zoom_twostage(int stage)
                 f0 = video_mode[2];
                 video_mode[2] = 
                     f0 == 24 ? 25 : 
+#ifndef CONFIG_1100D
                     f0 == 25 ? 24 : 
+#else
+                    f0 == 25 ? 30 :
+#endif
                     f0 == 30 ? 25 : 
                     f0 == 50 ? 60 :
                   /*f0 == 60*/ 50;
@@ -1102,9 +1104,7 @@ static struct menu_entry fps_menu[] = {
 
 static void fps_init()
 {
-#ifndef CONFIG_1100D
-	menu_add( "Movie", fps_menu, COUNT(fps_menu) );
-#endif
+    menu_add( "Movie", fps_menu, COUNT(fps_menu) );
 }
 
 INIT_FUNC("fps", fps_init);
@@ -1141,12 +1141,22 @@ static void fps_read_default_timer_values()
     int val = FPS_REGISTER_B_VALUE;
     if (val & 0xFFFF0000)
         fps_reg_b_orig = val >> 16; // timer value written by ML - contains original value in highest 16 bits
-    else
+    else {
         fps_reg_b_orig = val; // timer value written by Canon
+    }
     #endif
     fps_timer_a_orig = ((fps_reg_a_orig >> 16) & 0xFFFF) + 1;
     fps_timer_b_orig = (fps_reg_b_orig & 0xFFFF) + 1;
-    //~ bmp_printf(FONT_MED, 100, 100, "%d %d ", fps_timer_a_orig, fps_reg_b_orig);
+#ifdef CONFIG_1100D
+    int ntsc = is_current_mode_ntsc();
+    if(ntsc) {
+        if(fps_timer_a_orig <= 1) fps_timer_a_orig = 0x3c0;
+        if(fps_timer_b_orig <= 1) fps_timer_b_orig = 0x458;
+    } else {
+        if(fps_timer_a_orig <= 1) fps_timer_a_orig = 0x3e8;
+        if(fps_timer_b_orig <= 1) fps_timer_b_orig = 0x500;
+    }
+#endif
 }
 
 // maybe FPS settings were changed by someone else? if yes, force a refresh
@@ -1163,6 +1173,7 @@ static void fps_task()
 {
     TASK_LOOP
     {
+     
         #if defined(CONFIG_500D) || defined(CONFIG_1100D)
         msleep(fps_override && recording ? 10 : 100);
         #else
@@ -1207,7 +1218,7 @@ static void fps_task()
         int video_mode_changed = (sig != prev_sig);
         prev_sig = sig;
         
-        //~ bmp_printf(FONT_LARGE, 50, 50, "%dx, setting up from %d,%d   ", lv_dispsize, fps_timer_a_orig, fps_timer_b_orig);
+        //~ bmp_printf(FONT_LARGE, 50, 150, "%dx, setting up from %d,%d   ", lv_dispsize, fps_timer_a_orig, fps_timer_b_orig);
 
         if (video_mode_changed && !recording) // Video mode changed, wait for it to settle
         {                                     // This won't happen while recording (obvious), 
@@ -1220,7 +1231,7 @@ static void fps_task()
         fps_setup_timerA(f);
         fps_setup_timerB(f);
         //~ info_led_off();
-        //~ fps_read_current_timer_values();
+        fps_read_current_timer_values();
         //~ bmp_printf(FONT_LARGE, 50, 100, "%dx, new timers: %d,%d ", lv_dispsize, fps_timer_a, fps_timer_b);
     }
 }
@@ -1340,7 +1351,7 @@ int get_table_pos(unsigned int fps_mode, unsigned int crop_mode, unsigned int ty
 
 static void fps_patch_timerB(int timer_value)
 {
-    int mode = get_fps_video_mode();
+    int mode = get_fps_video_mode();   
     int pos = get_table_pos(mode_offset_map[mode], video_mode_crop, 0, lv_dispsize);
 
     if (sensor_timing_table_patched[pos] == timer_value && SENSOR_TIMING_TABLE == (intptr_t) sensor_timing_table_patched)
