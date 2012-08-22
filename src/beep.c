@@ -56,41 +56,19 @@ void play_beep(int16_t* buf, int N)
     PowerAudioOutput();
     audio_configure(1);
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
-    StartASIFDMADAC(buf, N, buf, N, asif_stop_cbr, N);
+    StartASIFDMADAC(buf, N, 0, 0, asif_stop_cbr, 0);
 }
 
 void play_beep_ex(int16_t* buf, int N, int sample_rate)
 {
     beep_playing = 1;
-    audio_configure(1);
     SetSamplingRate(sample_rate, 1);
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
     PowerAudioOutput();
     audio_configure(1);
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
-    StartASIFDMADAC(buf, N, buf, N, asif_stop_cbr, N);
+    StartASIFDMADAC(buf, N, 0, 0, asif_stop_cbr, 0);
 }
-
-static void asif_continue_cbr()
-{
-    int16_t* buf = beep_buf;
-    int N = 5000;
-    //~ SetNextASIFADCBuffer(buf, N);
-}
-
-void play_continuous_test() // doesn't work well, it pauses
-{
-    int16_t* buf = beep_buf;
-    int N = 5000;
-    generate_beep_tone(buf, N);
-    beep_playing = 1;
-    SetSamplingRate(48000, 1);
-    MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
-    PowerAudioOutput();
-    SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
-    StartASIFDMADAC(buf, N, buf, N, asif_continue_cbr, N);
-}
-
 
 void normalize_audio(int16_t* buf, int N)
 {
@@ -106,7 +84,7 @@ void normalize_audio(int16_t* buf, int N)
 // http://www.sonicspot.com/guide/wavefiles.html
 static uint8_t wav_header[44] = {
     0x52, 0x49, 0x46, 0x46, // RIFF
-    0x00, 0x00, 0x00, 0x00, // chunk size: (file size) - 8
+    0xff, 0xff, 0xff, 0xff, // chunk size: (file size) - 8
     0x57, 0x41, 0x56, 0x45, // WAVE
     0x66, 0x6d, 0x74, 0x20, // fmt 
     0x10, 0x00, 0x00, 0x00, // subchunk size = 16
@@ -117,7 +95,7 @@ static uint8_t wav_header[44] = {
     0x02, 0x00,             // 2 bytes / sample
     0x10, 0x00,             // 16 bits / sample
     0x64, 0x61, 0x74, 0x61, // data
-    0x00, 0x00, 0x00, 0x00, // data size (bytes)
+    0xff, 0xff, 0xff, 0xff, // data size (bytes)
 };
 
 
@@ -142,7 +120,7 @@ static int wav_find_chunk(uint8_t* buf, int size, uint32_t chunk_code)
     return offset;
 }
 
-void WAV_Play(char* filename)
+void WAV_PlaySmall(char* filename)
 {
     int size = 0;
     uint8_t* buf = (uint8_t*)read_entire_file(filename, &size);
@@ -173,6 +151,77 @@ end:
     free_dma_memory(buf);
 }
 
+
+static FILE* file = INVALID_PTR;
+#define WAV_BUF_SIZE 8192
+static int16_t* wav_buf[2] = {0,0};
+static int wav_ibuf = 0;
+
+static void asif_continue_cbr()
+{
+    if (file == INVALID_PTR) return;
+
+    void* buf = wav_buf[wav_ibuf];
+    int s = 0;
+    if (beep_playing != 2) s = FIO_ReadFile( file, buf, WAV_BUF_SIZE );
+    if (!s) 
+    { 
+        FIO_CloseFile(file);
+        file = INVALID_PTR;
+        asif_stop_cbr(); 
+        info_led_off();
+        return; 
+    }
+    SetNextASIFDACBuffer(buf, s);
+    wav_ibuf = !wav_ibuf;
+}
+
+void WAV_Play(char* filename)
+{
+    int8_t* buf1 = wav_buf[0];
+    int8_t* buf2 = wav_buf[1];
+    if (!buf1) return;
+    if (!buf2) return;
+
+    int size;
+    if( FIO_GetFileSize( filename, &size ) != 0 ) return;
+
+    if( file != INVALID_PTR ) return;
+    file = FIO_Open( filename, O_RDONLY | O_SYNC );
+    if( file == INVALID_PTR ) return;
+
+    int s1 = FIO_ReadFile( file, buf1, WAV_BUF_SIZE );
+    int s2 = FIO_ReadFile( file, buf2, WAV_BUF_SIZE );
+
+    // find the "fmt " subchunk
+    int fmt_offset = wav_find_chunk(buf1, s1, 0x20746d66);
+    if (MEM(buf1+fmt_offset) != 0x20746d66) goto wav_cleanup;
+    int sample_rate = *(uint32_t*)(buf1 + fmt_offset + 12);
+    
+    // find the "data" subchunk
+    int data_offset = wav_find_chunk(buf1, s1, 0x61746164);
+    if (MEM(buf1+data_offset) != 0x61746164) goto wav_cleanup;
+    
+    uint8_t* data = buf1 + data_offset + 8;
+    int N1 = s1 - data_offset - 8;
+    int N2 = s2;
+
+    beep_playing = 1;
+    SetSamplingRate(sample_rate, 1);
+    MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
+    PowerAudioOutput();
+    audio_configure(1);
+    SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
+    wav_ibuf = 0;
+    
+    StartASIFDMADAC(data, N1, buf2, N2, asif_continue_cbr, 0);
+    return;
+    
+wav_cleanup:
+    FIO_CloseFile(file);
+    file = INVALID_PTR;
+}
+
 static int audio_recording = 0;
 static int audio_recording_start_time = 0;
 static void asif_rec_stop_cbr()
@@ -190,7 +239,7 @@ static void record_show_progress()
     );
 }
 
-void WAV_Record(char* filename, int duration, int show_progress)
+void WAV_RecordSmall(char* filename, int duration, int show_progress)
 {
     int N = 48000 * 2 * duration;
     uint8_t* wav_buf = alloc_dma_memory(sizeof(wav_header) + N);
@@ -209,7 +258,7 @@ void WAV_Record(char* filename, int duration, int show_progress)
     audio_recording = 1;
     audio_recording_start_time = get_seconds_clock();
     SetSamplingRate(48000, 1);
-    MEM(0xC092011C) = 4; // SetASIFDACModeSingleINT16
+    MEM(0xC092011C) = 4; // SetASIFADCModeSingleINT16
     StartASIFDMAADC(buf, N, 0, 0, asif_rec_stop_cbr, N);
     while (audio_recording) 
     {
@@ -223,6 +272,81 @@ void WAV_Record(char* filename, int duration, int show_progress)
     FIO_WriteFile(f, UNCACHEABLE(wav_buf), sizeof(wav_header) + N);
     FIO_CloseFile(f);
     free_dma_memory(wav_buf);
+}
+
+static void audio_stop_playback()
+{
+    if (beep_playing && file != INVALID_PTR) 
+    {
+        info_led_on();
+        beep_playing = 2; // the CBR will stop the playback and close the file properly
+        while (beep_playing) msleep(100);
+        ASSERT(file == INVALID_PTR);
+    }
+    else // simple beep, just stop it 
+        asif_stop_cbr();
+}
+static void audio_stop_recording()
+{
+    info_led_on();
+    audio_recording = 2; // the CBR will stop recording and close the file properly
+    while (audio_recording) msleep(100);
+    ASSERT(file == INVALID_PTR);
+}
+
+int audio_stop_rec_or_play() // true if it stopped anything
+{
+    int ans = beep_playing || audio_recording;
+    if (beep_playing) audio_stop_playback();
+    if (audio_recording) audio_stop_recording();
+    return ans;
+}
+
+static void asif_rec_continue_cbr()
+{
+    if (file == INVALID_PTR) return;
+
+    void* buf = wav_buf[wav_ibuf];
+    FIO_WriteFile(file, UNCACHEABLE(buf), WAV_BUF_SIZE);
+
+    if (audio_recording == 2)
+    {
+        FIO_CloseFile(file);
+        file = INVALID_PTR;
+        audio_recording = 0;
+        info_led_off();
+        return;
+    }
+
+    SetNextASIFADCBuffer(buf, WAV_BUF_SIZE);
+    wav_ibuf = !wav_ibuf;
+}
+
+void WAV_Record(char* filename, int show_progress)
+{
+    int8_t* buf1 = wav_buf[0];
+    int8_t* buf2 = wav_buf[1];
+    if (!buf1) return;
+    if (!buf2) return;
+
+    if( file != INVALID_PTR ) return;
+    file = FIO_CreateFileEx(filename);
+    if( file == INVALID_PTR ) return;
+    FIO_WriteFile(file, UNCACHEABLE(wav_header), sizeof(wav_header));
+    
+    audio_recording = 1;
+    audio_recording_start_time = get_seconds_clock();
+    SetSamplingRate(48000, 1);
+    MEM(0xC092011C) = 4; // SetASIFADCModeSingleINT16
+
+    wav_ibuf = 0;
+    StartASIFDMAADC(buf1, WAV_BUF_SIZE, buf2, WAV_BUF_SIZE, asif_rec_continue_cbr, 0);
+    while (audio_recording) 
+    {
+        msleep(100);
+        if (show_progress) record_show_progress();
+    }
+    info_led_off();
 }
 
 static void
@@ -312,15 +436,9 @@ static struct semaphore * beep_sem;
 
 void play_test_tone()
 {
-    if (beep_playing)
-    {
-        asif_stop_cbr();
-    }
-    else
-    {
-        beep_type = BEEP_LONG;
-        give_semaphore(beep_sem);
-    }
+    if (audio_stop_rec_or_play()) return;
+    beep_type = BEEP_LONG;
+    give_semaphore(beep_sem);
 }
 
 void unsafe_beep()
@@ -331,15 +449,10 @@ void unsafe_beep()
         return;
     }
 
-    if (beep_playing)
-    {
-        asif_stop_cbr();
-    }
-    else
-    {
-        beep_type = BEEP_SHORT;
-        give_semaphore(beep_sem);
-    }
+    if (audio_stop_rec_or_play()) return;
+
+    beep_type = BEEP_SHORT;
+    give_semaphore(beep_sem);
 }
 
 void beep_times(int times)
@@ -352,15 +465,10 @@ void beep_times(int times)
         return;
     }
 
-    if (beep_playing)
-    {
-        asif_stop_cbr();
-    }
-    else
-    {
-        beep_type = times;
-        give_semaphore(beep_sem);
-    }
+    if (audio_stop_rec_or_play()) return;
+
+    beep_type = times;
+    give_semaphore(beep_sem);
 }
 
 void beep()
@@ -541,15 +649,10 @@ static void wav_playback_do()
 
 static void playback_start(void* priv, int delta)
 {
-    if (beep_playing)
-    {
-        asif_stop_cbr();
-    }
-    else
-    {
-        beep_type = BEEP_WAV;
-        give_semaphore(beep_sem);
-    }
+    if (audio_stop_rec_or_play()) return;
+
+    beep_type = BEEP_WAV;
+    give_semaphore(beep_sem);
 }
 
 static char* wav_get_new_filename()
@@ -573,13 +676,6 @@ static char* wav_get_new_filename()
     return imgname;
 }
 
-static CONFIG_INT("audio.record.duration", record_duration, 10);
-
-static void record_duration_toggle(void* priv, int delta)
-{
-    record_duration = 5 * (mod(record_duration/5 - 1 + delta, 60/5) + 1);
-}
-
 static void wav_record_do()
 {
     if (beep_playing) return;
@@ -587,8 +683,8 @@ static void wav_record_do()
     int q = QR_MODE;
     char* fn = wav_get_new_filename();
     snprintf(current_wav_filename, sizeof(current_wav_filename), fn);
-    msleep(300); // to avoid the noise from shortcut key
-    WAV_Record(fn, record_duration, q);
+    msleep(100); // to avoid the noise from shortcut key
+    WAV_Record(fn, q);
     if (q)
     {
         redraw();
@@ -598,19 +694,16 @@ static void wav_record_do()
 
 static void record_start(void* priv, int delta)
 {
-    if (beep_playing)
-    {
-        asif_stop_cbr();
-    }
-    else
-    {
-        record_flag = 1;
-        give_semaphore(beep_sem);
-    }
+    if (audio_stop_rec_or_play()) return;
+
+    record_flag = 1;
+    give_semaphore(beep_sem);
 }
 
 static void delete_file(void* priv, int delta)
 {
+    if (beep_playing || audio_recording) return;
+    
     FIO_RemoveFile(current_wav_filename);
     find_next_wav(0,1);
 }
@@ -620,10 +713,18 @@ static CONFIG_INT("voice.tags", voice_tags, 0);
 int handle_voice_tags(struct event * event)
 {
     if (!voice_tags) return 1;
-    if (event->param == BGMT_PRESS_SET && QR_MODE)
+    if (event->param == BGMT_PRESS_SET)
     {
-        record_start(0,0);
-        return 0;
+        if (audio_recording)
+        {
+            audio_stop_recording();
+            return 0;
+        }
+        if (QR_MODE)
+        {
+            record_start(0,0);
+            return 0;
+        }
     }
     return 1;
 }
@@ -693,15 +794,7 @@ static struct menu_entry beep_menus[] = {
                 .name = "Record",
                 .display = record_display,
                 .select = record_start,
-                .help = "Press SET to start recording.",
-            },
-            {
-                .name = "Clip duration",
-                .priv = &record_duration,
-                .min = 0,
-                .max = 60,
-                .select = record_duration_toggle,
-                .help = "Duration of a recorded audio clip, in seconds.",
+                .help = "Press SET to start or stop recording.",
             },
             {
                 .name = "File name",
@@ -732,6 +825,9 @@ static struct menu_entry beep_menus[] = {
 
 static void beep_init()
 {
+    wav_buf[0] = alloc_dma_memory(WAV_BUF_SIZE);
+    wav_buf[1] = alloc_dma_memory(WAV_BUF_SIZE);
+    
     beep_sem = create_named_semaphore( "beep_sem", 0 );
     menu_add( "Audio", beep_menus, COUNT(beep_menus) );
     find_next_wav(0,1);
