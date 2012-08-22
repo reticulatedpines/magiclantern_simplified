@@ -200,6 +200,7 @@ NSTUB(0xff08eb90, SetGUIRequestMode)
 
 NSTUB(0xff056d70, PowerAudioOutput)
 NSTUB(0xff0537b0, StartASIFDMADAC)
+NSTUB(0xff053614, StartASIFDMAADC)
 NSTUB(0xff053880, StopASIFDMADAC)
 NSTUB(0xFF056584, SetSamplingRate )
 NSTUB(0xff056810, SetAudioVolumeOut)

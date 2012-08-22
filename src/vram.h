@@ -207,6 +207,21 @@ extern int bm2n_x_cache[];
 #define N2LV(x,y) (N2LV_Y(y) * vram_lv.pitch + N2LV_X(x) * 2)
 #define N2HD(x,y) (N2HD_Y(y) * vram_hd.pitch + N2HD_X(x) * 2)
 
+// normalized coordinates with high resolution (0,0 ... 720*16,480*16)
+#define Nh2BMh_X(xn) ((xn) * os.x_ex / 720 + os.x0 * 16)
+#define Nh2BMh_Y(yn) ((yn) * os.y_ex / 480 + os.y0 * 16)
+
+#define BMh2LVh_X(x) ((x) * bm2lv.sx / 1024 + bm2lv.tx * 16)
+#define BMh2LVh_Y(y) ((y) * bm2lv.sy / 1024 + bm2lv.ty * 16)
+
+#define LVh2HD_X(x) ((x) * lv2hd.sx / 1024 / 16 + lv2hd.tx)
+#define LVh2HD_Y(y) ((y) * lv2hd.sy / 1024 / 16 + lv2hd.ty)
+
+#define BMh2HD_X(x) LVh2HD_X(BMh2LVh_X(x))
+#define BMh2HD_Y(y) LVh2HD_Y(BMh2LVh_Y(y))
+
+#define Nh2HD(x,y) (BMh2HD_Y(Nh2BMh_Y(y)) * vram_hd.pitch + BMh2HD_X(Nh2BMh_X(x)) * 2)
+
 #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
 #define CONFIG_4_3_SCREEN
 #else

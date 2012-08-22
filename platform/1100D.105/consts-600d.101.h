@@ -7,6 +7,7 @@
 #define HIJACK_FIXBR_CREATE_ITASK 0xff0110c0
 #define HIJACK_INSTR_MY_ITASK 0xff0110dc
 #define HIJACK_TASK_ADDR 0x1a2c
+#define BGMT_TRASH 0xD // old value for BGMT_PRESS_ZOOMOUT_MAYBE, was 0xA
 #endif
 
 // BGMT Button codes as received by gui_main_task
@@ -31,7 +32,6 @@
 #define BGMT_PRESS_DISP 8 // new, old value for BGMT_Q
 #define BGMT_UNPRESS_DISP 9 // new, old value for BGMT_PLAY
 #define BGMT_PLAY 0xB // was 9
-#define BGMT_TRASH 0xD // old value for BGMT_PRESS_ZOOMOUT_MAYBE, was 0xA
 #define BGMT_ZOOM_OUT 0xE // new
 
 #define BGMT_Q 0x1C // was 8

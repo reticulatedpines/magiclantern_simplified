@@ -107,6 +107,13 @@ cstart( void )
     select_normal_vectors();
 #endif
 
+    // turn on the LED as soon as autoexec.bin is loaded (may happen without powering on)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+        *(int*)0xC02200BC = 0x46;  // CF card LED on
+    #elif defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
+        *(int*)0xC0220134 = 0x46;  // SD card LED on
+    #endif
+
     // Copy the copy-and-restart blob somewhere
     // there is a bug in that we are 0x120 bytes off from
     // where we should be, so we must offset the blob start.

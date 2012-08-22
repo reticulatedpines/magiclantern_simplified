@@ -237,6 +237,7 @@ NSTUB(0xff070af0, GetMemoryAddressOfMemoryChunk)
 
 NSTUB(0xff0686f4, PowerAudioOutput)
 NSTUB(0xff0554dc, StartASIFDMADAC)
+NSTUB(0xFF055328, StartASIFDMAADC)
 NSTUB(0xff0555b0, StopASIFDMADAC)
 NSTUB(0xff06877c, SetSamplingRate )
 NSTUB(0xff068478, SetAudioVolumeOut)

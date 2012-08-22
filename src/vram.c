@@ -492,6 +492,15 @@ struct vram_info * get_yuv422_vram()
 {
     vram_params_update_if_dirty();
 
+    if (display_filter_enabled())
+    {
+        uint32_t* src_buf;
+        uint32_t* dst_buf;
+        display_filter_get_buffers(&src_buf, &dst_buf);
+        vram_lv.vram = dst_buf;
+        return &vram_lv;
+    }
+
     #ifdef CONFIG_500D // workaround for issue 1108 - zebras flicker on first clip
     
     if (lv && !is_movie_mode()) first_video_clip = 0; // starting in photo mode is OK

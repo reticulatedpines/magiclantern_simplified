@@ -113,6 +113,7 @@ int handle_common_events_by_feature(struct event * event)
         //~ return 0;
         //~ int ans = ResumeLiveView();
         idle_wakeup_reset_counters(event->param);
+        if (handle_disp_preset_key(event) == 0) return 0;
         return !ans;  // if LiveView was resumed, don't do anything else (just wakeup)
     }
     idle_wakeup_reset_counters(event->param);
@@ -182,6 +183,8 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_disp_preset_key(event) == 0) return 0;
     if (handle_fps_events(event) == 0) return 0;
     if (handle_fast_zoom_in_play_mode(event) == 0) return 0;
+    
+    if (handle_voice_tags(event) == 0) return 0;
     //~ if (handle_pause_zebras(event) == 0) return 0;
     //~ if (handle_kenrockwell_zoom(event) == 0) return 0;
     return 1;

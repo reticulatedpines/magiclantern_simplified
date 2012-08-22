@@ -1,6 +1,6 @@
 #generic makefile
 
-# for yagarto, use ARM_ABI=none-eabi
+# for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM-ABI=elf
 ARM_ABI=elf
 
 ARM_PATH=~/arm-toolchain462
@@ -15,6 +15,7 @@ ARM_LIBC_A = $(ARM_PATH)/arm-$(ARM_ABI)/lib/libc.a
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
+PYTHON=python2
 
 # Naming convention for Magic Lantern builds:
 # General rules:
@@ -33,7 +34,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 BUILDVER=$(shell whoami).$(shell hg id -i -r .)
-VERSION:=v2.3.RC5.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION)
+VERSION:=v2.3.NEXT.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -74,7 +75,7 @@ PYMITE_CFLAGS		= \
 all: autoexec.bin
 
 menuindexentries.h:
-	cd $(DOC_DIR); python menuindex.py
+	cd $(DOC_DIR); $(PYTHON) menuindex.py
 
 menuindex.o: menuindexentries.h
 
@@ -492,7 +493,7 @@ magiclantern-5d.fir: autoexec.bin
 
 magiclantern.fir: autoexec.bin
 	@if [ -f $(BUILDER_DIR)/build_fir.py ]; then \
-		python $(BUILDER_DIR)/build_fir.py -r $^ $@ ; \
+		$(PYTHON) $(BUILDER_DIR)/build_fir.py -r $^ $@ ; \
 	else \
 		echo "\nNotice: $(BUILDER_DIR)/build_fir.py not found; will not build magiclantern.fir. It's okay."; \
 		[ -f magiclantern.fir ] && echo "Leaving magiclantern.fir unchanged.";\
@@ -523,7 +524,7 @@ dissect_fw: dissect_fw.c
 
 
 #
-# Embedded Python scripting
+# Embedded $(PYTHON) scripting
 #
 SCRIPTS=\
 	main.py \
@@ -559,12 +560,12 @@ build = \
 	$2
 
 docs:
-	cd $(DOC_DIR) && python mkdoc.py
-	cd $(DOC_DIR) && python mkdoc-cam.py
+	cd $(DOC_DIR) && $(PYTHON) mkdoc.py
+	cd $(DOC_DIR) && $(PYTHON) mkdoc-cam.py
 
 docq:
-	cd $(DOC_DIR) && python mkdoc.py
-	cd $(DOC_DIR) && python mkdoc-cam.py quick
+	cd $(DOC_DIR) && $(PYTHON) mkdoc.py
+	cd $(DOC_DIR) && $(PYTHON) mkdoc-cam.py quick
 
 installdoc:
 	mkdir $(CF_CARD)/ML/doc || echo "no problem"

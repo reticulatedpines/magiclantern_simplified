@@ -766,7 +766,7 @@ display_off_by_halfshutter_print(
 
 #endif
 
-CONFIG_INT("play.set.wheel", play_set_wheel_action, 2);
+CONFIG_INT("play.set.wheel", play_set_wheel_action, 4);
 
 static void
 play_set_wheel_display(
@@ -783,7 +783,9 @@ play_set_wheel_display(
         play_set_wheel_action == 0 ? "422 Preview" :
         play_set_wheel_action == 1 ? "Exposure Fusion" : 
         play_set_wheel_action == 2 ? "Compare Images" : 
-        play_set_wheel_action == 3 ? "Timelapse Play" : "err"
+        play_set_wheel_action == 3 ? "Timelapse Play" : 
+        play_set_wheel_action == 4 ? "Exposure Adjust" : 
+        "err"
     );
 }
 
@@ -812,6 +814,7 @@ void playback_set_wheel_action(int dir)
     else if (play_set_wheel_action == 1) expfuse_preview_update(dir);
     else if (play_set_wheel_action == 2) playback_compare_images(dir);
     else if (play_set_wheel_action == 3) timelapse_playback += dir;
+    else if (play_set_wheel_action == 4) expo_adjust_playback(dir);
 }
 
 int handle_set_wheel_play(struct event * event)
@@ -941,12 +944,46 @@ void play_lv_key_step()
 #endif
 }
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
+#ifdef CONFIG_5D2
+static volatile int protect_running = 0;
+static void protect_image_task()
+{
+    protect_running = 1;
+    StartPlayProtectGuideApp();
+    fake_simple_button(BGMT_PRESS_SET);
+    fake_simple_button(BGMT_UNPRESS_SET);
+    msleep(100);
+    intptr_t h = get_current_dialog_handler();
+    if (h == 0xffb6aebc) // ?! null code here...
+    {
+        StopPlayProtectGuideApp();
+    }
+    protect_running = 0;
+}
+#endif
+
+#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2)
 
 int handle_lv_play(struct event * event)
 {
     if (!play_lv_action) return 1;
-    
+
+#ifdef CONFIG_5D2
+    if (event->param == BGMT_LV && PLAY_MODE)
+    {
+        if (protect_running) return 0;
+
+        extern thunk PlayMain_handler;
+        extern thunk PlayMovieGuideApp_handler;
+        intptr_t h = get_current_dialog_handler();
+        if (h == (intptr_t)&PlayMain_handler || h == (intptr_t)&PlayMovieGuideApp_handler)
+        {
+            protect_running = 1;
+            task_create("protect_task", 0x1e, 0x1000, protect_image_task, 0);
+            return 0;
+        }
+    }
+#else
     if (event->param == BGMT_LV && PLAY_MODE)
     {
 
@@ -971,6 +1008,7 @@ int handle_lv_play(struct event * event)
         }
         return 0;
     }
+#endif
     return 1;
 }
 #endif
@@ -1992,6 +2030,7 @@ struct menu_entry expo_tweak_menus[] = {
     },
 };
 
+CONFIG_INT("preview.brightness", preview_brightness, 0);
 CONFIG_INT("preview.contrast", preview_contrast, 3);
 CONFIG_INT("preview.saturation", preview_saturation, 1);
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
@@ -2019,17 +2058,67 @@ void preview_contrast_n_saturation_step()
     }
 
 
-    int contrast_register = 0xC0F141B8;
-    int current_contrast = shamem_read(contrast_register) & 0xFF;
+    int brightness_contrast_register = 0xC0F141B8;
+    int current_contrast = shamem_read(brightness_contrast_register);
 
-    static int contrast_values[] = {0x790000, 0x400040, 0x100070, 0x80, 0xE000A0, 0xC000C0};
-    int desired_contrast = contrast_values[preview_contrast];
+    // -------- xxxxxxxx -------- -------- brightness (offset): 8bit signed 
+    // -------- -------- -------- xxxxxxxx contrast (gain factor): 8bit unsigned, 0x80 = 1.0
+    // mid value = (int8_t)brightness + 128 * (uint8_t) contrast / 0x80
+    // default set (at brightness 0): mid value = 128
+    // at brightness 1: mid value = 160
+    // at brightness 2: mid value = 192
+    static int contrast_values_at_brigthness_0[] = {0x7F0000, 0x400040, 0x200060,     0x80, 0xE000A0, 0xC000C0};
+    static int contrast_values_at_brigthness_1[] = {0x7F0000, 0x600040, 0x400060, 0x200080, 0x0000A0, 0xe000C0};
+    static int contrast_values_at_brigthness_2[] = {0x7F0000, 0x7F0040, 0x600060, 0x400080, 0x2000A0, 0x0000C0};
+
+    int desired_contrast = 0x80;
+    
+    if (preview_contrast== 6) // auto contrast
+    {
+        // normal brightness => normal contrast
+        // high brightness => low contrast
+        // very high brightness => very low contrast
+             if (preview_brightness == 0) desired_contrast = contrast_values_at_brigthness_0[3];
+        else if (preview_brightness == 1) desired_contrast = contrast_values_at_brigthness_1[2];
+        else if (preview_brightness == 2) desired_contrast = contrast_values_at_brigthness_2[1];
+    }
+    else // manual contrast
+    {
+             if (preview_brightness == 0) desired_contrast = contrast_values_at_brigthness_0[preview_contrast];
+        else if (preview_brightness == 1) desired_contrast = contrast_values_at_brigthness_1[preview_contrast];
+        else if (preview_brightness == 2) desired_contrast = contrast_values_at_brigthness_2[preview_contrast];
+    }
+    
     if (gui_menu_shown() && !menu_active_but_hidden())
-        desired_contrast = contrast_values[3]; // do not apply it while ML menu is on (so you can read it in low contrast modes)
+        desired_contrast = contrast_values_at_brigthness_0[3]; // do not apply this adjustment while ML menu is on (so you can read it in low contrast modes)
 
     if (current_contrast != desired_contrast)
     {
-        EngDrvOut(contrast_register, desired_contrast);
+        EngDrvOut(brightness_contrast_register, desired_contrast);
+    }
+}
+
+void preview_show_contrast_curve()
+{
+    int brightness_contrast_register = 0xC0F141B8;
+    int value = shamem_read(brightness_contrast_register);
+    int contrast = value & 0xFF;
+    int brightness = (int8_t)(value >> 16);
+    
+    int x0 = 360-128;
+    int y0 = 300-128;
+    bmp_draw_rect(COLOR_BLACK, x0, y0, 255, 255 * 2/3);
+    bmp_draw_rect(COLOR_WHITE, x0-1, y0-1, 257, 255 * 2/3 + 2);
+    
+    for (int x = 0; x < 256; x++)
+    {
+        int y = COERCE(brightness + x * contrast / 0x80, 0, 255);
+        y = (256 - y) * 2/3;
+        bmp_putpixel(x0 + x, y0 + y - 2, COLOR_WHITE);
+        bmp_putpixel(x0 + x, y0 + y - 1, COLOR_RED);
+        bmp_putpixel(x0 + x, y0 + y    , COLOR_RED);
+        bmp_putpixel(x0 + x, y0 + y + 1, COLOR_RED);
+        bmp_putpixel(x0 + x, y0 + y + 2, COLOR_WHITE);
     }
 }
 
@@ -2075,12 +2164,43 @@ void preview_contrast_display(
         preview_contrast == 2 ? "Low" :
         preview_contrast == 3 ? "Normal" :
         preview_contrast == 4 ? "High" :
-                                "Very high"
+        preview_contrast == 5 ? "Very high" : 
+        (
+            preview_brightness == 0 ? "Auto (normal)" :
+            preview_brightness == 1 ? "Auto (low)" :
+            preview_brightness == 2 ? "Auto (very low)" : "err"
+        )
     );
 
     if (preview_contrast != 3 && EXT_MONITOR_CONNECTED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Does not work on external monitors.");
     if (preview_contrast == 3) menu_draw_icon(x, y, MNI_OFF, 0);
+    else if (preview_contrast == 6) menu_draw_icon(x, y, MNI_AUTO, 0);
     else menu_draw_icon(x, y, MNI_ON, 0);
+    
+    if (menu_active_but_hidden()) preview_show_contrast_curve();
+}
+
+void preview_brightness_display(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "LV brightness  : %s",
+        preview_brightness == 0 ? "Normal" :
+        preview_brightness == 1 ? "High" :
+                                  "Very high"
+    );
+
+    if (preview_brightness && EXT_MONITOR_CONNECTED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Does not work on external monitors.");
+    if (preview_brightness == 0) menu_draw_icon(x, y, MNI_OFF, 0);
+    else menu_draw_icon(x, y, MNI_ON, 0);
+    
+    if (menu_active_but_hidden()) preview_show_contrast_curve();
 }
 
 void adjust_saturation_level(int delta)
@@ -2207,6 +2327,371 @@ void lcd_adjust_position_step()
     }
 }
 
+/*
+CONFIG_INT("display.shake", display_shake, 0);
+
+// called from LV state object, once per frame
+// this updates only odd frames; combined with the triple buffering scheme, 
+// this will exaggerate motion and camera shake
+void display_shake_step()
+{
+    if (!display_shake) return;
+    if (!lv) return;
+    if (!DISPLAY_IS_ON) return;
+    if (hdmi_code == 5) return;
+    static int k; k++;
+    if (k%2) return;
+    if (MEM(REG_EDMAC_WRITE_LV_ADDR) & 0xFFFF != YUV422_LV_BUFFER_1 & 0xFFFF) return;
+    MEM(REG_EDMAC_WRITE_LV_ADDR) += (vram_lv.pitch * vram_lv.height);
+}
+*/
+
+CONFIG_INT("defish.preview", defish_preview, 0);
+static CONFIG_INT("defish.projection", defish_projection, 0);
+//~ static CONFIG_INT("defish.hd", DEFISH_HD, 1);
+#define DEFISH_HD 1
+
+CONFIG_INT("anamorphic.preview", anamorphic_preview, 0);
+CONFIG_INT("anamorphic.ratio.idx", anamorphic_ratio_idx, 0);
+
+static int anamorphic_ratio_num[10] = {2, 5, 3, 4, 5, 4, 3, 2, 3, 1};
+static int anamorphic_ratio_den[10] = {1, 3, 2, 3, 4, 5, 4, 3, 5, 2};
+
+static void
+anamorphic_preview_display(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    if (anamorphic_preview)
+    {
+        int num = anamorphic_ratio_num[anamorphic_ratio_idx];
+        int den = anamorphic_ratio_den[anamorphic_ratio_idx];
+        bmp_printf(
+            MENU_FONT,
+            x, y,
+            "Anamorphic     : ON, %d:%d",
+            num, den
+        );
+    }
+    else
+    {
+        bmp_printf(
+            MENU_FONT,
+            x, y,
+            "Anamorphic     : OFF"
+        );
+    }
+    
+    if (defish_preview && anamorphic_preview)
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Too much for this lil' cam... both defishing and anamorphic");
+    menu_draw_icon(x, y, MNI_BOOL_GDR(anamorphic_preview));
+}
+
+static void anamorphic_squeeze()
+{
+    if (!anamorphic_preview) return;
+    if (!get_global_draw()) return;
+    if (!lv) return;
+    if (hdmi_code == 5) return;
+    
+    int num = anamorphic_ratio_num[anamorphic_ratio_idx];
+    int den = anamorphic_ratio_den[anamorphic_ratio_idx];
+
+    uint32_t* src_buf;
+    uint32_t* dst_buf;
+    display_filter_get_buffers(&src_buf, &dst_buf);
+
+    int ym = os.y0 + os.y_ex/2;
+    for (int y = os.y0; y < os.y_ex; y++)
+    {
+        int ya = (y-ym) * num/den + ym;
+        if (ya > os.y0 && ya < os.y_max)
+            memcpy(&dst_buf[LV(0,y)/4], &src_buf[LV(0,ya)/4], 720*2);
+        else
+            memset(&dst_buf[LV(0,y)/4], 0, 720*2);
+    }
+}
+
+static void
+defish_preview_display(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "Defishing      : %s",
+        defish_preview ? (defish_projection ? "Panini" : "Rectilinear") : "OFF"
+    );
+    menu_draw_icon(x, y, MNI_BOOL_GDR(defish_preview));
+}
+
+//~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "ML/SETTINGS/recti.lut");
+#if defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_5DC) // fullframe
+#define defish_lut_file_rectilin CARD_DRIVE "ML/DATA/ff8r.lut"
+#define defish_lut_file_panini CARD_DRIVE "ML/DATA/ff8p.lut"
+#else
+#define defish_lut_file_rectilin CARD_DRIVE "ML/DATA/apsc8r.lut"
+#define defish_lut_file_panini CARD_DRIVE "ML/DATA/apsc8p.lut"
+#endif
+
+static uint16_t* defish_lut = INVALID_PTR;
+static int defish_projection_loaded = -1;
+
+static void defish_lut_load()
+{
+    char* defish_lut_file = defish_projection ? defish_lut_file_panini : defish_lut_file_rectilin;
+    if ((int)defish_projection != defish_projection_loaded)
+    {
+        if (defish_lut && defish_lut != INVALID_PTR) free_dma_memory(defish_lut);
+        
+        int size = 0;
+        defish_lut = (uint16_t*) read_entire_file(defish_lut_file, &size);
+        defish_projection_loaded = defish_projection;
+    }
+    if (defish_lut == NULL)
+    {
+        bmp_printf(FONT_MED, 50, 50, "%s not loaded", defish_lut_file);
+        return;
+    }
+}
+
+
+static uint32_t get_yuv_pixel(uint32_t* buf, int pixoff)
+{
+    uint32_t* src = &buf[pixoff / 2];
+    
+    uint32_t chroma = (*src)  & 0x00FF00FF;
+    uint32_t luma1 = (*src >>  8) & 0xFF;
+    uint32_t luma2 = (*src >> 24) & 0xFF;
+    uint32_t luma = pixoff % 2 ? luma2 : luma1;
+    return (chroma | (luma << 8) | (luma << 24));
+}
+
+void defish_draw_lv_color()
+{
+    if (!get_global_draw()) return;
+    if (!lv) return;
+    
+    defish_lut_load();
+    struct vram_info * vram = get_yuv422_vram();
+
+    //~ int buf_size = vram_lv.pitch * vram_lv.height;
+    uint32_t* src_buf;
+    uint32_t* dst_buf;
+    display_filter_get_buffers(&src_buf, &dst_buf);
+    if (DEFISH_HD) src_buf = get_yuv422_hd_vram()->vram;
+    //~ memcpy(dst_buf, src_buf, buf_size/2);
+    //~ return;
+        
+    //~ if (!HALFSHUTTER_PRESSED) return;
+    
+    static int* ind = 0;
+    if (!ind) 
+    {
+        ind = AllocateMemory(720*240*4);
+    }
+    
+    static int prev_sig = 0;
+    int sig = defish_projection + vram_lv.width + vram_hd.width + DEFISH_HD*314;
+    
+    if (sig != prev_sig)
+    {
+        prev_sig = sig;
+        bzero32(ind, 720*240*4);
+    
+        info_led_on();
+        for (int y = BM2LV_Y(os.y0); y < BM2LV_Y(os.y0 + os.y_ex/2); y++)
+        {
+            for (int x = BM2LV_X(os.x0); x < BM2LV_X(os.x0 + os.x_ex/2); x += 2)
+            {
+                // i,j are normalized values: [0,0 ... 720x480)
+                int j = LV2N_X(x);
+                int i = LV2N_Y(y);
+
+                static int off_i[] = {0,  0,479,479};
+                static int off_j[] = {0,719,  0,719};
+
+                int id, jd;
+                if (DEFISH_HD)
+                {
+                    id = (int)defish_lut[(i * 360 + j) * 2 + 1] / 16;
+                    jd = (int)defish_lut[(i * 360 + j) * 2] * 361 / 256 / 16;
+                }
+                else
+                {
+                    id = (int)defish_lut[(i * 360 + j) * 2 + 1] / 256;
+                    jd = (int)defish_lut[(i * 360 + j) * 2] * 361 / 256 / 256;
+                }
+                
+                int k;
+                for (k = 0; k < 4; k++)
+                {
+                    int Y = (off_i[k] ? N2LV_Y(off_i[k]) - y + BM2LV_Y(os.y0) - 1 : y);
+                    int X = (off_j[k] ? N2LV_X(off_j[k]) - x + BM2LV_X(os.x0) : x);
+                    
+                    int is = COERCE(LV(X,Y)/4, 0, 720*240-1);
+                    int ids;
+                    if (DEFISH_HD)
+                    {
+                        int Id = (off_i[k] ? off_i[k]*16 - id : id);
+                        int Jd = (off_j[k] ? off_j[k]*16 - jd : jd);
+                        ids = Nh2HD(Jd,Id)/4;
+                    }
+                    else
+                    {
+                        int Id = (off_i[k] ? off_i[k] - id : id);
+                        int Jd = (off_j[k] ? off_j[k] - jd : jd);
+                        ids = N2LV(Jd,Id)/4;
+                    }
+                    ind[is] = ids;
+                    dst_buf[is] = src_buf[ids];
+                }
+            }
+        }
+        info_led_off();
+    }
+    
+    for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
+        dst_buf[i] = src_buf[ind[i]];
+}
+
+void defish_draw_play()
+{
+    defish_lut_load();
+    struct vram_info * vram = get_yuv422_vram();
+
+    uint32_t * lvram = (uint32_t *)vram->vram;
+    uint32_t * aux_buf = (void*)YUV422_HD_BUFFER_2;
+
+    uint8_t * const bvram = bmp_vram();
+    if (!bvram) return;
+
+    int w = vram->width;
+    int h = vram->height;
+    int buf_size = w * h * 2;
+    
+    if (!PLAY_OR_QR_MODE || !DISPLAY_IS_ON) return;
+
+    memcpy(aux_buf, lvram, buf_size);
+    
+    for (int y = BM2LV_Y(os.y0); y < BM2LV_Y(os.y0 + os.y_ex/2); y++)
+    {
+        for (int x = BM2LV_X(os.x0); x < BM2LV_X(os.x0 + os.x_ex/2); x++)
+        {
+            // i,j are normalized values: [0,0 ... 720x480)
+            int j = LV2N_X(x);
+            int i = LV2N_Y(y);
+
+            static int off_i[] = {0,  0,479,479};
+            static int off_j[] = {0,719,  0,719};
+
+            //~ int id = defish_lut[(i * 360 + j) * 2 + 1];
+            //~ int jd = defish_lut[(i * 360 + j) * 2] * 360 / 255;
+            
+            int id = (int)defish_lut[(i * 360 + j) * 2 + 1] / 256;
+            int jd = (int)defish_lut[(i * 360 + j) * 2] * 361 / 256 / 256;
+            
+            //~ bmp_printf(FONT_MED, 100, 100, "%d,%d => %x,%x  ", i,j,id,jd);
+            //~ msleep(200);
+            
+            int k;
+            for (k = 0; k < 4; k++)
+            {
+                int Y = (off_i[k] ? N2LV_Y(off_i[k]) - y + BM2LV_Y(os.y0) - 1 : y);
+                int X = (off_j[k] ? N2LV_X(off_j[k]) - x + BM2LV_X(os.x0) : x);
+                int Id = (off_i[k] ? off_i[k] - id : id);
+                int Jd = (off_j[k] ? off_j[k] - jd : jd);
+                
+                //~ lvram[LV(X,Y)/4] = aux_buf[N2LV(Jd,Id)/4];
+
+                // Rather than copying an entire uyvy pair, copy only one pixel (and overwrite luma for both pixels in the bin)
+                // => slightly better image quality
+                
+                // Actually, IQ is far lower than what Nona does with proper interpolation
+                // but this is enough for preview purposes
+                
+                
+                //~ uint32_t new_color = get_yuv_pixel_averaged(aux_buf, Id, Jd);
+
+                int pixoff_src = N2LV(Jd,Id) / 2;
+                uint32_t new_color = get_yuv_pixel(aux_buf, pixoff_src);
+
+                int pixoff_dst = LV(X,Y) / 2;
+                uint32_t* dst = &lvram[pixoff_dst / 2];
+                uint32_t mask = (pixoff_dst % 2 ? 0xffFF00FF : 0x00FFffFF);
+                *(dst) = (new_color & mask) | (*(dst) & ~mask);
+            }
+        }
+        if (!PLAY_OR_QR_MODE || !DISPLAY_IS_ON) return;
+        if ((void*)get_yuv422_vram()->vram != (void*)lvram) break; // user moved to a new image?
+    }
+}
+
+void display_filter_get_buffers(void** src_buf, void** dst_buf)
+{
+    //~ struct vram_info * vram = get_yuv422_vram();
+    //~ int buf_size = 720*480*2;
+    //~ void* src = (void*)vram->vram;
+    //~ void* dst = src_buf + buf_size;
+    *src_buf = YUV422_LV_BUFFER_1;
+    *dst_buf = YUV422_LV_BUFFER_2;
+}
+
+int display_filter_enabled()
+{
+    if (!lv) return 0;
+    if (!(defish_preview || anamorphic_preview)) return 0;
+    if (!zebra_should_run()) return 0;
+    return 1;
+}
+
+void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
+{
+    if (!display_filter_enabled()) return;
+
+#ifdef CONFIG_5D2
+    int sync = (MEM(x+0xe0) == YUV422_LV_BUFFER_1);
+    int hacked = ( MEM(0x44fc+0xBC) == MEM(0x44fc+0xc4) && MEM(0x44fc+0xc4) == MEM(x+0xe0));
+    if (display_filter_enabled())
+    {
+        if (sync || hacked)
+        {
+            MEM(0x44fc+0xBC) = 0;
+            YUV422_LV_BUFFER_DMA_ADDR = YUV422_LV_BUFFER_2; // update buffer 1, display buffer 2
+            EnableImagePhysicalScreenParameter();
+        }
+    }
+#endif
+}
+
+void display_filter_step(int k)
+{
+    
+    if (!display_filter_enabled()) return;
+    
+    //~ if (!HALFSHUTTER_PRESSED) return;
+
+    if (defish_preview)
+    {
+        if (k % 2 == 0)
+            BMP_LOCK( if (lv) defish_draw_lv_color(); )
+    }
+    
+    else if (anamorphic_preview)
+    {
+        if (k % 2 == 0)
+            BMP_LOCK( if (lv) anamorphic_squeeze(); )
+    }
+}
+
+
 extern int clearscreen_enabled;
 extern int clearscreen_mode;
 extern void clearscreen_display( void * priv, int x, int y, int selected);
@@ -2225,11 +2710,18 @@ static struct menu_entry display_menus[] = {
         .help = "Contrast, saturation, color scheme. No effect on recording.",
         .children =  (struct menu_entry[]) {*/
             {
+                .name = "LV brightness  ", 
+                .priv = &preview_brightness, 
+                .max = 2,
+                .help = "Raises the shadows in LiveView and Playback mode.",
+                .display = preview_brightness_display,
+                .edit_mode = EM_MANY_VALUES_LV,
+            },
+            {
                 .name = "LV contrast",
                 .priv     = &preview_contrast,
-                .max = 5,
+                .max = 6,
                 .display = preview_contrast_display,
-                .choices = (const char *[]) {"Normal", "Low", "High", "Very low", "Very high", "Zero"},
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
                 //.essential = FOR_LIVEVIEW,
@@ -2282,6 +2774,54 @@ static struct menu_entry display_menus[] = {
             MENU_EOL
         },
         //.essential = FOR_LIVEVIEW,
+    },
+/*    {
+        .name = "Display Shake  ",
+        .priv     = &display_shake,
+        .max = 1,
+        .help = "Emphasizes camera shake on LiveView display.",
+    },*/
+    {
+        .name = "Defishing",
+        .priv = &defish_preview, 
+        .display = defish_preview_display, 
+        .select = menu_binary_toggle,
+        .help = "Preview straightened images from fisheye lenses. LV+PLAY.",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Projection",
+                .priv = &defish_projection, 
+                .max = 1,
+                .choices = (const char *[]) {"Rectilinear", "Panini"},
+                .icon_type = IT_DICE,
+                .help = "Projection used for defishing (Rectilinear or Panini).",
+            },
+            /*{
+                .name = "Use HD buffer", 
+                .priv = &DEFISH_HD, 
+                .max = 1,
+            },*/
+            MENU_EOL
+        }
+    },
+    {
+        .name = "Anamorphic",
+        .priv     = &anamorphic_preview,
+        .display = anamorphic_preview_display, 
+        .max = 1,
+        .submenu_width = 700,
+        .help = "Stretches LiveView image vertically, for anamorphic lenses.",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Stretch Ratio",
+                .priv = &anamorphic_ratio_idx, 
+                .max = 9,
+                .choices = (const char *[]) {"2:1", "5:3 (1.66)", "3:2 (1.5)", "4:3 (1.33)", "5:4 (1.25)", "4:5 (1/1.25)", "3:4 (1/1.33)", "2:3 (1/1.5)", "3:5 (1/1.66)", "1:2"},
+                .icon_type = IT_ALWAYS_ON,
+                .help = "Aspect ratio used for anamorphic preview correction.",
+            },
+            MENU_EOL
+        },
     },
 #ifdef CONFIG_KILL_FLICKER
     {
@@ -2390,7 +2930,7 @@ struct menu_entry play_menus[] = {
             {
                 .name = "SET+MainDial",
                 .priv = &play_set_wheel_action, 
-                .max = 3,
+                .max = 4,
                 .display = play_set_wheel_display,
                 .help = "What to do when you hold SET and turn MainDial scrollwheel",
                 //.essential = FOR_PHOTO,
@@ -2437,13 +2977,18 @@ struct menu_entry play_menus[] = {
                 .icon_type = IT_BOOL,
             },
             #endif */
-        #if defined(CONFIG_60D) || defined(CONFIG_600D)
+        #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2)
             {
                 .name = "LV button",
                 .priv = &play_lv_action, 
-                .max = 2,
                 .display = play_lv_display,
+                #ifdef CONFIG_5D2
+                .max = 1,
+                .help = "You may use the LiveView button to Protect images quickly.",
+                #else
+                .max = 2,
                 .help = "You may use the LiveView button to Protect or Rate images.",
+                #endif
                 .icon_type = IT_BOOL,
                 //.essential = FOR_PHOTO,
             },

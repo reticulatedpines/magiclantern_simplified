@@ -189,6 +189,7 @@ NSTUB(0xff071b5c, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsCh
 
 NSTUB(0xFF069E9C, PowerAudioOutput)
 NSTUB(0xff055678, StartASIFDMADAC)
+NSTUB(0xFF0554C4, StartASIFDMAADC)
 NSTUB(0xff05574c, StopASIFDMADAC)
 NSTUB(0xff069f88, SetSamplingRate )
 NSTUB(0xff069d88, SetAudioVolumeOut)
