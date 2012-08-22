@@ -35,18 +35,29 @@ CONFIG_INT("beep.wavetype", beep_wavetype, 0); // square, sine, white noise
 static int beep_freq_values[] = {55, 110, 220, 262, 294, 330, 349, 392, 440, 494, 880, 1000, 1760, 2000, 3520, 5000, 12000};
 
 void generate_beep_tone(int16_t* buf, int N);
+#ifdef CONFIG_600D
+void override_post_beep();
+#endif
 
 static int16_t beep_buf[5000];
 
 static void asif_stopped_cbr()
 {
     beep_playing = 0;
+#ifdef CONFIG_600D
+    override_post_beep();
+#else
     audio_configure(1);
+#endif
 }
 static void asif_stop_cbr()
 {
     StopASIFDMADAC(asif_stopped_cbr, 0);
+#ifdef CONFIG_600D
+    override_post_beep();
+#else
     audio_configure(1);
+#endif
 }
 void play_beep(int16_t* buf, int N)
 {
