@@ -1139,7 +1139,7 @@ lens_take_picture(
     mlu_lock_mirror_if_needed();
 
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-    if (get_mlu() && !lv)
+    if (get_mlu())
     {
         SW1(1,50);
         SW2(1,250);
