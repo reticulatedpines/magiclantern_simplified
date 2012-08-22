@@ -156,6 +156,11 @@ audio_ic_sweep_message_queue( void );
 
 
 #ifdef CONFIG_600D
+
+#define MUTE_OFF 0
+#define MUTE_ON  1
+
+
 //600D Audio write Registers
 /* Clock Control Register */
 #define ML_SMPLING_RATE			0x0100 /* Sampling Rate */

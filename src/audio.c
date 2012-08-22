@@ -45,7 +45,7 @@ static void volume_display();
 static void audio_monitoring_display_headphones_connected_or_not();
 static void audio_menus_init();
 static void audio_monitoring_update();
-static void audio_ic_set_lineout_onoff();
+static void audio_ic_set_lineout_onoff(int mute);
 
 // Dump the audio registers to a file if defined
 #undef CONFIG_AUDIO_REG_LOG
@@ -85,7 +85,7 @@ void disp_logoutput(char *format, ...){
 //Prototypes for 600D
 void override_audio_setting(int phase);
 static void audio_ic_set_lineout_vol();
-static void audio_ic_set_input();
+static void audio_ic_set_input(int mute);
 
 // Set defaults
 CONFIG_INT( "audio.override_audio", cfg_override_audio,   0 );
@@ -1083,7 +1083,7 @@ PROP_HANDLER( PROP_MIC_INSERTED )
     mic_inserted = buf[0];
     
 #ifdef CONFIG_600D
-    audio_ic_set_input(); //Need faster finish this prop on 600D. audio_configure() is slow.Then get hang
+    audio_ic_set_input(MUTE_ON); //Need faster finish this prop on 600D. audio_configure() is slow.Then get hang
 #else
     audio_configure( 1 );
 #endif
@@ -1235,10 +1235,10 @@ audio_ic_set_analog_gain(){
 }
 
 static void
-audio_ic_set_input(){
+audio_ic_set_input(int mute){
     if(cfg_override_audio == 0) return;
 
-    audio_ic_set_mute_on(100);
+    if(mute) audio_ic_set_mute_on(150);
     audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //descrived in pdf p71
     
     switch (get_input_source())
@@ -1287,7 +1287,7 @@ audio_ic_set_input(){
     }else{
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
     }
-    audio_ic_set_mute_off(400);
+    if(mute) audio_ic_set_mute_off(200);
 
 }
 
@@ -1301,11 +1301,11 @@ audio_ic_set_RecLRbalance(){
 }
 
 static void
-audio_ic_set_filters(){
+audio_ic_set_filters(int mute){
     if(cfg_override_audio == 0) return;
 
+    if(mute) audio_ic_set_mute_on(100);
     if(enable_filters){
-        audio_ic_set_mute_on(0);
         int val = 0;
         if(cfg_filter_dc) val = 0x1;
         if(cfg_filter_hpf2) val = 0x2;
@@ -1315,13 +1315,11 @@ audio_ic_set_filters(){
         }else{
             audio_ic_write(ML_FILTER_EN | 0x0f);
         }
-        audio_ic_set_mute_off(200);
     }else{
-        audio_ic_set_mute_on(0);
         masked_audio_ic_write(ML_FILTER_EN, 0x3, 0x0);
         audio_ic_write(ML_FILTER_EN | 0x0f);
-        audio_ic_set_mute_off(200);
     }
+    if(mute) audio_ic_set_mute_off(200);
 }
 
 static void
@@ -1337,6 +1335,8 @@ audio_ic_set_agc(){
 
 static void
 audio_ic_off(){
+
+    audio_ic_set_mute_on(100);
     audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_OFF);
     audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
     audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_2);
@@ -1347,7 +1347,7 @@ audio_ic_off(){
     audio_ic_write(ML_FILTER_EN | ML_FILTER_DIS_ALL);
     audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY);
     audio_ic_write(ML_REC_LR_BAL_VOL | 0x00);
-    audio_ic_set_lineout_onoff();
+    audio_ic_set_lineout_onoff(MUTE_OFF);
 }
 
 static void
@@ -1365,12 +1365,12 @@ audio_ic_set_lineout_vol(){
 
 
 static void
-audio_ic_set_lineout_onoff(){
+audio_ic_set_lineout_onoff(int mute){
     //PDF p38
     if(audio_monitoring &&
        AUDIO_MONITORING_HEADPHONES_CONNECTED &&
        cfg_override_audio==1){
-        audio_ic_set_mute_on(100);
+        if(mute) audio_ic_set_mute_on(100);
         
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directly change prohibited p55
 
@@ -1386,18 +1386,19 @@ audio_ic_set_lineout_onoff(){
 
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
 
-        audio_ic_set_mute_off(400);
+        if(mute) audio_ic_set_mute_off(200);
 
     }else{
-        audio_ic_set_mute_on(100);
+        if(mute) audio_ic_set_mute_on(100);
         
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
 
-        audio_ic_write(ML_PW_DAC_PW_MNG | 0); //DAC power on
-        audio_ic_write(ML_HP_AMP_OUT_CTL | 0);
+        audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWROFF); //DAC power on
+        audio_ic_write(ML_HP_AMP_OUT_CTL | 0x0);
+        audio_ic_write(ML_PW_SPAMP_PW_MNG | ML_PW_SPAMP_PW_MNG_OFF);
         
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
-        audio_ic_set_mute_off(400);
+        if(mute) audio_ic_set_mute_off(200);
     }
 }
 
@@ -1460,8 +1461,9 @@ audio_set_meterlabel(){
  void
 audio_configure( int force )
 {
+
     extern int beep_playing;
-    if (beep_playing && !(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED))
+    if (beep_playing)
         return; // don't redirect wav playing to headphones if they are not connected
     
 #ifdef CONFIG_AUDIO_REG_LOG
@@ -1474,15 +1476,16 @@ audio_configure( int force )
 #endif
 
 #ifdef CONFIG_600D
+    audio_ic_set_mute_on(100);
+
     if(cfg_override_audio == 0){
         audio_ic_off();
         return;
-    }
-    if(is_movie_mode() == 0){
-        return;
+    }else{
+        audio_ic_on();
     }
 
-    audio_ic_on();
+    if(is_movie_mode() == 0) return;
 
 	if (force){
         if(force == 2){
@@ -1493,16 +1496,22 @@ audio_configure( int force )
 	}
 
     audio_set_meterlabel();
-    audio_ic_set_input();
+    audio_ic_set_input(MUTE_OFF);
     audio_ic_set_analog_gain();
     audio_ic_set_recdgain();
     audio_ic_set_RecLRbalance();
-    audio_ic_set_filters();
+    audio_ic_set_filters(MUTE_OFF);
     audio_ic_set_agc();
-    audio_ic_set_lineout_onoff();
+    audio_ic_set_lineout_onoff(MUTE_OFF);
     audio_monitoring_update();
 
+    audio_ic_set_mute_off(200);
+
 #else /* ^^^^^^^CONFIG_600D^^^^^^^ vvvvv except 600D vvvvvvvv*/
+
+    extern int beep_playing;
+    if (beep_playing && !(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED))
+        return; // don't redirect wav playing to headphones if they are not connected
 
     // redirect wav playing to headphones if they are connected
     int loopback0 = beep_playing ? 0 : loopback;
@@ -1936,7 +1945,7 @@ static void
         menu_quinternary_toggle(priv, 1);
 #ifdef CONFIG_600D
         if(*(unsigned*)priv == 3) *(unsigned*)priv = 4; //tamporaly disabled Ext:balanced. We can't find it.
-        audio_ic_set_input();
+        audio_ic_set_input(MUTE_ON);
 #else
         audio_configure( 1 );
 #endif
@@ -1947,7 +1956,7 @@ audio_input_toggle_reverse( void * priv, int delta )
         menu_quinternary_toggle_reverse(priv, -1);
 #ifdef CONFIG_600D
         if(*(unsigned*)priv == 3) *(unsigned*)priv = 2; //tamporaly disabled Ext:balanced. We can't find it.
-        audio_ic_set_input();
+        audio_ic_set_input(MUTE_ON);
 #else
         audio_configure( 1 );
 #endif
@@ -2026,7 +2035,7 @@ DSP Filter Function Enable Register p77 HPF1 HPF2
 static void audio_filter_dc_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, -1, 0, 1);
-    audio_ic_set_filters();
+    audio_ic_set_filters(MUTE_ON);
 }
 
 static void audio_filter_dc_display( void * priv, int x, int y, int selected )
@@ -2041,7 +2050,7 @@ static void audio_filter_dc_display( void * priv, int x, int y, int selected )
 static void audio_filter_hpf2_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 1);
-    audio_ic_set_filters();
+    audio_ic_set_filters(MUTE_ON);
 }
 
 
@@ -2058,13 +2067,13 @@ static void audio_filter_hpf2_display( void * priv, int x, int y, int selected )
 static void audio_hpf2config_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 7);
-    audio_ic_set_filters();
+    audio_ic_set_filters(MUTE_ON);
 }
 
 static void audio_hpf2config_toggle_reverse( void * priv, int delta )
 {
     menu_numeric_toggle(priv, -1, 0, 7);
-    audio_ic_set_filters();
+    audio_ic_set_filters(MUTE_ON);
 }
 static char *get_hpf2config_str(){
     return (cfg_filter_hpf2config == 0 ? "80Hz" :
@@ -2088,14 +2097,14 @@ static void
 audio_filters_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 1);
-    audio_ic_set_filters();
+    audio_ic_set_filters(MUTE_ON);
 }
 
 static void
 audio_filters_toggle_reverse( void * priv, int delta )
 {
     menu_numeric_toggle(priv, -1, 0, 1);
-    audio_ic_set_filters();
+    audio_ic_set_filters(MUTE_ON);
 }
 
 static void
@@ -2237,6 +2246,9 @@ void audio_monitoring_display_headphones_connected_or_not()
               AUDIO_MONITORING_HEADPHONES_CONNECTED ? 
               "connected" :
               "disconnected");
+#ifdef CONFIG_600D
+        if(override_audio_q) msg_queue_post(override_audio_q, 1); 
+#endif
 }
 
 PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
@@ -2251,10 +2263,12 @@ static void audio_monitoring_update()
                 audio_monitoring_force_display(0);
                 msleep(1000);
                 audio_monitoring_display_headphones_connected_or_not();
-#ifdef CONFIG_600D
-                if(override_audio_q) msg_queue_post(override_audio_q, 1); 
-#endif
         }
+#ifdef CONFIG_600D
+        else{
+            audio_ic_set_lineout_onoff(MUTE_ON);
+        }
+#endif
 }
 
 static void
