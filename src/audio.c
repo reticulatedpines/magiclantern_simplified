@@ -64,23 +64,6 @@ static struct gain_struct gain = {
         .sem                    = (void*) 1,
 };
 
-/*
-#ifdef CONFIG_AUDIO_600D_DEBUG
-int gYpos=220;
-int gYposMAX=420;
-void disp_logoutput(char *format, ...){
-	va_list argptr;
-
-	if(gYpos >= gYposMAX) gYpos=220;
-	bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 400, gYpos, "                                    ");
-	bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 400, gYpos, format,argptr);
-	gYpos = gYpos+20;
-	va_end(argptr);
-
-}
-#endif
-*/
-
 #ifdef CONFIG_600D
 //Prototypes for 600D
 void override_audio_setting(int phase);
