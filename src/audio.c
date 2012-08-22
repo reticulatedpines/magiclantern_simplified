@@ -45,6 +45,7 @@ static void volume_display();
 static void audio_monitoring_display_headphones_connected_or_not();
 static void audio_menus_init();
 static void audio_monitoring_update();
+static void audio_ic_set_lineout_onoff();
 
 // Dump the audio registers to a file if defined
 #undef CONFIG_AUDIO_REG_LOG
@@ -63,6 +64,22 @@ static struct gain_struct gain = {
         .sem                    = (void*) 1,
 };
 
+/*
+#ifdef CONFIG_AUDIO_600D_DEBUG
+int gYpos=220;
+int gYposMAX=420;
+void disp_logoutput(char *format, ...){
+	va_list argptr;
+
+	if(gYpos >= gYposMAX) gYpos=220;
+	bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 400, gYpos, "                                    ");
+	bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 400, gYpos, format,argptr);
+	gYpos = gYpos+20;
+	va_end(argptr);
+
+}
+#endif
+*/
 
 #ifdef CONFIG_600D
 //Prototypes for 600D
@@ -443,7 +460,7 @@ meter_task( void* unused )
 {
 
 //will delete this when we finish debugging
-    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.6       ");
+    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.7       ");
     msleep(4000);
     NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
     msleep(500);
@@ -1108,12 +1125,10 @@ void
 override_post_beep(){
     if(cfg_override_audio == 0) return;
 
-    override_audio_setting(0);
-        
     audio_ic_write(ML_MIC_IN_CHARG_TIM | 0x00);
     audio_ic_write(ML_SND_EFFECT_MODE | 0x00);
 
-    audio_configure(0);
+    audio_configure(1);
 }
 
 void
@@ -1127,7 +1142,7 @@ override_audio_setting(int phase){
 		case 0:   //Phase 0 for camera powerON->standby
 			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //Duplicate L to R
 			
-		case 1: //Phase 1 for finish recording->standy & change vol setting->standby
+        case 1: //Phase 1 for finish recording->standy & change vol setting->standby
 			audio_ic_write(ML_RECPLAY_STATE | 0x0); //recplay state need off->on
 			audio_ic_write(ML_RECPLAY_STATE | 0x11); //
 			audio_ic_write(ML_PW_IN_PW_MNG | 0x0a);   //DAC(0010) and PGA(1000) power on
@@ -1135,6 +1150,7 @@ override_audio_setting(int phase){
 			audio_ic_write(ML_MIC_IN_VOL | 0x3f);   
 			
 			//        audio_configure(0);
+            
     }
 
 }
@@ -1331,6 +1347,7 @@ audio_ic_off(){
     audio_ic_write(ML_FILTER_EN | ML_FILTER_DIS_ALL);
     audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY);
     audio_ic_write(ML_REC_LR_BAL_VOL | 0x00);
+    audio_ic_set_lineout_onoff();
 }
 
 static void
@@ -1346,15 +1363,16 @@ audio_ic_set_lineout_vol(){
     audio_ic_write(ML_HP_AMP_VOL | vol);
 }
 
+
 static void
 audio_ic_set_lineout_onoff(){
-    if(cfg_override_audio == 0) return;
     //PDF p38
-    if(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED){
-
+    if(audio_monitoring &&
+       AUDIO_MONITORING_HEADPHONES_CONNECTED &&
+       cfg_override_audio==1){
         audio_ic_set_mute_on(100);
         
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
+        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directly change prohibited p55
 
         audio_ic_write(ML_PW_REF_PW_MNG | 0x26); //HeadPhone amp-std voltage(HPCAP pin voltage) gen circuit power on.
         audio_ic_write(ML_PW_IN_PW_MNG | ML_PW_IN_PW_MNG_BOTH ); //adc pga on
@@ -1362,29 +1380,25 @@ audio_ic_set_lineout_onoff(){
         audio_ic_write(ML_PW_SPAMP_PW_MNG | (0xFF & ~ML_PW_SPAMP_PW_MNG_ON));
         audio_ic_write(ML_HP_AMP_OUT_CTL | ML_HP_AMP_OUT_CTL_ALL_ON);
         audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON );
-        audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICR2LCH_MICR2RCH );
         audio_ic_write(ML_DVOL_CTL_FUNC_EN | ML_DVOL_CTL_FUNC_EN_ALC_FADE );
-        audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY );
         audio_ic_write(ML_PLYBAK_BOST_VOL | 0x00 );
         audio_ic_set_lineout_vol();
 
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
 
         audio_ic_set_mute_off(400);
+
     }else{
         audio_ic_set_mute_on(100);
-
+        
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
 
+        audio_ic_write(ML_PW_DAC_PW_MNG | 0); //DAC power on
+        audio_ic_write(ML_HP_AMP_OUT_CTL | 0);
+        
+        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
         audio_ic_set_mute_off(400);
     }
-}
-
-void
-call_audio_ic_set_lineout_onoff(){
-    audio_ic_set_input();
-    audio_monitoring_update(); //call audio_monitoring_force_display()
 }
 
 static void
@@ -1450,7 +1464,6 @@ audio_configure( int force )
     if (beep_playing && !(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED))
         return; // don't redirect wav playing to headphones if they are not connected
     
-    
 #ifdef CONFIG_AUDIO_REG_LOG
         audio_reg_dump( force );
         return;
@@ -1487,7 +1500,7 @@ audio_configure( int force )
     audio_ic_set_filters();
     audio_ic_set_agc();
     audio_ic_set_lineout_onoff();
-    audio_monitoring_update(); //call audio_monitoring_force_display()
+    audio_monitoring_update();
 
 #else /* ^^^^^^^CONFIG_600D^^^^^^^ vvvvv except 600D vvvvvvvv*/
 
@@ -2212,8 +2225,6 @@ audio_micpower_display( void * priv, int x, int y, int selected )
 }
 #endif
 
-PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
-
 static void audio_monitoring_force_display(int x)
 {
         prop_deliver(*(int*)(HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR), &x, 4, 0x0);
@@ -2228,6 +2239,8 @@ void audio_monitoring_display_headphones_connected_or_not()
               "disconnected");
 }
 
+PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
+
 static void audio_monitoring_update()
 {
         // kill video connect/disconnect event... or not
@@ -2240,7 +2253,6 @@ static void audio_monitoring_update()
                 audio_monitoring_display_headphones_connected_or_not();
 #ifdef CONFIG_600D
                 if(override_audio_q) msg_queue_post(override_audio_q, 1); 
-                //                audio_ic_set_lineout_onoff();
 #endif
         }
 }

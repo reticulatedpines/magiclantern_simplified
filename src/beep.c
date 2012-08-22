@@ -55,6 +55,9 @@ void play_beep(int16_t* buf, int N)
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
     PowerAudioOutput();
     audio_configure(1);
+#ifdef CONFIG_600D
+    msleep(500);
+#endif
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
     StartASIFDMADAC(buf, N, buf, N, asif_stop_cbr, N);
 }
@@ -67,6 +70,9 @@ void play_beep_ex(int16_t* buf, int N, int sample_rate)
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
     PowerAudioOutput();
     audio_configure(1);
+#ifdef CONFIG_600D
+    msleep(500);
+#endif
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
     StartASIFDMADAC(buf, N, buf, N, asif_stop_cbr, N);
 }
@@ -411,19 +417,12 @@ static void beep_task()
             while (beep_playing) msleep(100);
             FreeMemory(long_buf);
             info_led_off();
-#ifdef CONFIG_600D
-            override_post_beep();
-#endif
         }
         else if (beep_type == BEEP_SHORT)
         {
             generate_beep_tone(beep_buf, 5000);
             play_beep(beep_buf, 5000);
             while (beep_playing) msleep(20);
-#ifdef CONFIG_600D
-            msleep(500);
-            override_post_beep();
-#endif
         }
         else if (beep_type > 0) // N beeps
         {

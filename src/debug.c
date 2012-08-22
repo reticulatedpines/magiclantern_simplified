@@ -13,7 +13,6 @@
 #include "plugin.h"
 #include "version.h"
 //#include "lua.h"
-void call_audio_ic_set_lineout_onoff();
 
 #ifdef CONFIG_AUDIO_600D_DEBUG
 #ifdef CONFIG_600D
