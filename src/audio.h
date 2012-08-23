@@ -490,6 +490,12 @@ PGA volume change is applied for zero cross. */
 #define ML_MIC_PARAM10			0xa900 /* MC parameter10 */
 #define ML_MIC_PARAM11			0xab00 /* MC parameter11 */
 #define ML_SND_EFFECT_MODE		0xad00 /* Sound Effect Mode */
+ #define ML_SND_EFFECT_MODE_NOTCH	0x00
+ #define ML_SND_EFFECT_MODE_EQ		0x85
+ #define ML_SND_EFFECT_MODE_NOTCHEQ	0x02
+ #define ML_SND_EFFECT_MODE_ENHANCE_REC	0x5a
+ #define ML_SND_EFFECT_MODE_ENHANCE_RECPLAY	0xda
+ #define ML_SND_EFFECT_MODE_LOUD	0xbd
 
 
 /* ALC Control Register */

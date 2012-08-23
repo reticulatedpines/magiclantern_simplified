@@ -81,6 +81,7 @@ CONFIG_INT( "audio.hpf2config",     cfg_filter_hpf2config,7 );
 CONFIG_INT( "audio.dgain",          cfg_recdgain,         0 );
 CONFIG_INT( "audio.dgain.l",        dgain_l,              8 );
 CONFIG_INT( "audio.dgain.r",        dgain_r,              8 );
+CONFIG_INT( "audio.effect.mode",    cfg_effect_mode,      0 );
 CONFIG_INT( "audio.filters",        enable_filters,       0 ); 
 #else
 CONFIG_INT( "audio.dgain.l",    dgain_l,        0 );
@@ -443,7 +444,7 @@ meter_task( void* unused )
 {
 
 //will delete this when we finish debugging
-    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.7       ");
+    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.8       ");
     msleep(4000);
     NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
     msleep(500);
@@ -1109,7 +1110,6 @@ override_post_beep(){
     if(cfg_override_audio == 0) return;
 
     audio_ic_write(ML_MIC_IN_CHARG_TIM | 0x00);
-    audio_ic_write(ML_SND_EFFECT_MODE | 0x00);
 
     audio_configure(1);
 }
@@ -1202,6 +1202,19 @@ audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
 }
 
 static void
+audio_ic_set_effect_mode(){
+    if(cfg_override_audio == 0) return;
+    short mode[] = {  ML_SND_EFFECT_MODE_NOTCH, 
+                      ML_SND_EFFECT_MODE_EQ,
+                      ML_SND_EFFECT_MODE_NOTCHEQ,
+                      ML_SND_EFFECT_MODE_ENHANCE_REC,
+                      ML_SND_EFFECT_MODE_ENHANCE_RECPLAY,
+                      ML_SND_EFFECT_MODE_LOUD};
+
+    audio_ic_write(ML_SND_EFFECT_MODE | mode[cfg_effect_mode]);
+
+}
+static void
 audio_ic_set_analog_gain(){
     if(cfg_override_audio == 0) return;
 
@@ -1210,10 +1223,10 @@ audio_ic_set_analog_gain(){
 	if(cfg_analog_gain > 7){
         int boost_vol = cfg_analog_gain - 8;
         audio_ic_write(ML_MIC_IN_VOL   | volumes[7]);   //override mic in volume
-        audio_ic_set_micboost(boost_vol);
+        //        audio_ic_set_micboost(boost_vol);
     }else{
         audio_ic_write(ML_MIC_IN_VOL   | volumes[cfg_analog_gain]);   //override mic in volume
-        audio_ic_set_micboost(0);
+        //audio_ic_set_micboost(0);
     } 	
 }
 
@@ -1481,9 +1494,11 @@ audio_configure( int force )
     audio_set_meterlabel();
     audio_ic_set_input(MUTE_OFF);
     audio_ic_set_analog_gain();
+    audio_ic_set_micboost(cfg_analog_boost);
     audio_ic_set_recdgain();
     audio_ic_set_RecLRbalance();
     audio_ic_set_filters(MUTE_OFF);
+    audio_ic_set_effect_mode();
     audio_ic_set_agc();
     audio_ic_set_lineout_onoff(MUTE_OFF);
     audio_monitoring_update();
@@ -1965,35 +1980,34 @@ static void override_audio_toggle( void * priv, int delta )
 static void analog_gain_display( void * priv, int x, int y, int selected )
 {
     unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
-    char dbval[14][4] = {"-12", " -3", "  0", " +6", "+15", "+24", "+33", "+35","+40","+45","+50","+55","+60","+65"};
+    char dbval[14][4] = {"-12", " -3", "  0", " +6", "+15", "+24", "+33", "+35"};
     
     bmp_printf(
-               FONT(fnt, cfg_analog_gain > 7 ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
+               FONT(fnt, FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
                "Analog gain+boost : %s dB", 
                dbval[cfg_analog_gain]
                );
-    menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_gain)/13);
+    menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_gain)/7);
     
 }
 static void analog_gain_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 1, 0, 13);
+    menu_numeric_toggle(priv, 1, 0, 7);
     audio_ic_set_analog_gain();
 }
 static void analog_gain_toggle_reverse( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, -1, 0, 13);
+    menu_numeric_toggle(priv, -1, 0, 7);
     audio_ic_set_analog_gain();
 }
 
 static void analog_boost_display( void * priv, int x, int y, int selected )
 {
-    unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
     char dbval[7][4] = {"OFF","+5","+10","+15","+20","+25","+30"};
     
     bmp_printf(
-               FONT(fnt, cfg_analog_gain > 7 ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
+               selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
                "Analog mic boost : %s dB", 
                dbval[cfg_analog_boost]
@@ -2012,9 +2026,34 @@ static void analog_boost_toggle_reverse( void * priv, int delta )
     audio_ic_set_micboost(cfg_analog_boost);
 }
 
-    /*
-DSP Filter Function Enable Register p77 HPF1 HPF2
-     */
+static void audio_effect_mode_toggle( void * priv, int delta )
+{
+    menu_numeric_toggle(priv, 1, 0, 5);
+    audio_ic_set_effect_mode();
+}
+static void audio_effect_mode_toggle_reverse( void * priv, int delta )
+{
+    menu_numeric_toggle(priv, -1, 0, 5);
+    audio_ic_set_effect_mode();
+}
+static void audio_effect_mode_display( void * priv, int x, int y, int selected )
+{
+    char effectmode[6][18] = {"Notch Filter ",
+                              "EQ           ",
+                              "Notch EQ     ",
+                              "Enhnc REC    ",
+                              "Enhnc RECPLAY",
+                              "Loud         "};
+    
+    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
+               x, y,
+               "EffectMode : %s", 
+               effectmode[cfg_effect_mode]
+               );
+    //    menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_boost)/6);
+}
+
+/** DSP Filter Function Enable Register p77 HPF1 HPF2 */
 static void audio_filter_dc_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, -1, 0, 1);
@@ -2281,22 +2320,29 @@ static struct menu_entry audio_menus[] = {
             .help = "Override audio setting by ML",
         },
         {
-            .name        = "Analog gain",
-            .priv           = &cfg_analog_gain,
-            .select         = analog_gain_toggle,
-            .select_reverse = analog_gain_toggle_reverse,
-            .display        = analog_gain_display,
-            .help = "Analog gain (-12 +35 mic vol)(+40 +65 boost)",
-
-        },
-        {
-            .name        = "Mic Boost",
-            .priv           = &cfg_analog_boost,
-            .select         = analog_boost_toggle,
-            .select_reverse = analog_boost_toggle_reverse,
-            .display        = analog_boost_display,
-            .help = "TEST: Analog mic +5dB boost only",
-        
+            .name = "Analog Volumes",
+            .help = "Configure gain and boost",
+            .select = menu_open_submenu, 
+            .submenu_width = 650,
+            .children =  (struct menu_entry[]) {
+                {
+                    .name        = "Analog gain",
+                    .priv           = &cfg_analog_gain,
+                    .select         = analog_gain_toggle,
+                    .select_reverse = analog_gain_toggle_reverse,
+                    .display        = analog_gain_display,
+                    .help = "Analog gain (-12 +35 mic vol)",
+                },
+                {
+                    .name        = "Mic Boost",
+                    .priv           = &cfg_analog_boost,
+                    .select         = analog_boost_toggle,
+                    .select_reverse = analog_boost_toggle_reverse,
+                    .display        = analog_boost_display,
+                    .help = "TEST: Analog mic +5dB boost only",
+                },
+                MENU_EOL,
+            },
         },
   #else /* ^^^CONFIG_600D^^^ vvv except 600D vvv */
         {
@@ -2321,6 +2367,14 @@ static struct menu_entry audio_menus[] = {
     #endif
             .children =  (struct menu_entry[]) {
     #ifdef CONFIG_600D
+                {
+                        .name = "Sound Effect Mode",
+                        .priv           = &cfg_effect_mode,
+                        .select         = audio_effect_mode_toggle,
+                        .select_reverse = audio_effect_mode_toggle_reverse,
+                        .display        = audio_effect_mode_display,
+                        .help = "Choose mode :Notch,EQ,Notch/EQ,Enhance [12],Loudness.",
+                },
                 {
                         .name = "Record Digital Volume ",
                         .priv           = &cfg_recdgain,
