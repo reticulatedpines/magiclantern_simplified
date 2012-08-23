@@ -2292,9 +2292,6 @@ zoom_overlay_display(
     int         selected
 )
 {
-#ifdef CONFIG_1100D
-	return;
-#endif
     zoom_overlay_size = mod(zoom_overlay_size, 3);
 
     if (!zoom_overlay_enabled)
@@ -2999,7 +2996,6 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
-#if !(defined(CONFIG_1100D))
     {
         .name = "Magic Zoom",
         .priv = &zoom_overlay_enabled,
@@ -3067,7 +3063,6 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
-#endif
     {
         .name = "Cropmarks",
         .priv = &crop_enabled,
@@ -3974,7 +3969,9 @@ static void draw_zoom_overlay(int dirty)
             H = 480;
             break;
     }
-    
+#ifdef CONFIG_1100D
+    H /= 2; 
+#endif
     //~ int x2 = zoom_overlay_x2;
     int X = zoom_overlay_x + 1;
 

@@ -378,11 +378,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
     unsigned int x_origin = MAX(os.x0 + os.x_ex/2 - 360 + 50, 0);
     unsigned int y_origin = bottom - 30;
     unsigned text_font = SHADOW_FONT(FONT(FONT_LARGE, COLOR_WHITE, bg));
-#ifndef CONFIG_1100D
 	int bar_height = 35;
-#else
-	int bar_height = 45;
-#endif
     int ytop = bottom - bar_height;
 
     // start drawing to mirror buffer to avoid flicker

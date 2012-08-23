@@ -206,7 +206,7 @@ void update_vram_params()
     os.y0   = hdmi_code == 5 ?   0 - 30  : (hdmi_code == 2 ? 24 : ext_monitor_rca ? (pal ? 29 : 25) :    0);
     os.x_ex = hdmi_code == 5 ? 810 : (hdmi_code == 2 || ext_monitor_rca) ? 640 : 720;
     os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || ext_monitor_rca) ? 388 : 480;
-#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
+#if defined(CONFIG_4_3_SCREEN)
     if (!EXT_MONITOR_CONNECTED)
     {
         if (PLAY_MODE || QR_MODE)

@@ -1,4 +1,4 @@
-// constants for 1100D 1.0.4
+// constants for 1100D 1.0.5
 #include "consts-600d.101.h"
 #define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
@@ -29,8 +29,10 @@
 #define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x408cb600 ) // quick check if x looks like a valid HD buffer
 
 // PLACEHOLDER UNTIL WE GET THE REAL VALUES
-#define YUV422_LV_BUFFER_DMA_ADDR 0x41ae8e50
-#define YUV422_HD_BUFFER_DMA_ADDR 0x468cb600
+#define FIX_DMA_ADDR(x) ((x) | 0x40000000)
+//#define YUV422_LV_BUFFER_DMA_ADDR (FIX_DMA_ADDR(shamem_read(0xc0f04308)))
+#define YUV422_LV_BUFFER_DMA_ADDR (MEM(0x238C+0xAC))
+#define YUV422_HD_BUFFER_DMA_ADDR (FIX_DMA_ADDR(shamem_read(0xc0f04208)))
 
 // AV / AE COMP button 
 #define BGMT_AV (event->type == 0 && event->param == 0x61 && ( \

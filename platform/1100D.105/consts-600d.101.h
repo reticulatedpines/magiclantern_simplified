@@ -1,15 +1,3 @@
-#ifndef CONFIG_1100D
-#define CARD_DRIVE "B:/"
-
-#define HIJACK_INSTR_BL_CSTART  0xff01019c
-#define HIJACK_INSTR_BSS_END 0xff0110d0
-#define HIJACK_FIXBR_BZERO32 0xff011038
-#define HIJACK_FIXBR_CREATE_ITASK 0xff0110c0
-#define HIJACK_INSTR_MY_ITASK 0xff0110dc
-#define HIJACK_TASK_ADDR 0x1a2c
-#define BGMT_TRASH 0xD // old value for BGMT_PRESS_ZOOMOUT_MAYBE, was 0xA
-#endif
-
 // BGMT Button codes as received by gui_main_task
 
 #define BGMT_BUTTON_HANDLING_EVENT_TYPE 0 // Event type for button handing
@@ -24,8 +12,6 @@
 #define BGMT_UNKNOWN7 0x58
 #define BGMT_UNKNOWN8 0x59
 #define BGMT_UNKNOWN9 0x61
-
-
 
 #define BGMT_MENU 6 // same
 #define BGMT_INFO 7 // new, old value for BGMT_DISP
@@ -52,23 +38,15 @@
 #define BGMT_PRESS_DOWN 0x29 // was 0x20
 #define BGMT_UNPRESS_DOWN 0x2A // was 0x21
 
-
 #define BGMT_ISO 0x33 // new
-
-
 
 #define BGMT_PRESS_HALFSHUTTER 0x48 // was 0x3F, shared with magnify/zoom out
 #define BGMT_UNPRESS_HALFSHUTTER 0x49 // was 0x40, shared with magnify/zoom out, shared with unpress full shutter?
 #define BGMT_PRESS_FULLSHUTTER 0x52    // was 0x41, can't return 0 to block this (to verify)...
 
-
-
 #define BGMT_SHUTDOWN 0x53 // new
 
-
-
 // these were found in ROM, but not tested yet
-
 #define MVR_992_STRUCT (*(void**)0x1e44) // look in MVR_Initialize for AllocateMemory call
 
 #define MEM(x) (*(int*)(x))
@@ -89,161 +67,49 @@
 #define MOV_OPT_STEP 5
 #define MOV_GOP_OPT_STEP 5
 
-//#define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1a8c // this prop_deliver performs the action for Video Connect and Video Disconnect
 #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1ac4 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
 
-
 // 720x480, changes when external monitor is connected
-#ifndef CONFIG_1100D
-#define YUV422_LV_BUFFER 0x40d07800 
-#define YUV422_LV_BUFFER_2 0x4c233800
-#define YUV422_LV_BUFFER_3 0x4f11d800
-#endif
-#define YUV422_LV_PITCH 1440
- //~ #define YUV422_LV_PITCH_RCA 1080
- //~ #define YUV422_LV_PITCH_HDMI 3840
- //~ #define YUV422_LV_HEIGHT 480
- //~ #define YUV422_LV_HEIGHT_RCA 540
- //~ #define YUV422_LV_HEIGHT_HDMI 1080
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Below this line, all constant are from 550D/T2i 1.0.9 and not yet confirmed for 600D/T3i 1.0.1 !!!
 
-#ifndef CONFIG_1100D
-#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x2490)
-#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x73620)
+#define YUV422_HD_PITCH_IDLE 2112
+#define YUV422_HD_HEIGHT_IDLE 704
 
-// changes during record
- #define YUV422_HD_BUFFER 0x44000080
- #define YUV422_HD_BUFFER_2 0x46000080
-#endif
- #define YUV422_HD_PITCH_IDLE 2112
- #define YUV422_HD_HEIGHT_IDLE 704
+#define YUV422_HD_PITCH_ZOOM 2048
+#define YUV422_HD_HEIGHT_ZOOM 680
 
- #define YUV422_HD_PITCH_ZOOM 2048
- #define YUV422_HD_HEIGHT_ZOOM 680
-
- #define YUV422_HD_PITCH_REC_FULLHD 3440
- #define YUV422_HD_HEIGHT_REC_FULLHD 974
+#define YUV422_HD_PITCH_REC_FULLHD 3440
+#define YUV422_HD_HEIGHT_REC_FULLHD 974
 
 // guess
- #define YUV422_HD_PITCH_REC_720P 2560
- #define YUV422_HD_HEIGHT_REC_720P 580
+#define YUV422_HD_PITCH_REC_720P 2560
+#define YUV422_HD_HEIGHT_REC_720P 580
 
- #define YUV422_HD_PITCH_REC_480P 1280
- #define YUV422_HD_HEIGHT_REC_480P 480
+#define YUV422_HD_PITCH_REC_480P 1280
+#define YUV422_HD_HEIGHT_REC_480P 480
 
-#ifndef CONFIG_1100D
-#define FOCUS_CONFIRMATION (*(int*)0x479C) 
-#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bdc) // same as 60D
-#endif
-//~ #define DISPLAY_SENSOR (*(int*)0x2dec)
-//~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)
- #define DISPLAY_SENSOR_POWERED (*(int*)0x3138)
+#define DISPLAY_SENSOR_POWERED (*(int*)0x3138)
 
-#ifndef CONFIG_1100D
-// for gui_main_task
-#define GMT_NFUNCS 7
-#define GMT_FUNCTABLE 0xff56dccc
-#endif
-
-
- #define SENSOR_RES_X 5184
- #define SENSOR_RES_Y 3456
+#define SENSOR_RES_X 5184
+#define SENSOR_RES_Y 3456
 
 #define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x61 && is_movie_mode() && event->arg == 9)
 #define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
 #define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000) == 0)
 #define FLASH_BTN_MOVIE_MODE get_flash_movie_pressed()
 
- #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
+#define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
- #define AJ_LCD_Palette 0x2CDB0
+#define AJ_LCD_Palette 0x2CDB0
 
+#define COLOR_FG_NONLV 80
 
+#define MOV_REC_STATEOBJ (*(void**)0x5B34)
+#define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
 
-
- #define COLOR_FG_NONLV 80
-
-
-
-
- #define MOV_REC_STATEOBJ (*(void**)0x5B34)
- #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
- 
 #define AE_VALUE (*(int8_t*)0x7E14)
-#ifndef CONFIG_1100D
-#define CURRENT_DIALOG_MAYBE (*(int*)0x3ef4) // GUIMode_maybe
-#define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5B28) == 0xF) || ((*(int8_t*)0xC84C) != 0x17))
-#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5B28) == 0xF)
-#define SHOOTING_MODE (*(int*)0x3364)
-#define DLG_WB 5
-#define DLG_FOCUS_MODE 9
-#define DLG_DRIVE_MODE 8
-#define DLG_PICTURE_STYLE 4
-#define DLG_PLAY 1
-#define DLG_MENU 2
-#define DLG_Q_UNAVI 0x1F
-#define DLG_FLASH_AE 0x22
-#define DLG_PICQ 6
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1e)
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1f)
-
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
-#endif
-
 #define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
 // position for displaying shutter count and other info
@@ -288,9 +154,3 @@
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x8490) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
-//~ #define IMGPLAY_ZOOM_POS_X MEM(0x762C4) // Zoom CentrePos
-//~ #define IMGPLAY_ZOOM_POS_Y MEM(0x762C8)
-//~ #define IMGPLAY_ZOOM_POS_X_CENTER 0x144
-//~ #define IMGPLAY_ZOOM_POS_Y_CENTER 0xd8
-//~ #define IMGPLAY_ZOOM_POS_DELTA_X (0x144 - 0x93)
-//~ #define IMGPLAY_ZOOM_POS_DELTA_Y (0xd8 - 0x7d)
