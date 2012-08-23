@@ -2541,9 +2541,10 @@ static void spotmeter_step()
     
     if (spotmeter_position == 1) // AF frame
     {
-        get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
-        xcb += os.x0;
-        ycb += os.y0;
+        int aff_x0, aff_y0; 
+        get_afframe_pos(720, 480, &aff_x0, &aff_y0);
+        xcb = N2BM_X(aff_x0);
+        ycb = N2BM_Y(aff_y0);
         xcb = COERCE(xcb, os.x0 + 50, os.x_max - 50);
         ycb = COERCE(ycb, os.y0 + 50, os.y_max - 50);
     }
