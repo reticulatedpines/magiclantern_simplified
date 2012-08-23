@@ -1550,7 +1550,7 @@ draw_zebra_and_focus( int Z, int F )
         dirty_pixels_num = 0;
         
         struct vram_info *hd_vram = get_yuv422_hd_vram();
-        uint32_t hdvram = (uint32_t)UNCACHEABLE(hd_vram->vram);
+        uint32_t hdvram = (uint32_t)CACHEABLE(hd_vram->vram);
         
         int yStart = os.y0 + os.off_169 + 8;
         int yEnd = os.y_max - os.off_169 - 8;
