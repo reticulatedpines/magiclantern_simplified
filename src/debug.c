@@ -532,26 +532,6 @@ void iso_movie_test()
 
 void run_test()
 {
-	gui_stop_menu();
-	msleep(1000);
-	void* digic_addr_base = 0xc0f04008;
-#define read_addr_digic(x) ((void*)UNCACHEABLE(shamem_read(x)))
-    FILE* f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/VRAM0.LOG");
-    int i;
-        for (i=0; i<0xff; i++) 
-        my_fprintf( f, "stateobj_disp+0x%02x=0x%08x\n", i, read_addr_digic(digic_addr_base+(i<<4)));
-
-    FIO_CloseFile(f);
-    f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/VRAM1.LOG");
-        for (i=0; i<0xff; i++)
-        my_fprintf( f, "stateobj_disp+0x%02x=0x%08x\n", i, read_addr_digic(digic_addr_base+(i<<4)));
-
-    FIO_CloseFile(f);
-    f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/VRAM2.LOG");
-        for (i=0; i<0xff; i++)
-        my_fprintf( f, "stateobj_disp+0x%02x=0x%08x\n", i, read_addr_digic(digic_addr_base+(i<<4)));
-
-    FIO_CloseFile(f);
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
