@@ -276,7 +276,7 @@ static void hdr_init()
 
 INIT_FUNC("hdr", hdr_init);
 
-void hdr_mvr_log(char* mvr_logfile_buffer_cached)
+void hdr_mvr_log(char* mvr_logfile_buffer)
 {
     if (hdrv_enabled)
     {

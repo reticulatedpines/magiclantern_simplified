@@ -1243,7 +1243,7 @@ TASK_CREATE("fps_task", fps_task, 0, 0x1c, 0x1000 );
 #endif
 
 
-void fps_mvr_log(char* mvr_logfile_buffer_cached)
+void fps_mvr_log(char* mvr_logfile_buffer)
 {
     int f = fps_get_current_x1000();
     MVR_LOG_APPEND (

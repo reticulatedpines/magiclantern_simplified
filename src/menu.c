@@ -2630,7 +2630,6 @@ void config_menu_save_hidden_items()
 
     #define MAX_SIZE 10240
     char* msg = alloc_dma_memory(MAX_SIZE);
-    char* msgc = CACHEABLE(msg);
     msg[0] = '\0';
 
     struct menu * menu = menus;
@@ -2643,7 +2642,7 @@ void config_menu_save_hidden_items()
         {
             if (!IS_VISIBLE(entry))
             {
-                snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc) - 1, "%s\\%s\n", menu->name, entry->name);
+                snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1, "%s\\%s\n", menu->name, entry->name);
             }
         }
     }
@@ -2652,7 +2651,7 @@ void config_menu_save_hidden_items()
     if( file == INVALID_PTR )
         return;
     
-    FIO_WriteFile(file, msg, strlen(msgc));
+    FIO_WriteFile(file, msg, strlen(msg));
 
     FIO_CloseFile( file );
 }
@@ -2661,7 +2660,6 @@ void config_menu_save_hidden_items()
 {
     #define MAX_SIZE 10240
     char* msg = alloc_dma_memory(MAX_SIZE);
-    char* msgc = CACHEABLE(msg);
     msg[0] = '\0';
 
     int unnamed = 0;
@@ -2673,7 +2671,7 @@ void config_menu_save_hidden_items()
         int i;
         for(i = 0 ; entry ; entry = entry->next, i++ )
         {
-            snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc) - 1, "%s\\%s\n", menu->name, entry->name);
+            snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1, "%s\\%s\n", menu->name, entry->name);
             if (strlen(entry->name) == 0 || strlen(menu->name) == 0) unnamed++;
         }
     }
@@ -2682,7 +2680,7 @@ void config_menu_save_hidden_items()
     if( file == INVALID_PTR )
         return;
     
-    FIO_WriteFile(file, msg, strlen(msgc));
+    FIO_WriteFile(file, msg, strlen(msg));
 
     FIO_CloseFile( file );
     
