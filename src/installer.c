@@ -659,3 +659,6 @@ void CheckBmpReleaseRecursiveLock(){};
 
 void afframe_set_dirty(){};
 void draw_line(){};
+
+int display_filter_enabled() { return 0; };
+void display_filter_get_buffers() {};

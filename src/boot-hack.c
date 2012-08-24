@@ -61,6 +61,7 @@ int autoboot_loaded;
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
 
+/** Zeroes out bss */
 static inline void
 zero_bss( void )
 {
@@ -70,10 +71,13 @@ zero_bss( void )
 }
 
 
+/** Copy firmware to RAM, patch it and restart it */
 void
 __attribute__((noreturn,noinline,naked))
 copy_and_restart( int offset )
 {
+    
+    // Clear bss
     zero_bss();
 
     // Set the flag if this was an autoboot load
@@ -155,6 +159,7 @@ copy_and_restart( int offset )
 
 #ifndef CONFIG_EARLY_PORT
 
+/** This task does nothing */
 void
 null_task( void )
 {
@@ -208,7 +213,8 @@ my_task_dispatch_hook(
 }
 
 
-/** First task after a fresh rebuild.
+/** 
+ * First task after a fresh rebuild.
  *
  * Try to dump the debug log after ten seconds.
  * This requires the create_task(), dmstart(), msleep() and dumpf()
@@ -232,10 +238,10 @@ struct config * global_config;
 static volatile int init_funcs_done;
 
 
+/** Call all of the init functions  */
 static void
 call_init_funcs( void * priv )
 {
-    // Call all of the init functions
     extern struct task_create _init_funcs_start[];
     extern struct task_create _init_funcs_end[];
     struct task_create * init_func = _init_funcs_start;
@@ -260,7 +266,7 @@ static void nop( void ) { }
 void menu_init( void ) __attribute__((weak,alias("nop")));
 void debug_init( void ) __attribute__((weak,alias("nop")));
 
-int magic_off = 0;
+int magic_off = 0; // Set to 1 to disable ML
 int magic_off_request = 0;
 int magic_is_off() 
 {
@@ -290,6 +296,7 @@ void my_big_init_task()
     return;
 */
 
+    // Read ML config
     config_parse_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
     debug_init_stuff();
 
@@ -371,6 +378,7 @@ void my_big_init_task()
     stop_killing_flicker();
 }*/
 
+/** Blocks execution until config is read */
 void hold_your_horses(int showlogo)
 {
     while (_hold_your_horses)

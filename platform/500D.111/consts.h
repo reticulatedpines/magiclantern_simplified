@@ -197,7 +197,7 @@
 #define DISPLAY_TRAP_FOCUS_POS_X 401
 #define DISPLAY_TRAP_FOCUS_POS_Y 326
 #define DISPLAY_TRAP_FOCUS_MSG       " TRAP  \n FOCUS "
-//#define DISPLAY_TRAP_FOCUS_MSG_BLANK "       \n       " // not needed, camera redraws the place itself
+#define DISPLAY_TRAP_FOCUS_MSG_BLANK "       \n       " // not needed, camera redraws the place itself
 
 #define NUM_PICSTYLES 9
 #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)

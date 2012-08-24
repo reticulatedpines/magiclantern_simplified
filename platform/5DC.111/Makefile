@@ -54,6 +54,7 @@ ML_OBJS-y = \
 	aj_port.o \
 	state-object.o \
 	tasks.o \
+	beep.o \
 
 
 #include generic rules and definitions

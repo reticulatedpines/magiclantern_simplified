@@ -29,7 +29,7 @@
 #include "gui.h"
 
 
-#if defined(CONFIG_50D) || defined(CONFIG_1100D)
+#if defined(CONFIG_50D)
 #include "disable-this-module.h"
 #endif
 
@@ -39,7 +39,7 @@
 int audio_thresholds[] = { 0x7fff, 0x7213, 0x65ab, 0x5a9d, 0x50c2, 0x47fa, 0x4026, 0x392c, 0x32f4, 0x2d6a, 0x2879, 0x2412, 0x2026, 0x1ca7, 0x1989, 0x16c2, 0x1449, 0x1214, 0x101d, 0xe5c, 0xccc, 0xb68, 0xa2a, 0x90f, 0x813, 0x732, 0x66a, 0x5b7, 0x518, 0x48a, 0x40c, 0x39b, 0x337, 0x2dd, 0x28d, 0x246, 0x207, 0x1ce, 0x19c, 0x16f, 0x147 };
 #endif
 
-static void audio_configure(int force);
+ void audio_configure(int force);
 static void volume_display();
 
 static void audio_monitoring_display_headphones_connected_or_not();
@@ -83,6 +83,7 @@ CONFIG_INT("audio.monitoring", audio_monitoring, 0);
 CONFIG_INT("audio.monitoring", audio_monitoring, 1);
 #endif
 int do_draw_meters = 0;
+
 
 /*
 int ext_cfg_draw_meters(void)
@@ -341,7 +342,7 @@ static void draw_meters(void)
         {
                 draw_meter( x0, y0 + 0, 10, &audio_levels[0], left_label);
                 draw_ticks( x0, y0 + 10, 3 );
-#ifndef CONFIG_500D         // mono mic on 500d :(
+#if !(defined(CONFIG_500D) || defined(CONFIG_1100D))         // mono mic on 500d and 1100d
                 draw_meter( x0, y0 + 12, 10, &audio_levels[1], right_label);
 #endif
         }
@@ -349,7 +350,7 @@ static void draw_meters(void)
         {
                 draw_meter( x0, y0 + 0, 7, &audio_levels[0], left_label);
                 draw_ticks( x0, y0 + 7, 2 );
-#ifndef CONFIG_500D
+#if !(defined(CONFIG_500D) || defined(CONFIG_1100D))
                 draw_meter( x0, y0 + 8, 7, &audio_levels[1], right_label);
 #endif
         }
@@ -414,8 +415,6 @@ int audio_meters_are_drawn()
 static void
 meter_task( void* unused )
 {
-        audio_menus_init();
-        
         TASK_LOOP
         {
                 msleep(DISPLAY_IS_ON ? 50 : 500);
@@ -825,9 +824,16 @@ int get_mic_power(int input_source)
         return (input_source >= 2) ? mic_power : 1;
 }
 
-static void
+ void
 audio_configure( int force )
 {
+    extern int beep_playing;
+    if (beep_playing && !(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED))
+        return; // don't redirect wav playing to headphones if they are not connected
+    
+    // redirect wav playing to headphones if they are connected
+    int loopback0 = beep_playing ? 0 : loopback;
+    
 #ifdef CONFIG_600D
         return;
 #endif
@@ -869,7 +875,9 @@ audio_configure( int force )
                         snprintf(right_label, sizeof(right_label), "R BAL");
                         break;
         }
-    
+#ifdef CONFIG_1100D
+		return;
+#endif
         if( !force )
         {
                 // Check for ALC configuration; do nothing if it is
@@ -935,7 +943,7 @@ audio_configure( int force )
         mode3 &= ~0x5C; // disable loop, olvc, datt0/1
         audio_ic_write( AUDIO_IC_MODE3
                                    | mode3                              // old value
-                                   | loopback << 6              // loop mode
+                                   | loopback0 << 6              // loop mode
                                    | (o2gain & 0x3) << 2        // output volume
                                    );
 #endif
@@ -1075,8 +1083,8 @@ audio_dgain_display( void * priv, int x, int y, int selected )
                FONT(fnt, val ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
                // 23456789012
-               "%s-DigitalGain : %d dB",
-               priv == &dgain_l ? "L" : "R",
+               "%s Digital Gain : %d dB",
+               priv == &dgain_l ? "Left " : "Right",
                val
                );
         check_sound_recording_warning(x, y);
@@ -1142,7 +1150,7 @@ audio_alc_display( void * priv, int x, int y, int selected )
                FONT(fnt, alc_enable ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
                //23456789012
-               "AGC           : %s",
+               "AGC                : %s",
                alc_enable ? "ON " : "OFF"
                );
         check_sound_recording_warning(x, y);
@@ -1295,7 +1303,7 @@ static void
 }
 
 static struct menu_entry audio_menus[] = {
-#ifndef CONFIG_600D
+#if !(defined(CONFIG_600D) || defined(CONFIG_1100D))
 #if 0
         {
                 .priv           = &o2gain,
@@ -1315,22 +1323,39 @@ static struct menu_entry audio_menus[] = {
         },
 #ifndef CONFIG_500D
         {
-                .name = "L-DigitalGain",
-                .priv           = &dgain_l,
-                .select         = audio_dgain_toggle,
-                .select_reverse = audio_dgain_toggle_reverse,
-                .display        = audio_dgain_display,
-                .help = "Digital gain (LEFT). Any nonzero value reduces quality.",
-                .edit_mode = EM_MANY_VALUES,
-        },
-        {
-                .name = "R-DigitalGain",
-                .priv           = &dgain_r,
-                .select         = audio_dgain_toggle,
-                .select_reverse = audio_dgain_toggle_reverse,
-                .display        = audio_dgain_display,
-                .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
-                .edit_mode = EM_MANY_VALUES,
+            .name = "Digital Gain...", 
+            .select = menu_open_submenu, 
+            .help = "Digital gain (not recommended, use only for headphones!)",
+            .children =  (struct menu_entry[]) {
+                {
+                        .name = "Left Digital Gain ",
+                        .priv           = &dgain_l,
+                        .select         = audio_dgain_toggle,
+                        .select_reverse = audio_dgain_toggle_reverse,
+                        .display        = audio_dgain_display,
+                        .help = "Digital gain (LEFT). Any nonzero value reduces quality.",
+                        .edit_mode = EM_MANY_VALUES,
+                },
+                {
+                        .name = "Right Digital Gain",
+                        .priv           = &dgain_r,
+                        .select         = audio_dgain_toggle,
+                        .select_reverse = audio_dgain_toggle_reverse,
+                        .display        = audio_dgain_display,
+                        .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
+                        .edit_mode = EM_MANY_VALUES,
+                },
+                {
+                        .name = "AGC",
+                        .priv           = &alc_enable,
+                        .select         = audio_binary_toggle,
+                        .display        = audio_alc_display,
+                        .help = "Automatic Gain Control - turn it off :)",
+                        //~ .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
+                        //.essential = FOR_MOVIE, // nobody needs to toggle this, but newbies want to see "AGC:OFF", manual controls are not enough...
+                },
+                MENU_EOL,
+            },
         },
 #endif
 #ifndef CONFIG_500D
@@ -1383,15 +1408,6 @@ static struct menu_entry audio_menus[] = {
                 //.essential = FOR_MOVIE,
         },
         {
-                .name = "AGC",
-                .priv           = &alc_enable,
-                .select         = audio_binary_toggle,
-                .display        = audio_alc_display,
-                .help = "Automatic Gain Control - turn it off :)",
-                //~ .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
-                //.essential = FOR_MOVIE, // nobody needs to toggle this, but newbies want to see "AGC:OFF", manual controls are not enough...
-        },
-        {
                 .name = "Output volume",
                 .priv           = &lovl,
                 .select         = audio_3bit_toggle,
@@ -1442,6 +1458,12 @@ enable_recording(
             // Uh?
             break;
         }
+}
+
+// to be called from some other tasks that may mess with audio 
+void audio_force_reconfigure() 
+{
+    give_semaphore( gain.sem ); 
 }
 
 static void
@@ -1687,11 +1709,7 @@ void input_toggle()
 
 static void audio_menus_init()
 {
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
-        menu_add( "Audio", audio_menus, COUNT(audio_menus) );
-#else
-        menu_add( "Display", audio_menus, COUNT(audio_menus) );
-#endif
+    menu_add( "Audio", audio_menus, COUNT(audio_menus) );
 }
 
 /* Dump audio for 600D
@@ -1722,3 +1740,5 @@ void audio_reg_dump_600D()
 }
 #endif
 */
+
+INIT_FUNC("audio.init", audio_menus_init);

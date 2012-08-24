@@ -206,10 +206,9 @@ config_save_file(
     
     #define MAX_SIZE 10240
     char* msg = alloc_dma_memory(MAX_SIZE);
-    char* msgc = CACHEABLE(msg);
     msg[0] = '\0';
   
-    snprintf( msgc, MAX_SIZE,
+    snprintf( msg, MAX_SIZE,
         "# Magic Lantern %s (%s)\n"
         "# Built on %s by %s\n",
         build_version,
@@ -221,7 +220,7 @@ config_save_file(
     struct tm now;
     LoadCalendarFromRTC( &now );
 
-    snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
+    snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg),
         "# Configuration saved on %04d/%02d/%02d %02d:%02d:%02d\n",
         now.tm_year + 1900,
         now.tm_mon + 1,
@@ -234,13 +233,13 @@ config_save_file(
     for( ; var < _config_vars_end ; var++ )
     {
         if( var->type == 0 )
-            snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc) - 1,
+            snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1,
                 "%s = %d\r\n",
                 var->name,
                 *(unsigned*) var->value
             );
         else
-            snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc) - 1,
+            snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1,
                 "%s = %s\r\n",
                 var->name,
                 *(const char**) var->value
@@ -253,7 +252,7 @@ config_save_file(
     if( file == INVALID_PTR )
         return -1;
     
-    FIO_WriteFile(file, msg, strlen(msgc));
+    FIO_WriteFile(file, msg, strlen(msg));
 
     FIO_CloseFile( file );
     return count;

@@ -1,12 +1,13 @@
 #generic makefile
 
+EABI=none-eabi
 ARM_PATH=~/arm-toolchain462
 ARM_BINPATH=$(ARM_PATH)/bin
 GCC_VERSION=4.6.2
-CC=$(ARM_BINPATH)/arm-elf-gcc-$(GCC_VERSION)
-OBJCOPY=$(ARM_BINPATH)/arm-elf-objcopy
-AR=$(ARM_BINPATH)/arm-elf-ar
-RANLIB=$(ARM_BINPATH)/arm-elf-ranlib
+CC=$(ARM_BINPATH)/arm-$(EABI)-gcc-$(GCC_VERSION)
+OBJCOPY=$(ARM_BINPATH)/arm-$(EABI)-objcopy
+AR=$(ARM_BINPATH)/arm-$(EABI)-ar
+RANLIB=$(ARM_BINPATH)/arm-$(EABI)-ranlib
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall

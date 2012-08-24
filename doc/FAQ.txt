@@ -160,7 +160,7 @@ Does ML do any persistent changes to my camera?
 * Autofocus is moved temporarily to back (``*``) button whenever ML has to take a picture without autofocusing. This includes HDR bracketing and bulb exposures.
 * Autofocus is moved temporarily to half-shutter when you use `AF patterns`_, while changing the AF point;
 * Sound recording is disabled temporarily when you use `FPS override`_;
-* On 600D, video mode may be changed via ML shortcut key;
+* On 600D, video mode (3x crop vs 1x non-crop) may be changed via ML shortcut key;
 * On 50D, movie recording function is changed from ML menu (yes, this is a persistent Canon setting, but it's not present in Canon menus).
 
 With few exceptions, these settings can also be changed from Canon menus or controls.

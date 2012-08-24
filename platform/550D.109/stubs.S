@@ -296,3 +296,15 @@ NSTUB(0xff06c9ec, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff06c434, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature
 
 NSTUB(0xff1d8a3c, AJ_UserLevel_task)
+
+NSTUB(0xff064eb8, PlayWaveData) // args: sampling rate, bit, channel, size maybe; wav data ptr is at 0x26F8
+
+NSTUB(0xff064114, PowerAudioOutput)
+NSTUB(0xff051afc, StartASIFDMADAC)
+NSTUB(0xff051950, StartASIFDMAADC)
+NSTUB(0xFF052114, SetNextASIFADCBuffer)
+NSTUB(0xFF0521CC, SetNextASIFDACBuffer)
+NSTUB(0xff051bd0, StopASIFDMADAC)
+NSTUB(0xff052088, SetNextASIFADCBuffer)
+NSTUB(0xff06419c, SetSamplingRate )
+NSTUB(0xff063ea8, SetAudioVolumeOut)

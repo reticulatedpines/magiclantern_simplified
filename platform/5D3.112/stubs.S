@@ -177,3 +177,10 @@ NSTUB(0xff1064c8, PD_RemoteRelease)
 NSTUB(0x25114, task_max)
 NSTUB(0xFF9F8800 - RAM_OFFSET, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xff9ef81c - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
+
+NSTUB(0xFF1378CC, PowerAudioOutput)
+NSTUB(0xff10ec58, StartASIFDMADAC)
+NSTUB(0xff10ed30, StopASIFDMADAC)
+NSTUB(0xff137964, SetSamplingRate )
+NSTUB(0xff137064, SetAudioVolumeOut)
+

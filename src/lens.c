@@ -361,8 +361,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
     if (screen_layout == SCREENLAYOUT_3_2_or_4_3) bottom = os.y_max;
     else if (screen_layout == SCREENLAYOUT_16_9) bottom = os.y_max - os.off_169;
     else if (screen_layout == SCREENLAYOUT_16_10) bottom = os.y_max - os.off_1610;
-        else if (screen_layout == SCREENLAYOUT_UNDER_3_2) bottom = MIN(os.y_max + 54, 480);
-        else if (screen_layout == SCREENLAYOUT_UNDER_16_9) bottom = MIN(os.y_max - os.off_169 + 54, 480);
+    else if (screen_layout == SCREENLAYOUT_UNDER_3_2) bottom = MIN(os.y_max + 54, 480);
+    else if (screen_layout == SCREENLAYOUT_UNDER_16_9) bottom = MIN(os.y_max - os.off_169 + 54, 480);
 
     if (gui_menu_shown())
         bottom = 480 + (hdmi_code == 5 ? 40 : 0); // force it at the bottom of menu
@@ -378,16 +378,16 @@ void draw_ml_bottombar(int double_buffering, int clear)
     unsigned int x_origin = MAX(os.x0 + os.x_ex/2 - 360 + 50, 0);
     unsigned int y_origin = bottom - 30;
     unsigned text_font = SHADOW_FONT(FONT(FONT_LARGE, COLOR_WHITE, bg));
-
-    int ytop = bottom - 35;
+	int bar_height = 35;
+    int ytop = bottom - bar_height;
 
     // start drawing to mirror buffer to avoid flicker
     if (double_buffering)
-        double_buffering_start(ytop, 35);
+        double_buffering_start(ytop, bar_height);
 
     if (clear)
     {
-        ml_bar_clear(ytop, 35);
+        ml_bar_clear(ytop, bar_height);
     }
 
     // mark the BV mode somehow
@@ -677,7 +677,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
         else
             bmp_printf( text_font, x_origin + 360, y_origin,
                 "%s ",
-                //~ (uniwb_is_active()      ? " UniWB" :
+                (uniwb_is_active()      ? " UniWB" :
                 (lens_info.wb_mode == 0 ? "AutoWB" : 
                 (lens_info.wb_mode == 1 ? " Sunny" :
                 (lens_info.wb_mode == 2 ? "Cloudy" : 
@@ -686,7 +686,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                 (lens_info.wb_mode == 5 ? " Flash" : 
                 (lens_info.wb_mode == 6 ? "Custom" : 
                 (lens_info.wb_mode == 8 ? " Shade" :
-                 "unk"))))))))
+                 "unk")))))))))
             );
         
         int gm = lens_info.wbs_gm;
@@ -798,7 +798,7 @@ end:
 
     if (double_buffering)
     {
-        double_buffering_end(ytop, 35);
+        double_buffering_end(ytop, bar_height);
     }
 
     // this is not really part of the bottom bar, but it's close to it :)
@@ -1139,7 +1139,7 @@ lens_take_picture(
     mlu_lock_mirror_if_needed();
 
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-    if (get_mlu() && !lv)
+    if (get_mlu())
     {
         SW1(1,50);
         SW2(1,250);
@@ -1186,8 +1186,6 @@ mvr_update_logfile(
 {
     if( mvr_logfile_buffer == 0 )
         return;
-
-    char* mvr_logfile_buffer_cached = CACHEABLE(mvr_logfile_buffer);
 
     static unsigned last_iso;
     static unsigned last_shutter;
@@ -1278,9 +1276,8 @@ mvr_create_logfile(
 
     // Movie starting
     mvr_logfile_buffer = alloc_dma_memory(MVR_LOG_BUF_SIZE);
-    char* mvr_logfile_buffer_cached = CACHEABLE(mvr_logfile_buffer);
 
-    snprintf( mvr_logfile_buffer_cached, MVR_LOG_BUF_SIZE,
+    snprintf( mvr_logfile_buffer, MVR_LOG_BUF_SIZE,
         "# Magic Lantern %s\n\n",
         build_version
     );
@@ -1343,9 +1340,9 @@ mvr_create_logfile(
         ABS(lens_get_color_tone()) < 10 ? lens_get_color_tone() : 0
         );
 
-    fps_mvr_log(mvr_logfile_buffer_cached);
-    hdr_mvr_log(mvr_logfile_buffer_cached);
-    bitrate_mvr_log(mvr_logfile_buffer_cached);
+    fps_mvr_log(mvr_logfile_buffer);
+    hdr_mvr_log(mvr_logfile_buffer);
+    bitrate_mvr_log(mvr_logfile_buffer);
     
     MVR_LOG_APPEND (
         "\n\nCSV data:\n%s\n",

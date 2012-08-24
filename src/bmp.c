@@ -844,13 +844,13 @@ uint8_t* read_entire_file(const char * filename, int* buf_size)
         DebugMsg( DM_MAGIC, 3, "%s: alloc_dma_memory failed", filename );
         goto malloc_fail;
     }
-    size_t rc = read_file( filename, UNCACHEABLE(buf), size );
+    size_t rc = read_file( filename, buf, size );
     if( rc != size )
         goto read_fail;
 
     *buf_size = size;
 
-    return CACHEABLE(buf);
+    return buf;
 
 //~ fail_buf_copy:
 read_fail:

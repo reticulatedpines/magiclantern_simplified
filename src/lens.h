@@ -32,7 +32,7 @@
 
 // for movie logging
 #define MVR_LOG_BUF_SIZE 8192
-#define MVR_LOG_APPEND(...) snprintf(mvr_logfile_buffer_cached + strlen(mvr_logfile_buffer_cached), MVR_LOG_BUF_SIZE - strlen(mvr_logfile_buffer_cached) - 2, ## __VA_ARGS__ );
+#define MVR_LOG_APPEND(...) snprintf(mvr_logfile_buffer + strlen(mvr_logfile_buffer), MVR_LOG_BUF_SIZE - strlen(mvr_logfile_buffer) - 2, ## __VA_ARGS__ );
 
 int get_htp();
 

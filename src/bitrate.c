@@ -153,7 +153,7 @@ bitrate_print(
     }
 }
 
-void bitrate_mvr_log(char* mvr_logfile_buffer_cached)
+void bitrate_mvr_log(char* mvr_logfile_buffer)
 {
     if (bitrate_mode == 1)
     {

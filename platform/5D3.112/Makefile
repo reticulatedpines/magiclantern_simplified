@@ -56,6 +56,7 @@ ML_OBJS-y = \
 	state-object.o \
 	hdr.o \
 	lv-img-engio.o \
+	beep.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

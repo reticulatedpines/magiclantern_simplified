@@ -159,6 +159,7 @@ NSTUB(   0x38920, vram_info)
 NSTUB(0xFF9B7324, vsnprintf)
 NSTUB(0xFFAAEEB8, LiveViewApp_handler)
 NSTUB(0xffac3964, PlayMain_handler)
+NSTUB(0xffb74e8c, PlayMovieGuideApp_handler)
 NSTUB(0xffac7ac8, OlcAFFrameApp_handler)
 NSTUB(0xdeadbeef, ErrCardForLVApp_handler)
 NSTUB(0xFFADBEE8, LiveViewWbApp_handler)
@@ -202,3 +203,18 @@ NSTUB(0xff873440, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff873550, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0xff870af8, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff870518, GetMemoryAddressOfMemoryChunk)
+
+NSTUB(0xff85a890, PowerAudioOutput)
+NSTUB(0xff85828c, StartASIFDMADAC)
+NSTUB(0xff8580e8, StartASIFDMAADC)
+NSTUB(0xFF858360, StopASIFDMADAC)
+NSTUB(0xff858810, SetNextASIFADCBuffer) // called by SetNextUINT8ASIFADCBuffer and SetNextINT16ASIFADCBuffer
+NSTUB(0xff8588c8, SetNextASIFDACBuffer)
+NSTUB(0xFF859D74, SetSamplingRate )
+NSTUB(0xff85a344, SetAudioVolumeOut)
+
+NSTUB(0xff864508, AsyncEnableImagePhysicalScreenParameter)
+NSTUB(0xff86412c, EnableImagePhysicalScreenParameter)
+
+NSTUB(0xFFB6B1D4, StartPlayProtectGuideApp)
+NSTUB(0xffb6af34, StopPlayProtectGuideApp)

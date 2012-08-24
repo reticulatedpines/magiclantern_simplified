@@ -62,6 +62,7 @@ ML_OBJS-y = \
 	lv-img-engio.o \
 	state-object.o \
 	tasks.o \
+	beep.o \
 
 #include generic rules and definitions
 

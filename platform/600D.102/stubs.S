@@ -102,8 +102,9 @@ NSTUB( 0xFF1E7C04, vram_get_pos_and_size )
 NSTUB( 0xFF018D58, malloc ) // maybe it's better to use Allocate/Free?
 NSTUB( 0xFF018DB0, free )
 
-NSTUB( 0xff0723f0, AllocateMemory ) // "[MEM] NG AllocateMemory"
+NSTUB( 0xff0723f0, _AllocateMemory ) // "[MEM] NG AllocateMemory"
 NSTUB( 0xFF072780, FreeMemory ) 
+NSTUB( 0xff072280, AllocateMemory_do) // no err70, malloc structure at 0x3070
 // FF05FECC WinSys_FreeMemory
 
 NSTUB( 0x2E0C, dm_names )                // in DebugMsg, before the 1st loop target
@@ -279,3 +280,13 @@ NSTUB(0xff0765ec, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff076704, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0xff073b98, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff0735e0, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature
+
+NSTUB(0xff06a93c, PowerAudioOutput)
+NSTUB(0xff05587c, StartASIFDMADAC)
+NSTUB(0xff0556c8, StartASIFDMAADC)
+NSTUB(0xFF055E90, SetNextASIFADCBuffer)
+NSTUB(0xFF055F48, SetNextASIFDACBuffer)
+NSTUB(0xff055950, StopASIFDMADAC)
+NSTUB(0xff06a9e0, SetSamplingRate )
+NSTUB(0xff06a420, SetAudioVolumeOut)
+
