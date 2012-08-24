@@ -1326,7 +1326,7 @@ void draw_zebras( int Z )
         }
         
         uint8_t * lvram = get_yuv422_vram()->vram;
-        lvram = (void*)YUV422_LV_BUFFER_DMA_ADDR; // this one is not updating right now, but it's a bit behind
+        lvram = (void*)CACHEABLE(YUV422_LV_BUFFER_DMA_ADDR); // this one is not updating right now, but it's a bit behind
 
         // draw zebra in 16:9 frame
         // y is in BM coords
@@ -1550,7 +1550,7 @@ draw_zebra_and_focus( int Z, int F )
         dirty_pixels_num = 0;
         
         struct vram_info *hd_vram = get_yuv422_hd_vram();
-        uint32_t hdvram = (uint32_t)CACHEABLE(hd_vram->vram);
+        uint32_t hdvram = (uint32_t)hd_vram->vram;
         
         int yStart = os.y0 + os.off_169 + 8;
         int yEnd = os.y_max - os.off_169 - 8;
@@ -5299,7 +5299,7 @@ static void zebra_init()
 #ifndef CONFIG_5DC
     menu_add( "Overlay", zebra_menus, COUNT(zebra_menus) );
 #endif
-    //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
+    menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
 #ifndef CONFIG_5DC

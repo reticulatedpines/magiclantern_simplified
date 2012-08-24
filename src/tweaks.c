@@ -2487,6 +2487,11 @@ void defish_draw_lv_color()
     uint32_t* dst_buf;
     display_filter_get_buffers(&src_buf, &dst_buf);
     if (DEFISH_HD) src_buf = get_yuv422_hd_vram()->vram;
+    
+    // small speedup (26fps with cacheable vs 20 without)
+    src_buf = CACHEABLE(src_buf);
+    dst_buf = CACHEABLE(dst_buf);
+    
     //~ memcpy(dst_buf, src_buf, buf_size/2);
     //~ return;
         

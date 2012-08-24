@@ -390,13 +390,13 @@ void* get_lcd_422_buf()
     switch (YUV422_LV_BUFFER_DMA_ADDR)
     {
         case YUV422_LV_BUFFER_1:
-            return (void*)YUV422_LV_BUFFER_1;
+            return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
         case YUV422_LV_BUFFER_2:
-            return (void*)YUV422_LV_BUFFER_2;
+            return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
         case YUV422_LV_BUFFER_3:
-            return (void*)YUV422_LV_BUFFER_3;
+            return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
     }
-    return (void*)YUV422_LV_BUFFER_1; // fall back to default
+    return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
 }
 
 static int fastrefresh_direction = 0;
@@ -416,24 +416,24 @@ void* get_fastrefresh_422_buf()
         switch (YUV422_LV_BUFFER_DMA_ADDR)
         {
             case YUV422_LV_BUFFER_1:
-                return (void*)YUV422_LV_BUFFER_2;
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
             case YUV422_LV_BUFFER_2:
-                return (void*)YUV422_LV_BUFFER_3;
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
             case YUV422_LV_BUFFER_3:
-                return (void*)YUV422_LV_BUFFER_1;
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
         }
-        return (void*)YUV422_LV_BUFFER_1; // fall back to default
+        return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
     } else {
         switch (YUV422_LV_BUFFER_DMA_ADDR)
         {
             case YUV422_LV_BUFFER_1:
-                return (void*)YUV422_LV_BUFFER_3;
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
             case YUV422_LV_BUFFER_2:
-                return (void*)YUV422_LV_BUFFER_1;
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
             case YUV422_LV_BUFFER_3:
-                return (void*)YUV422_LV_BUFFER_2;
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
         }
-        return (void*)YUV422_LV_BUFFER_1; // fall back to default
+        return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
 
     }
 }
@@ -446,7 +446,7 @@ void* get_422_hd_idle_buf()
 {
 #ifdef CONFIG_550D
     if (lv && is_movie_mode() && !recording && video_mode_resolution > 0) // 720p exception
-        return (void*)UNCACHEABLE(shamem_read(0xc0f04008)); // RAM address not updated properly, read it from the DIGIC
+        return (void*)CACHEABLE(shamem_read(0xc0f04008)); // RAM address not updated properly, read it from the DIGIC
 #endif
 
 // single-buffered HD buffer
@@ -459,7 +459,7 @@ void* get_422_hd_idle_buf()
     failsafe -= 28;
     #endif
 
-    return (void *) (IS_HD_BUFFER(hd) ? hd : failsafe);
+    return (void *) CACHEABLE(IS_HD_BUFFER(hd) ? hd : failsafe);
 
 #else // double-buffered HD buffer (might work better for silent pics)
 
@@ -479,7 +479,7 @@ void* get_422_hd_idle_buf()
         }
     }
     
-    return (void*)idle_buf;
+    return (void*)CACHEABLE(idle_buf);
 #endif
 }
 
@@ -507,16 +507,16 @@ struct vram_info * get_yuv422_vram()
     
     if (first_video_clip)
     {
-        vram_lv.vram = get_lcd_422_buf();
+        vram_lv.vram = CACHEABLE(get_lcd_422_buf());
         return &vram_lv;
     }
     #endif
 
     extern int lv_paused;
     if (gui_state == GUISTATE_PLAYMENU || lv_paused || QR_MODE)
-        vram_lv.vram = get_lcd_422_buf();
+        vram_lv.vram = CACHEABLE(get_lcd_422_buf());
     else
-        vram_lv.vram = get_fastrefresh_422_buf();
+        vram_lv.vram = CACHEABLE(get_fastrefresh_422_buf());
     return &vram_lv;
 }
 
@@ -527,7 +527,7 @@ struct vram_info * get_yuv422_hd_vram()
     if (!lv) // play/quickreview, HD buffer not active => use LV instead
         return get_yuv422_vram();
 
-    vram_hd.vram = get_422_hd_idle_buf();
+    vram_hd.vram = CACHEABLE(get_422_hd_idle_buf());
     return &vram_hd;
 }
 
