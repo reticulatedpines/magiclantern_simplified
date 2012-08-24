@@ -30,9 +30,9 @@
 
 // PLACEHOLDER UNTIL WE GET THE REAL VALUES
 #define FIX_DMA_ADDR(x) ((x) | 0x40000000)
-//#define YUV422_LV_BUFFER_DMA_ADDR (FIX_DMA_ADDR(shamem_read(0xc0f04308)))
-#define YUV422_LV_BUFFER_DMA_ADDR (MEM(0x238C+0xAC))
-#define YUV422_HD_BUFFER_DMA_ADDR (FIX_DMA_ADDR(shamem_read(0xc0f04208)))
+#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x2438))
+#define YUV422_HD_BUFFER_DMA_ADDR ((*(uint32_t*)FIX_DMA_ADDR(shamem_read(0xc0f04208))))
+#define YUV422_LV_BUFFER_DMA_ADDR_FROM_DIGIC (FIX_DMA_ADDR(shamem_read(0xc0f04308)))
 
 // AV / AE COMP button 
 #define BGMT_AV (event->type == 0 && event->param == 0x61 && ( \
@@ -165,3 +165,5 @@
 #define GUIMODE_ML_MENU (recording ? 0 : lv ? 68 : 2)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
+
+#define MVR_992_STRUCT (*(void**)0x1DF4)
