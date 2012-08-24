@@ -361,8 +361,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
     if (screen_layout == SCREENLAYOUT_3_2_or_4_3) bottom = os.y_max;
     else if (screen_layout == SCREENLAYOUT_16_9) bottom = os.y_max - os.off_169;
     else if (screen_layout == SCREENLAYOUT_16_10) bottom = os.y_max - os.off_1610;
-        else if (screen_layout == SCREENLAYOUT_UNDER_3_2) bottom = MIN(os.y_max + 54, 480);
-        else if (screen_layout == SCREENLAYOUT_UNDER_16_9) bottom = MIN(os.y_max - os.off_169 + 54, 480);
+    else if (screen_layout == SCREENLAYOUT_UNDER_3_2) bottom = MIN(os.y_max + 54, 480);
+    else if (screen_layout == SCREENLAYOUT_UNDER_16_9) bottom = MIN(os.y_max - os.off_169 + 54, 480);
 
     if (gui_menu_shown())
         bottom = 480 + (hdmi_code == 5 ? 40 : 0); // force it at the bottom of menu
@@ -378,16 +378,20 @@ void draw_ml_bottombar(int double_buffering, int clear)
     unsigned int x_origin = MAX(os.x0 + os.x_ex/2 - 360 + 50, 0);
     unsigned int y_origin = bottom - 30;
     unsigned text_font = SHADOW_FONT(FONT(FONT_LARGE, COLOR_WHITE, bg));
-
-    int ytop = bottom - 35;
+#ifndef CONFIG_1100D
+	int bar_height = 35;
+#else
+	int bar_height = 45;
+#endif
+    int ytop = bottom - bar_height;
 
     // start drawing to mirror buffer to avoid flicker
     if (double_buffering)
-        double_buffering_start(ytop, 35);
+        double_buffering_start(ytop, bar_height);
 
     if (clear)
     {
-        ml_bar_clear(ytop, 35);
+        ml_bar_clear(ytop, bar_height);
     }
 
     // mark the BV mode somehow
@@ -798,7 +802,7 @@ end:
 
     if (double_buffering)
     {
-        double_buffering_end(ytop, 35);
+        double_buffering_end(ytop, bar_height);
     }
 
     // this is not really part of the bottom bar, but it's close to it :)
@@ -1139,7 +1143,7 @@ lens_take_picture(
     mlu_lock_mirror_if_needed();
 
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-    if (get_mlu() && !lv)
+    if (get_mlu())
     {
         SW1(1,50);
         SW2(1,250);

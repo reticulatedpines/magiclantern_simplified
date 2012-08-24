@@ -60,7 +60,9 @@ NSTUB(0xFF223218, GUI_GetFirmVersion)             // might be good (dumps=1, sco
 NSTUB(0xFF510C1C, GetCFnData)                     // might be good (dumps=1, score=19)
 NSTUB(0xFF070710, GetMemoryInformation)           // might be good (dumps=1, score=6.4)
 NSTUB(0xFF3714A4, HideUnaviFeedBack_maybe)        // might be good (dumps=1, score=1.2)
+NSTUB(0xFF3712C8, HideBottomInfoDisp_maybe) // look for StartBottomInfoDispTimer
 NSTUB(0x1C06C, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+NSTUB(0xff2279C0, ChangeColorPalette )
 NSTUB(0xff375f6c, LiveViewApp_handler)
 NSTUB(0xff3765f4, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF377C44, LiveViewApp_handler_end)        // might be good (dumps=1, score=9.3)
@@ -162,7 +164,7 @@ NSTUB(0xFF06FAF4, task_create)                    // might be good (dumps=1, sco
 NSTUB( 0x193C, task_dispatch_hook )
 NSTUB(0xFF07C970, task_trampoline)                // might be good (dumps=1, score=0.5)
 NSTUB(0xFF2E0164, vram_get_number)                // might be good (dumps=1, score=12)
-//NSTUB(       0x0, vram_get_pos_and_size)          // no match
+NSTUB(0xFF1DAB90, vram_get_pos_and_size)
 NSTUB( 0x76268, vram_info )             // in vram_get_number
 NSTUB(0xFF1EBFE0, vsnprintf)                      // might be good (dumps=1, score=9.5)
 

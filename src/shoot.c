@@ -5745,7 +5745,7 @@ shoot_task( void* unused )
         // same for motion detect
         int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
         
-        if (!tfx && !DISPLAY_IS_ON) msleep(200); // no need to react very fast, can powersave a bit
+        if (!tfx && !mdx && !DISPLAY_IS_ON) msleep(200); // no need to react very fast, can powersave a bit
         
         //Reset the counter so that if you go in and out of live view, it doesn't start clicking away right away.
         static int K = 0;
