@@ -89,10 +89,6 @@
 #define YUV422_HD_PITCH_REC_480P 1280
 #define YUV422_HD_HEIGHT_REC_480P 480
 
-#define DISPLAY_SENSOR_POWERED (*(int*)0x3138)
-
-#define SENSOR_RES_X 5184
-#define SENSOR_RES_Y 3456
 
 #define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x61 && is_movie_mode() && event->arg == 9)
 #define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
@@ -153,3 +149,10 @@
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x8490) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
+
+// Dummy defines for features that we don't really have
+#define DISPLAY_SENSOR_POWERED 0
+
+#define SENSOR_RES_X 5184
+#define SENSOR_RES_Y 3456
+
