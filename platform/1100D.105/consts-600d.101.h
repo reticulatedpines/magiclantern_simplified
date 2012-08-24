@@ -47,7 +47,6 @@
 #define BGMT_SHUTDOWN 0x53 // new
 
 // these were found in ROM, but not tested yet
-#define MVR_992_STRUCT (*(void**)0x1e44) // look in MVR_Initialize for AllocateMemory call
 
 #define MEM(x) (*(int*)(x))
 #define div_maybe(a,b) ((a)/(b))
