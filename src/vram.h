@@ -66,11 +66,11 @@ struct vram_info
 };
 
 #ifdef CONFIG_5DC
-#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) |  0x10000000))
-#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) & ~0x10000000))
+#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) |  0x10000000))
+#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) & ~0x10000000))
 #else
-#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) |  0x40000000))
-#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) & ~0x40000000))
+#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) |  0x40000000))
+#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) & ~0x40000000))
 #endif
 
 void redraw();
@@ -222,7 +222,7 @@ extern int bm2n_x_cache[];
 
 #define Nh2HD(x,y) (BMh2HD_Y(Nh2BMh_Y(y)) * vram_hd.pitch + BMh2HD_X(Nh2BMh_X(x)) * 2)
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
 #define CONFIG_4_3_SCREEN
 #else
 #define CONFIG_3_2_SCREEN

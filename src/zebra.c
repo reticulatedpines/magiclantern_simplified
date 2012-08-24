@@ -1550,7 +1550,7 @@ draw_zebra_and_focus( int Z, int F )
         dirty_pixels_num = 0;
         
         struct vram_info *hd_vram = get_yuv422_hd_vram();
-        uint32_t hdvram = (uint32_t)UNCACHEABLE(hd_vram->vram);
+        uint32_t hdvram = (uint32_t)CACHEABLE(hd_vram->vram);
         
         int yStart = os.y0 + os.off_169 + 8;
         int yEnd = os.y_max - os.off_169 - 8;
@@ -2292,9 +2292,6 @@ zoom_overlay_display(
     int         selected
 )
 {
-#ifdef CONFIG_1100D
-	return;
-#endif
     zoom_overlay_size = mod(zoom_overlay_size, 3);
 
     if (!zoom_overlay_enabled)
@@ -2541,9 +2538,10 @@ static void spotmeter_step()
     
     if (spotmeter_position == 1) // AF frame
     {
-        get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
-        xcb += os.x0;
-        ycb += os.y0;
+        int aff_x0, aff_y0; 
+        get_afframe_pos(720, 480, &aff_x0, &aff_y0);
+        xcb = N2BM_X(aff_x0);
+        ycb = N2BM_Y(aff_y0);
         xcb = COERCE(xcb, os.x0 + 50, os.x_max - 50);
         ycb = COERCE(ycb, os.y0 + 50, os.y_max - 50);
     }
@@ -2998,7 +2996,6 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
-#if !(defined(CONFIG_1100D))
     {
         .name = "Magic Zoom",
         .priv = &zoom_overlay_enabled,
@@ -3066,7 +3063,6 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
-#endif
     {
         .name = "Cropmarks",
         .priv = &crop_enabled,
@@ -3973,7 +3969,9 @@ static void draw_zoom_overlay(int dirty)
             H = 480;
             break;
     }
-    
+#ifdef CONFIG_1100D
+    H /= 2; 
+#endif
     //~ int x2 = zoom_overlay_x2;
     int X = zoom_overlay_x + 1;
 

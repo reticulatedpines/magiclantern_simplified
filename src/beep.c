@@ -189,7 +189,9 @@ static void asif_continue_cbr()
         info_led_off();
         return; 
     }
+#ifndef CONFIG_1100D
     SetNextASIFDACBuffer(buf, s);
+#endif
     wav_ibuf = !wav_ibuf;
 }
 
@@ -337,8 +339,9 @@ static void asif_rec_continue_cbr()
         info_led_off();
         return;
     }
-
+#ifndef CONFIG_1100D
     SetNextASIFADCBuffer(buf, WAV_BUF_SIZE);
+#endif
     wav_ibuf = !wav_ibuf;
 }
 
