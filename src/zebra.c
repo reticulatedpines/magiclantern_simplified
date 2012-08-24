@@ -2380,6 +2380,10 @@ spotmeter_menu_display(
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
 }
 
+// for surface cleaning
+int spy_pre_xcb = -1;
+int spy_pre_ycb = -1;
+
 void get_spot_yuv_ex(int size_dxb, int dx, int dy, int* Y, int* U, int* V)
 {
     struct vram_info *  vram = get_yuv422_vram();
@@ -2397,6 +2401,11 @@ void get_spot_yuv_ex(int size_dxb, int dx, int dy, int* Y, int* U, int* V)
     int xcl = BM2LV_X(xcb);
     int ycl = BM2LV_Y(ycb);
     int dxl = BM2LV_DX(size_dxb);
+
+	// surface cleaning
+	if ( spy_pre_xcb != -1 && spy_pre_ycb != -1  && (spy_pre_xcb != xcb || spy_pre_ycb != ycb) ) {
+		bmp_draw_rect(0, spy_pre_xcb - size_dxb, spy_pre_ycb - size_dxb, 2*size_dxb, 2*size_dxb);
+	}
 
     bmp_draw_rect(COLOR_WHITE, xcb - size_dxb, ycb - size_dxb, 2*size_dxb, 2*size_dxb);
     
@@ -2420,6 +2429,9 @@ void get_spot_yuv_ex(int size_dxb, int dx, int dy, int* Y, int* U, int* V)
     *Y = sy;
     *U = su;
     *V = sv;
+
+	spy_pre_xcb = xcb;
+	spy_pre_ycb = ycb;
 }
 
 void get_spot_yuv(int dxb, int* Y, int* U, int* V)
@@ -2427,7 +2439,7 @@ void get_spot_yuv(int dxb, int* Y, int* U, int* V)
     get_spot_yuv_ex(dxb, 0, 0, Y, U, V);
 }
 
-	// for surface cleaning
+// for surface cleaning
 int spm_pre_xcb = -1;
 int spm_pre_ycb = -1;
 
@@ -2454,8 +2466,8 @@ int get_spot_motion(int dxb, int xcb, int ycb, int draw)
 		int p_xcl = BM2LV_X(spm_pre_xcb);
     	int p_ycl = BM2LV_Y(spm_pre_ycb);
 		int x, y;
-		for( y = p_ycl - dxl ; y <= p_ycl + dxl ; y++ ) {
-		    for( x = p_xcl - dxl ; x <= p_xcl + dxl ; x++ )
+		for( y = p_ycl - (dxl+5) ; y <= p_ycl + dxl+5 ; y++ ) {
+		    for( x = p_xcl - (dxl+5) ; x <= p_xcl + dxl+5 ; x++ )
 		    {
 		        bm[x + y * BMPPITCH] = 0;
 		    }
