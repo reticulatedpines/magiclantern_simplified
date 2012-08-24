@@ -444,7 +444,7 @@ meter_task( void* unused )
 {
 
 //will delete this when we finish debugging
-    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.8       ");
+    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.9       ");
     msleep(4000);
     NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
     msleep(500);
@@ -1459,8 +1459,11 @@ audio_configure( int force )
 {
 
     extern int beep_playing;
-    if (beep_playing)
+    if (beep_playing && !(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED))
         return; // don't redirect wav playing to headphones if they are not connected
+
+    // redirect wav playing to headphones if they are connected
+    int loopback0 = beep_playing ? 0 : loopback;
     
 #ifdef CONFIG_AUDIO_REG_LOG
         audio_reg_dump( force );
@@ -1472,6 +1475,7 @@ audio_configure( int force )
 #endif
 
 #ifdef CONFIG_600D
+
     audio_ic_set_mute_on(100);
 
     if(cfg_override_audio == 0){
@@ -1506,14 +1510,6 @@ audio_configure( int force )
     audio_ic_set_mute_off(200);
 
 #else /* ^^^^^^^CONFIG_600D^^^^^^^ vvvvv except 600D vvvvvvvv*/
-
-    extern int beep_playing;
-    if (beep_playing && !(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED))
-        return; // don't redirect wav playing to headphones if they are not connected
-
-    // redirect wav playing to headphones if they are connected
-    int loopback0 = beep_playing ? 0 : loopback;
-
         int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
 
         audio_set_meterlabel();
@@ -2374,6 +2370,7 @@ static struct menu_entry audio_menus[] = {
                         .select_reverse = audio_effect_mode_toggle_reverse,
                         .display        = audio_effect_mode_display,
                         .help = "Choose mode :Notch,EQ,Notch/EQ,Enhance [12],Loudness.",
+                        .hidden         = MENU_ENTRY_HIDDEN,
                 },
                 {
                         .name = "Record Digital Volume ",

@@ -189,7 +189,7 @@ static void asif_continue_cbr()
         info_led_off();
         return; 
     }
-#ifndef CONFIG_1100D
+#if defined(CONFIG_5D2)
     SetNextASIFDACBuffer(buf, s);
 #endif
     wav_ibuf = !wav_ibuf;
@@ -339,7 +339,7 @@ static void asif_rec_continue_cbr()
         info_led_off();
         return;
     }
-#ifndef CONFIG_1100D
+#if defined(CONFIG_550D) || defined(CONFIG_5D2)
     SetNextASIFADCBuffer(buf, WAV_BUF_SIZE);
 #endif
     wav_ibuf = !wav_ibuf;
@@ -812,6 +812,9 @@ static struct menu_entry beep_menus[] = {
         .select = menu_open_submenu,
         .help = "Record short audio clips, add voice tags to pictures...",
         .submenu_width = 700,
+#ifdef CONFIG_600D
+        .hidden         = MENU_ENTRY_HIDDEN, //temporaly hidden 
+#endif
         .children =  (struct menu_entry[]) {
             {
                 .name = "Record",
