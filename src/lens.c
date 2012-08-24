@@ -1187,8 +1187,6 @@ mvr_update_logfile(
     if( mvr_logfile_buffer == 0 )
         return;
 
-    char* mvr_logfile_buffer_cached = CACHEABLE(mvr_logfile_buffer);
-
     static unsigned last_iso;
     static unsigned last_shutter;
     static unsigned last_aperture;
@@ -1278,9 +1276,8 @@ mvr_create_logfile(
 
     // Movie starting
     mvr_logfile_buffer = alloc_dma_memory(MVR_LOG_BUF_SIZE);
-    char* mvr_logfile_buffer_cached = CACHEABLE(mvr_logfile_buffer);
 
-    snprintf( mvr_logfile_buffer_cached, MVR_LOG_BUF_SIZE,
+    snprintf( mvr_logfile_buffer, MVR_LOG_BUF_SIZE,
         "# Magic Lantern %s\n\n",
         build_version
     );
@@ -1343,9 +1340,9 @@ mvr_create_logfile(
         ABS(lens_get_color_tone()) < 10 ? lens_get_color_tone() : 0
         );
 
-    fps_mvr_log(mvr_logfile_buffer_cached);
-    hdr_mvr_log(mvr_logfile_buffer_cached);
-    bitrate_mvr_log(mvr_logfile_buffer_cached);
+    fps_mvr_log(mvr_logfile_buffer);
+    hdr_mvr_log(mvr_logfile_buffer);
+    bitrate_mvr_log(mvr_logfile_buffer);
     
     MVR_LOG_APPEND (
         "\n\nCSV data:\n%s\n",
