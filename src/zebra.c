@@ -3900,6 +3900,9 @@ static void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lu
 }
 
 
+/**
+ * Draw Magic Zoom overlay
+ */
 static void draw_zoom_overlay(int dirty)
 {   
     //~ if (vram_width > 720) return;
@@ -3934,18 +3937,24 @@ static void draw_zoom_overlay(int dirty)
 
     // center of AF frame
     int aff_x0_lv, aff_y0_lv; 
-    get_afframe_pos(720, 480, &aff_x0_lv, &aff_y0_lv);
+    get_afframe_pos(720, 480, &aff_x0_lv, &aff_y0_lv); // Get the center of the AF frame in normalized coordinates
+
+    // Translate it into LV coord space
     aff_x0_lv = N2LV_X(aff_x0_lv);
     aff_y0_lv = N2LV_Y(aff_y0_lv);
-    
+
+    // Translate it into HD coord space
     int aff_x0_hd = LV2HD_X(aff_x0_lv);
     int aff_y0_hd = LV2HD_Y(aff_y0_lv);
     
-    //~ int aff_x0_bm = LV2BM_X(aff_x0_lv);
-    //~ int aff_y0_bm = LV2BM_Y(aff_y0_lv);
-    
+/* Probably useless */
+#ifndef CONFIG_4_3_SCREEN
     int W = os.x_ex / 3;
     int H = os.y_ex / 2;
+#else
+    int W = os.x_ex / 4;
+    int H = os.y_ex / 3;
+#endif
     
     switch(zoom_overlay_size)
     {
@@ -3965,17 +3974,20 @@ static void draw_zoom_overlay(int dirty)
             H = os.y_ex/2;
             break;
         case 6:
-            W = 720;
-            H = 480;
+            W = os.x_ex;
+            H = os.y_ex;
             break;
     }
+
 #ifdef CONFIG_1100D
-    H /= 2; 
+  H /= 2;
 #endif
-    //~ int x2 = zoom_overlay_x2;
+
+    // Magnification factor
     int X = zoom_overlay_x + 1;
 
-    int zb_x0_lv, zb_y0_lv; // center of zoom box
+    // Center of Magic Zoom box in the LV coordinate space
+    int zb_x0_lv, zb_y0_lv; 
 
     switch(zoom_overlay_pos)
     {
