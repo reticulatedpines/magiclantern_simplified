@@ -111,6 +111,7 @@ static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
 static CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 static CONFIG_INT( "interval.stop_after", interval_stop_after, 0 );
+static CONFIG_INT( "interval.use_autofocus", interval_use_autofocus, 0 );
 //~ static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
 
 static int intervalometer_pictures_taken = 0;
@@ -4171,6 +4172,14 @@ static struct menu_entry shoot_menus[] = {
                 .help = "Stop the intervalometer after taking X shots.",
             },
             {
+                .name = "Use Autofocus", 
+                .priv = &interval_use_autofocus,
+                .max = 1,
+                .choices = (const char *[]) {"No", "Yes"},
+                .help = "Wheter or not the camera should focus automatically at each shot",
+                .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
+            },
+            {
                 .name = "Stop REC after",
                 .priv       = &interval_movie_duration_index,
                 .display    = interval_movie_stop_display,
@@ -5327,7 +5336,9 @@ void hdr_shot(int skip0, int wait)
     }
     else // regular pic (not HDR)
     {
-        hdr_shutter_release(0, !intervalometer_running); // disable AF on intervalometer, allow it otherwise
+	int should_af = 1;
+	if(intervalometer_running && !interval_use_autofocus) should_af = 0;
+        hdr_shutter_release(0, should_af); //Enable AF on intervalometer if the user wishes so, allow it otherwise
     }
 
     lens_wait_readytotakepic(64);
