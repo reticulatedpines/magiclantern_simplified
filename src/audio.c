@@ -2274,6 +2274,9 @@ PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
 
 static void audio_monitoring_update()
 {
+#ifdef CONFIG_600D
+    if (cfg_override_audio == 0) return;
+#endif
         // kill video connect/disconnect event... or not
         *(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = audio_monitoring ? 2 : 0;
         
