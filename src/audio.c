@@ -1982,7 +1982,7 @@ static void analog_gain_display( void * priv, int x, int y, int selected )
     bmp_printf(
                FONT(fnt, FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
-               "Analog gain+boost : %s dB", 
+               "Analog gain: %s dB", 
                dbval[cfg_analog_gain]
                );
     menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_gain)/7);
@@ -2006,7 +2006,7 @@ static void analog_boost_display( void * priv, int x, int y, int selected )
     bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
-               "Analog mic boost : %s dB", 
+               "Mic boost : %s dB", 
                dbval[cfg_analog_boost]
                );
     menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_boost)/6);
