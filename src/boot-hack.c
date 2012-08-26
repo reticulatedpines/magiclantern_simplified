@@ -759,11 +759,7 @@ my_init_task(int a, int b, int c, int d)
         while (!DISPLAY_IS_ON) msleep(100);
         msleep(100);
         magic_off = 1;  // magic off request might be sent later (until ml is fully started), but will be ignored
-#ifdef CONFIG_600D
         bfnt_puts("Magic OFF", 0, 0, COLOR_WHITE, COLOR_BLACK);
-#else
-        bfnt_puts("ML only for 600D - AUDIO TEST release", 0, 0, COLOR_WHITE, COLOR_BLACK);
-#endif
         extern char additional_version[];
         additional_version[0] = '-';
         additional_version[1] = 'm';
