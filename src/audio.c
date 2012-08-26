@@ -1982,7 +1982,7 @@ static void analog_gain_display( void * priv, int x, int y, int selected )
     bmp_printf(
                FONT(fnt, FONT_FG(fnt), FONT_BG(fnt)),
                x, y,
-               "Analog gain: %s dB", 
+               "Analog gain : %s dB", 
                dbval[cfg_analog_gain]
                );
     menu_draw_icon(x, y, MNI_PERCENT, (100*cfg_analog_gain)/7);
