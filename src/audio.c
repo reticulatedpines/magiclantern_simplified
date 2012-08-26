@@ -1332,7 +1332,6 @@ audio_ic_set_agc(){
 static void
 audio_ic_off(){
 
-    audio_ic_set_mute_on(100);
     audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_OFF);
     audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
     audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_2);
@@ -1385,16 +1384,18 @@ audio_ic_set_lineout_onoff(int mute){
         if(mute) audio_ic_set_mute_off(200);
 
     }else{
-        if(mute) audio_ic_set_mute_on(100);
+        if(cfg_override_audio==1){
+            if(mute) audio_ic_set_mute_on(100);
         
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
-
-        audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWROFF); //DAC power on
-        audio_ic_write(ML_HP_AMP_OUT_CTL | 0x0);
-        audio_ic_write(ML_PW_SPAMP_PW_MNG | ML_PW_SPAMP_PW_MNG_OFF);
-        
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
-        if(mute) audio_ic_set_mute_off(200);
+            audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
+            
+            audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWROFF); //DAC power on
+            audio_ic_write(ML_HP_AMP_OUT_CTL | 0x0);
+            audio_ic_write(ML_PW_SPAMP_PW_MNG | ML_PW_SPAMP_PW_MNG_OFF);
+            
+            audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
+            if(mute) audio_ic_set_mute_off(200);
+        }
     }
 }
 
@@ -1476,12 +1477,12 @@ audio_configure( int force )
 
 #ifdef CONFIG_600D
 
-    audio_ic_set_mute_on(100);
 
     if(cfg_override_audio == 0){
         audio_ic_off();
         return;
     }else{
+        audio_ic_set_mute_on(100);
         audio_ic_on();
     }
 
