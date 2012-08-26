@@ -332,6 +332,7 @@ static CONFIG_INT("idle.display.dim.after", idle_display_dim_after, 0);
 static CONFIG_INT("idle.display.gdraw_off.after", idle_display_global_draw_off_after, 0);
 static CONFIG_INT("idle.rec", idle_rec, 0);
 static CONFIG_INT("idle.shortcut.key", idle_shortcut_key, 0);
+CONFIG_INT("idle.blink", idle_blink, 1);
 
 /**
  * Normal BMP VRAM has its origin in 720x480 center crop
@@ -4567,7 +4568,7 @@ clearscreen_loop:
         // then they already _know_ that their camera is still on, so
         // let's only do it if the camera's buttons have been idle for at
         // least 30 seconds.
-        if (k % 50 == 0 && !DISPLAY_IS_ON && lens_info.job_state == 0 && !recording && !get_halfshutter_pressed() && !is_intervalometer_running())
+        if (k % 50 == 0 && !DISPLAY_IS_ON && lens_info.job_state == 0 && !recording && !get_halfshutter_pressed() && !is_intervalometer_running() && idle_blink)
             if ((get_seconds_clock() - get_last_time_active()) > 30)
                 info_led_blink(1, 10, 10);
 
