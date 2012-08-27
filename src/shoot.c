@@ -5810,8 +5810,8 @@ shoot_task( void* unused )
 				get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
 				xcb += os.x0;
 				ycb += os.y0;
-				xcb = COERCE(xcb, os.x0 + motion_detect_size, os.x_max - motion_detect_size);
-				ycb = COERCE(ycb, os.y0 + motion_detect_size, os.y_max - motion_detect_size);
+				xcb = COERCE(xcb, os.x0 + motion_detect_size, os.x_max - motion_detect_size );
+				ycb = COERCE(ycb, os.y0 + motion_detect_size, os.y_max - motion_detect_size );
 	 	    }
 
 			if (motion_detect_trigger == 0)
