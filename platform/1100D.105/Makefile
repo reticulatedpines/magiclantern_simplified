@@ -53,7 +53,6 @@ ML_OBJS-y = \
 	bootflags.o \
 	vram.o \
 	morse.o \
-	liveview.o \
 	reloc.o \
 	aj_port.o \
 	fps-engio.o \

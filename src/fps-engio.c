@@ -274,7 +274,7 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
 
 int get_current_shutter_reciprocal_x1000()
 {
-#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D3) || defined(CONFIG_1100D)
+#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D3)
     if (!lens_info.raw_shutter) return 0;
     return (int) roundf(powf(2.0, (lens_info.raw_shutter - 136) / 8.0) * 1000.0 * 1000.0);
 #else
@@ -1137,6 +1137,7 @@ static void fps_read_default_timer_values()
     int mode = get_fps_video_mode();
     unsigned int pos = get_table_pos(mode_offset_map[mode], video_mode_crop, 0, lv_dispsize);
     fps_reg_b_orig = sensor_timing_table_original[pos] - 1; // nobody will change it from here :)
+    //bmp_printf(FONT_LARGE, 50, 50, "%08x %08x %08x", fps_reg_a_orig, bmp_vram_real(), bmp_vram_idle());
     #else
     int val = FPS_REGISTER_B_VALUE;
     if (val & 0xFFFF0000)
@@ -1147,16 +1148,6 @@ static void fps_read_default_timer_values()
     #endif
     fps_timer_a_orig = ((fps_reg_a_orig >> 16) & 0xFFFF) + 1;
     fps_timer_b_orig = (fps_reg_b_orig & 0xFFFF) + 1;
-#ifdef CONFIG_1100D
-    int ntsc = is_current_mode_ntsc();
-    if(ntsc) {
-        if(fps_timer_a_orig <= 1) fps_timer_a_orig = 0x3c0;
-        if(fps_timer_b_orig <= 1) fps_timer_b_orig = 0x458;
-    } else {
-        if(fps_timer_a_orig <= 1) fps_timer_a_orig = 0x3e8;
-        if(fps_timer_b_orig <= 1) fps_timer_b_orig = 0x500;
-    }
-#endif
 }
 
 // maybe FPS settings were changed by someone else? if yes, force a refresh
