@@ -2036,6 +2036,8 @@ CONFIG_INT("preview.saturation", preview_saturation, 1);
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
 CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
 
+CONFIG_INT("uniwb.correction", uniwb_correction, 7);
+
 void preview_contrast_n_saturation_step()
 {
     if (ml_shutdown_requested) return;
@@ -2095,6 +2097,27 @@ void preview_contrast_n_saturation_step()
     if (current_contrast != desired_contrast)
     {
         EngDrvOut(brightness_contrast_register, desired_contrast);
+    }
+    
+    
+    // uniwb screen correction
+    int display_wb_register = 0xC0F14174;
+    int desired_wb = 0;
+    int current_wb = shamem_read(display_wb_register);
+    if (uniwb_correction && uniwb_is_active())
+    {
+        int w = (uniwb_correction << 4) & 0xFF;
+        w = (w << 8) | w;
+        w = (w | 0xFFFF0000);
+        desired_wb = w;
+    }
+    else
+    {
+        desired_wb = 0;
+    }
+    if (current_wb != desired_wb)
+    {
+        EngDrvOut(display_wb_register, desired_wb);
     }
 }
 
@@ -2746,6 +2769,15 @@ static struct menu_entry display_menus[] = {
                 .select = display_gain_toggle,
                 .help = "Boost LiveView display gain, for night vision (photo mode).",
                 .edit_mode = EM_MANY_VALUES_LV,
+            },
+            {
+                .name = "UniWB correct  ",
+                .priv = &uniwb_correction,
+                .max = 10,
+                .choices = (const char *[]) {"OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},
+                .help = "Removes the green color cast when you use UniWB.",
+                .edit_mode = EM_MANY_VALUES_LV,
+                .icon_type = IT_BOOL,
             },
             {
                 .name = "Color scheme   ",

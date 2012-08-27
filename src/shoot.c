@@ -72,19 +72,21 @@ static float bulb_shutter_valuef = 1.0;
 #define BULB_SHUTTER_VALUE_MS (int)roundf(bulb_shutter_valuef * 1000.0)
 #define BULB_SHUTTER_VALUE_S (int)roundf(bulb_shutter_valuef)
 
+int uniwb_is_active() 
+{
+    return 
+        lens_info.wb_mode == WB_CUSTOM &&
+        ABS((int)lens_info.WBGain_R - 1024) < 100 &&
+        ABS((int)lens_info.WBGain_G - 1024) < 100 &&
+        ABS((int)lens_info.WBGain_B - 1024) < 100;
+}
+
 /*
 static CONFIG_INT("uniwb.mode", uniwb_mode, 0);
 static CONFIG_INT("uniwb.old.wb_mode", uniwb_old_wb_mode, 0);
 static CONFIG_INT("uniwb.old.gain_R", uniwb_old_gain_R, 0);
 static CONFIG_INT("uniwb.old.gain_G", uniwb_old_gain_G, 0);
 static CONFIG_INT("uniwb.old.gain_B", uniwb_old_gain_B, 0);
-
-int uniwb_is_active_check_lensinfo_only() 
-{
-    return 
-        lens_info.wb_mode == WB_CUSTOM &&
-        lens_info.WBGain_R == 1024 && lens_info.WBGain_G == 1024 && lens_info.WBGain_B == 1024;
-}
 
 int uniwb_is_active() 
 {
@@ -1836,7 +1838,7 @@ kelvin_display( void * priv, int x, int y, int selected )
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "WhiteBalance: %s",
-            //~ (uniwb_is_active()      ? "UniWB   " : 
+            (uniwb_is_active()      ? "UniWB   " : 
             (lens_info.wb_mode == 0 ? "Auto    " : 
             (lens_info.wb_mode == 1 ? "Sunny   " :
             (lens_info.wb_mode == 2 ? "Cloudy  " : 
@@ -1845,7 +1847,7 @@ kelvin_display( void * priv, int x, int y, int selected )
             (lens_info.wb_mode == 5 ? "Flash   " : 
             (lens_info.wb_mode == 6 ? "Custom  " : 
             (lens_info.wb_mode == 8 ? "Shade   " :
-             "unknown"))))))))
+             "unknown")))))))))
         );
         menu_draw_icon(x, y, MNI_AUTO, 0);
     }
