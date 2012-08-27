@@ -444,6 +444,10 @@ void image_effects_step()
 
     if (!is_movie_mode()) return;
 
+    // sharpness trick: at -1, cancel it completely
+    if (lens_get_sharpness() < 0)
+        EngDrvOut(0xc0f2116c, 0x0);
+
     static int prev_swap_uv = 0;
     if (desaturate) EngDrvOut(0xc0f0f070, 0x01000100);
     if (negative)   EngDrvOut(0xc0f0f000, 0xb1);

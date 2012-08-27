@@ -2151,8 +2151,8 @@ static void
 sharpness_toggle( void * priv, int sign )
 {
     int c = lens_get_sharpness();
-    if (c < 0 || c > 7) return;
-    int newc = mod(c + sign, 8);
+    if (c < -1 || c > 7) return;
+    int newc = mod(c + sign + 1, 9) - 1;
     lens_set_sharpness(newc);
 }
 
