@@ -268,6 +268,25 @@ expsim_toggle( void * priv, int delta)
     #endif
     int e = mod(expsim + delta, max_expsim+1);
     set_expsim(e);
+    
+    #ifdef CONFIG_5D2
+    if (e == 2) // movie display, make sure movie recording is enabled
+    {
+        if (lv_movie_select != LVMS_ENABLE_MOVIE)
+        {
+            int x = LVMS_ENABLE_MOVIE;
+            prop_request_change(PROP_LV_MOVIE_SELECT, &x, 4);
+        }
+    }
+    else // photo display, disable movie recording
+    {
+        if (lv_movie_select == LVMS_ENABLE_MOVIE)
+        {
+            int x = 1;
+            prop_request_change(PROP_LV_MOVIE_SELECT, &x, 4);
+        }
+    }
+    #endif
 }
 
 static void
