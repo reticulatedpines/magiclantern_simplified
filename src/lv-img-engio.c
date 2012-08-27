@@ -448,8 +448,11 @@ void image_effects_step()
     if (desaturate) EngDrvOut(0xc0f0f070, 0x01000100);
     if (negative)   EngDrvOut(0xc0f0f000, 0xb1);
     if (swap_uv)    EngDrvOut(0xc0f0de2c, 0x10); else if (prev_swap_uv) EngDrvOut(0xc0f0de2c, 0);
-    if (cartoon)    EngDrvOut(0xc0f0f29c, 0xffff);
-    //~ if (cartoon)    EngDrvOut(0xc0f0f438, 29100 + cartoon);
+    if (cartoon)    
+    {
+        EngDrvOut(0xc0f0f29c, 0xffff); // also c0f2194c?
+        EngDrvOut(0xc0f2116c, 0xffff0000); // boost picturestyle sharpness to max
+    }
     prev_swap_uv = swap_uv;
 }
 
@@ -535,7 +538,7 @@ static struct menu_entry lv_img_menu[] = {
                 .priv       = &cartoon,
                 .min = 0,
                 .max = 1,
-                .help = "Cartoonish look. Set sharpness to some positive value.",
+                .help = "Cartoonish look obtained by emphasizing the edges.",
             },
             /*{
                 .name = "Purple Fringe",
