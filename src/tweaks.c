@@ -1244,6 +1244,7 @@ tweak_task( void* unused)
         upside_down_step();
 
         preview_contrast_n_saturation_step();
+        uniwb_correction_step();
         grayscale_menus_step();
         lcd_adjust_position_step();
 
@@ -2117,8 +2118,14 @@ void preview_contrast_n_saturation_step()
     {
         EngDrvOut(brightness_contrast_register, desired_contrast);
     }
-    
-    
+}
+
+void uniwb_correction_step()
+{
+    if (ml_shutdown_requested) return;
+    if (!DISPLAY_IS_ON) return;
+    if (!lv && !PLAY_OR_QR_MODE) return;
+
     // uniwb screen correction
     int display_wb_register = 0xC0F14174;
     int desired_wb = 0;
