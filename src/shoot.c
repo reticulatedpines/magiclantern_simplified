@@ -5832,7 +5832,7 @@ shoot_task( void* unused )
                 if (K == 40) idle_force_powersave_in_1s();
                 old_ae_avg = old_ae_avg * 90/100 + aev * 10;
             }
-            else if (motion_detect_trigger == 1)
+            else if (motion_detect_trigger == 1) 
             {
                 int d = get_spot_motion(motion_detect_size, xcb, ycb, get_global_draw());
                 if (K > 20) bmp_printf(FONT_MED, 0, 80, "Motion level: %d   ", d);
