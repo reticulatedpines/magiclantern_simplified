@@ -1486,8 +1486,6 @@ audio_configure( int force )
         audio_ic_on();
     }
 
-    if(is_movie_mode() == 0) return;
-
 	if (force){
         if(force == 2){
             override_audio_setting(0);
