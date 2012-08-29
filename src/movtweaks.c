@@ -66,7 +66,7 @@ void restore_kelvin_wb()
 
 void kelvin_wb_workaround_step()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5D3)
     return;
     #endif
     if (!kelvin_wb_dirty)
@@ -308,7 +308,7 @@ shutter_lock_print(
 
 void shutter_lock_step()
 {
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D3)
     if (is_movie_mode()) // no effect in photo mode
     {
         unsigned shutter = lens_info.raw_shutter;
@@ -390,6 +390,7 @@ movtweak_task( void* unused )
     {
         msleep(DISPLAY_IS_ON || recording ? 50 : 1000);
         
+#ifndef CONFIG_5D3 // movie restart not needed
         static int recording_prev = 0;
         #if defined(CONFIG_5D2) || defined(CONFIG_50D)
         if (recording == 0 && recording_prev && !movie_was_stopped_by_set)
@@ -406,6 +407,7 @@ movtweak_task( void* unused )
         recording_prev = recording;
 
         if (!recording) movie_was_stopped_by_set = 0;
+#endif
 
         //~ do_movie_mode_remap();
         
@@ -1007,7 +1009,7 @@ static struct menu_entry mov_menus[] = {
         .display    = vbr_print,
         .select     = vbr_toggle,
     },*/
-    #ifndef CONFIG_500D
+    #if !defined(CONFIG_500D) && !defined(CONFIG_5D3)
     {
         .name = "Movie Restart",
         .priv = &movie_restart,
@@ -1088,7 +1090,7 @@ static struct menu_entry mov_menus[] = {
         .display = zebra_nrec_display,
         .help = "You can disable zebra during recording."
     },*/
-    #ifndef CONFIG_50D
+    #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
     {
         .name = "Force LiveView",
         .priv = &enable_liveview,
@@ -1108,7 +1110,7 @@ static struct menu_entry mov_menus[] = {
         //.essential = FOR_MOVIE,
     },
 #endif
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D3)
     {
         .name = "Shutter Lock",
         .priv = &shutter_lock,
