@@ -34,6 +34,8 @@
 #include "property.h"
 #include "consts.h"
 
+#include "cache_hacks.h"
+
 /** If CONFIG_EARLY_PORT is defined, only a few things will be enabled */
 #undef CONFIG_EARLY_PORT
 
@@ -117,7 +119,7 @@ copy_and_restart( int offset )
     // Make sure that our self-modifying code clears the cache
     clean_d_cache();
     flush_caches();
-
+    cache_lock();
     // We enter after the signature, avoiding the
     // relocation jump that is at the head of the data
     thunk reloc_entry = (thunk)( RELOCADDR + 0xC );

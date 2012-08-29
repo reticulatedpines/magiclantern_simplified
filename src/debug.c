@@ -532,7 +532,7 @@ void iso_movie_test()
 
 void run_test()
 {
-    //~ debug_intercept();
+    debug_intercept();
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
