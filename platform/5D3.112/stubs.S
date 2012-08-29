@@ -180,7 +180,10 @@ NSTUB(0xff9ef81c - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_
 
 NSTUB(0xFF1378CC, PowerAudioOutput)
 NSTUB(0xff10ec58, StartASIFDMADAC)
+NSTUB(0xff10eaa0, StartASIFDMAADC)
 NSTUB(0xff10ed30, StopASIFDMADAC)
+NSTUB(0xff10f1d4, SetNextASIFADCBuffer)
+NSTUB(0xFF10F288, SetNextASIFDACBuffer)
 NSTUB(0xff137964, SetSamplingRate )
 NSTUB(0xff137064, SetAudioVolumeOut)
 

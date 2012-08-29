@@ -10,7 +10,7 @@
 #define HIJACK_TASK_ADDR 0x23E14
 
 // no idea if it's overflowing, need to check experimentally 
-//~ #define ARMLIB_OVERFLOWING_BUFFER 0x21c94 // in AJ_armlib_setup_related3
+//~ #define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3
 
 #define DRYOS_ASSERT_HANDLER 0x23DF4 // dec TH_assert or assert_0
 
@@ -174,9 +174,9 @@
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
-//~ #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
-//~ #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1aac // this prop_deliver performs the action for Video Connect and Video Disconnect
-//~ #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1ad4 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
+#define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
+#define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0
+#define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
@@ -265,3 +265,4 @@
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x3c268
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+

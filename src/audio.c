@@ -35,7 +35,7 @@
 
 #define SOUND_RECORDING_ENABLED (sound_recording_mode != 1) // not 100% sure
 
-#ifdef CONFIG_500D
+#if defined(CONFIG_500D) || defined(CONFIG_5D3)
 int audio_thresholds[] = { 0x7fff, 0x7213, 0x65ab, 0x5a9d, 0x50c2, 0x47fa, 0x4026, 0x392c, 0x32f4, 0x2d6a, 0x2879, 0x2412, 0x2026, 0x1ca7, 0x1989, 0x16c2, 0x1449, 0x1214, 0x101d, 0xe5c, 0xccc, 0xb68, 0xa2a, 0x90f, 0x813, 0x732, 0x66a, 0x5b7, 0x518, 0x48a, 0x40c, 0x39b, 0x337, 0x2dd, 0x28d, 0x246, 0x207, 0x1ce, 0x19c, 0x16f, 0x147 };
 #endif
 
@@ -92,7 +92,7 @@ int ext_cfg_draw_meters(void)
 }
 */
 
-struct audio_level audio_levels[2];
+static struct audio_level audio_levels[2];
 
 struct audio_level *get_audio_levels(void)
 {
@@ -827,6 +827,10 @@ int get_mic_power(int input_source)
  void
 audio_configure( int force )
 {
+#if defined(CONFIG_600D) || defined(CONFIG_5D3)
+        return;
+#endif
+
     extern int beep_playing;
     if (beep_playing && !(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED))
         return; // don't redirect wav playing to headphones if they are not connected
@@ -834,9 +838,6 @@ audio_configure( int force )
     // redirect wav playing to headphones if they are connected
     int loopback0 = beep_playing ? 0 : loopback;
     
-#ifdef CONFIG_600D
-        return;
-#endif
 #ifdef CONFIG_AUDIO_REG_LOG
         audio_reg_dump( force );
         return;
@@ -1303,7 +1304,7 @@ static void
 }
 
 static struct menu_entry audio_menus[] = {
-#if !(defined(CONFIG_600D) || defined(CONFIG_1100D))
+#if !(defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3))
 #if 0
         {
                 .priv           = &o2gain,
@@ -1543,7 +1544,7 @@ my_sounddev_task()
         }
 }
 
-#ifndef CONFIG_600D
+#if !defined(CONFIG_600D) && !defined(CONFIG_5D3)
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 #endif
 
