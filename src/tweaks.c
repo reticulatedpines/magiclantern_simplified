@@ -2805,15 +2805,6 @@ static struct menu_entry display_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "UniWB correct  ",
-                .priv = &uniwb_correction,
-                .max = 10,
-                .choices = (const char *[]) {"OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},
-                .help = "Removes the green color cast when you use UniWB.",
-                .edit_mode = EM_MANY_VALUES_LV,
-                .icon_type = IT_BOOL,
-            },
-            {
                 .name = "Color scheme   ",
                 .priv     = &bmp_color_scheme,
                 .max = 5,
@@ -2913,26 +2904,7 @@ static struct menu_entry display_menus[] = {
     },
     #endif */
     {
-        .name = "Focus box",
-        .priv = &af_frame_autohide, 
-        .select = menu_binary_toggle,
-        .display = af_frame_autohide_display,
-        .help = "You can hide the focus box (the little white rectangle).",
-        .icon_type = IT_DISABLE_SOME_FEATURE,
-        //.essential = FOR_LIVEVIEW,
-    },
-#ifndef CONFIG_5DC
-    {
-        .name = "Force HDMI-VGA",
-        .priv = &hdmi_force_vga, 
-        .display = hdmi_force_display, 
-        .select = menu_binary_toggle,
-        .help = "Force low resolution (720x480) on HDMI displays.",
-        //.essential = FOR_EXT_MONITOR,
-    },
-#endif
-    {
-        .name = "Screen layout settings...",
+        .name = "Advanced settings...",
         .select         = menu_open_submenu,
         .submenu_width = 700,
         .help = "Screen orientation, position fine-tuning...",
@@ -2985,6 +2957,34 @@ static struct menu_entry display_menus[] = {
                     //.essential = FOR_LIVEVIEW,
                 },
             #endif
+                {
+                    .name = "Focus box",
+                    .priv = &af_frame_autohide, 
+                    .select = menu_binary_toggle,
+                    .display = af_frame_autohide_display,
+                    .help = "You can hide the focus box (the little white rectangle).",
+                    .icon_type = IT_DISABLE_SOME_FEATURE,
+                    //.essential = FOR_LIVEVIEW,
+                },
+            #ifndef CONFIG_5DC
+                {
+                    .name = "Force HDMI-VGA",
+                    .priv = &hdmi_force_vga, 
+                    .display = hdmi_force_display, 
+                    .select = menu_binary_toggle,
+                    .help = "Force low resolution (720x480) on HDMI displays.",
+                    //.essential = FOR_EXT_MONITOR,
+                },
+            #endif
+                {
+                    .name = "UniWB correct  ",
+                    .priv = &uniwb_correction,
+                    .max = 10,
+                    .choices = (const char *[]) {"OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},
+                    .help = "Removes the green color cast when you use UniWB.",
+                    .edit_mode = EM_MANY_VALUES_LV,
+                    .icon_type = IT_BOOL,
+                },
             MENU_EOL
         },
     },
