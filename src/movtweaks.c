@@ -705,7 +705,7 @@ void rec_notify_continuous(int called_from_menu)
 
 void rec_notify_trigger(int rec)
 {
-#if !defined(CONFIG_600D)
+#if !defined(CONFIG_600D) && !defined(CONFIG_5D3)
     if (RECNOTIFY_BEEP)
     {
         extern int ml_started;
@@ -1052,12 +1052,12 @@ static struct menu_entry mov_menus[] = {
         .name = "REC/STBY notify", 
         .priv = &rec_notify, 
         .display = rec_notify_print, 
-        #ifdef CONFIG_5D2
-        .select = menu_quinternary_toggle, 
-        #elif defined(CONFIG_600D)
-        .select = menu_quaternary_toggle, 
+        #if defined(CONFIG_5D2) || defined(CONFIG_500D)
+        .select = menu_quinternary_toggle, // beeps and blue led
+        #elif defined(CONFIG_600D) || defined(CONFIG_5D3)
+        .select = menu_ternary_toggle, // no beeps, no blue led
         #else
-        .select = menu_ternary_toggle, 
+        .select = menu_quaternary_toggle, // beeps are OK, no blue led
         #endif
         .help = "Custom REC/STANDBY notifications, visual or audible",
         //.essential = FOR_MOVIE,
