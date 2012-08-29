@@ -1237,7 +1237,7 @@ static struct menu_entry focus_menu[] = {
         //.essential = FOR_PHOTO,
         .icon_type = IT_BOOL,
     },
-#ifndef CONFIG_5DC
+#if !defined(CONFIG_5DC) && !defined(CONFIG_5D3)
     {
         .name = "Focus Patterns",
         .priv = &af_patterns,
