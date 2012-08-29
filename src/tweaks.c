@@ -863,6 +863,7 @@ int handle_set_wheel_play(struct event * event)
             return 0;
         }
         
+        #ifndef CONFIG_5D3 // Canon has it
         if (quick_delete)
         {
             if (event->param == BGMT_TRASH)
@@ -874,6 +875,7 @@ int handle_set_wheel_play(struct event * event)
                 return 0;
             }
         }
+        #endif
     }
     
     return 1;
@@ -1265,6 +1267,7 @@ TASK_CREATE("tweak_task", tweak_task, 0, 0x1e, 0x1000 );
 
 CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 0);
 
+#ifndef CONFIG_5D3 // not needed
 PROP_HANDLER(PROP_GUI_STATE)
 {
     int gui_state = buf[0];
@@ -1276,6 +1279,7 @@ PROP_HANDLER(PROP_GUI_STATE)
         fake_simple_button(BGMT_PLAY);
     }
 }
+#endif
 
 static void
 qrplay_display(
@@ -3001,6 +3005,7 @@ struct menu_entry play_menus[] = {
                 //~ .edit_mode = EM_MANY_VALUES,
             },
 #endif
+        #ifndef CONFIG_5D3 // not needed, you can press zoom in right away
             {
                 .name = "Image Review Mode",
                 .priv = &quick_review_allow_zoom, 
@@ -3011,6 +3016,7 @@ struct menu_entry play_menus[] = {
                 //.essential = FOR_PHOTO,
                 .icon_type = IT_BOOL,
             },
+        #endif
 /*            {
                 .name = "LiveV tools in QR",
                 .priv = &quickreview_liveview, 
@@ -3019,7 +3025,7 @@ struct menu_entry play_menus[] = {
                 //.essential = FOR_PHOTO,
                 .icon_type = IT_BOOL,
             }, */
-        #ifndef CONFIG_5D3
+        #ifndef CONFIG_5D3 // Canon has it
             {
                 .name = "Zoom in PLAY mode",
                 .priv = &quickzoom, 
@@ -3056,6 +3062,7 @@ struct menu_entry play_menus[] = {
                 //.essential = FOR_PHOTO,
             },
         #endif
+        #ifndef CONFIG_5D3 // Canon has it
             {
                 .name = "Quick Erase",
                 .priv = &quick_delete, 
@@ -3064,6 +3071,7 @@ struct menu_entry play_menus[] = {
                 .help = "Delete files quickly with SET+Erase (be careful!!!)",
                 //.essential = FOR_PHOTO,
             },
+        #endif
             MENU_EOL,
         },
     },
