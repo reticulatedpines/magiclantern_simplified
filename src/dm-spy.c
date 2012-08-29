@@ -22,11 +22,13 @@
 #define BUF_SIZE (1024*1024)
 static char* buf = 0;
 static int len = 0;
-static void* lock = 0;
 
 void my_DebugMsg(int class, int level, char* fmt, ...)
 {
     if (!buf) return;
+    
+    if (class == 21) // engio
+        return;
     
     va_list            ap;
 
@@ -49,9 +51,14 @@ void debug_intercept()
 {
     if (!buf) // first call, intercept debug messages
     {
-        lock = CreateRecursiveLock(0);
         buf = alloc_dma_memory(BUF_SIZE);
+        
+        #ifdef CONFIG_5D3
+        uint32_t d = (uint32_t)&DryosDebugMsg;
+        *(uint32_t*)(d) = B_INSTR((uint32_t)&DryosDebugMsg, my_DebugMsg);
+        #else
         cache_fake((uint32_t)&DryosDebugMsg, B_INSTR((uint32_t)&DryosDebugMsg, my_DebugMsg), TYPE_ICACHE);
+        #endif
         NotifyBox(2000, "Now logging... ALL DebugMsg's :)", len);
     }
     else // subsequent call, save log to file
