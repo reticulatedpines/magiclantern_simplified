@@ -295,7 +295,7 @@
 // buf[0]: 8 if crop else 0
 // buf[1]: 0 if full hd, 1 if 720p, 2 if 680p
 // buf[2]: fps
-// buf[3]: fps/2?
+// buf[3]: GoP
 #endif
 
 #define PROP_DOF_PREVIEW_MAYBE 0x8005000B
