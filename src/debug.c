@@ -532,6 +532,7 @@ void iso_movie_test()
 
 void run_test()
 {
+    //~ debug_intercept();
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1269,13 +1270,13 @@ const int mem_spy_addresses[] = {};//0xc0000044, 0xc0000048, 0xc0000057, 0xc0001
 int mem_spy_len = 0x10000/4;    // look at ### int32's; use only when mem_spy_fixed_addresses = 0
 //~ int mem_spy_len = COUNT(mem_spy_addresses); // use this when mem_spy_fixed_addresses = 1
 
-int mem_spy_count_lo = 1; // how many times is a value allowed to change
-int mem_spy_count_hi = 0; // (limits)
-int mem_spy_freq_lo = 10; 
-int mem_spy_freq_hi = 50;  // or check frequecy between 2 limits (0 = disable)
+int mem_spy_count_lo = 5; // how many times is a value allowed to change
+int mem_spy_count_hi = 50; // (limits)
+int mem_spy_freq_lo =  0; 
+int mem_spy_freq_hi =  0;  // or check frequecy between 2 limits (0 = disable)
 int mem_spy_value_lo = 0;
 int mem_spy_value_hi = 0;  // or look for a specific range of values (0 = disable)
-int mem_spy_start_time = 0;  // ignore values changing early (these are noise)
+int mem_spy_start_time = 30;  // ignore values changing early (these are noise)
 
 
 static int* dbg_memmirror = 0;
@@ -2660,7 +2661,7 @@ struct menu_entry debug_menus[] = {
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     #endif
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2)
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
     {
         .name = "Battery remaining",
         .display = batt_display,
@@ -3439,8 +3440,10 @@ int handle_buttons_being_held(struct event * event)
     #endif
     if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
     if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
+    #ifdef BGMT_PRESS_ZOOMOUT_MAYBE
     if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
     if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
+    #endif
     
     return 1;
 }

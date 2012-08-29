@@ -83,7 +83,6 @@ int GetBatteryDrainRate() // percents per hour
 // called every second
 void RefreshBatteryLevel_1Hz()
 {
-	return;
 	int x = 31;
 	prop_request_change(PROP_BATTERY_REPORT, &x, 1); // see PROP_Request PROP_BATTERY_REPORT
 	

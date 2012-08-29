@@ -2772,6 +2772,16 @@ int handle_zoom_x5_x10(struct event * event)
 {
     if (!lv) return 1;
     if (recording) return 1;
+    
+    #ifdef CONFIG_5D3
+    //~ if (event->param == BGMT_TRUE_ZOOMIN)
+    //~ {
+        //~ fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+        //~ fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+        //~ return 0;
+    //~ }
+    #endif
+    
     if (!zoom_disable_x5 && !zoom_disable_x10) return 1;
     #ifdef CONFIG_600D
     if (get_disp_pressed()) return 1;
@@ -3300,7 +3310,7 @@ seconds_clock_task( void* unused )
         if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
             info_led_blink(1, 50, 0);
         
-        #if defined(CONFIG_60D) || defined(CONFIG_5D2)
+        #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
         RefreshBatteryLevel_1Hz();
         #endif
     }

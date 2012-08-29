@@ -3307,7 +3307,7 @@ struct menu_entry livev_dbg_menus[] = {
     }*/
 };
 
-#if defined(CONFIG_60D) || defined(CONFIG_5D2)
+#if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
 void batt_display(
     void *          priv,
     int         x,
@@ -3391,7 +3391,7 @@ struct menu_entry powersave_menus[] = {
             .help = "Turn off GlobalDraw when idle, to save some CPU cycles.",
             //~ .edit_mode = EM_MANY_VALUES,
         },
-        #if defined(CONFIG_60D) || defined(CONFIG_5D2)
+        #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
         {
             .name = "Battery remaining",
             .display = batt_display,
