@@ -51,7 +51,7 @@ void debug_intercept()
 {
     if (!buf) // first call, intercept debug messages
     {
-        buf = shoot_malloc(BUF_SIZE);
+        buf = alloc_dma_memory(BUF_SIZE);
         
         #ifdef CONFIG_5D3
         uint32_t d = (uint32_t)&DryosDebugMsg;
