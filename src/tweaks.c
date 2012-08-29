@@ -2357,6 +2357,10 @@ void grayscale_menus_step()
 
 void lcd_adjust_position_step()
 {
+    #ifdef CONFIG_5D3
+    return;
+    #endif
+    
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
 
@@ -2943,6 +2947,7 @@ static struct menu_entry display_menus[] = {
                     //~ .edit_mode = EM_MANY_VALUES,
                 },
 #endif
+#ifndef CONFIG_5D3 // not needed, screen border is very thin
                 {
                     .name = "Image position ",
                     .priv = &lcd_adjust_position,
@@ -2951,6 +2956,7 @@ static struct menu_entry display_menus[] = {
                     .icon_type = IT_BOOL,
                     .help = "May make the image easier to see from difficult angles.",
                 },
+#endif
                 {
                     .name = "UpsideDown mode",
                     .priv = &menu_upside_down,
