@@ -71,15 +71,13 @@
 #define BGMT_PRESS_DP 0x2f
 #define BGMT_UNPRESS_DP 0x35
 #define BGMT_RATE 0x21
-#define BGMT_PRESS_ZOOMIN 0x12
-#define BGMT_UNPRESS_ZOOMIN 0x13
 #define BGMT_REC 0x1E
 
 
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xA
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xB
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xC
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xD
+#define BGMT_PRESS_ZOOMIN_MAYBE 0x12
+#define BGMT_UNPRESS_ZOOMIN_MAYBE 0x13
+//~ #define BGMT_PRESS_ZOOMOUT_MAYBE 0x1234 // no zoom out button in play mode?!
+//~ #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x5678
 
 #define BGMT_LV 0x1E
 #define BGMT_Q 0x1d
@@ -112,6 +110,10 @@
 #define BGMT_ISO_MOVIE 0
 #define BGMT_PRESS_ISO_MOVIE 0
 #define BGMT_UNPRESS_ISO_MOVIE 0
+
+#define GMT_GUICMD_PRESS_BUTTON_SOMETHING 0x52 // unhandled buttons?
+
+#define BGMT_LIGHT 0x20 // the little button for top screen backlight
 
 #define GMT_OLC_INFO_CHANGED 103 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 
@@ -232,7 +234,7 @@
 // see http://magiclantern.wikia.com/wiki/VRAM/BMP
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x323b0+0x2c)
 
-#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PICSTYLE // what button to use for zebras in Play mode
+#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_LIGHT // what button to use for zebras in Play mode
 
 // manual exposure overrides
 #define LVAE_STRUCT 0x68BB8

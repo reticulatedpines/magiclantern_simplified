@@ -4734,6 +4734,7 @@ BMP_LOCK (
     {
         struct gui_task * current = gui_task_list.current;
         struct dialog * dialog = current->priv;
+
         if (dialog && MEM(dialog->type) == DLG_SIGNATURE) // if dialog seems valid
         {
             #ifdef CONFIG_KILL_FLICKER
@@ -5300,7 +5301,12 @@ int handle_livev_playback(struct event * event, int button)
             return 0;
         }
         else
+        #ifdef GMT_GUICMD_PRESS_BUTTON_SOMETHING
+        if (event->param != GMT_GUICMD_PRESS_BUTTON_SOMETHING)
+        #endif
+        {
             livev_playback_reset();
+        }
     }
     return 1;
 }
