@@ -6064,7 +6064,7 @@ void shoot_init()
 #ifndef CONFIG_5DC
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
 #endif
-    #ifndef CONFIG_5D2
+    #if !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
     menu_add( "Shoot", flash_menus, COUNT(flash_menus) );
     #endif
     //~ menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
