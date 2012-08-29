@@ -39,10 +39,8 @@
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x276D0)
 
-// used for Trap Focus 
-// To find it, go to MainCtrl task and take the number from the second line minus 4.
-// See also "cam event metering"
-#define HALFSHUTTER_PRESSED (*(int*)0x23fd0)
+// See "cam event metering"
+#define HALFSHUTTER_PRESSED (*(int*)0x251D4)
 
 #define DISPLAY_SENSOR_POWERED 0
 
