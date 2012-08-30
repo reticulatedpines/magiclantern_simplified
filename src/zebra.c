@@ -275,9 +275,12 @@ int should_draw_zoom_overlay()
 
 static CONFIG_INT( "focus.peaking", focus_peaking, 0);
 static CONFIG_INT( "focus.peaking.method", focus_peaking_method, 1);
+static CONFIG_INT( "focus.peaking.disp", focus_peaking_disp, 0); // display as dots or blended
 static CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 5); // 1%
 static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
 CONFIG_INT( "focus.peaking.grayscale", focus_peaking_grayscale, 0); // R,G,B,C,M,Y,cc1,cc2
+
+int focus_peaking_as_display_filter() { return lv && focus_peaking && focus_peaking_disp; }
 
 //~ static CONFIG_INT( "focus.graph", focus_graph, 0);
 
@@ -1511,6 +1514,82 @@ void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
     }
 }
 
+static inline int peak_d1xy(uint8_t* p8)
+{
+    int p_cc = (int)(*p8);
+    int p_rc = (int)(*(p8 + 2));
+    int p_cd = (int)(*(p8 + vram_lv.pitch));
+    
+    int e_dx = ABS(p_rc - p_cc);
+    int e_dy = ABS(p_cd - p_cc);
+    
+    int e = MAX(e_dx, e_dy);
+    e = MIN(e * 8, 255);
+    return e;
+}
+
+static inline int peak_d2xy(uint8_t* p8)
+{
+    int result = ((int)(*p8) * 4) - (int)(*(p8 + 2));
+    result -= (int)(*(p8 - 2));
+    result -= (int)(*(p8 + vram_lv.pitch));
+    result -= (int)(*(p8 - vram_lv.pitch));
+    
+    int e = ABS(result);
+    e = MIN(e * 4, 255);
+    return e;
+    //~ return (e << 8) | (e << 24);
+}
+static inline int peak_blend(uint32_t* s, int e)
+{
+    // e=0 => cold (original color)
+    // e=255 => hot (red)
+    
+    uint8_t* s8u = (uint8_t*)s;
+    int8_t*  s8s = (int8_t*)s;
+
+    int y_cold = *(s8u+1);
+    int u_cold = *(s8s);
+    int v_cold = *(s8s+2);
+    
+    int y_hot = 76;
+    int u_hot = -43;
+    int v_hot = 127;
+    int er = 255-e;
+    int y = (y_cold * er + y_hot * e) / 256;
+    int u = (u_cold * er + u_hot * e) / 256;
+    int v = (v_cold * er + v_hot * e) / 256;
+    
+    return (u & 0xFF) | ((y & 0xFF) << 8) | ((v & 0xFF) << 16) | ((y & 0xFF) << 24);
+}
+
+void peak_disp_filter()
+{
+    if (!lv) return;
+
+    uint32_t* src_buf;
+    uint32_t* dst_buf;
+    display_filter_get_buffers(&src_buf, &dst_buf);
+
+    if (focus_peaking_method == 0)
+    {
+        for (int i = 1 + 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
+        {
+            int e = peak_d1xy((uint8_t*)&src_buf[i] + 1);
+            if (likely(e < 20)) dst_buf[i] = focus_peaking_grayscale ? src_buf[i] & 0xFF00FF00 : src_buf[i];
+            else dst_buf[i] = peak_blend(&src_buf[i], e);
+        }
+    }
+    else
+    {
+        for (int i = 1 + 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
+        {
+            int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
+            if (likely(e < 20)) dst_buf[i] = focus_peaking_grayscale ? src_buf[i] & 0xFF00FF00 : src_buf[i];
+            else dst_buf[i] = peak_blend(&src_buf[i], e);
+        }
+    }
+}
 
 // returns how the focus peaking threshold changed
 static int
@@ -1523,6 +1602,10 @@ draw_zebra_and_focus( int Z, int F )
     if (unlikely(!bvram_mirror)) return 0;
     
     draw_zebras(Z);
+
+    #ifdef CONFIG_5D3
+    if (focus_peaking_as_display_filter()) return 0; // it's drawn from display filters routine
+    #endif
 
     static int thr = 50;
     static int thr_increment = 1;
@@ -2965,8 +3048,17 @@ struct menu_entry zebra_menus[] = {
                 .priv = &focus_peaking_method, 
                 .max = 1,
                 .choices = (const char *[]) {"1st deriv.", "2nd deriv.", "Nyquist H"},
-                .help = "Contrast detection method.",
+                .help = "Contrast detection method. 2: more accurate, 1: less noisy.",
             },
+            #ifdef CONFIG_5D3
+            {
+                .name = "Display as",
+                .priv = &focus_peaking_disp, 
+                .max = 1,
+                .choices = (const char *[]) {"Blinking dots", "Alpha blend"},
+                .help = "How to display peaking. Alpha looks nicer, but image lags.",
+            },
+            #endif
             {
                 .name = "Threshold", 
                 .priv = &focus_peaking_pthr,

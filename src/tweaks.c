@@ -2091,7 +2091,7 @@ void preview_contrast_n_saturation_step()
     int desired_saturation = saturation_values[preview_saturation];
 
     extern int focus_peaking_grayscale;
-    if (focus_peaking_grayscale && is_focus_peaking_enabled())
+    if (focus_peaking_grayscale && is_focus_peaking_enabled() && !focus_peaking_as_display_filter())
         desired_saturation = 0;
 
     if (current_saturation != desired_saturation)
@@ -2730,7 +2730,7 @@ void display_filter_get_buffers(void** src_buf, void** dst_buf)
 int display_filter_enabled()
 {
     if (!lv) return 0;
-    if (!(defish_preview || anamorphic_preview)) return 0;
+    if (!(defish_preview || anamorphic_preview || focus_peaking_as_display_filter())) return 0;
     if (!zebra_should_run()) return 0;
     return 1;
 }
@@ -2773,6 +2773,12 @@ void display_filter_step(int k)
     {
         if (k % 1 == 0)
             BMP_LOCK( if (lv) anamorphic_squeeze(); )
+    }
+    
+    else if (focus_peaking_as_display_filter())
+    {
+        if (k % 1 == 0)
+            BMP_LOCK( if (lv) peak_disp_filter(); )
     }
 }
 
