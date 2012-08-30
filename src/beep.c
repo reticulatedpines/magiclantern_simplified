@@ -197,6 +197,8 @@ void WAV_Play(char* filename)
     int fmt_offset = wav_find_chunk(buf1, s1, 0x20746d66);
     if (MEM(buf1+fmt_offset) != 0x20746d66) goto wav_cleanup;
     int sample_rate = *(uint32_t*)(buf1 + fmt_offset + 12);
+    int channels = *(uint16_t*)(buf1 + fmt_offset + 10);
+    int bitspersample = *(uint16_t*)(buf1 + fmt_offset + 22);
     
     // find the "data" subchunk
     int data_offset = wav_find_chunk(buf1, s1, 0x61746164);
@@ -208,7 +210,12 @@ void WAV_Play(char* filename)
 
     beep_playing = 1;
     SetSamplingRate(sample_rate, 1);
-    MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
+    // 1 = mono uint8
+    // 3 = stereo uint8
+    // 4 = mono int16
+    // 6 = stereo int16
+    // => bit 2 = 16bit, bit 1 = stereo, bit 0 = 8bit
+    MEM(0xC0920210) = (channels == 2 ? 2 : 0) | (bitspersample == 16 ? 4 : 1); // SetASIFDACMode*
     PowerAudioOutput();
     audio_configure(1);
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
