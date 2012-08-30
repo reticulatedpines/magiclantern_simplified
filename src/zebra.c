@@ -1295,7 +1295,7 @@ void zebra_update_lut()
     return cw;
 }*/
 
-#define MAX_DIRTY_PIXELS 5000
+#define MAX_DIRTY_PIXELS 10000
 
 int focus_peaking_debug = 0;
 
@@ -1483,7 +1483,7 @@ void draw_zebras( int Z )
     }
 }
 
-void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
+static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
 {    
     int color = get_focus_color(thr, e);
     //~ int color = COLOR_RED;
@@ -1511,6 +1511,28 @@ void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
     if (dirty_pixels_num < MAX_DIRTY_PIXELS)
     {
         dirty_pixels[dirty_pixels_num++] = (void*)&b_row[x/2] - (void*)bvram;
+    }
+}
+
+static void focus_found_small_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
+{    
+    int color = get_focus_color(thr, e);
+    
+    uint8_t * const b_row = (uint8_t*)( bvram + BM_R(y) );   // 2 pixels
+    uint8_t * const m_row = (uint8_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
+    
+    uint8_t pixel = b_row[x];
+    uint8_t mirror = m_row[x];
+    if (mirror  & 0x80) 
+        return;
+    if (pixel  != 0 && pixel  != mirror )
+        return;
+
+    b_row[x] = m_row[x] = color;
+    
+    if (dirty_pixels_num < MAX_DIRTY_PIXELS)
+    {
+        dirty_pixels[dirty_pixels_num++] = (void*)&b_row[x] - (void*)bvram;
     }
 }
 
@@ -1624,12 +1646,19 @@ draw_zebra_and_focus( int Z, int F )
             #define B2 *(uint16_t*)(bvram + dirty_pixels[i] + BMPPITCH)
             #define M1 *(uint16_t*)(bvram_mirror + dirty_pixels[i])
             #define M2 *(uint16_t*)(bvram_mirror + dirty_pixels[i] + BMPPITCH)
-            if (unlikely((B1 == 0 || B1 == M1)) && unlikely((B2 == 0 || B2 == M2)))
+            #define B1s *(uint8_t*)(bvram + dirty_pixels[i])
+            #define M1s *(uint8_t*)(bvram_mirror + dirty_pixels[i])
+
+            if (likely((B1 == 0 || B1 == M1)) && likely((B2 == 0 || B2 == M2)))
                 B1 = B2 = M1 = M2 = 0;
+            else if (likely((B1s == 0 || B1s == M1s)))
+                B1s = M1s = 0;
             #undef B1
             #undef B2
             #undef M1
             #undef M2
+            #undef B1s
+            #undef M1s
         }
         dirty_pixels_num = 0;
         
@@ -1641,6 +1670,7 @@ draw_zebra_and_focus( int Z, int F )
         int xStart = os.x0 + 8;
         int xEnd = os.x_max - 8;
         int n_over = 0;
+        int n_dirty = 0;
         int n_total = ((yEnd - yStart) * (xEnd - xStart)) / 4;
         
         const uint8_t* p8; // that's a moving pointer
@@ -1670,12 +1700,18 @@ draw_zebra_and_focus( int Z, int F )
                     if (unlikely(e >= thr))
                     {
                         n_over++;
-                        if (n_over > MAX_DIRTY_PIXELS) // threshold too low, abort
-                        {
+
+                        if (unlikely(dirty_pixels_num >= MAX_DIRTY_PIXELS)) // threshold too low, abort
                             break;
-                        }
 
                         focus_found_pixel(x, y, e, thr, bvram);
+                    }
+                    else if (unlikely(e >= thr/2))
+                    {
+                        if (unlikely(dirty_pixels_num >= MAX_DIRTY_PIXELS)) // threshold too low, abort
+                            break;
+
+                        focus_found_small_pixel(x, y, e, thr, bvram);
                     }
                 }
             }
@@ -1713,12 +1749,18 @@ draw_zebra_and_focus( int Z, int F )
                     if (unlikely(e >= thr))
                     {
                         n_over++;
-                        if (n_over > MAX_DIRTY_PIXELS) // threshold too low, abort
-                        {
+
+                        if (unlikely(dirty_pixels_num >= MAX_DIRTY_PIXELS)) // threshold too low, abort
                             break;
-                        }
 
                         focus_found_pixel(x, y, e, thr, bvram);
+                    }
+                    else if (unlikely(e >= thr/2))
+                    {
+                        if (unlikely(dirty_pixels_num >= MAX_DIRTY_PIXELS)) // threshold too low, abort
+                            break;
+
+                        focus_found_small_pixel(x, y, e, thr, bvram);
                     }
                 }
             }
