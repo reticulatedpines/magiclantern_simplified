@@ -505,9 +505,10 @@ void digic_iso_step()
     {
         if (digic_iso_gain_photo == 0) digic_iso_gain_photo = 1024;
     #ifdef CONFIG_5D3
-        if (LVAE_DISP_GAIN != digic_iso_gain_photo) 
+        int g = digic_iso_gain_photo == 1024 ? 0 : COERCE(digic_iso_gain_photo, 0, 65534);
+        if (LVAE_DISP_GAIN != g) 
         {
-            call("lvae_setdispgain", COERCE(digic_iso_gain_photo, 0, 65534));
+            call("lvae_setdispgain", g);
         }
     #else
         if (digic_iso_gain_photo > 1024 && !LVAE_DISP_GAIN)
