@@ -348,6 +348,8 @@ void my_big_init_task()
                 //~ streq(task->name, "seconds_clock_task") ||
                 //~ streq(task->name, "shoot_task") ||
                 //~ streq(task->name, "tweak_task") ||
+                //~ streq(task->name, "beep_task") ||
+                //~ streq(task->name, "crash_log_task") ||
             0 )
         #endif
         {
@@ -360,6 +362,11 @@ void my_big_init_task()
             );
             ml_tasks++;
         }
+        //~ else
+        //~ {
+            //~ bmp_printf(FONT_LARGE, 50, 50, "skip %s  ", task->name);
+            //~ msleep(1000);
+        //~ }
     }
     //~ bmp_printf( FONT_MED, 0, 85,
         //~ "Magic Lantern is up and running... %d tasks started.",

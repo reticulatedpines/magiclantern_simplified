@@ -1752,39 +1752,33 @@ void save_crash_log()
 
 }
 
-// don't do anything else here, to avoid lockups
-void crash_log_task()
+void crash_log_step()
 {
-    int dmlog_saved = 0;
-    TASK_LOOP
+    static int dmlog_saved = 0;
+    if (crash_log_requested)
     {
-        if (crash_log_requested)
-        {
-            //~ beep();
-            save_crash_log();
-            crash_log_requested = 0;
-            msleep(2000);
-        }
-        
-        //~ bmp_printf(FONT_MED, 100, 100, "%x ", get_current_dialog_handler());
-        extern thunk ErrForCamera_handler;
-        if (get_current_dialog_handler() == (intptr_t)&ErrForCamera_handler)
-        {
-            if (!dmlog_saved) 
-            { 
-                beep();
-                NotifyBox(10000, "Saving debug log...");
-                call("dumpf"); 
-            }
-            dmlog_saved = 1;
-        }
-        else dmlog_saved = 0;
-        
-        msleep(200);
+        //~ beep();
+        save_crash_log();
+        crash_log_requested = 0;
+        msleep(2000);
     }
+        
+    //~ bmp_printf(FONT_MED, 100, 100, "%x ", get_current_dialog_handler());
+    extern thunk ErrForCamera_handler;
+    if (get_current_dialog_handler() == (intptr_t)&ErrForCamera_handler)
+    {
+        if (!dmlog_saved) 
+        { 
+            beep();
+            NotifyBox(10000, "Saving debug log...");
+            call("dumpf"); 
+        }
+        dmlog_saved = 1;
+    }
+    else dmlog_saved = 0;
 }
 
-TASK_CREATE( "crash_log_task", crash_log_task, 0, 0x1e, 0x2000);
+//~ TASK_CREATE( "crash_log_task", crash_log_task, 0, 0x1e, 0x2000);
 
 
 int x = 0;
@@ -1842,6 +1836,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             continue;
         }
         #endif
+        
+        crash_log_step();
         
         msleep(200);
     }

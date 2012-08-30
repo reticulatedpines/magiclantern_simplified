@@ -1142,6 +1142,7 @@ static void
 tweak_task( void* unused)
 {
     //~ do_movie_mode_remap();
+    movtweak_task_init();
     
     TASK_LOOP
     {
@@ -1152,6 +1153,8 @@ tweak_task( void* unused)
         else if (display_countdown) display_countdown--;
         
         msleep(display_countdown || recording || halfshutter_sticky || dofpreview_sticky ? 50 : 1000);
+        
+        movtweak_step();
 
         if (halfshutter_sticky)
             fake_halfshutter_step();

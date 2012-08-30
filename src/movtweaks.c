@@ -370,8 +370,8 @@ int movie_was_stopped_by_set = 0;
 // at startup don't try to sync with Canon values; use saved values instead
 int bv_startup = 1;
 
-static void
-movtweak_task( void* unused )
+void
+movtweak_task_init()
 {
     //~ msleep(500);
 
@@ -385,11 +385,10 @@ movtweak_task( void* unused )
     while (!ml_started) msleep(100);
     bv_auto_update_startup();
     bv_startup = 0;
+}
 
-    TASK_LOOP
-    {
-        msleep(DISPLAY_IS_ON || recording ? 50 : 1000);
-        
+void movtweak_step()
+{
 #ifndef CONFIG_5D3 // movie restart not needed
         static int recording_prev = 0;
         #if defined(CONFIG_5D2) || defined(CONFIG_50D)
@@ -445,10 +444,10 @@ movtweak_task( void* unused )
                 msleep(5000);
             }
         }
-    }
 }
 
-TASK_CREATE("movtweak_task", movtweak_task, 0, 0x1e, 0x1000 );
+// called from tweak_task
+//~ TASK_CREATE("movtweak_task", movtweak_task, 0, 0x1e, 0x1000 );
 
 /*
 static void
