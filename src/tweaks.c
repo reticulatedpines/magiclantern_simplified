@@ -1500,8 +1500,12 @@ int handle_push_wb(struct event * event)
     #ifdef CONFIG_5D3
     if (event->param == BGMT_RATE)
     {
-        kelvin_n_gm_auto();
-        return 0;
+        // only do this if no arrow shortcut is enabled
+        if (!arrow_keys_audio && !arrow_keys_iso_kelvin && !arrow_keys_shutter_aperture && !arrow_keys_bright_sat)
+        {
+            kelvin_n_gm_auto();
+            return 0;
+        }
     }
     #endif
     return 1;
@@ -1583,6 +1587,14 @@ int handle_arrow_keys(struct event * event)
 
     #ifdef CONFIG_5D2
     if (event->param == BGMT_PICSTYLE)
+    {
+        arrow_key_mode_toggle();
+        return 0;
+    }
+    #endif
+
+    #ifdef CONFIG_5D3
+    if (event->param == BGMT_RATE)
     {
         arrow_key_mode_toggle();
         return 0;
@@ -1676,6 +1688,7 @@ int handle_arrow_keys(struct event * event)
             return 0;
         }
     }
+
     return 1;
 }
 

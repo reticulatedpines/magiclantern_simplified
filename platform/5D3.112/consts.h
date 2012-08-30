@@ -251,7 +251,7 @@
 
 #define INFO_BTN_NAME "INFO"
 #define Q_BTN_NAME "[Q]"
-#define ARROW_MODE_TOGGLE_KEY "PicStyle"
+#define ARROW_MODE_TOGGLE_KEY "RATE"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x246a4)
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
