@@ -462,6 +462,7 @@ void image_effects_step()
     }
     if (oilpaint)   EngDrvOut(0xc0f2135c, -1);
     if (sharp)      EngDrvOut(0xc0f0f280, -1);
+
     prev_swap_uv = swap_uv;
 }
 
@@ -503,11 +504,18 @@ void digic_iso_step()
     else // photo mode - display gain, for preview only
     {
         if (digic_iso_gain_photo == 0) digic_iso_gain_photo = 1024;
+    #ifdef CONFIG_5D3
+        if (LVAE_DISP_GAIN != digic_iso_gain_photo) 
+        {
+            call("lvae_setdispgain", COERCE(digic_iso_gain_photo, 0, 65534));
+        }
+    #else
         if (digic_iso_gain_photo > 1024 && !LVAE_DISP_GAIN)
         {
             int ev_x255 = gain_to_ev_scaled(digic_iso_gain_photo, 255) - 2550 + 255;
             EngDrvOut(ISO_PUSH_REGISTER, ev_x255);
         }
+    #endif
     }
 }
 
