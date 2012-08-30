@@ -5552,6 +5552,82 @@ static void mlu_step()
     }
 }
 
+
+static void misc_shooting_info()
+{
+    if (get_global_draw())
+    {
+        #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
+        extern thunk ShootOlcApp_handler;
+        if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown()
+            && (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler)
+        BMP_LOCK
+        (
+            display_clock();
+            display_shooting_info();
+            free_space_show_photomode();
+        )
+        #endif
+    
+        if (lv && !gui_menu_shown())
+        {
+            BMP_LOCK (
+                display_shooting_info_lv();
+                display_shortcut_key_hints_lv();
+            )
+            #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
+            if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
+            {
+                static int ae_warned = 0;
+                if (!ae_warned && !gui_menu_shown())
+                {
+                    bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
+                        "!!! Auto exposure !!!\n"
+                        "Set 'Movie Exposure -> Manual' from Canon menu");
+                    msleep(2000);
+                    redraw();
+                    ae_warned = 1;
+                }
+            }
+            #elif defined(CONFIG_5D2)
+            static int ae_warned = 0;
+            if (is_movie_mode() && !lens_info.raw_shutter && recording && MVR_FRAME_NUMBER < 10)
+            {
+                if (!ae_warned && !gui_menu_shown())
+                {
+                    msleep(2000);
+                    bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
+                        "!!! Auto exposure !!!\n"
+                        "Use M mode and set 'LV display: Movie' from Expo menu");
+                    msleep(4000);
+                    redraw();
+                    ae_warned = 1;
+                }
+            }
+            else ae_warned = 0;
+            #endif
+            
+            if (ext_monitor_rca) 
+            {
+                static int rca_warned = 0;
+                if (!rca_warned && !gui_menu_shown())
+                {
+                    msleep(2000);
+                    if (ext_monitor_rca) // check again
+                    {
+                        bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, 
+                            "SD monitors NOT fully supported!\n"
+                            "RGB tools and MZoom won't work. ");
+                        msleep(4000);
+                        redraw();
+                        rca_warned = 1;
+                    }
+                }
+            }
+        }
+    }
+}
+
 static void
 shoot_task( void* unused )
 {
@@ -5572,6 +5648,8 @@ shoot_task( void* unused )
     TASK_LOOP
     {
         msleep(MIN_MSLEEP);
+        
+        if (k%10 == 0) misc_shooting_info();
 
         if (kelvin_auto_flag)
         {
