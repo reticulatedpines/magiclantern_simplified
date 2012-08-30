@@ -39,7 +39,7 @@ int kelvin_wb_dirty = 1;
 
 void save_kelvin_wb()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5D3)
     return;
     #endif
     
@@ -52,7 +52,7 @@ void save_kelvin_wb()
 
 void restore_kelvin_wb()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5D3)
     return;
     #endif
     //~ if (!white_balance_workaround) return;
