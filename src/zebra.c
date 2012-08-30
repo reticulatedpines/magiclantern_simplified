@@ -1483,59 +1483,6 @@ void draw_zebras( int Z )
     }
 }
 
-static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
-{    
-    int color = get_focus_color(thr, e);
-    //~ int color = COLOR_RED;
-    color = (color << 8) | color;   
-    
-    uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
-    uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
-    
-    uint16_t pixel = b_row[x/2];
-    uint16_t mirror = m_row[x/2];
-    uint16_t pixel2 = b_row[x/2 + BMPPITCH/2];
-    uint16_t mirror2 = m_row[x/2 + BMPPITCH/2];
-    if (mirror  & 0x8080) 
-        return;
-    if (mirror2 & 0x8080)
-        return;
-    if (pixel  != 0 && pixel  != mirror )
-        return;
-    if (pixel2 != 0 && pixel2 != mirror2)
-        return;
-
-    b_row[x/2] = b_row[x/2 + BMPPITCH/2] = 
-    m_row[x/2] = m_row[x/2 + BMPPITCH/2] = color;
-    
-    if (dirty_pixels_num < MAX_DIRTY_PIXELS)
-    {
-        dirty_pixels[dirty_pixels_num++] = (void*)&b_row[x/2] - (void*)bvram;
-    }
-}
-
-static void focus_found_small_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
-{    
-    int color = get_focus_color(thr, e);
-    
-    uint8_t * const b_row = (uint8_t*)( bvram + BM_R(y) );   // 2 pixels
-    uint8_t * const m_row = (uint8_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
-    
-    uint8_t pixel = b_row[x];
-    uint8_t mirror = m_row[x];
-    if (mirror  & 0x80) 
-        return;
-    if (pixel  != 0 && pixel  != mirror )
-        return;
-
-    b_row[x] = m_row[x] = color;
-    
-    if (dirty_pixels_num < MAX_DIRTY_PIXELS)
-    {
-        dirty_pixels[dirty_pixels_num++] = (void*)&b_row[x] - (void*)bvram;
-    }
-}
-
 static inline int peak_d1xy(uint8_t* p8)
 {
     int p_cc = (int)(*p8);
@@ -1610,6 +1557,59 @@ void peak_disp_filter()
             if (likely(e < 20)) dst_buf[i] = focus_peaking_grayscale ? src_buf[i] & 0xFF00FF00 : src_buf[i];
             else dst_buf[i] = peak_blend(&src_buf[i], e);
         }
+    }
+}
+
+static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
+{    
+    int color = get_focus_color(thr, e);
+    //~ int color = COLOR_RED;
+    color = (color << 8) | color;   
+    
+    uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
+    uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
+    
+    uint16_t pixel = b_row[x/2];
+    uint16_t mirror = m_row[x/2];
+    uint16_t pixel2 = b_row[x/2 + BMPPITCH/2];
+    uint16_t mirror2 = m_row[x/2 + BMPPITCH/2];
+    if (mirror  & 0x8080) 
+        return;
+    if (mirror2 & 0x8080)
+        return;
+    if (pixel  != 0 && pixel  != mirror )
+        return;
+    if (pixel2 != 0 && pixel2 != mirror2)
+        return;
+
+    b_row[x/2] = b_row[x/2 + BMPPITCH/2] = 
+    m_row[x/2] = m_row[x/2 + BMPPITCH/2] = color;
+    
+    if (dirty_pixels_num < MAX_DIRTY_PIXELS)
+    {
+        dirty_pixels[dirty_pixels_num++] = (void*)&b_row[x/2] - (void*)bvram;
+    }
+}
+
+static void focus_found_small_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
+{    
+    int color = get_focus_color(thr, e);
+    
+    uint8_t * const b_row = (uint8_t*)( bvram + BM_R(y) );   // 2 pixels
+    uint8_t * const m_row = (uint8_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
+    
+    uint8_t pixel = b_row[x];
+    uint8_t mirror = m_row[x];
+    if (mirror  & 0x80) 
+        return;
+    if (pixel  != 0 && pixel  != mirror )
+        return;
+
+    b_row[x] = m_row[x] = color;
+    
+    if (dirty_pixels_num < MAX_DIRTY_PIXELS)
+    {
+        dirty_pixels[dirty_pixels_num++] = (void*)&b_row[x] - (void*)bvram;
     }
 }
 
