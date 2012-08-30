@@ -50,7 +50,7 @@
 
 #ifdef CONFIG_5D3
 #define DISPLAY_STATE DISPLAY_STATEOBJ
-#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 19
+#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
 #define EVF_STATE (*(struct state_object **)0x2600c)
 #define MOVREC_STATE (*(struct state_object **)0x27850)
 #endif
@@ -121,7 +121,10 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 
     #ifdef DISPLAY_STATE
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
+    {
         hdr_kill_flicker();
+        display_filter_lv_vsync(old_state, x, input, z, t);
+    }
     #endif
     
 #ifdef CONFIG_5D2
@@ -132,7 +135,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 #endif
 
     int ans = StateTransition(self, x, input, z, t);
-    
+
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
     if (self == LV_STATE && input==4 && old_state==4) // AJ_ResetPSave_n_WB_n_LVREC_MVR_EV_EXPOSURESTARTED => perfect sync for digic on 5D2 :)
     #endif

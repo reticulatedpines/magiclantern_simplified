@@ -2718,8 +2718,13 @@ void display_filter_get_buffers(void** src_buf, void** dst_buf)
     //~ int buf_size = 720*480*2;
     //~ void* src = (void*)vram->vram;
     //~ void* dst = src_buf + buf_size;
-    *src_buf = YUV422_LV_BUFFER_1;
-    *dst_buf = YUV422_LV_BUFFER_2;
+#ifdef CONFIG_5D2
+    *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
+    *dst_buf = CACHEABLE(YUV422_LV_BUFFER_2);
+#elif CONFIG_5D3
+    *src_buf = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
+    *dst_buf = CACHEABLE(YUV422_LV_BUFFER_1 + 720*480*2);
+#endif
 }
 
 int display_filter_enabled()
@@ -2746,6 +2751,8 @@ void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
             EnableImagePhysicalScreenParameter();
         }
     }
+#elif defined(CONFIG_5D3)
+    YUV422_LV_BUFFER_DMA_ADDR = YUV422_LV_BUFFER_1 + 720*480*2;
 #endif
 }
 
@@ -2764,7 +2771,7 @@ void display_filter_step(int k)
     
     else if (anamorphic_preview)
     {
-        if (k % 2 == 0)
+        if (k % 1 == 0)
             BMP_LOCK( if (lv) anamorphic_squeeze(); )
     }
 }
