@@ -345,10 +345,6 @@ static void set_sound_recording(int x)
 
 static void restore_sound_recording()
 {
-    #ifdef CONFIG_5D3
-    return; // just in case
-    #endif
-
     if (recording) return;
     if (old_sound_recording_mode != -1)
     {
@@ -359,10 +355,6 @@ static void restore_sound_recording()
 }
 static void disable_sound_recording()
 {
-    #ifdef CONFIG_5D3
-    return; // just in case
-    #endif
-    
     if (recording) return;
     if (sound_recording_mode != 1)
     {
