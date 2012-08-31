@@ -26,6 +26,9 @@
 // stateobj_disp[1]
 #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x246a4+0x11c))
 
+#define REG_EDMAC_WRITE_LV_ADDR 0xc0f04508 // SDRAM address of LV buffer (aka VRAM)
+//~ #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
+
 #define EVF_STATEOBJ *(struct state_object**)0x2600C)
 #define YUV422_HD_BUFFER_DMA_ADDR 0x54000000
 
@@ -266,3 +269,5 @@
 #define MALLOC_STRUCT 0x3c268
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
+#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
+#define GMT_LOCAL_DIALOG_REFRESH_LV 0x36 // event type = 2, gui code = 0x100000BC in 5d3

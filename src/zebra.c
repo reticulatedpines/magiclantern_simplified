@@ -4250,6 +4250,9 @@ int liveview_display_idle()
     extern thunk LiveViewApp_handler;
     extern uintptr_t new_LiveViewApp_handler;
     //~ extern thunk test_minimal_handler;
+    #ifdef CONFIG_5D3
+    extern thunk LiveViewLevelApp_handler;
+    #endif
 
 /*
     if (dialog->handler == (dialog_handler_t) &test_minimal_handler)
@@ -4265,7 +4268,11 @@ int liveview_display_idle()
         !menu_active_and_not_hidden() && 
         ( gui_menu_shown() || // force LiveView when menu is active, but hidden
             ( gui_state == GUISTATE_IDLE && 
-              (dialog->handler == (dialog_handler_t) &LiveViewApp_handler || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler) &&
+              (dialog->handler == (dialog_handler_t) &LiveViewApp_handler || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler
+                  #ifdef CONFIG_5D3
+                  || dialog->handler == (dialog_handler_t) &LiveViewLevelApp_handler
+                  #endif
+              ) &&
             CURRENT_DIALOG_MAYBE <= 3 && 
             #ifdef CURRENT_DIALOG_MAYBE_2
             CURRENT_DIALOG_MAYBE_2 <= 3 &&
