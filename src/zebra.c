@@ -274,7 +274,7 @@ int should_draw_zoom_overlay()
 }
 
 static CONFIG_INT( "focus.peaking", focus_peaking, 0);
-static CONFIG_INT( "focus.peaking.method", focus_peaking_method, 1);
+//~ static CONFIG_INT( "focus.peaking.method", focus_peaking_method, 1);
 static CONFIG_INT( "focus.peaking.disp", focus_peaking_disp, 0); // display as dots or blended
 static CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 5); // 1%
 static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
@@ -1483,7 +1483,10 @@ void draw_zebras( int Z )
     }
 }
 
-static inline int peak_d1xy(uint8_t* p8, int scaling)
+static int peak_scaling[256];
+
+/*
+static inline int peak_d1xy(uint8_t* p8)
 {
     int p_cc = (int)(*p8);
     int p_rc = (int)(*(p8 + 2));
@@ -1493,22 +1496,22 @@ static inline int peak_d1xy(uint8_t* p8, int scaling)
     int e_dy = ABS(p_cd - p_cc);
     
     int e = MAX(e_dx, e_dy);
-    e = MIN(e * scaling / 256, 255);
-    return e;
-}
+    return peak_scaling[MIN(e, 255)];
+}*/
 
-static inline int peak_d2xy(uint8_t* p8, int scaling)
+static inline int peak_d2xy(uint8_t* p8)
 {
     int result = ((int)(*p8) * 4) - (int)(*(p8 + 2));
     result -= (int)(*(p8 - 2));
     result -= (int)(*(p8 + vram_lv.pitch));
     result -= (int)(*(p8 - vram_lv.pitch));
-    int e = ABS(result);
 
-    e = MIN(e * scaling / 256, 255);
-    return e;
+    int e = ABS(result);
+    return peak_scaling[MIN(e, 255)];
 }
-static inline int peak_blend(uint32_t* s, int e)
+//~ static inline int peak_blend_solid(uint32_t* s, int e, int thr) { return 0x4C7F4CD5; }
+//~ static inline int peak_blend_raw(uint32_t* s, int e) { return (e << 8) | (e << 24); }
+static inline int peak_blend_alpha(uint32_t* s, int e)
 {
     // e=0 => cold (original color)
     // e=255 => hot (red)
@@ -1545,60 +1548,82 @@ void peak_disp_filter()
     static int thr_increment = 1;
     static int thr_delta = 0;
     
-    #define FOCUSED_THR 128
+    #define FOCUSED_THR 64
     // the percentage selected in menu represents how many pixels are considered in focus
     // let's say above some FOCUSED_THR
     // so, let's scale edge value so that e=thr maps to e=FOCUSED_THR
-    // scaling is done like this: raw * scaling_factor / 256
-    int scaling = FOCUSED_THR * 256 / thr;
+    for (int i = 0; i < 255; i++)
+        peak_scaling[i] = MIN(i * FOCUSED_THR / thr, 255);
     
     int n_over = 0;
     int n_total = 720 * (os.y_max - os.y0) / 2;
+
     #define PEAK_LOOP for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
-    
-    // using separate loops for different options; code size increases, but it should run a little faster
-    if (focus_peaking_method == 0) // d1xy
+    // generic loop:
+    //~ for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
+    //~ {
+        //~ int e = peak_compute((uint8_t*)&src_buf[i] + 1);
+        //~ dst_buf[i] = peak_blend(&src_buf[i], e, blend_thr);
+        //~ if (unlikely(e > FOCUSED_THR)) n_over++;
+    //~ }
+
+    if (focus_peaking_disp == 3) // raw
     {
-        if (focus_peaking_grayscale)
+        PEAK_LOOP
+        {
+            int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
+            dst_buf[i] = (e << 8) | (e << 24);
+        }
+    }
+    
+    else if (focus_peaking_grayscale)
+    {
+        if (focus_peaking_disp == 1) 
         {
             PEAK_LOOP
             {
-                int e = peak_d1xy((uint8_t*)&src_buf[i] + 1, scaling);
-                if (likely(e < 20)) dst_buf[i] = src_buf[i] & 0xFF00FF00;
-                else dst_buf[i] = peak_blend(&src_buf[i], e);
-                if (unlikely(e > FOCUSED_THR)) n_over++;
+                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
+                if (likely(e < FOCUSED_THR)) dst_buf[i] = src_buf[i] & 0xFF00FF00;
+                else 
+                { 
+                    dst_buf[i] = 0x4C7F4CD5; // red
+                    n_over++;
+                }
             }
         }
-        else
+        else if (focus_peaking_disp == 2) // alpha
         {
             PEAK_LOOP
             {
-                int e = peak_d1xy((uint8_t*)&src_buf[i] + 1, scaling);
-                if (likely(e < 20)) dst_buf[i] = src_buf[i];
-                else dst_buf[i] = peak_blend(&src_buf[i], e);
+                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
+                if (likely(e < 20)) dst_buf[i] = src_buf[i] & 0xFF00FF00;
+                else dst_buf[i] = peak_blend_alpha(&src_buf[i], e);
                 if (unlikely(e > FOCUSED_THR)) n_over++;
             }
         }
     }
-    else // d2xy
+    else // color
     {
-        if (focus_peaking_grayscale)
+        if (focus_peaking_disp == 1) 
         {
             PEAK_LOOP
             {
-                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1, scaling);
-                if (likely(e < 20)) dst_buf[i] = src_buf[i] & 0xFF00FF00;
-                else dst_buf[i] = peak_blend(&src_buf[i], e);
-                if (unlikely(e > FOCUSED_THR)) n_over++;
+                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
+                if (likely(e < FOCUSED_THR)) dst_buf[i] = src_buf[i];
+                else 
+                { 
+                    dst_buf[i] = 0x4C7F4CD5; // red
+                    n_over++;
+                }
             }
         }
-        else
+        else if (focus_peaking_disp == 2) // alpha
         {
             PEAK_LOOP
             {
-                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1, scaling);
+                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
                 if (likely(e < 20)) dst_buf[i] = src_buf[i];
-                else dst_buf[i] = peak_blend(&src_buf[i], e);
+                else dst_buf[i] = peak_blend_alpha(&src_buf[i], e);
                 if (unlikely(e > FOCUSED_THR)) n_over++;
             }
         }
@@ -1618,6 +1643,8 @@ void peak_disp_filter()
 
     thr_increment = COERCE(thr_increment, -5, 5);
     thr = COERCE(thr, 10, 255);
+    
+    if (focus_peaking_disp == 3) thr = 64;
 }
 
 static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
@@ -1735,7 +1762,8 @@ draw_zebra_and_focus( int Z, int F )
         const uint8_t* p8; // that's a moving pointer
         
         zebra_update_lut();
-        
+
+#if 0 // deprecated        
         if(focus_peaking_method == 0)
         {
             for(int y = yStart; y < yEnd; y += 2)
@@ -1776,6 +1804,7 @@ draw_zebra_and_focus( int Z, int F )
             }
         }
         else
+#endif
         {
             for(int y = yStart; y < yEnd; y += 2)
             {
@@ -2242,9 +2271,7 @@ focus_peaking_display( void * priv, int x, int y, int selected )
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "Focus Peak  : %s,%d.%d,%s%s",
-            focus_peaking_method == 0 ? "D1xy" :
-            focus_peaking_method == 1 ? "D2xy" : "Nyq.H",
+            "Focus Peak  : ON,%d.%d,%s%s",
             focus_peaking_pthr / 10, focus_peaking_pthr % 10, 
             focus_peaking_color == 0 ? "R" :
             focus_peaking_color == 1 ? "G" :
@@ -3145,19 +3172,20 @@ struct menu_entry zebra_menus[] = {
         .submenu_width = 650,
         //.essential = FOR_LIVEVIEW,
         .children =  (struct menu_entry[]) {
+            /*
             {
                 .name = "Method",
                 .priv = &focus_peaking_method, 
                 .max = 1,
                 .choices = (const char *[]) {"1st deriv.", "2nd deriv.", "Nyquist H"},
                 .help = "Contrast detection method. 2: more accurate, 1: less noisy.",
-            },
+            },*/
             #ifdef CONFIG_5D3
             {
-                .name = "Display as",
+                .name = "Display type",
                 .priv = &focus_peaking_disp, 
-                .max = 1,
-                .choices = (const char *[]) {"Blinking dots", "Alpha blend"},
+                .max = 3,
+                .choices = (const char *[]) {"Blinking dots", "Fine dots", "Alpha blend", "Raw"},
                 .help = "How to display peaking. Alpha looks nicer, but image lags.",
             },
             #endif
