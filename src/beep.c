@@ -3,6 +3,8 @@
 #include "bmp.h"
 #include "config.h"
 #include "cordic-16bit.h"
+#define _beep_c_
+#include "property.h"
 
 extern int gui_state;
 extern int file_number;
@@ -17,8 +19,6 @@ int beep_playing = 0;
     int beep_enabled = 0;
     int handle_voice_tags(struct event * event) { return 1; }
 #else // beep working
-
-extern int recording; // don't beep while recording, it may break audio
 
 #define BEEP_LONG -1
 #define BEEP_SHORT 0
@@ -672,6 +672,12 @@ static char* wav_get_new_filename()
         return imgname;
     }
     
+    else if (recording)
+    {
+        snprintf(imgname, sizeof(imgname), "%s/MVI_%04d.WAV", get_dcim_dir(), file_number);
+        return imgname;
+    }
+    
     for ( ; wav_number < 10000; wav_number++)
     {
         snprintf(imgname, sizeof(imgname), "%s/SND_%04d.WAV", get_dcim_dir(), wav_number);
@@ -682,6 +688,14 @@ static char* wav_get_new_filename()
     return imgname;
 }
 
+static void wav_notify_filename()
+{
+    // display only the filename, without the path
+    char* fn = current_wav_filename + strlen(current_wav_filename) - 1;
+    while (fn > current_wav_filename && *fn != '/') fn--; fn++;
+    NotifyBox(1000, "Sound: %s", fn);
+}
+
 static void wav_record_do()
 {
     if (beep_playing) return;
@@ -689,7 +703,8 @@ static void wav_record_do()
     int q = QR_MODE;
     char* fn = wav_get_new_filename();
     snprintf(current_wav_filename, sizeof(current_wav_filename), fn);
-    msleep(100); // to avoid the noise from shortcut key
+    if (recording) wav_notify_filename();
+    else msleep(100); // to avoid the noise from shortcut key
     WAV_Record(fn, q);
     if (q)
     {
@@ -733,6 +748,14 @@ int handle_voice_tags(struct event * event)
         }
     }
     return 1;
+}
+
+PROP_HANDLER( PROP_MVR_REC_START )
+{
+    if (!fps_should_record_wav()) return;
+    int rec = buf[0];
+    if (rec == 1) record_start(0,0);
+    else if (rec == 0) audio_stop_recording();
 }
 
 static struct menu_entry beep_menus[] = {

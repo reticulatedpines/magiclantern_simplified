@@ -39,7 +39,6 @@ extern int backlight_level;
 extern int video_mode_crop;
 extern int video_mode_fps;
 extern int video_mode_resolution; // 0 if full hd, 1 if 720p, 2 if 480p
-extern int beep_enabled;
 extern int lv_movie_select;
 extern int sensor_cleaning;
 extern int burst_count;
@@ -55,5 +54,9 @@ bool is_movie_mode();
 // measured by Андрей Басов
 // http://groups.google.com/group/ml-devel/browse_thread/thread/725ae6f424dd2917
 #define EFIC_CELSIUS (efic_temp * 3/2 - 202)
+
+#ifndef _beep_c_
+extern int beep_enabled;
+#endif
 
 #endif

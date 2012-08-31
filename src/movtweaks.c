@@ -721,7 +721,7 @@ void rec_notify_trigger(int rec)
     }
 
 #ifndef CONFIG_50D
-    if (rec == 1 && sound_recording_mode == 1)
+    if (rec == 1 && sound_recording_mode == 1 && !fps_should_record_wav())
         NotifyBox(1000, "Sound is disabled.");
 #endif
 }

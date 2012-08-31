@@ -393,7 +393,7 @@ compute_audio_levels(
 
 int audio_meters_are_drawn()
 {
-        if (!SOUND_RECORDING_ENABLED)
+        if (!SOUND_RECORDING_ENABLED && !fps_should_record_wav())
                 return 0;
 
         return 
@@ -1023,7 +1023,10 @@ static void check_sound_recording_warning(int x, int y)
     if (!SOUND_RECORDING_ENABLED) 
     {
         if (was_sound_recording_disabled_by_fps_override())
-            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording was disabled by FPS override.");
+        {
+            if (!fps_should_record_wav())
+                menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording was disabled by FPS override.");
+        }
         else
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
     }
