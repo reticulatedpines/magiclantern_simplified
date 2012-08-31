@@ -1483,7 +1483,7 @@ void draw_zebras( int Z )
     }
 }
 
-static inline int peak_d1xy(uint8_t* p8)
+static inline int peak_d1xy(uint8_t* p8, int scaling)
 {
     int p_cc = (int)(*p8);
     int p_rc = (int)(*(p8 + 2));
@@ -1493,21 +1493,20 @@ static inline int peak_d1xy(uint8_t* p8)
     int e_dy = ABS(p_cd - p_cc);
     
     int e = MAX(e_dx, e_dy);
-    e = MIN(e * 8, 255);
+    e = MIN(e * scaling / 256, 255);
     return e;
 }
 
-static inline int peak_d2xy(uint8_t* p8)
+static inline int peak_d2xy(uint8_t* p8, int scaling)
 {
     int result = ((int)(*p8) * 4) - (int)(*(p8 + 2));
     result -= (int)(*(p8 - 2));
     result -= (int)(*(p8 + vram_lv.pitch));
     result -= (int)(*(p8 - vram_lv.pitch));
-    
     int e = ABS(result);
-    e = MIN(e * 4, 255);
+
+    e = MIN(e * scaling / 256, 255);
     return e;
-    //~ return (e << 8) | (e << 24);
 }
 static inline int peak_blend(uint32_t* s, int e)
 {
@@ -1541,29 +1540,43 @@ void peak_disp_filter()
     uint32_t* src_buf;
     uint32_t* dst_buf;
     display_filter_get_buffers(&src_buf, &dst_buf);
+
+    static int thr = 50;
+    static int thr_increment = 1;
+    static int thr_delta = 0;
     
-    #define PEAK_LOOP for (int i = 1 + 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
+    #define FOCUSED_THR 128
+    // the percentage selected in menu represents how many pixels are considered in focus
+    // let's say above some FOCUSED_THR
+    // so, let's scale edge value so that e=thr maps to e=FOCUSED_THR
+    // scaling is done like this: raw * scaling_factor / 256
+    int scaling = FOCUSED_THR * 256 / thr;
+    
+    int n_over = 0;
+    int n_total = 720 * (os.y_max - os.y0) / 2;
+    #define PEAK_LOOP for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
     
     // using separate loops for different options; code size increases, but it should run a little faster
-
     if (focus_peaking_method == 0) // d1xy
     {
         if (focus_peaking_grayscale)
         {
             PEAK_LOOP
             {
-                int e = peak_d1xy((uint8_t*)&src_buf[i] + 1);
+                int e = peak_d1xy((uint8_t*)&src_buf[i] + 1, scaling);
                 if (likely(e < 20)) dst_buf[i] = src_buf[i] & 0xFF00FF00;
                 else dst_buf[i] = peak_blend(&src_buf[i], e);
+                if (unlikely(e > FOCUSED_THR)) n_over++;
             }
         }
         else
         {
             PEAK_LOOP
             {
-                int e = peak_d1xy((uint8_t*)&src_buf[i] + 1);
+                int e = peak_d1xy((uint8_t*)&src_buf[i] + 1, scaling);
                 if (likely(e < 20)) dst_buf[i] = src_buf[i];
                 else dst_buf[i] = peak_blend(&src_buf[i], e);
+                if (unlikely(e > FOCUSED_THR)) n_over++;
             }
         }
     }
@@ -1573,21 +1586,38 @@ void peak_disp_filter()
         {
             PEAK_LOOP
             {
-                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
+                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1, scaling);
                 if (likely(e < 20)) dst_buf[i] = src_buf[i] & 0xFF00FF00;
                 else dst_buf[i] = peak_blend(&src_buf[i], e);
+                if (unlikely(e > FOCUSED_THR)) n_over++;
             }
         }
         else
         {
             PEAK_LOOP
             {
-                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
+                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1, scaling);
                 if (likely(e < 20)) dst_buf[i] = src_buf[i];
                 else dst_buf[i] = peak_blend(&src_buf[i], e);
+                if (unlikely(e > FOCUSED_THR)) n_over++;
             }
         }
     }
+
+    // update threshold for next iteration
+    if (1000 * n_over / n_total > (int)focus_peaking_pthr)
+    {
+        if (thr_delta > 0) thr_increment++; else thr_increment = 1;
+        thr += thr_increment;
+    }
+    else
+    {
+        if (thr_delta < 0) thr_increment++; else thr_increment = 1;
+        thr -= thr_increment;
+    }
+
+    thr_increment = COERCE(thr_increment, -5, 5);
+    thr = COERCE(thr, 10, 255);
 }
 
 static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
@@ -1808,6 +1838,7 @@ draw_zebra_and_focus( int Z, int F )
             thr -= thr_increment;
         }
 
+        thr_increment = COERCE(thr_increment, -5, 5);
         int thr_min = (lens_info.iso > 1600 ? 15 : 10);
         thr = COERCE(thr, thr_min, 255);
 
