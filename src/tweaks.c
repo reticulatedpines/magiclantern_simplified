@@ -2727,12 +2727,15 @@ void display_filter_get_buffers(void** src_buf, void** dst_buf)
 #endif
 }
 
+// type 1 filters: compute histogram on filtered image
+// type 2 filters: compute histogram on original image
 int display_filter_enabled()
 {
     if (!lv) return 0;
-    if (!(defish_preview || anamorphic_preview || focus_peaking_as_display_filter())) return 0;
+    int fp = focus_peaking_as_display_filter();
+    if (!(defish_preview || anamorphic_preview || fp)) return 0;
     if (!zebra_should_run()) return 0;
-    return 1;
+    return fp ? 2 : 1;
 }
 
 void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)

@@ -1521,9 +1521,11 @@ static inline int peak_blend(uint32_t* s, int e)
     int u_cold = *(s8s);
     int v_cold = *(s8s+2);
     
-    int y_hot = 76;
-    int u_hot = -43;
-    int v_hot = 127;
+    // red (255,0,0)
+    const int y_hot = 76;
+    const int u_hot = -43;
+    const int v_hot = 127;
+    
     int er = 255-e;
     int y = (y_cold * er + y_hot * e) / 256;
     int u = (u_cold * er + u_hot * e) / 256;
@@ -1539,23 +1541,51 @@ void peak_disp_filter()
     uint32_t* src_buf;
     uint32_t* dst_buf;
     display_filter_get_buffers(&src_buf, &dst_buf);
+    
+    #define PEAK_LOOP for (int i = 1 + 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
+    
+    // using separate loops for different options; code size increases, but it should run a little faster
 
-    if (focus_peaking_method == 0)
+    if (focus_peaking_method == 0) // d1xy
     {
-        for (int i = 1 + 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
+        if (focus_peaking_grayscale)
         {
-            int e = peak_d1xy((uint8_t*)&src_buf[i] + 1);
-            if (likely(e < 20)) dst_buf[i] = focus_peaking_grayscale ? src_buf[i] & 0xFF00FF00 : src_buf[i];
-            else dst_buf[i] = peak_blend(&src_buf[i], e);
+            PEAK_LOOP
+            {
+                int e = peak_d1xy((uint8_t*)&src_buf[i] + 1);
+                if (likely(e < 20)) dst_buf[i] = src_buf[i] & 0xFF00FF00;
+                else dst_buf[i] = peak_blend(&src_buf[i], e);
+            }
+        }
+        else
+        {
+            PEAK_LOOP
+            {
+                int e = peak_d1xy((uint8_t*)&src_buf[i] + 1);
+                if (likely(e < 20)) dst_buf[i] = src_buf[i];
+                else dst_buf[i] = peak_blend(&src_buf[i], e);
+            }
         }
     }
-    else
+    else // d2xy
     {
-        for (int i = 1 + 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
+        if (focus_peaking_grayscale)
         {
-            int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
-            if (likely(e < 20)) dst_buf[i] = focus_peaking_grayscale ? src_buf[i] & 0xFF00FF00 : src_buf[i];
-            else dst_buf[i] = peak_blend(&src_buf[i], e);
+            PEAK_LOOP
+            {
+                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
+                if (likely(e < 20)) dst_buf[i] = src_buf[i] & 0xFF00FF00;
+                else dst_buf[i] = peak_blend(&src_buf[i], e);
+            }
+        }
+        else
+        {
+            PEAK_LOOP
+            {
+                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
+                if (likely(e < 20)) dst_buf[i] = src_buf[i];
+                else dst_buf[i] = peak_blend(&src_buf[i], e);
+            }
         }
     }
 }
@@ -1670,7 +1700,6 @@ draw_zebra_and_focus( int Z, int F )
         int xStart = os.x0 + 8;
         int xEnd = os.x_max - 8;
         int n_over = 0;
-        int n_dirty = 0;
         int n_total = ((yEnd - yStart) * (xEnd - xStart)) / 4;
         
         const uint8_t* p8; // that's a moving pointer
