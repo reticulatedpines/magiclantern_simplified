@@ -2701,10 +2701,14 @@ static void zoom_lv_face_step()
         int hs = get_halfshutter_pressed();
         if (hs && lv_dispsize == 1)
         {
-            zoom_was_triggered_by_halfshutter = 1;
-            int zoom = zoom_disable_x10 ? 5 : 10;
-            set_lv_zoom(zoom);
-            msleep(100);
+            msleep(200);
+            if (hs && lv_dispsize == 1)
+            {
+                zoom_was_triggered_by_halfshutter = 1;
+                int zoom = zoom_disable_x10 ? 5 : 10;
+                set_lv_zoom(zoom);
+                msleep(100);
+            }
         }
         if (!hs && lv_dispsize > 1 && zoom_was_triggered_by_halfshutter)
         {
