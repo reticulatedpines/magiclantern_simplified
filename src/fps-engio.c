@@ -1176,7 +1176,8 @@ static void fps_task()
         //~ bmp_hexdump(FONT_SMALL, 10, 200, SENSOR_TIMING_TABLE, 32*10);
         //~ NotifyBox(1000, "defB: %d ", fps_timer_b_orig); msleep(1000);
 
-        if (!lv) continue;
+        static int prev_lv = 0;
+        if (!lv) { prev_lv = 0; continue; }
         if (!DISPLAY_IS_ON && !recording) continue;
         if (lens_info.job_state) continue;
         
@@ -1217,13 +1218,24 @@ static void fps_task()
             if (is_movie_mode() && video_mode_crop) msleep(500);
             continue;
         }
-
+        
         //~ info_led_on();
         fps_setup_timerA(f);
         fps_setup_timerB(f);
         //~ info_led_off();
         fps_read_current_timer_values();
         //~ bmp_printf(FONT_LARGE, 50, 100, "%dx, new timers: %d,%d ", lv_dispsize, fps_timer_a, fps_timer_b);
+
+        if (!prev_lv) 
+        {
+            int current_fps = fps_get_current_x1000();
+            char msg[30];
+            snprintf(msg, sizeof(msg), "FPS override: %d.%03d", 
+                current_fps/1000, current_fps%1000
+                );
+            NotifyBox(2000, msg);
+        }
+        prev_lv = 1;
     }
 }
 
