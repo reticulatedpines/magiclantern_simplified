@@ -278,8 +278,8 @@ void update_vram_params()
     vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ? 1728 : 1680) : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
     vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ?  972 :  945) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
 #elif defined(CONFIG_5D3)
-    vram_hd.width  = lv_dispsize > 1 ? 1152 : 1904;
-    vram_hd.height = lv_dispsize > 1 ?  768 : 1270;
+    vram_hd.width  = lv_dispsize > 1 ? 1152 : !is_movie_mode() ? 1620 : video_mode_resolution == 0 ? 1904 :                                   1280;
+    vram_hd.height = lv_dispsize > 1 ?  768 : !is_movie_mode() ? 1080 : video_mode_resolution == 0 ? 1270 : video_mode_resolution == 1 ? 720 : 854;
 #elif defined(CONFIG_5DC)
     vram_hd.width  = 1024;
     vram_hd.height = 768; // dummy values
@@ -296,7 +296,10 @@ void update_vram_params()
     #if defined(CONFIG_600D)
     int bar_x = is_movie_mode() && video_mode_resolution >= 2 ? off_43 : 0;
     int bar_y = is_movie_mode() && video_mode_resolution <= 1 ? os.off_169 : 0;
-    #elif defined(CONFIG_500D) || defined(CONFIG_5D3)
+    #elif defined(CONFIG_5D3)
+    int bar_x = 0;
+    int bar_y = is_movie_mode() && video_mode_resolution == 1 ? os.off_169 : 0;
+    #elif defined(CONFIG_500D)
     int bar_x = 0;
     int bar_y = 0;
     off_43+=0; // bypass warning
@@ -582,6 +585,11 @@ PROP_HANDLER(PROP_GUI_STATE)
 }
 
 PROP_HANDLER(PROP_VIDEO_MODE)
+{
+    vram_params_set_dirty();
+}
+
+PROP_HANDLER(PROP_LV_MOVIE_SELECT)
 {
     vram_params_set_dirty();
 }
