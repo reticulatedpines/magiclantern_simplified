@@ -46,6 +46,7 @@ static void audio_monitoring_display_headphones_connected_or_not();
 static void audio_menus_init();
 static void audio_monitoring_update();
 static void audio_ic_set_lineout_onoff(int mute);
+static bool is_override_enabled();
 
 // Dump the audio registers to a file if defined
 #undef CONFIG_AUDIO_REG_LOG
@@ -1086,6 +1087,12 @@ int get_input_source()
 }
 
 #ifdef CONFIG_600D
+static bool
+is_override_enabled(){
+    if(SOUND_RECORDING_ENABLED && cfg_override_audio) return true;
+    return false;
+}
+
 static void
 audio_ic_set_mute_on(unsigned int wait){
     if(audio_monitoring){
@@ -1106,7 +1113,7 @@ audio_ic_set_mute_off(unsigned int wait){
 
 void
 override_post_beep(){
-    if(cfg_override_audio == 0) return;
+    if(is_override_enabled() == false) return;
 
     audio_ic_write(ML_MIC_IN_CHARG_TIM | 0x00);
 
@@ -1115,9 +1122,8 @@ override_post_beep(){
 
 void
 override_audio_setting(int phase){
-    
-    if(cfg_override_audio == 0) return;
-	
+    if(is_override_enabled() == false) return;
+
 	//These audio_ic_write are setting back to startup time.
 	//Because, the canon firmware will switching off the audio switchs I guess,it's for power save
     switch(phase){
@@ -1152,7 +1158,9 @@ override_audio_task( void* unused )
             int msg;
             msleep(1000);
             int err = msg_queue_receive(override_audio_q, (struct event**)&msg, 500);
-            if (!err && cfg_override_audio){
+            if (!err &&
+                cfg_override_audio &&
+                SOUND_RECORDING_ENABLED){
                 audio_configure(msg);
                 NotifyBox(1000,"Audio Overridden");
             }
@@ -1163,7 +1171,7 @@ TASK_CREATE( "override_audio_do_task", override_audio_task, 0, 0x17, 0x1000 );
 
 static void
 audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
-    if(cfg_override_audio == 0) return;
+    if(is_override_enabled() == false) return;
 
 //    if(lv > 7 ) lv = 6;
     if(lv > 6 ) lv = 6;
@@ -1202,7 +1210,7 @@ audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
 
 static void
 audio_ic_set_effect_mode(){
-    if(cfg_override_audio == 0) return;
+    if(is_override_enabled() == false) return;
     short mode[] = {  ML_SND_EFFECT_MODE_NOTCH, 
                       ML_SND_EFFECT_MODE_EQ,
                       ML_SND_EFFECT_MODE_NOTCHEQ,
@@ -1215,7 +1223,7 @@ audio_ic_set_effect_mode(){
 }
 static void
 audio_ic_set_analog_gain(){
-    if(cfg_override_audio == 0) return;
+    if(is_override_enabled() == false) return;
 
 	int volumes[] = { 0x00, 0x0c, 0x10, 0x18, 0x24, 0x30, 0x3c, 0x3f};
     //mic in vol 0-7 0b1-0b111111
@@ -1231,7 +1239,8 @@ audio_ic_set_analog_gain(){
 
 static void
 audio_ic_set_input(int mute){
-    if(cfg_override_audio == 0) return;
+    if(is_override_enabled() == false) return;
+
 
     if(mute) audio_ic_set_mute_on(150);
     audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //descrived in pdf p71
@@ -1288,7 +1297,7 @@ audio_ic_set_input(int mute){
 
 static void
 audio_ic_set_RecLRbalance(){
-    if(cfg_override_audio == 0) return;
+    if(is_override_enabled() == false) return;
 
     int val = dgain_l<<4;
     val = val | dgain_r;
@@ -1297,7 +1306,7 @@ audio_ic_set_RecLRbalance(){
 
 static void
 audio_ic_set_filters(int mute){
-    if(cfg_override_audio == 0) return;
+    if(is_override_enabled() == false) return;
 
     if(mute) audio_ic_set_mute_on(100);
     int val = 0;
@@ -1314,7 +1323,7 @@ audio_ic_set_filters(int mute){
 
 static void
 audio_ic_set_agc(){
-    if(cfg_override_audio == 0) return;
+    if(is_override_enabled() == false) return;
 
     if(alc_enable){
         masked_audio_ic_write(ML_DVOL_CTL_FUNC_EN, 0x03, 0x03);
@@ -1342,7 +1351,7 @@ audio_ic_off(){
 
 static void
 audio_ic_on(){
-    if(cfg_override_audio == 0) return;
+    if(is_override_enabled() == false) return;
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x01); //power on
     masked_audio_ic_write(ML_PW_REF_PW_MNG,0x3,ML_PW_REF_PW_HISPEED);
     audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_REC);
@@ -1396,7 +1405,7 @@ audio_ic_set_lineout_onoff(int mute){
 
 static void
 audio_ic_set_recdgain(){
-    if(cfg_override_audio == 0) return;
+    if(is_override_enabled() == false) return;
 
     int vol = 0xff - cfg_recdgain;
     masked_audio_ic_write(ML_REC_DIGI_VOL, 0x7f, vol);
@@ -1473,7 +1482,7 @@ audio_configure( int force )
 #ifdef CONFIG_600D
 
 
-    if(cfg_override_audio == 0){
+    if(is_override_enabled() == false){
         audio_ic_off();
         return;
     }else{
@@ -2272,7 +2281,7 @@ PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
 static void audio_monitoring_update()
 {
 #ifdef CONFIG_600D
-    if (cfg_override_audio == 0) return;
+    if(is_override_enabled() == false) return;
 #endif
         // kill video connect/disconnect event... or not
         *(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = audio_monitoring ? 2 : 0;
