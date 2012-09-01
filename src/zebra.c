@@ -1311,7 +1311,12 @@ void draw_zebras( int Z )
         int zlh = zebra_level_hi * 255 / 100 - 1;
         int zll = zebra_level_lo * 255 / 100;
 
-        if (zebra_colorspace == 2 && lv) // use regular zebras in photo mode
+        int only_over  = (zebra_level_hi <= 100 && zebra_level_lo ==   0);
+        int only_under = (zebra_level_lo  >   0 && zebra_level_hi  > 100);
+        int only_one = only_over || only_under;
+
+        // fast zebras
+        if (zebra_colorspace == 2 && (lv || only_one)) // if both under and over are enabled, fall back to regular zebras in play mode
         {
             zebra_digic_dirty = 1;
             
@@ -1329,6 +1334,7 @@ void draw_zebras( int Z )
                 EngDrvOut(DIGIC_ZEBRA_REGISTER, 0x1d000 + zll);
             return;
         }
+        else if (PLAY_OR_QR_MODE) EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); // disable Canon highlight warning, looks ugly with both on the screen :)
         
         uint8_t * lvram = get_yuv422_vram()->vram;
 
@@ -5513,6 +5519,7 @@ static void livev_playback_toggle()
     }
     else
     {
+        if (zebra_digic_dirty) digic_zebra_cleanup();
         #ifdef CONFIG_4_3_SCREEN
         clrscr(); // old cameras don't refresh the entire screen
         #endif
