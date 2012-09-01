@@ -196,6 +196,13 @@ audio_ic_sweep_message_queue( void );
 
 /* Power Management Register */
 #define ML_PW_REF_PW_MNG		0x2100 /* MICBIAS */ /* Reference Power Management */
+ #define ML_PW_REF_PW_MNG_ALL_OFF 0x00
+ #define ML_PW_REF_PW_HISPEED    0x01  /* 000000xx */
+ #define ML_PW_REF_PW_NORMAL     0x02  /* 000000xx */
+ #define ML_PW_REF_PW_MICBEN_ON  0x04  /* 00000x00 */
+ #define ML_PW_REF_PW_HP_FIRST   0x10  /* 00xx0000 */
+ #define ML_PW_REF_PW_HP_STANDARD 0x20 /* 00xx0000 */
+
 #define ML_PW_IN_PW_MNG			0x2300 /* ADC "Capture" + PGA Power Management */
  #define ML_PW_IN_PW_MNG_OFF     0x00 /*  OFF */
  #define ML_PW_IN_PW_MNG_DAC	 0x02 /* ADC "Capture" ON */

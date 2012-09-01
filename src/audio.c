@@ -75,23 +75,22 @@ CONFIG_INT( "audio.override_audio", cfg_override_audio,   0 );
 CONFIG_INT( "audio.analog_gain",    cfg_analog_gain,      2 );
 CONFIG_INT( "audio.analog_boost",   cfg_analog_boost,     0 ); //test
 CONFIG_INT( "audio.enable_dc",      cfg_filter_dc,        1 );
-CONFIG_INT( "audio.enable_hpf2",    cfg_filter_hpf2,      1 );
+CONFIG_INT( "audio.enable_hpf2",    cfg_filter_hpf2,      0 );
 CONFIG_INT( "audio.hpf2config",     cfg_filter_hpf2config,7 );
 
 CONFIG_INT( "audio.dgain",          cfg_recdgain,         0 );
 CONFIG_INT( "audio.dgain.l",        dgain_l,              8 );
 CONFIG_INT( "audio.dgain.r",        dgain_r,              8 );
 CONFIG_INT( "audio.effect.mode",    cfg_effect_mode,      0 );
-CONFIG_INT( "audio.filters",        enable_filters,       0 ); 
 #else
 CONFIG_INT( "audio.dgain.l",    dgain_l,        0 );
 CONFIG_INT( "audio.dgain.r",    dgain_r,        0 );
-CONFIG_INT( "audio.filters",    enable_filters,     1 ); //disable the HPF, LPF and pre-emphasis filters
 CONFIG_INT( "audio.mgain",      mgain,          4 );
 CONFIG_INT( "audio.mic-power",  mic_power,      1 );
 CONFIG_INT( "audio.o2gain",     o2gain,         0 );
 //CONFIG_INT( "audio.mic-in",   mic_in,         0 ); // not used any more?
 #endif
+CONFIG_INT( "audio.filters",    enable_filters,     1 ); //disable the HPF, LPF and pre-emphasis filters
 CONFIG_INT( "audio.lovl",       lovl,           0 );
 CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
 int loopback = 1;
@@ -1304,16 +1303,16 @@ audio_ic_set_filters(int mute){
     if(enable_filters){
         int val = 0;
         if(cfg_filter_dc) val = 0x1;
-        if(cfg_filter_hpf2) val = 0x2;
+        if(cfg_filter_hpf2) val = val & 0x2;
         masked_audio_ic_write(ML_FILTER_EN, 0x3, val);
         if(val){
             audio_ic_write(ML_HPF2_CUTOFF | cfg_filter_hpf2config);
         }else{
-            audio_ic_write(ML_FILTER_EN | 0x0f);
+            masked_audio_ic_write(ML_FILTER_EN ,0x3, 0x0);
         }
     }else{
         masked_audio_ic_write(ML_FILTER_EN, 0x3, 0x0);
-        audio_ic_write(ML_FILTER_EN | 0x0f);
+        //        audio_ic_write(ML_FILTER_EN | 0x0f);
     }
     if(mute) audio_ic_set_mute_off(200);
 }
@@ -1336,7 +1335,8 @@ audio_ic_off(){
     audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
     audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_2);
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x00); //power off
-    
+    audio_ic_write(ML_PW_REF_PW_MNG | ML_PW_REF_PW_MNG_ALL_OFF);
+
     audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP);
     audio_ic_write(ML_HPF2_CUTOFF | ML_HPF2_CUTOFF_FREQ200);
     audio_ic_write(ML_FILTER_EN | ML_FILTER_DIS_ALL);
@@ -1349,6 +1349,7 @@ static void
 audio_ic_on(){
     if(cfg_override_audio == 0) return;
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x01); //power on
+    masked_audio_ic_write(ML_PW_REF_PW_MNG,0x3,ML_PW_REF_PW_HISPEED);
     audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_REC);
 }
 
@@ -1369,7 +1370,7 @@ audio_ic_set_lineout_onoff(int mute){
         
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directly change prohibited p55
 
-        audio_ic_write(ML_PW_REF_PW_MNG | 0x26); //HeadPhone amp-std voltage(HPCAP pin voltage) gen circuit power on.
+        audio_ic_write(ML_PW_REF_PW_MNG | ML_PW_REF_PW_HP_STANDARD | ML_PW_REF_PW_MICBEN_ON | ML_PW_REF_PW_HISPEED); //HeadPhone amp-std voltage(HPCAP pin voltage) gen circuit power on.
         audio_ic_write(ML_PW_IN_PW_MNG | ML_PW_IN_PW_MNG_BOTH ); //adc pga on
         audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWRON); //DAC power on
         audio_ic_write(ML_PW_SPAMP_PW_MNG | (0xFF & ~ML_PW_SPAMP_PW_MNG_ON));
@@ -1388,7 +1389,6 @@ audio_ic_set_lineout_onoff(int mute){
             if(mute) audio_ic_set_mute_on(100);
         
             audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
-            
             audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWROFF); //DAC power on
             audio_ic_write(ML_HP_AMP_OUT_CTL | 0x0);
             audio_ic_write(ML_PW_SPAMP_PW_MNG | ML_PW_SPAMP_PW_MNG_OFF);
