@@ -808,9 +808,6 @@ static struct menu_entry beep_menus[] = {
         .select = menu_open_submenu,
         .help = "Record short audio clips, add voice tags to pictures...",
         .submenu_width = 700,
-#ifdef CONFIG_600D
-        .hidden         = MENU_ENTRY_HIDDEN, //temporaly hidden 
-#endif
         .children =  (struct menu_entry[]) {
             {
                 .name = "Record",
