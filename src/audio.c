@@ -415,12 +415,16 @@ compute_audio_levels(
 
 int audio_meters_are_drawn()
 {
-/*#ifdef CONFIG_600D
-// works without audio being enable in canon menu but not records audio, yet
-#else*/
+#ifdef CONFIG_600D
+    if (!SOUND_RECORDING_ENABLED){
+        if(!cfg_override_audio){
+                return 0;
+        }
+    }
+#else
     if (!SOUND_RECORDING_ENABLED)
                 return 0;
-//#endif
+#endif
 
         return 
     (
@@ -1333,7 +1337,6 @@ audio_ic_off(){
     audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP);
     audio_ic_write(ML_HPF2_CUTOFF | ML_HPF2_CUTOFF_FREQ200);
     audio_ic_write(ML_FILTER_EN | ML_FILTER_DIS_ALL);
-    audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY);
     audio_ic_write(ML_REC_LR_BAL_VOL | 0x00);
     audio_ic_set_lineout_onoff(MUTE_OFF);
 }
@@ -1342,8 +1345,10 @@ static void
 audio_ic_on(){
     if(cfg_override_audio == 0) return;
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x01); //power on
-    masked_audio_ic_write(ML_PW_REF_PW_MNG,0x3,ML_PW_REF_PW_HISPEED);
+    masked_audio_ic_write(ML_PW_REF_PW_MNG,0x7,ML_PW_REF_PW_MICBEN_ON | ML_PW_REF_PW_HISPEED);
     audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_REC);
+    audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON);
+    audio_ic_write(ML_MIXER_VOL_CTL | 0x10);
 }
 
 static void
@@ -1672,17 +1677,19 @@ static void
 
 static void check_sound_recording_warning(int x, int y)
 {
-/*#ifdef CONFIG_600D
-    // works without audio being enable in canon menu but not records audio, yet
-#else*/
     if (!SOUND_RECORDING_ENABLED) 
     {
+#ifdef CONFIG_600D
+        if(!cfg_override_audio){
+#endif
         if (was_sound_recording_disabled_by_fps_override())
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording was disabled by FPS override.");
         else
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
+#ifdef CONFIG_600D
+        }
+#endif
     }
-//#endif
 }
 
 
