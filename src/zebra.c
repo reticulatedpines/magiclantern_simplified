@@ -1331,7 +1331,6 @@ void draw_zebras( int Z )
         }
         
         uint8_t * lvram = get_yuv422_vram()->vram;
-        lvram = (void*)CACHEABLE(YUV422_LV_BUFFER_DMA_ADDR); // this one is not updating right now, but it's a bit behind
 
         // draw zebra in 16:9 frame
         // y is in BM coords
@@ -2599,7 +2598,7 @@ void get_spot_yuv_ex(int size_dxb, int dx, int dy, int* Y, int* U, int* V)
 
     if( !vram->vram )
         return;
-    const uint16_t*     vr = (void*) YUV422_LV_BUFFER_DMA_ADDR;
+    const uint16_t*     vr = (void*) vram->vram;
     const unsigned      width = vram->width;
     //~ const unsigned      pitch = vram->pitch;
     //~ const unsigned      height = vram->height;
