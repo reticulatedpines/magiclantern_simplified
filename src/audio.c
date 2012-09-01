@@ -1300,19 +1300,14 @@ audio_ic_set_filters(int mute){
     if(cfg_override_audio == 0) return;
 
     if(mute) audio_ic_set_mute_on(100);
-    if(enable_filters){
-        int val = 0;
-        if(cfg_filter_dc) val = 0x1;
-        if(cfg_filter_hpf2) val = val & 0x2;
-        masked_audio_ic_write(ML_FILTER_EN, 0x3, val);
-        if(val){
-            audio_ic_write(ML_HPF2_CUTOFF | cfg_filter_hpf2config);
-        }else{
-            masked_audio_ic_write(ML_FILTER_EN ,0x3, 0x0);
-        }
+    int val = 0;
+    if(cfg_filter_dc) val = 0x1;
+    if(cfg_filter_hpf2) val = val | 0x2;
+    masked_audio_ic_write(ML_FILTER_EN, 0x3, val);
+    if(val){
+        audio_ic_write(ML_HPF2_CUTOFF | cfg_filter_hpf2config);
     }else{
-        masked_audio_ic_write(ML_FILTER_EN, 0x3, 0x0);
-        //        audio_ic_write(ML_FILTER_EN | 0x0f);
+        masked_audio_ic_write(ML_FILTER_EN ,0x3, 0x0);
     }
     if(mute) audio_ic_set_mute_off(200);
 }
@@ -2063,6 +2058,10 @@ static void audio_filter_dc_display( void * priv, int x, int y, int selected )
                "DC Filter         : %s", 
                (cfg_filter_dc ? "ON" : "OFF")
                );
+    if(cfg_filter_dc == 0){
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Now you got under 10Hz, but meter is wrong value signed");
+    }
+
 }
 static void audio_filter_hpf2_toggle( void * priv, int delta )
 {
@@ -2439,11 +2438,9 @@ static struct menu_entry audio_menus[] = {
       #if !defined(CONFIG_550D) && !defined(CONFIG_500D)
          {
                 .name = "Wind Filter",
-                 .priv              = &enable_filters,
-                 .display           = audio_filters_display,
           #ifdef CONFIG_600D
                 .help = "High pass filter for wind noise reduction. ML26121A.pdf p77",
-                .select            = audio_filters_toggle,
+                .select            =  menu_open_submenu,
                 .submenu_width = 650,
                 .children =  (struct menu_entry[]) {
                  {
@@ -2473,8 +2470,10 @@ static struct menu_entry audio_menus[] = {
                  MENU_EOL
              }
           #else /* ^^^CONFIG_600D^^^  vvv except 600D vvv*/
-             .help = "High pass filter for wind noise reduction.",
-                 .select            = audio_binary_toggle,
+                .priv              = &enable_filters,
+                .display           = audio_filters_display,
+                .help = "High pass filter for wind noise reduction.",
+                .select            = audio_binary_toggle,
                  //~ .icon_type = IT_DISABLE_SOME_FEATURE,
                  //.essential = FOR_MOVIE,
           #endif /* CONFIG_600D*/
