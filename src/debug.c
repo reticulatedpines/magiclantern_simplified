@@ -2265,18 +2265,6 @@ static void alloc_1M_task()
 }
 */
 
-static void take_memory_picture() {
-	(char*)(0xf8eb0000+0x1B266+1) = 0x12;
-	(char*)(0xf8eb0000+0x1BFA3D+1) = 0x12;
-	(char*)(0xf8eb0000+0x2D87FC+1) = 0x12;
-	(char*)(0xf8eb0000+0x5E934C+1) = 0x12;
-
-	FIO_RemoveFile("B:/mem.dat");
-	FILE* f = FIO_CreateFile("B:/mem.dat");
-	FIO_WriteFile( f, (const void *)0xf8eb0000, 0xff010000-0xf8eb0000 );
-	FIO_CloseFile(f);
-}
-
 static void save_cpu_usage_log_task()
 {
     NotifyBox(1000, "Measuring CPU usage...");
@@ -2371,11 +2359,6 @@ struct menu_entry debug_menus[] = {
         .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
         #endif
     },
-	{
-		.name = "Memory bump",
-		.select = take_memory_picture,
-		.help = "just me, hacking",
-	},
 #endif
 /*    {
         .name = "Menu screenshots",
