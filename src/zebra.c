@@ -274,10 +274,14 @@ int should_draw_zoom_overlay()
 }
 
 static CONFIG_INT( "focus.peaking", focus_peaking, 0);
-static CONFIG_INT( "focus.peaking.method", focus_peaking_method, 1);
+//~ static CONFIG_INT( "focus.peaking.method", focus_peaking_method, 1);
+static CONFIG_INT( "focus.peaking.filter.edges", focus_peaking_filter_edges, 1); // prefer texture details rather than strong edges
+static CONFIG_INT( "focus.peaking.disp", focus_peaking_disp, 0); // display as dots or blended
 static CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 5); // 1%
 static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
 CONFIG_INT( "focus.peaking.grayscale", focus_peaking_grayscale, 0); // R,G,B,C,M,Y,cc1,cc2
+
+int focus_peaking_as_display_filter() { return lv && focus_peaking && focus_peaking_disp; }
 
 //~ static CONFIG_INT( "focus.graph", focus_graph, 0);
 
@@ -1307,7 +1311,12 @@ void draw_zebras( int Z )
         int zlh = zebra_level_hi * 255 / 100 - 1;
         int zll = zebra_level_lo * 255 / 100;
 
-        if (zebra_colorspace == 2 && lv) // use regular zebras in photo mode
+        int only_over  = (zebra_level_hi <= 100 && zebra_level_lo ==   0);
+        int only_under = (zebra_level_lo  >   0 && zebra_level_hi  > 100);
+        int only_one = only_over || only_under;
+
+        // fast zebras
+        if (zebra_colorspace == 2 && (lv || only_one)) // if both under and over are enabled, fall back to regular zebras in play mode
         {
             zebra_digic_dirty = 1;
             
@@ -1325,9 +1334,9 @@ void draw_zebras( int Z )
                 EngDrvOut(DIGIC_ZEBRA_REGISTER, 0x1d000 + zll);
             return;
         }
+        else if (PLAY_OR_QR_MODE) EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); // disable Canon highlight warning, looks ugly with both on the screen :)
         
         uint8_t * lvram = get_yuv422_vram()->vram;
-        lvram = (void*)CACHEABLE(YUV422_LV_BUFFER_DMA_ADDR); // this one is not updating right now, but it's a bit behind
 
         // draw zebra in 16:9 frame
         // y is in BM coords
@@ -1480,7 +1489,216 @@ void draw_zebras( int Z )
     }
 }
 
-void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
+static int peak_scaling[256];
+
+/*
+static inline int peak_d1xy(uint8_t* p8)
+{
+    int p_cc = (int)(*p8);
+    int p_rc = (int)(*(p8 + 2));
+    int p_cd = (int)(*(p8 + vram_lv.pitch));
+    
+    int e_dx = ABS(p_rc - p_cc);
+    int e_dy = ABS(p_cd - p_cc);
+    
+    int e = MAX(e_dx, e_dy);
+    return peak_scaling[MIN(e, 255)];
+}*/
+
+static inline int peak_d2xy(uint8_t* p8)
+{
+    // approximate second derivative with a Laplacian kernel:
+    //     -1
+    //  -1  4 -1
+    //     -1
+    int result = ((int)(*p8) * 4) - (int)(*(p8 + 2));
+    result -= (int)(*(p8 - 2));
+    result -= (int)(*(p8 + vram_lv.pitch));
+    result -= (int)(*(p8 - vram_lv.pitch));
+
+    int e = ABS(result);
+    
+    if (focus_peaking_filter_edges)
+    {
+        // filter out strong edges where first derivative is strong
+        // as these are usually false positives
+        int d1x = ABS((int)(*(p8 + 2)) - (int)(*(p8 - 2)));
+        int d1y = ABS((int)(*(p8 + vram_lv.pitch)) - (int)(*(p8 - vram_lv.pitch)));
+        int d1 = MAX(d1x, d1y);
+        e = MAX(e - ((d1 << focus_peaking_filter_edges) >> 2), 0) * 2;
+    }
+    return e;
+}
+
+static inline int peak_d2xy_hd(uint8_t* p8)
+{
+    // approximate second derivative with a Laplacian kernel:
+    //     -1
+    //  -1  4 -1
+    //     -1
+    int result = ((int)(*p8) * 4) - (int)(*(p8 + 2));
+    result -= (int)(*(p8 - 2));
+    result -= (int)(*(p8 + vram_hd.pitch));
+    result -= (int)(*(p8 - vram_hd.pitch));
+
+    int e = ABS(result);
+    
+    if (focus_peaking_filter_edges)
+    {
+        // filter out strong edges where first derivative is strong
+        // as these are usually false positives
+        int d1x = ABS((int)(*(p8 + 2)) - (int)(*(p8 - 2)));
+        int d1y = ABS((int)(*(p8 + vram_hd.pitch)) - (int)(*(p8 - vram_hd.pitch)));
+        int d1 = MAX(d1x, d1y);
+        e = MAX(e - ((d1 << focus_peaking_filter_edges) >> 2), 0) * 2;
+    }
+    return e;
+}
+
+//~ static inline int peak_blend_solid(uint32_t* s, int e, int thr) { return 0x4C7F4CD5; }
+//~ static inline int peak_blend_raw(uint32_t* s, int e) { return (e << 8) | (e << 24); }
+static inline int peak_blend_alpha(uint32_t* s, int e)
+{
+    // e=0 => cold (original color)
+    // e=255 => hot (red)
+    
+    uint8_t* s8u = (uint8_t*)s;
+    int8_t*  s8s = (int8_t*)s;
+
+    int y_cold = *(s8u+1);
+    int u_cold = *(s8s);
+    int v_cold = *(s8s+2);
+    
+    // red (255,0,0)
+    const int y_hot = 76;
+    const int u_hot = -43;
+    const int v_hot = 127;
+    
+    int er = 255-e;
+    int y = (y_cold * er + y_hot * e) / 256;
+    int u = (u_cold * er + u_hot * e) / 256;
+    int v = (v_cold * er + v_hot * e) / 256;
+    
+    return (u & 0xFF) | ((y & 0xFF) << 8) | ((v & 0xFF) << 16) | ((y & 0xFF) << 24);
+}
+
+void peak_disp_filter()
+{
+    if (!lv) return;
+
+    uint32_t* src_buf;
+    uint32_t* dst_buf;
+    display_filter_get_buffers(&src_buf, &dst_buf);
+
+    static int thr = 50;
+    static int thr_increment = 1;
+    static int thr_delta = 0;
+    
+    #define FOCUSED_THR 64
+    // the percentage selected in menu represents how many pixels are considered in focus
+    // let's say above some FOCUSED_THR
+    // so, let's scale edge value so that e=thr maps to e=FOCUSED_THR
+    for (int i = 0; i < 255; i++)
+        peak_scaling[i] = MIN(i * FOCUSED_THR / thr, 255);
+    
+    int n_over = 0;
+    int n_total = 720 * (os.y_max - os.y0) / 2;
+
+    #define PEAK_LOOP for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
+    // generic loop:
+    //~ for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
+    //~ {
+        //~ int e = peak_compute((uint8_t*)&src_buf[i] + 1);
+        //~ dst_buf[i] = peak_blend(&src_buf[i], e, blend_thr);
+        //~ if (unlikely(e > FOCUSED_THR)) n_over++;
+    //~ }
+
+    if (focus_peaking_disp == 3) // raw
+    {
+        PEAK_LOOP
+        {
+            int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
+            e = MIN(e * 4, 255);
+            dst_buf[i] = (e << 8) | (e << 24);
+        }
+    }
+    
+    else if (focus_peaking_grayscale)
+    {
+        if (focus_peaking_disp == 1) 
+        {
+            PEAK_LOOP
+            {
+                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
+                e = peak_scaling[MIN(e, 255)];
+                if (likely(e < FOCUSED_THR)) dst_buf[i] = src_buf[i] & 0xFF00FF00;
+                else 
+                { 
+                    dst_buf[i] = 0x4C7F4CD5; // red
+                    n_over++;
+                }
+            }
+        }
+        else if (focus_peaking_disp == 2) // alpha
+        {
+            PEAK_LOOP
+            {
+                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
+                e = peak_scaling[MIN(e, 255)];
+                if (likely(e < 20)) dst_buf[i] = src_buf[i] & 0xFF00FF00;
+                else dst_buf[i] = peak_blend_alpha(&src_buf[i], e);
+                if (unlikely(e > FOCUSED_THR)) n_over++;
+            }
+        }
+    }
+    else // color
+    {
+        if (focus_peaking_disp == 1) 
+        {
+            PEAK_LOOP
+            {
+                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
+                e = peak_scaling[MIN(e, 255)];
+                if (likely(e < FOCUSED_THR)) dst_buf[i] = src_buf[i];
+                else 
+                { 
+                    dst_buf[i] = 0x4C7F4CD5; // red
+                    n_over++;
+                }
+            }
+        }
+        else if (focus_peaking_disp == 2) // alpha
+        {
+            PEAK_LOOP
+            {
+                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
+                e = peak_scaling[MIN(e, 255)];
+                if (likely(e < 20)) dst_buf[i] = src_buf[i];
+                else dst_buf[i] = peak_blend_alpha(&src_buf[i], e);
+                if (unlikely(e > FOCUSED_THR)) n_over++;
+            }
+        }
+    }
+
+    // update threshold for next iteration
+    if (1000 * n_over / n_total > (int)focus_peaking_pthr)
+    {
+        if (thr_delta > 0) thr_increment++; else thr_increment = 1;
+        thr += thr_increment;
+    }
+    else
+    {
+        if (thr_delta < 0) thr_increment++; else thr_increment = 1;
+        thr -= thr_increment;
+    }
+
+    thr_increment = COERCE(thr_increment, -10, 10);
+    thr = COERCE(thr, 10, 255);
+    
+    if (focus_peaking_disp == 3) thr = 64;
+}
+
+static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
 {    
     int color = get_focus_color(thr, e);
     //~ int color = COLOR_RED;
@@ -1511,7 +1729,6 @@ void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
     }
 }
 
-
 // returns how the focus peaking threshold changed
 static int
 draw_zebra_and_focus( int Z, int F )
@@ -1523,6 +1740,8 @@ draw_zebra_and_focus( int Z, int F )
     if (unlikely(!bvram_mirror)) return 0;
     
     draw_zebras(Z);
+
+    if (focus_peaking_as_display_filter()) return 0; // it's drawn from display filters routine
 
     static int thr = 50;
     static int thr_increment = 1;
@@ -1541,7 +1760,8 @@ draw_zebra_and_focus( int Z, int F )
             #define B2 *(uint16_t*)(bvram + dirty_pixels[i] + BMPPITCH)
             #define M1 *(uint16_t*)(bvram_mirror + dirty_pixels[i])
             #define M2 *(uint16_t*)(bvram_mirror + dirty_pixels[i] + BMPPITCH)
-            if (unlikely((B1 == 0 || B1 == M1)) && unlikely((B2 == 0 || B2 == M2)))
+
+            if (likely((B1 == 0 || B1 == M1)) && likely((B2 == 0 || B2 == M2)))
                 B1 = B2 = M1 = M2 = 0;
             #undef B1
             #undef B2
@@ -1563,7 +1783,8 @@ draw_zebra_and_focus( int Z, int F )
         const uint8_t* p8; // that's a moving pointer
         
         zebra_update_lut();
-        
+
+#if 0 // deprecated        
         if(focus_peaking_method == 0)
         {
             for(int y = yStart; y < yEnd; y += 2)
@@ -1576,7 +1797,7 @@ draw_zebra_and_focus( int Z, int F )
                     
                     int p_cc = (int)(*p8);
                     int p_rc = (int)(*(p8 + 2));
-                    int p_cd = (int)(*(p8 + vram_hd.pitch));
+                    int p_cd = (int)(*(p8 + vram_lv.pitch));
                     
                     int e_dx = ABS(p_rc - p_cc);
                     int e_dy = ABS(p_cd - p_cc);
@@ -1587,10 +1808,9 @@ draw_zebra_and_focus( int Z, int F )
                     if (unlikely(e >= thr))
                     {
                         n_over++;
-                        if (n_over > MAX_DIRTY_PIXELS) // threshold too low, abort
-                        {
+
+                        if (unlikely(dirty_pixels_num >= MAX_DIRTY_PIXELS)) // threshold too low, abort
                             break;
-                        }
 
                         focus_found_pixel(x, y, e, thr, bvram);
                     }
@@ -1598,6 +1818,7 @@ draw_zebra_and_focus( int Z, int F )
             }
         }
         else
+#endif
         {
             for(int y = yStart; y < yEnd; y += 2)
             {
@@ -1618,22 +1839,15 @@ draw_zebra_and_focus( int Z, int F )
                      *  uyvy uyvy uyvy
                      */
                      
-                    
-                    int result = ((int)(*p8) * 4) - (int)(*(p8 + 2));
-                    result -= (int)(*(p8 - 2));
-                    result -= (int)(*(p8 + vram_hd.pitch));
-                    result -= (int)(*(p8 - vram_hd.pitch));
-                    
-                    int e = ABS(result);
+                    int e = peak_d2xy_hd(p8);
                     
                     /* executed for 1% of pixels */
                     if (unlikely(e >= thr))
                     {
                         n_over++;
-                        if (n_over > MAX_DIRTY_PIXELS) // threshold too low, abort
-                        {
+
+                        if (unlikely(dirty_pixels_num >= MAX_DIRTY_PIXELS)) // threshold too low, abort
                             break;
-                        }
 
                         focus_found_pixel(x, y, e, thr, bvram);
                     }
@@ -1654,6 +1868,7 @@ draw_zebra_and_focus( int Z, int F )
             thr -= thr_increment;
         }
 
+        thr_increment = COERCE(thr_increment, -5, 5);
         int thr_min = (lens_info.iso > 1600 ? 15 : 10);
         thr = COERCE(thr, thr_min, 255);
 
@@ -2057,9 +2272,7 @@ focus_peaking_display( void * priv, int x, int y, int selected )
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "Focus Peak  : %s,%d.%d,%s%s",
-            focus_peaking_method == 0 ? "D1xy" :
-            focus_peaking_method == 1 ? "D2xy" : "Nyq.H",
+            "Focus Peak  : ON,%d.%d,%s%s",
             focus_peaking_pthr / 10, focus_peaking_pthr % 10, 
             focus_peaking_color == 0 ? "R" :
             focus_peaking_color == 1 ? "G" :
@@ -2393,7 +2606,7 @@ void get_spot_yuv_ex(int size_dxb, int dx, int dy, int* Y, int* U, int* V)
 
     if( !vram->vram )
         return;
-    const uint16_t*     vr = (void*) YUV422_LV_BUFFER_DMA_ADDR;
+    const uint16_t*     vr = (void*) vram->vram;
     const unsigned      width = vram->width;
     //~ const unsigned      pitch = vram->pitch;
     //~ const unsigned      height = vram->height;
@@ -2985,16 +3198,32 @@ struct menu_entry zebra_menus[] = {
         .priv           = &focus_peaking,
         .display        = focus_peaking_display,
         .select         = menu_binary_toggle,
-        .help = "Show tiny dots on focused edges.",
+        .help = "Show which parts of the image are in focus.",
         .submenu_width = 650,
         //.essential = FOR_LIVEVIEW,
         .children =  (struct menu_entry[]) {
+            {
+                .name = "Filter bias", 
+                .priv = &focus_peaking_filter_edges,
+                .max = 2,
+                .choices = (const char *[]) {"Strong edges", "Balanced", "Fine details"},
+                .help = "Balance fine texture details vs strong high-contrast edges.",
+                .icon_type = IT_DICE
+            },
+            /*
             {
                 .name = "Method",
                 .priv = &focus_peaking_method, 
                 .max = 1,
                 .choices = (const char *[]) {"1st deriv.", "2nd deriv.", "Nyquist H"},
-                .help = "Contrast detection method.",
+                .help = "Contrast detection method. 2: more accurate, 1: less noisy.",
+            },*/
+            {
+                .name = "Display type",
+                .priv = &focus_peaking_disp, 
+                .max = 3,
+                .choices = (const char *[]) {"Blinking dots", "Fine dots", "Alpha blend", "Raw"},
+                .help = "How to display peaking. Alpha looks nicer, but image lags.",
             },
             {
                 .name = "Threshold", 
@@ -3336,7 +3565,7 @@ struct menu_entry livev_dbg_menus[] = {
     }*/
 };
 
-#if defined(CONFIG_60D) || defined(CONFIG_5D2)
+#if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
 void batt_display(
     void *          priv,
     int         x,
@@ -3420,7 +3649,7 @@ struct menu_entry powersave_menus[] = {
             .help = "Turn off GlobalDraw when idle, to save some CPU cycles.",
             //~ .edit_mode = EM_MANY_VALUES,
         },
-        #if defined(CONFIG_60D) || defined(CONFIG_5D2)
+        #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
         {
             .name = "Battery remaining",
             .display = batt_display,
@@ -4116,6 +4345,9 @@ int liveview_display_idle()
     extern thunk LiveViewApp_handler;
     extern uintptr_t new_LiveViewApp_handler;
     //~ extern thunk test_minimal_handler;
+    #ifdef CONFIG_5D3
+    extern thunk LiveViewLevelApp_handler;
+    #endif
 
 /*
     if (dialog->handler == (dialog_handler_t) &test_minimal_handler)
@@ -4131,7 +4363,11 @@ int liveview_display_idle()
         !menu_active_and_not_hidden() && 
         ( gui_menu_shown() || // force LiveView when menu is active, but hidden
             ( gui_state == GUISTATE_IDLE && 
-              (dialog->handler == (dialog_handler_t) &LiveViewApp_handler || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler) &&
+              (dialog->handler == (dialog_handler_t) &LiveViewApp_handler || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler
+                  #ifdef CONFIG_5D3
+                  || dialog->handler == (dialog_handler_t) &LiveViewLevelApp_handler
+                  #endif
+              ) &&
             CURRENT_DIALOG_MAYBE <= 3 && 
             #ifdef CURRENT_DIALOG_MAYBE_2
             CURRENT_DIALOG_MAYBE_2 <= 3 &&
@@ -4763,6 +4999,7 @@ BMP_LOCK (
     {
         struct gui_task * current = gui_task_list.current;
         struct dialog * dialog = current->priv;
+
         if (dialog && MEM(dialog->type) == DLG_SIGNATURE) // if dialog seems valid
         {
             #ifdef CONFIG_KILL_FLICKER
@@ -5307,6 +5544,7 @@ static void livev_playback_toggle()
     }
     else
     {
+        if (zebra_digic_dirty) digic_zebra_cleanup();
         #ifdef CONFIG_4_3_SCREEN
         clrscr(); // old cameras don't refresh the entire screen
         #endif
@@ -5329,7 +5567,12 @@ int handle_livev_playback(struct event * event, int button)
             return 0;
         }
         else
+        #ifdef GMT_GUICMD_PRESS_BUTTON_SOMETHING
+        if (event->param != GMT_GUICMD_PRESS_BUTTON_SOMETHING)
+        #endif
+        {
             livev_playback_reset();
+        }
     }
     return 1;
 }

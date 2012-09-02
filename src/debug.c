@@ -532,6 +532,7 @@ void iso_movie_test()
 
 void run_test()
 {
+    //~ debug_intercept();
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1269,13 +1270,13 @@ const int mem_spy_addresses[] = {};//0xc0000044, 0xc0000048, 0xc0000057, 0xc0001
 int mem_spy_len = 0x10000/4;    // look at ### int32's; use only when mem_spy_fixed_addresses = 0
 //~ int mem_spy_len = COUNT(mem_spy_addresses); // use this when mem_spy_fixed_addresses = 1
 
-int mem_spy_count_lo = 1; // how many times is a value allowed to change
-int mem_spy_count_hi = 0; // (limits)
-int mem_spy_freq_lo = 10; 
-int mem_spy_freq_hi = 50;  // or check frequecy between 2 limits (0 = disable)
+int mem_spy_count_lo = 5; // how many times is a value allowed to change
+int mem_spy_count_hi = 50; // (limits)
+int mem_spy_freq_lo =  0; 
+int mem_spy_freq_hi =  0;  // or check frequecy between 2 limits (0 = disable)
 int mem_spy_value_lo = 0;
 int mem_spy_value_hi = 0;  // or look for a specific range of values (0 = disable)
-int mem_spy_start_time = 0;  // ignore values changing early (these are noise)
+int mem_spy_start_time = 30;  // ignore values changing early (these are noise)
 
 
 static int* dbg_memmirror = 0;
@@ -1751,39 +1752,33 @@ void save_crash_log()
 
 }
 
-// don't do anything else here, to avoid lockups
-void crash_log_task()
+void crash_log_step()
 {
-    int dmlog_saved = 0;
-    TASK_LOOP
+    static int dmlog_saved = 0;
+    if (crash_log_requested)
     {
-        if (crash_log_requested)
-        {
-            //~ beep();
-            save_crash_log();
-            crash_log_requested = 0;
-            msleep(2000);
-        }
-        
-        //~ bmp_printf(FONT_MED, 100, 100, "%x ", get_current_dialog_handler());
-        extern thunk ErrForCamera_handler;
-        if (get_current_dialog_handler() == (intptr_t)&ErrForCamera_handler)
-        {
-            if (!dmlog_saved) 
-            { 
-                beep();
-                NotifyBox(10000, "Saving debug log...");
-                call("dumpf"); 
-            }
-            dmlog_saved = 1;
-        }
-        else dmlog_saved = 0;
-        
-        msleep(200);
+        //~ beep();
+        save_crash_log();
+        crash_log_requested = 0;
+        msleep(2000);
     }
+        
+    //~ bmp_printf(FONT_MED, 100, 100, "%x ", get_current_dialog_handler());
+    extern thunk ErrForCamera_handler;
+    if (get_current_dialog_handler() == (intptr_t)&ErrForCamera_handler)
+    {
+        if (!dmlog_saved) 
+        { 
+            beep();
+            NotifyBox(10000, "Saving debug log...");
+            call("dumpf"); 
+        }
+        dmlog_saved = 1;
+    }
+    else dmlog_saved = 0;
 }
 
-TASK_CREATE( "crash_log_task", crash_log_task, 0, 0x1e, 0x2000);
+//~ TASK_CREATE( "crash_log_task", crash_log_task, 0, 0x1e, 0x2000);
 
 
 int x = 0;
@@ -1813,77 +1808,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
 
-        if (get_global_draw())
-        {
-            #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
-            extern thunk ShootOlcApp_handler;
-            if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown()
-                && (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler)
-            BMP_LOCK
-            (
-                display_clock();
-                display_shooting_info();
-                free_space_show_photomode();
-            )
-            #endif
-        
-            if (lv && !gui_menu_shown())
-            {
-                BMP_LOCK (
-                    display_shooting_info_lv();
-                    display_shortcut_key_hints_lv();
-                )
-                #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
-                if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
-                {
-                    static int ae_warned = 0;
-                    if (!ae_warned && !gui_menu_shown())
-                    {
-                        bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
-                            "!!! Auto exposure !!!\n"
-                            "Set 'Movie Exposure -> Manual' from Canon menu");
-                        msleep(2000);
-                        redraw();
-                        ae_warned = 1;
-                    }
-                }
-                #elif defined(CONFIG_5D2)
-                static int ae_warned = 0;
-                if (is_movie_mode() && !lens_info.raw_shutter && recording && MVR_FRAME_NUMBER < 10)
-                {
-                    if (!ae_warned && !gui_menu_shown())
-                    {
-                        msleep(2000);
-                        bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
-                            "!!! Auto exposure !!!\n"
-                            "Use M mode and set 'LV display: Movie' from Expo menu");
-                        msleep(4000);
-                        redraw();
-                        ae_warned = 1;
-                    }
-                }
-                else ae_warned = 0;
-                #endif
-                
-                if (ext_monitor_rca) 
-                {
-                    static int rca_warned = 0;
-                    if (!rca_warned && !gui_menu_shown())
-                    {
-                        msleep(2000);
-                        if (ext_monitor_rca) // check again
-                        {
-                            bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, 
-                                "SD monitors NOT fully supported!\n"
-                                "RGB tools and MZoom won't work. ");
-                            msleep(4000);
-                            redraw();
-                            rca_warned = 1;
-                        }
-                    }
-                }
-            }
-        }
         
         if (screenshot_sec)
         {
@@ -1912,6 +1836,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             continue;
         }
         #endif
+        
+        crash_log_step();
         
         msleep(200);
     }
@@ -2677,7 +2603,7 @@ struct menu_entry debug_menus[] = {
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     #endif
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2)
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
     {
         .name = "Battery remaining",
         .display = batt_display,
@@ -3456,8 +3382,10 @@ int handle_buttons_being_held(struct event * event)
     #endif
     if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
     if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
+    #ifdef BGMT_PRESS_ZOOMOUT_MAYBE
     if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
     if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
+    #endif
     
     return 1;
 }

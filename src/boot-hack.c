@@ -348,6 +348,8 @@ void my_big_init_task()
                 //~ streq(task->name, "seconds_clock_task") ||
                 //~ streq(task->name, "shoot_task") ||
                 //~ streq(task->name, "tweak_task") ||
+                //~ streq(task->name, "beep_task") ||
+                //~ streq(task->name, "crash_log_task") ||
             0 )
         #endif
         {
@@ -360,6 +362,11 @@ void my_big_init_task()
             );
             ml_tasks++;
         }
+        //~ else
+        //~ {
+            //~ bmp_printf(FONT_LARGE, 50, 50, "skip %s  ", task->name);
+            //~ msleep(1000);
+        //~ }
     }
     //~ bmp_printf( FONT_MED, 0, 85,
         //~ "Magic Lantern is up and running... %d tasks started.",
@@ -782,11 +789,6 @@ int lcd_release_running = 0;
 void lcd_release_step() {};
 int get_lcd_sensor_shortcuts() { return 0; }
 void display_lcd_remote_icon(int x0, int y0) {}
-int audio_meters_are_drawn() { return 0; }
-void volume_up(){};
-void volume_down(){};
-void out_volume_up(){};
-void out_volume_down(){};
 int new_LiveViewApp_handler = 0xff123456;
 void bootflag_write_bootblock(){};
 int audio_levels = 0;

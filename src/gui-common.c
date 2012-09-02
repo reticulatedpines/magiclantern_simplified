@@ -11,6 +11,17 @@ static int last_time_active = 0;
 int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
 int get_last_time_active() { return last_time_active; }
 
+#ifdef CONFIG_5D3
+// disable Canon bottom bar
+static uint32_t orig_DebugMsg_instr = 0;
+static void hacked_DebugMsg(int class, int level, char* fmt, ...)
+{
+    if (class == 131 && level == 1)
+        MEM(0x3334C) = 0; // LvApp_struct.off_0x60 /*0x3334C*/ = ret_str:JudgeBottomInfoDispTimerState_FF4B0970
+    return;
+}
+#endif
+
 int handle_other_events(struct event * event)
 {
     extern int ml_started;
@@ -35,6 +46,42 @@ int handle_other_events(struct event * event)
         if (UNAVI_FEEDBACK_TIMER_ACTIVE)
         {
             HideUnaviFeedBack_maybe();
+            bottom_bar_dirty = 0;
+        }
+        
+        if (!liveview_display_idle()) bottom_bar_dirty = 0;
+        if (bottom_bar_dirty) bottom_bar_dirty--;
+        
+        if (bottom_bar_dirty == 1)
+        {
+            lens_display_set_dirty();
+        }
+    }
+#elif defined(CONFIG_5D3)
+    if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
+    {
+        if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
+        {
+            // use a modified DebugMsg which disables bottom bar display timer instead of doing what it normally does
+            if (!orig_DebugMsg_instr)
+            {
+                uint32_t d = (uint32_t)&DryosDebugMsg;
+                orig_DebugMsg_instr = *(uint32_t*)(d);
+                *(uint32_t*)(d) = B_INSTR((uint32_t)&DryosDebugMsg, hacked_DebugMsg);
+            }
+            
+            if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
+        }
+        else
+        {
+            // uninstall our mean hack
+            if (orig_DebugMsg_instr)
+            {
+                uint32_t d = (uint32_t)&DryosDebugMsg;
+                *(uint32_t*)(d) = orig_DebugMsg_instr;
+                orig_DebugMsg_instr = 0;
+            }
+
             bottom_bar_dirty = 0;
         }
         

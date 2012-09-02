@@ -39,7 +39,7 @@ int kelvin_wb_dirty = 1;
 
 void save_kelvin_wb()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5D3)
     return;
     #endif
     
@@ -52,7 +52,7 @@ void save_kelvin_wb()
 
 void restore_kelvin_wb()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5D3)
     return;
     #endif
     //~ if (!white_balance_workaround) return;
@@ -66,7 +66,7 @@ void restore_kelvin_wb()
 
 void kelvin_wb_workaround_step()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5D3)
     return;
     #endif
     if (!kelvin_wb_dirty)
@@ -308,7 +308,7 @@ shutter_lock_print(
 
 void shutter_lock_step()
 {
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D3)
     if (is_movie_mode()) // no effect in photo mode
     {
         unsigned shutter = lens_info.raw_shutter;
@@ -370,8 +370,8 @@ int movie_was_stopped_by_set = 0;
 // at startup don't try to sync with Canon values; use saved values instead
 int bv_startup = 1;
 
-static void
-movtweak_task( void* unused )
+void
+movtweak_task_init()
 {
     //~ msleep(500);
 
@@ -385,11 +385,11 @@ movtweak_task( void* unused )
     while (!ml_started) msleep(100);
     bv_auto_update_startup();
     bv_startup = 0;
+}
 
-    TASK_LOOP
-    {
-        msleep(DISPLAY_IS_ON || recording ? 50 : 1000);
-        
+void movtweak_step()
+{
+#ifndef CONFIG_5D3 // movie restart not needed
         static int recording_prev = 0;
         #if defined(CONFIG_5D2) || defined(CONFIG_50D)
         if (recording == 0 && recording_prev && !movie_was_stopped_by_set)
@@ -406,6 +406,7 @@ movtweak_task( void* unused )
         recording_prev = recording;
 
         if (!recording) movie_was_stopped_by_set = 0;
+#endif
 
         //~ do_movie_mode_remap();
         
@@ -443,10 +444,10 @@ movtweak_task( void* unused )
                 msleep(5000);
             }
         }
-    }
 }
 
-TASK_CREATE("movtweak_task", movtweak_task, 0, 0x1e, 0x1000 );
+// called from tweak_task
+//~ TASK_CREATE("movtweak_task", movtweak_task, 0, 0x1e, 0x1000 );
 
 /*
 static void
@@ -703,7 +704,7 @@ void rec_notify_continuous(int called_from_menu)
 
 void rec_notify_trigger(int rec)
 {
-#if !defined(CONFIG_600D)
+#if !defined(CONFIG_600D) && !defined(CONFIG_5D3)
     if (RECNOTIFY_BEEP)
     {
         extern int ml_started;
@@ -720,7 +721,7 @@ void rec_notify_trigger(int rec)
     }
 
 #ifndef CONFIG_50D
-    if (rec == 1 && sound_recording_mode == 1)
+    if (rec == 1 && sound_recording_mode == 1 && !fps_should_record_wav())
         NotifyBox(1000, "Sound is disabled.");
 #endif
 }
@@ -920,7 +921,7 @@ void update_lvae_for_autoiso_n_displaygain()
             {
                 int bv = prop_bv;
                 //int c = (uint8_t)((bv >> 16) & 0xFF);
-                #ifdef CONFIG_5D2
+                #if defined(CONFIG_5D2) || defined(CONFIG_1100D)
                 int b = (uint8_t)((bv >>  8) & 0xFF);
                 ae_value = (int)lvae_iso_max - b;
                 #else
@@ -1007,7 +1008,7 @@ static struct menu_entry mov_menus[] = {
         .display    = vbr_print,
         .select     = vbr_toggle,
     },*/
-    #ifndef CONFIG_500D
+    #if !defined(CONFIG_500D) && !defined(CONFIG_5D3)
     {
         .name = "Movie Restart",
         .priv = &movie_restart,
@@ -1050,12 +1051,12 @@ static struct menu_entry mov_menus[] = {
         .name = "REC/STBY notify", 
         .priv = &rec_notify, 
         .display = rec_notify_print, 
-        #ifdef CONFIG_5D2
-        .select = menu_quinternary_toggle, 
-        #elif defined(CONFIG_600D)
-        .select = menu_quaternary_toggle, 
+        #if defined(CONFIG_5D2) || defined(CONFIG_500D)
+        .select = menu_quinternary_toggle, // beeps and blue led
+        #elif defined(CONFIG_600D) || defined(CONFIG_5D3)
+        .select = menu_ternary_toggle, // no beeps, no blue led
         #else
-        .select = menu_ternary_toggle, 
+        .select = menu_quaternary_toggle, // beeps are OK, no blue led
         #endif
         .help = "Custom REC/STANDBY notifications, visual or audible",
         //.essential = FOR_MOVIE,
@@ -1088,7 +1089,7 @@ static struct menu_entry mov_menus[] = {
         .display = zebra_nrec_display,
         .help = "You can disable zebra during recording."
     },*/
-    #ifndef CONFIG_50D
+    #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
     {
         .name = "Force LiveView",
         .priv = &enable_liveview,
@@ -1108,7 +1109,7 @@ static struct menu_entry mov_menus[] = {
         //.essential = FOR_MOVIE,
     },
 #endif
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D3)
     {
         .name = "Shutter Lock",
         .priv = &shutter_lock,

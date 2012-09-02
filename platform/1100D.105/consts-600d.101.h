@@ -60,7 +60,7 @@
 #define MVR_FRAME_NUMBER (*(int*)(332 + MVR_992_STRUCT))
 #define MVR_BYTES_WRITTEN (*(int*)(296 + MVR_992_STRUCT))
 
-#define MOV_RES_AND_FPS_COMBINATIONS 9
+#define MOV_RES_AND_FPS_COMBINATIONS 9 // Really, Canon?
 #define MOV_OPT_NUM_PARAMS 2
 #define MOV_GOP_OPT_NUM_PARAMS 5
 #define MOV_OPT_STEP 5
@@ -149,10 +149,4 @@
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x8490) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
-
-// Dummy defines for features that we don't really have
-#define DISPLAY_SENSOR_POWERED 0
-
-#define SENSOR_RES_X 5184
-#define SENSOR_RES_Y 3456
 

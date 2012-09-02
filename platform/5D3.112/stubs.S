@@ -143,11 +143,17 @@ NSTUB(0xff9ecd10 - RAM_OFFSET, task_trampoline)
 NSTUB(0xFF2F2884, vram_get_pos_and_size)
 //NSTUB(   0x57090, vram_info) // not sure, but not used
 NSTUB(0xff9f4edc - RAM_OFFSET, vsnprintf)
-NSTUB(0xff658a48, LiveViewApp_handler)
+NSTUB(0xff658a48, LiveViewLevelApp_handler)
+
+NSTUB(0xff4afd94, LiveViewApp_handler)
+NSTUB(0xff4b0970, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
+NSTUB(0xff4b1c50, LiveViewApp_handler_end) // start of next function
+
 NSTUB(0xff4dfb20, PlayMain_handler)
 //NSTUB(0xFF4B88F4, OlcAFFrameApp_handler)
 NSTUB(0xFF49C0B0, ErrCardForLVApp_handler) // not sure
 NSTUB(0xFF49CBF4, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
+NSTUB(0xFF4AB9D4, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
 
 NSTUB(0xff28cbfc, _engio_write)
 NSTUB(0xff28c988, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
@@ -180,7 +186,18 @@ NSTUB(0xff9ef81c - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_
 
 NSTUB(0xFF1378CC, PowerAudioOutput)
 NSTUB(0xff10ec58, StartASIFDMADAC)
+NSTUB(0xff10eaa0, StartASIFDMAADC)
 NSTUB(0xff10ed30, StopASIFDMADAC)
+NSTUB(0xff10f1d4, SetNextASIFADCBuffer)
+NSTUB(0xFF10F288, SetNextASIFDACBuffer)
 NSTUB(0xff137964, SetSamplingRate )
 NSTUB(0xff137064, SetAudioVolumeOut)
 
+
+NSTUB(0xff1812d4, ENCODE_StartEncodeJpeg)
+
+NSTUB(0xff13c0f4, AllocateMemoryResource) // m_pfAllocMemoryCBR
+NSTUB(0xff13c140, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
+NSTUB(0xff13c258, FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xff9ea0b8 - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff9e9a90 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)

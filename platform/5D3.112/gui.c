@@ -83,6 +83,11 @@ static void my_gui_main_task()
 				if (handle_buttons(event) == 0) // ML button/event handler
 					continue;
 			}
+			else
+			{
+				if (handle_other_events(event) == 0)
+					continue;
+			}
 		}
 
 		if (IS_FAKE(event)) event->arg = 0;

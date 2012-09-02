@@ -28,6 +28,7 @@ ML_OBJS-y = \
 	menu.o \
 	debug.o \
 	stdio.o \
+	audio.o \
 	bitrate.o \
 	tweaks.o \
 	lens.o \
