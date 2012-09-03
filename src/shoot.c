@@ -6102,7 +6102,7 @@ shoot_task( void* unused )
                 if (!display_idle()) countdown = 20;
                 if (countdown) { countdown--; }
 
-                extern struct audio_level audio_levels[];
+                struct audio_level * audio_levels = get_audio_levels();
 
                 static int avg_prev0 = 1000;
                 static int avg_prev1 = 1000;
