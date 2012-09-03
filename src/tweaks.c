@@ -904,7 +904,7 @@ int play_rate_flag = 0;
 int rating_in_progress = 0;
 void play_lv_key_step()
 {
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
+#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
 
     // wait for user request to settle
     int prev = play_rate_flag;
@@ -983,7 +983,7 @@ static void protect_image_task()
 }
 #endif
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2)
+#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2) || defined(CONFIG_1100D)
 
 int handle_lv_play(struct event * event)
 {
@@ -1442,7 +1442,7 @@ CONFIG_INT("arrows.set", arrow_keys_use_set, 1);
     CONFIG_INT("arrows.audio", arrow_keys_audio, 0);
     CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 0);
 #else
-    #if !defined(CONFIG_50D) && !defined(CONFIG_600D) && !defined(CONFIG_5D3)
+    #if !defined(CONFIG_50D) && !defined(CONFIG_600D) && !defined(CONFIG_5D3) & !defined(CONFIG_1100D)
         CONFIG_INT("arrows.audio", arrow_keys_audio, 1);
     #else
         CONFIG_INT("arrows.audio", arrow_keys_audio_unused, 1);
@@ -1619,7 +1619,7 @@ int handle_arrow_keys(struct event * event)
         {
             switch (arrow_keys_mode)
             {
-                #if !defined(CONFIG_50D) && !defined(CONFIG_600D) && !defined(CONFIG_5D3)
+                #if !defined(CONFIG_50D) && !defined(CONFIG_600D) && !defined(CONFIG_5D3) & !defined(CONFIG_1100D)
                 case 1: input_toggle(); break;
                 #endif
                 case 2: 
@@ -1803,7 +1803,7 @@ static struct menu_entry key_menus[] = {
         .submenu_width = 500,
         .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .children =  (struct menu_entry[]) {
-            #if !defined(CONFIG_50D) && !defined(CONFIG_600D) && !defined(CONFIG_5D3)
+            #if !defined(CONFIG_50D) && !defined(CONFIG_600D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
             {
                 .name = "Audio Gain",
                 .priv       = &arrow_keys_audio,
@@ -3084,7 +3084,7 @@ struct menu_entry play_menus[] = {
                 .icon_type = IT_BOOL,
             },
             #endif */
-        #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2)
+        #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2) || defined(CONFIG_1100D)
             {
                 .name = "LV button",
                 .priv = &play_lv_action, 

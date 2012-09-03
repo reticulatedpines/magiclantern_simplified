@@ -167,3 +167,9 @@
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
 
 #define MVR_992_STRUCT (*(void**)0x1DF4)
+
+// Dummy defines for features that we don't really have
+#define DISPLAY_SENSOR_POWERED 0
+
+#define SENSOR_RES_X 4272
+#define SENSOR_RES_Y 2848
