@@ -193,3 +193,11 @@ NSTUB(0xFF10F288, SetNextASIFDACBuffer)
 NSTUB(0xff137964, SetSamplingRate )
 NSTUB(0xff137064, SetAudioVolumeOut)
 
+
+NSTUB(0xff1812d4, ENCODE_StartEncodeJpeg)
+
+NSTUB(0xff13c0f4, AllocateMemoryResource) // m_pfAllocMemoryCBR
+NSTUB(0xff13c140, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
+NSTUB(0xff13c258, FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xff9ea0b8 - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff9e9a90 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
