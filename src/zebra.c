@@ -1741,9 +1741,7 @@ draw_zebra_and_focus( int Z, int F )
     
     draw_zebras(Z);
 
-    #ifdef CONFIG_5D3
     if (focus_peaking_as_display_filter()) return 0; // it's drawn from display filters routine
-    #endif
 
     static int thr = 50;
     static int thr_increment = 1;
@@ -3171,7 +3169,7 @@ struct menu_entry zebra_menus[] = {
         .priv           = &focus_peaking,
         .display        = focus_peaking_display,
         .select         = menu_binary_toggle,
-        .help = "Show tiny dots on focused edges.",
+        .help = "Show which parts of the image are in focus.",
         .submenu_width = 650,
         //.essential = FOR_LIVEVIEW,
         .children =  (struct menu_entry[]) {
@@ -3191,7 +3189,6 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"1st deriv.", "2nd deriv.", "Nyquist H"},
                 .help = "Contrast detection method. 2: more accurate, 1: less noisy.",
             },*/
-            #ifdef CONFIG_5D3
             {
                 .name = "Display type",
                 .priv = &focus_peaking_disp, 
@@ -3199,7 +3196,6 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"Blinking dots", "Fine dots", "Alpha blend", "Raw"},
                 .help = "How to display peaking. Alpha looks nicer, but image lags.",
             },
-            #endif
             {
                 .name = "Threshold", 
                 .priv = &focus_peaking_pthr,
