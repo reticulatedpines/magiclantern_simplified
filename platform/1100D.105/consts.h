@@ -173,3 +173,7 @@
 
 #define SENSOR_RES_X 4272
 #define SENSOR_RES_Y 2848
+
+//Same as 5D2 since they share the same CPU
+#define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
+#define REG_EDMAC_WRITE_LV_ADDR 0xc0f04308

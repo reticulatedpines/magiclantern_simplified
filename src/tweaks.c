@@ -2721,7 +2721,7 @@ void display_filter_get_buffers(void** src_buf, void** dst_buf)
 #ifdef CONFIG_5D2
     *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_2);
-#elif defined(CONFIG_5D3)
+#elif defined(CONFIG_5D3) || defined(CONFIG_1100D)
     *src_buf = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_1 + 720*480*2);
 #endif
