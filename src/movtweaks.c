@@ -921,7 +921,7 @@ void update_lvae_for_autoiso_n_displaygain()
             {
                 int bv = prop_bv;
                 //int c = (uint8_t)((bv >> 16) & 0xFF);
-                #ifdef CONFIG_5D2
+                #if defined(CONFIG_5D2) || defined(CONFIG_1100D)
                 int b = (uint8_t)((bv >>  8) & 0xFF);
                 ae_value = (int)lvae_iso_max - b;
                 #else
