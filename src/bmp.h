@@ -145,7 +145,11 @@ inline uint8_t* bmp_vram_real()
 /** Returns a pointer to idle BMP vram */
 inline uint8_t* bmp_vram_idle()
 {
+#ifdef CONFIG_1100D
+	return (uint8_t *)((((uintptr_t)bmp_vram_real() + 0x80000) ^ 0x80000) - 0x80000);
+#else
     return (uint8_t *)((uintptr_t)bmp_vram_real() ^ 0x80000);
+#endif
 }
 #endif
 

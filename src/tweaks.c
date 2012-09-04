@@ -268,6 +268,25 @@ expsim_toggle( void * priv, int delta)
     #endif
     int e = mod(expsim + delta, max_expsim+1);
     set_expsim(e);
+    
+    #ifdef CONFIG_5D2
+    if (e == 2) // movie display, make sure movie recording is enabled
+    {
+        if (lv_movie_select != LVMS_ENABLE_MOVIE)
+        {
+            int x = LVMS_ENABLE_MOVIE;
+            prop_request_change(PROP_LV_MOVIE_SELECT, &x, 4);
+        }
+    }
+    else // photo display, disable movie recording
+    {
+        if (lv_movie_select == LVMS_ENABLE_MOVIE)
+        {
+            int x = 1;
+            prop_request_change(PROP_LV_MOVIE_SELECT, &x, 4);
+        }
+    }
+    #endif
 }
 
 static void
@@ -844,6 +863,7 @@ int handle_set_wheel_play(struct event * event)
             return 0;
         }
         
+        #ifndef CONFIG_5D3 // Canon has it
         if (quick_delete)
         {
             if (event->param == BGMT_TRASH)
@@ -855,6 +875,7 @@ int handle_set_wheel_play(struct event * event)
                 return 0;
             }
         }
+        #endif
     }
     
     return 1;
@@ -883,7 +904,7 @@ int play_rate_flag = 0;
 int rating_in_progress = 0;
 void play_lv_key_step()
 {
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
+#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
 
     // wait for user request to settle
     int prev = play_rate_flag;
@@ -962,7 +983,7 @@ static void protect_image_task()
 }
 #endif
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2)
+#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2) || defined(CONFIG_1100D)
 
 int handle_lv_play(struct event * event)
 {
@@ -1121,6 +1142,7 @@ static void
 tweak_task( void* unused)
 {
     //~ do_movie_mode_remap();
+    movtweak_task_init();
     
     TASK_LOOP
     {
@@ -1131,6 +1153,8 @@ tweak_task( void* unused)
         else if (display_countdown) display_countdown--;
         
         msleep(display_countdown || recording || halfshutter_sticky || dofpreview_sticky ? 50 : 1000);
+        
+        movtweak_step();
 
         if (halfshutter_sticky)
             fake_halfshutter_step();
@@ -1225,6 +1249,7 @@ tweak_task( void* unused)
         upside_down_step();
 
         preview_contrast_n_saturation_step();
+        uniwb_correction_step();
         grayscale_menus_step();
         lcd_adjust_position_step();
 
@@ -1245,6 +1270,7 @@ TASK_CREATE("tweak_task", tweak_task, 0, 0x1e, 0x1000 );
 
 CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 0);
 
+#ifndef CONFIG_5D3 // not needed
 PROP_HANDLER(PROP_GUI_STATE)
 {
     int gui_state = buf[0];
@@ -1256,6 +1282,7 @@ PROP_HANDLER(PROP_GUI_STATE)
         fake_simple_button(BGMT_PLAY);
     }
 }
+#endif
 
 static void
 qrplay_display(
@@ -1415,7 +1442,7 @@ CONFIG_INT("arrows.set", arrow_keys_use_set, 1);
     CONFIG_INT("arrows.audio", arrow_keys_audio, 0);
     CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 0);
 #else
-    #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
+    #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) & !defined(CONFIG_1100D)
         CONFIG_INT("arrows.audio", arrow_keys_audio, 1);
     #else
         CONFIG_INT("arrows.audio", arrow_keys_audio_unused, 1);
@@ -1476,8 +1503,12 @@ int handle_push_wb(struct event * event)
     #ifdef CONFIG_5D3
     if (event->param == BGMT_RATE)
     {
-        kelvin_n_gm_auto();
-        return 0;
+        // only do this if no arrow shortcut is enabled
+        if (!arrow_keys_audio && !arrow_keys_iso_kelvin && !arrow_keys_shutter_aperture && !arrow_keys_bright_sat)
+        {
+            kelvin_n_gm_auto();
+            return 0;
+        }
     }
     #endif
     return 1;
@@ -1565,6 +1596,14 @@ int handle_arrow_keys(struct event * event)
     }
     #endif
 
+    #ifdef CONFIG_5D3
+    if (event->param == BGMT_RATE)
+    {
+        arrow_key_mode_toggle();
+        return 0;
+    }
+    #endif
+
     if (arrow_keys_mode && liveview_display_idle() && !gui_menu_shown())
     {
         // maybe current mode is no longer enabled in menu
@@ -1580,7 +1619,7 @@ int handle_arrow_keys(struct event * event)
         {
             switch (arrow_keys_mode)
             {
-                #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
+                #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) & !defined(CONFIG_1100D)
                 case 1: input_toggle(); break;
                 #endif
                 case 2: 
@@ -1652,6 +1691,7 @@ int handle_arrow_keys(struct event * event)
             return 0;
         }
     }
+
     return 1;
 }
 
@@ -1763,7 +1803,7 @@ static struct menu_entry key_menus[] = {
         .submenu_width = 500,
         .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .children =  (struct menu_entry[]) {
-            #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
+            #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
             {
                 .name = "Audio Gain",
                 .priv       = &arrow_keys_audio,
@@ -2036,6 +2076,8 @@ CONFIG_INT("preview.saturation", preview_saturation, 1);
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
 CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
 
+CONFIG_INT("uniwb.correction", uniwb_correction, 7);
+
 void preview_contrast_n_saturation_step()
 {
     if (ml_shutdown_requested) return;
@@ -2049,7 +2091,7 @@ void preview_contrast_n_saturation_step()
     int desired_saturation = saturation_values[preview_saturation];
 
     extern int focus_peaking_grayscale;
-    if (focus_peaking_grayscale && is_focus_peaking_enabled())
+    if (focus_peaking_grayscale && is_focus_peaking_enabled() && !focus_peaking_as_display_filter())
         desired_saturation = 0;
 
     if (current_saturation != desired_saturation)
@@ -2095,6 +2137,33 @@ void preview_contrast_n_saturation_step()
     if (current_contrast != desired_contrast)
     {
         EngDrvOut(brightness_contrast_register, desired_contrast);
+    }
+}
+
+void uniwb_correction_step()
+{
+    if (ml_shutdown_requested) return;
+    if (!DISPLAY_IS_ON) return;
+    if (!lv && !PLAY_OR_QR_MODE) return;
+
+    // uniwb screen correction
+    int display_wb_register = 0xC0F14174;
+    int desired_wb = 0;
+    int current_wb = shamem_read(display_wb_register);
+    if (uniwb_correction && uniwb_is_active())
+    {
+        int w = (uniwb_correction << 4) & 0xFF;
+        w = (w << 8) | w;
+        w = (w | 0xFFFF0000);
+        desired_wb = w;
+    }
+    else
+    {
+        desired_wb = 0;
+    }
+    if (current_wb != desired_wb)
+    {
+        EngDrvOut(display_wb_register, desired_wb);
     }
 }
 
@@ -2304,6 +2373,10 @@ void grayscale_menus_step()
 
 void lcd_adjust_position_step()
 {
+    #ifdef CONFIG_5D3
+    return;
+    #endif
+    
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
 
@@ -2645,16 +2718,24 @@ void display_filter_get_buffers(void** src_buf, void** dst_buf)
     //~ int buf_size = 720*480*2;
     //~ void* src = (void*)vram->vram;
     //~ void* dst = src_buf + buf_size;
-    *src_buf = YUV422_LV_BUFFER_1;
-    *dst_buf = YUV422_LV_BUFFER_2;
+#ifdef CONFIG_5D2
+    *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
+    *dst_buf = CACHEABLE(YUV422_LV_BUFFER_2);
+#elif CONFIG_5D3
+    *src_buf = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
+    *dst_buf = CACHEABLE(YUV422_LV_BUFFER_1 + 720*480*2);
+#endif
 }
 
+// type 1 filters: compute histogram on filtered image
+// type 2 filters: compute histogram on original image
 int display_filter_enabled()
 {
     if (!lv) return 0;
-    if (!(defish_preview || anamorphic_preview)) return 0;
+    int fp = focus_peaking_as_display_filter();
+    if (!(defish_preview || anamorphic_preview || fp)) return 0;
     if (!zebra_should_run()) return 0;
-    return 1;
+    return fp ? 2 : 1;
 }
 
 void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
@@ -2673,6 +2754,8 @@ void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
             EnableImagePhysicalScreenParameter();
         }
     }
+#elif defined(CONFIG_5D3)
+    YUV422_LV_BUFFER_DMA_ADDR = YUV422_LV_BUFFER_1 + 720*480*2;
 #endif
 }
 
@@ -2691,8 +2774,14 @@ void display_filter_step(int k)
     
     else if (anamorphic_preview)
     {
-        if (k % 2 == 0)
+        if (k % 1 == 0)
             BMP_LOCK( if (lv) anamorphic_squeeze(); )
+    }
+    
+    else if (focus_peaking_as_display_filter())
+    {
+        if (k % 1 == 0)
+            BMP_LOCK( if (lv) peak_disp_filter(); )
     }
 }
 
@@ -2847,26 +2936,7 @@ static struct menu_entry display_menus[] = {
     },
     #endif */
     {
-        .name = "Focus box",
-        .priv = &af_frame_autohide, 
-        .select = menu_binary_toggle,
-        .display = af_frame_autohide_display,
-        .help = "You can hide the focus box (the little white rectangle).",
-        .icon_type = IT_DISABLE_SOME_FEATURE,
-        //.essential = FOR_LIVEVIEW,
-    },
-#ifndef CONFIG_5DC
-    {
-        .name = "Force HDMI-VGA",
-        .priv = &hdmi_force_vga, 
-        .display = hdmi_force_display, 
-        .select = menu_binary_toggle,
-        .help = "Force low resolution (720x480) on HDMI displays.",
-        //.essential = FOR_EXT_MONITOR,
-    },
-#endif
-    {
-        .name = "Screen layout settings...",
+        .name = "Advanced settings...",
         .select         = menu_open_submenu,
         .submenu_width = 700,
         .help = "Screen orientation, position fine-tuning...",
@@ -2881,6 +2951,7 @@ static struct menu_entry display_menus[] = {
                     //~ .edit_mode = EM_MANY_VALUES,
                 },
 #endif
+#ifndef CONFIG_5D3 // not needed, screen border is very thin
                 {
                     .name = "Image position ",
                     .priv = &lcd_adjust_position,
@@ -2889,6 +2960,7 @@ static struct menu_entry display_menus[] = {
                     .icon_type = IT_BOOL,
                     .help = "May make the image easier to see from difficult angles.",
                 },
+#endif
                 {
                     .name = "UpsideDown mode",
                     .priv = &menu_upside_down,
@@ -2917,6 +2989,34 @@ static struct menu_entry display_menus[] = {
                     //.essential = FOR_LIVEVIEW,
                 },
             #endif
+                {
+                    .name = "Focus box",
+                    .priv = &af_frame_autohide, 
+                    .select = menu_binary_toggle,
+                    .display = af_frame_autohide_display,
+                    .help = "You can hide the focus box (the little white rectangle).",
+                    .icon_type = IT_DISABLE_SOME_FEATURE,
+                    //.essential = FOR_LIVEVIEW,
+                },
+            #ifndef CONFIG_5DC
+                {
+                    .name = "Force HDMI-VGA",
+                    .priv = &hdmi_force_vga, 
+                    .display = hdmi_force_display, 
+                    .select = menu_binary_toggle,
+                    .help = "Force low resolution (720x480) on HDMI displays.",
+                    //.essential = FOR_EXT_MONITOR,
+                },
+            #endif
+                {
+                    .name = "UniWB correct  ",
+                    .priv = &uniwb_correction,
+                    .max = 10,
+                    .choices = (const char *[]) {"OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},
+                    .help = "Removes the green color cast when you use UniWB.",
+                    .edit_mode = EM_MANY_VALUES_LV,
+                    .icon_type = IT_BOOL,
+                },
             MENU_EOL
         },
     },
@@ -2943,6 +3043,7 @@ struct menu_entry play_menus[] = {
                 //~ .edit_mode = EM_MANY_VALUES,
             },
 #endif
+        #ifndef CONFIG_5D3 // not needed, you can press zoom in right away
             {
                 .name = "Image Review Mode",
                 .priv = &quick_review_allow_zoom, 
@@ -2953,6 +3054,7 @@ struct menu_entry play_menus[] = {
                 //.essential = FOR_PHOTO,
                 .icon_type = IT_BOOL,
             },
+        #endif
 /*            {
                 .name = "LiveV tools in QR",
                 .priv = &quickreview_liveview, 
@@ -2961,7 +3063,7 @@ struct menu_entry play_menus[] = {
                 //.essential = FOR_PHOTO,
                 .icon_type = IT_BOOL,
             }, */
-        #ifndef CONFIG_5D3
+        #ifndef CONFIG_5D3 // Canon has it
             {
                 .name = "Zoom in PLAY mode",
                 .priv = &quickzoom, 
@@ -2982,7 +3084,7 @@ struct menu_entry play_menus[] = {
                 .icon_type = IT_BOOL,
             },
             #endif */
-        #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2)
+        #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2) || defined(CONFIG_1100D)
             {
                 .name = "LV button",
                 .priv = &play_lv_action, 
@@ -2998,6 +3100,7 @@ struct menu_entry play_menus[] = {
                 //.essential = FOR_PHOTO,
             },
         #endif
+        #ifndef CONFIG_5D3 // Canon has it
             {
                 .name = "Quick Erase",
                 .priv = &quick_delete, 
@@ -3006,6 +3109,7 @@ struct menu_entry play_menus[] = {
                 .help = "Delete files quickly with SET+Erase (be careful!!!)",
                 //.essential = FOR_PHOTO,
             },
+        #endif
             MENU_EOL,
         },
     },

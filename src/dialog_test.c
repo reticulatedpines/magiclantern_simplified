@@ -21,6 +21,20 @@ void* get_current_dialog_handler()
     return dialog->handler;
 }
 
+void print_dialog_handler_stack()
+{
+    int x = 50;
+    int y = 50;
+    struct gui_task * current = gui_task_list.current;
+    while (current)
+    {
+        struct dialog * dialog = current->priv;
+        bmp_printf(FONT_MED, x, y, "%8x", dialog->handler);
+        y += font_med.height;
+        if (y > 450) break;
+        current = current->next;
+    }
+}
 
 /*static int template = 1;
 static int curr_palette = 0;

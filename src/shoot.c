@@ -72,19 +72,21 @@ static float bulb_shutter_valuef = 1.0;
 #define BULB_SHUTTER_VALUE_MS (int)roundf(bulb_shutter_valuef * 1000.0)
 #define BULB_SHUTTER_VALUE_S (int)roundf(bulb_shutter_valuef)
 
+int uniwb_is_active() 
+{
+    return 
+        lens_info.wb_mode == WB_CUSTOM &&
+        ABS((int)lens_info.WBGain_R - 1024) < 100 &&
+        ABS((int)lens_info.WBGain_G - 1024) < 100 &&
+        ABS((int)lens_info.WBGain_B - 1024) < 100;
+}
+
 /*
 static CONFIG_INT("uniwb.mode", uniwb_mode, 0);
 static CONFIG_INT("uniwb.old.wb_mode", uniwb_old_wb_mode, 0);
 static CONFIG_INT("uniwb.old.gain_R", uniwb_old_gain_R, 0);
 static CONFIG_INT("uniwb.old.gain_G", uniwb_old_gain_G, 0);
 static CONFIG_INT("uniwb.old.gain_B", uniwb_old_gain_B, 0);
-
-int uniwb_is_active_check_lensinfo_only() 
-{
-    return 
-        lens_info.wb_mode == WB_CUSTOM &&
-        lens_info.WBGain_R == 1024 && lens_info.WBGain_G == 1024 && lens_info.WBGain_B == 1024;
-}
 
 int uniwb_is_active() 
 {
@@ -111,6 +113,7 @@ static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
 static CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 static CONFIG_INT( "interval.stop_after", interval_stop_after, 0 );
+static CONFIG_INT( "interval.use_autofocus", interval_use_autofocus, 0 );
 //~ static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
 
 static int intervalometer_pictures_taken = 0;
@@ -1835,7 +1838,7 @@ kelvin_display( void * priv, int x, int y, int selected )
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "WhiteBalance: %s",
-            //~ (uniwb_is_active()      ? "UniWB   " : 
+            (uniwb_is_active()      ? "UniWB   " : 
             (lens_info.wb_mode == 0 ? "Auto    " : 
             (lens_info.wb_mode == 1 ? "Sunny   " :
             (lens_info.wb_mode == 2 ? "Cloudy  " : 
@@ -1844,7 +1847,7 @@ kelvin_display( void * priv, int x, int y, int selected )
             (lens_info.wb_mode == 5 ? "Flash   " : 
             (lens_info.wb_mode == 6 ? "Custom  " : 
             (lens_info.wb_mode == 8 ? "Shade   " :
-             "unknown"))))))))
+             "unknown")))))))))
         );
         menu_draw_icon(x, y, MNI_AUTO, 0);
     }
@@ -2148,8 +2151,8 @@ static void
 sharpness_toggle( void * priv, int sign )
 {
     int c = lens_get_sharpness();
-    if (c < 0 || c > 7) return;
-    int newc = mod(c + sign, 8);
+    if (c < -1 || c > 7) return;
+    int newc = mod(c + sign + 1, 9) - 1;
     lens_set_sharpness(newc);
 }
 
@@ -2698,10 +2701,14 @@ static void zoom_lv_face_step()
         int hs = get_halfshutter_pressed();
         if (hs && lv_dispsize == 1)
         {
-            zoom_was_triggered_by_halfshutter = 1;
-            int zoom = zoom_disable_x10 ? 5 : 10;
-            set_lv_zoom(zoom);
-            msleep(100);
+            msleep(200);
+            if (hs && lv_dispsize == 1)
+            {
+                zoom_was_triggered_by_halfshutter = 1;
+                int zoom = zoom_disable_x10 ? 5 : 10;
+                set_lv_zoom(zoom);
+                msleep(100);
+            }
         }
         if (!hs && lv_dispsize > 1 && zoom_was_triggered_by_halfshutter)
         {
@@ -2769,6 +2776,16 @@ int handle_zoom_x5_x10(struct event * event)
 {
     if (!lv) return 1;
     if (recording) return 1;
+    
+    #ifdef CONFIG_5D3
+    //~ if (event->param == BGMT_TRUE_ZOOMIN)
+    //~ {
+        //~ fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+        //~ fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+        //~ return 0;
+    //~ }
+    #endif
+    
     if (!zoom_disable_x5 && !zoom_disable_x10) return 1;
     #ifdef CONFIG_600D
     if (get_disp_pressed()) return 1;
@@ -3297,7 +3314,7 @@ seconds_clock_task( void* unused )
         if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
             info_led_blink(1, 50, 0);
         
-        #if defined(CONFIG_60D) || defined(CONFIG_5D2)
+        #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
         RefreshBatteryLevel_1Hz();
         #endif
     }
@@ -4169,6 +4186,14 @@ static struct menu_entry shoot_menus[] = {
                 .display    = interval_stop_after_display,
                 //~ .select     = intervalometer_stop_after_toggle,
                 .help = "Stop the intervalometer after taking X shots.",
+            },
+            {
+                .name = "Use Autofocus", 
+                .priv = &interval_use_autofocus,
+                .max = 1,
+                .choices = (const char *[]) {"No", "Yes"},
+                .help = "Wheter or not the camera should focus automatically at each shot",
+                .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
             },
             {
                 .name = "Stop REC after",
@@ -5327,7 +5352,9 @@ void hdr_shot(int skip0, int wait)
     }
     else // regular pic (not HDR)
     {
-        hdr_shutter_release(0, !intervalometer_running); // disable AF on intervalometer, allow it otherwise
+	int should_af = 1;
+	if(intervalometer_running && !interval_use_autofocus) should_af = 0;
+        hdr_shutter_release(0, should_af); //Enable AF on intervalometer if the user wishes so, allow it otherwise
     }
 
     lens_wait_readytotakepic(64);
@@ -5529,6 +5556,82 @@ static void mlu_step()
     }
 }
 
+
+static void misc_shooting_info()
+{
+    if (get_global_draw())
+    {
+        #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
+        extern thunk ShootOlcApp_handler;
+        if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown()
+            && (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler)
+        BMP_LOCK
+        (
+            display_clock();
+            display_shooting_info();
+            free_space_show_photomode();
+        )
+        #endif
+    
+        if (lv && !gui_menu_shown())
+        {
+            BMP_LOCK (
+                display_shooting_info_lv();
+                display_shortcut_key_hints_lv();
+            )
+            #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
+            if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
+            {
+                static int ae_warned = 0;
+                if (!ae_warned && !gui_menu_shown())
+                {
+                    bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
+                        "!!! Auto exposure !!!\n"
+                        "Set 'Movie Exposure -> Manual' from Canon menu");
+                    msleep(2000);
+                    redraw();
+                    ae_warned = 1;
+                }
+            }
+            #elif defined(CONFIG_5D2)
+            static int ae_warned = 0;
+            if (is_movie_mode() && !lens_info.raw_shutter && recording && MVR_FRAME_NUMBER < 10)
+            {
+                if (!ae_warned && !gui_menu_shown())
+                {
+                    msleep(2000);
+                    bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
+                        "!!! Auto exposure !!!\n"
+                        "Use M mode and set 'LV display: Movie' from Expo menu");
+                    msleep(4000);
+                    redraw();
+                    ae_warned = 1;
+                }
+            }
+            else ae_warned = 0;
+            #endif
+            
+            if (ext_monitor_rca) 
+            {
+                static int rca_warned = 0;
+                if (!rca_warned && !gui_menu_shown())
+                {
+                    msleep(2000);
+                    if (ext_monitor_rca) // check again
+                    {
+                        bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, 
+                            "SD monitors NOT fully supported!\n"
+                            "RGB tools and MZoom won't work. ");
+                        msleep(4000);
+                        redraw();
+                        rca_warned = 1;
+                    }
+                }
+            }
+        }
+    }
+}
+
 static void
 shoot_task( void* unused )
 {
@@ -5549,6 +5652,8 @@ shoot_task( void* unused )
     TASK_LOOP
     {
         msleep(MIN_MSLEEP);
+        
+        if (k%10 == 0) misc_shooting_info();
 
         if (kelvin_auto_flag)
         {
@@ -5997,7 +6102,7 @@ shoot_task( void* unused )
                 if (!display_idle()) countdown = 20;
                 if (countdown) { countdown--; }
 
-                extern struct audio_level audio_levels[];
+                struct audio_level * audio_levels = get_audio_levels();
 
                 static int avg_prev0 = 1000;
                 static int avg_prev1 = 1000;
@@ -6041,7 +6146,7 @@ void shoot_init()
 #ifndef CONFIG_5DC
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
 #endif
-    #ifndef CONFIG_5D2
+    #if !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
     menu_add( "Shoot", flash_menus, COUNT(flash_menus) );
     #endif
     //~ menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );

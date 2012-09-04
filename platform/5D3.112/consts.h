@@ -10,7 +10,7 @@
 #define HIJACK_TASK_ADDR 0x23E14
 
 // no idea if it's overflowing, need to check experimentally 
-//~ #define ARMLIB_OVERFLOWING_BUFFER 0x21c94 // in AJ_armlib_setup_related3
+//~ #define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3
 
 #define DRYOS_ASSERT_HANDLER 0x23DF4 // dec TH_assert or assert_0
 
@@ -26,6 +26,9 @@
 // stateobj_disp[1]
 #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x246a4+0x11c))
 
+#define REG_EDMAC_WRITE_LV_ADDR 0xc0f04508 // SDRAM address of LV buffer (aka VRAM)
+//~ #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
+
 #define EVF_STATEOBJ *(struct state_object**)0x2600C)
 #define YUV422_HD_BUFFER_DMA_ADDR 0x54000000
 
@@ -39,10 +42,8 @@
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x276D0)
 
-// used for Trap Focus 
-// To find it, go to MainCtrl task and take the number from the second line minus 4.
-// See also "cam event metering"
-#define HALFSHUTTER_PRESSED (*(int*)0x23fd0)
+// See "cam event metering"
+#define HALFSHUTTER_PRESSED (*(int*)0x251D4)
 
 #define DISPLAY_SENSOR_POWERED 0
 
@@ -71,15 +72,13 @@
 #define BGMT_PRESS_DP 0x2f
 #define BGMT_UNPRESS_DP 0x35
 #define BGMT_RATE 0x21
-#define BGMT_PRESS_ZOOMIN 0x12
-#define BGMT_UNPRESS_ZOOMIN 0x13
 #define BGMT_REC 0x1E
 
 
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xA
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xB
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xC
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xD
+#define BGMT_PRESS_ZOOMIN_MAYBE 0x12
+#define BGMT_UNPRESS_ZOOMIN_MAYBE 0x13
+//~ #define BGMT_PRESS_ZOOMOUT_MAYBE 0x1234 // no zoom out button in play mode?!
+//~ #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x5678
 
 #define BGMT_LV 0x1E
 #define BGMT_Q 0x1d
@@ -112,6 +111,10 @@
 #define BGMT_ISO_MOVIE 0
 #define BGMT_PRESS_ISO_MOVIE 0
 #define BGMT_UNPRESS_ISO_MOVIE 0
+
+#define GMT_GUICMD_PRESS_BUTTON_SOMETHING 0x52 // unhandled buttons?
+
+#define BGMT_LIGHT 0x20 // the little button for top screen backlight
 
 #define GMT_OLC_INFO_CHANGED 103 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 
@@ -174,9 +177,9 @@
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
-//~ #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
-//~ #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1aac // this prop_deliver performs the action for Video Connect and Video Disconnect
-//~ #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1ad4 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
+#define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
+#define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0
+#define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
@@ -218,7 +221,7 @@
 #define BFNT_BITMAP_OFFSET 0xf7366868
 #define BFNT_BITMAP_DATA   0xf736996c
 
- #define DLG_SIGNATURE 0x414944
+#define DLG_SIGNATURE 0x6E4944
 
 // from CFn
  #define AF_BTN_HALFSHUTTER 0
@@ -232,7 +235,7 @@
 // see http://magiclantern.wikia.com/wiki/VRAM/BMP
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x323b0+0x2c)
 
-#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PICSTYLE // what button to use for zebras in Play mode
+#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_LIGHT // what button to use for zebras in Play mode
 
 // manual exposure overrides
 #define LVAE_STRUCT 0x68BB8
@@ -251,9 +254,9 @@
 
 #define INFO_BTN_NAME "INFO"
 #define Q_BTN_NAME "[Q]"
-#define ARROW_MODE_TOGGLE_KEY "PicStyle"
+#define ARROW_MODE_TOGGLE_KEY "RATE"
 
-#define DISPLAY_STATEOBJ (*(struct state_object **)0x246a4)
+#define DISPLAY_STATEOBJ (*(struct state_object **)0x247B0)
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
 #define VIDEO_PARAMETERS_SRC_3 MEM(0x25FF0) //for mark iii
@@ -265,3 +268,6 @@
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x3c268
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+
+#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
+#define GMT_LOCAL_DIALOG_REFRESH_LV 0x36 // event type = 2, gui code = 0x100000BC in 5d3

@@ -13,7 +13,7 @@
 
 #define EngDrvOut(reg, value) *(int*)(reg) = value
 
-//~ #define CONFIG_DIGIC_POKE
+#define CONFIG_DIGIC_POKE
 
 //~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
 
@@ -180,6 +180,8 @@ static CONFIG_INT("digic.desaturate", desaturate, 0);
 static CONFIG_INT("digic.negative", negative, 0);
 static CONFIG_INT("digic.swap-uv", swap_uv, 0);
 static CONFIG_INT("digic.cartoon", cartoon, 0);
+static CONFIG_INT("digic.oilpaint", oilpaint, 0);
+static CONFIG_INT("digic.sharp", sharp, 0);
 //~ static CONFIG_INT("digic.fringing", fringing, 0);
 
 int default_white_level = 4096;
@@ -444,12 +446,23 @@ void image_effects_step()
 
     if (!is_movie_mode()) return;
 
+    // sharpness trick: at -1, cancel it completely
+    if (lens_get_sharpness() < 0)
+        EngDrvOut(0xc0f2116c, 0x0);
+
     static int prev_swap_uv = 0;
     if (desaturate) EngDrvOut(0xc0f0f070, 0x01000100);
     if (negative)   EngDrvOut(0xc0f0f000, 0xb1);
     if (swap_uv)    EngDrvOut(0xc0f0de2c, 0x10); else if (prev_swap_uv) EngDrvOut(0xc0f0de2c, 0);
-    if (cartoon)    EngDrvOut(0xc0f0f29c, 0xffff);
-    //~ if (cartoon)    EngDrvOut(0xc0f0f438, 29100 + cartoon);
+    if (cartoon)    
+    {
+        if (cartoon >= 1) EngDrvOut(0xc0f23164, -1);
+        if (cartoon >= 2) EngDrvOut(0xc0f0f29c, 0xffff); // also c0f2194c?
+        EngDrvOut(0xc0f2116c, 0xffff0000); // boost picturestyle sharpness to max
+    }
+    if (oilpaint)   EngDrvOut(0xc0f2135c, -1);
+    if (sharp)      EngDrvOut(0xc0f0f280, -1);
+
     prev_swap_uv = swap_uv;
 }
 
@@ -491,11 +504,19 @@ void digic_iso_step()
     else // photo mode - display gain, for preview only
     {
         if (digic_iso_gain_photo == 0) digic_iso_gain_photo = 1024;
+    #ifdef CONFIG_5D3
+        int g = digic_iso_gain_photo == 1024 ? 0 : COERCE(digic_iso_gain_photo, 0, 65534);
+        if (LVAE_DISP_GAIN != g) 
+        {
+            call("lvae_setdispgain", g);
+        }
+    #else
         if (digic_iso_gain_photo > 1024 && !LVAE_DISP_GAIN)
         {
             int ev_x255 = gain_to_ev_scaled(digic_iso_gain_photo, 255) - 2550 + 255;
             EngDrvOut(ISO_PUSH_REGISTER, ev_x255);
         }
+    #endif
     }
 }
 
@@ -534,8 +555,20 @@ static struct menu_entry lv_img_menu[] = {
                 .name = "Cartoon look",
                 .priv       = &cartoon,
                 .min = 0,
+                .max = 2,
+                .choices = (const char *[]) {"OFF", "Weak", "Strong"},
+                .help = "Cartoonish look obtained by emphasizing the edges.",
+            },
+            {
+                .name = "Oil painting", 
+                .priv = &oilpaint, 
                 .max = 1,
-                .help = "Cartoonish look. Set sharpness to some positive value.",
+                .help = "Some sort of movie noise reduction"
+            },
+            {
+                .name = "High sharpness", 
+                .priv = &sharp, 
+                .max = 1,
             },
             /*{
                 .name = "Purple Fringe",
