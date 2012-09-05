@@ -1106,14 +1106,6 @@ audio_ic_set_mute_off(unsigned int wait){
     }
 }
 
-
-void
-override_post_beep(){
-    if(cfg_override_audio == 0) return;
-    audio_ic_write(ML_MIC_IN_CHARG_TIM | 0x00);
-    audio_configure(1);
-}
-
 struct msg_queue * override_audio_q = NULL;
 /** override audio settings  */
 static void
