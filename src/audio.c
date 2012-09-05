@@ -445,6 +445,7 @@ static void
 meter_task( void* unused )
 {
 
+#ifdef CONFIG_AUDIO_600D_DEBUG
 //will delete this when we finish debugging
     NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.10      ");
     msleep(4000);
@@ -465,6 +466,7 @@ meter_task( void* unused )
     NotifyBox(4000, "   If you find problems    \n   please report them to   \n    www.magiclantern.fm    ");
     msleep(5000);
     NotifyBox(4000, "and use the stable release.\n Last Stable release: 2.3  ");
+#endif
 
 #ifdef CONFIG_600D
         //initialize audio config for 600D
@@ -1201,7 +1203,7 @@ static void
 audio_ic_set_input(int mute){
     if(cfg_override_audio == 0) return;
 
-    if(mute) audio_ic_set_mute_on(150);
+    if(mute) audio_ic_set_mute_on(30);
     audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //descrived in pdf p71
     
     switch (get_input_source())
@@ -1250,7 +1252,7 @@ audio_ic_set_input(int mute){
     }else{
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
     }
-    if(mute) audio_ic_set_mute_off(200);
+    if(mute) audio_ic_set_mute_off(80);
 
 }
 
@@ -1267,7 +1269,7 @@ static void
 audio_ic_set_filters(int mute){
     if(cfg_override_audio == 0) return;
 
-    if(mute) audio_ic_set_mute_on(100);
+    if(mute) audio_ic_set_mute_on(30);
     int val = 0;
     if(cfg_filter_dc) val = 0x1;
     if(cfg_filter_hpf2) val = val | 0x2;
@@ -1277,7 +1279,7 @@ audio_ic_set_filters(int mute){
     }else{
         masked_audio_ic_write(ML_FILTER_EN ,0x3, 0x0);
     }
-    if(mute) audio_ic_set_mute_off(200);
+    if(mute) audio_ic_set_mute_off(80);
 }
 
 static void
@@ -1331,7 +1333,7 @@ audio_ic_set_lineout_onoff(int mute){
     if(audio_monitoring &&
        AUDIO_MONITORING_HEADPHONES_CONNECTED &&
        cfg_override_audio==1){
-        if(mute) audio_ic_set_mute_on(100);
+        if(mute) audio_ic_set_mute_on(30);
         
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directly change prohibited p55
 
@@ -1347,11 +1349,11 @@ audio_ic_set_lineout_onoff(int mute){
 
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
 
-        if(mute) audio_ic_set_mute_off(200);
+        if(mute) audio_ic_set_mute_off(80);
 
     }else{
         if(cfg_override_audio==1){
-            if(mute) audio_ic_set_mute_on(100);
+            if(mute) audio_ic_set_mute_on(30);
         
             audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
             audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWROFF); //DAC power on
@@ -1359,7 +1361,7 @@ audio_ic_set_lineout_onoff(int mute){
             audio_ic_write(ML_PW_SPAMP_PW_MNG | ML_PW_SPAMP_PW_MNG_OFF);
             
             audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
-            if(mute) audio_ic_set_mute_off(200);
+            if(mute) audio_ic_set_mute_off(80);
         }
     }
 }
@@ -1450,7 +1452,7 @@ audio_configure( int force )
         audio_ic_off();
         return;
     }else{
-        audio_ic_set_mute_on(100);
+        audio_ic_set_mute_on(30);
         audio_ic_on();
     }
 
@@ -1466,7 +1468,7 @@ audio_configure( int force )
     audio_ic_set_lineout_onoff(MUTE_OFF);
     audio_monitoring_update();
 
-    audio_ic_set_mute_off(200);
+    audio_ic_set_mute_off(80);
 
 #else /* ^^^^^^^CONFIG_600D^^^^^^^ vvvvv except 600D vvvvvvvv*/
         int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
