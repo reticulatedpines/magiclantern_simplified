@@ -66,9 +66,6 @@ void play_beep(int16_t* buf, int N)
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
     PowerAudioOutput();
     audio_configure(1);
-#ifdef CONFIG_600D
-    msleep(500);
-#endif
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
     StartASIFDMADAC(buf, N, 0, 0, asif_stop_cbr, 0);
 }
@@ -80,9 +77,6 @@ void play_beep_ex(int16_t* buf, int N, int sample_rate)
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
     PowerAudioOutput();
     audio_configure(1);
-#ifdef CONFIG_600D
-    msleep(500);
-#endif
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
     StartASIFDMADAC(buf, N, 0, 0, asif_stop_cbr, 0);
 }
