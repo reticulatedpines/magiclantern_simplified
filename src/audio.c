@@ -66,7 +66,6 @@ static struct gain_struct gain = {
 
 #ifdef CONFIG_600D
 //Prototypes for 600D
-void override_audio_setting(int phase);
 static void audio_ic_set_lineout_vol();
 static void audio_ic_set_input(int mute);
 
@@ -1111,34 +1110,9 @@ audio_ic_set_mute_off(unsigned int wait){
 void
 override_post_beep(){
     if(cfg_override_audio == 0) return;
-
     audio_ic_write(ML_MIC_IN_CHARG_TIM | 0x00);
-
     audio_configure(1);
 }
-
-void
-override_audio_setting(int phase){
-    if(cfg_override_audio == 0) return;
-	//These audio_ic_write are setting back to startup time.
-	//Because, the canon firmware will switching off the audio switchs I guess,it's for power save
-    switch(phase){
-		case 0:   //Phase 0 for camera powerON->standby
-			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //Duplicate L to R
-			
-        case 1: //Phase 1 for finish recording->standy & change vol setting->standby
-			audio_ic_write(ML_RECPLAY_STATE | 0x0); //recplay state need off->on
-			audio_ic_write(ML_RECPLAY_STATE | 0x11); //
-			audio_ic_write(ML_PW_IN_PW_MNG | 0x0a);   //DAC(0010) and PGA(1000) power on
-			audio_ic_write(ML_DVOL_CTL_FUNC_EN | 0x2E);        //All(Play,Capture,DigitalVolFade,DigitalVol) switched on
-			audio_ic_write(ML_MIC_IN_VOL | 0x3f);   
-			
-			//        audio_configure(0);
-            
-    }
-
-}
-
 
 struct msg_queue * override_audio_q = NULL;
 /** override audio settings  */
@@ -1344,7 +1318,8 @@ audio_ic_off(){
 static void
 audio_ic_on(){
     if(cfg_override_audio == 0) return;
-    audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x01); //power on
+    audio_ic_write(ML_PW_ZCCMP_PW_MNG | ML_PW_ZCCMP_PW_MNG_ON); //power on
+    audio_ic_write(ML_PW_IN_PW_MNG | ML_PW_IN_PW_MNG_BOTH);   //DAC(0010) and PGA(1000) power on
     masked_audio_ic_write(ML_PW_REF_PW_MNG,0x7,ML_PW_REF_PW_MICBEN_ON | ML_PW_REF_PW_HISPEED);
     audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_REC);
     audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON);
@@ -1486,14 +1461,6 @@ audio_configure( int force )
         audio_ic_set_mute_on(100);
         audio_ic_on();
     }
-
-	if (force){
-        if(force == 2){
-            override_audio_setting(0);
-        }else{
-            override_audio_setting(1);
-        }
-	}
 
     audio_set_meterlabel();
     audio_ic_set_input(MUTE_OFF);
