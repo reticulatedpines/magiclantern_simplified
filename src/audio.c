@@ -445,7 +445,7 @@ static void
 meter_task( void* unused )
 {
 
-#ifdef CONFIG_AUDIO_600D_DEBUG_
+#ifdef CONFIG_AUDIO_600D_DEBUG
 //will delete this when we finish debugging
     NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.10      ");
     msleep(4000);
