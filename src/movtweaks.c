@@ -704,7 +704,7 @@ void rec_notify_continuous(int called_from_menu)
 
 void rec_notify_trigger(int rec)
 {
-#if !defined(CONFIG_600D) && !defined(CONFIG_5D3)
+#if !defined(CONFIG_5D3)
     if (RECNOTIFY_BEEP)
     {
         extern int ml_started;
