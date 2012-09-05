@@ -229,9 +229,6 @@ void WAV_Play(char* filename)
     MEM(0xC0920210) = (channels == 2 ? 2 : 0) | (bitspersample == 16 ? 4 : 1); // SetASIFDACMode*
     PowerAudioOutput();
     audio_configure(1);
-#ifdef CONFIG_600D
-    msleep(500);
-#endif
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
     wav_ibuf = 0;
     
