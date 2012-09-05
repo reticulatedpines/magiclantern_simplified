@@ -171,6 +171,9 @@
 #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x2490)
 #define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x73620)
 
+#define REG_EDMAC_WRITE_LV_ADDR 0xc0f04308 // SDRAM address of LV buffer (aka VRAM)
+#define REG_EDMAC_WRITE_HD_ADDR 0xc0f04208 // SDRAM address of HD buffer (aka YUV)
+
 // changes during record
 #define YUV422_HD_BUFFER_1 0x44000080
 #define YUV422_HD_BUFFER_2 0x46000080

@@ -449,7 +449,7 @@ void* get_422_hd_idle_buf()
 {
 #ifdef CONFIG_550D
     if (lv && is_movie_mode() && !recording && video_mode_resolution > 0) // 720p exception
-        return (void*)CACHEABLE(shamem_read(0xc0f04008)); // RAM address not updated properly, read it from the DIGIC
+        return (void*)CACHEABLE(shamem_read(REG_EDMAC_WRITE_HD_ADDR)); // RAM address not updated properly, read it from the DIGIC
 #endif
 
 // single-buffered HD buffer
