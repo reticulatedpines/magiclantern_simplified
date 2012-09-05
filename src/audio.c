@@ -445,7 +445,7 @@ static void
 meter_task( void* unused )
 {
 
-#ifdef CONFIG_AUDIO_600D_DEBUG
+#ifdef CONFIG_AUDIO_600D_DEBUG_
 //will delete this when we finish debugging
     NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.10      ");
     msleep(4000);
@@ -1324,6 +1324,10 @@ static void
 audio_ic_set_lineout_vol(){
     int vol = lovl + 0x0E;
     audio_ic_write(ML_HP_AMP_VOL | vol);
+
+    //This can be more boost headphone monitoring volume.Need good menu interface
+    audio_ic_write(ML_PLYBAK_BOST_VOL | ML_PLYBAK_BOST_VOL_DEF );
+
 }
 
 
@@ -1344,7 +1348,6 @@ audio_ic_set_lineout_onoff(int mute){
         audio_ic_write(ML_HP_AMP_OUT_CTL | ML_HP_AMP_OUT_CTL_ALL_ON);
         audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON );
         audio_ic_write(ML_DVOL_CTL_FUNC_EN | ML_DVOL_CTL_FUNC_EN_ALC_FADE );
-        audio_ic_write(ML_PLYBAK_BOST_VOL | 0x00 );
         audio_ic_set_lineout_vol();
 
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
