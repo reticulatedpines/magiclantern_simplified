@@ -443,6 +443,12 @@ static struct semaphore * beep_sem;
 void play_test_tone()
 {
     if (audio_stop_rec_or_play()) return;
+#ifdef CONFIG_600D
+    if (AUDIO_MONITORING_HEADPHONES_CONNECTED){
+        NotifyBox(2000,"600D does not support\nPlay and monitoring together");
+        return;
+    }
+#endif
     beep_type = BEEP_LONG;
     give_semaphore(beep_sem);
 }
@@ -456,7 +462,12 @@ void unsafe_beep()
     }
 
     if (audio_stop_rec_or_play()) return;
-
+#ifdef CONFIG_600D
+    if (AUDIO_MONITORING_HEADPHONES_CONNECTED){
+        NotifyBox(2000,"600D does not support\nPlay and monitoring together");
+        return;
+    }
+#endif
     beep_type = BEEP_SHORT;
     give_semaphore(beep_sem);
 }
@@ -656,7 +667,12 @@ static void wav_playback_do()
 static void playback_start(void* priv, int delta)
 {
     if (audio_stop_rec_or_play()) return;
-
+#ifdef CONFIG_600D
+    if (AUDIO_MONITORING_HEADPHONES_CONNECTED){
+        NotifyBox(2000,"600D does not support\nPlay and monitoring together");
+        return;
+    }
+#endif
     beep_type = BEEP_WAV;
     give_semaphore(beep_sem);
 }
