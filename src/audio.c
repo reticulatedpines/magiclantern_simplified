@@ -1138,13 +1138,13 @@ override_audio_task( void* unused )
 TASK_CREATE( "override_audio_do_task", override_audio_task, 0, 0x17, 0x1000 );
 
 static void
-audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
+audio_ic_set_micboost(){ //600D func lv is 0-8
     if(cfg_override_audio == 0) return;
 
 //    if(lv > 7 ) lv = 6;
-    if(lv > 6 ) lv = 6;
+    if(cfg_analog_boost > 6 ) cfg_analog_boost = 6;
 
-    switch(lv){
+    switch(cfg_analog_boost){
     case 0:
         audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_OFF);
         audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
@@ -1465,7 +1465,7 @@ audio_configure( int force )
     audio_set_meterlabel();
     audio_ic_set_input(MUTE_OFF);
     audio_ic_set_analog_gain();
-    audio_ic_set_micboost(cfg_analog_boost);
+    audio_ic_set_micboost();
     audio_ic_set_recdgain();
     audio_ic_set_RecLRbalance();
     audio_ic_set_filters(MUTE_OFF);
@@ -1986,12 +1986,12 @@ static void analog_boost_display( void * priv, int x, int y, int selected )
 static void analog_boost_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 6);
-    audio_ic_set_micboost(cfg_analog_boost);
+    audio_ic_set_micboost();
 }
 static void analog_boost_toggle_reverse( void * priv, int delta )
 {
     menu_numeric_toggle(priv, -1, 0, 6);
-    audio_ic_set_micboost(cfg_analog_boost);
+    audio_ic_set_micboost();
 }
 
 static void audio_effect_mode_toggle( void * priv, int delta )
