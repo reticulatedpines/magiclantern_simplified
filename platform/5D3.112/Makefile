@@ -23,6 +23,7 @@ ML_OBJS-y = \
 	stubs.o \
 	version.o \
 	bmp.o \
+	fio-5d3.o \
 	font-dyn.o \
 	config.o \
 	menu.o \

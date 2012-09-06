@@ -96,7 +96,7 @@ void load_fonts(void* unused)
         font_large.bitmap = font_med.bitmap + 10232/4; // size of MEDIUM.FNT
         if (font_small.bitmap) break; // OK!
 
-        bfnt_puts( "ML/DATA/FONTS.DAT retry...");
+        bfnt_puts( "ML/DATA/FONTS.DAT retry...", 0, 0, COLOR_WHITE, COLOR_BLACK);
         msleep(500);
     }
 

@@ -1,4 +1,4 @@
-#define CARD_DRIVE "A:/"
+#define CARD_DRIVE ""
 #define CARD_LED_ADDRESS 0xC022C06C // http://magiclantern.wikia.com/wiki/Led_addresses
 
 // thanks Indy

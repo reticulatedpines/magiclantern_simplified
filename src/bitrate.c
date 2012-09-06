@@ -227,8 +227,13 @@ bitrate_toggle(void* priv, int delta)
 
 int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
 
+#ifdef CONFIG_5D3
+extern int cluster_size;
+extern int free_space_raw;
+#else
 PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
 PROP_INT(PROP_FREE_SPACE, free_space_raw);
+#endif
 #define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
 
 

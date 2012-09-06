@@ -56,6 +56,7 @@ int display_idle()
         ((!DISPLAY_IS_ON && CURRENT_DIALOG_MAYBE == 0) || (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler);
 }
 
+#ifndef CONFIG_5D3
 static char dcim_dir_suffix[6];
 static char dcim_dir[100];
 PROP_HANDLER(PROP_DCIM_DIR_SUFFIX)
@@ -67,6 +68,7 @@ const char* get_dcim_dir()
     snprintf(dcim_dir, sizeof(dcim_dir), CARD_DRIVE "DCIM/%03d%s", folder_number, dcim_dir_suffix);
     return dcim_dir;
 }
+#endif
 
 static float bulb_shutter_valuef = 1.0;
 #define BULB_SHUTTER_VALUE_MS (int)roundf(bulb_shutter_valuef * 1000.0)
