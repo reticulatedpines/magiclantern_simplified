@@ -3218,6 +3218,7 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"1st deriv.", "2nd deriv.", "Nyquist H"},
                 .help = "Contrast detection method. 2: more accurate, 1: less noisy.",
             },*/
+            #ifndef CONFIG_5D3_MINIMAL
             {
                 .name = "Display type",
                 .priv = &focus_peaking_disp, 
@@ -3225,6 +3226,7 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"Blinking dots", "Fine dots", "Alpha blend", "Raw"},
                 .help = "How to display peaking. Alpha looks nicer, but image lags.",
             },
+            #endif
             {
                 .name = "Threshold", 
                 .priv = &focus_peaking_pthr,
@@ -3255,6 +3257,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
+    #ifndef CONFIG_5D3_MINIMAL // flickers a lot
     {
         .name = "Magic Zoom",
         .priv = &zoom_overlay_enabled,
@@ -3322,6 +3325,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
+    #endif
     {
         .name = "Cropmarks",
         .priv = &crop_enabled,
@@ -3356,6 +3360,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
+    #ifndef CONFIG_5D3_MINIMAL
     {
         .name = "Ghost image",
         .priv = &transparent_overlay, 
@@ -3364,6 +3369,7 @@ struct menu_entry zebra_menus[] = {
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
         //.essential = FOR_PLAYBACK,
     },
+    #endif
     {
         .name = "Spotmeter",
         .priv           = &spotmeter_draw,
@@ -3391,6 +3397,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         }
     },
+    #ifndef CONFIG_5D3_MINIMAL
     {
         .name = "False color",
         .priv       = &falsecolor_draw,
@@ -3411,6 +3418,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         }
     },
+    #endif
 /*  {
         .name = "Histo/Wavefm",
         .priv       = &hist_draw,
@@ -5584,13 +5592,15 @@ static void zebra_init()
 #ifndef CONFIG_5DC
     menu_add( "Overlay", zebra_menus, COUNT(zebra_menus) );
 #endif
-    menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
+    //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
+#ifndef CONFIG_5D3_MINIMAL
 #ifndef CONFIG_5DC
     menu_add( "Prefs", powersave_menus, COUNT(powersave_menus) );
 #endif
     menu_add( "Display", level_indic_menus, COUNT(level_indic_menus) );
+#endif
 }
 
 INIT_FUNC(__FILE__, zebra_init);

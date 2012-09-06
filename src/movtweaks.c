@@ -13,6 +13,10 @@
 #include "lens.h"
 #include "math.h"
 
+#ifdef CONFIG_5D3_MINIMAL
+#include "disable-this-module.h"
+#endif
+
 #ifdef CONFIG_4_3_SCREEN
 #define CONFIG_BLUE_LED 1
 #endif

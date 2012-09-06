@@ -11,6 +11,10 @@
 #include "config.h"
 #include "math.h"
 
+#ifdef CONFIG_5D3_MINIMAL
+#include "disable-this-module.h"
+#endif
+
 #define EngDrvOut(reg, value) *(int*)(reg) = value
 
 #define CONFIG_DIGIC_POKE

@@ -69,6 +69,8 @@ include ../../Makefile.inc
 ROMBASEADDR		= 0xFF0C0000
 RESTARTSTART	= 0x00069500
 
+CFLAGS += -DCONFIG_5D3_MINIMAL=1
+
 x: 
 	make clean
 	make autoexec.bin

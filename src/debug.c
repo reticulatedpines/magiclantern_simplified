@@ -3299,11 +3299,15 @@ void HijackFormatDialogBox_main()
 
 void config_menu_init()
 {
+#ifndef CONFIG_5D3_MINIMAL
+
     extern struct menu_entry livev_cfg_menus[];
     //~ extern struct menu_entry menu_cfg_menu[];
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
 #ifndef CONFIG_5DC
     menu_add( "Prefs", livev_cfg_menus,  1);
+#endif
+
 #endif
     crop_factor_menu_init();
     //~ menu_add( "Config", menu_cfg_menu,  1);

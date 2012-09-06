@@ -644,7 +644,7 @@ static int afframe[AFFRAME_PROP_LEN];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
     ASSERT(len == AFFRAME_PROP_LEN);
 
-    clear_lv_afframe(); 
+    clear_lv_afframe();
 
     crop_set_dirty(10);
     afframe_set_dirty();
@@ -2775,15 +2775,6 @@ int handle_zoom_x5_x10(struct event * event)
 {
     if (!lv) return 1;
     if (recording) return 1;
-    
-    #ifdef CONFIG_5D3
-    //~ if (event->param == BGMT_TRUE_ZOOMIN)
-    //~ {
-        //~ fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
-        //~ fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
-        //~ return 0;
-    //~ }
-    #endif
     
     if (!zoom_disable_x5 && !zoom_disable_x10) return 1;
     #ifdef CONFIG_600D
@@ -6143,11 +6134,16 @@ shoot_task( void* unused )
     }
 }
 
+#ifndef CONFIG_5D3_MINIMAL
 TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x8000 );
+#endif
 
 void shoot_init()
 {
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
+
+#ifndef CONFIG_5D3_MINIMAL
+
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
 #ifndef CONFIG_5DC
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
@@ -6165,6 +6161,8 @@ void shoot_init()
 #if !defined(CONFIG_600D) && !defined(CONFIG_5DC) // expsim doesn't work
     extern struct menu_entry expo_tweak_menus[];
     menu_add( "Expo", expo_tweak_menus, 1 );
+#endif
+
 #endif
 }
 

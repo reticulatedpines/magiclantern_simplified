@@ -11,7 +11,7 @@ extern int file_number;
 
 int beep_playing = 0;
 
-#if defined(CONFIG_50D) || defined(CONFIG_5DC) // beep not working, keep dummy stubs
+#if defined(CONFIG_50D) || defined(CONFIG_5DC) || defined(CONFIG_5D3_MINIMAL) // beep not working, keep dummy stubs
     void unsafe_beep(){}
     void beep(){}
     void Beep(){}

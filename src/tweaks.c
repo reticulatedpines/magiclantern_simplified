@@ -14,6 +14,11 @@
 #include "lens.h"
 #include "math.h"
 
+#ifdef CONFIG_5D3_MINIMAL
+#include "disable-this-module.h"
+#endif
+
+
 void clear_lv_affframe();
 void lcd_adjust_position_step();
 void arrow_key_step();
