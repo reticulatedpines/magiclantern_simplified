@@ -975,6 +975,7 @@ void smooth_iso_step()
     if (!smooth_iso) return;
     if (!is_movie_mode()) return;
     if (!lv) return;
+    if (!lens_info.raw_iso) return; // no auto iso
     
     static int prev_iso = -1;
     int current_iso = FRAME_ISO & 0xFF;
