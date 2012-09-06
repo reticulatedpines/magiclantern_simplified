@@ -149,6 +149,7 @@ static CONFIG_INT( "motion.release-level", motion_detect_level, 8);
 static CONFIG_INT( "motion.trigger", motion_detect_trigger, 0);
 static CONFIG_INT( "motion.size", motion_detect_size, 100);
 static CONFIG_INT( "motion.position", motion_detect_position, 0);
+static CONFIG_INT( "motion.shoottime", motion_detect_shootnum, 1);
 
 int get_silent_pic() { return silent_pic_enabled; } // silent pic will disable trap focus
 
@@ -565,9 +566,7 @@ motion_detect_display( void * priv, int x, int y, int selected )
         "Motion Detect   : %s, level=%d",
         motion_detect == 0 ? "OFF" :
         motion_detect_trigger == 0 ? "EXP" : "DIF",
-        motion_detect_level,
-		motion_detect_size,
-		motion_detect_position == 0 ? "Center" : "Focus Box"
+        motion_detect_level
     );
     menu_draw_icon(x, y, MNI_BOOL_LV(motion_detect));
 }
@@ -4341,16 +4340,24 @@ static struct menu_entry shoot_menus[] = {
                 .max = 200,
                 .help = "Size of the area on which motion shall be detected",
             },
- 	    {
-		.name = "Position",
-                .priv = &motion_detect_position, 
-                .max = 1,
-                .choices = (const char *[]) {"Center", "Focus Box"},
-                .icon_type = IT_DICE,
-                .help = "Center of image or linked to focus box.",
+	 	    {
+			.name = "Position",
+	            .priv = &motion_detect_position, 
+	            .max = 1,
+	            .choices = (const char *[]) {"Center", "Focus Box"},
+	            .icon_type = IT_DICE,
+	            .help = "Center of image or linked to focus box.",
             },
-            MENU_EOL
-        },
+			{
+			.name = "Continuous shoot",
+				.priv = &motion_detect_shootnum,
+				.max = 100,
+				.min = 1,
+				.help = "Take x pictures when continuous mode slected",
+			},
+			MENU_EOL
+		}
+
     },
     {
         .name = "Silent Picture",
@@ -5895,36 +5902,35 @@ shoot_task( void* unused )
 				get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
 				xcb += os.x0;
 				ycb += os.y0;
-				xcb = COERCE(xcb, os.x0 + 50, os.x_max - 50);
-				ycb = COERCE(ycb, os.y0 + 50, os.y_max - 50);
+				xcb = COERCE(xcb, os.x0 + motion_detect_size, os.x_max - motion_detect_size );
+				ycb = COERCE(ycb, os.y0 + motion_detect_size, os.y_max - motion_detect_size );
 	 	    }
 
-            if (motion_detect_trigger == 0)
+			if (motion_detect_trigger == 0)
             {
                 int aev = 0;
                 //If the new value has changed by more than the detection level, shoot.
                 static int old_ae_avg = 0;
                 int y,u,v;
                 //TODO: maybe get the spot yuv of the target box
-                get_spot_yuv(100, &y, &u, &v);
+                get_spot_yuv_ex(motion_detect_size, xcb-os.x_max/2, ycb-os.y_max/2, &y, &u, &v);
                 aev = y / 2;
                 if (K > 40) bmp_printf(FONT_MED, 0, 80, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
                 if (K > 40 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
                 {
-                    lens_take_picture(64,1);
+					take_fast_pictures( motion_detect_shootnum );
                     K = 0;
                 }
                 if (K == 40) idle_force_powersave_in_1s();
                 old_ae_avg = old_ae_avg * 90/100 + aev * 10;
             }
-            else if (motion_detect_trigger == 1)
+            else if (motion_detect_trigger == 1) 
             {
-
                 int d = get_spot_motion(motion_detect_size, xcb, ycb, get_global_draw());
                 if (K > 20) bmp_printf(FONT_MED, 0, 80, "Motion level: %d   ", d);
                 if (K > 20 && d >= (int)motion_detect_level)
                 {
-                    lens_take_picture(64,1);
+                    take_fast_pictures( motion_detect_shootnum );
                     K = 0;
                 }
                 if (K == 40) idle_force_powersave_in_1s();
@@ -6181,4 +6187,34 @@ void iso_refresh_display() // in photo mode
         }
     }
     #endif
+}
+
+
+void take_fast_pictures( int number ) {
+	// take fast pictures
+	if (
+		(
+		    drive_mode == DRIVE_CONTINUOUS 
+		    #ifdef DRIVE_HISPEED_CONTINUOUS
+		    || drivemode == DRIVE_HISPEED_CONTINUOUS
+		    #endif
+		) 
+		&&
+		(!silent_pic_enabled && !is_bulb_mode())
+	   )
+	{
+		// continuous mode - simply hold shutter pressed 
+		int f0 = file_number;
+		SW1(1,100);
+		SW2(1,100);
+		while (file_number < f0+number && get_halfshutter_pressed()) {
+			msleep(10);
+		}
+		SW2(0,100);
+		SW1(0,100);
+	}
+	else
+	{
+		take_a_pic(0);
+	}
 }

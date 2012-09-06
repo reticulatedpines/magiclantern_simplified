@@ -2305,7 +2305,7 @@ extern int what_tasks_to_show;
 
 struct menu_entry debug_menus[] = {
 #ifdef CONFIG_HEXDUMP
-    {
+    { 
         .name = "Memory Browser",
         .priv = &hexdump_enabled,
         .max = 1,

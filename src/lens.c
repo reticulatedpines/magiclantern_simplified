@@ -723,8 +723,9 @@ void draw_ml_bottombar(int double_buffering, int clear)
                   y_origin, 
                   is_manual_focus() ? "MF" : "AF"
                 );
-
-#ifdef CONFIG_5D2
+#ifdef CONFIG_1100D
+    // Exp comp address missing and no lcd sensor
+#elif defined(CONFIG_5D2)
     //~ extern int lightsensor_value;
     //~ extern int lightsensor_triggered;
     //~ text_font = FONT(SHADOW_FONT(FONT_MED), COLOR_CYAN, bg );
