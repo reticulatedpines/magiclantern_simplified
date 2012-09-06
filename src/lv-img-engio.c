@@ -199,8 +199,13 @@ void autodetect_default_white_level()
 
 int get_new_white_level()
 {
+    #ifdef CONFIG_5D3
+    if (digic_iso_gain_movie != 1024) 
+        return COERCE(default_white_level * digic_iso_gain_movie / 1024, 0, 8191);
+    #else
     if (digic_iso_gain_movie < 1024) 
         return default_white_level * digic_iso_gain_movie / 1024;
+    #endif
     return 0;
 }
 
@@ -480,7 +485,11 @@ void digic_iso_step()
     {
         if (digic_iso_gain_movie == 0) digic_iso_gain_movie = 1024;
 
+        #ifdef CONFIG_5D3
+        if (digic_iso_gain_movie != 1024)
+        #else
         if (digic_iso_gain_movie < 1024)
+        #endif
         {
             autodetect_default_white_level();
             int new_gain = get_new_white_level();
