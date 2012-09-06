@@ -198,3 +198,15 @@ Troubleshooting
 * **If the camera asks for a firmware update**, place Canon firmware on the card (this was a problem in older versions).
 * **DO NOT use a bootable card without a working autoexec.bin on it!** If you do, remove the battery immediately, switching the camera off is not enough !!!
 * Check our `support forum <http://www.magiclantern.fm/forum/index.php?board=4.0>`_ for similar problems; if you can't find the solution, just ask.
+
+LED blinking codes
+==================
+
+* From installer (FIR file, launched via Firmware Update):
+  - Intermittent blinking: wrong firmware version. Upgrade Canon firmware and try again.
+
+* From autoexec.bin (loaded automatically at startup):
+  - 1 blink, cyclic: wrong ROM checksum (usually wrong firmware version).
+  - 2 blinks, cyclic: internal error (report to developers).
+  - 3 blinks, cyclic: error loading camera-specific binary. Format card and copy ML files again.
+  - 4 blinks, cyclic: checksum error for camera-specific binary. Most probably filesystem corruption. Format card and copy ML files again.

@@ -20,6 +20,8 @@ Magic Lantern is being developed by a small team, helped by a very enthusiastic 
  `Coutts <http://www.magiclantern.fm/forum/index.php?action=profile;u=155>`_ -- porting ML to 5D classic
  
  `Nanomad <http://www.magiclantern.fm/forum/index.php?action=profile;u=123>`_ -- porting ML to 1100D/T3
+
+ `Miyake <http://www.magiclantern.fm/forum/index.php?action=profile;u=472>`_, `1% <http://www.magiclantern.fm/forum/index.php?action=profile;u=407>`_, `Scrax <http://www.magiclantern.fm/forum/index.php?action=profile;u=171>`_ -- 600D developers
  
  `SztupY <http://www.magiclantern.fm/forum/index.php?action=profile;u=805>`_ -- author of ML USB controller and others
 
@@ -46,11 +48,8 @@ Magic Lantern is being developed by a small team, helped by a very enthusiastic 
  `adijiwa <https://bitbucket.org/adijiwa/magic-lantern-for-500d-local-hacks/>`_,
  `kyselejsyrecek <http://chdk.setepontos.com/index.php?action=profile;u=20247/>`_,
  `mk11174 <http://chdk.setepontos.com/index.php?action=profile;u=17096/>`_, 
-  Scrax, 
-  OnePercent, 
   Raymond Lo, 
   Rob Kramer, 
-  Takashi Miyake, 
   Tobias Doerffel, 
   Paul Nolan, 
   Martin M,

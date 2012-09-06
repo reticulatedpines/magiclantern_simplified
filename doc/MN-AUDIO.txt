@@ -8,9 +8,6 @@ Audio
 
 Manual audio controls.
 
-**This menu is not available on Canon 600D / T3i**. The 600D/T3i already has manual audio control with Canon firmware, but right now it's not possible to change audio settings
-from Magic Lantern. You can only use audio meters during recording.
-
 .. _manual audio controls:
 
 {{vimeo>18507408?250x140|Audio tests by Ryan Sauvé }}{{vimeo>5903379?250x140|Audio_Conclusions}}
