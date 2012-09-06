@@ -744,6 +744,8 @@ void move_lv_afframe(int dx, int dy)
 #ifdef AFFRAME_PROP_LEN
     if (!liveview_display_idle()) return;
     if (is_movie_mode() && video_mode_crop) return;
+    if (recording && is_manual_focus()) // prop handler won't trigger, clear spotmeter 
+        clear_lv_afframe();
     afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
     afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
     prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);

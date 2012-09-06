@@ -2538,7 +2538,7 @@ zoom_overlay_display(
             zoom_overlay_size == 2 ? "Large," : "err",
 
         zoom_overlay_trigger_mode == 0 ? "" :
-            zoom_overlay_pos == 0 ? "AFF," :
+            zoom_overlay_pos == 0 ? "AFbox," :
             zoom_overlay_pos == 1 ? "NW," :
             zoom_overlay_pos == 2 ? "NE," :
             zoom_overlay_pos == 3 ? "SE," :
@@ -2591,7 +2591,7 @@ spotmeter_menu_display(
         spotmeter_formula == 4 ? "RGB" :
         spotmeter_formula == 5 ? "HSL" :
         /*spotmeter_formula == 6*/"HSV",
-        spotmeter_draw && spotmeter_position ? ", AFF" : ""
+        spotmeter_draw && spotmeter_position ? ", AFbox" : ""
     );
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
 }
@@ -4006,14 +4006,18 @@ int handle_zoom_overlay(struct event * event)
     if (recording && liveview_display_idle() && is_manual_focus())
     {
         if (event->param == BGMT_PRESS_LEFT)
-            { move_lv_afframe(-200, 0); return 0; }
+            { move_lv_afframe(-300, 0); return 0; }
         if (event->param == BGMT_PRESS_RIGHT)
-            { move_lv_afframe(200, 0); return 0; }
+            { move_lv_afframe(300, 0); return 0; }
         if (event->param == BGMT_PRESS_UP)
-            { move_lv_afframe(0, -200); return 0; }
+            { move_lv_afframe(0, -300); return 0; }
         if (event->param == BGMT_PRESS_DOWN)
-            { move_lv_afframe(0, 200); return 0; }
-        #ifndef CONFIG_4_3_SCREEN
+            { move_lv_afframe(0, 300); return 0; }
+
+        #ifdef CONFIG_5D3
+        if (event->param == BGMT_JOY_CENTER)
+            { center_lv_afframe(); return 0; }
+        #elif !defined(CONFIG_4_3_SCREEN)
         if (event->param == BGMT_PRESS_SET)
             { center_lv_afframe(); return 0; }
         #endif

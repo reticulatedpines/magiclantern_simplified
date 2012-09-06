@@ -649,13 +649,15 @@ void clear_lv_afframe()
                     for (int dj = 2; dj >= -1; dj--)
                     {
                         int p = Pr(j+dj,i+di);
-                        if (p == COLOR_WHITE || p == COLOR_BLACK)
+                        if (p == COLOR_BLACK)
                         {
                             int m = M[BM(j+dj,i+di)];
                             Pw(j+dj,i+di) = g && (m & 0x80) ? m & ~0x80 : 0; // if global draw on, copy color from ML cropmark, otherwise, transparent
                         }
                     }
                 }
+                int m = M[BM(j,i)];
+                Pw(j,i) = g && (m & 0x80) ? m & ~0x80 : 0;
             }
             
             // clear spotmeter area marked as unsafe for zebras
