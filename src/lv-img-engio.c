@@ -34,6 +34,8 @@
 CONFIG_INT("digic.iso.gain.movie", digic_iso_gain_movie, 1024); // units: like with the old display gain
 CONFIG_INT("digic.iso.gain.photo", digic_iso_gain_photo, 1024);
 CONFIG_INT("digic.black", digic_black_level, 100);
+int digic_iso_gain_movie_extra = 1024; // additional gain that won't appear in ML menus, but can be changed from code (to be "added" to digic_iso_gain_movie)
+
 //~ CONFIG_INT("digic.shadow.lift", digic_shadow_lift, 0);
 // that is: 1024 = 0 EV = disabled
 // 2048 = 1 EV etc
@@ -50,6 +52,11 @@ void set_movie_digital_iso_gain(int gain)
 {
     if (gain == 0) gain = 1024;
     digic_iso_gain_movie = gain;
+}
+
+void set_movie_digital_iso_gain_extra(int gain)
+{
+    digic_iso_gain_movie_extra = gain;
 }
 
 int gain_to_ev_scaled(int gain, int scale)
@@ -213,20 +220,19 @@ void autodetect_default_white_level()
 // get digic ISO level for movie mode
 // use SHAD_GAIN as much as possible (range: 0-8191)
 // if out of range, return a number of integer stops for boosting the ISO via ISO_PUSH_REGISTER and use SHAD_GAIN for the remainder
-int get_new_white_level(int* boost_stops)
+int get_new_white_level(int movie_gain, int* boost_stops)
 {
     int result = default_white_level;
     *boost_stops = 0;
-    int g = digic_iso_gain_movie;
     while (1)
     {
-        result = default_white_level * g / 1024;
+        result = default_white_level * movie_gain / 1024;
         #ifdef CONFIG_5D3
         break;
         #endif
         if (result > 8192) 
         { 
-            g /= 2; 
+            movie_gain /= 2; 
             (*boost_stops)++;
         }
         else break;
@@ -510,11 +516,12 @@ void digic_iso_step()
     {
         if (digic_iso_gain_movie == 0) digic_iso_gain_movie = 1024;
 
-        if (digic_iso_gain_movie != 1024)
+        int total_movie_gain = digic_iso_gain_movie * digic_iso_gain_movie_extra / 1024;
+        if (total_movie_gain != 1024)
         {
             autodetect_default_white_level();
             int boost_stops = 0;
-            int new_gain = get_new_white_level(&boost_stops);
+            int new_gain = get_new_white_level(total_movie_gain, &boost_stops);
             EngDrvOut(SHAD_GAIN, new_gain);
             shad_gain_last_written = new_gain;
             #ifndef CONFIG_5D3

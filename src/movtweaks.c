@@ -981,32 +981,50 @@ void smooth_iso_step()
     
     static int iso_acc = 0;
     
+    static int k = 0; k++;
+    
     if (prev_iso != current_iso && prev_iso > 0)
     {
-        iso_acc += (prev_iso - current_iso) * 10;
+        iso_acc += (prev_iso - current_iso) * 5;
     }
     if (iso_acc)
     {
-        int g = (int) roundf(1024.0 * powf(2, iso_acc / 80.0));
-        // it's not a good idea to use a digital ISO gain higher than +/- 0.5 EV (noisy or artifacts), so alter it via FRAME_ISO
+        int g = (int) roundf(1024.0 * powf(2, iso_acc / 40.0));
+
+        // it's not a good idea to use a digital ISO gain higher than +/- 0.5 EV (noise or pink highlights), 
+        // so alter it via FRAME_ISO
+        extern int digic_iso_gain_movie;
+        #define G_ADJ (digic_iso_gain_movie ? g * digic_iso_gain_movie / 1024 : g)
         int altered_iso = current_iso;
-        while (g > 1448 && altered_iso < 120) 
+        while (G_ADJ > 1448 
+            #ifndef CONFIG_5D3
+            && altered_iso < 120
+            #endif
+        ) 
         {
             altered_iso += 8;
             g /= 2;
         }
-        while (g < 724 && altered_iso > 80) 
+        while (G_ADJ < 724 && altered_iso > 80) 
         {
             altered_iso -= 8;
             g *= 2;
         }
+        #ifndef CONFIG_5D3
+        if (altered_iso >= 112) // above ISO 3200 we have digital gain and it's difficult to handle smoothly
+        {
+            altered_iso = 112;
+        }
+        #endif
         if (altered_iso != current_iso)
         {
             FRAME_ISO = altered_iso | (altered_iso << 8);
         }
-        set_movie_digital_iso_gain(g);
+        //~ bmp_printf(FONT_SMALL, 50, 50, "%d %d %d ", current_iso, altered_iso, g);
+        set_movie_digital_iso_gain_extra(g);
         if (iso_acc > 0) iso_acc--; else iso_acc++;
     }
+    else set_movie_digital_iso_gain_extra(1024);
     
     prev_iso = current_iso;
 }
