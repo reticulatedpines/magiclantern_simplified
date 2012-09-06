@@ -97,7 +97,7 @@ void lv_wait_for_pause_updating_to_finish()
 
 static void vsync_func() // called once per frame.. in theory :)
 {
-    #if !defined(CONFIG_60D) && !defined(CONFIG_600D) && !defined(CONFIG_1100D) && !defined(CONFIG_5D3) // for those cameras, we call it from cartridge_AfStopPath; for 5D3, it's called from a different spot of the evf state object
+    #if !defined(CONFIG_60D) && !defined(CONFIG_600D) && !defined(CONFIG_1100D) && !defined(CONFIG_5D3) // for those cameras, it's called from a different spot of the evf state object
     hdr_step();
     #endif
     
@@ -152,7 +152,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
         vsync_func();
 #endif
 
-    #ifdef CONFIG_5D3 // exception for overriding ISO
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) // exception for overriding ISO
     if (self == EVF_STATE && input == 4 && old_state == 5) // evfSetParamInterrupt
         hdr_step();
     #endif
