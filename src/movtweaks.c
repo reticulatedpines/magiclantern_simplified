@@ -1020,7 +1020,15 @@ void smooth_iso_step()
         {
             FRAME_ISO = altered_iso | (altered_iso << 8);
         }
-        //~ bmp_printf(FONT_SMALL, 50, 50, "%d %d %d ", current_iso, altered_iso, g);
+
+        #if defined(CONFIG_5D2) || defined(CONFIG_550D) || defined(CONFIG_50D)
+        // FRAME_ISO not synced perfectly, use digital gain to mask the flicker
+        static int prev_altered_iso = 0;
+        if (prev_altered_iso && prev_altered_iso != altered_iso)
+            g = g * (int)roundf(powf(2, 10 + (altered_iso - prev_altered_iso) / 8.0)) / 1024;
+        prev_altered_iso = altered_iso;
+        #endif
+        
         set_movie_digital_iso_gain_extra(g);
         if (iso_acc > 0) iso_acc--; else iso_acc++;
     }
