@@ -969,6 +969,32 @@ int gain_to_ev_x8(int gain)
     return (int) roundf(log2f(gain) * 8.0);
 }
 
+CONFIG_INT("iso.smooth", smooth_iso, 0);
+void smooth_iso_step()
+{
+    if (!smooth_iso) return;
+    if (!is_movie_mode()) return;
+    if (!lv) return;
+    
+    static int prev_iso = -1;
+    int current_iso = FRAME_ISO;
+    
+    static int iso_acc = 0;
+    
+    if (prev_iso != current_iso && prev_iso > 0)
+    {
+        iso_acc += (prev_iso - current_iso) * 10;
+    }
+    if (iso_acc)
+    {
+        int g = 1024 * powf(2, iso_acc / 80.0);
+        set_movie_digital_iso_gain(g);
+        if (iso_acc > 0) iso_acc--; else iso_acc++;
+    }
+    
+    prev_iso = current_iso;
+}
+
 static struct menu_entry mov_menus[] = {
 #ifdef CONFIG_50D
     {
@@ -1119,6 +1145,12 @@ static struct menu_entry mov_menus[] = {
         //.essential = FOR_MOVIE,
     },
 #endif
+    {
+        .name = "Smooth ISO",
+        .priv = &smooth_iso,
+        .max = 1,
+        .help = "Use gradual ISO changes when recording.",
+    },
 };
 
 struct menu_entry expo_override_menus[] = {
