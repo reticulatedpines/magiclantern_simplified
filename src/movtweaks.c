@@ -977,7 +977,7 @@ void smooth_iso_step()
     if (!lv) return;
     
     static int prev_iso = -1;
-    int current_iso = FRAME_ISO;
+    int current_iso = FRAME_ISO & 0xFF;
     
     static int iso_acc = 0;
     
@@ -987,7 +987,24 @@ void smooth_iso_step()
     }
     if (iso_acc)
     {
-        int g = 1024 * powf(2, iso_acc / 80.0);
+        int g = (int) roundf(1024.0 * powf(2, iso_acc / 80.0));
+        #ifdef CONFIG_5D3 // display gain can't be higher than 1EV, so alter it via FRAME_ISO
+        int altered_iso = current_iso;
+        while (g > 2048) 
+        {
+            altered_iso += 8;
+            g /= 2;
+        }
+        if (altered_iso != current_iso)
+        {
+            info_led_on();
+            FRAME_ISO = altered_iso | (altered_iso << 8);
+        }
+        else
+        {
+            info_led_off();
+        }
+        #endif
         set_movie_digital_iso_gain(g);
         if (iso_acc > 0) iso_acc--; else iso_acc++;
     }

@@ -147,6 +147,14 @@ digic_black_print(
 
 static int digic_iso_presets[] = {256, 362, 512, 609, 664, 724, 790, 861, 939, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072};
 
+// for debugging
+/*static int digic_iso_presets[] = {256, 362, 512, 609, 664, 724, 790, 861, 939, 
+    1024, 1117, 1218, 1328, 1448, 1579, 1722, 1878,
+    2048, 2233, 2435, 2656, 2896, 3158, 3444, 3756,
+    4096, 4467, 4871, 5312, 5793, 6317, 6889, 7512,
+    8192, 16384, 32768, 65536, 131072};
+*/
+
 void digic_iso_or_gain_toggle(int* priv, int delta)
 {
     int i;
@@ -155,7 +163,12 @@ void digic_iso_or_gain_toggle(int* priv, int delta)
     
     do {
         i = mod(i + delta, COUNT(digic_iso_presets));
-    } while (!is_movie_mode() && digic_iso_presets[i] < 1024);
+    } while ((!is_movie_mode() && digic_iso_presets[i] < 1024)
+    #ifdef CONFIG_5D3
+    || (is_movie_mode() && digic_iso_presets[i] > 2048) // high display gains not working
+    || (!is_movie_mode() && digic_iso_presets[i] > 65536) // +7EV not working
+    #endif
+    );
     
     *priv = digic_iso_presets[i];
 }
@@ -197,16 +210,28 @@ void autodetect_default_white_level()
     default_white_level = current_shad_gain;
 }
 
-int get_new_white_level()
+// get digic ISO level for movie mode
+// use SHAD_GAIN as much as possible (range: 0-8191)
+// if out of range, return a number of integer stops for boosting the ISO via ISO_PUSH_REGISTER and use SHAD_GAIN for the remainder
+int get_new_white_level(int* boost_stops)
 {
-    #ifdef CONFIG_5D3
-    if (digic_iso_gain_movie != 1024) 
-        return COERCE(default_white_level * digic_iso_gain_movie / 1024, 0, 8191);
-    #else
-    if (digic_iso_gain_movie < 1024) 
-        return default_white_level * digic_iso_gain_movie / 1024;
-    #endif
-    return 0;
+    int result = default_white_level;
+    *boost_stops = 0;
+    int g = digic_iso_gain_movie;
+    while (1)
+    {
+        result = default_white_level * g / 1024;
+        #ifdef CONFIG_5D3
+        break;
+        #endif
+        if (result > 8192) 
+        { 
+            g /= 2; 
+            (*boost_stops)++;
+        }
+        else break;
+    }
+    return COERCE(result, 0, 8191);
 }
 
 #ifdef CONFIG_DIGIC_POKE
@@ -485,21 +510,16 @@ void digic_iso_step()
     {
         if (digic_iso_gain_movie == 0) digic_iso_gain_movie = 1024;
 
-        #ifdef CONFIG_5D3
         if (digic_iso_gain_movie != 1024)
-        #else
-        if (digic_iso_gain_movie < 1024)
-        #endif
         {
             autodetect_default_white_level();
-            int new_gain = get_new_white_level();
+            int boost_stops = 0;
+            int new_gain = get_new_white_level(&boost_stops);
             EngDrvOut(SHAD_GAIN, new_gain);
             shad_gain_last_written = new_gain;
-        }
-        else if (digic_iso_gain_movie > 1024)
-        {
-            int ev_x255 = gain_to_ev_scaled(digic_iso_gain_movie, 255) - 2550 + 255;
-            EngDrvOut(ISO_PUSH_REGISTER, ev_x255);
+            #ifndef CONFIG_5D3
+            EngDrvOut(ISO_PUSH_REGISTER, boost_stops << 8);
+            #endif
         }
 
         if (digic_black_level != 100)
@@ -522,8 +542,8 @@ void digic_iso_step()
     #else
         if (digic_iso_gain_photo > 1024 && !LVAE_DISP_GAIN)
         {
-            int ev_x255 = gain_to_ev_scaled(digic_iso_gain_photo, 255) - 2550 + 255;
-            EngDrvOut(ISO_PUSH_REGISTER, ev_x255);
+            int boost_stops = COERCE((int)log2f(digic_iso_gain_photo / 1024), 0, 7);
+            EngDrvOut(ISO_PUSH_REGISTER, boost_stops << 8);
         }
     #endif
     }
