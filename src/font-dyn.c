@@ -83,6 +83,8 @@ int fonts_done = 0;
 
 void load_fonts(void* unused)
 {
+    if (fonts_done) return;
+    
     // if something goes wrong, you will see chinese fonts :)
     int size;
 
