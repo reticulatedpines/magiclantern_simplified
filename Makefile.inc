@@ -130,6 +130,8 @@ CFLAGS=\
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
 
+CFLAGS += $(CFLAG_USER)
+
 ifeq ($(CONFIG_PYMITE),y)
 CFLAGS += $(PYMITE_CFLAGS)
 endif
