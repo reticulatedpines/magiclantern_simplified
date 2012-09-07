@@ -539,7 +539,6 @@ void iso_movie_test()
 void run_test()
 {
     //delete when finish debugging
-    msleep(2000);
 #ifdef CONFIG_AUDIO_600D_DEBUG
     #ifdef CONFIG_600D
     audio_reg_dump_once();
@@ -549,6 +548,23 @@ void run_test()
     int s = compute_signature((int*)0xFF010000, 0x10000);
     NotifyBox(10000, "%x ", s);
     //~ debug_intercept();
+
+    msleep(2000);
+    while(1)
+    {
+        if (DISPLAY_IS_ON) 
+        {
+            static int r1 = 1;
+            static int r2 = 1;
+            if (rand()%30 == 1) r1 = !r1;
+            if (rand()%30 == 1) r2 = !r2;
+            int inc = (r1 ? 1 : -1) + (r2 ? 0x100 : -0x100);
+            EngDrvOut(0xC0F14400, (MEMX(0xC0F14400) + inc) & 0xFFFF);
+            EngDrvOut(0xC0F14800, (MEMX(0xC0F14800) + inc) & 0xFFFF);
+        }
+        msleep(10);
+    }
+>>>>>>> other
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -2564,12 +2580,14 @@ struct menu_entry debug_menus[] = {
         .submenu_width = 650,
         //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
+            #ifndef CONFIG_5D3_MINIMAL // will change some settings and you can't restore them
             {
                 .name = "Quick test (around 15 min)",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = stress_test_task,
                 .help = "A quick test which covers basic functionality. "
             },
+            #endif
             {
                 .name = "Random tests (infinite loop)",
                 .select = (void(*)(void*,int))run_in_separate_task,
@@ -3421,7 +3439,9 @@ void HijackFormatDialogBox_main()
 
 void config_menu_init()
 {
-#ifndef CONFIG_5D3_MINIMAL
+#ifdef CONFIG_5D3_MINIMAL
+    menu_add( "Debug", cfg_menus, COUNT(cfg_menus) );
+#else
 
     extern struct menu_entry livev_cfg_menus[];
     //~ extern struct menu_entry menu_cfg_menu[];

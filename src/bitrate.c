@@ -20,7 +20,11 @@ static CONFIG_INT("h264.bitrate", bitrate, 3);
 CONFIG_INT( "h264.qscale.plus16", qscale_plus16, 16-8 );
 CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
 CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
+#ifdef CONFIG_5D3
+#define time_indicator 0 // no 4 GB limit, just show the free space
+#else
 CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
+#endif
 CONFIG_INT( "bitrate.indicator", bitrate_indicator, 0);
 int time_indic_x =  720 - 160;
 int time_indic_y = 0;
@@ -515,6 +519,7 @@ static struct menu_entry mov_menus[] = {
         },
     },
 #endif
+#ifndef CONFIG_5D3
     {
         .name = "Time Indicator",
         .priv       = &time_indicator,
@@ -524,6 +529,7 @@ static struct menu_entry mov_menus[] = {
         //.essential = 1,
         //~ .edit_mode = EM_MANY_VALUES,
     },
+#endif
 };
 
 void bitrate_init()

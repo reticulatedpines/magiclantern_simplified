@@ -5,11 +5,17 @@ if ARGV.count!=3
   exit 1
 end
 
+ARM_ABI="none-eabi"
+
+ARM_PATH="~/arm-toolchain462"
+ARM_BINPATH=ARM_PATH << "/bin"
+READELF=ARM_BINPATH<<"/arm-"<<ARM_ABI<<"-readelf"
+
 File.open(ARGV[2],"wb+") do |out|
   File.open(ARGV[1],"rb") do |inp|
     out.write inp.read
   end
-  symtbl=`arm-elf-readelf -r #{ARGV[0]}`
+  symtbl=`#{READELF} -r #{ARGV[0]}`
   symbols = {}
   symtbl.each_line do |line|
     # readelf input is expected as Offset, Info, Type, ..."
