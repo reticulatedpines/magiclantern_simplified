@@ -17,7 +17,7 @@
 
 #define EngDrvOut(reg, value) *(int*)(reg) = value
 
-#define CONFIG_DIGIC_POKE
+//~ #define CONFIG_DIGIC_POKE
 
 //~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
 
@@ -306,7 +306,7 @@ void digic_find_lv_buffer(int dr, int delta)
         digic_register_off  = (dr & 0x000000FC) >> 0;
         digic_register = get_digic_register_addr();
 
-        if (MEMX(digic_register) & 0xFFF == 0x800) break;
+        if ((MEMX(digic_register) & 0xFFF) == 0x800) break;
     }
 
     digic_value = MEMX(digic_register);

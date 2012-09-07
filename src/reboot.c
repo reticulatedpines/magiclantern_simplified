@@ -147,7 +147,7 @@ cstart( void )
 
     #ifdef CONFIG_5D3
     int s = compute_signature((int*)0xFF010000, 0x10000);
-    if (s != 0x83e3d22b)
+    if (s != (int)0x83e3d22b)
         fail();
     #endif
 

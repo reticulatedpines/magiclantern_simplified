@@ -46,7 +46,6 @@ void HijackFormatDialogBox_main();
 void config_menu_init();
 void display_on();
 void display_off();
-char* get_dcim_dir();
 
 
 void fake_halfshutter_step();
@@ -547,7 +546,7 @@ void run_in_separate_task(void (*priv)(void), int delta)
 
 
 #ifdef CONFIG_BENCHMARKS
-int card_benchmark_wr(int bufsize, int K, int N)
+void card_benchmark_wr(int bufsize, int K, int N)
 {
     int x = 0;
     static int y = 50;

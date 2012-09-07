@@ -1456,7 +1456,7 @@ static inline int peak_d2xy(uint8_t* p8)
     return e;
 }
 
-static inline int peak_d2xy_hd(uint8_t* p8)
+static inline int peak_d2xy_hd(const uint8_t* p8)
 {
     // approximate second derivative with a Laplacian kernel:
     //     -1

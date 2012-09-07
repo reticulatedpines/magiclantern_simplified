@@ -4328,30 +4328,30 @@ static struct menu_entry shoot_menus[] = {
                 .max = 30,
                 .help = "Picture is taken when frame difference is above threshold.",
             },
-	    	{
+            {
                 .name = "Detect Size",
                 .priv = &motion_detect_size, 
                 .min = 10,   
                 .max = 200,
                 .help = "Size of the area on which motion shall be detected",
             },
-	 	    {
-			.name = "Position",
-	            .priv = &motion_detect_position, 
-	            .max = 1,
-	            .choices = (const char *[]) {"Center", "Focus Box"},
-	            .icon_type = IT_DICE,
-	            .help = "Center of image or linked to focus box.",
+             {
+            .name = "Position",
+                .priv = &motion_detect_position, 
+                .max = 1,
+                .choices = (const char *[]) {"Center", "Focus Box"},
+                .icon_type = IT_DICE,
+                .help = "Center of image or linked to focus box.",
             },
-			{
-			.name = "Continuous shoot",
-				.priv = &motion_detect_shootnum,
-				.max = 100,
-				.min = 1,
-				.help = "Take x pictures when continuous mode slected",
-			},
-			MENU_EOL
-		}
+            {
+            .name = "Continuous shoot",
+                .priv = &motion_detect_shootnum,
+                .max = 100,
+                .min = 1,
+                .help = "Take x pictures when continuous mode slected",
+            },
+            MENU_EOL
+        }
 
     },
     {
@@ -5354,8 +5354,8 @@ void hdr_shot(int skip0, int wait)
     }
     else // regular pic (not HDR)
     {
-	int should_af = 1;
-	if(intervalometer_running && !interval_use_autofocus) should_af = 0;
+    int should_af = 1;
+    if(intervalometer_running && !interval_use_autofocus) should_af = 0;
         hdr_shutter_release(0, should_af); //Enable AF on intervalometer if the user wishes so, allow it otherwise
     }
 
@@ -5558,12 +5558,40 @@ static void mlu_step()
     }
 }
 
+void take_fast_pictures( int number ) {
+    // take fast pictures
+    if (
+        (
+            drive_mode == DRIVE_CONTINUOUS 
+            #ifdef DRIVE_HISPEED_CONTINUOUS
+            || drive_mode == DRIVE_HISPEED_CONTINUOUS
+            #endif
+        ) 
+        &&
+        (!silent_pic_enabled && !is_bulb_mode())
+       )
+    {
+        // continuous mode - simply hold shutter pressed 
+        int f0 = file_number;
+        SW1(1,100);
+        SW2(1,100);
+        while (file_number < f0+number && get_halfshutter_pressed()) {
+            msleep(10);
+        }
+        SW2(0,100);
+        SW1(0,100);
+    }
+    else
+    {
+        take_a_pic(0);
+    }
+}
 
 static void misc_shooting_info()
 {
     if (get_global_draw())
     {
-        #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
+        #if !defined(CONFIG_50D) && !defined(CONFIG_1100D)
         extern thunk ShootOlcApp_handler;
         if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown()
             && (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler)
@@ -5889,19 +5917,19 @@ shoot_task( void* unused )
         {
             K = COERCE(K+1, 0, 1000);
             //~ bmp_printf(FONT_MED, 0, 50, "K= %d   ", K);
-			int xcb = os.x0 + os.x_ex/2;
-			int ycb = os.y0 + os.y_ex/2;
+            int xcb = os.x0 + os.x_ex/2;
+            int ycb = os.y0 + os.y_ex/2;
 
-			if (motion_detect_position) // AF frame
-			{
-				get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
-				xcb += os.x0;
-				ycb += os.y0;
-				xcb = COERCE(xcb, os.x0 + motion_detect_size, os.x_max - motion_detect_size );
-				ycb = COERCE(ycb, os.y0 + motion_detect_size, os.y_max - motion_detect_size );
-	 	    }
+            if (motion_detect_position) // AF frame
+            {
+                get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
+                xcb += os.x0;
+                ycb += os.y0;
+                xcb = COERCE(xcb, os.x0 + (int)motion_detect_size, os.x_max - (int)motion_detect_size );
+                ycb = COERCE(ycb, os.y0 + (int)motion_detect_size, os.y_max - (int)motion_detect_size );
+             }
 
-			if (motion_detect_trigger == 0)
+            if (motion_detect_trigger == 0)
             {
                 int aev = 0;
                 //If the new value has changed by more than the detection level, shoot.
@@ -5913,7 +5941,7 @@ shoot_task( void* unused )
                 if (K > 40) bmp_printf(FONT_MED, 0, 80, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
                 if (K > 40 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
                 {
-					take_fast_pictures( motion_detect_shootnum );
+                    take_fast_pictures( motion_detect_shootnum );
                     K = 0;
                 }
                 if (K == 40) idle_force_powersave_in_1s();
@@ -6158,7 +6186,7 @@ void shoot_init()
     //~ menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
 
 #ifndef CONFIG_5DC
-	extern struct menu_entry expo_override_menus[];
+    extern struct menu_entry expo_override_menus[];
     menu_add( "Expo", expo_override_menus, 1 );
 #endif
 
@@ -6189,34 +6217,4 @@ void iso_refresh_display() // in photo mode
         }
     }
     #endif
-}
-
-
-void take_fast_pictures( int number ) {
-	// take fast pictures
-	if (
-		(
-		    drive_mode == DRIVE_CONTINUOUS 
-		    #ifdef DRIVE_HISPEED_CONTINUOUS
-		    || drive_mode == DRIVE_HISPEED_CONTINUOUS
-		    #endif
-		) 
-		&&
-		(!silent_pic_enabled && !is_bulb_mode())
-	   )
-	{
-		// continuous mode - simply hold shutter pressed 
-		int f0 = file_number;
-		SW1(1,100);
-		SW2(1,100);
-		while (file_number < f0+number && get_halfshutter_pressed()) {
-			msleep(10);
-		}
-		SW2(0,100);
-		SW1(0,100);
-	}
-	else
-	{
-		take_a_pic(0);
-	}
 }

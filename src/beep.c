@@ -101,8 +101,8 @@ static uint8_t wav_header[44] = {
 
 static void wav_set_size(uint8_t* header, int size)
 {
-    uint32_t* data_size = &header[40];
-    uint32_t* main_chunk_size = &header[4];
+    uint32_t* data_size = (uint32_t*)&header[40];
+    uint32_t* main_chunk_size = (uint32_t*)&header[4];
     *data_size = size;
     *main_chunk_size = size + 36;
 }
@@ -137,8 +137,8 @@ void WAV_PlaySmall(char* filename)
     int data_offset = wav_find_chunk(buf, size, 0x61746164);
     if (!data_offset) goto end;
     
-    uint32_t data_size = *(uint32_t*)(buf + data_offset + 4);
-    uint8_t* data = buf + data_offset + 8;
+    int data_size = *(int*)(buf + data_offset + 4);
+    int16_t* data = (int16_t*)(buf + data_offset + 8);
     if (data_size > size - data_offset - 8) { NotifyBox(5000, "WAV: data size wrong"); goto end; }
     
     info_led_on();
@@ -178,12 +178,12 @@ static void asif_continue_cbr()
 
 void WAV_Play(char* filename)
 {
-    int8_t* buf1 = wav_buf[0];
-    int8_t* buf2 = wav_buf[1];
+    uint8_t* buf1 = (uint8_t*)(wav_buf[0]);
+    uint8_t* buf2 = (uint8_t*)(wav_buf[1]);
     if (!buf1) return;
     if (!buf2) return;
 
-    int size;
+    unsigned size;
     if( FIO_GetFileSize( filename, &size ) != 0 ) return;
 
     if( file != INVALID_PTR ) return;
@@ -330,8 +330,8 @@ static void asif_rec_continue_cbr()
 
 void WAV_Record(char* filename, int show_progress)
 {
-    int8_t* buf1 = wav_buf[0];
-    int8_t* buf2 = wav_buf[1];
+    uint8_t* buf1 = (uint8_t*)wav_buf[0];
+    uint8_t* buf2 = (uint8_t*)wav_buf[1];
     if (!buf1) return;
     if (!buf2) return;
 
@@ -613,8 +613,7 @@ static char current_wav_filename[100];
 void find_next_wav(void* priv, int dir)
 {
     static int index = -1;
-    static char ffn[100];
-    
+
     index += dir;
     
     if (find_wav(&index, current_wav_filename))

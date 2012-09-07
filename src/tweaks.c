@@ -33,6 +33,7 @@ void ReverseDisplay();
 
 
 static void upside_down_step();
+static void uniwb_correction_step();
 
 CONFIG_INT("dof.preview.sticky", dofpreview_sticky, 0);
 
@@ -2147,7 +2148,7 @@ void preview_contrast_n_saturation_step()
     }
 }
 
-void uniwb_correction_step()
+static void uniwb_correction_step()
 {
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
@@ -2560,22 +2561,15 @@ void defish_draw_lv_color()
     if (!lv) return;
     
     defish_lut_load();
-    struct vram_info * vram = get_yuv422_vram();
 
-    //~ int buf_size = vram_lv.pitch * vram_lv.height;
     uint32_t* src_buf;
     uint32_t* dst_buf;
     display_filter_get_buffers(&src_buf, &dst_buf);
-    if (DEFISH_HD) src_buf = get_yuv422_hd_vram()->vram;
+    if (DEFISH_HD) src_buf = (void*)(get_yuv422_hd_vram()->vram);
     
     // small speedup (26fps with cacheable vs 20 without)
     src_buf = CACHEABLE(src_buf);
     dst_buf = CACHEABLE(dst_buf);
-    
-    //~ memcpy(dst_buf, src_buf, buf_size/2);
-    //~ return;
-        
-    //~ if (!HALFSHUTTER_PRESSED) return;
     
     static int* ind = 0;
     if (!ind) 
@@ -2719,7 +2713,7 @@ void defish_draw_play()
     }
 }
 
-void display_filter_get_buffers(void** src_buf, void** dst_buf)
+void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
 {
     //~ struct vram_info * vram = get_yuv422_vram();
     //~ int buf_size = 720*480*2;
@@ -2729,7 +2723,7 @@ void display_filter_get_buffers(void** src_buf, void** dst_buf)
     *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_2);
 #elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5DC) // all new cameras should work with this method
-    *src_buf = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
+    *src_buf = (void*)shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_1 + 720*480*2);
 #else // just use some reasonable defaults that won't crash the camera
     *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
