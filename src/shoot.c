@@ -211,6 +211,59 @@ static const char* format_time_hours_minutes_seconds(int seconds)
     return msg;
 }
 
+
+
+static int seconds_clock = 0;
+int get_seconds_clock() { return seconds_clock; } 
+
+static int ms100_clock = 0;
+int get_ms_clock_value() { return ms100_clock; }
+
+static void do_this_every_second() // called every second
+{
+    if (BULB_EXPOSURE_CONTROL_ACTIVE && !gui_menu_shown())
+        bulb_ramping_showinfo();
+
+    if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
+        info_led_blink(1, 50, 0);
+
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+    RefreshBatteryLevel_1Hz();
+    #endif
+}
+
+static int get_rtc_second()
+{
+    struct tm now;
+    LoadCalendarFromRTC( &now );
+    int s = now.tm_sec;
+    return s;
+}
+
+static void
+seconds_clock_task( void* unused )
+{
+    TASK_LOOP 
+    {
+        seconds_clock++;
+        ms100_clock = MAX(ms100_clock, seconds_clock * 1000); // don't let the clock go back
+
+        do_this_every_second();
+
+        int s0 = get_rtc_second();
+        do
+        {
+            msleep(100);
+            ms100_clock = MIN(ms100_clock + 100, (seconds_clock + 1) * 1000); // don't let this clock go faster than the RTC one
+            msleep(100);
+            ms100_clock = MIN(ms100_clock + 100, (seconds_clock + 1) * 1000);
+        }
+        while (get_rtc_second() == s0);
+    }
+}
+TASK_CREATE( "clock_task", seconds_clock_task, 0, 0x19, 0x1000 );
+
+
 typedef int (*CritFunc)(int);
 // crit returns negative if the tested value is too high, positive if too low, 0 if perfect
 static int bin_search(int lo, int hi, CritFunc crit)
@@ -818,20 +871,6 @@ static char* silent_pic_get_name()
     bmp_printf(FONT_MED, 100, 80, "%s    ", imgname);
     return imgname;
 }
-
-static int ms100_clock = 0;
-static void
-ms100_clock_task( void* unused )
-{
-    TASK_LOOP
-    {
-        msleep(100);
-        ms100_clock += 100;
-    }
-}
-TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );
-
-int get_ms_clock_value() { return ms100_clock; }
 
 int expfuse_running = 0;
 static int expfuse_num_images = 0;
@@ -3290,30 +3329,6 @@ static int bramp_ev_reference_x1000 = 0;
 static int bramp_prev_shot_was_bad = 1;
 static float bramp_u1 = 0; // for the feedback controller: command at previous step
 static int bramp_last_exposure_rounding_error_evx1000;
-
-static int seconds_clock = 0;
-int get_seconds_clock() { return seconds_clock; } 
-
-static void
-seconds_clock_task( void* unused )
-{
-    TASK_LOOP 
-    {
-        wait_till_next_second();
-        seconds_clock++;
-
-        if (BULB_EXPOSURE_CONTROL_ACTIVE && !gui_menu_shown())
-            bulb_ramping_showinfo();
-
-        if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
-            info_led_blink(1, 50, 0);
-        
-        #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
-        RefreshBatteryLevel_1Hz();
-        #endif
-    }
-}
-TASK_CREATE( "seconds_clock_task", seconds_clock_task, 0, 0x19, 0x1000 );
 
 static int measure_brightness_level(int initial_wait)
 {
