@@ -6184,7 +6184,7 @@ shoot_task( void* unused )
 }
 
 #ifndef CONFIG_5D3_MINIMAL
-TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x8000 );
+TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x2000 );
 #endif
 
 void shoot_init()
