@@ -28,6 +28,9 @@
 #include "menu.h"
 #include "gui.h"
 
+#if defined(CONFIG_5D3_MINIMAL)
+#include "disable-this-module.h"
+#endif
 
 #if defined(CONFIG_50D)
 #include "disable-this-module.h"
@@ -2823,7 +2826,9 @@ void input_toggle()
 
 static void audio_menus_init()
 {
+    #ifndef CONFIG_5D3_MINIMAL
     menu_add( "Audio", audio_menus, COUNT(audio_menus) );
+    #endif
 }
 
 

@@ -37,6 +37,11 @@
 #include "config.h"
 #include "math.h"
 
+#ifdef CONFIG_5D3_MINIMAL
+#include "disable-this-module.h"
+#endif
+
+
 #define FPS_REGISTER_A 0xC0F06008
 #define FPS_REGISTER_B 0xC0F06014
 

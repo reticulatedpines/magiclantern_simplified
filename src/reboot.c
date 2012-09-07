@@ -58,6 +58,44 @@ asm(
     ".globl blob_end\n"
 );
 
+#ifdef CONFIG_5D3
+static void busy_wait(int n)
+{
+    int i,j;
+    static volatile int k = 0;
+    for (i = 0; i < n; i++)
+        for (j = 0; j < 100000; j++)
+            k++;
+}
+
+static void blink(int n)
+{
+    while (1)
+    {
+        *(int*)0xC022C06C = 0x138800;
+        busy_wait(n);
+        *(int*)0xC022C06C = 0x838C00;
+        busy_wait(n);
+    }
+}
+
+static void fail()
+{
+    blink(50);
+}
+
+static int compute_signature(int* start, int num)
+{
+    int c = 0;
+    int* p;
+    for (p = start; p < start + num; p++)
+    {
+        c += *p;
+    }
+    return c;
+}
+
+#endif
 
 /** Determine the in-memory offset of the code.
  * If we are autobooting, there is no offset (code is loaded at
@@ -106,6 +144,12 @@ cstart( void )
 
     select_normal_vectors();
 #endif
+
+    #ifdef CONFIG_5D3
+    int s = compute_signature((int*)0xFF010000, 0x10000);
+    if (s != (int)0x83e3d22b)
+        fail();
+    #endif
 
     // turn on the LED as soon as autoexec.bin is loaded (may happen without powering on)
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)

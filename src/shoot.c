@@ -56,6 +56,7 @@ int display_idle()
         ((!DISPLAY_IS_ON && CURRENT_DIALOG_MAYBE == 0) || (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler);
 }
 
+#ifndef CONFIG_5D3
 static char dcim_dir_suffix[6];
 static char dcim_dir[100];
 PROP_HANDLER(PROP_DCIM_DIR_SUFFIX)
@@ -67,6 +68,7 @@ const char* get_dcim_dir()
     snprintf(dcim_dir, sizeof(dcim_dir), CARD_DRIVE "DCIM/%03d%s", folder_number, dcim_dir_suffix);
     return dcim_dir;
 }
+#endif
 
 static float bulb_shutter_valuef = 1.0;
 #define BULB_SHUTTER_VALUE_MS (int)roundf(bulb_shutter_valuef * 1000.0)
@@ -208,6 +210,61 @@ static const char* format_time_hours_minutes_seconds(int seconds)
     
     return msg;
 }
+
+
+
+static int seconds_clock = 0;
+int get_seconds_clock() { return seconds_clock; } 
+
+static int ms100_clock = 0;
+int get_ms_clock_value() { return ms100_clock; }
+
+static void do_this_every_second() // called every second
+{
+    if (BULB_EXPOSURE_CONTROL_ACTIVE && !gui_menu_shown())
+        bulb_ramping_showinfo();
+
+    if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
+        info_led_blink(1, 50, 0);
+
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+    RefreshBatteryLevel_1Hz();
+    #endif
+    
+    reset_pre_shutdown_flag_step();
+}
+
+static int get_rtc_second()
+{
+    struct tm now;
+    LoadCalendarFromRTC( &now );
+    int s = now.tm_sec;
+    return s;
+}
+
+static void
+seconds_clock_task( void* unused )
+{
+    TASK_LOOP 
+    {
+        seconds_clock++;
+        ms100_clock = MAX(ms100_clock, seconds_clock * 1000); // don't let the clock go back
+
+        do_this_every_second();
+
+        int s0 = get_rtc_second();
+        do
+        {
+            msleep(100);
+            ms100_clock = MIN(ms100_clock + 100, (seconds_clock + 1) * 1000); // don't let this clock go faster than the RTC one
+            msleep(100);
+            ms100_clock = MIN(ms100_clock + 100, (seconds_clock + 1) * 1000);
+        }
+        while (get_rtc_second() == s0);
+    }
+}
+TASK_CREATE( "clock_task", seconds_clock_task, 0, 0x19, 0x1000 );
+
 
 typedef int (*CritFunc)(int);
 // crit returns negative if the tested value is too high, positive if too low, 0 if perfect
@@ -644,7 +701,7 @@ static int afframe[AFFRAME_PROP_LEN];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
     ASSERT(len == AFFRAME_PROP_LEN);
 
-    clear_lv_afframe(); 
+    clear_lv_afframe();
 
     crop_set_dirty(10);
     afframe_set_dirty();
@@ -744,6 +801,8 @@ void move_lv_afframe(int dx, int dy)
 #ifdef AFFRAME_PROP_LEN
     if (!liveview_display_idle()) return;
     if (is_movie_mode() && video_mode_crop) return;
+    if (recording && is_manual_focus()) // prop handler won't trigger, clear spotmeter 
+        clear_lv_afframe();
     afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
     afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
     prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
@@ -814,20 +873,6 @@ static char* silent_pic_get_name()
     bmp_printf(FONT_MED, 100, 80, "%s    ", imgname);
     return imgname;
 }
-
-static int ms100_clock = 0;
-static void
-ms100_clock_task( void* unused )
-{
-    TASK_LOOP
-    {
-        msleep(100);
-        ms100_clock += 100;
-    }
-}
-TASK_CREATE( "ms100_clock_task", ms100_clock_task, 0, 0x19, 0x1000 );
-
-int get_ms_clock_value() { return ms100_clock; }
 
 int expfuse_running = 0;
 static int expfuse_num_images = 0;
@@ -2776,15 +2821,6 @@ int handle_zoom_x5_x10(struct event * event)
     if (!lv) return 1;
     if (recording) return 1;
     
-    #ifdef CONFIG_5D3
-    //~ if (event->param == BGMT_TRUE_ZOOMIN)
-    //~ {
-        //~ fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
-        //~ fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
-        //~ return 0;
-    //~ }
-    #endif
-    
     if (!zoom_disable_x5 && !zoom_disable_x10) return 1;
     #ifdef CONFIG_600D
     if (get_disp_pressed()) return 1;
@@ -2944,7 +2980,7 @@ hdr_display( void * priv, int x, int y, int selected )
     }
 }
 
-#if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
+#if !defined(CONFIG_50D) && !defined(CONFIG_1100D)
 void hdr_display_status(int fnt)
 {
     if (HDR_ENABLED)
@@ -3296,30 +3332,6 @@ static int bramp_prev_shot_was_bad = 1;
 static float bramp_u1 = 0; // for the feedback controller: command at previous step
 static int bramp_last_exposure_rounding_error_evx1000;
 
-static int seconds_clock = 0;
-int get_seconds_clock() { return seconds_clock; } 
-
-static void
-seconds_clock_task( void* unused )
-{
-    TASK_LOOP 
-    {
-        wait_till_next_second();
-        seconds_clock++;
-
-        if (BULB_EXPOSURE_CONTROL_ACTIVE && !gui_menu_shown())
-            bulb_ramping_showinfo();
-
-        if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
-            info_led_blink(1, 50, 0);
-        
-        #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
-        RefreshBatteryLevel_1Hz();
-        #endif
-    }
-}
-TASK_CREATE( "seconds_clock_task", seconds_clock_task, 0, 0x19, 0x1000 );
-
 static int measure_brightness_level(int initial_wait)
 {
     msleep(initial_wait);
@@ -3543,6 +3555,8 @@ void bulb_ramping_init()
 {
     if (bramp_init_done) return;
     if (BULB_EXPOSURE_CONTROL_ACTIVE) set_shooting_mode(SHOOTMODE_M);
+    
+    msleep(2000);
 
     static char fn[50];
     for (int i = 0; i < 100; i++)
@@ -4333,30 +4347,30 @@ static struct menu_entry shoot_menus[] = {
                 .max = 30,
                 .help = "Picture is taken when frame difference is above threshold.",
             },
-	    	{
+            {
                 .name = "Detect Size",
                 .priv = &motion_detect_size, 
                 .min = 10,   
                 .max = 200,
                 .help = "Size of the area on which motion shall be detected",
             },
-	 	    {
-			.name = "Position",
-	            .priv = &motion_detect_position, 
-	            .max = 1,
-	            .choices = (const char *[]) {"Center", "Focus Box"},
-	            .icon_type = IT_DICE,
-	            .help = "Center of image or linked to focus box.",
+             {
+            .name = "Position",
+                .priv = &motion_detect_position, 
+                .max = 1,
+                .choices = (const char *[]) {"Center", "Focus Box"},
+                .icon_type = IT_DICE,
+                .help = "Center of image or linked to focus box.",
             },
-			{
-			.name = "Continuous shoot",
-				.priv = &motion_detect_shootnum,
-				.max = 100,
-				.min = 1,
-				.help = "Take x pictures when continuous mode slected",
-			},
-			MENU_EOL
-		}
+            {
+            .name = "Continuous shoot",
+                .priv = &motion_detect_shootnum,
+                .max = 100,
+                .min = 1,
+                .help = "Take x pictures when continuous mode slected",
+            },
+            MENU_EOL
+        }
 
     },
     {
@@ -5359,8 +5373,8 @@ void hdr_shot(int skip0, int wait)
     }
     else // regular pic (not HDR)
     {
-	int should_af = 1;
-	if(intervalometer_running && !interval_use_autofocus) should_af = 0;
+    int should_af = 1;
+    if(intervalometer_running && !interval_use_autofocus) should_af = 0;
         hdr_shutter_release(0, should_af); //Enable AF on intervalometer if the user wishes so, allow it otherwise
     }
 
@@ -5563,12 +5577,40 @@ static void mlu_step()
     }
 }
 
+void take_fast_pictures( int number ) {
+    // take fast pictures
+    if (
+        (
+            drive_mode == DRIVE_CONTINUOUS 
+            #ifdef DRIVE_HISPEED_CONTINUOUS
+            || drive_mode == DRIVE_HISPEED_CONTINUOUS
+            #endif
+        ) 
+        &&
+        (!silent_pic_enabled && !is_bulb_mode())
+       )
+    {
+        // continuous mode - simply hold shutter pressed 
+        int f0 = file_number;
+        SW1(1,100);
+        SW2(1,100);
+        while (file_number < f0+number && get_halfshutter_pressed()) {
+            msleep(10);
+        }
+        SW2(0,100);
+        SW1(0,100);
+    }
+    else
+    {
+        take_a_pic(0);
+    }
+}
 
 static void misc_shooting_info()
 {
     if (get_global_draw())
     {
-        #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
+        #if !defined(CONFIG_50D) && !defined(CONFIG_1100D)
         extern thunk ShootOlcApp_handler;
         if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown()
             && (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler)
@@ -5894,19 +5936,19 @@ shoot_task( void* unused )
         {
             K = COERCE(K+1, 0, 1000);
             //~ bmp_printf(FONT_MED, 0, 50, "K= %d   ", K);
-			int xcb = os.x0 + os.x_ex/2;
-			int ycb = os.y0 + os.y_ex/2;
+            int xcb = os.x0 + os.x_ex/2;
+            int ycb = os.y0 + os.y_ex/2;
 
-			if (motion_detect_position) // AF frame
-			{
-				get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
-				xcb += os.x0;
-				ycb += os.y0;
-				xcb = COERCE(xcb, os.x0 + motion_detect_size, os.x_max - motion_detect_size );
-				ycb = COERCE(ycb, os.y0 + motion_detect_size, os.y_max - motion_detect_size );
-	 	    }
+            if (motion_detect_position) // AF frame
+            {
+                get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
+                xcb += os.x0;
+                ycb += os.y0;
+                xcb = COERCE(xcb, os.x0 + (int)motion_detect_size, os.x_max - (int)motion_detect_size );
+                ycb = COERCE(ycb, os.y0 + (int)motion_detect_size, os.y_max - (int)motion_detect_size );
+             }
 
-			if (motion_detect_trigger == 0)
+            if (motion_detect_trigger == 0)
             {
                 int aev = 0;
                 //If the new value has changed by more than the detection level, shoot.
@@ -5918,7 +5960,7 @@ shoot_task( void* unused )
                 if (K > 40) bmp_printf(FONT_MED, 0, 80, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
                 if (K > 40 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
                 {
-					take_fast_pictures( motion_detect_shootnum );
+                    take_fast_pictures( motion_detect_shootnum );
                     K = 0;
                 }
                 if (K == 40) idle_force_powersave_in_1s();
@@ -5973,6 +6015,11 @@ shoot_task( void* unused )
             msleep(20);
             while (SECONDS_REMAINING > 0)
             {
+                if (bulb_ramping_enabled)
+                {
+                    bulb_ramping_init();
+                }
+
                 int dt = timer_values[interval_timer_index];
                 msleep(dt < 5 ? 20 : 300);
 
@@ -6026,11 +6073,6 @@ shoot_task( void* unused )
 
             if (!intervalometer_running) continue; // back to start of shoot_task loop
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;
-
-            if (bulb_ramping_enabled)
-            {
-                bulb_ramping_init();
-            }
 
             if (!intervalometer_running) continue;
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;
@@ -6143,11 +6185,16 @@ shoot_task( void* unused )
     }
 }
 
-TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x8000 );
+#ifndef CONFIG_5D3_MINIMAL
+TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x2000 );
+#endif
 
 void shoot_init()
 {
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
+
+#ifndef CONFIG_5D3_MINIMAL
+
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
 #ifndef CONFIG_5DC
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
@@ -6158,13 +6205,15 @@ void shoot_init()
     //~ menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
 
 #ifndef CONFIG_5DC
-	extern struct menu_entry expo_override_menus[];
+    extern struct menu_entry expo_override_menus[];
     menu_add( "Expo", expo_override_menus, 1 );
 #endif
 
 #if !defined(CONFIG_600D) && !defined(CONFIG_5DC) // expsim doesn't work
     extern struct menu_entry expo_tweak_menus[];
     menu_add( "Expo", expo_tweak_menus, 1 );
+#endif
+
 #endif
 }
 
@@ -6187,34 +6236,4 @@ void iso_refresh_display() // in photo mode
         }
     }
     #endif
-}
-
-
-void take_fast_pictures( int number ) {
-	// take fast pictures
-	if (
-		(
-		    drive_mode == DRIVE_CONTINUOUS 
-		    #ifdef DRIVE_HISPEED_CONTINUOUS
-		    || drive_mode == DRIVE_HISPEED_CONTINUOUS
-		    #endif
-		) 
-		&&
-		(!silent_pic_enabled && !is_bulb_mode())
-	   )
-	{
-		// continuous mode - simply hold shutter pressed 
-		int f0 = file_number;
-		SW1(1,100);
-		SW2(1,100);
-		while (file_number < f0+number && get_halfshutter_pressed()) {
-			msleep(10);
-		}
-		SW2(0,100);
-		SW1(0,100);
-	}
-	else
-	{
-		take_a_pic(0);
-	}
 }

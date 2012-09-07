@@ -130,6 +130,8 @@ Yes, because Magic Lantern runs from the card.
 
 If you prefer, you can use cards with Magic Lantern loaded, and cards without it. Just make sure you don't delete Magic Lantern files from the card; always format them from the camera, if possible.
 
+The 5D Mark III has two card slots, so you can install Magic Lantern on a SD card, keep that card permanently in the camera, and record images/movies on regular CF cards which can be freely swapped or formatted.
+
 ML saves settings on the card. Can I use the same settings for all my cards?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -275,7 +277,7 @@ It won't boot!
 
 * If the LED is blinking continuously, **you have the wrong Canon firmware version**.
 * Make sure you didn't delete ``AUTOEXEC.BIN`` from your ML card. If you did, format the card, take the battery out, and reboot.
-* If you still have problems, `ask on the forum <http://magiclantern.fm/forum/>`_.
+* If you still have problems, `ask on the forum <http://www.magiclantern.fm/forum/index.php?board=45.0>`_.
 
 After shutdown, it won't power on unless removing battery!
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

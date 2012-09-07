@@ -1059,80 +1059,6 @@ int tic()
     return now.tm_sec + now.tm_min * 60 + now.tm_hour * 3600 + now.tm_mday * 3600 * 24;
 }
 
-#if CONFIG_DEBUGMSG
-void card_benchmark_wr(int bufsize, int K, int N)
-{
-    FIO_RemoveFile(CARD_DRIVE "ML/LOGS/bench.tmp");
-    msleep(1000);
-    int n = 0x10000000 / bufsize;
-    {
-        FILE* f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/bench.tmp");
-        int t0 = tic();
-        int i;
-        for (i = 0; i < n; i++)
-        {
-            uint32_t start = 0x40000000;
-            bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
-            FIO_WriteFile( f, (const void *) start, bufsize );
-        }
-        FIO_CloseFile(f);
-        int t1 = tic();
-        int speed = 2560 / (t1 - t0);
-        console_printf("Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
-    }
-    SW1(1,100);
-    SW1(0,100);
-    msleep(1000);
-    if (bufsize > 1024*1024) console_printf("read test skipped: buffer=%d\n", bufsize);
-    else
-    {
-        void* buf = alloc_dma_memory(bufsize);
-        if (buf)
-        {
-            FILE* f = FIO_Open(CARD_DRIVE "ML/LOGS/bench.tmp", O_RDONLY | O_SYNC);
-            int t0 = tic();
-            int i;
-            for (i = 0; i < n; i++)
-            {
-                bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Reading: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
-                FIO_ReadFile(f, UNCACHEABLE(buf), bufsize );
-            }
-            FIO_CloseFile(f);
-            free_dma_memory(buf);
-            int t1 = tic();
-            int speed = 2560 / (t1 - t0);
-            console_printf("Read speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
-        }
-        else
-        {
-            console_printf("malloc error: buffer=%d\n", bufsize);
-        }
-    }
-
-    FIO_RemoveFile(CARD_DRIVE "ML/LOGS/bench.tmp");
-    msleep(1000);
-    SW1(1,100);
-    SW1(0,100);
-}
-
-void card_benchmark()
-{
-    console_printf("Card benchmark starting...\n");
-    card_benchmark_wr(16384, 1, 3);
-    card_benchmark_wr(131072, 2, 3);
-    card_benchmark_wr(16777216, 3, 3);
-    console_printf("Card benchmark done.\n");
-    console_show();
-}
-
-int card_benchmark_start = 0;
-void card_benchmark_schedule()
-{
-    gui_stop_menu();
-    card_benchmark_start = 1;
-}
-#endif
-
 /*static void dump_vram()
 {
     dump_big_seg(4, CARD_DRIVE "ML/LOGS/4.bin");
@@ -1530,7 +1456,7 @@ static inline int peak_d2xy(uint8_t* p8)
     return e;
 }
 
-static inline int peak_d2xy_hd(uint8_t* p8)
+static inline int peak_d2xy_hd(const uint8_t* p8)
 {
     // approximate second derivative with a Laplacian kernel:
     //     -1
@@ -2538,7 +2464,7 @@ zoom_overlay_display(
             zoom_overlay_size == 2 ? "Large," : "err",
 
         zoom_overlay_trigger_mode == 0 ? "" :
-            zoom_overlay_pos == 0 ? "AFF," :
+            zoom_overlay_pos == 0 ? "AFbox," :
             zoom_overlay_pos == 1 ? "NW," :
             zoom_overlay_pos == 2 ? "NE," :
             zoom_overlay_pos == 3 ? "SE," :
@@ -2591,7 +2517,7 @@ spotmeter_menu_display(
         spotmeter_formula == 4 ? "RGB" :
         spotmeter_formula == 5 ? "HSL" :
         /*spotmeter_formula == 6*/"HSV",
-        spotmeter_draw && spotmeter_position ? ", AFF" : ""
+        spotmeter_draw && spotmeter_position ? ", AFbox" : ""
     );
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
 }
@@ -3218,6 +3144,7 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"1st deriv.", "2nd deriv.", "Nyquist H"},
                 .help = "Contrast detection method. 2: more accurate, 1: less noisy.",
             },*/
+            #ifndef CONFIG_5D3_MINIMAL
             {
                 .name = "Display type",
                 .priv = &focus_peaking_disp, 
@@ -3225,6 +3152,7 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"Blinking dots", "Fine dots", "Alpha blend", "Raw"},
                 .help = "How to display peaking. Alpha looks nicer, but image lags.",
             },
+            #endif
             {
                 .name = "Threshold", 
                 .priv = &focus_peaking_pthr,
@@ -3255,6 +3183,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
+    #ifndef CONFIG_5D3_MINIMAL // flickers a lot
     {
         .name = "Magic Zoom",
         .priv = &zoom_overlay_enabled,
@@ -3322,6 +3251,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
+    #endif
     {
         .name = "Cropmarks",
         .priv = &crop_enabled,
@@ -3356,6 +3286,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
+    #ifndef CONFIG_5D3_MINIMAL
     {
         .name = "Ghost image",
         .priv = &transparent_overlay, 
@@ -3364,6 +3295,7 @@ struct menu_entry zebra_menus[] = {
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
         //.essential = FOR_PLAYBACK,
     },
+    #endif
     {
         .name = "Spotmeter",
         .priv           = &spotmeter_draw,
@@ -3391,6 +3323,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         }
     },
+    #ifndef CONFIG_5D3_MINIMAL
     {
         .name = "False color",
         .priv       = &falsecolor_draw,
@@ -3411,6 +3344,7 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         }
     },
+    #endif
 /*  {
         .name = "Histo/Wavefm",
         .priv       = &hist_draw,
@@ -3529,13 +3463,6 @@ struct menu_entry livev_dbg_menus[] = {
         .max = 1,
         .help = "Show the frame rate of LiveV loop (zebras, peaking)"
     },
-#if CONFIG_DEBUGMSG
-    {
-        .priv = "Card Benchmark",
-        .select = card_benchmark_schedule,
-        .display = menu_print,
-    },
-#endif
     /*
     {
         .priv = "Dump RAM",
@@ -3998,14 +3925,18 @@ int handle_zoom_overlay(struct event * event)
     if (recording && liveview_display_idle() && is_manual_focus())
     {
         if (event->param == BGMT_PRESS_LEFT)
-            { move_lv_afframe(-200, 0); return 0; }
+            { move_lv_afframe(-300, 0); return 0; }
         if (event->param == BGMT_PRESS_RIGHT)
-            { move_lv_afframe(200, 0); return 0; }
+            { move_lv_afframe(300, 0); return 0; }
         if (event->param == BGMT_PRESS_UP)
-            { move_lv_afframe(0, -200); return 0; }
+            { move_lv_afframe(0, -300); return 0; }
         if (event->param == BGMT_PRESS_DOWN)
-            { move_lv_afframe(0, 200); return 0; }
-        #ifndef CONFIG_4_3_SCREEN
+            { move_lv_afframe(0, 300); return 0; }
+
+        #ifdef CONFIG_5D3
+        if (event->param == BGMT_JOY_CENTER)
+            { center_lv_afframe(); return 0; }
+        #elif !defined(CONFIG_4_3_SCREEN)
         if (event->param == BGMT_PRESS_SET)
             { center_lv_afframe(); return 0; }
         #endif
@@ -5265,14 +5196,6 @@ livev_hipriority_task( void* unused )
             if (kmm == 5)
                 if (lv) movie_indicators_show();
         }
-
-#if CONFIG_DEBUGMSG
-        if (card_benchmark_start)
-        {
-            card_benchmark();
-            card_benchmark_start = 0;
-        }
-#endif
     }
 }
 
@@ -5406,8 +5329,8 @@ livev_lopriority_task( void* unused )
 
 #define HIPRIORITY_TASK_PRIO 0x18
 
-TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, HIPRIORITY_TASK_PRIO, 0x4000 );
-TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x4000 );
+TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, HIPRIORITY_TASK_PRIO, 0x2000 );
+TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x2000 );
 
 // these may be out of order for config compatibility
 void update_disp_mode_bits_from_params()
@@ -5584,13 +5507,15 @@ static void zebra_init()
 #ifndef CONFIG_5DC
     menu_add( "Overlay", zebra_menus, COUNT(zebra_menus) );
 #endif
-    menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
+    //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
+#ifndef CONFIG_5D3_MINIMAL
 #ifndef CONFIG_5DC
     menu_add( "Prefs", powersave_menus, COUNT(powersave_menus) );
 #endif
     menu_add( "Display", level_indic_menus, COUNT(level_indic_menus) );
+#endif
 }
 
 INIT_FUNC(__FILE__, zebra_init);
@@ -5825,17 +5750,17 @@ void play_422(char* filename)
     yuv_resize(buf, w, h, (uint32_t*)vram->vram, vram->width, vram->height);
 }
 
-/*void peaking_benchmark()
+void peaking_benchmark()
 {
-    fake_simple_button(BGMT_PLAY);
     msleep(1000);
+    fake_simple_button(BGMT_PLAY);
+    msleep(2000);
     int a = get_seconds_clock();
     for (int i = 0; i < 1000; i++)
     {
         draw_zebra_and_focus(0,1);
     }
     int b = get_seconds_clock();
-    NotifyBox(10000, "%d ", b-a);
+    NotifyBox(10000, "%d seconds => %d fps", b-a, 1000 / (b-a));
     beep();
 }
-*/

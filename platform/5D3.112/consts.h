@@ -1,4 +1,4 @@
-#define CARD_DRIVE "A:/"
+#define CARD_DRIVE ""
 #define CARD_LED_ADDRESS 0xC022C06C // http://magiclantern.wikia.com/wiki/Led_addresses
 
 // thanks Indy
@@ -192,11 +192,15 @@
 #define MENU_DISP_ISO_POS_X 500
 #define MENU_DISP_ISO_POS_Y 27
 
+// for HDR status
+#define HDR_STATUS_POS_X 140
+#define HDR_STATUS_POS_Y 460
+
 // for displaying TRAP FOCUS msg outside LV
-#define DISPLAY_TRAP_FOCUS_POS_X 500
-#define DISPLAY_TRAP_FOCUS_POS_Y 320
-#define DISPLAY_TRAP_FOCUS_MSG       "TRAP \nFOCUS"
-#define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
+#define DISPLAY_TRAP_FOCUS_POS_X 50
+#define DISPLAY_TRAP_FOCUS_POS_Y 360
+#define DISPLAY_TRAP_FOCUS_MSG       "TRAP FOCUS"
+#define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
 #define NUM_PICSTYLES 9
 #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)

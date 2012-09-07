@@ -13,6 +13,10 @@
 #include "lens.h"
 #include "math.h"
 
+#ifdef CONFIG_5D3_MINIMAL
+#include "disable-this-module.h"
+#endif
+
 #ifdef CONFIG_4_3_SCREEN
 #define CONFIG_BLUE_LED 1
 #endif
@@ -969,6 +973,75 @@ int gain_to_ev_x8(int gain)
     return (int) roundf(log2f(gain) * 8.0);
 }
 
+CONFIG_INT("iso.smooth", smooth_iso, 0);
+void smooth_iso_step()
+{
+    if (!smooth_iso) return;
+    if (!is_movie_mode()) return;
+    if (!lv) return;
+    if (!lens_info.raw_iso) return; // no auto iso
+    
+    static int prev_iso = -1;
+    int current_iso = FRAME_ISO & 0xFF;
+    
+    static int iso_acc = 0;
+    
+    static int k = 0; k++;
+    
+    if (prev_iso != current_iso && prev_iso > 0)
+    {
+        iso_acc += (prev_iso - current_iso) * 5;
+    }
+    if (iso_acc)
+    {
+        int g = (int) roundf(1024.0 * powf(2, iso_acc / 40.0));
+
+        // it's not a good idea to use a digital ISO gain higher than +/- 0.5 EV (noise or pink highlights), 
+        // so alter it via FRAME_ISO
+        extern int digic_iso_gain_movie;
+        #define G_ADJ (digic_iso_gain_movie ? g * digic_iso_gain_movie / 1024 : g)
+        int altered_iso = current_iso;
+        while (G_ADJ > 1448 
+            #ifndef CONFIG_5D3
+            && altered_iso < 120
+            #endif
+        ) 
+        {
+            altered_iso += 8;
+            g /= 2;
+        }
+        while (G_ADJ < 724 && altered_iso > 80) 
+        {
+            altered_iso -= 8;
+            g *= 2;
+        }
+        #ifndef CONFIG_5D3
+        if (altered_iso >= 112) // above ISO 3200 we have digital gain and it's difficult to handle smoothly
+        {
+            altered_iso = 112;
+        }
+        #endif
+        if (altered_iso != current_iso)
+        {
+            FRAME_ISO = altered_iso | (altered_iso << 8);
+        }
+
+        #if defined(CONFIG_5D2) || defined(CONFIG_550D) || defined(CONFIG_50D)
+        // FRAME_ISO not synced perfectly, use digital gain to mask the flicker
+        static int prev_altered_iso = 0;
+        if (prev_altered_iso && prev_altered_iso != altered_iso)
+            g = g * (int)roundf(powf(2, 10 + (altered_iso - prev_altered_iso) / 8.0)) / 1024;
+        prev_altered_iso = altered_iso;
+        #endif
+        
+        set_movie_digital_iso_gain_extra(g);
+        if (iso_acc > 0) iso_acc--; else iso_acc++;
+    }
+    else set_movie_digital_iso_gain_extra(1024);
+    
+    prev_iso = current_iso;
+}
+
 static struct menu_entry mov_menus[] = {
 #ifdef CONFIG_50D
     {
@@ -1119,6 +1192,12 @@ static struct menu_entry mov_menus[] = {
         //.essential = FOR_MOVIE,
     },
 #endif
+    {
+        .name = "Smooth ISO",
+        .priv = &smooth_iso,
+        .max = 1,
+        .help = "Use gradual ISO changes when recording.",
+    },
 };
 
 struct menu_entry expo_override_menus[] = {

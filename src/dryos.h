@@ -511,6 +511,8 @@ OS_FUNCTION( 0x0400001,	const char*,	get_card_drive, void );
 
 extern int _dummy_variable;
 
+const char* get_dcim_dir();
+
 // for optimization
 #define unlikely(exp) __builtin_expect(exp,0)
 #define likely(exp) __builtin_expect(exp,1)
