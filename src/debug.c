@@ -2550,12 +2550,14 @@ struct menu_entry debug_menus[] = {
         .submenu_width = 650,
         //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
+            #ifndef CONFIG_5D3_MINIMAL // will change some settings and you can't restore them
             {
                 .name = "Quick test (around 15 min)",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = stress_test_task,
                 .help = "A quick test which covers basic functionality. "
             },
+            #endif
             {
                 .name = "Random tests (infinite loop)",
                 .select = (void(*)(void*,int))run_in_separate_task,
@@ -3407,7 +3409,9 @@ void HijackFormatDialogBox_main()
 
 void config_menu_init()
 {
-#ifndef CONFIG_5D3_MINIMAL
+#ifdef CONFIG_5D3_MINIMAL
+    menu_add( "Debug", cfg_menus, COUNT(cfg_menus) );
+#else
 
     extern struct menu_entry livev_cfg_menus[];
     //~ extern struct menu_entry menu_cfg_menu[];
