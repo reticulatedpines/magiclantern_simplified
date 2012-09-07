@@ -72,4 +72,3 @@ UserGuide-cam.tex-e
 platform/all/ML
 zip.txt
 syntax: regexp
-^plugins/(.*)/\1$
