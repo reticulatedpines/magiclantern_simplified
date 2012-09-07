@@ -69,7 +69,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
    // state: 0=ready, 1=wait, 2=susp, other=wait+s
 
   int x = 5;
-  int y = 10;
+  int y = 5;
   
   bmp_printf(FONT_MED, x, y, what_tasks_to_show == 1 ? "Canon tasks" : "ML tasks");
   y += font_med.height;

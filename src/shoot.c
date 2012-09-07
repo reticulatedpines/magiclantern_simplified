@@ -230,6 +230,8 @@ static void do_this_every_second() // called every second
     #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
     RefreshBatteryLevel_1Hz();
     #endif
+    
+    reset_pre_shutdown_flag_step();
 }
 
 static int get_rtc_second()

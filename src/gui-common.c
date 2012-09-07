@@ -113,7 +113,7 @@ int handle_common_events_startup(struct event * event)
         if (event->param == BGMT_MENU) return 0; // otherwise would interfere with swap menu-erase
         #endif
         
-        #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
+        #if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
         if (event->param == BGMT_LV) return 0; // discard REC button if it's pressed too early
         #endif
                 
@@ -126,10 +126,10 @@ extern int ResumeLiveView();
 
 static int pre_shutdown_requested = 0; // used for preventing wakeup from paused LiveView at shutdown (causes race condition with Canon code and crashes)
 
-void reset_pre_shutdown_flag_task()
+void reset_pre_shutdown_flag_step() // called every second
 {
-    msleep(4000);
-    pre_shutdown_requested = 0;
+    if (pre_shutdown_requested)
+        pre_shutdown_requested--;
 }
 
 int handle_common_events_by_feature(struct event * event)
@@ -142,12 +142,11 @@ int handle_common_events_by_feature(struct event * event)
         event->param == GMT_GUICMD_OPEN_SLOT_COVER || 
         event->param == GMT_GUICMD_LOCK_OFF)
     {
-        pre_shutdown_requested = 1;
+        pre_shutdown_requested = 4;
         config_save_at_shutdown();
-        task_create("pre_shutdown_reset", 0x1c, 0x1000, reset_pre_shutdown_flag_task, 0); // if false shutdown, reset this after a few seconds
         return 1;
     }
-    
+
     if (LV_PAUSED && event->param != GMT_OLC_INFO_CHANGED) 
     { 
         int ans =  (ml_shutdown_requested || pre_shutdown_requested || sensor_cleaning || PLAY_MODE || MENU_MODE);
@@ -168,12 +167,13 @@ int handle_common_events_by_feature(struct event * event)
 
     if (handle_upside_down(event) == 0) return 0;
     if (handle_ml_menu_keys(event) == 0) return 0;
-   
+       
     if (handle_digic_poke(event) == 0) return 0;
     spy_event(event); // for debugging only
     if (handle_shutter_events(event) == 0) return 0;
     if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
     
+
     if (handle_buttons_being_held(event) == 0) return 0;
     //~ if (handle_morse_keys(event) == 0) return 0;
     
@@ -187,7 +187,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_livev_playback(event, BTN_ZEBRAS_FOR_PLAYBACK) == 0) return 0;
     if (handle_af_patterns(event) == 0) return 0;
     if (handle_set_wheel_play(event) == 0) return 0;
-    
+
     //~ #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
     #ifndef CONFIG_5D3_MINIMAL
     if (handle_arrow_keys(event) == 0) return 0;
