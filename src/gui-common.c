@@ -208,6 +208,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_quick_access_menu_items(event) == 0) return 0;
     #endif
     
+#ifndef CONFIG_5D3
     #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
     if (MENU_MODE && (event->param == BGMT_Q
         #ifdef BGMT_Q_ALT
@@ -221,9 +222,8 @@ int handle_common_events_by_feature(struct event * event)
     #ifdef CONFIG_5D2
     if (MENU_MODE && event->param == BGMT_PICSTYLE)
     #endif
-    #ifndef CONFIG_5D3
          return handle_keep_ml_after_format_toggle();
-    #endif
+#endif
     
     if (handle_bulb_ramping_keys(event) == 0) return 0;
 

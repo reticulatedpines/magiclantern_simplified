@@ -3553,6 +3553,8 @@ void bulb_ramping_init()
 {
     if (bramp_init_done) return;
     if (BULB_EXPOSURE_CONTROL_ACTIVE) set_shooting_mode(SHOOTMODE_M);
+    
+    msleep(2000);
 
     static char fn[50];
     for (int i = 0; i < 100; i++)
@@ -6011,6 +6013,11 @@ shoot_task( void* unused )
             msleep(20);
             while (SECONDS_REMAINING > 0)
             {
+                if (bulb_ramping_enabled)
+                {
+                    bulb_ramping_init();
+                }
+
                 int dt = timer_values[interval_timer_index];
                 msleep(dt < 5 ? 20 : 300);
 
@@ -6064,11 +6071,6 @@ shoot_task( void* unused )
 
             if (!intervalometer_running) continue; // back to start of shoot_task loop
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;
-
-            if (bulb_ramping_enabled)
-            {
-                bulb_ramping_init();
-            }
 
             if (!intervalometer_running) continue;
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;
