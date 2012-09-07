@@ -140,12 +140,12 @@
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
 // macros copied from arm-console
-#define MVR_BUFFER_USAGE_FRAME ABS(div_maybe(-MEM(832 + MVR_516_STRUCT) + MEM(500 + MVR_516_STRUCT), MEM(668 + MVR_516_STRUCT)))
-#define MVR_BUFFER_USAGE_SOUND div_maybe(-100*MEM(708 + MVR_516_STRUCT) + 100*MEM(696 + MVR_516_STRUCT), 0xa)
+#define MVR_BUFFER_USAGE_FRAME MAX(MEM(MVR_516_STRUCT + 0x578), MEM(MVR_516_STRUCT + 0x57C))
+#define MVR_BUFFER_USAGE_SOUND 0 // not sure
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
 #define MVR_FRAME_NUMBER  (*(int*)(0x1F4 + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN 0 // idk; 5D2: (*(int*)(0xE4 + MVR_516_STRUCT)) // in mvrSMEncodeDone
+#define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))
 
 #define MOV_RES_AND_FPS_COMBINATIONS 5 // 3 fullhd, 2 hd, not changing the two VGA modes; worth trying with 9
 #define MOV_OPT_NUM_PARAMS 2

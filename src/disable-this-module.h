@@ -18,7 +18,7 @@
 
 
 #define PROP_HANDLER(id) \
-static void * _prop_handler_##id( \
+static void _prop_handler_##id( \
         unsigned                property, \
         void *                  token, \
         uint32_t *              buf, \
