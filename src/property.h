@@ -249,6 +249,12 @@
 #define ALO_HIGH 2
 #define ALO_OFF 3
 
+#ifdef CONFIG_5D3
+#define PROP_HTP 0x8000004a
+#define PROP_MULTIPLE_EXPOSURE 0x0202000c
+#define PROP_MLU 0x80000047
+#endif
+
 /** Job progress
  * 0xB == capture end?
  * 0xA == start face catch pass?
