@@ -43,6 +43,8 @@ CFLAGS=\
 	-nostartfiles \
 	-ffreestanding
 
+CFLAGS += $(CFLAG_USER)
+
 all: $(PLUGIN_NAME).bin
 
 #$(PLUGIN_BASE_DIR)/entry.o: FORCE

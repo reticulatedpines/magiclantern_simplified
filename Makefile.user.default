@@ -18,6 +18,9 @@ HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
 PYTHON=python2
 
+# You can customize CFLAG here
+#CFLAG_USER = -mlong-calls \
+
 # Naming convention for Magic Lantern builds:
 # General rules:
 # - Always specify the camera and its firmware version number in the build name (e.g. 550d.fw109)
