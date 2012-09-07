@@ -77,8 +77,8 @@ void tasks_print(void* priv, int x0, int y0, int selected)
   //~ int k = 0;
 
   c = 1;
-  bmp_printf(FONT_SMALL, x, y, "task_max=%d", task_max);
-  y += font_small.height;
+  bmp_printf(FONT_SMALL, x + 8*30, y - font_small.height, "task_max=%d", task_max);
+  //~ y += font_small.height;
   for (c=1; c<(int)task_max; c++) {
     r = is_taskid_valid(1, c, &task_attr); // ok
     if (r==0) {
@@ -103,7 +103,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
       #else
       y += font_small.height;
       #endif
-      if (y > 410)
+      if (y > 420)
       {
           x += 360;
           y = 10;
