@@ -119,7 +119,6 @@ CFLAGS=\
 	-Os \
 	-Wall \
 	-W \
-    -DCONFIG_AUDIO_600D_DEBUG \
 	-mstructure-size-boundary=32 \
 	-Wno-unused-parameter \
 	-Wno-implicit-function-declaration \
@@ -130,10 +129,6 @@ CFLAGS=\
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
-
-ifeq ($(UNAME), Darwin)
-CFLAGS += -mlong-calls 
-endif
 
 ifeq ($(CONFIG_PYMITE),y)
 CFLAGS += $(PYMITE_CFLAGS)
