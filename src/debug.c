@@ -545,9 +545,6 @@ void run_test()
     #endif
 #endif
     //^^^^^^^^^^^to here^^^^^^^^
-    int s = compute_signature((int*)0xFF010000, 0x10000);
-    NotifyBox(10000, "%x ", s);
-    //~ debug_intercept();
 
     msleep(2000);
     while(1)
@@ -564,7 +561,6 @@ void run_test()
         }
         msleep(10);
     }
->>>>>>> other
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
