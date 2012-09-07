@@ -14,10 +14,8 @@
 #include "version.h"
 //#include "lua.h"
 
-#ifdef CONFIG_AUDIO_600D_DEBUG
-#ifdef CONFIG_600D
+#if defined(CONFIG_600D) && defined(CONFIG_AUDIO_600D_DEBUG)
 void audio_reg_dump_once();
-#endif
 #endif
 
 #define CONFIG_STRESS_TEST
@@ -539,10 +537,8 @@ void iso_movie_test()
 void run_test()
 {
     //delete when finish debugging
-#ifdef CONFIG_AUDIO_600D_DEBUG
-    #ifdef CONFIG_600D
+#if defined(CONFIG_600D) && defined(CONFIG_AUDIO_600D_DEBUG)
     audio_reg_dump_once();
-    #endif
 #endif
     //^^^^^^^^^^^to here^^^^^^^^
 
