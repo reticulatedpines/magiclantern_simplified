@@ -97,7 +97,7 @@ CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
 int loopback = 1;
 //CONFIG_INT( "audio.input-source",     input_source,           0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced
 CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
-CONFIG_INT( "audio.filters",    enable_filters,       1 ); //disable the HPF, LPF and pre-emphasis filters
+CONFIG_INT( "audio.filters",    enable_filters,        1 ); //disable the HPF, LPF and pre-emphasis filters
 CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
 #ifdef CONFIG_500D
 CONFIG_INT("audio.monitoring", audio_monitoring, 0);
@@ -1192,14 +1192,7 @@ audio_ic_set_analog_gain(){
 
 	int volumes[] = { 0x00, 0x0c, 0x10, 0x18, 0x24, 0x30, 0x3c, 0x3f};
     //mic in vol 0-7 0b1-0b111111
-	if(cfg_analog_gain > 7){
-        int boost_vol = cfg_analog_gain - 8;
-        audio_ic_write(ML_MIC_IN_VOL   | volumes[7]);   //override mic in volume
-        //        audio_ic_set_micboost(boost_vol);
-    }else{
-        audio_ic_write(ML_MIC_IN_VOL   | volumes[cfg_analog_gain]);   //override mic in volume
-        //audio_ic_set_micboost(0);
-    } 	
+    audio_ic_write(ML_MIC_IN_VOL   | volumes[cfg_analog_gain]);   //override mic in volume
 }
 
 static void
@@ -1452,8 +1445,6 @@ audio_configure( int force )
 #endif
 
 #ifdef CONFIG_600D
-
-
     if(cfg_override_audio == 0){
         audio_ic_off();
         return;
