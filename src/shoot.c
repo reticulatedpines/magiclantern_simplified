@@ -2939,7 +2939,7 @@ hdr_display( void * priv, int x, int y, int selected )
     }
 }
 
-#if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
+#if !defined(CONFIG_50D) && !defined(CONFIG_1100D)
 void hdr_display_status(int fnt)
 {
     if (HDR_ENABLED)
