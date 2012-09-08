@@ -5965,11 +5965,18 @@ shoot_task( void* unused )
                 //TODO: maybe get the spot yuv of the target box
                 get_spot_yuv_ex(motion_detect_size, xcb-os.x_max/2, ycb-os.y_max/2, &y, &u, &v);
                 aev = y / 2;
-                if (K > 40) bmp_printf(FONT_MED, 0, 80, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
+                if (K > 40) bmp_printf(FONT_MED, 0, 80, " Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
                 if (K > 40 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
                 {
-					msleep(motion_detect_delay*100);
-					take_fast_pictures( motion_detect_shootnum );
+					if (motion_detect_delay>1) {
+						for (int t=0; t<motion_detect_delay; t++) {
+							bmp_printf(FONT_MED, 0, 80, " Taking picture in %ds   ", (int)(motion_detect_delay-t)/10);
+							msleep(100);
+							int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
+							if (!mdx) break;
+						}
+					}
+					if (!mdx) take_fast_pictures( motion_detect_shootnum );
                     K = 0;
                 }
                 if (K == 40) idle_force_powersave_in_1s();
@@ -5978,11 +5985,18 @@ shoot_task( void* unused )
             else if (motion_detect_trigger == 1) 
             {
                 int d = get_spot_motion(motion_detect_size, xcb, ycb, get_global_draw());
-                if (K > 20) bmp_printf(FONT_MED, 0, 80, "Motion level: %d   ", d);
+                if (K > 20) bmp_printf(FONT_MED, 0, 80, " Motion level: %d   ", d);
                 if (K > 20 && d >= (int)motion_detect_level)
                 {
-					msleep(motion_detect_delay*100);
-                    take_fast_pictures( motion_detect_shootnum );
+					if (motion_detect_delay>1) {
+						for (int t=0; t<motion_detect_delay; t++) {
+							bmp_printf(FONT_MED, 0, 80, " Taking picture in %ds   ", (int)(motion_detect_delay-t)/10);
+							msleep(100);
+							int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
+							if (!mdx) break;
+						}
+					}
+					if (!mdx) take_fast_pictures( motion_detect_shootnum );
                     K = 0;
                 }
                 if (K == 40) idle_force_powersave_in_1s();
