@@ -69,7 +69,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
    // state: 0=ready, 1=wait, 2=susp, other=wait+s
 
   int x = 5;
-  int y = 10;
+  int y = 5;
   
   bmp_printf(FONT_MED, x, y, what_tasks_to_show == 1 ? "Canon tasks" : "ML tasks");
   y += font_med.height;
@@ -77,8 +77,8 @@ void tasks_print(void* priv, int x0, int y0, int selected)
   //~ int k = 0;
 
   c = 1;
-  bmp_printf(FONT_SMALL, x, y, "task_max=%d", task_max);
-  y += font_small.height;
+  bmp_printf(FONT_SMALL, x + 8*30, y - font_small.height, "task_max=%d", task_max);
+  //~ y += font_small.height;
   for (c=1; c<(int)task_max; c++) {
     r = is_taskid_valid(1, c, &task_attr); // ok
     if (r==0) {
@@ -96,14 +96,14 @@ void tasks_print(void* priv, int x0, int y0, int selected)
      
      int mem_percent = task_attr.used * 100 / task_attr.size;
      
-     bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED, 38)), x, y, "%02d %s: p=%2x w=%2x m=%2d%% %d\n", 
+     bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, c >= 99 ? COLOR_RED : mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED, 38)), x, y, "%02d %s: p=%2x w=%2x m=%2d%% %d\n", 
         c, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
       #if defined(CONFIG_5D3) || defined(CONFIG_60D)
       y += font_small.height - (what_tasks_to_show==1 ? 2 : 0); // too many tasks - they don't fit on the screen :)
       #else
       y += font_small.height;
       #endif
-      if (y > 410)
+      if (y > 420)
       {
           x += 360;
           y = 10;

@@ -1,4 +1,4 @@
-#define CARD_DRIVE "A:/"
+#define CARD_DRIVE ""
 #define CARD_LED_ADDRESS 0xC022C06C // http://magiclantern.wikia.com/wiki/Led_addresses
 
 // thanks Indy
@@ -140,12 +140,12 @@
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
 // macros copied from arm-console
-#define MVR_BUFFER_USAGE_FRAME ABS(div_maybe(-MEM(832 + MVR_516_STRUCT) + MEM(500 + MVR_516_STRUCT), MEM(668 + MVR_516_STRUCT)))
-#define MVR_BUFFER_USAGE_SOUND div_maybe(-100*MEM(708 + MVR_516_STRUCT) + 100*MEM(696 + MVR_516_STRUCT), 0xa)
+#define MVR_BUFFER_USAGE_FRAME MAX(MEM(MVR_516_STRUCT + 0x578), MEM(MVR_516_STRUCT + 0x57C))
+#define MVR_BUFFER_USAGE_SOUND 0 // not sure
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
 #define MVR_FRAME_NUMBER  (*(int*)(0x1F4 + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN 0 // idk; 5D2: (*(int*)(0xE4 + MVR_516_STRUCT)) // in mvrSMEncodeDone
+#define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))
 
 #define MOV_RES_AND_FPS_COMBINATIONS 5 // 3 fullhd, 2 hd, not changing the two VGA modes; worth trying with 9
 #define MOV_OPT_NUM_PARAMS 2
@@ -192,11 +192,15 @@
 #define MENU_DISP_ISO_POS_X 500
 #define MENU_DISP_ISO_POS_Y 27
 
+// for HDR status
+#define HDR_STATUS_POS_X 140
+#define HDR_STATUS_POS_Y 460
+
 // for displaying TRAP FOCUS msg outside LV
-#define DISPLAY_TRAP_FOCUS_POS_X 500
-#define DISPLAY_TRAP_FOCUS_POS_Y 320
-#define DISPLAY_TRAP_FOCUS_MSG       "TRAP \nFOCUS"
-#define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
+#define DISPLAY_TRAP_FOCUS_POS_X 50
+#define DISPLAY_TRAP_FOCUS_POS_Y 360
+#define DISPLAY_TRAP_FOCUS_MSG       "TRAP FOCUS"
+#define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
 #define NUM_PICSTYLES 9
 #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)

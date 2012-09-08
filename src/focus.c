@@ -13,6 +13,11 @@
 #include "config.h"
 #include "ptp.h"
 
+#ifdef CONFIG_5D3_MINIMAL
+#include "disable-this-module.h"
+#endif
+
+
 void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
 

@@ -299,6 +299,7 @@ void update_vram_params()
     #elif defined(CONFIG_5D3)
     int bar_x = 0;
     int bar_y = is_movie_mode() && video_mode_resolution == 1 ? os.off_169 : 0;
+    off_43+=0; // bypass warning
     #elif defined(CONFIG_500D)
     int bar_x = 0;
     int bar_y = 0;
@@ -501,7 +502,7 @@ struct vram_info * get_yuv422_vram()
         uint32_t* src_buf;
         uint32_t* dst_buf;
         display_filter_get_buffers(&src_buf, &dst_buf);
-        vram_lv.vram = d == 1 ? dst_buf : src_buf;
+        vram_lv.vram = (void*)(d == 1 ? dst_buf : src_buf);
         return &vram_lv;
     }
 

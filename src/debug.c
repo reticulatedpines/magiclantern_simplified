@@ -15,6 +15,7 @@
 //#include "lua.h"
 
 #define CONFIG_STRESS_TEST
+#define CONFIG_BENCHMARKS
 //~ #define CONFIG_HEXDUMP
 #undef CONFIG_ISO_TESTS
 //~ #define CONFIG_DEBUGMSG 1
@@ -45,7 +46,6 @@ void HijackFormatDialogBox_main();
 void config_menu_init();
 void display_on();
 void display_off();
-char* get_dcim_dir();
 
 
 void fake_halfshutter_step();
@@ -532,7 +532,21 @@ void iso_movie_test()
 
 void run_test()
 {
-    //~ debug_intercept();
+    msleep(2000);
+    while(1)
+    {
+        if (DISPLAY_IS_ON) 
+        {
+            static int r1 = 1;
+            static int r2 = 1;
+            if (rand()%30 == 1) r1 = !r1;
+            if (rand()%30 == 1) r2 = !r2;
+            int inc = (r1 ? 1 : -1) + (r2 ? 0x100 : -0x100);
+            EngDrvOut(0xC0F14400, (MEMX(0xC0F14400) + inc) & 0xFFFF);
+            EngDrvOut(0xC0F14800, (MEMX(0xC0F14800) + inc) & 0xFFFF);
+        }
+        msleep(10);
+    }
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -541,6 +555,88 @@ void run_in_separate_task(void (*priv)(void), int delta)
     if (!priv) return;
     task_create("run_test", 0x1a, 0x1000, priv, 0);
 }
+
+
+#ifdef CONFIG_BENCHMARKS
+void card_benchmark_wr(int bufsize, int K, int N)
+{
+    int x = 0;
+    static int y = 50;
+    if (K == 1) y = 50;
+    
+    FIO_RemoveFile(CARD_DRIVE"bench.tmp");
+    msleep(1000);
+    int n = 0x10000000 / bufsize;
+    {
+        FILE* f = FIO_CreateFileEx(CARD_DRIVE"bench.tmp");
+        int t0 = tic();
+        int i;
+        for (i = 0; i < n; i++)
+        {
+            uint32_t start = 0x40000000;
+            bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
+            FIO_WriteFile( f, (const void *) start, bufsize );
+        }
+        FIO_CloseFile(f);
+        int t1 = tic();
+        int speed = 2560 / (t1 - t0);
+        bmp_printf(FONT_MED, x, y += font_med.height, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
+    }
+    SW1(1,100);
+    SW1(0,100);
+    msleep(1000);
+    if (bufsize > 1024*1024) bmp_printf(FONT_MED, x, y += font_med.height, "read test skipped: buffer=%d\n", bufsize);
+    else
+    {
+        void* buf = alloc_dma_memory(bufsize);
+        if (buf)
+        {
+            FILE* f = FIO_Open(CARD_DRIVE"bench.tmp", O_RDONLY | O_SYNC);
+            int t0 = tic();
+            int i;
+            for (i = 0; i < n; i++)
+            {
+                bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Reading: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
+                FIO_ReadFile(f, UNCACHEABLE(buf), bufsize );
+            }
+            FIO_CloseFile(f);
+            free_dma_memory(buf);
+            int t1 = tic();
+            int speed = 2560 / (t1 - t0);
+            bmp_printf(FONT_MED, x, y += font_med.height, "Read speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
+        }
+        else
+        {
+            bmp_printf(FONT_MED, x, y += font_med.height, "malloc error: buffer=%d\n", bufsize);
+        }
+    }
+
+    FIO_RemoveFile(CARD_DRIVE"bench.tmp");
+    msleep(1000);
+    SW1(1,100);
+    SW1(0,100);
+}
+
+void card_benchmark_task()
+{
+    #ifdef CONFIG_5D3
+    extern int card_select;
+    NotifyBox(2000, "%s Benchmark (256 MB)...", card_select == 1 ? "CF" : "SD");
+    #else
+    NotifyBox(2000, "Card benchmark (256 MB)...");
+    #endif
+    msleep(3000);
+    canon_gui_disable_front_buffer();
+    clrscr();
+    card_benchmark_wr(16384, 1, 3);
+    card_benchmark_wr(131072, 2, 3);
+    card_benchmark_wr(16777216, 3, 3);
+    msleep(3000);
+    call("dispcheck");
+    canon_gui_enable_front_buffer(1);
+}
+
+#endif
 
 #ifdef CONFIG_STRESS_TEST
 
@@ -1808,7 +1904,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
 
-        
         if (screenshot_sec)
         {
             info_led_blink(1, 20, 1000-20-200);
@@ -2288,6 +2383,7 @@ extern void menu_open_submenu();
 extern void tasks_print(void* priv, int x0, int y0, int selected);
 extern void batt_display(void* priv, int x0, int y0, int selected);
 extern int what_tasks_to_show;
+extern void peaking_benchmark();
 
 struct menu_entry debug_menus[] = {
 #ifdef CONFIG_HEXDUMP
@@ -2466,12 +2562,14 @@ struct menu_entry debug_menus[] = {
         .submenu_width = 650,
         //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
+            #ifndef CONFIG_5D3_MINIMAL // will change some settings and you can't restore them
             {
                 .name = "Quick test (around 15 min)",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = stress_test_task,
                 .help = "A quick test which covers basic functionality. "
             },
+            #endif
             {
                 .name = "Random tests (infinite loop)",
                 .select = (void(*)(void*,int))run_in_separate_task,
@@ -2533,6 +2631,30 @@ struct menu_entry debug_menus[] = {
         }
     },
 #endif
+#endif
+#ifdef CONFIG_BENCHMARKS
+    {
+        .name        = "Benchmarks...",
+        .select        = menu_open_submenu,
+        .help = "Check how fast is your camera. Card, CPU, graphics...",
+        .submenu_width = 650,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Card R/W benchmark (5 min)",
+                .select = (void(*)(void*,int))run_in_separate_task,
+                .priv = card_benchmark_task,
+                .help = "Check card read/write speed. Uses a 256MB temp file."
+            },
+            {
+                .name = "Focus peaking benchmark (30s)",
+                .select = (void(*)(void*,int))run_in_separate_task,
+                .priv = peaking_benchmark,
+                .help = "Check how fast peaking runs in PLAY mode (1000 iterations)."
+            },
+            MENU_EOL,
+        }
+    },
 #endif
     {
         .name = "Show tasks...",
@@ -3299,11 +3421,17 @@ void HijackFormatDialogBox_main()
 
 void config_menu_init()
 {
+#ifdef CONFIG_5D3_MINIMAL
+    menu_add( "Debug", cfg_menus, COUNT(cfg_menus) );
+#else
+
     extern struct menu_entry livev_cfg_menus[];
     //~ extern struct menu_entry menu_cfg_menu[];
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
 #ifndef CONFIG_5DC
     menu_add( "Prefs", livev_cfg_menus,  1);
+#endif
+
 #endif
     crop_factor_menu_init();
     //~ menu_add( "Config", menu_cfg_menu,  1);
