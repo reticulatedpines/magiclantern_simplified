@@ -5973,7 +5973,7 @@ shoot_task( void* unused )
 							bmp_printf(FONT_MED, 0, 80, " Taking picture in %ds   ", (int)(motion_detect_delay-t)/10);
 							msleep(100);
 							int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
-							if (!mdx) break;
+							if (mdx) break;
 						}
 					}
 					if (!mdx) take_fast_pictures( motion_detect_shootnum );
@@ -5996,7 +5996,7 @@ shoot_task( void* unused )
 							if (!mdx) break;
 						}
 					}
-					if (!mdx) take_fast_pictures( motion_detect_shootnum );
+					if (mdx) take_fast_pictures( motion_detect_shootnum );
                     K = 0;
                 }
                 if (K == 40) idle_force_powersave_in_1s();
