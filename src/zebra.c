@@ -825,6 +825,16 @@ static int zebra_rgb_color(int underexposed, int clipR, int clipG, int clipB, in
 }
 
 
+void hist_dot(int x, int y, int fg_color, int bg_color, int radius)
+{
+    for (int r = 0; r < radius; r++)
+    {
+        draw_circle(x, y, r, fg_color);
+        draw_circle(x + 1, y, r, fg_color);
+    }
+    draw_circle(x, y, radius, bg_color);
+}
+
 /** Draw the histogram image into the bitmap framebuffer.
  *
  * Draw one pixel at a time; it seems to be ok with err70.
@@ -890,16 +900,17 @@ hist_draw_image(
                 hist_warn == 2 ? 10000  : // 0.01%
                 hist_warn == 3 ? 1000   : // 0.01%
                                  100);    // 1%
-            int yw = y_origin + 10 - 16 + (hist_log ? hist_height - 20 : 0);
+            int yw = y_origin + 10 + (hist_log ? hist_height - 20 : 0);
+            int bg = (hist_log ? COLOR_WHITE : COLOR_BLACK);
             if (hist_colorspace == 1 && !ext_monitor_rca) // RGB
             {
-                if (hist_r[i] + hist_r[i-1] + hist_r[i-2] > thr) dot(x_origin + HIST_WIDTH/2 - 20 - 16, yw, COLOR_RED   , 7);
-                if (hist_g[i] + hist_g[i-1] + hist_g[i-2] > thr) dot(x_origin + HIST_WIDTH/2      - 16, yw, COLOR_GREEN1, 7);
-                if (hist_b[i] + hist_b[i-1] + hist_b[i-2] > thr) dot(x_origin + HIST_WIDTH/2 + 20 - 16, yw, COLOR_LIGHTBLUE  , 7);
+                if (hist_r[i] + hist_r[i-1] + hist_r[i-2] > thr) hist_dot(x_origin + HIST_WIDTH/2 - 20, yw, COLOR_RED,       bg, 7);
+                if (hist_g[i] + hist_g[i-1] + hist_g[i-2] > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,    bg, 7);
+                if (hist_b[i] + hist_b[i-1] + hist_b[i-2] > thr) hist_dot(x_origin + HIST_WIDTH/2 + 20, yw, COLOR_LIGHTBLUE, bg, 7);
             }
             else
             {
-                if (hist[i] + hist[i-1] + hist[i-2] > thr) dot(x_origin + HIST_WIDTH/2 - 16, yw, COLOR_RED, 7);
+                if (hist[i] + hist[i-1] + hist[i-2] > thr) hist_dot(x_origin + HIST_WIDTH/2, yw, COLOR_RED, bg, 7);
             }
         }
     }
