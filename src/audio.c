@@ -48,7 +48,7 @@ static void volume_display();
 static void audio_monitoring_display_headphones_connected_or_not();
 static void audio_menus_init();
 static void audio_monitoring_update();
-static void audio_ic_set_lineout_onoff(int mute);
+static void audio_ic_set_lineout_onoff(int op_mode);
 
 // Dump the audio registers to a file if defined
 #undef CONFIG_AUDIO_REG_LOG
@@ -70,7 +70,7 @@ static struct gain_struct gain = {
 #ifdef CONFIG_600D
 //Prototypes for 600D
 static void audio_ic_set_lineout_vol();
-static void audio_ic_set_input(int mute);
+static void audio_ic_set_input(int op_mode);
 
 // Set defaults
 CONFIG_INT( "audio.override_audio", cfg_override_audio,   0 );
@@ -1074,7 +1074,7 @@ PROP_HANDLER( PROP_MIC_INSERTED )
     mic_inserted = buf[0];
     
 #ifdef CONFIG_600D
-    audio_ic_set_input(MUTE_ON); //Need faster finish this prop on 600D. audio_configure() is slow.Then get hang
+    audio_ic_set_input(OP_STANDALONE); //Need faster finish this prop on 600D. audio_configure() is slow.Then get hang
 #else
     audio_configure( 1 );
 #endif
@@ -1196,11 +1196,11 @@ audio_ic_set_analog_gain(){
 }
 
 static void
-audio_ic_set_input(int mute){
+audio_ic_set_input(int op_mode){
     if(cfg_override_audio == 0) return;
 
-    if(mute) audio_ic_set_mute_on(30);
-    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //descrived in pdf p71
+    if(op_mode) audio_ic_set_mute_on(30);
+    if(op_mode) audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //descrived in pdf p71
     
     switch (get_input_source())
         {
@@ -1244,11 +1244,11 @@ audio_ic_set_input(int mute){
         }
     
     if(audio_monitoring){
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
+        if(op_mode) audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
     }else{
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
+        if(op_mode) audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
     }
-    if(mute) audio_ic_set_mute_off(80);
+    if(op_mode) audio_ic_set_mute_off(80);
 
 }
 
@@ -1262,10 +1262,10 @@ audio_ic_set_RecLRbalance(){
 }
 
 static void
-audio_ic_set_filters(int mute){
+audio_ic_set_filters(int op_mode){
     if(cfg_override_audio == 0) return;
 
-    if(mute) audio_ic_set_mute_on(30);
+    if(op_mode) audio_ic_set_mute_on(30);
     int val = 0;
     if(cfg_filter_dc) val = 0x1;
     if(cfg_filter_hpf2) val = val | 0x2;
@@ -1275,7 +1275,7 @@ audio_ic_set_filters(int mute){
     }else{
         masked_audio_ic_write(ML_FILTER_EN ,0x3, 0x0);
     }
-    if(mute) audio_ic_set_mute_off(80);
+    if(op_mode) audio_ic_set_mute_off(80);
 }
 
 static void
@@ -1302,7 +1302,7 @@ audio_ic_off(){
     audio_ic_write(ML_HPF2_CUTOFF | ML_HPF2_CUTOFF_FREQ200);
     audio_ic_write(ML_FILTER_EN | ML_FILTER_DIS_ALL);
     audio_ic_write(ML_REC_LR_BAL_VOL | 0x00);
-    audio_ic_set_lineout_onoff(MUTE_OFF);
+    audio_ic_set_lineout_onoff(OP_MULTIPLE);
 }
 
 static void
@@ -1311,7 +1311,7 @@ audio_ic_on(){
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | ML_PW_ZCCMP_PW_MNG_ON); //power on
     audio_ic_write(ML_PW_IN_PW_MNG | ML_PW_IN_PW_MNG_BOTH);   //DAC(0010) and PGA(1000) power on
     masked_audio_ic_write(ML_PW_REF_PW_MNG,0x7,ML_PW_REF_PW_MICBEN_ON | ML_PW_REF_PW_HISPEED);
-    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_REC);
+    //    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_REC);
     audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON);
     audio_ic_write(ML_MIXER_VOL_CTL | 0x10);
 }
@@ -1328,14 +1328,14 @@ audio_ic_set_lineout_vol(){
 
 
 static void
-audio_ic_set_lineout_onoff(int mute){
+audio_ic_set_lineout_onoff(int op_mode){
     //PDF p38
     if(audio_monitoring &&
        AUDIO_MONITORING_HEADPHONES_CONNECTED &&
        cfg_override_audio==1){
-        if(mute) audio_ic_set_mute_on(30);
+        if(op_mode) audio_ic_set_mute_on(30);
         
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directly change prohibited p55
+        if(op_mode) audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directly change prohibited p55
 
         audio_ic_write(ML_PW_REF_PW_MNG | ML_PW_REF_PW_HP_STANDARD | ML_PW_REF_PW_MICBEN_ON | ML_PW_REF_PW_HISPEED); //HeadPhone amp-std voltage(HPCAP pin voltage) gen circuit power on.
         audio_ic_write(ML_PW_IN_PW_MNG | ML_PW_IN_PW_MNG_BOTH ); //adc pga on
@@ -1346,21 +1346,21 @@ audio_ic_set_lineout_onoff(int mute){
         audio_ic_write(ML_DVOL_CTL_FUNC_EN | ML_DVOL_CTL_FUNC_EN_ALC_FADE );
         audio_ic_set_lineout_vol();
 
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
+        if(op_mode) audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
 
-        if(mute) audio_ic_set_mute_off(80);
+        if(op_mode) audio_ic_set_mute_off(80);
 
     }else{
         if(cfg_override_audio==1){
-            if(mute) audio_ic_set_mute_on(30);
+            if(op_mode) audio_ic_set_mute_on(30);
         
-            audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
+            if(op_mode) audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
             audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWROFF); //DAC power on
             audio_ic_write(ML_HP_AMP_OUT_CTL | 0x0);
             audio_ic_write(ML_PW_SPAMP_PW_MNG | ML_PW_SPAMP_PW_MNG_OFF);
             
-            audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
-            if(mute) audio_ic_set_mute_off(80);
+            if(op_mode) audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
+            if(op_mode) audio_ic_set_mute_off(80);
         }
     }
 }
@@ -1375,6 +1375,19 @@ audio_ic_set_recdgain(){
 
 //wrapper for audio_configure()
 void call_audio_configure(){ audio_configure(0); }
+
+
+static void
+audio_ic_set_recplay_state(){
+
+    if(audio_monitoring &&
+       AUDIO_MONITORING_HEADPHONES_CONNECTED){
+        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
+    }else{
+        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
+    }
+
+}
 
 #else
 
@@ -1454,16 +1467,17 @@ audio_configure( int force )
     }
 
     audio_set_meterlabel();
-    audio_ic_set_input(MUTE_OFF);
+    audio_ic_set_input(OP_MULTIPLE);
     audio_ic_set_analog_gain();
     audio_ic_set_micboost();
     audio_ic_set_recdgain();
     audio_ic_set_RecLRbalance();
-    audio_ic_set_filters(MUTE_OFF);
+    audio_ic_set_filters(OP_MULTIPLE);
     audio_ic_set_effect_mode();
     audio_ic_set_agc();
-    audio_ic_set_lineout_onoff(MUTE_OFF);
+    audio_ic_set_lineout_onoff(OP_MULTIPLE);
     audio_monitoring_update();
+    audio_ic_set_recplay_state();
 
     audio_ic_set_mute_off(80);
 
@@ -1902,7 +1916,7 @@ static void
         menu_quinternary_toggle(priv, 1);
 #ifdef CONFIG_600D
         if(*(unsigned*)priv == 3) *(unsigned*)priv = 4; //tamporaly disabled Ext:balanced. We can't find it.
-        audio_ic_set_input(MUTE_ON);
+        audio_ic_set_input(OP_STANDALONE);
 #else
         audio_configure( 1 );
 #endif
@@ -1913,7 +1927,7 @@ audio_input_toggle_reverse( void * priv, int delta )
         menu_quinternary_toggle_reverse(priv, -1);
 #ifdef CONFIG_600D
         if(*(unsigned*)priv == 3) *(unsigned*)priv = 2; //tamporaly disabled Ext:balanced. We can't find it.
-        audio_ic_set_input(MUTE_ON);
+        audio_ic_set_input(OP_STANDALONE);
 #else
         audio_configure( 1 );
 #endif
@@ -2016,7 +2030,7 @@ static void audio_effect_mode_display( void * priv, int x, int y, int selected )
 static void audio_filter_dc_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, -1, 0, 1);
-    audio_ic_set_filters(MUTE_ON);
+    audio_ic_set_filters(OP_STANDALONE);
 }
 
 static void audio_filter_dc_display( void * priv, int x, int y, int selected )
@@ -2035,7 +2049,7 @@ static void audio_filter_dc_display( void * priv, int x, int y, int selected )
 static void audio_filter_hpf2_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 1);
-    audio_ic_set_filters(MUTE_ON);
+    audio_ic_set_filters(OP_STANDALONE);
 }
 
 
@@ -2052,13 +2066,13 @@ static void audio_filter_hpf2_display( void * priv, int x, int y, int selected )
 static void audio_hpf2config_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 7);
-    audio_ic_set_filters(MUTE_ON);
+    audio_ic_set_filters(OP_STANDALONE);
 }
 
 static void audio_hpf2config_toggle_reverse( void * priv, int delta )
 {
     menu_numeric_toggle(priv, -1, 0, 7);
-    audio_ic_set_filters(MUTE_ON);
+    audio_ic_set_filters(OP_STANDALONE);
 }
 static char *get_hpf2config_str(){
     return (cfg_filter_hpf2config == 0 ? "80Hz" :
@@ -2082,14 +2096,14 @@ static void
 audio_filters_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 1);
-    audio_ic_set_filters(MUTE_ON);
+    audio_ic_set_filters(OP_STANDALONE);
 }
 
 static void
 audio_filters_toggle_reverse( void * priv, int delta )
 {
     menu_numeric_toggle(priv, -1, 0, 1);
-    audio_ic_set_filters(MUTE_ON);
+    audio_ic_set_filters(OP_STANDALONE);
 }
 
 static void
@@ -2254,7 +2268,7 @@ static void audio_monitoring_update()
         }
 #ifdef CONFIG_600D
         else{
-            audio_ic_set_lineout_onoff(MUTE_ON);
+            audio_ic_set_lineout_onoff(OP_STANDALONE);
         }
 #endif
 }
