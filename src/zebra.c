@@ -825,7 +825,7 @@ static int zebra_rgb_color(int underexposed, int clipR, int clipG, int clipB, in
 }
 
 
-void hist_dot(int x, int y, int fg_color, int bg_color, int radius)
+static void hist_dot(int x, int y, int fg_color, int bg_color, int radius, int label)
 {
     for (int r = 0; r < radius; r++)
     {
@@ -833,6 +833,37 @@ void hist_dot(int x, int y, int fg_color, int bg_color, int radius)
         draw_circle(x + 1, y, r, fg_color);
     }
     draw_circle(x, y, radius, bg_color);
+    
+    if (label)
+    {
+        char msg[5];
+        snprintf(msg, sizeof(msg), "%d", label);
+        bmp_printf(
+            SHADOW_FONT(FONT(FONT_SMALL, COLOR_WHITE, fg_color)), 
+            x - font_small.width * strlen(msg) / 2 + 1, 
+            y - font_small.height/2,
+            msg);
+    }
+}
+
+static int hist_dot_radius(int over, int hist_total_px)
+{
+    if (hist_warn < 4) return 7; // fixed radius for these modes
+    
+    // overexposures stronger than 1% are displayed at max radius (10)
+    int p = 100 * over / hist_total_px;
+    if (p > 1) return 10;
+    
+    // for smaller overexposure percentages, use dot radius to suggest the amount
+    unsigned p1000 = 100 * 1000 * over / hist_total_px;
+    int plog = p1000 ? (int)log2f(p1000) : 0;
+    return MIN(plog, 10);
+}
+
+static int hist_dot_label(int over, int hist_total_px)
+{
+    int p = 100 * over / hist_total_px;
+    return hist_warn < 4 ? 0 : p;
 }
 
 /** Draw the histogram image into the bitmap framebuffer.
@@ -898,19 +929,25 @@ hist_draw_image(
             unsigned int thr = hist_total_px / (
                 hist_warn == 1 ? 100000 : // 0.001%
                 hist_warn == 2 ? 10000  : // 0.01%
-                hist_warn == 3 ? 1000   : // 0.01%
-                                 100);    // 1%
-            int yw = y_origin + 10 + (hist_log ? hist_height - 20 : 0);
+                hist_warn == 3 ? 1000   : // 0.1%
+                hist_warn == 4 ? 100    : // 1%
+                                 100000); // start at 0.0001 with a tiny dot
+            thr = MAX(thr, 1);
+            int yw = y_origin + 12 + (hist_log ? hist_height - 24 : 0);
             int bg = (hist_log ? COLOR_WHITE : COLOR_BLACK);
             if (hist_colorspace == 1 && !ext_monitor_rca) // RGB
             {
-                if (hist_r[i] + hist_r[i-1] + hist_r[i-2] > thr) hist_dot(x_origin + HIST_WIDTH/2 - 20, yw, COLOR_RED,       bg, 7);
-                if (hist_g[i] + hist_g[i-1] + hist_g[i-2] > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,    bg, 7);
-                if (hist_b[i] + hist_b[i-1] + hist_b[i-2] > thr) hist_dot(x_origin + HIST_WIDTH/2 + 20, yw, COLOR_LIGHTBLUE, bg, 7);
+                unsigned int over_r = hist_r[i] + hist_r[i-1] + hist_r[i-2];
+                unsigned int over_g = hist_g[i] + hist_g[i-1] + hist_g[i-2];
+                unsigned int over_b = hist_b[i] + hist_b[i-1] + hist_b[i-2];
+                if (over_r > thr) hist_dot(x_origin + HIST_WIDTH/2 - 25, yw, COLOR_RED,       bg, hist_dot_radius(over_r, hist_total_px), hist_dot_label(over_r, hist_total_px));
+                if (over_g > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,    bg, hist_dot_radius(over_g, hist_total_px), hist_dot_label(over_g, hist_total_px));
+                if (over_b > thr) hist_dot(x_origin + HIST_WIDTH/2 + 25, yw, COLOR_LIGHTBLUE, bg, hist_dot_radius(over_b, hist_total_px), hist_dot_label(over_b, hist_total_px));
             }
             else
             {
-                if (hist[i] + hist[i-1] + hist[i-2] > thr) hist_dot(x_origin + HIST_WIDTH/2, yw, COLOR_RED, bg, 7);
+                unsigned int over = hist[i] + hist[i-1] + hist[i-2];
+                if (over > thr) hist_dot(x_origin + HIST_WIDTH/2, yw, COLOR_RED, bg, hist_dot_radius(over, hist_total_px), hist_dot_label(over, hist_total_px));
             }
         }
     }
@@ -2343,7 +2380,9 @@ hist_warn_display( void * priv, int x, int y, int selected )
         hist_warn == 0 ? "OFF" :
         hist_warn == 1 ? "0.001% px" :
         hist_warn == 2 ? "0.01% px" :
-        hist_warn == 3 ? "0.1% px" : "1% px"
+        hist_warn == 3 ? "0.1% px" : 
+        hist_warn == 4 ? "1% px" :
+                         "Gradual"
     );
     menu_draw_icon(x, y, MNI_BOOL(hist_warn), 0);
 }
@@ -3393,7 +3432,7 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Clip warning",
                 .priv = &hist_warn, 
-                .max = 4,
+                .max = 5,
                 .display = hist_warn_display,
                 .help = "Display warning dots when one color channel is clipped.",
             },
