@@ -146,6 +146,7 @@ extern int lcd_release_running;
 
 //New option for the sensitivty of the motion release
 static CONFIG_INT( "motion.release-level", motion_detect_level, 8);
+static CONFIG_INT( "motion.delay", motion_detect_delay, 0);
 static CONFIG_INT( "motion.trigger", motion_detect_trigger, 0);
 static CONFIG_INT( "motion.size", motion_detect_size, 100);
 static CONFIG_INT( "motion.position", motion_detect_position, 0);
@@ -4355,6 +4356,13 @@ static struct menu_entry shoot_menus[] = {
 				.min = 1,
 				.help = "Take x pictures when continuous mode slected",
 			},
+			{
+			.name = "Delay in 1/10s",
+				.priv = &motion_detect_delay,
+				.max  = 100,
+				.min  = 0,
+				.help = "Wait for x/10 seconds before taking picture",
+			},
 			MENU_EOL
 		}
 
@@ -5918,6 +5926,7 @@ shoot_task( void* unused )
                 if (K > 40) bmp_printf(FONT_MED, 0, 80, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
                 if (K > 40 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
                 {
+					msleep(motion_detect_delay*100);
 					take_fast_pictures( motion_detect_shootnum );
                     K = 0;
                 }
@@ -5930,6 +5939,7 @@ shoot_task( void* unused )
                 if (K > 20) bmp_printf(FONT_MED, 0, 80, "Motion level: %d   ", d);
                 if (K > 20 && d >= (int)motion_detect_level)
                 {
+					msleep(motion_detect_delay*100);
                     take_fast_pictures( motion_detect_shootnum );
                     K = 0;
                 }
