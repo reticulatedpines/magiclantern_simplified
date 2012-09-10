@@ -1350,9 +1350,6 @@ audio_ic_set_recdgain(){
     masked_audio_ic_write(ML_REC_DIGI_VOL, 0x7f, vol);
 }
 
-//wrapper for audio_configure()
-void call_audio_configure(){ audio_configure(0); }
-
 
 static void
 audio_ic_set_recplay_state(){
