@@ -313,6 +313,7 @@ static void asif_rec_continue_cbr()
 {
     if (file == INVALID_PTR) return;
 
+
     void* buf = wav_buf[wav_ibuf];
     FIO_WriteFile(file, UNCACHEABLE(buf), WAV_BUF_SIZE);
 
@@ -347,10 +348,22 @@ void WAV_Record(char* filename, int show_progress)
 
     wav_ibuf = 0;
     StartASIFDMAADC(buf1, WAV_BUF_SIZE, buf2, WAV_BUF_SIZE, asif_rec_continue_cbr, 0);
+#ifdef CONFIG_600D
+        int Audio_unconfigured=1;
+        int Count = 0;
+#endif
     while (audio_recording) 
     {
         msleep(100);
         if (show_progress) record_show_progress();
+#ifdef CONFIG_600D
+        if(Audio_unconfigured && Count==1){
+            NotifyBox(1000,"AConfigured");
+            audio_configure(1);
+            Audio_unconfigured=0;
+        }
+        Count++;
+#endif
     }
     info_led_off();
 }
