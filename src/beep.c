@@ -358,7 +358,6 @@ void WAV_Record(char* filename, int show_progress)
         if (show_progress) record_show_progress();
 #ifdef CONFIG_600D
         if(Audio_unconfigured && Count==1){
-            NotifyBox(1000,"AConfigured");
             audio_configure(1);
             Audio_unconfigured=0;
         }
