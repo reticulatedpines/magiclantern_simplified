@@ -1111,29 +1111,6 @@ audio_ic_set_mute_off(unsigned int wait){
     }
 }
 
-struct msg_queue * override_audio_q = NULL;
-/** override audio settings  */
-static void
-override_audio_task( void* unused )
-{
-
-    if(!override_audio_q)
-        override_audio_q = (struct msg_queue *) msg_queue_create("override_audio_q", 1);
-
-    TASK_LOOP
-        {
-            int msg;
-            msleep(1000);
-            int err = msg_queue_receive(override_audio_q, (struct event**)&msg, 500);
-            if (!err && cfg_override_audio){
-                audio_configure(msg);
-                NotifyBox(1000,"Audio Overridden");
-            }
-        }
-}
-
-TASK_CREATE( "override_audio_do_task", override_audio_task, 0, 0x17, 0x1000 );
-
 static void
 audio_ic_set_micboost(){ //600D func lv is 0-8
     if(cfg_override_audio == 0) return;
@@ -2246,7 +2223,7 @@ void audio_monitoring_display_headphones_connected_or_not()
               "connected" :
               "disconnected");
 #ifdef CONFIG_600D
-        if(override_audio_q) msg_queue_post(override_audio_q, 1); 
+        audio_configure(1);
 #endif
 }
 
@@ -2536,14 +2513,14 @@ enable_recording(
         case 0:
             // Movie recording stopped;  (fallthrough)
 #ifdef CONFIG_600D
-            if(override_audio_q) msg_queue_post(override_audio_q, 1); 
+            audio_configure(1);
 #endif
             break;
         case 2:
             // Movie recording started
             give_semaphore( gain.sem );
 #ifdef CONFIG_600D
-            if(override_audio_q) msg_queue_post(override_audio_q, 0); 
+            audio_configure(1);
 #endif
             break;
         case 1:
@@ -2843,7 +2820,7 @@ PROP_HANDLER( PROP_AUDIO_VOL_CHANGE_600D )
     /* Cannot overwrite audio config direct here!
        Cannon firmware is overwrite after finishing here.So you need to set value with delay
     */
-    if(override_audio_q) msg_queue_post(override_audio_q, 1); 
+    audio_configure(1);
 
 }
 
