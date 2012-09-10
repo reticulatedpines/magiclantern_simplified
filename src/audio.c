@@ -1246,11 +1246,11 @@ audio_ic_set_filters(int op_mode){
     int val = 0;
     if(cfg_filter_dc) val = 0x1;
     if(cfg_filter_hpf2) val = val | 0x2;
-    masked_audio_ic_write(ML_FILTER_EN, 0x3, val);
+    audio_ic_write(ML_FILTER_EN | val);
     if(val){
         audio_ic_write(ML_HPF2_CUTOFF | cfg_filter_hpf2config);
     }else{
-        masked_audio_ic_write(ML_FILTER_EN ,0x3, 0x0);
+        audio_ic_write(ML_FILTER_EN | 0x3);
     }
     if(op_mode) audio_ic_set_mute_off(80);
 }
