@@ -15,7 +15,7 @@ ARM_LIBC_A = $(ARM_PATH)/arm-$(ARM_ABI)/lib/libc.a
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
-PYTHON=python2
+PYTHON=python
 
 # Naming convention for Magic Lantern builds:
 # General rules:
