@@ -329,9 +329,6 @@ static void asif_rec_continue_cbr()
     wav_ibuf = !wav_ibuf;
 }
 
-#ifdef CONFIG_600D
-static int is1sttime = 1;
-#endif
 void WAV_Record(char* filename, int show_progress)
 {
     uint8_t* buf1 = (uint8_t*)wav_buf[0];
@@ -351,15 +348,6 @@ void WAV_Record(char* filename, int show_progress)
 
     wav_ibuf = 0;
     StartASIFDMAADC(buf1, WAV_BUF_SIZE, buf2, WAV_BUF_SIZE, asif_rec_continue_cbr, 0);
-#ifdef CONFIG_600D
-    if(is1sttime){
-        msleep(180);
-        is1sttime=0;
-    }else{
-        msleep(50);
-    }
-    audio_configure(1);
-#endif
     while (audio_recording) 
     {
         msleep(100);
@@ -367,6 +355,24 @@ void WAV_Record(char* filename, int show_progress)
     }
     info_led_off();
 }
+
+#ifdef CONFIG_600D
+
+void Load_ASIFDMAADC(){
+    uint8_t* buf1 = (uint8_t*)wav_buf[0];
+    uint8_t* buf2 = (uint8_t*)wav_buf[1];
+    if (!buf1) return;
+    if (!buf2) return;
+
+    audio_recording = 0;
+    SetSamplingRate(48000, 1);
+    MEM(0xC092011C) = 4; // SetASIFADCModeSingleINT16
+
+    wav_ibuf = 0;
+    StartASIFDMAADC(buf1, WAV_BUF_SIZE, buf2, WAV_BUF_SIZE, asif_rec_continue_cbr, 0);
+}
+#endif
+
 
 static void
 record_display(
@@ -888,6 +894,10 @@ static void beep_init()
     beep_sem = create_named_semaphore( "beep_sem", 0 );
     menu_add( "Audio", beep_menus, COUNT(beep_menus) );
     find_next_wav(0,1);
+
+#ifdef CONFIG_600D
+    Load_ASIFDMAADC();
+#endif
 }
 
 INIT_FUNC("beep.init", beep_init);
