@@ -30,7 +30,7 @@ ML_OBJS-y = \
 	debug.o \
 	stdio.o \
 	audio.o \
-	bitrate.o \
+	bitrate-5d3.o \
 	tweaks.o \
 	lens.o \
 	property.o \
