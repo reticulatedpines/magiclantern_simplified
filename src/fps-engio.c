@@ -37,6 +37,11 @@
 #include "config.h"
 #include "math.h"
 
+#ifdef CONFIG_5D3_MINIMAL
+#include "disable-this-module.h"
+#endif
+
+
 #define FPS_REGISTER_A 0xC0F06008
 #define FPS_REGISTER_B 0xC0F06014
 
@@ -83,7 +88,11 @@ static CONFIG_INT("fps.timer.a.off", desired_fps_timer_a_offset, 1000); // add t
 static CONFIG_INT("fps.timer.b.off", desired_fps_timer_b_offset, 1000); // add this to computed value (for fine tuning)
 //~ static CONFIG_INT("fps.timer.b.method", fps_timer_b_method, 0); // 0 = engio, 1 = 60d/600d/5d3
 static CONFIG_INT("fps.preset", fps_criteria, 0);
-static CONFIG_INT("fps.sound.disable", fps_sound_disable, 1);
+//~ static CONFIG_INT("fps.disable.sound", FPS_SOUND_DISABLE, 1);
+#define FPS_SOUND_DISABLE 1
+static CONFIG_INT("fps.wav.record", fps_wav_record, 0);
+
+int fps_should_record_wav() { return fps_override && fps_wav_record && is_movie_mode() && FPS_SOUND_DISABLE && was_sound_recording_disabled_by_fps_override(); }
 
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
 PROP_INT(PROP_VIDEO_SYSTEM, pal);
@@ -274,7 +283,7 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
 
 int get_current_shutter_reciprocal_x1000()
 {
-#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D3) || defined(CONFIG_1100D)
+#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D3)
     if (!lens_info.raw_shutter) return 0;
     return (int) roundf(powf(2.0, (lens_info.raw_shutter - 136) / 8.0) * 1000.0 * 1000.0);
 #else
@@ -336,6 +345,10 @@ int was_sound_recording_disabled_by_fps_override()
 
 static void set_sound_recording(int x)
 {
+    #ifdef CONFIG_50D
+    return;
+    #endif
+    
     #ifdef CONFIG_5D2
     Gui_SetSoundRecord(COERCE(x,1,3));
     #else
@@ -345,10 +358,6 @@ static void set_sound_recording(int x)
 
 static void restore_sound_recording()
 {
-    #ifdef CONFIG_5D3
-    return; // just in case
-    #endif
-
     if (recording) return;
     if (old_sound_recording_mode != -1)
     {
@@ -359,10 +368,6 @@ static void restore_sound_recording()
 }
 static void disable_sound_recording()
 {
-    #ifdef CONFIG_5D3
-    return; // just in case
-    #endif
-    
     if (recording) return;
     if (sound_recording_mode != 1)
     {
@@ -375,7 +380,7 @@ static void disable_sound_recording()
 static void update_sound_recording()
 {
     if (recording) return;
-    if (fps_sound_disable && fps_override && lv) disable_sound_recording();
+    if (FPS_SOUND_DISABLE && fps_override && lv) disable_sound_recording();
     else restore_sound_recording();
 }
 
@@ -992,11 +997,11 @@ static void fps_criteria_change(void* priv, int delta)
     if (FPS_OVERRIDE) fps_needs_updating = 1;
 }
 
-static void fps_sound_toggle(void* priv, int delta)
-{
-    fps_sound_disable = !fps_sound_disable;
-    if (FPS_OVERRIDE) fps_needs_updating = 1;
-}
+//~ static void fps_sound_toggle(void* priv, int delta)
+//~ {
+    //~ FPS_SOUND_DISABLE = !FPS_SOUND_DISABLE;
+    //~ if (FPS_OVERRIDE) fps_needs_updating = 1;
+//~ }
 
 
 static struct menu_entry fps_menu[] = {
@@ -1087,14 +1092,22 @@ static struct menu_entry fps_menu[] = {
                 .display = fps_current_print,
                 .help = "Exact FPS (computed). For fine tuning, change timer values.",
             },
-            {
+            /*{
                 .name = "Sound Record\b",
-                .priv = &fps_sound_disable,
+                .priv = &FPS_SOUND_DISABLE,
                 .select = fps_sound_toggle,
                 .max = 1,
                 .choices = (const char *[]) {"Leave it on", "Auto-Disable"},
                 .icon_type = IT_DISABLE_SOME_FEATURE,
                 .help = "Sound usually goes out of sync and may stop recording.",
+            },*/
+            {
+                .name = "Sound Record\b",
+                .priv = &fps_wav_record,
+                .max = 1,
+                .choices = (const char *[]) {"Disabled", "Separate WAV"},
+                .icon_type = IT_BOOL,
+                .help = "Sound goes out of sync, so it has to be recorded separately.",
             },
             MENU_EOL
         },
@@ -1137,6 +1150,7 @@ static void fps_read_default_timer_values()
     int mode = get_fps_video_mode();
     unsigned int pos = get_table_pos(mode_offset_map[mode], video_mode_crop, 0, lv_dispsize);
     fps_reg_b_orig = sensor_timing_table_original[pos] - 1; // nobody will change it from here :)
+    //bmp_printf(FONT_LARGE, 50, 50, "%08x %08x %08x", fps_reg_a_orig, bmp_vram_real(), bmp_vram_idle());
     #else
     int val = FPS_REGISTER_B_VALUE;
     if (val & 0xFFFF0000)
@@ -1147,16 +1161,6 @@ static void fps_read_default_timer_values()
     #endif
     fps_timer_a_orig = ((fps_reg_a_orig >> 16) & 0xFFFF) + 1;
     fps_timer_b_orig = (fps_reg_b_orig & 0xFFFF) + 1;
-#ifdef CONFIG_1100D
-    int ntsc = is_current_mode_ntsc();
-    if(ntsc) {
-        if(fps_timer_a_orig <= 1) fps_timer_a_orig = 0x3c0;
-        if(fps_timer_b_orig <= 1) fps_timer_b_orig = 0x458;
-    } else {
-        if(fps_timer_a_orig <= 1) fps_timer_a_orig = 0x3e8;
-        if(fps_timer_b_orig <= 1) fps_timer_b_orig = 0x500;
-    }
-#endif
 }
 
 // maybe FPS settings were changed by someone else? if yes, force a refresh
@@ -1185,7 +1189,8 @@ static void fps_task()
         //~ bmp_hexdump(FONT_SMALL, 10, 200, SENSOR_TIMING_TABLE, 32*10);
         //~ NotifyBox(1000, "defB: %d ", fps_timer_b_orig); msleep(1000);
 
-        if (!lv) continue;
+        static int fps_warned = 0;
+        if (!lv) { fps_warned = 0; continue; }
         if (!DISPLAY_IS_ON && !recording) continue;
         if (lens_info.job_state) continue;
         
@@ -1226,13 +1231,24 @@ static void fps_task()
             if (is_movie_mode() && video_mode_crop) msleep(500);
             continue;
         }
-
+        
         //~ info_led_on();
         fps_setup_timerA(f);
         fps_setup_timerB(f);
         //~ info_led_off();
         fps_read_current_timer_values();
         //~ bmp_printf(FONT_LARGE, 50, 100, "%dx, new timers: %d,%d ", lv_dispsize, fps_timer_a, fps_timer_b);
+
+        if (!fps_warned && !gui_menu_shown())
+        {
+            int current_fps = fps_get_current_x1000();
+            char msg[30];
+            snprintf(msg, sizeof(msg), "FPS override: %d.%03d", 
+                current_fps/1000, current_fps%1000
+                );
+            NotifyBox(2000, msg);
+            fps_warned = 1;
+        }
     }
 }
 

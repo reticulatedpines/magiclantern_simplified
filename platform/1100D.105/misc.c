@@ -66,3 +66,5 @@ void* AllocateMemory(size_t size) // this won't throw ERR70
 {
 	return (void*) AllocateMemory_do(*(int*)0x2B48, size);
 }
+
+int new_LiveViewApp_handler = 0xff123456;

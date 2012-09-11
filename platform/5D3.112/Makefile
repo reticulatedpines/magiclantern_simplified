@@ -23,11 +23,13 @@ ML_OBJS-y = \
 	stubs.o \
 	version.o \
 	bmp.o \
+	fio-5d3.o \
 	font-dyn.o \
 	config.o \
 	menu.o \
 	debug.o \
 	stdio.o \
+	audio.o \
 	bitrate.o \
 	tweaks.o \
 	lens.o \
@@ -67,6 +69,8 @@ include ../../Makefile.inc
 #
 ROMBASEADDR		= 0xFF0C0000
 RESTARTSTART	= 0x00069500
+
+CFLAGS += -DCONFIG_5D3_MINIMAL=1
 
 x: 
 	make clean

@@ -278,8 +278,8 @@ void update_vram_params()
     vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ? 1728 : 1680) : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
     vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ?  972 :  945) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
 #elif defined(CONFIG_5D3)
-    vram_hd.width  = lv_dispsize > 1 ? 1152 : 1904;
-    vram_hd.height = lv_dispsize > 1 ?  768 : 1270;
+    vram_hd.width  = lv_dispsize > 1 ? 1152 : !is_movie_mode() ? 1620 : video_mode_resolution == 0 ? 1904 :                                   1280;
+    vram_hd.height = lv_dispsize > 1 ?  768 : !is_movie_mode() ? 1080 : video_mode_resolution == 0 ? 1270 : video_mode_resolution == 1 ? 720 : 854;
 #elif defined(CONFIG_5DC)
     vram_hd.width  = 1024;
     vram_hd.height = 768; // dummy values
@@ -296,7 +296,11 @@ void update_vram_params()
     #if defined(CONFIG_600D)
     int bar_x = is_movie_mode() && video_mode_resolution >= 2 ? off_43 : 0;
     int bar_y = is_movie_mode() && video_mode_resolution <= 1 ? os.off_169 : 0;
-    #elif defined(CONFIG_500D) || defined(CONFIG_5D3)
+    #elif defined(CONFIG_5D3)
+    int bar_x = 0;
+    int bar_y = is_movie_mode() && video_mode_resolution == 1 ? os.off_169 : 0;
+    off_43+=0; // bypass warning
+    #elif defined(CONFIG_500D)
     int bar_x = 0;
     int bar_y = 0;
     off_43+=0; // bypass warning
@@ -446,7 +450,7 @@ void* get_422_hd_idle_buf()
 {
 #ifdef CONFIG_550D
     if (lv && is_movie_mode() && !recording && video_mode_resolution > 0) // 720p exception
-        return (void*)CACHEABLE(shamem_read(0xc0f04008)); // RAM address not updated properly, read it from the DIGIC
+        return (void*)CACHEABLE(shamem_read(REG_EDMAC_WRITE_HD_ADDR)); // RAM address not updated properly, read it from the DIGIC
 #endif
 
 // single-buffered HD buffer
@@ -492,12 +496,13 @@ struct vram_info * get_yuv422_vram()
 {
     vram_params_update_if_dirty();
 
-    if (display_filter_enabled())
+    int d = display_filter_enabled();
+    if (d)
     {
         uint32_t* src_buf;
         uint32_t* dst_buf;
         display_filter_get_buffers(&src_buf, &dst_buf);
-        vram_lv.vram = dst_buf;
+        vram_lv.vram = (void*)(d == 1 ? dst_buf : src_buf);
         return &vram_lv;
     }
 
@@ -581,6 +586,11 @@ PROP_HANDLER(PROP_GUI_STATE)
 }
 
 PROP_HANDLER(PROP_VIDEO_MODE)
+{
+    vram_params_set_dirty();
+}
+
+PROP_HANDLER(PROP_LV_MOVIE_SELECT)
 {
     vram_params_set_dirty();
 }

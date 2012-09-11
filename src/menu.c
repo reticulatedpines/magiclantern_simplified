@@ -152,6 +152,32 @@ draw_version( void )
 */
 }
 
+int beta_warned = 0;
+void 
+draw_beta_warning()
+{
+    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+
+    bmp_printf(FONT_LARGE, 360 - font_large.width * 6, 50, "Magic Lantern");
+    
+    bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
+
+    bmp_printf(FONT_MED, 50, 200, "   Please report all bugs at www.magiclantern.fm.   ");
+
+    bmp_printf(FONT_MED, 50, 250, "      Be careful using it for production work.      ");
+
+    bmp_printf(FONT_MED, 50, 300, "                       Enjoy!                       ");
+
+    big_bmp_printf(FONT_MED,  10,  410,
+        "Magic Lantern version : %s\n"
+        "Mercurial changeset   : %s\n"
+        "Built on %s by %s.",
+        build_version,
+        build_id,
+        build_date,
+        build_user);
+}
+
 
 //~ struct dialog * menu_dialog = 0;
 static struct menu * menus;
@@ -1694,6 +1720,8 @@ menu_redraw_do()
                 if (recording)
                     bmp_make_semitransparent();
 
+                if (!beta_warned) draw_beta_warning();
+
                 if (DOUBLE_BUFFERING)
                 {
                     // copy image to main buffer
@@ -1888,8 +1916,28 @@ handle_ml_menu_keys(struct event * event)
     // rack focus may override some menu keys
     if (handle_rack_focus_menu_overrides(event)==0) return 0;
     
-    // the first steps may temporarily change the selected menu item - don't redraw in the middle of this
-
+    if (!beta_warned)
+    {
+        if (event->param == BGMT_PRESS_SET ||
+            event->param == BGMT_MENU ||
+            event->param == BGMT_TRASH ||
+            event->param == BGMT_PLAY ||
+            event->param == BGMT_PRESS_UP ||
+            event->param == BGMT_PRESS_DOWN ||
+            event->param == BGMT_PRESS_LEFT ||
+            event->param == BGMT_PRESS_RIGHT ||
+            event->param == BGMT_WHEEL_UP ||
+            event->param == BGMT_WHEEL_DOWN ||
+            event->param == BGMT_WHEEL_LEFT ||
+            event->param == BGMT_WHEEL_RIGHT
+           )
+        {
+            beta_warned = 1;
+            menu_redraw();
+        }
+        return 0;
+    }
+    
     // Find the selected menu (should be cached?)
     struct menu * menu = get_selected_menu();
 
@@ -2082,7 +2130,7 @@ menu_init( void )
     gui_sem = create_named_semaphore( "gui", 0 );
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_600D)
+#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_600D) || defined(CONFIG_5D3)
     menu_find_by_name( "Audio", ICON_MIC);
 #endif
     menu_find_by_name( "Expo", ICON_AE);

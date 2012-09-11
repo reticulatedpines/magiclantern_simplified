@@ -157,8 +157,8 @@ audio_ic_sweep_message_queue( void );
 
 #ifdef CONFIG_600D
 
-#define MUTE_OFF 0
-#define MUTE_ON  1
+#define OP_MULTIPLE    0
+#define OP_STANDALONE  1
 
 
 //600D Audio write Registers

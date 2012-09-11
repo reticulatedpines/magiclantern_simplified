@@ -39,7 +39,10 @@ Color spaces:
   
 You may adjust thresholds for underexposure and overexposure, or you can disable zebras while recording.
   
-Note: when using the Technicolor CineStyle picture style, luma will have values between 16 and 255; therefore, you will have to set the underexposure threshold to 16 or greater.
+Notes: 
+
+* using zebras in image review mode will disable Canon highlight warning temporarily. To re-enable it, press PLAY twice.
+* when using the Technicolor CineStyle picture style, luma will have values between 16 and 255; therefore, you will have to set the underexposure threshold to 16 or greater.
 
 .. _focus peaking:
 
@@ -50,16 +53,13 @@ Focus Peak
 
 Focus assist function. High-contrast lines will be marked by blinking dots showing which part of the image is in focus.
 
-Methods:
+Parameters:
   
-* ``D1xy``: computes first image derivative on X and Y and takes the max value. May work better in low light or on noisy sensors.
-* ``D2xy``: approximates second image derivative with a 3x3 Laplacian kernel. May be more accurate in good light.
-
-Other parameters:
-  
+* **Filter bias**: adjust the balance between high-contrast edges or fine texture details.
+* **Display type**: choose the method for displaying focus markers. Blinking dots are the fastest, alpha blending looks best but it's a bit slow. This setting is only used in LiveView.
 * **Threshold**: how many pixels are considered in focus (percentage).
-* **Color**: either fixed color, or a color coding according to focus intensity.
-* **Grayscale img**: if enabled, LiveView will displayed as grayscale (but still recorded as color).
+* **Color**: either fixed color, or a color coding according to focus intensity (warmer colors = better focus).
+* **Grayscale img**: if enabled, LiveView image will displayed as grayscale (but still recorded as color).
   
 #To see how it works, `check this article from Luminous Landscape <http://www.luminous-landscape.com/forum/index.php?topic=56246.0>`_.
 

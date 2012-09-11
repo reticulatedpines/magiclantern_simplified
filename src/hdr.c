@@ -11,6 +11,10 @@
 #include "propvalues.h"
 #include "config.h"
 
+#ifdef CONFIG_5D3_MINIMAL
+#include "disable-this-module.h"
+#endif
+
 
 CONFIG_INT("hdrv.en", hdrv_enabled, 0);
 static CONFIG_INT("hdrv.iso.a", hdr_iso_a, 72);
@@ -46,7 +50,12 @@ void hdr_step()
     #ifdef CONFIG_500D
     return;
     #endif
-    if (!hdrv_enabled) return;
+    
+    if (!hdrv_enabled)
+    {
+        smooth_iso_step();
+        return;
+    }
     if (!lv) return;
     if (!is_movie_mode()) return;
     if (!lens_info.raw_iso) return;

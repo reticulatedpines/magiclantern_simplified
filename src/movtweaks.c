@@ -13,6 +13,10 @@
 #include "lens.h"
 #include "math.h"
 
+#ifdef CONFIG_5D3_MINIMAL
+#include "disable-this-module.h"
+#endif
+
 #ifdef CONFIG_4_3_SCREEN
 #define CONFIG_BLUE_LED 1
 #endif
@@ -39,7 +43,7 @@ int kelvin_wb_dirty = 1;
 
 void save_kelvin_wb()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5D3)
     return;
     #endif
     
@@ -52,7 +56,7 @@ void save_kelvin_wb()
 
 void restore_kelvin_wb()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5D3)
     return;
     #endif
     //~ if (!white_balance_workaround) return;
@@ -66,7 +70,7 @@ void restore_kelvin_wb()
 
 void kelvin_wb_workaround_step()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5D3)
     return;
     #endif
     if (!kelvin_wb_dirty)
@@ -308,7 +312,7 @@ shutter_lock_print(
 
 void shutter_lock_step()
 {
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D3)
     if (is_movie_mode()) // no effect in photo mode
     {
         unsigned shutter = lens_info.raw_shutter;
@@ -370,8 +374,8 @@ int movie_was_stopped_by_set = 0;
 // at startup don't try to sync with Canon values; use saved values instead
 int bv_startup = 1;
 
-static void
-movtweak_task( void* unused )
+void
+movtweak_task_init()
 {
     //~ msleep(500);
 
@@ -385,11 +389,11 @@ movtweak_task( void* unused )
     while (!ml_started) msleep(100);
     bv_auto_update_startup();
     bv_startup = 0;
+}
 
-    TASK_LOOP
-    {
-        msleep(DISPLAY_IS_ON || recording ? 50 : 1000);
-        
+void movtweak_step()
+{
+#ifndef CONFIG_5D3 // movie restart not needed
         static int recording_prev = 0;
         #if defined(CONFIG_5D2) || defined(CONFIG_50D)
         if (recording == 0 && recording_prev && !movie_was_stopped_by_set)
@@ -406,6 +410,7 @@ movtweak_task( void* unused )
         recording_prev = recording;
 
         if (!recording) movie_was_stopped_by_set = 0;
+#endif
 
         //~ do_movie_mode_remap();
         
@@ -443,10 +448,10 @@ movtweak_task( void* unused )
                 msleep(5000);
             }
         }
-    }
 }
 
-TASK_CREATE("movtweak_task", movtweak_task, 0, 0x1e, 0x1000 );
+// called from tweak_task
+//~ TASK_CREATE("movtweak_task", movtweak_task, 0, 0x1e, 0x1000 );
 
 /*
 static void
@@ -703,7 +708,7 @@ void rec_notify_continuous(int called_from_menu)
 
 void rec_notify_trigger(int rec)
 {
-#if !defined(CONFIG_600D)
+#if !defined(CONFIG_5D3)
     if (RECNOTIFY_BEEP)
     {
         extern int ml_started;
@@ -720,7 +725,7 @@ void rec_notify_trigger(int rec)
     }
 
 #ifndef CONFIG_50D
-    if (rec == 1 && sound_recording_mode == 1)
+    if (rec == 1 && sound_recording_mode == 1 && !fps_should_record_wav())
         NotifyBox(1000, "Sound is disabled.");
 #endif
 }
@@ -920,7 +925,7 @@ void update_lvae_for_autoiso_n_displaygain()
             {
                 int bv = prop_bv;
                 //int c = (uint8_t)((bv >> 16) & 0xFF);
-                #ifdef CONFIG_5D2
+                #if defined(CONFIG_5D2) || defined(CONFIG_1100D)
                 int b = (uint8_t)((bv >>  8) & 0xFF);
                 ae_value = (int)lvae_iso_max - b;
                 #else
@@ -968,6 +973,75 @@ int gain_to_ev_x8(int gain)
     return (int) roundf(log2f(gain) * 8.0);
 }
 
+CONFIG_INT("iso.smooth", smooth_iso, 0);
+void smooth_iso_step()
+{
+    if (!smooth_iso) return;
+    if (!is_movie_mode()) return;
+    if (!lv) return;
+    if (!lens_info.raw_iso) return; // no auto iso
+    
+    static int prev_iso = -1;
+    int current_iso = FRAME_ISO & 0xFF;
+    
+    static int iso_acc = 0;
+    
+    static int k = 0; k++;
+    
+    if (prev_iso != current_iso && prev_iso > 0)
+    {
+        iso_acc += (prev_iso - current_iso) * 5;
+    }
+    if (iso_acc)
+    {
+        int g = (int) roundf(1024.0 * powf(2, iso_acc / 40.0));
+
+        // it's not a good idea to use a digital ISO gain higher than +/- 0.5 EV (noise or pink highlights), 
+        // so alter it via FRAME_ISO
+        extern int digic_iso_gain_movie;
+        #define G_ADJ (digic_iso_gain_movie ? g * digic_iso_gain_movie / 1024 : g)
+        int altered_iso = current_iso;
+        while (G_ADJ > 1448 
+            #ifndef CONFIG_5D3
+            && altered_iso < 120
+            #endif
+        ) 
+        {
+            altered_iso += 8;
+            g /= 2;
+        }
+        while (G_ADJ < 724 && altered_iso > 80) 
+        {
+            altered_iso -= 8;
+            g *= 2;
+        }
+        #ifndef CONFIG_5D3
+        if (altered_iso >= 112) // above ISO 3200 we have digital gain and it's difficult to handle smoothly
+        {
+            altered_iso = 112;
+        }
+        #endif
+        if (altered_iso != current_iso)
+        {
+            FRAME_ISO = altered_iso | (altered_iso << 8);
+        }
+
+        #if defined(CONFIG_5D2) || defined(CONFIG_550D) || defined(CONFIG_50D)
+        // FRAME_ISO not synced perfectly, use digital gain to mask the flicker
+        static int prev_altered_iso = 0;
+        if (prev_altered_iso && prev_altered_iso != altered_iso)
+            g = g * (int)roundf(powf(2, 10 + (altered_iso - prev_altered_iso) / 8.0)) / 1024;
+        prev_altered_iso = altered_iso;
+        #endif
+        
+        set_movie_digital_iso_gain_extra(g);
+        if (iso_acc > 0) iso_acc--; else iso_acc++;
+    }
+    else set_movie_digital_iso_gain_extra(1024);
+    
+    prev_iso = current_iso;
+}
+
 static struct menu_entry mov_menus[] = {
 #ifdef CONFIG_50D
     {
@@ -1007,7 +1081,7 @@ static struct menu_entry mov_menus[] = {
         .display    = vbr_print,
         .select     = vbr_toggle,
     },*/
-    #ifndef CONFIG_500D
+    #if !defined(CONFIG_500D) && !defined(CONFIG_5D3)
     {
         .name = "Movie Restart",
         .priv = &movie_restart,
@@ -1050,12 +1124,12 @@ static struct menu_entry mov_menus[] = {
         .name = "REC/STBY notify", 
         .priv = &rec_notify, 
         .display = rec_notify_print, 
-        #ifdef CONFIG_5D2
-        .select = menu_quinternary_toggle, 
-        #elif defined(CONFIG_600D)
-        .select = menu_quaternary_toggle, 
+        #if defined(CONFIG_5D2) || defined(CONFIG_500D)
+        .select = menu_quinternary_toggle, // beeps and blue led
+        #elif defined(CONFIG_600D) || defined(CONFIG_5D3)
+        .select = menu_ternary_toggle, // no beeps, no blue led
         #else
-        .select = menu_ternary_toggle, 
+        .select = menu_quaternary_toggle, // beeps are OK, no blue led
         #endif
         .help = "Custom REC/STANDBY notifications, visual or audible",
         //.essential = FOR_MOVIE,
@@ -1088,7 +1162,7 @@ static struct menu_entry mov_menus[] = {
         .display = zebra_nrec_display,
         .help = "You can disable zebra during recording."
     },*/
-    #ifndef CONFIG_50D
+    #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
     {
         .name = "Force LiveView",
         .priv = &enable_liveview,
@@ -1108,7 +1182,7 @@ static struct menu_entry mov_menus[] = {
         //.essential = FOR_MOVIE,
     },
 #endif
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D)
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D3)
     {
         .name = "Shutter Lock",
         .priv = &shutter_lock,
@@ -1118,6 +1192,12 @@ static struct menu_entry mov_menus[] = {
         //.essential = FOR_MOVIE,
     },
 #endif
+    {
+        .name = "Smooth ISO",
+        .priv = &smooth_iso,
+        .max = 1,
+        .help = "Use gradual ISO changes when recording.",
+    },
 };
 
 struct menu_entry expo_override_menus[] = {

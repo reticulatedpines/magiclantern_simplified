@@ -13,6 +13,11 @@
 #include "config.h"
 #include "ptp.h"
 
+#ifdef CONFIG_5D3_MINIMAL
+#include "disable-this-module.h"
+#endif
+
+
 void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
 
@@ -1237,7 +1242,7 @@ static struct menu_entry focus_menu[] = {
         //.essential = FOR_PHOTO,
         .icon_type = IT_BOOL,
     },
-#ifndef CONFIG_5DC
+#if !defined(CONFIG_5DC) && !defined(CONFIG_5D3)
     {
         .name = "Focus Patterns",
         .priv = &af_patterns,
@@ -1246,6 +1251,8 @@ static struct menu_entry focus_menu[] = {
         .help = "Custom AF patterns (photo mode only; ported from 400plus)",
         //.essential = FOR_PHOTO_NON_LIVEVIEW,
     },
+#endif
+#if !defined(CONFIG_5DC)
     {
         .name = "Follow Focus",
         .priv = &follow_focus,

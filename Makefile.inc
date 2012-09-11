@@ -1,50 +1,8 @@
-#generic makefile
-
-# for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM-ABI=elf
-ARM_ABI=elf
-
-ARM_PATH=~/arm-toolchain462
-ARM_BINPATH=$(ARM_PATH)/bin
-GCC_VERSION=4.6.2
-CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
-OBJCOPY=$(ARM_BINPATH)/arm-$(ARM_ABI)-objcopy
-AR=$(ARM_BINPATH)/arm-$(ARM_ABI)-ar
-RANLIB=$(ARM_BINPATH)/arm-$(ARM_ABI)-ranlib
-READELF=$(ARM_BINPATH)/arm-$(ARM_ABI)-readelf
-ARM_LIBC_A = $(ARM_PATH)/arm-$(ARM_ABI)/lib/libc.a
-LD=$(CC)
-HOST_CC=gcc
-HOST_CFLAGS=-g -O3 -W -Wall
-PYTHON=python
-
-# Naming convention for Magic Lantern builds:
-# General rules:
-# - Always specify the camera and its firmware version number in the build name (e.g. 550d.fw109)
-# - For non-release builds, specify the build date and author's (nick)name.
-# - For experimental builds, add a short keyword indicating the particular feature tested.
-
-# Examples for experimental builds:
-# magiclantern-2010dec07.550d.fw108.cropmarks.a1ex.zip 
-# magiclantern-2010nov23.550d.fw108.selectable-audio.piers.zip 
-
-# Example for pre-release builds:
-# magiclantern-2010dec17.550d.fw109.PRERELEASE.alex.zip
-
-# Release builds:
-# magiclantern-0.2.0.rc1.550d.fw109.zip
-#~ VERSION=0.2.0.rc1.550d.fw109
-BUILDVER=$(shell whoami).$(shell hg id -i -r .)
-VERSION:=v2.3.NEXT.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION)
-
-CONFIG_PYMITE		= n
-CONFIG_RELOC		= n
-CONFIG_TIMECODE		= n
-CONFIG_PTP 			= n
-CONFIG_PTP_CHDK 	= n
-CONFIG_PTP_ML 		= n
-CONFIG_PLUGINS 		= n
-CONFIG_CONSOLE		= n
-CONFIG_DEBUGMSG 	= 0
+# Generic makefile
+# Include default and user-customized options where needed
+# If you want to customize them copy Makefile.user.default to Makefile.user keeping only the options that you want to customize
+include $(TOP_DIR)/Makefile.user.default
+-include $(TOP_DIR)/Makefile.user
 
 UNAME:=$(shell uname)
 
@@ -161,7 +119,6 @@ CFLAGS=\
 	-Os \
 	-Wall \
 	-W \
-    -DCONFIG_AUDIO_600D_DEBUG \
 	-mstructure-size-boundary=32 \
 	-Wno-unused-parameter \
 	-Wno-implicit-function-declaration \
@@ -173,9 +130,7 @@ CFLAGS=\
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
 
-ifeq ($(UNAME), Darwin)
-CFLAGS += -mlong-calls 
-endif
+CFLAGS += $(CFLAG_USER)
 
 ifeq ($(CONFIG_PYMITE),y)
 CFLAGS += $(PYMITE_CFLAGS)

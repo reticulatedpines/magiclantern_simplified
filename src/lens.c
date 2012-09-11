@@ -677,7 +677,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
         else
             bmp_printf( text_font, x_origin + 360, y_origin,
                 "%s ",
-                //~ (uniwb_is_active()      ? " UniWB" :
+                (uniwb_is_active()      ? " UniWB" :
                 (lens_info.wb_mode == 0 ? "AutoWB" : 
                 (lens_info.wb_mode == 1 ? " Sunny" :
                 (lens_info.wb_mode == 2 ? "Cloudy" : 
@@ -686,7 +686,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                 (lens_info.wb_mode == 5 ? " Flash" : 
                 (lens_info.wb_mode == 6 ? "Custom" : 
                 (lens_info.wb_mode == 8 ? " Shade" :
-                 "unk"))))))))
+                 "unk")))))))))
             );
         
         int gm = lens_info.wbs_gm;
@@ -723,8 +723,9 @@ void draw_ml_bottombar(int double_buffering, int clear)
                   y_origin, 
                   is_manual_focus() ? "MF" : "AF"
                 );
-
-#ifdef CONFIG_5D2
+#ifdef CONFIG_1100D
+    // Exp comp address missing and no lcd sensor
+#elif defined(CONFIG_5D2)
     //~ extern int lightsensor_value;
     //~ extern int lightsensor_triggered;
     //~ text_font = FONT(SHADOW_FONT(FONT_MED), COLOR_CYAN, bg );
@@ -757,7 +758,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
         // battery indicator
         int xr = x_origin + 612 - font_large.width - 4;
 
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2)
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
         int bat = GetBatteryLevel();
     #else
         int bat = battery_level_bars == 0 ? 5 : battery_level_bars == 1 ? 30 : 100;
@@ -925,7 +926,7 @@ void draw_ml_topbar(int double_buffering, int clear)
     bmp_printf( font, x, y, (char*)get_picstyle_shortname(lens_info.raw_picstyle));
 
     x += 70;
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2)
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
         bmp_printf( font, x, y,"T=%d BAT=%d", efic_temp, GetBatteryLevel());
     #elif defined(CONFIG_550D)
         bmp_printf( font, x, y,"T=%dC", EFIC_CELSIUS);
@@ -1842,8 +1843,10 @@ lens_init( void* unused )
     //~ lens_sem = create_named_semaphore( "lens_info", 1 );
     focus_done_sem = create_named_semaphore( "focus_sem", 1 );
     //~ job_sem = create_named_semaphore( "job", 1 ); // seems to cause lockups
+#ifndef CONFIG_5D3_MINIMAL
 #ifndef CONFIG_5DC
     menu_add("Movie", lens_menus, COUNT(lens_menus));
+#endif
 #endif
 
     //~ lens_info.lens_rotation = 0.1;
@@ -1908,7 +1911,7 @@ LENS_GET_FROM_OTHER_PICSTYLE(saturation)
 LENS_GET_FROM_OTHER_PICSTYLE(color_tone)
 
 LENS_SET_IN_PICSTYLE(contrast, -4, 4)
-LENS_SET_IN_PICSTYLE(sharpness, 0, 7)
+LENS_SET_IN_PICSTYLE(sharpness, -1, 7)
 LENS_SET_IN_PICSTYLE(saturation, -4, 4)
 LENS_SET_IN_PICSTYLE(color_tone, -4, 4)
 

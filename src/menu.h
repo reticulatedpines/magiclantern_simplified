@@ -208,8 +208,12 @@ extern void menu_stop(void);
 #define MNI_SUBMENU 11
 #define MNI_BOOL(x) ((x) ? MNI_ON : MNI_OFF)
 #define MNI_BOOL_AUTO(x) ((x) == 1 ? MNI_ON : (x) == 0 ? MNI_OFF : MNI_AUTO)
-#define MNI_BOOL_GDR(x) ((x) ? ( get_global_draw() ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) (get_global_draw_setting() ? "GlobalDraw is disabled for current shooting mode." : "GlobalDraw is OFF.")
-#define MNI_BOOL_GDR_EXPSIM(x) ((x) ? ( get_global_draw() && (lv_luma_is_accurate() || !lv) ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t)( !get_global_draw() ? (get_global_draw_setting() ? "GlobalDraw is disabled for current shooting mode." : "GlobalDraw is OFF.") : expsim == 0 ? "ExpSim is OFF." : "Display Gain is active." )
+
+#define _ZEBRAS_IN_LIVEVIEW (get_global_draw_setting() & 1)
+#define GDR_WARNING_MSG ((lv && lv_disp_mode && _ZEBRAS_IN_LIVEVIEW) ? "Press " INFO_BTN_NAME " (outside ML menu) to turn Canon displays off." : get_global_draw_setting() ? "GlobalDraw is disabled, check your settings." : "GlobalDraw is OFF.")
+
+#define MNI_BOOL_GDR(x) ((x) ? ( get_global_draw() ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) GDR_WARNING_MSG
+#define MNI_BOOL_GDR_EXPSIM(x) ((x) ? ( get_global_draw() && (lv_luma_is_accurate() || !lv) ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t)( !get_global_draw() ? GDR_WARNING_MSG : expsim == 0 ? "ExpSim is OFF." : "Display Gain is active." )
 #define MNI_BOOL_LV(x) ((x) ? ( lv ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) "This option only works in LiveView." 
 
 #define MENU_EOL_PRIV (void*)-1

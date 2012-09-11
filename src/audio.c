@@ -28,6 +28,9 @@
 #include "menu.h"
 #include "gui.h"
 
+#if defined(CONFIG_5D3_MINIMAL)
+#include "disable-this-module.h"
+#endif
 
 #if defined(CONFIG_50D)
 #include "disable-this-module.h"
@@ -35,7 +38,7 @@
 
 #define SOUND_RECORDING_ENABLED (sound_recording_mode != 1) // not 100% sure
 
-#ifdef CONFIG_500D
+#if defined(CONFIG_500D) || defined(CONFIG_5D3)
 int audio_thresholds[] = { 0x7fff, 0x7213, 0x65ab, 0x5a9d, 0x50c2, 0x47fa, 0x4026, 0x392c, 0x32f4, 0x2d6a, 0x2879, 0x2412, 0x2026, 0x1ca7, 0x1989, 0x16c2, 0x1449, 0x1214, 0x101d, 0xe5c, 0xccc, 0xb68, 0xa2a, 0x90f, 0x813, 0x732, 0x66a, 0x5b7, 0x518, 0x48a, 0x40c, 0x39b, 0x337, 0x2dd, 0x28d, 0x246, 0x207, 0x1ce, 0x19c, 0x16f, 0x147 };
 #endif
 
@@ -45,7 +48,7 @@ static void volume_display();
 static void audio_monitoring_display_headphones_connected_or_not();
 static void audio_menus_init();
 static void audio_monitoring_update();
-static void audio_ic_set_lineout_onoff(int mute);
+static void audio_ic_set_lineout_onoff(int op_mode);
 
 // Dump the audio registers to a file if defined
 #undef CONFIG_AUDIO_REG_LOG
@@ -66,9 +69,8 @@ static struct gain_struct gain = {
 
 #ifdef CONFIG_600D
 //Prototypes for 600D
-void override_audio_setting(int phase);
 static void audio_ic_set_lineout_vol();
-static void audio_ic_set_input(int mute);
+static void audio_ic_set_input(int op_mode);
 
 // Set defaults
 CONFIG_INT( "audio.override_audio", cfg_override_audio,   0 );
@@ -90,12 +92,12 @@ CONFIG_INT( "audio.mic-power",  mic_power,      1 );
 CONFIG_INT( "audio.o2gain",     o2gain,         0 );
 //CONFIG_INT( "audio.mic-in",   mic_in,         0 ); // not used any more?
 #endif
-CONFIG_INT( "audio.filters",    enable_filters,     1 ); //disable the HPF, LPF and pre-emphasis filters
 CONFIG_INT( "audio.lovl",       lovl,           0 );
 CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
 int loopback = 1;
 //CONFIG_INT( "audio.input-source",     input_source,           0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced
 CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
+CONFIG_INT( "audio.filters",    enable_filters,        1 ); //disable the HPF, LPF and pre-emphasis filters
 CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
 #ifdef CONFIG_500D
 CONFIG_INT("audio.monitoring", audio_monitoring, 0);
@@ -112,7 +114,7 @@ int ext_cfg_draw_meters(void)
 }
 */
 
-struct audio_level audio_levels[2];
+static struct audio_level audio_levels[2];
 
 struct audio_level *get_audio_levels(void)
 {
@@ -416,13 +418,13 @@ compute_audio_levels(
 int audio_meters_are_drawn()
 {
 #ifdef CONFIG_600D
-    if (!SOUND_RECORDING_ENABLED){
+    if (!SOUND_RECORDING_ENABLED && !fps_should_record_wav()){
         if(!cfg_override_audio){
                 return 0;
         }
     }
 #else
-    if (!SOUND_RECORDING_ENABLED)
+    if (!SOUND_RECORDING_ENABLED && !fps_should_record_wav())
                 return 0;
 #endif
 
@@ -446,8 +448,9 @@ static void
 meter_task( void* unused )
 {
 
+#ifdef CONFIG_AUDIO_600D_DEBUG
 //will delete this when we finish debugging
-    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.10      ");
+    NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.11      ");
     msleep(4000);
     NotifyBox( 250, " FOR TESTING PURPOSE ONLY. ");
     msleep(500);
@@ -466,6 +469,7 @@ meter_task( void* unused )
     NotifyBox(4000, "   If you find problems    \n   please report them to   \n    www.magiclantern.fm    ");
     msleep(5000);
     NotifyBox(4000, "and use the stable release.\n Last Stable release: 2.3  ");
+#endif
 
 #ifdef CONFIG_600D
         //initialize audio config for 600D
@@ -1070,7 +1074,7 @@ PROP_HANDLER( PROP_MIC_INSERTED )
     mic_inserted = buf[0];
     
 #ifdef CONFIG_600D
-    audio_ic_set_input(MUTE_ON); //Need faster finish this prop on 600D. audio_configure() is slow.Then get hang
+    audio_ic_set_input(OP_STANDALONE); //Need faster finish this prop on 600D. audio_configure() is slow.Then get hang
 #else
     audio_configure( 1 );
 #endif
@@ -1107,70 +1111,14 @@ audio_ic_set_mute_off(unsigned int wait){
     }
 }
 
-
-void
-override_post_beep(){
-    if(cfg_override_audio == 0) return;
-
-    audio_ic_write(ML_MIC_IN_CHARG_TIM | 0x00);
-
-    audio_configure(1);
-}
-
-void
-override_audio_setting(int phase){
-    if(cfg_override_audio == 0) return;
-	//These audio_ic_write are setting back to startup time.
-	//Because, the canon firmware will switching off the audio switchs I guess,it's for power save
-    switch(phase){
-		case 0:   //Phase 0 for camera powerON->standby
-			audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICL2LCH_MICR2RCH); //Duplicate L to R
-			
-        case 1: //Phase 1 for finish recording->standy & change vol setting->standby
-			audio_ic_write(ML_RECPLAY_STATE | 0x0); //recplay state need off->on
-			audio_ic_write(ML_RECPLAY_STATE | 0x11); //
-			audio_ic_write(ML_PW_IN_PW_MNG | 0x0a);   //DAC(0010) and PGA(1000) power on
-			audio_ic_write(ML_DVOL_CTL_FUNC_EN | 0x2E);        //All(Play,Capture,DigitalVolFade,DigitalVol) switched on
-			audio_ic_write(ML_MIC_IN_VOL | 0x3f);   
-			
-			//        audio_configure(0);
-            
-    }
-
-}
-
-
-struct msg_queue * override_audio_q = NULL;
-/** override audio settings  */
 static void
-override_audio_task( void* unused )
-{
-
-    if(!override_audio_q)
-        override_audio_q = (struct msg_queue *) msg_queue_create("override_audio_q", 1);
-
-    TASK_LOOP
-        {
-            int msg;
-            msleep(1000);
-            int err = msg_queue_receive(override_audio_q, (struct event**)&msg, 500);
-            if (!err && cfg_override_audio){
-                audio_configure(msg);
-                NotifyBox(1000,"Audio Overridden");
-            }
-        }
-}
-
-TASK_CREATE( "override_audio_do_task", override_audio_task, 0, 0x17, 0x1000 );
-
-static void
-audio_ic_set_micboost(unsigned int lv){ //600D func lv is 0-8
+audio_ic_set_micboost(){ //600D func lv is 0-8
     if(cfg_override_audio == 0) return;
 
 //    if(lv > 7 ) lv = 6;
-    if(lv > 6 ) lv = 6;
+    if(cfg_analog_boost > 6 ) cfg_analog_boost = 6;
 
-    switch(lv){
+    switch(cfg_analog_boost){
     case 0:
         audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_OFF);
         audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
@@ -1221,22 +1169,15 @@ audio_ic_set_analog_gain(){
 
 	int volumes[] = { 0x00, 0x0c, 0x10, 0x18, 0x24, 0x30, 0x3c, 0x3f};
     //mic in vol 0-7 0b1-0b111111
-	if(cfg_analog_gain > 7){
-        int boost_vol = cfg_analog_gain - 8;
-        audio_ic_write(ML_MIC_IN_VOL   | volumes[7]);   //override mic in volume
-        //        audio_ic_set_micboost(boost_vol);
-    }else{
-        audio_ic_write(ML_MIC_IN_VOL   | volumes[cfg_analog_gain]);   //override mic in volume
-        //audio_ic_set_micboost(0);
-    } 	
+    audio_ic_write(ML_MIC_IN_VOL   | volumes[cfg_analog_gain]);   //override mic in volume
 }
 
 static void
-audio_ic_set_input(int mute){
+audio_ic_set_input(int op_mode){
     if(cfg_override_audio == 0) return;
 
-    if(mute) audio_ic_set_mute_on(150);
-    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //descrived in pdf p71
+    if(op_mode) audio_ic_set_mute_on(30);
+    if(op_mode) audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //descrived in pdf p71
     
     switch (get_input_source())
         {
@@ -1280,11 +1221,11 @@ audio_ic_set_input(int mute){
         }
     
     if(audio_monitoring){
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
+        if(op_mode) audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
     }else{
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
+        if(op_mode) audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
     }
-    if(mute) audio_ic_set_mute_off(200);
+    if(op_mode) audio_ic_set_mute_off(80);
 
 }
 
@@ -1298,20 +1239,20 @@ audio_ic_set_RecLRbalance(){
 }
 
 static void
-audio_ic_set_filters(int mute){
+audio_ic_set_filters(int op_mode){
     if(cfg_override_audio == 0) return;
 
-    if(mute) audio_ic_set_mute_on(100);
+    if(op_mode) audio_ic_set_mute_on(30);
     int val = 0;
     if(cfg_filter_dc) val = 0x1;
     if(cfg_filter_hpf2) val = val | 0x2;
-    masked_audio_ic_write(ML_FILTER_EN, 0x3, val);
+    audio_ic_write(ML_FILTER_EN | val);
     if(val){
         audio_ic_write(ML_HPF2_CUTOFF | cfg_filter_hpf2config);
     }else{
-        masked_audio_ic_write(ML_FILTER_EN ,0x3, 0x0);
+        audio_ic_write(ML_FILTER_EN | 0x3);
     }
-    if(mute) audio_ic_set_mute_off(200);
+    if(op_mode) audio_ic_set_mute_off(80);
 }
 
 static void
@@ -1338,15 +1279,16 @@ audio_ic_off(){
     audio_ic_write(ML_HPF2_CUTOFF | ML_HPF2_CUTOFF_FREQ200);
     audio_ic_write(ML_FILTER_EN | ML_FILTER_DIS_ALL);
     audio_ic_write(ML_REC_LR_BAL_VOL | 0x00);
-    audio_ic_set_lineout_onoff(MUTE_OFF);
+    audio_ic_set_lineout_onoff(OP_MULTIPLE);
 }
 
 static void
 audio_ic_on(){
     if(cfg_override_audio == 0) return;
-    audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x01); //power on
+    audio_ic_write(ML_PW_ZCCMP_PW_MNG | ML_PW_ZCCMP_PW_MNG_ON); //power on
+    audio_ic_write(ML_PW_IN_PW_MNG | ML_PW_IN_PW_MNG_BOTH);   //DAC(0010) and PGA(1000) power on
     masked_audio_ic_write(ML_PW_REF_PW_MNG,0x7,ML_PW_REF_PW_MICBEN_ON | ML_PW_REF_PW_HISPEED);
-    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_REC);
+    //    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_REC);
     audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON);
     audio_ic_write(ML_MIXER_VOL_CTL | 0x10);
 }
@@ -1355,18 +1297,22 @@ static void
 audio_ic_set_lineout_vol(){
     int vol = lovl + 0x0E;
     audio_ic_write(ML_HP_AMP_VOL | vol);
+
+    //This can be more boost headphone monitoring volume.Need good menu interface
+    audio_ic_write(ML_PLYBAK_BOST_VOL | ML_PLYBAK_BOST_VOL_DEF );
+
 }
 
 
 static void
-audio_ic_set_lineout_onoff(int mute){
+audio_ic_set_lineout_onoff(int op_mode){
     //PDF p38
     if(audio_monitoring &&
        AUDIO_MONITORING_HEADPHONES_CONNECTED &&
        cfg_override_audio==1){
-        if(mute) audio_ic_set_mute_on(100);
+        if(op_mode) audio_ic_set_mute_on(30);
         
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directly change prohibited p55
+        if(op_mode) audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directly change prohibited p55
 
         audio_ic_write(ML_PW_REF_PW_MNG | ML_PW_REF_PW_HP_STANDARD | ML_PW_REF_PW_MICBEN_ON | ML_PW_REF_PW_HISPEED); //HeadPhone amp-std voltage(HPCAP pin voltage) gen circuit power on.
         audio_ic_write(ML_PW_IN_PW_MNG | ML_PW_IN_PW_MNG_BOTH ); //adc pga on
@@ -1375,24 +1321,23 @@ audio_ic_set_lineout_onoff(int mute){
         audio_ic_write(ML_HP_AMP_OUT_CTL | ML_HP_AMP_OUT_CTL_ALL_ON);
         audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON );
         audio_ic_write(ML_DVOL_CTL_FUNC_EN | ML_DVOL_CTL_FUNC_EN_ALC_FADE );
-        audio_ic_write(ML_PLYBAK_BOST_VOL | 0x00 );
         audio_ic_set_lineout_vol();
 
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
+        if(op_mode) audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
 
-        if(mute) audio_ic_set_mute_off(200);
+        if(op_mode) audio_ic_set_mute_off(80);
 
     }else{
         if(cfg_override_audio==1){
-            if(mute) audio_ic_set_mute_on(100);
+            if(op_mode) audio_ic_set_mute_on(30);
         
-            audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
+            if(op_mode) audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
             audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWROFF); //DAC power on
             audio_ic_write(ML_HP_AMP_OUT_CTL | 0x0);
             audio_ic_write(ML_PW_SPAMP_PW_MNG | ML_PW_SPAMP_PW_MNG_OFF);
             
-            audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
-            if(mute) audio_ic_set_mute_off(200);
+            if(op_mode) audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
+            if(op_mode) audio_ic_set_mute_off(80);
         }
     }
 }
@@ -1405,8 +1350,18 @@ audio_ic_set_recdgain(){
     masked_audio_ic_write(ML_REC_DIGI_VOL, 0x7f, vol);
 }
 
-//wrapper for audio_configure()
-void call_audio_configure(){ audio_configure(0); }
+
+static void
+audio_ic_set_recplay_state(){
+
+    if(audio_monitoring &&
+       AUDIO_MONITORING_HEADPHONES_CONNECTED){
+        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
+    }else{
+        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
+    }
+
+}
 
 #else
 
@@ -1456,14 +1411,14 @@ audio_set_meterlabel(){
  void
 audio_configure( int force )
 {
+#if defined(CONFIG_5D3)
+        return;
+#endif
 
     extern int beep_playing;
     if (beep_playing && !(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED))
         return; // don't redirect wav playing to headphones if they are not connected
 
-    // redirect wav playing to headphones if they are connected
-    int loopback0 = beep_playing ? 0 : loopback;
-    
 #ifdef CONFIG_AUDIO_REG_LOG
         audio_reg_dump( force );
         return;
@@ -1474,39 +1429,34 @@ audio_configure( int force )
 #endif
 
 #ifdef CONFIG_600D
-
-
     if(cfg_override_audio == 0){
         audio_ic_off();
         return;
     }else{
-        audio_ic_set_mute_on(100);
+        audio_ic_set_mute_on(30);
         audio_ic_on();
     }
 
-	if (force){
-        if(force == 2){
-            override_audio_setting(0);
-        }else{
-            override_audio_setting(1);
-        }
-	}
-
     audio_set_meterlabel();
-    audio_ic_set_input(MUTE_OFF);
+    audio_ic_set_input(OP_MULTIPLE);
     audio_ic_set_analog_gain();
-    audio_ic_set_micboost(cfg_analog_boost);
+    audio_ic_set_micboost();
     audio_ic_set_recdgain();
     audio_ic_set_RecLRbalance();
-    audio_ic_set_filters(MUTE_OFF);
+    audio_ic_set_filters(OP_MULTIPLE);
     audio_ic_set_effect_mode();
     audio_ic_set_agc();
-    audio_ic_set_lineout_onoff(MUTE_OFF);
+    audio_ic_set_lineout_onoff(OP_MULTIPLE);
     audio_monitoring_update();
+    audio_ic_set_recplay_state();
 
-    audio_ic_set_mute_off(200);
+    audio_ic_set_mute_off(80);
 
 #else /* ^^^^^^^CONFIG_600D^^^^^^^ vvvvv except 600D vvvvvvvv*/
+
+    // redirect wav playing to headphones if they are connected
+    int loopback0 = beep_playing ? 0 : loopback;
+    
         int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
 
         audio_set_meterlabel();
@@ -1683,7 +1633,10 @@ static void check_sound_recording_warning(int x, int y)
         if(!cfg_override_audio){
 #endif
         if (was_sound_recording_disabled_by_fps_override())
-            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording was disabled by FPS override.");
+        {
+            if (!fps_should_record_wav())
+                menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording was disabled by FPS override.");
+        }
         else
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
 #ifdef CONFIG_600D
@@ -1938,7 +1891,7 @@ static void
         menu_quinternary_toggle(priv, 1);
 #ifdef CONFIG_600D
         if(*(unsigned*)priv == 3) *(unsigned*)priv = 4; //tamporaly disabled Ext:balanced. We can't find it.
-        audio_ic_set_input(MUTE_ON);
+        audio_ic_set_input(OP_STANDALONE);
 #else
         audio_configure( 1 );
 #endif
@@ -1949,7 +1902,7 @@ audio_input_toggle_reverse( void * priv, int delta )
         menu_quinternary_toggle_reverse(priv, -1);
 #ifdef CONFIG_600D
         if(*(unsigned*)priv == 3) *(unsigned*)priv = 2; //tamporaly disabled Ext:balanced. We can't find it.
-        audio_ic_set_input(MUTE_ON);
+        audio_ic_set_input(OP_STANDALONE);
 #else
         audio_configure( 1 );
 #endif
@@ -2013,12 +1966,12 @@ static void analog_boost_display( void * priv, int x, int y, int selected )
 static void analog_boost_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 6);
-    audio_ic_set_micboost(cfg_analog_boost);
+    audio_ic_set_micboost();
 }
 static void analog_boost_toggle_reverse( void * priv, int delta )
 {
     menu_numeric_toggle(priv, -1, 0, 6);
-    audio_ic_set_micboost(cfg_analog_boost);
+    audio_ic_set_micboost();
 }
 
 static void audio_effect_mode_toggle( void * priv, int delta )
@@ -2052,7 +2005,7 @@ static void audio_effect_mode_display( void * priv, int x, int y, int selected )
 static void audio_filter_dc_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, -1, 0, 1);
-    audio_ic_set_filters(MUTE_ON);
+    audio_ic_set_filters(OP_STANDALONE);
 }
 
 static void audio_filter_dc_display( void * priv, int x, int y, int selected )
@@ -2071,7 +2024,7 @@ static void audio_filter_dc_display( void * priv, int x, int y, int selected )
 static void audio_filter_hpf2_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 1);
-    audio_ic_set_filters(MUTE_ON);
+    audio_ic_set_filters(OP_STANDALONE);
 }
 
 
@@ -2088,13 +2041,13 @@ static void audio_filter_hpf2_display( void * priv, int x, int y, int selected )
 static void audio_hpf2config_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 7);
-    audio_ic_set_filters(MUTE_ON);
+    audio_ic_set_filters(OP_STANDALONE);
 }
 
 static void audio_hpf2config_toggle_reverse( void * priv, int delta )
 {
     menu_numeric_toggle(priv, -1, 0, 7);
-    audio_ic_set_filters(MUTE_ON);
+    audio_ic_set_filters(OP_STANDALONE);
 }
 static char *get_hpf2config_str(){
     return (cfg_filter_hpf2config == 0 ? "80Hz" :
@@ -2118,14 +2071,14 @@ static void
 audio_filters_toggle( void * priv, int delta )
 {
     menu_numeric_toggle(priv, 1, 0, 1);
-    audio_ic_set_filters(MUTE_ON);
+    audio_ic_set_filters(OP_STANDALONE);
 }
 
 static void
 audio_filters_toggle_reverse( void * priv, int delta )
 {
     menu_numeric_toggle(priv, -1, 0, 1);
-    audio_ic_set_filters(MUTE_ON);
+    audio_ic_set_filters(OP_STANDALONE);
 }
 
 static void
@@ -2268,7 +2221,7 @@ void audio_monitoring_display_headphones_connected_or_not()
               "connected" :
               "disconnected");
 #ifdef CONFIG_600D
-        if(override_audio_q) msg_queue_post(override_audio_q, 1); 
+        audio_configure(1);
 #endif
 }
 
@@ -2290,7 +2243,7 @@ static void audio_monitoring_update()
         }
 #ifdef CONFIG_600D
         else{
-            audio_ic_set_lineout_onoff(MUTE_ON);
+            audio_ic_set_lineout_onoff(OP_STANDALONE);
         }
 #endif
 }
@@ -2304,8 +2257,8 @@ static void
 }
 
 static struct menu_entry audio_menus[] = {
-#if !defined(CONFIG_1100D)
-  #if 0
+#if !(defined(CONFIG_1100D) || defined(CONFIG_5D3))
+#if 0
         {
                 .priv           = &o2gain,
                 .select         = audio_o2gain_toggle,
@@ -2558,14 +2511,14 @@ enable_recording(
         case 0:
             // Movie recording stopped;  (fallthrough)
 #ifdef CONFIG_600D
-            if(override_audio_q) msg_queue_post(override_audio_q, 1); 
+            audio_configure(1);
 #endif
             break;
         case 2:
             // Movie recording started
             give_semaphore( gain.sem );
 #ifdef CONFIG_600D
-            if(override_audio_q) msg_queue_post(override_audio_q, 0); 
+            audio_configure(1);
 #endif
             break;
         case 1:
@@ -2662,7 +2615,7 @@ my_sounddev_task()
         }
 }
 
-#ifndef CONFIG_600D
+#if !defined(CONFIG_600D) && !defined(CONFIG_5D3)
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 #endif
 
@@ -2853,7 +2806,9 @@ void input_toggle()
 
 static void audio_menus_init()
 {
+    #ifndef CONFIG_5D3_MINIMAL
     menu_add( "Audio", audio_menus, COUNT(audio_menus) );
+    #endif
 }
 
 
@@ -2863,7 +2818,7 @@ PROP_HANDLER( PROP_AUDIO_VOL_CHANGE_600D )
     /* Cannot overwrite audio config direct here!
        Cannon firmware is overwrite after finishing here.So you need to set value with delay
     */
-    if(override_audio_q) msg_queue_post(override_audio_q, 1); 
+    audio_configure(1);
 
 }
 

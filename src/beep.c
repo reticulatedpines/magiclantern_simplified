@@ -3,13 +3,15 @@
 #include "bmp.h"
 #include "config.h"
 #include "cordic-16bit.h"
+#define _beep_c_
+#include "property.h"
 
 extern int gui_state;
 extern int file_number;
 
 int beep_playing = 0;
 
-#if defined(CONFIG_50D) || defined(CONFIG_5DC) // beep not working, keep dummy stubs
+#if defined(CONFIG_50D) || defined(CONFIG_5DC) || defined(CONFIG_5D3_MINIMAL) // beep not working, keep dummy stubs
     void unsafe_beep(){}
     void beep(){}
     void Beep(){}
@@ -17,8 +19,6 @@ int beep_playing = 0;
     int beep_enabled = 0;
     int handle_voice_tags(struct event * event) { return 1; }
 #else // beep working
-
-extern int recording; // don't beep while recording, it may break audio
 
 #define BEEP_LONG -1
 #define BEEP_SHORT 0
@@ -35,29 +35,18 @@ CONFIG_INT("beep.wavetype", beep_wavetype, 0); // square, sine, white noise
 static int beep_freq_values[] = {55, 110, 220, 262, 294, 330, 349, 392, 440, 494, 880, 1000, 1760, 2000, 3520, 5000, 12000};
 
 void generate_beep_tone(int16_t* buf, int N);
-#ifdef CONFIG_600D
-void override_post_beep();
-#endif
 
 static int16_t beep_buf[5000];
 
 static void asif_stopped_cbr()
 {
     beep_playing = 0;
-#ifdef CONFIG_600D
-    override_post_beep();
-#else
     audio_configure(1);
-#endif
 }
 static void asif_stop_cbr()
 {
     StopASIFDMADAC(asif_stopped_cbr, 0);
-#ifdef CONFIG_600D
-    override_post_beep();
-#else
     audio_configure(1);
-#endif
 }
 void play_beep(int16_t* buf, int N)
 {
@@ -66,9 +55,6 @@ void play_beep(int16_t* buf, int N)
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
     PowerAudioOutput();
     audio_configure(1);
-#ifdef CONFIG_600D
-    msleep(500);
-#endif
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
     StartASIFDMADAC(buf, N, 0, 0, asif_stop_cbr, 0);
 }
@@ -80,9 +66,6 @@ void play_beep_ex(int16_t* buf, int N, int sample_rate)
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
     PowerAudioOutput();
     audio_configure(1);
-#ifdef CONFIG_600D
-    msleep(500);
-#endif
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
     StartASIFDMADAC(buf, N, 0, 0, asif_stop_cbr, 0);
 }
@@ -118,8 +101,8 @@ static uint8_t wav_header[44] = {
 
 static void wav_set_size(uint8_t* header, int size)
 {
-    uint32_t* data_size = &header[40];
-    uint32_t* main_chunk_size = &header[4];
+    uint32_t* data_size = (uint32_t*)&header[40];
+    uint32_t* main_chunk_size = (uint32_t*)&header[4];
     *data_size = size;
     *main_chunk_size = size + 36;
 }
@@ -154,8 +137,8 @@ void WAV_PlaySmall(char* filename)
     int data_offset = wav_find_chunk(buf, size, 0x61746164);
     if (!data_offset) goto end;
     
-    uint32_t data_size = *(uint32_t*)(buf + data_offset + 4);
-    uint8_t* data = buf + data_offset + 8;
+    int data_size = *(int*)(buf + data_offset + 4);
+    int16_t* data = (int16_t*)(buf + data_offset + 8);
     if (data_size > size - data_offset - 8) { NotifyBox(5000, "WAV: data size wrong"); goto end; }
     
     info_led_on();
@@ -195,12 +178,12 @@ static void asif_continue_cbr()
 
 void WAV_Play(char* filename)
 {
-    int8_t* buf1 = wav_buf[0];
-    int8_t* buf2 = wav_buf[1];
+    uint8_t* buf1 = (uint8_t*)(wav_buf[0]);
+    uint8_t* buf2 = (uint8_t*)(wav_buf[1]);
     if (!buf1) return;
     if (!buf2) return;
 
-    int size;
+    unsigned size;
     if( FIO_GetFileSize( filename, &size ) != 0 ) return;
 
     if( file != INVALID_PTR ) return;
@@ -214,6 +197,8 @@ void WAV_Play(char* filename)
     int fmt_offset = wav_find_chunk(buf1, s1, 0x20746d66);
     if (MEM(buf1+fmt_offset) != 0x20746d66) goto wav_cleanup;
     int sample_rate = *(uint32_t*)(buf1 + fmt_offset + 12);
+    int channels = *(uint16_t*)(buf1 + fmt_offset + 10);
+    int bitspersample = *(uint16_t*)(buf1 + fmt_offset + 22);
     
     // find the "data" subchunk
     int data_offset = wav_find_chunk(buf1, s1, 0x61746164);
@@ -225,12 +210,14 @@ void WAV_Play(char* filename)
 
     beep_playing = 1;
     SetSamplingRate(sample_rate, 1);
-    MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
+    // 1 = mono uint8
+    // 3 = stereo uint8
+    // 4 = mono int16
+    // 6 = stereo int16
+    // => bit 2 = 16bit, bit 1 = stereo, bit 0 = 8bit
+    MEM(0xC0920210) = (channels == 2 ? 2 : 0) | (bitspersample == 16 ? 4 : 1); // SetASIFDACMode*
     PowerAudioOutput();
     audio_configure(1);
-#ifdef CONFIG_600D
-    msleep(500);
-#endif
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
     wav_ibuf = 0;
     
@@ -326,6 +313,7 @@ static void asif_rec_continue_cbr()
 {
     if (file == INVALID_PTR) return;
 
+
     void* buf = wav_buf[wav_ibuf];
     FIO_WriteFile(file, UNCACHEABLE(buf), WAV_BUF_SIZE);
 
@@ -343,8 +331,8 @@ static void asif_rec_continue_cbr()
 
 void WAV_Record(char* filename, int show_progress)
 {
-    int8_t* buf1 = wav_buf[0];
-    int8_t* buf2 = wav_buf[1];
+    uint8_t* buf1 = (uint8_t*)wav_buf[0];
+    uint8_t* buf2 = (uint8_t*)wav_buf[1];
     if (!buf1) return;
     if (!buf2) return;
 
@@ -367,6 +355,24 @@ void WAV_Record(char* filename, int show_progress)
     }
     info_led_off();
 }
+
+#ifdef CONFIG_600D
+
+void Load_ASIFDMAADC(){
+    uint8_t* buf1 = (uint8_t*)wav_buf[0];
+    uint8_t* buf2 = (uint8_t*)wav_buf[1];
+    if (!buf1) return;
+    if (!buf2) return;
+
+    audio_recording = 0;
+    SetSamplingRate(48000, 1);
+    MEM(0xC092011C) = 4; // SetASIFADCModeSingleINT16
+
+    wav_ibuf = 0;
+    StartASIFDMAADC(buf1, WAV_BUF_SIZE, buf2, WAV_BUF_SIZE, asif_rec_continue_cbr, 0);
+}
+#endif
+
 
 static void
 record_display(
@@ -456,6 +462,12 @@ static struct semaphore * beep_sem;
 void play_test_tone()
 {
     if (audio_stop_rec_or_play()) return;
+#ifdef CONFIG_600D
+    if (AUDIO_MONITORING_HEADPHONES_CONNECTED){
+        NotifyBox(2000,"600D does not support\nPlay and monitoring together");
+        return;
+    }
+#endif
     beep_type = BEEP_LONG;
     give_semaphore(beep_sem);
 }
@@ -469,7 +481,12 @@ void unsafe_beep()
     }
 
     if (audio_stop_rec_or_play()) return;
-
+#ifdef CONFIG_600D
+    if (AUDIO_MONITORING_HEADPHONES_CONNECTED){
+        NotifyBox(2000,"600D does not support\nPlay and monitoring together");
+        return;
+    }
+#endif
     beep_type = BEEP_SHORT;
     give_semaphore(beep_sem);
 }
@@ -626,8 +643,7 @@ static char current_wav_filename[100];
 void find_next_wav(void* priv, int dir)
 {
     static int index = -1;
-    static char ffn[100];
-    
+
     index += dir;
     
     if (find_wav(&index, current_wav_filename))
@@ -669,7 +685,12 @@ static void wav_playback_do()
 static void playback_start(void* priv, int delta)
 {
     if (audio_stop_rec_or_play()) return;
-
+#ifdef CONFIG_600D
+    if (AUDIO_MONITORING_HEADPHONES_CONNECTED){
+        NotifyBox(2000,"600D does not support\nPlay and monitoring together");
+        return;
+    }
+#endif
     beep_type = BEEP_WAV;
     give_semaphore(beep_sem);
 }
@@ -685,6 +706,12 @@ static char* wav_get_new_filename()
         return imgname;
     }
     
+    else if (recording)
+    {
+        snprintf(imgname, sizeof(imgname), "%s/MVI_%04d.WAV", get_dcim_dir(), file_number);
+        return imgname;
+    }
+    
     for ( ; wav_number < 10000; wav_number++)
     {
         snprintf(imgname, sizeof(imgname), "%s/SND_%04d.WAV", get_dcim_dir(), wav_number);
@@ -695,6 +722,14 @@ static char* wav_get_new_filename()
     return imgname;
 }
 
+static void wav_notify_filename()
+{
+    // display only the filename, without the path
+    char* fn = current_wav_filename + strlen(current_wav_filename) - 1;
+    while (fn > current_wav_filename && *fn != '/') fn--; fn++;
+    NotifyBox(1000, "Sound: %s", fn);
+}
+
 static void wav_record_do()
 {
     if (beep_playing) return;
@@ -702,7 +737,8 @@ static void wav_record_do()
     int q = QR_MODE;
     char* fn = wav_get_new_filename();
     snprintf(current_wav_filename, sizeof(current_wav_filename), fn);
-    msleep(100); // to avoid the noise from shortcut key
+    if (recording) wav_notify_filename();
+    else msleep(100); // to avoid the noise from shortcut key
     WAV_Record(fn, q);
     if (q)
     {
@@ -746,6 +782,14 @@ int handle_voice_tags(struct event * event)
         }
     }
     return 1;
+}
+
+PROP_HANDLER( PROP_MVR_REC_START )
+{
+    if (!fps_should_record_wav()) return;
+    int rec = buf[0];
+    if (rec == 1) record_start(0,0);
+    else if (rec == 0) audio_stop_recording();
 }
 
 static struct menu_entry beep_menus[] = {
@@ -850,6 +894,10 @@ static void beep_init()
     beep_sem = create_named_semaphore( "beep_sem", 0 );
     menu_add( "Audio", beep_menus, COUNT(beep_menus) );
     find_next_wav(0,1);
+
+#ifdef CONFIG_600D
+    Load_ASIFDMAADC();
+#endif
 }
 
 INIT_FUNC("beep.init", beep_init);

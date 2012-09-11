@@ -249,6 +249,12 @@
 #define ALO_HIGH 2
 #define ALO_OFF 3
 
+#ifdef CONFIG_5D3
+#define PROP_HTP 0x8000004a
+#define PROP_MULTIPLE_EXPOSURE 0x0202000c
+#define PROP_MLU 0x80000047
+#endif
+
 /** Job progress
  * 0xB == capture end?
  * 0xA == start face catch pass?
@@ -295,7 +301,7 @@
 // buf[0]: 8 if crop else 0
 // buf[1]: 0 if full hd, 1 if 720p, 2 if 680p
 // buf[2]: fps
-// buf[3]: fps/2?
+// buf[3]: GoP
 #endif
 
 #define PROP_DOF_PREVIEW_MAYBE 0x8005000B
@@ -317,13 +323,30 @@
     #define PROP_CARD_RECORD       0x8003000B
     #define PROP_CLUSTER_SIZE      0x2010004
     #define PROP_FREE_SPACE        0x2010006
-#elif defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+#elif defined(CONFIG_50D) || defined(CONFIG_5D2)// || defined(CONFIG_5D3)
     #define PROP_CLUSTER_SIZE      0x02010006
     #define PROP_FREE_SPACE        0x02010009
     //#define PROP_FILE_NUMBER       0x02040007 // if last saved file is IMG_1234, then this property is 1234. Works both in photo and video mode.
     #define PROP_FILE_NUMBER  0x02010003 // seems to mirror the previous one, but it's increased earlier
     #define PROP_FOLDER_NUMBER     0x02010000 // 100, 101...
     #define PROP_CARD_RECORD       0x8003000b // set when writing on the card
+#elif defined(CONFIG_5D3) // two card slots
+    
+    #define PROP_CARD_SELECT         0x80040002 //  1=CF, 2=SD
+
+    // CF card
+    #define PROP_CLUSTER_SIZE_A      0x02010006
+    #define PROP_FREE_SPACE_A        0x02010009
+    #define PROP_FILE_NUMBER_A       0x02010003
+    #define PROP_FOLDER_NUMBER_A     0x02010000
+    #define PROP_CARD_RECORD_A       0x8003000b
+
+    // SD card
+    #define PROP_CLUSTER_SIZE_B      0x02010007
+    #define PROP_FREE_SPACE_B        0x0201000a
+    #define PROP_FILE_NUMBER_B       0x02010004
+    #define PROP_FOLDER_NUMBER_B     0x02010001
+    #define PROP_CARD_RECORD_B       0x8003000c
 #else
     #define PROP_CLUSTER_SIZE      0x02010007
     #define PROP_FREE_SPACE        0x0201000a // in clusters

@@ -14,13 +14,12 @@
 #include "version.h"
 //#include "lua.h"
 
-#ifdef CONFIG_AUDIO_600D_DEBUG
-#ifdef CONFIG_600D
+#if defined(CONFIG_600D) && defined(CONFIG_AUDIO_600D_DEBUG)
 void audio_reg_dump_once();
-#endif
 #endif
 
 #define CONFIG_STRESS_TEST
+#define CONFIG_BENCHMARKS
 //~ #define CONFIG_HEXDUMP
 #undef CONFIG_ISO_TESTS
 //~ #define CONFIG_DEBUGMSG 1
@@ -51,7 +50,6 @@ void HijackFormatDialogBox_main();
 void config_menu_init();
 void display_on();
 void display_off();
-char* get_dcim_dir();
 
 
 void fake_halfshutter_step();
@@ -538,13 +536,27 @@ void iso_movie_test()
 
 void run_test()
 {
-    msleep(2000);
-#ifdef CONFIG_AUDIO_600D_DEBUG
-    #ifdef CONFIG_600D
+    //delete when finish debugging
+#if defined(CONFIG_600D) && defined(CONFIG_AUDIO_600D_DEBUG)
     audio_reg_dump_once();
-    #endif
 #endif
+    //^^^^^^^^^^^to here^^^^^^^^
 
+    msleep(2000);
+    while(1)
+    {
+        if (DISPLAY_IS_ON) 
+        {
+            static int r1 = 1;
+            static int r2 = 1;
+            if (rand()%30 == 1) r1 = !r1;
+            if (rand()%30 == 1) r2 = !r2;
+            int inc = (r1 ? 1 : -1) + (r2 ? 0x100 : -0x100);
+            EngDrvOut(0xC0F14400, (MEMX(0xC0F14400) + inc) & 0xFFFF);
+            EngDrvOut(0xC0F14800, (MEMX(0xC0F14800) + inc) & 0xFFFF);
+        }
+        msleep(10);
+    }
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -553,6 +565,88 @@ void run_in_separate_task(void (*priv)(void), int delta)
     if (!priv) return;
     task_create("run_test", 0x1a, 0x1000, priv, 0);
 }
+
+
+#ifdef CONFIG_BENCHMARKS
+void card_benchmark_wr(int bufsize, int K, int N)
+{
+    int x = 0;
+    static int y = 50;
+    if (K == 1) y = 50;
+    
+    FIO_RemoveFile(CARD_DRIVE"bench.tmp");
+    msleep(1000);
+    int n = 0x10000000 / bufsize;
+    {
+        FILE* f = FIO_CreateFileEx(CARD_DRIVE"bench.tmp");
+        int t0 = tic();
+        int i;
+        for (i = 0; i < n; i++)
+        {
+            uint32_t start = 0x40000000;
+            bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
+            FIO_WriteFile( f, (const void *) start, bufsize );
+        }
+        FIO_CloseFile(f);
+        int t1 = tic();
+        int speed = 2560 / (t1 - t0);
+        bmp_printf(FONT_MED, x, y += font_med.height, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
+    }
+    SW1(1,100);
+    SW1(0,100);
+    msleep(1000);
+    if (bufsize > 1024*1024) bmp_printf(FONT_MED, x, y += font_med.height, "read test skipped: buffer=%d\n", bufsize);
+    else
+    {
+        void* buf = alloc_dma_memory(bufsize);
+        if (buf)
+        {
+            FILE* f = FIO_Open(CARD_DRIVE"bench.tmp", O_RDONLY | O_SYNC);
+            int t0 = tic();
+            int i;
+            for (i = 0; i < n; i++)
+            {
+                bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Reading: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
+                FIO_ReadFile(f, UNCACHEABLE(buf), bufsize );
+            }
+            FIO_CloseFile(f);
+            free_dma_memory(buf);
+            int t1 = tic();
+            int speed = 2560 / (t1 - t0);
+            bmp_printf(FONT_MED, x, y += font_med.height, "Read speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
+        }
+        else
+        {
+            bmp_printf(FONT_MED, x, y += font_med.height, "malloc error: buffer=%d\n", bufsize);
+        }
+    }
+
+    FIO_RemoveFile(CARD_DRIVE"bench.tmp");
+    msleep(1000);
+    SW1(1,100);
+    SW1(0,100);
+}
+
+void card_benchmark_task()
+{
+    #ifdef CONFIG_5D3
+    extern int card_select;
+    NotifyBox(2000, "%s Benchmark (256 MB)...", card_select == 1 ? "CF" : "SD");
+    #else
+    NotifyBox(2000, "Card benchmark (256 MB)...");
+    #endif
+    msleep(3000);
+    canon_gui_disable_front_buffer();
+    clrscr();
+    card_benchmark_wr(16384, 1, 3);
+    card_benchmark_wr(131072, 2, 3);
+    card_benchmark_wr(16777216, 3, 3);
+    msleep(3000);
+    call("dispcheck");
+    canon_gui_enable_front_buffer(1);
+}
+
+#endif
 
 #ifdef CONFIG_STRESS_TEST
 
@@ -1282,13 +1376,13 @@ const int mem_spy_addresses[] = {};//0xc0000044, 0xc0000048, 0xc0000057, 0xc0001
 int mem_spy_len = 0x10000/4;    // look at ### int32's; use only when mem_spy_fixed_addresses = 0
 //~ int mem_spy_len = COUNT(mem_spy_addresses); // use this when mem_spy_fixed_addresses = 1
 
-int mem_spy_count_lo = 1; // how many times is a value allowed to change
-int mem_spy_count_hi = 0; // (limits)
-int mem_spy_freq_lo = 10; 
-int mem_spy_freq_hi = 50;  // or check frequecy between 2 limits (0 = disable)
+int mem_spy_count_lo = 5; // how many times is a value allowed to change
+int mem_spy_count_hi = 50; // (limits)
+int mem_spy_freq_lo =  0; 
+int mem_spy_freq_hi =  0;  // or check frequecy between 2 limits (0 = disable)
 int mem_spy_value_lo = 0;
 int mem_spy_value_hi = 0;  // or look for a specific range of values (0 = disable)
-int mem_spy_start_time = 0;  // ignore values changing early (these are noise)
+int mem_spy_start_time = 30;  // ignore values changing early (these are noise)
 
 
 static int* dbg_memmirror = 0;
@@ -1764,39 +1858,33 @@ void save_crash_log()
 
 }
 
-// don't do anything else here, to avoid lockups
-void crash_log_task()
+void crash_log_step()
 {
-    int dmlog_saved = 0;
-    TASK_LOOP
+    static int dmlog_saved = 0;
+    if (crash_log_requested)
     {
-        if (crash_log_requested)
-        {
-            //~ beep();
-            save_crash_log();
-            crash_log_requested = 0;
-            msleep(2000);
-        }
-        
-        //~ bmp_printf(FONT_MED, 100, 100, "%x ", get_current_dialog_handler());
-        extern thunk ErrForCamera_handler;
-        if (get_current_dialog_handler() == (intptr_t)&ErrForCamera_handler)
-        {
-            if (!dmlog_saved) 
-            { 
-                beep();
-                NotifyBox(10000, "Saving debug log...");
-                call("dumpf"); 
-            }
-            dmlog_saved = 1;
-        }
-        else dmlog_saved = 0;
-        
-        msleep(200);
+        //~ beep();
+        save_crash_log();
+        crash_log_requested = 0;
+        msleep(2000);
     }
+        
+    //~ bmp_printf(FONT_MED, 100, 100, "%x ", get_current_dialog_handler());
+    extern thunk ErrForCamera_handler;
+    if (get_current_dialog_handler() == (intptr_t)&ErrForCamera_handler)
+    {
+        if (!dmlog_saved) 
+        { 
+            beep();
+            NotifyBox(10000, "Saving debug log...");
+            call("dumpf"); 
+        }
+        dmlog_saved = 1;
+    }
+    else dmlog_saved = 0;
 }
 
-TASK_CREATE( "crash_log_task", crash_log_task, 0, 0x1e, 0x2000);
+//~ TASK_CREATE( "crash_log_task", crash_log_task, 0, 0x1e, 0x2000);
 
 
 int x = 0;
@@ -1826,78 +1914,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
 
-        if (get_global_draw())
-        {
-            #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
-            extern thunk ShootOlcApp_handler;
-            if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown()
-                && (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler)
-            BMP_LOCK
-            (
-                display_clock();
-                display_shooting_info();
-                free_space_show_photomode();
-            )
-            #endif
-        
-            if (lv && !gui_menu_shown())
-            {
-                BMP_LOCK (
-                    display_shooting_info_lv();
-                    display_shortcut_key_hints_lv();
-                )
-                #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
-                if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
-                {
-                    static int ae_warned = 0;
-                    if (!ae_warned && !gui_menu_shown())
-                    {
-                        bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
-                            "!!! Auto exposure !!!\n"
-                            "Set 'Movie Exposure -> Manual' from Canon menu");
-                        msleep(2000);
-                        redraw();
-                        ae_warned = 1;
-                    }
-                }
-                #elif defined(CONFIG_5D2)
-                static int ae_warned = 0;
-                if (is_movie_mode() && !lens_info.raw_shutter && recording && MVR_FRAME_NUMBER < 10)
-                {
-                    if (!ae_warned && !gui_menu_shown())
-                    {
-                        msleep(2000);
-                        bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
-                            "!!! Auto exposure !!!\n"
-                            "Use M mode and set 'LV display: Movie' from Expo menu");
-                        msleep(4000);
-                        redraw();
-                        ae_warned = 1;
-                    }
-                }
-                else ae_warned = 0;
-                #endif
-                
-                if (ext_monitor_rca) 
-                {
-                    static int rca_warned = 0;
-                    if (!rca_warned && !gui_menu_shown())
-                    {
-                        msleep(2000);
-                        if (ext_monitor_rca) // check again
-                        {
-                            bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, 
-                                "SD monitors NOT fully supported!\n"
-                                "RGB tools and MZoom won't work. ");
-                            msleep(4000);
-                            redraw();
-                            rca_warned = 1;
-                        }
-                    }
-                }
-            }
-        }
-        
         if (screenshot_sec)
         {
             info_led_blink(1, 20, 1000-20-200);
@@ -1925,6 +1941,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             continue;
         }
         #endif
+        
+        crash_log_step();
         
         msleep(200);
     }
@@ -2375,10 +2393,11 @@ extern void menu_open_submenu();
 extern void tasks_print(void* priv, int x0, int y0, int selected);
 extern void batt_display(void* priv, int x0, int y0, int selected);
 extern int what_tasks_to_show;
+extern void peaking_benchmark();
 
 struct menu_entry debug_menus[] = {
 #ifdef CONFIG_HEXDUMP
-    {
+    { 
         .name = "Memory Browser",
         .priv = &hexdump_enabled,
         .max = 1,
@@ -2553,12 +2572,14 @@ struct menu_entry debug_menus[] = {
         .submenu_width = 650,
         //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
+            #ifndef CONFIG_5D3_MINIMAL // will change some settings and you can't restore them
             {
                 .name = "Quick test (around 15 min)",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = stress_test_task,
                 .help = "A quick test which covers basic functionality. "
             },
+            #endif
             {
                 .name = "Random tests (infinite loop)",
                 .select = (void(*)(void*,int))run_in_separate_task,
@@ -2621,6 +2642,30 @@ struct menu_entry debug_menus[] = {
     },
 #endif
 #endif
+#ifdef CONFIG_BENCHMARKS
+    {
+        .name        = "Benchmarks...",
+        .select        = menu_open_submenu,
+        .help = "Check how fast is your camera. Card, CPU, graphics...",
+        .submenu_width = 650,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Card R/W benchmark (5 min)",
+                .select = (void(*)(void*,int))run_in_separate_task,
+                .priv = card_benchmark_task,
+                .help = "Check card read/write speed. Uses a 256MB temp file."
+            },
+            {
+                .name = "Focus peaking benchmark (30s)",
+                .select = (void(*)(void*,int))run_in_separate_task,
+                .priv = peaking_benchmark,
+                .help = "Check how fast peaking runs in PLAY mode (1000 iterations)."
+            },
+            MENU_EOL,
+        }
+    },
+#endif
     {
         .name = "Show tasks...",
         .select = menu_open_submenu,
@@ -2673,7 +2718,7 @@ struct menu_entry debug_menus[] = {
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     #endif
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2)
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
     {
         .name = "Battery remaining",
         .display = batt_display,
@@ -3386,11 +3431,17 @@ void HijackFormatDialogBox_main()
 
 void config_menu_init()
 {
+#ifdef CONFIG_5D3_MINIMAL
+    menu_add( "Debug", cfg_menus, COUNT(cfg_menus) );
+#else
+
     extern struct menu_entry livev_cfg_menus[];
     //~ extern struct menu_entry menu_cfg_menu[];
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
 #ifndef CONFIG_5DC
     menu_add( "Prefs", livev_cfg_menus,  1);
+#endif
+
 #endif
     crop_factor_menu_init();
     //~ menu_add( "Config", menu_cfg_menu,  1);
@@ -3452,8 +3503,10 @@ int handle_buttons_being_held(struct event * event)
     #endif
     if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
     if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
+    #ifdef BGMT_PRESS_ZOOMOUT_MAYBE
     if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
     if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
+    #endif
     
     return 1;
 }
