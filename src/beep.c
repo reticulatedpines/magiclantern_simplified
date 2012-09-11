@@ -267,6 +267,10 @@ void WAV_RecordSmall(char* filename, int duration, int show_progress)
     SetSamplingRate(48000, 1);
     MEM(0xC092011C) = 4; // SetASIFADCModeSingleINT16
     StartASIFDMAADC(buf, N, 0, 0, asif_rec_stop_cbr, N);
+#ifdef CONFIG_600D
+    msleep(200);
+    audio_configure(1);
+#endif
     while (audio_recording) 
     {
         msleep(100);
@@ -349,20 +353,13 @@ void WAV_Record(char* filename, int show_progress)
     wav_ibuf = 0;
     StartASIFDMAADC(buf1, WAV_BUF_SIZE, buf2, WAV_BUF_SIZE, asif_rec_continue_cbr, 0);
 #ifdef CONFIG_600D
-        int Audio_unconfigured=1;
-        int Count = 0;
+    msleep(200);
+    audio_configure(1);
 #endif
     while (audio_recording) 
     {
         msleep(100);
         if (show_progress) record_show_progress();
-#ifdef CONFIG_600D
-        if(Audio_unconfigured && Count==1){
-            audio_configure(1);
-            Audio_unconfigured=0;
-        }
-        Count++;
-#endif
     }
     info_led_off();
 }
