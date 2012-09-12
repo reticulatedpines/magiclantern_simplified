@@ -75,4 +75,4 @@ CFLAGS += -DCONFIG_5D3_MINIMAL=1
 x: 
 	make clean
 	make autoexec.bin
-	python ../../../dumper/build_fir.py -r ../../../dumper/5D300112.FIR autoexec.bin ml-5D3-112.fir
+	python ../../../dumper/build_fir.py -r ../../../dumper/5D300113.FIR autoexec.bin ml-5D3-113.fir
