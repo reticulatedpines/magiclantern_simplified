@@ -28,10 +28,6 @@
 #include "menu.h"
 #include "gui.h"
 
-#if defined(CONFIG_5D3_MINIMAL)
-#include "disable-this-module.h"
-#endif
-
 #if defined(CONFIG_50D)
 #include "disable-this-module.h"
 #endif
@@ -1122,7 +1118,11 @@ audio_meter_display( void * priv, int x, int y, int selected )
         bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
+               #ifdef CONFIG_5D3_MINIMAL
+               "Audio Meters: %s",
+               #else
                "Audio Meters  : %s",
+               #endif
                v ? "ON" : "OFF"
                );
         check_sound_recording_warning(x, y);
@@ -1716,7 +1716,9 @@ void input_toggle()
 
 static void audio_menus_init()
 {
-    #ifndef CONFIG_5D3_MINIMAL
+    #ifdef CONFIG_5D3_MINIMAL
+    menu_add( "Overlay", audio_menus, COUNT(audio_menus) );
+    #else
     menu_add( "Audio", audio_menus, COUNT(audio_menus) );
     #endif
 }

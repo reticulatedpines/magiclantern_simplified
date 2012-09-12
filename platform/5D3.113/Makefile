@@ -29,7 +29,6 @@ ML_OBJS-y = \
 	menu.o \
 	debug.o \
 	stdio.o \
-	audio.o \
 	bitrate-5d3.o \
 	tweaks.o \
 	lens.o \
@@ -59,6 +58,7 @@ ML_OBJS-y = \
 	hdr.o \
 	lv-img-engio.o \
 	beep.o \
+	audio.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
