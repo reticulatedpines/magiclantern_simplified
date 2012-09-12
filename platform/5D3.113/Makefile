@@ -1,10 +1,10 @@
-#Makefile for 5D Mark III firmware 112
+#Makefile for 5D Mark III firmware 113
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=112
+FW_VERSION=113
 MODEL=5D3
 ML_VERSION=unified1 
 

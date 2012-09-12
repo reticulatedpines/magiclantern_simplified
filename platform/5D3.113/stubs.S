@@ -2,12 +2,12 @@
  * Entry points into the firmware image.
  *
  * These are the functions that we can call from our tasks
- * in the Canon 1.0.9 firmware for the 550d.
+ * in the Canon 1.1.3 firmware for the 5D Mark III.
  *
  * \todo Sort this file?  Generate it from the IDA map?
  */
 /*
- * Copyright (C) 2010 Magic Lantern Team
+ * Copyright (C) 2012 Magic Lantern Team
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -60,7 +60,7 @@ NSTUB(0xff19d7e8, GUI_GetFirmVersion)
 NSTUB(0xff135e28, LoadCalendarFromRTC)
 NSTUB(0xff2f3f8c, MuteOff_0)
 NSTUB(0xff2f3f44, MuteOn_0)
-NSTUB(0xff46cf54, RedrawDisplay)
+NSTUB(0xff46d03c, RedrawDisplay)
 NSTUB(0xff9f3a14 - RAM_OFFSET, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
 NSTUB(0xff12e110, SetBitmapVramAddress)
 NSTUB(0xff188c88, SetGUIRequestMode)
@@ -150,7 +150,7 @@ NSTUB(0x4157c, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc
 NSTUB(0xFF9E8688 - RAM_OFFSET, GetMemoryInformation)
 NSTUB(0xff144a3c, copy_malloc_info_maybe)
 
-NSTUB(0xff9f35c8 - RAM_OFFSET, msg_queue_create)
+NSTUB(0xff9eb104 - RAM_OFFSET, msg_queue_create)
 
 NSTUB(0xff1064c8, PD_RemoteRelease)
 

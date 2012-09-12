@@ -27,7 +27,7 @@
 #endif
 
 #ifdef CONFIG_5D3
-#include "../platform/5D3.112/consts.h"
+#include "../platform/5D3.113/consts.h"
 #endif
 
 #ifdef CONFIG_5DC
