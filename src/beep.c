@@ -315,13 +315,71 @@ int audio_stop_rec_or_play() // true if it stopped anything
     return ans;
 }
 
+typedef struct _write_q {
+    int multiplex;
+    void *buf;
+    struct _write_q *next;
+}WRITE_Q;
+
+#define QBUF_SIZE 4
+#define QBUF_MAX 20
+WRITE_Q *rootq;
+
+static void add_write_q(void *buf){
+    WRITE_Q *tmpq = rootq;
+    WRITE_Q *newq;
+
+    int i=0;
+    while(tmpq->next){
+        tmpq = tmpq->next;
+        i++;
+    }
+    if(i > QBUF_MAX){
+        NotifyBox(2000,"Lost WAV data\nUse more faster card");
+        return;
+    }
+
+    if(tmpq->multiplex < QBUF_SIZE){
+        if(!tmpq->buf){
+            tmpq->buf = alloc_dma_memory(WAV_BUF_SIZE*QBUF_SIZE);
+        }
+        int offset = WAV_BUF_SIZE * tmpq->multiplex;
+        memcpy(tmpq->buf + offset,buf,WAV_BUF_SIZE);
+        tmpq->multiplex++;
+    }else{
+        newq = AllocateMemory(sizeof(WRITE_Q));
+        memset(newq,0,sizeof(WRITE_Q));
+        newq->buf = alloc_dma_memory(WAV_BUF_SIZE*QBUF_SIZE);
+        memcpy(newq->buf ,buf,WAV_BUF_SIZE);
+        newq->multiplex++;
+        tmpq->next = newq;
+    }
+}
+
+static void write_q_dump(){
+    WRITE_Q *tmpq = rootq;
+    WRITE_Q *prevq;
+
+    while(tmpq->next){
+        prevq = tmpq;
+        tmpq = tmpq->next;
+        FIO_WriteFile(file, UNCACHEABLE(tmpq->buf), WAV_BUF_SIZE * tmpq->multiplex);
+        free_dma_memory(tmpq->buf);
+        prevq->next = tmpq->next;
+        FreeMemory(tmpq);
+        tmpq = prevq;
+    }
+}
+
+
+
 static void asif_rec_continue_cbr()
 {
     if (file == INVALID_PTR) return;
 
 
     void* buf = wav_buf[wav_ibuf];
-    FIO_WriteFile(file, UNCACHEABLE(buf), WAV_BUF_SIZE);
+    add_write_q(buf);
 
     if (audio_recording == 2)
     {
@@ -526,6 +584,21 @@ void Beep()
 
 static void wav_playback_do();
 static void wav_record_do();
+
+
+static void write_q_task()
+{
+    TASK_LOOP
+    {
+        if (audio_recording==1 || rootq->next)
+        {
+            write_q_dump();
+        }
+        msleep(500);
+    }
+}
+
+TASK_CREATE( "write_q_task", write_q_task, 0, 0x16, 0x1000 );
 
 static void beep_task()
 {
@@ -897,6 +970,10 @@ static void beep_init()
     wav_buf[0] = alloc_dma_memory(WAV_BUF_SIZE);
     wav_buf[1] = alloc_dma_memory(WAV_BUF_SIZE);
     
+    rootq = AllocateMemory(sizeof(WRITE_Q));
+    memset(rootq,0,sizeof(WRITE_Q));
+    rootq->multiplex=100;
+
     beep_sem = create_named_semaphore( "beep_sem", 0 );
     menu_add( "Audio", beep_menus, COUNT(beep_menus) );
     find_next_wav(0,1);
