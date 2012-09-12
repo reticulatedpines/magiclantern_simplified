@@ -3218,12 +3218,14 @@ struct menu_entry zebra_menus[] = {
                 .help = "Focus peaking color (fixed or color coding).",
                 .icon_type = IT_NAMED_COLOR,
             },
+            #ifndef CONFIG_5D3_MINIMAL
             {
                 .name = "Grayscale img.", 
                 .priv = &focus_peaking_grayscale,
                 .max = 1,
                 .help = "Display LiveView image in grayscale.",
             },
+            #endif
             /*{
                 .priv = &focus_peaking_debug,
                 .max = 1,
