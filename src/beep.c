@@ -8,6 +8,9 @@
 
 extern int gui_state;
 extern int file_number;
+#ifdef CONFIG_600D
+extern int cfg_hibr_wav_record;
+#endif
 
 int beep_playing = 0;
 
@@ -829,7 +832,12 @@ static void wav_record_do()
 static void record_start(void* priv, int delta)
 {
     if (audio_stop_rec_or_play()) return;
-
+#ifdef CONFIG_600D //another camera models can't support canon audio off with wav recording.
+    if (recording && sound_recording_mode != 1){
+        NotifyBox(2000,"Cannot record sound with canon audio enabled");
+        return ;
+    }
+#endif
     record_flag = 1;
     give_semaphore(beep_sem);
 }
@@ -865,7 +873,11 @@ int handle_voice_tags(struct event * event)
 
 PROP_HANDLER( PROP_MVR_REC_START )
 {
+#ifdef CONFIG_600D
+    if (!fps_should_record_wav() && !cfg_hibr_wav_record) return;
+#else
     if (!fps_should_record_wav()) return;
+#endif
     int rec = buf[0];
     if (rec == 1) record_start(0,0);
     else if (rec == 0) audio_stop_recording();

@@ -26,6 +26,9 @@ CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
 CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
 #endif
 CONFIG_INT( "bitrate.indicator", bitrate_indicator, 0);
+#ifdef CONFIG_600D
+CONFIG_INT( "hibr.wav.record", cfg_hibr_wav_record, 0);
+#endif
 int time_indic_x =  720 - 160;
 int time_indic_y = 0;
 int time_indic_width = 160;
@@ -454,6 +457,30 @@ static void load_h264_ini()
     call("IVAParamMode", CARD_DRIVE "ML/H264.ini");
     NotifyBox(2000, "%s", 0x4da10);
 }
+
+#ifdef CONFIG_600D
+static void hibr_wav_record_select( void * priv, int x, int y, int selected ){
+    menu_numeric_toggle(priv, 1, 0, 1);
+    if (recording) return;
+    int *onoff = (int *)priv;
+    if(*onoff == 1){
+        if (sound_recording_mode != 1){
+            int mode  = 1; //disabled
+            prop_request_change(PROP_MOVIE_SOUND_RECORD, &mode, 4);
+            NotifyBox(2000,"Canon sound disabled");
+            audio_configure(1);
+        }
+    }
+}
+static void hibr_wav_record_display( void * priv, int x, int y, int selected ){
+    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
+               x, y,
+               "Sound rec     : %s", 
+               (cfg_hibr_wav_record ? "Separate WAV" : "Normal")
+               );
+}
+#endif
+
 static struct menu_entry mov_menus[] = {
 #ifdef CONFIG_5D3
 /*    {
@@ -515,6 +542,17 @@ static struct menu_entry mov_menus[] = {
                 .display    = buffer_warning_level_display,
                 .help = "ML will pause CPU-intensive graphics if buffer gets full."
             },
+  #ifdef CONFIG_600D
+            {
+                .name = "Sound Record\b",
+                .priv = &cfg_hibr_wav_record,
+                .select = hibr_wav_record_select,
+                .display    = hibr_wav_record_display,
+                //                .choices = (const char *[]) {"Disabled", "Separate WAV"},
+                //                .icon_type = IT_BOOL,
+                .help = "Sound goes out of sync, so it has to be recorded separately.",
+            },
+  #endif
             MENU_EOL
         },
     },
