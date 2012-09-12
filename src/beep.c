@@ -216,12 +216,18 @@ void WAV_Play(char* filename)
     // 6 = stereo int16
     // => bit 2 = 16bit, bit 1 = stereo, bit 0 = 8bit
     MEM(0xC0920210) = (channels == 2 ? 2 : 0) | (bitspersample == 16 ? 4 : 1); // SetASIFDACMode*
+    wav_ibuf = 0;
+#ifdef CONFIG_600D
+    PowerAudioOutput();
+    StartASIFDMADAC(data, N1, buf2, N2, asif_continue_cbr, 0);
+    audio_configure(1);
+#else
     PowerAudioOutput();
     audio_configure(1);
     SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
-    wav_ibuf = 0;
     
     StartASIFDMADAC(data, N1, buf2, N2, asif_continue_cbr, 0);
+#endif
     return;
     
 wav_cleanup:
