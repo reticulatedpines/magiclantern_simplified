@@ -12,19 +12,10 @@
 #include "lens.h"
 
 //----------------begin qscale-----------------
-#ifdef CONFIG_5D3
-static CONFIG_INT("h264.bitrate", bitrate, 3);
-#endif
-
-
 CONFIG_INT( "h264.qscale.plus16", qscale_plus16, 16-8 );
 CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
 CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
-#ifdef CONFIG_5D3
-#define time_indicator 0 // no 4 GB limit, just show the free space
-#else
 CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
-#endif
 CONFIG_INT( "bitrate.indicator", bitrate_indicator, 0);
 #ifdef CONFIG_600D
 CONFIG_INT( "hibr.wav.record", cfg_hibr_wav_record, 0);
@@ -96,17 +87,13 @@ void opt_set(int num, int den)
         }
     }
 }
+
 void bitrate_set()
 {
     if (!lv) return;
     if (!is_movie_mode()) return; 
     if (gui_menu_shown()) return;
     if (recording) return; 
-
-#ifdef CONFIG_5D3
-    //~ MEM(0x27880) = bitrate * 10000000;
-    return;
-#endif
     
     if (bitrate_mode == 0)
     {
@@ -234,13 +221,8 @@ bitrate_toggle(void* priv, int delta)
 
 int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
 
-#ifdef CONFIG_5D3
-extern int cluster_size;
-extern int free_space_raw;
-#else
 PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
 PROP_INT(PROP_FREE_SPACE, free_space_raw);
-#endif
 #define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
 
 
@@ -482,23 +464,6 @@ static void hibr_wav_record_display( void * priv, int x, int y, int selected ){
 #endif
 
 static struct menu_entry mov_menus[] = {
-#ifdef CONFIG_5D3
-/*    {
-        .name = "Bit Rate     ",
-        .priv = &bitrate,
-        .min = 1,
-        .max = 20,
-        .help = "H.264 bitrate. One unit = 10 mb/s."
-    },*/
-    {
-        .name = "Load H264.ini     ",
-        //~ .priv = &bitrate,
-        //~ .min = 1,
-        //~ .max = 20,
-        .select = load_h264_ini,
-        .help = "Bitrate settings"
-    },
-#else
     {
         .name = "Bit Rate",
         .priv = &bitrate_mode,
@@ -556,8 +521,6 @@ static struct menu_entry mov_menus[] = {
             MENU_EOL
         },
     },
-#endif
-#ifndef CONFIG_5D3
     {
         .name = "Time Indicator",
         .priv       = &time_indicator,
@@ -567,17 +530,12 @@ static struct menu_entry mov_menus[] = {
         //.essential = 1,
         //~ .edit_mode = EM_MANY_VALUES,
     },
-#endif
 };
 
 void bitrate_init()
 {
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
 }
-
-#ifndef CONFIG_5D3_MINIMAL
-INIT_FUNC(__FILE__, bitrate_init);
-#endif
 
 static void
 bitrate_task( void* unused )

@@ -791,7 +791,6 @@ int get_lcd_sensor_shortcuts() { return 0; }
 void display_lcd_remote_icon(int x0, int y0) {}
 int new_LiveViewApp_handler = 0xff123456;
 void bootflag_write_bootblock(){};
-int audio_levels = 0;
 int handle_af_patterns(struct event * event) { return 1; }
 
 #endif

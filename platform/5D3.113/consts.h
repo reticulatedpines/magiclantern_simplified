@@ -51,7 +51,7 @@
 
 // for gui_main_task
 #define GMT_NFUNCS 7
-#define GMT_FUNCTABLE 0xff796d4c // dec gui_main_task
+#define GMT_FUNCTABLE 0xff796dac // dec gui_main_task
 //#define GMT_IDLEHANDLER_TASK (*(int*)0x2e81c) // dec create_idleHandler_task
 
 // button codes as received by gui_main_task

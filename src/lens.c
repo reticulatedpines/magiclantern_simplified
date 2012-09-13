@@ -755,6 +755,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                   );
 #endif
 
+#ifndef CONFIG_5D3_MINIMAL
         // battery indicator
         int xr = x_origin + 612 - font_large.width - 4;
 
@@ -780,7 +781,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
         bmp_draw_rect(col, xr-2, y_origin, 15, 29);
         bmp_draw_rect(col, xr-1, y_origin + 1, 13, 27);
         bmp_fill(col, xr+4, y_origin + 26 - bat, 8, bat);
-
+#endif
 
     //~ if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
     //~ if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
@@ -926,7 +927,7 @@ void draw_ml_topbar(int double_buffering, int clear)
     bmp_printf( font, x, y, (char*)get_picstyle_shortname(lens_info.raw_picstyle));
 
     x += 70;
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || (defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL))
         bmp_printf( font, x, y,"T=%d BAT=%d", efic_temp, GetBatteryLevel());
     #elif defined(CONFIG_550D)
         bmp_printf( font, x, y,"T=%dC", EFIC_CELSIUS);

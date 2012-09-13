@@ -1,10 +1,10 @@
-#Makefile for 5D Mark III firmware 112
+#Makefile for 5D Mark III firmware 113
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=112
+FW_VERSION=113
 MODEL=5D3
 ML_VERSION=unified1 
 
@@ -29,8 +29,7 @@ ML_OBJS-y = \
 	menu.o \
 	debug.o \
 	stdio.o \
-	audio.o \
-	bitrate.o \
+	bitrate-5d3.o \
 	tweaks.o \
 	lens.o \
 	property.o \
@@ -59,6 +58,7 @@ ML_OBJS-y = \
 	hdr.o \
 	lv-img-engio.o \
 	beep.o \
+	audio.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
@@ -75,4 +75,4 @@ CFLAGS += -DCONFIG_5D3_MINIMAL=1
 x: 
 	make clean
 	make autoexec.bin
-	python ../../../dumper/build_fir.py -r ../../../dumper/5D300112.FIR autoexec.bin ml-5D3-112.fir
+	python ../../../dumper/build_fir.py -r ../../../dumper/5D300113.FIR autoexec.bin ml-5D3-113.fir

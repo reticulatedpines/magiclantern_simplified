@@ -2719,12 +2719,14 @@ struct menu_entry debug_menus[] = {
     },
     #endif
     #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+    #ifndef CONFIG_5D3_MINIMAL
     {
         .name = "Battery remaining",
         .display = batt_display,
         .help = "Battery remaining. Wait for 2%% discharge before reading.",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
+    #endif
     #endif
     #if CONFIG_DEBUGMSG
     {
