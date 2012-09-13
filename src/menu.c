@@ -1195,7 +1195,7 @@ show_hidden_items(struct menu * menu, int force_clear)
             }
             entry = entry->next;
         }
-        STR_APPEND(hidden_msg, ".");
+        STR_APPEND(hidden_msg, " (press MENU).");
         
         if (strlen(hidden_msg) > 59)
         {
@@ -1349,8 +1349,8 @@ submenu_display(struct menu * submenu)
         bfnt_puts(submenu->name,  bx + 15,  by + 5, COLOR_WHITE, 40);
     }
 
-    menu_display(submenu->children,  bx + 50,  by + 50 + 20, 0);
     show_hidden_items(submenu, 1);
+    menu_display(submenu->children,  bx + 50,  by + 50 + 20, 0);
 }
 
 static void
@@ -1922,6 +1922,7 @@ handle_ml_menu_keys(struct event * event)
             event->param == BGMT_MENU ||
             event->param == BGMT_TRASH ||
             event->param == BGMT_PLAY ||
+            event->param == BGMT_PRESS_HALFSHUTTER ||
             event->param == BGMT_PRESS_UP ||
             event->param == BGMT_PRESS_DOWN ||
             event->param == BGMT_PRESS_LEFT ||
@@ -1935,7 +1936,8 @@ handle_ml_menu_keys(struct event * event)
             beta_warned = 1;
             menu_redraw();
         }
-        return 0;
+        if (event->param != BGMT_PRESS_HALFSHUTTER) 
+            return 0;
     }
     
     // Find the selected menu (should be cached?)
