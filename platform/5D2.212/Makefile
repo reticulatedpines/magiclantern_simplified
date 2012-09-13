@@ -29,7 +29,7 @@ ML_OBJS-y = \
 	menu.o \
 	debug.o \
 	stdio.o \
-	audio.o \
+	audio-ak.o \
 	bitrate.o \
 	property.o \
 	propvalues.o \

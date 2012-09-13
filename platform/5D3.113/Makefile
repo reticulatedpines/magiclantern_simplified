@@ -58,7 +58,7 @@ ML_OBJS-y = \
 	hdr.o \
 	lv-img-engio.o \
 	beep.o \
-	audio.o \
+	audio-ak.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
