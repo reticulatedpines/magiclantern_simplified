@@ -444,7 +444,7 @@ static void
 meter_task( void* unused )
 {
 
-#ifdef CONFIG_AUDIO_600D_DEBUG
+/*#ifdef CONFIG_AUDIO_600D_DEBUG
 //will delete this when we finish debugging
     NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.11      ");
     msleep(4000);
@@ -465,7 +465,7 @@ meter_task( void* unused )
     NotifyBox(4000, "   If you find problems    \n   please report them to   \n    www.magiclantern.fm    ");
     msleep(5000);
     NotifyBox(4000, "and use the stable release.\n Last Stable release: 2.3  ");
-#endif
+#endif*/
 
 #ifdef CONFIG_600D
         //initialize audio config for 600D
