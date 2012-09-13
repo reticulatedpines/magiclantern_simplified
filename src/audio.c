@@ -1785,7 +1785,9 @@ audio_lovl_display( void * priv, int x, int y, int selected )
                );
         check_sound_recording_warning(x, y);
         if (audio_monitoring){
-#ifndef CONFIG_600D /* ifNdef ?*/
+#ifdef CONFIG_600D 
+            menu_draw_icon(x, y, MNI_PERCENT, (100 * *(unsigned*) priv) / 38);
+#else
             menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
 #endif
         }else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Headphone monitoring is disabled");
