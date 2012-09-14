@@ -180,7 +180,11 @@ int handle_common_events_by_feature(struct event * event)
     #if !defined(CONFIG_1100D) // those cameras use a different button for ML menu
     if (handle_ml_menu_erase(event) == 0) return 0;
     #endif
-        
+
+    #ifdef CONFIG_5D3
+    if (handle_zoom_trick_event(event) == 0) return 0;
+    #endif
+
     if (handle_rack_focus(event) == 0) return 0;
     if (handle_intervalometer(event) == 0) return 0;
     if (handle_transparent_overlay(event) == 0) return 0; // on 500D, these two share the same key

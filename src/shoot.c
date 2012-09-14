@@ -2817,6 +2817,7 @@ int zoom_x5_x10_step()
     return 0;
 }*/
 
+
 int handle_zoom_x5_x10(struct event * event)
 {
     if (!lv) return 1;
@@ -4475,6 +4476,10 @@ static struct menu_entry flash_menus[] = {
         },
     }
 };
+
+#ifdef CONFIG_5D3
+extern int zoom_trick;
+#endif
 struct menu_entry tweak_menus_shoot[] = {
     {
         .name = "LiveView zoom settings...",
@@ -4538,6 +4543,14 @@ struct menu_entry tweak_menus_shoot[] = {
                 .choices = (const char *[]) {"OFF", "MF", "AF+MF"},
                 .help = "Zoom when you turn the focus ring (only some Canon lenses)."
             },
+            #ifdef CONFIG_5D3
+            {
+                .name = "Zoom w. old btn / M.Fn",
+                .priv = &zoom_trick,
+                .max = 1,
+                .help = "Use the old Zoom In button (top-right) or the M.Fn button."
+            },
+            #endif
             MENU_EOL
         },
     },

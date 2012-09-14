@@ -1164,6 +1164,10 @@ tweak_task( void* unused)
         
         movtweak_step();
 
+        #ifdef CONFIG_5D3
+        zoom_trick_step();
+        #endif
+
         if (halfshutter_sticky)
             fake_halfshutter_step();
         
@@ -1803,6 +1807,71 @@ void display_shortcut_key_hints_lv()
 
     old_mode = mode;
 }
+
+
+#ifdef CONFIG_5D3
+// some buttons send an unknown button event (GMT_GUICMD_PRESS_BUTTON_SOMETHING)
+// including MFn, light and old zoom button
+// but a lot of other buttons send this event, and also other events 
+//
+// so: guesswork: if the unknown event is sent and no other events are sent at the same moment (+/- 100 ms or so),
+// consider it as shortcut key for LiveView 5x/10x zoom
+
+CONFIG_INT("zoom.trick", zoom_trick, 0);
+
+static int countdown_for_unknown_button = 0;
+static int timestamp_for_unknown_button = 0;
+void zoom_trick_step()
+{
+    if (!zoom_trick) return;
+    if (!lv && !PLAY_OR_QR_MODE) return;
+
+    int current_timestamp = get_ms_clock_value();
+
+    static int prev_timestamp = 0;
+    if (prev_timestamp != current_timestamp)
+    {
+        if (countdown_for_unknown_button)
+            countdown_for_unknown_button--;
+    }
+    prev_timestamp = current_timestamp;
+
+    if (lv && !liveview_display_idle())
+    {
+        timestamp_for_unknown_button = 0;
+        return;
+    }
+
+    if (!timestamp_for_unknown_button) return;
+    
+    if (current_timestamp - timestamp_for_unknown_button >= 200)
+    {
+        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+        timestamp_for_unknown_button = 0;
+    }
+}
+
+PROP_HANDLER(PROP_AF_MODE)
+{
+    countdown_for_unknown_button = 2;
+}
+
+int handle_zoom_trick_event(struct event * event)
+{
+    if (!zoom_trick) return 1;
+    
+    if (event->param == GMT_GUICMD_PRESS_BUTTON_SOMETHING)
+    {
+        if (!countdown_for_unknown_button)
+        {
+            timestamp_for_unknown_button = get_ms_clock_value();
+        }
+    }
+    else
+        timestamp_for_unknown_button = 0;
+    return 1;
+}
+#endif
 
 static struct menu_entry key_menus[] = {
     {
