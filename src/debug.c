@@ -566,7 +566,8 @@ void card_benchmark_wr(int bufsize, int K, int N)
     
     FIO_RemoveFile(CARD_DRIVE"bench.tmp");
     msleep(1000);
-    int n = 0x10000000 / bufsize;
+    int filesize = 1024; // MB
+    int n = filesize * 1024 * 1024 / bufsize;
     {
         FILE* f = FIO_CreateFileEx(CARD_DRIVE"bench.tmp");
         int t0 = tic();
@@ -579,7 +580,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
         }
         FIO_CloseFile(f);
         int t1 = tic();
-        int speed = 2560 / (t1 - t0);
+        int speed = filesize * 10 / (t1 - t0);
         bmp_printf(FONT_MED, x, y += font_med.height, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
     }
     SW1(1,100);
@@ -602,7 +603,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
             FIO_CloseFile(f);
             free_dma_memory(buf);
             int t1 = tic();
-            int speed = 2560 / (t1 - t0);
+            int speed = filesize * 10 / (t1 - t0);
             bmp_printf(FONT_MED, x, y += font_med.height, "Read speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
         }
         else
@@ -621,16 +622,16 @@ void card_benchmark_task()
 {
     #ifdef CONFIG_5D3
     extern int card_select;
-    NotifyBox(2000, "%s Benchmark (256 MB)...", card_select == 1 ? "CF" : "SD");
+    NotifyBox(2000, "%s Benchmark (1 GB)...", card_select == 1 ? "CF" : "SD");
     #else
-    NotifyBox(2000, "Card benchmark (256 MB)...");
+    NotifyBox(2000, "Card benchmark (1 GB)...");
     #endif
     msleep(3000);
     canon_gui_disable_front_buffer();
     clrscr();
-    card_benchmark_wr(16384, 1, 3);
-    card_benchmark_wr(131072, 2, 3);
-    card_benchmark_wr(16777216, 3, 3);
+    //~ card_benchmark_wr(16384, 1, 3);
+    card_benchmark_wr(131072, 1, 2);
+    card_benchmark_wr(16777216, 2, 2);
     msleep(3000);
     call("dispcheck");
     canon_gui_enable_front_buffer(1);
