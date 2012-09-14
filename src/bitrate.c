@@ -499,6 +499,8 @@ void bitrate_init()
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
 }
 
+INIT_FUNC(__FILE__, bitrate_init);
+
 static void
 bitrate_task( void* unused )
 {
