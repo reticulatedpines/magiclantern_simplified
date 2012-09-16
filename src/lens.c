@@ -507,8 +507,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
       if (shutter_reciprocal > 100) shutter_reciprocal = 10 * ((shutter_reciprocal+5) / 10);
       if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
       static char shutter[32];
-      if (info->raw_shutter == 0) snprintf(shutter, sizeof(shutter), "    ");
-      else if (shutter_x10 >= 350) snprintf(shutter, sizeof(shutter), "BULB");
+      if (is_bulb_mode()) snprintf(shutter, sizeof(shutter), "BULB");
+      else if (info->raw_shutter == 0) snprintf(shutter, sizeof(shutter), "    ");
       else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), "%d  ", shutter_reciprocal);
       else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
       else snprintf(shutter, sizeof(shutter), "%d\" ", (shutter_x10+5) / 10);
@@ -525,7 +525,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
            else if (shutter_degrees < 45)
               fgs = FONT(FONT_LARGE,COLOR_RED,bg);
       }
-      else if (info->aperture) // rule of thumb: shutter speed should be roughly equal to focal length
+      else if (info->aperture && !is_bulb_mode()) // rule of thumb: shutter speed should be roughly equal to focal length
       {
            int focal_35mm = (info->focal_len * SENSORCROPFACTOR + 5) / 10;
            if (lens_info.IS) focal_35mm /= 4; // assume 2-stop effectiveness for IS
@@ -581,7 +581,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
         text_font = FONT(SHADOW_FONT(FONT_MED),fgs,bg);
 
-        if (shutter_x10 <= 3)
+        if (shutter_x10 <= 3 && !is_bulb_mode())
             bmp_printf( text_font, 
                 x_origin + 143 + 1  , 
                 y_origin - 2, 
@@ -2057,15 +2057,40 @@ int bv_set_rawaperture(unsigned aperture)
 
 int bv_expsim_shift()
 {
+    if (!lv) return;
+    if (!expsim) return;
+    
     if (!is_movie_mode())
     {
-        if (bv_tv < 96) // shutter speeds slower than 1/31 -> can't be obtained, raise ISO or open up aperture instead
+        if (is_bulb_mode()) // try to perform expsim in bulb mode, based on bulb timer setting
         {
-            int delta = 96 - bv_tv;
-            CONTROL_BV_TV = 96;
-            CONTROL_BV_ISO = bv_iso + delta;
+            int tv = get_bulb_shutter_raw_equiv();
+            if (tv < 96)
+            {
+                int delta = 96 - tv;
+                CONTROL_BV_TV = 96;
+                CONTROL_BV_ISO = COERCE(bv_iso + delta, 72, 199);
+            }                                                                      
+            else
+            {
+                CONTROL_BV_TV = tv;
+                CONTROL_BV_ISO = bv_iso;
+            }
+        }
+        else
+        {
+            CONTROL_BV_TV = bv_tv;
+
+            if (bv_tv < 96) // shutter speeds slower than 1/31 -> can't be obtained, raise ISO or open up aperture instead
+            {
+                int delta = 96 - bv_tv;
+                CONTROL_BV_TV = 96;
+                CONTROL_BV_ISO = bv_iso + delta;
+                return 1; // not used but... maybe in future
+            }
         }
     }
+    return 0;
 }
 
 int bv_auto_should_enable()
@@ -2116,6 +2141,10 @@ int bv_auto_should_enable()
         )
             return 1;
         #endif
+        
+        // exposure simulation in Bulb mode
+        if (is_bulb_mode() && expsim)
+            return 1;
     }
     else if (bv_auto == 1) // always enable (except for situations where it's known to cause problems)
     {

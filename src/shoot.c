@@ -74,6 +74,11 @@ static float bulb_shutter_valuef = 1.0;
 #define BULB_SHUTTER_VALUE_MS (int)roundf(bulb_shutter_valuef * 1000.0)
 #define BULB_SHUTTER_VALUE_S (int)roundf(bulb_shutter_valuef)
 
+int get_bulb_shutter_raw_equiv()
+{
+    return shutterf_to_raw(bulb_shutter_valuef);
+}
+
 int uniwb_is_active() 
 {
     return 
@@ -3111,6 +3116,7 @@ static void bulb_toggle(void* priv, int delta)
 {
     bulb_duration_index = mod(bulb_duration_index + delta - 1, COUNT(timer_values) - 1) + 1;
     bulb_shutter_valuef = (float)timer_values[bulb_duration_index];
+    bv_auto_update();
 }
 
 static void
