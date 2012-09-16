@@ -799,10 +799,11 @@ CONFIG_INT("bv.av", bv_av, 48);
 
 void bv_enable()
 {
+    if (CONTROL_BV) return; // already enabled, nothing to do
+    
     //~ bmp_printf(FONT_LARGE, 50, 50, "EN     ");
     take_semaphore(bv_sem, 0);
 
-    if (CONTROL_BV) goto end;
     //~ bmp_printf(FONT_LARGE, 50, 50, "ENable ");
     call("lvae_setcontrolbv", 1);
 
@@ -822,7 +823,6 @@ void bv_enable()
     CONTROL_BV_ZERO = 0;
     bv_update_lensinfo();
 
-end:
     give_semaphore(bv_sem);
 }
 
