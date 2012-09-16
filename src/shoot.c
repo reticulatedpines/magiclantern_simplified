@@ -4545,10 +4545,10 @@ struct menu_entry tweak_menus_shoot[] = {
             },
             #ifdef CONFIG_5D3
             {
-                .name = "Zoom w. old btn / M.Fn",
+                .name = "Zoom w. old btn / M-Fn",
                 .priv = &zoom_trick,
                 .max = 1,
-                .help = "Use the old Zoom In button (top-right) or the M.Fn button."
+                .help = "Use the old Zoom In button (top-right) or the M-Fn button."
             },
             #endif
             MENU_EOL

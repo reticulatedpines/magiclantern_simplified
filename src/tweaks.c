@@ -1814,7 +1814,7 @@ void display_shortcut_key_hints_lv()
 // including MFn, light and old zoom button
 // but a lot of other buttons send this event, and also other events 
 //
-// so: guesswork: if the unknown event is sent and no other events are sent at the same moment (+/- 100 ms or so),
+// so: guesswork: if the unknown event is sent and no other events are sent at the same moment (+/- 200 ms or so),
 // consider it as shortcut key for LiveView 5x/10x zoom
 
 CONFIG_INT("zoom.trick", zoom_trick, 0);
@@ -1844,7 +1844,7 @@ void zoom_trick_step()
 
     if (!timestamp_for_unknown_button) return;
     
-    if (current_timestamp - timestamp_for_unknown_button >= 200)
+    if (current_timestamp - timestamp_for_unknown_button >= 300)
     {
         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
         timestamp_for_unknown_button = 0;
@@ -1868,7 +1868,10 @@ int handle_zoom_trick_event(struct event * event)
         }
     }
     else
+    {
         timestamp_for_unknown_button = 0;
+        countdown_for_unknown_button = 2;
+    }
     return 1;
 }
 #endif
