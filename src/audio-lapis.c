@@ -370,7 +370,7 @@ audio_configure( int force )
 #endif
 
     if(cfg_override_audio == 0){
-        audio_ic_off();
+        //        audio_ic_off();
         return;
     }else{
         audio_ic_set_mute_on(30);
@@ -394,20 +394,17 @@ audio_configure( int force )
 
 }
 
-static void check_sound_recording_warning(int x, int y)
-{
-    if (!SOUND_RECORDING_ENABLED) 
-        {
-            if(!cfg_override_audio){
-                if (was_sound_recording_disabled_by_fps_override())
-                    {
-                        if (!fps_should_record_wav())
-                            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording was disabled by FPS override.");
-                    }
-                else
-                    menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
+static void check_sound_recording_warning(int x, int y){
+    if (!SOUND_RECORDING_ENABLED){
+        if(!cfg_override_audio){
+            if (was_sound_recording_disabled_by_fps_override()){
+                if (!fps_should_record_wav())
+                    menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording was disabled by FPS override.");
+            }else{
+                menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
             }
         }
+    }
 }
 
 static void
