@@ -504,7 +504,8 @@ menu_find_by_name(
     new_menu->children  = NULL;
     new_menu->submenu_width = 0;
     new_menu->submenu_height = 0;
-
+    new_menu->pos       = 0;
+    new_menu->childnum = 0;
     // menu points to the last entry or NULL if there are none
     if( menu )
     {
@@ -1252,7 +1253,7 @@ show_vscroll(struct menu* parent){
 
     if(num>12){ 
         bmp_draw_rect(COLOR_GRAY70, 715, 42, 4, 350);
-        int16_t posx = 42 + (300 / parent->childnum * parent->pos);
+        int16_t posx = 42 + (300 / num * pos);
         bmp_fill(COLOR_GRAY70, 717, posx, 4, 50);
     }
 }
@@ -1353,7 +1354,7 @@ implicit_submenu_display()
 {
     struct menu * menu = get_selected_menu();
     menu_display(
-        menu->children,
+        menu,
          40,
          45,
          1
