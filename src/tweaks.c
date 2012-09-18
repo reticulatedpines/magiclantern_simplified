@@ -2794,7 +2794,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
 #ifdef CONFIG_5D2
     *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_2);
-#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5DC) // all new cameras should work with this method
+#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5DC) && !defined(CONFIG_7D) // all new cameras should work with this method
     *src_buf = (void*)shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_1 + 720*480*2);
 #else // just use some reasonable defaults that won't crash the camera
@@ -2834,7 +2834,7 @@ void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
             EnableImagePhysicalScreenParameter();
         }
     }
-#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5DC) // all new cameras should work with this method
+#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5DC) && !defined(CONFIG_7D)// all new cameras should work with this method
     YUV422_LV_BUFFER_DMA_ADDR = YUV422_LV_BUFFER_1 + 720*480*2;
 #endif
 }

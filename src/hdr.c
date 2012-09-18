@@ -86,7 +86,7 @@ void hdr_step()
 
 void hdr_kill_flicker()
 {
-#ifndef CONFIG_1100D
+#ifndef CONFIG_7D
     if (!lv) return;
     if (!is_movie_mode()) return;
     if (!hdrv_enabled) return;

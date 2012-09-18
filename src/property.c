@@ -177,7 +177,7 @@ int _get_prop_len(int prop)
 
 void prop_request_change(unsigned property, const void* addr, size_t len)
 {
-    #ifdef CONFIG_5D3_MINIMAL
+    #if defined(CONFIG_5D3_MINIMAL) || defined(CONFIG_7D)
     return;
     #endif
 /* problem: get_prop_len may return 0 :(
