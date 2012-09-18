@@ -337,6 +337,17 @@ int get_current_shutter_reciprocal_x1000()
 #endif
 }
 
+// low fps => positive value
+int fps_get_shutter_speed_shift()
+{
+    int raw = lens_info.raw_shutter;
+
+    // consider that shutter speed is 1/30, to simplify things (that's true in low light)
+    int unaltered = 30000;
+    int altered_by_fps = get_shutter_reciprocal_x1000(unaltered, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
+    
+    return (int)roundf(8.0 * log2f((float)unaltered / (float)altered_by_fps));    
+}
 
 //--------------------------------------------------------
 // sound recording has to be disabled
@@ -1209,7 +1220,12 @@ static void fps_task()
             msleep(100);
 
             if (!FPS_OVERRIDE && fps_needs_updating)
+            {
                 fps_reset();
+                fps_read_current_timer_values();
+                fps_read_default_timer_values();
+                bv_auto_update();
+            }
                             
             continue;
         }
@@ -1254,6 +1270,9 @@ static void fps_task()
             NotifyBox(2000, msg);
             fps_warned = 1;
         }
+        
+        if (CONTROL_BV && !is_movie_mode()) // changes in FPS may affect expsim calculations in photo mode
+            bv_auto_update();
     }
 }
 
