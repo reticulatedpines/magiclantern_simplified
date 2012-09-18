@@ -562,6 +562,9 @@ void digic_iso_step()
 
 void menu_open_submenu();
 
+#ifdef SCROLL_MENU_DEBUG
+CONFIG_INT("menu.scroll.dummy", menuscrolldummy, 0); 
+#endif
 static struct menu_entry lv_img_menu[] = {
     {
 	.id = 0,
@@ -619,7 +622,39 @@ static struct menu_entry lv_img_menu[] = {
             },*/
             MENU_EOL
         }
-    }
+    },
+#ifdef SCROLL_MENU_DEBUG
+    {
+        .name = "Dummy1", 
+        .priv       = &menuscrolldummy,
+        .min = 0,
+        .max = 1,
+    },
+    {
+        .name = "Dummy2", 
+        .priv       = &menuscrolldummy,
+        .min = 0,
+        .max = 1,
+    },
+    {
+        .name = "Dummy3", 
+        .priv       = &menuscrolldummy,
+        .min = 0,
+        .max = 1,
+    },
+    {
+        .name = "Dummy4", 
+        .priv       = &menuscrolldummy,
+        .min = 0,
+        .max = 1,
+    },
+    {
+        .name = "Dummy5", 
+        .priv       = &menuscrolldummy,
+        .min = 0,
+        .max = 1,
+    },
+#endif
 };
 
 #ifdef CONFIG_DIGIC_POKE

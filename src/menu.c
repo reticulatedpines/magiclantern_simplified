@@ -581,6 +581,8 @@ menu_add(
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
         new_entry->selected = 1;
+        menu->pos = 0;
+        menu->childnum = 1;
         //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry++;
         count--;
@@ -601,6 +603,9 @@ menu_add(
 
         head            = new_entry;
         new_entry++;
+        if(IS_VISIBLE(new_entry)){
+            menu->childnum++;
+        }
     }
     give_semaphore( menu_sem );
 
@@ -961,12 +966,22 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
 
 static void
 menu_display(
-    struct menu_entry * menu,
+    struct menu * parentmenu,
     int         x,
     int         y, 
     int only_selected
 )
 {
+    struct menu_entry *menu = parentmenu->children;
+
+    if(parentmenu->pos > 10){
+        int delnum = parentmenu->pos - 10;
+        for(int i=0;i<delnum;i++){
+            menu = menu->next;
+        }
+    }
+
+    int menu_entry_num = 0;
     while( menu )
     {
         if (advanced_hidden_edit_mode || IS_VISIBLE(menu))
@@ -1167,6 +1182,12 @@ menu_display(
                 return;
         }
         menu = menu->next;
+
+        if(menu_entry_num > 10){
+            break;
+        }else{
+            menu_entry_num++;
+        }
     }
 }
 
@@ -1221,6 +1242,18 @@ show_hidden_items(struct menu * menu, int force_clear)
                  hidden_msg
             );
         }
+    }
+}
+
+static void
+show_vscroll(struct menu* parent){
+    int16_t pos = parent->pos;
+    int16_t num = parent->childnum;
+
+    if(num>12){ 
+        bmp_draw_rect(COLOR_GRAY70, 715, 42, 4, 350);
+        int16_t posx = 42 + (300 / parent->childnum * parent->pos);
+        bmp_fill(COLOR_GRAY70, 717, posx, 4, 50);
     }
 }
 
@@ -1301,18 +1334,19 @@ menus_display(
         if( menu->selected )
         {
             menu_display(
-                menu->children,
+                menu,
                 orig_x + 40,
                 y + 45, 
                 0
             );
             
             show_hidden_items(menu, 0);
-        
+            show_vscroll(menu);
         }
     }
     give_semaphore( menu_sem );
 }
+
 
 static void
 implicit_submenu_display()
@@ -1350,7 +1384,7 @@ submenu_display(struct menu * submenu)
     }
 
     show_hidden_items(submenu, 1);
-    menu_display(submenu->children,  bx + 50,  by + 50 + 20, 0);
+    menu_display(submenu,  bx + 50,  by + 50 + 20, 0);
 }
 
 static void
@@ -1528,11 +1562,14 @@ menu_entry_move(
 
     struct menu_entry * entry = menu->children;
 
+    int selectedpos= 0;
     for( ; entry ; entry = entry->next )
     {
         if( entry->selected )
             break;
+        if(IS_VISIBLE(entry)) selectedpos++;
     }
+
 
     // Nothing selected?
     if( !entry )
@@ -1547,21 +1584,23 @@ menu_entry_move(
     if( direction < 0 )
     {
         // First and moving up?
-        if( entry->prev )
+        if( entry->prev ){
             entry = entry->prev;
-        else {
+            menu->pos = selectedpos - 1;
+        }else {
             // Go to the last one
-            while( entry->next )
-                entry = entry->next;
+            while( entry->next ) entry = entry->next;
+            menu->pos = menu->childnum;
         }
     } else {
         // Last and moving down?
-        if( entry->next )
+        if( entry->next ){
             entry = entry->next;
-        else {
+            menu->pos = selectedpos + 1;
+        }else {
             // Go to the first one
-            while( entry->prev )
-                entry = entry->prev;
+            while( entry->prev ) entry = entry->prev;
+            menu->pos = 0;
         }
     }
 
