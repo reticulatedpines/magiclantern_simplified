@@ -584,6 +584,7 @@ menu_add(
         new_entry->selected = 1;
         menu->pos = 0;
         menu->childnum = 1;
+        menu->childnummax = 1;
         //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry++;
         count--;
@@ -606,6 +607,7 @@ menu_add(
         new_entry++;
         if(IS_VISIBLE(new_entry)){
             menu->childnum++;
+            menu->childnummax++;
         }
     }
     give_semaphore( menu_sem );
@@ -978,7 +980,14 @@ menu_display(
     if(parentmenu->pos > 10){
         int delnum = parentmenu->pos - 10;
         for(int i=0;i<delnum;i++){
+            if(advanced_hidden_edit_mode){
             menu = menu->next;
+            }else{                
+                while(!IS_VISIBLE(menu)){
+                    menu = menu->next;
+                }
+                menu = menu->next;
+            }
         }
     }
 
@@ -1187,7 +1196,13 @@ menu_display(
         if(menu_entry_num > 10){
             break;
         }else{
-            menu_entry_num++;
+            if(advanced_hidden_edit_mode){
+                menu_entry_num++;
+            }else{
+                if(IS_VISIBLE(menu)){
+                    menu_entry_num++;
+                }
+            }
         }
     }
 }
@@ -1249,7 +1264,10 @@ show_hidden_items(struct menu * menu, int force_clear)
 static void
 show_vscroll(struct menu* parent){
     int16_t pos = parent->pos;
-    int16_t num = parent->childnum;
+    int16_t num;
+
+    if(advanced_hidden_edit_mode) num = parent->childnummax;
+    else                          num = parent->childnum;
 
     if(num>12){ 
         bmp_draw_rect(COLOR_GRAY70, 715, 42, 4, 350);
@@ -1409,6 +1427,11 @@ menu_entry_showhide_toggle(
     if (entry->hidden != MENU_ENTRY_NEVER_HIDE)
     {
         entry->hidden = entry->hidden ? MENU_ENTRY_NOT_HIDDEN : MENU_ENTRY_HIDDEN;
+        if(entry->hidden == MENU_ENTRY_HIDDEN){
+            menu->childnum--;
+        }else{
+            menu->childnum++;
+        }
         menu_make_sure_selection_is_valid();
         menu_hidden_dirty = 1;
     }
@@ -1568,7 +1591,8 @@ menu_entry_move(
     {
         if( entry->selected )
             break;
-        if(IS_VISIBLE(entry)) selectedpos++;
+        if(advanced_hidden_edit_mode) selectedpos++;
+        else                          if(IS_VISIBLE(entry)) selectedpos++;
     }
 
 
@@ -2567,6 +2591,7 @@ void hide_menu_by_name(char* name, char* entry_name)
                 if (!strcmp(entry->name, entry_name))
                 {
                     entry->hidden = 1;
+                    menu->childnum--;
                 }
             }
         }
