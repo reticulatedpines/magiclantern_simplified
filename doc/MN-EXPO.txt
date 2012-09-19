@@ -91,13 +91,14 @@ You can use a different picture style when recording (toggled automagically). Ma
 Exp.Override
 ````````````
 
-This mode bypasses Canon exposure limitations (for ISO, Tv, Av). It enables:
+This mode bypasses Canon exposure limitations (for ISO, Tv, Av). Advantages:
  
-* Manual video exposure controls in cameras without it (500D, 50D, 1100D).
-* 1/25s in movie mode (24p/25p) -> 1/3 stops better in low light.
-* 1/8000s in movie mode, `useful for slow motion <http://www.youtube.com/watch?v=5ztuUh3bgqA>`_.
-* ISO 12800 is allowed in movie mode on 60D and 600D.
-* Full-time DOF preview in photo mode, without blocking certain keys.
+* Fixes the `LiveView underexposure bug with manual lenses <http://groups.google.com/group/ml-devel/browse_thread/thread/f1c9cb4ff163808c>`_.
+* Enables manual video exposure controls in cameras without it (500D, 50D, 1100D).
+* Enables 1/25s in movie mode (24p/25p) -> 1/3 stops better in low light.
+* Enables 1/8000s in movie mode, `useful for slow motion <http://www.youtube.com/watch?v=5ztuUh3bgqA>`_.
+* Enables ISO 12800 in movie mode on 60D and 600D.
+* Allows full-time DOF preview in photo mode, without blocking certain keys.
 
 Settings:
 
@@ -106,10 +107,8 @@ Settings:
 * **Auto**: ML enables it only when needed (that's not auto exposure, but automatic decision of when you need low-level manual controls):
 
   - For 500D, 50D, 1100D: in movie mode, to enable manual exposure controls.
-  - For 60D: in Manual mode with a manual lens, to fix the `LiveView underexposure bug <http://groups.google.com/group/ml-devel/browse_thread/thread/f1c9cb4ff163808c>`_.
+  - For 60D and 5D Mark III: in Manual mode with a manual lens, to fix the `LiveView underexposure bug <http://groups.google.com/group/ml-devel/browse_thread/thread/f1c9cb4ff163808c>`_.
   - For 550D/60D/600D/5D2: when you select a shutter speed, aperture or ISO value which is not available in standard firmware (e.g. 1/25s or 1/8000s in movie mode).
-
-Side effect: in photo mode, anything slower than 1/30s will be underexposed in LiveView.
 
 
 LV Display

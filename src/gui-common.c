@@ -213,18 +213,18 @@ int handle_common_events_by_feature(struct event * event)
     #endif
     
 #ifndef CONFIG_5D3
-    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
+    #ifdef BGMT_Q
     if (MENU_MODE && (event->param == BGMT_Q
         #ifdef BGMT_Q_ALT
         || event->param == BGMT_Q_ALT
         #endif
     ))
-    #endif
-    #ifdef CONFIG_50D
-    if (MENU_MODE && event->param == BGMT_FUNC)
-    #endif
-    #ifdef CONFIG_5D2
+    #elif defined(BGMT_PICSTYLE)
     if (MENU_MODE && event->param == BGMT_PICSTYLE)
+    #elif BGMT_FUNC
+    if (MENU_MODE && event->param == BGMT_FUNC)
+    #else
+    if (0)
     #endif
          return handle_keep_ml_after_format_toggle();
 #endif

@@ -77,6 +77,9 @@ draw_prop_reset( void * priv )
 #ifdef CONFIG_5D3
 void _card_led_on() { int f = cli_save(); *(uint32_t*)CARD_LED_ADDRESS = 0x138800; sei_restore(f); }
 void _card_led_off() { int f = cli_save(); *(uint32_t*)CARD_LED_ADDRESS = 0x838C00; sei_restore(f); }
+#elif defined(CONFIG_7D)
+void _card_led_on() { int f = cli_save(); *(uint32_t*)CARD_LED_ADDRESS = 0x138800; sei_restore(f); }
+void _card_led_off() { int f = cli_save(); *(uint32_t*)CARD_LED_ADDRESS = 0x38400; sei_restore(f); }
 #else
  void _card_led_on() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x46; sei_restore(f); }
  void _card_led_off() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x44; sei_restore(f); }
@@ -95,7 +98,7 @@ void _card_led_off() { int f = cli_save(); *(uint32_t*)CARD_LED_ADDRESS = 0x838C
 
 void info_led_on()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_7D)
     call("EdLedOn");
     #elif defined(CONFIG_5DC)
     LEDBLUE = LEDON;
@@ -105,7 +108,7 @@ void info_led_on()
 }
 void info_led_off()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_7D)
     call("EdLedOff");
     #elif defined(CONFIG_5DC)
     LEDBLUE = LEDOFF;
@@ -238,7 +241,7 @@ void fake_buttons()
                 fake_simple_button(BGMT_MENU); msleep(rand() % delay);
                 break;
             case 2:
-#if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
+#ifdef BGMT_Q
                 fake_simple_button(BGMT_Q); msleep(rand() % delay);
 #endif
                 break;

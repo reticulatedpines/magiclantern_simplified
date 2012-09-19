@@ -2734,9 +2734,9 @@ void menu_close_submenu()
     submenu_mode = 0;
 }
 
-#if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
 int handle_quick_access_menu_items(struct event * event)
 {
+#ifdef BGMT_Q
     // quick access to some menu items
     #ifdef BGMT_Q_ALT
     if (event->param == BGMT_Q_ALT && !gui_menu_shown())
@@ -2761,9 +2761,9 @@ int handle_quick_access_menu_items(struct event * event)
             return 0;
         }
     }
+#endif
     return 1;
 }
-#endif
 
 void config_menu_save_hidden_items()
 {

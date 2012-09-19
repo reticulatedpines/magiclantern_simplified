@@ -1814,7 +1814,7 @@ void display_shortcut_key_hints_lv()
 // including MFn, light and old zoom button
 // but a lot of other buttons send this event, and also other events 
 //
-// so: guesswork: if the unknown event is sent and no other events are sent at the same moment (+/- 100 ms or so),
+// so: guesswork: if the unknown event is sent and no other events are sent at the same moment (+/- 200 ms or so),
 // consider it as shortcut key for LiveView 5x/10x zoom
 
 CONFIG_INT("zoom.trick", zoom_trick, 0);
@@ -1844,7 +1844,7 @@ void zoom_trick_step()
 
     if (!timestamp_for_unknown_button) return;
     
-    if (current_timestamp - timestamp_for_unknown_button >= 200)
+    if (current_timestamp - timestamp_for_unknown_button >= 300)
     {
         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
         timestamp_for_unknown_button = 0;
@@ -1868,7 +1868,10 @@ int handle_zoom_trick_event(struct event * event)
         }
     }
     else
+    {
         timestamp_for_unknown_button = 0;
+        countdown_for_unknown_button = 2;
+    }
     return 1;
 }
 #endif
@@ -2791,7 +2794,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
 #ifdef CONFIG_5D2
     *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_2);
-#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5DC) // all new cameras should work with this method
+#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5DC) && !defined(CONFIG_7D) // all new cameras should work with this method
     *src_buf = (void*)shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_1 + 720*480*2);
 #else // just use some reasonable defaults that won't crash the camera
@@ -2831,7 +2834,7 @@ void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
             EnableImagePhysicalScreenParameter();
         }
     }
-#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5DC) // all new cameras should work with this method
+#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5DC) && !defined(CONFIG_7D)// all new cameras should work with this method
     YUV422_LV_BUFFER_DMA_ADDR = YUV422_LV_BUFFER_1 + 720*480*2;
 #endif
 }
