@@ -4436,6 +4436,23 @@ static struct menu_entry shoot_menus[] = {
         .select = picq_toggle, 
         .help = "Experimental SRAW/MRAW mode. You may get corrupted files."
     }*/
+#ifdef SCROLL_MENU_DEBUG
+    {
+        .name = "Dummy1", 
+    },
+    {
+        .name = "Dummy2", 
+    },
+    {
+        .name = "Dummy3", 
+    },
+    {
+        .name = "Dummy4", 
+    },
+    {
+        .name = "Dummy5", 
+    },
+#endif
 };
 
 static struct menu_entry flash_menus[] = {

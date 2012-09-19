@@ -1393,6 +1393,23 @@ static struct menu_entry focus_menu[] = {
             MENU_EOL
         },
     },
+#ifdef SCROLL_MENU_DEBUG
+    {
+        .name = "Dummy1", 
+    },
+    {
+        .name = "Dummy2", 
+    },
+    {
+        .name = "Dummy3", 
+    },
+    {
+        .name = "Dummy4", 
+    },
+    {
+        .name = "Dummy5", 
+    },
+#endif
     {
         .name = "Focus distance",
         .display    = display_lens_hyperfocal,

@@ -981,11 +981,13 @@ menu_display(
     struct menu_entry *menu = parentmenu->children;
 
     //hide upper menu for vscroll
-    int cutoffval = 10;
-    if(gMenuid_audio == menu->id) cutoffval=8;
-    else if(gMenuid_focus == menu->id) cutoffval=8;
+    int cutoffval = 9;
+    if(gMenuid_audio == parentmenu->id || gMenuid_focus == parentmenu->id){
+        cutoffval=8;
+    }
     if(parentmenu->pos > cutoffval){
-        int delnum = parentmenu->pos - 10;
+        int delnum = parentmenu->pos - cutoffval - 1;
+        if(gMenuid_focus == parentmenu->id) delnum++;
         for(int i=0;i<delnum;i++){
             if(advanced_hidden_edit_mode){
             menu = menu->next;
@@ -1000,6 +1002,15 @@ menu_display(
     int menu_entry_num = 0;
     while( menu )
     {
+
+        //Display lens info
+        if(gMenuid_focus == parentmenu->id){
+            if(menu_entry_num > cutoffval){
+                while(menu->next) menu = menu->next;
+            }
+        }
+
+
         if (advanced_hidden_edit_mode || IS_VISIBLE(menu))
         {
             // display help (should be first; if there are too many items in menu, the main text should overwrite the help, not viceversa)
@@ -2209,7 +2220,7 @@ menu_init( void )
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
     struct menu *tmpmenu;
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
+#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
     tmpmenu = menu_find_by_name( "Audio", ICON_MIC);
     gMenuid_audio = tmpmenu->id;
 #endif
