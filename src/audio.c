@@ -1441,54 +1441,6 @@ static struct menu_entry audio_menus[] = {
                 .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
                 //.essential = FOR_MOVIE,
         },
-#ifdef SCROLL_MENU_DEBUG
-    {
-        .name = "Dummy1", 
-    },
-    {
-        .name = "Dummy2", 
-    },
-    {
-        .name = "Dummy3", 
-    },
-    {
-        .name = "Dummy4", 
-    },
-    {
-        .name = "Dummy5", 
-    },
-    {
-        .name = "Dummy1", 
-    },
-    {
-        .name = "Dummy2", 
-    },
-    {
-        .name = "Dummy3", 
-    },
-    {
-        .name = "Dummy4", 
-    },
-    {
-        .name = "Dummy5", 
-    },
-    {
-        .name = "Dummy1", 
-    },
-    {
-        .name = "Dummy2", 
-    },
-    {
-        .name = "Dummy3", 
-    },
-    {
-        .name = "Dummy4", 
-    },
-    {
-        .name = "Dummy5", 
-    },
-#endif
-
 };
 
 
