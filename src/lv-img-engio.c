@@ -619,7 +619,7 @@ static struct menu_entry lv_img_menu[] = {
             },*/
             MENU_EOL
         }
-    },
+    }
 };
 
 #ifdef CONFIG_DIGIC_POKE
