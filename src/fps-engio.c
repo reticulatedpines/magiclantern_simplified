@@ -126,6 +126,7 @@ static void fps_read_current_timer_values();
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 0x262 : 0x228) // trial and error (with digic poke)
 #elif defined(CONFIG_5D3)
     #define TG_FREQ_BASE 24000000
+    #define TG_FREQ_SHUTTER (ntsc ? 51120000 : 50000000)
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 500 : 400)
 #elif defined(CONFIG_500D)
     #define TG_FREQ_BASE 32000000    // not 100% sure
@@ -246,6 +247,10 @@ static int get_current_tg_freq()
 #define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)
 #endif
 
+#ifdef CONFIG_5D3
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0))
+#endif
+
 #define FPS_x1000_TO_TIMER(fps_x1000) (((fps_x1000)!=0)?(TG_FREQ_FPS/(fps_x1000)):0)
 #define TIMER_TO_FPS_x1000(t) (((t)!=0)?(TG_FREQ_FPS/(t)):0)
 
@@ -283,7 +288,7 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
 
 int get_current_shutter_reciprocal_x1000()
 {
-#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D3)
+#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D)
     if (!lens_info.raw_shutter) return 0;
     return (int) roundf(powf(2.0, (lens_info.raw_shutter - 136) / 8.0) * 1000.0 * 1000.0);
 #else
@@ -332,6 +337,17 @@ int get_current_shutter_reciprocal_x1000()
 #endif
 }
 
+// low fps => positive value
+int fps_get_shutter_speed_shift()
+{
+    int raw = lens_info.raw_shutter;
+
+    // consider that shutter speed is 1/30, to simplify things (that's true in low light)
+    int unaltered = 30000;
+    int altered_by_fps = get_shutter_reciprocal_x1000(unaltered, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
+    
+    return (int)roundf(8.0 * log2f((float)unaltered / (float)altered_by_fps));    
+}
 
 //--------------------------------------------------------
 // sound recording has to be disabled
@@ -1204,7 +1220,12 @@ static void fps_task()
             msleep(100);
 
             if (!FPS_OVERRIDE && fps_needs_updating)
+            {
                 fps_reset();
+                fps_read_current_timer_values();
+                fps_read_default_timer_values();
+                bv_auto_update();
+            }
                             
             continue;
         }
@@ -1249,6 +1270,9 @@ static void fps_task()
             NotifyBox(2000, msg);
             fps_warned = 1;
         }
+        
+        if (CONTROL_BV && !is_movie_mode()) // changes in FPS may affect expsim calculations in photo mode
+            bv_auto_update();
     }
 }
 

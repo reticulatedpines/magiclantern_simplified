@@ -190,6 +190,7 @@ int get_mic_power(int input_source)
 
 static void audio_monitoring_update()
 {
+    #ifdef HOTPLUG_VIDEO_OUT_STATUS_ADDR
     // kill video connect/disconnect event... or not
     *(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = audio_monitoring ? 2 : 0;
         
@@ -199,13 +200,14 @@ static void audio_monitoring_update()
             msleep(1000);
             audio_monitoring_display_headphones_connected_or_not();
         }
+    #endif
 }
 
 
 void
 audio_configure( int force )
 {
-#if defined(CONFIG_5D3)
+#if defined(CONFIG_5D3) || defined(CONFIG_7D)
     return;
 #endif
 
@@ -580,7 +582,7 @@ audio_micpower_display( void * priv, int x, int y, int selected )
 }
 
 static struct menu_entry audio_menus[] = {
-#if !(defined(CONFIG_1100D) || defined(CONFIG_5D3))
+#if !(defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_7D))
 #if 0
     {
         .priv           = &o2gain,
@@ -767,7 +769,7 @@ my_sounddev_task()
         }
 }
 
-#if !defined(CONFIG_5D3)
+#if !defined(CONFIG_5D3) && !defined(CONFIG_7D)
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 #endif
 

@@ -34,7 +34,7 @@
 
 #define SOUND_RECORDING_ENABLED (sound_recording_mode != 1) // not 100% sure
 
-#if defined(CONFIG_500D) || defined(CONFIG_5D3)
+#if defined(CONFIG_500D) || defined(CONFIG_5D3) || defined(CONFIG_7D)
 int audio_thresholds[] = { 0x7fff, 0x7213, 0x65ab, 0x5a9d, 0x50c2, 0x47fa, 0x4026, 0x392c, 0x32f4, 0x2d6a, 0x2879, 0x2412, 0x2026, 0x1ca7, 0x1989, 0x16c2, 0x1449, 0x1214, 0x101d, 0xe5c, 0xccc, 0xb68, 0xa2a, 0x90f, 0x813, 0x732, 0x66a, 0x5b7, 0x518, 0x48a, 0x40c, 0x39b, 0x337, 0x2dd, 0x28d, 0x246, 0x207, 0x1ce, 0x19c, 0x16f, 0x147 };
 #endif
 
@@ -1407,7 +1407,7 @@ audio_set_meterlabel(){
  void
 audio_configure( int force )
 {
-#if defined(CONFIG_5D3)
+#if defined(CONFIG_5D3) || defined(CONFIG_7D)
         return;
 #endif
 
@@ -2212,7 +2212,9 @@ audio_micpower_display( void * priv, int x, int y, int selected )
 
 static void audio_monitoring_force_display(int x)
 {
+    #ifdef HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR
         prop_deliver(*(int*)(HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR), &x, 4, 0x0);
+    #endif
 }
 
 void audio_monitoring_display_headphones_connected_or_not()
@@ -2234,6 +2236,7 @@ static void audio_monitoring_update()
 #ifdef CONFIG_600D
     if (cfg_override_audio == 0) return;
 #endif
+    #ifdef HOTPLUG_VIDEO_OUT_STATUS_ADDR
         // kill video connect/disconnect event... or not
         *(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = audio_monitoring ? 2 : 0;
         
@@ -2243,11 +2246,12 @@ static void audio_monitoring_update()
                 msleep(1000);
                 audio_monitoring_display_headphones_connected_or_not();
         }
-#ifdef CONFIG_600D
+        #ifdef CONFIG_600D
         else{
             audio_ic_set_lineout_onoff(OP_STANDALONE);
         }
-#endif
+        #endif
+    #endif
 }
 
 static void
@@ -2259,7 +2263,7 @@ static void
 }
 
 static struct menu_entry audio_menus[] = {
-#if !(defined(CONFIG_1100D) || defined(CONFIG_5D3))
+#if !(defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_7D))
 #if 0
         {
                 .priv           = &o2gain,
@@ -2617,7 +2621,7 @@ my_sounddev_task()
         }
 }
 
-#if !defined(CONFIG_600D) && !defined(CONFIG_5D3)
+#if !defined(CONFIG_600D) && !defined(CONFIG_5D3) && !defined(CONFIG_7D)
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 #endif
 

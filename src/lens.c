@@ -507,8 +507,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
       if (shutter_reciprocal > 100) shutter_reciprocal = 10 * ((shutter_reciprocal+5) / 10);
       if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
       static char shutter[32];
-      if (info->raw_shutter == 0) snprintf(shutter, sizeof(shutter), "    ");
-      else if (shutter_x10 >= 350) snprintf(shutter, sizeof(shutter), "BULB");
+      if (is_bulb_mode()) snprintf(shutter, sizeof(shutter), "BULB");
+      else if (info->raw_shutter == 0) snprintf(shutter, sizeof(shutter), "    ");
       else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), "%d  ", shutter_reciprocal);
       else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
       else snprintf(shutter, sizeof(shutter), "%d\" ", (shutter_x10+5) / 10);
@@ -525,7 +525,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
            else if (shutter_degrees < 45)
               fgs = FONT(FONT_LARGE,COLOR_RED,bg);
       }
-      else if (info->aperture) // rule of thumb: shutter speed should be roughly equal to focal length
+      else if (info->aperture && !is_bulb_mode()) // rule of thumb: shutter speed should be roughly equal to focal length
       {
            int focal_35mm = (info->focal_len * SENSORCROPFACTOR + 5) / 10;
            if (lens_info.IS) focal_35mm /= 4; // assume 2-stop effectiveness for IS
@@ -581,7 +581,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
         text_font = FONT(SHADOW_FONT(FONT_MED),fgs,bg);
 
-        if (shutter_x10 <= 3)
+        if (shutter_x10 <= 3 && !is_bulb_mode())
             bmp_printf( text_font, 
                 x_origin + 143 + 1  , 
                 y_origin - 2, 
@@ -1999,35 +1999,26 @@ int prop_set_rawiso(unsigned iso)
 
 /** Exposure primitives (the "dirty" way, via BV control, bypasses protections) */
 
-void bv_update_lensinfo()
-{
-    if (CONTROL_BV) // sync lens info and camera properties with overriden values
-    {
-        lensinfo_set_iso(CONTROL_BV_ISO + (get_htp() ? 8 : 0));
-        lensinfo_set_shutter(CONTROL_BV_TV);
-        lensinfo_set_aperture(CONTROL_BV_AV);
-    }
-}
-
-/*
-void bv_update_props()
-{
-    if (CONTROL_BV) // sync lens info and camera properties with overriden values
-    {
-        prop_set_rawiso(CONTROL_BV_ISO);
-        prop_set_rawshutter(CONTROL_BV_TV);
-        prop_set_rawaperture(CONTROL_BV_AV);
-    }
-}*/
-
 extern int bv_iso;
 extern int bv_tv;
 extern int bv_av;
 
+void bv_update_lensinfo()
+{
+    if (CONTROL_BV) // sync lens info and camera properties with overriden values
+    {
+        lensinfo_set_iso(bv_iso + (get_htp() ? 8 : 0));
+        lensinfo_set_shutter(bv_tv);
+        lensinfo_set_aperture(bv_av);
+    }
+}
+
 int bv_set_rawshutter(unsigned shutter)
 {
     //~ bmp_printf(FONT_MED, 600, 300, "bvsr %d ", shutter);
-    CONTROL_BV_TV = bv_tv = shutter; bv_update_lensinfo();
+    CONTROL_BV_TV = bv_tv = shutter;
+    bv_update_lensinfo();
+    bv_expsim_shift();
     //~ NotifyBox(2000, "%d > %d?", raw2shutter_ms(shutter), 1000/video_mode_fps); msleep(400);
     if (is_movie_mode() && raw2shutter_ms(shutter+1) > 1000/video_mode_fps) return 0;
     return shutter != 0;
@@ -2039,7 +2030,9 @@ int bv_set_rawiso(unsigned iso)
     if (iso >= 72 && iso <= 128) // 100-12800
     {
         if (get_htp()) iso -= 8; // quirk: with exposure override and HTP, image is brighter by 1 stop than with Canon settings
-        CONTROL_BV_ISO = bv_iso = iso; bv_update_lensinfo();  
+        CONTROL_BV_ISO = bv_iso = iso; 
+        bv_update_lensinfo();
+        bv_expsim_shift();
         return 1;
     }
     else
@@ -2051,13 +2044,55 @@ int bv_set_rawaperture(unsigned aperture)
 { 
     if (aperture >= lens_info.raw_aperture_min && aperture <= lens_info.raw_aperture_max) 
     { 
-        CONTROL_BV_AV = bv_av = aperture; bv_update_lensinfo(); 
+        CONTROL_BV_AV = bv_av = aperture; 
+        bv_update_lensinfo();
+        bv_expsim_shift();
         return 1; 
     }
     else
     {
         return 0;
     }
+}
+
+int bv_expsim_shift()
+{
+    if (!lv) return;
+    if (!expsim) return;
+    
+    if (!is_movie_mode())
+    {
+        int tv_fps_shift = fps_get_shutter_speed_shift();
+        
+        if (is_bulb_mode()) // try to perform expsim in bulb mode, based on bulb timer setting
+        {
+            int tv = get_bulb_shutter_raw_equiv() + tv_fps_shift;
+            if (tv < 96)
+            {
+                int delta = 96 - tv;
+                CONTROL_BV_TV = 96;
+                CONTROL_BV_ISO = COERCE(bv_iso + delta, 72, 199);
+            }                                                                      
+            else
+            {
+                CONTROL_BV_TV = tv;
+                CONTROL_BV_ISO = bv_iso;
+            }
+        }
+        else
+        {
+            CONTROL_BV_TV = bv_tv;
+
+            if (bv_tv < 96) // shutter speeds slower than 1/31 -> can't be obtained, raise ISO or open up aperture instead
+            {
+                int delta = 96 - bv_tv - tv_fps_shift;
+                CONTROL_BV_TV = 96;
+                CONTROL_BV_ISO = COERCE(bv_iso + delta, 72, 199);;
+                return 1; // not used but... maybe in future
+            }
+        }
+    }
+    return 0;
 }
 
 int bv_auto_should_enable()
@@ -2100,14 +2135,18 @@ int bv_auto_should_enable()
             //~ return 0;
         
         // underexposure bug with manual lenses in M mode
-        #if defined(CONFIG_60D)
+        #if defined(CONFIG_60D) || defined(CONFIG_5D3)
         if (shooting_mode == SHOOTMODE_M && 
+            !is_movie_mode() &&
             !lens_info.name[0] && 
-            lens_info.raw_iso != 0 && 
-            lens_info.raw_shutter >= 93 // otherwise the image will be dark, better turn off ExpSim
+            lens_info.raw_iso != 0
         )
             return 1;
         #endif
+        
+        // exposure simulation in Bulb mode
+        if (is_bulb_mode() && expsim)
+            return 1;
     }
     else if (bv_auto == 1) // always enable (except for situations where it's known to cause problems)
     {
@@ -2125,6 +2164,7 @@ void bv_auto_update()
     //~ take_semaphore(lens_sem, 0);
     if (bv_auto_should_enable()) bv_enable();
     else bv_disable();
+    bv_expsim_shift();
     lens_display_set_dirty();
     //~ give_semaphore(lens_sem);
     //~ give_semaphore(bv_sem);

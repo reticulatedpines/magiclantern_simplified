@@ -151,6 +151,9 @@ struct menu
         uint32_t id; // unique ID
         int16_t submenu_width;
         int16_t submenu_height;
+        int16_t pos;
+        int16_t childnum;
+        int16_t childnummax;
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)

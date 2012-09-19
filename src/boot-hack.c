@@ -141,7 +141,9 @@ copy_and_restart( int offset )
 
 #ifndef CONFIG_EARLY_PORT
     // Install our task creation hooks
+#ifndef CONFIG_7D
     task_dispatch_hook = my_task_dispatch_hook;
+#endif
 #endif
 
     // This will jump into the RAM version of the firmware,
@@ -280,7 +282,16 @@ int ml_gui_initialized = 0; // 1 after gui_main_task is started
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
-{   
+{  
+    #ifdef CONFIG_7D
+    load_fonts();
+    while(1)
+    {
+        bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
+        msleep(1000);
+    }
+    #endif
+    
     call("DisablePowerSave");
     menu_init();
     debug_init();
@@ -660,6 +671,27 @@ int init_task_patched_for_1100D(int a, int b, int c, int d)
 }
 #endif
 
+#ifdef CONFIG_7D
+
+#include "cache_hacks.h"
+
+int init_task_patched_for_7D(int a, int b, int c, int d)
+{
+    // We shrink the AllocateMemory (system memory) pool in order to make space for ML binary
+    // ff0197fc: init_task:
+    // ff019870: b CreateTaskMain
+    //
+    // ff0123c4 CreateTaskMain:
+    // ff0123e4: mov r1, #13631488  ; 0xd00000  <-- end address
+    // ff0123e8: mov r0, #3997696   ; 0x3d0000  <-- start address
+    // ff0123ec: bl  allocatememory_init_pool
+    
+    cache_fake(0xFF011F2C, 0xE3A01732, TYPE_ICACHE);
+    
+    return init_task(a,b,c,d);
+}
+#endif
+
 // flag set to 1 when gui_main_task started to process messages from queue
 int gui_init_done = 0;
 
@@ -693,6 +725,8 @@ my_init_task(int a, int b, int c, int d)
     int ans = init_task_patched_for_600D(a,b,c,d);
     #elif defined(CONFIG_1100D)
     int ans = init_task_patched_for_1100D(a,b,c,d);
+    #elif defined(CONFIG_7D)
+    int ans = init_task_patched_for_7D(a,b,c,d);
     #else
     int ans = init_task(a,b,c,d);
     #endif

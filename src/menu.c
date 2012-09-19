@@ -77,6 +77,9 @@ static int redraw_in_progress = 0;
 
 static int hist_countdown = 3; // histogram is slow, so draw it less often
 
+static uint32_t gMenuid_audio = 0;
+static uint32_t gMenuid_focus = 0;
+
 void menu_close_post_delete_dialog_box();
 void menu_close_gmt();
 
@@ -504,7 +507,8 @@ menu_find_by_name(
     new_menu->children  = NULL;
     new_menu->submenu_width = 0;
     new_menu->submenu_height = 0;
-
+    new_menu->pos       = 0;
+    new_menu->childnum = 0;
     // menu points to the last entry or NULL if there are none
     if( menu )
     {
@@ -581,6 +585,9 @@ menu_add(
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
         new_entry->selected = 1;
+        menu->pos = 0;
+        menu->childnum = 1;
+        menu->childnummax = 1;
         //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry++;
         count--;
@@ -601,6 +608,10 @@ menu_add(
 
         head            = new_entry;
         new_entry++;
+        if(IS_VISIBLE(new_entry)){
+            menu->childnum++;
+            menu->childnummax++;
+        }
     }
     give_semaphore( menu_sem );
 
@@ -961,14 +972,45 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
 
 static void
 menu_display(
-    struct menu_entry * menu,
+    struct menu * parentmenu,
     int         x,
     int         y, 
     int only_selected
 )
 {
+    struct menu_entry *menu = parentmenu->children;
+
+    //hide upper menu for vscroll
+    int cutoffval = 9;
+    if(gMenuid_audio == parentmenu->id || gMenuid_focus == parentmenu->id){
+        cutoffval=8;
+    }
+    if(parentmenu->pos > cutoffval){
+        int delnum = parentmenu->pos - cutoffval - 1;
+        if(gMenuid_focus == parentmenu->id) delnum++;
+        for(int i=0;i<delnum;i++){
+            if(advanced_hidden_edit_mode){
+            menu = menu->next;
+            }else{                
+                while(!IS_VISIBLE(menu)) menu = menu->next;
+                menu = menu->next;
+            }
+        }
+    }
+    //<== vscroll
+
+    int menu_entry_num = 0;
     while( menu )
     {
+
+        //Display lens info
+        if(gMenuid_focus == parentmenu->id){
+            if(menu_entry_num > cutoffval){
+                while(menu->next) menu = menu->next;
+            }
+        }
+
+
         if (advanced_hidden_edit_mode || IS_VISIBLE(menu))
         {
             // display help (should be first; if there are too many items in menu, the main text should overwrite the help, not viceversa)
@@ -1167,6 +1209,20 @@ menu_display(
                 return;
         }
         menu = menu->next;
+                                         
+        //hide buttom menu for vscroll
+        if(menu_entry_num > cutoffval){
+            break;
+        }else{
+            if(advanced_hidden_edit_mode){
+                menu_entry_num++;
+            }else{
+                if(IS_VISIBLE(menu)){
+                    menu_entry_num++;
+                }
+            }
+        }
+        //<== vscroll
     }
 }
 
@@ -1221,6 +1277,25 @@ show_hidden_items(struct menu * menu, int force_clear)
                  hidden_msg
             );
         }
+    }
+}
+
+static void
+show_vscroll(struct menu* parent){
+    int16_t pos = parent->pos;
+    int16_t num;
+
+    if(advanced_hidden_edit_mode) num = parent->childnummax;
+    else                          num = parent->childnum;
+
+    int cutoffval = 11;
+    if(gMenuid_audio == parent->id) cutoffval=9;
+    else if(gMenuid_focus == parent->id) cutoffval=9;
+
+    if(num>cutoffval){
+        bmp_draw_rect(COLOR_GRAY70, 715, 42, 4, 350);
+        int16_t posx = 42 + (300 / num * pos);
+        bmp_fill(COLOR_GRAY70, 717, posx, 4, 50);
     }
 }
 
@@ -1301,25 +1376,26 @@ menus_display(
         if( menu->selected )
         {
             menu_display(
-                menu->children,
+                menu,
                 orig_x + 40,
                 y + 45, 
                 0
             );
             
             show_hidden_items(menu, 0);
-        
+            show_vscroll(menu);
         }
     }
     give_semaphore( menu_sem );
 }
+
 
 static void
 implicit_submenu_display()
 {
     struct menu * menu = get_selected_menu();
     menu_display(
-        menu->children,
+        menu,
          40,
          45,
          1
@@ -1350,7 +1426,7 @@ submenu_display(struct menu * submenu)
     }
 
     show_hidden_items(submenu, 1);
-    menu_display(submenu->children,  bx + 50,  by + 50 + 20, 0);
+    menu_display(submenu,  bx + 50,  by + 50 + 20, 0);
 }
 
 static void
@@ -1374,6 +1450,11 @@ menu_entry_showhide_toggle(
     if (entry->hidden != MENU_ENTRY_NEVER_HIDE)
     {
         entry->hidden = entry->hidden ? MENU_ENTRY_NOT_HIDDEN : MENU_ENTRY_HIDDEN;
+        if(entry->hidden == MENU_ENTRY_HIDDEN){
+            menu->childnum--;
+        }else{
+            menu->childnum++;
+        }
         menu_make_sure_selection_is_valid();
         menu_hidden_dirty = 1;
     }
@@ -1528,11 +1609,15 @@ menu_entry_move(
 
     struct menu_entry * entry = menu->children;
 
+    int selectedpos= 0;
     for( ; entry ; entry = entry->next )
     {
         if( entry->selected )
             break;
+        if(advanced_hidden_edit_mode) selectedpos++;
+        else                          if(IS_VISIBLE(entry)) selectedpos++;
     }
+
 
     // Nothing selected?
     if( !entry )
@@ -1547,21 +1632,23 @@ menu_entry_move(
     if( direction < 0 )
     {
         // First and moving up?
-        if( entry->prev )
+        if( entry->prev ){
             entry = entry->prev;
-        else {
+            menu->pos = selectedpos - 1;
+        }else {
             // Go to the last one
-            while( entry->next )
-                entry = entry->next;
+            while( entry->next ) entry = entry->next;
+            menu->pos = menu->childnum;
         }
     } else {
         // Last and moving down?
-        if( entry->next )
+        if( entry->next ){
             entry = entry->next;
-        else {
+            menu->pos = selectedpos + 1;
+        }else {
             // Go to the first one
-            while( entry->prev )
-                entry = entry->prev;
+            while( entry->prev ) entry = entry->prev;
+            menu->pos = 0;
         }
     }
 
@@ -2132,8 +2219,10 @@ menu_init( void )
     gui_sem = create_named_semaphore( "gui", 0 );
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_600D) || defined(CONFIG_5D3)
-    menu_find_by_name( "Audio", ICON_MIC);
+    struct menu *tmpmenu;
+#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
+    tmpmenu = menu_find_by_name( "Audio", ICON_MIC);
+    gMenuid_audio = tmpmenu->id;
 #endif
     menu_find_by_name( "Expo", ICON_AE);
 #ifndef CONFIG_5DC
@@ -2147,7 +2236,8 @@ menu_init( void )
 #endif
     menu_find_by_name( "Shoot", ICON_PHOTOCAM );
     //~ menu_find_by_name( "Brack" );
-    menu_find_by_name( "Focus", ICON_SHARPNESS );
+    tmpmenu = menu_find_by_name( "Focus", ICON_SHARPNESS );
+    gMenuid_focus = tmpmenu->id;
     //~ menu_find_by_name( "LUA" );
     //menu_find_by_name( "Games" );
 #ifndef CONFIG_5DC
@@ -2527,6 +2617,7 @@ void hide_menu_by_name(char* name, char* entry_name)
                 if (!strcmp(entry->name, entry_name))
                 {
                     entry->hidden = 1;
+                    menu->childnum--;
                 }
             }
         }
@@ -2643,9 +2734,9 @@ void menu_close_submenu()
     submenu_mode = 0;
 }
 
-#if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
 int handle_quick_access_menu_items(struct event * event)
 {
+#ifdef BGMT_Q
     // quick access to some menu items
     #ifdef BGMT_Q_ALT
     if (event->param == BGMT_Q_ALT && !gui_menu_shown())
@@ -2670,9 +2761,9 @@ int handle_quick_access_menu_items(struct event * event)
             return 0;
         }
     }
+#endif
     return 1;
 }
-#endif
 
 void config_menu_save_hidden_items()
 {

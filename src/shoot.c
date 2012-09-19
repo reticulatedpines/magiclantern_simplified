@@ -74,6 +74,11 @@ static float bulb_shutter_valuef = 1.0;
 #define BULB_SHUTTER_VALUE_MS (int)roundf(bulb_shutter_valuef * 1000.0)
 #define BULB_SHUTTER_VALUE_S (int)roundf(bulb_shutter_valuef)
 
+int get_bulb_shutter_raw_equiv()
+{
+    return shutterf_to_raw(bulb_shutter_valuef);
+}
+
 int uniwb_is_active() 
 {
     return 
@@ -2817,6 +2822,7 @@ int zoom_x5_x10_step()
     return 0;
 }*/
 
+
 int handle_zoom_x5_x10(struct event * event)
 {
     if (!lv) return 1;
@@ -3110,6 +3116,7 @@ static void bulb_toggle(void* priv, int delta)
 {
     bulb_duration_index = mod(bulb_duration_index + delta - 1, COUNT(timer_values) - 1) + 1;
     bulb_shutter_valuef = (float)timer_values[bulb_duration_index];
+    bv_auto_update();
 }
 
 static void
@@ -4475,6 +4482,10 @@ static struct menu_entry flash_menus[] = {
         },
     }
 };
+
+#ifdef CONFIG_5D3
+extern int zoom_trick;
+#endif
 struct menu_entry tweak_menus_shoot[] = {
     {
         .name = "LiveView zoom settings...",
@@ -4538,6 +4549,14 @@ struct menu_entry tweak_menus_shoot[] = {
                 .choices = (const char *[]) {"OFF", "MF", "AF+MF"},
                 .help = "Zoom when you turn the focus ring (only some Canon lenses)."
             },
+            #ifdef CONFIG_5D3
+            {
+                .name = "Zoom w. old btn / M-Fn",
+                .priv = &zoom_trick,
+                .max = 1,
+                .help = "Use the old Zoom In button (top-right) or the M-Fn button."
+            },
+            #endif
             MENU_EOL
         },
     },

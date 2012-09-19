@@ -29,3 +29,7 @@
 #ifdef CONFIG_5D3
 #include "../platform/5D3.113/mvr.h"
 #endif
+
+#ifdef CONFIG_7D
+#include "../platform/7D.203/mvr.h"
+#endif
