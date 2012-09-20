@@ -161,13 +161,13 @@ draw_beta_warning()
 {
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
-    bmp_printf(FONT_LARGE, 200 - font_large.width * 6, 50, "Magic Lantern 600Daudio 0.12");
+    bmp_printf(FONT_LARGE, 360 - font_large.width * 6, 50, "Magic Lantern");
     
-    bmp_printf(FONT_MED, 50, 150, "This is just for testing 600D audio beta functions. ");
+    bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
 
     bmp_printf(FONT_MED, 50, 200, "   Please report all bugs at www.magiclantern.fm.   ");
 
-    bmp_printf(FONT_MED, 50, 250, "Don't use it for production work. Use ML 2.3 release");
+    bmp_printf(FONT_MED, 50, 250, "      Be careful using it for production work.      ");
 
     bmp_printf(FONT_MED, 50, 300, "                       Enjoy!                       ");
 
