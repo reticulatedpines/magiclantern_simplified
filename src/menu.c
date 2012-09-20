@@ -155,7 +155,12 @@ draw_version( void )
 */
 }
 
+#ifdef CONFIG_RELEASE_BUILD
+int beta_warned = 1;
+#else
 int beta_warned = 0;
+#endif
+
 void 
 draw_beta_warning()
 {

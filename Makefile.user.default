@@ -19,7 +19,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 PYTHON=python2
 
 # You can customize CFLAG here
-#CFLAG_USER = -mlong-calls \
+#CFLAG_USER = -march=armv5te -mcpu=arm946e-s -O2 -DCONFIG_RELEASE_BUILD \
 
 # Naming convention for Magic Lantern builds:
 # General rules:
