@@ -235,6 +235,14 @@ void free_space_show()
     int fsgr = free_space_32k - (fsg << 15);
     int fsgf = (fsgr * 10) >> 15;
 
+    // trick to erase the old text, if any (problem due to shadow fonts)
+    bmp_printf(
+        FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
+        time_indic_x + 160 - 6 * font_med.width,
+        time_indic_y,
+        "      "
+    );
+
     bmp_printf(
         FONT(SHADOW_FONT(FONT_MED), COLOR_WHITE, COLOR_BLACK),
         time_indic_x + 160 - 6 * font_med.width,
