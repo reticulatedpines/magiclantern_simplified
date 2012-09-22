@@ -451,6 +451,10 @@ void* get_fastrefresh_422_buf()
 // That buffer is not updated by DMA (and should contain a silent picture without horizontal cut)
 void* get_422_hd_idle_buf()
 {
+#ifdef CONFIG_5D3
+    return shamem_read(REG_EDMAC_WRITE_HD_ADDR); // might work on all cameras in future?
+#endif
+    
 #ifdef CONFIG_550D
     if (lv && is_movie_mode() && !recording && video_mode_resolution > 0) // 720p exception
         return (void*)CACHEABLE(shamem_read(REG_EDMAC_WRITE_HD_ADDR)); // RAM address not updated properly, read it from the DIGIC
