@@ -4884,6 +4884,9 @@ PROP_HANDLER(PROP_LAST_JOB_STATE)
 
 void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
 {
+#ifndef CONFIG_NO_SNAP_SIM
+    if (get_snap_sim()) return; // no script for virtual shots
+#endif
     if (steps <= 1) return;
     
     if (hdr_scripts == 1)
