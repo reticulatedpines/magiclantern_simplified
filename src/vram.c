@@ -452,7 +452,7 @@ void* get_fastrefresh_422_buf()
 void* get_422_hd_idle_buf()
 {
 #ifdef CONFIG_5D3
-    return shamem_read(REG_EDMAC_WRITE_HD_ADDR); // might work on all cameras in future?
+    return YUV422_HD_BUFFER_DMA_ADDR; // might work on all cameras in future?
 #endif
     
 #ifdef CONFIG_550D
@@ -502,6 +502,12 @@ int first_video_clip = 1;
 struct vram_info * get_yuv422_vram()
 {
     vram_params_update_if_dirty();
+    
+    if (digic_zoom_overlay_enabled()) // compute histograms and such on full-screen image
+    {
+        vram_lv.vram = YUV422_LV_BUFFER_1;
+        return &vram_lv;
+    }
 
     int d = display_filter_enabled();
     if (d)

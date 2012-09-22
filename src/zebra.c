@@ -273,6 +273,18 @@ int should_draw_zoom_overlay()
     return false;
 }
 
+int digic_zoom_overlay_enabled()
+{
+    return zoom_overlay_size == 3 &&
+        should_draw_zoom_overlay();
+}
+
+int nondigic_zoom_overlay_enabled()
+{
+    return zoom_overlay_size != 3 &&
+        should_draw_zoom_overlay();
+}
+
 static CONFIG_INT( "focus.peaking", focus_peaking, 0);
 //~ static CONFIG_INT( "focus.peaking.method", focus_peaking_method, 1);
 static CONFIG_INT( "focus.peaking.filter.edges", focus_peaking_filter_edges, 1); // prefer texture details rather than strong edges
@@ -924,7 +936,7 @@ hist_draw_image(
         }
         
         if (hist_warn && i == HIST_WIDTH - 1
-            && !should_draw_zoom_overlay()) // magic zoom borders will be "overexposed" => will cause warning
+            && !nondigic_zoom_overlay_enabled()) // magic zoom borders will be "overexposed" => will cause warning
         {
             unsigned int thr = hist_total_px / (
                 hist_warn == 1 ? 100000 : // 0.001%
@@ -2482,7 +2494,7 @@ zoom_overlay_display(
     int         selected
 )
 {
-    zoom_overlay_size = mod(zoom_overlay_size, 3);
+    //~ zoom_overlay_size = mod(zoom_overlay_size, 3);
 
     if (!zoom_overlay_enabled)
     {
@@ -2511,22 +2523,22 @@ zoom_overlay_display(
         zoom_overlay_trigger_mode == 0 ? "" :
             zoom_overlay_size == 0 ? "Small," :
             zoom_overlay_size == 1 ? "Med," :
-            zoom_overlay_size == 2 ? "Large," : "err",
+            zoom_overlay_size == 2 ? "Large," : "FullScreen",
 
-        zoom_overlay_trigger_mode == 0 ? "" :
+        zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
             zoom_overlay_pos == 0 ? "AFbox," :
             zoom_overlay_pos == 1 ? "NW," :
             zoom_overlay_pos == 2 ? "NE," :
             zoom_overlay_pos == 3 ? "SE," :
             zoom_overlay_pos == 4 ? "SW," : "err",
 
-        zoom_overlay_trigger_mode == 0 ? "" :
+        zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
             zoom_overlay_x == 0 ? "1:1" :
             zoom_overlay_x == 1 ? "2:1" :
             zoom_overlay_x == 2 ? "3:1" :
             zoom_overlay_x == 3 ? "4:1" : "err",
 
-        zoom_overlay_trigger_mode == 0 ? "" :
+        zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
             zoom_overlay_split == 0 ? "" :
             zoom_overlay_split == 1 ? ",Ss" :
             zoom_overlay_split == 2 ? ",Sz" : "err"
@@ -2734,6 +2746,7 @@ static void spotmeter_step()
 {
     if (gui_menu_shown()) return;
     if (!get_global_draw()) return;
+    if (digic_zoom_overlay_enabled()) return; // incorrect readings
     //~ if (!lv) return;
     if (!PLAY_OR_QR_MODE)
     {
@@ -3262,10 +3275,15 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Size", 
                 .priv = &zoom_overlay_size,
+                #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2) || defined(CONFIG_7D) // old cameras - simple zoom box
                 .max = 2,
-                .choices = (const char *[]) {"Small", "Medium", "Large"},
-                .icon_type = IT_SIZE,
                 .help = "Size of zoom box (small / medium / large).",
+                #else // new cameras can do fullscreen too :)
+                .max = 3,
+                .help = "Size of zoom box (small / medium / large / full screen).",
+                #endif
+                .choices = (const char *[]) {"Small", "Medium", "Large", "FullScreen"},
+                .icon_type = IT_SIZE,
             },
             {
                 .name = "Position", 
@@ -3942,12 +3960,14 @@ int handle_zoom_overlay(struct event * event)
     if (is_zoom_overlay_triggered_by_zoom_btn() && !get_zoom_overlay_trigger_by_halfshutter())
         zoom_overlay_toggle();
 #else
+#ifndef CONFIG_5D3
     // zoom in when recording => enable Magic Zoom 
     if (get_zoom_overlay_trigger_mode() && recording == 2 && MVR_FRAME_NUMBER > 50 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
     {
         zoom_overlay_toggle();
         return 0;
     }
+#endif
 
     // if magic zoom is enabled, Zoom In should always disable it 
     if (is_zoom_overlay_triggered_by_zoom_btn() && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
@@ -4141,12 +4161,58 @@ static void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lu
     //~ }
 }
 
+void digic_zoom_overlay_step()
+{
+    static int prev = 0;
+    if (digic_zoom_overlay_enabled())
+    {
+        if (!prev) // first iteration after trigger
+        {
+            redraw();
+        }
+        else
+        {
+            // center of AF frame
+            int aff_x0_lv, aff_y0_lv; 
+            get_afframe_pos(720, 480, &aff_x0_lv, &aff_y0_lv); // Get the center of the AF frame in normalized coordinates
+
+            // Translate it into LV coord space
+            aff_x0_lv = N2LV_X(aff_x0_lv);
+            aff_y0_lv = N2LV_Y(aff_y0_lv);
+
+            // Translate it into HD coord space
+            int aff_x0_hd = LV2HD_X(aff_x0_lv);
+            int aff_y0_hd = LV2HD_Y(aff_y0_lv);
+            
+            // Find the top-left corner point in HD space
+            int corner_x0 = COERCE(aff_x0_hd - vram_lv.width/2, 0, vram_hd.width - vram_lv.width);
+            int corner_y0 = COERCE(aff_y0_hd - vram_lv.height/2, 0, vram_hd.height - vram_lv.height);
+
+            // Compute offset for HD buffer
+            int offset = corner_x0 * 2 + corner_y0 * vram_hd.pitch;
+
+            // Redirect the display buffer to show the magnified area
+            YUV422_LV_BUFFER_DMA_ADDR = prev + offset;
+            
+            // and make sure the pitch is right
+            EngDrvOut(0xc0f140e8, vram_hd.pitch - vram_lv.pitch);
+        }
+        prev = YUV422_HD_BUFFER_DMA_ADDR;
+    }
+    else
+    {
+        if (prev) EngDrvOut(0xc0f140e8, 0);
+        prev = 0;
+    }
+}
 
 /**
  * Draw Magic Zoom overlay
  */
 static void draw_zoom_overlay(int dirty)
 {   
+    if (digic_zoom_overlay_enabled()) return; // fullscreen zoom done via digic
+    
     //~ if (vram_width > 720) return;
     if (!lv) return;
     if (!get_global_draw()) return;
@@ -4201,21 +4267,18 @@ static void draw_zoom_overlay(int dirty)
     switch(zoom_overlay_size)
     {
         case 0:
-        case 3:
             W = os.x_ex / 5;
             H = os.y_ex / 4;
             break;
         case 1:
-        case 4:
             W = os.x_ex / 3;
             H = os.y_ex * 2/5;
             break;
         case 2:
-        case 5:
             W = os.x_ex/2;
             H = os.y_ex/2;
             break;
-        case 6:
+        case 3:
             W = os.x_ex;
             H = os.y_ex;
             break;
@@ -4456,7 +4519,7 @@ void draw_histogram_and_waveform(int allow_play)
             BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 5, os.y0 + 100, -1); )
     }
 
-    if (should_draw_zoom_overlay()) return;
+    if (nondigic_zoom_overlay_enabled()) return;
 
     //~ if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
