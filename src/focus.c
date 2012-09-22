@@ -291,21 +291,23 @@ focus_stack(
     msleep(1000);
     NotifyBoxHide();
 
+    // Restore to the starting focus position
+    if (focus_moved_total) {
+        NotifyBox(1000, "Reversing %d steps...", ABS(focus_moved_total)); msleep(500);
+        focus_stack_ensure_preconditions();
+        LensFocus(-focus_moved_total); 
+        NotifyBoxHide();
+    }
+    
     if (i >= count-1)
     {
         // no hdr script for SNAP-bracket with frames in front because the first one is out of order
         if (!pre_focus) hdr_create_script(count, skip_frame, 1, file_number - count + 1); 
-        NotifyBox(2000, "Focus %s done, reset %d steps", is_bracket ? "bracket" : "stack", ABS(focus_moved_total) );
+        NotifyBox(2000, "Focus %s done!", is_bracket ? "bracket" : "stack" );
+    } else {
+        NotifyBox(2000, "Focus %s error :(", is_bracket ? "bracket" : "stack" );
     }
-    else
-        NotifyBox(2000, "Focus %s ERROR, reset %d steps", is_bracket ? "bracket" : "stack", ABS(focus_moved_total) );
-
-    // Restore to the starting focus position
-    focus_stack_ensure_preconditions();
-    
-    LensFocus(-focus_moved_total); 
 }
-
 /*
 static void
 focus_stack_task( void* unused )
