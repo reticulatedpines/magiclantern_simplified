@@ -3962,14 +3962,19 @@ int handle_zoom_overlay(struct event * event)
     if (is_zoom_overlay_triggered_by_zoom_btn() && !get_zoom_overlay_trigger_by_halfshutter())
         zoom_overlay_toggle();
 #else
-#ifndef CONFIG_5D3
+
     // zoom in when recording => enable Magic Zoom 
-    if (get_zoom_overlay_trigger_mode() && recording == 2 && MVR_FRAME_NUMBER > 50 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+    if (get_zoom_overlay_trigger_mode() && recording == 2 && MVR_FRAME_NUMBER > 10 && event->param == 
+        #ifdef CONFIG_5D3
+        BGMT_PRESS_ZOOMIN_MAYBE
+        #else
+        BGMT_UNPRESS_ZOOMIN_MAYBE
+        #endif
+    )
     {
         zoom_overlay_toggle();
         return 0;
     }
-#endif
 
     // if magic zoom is enabled, Zoom In should always disable it 
     if (is_zoom_overlay_triggered_by_zoom_btn() && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
