@@ -1213,7 +1213,6 @@ menu_display(
             ) 
                 return;
         }
-        menu = menu->next;
                                          
         //hide buttom menu for vscroll
         if(menu_entry_num > cutoffval){
@@ -1228,6 +1227,8 @@ menu_display(
             }
         }
         //<== vscroll
+
+        menu = menu->next;
     }
 }
 
