@@ -4936,6 +4936,18 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
 // normal pic, silent pic, bulb pic...
 static void take_a_pic(int allow_af)
 {
+#ifndef CONFIG_NO_SNAP_SIM
+    int snap_sim = get_snap_sim();
+    if (snap_sim) {
+        if (snap_sim > 1) beep();
+        if ((snap_sim == 1) || (snap_sim == 3)) {    
+            display_off();
+            msleep(250);
+            display_on();
+        }
+        return;
+    }
+#endif
     if (silent_pic_enabled)
     {
         msleep(500);

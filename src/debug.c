@@ -1643,6 +1643,26 @@ void show_electronic_level()
 
 #endif
 
+#ifndef CONFIG_NO_SNAP_SIM
+static int snap_sim = 0;
+int get_snap_sim() { return snap_sim; }
+static void
+snap_sim_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Snap Simulation : %s", 
+        snap_sim == 0 ? "Take real pic" : snap_sim == 1 ? "Blink only" : snap_sim == 2 ? "Beep only" : "Blink & Beep"
+    );
+}
+#endif
+
 
 #ifdef CONFIG_HEXDUMP
 
@@ -2740,6 +2760,15 @@ struct menu_entry debug_menus[] = {
         .select_reverse = prop_toggle_j,
         .select_Q = prop_toggle_i,
         .help = "Raw property display (read-only)",
+    },
+    #endif
+    #ifndef CONFIG_NO_SNAP_SIM
+    {
+        .name = "Snap Simulation",
+        .priv = &snap_sim, 
+        .max = 3,
+        .choices = (const char *[]) {"Take real pic", "Blink only", "Beep only", "Blink & Beep"},
+        .help = "Save shutter cycles while trying Magic Lantern",
     },
     #endif
 };
