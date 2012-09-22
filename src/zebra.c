@@ -2549,8 +2549,10 @@ zoom_overlay_display(
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work with SD monitors");
     else if (hdmi_code == 5)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work in HDMI 1080i.");
+    #ifndef CONFIG_5D3
     else if (is_movie_mode() && video_mode_fps > 30)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work well in current video mode");
+    #endif
     else if (zoom_overlay_trigger_mode && !get_zoom_overlay_trigger_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom is not available in this mode");
     else
@@ -4239,8 +4241,10 @@ static void draw_zoom_overlay(int dirty)
     uint16_t*       lvr = (uint16_t*) lv->vram;
     uint16_t*       hdr = (uint16_t*) hd->vram;
 
-    //~ lvr = get_lcd_422_buf();
-    
+    #ifdef CONFIG_5D3 // might work on other cameras too, need to test
+    lvr = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
+    #endif
+
     if (!lvr) return;
 
     // center of AF frame
@@ -4366,7 +4370,9 @@ static void draw_zoom_overlay(int dirty)
         if (y%X==0) s += hd->width;
     }
 
+    #ifndef CONFIG_5D3
     if (video_mode_fps <= 30 || !is_movie_mode())
+    #endif
     {
         memset(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
         memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
