@@ -3842,6 +3842,7 @@ cropmark_redraw()
 {
     if (gui_menu_shown()) return; 
     if (!zebra_should_run() && !PLAY_OR_QR_MODE) return;
+    if (digic_zoom_overlay_enabled()) return;
     if (!cropmark_cache_is_valid())
         cropmark_clear_cache();
     BMP_LOCK( cropmark_draw(); )

@@ -2171,7 +2171,7 @@ void preview_contrast_n_saturation_step()
     int desired_saturation = saturation_values[preview_saturation];
 
     extern int focus_peaking_grayscale;
-    if (focus_peaking_grayscale && is_focus_peaking_enabled() && !focus_peaking_as_display_filter())
+    if (focus_peaking_grayscale && is_focus_peaking_enabled() && !focus_peaking_as_display_filter() && zebra_should_run())
         desired_saturation = 0;
 
     if (current_saturation != desired_saturation)
