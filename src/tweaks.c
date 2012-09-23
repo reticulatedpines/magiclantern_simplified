@@ -2158,6 +2158,17 @@ CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
 
 CONFIG_INT("uniwb.correction", uniwb_correction, 7);
 
+static int focus_peaking_grayscale_running()
+{
+    extern int focus_peaking_grayscale;
+    return 
+        focus_peaking_grayscale && 
+        is_focus_peaking_enabled() && 
+        !focus_peaking_as_display_filter() &&
+        zebra_should_run()
+        ;
+}
+
 void preview_contrast_n_saturation_step()
 {
     if (ml_shutdown_requested) return;
@@ -2170,8 +2181,7 @@ void preview_contrast_n_saturation_step()
     static int saturation_values[] = {0,0x80,0xC0,0xFF};
     int desired_saturation = saturation_values[preview_saturation];
 
-    extern int focus_peaking_grayscale;
-    if (focus_peaking_grayscale && is_focus_peaking_enabled() && !focus_peaking_as_display_filter() && zebra_should_run())
+    if (focus_peaking_grayscale_running())
         desired_saturation = 0;
 
     if (current_saturation != desired_saturation)
@@ -2230,7 +2240,7 @@ static void uniwb_correction_step()
     int display_wb_register = 0xC0F14174;
     int desired_wb = 0;
     int current_wb = shamem_read(display_wb_register);
-    if (uniwb_correction && uniwb_is_active())
+    if (uniwb_correction && uniwb_is_active() && preview_saturation && !focus_peaking_grayscale_running())
     {
         int w = (uniwb_correction << 4) & 0xFF;
         w = (w << 8) | w;
