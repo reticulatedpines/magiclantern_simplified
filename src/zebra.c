@@ -743,9 +743,10 @@ hist_build()
                 uint32_t R_level = R * HIST_WIDTH / 256;
                 uint32_t G_level = G * HIST_WIDTH / 256;
                 uint32_t B_level = B * HIST_WIDTH / 256;
-                hist_r[R_level]++;
-                hist_g[G_level]++;
-                hist_b[B_level]++;
+                
+                hist_r[R_level & 0x7F]++;
+                hist_g[G_level & 0x7F]++;
+                hist_b[B_level & 0x7F]++;
             }
             else // luma
             {
@@ -758,7 +759,7 @@ hist_build()
             uint32_t hist_level = Y * HIST_WIDTH / 256;
 
             // Ignore the 0 bin.  It generates too much noise
-            unsigned count = ++ (hist[ hist_level ]);
+            unsigned count = ++ (hist[ hist_level & 0x7F]);
             if( hist_level && count > hist_max )
                 hist_max = count;
 
