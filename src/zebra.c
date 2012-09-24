@@ -3266,14 +3266,12 @@ struct menu_entry zebra_menus[] = {
                 .help = "Focus peaking color (fixed or color coding).",
                 .icon_type = IT_NAMED_COLOR,
             },
-            #ifndef CONFIG_5D3_MINIMAL
             {
                 .name = "Grayscale img.", 
                 .priv = &focus_peaking_grayscale,
                 .max = 1,
                 .help = "Display LiveView image in grayscale.",
             },
-            #endif
             /*{
                 .priv = &focus_peaking_debug,
                 .max = 1,
@@ -3283,7 +3281,6 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
-    #ifndef CONFIG_5D3_MINIMAL // flickers a lot
     {
         .name = "Magic Zoom",
         .priv = &zoom_overlay_enabled,
@@ -3356,7 +3353,6 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
-    #endif
     {
         .name = "Cropmarks",
         .priv = &crop_enabled,

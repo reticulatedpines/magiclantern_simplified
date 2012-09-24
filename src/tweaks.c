@@ -14,11 +14,6 @@
 #include "lens.h"
 #include "math.h"
 
-#ifdef CONFIG_5D3_MINIMAL
-#include "disable-this-module.h"
-#endif
-
-
 void clear_lv_affframe();
 void lcd_adjust_position_step();
 void arrow_key_step();
@@ -2817,7 +2812,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
 // type 2 filters: compute histogram on original image
 int display_filter_enabled()
 {
-    #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5DC) // not working on these cameras
+    #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5DC) || defined(CONFIG_5D3_MINIMAL) // not working on these cameras
     return 0;
     #endif
 
@@ -2965,6 +2960,7 @@ static struct menu_entry display_menus[] = {
         .max = 1,
         .help = "Emphasizes camera shake on LiveView display.",
     },*/
+    #ifndef CONFIG_5D3_MINIMAL
     {
         .name = "Defishing",
         .priv = &defish_preview, 
@@ -3007,6 +3003,7 @@ static struct menu_entry display_menus[] = {
             MENU_EOL
         },
     },
+    #endif
 #ifdef CONFIG_KILL_FLICKER
     {
         .name       = "Kill Canon GUI",
@@ -3088,7 +3085,7 @@ static struct menu_entry display_menus[] = {
                     .icon_type = IT_DISABLE_SOME_FEATURE,
                     //.essential = FOR_LIVEVIEW,
                 },
-            #ifndef CONFIG_5DC
+            #if !defined(CONFIG_5DC) && !defined(CONFIG_5D3)
                 {
                     .name = "Force HDMI-VGA",
                     .priv = &hdmi_force_vga, 
@@ -3211,8 +3208,10 @@ static void tweak_init()
     menu_add( "Prefs", play_menus, COUNT(play_menus) );
 #ifndef CONFIG_5DC
     menu_add( "Prefs", tweak_menus_shoot, 1 );
+    #ifndef CONFIG_5D3_MINIMAL
     menu_add( "Prefs", key_menus, COUNT(key_menus) );
     #endif
+#endif
     menu_add( "Prefs", tweak_menus, COUNT(tweak_menus) );
 #ifndef CONFIG_5DC
     menu_add( "Display", display_menus, COUNT(display_menus) );

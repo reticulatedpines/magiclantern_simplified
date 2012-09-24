@@ -13,10 +13,6 @@
 #include "lens.h"
 #include "math.h"
 
-#ifdef CONFIG_5D3_MINIMAL
-#include "disable-this-module.h"
-#endif
-
 #ifdef CONFIG_4_3_SCREEN
 #define CONFIG_BLUE_LED 1
 #endif
@@ -431,6 +427,7 @@ void movtweak_step()
 
         //~ update_lvae_for_autoiso_n_displaygain();
         
+        #ifndef CONFIG_5D3 // not needed
         if (hdmi_force_vga && is_movie_mode() && (lv || PLAY_MODE) && !gui_menu_shown())
         {
             if (hdmi_code == 5)
@@ -448,6 +445,7 @@ void movtweak_step()
                 msleep(5000);
             }
         }
+        #endif
 }
 
 // called from tweak_task
@@ -1135,7 +1133,7 @@ static struct menu_entry mov_menus[] = {
         //.essential = FOR_MOVIE,
         //~ .edit_mode = EM_MANY_VALUES_LV,
     },
-    #ifndef CONFIG_50D
+    #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
     {
         .name = "Movie REC key",
         .priv = &movie_rec_key, 
@@ -1193,10 +1191,10 @@ static struct menu_entry mov_menus[] = {
     },
 #endif
     {
-        .name = "Smooth ISO",
+        .name = "Gradual ISO",
         .priv = &smooth_iso,
         .max = 1,
-        .help = "Use gradual ISO changes when recording.",
+        .help = "Use smooth ISO transitions in movie mode.",
     },
 };
 

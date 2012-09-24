@@ -4495,6 +4495,7 @@ struct menu_entry tweak_menus_shoot[] = {
         .icon_type = IT_SUBMENU,
         .help = "Disable x5 or x10, boost contrast/sharpness...",
         .children =  (struct menu_entry[]) {
+            #ifndef CONFIG_5D3_MINIMAL
             {
                 .name = "Zoom x5",
                 .priv = &zoom_disable_x5, 
@@ -4549,6 +4550,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .choices = (const char *[]) {"OFF", "MF", "AF+MF"},
                 .help = "Zoom when you turn the focus ring (only some Canon lenses)."
             },
+            #endif
             #ifdef CONFIG_5D3
             {
                 .name = "Zoom w. old btn / M-Fn",

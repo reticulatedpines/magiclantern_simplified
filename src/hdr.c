@@ -11,10 +11,6 @@
 #include "propvalues.h"
 #include "config.h"
 
-#ifdef CONFIG_5D3_MINIMAL
-#include "disable-this-module.h"
-#endif
-
 
 CONFIG_INT("hdrv.en", hdrv_enabled, 0);
 static CONFIG_INT("hdrv.iso.a", hdr_iso_a, 72);
