@@ -37,6 +37,11 @@
 #define MENU_HELP_Y_POS 453
 #define MENU_WARNING_Y_POS (menu_lv_transparent_mode ? 425 : 453)
 
+//for vscroll
+#define MENU_LEN_DEFAULT 11
+#define MENU_LEN_AUDIO 10
+#define MENU_LEN_FOCUS 8
+
 /*
 int sem_line = 0;
 
@@ -512,8 +517,9 @@ menu_find_by_name(
     new_menu->children  = NULL;
     new_menu->submenu_width = 0;
     new_menu->submenu_height = 0;
-    new_menu->pos       = 0;
-    new_menu->childnum = 0;
+    new_menu->pos       = 1;
+    new_menu->childnum  = 1;
+    new_menu->childnummax = 1;
     // menu points to the last entry or NULL if there are none
     if( menu )
     {
@@ -590,9 +596,9 @@ menu_add(
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
         new_entry->selected = 1;
-        menu->pos = 0;
-        menu->childnum = 1;
-        menu->childnummax = 1;
+         menu->pos           = 1;
+         menu->childnum      = 1; 
+         menu->childnummax   = 1;
         //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry++;
         count--;
@@ -605,24 +611,23 @@ menu_add(
     for (int i = 0; i < count; i++)
     {
         if (new_entry->id == 0) new_entry->id = menu_id_increment++;
+
+        if(IS_VISIBLE(new_entry)) menu->childnum++;
+        menu->childnummax++;
+
         new_entry->selected = 0;
         //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry->next     = head->next;
         new_entry->prev     = head;
         head->next      = new_entry;
-
         head            = new_entry;
         new_entry++;
-        if(IS_VISIBLE(new_entry)){
-            menu->childnum++;
-            menu->childnummax++;
-        }
     }
     give_semaphore( menu_sem );
 
 
     // create submenus
-    
+
     struct menu_entry * entry = head;
     for (int i = 0; i < count0; i++)
     {
@@ -984,18 +989,20 @@ menu_display(
 )
 {
     struct menu_entry *menu = parentmenu->children;
-
     //hide upper menu for vscroll
-    int cutoffval = 9;
-    if(gMenuid_audio == parentmenu->id || gMenuid_focus == parentmenu->id){
-        cutoffval=8;
+    int menu_len = MENU_LEN_DEFAULT; 
+    if(gMenuid_audio == parentmenu->id){
+        menu_len=MENU_LEN_AUDIO;
+    }else if(gMenuid_focus == parentmenu->id){
+        menu_len=MENU_LEN_FOCUS;
     }
-    if(parentmenu->pos > cutoffval){
-        int delnum = parentmenu->pos - cutoffval - 1;
-        if(gMenuid_focus == parentmenu->id) delnum++;
+
+    if(parentmenu->pos > menu_len){
+        int delnum = parentmenu->pos - menu_len;
+        
         for(int i=0;i<delnum;i++){
             if(advanced_hidden_edit_mode){
-            menu = menu->next;
+                menu = menu->next;
             }else{                
                 while(!IS_VISIBLE(menu)) menu = menu->next;
                 menu = menu->next;
@@ -1010,7 +1017,7 @@ menu_display(
 
         //Display lens info
         if(gMenuid_focus == parentmenu->id){
-            if(menu_entry_num > cutoffval){
+            if(menu_entry_num >= menu_len){
                 while(menu->next) menu = menu->next;
             }
         }
@@ -1215,16 +1222,13 @@ menu_display(
         }
                                          
         //hide buttom menu for vscroll
-        if(menu_entry_num > cutoffval){
-            break;
+        if(advanced_hidden_edit_mode) menu_entry_num++;
+        else                          if(IS_VISIBLE(menu)) menu_entry_num++;
+
+        if(gMenuid_focus == parentmenu->id){
+            if(menu_entry_num >= menu_len + 1) break;
         }else{
-            if(advanced_hidden_edit_mode){
-                menu_entry_num++;
-            }else{
-                if(IS_VISIBLE(menu)){
-                    menu_entry_num++;
-                }
-            }
+            if(menu_entry_num >= menu_len) break;
         }
         //<== vscroll
 
@@ -1289,18 +1293,18 @@ show_hidden_items(struct menu * menu, int force_clear)
 static void
 show_vscroll(struct menu* parent){
     int16_t pos = parent->pos;
-    int16_t num;
+    int16_t max;
 
-    if(advanced_hidden_edit_mode) num = parent->childnummax;
-    else                          num = parent->childnum;
+    if(advanced_hidden_edit_mode) max = parent->childnummax;
+    else                          max = parent->childnum;
 
-    int cutoffval = 11;
-    if(gMenuid_audio == parent->id) cutoffval=9;
-    else if(gMenuid_focus == parent->id) cutoffval=9;
+    int menu_len = MENU_LEN_DEFAULT;
+    if(gMenuid_audio == parent->id) menu_len=MENU_LEN_AUDIO;
+    else if(gMenuid_focus == parent->id) menu_len=MENU_LEN_FOCUS;
 
-    if(num>cutoffval){
+    if(max > menu_len){
         bmp_draw_rect(COLOR_GRAY70, 715, 42, 4, 350);
-        int16_t posx = 42 + (300 / num * pos);
+        int16_t posx = 42 + (300 / max * (pos-1));
         bmp_fill(COLOR_GRAY70, 717, posx, 4, 50);
     }
 }
@@ -1618,10 +1622,10 @@ menu_entry_move(
     int selectedpos= 0;
     for( ; entry ; entry = entry->next )
     {
-        if( entry->selected )
-            break;
         if(advanced_hidden_edit_mode) selectedpos++;
         else                          if(IS_VISIBLE(entry)) selectedpos++;
+
+        if( entry->selected ) break;
     }
 
 
@@ -1654,7 +1658,7 @@ menu_entry_move(
         }else {
             // Go to the first one
             while( entry->prev ) entry = entry->prev;
-            menu->pos = 0;
+            menu->pos = 1;
         }
     }
 
