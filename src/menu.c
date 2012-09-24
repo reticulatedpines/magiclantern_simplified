@@ -1282,7 +1282,7 @@ show_vscroll(struct menu* parent){
     
     if(max > menu_len){
         bmp_draw_rect(COLOR_GRAY70, 715, 42, 4, 350);
-        int16_t posx = 42 + (300 / (max-1) * (pos-1));
+        int16_t posx = 42 + (300 * (pos-1) / (max-1));
         bmp_fill(COLOR_GRAY70, 717, posx, 4, 50);
     }
 }
