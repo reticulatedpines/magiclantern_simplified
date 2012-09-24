@@ -39,8 +39,8 @@
 
 //for vscroll
 #define MENU_LEN_DEFAULT 11
-#define MENU_LEN_AUDIO 10
-#define MENU_LEN_FOCUS 8
+//~ #define MENU_LEN_AUDIO 10
+//~ #define MENU_LEN_FOCUS 8
 
 /*
 int sem_line = 0;
@@ -81,9 +81,6 @@ static int redraw_in_progress = 0;
 #define MENU_REDRAW_QUICK 2
 
 static int hist_countdown = 3; // histogram is slow, so draw it less often
-
-static uint32_t gMenuid_audio = 0;
-static uint32_t gMenuid_focus = 0;
 
 void menu_close_post_delete_dialog_box();
 void menu_close_gmt();
@@ -991,11 +988,6 @@ menu_display(
     struct menu_entry *menu = parentmenu->children;
     //hide upper menu for vscroll
     int menu_len = MENU_LEN_DEFAULT; 
-    if(gMenuid_audio == parentmenu->id){
-        menu_len=MENU_LEN_AUDIO;
-    }else if(gMenuid_focus == parentmenu->id){
-        menu_len=MENU_LEN_FOCUS;
-    }
 
     if(parentmenu->pos > menu_len){
         int delnum = parentmenu->pos - menu_len;
@@ -1014,14 +1006,6 @@ menu_display(
     int menu_entry_num = 0;
     while( menu )
     {
-
-        //Display lens info
-        if(gMenuid_focus == parentmenu->id){
-            if(menu_entry_num >= menu_len){
-                while(menu->next) menu = menu->next;
-            }
-        }
-
 
         if (advanced_hidden_edit_mode || IS_VISIBLE(menu))
         {
@@ -1225,11 +1209,7 @@ menu_display(
         if(advanced_hidden_edit_mode) menu_entry_num++;
         else                          if(IS_VISIBLE(menu)) menu_entry_num++;
 
-        if(gMenuid_focus == parentmenu->id){
-            if(menu_entry_num >= menu_len + 1) break;
-        }else{
-            if(menu_entry_num >= menu_len) break;
-        }
+        if(menu_entry_num >= menu_len) break;
         //<== vscroll
 
         menu = menu->next;
@@ -1292,19 +1272,17 @@ show_hidden_items(struct menu * menu, int force_clear)
 
 static void
 show_vscroll(struct menu* parent){
-    int16_t pos = parent->pos;
+    int16_t pos = parent->pos; // from 1 to max
     int16_t max;
 
     if(advanced_hidden_edit_mode) max = parent->childnummax;
     else                          max = parent->childnum;
 
     int menu_len = MENU_LEN_DEFAULT;
-    if(gMenuid_audio == parent->id) menu_len=MENU_LEN_AUDIO;
-    else if(gMenuid_focus == parent->id) menu_len=MENU_LEN_FOCUS;
-
+    
     if(max > menu_len){
         bmp_draw_rect(COLOR_GRAY70, 715, 42, 4, 350);
-        int16_t posx = 42 + (300 / max * (pos-1));
+        int16_t posx = 42 + (300 / (max-1) * (pos-1));
         bmp_fill(COLOR_GRAY70, 717, posx, 4, 50);
     }
 }
@@ -2229,10 +2207,8 @@ menu_init( void )
     gui_sem = create_named_semaphore( "gui", 0 );
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
-    struct menu *tmpmenu;
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
-    tmpmenu = menu_find_by_name( "Audio", ICON_MIC);
-    gMenuid_audio = tmpmenu->id;
+    menu_find_by_name( "Audio", ICON_MIC);
 #endif
     menu_find_by_name( "Expo", ICON_AE);
 #ifndef CONFIG_5DC
@@ -2246,8 +2222,7 @@ menu_init( void )
 #endif
     menu_find_by_name( "Shoot", ICON_PHOTOCAM );
     //~ menu_find_by_name( "Brack" );
-    tmpmenu = menu_find_by_name( "Focus", ICON_SHARPNESS );
-    gMenuid_focus = tmpmenu->id;
+    menu_find_by_name( "Focus", ICON_SHARPNESS );
     //~ menu_find_by_name( "LUA" );
     //menu_find_by_name( "Games" );
 #ifndef CONFIG_5DC
