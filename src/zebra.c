@@ -5088,6 +5088,7 @@ BMP_LOCK (
     crop_set_dirty(cropmark_cache_is_valid() ? 2 : 10);
     
     menu_set_dirty();
+    lens_display_set_dirty();
     zoom_overlay_dirty = 1;
 }
 
