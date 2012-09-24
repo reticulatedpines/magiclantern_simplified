@@ -128,7 +128,7 @@ NSTUB(0xff4afe08, LiveViewApp_handler)
 NSTUB(0xff4dfb94, PlayMain_handler)
 	NSTUB(0xff49c124, ErrCardForLVApp_handler) // not sure
 NSTUB(0xff49cc68, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
-	//NSTUB(0xFF4AB9D4, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
+NSTUB(0xff4aba48, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
 
 NSTUB(0xff28cc3c, _engio_write)
 NSTUB(0xff28c9c8, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr

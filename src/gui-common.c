@@ -84,7 +84,13 @@ int handle_other_events(struct event * event)
 
             bottom_bar_dirty = 0;
         }
-        
+
+        if (UNAVI_FEEDBACK_TIMER_ACTIVE)
+        {
+            HideUnaviFeedBack_maybe();
+            bottom_bar_dirty = 0;
+        }
+
         if (!liveview_display_idle()) bottom_bar_dirty = 0;
         if (bottom_bar_dirty) bottom_bar_dirty--;
         
