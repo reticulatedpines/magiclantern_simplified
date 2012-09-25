@@ -539,27 +539,8 @@ void iso_movie_test()
 
 void run_test()
 {
-    //delete when finish debugging
-#if defined(CONFIG_600D) && defined(CONFIG_AUDIO_600D_DEBUG)
-    audio_reg_dump_once();
-#endif
-    //^^^^^^^^^^^to here^^^^^^^^
-
     msleep(2000);
-    while(1)
-    {
-        if (DISPLAY_IS_ON) 
-        {
-            static int r1 = 1;
-            static int r2 = 1;
-            if (rand()%30 == 1) r1 = !r1;
-            if (rand()%30 == 1) r2 = !r2;
-            int inc = (r1 ? 1 : -1) + (r2 ? 0x100 : -0x100);
-            EngDrvOut(0xC0F14400, (MEMX(0xC0F14400) + inc) & 0xFFFF);
-            EngDrvOut(0xC0F14800, (MEMX(0xC0F14800) + inc) & 0xFFFF);
-        }
-        msleep(10);
-    }
+
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)

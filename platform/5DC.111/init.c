@@ -42,7 +42,7 @@ void copy_and_restart() {
     
     // jump to modified Canon startup code from entry.S
     // (which will call Create5dplusInit - where we create our tasks)
-    init_code_run(0);
+    init_code_run(2);
     
     // unreachable
     while(1) LEDBLUE = LEDON;
