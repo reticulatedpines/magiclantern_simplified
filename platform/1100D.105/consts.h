@@ -31,7 +31,7 @@
 // PLACEHOLDER UNTIL WE GET THE REAL VALUES
 #define FIX_DMA_ADDR(x) ((x) | 0x40000000)
 #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x2438))
-#define YUV422_HD_BUFFER_DMA_ADDR ((*(uint32_t*)FIX_DMA_ADDR(shamem_read(0xc0f04208))))
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR) + vram_hd.pitch) // first line from DMA is dummy. Thanks 5D3!
 #define YUV422_LV_BUFFER_DMA_ADDR_FROM_DIGIC (FIX_DMA_ADDR(shamem_read(0xc0f04308)))
 
 // AV / AE COMP button 
@@ -112,7 +112,7 @@
 #define BFNT_BITMAP_OFFSET 0xff7f3f2c
 #define BFNT_BITMAP_DATA   0xff7f6994
 
-#define DLG_SIGNATURE 0x006e4944 // just print it
+#define DLG_SIGNATURE 0x4c414944 // just print it
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0

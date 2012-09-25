@@ -451,7 +451,7 @@ void* get_fastrefresh_422_buf()
 // That buffer is not updated by DMA (and should contain a silent picture without horizontal cut)
 void* get_422_hd_idle_buf()
 {
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3) || defined(CONFIG_1100D)
     return YUV422_HD_BUFFER_DMA_ADDR; // might work on all cameras in future?
 #endif
     

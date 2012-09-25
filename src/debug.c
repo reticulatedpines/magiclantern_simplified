@@ -539,27 +539,9 @@ void iso_movie_test()
 
 void run_test()
 {
-    //delete when finish debugging
-#if defined(CONFIG_600D) && defined(CONFIG_AUDIO_600D_DEBUG)
-    audio_reg_dump_once();
-#endif
-    //^^^^^^^^^^^to here^^^^^^^^
-
     msleep(2000);
-    while(1)
-    {
-        if (DISPLAY_IS_ON) 
-        {
-            static int r1 = 1;
-            static int r2 = 1;
-            if (rand()%30 == 1) r1 = !r1;
-            if (rand()%30 == 1) r2 = !r2;
-            int inc = (r1 ? 1 : -1) + (r2 ? 0x100 : -0x100);
-            EngDrvOut(0xC0F14400, (MEMX(0xC0F14400) + inc) & 0xFFFF);
-            EngDrvOut(0xC0F14800, (MEMX(0xC0F14800) + inc) & 0xFFFF);
-        }
-        msleep(10);
-    }
+    debug_intercept();
+
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1641,6 +1623,26 @@ void show_electronic_level()
     bmp_printf(FONT_MED, 0, 35, "%s%3d", angle10 < 0 ? "-" : angle10 > 0 ? "+" : " ", ABS(angle10/10));
 }
 
+#endif
+
+#ifndef CONFIG_NO_SNAP_SIM
+static int snap_sim = 0;
+int get_snap_sim() { return snap_sim; }
+static void
+snap_sim_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Snap Simulation : %s", 
+        snap_sim == 0 ? "Take real pic" : snap_sim == 1 ? "Blink only" : snap_sim == 2 ? "Beep only" : "Blink & Beep"
+    );
+}
 #endif
 
 
@@ -2740,6 +2742,15 @@ struct menu_entry debug_menus[] = {
         .select_reverse = prop_toggle_j,
         .select_Q = prop_toggle_i,
         .help = "Raw property display (read-only)",
+    },
+    #endif
+    #ifndef CONFIG_NO_SNAP_SIM
+    {
+        .name = "Snap Simulation",
+        .priv = &snap_sim, 
+        .max = 3,
+        .choices = (const char *[]) {"Take real pic", "Blink only", "Beep only", "Blink & Beep"},
+        .help = "Save shutter cycles while trying Magic Lantern",
     },
     #endif
 };

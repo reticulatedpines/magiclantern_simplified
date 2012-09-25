@@ -4,6 +4,12 @@
 #include "menu.h"
 
 // dummy stubs
+
+void movtweak_task_init() {}
+void movtweak_step() {}
+
+int fps_get_shutter_speed_shift() {}
+
 void *AcquireRecursiveLock(void *lock, int n){}
 void *CreateRecursiveLock(int n){}
 void *ReleaseRecursiveLock(void *lock){}
