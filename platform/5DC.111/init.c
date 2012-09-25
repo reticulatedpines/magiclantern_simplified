@@ -16,6 +16,7 @@
 #include "gui.h"
 #include "menu.h"
 #include "state-object.h"
+#include "../../src/cache_hacks.h"
 
 /** Was this an autoboot or firmware file load? */
 int autoboot_loaded;
@@ -38,7 +39,8 @@ void copy_and_restart() {
     // don't know whether it's needed or not... but probably it's a good idea
     zero_bss();
     
-    // no more need for copy, it was done in reboot.c
+    // lock down caches
+    cache_lock();
     
     // jump to modified Canon startup code from entry.S
     // (which will call Create5dplusInit - where we create our tasks)

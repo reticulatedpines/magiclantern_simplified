@@ -540,6 +540,7 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
+    debug_intercept();
 
 }
 

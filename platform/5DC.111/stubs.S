@@ -47,10 +47,13 @@ NSTUB( 0xFFB2A5B0, free_dma_memory )
 NSTUB( 0xFFB2F750, GetMemoryInformation )
 //---------------------
 
+NSTUB( 0xFFAB362C, unk_prop_func )
+
 NSTUB( 0xFF9CAB40, FA_RemoteRelease )
 NSTUB( 0xFF86EB28, GUILock_TurnOnDisplay )
 
 NSTUB( 0xFF8191A0, NotifyGUIEvent )
+NSTUB( 0xFFB0AC74, NotifyTurnOnDisplayToBitmapDisplayDevice )
 
 DEF(dword_FFB5CAD0, 0xFFB5CAD0 )
 DEF(sub_FFB18B40, 0xFFB18B40 )
