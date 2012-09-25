@@ -164,6 +164,7 @@ static void precompute_yuv2rgb()
     B = COERCE(Y + yuv2rgb_BU[UYVY_GET_U(uyvy)], 0, 255); \
 } \
 
+#define UYVY_PACK(u,y1,v,y2) ((u) & 0xFF) | (((y1) & 0xFF) << 8) | (((v) & 0xFF) << 16) | (((y2) & 0xFF) << 24);
 
 int is_zoom_mode_so_no_zebras() 
 { 
@@ -1598,7 +1599,7 @@ static inline int peak_blend_alpha(uint32_t* s, int e)
     int u = (u_cold * er + u_hot * e) / 256;
     int v = (v_cold * er + v_hot * e) / 256;
     
-    return (u & 0xFF) | ((y & 0xFF) << 8) | ((v & 0xFF) << 16) | ((y & 0xFF) << 24);
+    return UYVY_PACK(u,y,v,y);
 }
 
 void peak_disp_filter()
@@ -2913,7 +2914,7 @@ static void spotmeter_step()
     }
     else
     {
-        int uyvy = su | (sy << 8) | (sv << 16) | (sy << 24);
+        int uyvy = UYVY_PACK(su,sy,sv,sy);
         int R,G,B,Y;
         COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B);
         xcb -= font_med.width * 3/2;
