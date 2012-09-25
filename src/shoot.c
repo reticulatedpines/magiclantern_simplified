@@ -1571,11 +1571,27 @@ iso_display( void * priv, int x, int y, int selected )
     {
         if (lens_info.raw_iso == lens_info.iso_equiv_raw)
         {
+            int Sv = APEX_SV(lens_info.raw_iso) * 10/8;
             bmp_printf(
                 fnt,
                 x + 14 * font_large.width, y,
-                "%d", raw2iso(lens_info.iso_equiv_raw)
+                "%d, Sv%d.%d", raw2iso(lens_info.iso_equiv_raw), 
+                Sv/10, ABS(Sv)%10
             );
+
+            int Av = APEX_AV(lens_info.raw_aperture);
+            int Tv = APEX_TV(lens_info.raw_shutter);
+                Sv = APEX_SV(lens_info.raw_iso);
+            int Bv = Av + Tv - Sv;
+            Bv = Bv * 10/8;
+
+            bmp_printf(
+                MENU_FONT,
+                720 - font_large.width * 6, y,
+                "Bv%d.%d",
+                Bv/10, ABS(Bv)%10
+            );
+
         }
         else
         {
@@ -1729,9 +1745,11 @@ shutter_display( void * priv, int x, int y, int selected )
     }
     else
     {
+        int tv = APEX_TV(lens_info.raw_shutter) * 10/8;
         snprintf(msg, sizeof(msg),
-            "Shutter     : 1/%d",
-            lens_info.shutter
+            "Shutter     : 1/%d, Tv%d.%d",
+            lens_info.shutter, 
+            tv/10, ABS(tv)%10
         );
     }
     bmp_printf(
@@ -1745,6 +1763,7 @@ shutter_display( void * priv, int x, int y, int selected )
         draw_circle(xc + 2, y + 7, 3, COLOR_WHITE);
         draw_circle(xc + 2, y + 7, 4, COLOR_WHITE);
     }
+
     //~ bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
     menu_draw_icon(x, y, lens_info.raw_shutter ? MNI_PERCENT : MNI_WARNING, lens_info.raw_shutter ? (lens_info.raw_shutter - codes_shutter[1]) * 100 / (codes_shutter[COUNT(codes_shutter)-1] - codes_shutter[1]) : (intptr_t) "Shutter speed is automatic - cannot adjust manually.");
 }
@@ -1773,7 +1792,7 @@ static void
 aperture_display( void * priv, int x, int y, int selected )
 {
     int a = lens_info.aperture;
-    int av = ABS(lens_info.raw_aperture - 8);
+    int av = APEX_AV(lens_info.raw_aperture);
     if (!a || !lens_info.name[0]) // for unchipped lenses, always display zero
         a = av = 0;
     bmp_printf(
@@ -4104,6 +4123,192 @@ static void bulb_ramping_showinfo()
     }
 }
 
+static CONFIG_INT("expo.lock", expo_lock, 0);
+static CONFIG_INT("expo.lock.tv", expo_lock_tv, 0);
+static CONFIG_INT("expo.lock.av", expo_lock_av, 1);
+static CONFIG_INT("expo.lock.iso", expo_lock_iso, 1);
+
+// keep this constant
+static int expo_lock_value = 12345;
+
+static void 
+expo_lock_display( void * priv, int x, int y, int selected )
+{
+    if (!expo_lock)
+    {
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "Expo.Lock   : OFF"
+        );
+    }
+    else
+    {
+        int v = expo_lock_value * 10/8;
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "Expo.Lock   : %s%s%s %d.%d EV",
+            expo_lock_tv ? "Tv," : "",
+            expo_lock_av ? "Av," : "",
+            expo_lock_iso ? "ISO," : "",
+            v/10, ABS(v)%10
+        );
+        if (shooting_mode != SHOOTMODE_M)
+            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This feature only works in M mode.");
+        if (!lens_info.raw_iso)
+            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This feature requires manual ISO.");
+    }
+}
+
+// Tv + Av - Sv, in APEX units
+static int expo_lock_get_current_value()
+{
+    return APEX_TV(lens_info.raw_shutter) + APEX_AV(lens_info.raw_aperture) - APEX_SV(lens_info.raw_iso);
+}
+
+// returns the remainder
+static int expo_lock_adjust_tv(int delta)
+{
+    if (!delta) return 0;
+    int old_tv = lens_info.raw_shutter;
+    int new_tv = old_tv + delta;
+    new_tv = COERCE(new_tv, 16, FASTEST_SHUTTER_SPEED_RAW);
+    lens_set_rawshutter(new_tv);
+    msleep(100);
+    return delta - lens_info.raw_shutter + old_tv;
+}
+
+static int expo_lock_adjust_av(int delta)
+{
+    if (!delta) return 0;
+    if (!lens_info.raw_aperture) return delta; // manual lens
+    
+    int old_av = lens_info.raw_aperture;
+    int new_av = old_av + delta;
+    new_av = COERCE(new_av, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+    lens_set_rawaperture(new_av);
+    msleep(100);
+    return delta - lens_info.raw_aperture + old_av;
+}
+
+static int expo_lock_adjust_iso(int delta)
+{
+    if (!delta) return 0;
+    
+    int old_iso = lens_info.raw_iso;
+    int delta_r = ((delta + 4 * SGN(delta)) / 8) * 8;
+    int new_iso = old_iso - delta_r;
+    lens_set_rawiso(new_iso);
+    msleep(100);
+    return delta - old_iso + lens_info.raw_iso;
+}
+
+static void expo_lock_step()
+{
+    if (!expo_lock)
+    {
+        expo_lock_value = expo_lock_get_current_value();
+        return;
+    }
+    
+    if (shooting_mode != SHOOTMODE_M) return;
+    if (!lens_info.raw_iso) return;
+    if (ISO_ADJUSTMENT_ACTIVE) return;
+    
+    if (expo_lock_value == 12345)
+        expo_lock_value = expo_lock_get_current_value();
+    
+    static int p_tv = 0;
+    static int p_av = 0;
+    static int p_iso = 0;
+    if (!p_tv) p_tv = lens_info.raw_shutter;
+    if (!p_av) p_av = lens_info.raw_aperture;
+    if (!p_iso) p_iso = lens_info.raw_iso;
+    
+    int r_iso = lens_info.raw_iso;
+    int r_tv = lens_info.raw_shutter;
+    int r_av = lens_info.raw_aperture;
+    
+    static int what_changed = 0; // 1=iso, 2=Tv, 3=Av
+    
+    if (p_iso != r_iso) what_changed = 1; // iso changed
+    else if (p_tv != r_tv) what_changed = 2;
+    else if (p_av != r_av) what_changed = 3;
+    p_iso = r_iso;
+    p_tv = r_tv;
+    p_av = r_av;
+    
+    // let's see if user changed some setting for which exposure isn't locked => update expo reference value
+    if ((what_changed == 1 && !expo_lock_iso) ||
+        (what_changed == 2 && !expo_lock_tv) ||
+        (what_changed == 3 && !expo_lock_av))
+        {
+            expo_lock_value = expo_lock_get_current_value();
+            return;
+        }
+
+    int diff = expo_lock_value - expo_lock_get_current_value();
+    //~ NotifyBox(1000, "%d %d ", diff, what_changed);
+
+    if (diff >= -2 && diff <= 1) 
+        return; // difference is too small, ignore it
+    
+    if (what_changed == 1 && expo_lock_iso)
+    {
+            int current_value = expo_lock_get_current_value();
+            int delta = expo_lock_value - current_value;
+            if (expo_lock_iso == 1)
+            {
+                delta = expo_lock_adjust_tv(delta);
+                if (ABS(delta) >= 4) delta = expo_lock_adjust_av(delta);
+            }
+            else
+            {
+                delta = expo_lock_adjust_av(delta);
+                if (ABS(delta) >= 4) delta = expo_lock_adjust_tv(delta);
+            }
+            //~ delta = expo_lock_adjust_iso(delta);
+    }
+    else if (what_changed == 2 && expo_lock_tv)
+    {
+        int current_value = expo_lock_get_current_value();
+        int delta = expo_lock_value - current_value;
+        if (expo_lock_tv == 1)
+        {
+            delta = expo_lock_adjust_av(delta);
+            if (ABS(delta) >= 4) delta = expo_lock_adjust_iso(delta);
+        }
+        else
+        {
+            delta = expo_lock_adjust_iso(delta);
+            if (ABS(delta) >= 8) delta = expo_lock_adjust_av(delta);
+        }
+        //~ delta = expo_lock_adjust_tv(delta);
+    }
+    else if (what_changed == 3 && expo_lock_av)
+    {
+        int current_value = expo_lock_get_current_value();
+        int delta = expo_lock_value - current_value;
+        if (expo_lock_av == 1)
+        {
+            delta = expo_lock_adjust_tv(delta);
+            if (ABS(delta) >= 4) delta = expo_lock_adjust_iso(delta);
+        }
+        else
+        {
+            delta = expo_lock_adjust_iso(delta);
+            if (ABS(delta) >= 8) delta = expo_lock_adjust_tv(delta);
+        }
+        //~ delta = expo_lock_adjust_av(delta);
+    }
+    
+    p_tv = lens_info.raw_shutter;
+    p_av = lens_info.raw_aperture;
+    p_iso = lens_info.raw_iso;
+    
+}
+
 
 /*static void 
 bulb_ramping_display( void * priv, int x, int y, int selected )
@@ -4673,7 +4878,7 @@ static struct menu_entry expo_menus[] = {
         .name = "ISO",
         .display    = iso_display,
         .select     = iso_toggle,
-        .help = "Adjust and fine-tune ISO.",
+        .help = "Adjust and fine-tune ISO. Displays APEX Sv and Bv values.",
         //.essential = FOR_PHOTO | FOR_MOVIE,
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
@@ -4767,7 +4972,7 @@ static struct menu_entry expo_menus[] = {
         .name = "Shutter",
         .display    = shutter_display,
         .select     = shutter_toggle,
-        .help = "Fine-tune shutter value.",
+        .help = "Fine-tune shutter value. Displays APEX Tv or degrees equiv.",
         //.essential = FOR_PHOTO | FOR_MOVIE,
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
@@ -4776,7 +4981,7 @@ static struct menu_entry expo_menus[] = {
         .name = "Aperture",
         .display    = aperture_display,
         .select     = aperture_toggle,
-        .help = "Adjust aperture. Also displays APEX aperture (AV) in stops.",
+        .help = "Adjust aperture. Also displays APEX aperture (Av) in stops.",
         //.essential = FOR_PHOTO | FOR_MOVIE,
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
@@ -4871,6 +5076,40 @@ static struct menu_entry expo_menus[] = {
     },
 #endif
 */
+    {
+        .name = "Expo.Lock",
+        .priv = &expo_lock,
+        .max = 1,
+        .display = expo_lock_display,
+        .help = "In M mode, adjust Tv/Av/ISO without changing exposure.",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Tv  -> ",
+                .priv    = &expo_lock_tv,
+                .max = 2,
+                .icon_type = IT_BOOL,
+                .choices = (const char *[]) {"OFF", "Av,ISO", "ISO,Av"},
+                .help = "When you change Tv, ML adjusts Av and ISO to keep exposure.",
+            },
+            {
+                .name = "Av  -> ",
+                .priv    = &expo_lock_av,
+                .max = 2,
+                .icon_type = IT_BOOL,
+                .choices = (const char *[]) {"OFF", "Tv,ISO", "ISO,Tv"},
+                .help = "When you change Av, ML adjusts Tv and ISO to keep exposure.",
+            },
+            {
+                .name = "ISO -> ",
+                .priv    = &expo_lock_iso,
+                .max = 2,
+                .icon_type = IT_BOOL,
+                .choices = (const char *[]) {"OFF", "Tv,Av", "Av,Tv"},
+                .help = "When you change ISO, ML adjusts Tv and Av to keep exposure.",
+            },
+            MENU_EOL
+        },
+    },
 };
 #endif
 
@@ -5744,6 +5983,8 @@ shoot_task( void* unused )
         //~ if (gui_menu_shown()) continue; // be patient :)
         
         lcd_release_step();
+        
+        expo_lock_step();
         
         if (remote_shot_flag)
         {
