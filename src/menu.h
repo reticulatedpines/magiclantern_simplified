@@ -158,6 +158,7 @@ struct menu
         int16_t pos;
         int16_t childnum;
         int16_t childnummax;
+        int16_t delnum;
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)

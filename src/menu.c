@@ -996,16 +996,17 @@ menu_display(
     //hide upper menu for vscroll
     int menu_len = get_menu_len(parentmenu); 
 
-    if(parentmenu->pos > menu_len){
-        int delnum = parentmenu->pos - menu_len;
-        
-        for(int i=0;i<delnum;i++){
-            if(advanced_hidden_edit_mode){
-                menu = menu->next;
-            }else{                
-                while(!IS_VISIBLE(menu)) menu = menu->next;
-                menu = menu->next;
-            }
+    int delnum = parentmenu->delnum; // how many menu entries to skip
+    delnum = MAX(delnum, parentmenu->pos - menu_len);
+    delnum = MIN(delnum, parentmenu->pos - 1);
+    parentmenu->delnum = delnum;
+    
+    for(int i=0;i<delnum;i++){
+        if(advanced_hidden_edit_mode){
+            menu = menu->next;
+        }else{                
+            while(!IS_VISIBLE(menu)) menu = menu->next;
+            menu = menu->next;
         }
     }
     //<== vscroll
