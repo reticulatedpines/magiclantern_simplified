@@ -39,8 +39,15 @@
 
 //for vscroll
 #define MENU_LEN_DEFAULT 11
-//~ #define MENU_LEN_AUDIO 10
+#define MENU_LEN_AUDIO 10 // at len=11, audio meters would overwrite menu entries on 600D
 //~ #define MENU_LEN_FOCUS 8
+
+int get_menu_len(struct menu * menu)
+{
+    if (menu->icon == ICON_MIC) // that's the Audio menu
+        return MENU_LEN_AUDIO;
+    return MENU_LEN_DEFAULT;
+}
 
 /*
 int sem_line = 0;
@@ -987,7 +994,7 @@ menu_display(
 {
     struct menu_entry *menu = parentmenu->children;
     //hide upper menu for vscroll
-    int menu_len = MENU_LEN_DEFAULT; 
+    int menu_len = get_menu_len(parentmenu); 
 
     if(parentmenu->pos > menu_len){
         int delnum = parentmenu->pos - menu_len;
@@ -1278,7 +1285,7 @@ show_vscroll(struct menu* parent){
     if(advanced_hidden_edit_mode) max = parent->childnummax;
     else                          max = parent->childnum;
 
-    int menu_len = MENU_LEN_DEFAULT;
+    int menu_len = get_menu_len(parent);
     
     if(max > menu_len){
         bmp_draw_rect(COLOR_GRAY70, 715, 42, 4, 350);
