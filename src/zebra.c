@@ -166,6 +166,12 @@ static void precompute_yuv2rgb()
 
 #define UYVY_PACK(u,y1,v,y2) ((u) & 0xFF) | (((y1) & 0xFF) << 8) | (((v) & 0xFF) << 16) | (((y2) & 0xFF) << 24);
 
+void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
+{
+    int uyvy = UYVY_PACK(U,Y,V,Y);
+    COMPUTE_UYVY2YRGB(uyvy,Y,*R,*G,*B);
+}
+
 int is_zoom_mode_so_no_zebras() 
 { 
     if (!lv) return 0;

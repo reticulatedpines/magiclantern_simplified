@@ -2067,11 +2067,9 @@ static int crit_kelvin(int k)
 
     int Y, U, V;
     get_spot_yuv(100, &Y, &U, &V);
-    //~ BMP_LOCK( draw_ml_bottombar(0,0); )
 
-    int R = Y + 1437 * V / 1024;
-    //~ int G = Y -  352 * U / 1024 - 731 * V / 1024;
-    int B = Y + 1812 * U / 1024;
+    int R,G,B;
+    yuv2rgb(Y,U,V,&R,&G,&B);
     
     NotifyBox(5000, "Adjusting white balance...");
 
@@ -2089,9 +2087,8 @@ static int crit_wbs_gm(int k)
     int Y, U, V;
     get_spot_yuv(100, &Y, &U, &V);
 
-    int R = Y + 1437 * V / 1024;
-    int G = Y -  352 * U / 1024 - 731 * V / 1024;
-    int B = Y + 1812 * U / 1024;
+    int R,G,B;
+    yuv2rgb(Y,U,V,&R,&G,&B);
 
     NotifyBox(5000, "Adjusting white balance shift...");
 
