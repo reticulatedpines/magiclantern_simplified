@@ -168,8 +168,9 @@ static void precompute_yuv2rgb()
 
 void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
 {
-    int uyvy = UYVY_PACK(U,Y,V,Y);
-    COMPUTE_UYVY2YRGB(uyvy,Y,*R,*G,*B);
+    *R = COERCE(Y + yuv2rgb_RV[V & 0xFF], 0, 255); \
+    *G = COERCE(Y + yuv2rgb_GU[U & 0xFF] + yuv2rgb_GV[V & 0xFF], 0, 255); \
+    *B = COERCE(Y + yuv2rgb_BU[U & 0xFF], 0, 255); \
 }
 
 int is_zoom_mode_so_no_zebras() 
