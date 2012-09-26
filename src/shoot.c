@@ -4167,6 +4167,14 @@ static int expo_lock_get_current_value()
     return APEX_TV(lens_info.raw_shutter) + APEX_AV(lens_info.raw_aperture) - APEX_SV(lens_info.raw_iso);
 }
 
+int expo_value_rounding_ok(int raw)
+{
+    int r = raw % 8;
+    if (r != 0 && r != 4 && r != 3 && r != 5)
+        return 0;
+    return 1;
+}
+
 // returns the remainder
 static int expo_lock_adjust_tv(int delta)
 {
@@ -4174,6 +4182,20 @@ static int expo_lock_adjust_tv(int delta)
     int old_tv = lens_info.raw_shutter;
     int new_tv = old_tv + delta;
     new_tv = COERCE(new_tv, 16, FASTEST_SHUTTER_SPEED_RAW);
+
+    if (!expo_value_rounding_ok(new_tv)) // try to change it by a small amount, so Canon firmware will accept it
+    {
+        int new_tv_plus1  = COERCE(new_tv + 1, 16, FASTEST_SHUTTER_SPEED_RAW);
+        int new_tv_minus1 = COERCE(new_tv - 1, 16, FASTEST_SHUTTER_SPEED_RAW);
+        int new_tv_plus2  = COERCE(new_tv + 2, 16, FASTEST_SHUTTER_SPEED_RAW);
+        int new_tv_minus2 = COERCE(new_tv - 2, 16, FASTEST_SHUTTER_SPEED_RAW);
+        
+        if (expo_value_rounding_ok(new_tv_plus1)) new_tv = new_tv_plus1;
+        else if (expo_value_rounding_ok(new_tv_minus1)) new_tv = new_tv_minus1;
+        else if (expo_value_rounding_ok(new_tv_plus2)) new_tv = new_tv_plus2;
+        else if (expo_value_rounding_ok(new_tv_minus2)) new_tv = new_tv_minus2;
+    }
+
     lens_set_rawshutter(new_tv);
     msleep(100);
     return delta - lens_info.raw_shutter + old_tv;
@@ -4187,6 +4209,20 @@ static int expo_lock_adjust_av(int delta)
     int old_av = lens_info.raw_aperture;
     int new_av = old_av + delta;
     new_av = COERCE(new_av, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+    
+    if (!expo_value_rounding_ok(new_av)) // try to change it by a small amount, so Canon firmware will accept it
+    {
+        int new_av_plus1  = COERCE(new_av + 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+        int new_av_minus1 = COERCE(new_av - 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+        int new_av_plus2  = COERCE(new_av + 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+        int new_av_minus2 = COERCE(new_av - 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+        
+        if (expo_value_rounding_ok(new_av_plus1)) new_av = new_av_plus1;
+        else if (expo_value_rounding_ok(new_av_minus1)) new_av = new_av_minus1;
+        else if (expo_value_rounding_ok(new_av_plus2)) new_av = new_av_plus2;
+        else if (expo_value_rounding_ok(new_av_minus2)) new_av = new_av_minus2;
+    }
+    
     lens_set_rawaperture(new_av);
     msleep(100);
     return delta - lens_info.raw_aperture + old_av;
