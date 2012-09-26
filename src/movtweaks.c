@@ -972,6 +972,7 @@ int gain_to_ev_x8(int gain)
 }
 
 CONFIG_INT("iso.smooth", smooth_iso, 0);
+CONFIG_INT("iso.smooth.spd", smooth_iso_speed, 2);
 void smooth_iso_step()
 {
     if (!smooth_iso) return;
@@ -979,20 +980,21 @@ void smooth_iso_step()
     if (!lv) return;
     if (!lens_info.raw_iso) return; // no auto iso
     
-    static int prev_iso = -1;
+    static int prev_bv = 0xdeadbeef;
+    int current_bv = FRAME_BV;
     int current_iso = FRAME_ISO & 0xFF;
     
     static int iso_acc = 0;
     
     static int k = 0; k++;
     
-    if (prev_iso != current_iso && prev_iso > 0)
+    if (prev_bv != current_bv && prev_bv != 0xdeadbeef)
     {
-        iso_acc += (prev_iso - current_iso) * 5;
+        iso_acc -= (prev_bv - current_bv) * (1 << smooth_iso_speed);
     }
     if (iso_acc)
     {
-        int g = (int) roundf(1024.0 * powf(2, iso_acc / 40.0));
+        int g = (int) roundf(1024.0 * powf(2, iso_acc / (8.0 * (1 << smooth_iso_speed))));
 
         // it's not a good idea to use a digital ISO gain higher than +/- 0.5 EV (noise or pink highlights), 
         // so alter it via FRAME_ISO
@@ -1001,7 +1003,7 @@ void smooth_iso_step()
         int altered_iso = current_iso;
         while (G_ADJ > 1448 
             #ifndef CONFIG_5D3
-            && altered_iso < 120
+            && altered_iso < 112
             #endif
         ) 
         {
@@ -1013,12 +1015,6 @@ void smooth_iso_step()
             altered_iso -= 8;
             g *= 2;
         }
-        #ifndef CONFIG_5D3
-        if (altered_iso >= 112) // above ISO 3200 we have digital gain and it's difficult to handle smoothly
-        {
-            altered_iso = 112;
-        }
-        #endif
         if (altered_iso != current_iso)
         {
             FRAME_ISO = altered_iso | (altered_iso << 8);
@@ -1030,6 +1026,15 @@ void smooth_iso_step()
         if (prev_altered_iso && prev_altered_iso != altered_iso)
             g = g * (int)roundf(powf(2, 10 + (altered_iso - prev_altered_iso) / 8.0)) / 1024;
         prev_altered_iso = altered_iso;
+        
+        static int prev_tv = 0;
+        int tv = FRAME_SHUTTER;
+        if (prev_tv && prev_tv != tv)
+        {
+            g = g * (int)roundf(powf(2, 10 + (prev_tv - tv) / 8.0)) / 1024;
+        }
+        prev_tv = tv;
+        
         #endif
         
         set_movie_digital_iso_gain_extra(g);
@@ -1037,7 +1042,7 @@ void smooth_iso_step()
     }
     else set_movie_digital_iso_gain_extra(1024);
     
-    prev_iso = current_iso;
+    prev_bv = current_bv;
 }
 
 static struct menu_entry mov_menus[] = {
@@ -1191,10 +1196,23 @@ static struct menu_entry mov_menus[] = {
     },
 #endif
     {
-        .name = "Gradual ISO",
+        .name = "Gradual Expo.",
         .priv = &smooth_iso,
         .max = 1,
-        .help = "Use smooth ISO transitions in movie mode.",
+        .help = "Use smooth exposure transitions, by compensating with ISO.",
+        .submenu_width = 700,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Ramping speed",
+                .priv       = &smooth_iso_speed,
+                .min = 1,
+                .max = 7,
+                .icon_type = IT_PERCENT,
+                .choices = (const char *[]) {"err", "1EV / 8 frames", "1EV / 16 frames", "1EV / 32 frames", "1EV / 64 frames", "1EV / 128 frames", "1EV / 256 frames", "1EV / 512 frames"},
+                .help = "How fast the exposure transitions should be.",
+            },
+            MENU_EOL
+        },
     },
 };
 
