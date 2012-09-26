@@ -517,4 +517,18 @@ const char* get_dcim_dir();
 #define unlikely(exp) __builtin_expect(exp,0)
 #define likely(exp) __builtin_expect(exp,1)
 
+// fixed point formatting for printf's
+
+// to be used with "%s%d.%d" - for values with one decimal place
+#define FMT_FIXEDPOINT1(x)  (x) < 0 ? "-" :                 "", ABS(x)/10, ABS(x)%10
+#define FMT_FIXEDPOINT1S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/10, ABS(x)%10
+
+// to be used with "%s%d.%02d" - for values with two decimal places
+#define FMT_FIXEDPOINT2(x)  (x) < 0 ? "-" :                 "", ABS(x)/100, ABS(x)%100
+#define FMT_FIXEDPOINT2S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/100, ABS(x)%100
+
+// to be used with "%s%d.%03d" - for values with three decimal places
+#define FMT_FIXEDPOINT3(x)  (x) < 0 ? "-" :                 "", ABS(x)/1000, ABS(x)%1000
+#define FMT_FIXEDPOINT3S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/1000, ABS(x)%1000
+
 #endif

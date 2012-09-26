@@ -486,9 +486,7 @@ static void manual_expo_ramp_print( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Man. ExpoRamp: %s%d.%03d EV/shot",
-        evx1000 > 0 ? "+" : evx1000 < 0 ? "-" : "",
-        ABS(evx1000) / 1000,
-        ABS(evx1000) % 1000
+        FMT_FIXEDPOINT3S(evx1000)
     );
     menu_draw_icon(x, y, MNI_BOOL(evx1000), 0);
 }
@@ -1575,8 +1573,8 @@ iso_display( void * priv, int x, int y, int selected )
             bmp_printf(
                 fnt,
                 x + 14 * font_large.width, y,
-                "%d, Sv%d.%d", raw2iso(lens_info.iso_equiv_raw), 
-                Sv/10, ABS(Sv)%10
+                "%d, Sv%s%d.%d", raw2iso(lens_info.iso_equiv_raw), 
+                FMT_FIXEDPOINT1(Sv)
             );
 
             int Av = APEX_AV(lens_info.raw_aperture);
@@ -1588,8 +1586,8 @@ iso_display( void * priv, int x, int y, int selected )
             bmp_printf(
                 MENU_FONT,
                 720 - font_large.width * 6, y,
-                "Bv%d.%d",
-                Bv/10, ABS(Bv)%10
+                "Bv%s%d.%d",
+                FMT_FIXEDPOINT1(Bv)
             );
 
         }
@@ -1603,8 +1601,7 @@ iso_display( void * priv, int x, int y, int selected )
                 "%d (%d,%s%d.%dEV)", 
                 raw2iso(lens_info.iso_equiv_raw),
                 raw2iso(lens_info.raw_iso),
-                dg > 0 ? "+" : "-", 
-                ABS(dg)/10, ABS(dg)%10
+                FMT_FIXEDPOINT1S(dg)
             );
         }
     }
@@ -1745,11 +1742,11 @@ shutter_display( void * priv, int x, int y, int selected )
     }
     else
     {
-        int tv = APEX_TV(lens_info.raw_shutter) * 10/8;
+        int Tv = APEX_TV(lens_info.raw_shutter) * 10/8;
         snprintf(msg, sizeof(msg),
-            "Shutter     : 1/%d, Tv%d.%d",
+            "Shutter     : 1/%d, Tv%s%d.%d",
             lens_info.shutter, 
-            tv/10, ABS(tv)%10
+            FMT_FIXEDPOINT1(Tv)
         );
     }
     bmp_printf(
@@ -2551,9 +2548,7 @@ flash_ae_display( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Flash expo comp.: %s%d.%d EV",
-        ae_ev < 0 ? "-" : "",
-        ABS(ae_ev) / 10, 
-        ABS(ae_ev % 10)
+        FMT_FIXEDPOINT1S(ae_ev)
     );
     menu_draw_icon(x, y, MNI_PERCENT, (ae_ev + 80) * 100 / (24+80));
 }
@@ -3931,7 +3926,7 @@ static void compute_exposure_for_next_shot()
         bramp_hist_dirty = 1;
         bramp_measured_level = measure_brightness_level(0);
         int mev = bramp_luma_to_ev_x100(bramp_measured_level);
-        //~ NotifyBox(1000, "Brightness level: %d (%s%d.%02d EV)", bramp_measured_level, mev > 0 ? "" : "-", ABS(mev)/100, ABS(mev)%100); msleep(1000);
+        //~ NotifyBox(1000, "Brightness level: %d (%s%d.%02d EV)", bramp_measured_level, FMT_FIXEDPOINT2(mev)); msleep(1000);
 
         my_fprintf(bramp_log_file, "%04d luma=%3d rounderr=%3d ", file_number, bramp_measured_level, bramp_last_exposure_rounding_error_evx1000);
 
@@ -4002,7 +3997,7 @@ static void compute_exposure_for_next_shot()
             // big change in brightness - request a new picture without waiting, and apply full correction
             // most probably, user changed ND filters or moved the camera
             
-            NotifyBox(1000, "Exposure difference: %s%d.%02d EV ", e_x100 < 0 ? "-" : "+", ABS(e_x100)/100, ABS(e_x100)%100);
+            NotifyBox(1000, "Exposure difference: %s%d.%02d EV ", FMT_FIXEDPOINT2S(e_x100));
             msleep(500);
 
             float cor = COERCE((float)e_x100 / 111.0f, -3.0f, 3.0f);
@@ -4048,8 +4043,8 @@ static void compute_exposure_for_next_shot()
             int corr_x100 = (int) roundf(u * 100.0);
             NotifyBox(2000, "Exposure difference: %s%d.%02d EV \n"
                             "Exposure correction: %s%d.%02d EV ",
-                e_x100 < 0 ? "-" : "+", ABS(e_x100)/100, ABS(e_x100)%100,
-                corr_x100 < 0 ? "-" : "+", ABS(corr_x100)/100, ABS(corr_x100)%100
+                            FMT_FIXEDPOINT2S(e_x100),
+                            FMT_FIXEDPOINT2S(corr_x100)
                 );  
 
             my_fprintf(bramp_log_file, "soft: f=%2d e=%4d u=%4d ", fi, (int)roundf(e*100), corr_x100);
@@ -4110,7 +4105,7 @@ static void bulb_ramping_showinfo()
         //~ bramp_percentile, bramp_reference_level, 0,
         //~ bramp_percentile, bramp_measured_level, 0,
         //~ bramp_level_ev_ratio, 0,
-        //~ rate_x1000 > 0 ? "+" : rate_x1000 < 0 ? "-" : " ",  ABS(rate_x1000)/1000, ABS(rate_x1000)%1000,
+        //~ FMT_FIXEDPOINT3S(rate_x1000)
         s / 1000, s % 1000,
         lens_info.iso, get_htp() ? 200 : 100, raw2iso(auto_iso_range & 0xFF)
         );
@@ -4148,11 +4143,11 @@ expo_lock_display( void * priv, int x, int y, int selected )
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "Expo.Lock   : %s%s%s %d.%d EV",
+            "Expo.Lock   : %s%s%s %s%d.%d EV",
             expo_lock_tv ? "Tv," : "",
             expo_lock_av ? "Av," : "",
             expo_lock_iso ? "ISO," : "",
-            v/10, ABS(v)%10
+            FMT_FIXEDPOINT1(v)
         );
         if (shooting_mode != SHOOTMODE_M)
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This feature only works in M mode.");
