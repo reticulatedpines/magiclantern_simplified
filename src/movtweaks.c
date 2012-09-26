@@ -981,7 +981,11 @@ void smooth_iso_step()
     if (!lens_info.raw_iso) return; // no auto iso
     
     static int prev_bv = 0xdeadbeef;
+    #ifdef FRAME_BV
     int current_bv = FRAME_BV;
+    #else
+    int current_bv = -(FRAME_ISO & 0xFF);
+    #endif
     int current_iso = FRAME_ISO & 0xFF;
     
     static int iso_acc = 0;
@@ -1027,6 +1031,8 @@ void smooth_iso_step()
             g = g * (int)roundf(powf(2, 10 + (altered_iso - prev_altered_iso) / 8.0)) / 1024;
         prev_altered_iso = altered_iso;
         
+        // also less than perfect sync when shutter speed is changed
+        #ifdef FRAME_SHUTTER
         static int prev_tv = 0;
         int tv = FRAME_SHUTTER;
         if (prev_tv && prev_tv != tv)
@@ -1034,7 +1040,7 @@ void smooth_iso_step()
             g = g * (int)roundf(powf(2, 10 + (prev_tv - tv) / 8.0)) / 1024;
         }
         prev_tv = tv;
-        
+        #endif
         #endif
         
         set_movie_digital_iso_gain_extra(g);
