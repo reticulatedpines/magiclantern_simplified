@@ -4313,11 +4313,11 @@ static void expo_lock_step()
         if (expo_lock_tv == 1)
         {
             delta = expo_lock_adjust_av(delta);
-            if (ABS(delta) >= 4) delta = expo_lock_adjust_iso(delta);
+            if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
         }
         else
         {
-            delta = expo_lock_adjust_iso(delta);
+            if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
             if (ABS(delta) >= 8) delta = expo_lock_adjust_av(delta);
         }
         //~ delta = expo_lock_adjust_tv(delta);
@@ -4329,11 +4329,11 @@ static void expo_lock_step()
         if (expo_lock_av == 1)
         {
             delta = expo_lock_adjust_tv(delta);
-            if (ABS(delta) >= 4) delta = expo_lock_adjust_iso(delta);
+            if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
         }
         else
         {
-            delta = expo_lock_adjust_iso(delta);
+            if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
             if (ABS(delta) >= 8) delta = expo_lock_adjust_tv(delta);
         }
         //~ delta = expo_lock_adjust_av(delta);
