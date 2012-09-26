@@ -36,16 +36,17 @@ int handle_other_events(struct event * event)
             reloc_liveviewapp_install(); 
             
             if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
+
+            if (UNAVI_FEEDBACK_TIMER_ACTIVE)
+            {
+                HideUnaviFeedBack_maybe();
+                bottom_bar_dirty = 0;
+            }
+
         }
         else
         {
             reloc_liveviewapp_uninstall();
-            bottom_bar_dirty = 0;
-        }
-
-        if (UNAVI_FEEDBACK_TIMER_ACTIVE)
-        {
-            HideUnaviFeedBack_maybe();
             bottom_bar_dirty = 0;
         }
         
@@ -71,6 +72,12 @@ int handle_other_events(struct event * event)
             }
             
             if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
+
+            if (UNAVI_FEEDBACK_TIMER_ACTIVE)
+            {
+                HideUnaviFeedBack_maybe();
+                bottom_bar_dirty = 0;
+            }
         }
         else
         {
@@ -82,12 +89,6 @@ int handle_other_events(struct event * event)
                 orig_DebugMsg_instr = 0;
             }
 
-            bottom_bar_dirty = 0;
-        }
-
-        if (UNAVI_FEEDBACK_TIMER_ACTIVE)
-        {
-            HideUnaviFeedBack_maybe();
             bottom_bar_dirty = 0;
         }
 
