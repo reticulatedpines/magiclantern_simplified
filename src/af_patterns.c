@@ -5,6 +5,9 @@
 #include "config.h"
 #include "gui.h"
 #include "af_patterns.h"
+#include "lens.h"
+
+CONFIG_INT("focus.patterns", af_patterns, 0);
 
 static type_PATTERN_MAP_ITEM pattern_map[] = {
         {AF_PATTERN_CENTER,         AF_PATTERN_SQUARE, AF_PATTERN_TOPHALF,        AF_PATTERN_BOTTOMHALF,     AF_PATTERN_LEFTHALF,      AF_PATTERN_RIGHTHALF},
@@ -70,10 +73,11 @@ BMP_LOCK( // reuse this for locking
 void set_af_point(int afpoint)
 {
     if (!afp_len) return;
-    if (beep_enabled) Beep();
+    if (!gui_menu_shown() && beep_enabled) Beep();
     afp[0] = afpoint;
     prop_request_change(PROP_AFPOINT, afp, afp_len);
-    task_create("afp_tmp", 0x18, 0, afp_show_in_viewfinder, 0);
+    if (!gui_menu_shown())
+        task_create("afp_tmp", 0x18, 0, afp_show_in_viewfinder, 0);
 }
 
 int afpoint_for_key_guess = 0;
@@ -129,7 +133,6 @@ int afp_transformer (int pattern, type_DIRECTION direction) {
 
 int handle_af_patterns(struct event * event)
 {
-    extern int af_patterns;
     if (af_patterns && !lv && gui_state == GUISTATE_IDLE && !DISPLAY_IS_ON)
     {
         switch (event->param)
@@ -235,4 +238,118 @@ void play_zoom_center_on_selected_af_point()
     IMGPLAY_ZOOM_POS_X = x;
     IMGPLAY_ZOOM_POS_Y = y;
 #endif
+}
+
+static void
+afp_display(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Focus Patterns : %s",
+        af_patterns ? "ON" : "OFF"
+    );
+    if (af_patterns)
+    {
+        if (lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus patterns won't work in LiveView");
+        if (!lens_info.name[0]) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus patterns require a chipped lens");
+    }
+}
+
+void afp_horiz_toggle(void* priv, int delta)
+{
+    if (delta > 0) afp_right(); else afp_left();
+}
+
+void afp_vert_toggle(void* priv, int delta)
+{
+    if (delta > 0) afp_top(); else afp_bottom();
+}
+
+void afp_center_toggle(void* priv, int delta)
+{
+    afp_center();
+}
+
+void draw_af_point(int x, int y, int r, int color)
+{
+    for (int dr = -1; dr <= 1; dr++)
+    {
+        int rm = r + dr;
+        bmp_draw_rect(color, x - rm, y - rm, rm*2, rm*2);
+    }
+}
+
+static void 
+pattern_display( void * priv, int x, int y, int selected )
+{
+    int t = (*(int*)priv);
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "Vertical selection"
+    );
+    
+    int cx = 500;
+    int cy = 350;
+    int w = 232;
+    int h = 140;
+    int dx = w*2/5;
+    int dy = h*2/5;
+    
+    bmp_fill(COLOR_BLACK, cx-w/2, cy-h/2, w, h);
+    bmp_draw_rect(COLOR_WHITE, cx-w/2, cy-h/2, w, h);
+    
+    draw_af_point(cx,      cy     , 7, af_point & AF_POINT_C ? COLOR_RED : COLOR_GRAY50);
+    draw_af_point(cx - dx, cy     ,  5, af_point & AF_POINT_L ? COLOR_RED : COLOR_GRAY50);
+    draw_af_point(cx + dx, cy     ,  5, af_point & AF_POINT_R ? COLOR_RED : COLOR_GRAY50);
+    draw_af_point(cx     , cy + dy,  5, af_point & AF_POINT_B ? COLOR_RED : COLOR_GRAY50);
+    draw_af_point(cx     , cy - dy,  5, af_point & AF_POINT_T ? COLOR_RED : COLOR_GRAY50);
+
+    draw_af_point(cx + dx/2, cy + dy/2,  5, af_point & AF_POINT_BR ? COLOR_RED : COLOR_GRAY50);
+    draw_af_point(cx - dx/2, cy - dy/2,  5, af_point & AF_POINT_TL ? COLOR_RED : COLOR_GRAY50);
+    draw_af_point(cx + dx/2, cy - dy/2,  5, af_point & AF_POINT_TR ? COLOR_RED : COLOR_GRAY50);
+    draw_af_point(cx - dx/2, cy + dy/2,  5, af_point & AF_POINT_BL ? COLOR_RED : COLOR_GRAY50);
+}
+
+static struct menu_entry afp_focus_menu[] = {
+#if !defined(CONFIG_5DC) && !defined(CONFIG_5D3)
+    {
+        .name = "Focus Patterns",
+        .priv = &af_patterns,
+        .display    = afp_display,
+        .select = menu_binary_toggle,
+        .help = "Custom AF patterns (photo mode only). Ported from 400plus.",
+
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Center selection",
+                .select = afp_center_toggle,
+                .help = "Select a center-based AF pattern with LEFT and RIGHT keys.",
+            },
+            {
+                .name = "Horizontal selection",
+                .select = afp_horiz_toggle,
+                .help = "Select a horizontal AF pattern with LEFT and RIGHT keys.",
+            },
+            {
+                .name = "Vertical selection",
+                .select = afp_vert_toggle,
+                .display = pattern_display,
+                .help = "Select a vertical AF pattern with LEFT and RIGHT keys.",
+            },
+            MENU_EOL
+        },
+    },
+#endif
+};
+
+void afp_menu_init() // called from focus.c
+{
+    menu_add( "Focus", afp_focus_menu, COUNT(afp_focus_menu) );
 }

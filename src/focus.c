@@ -1252,30 +1252,7 @@ void trap_focus_toggle_from_af_dlg()
     else info_led_blink(1, 50, 50);
 }
 
-CONFIG_INT("focus.patterns", af_patterns, 0);
-
-static void
-afp_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Focus Patterns : %s",
-        af_patterns ? "ON" : "OFF"
-    );
-    if (af_patterns)
-    {
-        if (lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus patterns won't work in LiveView");
-        if (!lens_info.name[0]) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus patterns require a chipped lens");
-    }
-}
-
-static struct menu_entry focus_menu[] = {
+static struct menu_entry trap_focus_menu[] = {
     {
         .name = "Trap Focus",
         .priv       = &trap_focus,
@@ -1285,16 +1262,8 @@ static struct menu_entry focus_menu[] = {
         //.essential = FOR_PHOTO,
         .icon_type = IT_BOOL,
     },
-#if !defined(CONFIG_5DC) && !defined(CONFIG_5D3)
-    {
-        .name = "Focus Patterns",
-        .priv = &af_patterns,
-        .display    = afp_display,
-        .select = menu_binary_toggle,
-        .help = "Custom AF patterns (photo mode only; ported from 400plus)",
-        //.essential = FOR_PHOTO_NON_LIVEVIEW,
-    },
-#endif
+};
+static struct menu_entry focus_menu[] = {
 #if !defined(CONFIG_5DC)
     {
         .name = "Follow Focus",
@@ -1477,6 +1446,8 @@ focus_init( void* unused )
     //~ focus_stack_sem = create_named_semaphore( "focus_stack_sem", 0 );
     focus_task_sem = create_named_semaphore( "focus_task_sem", 1 );
 
+    menu_add( "Focus", trap_focus_menu, COUNT(trap_focus_menu) );
+    afp_menu_init();
     menu_add( "Focus", focus_menu, COUNT(focus_menu) );
     
 }
