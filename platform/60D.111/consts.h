@@ -320,6 +320,8 @@
 
 #define VIDEO_PARAMETERS_SRC_3 0x4FDA8
 #define FRAME_ISO (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
+#define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xa))
+#define FRAME_BV (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xb))
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x36f28
