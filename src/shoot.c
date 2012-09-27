@@ -4352,6 +4352,63 @@ bulb_ramping_display( void * priv, int x, int y, int selected )
     );
 }*/
 
+static CONFIG_INT("expo.preset", expo_preset, 1);
+static CONFIG_INT("expo.pre.iso", pre_iso, 1234);
+static CONFIG_INT("expo.pre.tv", pre_tv, 1234);
+static CONFIG_INT("expo.pre.av", pre_av, 1234);
+static CONFIG_INT("expo.pre.kelvin", pre_kelvin, 1234);
+
+static int expo_preset_change_wb_flag = 0;
+static void expo_preset_change_wb()
+{
+    if (expo_preset_change_wb_flag && !HALFSHUTTER_PRESSED)
+    {
+        lens_set_kelvin(expo_preset_change_wb_flag);
+        expo_preset_change_wb_flag = 0;
+    }
+}
+
+static void expo_preset_toggle()
+{
+    int c_iso = lens_info.raw_iso;
+    int c_tv = lens_info.raw_shutter;
+    int c_av = lens_info.raw_aperture;
+    int c_kelvin = lens_info.kelvin;
+
+    if (pre_iso == 1234) pre_iso = c_iso;
+    if (pre_tv == 1234) pre_tv = c_tv;
+    if (pre_av == 1234) pre_av = c_av; 
+    if (pre_kelvin == 1234) pre_kelvin = c_kelvin;
+
+    int ap = values_aperture[raw2index_aperture(pre_av)];
+    NotifyBox(2000, "ISO%d 1/%d f/%d.%d %dK", raw2iso(pre_iso), (int)roundf(1/raw2shutterf(pre_tv)), ap/10, ap%10, pre_kelvin);
+    
+    lens_set_rawiso(pre_iso);
+    lens_set_rawshutter(pre_tv);
+    lens_set_rawaperture(pre_av);
+    if (lens_info.wb_mode == WB_KELVIN) // kelvin value can't be changed with half-shutter pressed, so wait in shoot_task until it's no longer pressed, and switch then
+        expo_preset_change_wb_flag = pre_kelvin;
+    
+    pre_iso = c_iso;
+    pre_tv = c_tv;
+    pre_av = c_av;
+    pre_kelvin = c_kelvin;
+}
+
+int handle_expo_preset(struct event * event)
+{
+    if (!expo_preset) return 1;
+    if (!HALFSHUTTER_PRESSED) return 1;
+    
+    if (event->param == BGMT_INFO)
+    {
+        expo_preset_toggle();
+        return 0;
+    }
+    
+    return 1;
+}
+
 static struct menu_entry shoot_menus[] = {
     {
         .name = "HDR Bracketing",
@@ -5141,6 +5198,12 @@ static struct menu_entry expo_menus[] = {
             MENU_EOL
         },
     },
+    {
+        .name = "Expo.Presets\b\b",
+        .priv = &expo_preset,
+        .max = 1,
+        .help = "HalfShutter+" INFO_BTN_NAME ": toggle between two presets (ISO,Tv,Av,WB).",
+    }
 };
 #endif
 
@@ -6015,6 +6078,8 @@ shoot_task( void* unused )
         
         if (k%10 == 0) misc_shooting_info();
 
+        expo_preset_change_wb();
+        
         if (kelvin_auto_flag)
         {
             kelvin_auto_run();
