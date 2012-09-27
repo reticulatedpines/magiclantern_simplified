@@ -165,9 +165,26 @@ draw_version( void )
 }
 
 #ifdef CONFIG_RELEASE_BUILD
-int beta_warned = 1;
+int beta_should_warn() { return 0; }
 #else
-int beta_warned = 0;
+CONFIG_INT("beta.warn", beta_warn, 0);
+static unsigned get_beta_timestamp()
+{
+    struct tm now;
+    LoadCalendarFromRTC(&now);
+    return now.tm_mday;
+}
+int beta_should_warn()
+{
+    unsigned t = get_beta_timestamp();
+    return beta_warn != t;
+}
+
+void beta_set_warned()
+{
+    unsigned t = get_beta_timestamp();
+    beta_warn = t;
+}
 #endif
 
 void 
@@ -1803,7 +1820,7 @@ menu_redraw_do()
                 if (recording)
                     bmp_make_semitransparent();
 
-                if (!beta_warned) draw_beta_warning();
+                if (beta_should_warn()) draw_beta_warning();
 
                 if (DOUBLE_BUFFERING)
                 {
@@ -1999,7 +2016,7 @@ handle_ml_menu_keys(struct event * event)
     // rack focus may override some menu keys
     if (handle_rack_focus_menu_overrides(event)==0) return 0;
     
-    if (!beta_warned)
+    if (beta_should_warn())
     {
         if (event->param == BGMT_PRESS_SET ||
             event->param == BGMT_MENU ||
@@ -2016,7 +2033,7 @@ handle_ml_menu_keys(struct event * event)
             event->param == BGMT_WHEEL_RIGHT
            )
         {
-            beta_warned = 1;
+            beta_set_warned();
             menu_redraw();
         }
         if (event->param != BGMT_PRESS_HALFSHUTTER) 

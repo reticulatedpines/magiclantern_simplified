@@ -39,7 +39,9 @@ void menu_help_show_page(int page)
 {
     menu_help_active = 1;
     
+#ifndef CONFIG_RELEASE_BUILD
     if (page == 1) { draw_beta_warning(); return; } // display this instead of the main About page
+#endif
     
     char path[100];
     struct bmp_file_t * doc = (void*) -1;
