@@ -1,16 +1,11 @@
 #!/usr/bin/env ruby
 
-if ARGV.count!=3
-  puts "Usage #{__FILE__} input input.bin.reloc output.bin"
+if ARGV.count!=4
+  puts "Usage #{__FILE__} input input.bin.reloc output.bin readelf_binary_path"
   exit 1
 end
 
-ARM_ABI="none-eabi"
-
-ARM_PATH="~/arm-toolchain462"
-ARM_BINPATH=ARM_PATH << "/bin"
-READELF=ARM_BINPATH<<"/arm-"<<ARM_ABI<<"-readelf"
-
+READELF=ARGV[3]
 File.open(ARGV[2],"wb+") do |out|
   File.open(ARGV[1],"rb") do |inp|
     out.write inp.read
