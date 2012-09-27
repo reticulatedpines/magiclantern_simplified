@@ -2151,6 +2151,9 @@ handle_ml_menu_keys(struct event * event)
         menu_hidden_should_display_help = 0;
         break;
 
+#ifdef BGMT_RATE
+    case BGMT_RATE:
+#endif
 #ifdef BGMT_Q
     case BGMT_Q:
 #endif

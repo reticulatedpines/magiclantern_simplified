@@ -1447,7 +1447,9 @@ focus_init( void* unused )
     focus_task_sem = create_named_semaphore( "focus_task_sem", 1 );
 
     menu_add( "Focus", trap_focus_menu, COUNT(trap_focus_menu) );
+    #ifndef CONFIG_5D3
     afp_menu_init();
+    #endif
     menu_add( "Focus", focus_menu, COUNT(focus_menu) );
     
 }
