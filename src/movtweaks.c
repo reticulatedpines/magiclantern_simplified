@@ -995,6 +995,7 @@ void smooth_iso_step()
     if (prev_bv != current_bv && prev_bv != 0xdeadbeef)
     {
         iso_acc -= (prev_bv - current_bv) * (1 << smooth_iso_speed);
+        iso_acc = COERCE(iso_acc, -8 * 8 * (1 << smooth_iso_speed), 8 * 8 * (1 << smooth_iso_speed)); // don't correct more than 8 stops (overflow risk)
     }
     if (iso_acc)
     {
