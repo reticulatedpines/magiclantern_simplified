@@ -264,10 +264,11 @@
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
 #define VIDEO_PARAMETERS_SRC_3 MEM(0x25FF0) //for mark iii
-#define FRAME_ISO (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xc)) // for sure now
+#define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xc)) // for sure now
+#define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xd))
+#define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xe))
+#define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
-//~ #define LV_STRUCT_PTR 0x1D78
-//~ #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5C)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x3c268

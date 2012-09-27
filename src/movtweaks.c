@@ -998,23 +998,25 @@ void smooth_iso_step()
     }
     if (iso_acc)
     {
-        int g = (int) roundf(1024.0 * powf(2, iso_acc / (8.0 * (1 << smooth_iso_speed))));
+        int g = (int) roundf(10 * 1024.0 * powf(2, iso_acc / (8.0 * (1 << smooth_iso_speed))));
 
         // it's not a good idea to use a digital ISO gain higher than +/- 0.5 EV (noise or pink highlights), 
         // so alter it via FRAME_ISO
         extern int digic_iso_gain_movie;
         #define G_ADJ (digic_iso_gain_movie ? g * digic_iso_gain_movie / 1024 : g)
         int altered_iso = current_iso;
-        while (G_ADJ > 1448 
-            #ifndef CONFIG_5D3
-            && altered_iso < 112
+        while (G_ADJ > 14480
+            #ifdef CONFIG_5D3
+            && altered_iso < 136 // iso 25600
+            #else
+            && altered_iso < 112 // iso 3200
             #endif
         ) 
         {
             altered_iso += 8;
             g /= 2;
         }
-        while (G_ADJ < 724 && altered_iso > 80) 
+        while (G_ADJ < 7240 && altered_iso > 80) 
         {
             altered_iso -= 8;
             g *= 2;
@@ -1043,12 +1045,38 @@ void smooth_iso_step()
         #endif
         #endif
         
-        set_movie_digital_iso_gain_extra(g);
+        set_movie_digital_iso_gain_extra(g/10);
         if (iso_acc > 0) iso_acc--; else iso_acc++;
     }
     else set_movie_digital_iso_gain_extra(1024);
     
     prev_bv = current_bv;
+    
+    // display a little progress bar
+
+    int x0 = os.x0 + os.x_ex/2;
+    int y0 = os.y_max - 2;
+    int w = COERCE(iso_acc * 8 / (1 << smooth_iso_speed), -os.x_ex/2, os.x_ex/2);
+    static int prev_w = 0;
+    if (w || w != prev_w)
+    {
+        draw_line(x0, y0, x0 + w, y0, iso_acc > 0 ? COLOR_RED : COLOR_LIGHTBLUE);
+        draw_line(x0, y0 + 1, x0 + w, y0 + 1, iso_acc > 0 ? COLOR_RED : COLOR_LIGHTBLUE);
+        if (prev_w != w)
+        {
+            draw_line(x0 + w, y0, x0 + prev_w, y0, COLOR_BLACK);
+            draw_line(x0 + w, y0 + 1, x0 + prev_w, y0 + 1, COLOR_BLACK);
+        }
+        for (int i = 64; i < ABS(w); i += 64) // mark full stops
+        {
+            int is = i * SGN(w);
+            draw_line(x0 + is, y0, x0 + is, y0 + 1, COLOR_BLACK);
+            draw_line(x0 + is + 1, y0, x0 + is + 1, y0 + 1, COLOR_BLACK);
+        }
+        
+        prev_w = w;
+    }
+
 }
 
 static struct menu_entry mov_menus[] = {
