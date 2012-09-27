@@ -274,9 +274,9 @@ void update_vram_params()
     // When USB is connected, resolution drops to 1056x756, however it goes back to 1680x945 when a recording is started
     vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : (video_mode_resolution == 0 ? (video_mode_crop ? 1728 : ((recording==0 && logical_connect) ? 1056 : 1680)) : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? 640 : 0);
     vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (video_mode_crop ?  972 :  ((recording==0 && logical_connect) ? 756 : 945)) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? 480 : 0);
-#elif defined(CONFIG_1100D) // not tested, just copied from 600D
-    vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ? 1728 : 1680) : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
-    vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ?  972 :  945) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
+#elif defined(CONFIG_1100D) // It's a damn shame that we only have 720p but at least it can do it properly :P
+    vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : video_mode_resolution == 1 ? 1280 : 0;
+    vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : video_mode_resolution == 1 ? 720  : 0;
 #elif defined(CONFIG_5D3)
     vram_hd.width  = lv_dispsize > 1 ? 1152 : !is_movie_mode() ? 1620 : video_mode_resolution == 0 ? 1904 :                                   1280;
     vram_hd.height = lv_dispsize > 1 ?  768 : !is_movie_mode() ? 1080 : video_mode_resolution == 0 ? 1270 : video_mode_resolution == 1 ? 720 : 854;

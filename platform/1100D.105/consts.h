@@ -31,7 +31,7 @@
 // PLACEHOLDER UNTIL WE GET THE REAL VALUES
 #define FIX_DMA_ADDR(x) ((x) | 0x40000000)
 #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x2438))
-#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR) + vram_hd.pitch) // first line from DMA is dummy. Thanks 5D3!
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR)) // first line from DMA is dummy. Thanks 5D3! Not really 5D3!!
 #define YUV422_LV_BUFFER_DMA_ADDR_FROM_DIGIC (FIX_DMA_ADDR(shamem_read(0xc0f04308)))
 
 // AV / AE COMP button 
@@ -153,6 +153,8 @@
 
 #define VIDEO_PARAMETERS_SRC_3 0x70C0C
 #define FRAME_ISO (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
+#define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xa))
+#define FRAME_BV (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xb))
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x16fc8

@@ -105,6 +105,7 @@ resolutions = [ # from vram.c
     (1920, 1080), # HDMI FullHD
     (1920, 540),  # HDMI 720p
     (960, 540),   # HDMI 640 crop
+    (1280,720),
 ]
 
 # auto-generate code for zebra.c (play_422)
