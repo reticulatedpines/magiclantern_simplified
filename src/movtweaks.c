@@ -975,10 +975,12 @@ CONFIG_INT("iso.smooth", smooth_iso, 0);
 CONFIG_INT("iso.smooth.spd", smooth_iso_speed, 2);
 void smooth_iso_step()
 {
-    if (!smooth_iso) return;
-    if (!is_movie_mode()) return;
-    if (!lv) return;
-    if (!lens_info.raw_iso) return; // no auto iso
+    static int iso_acc = 0;
+
+    if (!smooth_iso) { iso_acc = 0; return; }
+    if (!is_movie_mode()) { iso_acc = 0; return; }
+    if (!lv) { iso_acc = 0; return; }
+    if (!lens_info.raw_iso) { iso_acc = 0; return; } // no auto iso
     
     static int prev_bv = 0xdeadbeef;
     #ifdef FRAME_BV
@@ -988,9 +990,10 @@ void smooth_iso_step()
     #endif
     int current_iso = FRAME_ISO & 0xFF;
     
-    static int iso_acc = 0;
+    //~ static int k = 0; k++;
     
-    static int k = 0; k++;
+    static int frames_to_skip = 30;
+    if (frames_to_skip) { frames_to_skip--; prev_bv = current_bv; return; }
     
     if (prev_bv != current_bv && prev_bv != 0xdeadbeef)
     {
