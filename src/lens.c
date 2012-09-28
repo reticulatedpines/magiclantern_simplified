@@ -1990,7 +1990,7 @@ int prop_set_rawshutter_approx(unsigned shutter)
 int prop_set_rawiso(unsigned iso)
 {
     lens_wait_readytotakepic(64);
-    if (iso) iso = COERCE(iso, get_htp() ? 80 : 72, 136); // ISO 100-25600
+    if (iso) iso = COERCE(iso, MIN_ISO, MAX_ISO); // ISO 100-25600
     iso_ack = -1;
     prop_request_change( PROP_ISO, &iso, 4 );
     for (int i = 0; i < 10; i++) { if (iso_ack != -1) break; msleep(20); }
@@ -2027,7 +2027,7 @@ int bv_set_rawshutter(unsigned shutter)
 int bv_set_rawiso(unsigned iso) 
 { 
     if (iso == 0) return 0;
-    if (iso >= 72 && iso <= 128) // 100-12800
+    if (iso >= MIN_ISO && iso <= 128) // 100-12800
     {
         if (get_htp()) iso -= 8; // quirk: with exposure override and HTP, image is brighter by 1 stop than with Canon settings
         CONTROL_BV_ISO = bv_iso = iso; 

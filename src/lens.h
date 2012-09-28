@@ -231,4 +231,7 @@ void iso_toggle( void * priv, int sign );
 void shutter_toggle(void* priv, int sign);
 void aperture_toggle( void* priv, int sign);
 
+#define MIN_ISO (get_htp() ? 80 : 72)
+#define MAX_ISO 136 // may be better to fine-tune this for each camera
+
 #endif

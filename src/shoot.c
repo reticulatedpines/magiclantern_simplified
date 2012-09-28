@@ -1672,7 +1672,7 @@ digital_iso_toggle( void * priv, int sign )
 void
 fullstop_iso_toggle( void * priv, int sign )
 {
-    int min_iso = get_htp() ? 80 : 72; // iso 100
+    int min_iso = MIN_ISO; // iso 100 or 200D+
     int max_iso = 120; // iso 6400
     int r = lens_info.raw_iso;
     if (!r) r = sign > 0 ? min_iso-8 : max_iso+8;
@@ -1689,7 +1689,7 @@ iso_toggle( void * priv, int sign )
     {
         extern int bv_auto;
         if (lens_info.raw_iso && priv != (void*)-1)
-        if ((lens_info.raw_iso <= (get_htp() ? 80 : 72) && sign < 0) ||
+        if ((lens_info.raw_iso <= MIN_ISO               && sign < 0) ||
             (lens_info.raw_iso >= (bv_auto ? 128 : 120) && sign > 0))
         {
             if (lens_set_rawiso(0)) // ISO auto
@@ -3317,7 +3317,7 @@ static int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int interv
     if (delta) // should we change something?
     {
         int max_auto_iso = auto_iso_range & 0xFF;
-        int new_raw_iso = COERCE(lens_info.raw_iso + delta, get_htp() ? 78 : 72, max_auto_iso); // Allowed values: ISO 100 (or 200 with HTP) ... max auto ISO from Canon menu
+        int new_raw_iso = COERCE(lens_info.raw_iso + delta, MIN_ISO, max_auto_iso); // Allowed values: ISO 100 (or 200 with HTP) ... max auto ISO from Canon menu
         delta = new_raw_iso - raw_iso_0;
         if (delta == 0) return 0; // nothing to change
         float new_bulb_shutter = 
