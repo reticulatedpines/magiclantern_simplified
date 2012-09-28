@@ -1598,19 +1598,21 @@ iso_display( void * priv, int x, int y, int selected )
             );
         }
 
+        if (lens_info.raw_aperture && lens_info.raw_shutter)
+        {
+            int Av = APEX_AV(lens_info.raw_aperture);
+            int Tv = APEX_TV(lens_info.raw_shutter);
+            int Sv = APEX_SV(lens_info.iso_equiv_raw);
+            int Bv = Av + Tv - Sv;
+            Bv = Bv * 10/8;
 
-        int Av = APEX_AV(lens_info.raw_aperture);
-        int Tv = APEX_TV(lens_info.raw_shutter);
-        int Sv = APEX_SV(lens_info.iso_equiv_raw);
-        int Bv = Av + Tv - Sv;
-        Bv = Bv * 10/8;
-
-        bmp_printf(
-            FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
-            720 - font_large.width * 6, 390,
-            "Bv%s%d.%d",
-            FMT_FIXEDPOINT1(Bv)
-        );
+            bmp_printf(
+                FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
+                720 - font_large.width * 6, 390,
+                "Bv%s%d.%d",
+                FMT_FIXEDPOINT1(Bv)
+            );
+        }
 
     }
 
