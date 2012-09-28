@@ -4358,16 +4358,6 @@ static CONFIG_INT("expo.pre.tv", pre_tv, 1234);
 static CONFIG_INT("expo.pre.av", pre_av, 1234);
 static CONFIG_INT("expo.pre.kelvin", pre_kelvin, 1234);
 
-static int expo_preset_change_wb_flag = 0;
-static void expo_preset_change_wb()
-{
-    if (expo_preset_change_wb_flag && !HALFSHUTTER_PRESSED)
-    {
-        lens_set_kelvin(expo_preset_change_wb_flag);
-        expo_preset_change_wb_flag = 0;
-    }
-}
-
 static void expo_preset_toggle()
 {
     int c_iso = lens_info.raw_iso;
@@ -4382,15 +4372,21 @@ static void expo_preset_toggle()
 
     int ap = values_aperture[raw2index_aperture(pre_av)];
     if (lv)
-        NotifyBox(2000, "ISO %d 1/%d f/%d.%d %dK", raw2iso(pre_iso), (int)roundf(1/raw2shutterf(pre_tv)), ap/10, ap%10, pre_kelvin);
+        NotifyBox(2000, 
+            "ISO %d 1/%d f/%d.%d %dK", 
+            raw2iso(pre_iso), 
+            (int)roundf(1/raw2shutterf(pre_tv)), 
+            ap/10, ap%10, 
+            lens_info.wb_mode == WB_KELVIN ? pre_kelvin : 0
+        );
     else
         beep();
     
     lens_set_rawiso(pre_iso);
     lens_set_rawshutter(pre_tv);
     lens_set_rawaperture(pre_av);
-    if (lens_info.wb_mode == WB_KELVIN) // kelvin value can't be changed with half-shutter pressed, so wait in shoot_task until it's no longer pressed, and switch then
-        expo_preset_change_wb_flag = pre_kelvin;
+    if (lens_info.wb_mode == WB_KELVIN)
+        lens_set_kelvin(pre_kelvin);
     
     pre_iso = c_iso;
     pre_tv = c_tv;
@@ -6085,8 +6081,6 @@ shoot_task( void* unused )
         
         if (k%10 == 0) misc_shooting_info();
 
-        expo_preset_change_wb();
-        
         if (kelvin_auto_flag)
         {
             kelvin_auto_run();
