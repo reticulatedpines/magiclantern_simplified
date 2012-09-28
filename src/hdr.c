@@ -18,7 +18,7 @@ static CONFIG_INT("hdrv.iso.b", hdr_iso_b, 101);
 
 int is_hdr_valid_iso(int iso)
 {
-    #if defined(CONFIG_60D) || defined(CONFIG_600D)
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3)
     return is_native_iso(iso);
     #else
     return is_round_iso(iso) && iso != 0;
@@ -158,7 +158,7 @@ int get_effective_hdr_iso_for_display(int raw_iso)
 {
     if (!lens_info.raw_iso) return 0;
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
+#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3)
     // on recent cameras, HDR video can only alter the analog part of the ISO (and keep the digital one unchanged)
     int ha,hd;
     split_iso(raw_iso, &ha, &hd);
@@ -271,7 +271,7 @@ static void hdr_init()
     menu_add( "Movie", hdr_menu, COUNT(hdr_menu) );
     #endif
 
-    #if defined(CONFIG_60D) || defined(CONFIG_600D)
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3)
     // round to nearest full-stop ISO (these cameras can't change the digital component)
     hdr_iso_a = ((hdr_iso_a + 3) / 8) * 8;
     hdr_iso_b = ((hdr_iso_b + 3) / 8) * 8;
