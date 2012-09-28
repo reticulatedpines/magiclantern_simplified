@@ -1575,13 +1575,16 @@ iso_display( void * priv, int x, int y, int selected )
                 "%d", raw2iso(lens_info.iso_equiv_raw)
             );
 
-            int Sv = APEX_SV(lens_info.iso_equiv_raw) * 10/8;
-            bmp_printf(
-                FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
-                720 - font_large.width * 6, y,
-                "Sv%s%d.%d",
-                FMT_FIXEDPOINT1(Sv)
-            );
+            if (!menu_active_but_hidden())
+            {
+                int Sv = APEX_SV(lens_info.iso_equiv_raw) * 10/8;
+                bmp_printf(
+                    FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
+                    720 - font_large.width * 6, y,
+                    "Sv%s%d.%d",
+                    FMT_FIXEDPOINT1(Sv)
+                );
+            }
 
         }
         else
@@ -1598,7 +1601,7 @@ iso_display( void * priv, int x, int y, int selected )
             );
         }
 
-        if (lens_info.raw_aperture && lens_info.raw_shutter)
+        if (lens_info.raw_aperture && lens_info.raw_shutter && !menu_active_but_hidden())
         {
             int Av = APEX_AV(lens_info.raw_aperture);
             int Tv = APEX_TV(lens_info.raw_shutter);
@@ -1769,13 +1772,16 @@ shutter_display( void * priv, int x, int y, int selected )
         draw_circle(xc + 2, y + 7, 4, COLOR_WHITE);
     }
 
-    int Tv = APEX_TV(lens_info.raw_shutter) * 10/8;
-    bmp_printf(
-        FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
-        720 - font_large.width * 6, y,
-        "Tv%s%d.%d",
-        FMT_FIXEDPOINT1(Tv)
-    );
+    if (!menu_active_but_hidden())
+    {
+        int Tv = APEX_TV(lens_info.raw_shutter) * 10/8;
+        bmp_printf(
+            FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
+            720 - font_large.width * 6, y,
+            "Tv%s%d.%d",
+            FMT_FIXEDPOINT1(Tv)
+        );
+    }
 
     //~ bmp_printf(FONT_MED, x + 550, y+5, "[Q]=Auto");
     menu_draw_icon(x, y, lens_info.raw_shutter ? MNI_PERCENT : MNI_WARNING, lens_info.raw_shutter ? (lens_info.raw_shutter - codes_shutter[1]) * 100 / (codes_shutter[COUNT(codes_shutter)-1] - codes_shutter[1]) : (intptr_t) "Shutter speed is automatic - cannot adjust manually.");
@@ -1818,12 +1824,15 @@ aperture_display( void * priv, int x, int y, int selected )
         (av % 8) * 10/8
     );
 
-    bmp_printf(
-        FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
-        720 - font_large.width * 6, y,
-        "Av%s%d.%d",
-        FMT_FIXEDPOINT1(av)
-    );
+    if (!menu_active_but_hidden())
+    {
+        bmp_printf(
+            FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
+            720 - font_large.width * 6, y,
+            "Av%s%d.%d",
+            FMT_FIXEDPOINT1(av)
+        );
+    }
 
     menu_draw_icon(x, y, lens_info.aperture ? MNI_PERCENT : MNI_WARNING, lens_info.aperture ? (uintptr_t)((lens_info.raw_aperture - codes_aperture[1]) * 100 / (codes_shutter[COUNT(codes_aperture)-1] - codes_aperture[1])) : (uintptr_t) (lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture."));
 }
