@@ -4352,7 +4352,7 @@ bulb_ramping_display( void * priv, int x, int y, int selected )
     );
 }*/
 
-static CONFIG_INT("expo.preset", expo_preset, 1);
+static CONFIG_INT("expo.preset", expo_preset, 0);
 static CONFIG_INT("expo.pre.iso", pre_iso, 1234);
 static CONFIG_INT("expo.pre.tv", pre_tv, 1234);
 static CONFIG_INT("expo.pre.av", pre_av, 1234);
@@ -4381,7 +4381,10 @@ static void expo_preset_toggle()
     if (pre_kelvin == 1234) pre_kelvin = c_kelvin;
 
     int ap = values_aperture[raw2index_aperture(pre_av)];
-    NotifyBox(2000, "ISO%d 1/%d f/%d.%d %dK", raw2iso(pre_iso), (int)roundf(1/raw2shutterf(pre_tv)), ap/10, ap%10, pre_kelvin);
+    if (lv)
+        NotifyBox(2000, "ISO %d 1/%d f/%d.%d %dK", raw2iso(pre_iso), (int)roundf(1/raw2shutterf(pre_tv)), ap/10, ap%10, pre_kelvin);
+    else
+        beep();
     
     lens_set_rawiso(pre_iso);
     lens_set_rawshutter(pre_tv);
@@ -4398,12 +4401,15 @@ static void expo_preset_toggle()
 int handle_expo_preset(struct event * event)
 {
     if (!expo_preset) return 1;
-    if (!HALFSHUTTER_PRESSED) return 1;
     
-    if (event->param == BGMT_INFO)
+    if ((event->param == BGMT_PRESS_SET && expo_preset == 1) ||
+        (event->param == BGMT_INFO && expo_preset == 2))
     {
-        expo_preset_toggle();
-        return 0;
+        if (display_idle())
+        {
+            expo_preset_toggle();
+            return 0;
+        }
     }
     
     return 1;
@@ -5201,8 +5207,9 @@ static struct menu_entry expo_menus[] = {
     {
         .name = "Expo.Presets\b\b",
         .priv = &expo_preset,
-        .max = 1,
-        .help = "HalfShutter+" INFO_BTN_NAME ": toggle between two presets (ISO,Tv,Av,WB).",
+        .max = 2,
+        .choices = (const char *[]) {"OFF", "Press SET", "Press " INFO_BTN_NAME},
+        .help = "Quickly toggle between two expo presets (ISO,Tv,Av,Kelvin).",
     }
 };
 #endif
