@@ -230,11 +230,11 @@ int get_new_white_level(int movie_gain, int* boost_stops)
     *boost_stops = 0;
     while (1)
     {
-        result = default_white_level * movie_gain / 1024;
+        result = default_white_level * COERCE(movie_gain, 0, 65536) / 1024;
         #ifdef CONFIG_5D3
         break;
         #endif
-        if (result > 8192) 
+        if (result > 8192 && *boost_stops < 7) 
         { 
             movie_gain /= 2; 
             (*boost_stops)++;

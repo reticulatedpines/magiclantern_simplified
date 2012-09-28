@@ -1008,23 +1008,24 @@ void smooth_iso_step()
     }
     if (iso_acc)
     {
-        int g = (int) roundf(10 * 1024.0 * powf(2, iso_acc / (8.0 * (1 << smooth_iso_speed))));
+        float gf = 1024.0 * powf(2, iso_acc / (8.0 * (1 << smooth_iso_speed)));
 
         // it's not a good idea to use a digital ISO gain higher than +/- 0.5 EV (noise or pink highlights), 
         // so alter it via FRAME_ISO
         extern int digic_iso_gain_movie;
-        #define G_ADJ (digic_iso_gain_movie ? g * digic_iso_gain_movie / 1024 : g)
+        #define G_ADJ ((int)roundf(digic_iso_gain_movie ? gf * digic_iso_gain_movie / 1024 : gf))
         int altered_iso = current_iso;
-        while (G_ADJ > 14480 && altered_iso < MAX_OVERRIDE_SMOOTH_ISO) 
+        while (G_ADJ > 1448 && altered_iso < MAX_OVERRIDE_SMOOTH_ISO) 
         {
             altered_iso += 8;
-            g /= 2;
+            gf /= 2;
         }
-        while ((G_ADJ < 7240 && altered_iso > 80) || (altered_iso > MAX_OVERRIDE_SMOOTH_ISO))
+        while ((G_ADJ < 724 && altered_iso > 80) || (altered_iso > MAX_OVERRIDE_SMOOTH_ISO))
         {
             altered_iso -= 8;
-            g *= 2;
+            gf *= 2;
         }
+
         if (altered_iso != current_iso)
         {
             FRAME_ISO = altered_iso | (altered_iso << 8);
@@ -1034,7 +1035,7 @@ void smooth_iso_step()
         // FRAME_ISO not synced perfectly, use digital gain to mask the flicker
         static int prev_altered_iso = 0;
         if (prev_altered_iso && prev_altered_iso != altered_iso)
-            g = g * (int)roundf(powf(2, 10 + (altered_iso - prev_altered_iso) / 8.0)) / 1024;
+            gf = gf * powf(2, (altered_iso - prev_altered_iso) / 8.0);
         prev_altered_iso = altered_iso;
         
         // also less than perfect sync when shutter speed is changed
@@ -1043,16 +1044,19 @@ void smooth_iso_step()
         int tv = FRAME_SHUTTER;
         if (prev_tv && prev_tv != tv)
         {
-            g = g * (int)roundf(powf(2, 10 + (prev_tv - tv) / 8.0)) / 1024;
+            gf = gf * powf(2, (prev_tv - tv) / 8.0);
         }
         prev_tv = tv;
         #endif
         #endif
-        
-        set_movie_digital_iso_gain_extra(g/10);
+
+
+        int g = (int)roundf(COERCE(gf, 1, 1<<20));
+        if (g == 1024) g = 1025; // force override 
+
+        set_movie_digital_iso_gain_extra(g);
         if (iso_acc > 0) iso_acc--; else iso_acc++;
 
-        //~ bmp_printf(FONT_SMALL, 50, 50, "%d %d %d ", FRAME_ISO, raw2iso(FRAME_ISO), g/10);
     }
     else set_movie_digital_iso_gain_extra(1024);
     
