@@ -971,6 +971,12 @@ int gain_to_ev_x8(int gain)
     return (int) roundf(log2f(gain) * 8.0);
 }
 
+#ifdef CONFIG_5D3
+#define MAX_OVERRIDE_SMOOTH_ISO 136 // iso 25600
+#else
+#define MAX_OVERRIDE_SMOOTH_ISO 112 // iso 3200
+#endif
+
 CONFIG_INT("iso.smooth", smooth_iso, 0);
 CONFIG_INT("iso.smooth.spd", smooth_iso_speed, 2);
 void smooth_iso_step()
@@ -1009,18 +1015,12 @@ void smooth_iso_step()
         extern int digic_iso_gain_movie;
         #define G_ADJ (digic_iso_gain_movie ? g * digic_iso_gain_movie / 1024 : g)
         int altered_iso = current_iso;
-        while (G_ADJ > 14480
-            #ifdef CONFIG_5D3
-            && altered_iso < 136 // iso 25600
-            #else
-            && altered_iso < 112 // iso 3200
-            #endif
-        ) 
+        while (G_ADJ > 14480 && altered_iso < MAX_OVERRIDE_SMOOTH_ISO) 
         {
             altered_iso += 8;
             g /= 2;
         }
-        while (G_ADJ < 7240 && altered_iso > 80) 
+        while ((G_ADJ < 7240 && altered_iso > 80) || (altered_iso > MAX_OVERRIDE_SMOOTH_ISO))
         {
             altered_iso -= 8;
             g *= 2;
@@ -1051,8 +1051,11 @@ void smooth_iso_step()
         
         set_movie_digital_iso_gain_extra(g/10);
         if (iso_acc > 0) iso_acc--; else iso_acc++;
+
+        //~ bmp_printf(FONT_SMALL, 50, 50, "%d %d %d ", FRAME_ISO, raw2iso(FRAME_ISO), g/10);
     }
     else set_movie_digital_iso_gain_extra(1024);
+    
     
     prev_bv = current_bv;
     
