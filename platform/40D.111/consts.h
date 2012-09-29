@@ -15,7 +15,7 @@
 // not known, use HD ones meanwhile
 #define YUV422_LV_BUFFER_1 0x1dcefc64
 #define YUV422_LV_BUFFER_2 0x1de43c64
-#define YUV422_LV_BUFFER_3 0x1dcefc64
+#define YUV422_LV_BUFFER_3 0x1dcefc68
 
 //~ #define REG_EDMAC_WRITE_LV_ADDR 0xc0f26208 // SDRAM address of LV buffer (aka VRAM)
 //~ #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
