@@ -273,7 +273,7 @@
 #define MIN_MSLEEP 11
 
 #define INFO_BTN_NAME "INFO"
-#define Q_BTN_NAME "Q"
+#define Q_BTN_NAME "[Q]"
 #define ARROW_MODE_TOGGLE_KEY "PicStyle"
 
 #define DISPLAY_IS_ON MEM(0x21B0) // TurnOnDisplay (PUB) Type=%ld fDisplayTurnOn=%ld
