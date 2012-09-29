@@ -82,7 +82,7 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
 /** Returns a pointer to the real BMP vram */
 #ifdef CONFIG_5DC
 inline uint8_t* bmp_vram_real() { return (uint8_t*) MEM(0x29328); }
-#elif CONFIG_40D
+#elif defined(CONFIG_40D)
 inline uint8_t* bmp_vram_real() { return (uint8_t*) MEM(0x1E330); }
 #else
 error
