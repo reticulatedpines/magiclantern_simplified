@@ -2835,12 +2835,12 @@ void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
         if (sync || hacked)
         {
             MEM(0x44fc+0xBC) = 0;
-            YUV422_LV_BUFFER_DMA_ADDR = YUV422_LV_BUFFER_2; // update buffer 1, display buffer 2
+            YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_2; // update buffer 1, display buffer 2
             EnableImagePhysicalScreenParameter();
         }
     }
 #elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5DC) && !defined(CONFIG_7D)// all new cameras should work with this method
-    YUV422_LV_BUFFER_DMA_ADDR = YUV422_LV_BUFFER_1 + 720*480*2;
+    YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_1 + 720*480*2;
 #endif
 }
 

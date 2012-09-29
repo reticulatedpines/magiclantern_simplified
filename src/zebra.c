@@ -2696,7 +2696,7 @@ int get_spot_motion(int dxb, int xcb, int ycb, int draw)
 
     if( !vram->vram )
         return 0;
-    const uint16_t*     vr1 = (void*)YUV422_LV_BUFFER_DMA_ADDR;
+    const uint16_t*     vr1 = (void*)YUV422_LV_BUFFER_DISPLAY_ADDR;
     const uint16_t*     vr2 = (void*)get_fastrefresh_422_buf();
     uint8_t * const     bm = bmp_vram();
     if (!bm) return 0;
@@ -4238,7 +4238,7 @@ void digic_zoom_overlay_step()
 
 #ifndef CONFIG_5DC
             // Redirect the display buffer to show the magnified area
-            YUV422_LV_BUFFER_DMA_ADDR = prev + offset;
+            YUV422_LV_BUFFER_DISPLAY_ADDR = prev + offset;
 #endif
             
             // and make sure the pitch is right
@@ -5230,15 +5230,13 @@ livev_hipriority_task( void* unused )
 
     TASK_LOOP
     {
-        //~ vsync(&YUV422_LV_BUFFER_DMA_ADDR);
+        //~ vsync(&YUV422_LV_BUFFER_DISPLAY_ADDR);
         fps_ticks++;
 
         while (is_mvr_buffer_almost_full())
         {
             msleep(100);
         }
-        
-        get_422_hd_idle_buf(); // just to keep it up-to-date
         
         int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras (should match the one from draw_zebra_and_focus)
         if (zebra_digic_dirty && !zd) digic_zebra_cleanup();

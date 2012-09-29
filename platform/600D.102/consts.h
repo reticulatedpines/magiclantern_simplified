@@ -107,72 +107,12 @@
 #define YUV422_LV_BUFFER_1 0x40d07800 
 #define YUV422_LV_BUFFER_2 0x4c233800
 #define YUV422_LV_BUFFER_3 0x4f11d800
-#define YUV422_LV_PITCH 1440
- //~ #define YUV422_LV_PITCH_RCA 1080
- //~ #define YUV422_LV_PITCH_HDMI 3840
- //~ #define YUV422_LV_HEIGHT 480
- //~ #define YUV422_LV_HEIGHT_RCA 540
- //~ #define YUV422_LV_HEIGHT_HDMI 1080
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Below this line, all constant are from 550D/T2i 1.0.9 and not yet confirmed for 600D/T3i 1.0.1 !!!
-
-
-#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x2490)
-#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x73620)
-
+ 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04308 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04208 // SDRAM address of HD buffer (aka YUV)
+
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)0x2490)
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR))
 
 // changes during record
 #define YUV422_HD_BUFFER_1 0x44000080

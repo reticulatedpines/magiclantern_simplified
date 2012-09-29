@@ -29,10 +29,8 @@
 #define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x408cb600 ) // quick check if x looks like a valid HD buffer
 
 // PLACEHOLDER UNTIL WE GET THE REAL VALUES
-#define FIX_DMA_ADDR(x) ((x) | 0x40000000)
-#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x2438))
-#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR)) // first line from DMA is dummy. Thanks 5D3! Not really 5D3!!
-#define YUV422_LV_BUFFER_DMA_ADDR_FROM_DIGIC (FIX_DMA_ADDR(shamem_read(0xc0f04308)))
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x2438))
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR))
 
 // AV / AE COMP button 
 #define BGMT_AV (event->type == 0 && event->param == 0x61 && ( \

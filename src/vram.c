@@ -372,7 +372,7 @@ void lut_init()
 
 void* get_lcd_422_buf()
 {
-    switch (YUV422_LV_BUFFER_DMA_ADDR)
+    switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
     {
         case YUV422_LV_BUFFER_1:
             return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
@@ -388,17 +388,17 @@ static int fastrefresh_direction = 0;
 
 void guess_fastrefresh_direction() {
     static unsigned old_pos = YUV422_LV_BUFFER_1;
-    if (old_pos == YUV422_LV_BUFFER_DMA_ADDR) return;
-    if (old_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_2) fastrefresh_direction = 1;
-    if (old_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_3) fastrefresh_direction = 0;
-    old_pos = YUV422_LV_BUFFER_DMA_ADDR;
+    if (old_pos == YUV422_LV_BUFFER_DISPLAY_ADDR) return;
+    if (old_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_2) fastrefresh_direction = 1;
+    if (old_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_3) fastrefresh_direction = 0;
+    old_pos = YUV422_LV_BUFFER_DISPLAY_ADDR;
 }
 
 
 void* get_fastrefresh_422_buf()
 {
     if (fastrefresh_direction) {
-        switch (YUV422_LV_BUFFER_DMA_ADDR)
+        switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
         {
             case YUV422_LV_BUFFER_1:
                 return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
@@ -409,7 +409,7 @@ void* get_fastrefresh_422_buf()
         }
         return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
     } else {
-        switch (YUV422_LV_BUFFER_DMA_ADDR)
+        switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
         {
             case YUV422_LV_BUFFER_1:
                 return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
@@ -421,55 +421,6 @@ void* get_fastrefresh_422_buf()
         return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
 
     }
-}
-
-
-// YUV422_HD_BUFFER_DMA_ADDR returns many possible values, but usually cycles between last two
-// This function returns the value which was used just before the current one
-// That buffer is not updated by DMA (and should contain a silent picture without horizontal cut)
-void* get_422_hd_idle_buf()
-{
-#if defined(CONFIG_5D3) || defined(CONFIG_1100D)
-    return YUV422_HD_BUFFER_DMA_ADDR; // might work on all cameras in future?
-#endif
-    
-#ifdef CONFIG_550D
-    if (lv && is_movie_mode() && !recording && video_mode_resolution > 0) // 720p exception
-        return (void*)CACHEABLE(shamem_read(REG_EDMAC_WRITE_HD_ADDR)); // RAM address not updated properly, read it from the DIGIC
-#endif
-
-// single-buffered HD buffer
-#ifndef CONFIG_60D
-    int hd = YUV422_HD_BUFFER_DMA_ADDR;
-    int failsafe = YUV422_HD_BUFFER_1;
-
-    #ifdef CONFIG_50D // odd horizontal misalignment
-    hd -= 28;
-    failsafe -= 28;
-    #endif
-
-    return (void *) CACHEABLE(IS_HD_BUFFER(hd) ? hd : failsafe);
-
-#else // double-buffered HD buffer (might work better for silent pics)
-
-    static int idle_buf = 0;
-    static int current_buf = 0;
-    
-    if (!idle_buf) idle_buf = current_buf = YUV422_HD_BUFFER_DMA_ADDR;
-
-    int hd = YUV422_HD_BUFFER_DMA_ADDR;
-    //~ bmp_printf(FONT_LARGE, 50, 200, "%x %x %x", hd, current_buf, IS_HD_BUFFER(hd));
-    if (IS_HD_BUFFER(hd))
-    {
-        if (hd != current_buf)
-        {
-            idle_buf = current_buf;
-            current_buf = hd;
-        }
-    }
-    
-    return (void*)CACHEABLE(idle_buf);
-#endif
 }
 
 #ifdef CONFIG_500D
@@ -523,7 +474,7 @@ struct vram_info * get_yuv422_hd_vram()
     if (!lv) // play/quickreview, HD buffer not active => use LV instead
         return get_yuv422_vram();
 
-    vram_hd.vram = CACHEABLE(get_422_hd_idle_buf());
+    vram_hd.vram = CACHEABLE(YUV422_HD_BUFFER_DMA_ADDR);
     return &vram_hd;
 }
 

@@ -105,11 +105,11 @@ void hdr_kill_flicker()
         static int prev_buf = 0;
         if (frame % 2 == odd_frame)
         {
-            if (prev_buf) YUV422_LV_BUFFER_DMA_ADDR = prev_buf;
+            if (prev_buf) YUV422_LV_BUFFER_DISPLAY_ADDR = prev_buf;
         }
         else
         {
-            prev_buf = YUV422_LV_BUFFER_DMA_ADDR;
+            prev_buf = YUV422_LV_BUFFER_DISPLAY_ADDR;
         }
     }
 #endif

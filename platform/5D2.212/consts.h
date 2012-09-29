@@ -26,12 +26,11 @@
 // stateobj_disp[1]
 //~ #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x27E0+something))
 
-// from AJ 5.9:
-#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x2900)
-#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)(0x44FC + 0xC0))
-
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f26208 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
+
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)0x2900) // from AJ 5.9
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR))
 
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
 #define YUV422_HD_BUFFER_1 0x44000080
