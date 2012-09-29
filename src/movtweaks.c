@@ -1240,6 +1240,7 @@ static struct menu_entry mov_menus[] = {
         //.essential = FOR_MOVIE,
     },
 #endif
+#ifndef CONFIG_500D
     {
         .name = "Gradual Expo.",
         .priv = &smooth_iso,
@@ -1259,6 +1260,7 @@ static struct menu_entry mov_menus[] = {
             MENU_EOL
         },
     },
+#endif
 };
 
 struct menu_entry expo_override_menus[] = {
