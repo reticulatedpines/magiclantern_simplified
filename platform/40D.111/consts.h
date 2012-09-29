@@ -6,23 +6,16 @@
 #define LEDON   0x46
 #define LEDOFF  0x44
 
-#define HIJACK_INSTR_BL_CSTART  0
-#define HIJACK_INSTR_BSS_END 0
-#define HIJACK_FIXBR_BZERO32 0
-#define HIJACK_FIXBR_CREATE_ITASK 0
-#define HIJACK_INSTR_MY_ITASK 0
-#define HIJACK_TASK_ADDR 0
-
 #define DRYOS_ASSERT_HANDLER 0xEF78 // dec TH_assert or assert_0
 
 // Critical. Look for a call to prop_request_change(0x80050007, something, len).
 //~ #define AFFRAME_PROP_LEN 100 // 404
 //~ #define CUSTOM_WB_PROP_LEN 52 // 404
 
-// not good
-#define YUV422_LV_BUFFER_1 0x41B07800
-#define YUV422_LV_BUFFER_2 0x5C007800
-#define YUV422_LV_BUFFER_3 0x5F607800
+// not known, use HD ones meanwhile
+#define YUV422_LV_BUFFER_1 0x1dcefc64
+#define YUV422_LV_BUFFER_2 0x1de43c64
+#define YUV422_LV_BUFFER_3 0x1dcefc64
 
 //~ #define REG_EDMAC_WRITE_LV_ADDR 0xc0f26208 // SDRAM address of LV buffer (aka VRAM)
 //~ #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
