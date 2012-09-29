@@ -159,6 +159,9 @@ cstart( void )
         *(int*)0xC022D06C = 0x00138800; // CF card LED on
     #elif defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
         *(int*)0xC0220134 = 0x46;  // SD card LED on
+    #elif defined(CONFIG_40D)
+        *(int*)0xC02200E8 = 0x46;
+        *(int*)0xC02200E0 = 0x46;
     #endif
 
     // Copy the copy-and-restart blob somewhere
