@@ -18,25 +18,27 @@
 #define CUSTOM_WB_PROP_LEN 52 // ok
 
 // 720x480, changes when external monitor is connected
-    #define YUV422_LV_BUFFER_1 0x41B07800
-    #define YUV422_LV_BUFFER_2 0x5C007800
-    #define YUV422_LV_BUFFER_3 0x5F607800
+#define YUV422_LV_BUFFER_1 0x41B07800
+#define YUV422_LV_BUFFER_2 0x5C307800
+#define YUV422_LV_BUFFER_3 0x5F11D800
 
 // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
 // stateobj_disp[1]
 //~ #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x2190+something))
 
-//~ #define REG_EDMAC_WRITE_LV_ADDR 0xc0f26208 // SDRAM address of LV buffer (aka VRAM)
-//~ #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
+#define REG_EDMAC_WRITE_LV_ADDR 0xc0f26208 // SDRAM address of LV buffer (aka VRAM)
+#define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
 
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
-    #define YUV422_HD_BUFFER_1 0x44000080
-    #define YUV422_HD_BUFFER_2 0x4C000080
-    #define YUV422_HD_BUFFER_3 0x50000080
-    #define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
+#define YUV422_HD_BUFFER_1 0x44000080
+#define YUV422_HD_BUFFER_2 0x46000080
 
-    #define YUV422_LV_BUFFER_DMA_ADDR YUV422_LV_BUFFER_1
-    #define YUV422_HD_BUFFER_DMA_ADDR YUV422_HD_BUFFER_1
+#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080) // quick check if x looks like a valid HD buffer
+
+    
+#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x225C)
+#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x451C)
+    #define YUV422_LV_BUFFER_DISPLAY_ADDR YUV422_LV_BUFFER_DMA_ADDR
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x3A90)
@@ -70,39 +72,44 @@
 // But for 5D2 we'll use the joystick instead of arrows
 // => S press_mlt_left => bgmt 0x820 => #define BGMT_PRESS_LEFT 0x1a or 0x1e (not sure, but in 50D it's 1a)
 
-#define BGMT_WHEEL_UP 0
-#define BGMT_WHEEL_DOWN 1
-#define BGMT_WHEEL_LEFT 2
-#define BGMT_WHEEL_RIGHT 3
+#define BGMT_WHEEL_UP 0x00
+#define BGMT_WHEEL_DOWN 0x01
+#define BGMT_WHEEL_LEFT 0x02
+#define BGMT_WHEEL_RIGHT 0x03
 
-    #define BGMT_PRESS_SET 4 // or maybe 5
-    #define BGMT_UNPRESS_SET 0x3d
+#define BGMT_PRESS_SET 0x04
+#define BGMT_UNPRESS_SET 0x05
 
-#define BGMT_MENU 6
-#define BGMT_INFO 7
-#define BGMT_PLAY 9
-#define BGMT_TRASH 10
+#define BGMT_MENU 0x06
+#define BGMT_INFO 0x07
+#define BGMT_PLAY 0x09
+#define BGMT_TRASH 0x0A
 
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xB
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0xD
 #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xE
 
-    #define BGMT_LV 0xE
-    #define BGMT_PICSTYLE 0x13
-//~ #define BGMT_JOY_CENTER (lv ? 0x1e : 0x3b)
-    #define BGMT_JOY_CENTER 0x1e
 
-    #define BGMT_PRESS_UP 0x16
-    #define BGMT_PRESS_UP_RIGHT 0x17
-    #define BGMT_PRESS_UP_LEFT 0x18
-#define BGMT_PRESS_RIGHT 0x1a
-#define BGMT_PRESS_LEFT 0x1c
-    #define BGMT_PRESS_DOWN_RIGHT 0x1e
-    #define BGMT_PRESS_DOWN_LEFT 0x1d
-#define BGMT_PRESS_DOWN 0x20
+#define BGMT_PRESS_RAW_JPEG 0x0F
+#define BGMT_UNPRESS_RAW_JPEG 0x10
 
-    #define BGMT_UNPRESS_UDLR 0x15
+#define BGMT_PICSTYLE 0x14
+#define BGMT_LV 0x16
+#define BGMT_Q 0x17
+
+
+#define BGMT_UNPRESS_UDLR 0x22
+#define BGMT_PRESS_UP 0x23
+#define BGMT_PRESS_UP_RIGHT 0x24
+#define BGMT_PRESS_UP_LEFT 0x25
+#define BGMT_PRESS_RIGHT 0x26
+#define BGMT_PRESS_LEFT 0x27
+#define BGMT_PRESS_DOWN_RIGHT 0x28
+#define BGMT_PRESS_DOWN_LEFT 0x29
+#define BGMT_PRESS_DOWN 0x2A
+#define BGMT_JOY_CENTER 0x2B
+
 #define BGMT_PRESS_HALFSHUTTER 0x36
 #define BGMT_UNPRESS_HALFSHUTTER 0x37
 #define BGMT_PRESS_FULLSHUTTER 0x38
@@ -146,6 +153,7 @@
 #define MVR_FRAME_NUMBER  0 // (*(int*)(0xEC + MVR_516_STRUCT)) // in mvrExpStarted
 #define MVR_BYTES_WRITTEN 0 // (*(int*)(0xE4 + MVR_516_STRUCT)) // in mvrSMEncodeDone
 
+/* those are not sure yet */
     #define MOV_RES_AND_FPS_COMBINATIONS 5
     #define MOV_OPT_NUM_PARAMS 2
     #define MOV_GOP_OPT_NUM_PARAMS 5
@@ -176,7 +184,7 @@
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
-#define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
+#define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
     //~ #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1aac // this prop_deliver performs the action for Video Connect and Video Disconnect
     //~ #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1ad4 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
 
@@ -221,11 +229,11 @@
 #define BULB_MIN_EXPOSURE 200
 
 // http://magiclantern.wikia.com/wiki/Fonts
-#define BFNT_CHAR_CODES    0xff627550
-#define BFNT_BITMAP_OFFSET 0xff629d1c
-#define BFNT_BITMAP_DATA   0xff62c4e8
+#define BFNT_CHAR_CODES    0xffd369d8
+#define BFNT_BITMAP_OFFSET 0xffd395a4
+#define BFNT_BITMAP_DATA   0xffd3c170
 
-    #define DLG_SIGNATURE 0x414944
+#define DLG_SIGNATURE 0x4C414944
 
 // from CFn
     #define AF_BTN_HALFSHUTTER 0
@@ -265,7 +273,7 @@
 #define MIN_MSLEEP 11
 
 #define INFO_BTN_NAME "INFO"
-#define Q_BTN_NAME "Pict.Style"
+#define Q_BTN_NAME "Q"
 #define ARROW_MODE_TOGGLE_KEY "PicStyle"
 
 #define DISPLAY_IS_ON MEM(0x21B0) // TurnOnDisplay (PUB) Type=%ld fDisplayTurnOn=%ld

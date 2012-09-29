@@ -87,7 +87,7 @@ switch ( param1 )
 		msg.param_count = 2;
 		msg.param[0] = PTP_CHDK_VERSION_MAJOR;
 		msg.param[1] = PTP_CHDK_VERSION_MINOR;
-		gui_unlock();
+		//gui_unlock();
 		break;
 
 	case PTP_CHDK_GetMemory:

@@ -331,8 +331,8 @@ autoexec: reboot.o
 		-nostdlib \
 		-march=armv5te \
 		-e _start \
-		-Ttext 0x800000 \
-		$^ \
+		-Ttext 0x40800000 \
+		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
 	); \
 	$(STAT_CMD) autoexec.bin; \
 	$(READELF) -l magiclantern | grep -C 2 MemSiz

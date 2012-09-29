@@ -47,6 +47,9 @@ all: 60D 550D 600D 50D 500D 5D2
 5D2:
 	$(MAKE) -C $(PLATFORM_PATH)/5D2.212
 
+7D:
+	$(MAKE) -C $(PLATFORM_PATH)/7D.203
+
 5DC:
 	$(MAKE) -C $(PLATFORM_PATH)/5DC.111
 
@@ -102,6 +105,7 @@ clean:
 	cd $(PLATFORM_PATH)/550D.109/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/60D.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/600D.102/; $(MAKE) clean
+	cd $(PLATFORM_PATH)/7D.203/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/50D.109/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/500D.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/5D2.212/; $(MAKE) clean

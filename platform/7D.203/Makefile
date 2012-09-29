@@ -61,6 +61,9 @@ ML_OBJS-y = \
 	state-object.o \
 	tasks.o \
 	beep.o \
+	ptp.o \
+	ptp-ml.o \
+	ptp-chdk.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
