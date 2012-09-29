@@ -244,8 +244,13 @@ void update_vram_params()
     }
     else // DMA is not active, use hardcoded values
     {
-        vram_lv.width  = hdmi_code == 5 ?  920 : ext_monitor_rca ? 540 : 720;
+        #if defined(CONFIG_1100D)
+	vram_lv.width  = 720;
+	vram_lv.height = 240;
+	#else
+	vram_lv.width  = hdmi_code == 5 ?  920 : ext_monitor_rca ? 540 : 720;
         vram_lv.height = hdmi_code == 5 ? 1080 : ext_monitor_rca ? (pal ? 572 : 480) : 480;
+	#endif
         vram_lv.pitch = vram_lv.width * 2;
     }
     
