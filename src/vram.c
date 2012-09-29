@@ -246,6 +246,7 @@ void update_vram_params()
     {
         vram_lv.width  = hdmi_code == 5 ?  920 : ext_monitor_rca ? 540 : 720;
         vram_lv.height = hdmi_code == 5 ? 1080 : ext_monitor_rca ? (pal ? 572 : 480) : 480;
+        vram_lv.pitch = vram_lv.width * 2;
     }
     
     
