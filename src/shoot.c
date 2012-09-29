@@ -6018,6 +6018,8 @@ void take_fast_pictures( int number ) {
 
 static void misc_shooting_info()
 {
+    display_shortcut_key_hints_lv();
+
     if (get_global_draw())
     {
         #if !defined(CONFIG_50D) && !defined(CONFIG_1100D)
@@ -6036,7 +6038,6 @@ static void misc_shooting_info()
         {
             BMP_LOCK (
                 display_shooting_info_lv();
-                display_shortcut_key_hints_lv();
             )
             #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
             if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
