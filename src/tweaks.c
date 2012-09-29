@@ -1626,7 +1626,7 @@ int handle_arrow_keys(struct event * event)
         {
             switch (arrow_keys_mode)
             {
-                #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) & !defined(CONFIG_1100D)
+                #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D) && !defined(CONFIG_500D)
                 case 1: input_toggle(); break;
                 #endif
                 case 2: 
@@ -1645,7 +1645,9 @@ int handle_arrow_keys(struct event * event)
         {
             switch (arrow_keys_mode)
             {
+                #ifndef CONFIG_500D
                 case 1: out_volume_up(); break;
+                #endif
                 case 2: kelvin_toggle(-1, 1); break;
                 case 3: aperture_toggle((void*)-1, 1); break;
                 case 4: adjust_saturation_level(1); break;
@@ -1659,7 +1661,9 @@ int handle_arrow_keys(struct event * event)
         {
             switch (arrow_keys_mode)
             {
+                #ifndef CONFIG_500D
                 case 1: out_volume_down(); break;
+                #endif
                 case 2: kelvin_toggle(-1, -1); break;
                 case 3: aperture_toggle((void*)-1, -1); break;
                 case 4: adjust_saturation_level(-1); break;
@@ -1761,9 +1765,11 @@ void display_shortcut_key_hints_lv()
     {
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Vol");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Vol+");
+        #ifndef CONFIG_500D
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Out+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Out");
         if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Input");
+        #endif
     }
     else if (mode == 2)
     {
