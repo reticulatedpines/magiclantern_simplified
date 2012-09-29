@@ -31,6 +31,10 @@
 //#define YUV422_LV_BUFFER_DMA_ANOTHER_ADDR (*(uint32_t*)0x4c60)
 #define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)(0x455c + 0xB8))
 
+// not 100% sure, copied from 550D/5D2/500D
+#define REG_EDMAC_WRITE_LV_ADDR 0xc0f26208 // SDRAM address of LV buffer (aka VRAM)
+#define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
+
 #define YUV422_HD_BUFFER_1 0x44000080
 #define YUV422_HD_BUFFER_2 0x46000080
 #define YUV422_HD_BUFFER_3 0x48000080

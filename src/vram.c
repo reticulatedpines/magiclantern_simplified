@@ -234,13 +234,21 @@ void update_vram_params()
 
     // LV buffer (used for display)
     // these buffer sizes include any black bars
-#ifdef CONFIG_1100D
-    vram_lv.width  = 720;
-    vram_lv.height = 240;
-#else
-    vram_lv.width  = hdmi_code == 5 ? (is_movie_mode() && video_mode_resolution > 0 && video_mode_crop ? 960 : 1920) : ext_monitor_rca ? 540 : 720;
-    vram_lv.height = hdmi_code == 5 ? (is_movie_mode() && video_mode_fps > 30                          ? 540 : 1080) : ext_monitor_rca ? (pal ? 572 : 480) : 480;
-#endif
+
+    uint32_t lv_size = shamem_read(REG_EDMAC_WRITE_LV_ADDR + 8);
+    vram_lv.pitch = lv_size & 0xFFFF;
+    vram_lv.width = vram_lv.pitch / 2;
+    vram_lv.height = ((lv_size >> 16) & 0xFFFF) + 1;
+    
+    #ifdef CONFIG_600D
+    // exception for crop mode, not tested... LV image seems to be 16:9
+    if (vram_lv.height == 404 && os.y0 == 0 && os.y_ex == 480 && video_mode_crop && video_mode_resolution == 0 && is_movie_mode())
+    {
+        os.y0 = 38;
+        os.y_ex = 404;
+        os.y_max = os.y0 + os.y_ex;
+    }
+    #endif
 
 
     // bmp to lv transformation
@@ -258,40 +266,10 @@ void update_vram_params()
     hd_ratio_num = recording ? (video_mode_resolution < 2 ? 16 : 4) : 3;
     hd_ratio_den = recording ? (video_mode_resolution < 2 ?  9 : 3) : 2;
 
-#ifdef CONFIG_5D2
-    vram_hd.width  = lv_dispsize > 1 ? 1120 : recording ? 1872 : 1024;
-    vram_hd.height = lv_dispsize > 1 ?  746 : recording ? 1080 : 680;
-#elif defined(CONFIG_50D)
-    vram_hd.width  = lv_dispsize > 1 ? 944 : recording ? 1560 : 1024;
-    vram_hd.height = lv_dispsize > 1 ? 632 : recording ?  884 : 680;
-#elif defined(CONFIG_500D)
-    vram_hd.width  = lv_dispsize > 1 ?  944 : !is_movie_mode() ?  928 : recording ? (video_mode_resolution == 0 ? 1576 : video_mode_resolution == 1 ? 1576 : video_mode_resolution == 2 ? 720 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1576 : video_mode_resolution == 1 ? 928 : video_mode_resolution == 2 ? 928 : 0);
-    vram_hd.height = lv_dispsize > 1 ?  632 : !is_movie_mode() ?  616 : recording ? (video_mode_resolution == 0 ? 1048 : video_mode_resolution == 1 ?  632 : video_mode_resolution == 2 ? 480 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1048 : video_mode_resolution == 1 ? 616 : video_mode_resolution == 2 ? 616 : 0);
-#elif defined(CONFIG_550D) || defined(CONFIG_60D)
-    vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : recording ? (video_mode_resolution == 0 ? 1720 : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? 640 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1056 : video_mode_resolution == 1 ? 1024 : video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
-    vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : recording ? (video_mode_resolution == 0 ?  974 : video_mode_resolution == 1 ?  580 : video_mode_resolution == 2 ? 480 : 0) : /*not recording*/ (video_mode_resolution == 0 ?  704 : video_mode_resolution == 1 ?  680 : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
-#elif defined(CONFIG_600D)
-    // When USB is connected, resolution drops to 1056x756, however it goes back to 1680x945 when a recording is started
-    vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : (video_mode_resolution == 0 ? (video_mode_crop ? 1728 : ((recording==0 && logical_connect) ? 1056 : 1680)) : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? 640 : 0);
-    vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (video_mode_crop ?  972 :  ((recording==0 && logical_connect) ? 756 : 945)) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? 480 : 0);
-#elif defined(CONFIG_1100D) // It's a damn shame that we only have 720p but at least it can do it properly :P
-    vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : video_mode_resolution == 1 ? 1280 : 0;
-    vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : video_mode_resolution == 1 ? 720  : 0;
-#elif defined(CONFIG_5D3)
-    vram_hd.width  = lv_dispsize > 1 ? 1152 : !is_movie_mode() ? 1620 : video_mode_resolution == 0 ? 1904 :                                   1280;
-    vram_hd.height = lv_dispsize > 1 ?  768 : !is_movie_mode() ? 1080 : video_mode_resolution == 0 ? 1270 : video_mode_resolution == 1 ? 720 : 854;
-#elif defined(CONFIG_5DC)
-    vram_hd.width  = 1024;
-    vram_hd.height = 768; // dummy values
-#elif defined(CONFIG_7D) // no idea, copied from 550D
-    vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : recording ? (video_mode_resolution == 0 ? 1720 : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? 640 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1056 : video_mode_resolution == 1 ? 1024 : video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
-    vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : recording ? (video_mode_resolution == 0 ?  974 : video_mode_resolution == 1 ?  580 : video_mode_resolution == 2 ? 480 : 0) : /*not recording*/ (video_mode_resolution == 0 ?  704 : video_mode_resolution == 1 ?  680 : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
-#else
-    error
-#endif
-
-    vram_lv.pitch = vram_lv.width * 2; 
-    vram_hd.pitch = vram_hd.width * 2;
+    uint32_t hd_size = shamem_read(REG_EDMAC_WRITE_HD_ADDR + 8);
+    vram_hd.pitch = hd_size & 0xFFFF;
+    vram_hd.width = vram_hd.pitch / 2;
+    vram_hd.height = ((hd_size >> 16) & 0xFFFF) + 1;
 
     int off_43 = (os.x_ex - os.x_ex * 8/9) / 2;
 
