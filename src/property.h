@@ -317,7 +317,7 @@
 #define PROP_REMOTE_RELEASE            0x8003000A
 #define PROP_REMOTE_SET_BUTTON         0x80020018
 
-#ifdef CONFIG_5DC
+#if defined(CONFIG_5DC) || defined(CONFIG_40D) // not sure, it might be like 5D2
     #define PROP_FOLDER_NUMBER     0x2010000
     #define PROP_FILE_NUMBER       0x2010002
     #define PROP_CARD_RECORD       0x8003000B

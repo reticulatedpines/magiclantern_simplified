@@ -104,7 +104,7 @@ void info_led_on()
 {
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_7D)
     call("EdLedOn");
-    #elif defined(CONFIG_5DC)
+    #elif defined(CONFIG_VXWORKS)
     LEDBLUE = LEDON;
     #else
     _card_led_on();
@@ -114,7 +114,7 @@ void info_led_off()
 {
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_7D)
     call("EdLedOff");
-    #elif defined(CONFIG_5DC)
+    #elif defined(CONFIG_VXWORKS)
     LEDBLUE = LEDOFF;
     #else
     _card_led_off();
@@ -1446,7 +1446,7 @@ static void dbg_memspy_update()
     int k=0;
     for (i = 0; i < mem_spy_len; i++)
     {
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
         uint32_t fnt = FONT_MED;
 #else
         uint32_t fnt = FONT_SMALL;
@@ -1459,7 +1459,7 @@ static void dbg_memspy_update()
             //~ bmp_printf(FONT_MED, 10,460, "memspy: %8x: %8x => %8x", addr, oldval, newval);
             dbg_memmirror[i] = newval;
             if (dbg_memchanges[i] < 1000000) dbg_memchanges[i]++;
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
             fnt = FONT(FONT_MED, COLOR_BLUE, COLOR_BG);
 #else
             fnt = FONT(FONT_SMALL, 5, COLOR_BG);
@@ -1480,7 +1480,7 @@ static void dbg_memspy_update()
         if (mem_spy_freq_lo && freq < mem_spy_freq_lo) continue;
         if (mem_spy_freq_hi && freq > mem_spy_freq_hi) continue;
         
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
         int x =  10 + 16 * 22 * (k % 2);
         int y =  10 + 20 * (k / 2);
         bmp_printf(fnt, x, y, "%8x:%2d:%8x", addr, dbg_memchanges[i], newval);
@@ -1495,7 +1495,7 @@ static void dbg_memspy_update()
     
     for (i = 0; i < 10; i++)
     {
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
         int x =  10 + 16 * 22 * (k % 2);
         int y =  10 + 20 * (k / 2);
         bmp_printf(FONT_MED, x, y, "                    ");

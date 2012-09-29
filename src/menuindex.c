@@ -35,7 +35,7 @@ struct menu_entry help_menus[] = {
         .name = "Press FUNC : Bring up submenu...",
         #elif defined(CONFIG_5D2)
         .name = "Pict.Style : Bring up submenu...",
-        #elif defined(CONFIG_5DC)
+        #elif defined(CONFIG_5DC) || defined(CONFIG_40D)
         .name = "Press JUMP : Bring up submenu...",
         #else
         error

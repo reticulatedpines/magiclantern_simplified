@@ -4635,7 +4635,7 @@ static struct menu_entry shoot_menus[] = {
         //~ .edit_mode = EM_MANY_VALUES,
     },
     #endif
-    #if !defined(CONFIG_50D) && !defined(CONFIG_5DC) && !defined(CONFIG_1100D)
+    #if !defined(CONFIG_50D) && !defined(CONFIG_VXWORKS) && !defined(CONFIG_1100D)
     {
         .name = "Audio RemoteShot",
         .priv       = &audio_release_running,
@@ -6572,7 +6572,7 @@ shoot_task( void* unused )
             intervalometer_pictures_taken = 0;
             intervalometer_next_shot_time = seconds_clock + timer_values[interval_start_timer_index];
 
-#if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_5DC) // no audio module on these cameras
+#if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_VXWORKS) // no audio module on these cameras
             if (audio_release_running) 
             {
                 static int countdown = 0;

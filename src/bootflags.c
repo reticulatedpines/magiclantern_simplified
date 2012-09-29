@@ -138,7 +138,7 @@ static void exfat_sum(uint32_t* buffer) // size: 12 sectors (0-11)
 
 // http://www.datarescue.com/laboratory/partition.htm
 // http://magiclantern.wikia.com/wiki/Bootdisk
-#if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_7D)
+#if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_7D) && !defined(CONFIG_40D)
 int
 bootflag_write_bootblock( void )
 {
@@ -219,7 +219,7 @@ bootflag_write_bootblock( void )
     #ifdef CONFIG_500D
     struct cf_device * const dev = sd_device[1];
     #endif
-    #if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_7D)
+    #if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_7D) || defined(CONFIG_40D) // not good for 7D/40D, need checking
     struct cf_device * const dev = cf_device[5];
     #endif
     

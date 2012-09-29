@@ -1,0 +1,200 @@
+/** \file
+ * Magic Lantern GUI main task.
+ *
+ * Overrides the DryOS gui_main_task() to be able to re-map events.
+ */
+/*
+ * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the
+ * Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
+
+#include "dryos.h"
+#include "bmp.h"
+#include <property.h>
+
+struct semaphore * gui_sem;
+
+// return 0 if you want to block this event
+static int handle_buttons(struct event * event)
+{
+	ASSERT(event->type == 0)
+	
+	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
+	if (handle_common_events_startup(event) == 0) return 0;
+	extern int ml_started;
+	if (!ml_started) return 1;
+
+	if (handle_common_events_by_feature(event) == 0) return 0;
+
+	return 1;
+}
+
+static struct msg_queue * msg_queue = 0x11e00;
+static struct semaphore * sem = 0x11E04;
+static int * obj = 0x28CC;
+static int * timer_obj = 0x28f8;
+
+extern struct gui_timer_struct gui_timer_struct;
+
+int max_gui_queue_len = 0;
+
+// Replaces the gui_main_task
+static void
+my_gui_main_task( void )
+{
+	gui_init_end();
+	uint32_t * obj = 0;
+
+	while(1)
+	{
+		struct event * event;
+		msg_queue_receive(
+			msg_queue,
+			&event,
+			0
+		);
+
+		take_semaphore(sem, 0);
+		
+		if( !event )
+			goto event_loop_bottom;
+
+		if (!magic_is_off() && event->type == 0)
+		{
+			if (handle_buttons(event) == 0) // ML button/event handler
+				goto event_loop_bottom;
+		}
+
+		if (IS_FAKE(event)) event->arg = 0;
+
+		switch( event->type )
+		{
+		case 0:
+			if( *obj == 1 // not sure
+			&&  event->param != 0x25
+			&&  event->param != 0x26
+			&&  event->param != 0x27
+			&&  event->param != 0x28
+			&&  event->param != 0x29
+			&&  event->param != 0x2A
+			&&  event->param != 0x1F
+			&&  event->param != 0x2B
+			&&  event->param != 0x23
+			&&  event->param != 0x2C
+			&&  event->param != 0x2D
+			&&  event->param != 0x2E
+			&&  event->param != 0x2F
+			&&  event->param != 0x30
+			&&  event->param != 0x31
+			&&  event->param != 0x32
+			)
+				goto queue_clear;
+
+			DebugMsg( DM_MAGIC, 2, "GUI_CONTROL:%d", event->param );
+			gui_massive_event_loop( event->param, event->obj, event->arg );
+			break;
+
+		case 1:
+			if( *obj == 1 // not sure
+			&&  event->param != 0x00
+			&&  event->param != 0x06
+			&&  event->param != 0x05
+			)
+				goto queue_clear;
+
+			DebugMsg( 0x84, 2, "GUI_CHANGE_MODE:%d", event->param );
+
+			if( event->param == 0 )
+			{
+				gui_local_post( 0xb, 0, 0 );
+				if( *timer_obj != 0)
+					gui_timer_something( *timer_obj, 4 );
+			}
+
+			gui_change_mode( event->param );
+			break;
+
+		case 2:
+			if( *obj == 1 // not sure
+			&&  event->param != 15
+			&&  event->param != 13
+			&&  event->param != 18
+			)
+				goto queue_clear;
+
+			gui_local_post( event->param, event->obj, event->arg );
+			break;
+		case 3:
+			if( event->param == 15 )
+			{
+				DebugMsg( 0x84, 2, "GUIOTHER_CANCEL_ALL_EVENT" );
+				*obj = 0;
+				break;
+			}
+
+			if( *obj == 1 // not sure
+			&&  event->param != 0x00
+			&&  event->param != 0x03
+			&&  event->param != 0x01
+			&&  event->param != 16
+			&&  event->param != 17
+			)
+				goto queue_clear;
+
+			DebugMsg( 0x84, 2, "GUI_OTHEREVENT:%d", event->param );
+			gui_other_post( event->param, event->obj, event->arg );
+			break;
+		case 4:
+			gui_post_10000062( event->param, event->obj, event->arg );
+			break;
+		case 5:
+			gui_init_event( event->obj );
+			break;
+		case 6:
+			DebugMsg( 0x84, 2, "GUI_CHANGE_SHOOT_TYPE:%d", event->param );
+			gui_change_shoot_type_post( event->param );
+			break;
+		case 7:
+			DebugMsg( 0x84, 2, "GUI_CHANGE_LCD_STATE:%d", event->param );
+			gui_change_lcd_state_post( event->param );
+			break;
+
+		default:
+			break;
+		}
+
+event_loop_bottom:
+		give_semaphore(sem);
+		continue;
+
+queue_clear:
+		DebugMsg(
+			0x84,
+			3,
+			"**** Queue Clear **** event(%d) param(%d)",
+			event->type,
+			event->param
+		);
+
+		goto event_loop_bottom;
+	}
+}
+
+// double-check gui main task first!!!
+
+//~ TASK_OVERRIDE( gui_main_task, my_gui_main_task );

@@ -235,6 +235,15 @@ void update_vram_params()
     // LV buffer (used for display)
     // these buffer sizes include any black bars
 
+#if defined(CONFIG_5DC)
+    vram_lv.width = 720; // dummy
+    vram_lv.height = 480;
+    vram_lv.pitch = vram_lv.width * 2;
+#elif defined(CONFIG_40D)
+    vram_lv.width = 1024; // we only know the HD buffer for now... let's try to pretend it can be used as LV :)
+    vram_lv.height = 680;
+    vram_lv.pitch = vram_lv.width * 2;
+#else
     if (lv) // get image size from DMA register
     {
         uint32_t lv_size = shamem_read(REG_EDMAC_WRITE_LV_ADDR + 8);
@@ -245,14 +254,15 @@ void update_vram_params()
     else // DMA is not active, use hardcoded values
     {
         #if defined(CONFIG_1100D)
-	vram_lv.width  = 720;
-	vram_lv.height = 240;
-	#else
-	vram_lv.width  = hdmi_code == 5 ?  920 : ext_monitor_rca ? 540 : 720;
+        vram_lv.width  = 720;
+        vram_lv.height = 240;
+        #else
+        vram_lv.width  = hdmi_code == 5 ?  920 : ext_monitor_rca ? 540 : 720;
         vram_lv.height = hdmi_code == 5 ? 1080 : ext_monitor_rca ? (pal ? 572 : 480) : 480;
-	#endif
+        #endif
         vram_lv.pitch = vram_lv.width * 2;
     }
+#endif
     
     
     #ifdef CONFIG_600D
@@ -281,10 +291,16 @@ void update_vram_params()
     hd_ratio_num = recording ? (video_mode_resolution < 2 ? 16 : 4) : 3;
     hd_ratio_den = recording ? (video_mode_resolution < 2 ?  9 : 3) : 2;
 
+#if defined(CONFIG_VXWORKS)
+    vram_hd.width = vram_lv.width;
+    vram_hd.height = vram_lv.height;
+    vram_hd.pitch = vram_lv.pitch;
+#else
     uint32_t hd_size = shamem_read(REG_EDMAC_WRITE_HD_ADDR + 8);
     vram_hd.pitch = hd_size & 0xFFFF;
     vram_hd.width = vram_hd.pitch / 2;
     vram_hd.height = ((hd_size >> 16) & 0xFFFF) + 1;
+#endif
 
     int off_43 = (os.x_ex - os.x_ex * 8/9) / 2;
 

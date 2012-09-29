@@ -53,7 +53,7 @@ void bmp_idle_copy(int direction, int fullsize)
     }
     else
     {
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
         if (direction)
         {
             for (int i = 0; i < 240; i ++)
@@ -126,7 +126,7 @@ _draw_char(
     // boundary checking, don't write past this address
     uint32_t* end = (uint32_t *)(BMP_VRAM_END(v) - font->width);
 
-#ifndef CONFIG_5DC
+#ifndef CONFIG_VXWORKS
     //uint32_t flags = cli();
     if ((fontspec & SHADOW_MASK) == 0)
     {
@@ -251,7 +251,7 @@ bmp_puts(
     if( !vram || ((uintptr_t)vram & 1) == 1 )
         return;
     const unsigned initial_x = *x;
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
     uint8_t * first_row = vram + ((*y)/2) * pitch + ((*x)/2);
 #else
     uint8_t * first_row = vram + (*y) * pitch + (*x);
@@ -279,7 +279,7 @@ bmp_puts(
         }
 
         _draw_char( fontspec, row, c );
-        #ifdef CONFIG_5DC
+        #ifdef CONFIG_VXWORKS
         row += font->width / 2;
         #else
         row += font->width;
@@ -990,7 +990,7 @@ void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 int _bmp_draw_should_stop = 0;
 void bmp_draw_request_stop() { _bmp_draw_should_stop = 1; }
 
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
 /** converting dryos palette to vxworks one */
 char bmp_lut[80] = { 0xF, 0x3, 0x2, 0x2, 0x7, 0xC, 0x5, 0x5, 0x6, 0xC, 0xD, 0xC, 0xB, 0xC, 0xB, 0xE,
     0xB, 0xB, 0x2, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB,
@@ -1033,7 +1033,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
         {
             if (_bmp_draw_should_stop) return;
             y = (ys-y0)*bmp->height/h;
-            #ifdef CONFIG_5DC
+            #ifdef CONFIG_VXWORKS
             uint8_t * const b_row = bvram + ys/2 * BMPPITCH;
             #else
             uint8_t * const b_row = bvram + ys * BMPPITCH;
@@ -1056,7 +1056,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
                     if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
                     if ((p == 0x14 || p == 0x3) && pix == 0) continue;
                 }
-                #ifdef CONFIG_5DC
+                #ifdef CONFIG_VXWORKS
                 char* p = &b_row[ xs/2 ]; 
                 SET_4BIT_PIXEL(p, xs, bmp_lut[pix]);
                 #else
@@ -1072,7 +1072,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
             if (_bmp_draw_should_stop) return;
             y = (ys-y0)*bmp->height/h;
             int ysc = COERCE(ys, BMP_H_MINUS, BMP_H_PLUS);
-            #ifdef CONFIG_5DC
+            #ifdef CONFIG_VXWORKS
             uint8_t * const b_row =              bvram + ysc/2 * BMPPITCH;
             #else
             uint8_t * const b_row =              bvram + ysc * BMPPITCH;
@@ -1112,7 +1112,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
                     if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
                     if ((p == 0x14 || p == 0x3) && bmp_color == 0) continue;
                 }
-                #ifdef CONFIG_5DC
+                #ifdef CONFIG_VXWORKS
                 char* p = &b_row[ xs/2 ]; 
                 SET_4BIT_PIXEL(p, xs, bmp_lut[bmp_color]);
                 #else
@@ -1202,7 +1202,7 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
                 if (j*8 + k < cw)
                 {
                     if ((buff[ptr+j] & (1 << (7-k)))) 
-                        #ifdef CONFIG_5DC
+                        #ifdef CONFIG_VXWORKS
                         bmp_putpixel_fast(bvram, px+j*8+k+xo, py + (i+yo)*2, fg);
                         #else
                         bmp_putpixel_fast(bvram, px+j*8+k+xo, py+i+yo, fg);
@@ -1399,7 +1399,7 @@ static void bmp_dim_line(void* dest, size_t n, int even)
     if (even)
     {
         for( ; dst < end; dst++)
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
             *dst = (*dst & 0x0F0F0F0F) | 0x20202020;
 #else
             *dst = (*dst & 0x00FF00FF) | 0x02000200;
@@ -1408,7 +1408,7 @@ static void bmp_dim_line(void* dest, size_t n, int even)
     else
     {
         for( ; dst < end; dst++)
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
             *dst = (*dst & 0xF0F0F0F0) | 0x02020202;
 #else
             *dst = (*dst & 0xFF00FF00) | 0x00020002;
@@ -1424,7 +1424,7 @@ void bmp_dim()
     if (!b) return;
     int i;
     //int j;
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
     for (i = 0; i < 480; i+=2)
     {
         bmp_dim_line(&b[BM(0,i)/4], 360, (i/2)%2);

@@ -1626,7 +1626,7 @@ int handle_arrow_keys(struct event * event)
         {
             switch (arrow_keys_mode)
             {
-                #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D) && !defined(CONFIG_500D)
+                #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D) && !defined(CONFIG_500D) && !defined(CONFIG_40D)
                 case 1: input_toggle(); break;
                 #endif
                 case 2: 
@@ -2387,6 +2387,7 @@ void brightness_saturation_reset()
 
 void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shift)
 {
+#ifndef CONFIG_40D // LCD_Palette not known
     // 255 is reserved for ClearScreen, don't alter it
     for (int i = 0; i < 255; i++)
     {
@@ -2416,6 +2417,7 @@ void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shif
         EngDrvOut(0xC0F14400 + i*4, new_palette_entry);
         EngDrvOut(0xC0F14800 + i*4, new_palette_entry);
     }
+#endif
 }
 
 void grayscale_menus_step()
@@ -2805,7 +2807,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
 #ifdef CONFIG_5D2
     *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_2);
-#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5DC) && !defined(CONFIG_7D) // all new cameras should work with this method
+#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_VXWORKS) && !defined(CONFIG_7D) // all new cameras should work with this method
     *src_buf = (void*)shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_1 + 720*480*2);
 #else // just use some reasonable defaults that won't crash the camera
@@ -2818,7 +2820,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
 // type 2 filters: compute histogram on original image
 int display_filter_enabled()
 {
-    #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5DC) || defined(CONFIG_5D3_MINIMAL) // not working on these cameras
+    #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_VXWORKS) || defined(CONFIG_5D3_MINIMAL) // not working on these cameras
     return 0;
     #endif
 
@@ -2845,7 +2847,7 @@ void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
             EnableImagePhysicalScreenParameter();
         }
     }
-#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5DC) && !defined(CONFIG_7D)// all new cameras should work with this method
+#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_VXWORKS) && !defined(CONFIG_7D) // all new cameras should work with this method
     YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_1 + 720*480*2;
 #endif
 }
@@ -3091,7 +3093,7 @@ static struct menu_entry display_menus[] = {
                     .icon_type = IT_DISABLE_SOME_FEATURE,
                     //.essential = FOR_LIVEVIEW,
                 },
-            #if !defined(CONFIG_5DC) && !defined(CONFIG_5D3)
+            #if !defined(CONFIG_VXWORKS) && !defined(CONFIG_5D3)
                 {
                     .name = "Force HDMI-VGA",
                     .priv = &hdmi_force_vga, 

@@ -1605,7 +1605,7 @@ PROP_HANDLER( PROP_WB_KELVIN_LV )
     lens_info.kelvin = value;
 }
 
-#ifndef CONFIG_5DC
+#if !defined(CONFIG_5DC) && !defined(CONFIG_40D)
 uint16_t custom_wb_gains[CUSTOM_WB_PROP_LEN];
 PROP_HANDLER(PROP_CUSTOM_WB)
 {
@@ -1619,7 +1619,7 @@ PROP_HANDLER(PROP_CUSTOM_WB)
 
 void lens_set_custom_wb_gains(int gain_R, int gain_G, int gain_B)
 {
-#ifndef CONFIG_5DC
+#if !defined(CONFIG_5DC) && !defined(CONFIG_40D)
     // normalize: green gain should be always 1
     //~ gain_G = COERCE(gain_G, 4, 32000);
     //~ gain_R = COERCE(gain_R * 1024 / gain_G, 128, 32000);
@@ -2055,7 +2055,7 @@ int bv_set_rawaperture(unsigned aperture)
     }
 }
 
-int bv_expsim_shift()
+void bv_expsim_shift()
 {
     if (!lv) return;
     if (!expsim) return;
@@ -2092,7 +2092,7 @@ int bv_expsim_shift()
             }
         }
     }
-    return 0;
+    return;
 }
 
 int bv_auto_should_enable()

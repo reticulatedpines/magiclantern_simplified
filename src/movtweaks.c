@@ -871,6 +871,7 @@ CONFIG_INT("lvae.disp.gain", lvae_disp_gain, 0);
 
 static PROP_INT(PROP_BV, prop_bv);
 
+#if 0
 void update_lvae_for_autoiso_n_displaygain()
 {
 #if !defined(CONFIG_5D3) && !defined(CONFIG_500D)
@@ -958,6 +959,7 @@ void update_lvae_for_autoiso_n_displaygain()
     LVAE_ISO_SPEED = lv_dispsize > 1 ? 50 : lvae_iso_speed;
 #endif
 }
+#endif
 
 /*int gain_to_ev(int gain)
 {

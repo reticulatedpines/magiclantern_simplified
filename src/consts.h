@@ -37,3 +37,7 @@
 #ifdef CONFIG_7D
 #include "../platform/7D.203/consts.h"
 #endif
+
+#ifdef CONFIG_40D
+#include "../platform/40D.111/consts.h"
+#endif

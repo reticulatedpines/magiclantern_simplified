@@ -41,6 +41,10 @@
 #include "../platform/7D.203/gui.h"
 #endif
 
+#ifdef CONFIG_40D
+#include "../platform/40D.111/gui.h"
+#endif
+
 #define FAKE_BTN -123456
 #define IS_FAKE(event) (event->arg == FAKE_BTN)
 

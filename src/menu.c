@@ -1333,7 +1333,7 @@ menus_display(
                 //~ MENU_NAV_HELP_STRING
         //~ );
 
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
     bmp_fill(0, orig_x, y, 720, 42);
     bmp_fill(COLOR_WHITE, orig_x, y+42, 720, 1);
 #else
@@ -1347,7 +1347,7 @@ menus_display(
         if (IS_SUBMENU(menu))
             continue;
         int color_selected = advanced_hidden_edit_mode ? COLOR_DARK_RED : COLOR_BLUE;
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
         int fg = menu->selected ? color_selected : COLOR_WHITE;
         int bg = menu->selected ? color_selected : 0;
 #else
@@ -1367,7 +1367,7 @@ menus_display(
             int icon_w = 0;
             if (menu->icon)
             {
-            #ifndef CONFIG_5DC
+            #ifndef CONFIG_VXWORKS
                 bmp_fill(bg, x+1, y, 200, 40);
             #endif
                 if (menu->icon == ICON_ML_PLAY) icon_w = playicon_square(x,y,fg);
@@ -2187,7 +2187,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_FUNC:
     //~ case BGMT_LV:
 #endif
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
     case BGMT_JUMP:
 #endif
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }

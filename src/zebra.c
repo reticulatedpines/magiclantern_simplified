@@ -4208,6 +4208,7 @@ static void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lu
 
 void digic_zoom_overlay_step()
 {
+#if !defined(CONFIG_VXWORKS)
     static int prev = 0;
     if (digic_zoom_overlay_enabled())
     {
@@ -4236,10 +4237,8 @@ void digic_zoom_overlay_step()
             // Compute offset for HD buffer
             int offset = corner_x0 * 2 + corner_y0 * vram_hd.pitch;
 
-#ifndef CONFIG_5DC
             // Redirect the display buffer to show the magnified area
             YUV422_LV_BUFFER_DISPLAY_ADDR = prev + offset;
-#endif
             
             // and make sure the pitch is right
             EngDrvOut(0xc0f140e8, vram_hd.pitch - vram_lv.pitch);
@@ -4251,6 +4250,7 @@ void digic_zoom_overlay_step()
         if (prev) EngDrvOut(0xc0f140e8, 0);
         prev = 0;
     }
+#endif
 }
 
 /**

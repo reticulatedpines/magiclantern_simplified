@@ -30,6 +30,10 @@
 #ifndef _dryos_h_
 #define _dryos_h_
 
+#if defined(CONFIG_5DC) || defined(CONFIG_40D)
+#define CONFIG_VXWORKS
+#endif
+
 #include "arm-mcr.h"
 #include "dialog.h"
 #include "gui.h"

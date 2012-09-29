@@ -14,7 +14,7 @@ extern int cfg_hibr_wav_record;
 
 int beep_playing = 0;
 
-#if defined(CONFIG_50D) || defined(CONFIG_5DC) || defined(CONFIG_5D3_MINIMAL) // beep not working, keep dummy stubs
+#if defined(CONFIG_50D) || defined(CONFIG_VXWORKS) || defined(CONFIG_5D3_MINIMAL) // beep not working, keep dummy stubs
     void unsafe_beep(){}
     void beep(){}
     void Beep(){}

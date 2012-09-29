@@ -68,7 +68,7 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
  */
 
 /** These are the hard limits - never ever write outside them! */
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
 
 #define BMP_W_PLUS 720
 #define BMP_W_MINUS 0
@@ -80,7 +80,13 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
 #define BMP_HDMI_OFFSET 0
 
 /** Returns a pointer to the real BMP vram */
+#ifdef CONFIG_5DC
 inline uint8_t* bmp_vram_real() { return (uint8_t*) MEM(0x29328); }
+#elif CONFIG_40D
+inline uint8_t* bmp_vram_real() { return (uint8_t*) MEM(0x1E330); }
+#else
+error
+#endif
 
 extern int bmp_vram_idle_ptr;
 
@@ -160,7 +166,7 @@ inline uint8_t* bmp_vram_idle()
 
 inline void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color)
 {
-    #ifdef CONFIG_5DC
+    #ifdef CONFIG_VXWORKS
     char* p = (char*)&bvram[(x)/2 + (y)/2 * BMPPITCH]; 
     SET_4BIT_PIXEL(p, x, color);
     #else
@@ -316,7 +322,7 @@ bmp_fill(
  0xFF // white
  -------------------------------
  */
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
     #define COLOR_EMPTY             0x00 // total transparent
     #define COLOR_BG                0x33 // transparent gray
     #define COLOR_BG_DARK           0xAA // transparent black
@@ -534,7 +540,7 @@ extern void *ReleaseRecursiveLock(void *lock);
 #define ICON_ML_SUBMENU -100
 
 /** 5dc has to use some different icons than dryos cameras */
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
 #define ICON_CF 0xAC96EE
 #define ICON_AE 0xB096EE
 #define ICON_P_SQUARE 0xA596EE
