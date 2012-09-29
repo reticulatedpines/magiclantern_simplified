@@ -6650,7 +6650,7 @@ INIT_FUNC("shoot", shoot_init);
 
 void iso_refresh_display() // in photo mode
 {
-    #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500)
+    #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D)
     if (!lv && display_idle())
     {
         if (lens_info.raw_iso % 8 != 0)
