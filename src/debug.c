@@ -2092,6 +2092,25 @@ static void flashlight_lcd(void* priv, int delta)
 }
 */
 
+static void image_buf_display(
+    void *            priv,
+    int            x,
+    int            y,
+    int            selected
+)
+{
+    int a,b;
+    GetMemoryInformation(&a,&b);
+    int m = MALLOC_FREE_MEMORY;
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Image Buffers: %dx%d, %dx%d",
+        vram_lv.width, vram_lv.height, 
+        vram_hd.width, vram_hd.height
+    );
+}
+
 static void meminfo_display(
     void *            priv,
     int            x,
@@ -2692,6 +2711,13 @@ struct menu_entry debug_menus[] = {
         .select = (void(*)(void*,int))run_in_separate_task,
         .priv = save_cpu_usage_log_task,
         .help = "Saves a log with the CPU usage for all tasks (Canon+ML).",
+    },
+    {
+        .name = "Image buffers",
+        .display = image_buf_display,
+        .icon_type = IT_ALWAYS_ON,
+        .help = "Display the image buffer sizes (LiveView and Craw).",
+        //.essential = 0,
     },
     {
         .name = "Free Memory",
