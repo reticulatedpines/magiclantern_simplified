@@ -197,3 +197,5 @@ NSTUB(0xFFD4D2F0, vsnprintf)
 
 NSTUB( 0xffd44858, DeleteTask )
 NSTUB( 0xffd45224, QueryTaskByName)
+
+NSTUB( 0xFF811728, init_task )

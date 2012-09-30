@@ -16,7 +16,8 @@
 #include "gui.h"
 #include "menu.h"
 #include "state-object.h"
-//~ #include "../../src/cache_hacks.h"
+#include "cache_hacks.h"
+#include "version.h"
 
 /** Was this an autoboot or firmware file load? */
 int autoboot_loaded;
@@ -32,6 +33,8 @@ zero_bss( void )
         *(bss++) = 0;
 }
 
+int my_init_task(int a, int b, int c, int d);
+
 // this is just restart.. without copying
 // (kept for compatibility with existing reboot.c)
 void copy_and_restart() {
@@ -40,11 +43,24 @@ void copy_and_restart() {
     zero_bss();
     
     // lock down caches
-    //~ cache_lock();
+    uint32_t old_int = cli();
+    clean_d_cache();
+    flush_caches();
+    cache_lock();
+    sei(old_int);
     
-    // jump to modified Canon startup code from entry.S
-    // (which will call CreateMyTasks - where we create our tasks)
-    init_code_run();
+    // reserve 512 KB or RAM for ML (original: MOV R1, 0xc00000; modified: MOV R1, 0xB80000)
+    cache_fake(0xff811354, 0xE3A0172E, TYPE_DCACHE);
+
+    /* patch init code to start our init task instead of canons default */
+    cache_fake(0xff8114a8, (uint32_t) my_init_task, TYPE_DCACHE);
+
+    // replace gui_main_task with our modified version
+    hijack_gui_main_task();
+    
+    /* now restart firmware */
+    void (*reset)(void) = (void*) ROMBASEADDR;
+    reset();
     
     // unreachable
     while(1) LEDBLUE = LEDON;
@@ -117,6 +133,7 @@ int ml_gui_initialized = 0; // 1 after gui_main_task is started
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
 {  
+    bmp_vram_idle_ptr = malloc(360*240);
     load_fonts();
     while(1)
     {
@@ -223,15 +240,32 @@ void bzero32(void* addr, size_t N)
 
 int bmp_vram_idle_ptr;
 
-void my_init_task()
+int my_init_task(int a, int b, int c, int d)
 {
-    msleep(1000);
-    //~ hijack_gui_main_task();
-    bmp_vram_idle_ptr = malloc(360*240);
-    my_big_init_task();
-}
+    // Call their init task
+    int ans = init_task(a,b,c,d);
 
-void CreateMyTasks()
-{
-    task_create("my_init_task", 0x1f, 0x2000, my_init_task, 0);
+    // Re-write the version string.
+    // Don't use strcpy() so that this can be done
+    // before strcpy() or memcpy() are located.
+    extern char additional_version[];
+    additional_version[0] = '-';
+    additional_version[1] = 'm';
+    additional_version[2] = 'l';
+    additional_version[3] = '-';
+    additional_version[4] = build_version[0];
+    additional_version[5] = build_version[1];
+    additional_version[6] = build_version[2];
+    additional_version[7] = build_version[3];
+    additional_version[8] = build_version[4];
+    additional_version[9] = build_version[5];
+    additional_version[10] = build_version[6];
+    additional_version[11] = build_version[7];
+    additional_version[12] = build_version[8];
+    additional_version[13] = '\0';
+
+    msleep(3000);
+    
+    task_create("my_big_init_task", 0x1f, 0x2000, my_big_init_task, 0);
+    return ans;
 }
