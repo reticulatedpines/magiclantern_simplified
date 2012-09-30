@@ -26,7 +26,6 @@
 #include "dryos.h"
 #include "bmp.h"
 #include <property.h>
-#include "cache_hacks.h"
 
 struct semaphore * gui_sem;
 
@@ -76,15 +75,11 @@ my_gui_main_task( void )
 		if( !event )
 			goto event_loop_bottom;
 
-		static int k; k++;
-		if (k%2) LEDBLUE = LEDOFF;
-		else LEDBLUE = LEDON;
-		
-		//~ if (!magic_is_off() && event->type == 0)
-		//~ {
-			//~ if (handle_buttons(event) == 0) // ML button/event handler
-				//~ goto event_loop_bottom;
-		//~ }
+		if (!magic_is_off() && event->type == 0)
+		{
+			if (handle_buttons(event) == 0) // ML button/event handler
+				goto event_loop_bottom;
+		}
 
 		if (IS_FAKE(event)) event->arg = 0;
 
@@ -205,5 +200,12 @@ queue_clear:
 
 void hijack_gui_main_task()
 {
-    cache_fake(0xff85bcb8, my_gui_main_task, TYPE_DCACHE);
+    //~ taskptr will point to the location of GuiMainTask's task struct.
+    int taskptr = QueryTaskByName("GuiMainTask");
+    
+    //~ delete canon's GuiMainTask.
+    DeleteTask(taskptr);
+    
+    //~ start our GuiMainTask.
+    task_create("GuiMainTask", 0x17, 0x2000, my_gui_main_task, 0);
 }
