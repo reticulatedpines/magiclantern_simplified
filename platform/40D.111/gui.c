@@ -44,8 +44,10 @@ static int handle_buttons(struct event * event)
 	return 1;
 }
 
-static struct msg_queue * msg_queue = 0x11e00;
-static struct semaphore * sem = 0x11E04;
+#define g_mq MEM(0x11e00)
+#define g_sem MEM(0x11E04)
+//~ static struct gui_mq * mq = 0x11e00;
+//~ static struct semaphore * sem = 0x11E04;
 static int * obj = 0x28CC;
 static int * timer_obj = 0x28f8;
 
@@ -58,18 +60,17 @@ static void
 my_gui_main_task( void )
 {
 	gui_init_end();
-	uint32_t * obj = 0;
 
 	while(1)
 	{
 		struct event * event;
 		msg_queue_receive(
-			msg_queue,
+			g_mq,
 			&event,
 			0
 		);
 
-		take_semaphore(sem, 0);
+		take_semaphore(g_sem, 0);
 		
 		if( !event )
 			goto event_loop_bottom;
@@ -179,7 +180,7 @@ my_gui_main_task( void )
 		}
 
 event_loop_bottom:
-		give_semaphore(sem);
+		give_semaphore(g_sem);
 		continue;
 
 queue_clear:
@@ -197,4 +198,14 @@ queue_clear:
 
 // double-check gui main task first!!!
 
-//~ TASK_OVERRIDE( gui_main_task, my_gui_main_task );
+void hijack_gui_main_task()
+{
+    //~ taskptr will point to the location of GuiMainTask's task struct.
+    int taskptr = QueryTaskByName("GuiMainTask");
+    
+    //~ delete canon's GuiMainTask.
+    DeleteTask(taskptr);
+    
+    //~ start our GuiMainTask.
+    task_create("GuiMainTask", 0x17, 0x2000, my_gui_main_task, 0);
+}
