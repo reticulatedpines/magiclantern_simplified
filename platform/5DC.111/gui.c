@@ -17,6 +17,21 @@
 
 struct semaphore * gui_sem;
 
+// return 0 if you want to block this event
+static int handle_buttons(struct event * event)
+{
+	ASSERT(event->type == 0)
+	
+	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
+	if (handle_common_events_startup(event) == 0) return 0;
+	extern int ml_started;
+	if (!ml_started) return 1;
+
+	if (handle_common_events_by_feature(event) == 0) return 0;
+
+	return 1;
+}
+
 //~ Our version of GuiMainTask. We delete canon's task and replace it with ours
 //~ to hijack the task.
 void my_gui_task( void )
@@ -37,9 +52,8 @@ void my_gui_task( void )
         
         if (event->type == 0)
         {
-            if (handle_ml_menu_erase(event) == 0) goto event_loop_bottom;
-            if (handle_ml_menu_keys(event) == 0) goto event_loop_bottom;
-            if (handle_buttons_being_held(event) == 0) goto event_loop_bottom;
+            if (handle_buttons(event) == 0) 
+                goto event_loop_bottom;
         }
         
         switch ( event->type )

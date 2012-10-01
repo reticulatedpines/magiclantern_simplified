@@ -1253,6 +1253,7 @@ void trap_focus_toggle_from_af_dlg()
 }
 
 static struct menu_entry trap_focus_menu[] = {
+#ifndef CONFIG_5DC
     {
         .name = "Trap Focus",
         .priv       = &trap_focus,
@@ -1262,6 +1263,7 @@ static struct menu_entry trap_focus_menu[] = {
         //.essential = FOR_PHOTO,
         .icon_type = IT_BOOL,
     },
+#endif
 };
 static struct menu_entry focus_menu[] = {
 #if !defined(CONFIG_5DC)

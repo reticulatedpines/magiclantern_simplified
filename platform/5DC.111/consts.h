@@ -37,11 +37,8 @@
 
 #define CURRENT_DIALOG_MAYBE 0
 
-#define DLG_PLAY 1
-#define DLG_MENU 2
-
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && MEM(0x27D8)) // StartPl1App
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && MEM(0x4C48)) // StartMenuMainHeaderApp
 
 #define NUM_PICSTYLES 9
 #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
@@ -64,7 +61,7 @@
  #define AF_BTN_HALFSHUTTER 0
  #define AF_BTN_STAR 2
 
-#define IMGPLAY_ZOOM_LEVEL_ADDR (0x2E9C4) // dec GuiImageZoomDown and look for a negative counter
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x27DC) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
 
 #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]

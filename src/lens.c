@@ -34,7 +34,7 @@
 // for movie logging
 char* mvr_logfile_buffer = 0;
 
-#if defined(CONFIG_5D2) || defined(CONFIG_5D3)
+#if defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_5DC)
 #define CONFIG_FULLFRAME
 #endif
 

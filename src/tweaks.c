@@ -812,21 +812,6 @@ play_set_wheel_display(
 }
 
 CONFIG_INT("quick.delete", quick_delete, 0);
-static void
-quick_delete_print(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Quick Erase : %s", 
-        quick_delete ? "SET+Erase" : "OFF"
-    );
-}
 
 int timelapse_playback = 0;
 
@@ -880,7 +865,18 @@ int handle_set_wheel_play(struct event * event)
         }
         #endif
     }
-    
+
+    #if defined(CONFIG_5DC) // SET does not send "unpress", so just move cursor on "erase" by default
+    if (quick_delete)
+    {
+        if (event->param == BGMT_TRASH)
+        {
+            fake_simple_button(BGMT_WHEEL_DOWN);
+            return 1;
+        }
+    }
+    #endif
+
     return 1;
 }
 
@@ -1195,16 +1191,25 @@ tweak_task( void* unused)
                 {
                     info_led_on();
                     quickzoom_pressed = 0;
+                    #ifdef CONFIG_5DC
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - 1);
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
+                        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
+                        fake_simple_button(BGMT_PRESS_UP);
+                        fake_simple_button(BGMT_UNPRESS_UDLR);
+                        // goes a bit off-center, no big deal
+                    #else
                     for (int i = 0; i < 30; i++)
                     {
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1));
-                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - (quickzoom == 3 ? 2 : 1));
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - 1);
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
                         if (quickzoom == 3) play_zoom_center_on_selected_af_point();
                         else if (quickzoom == 4) play_zoom_center_on_last_af_point();
                         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
                         msleep(20);
                     }
                     fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                    #endif
                     msleep(800); // not sure how to tell when it's safe to start zooming out
                     info_led_off();
                 }
@@ -1220,7 +1225,15 @@ tweak_task( void* unused)
                 else
                 {
                     msleep(300);
-                    while (!quickzoom_unpressed && PLAY_MODE) { fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
+                    while (!quickzoom_unpressed && PLAY_MODE) 
+                    { 
+                        #ifdef CONFIG_5DC
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MIN(MEM(IMGPLAY_ZOOM_LEVEL_ADDR) + 3, IMGPLAY_ZOOM_LEVEL_MAX);
+                        MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MIN(MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) + 3, IMGPLAY_ZOOM_LEVEL_MAX);
+                        #endif
+                        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+                        msleep(50);
+                    }
                     fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
                     quickzoom_pressed = 0;
                 }
@@ -1228,7 +1241,15 @@ tweak_task( void* unused)
             if (get_zoom_out_pressed())
             {
                 msleep(300);
-                while (get_zoom_out_pressed()) { fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); msleep(50); }
+                while (get_zoom_out_pressed()) 
+                { 
+                    #ifdef CONFIG_5DC
+                    MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 3, 0);
+                    MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) - 3, 0);
+                    #endif
+                    fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE);
+                    msleep(50); 
+                }
                 fake_simple_button(BGMT_UNPRESS_ZOOMOUT_MAYBE);
             }
             play_zoom_center_pos_update();
@@ -1283,7 +1304,7 @@ PROP_HANDLER(PROP_GUI_STATE)
     int gui_state = buf[0];
     extern int hdr_enabled;
 
-    if (gui_state == 3 && image_review_time == 0xff && quick_review_allow_zoom==1
+    if (gui_state == GUISTATE_QR && image_review_time == 0xff && quick_review_allow_zoom==1
         && !is_intervalometer_running() && !hdr_enabled && !recording)
     {
         fake_simple_button(BGMT_PLAY);
@@ -3197,11 +3218,15 @@ struct menu_entry play_menus[] = {
         #endif
         #ifndef CONFIG_5D3 // Canon has it
             {
-                .name = "Quick Erase",
+                .name = "Quick Erase\b\b",
                 .priv = &quick_delete, 
-                .select = menu_binary_toggle, 
-                .display = quick_delete_print,
+                .max = 1,
+                #ifdef CONFIG_5DC
+                .help = "Delete files quickly with fewer keystrokes (be careful!!!)",
+                #else
+                .choices = (const char *[]) {"OFF", "SET+Erase"},
                 .help = "Delete files quickly with SET+Erase (be careful!!!)",
+                #endif
                 //.essential = FOR_PHOTO,
             },
         #endif

@@ -61,8 +61,8 @@ typedef unsigned gui_event_t;
 #define GMT_GUICMD_LOCK_OFF -12345678
 
 
-#define BGMT_Q BGMT_PRESS_DIRECT_PRINT
-#define BGMT_LV BGMT_JUMP
+//~ #define BGMT_Q 
+#define BGMT_LV BGMT_PRESS_DIRECT_PRINT
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PRESS_DIRECT_PRINT
 

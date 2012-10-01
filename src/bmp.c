@@ -266,7 +266,11 @@ bmp_puts(
     {
         if( c == '\n' )
         {
+            #ifdef CONFIG_VXWORKS
+            row = first_row += pitch * font->height/2;
+            #else
             row = first_row += pitch * font->height;
+            #endif
             (*y) += font->height;
             (*x) = initial_x;
             continue;
@@ -462,22 +466,32 @@ bmp_hexdump(
             fontspec,
             x,
             y,
+            #ifdef CONFIG_VXWORKS // low-res screen, need to use larger font
+            "%08x: %08x %08x %08x %08x : %04x",
+            #else
             "%08x: %08x %08x %08x %08x %08x %08x %08x %08x : %04x",
+            #endif
             (unsigned) d,
             len >  0 ? MEMX(d+0) : 0,
             len >  4 ? MEMX(d+1) : 0,
             len >  8 ? MEMX(d+2) : 0,
             len > 12 ? MEMX(d+3) : 0,
+            #ifndef CONFIG_VXWORKS
             len > 16 ? MEMX(d+4) : 0,
             len > 20 ? MEMX(d+5) : 0,
             len > 24 ? MEMX(d+6) : 0,
             len > 28 ? MEMX(d+7) : 0,
+            #endif
             (void*)d - (void*)buf
         );
-
         y += fontspec_height( fontspec );
+        #ifdef CONFIG_VXWORKS
+        d += 4;
+        len -= 16;
+        #else
         d += 8;
         len -= 32;
+        #endif
     } while(len > 0);
 }
 #endif

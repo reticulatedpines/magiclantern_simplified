@@ -540,7 +540,6 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1483,7 +1482,7 @@ static void dbg_memspy_update()
 #ifdef CONFIG_VXWORKS
         int x =  10 + 16 * 22 * (k % 2);
         int y =  10 + 20 * (k / 2);
-        bmp_printf(fnt, x, y, "%8x:%2d:%8x", addr, dbg_memchanges[i], newval);
+        bmp_printf(FONT_MED, "%8x:%2d:%8x", addr, dbg_memchanges[i], newval);
         k = (k + 1) % 30;
 #else
         int x =  10 + 8 * 22 * (k % 4);
@@ -1919,6 +1918,9 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
 
+            //~ bmp_hexdump(FONT_MED, 0, 480-120, MEM(0xF1D0), 32*10);
+
+        bmp_printf(FONT_MED, 50, 50, "%d %d ", gui_state, image_review_time);
         if (screenshot_sec)
         {
             info_led_blink(1, 20, 1000-20-200);
@@ -2846,22 +2848,33 @@ static void dbg_draw_props(int changed)
     for (i = 0; i < dbg_propn; i++)
     {
         unsigned x =  80;
-        unsigned y =  15 + i * font_small.height;
         unsigned property = dbg_props[i];
         unsigned len = dbg_props_len[i];
-        unsigned fnt = FONT_SMALL;
-        if (i == changed) fnt = FONT(FONT_SMALL, 5, COLOR_BG);
+#ifdef CONFIG_VXWORKS
+        uint32_t fnt = FONT_MED;
+        unsigned y =  15 + i * font_med.height;
+#else
+        uint32_t fnt = FONT_SMALL;
+        unsigned y =  15 + i * font_small.height;
+#endif
+        if (i == changed) fnt = FONT(fnt, 5, COLOR_BG);
         char msg[100];
         snprintf(msg, sizeof(msg),
+#ifdef CONFIG_VXWORKS
+            "%08x %04x: %8lx %8lx %8lx %8lx",
+#else
             "%08x %04x: %8lx %8lx %8lx %8lx %8lx %8lx",
+#endif
             property,
             len,
             len > 0x00 ? dbg_props_a[i] : 0,
             len > 0x04 ? dbg_props_b[i] : 0,
             len > 0x08 ? dbg_props_c[i] : 0,
-            len > 0x0c ? dbg_props_d[i] : 0,
-            len > 0x10 ? dbg_props_e[i] : 0,
+            len > 0x0c ? dbg_props_d[i] : 0
+            #ifndef CONFIG_VXWORKS
+           ,len > 0x10 ? dbg_props_e[i] : 0,
             len > 0x14 ? dbg_props_f[i] : 0
+            #endif
         );
         bmp_puts(fnt, &x, &y, msg);
     }
@@ -2929,7 +2942,7 @@ ack:
 #if defined(CONFIG_500D)
 #define num_properties 2048
 #elif defined(CONFIG_5DC)
-#define num_properties 0
+#define num_properties 202
 #else
 #define num_properties 8192
 #endif
@@ -2947,7 +2960,7 @@ debug_init( void )
     unsigned i, j, k;
     unsigned actual_num_properties = 0;
     
-    unsigned is[] = {0x80, 0xe, 0x5, 0x4, 0x2, 0x1, 0x0};
+    unsigned is[] = {0x2, 0x80, 0xe, 0x5, 0x4, 0x1, 0x0};
     for( i=0 ; i<COUNT(is) ; i++ )
     {
         for( j=0 ; j<=0xA ; j++ )
@@ -2968,7 +2981,6 @@ debug_init( void )
     }
 
 thats_all:
-
     prop_register_slave(
         property_list,
         actual_num_properties,
@@ -3486,11 +3498,11 @@ void config_menu_init()
 
 void spy_event(struct event * event)
 {
-    if (get_draw_event())
+    if (1)
     {
         static int kev = 0;
         kev++;
-        bmp_printf(FONT_SMALL, 0, 400, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
+        bmp_printf(FONT_MED, 0, 400, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
             kev,
             event->type, 
             event->param, 
@@ -3532,7 +3544,9 @@ int handle_buttons_being_held(struct event * event)
     if (event->param == BGMT_MENU) set_pressed = 0;
     if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
     if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
+    #ifndef CONFIG_5DC
     if (event->param == BGMT_PRESS_SET) set_pressed = 1;
+    #endif
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (event->param == BGMT_JOY_CENTER) joy_center_pressed = 1;
     if (event->param == BGMT_UNPRESS_UDLR) joy_center_pressed = 0;

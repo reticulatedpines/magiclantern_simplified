@@ -72,7 +72,7 @@ void dump_with_buffer(int addr, int len, char* filename)
         int address = addr;
         while (address<addr+len)
         {
-            char buf[0x10000];
+            static char buf[0x10000];
             memcpy(buf, (void*)address, 0x10000);
             FIO_WriteFile(f, buf, 0x10000);
             address += 0x10000;
@@ -148,11 +148,13 @@ int bmp_vram_idle_ptr;
 
 void my_init_task()
 {
+    LEDBLUE = LEDON;
     msleep(1000);
     hijack_gui_main_task();
     bmp_vram_idle_ptr = malloc(360*240);
     my_big_init_task();
-    hijack_event_dispatches();
+    LEDBLUE = LEDOFF;
+    //~ hijack_event_dispatches();
 }
 
 void Create5dplusInit()
@@ -238,9 +240,9 @@ void my_big_init_task()
                 streq(task->name, "ms100_clock_task") ||
                 streq(task->name, "notifybox_task") ||
                 //~ streq(task->name, "plugins_task") ||
-                streq(task->name, "seconds_clock_task") ||
+                streq(task->name, "clock_task") ||
                 streq(task->name, "shoot_task") ||
-                //~ streq(task->name, "tweak_task") ||
+                streq(task->name, "tweak_task") ||
             0 )
         #endif
         {

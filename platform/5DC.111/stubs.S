@@ -598,3 +598,5 @@ NSTUB( 0xFFB5AE1C, workQPanic )
 NSTUB( 0xFFB49B98, write )
 
 NSTUB(0xFFB1F578, CreateRecursiveLock)
+
+NSTUB(0xff81138c, init_task)

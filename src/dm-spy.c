@@ -26,7 +26,7 @@ static int len = 0;
 void my_DebugMsg(int class, int level, char* fmt, ...)
 {
     if (!buf) return;
-    
+        
     if (class == 21) // engio
         return;
     
