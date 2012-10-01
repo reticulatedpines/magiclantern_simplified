@@ -6245,16 +6245,16 @@ shoot_task( void* unused )
         {
             if (!recording)
             {
+                if (HDR_ENABLED)
+                {
+                    lens_wait_readytotakepic(64);
+                    hdr_shot(1,1); // skip the middle exposure, which was just taken
+                    lens_wait_readytotakepic(64); 
+                }
                 if (is_focus_stack_enabled())
                 {
                     lens_wait_readytotakepic(64);
                     focus_stack_run(1); // skip first exposure, we already took it
-                    lens_wait_readytotakepic(64); 
-                }
-                else if (HDR_ENABLED)
-                {
-                    lens_wait_readytotakepic(64);
-                    hdr_shot(1,1); // skip the middle exposure, which was just taken
                     lens_wait_readytotakepic(64); 
                 }
             }

@@ -22,6 +22,7 @@ ML_OBJS-y = \
 	$(SRC_DIR)/entry.o \
 	installer.o \
 	$(PLATFORM_DIR)/stubs.o \
+	$(PLATFORM_DIR)/misc.o \
 	version.o \
 	bmp.o \
 	font-large.o \

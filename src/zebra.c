@@ -4286,7 +4286,7 @@ static void draw_zoom_overlay(int dirty)
     uint16_t*       lvr = (uint16_t*) lv->vram;
     uint16_t*       hdr = (uint16_t*) hd->vram;
 
-    #ifdef CONFIG_5D3 // might work on other cameras too, need to test
+    #if defined(CONFIG_5D3) || defined(CONFIG_1100D) // might work on other cameras too, need to test
     lvr = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     #endif
 
@@ -4415,7 +4415,7 @@ static void draw_zoom_overlay(int dirty)
         if (y%X==0) s += hd->width;
     }
 
-    #ifndef CONFIG_5D3
+    #if !(defined(CONFIG_5D3) || defined(CONFIG_1100D))
     if (video_mode_fps <= 30 || !is_movie_mode())
     #endif
     {
