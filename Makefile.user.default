@@ -2,21 +2,21 @@
 #Copy me to Makefile.user, keeping ONLY the options that you want to customize
 
 # for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM-ABI=elf
+CCACHE=ccache
 ARM_ABI=elf
-
 ARM_PATH=~/arm-toolchain462
 ARM_BINPATH=$(ARM_PATH)/bin
 GCC_VERSION=4.6.2
-CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
 OBJCOPY=$(ARM_BINPATH)/arm-$(ARM_ABI)-objcopy
 AR=$(ARM_BINPATH)/arm-$(ARM_ABI)-ar
 RANLIB=$(ARM_BINPATH)/arm-$(ARM_ABI)-ranlib
 READELF=$(ARM_BINPATH)/arm-$(ARM_ABI)-readelf
 ARM_LIBC_A = $(ARM_PATH)/arm-$(ARM_ABI)/lib/libc.a
-LD=$(CC)
-HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
 PYTHON=python2
+CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
+HOST_CC=gcc
+LD=$(CC)
 
 # Naming convention for Magic Lantern builds:
 # General rules:
@@ -40,12 +40,13 @@ VERSION:=v2.3.NEXT.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION)
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
-CONFIG_PTP 			= n
+CONFIG_PTP 		= n
 CONFIG_PTP_CHDK 	= n
 CONFIG_PTP_ML 		= n
 CONFIG_PLUGINS 		= n
 CONFIG_CONSOLE		= n
 CONFIG_DEBUGMSG 	= 0
+CONFIG_CCACHE		= n
 
 # You can customize CFLAG here
 #CFLAG_USER = -march=armv5te -mcpu=arm946e-s -O2 -DCONFIG_RELEASE_BUILD \
