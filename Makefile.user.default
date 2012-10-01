@@ -1,7 +1,7 @@
 #User-defined paths for ML build system
 #Copy me to Makefile.user, keeping ONLY the options that you want to customize
 
-# for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM-ABI=elf
+# for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM_ABI=elf
 CCACHE=ccache
 ARM_ABI=elf
 ARM_PATH=~/arm-toolchain462
