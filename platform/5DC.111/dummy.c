@@ -11,7 +11,7 @@ void movtweak_step() {}
 int fps_get_shutter_speed_shift() {}
 
 void *AcquireRecursiveLock(void *lock, int n){}
-void *CreateRecursiveLock(int n){}
+//~ void *CreateRecursiveLock(int n){}
 void *ReleaseRecursiveLock(void *lock){}
 int audio_meters_are_drawn() { return 0; } 
 struct task * get_current_task() { return 0; }

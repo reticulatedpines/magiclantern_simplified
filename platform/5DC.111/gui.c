@@ -21,7 +21,7 @@ struct semaphore * gui_sem;
 //~ to hijack the task.
 void my_gui_task( void )
 {
-    EndGuiInit();
+    //~ EndGuiInit();
     
     while(1)
     {

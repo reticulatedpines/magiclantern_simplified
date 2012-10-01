@@ -740,6 +740,7 @@ PROP_HANDLER( PROP_HALF_SHUTTER ) {
 
 static int zoom_was_triggered_by_halfshutter = 0;
 
+#ifndef CONFIG_5DC
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
     ASSERT(buf[0] == 1 || buf[0] == 5 || buf[0] == 10);
@@ -749,6 +750,7 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
     
     if (buf[0] == 1) zoom_was_triggered_by_halfshutter = 0;
 }
+#endif
 
 void set_lv_zoom(int zoom)
 {

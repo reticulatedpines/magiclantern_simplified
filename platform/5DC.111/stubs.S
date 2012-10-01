@@ -596,3 +596,5 @@ NSTUB( 0xFFB372B8, workQDoWork )
 NSTUB( 0xFFB5ADF8, workQInit )
 NSTUB( 0xFFB5AE1C, workQPanic )
 NSTUB( 0xFFB49B98, write )
+
+NSTUB(0xFFB1F578, CreateRecursiveLock)

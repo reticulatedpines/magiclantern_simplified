@@ -23,8 +23,8 @@ typedef unsigned gui_event_t;
  *  event->param values as received by gui_main_task
  ******************************************************************************/
 //~ big wheel generates same events as small wheel, so no need to re-declare them.
-#define BGMT_WHEEL_LEFT             0x0
-#define BGMT_WHEEL_RIGHT            0x1
+#define BGMT_WHEEL_UP               0x0
+#define BGMT_WHEEL_DOWN             0x1
 #define BGMT_PRESS_SET              0x2
 #define BGMT_MENU                   0x3
 #define BGMT_INFO                   0x4
@@ -53,9 +53,8 @@ typedef unsigned gui_event_t;
 // dummy
 #define BGMT_PRESS_HALFSHUTTER -12345
 #define BGMT_UNPRESS_HALFSHUTTER -12345
-#define BGMT_WHEEL_UP -123456
-#define BGMT_WHEEL_DOWN -1234567
-#define BGMT_WHEEL_DOWN -1234567
+#define BGMT_WHEEL_LEFT -123456
+#define BGMT_WHEEL_RIGHT -1234567
 #define BGMT_UNPRESS_SET -123456789
 #define GMT_GUICMD_OPEN_SLOT_COVER -12345678
 #define GMT_GUICMD_START_AS_CHECK -12345678
@@ -65,7 +64,7 @@ typedef unsigned gui_event_t;
 #define BGMT_Q BGMT_PRESS_DIRECT_PRINT
 #define BGMT_LV BGMT_JUMP
 
-#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_JUMP
+#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PRESS_DIRECT_PRINT
 
 /* find:
     BGMT_PRESS_HALFSHUTTER
