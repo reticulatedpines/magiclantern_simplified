@@ -1036,9 +1036,9 @@ static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvra
 {    
     int color = get_focus_color(thr, e);
     bmp_putpixel_fast(bvram, x, y, color);
-    bmp_putpixel_fast(bvram, x+1, y, color);
-    bmp_putpixel_fast(bvram, x, y+1, color);
-    bmp_putpixel_fast(bvram, x+1, y+1, color);
+    //~ bmp_putpixel_fast(bvram, x+1, y, color);
+    //~ bmp_putpixel_fast(bvram, x, y+1, color);
+    //~ bmp_putpixel_fast(bvram, x+1, y+1, color);
 }
 
 // returns how the focus peaking threshold changed
@@ -1070,18 +1070,18 @@ draw_zebra_and_focus( int Z, int F)
         int xStart = os.x0 + 8;
         int xEnd = os.x_max - 8;
         int n_over = 0;
-        int n_total = ((yEnd - yStart) * (xEnd - xStart)) / 4;
+        int n_total = ((yEnd - yStart) * (xEnd - xStart));
         
         const uint8_t* p8; // that's a moving pointer
         
         zebra_update_lut();
 
         {
-            for(int y = yStart; y < yEnd; y += 2)
+            for(int y = yStart; y < yEnd; y ++)
             {
                 uint32_t hd_row = hdvram + BM2HD_R(y);
                 
-                for (int x = xStart; x < xEnd; x += 2)
+                for (int x = xStart; x < xEnd; x ++)
                 {
                     p8 = (uint8_t *)(hd_row + bm_hd_x_cache[x - BMP_W_MINUS]);
                     
@@ -1122,8 +1122,7 @@ draw_zebra_and_focus( int Z, int F)
             thr -= thr_increment;
         }
 
-        thr_increment = COERCE(thr_increment, -5, 5);
-        int thr_min = (lens_info.iso > 1600 ? 15 : 10);
+        int thr_min = 10;
         thr = COERCE(thr, thr_min, 255);
 
 
