@@ -2283,7 +2283,7 @@ int hdr_set_rawiso(int iso)
 
 int hdr_set_rawshutter(int shutter)
 {
-    int ok = shutter < FASTEST_SHUTTER_SPEED_RAW;
+    int ok = shutter < FASTEST_SHUTTER_SPEED_RAW && shutter > 13;
     return hdr_set_something((int(*)(int))prop_set_rawshutter_approx, shutter) && ok;
 }
 

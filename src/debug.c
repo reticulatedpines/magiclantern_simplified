@@ -540,6 +540,12 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
+
+    bfnt_test();
+    //~ debug_intercept();
+    //~ dump_with_buffer(0, 0x10000000, CARD_DRIVE "x.bin");
+    //~ msleep(20000);
+    //~ dump_with_buffer(0, 0x10000000, CARD_DRIVE "y.bin");
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -567,7 +573,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
         int i;
         for (i = 0; i < n; i++)
         {
-            uint32_t start = 0x40000000;
+            uint32_t start = UNCACHEABLE(0);
             bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
             FIO_WriteFile( f, (const void *) start, bufsize );
         }
@@ -613,6 +619,8 @@ void card_benchmark_wr(int bufsize, int K, int N)
 
 void card_benchmark_task()
 {
+    msleep(1000);
+    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_MENU); msleep(500); }
     #ifdef CONFIG_5D3
     extern int card_select;
     NotifyBox(2000, "%s Benchmark (1 GB)...", card_select == 1 ? "CF" : "SD");
@@ -1918,9 +1926,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
 
-            //~ bmp_hexdump(FONT_MED, 0, 480-120, MEM(0xF1D0), 32*10);
-
-        bmp_printf(FONT_MED, 50, 50, "%d %d ", gui_state, image_review_time);
         if (screenshot_sec)
         {
             info_led_blink(1, 20, 1000-20-200);
@@ -2692,6 +2697,7 @@ struct menu_entry debug_menus[] = {
         }
     },
 #endif
+#ifndef CONFIG_VXWORKS
     {
         .name = "Show tasks...",
         .select = menu_open_submenu,
@@ -2714,6 +2720,7 @@ struct menu_entry debug_menus[] = {
         .priv = save_cpu_usage_log_task,
         .help = "Saves a log with the CPU usage for all tasks (Canon+ML).",
     },
+#endif
     {
         .name = "Image buffers",
         .display = image_buf_display,
@@ -2727,12 +2734,14 @@ struct menu_entry debug_menus[] = {
         .help = "Free memory available for malloc and AllocateMemory.",
         //.essential = 0,
     },
+#ifndef CONFIG_5DC
     {
         .name = "Shutter Count",
         .display = shuttercount_display,
         .help = "Number of pics taken + number of LiveView actuations",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
+#endif
     {
         .name = "CMOS temperature",
         .display = efictemp_display,
@@ -3498,7 +3507,7 @@ void config_menu_init()
 
 void spy_event(struct event * event)
 {
-    if (1)
+    if (get_draw_event())
     {
         static int kev = 0;
         kev++;

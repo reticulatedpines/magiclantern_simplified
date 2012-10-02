@@ -822,12 +822,18 @@ void selection_bar(int x0, int y0)
     extern int bmp_color_scheme;
     
     uint8_t* B = bmp_vram();
+    int c = advanced_hidden_edit_mode ? COLOR_DARK_RED : submenu_mode || bmp_color_scheme ? COLOR_LIGHTBLUE : COLOR_BLUE;
+    int black = COLOR_BLACK;
+    #ifdef CONFIG_VXWORKS
+    c = D2V(c);
+    black = D2V(black);
+    #endif
     for (int y = y0; y < y0 + 31; y++)
     {
         for (int x = x0-5; x < w; x++)
         {
-            if (B[BM(x,y)] == COLOR_BLACK)
-                B[BM(x,y)] = advanced_hidden_edit_mode ? COLOR_DARK_RED : submenu_mode || bmp_color_scheme ? COLOR_LIGHTBLUE : COLOR_BLUE;
+            if (B[BM(x,y)] == black)
+                B[BM(x,y)] = c;
         }
     }
 }
@@ -1333,13 +1339,8 @@ menus_display(
                 //~ MENU_NAV_HELP_STRING
         //~ );
 
-#ifdef CONFIG_VXWORKS
-    bmp_fill(0, orig_x, y, 720, 42);
-    bmp_fill(COLOR_WHITE, orig_x, y+42, 720, 1);
-#else
     bmp_fill(COLOR_GRAY40, orig_x, y, 720, 42);
     bmp_fill(COLOR_GRAY70, orig_x, y+42, 720, 1);
-#endif
     for( ; menu ; menu = menu->next )
     {
         if (!menu_has_visible_items(menu->children) && !menu->selected)
@@ -1347,13 +1348,8 @@ menus_display(
         if (IS_SUBMENU(menu))
             continue;
         int color_selected = advanced_hidden_edit_mode ? COLOR_DARK_RED : COLOR_BLUE;
-#ifdef CONFIG_VXWORKS
-        int fg = menu->selected ? color_selected : COLOR_WHITE;
-        int bg = menu->selected ? color_selected : 0;
-#else
         int fg = menu->selected ? COLOR_WHITE : 70;
         int bg = menu->selected ? color_selected : 40;
-#endif
         unsigned fontspec = FONT(
             menu->selected ? FONT_LARGE : FONT_MED,
             fg,
@@ -1367,9 +1363,7 @@ menus_display(
             int icon_w = 0;
             if (menu->icon)
             {
-            #ifndef CONFIG_VXWORKS
                 bmp_fill(bg, x+1, y, 200, 40);
-            #endif
                 if (menu->icon == ICON_ML_PLAY) icon_w = playicon_square(x,y,fg);
                 else icon_w = bfnt_draw_char(menu->icon, x, y, fg, bg);
             }
@@ -1380,6 +1374,9 @@ menus_display(
                 x += w;
             }
             x += 62;
+            #ifdef CONFIG_5DC
+            x += 50;
+            #endif
             //~ if (menu->selected)
             //~ {
                 //~ bmp_printf( FONT(FONT_LARGE,fg,40), orig_x + 700 - font_large.width * strlen(menu->name), y + 4, menu->name );
@@ -1854,6 +1851,11 @@ menu_redraw_do()
             
             lens_display_set_dirty();
         }
+
+    #ifdef CONFIG_VXWORKS
+    set_ml_palette();
+    #endif
+
 }
 
 static int _t = 0;
@@ -2240,9 +2242,7 @@ menu_init( void )
     menu_find_by_name( "Audio", ICON_MIC);
 #endif
     menu_find_by_name( "Expo", ICON_AE);
-#ifndef CONFIG_5DC
     menu_find_by_name( "Overlay", ICON_LV);
-#endif
 #if defined(CONFIG_500D)
     menu_find_by_name( "Movie", ICON_FILM );
 #endif

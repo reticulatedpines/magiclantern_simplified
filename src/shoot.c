@@ -3059,6 +3059,9 @@ hdr_stepsize_toggle( void * priv, int delta )
 
 int is_bulb_mode()
 {
+    #ifdef CONFIG_5DC
+    return 0; // bulb not working
+    #endif
     //~ bmp_printf(FONT_LARGE, 0, 0, "%d %d %d %d ", bulb_ramping_enabled, intervalometer_running, shooting_mode, lens_info.raw_shutter);
     //~ msleep(0); // what the duck?!
     if (BULB_EXPOSURE_CONTROL_ACTIVE) return 1; // this will force bulb mode when needed
@@ -3930,6 +3933,9 @@ int measure_brightness_difference()
 
 static void compute_exposure_for_next_shot()
 {
+    #ifdef CONFIG_5DC
+    return;
+    #endif
     
     static int prev_file_number = 12345;
     if (prev_file_number == file_number)
@@ -4480,6 +4486,7 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type = IT_DICE,
                 .choices = (const char *[]) {"0 - --", "0 - + -- ++", "0 + ++"},
             },
+            #ifndef CONFIG_5DC
             {
                 .name = "2-second delay",
                 .priv       = &hdr_delay,
@@ -4487,6 +4494,7 @@ static struct menu_entry shoot_menus[] = {
                 .help = "Delay before starting the exposure.",
                 .choices = (const char *[]) {"OFF", "Auto"},
             },
+            #endif
             {
                 .name = "ISO shifting",
                 .priv       = &hdr_iso,
@@ -4553,6 +4561,7 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
     },
+    #ifndef CONFIG_5DC
     {
         .name = "Bulb/Focus Ramping",
         .priv       = &bulb_ramping_enabled,
@@ -4622,6 +4631,7 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
     },
+    #endif
     #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
     {
         .name = "LCDsensor Remote",
@@ -4748,7 +4758,7 @@ static struct menu_entry shoot_menus[] = {
         },
     },
 #endif
-#ifndef CONFIG_1100D
+#if !defined(CONFIG_1100D) && !defined(CONFIG_5DC)
     {
         .name = "Mirror Lockup",
         .priv = &mlu_auto,
@@ -5408,6 +5418,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
         
         //~ NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
 
+#ifndef CONFIG_5DC // bulb not working
         // then choose the best option (bulb for long exposures, regular for short exposures)
         if (msc >= 10000 || (BULB_EXPOSURE_CONTROL_ACTIVE && msc > BULB_MIN_EXPOSURE))
         {
@@ -5415,6 +5426,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             bramp_last_exposure_rounding_error_evx1000 = 0; // bulb ramping assumed to be exact
         }
         else
+#endif
         {
             int b = bulb_ramping_enabled;
             bulb_ramping_enabled = 0; // to force a pic in manual mode
@@ -5957,7 +5969,7 @@ void wait_till_next_second()
 
 static void mlu_step()
 {
-#ifdef CONFIG_1100D
+#if defined(CONFIG_1100D) || defined(CONFIG_5DC)
     return;
 #endif
     if (!mlu_auto) return;
@@ -6176,7 +6188,9 @@ shoot_task( void* unused )
         if (((HDR_ENABLED && hdr_delay) || is_focus_stack_enabled()) && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
         {
             drive_mode_bk = drive_mode;
+            #ifndef CONFIG_5DC
             lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
+            #endif
             info_led_on();
         }
         
@@ -6469,7 +6483,11 @@ shoot_task( void* unused )
                                 SECONDS_REMAINING,
                                 intervalometer_pictures_taken);
                 if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after*100); }
+                #ifdef CONFIG_VXWORKS
+                bmp_printf(FONT_LARGE, 50, 310, msg);
+                #else
                 bmp_printf(FONT_MED, 50, 310, msg);
+                #endif
 
                 if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after*100))
                     intervalometer_stop();

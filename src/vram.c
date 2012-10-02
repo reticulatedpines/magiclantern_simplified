@@ -115,10 +115,10 @@ struct bmp_ov_loc_size os = {
     .y_ex = 720,
 };
 
-int lv_ratio_num = 3;
-int lv_ratio_den = 2;
-int hd_ratio_num = 3;
-int hd_ratio_den = 2;
+//~ int lv_ratio_num = 3;
+//~ int lv_ratio_den = 2;
+//~ int hd_ratio_num = 3;
+//~ int hd_ratio_den = 2;
 
 int increment = 4;
 
@@ -151,7 +151,7 @@ int* vram_params[] = {
     &vram_lv.width, &vram_lv.height, 
     &bm2lv.tx, &bm2lv.ty, &bm2lv.sx, &bm2lv.sy,
     &vram_hd.width, &vram_hd.height, 
-    &hd_ratio_num, &hd_ratio_den ,
+    //~ &hd_ratio_num, &hd_ratio_den ,
     &lv2hd.tx, &lv2hd.ty, &lv2hd.sx, &lv2hd.sy,
 };
 char vram_param_names[][12] = {
@@ -163,7 +163,7 @@ char vram_param_names[][12] = {
     "bm2lv.tx  ", "bm2lv.ty  ",
     "bm2lv.sx  ", "bm2lv.sy  ",
     "hd.width  ", "hd.height ",
-    "ratio_num ", "ratio_den ",
+    //~ "ratio_num ", "ratio_den ",
     "lv2hd.tx* ", "lv2hd.ty* ",
     "lv2hd.sx* ", "lv2hd.sy* ",
 };
@@ -236,9 +236,16 @@ void update_vram_params()
     // these buffer sizes include any black bars
 
 #if defined(CONFIG_5DC)
-    vram_lv.width = 720; // dummy
-    vram_lv.height = 480;
+    vram_lv.width = 540;
+    vram_lv.height = 426;
     vram_lv.pitch = vram_lv.width * 2;
+    os.x0 = 0; os.y0 = 26;
+    os.x_ex = 720;
+    os.y_ex = 480-52;
+    os.x_max = os.x0 + os.x_ex;
+    os.y_max = os.y0 + os.y_ex;
+    os.off_169 = 0;
+    os.off_1610 = 0;
 #elif defined(CONFIG_40D)
     vram_lv.width = 1024; // we only know the HD buffer for now... let's try to pretend it can be used as LV :)
     vram_lv.height = 680;
@@ -276,6 +283,12 @@ void update_vram_params()
     #endif
 
 
+#ifdef CONFIG_5DC
+    bm2lv.sx = 1024 * vram_lv.width / 720;
+    bm2lv.sy = 1024 * vram_lv.height / (480-52);
+    bm2lv.tx = 0;
+    bm2lv.ty = -26;
+#else
     // bmp to lv transformation
     // LCD: (0,0) -> (0,0)
     // HDMI: (-120,-30) -> (0,0) and scaling factor is 2
@@ -283,17 +296,22 @@ void update_vram_params()
     bm2lv.ty = hdmi_code == 5 ?   60 : 0;
     bm2lv.sx = hdmi_code == 5 ? 2048 : ext_monitor_rca ? 768 : 1024;
     bm2lv.sy = 1024 * vram_lv.height / (hdmi_code==5 ? 540 : 480); // no black bars at top or bottom
+#endif
     
-    lv_ratio_num = hdmi_code == 5 ? 16 : 3;
-    lv_ratio_den = hdmi_code == 5 ?  9 : 2;
+    //~ lv_ratio_num = hdmi_code == 5 ? 16 : 3;
+    //~ lv_ratio_den = hdmi_code == 5 ?  9 : 2;
 
     // HD buffer (used for recording)
-    hd_ratio_num = recording ? (video_mode_resolution < 2 ? 16 : 4) : 3;
-    hd_ratio_den = recording ? (video_mode_resolution < 2 ?  9 : 3) : 2;
+    //~ hd_ratio_num = recording ? (video_mode_resolution < 2 ? 16 : 4) : 3;
+    //~ hd_ratio_den = recording ? (video_mode_resolution < 2 ?  9 : 3) : 2;
 
-#if defined(CONFIG_VXWORKS)
+#if defined(CONFIG_40D)
     vram_hd.width = vram_lv.width;
     vram_hd.height = vram_lv.height;
+    vram_hd.pitch = vram_lv.pitch;
+#elif defined(CONFIG_5DC)
+    vram_hd.width = 1872;
+    vram_hd.height = 1664;
     vram_hd.pitch = vram_lv.pitch;
 #else
     uint32_t hd_size = shamem_read(REG_EDMAC_WRITE_HD_ADDR + 8);
@@ -332,6 +350,7 @@ void update_vram_params()
     lv2hd.tx = -LV2HD_DX(BM2LV_X(os.x0 + bar_x));
     lv2hd.ty = -LV2HD_DY(BM2LV_Y(os.y0 + bar_y));
 
+//~ #ifndef CONFIG_5DC
     if (!lv) // HD buffer not active, use LV instead
     {
         lv2hd.sx = lv2hd.sy = 1024;
@@ -340,6 +359,7 @@ void update_vram_params()
         vram_hd.width = vram_lv.width;
         vram_hd.height = vram_lv.height;
     }
+//~ #endif
 
     vram_update_luts();
 }
@@ -502,8 +522,10 @@ struct vram_info * get_yuv422_hd_vram()
 {
     vram_params_update_if_dirty();
 
+//~ #ifndef CONFIG_5DC
     if (!lv) // play/quickreview, HD buffer not active => use LV instead
         return get_yuv422_vram();
+//~ #endif
 
     vram_hd.vram = CACHEABLE(YUV422_HD_BUFFER_DMA_ADDR);
     return &vram_hd;

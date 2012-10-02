@@ -40,7 +40,7 @@ ML_OBJS-y = \
 	lens.o \
 	picstyle.o \
 	cfn.o \
-	zebra.o \
+	zebra-5dc.o \
 	shoot.o \
 	chdk-gui_draw.o \
 	my_memset.o \
@@ -55,6 +55,7 @@ ML_OBJS-y = \
 	state-object.o \
 	tasks.o \
 	beep.o \
+	dm-spy.o \
 
 
 #include generic rules and definitions
