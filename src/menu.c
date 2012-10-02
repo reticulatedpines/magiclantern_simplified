@@ -73,7 +73,7 @@ static int menu_shown = false;
 static int menu_lv_transparent_mode; // for ISO, kelvin...
 static int config_dirty = 0;
 static int menu_hidden_dirty = 0;
-static int menu_hidden_should_display_help = 0;
+//~ static int menu_hidden_should_display_help = 0;
 static int menu_zebras_mirror_dirty = 0; // to clear zebras from mirror (avoids display artifacts if, for example, you enable false colors in menu, then you disable them, and preview LV)
 static char* warning_msg = 0;
 int menu_help_active = 0;
@@ -844,11 +844,16 @@ void dim_hidden_menu(int x0, int y0, int selected)
     
     uint8_t* B = bmp_vram();
     int new_color = selected ? COLOR_ALMOST_BLACK : COLOR_GRAY50;
+    int black = COLOR_BLACK;
+    #ifdef CONFIG_VXWORKS
+    new_color = D2V(selected ? COLOR_BG : COLOR_GRAY50);
+    black = D2V(black);
+    #endif
     for (int y = y0; y < y0 + 31; y++)
     {
         for (int x = x0-5; x < w; x++)
         {
-            if (B[BM(x,y)] != COLOR_BLACK)
+            if (B[BM(x,y)] != black)
                 B[BM(x,y)] = new_color;
         }
     }
@@ -1207,7 +1212,7 @@ menu_display(
             }
 
             // if you have hidden some menus, display help about how to bring them back
-            if (menu_hidden_should_display_help && !is_menu_active("Help"))
+            if (advanced_hidden_edit_mode)
             {
                 bmp_printf(
                     FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
@@ -2074,7 +2079,7 @@ handle_ml_menu_keys(struct event * event)
             if (!advanced_hidden_edit_mode) advanced_hidden_edit_mode = 2;
             else menu_entry_showhide_toggle(menu);
             menu_needs_full_redraw = 1;
-            menu_hidden_should_display_help = 1;
+            //~ menu_hidden_should_display_help = 1;
         }
         
         break;
@@ -2107,7 +2112,7 @@ handle_ml_menu_keys(struct event * event)
         menu_entry_move( menu, -1 );
          if (submenu_mode == 2 || menu_lv_transparent_mode) menu_needs_full_redraw = 1;
         //~ if (!submenu_mode) menu_lv_transparent_mode = 0;
-        menu_hidden_should_display_help = 0;
+        //~ menu_hidden_should_display_help = 0;
         break;
 
     case BGMT_PRESS_DOWN:
@@ -2116,7 +2121,7 @@ handle_ml_menu_keys(struct event * event)
         menu_entry_move( menu, 1 );
          if (submenu_mode == 2 || menu_lv_transparent_mode) menu_needs_full_redraw = 1;
         //~ if (!submenu_mode) menu_lv_transparent_mode = 0;
-        menu_hidden_should_display_help = 0;
+        //~ menu_hidden_should_display_help = 0;
         break;
 
     case BGMT_PRESS_RIGHT:
@@ -2125,7 +2130,7 @@ handle_ml_menu_keys(struct event * event)
         if (menu_help_active) { menu_help_next_page(); break; }
         if (submenu_mode || menu_lv_transparent_mode) menu_entry_select( menu, 0 );
         else { menu_move( menu, 1 ); menu_lv_transparent_mode = 0; }
-        menu_hidden_should_display_help = 0;
+        //~ menu_hidden_should_display_help = 0;
         break;
 
     case BGMT_PRESS_LEFT:
@@ -2134,7 +2139,7 @@ handle_ml_menu_keys(struct event * event)
         if (menu_help_active) { menu_help_prev_page(); break; }
         if (submenu_mode || menu_lv_transparent_mode) menu_entry_select( menu, 1 );
         else { menu_move( menu, -1 ); menu_lv_transparent_mode = 0; }
-        menu_hidden_should_display_help = 0;
+        //~ menu_hidden_should_display_help = 0;
         break;
 
     case BGMT_UNPRESS_SET:
@@ -2151,7 +2156,7 @@ handle_ml_menu_keys(struct event * event)
             menu_needs_full_redraw = 1;
         }
         //~ menu_damage = 1;
-        menu_hidden_should_display_help = 0;
+        //~ menu_hidden_should_display_help = 0;
         break;
 
     case BGMT_INFO:
@@ -2160,7 +2165,7 @@ handle_ml_menu_keys(struct event * event)
         if (menu_help_active) menu_help_go_to_selected_entry(main_menu);
         menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
-        menu_hidden_should_display_help = 0;
+        //~ menu_hidden_should_display_help = 0;
         break;
 
     case BGMT_PLAY:
@@ -2168,7 +2173,7 @@ handle_ml_menu_keys(struct event * event)
         menu_entry_select( menu, 1 ); // reverse select
         menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
-        menu_hidden_should_display_help = 0;
+        //~ menu_hidden_should_display_help = 0;
         break;
 
 #ifdef BGMT_RATE
@@ -2198,7 +2203,7 @@ handle_ml_menu_keys(struct event * event)
         menu_entry_select( menu, 2 ); // auto setting select
         menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
-        menu_hidden_should_display_help = 0;
+        //~ menu_hidden_should_display_help = 0;
         break;
 
     default:
@@ -2407,7 +2412,7 @@ static void menu_open()
     menu_help_active = 0;
     keyrepeat = 0;
     menu_shown = 1;
-    menu_hidden_should_display_help = 0;
+    //~ menu_hidden_should_display_help = 0;
     if (lv) menu_zebras_mirror_dirty = 1;
 
     piggyback_canon_menu();
