@@ -620,7 +620,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
 void card_benchmark_task()
 {
     msleep(1000);
-    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_MENU); msleep(500); }
+    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
     #ifdef CONFIG_5D3
     extern int card_select;
     NotifyBox(2000, "%s Benchmark (1 GB)...", card_select == 1 ? "CF" : "SD");
