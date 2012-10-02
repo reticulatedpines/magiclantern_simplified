@@ -85,7 +85,6 @@ void NormalDisplay(){};
 void MirrorDisplay(){};
 
 int _dummy_variable = 0;
-int LCD_Palette = 0;
 
 void bzero32(void* buf, size_t len) { memset(buf, 0, len); }
 

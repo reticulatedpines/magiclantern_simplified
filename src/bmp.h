@@ -99,7 +99,7 @@ inline uint8_t* bmp_vram_idle()
 inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf) { return bmp_buf; }
 #define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
 
-#define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = ((x) % 2) ? ((*(char*)(p) & 0x0F) | ((color) << 4)) : ((*(char*)(p) & 0xF0) | ((color) & 0x0F))    
+#define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = ((x) % 2) ? ((*(char*)(p) & 0x0F) | (D2V(color) << 4)) : ((*(char*)(p) & 0xF0) | (D2V(color) & 0x0F))    
 
 #else // dryos
 
@@ -303,54 +303,8 @@ bmp_fill(
 
 /** Some selected colors */
 
-/* 5dc uses 4-bit colors :(
- -----------------------------
- 0x11 // lighter gray
- 0x22 // dark gray almost black
- 0x33 // light gray
- 0x44 // light grey background of menu
- 0x55 // light green / lime green
- 0x66 // red
- 0x77 // brown red / maroon
- 0x88 // light blue
- 0x99 // light gray
- 0xAA // darker gray
- 0xBB // brown red / maroon
- 0xCC // light blue
- 0xDD // light orange / pale yellow
- 0xEE // orange
- 0xFF // white
- -------------------------------
- */
-#ifdef CONFIG_VXWORKS
-    #define COLOR_EMPTY             0x00 // total transparent
-    #define COLOR_BG                0x33 // transparent gray
-    #define COLOR_BG_DARK           0xAA // transparent black
-    #define COLOR_WHITE             0xFF // Normal white
-    #define COLOR_BLUE              0xCC // normal blue
-    #define COLOR_LIGHTBLUE         0xCC
-    #define COLOR_RED               0x66 // normal red
-    #define COLOR_YELLOW            0xDD // normal yellow
-    #define COLOR_BLACK             0x22
-    #define COLOR_ALMOST_BLACK      0x22
-    #define COLOR_CYAN              0x99
-    #define COLOR_GREEN1            0x55
-    #define COLOR_GREEN2            0x55
-    #define COLOR_ORANGE            0xEE
-
-
-    #define COLOR_DARK_RED COLOR_RED
-    #define COLOR_GRAY40 0xAA
-    #define COLOR_GRAY45 0xAA
-    #define COLOR_GRAY50 0xAA
-    #define COLOR_GRAY60 0x33
-    #define COLOR_GRAY70 0xFF
-
-#else
-
-
 #define COLOR_EMPTY             0x00 // total transparent
-#if defined(CONFIG_5D2) || defined(CONFIG_50D)
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5DC)
 #define COLOR_BG                0x03 // transparent black
 #else
 #define COLOR_BG                0x14 // transparent gray
@@ -373,8 +327,6 @@ bmp_fill(
 #define COLOR_GRAY50 50
 #define COLOR_GRAY60 60
 #define COLOR_GRAY70 70
-
-#endif
 
 static inline uint32_t
 color_word(
@@ -544,8 +496,8 @@ extern void *ReleaseRecursiveLock(void *lock);
 #define ICON_CF 0xAC96EE
 #define ICON_AE 0xB096EE
 #define ICON_P_SQUARE 0xA596EE
-#define ICON_SMILE 0xB596EE
-#define ICON_LV 0xA996EE
+#define ICON_SMILE 0xaf96ee
+#define ICON_LV 0xbd96EE
 #else
 #define ICON_CF 0x8e9aee
 #define ICON_AE 0x919aee

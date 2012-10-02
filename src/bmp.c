@@ -88,6 +88,9 @@ void bmp_idle_clear()
 /** Returns a pointer to currently selected BMP vram (real or mirror) */
 uint8_t * bmp_vram(void)
 {
+    #ifdef CONFIG_VXWORKS
+    set_ml_palette_if_dirty();
+    #endif
     uint8_t * bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
     return bmp_buf;
 }
@@ -563,6 +566,10 @@ bmp_fill(
     int        h
 )
 {
+    #ifdef CONFIG_VXWORKS
+    color = D2V(color);
+    #endif
+    
     x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
     y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
     w = COERCE(w, 0, BMP_W_PLUS-x-1);
@@ -1005,14 +1012,119 @@ int _bmp_draw_should_stop = 0;
 void bmp_draw_request_stop() { _bmp_draw_should_stop = 1; }
 
 #ifdef CONFIG_VXWORKS
+
 /** converting dryos palette to vxworks one */
-char bmp_lut[80] = { 0xF, 0x3, 0x2, 0x2, 0x7, 0xC, 0x5, 0x5, 0x6, 0xC, 0xD, 0xC, 0xB, 0xC, 0xB, 0xE,
-    0xB, 0xB, 0x2, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB,
-    0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0x0, 0x0, 0x0, 0x0, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2,
-    0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4,
-    0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x9, 0x9, 0x9, 0x9, 0x9,
-    0x9, 0x7, 0x7, 0x7, 0x7 };
+char bmp_lut[80] = { 
+    0x00, 0xff, 0x99, 0x88, 0x77, 0x44, 0x22, 0x22, 0x11, 0x33, 0xDD, 0x33, 0x11, 0x33, 0x55, 0x66, 
+    0x55, 0x77, 0x22, 0x77, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 
+    0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0xAA, 0xAA, 0xAA, 0xAA,
+    0xAA, 0xAA, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xDD, 0xDD,
+    0xDD, 0xDD, 0xDD, 0xDD, 0xEE, 0xEE, 0xEE, 0xEE, 0xEE, 0xEE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+};
+
+void set_ml_palette()
+{
+    if (!DISPLAY_IS_ON) return;
+    
+    int palette[16] = {
+        0x00870000, // transparent
+        0x0000FFFF, // 1 - red
+        0x00FF00FF, // 2 - green
+        0xFF0000FF, // 3 - blue
+        0xFFFF00FF, // 4 - cyan
+        0xFF00FFFF, // 5 - magenta
+        0x00FFFFFF, // 6 - yellow
+        0x0090FFFF, // 7 - orange
+        0x00000080, // 8 - transparent black
+        0x000000FF, // 9 - black
+        0x2A2A2AFF, // A - gray 1
+        0x555555FF, // B - gray 2
+        0x7F7F7FFF, // C - gray 3
+        0xAAAAAAFF, // D - gray 4
+        0xD4D4D4FF, // E - gray 5
+        0xFFFFFFFF  // F - white
+    };
+    
+    extern int RGB_Palette[];
+    extern int LCD_Palette[];
+    extern int PB_Palette[];
+
+    if (0) // convert from RGB to PB with Canon code, write result to a file
+    {      // if you change RGB palette, run this first to get the PB equivalent
+        NotifyBox(10000, "%x ", PB_Palette);
+        SetRGBPaletteToDisplayDevice(palette); // problem: this is unsafe to call (race condition with Canon code)
+        FILE* f = FIO_CreateFileEx(CARD_DRIVE"pb.log");
+        for (int i = 0; i < 16; i++)
+            my_fprintf(f, "0x%08x, ", PB_Palette[i*3 + 2]);
+        FIO_CloseFile(f);
+    }
+    else // use pre-computed PB palette (just send it to digic)
+    {
+        int palette_pb[16] = {0x00fc0000, 0x0346de7f, 0x0389bd89, 0x031a66ea, 0x03a42280, 0x03604377, 0x03cf9a16, 0x0393b94b, 0x00000000, 0x03000000, 0x03260000, 0x034e0000, 0x03750000, 0x039c0000, 0x03c30000, 0x03eb0000};
+
+        for (int i = 0; i < 16; i++)
+        {
+            EngDrvOut(0xC0F14080 + i*4, palette_pb[i]);
+        }
+        EngDrvOut(0xC0F14078, 1);
+    }
+}
+
+void set_ml_palette_if_dirty()
+{
+    extern int PB_Palette[];
+    if (PB_Palette[15*3+2] == 0x03eb0000) return;
+    set_ml_palette();
+    PB_Palette[15*3+2] = 0x03eb0000;
+}
+
+void restore_canon_palette()
+{
+    // unsafe
+    //~ SetRGBPaletteToDisplayDevice(orig_palette);
+}
+
+/*
+void guess_palette()
+{
+    // let's try something else: match DryOs palette to VxWorks's on the fly
+
+    static int ref_r[80] = {254, 234, 0, 0, 163, 31, 0, 1, 234, 0, 185, 27, 200, 0, 201, 209, 232, 216, 0, 231, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 231, 9, 18, 27, 36, 41, 46, 50, 55, 59, 64, 69, 73, 82, 92, 101, 109, 117, 119, 124, 129, 133, 138, 142, 147, 152, 156, 161, 165, 170, 175, 179, 184, 188, 193, 198, 202, 207, 211, 216, 221, 225, 229};
+    static int ref_g[80] = {254, 235, 0, 0, 56, 187, 153, 172, 0, 66, 186, 34, 0, 0, 0, 191, 0, 94, 62, 109, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 18, 27, 36, 41, 46, 50, 55, 59, 64, 69, 73, 82, 92, 101, 110, 117, 119, 124, 129, 133, 138, 142, 147, 152, 156, 161, 165, 170, 175, 178, 184, 188, 192, 198, 202, 206, 210, 216, 221, 225, 230};
+    static int ref_b[80] = {255, 235, 0, 0, 0, 216, 0, 1, 1, 211, 139, 126, 0, 168, 154, 0, 231, 76, 75, 0, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 232, 9, 18, 27, 36, 41, 46, 50, 55, 59, 64, 69, 73, 82, 92, 101, 109, 117, 119, 124, 129, 133, 138, 142, 147, 152, 156, 161, 165, 170, 174, 178, 184, 188, 193, 198, 202, 207, 211, 216, 221, 224, 229};
+
+    extern int RGB_Palette[];
+    for (int j = 1; j < 80; j++)
+    {
+        int r = ref_r[j];
+        int g = ref_g[j];
+        int b = ref_b[j];
+        int dr = g-r;
+        int db = g-b;
+
+        int em = 10000;
+        for (int i = 1; i < 16; i++)
+        {
+            int p = RGB_Palette[i];
+            int R = (p >> 8) & 0xFF;
+            int G = (p >> 16) & 0xFF;
+            int B = (p >> 24) & 0xFF;
+            int DR = G-R;
+            int DB = G-B;
+            
+            int d = (r-R)*(r-R) + (g-G)*(g-G) + (b-B)*(b-B) + (dr-DR)*(dr-DR) + (db-DB)*(db-DB);
+            if (d < em)
+            {
+                bmp_lut[j] = i | (i<<4);
+                em = d;
+            }
+        }
+    }
+}
+*/
 #endif
+
+int D2V(unsigned color) { return bmp_lut[MIN(color & 0xFF,80)]; }
 
 void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, uint8_t* const mirror)
 {
@@ -1324,7 +1436,7 @@ void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
     }
 }*/
 
-#if CONFIG_DEBUGMSG
+#if 1
 void
 bfnt_test()
 {
@@ -1334,16 +1446,18 @@ bfnt_test()
         canon_gui_disable_front_buffer();
         int* codes = (int*) BFNT_CHAR_CODES;
         static int c = 0;
-        for (int i = 0; i < 10; i++)
+        c = (BFNT_BITMAP_OFFSET - BFNT_CHAR_CODES) / 4 - 50;
+        for (int i = 0; i < 5; i++)
         {
             for (int j = 0; j < 10; j++)
             {
-                bfnt_draw_char(codes[c], j*70, i*40, COLOR_WHITE, COLOR_BLACK);
-                bmp_printf(FONT_SMALL, j*70, i*40, "%x", codes[c]);
+                bfnt_draw_char(codes[c], j*70, i*80+20, COLOR_WHITE, COLOR_BLACK);
+                bmp_printf(FONT_MED, j*70, i*80, "%x", codes[c]);
                 c++;
             }
         }
-        while (!get_set_pressed()) msleep(100);
+        msleep(2000);
+        clrscr();
     }
 }
 #endif
@@ -1414,7 +1528,7 @@ static void bmp_dim_line(void* dest, size_t n, int even)
     {
         for( ; dst < end; dst++)
 #ifdef CONFIG_VXWORKS
-            *dst = (*dst & 0x0F0F0F0F) | 0x20202020;
+            *dst = (*dst & 0x0F0F0F0F) | 0x90909090;
 #else
             *dst = (*dst & 0x00FF00FF) | 0x02000200;
 #endif
@@ -1423,7 +1537,7 @@ static void bmp_dim_line(void* dest, size_t n, int even)
     {
         for( ; dst < end; dst++)
 #ifdef CONFIG_VXWORKS
-            *dst = (*dst & 0xF0F0F0F0) | 0x02020202;
+            *dst = (*dst & 0xF0F0F0F0) | 0x09090909;
 #else
             *dst = (*dst & 0xFF00FF00) | 0x00020002;
 #endif
