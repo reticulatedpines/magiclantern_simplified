@@ -3183,7 +3183,11 @@ struct menu_entry play_menus[] = {
             {
                 .name = "Zoom in PLAY mode",
                 .priv = &quickzoom, 
+                #ifdef CONFIG_5DC
+                .max = 2, // don't know how to move the image around
+                #else
                 .max = 4,
+                #endif
                 .display = quickzoom_display,
                 .help = "Faster zoom in Play mode, for pixel peeping :)",
                 //.essential = FOR_PHOTO,
