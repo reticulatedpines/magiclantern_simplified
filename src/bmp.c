@@ -219,20 +219,49 @@ _draw_char(
     #define FPIX(i,j) (font->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
     //- #define BMPIX(i,j) bmp_vram_row[(i) * BMPPITCH + (j)]
     #define BMPIX(i,j,color) char* p = &bmp_vram_row[((i)/2) * BMPPITCH + (j)/2]; SET_4BIT_PIXEL(p, j, color);
-    for( i = 0 ; i<font->height ; i++ )
+    
+    if (font == &font_large) // large fonts look better with line skipping
     {
-        for( j=0 ; j<font->width ; j++ )
+        for( i = 0 ; i<font->height ; i++ )
         {
-            if FPIX(i,j)
+            for( j=0 ; j<font->width ; j++ )
             {
-                BMPIX(i,j,fg_color>>24);
-            }
-            else
-            {
-                BMPIX(i,j,bg_color>>24);
+                if FPIX(i,j)
+                {
+                    BMPIX(i,j,fg_color>>24);
+                }
+                else
+                {
+                    BMPIX(i,j,bg_color>>24);
+                }
             }
         }
     }
+    else // smaller fonts look better with all foreground pixels displayed (even if they are a bit bolder than normal)
+    {
+        for( i = 0 ; i<font->height ; i++ )
+        {
+            for( j=0 ; j<font->width ; j++ )
+            {
+                if (!FPIX(i,j))
+                {
+                    BMPIX(i,j,bg_color>>24);
+                }
+            }
+        }
+
+        for( i = 0 ; i<font->height ; i++ )
+        {
+            for( j=0 ; j<font->width ; j++ )
+            {
+                if FPIX(i,j)
+                {
+                    BMPIX(i,j,fg_color>>24);
+                }
+            }
+        }
+    }
+
 #endif
 }
 
