@@ -147,7 +147,11 @@ static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
        CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
 static CONFIG_INT( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 5);
+#ifdef CONFIG_5DC
+static CONFIG_INT( "mlu.auto", mlu_auto, 0); // setting MLU forces timer to 2-second, better leave it off by default
+#else
 static CONFIG_INT( "mlu.auto", mlu_auto, 1);
+#endif
 
 extern int lcd_release_running;
 
@@ -4543,12 +4547,13 @@ static struct menu_entry shoot_menus[] = {
                 //~ .select     = intervalometer_stop_after_toggle,
                 .help = "Stop the intervalometer after taking X shots.",
             },
+            #ifndef CONFIG_5DC
             {
-                .name = "Use Autofocus", 
+                .name = "Use Autofocus   ", 
                 .priv = &interval_use_autofocus,
                 .max = 1,
-                .choices = (const char *[]) {"No", "Yes"},
-                .help = "Wheter or not the camera should focus automatically at each shot",
+                .choices = (const char *[]) {"NO", "YES"},
+                .help = "Whether the camera should auto-focus at each shot.",
                 .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
             },
             {
@@ -4558,6 +4563,7 @@ static struct menu_entry shoot_menus[] = {
                 .select     = interval_timer_toggle,
                 .help = "Duration for each video clip (in movie mode only).",
             },
+            #endif
             MENU_EOL
         },
     },
@@ -4758,13 +4764,19 @@ static struct menu_entry shoot_menus[] = {
         },
     },
 #endif
-#if !defined(CONFIG_1100D) && !defined(CONFIG_5DC)
+#if !defined(CONFIG_1100D)
     {
         .name = "Mirror Lockup",
         .priv = &mlu_auto,
         .display = mlu_display, 
         .select = mlu_toggle,
+        #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
         .help = "MLU setting can be linked with self-timer and LCD remote.",
+        #elif defined(CONFIG_5DC)
+        .help = "You can toggle MLU w. DirectPrint or link it to self-timer.",
+        #else
+        .help = "MLU setting can be linked with self-timer.",
+        #endif
         //.essential = FOR_PHOTO,
     },
 #endif
@@ -5967,11 +5979,34 @@ void wait_till_next_second()
     }
 }
 
+#ifdef CONFIG_5DC
+// use direct print button to toggle MLU and display its status
+int handle_mlu_toggle(struct event * event)
+{
+    if (event->param == BGMT_PRESS_DIRECT_PRINT && display_idle())
+    {
+        mlu_auto = 0;
+        set_mlu(!get_mlu());
+        return 0;
+    }
+    return 1;
+}
+#endif
+
 static void mlu_step()
 {
-#if defined(CONFIG_1100D) || defined(CONFIG_5DC)
+#if defined(CONFIG_1100D)
     return;
 #endif
+
+#if defined(CONFIG_5DC)
+    int mlu = get_mlu();
+    static int prev_mlu = 0;
+    if (mlu) info_led_on();
+    else if (prev_mlu) info_led_off();
+    prev_mlu = mlu;
+#endif
+
     if (!mlu_auto) return;
     
     int mlu_current_value = get_mlu() ? 1 : 0;

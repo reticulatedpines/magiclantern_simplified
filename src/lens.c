@@ -1050,6 +1050,11 @@ void lens_wait_readytotakepic(int wait)
 int mirror_locked = 0;
 void mlu_lock_mirror_if_needed() // called by lens_take_picture
 {
+    #ifdef CONFIG_5DC
+    if (get_mlu()) set_mlu(0); // can't trigger shutter with MLU active, so just turn it off
+    return;
+    #endif
+    
     //~ NotifyBox(1000, "MLU locking");
     if (get_mlu() && !lv)
     {

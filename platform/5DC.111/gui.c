@@ -28,6 +28,8 @@ static int handle_buttons(struct event * event)
 	if (!ml_started) return 1;
 
 	if (handle_common_events_by_feature(event) == 0) return 0;
+    
+    if (handle_mlu_toggle(event) == 0) return 0;
 
 	return 1;
 }
