@@ -1155,9 +1155,10 @@ void guess_palette()
     }
 }
 */
-#endif
 
 int D2V(unsigned color) { return bmp_lut[MIN(color & 0xFF,80)]; }
+
+#endif
 
 void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, uint8_t* const mirror)
 {
