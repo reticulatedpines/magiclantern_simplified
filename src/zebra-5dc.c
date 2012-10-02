@@ -406,13 +406,11 @@ static void hist_dot(int x, int y, int fg_color, int bg_color, int radius, int l
     
     if (label)
     {
-        char msg[5];
-        snprintf(msg, sizeof(msg), "%d", label);
         bmp_printf(
             SHADOW_FONT(FONT(FONT_MED, COLOR_BLACK, COLOR_WHITE)), 
-            x - font_med.width * strlen(msg) / 2 + 1 + 30,
+            x + 15,
             y - font_med.height/2,
-            msg);
+            "%d%%", label);
     }
 }
 
@@ -1682,19 +1680,17 @@ static void spotmeter_step()
     
     // if false color is active, draw white on semi-transparent gray
     
-    static int fg = 0;
-    if (scaled > 60) fg = COLOR_BLACK;
-    if (scaled < 50 || falsecolor_draw) fg = COLOR_WHITE;
+    int fg = scaled < 50 ? COLOR_WHITE : COLOR_BLACK;
     int bg = fg == COLOR_BLACK ? COLOR_WHITE : COLOR_BLACK;
-    int fnt = FONT(SHADOW_FONT(FONT_LARGE), fg, bg);
-    int fnts = FONT(SHADOW_FONT(FONT_MED), fg, bg);
+    int fnt = FONT(FONT_LARGE, fg, bg);
+    int fnts = FONT(FONT_MED, fg, bg);
 
     if (!arrow_keys_shortcuts_active())
     {
         bmp_draw_rect(COLOR_WHITE, xcb - dxb, ycb - dxb, 2*dxb+1, 2*dxb+1);
         bmp_draw_rect(COLOR_BLACK, xcb - dxb + 1, ycb - dxb + 1, 2*dxb+1-2, 2*dxb+1-2);
     }
-    ycb += dxb + 20;
+    ycb += dxb + 25;
     ycb -= font_large.height/2;
     xcb -= 2 * font_large.width;
 
