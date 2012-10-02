@@ -1122,6 +1122,7 @@ draw_zebra_and_focus( int Z, int F)
             thr -= thr_increment;
         }
 
+        thr_increment = COERCE(thr_increment, -5, 5);
         int thr_min = 10;
         thr = COERCE(thr, thr_min, 255);
 

@@ -1756,6 +1756,13 @@ static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvra
     }
 }
 
+static void focus_found_pixel_playback(int x, int y, int e, int thr, uint8_t * const bvram)
+{    
+    int color = get_focus_color(thr, e);
+    bmp_putpixel_fast(bvram, x, y, color);
+    bmp_putpixel_fast(bvram, x+1, y, color);
+}
+
 // returns how the focus peaking threshold changed
 static int
 draw_zebra_and_focus( int Z, int F )
@@ -1805,7 +1812,6 @@ draw_zebra_and_focus( int Z, int F )
         int xStart = os.x0 + 8;
         int xEnd = os.x_max - 8;
         int n_over = 0;
-        int n_total = ((yEnd - yStart) * (xEnd - xStart)) / 4;
         
         const uint8_t* p8; // that's a moving pointer
         
@@ -1846,7 +1852,11 @@ draw_zebra_and_focus( int Z, int F )
         }
         else
 #endif
+        
+        int n_total = 0;
+        if (lv) // fast, realtime
         {
+            n_total = ((yEnd - yStart) * (xEnd - xStart)) / 4;
             for(int y = yStart; y < yEnd; y += 2)
             {
                 uint32_t hd_row = hdvram + BM2HD_R(y);
@@ -1881,6 +1891,31 @@ draw_zebra_and_focus( int Z, int F )
                 }
             }
         }
+        else // playback - can be slower and more accurate
+        {
+            n_total = ((yEnd - yStart) * (xEnd - xStart));
+            for(int y = yStart; y < yEnd; y ++)
+            {
+                uint32_t hd_row = hdvram + BM2HD_R(y);
+                
+                for (int x = xStart; x < xEnd; x ++)
+                {
+                    p8 = (uint8_t *)(hd_row + bm_hd_x_cache[x - BMP_W_MINUS]);
+                    int e = peak_d2xy_hd(p8);
+                    
+                    /* executed for 1% of pixels */
+                    if (unlikely(e >= thr))
+                    {
+                        n_over++;
+
+                        if (unlikely(dirty_pixels_num >= MAX_DIRTY_PIXELS)) // threshold too low, abort
+                            break;
+
+                        if (F==1) focus_found_pixel_playback(x, y, e, thr, bvram);
+                    }
+                }
+            }
+        }
 
         //~ bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
         
@@ -1896,7 +1931,7 @@ draw_zebra_and_focus( int Z, int F )
         }
 
         thr_increment = COERCE(thr_increment, -5, 5);
-        int thr_min = (lens_info.iso > 1600 ? 15 : 10);
+        int thr_min = 10;
         thr = COERCE(thr, thr_min, 255);
 
 
@@ -1916,7 +1951,7 @@ void guess_focus_peaking_threshold()
     int prev_thr_delta = 1234;
     for (int i = 0; i < 50; i++)
     {
-        int thr_delta = draw_zebra_and_focus(0,1);
+        int thr_delta = draw_zebra_and_focus(0,2);
         //~ bmp_printf(FONT_LARGE, 0, 0, "%x ", thr_delta); msleep(1000);
         if (!thr_delta) break;
         if (prev_thr_delta != 1234 && SGN(thr_delta) != SGN(prev_thr_delta)) break;
@@ -4495,7 +4530,7 @@ void draw_livev_for_playback()
     get_yuv422_vram(); // just to refresh VRAM params
     
     extern int defish_preview;
-    
+    info_led_on();
 BMP_LOCK(
 
     bvram_mirror_clear(); // may be filled with liveview cropmark / masking info, not needed in play mode
@@ -4525,6 +4560,7 @@ BMP_LOCK(
 
     bvram_mirror_clear(); // may remain filled with playback zebras 
 )
+    info_led_off();
     livev_for_playback_running = 0;
 }
 
