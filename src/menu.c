@@ -2192,6 +2192,7 @@ handle_ml_menu_keys(struct event * event)
 #endif
 #ifdef CONFIG_VXWORKS
     case BGMT_JUMP:
+    case BGMT_PRESS_DIRECT_PRINT:
 #endif
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         menu_entry_select( menu, 2 ); // auto setting select
