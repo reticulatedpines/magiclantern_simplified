@@ -661,4 +661,4 @@ void afframe_set_dirty(){};
 void draw_line(){};
 
 int display_filter_enabled() { return 0; };
-void display_filter_get_buffers() {};
+void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf) {};

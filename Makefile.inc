@@ -4,6 +4,12 @@
 include $(TOP_DIR)/Makefile.user.default
 -include $(TOP_DIR)/Makefile.user
 
+ifeq ($(CONFIG_CCACHE), y)
+    CC := $(CCACHE) $(CC)
+    HOST_CC := $(CCACHE) $(CC)
+    LD := $(CCACHE) $(LD)
+endif	
+
 UNAME:=$(shell uname)
 
 ifeq ($(UNAME), Darwin)
