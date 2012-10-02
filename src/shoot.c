@@ -172,6 +172,9 @@ static CONFIG_INT("bulb.ramping.auto.speed", bramp_auto_ramp_speed, 100); // max
 static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 50);
 static CONFIG_INT("bulb.ramping.manual.expo", bramp_manual_speed_evx1000_per_shot, 1000);
 static CONFIG_INT("bulb.ramping.manual.focus", bramp_manual_speed_focus_steps_per_shot, 1000);
+//~ static CONFIG_INT("bulb.lrt.holy.grail", bramp_lrt_holy_grail_stops, 0);
+#define LRT_HOLY_GRAIL (bramp_auto_exposure > 3)
+#define LRT_HOLY_GRAIL_STOPS (bramp_auto_exposure - 3)
 
 #define BULB_EXPOSURE_CONTROL_ACTIVE (intervalometer_running && bulb_ramping_enabled && (bramp_auto_exposure || bramp_manual_speed_evx1000_per_shot!=1000))
 
@@ -462,19 +465,31 @@ static void bramp_auto_ramp_speed_print( void * priv, int x, int y, int selected
     int max_ev_x1000 = bramp_auto_ramp_speed;
     int f = get_smooth_factor_from_max_ev_speed(max_ev_x1000);
 
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "MAX RampSpeed: %d.%03d EV/shot",
-        ABS(max_ev_x1000) / 1000,
-        ABS(max_ev_x1000) % 1000
-    );
-    if (selected)
-    bmp_printf(FONT_MED, x + font_large.width * 24, y - font_med.height, 
-        "f=0.%02d", 
-        f
-    );
-    menu_draw_icon(x, y, MNI_PERCENT, log_length(max_ev_x1000) * 100 / log_length(1000));
+    if (bramp_auto_exposure && !LRT_HOLY_GRAIL)
+    {
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "MAX RampSpeed: %d.%03d EV/shot",
+            ABS(max_ev_x1000) / 1000,
+            ABS(max_ev_x1000) % 1000
+        );
+        if (selected)
+            bmp_printf(FONT_MED, x + font_large.width * 24, y - font_med.height, 
+                "f=0.%02d", 
+                f
+            );
+        menu_draw_icon(x, y, MNI_PERCENT, log_length(max_ev_x1000) * 100 / log_length(1000));
+    }
+    else
+    {
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "MAX RampSpeed: N/A"
+        );
+        menu_draw_icon(x, y, MNI_OFF, 0);
+    }
 }
 static void manual_expo_ramp_print( void * priv, int x, int y, int selected )
 {
@@ -523,7 +538,7 @@ static void bulb_ramping_print( void * priv, int x, int y, int selected )
     int steps = (int)bramp_manual_speed_focus_steps_per_shot - 1000;
 
     static char msg[100];
-    snprintf(msg, sizeof(msg), "Bulb/Focus Ramp : ");
+    snprintf(msg, sizeof(msg), "TimelapseRamping: ");
 
     // try to write this as compact as possible, there's very little space in the menu
     if (!bulb_ramping_enabled)
@@ -534,7 +549,12 @@ static void bulb_ramping_print( void * priv, int x, int y, int selected )
     {
         if (bramp_auto_exposure)
         {
-            STR_APPEND(msg, bramp_auto_exposure==1 ? "Sunset" : bramp_auto_exposure==2 ? "Sunrise" : "Auto");
+            STR_APPEND(msg, 
+                bramp_auto_exposure == 1 ? "Sunset" : 
+                bramp_auto_exposure == 2 ? "Sunrise" : 
+                bramp_auto_exposure == 3 ? "Auto" :
+                bramp_auto_exposure == 4 ? "LRT 1EV" : "LRT 2EV"
+            );
         }
         if (evx1000)
         {
@@ -543,7 +563,7 @@ static void bulb_ramping_print( void * priv, int x, int y, int selected )
             if (r % 100 == 0)       { STR_APPEND(msg, "%01d", r / 100); }
             else if (r % 10 == 0)   { STR_APPEND(msg, "%02d", r / 10 ); }
             else                    { STR_APPEND(msg, "%03d", r      ); }
-            STR_APPEND(msg, "EV");
+            STR_APPEND(msg, "EV/p");
         }
         if (steps)
         {
@@ -3586,6 +3606,24 @@ static void bramp_plot_luma_ev_point(int luma, int color)
     draw_circle(x, y, 6, COLOR_WHITE);
 }
 
+static void bramp_plot_holy_grail_hysteresis(int luma_ref)
+{
+    luma_ref = COERCE(luma_ref, 0, 255);
+    int ev = bramp_luma_to_ev_x100(luma_ref);
+    int ev1 = ev - LRT_HOLY_GRAIL_STOPS * 100;
+    int ev2 = ev + LRT_HOLY_GRAIL_STOPS * 100;
+    int x1 = 350 + ev1 * 20 / 100;
+    int x2 = 350 + ev2 * 20 / 100;
+    int y1 = 240 - (-128)/2;
+    int y2 = 240 - ( 128)/2;
+
+    draw_line(x1, y1, x1, y2, COLOR_BLACK);
+    draw_line(x2, y1, x2, y2, COLOR_WHITE);
+    draw_line(x1+1, y1, x1+1, y2, COLOR_WHITE);
+    draw_line(x2+1, y1, x2+1, y2, COLOR_BLACK);
+
+}
+
 #define BRAMP_SHUTTER_0 56 // 1 second exposure => just for entering compensation
 //~ static int bramp_temporary_exposure_compensation_ev_x100 = 0;
 
@@ -4032,7 +4070,7 @@ static void compute_exposure_for_next_shot()
         int expo_diff_too_big = 
             (e_x100 > 200 && bulb_shutter_valuef < shutter_max) ||
             (e_x100 < -200 && bulb_shutter_valuef > shutter_min);
-        int should_apply_full_correction_immediately = expo_diff_too_big || bramp_prev_shot_was_bad;
+        int should_apply_full_correction_immediately = (expo_diff_too_big || bramp_prev_shot_was_bad) && !LRT_HOLY_GRAIL;
         bramp_prev_shot_was_bad = expo_diff_too_big;
 
         my_fprintf(bramp_log_file, "y=%4d r=%4d e=%4d => ", y_x100, r_x100, e_x100);
@@ -4067,21 +4105,33 @@ static void compute_exposure_for_next_shot()
         {    // see comments above for the feedback loop design
             bramp_ev_reference_x1000 += manual_evx1000;
 
-            //~ float f = (float)bramp_auto_smooth / 100.0;
+            float u = 0;
             int fi = get_smooth_factor_from_max_ev_speed(bramp_auto_ramp_speed);
             float f = (float)fi / 100.0;
             float e = (float)e_x100 / 100.0;
 
-            if (bramp_auto_exposure == 1) // sunset - only increase exposure
-                e = MAX(e, 0);
+            if (LRT_HOLY_GRAIL)
+            {
+                // only apply an integer amount of correction
+                int step_x100 = LRT_HOLY_GRAIL_STOPS * 100;
+                int c = (ABS(e_x100) / step_x100) * LRT_HOLY_GRAIL_STOPS;
+                if (e_x100 < 0) c = -c;
+                u = c;
+            }
+            else
+            {
+                if (bramp_auto_exposure == 1) // sunset - only increase exposure
+                    e = MAX(e, 0);
 
-            if (bramp_auto_exposure == 2) // sunrise - only decrease exposure
-                e = MIN(e, 0);
+                if (bramp_auto_exposure == 2) // sunrise - only decrease exposure
+                    e = MIN(e, 0);
+                
+                float b = f*f - 2*f + 1;
+                float a = f*f;
+                u = b*e - a*bramp_u1;
+                bramp_u1 = u;
+            }
             
-            float b = f*f - 2*f + 1;
-            float a = f*f;
-            float u = b*e - a*bramp_u1;
-            bramp_u1 = u;
             bulb_shutter_valuef *= powf(2, u);
 
             // display some info
@@ -4160,6 +4210,9 @@ static void bulb_ramping_showinfo()
         bramp_plot_luma_ev();
         bramp_plot_luma_ev_point(bramp_measured_level, COLOR_RED);
         bramp_plot_luma_ev_point(bramp_reference_level, COLOR_BLUE);
+        
+        if (LRT_HOLY_GRAIL)
+            bramp_plot_holy_grail_hysteresis(bramp_reference_level);
     }
 }
 
@@ -4569,18 +4622,18 @@ static struct menu_entry shoot_menus[] = {
     },
     #ifndef CONFIG_5DC
     {
-        .name = "Bulb/Focus Ramping",
+        .name = "Timelapse Ramping",
         .priv       = &bulb_ramping_enabled,
         .display = bulb_ramping_print,
         .max = 1,
-        .submenu_width = 650,
+        .submenu_width = 710,
         .help = "Exposure / focus ramping for advanced timelapse sequences.",
         .children =  (struct menu_entry[]) {
             {
                 .name = "Auto ExpoRamp\b",
                 .priv       = &bramp_auto_exposure,
-                .max = 3,
-                .choices = (const char *[]) {"OFF", "Sunset", "Sunrise", "Auto"},
+                .max = 5,
+                .choices = (const char *[]) {"OFF", "Sunset", "Sunrise", "Auto", "LRT Holy Grail 1EV", "LRT Holy Grail 2EV"},
                 .help = "Auto exposure ramping (Tv+ISO) for day<->night timelapse.",
             },
             /*{
@@ -4601,6 +4654,16 @@ static struct menu_entry shoot_menus[] = {
                 .display = bramp_auto_ramp_speed_print,
                 .help = "For auto ramp. Lower: less flicker. Too low: 2EV exp jumps.",
             },
+            /*
+            {
+                .name = "LRT Holy Grail   ",
+                .priv       = &bramp_lrt_holy_grail_stops,
+                .max = 3,
+                .min = 0,
+                .choices = (const char *[]) {"OFF", "1 EV", "2 EV", "3 EV"},
+                .icon_type = IT_BOOL,
+                .help = "LRTimelapse Holy Grail: change exposure in big steps only.",
+            },*/
             {
                 .name = "Manual Expo. Ramp",
                 .priv       = &bramp_manual_speed_evx1000_per_shot,
@@ -5432,7 +5495,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
 
 #ifndef CONFIG_5DC // bulb not working
         // then choose the best option (bulb for long exposures, regular for short exposures)
-        if (msc >= 10000 || (BULB_EXPOSURE_CONTROL_ACTIVE && msc > BULB_MIN_EXPOSURE))
+        if (msc >= 10000 || (BULB_EXPOSURE_CONTROL_ACTIVE && msc > BULB_MIN_EXPOSURE && !LRT_HOLY_GRAIL))
         {
             bulb_take_pic(msc);
             bramp_last_exposure_rounding_error_evx1000 = 0; // bulb ramping assumed to be exact
