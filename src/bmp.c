@@ -1101,10 +1101,14 @@ void set_ml_palette()
 
 void set_ml_palette_if_dirty()
 {
+    if (!DISPLAY_IS_ON) return;
     extern int PB_Palette[];
     if (PB_Palette[15*3+2] == 0x03eb0000) return;
+
+    BmpDDev_take_semaphore();
     set_ml_palette();
     PB_Palette[15*3+2] = 0x03eb0000;
+    BmpDDev_give_semaphore();
 }
 
 void restore_canon_palette()

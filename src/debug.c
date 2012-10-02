@@ -1926,6 +1926,9 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
 
+        //~ bmp_printf(FONT_LARGE, 50, 50, "%d ", MEM(0xC0F01018));
+        //~ if (MEM(0xC0F01018)) info_led_on(); else info_led_off();
+        
         if (screenshot_sec)
         {
             info_led_blink(1, 20, 1000-20-200);
@@ -2604,12 +2607,14 @@ struct menu_entry debug_menus[] = {
         //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             #ifndef CONFIG_5D3_MINIMAL // will change some settings and you can't restore them
+            #ifndef CONFIG_5DC // many things incompatible, mostly liveview stuff
             {
                 .name = "Quick test (around 15 min)",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = stress_test_task,
                 .help = "A quick test which covers basic functionality. "
             },
+            #endif
             #endif
             {
                 .name = "Random tests (infinite loop)",

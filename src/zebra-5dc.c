@@ -1965,7 +1965,7 @@ void draw_livev_for_playback()
     extern int defish_preview;
     
 //~ BMP_LOCK(
-    set_ml_palette();
+    set_ml_palette_if_dirty();
 
     bvram_mirror_clear(); // may be filled with liveview cropmark / masking info, not needed in play mode
     clrscr();
