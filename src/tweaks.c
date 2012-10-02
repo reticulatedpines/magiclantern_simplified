@@ -867,7 +867,7 @@ int handle_set_wheel_play(struct event * event)
     }
 
     #if defined(CONFIG_5DC) // SET does not send "unpress", so just move cursor on "erase" by default
-    if (quick_delete)
+    if (quick_delete && PLAY_MODE)
     {
         if (event->param == BGMT_TRASH)
         {
