@@ -104,6 +104,7 @@ CONFIG_INT("movie.restart", movie_restart,0);
 CONFIG_INT("movie.cliplen", movie_cliplen,0);
 CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
 CONFIG_INT("movie.rec-key", movie_rec_key, 0);
+CONFIG_INT("movie.autostart-at-resume", start_recording_on_resume, 0);
 
 static int movie_autostop_running = 0;
 
@@ -1320,6 +1321,13 @@ static struct menu_entry mov_menus[] = {
         .select  = movie_cliplen_toggle,
         .help = "Auto-stop the movie after a set amount of minutes.",
         //.essential = FOR_MOVIE,
+    },
+    {
+        .name = "Simulate REC on resume",
+        .priv = &start_recording_on_resume,
+        .select = menu_binary_toggle,
+        .choices = (const char *[]) {"OFF", "ON"},
+        .help = "Autostart recording as soon as the camera wakes up due to halfshutter press."
     },
 };
 

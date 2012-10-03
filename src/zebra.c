@@ -45,6 +45,8 @@
 extern int kill_canon_gui_mode;
 #endif                      // but it will display ML graphics
 
+extern int start_recording_on_resume;
+static int resumed_due_to_halfshutter = 0;
 static void waveform_init();
 //~ static void histo_init();
 static void do_disp_mode_change();
@@ -4704,6 +4706,14 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
     //~ bmp_printf(FONT_LARGE, 50, 50, "wakeup: %d   ", reason);
     
     if (lv && reason == GMT_OLC_INFO_CHANGED) return;
+    if(start_recording_on_resume) {
+        if(reason == BGMT_PRESS_HALFSHUTTER) {
+            resumed_due_to_halfshutter = 1;
+        }
+    } else {
+      resumed_due_to_halfshutter = 0;
+    }
+
     
     // when sensor is covered, timeout changes to 3 seconds
     int sensor_status = lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED;
@@ -4856,6 +4866,10 @@ static void idle_display_on()
     ResumeLiveView();
     display_on();
     redraw();
+    if(is_movie_mode() && !recording && start_recording_on_resume && resumed_due_to_halfshutter) {
+    	schedule_movie_start();
+        resumed_due_to_halfshutter = 0;
+    }
     //~ ASSERT(DISPLAY_IS_ON); // it will take a short time until display will turn on
 }
 
