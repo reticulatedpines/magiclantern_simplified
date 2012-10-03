@@ -155,6 +155,28 @@ void my_gui_task( void )
     }
 }
 
+int my_bindGUISwitchCBR(int a, int b, int c, int d)
+{
+    if (a == 133 && gui_menu_shown())
+    {
+        int x = (int)((int8_t)b);
+        while (x > 0)
+        {
+            fake_simple_button(BGMT_WHEEL_RIGHT);
+            x--;
+        }
+        while (x < 0)
+        {
+            fake_simple_button(BGMT_WHEEL_LEFT);
+            x++;
+        }
+        return 0;
+    }
+    
+    
+    return bindGUISwitchCBR(a,b,c,d);
+}
+
 void hijack_gui_main_task()
 {
     //~ taskptr will point to the location of GuiMainTask's task struct.
@@ -186,6 +208,9 @@ void hijack_gui_main_task()
     
     //~ start our GuiMainTask.
     task_create("GuiMainTask", 0x17, 0x2000, my_gui_task, 0);
+
+    //~ also hijack my_bindGUISwitchCBR - to decode top vs bottom wheel
+    MEM(0xF654) = my_bindGUISwitchCBR;
 
     give_semaphore(MEM(0x12720));
 }

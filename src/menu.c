@@ -1149,7 +1149,11 @@ menu_display(
                     }
                     else
                     {
+                        #ifdef CONFIG_5DC
+                        STR_APPEND(msg, "Main Dial: ");
+                        #else
                         STR_APPEND(msg, "Left/Right: ");
+                        #endif
                     }
                     if (icon_drawn == MNI_ACTION)
                     {
