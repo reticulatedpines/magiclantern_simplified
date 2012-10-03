@@ -303,3 +303,27 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func)
     );
     request_crash_log(2);
 }
+
+
+void dump_edmac()
+{
+    for (int i = 0; i < 16; i++)
+    {
+        for (int j = 0; j < 5; j++)
+        {
+            bmp_printf(FONT_MED, 50 + j*120, 50+i*20, "%x ", MEM(0xC0F04000 + 0x100*i + 4*j));
+        }
+        int addr = 0xC0F04000 + 0x100*i + 8;
+        if (MEM(addr))
+        {
+            int size = MEM(0xC0F04000 + 0x100*i + 0xc);
+            int w = size & 0xFFFF;
+            int h = ((size >> 16) & 0xFFFF) + 1;
+            if (w <= 0 || h <= 0) { w = 1024; h = 1024; }
+            char fn[50];
+            snprintf(fn, sizeof(fn), CARD_DRIVE"%x.DAT", addr);
+            bmp_printf(FONT_MED, 0, 0, "%s (%dx%d)...", fn, w, h);
+            dump_with_buffer(MEM(0xC0F04000 + 0x100*i + 8), w*h, fn);
+        }
+    }
+}
