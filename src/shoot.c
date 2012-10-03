@@ -304,20 +304,24 @@ int get_exposure_time_raw()
     return lens_info.raw_shutter;
 }
 
+static PROP_INT(PROP_VIDEO_SYSTEM, pal);
+
 static void timelapse_calc_display(void* priv, int x, int y, int selected)
 {
     int d = timer_values[*(int*)priv];
     int total_shots = interval_stop_after ? (int)MIN((int)interval_stop_after*100, (int)avail_shot) : (int)avail_shot;
     int total_time_s = d * total_shots;
     int total_time_m = total_time_s / 60;
+    int fps = video_mode_fps;
+    if (!fps) fps = pal ? 25 : 30;
     bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK), 
         x, y,
         "%dh%02dm, %dshots, %dfps => %02dm%02ds", 
         total_time_m / 60, 
         total_time_m % 60, 
-        total_shots, video_mode_fps, 
-        (total_shots / video_mode_fps) / 60, 
-        (total_shots / video_mode_fps) % 60
+        total_shots, fps, 
+        (total_shots / fps) / 60, 
+        (total_shots / fps) % 60
     );
 }
 
