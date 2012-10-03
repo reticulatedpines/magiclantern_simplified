@@ -44,7 +44,7 @@ void my_gui_task( void )
     {
         struct event * event;
         msg_queue_receive( MEM(0x1271C), &event, 0);
-
+        
         take_semaphore(MEM(0x12720), 0);
         
         if ( !event )
@@ -82,7 +82,7 @@ void my_gui_task( void )
                 DebugMsg( MEM(0x2D280), 3, "[GUI_M] GUI_CHANGE_MODE:%d", event->param);
                 
                 if( event->param == 4)
-                {
+                {                    
                     gui_massive_event_loop2( 0x12, 0, 0 );
                     
                     if( MEM(0x1BD4) != 0 )
@@ -110,6 +110,12 @@ void my_gui_task( void )
                     DebugMsg( MEM(0x2D280), 3, "[GUI_M] GUIOTHER_CANCEL_ALL_EVENT");
                     MEM(0x1BCC) = 0;
                     break;
+                }
+                
+                if (event->param == 0xE) // shutdown?
+                {
+                    info_led_on();
+                    _card_led_on();
                 }
                 
                 if( MEM(0x1BCC) == 1
