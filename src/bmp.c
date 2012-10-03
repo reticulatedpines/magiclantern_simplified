@@ -1058,7 +1058,7 @@ void set_ml_palette()
     int palette[16] = {
         0x00870000, // transparent
         0x0000FFFF, // 1 - red
-        0x00FF00FF, // 2 - green
+        0x00CC00FF, // 2 - green
         0xFF0000FF, // 3 - blue
         0xFFFF00FF, // 4 - cyan
         0xFF00FFFF, // 5 - magenta
@@ -1079,7 +1079,7 @@ void set_ml_palette()
     extern int PB_Palette[];
 
     if (0) // convert from RGB to PB with Canon code, write result to a file
-    {      // if you change RGB palette, run this first to get the PB equivalent
+    {      // if you change RGB palette, run this first to get the PB equivalent (comment out BmpDDev semaphores first)
         NotifyBox(10000, "%x ", PB_Palette);
         SetRGBPaletteToDisplayDevice(palette); // problem: this is unsafe to call (race condition with Canon code)
         FILE* f = FIO_CreateFileEx(CARD_DRIVE"pb.log");
@@ -1089,7 +1089,7 @@ void set_ml_palette()
     }
     else // use pre-computed PB palette (just send it to digic)
     {
-        int palette_pb[16] = {0x00fc0000, 0x0346de7f, 0x0389bd89, 0x031a66ea, 0x03a42280, 0x03604377, 0x03cf9a16, 0x0393b94b, 0x00000000, 0x03000000, 0x03260000, 0x034e0000, 0x03750000, 0x039c0000, 0x03c30000, 0x03eb0000};
+        int palette_pb[16] = {0x00fc0000, 0x0346de7f, 0x036dcba1, 0x031a66ea, 0x03a42280, 0x03604377, 0x03cf9a16, 0x0393b94b, 0x00000000, 0x03000000, 0x03260000, 0x034e0000, 0x03750000, 0x039c0000, 0x03c30000, 0x03eb0000};
 
         for (int i = 0; i < 16; i++)
         {
