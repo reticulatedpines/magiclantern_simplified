@@ -87,43 +87,10 @@ void bmp_zoom(){};
 void update_disp_mode_bits_from_params(){};
 int disp_profiles_0 = 0;
 
-// color info in 5Dc is not quite yuv422... but almost there
+// color info in 5Dc is not quite yuv422... but almost there (it's probably yuv411)
 
 //    uYvY yYuY vYyY
 // => uYvY uYvY uYvY
-//                  
-void convert_current_image_buffer_to_yuv422()
-{
-    if (MEM(YUV422_LV_BUFFER_1) == 0x56347812) return; // conversion already done (and what's the probability of a pixel having this value?)
-
-    BmpDDev_take_semaphore();
-    
-    uint8_t* buf = YUV422_LV_BUFFER_1;
-    int size = vram_lv.pitch * vram_lv.height;
-
-    //~ dump_seg(YUV422_LV_BUFFER_1, size, CARD_DRIVE"before.422");
-
-    for (int i = 0; i < size; i += 12)
-    {
-        int u1 = buf[i+0];
-        int u2 = buf[i+6];
-        int v1 = buf[i+2];
-        int v2 = buf[i+8];
-
-        //~ buf[i+0] = u1;
-        //~ buf[i+2] = v1;
-        buf[i+4] = u2;
-        buf[i+6] = v2;
-        buf[i+8] = u2;
-        buf[i+10] = v2;
-    }
-    MEM(YUV422_LV_BUFFER_1) = 0x56347812;
-
-    BmpDDev_give_semaphore();
-
-    //~ dump_seg(YUV422_LV_BUFFER_1, size, CARD_DRIVE"after.422");
-}
-
 
 // precompute some parts of YUV to RGB computations
 static int yuv2rgb_RV[256];
@@ -195,6 +162,102 @@ void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
     *R = COERCE(Y + yuv2rgb_RV[V & 0xFF], 0, 255); \
     *G = COERCE(Y + yuv2rgb_GU[U & 0xFF] + yuv2rgb_GV[V & 0xFF], 0, 255); \
     *B = COERCE(Y + yuv2rgb_BU[U & 0xFF], 0, 255); \
+}
+
+int yuv411_to_422(uint32_t addr)
+{
+    // 4 6  8 A  0 2 
+    // uYvY yYuY vYyY
+    addr = addr & ~3; // multiple of 4
+        
+    // multiples of 12, offset 0: vYyY u
+    // multiples of 12, offset 4: uYvY
+    // multiples of 12, offset 8: yYuY v
+
+    uint8_t* p = (uint8_t*) addr;
+
+    switch ((addr/4) % 3)
+    {
+        case 0:
+        {
+            unsigned u = p[4];
+            unsigned v = p[0];
+            unsigned y1 = p[1];
+            unsigned y2 = p[2];
+            return UYVY_PACK(u,y1,v,y2);
+        }
+        case 1:
+        {
+            return MEM(addr);
+        }
+        case 2:
+        {
+            unsigned u = p[2];
+            unsigned v = p[4];
+            unsigned y1 = p[0];
+            unsigned y2 = p[1];
+            return UYVY_PACK(u,y1,v,y2);
+        }
+    }
+}
+
+void yuv411_to_rgb(uint32_t addr, int* Y, int* R, int* G, int* B)
+{
+    // 4 6  8 A  0 2 
+    // uYvY yYuY vYyY
+    addr = addr & ~3; // multiple of 4
+        
+    // multiples of 12, offset 0: vYyY u
+    // multiples of 12, offset 4: uYvY
+    // multiples of 12, offset 8: yYuY v
+
+    uint8_t* p = (uint8_t*) addr;
+    int y = 0;
+    int U = 0;
+    int V = 0;
+    
+    // trick to compute [ am3 = (addr/4) % 3 ] a little bit faster
+    static int am3 = 0;
+    static int c = 0;
+    
+    static int prev_addr = 0;
+    if (likely(addr == prev_addr + 4))
+    {
+        am3 = am3 + 1;
+        if (unlikely(am3 == 3)) am3 = 0;
+    }
+    else if (likely(addr == prev_addr))
+    {
+    }
+    else
+    {
+        am3 = (addr/4) % 3;
+    }
+    prev_addr = addr;
+
+    switch (am3)
+    {
+        case 0:
+            U = p[4];
+            V = p[0];
+            y = p[1];
+            break;
+        case 1:
+            U = p[0];
+            V = p[2];
+            y = p[1];
+            break;
+        case 2:
+            U = p[2];
+            V = p[4];
+            y = p[0];
+            break;
+    }
+
+    *Y = y;
+    *R = COERCE(y + yuv2rgb_RV[V], 0, 255);
+    *G = COERCE(y + yuv2rgb_GU[U] + yuv2rgb_GV[V], 0, 255);
+    *B = COERCE(y + yuv2rgb_BU[U], 0, 255);
 }
 
 static int bmp_is_on() { return 1; }
@@ -596,9 +659,6 @@ hist_build()
     struct vram_info * lv = get_yuv422_vram();
     uint32_t* buf = (uint32_t*)lv->vram;
 
-    if ((hist_draw && hist_colorspace == 1) || vectorscope_draw) 
-        convert_current_image_buffer_to_yuv422();
-
     int x,y;
     
     hist_max = 0;
@@ -626,13 +686,14 @@ hist_build()
     {
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
-            uint32_t pixel = buf[BM2LV(x,y)/4];
+            uint32_t* p = &buf[BM2LV(x,y)/4];
             int Y;
             if (hist_draw && hist_colorspace == 1 && !ext_monitor_rca) // rgb
             {
                 int R, G, B;
+                yuv411_to_rgb(p, &Y, &R, &G, &B);
                 //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
-                COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
+                //~ COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
                 // YRGB range: 0-255
                 uint32_t R_level = R * HIST_WIDTH / 256;
                 uint32_t G_level = G * HIST_WIDTH / 256;
@@ -644,6 +705,7 @@ hist_build()
             }
             else // luma
             {
+                uint32_t pixel = *p;
                 uint32_t p1 = ((pixel >> 16) & 0xFF00) >> 8;
                 uint32_t p2 = ((pixel >>  0) & 0xFF00) >> 8;
                 Y = (p1+p2) / 2; 
@@ -666,6 +728,7 @@ hist_build()
 
             if (vectorscope_draw)
             {
+                uint32_t pixel = yuv411_to_422(p);
                 int8_t U = (pixel >>  0) & 0xFF;
                 int8_t V = (pixel >> 16) & 0xFF;
                 vectorscope_addpixel(Y, U, V);
@@ -697,8 +760,6 @@ int hist_get_percentile_level(int percentile)
 
 int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
 {
-    convert_current_image_buffer_to_yuv422();
-    
     *under = -1;
     *over = -1;
     struct vram_info * lv = get_yuv422_vram();
@@ -714,14 +775,16 @@ int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
         uint32_t * const v_row = (uint32_t*)( vram + BM2LV_R(y) );
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
-            uint32_t pixel = v_row[x/2];
+            uint32_t* p = &v_row[x/2];
             
             int Y, R, G, B;
+            yuv411_to_rgb(p, &Y, &R, &G, &B);
+
             //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
-            COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
+            //~ COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
             
             int M = MAX(MAX(R,G),B);
-            if (pixel && Y < thr_lo) (*under)++; // try to ignore black bars
+            if (*p && Y < thr_lo) (*under)++; // try to ignore black bars
             if (M > thr_hi) (*over)++;
             total++;
         }
@@ -1200,8 +1263,6 @@ void draw_zebras( int Z )
         int zll = zebra_level_lo * 255 / 100;
         
         uint8_t * lvram = get_yuv422_vram()->vram;
-        
-        if (zebra_colorspace == 1) convert_current_image_buffer_to_yuv422();
 
         // draw zebra in 16:9 frame
         // y is in BM coords
@@ -1236,7 +1297,8 @@ void draw_zebras( int Z )
                 {
                     int Y, R, G, B;
                     //~ uyvy2yrgb(*lvp, &Y, &R, &G, &B);
-                    COMPUTE_UYVY2YRGB(*lvp, Y, R, G, B);
+                    yuv411_to_rgb(lvp, &Y, &R, &G, &B);
+                    //~ COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
 
                     if(unlikely(Y < zll)) // underexposed
                     {
@@ -2141,8 +2203,6 @@ static void spotmeter_step()
     }
     struct vram_info *  vram = get_yuv422_vram();
 
-    if (spotmeter_formula >= 4) convert_current_image_buffer_to_yuv422();
-
     if( !vram->vram )
         return;
     
@@ -2166,15 +2226,16 @@ static void spotmeter_step()
     // Sum the values around the center
     for( y = ycl - dxl ; y <= ycl + dxl ; y++ )
     {
-        for( x = xcl - dxl ; x <= xcl + dxl ; x++ )
+        for( x = xcl - dxl ; x <= xcl + dxl ; x += 2 )
         {
-            uint16_t p = vr[ x + y * width ];
-            sy += (p >> 8) & 0xFF;
-            if (x % 2) sv += (int8_t)(p & 0x00FF); else su += (int8_t)(p & 0x00FF);
+            uint32_t uyvy = yuv411_to_422(&vr[ x + y * width ]);
+            sy += UYVY_GET_AVG_Y(uyvy);
+            su += UYVY_GET_U(uyvy);
+            sv += UYVY_GET_V(uyvy);
         }
     }
 
-    sy /= (2 * dxl + 1) * (2 * dxl + 1);
+    sy /= (dxl + 1) * (2 * dxl + 1);
     su /= (dxl + 1) * (2 * dxl + 1);
     sv /= (dxl + 1) * (2 * dxl + 1);
 
