@@ -19,7 +19,7 @@
 
 // idk
 #define FOCUS_CONFIRMATION 0
-#define HALFSHUTTER_PRESSED 0
+#define HALFSHUTTER_PRESSED get_halfshutter_pressed()
 //~ #define DISPLAY_SENSOR_POWERED 0
 
 #define GMT_OLC_INFO_CHANGED -1

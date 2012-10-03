@@ -617,6 +617,7 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
             if (on_circle || (on_axis && brightness==0))
             {
                 pixel = 50;
+                bmp_putpixel_fast(bvram, x_origin + x, y_origin + ys, pixel);
             }
             else if (inside_circle)
             {
@@ -635,8 +636,8 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
                     /* 0x26 is the palette color for black plus max 0x2A until white */
                     pixel = 0x26 + (brightness >> 2);
                 }
+                bmp_putpixel_fast(bvram, x_origin + x, y_origin + ys, pixel);
             }
-            bmp_putpixel_fast(bvram, x_origin + x, y_origin + ys, pixel);
         }
     }
 }
