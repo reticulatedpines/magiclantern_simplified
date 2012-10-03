@@ -6646,6 +6646,9 @@ shoot_task( void* unused )
                     ) 
                     &&
                     (!silent_pic_enabled && !is_bulb_mode())
+                    #ifdef CONFIG_5DC
+                    && 0 // SW1/2 not working
+                    #endif
                    )
                 {
                     // continuous mode - simply hold shutter pressed 
