@@ -174,14 +174,18 @@ void hijack_gui_main_task()
         int sem_state = MEM(MEM(0x12720) + 0x08);
         int mq_count = MEM(MEM(0x1271C) + 0x18);
         if (mq_count == 0 && sem_state == 1)
+        {
+            take_semaphore(MEM(0x12720), 0); // so Canon GUI task can no longer handle events
             break;
+        }
         msleep(100);
     }
-    
     
     //~ delete canon's GuiMainTask.
     DeleteTask(taskptr);
     
     //~ start our GuiMainTask.
     task_create("GuiMainTask", 0x17, 0x2000, my_gui_task, 0);
+
+    give_semaphore(MEM(0x12720));
 }
