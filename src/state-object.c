@@ -63,7 +63,7 @@
 #endif
 
 #ifdef CONFIG_5DC
-extern int halfshutter_pressed; // we need to detect halfshutter press from EMState.
+// we need to detect halfshutter press from EMState.
 #define EMState (*(struct state_object **)0x4f24)
 #endif
 
@@ -159,8 +159,8 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     #endif
 
 #ifdef CONFIG_5DC
-    if (z == 0x0) halfshutter_pressed = 1;
-    if (z == 0xB) halfshutter_pressed = 0;
+    if (z == 0x0) { fake_simple_button(BGMT_PRESS_HALFSHUTTER); }
+    if (z == 0xB) { fake_simple_button(BGMT_UNPRESS_HALFSHUTTER); }
 #endif
     
     return ans;
