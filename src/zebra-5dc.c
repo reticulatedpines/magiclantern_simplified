@@ -63,7 +63,7 @@ void lens_display_set_dirty(){};
 void cropmark_clear_cache();
 void draw_histogram_and_waveform(int);
 void update_disp_mode_bits_from_params();
-//~ void uyvy2yrgb(uint32_t , int* , int* , int* , int* );
+void uyvy2yrgb(uint32_t , int* , int* , int* , int* );
 int toggle_disp_mode();
 void toggle_disp_mode_menu(void *priv, int delta);
 
@@ -87,10 +87,110 @@ void bmp_zoom(){};
 void update_disp_mode_bits_from_params(){};
 int disp_profiles_0 = 0;
 
-// color info unknown in 5Dc (it's not yuv422)
+// color info in 5Dc is not quite yuv422... but almost there
+
+//    uYvY yYuY vYyY
+// => uYvY uYvY uYvY
+//                  
+void convert_current_image_buffer_to_yuv422()
+{
+    if (MEM(YUV422_LV_BUFFER_1) == 0x56347812) return; // conversion already done (and what's the probability of a pixel having this value?)
+
+    uint8_t* buf = YUV422_LV_BUFFER_1;
+    int size = vram_lv.pitch * vram_lv.height;
+
+    //~ dump_seg(YUV422_LV_BUFFER_1, size, CARD_DRIVE"before.422");
+
+    for (int i = 0; i < size; i += 12)
+    {
+        int u1 = buf[i+0];
+        int u2 = buf[i+6];
+        int v1 = buf[i+2];
+        int v2 = buf[i+8];
+
+        //~ buf[i+0] = u1;
+        //~ buf[i+2] = v1;
+        buf[i+4] = u2;
+        buf[i+6] = v2;
+        buf[i+8] = u2;
+        buf[i+10] = v2;
+    }
+    MEM(YUV422_LV_BUFFER_1) = 0x56347812;
+    
+    //~ dump_seg(YUV422_LV_BUFFER_1, size, CARD_DRIVE"after.422");
+}
+
+
+// precompute some parts of YUV to RGB computations
+static int yuv2rgb_RV[256];
+static int yuv2rgb_GU[256];
+static int yuv2rgb_GV[256];
+static int yuv2rgb_BU[256];
+
+/** http://www.martinreddy.net/gfx/faqs/colorconv.faq
+ * BT 601:
+ * R'= Y' + 0.000*U' + 1.403*V'
+ * G'= Y' - 0.344*U' - 0.714*V'
+ * B'= Y' + 1.773*U' + 0.000*V'
+ * 
+ * BT 709:
+ * R'= Y' + 0.0000*Cb + 1.5701*Cr
+ * G'= Y' - 0.1870*Cb - 0.4664*Cr
+ * B'= Y' - 1.8556*Cb + 0.0000*Cr
+ */
+
+static void precompute_yuv2rgb()
+{
+    /*
+    *R = *Y + 1437 * V / 1024;
+    *G = *Y -  352 * U / 1024 - 731 * V / 1024;
+    *B = *Y + 1812 * U / 1024;
+    */
+    for (int u = 0; u < 256; u++)
+    {
+        int8_t U = u;
+        yuv2rgb_GU[u] = -352 * U / 1024;
+        yuv2rgb_BU[u] = 1812 * U / 1024;
+    }
+
+    for (int v = 0; v < 256; v++)
+    {
+        int8_t V = v;
+        yuv2rgb_RV[v] = 1437 * V / 1024;
+        yuv2rgb_GV[v] = -731 * V / 1024;
+    }
+}
+
+/*inline void uyvy2yrgb(uint32_t uyvy, int* Y, int* R, int* G, int* B)
+{
+    uint32_t y1 = (uyvy >> 24) & 0xFF;
+    uint32_t y2 = (uyvy >>  8) & 0xFF;
+    *Y = (y1+y2) / 2;
+    uint8_t u = (uyvy >>  0) & 0xFF;
+    uint8_t v = (uyvy >> 16) & 0xFF;
+    *R = MIN(*Y + yuv2rgb_RV[v], 255);
+    *G = MIN(*Y + yuv2rgb_GU[u] + yuv2rgb_GV[v], 255);
+    *B = MIN(*Y + yuv2rgb_BU[u], 255);
+} */
+
+#define UYVY_GET_AVG_Y(uyvy) (((((uyvy) >> 24) & 0xFF) + (((uyvy) >> 8) & 0xFF)) >> 1)
+#define UYVY_GET_U(uyvy) (((uyvy)       ) & 0xFF)
+#define UYVY_GET_V(uyvy) (((uyvy) >>  16) & 0xFF)
+#define COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B) \
+{ \
+    Y = UYVY_GET_AVG_Y(uyvy); \
+    R = COERCE(Y + yuv2rgb_RV[UYVY_GET_V(uyvy)], 0, 255); \
+    G = COERCE(Y + yuv2rgb_GU[UYVY_GET_U(uyvy)] + yuv2rgb_GV[UYVY_GET_V(uyvy)], 0, 255); \
+    B = COERCE(Y + yuv2rgb_BU[UYVY_GET_U(uyvy)], 0, 255); \
+} \
+
+#define UYVY_PACK(u,y1,v,y2) ((u) & 0xFF) | (((y1) & 0xFF) << 8) | (((v) & 0xFF) << 16) | (((y2) & 0xFF) << 24);
+
 void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
 {
-    R = G = B = 0;
+    *R = COERCE(Y + yuv2rgb_RV[V & 0xFF], 0, 255); \
+    *G = COERCE(Y + yuv2rgb_GU[U & 0xFF] + yuv2rgb_GV[V & 0xFF], 0, 255); \
+    *B = COERCE(Y + yuv2rgb_BU[U & 0xFF], 0, 255); \
 }
 
 static int bmp_is_on() { return 1; }
@@ -119,6 +219,7 @@ PROP_HANDLER(PROP_GUI_STATE)
 }
 
 static CONFIG_INT( "zebra.draw",    zebra_draw, 1 );
+static CONFIG_INT( "zebra.colorspace",    zebra_colorspace,   0 );// luma/rgb/lumafast
 static CONFIG_INT( "zebra.thr.hi",    zebra_level_hi, 99 );
 static CONFIG_INT( "zebra.thr.lo",    zebra_level_lo, 1 );
        CONFIG_INT( "zebra.rec", zebra_rec,  1 );
@@ -154,6 +255,7 @@ int focus_peaking_as_display_filter() { return lv && focus_peaking && focus_peak
 
 //~ static CONFIG_INT( "edge.draw", edge_draw,  0 );
 static CONFIG_INT( "hist.draw", hist_draw,  1 );
+static CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
 static CONFIG_INT( "hist.warn", hist_warn,  5 );
 static CONFIG_INT( "hist.log",  hist_log,   1 );
 //~ static CONFIG_INT( "hist.x",        hist_x,     720 - HIST_WIDTH - 4 );
@@ -274,6 +376,9 @@ static uint8_t* waveform = 0;
 
 /** Store the histogram data for each of the "HIST_WIDTH" bins */
 static uint32_t hist[HIST_WIDTH];
+static uint32_t hist_r[HIST_WIDTH];
+static uint32_t hist_g[HIST_WIDTH];
+static uint32_t hist_b[HIST_WIDTH];
 
 /** Maximum value in the histogram so that at least one entry fills
  * the box */
@@ -300,6 +405,8 @@ hist_build()
     struct vram_info * lv = get_yuv422_vram();
     uint32_t* buf = (uint32_t*)lv->vram;
 
+    if (hist_draw && hist_colorspace == 1) convert_current_image_buffer_to_yuv422();
+
     int x,y;
     
     hist_max = 0;
@@ -307,19 +414,37 @@ hist_build()
     for( x=0 ; x<HIST_WIDTH ; x++ )
     {
         hist[x] = 0;
+        hist_r[x] = 0;
+        hist_g[x] = 0;
+        hist_b[x] = 0;
     }
 
     if (waveform_draw)
     {
         waveform_init();
     }
-    
+
     for( y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
     {
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
             uint32_t pixel = buf[BM2LV(x,y)/4];
             int Y;
+            if (hist_draw && hist_colorspace == 1 && !ext_monitor_rca) // rgb
+            {
+                int R, G, B;
+                //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
+                COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
+                // YRGB range: 0-255
+                uint32_t R_level = R * HIST_WIDTH / 256;
+                uint32_t G_level = G * HIST_WIDTH / 256;
+                uint32_t B_level = B * HIST_WIDTH / 256;
+                
+                hist_r[R_level & 0x7F]++;
+                hist_g[G_level & 0x7F]++;
+                hist_b[B_level & 0x7F]++;
+            }
+            else // luma
             {
                 uint32_t p1 = ((pixel >> 16) & 0xFF00) >> 8;
                 uint32_t p2 = ((pixel >>  0) & 0xFF00) >> 8;
@@ -367,6 +492,8 @@ int hist_get_percentile_level(int percentile)
 
 int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
 {
+    convert_current_image_buffer_to_yuv422();
+    
     *under = -1;
     *over = -1;
     struct vram_info * lv = get_yuv422_vram();
@@ -384,33 +511,96 @@ int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
         {
             uint32_t pixel = v_row[x/2];
             
-            int Y = UYVY_GET_AVG_Y(pixel);
+            int Y, R, G, B;
+            //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
+            COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
+            
+            int M = MAX(MAX(R,G),B);
             if (pixel && Y < thr_lo) (*under)++; // try to ignore black bars
-            if (Y > thr_hi) (*over)++;
+            if (M > thr_hi) (*over)++;
             total++;
         }
     }
     return total;
 }
 
+static int hist_rgb_color(int y, int sizeR, int sizeG, int sizeB)
+{
+    switch ((y > sizeR ? 0 : 1) |
+            (y > sizeG ? 0 : 2) |
+            (y > sizeB ? 0 : 4))
+    {
+        case 0b000: return COLOR_ALMOST_BLACK; // almost black
+        case 0b001: return COLOR_RED;
+        case 0b010: return 7; // green
+        case 0b100: return 9; // strident blue
+        case 0b011: return COLOR_YELLOW;
+        case 0b110: return 5; // cyan
+        case 0b101: return 14; // magenta
+        case 0b111: return COLOR_WHITE;
+    }
+    return 0;
+}
+
 #define ZEBRA_COLOR_WORD_SOLID(x) ( (x) | (x)<<8 | (x)<<16 | (x)<<24 )
+
+static int zebra_rgb_color(int underexposed, int clipR, int clipG, int clipB, int y)
+{
+    if (underexposed) return ZEBRA_COLOR_WORD_SOLID(79);
+    
+    switch ((clipR ? 0 : 1) |
+            (clipG ? 0 : 2) |
+            (clipB ? 0 : 4))
+    {
+        case 0b000: return ZEBRA_COLOR_WORD_SOLID(COLOR_BLACK);
+        case 0b001: return ZEBRA_COLOR_WORD_SOLID(COLOR_RED);
+        case 0b010: return ZEBRA_COLOR_WORD_SOLID(7); // green
+        case 0b100: return ZEBRA_COLOR_WORD_SOLID(9); // strident blue
+        case 0b011: return ZEBRA_COLOR_WORD_SOLID(COLOR_YELLOW);
+        case 0b110: return ZEBRA_COLOR_WORD_SOLID(5); // cyan
+        case 0b101: return ZEBRA_COLOR_WORD_SOLID(14); // magenta
+        case 0b111: return 0;
+    }
+    return 0;
+}
 
 static void hist_dot(int x, int y, int fg_color, int bg_color, int radius, int label)
 {
-    for (int r = 0; r < radius; r++)
+    if (hist_colorspace == 0 || !label)
     {
-        draw_circle(x, y, r, fg_color);
-        draw_circle(x + 1, y, r, fg_color);
+        for (int r = 0; r < radius; r++)
+        {
+            draw_circle(x, y, r, fg_color);
+            draw_circle(x + 1, y, r, fg_color);
+        }
+        draw_circle(x, y, radius, bg_color);
     }
-    draw_circle(x, y, radius, bg_color);
     
     if (label)
     {
-        bmp_printf(
-            SHADOW_FONT(FONT(FONT_MED, COLOR_BLACK, COLOR_WHITE)), 
-            x + 15,
-            y - font_med.height/2,
-            "%d%%", label);
+        if (hist_colorspace == 1) // RGB
+        {
+            char msg[5];
+            snprintf(msg, sizeof(msg), "%d", label);
+            bmp_printf(
+                SHADOW_FONT(FONT(FONT_MED, COLOR_WHITE, fg_color)), 
+                x - font_med.width + 1, 
+                y - font_med.height/2,
+                "  ");
+            bmp_printf(
+                SHADOW_FONT(FONT(FONT_MED, COLOR_WHITE, fg_color)), 
+                x - font_med.width * strlen(msg) / 2 + 1, 
+                y - font_med.height/2,
+                msg);
+        }
+        else
+        {
+            bmp_printf(
+                SHADOW_FONT(FONT(FONT_MED, COLOR_BLACK, COLOR_WHITE)), 
+                x + 15,
+                y - font_med.height/2,
+                "%d%%", label);
+        }
     }
 }
 
@@ -471,6 +661,9 @@ hist_draw_image(
     {
         // Scale by the maximum bin value
         const uint32_t size  = hist_log ? log_length(hist[i])   * hist_height / log_max : (hist[i]   * hist_height) / hist_max;
+        const uint32_t sizeR = hist_log ? log_length(hist_r[i]) * hist_height / log_max : (hist_r[i] * hist_height) / hist_max;
+        const uint32_t sizeG = hist_log ? log_length(hist_g[i]) * hist_height / log_max : (hist_g[i] * hist_height) / hist_max;
+        const uint32_t sizeB = hist_log ? log_length(hist_b[i]) * hist_height / log_max : (hist_b[i] * hist_height) / hist_max;
 
         uint8_t color;
         uint8_t * col = &color;
@@ -482,6 +675,8 @@ hist_draw_image(
                 int hilight = ABS(i-highlight_level) <= 1;
                 *col = y > size + hilight ? COLOR_BG : (hilight ? COLOR_RED : COLOR_WHITE);
             }
+            else if (hist_colorspace == 1 && !ext_monitor_rca) // RGB
+                *col = hist_rgb_color(y, sizeR, sizeG, sizeB);
             else
                 *col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][(i * 256 / HIST_WIDTH) & 0xFF]: COLOR_WHITE);
             
@@ -500,6 +695,16 @@ hist_draw_image(
             thr = MAX(thr, 1);
             int yw = y_origin + 12 + (hist_log ? hist_height - 24 : 0);
             int bg = (hist_log ? COLOR_WHITE : COLOR_BLACK);
+            if (hist_colorspace == 1 && !ext_monitor_rca) // RGB
+            {
+                unsigned int over_r = hist_r[i] + hist_r[i-1] + hist_r[i-2];
+                unsigned int over_g = hist_g[i] + hist_g[i-1] + hist_g[i-2];
+                unsigned int over_b = hist_b[i] + hist_b[i-1] + hist_b[i-2];
+                if (over_r > thr) hist_dot(x_origin + HIST_WIDTH/2 - 25, yw, COLOR_RED,       bg, hist_dot_radius(over_r, hist_total_px), hist_dot_label(over_r, hist_total_px));
+                if (over_g > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,    bg, hist_dot_radius(over_g, hist_total_px), hist_dot_label(over_g, hist_total_px));
+                if (over_b > thr) hist_dot(x_origin + HIST_WIDTH/2 + 25, yw, COLOR_LIGHTBLUE, bg, hist_dot_radius(over_b, hist_total_px), hist_dot_label(over_b, hist_total_px));
+            }
+            else
             {
                 unsigned int over = hist[i] + hist[i-1] + hist[i-2];
                 if (over > thr) hist_dot(x_origin + HIST_WIDTH/2, yw, COLOR_RED, bg, hist_dot_radius(over, hist_total_px), hist_dot_label(over, hist_total_px));
@@ -790,6 +995,8 @@ void draw_zebras( int Z )
         int zll = zebra_level_lo * 255 / 100;
         
         uint8_t * lvram = get_yuv422_vram()->vram;
+        
+        if (zebra_colorspace == 1) convert_current_image_buffer_to_yuv422();
 
         // draw zebra in 16:9 frame
         // y is in BM coords
@@ -797,7 +1004,19 @@ void draw_zebras( int Z )
         {
             #define color_over           ZEBRA_COLOR_WORD_SOLID(COLOR_RED)
             #define color_under          ZEBRA_COLOR_WORD_SOLID(COLOR_BLUE)
+
+            #define color_rgb_under      zebra_rgb_color(1, 0, 0, 0, y)
             
+            #define color_rgb_clipR      zebra_rgb_color(0, 1, 0, 0, y)
+            #define color_rgb_clipG      zebra_rgb_color(0, 0, 1, 0, y)
+            #define color_rgb_clipB      zebra_rgb_color(0, 0, 0, 1, y)
+            
+            #define color_rgb_clipRG     zebra_rgb_color(0, 1, 1, 0, y)
+            #define color_rgb_clipGB     zebra_rgb_color(0, 0, 1, 1, y)
+            #define color_rgb_clipRB     zebra_rgb_color(0, 1, 0, 1, y)
+            
+            #define color_rgb_clipRGB    zebra_rgb_color(0, 1, 1, 1, y)
+
             uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV_R(y)    );  // 2 pixels
             
             uint32_t* lvp; // that's a moving pointer through lv vram
@@ -808,6 +1027,74 @@ void draw_zebras( int Z )
                 int bp = 0;
                 #define BP bp
                 
+                if (zebra_colorspace == 1 && !ext_monitor_rca) // rgb
+                {
+                    int Y, R, G, B;
+                    //~ uyvy2yrgb(*lvp, &Y, &R, &G, &B);
+                    COMPUTE_UYVY2YRGB(*lvp, Y, R, G, B);
+
+                    if(unlikely(Y < zll)) // underexposed
+                    {
+                        BP = color_rgb_under;
+                    }
+                    else
+                    {
+                        //~ BP = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y);
+                        //~ BN = MN = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y+1);
+                        
+                        if (unlikely(R > zlh)) // R clipped
+                        {
+                            if (unlikely(G > zlh)) // RG clipped
+                            {
+                                if (B > zlh) // RGB clipped (all of them)
+                                {
+                                    BP = color_rgb_clipRGB;
+                                }
+                                else // only R and G clipped
+                                {
+                                    BP = color_rgb_clipRG;
+                                }
+                            }
+                            else // R clipped, G not clipped
+                            {
+                                if (unlikely(B > zlh)) // only R and B clipped
+                                {
+                                    BP = color_rgb_clipRB;
+                                }
+                                else // only R clipped
+                                {
+                                    BP = color_rgb_clipR;
+                                }
+                            }
+                        }
+                        else // R not clipped
+                        {
+                            if (unlikely(G > zlh)) // R not clipped, G clipped
+                            {
+                                if (unlikely(B > zlh)) // only G and B clipped
+                                {
+                                    BP = color_rgb_clipGB;
+                                }
+                                else // only G clipped
+                                {
+                                    BP = color_rgb_clipG;
+                                }
+                            }
+                            else // R not clipped, G not clipped
+                            {
+                                if (unlikely(B > zlh)) // only B clipped
+                                {
+                                    BP = color_rgb_clipB;
+                                }
+                                else // nothing clipped
+                                {
+                                    BP = 0;
+                                }
+                            }
+                        }
+                    }
+                }
+                else // luma
                 {
                     int p0 = (*lvp) >> 8 & 0xFF;
                     if (unlikely(p0 > zlh))
@@ -1262,7 +1549,9 @@ zebra_draw_display( void * priv, int x, int y, int selected )
     else
     {
         STR_APPEND(msg,
-            "Luma, "
+            "%s, ",
+            zebra_colorspace == 0 ? "Luma" :
+            zebra_colorspace == 1 ? "RGB" : "LumaFast"
         );
     
         if (over_disabled)
@@ -1471,7 +1760,7 @@ hist_print( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Histogram   : %s%s%s",
-        hist_draw == 0 ? "OFF" : "Luma",
+        hist_draw == 0 ? "OFF" : hist_colorspace == 0 ? "Luma" : "RGB",
         hist_draw == 0 ? "" : hist_log ? ",Log" : ",Lin",
         hist_draw && hist_warn ? ",clip warn" : ""
     );
@@ -1635,6 +1924,8 @@ static void spotmeter_step()
     }
     struct vram_info *  vram = get_yuv422_vram();
 
+    if (spotmeter_formula >= 4) convert_current_image_buffer_to_yuv422();
+
     if( !vram->vram )
         return;
     
@@ -1724,6 +2015,20 @@ static void spotmeter_step()
             spotmeter_formula == 2 ? "-1..101" : "0..108"
         );
     }
+    else
+    {
+        int uyvy = UYVY_PACK(su,sy,sv,sy);
+        int R,G,B,Y;
+        COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B);
+        xcb -= font_med.width * 3/2;
+        bmp_printf(
+            fnt,
+            xcb, ycb, 
+            "#%02x%02x%02x",
+            R,G,B
+        );
+
+    }
 }
 
 
@@ -1751,6 +2056,14 @@ struct menu_entry zebra_menus[] = {
         .help = "Zebra stripes: show overexposed or underexposed areas.",
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
         .children =  (struct menu_entry[]) {
+            {
+                .name = "Color space",
+                .priv = &zebra_colorspace, 
+                .max = 1,
+                .choices = (const char *[]) {"Luma", "RGB", "Luma Fast"},
+                .icon_type = IT_NAMED_COLOR,
+                .help = "Luma: red/blue. RGB: color is reverse of clipped channel.",
+            },
             {
                 .name = "Underexposure",
                 .priv = &zebra_level_lo, 
@@ -1822,7 +2135,7 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Unit",
                 .priv = &spotmeter_formula, 
-                .max = 1,
+                .max = 4,
                 .choices = (const char *[]) {"Percent", "0..255", "IRE -1..101", "IRE 0..108", "RGB (HTML)"},
                 .icon_type = IT_DICE,
                 .help = "Measurement unit for brightness level(s).",
@@ -1870,6 +2183,14 @@ struct menu_entry zebra_menus[] = {
         .help = "Exposure aid: shows the distribution of brightness levels.",
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
         .children =  (struct menu_entry[]) {
+            {
+                .name = "Color space",
+                .priv = &hist_colorspace, 
+                .max = 1,
+                .choices = (const char *[]) {"Luma", "RGB"},
+                .icon_type = IT_NAMED_COLOR,
+                .help = "Color space for histogram: Luma channel (YUV) / RGB.",
+            },
             {
                 .name = "Scaling",
                 .priv = &hist_log, 
@@ -2114,6 +2435,7 @@ int handle_livev_playback(struct event * event, int button)
 
 static void zebra_init()
 {
+    precompute_yuv2rgb();
     menu_add( "Overlay", zebra_menus, COUNT(zebra_menus) );
 }
 
