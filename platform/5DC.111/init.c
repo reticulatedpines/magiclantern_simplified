@@ -149,11 +149,13 @@ int bmp_vram_idle_ptr;
 void my_init_task()
 {
     LEDBLUE = LEDON;
-    msleep(1000);
+    _card_led_on();
+    msleep(200);
     hijack_gui_main_task();
     bmp_vram_idle_ptr = malloc(360*240);
     my_big_init_task();
     LEDBLUE = LEDOFF;
+    _card_led_off();
     //~ hijack_event_dispatches();
 }
 

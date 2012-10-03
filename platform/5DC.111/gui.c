@@ -44,10 +44,8 @@ void my_gui_task( void )
     {
         struct event * event;
         msg_queue_receive( MEM(0x1271C), &event, 0);
-        take_semaphore(MEM(0x12720), 0);
 
-        //~ DebugMsg(0, 3, "[5dplus] event->param: %d", event->param);
-        
+        take_semaphore(MEM(0x12720), 0);
         
         if ( !event )
             goto event_loop_bottom;
@@ -154,7 +152,26 @@ void my_gui_task( void )
 void hijack_gui_main_task()
 {
     //~ taskptr will point to the location of GuiMainTask's task struct.
-    int taskptr = QueryTaskByName("GuiMainTask");
+    int taskptr;
+    while (1)
+    {
+        taskptr = QueryTaskByName("GuiMainTask");
+        if (taskptr != 25)
+            break; // task found
+        
+        msleep(100); // task not found (not yet started?)
+    }
+
+    //~ wait until Canon's GuiMainTask waits at message queue (sits there doing nothing) => should be safe to delete
+    while(1)
+    {
+        int sem_state = MEM(MEM(0x12720) + 0x08);
+        int mq_count = MEM(MEM(0x1271C) + 0x18);
+        if (mq_count == 0 && sem_state == 1)
+            break;
+        msleep(100);
+    }
+    
     
     //~ delete canon's GuiMainTask.
     DeleteTask(taskptr);
