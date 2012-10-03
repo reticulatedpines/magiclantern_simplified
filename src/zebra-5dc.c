@@ -2046,12 +2046,12 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 
 void redraw_do()
 {
-    clrscr();
+    //~ clrscr();
 }
 
 void redraw()
 {
-    clrscr();
+    //~ clrscr();
 }
 
 void draw_cropmark_area()
