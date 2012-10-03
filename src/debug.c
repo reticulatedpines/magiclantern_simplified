@@ -540,12 +540,6 @@ void iso_movie_test()
 void run_test()
 {
     msleep(2000);
-
-    bfnt_test();
-    //~ debug_intercept();
-    //~ dump_with_buffer(0, 0x10000000, CARD_DRIVE "x.bin");
-    //~ msleep(20000);
-    //~ dump_with_buffer(0, 0x10000000, CARD_DRIVE "y.bin");
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -573,7 +567,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
         int i;
         for (i = 0; i < n; i++)
         {
-            uint32_t start = UNCACHEABLE(0);
+            uint32_t start = (int)UNCACHEABLE(0);
             bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
             FIO_WriteFile( f, (const void *) start, bufsize );
         }
@@ -2109,9 +2103,6 @@ static void image_buf_display(
     int            selected
 )
 {
-    int a,b;
-    GetMemoryInformation(&a,&b);
-    int m = MALLOC_FREE_MEMORY;
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
@@ -2131,6 +2122,16 @@ static void meminfo_display(
     int a,b;
     GetMemoryInformation(&a,&b);
     int m = MALLOC_FREE_MEMORY;
+    
+#ifdef CONFIG_5DC
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Free Memory  : %dK",
+        b/1024
+    );
+    menu_draw_icon(x, y, b > 1024*1024 ? MNI_ON : MNI_WARNING, 0);
+#else
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
@@ -2138,6 +2139,7 @@ static void meminfo_display(
         m/1024, b/1024
     );
     menu_draw_icon(x, y, b > 1024*1024 && m > 128 * 1024 ? MNI_ON : MNI_WARNING, 0);
+#endif
 }
 
 static void shuttercount_display(
@@ -2736,7 +2738,11 @@ struct menu_entry debug_menus[] = {
     {
         .name = "Free Memory",
         .display = meminfo_display,
+#ifdef CONFIG_5DC
+        .help = "Free memory, shared between ML and Canon firmware.",
+#else
         .help = "Free memory available for malloc and AllocateMemory.",
+#endif
         //.essential = 0,
     },
 #ifndef CONFIG_5DC
@@ -3499,10 +3505,10 @@ void HijackFormatDialogBox_main()
 
 void config_menu_init()
 {
-    extern struct menu_entry livev_cfg_menus[];
     //~ extern struct menu_entry menu_cfg_menu[];
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
 #ifndef CONFIG_5DC
+    extern struct menu_entry livev_cfg_menus[];
     menu_add( "Prefs", livev_cfg_menus,  1);
 #endif
     crop_factor_menu_init();
