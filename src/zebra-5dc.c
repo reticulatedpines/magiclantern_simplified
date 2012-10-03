@@ -96,6 +96,8 @@ void convert_current_image_buffer_to_yuv422()
 {
     if (MEM(YUV422_LV_BUFFER_1) == 0x56347812) return; // conversion already done (and what's the probability of a pixel having this value?)
 
+    BmpDDev_take_semaphore();
+    
     uint8_t* buf = YUV422_LV_BUFFER_1;
     int size = vram_lv.pitch * vram_lv.height;
 
@@ -116,7 +118,9 @@ void convert_current_image_buffer_to_yuv422()
         buf[i+10] = v2;
     }
     MEM(YUV422_LV_BUFFER_1) = 0x56347812;
-    
+
+    BmpDDev_give_semaphore();
+
     //~ dump_seg(YUV422_LV_BUFFER_1, size, CARD_DRIVE"after.422");
 }
 
@@ -255,7 +259,7 @@ int focus_peaking_as_display_filter() { return lv && focus_peaking && focus_peak
 
 //~ static CONFIG_INT( "edge.draw", edge_draw,  0 );
 static CONFIG_INT( "hist.draw", hist_draw,  1 );
-static CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
+static CONFIG_INT( "hist.colorspace",   hist_colorspace,    0 );
 static CONFIG_INT( "hist.warn", hist_warn,  5 );
 static CONFIG_INT( "hist.log",  hist_log,   1 );
 //~ static CONFIG_INT( "hist.x",        hist_x,     720 - HIST_WIDTH - 4 );
@@ -265,6 +269,15 @@ static CONFIG_INT( "waveform.size", waveform_size,  0 );
 //~ static CONFIG_INT( "waveform.x",    waveform_x, 720 - WAVEFORM_WIDTH );
 //~ static CONFIG_INT( "waveform.y",    waveform_y, 480 - 50 - WAVEFORM_WIDTH );
 static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_ALMOST_BLACK ); // solid black
+
+static CONFIG_INT( "vectorscope.draw", vectorscope_draw, 0);
+
+/* runtime-configurable size */
+uint32_t vectorscope_width = 256;
+uint32_t vectorscope_height = 256;
+/* 128 is also a good choice, but 256 is max. U and V are using that resolution */
+#define VECTORSCOPE_WIDTH_MAX 256
+#define VECTORSCOPE_HEIGHT_MAX 256
 
 
        CONFIG_INT( "clear.preview", clearscreen_enabled, 0);
@@ -387,6 +400,184 @@ static uint32_t hist_max;
 /** total number of pixels analyzed by histogram */
 static uint32_t hist_total_px;
 
+static uint8_t *vectorscope = NULL;
+
+/* helper to draw <count> pixels at given position. no wrap checks when <count> is greater 1 */
+static void 
+vectorscope_putpixel(uint8_t *bmp_buf, int x_pos, int y_pos, uint8_t color, uint8_t count)
+{
+    int pos = x_pos + y_pos * vectorscope_width;
+
+    while(count--)
+    {
+        bmp_buf[pos++] = 255 - color;
+    }
+}
+
+/* another helper that draws a color dot at given position.
+   <xc> and <yc> specify the center of our scope graphic.
+   <frac_x> and <frac_y> are in 1/2048th units and specify the relative dot position.
+ */
+static void 
+vectorscope_putblock(uint8_t *bmp_buf, int xc, int yc, uint8_t color, int32_t frac_x, int32_t frac_y)
+{
+    int x_pos = xc + ((int32_t)vectorscope_width * frac_x) / 4096;
+    int y_pos = yc + (-(int32_t)vectorscope_height * frac_y) / 4096;
+
+    vectorscope_putpixel(bmp_buf, x_pos + 0, y_pos - 4, color, 1);
+    vectorscope_putpixel(bmp_buf, x_pos + 0, y_pos + 4, color, 1);
+
+    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos - 3, color, 7);
+    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos - 2, color, 7);
+    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos - 1, color, 7);
+    vectorscope_putpixel(bmp_buf, x_pos - 4, y_pos + 0, color, 9);
+    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos + 1, color, 7);
+    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos + 2, color, 7);
+    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos + 3, color, 7);
+}
+
+/* draws the overlay: circle with color dots. */
+void vectorscope_paint(uint8_t *bmp_buf, uint32_t x_origin, uint32_t y_origin)
+{    
+    //int r = vectorscope_height/2 - 1;
+    int xc = x_origin + vectorscope_width/2;
+    int yc = y_origin + vectorscope_height/2;
+
+    /* red block at U=-14.7% V=61.5% => U=-304/2048th V=1259/2048th */
+    vectorscope_putblock(bmp_buf, xc, yc, 8, -302, 1259);
+    /* green block */
+    vectorscope_putblock(bmp_buf, xc, yc, 7, -593, -1055);
+    /* blue block */
+    vectorscope_putblock(bmp_buf, xc, yc, 9, 895, -204);
+    /* cyan block */
+    vectorscope_putblock(bmp_buf, xc, yc, 5, 301, -1259);
+    /* magenta block */
+    vectorscope_putblock(bmp_buf, xc, yc, 14, 592, 1055);
+    /* yellow block */
+    vectorscope_putblock(bmp_buf, xc, yc, 15, -893, 204);
+}
+
+void
+vectorscope_clear()
+{
+    if(vectorscope != NULL)
+    {
+        bzero32(vectorscope, vectorscope_width * vectorscope_height * sizeof(uint8_t));
+    }
+}
+
+void
+vectorscope_init()
+{
+    if(vectorscope == NULL)
+    {
+        vectorscope = AllocateMemory(VECTORSCOPE_WIDTH_MAX * VECTORSCOPE_HEIGHT_MAX * sizeof(uint8_t));
+        vectorscope_clear();
+    }
+}
+
+static inline void
+vectorscope_addpixel(uint8_t y, int8_t u, int8_t v)
+{
+    if(vectorscope == NULL)
+    {
+        return;
+    }
+    
+    int32_t V = -v;
+    int32_t U = u;
+
+    
+    /* convert YUV to vectorscope position */
+    V *= vectorscope_height;
+    V >>= 8;
+    V += vectorscope_height >> 1;
+
+    U *= vectorscope_width;
+    U >>= 8;
+    U += vectorscope_width >> 1;
+
+    uint16_t pos = U + V * vectorscope_width;
+
+    /* increase luminance at this position. when reaching 4*0x2A, we are at maximum. */
+    if(vectorscope[pos] < (0x2A << 2))
+    {
+        vectorscope[pos]++;
+    }
+}
+
+/* memcpy the second part of vectorscope buffer. uses only few resources */
+static void
+vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
+{    
+    if(vectorscope == NULL)
+    {
+        return;
+    }
+
+    uint8_t * const bvram = bmp_vram();
+    if (!bvram)
+    {
+        return;
+    }
+
+    vectorscope_paint(vectorscope, 0, 0);
+
+    for(uint32_t y = 0; y < vectorscope_height; y++)
+    {
+        int ys = y * 8/9;
+
+        for(uint32_t x = 0; x < vectorscope_width; x++)
+        {
+            uint8_t brightness = vectorscope[x + y*vectorscope_width];
+
+            int xc = x - vectorscope_height/2;
+            int yc = y - vectorscope_height/2;
+            int r = vectorscope_height/2 - 1;
+            int inside_circle = xc*xc + yc*yc < (r-1)*(r-1);
+            int on_circle = !inside_circle && xc*xc + yc*yc <= (r+1)*(r+1);
+            // kdenlive vectorscope:
+            // center: 175,180
+            // I: 83,38   => dx=-92, dy=142
+            // Q: 320,87  => dx=145, dy=93
+            // let's say 660/1024 is a good approximation of the slope
+            
+            // wikipedia image:
+            // center: 318, 294
+            // I: 171, 68  => 147,226
+            // Q: 545, 147 => 227,147
+            // => 663/1024 is a better approximation
+            
+            int on_axis = (x==vectorscope_width/2) || (y==vectorscope_height/2) || (inside_circle && (xc==yc*663/1024 || -xc*663/1024==yc));
+
+            int pixel = 0;
+            if (on_circle || (on_axis && brightness==0))
+            {
+                pixel = 50;
+            }
+            else if (inside_circle)
+            {
+                /* paint (semi)transparent when no pixels in this color range */
+                if (brightness == 0)
+                {
+                    pixel = 70;
+                }
+                else if (brightness > 0x26 + 0x2A * 4)
+                {
+                    /* some fake fixed color, for overlays */
+                    pixel = 255 - brightness;
+                }
+                else
+                {
+                    /* 0x26 is the palette color for black plus max 0x2A until white */
+                    pixel = 0x26 + (brightness >> 2);
+                }
+            }
+            bmp_putpixel_fast(bvram, x_origin + x, y_origin + ys, pixel);
+        }
+    }
+}
+
 
 /** Generate the histogram data from the YUV frame buffer.
  *
@@ -405,7 +596,8 @@ hist_build()
     struct vram_info * lv = get_yuv422_vram();
     uint32_t* buf = (uint32_t*)lv->vram;
 
-    if (hist_draw && hist_colorspace == 1) convert_current_image_buffer_to_yuv422();
+    if ((hist_draw && hist_colorspace == 1) || vectorscope_draw) 
+        convert_current_image_buffer_to_yuv422();
 
     int x,y;
     
@@ -422,6 +614,12 @@ hist_build()
     if (waveform_draw)
     {
         waveform_init();
+    }
+
+    if (vectorscope_draw)
+    {
+        vectorscope_init();
+        vectorscope_clear();
     }
 
     for( y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
@@ -464,6 +662,13 @@ hist_build()
             {
                 uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) / 256);
                 if ((*w) < 250) (*w)++;
+            }
+
+            if (vectorscope_draw)
+            {
+                int8_t U = (pixel >>  0) & 0xFF;
+                int8_t V = (pixel >> 16) & 0xFF;
+                vectorscope_addpixel(Y, U, V);
             }
 
         }
@@ -1110,7 +1315,6 @@ void draw_zebras( int Z )
                 }
                     
                 bmp_putpixel_fast(bvram, x, y, BP);
-                bmp_putpixel_fast(bvram, x+1, y, BP>>8);
 
                 #undef MP
                 #undef BP
@@ -1824,6 +2028,19 @@ waveform_display( void * priv, int x, int y, int selected )
 }*/
 
 static void
+vectorscope_display( void * priv, int x, int y, int selected )
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Vectorscope : %s",
+        *(unsigned*) priv ? "ON " : "OFF"
+    );
+    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(*(unsigned*) priv));
+}
+
+
+static void
 spotmeter_menu_display(
     void *          priv,
     int         x,
@@ -2228,6 +2445,14 @@ struct menu_entry zebra_menus[] = {
         },
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
     },
+    {
+        .name = "Vectorscope",
+        .display = vectorscope_display,
+        .priv       = &vectorscope_draw,
+        .max = 1,
+        .help = "Shows color distribution as U-V plot. For grading & WB.",
+        //.essential = FOR_LIVEVIEW,
+    },
     //~ {
         //~ .display        = crop_off_display,
         //~ .select         = crop_off_toggle,
@@ -2322,7 +2547,7 @@ void draw_histogram_and_waveform(int allow_play)
     
     get_yuv422_vram();
 
-    if (hist_draw || waveform_draw)
+    if (hist_draw || waveform_draw || vectorscope_draw)
     {
         hist_build();
     }
@@ -2335,6 +2560,12 @@ void draw_histogram_and_waveform(int allow_play)
     if( waveform_draw)
     {
         BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR - (WAVEFORM_FULLSCREEN ? 0 : 4), os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET, WAVEFORM_HEIGHT*WAVEFORM_FACTOR ); )
+    }
+
+    if(vectorscope_draw)
+    {
+        /* make sure memory address of bvram will be 4 byte aligned */
+        BMP_LOCK( vectorscope_draw_image(os.x0 + 32, 64); )
     }
 }
 

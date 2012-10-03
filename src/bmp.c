@@ -1156,7 +1156,7 @@ void guess_palette()
 }
 */
 
-int D2V(unsigned color) { return bmp_lut[MIN(color & 0xFF,80)]; }
+int D2V(unsigned color) { return bmp_lut[MIN(color & 0xFF,79)]; }
 
 #endif
 
