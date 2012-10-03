@@ -143,6 +143,15 @@ static void hijack_event_dispatches( void )
     //~ hijack_module(ShootCapture);
 }
 
+void rewrite_version_string()
+{
+    // only 3 characters available :(
+    char * additional_version = 0x1DA0;
+    additional_version[0] = '-';
+    additional_version[1] = 'M';
+    additional_version[2] = 'L';
+    additional_version[3] = '\0';
+}
 
 int bmp_vram_idle_ptr;
 
@@ -264,6 +273,7 @@ void my_big_init_task()
     //~ );
     msleep(500);
     ml_started = 1;
+    rewrite_version_string();
 }
 
 void hold_your_horses(int showlogo)
