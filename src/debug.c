@@ -2795,9 +2795,10 @@ struct menu_entry debug_menus[] = {
     {
         .name = "Snap Simulation",
         .priv = &snap_sim, 
-        .max = 3,
-        .choices = (const char *[]) {"Take real pic", "Blink only", "Beep only", "Blink & Beep"},
-        .help = "Save shutter cycles while trying Magic Lantern",
+        .max = 1,
+        .icon_type = IT_BOOL,
+        .choices = (const char *[]) {"Take real pic", "Blink & Beep"},
+        .help = "Save shutter cycles while trying Magic Lantern.",
     },
     #endif
 };
