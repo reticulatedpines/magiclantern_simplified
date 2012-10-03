@@ -2183,7 +2183,7 @@ handle_ml_menu_keys(struct event * event)
 #ifdef BGMT_RATE
     case BGMT_RATE:
 #endif
-#ifdef BGMT_Q
+#if defined(BGMT_Q) && !defined(CONFIG_40D) //40D has Q mapped to DIRECT_PRINT
     case BGMT_Q:
 #endif
 #ifdef BGMT_Q_ALT
