@@ -901,7 +901,7 @@ static void hist_dot(int x, int y, int fg_color, int bg_color, int radius, int l
 
 static int hist_dot_radius(int over, int hist_total_px)
 {
-    if (hist_warn < 4) return 7; // fixed radius for these modes
+    if (hist_warn <= 4) return 7; // fixed radius for these modes
     
     // overexposures stronger than 1% are displayed at max radius (10)
     int p = 100 * over / hist_total_px;
@@ -916,7 +916,7 @@ static int hist_dot_radius(int over, int hist_total_px)
 static int hist_dot_label(int over, int hist_total_px)
 {
     int p = 100 * over / hist_total_px;
-    return hist_warn < 4 ? 0 : p;
+    return hist_warn <= 4 ? 0 : p;
 }
 
 /** Draw the histogram image into the bitmap framebuffer.
