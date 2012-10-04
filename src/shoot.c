@@ -1101,6 +1101,37 @@ static const uint8_t chroma_cor[256] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
 
 void expo_adjust_playback(int dir)
 {
+    #ifdef CONFIG_5DC
+    static int expo_value = 0;
+    if (dir == 0) 
+    { 
+        if (expo_value) EngDrvOut(0xC0F140c0, 0x80);
+        expo_value = 0; return; 
+    }
+    expo_value = COERCE(expo_value + dir, -3, 1);
+    //~ expo_value = expo_value + dir;
+    NotifyBox(1000, "%s%d", expo_value > 0 ? "+" : "", expo_value);
+    BmpDDev_take_semaphore();
+    if (expo_value > 0) 
+    {
+        EngDrvOut(0xC0F14080, 0xfc0000);
+        EngDrvOut(0xC0F140c0, 0xFF);
+    }   
+    else if (expo_value < 0) 
+    {
+        EngDrvOut(0xC0F14080, 0x1000000 * (-expo_value-1));
+        EngDrvOut(0xC0F140c0, 0x80);
+    }
+    else 
+    {
+        EngDrvOut(0xC0F14080, 0xfc0000);
+        EngDrvOut(0xC0F140c0, 0x80);
+    }
+    EngDrvOut(0xC0F14078, 1);
+    BmpDDev_give_semaphore();
+    return;
+    #endif
+    
     ASSERT(set_maindial_sem);
     take_semaphore(set_maindial_sem, 0);
 

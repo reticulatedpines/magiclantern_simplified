@@ -3565,7 +3565,10 @@ int handle_buttons_being_held(struct event * event)
     if (event->param == BGMT_MENU) set_pressed = 0;
     if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
     if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
-    #ifndef CONFIG_5DC
+    #ifdef CONFIG_5DC
+    if (event->param == BGMT_PRESS_DIRECT_PRINT) set_pressed = 1;
+    if (event->param == BGMT_UNPRESS_DIRECT_PRINT) set_pressed = 0;
+    #else
     if (event->param == BGMT_PRESS_SET) set_pressed = 1;
     #endif
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)

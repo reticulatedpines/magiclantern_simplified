@@ -801,7 +801,11 @@ play_set_wheel_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
+        #ifdef CONFIG_5DC
+        "DP+ScrollWhl: %s", 
+        #else
         "SET+MainDial: %s", 
+        #endif
         play_set_wheel_action == 0 ? "422 Preview" :
         play_set_wheel_action == 1 ? "Exposure Fusion" : 
         play_set_wheel_action == 2 ? "Compare Images" : 
@@ -817,10 +821,13 @@ int timelapse_playback = 0;
 
 void playback_set_wheel_action(int dir)
 {
+    #ifdef CONFIG_5DC
+    play_set_wheel_action = COERCE(play_set_wheel_action, 3, 4);
+    #endif
     if (play_set_wheel_action == 0) play_next_422(dir);
     else if (play_set_wheel_action == 1) expfuse_preview_update(dir);
     else if (play_set_wheel_action == 2) playback_compare_images(dir);
-    else if (play_set_wheel_action == 3) timelapse_playback += dir;
+    else if (play_set_wheel_action == 3) timelapse_playback = COERCE(timelapse_playback + dir, -1, 1);
     else if (play_set_wheel_action == 4) expo_adjust_playback(dir);
 }
 
@@ -844,14 +851,14 @@ int handle_set_wheel_play(struct event * event)
     // SET+Wheel action in PLAY mode
     if ( PLAY_MODE && get_set_pressed())
     {
-        if (!IS_FAKE(event) && (event->param == BGMT_WHEEL_LEFT || event->param == BGMT_WHEEL_RIGHT))
+        if (!IS_FAKE(event) && (event->param == BGMT_WHEEL_LEFT || event->param == BGMT_WHEEL_RIGHT || event->param == BGMT_WHEEL_UP || event->param == BGMT_WHEEL_DOWN))
         {
-            int dir = event->param == BGMT_WHEEL_RIGHT ? 1 : -1;
+            int dir = event->param == BGMT_WHEEL_RIGHT || event->param == BGMT_WHEEL_DOWN ? 1 : -1;
             playback_set_wheel_action(dir);
             return 0;
         }
         
-        #ifndef CONFIG_5D3 // Canon has it
+        #if !defined(CONFIG_5D3) && !defined(CONFIG_5DC) // 5D3: Canon has it; 5Dc: not working
         if (quick_delete)
         {
             if (event->param == BGMT_TRASH)
@@ -865,6 +872,10 @@ int handle_set_wheel_play(struct event * event)
         }
         #endif
     }
+    #if defined(CONFIG_5DC)
+    else if (event->param != BGMT_PRESS_DIRECT_PRINT && event->param != BGMT_UNPRESS_DIRECT_PRINT)
+        expo_adjust_playback(0); // reset value
+    #endif
 
     #if defined(CONFIG_5DC) // SET does not send "unpress", so just move cursor on "erase" by default
     if (quick_delete && PLAY_MODE)
@@ -3170,7 +3181,6 @@ struct menu_entry play_menus[] = {
         .submenu_width = 715,
         .help = "Options for PLAY (image review) mode.",
         .children =  (struct menu_entry[]) {
-#ifndef CONFIG_5DC
             {
                 .name = "SET+MainDial",
                 .priv = &play_set_wheel_action, 
@@ -3181,7 +3191,6 @@ struct menu_entry play_menus[] = {
                 .icon_type = IT_DICE,
                 //~ .edit_mode = EM_MANY_VALUES,
             },
-#endif
         #ifndef CONFIG_5D3 // not needed, you can press zoom in right away
             {
                 .name = "Image Review Mode",
@@ -3322,6 +3331,17 @@ static struct menu_entry play_menus[] = {
             .priv = &quick_delete, 
             .max = 1,
             .help = "Delete files quickly with fewer keystrokes (be careful!!!)",
+        },
+        {
+            .name = "SET+MainDial",
+            .priv = &play_set_wheel_action, 
+            .min = 3,
+            .max = 4,
+            .display = play_set_wheel_display,
+            .help = "PLAY: hold DirectPrint and turn wheel => selected action.",
+            //.essential = FOR_PHOTO,
+            .icon_type = IT_BOOL,
+            //~ .edit_mode = EM_MANY_VALUES,
         },
 };
 #endif
