@@ -137,10 +137,11 @@ static void movie_cliplen_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        val==0?"Clip length   : don't override":"Clip length   : %d min",
-	val
+        val == 0 ? "Clip length   : OFF (default)" :
+                   "Clip length   : %d min",
+        val
     );
-    menu_draw_icon(x, y, val == 0 ? MNI_AUTO : MNI_ON, 0);
+    menu_draw_icon(x, y, MNI_BOOL(val), 0);
 }
 
 static void
@@ -1314,6 +1315,7 @@ static struct menu_entry mov_menus[] = {
         },
     },
 #endif
+#ifndef CONFIG_5D3_MINIMAL
     {
         .name    = "Clip length",
         .priv    = &movie_cliplen,
@@ -1323,12 +1325,12 @@ static struct menu_entry mov_menus[] = {
         //.essential = FOR_MOVIE,
     },
     {
-        .name = "Simulate REC on resume",
+        .name = "REC on resume",
         .priv = &start_recording_on_resume,
-        .select = menu_binary_toggle,
-        .choices = (const char *[]) {"OFF", "ON"},
-        .help = "Autostart recording as soon as the camera wakes up due to halfshutter press."
+        .max = 1,
+        .help = "Auto-record if camera wakes up due to halfshutter press."
     },
+#endif
 };
 
 struct menu_entry expo_override_menus[] = {
