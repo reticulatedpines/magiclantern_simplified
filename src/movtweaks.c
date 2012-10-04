@@ -101,8 +101,47 @@ void set_shooting_mode(int m)
 }
 
 CONFIG_INT("movie.restart", movie_restart,0);
+CONFIG_INT("movie.cliplen", movie_cliplen,0);
 CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
 CONFIG_INT("movie.rec-key", movie_rec_key, 0);
+CONFIG_INT("movie.autostart-at-resume", start_recording_on_resume, 0);
+
+static int movie_autostop_running = 0;
+
+static int movie_cliplen_values[] = {0, 1, 2, 5, 10, 15, 30};
+
+static int current_cliplen_index(int t)
+{
+    int i;
+    for (i = 0; i < COUNT(movie_cliplen_values); i++)
+        if (t == movie_cliplen_values[i]) return i;
+    return 0;
+}
+
+static void movie_cliplen_toggle(void* priv, int sign)
+{
+    int* t = (int*)priv;
+    int i = current_cliplen_index(*t);
+    i = mod(i + sign, COUNT(movie_cliplen_values));
+    *(int*)priv = movie_cliplen_values[i];
+}
+
+static void movie_cliplen_display(
+    void *      priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    int val = (*(int*)priv);
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        val==0?"Clip length   : don't override":"Clip length   : %d min",
+	val
+    );
+    menu_draw_icon(x, y, val == 0 ? MNI_AUTO : MNI_ON, 0);
+}
 
 static void
 movie_rec_key_print(
@@ -408,6 +447,7 @@ void movtweak_step()
         if (!recording) movie_was_stopped_by_set = 0;
 #endif
 
+	if (!recording) movie_autostop_running = 0;
         //~ do_movie_mode_remap();
         
         if (is_movie_mode())
@@ -415,6 +455,17 @@ void movtweak_step()
             kelvin_wb_workaround_step();
 
             if (shutter_lock) shutter_lock_step();
+            if (recording && movie_cliplen) {
+                if (!movie_autostop_running) {
+                    movie_autostop_running = get_seconds_clock();
+                } else {
+                    int dt = (get_seconds_clock() - movie_autostop_running);
+                    NotifyBox(1000,"Auto stopping in %d minutes", movie_cliplen);
+                    if(dt > movie_cliplen*60) {
+                        schedule_movie_end();
+                    }
+                }
+            }
         }
 
         if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
@@ -1263,6 +1314,21 @@ static struct menu_entry mov_menus[] = {
         },
     },
 #endif
+    {
+        .name    = "Clip length",
+        .priv    = &movie_cliplen,
+        .display = movie_cliplen_display,
+        .select  = movie_cliplen_toggle,
+        .help = "Auto-stop the movie after a set amount of minutes.",
+        //.essential = FOR_MOVIE,
+    },
+    {
+        .name = "Simulate REC on resume",
+        .priv = &start_recording_on_resume,
+        .select = menu_binary_toggle,
+        .choices = (const char *[]) {"OFF", "ON"},
+        .help = "Autostart recording as soon as the camera wakes up due to halfshutter press."
+    },
 };
 
 struct menu_entry expo_override_menus[] = {
