@@ -77,7 +77,6 @@ void ResumeLiveView(){};
 void play_422(){};
 int get_zoom_overlay_trigger_by_focus_ring(){ return 0; }
 int get_disp_mode() { return 0; }
-int is_focus_peaking_enabled() { return 0; }
 void bmp_off(){};
 void bmp_on(){};
 void clear_zebras_from_mirror(){};
@@ -317,6 +316,7 @@ static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,
 CONFIG_INT( "focus.peaking.grayscale", focus_peaking_grayscale, 0); // R,G,B,C,M,Y,cc1,cc2
 
 int focus_peaking_as_display_filter() { return lv && focus_peaking && focus_peaking_disp; }
+int is_focus_peaking_enabled() { return focus_peaking; }
 
 //~ static CONFIG_INT( "focus.graph", focus_graph, 0);
 
@@ -2394,6 +2394,12 @@ struct menu_entry zebra_menus[] = {
                 .help = "Focus peaking color (fixed or color coding).",
                 .icon_type = IT_NAMED_COLOR,
             },
+            {
+                .name = "Grayscale img.", 
+                .priv = &focus_peaking_grayscale,
+                .max = 1,
+                .help = "Display the image in grayscale.",
+            },
             /*{
                 .priv = &focus_peaking_debug,
                 .max = 1,
@@ -2549,12 +2555,6 @@ int liveview_display_idle()
 }
 
 
-// when it's safe to draw zebras and other on-screen stuff
-int zebra_should_run()
-{
-    return 0;
-}
-
 int livev_for_playback_running = 0;
 void draw_livev_for_playback()
 {
@@ -2706,6 +2706,13 @@ static void livev_playback_reset()
 {
     livev_playback = 0;
 }
+
+// trick for grayscale focus peaking
+int zebra_should_run()
+{
+    return livev_playback;
+}
+
 
 int handle_livev_playback(struct event * event, int button)
 {

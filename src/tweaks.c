@@ -1151,7 +1151,7 @@ tweak_task( void* unused)
             display_countdown = 40;
         else if (display_countdown) display_countdown--;
         
-        msleep(display_countdown || recording || halfshutter_sticky || dofpreview_sticky ? 50 : 1000);
+        msleep(display_countdown || recording || halfshutter_sticky || dofpreview_sticky ? 50 : 500);
         
         movtweak_step();
 
@@ -1298,6 +1298,10 @@ TASK_CREATE("tweak_task", tweak_task, 0, 0x1e, 0x1000 );
 
 CONFIG_INT("quick.review.allow.zoom", quick_review_allow_zoom, 0);
 
+#ifdef CONFIG_5DC
+static int play_dirty = 0;
+#endif
+
 #ifndef CONFIG_5D3 // not needed
 PROP_HANDLER(PROP_GUI_STATE)
 {
@@ -1309,6 +1313,10 @@ PROP_HANDLER(PROP_GUI_STATE)
     {
         fake_simple_button(BGMT_PLAY);
     }
+
+#ifdef CONFIG_5DC
+    play_dirty = 2;
+#endif
 }
 #endif
 
@@ -2195,10 +2203,20 @@ void preview_contrast_n_saturation_step()
 {
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
+#ifdef CONFIG_5DC
+    if (!PLAY_MODE) return;
+    // can't check current saturation value => update saturation only twice per playback session
+    // actually this register looks quite safe to write, but... just in case
+    if (play_dirty) play_dirty--; else return;
+    msleep(100);
+#else
     if (!lv) return;
+#endif
     
     int saturation_register = 0xC0F140c4;
+#ifndef CONFIG_5DC
     int current_saturation = shamem_read(saturation_register) & 0xFF;
+#endif
 
     static int saturation_values[] = {0,0x80,0xC0,0xFF};
     int desired_saturation = saturation_values[preview_saturation];
@@ -2206,11 +2224,15 @@ void preview_contrast_n_saturation_step()
     if (focus_peaking_grayscale_running())
         desired_saturation = 0;
 
+#ifndef CONFIG_5DC
     if (current_saturation != desired_saturation)
+#endif
     {
         EngDrvOut(saturation_register, desired_saturation | (desired_saturation<<8));
     }
-
+#ifdef CONFIG_5DC
+    return; // contrast not working, freezes the camera
+#endif
 
     int brightness_contrast_register = 0xC0F141B8;
     int current_contrast = shamem_read(brightness_contrast_register);
@@ -2921,7 +2943,7 @@ static struct menu_entry display_menus[] = {
                 .name = "LV brightness  ", 
                 .priv = &preview_brightness, 
                 .max = 2,
-                .help = "Raises the shadows in LiveView and Playback mode.",
+                .help = "For LiveView preview only. Does not affect recording.",
                 .display = preview_brightness_display,
                 .edit_mode = EM_MANY_VALUES_LV,
             },
@@ -3140,6 +3162,7 @@ static struct menu_entry display_menus[] = {
 
 //~ extern int quickreview_liveview;
 
+#ifndef CONFIG_5DC
 struct menu_entry play_menus[] = {
     {
         .name = "Image review settings...",
@@ -3225,12 +3248,8 @@ struct menu_entry play_menus[] = {
                 .name = "Quick Erase\b\b",
                 .priv = &quick_delete, 
                 .max = 1,
-                #ifdef CONFIG_5DC
-                .help = "Delete files quickly with fewer keystrokes (be careful!!!)",
-                #else
                 .choices = (const char *[]) {"OFF", "SET+Erase"},
                 .help = "Delete files quickly with SET+Erase (be careful!!!)",
-                #endif
                 //.essential = FOR_PHOTO,
             },
         #endif
@@ -3238,6 +3257,74 @@ struct menu_entry play_menus[] = {
         },
     },
 };
+
+#else // CONFIG_5DC
+
+void preview_saturation_display_5dc(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Saturation  : %s",
+        preview_saturation == 0 ? "0 (Grayscale)" :
+        preview_saturation == 1 ? "Normal" :
+        preview_saturation == 2 ? "High" :
+                                  "Very high"
+    );
+
+    extern int focus_peaking_grayscale;
+    if (focus_peaking_grayscale && is_focus_peaking_enabled())
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus peaking with grayscale preview is enabled.");
+
+    if (preview_saturation == 0) menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) "Luma");
+    else if (preview_saturation == 1) menu_draw_icon(x, y, MNI_OFF, 0);
+    else menu_draw_icon(x, y, MNI_ON, 0);
+}
+
+static struct menu_entry play_menus[] = {
+        {
+            .name = "Saturation",
+            .priv     = &preview_saturation,
+            .max = 3,
+            .display = preview_saturation_display_5dc,
+            .help = "For preview only - adjust display saturation.",
+        },
+        {
+            .name = "Image Review Mode",
+            .priv = &quick_review_allow_zoom, 
+            .max = 1,
+            .display = qrplay_display,
+            //~ .help = "Go to play mode to enable zooming and maybe other keys.",
+            .help = "When you set \"ImageReview: Hold\", it will go to Play mode.",
+            //.essential = FOR_PHOTO,
+            .icon_type = IT_BOOL,
+        },
+        {
+            .name = "Zoom in PLAY mode",
+            .priv = &quickzoom, 
+            #ifdef CONFIG_5DC
+            .max = 2, // don't know how to move the image around
+            #else
+            .max = 4,
+            #endif
+            .display = quickzoom_display,
+            .help = "Faster zoom in Play mode, for pixel peeping :)",
+            //.essential = FOR_PHOTO,
+            .icon_type = IT_BOOL,
+        },
+        {
+            .name = "Quick Erase\b\b",
+            .priv = &quick_delete, 
+            .max = 1,
+            .help = "Delete files quickly with fewer keystrokes (be careful!!!)",
+        },
+};
+#endif
 
 static void tweak_init()
 {
