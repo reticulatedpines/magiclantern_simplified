@@ -2710,7 +2710,7 @@ static void livev_playback_reset()
 // trick for grayscale focus peaking
 int zebra_should_run()
 {
-    return livev_playback;
+    return livev_playback || QR_MODE;
 }
 
 
