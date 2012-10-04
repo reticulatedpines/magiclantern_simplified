@@ -2204,7 +2204,7 @@ void preview_contrast_n_saturation_step()
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
 #ifdef CONFIG_5DC
-    if (!PLAY_MODE) return;
+    if (!PLAY_OR_QR_MODE) return;
     // can't check current saturation value => update saturation only twice per playback session
     // actually this register looks quite safe to write, but... just in case
     if (play_dirty) play_dirty--; else return;
