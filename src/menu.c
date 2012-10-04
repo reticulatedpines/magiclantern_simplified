@@ -2023,7 +2023,8 @@ handle_ml_menu_keys(struct event * event)
         handle_ml_menu_keyrepeat(event);
 
     if (!menu_shown) return 1;
-    if (!DISPLAY_IS_ON) return 1;
+    if (!DISPLAY_IS_ON)
+        if (event->param != BGMT_PRESS_HALFSHUTTER) return 1;
     
     // rack focus may override some menu keys
     if (handle_rack_focus_menu_overrides(event)==0) return 0;
