@@ -1266,7 +1266,7 @@ static struct menu_entry mov_menus[] = {
         .display = zebra_nrec_display,
         .help = "You can disable zebra during recording."
     },*/
-    #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
+    #if !defined(CONFIG_50D)
     {
         .name = "Force LiveView",
         .priv = &enable_liveview,

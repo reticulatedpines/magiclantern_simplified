@@ -168,9 +168,8 @@
 //~ #define DLG_FLASH_AE 0x22
 //~ #define DLG_PICQ 6
 
-#define _MOVIE_MODE_NON_LIVEVIEW 0 //(!lv && !lv_paused && !get_lv_stopped_by_user() && gui_state == GUISTATE_IDLE && lv_movie_select == LVMS_ENABLE_MOVIE && lens_info.job_state == 0 && !HALFSHUTTER_PRESSED)
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0//  (_MOVIE_MODE_NON_LIVEVIEW && !lens_info.name[0])
-#define DLG_MOVIE_PRESS_LV_TO_RESUME 0//(_MOVIE_MODE_NON_LIVEVIEW && lens_info.name[0])
+#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x24)
+#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x25)
 
 
 
