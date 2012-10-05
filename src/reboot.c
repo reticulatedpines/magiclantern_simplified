@@ -155,8 +155,19 @@ cstart( void )
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
         *(int*)0xC02200BC = 0x46;  // CF card LED on
     #elif defined(CONFIG_7D)
-        *(int*)0xC0A00024 = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
-        *(int*)0xC022D06C = 0x00138800; // CF card LED on
+        
+        #if !defined(CONFIG_7D_FIR_MASTER) && !defined(CONFIG_7D_FIR_SLAVE)
+            *(volatile int*)0xC022D06C = 0x00138800;  // CF card LED on
+            /* clear IPC interrupt lines */
+            *(volatile int*)0xC0A0000C = *(volatile int*)0xC0A00008;
+            /* send command to master processor, so it is in right state for rebooting */
+            *(volatile int*)0xC0A00024 = 0x80000010;
+            /* wait for interrupt */
+            asm("MCR p15, 0, R0, c7, c0, 4\n":::"r0");
+            
+            /* clear IPC interrupt lines */
+            *(volatile int*)0xC0A0000C = *(volatile int*)0xC0A00008;
+        #endif
     #elif defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
         *(int*)0xC0220134 = 0x46;  // SD card LED on
     #elif defined(CONFIG_40D)

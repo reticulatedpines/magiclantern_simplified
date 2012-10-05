@@ -132,6 +132,21 @@ void vram_params_set_dirty()
 
 void vram_params_update_if_dirty()
 {
+#if defined(CONFIG_7D)
+    /* it has to be checked how to know (by properties) when dma size is correct again. 
+     * for now force updating every time LV dma register changes.
+     * (but this might be a good idea to do anyway to make sure we catch all changes)
+     */
+    static uint32_t last_lv_size = 0;
+    uint32_t lv_size = shamem_read(REG_EDMAC_WRITE_LV_ADDR + 8);
+
+    if(lv_size != last_lv_size)
+    {
+        vram_params_dirty = 1;
+        last_lv_size = lv_size;
+    }
+#endif
+
     if (vram_params_dirty)
     {
         BMP_LOCK( 

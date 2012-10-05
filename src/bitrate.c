@@ -544,7 +544,10 @@ void bitrate_init()
 {
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
 }
+
+#if !defined(CONFIG_7D_MINIMAL)
 INIT_FUNC(__FILE__, bitrate_init);
+#endif
 
 static void
 bitrate_task( void* unused )

@@ -33,7 +33,7 @@
 #include "version.h"
 #include "property.h"
 #include "consts.h"
-#ifdef CONFIG_7D
+#ifdef HIJACK_CACHE_HACK
 #include "cache_hacks.h"
 #endif
 
@@ -85,7 +85,7 @@ copy_and_restart( int offset )
 
     // Set the flag if this was an autoboot load
     autoboot_loaded = (offset == 0);
-#ifdef CONFIG_7D
+#ifdef HIJACK_CACHE_HACK
     /* make sure we have the first segment locked in d/i cache for patching */    
     uint32_t old_int = cli();
     clean_d_cache();
@@ -94,9 +94,9 @@ copy_and_restart( int offset )
     sei(old_int);
 
     /* patch init code to start our init task instead of canons default */
-    cache_fake(0xFF011064, (uint32_t) my_init_task, TYPE_DCACHE);
-    
-    /* now restart firmware */
+    cache_fake(HIJACK_CACHE_HACK_INITTASK_ADDR, (uint32_t) my_init_task, TYPE_DCACHE);
+
+    /* now start main firmware */
     void (*reset)(void) = (void*) ROMBASEADDR;
     reset();
 #else
@@ -680,10 +680,31 @@ int init_task_patched_for_1100D(int a, int b, int c, int d)
 }
 #endif
 
+#if defined(CONFIG_7D_FIR_MASTER)
+uint32_t (*Master_RequestRPC) (uint32_t id, uint32_t data, uint32_t length, uint32_t unk2) = 0xFF838F50;
+uint32_t (*Master_RegisterRPCHandler) (uint32_t, uint32_t) = 0xFF838EA0;
+    
+uint32_t master_rpc_handler (uint32_t parm1, uint32_t parm2, uint32_t parm3, uint32_t parm4)
+{
+    uint32_t temp = 0xDEADBEEF;
+    
+    Master_RequestRPC(0x28EF, &temp, 0x04, 0);
+    master_write_memory("ROM1.BIN", 0xf8000000, 0x00800000);
+    
+    return 0;
+}
+
+void master_ml_init()
+{
+    master_msleep(5000);
+    Master_RegisterRPCHandler(0x28EE, &master_rpc_handler);
+}
+#endif
 
 // flag set to 1 when gui_main_task started to process messages from queue
 int gui_init_done = 0;
 
+extern int  __attribute__ ((long_call)) master_init_task( int a, int b, int c, int d );
 /** Initial task setup.
  *
  * This is called instead of the task at 0xFF811DBC.
@@ -693,6 +714,16 @@ int gui_init_done = 0;
 int
 my_init_task(int a, int b, int c, int d)
 {
+#if defined(CONFIG_7D_FIR_MASTER)
+    cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, HIJACK_CACHE_HACK_BSS_END_INSTR, TYPE_ICACHE);
+    
+    int ans = master_init_task(a,b,c,d);
+    
+    master_task_create("ml_init", 0x18, 0x4000, &master_ml_init, 0 );    
+    
+    return ans;
+#else
+
 #ifdef ARMLIB_OVERFLOWING_BUFFER
     // An overflow in Canon code may write a zero right in the middle of ML code
     unsigned int *backup_address = 0;
@@ -707,6 +738,15 @@ my_init_task(int a, int b, int c, int d)
     }
 #endif
 
+#ifdef HIJACK_CACHE_HACK
+    /* as we do not return in the middle of te init task as in the hijack-through-copy method, we have to install the hook here */
+    task_dispatch_hook = my_task_dispatch_hook;
+    
+    /* now patch init task and continue execution */
+    cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, HIJACK_CACHE_HACK_BSS_END_INSTR, TYPE_ICACHE);
+    
+    int ans = init_task(a,b,c,d);
+#else
     // Call their init task
     #ifdef CONFIG_550D
     int ans = init_task_patched_for_550D(a,b,c,d);
@@ -714,13 +754,10 @@ my_init_task(int a, int b, int c, int d)
     int ans = init_task_patched_for_600D(a,b,c,d);
     #elif defined(CONFIG_1100D)
     int ans = init_task_patched_for_1100D(a,b,c,d);
-    #elif defined(CONFIG_7D)
-    task_dispatch_hook = my_task_dispatch_hook;
-    cache_fake(0xFF011F2C, 0xE3A01732, TYPE_ICACHE);
-    int ans = init_task(a,b,c,d);
     #else
     int ans = init_task(a,b,c,d);
     #endif
+#endif
 
 #ifdef ARMLIB_OVERFLOWING_BUFFER
     // Restore the overwritten value, if any
@@ -803,9 +840,11 @@ my_init_task(int a, int b, int c, int d)
         additional_version[7] = '\0';
         return ans;
     }
+    
     task_create("ml_init", 0x1e, 0x4000, my_big_init_task, 0 );
     return ans;
 #endif // !CONFIG_EARLY_PORT
+#endif
 }
 
 #ifdef CONFIG_5D3

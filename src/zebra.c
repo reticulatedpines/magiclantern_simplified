@@ -188,6 +188,10 @@ int lv_luma_is_accurate()
 {
     if (is_movie_mode()) return 1;
     
+#if defined(CONFIG_7D)
+    return 1;
+#endif    
+    
     extern int digic_iso_gain_photo;
     return expsim && digic_iso_gain_photo == 1024;
 }
@@ -3050,7 +3054,11 @@ static void transparent_overlay_offset_clear(void* priv, int delta)
 
 int handle_transparent_overlay(struct event * event)
 {
+#if defined(CONFIG_7D)
+    if (transparent_overlay && event->param == BGMT_PRESS_RAW_JPEG && PLAY_OR_QR_MODE)
+#else
     if (transparent_overlay && event->param == BGMT_LV && PLAY_OR_QR_MODE)
+#endif    
     {
         schedule_transparent_overlay();
         return 0;
@@ -3287,7 +3295,7 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"1st deriv.", "2nd deriv.", "Nyquist H"},
                 .help = "Contrast detection method. 2: more accurate, 1: less noisy.",
             },*/
-            #ifndef CONFIG_5D3_MINIMAL
+            #if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL) 
             {
                 .name = "Display type",
                 .priv = &focus_peaking_disp, 
@@ -3438,7 +3446,11 @@ struct menu_entry zebra_menus[] = {
         .priv = &transparent_overlay, 
         .display = transparent_overlay_display, 
         .select = menu_binary_toggle,
+#if defined(CONFIG_7D)        
+        .help = "Overlay image in LM. In PLAY mode, press RAW/JPEG btn.",
+#else
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
+#endif
         //.essential = FOR_PLAYBACK,
     },
     #endif
@@ -3591,7 +3603,7 @@ struct menu_entry zebra_menus[] = {
 };
 
 struct menu_entry level_indic_menus[] = {
-    #ifdef CONFIG_60D
+    #if defined(CONFIG_60D) || defined(CONFIG_7D)
     {
         .name = "Level Indicator", 
         .priv = &electronic_level, 
@@ -3638,7 +3650,7 @@ struct menu_entry livev_dbg_menus[] = {
     }*/
 };
 
-#if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+#if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
 void batt_display(
     void *          priv,
     int         x,
@@ -3722,7 +3734,7 @@ struct menu_entry powersave_menus[] = {
             .help = "Turn off GlobalDraw when idle, to save some CPU cycles.",
             //~ .edit_mode = EM_MANY_VALUES,
         },
-        #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+        #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
         {
             .name = "Battery remaining",
             .display = batt_display,
@@ -5367,7 +5379,7 @@ livev_hipriority_task( void* unused )
             BMP_LOCK( if (lv) spotmeter_step(); )
         prev_s = s;
 
-        #ifdef CONFIG_60D
+        #if defined(CONFIG_60D) || defined(CONFIG_7D)
         if (electronic_level && k % 8 == 5)
             BMP_LOCK( if (lv) show_electronic_level(); )
         #endif
@@ -5725,9 +5737,11 @@ static void zebra_init()
     //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
-#ifndef CONFIG_5D3_MINIMAL
+#if !defined(CONFIG_5D3_MINIMAL)
+#ifndef CONFIG_7D_MINIMAL
 #ifndef CONFIG_5DC
     menu_add( "Prefs", powersave_menus, COUNT(powersave_menus) );
+#endif
 #endif
     menu_add( "Display", level_indic_menus, COUNT(level_indic_menus) );
 #endif

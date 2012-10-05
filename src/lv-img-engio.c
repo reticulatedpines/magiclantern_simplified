@@ -690,7 +690,9 @@ static struct menu_entry dbg_menu[] = {
 
 static void lv_img_init()
 {
+    #if !defined(CONFIG_7D_MINIMAL)
     menu_add( "Movie", lv_img_menu, COUNT(lv_img_menu) );
+    #endif
     #ifdef CONFIG_DIGIC_POKE
     menu_add( "Debug", dbg_menu, COUNT(dbg_menu) );
     #endif

@@ -37,7 +37,7 @@
 #include "config.h"
 #include "math.h"
 
-#ifdef CONFIG_5D3_MINIMAL
+#if defined(CONFIG_5D3_MINIMAL) || defined(CONFIG_7D_MINIMAL)
 #include "disable-this-module.h"
 #endif
 
