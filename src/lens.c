@@ -1495,8 +1495,8 @@ PROP_HANDLER( PROP_ISO_AUTO )
 {
     uint32_t raw = *(uint32_t *) buf;
 
-    #ifdef CONFIG_5D2
-    if (expsim==2) raw = (uint8_t)FRAME_ISO;
+    #if !defined(CONFIG_500D) // FRAME_ISO not known
+    if (lv && is_movie_mode()) raw = (uint8_t)FRAME_ISO;
     #endif
 
     lens_info.raw_iso_auto = raw;
@@ -1505,20 +1505,21 @@ PROP_HANDLER( PROP_ISO_AUTO )
     update_stuff();
 }
 
-PROP_HANDLER( PROP_BV )
+PROP_HANDLER( PROP_BV ) // camera-specific
 {
-    uint32_t raw_iso = ((uint8_t*)buf)[1];
-
-    #ifdef CONFIG_5D2
-    if (expsim==2) raw_iso = (uint8_t)FRAME_ISO;
-    #endif
-
-    if (raw_iso)
+    #if !defined(CONFIG_500D) // FRAME_ISO not known
+    if (lv && is_movie_mode())
     {
-        lens_info.raw_iso_auto = raw_iso;
-        lens_info.iso_auto = RAW2VALUE(iso, raw_iso);
-        update_stuff();
+        uint32_t raw_iso = (uint8_t)FRAME_ISO;
+
+        if (raw_iso)
+        {
+            lens_info.raw_iso_auto = raw_iso;
+            lens_info.iso_auto = RAW2VALUE(iso, raw_iso);
+            update_stuff();
+        }
     }
+    #endif
 }
 
 static int shutter_was_set_from_ml = 0;
