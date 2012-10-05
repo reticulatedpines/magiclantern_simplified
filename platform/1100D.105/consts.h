@@ -33,6 +33,7 @@
 #define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR))
 
 // AV / AE COMP button 
+/// See gui.c for the actual press/unpress handling
 #define BGMT_AV (event->type == 0 && event->param == 0x61 && ( \
 			(is_movie_mode() && event->arg == 0xa) || \
 			(shooting_mode == SHOOTMODE_P && event->arg == 0xa) || \
@@ -40,25 +41,9 @@
 			(shooting_mode == SHOOTMODE_M && event->arg == 0xe) || \
 			(shooting_mode == SHOOTMODE_TV && event->arg == 0x10)) )
 
-#define BGMT_AV_MOVIE (event->type == 0 && event->param == 0x61 && (is_movie_mode() && event->arg == 0xa))
 #define INT_EV_OBJ (*(int*)(event->obj))
 
 #define BGMT_TRASH (0xD)
-//#define BGMT_TRASH_LV (BGMT_AV && (INT_EV_OBJ == 0x3010040 || INT_EV_OBJ == 0x1010040)) // old value for BGMT_PRESS_ZOOMOUT_MAYBE, was 0xA
-#define BGMT_PRESS_AV (BGMT_AV && ( \
-		(is_movie_mode() && INT_EV_OBJ == 0x3010040) || \
-		(shooting_mode == SHOOTMODE_P && INT_EV_OBJ == 0x3010040) || \
-		(shooting_mode == SHOOTMODE_M && INT_EV_OBJ == 0x1010006) || \
-		(INT_EV_OBJ == (0x1010040+2*shooting_mode)) ))
-
-#define BGMT_UNPRESS_AV (BGMT_AV && ( \
-		(is_movie_mode() && INT_EV_OBJ == 0x1010040) || \
-		(shooting_mode == SHOOTMODE_P && INT_EV_OBJ == 0x1010040) || \
-		(shooting_mode == SHOOTMODE_M && INT_EV_OBJ == 0x3010006) || \
-		(INT_EV_OBJ == (0x3010040+2*shooting_mode)) ))
-
-// USED TO MAKE ML COMPILE
-#define SHOOTING_MODE 0
 
 // From Alex
 #define FOCUS_CONFIRMATION (*(int*)0x41C8) // see "focusinfo" and Wiki:Struct_Guessing
@@ -139,7 +124,6 @@
 #define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0x2c)) // no idea what this is
 #define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x26)) // lvae_setdispgain
 #define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x78)) // lvae_setmoviemanualcontrol
-
 
 #define MIN_MSLEEP 10
 
