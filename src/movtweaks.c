@@ -139,8 +139,8 @@ static void movie_cliplen_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        val == 0 ? "Clip length   : OFF (default)" :
-                   "Clip length   : %d min",
+        val == 0 ? "Stop recording: OFF" :
+                   "Stop recording: after %d min",
         val
     );
     menu_draw_icon(x, y, MNI_BOOL(val), 0);
@@ -1195,6 +1195,16 @@ static struct menu_entry mov_menus[] = {
         //.essential = FOR_MOVIE,
     },
     #endif
+#ifndef CONFIG_5D3_MINIMAL
+    {
+        .name    = "Stop recording",
+        .priv    = &movie_cliplen,
+        .display = movie_cliplen_display,
+        .select  = movie_cliplen_toggle,
+        .help = "Auto-stop the movie after a set amount of minutes.",
+        //.essential = FOR_MOVIE,
+    },
+#endif
     /*{
         .priv = &movie_af,
         .display    = movie_af_print,
@@ -1317,15 +1327,6 @@ static struct menu_entry mov_menus[] = {
         },
     },
 #endif
-#ifndef CONFIG_5D3_MINIMAL
-    {
-        .name    = "Clip length",
-        .priv    = &movie_cliplen,
-        .display = movie_cliplen_display,
-        .select  = movie_cliplen_toggle,
-        .help = "Auto-stop the movie after a set amount of minutes.",
-        //.essential = FOR_MOVIE,
-    },
     #if 0
     {
         .name = "REC on resume",
@@ -1334,7 +1335,6 @@ static struct menu_entry mov_menus[] = {
         .help = "Auto-record if camera wakes up due to halfshutter press."
     },
     #endif
-#endif
 };
 
 struct menu_entry expo_override_menus[] = {
