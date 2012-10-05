@@ -110,7 +110,7 @@ CONFIG_INT("movie.autostart-at-resume", start_recording_on_resume, 0);
 
 static int movie_autostop_running = 0;
 
-static int movie_cliplen_values[] = {0, 1, 2, 5, 10, 15, 30};
+static int movie_cliplen_values[] = {0, 1, 2, 5, 10, 15};
 
 static int current_cliplen_index(int t)
 {
@@ -463,8 +463,10 @@ void movtweak_step()
                     movie_autostop_running = get_seconds_clock();
                 } else {
                     int dt = (get_seconds_clock() - movie_autostop_running);
-                    NotifyBox(1000,"Auto stopping in %d minutes", movie_cliplen);
-                    if(dt > movie_cliplen*60) {
+                    int r = movie_cliplen*60 - dt;
+                    if (dt == 0) NotifyBox(2000,"Will stop after %d minute%s", movie_cliplen, movie_cliplen > 1 ? "s" : "");
+                    if (r > 0 && r <= 10) NotifyBox(2000,"Will stop after %d second%s", r, r > 1 ? "s" : "");
+                    if(r < 0) {
                         schedule_movie_end();
                     }
                 }
