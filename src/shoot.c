@@ -1836,7 +1836,7 @@ shutter_display( void * priv, int x, int y, int selected )
     if (!menu_active_but_hidden())
     {
         int Tv = APEX_TV(lens_info.raw_shutter) * 10/8;
-        bmp_printf(
+        if (lens_info.raw_shutter) bmp_printf(
             FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
             720 - font_large.width * 6, y,
             "Tv%s%d.%d",
@@ -1887,7 +1887,7 @@ aperture_display( void * priv, int x, int y, int selected )
 
     if (!menu_active_but_hidden())
     {
-        bmp_printf(
+        if (a) bmp_printf(
             FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
             720 - font_large.width * 6, y,
             "Av%s%d.%d",
