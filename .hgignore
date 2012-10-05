@@ -30,6 +30,7 @@ tags
 *.i
 *.log
 location.map
+autoexec.map
 platform/*.OLD
 plugins/plugin.lds
 docs/html
