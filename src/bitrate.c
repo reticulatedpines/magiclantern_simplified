@@ -534,7 +534,7 @@ static struct menu_entry mov_menus[] = {
         .priv       = &time_indicator,
         .select     = menu_quaternary_toggle,
         .display    = time_indicator_display,
-        .help = "Time indicator during recording",
+        .help = "Time indicator while recording.",
         //.essential = 1,
         //~ .edit_mode = EM_MANY_VALUES,
     },

@@ -5412,8 +5412,11 @@ livev_hipriority_task( void* unused )
                 if (lens_display_dirty) lens_display_dirty--;
             }
 
-            if (kmm == 5)
+            static int prev_s;
+            int s = get_seconds_clock();
+            if (s != prev_s)
                 if (lv) movie_indicators_show();
+            prev_s = s;
         }
     }
 }

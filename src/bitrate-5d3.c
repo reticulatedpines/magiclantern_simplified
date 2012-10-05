@@ -11,9 +11,8 @@
 #include "gui.h"
 #include "lens.h"
 
-#ifdef CONFIG_5D3
 static CONFIG_INT("h264.bitrate", bitrate, 3);
-#endif
+CONFIG_INT( "rec_indicator", rec_indicator, 1);
 
 int time_indic_x =  720 - 160;
 int time_indic_y = 0;
@@ -40,7 +39,12 @@ void bitrate_mvr_log(char* mvr_logfile_buffer)
     return;
 }
 
-int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
+static int movie_start_timestamp = 0;
+PROP_HANDLER(PROP_MVR_REC_START)
+{
+    if (buf[0] == 1)
+        movie_start_timestamp = get_seconds_clock();
+}
 
 extern int cluster_size;
 extern int free_space_raw;
@@ -70,6 +74,59 @@ void free_space_show()
         fsg,
         fsgf
     );
+}
+
+void indicator_show()
+{
+    int elapsed_time = get_seconds_clock() - movie_start_timestamp;
+    int bytes_written_32k = MVR_BYTES_WRITTEN / 32768;
+    int remaining_time = free_space_32k * elapsed_time / bytes_written_32k;
+    int avg_bitrate = MVR_BYTES_WRITTEN / 1024 * 8 / 1024 / elapsed_time;
+    
+    switch(rec_indicator)
+    {
+        case 0: 
+            free_space_show();
+            return;
+        case 1: // elapsed
+            bmp_printf(
+                FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK),
+                time_indic_x + 160 - 6 * font_med.width,
+                time_indic_y,
+                "%3d:%02d",
+                elapsed_time / 60,
+                elapsed_time % 60
+            );
+            return;
+        case 2: // remaining
+            bmp_printf(
+                remaining_time < time_indic_warning ? time_indic_font : FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
+                time_indic_x + 160 - 6 * font_med.width,
+                time_indic_y,
+                "%3d:%02d",
+                remaining_time / 60,
+                remaining_time % 60
+            );
+            return;
+        case 3: // avg bitrate
+            bmp_printf(
+                FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK),
+                time_indic_x + 160 - 6 * font_med.width,
+                time_indic_y,
+                "%dMb/s",
+                avg_bitrate
+            );
+            return;
+        case 4: // instant bitrate
+            bmp_printf(
+                FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK),
+                time_indic_x + 160 - 6 * font_med.width,
+                time_indic_y,
+                "%dMb/s",
+                MVR_BYTES_WRITTEN / 1024 / 1024
+            );
+            return;
+    }
 }
 
 void fps_show()
@@ -118,16 +175,6 @@ void free_space_show_photomode()
     );
 }
 
-void measure_bitrate() // called once / second
-{
-    static uint32_t prev_bytes_written = 0;
-    uint32_t bytes_written = MVR_BYTES_WRITTEN;
-    int bytes_delta = (((int)(bytes_written >> 1)) - ((int)(prev_bytes_written >> 1))) << 1;
-    prev_bytes_written = bytes_written;
-    movie_bytes_written_32k = bytes_written >> 15;
-    measured_bitrate = (ABS(bytes_delta) / 1024) * 8 / 1024;
-}
-
 int is_mvr_buffer_almost_full() 
 {
     return 0;
@@ -156,6 +203,14 @@ static struct menu_entry mov_menus[] = {
         .select = load_h264_ini,
         .help = "Bitrate settings"
     },
+    {
+        .name = "REC indicator",
+        .priv = &rec_indicator,
+        .min = 0,
+        .max = 3,
+        .choices = (const char *[]) {"Free space", "Elapsed time", "Remain.time (card)", "Average bitrate"},
+        .help = "What to display in top-right corner while recording."
+    },
 };
 
 void bitrate_init()
@@ -171,7 +226,7 @@ void movie_indicators_show()
 {
     if (recording)
     {
-        BMP_LOCK( free_space_show(); )
+        BMP_LOCK( indicator_show(); )
     }
     else
     {
