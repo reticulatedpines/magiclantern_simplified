@@ -1110,6 +1110,22 @@ int handle_fast_zoom_in_play_mode(struct event * event)
         {
             quickzoom_unpressed = 1;
         }
+        #ifdef BGMT_JOY_CENTER
+        else if (event->param == BGMT_JOY_CENTER && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3) 
+        #else
+        else if (event->param == BGMT_PRESS_SET && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3)
+        #endif
+        {
+            IMGPLAY_ZOOM_POS_X = IMGPLAY_ZOOM_POS_X_CENTER;
+            IMGPLAY_ZOOM_POS_Y = IMGPLAY_ZOOM_POS_Y_CENTER;
+            MEM(IMGPLAY_ZOOM_LEVEL_ADDR) -= 1;
+            #ifdef CONFIG_5D3
+            fake_simple_button(BGMT_WHEEL_RIGHT);
+            #else
+            fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+            #endif
+            return 0;
+        }
     }
     else
     {
@@ -1193,7 +1209,22 @@ tweak_task( void* unused)
         }
         
         // faster zoom in play mode
-        #ifndef CONFIG_5D3 // already has this? I remember Marvin told me so
+        #ifdef CONFIG_5D3  // 5D3 already has this feature, but still requires some tweaking
+        if (quickzoom && quickzoom_pressed && PLAY_MODE) 
+        {
+            if (play_zoom_last_x != IMGPLAY_ZOOM_POS_X_CENTER || play_zoom_last_y != IMGPLAY_ZOOM_POS_Y_CENTER)
+            {
+                while (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 5) msleep(100);
+                msleep(200);
+                if (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 5) continue;
+                play_zoom_center_on_last_af_point();
+                MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MIN(MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 1, IMGPLAY_ZOOM_LEVEL_MAX - 1);
+                fake_simple_button(BGMT_WHEEL_RIGHT);
+            }
+            quickzoom_pressed = 0;
+        }
+        play_zoom_center_pos_update();
+        #else
         if (quickzoom && PLAY_MODE)
         {
             if (quickzoom_pressed) 
@@ -3223,6 +3254,14 @@ struct menu_entry play_menus[] = {
                 .display = quickzoom_display,
                 .help = "Faster zoom in Play mode, for pixel peeping :)",
                 //.essential = FOR_PHOTO,
+                .icon_type = IT_BOOL,
+            },
+        #else // 5D3
+            {
+                .name = "Remember last Zoom pos",
+                .priv = &quickzoom, 
+                .max = 1,
+                .help = "Remember last Zoom position in playback mode.",
                 .icon_type = IT_BOOL,
             },
         #endif
