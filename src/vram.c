@@ -132,6 +132,15 @@ void vram_params_set_dirty()
 
 void vram_params_update_if_dirty()
 {
+    // EDMAC sizes may update after prop handlers, so check if their values changed
+    // if so, recompute all VRAM params
+    uint32_t lv_size = shamem_read(REG_EDMAC_WRITE_LV_ADDR + 8);
+    uint32_t hd_size = shamem_read(REG_EDMAC_WRITE_HD_ADDR + 8);
+    int size_checksum = lv_size + hd_size;
+    static int prev_size_checksum = 0;
+    if (prev_size_checksum != size_checksum) vram_params_dirty = 1;
+    prev_size_checksum = size_checksum;
+    
     if (vram_params_dirty)
     {
         BMP_LOCK( 
