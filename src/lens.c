@@ -2033,7 +2033,7 @@ int bv_set_rawshutter(unsigned shutter)
 int bv_set_rawiso(unsigned iso) 
 { 
     if (iso == 0) return 0;
-    if (iso >= MIN_ISO && iso <= 128) // 100-12800
+    if (iso >= MIN_ISO && iso <= MAX_ISO_BV)
     {
         if (get_htp()) iso -= 8; // quirk: with exposure override and HTP, image is brighter by 1 stop than with Canon settings
         CONTROL_BV_ISO = bv_iso = iso; 
@@ -2061,6 +2061,25 @@ int bv_set_rawaperture(unsigned aperture)
     }
 }
 
+void bv_expsim_shift_try_iso(int newiso)
+{
+    int e = 0;
+    if (newiso < 72)
+        e = 72 - newiso;
+    else if (newiso > MAX_ISO_BV)
+        e = MAX_ISO_BV - newiso;
+    e = e * 10/8;
+    
+    static int prev_e = 0;
+    if (e != prev_e)
+    {
+        if (ABS(e) > 2) NotifyBox(2000, "Preview %sexposed by %d.%d EV", e > 0 ? "over" : "under", ABS(e)/10, ABS(e)%10);
+        else NotifyBoxHide();
+    }
+    prev_e = e;
+
+    CONTROL_BV_ISO = COERCE(newiso, 72, MAX_ISO_BV);
+}
 void bv_expsim_shift()
 {
     if (!lv) return;
@@ -2068,7 +2087,7 @@ void bv_expsim_shift()
     
     if (!is_movie_mode())
     {
-        int tv_fps_shift = fps_get_shutter_speed_shift();
+        int tv_fps_shift = fps_get_shutter_speed_shift(bv_tv);
         
         if (is_bulb_mode()) // try to perform expsim in bulb mode, based on bulb timer setting
         {
@@ -2077,12 +2096,14 @@ void bv_expsim_shift()
             {
                 int delta = 96 - tv;
                 CONTROL_BV_TV = 96;
-                CONTROL_BV_ISO = COERCE(bv_iso + delta, 72, 199);
-            }                                                                      
+                bv_expsim_shift_try_iso(bv_iso + delta);
+                return;
+            }
             else
             {
                 CONTROL_BV_TV = tv;
                 CONTROL_BV_ISO = bv_iso;
+                return;
             }
         }
         else
@@ -2093,11 +2114,21 @@ void bv_expsim_shift()
             {
                 int delta = 96 - bv_tv - tv_fps_shift;
                 CONTROL_BV_TV = 96;
-                CONTROL_BV_ISO = COERCE(bv_iso + delta, 72, 199);;
-                return 1; // not used but... maybe in future
+                bv_expsim_shift_try_iso(bv_iso + delta);
+                return;
+            }
+            else if (tv_fps_shift) // FPS override enabled
+            {
+                bv_expsim_shift_try_iso(bv_iso - tv_fps_shift);
+                return;
             }
         }
+        // no shifting, make sure we use unaltered values
+        CONTROL_BV_TV = bv_tv;
+        CONTROL_BV_AV = bv_av;
+        CONTROL_BV_ISO = bv_iso;
     }
+    
     return;
 }
 

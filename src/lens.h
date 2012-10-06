@@ -234,4 +234,11 @@ void aperture_toggle( void* priv, int sign);
 #define MIN_ISO (get_htp() ? 80 : 72)
 #define MAX_ISO 136 // may be better to fine-tune this for each camera
 
+// max iso with expo override
+#ifdef CONFIG_5D3
+#define MAX_ISO_BV 199
+#else
+#define MAX_ISO_BV 128
+#endif
+
 #endif
