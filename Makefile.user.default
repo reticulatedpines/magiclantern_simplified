@@ -14,14 +14,9 @@ READELF=$(ARM_BINPATH)/arm-$(ARM_ABI)-readelf
 ARM_LIBC_A = $(ARM_PATH)/arm-$(ARM_ABI)/lib/libc.a
 HOST_CFLAGS=-g -O3 -W -Wall
 PYTHON=python2
-ifeq ($(OS),Windows_NT)
-CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION).exe
-else
 CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
-endif
 HOST_CC=gcc
 LD=$(CC)
-
 
 # Naming convention for Magic Lantern builds:
 # General rules:
