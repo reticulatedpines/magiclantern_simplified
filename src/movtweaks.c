@@ -424,6 +424,11 @@ movtweak_task_init()
     while (!ml_started) msleep(100);
     bv_auto_update_startup();
     bv_startup = 0;
+    if(start_recording_on_resume) {
+        if(lv && is_movie_mode()) {
+            schedule_movie_start();
+        }
+    }
 }
 
 void movtweak_step()
@@ -1326,7 +1331,7 @@ static struct menu_entry mov_menus[] = {
     {
         .name = "Simulate REC on resume",
         .priv = &start_recording_on_resume,
-        .select = menu_binary_toggle,
+        .max = 1,
         .choices = (const char *[]) {"OFF", "ON"},
         .help = "Autostart recording as soon as the camera wakes up due to halfshutter press."
     },

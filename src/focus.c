@@ -1025,7 +1025,8 @@ static void update_focus_mag(int mag)
 }
 void plot_focus_mag()
 {
-
+    //NANOMAD
+    return;
     int x0 = 8;
     int y0 = 100;
     if (should_draw_bottom_graphs())

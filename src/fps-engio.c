@@ -400,9 +400,21 @@ static void update_sound_recording()
     else restore_sound_recording();
 }
 
+#ifdef CONFIG_1100D
+static int old_fps_override_status;
+#endif
 PROP_HANDLER(PROP_LV_ACTION)
 {
     restore_sound_recording();
+#ifdef CONFIG_1100D    
+    int my_lv = !buf[0];
+    if(!my_lv) {
+        old_fps_override_status = fps_override;
+        fps_override = 0;
+    } else {
+        fps_override = old_fps_override_status;
+    }
+#endif
 }
 PROP_HANDLER(PROP_MVR_REC_START)
 {
@@ -540,6 +552,17 @@ fps_print(
     int         selected
 )
 {
+    #ifdef CONFIG_1100D
+    if(!lv) {
+        bmp_printf(
+            selected ? MENU_FONT_SEL : MENU_FONT,
+            x, y,
+            "FPS override  : OFF"
+        );
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t)("FPS override only works when liveview is ON"));
+        return;
+    }
+    #endif
     int current_fps = fps_get_current_x1000();
     
     char msg[30];
@@ -587,7 +610,11 @@ desired_fps_print(
 {
     int desired_fps = fps_values_x1000[fps_override_index] / 10;
     int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
-
+    #ifdef CONFIG_1100D
+    if(!lv) {
+	default_fps = 0;
+    } 
+    #endif
     if (desired_fps % 100)
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
