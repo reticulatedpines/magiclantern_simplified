@@ -284,6 +284,14 @@ int raw2iso(int raw_iso)
     int iso = (int) roundf(100.0 * powf(2.0, (raw_iso - 72.0)/8.0));
     if (iso >= 100 && iso <= 6400)
         iso = values_iso[raw2index_iso(raw_iso)];
+    else if (raw_iso == 123)
+        iso = 8000;
+    else if (raw_iso == 125)
+        iso = 10000;
+    else if (raw_iso == 131)
+        iso = 16000;
+    else if (raw_iso == 133)
+        iso = 20000;
     else if (iso > 100000)
         iso = ((iso+500)/1000) * 1000;
     else if (iso > 10000)
@@ -619,10 +627,10 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
             text_font = FONT(
                 SHADOW_FONT(FONT_LARGE),
-                info->raw_iso >= 120 ? COLOR_RED :
+                info->raw_iso > MAX_ANALOG_ISO ? COLOR_RED :
                 info->iso_equiv_raw < info->raw_iso ? COLOR_GREEN1 :
                 info->iso_equiv_raw > info->raw_iso ? COLOR_RED :
-                COLOR_YELLOW,
+                info->iso_digital_ev < 0 ? COLOR_GREEN1 : info->iso_digital_ev > 0 ? COLOR_RED : COLOR_YELLOW,
                 bg
             );
             char msg[10];
@@ -1722,7 +1730,7 @@ void split_iso(int raw_iso, unsigned int* analog_iso, int* digital_gain)
 {
     if (!raw_iso) { *analog_iso = 0; *digital_gain = 0; return; }
     int rounded = ((raw_iso+3)/8) * 8;
-    *analog_iso = COERCE(rounded, 72, 112); // analog ISO range: 100-3200
+    *analog_iso = COERCE(rounded, 72, MAX_ANALOG_ISO); // analog ISO range: 100-3200 (100-25600 on 5D3)
     *digital_gain = raw_iso - *analog_iso;
 }
 

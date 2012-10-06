@@ -1029,12 +1029,6 @@ int gain_to_ev_x8(int gain)
     return (int) roundf(log2f(gain) * 8.0);
 }
 
-#ifdef CONFIG_5D3
-#define MAX_OVERRIDE_SMOOTH_ISO 136 // iso 25600
-#else
-#define MAX_OVERRIDE_SMOOTH_ISO 112 // iso 3200
-#endif
-
 CONFIG_INT("iso.smooth", smooth_iso, 0);
 CONFIG_INT("iso.smooth.spd", smooth_iso_speed, 2);
 void smooth_iso_step()
@@ -1073,12 +1067,12 @@ void smooth_iso_step()
         extern int digic_iso_gain_movie;
         #define G_ADJ ((int)roundf(digic_iso_gain_movie ? gf * digic_iso_gain_movie / 1024 : gf))
         int altered_iso = current_iso;
-        while (G_ADJ > 1448 && altered_iso < MAX_OVERRIDE_SMOOTH_ISO) 
+        while (G_ADJ > 1448 && altered_iso < MAX_ANALOG_ISO) 
         {
             altered_iso += 8;
             gf /= 2;
         }
-        while ((G_ADJ < 724 && altered_iso > 80) || (altered_iso > MAX_OVERRIDE_SMOOTH_ISO))
+        while ((G_ADJ < 724 && altered_iso > 80) || (altered_iso > MAX_ANALOG_ISO))
         {
             altered_iso -= 8;
             gf *= 2;

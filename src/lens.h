@@ -241,4 +241,13 @@ void aperture_toggle( void* priv, int sign);
 #define MAX_ISO_BV 128
 #endif
 
+// max ISO that can be set via FRAME_ISO 
+// I think it's the same as max analog ISO
+// todo: ask Guillermo Luijk :)
+#ifdef CONFIG_5D3
+#define MAX_ANALOG_ISO 136 // iso 25600
+#else
+#define MAX_ANALOG_ISO 112 // iso 3200
+#endif
+
 #endif
