@@ -39,6 +39,8 @@ NSTUB(0xFF812B4C, master_init_task)
 NSTUB(0xFF83976C, master_msleep)
 NSTUB(0xFF839820, master_task_create)
 NSTUB(0xFF81AD28, master_write_memory)
+
+NSTUB(0xFF0705E4, set_brightness_registers)
 NSTUB(0xFF205FA8, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
 NSTUB(0xff07cd24, AllocateMemory)      
 NSTUB(0xff2ffd3c, CreateDialogBox)      

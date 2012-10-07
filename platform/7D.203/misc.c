@@ -34,12 +34,12 @@ void display_shooting_info() // called from debug task
 
 	iso_refresh_display();
 
-	bg = bmp_getpixel(15, 430);
+	bg = bmp_getpixel(285, 417);
 	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 
 	hdr_display_status(fnt);
 
-	bmp_printf(fnt, 290, 415, "%d%% ", GetBatteryLevel());
+	bmp_printf(fnt, 315, 410, "  %d%% ", GetBatteryLevel());
 
 	//~ bmp_printf(fnt, 400, 450, "Flash:%s", 
 		//~ strobo_firing == 0 ? " ON" : 
@@ -47,6 +47,8 @@ void display_shooting_info() // called from debug task
 		//~ strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
 		//~ );
 
+	bg = bmp_getpixel(40, 460);
+	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	bmp_printf(fnt, 40, 460, get_mlu() ? "MLU" : "   ");
 
 	//~ display_lcd_remote_info();
@@ -85,17 +87,17 @@ int GetBatteryDrainRate() // percents per hour
 // called every second
 void RefreshBatteryLevel_1Hz()
 {
-	return; // probably works, but let's play safe
-	
 	static int k = 0;
 	k++;
 	
+    #if 0 // probably works, but let's play safe
 	if (k % 10 == 0 &&
 		lens_info.job_state == 0) // who knows what race conditions are here... I smell one :)
 	{
 		int x = 31;
 		prop_request_change(PROP_BATTERY_REPORT, &x, 1); // see PROP_Request PROP_BATTERY_REPORT
 	}
+    #endif
 	
 	msleep(50);
 	

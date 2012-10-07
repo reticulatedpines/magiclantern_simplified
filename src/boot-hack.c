@@ -689,8 +689,7 @@ uint32_t master_rpc_handler (uint32_t parm1, uint32_t parm2, uint32_t parm3, uin
     uint32_t temp = 0xDEADBEEF;
     
     Master_RequestRPC(0x28EF, &temp, 0x04, 0);
-    master_write_memory("ROM1.BIN", 0xf8000000, 0x00800000);
-    
+
     return 0;
 }
 
@@ -704,7 +703,98 @@ void master_ml_init()
 // flag set to 1 when gui_main_task started to process messages from queue
 int gui_init_done = 0;
 
-extern int  __attribute__ ((long_call)) master_init_task( int a, int b, int c, int d );
+#if defined(CONFIG_7D_MINIMAL)
+int lcd_fade(int start, int end, int step, int delay)
+{
+    int old = *(int*)0xC0238004;
+
+    if(start < 0)
+    {
+        start = old;
+    }
+    if(end < 0)
+    {
+        end = old;
+    }
+
+    int brightness = start;
+
+    brightness = COERCE(brightness, 0, 0xFF);
+
+    if(end < brightness && step > 0)
+    {
+        step = -step;
+    }
+
+    if(delay)
+    {
+        while((step > 0 && brightness < end) || (step < 0 && brightness > end))
+        {
+            msleep(delay);
+            brightness += step;
+            *(int*)0xC0238004 = COERCE(brightness, 0, 0xFF);
+        }
+    }
+    else
+    {
+        *(int*)0xC0238004 = COERCE(end, 0, 0xFF);
+    }
+
+    return old;
+}
+
+uint32_t bootup_screen_finished = 0;
+
+void show_early_bootup_screen()
+{
+    struct bmp_file_t * doc = (void*) -1;
+
+    if(bootup_screen_finished)
+    {
+        return;
+    }
+
+    doc = bmp_load(CARD_DRIVE "ML/DATA/SPLASH.BMP", 1);
+
+    if (!doc)
+    {
+        return;
+    }
+    
+    msleep(200);
+
+    /* make sure canon does not change front buffer */
+    canon_gui_disable_front_buffer();
+
+    /* fade out and fade in ML logo */
+    lcd_fade(-1, 0, 8, 30);
+    bmp_draw_scaled_ex(doc, 0, 0, 720, 480, 0);
+    lcd_fade(-1, 0xFF, 8, 30);
+    FreeMemory(doc);
+
+    for(int loop = 0; (loop < 100) && !bootup_screen_finished && canon_gui_front_buffer_disabled(); loop++)
+    {
+        msleep(100);
+    }
+
+    /* canon forced displaying or LV is active, abort */
+    if(!canon_gui_front_buffer_disabled())
+    {
+        set_brightness_registers();
+        return;
+    }
+
+    /* now all the way back */
+    lcd_fade(-1, 0, 8, 30);
+    bmp_idle_copy(1, 1);
+    canon_gui_enable_front_buffer(1);
+
+    /* fade in then set brightness canon wants to have */
+    lcd_fade(-1, 0xb0, 8, 30);
+    set_brightness_registers();
+}
+#endif
+
 /** Initial task setup.
  *
  * This is called instead of the task at 0xFF811DBC.
@@ -715,6 +805,7 @@ int
 my_init_task(int a, int b, int c, int d)
 {
 #if defined(CONFIG_7D_FIR_MASTER)
+    extern int  __attribute__ ((long_call)) master_init_task( int a, int b, int c, int d );
     cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, HIJACK_CACHE_HACK_BSS_END_INSTR, TYPE_ICACHE);
     
     int ans = master_init_task(a,b,c,d);
@@ -822,7 +913,11 @@ my_init_task(int a, int b, int c, int d)
     msleep(200);
     
     // at this point, gui_main_start should be started and should be able to tell whether SET was pressed at startup
-    
+
+#if defined(CONFIG_7D_MINIMAL) // only in FIR mode
+    show_early_bootup_screen();
+    bootup_screen_finished = 1;
+#else
     if (magic_off_request)
     {
         while (!DISPLAY_IS_ON) msleep(100);
@@ -840,7 +935,8 @@ my_init_task(int a, int b, int c, int d)
         additional_version[7] = '\0';
         return ans;
     }
-    
+#endif
+
     task_create("ml_init", 0x1e, 0x4000, my_big_init_task, 0 );
     return ans;
 #endif // !CONFIG_EARLY_PORT

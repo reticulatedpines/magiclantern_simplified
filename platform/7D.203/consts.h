@@ -199,9 +199,9 @@
 #define GUIMODE_ML_MENU (recording ? 0 : lv ? 45 : 2)
 // outside LiveView, Canon menu is a good choice
 
-    // position for displaying clock outside LV
-    #define DISPLAY_CLOCK_POS_X 435
-    #define DISPLAY_CLOCK_POS_Y 452
+// position for displaying clock outside LV
+#define DISPLAY_CLOCK_POS_X 167
+#define DISPLAY_CLOCK_POS_Y 422
 
     #define MENU_DISP_ISO_POS_X 500
     #define MENU_DISP_ISO_POS_Y 27

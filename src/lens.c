@@ -759,7 +759,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
         // battery indicator
         int xr = x_origin + 612 - font_large.width - 4;
 
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
         int bat = GetBatteryLevel();
     #else
         int bat = battery_level_bars == 0 ? 5 : battery_level_bars == 1 ? 30 : 100;
@@ -767,7 +767,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
         int col = battery_level_bars == 0 ? COLOR_RED :
                   battery_level_bars == 1 ? COLOR_YELLOW : 
-                #if defined(CONFIG_60D) || defined(CONFIG_5D2)
+                #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_7D)
                   bat <= 70 ? COLOR_WHITE : 
                 #endif
                   COLOR_GREEN1;

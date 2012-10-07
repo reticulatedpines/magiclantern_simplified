@@ -104,6 +104,10 @@ int handle_other_events(struct event * event)
     return 1;
 }
 
+#if defined(CONFIG_7D_MINIMAL)
+extern int bootup_screen_finished;
+#endif
+
 int handle_common_events_startup(struct event * event)
 {   
     extern int ml_gui_initialized;
@@ -114,7 +118,24 @@ int handle_common_events_startup(struct event * event)
     extern int ml_started;
     extern int magic_off_request;
     if (!ml_started)    {
+        #if defined(CONFIG_7D_MINIMAL)
+        if (event->param == BGMT_PRESS_SET ||
+            event->param == BGMT_MENU ||
+            event->param == BGMT_TRASH ||
+            event->param == BGMT_PLAY ||
+            event->param == BGMT_PRESS_HALFSHUTTER ||
+            event->param == BGMT_PRESS_UP ||
+            event->param == BGMT_PRESS_DOWN ||
+            event->param == BGMT_PRESS_LEFT ||
+            event->param == BGMT_PRESS_RIGHT ||
+            event->param == BGMT_WHEEL_UP ||
+            event->param == BGMT_WHEEL_DOWN ||
+            event->param == BGMT_WHEEL_LEFT ||
+            event->param == BGMT_WHEEL_RIGHT
+           ) { bootup_screen_finished = 1; return 0;}
+        #else
         if (event->param == BGMT_PRESS_SET) { magic_off_request = 1; return 0;} // don't load ML
+        #endif
 
         #ifdef CONFIG_60D
         if (event->param == BGMT_MENU) return 0; // otherwise would interfere with swap menu-erase
@@ -143,6 +164,12 @@ int handle_common_events_by_feature(struct event * event)
 {
     // common to most cameras
     // there may be exceptions
+#if defined(CONFIG_7D_MINIMAL)
+    if(!bootup_screen_finished)
+    {
+        return 1;
+    }
+#endif
     
     // these are required for correct shutdown from powersave mode
     if (event->param == GMT_GUICMD_START_AS_CHECK || 

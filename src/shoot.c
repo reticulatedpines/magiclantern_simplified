@@ -240,7 +240,7 @@ static void do_this_every_second() // called every second
     if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
         info_led_blink(1, 50, 0);
 
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
     RefreshBatteryLevel_1Hz();
     #endif
     
@@ -5978,6 +5978,7 @@ void remote_shot(int wait)
 
 static void display_expsim_status()
 {
+#if !defined(CONFIG_7D_MINIMAL)
     get_yuv422_vram();
     static int prev_expsim = 0;
     int x = 610 + font_med.width;
@@ -5993,6 +5994,7 @@ static void display_expsim_status()
             bmp_printf( FONT(FONT_MED, COLOR_WHITE, 0), x, y, "        " );
     }
     prev_expsim = expsim;
+#endif
 }
 
 

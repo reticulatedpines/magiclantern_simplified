@@ -130,6 +130,10 @@ void vram_params_set_dirty()
     afframe_set_dirty();
 }
 
+#if defined(CONFIG_7D)
+static uint32_t last_lv_size = 0;
+#endif
+
 void vram_params_update_if_dirty()
 {
 #if defined(CONFIG_7D)
@@ -137,7 +141,6 @@ void vram_params_update_if_dirty()
      * for now force updating every time LV dma register changes.
      * (but this might be a good idea to do anyway to make sure we catch all changes)
      */
-    static uint32_t last_lv_size = 0;
     uint32_t lv_size = shamem_read(REG_EDMAC_WRITE_LV_ADDR + 8);
 
     if(lv_size != last_lv_size)
@@ -268,7 +271,11 @@ void update_vram_params()
 #else
     if (lv) // get image size from DMA register
     {
+        #if defined(CONFIG_7D)
+        uint32_t lv_size = last_lv_size;
+        #else
         uint32_t lv_size = shamem_read(REG_EDMAC_WRITE_LV_ADDR + 8);
+        #endif
         vram_lv.pitch = lv_size & 0xFFFF;
         vram_lv.width = vram_lv.pitch / 2;
         vram_lv.height = ((lv_size >> 16) & 0xFFFF) + 1;
@@ -345,7 +352,7 @@ void update_vram_params()
     int bar_x = 0;
     int bar_y = is_movie_mode() && video_mode_resolution == 1 ? os.off_169 : 0;
     off_43+=0; // bypass warning
-    #elif defined(CONFIG_500D)
+    #elif defined(CONFIG_500D) || defined(CONFIG_7D)
     int bar_x = 0;
     int bar_y = 0;
     off_43+=0; // bypass warning

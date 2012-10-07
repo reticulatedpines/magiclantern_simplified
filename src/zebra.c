@@ -5362,8 +5362,8 @@ livev_hipriority_task( void* unused )
             //~ }
             else
             {
-                #ifdef CONFIG_5D3
-                BMP_LOCK( if (lv) draw_zebra_and_focus(focus_peaking==0 || k % 2 == 1, 1) ) // DIGIC 5 has more CPU power
+                #if defined(CONFIG_5D3) || defined(CONFIG_7D)
+                BMP_LOCK( if (lv) draw_zebra_and_focus(focus_peaking==0 || k % 2 == 1, 1) ) // DIGIC 5 and dual-DIGIC has more CPU power
                 #else
                 // luma zebras are fast
                 // also, if peaking is off, zebra can be faster

@@ -288,6 +288,18 @@ void free_space_show_photomode()
     int fsg = free_space_32k >> 15;
     int fsgr = free_space_32k - (fsg << 15);
     int fsgf = (fsgr * 10) >> 15;
+    
+#if defined(CONFIG_7D)    
+    int x = DISPLAY_CLOCK_POS_X;
+    int y = DISPLAY_CLOCK_POS_Y - font_med.height - 14;
+    bmp_printf(
+        FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x,y)),
+        x, y,
+        "%d.%dG",
+        fsg,
+        fsgf
+    );
+#else
     int x = time_indic_x + 2 * font_med.width;
     int y =  452;
     bmp_printf(
@@ -297,6 +309,7 @@ void free_space_show_photomode()
         fsg,
         fsgf
     );
+#endif
 }
 
 void time_indicator_show()
