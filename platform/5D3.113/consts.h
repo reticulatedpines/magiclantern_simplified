@@ -232,6 +232,10 @@
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x2E9C4) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
+#define IMGPLAY_ZOOM_POS_X MEM(0x570EC) // CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x570F0)
+#define IMGPLAY_ZOOM_POS_X_CENTER 360
+#define IMGPLAY_ZOOM_POS_Y_CENTER 240
 
 #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
