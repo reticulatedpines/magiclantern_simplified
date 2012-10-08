@@ -164,23 +164,16 @@ movie_rec_key_print(
     );
 }
 
-int handle_movie_rec_key(struct event * event)
+void movie_rec_halfshutter_step()
 {
-    if (!movie_rec_key) return 1;
-    
-    if (
-        (movie_rec_key == 1 && event->param == BGMT_PRESS_HALFSHUTTER) 
-        #if !defined(CONFIG_5D2) && !defined(CONFIG_50D) // these cameras already record with SET
-        || (movie_rec_key == 2 && event->param == BGMT_PRESS_SET)
-        #endif
-        )
+    if (!movie_rec_key) return;
+    if (!is_movie_mode() || !liveview_display_idle() || gui_menu_shown()) return;
+
+    if (HALFSHUTTER_PRESSED)
     {
-        if (is_movie_mode() && liveview_display_idle() && !gui_menu_shown())
-        {
-            if (!recording) schedule_movie_start();
-            else schedule_movie_end();
-            return 0;
-        }
+        while (HALFSHUTTER_PRESSED) msleep(50);
+        if (!recording) schedule_movie_start();
+        else schedule_movie_end();
     }
     return 1;
 }
@@ -431,6 +424,8 @@ movtweak_task_init()
 
 void movtweak_step()
 {
+    movie_rec_halfshutter_step();
+
 #ifndef CONFIG_5D3 // movie restart not needed
         static int recording_prev = 0;
         #if defined(CONFIG_5D2) || defined(CONFIG_50D)

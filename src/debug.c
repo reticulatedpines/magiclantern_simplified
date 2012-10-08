@@ -3544,11 +3544,11 @@ void spy_event(struct event * event)
     }
 }
 
-int halfshutter_pressed = 0;
-#ifdef CONFIG_500D
-bool get_halfshutter_pressed() { return HALFSHUTTER_PRESSED && !dofpreview; }
+int halfshutter_pressed;
+#ifdef CONFIG_5DC
+bool get_halfshutter_pressed() { return halfshutter_pressed; }
 #else
-bool get_halfshutter_pressed() { return halfshutter_pressed && !dofpreview; }
+bool get_halfshutter_pressed() { return HALFSHUTTER_PRESSED && !dofpreview; }
 #endif
 
 int zoom_in_pressed = 0;
@@ -3565,9 +3565,9 @@ int handle_buttons_being_held(struct event * event)
     if (event->param == BGMT_UNPRESS_SET) set_pressed = 0;
     if (event->param == BGMT_PLAY) set_pressed = 0;
     if (event->param == BGMT_MENU) set_pressed = 0;
+    #ifdef CONFIG_5DC
     if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
     if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
-    #ifdef CONFIG_5DC
     if (event->param == BGMT_PRESS_DIRECT_PRINT) set_pressed = 1;
     if (event->param == BGMT_UNPRESS_DIRECT_PRINT) set_pressed = 0;
     #else

@@ -233,7 +233,7 @@ int handle_common_events_by_feature(struct event * event)
     //~ if (handle_lcd_sensor_shortcuts(event) == 0) return 0;
     //~ #endif
     
-    if (handle_movie_rec_key(event) == 0) return 0; // movie REC key
+    //~ if (handle_movie_rec_key(event) == 0) return 0; // movie REC key
 
     if (handle_trap_focus(event) == 0) return 0;
 
