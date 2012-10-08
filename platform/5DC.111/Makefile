@@ -55,6 +55,9 @@ ML_OBJS-y = \
 	state-object.o \
 	tasks.o \
 	beep.o \
+	dm-spy.o \
+	tp-spy.o \
+	reloc.o \
 
 
 #include generic rules and definitions

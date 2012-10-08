@@ -537,9 +537,41 @@ void iso_movie_test()
 }
 #endif // CONFIG_ISO_TESTS
 
+int (*orig)(int a, int b, int c, int d) = 0;
+int spy(int a, int b, int c, int d)
+{
+    NotifyBox(2000,
+        "%x %x %x %x",
+        a,b,c,d
+    );
+    
+    if (!orig) return 0;
+    return orig(a,b,c,d);
+}
+
+void hijack(int addr)
+{
+    orig = MEM(addr);
+    MEM(addr) = spy;
+}
+
+int my_ReleaseEvent(int a, int b, int c, int d)
+{
+    NotifyBox(10000, "%x %x %x %x ", a, b, c, d);
+    //~ return ReleaseEvent(a,b,c,d);
+}
+#include "cache_hacks.h"
 void run_test()
 {
+#ifdef CONFIG_5DC
     msleep(2000);
+    debug_intercept();
+    tp_intercept();
+    info_led_on();
+    msleep(10000);
+    debug_intercept();
+    info_led_off();
+#endif
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)

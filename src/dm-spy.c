@@ -47,10 +47,10 @@ void my_DebugMsg(int class, int level, char* fmt, ...)
 
     len += snprintf( buf+len, BUF_SIZE-len, "\n" );
     
-    static int y = 0;
-    bmp_printf(FONT_SMALL, 0, y, "%s\n                                                               ", msg);
-    y += font_small.height;
-    if (y > 450) y = 0;
+    //~ static int y = 0;
+    //~ bmp_printf(FONT_SMALL, 0, y, "%s\n                                                               ", msg);
+    //~ y += font_small.height;
+    //~ if (y > 450) y = 0;
 }
 
 // call this from "don't click me"

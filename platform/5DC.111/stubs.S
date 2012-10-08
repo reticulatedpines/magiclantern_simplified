@@ -611,3 +611,17 @@ NSTUB(0xffb09ea8, BmpDDev_give_semaphore)
 NSTUB(0xffb09e84, BmpDDev_take_semaphore)
 
 NSTUB(0xff814618, bindGUISwitchCBR)
+
+NSTUB(0xffb16cdc, register_interrupt)
+NSTUB(0xffabc8d0, SIO3_ISR)
+NSTUB(0xffabc7d4, MREQ_ISR)
+
+NSTUB(0xff8b2954, EM_DeliverMulticastEvent)
+NSTUB(0xff952d58, ReleaseResult)
+NSTUB(0xff9526a8, ReleaseEvent)
+
+NSTUB(0xffb22afc, TryPostEvent)
+NSTUB(0xffb22b88, TryPostEvent_end)
+
+NSTUB(0xffb29cc0, TryPostStageEvent)
+NSTUB(0xffb29d4c, TryPostStageEvent_end)
