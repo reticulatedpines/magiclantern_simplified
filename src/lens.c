@@ -1503,7 +1503,7 @@ PROP_HANDLER( PROP_ISO_AUTO )
 {
     uint32_t raw = *(uint32_t *) buf;
 
-    #if !defined(CONFIG_500D) // FRAME_ISO not known
+    #if defined(FRAME_ISO) && !defined(CONFIG_500D) // FRAME_ISO not known
     if (lv && is_movie_mode()) raw = (uint8_t)FRAME_ISO;
     #endif
 
@@ -1513,9 +1513,9 @@ PROP_HANDLER( PROP_ISO_AUTO )
     update_stuff();
 }
 
+#if defined(FRAME_ISO) && !defined(CONFIG_500D) // FRAME_ISO not known
 PROP_HANDLER( PROP_BV ) // camera-specific
 {
-    #if !defined(CONFIG_500D) // FRAME_ISO not known
     if (lv && is_movie_mode())
     {
         uint32_t raw_iso = (uint8_t)FRAME_ISO;
@@ -1527,8 +1527,8 @@ PROP_HANDLER( PROP_BV ) // camera-specific
             update_stuff();
         }
     }
-    #endif
 }
+#endif
 
 static int shutter_was_set_from_ml = 0;
 static int shutter_ack = -1;
