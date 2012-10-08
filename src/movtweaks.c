@@ -159,7 +159,7 @@ movie_rec_key_print(
         x, y,
         "Movie REC key : %s ",
         movie_rec_key == 1 ? "HalfShutter" :
-        movie_rec_key == 2 ? "SET" :
+        movie_rec_key == 2 ? "Long HalfShutter (1s)" :
         "Default"
     );
 }
@@ -171,6 +171,19 @@ void movie_rec_halfshutter_step()
 
     if (HALFSHUTTER_PRESSED)
     {
+        if (movie_rec_key == 2)
+        {
+            // need to keep halfshutter pressed for one second
+            for (int i = 0; i < 10; i++)
+            {
+                msleep(100);
+                if (!HALFSHUTTER_PRESSED) break;
+            }
+            if (!HALFSHUTTER_PRESSED) return;
+            info_led_on();
+            NotifyBox(1000, "OK");
+        }
+        
         while (HALFSHUTTER_PRESSED) msleep(50);
         if (!recording) schedule_movie_start();
         else schedule_movie_end();
@@ -1245,11 +1258,8 @@ static struct menu_entry mov_menus[] = {
         .name = "Movie REC key",
         .priv = &movie_rec_key, 
         .display = movie_rec_key_print,
-        //~ #ifdef CONFIG_5D2
-        .select = menu_binary_toggle,
-        //~ #else
-        //~ .select = menu_ternary_toggle,
-        //~ #endif
+        .max = 2,
+        .icon_type = IT_BOOL,
         .help = "Change the button used for recording. Hint: wired remote."
     },
     #endif
