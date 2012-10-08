@@ -1110,6 +1110,7 @@ int handle_fast_zoom_in_play_mode(struct event * event)
         {
             quickzoom_unpressed = 1;
         }
+        #ifdef IMGPLAY_ZOOM_POS_X
         #ifdef BGMT_JOY_CENTER
         else if (event->param == BGMT_JOY_CENTER && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3) 
         #else
@@ -1126,6 +1127,7 @@ int handle_fast_zoom_in_play_mode(struct event * event)
             #endif
             return 0;
         }
+        #endif
     }
     else
     {
