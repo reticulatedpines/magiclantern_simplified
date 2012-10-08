@@ -72,7 +72,26 @@ include ../../Makefile.inc
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
-ROMBASEADDR		= 0xFF010000
-RESTARTSTART		= 0xC80100
+ROMBASEADDR   = 0xF8010000
+RESTARTSTART  = 0xC80100
+
+CFLAGS += -DCONFIG_7D_MINIMAL=1
 
 all: autoexec.bin
+
+FIR-MASTER: autoexec-fir-master
+FIR-SLAVE: autoexec-fir-slave
+
+autoexec-fir-master: CFLAGS += -DCONFIG_7D_FIR_MASTER
+autoexec-fir-slave: CFLAGS += -DCONFIG_7D_FIR_SLAVE
+
+autoexec-fir-master: clean autoexec-fir
+	$(call build,OBJCOPY,$(OBJCOPY) -O binary autoexec-fir $@.bin)
+	$(STAT_CMD) $@.bin;
+	$(READELF) -l autoexec-fir | grep -C 2 MemSiz
+
+    
+autoexec-fir-slave: clean autoexec-fir
+	$(call build,OBJCOPY,$(OBJCOPY) -O binary autoexec-fir $@.bin)
+	$(STAT_CMD) $@.bin;
+	$(READELF) -l autoexec-fir | grep -C 2 MemSiz

@@ -279,7 +279,9 @@ static void hdr_init()
 
 }
 
+#if !defined(CONFIG_7D)
 INIT_FUNC("hdr", hdr_init);
+#endif
 
 void hdr_mvr_log(char* mvr_logfile_buffer)
 {

@@ -10,6 +10,10 @@
 #include "state-object.h"
 #include "property.h"
 
+#ifdef CONFIG_7D
+#include "cache_hacks.h"
+#endif
+
 #ifdef CONFIG_550D
 #define DISPLAY_STATE DISPLAY_STATEOBJ
 #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 19
@@ -190,6 +194,11 @@ static void state_init(void* unused)
     
     #ifdef EMState
         stateobj_start_spy(EMState);
+    #endif
+    
+    #ifdef CONFIG_7D
+        /* will work, but this is LV only - not recorded */
+        // cache_fake(0xFF10D2F4, BL_INSTR(0xFF10D2F4, &vsync_func), TYPE_ICACHE);
     #endif
 }
 

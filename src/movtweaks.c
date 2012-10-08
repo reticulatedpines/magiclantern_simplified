@@ -1236,7 +1236,7 @@ static struct menu_entry mov_menus[] = {
         .display = rec_notify_print, 
         #if defined(CONFIG_5D2) || defined(CONFIG_500D)
         .select = menu_quinternary_toggle, // beeps and blue led
-        #elif defined(CONFIG_600D) || defined(CONFIG_5D3)
+        #elif defined(CONFIG_600D) || defined(CONFIG_5D3) || defined(CONFIG_7D)
         .select = menu_ternary_toggle, // no beeps, no blue led
         #else
         .select = menu_quaternary_toggle, // beeps are OK, no blue led
@@ -1245,7 +1245,7 @@ static struct menu_entry mov_menus[] = {
         //.essential = FOR_MOVIE,
         //~ .edit_mode = EM_MANY_VALUES_LV,
     },
-    #if !defined(CONFIG_50D) && !defined(CONFIG_5D3)
+    #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_7D)
     {
         .name = "Movie REC key",
         .priv = &movie_rec_key, 
@@ -1272,7 +1272,7 @@ static struct menu_entry mov_menus[] = {
         .display = zebra_nrec_display,
         .help = "You can disable zebra during recording."
     },*/
-    #if !defined(CONFIG_50D)
+    #if !defined(CONFIG_50D) && !defined(CONFIG_7D)
     {
         .name = "Force LiveView",
         .priv = &enable_liveview,
@@ -1292,7 +1292,7 @@ static struct menu_entry mov_menus[] = {
         //.essential = FOR_MOVIE,
     },
 #endif
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D3)
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D3) && !defined(CONFIG_7D)
     {
         .name = "Shutter Lock",
         .priv = &shutter_lock,
@@ -1302,7 +1302,7 @@ static struct menu_entry mov_menus[] = {
         //.essential = FOR_MOVIE,
     },
 #endif
-#ifndef CONFIG_500D
+#if !defined(CONFIG_500D) && !defined(CONFIG_7D)
     {
         .name = "Gradual Expo.",
         .priv = &smooth_iso,

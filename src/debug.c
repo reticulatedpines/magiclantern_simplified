@@ -1557,7 +1557,7 @@ int screenshot_sec = 0;
 
 PROP_INT(PROP_ICU_UILOCK, uilock);
 
-#ifdef CONFIG_60D
+#if defined(CONFIG_60D) || defined(CONFIG_7D)
 
 struct rolling_pitching 
 {
@@ -2608,6 +2608,7 @@ struct menu_entry debug_menus[] = {
         .submenu_width = 650,
         //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
+            #ifndef CONFIG_7D_MINIMAL
             #ifndef CONFIG_5D3_MINIMAL // will change some settings and you can't restore them
             #ifndef CONFIG_5DC // many things incompatible, mostly liveview stuff
             {
@@ -2624,6 +2625,7 @@ struct menu_entry debug_menus[] = {
                 .priv = stress_test_random_task,
                 .help = "A thorough test which randomly enables functions from menu. "
             },
+            #endif
             {
                 .name = "Menu backend test (infinite)",
                 .select = (void(*)(void*,int))run_in_separate_task,
@@ -2771,7 +2773,7 @@ struct menu_entry debug_menus[] = {
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     #endif
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
     #ifndef CONFIG_5D3_MINIMAL
     {
         .name = "Battery remaining",
@@ -3571,7 +3573,7 @@ int handle_buttons_being_held(struct event * event)
     #else
     if (event->param == BGMT_PRESS_SET) set_pressed = 1;
     #endif
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
     if (event->param == BGMT_JOY_CENTER) joy_center_pressed = 1;
     if (event->param == BGMT_UNPRESS_UDLR) joy_center_pressed = 0;
     #endif

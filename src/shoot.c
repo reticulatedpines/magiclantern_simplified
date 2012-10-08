@@ -240,7 +240,7 @@ static void do_this_every_second() // called every second
     if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
         info_led_blink(1, 50, 0);
 
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
     RefreshBatteryLevel_1Hz();
     #endif
     
@@ -4947,7 +4947,7 @@ struct menu_entry tweak_menus_shoot[] = {
         .icon_type = IT_SUBMENU,
         .help = "Disable x5 or x10, boost contrast/sharpness...",
         .children =  (struct menu_entry[]) {
-            #ifndef CONFIG_5D3_MINIMAL
+            #if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL)
             {
                 .name = "Zoom x5",
                 .priv = &zoom_disable_x5, 
@@ -5983,6 +5983,7 @@ void remote_shot(int wait)
 
 static void display_expsim_status()
 {
+#if !defined(CONFIG_7D_MINIMAL)
     get_yuv422_vram();
     static int prev_expsim = 0;
     int x = 610 + font_med.width;
@@ -5998,6 +5999,7 @@ static void display_expsim_status()
             bmp_printf( FONT(FONT_MED, COLOR_WHITE, 0), x, y, "        " );
     }
     prev_expsim = expsim;
+#endif
 }
 
 
@@ -6191,7 +6193,7 @@ static void misc_shooting_info()
             BMP_LOCK (
                 display_shooting_info_lv();
             )
-            #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
+            #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_7D)
             if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
             {
                 static int ae_warned = 0;
@@ -6783,7 +6785,7 @@ void shoot_init()
 {
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
 
-#ifndef CONFIG_5D3_MINIMAL
+#if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL)
 
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
 #ifndef CONFIG_5DC
@@ -6807,7 +6809,9 @@ void shoot_init()
 #endif
 }
 
+#if !defined(CONFIG_7D_MINIMAL)
 INIT_FUNC("shoot", shoot_init);
+#endif
 
 
 void iso_refresh_display() // in photo mode

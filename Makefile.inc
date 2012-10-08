@@ -7,7 +7,6 @@ include $(TOP_DIR)/Makefile.user.default
 ifeq ($(CONFIG_CCACHE), y)
     CC := $(CCACHE) $(CC)
     HOST_CC := $(CCACHE) $(CC)
-    LD := $(CCACHE) $(LD)
 endif	
 
 UNAME:=$(shell uname)
@@ -342,6 +341,16 @@ autoexec: reboot.o
 	); \
 	$(STAT_CMD) autoexec.bin; \
 	$(READELF) -l magiclantern | grep -C 2 MemSiz
+
+autoexec-fir: reboot.o
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-nostdlib \
+		-march=armv5te \
+		-e _start \
+		-Ttext 0x40800120 \
+		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
+	);
 
 %-stubs.S: %.map
 	perl -ne > $@ < $< '\

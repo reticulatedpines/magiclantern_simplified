@@ -2150,7 +2150,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_UNPRESS_SET:
         return 0; // block Canon menu redraws
 
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3) || defined(CONFIG_7D)
     case BGMT_JOY_CENTER:
 #endif
     case BGMT_PRESS_SET:

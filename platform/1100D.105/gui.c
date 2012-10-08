@@ -34,6 +34,29 @@ PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 
 struct semaphore * gui_sem;
 
+int bgmt_av_status;
+int get_bgmt_av_status() {
+	return bgmt_av_status;
+}
+
+int update_bgmt_av_status(struct event * event) {
+	int gmt_int_ev_obj = *(int*)(event->obj);
+	if(!BGMT_AV) return -1;
+	if (is_movie_mode()) {
+		if(gmt_int_ev_obj == 0x3010040) return 1;
+		else if(gmt_int_ev_obj == 0x1010040) return 0;
+	} else if (shooting_mode == SHOOTMODE_P) {
+		if(gmt_int_ev_obj == 0x3010040) return 1;
+		else if (gmt_int_ev_obj == 0x1010040) return 0;
+	} else if (shooting_mode == SHOOTMODE_M) {
+		if(gmt_int_ev_obj == 0x1010006) return 1;
+		else if(gmt_int_ev_obj == 0x3010006) return 0;
+	} else if (gmt_int_ev_obj == (0x1010040+2*shooting_mode)) return 1;
+	  else if (gmt_int_ev_obj == (0x3010040+2*shooting_mode)) return 0;
+	else return -1;
+	return -1; //Annoying compiler :)
+}
+
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
@@ -43,34 +66,36 @@ static int handle_buttons(struct event * event)
 	static int t_press = 0;
 	static int t_opened = 0;
 	static int t_closed = 0;
-	if (!ml_started) return 1;
-	if (BGMT_PRESS_AV && !gui_menu_shown()) {
-		unsigned int dt = get_ms_clock_value() - t_closed;
-		if(dt > 500) {
-			t_press = get_ms_clock_value();
-		} else {
-			t_press = 0;
-		}
-	}
-
+	unsigned int dt = 0;
 	unsigned int is_idle = (gui_state == GUISTATE_IDLE);
-	if (BGMT_UNPRESS_AV && !gui_menu_shown()) {
-		unsigned int dt = get_ms_clock_value() - t_press;
-		if (dt < 200 && is_idle) {
-			give_semaphore( gui_sem );
-			t_opened = get_ms_clock_value();
+	if (!ml_started) return 1;
+	bgmt_av_status = update_bgmt_av_status(event);
+	if(!gui_menu_shown()) { // ML menu closed
+		/** AV long/short press management code. Assumes that the press event is fired only once even if the button is held **/
+		if(bgmt_av_status == 1) { // AV PRESSED
+			dt = get_ms_clock_value() - t_closed; // Time elapsed since the menu was closed
+			if(dt > 500) { // Ignore if the menu was closed less than half a second ago (anti-bump)
+				t_press = get_ms_clock_value();
+			} else {
+				t_press = 0;
+			}
+		} else if (bgmt_av_status == 0) { // AV UNPRESSED
+			dt = get_ms_clock_value() - t_press; // Time elapsed since the AV button was pressed
+			if (dt < 200 && is_idle) { // 200ms  -> short press -> open ML menu
+				give_semaphore( gui_sem );
+				t_opened = get_ms_clock_value();
+				return 0;
+			}
+		}
+	} else { // ML menu open
+		if (event->param == BGMT_TRASH || bgmt_av_status == 0) {
+			unsigned int dt = get_ms_clock_value() - t_opened;
+			if(dt > 500) {
+				gui_stop_menu();
+				t_closed = get_ms_clock_value(); // Remember when we closed the menu
+			}
 			return 0;
 		}
-	} 
-	
-	if (((event->param == BGMT_TRASH || BGMT_UNPRESS_AV)) && gui_menu_shown())
-	{
-		unsigned int dt = get_ms_clock_value() - t_opened;
-		if(dt > 500) {
-			gui_stop_menu();
-			t_closed = get_ms_clock_value();
-		}
-		return 0;
 	}
 
 	if (handle_common_events_by_feature(event) == 0) return 0;

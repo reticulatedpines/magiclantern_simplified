@@ -1025,7 +1025,8 @@ static void update_focus_mag(int mag)
 }
 void plot_focus_mag()
 {
-
+    //NANOMAD
+    return;
     int x0 = 8;
     int y0 = 100;
     if (should_draw_bottom_graphs())
@@ -1257,7 +1258,11 @@ static struct menu_entry trap_focus_menu[] = {
     {
         .name = "Trap Focus",
         .priv       = &trap_focus,
+        #if defined(CONFIG_7D_MINIMAL)
+        .max = 1,
+        #else
         .max = 2,
+        #endif
         .display    = trap_focus_display,
         .help = "Takes a picture when the subject comes in focus. MF only.",
         //.essential = FOR_PHOTO,
@@ -1267,6 +1272,7 @@ static struct menu_entry trap_focus_menu[] = {
 };
 static struct menu_entry focus_menu[] = {
 #if !defined(CONFIG_5DC)
+#if !defined(CONFIG_7D_MINIMAL)
     {
         .name = "Follow Focus",
         .priv = &follow_focus,
@@ -1430,13 +1436,14 @@ static struct menu_entry focus_menu[] = {
             MENU_EOL
         },
     },
+#endif // CONFIG_7D_MINIMAL
     {
         .name = "Focus distance",
         .display    = display_lens_hyperfocal,
         .help = "Focus distance and DOF info (read-only)",
         //.essential = FOR_PHOTO | FOR_MOVIE,
     },
-#endif
+#endif // CONFIG_5DC
 };
 
 

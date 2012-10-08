@@ -69,7 +69,7 @@ void draw_circle(coord x, coord y, const unsigned int r, color cl) {
     } while (dx<=dy);
 }
 
-#ifdef CONFIG_60D // only used for level indicator
+#if defined(CONFIG_60D) || defined(CONFIG_7D) // only used for level indicator
 
 #include "cordic-16bit.h"
 

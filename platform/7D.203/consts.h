@@ -1,12 +1,19 @@
 #define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC022D06C // http://magiclantern.wikia.com/wiki/Led_addresses
 
+#define HIJACK_CACHE_HACK
+
+#if defined(CONFIG_7D_FIR_MASTER)
+#define HIJACK_CACHE_HACK_BSS_END_ADDR   0xFF811508
+#define HIJACK_CACHE_HACK_BSS_END_INSTR  0xE3A01732
+#define HIJACK_CACHE_HACK_INITTASK_ADDR  0xFF811064
+#else
+#define HIJACK_CACHE_HACK_BSS_END_ADDR   0xFF011F2C
+#define HIJACK_CACHE_HACK_BSS_END_INSTR  0xE3A01732
+#define HIJACK_CACHE_HACK_INITTASK_ADDR  0xFF011064
+#endif
+
 // thanks Indy
-#define HIJACK_INSTR_BL_CSTART  0xff010158
-#define HIJACK_INSTR_BSS_END 0xff011058
-#define HIJACK_FIXBR_BZERO32 0xff010fc0
-#define HIJACK_FIXBR_CREATE_ITASK 0xff011048
-#define HIJACK_INSTR_MY_ITASK 0xff011064
 #define HIJACK_TASK_ADDR 0x1A1C
 
 #define ARMLIB_OVERFLOWING_BUFFER 0x240d4 // in AJ_armlib_setup_related3
@@ -36,9 +43,8 @@
 #define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080) // quick check if x looks like a valid HD buffer
 
     
-#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x225C)
-#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x451C)
-    #define YUV422_LV_BUFFER_DISPLAY_ADDR YUV422_LV_BUFFER_DMA_ADDR
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)0x225C)
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR))
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x3A90)
@@ -193,9 +199,9 @@
 #define GUIMODE_ML_MENU (recording ? 0 : lv ? 45 : 2)
 // outside LiveView, Canon menu is a good choice
 
-    // position for displaying clock outside LV
-    #define DISPLAY_CLOCK_POS_X 435
-    #define DISPLAY_CLOCK_POS_Y 452
+// position for displaying clock outside LV
+#define DISPLAY_CLOCK_POS_X 167
+#define DISPLAY_CLOCK_POS_Y 422
 
     #define MENU_DISP_ISO_POS_X 500
     #define MENU_DISP_ISO_POS_Y 27

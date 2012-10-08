@@ -3007,6 +3007,7 @@ static struct menu_entry display_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
                 //.essential = FOR_LIVEVIEW,
             },
+        #if !defined(CONFIG_7D_MINIMAL)
             {
                 .name = "LV display gain",
                 .display = display_gain_print,
@@ -3014,6 +3015,7 @@ static struct menu_entry display_menus[] = {
                 .help = "Boost LiveView display gain, for night vision (photo mode).",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
+        #endif
             {
                 .name = "Color scheme   ",
                 .priv     = &bmp_color_scheme,
@@ -3053,7 +3055,7 @@ static struct menu_entry display_menus[] = {
         .max = 1,
         .help = "Emphasizes camera shake on LiveView display.",
     },*/
-    #ifndef CONFIG_5D3_MINIMAL
+    #if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL)
     {
         .name = "Defishing",
         .priv = &defish_preview, 
@@ -3389,9 +3391,9 @@ static void tweak_init()
 {
     extern struct menu_entry tweak_menus_shoot[];
     menu_add( "Prefs", play_menus, COUNT(play_menus) );
-#ifndef CONFIG_5DC
+#if !defined(CONFIG_5DC) && !defined(CONFIG_7D_MINIMAL)
     menu_add( "Prefs", tweak_menus_shoot, 1 );
-    #ifndef CONFIG_5D3_MINIMAL
+    #if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL) 
     menu_add( "Prefs", key_menus, COUNT(key_menus) );
     #endif
 #endif
