@@ -2746,7 +2746,11 @@ struct menu_entry debug_menus[] = {
                 .priv = &what_tasks_to_show,
                 .min = 1,
                 .max = 2,
+                #ifdef CONFIG_VXWORKS
+                .help = "Task info: name, priority, stack memory usage.",
+                #else
                 .help = "Task info: ID, name, priority, wait_id, mem, state.",
+                #endif
             },
             MENU_EOL
         }
