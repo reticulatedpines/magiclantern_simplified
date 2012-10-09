@@ -276,7 +276,7 @@ seconds_clock_task( void* unused )
         while (get_rtc_second() == s0);
     }
 }
-TASK_CREATE( "clock_task", seconds_clock_task, 0, 0x19, 0x1000 );
+TASK_CREATE( "clock_task", seconds_clock_task, 0, 0x19, 0x2000 );
 
 
 typedef int (*CritFunc)(int);
