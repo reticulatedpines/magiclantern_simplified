@@ -3182,7 +3182,7 @@ static struct menu_entry display_menus[] = {
                     .icon_type = IT_DISABLE_SOME_FEATURE,
                     //.essential = FOR_LIVEVIEW,
                 },
-            #if !defined(CONFIG_VXWORKS) && !defined(CONFIG_5D3)
+            #if !defined(CONFIG_VXWORKS) && !defined(CONFIG_5D3) && !defined(CONFIG_7D_MINIMAL)
                 {
                     .name = "Force HDMI-VGA",
                     .priv = &hdmi_force_vga, 

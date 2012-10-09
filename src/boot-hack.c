@@ -292,6 +292,49 @@ int magic_is_off()
     return magic_off; 
 }
 
+
+#if defined(CONFIG_7D_MINIMAL)
+
+#define BACKUP_BLOCKSIZE 0x00100000
+
+void backup_region(char *file, uint32_t base, uint32_t length)
+{
+    FILE *handle = NULL;
+    unsigned int size = 0;
+    uint32_t pos = 0;
+    
+    /* already backed up that region? */
+    if((FIO_GetFileSize( file, &size ) == 0) && (size == length) )
+    {
+        return;
+    }
+    
+    /* no, create file and store data */
+    handle = FIO_CreateFileEx(file);
+    while(pos < length)
+    {
+        uint32_t blocksize = BACKUP_BLOCKSIZE;
+        
+        if(length - pos < blocksize)
+        {
+            blocksize = length - pos;
+        }
+        
+        FIO_WriteFile(handle, &((uint8_t*)base)[pos], blocksize);
+        pos += blocksize;
+        
+        /* to make sure lower prio tasks can also run */
+        msleep(20);
+    }
+    FIO_CloseFile(handle);
+}
+
+void backup_task()
+{
+    backup_region(CARD_DRIVE "ML/ROM1.BIN", 0xF8000000, 0x01000000);
+}
+#endif
+
 int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
 int ml_gui_initialized = 0; // 1 after gui_main_task is started 
@@ -819,6 +862,12 @@ my_init_task(int a, int b, int c, int d)
     }
 
     task_create("ml_init", 0x1e, 0x4000, my_big_init_task, 0 );
+
+#if defined(CONFIG_7D_MINIMAL)
+    /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
+    task_create("ml_backup", 0x1f, 0x4000, backup_task, 0 );
+#endif
+
     return ans;
 #endif // !CONFIG_EARLY_PORT
 #endif

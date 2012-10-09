@@ -930,7 +930,7 @@ void out_volume_down()
 
 static void audio_menus_init()
 {
-#ifdef CONFIG_5D3_MINIMAL
+#if defined(CONFIG_5D3_MINIMAL) || defined(CONFIG_7D_MINIMAL)
     menu_add( "Overlay", audio_menus, COUNT(audio_menus) );
 #else
     menu_add( "Audio", audio_menus, COUNT(audio_menus) );
