@@ -3077,7 +3077,7 @@ hdr_display( void * priv, int x, int y, int selected )
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
             "Adv.Bracketing  : %s%Xx%d%sEV,%s%s%s",
-            hdr_type == 0 ? "" : hdr_type == 1 ? "F," : "Av,",
+            hdr_type == 0 ? "" : hdr_type == 1 ? "F," : "DOF,",
             hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
             hdr_stepsize / 8,
             ((hdr_stepsize/4) % 2) ? ".5" : "", 
@@ -4298,6 +4298,7 @@ static int expo_lock_get_current_value()
 
 int expo_value_rounding_ok(int raw)
 {
+    if (raw == lens_info.raw_aperture_min || raw == lens_info.raw_aperture_max) return 1;
     int r = raw % 8;
     if (r != 0 && r != 4 && r != 3 && r != 5)
         return 0;
@@ -4560,7 +4561,7 @@ static struct menu_entry shoot_menus[] = {
                 .priv       = &hdr_type,
                 .max = 2,
                 .icon_type = IT_DICE,
-                .choices = (const char *[]) {"Exposure (Tv)", "Exposure (Flash)", "Aperture (DOF)"},
+                .choices = (const char *[]) {"Exposure (Tv,Ae)", "Exposure (Flash)", "DOF (Aperture)"},
                 .help = "Choose what variable(s) to bracket.",
             },
             {

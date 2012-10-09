@@ -2001,14 +2001,14 @@ int prop_set_rawaperture_approx(unsigned new_av)
         else if (expo_value_rounding_ok(new_av_minus2)) new_av = new_av_minus2;
     }
     
-    if (new_av == lens_info.raw_aperture) // nothing to do :)
+    if (ABS((int)new_av - (int)lens_info.raw_aperture) <= 3) // nothing to do :)
         return 1;
 
     lens_wait_readytotakepic(64);
     aperture_ack = -1;
     prop_request_change( PROP_APERTURE, &new_av, 4 );
     for (int i = 0; i < 20; i++) { if (aperture_ack != -1) break; msleep(20); }
-    return ABS(aperture_ack - new_av) <= 3;
+    return ABS(aperture_ack - (int)new_av) <= 3;
 }
 
 int prop_set_rawshutter(unsigned shutter)
@@ -2380,8 +2380,7 @@ int hdr_set_rawshutter(int shutter)
 
 int hdr_set_rawaperture(int aperture)
 {
-    int ok = 1;
-    //~ int ok = aperture <= lens_info.raw_aperture_max && aperture >= lens_info.raw_aperture_min;
+    int ok = aperture <= lens_info.raw_aperture_max && aperture >= lens_info.raw_aperture_min;
     return hdr_set_something((int(*)(int))prop_set_rawaperture_approx, aperture) && ok;
 }
 
