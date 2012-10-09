@@ -331,7 +331,7 @@ void backup_region(char *file, uint32_t base, uint32_t length)
 
 void backup_task()
 {
-    backup_region(CARD_DRIVE "ML/ROM1.BIN", 0xF8000000, 0x01000000);
+    backup_region(CARD_DRIVE "ML/DATA/ROM1.BIN", 0xF8000000, 0x01000000);
 }
 #endif
 

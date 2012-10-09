@@ -3449,7 +3449,7 @@ struct menu_entry zebra_menus[] = {
         .display = transparent_overlay_display, 
         .select = menu_binary_toggle,
 #if defined(CONFIG_7D)        
-        .help = "Overlay image in LM. In PLAY mode, press RAW/JPEG btn.",
+        .help = "Overlay image in LV. In PLAY mode, press RAW/JPEG btn.",
 #else
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
 #endif
