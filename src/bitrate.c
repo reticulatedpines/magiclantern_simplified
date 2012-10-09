@@ -292,13 +292,19 @@ void free_space_show_photomode()
 #if defined(CONFIG_7D)    
     int x = DISPLAY_CLOCK_POS_X;
     int y = DISPLAY_CLOCK_POS_Y - font_med.height - 14;
-    bmp_printf(
-        FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x,y)),
-        x, y,
-        "%d.%dG",
-        fsg,
-        fsgf
-    );
+    
+    if(fsg < 10)
+    {
+        bmp_printf(FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x,y)), x, y, "%d.%d G", fsg, fsgf );
+    }
+    else if(fsg < 100)
+    {
+        bmp_printf(FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x,y)), x, y, "%d.%dG", fsg, fsgf );
+    }
+    else
+    {
+        bmp_printf(FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x,y)), x, y, "%d GB", fsg, fsgf );
+    }
 #else
     int x = time_indic_x + 2 * font_med.width;
     int y =  452;
@@ -485,6 +491,7 @@ static void hibr_wav_record_display( void * priv, int x, int y, int selected ){
 #endif
 
 static struct menu_entry mov_menus[] = {
+#if !defined(CONFIG_7D_MINIMAL)
     {
         .name = "Bit Rate",
         .priv = &bitrate_mode,
@@ -542,10 +549,15 @@ static struct menu_entry mov_menus[] = {
             MENU_EOL
         },
     },
+#endif
     {
         .name = "Time Indicator",
         .priv       = &time_indicator,
+#if !defined(CONFIG_7D_MINIMAL)
         .select     = menu_quaternary_toggle,
+#else
+        .select     = menu_ternary_toggle,
+#endif
         .display    = time_indicator_display,
         .help = "Time indicator while recording.",
         //.essential = 1,
@@ -558,9 +570,7 @@ void bitrate_init()
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
 }
 
-#if !defined(CONFIG_7D_MINIMAL)
 INIT_FUNC(__FILE__, bitrate_init);
-#endif
 
 static void
 bitrate_task( void* unused )

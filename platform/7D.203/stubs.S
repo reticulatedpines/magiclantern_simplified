@@ -34,6 +34,8 @@
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
+NSTUB( 0x67C, next_task_ctx )
+NSTUB( 0x680, current_task_ctx )
 
 NSTUB(0xFF812B4C, master_init_task)
 NSTUB(0xFF83976C, master_msleep)

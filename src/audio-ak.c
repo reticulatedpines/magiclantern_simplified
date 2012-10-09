@@ -207,7 +207,7 @@ static void audio_monitoring_update()
 void
 audio_configure( int force )
 {
-#if defined(CONFIG_5D3) || defined(CONFIG_7D)
+#if defined(CONFIG_5D3)
     return;
 #endif
 
