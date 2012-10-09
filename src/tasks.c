@@ -26,7 +26,6 @@ struct task_attr_str {
   unsigned int id;
 }; // size = 0x28
 
-
 extern int is_taskid_valid(int, int, void*);
 extern int get_obj_attr(void*, unsigned char*, int, int);
 
@@ -52,7 +51,50 @@ return "?";
 int what_tasks_to_show=2;
 void tasks_print(void* priv, int x0, int y0, int selected)
 {
-#if !defined(CONFIG_VXWORKS)
+#if defined(CONFIG_VXWORKS)
+
+    if (selected) 
+    {
+        menu_draw_icon(x0, y0, -1, 0);
+        bmp_fill(40, 0, 0, 720, 430);
+    }
+
+    static int task_info[100];
+    static int tasks[100];
+    int N = get_active_task_list(tasks, 100);
+    int x = 5, y = 5;
+    bmp_printf(FONT_MED, x, y, what_tasks_to_show == 1 ? "Canon tasks" : "ML tasks");
+    y += font_med.height;
+    
+    for (int i = 0; i < N; i++)
+    {
+        get_task_info(tasks[i], task_info);
+        
+        char* name = task_info[1]+1;
+        char short_name[] = "             ";
+        my_memcpy(short_name, name, MIN(sizeof(short_name)-1, strlen(name)));
+
+        // Canon tasks are named in uppercase (exception: idle); ML tasks are named in lowercase.
+        int is_canon_task = (name[0]  < 'a' || name[0] > 'z' || name[1]  < 'a' || name[1] > 'z');
+        if (what_tasks_to_show==1 && !is_canon_task) continue;
+        if (what_tasks_to_show!=1 && is_canon_task) continue;
+
+        int stack_size = task_info[10]; // from task_create calls
+        int stack_unused_maybe = task_info[13];
+        int mem_percent = 100 - stack_unused_maybe * 100 / stack_size; // seems OK, when higher than 100, camera no longer boots
+        bmp_printf(SHADOW_FONT(FONT(FONT_MED, mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED, 40)), 
+            x, y, "%s: p=%d m=%d%%", 
+            short_name, task_info[2], mem_percent);
+        y += font_med.height-1;
+        if (y > 420)
+        {
+            x += 360;
+            y = 10;
+        }
+    }
+
+#else // DryOS - https://groups.google.com/forum/#!msg/ml-devel/JstGrNJiuVM/2L1QZpZ7F4YJ
+
     if (selected) 
     {
         menu_draw_icon(x0, y0, -1, 0);

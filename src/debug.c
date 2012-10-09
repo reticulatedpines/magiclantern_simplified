@@ -1951,9 +1951,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         if (hexdump_enabled)
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
-
-        //~ bmp_printf(FONT_LARGE, 50, 50, "%d ", MEM(0xC0F01018));
-        //~ if (MEM(0xC0F01018)) info_led_on(); else info_led_off();
         
         if (screenshot_sec)
         {
@@ -2738,7 +2735,6 @@ struct menu_entry debug_menus[] = {
         }
     },
 #endif
-#ifndef CONFIG_VXWORKS
     {
         .name = "Show tasks...",
         .select = menu_open_submenu,
@@ -2755,6 +2751,7 @@ struct menu_entry debug_menus[] = {
             MENU_EOL
         }
     },
+#ifndef CONFIG_VXWORKS
     {
         .name = "Save CPU usage log",
         .select = (void(*)(void*,int))run_in_separate_task,

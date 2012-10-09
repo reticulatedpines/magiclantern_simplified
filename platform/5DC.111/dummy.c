@@ -14,7 +14,6 @@ void *AcquireRecursiveLock(void *lock, int n){}
 //~ void *CreateRecursiveLock(int n){}
 void *ReleaseRecursiveLock(void *lock){}
 int audio_meters_are_drawn() { return 0; } 
-struct task * get_current_task() { return 0; }
 int override_zoom_buttons = 0;
 void lcd_release_step(){};
 void force_liveview() {};
