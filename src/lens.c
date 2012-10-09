@@ -1791,6 +1791,24 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
     mirror_locked = 0;
 }
 
+static int fae_ack = 12345;
+PROP_HANDLER(PROP_STROBO_AECOMP)
+{
+    lens_info.flash_ae = buf[0];
+    fae_ack = (int8_t) buf[0];
+}
+
+int lens_set_flash_ae(int fae)
+{
+    fae = COERCE(fae, FLASH_MIN_EV * 8, FLASH_MAX_EV * 8);
+    fae &= 0xFF;
+    prop_request_change(PROP_STROBO_AECOMP, &fae, 4);
+
+    fae_ack = 12345;
+    for (int i = 0; i < 10; i++) { if (fae_ack != 12345) break; msleep(20); }
+    return fae_ack == (int8_t)fae;
+}
+
 PROP_HANDLER(PROP_HALF_SHUTTER)
 {
     update_stuff();
@@ -1964,6 +1982,33 @@ int prop_set_rawaperture(unsigned aperture)
     for (int i = 0; i < 10; i++) { if (aperture_ack == (int)aperture) return 1; msleep(20); }
     //~ NotifyBox(1000, "%d=%d ", aperture_ack, aperture);
     return 0;
+}
+
+int prop_set_rawaperture_approx(unsigned new_av)
+{
+    // Canon likes only numbers in 1/3 or 1/2-stop increments
+    new_av = COERCE(new_av, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+    if (!expo_value_rounding_ok(new_av)) // try to change it by a small amount, so Canon firmware will accept it
+    {
+        int new_av_plus1  = COERCE(new_av + 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+        int new_av_minus1 = COERCE(new_av - 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+        int new_av_plus2  = COERCE(new_av + 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+        int new_av_minus2 = COERCE(new_av - 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+        
+        if (expo_value_rounding_ok(new_av_plus1)) new_av = new_av_plus1;
+        else if (expo_value_rounding_ok(new_av_minus1)) new_av = new_av_minus1;
+        else if (expo_value_rounding_ok(new_av_plus2)) new_av = new_av_plus2;
+        else if (expo_value_rounding_ok(new_av_minus2)) new_av = new_av_minus2;
+    }
+    
+    if (new_av == lens_info.raw_aperture) // nothing to do :)
+        return 1;
+
+    lens_wait_readytotakepic(64);
+    aperture_ack = -1;
+    prop_request_change( PROP_APERTURE, &new_av, 4 );
+    for (int i = 0; i < 20; i++) { if (aperture_ack != -1) break; msleep(20); }
+    return ABS(aperture_ack - new_av) <= 3;
 }
 
 int prop_set_rawshutter(unsigned shutter)
@@ -2256,6 +2301,7 @@ int lens_set_rawshutter( int shutter )
 int lens_set_ae( int ae )
 {
     ae_ack = 12345;
+    ae = COERCE(ae, -MAX_AE_EV * 8, MAX_AE_EV * 8);
     prop_request_change( PROP_AE, &ae, 4 );
     for (int i = 0; i < 10; i++) { if (ae_ack != 12345) break; msleep(20); }
     return ae_ack == ae;
@@ -2328,14 +2374,27 @@ int hdr_set_rawiso(int iso)
 
 int hdr_set_rawshutter(int shutter)
 {
-    int ok = shutter < FASTEST_SHUTTER_SPEED_RAW && shutter > 13;
+    int ok = shutter <= FASTEST_SHUTTER_SPEED_RAW && shutter >= 13;
     return hdr_set_something((int(*)(int))prop_set_rawshutter_approx, shutter) && ok;
+}
+
+int hdr_set_rawaperture(int aperture)
+{
+    int ok = 1;
+    //~ int ok = aperture <= lens_info.raw_aperture_max && aperture >= lens_info.raw_aperture_min;
+    return hdr_set_something((int(*)(int))prop_set_rawaperture_approx, aperture) && ok;
 }
 
 int hdr_set_ae(int ae)
 {
-    int ok = ABS(ae) < MAX_AE_EV * 8;
+    int ok = ABS(ae) <= MAX_AE_EV * 8;
     return hdr_set_something((int(*)(int))lens_set_ae, ae) && ok;
+}
+
+int hdr_set_flash_ae(int fae)
+{
+    int ok = fae <= FLASH_MAX_EV * 8 && fae >= FLASH_MIN_EV * 8;
+    return hdr_set_something((int(*)(int))lens_set_flash_ae, fae) && ok;
 }
 
 /*

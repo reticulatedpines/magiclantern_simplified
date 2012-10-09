@@ -109,6 +109,7 @@ CONFIG_INT("hdr.enabled", hdr_enabled, 0);
 PROP_INT(PROP_AEB, aeb_setting);
 #define HDR_ENABLED (hdr_enabled && !aeb_setting) // when Canon bracketing is active, ML bracketing should not run
 
+CONFIG_INT("hdr.type", hdr_type, 0); // exposure, aperture, flash
 CONFIG_INT("hdr.frames", hdr_steps, 1);
 CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 16);
 static CONFIG_INT("hdr.delay", hdr_delay, 1);
@@ -2625,24 +2626,18 @@ void mvr_rec_start_shoot(int rec)
 }
 #endif
 
-
-PROP_INT(PROP_STROBO_AECOMP, flash_ae);
-
 static void
 flash_ae_toggle(void* priv, int sign )
 {
-    int ae = (int8_t)flash_ae;
+    int ae = lens_info.flash_ae;
     int newae = ae + sign * (ABS(ae + sign) <= 24 ? 4 : 8);
-    if (newae > FLASH_MAX_EV * 8) newae = FLASH_MIN_EV * 8;
-    if (newae < FLASH_MIN_EV * 8) newae = FLASH_MAX_EV * 8;
-    ae &= 0xFF;
-    prop_request_change(PROP_STROBO_AECOMP, &newae, 4);
+    lens_set_flash_ae(newae);
 }
 
 static void 
 flash_ae_display( void * priv, int x, int y, int selected )
 {
-    int ae_ev = ((int8_t)flash_ae) * 10 / 8;
+    int ae_ev = (lens_info.flash_ae) * 10 / 8;
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
@@ -3073,7 +3068,7 @@ hdr_display( void * priv, int x, int y, int selected )
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "HDR Bracketing  : OFF"
+            "Adv.Bracketing  : OFF"
         );
     }
     else
@@ -3081,7 +3076,8 @@ hdr_display( void * priv, int x, int y, int selected )
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "HDR Bracketing  : %Xx%d%sEV,%s%s%s",
+            "Adv.Bracketing  : %s%Xx%d%sEV,%s%s%s",
+            hdr_type == 0 ? "" : hdr_type == 1 ? "F," : "Av,",
             hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
             hdr_stepsize / 8,
             ((hdr_stepsize/4) % 2) ? ".5" : "", 
@@ -4555,10 +4551,18 @@ static struct menu_entry shoot_menus[] = {
         .priv = &hdr_enabled,
         .display    = hdr_display,
         .select     = menu_binary_toggle,
-        .help = "Exposure bracketing for HDR images. Press shutter once.",
+        .help = "Advanced bracketing (exposure, flash). Press shutter once.",
         //.essential = FOR_PHOTO,
-        .submenu_width = 650,
+        .submenu_width = 710,
         .children =  (struct menu_entry[]) {
+            {
+                .name = "Bracket type",
+                .priv       = &hdr_type,
+                .max = 2,
+                .icon_type = IT_DICE,
+                .choices = (const char *[]) {"Exposure (Tv)", "Exposure (Flash)", "Aperture (DOF)"},
+                .help = "Choose what variable(s) to bracket.",
+            },
             {
                 .name = "Frames",
                 .priv       = &hdr_steps,
@@ -4597,7 +4601,7 @@ static struct menu_entry shoot_menus[] = {
                 .priv       = &hdr_iso,
                 .max = 2,
                 .help = "First adjust ISO instead of Tv. Range: 100 .. max AutoISO.",
-                .choices = (const char *[]) {"OFF", "Full, M only", "Half, M only"},
+                .choices = (const char *[]) {"OFF", "Full", "Half"},
             },
             {
                 .name = "Post scripts",
@@ -5460,6 +5464,49 @@ static void take_a_pic(int allow_af)
     lens_wait_readytotakepic(64);
 }
 
+// do a part of the bracket (half or full) with ISO
+// return the remainder EV to be done normally (shutter, flash, whatever)
+static int hdr_iso00;
+int hdr_iso_shift(int ev_x8)
+{
+    hdr_iso00 = lens_info.raw_iso;
+    int iso0 = hdr_iso00;
+    if (!iso0) iso0 = lens_info.raw_iso_auto;
+
+    if (hdr_iso && iso0) // dynamic range optimization
+    {
+        if (ev_x8 < 0)
+        {
+            int iso_delta = MIN(iso0 - MIN_ISO, -ev_x8 / (hdr_iso == 2 ? 2 : 1)); // lower ISO, down to ISO 100
+
+            // if we are going to hit shutter speed limit, use more iso shifting, to get the correct bracket
+            int rs = get_exposure_time_raw();
+            int rc = rs - (ev_x8 + iso_delta);
+            if (rc >= FASTEST_SHUTTER_SPEED_RAW)
+                iso_delta = MIN(iso0 - MIN_ISO, iso_delta + rc - FASTEST_SHUTTER_SPEED_RAW + 1);
+
+            iso_delta = (iso_delta+6)/8*8; // round to full stops; also, prefer lower ISOs
+            ev_x8 += iso_delta;
+            hdr_set_rawiso(iso0 - iso_delta);
+        }
+        else if (ev_x8 > 0)
+        {
+            int max_auto_iso = auto_iso_range & 0xFF;
+            int iso_delta = MIN(max_auto_iso - iso0, ev_x8 / (hdr_iso == 2 ? 2 : 1)); // raise ISO, up to max auto iso
+            iso_delta = (iso_delta)/8*8; // round to full stops; also, prefer lower ISOs
+            if (iso_delta < 0) iso_delta = 0;
+            ev_x8 -= iso_delta;
+            hdr_set_rawiso(iso0 + iso_delta);
+        }
+    }
+    return ev_x8;
+}
+
+void hdr_iso_shift_restore()
+{
+    hdr_set_rawiso(hdr_iso00);
+}
+
 // Here, you specify the correction in 1/8 EV steps (for shutter or exposure compensation)
 // The function chooses the best method for applying this correction (as exposure compensation, altering shutter value, or bulb timer)
 // And then it takes a picture
@@ -5473,51 +5520,49 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
     lens_wait_readytotakepic(64);
 
     int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode());
-    int dont_change_exposure = ev_x8 == 0 && !HDR_ENABLED && !bulb_ramping_enabled;
+    int dont_change_exposure = ev_x8 == 0 && !HDR_ENABLED && !BULB_EXPOSURE_CONTROL_ACTIVE;
 
     if (dont_change_exposure)
     {
         take_a_pic(allow_af);
+        return;
     }
-    else if (!manual) // auto modes
+    
+    // let's see if we have to do some other type of bracketing (aperture or flash)
+    int av0 = lens_info.raw_aperture;
+    if (HDR_ENABLED)
     {
+        if (hdr_type == 1) // flash => just set it
+        {
+            ev_x8 = hdr_iso_shift(ev_x8);
+            int fae0 = lens_info.flash_ae;
+            ans = hdr_set_flash_ae(fae0 + ev_x8);
+            take_a_pic(allow_af);
+            hdr_set_flash_ae(fae0);
+            hdr_iso_shift_restore();
+            return;
+        }
+        else if (hdr_type == 2) // aperture
+        {
+            ev_x8 = COERCE(ev_x8, lens_info.raw_aperture_min - av0, lens_info.raw_aperture_max - av0);
+            hdr_set_rawaperture(av0 + ev_x8);
+            // don't return, do the normal exposure bracketing
+        }
+    }
+    
+    
+    if (!manual) // auto modes
+    {
+        hdr_iso_shift(ev_x8); // don't change the EV value
         int ae0 = lens_get_ae();
         ans = hdr_set_ae(ae0 + ev_x8);
         take_a_pic(allow_af);
         hdr_set_ae(ae0);
+        hdr_iso_shift_restore();
     }
     else // manual mode or bulb
     {
-        int iso00 = lens_info.raw_iso;
-        int iso0 = iso00;
-        if (!iso0) iso0 = lens_info.raw_iso_auto;
-
-        if (hdr_iso && iso0) // dynamic range optimization
-        {
-            if (ev_x8 < 0)
-            {
-                int iso_delta = MIN(iso0 - 72, -ev_x8 / (hdr_iso == 2 ? 2 : 1)); // lower ISO, down to ISO 100
-
-                // if we are going to hit shutter speed limit, use more iso shifting, to get the correct bracket
-                int rs = get_exposure_time_raw();
-                int rc = rs - (ev_x8 + iso_delta);
-                if (rc >= FASTEST_SHUTTER_SPEED_RAW)
-                    iso_delta = MIN(iso0 - 72, iso_delta + rc - FASTEST_SHUTTER_SPEED_RAW + 1);
-
-                iso_delta = (iso_delta+7)/8*8; // round to full stops; also, prefer lower ISOs
-                ev_x8 += iso_delta;
-                hdr_set_rawiso(iso0 - iso_delta);
-            }
-            else if (ev_x8 > 0)
-            {
-                int max_auto_iso = auto_iso_range & 0xFF;
-                int iso_delta = MIN(max_auto_iso - iso0, ev_x8 / (hdr_iso == 2 ? 2 : 1)); // raise ISO, up to max auto iso
-                iso_delta = (iso_delta)/8*8; // round to full stops; also, prefer lower ISOs
-                if (iso_delta < 0) iso_delta = 0;
-                ev_x8 -= iso_delta;
-                hdr_set_rawiso(iso0 + iso_delta);
-            }
-        }
+        ev_x8 = hdr_iso_shift(ev_x8);
 
         // apply EV correction in both "domains" (milliseconds and EV)
         int ms = get_exposure_time_ms();
@@ -5570,11 +5615,15 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
         // restore settings back
         //~ set_shooting_mode(m0r);
         hdr_set_rawshutter(s0r);
-        hdr_set_rawiso(iso00);
+        hdr_iso_shift_restore();
         #if defined(CONFIG_5D2) || defined(CONFIG_50D)
         if (expsim0 == 2) set_expsim(expsim0);
         #endif
     }
+
+    if (HDR_ENABLED && hdr_type == 2) // aperture bracket - restore initial value
+        hdr_set_rawaperture(av0);
+
     lens_wait_readytotakepic(64);
     return ans;
 }
