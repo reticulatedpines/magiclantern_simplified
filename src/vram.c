@@ -130,17 +130,17 @@ void vram_params_set_dirty()
     afframe_set_dirty();
 }
 
+static uint32_t hd_size = 0;
+
 void vram_params_update_if_dirty()
 {
     #ifdef REG_EDMAC_WRITE_LV_ADDR
     // EDMAC sizes may update after prop handlers, so check if their values changed
     // if so, recompute all VRAM params
-    uint32_t lv_size = shamem_read(REG_EDMAC_WRITE_LV_ADDR + 8);
-    uint32_t hd_size = shamem_read(REG_EDMAC_WRITE_HD_ADDR + 8);
-    int size_checksum = lv_size + hd_size;
-    static int prev_size_checksum = 0;
-    if (prev_size_checksum != size_checksum) vram_params_dirty = 1;
-    prev_size_checksum = size_checksum;
+    hd_size = shamem_read(REG_EDMAC_WRITE_HD_ADDR + 8);
+    static uint32_t prev_hd_size = 0;
+    if (prev_hd_size != hd_size) vram_params_dirty = 1;
+    prev_hd_size = prev_hd_size;
     #endif
     
     if (vram_params_dirty)
@@ -304,7 +304,6 @@ void update_vram_params()
     vram_hd.height = 1664;
     vram_hd.pitch = vram_lv.pitch;
 #else
-    uint32_t hd_size = shamem_read(REG_EDMAC_WRITE_HD_ADDR + 8);
     vram_hd.pitch = hd_size & 0xFFFF;
     vram_hd.width = vram_hd.pitch / 2;
     vram_hd.height = ((hd_size >> 16) & 0xFFFF) + 1;
