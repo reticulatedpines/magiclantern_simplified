@@ -262,36 +262,15 @@ void update_vram_params()
     vram_lv.height = 680;
     vram_lv.pitch = vram_lv.width * 2;
 #else
-    if (lv) // get image size from DMA register
-    {
-        uint32_t lv_size = shamem_read(REG_EDMAC_WRITE_LV_ADDR + 8);
-        vram_lv.pitch = lv_size & 0xFFFF;
-        vram_lv.width = vram_lv.pitch / 2;
-        vram_lv.height = ((lv_size >> 16) & 0xFFFF) + 1;
-    }
-    else // DMA is not active, use hardcoded values
-    {
-        #if defined(CONFIG_1100D)
+    #ifdef CONFIG_1100D
         vram_lv.width  = 720;
         vram_lv.height = 240;
-        #else
-        vram_lv.width  = hdmi_code == 5 ?  920 : ext_monitor_rca ? 540 : 720;
-        vram_lv.height = hdmi_code == 5 ? 1080 : ext_monitor_rca ? (pal ? 572 : 480) : 480;
-        #endif
-        vram_lv.pitch = vram_lv.width * 2;
-    }
-#endif
-    
-    
-    #ifdef CONFIG_600D
-    // exception for crop mode, not tested... LV image seems to be 16:9
-    if (vram_lv.height == 404 && os.y0 == 0 && os.y_ex == 480 && video_mode_crop && video_mode_resolution == 0 && is_movie_mode())
-    {
-        os.y0 = 38;
-        os.y_ex = 404;
-        os.y_max = os.y0 + os.y_ex;
-    }
+    #else
+        vram_lv.width  = hdmi_code == 5 ? (is_movie_mode() && video_mode_resolution > 0 && video_mode_crop ? 960 : 1920) : ext_monitor_rca ? 540 : 720;
+        vram_lv.height = hdmi_code == 5 ? (is_movie_mode() && video_mode_fps > 30                          ? 540 : 1080) : ext_monitor_rca ? (pal ? 572 : 480) : 480;
     #endif
+    vram_lv.pitch = vram_lv.width * 2;
+#endif
 
 
 #ifdef CONFIG_5DC
@@ -610,12 +589,9 @@ vram_print(
 )
 {
     unsigned        menu_font = selected ? FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK) : MENU_FONT;
-    unsigned        font = FONT(FONT_MED, FONT_FG(menu_font), FONT_BG(menu_font));
 
-    y = y * 2/3 + 20;
-    if (y > 400) { y = y - 400 + 50; x = 360; }
     bmp_printf(
-        font,
+        menu_font,
         x, y,
         "%s = %d",
         vram_param_names[(int)priv], MEM(vram_params[(int)priv])
@@ -626,9 +602,6 @@ vram_print(
 static void vram_toggle(void* priv, int delta)
 {
     MEM(vram_params[(int)priv]) += priv ? delta : SGN(delta);
-#ifndef CONFIG_5DC
-    menu_show_only_selected();
-#endif
     crop_set_dirty(1);
     //~ update_vram_params_calc();
 }
@@ -663,8 +636,8 @@ static struct menu_entry vram_menus[] = {
     VRAM_MENU_ENTRY(14)
     VRAM_MENU_ENTRY(15)
     VRAM_MENU_ENTRY(16)
-    VRAM_MENU_ENTRY(17)
-    VRAM_MENU_ENTRY(18)
+    //~ VRAM_MENU_ENTRY(17)
+    //~ VRAM_MENU_ENTRY(18)
     //~ VRAM_MENU_ENTRY(19)
     //~ VRAM_MENU_ENTRY(20)
 };
