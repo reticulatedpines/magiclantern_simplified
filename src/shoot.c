@@ -5546,6 +5546,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
         {
             ev_x8 = COERCE(ev_x8, lens_info.raw_aperture_min - av0, lens_info.raw_aperture_max - av0);
             hdr_set_rawaperture(av0 + ev_x8);
+            if (!manual) ev_x8 = 0; // no need to compensate, Canon meter does it
             // don't return, do the normal exposure bracketing
         }
     }
