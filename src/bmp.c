@@ -1218,7 +1218,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
                 }
                 #ifdef CONFIG_VXWORKS
                 char* p = &b_row[ xs/2 ]; 
-                SET_4BIT_PIXEL(p, xs, bmp_lut[pix]);
+                SET_4BIT_PIXEL(p, xs, pix);
                 #else
                 b_row[ xs ] = pix;
                 #endif
@@ -1274,7 +1274,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
                 }
                 #ifdef CONFIG_VXWORKS
                 char* p = &b_row[ xs/2 ]; 
-                SET_4BIT_PIXEL(p, xs, bmp_lut[bmp_color]);
+                SET_4BIT_PIXEL(p, xs, bmp_color);
                 #else
                 b_row[ xs ] = bmp_color;
                 #endif
