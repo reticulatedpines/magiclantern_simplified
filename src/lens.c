@@ -2375,28 +2375,27 @@ int hdr_set_rawiso(int iso)
     return hdr_set_something((int(*)(int))prop_set_rawiso, iso);
 }
 
-
 int hdr_set_rawshutter(int shutter)
 {
-    int ok = shutter <= FASTEST_SHUTTER_SPEED_RAW && shutter >= 13;
+    int ok = shutter < FASTEST_SHUTTER_SPEED_RAW && shutter > 13;
     return hdr_set_something((int(*)(int))prop_set_rawshutter_approx, shutter) && ok;
 }
 
 int hdr_set_rawaperture(int aperture)
 {
-    int ok = aperture <= lens_info.raw_aperture_max && aperture >= lens_info.raw_aperture_min;
+    int ok = aperture < lens_info.raw_aperture_max && aperture > lens_info.raw_aperture_min;
     return hdr_set_something((int(*)(int))prop_set_rawaperture_approx, aperture) && ok;
 }
 
 int hdr_set_ae(int ae)
 {
-    int ok = ABS(ae) <= MAX_AE_EV * 8;
+    int ok = ABS(ae) < MAX_AE_EV * 8;
     return hdr_set_something((int(*)(int))lens_set_ae, ae) && ok;
 }
 
 int hdr_set_flash_ae(int fae)
 {
-    int ok = fae <= FLASH_MAX_EV * 8 && fae >= FLASH_MIN_EV * 8;
+    int ok = fae < FLASH_MAX_EV * 8 && fae > FLASH_MIN_EV * 8;
     return hdr_set_something((int(*)(int))lens_set_flash_ae, fae) && ok;
 }
 

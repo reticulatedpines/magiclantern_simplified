@@ -5526,7 +5526,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
     if (dont_change_exposure)
     {
         take_a_pic(allow_af);
-        return;
+        return 1;
     }
     
     // let's see if we have to do some other type of bracketing (aperture or flash)
@@ -5541,12 +5541,12 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             take_a_pic(allow_af);
             hdr_set_flash_ae(fae0);
             hdr_iso_shift_restore();
-            return;
+            return ans;
         }
         else if (hdr_type == 2) // aperture
         {
             ev_x8 = COERCE(ev_x8, lens_info.raw_aperture_min - av0, lens_info.raw_aperture_max - av0);
-            hdr_set_rawaperture(av0 + ev_x8);
+            ans = hdr_set_rawaperture(av0 + ev_x8);
             if (!manual) ev_x8 = 0; // no need to compensate, Canon meter does it
             // don't return, do the normal exposure bracketing
         }
@@ -5557,7 +5557,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
     {
         hdr_iso_shift(ev_x8); // don't change the EV value
         int ae0 = lens_get_ae();
-        ans = hdr_set_ae(ae0 + ev_x8);
+        ans = MIN(ans, hdr_set_ae(ae0 + ev_x8));
         take_a_pic(allow_af);
         hdr_set_ae(ae0);
         hdr_iso_shift_restore();
@@ -5596,7 +5596,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
             if (expsim == 2) { set_expsim(1); msleep(300); } // can't set shutter slower than 1/30 in movie mode
             #endif
-            ans = hdr_set_rawshutter(rc);
+            ans = MIN(ans, hdr_set_rawshutter(rc));
             take_a_pic(allow_af);
             
             bulb_ramping_enabled = b;
@@ -5684,6 +5684,13 @@ void ensure_play_or_qr_mode_after_shot()
 
 void hdr_check_for_under_or_over_exposure(int* under, int* over)
 {
+    if (hdr_type == 2) // DOF bracket => just repeat until reaching the limits
+    {
+        *under = 1;
+        *over = 1;
+        return;
+    }
+    
     if (!silent_pic_enabled) ensure_play_or_qr_mode_after_shot();
 
     int under_numpix, over_numpix;
