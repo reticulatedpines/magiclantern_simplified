@@ -1392,13 +1392,17 @@ PROP_HANDLER( PROP_LENS_NAME )
     memcpy( (char*)lens_info.name, buf, len );
 }
 
-#ifndef CONFIG_5DC  //~ no PROP_LENS present in 5dc.
 PROP_HANDLER(PROP_LENS)
 {
     uint8_t* info = (uint8_t *) buf;
+    #ifdef CONFIG_5DC
+    lens_info.raw_aperture_min = info[2];
+    lens_info.raw_aperture_max = info[3];
+    #else
     lens_info.raw_aperture_min = info[1];
     lens_info.raw_aperture_max = info[2];
-
+    #endif
+    
     if (lens_info.raw_aperture < lens_info.raw_aperture_min || lens_info.raw_aperture > lens_info.raw_aperture_max)
     {
         int raw = COERCE(lens_info.raw_aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
@@ -1407,7 +1411,6 @@ PROP_HANDLER(PROP_LENS)
     
     //~ bv_update_lensinfo();
 }
-#endif
 
 PROP_HANDLER(PROP_LV_LENS_STABILIZE)
 {
@@ -1986,6 +1989,7 @@ int prop_set_rawaperture(unsigned aperture)
 
 int prop_set_rawaperture_approx(unsigned new_av)
 {
+
     // Canon likes only numbers in 1/3 or 1/2-stop increments
     new_av = COERCE(new_av, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
     if (!expo_value_rounding_ok(new_av)) // try to change it by a small amount, so Canon firmware will accept it

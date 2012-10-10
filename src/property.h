@@ -33,7 +33,9 @@
 #define PROP_LENS_SOMETHING     0x80030022
 
 //~ 5dc doesn't have a PROP_LENS.
-#ifndef CONFIG_5DC
+#ifdef CONFIG_5DC
+#define PROP_LENS               0x80030010
+#else
 #define PROP_LENS               0x80030011 // info about lens? flags?
 #endif
 
