@@ -131,6 +131,7 @@ void tskmon_update_runtime(struct task *task, uint32_t active_time)
 
 void tskmon_task_dispatch()
 {
+#ifdef HIJACK_TASK_ADDR
     struct task *next_task = *(struct task **)(HIJACK_TASK_ADDR);
     
     tskmon_update_timers();
@@ -143,6 +144,7 @@ void tskmon_task_dispatch()
         tskmon_active_time = 0;
         tskmon_last_task = next_task;
     }
+#endif
 }
 
 void tskmon_init()
