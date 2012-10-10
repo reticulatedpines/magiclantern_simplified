@@ -2457,7 +2457,7 @@ static void save_cpu_usage_log_task()
 extern void menu_open_submenu();
 extern void tasks_print(void* priv, int x0, int y0, int selected);
 extern void batt_display(void* priv, int x0, int y0, int selected);
-extern int what_tasks_to_show;
+extern int tasks_show_flags;
 extern void peaking_benchmark();
 
 struct menu_entry debug_menus[] = {
@@ -2743,9 +2743,9 @@ struct menu_entry debug_menus[] = {
             {
                 .name = "Task list",
                 .display = tasks_print,
-                .priv = &what_tasks_to_show,
-                .min = 1,
-                .max = 2,
+                .priv = &tasks_show_flags,
+                .min = 0,
+                .max = 3,
                 #ifdef CONFIG_VXWORKS
                 .help = "Task info: name, priority, stack memory usage.",
                 #else

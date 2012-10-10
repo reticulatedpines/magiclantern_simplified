@@ -33,6 +33,7 @@
 #include "version.h"
 #include "property.h"
 #include "consts.h"
+#include "tskmon.h"
 #ifdef HIJACK_CACHE_HACK
 #include "cache_hacks.h"
 #endif
@@ -160,6 +161,7 @@ copy_and_restart( int offset )
 #ifndef CONFIG_EARLY_PORT
     // Install our task creation hooks
     task_dispatch_hook = my_task_dispatch_hook;
+    tskmon_init();
 #endif
 
     // This will jump into the RAM version of the firmware,
@@ -198,6 +200,8 @@ my_task_dispatch_hook(
     if( !context )
         return;
     
+    tskmon_task_dispatch();
+
     // Do nothing unless a new task is starting via the trampoile
     if( (*context)->pc != (uint32_t) task_trampoline )
         return;
@@ -762,6 +766,7 @@ my_init_task(int a, int b, int c, int d)
 #ifdef HIJACK_CACHE_HACK
     /* as we do not return in the middle of te init task as in the hijack-through-copy method, we have to install the hook here */
     task_dispatch_hook = my_task_dispatch_hook;
+    tskmon_init();
     
     /* now patch init task and continue execution */
     cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, HIJACK_CACHE_HACK_BSS_END_INSTR, TYPE_ICACHE);

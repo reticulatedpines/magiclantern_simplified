@@ -62,6 +62,7 @@ ML_OBJS-y = \
 	lv-img-engio.o \
 	state-object.o \
 	tasks.o \
+	tskmon.o \
 	beep.o \
 	exmem.o \
 

@@ -54,6 +54,7 @@ ML_OBJS-y = \
 	aj_port.o \
 	state-object.o \
 	tasks.o \
+	tskmon.o \
 	beep.o \
 	dm-spy.o \
 	tp-spy.o \
