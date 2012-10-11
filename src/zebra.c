@@ -273,7 +273,7 @@ int get_zoom_overlay_trigger_mode()
 int get_zoom_overlay_trigger_by_focus_ring()
 {
     int z = get_zoom_overlay_trigger_mode();
-    #if defined(CONFIG_5D2)
+    #if defined(CONFIG_5D2) || defined(CONFIG_7D)
     return z == 2 || z == 3;
     #else
     return z == 2;
@@ -282,7 +282,7 @@ int get_zoom_overlay_trigger_by_focus_ring()
 
 int get_zoom_overlay_trigger_by_halfshutter()
 {
-    #if defined(CONFIG_5D2)
+    #if defined(CONFIG_5D2) || defined(CONFIG_7D)
     int z = get_zoom_overlay_trigger_mode();
     return z == 1 || z == 3;
     #else
