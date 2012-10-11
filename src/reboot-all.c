@@ -169,7 +169,7 @@ static int guess_firmware_version()
             blob_start = &blob_start_1100;
             blob_end = &blob_end_1100;
             RESTARTSTART = (void*)RESTARTSTART_1100;
-            *(int*)0xC02200BC = 0x46;  // CF card LED on
+            *(int*)0xC0220134 = 0x46;  // SD card LED on
             return 1;
         default:
             fail();
