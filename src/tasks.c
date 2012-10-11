@@ -63,12 +63,16 @@ void task_update_loads() // called every second from clock_task
         
         int cu = tskmon_update_loads(tskmon_task_loads);
         
+        #if defined(CONFIG_7D)
+        int x = 500;
+        #else
+        int x = 50;
+        #endif
         int c = cu > 800 ? COLOR_RED : cu > 300 ? COLOR_YELLOW : cu > 100 ? COLOR_CYAN : COLOR_WHITE;
-        bmp_printf(FONT(FONT_MED, c, COLOR_BLACK), 50, 50, "CPU: %3d.%d%% ", cu/10, cu%10);
+        bmp_printf(FONT(FONT_MED, c, COLOR_BLACK), x, 50, "CPU: %3d.%d%% ", cu/10, cu%10);
         
         if (show_cpu_usage_flag >= 2)
         {
-            int x = 50;
             int y = 50 + font_med.height;
             for (int i = 0; i < TSKMON_MAX_TASKS; i++)
             {
