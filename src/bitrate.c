@@ -15,7 +15,11 @@
 CONFIG_INT( "h264.qscale.plus16", qscale_plus16, 16-8 );
 CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
 CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
+#if defined(CONFIG_7D_MINIMAL)
+CONFIG_INT( "time.indicator", time_indicator, 1); // 0 = off, 1 = current clip length
+#else
 CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
+#endif
 CONFIG_INT( "bitrate.indicator", bitrate_indicator, 0);
 #ifdef CONFIG_600D
 CONFIG_INT( "hibr.wav.record", cfg_hibr_wav_record, 0);
@@ -556,7 +560,7 @@ static struct menu_entry mov_menus[] = {
 #if !defined(CONFIG_7D_MINIMAL)
         .select     = menu_quaternary_toggle,
 #else
-        .select     = menu_ternary_toggle,
+        .select     = menu_binary_toggle,
 #endif
         .display    = time_indicator_display,
         .help = "Time indicator while recording.",
