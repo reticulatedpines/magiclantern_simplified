@@ -94,6 +94,7 @@ prepare_zip:
 	cp ../../installer/50D.109/*.fir zip || echo "no FIR" 
 	cp ../../installer/500D.111/*.fir zip || echo "no FIR"
 	cp ../../installer/5D2.212/*.fir zip || echo "no FIR"
+	cp ../../installer/1100D.105/*.fir zip || echo "no FIR"
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \

@@ -58,7 +58,7 @@ asm(
     ".globl blob_end\n"
 );
 
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3) || defined (CONFIG_7D)
 static void busy_wait(int n)
 {
     int i,j;
@@ -72,10 +72,17 @@ static void blink(int n)
 {
     while (1)
     {
-        *(int*)0xC022C06C = 0x138800;
+        #if defined(CONFIG_5D3)
+        *(volatile int*)0xC022C06C = 0x138800;
         busy_wait(n);
-        *(int*)0xC022C06C = 0x838C00;
+        *(volatile int*)0xC022C06C = 0x838C00;
         busy_wait(n);
+        #elif defined(CONFIG_7D)
+        *(volatile int*)0xC022D06C = 0x138800;
+        busy_wait(n);
+        *(volatile int*)0xC022D06C = 0x838C00;
+        busy_wait(n);
+        #endif
     }
 }
 
@@ -148,6 +155,12 @@ cstart( void )
     #ifdef CONFIG_5D3
     int s = compute_signature((int*)0xFF0c0000, 0x10000);
     if (s != (int)0x2e2f65f5)
+        fail();
+    #endif
+
+    #ifdef CONFIG_7D
+    int s = compute_signature((int*)0xF8010000, 0x10000);
+    if (s != (int)0x50163E93)
         fail();
     #endif
 
