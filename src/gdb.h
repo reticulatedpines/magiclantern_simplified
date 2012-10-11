@@ -1,4 +1,6 @@
 
+#ifndef _GDB_H_
+#define _GDB_H_
 
 #define GDB_TRANSMIT_BUFFER_SIZE 1024
 #define GDB_STRING_BUFFER_SIZE 1024
@@ -61,3 +63,4 @@ breakpoint_t * gdb_add_bkpt(uint32_t address, uint32_t flags);
 uint32_t gdb_instr_is_pc_modifying(uint32_t opcode);
 char *gdb_get_callstack(breakpoint_t *bkpt);
 
+#endif
