@@ -1,8 +1,9 @@
 #ifndef _tskmon_h_
 #define _tskmon_h_
 
+/* MAX_TASKS must be a value (1<<x) because its used to mask max values */
+#define TSKMON_MAX_TASKS      0x80
 #define TSKMON_MAX_TIMER_VAL  0x00100000
-#define TSKMON_MAX_TASKS      128
 #define TSKMON_PCT_SCALING    1000
 
 

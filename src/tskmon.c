@@ -25,7 +25,7 @@ int tskmon_update_loads(taskload_t *task_loads)
     uint32_t total_runtime = 0;
 
     /* lock interrupts, so data is consistent */
-    uint32_t intflags = cli_save();    
+    uint32_t intflags = cli();    
     memcpy(task_runtimes, tskmon_task_runtimes, sizeof(task_runtimes));
     total_runtime = tskmon_total_runtime;
     
@@ -35,7 +35,7 @@ int tskmon_update_loads(taskload_t *task_loads)
         tskmon_task_runtimes[pos] = 0;
     }
     tskmon_total_runtime = 0;
-    sei_restore(intflags);
+    sei(intflags);
     
     /* now process */
     uint32_t idle_time = task_runtimes[tskmon_idle_task_id] + task_runtimes[tskmon_powermgr_task_id];
@@ -78,7 +78,7 @@ int tskmon_update_loads(taskload_t *task_loads)
         /* update averages */
     }
     
-    return (total_runtime - idle_time) * 1000 / total_runtime;
+    return (total_runtime - idle_time) * TSKMON_PCT_SCALING / total_runtime;
 }
 
 
@@ -123,12 +123,12 @@ void tskmon_update_runtime(struct task *task, uint32_t active_time)
     /* first time set idle/powermgr task ids */
     if(tskmon_idle_task_id == 0 && !strcmp(task->name, "idle"))
     {
-        tskmon_idle_task_id = task->taskId & 0xFF;
+        tskmon_idle_task_id = task->taskId & (TSKMON_MAX_TASKS-1);
     }
     
     if(tskmon_powermgr_task_id == 0 && !strcmp(task->name, "PowerMgr"))
     {
-        tskmon_powermgr_task_id = task->taskId & 0xFF;
+        tskmon_powermgr_task_id = task->taskId & (TSKMON_MAX_TASKS-1);
     }
 }
 
