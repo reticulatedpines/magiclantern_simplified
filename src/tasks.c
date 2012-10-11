@@ -66,24 +66,24 @@ void task_update_loads() // called every second from clock_task
         int c = cu > 800 ? COLOR_RED : cu > 300 ? COLOR_YELLOW : cu > 100 ? COLOR_CYAN : COLOR_WHITE;
         bmp_printf(FONT(FONT_MED, c, COLOR_BLACK), 50, 50, "CPU: %3d.%d%% ", cu/10, cu%10);
         
-        if (show_cpu_usage_flag == 2)
+        if (show_cpu_usage_flag >= 2)
         {
             int x = 50;
             int y = 50 + font_med.height;
             for (int i = 0; i < TSKMON_MAX_TASKS; i++)
             {
-                int cpu_percent_abs = tskmon_task_loads[i].absolute;
-                if (cpu_percent_abs)
+                int cpu_percent = show_cpu_usage_flag == 2 ? tskmon_task_loads[i].absolute : tskmon_task_loads[i].relative;
+                if (cpu_percent)
                 {
                     char* name = get_task_name_from_id(i);
                     if (streq(name, "PowerMgr"))
                         continue;
                     char short_name[] = "           \0";
                     my_memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
-                    int c = cpu_percent_abs > 800 ? COLOR_RED : cpu_percent_abs > 300 ? COLOR_YELLOW : cpu_percent_abs > 100 ? COLOR_CYAN : COLOR_WHITE;
+                    int c = cpu_percent > 800 ? COLOR_RED : cpu_percent > 300 ? COLOR_YELLOW : cpu_percent > 100 ? COLOR_CYAN : COLOR_WHITE;
                     bmp_printf(FONT(FONT_SMALL, c, COLOR_BLACK), x, y, 
                     "%s: %2d.%1d%%", 
-                    short_name, cpu_percent_abs/10, cpu_percent_abs%10);
+                    short_name, cpu_percent/10, cpu_percent%10);
                     y += font_small.height;
                     if (y > 400) break;
                 }

@@ -2761,8 +2761,8 @@ struct menu_entry debug_menus[] = {
     {
         .name = "Show CPU usage",
         .priv = &show_cpu_usage_flag,
-        .max = 2,
-        .choices = (const char *[]) {"OFF", "Percentage", "High-load tasks"},
+        .max = 3,
+        .choices = (const char *[]) {"OFF", "Percentage", "Busy tasks (ABS)", "Busy tasks (REL)"},
         .help = "Display total CPU usage (percentage).",
     },
     #if 0
