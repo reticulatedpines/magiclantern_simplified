@@ -61,6 +61,7 @@ ML_OBJS-y = \
 	tasks.o \
 	tskmon.o \
 	beep.o \
+	vsync-lite.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

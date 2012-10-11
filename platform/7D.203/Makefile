@@ -65,6 +65,7 @@ ML_OBJS-y = \
 	ptp.o \
 	ptp-ml.o \
 	ptp-chdk.o \
+	vsync-lite.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

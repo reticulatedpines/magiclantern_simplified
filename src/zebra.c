@@ -4325,10 +4325,7 @@ static void draw_zoom_overlay(int dirty)
     #endif
     
     struct vram_info *  lv = get_yuv422_vram();
-    lv->vram = (void*)get_fastrefresh_422_buf();
     struct vram_info *  hd = get_yuv422_hd_vram();
-    
-    //~ lv->width = 1920;
 
     if( !lv->vram ) return;
     if( !hd->vram ) return;
@@ -4337,12 +4334,16 @@ static void draw_zoom_overlay(int dirty)
     uint16_t*       lvr = (uint16_t*) lv->vram;
     uint16_t*       hdr = (uint16_t*) hd->vram;
 
-    #if defined(CONFIG_5D3) || defined(CONFIG_1100D) // might work on other cameras too, need to test
+    // select buffer where MZ should be written (camera-specific, guesswork)
+    #if defined(CONFIG_5D2)
     lvr = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
+    #elif defined(CONFIG_5D3)
+    lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
+    #else
     #endif
-
+    
     if (!lvr) return;
-
+    
     // center of AF frame
     int aff_x0_lv, aff_y0_lv; 
     get_afframe_pos(720, 480, &aff_x0_lv, &aff_y0_lv); // Get the center of the AF frame in normalized coordinates
@@ -4355,14 +4356,7 @@ static void draw_zoom_overlay(int dirty)
     int aff_x0_hd = LV2HD_X(aff_x0_lv);
     int aff_y0_hd = LV2HD_Y(aff_y0_lv);
     
-/* Probably useless */
-#ifndef CONFIG_4_3_SCREEN
-    int W = os.x_ex / 3;
-    int H = os.y_ex / 2;
-#else
-    int W = os.x_ex / 4;
-    int H = os.y_ex / 3;
-#endif
+    int W = 0, H = 0;
     
     switch(zoom_overlay_size)
     {
@@ -5334,23 +5328,24 @@ livev_hipriority_task( void* unused )
         bmp_printf(FONT_MED, 100, 100, "ext:%d%d%d \nlv:%x %dx%d \nhd:%x %dx%d ", ext_monitor_rca, ext_monitor_hdmi, hdmi_code, lv->vram, lv->width, lv->height, hd->vram, hd->width, hd->height);
         #endif
 
-        //~ lv_vsync();
+        lv_vsync();
         guess_fastrefresh_direction();
 
         display_filter_step(k);
         
         if (should_draw_zoom_overlay())
         {
-            msleep(k % 50 == 0 ? MIN_MSLEEP : 10);
+            //~ msleep(k % 50 == 0 ? MIN_MSLEEP : 10);
             if (zoom_overlay_dirty) BMP_LOCK( clrscr_mirror(); )
-            BMP_LOCK( if (lv) draw_zoom_overlay(zoom_overlay_dirty); )
+            draw_zoom_overlay(zoom_overlay_dirty);
+            //~ BMP_LOCK( if (lv)  )
             zoom_overlay_dirty = 0;
             //~ crop_set_dirty(10); // don't draw cropmarks while magic zoom is active
             // but redraw them after MZ is turned off
         }
         else
         {
-            if (!zoom_overlay_dirty) { crop_set_dirty(5); msleep(700); } // redraw cropmarks after MZ is turned off
+            if (!zoom_overlay_dirty) { redraw(); msleep(700); } // redraw cropmarks after MZ is turned off
             
             msleep(MIN_MSLEEP);
             zoom_overlay_dirty = 1;

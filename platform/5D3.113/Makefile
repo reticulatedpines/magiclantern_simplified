@@ -60,6 +60,7 @@ ML_OBJS-y = \
 	lv-img-engio.o \
 	beep.o \
 	audio-ak.o \
+	vsync-lite.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

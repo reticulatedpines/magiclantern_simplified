@@ -115,7 +115,6 @@ static void vsync_func() // called once per frame.. in theory :)
     }
     
     //~ display_shake_step();
-
 }
 
 int (*StateTransition)(void*,int,int,int,int) = 0;
@@ -123,6 +122,20 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 {
     int old_state = self->current_state;
 
+// sync ML overlay tools (especially Magic Zoom) with LiveView
+// this is tricky...
+#ifdef CONFIG_5D3
+    if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
+        lv_vsync_signal();
+#elif defined(CONFIG_5D2)
+    if (self == LV_STATE && old_state == 3 && input < 5)
+        lv_vsync_signal();
+#elif defined(CONFIG_60D)
+    if (self == DISPLAY_STATE && input >= 19)
+        lv_vsync_signal();
+#endif
+
+// sync display filters (for these, we need to redirect display buffers
     #ifdef DISPLAY_STATE
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
     {
@@ -140,6 +153,8 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 #endif
 
     int ans = StateTransition(self, x, input, z, t);
+
+// sync digic functions (like overriding ISO or image effects)
 
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
     if (self == LV_STATE && input==4 && old_state==4) // AJ_ResetPSave_n_WB_n_LVREC_MVR_EV_EXPOSURESTARTED => perfect sync for digic on 5D2 :)
