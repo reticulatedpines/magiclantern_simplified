@@ -629,3 +629,6 @@ NSTUB(0xffb29d4c, TryPostStageEvent_end)
 NSTUB(0xFFB57898, get_current_task)
 NSTUB(0xffb58490, get_task_info)
 NSTUB(0xffb561f0, get_active_task_list)
+
+NSTUB(0xffb35620, cli_save)
+NSTUB(0xffb35634, sei_restore)

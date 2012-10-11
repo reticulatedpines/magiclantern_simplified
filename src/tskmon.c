@@ -22,9 +22,9 @@ void tskmon_update_loads(taskload_t *task_loads)
 {
     uint32_t task_runtimes[TSKMON_MAX_TASKS];
     uint32_t total_runtime = 0;
-    
+
     /* lock interrupts, so data is consistent */
-    uint32_t intflags = cli();    
+    uint32_t intflags = cli_save();    
     memcpy(task_runtimes, tskmon_task_runtimes, sizeof(task_runtimes));
     total_runtime = tskmon_total_runtime;
     
@@ -34,7 +34,7 @@ void tskmon_update_loads(taskload_t *task_loads)
         tskmon_task_runtimes[pos] = 0;
     }
     tskmon_total_runtime = 0;
-    sei(intflags);
+    sei_restore(intflags);
     
     /* now process */
     uint32_t idle_time = task_runtimes[tskmon_idle_task_id] + task_runtimes[tskmon_powermgr_task_id];

@@ -151,6 +151,8 @@ set_i_tcm( uint32_t value )
 
 
 /** Routines to enable / disable interrupts */
+/*
+ * something's wrong, they crash
 static inline uint32_t
 cli(void)
 {
@@ -176,7 +178,7 @@ sei( uint32_t old_cpsr )
         "orr %0, %0, %1\n"
         "msr CPSR_c, %0" : : "r"(new_cpsr), "r"(old_cpsr) );
 }
-
+*/
 
 /**
  * Some common instructions.

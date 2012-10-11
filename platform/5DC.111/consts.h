@@ -104,6 +104,3 @@
 #define ARROW_MODE_TOGGLE_KEY ""
 
 #define WINSYS_BMP_DIRTY_BIT_NEG 0
-
-#define cli_save cli
-#define sei_restore sei

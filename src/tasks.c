@@ -101,7 +101,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
     taskload_t tskmon_task_loads[TSKMON_MAX_TASKS];
     
     tskmon_update_loads(tskmon_task_loads);
-    
+
     if (selected) 
     {
         menu_draw_icon(x0, y0, -1, 0);
@@ -120,7 +120,12 @@ void tasks_print(void* priv, int x0, int y0, int selected)
     int x = 5;
     int y = 5;
 
-    bmp_printf(FONT_MED, x, y, tasks_show_flags == 1 ? "Canon tasks" : "ML tasks");
+    bmp_printf(FONT_MED, x, y, 
+        tasks_show_flags == 0 ? "ML tasks" :
+        tasks_show_flags == 1 ? "Canon tasks" :
+        tasks_show_flags == 2 ? "ML tasks (CPU)" :
+                                "Canon tasks (CPU)"
+        );
     y += font_med.height;
 
     task_id = 1;
