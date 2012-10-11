@@ -64,27 +64,27 @@ char* get_call_stack()
     return callstack;
 }
 
-int my_TryPostEvent(int taskclass, int obj, int event, int arg1, int arg2)
+int my_TryPostEvent(int taskclass, int obj, int event, int arg3, int arg4)
 {
-    DryosDebugMsg(0,0,"[%d] *** TryPostEvent(%x, %x %s, %x, %x [%x %x %x %x], %x)\n   call stack: %s", get_ms_clock_value(), taskclass, obj, MEM(obj), event, arg1, MEM(arg1), MEM(arg1+4), MEM(arg1+8), MEM(arg1+12), arg2, get_call_stack());
+    DryosDebugMsg(0,0,"[%d] *** TryPostEvent(%x, %x %s, %x, %x [%x %x %x %x], %x)\n   call stack: %s", get_ms_clock_value(), taskclass, obj, MEM(obj), event, arg3, MEM(arg3), MEM(arg3+4), MEM(arg3+8), MEM(arg3+12), arg4, get_call_stack());
     if (streq(MEM(obj), "PropMgr"))
     {
         if (event == 3)
         {
-            DryosDebugMsg(0,0,"   prop_deliver(&%x, %x, %x)", MEM(MEM(arg1)), MEM(arg1+4), arg2);
+            DryosDebugMsg(0,0,"   prop_deliver(&0x%x, 0x%x, 0x%x)", MEM(MEM(arg3)), MEM(arg3+4), arg4);
         }
         else if (event == 7)
         {
-            DryosDebugMsg(0,0,"   prop_request_change(%x, %x, %x)", MEM(arg1), MEM(MEM(arg1+4)), arg2);
+            DryosDebugMsg(0,0,"   prop_request_change(0x%x, &0x%x, 0x%x)", MEM(arg3), MEM(MEM(arg3+4)), arg4);
         }
     }
-    return new_TryPostEvent(taskclass, obj, event, arg1, arg2);
+    return new_TryPostEvent(taskclass, obj, event, arg3, arg4);
 }
 
-int my_TryPostStageEvent(int taskclass, int obj, int event, int arg1, int arg2)
+int my_TryPostStageEvent(int taskclass, int obj, int event, int arg3, int arg4)
 {
-    DryosDebugMsg(0,0,"[%d] *** TryPostStageEvent(%x, %x %s, %x, %x [%x %x %x %x], %x)", get_ms_clock_value(), taskclass, obj, MEM(obj), event, arg1, MEM(arg1), MEM(arg1+4), MEM(arg1+8), MEM(arg1+12), arg2 );
-    return new_TryPostStageEvent(taskclass, obj, event, arg1, arg2);
+    DryosDebugMsg(0,0,"[%d] *** TryPostStageEvent(%x, %x %s, %x, %x [%x %x %x %x], %x)", get_ms_clock_value(), taskclass, obj, MEM(obj), event, arg3, MEM(arg3), MEM(arg3+4), MEM(arg3+8), MEM(arg3+12), arg4 );
+    return new_TryPostStageEvent(taskclass, obj, event, arg3, arg4);
 }
 
 // call this from "don't click me"
