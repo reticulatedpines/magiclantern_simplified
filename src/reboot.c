@@ -152,6 +152,13 @@ cstart( void )
     select_normal_vectors();
 #endif
 
+    /* on 7D, the master is booted clean for now. no hooks etc. */
+    #if defined(CONFIG_7D_FIR_MASTER)
+    void (*reboot)(void) = (void*) ROMBASEADDR;
+    reboot();
+    #endif
+    
+
     #ifdef CONFIG_5D3
     int s = compute_signature((int*)0xFF0c0000, 0x10000);
     if (s != (int)0x2e2f65f5)
@@ -168,7 +175,6 @@ cstart( void )
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
         *(int*)0xC02200BC = 0x46;  // CF card LED on
     #elif defined(CONFIG_7D)
-        
         #if !defined(CONFIG_7D_FIR_MASTER) && !defined(CONFIG_7D_FIR_SLAVE)
             *(volatile int*)0xC022D06C = 0x00138800;  // CF card LED on
             /* clear IPC interrupt lines */
