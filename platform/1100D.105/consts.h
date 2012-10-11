@@ -37,6 +37,7 @@
 #define BGMT_AV (event->type == 0 && event->param == 0x61 && ( \
 			(is_movie_mode() && event->arg == 0xa) || \
 			(shooting_mode == SHOOTMODE_P && event->arg == 0xa) || \
+			(shooting_mode == SHOOTMODE_ADEP && event->arg == 0xa) || \
 			(shooting_mode == SHOOTMODE_AV && event->arg == 0xf) || \
 			(shooting_mode == SHOOTMODE_M && event->arg == 0xe) || \
 			(shooting_mode == SHOOTMODE_TV && event->arg == 0x10)) )
