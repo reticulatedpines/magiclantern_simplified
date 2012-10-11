@@ -479,6 +479,9 @@ int get_global_draw() // menu setting, or off if
             !(lv && kill_canon_gui_mode && !canon_gui_front_buffer_disabled() && !gui_menu_shown()) &&
             #endif
             !LV_PAUSED && 
+            #ifdef CONFIG_5D3
+            !(hdmi_code==5 && video_mode_resolution>0) && // unusual VRAM parameters
+            #endif
             lens_info.job_state <= 10;
     }
     
@@ -2516,6 +2519,11 @@ global_draw_display( void * priv, int x, int y, int selected )
         bmp_printf(FONT(FONT_LARGE, selected ? COLOR_WHITE : 55, COLOR_BLACK), x + 560, y, "DISP %d", get_disp_mode());
         if (selected) bmp_printf(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 720 - font_med.width * strlen(Q_BTN_NAME), y + font_large.height, Q_BTN_NAME);
     }
+
+    #ifdef CONFIG_5D3
+    if (hdmi_code==5 && video_mode_resolution>0) // unusual VRAM parameters
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"Not compatible with HDMI 50p/60p.");
+    #endif
     if (lv && lv_disp_mode && ZEBRAS_IN_LIVEVIEW)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"Press " INFO_BTN_NAME " (outside ML menu) to turn Canon displays off.");
     if (global_draw && lv && !ZEBRAS_IN_LIVEVIEW)
