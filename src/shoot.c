@@ -252,33 +252,23 @@ static void do_this_every_second() // called every second
     #endif
 }
 
-static int get_rtc_second()
-{
-    struct tm now;
-    LoadCalendarFromRTC( &now );
-    int s = now.tm_sec;
-    return s;
-}
-
 static void
 seconds_clock_task( void* unused )
 {
     TASK_LOOP 
     {
-        seconds_clock++;
-        ms100_clock = MAX(ms100_clock, seconds_clock * 1000); // don't let the clock go back
-
-        do_this_every_second();
-
-        int s0 = get_rtc_second();
-        do
+        static int prev_t = 0;
+        int t = *(uint32_t*)0xC0242014;
+        if (t < prev_t)
         {
-            msleep(100);
-            ms100_clock = MIN(ms100_clock + 100, (seconds_clock + 1) * 1000); // don't let this clock go faster than the RTC one
-            msleep(100);
-            ms100_clock = MIN(ms100_clock + 100, (seconds_clock + 1) * 1000);
+            seconds_clock++;
+            do_this_every_second();
         }
-        while (get_rtc_second() == s0);
+        prev_t = t;
+
+        ms100_clock = seconds_clock * 1000 + t / 1000;
+
+        msleep(100);
     }
 }
 TASK_CREATE( "clock_task", seconds_clock_task, 0, 0x19, 0x2000 );
@@ -6134,17 +6124,16 @@ int handle_intervalometer(struct event * event)
     return 1;
 }
 
-// this syncs with real-time clock
+// this syncs with DIGIC clock (counts in microseconds and overflows every second)
 void wait_till_next_second()
 {
-    struct tm now;
-    LoadCalendarFromRTC( &now );
-    int s = now.tm_sec;
-    
-    while (now.tm_sec == s)
+    int prev_t = 0;
+    while (1)
     {
-        LoadCalendarFromRTC( &now );
-        msleep(DISPLAY_IS_ON ? 20 : 300);
+        int t = *(uint32_t*)0xC0242014;
+        if (t < prev_t) break;
+        prev_t = t;
+        msleep(20);
     }
 }
 
