@@ -1026,11 +1026,7 @@ void playback_compare_images_task(int dir)
         dir = 1;
     }
     
-    #if defined(CONFIG_1100D)
-    void* aux_buf = get_fastrefresh_422_buf();
-    #else
     void* aux_buf = (void*)YUV422_HD_BUFFER_2;
-    #endif
     void* current_buf;
     int w = get_yuv422_vram()->width;
     int h = get_yuv422_vram()->height;
@@ -1055,9 +1051,9 @@ void expfuse_preview_update_task(int dir)
     ASSERT(set_maindial_sem);
     take_semaphore(set_maindial_sem, 0);
     void* buf_acc = (void*)YUV422_HD_BUFFER_1;
-    void* buf_ws = (void*)YUV422_HD_BUFFER_2;
-    void* buf_lv = get_yuv422_vram()->vram;
-    int numpix = get_yuv422_vram()->width * get_yuv422_vram()->height;
+    void* buf_ws  = (void*)YUV422_HD_BUFFER_2;
+    void* buf_lv  = get_yuv422_vram()->vram;
+    int numpix    = get_yuv422_vram()->width * get_yuv422_vram()->height;
     if (!expfuse_running)
     {
         // first image 
