@@ -309,7 +309,7 @@ int should_draw_zoom_overlay()
     if (hdmi_code == 5) return 0;
     if (zoom_overlay_trigger_mode == 4) return true;
 
-    #if defined(CONFIG_5D2)
+    #if defined(CONFIG_5D2) || defined(CONFIG_7D)
     if (zoom_overlay_triggered_by_zoom_btn || zoom_overlay_triggered_by_focus_ring_countdown) return true;
     #else
     int zt = zoom_overlay_triggered_by_zoom_btn;
@@ -2594,7 +2594,7 @@ zoom_overlay_display(
         x, y,
         "Magic Zoom  : %s%s%s%s%s",
         zoom_overlay_trigger_mode == 0 ? "err" :
-#if defined(CONFIG_5D2)
+#if defined(CONFIG_5D2) || defined(CONFIG_7D)
         zoom_overlay_trigger_mode == 1 ? "HalfS," :
         zoom_overlay_trigger_mode == 2 ? "Focus," :
         zoom_overlay_trigger_mode == 3 ? "F+HS," : "ALW,",
@@ -3351,7 +3351,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zoom_overlay_trigger_mode, 
                 .min = 1,
                 .max = 4,
-                #if defined(CONFIG_5D2)
+                #if defined(CONFIG_5D2) || defined(CONFIG_7D)
                 .choices = (const char *[]) {"OFF", "HalfShutter", "Focus Ring", "FocusR+HalfS", "Always On"},
                 .help = "Trigger Magic Zoom by focus ring or half-shutter.",
                 #else
@@ -4045,7 +4045,7 @@ int handle_zoom_overlay(struct event * event)
     if (get_disp_pressed()) return 1;
     #endif
 
-#if defined(CONFIG_5D2)
+#if defined(CONFIG_5D2) || defined(CONFIG_7D)
     if (event->param == BGMT_PRESS_HALFSHUTTER && get_zoom_overlay_trigger_by_halfshutter())
         zoom_overlay_toggle();
     if (is_zoom_overlay_triggered_by_zoom_btn() && !get_zoom_overlay_trigger_by_halfshutter())
@@ -5064,7 +5064,7 @@ clearscreen_loop:
             bmp_off();
             while ((get_halfshutter_pressed() || dofpreview)) msleep(100);
             bmp_on();
-            #ifdef CONFIG_5D2
+            #if defined(CONFIG_5D2) || defined(CONFIG_7D)
             msleep(100);
             if (get_zoom_overlay_trigger_by_halfshutter()) // this long press should not trigger MZ
                 zoom_overlay_toggle();

@@ -54,6 +54,7 @@ ML_OBJS-y = \
 	lv-img-engio.o \
 	fps-engio.o \
 	tasks.o \
+	tskmon.o \
 	state-object.o \
 	hdr.o \
 	lv-img-engio.o \

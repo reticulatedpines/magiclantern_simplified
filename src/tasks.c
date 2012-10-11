@@ -9,6 +9,7 @@
 #include "dryos.h"
 #include "property.h"
 #include "bmp.h"
+#include "tskmon.h"
 
 struct task_attr_str {
   unsigned int entry;
@@ -48,7 +49,7 @@ return "?";
     return name;
 }
 
-int what_tasks_to_show=2;
+int tasks_show_flags = 0;
 void tasks_print(void* priv, int x0, int y0, int selected)
 {
 #if defined(CONFIG_VXWORKS)
@@ -63,7 +64,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
     static int tasks[100];
     int N = get_active_task_list(tasks, 100);
     int x = 5, y = 5;
-    bmp_printf(FONT_MED, x, y, what_tasks_to_show == 1 ? "Canon tasks" : "ML tasks");
+    bmp_printf(FONT_MED, x, y, (tasks_show_flags & 1) ? "Canon tasks" : "ML tasks");
     y += font_med.height;
     
     for (int i = 0; i < N; i++)
@@ -76,8 +77,10 @@ void tasks_print(void* priv, int x0, int y0, int selected)
 
         // Canon tasks are named in uppercase (exception: idle); ML tasks are named in lowercase.
         int is_canon_task = (name[0]  < 'a' || name[0] > 'z' || name[1]  < 'a' || name[1] > 'z');
-        if (what_tasks_to_show==1 && !is_canon_task) continue;
-        if (what_tasks_to_show!=1 && is_canon_task) continue;
+        if((tasks_show_flags & 1) != is_canon_task)
+        {
+            continue;
+        }
 
         int stack_size = task_info[10]; // from task_create calls
         int stack_unused_maybe = task_info[13];
@@ -95,63 +98,92 @@ void tasks_print(void* priv, int x0, int y0, int selected)
 
 #else // DryOS - https://groups.google.com/forum/#!msg/ml-devel/JstGrNJiuVM/2L1QZpZ7F4YJ
 
+    taskload_t tskmon_task_loads[TSKMON_MAX_TASKS];
+    
+    tskmon_update_loads(tskmon_task_loads);
+    
     if (selected) 
     {
         menu_draw_icon(x0, y0, -1, 0);
         bmp_fill(38, 0, 0, 720, 430);
     }
 
-  int c;
-  unsigned int r;
-  struct task_attr_str task_attr;
-  char *name;
-  extern unsigned int task_max;
+    int task_id;
+    unsigned int r;
+    struct task_attr_str task_attr;
+    char *name;
+    extern unsigned int task_max;
 
-   // wait_id: 0=sleep, 1=sem, 2=flg/event, 3=sendmq, 4=recvmq, 5=mutex
-   // state: 0=ready, 1=wait, 2=susp, other=wait+s
+    // wait_id: 0=sleep, 1=sem, 2=flg/event, 3=sendmq, 4=recvmq, 5=mutex
+    // state: 0=ready, 1=wait, 2=susp, other=wait+s
 
-  int x = 5;
-  int y = 5;
-  
-  bmp_printf(FONT_MED, x, y, what_tasks_to_show == 1 ? "Canon tasks" : "ML tasks");
-  y += font_med.height;
+    int x = 5;
+    int y = 5;
 
-  //~ int k = 0;
+    bmp_printf(FONT_MED, x, y, tasks_show_flags == 1 ? "Canon tasks" : "ML tasks");
+    y += font_med.height;
 
-  c = 1;
-  bmp_printf(FONT_SMALL, x + 8*30, y - font_small.height, "task_max=%d", task_max);
-  //~ y += font_small.height;
-  for (c=1; c<(int)task_max; c++) {
-    r = is_taskid_valid(1, c, &task_attr); // ok
-    if (r==0) {
-      r = get_obj_attr( &(task_attr.args), &(task_attr.fpu), 0, 0); // buggy ?
-      if (task_attr.name!=0) name=task_attr.name;
-      else name="?";
-     
-     // Canon tasks are named in uppercase (exception: idle); ML tasks are named in lowercase.
-     int is_canon_task = (name[0]  < 'a' || name[0] > 'z' || streq(name, "idle") ||  streq(name, "systemtask"));
-     if (what_tasks_to_show==1 && !is_canon_task) continue;
-     if (what_tasks_to_show!=1 && is_canon_task) continue;
-     
-     char short_name[] = "                    ";
-     my_memcpy(short_name, name, MIN(sizeof(short_name)-1, strlen(name)));
-     
-     int mem_percent = task_attr.used * 100 / task_attr.size;
-     
-     bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, c >= 99 ? COLOR_RED : mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED, 38)), x, y, "%02d %s: p=%2x w=%2x m=%2d%% %d\n", 
-        c, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
-      #if defined(CONFIG_5D3) || defined(CONFIG_60D)
-      y += font_small.height - (what_tasks_to_show==1 ? 2 : 0); // too many tasks - they don't fit on the screen :)
-      #else
-      y += font_small.height;
-      #endif
-      if (y > 420)
-      {
-          x += 360;
-          y = 10;
-      }
+    task_id = 1;
+    bmp_printf(FONT_SMALL, x + 8*30, y - font_small.height, "task_max=%d", task_max);
+    
+    for (task_id=1; task_id<(int)task_max; task_id++)
+    {
+        r = is_taskid_valid(1, task_id, &task_attr); // ok
+        if (r==0)
+        {
+            r = get_obj_attr( &(task_attr.args), &(task_attr.fpu), 0, 0); // buggy ?
+            if (task_attr.name!=0)
+            {
+                name=task_attr.name;
+            }
+            else
+            {
+                name="?";
+            }
+
+            // Canon tasks are named in uppercase (exception: idle); ML tasks are named in lowercase.
+            int is_canon_task = (name[0]  < 'a' || name[0] > 'z' || streq(name, "idle") ||  streq(name, "systemtask"));
+            if((tasks_show_flags & 1) != is_canon_task)
+            {
+                continue;
+            }
+
+            char short_name[] = "                    ";
+            
+            my_memcpy(short_name, name, MIN(sizeof(short_name)-1, strlen(name)));
+
+            /* print stack/cpu usage details */
+            if(tasks_show_flags & 2)
+            {
+                int cpu_percent_abs = tskmon_task_loads[task_id].absolute / 10;
+                int cpu_percent_abs_dec = tskmon_task_loads[task_id].absolute % 10;
+                int cpu_percent_rel = tskmon_task_loads[task_id].relative / 10;
+                int cpu_percent_rel_dec = tskmon_task_loads[task_id].relative % 10;
+                
+                bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, task_id >= 99 ? COLOR_RED : cpu_percent_rel < 50 ? COLOR_WHITE : cpu_percent_rel < 90 ? COLOR_YELLOW : COLOR_RED, 38)), x, y, 
+                "%02d %s: a=%2d.%1d%% r=%2d.%1d%%\n", 
+                task_id, short_name, cpu_percent_abs, cpu_percent_abs_dec, 0, cpu_percent_rel, cpu_percent_rel_dec, 0);
+            }
+            else
+            {
+                int mem_percent = task_attr.used * 100 / task_attr.size;
+                bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, task_id >= 99 ? COLOR_RED : mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED, 38)), x, y, 
+                "%02d %s: p=%2x w=%2x m=%2d%% %d\n", 
+                task_id, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
+            }
+
+            #if defined(CONFIG_5D3) || defined(CONFIG_60D) || defined(CONFIG_7D)
+            y += font_small.height - ((tasks_show_flags & 1) ? 2 : 0); // too many tasks - they don't fit on the screen :)
+            #else
+            y += font_small.height;
+            #endif
+            if (y > 420)
+            {
+                x += 360;
+                y = 10;
+            }
+        }
     }
-  }
 #endif
 }
 
