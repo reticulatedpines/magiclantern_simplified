@@ -283,7 +283,11 @@ void update_vram_params()
     // LCD: (0,0) -> (0,0)
     // HDMI: (-120,-30) -> (0,0) and scaling factor is 2
     bm2lv.tx = hdmi_code == 5 ?  240 : ext_monitor_rca ? 4 : 0;
+#if defined(CONFIG_7D)
     bm2lv.ty = hdmi_code == 5 ? (video_mode_resolution>0 ? 30 : 60) : 0;
+#else
+    bm2lv.ty = hdmi_code == 5 ?   60 : 0;
+#endif
     bm2lv.sx = hdmi_code == 5 ? 2048 : ext_monitor_rca ? 768 : 1024;
     bm2lv.sy = 1024 * vram_lv.height / (hdmi_code==5 ? 540 : 480); // no black bars at top or bottom
 #endif
@@ -438,34 +442,6 @@ void guess_fastrefresh_direction() {
 void* get_fastrefresh_422_buf()
 {
     if (fastrefresh_direction) {
-        switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
-        {
-            case YUV422_LV_BUFFER_1:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
-            case YUV422_LV_BUFFER_2:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
-            case YUV422_LV_BUFFER_3:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
-        }
-        return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
-    } else {
-        switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
-        {
-            case YUV422_LV_BUFFER_1:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
-            case YUV422_LV_BUFFER_2:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
-            case YUV422_LV_BUFFER_3:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
-        }
-        return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
-
-    }
-}
-
-void* get_fastrefresh_422_other_buf()
-{
-    if (!fastrefresh_direction) {
         switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
         {
             case YUV422_LV_BUFFER_1:
