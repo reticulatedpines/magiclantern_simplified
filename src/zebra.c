@@ -5438,7 +5438,7 @@ livev_hipriority_task( void* unused )
 
 static void loprio_sleep()
 {
-    msleep(100);
+    msleep(200);
     while (is_mvr_buffer_almost_full()) msleep(100);
 }
 
