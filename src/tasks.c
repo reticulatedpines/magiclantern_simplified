@@ -64,7 +64,7 @@ void task_update_loads() // called every second from clock_task
         int cu = tskmon_update_loads(tskmon_task_loads);
         
         int c = cu > 800 ? COLOR_RED : cu > 300 ? COLOR_YELLOW : cu > 100 ? COLOR_CYAN : COLOR_WHITE;
-        bmp_printf(FONT(FONT_MED, c, COLOR_BLACK), 50, 50, "CPU: %d.%d%%  ", cu/10, cu%10);
+        bmp_printf(FONT(FONT_MED, c, COLOR_BLACK), 50, 50, "CPU: %3d.%d%% ", cu/10, cu%10);
         
         if (show_cpu_usage_flag == 2)
         {
@@ -76,7 +76,7 @@ void task_update_loads() // called every second from clock_task
                 if (cpu_percent_abs)
                 {
                     char* name = get_task_name_from_id(i);
-                    if (streq(c, "PowerMgr"))
+                    if (streq(name, "PowerMgr"))
                         continue;
                     char short_name[] = "           \0";
                     my_memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
