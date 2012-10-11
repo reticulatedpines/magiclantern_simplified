@@ -89,8 +89,6 @@ copy_and_restart( int offset )
 #ifdef HIJACK_CACHE_HACK
     /* make sure we have the first segment locked in d/i cache for patching */    
     uint32_t old_int = cli();
-    clean_d_cache();
-    flush_caches();
     cache_lock();
     sei(old_int);
 
