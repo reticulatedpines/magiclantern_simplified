@@ -463,6 +463,34 @@ void* get_fastrefresh_422_buf()
     }
 }
 
+void* get_fastrefresh_422_other_buf()
+{
+    if (!fastrefresh_direction) {
+        switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
+        {
+            case YUV422_LV_BUFFER_1:
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
+            case YUV422_LV_BUFFER_2:
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
+            case YUV422_LV_BUFFER_3:
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
+        }
+        return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
+    } else {
+        switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
+        {
+            case YUV422_LV_BUFFER_1:
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
+            case YUV422_LV_BUFFER_2:
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
+            case YUV422_LV_BUFFER_3:
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
+        }
+        return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
+
+    }
+}
+
 #ifdef CONFIG_500D
 int first_video_clip = 1;
 #endif
