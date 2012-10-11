@@ -7,6 +7,8 @@
 
 TOP_DIR=$(PWD)
 include Makefile.top
+include Makefile.user.default
+-include Makefile.user
 
 UNAME:=$(shell uname)
 
@@ -21,7 +23,7 @@ else
 endif
 
 
-all: 60D 550D 600D 50D 500D 5D2 1100D
+all: $(SUPPORTED_MODELS)
 	$(MAKE) -C $(PLATFORM_PATH)/all clean
 	$(MAKE) -C $(PLATFORM_PATH)/all x
 	$(MAKE) -C $(PLUGINS_DIR)
@@ -135,4 +137,12 @@ docq:
 dropbox: all
 	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/bleeding-edge/
 
+nightly: all
+	mkdir -p $(NIGHTLY_DIR)
+	cd $(PLATFORM_PATH)/all; $(MAKE) zip
+	cd $(PLATFORM_PATH)/all; mv *.zip $(NIGHTLY_DIR)
+	touch build.log
+	mv build.log $(NIGHTLY_DIR)  
+
 FORCE:
+

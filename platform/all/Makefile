@@ -2,8 +2,8 @@
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
-
-MODEL=550D.60D.600D.50D.500D.5D2
+ 
+MODEL=$(shell echo $(SUPPORTED_MODELS) | tr " " . )
 
 include  $(TOP_DIR)/Makefile.inc
 
@@ -22,4 +22,3 @@ ROMBASEADDR		= 0xFF010000
 x: autoexec-all autoexec-all.bin
 	cp autoexec-all.bin autoexec.bin
 	$(STAT_CMD) autoexec.bin; \
-
