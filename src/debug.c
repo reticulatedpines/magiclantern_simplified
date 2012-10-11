@@ -2460,6 +2460,8 @@ extern void batt_display(void* priv, int x0, int y0, int selected);
 extern int tasks_show_flags;
 extern void peaking_benchmark();
 
+extern int show_cpu_usage_flag;
+
 struct menu_entry debug_menus[] = {
 #ifdef CONFIG_HEXDUMP
     { 
@@ -2757,11 +2759,20 @@ struct menu_entry debug_menus[] = {
     },
 #ifndef CONFIG_VXWORKS
     {
+        .name = "Show CPU usage",
+        .priv = &show_cpu_usage_flag,
+        .max = 2,
+        .choices = (const char *[]) {"OFF", "Percentage", "High-load tasks"},
+        .help = "Display total CPU usage (percentage).",
+    },
+    #if 0
+    {
         .name = "Save CPU usage log",
         .select = (void(*)(void*,int))run_in_separate_task,
         .priv = save_cpu_usage_log_task,
         .help = "Saves a log with the CPU usage for all tasks (Canon+ML).",
     },
+    #endif
 #endif
     {
         .name = "Image buffers",

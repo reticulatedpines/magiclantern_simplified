@@ -246,6 +246,10 @@ static void do_this_every_second() // called every second
     #endif
     
     reset_pre_shutdown_flag_step();
+    
+    #ifndef CONFIG_VXWORKS
+    task_update_loads();
+    #endif
 }
 
 static int get_rtc_second()

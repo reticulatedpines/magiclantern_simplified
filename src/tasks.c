@@ -49,6 +49,60 @@ return "?";
     return name;
 }
 
+#ifndef CONFIG_VXWORKS
+taskload_t tskmon_task_loads[TSKMON_MAX_TASKS];
+int show_cpu_usage_flag = 0;
+int task_load_update_request = 0;
+
+void task_update_loads() // called every second from clock_task
+{
+    if (show_cpu_usage_flag)
+    {
+        static int k = 0; k++;
+        if (k & 1) return; // update every 2 seconds
+        
+        int cu = tskmon_update_loads(tskmon_task_loads);
+        
+        int c = cu > 800 ? COLOR_RED : cu > 300 ? COLOR_YELLOW : cu > 100 ? COLOR_CYAN : COLOR_WHITE;
+        bmp_printf(FONT(FONT_MED, c, COLOR_BLACK), 50, 50, "CPU: %d.%d%%  ", cu/10, cu%10);
+        
+        if (show_cpu_usage_flag == 2)
+        {
+            int x = 50;
+            int y = 50 + font_med.height;
+            for (int i = 0; i < TSKMON_MAX_TASKS; i++)
+            {
+                int cpu_percent_abs = tskmon_task_loads[i].absolute;
+                if (cpu_percent_abs)
+                {
+                    char* name = get_task_name_from_id(i);
+                    if (streq(c, "PowerMgr"))
+                        continue;
+                    char short_name[] = "           \0";
+                    my_memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
+                    int c = cpu_percent_abs > 800 ? COLOR_RED : cpu_percent_abs > 300 ? COLOR_YELLOW : cpu_percent_abs > 100 ? COLOR_CYAN : COLOR_WHITE;
+                    bmp_printf(FONT(FONT_SMALL, c, COLOR_BLACK), x, y, 
+                    "%s: %2d.%1d%%", 
+                    short_name, cpu_percent_abs/10, cpu_percent_abs%10);
+                    y += font_small.height;
+                    if (y > 400) break;
+                }
+            }
+            
+            static int prev_y = 0;
+            if (y < prev_y) bmp_fill(0, x, y, font_small.width*18, prev_y - y);
+            prev_y = y;
+        }
+    }
+    
+    if (task_load_update_request) // for menu
+    {
+        tskmon_update_loads(tskmon_task_loads);
+        task_load_update_request = 0;
+    }
+}
+#endif
+
 int tasks_show_flags = 0;
 void tasks_print(void* priv, int x0, int y0, int selected)
 {
@@ -72,8 +126,8 @@ void tasks_print(void* priv, int x0, int y0, int selected)
         get_task_info(tasks[i], task_info);
         
         char* name = task_info[1]+1;
-        char short_name[] = "             ";
-        my_memcpy(short_name, name, MIN(sizeof(short_name)-1, strlen(name)));
+        char short_name[] = "             \0";
+        my_memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
 
         // Canon tasks are named in uppercase (exception: idle); ML tasks are named in lowercase.
         int is_canon_task = (name[0]  < 'a' || name[0] > 'z' || name[1]  < 'a' || name[1] > 'z');
@@ -98,9 +152,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
 
 #else // DryOS - https://groups.google.com/forum/#!msg/ml-devel/JstGrNJiuVM/2L1QZpZ7F4YJ
 
-    taskload_t tskmon_task_loads[TSKMON_MAX_TASKS];
-    
-    tskmon_update_loads(tskmon_task_loads);
+    task_load_update_request = 1; // will update at next second clock tick
 
     if (selected) 
     {
@@ -153,9 +205,9 @@ void tasks_print(void* priv, int x0, int y0, int selected)
                 continue;
             }
 
-            char short_name[] = "                    ";
+            char short_name[] = "                    \0";
             
-            my_memcpy(short_name, name, MIN(sizeof(short_name)-1, strlen(name)));
+            my_memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
 
             /* print stack/cpu usage details */
             if(tasks_show_flags & 2)

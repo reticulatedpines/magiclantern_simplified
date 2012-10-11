@@ -18,7 +18,8 @@ uint32_t tskmon_get_timer_reg()
     return *(uint32_t*)0xC0242014;
 }
 
-void tskmon_update_loads(taskload_t *task_loads)
+// returns CPU usage (percentage*10)
+int tskmon_update_loads(taskload_t *task_loads)
 {
     uint32_t task_runtimes[TSKMON_MAX_TASKS];
     uint32_t total_runtime = 0;
@@ -76,6 +77,8 @@ void tskmon_update_loads(taskload_t *task_loads)
         
         /* update averages */
     }
+    
+    return (total_runtime - idle_time) * 1000 / total_runtime;
 }
 
 

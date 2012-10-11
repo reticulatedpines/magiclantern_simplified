@@ -16,7 +16,7 @@ typedef struct
 } taskload_t;
 
 uint32_t tskmon_get_timer_reg();
-void tskmon_update_loads(taskload_t *task_loads);
+int tskmon_update_loads(taskload_t *task_loads);
 void tskmon_update_timers();
 void tskmon_update_runtime(struct task *task, uint32_t active_time);
 void tskmon_task_dispatch();
