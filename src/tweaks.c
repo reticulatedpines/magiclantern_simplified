@@ -3250,7 +3250,7 @@ struct menu_entry play_menus[] = {
             {
                 .name = "Zoom in PLAY mode",
                 .priv = &quickzoom, 
-                #ifdef CONFIG_5DC
+                #if defined(CONFIG_5DC) || defined(CONFIG_7D)
                 .max = 2, // don't know how to move the image around
                 #else
                 .max = 4,
