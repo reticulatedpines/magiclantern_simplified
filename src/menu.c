@@ -146,7 +146,7 @@ draw_version( void )
         build_id,
         build_date,
         build_user,
-        "http://magiclantern.wikia.com/"
+        "http://www.magiclantern.fm/"
     );
 
 /*
