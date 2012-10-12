@@ -272,7 +272,7 @@ def save_img(im,M,file):
     ix.save(file)
 
 
-M = read_rgb("../vram/Palette.jpg")
+M = read_rgb("../data/vram/Palette.jpg")
 for i in range(3):
     print M[:,:,i].astype(uint8)
 

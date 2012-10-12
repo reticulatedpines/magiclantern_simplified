@@ -555,7 +555,7 @@ clean:
 		make_bootable.sh \
 		422-jpg.py \
 		README \
-		cropmks/* \
+		data/cropmks/* \
 		scripts/* \
 		doc/* \
 		$(SRC_DIR)/*.o \
