@@ -42,6 +42,9 @@ void menu_help_show_page(int page)
 #ifndef CONFIG_RELEASE_BUILD
     if (page == 1) { draw_beta_warning(); return; } // display this instead of the main About page
 #endif
+
+    if (page == 0) { draw_404_page(); return; } // help page not found
+    if (page == -1) { draw_help_not_installed_page(); return; } // help page not found
     
     char path[100];
     struct bmp_file_t * doc = (void*) -1;
@@ -63,7 +66,7 @@ void menu_help_show_page(int page)
     else
     {
         clrscr();
-        bmp_printf(FONT_MED, 0, 0, "Could not load help page %s\nPlease unzip 'doc' directory on your SD card.", path);
+        bmp_printf(FONT_MED, 0, 0, "Could not load help page %s.", path);
     }
 }
 
@@ -97,13 +100,15 @@ void str_make_lowercase(char* s)
 
 void menu_help_go_to_label(void* label, int delta)
 {
-    int page = 1;
+    int page = 0;
     
     // hack: use config file routines to parse menu index file
     extern int config_file_size, config_file_pos;
     extern char* config_file_buf;
     config_file_buf = (void*)read_entire_file(CARD_DRIVE "ML/doc/menuidx.dat", &config_file_size);
     config_file_pos = 0;
+    
+    if (!config_file_size) page = -1; // show "help not found" warning
 
     char line_buf[ 100 ];
     
