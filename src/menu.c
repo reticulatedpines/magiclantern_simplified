@@ -187,64 +187,6 @@ void beta_set_warned()
 }
 #endif
 
-void 
-draw_beta_warning()
-{
-    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
-
-    bmp_printf(FONT_LARGE, 360 - font_large.width * 6, 50, "Magic Lantern");
-    
-    bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
-
-    bmp_printf(FONT_MED, 50, 200, "   Please report all bugs at www.magiclantern.fm.   ");
-
-    bmp_printf(FONT_MED, 50, 250, "      Be careful using it for production work.      ");
-
-    bmp_printf(FONT_MED, 50, 300, "                       Enjoy!                       ");
-
-    big_bmp_printf(FONT_MED,  10,  410,
-        "Magic Lantern version : %s\n"
-        "Mercurial changeset   : %s\n"
-        "Built on %s by %s.",
-        build_version,
-        build_id,
-        build_date,
-        build_user);
-}
-
-void 
-draw_404_page()
-{
-    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
-
-    bfnt_puts("404 Undocumented Feature", 10, 20, COLOR_WHITE, COLOR_BLACK);
-    
-    bmp_printf(FONT_MED, 10, 100, "This feature is probably not yet documented.");
-    bmp_printf(FONT_MED, 10, 120, "After all, we are programmers, not tech writers.");
-
-    bmp_printf(FONT_MED, 10, 180, "But... you can simply try it and see what it does.");
-
-    bmp_printf(FONT_MED, 10, 240, "Then, write a short paragraph to describe it,");
-    bmp_printf(FONT_MED, 10, 260, "and we will include it in the user guide.");
-
-    bmp_printf(FONT_MED, 10, 320, "Thanks!");
-
-}
-
-void 
-draw_help_not_installed_page()
-{
-    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
-
-    bfnt_puts("Help files not found", 10, 20, COLOR_WHITE, COLOR_BLACK);
-    
-    bmp_printf(FONT_MED, 10, 150, "Magic Lantern help files seem to have disappeared. Whoops!");
-
-    bmp_printf(FONT_MED, 10, 250, "To browse help, please copy the DOC directory on your card.");
-
-    bmp_printf(FONT_MED, 10, 350, "Or... just go out and take some pictures :)");
-}
-
 //~ struct dialog * menu_dialog = 0;
 static struct menu * menus;
 
