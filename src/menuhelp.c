@@ -40,17 +40,16 @@ draw_beta_warning()
 {
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
-    bmp_printf(FONT_LARGE, 360 - font_large.width * 6, 50, "Magic Lantern");
+    bfnt_puts("Magic Lantern for EOS 7D - Alpha 1", 50, 50, COLOR_WHITE, COLOR_BLACK);
     
-    bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
+    bmp_printf(FONT_MED, 50, 150, "   This is a version with limited functionality,    ");
+    bmp_printf(FONT_MED, 50, 180, "   for testing purposes, not for production work.   ");
 
-    bmp_printf(FONT_MED, 50, 200, "   Please report all bugs at www.magiclantern.fm.   ");
-
-    bmp_printf(FONT_MED, 50, 250, "      Be careful using it for production work.      ");
+    bmp_printf(FONT_MED, 50, 250, "     Please report bugs at www.magiclantern.fm.     ");
 
     bmp_printf(FONT_MED, 50, 300, "                       Enjoy!                       ");
 
-    big_bmp_printf(FONT_MED,  10,  410,
+    big_bmp_printf(FONT_MED,  50,  410,
         "Magic Lantern version : %s\n"
         "Mercurial changeset   : %s\n"
         "Built on %s by %s.",
