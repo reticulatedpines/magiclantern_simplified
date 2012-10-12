@@ -158,7 +158,8 @@ void str_make_lowercase(char* s)
 
 void menu_help_go_to_label(void* label, int delta)
 {
-    int page = 0;
+    int page = 0; // if help page won't be found, will show 404
+    if (is_menu_selected("Help")) page = 1; // don't show the 404 page in Help menu :P
     
     // hack: use config file routines to parse menu index file
     extern int config_file_size, config_file_pos;

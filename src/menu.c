@@ -2546,15 +2546,19 @@ menu_task_minimal( void* unused )
 
 TASK_CREATE( "menu_task", menu_task, 0, 0x1a, 0x2000 );
 
-int is_menu_active(char* name)
+int is_menu_selected(char* name)
 {
-    if (!menu_shown) return 0;
-    if (menu_help_active) return 0;
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
         if( menu->selected )
             break;
     return !strcmp(menu->name, name);
+}
+int is_menu_active(char* name)
+{
+    if (!menu_shown) return 0;
+    if (menu_help_active) return 0;
+    return is_menu_selected(name);
 }
 
 void select_menu(char* name, int entry_index)
