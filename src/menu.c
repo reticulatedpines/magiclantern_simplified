@@ -1145,9 +1145,19 @@ menu_display(
                 }
                 else if (menu->children && !submenu_mode && !menu_lv_transparent_mode)
                 {
-                    int nspaces = 16 - strlen(Q_BTN_NAME);
+                    char *button = Q_BTN_NAME;
+                    
+#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D) // Q not working while recording, use INFO instead
+                    if (recording)
+                    {
+                        button = "[INFO]";
+                    }
+#endif
+                    
+                    int nspaces = 16 - strlen(button);
                     for (int i = 0; i < nspaces; i++) { STR_APPEND(msg, " "); }
-                    STR_APPEND(msg, "%s: open submenu ", Q_BTN_NAME);
+                    
+                    STR_APPEND(msg, "%s: open submenu ", button);
                 }
                 
                 //~ while (strlen(msg) < 60) { STR_APPEND(msg, " "); }
@@ -2039,7 +2049,7 @@ handle_ml_menu_keys(struct event * event)
     }
     
     int button_code = event->param;
-#if defined(CONFIG_60D) || defined(CONFIG_600D) // Q not working while recording, use INFO instead
+#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D) // Q not working while recording, use INFO instead
     if (button_code == BGMT_INFO && recording) button_code = BGMT_Q;
 #endif
 
