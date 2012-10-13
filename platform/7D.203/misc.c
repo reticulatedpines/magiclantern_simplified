@@ -10,13 +10,13 @@
 void display_shooting_info() // called from debug task
 {
 	if (lv) return;
-	
+
 	int bg = bmp_getpixel(314, 260);
 	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
-		bmp_printf(fnt, 360, 279, "%5dK", lens_info.kelvin);
+		bmp_printf(fnt, 386, 279, "%5dK", lens_info.kelvin);
 	}
 	if (lens_info.wbs_gm || lens_info.wbs_ba)
 	{
@@ -38,11 +38,11 @@ void display_shooting_info() // called from debug task
 	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 
 	hdr_display_status(fnt);
+    bmp_fill(3,319,411,68,17);
+	bmp_printf(fnt, 320, 410, " %3d%%", GetBatteryLevel());
 
-	bmp_printf(fnt, 315, 410, "  %d%% ", GetBatteryLevel());
-
-	//~ bmp_printf(fnt, 400, 450, "Flash:%s", 
-		//~ strobo_firing == 0 ? " ON" : 
+	//~ bmp_printf(fnt, 400, 450, "Flash:%s",
+		//~ strobo_firing == 0 ? " ON" :
 		//~ strobo_firing == 1 ? "OFF" : "Auto"
 		//~ strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
 		//~ );
@@ -89,7 +89,7 @@ void RefreshBatteryLevel_1Hz()
 {
 	static int k = 0;
 	k++;
-	
+
     #if 0 // probably works, but let's play safe
 	if (k % 10 == 0 &&
 		lens_info.job_state == 0) // who knows what race conditions are here... I smell one :)
@@ -98,9 +98,9 @@ void RefreshBatteryLevel_1Hz()
 		prop_request_change(PROP_BATTERY_REPORT, &x, 1); // see PROP_Request PROP_BATTERY_REPORT
 	}
     #endif
-	
+
 	msleep(50);
-	
+
 	// check how many seconds battery indicator was at the same percentage
 	// this is a rough indication of how fast the battery is draining
 	static int old_battery_level = -1;
