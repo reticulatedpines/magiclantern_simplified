@@ -305,7 +305,7 @@ int should_draw_zoom_overlay()
     if (!lv) return 0;
     if (!zoom_overlay_enabled) return 0;
     if (!zebra_should_run()) return 0;
-    if (ext_monitor_rca) return 0;
+    if (EXT_MONITOR_RCA) return 0;
     if (hdmi_code == 5) return 0;
     if (zoom_overlay_trigger_mode == 4) return true;
 
@@ -753,7 +753,7 @@ hist_build()
         {
             uint32_t pixel = buf[BM2LV(x,y)/4];
             int Y;
-            if (hist_colorspace == 1 && !ext_monitor_rca) // rgb
+            if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // rgb
             {
                 int R, G, B;
                 //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
@@ -981,7 +981,7 @@ hist_draw_image(
                 int hilight = ABS(i-highlight_level) <= 1;
                 *col = y > size + hilight ? COLOR_BG : (hilight ? COLOR_RED : COLOR_WHITE);
             }
-            else if (hist_colorspace == 1 && !ext_monitor_rca) // RGB
+            else if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
                 *col = hist_rgb_color(y, sizeR, sizeG, sizeB);
             else
                 *col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][(i * 256 / HIST_WIDTH) & 0xFF]: COLOR_WHITE);
@@ -999,7 +999,7 @@ hist_draw_image(
             thr = MAX(thr, 1);
             int yw = y_origin + 12 + (hist_log ? hist_height - 24 : 0);
             int bg = (hist_log ? COLOR_WHITE : COLOR_BLACK);
-            if (hist_colorspace == 1 && !ext_monitor_rca) // RGB
+            if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
             {
                 unsigned int over_r = hist_r[i] + hist_r[i-1] + hist_r[i-2];
                 unsigned int over_g = hist_g[i] + hist_g[i-1] + hist_g[i-2];
@@ -1426,7 +1426,7 @@ void draw_zebras( int Z )
                 if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/4, mp + BMPPITCH/4); continue; }
                 if ((MP & 0x80808080) || (MN & 0x80808080)) continue;
                 
-                if (zebra_colorspace == 1 && !ext_monitor_rca) // rgb
+                if (zebra_colorspace == 1 && !EXT_MONITOR_RCA) // rgb
                 {
                     int Y, R, G, B;
                     //~ uyvy2yrgb(*lvp, &Y, &R, &G, &B);
@@ -2637,7 +2637,7 @@ zoom_overlay_display(
 
     );
 
-    if (ext_monitor_rca)
+    if (EXT_MONITOR_RCA)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work with SD monitors");
     else if (hdmi_code == 5)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work in HDMI 1080i.");
@@ -5333,7 +5333,7 @@ livev_hipriority_task( void* unused )
         draw_cropmark_area(); // just for debugging
         struct vram_info * lv = get_yuv422_vram();
         struct vram_info * hd = get_yuv422_hd_vram();
-        bmp_printf(FONT_MED, 100, 100, "ext:%d%d%d \nlv:%x %dx%d \nhd:%x %dx%d ", ext_monitor_rca, ext_monitor_hdmi, hdmi_code, lv->vram, lv->width, lv->height, hd->vram, hd->width, hd->height);
+        bmp_printf(FONT_MED, 100, 100, "ext:%d%d%d \nlv:%x %dx%d \nhd:%x %dx%d ", EXT_MONITOR_RCA, ext_monitor_hdmi, hdmi_code, lv->vram, lv->width, lv->height, hd->vram, hd->width, hd->height);
         #endif
 
         lv_vsync();

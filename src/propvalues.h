@@ -24,7 +24,7 @@ extern int shutter_count;
 extern int shutter_count_plus_lv_actuations;
 extern int ae_mode_movie;
 extern int ext_monitor_hdmi;
-extern int ext_monitor_rca;
+extern int _ext_monitor_rca;
 extern int file_number;
 extern int folder_number;
 extern int file_number_also;
@@ -45,7 +45,8 @@ extern int burst_count;
 extern int battery_level_bars;
 extern int sound_recording_mode; // 1 = disable?
 
-#define EXT_MONITOR_CONNECTED (ext_monitor_hdmi | ext_monitor_rca)
+#define EXT_MONITOR_CONNECTED (ext_monitor_hdmi || _ext_monitor_rca)
+#define EXT_MONITOR_RCA (_ext_monitor_rca && !ext_monitor_hdmi)
 
 extern struct bmp_ov_loc_size os;
 

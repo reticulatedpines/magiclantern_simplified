@@ -120,7 +120,7 @@ PROP_HANDLER( PROP_LV_ACTION )
 
 volatile PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code);
 volatile PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
-volatile PROP_INT(PROP_USBRCA_MONITOR, ext_monitor_rca);
+volatile PROP_INT(PROP_USBRCA_MONITOR, _ext_monitor_rca);
 
 #ifdef CONFIG_50D
 int recording = 0;

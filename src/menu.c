@@ -1830,7 +1830,7 @@ menu_redraw_do()
                             else bmp_idle_copy(1,0);
                         }
                     }
-                    else if (ext_monitor_rca)
+                    else if (EXT_MONITOR_RCA)
                         bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  200, /* 128 div */ 135, /* 128 div */ 135);
                     else
                     {

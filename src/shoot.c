@@ -2208,7 +2208,7 @@ static int crit_wbs_gm(int k)
 
 static void kelvin_auto_run()
 {
-    if (ext_monitor_rca) { NotifyBox(2000, "Not working on SD monitors."); return; }
+    if (EXT_MONITOR_RCA) { NotifyBox(2000, "Not working on SD monitors."); return; }
     
     menu_stop();
     int c0 = crit_kelvin(-1); // test current kelvin
@@ -2222,7 +2222,7 @@ static void kelvin_auto_run()
 
 static void wbs_gm_auto_run()
 {
-    if (ext_monitor_rca) { NotifyBox(2000, "Not working on SD monitors."); return; }
+    if (EXT_MONITOR_RCA) { NotifyBox(2000, "Not working on SD monitors."); return; }
 
     menu_stop();
     int c0 = crit_wbs_gm(100); // test current value
@@ -6278,13 +6278,13 @@ static void misc_shooting_info()
             else ae_warned = 0;
             #endif
             
-            if (ext_monitor_rca) 
+            if (EXT_MONITOR_RCA) 
             {
                 static int rca_warned = 0;
                 if (!rca_warned && !gui_menu_shown())
                 {
                     msleep(2000);
-                    if (ext_monitor_rca) // check again
+                    if (EXT_MONITOR_RCA) // check again
                     {
                         bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, 
                             "SD monitors NOT fully supported!\n"
