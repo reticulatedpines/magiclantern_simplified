@@ -320,6 +320,10 @@ enable_liveview_print(
 
 void force_liveview()
 {
+    #ifdef CONFIG_5DC // obvious :)
+    return;
+    #endif
+
     extern int ml_started;
     while (!ml_started) msleep(50);
 

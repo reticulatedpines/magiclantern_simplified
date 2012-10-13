@@ -34,6 +34,8 @@
 #include "lens.h"
 #include "math.h"
 
+#define ext_monitor_rca 0
+
 static void waveform_init();
 //~ static void histo_init();
 static void do_disp_mode_change();

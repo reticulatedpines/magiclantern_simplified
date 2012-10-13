@@ -1327,6 +1327,10 @@ silent_pic_take_longexp()
 
 void ensure_movie_mode()
 {
+    #ifdef CONFIG_VXWORKS
+    return;
+    #endif
+    
     if (!is_movie_mode())
     {
         #ifdef CONFIG_50D
@@ -5874,6 +5878,10 @@ static void press_rec_button()
 
 void movie_start()
 {
+    #ifdef CONFIG_VXWORKS
+    return;
+    #endif
+
     while (get_halfshutter_pressed()) msleep(100);
     if (lens_info.job_state >= 10) return; 
 
@@ -5908,6 +5916,10 @@ void movie_start()
 
 void movie_end()
 {
+    #ifdef CONFIG_VXWORKS
+    return;
+    #endif
+
     if (shooting_type != 3 && !is_movie_mode())
     {
         NotifyBox(2000, "movie_end: not movie mode (%d,%d) ", shooting_type, shooting_mode);

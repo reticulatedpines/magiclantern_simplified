@@ -4805,6 +4805,10 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
 int lv_zoom_before_pause = 0;
 void PauseLiveView() // this should not include "display off" command
 {
+    #ifdef CONFIG_5DC
+    return;
+    #endif
+    
     if (ml_shutdown_requested) return;
     if (sensor_cleaning) return;
     if (PLAY_MODE) return;
@@ -4829,6 +4833,10 @@ void PauseLiveView() // this should not include "display off" command
 // returns 1 if it did wakeup
 int ResumeLiveView()
 {
+    #ifdef CONFIG_5DC
+    return;
+    #endif
+
     if (ml_shutdown_requested) return 0;
     if (sensor_cleaning) return 0;
     if (PLAY_MODE) return 0;

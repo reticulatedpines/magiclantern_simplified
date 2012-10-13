@@ -662,7 +662,8 @@ static void stress_test_task(void* unused)
     
     msleep(2000);
 
-    #ifndef CONFIG_50D
+    #ifndef CONFIG_50D // taking pics while REC crashes with Canon firmware too
+    #ifndef CONFIG_5DC // no movie mode :)
     ensure_movie_mode();
     msleep(1000);
     for (int i = 0; i <= 5; i++)
@@ -681,6 +682,7 @@ static void stress_test_task(void* unused)
         movie_end();
         msleep(2000);
     }
+    #endif
     #endif
 
     msleep(2000);
@@ -732,6 +734,7 @@ static void stress_test_task(void* unused)
     if (!lv) force_liveview();
     msleep(2000);
 
+#ifndef CONFIG_5DC // no cropmarks implemented
     NotifyBox(1000, "Cropmarks preview...");
     select_menu_by_name("Overlay", "Cropmarks");
     give_semaphore( gui_sem );
@@ -745,6 +748,7 @@ static void stress_test_task(void* unused)
     }
     menu_stop();
     msleep(2000);
+#endif
 
     NotifyBox(1000, "ML menu scroll...");
     give_semaphore(gui_sem);
@@ -769,6 +773,7 @@ static void stress_test_task(void* unused)
 
     msleep(2000);
 
+#ifndef CONFIG_5DC // no such functionality
     beep();
     fake_simple_button(BGMT_PLAY); msleep(1000);
     for (int i = 0; i < 100; i++)
@@ -796,6 +801,7 @@ static void stress_test_task(void* unused)
     }
     get_out_of_play_mode();
     msleep(2000);
+#endif
 
     fake_simple_button(BGMT_PLAY); msleep(1000);
     for (int i = 0; i < 50; i++)
@@ -817,6 +823,7 @@ static void stress_test_task(void* unused)
 
     if (!lv) force_liveview();
 
+#ifndef CONFIG_5DC // no LV
     for (int i = 0; i <= 100; i++)
     {
         int r = rand()%3;
@@ -844,6 +851,7 @@ static void stress_test_task(void* unused)
     }
 
     msleep(2000);
+#endif
 
 /*    for (int i = 0; i < 100; i++)
     {
@@ -873,6 +881,7 @@ static void stress_test_task(void* unused)
     }
     set_backlight_level(old_backlight_level);
 
+#ifndef CONFIG_5DC // no LV
     if (!lv) force_liveview();
     for (int k = 0; k < 10; k++)
     {
@@ -901,6 +910,7 @@ static void stress_test_task(void* unused)
         }
     }
     set_display_gain_equiv(0);
+#endif
 
     msleep(1000);
     
@@ -935,6 +945,7 @@ static void stress_test_task(void* unused)
 
     msleep(2000);
 
+#if 0 // unsafe
     for (int i = 0; i <= 10; i++)
     {
         NotifyBox(1000, "Mode switching: %d", i*10);
@@ -951,7 +962,9 @@ static void stress_test_task(void* unused)
     }
     
     stress_test_picture(2, 2000);
+#endif
 
+#ifndef CONFIG_5DC // no focus features
     if (!lv) force_liveview();
     NotifyBox(10000, "Focus tests...");
     msleep(2000);
@@ -965,6 +978,7 @@ static void stress_test_task(void* unused)
     }
 
     msleep(2000);
+#endif
 
     NotifyBox(10000, "Expo tests...");
     
@@ -997,6 +1011,7 @@ static void stress_test_task(void* unused)
     if (!lv) force_liveview();
     msleep(1000);
 
+#ifndef CONFIG_5DC // no LV
     for (int i = 0; i <= 100; i++)
     {
         NotifyBox(1000, "Pause LiveView: %d", i);
@@ -1005,6 +1020,7 @@ static void stress_test_task(void* unused)
     }
 
     stress_test_picture(2, 2000);
+#endif
 
     msleep(2000);
     if (!lv) force_liveview();
@@ -1034,6 +1050,7 @@ static void stress_test_task(void* unused)
 
     stress_test_picture(2, 2000);
 
+#ifndef CONFIG_5DC // no LV, bulb, movie
     NotifyBox(10000, "LiveView switch...");
     set_shooting_mode(SHOOTMODE_M);
     for (int i = 0; i < 21; i++)
@@ -1067,6 +1084,7 @@ static void stress_test_task(void* unused)
     }
 
     stress_test_picture(2, 2000);
+#endif
 
     NotifyBox(2000, "Test complete."); msleep(2000);
     NotifyBox(2000, "Is the camera still working?"); msleep(2000);
@@ -2608,14 +2626,12 @@ struct menu_entry debug_menus[] = {
         .children =  (struct menu_entry[]) {
             #ifndef CONFIG_7D_MINIMAL
             #ifndef CONFIG_5D3_MINIMAL // will change some settings and you can't restore them
-            #ifndef CONFIG_5DC // many things incompatible, mostly liveview stuff
             {
                 .name = "Quick test (around 15 min)",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = stress_test_task,
                 .help = "A quick test which covers basic functionality. "
             },
-            #endif
             #endif
             {
                 .name = "Random tests (infinite loop)",
