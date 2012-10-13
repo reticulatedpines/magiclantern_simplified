@@ -1099,6 +1099,17 @@ void set_ml_palette()
     }
 }
 
+// fun stuff
+void randomize_palette()
+{
+    if (!DISPLAY_IS_ON) return;
+    BmpDDev_take_semaphore();
+    for (int i = 0; i < 16; i++)
+        EngDrvOut(0xC0F14080 + i*4, rand());
+    EngDrvOut(0xC0F14078, 1);
+    BmpDDev_give_semaphore();
+}
+
 void set_ml_palette_if_dirty()
 {
     if (!DISPLAY_IS_ON) return;

@@ -539,6 +539,14 @@ void iso_movie_test()
 
 void run_test()
 {
+#ifdef CONFIG_5DC
+    msleep(5000);
+    while(1)
+    {
+        randomize_palette();
+        msleep(rand()%500);
+    }
+#endif
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
