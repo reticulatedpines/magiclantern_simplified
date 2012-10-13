@@ -6155,8 +6155,21 @@ int handle_mlu_toggle(struct event * event)
 {
     if (event->param == BGMT_PRESS_DIRECT_PRINT && display_idle())
     {
-        mlu_auto = 0;
-        set_mlu(!get_mlu());
+        int m = !get_mlu();
+        set_mlu(m);
+        if (mlu_auto)
+        {
+            static int prev_drive_mode = DRIVE_SINGLE;
+            if (m)
+            {
+                if (drive_mode != DRIVE_SELFTIMER_REMOTE) prev_drive_mode = drive_mode;
+                lens_set_drivemode(DRIVE_SELFTIMER_REMOTE);
+            }
+            else
+            {
+                lens_set_drivemode(prev_drive_mode);
+            }
+        }
         return 0;
     }
     return 1;
