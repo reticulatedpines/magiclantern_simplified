@@ -239,6 +239,8 @@ void aperture_toggle( void* priv, int sign);
 // max iso with expo override
 #ifdef CONFIG_5D3
 #define MAX_ISO_BV 199
+#elif defined(CONFIG_500D)
+#define MAX_ISO_BV 104 // 1600
 #else
 #define MAX_ISO_BV 128
 #endif

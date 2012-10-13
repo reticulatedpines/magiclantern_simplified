@@ -1764,7 +1764,7 @@ iso_toggle( void * priv, int sign )
         extern int bv_auto;
         if (lens_info.raw_iso && priv != (void*)-1)
         if ((lens_info.raw_iso <= MIN_ISO               && sign < 0) ||
-            (lens_info.raw_iso >= (bv_auto ? 128 : 120) && sign > 0))
+            (lens_info.raw_iso >= (bv_auto ? MAX_ISO_BV : 120) && sign > 0))
         {
             if (lens_set_rawiso(0)) // ISO auto
                 return;
