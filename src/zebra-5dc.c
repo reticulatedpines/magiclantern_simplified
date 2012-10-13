@@ -2565,6 +2565,14 @@ void draw_livev_for_playback()
         livev_for_playback_running = 0;
         return;
     }
+    
+    extern int quick_review_allow_zoom;
+    if (quick_review_allow_zoom && image_review_time == 0xff)
+    {
+        // wait for the camera to switch from QR to PLAY before drawing anything
+        while (!PLAY_MODE) msleep(100);
+        msleep(500);
+    }
 
     while (!DISPLAY_IS_ON) msleep(100);
 
