@@ -40,10 +40,10 @@ draw_beta_warning()
 {
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
-    bmp_printf(FONT_LARGE, 360 - font_large.width * 6, 50, "Magic Lantern");
-    
-    bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
+    bfnt_puts("Magic Lantern for 5Dc - Beta 4", 20, 50, COLOR_WHITE, COLOR_BLACK);
 
+    bmp_printf(FONT_MED, 50, 150, " This version is an open beta for testing purposes. ");
+ 
     bmp_printf(FONT_MED, 50, 200, "   Please report all bugs at www.magiclantern.fm.   ");
 
     bmp_printf(FONT_MED, 50, 250, "      Be careful using it for production work.      ");

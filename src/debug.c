@@ -544,7 +544,7 @@ void run_test()
     while(1)
     {
         randomize_palette();
-        msleep(rand()%500);
+        msleep(rand()%50);
     }
 #endif
 }
