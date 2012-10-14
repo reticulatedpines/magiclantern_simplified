@@ -2141,7 +2141,8 @@ void bv_expsim_shift()
 {
     if (!lv) return;
     if (!expsim) return;
-    
+    if (!CONTROL_BV) return;
+   
     if (!is_movie_mode())
     {
         int tv_fps_shift = fps_get_shutter_speed_shift(bv_tv);
