@@ -172,68 +172,137 @@ void play_zoom_center_on_selected_af_point()
 {
 #ifdef IMGPLAY_ZOOM_POS_X
     if (af_point == AF_POINT_C) return; // nothing to do, zoom is centered by default
-    int x = 0;
-    int y = 0;
+    int x = IMGPLAY_ZOOM_POS_X_CENTER;
+    int y = IMGPLAY_ZOOM_POS_Y_CENTER;
     int n = 0;
-        
-    if (af_point & AF_POINT_C) 
-    { 
-        x += IMGPLAY_ZOOM_POS_X_CENTER; 
-        y += IMGPLAY_ZOOM_POS_Y_CENTER; 
-        n++; 
-    }
-    if (af_point & AF_POINT_T)
-    { 
-        x += IMGPLAY_ZOOM_POS_X_CENTER; 
-        y += IMGPLAY_ZOOM_POS_Y_CENTER - IMGPLAY_ZOOM_POS_DELTA_Y; 
-        n++; 
-    }
-    if (af_point & AF_POINT_B)
-    { 
-        x += IMGPLAY_ZOOM_POS_X_CENTER; 
-        y += IMGPLAY_ZOOM_POS_Y_CENTER + IMGPLAY_ZOOM_POS_DELTA_Y; 
-        n++; 
-    }
-    if (af_point & AF_POINT_L)
-    { 
-        x += IMGPLAY_ZOOM_POS_X_CENTER - IMGPLAY_ZOOM_POS_DELTA_X; 
-        y += IMGPLAY_ZOOM_POS_Y_CENTER; 
-        n++; 
-    }
-    if (af_point & AF_POINT_R)
-    { 
-        x += IMGPLAY_ZOOM_POS_X_CENTER + IMGPLAY_ZOOM_POS_DELTA_X; 
-        y += IMGPLAY_ZOOM_POS_Y_CENTER; 
-        n++; 
-    }
 
-    if (af_point & AF_POINT_TL)
-    { 
-        x += IMGPLAY_ZOOM_POS_X_CENTER - IMGPLAY_ZOOM_POS_DELTA_X / 2; 
-        y += IMGPLAY_ZOOM_POS_Y_CENTER - IMGPLAY_ZOOM_POS_DELTA_Y / 2; 
-        n++; 
+    if (af_point == AF_POINT_T)
+    {
+        y -= IMGPLAY_ZOOM_POS_DELTA_Y;
+        n++;
     }
-    if (af_point & AF_POINT_TR)
-    { 
-        x += IMGPLAY_ZOOM_POS_X_CENTER + IMGPLAY_ZOOM_POS_DELTA_X / 2; 
-        y += IMGPLAY_ZOOM_POS_Y_CENTER - IMGPLAY_ZOOM_POS_DELTA_Y / 2; 
-        n++; 
+    if (af_point == AF_POINT_B)
+    {
+        y += IMGPLAY_ZOOM_POS_DELTA_Y;
+        n++;
     }
-    if (af_point & AF_POINT_BL)
-    { 
-        x += IMGPLAY_ZOOM_POS_X_CENTER - IMGPLAY_ZOOM_POS_DELTA_X / 2; 
-        y += IMGPLAY_ZOOM_POS_Y_CENTER + IMGPLAY_ZOOM_POS_DELTA_Y / 2; 
-        n++; 
+    if (af_point == AF_POINT_L)
+    {
+        x -= IMGPLAY_ZOOM_POS_DELTA_X;
+        n++;
     }
-    if (af_point & AF_POINT_BR)
-    { 
-        x += IMGPLAY_ZOOM_POS_X_CENTER + IMGPLAY_ZOOM_POS_DELTA_X / 2; 
-        y += IMGPLAY_ZOOM_POS_Y_CENTER + IMGPLAY_ZOOM_POS_DELTA_Y / 2; 
-        n++; 
+    if (af_point == AF_POINT_R)
+    {
+        x += IMGPLAY_ZOOM_POS_DELTA_X;
+        n++;
     }
+#if defined(CONFIG_7D)
+    if (af_point == AF_POINT_TT)
+    {
+        y -= 2*IMGPLAY_ZOOM_POS_DELTA_Y;
+        n++;
+    }
+    if (af_point == AF_POINT_BB)
+    {
+        y += 2*IMGPLAY_ZOOM_POS_DELTA_Y;
+        n++;
+    }
+    if (af_point == AF_POINT_LL)
+    {
+        x -= 2*IMGPLAY_ZOOM_POS_DELTA_X;
+        n++;
+    }
+    if (af_point == AF_POINT_LLL)
+    {
+        x -= 3*IMGPLAY_ZOOM_POS_DELTA_X;
+        n++;
+    }
+    if (af_point == AF_POINT_RR)
+    {
+        x += 2*IMGPLAY_ZOOM_POS_DELTA_X;
+        n++;
+    }
+    if (af_point == AF_POINT_RRR)
+    {
+        x += 3*IMGPLAY_ZOOM_POS_DELTA_X;
+        n++;
+    }
+    if (af_point == AF_POINT_TL)
+    {
+        x -= IMGPLAY_ZOOM_POS_DELTA_X;
+        y -= IMGPLAY_ZOOM_POS_DELTA_Y;
+        n++;
+    }
+    if (af_point == AF_POINT_TLL)
+    {
+        x -= 2*IMGPLAY_ZOOM_POS_DELTA_X;
+        y -= IMGPLAY_ZOOM_POS_DELTA_Y;
+        n++;
+    }
+    if (af_point == AF_POINT_TR)
+    {
+        x += IMGPLAY_ZOOM_POS_DELTA_X;
+        y -= IMGPLAY_ZOOM_POS_DELTA_Y;
+        n++;
+    }
+    if (af_point == AF_POINT_TRR)
+    {
+        x += IMGPLAY_ZOOM_POS_DELTA_X;
+        y -= 2*IMGPLAY_ZOOM_POS_DELTA_Y;
+        n++;
+    }
+    if (af_point == AF_POINT_BL)
+    {
+        x -= IMGPLAY_ZOOM_POS_DELTA_X;
+        y += IMGPLAY_ZOOM_POS_DELTA_Y;
+        n++;
+    }
+    if (af_point == AF_POINT_BLL)
+    {
+        x -= 2*IMGPLAY_ZOOM_POS_DELTA_X;
+        y += IMGPLAY_ZOOM_POS_DELTA_Y;
+        n++;
+    }
+    if (af_point == AF_POINT_BR)
+    {
+        x += IMGPLAY_ZOOM_POS_DELTA_X;
+        y += IMGPLAY_ZOOM_POS_DELTA_Y;
+        n++;
+    }
+    if (af_point == AF_POINT_BRR)
+    {
+        x += 2*IMGPLAY_ZOOM_POS_DELTA_X;
+        y += IMGPLAY_ZOOM_POS_DELTA_Y;
+        n++;
+    }
+#else
+    if (af_point == AF_POINT_TL)
+    {
+        x -= IMGPLAY_ZOOM_POS_DELTA_X / 2;
+        y -= IMGPLAY_ZOOM_POS_DELTA_Y / 2;
+        n++;
+    }
+    if (af_point == AF_POINT_TR)
+    {
+        x += IMGPLAY_ZOOM_POS_DELTA_X / 2;
+        y -= IMGPLAY_ZOOM_POS_DELTA_Y / 2;
+        n++;
+    }
+    if (af_point == AF_POINT_BL)
+    {
+        x -= IMGPLAY_ZOOM_POS_DELTA_X / 2;
+        y += IMGPLAY_ZOOM_POS_DELTA_Y / 2;
+        n++;
+    }
+    if (af_point == AF_POINT_BR)
+    {
+        x += IMGPLAY_ZOOM_POS_DELTA_X / 2;
+        y += IMGPLAY_ZOOM_POS_DELTA_Y / 2;
+        n++;
+    }
+#endif
+
     if (n == 0) return;
-    x /= n;
-    y /= n;
 
     IMGPLAY_ZOOM_POS_X = x;
     IMGPLAY_ZOOM_POS_Y = y;
@@ -285,26 +354,26 @@ void draw_af_point(int x, int y, int r, int color)
     }
 }
 
-static void 
+static void
 pattern_display( void * priv, int x, int y, int selected )
 {
-    int t = (*(int*)priv);
+//    int t = (*(int*)priv);
     bmp_printf(
         MENU_FONT,
         x, y,
         "Vertical selection"
     );
-    
+
     int cx = 500;
     int cy = 350;
     int w = 232;
     int h = 140;
     int dx = w*2/5;
     int dy = h*2/5;
-    
+
     bmp_fill(COLOR_BLACK, cx-w/2, cy-h/2, w, h);
     bmp_draw_rect(COLOR_WHITE, cx-w/2, cy-h/2, w, h);
-    
+
     draw_af_point(cx,      cy     , 7, af_point & AF_POINT_C ? COLOR_RED : COLOR_GRAY50);
     draw_af_point(cx - dx, cy     ,  5, af_point & AF_POINT_L ? COLOR_RED : COLOR_GRAY50);
     draw_af_point(cx + dx, cy     ,  5, af_point & AF_POINT_R ? COLOR_RED : COLOR_GRAY50);
