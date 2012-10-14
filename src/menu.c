@@ -31,11 +31,8 @@
 #include "font.h"
 #include "menu.h"
 
-#ifdef CONFIG_40D
-  #define DOUBLE_BUFFERING 0
-#else
-  #define DOUBLE_BUFFERING 1
-#endif
+
+#define DOUBLE_BUFFERING 1
 
 #define MENU_KEYHELP_Y_POS (menu_lv_transparent_mode ? 425 : 430)
 #define MENU_HELP_Y_POS 453
@@ -1909,8 +1906,6 @@ menu_redraw_task()
 
 TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1a, 0x2000 );
 
-//TASK_CREATE( "menu_task_minimal", menu_task_minimal, 0, 0x1a, 0x2000 );
-
 void
 menu_redraw()
 {
@@ -2562,6 +2557,8 @@ menu_task_minimal( void* unused )
 }
 
 TASK_CREATE( "menu_task", menu_task, 0, 0x1a, 0x2000 );
+
+//~ TASK_CREATE( "menu_task_minimal", menu_task_minimal, 0, 0x1a, 0x2000 );
 
 int is_menu_selected(char* name)
 {
