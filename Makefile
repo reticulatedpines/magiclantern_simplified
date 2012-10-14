@@ -60,6 +60,9 @@ all: $(SUPPORTED_MODELS)
 5DC:
 	$(MAKE) -C $(PLATFORM_PATH)/5DC.111
 
+40D:
+	$(MAKE) -C $(PLATFORM_PATH)/40D.111
+
 plugins: FORCE
 	$(MAKE) -C $(PLUGINS_DIR)
 
@@ -121,6 +124,7 @@ clean:
 	cd $(PLATFORM_PATH)/5D2.212/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/5DC.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/1100D.105/; $(MAKE) clean
+	cd $(PLATFORM_PATH)/40D.111/; $(MAKE) clean	
 	$(MAKE) -C $(PLUGINS_DIR) clean
 	$(RM) -rf  $(BINARIES_PATH)
 
