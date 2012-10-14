@@ -1,8 +1,6 @@
 // some dummy stubs
 #include "dryos.h"
 
-struct task * get_current_task(void) { return 0; };
-
 int shamem_read(int addr) { return 0; } // or maybe return MEM(addr)
 void _EngDrvOut(int addr, int value) { MEM(addr) = value; }
 

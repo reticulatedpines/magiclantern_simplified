@@ -33,10 +33,13 @@ struct semaphore * gui_sem;
 static int handle_buttons(struct event * event)
 {
 	ASSERT(event->type == 0)
-	
+
 	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
+	
 	if (handle_common_events_startup(event) == 0) return 0;
+
 	extern int ml_started;
+	
 	if (!ml_started) return 1;
 
 	if (handle_common_events_by_feature(event) == 0) return 0;
@@ -59,8 +62,10 @@ int max_gui_queue_len = 0;
 static void
 my_gui_main_task( void )
 {
+    static int kev = 0;	
+    	
 	gui_init_end();
-
+	
 	while(1)
 	{
 		struct event * event;
@@ -77,6 +82,53 @@ my_gui_main_task( void )
 
 		if (!magic_is_off() && event->type == 0)
 		{
+			//bmp_printf(FONT_LARGE, 10, 400, "USING FONT: 0x%08X", BFNT_CHAR_CODES); msleep(500);
+			
+			/*
+			if(event->param == BGMT_TRASH) {
+				bmp_printf(FONT_LARGE, 10, 10, "BTN TRASH PRESSED!");
+				msleep(1000);
+				SetGUIRequestMode(2);
+				//open_canon_menu();
+				goto event_loop_bottom;
+			}
+			*/
+			
+			/*
+			bmp_draw_rect(COLOR_RED, 0, 0, 720, 480);
+			bmp_fill(COLOR_YELLOW,  10, 210, 700, 20);
+			*/
+			
+			/*
+			bmp_printf(FONT_LARGE, 10, 350, "%04d T=0x%08x P=0x%08x", 
+				kev,
+				event->type, 
+				event->param
+			);
+			
+			bmp_printf(FONT_LARGE, 10, 400, "%04d A=0x%08x", 
+				kev,
+				event->arg
+			);			
+			*/
+			/*
+			bmp_printf(FONT_LARGE, 0, 400, "%04d # T=0x%08x P=0x%08x A=0x%08x", 
+				kev,
+				event->type, 
+				event->param,
+				event->arg
+			);
+			
+			bmp_printf(FONT_LARGE, 0, 440, "%04d # O0=0x%08x O4=0x%08x O8=0x%08x", 
+				kev,
+				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0
+			);
+			*/
+			
+			//msleep(500);			
+			
 			if (handle_buttons(event) == 0) // ML button/event handler
 				goto event_loop_bottom;
 		}

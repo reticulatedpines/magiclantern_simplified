@@ -1,15 +1,3 @@
-/*##################################################################################
- #                                                                                 #
- #                          _____     _       _                                    #
- #                         |  ___|   | |     | |                                   #
- #                         |___ \  __| |_ __ | |_   _ ___                          #
- #                             \ \/ _` | '_ \| | | | / __|                         #
- #                         /\__/ / (_| | |_) | | |_| \__ \                         #
- #                         \____/ \__,_| .__/|_|\__,_|___/                         #
- #                                     | |                                         #
- #                                     |_|                                         #
- #                                                                                 #
- #################################################################################*/
 
 #include "dryos.h"
 #include "bmp.h"
@@ -50,36 +38,6 @@ void copy_and_restart() {
     while(1) LEDBLUE = LEDON;
 }
 
-void dumpmem(int addr, int len)
-{
-    FIO_RemoveFile("A:/0x0.BIN");
-    FILE* f = FIO_CreateFile("A:/0x0.BIN");
-    if (f!=-1)
-    { 
-        FIO_WriteFile(f, (void*)addr, len);
-        LEDBLUE = LEDON;
-        FIO_CloseFile(f);
-    }
-}
-
-//~ dump memory 64kb at a time using a buffer.
-void dump_with_buffer(int addr, int len, char* filename)
-{
-    FIO_RemoveFile(filename);
-    FILE* f = FIO_CreateFile(filename);
-    if (f!=-1)
-    { 
-        int address = addr;
-        while (address<addr+len)
-        {
-            char buf[0x10000];
-            memcpy(buf, (void*)address, 0x10000);
-            FIO_WriteFile(f, buf, 0x10000);
-            address += 0x10000;
-        }
-        FIO_CloseFile(f);
-    }
-}
 
 static void
 call_init_funcs( void * priv )
@@ -104,6 +62,7 @@ call_init_funcs( void * priv )
 
 int magic_off = 0; // Set to 1 to disable ML
 int magic_off_request = 0;
+
 int magic_is_off() 
 {
     return magic_off; 
@@ -118,14 +77,7 @@ int ml_gui_initialized = 0; // 1 after gui_main_task is started
 void my_big_init_task()
 {  
     load_fonts();
-    while(1)
-    {
-        bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
-        info_led_blink(1, 500, 500);
-    }
-    
-    // uncomment it one by one
-    
+
     call("DisablePowerSave");
     menu_init();
     debug_init();
@@ -146,7 +98,6 @@ void my_big_init_task()
     int ml_tasks = 0;
     for( ; task < _tasks_end ; task++ )
     {
-        
         // for debugging: uncomment this to start only some specific tasks
         // tip: use something like grep -nr TASK_CREATE ./ to find all task names
         #if 1
@@ -167,7 +118,9 @@ void my_big_init_task()
                 //~ streq(task->name, "light_sensor_task") ||
                 //~ streq(task->name, "livev_hiprio_task") ||
                 //~ streq(task->name, "livev_loprio_task") ||
-                streq(task->name, "menu_task") ||
+                //~ streq(task->name, "menu_task_minimal") ||                     
+                //~ 
+                streq(task->name, "menu_task") ||        
                 streq(task->name, "menu_redraw_task") ||
                 //~ streq(task->name, "morse_task") ||
                 //~ streq(task->name, "movtweak_task") ||
@@ -193,7 +146,7 @@ void my_big_init_task()
     //~ bmp_printf( FONT_MED, 0, 85,
         //~ "Magic Lantern is up and running... %d tasks started.",
         //~ ml_tasks
-    //~ );
+    //~ );   
     msleep(500);
     ml_started = 1;
 }
@@ -226,7 +179,7 @@ int bmp_vram_idle_ptr;
 void my_init_task()
 {
     msleep(1000);
-    //~ hijack_gui_main_task();
+    hijack_gui_main_task();
     bmp_vram_idle_ptr = malloc(360*240);
     my_big_init_task();
 }
