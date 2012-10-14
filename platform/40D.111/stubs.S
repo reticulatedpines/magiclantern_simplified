@@ -110,7 +110,7 @@ NSTUB(0xffd4228c, gui_timer_something)
     NSTUB(0xdeadbeef, init_task)
 NSTUB(0xffd5b3e8, malloc) // not good, points to AllocateMemory
 NSTUB(0xFFD7D798, memcpy)
-    NSTUB(0xff205e5c, msg_queue_post)
+NSTUB(0xffd432b8, msg_queue_post)
 NSTUB(0xffd42bd4, msg_queue_receive)
 NSTUB(0xffd44300, msleep)
     //NSTUB(0xff1e0e04, mvrFixQScale)
