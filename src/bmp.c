@@ -1341,6 +1341,11 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
         bmp_printf(FONT_SMALL, 0, 0, "font addr bad");
         return 0;
     }
+    
+#ifdef CONFIG_40D
+    //isLower((char)c)
+    if(c >= 'a' && c <= 'z') { c += 1; }
+#endif
 
     uint8_t * const bvram = bmp_vram();
     
