@@ -118,11 +118,26 @@
     #define BULB_MIN_EXPOSURE 200
 
     // http://magiclantern.wikia.com/wiki/Fonts
-    // not sure, need a full dump to look them up
+    // not sure, need a full dump to look them up  
+
+    // 0xff9ed2e4: FNT - 0xff9ed2e8: (+0x04) 0xffec
+    #define BFNT_CHAR_CODES    0xff9ed308
+    #define BFNT_BITMAP_OFFSET 0xff9ef4f8
+    #define BFNT_BITMAP_DATA   0xff9f16e8
+    
+    /*
+    // 0xffa27f40: FNT - 0xffa27f44: (+0x04) 0xffe2
+    #define BFNT_CHAR_CODES    0xffa27f64
+    #define BFNT_BITMAP_OFFSET 0xffa280d4
+    #define BFNT_BITMAP_DATA   0xffa28244
+    */
+    /*
+    // 0xffa2b0fc: FNT - 0xffa2b100: (+0x04) 0xffe2
     #define BFNT_CHAR_CODES    0xff22b120
     #define BFNT_BITMAP_OFFSET 0xff22b290
     #define BFNT_BITMAP_DATA   0xff22b400
-
+    */
+    
     #define DLG_SIGNATURE 0x414944
 
 // from CFn
