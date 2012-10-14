@@ -171,7 +171,7 @@ extern int bm2hd_r_cache[];
 
 extern int y_times_BMPPITCH_cache[];
 
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
 #define BM(x,y) (((x)/2) * 1 + ((y)/2) * BMPPITCH     )
 #else
 #define BM(x,y) ((x) * 1 + y_times_BMPPITCH_cache[y - BMP_H_MINUS])
