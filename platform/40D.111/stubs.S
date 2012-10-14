@@ -197,3 +197,30 @@ NSTUB(0xFFD4D2F0, vsnprintf)
 
 NSTUB( 0xffd44858, DeleteTask )
 NSTUB( 0xffd45224, QueryTaskByName)
+
+NSTUB(0x1E458, LCD_Palette)
+NSTUB(0x1E498, RGB_Palette)
+NSTUB(0x1E388, PB_Palette)
+
+NSTUB(0xFFCB0B6C, SetRGBPaletteToDisplayDevice)
+NSTUB(0xFF867AA8, ChangeColorPalette)
+NSTUB(0xFFCAFA0C, SetParameterToBitmapDisplayDevice)
+
+NSTUB(0xFFCB7EBC, EnableBitmapVBufferForPlayBackAndWaiting)
+
+NSTUB(0xFFCB9078, BmpDDev_give_semaphore);
+NSTUB(0xFFCB9028, BmpDDev_take_semaphore);
+
+NSTUB(0xFF8156F8, bindGUISwitchCBR)
+
+
+NSTUB(0xFFD4F338, TryPostEvent)
+NSTUB(0xFFD4F398, TryPostEvent_end)
+
+NSTUB(0xFFD56470, TryPostStageEvent)
+NSTUB(0xFFD564FC, TryPostStageEvent_end) // PendStageEvent
+
+NSTUB(0xFFD6A1C8, get_current_task) // 0x22E00
+NSTUB(0xFFD69F8C, get_task_info)
+NSTUB(0xFFD6B8B0, get_active_task_list)
+
