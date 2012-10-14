@@ -412,6 +412,9 @@ void lut_init()
 
 void* get_lcd_422_buf()
 {
+    #if defined(CONFIG_1100D) 
+    return (void*)CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR); // Good enough
+    #else
     switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
     {
         case YUV422_LV_BUFFER_1:
@@ -422,6 +425,7 @@ void* get_lcd_422_buf()
             return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
     }
     return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
+    #endif
 }
 
 static int fastrefresh_direction = 0;
@@ -437,6 +441,9 @@ void guess_fastrefresh_direction() {
 
 void* get_fastrefresh_422_buf()
 {
+    #ifdef CONFIG_1100D
+    return (void*)CACHEABLE(shamem_read(REG_EDMAC_WRITE_LV_ADDR)); // EDMAC holds the soon-to-be-displayed region
+    #else
     if (fastrefresh_direction) {
         switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
         {
@@ -461,8 +468,10 @@ void* get_fastrefresh_422_buf()
         return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
 
     }
+    #endif
 }
 
+// Unfortunately this doesn't work on every 1100D model yet :(
 void* get_fastrefresh_422_other_buf()
 {
     if (!fastrefresh_direction) {
