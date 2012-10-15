@@ -5682,7 +5682,7 @@ int handle_disp_preset_key(struct event * event)
         if (IS_FAKE(event)) return 1;
         if (gui_menu_shown()) return 1;
         
-        if (idle_is_powersave_enabled())
+        if (idle_is_powersave_enabled() && idle_shortcut_key)
         {
             if (disp_mode == disp_profiles_0 && !idle_is_powersave_active())
                 return handle_powersave_key(event);
