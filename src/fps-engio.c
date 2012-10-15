@@ -92,6 +92,9 @@ static CONFIG_INT("fps.preset", fps_criteria, 0);
 #define FPS_SOUND_DISABLE 1
 static CONFIG_INT("fps.wav.record", fps_wav_record, 0);
 
+static CONFIG_INT("fps.ramp", fps_ramp, 0);
+static int fps_ramp_timings[] = {0, 1, 2, 5, 15, 30, 60};
+
 int fps_should_record_wav() { return fps_override && fps_wav_record && is_movie_mode() && FPS_SOUND_DISABLE && was_sound_recording_disabled_by_fps_override(); }
 
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
@@ -431,7 +434,7 @@ static int fps_get_timer(int fps_x1000)
     ntsc = !pal;
     #endif
 
-    if (fps_criteria != 1) // if criteria is "exact FPS", don't round
+    if (fps_criteria != 1 && !fps_ramp) // if criteria is "exact FPS", or fps ramping is enabled, don't round
     {
         // NTSC is 29.97, not 30
         // also try to round it in order to avoid flicker
@@ -996,6 +999,10 @@ void fps_setup_timerA(int fps_x1000)
             #endif
             break;
     }
+    
+    // FPS ramping effect requires being able to change FPS on the fly
+    if (fps_ramp) 
+        fps_timer_b_method = 0;
 
     // we need to make sure the requested FPS is in range (we may need to change timer A)
     int fps_low = calc_fps_x1000(timerA, FPS_TIMER_B_MAX);
@@ -1143,6 +1150,13 @@ static struct menu_entry fps_menu[] = {
                 .help = "Sound usually goes out of sync and may stop recording.",
             },*/
             {
+                .name = "FPS ramping\b",
+                .priv = &fps_ramp,
+                .max = 6,
+                .choices = (const char *[]) {"OFF", "1s", "2s", "5s", "15s", "30s", "1min"},
+                .help = "Ramp FPS from overriden to default, for artistic effects.",
+            },
+            {
                 .name = "Sound Record\b",
                 .priv = &fps_wav_record,
                 .max = 1,
@@ -1256,6 +1270,39 @@ static void fps_task()
         }
 
         int f = fps_values_x1000[fps_override_index];
+        
+        if (fps_ramp && recording) // artistic effect - http://www.magiclantern.fm/forum/index.php?topic=2963.0
+        {
+            int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
+            if (f < default_fps)
+            {
+                int total_duration = fps_ramp_timings[fps_ramp];
+                float delta = 1.0 / 50 / total_duration;
+                for (float k = 0; k < 1; k += delta)
+                {
+                    if (MVR_FRAME_NUMBER <= 1) // make sure first frame is recorded at lowest FPS
+                        k = 0;
+                    float ks = k*k;
+                    float ff = default_fps * ks + f * (1-ks);
+                    int fr = (int)roundf(ff);
+                    fps_setup_timerA(fr);
+                    fps_setup_timerB(fr);
+                    fps_read_current_timer_values();
+                    msleep(20);
+                    
+                    if (!recording) break;
+                }
+            }
+            else
+            {
+                NotifyBox(2000, "Can't ramp FPS");
+                msleep(2000);
+            }
+            fps_reset();
+            NotifyBox(1000, ":)");
+            while (recording && fps_ramp) msleep(100);
+            continue;
+        }
         
         // Very low FPS: first few frames will be recorded at normal FPS, to bypass Canon's internal checks
         if (f < 5000)
