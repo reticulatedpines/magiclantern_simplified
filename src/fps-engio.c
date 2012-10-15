@@ -1158,7 +1158,7 @@ static struct menu_entry fps_menu[] = {
                 .priv = &fps_ramp,
                 .max = 11,
                 .choices = (const char *[]) {"OFF", "1s", "2s", "5s", "15s", "30s", "1min", "2min", "5min", "10min", "20min", "30min"},
-                .help = "Ramp FPS (overriden<-->default). Press REC or " INFO_BTN_NAME " to start.",
+                .help = "Ramp FPS (overriden<->default). Press REC or " INFO_BTN_NAME " to start.",
             },
             {
                 .name = "Sound Record\b",
@@ -1382,6 +1382,7 @@ int handle_fps_events(struct event * event)
     if (fps_ramp && event->param == BGMT_INFO)
     {
         fps_ramp_up = !fps_ramp_up;
+        handle_expo_preset(event); // will trigger both rampings if they are both enabled
         return 0;
     }
     
