@@ -150,6 +150,15 @@ void fps_show()
     );*/
 
     int f = fps_get_current_x1000();
+
+    // trick to erase the old text, if any (problem due to shadow fonts)
+    bmp_printf(
+        FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
+        time_indic_x + 160 - 6 * font_med.width,
+        time_indic_y + font_med.height - 3,
+        "      "
+    );
+
     bmp_printf(
         SHADOW_FONT(FONT_MED),
         time_indic_x + 160 - 6 * font_med.width,

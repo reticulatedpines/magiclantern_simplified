@@ -237,9 +237,9 @@ int handle_common_events_by_feature(struct event * event)
 #endif
     
     if (handle_bulb_ramping_keys(event) == 0) return 0;
+    if (handle_fps_events(event) == 0) return 0;
     if (handle_expo_preset(event) == 0) return 0;
     if (handle_disp_preset_key(event) == 0) return 0;
-    if (handle_fps_events(event) == 0) return 0;
     if (handle_fast_zoom_in_play_mode(event) == 0) return 0;
     
     if (handle_voice_tags(event) == 0) return 0;
