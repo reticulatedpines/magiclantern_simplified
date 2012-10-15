@@ -2574,7 +2574,8 @@ clearscreen_display(
         //~ mode ? "ON (HalfShutter)" : "OFF"
         mode == 0 ? "OFF" : 
         mode == 1 ? "HalfShutter/DofP" : 
-        mode == 2 ? "WhenIdle" : "Always"
+        mode == 2 ? "WhenIdle" :
+        mode == 3 ? "Always" : "Recording"
     );
 }
 
@@ -3960,6 +3961,30 @@ cropmark_redraw()
     return 1;
 }*/
 
+#if defined(CONFIG_7D)
+extern uint32_t LCD_Palette[];
+
+void palette_disable(uint32_t disabled)
+{
+    if(disabled)
+    {
+        for (int i = 0; i < 0x100; i++)
+        {
+            EngDrvOut(0xC0F14400 + i*4, 0x00FF0000);
+            EngDrvOut(0xC0F14800 + i*4, 0x00FF0000);
+        }
+    }
+    else
+    {
+        for (int i = 0; i < 0x100; i++)
+        {
+            EngDrvOut(0xC0F14400 + i*4, LCD_Palette[i*3 + 2]);
+            EngDrvOut(0xC0F14800 + i*4, LCD_Palette[i*3 + 2]);
+        }
+    }
+}
+#endif
+
 void bmp_on()
 {
     //~ return;
@@ -3968,6 +3993,9 @@ void bmp_on()
     {// BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) {call("MuteOff"); _bmp_muted = 0;}))
     #if defined(CONFIG_500D) || defined(CONFIG_50D)// || defined(CONFIG_5D2)
         canon_gui_enable_front_buffer(1);
+        _bmp_muted = false; _bmp_unmuted = true;
+    #elif defined(CONFIG_7D)
+        palette_disable(0);
         _bmp_muted = false; _bmp_unmuted = true;
     #else
         BMP_LOCK(
@@ -3998,6 +4026,9 @@ void bmp_off()
         _bmp_muted = true; _bmp_unmuted = false;
         canon_gui_disable_front_buffer();
         clrscr();
+    #elif defined(CONFIG_7D)
+        _bmp_muted = true; _bmp_unmuted = false;
+        palette_disable(1);
     #else
         BMP_LOCK(
             int f = cli_save();
@@ -5044,6 +5075,18 @@ clearscreen_loop:
         if (clearscreen == 3)
         {
             if (liveview_display_idle() && !gui_menu_shown())
+            {
+                bmp_off();
+            }
+            else
+            {
+                bmp_on();
+            }
+        }
+        
+        if (clearscreen == 4)
+        {
+            if (recording)
             {
                 bmp_off();
             }
