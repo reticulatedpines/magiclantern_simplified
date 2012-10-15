@@ -539,7 +539,7 @@ void iso_movie_test()
 
 void run_test()
 {
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
     msleep(5000);
     while(1)
     {
