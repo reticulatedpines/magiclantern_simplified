@@ -1004,9 +1004,11 @@ void fps_setup_timerA(int fps_x1000)
             break;
     }
     
+    #ifdef NEW_FPS_METHOD
     // FPS ramping effect requires being able to change FPS on the fly
     if (fps_ramp) 
         fps_timer_b_method = 0;
+    #endif
 
     // we need to make sure the requested FPS is in range (we may need to change timer A)
     int fps_low = calc_fps_x1000(timerA, FPS_TIMER_B_MAX);
