@@ -92,6 +92,10 @@ static CONFIG_INT("fps.preset", fps_criteria, 0);
 #define FPS_SOUND_DISABLE 1
 static CONFIG_INT("fps.wav.record", fps_wav_record, 0);
 
+static CONFIG_INT("fps.ramp", fps_ramp, 0);
+static int fps_ramp_timings[] = {0, 1, 2, 5, 15, 30, 60, 120, 300, 600, 1200, 1800};
+static int fps_ramp_up = 0;
+
 int fps_should_record_wav() { return fps_override && fps_wav_record && is_movie_mode() && FPS_SOUND_DISABLE && was_sound_recording_disabled_by_fps_override(); }
 
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
@@ -418,6 +422,9 @@ PROP_HANDLER(PROP_MVR_REC_START)
 {
     if (!buf[0] && !lv)
         restore_sound_recording();
+    
+    if (buf[0] == 1)
+        fps_ramp_up = !fps_ramp_up;
 }
 //--------------------------------------------------------
 
@@ -431,7 +438,7 @@ static int fps_get_timer(int fps_x1000)
     ntsc = !pal;
     #endif
 
-    if (fps_criteria != 1) // if criteria is "exact FPS", don't round
+    if (fps_criteria != 1 && !fps_ramp) // if criteria is "exact FPS", or fps ramping is enabled, don't round
     {
         // NTSC is 29.97, not 30
         // also try to round it in order to avoid flicker
@@ -996,6 +1003,12 @@ void fps_setup_timerA(int fps_x1000)
             #endif
             break;
     }
+    
+    #ifdef NEW_FPS_METHOD
+    // FPS ramping effect requires being able to change FPS on the fly
+    if (fps_ramp) 
+        fps_timer_b_method = 0;
+    #endif
 
     // we need to make sure the requested FPS is in range (we may need to change timer A)
     int fps_low = calc_fps_x1000(timerA, FPS_TIMER_B_MAX);
@@ -1143,6 +1156,13 @@ static struct menu_entry fps_menu[] = {
                 .help = "Sound usually goes out of sync and may stop recording.",
             },*/
             {
+                .name = "FPS ramping\b",
+                .priv = &fps_ramp,
+                .max = 11,
+                .choices = (const char *[]) {"OFF", "1s", "2s", "5s", "15s", "30s", "1min", "2min", "5min", "10min", "20min", "30min"},
+                .help = "Ramp FPS (overriden<->default). Press REC or " INFO_BTN_NAME " to start.",
+            },
+            {
                 .name = "Sound Record\b",
                 .priv = &fps_wav_record,
                 .max = 1,
@@ -1219,11 +1239,18 @@ static void fps_task()
     TASK_LOOP
     {
      
-        #if defined(CONFIG_500D) || defined(CONFIG_1100D)
-        msleep(fps_override && recording ? 10 : 100);
-        #else
-        msleep(100);
-        #endif
+        if (fps_ramp) 
+        {
+            msleep(20);
+        }
+        else
+        {
+            #if defined(CONFIG_500D) || defined(CONFIG_1100D)
+            msleep(fps_override && recording ? 10 : 100);
+            #else
+            msleep(100);
+            #endif
+        }
         
         fps_check_refresh();
 
@@ -1256,6 +1283,39 @@ static void fps_task()
         }
 
         int f = fps_values_x1000[fps_override_index];
+        
+        if (fps_ramp) // artistic effect - http://www.magiclantern.fm/forum/index.php?topic=2963.0
+        {
+            int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
+            if (f < default_fps)
+            {
+                int total_duration = fps_ramp_timings[fps_ramp];
+                float delta = 1.0 / 50 / total_duration;
+                
+                static float k = 0;
+
+                if (!(recording && MVR_FRAME_NUMBER < 1))
+                {
+                    if (fps_ramp_up) k += delta; else k -= delta;
+                }
+                k = COERCE(k, 0, 1);
+                
+                float ks = k*k;
+                float ff = default_fps * ks + f * (1-ks);
+                int fr = (int)roundf(ff);
+                fps_setup_timerA(fr);
+                fps_setup_timerB(fr);
+                fps_read_current_timer_values();
+
+                int x0 = os.x0;
+                int y0 = os.y_max - 2;
+                
+                bmp_draw_rect(COLOR_ORANGE, x0, y0, (int)(k * os.x_ex), 1);
+                bmp_draw_rect(COLOR_BLACK, (int)(k * os.x_ex), y0, (int)((1-k) * os.x_ex), 1);
+
+            }
+            continue;
+        }
         
         // Very low FPS: first few frames will be recorded at normal FPS, to bypass Canon's internal checks
         if (f < 5000)
@@ -1320,6 +1380,13 @@ void fps_mvr_log(char* mvr_logfile_buffer)
 int handle_fps_events(struct event * event)
 {
     if (!FPS_OVERRIDE) return 1;
+    
+    if (fps_ramp && event->param == BGMT_INFO)
+    {
+        fps_ramp_up = !fps_ramp_up;
+        handle_expo_preset(event); // will trigger both rampings if they are both enabled
+        return 0;
+    }
     
     if (event->param == BGMT_PLAY)
     {

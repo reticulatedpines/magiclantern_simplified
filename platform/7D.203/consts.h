@@ -212,10 +212,10 @@
     #define HDR_STATUS_POS_Y 460
 
     // for displaying TRAP FOCUS msg outside LV
-    #define DISPLAY_TRAP_FOCUS_POS_X 500
-    #define DISPLAY_TRAP_FOCUS_POS_Y 320
-    #define DISPLAY_TRAP_FOCUS_MSG       "TRAP \nFOCUS"
-    #define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
+#define DISPLAY_TRAP_FOCUS_POS_X 504
+#define DISPLAY_TRAP_FOCUS_POS_Y 318
+#define DISPLAY_TRAP_FOCUS_MSG       "TRAP \nFOCUS"
+#define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
 
 #define NUM_PICSTYLES 9
 #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
@@ -286,7 +286,10 @@
 #define DISPLAY_IS_ON MEM(0x21B0) // TurnOnDisplay (PUB) Type=%ld fDisplayTurnOn=%ld
 
 #define LV_STRUCT_PTR 0x1D34
-    #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5C)
+#define FRAME_ISO *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x74) // smooth ISO is +0x60
+#define FRAME_APERTURE *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x73)
+#define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x72)
+#define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x249e4
