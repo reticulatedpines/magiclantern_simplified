@@ -4,8 +4,8 @@
 #define TYPE_DCACHE 0
 #define TYPE_ICACHE 1
 
-/* we have 8 KiB of cache. that can be made dynamic depending on cache type and processor setup  */
-#define CACHE_SIZE_BITS(t)          13
+/* get cache size depending on cache type and processor setup (13 -> 2^13 -> 8192 -> 8KiB) */
+#define CACHE_SIZE_BITS(t)          cache_get_size(t)
 
 /* depending on cache size, INDEX has different length */
 #define CACHE_INDEX_BITS(t)         (CACHE_SIZE_BITS(t)-7)
@@ -43,9 +43,38 @@
 /* bitmask to mask out the SEGMENT field in a tag */
 #define CACHE_SEGMENT_ADDRMASK(t)   (CACHE_SEGMENT_BITMASK(t)<<CACHE_SEGMENT_TAGOFFSET(t))
 
+/* return cache size in bits (13 -> 2^13 -> 8192 -> 8KiB) */
+static uint32_t cache_get_size(uint32_t type)
+{
+    uint32_t cache_info = 0;
+    
+    /* get cache type register */
+    asm volatile ("\
+       MRC p15, 0, %0, c0, c0, 1\r\n\
+       " : "=r"(cache_info));
+
+    /* dcache is described at bit pos 12 */
+    if(type == TYPE_DCACHE)
+    {
+        cache_info >>= 12;
+    }
+    
+    /* check if size is invalid, or absent flag is set */
+    uint32_t size = (cache_info >> 6) & 0x0F;
+    uint32_t absent = (cache_info >> 2) & 0x01;
+    
+    if((size < 3) || absent)
+    {
+        return 0;
+    }
+    
+    /* return as 2^x */
+    return size + 9;
+}
+
 static void cache_patch_single_word(uint32_t address, uint32_t data, uint32_t type)
 {
-    uint32_t cache_seg_index_word = (address & (CACHE_INDEX_ADDRMASK(t) | CACHE_WORD_ADDRMASK(type)));
+    uint32_t cache_seg_index_word = (address & (CACHE_INDEX_ADDRMASK(type) | CACHE_WORD_ADDRMASK(type)));
     uint32_t cache_tag_index = (address & (CACHE_TAG_ADDRMASK(type) | CACHE_INDEX_ADDRMASK(type))) | 0x10;
 
     if(type == TYPE_ICACHE)
@@ -143,7 +172,7 @@ static void cache_get_content(uint32_t segment, uint32_t index, uint32_t word, u
 /* check if given address is already patched in cache */
 static uint32_t cache_get_cached(uint32_t address, uint32_t type)
 {
-    uint32_t cache_seg_index_word = (address & (CACHE_TAG_ADDRMASK(t) | CACHE_WORD_ADDRMASK(type)));
+    uint32_t cache_seg_index_word = (address & (CACHE_TAG_ADDRMASK(type) | CACHE_WORD_ADDRMASK(type)));
     uint32_t stored_tag_index = 0;
 
     if(type == TYPE_ICACHE)
@@ -218,7 +247,7 @@ static void dcache_unlock()
     {
         for(uint32_t index = 0; index < (1<<CACHE_INDEX_BITS(TYPE_DCACHE)); index++)
         {
-            uint32_t seg_index = (segment << CACHE_SEGMENT_TAGOFFSET(t)) | (index << CACHE_INDEX_TAGOFFSET(t));
+            uint32_t seg_index = (segment << CACHE_SEGMENT_TAGOFFSET(TYPE_DCACHE)) | (index << CACHE_INDEX_TAGOFFSET(TYPE_DCACHE));
             asm volatile ("\
                 mcr p15, 0, %0, c7, c14, 2\r\n\
                 " : : "r"(seg_index)
@@ -296,7 +325,7 @@ static void dcache_lock()
     {
         for(uint32_t index = 0; index < (1<<CACHE_INDEX_BITS(TYPE_DCACHE)); index++)
         {
-            uint32_t seg_index = (segment << CACHE_SEGMENT_TAGOFFSET(t)) | (index << CACHE_INDEX_TAGOFFSET(t));
+            uint32_t seg_index = (segment << CACHE_SEGMENT_TAGOFFSET(TYPE_DCACHE)) | (index << CACHE_INDEX_TAGOFFSET(TYPE_DCACHE));
             asm volatile ("\
                 mcr p15, 0, %0, c7, c14, 2\r\n\
                 " : : "r"(seg_index)
