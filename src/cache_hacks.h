@@ -199,7 +199,7 @@ static void icache_unlock()
        MCR p15, 0, R0, c9, c0, 1\r\n\
        " : : : "r0");
 
-    /* and flush cache */
+    /* and flush cache again to make sure its consistent */
     asm volatile ("\
         MOV R0, #0\r\n\
         MCR p15, 0, R0, c7, c5, 0\r\n\
@@ -213,6 +213,19 @@ static void dcache_unlock()
 {
     uint32_t old_int = cli();
 
+    /* first clean and flush dcache entries */
+    for(uint32_t segment = 0; segment < (1<<CACHE_SEGMENT_BITS(TYPE_DCACHE)); segment++ )
+    {
+        for(uint32_t index = 0; index < (1<<CACHE_INDEX_BITS(TYPE_DCACHE)); index++)
+        {
+            uint32_t seg_index = (segment << CACHE_SEGMENT_TAGOFFSET(t)) | (index << CACHE_INDEX_TAGOFFSET(t));
+            asm volatile ("\
+                mcr p15, 0, %0, c7, c14, 2\r\n\
+                " : : "r"(seg_index)
+            );
+        }
+    }
+    
     /* make sure all entries are set to invalid */
     for(int index = 0; index < (1<<CACHE_INDEX_BITS(TYPE_ICACHE)); index++)
     {
@@ -231,13 +244,14 @@ static void dcache_unlock()
        MCR p15, 0, R0, c9, c0, 0\r\n\
        " : : : "r0");
 
-    /* and flush cache */
+    /* and flush cache again to make sure its consistent */
     asm volatile ("\
         MOV R0, #0\r\n\
         MCR p15, 0, R0, c7, c6, 0\r\n\
         MCR p15, 0, R0, c7, c10, 4\r\n\
         " : : : "r0"
     );
+    
     sei(old_int);
 }
 
@@ -324,8 +338,8 @@ static void cache_lock()
 
 static void cache_unlock()
 {
-    icache_lock();
-    dcache_lock();
+    icache_unlock();
+    dcache_unlock();
 }
 
 static void cache_fake(uint32_t address, uint32_t data, uint32_t type)

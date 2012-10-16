@@ -770,6 +770,10 @@ my_init_task(int a, int b, int c, int d)
     cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, HIJACK_CACHE_HACK_BSS_END_INSTR, TYPE_ICACHE);
     
     int ans = init_task(a,b,c,d);
+    
+    /* no functions/caches need to get patched anymore, we can disable cache hacking again */    
+    /* use all cache pages again, so we run at "full speed" although barely noticeable (<1% speedup/slowdown) */
+    cache_unlock();
 #else
     // Call their init task
     #ifdef CONFIG_550D
