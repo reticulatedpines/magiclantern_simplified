@@ -414,9 +414,7 @@ void gdb_continue_stalled_task(uint32_t address)
  */
 uint32_t gdb_quick_watchpoint(uint32_t address)
 {
-    gdb_add_watchpoint(address, 0, NULL);
-    
-    return 0;
+    return gdb_add_watchpoint(address, 0, NULL);
 }
 
 /* thats a "quick" function to be called via ptp and its base address.
