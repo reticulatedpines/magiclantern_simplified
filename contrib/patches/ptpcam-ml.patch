@@ -1,0 +1,502 @@
+Index: ptp.c
+===================================================================
+--- ptp.c	(revision 874)
++++ ptp.c	(working copy)
+@@ -1787,8 +1787,10 @@
+ 
+   PTP_CNT_INIT(ptp);
+   ptp.Code=PTP_OC_CHDK;
+-  ptp.Nparam=1;
++  ptp.Nparam=2;
+   ptp.Param1=PTP_CHDK_CallFunction;
++  ptp.Param2=size;
++  ptp.Param3=0;
+   r=ptp_transaction(params, &ptp, PTP_DP_SENDDATA, size*sizeof(int), (char **) &args);
+   if ( r != 0x2001 )
+   {
+Index: ptpcam.c
+===================================================================
+--- ptpcam.c	(revision 874)
++++ ptpcam.c	(working copy)
+@@ -2230,6 +2230,16 @@
+   close_camera(&ptp_usb,&params,dev);
+ }
+ 
++
++int kbhit()
++{
++    struct timeval tv = { 0L, 0L };
++    fd_set fds;
++    FD_ZERO(&fds);
++    FD_SET(0, &fds);
++    return select(1, &fds, NULL, NULL, &tv);
++}
++
+ static void reset_connection()
+ {
+   if ( connected )
+@@ -2316,6 +2326,48 @@
+   printf("\n");
+ }
+ 
++int engio_dump(unsigned char * data_buf, int length, int addr)
++{
++    unsigned int reg = 0;
++    unsigned int data = 0;
++    unsigned int pos = 0;
++    
++    do
++    {
++        data =  data_buf[pos + 0] | (data_buf[pos + 1] << 8)  | (data_buf[pos + 2] << 16)  | (data_buf[pos + 3] << 24);
++        pos += 4;
++        reg = data_buf[pos + 0] | (data_buf[pos + 1] << 8)  | (data_buf[pos + 2] << 16)  | (data_buf[pos + 3] << 24);
++        pos += 4;
++        if(reg != 0xFFFFFFFF)
++        {
++            printf("[0x%08X] <- [0x%08X]\r\n", reg, data);
++        }
++    } while (reg != 0xFFFFFFFF && pos <= length - 8);
++    
++    printf("\r\n");
++}
++
++int adtg_dump(unsigned char * data_buf, int length, int addr)
++{
++    unsigned int reg = 0;
++    unsigned int data = 0;
++    unsigned int pos = 0;
++    
++    do
++    {
++        data =  data_buf[pos + 0] | (data_buf[pos + 1] << 8);
++        pos += 2;
++        reg = data_buf[pos + 0] | (data_buf[pos + 1] << 8);
++        pos += 2;
++        if(reg != 0xFFFF && data != 0xFFFF)
++        {
++            printf("[0x%04X] <- [0x%04X]\r\n", reg, data);
++        }
++    } while (reg != 0xFFFF && data != 0xFFFF && pos <= length - 4);
++    
++    printf("\r\n");
++}
++
+ int chdk(int busn, int devn, short force)
+ {
+   char buf[CHDKBUFS], *s;
+@@ -2477,7 +2529,7 @@
+         end = start+strtoul(s+1,NULL,0);
+       } else {
+         start = strtoul(buf2,NULL,0);
+-        end = start+1;
++        end = start + 0x100;
+       }
+      
+       if ( (buf2 = ptp_chdk_get_memory(start,end-start,&params,&params.deviceinfo)) == NULL )
+@@ -2487,9 +2539,405 @@
+         hexdump(buf2,end-start,start);
+         free(buf2);
+       }
++
++    } else if ( !strncmp("engio",buf,3) )
++    {
++        unsigned int addr = 0;
++        char *buf2;
++        unsigned int block_size = 0x200;
++        unsigned char *data_buf;
++
++        buf2 = strchr(buf,' ')+1;
++
++        while((*buf2 != '\000') && (*buf2 == ' '))
++        {
++            buf2++;
++        }
++        addr = strtoul(buf2,NULL,0);
++        printf("Reading engio buffers from 0x%08X\r\n", addr);
++        
++        if(addr > 0)
++        {
++            unsigned int reg = 0;
++            unsigned int data = 0;
++            
++            while(reg != 0xFFFFFFFF)
++            {
++                if ( (data_buf = ptp_chdk_get_memory(addr,block_size,&params,&params.deviceinfo)) == NULL )
++                {
++                    printf("error getting memory\n");
++                    break;
++                } 
++                else 
++                {
++                    unsigned int pos = 0;
++                    do
++                    {
++                        reg =  data_buf[pos + 0] | (data_buf[pos + 1] << 8)  | (data_buf[pos + 2] << 16)  | (data_buf[pos + 3] << 24);
++                        pos += 4;
++                        data = data_buf[pos + 0] | (data_buf[pos + 1] << 8)  | (data_buf[pos + 2] << 16)  | (data_buf[pos + 3] << 24);
++                        pos += 4;
++                        if(reg != 0xFFFFFFFF)
++                        {
++                            printf("[0x%08X] <- [0x%08X]\r\n", reg, data);
++                        }
++                    } while (reg != 0xFFFFFFFF && pos <= block_size - 8);
++                    free(data_buf);
++                    
++                    addr += block_size;
++                }        
++            }            
++        }
++
+       
+-    } else if ( !strncmp("set ",buf,4) )
++    } else if ( !strncmp("dump ",buf,5) )
+     {
++        unsigned long long start;
++        unsigned long long end;
++        unsigned long long addr;
++        unsigned long long len;
++        unsigned long long block_size = 0x1000;
++        unsigned char *s;
++        unsigned char *buf2;
++        unsigned char *data_buf;
++        FILE *dumpfile;
++
++        buf2 = strchr(buf,' ')+1;
++
++        if ( (s = strchr(buf2,'-')) != NULL )
++        {
++            *s = '\0';
++            start = strtoul(buf2,NULL,0);
++            end = strtoul(s+1,NULL,0)+1;
++        }
++        else if ( (s = strchr(buf2,' ')) != NULL )
++        {
++            *s = '\0';
++            start = strtoul(buf2,NULL,0);
++            end = start+strtoul(s+1,NULL,0);
++        }
++        else {
++            start = strtoul(buf2,NULL,0);
++            end = start + 0x100;
++        }
++        
++        addr = start;
++        
++        dumpfile = fopen("dump.bin", "wb");
++        if(dumpfile != NULL)
++        {
++            while(addr < end)
++            {
++                /* check for maximum block size */
++                if(addr + block_size > end)
++                {
++                    len = end - addr;
++                }
++                else
++                {
++                    len = block_size;
++                }
++                
++                printf("\rReading: 0x%08X...", (unsigned int)addr);
++                fflush(stdout);
++                
++                if ( (data_buf = ptp_chdk_get_memory(addr,block_size,&params,&params.deviceinfo)) == NULL )
++                {
++                    printf("error getting memory\n");
++                    break;
++                } 
++                else 
++                {
++                    fwrite(data_buf, len, 1, dumpfile);
++                    free(data_buf);
++                }
++                addr += len;
++            }
++            fclose(dumpfile);
++            printf("\r\nDone\r\n");
++        }
++      
++    }else if ( !strncmp("ptr",buf,3) )
++    {
++        unsigned int current_address = 0;
++        int done = 0;
++        char *buf2;
++        unsigned char *data_buf;
++        
++        while(!done)
++        {
++            int addr = 0;
++            
++            if ( fgets(buf,CHDKBUFS-1,stdin) == NULL )
++            {
++                printf("\n");
++                break;
++            }
++            
++            if(strlen(buf) < 3)
++            {
++                break;
++            }
++            
++            buf2 = buf;
++      
++            while((*buf2 != '\000') && (*buf2 == ' '))
++            {
++                buf2++;
++            }
++            addr = strtoul(buf2,NULL,0);
++            printf("offset: 0x%08X -> ", addr);
++            
++            current_address += addr;
++            printf("read: 0x%08X -> ", current_address);
++            
++            if(current_address > 0)
++            {
++                if ( (data_buf = ptp_chdk_get_memory(current_address,0x20,&params,&params.deviceinfo)) == NULL )
++                {
++                    printf("error getting memory\n");
++                    break;
++                } 
++                else 
++                {
++                    current_address = data_buf[0] | (data_buf[1] << 8)  | (data_buf[2] << 16)  | (data_buf[3] << 24);
++                    printf("next: 0x%08X\r\n", current_address);
++                    free(data_buf);
++                }            
++            }
++        }
++    } 
++    else if ( !strncmp("delta ",buf,6) || !strncmp("adtgdelta ",buf,6) || !strncmp("engiodelta ",buf,6))
++    {
++      int regdump = 0;
++      int start;
++      int end;
++      int deltaPos;
++      int deltaNum = 0;
++      char *s;
++      unsigned char *buf2;
++      unsigned int *deltaCount;
++      
++      if( !strncmp("adtgdelta ",buf,6))
++      {
++          regdump = 1;
++      }
++      if( !strncmp("engiodelta ",buf,6))
++      {
++          regdump = 2;
++      }
++      buf2 = strchr(buf,' ')+1;
++
++      if ( (s = strchr(buf2,'-')) != NULL )
++      {
++        *s = '\0';
++        start = strtoul(buf2,NULL,0);
++        end = strtoul(s+1,NULL,0)+1;
++      } 
++      else if ( (s = strchr(buf2,' ')) != NULL )
++      {
++        *s = '\0';
++        start = strtoul(buf2,NULL,0);
++        end = start+strtoul(s+1,NULL,0);
++      } 
++      else
++      {
++        start = strtoul(buf2,NULL,0);
++        end = start+0x100;
++      }
++     
++      /* get reference buffer */
++      if ( (buf2 = ptp_chdk_get_memory(start,end-start,&params,&params.deviceinfo)) == NULL )
++      {
++        printf("error getting memory\n");
++      } 
++      else 
++      {
++        if(regdump == 1)
++        {
++            adtg_dump(buf2, end-start, start);
++        }
++        else if(regdump == 2)
++        {
++            engio_dump(buf2, end-start, start);
++        }
++        else
++        {
++            hexdump(buf2,end-start,start);
++        }
++      }
++      
++      
++        deltaCount = malloc(sizeof(unsigned int) * (end-start));
++
++        for(deltaPos = 0; deltaPos < (end-start); deltaPos++)
++        {
++            deltaCount[deltaPos] = 0;
++        }
++      
++        while(!kbhit())
++        {
++            unsigned char *buf3;
++
++            /* get reference buffer */
++            if ( (buf3 = ptp_chdk_get_memory(start,end-start,&params,&params.deviceinfo)) == NULL )
++            {
++                printf("error getting memory\n");
++            } 
++            else 
++            {
++                int pos = 0;
++                int deltas = 0;
++                
++                for(pos = 0; pos < (end-start); pos++)
++                {
++                    if(buf2[pos] != buf3[pos] && deltaCount[pos] < 10)
++                    {                    
++                        printf("Ignoring delta at 0x%08X: 0x%02X -> 0x%02X\r\n", start + pos, buf2[pos], buf3[pos]);
++                        deltaCount[pos]++;
++                        deltas++;
++                    }
++                }
++                
++                if(deltas)
++                {
++                    memcpy(buf2, buf3, end-start);
++                }
++                free(buf3);
++            }            
++        }
++        fgetc(stdin);
++
++        
++      
++        while(!kbhit())
++        {
++            unsigned char *buf3;
++
++            /* get reference buffer */
++            if ( (buf3 = ptp_chdk_get_memory(start,end-start,&params,&params.deviceinfo)) == NULL )
++            {
++                printf("error getting memory\n");
++            } 
++            else 
++            {
++                int pos = 0;
++                int deltas = 0;
++                
++                for(pos = 0; pos < (end-start); pos++)
++                {
++                    if(deltaCount[pos] >= 10)
++                    {
++                        buf3[pos] = 0;
++                        buf2[pos] = 0;
++                    }
++                    
++                    if(buf2[pos] != buf3[pos] )
++                    {                    
++                        printf("Delta #%i at 0x%08X: 0x%02X -> 0x%02X\r\n", deltaNum++, start + pos, buf2[pos], buf3[pos]);
++                        deltas++;
++                    }
++                    
++                }
++                if(deltas)
++                {
++                    memcpy(buf2, buf3, end-start);
++                    if(regdump == 1)
++                    {
++                        adtg_dump(buf2, end-start, start);
++                    }
++                    else if(regdump == 2)
++                    {
++                        engio_dump(buf2, end-start, start);
++                    }
++                    else
++                    {
++                        hexdump(buf2,end-start,start);
++                    }
++                }
++                free(buf3);
++            }            
++        }
++      
++        free(buf2);
++        fgetc(stdin);
++
++    } 
++    else if ( !strncmp("rate ",buf,5))
++    {
++        int regdump = 0;
++        int start;
++        int deltaPos;
++        int deltaNum = 0;
++        char *s;
++        unsigned char *buf2;
++        unsigned int *deltaCount;
++        unsigned int oldVal = 0;
++        unsigned int maxVal = 0;
++        struct timeval oldTv;
++        struct timeval nextTv;
++        unsigned int loops = 0;
++        double avgDelta = -1.0f;
++
++        buf2 = strchr(buf,' ') + 1;
++      
++        start = strtoul(buf2,NULL,0);
++        
++        while(!kbhit())
++        {
++            unsigned char *buf3;
++
++            /* get reference buffer */
++            if ( (buf3 = ptp_chdk_get_memory(start,4,&params,&params.deviceinfo)) == NULL )
++            {
++                printf("error getting memory\n");
++            } 
++            else 
++            {
++                unsigned int nextVal = 0;
++                
++                nextVal = *((unsigned int*)buf3);
++                if(maxVal < nextVal)
++                {
++                    maxVal = nextVal;
++                }
++                
++                if(nextVal < oldVal)
++                {
++                    unsigned int delta = 0;
++                    
++                    gettimeofday(&nextTv, NULL);
++                    delta = ((nextTv.tv_sec - oldTv.tv_sec) * 1000000) + (nextTv.tv_usec - oldTv.tv_usec);
++                    
++                    
++                    if(loops++ > 0)
++                    {
++                        double rate = 0;
++                        
++                        if(avgDelta < 0)
++                        {
++                            avgDelta = delta;
++                        }
++                        else
++                        {
++                            avgDelta = avgDelta - avgDelta/loops + delta / loops;
++                        }
++                        
++                        rate = 1000000.0f / (avgDelta / maxVal);
++                        printf("Overflows: %i µsec (avg: %f), maxVal = 0x%08X, tickRate = %f Hz\n", delta, avgDelta, maxVal, rate);
++                    }
++                }
++                
++                oldVal = nextVal;
++                oldTv = nextTv;
++                
++                free(buf3);
++            }            
++        }
++        fgetc(stdin);
++    }
++    else if ( !strncmp("set ",buf,4) )
++    {
+       int addr;
+       int val;
+       char *s;

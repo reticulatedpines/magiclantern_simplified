@@ -1,0 +1,12 @@
+CC=gcc-3
+LIBUSBDIR=/cygdrive/k/home/chdk/ptp/libusb-win32-bin-1.2.2.0
+CFLAGS=-mno-cygwin -I"$(LIBUSBDIR)/include"
+LDFLAGS="$(LIBUSBDIR)/lib/gcc/libusb.a" -lws2_32 -lkernel32
+
+all: ptpcam
+
+clean:
+	-rm ptpcam.exe
+
+ptpcam: config.h libptp-endian.h libptp-stdint.h myusb.c properties.c ptp-pack.c ptp.c ptp.h ptpcam.c ptpcam.h
+	$(CC) -o ptpcam myusb.c properties.c ptp.c ptpcam.c $(CFLAGS) $(LDFLAGS)

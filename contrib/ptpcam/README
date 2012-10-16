@@ -1,0 +1,9 @@
+requires libusb (windows version included)
+
+Changelog:
+ - Modified by g3gg0 for MagicLantern GDB stubs
+ - Minor build fixes by nanomad
+
+Notes:
+ - Makefile.win32 is for cygwin under windows
+ - ../patches/ptpcam-ml.patch is the original patch from g3gg0
