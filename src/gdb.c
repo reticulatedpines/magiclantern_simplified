@@ -713,9 +713,7 @@ void gdb_setup()
     gdb_install_handler();
     gdb_install_hooks();
     
-#ifdef GDBSTUB    
     task_create("gdbstub_task", 0x1e, 0, gdb_main_task, 0);
-#endif
 }
 
 
@@ -909,7 +907,6 @@ char *gdb_get_callstack(breakpoint_t *bkpt)
 }
 
 
-#ifdef GDBSTUB
 void gdb_send_append(char *buf, uint32_t len)
 {
     uint32_t written = 0;
@@ -1606,4 +1603,3 @@ void gdb_api_log(char *msg)
     reply_buf[i] = 0;
     gdb_send_packet(reply_buf);
 }
-#endif

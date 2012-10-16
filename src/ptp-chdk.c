@@ -110,7 +110,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
             }
             break;
 
-#ifdef GDBSTUB
+#ifdef CONFIG_GDB_PTP // Automatically defined by Make if CONFIG_GDB = y
         case PTP_CHDK_GDBStub_Download:
             {
                 uint32_t length = param2;
