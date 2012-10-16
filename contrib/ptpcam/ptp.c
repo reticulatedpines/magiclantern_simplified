@@ -1656,8 +1656,8 @@ ptp_get_operation_name(PTPParams* params, uint16_t oc)
 					N_("CANON GetViewfinderImage")},
 		{PTP_OC_CANON_GetChanges,	N_("CANON GetChanges")},
 		{PTP_OC_CANON_GetFolderEntries,	N_("CANON GetFolderEntries")},
-		{0,NULL}
-	};
+			{0,NULL}
+		};
 	static struct {
 		uint16_t oc;
 		const char *txt;
@@ -1669,6 +1669,104 @@ ptp_get_operation_name(PTPParams* params, uint16_t oc)
 		{0,NULL}
 	};
 
+	static struct {
+		uint16_t oc;
+		const char *txt;
+	} ptp_operations_MICROSOFT[] = {
+		{PTP_OC_CANON_GetStorageIDS,	N_("CANON EOS GetStorageIDS")},
+		{PTP_OC_CANON_GetStorageInfo,	N_("CANON EOS GetStorageInfo")},
+		{PTP_OC_CANON_GetObjectInfo,	N_("CANON EOS GetObjectInfo")},
+		{PTP_OC_CANON_GetObject,	N_("CANON EOS GetObject")},
+		{PTP_OC_CANON_DeleteObject,	N_("CANON EOS DeleteObject")},
+		{PTP_OC_CANON_FormatStore,	N_("CANON EOS FormatStore")},
+		{PTP_OC_CANON_GetPartialObject,	N_("CANON EOS GetPartialObject")},
+		{PTP_OC_CANON_GetDeviceInfoEX,	N_("CANON EOS GetDeviceInfoEX")},
+		{PTP_OC_CANON_GetObjectInfoEX,	N_("CANON EOS GetObjectInfoEX")},
+		{PTP_OC_CANON_GetThumbEX,	N_("CANON EOS GetThumbEX")},
+		{PTP_OC_CANON_SEnd_Partial_Object,	N_("CANON EOS SEnd_Partial_Object")},
+		{PTP_OC_CANON_SetObjectAttributes,	N_("CANON EOS SetObjectAttributes")},
+		{PTP_OC_CANON_GetObjectTime,	N_("CANON EOS GetObjectTime")},
+		{PTP_OC_CANON_SetObjectTime,	N_("CANON EOS SetObjectTime")},
+		{PTP_OC_CANON_Remote_Release,	N_("CANON EOS Remote_Release")},
+		{PTP_OC_CANON_SetDevicePropvalueEX,	N_("CANON EOS SetDevicePropvalueEX")},
+		{PTP_OC_CANON_SEnd_ObjectEX,	N_("CANON EOS SEnd_ObjectEX")},
+		{PTP_OC_CANON_CreageObject,	N_("CANON EOS CreageObject")},
+		{PTP_OC_CANON_GetRemoteMode,	N_("CANON EOS GetRemoteMode")},
+		{PTP_OC_CANON_SetRemoteMode,	N_("CANON EOS SetRemoteMode")},
+		{PTP_OC_CANON_SetEventMode,	N_("CANON EOS SetEventMode")},
+		{PTP_OC_CANON_GetEvent,	N_("CANON EOS GetEvent")},
+		{PTP_OC_CANON_TransferComplete,	N_("CANON EOS TransferComplete")},
+		{PTP_OC_CANON_CancelTransfer,	N_("CANON EOS CancelTransfer")},
+		{PTP_OC_CANON_ResetTransfer,	N_("CANON EOS ResetTransfer")},
+		{PTP_OC_CANON_PCHDDCapacity,	N_("CANON EOS PCHDDCapacity")},
+		{PTP_OC_CANON_SetUILock,	N_("CANON EOS SetUILock")},
+		{PTP_OC_CANON_ResetUILock,	N_("CANON EOS ResetUILock")},
+		{PTP_OC_CANON_KeepDeviceON,	N_("CANON EOS KeepDeviceON")},
+		{PTP_OC_CANON_SetNullPacketMode,	N_("CANON EOS SetNullPacketMode")},
+		{PTP_OC_CANON_UpdateFirmware,	N_("CANON EOS UpdateFirmware")},
+		{PTP_OC_CANON_TransferComplete_DT,	N_("CANON EOS TransferComplete_DT")},
+		{PTP_OC_CANON_CancelTransfer_DT,	N_("CANON EOS CancelTransfer_DT")},
+		{PTP_OC_CANON_SetWFTPROFILE,	N_("CANON EOS SetWFTPROFILE")},
+		{PTP_OC_CANON_GetWFTPROFILE,	N_("CANON EOS GetWFTPROFILE")},
+		{PTP_OC_CANON_SetPROFILETOWFT,	N_("CANON EOS SetPROFILETOWFT")},
+		{PTP_OC_CANON_BulbStart,	N_("CANON EOS BulbStart")},
+		{PTP_OC_CANON_BulbEnd,	N_("CANON EOS BulbEnd")},
+		{PTP_OC_CANON_RequestDevicePropvalue,	N_("CANON EOS RequestDevicePropvalue")},
+		{PTP_OC_CANON_RemoteReleaseON,	N_("CANON EOS RemoteReleaseON")},
+		{PTP_OC_CANON_RemoteReleaseOFF,	N_("CANON EOS RemoteReleaseOFF")},
+		{PTP_OC_CANON_RegistBackgroundImage,	N_("CANON EOS RegistBackgroundImage")},
+		{PTP_OC_CANON_ChangePhotoStudioMode,	N_("CANON EOS ChangePhotoStudioMode")},
+		{PTP_OC_CANON_GetPartialObjectEX,	N_("CANON EOS GetPartialObjectEX")},
+		{PTP_OC_CANON_ResetMirrorLockupState,	N_("CANON EOS ResetMirrorLockupState")},
+		{PTP_OC_CANON_PopupBuiltinFlash,	N_("CANON EOS PopupBuiltinFlash")},
+		{PTP_OC_CANON_EndGetPartialObjectEX,	N_("CANON EOS EndGetPartialObjectEX")},
+		{PTP_OC_CANON_MovieSelectSWOn,	N_("CANON EOS MovieSelectSWOn")},
+		{PTP_OC_CANON_MovieSelectSWOff,	N_("CANON EOS MovieSelectSWOff")},
+		{PTP_OC_CANON_InitiateViewfinder,	N_("CANON EOS InitiateViewfinder")},
+		{PTP_OC_CANON_TerminateViewfinder,	N_("CANON EOS TerminateViewfinder")},
+		{PTP_OC_CANON_GetViewfinderData,	N_("CANON EOS GetViewfinderData")},
+		{PTP_OC_CANON_DoAF,	N_("CANON EOS DoAF")},
+		{PTP_OC_CANON_DriveLens,	N_("CANON EOS DriveLens")},
+		{PTP_OC_CANON_DepthOfFieldPreview,	N_("CANON EOS DepthOfFieldPreview")},
+		{PTP_OC_CANON_ClickWB,	N_("CANON EOS ClickWB")},
+		{PTP_OC_CANON_Zoom,	N_("CANON EOS Zoom")},
+		{PTP_OC_CANON_ZoomPosition,	N_("CANON EOS ZoomPosition")},
+		{PTP_OC_CANON_SetLiveAFFrame,	N_("CANON EOS SetLiveAFFrame")},
+		{PTP_OC_CANON_AFCancel,	N_("CANON EOS AFCancel")},
+		{PTP_OC_CANON_ceresOpenFileValue,	N_("CANON EOS ceresOpenFileValue")},
+		{PTP_OC_CANON_ceresCreateFileValue,	N_("CANON EOS ceresCreateFileValue")},
+		{PTP_OC_CANON_ceresRemoveFileValue,	N_("CANON EOS ceresRemoveFileValue")},
+		{PTP_OC_CANON_ceresCloseFileValue,	N_("CANON EOS ceresCloseFileValue")},
+		{PTP_OC_CANON_ceresGetWriteObject,	N_("CANON EOS ceresGetWriteObject")},
+		{PTP_OC_CANON_ceresSEndReadObject,	N_("CANON EOS ceresSEndReadObject")},
+		{PTP_OC_CANON_ceresFileAttributesValue,	N_("CANON EOS ceresFileAttributesValue")},
+		{PTP_OC_CANON_ceresFileTimeValue,	N_("CANON EOS ceresFileTimeValue")},
+		{PTP_OC_CANON_ceresSeekFileValue,	N_("CANON EOS ceresSeekFileValue")},
+		{PTP_OC_CANON_ceresCreateDirectoryValue,	N_("CANON EOS ceresCreateDirectoryValue")},
+		{PTP_OC_CANON_ceresRemoveDirectoryValue,	N_("CANON EOS ceresRemoveDirectoryValue")},
+		{PTP_OC_CANON_ceresSEndFileInfo,	N_("CANON EOS ceresSEndFileInfo")},
+		{PTP_OC_CANON_ceresSEndFileInfoListEx,	N_("CANON EOS ceresSEndFileInfoListEx")},
+		{PTP_OC_CANON_ceresSEndDriveInfo,	N_("CANON EOS ceresSEndDriveInfo")},
+		{PTP_OC_CANON_ceresNotifyDriveStatus,	N_("CANON EOS ceresNotifyDriveStatus")},
+		{PTP_OC_CANON_ceresSplitFileValue,	N_("CANON EOS ceresSplitFileValue")},
+		{PTP_OC_CANON_ceresRenameFileValue,	N_("CANON EOS ceresRenameFileValue")},
+		{PTP_OC_CANON_ceresTruncateFileValue,	N_("CANON EOS ceresTruncateFileValue")},
+		{PTP_OC_CANON_ceresSEndScanningResult,	N_("CANON EOS ceresSEndScanningResult")},
+		{PTP_OC_CANON_ceresSEndHostInfo,	N_("CANON EOS ceresSEndHostInfo")},
+		{PTP_OC_CANON_ceresNotifyNetworkError,	N_("CANON EOS ceresNotifyNetworkError")},
+		{PTP_OC_CANON_ceresRequestAdapterProperty,	N_("CANON EOS ceresRequestAdapterProperty")},
+		{PTP_OC_CANON_ceresSEndWpsPinCode,	N_("CANON EOS ceresSEndWpsPinCode")},
+		{PTP_OC_CANON_ceresSEndWizardInfo,	N_("CANON EOS ceresSEndWizardInfo")},
+		{PTP_OC_CANON_ceresSEndBtSearchResult,	N_("CANON EOS ceresSEndBtSearchResult")},
+		{PTP_OC_CANON_ceresGetUpdateFileData,	N_("CANON EOS ceresGetUpdateFileData")},
+		{PTP_OC_CANON_ceresSEndFactoryProperty,	N_("CANON EOS ceresSEndFactoryProperty")},
+		{PTP_OC_CANON_ceresSEndGpsInfo,	N_("CANON EOS ceresSEndGpsInfo")},
+		{PTP_OC_CANON_ceresSEndBtPairingResult,	N_("CANON EOS ceresSEndBtPairingResult")},
+		{PTP_OC_CANON_ceresNotifyBtStatus,	N_("CANON EOS ceresNotifyBtStatus")},
+		{PTP_OC_CANON_fapiMessageTX,	N_("CANON EOS fapiMessageTX")},
+		{PTP_OC_CANON_fapiMessageRX,	N_("CANON EOS fapiMessageRX")},
+		{0,NULL}
+	};
 	switch (params->deviceinfo.VendorExtensionID) {
 		case PTP_VENDOR_EASTMAN_KODAK:
 			for (i=0; ptp_operations_EK[i].txt!=NULL; i++)
@@ -1685,6 +1783,14 @@ ptp_get_operation_name(PTPParams* params, uint16_t oc)
 			for (i=0; ptp_operations_NIKON[i].txt!=NULL; i++)
 				if (ptp_operations_NIKON[i].oc==oc)
 					return (ptp_operations_NIKON[i].txt);
+			break;
+		case PTP_VENDOR_MICROSOFT: // EOS DSLR Use Microsoft as a vendor extension, wtf!
+			for (i=0; ptp_operations_MICROSOFT[i].txt!=NULL; i++)
+				if (ptp_operations_MICROSOFT[i].oc==oc)
+					return (ptp_operations_MICROSOFT[i].txt);
+			break;
+		default:
+			printf("PTP_VENDOR_UNKNOWN %08x", params->deviceinfo.VendorExtensionID);
 			break;
 		}
 	for (i=0; ptp_operations[i].txt!=NULL; i++)
