@@ -25,7 +25,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include "libptp-endian.h"
-
+#include "ptp-eos-oc.h"
 /* PTP datalayer byteorder */
 
 #define PTP_DL_BE			0xF0
@@ -155,7 +155,7 @@ typedef struct _PTPUSBEventContainer PTPUSBEventContainer;
 #define PTP_OC_CANON_FocusLock		0x9014
 #define PTP_OC_CANON_FocusUnlock	0x9015
 #define PTP_OC_CANON_InitiateCaptureInMemory	0x901A
-#define PTP_OC_CANON_GetPartialObject	0x901B
+#define PTP_OC_CANON_GetPartialObject_CHDK	0x901B
 #define PTP_OC_CANON_GetViewfinderImage	0x901d
 #define PTP_OC_CANON_GetChanges		0x9020
 #define PTP_OC_CANON_GetFolderEntries	0x9021
