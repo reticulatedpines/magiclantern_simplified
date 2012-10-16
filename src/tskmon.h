@@ -22,5 +22,7 @@ void tskmon_update_timers();
 void tskmon_update_runtime(struct task *task, uint32_t active_time);
 void tskmon_task_dispatch();
 void tskmon_init();
+void tskmon_stack_check(uint32_t task_id);
+void tskmon_stack_get_max(uint32_t task_id, uint32_t *used, uint32_t *free);
 
 #endif

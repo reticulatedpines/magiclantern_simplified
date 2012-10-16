@@ -10,6 +10,9 @@ uint32_t tskmon_last_timer_val = 0;
 uint32_t tskmon_active_time = 0;
 uint32_t tskmon_total_runtime = 0;
 uint32_t tskmon_task_runtimes[TSKMON_MAX_TASKS];
+uint32_t tskmon_task_stack_free[TSKMON_MAX_TASKS];
+uint32_t tskmon_task_stack_used[TSKMON_MAX_TASKS];
+uint32_t tskmon_task_stack_check[TSKMON_MAX_TASKS];
 uint32_t tskmon_idle_task_id = 0;
 uint32_t tskmon_powermgr_task_id = 0;
 
@@ -132,11 +135,47 @@ void tskmon_update_runtime(struct task *task, uint32_t active_time)
     }
 }
 
+void tskmon_stack_checker(struct task *next_task)
+{
+    uint32_t id = (next_task->taskId) & (TSKMON_MAX_TASKS-1);
+    
+    if(!tskmon_task_stack_check[id])
+    {
+        return;
+    }
+    
+    uint32_t free = 0;
+    uint32_t *ptr = (uint32_t*)(next_task->stackStartAddr);
+    
+    /* check for magic value */
+    while(*ptr == 0x19980218)
+    {
+        free += 4;
+        ptr++;
+    }
+    
+    tskmon_task_stack_free[id] = free;
+    tskmon_task_stack_used[id] = next_task->stackSize - free;    
+    tskmon_task_stack_check[id] = 0;
+}
+
+void tskmon_stack_check(uint32_t task_id)
+{
+    tskmon_task_stack_check[task_id & (TSKMON_MAX_TASKS-1)] = 1;
+}
+
+void tskmon_stack_get_max(uint32_t task_id, uint32_t *used, uint32_t *free)
+{
+    *free = tskmon_task_stack_free[task_id & (TSKMON_MAX_TASKS-1)];
+    *used = tskmon_task_stack_used[task_id & (TSKMON_MAX_TASKS-1)];
+}
+
 void tskmon_task_dispatch()
 {
 #ifdef HIJACK_TASK_ADDR
     struct task *next_task = *(struct task **)(HIJACK_TASK_ADDR);
     
+    tskmon_stack_checker(next_task);    
     tskmon_update_timers();
     
     if(next_task->taskId != tskmon_last_task->taskId)

@@ -227,8 +227,22 @@ void tasks_print(void* priv, int x0, int y0, int selected)
             }
             else
             {
-                int mem_percent = task_attr.used * 100 / task_attr.size;
-                bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, task_id >= 99 ? COLOR_RED : mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED, 38)), x, y, 
+                uint32_t stack_used = 0;
+                uint32_t stack_free = 0;
+                
+                tskmon_stack_check(task_id);
+                tskmon_stack_get_max(task_id, &stack_used, &stack_free);
+                
+                int mem_percent = stack_used * 100 / task_attr.size;
+                
+                uint32_t color = task_id >= 99 ? COLOR_RED : mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED;
+                
+                if(stack_free == 0)
+                {
+                    color = COLOR_GRAY50;
+                }
+                
+                bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, color, 38)), x, y, 
                 "%02d %s: p=%2x w=%2x m=%2d%% %d\n", 
                 task_id, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
             }
