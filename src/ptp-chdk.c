@@ -1,9 +1,9 @@
 /** \file
- * PTP handlers to extend Magic Lantern to the USB port.
- *
- * These handlers are registered to allow Magic Lantern to interact with
- * a PTP client on the USB port.
- */
+* PTP handlers to extend Magic Lantern to the USB port.
+*
+* These handlers are registered to allow Magic Lantern to interact with
+* a PTP client on the USB port.
+*/
 
 #include "dryos.h"
 #include "ptp.h"
@@ -15,442 +15,412 @@
 #include "lens.h"
 
 
+extern uint32_t gdb_recv_buffer_length;
+extern uint32_t gdb_send_buffer_length;
+extern uint8_t gdb_recv_buffer[];
+extern uint8_t gdb_send_buffer[];
+extern void gdb_recv_callback(uint32_t);
+extern void gdb_send_callback();
+
 PTP_HANDLER( PTP_OC_CHDK, 0 )
 {
-	struct ptp_msg msg = {
-		.id        = PTP_RC_OK,
-		.session    = session,
-		.transaction    = transaction,
-		.param_count    = 4,
-		.param        = { 1, 2, 0xdeadbeef, 3 },
-	};
-	/*
-	//call( "FA_StartLiveView" );
-	bmp_printf( FONT_MED, 0, 30, "usb %08x %08x", context, context->handle );
-	bmp_printf( FONT_MED, 0, 50, "%08x %08x %08x %08x %08x",
-	(unsigned) param1,
-	(unsigned) param2,
-	(unsigned) param3,
-	(unsigned) param4,
-	(unsigned) param5
-	);
+    struct ptp_msg msg = 
+    {
+        .id          = PTP_RC_OK,
+        .session     = session,
+        .transaction = transaction,
+        .param_count = 4,
+        .param       = { 1, 2, 0xdeadbeef, 3 },
+    };
+    
+    static int temp_data_kind = 0; // 0: nothing, 1: ascii string, 2: lua object
+    static int temp_data_extra; // size (ascii string) or type (lua object)
 
-#if 0
-int len = context->get_data_size( context->handle );
-bmp_printf( FONT_LARGE, 0, 50, "Len = %d", len );
-if( !len )
-{
-context->send_resp(
-context->handle,
-&msg
-);
+    static union {
+        char *str;
+    } temp_data;
 
-return 0;
-}
+    // handle command
+    switch ( param1 )
+    {
 
-void * buf = AllocateMemory( len );
-if( !buf )
-return 1;
-
-bmp_printf( FONT_LARGE, 0, 60, "buf = %08x", buf );
-context->recv(
-context->handle,
-buf,
-len,
-0,
-0
-);
+        case PTP_CHDK_Version:
+            msg.param_count = 2;
+            msg.param[0] = PTP_CHDK_VERSION_MAJOR;
+            msg.param[1] = PTP_CHDK_VERSION_MINOR;
+            break;
 
 
-bmp_hexdump( FONT_LARGE, 0, 50, buf, len );
-FreeMemory( buf );
+
+        case PTP_CHDK_GetMemory:
+            {
+                uint32_t pos = 0;
+                uint32_t address = param2;
+                uint32_t length = param3;
+                uint8_t *buf = NULL;
+
+                if ( length == 0 )
+                {
+                    msg.id = PTP_RC_GeneralError;
+                    break;
+                }
+
+                buf = AllocateMemory( length );
+
+                if ( !buf )
+                {
+                    msg.id = PTP_RC_GeneralError;
+                    break;
+                }
+
+                while ( pos < length )
+                {
+                    if ( (length - pos) >= 4 )
+                    {
+                        ((uint32_t*)buf)[pos / 4] = *((uint32_t*)(address + pos));
+                        pos += 4;
+                    }
+                    else
+                    {
+                        buf[pos] = *((uint8_t*)(address + pos));
+                        pos++;
+                    }
+                }
+
+                if ( !send_ptp_data(context, (char *) buf, length) )
+                {
+                    msg.id = PTP_RC_GeneralError;
+                }
+
+                FreeMemory(buf);
+            }
+            break;
+
+        case PTP_CHDK_SetMemory:
+            if ( param2 == 0 || param3 < 1 ) // null pointer or invalid size?
+            {
+                msg.id = PTP_RC_GeneralError;
+                break;
+            }
+
+            context->get_data_size(context->handle); // XXX required call before receiving
+            if ( !recv_ptp_data(context,(char *) param2,param3) )
+            {
+                msg.id = PTP_RC_GeneralError;
+            }
+            break;
+
+#ifdef GDBSTUB
+        case PTP_CHDK_GDBStub_Download:
+            {
+                uint32_t length = param2;
+                if (param2 == 0) // null pointer or invalid size?
+                {
+                    msg.id = PTP_RC_GeneralError;
+                    break;
+                }
+                
+                /* buffer not processed yet */
+                while(gdb_recv_buffer_length != 0)
+                {
+                    msleep(1);
+                }
+
+                context->get_data_size(context->handle); // XXX required call before receiving
+                if ( !recv_ptp_data(context, (char*)gdb_recv_buffer, length) )
+                {
+                    msg.id = PTP_RC_GeneralError;
+                }
+                
+                /* mark as filled */              
+                gdb_recv_callback(length);
+            }
+            break;       
+            
+        case PTP_CHDK_GDBStub_Upload:
+            {
+                uint32_t length = param2;
+                
+                /* buffer not filled yet */
+                if(gdb_send_buffer_length == 0)
+                {
+                    char dummy = 0;
+                    
+                    if (!send_ptp_data(context, &dummy, 1) )
+                    {
+                        msg.id = PTP_RC_GeneralError;
+                    }
+                }
+                else
+                {
+                    //bmp_printf(FONT_LARGE, 0, 30, gdb_send_buffer);
+                    if (!send_ptp_data(context, (char*)gdb_send_buffer, gdb_send_buffer_length) )
+                    {
+                        msg.id = PTP_RC_GeneralError;
+                    }
+                
+                    /* mark as free again */
+                    gdb_send_callback();
+                }
+            }
+            break;
+
 #endif
 
-*/
+        case PTP_CHDK_CallFunction:
+            {
+                uint32_t ret = 0;
+                uint32_t size = 0;
+                uint32_t *buf = NULL;
 
-bmp_printf(FONT_LARGE, 0, 0, "PTP: %8x %8x %8x", (unsigned int) param1, (unsigned int) param2, (unsigned int) param3);
+                size = context->get_data_size(context->handle);
+                buf = AllocateMemory(size);
 
-// ported from CHDK
+                if ( !recv_ptp_data(context, (char *)buf, size) )
+                {
+                    msg.id = PTP_RC_GeneralError;
+                }
+                else
+                {
+                    bmp_printf(FONT_LARGE, 0, 0, "BL 0x%08X", buf[0]);
 
-static int temp_data_kind = 0; // 0: nothing, 1: ascii string, 2: lua object
-static int temp_data_extra; // size (ascii string) or type (lua object)
+                    switch((size/4) - 1)
+                    {
+                    case 0:
+                        ret = ((uint32_t (*)())buf[0])();
+                        break;
+                    case 1:
+                        ret = ((uint32_t (*)(int))buf[0])(buf[1]);
+                        break;
+                    case 2:
+                        ret = ((uint32_t (*)(int,int))buf[0])(buf[1],buf[2]);
+                        break;
+                    case 3:
+                        ret = ((uint32_t (*)(int,int,int))buf[0])(buf[1],buf[2],buf[3]);
+                        break;
+                    case 4:
+                        ret = ((uint32_t (*)(int,int,int,int))buf[0])(buf[1],buf[2],buf[3],buf[4]);
+                        break;
+                    default:
+                        bmp_printf(FONT_LARGE, 0, 0, ">= 5 args not supported");
+                        msg.id = PTP_RC_GeneralError;
+                        break;
+                    }
 
-static union {
-	char *str;
-} temp_data;
+                    msg.param_count = 1;
+                    msg.param[0] = ret;
+                }
+            }
+            break;
 
-// handle command
-switch ( param1 )
-{
+        case PTP_CHDK_TempData:
+            if ( param2 & PTP_CHDK_TD_DOWNLOAD )
+            {
+                const char *s = NULL;
+                size_t l = 0;
 
-	case PTP_CHDK_Version:
-		msg.param_count = 2;
-		msg.param[0] = PTP_CHDK_VERSION_MAJOR;
-		msg.param[1] = PTP_CHDK_VERSION_MINOR;
-		//gui_unlock();
-		break;
+                if ( temp_data_kind == 0 )
+                {
+                    msg.id = PTP_RC_GeneralError;
+                    break;
+                }
 
-	case PTP_CHDK_GetMemory:
-		if ( param2 == 0 || param3 < 1 ) // null pointer or invalid size?
-		{
-			msg.id = PTP_RC_GeneralError;
-			break;
-		}
+                if ( temp_data_kind == 1 )
+                {
+                    s = temp_data.str;
+                    l = temp_data_extra;
+                } 
+                else
+                {
+                    s = 0;
+                    //~ s = lua_tolstring(get_lua_thread(temp_data.lua_state),1,&l);
+                }
 
-		if ( !send_ptp_data(context, (char *) param2, param3) )
-		{
-			msg.id = PTP_RC_GeneralError;
-		}
-		break;
+                if ( !send_ptp_data(context,s,l) )
+                {
+                    msg.id = PTP_RC_GeneralError;
+                    break;
+                }
+            } 
+            else if ( !(param2 & PTP_CHDK_TD_CLEAR) ) 
+            {
+                if ( temp_data_kind == 1 )
+                {
+                    FreeMemory(temp_data.str);
+                } else if ( temp_data_kind == 2 )
+                {
+                    //~ lua_close(temp_data.lua_state);
+                }
+                temp_data_kind = 0;
 
-	case PTP_CHDK_SetMemory:
-		/*
-		   if ( param2 == 0 || param3 < 1 ) // null pointer or invalid size?
-		   {
-		   msg.id = PTP_RC_GeneralError;
-		   break;
-		   }
+                temp_data_extra = context->get_data_size(context->handle);
 
-		   data->get_data_size(data->handle); // XXX required call before receiving
-		   if ( !recv_ptp_data(data,(char *) param2,param3) )
-		   {
-		   msg.id = PTP_RC_GeneralError;
-		   } */
+                temp_data.str = (char *) AllocateMemory(temp_data_extra);
+                if ( temp_data.str == NULL )
+                {
+                    msg.id = PTP_RC_GeneralError;
+                    break;
+                }
 
-		bmp_printf(FONT_LARGE, 0, 0, "SetMemory: not implemented");
-		msleep(1000);
-		break;
+                if ( !recv_ptp_data(context,temp_data.str,temp_data_extra) )
+                {
+                    msg.id = PTP_RC_GeneralError;
+                    break;
+                }
+                temp_data_kind = 1;
+            }
+            if ( param2 & PTP_CHDK_TD_CLEAR )
+            {
+                if ( temp_data_kind == 1 )
+                {
+                    FreeMemory(temp_data.str);
+                }
+                else if ( temp_data_kind == 2 )
+                {
+                    //~ lua_close(temp_data.lua_state);
+                }
+                temp_data_kind = 0;
+            }
+            break;
 
-	case PTP_CHDK_CallFunction:
-		bmp_printf(FONT_LARGE, 0, 0, "CallFunction: not implemented");
-		msleep(1000);
-		break;
+        case PTP_CHDK_UploadFile:
+            {
+                FILE *f;
+                int s,fn_len;
+                char *buf, *fn;
 
-	case PTP_CHDK_TempData:
-		if ( param2 & PTP_CHDK_TD_DOWNLOAD )
-		{
-			const char *s;
-			size_t l;
+                s = context->get_data_size(context->handle);
 
-			if ( temp_data_kind == 0 )
-			{
-				msg.id = PTP_RC_GeneralError;
-				break;
-			}
+                recv_ptp_data(context,(char *) &fn_len,4);
+                s -= 4;
 
-			if ( temp_data_kind == 1 )
-			{
-				s = temp_data.str;
-				l = temp_data_extra;
-			} else { // temp_data_kind == 2
-				s = 0;
-				//~ s = lua_tolstring(get_lua_thread(temp_data.lua_state),1,&l);
-			}
+                fn = (char *) AllocateMemory(fn_len+1);
+                if ( fn == NULL )
+                {
+                    msg.id = PTP_RC_GeneralError;
+                    break;
+                }
+                fn[fn_len] = '\0';
 
-			if ( !send_ptp_data(context,s,l) )
-			{
-				msg.id = PTP_RC_GeneralError;
-				break;
-			}
+                recv_ptp_data(context,fn,fn_len);
+                s -= fn_len;
 
-		} else if ( ! (param2 & PTP_CHDK_TD_CLEAR) ) {
-			if ( temp_data_kind == 1 )
-			{
-				FreeMemory(temp_data.str);
-			} else if ( temp_data_kind == 2 )
-			{
-				//~ lua_close(temp_data.lua_state);
-			}
-			temp_data_kind = 0;
+                bmp_printf(FONT_LARGE, 0, 0, "UL '%s' %db", fn, s);
 
-			temp_data_extra = context->get_data_size(context->handle);
+                FIO_RemoveFile(fn);
+                f = FIO_CreateFile(fn);
+                if ( f == NULL )
+                {
+                    msg.id = PTP_RC_GeneralError;
+                    FreeMemory(fn);
+                    break;
+                }
+                FreeMemory(fn);
 
-			temp_data.str = (char *) AllocateMemory(temp_data_extra);
-			if ( temp_data.str == NULL )
-			{
-				msg.id = PTP_RC_GeneralError;
-				break;
-			}
+                buf = (char *) AllocateMemory(BUF_SIZE);
+                if ( buf == NULL )
+                {
+                    msg.id = PTP_RC_GeneralError;
+                    break;
+                }
+                while ( s > 0 )
+                {
+                    if ( s >= BUF_SIZE )
+                    {
+                        recv_ptp_data(context,buf,BUF_SIZE);
+                        FIO_WriteFile(f, UNCACHEABLE(buf), BUF_SIZE);
+                        s -= BUF_SIZE;
+                    } else {
+                        recv_ptp_data(context,buf,s);
+                        FIO_WriteFile(f, UNCACHEABLE(buf), s);
+                        s = 0;
+                    }
+                }
 
-			if ( !recv_ptp_data(context,temp_data.str,temp_data_extra) )
-			{
-				msg.id = PTP_RC_GeneralError;
-				break;
-			}
-			temp_data_kind = 1;
-		}
-		if ( param2 & PTP_CHDK_TD_CLEAR )
-		{
-			if ( temp_data_kind == 1 )
-			{
-				FreeMemory(temp_data.str);
-			} else if ( temp_data_kind == 2 )
-			{
-				//~ lua_close(temp_data.lua_state);
-			}
-			temp_data_kind = 0;
-		}
-		break;
+                FIO_CloseFile(f);
 
-	case PTP_CHDK_UploadFile:
-		{
-			FILE *f;
-			int s,fn_len;
-			char *buf, *fn;
+                FreeMemory(buf);
+                break;
+            }
 
-			s = context->get_data_size(context->handle);
+        case PTP_CHDK_DownloadFile:
+            {
+                FILE *f;
+                int tmp,t,r;
+                unsigned s;
 
-			recv_ptp_data(context,(char *) &fn_len,4);
-			s -= 4;
+                bmp_printf(FONT_LARGE, 0, 0, "DL request");
 
-			fn = (char *) AllocateMemory(fn_len+1);
-			if ( fn == NULL )
-			{
-				msg.id = PTP_RC_GeneralError;
-				break;
-			}
-			fn[fn_len] = '\0';
+                if ( temp_data_kind != 1 )
+                {
+                    bmp_printf(FONT_LARGE, 0, 0, "DL kind err %d", temp_data_kind);
+                    msg.id = PTP_RC_GeneralError;
+                    break;
+                }
 
-			recv_ptp_data(context,fn,fn_len);
-			s -= fn_len;
+                char fn[101];
+                if (temp_data_extra > 100)
+                {
+                    bmp_printf(FONT_LARGE, 0, 0, "DL extra err %d", temp_data_extra);
+                    msg.id = PTP_RC_GeneralError;
+                    break;
+                }
 
-			bmp_printf(FONT_LARGE, 0, 0, "UL '%s' %db", fn, s);
+                memcpy(fn,temp_data.str,temp_data_extra);
+                fn[temp_data_extra] = '\0';
 
-			f = FIO_CreateFileEx(fn);
-			if ( f == NULL )
-			{
-				msg.id = PTP_RC_GeneralError;
-				FreeMemory(fn);
-				break;
-			}
-			FreeMemory(fn);
+                FreeMemory(temp_data.str);
+                temp_data_kind = 0;
 
-			buf = (char *) AllocateMemory(BUF_SIZE);
-			if ( buf == NULL )
-			{
-				msg.id = PTP_RC_GeneralError;
-				break;
-			}
-			while ( s > 0 )
-			{
-				if ( s >= BUF_SIZE )
-				{
-					recv_ptp_data(context,buf,BUF_SIZE);
-					FIO_WriteFile(f, UNCACHEABLE(buf), BUF_SIZE);
-					s -= BUF_SIZE;
-				} else {
-					recv_ptp_data(context,buf,s);
-					FIO_WriteFile(f, UNCACHEABLE(buf), s);
-					s = 0;
-				}
-			}
+                if( FIO_GetFileSize( fn, &s ) != 0 )
+                {
+                    bmp_printf(FONT_LARGE, 0, 0, "DL '%s' size err", fn);
+                    msg.id = PTP_RC_GeneralError;
+                    break;
+                }
 
-			FIO_CloseFile(f);
+                bmp_printf(FONT_LARGE, 0, 0, "DL '%s' %db", fn, s);
 
-			FreeMemory(buf);
-			break;
-		}
+                f = FIO_Open(fn, 0);
+                if ( f == NULL )
+                {
+                    msg.id = PTP_RC_GeneralError;
+                    break;
+                }
 
-	case PTP_CHDK_DownloadFile:
-		{
-			FILE *f;
-			int tmp,t,r,fn_len;
-			unsigned s;
+                char buf[BUF_SIZE+32];
+                tmp = s;
+                t = s;
+                while ( (r = FIO_ReadFile(f, UNCACHEABLE(buf), (t<BUF_SIZE) ? t : BUF_SIZE)) > 0 )
+                {
+                    t -= r;
+                    // cannot use send_ptp_data here
+                    context->send_data(context->handle,buf,r,tmp,0,0,0);
+                    tmp = 0;
+                }
+                FIO_CloseFile(f);
+                // XXX check that we actually read/send s bytes! (t == 0)
 
-			bmp_printf(FONT_LARGE, 0, 0, "DL request");
+                msg.param_count = 1;
+                msg.param[0] = s;
 
-			if ( temp_data_kind != 1 )
-			{
-				bmp_printf(FONT_LARGE, 0, 0, "DL kind err %d", temp_data_kind);
-				msg.id = PTP_RC_GeneralError;
-				break;
-			}
+                break;
+            }
+            break;
 
-			char fn[101];
-			if (temp_data_extra > 100)
-			{
-				bmp_printf(FONT_LARGE, 0, 0, "DL extra err %d", temp_data_extra);
-				msg.id = PTP_RC_GeneralError;
-				break;
-			}
+        case PTP_CHDK_ExecuteScript:
+            bmp_printf(FONT_LARGE, 0, 0, "ExecuteScript: not implemented");
+            msleep(1000);
+            break;
 
-			memcpy(fn,temp_data.str,temp_data_extra);
-			fn[temp_data_extra] = '\0';
+        default:
+            msg.id = PTP_RC_ParameterNotSupported;
+            break;
+    }
 
-			FreeMemory(temp_data.str);
-			temp_data_kind = 0;
+    context->send_resp( context->handle, &msg );
 
-			if( FIO_GetFileSize( fn, &s ) != 0 )
-			{
-				bmp_printf(FONT_LARGE, 0, 0, "DL '%s' size err", fn);
-				msg.id = PTP_RC_GeneralError;
-				break;
-			}
-
-			bmp_printf(FONT_LARGE, 0, 0, "DL '%s' %db", fn, s);
-
-			f = FIO_Open(fn, 0);
-			if ( f == NULL )
-			{
-				msg.id = PTP_RC_GeneralError;
-				break;
-			}
-
-			char buf[BUF_SIZE+32];
-			tmp = s;
-			t = s;
-			while ( (r = FIO_ReadFile(f, UNCACHEABLE(buf), (t<BUF_SIZE) ? t : BUF_SIZE)) > 0 )
-			{
-				t -= r;
-				// cannot use send_ptp_data here
-				context->send_data(context->handle,buf,r,tmp,0,0,0);
-				tmp = 0;
-			}
-			FIO_CloseFile(f);
-			// XXX check that we actually read/send s bytes! (t == 0)
-
-			msg.param_count = 1;
-			msg.param[0] = s;
-
-			break;
-		}
-		break;
-
-	case PTP_CHDK_ExecuteScript:
-		bmp_printf(FONT_LARGE, 0, 0, "ExecuteScript: not implemented");
-		msleep(1000);
-		break;
-
-	default:
-		msg.id = PTP_RC_ParameterNotSupported;
-		break;
+    return 0;
 }
 
-context->send_resp(
-		context->handle,
-		&msg
-		);
-
-return 0;
-}
-
-
-/** Start recording when we get a PTP operation 0x9997
- * MovieStop doesn't seem to do anything, but MovieStart
- * toggles recording on and off
- */
-/*PTP_HANDLER( 0x9997, 0 )
-  {
-  call( "MovieStart" );
-
-  struct ptp_msg msg = {
-  .id        = PTP_RC_OK,
-  .session    = session,
-  .transaction    = transaction,
-  .param_count    = 1,
-  .param        = { param1 },
-  };
-
-  context->send_resp(
-  context->handle,
-  &msg
-  );
-
-  return 0;
-  }
-  */
-
-/** Dump memory */
-/*PTP_HANDLER( 0x9996, 0 )
-  {
-  const uint32_t * const buf = (void*) param1;
-
-  struct ptp_msg msg = {
-  .id        = PTP_RC_OK,
-  .session    = session,
-  .transaction    = transaction,
-  .param_count    = 5,
-  .param        = {
-  buf[0],
-  buf[1],
-  buf[2],
-  buf[3],
-  buf[4],
-  },
-  };
-
-  context->send_resp(
-  context->handle,
-  &msg
-  );
-
-  return 0;
-  }*/
-
-/** Write to memory, returning the old value */
-/*PTP_HANDLER( 0x9995, 0 )
-  {
-  uint32_t * const buf = (void*) param1;
-  const uint32_t val = (void*) param2;
-
-  const uint32_t old = *buf;
- *buf = val;
-
- struct ptp_msg msg = {
- .id        = PTP_RC_OK,
- .session    = session,
- .transaction    = transaction,
- .param_count    = 2,
- .param        = {
- param1,
- old,
- },
- };
-
- context->send_resp(
- context->handle,
- &msg
- );
-
- return 0;
- }*/
-
-/*
-   static void
-   ptp_state_display(
-   void *            priv,
-   int            x,
-   int            y,
-   int            selected
-   )
-   {
-   bmp_printf(
-   selected ? MENU_FONT_SEL : MENU_FONT,
-   x, y,
-//23456789012
-"PTP State:  %x %08x",
-hotplug_struct.usb_state,
- *(uint32_t*)( 0xC0220000 + 0x34 )
- );
- }
-
-
- static void
- ptp_state_toggle( void * priv )
- {
- hotplug_struct.usb_state = !hotplug_struct.usb_state;
- prop_deliver(
- hotplug_struct.usb_prop,
- &hotplug_usb_buf,
- sizeof(hotplug_usb_buf),
- 0
- );
- }
-
- static struct menu_entry ptp_menus[] = {
- {
- .display    = ptp_state_display,
- .select        = ptp_state_toggle,
- },
- };*/
 

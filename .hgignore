@@ -64,7 +64,7 @@ src/menuindexentries.h
 doc/Cropmarks550D.png
 platform/all/zip
 plugins/loader.c
-
+contrib/ptpcam/ptpcam
 loader.c
 doc/cam
 INSTALL.tex-e
