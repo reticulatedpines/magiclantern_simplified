@@ -245,8 +245,11 @@ static void icache_lock()
 {
     uint32_t old_int = cli();
 
-    /* no need to clean entries, directly lock cache */
+    /* no need to clean entries, directly flush and lock cache */
     asm volatile ("\
+       /* flush cache pages */\
+       MCR p15, 0, R0, c7, c5, 0\r\n\
+       \
        /* enable cache lockdown for segment 0 (of 4) */\
        MOV R0, #0x80000000\r\n\
        MCR p15, 0, R0, c9, c0, 1\r\n\
