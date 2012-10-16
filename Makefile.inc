@@ -210,6 +210,8 @@ reboot.o: $(SRC_DIR)/reboot.c magiclantern.bin
 magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
 	$(call build,CPP,$(CPP) $(CFLAGS) $< | grep -v '^#' > $@)
 
+ML_OBJS-$(CONFIG_GDB) += \
+        gdb.o \
 
 ML_OBJS-$(CONFIG_PTP) += \
 	ptp.o \
