@@ -423,6 +423,8 @@ extern void *ReleaseRecursiveLock(void *lock);
 
 #endif
 
+void bmp_flip(uint8_t* dst, uint8_t* src, int voffset);
+void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);
 
 
 /** 5dc bitmap icons (ones that work and what they are) */
