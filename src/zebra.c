@@ -1781,6 +1781,17 @@ static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvra
 static void focus_found_pixel_playback(int x, int y, int e, int thr, uint8_t * const bvram)
 {    
     int color = get_focus_color(thr, e);
+
+    uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
+    uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
+    
+    uint16_t pixel = b_row[x/2];
+    uint16_t mirror = m_row[x/2];
+    if (mirror  & 0x8080) 
+        return;
+    if (pixel  != 0 && pixel  != mirror )
+        return;
+
     bmp_putpixel_fast(bvram, x, y, color);
     bmp_putpixel_fast(bvram, x+1, y, color);
 }
@@ -3968,6 +3979,11 @@ PROP_HANDLER(PROP_GUI_STATE)
 {
     extern int _bmp_draw_should_stop;
     _bmp_draw_should_stop = 1; // abort drawing any slow cropmarks
+
+    if (ZEBRAS_IN_QUICKREVIEW && buf[0] == GUISTATE_QR)
+    {
+        fake_simple_button(BTN_ZEBRAS_FOR_PLAYBACK);
+    }
 }
 
 // those functions will do nothing if called multiple times (it's safe to do this)
@@ -4597,7 +4613,16 @@ int zebra_should_run()
 int livev_for_playback_running = 0;
 void draw_livev_for_playback()
 {
-    if (!PLAY_MODE && !QR_MODE) return;
+    if (!PLAY_OR_QR_MODE) return;
+
+    extern int quick_review_allow_zoom;
+    if (quick_review_allow_zoom && image_review_time == 0xff)
+    {
+        // wait for the camera to switch from QR to PLAY before drawing anything
+        while (!PLAY_MODE) msleep(100);
+        msleep(500);
+    }
+    while (!DISPLAY_IS_ON) msleep(100);
 
     livev_for_playback_running = 1;
     get_yuv422_vram(); // just to refresh VRAM params
@@ -4609,8 +4634,7 @@ BMP_LOCK(
     bvram_mirror_clear(); // may be filled with liveview cropmark / masking info, not needed in play mode
     clrscr();
 
-    // don't draw cropmarks in QR mode (buggy on 4:3 screens)
-    if (!QR_MODE) cropmark_redraw();
+    cropmark_redraw();
 
     if (spotmeter_draw)
         spotmeter_step();
@@ -5605,20 +5629,6 @@ livev_lopriority_task( void* unused )
             cropmark_redraw();
         }
 
-        static int qr_zebras_drawn = 0; // zebras in QR should only be drawn once
-        extern int hdr_enabled;
-        if (ZEBRAS_IN_QUICKREVIEW && QR_MODE && get_global_draw() && !hdr_enabled)
-        {
-            if (!qr_zebras_drawn)
-            {
-                msleep(500);
-                draw_livev_for_playback();
-                if (cropmarks_play) cropmark_redraw();
-                qr_zebras_drawn = 1;
-            }
-        }
-        else qr_zebras_drawn = 0;
-
         loprio_sleep();
         if (!zebra_should_run())
         {
@@ -5794,7 +5804,7 @@ static void livev_playback_reset()
 int handle_livev_playback(struct event * event, int button)
 {
     // enable LiveV stuff in Play mode
-    if (PLAY_MODE && !gui_menu_shown())
+    if (PLAY_OR_QR_MODE && !gui_menu_shown())
     {
         if (event->param == button)
         {
