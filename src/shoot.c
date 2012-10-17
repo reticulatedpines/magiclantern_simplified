@@ -6677,7 +6677,7 @@ shoot_task( void* unused )
             int display_turned_off = 0;
             //~ int images_compared = 0;
             msleep(20);
-            while (SECONDS_REMAINING > 0)
+            while (SECONDS_REMAINING > 0 && !ml_shutdown_requested)
             {
                 if (bulb_ramping_enabled)
                 {
@@ -6771,7 +6771,7 @@ shoot_task( void* unused )
                     // continuous mode - simply hold shutter pressed 
                     SW1(1,100);
                     SW2(1,100);
-                    while (intervalometer_running && get_halfshutter_pressed()) msleep(100);
+                    while (intervalometer_running && get_halfshutter_pressed() && !ml_shutdown_requested) msleep(100);
                     beep();
                     intervalometer_stop();
                     SW2(0,100);
@@ -6842,7 +6842,7 @@ shoot_task( void* unused )
                          * This means we will trigger again on the sound of the shutter
                          * (and again, and again, ...)
                          * TODO: should this be fixed in remote_shot itself? */
-                        while (lens_info.job_state) msleep(100);
+                        while (lens_info.job_state && !ml_shutdown_requested) msleep(100);
                         countdown = 20;
                     }
                 }
