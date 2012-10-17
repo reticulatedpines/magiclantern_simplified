@@ -1097,6 +1097,8 @@ static int quickzoom_unpressed = 0;
 static int quickzoom_fake_unpressed = 0;
 int handle_fast_zoom_in_play_mode(struct event * event)
 {
+    extern thunk PlayMain_handler;
+    
     if (!quickzoom || !PLAY_MODE) return 1;
     if (!IS_FAKE(event))
     {
@@ -1112,9 +1114,9 @@ int handle_fast_zoom_in_play_mode(struct event * event)
         }
         #ifdef IMGPLAY_ZOOM_POS_X
         #ifdef BGMT_JOY_CENTER
-        else if (event->param == BGMT_JOY_CENTER && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3) 
+        else if (event->param == BGMT_JOY_CENTER && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3 && (intptr_t)get_current_dialog_handler() == (intptr_t)&PlayMain_handler) 
         #else
-        else if (event->param == BGMT_PRESS_SET && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3)
+        else if (event->param == BGMT_PRESS_SET && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3 && (intptr_t)get_current_dialog_handler() == (intptr_t)&PlayMain_handler)
         #endif
         {
             IMGPLAY_ZOOM_POS_X = IMGPLAY_ZOOM_POS_X_CENTER;

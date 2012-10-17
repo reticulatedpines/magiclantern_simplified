@@ -88,7 +88,6 @@
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0xD
 #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xE
-#define BGMT_JOY_CENTER 0x1e // press the joystick maybe?		???
 
 #define BGMT_LV 0xf						// idk?
 
