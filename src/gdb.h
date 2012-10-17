@@ -58,9 +58,11 @@ typedef struct
 } breakpoint_t;
 
 
-breakpoint_t * gdb_add_watchpoint(uint32_t address, uint32_t linkedAddress, void (*callback)(breakpoint_t *));
-breakpoint_t * gdb_add_bkpt(uint32_t address, uint32_t flags);
+breakpoint_t *gdb_quick_watchpoint(uint32_t address);
+breakpoint_t *gdb_add_watchpoint(uint32_t address, uint32_t linkedAddress, void (*callback)(breakpoint_t *));
+breakpoint_t *gdb_add_bkpt(uint32_t address, uint32_t flags);
 uint32_t gdb_instr_is_pc_modifying(uint32_t opcode);
 char *gdb_get_callstack(breakpoint_t *bkpt);
+uint32_t gdb_setup();
 
 #endif

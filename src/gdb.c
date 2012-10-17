@@ -41,6 +41,7 @@ extern uint32_t *current_task_ctx;
 
 int gdb_attached_pid = -1;
 volatile int gdb_running = 0;
+int gdb_installed = 0;
 breakpoint_t *gdb_current_bkpt = NULL;
 
 /* used for gdb_get_callstack */
@@ -412,7 +413,7 @@ void gdb_continue_stalled_task(uint32_t address)
 /* thats a "quick" function to be called via ptp and its base address
  * check the linker .map file for the base address and call it using ptpcam with one parameter - the address to look at
  */
-uint32_t gdb_quick_watchpoint(uint32_t address)
+breakpoint_t *gdb_quick_watchpoint(uint32_t address)
 {
     return gdb_add_watchpoint(address, 0, NULL);
 }
@@ -671,7 +672,7 @@ void gdb_exception_handler(uint32_t *ctx)
     }
 }
 
-void gdb_install_hooks()
+uint32_t gdb_install_hooks()
 {
 #ifdef USE_HOOKS
     //orig_pre_task_hook = pre_task_hook;
@@ -684,18 +685,35 @@ void gdb_install_hooks()
     pre_isr_hook = gdb_pre_isr_hook;
     post_isr_hook = gdb_post_isr_hook;
 #endif
+    return 1;
 }
 
-void gdb_install_handler()
+uint32_t gdb_install_handler()
 {
+    uint32_t undef_handler_addr = 0;
+    uint32_t undef_handler_opcode = *(uint32_t*)0x04;
+    
+    /* make sure undef handler address is loaded into PC using PC relative LDR */
+    if((undef_handler_opcode & 0xFFFFF000) != 0xE59FF000)
+    {
+        return 0;
+    }
+    
+    /* extract offset from LDR */
+    undef_handler_addr = (undef_handler_opcode & 0x00000FFF) + 0x04 + 0x08;
+    
+    /* first install stack etc */
     gdb_undef_stack = (uint32_t)&gdb_context_buffer[GDB_STACK_SIZE + 17];
     gdb_context_buffer[17] = 0xDEADBEEF;
 
-    gdb_orig_undef_handler = (void*)MEM(0x20);
-    MEM(0x20) = (uint32_t)&gdb_undef_handler;
+    /* then patch handler */
+    gdb_orig_undef_handler = (void*)MEM(undef_handler_addr);
+    MEM(undef_handler_addr) = (uint32_t)&gdb_undef_handler;
+    
+    return 1;
 }
 
-void gdb_setup()
+uint32_t gdb_setup()
 {
     int pos = 0;
 
@@ -710,10 +728,20 @@ void gdb_setup()
     gdb_memset(gdb_recv_buffer, 0, GDB_TRANSMIT_BUFFER_SIZE);
     gdb_send_ptr = (char*)gdb_send_buffer;
 
-    gdb_install_handler();
-    gdb_install_hooks();
+    if(!gdb_install_handler())
+    {
+        return 0;
+    }
+    
+    if(!gdb_install_hooks())
+    {
+        return 0;
+    }
     
     task_create("gdbstub_task", 0x1e, 0, gdb_main_task, 0);
+    
+    gdb_installed = 1;
+    return 1;
 }
 
 
