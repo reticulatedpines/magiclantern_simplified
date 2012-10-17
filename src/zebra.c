@@ -1356,6 +1356,16 @@ void draw_zebras( int Z )
         // fast zebras
         if (zebra_colorspace == 2 && (lv || only_one)) // if both under and over are enabled, fall back to regular zebras in play mode
         {
+            #ifdef CONFIG_4_3_SCREEN
+            // try not to display fast zebras on bottom bar, under the image
+            if (lv && hdmi_code != 5)
+            {
+                int ymax = MIN(os.y_max + os.y_ex/8 + 3, BMP_H_PLUS-1);
+                if (bmp_getpixel(os.x0, ymax - 3) != COLOR_BLACK)
+                    bmp_fill(COLOR_BLACK, os.x0, os.y_max, os.x_ex, ymax - os.y_max);
+            }
+            #endif
+
             zebra_digic_dirty = 1;
             
             // if both zebras are enabled, alternate them (can't display both at the same time)
@@ -1370,6 +1380,7 @@ void draw_zebras( int Z )
                 EngDrvOut(DIGIC_ZEBRA_REGISTER, 0xC000 + zlh);
             else if (un)
                 EngDrvOut(DIGIC_ZEBRA_REGISTER, 0x1d000 + zll);
+            
             return;
         }
         else if (PLAY_OR_QR_MODE) EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); // disable Canon highlight warning, looks ugly with both on the screen :)
