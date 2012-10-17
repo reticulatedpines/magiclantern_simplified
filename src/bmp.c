@@ -531,54 +531,6 @@ bmp_hexdump(
 /** Fill a section of bitmap memory with solid color
  * Only has a four-pixel resolution in X.
  */
-#ifdef CONFIG_500D // unoptimized version; drawing too fast gives ERR70
-void
-bmp_fill(
-    uint8_t            color,
-    int        x,
-    int        y,
-    int        w,
-    int        h
-)
-{
-    x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
-    y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
-    w = COERCE(w, 0, BMP_W_PLUS-x-1);
-    h = COERCE(h, 0, BMP_H_PLUS-y-1);
-
-    const uint32_t word = 0
-        | (color << 24)
-        | (color << 16)
-        | (color <<  8)
-        | (color <<  0);
-
-    uint32_t* b = (uint32_t*)bmp_vram();
-    
-    for (int i = y; i < y+h; i++)
-    {
-        for (int j = x; j < x+w; j+=4)
-        {
-            b[BM(j,i)/4] = word;
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-        }
-    }
-}
-#else // all other cameras work just fine with fast code
 
 /* will allow 1-pixel resolution in X and also enables BMP_FILL_HALFALIGN which is 2-pixel resolution */
 //#define BMP_FILL_BYTEALIGN
@@ -693,7 +645,6 @@ bmp_fill(
         }
     }
 }
-#endif
 
 /** Draw a picture of the BMP color palette. */
 void

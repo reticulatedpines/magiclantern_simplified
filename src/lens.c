@@ -305,10 +305,13 @@ int raw2iso(int raw_iso)
     return iso;
 }
 
-void shave_color_bar(int x0, int y0, int w, int h, int shaved_color);
+//~ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color);
 
 static void double_buffering_start(int ytop, int height)
 {
+    #ifdef CONFIG_500D // err70
+    return;
+    #endif
     // use double buffering to avoid flicker
     bmp_vram(); // make sure parameters are up to date
     ytop = MIN(ytop, BMP_H_PLUS - height);
@@ -318,6 +321,9 @@ static void double_buffering_start(int ytop, int height)
 
 static void double_buffering_end(int ytop, int height)
 {
+    #ifdef CONFIG_500D // err70
+    return;
+    #endif
     // done drawing, copy image to main BMP buffer
     bmp_draw_to_idle(0);
     bmp_vram(); // make sure parameters are up to date
@@ -334,16 +340,49 @@ static void ml_bar_clear(int ytop, int height)
     if (!M) return;
     int menu = gui_menu_shown();
     int ymax = MIN(ytop + height, BMP_H_PLUS);
+   
     for (int y = ytop; y < ymax; y++)
     {
-        for (int x = BMP_W_MINUS; x < BMP_W_PLUS; x++)
+        for (int x = BMP_W_MINUS; x < BMP_W_PLUS; x+=4)
         {
-            uint8_t p = B[BM(x,y)];
-            uint8_t m = M[BM(x,y)];
-            if (recording && p == COLOR_RED && ytop < 100) continue; // don't erase the recording dot
-            if (menu) B[BM(x,y)] = COLOR_BLACK;
-            else if (m & 0x80) B[BM(x,y)] = m & ~0x80; // from cropmark
-            else B[BM(x,y)] = 0;
+            uint32_t p = *(uint32_t*)&B[BM(x,y)];
+            uint32_t m = *(uint32_t*)&M[BM(x,y)];
+            uint32_t target = 0;
+           
+            if (recording && y < 100)
+            {
+                for(int byte_pos = 0; byte_pos < 4; byte_pos++)
+                {
+                    uint8_t val = (p >> (8*byte_pos));
+                   
+                    /* is that one red? */
+                    if((val & 0xFF) == COLOR_RED)
+                    {
+                        /* mask out cropmark */
+                        m &= ~(0x80<<(8*byte_pos));
+                    }
+                }
+            }
+           
+            if (menu)
+            {
+                target = (COLOR_BLACK<<24) | (COLOR_BLACK<<16) | (COLOR_BLACK<<8) | (COLOR_BLACK<<0);
+            }
+            else
+            {
+                for(int byte_pos = 0; byte_pos < 4; byte_pos++)
+                {
+                    uint8_t val = (m >> (8*byte_pos));
+                   
+                    /* is that one to draw? */
+                    if(val & 0x80)
+                    {
+                        val &= 0x7F;
+                        target |= (val<<(8*byte_pos));
+                    }
+                }
+            }
+            *(uint32_t*)&B[BM(x,y)] = target;
         }
     }
 }
