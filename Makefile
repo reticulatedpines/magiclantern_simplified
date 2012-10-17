@@ -141,12 +141,30 @@ docq:
 dropbox: all
 	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/bleeding-edge/
 
-nightly: all
+changelog:
+	echo "Change log for magiclantern-$(VERSION)zip" > ChangeLog.txt
+	echo "compiled from https://bitbucket.org/hudson/magic-lantern/changeset/`hg id -i -r .` " >> ChangeLog.txt
+	echo "===============================================================================" >> ChangeLog.txt
+	echo "" >> ChangeLog.txt
+	echo "Today's changes:" >> ChangeLog.txt
+	echo "" >> ChangeLog.txt
+	hg log --date ">`date -d 'today' +'%Y-%m-%d'` " --template '{node|short} | {date|shortdate} | {author|user}: {desc|strip|firstline} \n' >> ChangeLog.txt ;
+	echo "" >> ChangeLog.txt
+	echo "Yesterday's changes:" >> ChangeLog.txt
+	echo "" >> ChangeLog.txt
+	hg log --date "`date -d 'yesterday' +'%Y-%m-%d'` " --template '{node|short} | {date|shortdate} | {author|user}: {desc|strip|firstline} \n' >> ChangeLog.txt ;
+	echo "" >> ChangeLog.txt
+	echo "Changes for last 30 days:" >> ChangeLog.txt
+	echo "" >> ChangeLog.txt
+	hg log --date "`date -d 'today - 30 days' +'%Y-%m-%d'` to `date -d 'today - 2 days' +'%Y-%m-%d'`" --template '{node|short} | {date|shortdate} | {author|user}: {desc|strip|firstline} \n' >> ChangeLog.txt ;
+
+nightly: all changelog
 	mkdir -p $(NIGHTLY_DIR)
 	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 	cd $(PLATFORM_PATH)/all; mv *.zip $(NIGHTLY_DIR)
 	touch build.log
-	mv build.log $(NIGHTLY_DIR)  
+	mv build.log $(NIGHTLY_DIR)
+	mv ChangeLog.txt $(NIGHTLY_DIR)
 
 FORCE:
 
