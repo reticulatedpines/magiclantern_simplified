@@ -4,6 +4,5 @@
 cd $HOME/magic-lantern-official
 hg pull
 hg update unified
-make clean
 make nightly 2>&1 | tee build.log
 cd -
