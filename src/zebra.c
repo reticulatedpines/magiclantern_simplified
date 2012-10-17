@@ -3867,7 +3867,7 @@ cropmark_draw()
     }
     crop_dirty = 0;
 
-    BMP_LOCK( reload_cropmark()); // reloads only when changed
+    reload_cropmark(); // reloads only when changed
 
     // this is very fast
     if (cropmark_cache_is_valid())
@@ -3886,6 +3886,7 @@ cropmark_draw()
     {
         // Cropmarks disabled (or not shown in this mode)
         // Generate and draw default cropmarks
+        cropmark_cache_update_signature();
         cropmark_clear_cache();
         cropmark_draw_from_cache();
         //~ info_led_blink(5,50,50);
@@ -3897,6 +3898,7 @@ cropmark_draw()
         // Cropmarks enabled, but cache is not valid
         if (!lv) msleep(500); // let the bitmap buffer settle, otherwise ML may see black image and not draw anything (or draw half of cropmark)
         clrscr_mirror(); // clean any remaining zebras / peaking
+        cropmark_cache_update_signature();
         bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
         //~ info_led_blink(5,50,50);
         //~ bmp_printf(FONT_MED, 50, 50, "crop regen");
@@ -3904,7 +3906,6 @@ cropmark_draw()
     }
 
 end:
-    cropmark_cache_update_signature();
     cropmark_cache_dirty = 0;
     zoom_overlay_dirty = 1;
     crop_dirty = 0;
@@ -3940,11 +3941,20 @@ cropmark_redraw()
     if (gui_menu_shown()) return; 
     if (!zebra_should_run() && !PLAY_OR_QR_MODE) return;
     if (digic_zoom_overlay_enabled()) return;
-    if (!cropmark_cache_is_valid())
-        cropmark_clear_cache();
-    BMP_LOCK( cropmark_draw(); )
+    BMP_LOCK(
+        if (!cropmark_cache_is_valid())
+        {
+            cropmark_clear_cache();
+        }
+        cropmark_draw(); 
+    )
 }
 
+PROP_HANDLER(PROP_GUI_STATE)
+{
+    extern int _bmp_draw_should_stop;
+    _bmp_draw_should_stop = 1; // abort drawing any slow cropmarks
+}
 
 // those functions will do nothing if called multiple times (it's safe to do this)
 // they might cause ERR80 if called while taking a picture
