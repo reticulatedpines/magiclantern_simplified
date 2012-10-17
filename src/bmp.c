@@ -1122,6 +1122,36 @@ int D2V(unsigned color) { return bmp_lut[MIN(color & 0xFF,79)]; }
 
 #endif
 
+#ifdef CONFIG_VXWORKS 
+
+#define BMP_DRAW_PIX \
+    if (mirror) \
+    { \
+        if (bmp_color) m_row[ xs ] = bmp_color | 0x80; \
+        uint8_t p = b_row[ xs ]; \
+        uint8_t m = m_row[ xs ]; \
+        if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue; \
+        if ((p == 0x14 || p == 0x3) && bmp_color == 0) continue; \
+    } \
+    char* p = &b_row[ xs/2 ];  \
+    SET_4BIT_PIXEL(p, xs, bmp_color); \
+
+#else
+
+#define BMP_DRAW_PIX \
+    if (mirror) \
+    { \
+        if (bmp_color) m_row[ xs ] = bmp_color | 0x80; \
+        uint8_t p = b_row[ xs ]; \
+        uint8_t m = m_row[ xs ]; \
+        if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue; \
+        if ((p == 0x14 || p == 0x3) && bmp_color == 0) continue; \
+    } \
+    b_row[ xs ] = bmp_color; \
+
+#endif
+
+
 void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, uint8_t* const mirror)
 {
     if (!bmp) return;
@@ -1169,21 +1199,8 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
                 x = (xs-x0)*bmp->width/w;
 #endif
 
-                uint8_t pix = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
-                if (mirror)
-                {
-                    if (pix) m_row[ xs ] = pix | 0x80;
-                    uint8_t p = b_row[ xs ];
-                    uint8_t m = m_row[ xs ];
-                    if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
-                    if ((p == 0x14 || p == 0x3) && pix == 0) continue;
-                }
-                #ifdef CONFIG_VXWORKS
-                char* p = &b_row[ xs/2 ]; 
-                SET_4BIT_PIXEL(p, xs, pix);
-                #else
-                b_row[ xs ] = pix;
-                #endif
+                uint8_t bmp_color = bmp->image[ x + bmp->width * (bmp->height - y - 1) ];
+                BMP_DRAW_PIX;
             }
         }
     } else if (bmp->compression == 1) {
@@ -1200,49 +1217,76 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
             uint8_t * const b_row =              bvram + ysc * BMPPITCH;
             #endif
             uint8_t * const m_row = (uint8_t*)( mirror + ysc * BMPPITCH );
-            while (y != bmp_y_pos) {
+            
+            while (y < bmp_y_pos) {
                 // search for the next line
+                // see http://www.fileformat.info/format/bmp/corion-rle8.htm
                 if (bmp_line[0]!=0) { bmp_line += 2; } else
                 if (bmp_line[1]==0) { bmp_line += 2; bmp_y_pos--; } else
-                if (bmp_line[1]==1) return;
+                if (bmp_line[1]==1) return; else
+                if (bmp_line[1]==2) // delta
+                {
+                    bmp_y_pos -= bmp_line[3];
+                    if (bmp_line[3]) // skip on x+y
+                    {
+                        // fake the bitmap data so that it will draw a transparent line 
+                        // with the same size as the part skipped horizontally
+                        bmp_line += 2;
+                    }
+                    else // skip on yonly
+                    {
+                        bmp_line += 4;
+                    }
+                } 
+                else bmp_line = bmp_line + ((bmp_line[1] + 1) & ~1) + 2;
                 if (y<0) return;
                 if (bmp_line>(uint8_t*)(bmp+bmp->image_size)) return;
             }
+            if (y != bmp_y_pos) continue;
+            if (bmp_line[0]==0 && bmp_line[1]==2 && bmp_line[3]) continue; // this line is just a vertical skip
+
             uint8_t* bmp_col = bmp_line; // store the actual position inside the bitmap
-            int bmp_x_pos_start = 0; // store the start of the line
             int bmp_x_pos_end = bmp_col[0]; // store the end of the line
             uint8_t bmp_color = bmp_col[1]; // store the actual color to use
+            if (y > 0 && bmp_col[-1] == 2 && bmp_col[-2] == 0) bmp_color = 0; // if previous line was a x-y skip, use transparent color
             for (xs = x0; xs < (x0 + w); xs++)
             {
                 x = COERCE((int)((xs-x0)*bmp->width/w), BMP_W_MINUS, BMP_W_PLUS-1);
+                
                 while (x>=bmp_x_pos_end) {
                     // skip to this position
                     if (bmp_col>(uint8_t*)(bmp+bmp->image_size)) break;
-                    if (bmp_col[0]==0) break;
                     bmp_col+=2;
                     if (bmp_col>(uint8_t*)(bmp+bmp->image_size)) break;
-                    if (bmp_col[0]==0) break;
-                    bmp_x_pos_start = bmp_x_pos_end;
-                    bmp_x_pos_end = bmp_x_pos_start + bmp_col[0];
-                    bmp_color = bmp_col[1];
+                    if (bmp_col[0]==0)
+                    {
+                        if (bmp_col[1] == 0)
+                        {
+                            bmp_color = 0;
+                            bmp_x_pos_end = bmp->width;
+                            break; // end of line
+                        }
+                        else if (bmp_col[1] == 2) // delta
+                        {
+                            bmp_color = COLOR_RED;
+                            bmp_col += 2;
+                        }
+                        else if (bmp_col[1] > 2) // uncompressed data
+                        {
+                            bmp_color = bmp_col[2];
+                            bmp_x_pos_end += bmp_col[1];
+                            bmp_col += ((bmp_col[1] + 1) & ~1);
+                        }
+                    }
+                    else // RLE data
+                    {
+                        bmp_x_pos_end += bmp_col[0];
+                        bmp_color = bmp_col[1];
+                    }
                 }
-                if (mirror)
-                {
-                    if (bmp_color) m_row[ xs ] = bmp_color | 0x80;
-                    uint8_t p = b_row[ xs ];
-                    uint8_t m = m_row[ xs ];
-                    if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
-                    if ((p == 0x14 || p == 0x3) && bmp_color == 0) continue;
-                }
-                #ifdef CONFIG_VXWORKS
-                char* p = &b_row[ xs/2 ]; 
-                SET_4BIT_PIXEL(p, xs, bmp_color);
-                #else
-                b_row[ xs ] = bmp_color;
-                #endif
+                BMP_DRAW_PIX;
             }
         }
-
     }
 }
 
