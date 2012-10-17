@@ -168,7 +168,9 @@ nightly: clean all changelog
 	-unlink $(NIGHTLY_ROOT)/build.log
 	-unlink $(NIGHTLY_ROOT)/ChangeLog.txt
 	-unlink $(NIGHTLY_ROOT)/magiclantern*.zip
-	ln -s $(NIGHTLY_DIR)/* $(NIGHTLY_ROOT)
+	ln -s $(NIGHTLY_DIR)/build.log $(NIGHTLY_ROOT)
+	ln -s $(NIGHTLY_DIR)/ChageLog.txt $(NIGHTLY_ROOT)
+	ln -s $(NIGHTLY_DIR)/magiclantern*.zip $(NIGHTLY_ROOT)
 
 FORCE:
 
