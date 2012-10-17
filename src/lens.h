@@ -240,7 +240,7 @@ void aperture_toggle( void* priv, int sign);
 #ifdef CONFIG_5D3
 #define MAX_ISO_BV 199
 #elif defined(CONFIG_500D)
-#define MAX_ISO_BV 104 // 1600
+#define MAX_ISO_BV (is_movie_mode() ? 104 : 112) // 1600 or 3200
 #else
 #define MAX_ISO_BV 128
 #endif

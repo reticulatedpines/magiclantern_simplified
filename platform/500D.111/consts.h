@@ -135,7 +135,7 @@
 //~ #define AJ_LCD_Palette 0x2CDB0
 
 
-#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x77BC) == 0xF)
+#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x784C) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 #define SHOOTING_MODE (*(int*)0x313C)
 
 #define COLOR_FG_NONLV 80

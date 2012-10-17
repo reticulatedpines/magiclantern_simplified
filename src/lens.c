@@ -1523,14 +1523,15 @@ static int iso_ack = -1;
 PROP_HANDLER( PROP_ISO )
 {
     if (!CONTROL_BV) lensinfo_set_iso(buf[0]);
-    #ifndef CONFIG_500D
-    else if (buf[0] && !gui_menu_shown() && ISO_ADJUSTMENT_ACTIVE)
+    else if (buf[0] && !gui_menu_shown() && ISO_ADJUSTMENT_ACTIVE
+        #ifdef CONFIG_500D
+        && !is_movie_mode()
+        #endif
+    )
     {
         bv_set_rawiso(buf[0]);
         bv_auto_needed_by_iso = 0;
     }
-    //~ else if (!buf[0]) lens_info.raw_iso = 0;
-    #endif
     bv_auto_update();
     lens_display_set_dirty();
     iso_ack = buf[0];
@@ -1577,17 +1578,20 @@ static int shutter_ack = -1;
 PROP_HANDLER( PROP_SHUTTER )
 {
     if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
-    #ifndef CONFIG_500D
     else if (buf[0]  // sync expo override to Canon values
             && (!shutter_was_set_from_ml || ABS(buf[0] - lens_info.raw_shutter) > 3) // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
                                                        // especially when pressing half-shutter
+
+        #ifdef CONFIG_500D
+        && !is_movie_mode()
+        #endif
+
         )
     {
         bv_set_rawshutter(buf[0]);
         bv_auto_needed_by_shutter = 0;
         shutter_was_set_from_ml = 0;
     }
-    #endif
     bv_auto_update();
     lens_display_set_dirty();
     shutter_ack = buf[0];
@@ -1598,13 +1602,15 @@ PROP_HANDLER( PROP_APERTURE2 )
 {
     //~ NotifyBox(2000, "%x %x %x %x ", buf[0], CONTROL_BV, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
     if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
-    #ifndef CONFIG_500D
-    else if (buf[0] && !gui_menu_shown())
+    else if (buf[0] && !gui_menu_shown()
+        #ifdef CONFIG_500D
+        && !is_movie_mode()
+        #endif
+    )
     {
         bv_set_rawaperture(COERCE(buf[0], lens_info.raw_aperture_min, lens_info.raw_aperture_max));
         bv_auto_needed_by_aperture = 0;
     }
-    #endif
     bv_auto_update();
     lens_display_set_dirty();
     aperture_ack = buf[0];
