@@ -158,13 +158,17 @@ changelog:
 	echo "" >> ChangeLog.txt
 	hg log --date "`date -d 'today - 30 days' +'%Y-%m-%d'` to `date -d 'today - 2 days' +'%Y-%m-%d'`" --template '{node|short} | {date|shortdate} | {author|user}: {desc|strip|firstline} \n' >> ChangeLog.txt ;
 
-nightly: all changelog
+nightly: clean all changelog
 	mkdir -p $(NIGHTLY_DIR)
 	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 	cd $(PLATFORM_PATH)/all; mv *.zip $(NIGHTLY_DIR)
 	touch build.log
 	mv build.log $(NIGHTLY_DIR)
 	mv ChangeLog.txt $(NIGHTLY_DIR)
+	-unlink $(NIGHTLY_ROOT)/build.log
+	-unlink $(NIGHTLY_ROOT)/ChangeLog.txt
+	-unlink $(NIGHTLY_ROOT)/magiclantern*.zip
+	ln -s $(NIGHTLY_DIR)/* $(NIGHTLY_ROOT)
 
 FORCE:
 

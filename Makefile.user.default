@@ -27,7 +27,8 @@ HOST_CC=gcc
 LD=$(CC)
 
 NIGHTLY_ROOT:=$(HOME)/public_html/nightly
-NIGHTLY_DIR:=$(NIGHTLY_ROOT)/$(shell date +'%Y-%m-%d')-$(shell hg id -i -r .)
+NIGHTLY_ARCHIVE:=$(NIGHTLY_ROOT)/archive
+NIGHTLY_DIR:=$(NIGHTLY_ARCHIVE)/$(shell date +'%Y-%m-%d')-$(shell hg id -i -r .)
 
 # Naming convention for Magic Lantern builds:
 # General rules:
