@@ -2110,6 +2110,7 @@ highlight_luma_range(int lo, int hi, int color1, int color2)
 #define MAX_CROP_NAME_LEN 15
 #define MAX_CROPMARKS 9
 int num_cropmarks = 0;
+static int cropmarks_initialized = 0;
 static char cropmark_names[MAX_CROPMARKS][MAX_CROP_NAME_LEN];
 
 // Cropmark sorting code contributed by Nathan Rosenquist
@@ -2168,6 +2169,7 @@ static void find_cropmarks()
     FIO_CleanupAfterFindNext_maybe(dirent);
     num_cropmarks = k;
     sort_cropmarks();
+    cropmarks_initialized = 1;
 }
 static void reload_cropmark()
 {
@@ -3949,6 +3951,7 @@ static int cropmark_cache_is_valid()
 static void
 cropmark_redraw()
 {
+    if (!cropmarks_initialized) return;
     if (gui_menu_shown()) return; 
     if (!zebra_should_run() && !PLAY_OR_QR_MODE) return;
     if (digic_zoom_overlay_enabled()) return;
