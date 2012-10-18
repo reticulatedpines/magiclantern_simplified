@@ -201,3 +201,9 @@ NSTUB(0xff055c00, SetNextASIFADCBuffer)
 NSTUB(0xff055cb8, SetNextASIFDACBuffer)
 NSTUB(0xff38f290, PlayMain_handler)
 NSTUB(0xff48b9d4, PlayMovieGuideApp_handler)
+
+
+NSTUB(0xFF1E8630, register_interrupt)
+NSTUB(0xFF1CACFC, MREQ_ISR)
+NSTUB(0xFF1CAD8C, SIO3_ISR)
+
