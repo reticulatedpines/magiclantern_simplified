@@ -72,7 +72,7 @@ static uint32_t cache_get_size(uint32_t type)
     return size + 9;
 }
 
-static void cache_patch_single_word(uint32_t address, uint32_t data, uint32_t type)
+static uint32_t cache_patch_single_word(uint32_t address, uint32_t data, uint32_t type)
 {
     uint32_t cache_seg_index_word = (address & (CACHE_INDEX_ADDRMASK(type) | CACHE_WORD_ADDRMASK(type)));
     uint32_t cache_tag_index = (address & (CACHE_TAG_ADDRMASK(type) | CACHE_INDEX_ADDRMASK(type))) | 0x10;
@@ -99,6 +99,8 @@ static void cache_patch_single_word(uint32_t address, uint32_t data, uint32_t ty
            MCR p15, 3, %2, c15, c4, 0\r\n\
            " : : "r"(cache_seg_index_word), "r"(cache_tag_index), "r"(data));
     }
+    
+    return 1;
 }
 
 /* fetch all the instructions in that temp_cacheline the given address is in.
@@ -169,10 +171,45 @@ static void cache_get_content(uint32_t segment, uint32_t index, uint32_t word, u
     *data = stored_data;
 }
 
-/* check if given address is already patched in cache */
+/* check if given address is already used or if it is usable for patching */
+static uint32_t cache_is_patchable(uint32_t address, uint32_t type)
+{
+    uint32_t stored_tag_index = 0;
+    uint32_t stored_data = 0;
+    
+    cache_get_content(0, (address & CACHE_INDEX_ADDRMASK(type))>>CACHE_INDEX_TAGOFFSET(type), (address & CACHE_WORD_ADDRMASK(type))>>CACHE_WORD_TAGOFFSET(type), type, &stored_tag_index, &stored_data);
+    
+    /* this line is free, so can be used for patching */
+    if((stored_tag_index & 0x10) == 0)
+    {
+        return 1;
+    }
+    
+    /* now check if the TAG RAM content matches with what we expect and valid bit is set */
+    uint32_t tag_index_mask = CACHE_TAG_ADDRMASK(type) | CACHE_INDEX_ADDRMASK(type);
+    uint32_t cache_tag_index = address & tag_index_mask;
+
+    if((stored_tag_index & tag_index_mask) == cache_tag_index)
+    {
+        /* that line is used by the right address, now check data */
+        if(stored_data == *(uint32_t*)address)
+        {
+            /* data is original, so it is patchable */
+            return 1;
+        }
+        
+        /* its already patched. so return 2 */
+        return 2;
+    }
+    
+    /* oh, its already used by some other patch. sorry. */
+    return 0;
+}
+
+/* check if given address is already in cache */
 static uint32_t cache_get_cached(uint32_t address, uint32_t type)
 {
-    uint32_t cache_seg_index_word = (address & (CACHE_TAG_ADDRMASK(type) | CACHE_WORD_ADDRMASK(type)));
+    uint32_t cache_seg_index_word = (address & (CACHE_INDEX_ADDRMASK(type) | CACHE_WORD_ADDRMASK(type)));
     uint32_t stored_tag_index = 0;
 
     if(type == TYPE_ICACHE)
@@ -371,8 +408,14 @@ static void cache_unlock()
     dcache_unlock();
 }
 
-static void cache_fake(uint32_t address, uint32_t data, uint32_t type)
+static uint32_t cache_fake(uint32_t address, uint32_t data, uint32_t type)
 {
+    /* that word is already patched? return failure */
+    if(!cache_is_patchable(address, type))
+    {
+        return 0;
+    }
+    
     /* is that line not in cache yet? */
     if(!cache_get_cached(address, type))
     {
@@ -380,7 +423,7 @@ static void cache_fake(uint32_t address, uint32_t data, uint32_t type)
         cache_fetch_line(address, type);
     }
 
-    cache_patch_single_word(address, data, type);
+    return cache_patch_single_word(address, data, type);
 }
 
 #endif
