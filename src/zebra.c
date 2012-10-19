@@ -4641,16 +4641,15 @@ BMP_LOCK(
 
     cropmark_redraw();
 
+    if (defish_preview)
+        defish_draw_play();
+
     if (spotmeter_draw)
         spotmeter_step();
 
     if (falsecolor_draw) 
     {
         draw_false_downsampled();
-    }
-    else if (defish_preview)
-    {
-        defish_draw_play();
     }
     else
     {
