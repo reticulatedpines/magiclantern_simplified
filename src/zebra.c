@@ -348,7 +348,7 @@ int focus_peaking_as_display_filter() { return lv && focus_peaking && focus_peak
 //~ static CONFIG_INT( "edge.draw", edge_draw,  0 );
 static CONFIG_INT( "hist.draw", hist_draw,  1 );
 static CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
-static CONFIG_INT( "hist.warn", hist_warn,  3 );
+static CONFIG_INT( "hist.warn", hist_warn,  5 );
 static CONFIG_INT( "hist.log",  hist_log,   1 );
 //~ static CONFIG_INT( "hist.x",        hist_x,     720 - HIST_WIDTH - 4 );
 //~ static CONFIG_INT( "hist.y",        hist_y,     100 );
