@@ -3419,7 +3419,7 @@ struct menu_entry zebra_menus[] = {
                 .max = 2,
                 .choices = (const char *[]) {"1:1", "2:1", "3:1", "4:1"},
                 .icon_type = IT_SIZE,
-                .help = "Magnification: 2:1 doubles the pixels.",
+                .help = "1:1 displays recorded pixels, 2:1 displays them doubled.",
             },
             #if !defined(CONFIG_50D) && !defined(CONFIG_500D)
             {
