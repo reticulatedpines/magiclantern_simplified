@@ -38,8 +38,8 @@ Advanced ISO control.
 
 Color coding:
 
-* orange = Canon ISO with good noise or dynamic range (100, 160, 200, 320 ... 3200).
-* green = ISO with negative digital gain applied via DIGIC (80, 90, 160, 320 - obtained by setting ML digital ISO to a negative value). These can have lower noise and/or better highlight rolloff than their Canon equivalents.
+* yellow = full-stop ISO obtained with analog gain only (100, 200, ... 3200).
+* green = ISO with negative digital gain applied (80, 90, 160, 320) - they tend to have lower noise. For 160 multiples, ISOs obtained with ML digital gain may have smoother highlight rolloff than the same ISOs obtained with Canon gain.
 * red = ISO with positive digital gain (avoid these values).
 
 Submenu options:
@@ -49,7 +49,10 @@ Submenu options:
 * **Canon digital ISO** - used for obtaining intermediate ISOs like 160, 320, 640;
 * **ML digital ISO** (DIGIC) - in movie mode: enables ISO 50, ISO 80, ISO 51200 and many other intermediate or astronomical ISOs;
 * **Highlight Tone Priority** (which increases dynamic range by 1 stop in movie mode);
-* **ISO selection** (Canon ISOs or ML ISOs) - only used in movie mode;
+* **ISO selection** (Canon ISOs or ML ISOs) - only used in movie mode:
+
+  - Canon ISO option will select 100, 160, 200, 320 and so on, and will also clear ML digital gain, if any is set.
+  - ML ISO option will increment ISOs in full stops, but will keep ML digital gain, if any is set.
 
 Notes and tips for ML digital ISO, in movie mode only:
 
