@@ -168,16 +168,17 @@ static int digic_iso_presets[] = {256, 362, 512, 609, 664, 724, 790, 861, 939, 1
 
 void digic_iso_or_gain_toggle(int* priv, int delta)
 {
+    int mv = (priv == (int*)&digic_iso_gain_movie);
     int i;
     for (i = 0; i < COUNT(digic_iso_presets); i++)
         if (digic_iso_presets[i] >= *priv) break;
     
     do {
         i = mod(i + delta, COUNT(digic_iso_presets));
-    } while ((!is_movie_mode() && digic_iso_presets[i] < 1024)
+    } while ((!mv && digic_iso_presets[i] < 1024)
     #ifdef CONFIG_5D3
-    || (is_movie_mode() && digic_iso_presets[i] > 2048) // high display gains not working
-    || (!is_movie_mode() && digic_iso_presets[i] > 65536) // +7EV not working
+    || (mv && digic_iso_presets[i] > 2048) // high display gains not working
+    || (!mv && digic_iso_presets[i] > 65536) // +7EV not working
     #endif
     );
     
@@ -194,8 +195,6 @@ void digic_iso_toggle(int* priv, int delta)
 
 void display_gain_toggle(int* priv, int delta)
 {
-    if (is_movie_mode()) return; // this feature only works in photo mode
-    
     priv = (int*)&digic_iso_gain_photo;
     
     digic_iso_or_gain_toggle(priv, delta);
