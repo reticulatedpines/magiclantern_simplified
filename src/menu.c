@@ -2367,7 +2367,12 @@ void piggyback_canon_menu()
     NotifyBoxHide();
     int new_gui_mode = GUIMODE_ML_MENU;
     if (new_gui_mode) { redraw_flood_stop = 0; task_create("menu_redraw_flood", 0x1c, 0, menu_redraw_flood, 0); }
-    if (new_gui_mode != CURRENT_DIALOG_MAYBE) { SetGUIRequestMode(new_gui_mode); msleep(200); }
+    if (new_gui_mode != CURRENT_DIALOG_MAYBE) 
+    { 
+        if (lv) bmp_off(); // mask out the underlying Canon menu :)
+        SetGUIRequestMode(new_gui_mode); msleep(200); 
+        if (lv) bmp_on();
+    }
 #endif
 }
 
@@ -2380,8 +2385,10 @@ void close_canon_menu()
     if (recording) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
+    if (lv) bmp_off(); // mask out the underlying Canon menu :)
     SetGUIRequestMode(0);
     msleep(100);
+    if (lv) bmp_on();
 #endif
 #ifdef CONFIG_5DC
     //~ forces the 5dc screen to turn off for ML menu.
