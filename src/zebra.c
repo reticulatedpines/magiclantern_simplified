@@ -4426,10 +4426,6 @@ static void draw_zoom_overlay(int dirty)
             break;
     }
 
-#ifdef CONFIG_1100D
-  H /= 2;
-#endif
-
     // Magnification factor
     int X = zoom_overlay_x + 1;
 
@@ -4468,6 +4464,9 @@ static void draw_zoom_overlay(int dirty)
         int w = W * lv->width / hd->width;
         int h = H * lv->width / hd->width;
 
+        #ifdef CONFIG_1100D
+        h /= 2; // LCD half-height fix
+        #endif
         w /= X;
         h /= X;
         if (video_mode_fps <= 30 || !is_movie_mode())
@@ -4503,8 +4502,13 @@ static void draw_zoom_overlay(int dirty)
     {
         int off = zoom_overlay_split ? (y < H/2 ? rawoff : -rawoff) : 0;
         if (rev) off = -off;
-        yuvcpy_main((uint32_t*)d, (uint32_t*)(s + off), W, X, 0 /*zoom_overlay_lut*/);
-        d += lv->width;
+        #ifdef CONFIG_1100D
+        if(y%2 == 0) // The 1100D has half-height LCD res so we line-skip one from the sensor
+        #endif
+        {
+            yuvcpy_main((uint32_t*)d, (uint32_t*)(s + off), W, X, 0 /*zoom_overlay_lut*/);
+            d += lv->width;
+        }
         if (y%X==0) s += hd->width;
     }
 
@@ -4512,10 +4516,16 @@ static void draw_zoom_overlay(int dirty)
     if (video_mode_fps <= 30 || !is_movie_mode())
     #endif
     {
+        #ifdef CONFIG_1100D
+        H /= 2; //LCD res fix (half height)
+        #endif
         memset(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
         memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
         memset(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
         memset(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
+        #ifdef CONFIG_1100D
+        H *= 2; // Undo it
+        #endif
     }
     if (dirty) bmp_fill(0, LV2BM_X(x0c), LV2BM_Y(y0c), LV2BM_DX(W), LV2BM_DY(H));
     //~ bmp_fill(rawoff ? COLOR_BLACK : COLOR_GREEN1, x0c, y0c, W, 1);
