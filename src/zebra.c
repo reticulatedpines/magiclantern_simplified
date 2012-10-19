@@ -4006,7 +4006,7 @@ PROP_HANDLER(PROP_GUI_STATE)
     return 1;
 }*/
 
-#if defined(CONFIG_7D)
+//~ #if defined(CONFIG_7D)
 extern uint32_t LCD_Palette[];
 
 void palette_disable(uint32_t disabled)
@@ -4028,63 +4028,23 @@ void palette_disable(uint32_t disabled)
         }
     }
 }
-#endif
+//~ #endif
 
 void bmp_on()
 {
-    //~ return;
-    //~ if (!is_safe_to_mess_with_the_display(500)) return;
     if (!_bmp_unmuted) 
-    {// BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) {call("MuteOff"); _bmp_muted = 0;}))
-    #if defined(CONFIG_500D) || defined(CONFIG_50D)// || defined(CONFIG_5D2)
-        canon_gui_enable_front_buffer(1);
-        _bmp_muted = false; _bmp_unmuted = true;
-    #elif defined(CONFIG_7D)
+    {
         palette_disable(0);
         _bmp_muted = false; _bmp_unmuted = true;
-    #else
-        BMP_LOCK(
-            int f = cli_save();
-            if (DISPLAY_IS_ON)
-            {
-                MuteOff_0();
-                _bmp_muted = false; _bmp_unmuted = true;
-            }
-            sei_restore(f);
-        )
-    #endif
     }
 }
-/*void bmp_on_force()
-{
-    _bmp_muted = true; _bmp_unmuted = false;
-    bmp_on();
-}*/
+
 void bmp_off()
 {
-    //~ return;
-    //~ clrscr();
-    //~ if (!is_safe_to_mess_with_the_display(500)) return;
-    if (!_bmp_muted) //{ BMP_LOCK(GMT_LOCK( if (is_safe_to_mess_with_the_display(0)) { call("MuteOn")); ) }}
+    if (!_bmp_muted)
     {
-    #if defined(CONFIG_500D) || defined(CONFIG_50D)// || defined(CONFIG_5D2)
-        _bmp_muted = true; _bmp_unmuted = false;
-        canon_gui_disable_front_buffer();
-        clrscr();
-    #elif defined(CONFIG_7D)
         _bmp_muted = true; _bmp_unmuted = false;
         palette_disable(1);
-    #else
-        BMP_LOCK(
-            int f = cli_save();
-            if (DISPLAY_IS_ON)
-            {
-                _bmp_muted = true; _bmp_unmuted = false;
-                MuteOn_0();
-            }
-            sei_restore(f);
-        )
-    #endif
     }
 }
 
