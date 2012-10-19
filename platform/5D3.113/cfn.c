@@ -20,7 +20,7 @@ int get_alo() { return alo; }
     //~ prop_request_change(PROP_ALO, &value, 4);
 //~ }
 
-int get_mlu() { return 0; }
+int get_mlu() { return mlu; }
 void set_mlu(int value)
 {
     value = COERCE(value, 0, 1);

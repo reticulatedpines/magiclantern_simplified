@@ -127,7 +127,6 @@ static CONFIG_INT( "interval.use_autofocus", interval_use_autofocus, 0 );
 static int intervalometer_pictures_taken = 0;
 static int intervalometer_next_shot_time = 0;
 
-
 CONFIG_INT( "focus.trap", trap_focus, 0);
 static CONFIG_INT( "audio.release-level", audio_release_level, 10);
 static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
@@ -152,6 +151,7 @@ static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 5);
 static CONFIG_INT( "mlu.auto", mlu_auto, 0); // setting MLU forces timer to 2-second, better leave it off by default
 #else
 static CONFIG_INT( "mlu.auto", mlu_auto, 1);
+static CONFIG_INT("mlu.shake.free", mlu_shake_free, 0);
 #endif
 
 extern int lcd_release_running;
@@ -784,9 +784,47 @@ void set_lv_zoom(int zoom)
     prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
 }
 
+int mlu_shake_flag = 0;
+void mlu_shake_step()
+{
+#ifndef CONFIG_5DC
+    int m = 0;
+    lens_wait_readytotakepic(64);
+    if (!get_mlu()) { set_mlu(1); msleep(50); m = 1; }
+    SW1(1,50);
+    SW2(1,50);
+    SW2(0,50);
+    SW1(0,50);
+    msleep(mlu_shake_free * 100);
+    SW1(1,50);
+    SW2(1,50);
+    SW2(0,50);
+    SW1(0,50);
+    while (get_halfshutter_pressed()) msleep(100);
+    lens_wait_readytotakepic(64);
+    if (m)
+    {
+        while (get_mlu())
+        {
+            set_mlu(0);
+            msleep(100);
+        }
+    }
+#endif
+}
+
 int handle_shutter_events(struct event * event)
 {
+#ifndef CONFIG_5DC
+    if (event->param == BGMT_LV && mlu_shake_free && !lv)
+    {
+        mlu_shake_flag = 1;
+        return 0;
+    }
+#endif
+
     return 1;
+
 #if 0 // not reliable
     if (HDR_ENABLED)
     {
@@ -4885,6 +4923,16 @@ static struct menu_entry shoot_menus[] = {
         #endif
         //.essential = FOR_PHOTO,
     },
+#if !defined(CONFIG_5DC)
+    {
+        .name = "Anti-shake MLU  ", 
+        .priv = &mlu_shake_free, 
+        .max = 5,
+        .icon_type = IT_BOOL, 
+        .choices = (const char *[]) {"OFF", "0.1s", "0.2s", "0.3s", "0.4s", "0.5s"},
+        .help = "Press LV to take a hand-held pic with less mirror vibration."
+    }
+#endif
 #endif
     /*{
         .display = picq_display, 
@@ -6347,6 +6395,11 @@ shoot_task( void* unused )
         
         if (k%10 == 0) misc_shooting_info();
 
+        if (mlu_shake_flag)
+        {
+            mlu_shake_step();
+            mlu_shake_flag = 0;
+        }
         if (kelvin_auto_flag)
         {
             kelvin_auto_run();
