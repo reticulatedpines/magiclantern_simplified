@@ -3123,7 +3123,7 @@ int handle_transparent_overlay(struct event * event)
             transparent_overlay_offset(40, 0);
             return 0;
         }
-        #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+        #if defined(BGMT_JOY_CENTER)
         if (event->param == BGMT_JOY_CENTER)
         #else
         if (event->param == BGMT_PRESS_SET)
@@ -3330,7 +3330,7 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"1st deriv.", "2nd deriv.", "Nyquist H"},
                 .help = "Contrast detection method. 2: more accurate, 1: less noisy.",
             },*/
-            #if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL) 
+            #if !defined(CONFIG_7D_MINIMAL) 
             {
                 .name = "Display type",
                 .priv = &focus_peaking_disp, 
@@ -3475,7 +3475,6 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
-    #ifndef CONFIG_5D3_MINIMAL
     {
         .name = "Ghost image",
         .priv = &transparent_overlay, 
@@ -3488,7 +3487,6 @@ struct menu_entry zebra_menus[] = {
 #endif
         //.essential = FOR_PLAYBACK,
     },
-    #endif
     {
         .name = "Spotmeter",
         .priv           = &spotmeter_draw,

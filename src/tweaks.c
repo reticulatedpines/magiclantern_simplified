@@ -2949,10 +2949,10 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
 // type 2 filters: compute histogram on original image
 int display_filter_enabled()
 {
-    #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_VXWORKS) || defined(CONFIG_5D3_MINIMAL) // not working on these cameras
+    #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_VXWORKS)// || defined(CONFIG_5D3_MINIMAL) // not working on these cameras
     return 0;
     #endif
-
+    if (EXT_MONITOR_CONNECTED) return 0; // non-scalable code
     if (!lv) return 0;
     int fp = focus_peaking_as_display_filter();
     if (!(defish_preview || anamorphic_preview || fp)) return 0;
@@ -3099,7 +3099,7 @@ static struct menu_entry display_menus[] = {
         .max = 1,
         .help = "Emphasizes camera shake on LiveView display.",
     },*/
-    #if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL)
+    #if !defined(CONFIG_7D_MINIMAL)
     {
         .name = "Defishing",
         .priv = &defish_preview, 
@@ -3435,7 +3435,7 @@ static void tweak_init()
 {
     extern struct menu_entry tweak_menus_shoot[];
     menu_add( "Prefs", play_menus, COUNT(play_menus) );
-#if !defined(CONFIG_5DC) && !defined(CONFIG_7D_MINIMAL)
+#if !defined(CONFIG_5DC) && !defined(CONFIG_7D_MINIMAL) && !defined(CONFIG_5D3_MINIMAL)
     menu_add( "Prefs", tweak_menus_shoot, 1 );
     #if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL) 
     menu_add( "Prefs", key_menus, COUNT(key_menus) );
