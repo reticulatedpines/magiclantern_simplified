@@ -106,11 +106,11 @@ _draw_char(
 )
 {
     uint8_t* v = bmp_vram();
-    if (bmp_vram_row < v) return;
 
     unsigned i,j;
     const struct font * const font = fontspec_font( fontspec );
 
+    if (bmp_vram_row < BMP_VRAM_START(v)) return;
     if (bmp_vram_row >= BMP_VRAM_END(v)) return;
 
     uint32_t    fg_color    = fontspec_fg( fontspec ) << 24;
@@ -269,20 +269,19 @@ _draw_char(
 void
 bmp_puts(
     unsigned        fontspec,
-    unsigned *        x,
-    unsigned *        y,
+    int *        x,
+    int *        y,
     const char *        s
 )
 {
-    ASSERT(x)
-    ASSERT(y)
-    ASSERT(s)
+    *x = COERCE(*x, BMP_W_MINUS, BMP_W_PLUS);
+    *y = COERCE(*y, BMP_H_MINUS, BMP_H_PLUS);
     
     const uint32_t        pitch = BMPPITCH;
     uint8_t * vram = bmp_vram();
     if( !vram || ((uintptr_t)vram & 1) == 1 )
         return;
-    const unsigned initial_x = *x;
+    const int initial_x = *x;
 #ifdef CONFIG_VXWORKS
     uint8_t * first_row = vram + ((*y)/2) * pitch + ((*x)/2);
 #else
@@ -375,8 +374,8 @@ bmp_puts_w(
 void
 bmp_printf(
            unsigned        fontspec,
-           unsigned        x,
-           unsigned        y,
+           int        x,
+           int        y,
            const char *        fmt,
            ...
            )

@@ -255,7 +255,7 @@ fontspec_height(
         return fontspec_font(fontspec)->height;
 }
 
-OS_FUNCTION( 0x0500001,	void,	bmp_printf, unsigned fontspec, unsigned x, unsigned y, const char* fmt, ... );
+OS_FUNCTION( 0x0500001,	void,	bmp_printf, unsigned fontspec, int x, int y, const char* fmt, ... );
 OS_FUNCTION( 0x0500002, size_t,	read_file, const char * filename, void * buf, size_t size);
 
 extern void
@@ -278,8 +278,8 @@ bmp_hexdump(
 extern void
 bmp_puts(
         unsigned                fontspec,
-        unsigned *              x,
-        unsigned *              y,
+        int *              x,
+        int *              y,
         const char *            s
 );
 
