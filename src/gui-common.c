@@ -188,7 +188,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_ml_menu_erase(event) == 0) return 0;
     #endif
 
-    #ifdef CONFIG_5D3
+    #if defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL) // not reliable
     if (handle_zoom_trick_event(event) == 0) return 0;
     #endif
 

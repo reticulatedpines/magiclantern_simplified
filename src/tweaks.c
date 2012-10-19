@@ -1213,7 +1213,7 @@ tweak_task( void* unused)
         
         movtweak_step();
 
-        #ifdef CONFIG_5D3
+        #if defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL) // not reliable
         zoom_trick_step();
         #endif
 
@@ -1912,7 +1912,7 @@ void display_shortcut_key_hints_lv()
 }
 
 
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL) // not reliable
 // some buttons send an unknown button event (GMT_GUICMD_PRESS_BUTTON_SOMETHING)
 // including MFn, light and old zoom button
 // but a lot of other buttons send this event, and also other events 

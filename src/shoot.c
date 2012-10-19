@@ -5005,14 +5005,14 @@ struct menu_entry tweak_menus_shoot[] = {
                 .choices = (const char *[]) {"OFF", "MF", "AF+MF"},
                 .help = "Zoom when you turn the focus ring (only some Canon lenses)."
             },
-            #endif
-            #ifdef CONFIG_5D3
+            #ifdef CONFIG_5D3 // not reliable
             {
                 .name = "Zoom w. old btn / M-Fn",
                 .priv = &zoom_trick,
                 .max = 1,
                 .help = "Use the old Zoom In button (top-right) or the M-Fn button."
             },
+            #endif
             #endif
             MENU_EOL
         },
