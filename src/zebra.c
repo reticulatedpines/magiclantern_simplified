@@ -4011,6 +4011,10 @@ extern uint32_t LCD_Palette[];
 
 void palette_disable(uint32_t disabled)
 {
+    #ifdef CONFIG_VXWORKS
+    return; // see set_ml_palette
+    #endif
+
     if(disabled)
     {
         for (int i = 0; i < 0x100; i++)

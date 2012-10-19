@@ -1847,6 +1847,8 @@ menu_redraw_do()
             
             lens_display_set_dirty();
         }
+    
+    bmp_on();
 
     #ifdef CONFIG_VXWORKS
     set_ml_palette();
@@ -2346,9 +2348,10 @@ void menu_redraw_flood()
 {
     if (!lv) msleep(200);
     else if (EXT_MONITOR_CONNECTED) msleep(300);
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 5; i++)
     {
         if (redraw_flood_stop) break;
+        if (!CURRENT_DIALOG_MAYBE) break;
         canon_gui_enable_front_buffer(0);
         menu_redraw_full();
         msleep(20);
@@ -2371,7 +2374,7 @@ void piggyback_canon_menu()
     { 
         if (lv) bmp_off(); // mask out the underlying Canon menu :)
         SetGUIRequestMode(new_gui_mode); msleep(200); 
-        if (lv) bmp_on();
+        // bmp will be enabled after first redraw
     }
 #endif
 }
@@ -2388,7 +2391,7 @@ void close_canon_menu()
     if (lv) bmp_off(); // mask out the underlying Canon menu :)
     SetGUIRequestMode(0);
     msleep(100);
-    if (lv) bmp_on();
+    // bitmap will be re-enabled in the caller
 #endif
 #ifdef CONFIG_5DC
     //~ forces the 5dc screen to turn off for ML menu.
@@ -2435,6 +2438,7 @@ static void menu_close()
     close_canon_menu();
     canon_gui_enable_front_buffer(0);
     redraw();
+    if (lv) bmp_on();
 }
 
 /*

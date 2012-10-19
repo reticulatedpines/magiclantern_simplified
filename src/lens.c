@@ -918,6 +918,7 @@ void draw_ml_topbar(int double_buffering, int clear)
     }
     
     extern int time_indic_x, time_indic_y; // for bitrate indicators
+    if (time_indic_x != os.x_max - 160 || time_indic_y != y) redraw();
     time_indic_x = os.x_max - 160;
     time_indic_y = y;
     
