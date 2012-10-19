@@ -181,6 +181,7 @@ NSTUB(0xff2c5d1c, ShootOlcApp_handler)
 NSTUB(0xff371068, ErrCardForLVApp_handler)
 NSTUB(0xff2a0d94, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
 NSTUB(0xff2be2f4, PlayMain_handler)
+NSTUB(0xff3c0638, PlayMovieGuideApp_handler)
 
 NSTUB(0xff190cf4, _engio_write)
 NSTUB(0xff190be8, shamem_read)

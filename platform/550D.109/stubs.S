@@ -267,6 +267,7 @@ NSTUB(0xFF31971C, ShootOlcApp_handler)
 NSTUB(0xff3c5150, ErrCardForLVApp_handler)
 NSTUB(0xff2f0cc8, ErrForCamera_handler)
 NSTUB(0xff30c590, PlayMain_handler)
+NSTUB(0xff3c0638, PlayMovieGuideApp_handler)
 
 NSTUB(0xff4b39ac, lv_path_struct)
 NSTUB(0xFF2FDEF8, HideUnaviFeedBack_maybe)
