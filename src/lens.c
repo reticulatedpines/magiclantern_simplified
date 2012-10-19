@@ -892,8 +892,8 @@ void draw_ml_topbar(int double_buffering, int clear)
     //~ unsigned Font    = FONT(FONT_LARGE, COLOR_WHITE, bg);
     //~ unsigned height    = fontspec_height( font );
     
-    unsigned x = 80;
-    unsigned y = 0;
+    int x = 80;
+    int y = 0;
 
     int screen_layout = get_screen_layout();
 
@@ -918,7 +918,7 @@ void draw_ml_topbar(int double_buffering, int clear)
     }
     
     extern int time_indic_x, time_indic_y; // for bitrate indicators
-    if (time_indic_x != os.x_max - 160 || time_indic_y != y) redraw();
+    if (time_indic_x != os.x_max - 160 || time_indic_y != (int)y) redraw();
     time_indic_x = os.x_max - 160;
     time_indic_y = y;
     

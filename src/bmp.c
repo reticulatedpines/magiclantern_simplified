@@ -395,8 +395,8 @@ bmp_printf(
 void
 big_bmp_printf(
                unsigned        fontspec,
-               unsigned        x,
-               unsigned        y,
+               int        x,
+               int        y,
                const char *        fmt,
                ...
                )
