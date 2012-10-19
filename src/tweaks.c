@@ -831,6 +831,51 @@ void playback_set_wheel_action(int dir)
     else if (play_set_wheel_action == 4) expo_adjust_playback(dir);
 }
 
+int is_pure_play_photo_mode() // no other dialogs active (such as delete)
+{
+    if (!PLAY_MODE) return 0;
+    extern thunk PlayMain_handler;
+#ifdef CONFIG_5DC
+    return 1;
+#else
+    return (intptr_t)get_current_dialog_handler() == (intptr_t)&PlayMain_handler;
+#endif
+}
+
+int is_pure_play_photo_or_movie_mode() // no other dialogs active (such as delete)
+{
+    if (!PLAY_MODE) return 0;
+#ifdef CONFIG_5DC
+    return 1;
+#else
+    extern thunk PlayMain_handler;
+    extern thunk PlayMovieGuideApp_handler;
+    intptr_t h = get_current_dialog_handler();
+    return (h == (intptr_t)&PlayMain_handler
+    #if !defined(CONFIG_550D) && !defined(CONFIG_50D) && !defined(CONFIG_500D) // no movie playback tweaks for these cameras
+        || h == (intptr_t)&PlayMovieGuideApp_handler
+    #endif
+    );
+#endif
+}
+
+void print_set_maindial_hint()
+{
+    if (is_pure_play_photo_mode())
+    {
+        if (get_set_pressed())
+        {
+            info_led_on();
+            play_set_wheel_display(0, os.x0, os.y_max - font_large.height, 0);
+        }
+        else
+        {
+            info_led_off();
+            redraw();
+        }
+    }
+}
+
 int handle_set_wheel_play(struct event * event)
 {
     if (gui_menu_shown()) return 1;
@@ -849,7 +894,7 @@ int handle_set_wheel_play(struct event * event)
     }
 
     // SET+Wheel action in PLAY mode
-    if ( PLAY_MODE && get_set_pressed())
+    if ( is_pure_play_photo_mode() && get_set_pressed())
     {
         if (!IS_FAKE(event) && (event->param == BGMT_WHEEL_LEFT || event->param == BGMT_WHEEL_RIGHT || event->param == BGMT_WHEEL_UP || event->param == BGMT_WHEEL_DOWN))
         {
@@ -931,9 +976,6 @@ void play_lv_key_step()
     
     play_rate_flag = play_rate_flag % 6; 
 
-    extern thunk PlayMain_handler;
-    extern thunk PlayMovieGuideApp_handler;
-
     if (play_rate_flag)
     {
         rating_in_progress = 1;
@@ -943,8 +985,7 @@ void play_lv_key_step()
 
         // for photos, we need to go down 2 steps
         // for movies, we only need 1 step
-        intptr_t h = get_current_dialog_handler();
-        if (h == (intptr_t)&PlayMain_handler)
+        if (is_pure_play_photo_mode())
             fake_simple_button(BGMT_PRESS_DOWN);
 
         #ifdef BGMT_UNPRESS_UDLR
@@ -964,8 +1005,7 @@ void play_lv_key_step()
         msleep(500);
         for (int i = 0; i < 50; i++)
         {
-            intptr_t h = get_current_dialog_handler();
-            if (h == (intptr_t)&PlayMain_handler || h == (intptr_t)&PlayMovieGuideApp_handler)
+            if (is_pure_play_photo_or_movie_mode())
                 break; // rating done :)
             msleep(100);
         }
@@ -1003,11 +1043,8 @@ int handle_lv_play(struct event * event)
     if (event->param == BGMT_LV && PLAY_MODE)
     {
         if (protect_running) return 0;
-
-        extern thunk PlayMain_handler;
-        extern thunk PlayMovieGuideApp_handler;
-        intptr_t h = get_current_dialog_handler();
-        if (h == (intptr_t)&PlayMain_handler || h == (intptr_t)&PlayMovieGuideApp_handler)
+        
+        if (is_pure_play_photo_or_movie_mode())
         {
             protect_running = 1;
             task_create("protect_task", 0x1e, 0x1000, protect_image_task, 0);
@@ -1017,11 +1054,7 @@ int handle_lv_play(struct event * event)
 #else
     if (event->param == BGMT_LV && PLAY_MODE)
     {
-
-        extern thunk PlayMain_handler;
-        extern thunk PlayMovieGuideApp_handler;
-        intptr_t h = get_current_dialog_handler();
-        if (h != (intptr_t)&PlayMain_handler && h != (intptr_t)&PlayMovieGuideApp_handler)
+        if (is_pure_play_photo_or_movie_mode())
         {
             if (rating_in_progress) return 0; // user presses buttons too fast
             return 1; // not in main play dialog, maybe in Q menu somewhere
@@ -1097,8 +1130,6 @@ static int quickzoom_unpressed = 0;
 static int quickzoom_fake_unpressed = 0;
 int handle_fast_zoom_in_play_mode(struct event * event)
 {
-    extern thunk PlayMain_handler;
-    
     if (!quickzoom || !PLAY_MODE) return 1;
     if (!IS_FAKE(event))
     {
@@ -1114,9 +1145,9 @@ int handle_fast_zoom_in_play_mode(struct event * event)
         }
         #ifdef IMGPLAY_ZOOM_POS_X
         #ifdef BGMT_JOY_CENTER
-        else if (event->param == BGMT_JOY_CENTER && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3 && (intptr_t)get_current_dialog_handler() == (intptr_t)&PlayMain_handler) 
+        else if (event->param == BGMT_JOY_CENTER && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3 && is_pure_play_photo_mode()) 
         #else
-        else if (event->param == BGMT_PRESS_SET && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3 && (intptr_t)get_current_dialog_handler() == (intptr_t)&PlayMain_handler)
+        else if (event->param == BGMT_PRESS_SET && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3 && is_pure_play_photo_mode())
         #endif
         {
             IMGPLAY_ZOOM_POS_X = IMGPLAY_ZOOM_POS_X_CENTER;

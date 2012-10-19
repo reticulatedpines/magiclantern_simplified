@@ -125,7 +125,8 @@ NSTUB(0xff4afe08, LiveViewApp_handler)
 //NSTUB(0xff4b09e4, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 //NSTUB(0xff4b1cc4, LiveViewApp_handler_end) // start of next function
 
-NSTUB(0xff4dfb94, PlayMain_handler)
+NSTUB(0xff36728c, PlayMain_handler)
+NSTUB(0xff4cba10, PlayMovieGuideApp_handler)
 	NSTUB(0xff49c124, ErrCardForLVApp_handler) // not sure
 NSTUB(0xff49cc68, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
 NSTUB(0xff4aba48, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
