@@ -489,7 +489,9 @@ void movtweak_step()
             (enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
         {
             msleep(200);
-            if (DLG_MOVIE_PRESS_LV_TO_RESUME || DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED) // double-check
+            // double-check
+            if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
+                (enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
                 force_liveview();
         }
 
