@@ -561,10 +561,14 @@ void run_test()
         randomize_palette();
         msleep(rand()%50);
     }
-#endif
-#ifdef CONFIG_1100D
+#elif defined(CONFIG_1100D)
     register_interrupt('MREQ_ISR', 0x50, my_MREQ_ISR, 0);
     register_interrupt('SIO3_ISR', 0x36, my_SIO3_ISR, 0);
+#else
+
+    extern int joke_mode; // ;)
+    joke_mode = 1;
+
 #endif
 }
 

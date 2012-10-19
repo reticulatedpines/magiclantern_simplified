@@ -2272,6 +2272,8 @@ static int focus_peaking_grayscale_running()
         ;
 }
 
+int joke_mode = 0;
+
 void preview_contrast_n_saturation_step()
 {
     if (ml_shutdown_requested) return;
@@ -2293,9 +2295,20 @@ void preview_contrast_n_saturation_step()
 
     static int saturation_values[] = {0,0x80,0xC0,0xFF};
     int desired_saturation = saturation_values[preview_saturation];
-
+    
     if (focus_peaking_grayscale_running())
         desired_saturation = 0;
+
+    if (joke_mode)
+    {
+        static int cor = 0;
+        static int dir = 0;
+        if (rand()%20 == 1) dir = !dir;
+        if (dir) cor++; else cor--;
+        int altered_saturation = COERCE(desired_saturation + cor, 0, 255);
+        cor = altered_saturation - desired_saturation;
+        desired_saturation = altered_saturation;
+    }
 
 #ifndef CONFIG_5DC
     if (current_saturation != desired_saturation)
