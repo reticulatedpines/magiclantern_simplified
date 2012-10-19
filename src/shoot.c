@@ -6609,7 +6609,7 @@ shoot_task( void* unused )
                 if (K > 40 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
                 {
 					if (motion_detect_delay>1) {
-						for (int t=0; t<motion_detect_delay; t++) {
+						for (int t=0; t<(int)motion_detect_delay; t++) {
 							bmp_printf(FONT_MED, 0, 80, " Taking picture in %ds   ", (int)(motion_detect_delay-t)/10);
 							msleep(100);
 							mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
@@ -6629,7 +6629,7 @@ shoot_task( void* unused )
                 if (K > 20 && d >= (int)motion_detect_level)
                 {
 					if (motion_detect_delay>1) {
-						for (int t=0; t<motion_detect_delay; t++) {
+						for (int t=0; t<(int)motion_detect_delay; t++) {
 							bmp_printf(FONT_MED, 0, 80, " Taking picture in %ds   ", (int)(motion_detect_delay-t)/10);
 							msleep(100);
 							mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();

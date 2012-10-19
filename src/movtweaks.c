@@ -188,7 +188,6 @@ void movie_rec_halfshutter_step()
         if (!recording) schedule_movie_start();
         else schedule_movie_end();
     }
-    return 1;
 }
 
 static void
@@ -1054,7 +1053,7 @@ void smooth_iso_step()
     if (!lv) { iso_acc = 0; return; }
     if (!lens_info.raw_iso) { iso_acc = 0; return; } // no auto iso
     
-    static int prev_bv = 0xdeadbeef;
+    static int prev_bv = (int)0xdeadbeef;
     #ifdef FRAME_BV
     int current_bv = FRAME_BV;
     #else
@@ -1067,7 +1066,7 @@ void smooth_iso_step()
     static int frames_to_skip = 30;
     if (frames_to_skip) { frames_to_skip--; prev_bv = current_bv; return; }
     
-    if (prev_bv != current_bv && prev_bv != 0xdeadbeef)
+    if (prev_bv != current_bv && prev_bv != (int)0xdeadbeef)
     {
         iso_acc -= (prev_bv - current_bv) * (1 << smooth_iso_speed);
         iso_acc = COERCE(iso_acc, -8 * 8 * (1 << smooth_iso_speed), 8 * 8 * (1 << smooth_iso_speed)); // don't correct more than 8 stops (overflow risk)

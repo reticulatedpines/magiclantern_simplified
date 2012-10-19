@@ -19,7 +19,7 @@ void lv_vsync()
 {
     #if defined(CONFIG_5D3) || defined(CONFIG_5D2) || defined(CONFIG_60D)
     int msg;
-    msg_queue_receive(vsync_msg_queue, &msg, 100);
+    msg_queue_receive(vsync_msg_queue, (struct event**)&msg, 100);
     #else
     msleep(MIN_MSLEEP);
     #endif
@@ -27,7 +27,7 @@ void lv_vsync()
 
 static void vsync_init()
 {
-    vsync_msg_queue = msg_queue_create("vsync_mq", 1);
+    vsync_msg_queue = (void*)msg_queue_create("vsync_mq", 1);
 }
 
 INIT_FUNC("vsync", vsync_init);

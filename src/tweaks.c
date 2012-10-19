@@ -2227,7 +2227,7 @@ static void upside_down_step()
             int voffset = (lv || PLAY_MODE || QR_MODE) ? (os.y0 + os.y_ex/2 - (BMP_H_PLUS+BMP_H_MINUS)/2) * 2 : 0;
             BMP_LOCK(
                 if (zebra_should_run())
-                    bmp_flip_ex(bmp_vram_real(), bmp_vram_idle(), get_bvram_mirror(), voffset);
+                    bmp_flip_ex(bmp_vram_real(), bmp_vram_idle(), (void*)get_bvram_mirror(), voffset);
                 else
                     bmp_flip(bmp_vram_real(), bmp_vram_idle(), voffset);
             )

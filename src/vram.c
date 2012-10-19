@@ -511,7 +511,7 @@ struct vram_info * get_yuv422_vram()
     
     if (digic_zoom_overlay_enabled()) // compute histograms and such on full-screen image
     {
-        vram_lv.vram = YUV422_LV_BUFFER_1;
+        vram_lv.vram = (void*)CACHEABLE(YUV422_LV_BUFFER_1);
         return &vram_lv;
     }
 

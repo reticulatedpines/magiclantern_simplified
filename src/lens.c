@@ -44,6 +44,7 @@ void update_stuff();
 void bv_update_lensinfo();
 void bv_auto_update();
 void lensinfo_set_aperture(int raw);
+void bv_expsim_shift();
 
 
 CONFIG_INT("shutter.display.degrees", shutter_display_degrees, 0);
