@@ -117,10 +117,20 @@ static void vsync_func() // called once per frame.. in theory :)
     //~ display_shake_step();
 }
 
+#ifdef CONFIG_550D
+int display_is_on_550D = 0;
+int get_display_is_on_550D() { return display_is_on_550D; }
+#endif
+
 int (*StateTransition)(void*,int,int,int,int) = 0;
 static int stateobj_spy(struct state_object * self, int x, int input, int z, int t)
 {
     int old_state = self->current_state;
+
+#ifdef CONFIG_550D
+    if (self == DISPLAY_STATE && old_state != 0 && input == 0) // TurnOffDisplay_action
+        display_is_on_550D = 0;
+#endif
 
 // sync ML overlay tools (especially Magic Zoom) with LiveView
 // this is tricky...
@@ -153,6 +163,12 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 #endif
 
     int ans = StateTransition(self, x, input, z, t);
+
+#ifdef CONFIG_550D
+    if (self == DISPLAY_STATE)
+        display_is_on_550D = (self->current_state == 1);
+#endif
+
 
 // sync digic functions (like overriding ISO or image effects)
 
