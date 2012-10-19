@@ -542,6 +542,10 @@ void digic_iso_step()
             EngDrvOut(SHAD_PRESETUP, presetup);
         }
 
+        #ifdef CONFIG_5D3
+        if (LVAE_DISP_GAIN) call("lvae_setdispgain", 0); // reset display gain
+        #endif
+
     }
     else // photo mode - display gain, for preview only
     {
