@@ -204,6 +204,7 @@ static struct menu_entry mov_menus[] = {
         .max = 20,
         .help = "H.264 bitrate. One unit = 10 mb/s."
     },*/
+#ifndef CONFIG_5D3_MINIMAL
     {
         .name = "Load H264.ini     ",
         //~ .priv = &bitrate,
@@ -212,6 +213,7 @@ static struct menu_entry mov_menus[] = {
         .select = load_h264_ini,
         .help = "Bitrate settings"
     },
+#endif
     {
         .name = "REC indicator",
         .priv = &rec_indicator,
@@ -227,9 +229,7 @@ void bitrate_init()
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
 }
 
-#ifndef CONFIG_5D3_MINIMAL
 INIT_FUNC(__FILE__, bitrate_init);
-#endif
 
 void movie_indicators_show()
 {
