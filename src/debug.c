@@ -3655,6 +3655,8 @@ int handle_buttons_being_held(struct event * event)
 
 void fake_simple_button(int bgmt_code)
 {
+    if (uilock & 0xFFFF) return;
+    
     if (ml_shutdown_requested) return;
     GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
 }
