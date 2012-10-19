@@ -194,6 +194,8 @@ void digic_iso_toggle(int* priv, int delta)
 
 void display_gain_toggle(int* priv, int delta)
 {
+    if (is_movie_mode()) return; // this feature only works in photo mode
+    
     priv = (int*)&digic_iso_gain_photo;
     
     digic_iso_or_gain_toggle(priv, delta);
