@@ -1160,10 +1160,10 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
     //~ if (!bmp_enabled) return;
     
     x0 = COERCE(x0, BMP_W_MINUS, BMP_W_PLUS-1);
-    y0 = COERCE(y0, BMP_H_MINUS, BMP_H_PLUS-1);
-
     w = COERCE(w, 0, BMP_W_PLUS-x0-1);
-    h = COERCE(h, 0, BMP_H_PLUS-y0-1);
+    
+    // the bitmap can extend on Y-axis outside the display limits
+    // but those lines will not be drawn
 
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
@@ -1183,6 +1183,9 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
 
         for( ys = y0 ; ys < (y0 + h); ys++ )
         {
+            if (ys < BMP_H_MINUS) continue;
+            if (ys >= BMP_H_PLUS) continue;
+            
             if (_bmp_draw_should_stop) return;
             y = (ys-y0)*bmp->height/h;
             #ifdef CONFIG_VXWORKS
@@ -1208,6 +1211,9 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
         int bmp_y_pos = bmp->height-1; // store the line number
         for( ys = y0 + h - 1 ; ys >= y0; ys-- )
         {
+            if (ys < BMP_H_MINUS) continue;
+            if (ys >= BMP_H_PLUS) continue;
+
             if (_bmp_draw_should_stop) return;
             y = (ys-y0)*bmp->height/h;
             int ysc = COERCE(ys, BMP_H_MINUS, BMP_H_PLUS);

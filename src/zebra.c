@@ -3923,7 +3923,13 @@ cropmark_draw()
         if (!lv) msleep(500); // let the bitmap buffer settle, otherwise ML may see black image and not draw anything (or draw half of cropmark)
         clrscr_mirror(); // clean any remaining zebras / peaking
         cropmark_cache_update_signature();
-        bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
+        
+        if (hdmi_code == 5 && is_pure_play_movie_mode())
+        {   // exception: cropmarks will have some parts of them outside the screen
+            bmp_draw_scaled_ex(cropmarks, BMP_W_MINUS+1, BMP_H_MINUS - 50, 960, 640, bvram_mirror);
+        }
+        else
+            bmp_draw_scaled_ex(cropmarks, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
         //~ info_led_blink(5,50,50);
         //~ bmp_printf(FONT_MED, 50, 50, "crop regen");
         goto end;
@@ -3952,6 +3958,7 @@ static void cropmark_cache_update_signature()
 static int cropmark_cache_is_valid()
 {
     if (cropmark_cache_dirty) return 0; // some other ML task asked for redraw
+    if (hdmi_code == 5 && PLAY_MODE) return 0; // unusual geometry - better force full redraw every time
     
     int sig = cropmark_cache_get_signature(); // video mode changed => needs redraw
     if (cropmark_cache_sig != sig) return 0;
@@ -5567,6 +5574,7 @@ static void default_movie_cropmarks()
 {
     if (!get_global_draw()) return;
     if (!is_movie_mode()) return;
+    if (PLAY_MODE) return;
     #ifndef CONFIG_50D
     if (expsim != 2) return;
     #endif
@@ -5622,11 +5630,14 @@ livev_lopriority_task( void* unused )
         }
 
         // here, redrawing cropmarks does not block fast zoom
-        if (cropmarks_play && PLAY_MODE && DISPLAY_IS_ON)
+        if (cropmarks_play && PLAY_MODE && DISPLAY_IS_ON && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)
         {
-            //~ beep();
             msleep(500);
-            cropmark_redraw();
+            if (PLAY_MODE && DISPLAY_IS_ON && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0) // double-check
+            {
+                cropmark_redraw();
+                if (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) >= 0) redraw(); // whoops, CTRL-Z, CTRL-Z :)
+            }
         }
 
         loprio_sleep();
