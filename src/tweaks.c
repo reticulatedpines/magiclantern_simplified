@@ -2521,6 +2521,9 @@ void brightness_saturation_reset()
 void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shift)
 {
 #ifndef CONFIG_40D // LCD_Palette not known
+
+    if (!bmp_is_on()) return;
+
     // 255 is reserved for ClearScreen, don't alter it
     for (int i = 0; i < 255; i++)
     {

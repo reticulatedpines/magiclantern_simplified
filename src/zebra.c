@@ -205,7 +205,7 @@ int show_lv_fps = 0; // for debugging
 static struct bmp_file_t * cropmarks = 0;
 static int _bmp_muted = false;
 static int _bmp_unmuted = false;
-static int bmp_is_on() { return !_bmp_muted; }
+int bmp_is_on() { return !_bmp_muted; }
 void bmp_on();
 void bmp_off();
 
