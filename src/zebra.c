@@ -4661,6 +4661,14 @@ BMP_LOCK(
     draw_histogram_and_waveform(1);
 
     bvram_mirror_clear(); // may remain filled with playback zebras 
+    
+    // dirty trick to clean the cache and avoid drawing artifacts
+    for (int i = 0; i < 10000; i++)
+    {
+        int x = rand() % 720;
+        int y = rand() % 480;
+        bmp_putpixel(x, y, bmp_getpixel(x,y));
+    }
 )
     info_led_off();
     livev_for_playback_running = 0;
