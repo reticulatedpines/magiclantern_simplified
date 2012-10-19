@@ -666,7 +666,11 @@ void clear_lv_afframe()
     afframe_countdown = 0;
 }
 
+#ifdef CONFIG_5D3
+CONFIG_INT("play.quick.zoom", quickzoom, 0);
+#else
 CONFIG_INT("play.quick.zoom", quickzoom, 2);
+#endif
 
 static void
 quickzoom_display(
