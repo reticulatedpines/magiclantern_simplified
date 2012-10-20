@@ -849,7 +849,7 @@ int is_pure_play_photo_mode() // no other dialogs active (such as delete)
 int is_pure_play_movie_mode() // no other dialogs active (such as delete)
 {
     if (!PLAY_MODE) return 0;
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
     return 0;
 #else
     extern thunk PlayMovieGuideApp_handler;
