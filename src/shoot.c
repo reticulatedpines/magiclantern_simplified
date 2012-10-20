@@ -152,6 +152,8 @@ static CONFIG_INT( "mlu.auto", mlu_auto, 0); // setting MLU forces timer to 2-se
 #else
 static CONFIG_INT( "mlu.auto", mlu_auto, 1);
 static CONFIG_INT("mlu.shake.free", mlu_shake_free, 0);
+static CONFIG_INT("mlu.shake.delay", mlu_shake_delay, 4);
+static CONFIG_INT("mlu.shake.shutter", mlu_shake_shutter, 1); // restrict it to shutter speeds where the improvement is noticeable
 #endif
 
 extern int lcd_release_running;
@@ -784,42 +786,65 @@ void set_lv_zoom(int zoom)
     prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
 }
 
-int mlu_shake_flag = 0;
-void mlu_shake_step()
+void mlu_take_pic()
+{
+    #ifdef CONFIG_5D2
+    SW1(1,00);
+    SW2(1,250);
+    SW2(0,50);
+    SW1(0,50);
+    #else
+    call("Release"); // new cameras
+    #endif
+}
+
+int mlu_shake_running = 0;
+void mlu_shake_task()
 {
 #ifndef CONFIG_5DC
-    int m = 0;
-    lens_wait_readytotakepic(64);
-    if (!get_mlu()) { set_mlu(1); msleep(50); m = 1; }
-    SW1(1,50);
-    SW2(1,50);
-    SW2(0,50);
-    SW1(0,50);
-    msleep(mlu_shake_free * 100);
-    SW1(1,50);
-    SW2(1,50);
-    SW2(0,50);
-    SW1(0,50);
-    while (get_halfshutter_pressed()) msleep(100);
-    lens_wait_readytotakepic(64);
-    if (m)
-    {
-        while (get_mlu())
-        {
-            set_mlu(0);
-            msleep(100);
-        }
-    }
+    //~ beep();
+    msleep(mlu_shake_delay == 6 ? 750 : mlu_shake_delay == 7 ? 1000 : mlu_shake_delay * 100);
+    SW1(0,0); SW2(0,0);
+    mlu_take_pic();
+    mlu_shake_running = 0;
 #endif
 }
 
 int handle_shutter_events(struct event * event)
 {
 #ifndef CONFIG_5DC
-    if (event->param == BGMT_LV && mlu_shake_free && !lv)
+
+    if (mlu_shake_free && !lv)
     {
-        mlu_shake_flag = 1;
-        return 0;
+        if (event->param == GMT_OLC_INFO_CHANGED 
+            && ((MEM(event->obj) & 0xFFFFFF0F) == 0x80001) // not sure, tested on 5D2 and 5D3
+            && !mlu_shake_running)
+        {
+            mlu_shake_running = 1;
+            task_create("mlu_pic", 0x1a, 0x1000, mlu_shake_task, 0);
+            return 1;
+        }
+        
+        static int mlu_should_be_cleared = 0;
+        if (event->param == BGMT_PRESS_HALFSHUTTER)
+        {
+            if (mlu_shake_shutter && (lens_info.raw_shutter < 80 || lens_info.raw_shutter > 112)) // 1/8 ... 1/125
+                return 1;
+            
+            if (!get_mlu()) 
+            { 
+                info_led_on();
+                mlu_should_be_cleared = 1; 
+                set_mlu(1);
+            }
+        }
+
+        if (event->param == BGMT_UNPRESS_HALFSHUTTER && mlu_should_be_cleared)
+        {
+            if (get_mlu()) set_mlu(0);
+            mlu_should_be_cleared = 0;
+            info_led_off();
+        }
     }
 #endif
 
@@ -4927,10 +4952,28 @@ static struct menu_entry shoot_menus[] = {
     {
         .name = "Anti-shake MLU  ", 
         .priv = &mlu_shake_free, 
-        .max = 5,
-        .icon_type = IT_BOOL, 
-        .choices = (const char *[]) {"OFF", "0.1s", "0.2s", "0.3s", "0.4s", "0.5s"},
-        .help = "Press LV to take a hand-held pic with less mirror vibration."
+        .max = 1,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Delay",
+                .priv = &mlu_shake_delay, 
+                .min = 1,
+                .max = 7,
+                .icon_type = IT_PERCENT,
+                .choices = (const char *[]) {"0", "0.1s", "0.2s", "0.3s", "0.4s", "0.5s", "0.75s", "1s"},
+                .help = "Delay between mirror and shutter movement."
+            },
+            {
+                .name = "Shutter speeds",
+                .priv = &mlu_shake_shutter, 
+                .max = 1,
+                .icon_type = IT_DICE,
+                .choices = (const char *[]) {"All", "1/8...1/125"},
+                .help = "Choose at what shutter speeds you want to use this feature."
+            },
+            MENU_EOL
+        },
+        .help = "Reduces vibration for hand-held shots with a MLU trick."
     }
 #endif
 #endif
@@ -6395,11 +6438,6 @@ shoot_task( void* unused )
         
         if (k%10 == 0) misc_shooting_info();
 
-        if (mlu_shake_flag)
-        {
-            mlu_shake_step();
-            mlu_shake_flag = 0;
-        }
         if (kelvin_auto_flag)
         {
             kelvin_auto_run();
