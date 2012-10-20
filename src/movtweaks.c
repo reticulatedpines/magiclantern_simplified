@@ -1047,8 +1047,11 @@ CONFIG_INT("iso.smooth.spd", smooth_iso_speed, 2);
 void smooth_iso_step()
 {
     static int iso_acc = 0;
-
-    if (!smooth_iso) { iso_acc = 0; return; }
+    if (!smooth_iso) 
+    { 
+        fps_ramp_iso_step();
+        iso_acc = 0; return; 
+    }
     if (!is_movie_mode()) { iso_acc = 0; return; }
     if (!lv) { iso_acc = 0; return; }
     if (!lens_info.raw_iso) { iso_acc = 0; return; } // no auto iso
@@ -1080,12 +1083,12 @@ void smooth_iso_step()
         extern int digic_iso_gain_movie;
         #define G_ADJ ((int)roundf(digic_iso_gain_movie ? gf * digic_iso_gain_movie / 1024 : gf))
         int altered_iso = current_iso;
-        while (G_ADJ > 1448 && altered_iso < MAX_ANALOG_ISO) 
+        while (G_ADJ > 861*2 && altered_iso < MAX_ANALOG_ISO) 
         {
             altered_iso += 8;
             gf /= 2;
         }
-        while ((G_ADJ < 724 && altered_iso > 80) || (altered_iso > MAX_ANALOG_ISO))
+        while ((G_ADJ < 861 && altered_iso > 80) || (altered_iso > MAX_ANALOG_ISO))
         {
             altered_iso -= 8;
             gf *= 2;

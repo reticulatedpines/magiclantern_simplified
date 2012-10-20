@@ -93,7 +93,9 @@ static CONFIG_INT("fps.preset", fps_criteria, 0);
 static CONFIG_INT("fps.wav.record", fps_wav_record, 0);
 
 static CONFIG_INT("fps.ramp", fps_ramp, 0);
-static int fps_ramp_timings[] = {0, 1, 2, 5, 15, 30, 60, 120, 300, 600, 1200, 1800};
+static CONFIG_INT("fps.ramp.duration", fps_ramp_duration, 3);
+static CONFIG_INT("fps.ramp.expo", fps_ramp_expo, 0);
+static int fps_ramp_timings[] = {1, 2, 5, 15, 30, 60, 120, 300, 600, 1200, 1800};
 static int fps_ramp_up = 0;
 
 int fps_should_record_wav() { return fps_override && fps_wav_record && is_movie_mode() && FPS_SOUND_DISABLE && was_sound_recording_disabled_by_fps_override(); }
@@ -1156,13 +1158,6 @@ static struct menu_entry fps_menu[] = {
                 .help = "Sound usually goes out of sync and may stop recording.",
             },*/
             {
-                .name = "FPS ramping\b",
-                .priv = &fps_ramp,
-                .max = 11,
-                .choices = (const char *[]) {"OFF", "1s", "2s", "5s", "15s", "30s", "1min", "2min", "5min", "10min", "20min", "30min"},
-                .help = "Ramp FPS (overriden<->default). Press REC or " INFO_BTN_NAME " to start.",
-            },
-            {
                 .name = "Sound Record\b",
                 .priv = &fps_wav_record,
                 .max = 1,
@@ -1171,6 +1166,38 @@ static struct menu_entry fps_menu[] = {
                 .help = "Sound goes out of sync, so it has to be recorded separately.",
             },
             MENU_EOL
+        },
+    },
+    {
+        .name = "FPS ramping", 
+        .priv = &fps_ramp,
+        .max = 1,
+        .help = "Ramp FPS between two values. FPS override should be ON.",
+        //.essential = FOR_MOVIE,
+        .submenu_width = 650,
+        .children =  (struct menu_entry[]) {
+            /*
+            {
+                .name = "FPS A", 
+            },
+            {
+                .name = "FPS B", 
+            },*/
+            
+            {
+                .name = "Ramp duration",
+                .priv = &fps_ramp_duration,
+                .max = 10,
+                .choices = (const char *[]) {"1s", "2s", "5s", "15s", "30s", "1min", "2min", "5min", "10min", "20min", "30min"},
+                .help = "Duration of FPS ramping (in real-time, not in playback).",
+            },
+            {
+                .name = "Constant expo",
+                .priv = &fps_ramp_expo,
+                .max = 1,
+                .help = "Keep constant exposure via ISO. Disable gradual exposure!",
+            },
+            MENU_EOL,
         },
     },
 };
@@ -1289,7 +1316,7 @@ static void fps_task()
             int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
             if (f < default_fps)
             {
-                int total_duration = fps_ramp_timings[fps_ramp];
+                int total_duration = fps_ramp_timings[fps_ramp_duration];
                 float delta = 1.0 / 50 / total_duration;
                 
                 static float k = 0;
@@ -1415,6 +1442,53 @@ int handle_fps_events(struct event * event)
 
     return 1;
 }
+
+void fps_ramp_iso_step()
+{
+    if (!lv) return;
+    if (!is_movie_mode()) return;
+    
+    static int dirty = 0;
+    if (!fps_ramp || !fps_ramp_expo)
+    {
+        if (dirty) set_movie_digital_iso_gain_extra(1024);
+        return;
+    }
+
+    int unaltered = (int)roundf(1000/raw2shutterf(MAX(lens_info.raw_shutter, 96)));
+    int altered_by_fps = get_shutter_reciprocal_x1000(unaltered, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
+
+    float gf = 1024 * altered_by_fps / unaltered;
+
+    // adjust ISO just like in smooth_iso_step (copied from there)
+    int current_iso = FRAME_ISO & 0xFF;
+    int altered_iso = current_iso;
+    
+    extern int digic_iso_gain_movie;
+    #define G_ADJ ((int)roundf(digic_iso_gain_movie ? gf * digic_iso_gain_movie / 1024 : gf))
+    while (G_ADJ > 861*2 && altered_iso < MAX_ANALOG_ISO) 
+    {
+        altered_iso += 8;
+        gf /= 2;
+    }
+    while ((G_ADJ < 861 && altered_iso > 80) || (altered_iso > MAX_ANALOG_ISO))
+    {
+        altered_iso -= 8;
+        gf *= 2;
+    }
+
+    if (altered_iso != current_iso)
+    {
+        FRAME_ISO = altered_iso | (altered_iso << 8);
+    }
+
+    int g = (int)roundf(COERCE(gf, 1, 1<<20));
+    if (g == 1024) g = 1025; // force override 
+
+    set_movie_digital_iso_gain_extra(g);
+    dirty = 1;
+}
+
 
 #ifdef NEW_FPS_METHOD
 
