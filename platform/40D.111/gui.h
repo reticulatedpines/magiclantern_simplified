@@ -48,7 +48,7 @@ typedef unsigned gui_event_t;
 
 // dummy
 #define BGMT_PRESS_HALFSHUTTER 		  0x0b
-//#define BGMT_UNPRESS_HALFSHUTTER 	  -12345
+#define BGMT_UNPRESS_HALFSHUTTER 	  -12345
 
 #define BGMT_UNPRESS_SET			  -123456789
 
