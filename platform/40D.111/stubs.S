@@ -213,6 +213,9 @@ NSTUB(0xFFCB9028, BmpDDev_take_semaphore);
 
 NSTUB(0xFF8156F8, bindGUISwitchCBR)
 
+NSTUB(0xFFD427B0, register_interrupt)
+NSTUB(0xFFC8DF90, SIO3_ISR)
+NSTUB(0xFFC8DEC8, MREQ_ISR)
 
 NSTUB(0xFFD4F338, TryPostEvent)
 NSTUB(0xFFD4F398, TryPostEvent_end)
