@@ -554,22 +554,6 @@ void my_MREQ_ISR(int a, int b, int c, int d)
 
 void run_test()
 {
-#ifdef CONFIG_VXWORKS
-    msleep(5000);
-    while(1)
-    {
-        randomize_palette();
-        msleep(rand()%50);
-    }
-#elif defined(CONFIG_1100D)
-    register_interrupt('MREQ_ISR', 0x50, my_MREQ_ISR, 0);
-    register_interrupt('SIO3_ISR', 0x36, my_SIO3_ISR, 0);
-#else
-
-    extern int joke_mode; // ;)
-    joke_mode = 1;
-
-#endif
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -3354,7 +3338,7 @@ int handle_keep_ml_after_format_toggle()
 /** 
  * for testing dialogs and string IDs
  */
-/*
+
 void HijackDialogBox()
 {
     struct gui_task * current = gui_task_list.current;
@@ -3368,7 +3352,7 @@ void HijackDialogBox()
     }
     dialog_redraw(dialog);
 }
-*/
+
 
 unsigned GetFileSize(char* filename)
 {
@@ -3392,50 +3376,78 @@ int ReadFileToBuffer(char* filename, void* buf, int maxsize)
 }
 
 struct tmp_file {
-    char name[30];
+    char name[50];
     void* buf;
     int size;
     int sig;
 };
 
 struct tmp_file * tmp_files = 0;
-void* tmp_buffers[5] = {(void*)YUV422_HD_BUFFER_1, (void*)YUV422_HD_BUFFER_2, (void*)YUV422_LV_BUFFER_1, (void*)YUV422_LV_BUFFER_2, (void*)YUV422_LV_BUFFER_3};
 int tmp_file_index = 0;
-int tmp_buffer_index = 0;
+void* tmp_buffer = 0;
 void* tmp_buffer_ptr = 0;
-#define TMP_MAX_BUF_SIZE 4000000
+#define TMP_MAX_BUF_SIZE 20000000
 
-void TmpMem_Init()
+int TmpMem_Init()
 {
+    ASSERT(!tmp_buffer);
+    ASSERT(!tmp_files);
     tmp_file_index = 0;
-    tmp_buffer_index = 0;
-    tmp_buffer_ptr = tmp_buffers[0];
     if (!tmp_files) tmp_files = AllocateMemory(200 * sizeof(struct tmp_file));
+    if (!tmp_files) 
+    { 
+        HijackCurrentDialogBox(4, "Format: malloc error :("); 
+        beep();
+        msleep(2000);
+        return 0; 
+    }
+    
+    if (!tmp_buffer) tmp_buffer = (void*)shoot_malloc(TMP_MAX_BUF_SIZE);
+    if (!tmp_buffer) 
+    { 
+        HijackCurrentDialogBox(4, "Format: shoot_malloc error :(");
+        beep();
+        msleep(2000);
+        FreeMemory(tmp_files); tmp_files = 0;
+        return 0; 
+    }
+    
+    tmp_buffer_ptr = tmp_buffer;
+
+    return 1;
+}
+
+void TmpMem_Done()
+{
+    FreeMemory(tmp_files); tmp_files = 0;
+    shoot_free(tmp_buffer); tmp_buffer = 0;
 }
 
 void TmpMem_AddFile(char* filename)
 {
-    if (!tmp_files) return;
+    if (!tmp_buffer) return;
+    if (!tmp_buffer_ptr) return;
 
     int filesize = GetFileSize(filename);
     if (filesize == -1) return;
-    if (filesize > TMP_MAX_BUF_SIZE) return;
     if (tmp_file_index >= 200) return;
-    if (tmp_buffer_ptr + filesize > tmp_buffers[tmp_buffer_index] + TMP_MAX_BUF_SIZE) tmp_buffer_index++;
-    if (tmp_buffer_index >= COUNT(tmp_buffers)) return;
+    if (tmp_buffer_ptr + filesize + 10 >= tmp_buffer + TMP_MAX_BUF_SIZE) return;
     
-    //~ NotifyBoxHide();
-    //~ NotifyBox(300, "Reading %s...", filename);
     char msg[100];
-    snprintf(msg, sizeof(msg), "Reading %s...", filename);
+    snprintf(msg, sizeof(msg), "Reading %s...", filename, tmp_buffer_ptr);
     HijackCurrentDialogBox(4, msg);
     ReadFileToBuffer(filename, tmp_buffer_ptr, filesize);
-    my_memcpy(tmp_files[tmp_file_index].name, filename, 30);
+    snprintf(tmp_files[tmp_file_index].name, 50, "%s", filename);
     tmp_files[tmp_file_index].buf = tmp_buffer_ptr;
     tmp_files[tmp_file_index].size = filesize;
     tmp_files[tmp_file_index].sig = compute_signature(tmp_buffer_ptr, filesize/4);
     tmp_file_index++;
     tmp_buffer_ptr += (filesize + 10) & ~3;
+
+    int size = tmp_buffer_ptr - tmp_buffer;
+    int size_mb = size * 10 / 1024 / 1024;
+    snprintf(msg, sizeof(msg), "Format       (ML size: %d.%d MB)", size_mb/10, size_mb%10);
+    HijackCurrentDialogBox(3, msg);
 }
 
 
@@ -3461,11 +3473,7 @@ void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
 
 void CopyMLFilesToRAM_BeforeFormat()
 {
-    TmpMem_Init();
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
-/*    TmpMem_AddFile(CARD_DRIVE "ML/FONTS.DAT");
-    TmpMem_AddFile(CARD_DRIVE "ML/MAGIC.CFG");
-    TmpMem_AddFile(CARD_DRIVE "ML/RECTILIN.LUT");*/
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0);
@@ -3479,14 +3487,6 @@ void CopyMLFilesToRAM_BeforeFormat()
 
 void CopyMLFilesBack_AfterFormat()
 {
-    FIO_CreateDirectory(CARD_DRIVE "ML");
-    FIO_CreateDirectory(CARD_DRIVE "ML/DATA");
-    FIO_CreateDirectory(CARD_DRIVE "ML/SETTINGS");
-    FIO_CreateDirectory(CARD_DRIVE "ML/CROPMKS");
-    FIO_CreateDirectory(CARD_DRIVE "ML/SCRIPTS");
-    FIO_CreateDirectory(CARD_DRIVE "ML/PLUGINS");
-    FIO_CreateDirectory(CARD_DRIVE "ML/DOC");
-    FIO_CreateDirectory(CARD_DRIVE "ML/LOGS");
     int i;
     for (i = 0; i < tmp_file_index; i++)
     {
@@ -3537,6 +3537,8 @@ void HijackFormatDialogBox_main()
 
     // make sure we have something to restore :)
     if (!check_autoexec()) return;
+
+    if (!TmpMem_Init()) return;
     
     // before user attempts to do something, copy ML files to RAM
     ui_lock(UILOCK_EVERYTHING);
@@ -3561,6 +3563,8 @@ void HijackFormatDialogBox_main()
         CopyMLFilesBack_AfterFormat();
         ui_lock(UILOCK_NONE);
     }
+    
+    TmpMem_Done();
 }
 #endif
 

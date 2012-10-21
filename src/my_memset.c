@@ -14,7 +14,7 @@ void* memset32(void* dest, int val, size_t n)
 // uses less memory than the one in libc.a
 void* memset(void* dest, int val, size_t n)
 {
-    uint8_t* dst = (int*) dest;
+    uint8_t* dst = (uint8_t*) dest;
     uint8_t v = val;
     for(size_t i = 0; i < n; i++)
         *dst++ = v;
