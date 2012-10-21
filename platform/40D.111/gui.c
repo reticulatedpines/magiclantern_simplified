@@ -59,8 +59,7 @@ extern struct gui_timer_struct gui_timer_struct;
 int max_gui_queue_len = 0;
 
 // Replaces the gui_main_task
-static void
-my_gui_main_task( void )
+static void ml_gui_main_task( void )
 {
     static int kev = 0;	
     	
@@ -249,8 +248,7 @@ queue_clear:
 }
 
 // double-check gui main task first!!!
-
-void hijack_gui_main_task()
+void ml_hijack_gui_main_task()
 {
     //~ taskptr will point to the location of GuiMainTask's task struct.
     int taskptr = QueryTaskByName("GuiMainTask");
@@ -259,5 +257,5 @@ void hijack_gui_main_task()
     DeleteTask(taskptr);
     
     //~ start our GuiMainTask.
-    task_create("GuiMainTask", 0x17, 0x2000, my_gui_main_task, 0);
+    task_create("GuiMainTask", 0x17, 0x2000, ml_gui_main_task, 0);
 }

@@ -140,8 +140,8 @@ NSTUB(0xffd4464c, task_create)
     //NSTUB(    0x1934, task_dispatch_hook )
     //NSTUB(0xff084ca4, task_trampoline)
     //NSTUB(0xff2cb1e0, vram_get_number)
-    //NSTUB(   0x7e9e8, vram_info)
-    //NSTUB(0xff209670, vsnprintf)
+NSTUB(0x0001E010, vram_info)
+NSTUB(0xFFD4D2F0, vsnprintf)
     
 NSTUB(0xff8e2a94, LiveViewApp_handler)
 NSTUB(0xff8b6da8, PlayMain_handler)
@@ -193,10 +193,8 @@ NSTUB(0xffd47d4c, GetMemoryAddressOfMemoryChunk)
 NSTUB(0xff8b8764, StartPlayProtectGuideApp)
 NSTUB(0xff8b8c30, StopPlayProtectGuideApp)
 
-NSTUB(0xFFD4D2F0, vsnprintf)
-
-NSTUB( 0xffd44858, DeleteTask )
-NSTUB( 0xffd45224, QueryTaskByName)
+NSTUB(0xffd44858, DeleteTask)
+NSTUB(0xffd45224, QueryTaskByName)
 
 NSTUB(0x1E458, LCD_Palette)
 NSTUB(0x1E498, RGB_Palette)
@@ -227,3 +225,4 @@ NSTUB(0xFFD6A1C8, get_current_task) // 0x22E00
 NSTUB(0xFFD69F8C, get_task_info)
 NSTUB(0xFFD6B8B0, get_active_task_list)
 
+NSTUB(0xFFD4EC6C, create_task_cmd_shell)
