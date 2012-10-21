@@ -4974,7 +4974,7 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
         .help = "Reduces vibration for hand-held shots with a MLU trick."
-    }
+    },
 #endif
 #endif
     /*{
