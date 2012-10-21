@@ -817,7 +817,7 @@ int handle_shutter_events(struct event * event)
     if (mlu_shake_free && !lv)
     {
         if (event->param == GMT_OLC_INFO_CHANGED 
-            && ((MEM(event->obj) & 0xFFFFFF0F) == 0x80001) // not sure, tested on 5D2 and 5D3
+            && ((MEM(event->obj) & 0xFFFFF00F) == 0x80001) // OK on 5D3, 5D2, 550D, 600D, maybe others
             && !mlu_shake_running)
         {
             mlu_shake_running = 1;
