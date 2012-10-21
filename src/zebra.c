@@ -87,6 +87,14 @@ void update_disp_mode_bits_from_params();
 int toggle_disp_mode();
 void toggle_disp_mode_menu(void *priv, int delta);
 
+// in movie mode: skip the 16:9 bar when computing overlays
+// in photo mode: compute the overlays on full-screen image
+int get_y_skip_offset_for_overlays()
+{
+    if (lv) return is_movie_mode() ? os.off_169 : 0;
+    if (is_pure_play_photo_mode()) return 0;
+    return os.off_169;
+}
 
 
 // precompute some parts of YUV to RGB computations
@@ -757,8 +765,8 @@ hist_build()
     }
     
     int mz = nondigic_zoom_overlay_enabled();
-
-    for( y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
+    int off = get_y_skip_offset_for_overlays();
+    for( y = os.y0 + off; y < os.y_max - off; y += 2 )
     {
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
@@ -1404,7 +1412,8 @@ void draw_zebras( int Z )
 
         // draw zebra in 16:9 frame
         // y is in BM coords
-        for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
+        int off = get_y_skip_offset_for_overlays();
+        for(int y = os.y0 + off; y < os.y_max - off; y += 2 )
         {
             #define color_over           zebra_color_word_row(COLOR_RED,  y)
             #define color_under          zebra_color_word_row(COLOR_BLUE, y)
@@ -1857,8 +1866,9 @@ draw_zebra_and_focus( int Z, int F )
         struct vram_info *hd_vram = get_yuv422_hd_vram();
         uint32_t hdvram = (uint32_t)hd_vram->vram;
         
-        int yStart = os.y0 + os.off_169 + 8;
-        int yEnd = os.y_max - os.off_169 - 8;
+        int off = get_y_skip_offset_for_overlays();
+        int yStart = os.y0 + off + 8;
+        int yEnd = os.y_max - off - 8;
         int xStart = os.x0 + 8;
         int xEnd = os.x_max - 8;
         int n_over = 0;
@@ -2066,7 +2076,8 @@ draw_false_downsampled( void )
     uint8_t * const lvram = get_yuv422_vram()->vram;
     uint8_t* fc = false_colour[falsecolor_palette];
 
-    for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
+    int off = get_y_skip_offset_for_overlays();
+    for(int y = os.y0 + off; y < os.y_max - off; y += 2 )
     {
         uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV_R(y)    );  // 2 pixels
         uint16_t * const b_row = (uint16_t*)( bvram        + BM_R(y)       );  // 2 pixels
