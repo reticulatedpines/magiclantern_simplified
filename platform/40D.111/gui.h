@@ -53,13 +53,13 @@ typedef unsigned gui_event_t;
 #define BGMT_UNPRESS_SET			  -123456789
 
 #define GMT_GUICMD_OPEN_SLOT_COVER	  0x28
-#define GMT_GUICMD_START_AS_CHECK	  -12345678
-#define GMT_GUICMD_LOCK_OFF		  	  -12345678
+#define GMT_GUICMD_START_AS_CHECK     -12345678
+#define GMT_GUICMD_LOCK_OFF           -12345678
 
-#define BGMT_Q						BGMT_PRESS_DIRECT_PRINT
-#define BGMT_LV						BGMT_JUMP
+#define BGMT_Q                      BGMT_PICSTYLE
+#define BGMT_LV                     BGMT_PRESS_DIRECT_PRINT
 
-#define BTN_ZEBRAS_FOR_PLAYBACK		BGMT_JUMP
+#define BTN_ZEBRAS_FOR_PLAYBACK     BGMT_JUMP
 
 #define GMT_OLC_INFO_CHANGED		-12344
 

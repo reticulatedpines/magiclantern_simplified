@@ -177,8 +177,8 @@
 #define MIN_MSLEEP 11
 
 #define INFO_BTN_NAME "INFO"
-    #define Q_BTN_NAME "Pict.Style"
-    #define ARROW_MODE_TOGGLE_KEY "PicStyle"
+#define Q_BTN_NAME "Pict.Style"
+	#define ARROW_MODE_TOGGLE_KEY "PicStyle"
 
     #define DISPLAY_IS_ON MEM(0xBE9C) // guessed from TurnOffDisplay (PUB)
 
