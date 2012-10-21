@@ -2692,6 +2692,44 @@ anamorphic_preview_display(
     menu_draw_icon(x, y, MNI_BOOL_GDR(anamorphic_preview));
 }
 
+
+// for focus peaking (exception, since it doesn't operate on squeezed LV buffer, but on unsqeezed HD one
+// so... we'll try to squeeze the bitmap coords for output
+static int anamorphic_bmp_y_lut[480];
+int anamorphic_squeeze_bmp_y(int y)
+{
+    if (likely(!anamorphic_preview)) return y;
+    if (unlikely(!lv)) return y;
+    if (unlikely(hdmi_code == 5)) return y;
+    if (unlikely(y < 0 || y >= 480)) return y;
+
+    static int prev_idx = -1;
+    if (unlikely(prev_idx != anamorphic_ratio_idx)) // update the LUT
+    {
+        int num = anamorphic_ratio_num[anamorphic_ratio_idx];
+        int den = anamorphic_ratio_den[anamorphic_ratio_idx];
+        int yc = os.y0 + os.y_ex / 2;
+        for (int y = 0; y < 480; y++)
+            anamorphic_bmp_y_lut[y] = (y - yc) * den/num + yc;
+        prev_idx = anamorphic_ratio_idx;
+    }
+    return anamorphic_bmp_y_lut[y];
+}
+
+void yuvcpy_dark(uint32_t* dst, uint32_t* src, size_t n, int parity)
+{
+    if (parity)
+    {
+        for(size_t i = 0; i < n/4; i++)
+            *dst++ = ((*src++) & 0xFE000000) >> 1;
+    }
+    else
+    {
+        for(size_t i = 0; i < n/4; i++)
+            *dst++ = ((*src++) & 0x0000FE00) >> 1;
+    }
+}
+
 static void anamorphic_squeeze()
 {
     if (!anamorphic_preview) return;
@@ -2705,13 +2743,19 @@ static void anamorphic_squeeze()
     uint32_t* src_buf;
     uint32_t* dst_buf;
     display_filter_get_buffers(&src_buf, &dst_buf);
-
+    
+    int mv = is_movie_mode();
     int ym = os.y0 + os.y_ex/2;
     for (int y = os.y0; y < os.y_ex; y++)
     {
         int ya = (y-ym) * num/den + ym;
         if (ya > os.y0 && ya < os.y_max)
-            memcpy(&dst_buf[LV(0,y)/4], &src_buf[LV(0,ya)/4], 720*2);
+        {
+            if (!mv || (ya > os.y0 + os.off_169 && ya < os.y_max - os.off_169))
+                memcpy(&dst_buf[LV(0,y)/4], &src_buf[LV(0,ya)/4], 720*2);
+            else
+                yuvcpy_dark(&dst_buf[LV(0,y)/4], &src_buf[LV(0,ya)/4], 720*2, y%2);
+        }
         else
             memset(&dst_buf[LV(0,y)/4], 0, 720*2);
     }

@@ -1766,7 +1766,9 @@ static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvra
 {    
     int color = get_focus_color(thr, e);
     //~ int color = COLOR_RED;
-    color = (color << 8) | color;   
+    color = (color << 8) | color;
+    
+    y = anamorphic_squeeze_bmp_y(y);
     
     uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
     uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
