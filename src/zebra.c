@@ -37,6 +37,11 @@
 
 #define DIGIC_ZEBRA_REGISTER 0xC0F140cc
 
+// those colors will not be considered for histogram (so they should be very unlikely to appear in real situations)
+#define MZ_WHITE 0xFA12FA34 
+#define MZ_BLACK 0x00120034
+#define MZ_GREEN 0x80808080
+
 //~ #if 1
 //~ #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #if defined(CONFIG_50D)// || defined(CONFIG_60D)
@@ -750,12 +755,19 @@ hist_build()
         vectorscope_init();
         vectorscope_clear();
     }
+    
+    int mz = nondigic_zoom_overlay_enabled();
 
     for( y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
     {
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
             uint32_t pixel = buf[BM2LV(x,y)/4];
+            
+            // ignore magic zoom borders
+            if (mz && (pixel == MZ_WHITE || pixel == MZ_BLACK || pixel == MZ_GREEN))
+                continue;
+            
             int Y;
             if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // rgb
             {
@@ -991,8 +1003,7 @@ hist_draw_image(
                 *col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][(i * 256 / HIST_WIDTH) & 0xFF]: COLOR_WHITE);
         }
         
-        if (hist_warn && i == HIST_WIDTH - 1
-            && !nondigic_zoom_overlay_enabled()) // magic zoom borders will be "overexposed" => will cause warning
+        if (hist_warn && i == HIST_WIDTH - 1)
         {
             unsigned int thr = hist_total_px / (
                 hist_warn == 1 ? 100000 : // 0.001%
@@ -4473,13 +4484,10 @@ static void draw_zoom_overlay(int dirty)
         #endif
         w /= X;
         h /= X;
-        if (video_mode_fps <= 30 || !is_movie_mode())
-        {
-            memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 1, 0, lv->height) * lv->width, 0,    w<<1);
-            memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 2, 0, lv->height) * lv->width, 0xFF, w<<1);
-            memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 1, 0, lv->height) * lv->width, 0xFF, w<<1);
-            memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 2, 0, lv->height) * lv->width, 0,    w<<1);
-        }
+        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
+        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
+        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
+        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
     }
 
     //~ draw_circle(x0,y0,45,COLOR_WHITE);
@@ -4516,21 +4524,17 @@ static void draw_zoom_overlay(int dirty)
         if (y%X==0) s += hd->width;
     }
 
-    #if !(defined(CONFIG_5D3) || defined(CONFIG_1100D))
-    if (video_mode_fps <= 30 || !is_movie_mode())
+    #ifdef CONFIG_1100D
+    H /= 2; //LCD res fix (half height)
     #endif
-    {
-        #ifdef CONFIG_1100D
-        H /= 2; //LCD res fix (half height)
-        #endif
-        memset(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
-        memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
-        memset(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
-        memset(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
-        #ifdef CONFIG_1100D
-        H *= 2; // Undo it
-        #endif
-    }
+    memset32(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
+    memset32(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
+    memset32(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
+    memset32(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
+    #ifdef CONFIG_1100D
+    H *= 2; // Undo it
+    #endif
+
     if (dirty) bmp_fill(0, LV2BM_X(x0c), LV2BM_Y(y0c), LV2BM_DX(W), LV2BM_DY(H));
     //~ bmp_fill(rawoff ? COLOR_BLACK : COLOR_GREEN1, x0c, y0c, W, 1);
     //~ bmp_fill(rawoff ? COLOR_WHITE : COLOR_GREEN2, x0c+1, y0c, W, 1);
