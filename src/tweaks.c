@@ -866,6 +866,7 @@ void print_set_maindial_hint()
         if (get_set_pressed())
         {
             info_led_on();
+            get_yuv422_vram();
             play_set_wheel_display(0, os.x0, os.y_max - font_large.height, 0);
         }
         else
