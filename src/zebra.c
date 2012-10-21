@@ -5443,13 +5443,15 @@ livev_hipriority_task( void* unused )
         struct vram_info * hd = get_yuv422_hd_vram();
         bmp_printf(FONT_MED, 100, 100, "ext:%d%d%d \nlv:%x %dx%d \nhd:%x %dx%d ", EXT_MONITOR_RCA, ext_monitor_hdmi, hdmi_code, lv->vram, lv->width, lv->height, hd->vram, hd->width, hd->height);
         #endif
+        
+        int mz = should_draw_zoom_overlay();
 
-        lv_vsync();
+        lv_vsync(mz);
         guess_fastrefresh_direction();
 
         display_filter_step(k);
         
-        if (should_draw_zoom_overlay())
+        if (mz)
         {
             //~ msleep(k % 50 == 0 ? MIN_MSLEEP : 10);
             if (zoom_overlay_dirty) BMP_LOCK( clrscr_mirror(); )
@@ -5458,6 +5460,7 @@ livev_hipriority_task( void* unused )
             zoom_overlay_dirty = 0;
             //~ crop_set_dirty(10); // don't draw cropmarks while magic zoom is active
             // but redraw them after MZ is turned off
+            continue;
         }
         else
         {

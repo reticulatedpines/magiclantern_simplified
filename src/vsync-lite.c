@@ -15,13 +15,14 @@ void lv_vsync_signal()
     msg_queue_post(vsync_msg_queue, 1);
 }
 
-void lv_vsync()
+void lv_vsync(int mz)
 {
-    #if defined(CONFIG_5D3) || defined(CONFIG_5D2) || defined(CONFIG_60D)
+    static int k = 0; k++;
+    #if defined(CONFIG_5D3) || defined(CONFIG_60D)
     int msg;
     msg_queue_receive(vsync_msg_queue, (struct event**)&msg, 100);
     #else
-    msleep(MIN_MSLEEP);
+    msleep(mz ? (k % 50 == 0 ? MIN_MSLEEP : 10) : MIN_MSLEEP);
     #endif
 }
 
