@@ -1423,28 +1423,20 @@ silent_pic_take_simple(int interactive)
     struct vram_info * vram = get_yuv422_hd_vram();
     int p = vram->pitch;
     int h = vram->height;
+    int size = p*h;
     
-    lv_request_pause_updating(500);
-    msleep(50);
-    
-    dump_seg(get_yuv422_hd_vram()->vram, p * h, imgname);
-
-    lv_wait_for_pause_updating_to_finish();
-
-    //~ if (interactive && !silent_pic_burst)
-    //~ {
-        //~ NotifyBoxHide();
-        //~ msleep(500); clrscr();
-        //~ play_422(imgname);
-        //~ msleep(1000);
-    //~ }
+    void* tmp = shoot_malloc(size);
+    if (tmp)
+    {
+        sync_hd_buf_memcpy(tmp, size);
+        dump_seg(tmp, size, imgname);
+        shoot_free(tmp);
+    }
 
     if (interactive && !silent_pic_burst) // single mode
     {
         while (get_halfshutter_pressed()) msleep(100);
     }
-
-    msleep(100);
 }
 
 void
