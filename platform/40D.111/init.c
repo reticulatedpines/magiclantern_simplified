@@ -92,7 +92,8 @@ void ml_big_init_task()
                 //~ streq(task->name, "bitrate_task") ||
                 //~ streq(task->name, "cartridge_task") ||
                 //~ streq(task->name, "cls_task") ||
-                //~ streq(task->name, "console_task") ||
+                //~ 
+                streq(task->name, "console_task") ||
                 streq(task->name, "debug_task") ||
                 //~ streq(task->name, "dmspy_task") ||
                 //~ streq(task->name, "focus_task") ||
@@ -151,7 +152,7 @@ void ml_hijack_create_task_cmd_shell(const char * name)
 	// call original create_task_cmd_shell to start taskCmdShell
 	create_task_cmd_shell(name);
 	
-	msleep(1000);
+	msleep(500);
 	
 	// create ml_init_task to start ML
 	task_create("ml_init_task", 0x1f, 0x2000, ml_init_task, 0);
@@ -179,7 +180,7 @@ void copy_and_restart()
     cache_fake(0xFF811354, 0xE3A0172E, TYPE_ICACHE);
 
     /* replace create_task_cmd_shell with our modified version to start ml_init_task */
-	cache_fake(0xFF81147C, BL_INSTR(0xFF81147C, &ml_hijack_create_task_cmd_shell), TYPE_ICACHE);
+    cache_fake(0xFF81147C, BL_INSTR(0xFF81147C, &ml_hijack_create_task_cmd_shell), TYPE_ICACHE);
 
     /* now restart firmware */
     firmware_entry();
