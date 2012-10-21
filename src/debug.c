@@ -3386,7 +3386,7 @@ struct tmp_file * tmp_files = 0;
 int tmp_file_index = 0;
 void* tmp_buffer = 0;
 void* tmp_buffer_ptr = 0;
-#define TMP_MAX_BUF_SIZE 20000000
+#define TMP_MAX_BUF_SIZE 15000000
 
 int TmpMem_Init()
 {
@@ -3405,7 +3405,7 @@ int TmpMem_Init()
     if (!tmp_buffer) tmp_buffer = (void*)shoot_malloc(TMP_MAX_BUF_SIZE);
     if (!tmp_buffer) 
     { 
-        HijackCurrentDialogBox(4, "Format: shoot_malloc error :(");
+        HijackCurrentDialogBox(4, "Format: shoot_malloc error, retrying...");
         beep();
         msleep(2000);
         FreeMemory(tmp_files); tmp_files = 0;

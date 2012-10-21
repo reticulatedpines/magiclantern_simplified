@@ -3,10 +3,17 @@
 // experimental memory allocation from shooting buffer (~160MB on 5D2)
 
 static struct semaphore * alloc_sem = 0;
+static struct semaphore * free_sem = 0;
+
 static void allocCBR(int a, int b)
 {
     MEM(a) = b;
     give_semaphore(alloc_sem);
+}
+
+static void freeCBR(int a, int b)
+{
+    give_semaphore(free_sem);
 }
 
 struct memSuite
@@ -23,19 +30,35 @@ void* shoot_malloc(int size)
     AllocateMemoryResource(size + 4, allocCBR, &hSuite);
     int r = take_semaphore(alloc_sem, 1000);
     if (r) return 0;
-    if (hSuite->num_chunks != 1) { beep(); return 0; }
+    if (hSuite && hSuite->num_chunks != 1) 
+    {
+        // let's try again, maybe we are luckier this time
+        // keep the old suite allocated, otherwise we'll get it fragmented again
+        msleep(1000);
+        struct memSuite * hSuite2 = 0;
+        AllocateMemoryResource(size + 4, allocCBR, &hSuite2);
+        int r2 = take_semaphore(alloc_sem, 1000);
+
+        FreeMemoryResource(hSuite, freeCBR, 0);
+        take_semaphore(free_sem, 0);
+
+        if (r2 == 0 && hSuite2->num_chunks == 1) // yes!
+        {
+            hSuite = hSuite2;
+        }
+        else if (hSuite2) // boo...
+        {
+            FreeMemoryResource(hSuite2, freeCBR, 0);
+            take_semaphore(free_sem, 0);
+            return 0;
+        }
+    }
     //~ bmp_hexdump(FONT_SMALL, 0, 100, hSuite, 32*10);
     void* hChunk = (void*) GetFirstChunkFromSuite_maybe(hSuite);
     //~ bmp_hexdump(FONT_SMALL, 0, 300, hChunk, 32*10);
     void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
     *(struct memSuite **)ptr = hSuite;
     return ptr + 4;
-}
-
-static struct semaphore * free_sem = 0;
-static void freeCBR(int a, int b)
-{
-    give_semaphore(free_sem);
 }
 
 void shoot_free(void* ptr)
