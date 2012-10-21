@@ -258,7 +258,11 @@ static CONFIG_INT( "zoom.overlay", zoom_overlay_enabled, 0);
 static CONFIG_INT( "zoom.overlay.trig", zoom_overlay_trigger_mode, MZ_TAKEOVER_ZOOM_IN_BTN);
 static CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 1);
 static CONFIG_INT( "zoom.overlay.x", zoom_overlay_x, 1);
+#ifdef CONFIG_5D3
+static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 4); // less flicker when MZ is at the bottom
+#else
 static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
+#endif
 static CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
 //~ static CONFIG_INT( "zoom.overlay.lut", zoom_overlay_lut, 0);
 
