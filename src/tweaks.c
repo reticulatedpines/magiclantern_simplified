@@ -2964,6 +2964,7 @@ int display_filter_enabled()
     int fp = focus_peaking_as_display_filter();
     if (!(defish_preview || anamorphic_preview || fp)) return 0;
     if (!zebra_should_run()) return 0;
+    if (should_draw_zoom_overlay()) return 0; // not enough CPU power to run MZ and filters at the same time
     return fp ? 2 : 1;
 }
 
