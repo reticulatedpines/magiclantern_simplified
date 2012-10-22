@@ -1225,7 +1225,7 @@ void bvram_mirror_init()
         //~ #if defined(CONFIG_600D) || defined(CONFIG_1100D)
         //~ bvram_mirror_start = (void*)shoot_malloc(BMP_VRAM_SIZE); // there's little memory available in system pool
         //~ #else
-        bvram_mirror_start = (void*)UNCACHEABLE(AllocateMemory(BMP_VRAM_SIZE));
+        bvram_mirror_start = (void*)AllocateMemory(BMP_VRAM_SIZE);
         //~ #endif
         if (!bvram_mirror_start) 
         {   
@@ -5466,7 +5466,7 @@ livev_hipriority_task( void* unused )
         {
             if (!zoom_overlay_dirty) { redraw(); msleep(700); } // redraw cropmarks after MZ is turned off
             
-            msleep(MIN_MSLEEP);
+            //~ msleep(MIN_MSLEEP);
             zoom_overlay_dirty = 1;
             if (falsecolor_draw)
             {
@@ -5488,7 +5488,7 @@ livev_hipriority_task( void* unused )
                 BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 4 : 2) == 0, k % 2 == 1); )
                 //~ #endif
             }
-            if (MIN_MSLEEP <= 10) msleep(MIN_MSLEEP);
+            //~ if (MIN_MSLEEP <= 10) msleep(MIN_MSLEEP);
         }
 
         int s = get_seconds_clock();
