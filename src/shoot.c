@@ -147,13 +147,18 @@ static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
        CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
 static CONFIG_INT( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 5);
-#ifdef CONFIG_5DC
-static CONFIG_INT( "mlu.auto", mlu_auto, 0); // setting MLU forces timer to 2-second, better leave it off by default
+static CONFIG_INT( "mlu.auto", mlu_auto, 0);
+static CONFIG_INT( "mlu.mode", mlu_mode, 1);
+
+#define MLU_ALWAYS_ON (mlu_auto && mlu_mode == 0)
+#define MLU_SELF_TIMER (mlu_auto && mlu_mode == 1)
+#define MLU_HANDHELD (mlu_auto && mlu_mode == 2)
+
+#ifndef CONFIG_5DC
+static CONFIG_INT("mlu.handheld.delay", mlu_handheld_delay, 4);
+static CONFIG_INT("mlu.handheld.shutter", mlu_handheld_shutter, 1); // restrict it to shutter speeds where the improvement is noticeable
 #else
-static CONFIG_INT( "mlu.auto", mlu_auto, 1);
-static CONFIG_INT("mlu.shake.free", mlu_shake_free, 0);
-static CONFIG_INT("mlu.shake.delay", mlu_shake_delay, 4);
-static CONFIG_INT("mlu.shake.shutter", mlu_shake_shutter, 1); // restrict it to shutter speeds where the improvement is noticeable
+#define mlu_handheld_shutter 0
 #endif
 
 extern int lcd_release_running;
@@ -788,13 +793,13 @@ void set_lv_zoom(int zoom)
 
 void mlu_take_pic()
 {
-    #ifdef CONFIG_5D2
+    #ifdef CONFIG_5D2 // not sure about 50D and 7D
     SW1(1,00);
     SW2(1,250);
     SW2(0,50);
     SW1(0,50);
     #else
-    call("Release"); // new cameras
+    call("Release"); // new cameras (including 500D)
     #endif
 }
 
@@ -803,7 +808,7 @@ void mlu_shake_task()
 {
 #ifndef CONFIG_5DC
     //~ beep();
-    msleep(mlu_shake_delay == 6 ? 750 : mlu_shake_delay == 7 ? 1000 : mlu_shake_delay * 100);
+    msleep(mlu_handheld_delay == 6 ? 750 : mlu_handheld_delay == 7 ? 1000 : mlu_handheld_delay * 100);
     SW1(0,0); SW2(0,0);
     mlu_take_pic();
     mlu_shake_running = 0;
@@ -814,10 +819,10 @@ int handle_shutter_events(struct event * event)
 {
 #ifndef CONFIG_5DC
 
-    if (mlu_shake_free && !lv)
+    if (MLU_HANDHELD && !lv)
     {
         if (event->param == GMT_OLC_INFO_CHANGED 
-            && ((MEM(event->obj) & 0xFFFFF00F) == 0x80001) // OK on 5D3, 5D2, 550D, 600D, maybe others
+            && ((MEM(event->obj) & 0xFFFFF00F) == 0x80001) // OK on 5D3, 5D2, 550D, 600D, 500D, maybe others
             && !mlu_shake_running)
         {
             mlu_shake_running = 1;
@@ -828,7 +833,7 @@ int handle_shutter_events(struct event * event)
         static int mlu_should_be_cleared = 0;
         if (event->param == BGMT_PRESS_HALFSHUTTER)
         {
-            if (mlu_shake_shutter && (lens_info.raw_shutter < 80 || lens_info.raw_shutter > 112)) // 1/8 ... 1/125
+            if (mlu_handheld_shutter && (lens_info.raw_shutter < 80 || lens_info.raw_shutter > 112)) // 1/8 ... 1/125
                 return 1;
             
             if (!get_mlu()) 
@@ -3310,28 +3315,43 @@ bulb_display_submenu( void * priv, int x, int y, int selected )
     menu_draw_icon(x, y, MNI_PERCENT, (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)));
 }
 
-// like expsim_toggle
 static void
-    mlu_toggle( void * priv, int delta )
+mlu_update()
+{
+    if (mlu_mode == 0)
+        set_mlu(mlu_auto ? 1 : 0);
+    else if (mlu_mode == 1)
+        mlu_selftimer_update();
+    else
+        set_mlu(0);
+}
+
+static void
+mlu_toggle_mode( void * priv, int delta )
+{
+    #if defined(CONFIG_5DC) || defined(CONFIG_5D3)
+    mlu_mode = !mlu_mode;
+    #else
+    mlu_mode = mod(mlu_mode + delta, 3);
+    #endif
+    mlu_update();
+}
+
+static void
+mlu_toggle( void * priv, int delta )
 {
     #ifndef CONFIG_1100D
-    // off, on, auto
-    if (!mlu_auto && !get_mlu()) // off->on
-    {
-        set_mlu(1);
-    }
-    else if (!mlu_auto && get_mlu()) // on->auto
-    {
-        set_mlu(0);
-        mlu_auto = 1;
-    }
-    else // auto->off
-    {
-        mlu_auto = 0;
-        set_mlu(0);
-    }
+    mlu_auto = !mlu_auto;
+    mlu_update();
     #endif
 }
+
+
+#if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
+#define MLU_SELF_TIMER_STRING "Timer+LCDremote"
+#else
+#define MLU_SELF_TIMER_STRING "Self-timer only"
+#endif
 
 static void
 mlu_display( void * priv, int x, int y, int selected )
@@ -3341,12 +3361,9 @@ mlu_display( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Mirror Lockup   : %s",
-        #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
-        mlu_auto ? "Timer+LCDremote"
-        #else
-        mlu_auto ? "Self-timer only"
-        #endif
-        : get_mlu() ? "ON" : "OFF"
+        MLU_SELF_TIMER ? MLU_SELF_TIMER_STRING
+        : MLU_HANDHELD ? (mlu_handheld_shutter ? "HandH, 1/8-1/125" : "Handheld")
+        : get_mlu() ? "ON, CableRelease" : "OFF"
     );
     if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Mirror Lockup does not work in LiveView");
     else menu_draw_icon(x, y, mlu_auto ? MNI_AUTO : MNI_BOOL(get_mlu()), 0);
@@ -4927,28 +4944,38 @@ static struct menu_entry shoot_menus[] = {
 #endif
 #if !defined(CONFIG_1100D)
     {
+        // 5DC can't do handheld MLU
+        // 5D3 can do, but doesn't need it (it has silent mode with little or no vibration)
         .name = "Mirror Lockup",
         .priv = &mlu_auto,
         .display = mlu_display, 
         .select = mlu_toggle,
-        #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
-        .help = "MLU setting can be linked with self-timer and LCD remote.",
-        #elif defined(CONFIG_5DC)
+        #if defined(CONFIG_5DC)
         .help = "You can toggle MLU w. DirectPrint or link it to self-timer.",
+        #elif defined(CONFIG_5D3)
+        .help = "You can link MLU with self-timer (handy).",
         #else
-        .help = "MLU setting can be linked with self-timer.",
+        .help = "MLU tricks: hand-held or self-timer modes.",
         #endif
-        //.essential = FOR_PHOTO,
-    },
-#if !defined(CONFIG_5DC)
-    {
-        .name = "Anti-shake MLU  ", 
-        .priv = &mlu_shake_free, 
-        .max = 1,
+        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Delay",
-                .priv = &mlu_shake_delay, 
+                .name = "MLU mode      ",
+                .priv = &mlu_mode,
+                .select = mlu_toggle_mode,
+                #if defined(CONFIG_5DC) || defined(CONFIG_5D3)
+                .max = 1,
+                .help = "Cable Release (press twice), or Self-timer (press once).",
+                #else
+                .max = 2,
+                .help = "Cable Rel (press twice), Self-timer, Handheld (press once).",
+                #endif
+                .choices = (const char *[]) {"Cable Release", "Self-Timer", "Handheld"},
+            },
+            #if !defined(CONFIG_5DC) && !defined(CONFIG_5D3)
+            {
+                .name = "Handheld Delay",
+                .priv = &mlu_handheld_delay, 
                 .min = 1,
                 .max = 7,
                 .icon_type = IT_PERCENT,
@@ -4956,18 +4983,17 @@ static struct menu_entry shoot_menus[] = {
                 .help = "Delay between mirror and shutter movement."
             },
             {
-                .name = "Shutter speeds",
-                .priv = &mlu_shake_shutter, 
+                .name = "Handheld Shutt",
+                .priv = &mlu_handheld_shutter, 
                 .max = 1,
                 .icon_type = IT_DICE,
-                .choices = (const char *[]) {"All", "1/8...1/125"},
-                .help = "Choose at what shutter speeds you want to use this feature."
+                .choices = (const char *[]) {"All values", "1/8...1/125"},
+                .help = "At what shutter speeds you want to use handheld MLU."
             },
+            #endif
             MENU_EOL
         },
-        .help = "Reduces vibration for hand-held shots with a MLU trick."
-    }
-#endif
+    },
 #endif
     /*{
         .display = picq_display, 
@@ -6259,6 +6285,25 @@ int handle_mlu_toggle(struct event * event)
 }
 #endif
 
+void mlu_selftimer_update()
+{
+    if (MLU_SELF_TIMER && !lv)
+    {
+        int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!HDR_ENABLED)) ? 1 : 0;
+        int mlu_current_value = get_mlu();
+        if (mlu_auto_value != mlu_current_value)
+        {
+            set_mlu(mlu_auto_value); // shooting mode, ML decides to toggle MLU
+        }
+    }
+}
+
+PROP_HANDLER(PROP_DRIVE)
+{
+    drive_mode = buf[0];
+    mlu_selftimer_update();
+}
+
 static void mlu_step()
 {
 #if defined(CONFIG_1100D)
@@ -6273,32 +6318,9 @@ static void mlu_step()
     prev_mlu = mlu;
 #endif
 
-    if (!mlu_auto) return;
-    
-    int mlu_current_value = get_mlu() ? 1 : 0;
-    static int mlu_prev_value = -1;
-    if (MENU_MODE && !gui_menu_shown()) // Canon menu => let's see if user changes MLU setting
+    if (MLU_ALWAYS_ON)
     {
-        if (mlu_prev_value != -1 && mlu_prev_value != mlu_current_value)
-        {
-            mlu_auto = 0;
-            NotifyBox(2000, "ML: Auto MLU disabled");
-        }
-        mlu_prev_value = mlu_current_value;
-    }
-    else // not in Canon menu
-    {
-        mlu_prev_value = -1;
-    }
-
-    if (!lv && !MENU_MODE && !get_halfshutter_pressed()) // normal shooting mode, non-liveview, outside Canon menu
-    {
-        int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!HDR_ENABLED)) ? 1 : 0;
-        if (mlu_auto_value != mlu_current_value)
-        {
-            set_mlu(mlu_auto_value); // shooting mode, ML decides to toggle MLU
-            msleep(500);
-        }
+        if (!get_mlu()) set_mlu(1);
     }
 }
 
@@ -6423,6 +6445,8 @@ shoot_task( void* unused )
     #endif
 
     bulb_shutter_valuef = (float)timer_values[bulb_duration_index];
+    
+    mlu_selftimer_update();
     
     TASK_LOOP
     {
