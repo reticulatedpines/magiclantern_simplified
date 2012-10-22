@@ -59,51 +59,42 @@ extern struct gui_timer_struct gui_timer_struct;
 int max_gui_queue_len = 0;
 
 // Replaces the gui_main_task
-static void
-my_gui_main_task( void )
+static void ml_gui_main_task( void )
 {
-    static int kev = 0;	
+//    static int kev = 0;	
     	
 	gui_init_end();
 	
 	while(1)
 	{
-		struct event * event;
-		msg_queue_receive(
-			g_mq,
-			&event,
-			0
-		);
+		struct event * event_ptr;
+		msg_queue_receive(g_mq, &event_ptr, 0);
 
 		take_semaphore(g_sem, 0);
 		
-		if( !event )
+		if( !event_ptr )
 			goto event_loop_bottom;
 
-		if (!magic_is_off() && event->type == 0)
+		if (!magic_is_off() && event_ptr->type == 0)
 		{
 			//bmp_printf(FONT_LARGE, 10, 400, "USING FONT: 0x%08X", BFNT_CHAR_CODES); msleep(500);
 			
 			/*
-			if(event->param == BGMT_TRASH) {
-				bmp_printf(FONT_LARGE, 10, 10, "BTN TRASH PRESSED!");
-				msleep(1000);
-				SetGUIRequestMode(2);
+			if(event_ptr->param == BGMT_LV) {
+				bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+				bmp_draw_rect(COLOR_YELLOW, 10, 10, 700, 460);
+				bmp_printf(FONT_LARGE, 40, 220, "BGMT_LV PRESSED!");
+				msleep(2000);
 				//open_canon_menu();
+				SetGUIRequestMode(2);				
 				goto event_loop_bottom;
 			}
 			*/
-			
-			/*
-			bmp_draw_rect(COLOR_RED, 0, 0, 720, 480);
-			bmp_fill(COLOR_YELLOW,  10, 210, 700, 20);
-			*/
-			
 			/*
 			bmp_printf(FONT_LARGE, 10, 350, "%04d T=0x%08x P=0x%08x", 
 				kev,
-				event->type, 
-				event->param
+				event_ptr->type, 
+				event_ptr->param
 			);
 			
 			bmp_printf(FONT_LARGE, 10, 400, "%04d A=0x%08x", 
@@ -114,86 +105,86 @@ my_gui_main_task( void )
 			/*
 			bmp_printf(FONT_LARGE, 0, 400, "%04d # T=0x%08x P=0x%08x A=0x%08x", 
 				kev,
-				event->type, 
-				event->param,
-				event->arg
+				event_ptr->type, 
+				event_ptr->param,
+				event_ptr->arg
 			);
 			
 			bmp_printf(FONT_LARGE, 0, 440, "%04d # O0=0x%08x O4=0x%08x O8=0x%08x", 
 				kev,
-				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
-				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
-				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0
+				event_ptr->obj ? ((int)event_ptr->obj & 0xf0000000 ? (int)event_ptr->obj : *(int*)(event_ptr->obj)) : 0,
+				event_ptr->obj ? ((int)event_ptr->obj & 0xf0000000 ? (int)event_ptr->obj : *(int*)(event_ptr->obj + 4)) : 0,
+				event_ptr->obj ? ((int)event_ptr->obj & 0xf0000000 ? (int)event_ptr->obj : *(int*)(event_ptr->obj + 8)) : 0
 			);
 			*/
 			
 			//msleep(500);			
 			
-			if (handle_buttons(event) == 0) // ML button/event handler
+			if (handle_buttons(event_ptr) == 0) // ML button/event handler
 				goto event_loop_bottom;
 		}
 
-		if (IS_FAKE(event)) event->arg = 0;
+		if (IS_FAKE(event_ptr)) event_ptr->arg = 0;
 
-		switch( event->type )
+		switch( event_ptr->type )
 		{
 		case 0:
 			if( *obj == 1 // not sure
-			&&  event->param != 0x25
-			&&  event->param != 0x26
-			&&  event->param != 0x27
-			&&  event->param != 0x28
-			&&  event->param != 0x29
-			&&  event->param != 0x2A
-			&&  event->param != 0x1F
-			&&  event->param != 0x2B
-			&&  event->param != 0x23
-			&&  event->param != 0x2C
-			&&  event->param != 0x2D
-			&&  event->param != 0x2E
-			&&  event->param != 0x2F
-			&&  event->param != 0x30
-			&&  event->param != 0x31
-			&&  event->param != 0x32
+			&&  event_ptr->param != 0x25
+			&&  event_ptr->param != 0x26
+			&&  event_ptr->param != 0x27
+			&&  event_ptr->param != 0x28
+			&&  event_ptr->param != 0x29
+			&&  event_ptr->param != 0x2A
+			&&  event_ptr->param != 0x1F
+			&&  event_ptr->param != 0x2B
+			&&  event_ptr->param != 0x23
+			&&  event_ptr->param != 0x2C
+			&&  event_ptr->param != 0x2D
+			&&  event_ptr->param != 0x2E
+			&&  event_ptr->param != 0x2F
+			&&  event_ptr->param != 0x30
+			&&  event_ptr->param != 0x31
+			&&  event_ptr->param != 0x32
 			)
 				goto queue_clear;
 
-			DebugMsg( DM_MAGIC, 2, "GUI_CONTROL:%d", event->param );
-			gui_massive_event_loop( event->param, event->obj, event->arg );
+			DebugMsg( DM_MAGIC, 2, "GUI_CONTROL:%d", event_ptr->param );
+			gui_massive_event_loop( event_ptr->param, event_ptr->obj, event_ptr->arg );
 			break;
 
 		case 1:
 			if( *obj == 1 // not sure
-			&&  event->param != 0x00
-			&&  event->param != 0x06
-			&&  event->param != 0x05
+			&&  event_ptr->param != 0x00
+			&&  event_ptr->param != 0x06
+			&&  event_ptr->param != 0x05
 			)
 				goto queue_clear;
 
-			DebugMsg( 0x84, 2, "GUI_CHANGE_MODE:%d", event->param );
+			DebugMsg( 0x84, 2, "GUI_CHANGE_MODE:%d", event_ptr->param );
 
-			if( event->param == 0 )
+			if( event_ptr->param == 0 )
 			{
 				gui_local_post( 0xb, 0, 0 );
 				if( *timer_obj != 0)
 					gui_timer_something( *timer_obj, 4 );
 			}
 
-			gui_change_mode( event->param );
+			gui_change_mode( event_ptr->param );
 			break;
 
 		case 2:
 			if( *obj == 1 // not sure
-			&&  event->param != 15
-			&&  event->param != 13
-			&&  event->param != 18
+			&&  event_ptr->param != 15
+			&&  event_ptr->param != 13
+			&&  event_ptr->param != 18
 			)
 				goto queue_clear;
 
-			gui_local_post( event->param, event->obj, event->arg );
+			gui_local_post( event_ptr->param, event_ptr->obj, event_ptr->arg );
 			break;
 		case 3:
-			if( event->param == 15 )
+			if( event_ptr->param == 15 )
 			{
 				DebugMsg( 0x84, 2, "GUIOTHER_CANCEL_ALL_EVENT" );
 				*obj = 0;
@@ -201,30 +192,30 @@ my_gui_main_task( void )
 			}
 
 			if( *obj == 1 // not sure
-			&&  event->param != 0x00
-			&&  event->param != 0x03
-			&&  event->param != 0x01
-			&&  event->param != 16
-			&&  event->param != 17
+			&&  event_ptr->param != 0x00
+			&&  event_ptr->param != 0x03
+			&&  event_ptr->param != 0x01
+			&&  event_ptr->param != 16
+			&&  event_ptr->param != 17
 			)
 				goto queue_clear;
 
-			DebugMsg( 0x84, 2, "GUI_OTHEREVENT:%d", event->param );
-			gui_other_post( event->param, event->obj, event->arg );
+			DebugMsg( 0x84, 2, "GUI_OTHEREVENT:%d", event_ptr->param );
+			gui_other_post( event_ptr->param, event_ptr->obj, event_ptr->arg );
 			break;
 		case 4:
-			gui_post_10000062( event->param, event->obj, event->arg );
+			gui_post_10000062( event_ptr->param, event_ptr->obj, event_ptr->arg );
 			break;
 		case 5:
-			gui_init_event( event->obj );
+			gui_init_event( event_ptr->obj );
 			break;
 		case 6:
-			DebugMsg( 0x84, 2, "GUI_CHANGE_SHOOT_TYPE:%d", event->param );
-			gui_change_shoot_type_post( event->param );
+			DebugMsg( 0x84, 2, "GUI_CHANGE_SHOOT_TYPE:%d", event_ptr->param );
+			gui_change_shoot_type_post( event_ptr->param );
 			break;
 		case 7:
-			DebugMsg( 0x84, 2, "GUI_CHANGE_LCD_STATE:%d", event->param );
-			gui_change_lcd_state_post( event->param );
+			DebugMsg( 0x84, 2, "GUI_CHANGE_LCD_STATE:%d", event_ptr->param );
+			gui_change_lcd_state_post( event_ptr->param );
 			break;
 
 		default:
@@ -240,8 +231,8 @@ queue_clear:
 			0x84,
 			3,
 			"**** Queue Clear **** event(%d) param(%d)",
-			event->type,
-			event->param
+			event_ptr->type,
+			event_ptr->param
 		);
 
 		goto event_loop_bottom;
@@ -249,8 +240,7 @@ queue_clear:
 }
 
 // double-check gui main task first!!!
-
-void hijack_gui_main_task()
+void ml_hijack_gui_main_task()
 {
     //~ taskptr will point to the location of GuiMainTask's task struct.
     int taskptr = QueryTaskByName("GuiMainTask");
@@ -259,5 +249,5 @@ void hijack_gui_main_task()
     DeleteTask(taskptr);
     
     //~ start our GuiMainTask.
-    task_create("GuiMainTask", 0x17, 0x2000, my_gui_main_task, 0);
+    task_create("GuiMainTask", 0x17, 0x2000, ml_gui_main_task, 0);
 }

@@ -22,3 +22,4 @@ ROMBASEADDR		= 0xFF010000
 x: autoexec-all autoexec-all.bin
 	cp autoexec-all.bin autoexec.bin
 	$(STAT_CMD) autoexec.bin; \
+

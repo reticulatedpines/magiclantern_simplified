@@ -2174,7 +2174,7 @@ handle_ml_menu_keys(struct event * event)
 #ifdef BGMT_RATE
     case BGMT_RATE:
 #endif
-#if defined(BGMT_Q) && !defined(CONFIG_40D) //40D has Q mapped to DIRECT_PRINT
+#if defined(BGMT_Q)
     case BGMT_Q:
 #endif
 #ifdef BGMT_Q_ALT
@@ -2190,7 +2190,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_FUNC:
     //~ case BGMT_LV:
 #endif
-#ifdef CONFIG_VXWORKS
+#ifdef CONFIG_5DC
     case BGMT_JUMP:
     case BGMT_PRESS_DIRECT_PRINT:
 #endif

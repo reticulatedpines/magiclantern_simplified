@@ -19,10 +19,9 @@ PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 # menu.o and debug.o must come before the modules
 ML_OBJS-y = \
 	magiclantern.lds \
-	entry_40D.o \
-	entry_subs.o \
-	init.o \
+	$(SRC_DIR)/entry.o \
 	stubs.o \
+	init.o \
 	dummy.o \
 	version.o \
 	bmp.o \

@@ -1,8 +1,8 @@
 #define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC02200E0 // http://magiclantern.wikia.com/wiki/Led_addresses
 
-#define LEDBLUE     *(int*)0xC02200E8
-#define LEDRED      *(int*)0xC02200E0
+#define LEDBLUE     *(volatile int*)0xC02200E8
+#define LEDRED      *(volatile int*)0xC02200E0
 #define LEDON   0x46
 #define LEDOFF  0x44
 
@@ -177,8 +177,8 @@
 #define MIN_MSLEEP 11
 
 #define INFO_BTN_NAME "INFO"
-    #define Q_BTN_NAME "Pict.Style"
-    #define ARROW_MODE_TOGGLE_KEY "PicStyle"
+#define Q_BTN_NAME "Pict.Style"
+	#define ARROW_MODE_TOGGLE_KEY "PicStyle"
 
     #define DISPLAY_IS_ON MEM(0xBE9C) // guessed from TurnOffDisplay (PUB)
 

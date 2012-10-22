@@ -157,8 +157,9 @@
 #define MVR_BUFFER_USAGE_SOUND div_maybe(-100*MEM(480 + MVR_516_STRUCT) + 100*MEM(468 + MVR_516_STRUCT), 0xa)
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
-#define MVR_FRAME_NUMBER  0 // (*(int*)(0xEC + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN 0 // (*(int*)(0xE4 + MVR_516_STRUCT)) // in mvrSMEncodeDone
+#define MVR_GOP_SETTING   (*(int*)(0x194 + MVR_516_STRUCT))
+#define MVR_FRAME_NUMBER  (*(int*)(0x134 + MVR_516_STRUCT)) // in mvrExpStarted
+#define MVR_BYTES_WRITTEN (*(int*)(0x128 + MVR_516_STRUCT)) // in mvrSMEncodeDone
 
 /* those are not sure yet */
     #define MOV_RES_AND_FPS_COMBINATIONS 5
@@ -207,9 +208,9 @@
     #define MENU_DISP_ISO_POS_X 500
     #define MENU_DISP_ISO_POS_Y 27
 
-    // for HDR status
-    #define HDR_STATUS_POS_X 180
-    #define HDR_STATUS_POS_Y 460
+// for HDR status
+#define HDR_STATUS_POS_X 167
+#define HDR_STATUS_POS_Y 460
 
     // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 504

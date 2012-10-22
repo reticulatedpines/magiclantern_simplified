@@ -4,43 +4,38 @@
 #include "gui.h"
 #include "menu.h"
 #include "state-object.h"
-//~ #include "../../src/cache_hacks.h"
+#include "cache_hacks.h"
 
 /** Was this an autoboot or firmware file load? */
-int autoboot_loaded;
+//int autoboot_loaded;
 
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
 
-static inline void
-zero_bss( void )
+static inline void zero_bss( void )
 {
     uint32_t *bss = _bss_start;
     while( bss < _bss_end )
         *(bss++) = 0;
 }
 
-// this is just restart.. without copying
-// (kept for compatibility with existing reboot.c)
-void copy_and_restart() {
-    
-    // don't know whether it's needed or not... but probably it's a good idea
-    zero_bss();
-    
-    // lock down caches
-    //~ cache_lock();
-    
-    // jump to modified Canon startup code from entry.S
-    // (which will call CreateMyTasks - where we create our tasks)
-    init_code_run();
-    
-    // unreachable
-    while(1) LEDBLUE = LEDON;
+
+int magic_off = 0; // Set to 1 to disable ML
+int magic_off_request = 0;
+
+int _hold_your_horses = 1; // 0 after config is read
+int ml_started = 0; // 1 after ML is fully loaded
+int ml_gui_initialized = 0; // 1 after gui_main_task is started
+
+int bmp_vram_idle_ptr;
+
+
+int magic_is_off() 
+{
+    return magic_off; 
 }
 
-
-static void
-call_init_funcs( void * priv )
+static void call_init_funcs( void * priv )
 {
     // Call all of the init functions
     extern struct task_create _init_funcs_start[];
@@ -60,22 +55,12 @@ call_init_funcs( void * priv )
 
 }
 
-int magic_off = 0; // Set to 1 to disable ML
-int magic_off_request = 0;
-
-int magic_is_off() 
-{
-    return magic_off; 
-}
-
-int _hold_your_horses = 1; // 0 after config is read
-int ml_started = 0; // 1 after ML is fully loaded
-int ml_gui_initialized = 0; // 1 after gui_main_task is started
-
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
-void my_big_init_task()
-{  
+void ml_big_init_task()
+{
+	bmp_vram_idle_ptr = malloc(360*240);
+	
     load_fonts();
 
     call("DisablePowerSave");
@@ -107,7 +92,8 @@ void my_big_init_task()
                 //~ streq(task->name, "bitrate_task") ||
                 //~ streq(task->name, "cartridge_task") ||
                 //~ streq(task->name, "cls_task") ||
-                //~ streq(task->name, "console_task") ||
+                //~ 
+                streq(task->name, "console_task") ||
                 streq(task->name, "debug_task") ||
                 //~ streq(task->name, "dmspy_task") ||
                 //~ streq(task->name, "focus_task") ||
@@ -151,6 +137,59 @@ void my_big_init_task()
     ml_started = 1;
 }
 
+
+void ml_init_task()
+{
+    ml_big_init_task();	
+    ml_hijack_gui_main_task();
+}
+
+
+extern void create_task_cmd_shell(const char * name);
+
+void ml_hijack_create_task_cmd_shell(const char * name)
+{
+	// call original create_task_cmd_shell to start taskCmdShell
+	create_task_cmd_shell(name);
+	
+	msleep(500);
+	
+	// create ml_init_task to start ML
+	task_create("ml_init_task", 0x1f, 0x2000, ml_init_task, 0);
+}
+
+// this is just restart.. without copying
+// (kept for compatibility with existing reboot.c)
+void copy_and_restart()
+{
+    zero_bss();
+    
+    /* lock down caches */
+    cache_lock();
+    
+    /* this is a evil hack to disable cache clearing all on way to ML tasks */
+    cache_fake(0xFF8101D8, 0xE1A00000, TYPE_ICACHE);
+    cache_fake(0xFFD65490, 0xE1A00000, TYPE_ICACHE);
+    cache_fake(0xFFD654EC, 0xE1A00000, TYPE_ICACHE);
+    cache_fake(0xFFD654E0, 0xE1A00000, TYPE_ICACHE);
+    cache_fake(0xFFD654CC, 0xE1A00000, TYPE_ICACHE);
+    cache_fake(0xFFD654A8, 0xE1A00000, TYPE_ICACHE);
+    cache_fake(0xFFD65518, 0xE1A00000, TYPE_ICACHE);    
+
+    /* reserve 512 KB or RAM for ML (original: MOV R1, 0xc00000; modified: MOV R1, 0xB80000) */
+    cache_fake(0xFF811354, 0xE3A0172E, TYPE_ICACHE);
+
+    /* replace create_task_cmd_shell with our modified version to start ml_init_task */
+    cache_fake(0xFF81147C, BL_INSTR(0xFF81147C, &ml_hijack_create_task_cmd_shell), TYPE_ICACHE);
+
+    /* now restart firmware */
+    firmware_entry();
+    
+    // unreachable
+    while(1) LEDBLUE = LEDON;
+}
+
+
 /**
  * Custom ML assert handler
  */
@@ -172,19 +211,4 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func)
 void bzero32(void* addr, size_t N)
 {
     memset(addr, 0, N);
-}
-
-int bmp_vram_idle_ptr;
-
-void my_init_task()
-{
-    msleep(1000);
-    hijack_gui_main_task();
-    bmp_vram_idle_ptr = malloc(360*240);
-    my_big_init_task();
-}
-
-void CreateMyTasks()
-{
-    task_create("my_init_task", 0x1f, 0x2000, my_init_task, 0);
 }
