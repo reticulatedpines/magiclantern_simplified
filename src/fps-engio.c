@@ -1172,7 +1172,7 @@ static struct menu_entry fps_menu[] = {
         .name = "FPS ramping", 
         .priv = &fps_ramp,
         .max = 1,
-        .help = "Ramp FPS between two values. FPS override should be ON.",
+        .help = "Press REC/" INFO_BTN_NAME " to start ramping. FPS override should be ON.",
         //.essential = FOR_MOVIE,
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
@@ -1191,12 +1191,14 @@ static struct menu_entry fps_menu[] = {
                 .choices = (const char *[]) {"1s", "2s", "5s", "15s", "30s", "1min", "2min", "5min", "10min", "20min", "30min"},
                 .help = "Duration of FPS ramping (in real-time, not in playback).",
             },
+            #ifndef CONFIG_500D // no ISO overrrides
             {
                 .name = "Constant expo",
                 .priv = &fps_ramp_expo,
                 .max = 1,
                 .help = "Keep constant exposure via ISO. Disable gradual exposure!",
             },
+            #endif
             MENU_EOL,
         },
     },
@@ -1445,6 +1447,9 @@ int handle_fps_events(struct event * event)
 
 void fps_ramp_iso_step()
 {
+    #ifdef CONFIG_500D
+    return;
+    #endif
     if (!lv) return;
     if (!is_movie_mode()) return;
     
