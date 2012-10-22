@@ -23,6 +23,7 @@ ML_OBJS-y = \
 	boot-hack.o \
 	stubs.o \
 	version.o \
+	exmem.o \
 	bmp.o \
 	font-dyn.o \
 	config.o \
@@ -63,7 +64,6 @@ ML_OBJS-y = \
 	tasks.o \
 	tskmon.o \
 	beep.o \
-	exmem.o \
 	vsync-lite.o \
 
 #include generic rules and definitions

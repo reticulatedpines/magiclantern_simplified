@@ -24,6 +24,7 @@ ML_OBJS-y = \
 	init.o \
 	dummy.o \
 	version.o \
+	exmem.o \
 	bmp.o \
 	font-dyn.o \
 	config.o \
@@ -60,7 +61,6 @@ ML_OBJS-y = \
 	beep.o \
 	bootflags.o \
 	vsync-lite.o \
-	exmem.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
