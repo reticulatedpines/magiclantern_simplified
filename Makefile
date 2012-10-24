@@ -127,6 +127,7 @@ clean:
 	cd $(PLATFORM_PATH)/40D.111/; $(MAKE) clean	
 	$(MAKE) -C $(PLUGINS_DIR) clean
 	$(RM) -rf  $(BINARIES_PATH)
+	$(RM) -rf doxygen-doc/*
 
 zip: all
 	cd $(PLATFORM_PATH)/all; $(MAKE) docs
@@ -137,6 +138,9 @@ docs:
 
 docq:
 	cd $(PLATFORM_PATH)/all; $(MAKE) docq
+
+doxygen:
+	doxygen
 
 dropbox: all
 	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/bleeding-edge/
