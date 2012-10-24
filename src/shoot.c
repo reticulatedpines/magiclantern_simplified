@@ -809,7 +809,7 @@ void set_lv_zoom(int zoom)
 
 void mlu_take_pic()
 {
-    #ifdef CONFIG_5D2 || defined(CONFIG_50D) // not sure about 7D
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) // not sure about 7D
     SW1(1,00);
     SW2(1,250);
     SW2(0,50);
@@ -1458,7 +1458,7 @@ silent_pic_take_simple(int interactive)
     int h = vram->height;
     int size = p*h;
     
-    void* tmp = shoot_malloc(size + 1024*1024);
+    void* tmp = (void*)shoot_malloc(size + 1024*1024);
     if (tmp)
     {
         // pause LiveView for a short moment to avoid horizontal cut in the picture
@@ -3351,6 +3351,19 @@ bulb_display_submenu( void * priv, int x, int y, int selected )
         format_time_hours_minutes_seconds(d)
     );
     menu_draw_icon(x, y, MNI_PERCENT, (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)));
+}
+
+void mlu_selftimer_update()
+{
+    if (MLU_SELF_TIMER && !lv)
+    {
+        int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!HDR_ENABLED)) ? 1 : 0;
+        int mlu_current_value = get_mlu();
+        if (mlu_auto_value != mlu_current_value)
+        {
+            set_mlu(mlu_auto_value); // shooting mode, ML decides to toggle MLU
+        }
+    }
 }
 
 static void
@@ -6328,19 +6341,6 @@ int handle_mlu_toggle(struct event * event)
     return 1;
 }
 #endif
-
-void mlu_selftimer_update()
-{
-    if (MLU_SELF_TIMER && !lv)
-    {
-        int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!HDR_ENABLED)) ? 1 : 0;
-        int mlu_current_value = get_mlu();
-        if (mlu_auto_value != mlu_current_value)
-        {
-            set_mlu(mlu_auto_value); // shooting mode, ML decides to toggle MLU
-        }
-    }
-}
 
 PROP_HANDLER(PROP_DRIVE)
 {
