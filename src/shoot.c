@@ -263,18 +263,30 @@ static void do_this_every_second() // called every second
 static void
 seconds_clock_task( void* unused )
 {
+    int rollovers = 0;
     TASK_LOOP 
     {
         static int prev_t = 0;
         int t = *(uint32_t*)0xC0242014;
+        // this timer rolls over every 1048576 ticks
+        // and 1000000 ticks = 1 second
+        // so 1 rollover is done every 1.05 seconds roughly
+        
         if (t < prev_t)
-        {
-            seconds_clock++;
-            do_this_every_second();
-        }
+            rollovers++;
         prev_t = t;
-
-        ms100_clock = seconds_clock * 1000 + t / 1000;
+        
+        // float s_clock_f = rollovers * 1048576.0 / 1000000.0 + t / 1048576.0;
+        // not very precise but... should be OK (1.11 seconds error in 24 hours)
+        ms100_clock = rollovers * 16777 / 16 + t * 1000 / 1048576;
+        seconds_clock = ms100_clock / 1000;
+        
+        static int prev_s_clock = 0;
+        if (prev_s_clock != seconds_clock)
+        {
+            do_this_every_second();
+            prev_s_clock = seconds_clock;
+        }
 
         msleep(100);
     }
