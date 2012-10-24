@@ -809,7 +809,7 @@ void set_lv_zoom(int zoom)
 
 void mlu_take_pic()
 {
-    #ifdef CONFIG_5D2 // not sure about 50D and 7D
+    #ifdef CONFIG_5D2 || defined(CONFIG_50D) // not sure about 7D
     SW1(1,00);
     SW2(1,250);
     SW2(0,50);
