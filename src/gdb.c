@@ -248,12 +248,14 @@ void gdb_send_callback()
     gdb_send_ptr = (char*)gdb_send_buffer;
 }
 
+#if defined(GDB_TASK_CTX)
 struct task *gdb_get_current_task()
 {
     return (struct task *)((uint32_t) current_task_ctx - 0x50);
 }
+#endif
 
-#ifdef USE_HOOKS
+#if defined(GDB_USE_HOOKS)
 
 void gdb_pre_task_hook()
 {
@@ -630,9 +632,6 @@ void gdb_exception_handler(uint32_t *ctx)
         }
         else
         {
-            /* we reached a real breakpoint. we should stall the task and inform the debugger about that event */
-            struct task *current = gdb_get_current_task();
-
             gdb_exceptions_handled += 0x0001;
             bkpt->hitcount++;
 
@@ -648,6 +647,10 @@ void gdb_exception_handler(uint32_t *ctx)
 
             /* mark as reached */
             bkpt->flags |= GDB_BKPT_FLAG_TASK_STALLED;
+            
+#if defined(GDB_TASK_CTX)
+            /* we reached a real breakpoint. we should stall the task and inform the debugger about that event */
+            struct task *current = gdb_get_current_task();
 
             bkpt->taskStruct = current;
             bkpt->taskState = current->currentState;
@@ -657,6 +660,7 @@ void gdb_exception_handler(uint32_t *ctx)
             {
                 gdb_attached_pid = current->taskId;
             }
+#endif
 
             /* set flag being checked in stalling code */
             bkpt->unStall = 0;
