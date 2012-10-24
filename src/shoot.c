@@ -258,6 +258,9 @@ static void do_this_every_second() // called every second
     #ifndef CONFIG_VXWORKS
     task_update_loads();
     #endif
+    
+    static int k = 0; k++;
+    if (k%10 == 0) update_lv_fps();
 }
 
 static void

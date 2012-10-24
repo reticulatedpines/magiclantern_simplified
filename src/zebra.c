@@ -5152,12 +5152,6 @@ clearscreen_loop:
                 bmp_on();
             }
         }
-        
-        if (k % 100 == 0)
-        {
-            if (show_lv_fps) bmp_printf(FONT_MED, 50, 50, "%d.%d fps ", fps_ticks/10, fps_ticks%10);
-            fps_ticks = 0;
-        }
 
         // clear overlays on shutter halfpress
         if (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview) && !gui_menu_shown())
@@ -5393,6 +5387,12 @@ static void digic_zebra_cleanup()
     zebra_digic_dirty = 0;
 }
 
+void update_lv_fps() // to be called every 10 seconds
+{
+    if (show_lv_fps) bmp_printf(FONT_MED, 50, 50, "%d.%d fps ", fps_ticks/10, fps_ticks%10);
+    fps_ticks = 0;
+}
+
 
 // Items which need a high FPS
 // Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
@@ -5449,8 +5449,6 @@ livev_hipriority_task( void* unused )
         lv_vsync(mz);
         guess_fastrefresh_direction();
 
-        display_filter_step(k);
-        
         if (mz)
         {
             //~ msleep(k % 50 == 0 ? MIN_MSLEEP : 10);
@@ -5465,30 +5463,21 @@ livev_hipriority_task( void* unused )
         else
         {
             if (!zoom_overlay_dirty) { redraw(); msleep(700); } // redraw cropmarks after MZ is turned off
-            
-            //~ msleep(MIN_MSLEEP);
             zoom_overlay_dirty = 1;
+
+            msleep(MIN_MSLEEP);
+
+            display_filter_step(k);
+            
             if (falsecolor_draw)
             {
                 if (k % 4 == 0)
                     BMP_LOCK( if (lv) draw_false_downsampled(); )
             }
-            //~ else if (defish_preview)
-            //~ {
-                //~ if (k % 2 == 0)
-                    //~ BMP_LOCK( if (lv) defish_draw(); )
-            //~ }
             else
             {
-                //~ #if defined(CONFIG_5D3) || defined(CONFIG_7D)
-                //~ BMP_LOCK( if (lv) draw_zebra_and_focus(focus_peaking==0 || k % 2 == 1, 1) ) // DIGIC 5 and dual-DIGIC has more CPU power
-                //~ #else
-                // luma zebras are fast
-                // also, if peaking is off, zebra can be faster
                 BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 4 : 2) == 0, k % 2 == 1); )
-                //~ #endif
             }
-            //~ if (MIN_MSLEEP <= 10) msleep(MIN_MSLEEP);
         }
 
         int s = get_seconds_clock();
@@ -5508,12 +5497,7 @@ livev_hipriority_task( void* unused )
         {
             zoom_overlay_triggered_by_focus_ring_countdown--;
         }
-        
-        //~ if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || get_halfshutter_pressed())
-            //~ crop_set_dirty(20);
-        
-        //~ if (lens_display_dirty)
-        
+                
         int m = 100;
         if (lens_display_dirty) m = 10;
         if (should_draw_zoom_overlay()) m = 100;
@@ -5845,7 +5829,7 @@ static void zebra_init()
 #ifndef CONFIG_5DC
     menu_add( "Overlay", zebra_menus, COUNT(zebra_menus) );
 #endif
-    //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
+    menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
 #if !defined(CONFIG_5D3_MINIMAL)
