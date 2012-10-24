@@ -88,16 +88,7 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 }
 */
 
-static void* hd_buf_dst = 0;
-static void* hd_buf_size = 0;
-static int hd_buf_memcpy_flag = 0;
-void sync_hd_buf_memcpy(void* dst, int size)
-{
-    hd_buf_dst = dst;
-    hd_buf_size = size;
-    hd_buf_memcpy_flag = 1;
-    while (hd_buf_memcpy_flag) msleep(20);
-}
+struct semaphore * lv_pause_sem = 0;
 
 static void vsync_func() // called once per frame.. in theory :)
 {
@@ -108,13 +99,8 @@ static void vsync_func() // called once per frame.. in theory :)
     digic_iso_step();
     image_effects_step();
     
-    if (hd_buf_memcpy_flag)
-    {
-        memcpy(hd_buf_dst, CACHEABLE(YUV422_HD_BUFFER_DMA_ADDR), hd_buf_size);
-        hd_buf_memcpy_flag = 0;
-    }
-    
-    //~ display_shake_step();
+    take_semaphore(lv_pause_sem, 0);
+    give_semaphore(lv_pause_sem);
 }
 
 #ifdef CONFIG_550D
@@ -212,6 +198,8 @@ static int stateobj_start_spy(struct state_object * stateobj)
 
 static void state_init(void* unused)
 {
+    lv_pause_sem = create_named_semaphore(0,1);
+
     #ifdef DISPLAY_STATE
         stateobj_start_spy(DISPLAY_STATE);
     #endif

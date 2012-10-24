@@ -1458,11 +1458,21 @@ silent_pic_take_simple(int interactive)
     int h = vram->height;
     int size = p*h;
     
-    void* tmp = shoot_malloc(size);
+    void* tmp = shoot_malloc(size + 1024*1024);
     if (tmp)
     {
-        sync_hd_buf_memcpy(tmp, size);
+        // pause LiveView for a short moment to avoid horizontal cut in the picture
+        // and copy the picture in a temporary buffer
+        extern struct semaphore * lv_pause_sem;
+        take_semaphore(lv_pause_sem, 0);
+        msleep(50);
+        memcpy(tmp, (void*)YUV422_HD_BUFFER_DMA_ADDR, size);
+        give_semaphore(lv_pause_sem);
+        
+        // picture is now in a temporary buffer - take our time to save it
         dump_seg(tmp, size, imgname);
+        
+        // done :)
         shoot_free(tmp);
     }
 
