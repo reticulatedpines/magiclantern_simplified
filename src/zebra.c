@@ -1578,6 +1578,16 @@ static inline int peak_d1xy(uint8_t* p8)
     return peak_scaling[MIN(e, 255)];
 }*/
 
+static inline int peak_d2xy_sharpen(uint8_t* p8)
+{
+    int orig = (int)(*p8);
+    int diff = orig * 4 - (int)(*(p8 + 2));
+    diff -= (int)(*(p8 - 2));
+    diff -= (int)(*(p8 + vram_lv.pitch));
+    diff -= (int)(*(p8 - vram_lv.pitch));
+    return COERCE(orig + diff*4, 0, 255);
+}
+
 static inline int peak_d2xy(uint8_t* p8)
 {
     // approximate second derivative with a Laplacian kernel:
@@ -1685,8 +1695,8 @@ void peak_disp_filter()
         //~ dst_buf[i] = peak_blend(&src_buf[i], e, blend_thr);
         //~ if (unlikely(e > FOCUSED_THR)) n_over++;
     //~ }
-
-    if (focus_peaking_disp == 3) // raw
+    
+    if (focus_peaking_disp == 4) // raw
     {
         PEAK_LOOP
         {
@@ -1723,6 +1733,14 @@ void peak_disp_filter()
                 if (unlikely(e > FOCUSED_THR)) n_over++;
             }
         }
+        else if (focus_peaking_disp == 3) // sharp
+        {
+            PEAK_LOOP
+            {
+                int e = peak_d2xy_sharpen((uint8_t*)&src_buf[i] + 1);
+                dst_buf[i] = (src_buf[i] & 0xFF000000) | ((e & 0xFF) << 8);
+            }
+        }
     }
     else // color
     {
@@ -1749,6 +1767,14 @@ void peak_disp_filter()
                 if (likely(e < 20)) dst_buf[i] = src_buf[i];
                 else dst_buf[i] = peak_blend_alpha(&src_buf[i], e);
                 if (unlikely(e > FOCUSED_THR)) n_over++;
+            }
+        }
+        else if (focus_peaking_disp == 3) // sharp
+        {
+            PEAK_LOOP
+            {
+                int e = peak_d2xy_sharpen((uint8_t*)&src_buf[i] + 1);
+                dst_buf[i] = (src_buf[i] & 0xFFFF00FF) | ((e & 0xFF) << 8);
             }
         }
     }
@@ -3362,8 +3388,8 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Display type",
                 .priv = &focus_peaking_disp, 
-                .max = 3,
-                .choices = (const char *[]) {"Blinking dots", "Fine dots", "Alpha blend", "Raw"},
+                .max = 4,
+                .choices = (const char *[]) {"Blinking dots", "Fine dots", "Alpha blend", "Sharpness", "Raw"},
                 .help = "How to display peaking. Alpha looks nicer, but image lags.",
             },
             #endif
@@ -5465,7 +5491,7 @@ livev_hipriority_task( void* unused )
             if (!zoom_overlay_dirty) { redraw(); msleep(700); } // redraw cropmarks after MZ is turned off
             zoom_overlay_dirty = 1;
 
-            msleep(MIN_MSLEEP);
+            msleep(k % 10 == 0 ? 20 : MIN_MSLEEP);
 
             display_filter_step(k);
             
