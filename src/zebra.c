@@ -1667,11 +1667,25 @@ static inline int peak_blend_alpha(uint32_t* s, int e)
 
 void peak_disp_filter()
 {
-    if (!lv) return;
-
     uint32_t* src_buf;
     uint32_t* dst_buf;
-    display_filter_get_buffers(&src_buf, &dst_buf);
+    if (lv)
+    {
+        display_filter_get_buffers(&src_buf, &dst_buf);
+    }
+    else if (PLAY_OR_QR_MODE)
+    {
+        void* aux_buf = (void*)YUV422_HD_BUFFER_2;
+        void* current_buf = get_yuv422_vram()->vram;
+        int w = get_yuv422_vram()->width;
+        int h = get_yuv422_vram()->height;
+        int buf_size = w * h * 2;
+        memcpy(aux_buf, current_buf, buf_size);
+        
+        src_buf = aux_buf;
+        dst_buf = current_buf;
+    }
+    else return;
 
     static int thr = 50;
     static int thr_increment = 1;
@@ -1859,8 +1873,19 @@ draw_zebra_and_focus( int Z, int F )
     if (unlikely(!bvram_mirror)) return 0;
     
     draw_zebras(Z);
-
-    if (focus_peaking_as_display_filter()) return 0; // it's drawn from display filters routine
+    
+    if (focus_peaking && focus_peaking_disp && !EXT_MONITOR_CONNECTED)
+    {
+        if (lv) 
+        {
+            return 0; // it's drawn from display filters routine
+        }
+        else  // display filters are not called in playback
+        {
+            if (F != 1) return 0; // problem: we need to update the threshold somehow
+            peak_disp_filter(); return 0; 
+        }
+    }
 
     static int thr = 50;
     static int thr_increment = 1;
@@ -4669,6 +4694,8 @@ BMP_LOCK(
     if (spotmeter_draw)
         spotmeter_step();
 
+    draw_histogram_and_waveform(1);
+
     if (falsecolor_draw) 
     {
         draw_false_downsampled();
@@ -4678,8 +4705,6 @@ BMP_LOCK(
         guess_focus_peaking_threshold();
         draw_zebra_and_focus(1,1);
     }
-    
-    draw_histogram_and_waveform(1);
 
     bvram_mirror_clear(); // may remain filled with playback zebras 
 )
