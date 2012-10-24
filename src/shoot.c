@@ -3375,7 +3375,7 @@ mlu_toggle( void * priv, int delta )
 }
 
 
-#if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
+#if defined(CONFIG_550D) || defined(CONFIG_500D)
 #define MLU_SELF_TIMER_STRING "Timer+LCDremote"
 #else
 #define MLU_SELF_TIMER_STRING "Self-timer only"
@@ -4844,7 +4844,7 @@ static struct menu_entry shoot_menus[] = {
         },
     },
     #endif
-    #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
+    #if defined(CONFIG_550D) || defined(CONFIG_500D)
     {
         .name = "LCDsensor Remote",
         .priv       = &lcd_release_running,
