@@ -153,6 +153,7 @@ static CONFIG_INT( "mlu.mode", mlu_mode, 1);
 #define MLU_ALWAYS_ON (mlu_auto && mlu_mode == 0)
 #define MLU_SELF_TIMER (mlu_auto && mlu_mode == 1)
 #define MLU_HANDHELD (mlu_auto && mlu_mode == 2)
+int mlu_handled_debug = 0;
 
 #ifndef CONFIG_5DC
 static CONFIG_INT("mlu.handheld.delay", mlu_handheld_delay, 4);
@@ -807,6 +808,9 @@ int mlu_shake_running = 0;
 void mlu_shake_task()
 {
 #ifndef CONFIG_5DC
+
+    if (mlu_handled_debug) { msleep(1000); NotifyBox(5000, "Taking pic..."); msleep(1000); }
+
     //~ beep();
     msleep(mlu_handheld_delay == 6 ? 750 : mlu_handheld_delay == 7 ? 1000 : mlu_handheld_delay * 100);
     SW1(0,0); SW2(0,0);
@@ -815,12 +819,21 @@ void mlu_shake_task()
 #endif
 }
 
+static char mlu_msg[1000] = "";
+
 int handle_shutter_events(struct event * event)
 {
 #ifndef CONFIG_5DC
 
     if (MLU_HANDHELD && !lv)
     {
+        if (mlu_handled_debug && event->param == GMT_OLC_INFO_CHANGED)
+        {
+            STR_APPEND(mlu_msg, "%8x ", MEM(event->obj));
+            static int k = 0; k++;
+            if (k % 5 == 0) { STR_APPEND(mlu_msg, "\n"); }
+        }
+        
         if (event->param == GMT_OLC_INFO_CHANGED 
             && ((MEM(event->obj) & 0xFFFFF001) == 0x80001) // OK on 5D3, 5D2, 550D, 600D, 500D, maybe others
             && !mlu_shake_running)
@@ -4990,6 +5003,12 @@ static struct menu_entry shoot_menus[] = {
                 .choices = (const char *[]) {"All values", "1/8...1/125"},
                 .help = "At what shutter speeds you want to use handheld MLU."
             },
+            {
+                .name = "Handheld Debug",
+                .priv = &mlu_handled_debug, 
+                .max = 1,
+                .help = "Check whether the 'mirror up' event is detected correctly."
+            },
             #endif
             MENU_EOL
         },
@@ -6453,6 +6472,8 @@ shoot_task( void* unused )
         msleep(MIN_MSLEEP);
         
         if (k%10 == 0) misc_shooting_info();
+        
+        if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);
 
         if (kelvin_auto_flag)
         {
