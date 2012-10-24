@@ -6108,7 +6108,9 @@ void play_422(char* filename)
     else if (size == 1680 *  945 * 2) { w = 1680; h =  945; } 
     else if (size == 1280 *  560 * 2) { w = 1280; h =  560; } 
     else if (size == 1152 *  768 * 2) { w = 1152; h =  768; } 
-    else if (size == 1904 * 1270 * 2) { w = 1904; h = 1270; } 
+    else if (size == 1904 * 1274 * 2) { w = 1904; h = 1274; } 
+    else if (size == 1620 * 1080 * 2) { w = 1620; h = 1080; } 
+    else if (size == 1280 *  720 * 2) { w = 1280; h =  720; } 
     else
     {
         bmp_printf(FONT_LARGE, 0, 50, "Cannot preview this picture.");
