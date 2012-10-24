@@ -72,4 +72,5 @@ UserGuide.tex-e
 UserGuide-cam.tex-e
 platform/all/ML
 zip.txt
+doxygen-doc/*
 syntax: regexp
