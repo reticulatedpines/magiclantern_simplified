@@ -771,30 +771,31 @@ void draw_ml_bottombar(int double_buffering, int clear)
                   y_origin, 
                   is_manual_focus() ? "MF" : "AF"
                 );
-#ifdef CONFIG_1100D
-#elif defined(CONFIG_5D2)
-#else
 
-      text_font = FONT(SHADOW_FONT(FONT_LARGE), COLOR_CYAN, bg ); 
+      int ae = AE_VALUE;
+      if (!ae) ae = lens_info.ae;
+      if (ae)
+      {
+          text_font = FONT(SHADOW_FONT(FONT_LARGE), COLOR_CYAN, bg ); 
 
-      bmp_printf( text_font, 
-                  x_origin + 610 + font_large.width * 2 - 8, 
-                  y_origin, 
-                  ".");
-      bmp_printf( text_font, 
-                  x_origin + 610 - font_large.width, 
-                  y_origin, 
-                  " %s%d", 
-                    AE_VALUE < 0 ? "-" : AE_VALUE > 0 ? "+" : " ",
-                    ABS(AE_VALUE) / 8
-                  );
-      bmp_printf( text_font, 
-                  x_origin + 610 + font_large.width * 3 - 16, 
-                  y_origin, 
-                  "%d",
-                    mod(ABS(AE_VALUE) * 10 / 8, 10)
-                  );
-#endif
+          bmp_printf( text_font, 
+                      x_origin + 610 + font_large.width * 2 - 8, 
+                      y_origin, 
+                      ".");
+          bmp_printf( text_font, 
+                      x_origin + 610 - font_large.width, 
+                      y_origin, 
+                      " %s%d", 
+                        ae < 0 ? "-" : ae > 0 ? "+" : " ",
+                        ABS(ae) / 8
+                      );
+          bmp_printf( text_font, 
+                      x_origin + 610 + font_large.width * 3 - 16, 
+                      y_origin, 
+                      "%d",
+                        mod(ABS(ae) * 10 / 8, 10)
+                      );
+      }
 
 #ifndef CONFIG_5D3_MINIMAL
         // battery indicator
