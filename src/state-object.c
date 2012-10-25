@@ -88,8 +88,6 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 }
 */
 
-struct semaphore * lv_pause_sem = 0;
-
 static void vsync_func() // called once per frame.. in theory :)
 {
     #if !defined(CONFIG_60D) && !defined(CONFIG_600D) && !defined(CONFIG_1100D) && !defined(CONFIG_5D3) // for those cameras, it's called from a different spot of the evf state object
@@ -98,9 +96,7 @@ static void vsync_func() // called once per frame.. in theory :)
     
     digic_iso_step();
     image_effects_step();
-    
-    take_semaphore(lv_pause_sem, 0);
-    give_semaphore(lv_pause_sem);
+
 }
 
 #ifdef CONFIG_550D
@@ -180,7 +176,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     if (z == 0x0) { fake_simple_button(BGMT_PRESS_HALFSHUTTER); }
     if (z == 0xB) { fake_simple_button(BGMT_UNPRESS_HALFSHUTTER); }
 #endif
-    
+
     return ans;
 }
 
@@ -193,8 +189,6 @@ static int stateobj_start_spy(struct state_object * stateobj)
 
 static void state_init(void* unused)
 {
-    lv_pause_sem = create_named_semaphore(0,1);
-
     #ifdef DISPLAY_STATE
         stateobj_start_spy(DISPLAY_STATE);
     #endif
