@@ -995,7 +995,7 @@ static char* silent_pic_get_name()
             if (size == 0) break;
         }
     }
-    bmp_printf(FONT_MED, 100, 80, "%s    ", imgname);
+    bmp_printf(FONT_MED, 0, 35, "%s    ", imgname);
     return imgname;
 }
 
@@ -1448,32 +1448,56 @@ void ensure_movie_mode()
     if (!lv) force_liveview();
 }
 
+static void * silent_pic_tmp_buf = 0;
+
+int silent_pic_preview()
+{
+    if (silent_pic_tmp_buf)
+    {
+        int size = vram_hd.pitch * vram_hd.height;
+        YUV422_LV_BUFFER_DISPLAY_ADDR = (intptr_t)silent_pic_tmp_buf + size;
+        return 1;
+    }
+    return 0;
+}
+
 void
 silent_pic_take_simple(int interactive)
 {
     char* imgname = silent_pic_get_name();
 
-    struct vram_info * vram = get_yuv422_hd_vram();
-    int p = vram->pitch;
-    int h = vram->height;
-    int size = p*h;
+    get_yuv422_hd_vram();
+    int size = vram_hd.pitch * vram_hd.height;
+    int lv_size = vram_lv.pitch * vram_lv.height;
     
-    void* tmp = (void*)shoot_malloc(size);
-    if (tmp)
+    // this buffer will contain the HD image (saved to card) and a LV preview (for display)
+    silent_pic_tmp_buf = (void*)shoot_malloc(size + lv_size);
+    
+    // start with black preview 
+    bzero32(silent_pic_tmp_buf + size, lv_size);
+    
+    if (silent_pic_tmp_buf)
     {
-        // first copy the picture in a temporary buffer, to avoid horizontal cuts
-        void* buf = YUV422_HD_BUFFER_DMA_ADDR;
+        // first we will copy the picture in a temporary buffer, to avoid horizontal cuts
+        void* buf = (void*)YUV422_HD_BUFFER_DMA_ADDR;
         
         // some sort of vsync
-        while (YUV422_HD_BUFFER_DMA_ADDR == buf) msleep(10);
+        while ((void*)YUV422_HD_BUFFER_DMA_ADDR == buf) msleep(10);
         
-        memcpy(tmp, buf, size);
-
-        // picture is now in a temporary buffer - take our time to save it
-        dump_seg(tmp, size, imgname);
+        // copy the HD picture into the temporary buffer
+        memcpy(silent_pic_tmp_buf, buf, size);
+        
+        // picture is now in a temporary buffer
+        
+        // we can take our time and resize it for preview purposes
+        yuv_resize(silent_pic_tmp_buf, vram_hd.width, vram_hd.height, silent_pic_tmp_buf + size, vram_lv.width, vram_lv.height);
+        
+        // ... and save it; meanwhile, LiveView can work normally without interruption
+        dump_seg(silent_pic_tmp_buf, size, imgname);
         
         // done :)
-        shoot_free(tmp);
+        shoot_free(silent_pic_tmp_buf);
+        silent_pic_tmp_buf = 0;
     }
 
     if (interactive && !silent_pic_burst) // single mode

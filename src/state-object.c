@@ -133,9 +133,12 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     #ifdef DISPLAY_STATE
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
     {
-        hdr_kill_flicker();
-        display_filter_lv_vsync(old_state, x, input, z, t);
-        digic_zoom_overlay_step();
+        if (!silent_pic_preview())
+        {
+            hdr_kill_flicker();
+            display_filter_lv_vsync(old_state, x, input, z, t);
+            digic_zoom_overlay_step();
+        }
     }
     #endif
     
