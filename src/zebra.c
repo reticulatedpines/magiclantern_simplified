@@ -5516,7 +5516,7 @@ livev_hipriority_task( void* unused )
             if (!zoom_overlay_dirty) { redraw(); msleep(700); } // redraw cropmarks after MZ is turned off
             zoom_overlay_dirty = 1;
 
-            msleep(k % 10 == 0 ? 20 : MIN_MSLEEP);
+            msleep(30);
 
             display_filter_step(k);
             
@@ -6045,7 +6045,7 @@ PROP_HANDLER(PROP_LV_ACTION)
     zoom_auto_exposure_step();
 }
 
-static void yuv_resize(uint32_t* src, int src_w, int src_h, uint32_t* dst, int dst_w, int dst_h)
+void yuv_resize(uint32_t* src, int src_w, int src_h, uint32_t* dst, int dst_w, int dst_h)
 {
     int i,j;
     for (i = 0; i < dst_h; i++)
