@@ -5333,6 +5333,29 @@ struct menu_entry tweak_menus_shoot[] = {
     },
 };
 
+CONFIG_INT("auto.iso.ml", ml_auto_iso, 0);
+CONFIG_INT("auto.iso.av.tv", ml_auto_iso_av_shutter, 3);
+
+void auto_iso_tweak_step()
+{
+    if (!ml_auto_iso) return;
+    if (ISO_ADJUSTMENT_ACTIVE) return;
+    if (!display_idle()) return;
+    
+    if (shooting_mode == SHOOTMODE_AV)
+    {
+        int ref_tv = 88 + 8*ml_auto_iso_av_shutter;
+        int min_iso = MIN_ISO;
+        int max_iso = auto_iso_range & 0xFF;
+
+        if (lens_info.raw_shutter <= ref_tv-4)
+            lens_set_rawiso(MIN(lens_info.raw_iso + 8, max_iso));
+        else if (lens_info.raw_shutter > ref_tv+4)
+            lens_set_rawiso(MAX(lens_info.raw_iso - 8, min_iso));
+    }
+}
+
+
 extern int lvae_iso_max;
 extern int lvae_iso_min;
 extern int lvae_iso_speed;
@@ -5643,6 +5666,35 @@ static struct menu_entry expo_menus[] = {
     },
 #endif
 */
+    {
+        .name = "ML Auto ISO\b\b",
+        .priv = &ml_auto_iso, 
+        .max = 1,
+        .choices = (const char *[]) {"OFF", "ON (Av only)"},
+        .help = "Experimental auto ISO algorithms.",
+        
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Shutter for Av",
+                .priv = &ml_auto_iso_av_shutter,
+                .min = 0,
+                .max = 8,
+                .icon_type = IT_PERCENT,
+                .choices = (const char *[]) {"1/15", "1/30", "1/60", "1/125", "1/250", "1/500", "1/1000", "1/2000", "1/4000"},
+                .help = "Preferred shutter speed for Av mode."
+            },
+            /*
+            {
+                .name = "A-ISO smoothness ",
+                .priv = &lvae_iso_speed,
+                .min = 3,
+                .max = 30,
+                .help = "Speed for movie Auto ISO. Low values = smooth transitions.",
+                .edit_mode = EM_MANY_VALUES_LV,
+            },*/
+            MENU_EOL
+        }
+    },
     {
         .name = "Expo.Lock",
         .priv = &expo_lock,
@@ -6690,6 +6742,8 @@ shoot_task( void* unused )
             zoom_focus_ring_engage();
             zoom_focus_ring_flag = 0;
         }
+        
+        auto_iso_tweak_step();
         
         mlu_step();
         zoom_lv_face_step();
