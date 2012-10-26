@@ -4227,14 +4227,21 @@ int handle_zoom_overlay(struct event * event)
             { move_lv_afframe(0, -300); return 0; }
         if (event->param == BGMT_PRESS_DOWN)
             { move_lv_afframe(0, 300); return 0; }
+    }
 
-        #ifdef CONFIG_5D3
-        if (event->param == BGMT_JOY_CENTER)
-            { center_lv_afframe(); return 0; }
-        #elif !defined(CONFIG_4_3_SCREEN)
-        if (event->param == BGMT_PRESS_SET)
-            { center_lv_afframe(); return 0; }
+    extern int focus_lv_jump;
+
+    if (event->param == 
+        #ifdef BGMT_JOY_CENTER
+        BGMT_JOY_CENTER
+        #else
+        BGMT_PRESS_SET
         #endif
+        //~ && (focus_lv_jump || (recording && is_manual_focus()))
+        && liveview_display_idle() && !gui_menu_shown())
+    {
+        center_lv_afframe();
+        return 0;
     }
 
     return 1;

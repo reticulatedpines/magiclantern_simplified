@@ -756,7 +756,7 @@ PROP_HANDLER( PROP_LV_AFFRAME ) {
     crop_set_dirty(10);
     afframe_set_dirty();
     
-    memcpy(afframe, buf, AFFRAME_PROP_LEN);
+    my_memcpy(afframe, buf, AFFRAME_PROP_LEN);
 }
 #else
 static int afframe[100]; // dummy
@@ -908,6 +908,8 @@ sweep_lv_start(void* priv)
     sweep_lv_on = 1;
 }*/
 
+extern int focus_lv_jump;
+
 int center_lv_aff = 0;
 void center_lv_afframe()
 {
@@ -916,9 +918,108 @@ void center_lv_afframe()
 void center_lv_afframe_do()
 {
     if (!lv || gui_menu_shown() || gui_state != GUISTATE_IDLE) return;
-    int cx = (afframe[0] - afframe[4])/2;
-    int cy = (afframe[1] - afframe[5])/2;
-    move_lv_afframe(cx-afframe[2], cy-afframe[3]);
+
+    int pos_x[9];
+    int pos_y[9];
+    
+    int n = 
+        focus_lv_jump == 0 ? 1 :
+        focus_lv_jump == 1 ? 3 :
+        focus_lv_jump == 2 ? 5 :
+        focus_lv_jump == 3 ? 5 :
+                             9 ;
+
+    int W = afframe[0];
+    int H = afframe[1];
+    int Xtl = afframe[2];
+    int Ytl = afframe[3];
+    int w = afframe[4];
+    int h = afframe[5];
+
+    // center position
+    pos_x[0] = W/2;
+    pos_y[0] = H/2;
+    
+    if (focus_lv_jump == 1)
+    {
+        // top
+        pos_x[1] = W / 2;
+        pos_y[1] = H*2/8;
+        // right
+        pos_x[2] = W*6/8;
+        pos_y[2] = H / 2;
+    }
+    else if (focus_lv_jump == 2)
+    {
+        // top
+        pos_x[1] = W / 2;
+        pos_y[1] = H*2/8;
+        // right
+        pos_x[2] = W*6/8;
+        pos_y[2] = H / 2;
+        // bottom
+        pos_x[3] = W / 2;
+        pos_y[3] = H*6/8;
+        // left
+        pos_x[4] = W*2/8;
+        pos_y[4] = H / 2;
+    }
+    else if (focus_lv_jump == 3)
+    {
+        // top left
+        pos_x[1] = W*2/6;
+        pos_y[1] = H*2/6;
+        // top right
+        pos_x[2] = W*4/6;
+        pos_y[2] = H*2/6;
+        // bottom right
+        pos_x[3] = W*4/6;
+        pos_y[3] = H*4/6;
+        // bottom left
+        pos_x[4] = W*2/6;
+        pos_y[4] = H*4/6;
+    }
+    else if (focus_lv_jump == 4)
+    {
+        // top left
+        pos_x[1] = W*2/6;
+        pos_y[1] = H*2/6;
+        // top
+        pos_x[2] = W / 2;
+        pos_y[2] = H*2/8;
+        // top right
+        pos_x[3] = W*4/6;
+        pos_y[3] = H*2/6;
+        // right
+        pos_x[4] = W*6/8;
+        pos_y[4] = H / 2;
+        // bottom right
+        pos_x[5] = W*4/6;
+        pos_y[5] = H*4/6;
+        // bottom
+        pos_x[6] = W / 2;
+        pos_y[6] = H*6/8;
+        // bottom left
+        pos_x[7] = W*2/6;
+        pos_y[7] = H*4/6;
+        // left
+        pos_x[8] = W*2/8;
+        pos_y[8] = H / 2;
+    }
+    
+    // now let's see where we are
+    int current = -1;
+    int Xc = Xtl + w/2;
+    int Yc = Ytl + h/2;
+    for (int i = 0; i < n; i++)
+    {
+        if (ABS(pos_x[i] - Xc) < 200 && ABS(pos_y[i] - Yc) < 200)
+            current = i;
+    }
+    int next = mod(current + 1, n);
+    
+    //~ bmp_printf(FONT_MED, 50, 50, "%d %d %d %d ", Xc, Yc, pos_x[0], pos_y[0]);
+    move_lv_afframe(pos_x[next] - Xc, pos_y[next] - Yc);
 }
 
 void move_lv_afframe(int dx, int dy)
@@ -928,9 +1029,32 @@ void move_lv_afframe(int dx, int dy)
     if (is_movie_mode() && video_mode_crop) return;
     if (recording && is_manual_focus()) // prop handler won't trigger, clear spotmeter 
         clear_lv_afframe();
+
     afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
     afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
+
+    // some cameras apply an offset to X position, when AF is on (not quite predictable)
+    // e.g. 60D and 5D2 apply the offset in AF mode, 550D doesn't seem to apply any
+    // so... we'll try to guess this offset and compensate for this quirk
+    int af = !is_manual_focus();
+    static int off_x = 0;
+
+    int x1 = afframe[2];
+    if (af) afframe[2] -= off_x;
     prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+    if (af)
+    {
+        msleep(200);
+        int x2 = afframe[2];
+        if (ABS(x2 - x1) > 160) // the focus box didn't quite end up where we wanted, so... adjust the offset and try again
+        {
+            int delta = (x2 - x1);
+            off_x += delta;
+            afframe[2] = x1 - off_x;
+            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+        }
+    }
+    
 #endif
 }
 

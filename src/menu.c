@@ -1792,7 +1792,10 @@ menu_redraw_do()
                 }
 
                 if (!menu_lv_transparent_mode && !submenu_mode)
+                {
                     if (is_menu_active("Help")) menu_show_version();
+                    if (is_menu_active("Focus")) display_lens_hyperfocal();
+                }
 
                 if (submenu_mode)
                 {
