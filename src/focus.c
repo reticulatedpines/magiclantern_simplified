@@ -1275,7 +1275,7 @@ static struct menu_entry focus_menu[] = {
         .priv = &focus_lv_jump, 
         .max = 4,
         .choices = (const char *[]) {"OFF", "Center/Top/Right", "Center/T/R/B/L", "Centr/TL/TR/BR/BL", "Center + 8 pts"},
-        .help = "Trick to move the LV focus box faster (press CENTER key).",
+        .help = "Snap LV focus box to predefined positions (press CENTER).",
     },
     {
         .name = "Follow Focus",
