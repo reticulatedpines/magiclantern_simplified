@@ -5372,10 +5372,12 @@ void auto_iso_tweak_step()
         int ref_tv = 88 + 8*ml_auto_iso_av_shutter;
 
         int new_iso = lens_info.raw_iso;
+        int e = ABS(lens_info.raw_shutter - ref_tv);
+        int er = (e+4)/8*8;
         if (lens_info.raw_shutter <= ref_tv-4)
-            new_iso = MIN(lens_info.raw_iso + 8, max_iso);
+            new_iso = MIN(lens_info.raw_iso + er, max_iso);
         else if (lens_info.raw_shutter > ref_tv+4)
-            new_iso = MAX(lens_info.raw_iso - 8, min_iso);
+            new_iso = MAX(lens_info.raw_iso - er, min_iso);
         if (new_iso != lens_info.raw_iso)
             lens_set_rawiso(new_iso);
     }
@@ -5387,11 +5389,13 @@ void auto_iso_tweak_step()
         if (av_min >= av_max) return;
         int ref_av = COERCE(16 + 8*(int)ml_auto_iso_tv_aperture, av_min, av_max);
 
+        int e = ABS(lens_info.raw_aperture - ref_av);
+        int er = (e+4)/8*8;
         int new_iso = lens_info.raw_iso;
         if (lens_info.raw_aperture <= ref_av-4)
-            new_iso = MIN(lens_info.raw_iso + 8, max_iso);
+            new_iso = MIN(lens_info.raw_iso + er, max_iso);
         else if (lens_info.raw_aperture > ref_av+4)
-            new_iso = MAX(lens_info.raw_iso - 8, min_iso);
+            new_iso = MAX(lens_info.raw_iso - er, min_iso);
         if (new_iso != lens_info.raw_iso)
             lens_set_rawiso(new_iso);
     }
