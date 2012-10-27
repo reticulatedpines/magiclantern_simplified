@@ -2589,9 +2589,33 @@ void brightness_saturation_reset()
                     "Display Gain  : 0 EV  "); 
 }
 
+void alter_bitmap_palette_entry(int color, int base_color, int scale_factor)
+{
+    extern int LCD_Palette[];
+    int orig_palette_entry = LCD_Palette[3*base_color + 2];
+    int8_t opacity = (orig_palette_entry >> 24) & 0xFF;
+    uint8_t orig_y = (orig_palette_entry >> 16) & 0xFF;
+    int8_t  orig_u = (orig_palette_entry >>  8) & 0xFF;
+    int8_t  orig_v = (orig_palette_entry >>  0) & 0xFF;
+
+    int y = (int)orig_y * scale_factor / 256;
+    int u = (int)orig_u * scale_factor / 256;
+    int v = (int)orig_v * scale_factor / 256;
+
+    int new_palette_entry =
+        ((opacity & 0xFF) << 24) |
+        ((y       & 0xFF) << 16) |
+        ((u       & 0xFF) <<  8) |
+        ((v       & 0xFF));
+
+    if (!DISPLAY_IS_ON) return;
+    EngDrvOut(0xC0F14400 + color*4, new_palette_entry);
+    EngDrvOut(0xC0F14800 + color*4, new_palette_entry);
+}
+
 void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shift)
 {
-#ifndef CONFIG_40D // LCD_Palette not known
+#ifndef CONFIG_VXWORKS
 
     if (!bmp_is_on()) return;
 
@@ -2629,6 +2653,20 @@ void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shif
 
 void grayscale_menus_step()
 {
+    static int warning_color_dirty = 0;
+    if (gui_menu_shown())
+    {
+        // make the warning text blinking, so beginners will notice it...
+        int t = *(uint32_t*)0xC0242014;
+        alter_bitmap_palette_entry(MENU_WARNING_COLOR, COLOR_RED, ABS((t >> 11) - 256));
+        warning_color_dirty = 1;
+    }
+    else if (warning_color_dirty)
+    {
+        alter_bitmap_palette_entry(MENU_WARNING_COLOR, MENU_WARNING_COLOR, 256);
+        warning_color_dirty = 0;
+    }
+
     // problem: grayscale registers are not overwritten by Canon when palette is changed
     // so we don't know when to refresh it
     // => need to use pure guesswork

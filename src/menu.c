@@ -1190,13 +1190,13 @@ menu_display(
             if (menu->selected && warning_msg)
             {
                 bmp_printf(
-                    FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
+                    FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK),
                      10,  MENU_WARNING_Y_POS, 
                         "                                                            "
                 );
 
                 bmp_printf(
-                    FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
+                    FONT(FONT_MED, MENU_WARNING_COLOR, COLOR_BLACK),
                      10,  MENU_WARNING_Y_POS, 
                         warning_msg
                 );
