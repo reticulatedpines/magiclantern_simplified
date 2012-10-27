@@ -214,6 +214,18 @@ static void dump_rom(void* priv)
 }
 #endif
 
+static void dump_logs_task(void* priv)
+{
+    msleep(200);
+    call("dumpf");
+}
+
+static void dump_logs(void* priv)
+{
+    //gui_stop_menu();
+    task_create("dump_logs_task", 0x1e, 0, dump_logs_task, 0);
+}
+
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
 unsigned int rand (void)
 {
@@ -2564,6 +2576,11 @@ struct menu_entry debug_menus[] = {
         .help = "0.BIN:0-0FFFFFFF, ROM0.BIN:FF010000, BOOT0.BIN:FFFF0000."
     },
 #endif
+    {
+        .name        = "Dump camera logs",
+        .select      = dump_logs,
+        .help = "Dump camera logs to card."
+    },
 /* moved to tweaks
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
     {
