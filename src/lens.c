@@ -1573,7 +1573,11 @@ static int shutter_was_set_from_ml = 0;
 static int shutter_ack = -1;
 PROP_HANDLER( PROP_SHUTTER )
 {
-    if (!CONTROL_BV) lensinfo_set_shutter(buf[0]);
+    if (!CONTROL_BV) 
+    {
+        if (shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_P)
+            lensinfo_set_shutter(buf[0]);
+    }
     else if (buf[0]  // sync expo override to Canon values
             && (!shutter_was_set_from_ml || ABS(buf[0] - lens_info.raw_shutter) > 3) // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
                                                        // especially when pressing half-shutter

@@ -5367,7 +5367,7 @@ void auto_iso_tweak_step()
     int min_iso = MIN_ISO;
     int max_iso = auto_iso_range & 0xFF;
     
-    if (shooting_mode == SHOOTMODE_AV)
+    if (shooting_mode == SHOOTMODE_AV && lens_info.raw_aperture)
     {
         int ref_tv = 88 + 8*ml_auto_iso_av_shutter;
 
@@ -5379,7 +5379,7 @@ void auto_iso_tweak_step()
         if (new_iso != lens_info.raw_iso)
             lens_set_rawiso(new_iso);
     }
-    else if (shooting_mode == SHOOTMODE_TV)
+    else if (shooting_mode == SHOOTMODE_TV && lens_info.raw_shutter)
     {
         // you can't go fully wide open, because ML would have no way to know when to raise ISO
         int av_min = (int)lens_info.raw_aperture_min + 4;
