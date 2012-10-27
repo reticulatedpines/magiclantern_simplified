@@ -3125,9 +3125,12 @@ int display_filter_enabled()
     return fp ? 2 : 1;
 }
 
+static int display_filter_valid_image = 0;
+
 void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
 {
-    if (!display_filter_enabled()) return;
+    if (!display_filter_valid_image) return;
+    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return; }
 
 #ifdef CONFIG_5D2
     int sync = (MEM(x+0xe0) == YUV422_LV_BUFFER_1);
@@ -3170,6 +3173,8 @@ void display_filter_step(int k)
         if (k % 1 == 0)
             BMP_LOCK( if (lv) peak_disp_filter(); )
     }
+    
+    display_filter_valid_image = 1;
 }
 
 
