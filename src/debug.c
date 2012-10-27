@@ -2209,7 +2209,7 @@ static void efictemp_display(
     menu_draw_icon(x, y, MNI_ON, 0);
 }
 
-#ifdef CONFIG_5D2
+#if 0 // CONFIG_5D2
 static void ambient_display(
     void *            priv,
     int            x,
@@ -2807,7 +2807,7 @@ struct menu_entry debug_menus[] = {
         #endif
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
-    #ifdef CONFIG_5D2
+    #if 0 // CONFIG_5D2
     {
         .name = "Ambient light",
         .display = ambient_display,

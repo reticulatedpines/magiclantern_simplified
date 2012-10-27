@@ -874,7 +874,9 @@ void bv_enable()
     //~ bmp_printf(FONT_LARGE, 50, 50, "ENable ");
     call("lvae_setcontrolbv", 1);
 
-    if (ae_mode_movie == 0 || bv_startup) // auto movie mode
+    int auto_movie = (ae_mode_movie == 0) && is_movie_mode();
+
+    if (auto_movie) // auto movie mode
     {
         CONTROL_BV_TV = bv_tv;
         CONTROL_BV_AV = bv_av;
@@ -1122,11 +1124,11 @@ void smooth_iso_step()
         int g = (int)roundf(COERCE(gf, 1, 1<<20));
         if (g == 1024) g = 1025; // force override 
 
-        set_movie_digital_iso_gain_extra(g);
+        set_movie_digital_iso_gain_for_gradual_expo(g);
         if (iso_acc > 0) iso_acc--; else iso_acc++;
 
     }
-    else set_movie_digital_iso_gain_extra(1024);
+    else set_movie_digital_iso_gain_for_gradual_expo(1024);
     
     
     prev_bv = current_bv;

@@ -88,17 +88,6 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 }
 */
 
-static void* hd_buf_dst = 0;
-static void* hd_buf_size = 0;
-static int hd_buf_memcpy_flag = 0;
-void sync_hd_buf_memcpy(void* dst, int size)
-{
-    hd_buf_dst = dst;
-    hd_buf_size = size;
-    hd_buf_memcpy_flag = 1;
-    while (hd_buf_memcpy_flag) msleep(20);
-}
-
 static void vsync_func() // called once per frame.. in theory :)
 {
     #if !defined(CONFIG_60D) && !defined(CONFIG_600D) && !defined(CONFIG_1100D) && !defined(CONFIG_5D3) // for those cameras, it's called from a different spot of the evf state object
@@ -107,14 +96,7 @@ static void vsync_func() // called once per frame.. in theory :)
     
     digic_iso_step();
     image_effects_step();
-    
-    if (hd_buf_memcpy_flag)
-    {
-        memcpy(hd_buf_dst, CACHEABLE(YUV422_HD_BUFFER_DMA_ADDR), hd_buf_size);
-        hd_buf_memcpy_flag = 0;
-    }
-    
-    //~ display_shake_step();
+
 }
 
 #ifdef CONFIG_550D
@@ -151,9 +133,12 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     #ifdef DISPLAY_STATE
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
     {
-        hdr_kill_flicker();
-        display_filter_lv_vsync(old_state, x, input, z, t);
-        digic_zoom_overlay_step();
+        if (!silent_pic_preview())
+        {
+            hdr_kill_flicker();
+            display_filter_lv_vsync(old_state, x, input, z, t);
+            digic_zoom_overlay_step();
+        }
     }
     #endif
     
@@ -176,19 +161,14 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
     if (self == LV_STATE && input==4 && old_state==4) // AJ_ResetPSave_n_WB_n_LVREC_MVR_EV_EXPOSURESTARTED => perfect sync for digic on 5D2 :)
-    #endif
-
-    #ifdef CONFIG_550D
+    #elif defined(CONFIG_550D)
     if (self == LV_STATE && input==5 && old_state == 5) // SYNC_GetEngineResource => perfect sync for digic :)
-    #endif
-
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
+    #elif defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt => perfect sync for digic :)
+    #else
+    if (0)
     #endif
-    
-#ifndef CONFIG_5DC
         vsync_func();
-#endif
 
     #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) // exception for overriding ISO
     if (self == EVF_STATE && input == 4 && old_state == 5) // evfSetParamInterrupt
@@ -199,7 +179,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     if (z == 0x0) { fake_simple_button(BGMT_PRESS_HALFSHUTTER); }
     if (z == 0xB) { fake_simple_button(BGMT_UNPRESS_HALFSHUTTER); }
 #endif
-    
+
     return ans;
 }
 
@@ -232,6 +212,10 @@ static void state_init(void* unused)
     #ifdef CONFIG_7D
         /* will work, but this is LV only - not recorded */
         // cache_fake(0xFF10D2F4, BL_INSTR(0xFF10D2F4, &vsync_func), TYPE_ICACHE);
+    #endif
+
+    #ifdef CONFIG_550D
+    display_is_on_550D = (DISPLAY_STATEOBJ->current_state != 0);
     #endif
 }
 

@@ -86,11 +86,11 @@ draw_help_not_installed_page()
 
     bfnt_puts("Help files not found", 10, 20, COLOR_WHITE, COLOR_BLACK);
     
-    bmp_printf(FONT_MED, 10, 150, "Magic Lantern help files seem to have disappeared. Whoops!");
+    bmp_printf(FONT_MED, 10, 150, "Magic Lantern help files could not be found.              ");
 
-    bmp_printf(FONT_MED, 10, 250, "To browse help, please copy the DOC directory on your card.");
+    bmp_printf(FONT_MED, 10, 200, "Make sure all ML files are installed to your card.        ");
 
-    bmp_printf(FONT_MED, 10, 350, "Or... just go out and take some pictures :)");
+    bmp_printf(FONT_MED, 10, 250, "See http://wiki.magiclantern.fm/install for instructions. ");
 }
 
 void menu_help_show_page(int page)

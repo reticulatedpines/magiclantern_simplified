@@ -1190,13 +1190,13 @@ menu_display(
             if (menu->selected && warning_msg)
             {
                 bmp_printf(
-                    FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
+                    FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK),
                      10,  MENU_WARNING_Y_POS, 
                         "                                                            "
                 );
 
                 bmp_printf(
-                    FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
+                    FONT(FONT_MED, MENU_WARNING_COLOR, COLOR_BLACK),
                      10,  MENU_WARNING_Y_POS, 
                         warning_msg
                 );
@@ -1206,7 +1206,7 @@ menu_display(
             if (advanced_hidden_edit_mode)
             {
                 bmp_printf(
-                    FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
+                    FONT(FONT_MED, MENU_WARNING_COLOR, COLOR_BLACK),
                      10,  MENU_HELP_Y_POS, 
                         "Press MENU to hide items. Press MENU to show them again.   "
                 );
@@ -1792,7 +1792,10 @@ menu_redraw_do()
                 }
 
                 if (!menu_lv_transparent_mode && !submenu_mode)
+                {
                     if (is_menu_active("Help")) menu_show_version();
+                    if (is_menu_active("Focus")) display_lens_hyperfocal();
+                }
 
                 if (submenu_mode)
                 {

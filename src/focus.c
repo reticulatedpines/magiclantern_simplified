@@ -21,6 +21,8 @@
 void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
 
+CONFIG_INT("focus.lv.jump", focus_lv_jump, 0);
+
 int override_zoom_buttons; // while focus menu is active and rack focus items are selected
 
 int should_override_zoom_buttons()
@@ -103,19 +105,15 @@ focus_stack_unlock( void * priv )
 }*/
 
 
-static void
-display_lens_hyperfocal(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+void
+display_lens_hyperfocal()
 {
-    unsigned        menu_font = selected ? MENU_FONT_SEL : MENU_FONT;
+    unsigned        menu_font = MENU_FONT;
     unsigned        font = FONT(FONT_MED, FONT_FG(menu_font), FONT_BG(menu_font));
     unsigned        height = fontspec_height( font );
 
-    menu_draw_icon(x, y + height * 2 + 3, MNI_BOOL(lens_info.name[0] && lens_info.focus_dist && lens_info.raw_aperture), 0);
+    int x = 10;
+    int y = 335;
 
     y += 10;
     y += height;
@@ -517,7 +515,7 @@ focus_rack_speed_display(
     bmp_printf(
         MENU_FONT,
         x, y,
-        "Focus StepSize : %d",
+        "Step Size     : %d",
         lens_focus_stepsize
     );
     menu_draw_icon(x, y, MNI_PERCENT, lens_focus_stepsize * 100 / 3);
@@ -552,7 +550,7 @@ focus_delay_sub_display(
     bmp_printf(
         MENU_FONT,
         x, y,
-        "Focus delay   : %dms",
+        "Step Delay    : %dms",
         (1 << lens_focus_delay) * 10
     );
     menu_draw_icon(x, y, MNI_PERCENT, lens_focus_delay * 100 / 9);
@@ -589,18 +587,19 @@ focus_stack_print(
         focus_stack_enabled ? "SNAP" : "PLAY",
         focus_stack_steps_per_picture
     );
+    
     if ((!focus_task_delta) && ((focus_bracket_dir == 2) || (!(FOCUS_BRACKET_COUNT-1))))
     {
-        bmp_printf(
+        if (selected) bmp_printf(
             FONT_MED,
-            x + font_large.width * 17, y + font_large.height,
+            x + font_large.width * 17, y - font_med.height,
             "(no stack or bracket set)"
         );
         menu_draw_icon(x, y, MNI_OFF, 0);
     } else {
-        bmp_printf(
+        if (selected) bmp_printf(
             FONT_MED,
-            x + font_large.width * 17, y + font_large.height,
+            x + font_large.width * 17, y - font_med.height,
             "(%s has %d pictures)",
             focus_task_delta ? "stack" : "bracket",
             focus_task_delta ? FOCUS_STACK_COUNT : FOCUS_BRACKET_COUNT
@@ -1272,6 +1271,13 @@ static struct menu_entry focus_menu[] = {
 #if !defined(CONFIG_5DC)
 #if !defined(CONFIG_7D_MINIMAL)
     {
+        .name = "Quick Focus Box", 
+        .priv = &focus_lv_jump, 
+        .max = 4,
+        .choices = (const char *[]) {"OFF", "Center/Top/Right", "Center/T/R/B/L", "Centr/TL/TR/BR/BL", "Center + 8 pts"},
+        .help = "LiveView Focus Box: move faster and snap to preset points.",
+    },
+    {
         .name = "Follow Focus",
         .priv = &follow_focus,
         .display    = follow_focus_print,
@@ -1319,43 +1325,7 @@ static struct menu_entry focus_menu[] = {
         .help = "Custom AF algorithm in movie mode. Not very efficient."
     },
 #endif
-    {
-        .name = "Focus StepSize",
-        .display    = focus_rack_speed_display,
-        .select     = focus_stepsize_toggle,
-        .help = "Step size for focus commands (same units as in EOS Utility)",
-        //.essential = FOR_LIVEVIEW,
-    },
-    {
-        .name = "Focus StepDelay",
-        .priv = &lens_focus_waitflag,
-        .display    = focus_delay_display,
-        .select     = focus_delay_toggle,
-        .help = "Delay between two successive focus commands.",
-        //.essential = FOR_LIVEVIEW,
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Focus delay",
-                .display    = focus_delay_sub_display,
-                .select     = focus_delay_toggle,
-                .help = "Delay between two successive focus commands.",
-            },
-            {         //"Focus StepDelay"
-                .name = "Wait flag",
-                .priv = &lens_focus_waitflag,
-                .max = 1,
-                .help = "Wait for 'focus done' signal before sending next command.",
-            },
-            MENU_EOL
-        },
-    },
-    /*{
-        .name = "Focus Start Point:",
-        //~ .display    = focus_show_a,
-        .display    = focus_show_b,
-        .select     = focus_alter_a,
-        .help = "Press ZoomIn, then use Left/Right/Rcrollwheel to set it."
-    },*/
+
     {
         .name = "Focus End Point",
         .display    = focus_show_a,
@@ -1395,11 +1365,11 @@ static struct menu_entry focus_menu[] = {
         .help = "Focus bracketing, increases DOF while keeping bokeh.",
         .children =  (struct menu_entry[]) {
             {
-                .name = "Step Size",
+                .name = "Steps/Pic",
                 .priv = &focus_stack_steps_per_picture, 
                 .min = 1,
                 .max = 10,
-                .help = "Focus step size between two pictures.",
+                .help = "Number of focus steps between two pictures.",
             },
             {
                 .name = "Trigger mode",
@@ -1435,12 +1405,35 @@ static struct menu_entry focus_menu[] = {
         },
     },
 #endif // CONFIG_7D_MINIMAL
+
     {
-        .name = "Focus distance",
-        .display    = display_lens_hyperfocal,
-        .help = "Focus distance and DOF info (read-only)",
-        //.essential = FOR_PHOTO | FOR_MOVIE,
+        .name = "Focus step settings...",
+        .select     = menu_open_submenu,
+        .help = "Low-level focus settings, for rack/stack/follow focus.",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Step Size",
+                .display    = focus_rack_speed_display,
+                .select     = focus_stepsize_toggle,
+                .help = "Step size for focus commands (same units as in EOS Utility)",
+                //.essential = FOR_LIVEVIEW,
+            },
+            {
+                .name = "Step Delay",
+                .display    = focus_delay_sub_display,
+                .select     = focus_delay_toggle,
+                .help = "Delay between two successive focus commands.",
+            },
+            {         //"Focus StepDelay"
+                .name = "Step Wait",
+                .priv = &lens_focus_waitflag,
+                .max = 1,
+                .help = "Wait for 'focus done' signal before sending next command.",
+            },
+            MENU_EOL
+        },
     },
+
 #endif // CONFIG_5DC
 };
 

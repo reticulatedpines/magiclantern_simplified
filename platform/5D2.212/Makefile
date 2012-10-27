@@ -58,7 +58,6 @@ ML_OBJS-y = \
 	aj_port.o \
 	fps-engio.o \
 	hdr.o \
-	lightsensor.o \
 	lv-img-engio.o \
 	state-object.o \
 	tasks.o \

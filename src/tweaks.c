@@ -640,9 +640,9 @@ void clear_lv_afframe()
             // clear focus box (white pixels, and any black neighbouring pixels from bottom-right - shadow)
             if (p == COLOR_WHITE)
             {
-                for (int di = 2; di >= -1; di--)
+                for (int di = 2; di >= 0; di--)
                 {
-                    for (int dj = 2; dj >= -1; dj--)
+                    for (int dj = 2; dj >= 0; dj--)
                     {
                         int p = Pr(j+dj,i+di);
                         if (p == COLOR_BLACK)
@@ -655,10 +655,6 @@ void clear_lv_afframe()
                 int m = M[BM(j,i)];
                 Pw(j,i) = g && (m & 0x80) ? m & ~0x80 : 0;
             }
-            
-            // clear spotmeter area marked as unsafe for zebras
-            int m = M[BM(j,i)];
-            if (m == 0x80) M[BM(j,i)] = 0;
         }
     }
     #undef Pw
@@ -1026,7 +1022,7 @@ static void protect_image_task()
     fake_simple_button(BGMT_UNPRESS_SET);
     msleep(100);
     intptr_t h = get_current_dialog_handler();
-    if (h == 0xffb6aebc) // ?! null code here...
+    if (h == (intptr_t)0xffb6aebc) // ?! null code here...
     {
         StopPlayProtectGuideApp();
     }
@@ -1125,6 +1121,69 @@ fake_halfshutter_step()
         old_value = hs;
     }
 }
+
+static int arrow_pressed = 0;
+static int arrow_unpressed = 0;
+int handle_fast_zoom_box(struct event * event)
+{
+    extern int focus_lv_jump;
+    if (!lv) return 1;
+    if (!focus_lv_jump) return 1;
+
+    extern int focus_lv_jump;
+    if (event->param == 
+        #ifdef BGMT_JOY_CENTER
+        BGMT_JOY_CENTER
+        #else
+        BGMT_PRESS_SET
+        #endif
+        && (focus_lv_jump || (recording && is_manual_focus()))
+        && liveview_display_idle() && !gui_menu_shown()
+        && !arrow_pressed)
+    {
+        center_lv_afframe();
+        return 0;
+    }
+    
+    if (!IS_FAKE(event) && lv)
+    {
+        if (event->param == BGMT_PRESS_LEFT ||
+            event->param == BGMT_PRESS_RIGHT ||
+            event->param == BGMT_PRESS_UP ||
+            event->param == BGMT_PRESS_DOWN
+            #ifdef BGMT_PRESS_UP_RIGHT
+            || event->param == BGMT_PRESS_UP_RIGHT
+            || event->param == BGMT_PRESS_UP_LEFT
+            || event->param == BGMT_PRESS_DOWN_RIGHT
+            || event->param == BGMT_PRESS_DOWN_LEFT
+            #endif
+            )
+        { 
+            arrow_pressed = event->param;
+            arrow_unpressed = 0; 
+        }
+        else if (
+            #ifdef BGMT_UNPRESS_UDLR
+            event->param == BGMT_UNPRESS_UDLR ||
+            #else
+            event->param == BGMT_UNPRESS_LEFT ||
+            event->param == BGMT_UNPRESS_RIGHT ||
+            event->param == BGMT_UNPRESS_UP ||
+            event->param == BGMT_UNPRESS_DOWN ||
+            #endif
+            #ifdef BGMT_JOY_CENTER
+            event->param == BGMT_JOY_CENTER ||
+            #endif
+            event->param == BGMT_PRESS_SET ||
+            event->param == BGMT_UNPRESS_SET
+            )
+        {
+            arrow_unpressed = 1;
+        }
+    }
+    return 1;
+}
+
 
 static int quickzoom_pressed = 0;
 static int quickzoom_unpressed = 0;
@@ -1333,6 +1392,17 @@ tweak_task( void* unused)
             play_zoom_center_pos_update();
         }
         #endif
+        
+        extern int focus_lv_jump;
+        if (arrow_pressed && lv && liveview_display_idle() && focus_lv_jump)
+        {
+            while (!arrow_unpressed)
+            {
+                fake_simple_button(arrow_pressed);
+                msleep(20);
+            }
+            arrow_pressed = 0;
+        }
         
         //~ expsim_update();
         
@@ -2519,9 +2589,35 @@ void brightness_saturation_reset()
                     "Display Gain  : 0 EV  "); 
 }
 
+void alter_bitmap_palette_entry(int color, int base_color, int scale_factor)
+{
+#ifndef CONFIG_VXWORKS
+    extern int LCD_Palette[];
+    int orig_palette_entry = LCD_Palette[3*base_color + 2];
+    int8_t opacity = (orig_palette_entry >> 24) & 0xFF;
+    uint8_t orig_y = (orig_palette_entry >> 16) & 0xFF;
+    int8_t  orig_u = (orig_palette_entry >>  8) & 0xFF;
+    int8_t  orig_v = (orig_palette_entry >>  0) & 0xFF;
+
+    int y = (int)orig_y * scale_factor / 256;
+    int u = (int)orig_u * scale_factor / 256;
+    int v = (int)orig_v * scale_factor / 256;
+
+    int new_palette_entry =
+        ((opacity & 0xFF) << 24) |
+        ((y       & 0xFF) << 16) |
+        ((u       & 0xFF) <<  8) |
+        ((v       & 0xFF));
+
+    if (!DISPLAY_IS_ON) return;
+    EngDrvOut(0xC0F14400 + color*4, new_palette_entry);
+    EngDrvOut(0xC0F14800 + color*4, new_palette_entry);
+#endif
+}
+
 void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shift)
 {
-#ifndef CONFIG_40D // LCD_Palette not known
+#ifndef CONFIG_VXWORKS
 
     if (!bmp_is_on()) return;
 
@@ -2559,6 +2655,22 @@ void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shif
 
 void grayscale_menus_step()
 {
+#ifndef CONFIG_VXWORKS
+    static int warning_color_dirty = 0;
+    if (gui_menu_shown())
+    {
+        // make the warning text blinking, so beginners will notice it...
+        int t = *(uint32_t*)0xC0242014;
+        alter_bitmap_palette_entry(MENU_WARNING_COLOR, COLOR_RED, ABS((t >> 11) - 256));
+        warning_color_dirty = 1;
+    }
+    else if (warning_color_dirty)
+    {
+        alter_bitmap_palette_entry(MENU_WARNING_COLOR, MENU_WARNING_COLOR, 256);
+        warning_color_dirty = 0;
+    }
+#endif
+
     // problem: grayscale registers are not overwritten by Canon when palette is changed
     // so we don't know when to refresh it
     // => need to use pure guesswork
@@ -2705,7 +2817,7 @@ int anamorphic_squeeze_bmp_y(int y)
     if (unlikely(y < 0 || y >= 480)) return y;
 
     static int prev_idx = -1;
-    if (unlikely(prev_idx != anamorphic_ratio_idx)) // update the LUT
+    if (unlikely(prev_idx != (int)anamorphic_ratio_idx)) // update the LUT
     {
         int num = anamorphic_ratio_num[anamorphic_ratio_idx];
         int den = anamorphic_ratio_den[anamorphic_ratio_idx];
@@ -3013,9 +3125,12 @@ int display_filter_enabled()
     return fp ? 2 : 1;
 }
 
+static int display_filter_valid_image = 0;
+
 void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
 {
-    if (!display_filter_enabled()) return;
+    if (!display_filter_valid_image) return;
+    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return; }
 
 #ifdef CONFIG_5D2
     int sync = (MEM(x+0xe0) == YUV422_LV_BUFFER_1);
@@ -3058,6 +3173,8 @@ void display_filter_step(int k)
         if (k % 1 == 0)
             BMP_LOCK( if (lv) peak_disp_filter(); )
     }
+    
+    display_filter_valid_image = 1;
 }
 
 

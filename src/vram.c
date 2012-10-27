@@ -306,7 +306,11 @@ void update_vram_params()
 #else
     vram_hd.pitch = hd_size & 0xFFFF;
     vram_hd.width = vram_hd.pitch / 2;
-    vram_hd.height = ((hd_size >> 16) & 0xFFFF) + 1;
+    vram_hd.height = ((hd_size >> 16) & 0xFFFF)
+        #ifndef CONFIG_5D3
+        + 1
+        #endif
+        ;
 #endif
 
     int off_43 = (os.x_ex - os.x_ex * 8/9) / 2;

@@ -153,6 +153,7 @@ static CONFIG_INT( "mlu.mode", mlu_mode, 1);
 #define MLU_ALWAYS_ON (mlu_auto && mlu_mode == 0)
 #define MLU_SELF_TIMER (mlu_auto && mlu_mode == 1)
 #define MLU_HANDHELD (mlu_auto && mlu_mode == 2)
+int mlu_handled_debug = 0;
 
 #ifndef CONFIG_5DC
 static CONFIG_INT("mlu.handheld.delay", mlu_handheld_delay, 4);
@@ -256,24 +257,38 @@ static void do_this_every_second() // called every second
     
     #ifndef CONFIG_VXWORKS
     task_update_loads();
+    static int k = 0; k++;
+    if (k%10 == 0) update_lv_fps();
     #endif
 }
 
 static void
 seconds_clock_task( void* unused )
 {
+    int rollovers = 0;
     TASK_LOOP 
     {
         static int prev_t = 0;
         int t = *(uint32_t*)0xC0242014;
+        // this timer rolls over every 1048576 ticks
+        // and 1000000 ticks = 1 second
+        // so 1 rollover is done every 1.05 seconds roughly
+        
         if (t < prev_t)
-        {
-            seconds_clock++;
-            do_this_every_second();
-        }
+            rollovers++;
         prev_t = t;
-
-        ms100_clock = seconds_clock * 1000 + t / 1000;
+        
+        // float s_clock_f = rollovers * 1048576.0 / 1000000.0 + t / 1048576.0;
+        // not very precise but... should be OK (1.11 seconds error in 24 hours)
+        ms100_clock = rollovers * 16777 / 16 + t * 1000 / 1048576;
+        seconds_clock = ms100_clock / 1000;
+        
+        static int prev_s_clock = 0;
+        if (prev_s_clock != seconds_clock)
+        {
+            do_this_every_second();
+            prev_s_clock = seconds_clock;
+        }
 
         msleep(100);
     }
@@ -730,17 +745,19 @@ silent_pic_display( void * priv, int x, int y, int selected )
     }
 }
 
+static volatile int afframe_ack = 0;
 #ifdef AFFRAME_PROP_LEN
-static int afframe[AFFRAME_PROP_LEN];
+static int afframe[AFFRAME_PROP_LEN/4+1];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
     ASSERT(len == AFFRAME_PROP_LEN);
 
-    clear_lv_afframe();
+    spotmeter_erase();
 
     crop_set_dirty(10);
     afframe_set_dirty();
     
-    memcpy(afframe, buf, AFFRAME_PROP_LEN);
+    my_memcpy(afframe, buf, AFFRAME_PROP_LEN);
+    afframe_ack = 1;
 }
 #else
 static int afframe[100]; // dummy
@@ -793,7 +810,7 @@ void set_lv_zoom(int zoom)
 
 void mlu_take_pic()
 {
-    #ifdef CONFIG_5D2 // not sure about 50D and 7D
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D) // not sure about 7D
     SW1(1,00);
     SW2(1,250);
     SW2(0,50);
@@ -807,6 +824,9 @@ int mlu_shake_running = 0;
 void mlu_shake_task()
 {
 #ifndef CONFIG_5DC
+
+    if (mlu_handled_debug) { msleep(1000); NotifyBox(5000, "Taking pic..."); msleep(1000); }
+
     //~ beep();
     msleep(mlu_handheld_delay == 6 ? 750 : mlu_handheld_delay == 7 ? 1000 : mlu_handheld_delay * 100);
     SW1(0,0); SW2(0,0);
@@ -815,12 +835,21 @@ void mlu_shake_task()
 #endif
 }
 
+static char mlu_msg[1000] = "";
+
 int handle_shutter_events(struct event * event)
 {
 #ifndef CONFIG_5DC
 
     if (MLU_HANDHELD && !lv)
     {
+        if (mlu_handled_debug && event->param == GMT_OLC_INFO_CHANGED)
+        {
+            STR_APPEND(mlu_msg, "%8x ", MEM(event->obj));
+            static int k = 0; k++;
+            if (k % 5 == 0) { STR_APPEND(mlu_msg, "\n"); }
+        }
+        
         if (event->param == GMT_OLC_INFO_CHANGED 
             && ((MEM(event->obj) & 0xFFFFF001) == 0x80001) // OK on 5D3, 5D2, 550D, 600D, 500D, maybe others
             && !mlu_shake_running)
@@ -880,6 +909,8 @@ sweep_lv_start(void* priv)
     sweep_lv_on = 1;
 }*/
 
+extern int focus_lv_jump;
+
 int center_lv_aff = 0;
 void center_lv_afframe()
 {
@@ -888,9 +919,108 @@ void center_lv_afframe()
 void center_lv_afframe_do()
 {
     if (!lv || gui_menu_shown() || gui_state != GUISTATE_IDLE) return;
-    int cx = (afframe[0] - afframe[4])/2;
-    int cy = (afframe[1] - afframe[5])/2;
-    move_lv_afframe(cx-afframe[2], cy-afframe[3]);
+
+    int pos_x[9];
+    int pos_y[9];
+    
+    int n = 
+        focus_lv_jump == 0 ? 1 :
+        focus_lv_jump == 1 ? 3 :
+        focus_lv_jump == 2 ? 5 :
+        focus_lv_jump == 3 ? 5 :
+                             9 ;
+
+    int W = afframe[0];
+    int H = afframe[1];
+    int Xtl = afframe[2];
+    int Ytl = afframe[3];
+    int w = afframe[4];
+    int h = afframe[5];
+
+    // center position
+    pos_x[0] = W/2;
+    pos_y[0] = H/2;
+    
+    if (focus_lv_jump == 1)
+    {
+        // top
+        pos_x[1] = W / 2;
+        pos_y[1] = H*2/8;
+        // right
+        pos_x[2] = W*6/8;
+        pos_y[2] = H / 2;
+    }
+    else if (focus_lv_jump == 2)
+    {
+        // top
+        pos_x[1] = W / 2;
+        pos_y[1] = H*2/8;
+        // right
+        pos_x[2] = W*6/8;
+        pos_y[2] = H / 2;
+        // bottom
+        pos_x[3] = W / 2;
+        pos_y[3] = H*6/8;
+        // left
+        pos_x[4] = W*2/8;
+        pos_y[4] = H / 2;
+    }
+    else if (focus_lv_jump == 3)
+    {
+        // top left
+        pos_x[1] = W*2/6;
+        pos_y[1] = H*2/6;
+        // top right
+        pos_x[2] = W*4/6;
+        pos_y[2] = H*2/6;
+        // bottom right
+        pos_x[3] = W*4/6;
+        pos_y[3] = H*4/6;
+        // bottom left
+        pos_x[4] = W*2/6;
+        pos_y[4] = H*4/6;
+    }
+    else if (focus_lv_jump == 4)
+    {
+        // top left
+        pos_x[1] = W*2/6;
+        pos_y[1] = H*2/6;
+        // top
+        pos_x[2] = W / 2;
+        pos_y[2] = H*2/8;
+        // top right
+        pos_x[3] = W*4/6;
+        pos_y[3] = H*2/6;
+        // right
+        pos_x[4] = W*6/8;
+        pos_y[4] = H / 2;
+        // bottom right
+        pos_x[5] = W*4/6;
+        pos_y[5] = H*4/6;
+        // bottom
+        pos_x[6] = W / 2;
+        pos_y[6] = H*6/8;
+        // bottom left
+        pos_x[7] = W*2/6;
+        pos_y[7] = H*4/6;
+        // left
+        pos_x[8] = W*2/8;
+        pos_y[8] = H / 2;
+    }
+    
+    // now let's see where we are
+    int current = -1;
+    int Xc = Xtl + w/2;
+    int Yc = Ytl + h/2;
+    for (int i = 0; i < n; i++)
+    {
+        if (ABS(pos_x[i] - Xc) < 200 && ABS(pos_y[i] - Yc) < 200)
+            current = i;
+    }
+    int next = mod(current + 1, n);
+    
+    //~ bmp_printf(FONT_MED, 50, 50, "%d %d %d %d ", Xc, Yc, pos_x[0], pos_y[0]);
+    move_lv_afframe(pos_x[next] - Xc, pos_y[next] - Yc);
 }
 
 void move_lv_afframe(int dx, int dy)
@@ -900,9 +1030,40 @@ void move_lv_afframe(int dx, int dy)
     if (is_movie_mode() && video_mode_crop) return;
     if (recording && is_manual_focus()) // prop handler won't trigger, clear spotmeter 
         clear_lv_afframe();
-    afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
-    afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
-    prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+    
+    static int aff[AFFRAME_PROP_LEN/4+1];
+    memcpy(aff, afframe, AFFRAME_PROP_LEN);
+
+    aff[2] = COERCE(aff[2] + dx, 500, aff[0] - aff[4]);
+    aff[3] = COERCE(aff[3] + dy, 500, aff[1] - aff[5]);
+
+    // some cameras apply an offset to X position, when AF is on (not quite predictable)
+    // e.g. 60D and 5D2 apply the offset in AF mode, 550D doesn't seem to apply any
+    // so... we'll try to guess this offset and compensate for this quirk
+    int af = !is_manual_focus();
+    static int off_x = 0;
+
+    int x1 = aff[2];
+    if (af) aff[2] -= off_x;
+    afframe_ack = 0;
+    prop_request_change(PROP_LV_AFFRAME, aff, AFFRAME_PROP_LEN);
+    if (af)
+    {
+        for (int i = 0; i < 15; i++)
+        {
+            msleep(20);
+            if (afframe_ack) break;
+        }
+        int x2 = afframe[2];
+        if (afframe_ack && ABS(x2 - x1) > 160) // the focus box didn't quite end up where we wanted, so... adjust the offset and try again
+        {
+            int delta = (x2 - x1);
+            off_x += delta;
+            aff[2] = x1 - off_x;
+            prop_request_change(PROP_LV_AFFRAME, aff, AFFRAME_PROP_LEN);
+        }
+    }
+    
 #endif
 }
 
@@ -967,7 +1128,7 @@ static char* silent_pic_get_name()
             if (size == 0) break;
         }
     }
-    bmp_printf(FONT_MED, 100, 80, "%s    ", imgname);
+    bmp_printf(FONT_MED, 0, 35, "%s    ", imgname);
     return imgname;
 }
 
@@ -1420,22 +1581,58 @@ void ensure_movie_mode()
     if (!lv) force_liveview();
 }
 
+static void * silent_pic_tmp_buf = 0;
+
+int silent_pic_preview()
+{
+#ifndef CONFIG_VXWORKS
+    if (silent_pic_tmp_buf)
+    {
+        int size = vram_hd.pitch * vram_hd.height;
+        YUV422_LV_BUFFER_DISPLAY_ADDR = (intptr_t)silent_pic_tmp_buf + size;
+        return 1;
+    }
+    return 0;
+#endif
+}
+
 void
 silent_pic_take_simple(int interactive)
 {
     char* imgname = silent_pic_get_name();
 
-    struct vram_info * vram = get_yuv422_hd_vram();
-    int p = vram->pitch;
-    int h = vram->height;
-    int size = p*h;
+    get_yuv422_hd_vram();
+    int size = vram_hd.pitch * vram_hd.height;
+    int lv_size = vram_lv.pitch * vram_lv.height;
     
-    void* tmp = shoot_malloc(size);
-    if (tmp)
+    // this buffer will contain the HD image (saved to card) and a LV preview (for display)
+    silent_pic_tmp_buf = (void*)shoot_malloc(size + lv_size);
+    
+    // start with black preview 
+    bzero32(silent_pic_tmp_buf + size, lv_size);
+    
+    if (silent_pic_tmp_buf)
     {
-        sync_hd_buf_memcpy(tmp, size);
-        dump_seg(tmp, size, imgname);
-        shoot_free(tmp);
+        // first we will copy the picture in a temporary buffer, to avoid horizontal cuts
+        void* buf = (void*)YUV422_HD_BUFFER_DMA_ADDR;
+        
+        // some sort of vsync
+        while ((void*)YUV422_HD_BUFFER_DMA_ADDR == buf) msleep(10);
+        
+        // copy the HD picture into the temporary buffer
+        memcpy(silent_pic_tmp_buf, buf, size);
+        
+        // picture is now in a temporary buffer
+        
+        // we can take our time and resize it for preview purposes
+        yuv_resize(silent_pic_tmp_buf, vram_hd.width, vram_hd.height, silent_pic_tmp_buf + size, vram_lv.width, vram_lv.height);
+        
+        // ... and save it; meanwhile, LiveView can work normally without interruption
+        dump_seg(silent_pic_tmp_buf, size, imgname);
+        
+        // done :)
+        shoot_free(silent_pic_tmp_buf);
+        silent_pic_tmp_buf = 0;
     }
 
     if (interactive && !silent_pic_burst) // single mode
@@ -3315,6 +3512,19 @@ bulb_display_submenu( void * priv, int x, int y, int selected )
     menu_draw_icon(x, y, MNI_PERCENT, (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)));
 }
 
+void mlu_selftimer_update()
+{
+    if (MLU_SELF_TIMER && !lv)
+    {
+        int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!HDR_ENABLED)) ? 1 : 0;
+        int mlu_current_value = get_mlu();
+        if (mlu_auto_value != mlu_current_value)
+        {
+            set_mlu(mlu_auto_value); // shooting mode, ML decides to toggle MLU
+        }
+    }
+}
+
 static void
 mlu_update()
 {
@@ -3347,7 +3557,7 @@ mlu_toggle( void * priv, int delta )
 }
 
 
-#if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
+#if defined(CONFIG_550D) || defined(CONFIG_500D)
 #define MLU_SELF_TIMER_STRING "Timer+LCDremote"
 #else
 #define MLU_SELF_TIMER_STRING "Self-timer only"
@@ -4816,7 +5026,7 @@ static struct menu_entry shoot_menus[] = {
         },
     },
     #endif
-    #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
+    #if defined(CONFIG_550D) || defined(CONFIG_500D)
     {
         .name = "LCDsensor Remote",
         .priv       = &lcd_release_running,
@@ -4990,6 +5200,12 @@ static struct menu_entry shoot_menus[] = {
                 .choices = (const char *[]) {"All values", "1/8...1/125"},
                 .help = "At what shutter speeds you want to use handheld MLU."
             },
+            {
+                .name = "Handheld Debug",
+                .priv = &mlu_handled_debug, 
+                .max = 1,
+                .help = "Check whether the 'mirror up' event is detected correctly."
+            },
             #endif
             MENU_EOL
         },
@@ -5127,6 +5343,68 @@ struct menu_entry tweak_menus_shoot[] = {
         },
     },
 };
+
+CONFIG_INT("auto.iso.ml", ml_auto_iso, 0);
+CONFIG_INT("auto.iso.av.tv", ml_auto_iso_av_shutter, 3);
+CONFIG_INT("auto.iso.tv.av", ml_auto_iso_tv_aperture, 3);
+
+void auto_iso_tweak_step()
+{
+    static int last_iso = -1;
+    if (!ml_auto_iso)
+    {
+        if (last_iso != -1) // when disabling ML auto ISO, restore previous ISO
+        {   
+            lens_set_rawiso(last_iso);
+            last_iso = -1;
+        }
+        return;
+    }
+    if (ISO_ADJUSTMENT_ACTIVE) return;
+    if (!display_idle()) return;
+
+    if (last_iso == -1) last_iso = lens_info.raw_iso;
+    
+    int min_iso = MIN_ISO;
+    int max_iso = auto_iso_range & 0xFF;
+    
+    if (shooting_mode == SHOOTMODE_AV && lens_info.raw_aperture)
+    {
+        int ref_tv = 88 + 8*ml_auto_iso_av_shutter;
+
+        int new_iso = lens_info.raw_iso;
+        int e = ABS(lens_info.raw_shutter - ref_tv);
+        int er = (e+4)/8*8;
+        if (lens_info.raw_shutter <= ref_tv-4)
+            new_iso = MIN(lens_info.raw_iso + er, max_iso);
+        else if (lens_info.raw_shutter > ref_tv+4)
+            new_iso = MAX(lens_info.raw_iso - er, min_iso);
+        if (new_iso != lens_info.raw_iso)
+            lens_set_rawiso(new_iso);
+    }
+    else if (shooting_mode == SHOOTMODE_TV && lens_info.raw_shutter)
+    {
+        // you can't go fully wide open, because ML would have no way to know when to raise ISO
+        int av_min = (int)lens_info.raw_aperture_min + 4;
+        int av_max = (int)lens_info.raw_aperture_max - 5;
+        if (av_min >= av_max) return;
+        int ref_av = COERCE(16 + 8*(int)ml_auto_iso_tv_aperture, av_min, av_max);
+
+        int e = ABS(lens_info.raw_aperture - ref_av);
+        int er = (e+4)/8*8;
+        int new_iso = lens_info.raw_iso;
+        if (lens_info.raw_aperture <= ref_av-4)
+            new_iso = MIN(lens_info.raw_iso + er, max_iso);
+        else if (lens_info.raw_aperture > ref_av+4)
+            new_iso = MAX(lens_info.raw_iso - er, min_iso);
+        if (new_iso != lens_info.raw_iso)
+            lens_set_rawiso(new_iso);
+    }
+    else return;
+    
+    if (get_halfshutter_pressed()) msleep(200); // try to reduce the influence over autofocus
+}
+
 
 extern int lvae_iso_max;
 extern int lvae_iso_min;
@@ -5438,6 +5716,44 @@ static struct menu_entry expo_menus[] = {
     },
 #endif
 */
+    {
+        .name = "ML Auto ISO\b\b",
+        .priv = &ml_auto_iso, 
+        .max = 1,
+        .choices = (const char *[]) {"OFF", "ON (Tv/Av only)"},
+        .help = "Experimental auto ISO algorithms.",
+        .submenu_width = 700,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Shutter for Av mode ",
+                .priv = &ml_auto_iso_av_shutter,
+                .min = 0,
+                .max = 7,
+                .icon_type = IT_PERCENT,
+                .choices = (const char *[]) {"1/15", "1/30", "1/60", "1/125", "1/250", "1/500", "1/1000", "1/2000"},
+                .help = "Preferred shutter speed for Av mode (+/- 0.5 EV)."
+            },
+            {
+                .name = "Aperture for Tv mode",
+                .priv = &ml_auto_iso_tv_aperture,
+                .min = 0,
+                .max = 8,
+                .icon_type = IT_PERCENT,
+                .choices = (const char *[]) {"f/1.4", "f/2.0", "f/2.8", "f/4.0", "f/5.6", "f/8", "f/11", "f/16", "f/22"},
+                .help = "Preferred aperture for Tv mode (+/- 0.5 EV)."
+            },
+            /*
+            {
+                .name = "A-ISO smoothness ",
+                .priv = &lvae_iso_speed,
+                .min = 3,
+                .max = 30,
+                .help = "Speed for movie Auto ISO. Low values = smooth transitions.",
+                .edit_mode = EM_MANY_VALUES_LV,
+            },*/
+            MENU_EOL
+        }
+    },
     {
         .name = "Expo.Lock",
         .priv = &expo_lock,
@@ -6285,19 +6601,6 @@ int handle_mlu_toggle(struct event * event)
 }
 #endif
 
-void mlu_selftimer_update()
-{
-    if (MLU_SELF_TIMER && !lv)
-    {
-        int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!HDR_ENABLED)) ? 1 : 0;
-        int mlu_current_value = get_mlu();
-        if (mlu_auto_value != mlu_current_value)
-        {
-            set_mlu(mlu_auto_value); // shooting mode, ML decides to toggle MLU
-        }
-    }
-}
-
 PROP_HANDLER(PROP_DRIVE)
 {
     drive_mode = buf[0];
@@ -6360,9 +6663,7 @@ static void misc_shooting_info()
     if (get_global_draw())
     {
         #if !defined(CONFIG_50D) && !defined(CONFIG_1100D)
-        extern thunk ShootOlcApp_handler;
-        if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown()
-            && (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler)
+        if (!lv && display_idle())
         BMP_LOCK
         (
             display_clock();
@@ -6453,6 +6754,8 @@ shoot_task( void* unused )
         msleep(MIN_MSLEEP);
         
         if (k%10 == 0) misc_shooting_info();
+        
+        if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);
 
         if (kelvin_auto_flag)
         {
@@ -6496,6 +6799,8 @@ shoot_task( void* unused )
             zoom_focus_ring_engage();
             zoom_focus_ring_flag = 0;
         }
+        
+        auto_iso_tweak_step();
         
         mlu_step();
         zoom_lv_face_step();

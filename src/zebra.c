@@ -1578,6 +1578,16 @@ static inline int peak_d1xy(uint8_t* p8)
     return peak_scaling[MIN(e, 255)];
 }*/
 
+static inline int peak_d2xy_sharpen(uint8_t* p8)
+{
+    int orig = (int)(*p8);
+    int diff = orig * 4 - (int)(*(p8 + 2));
+    diff -= (int)(*(p8 - 2));
+    diff -= (int)(*(p8 + vram_lv.pitch));
+    diff -= (int)(*(p8 - vram_lv.pitch));
+    return COERCE(orig + diff*4, 0, 255);
+}
+
 static inline int peak_d2xy(uint8_t* p8)
 {
     // approximate second derivative with a Laplacian kernel:
@@ -1657,11 +1667,25 @@ static inline int peak_blend_alpha(uint32_t* s, int e)
 
 void peak_disp_filter()
 {
-    if (!lv) return;
-
     uint32_t* src_buf;
     uint32_t* dst_buf;
-    display_filter_get_buffers(&src_buf, &dst_buf);
+    if (lv)
+    {
+        display_filter_get_buffers(&src_buf, &dst_buf);
+    }
+    else if (PLAY_OR_QR_MODE)
+    {
+        void* aux_buf = (void*)YUV422_HD_BUFFER_2;
+        void* current_buf = get_yuv422_vram()->vram;
+        int w = get_yuv422_vram()->width;
+        int h = get_yuv422_vram()->height;
+        int buf_size = w * h * 2;
+        memcpy(aux_buf, current_buf, buf_size);
+        
+        src_buf = aux_buf;
+        dst_buf = current_buf;
+    }
+    else return;
 
     static int thr = 50;
     static int thr_increment = 1;
@@ -1685,8 +1709,8 @@ void peak_disp_filter()
         //~ dst_buf[i] = peak_blend(&src_buf[i], e, blend_thr);
         //~ if (unlikely(e > FOCUSED_THR)) n_over++;
     //~ }
-
-    if (focus_peaking_disp == 3) // raw
+    
+    if (focus_peaking_disp == 4) // raw
     {
         PEAK_LOOP
         {
@@ -1723,6 +1747,14 @@ void peak_disp_filter()
                 if (unlikely(e > FOCUSED_THR)) n_over++;
             }
         }
+        else if (focus_peaking_disp == 3) // sharp
+        {
+            PEAK_LOOP
+            {
+                int e = peak_d2xy_sharpen((uint8_t*)&src_buf[i] + 1);
+                dst_buf[i] = (src_buf[i] & 0xFF000000) | ((e & 0xFF) << 8);
+            }
+        }
     }
     else // color
     {
@@ -1749,6 +1781,14 @@ void peak_disp_filter()
                 if (likely(e < 20)) dst_buf[i] = src_buf[i];
                 else dst_buf[i] = peak_blend_alpha(&src_buf[i], e);
                 if (unlikely(e > FOCUSED_THR)) n_over++;
+            }
+        }
+        else if (focus_peaking_disp == 3) // sharp
+        {
+            PEAK_LOOP
+            {
+                int e = peak_d2xy_sharpen((uint8_t*)&src_buf[i] + 1);
+                dst_buf[i] = (src_buf[i] & 0xFFFF00FF) | ((e & 0xFF) << 8);
             }
         }
     }
@@ -1833,8 +1873,19 @@ draw_zebra_and_focus( int Z, int F )
     if (unlikely(!bvram_mirror)) return 0;
     
     draw_zebras(Z);
-
-    if (focus_peaking_as_display_filter()) return 0; // it's drawn from display filters routine
+    
+    if (focus_peaking && focus_peaking_disp && !EXT_MONITOR_CONNECTED)
+    {
+        if (lv) 
+        {
+            return 0; // it's drawn from display filters routine
+        }
+        else  // display filters are not called in playback
+        {
+            if (F != 1) return 0; // problem: we need to update the threshold somehow
+            peak_disp_filter(); return 0; 
+        }
+    }
 
     static int thr = 50;
     static int thr_increment = 1;
@@ -2889,6 +2940,39 @@ int get_spot_focus(int dxb)
     return sf / (br >> 14);
 }
 
+static int spot_prev_xcb = 0;
+static int spot_prev_ycb = 0;
+static int spotmeter_dirty = 0;
+
+void
+spotmeter_erase()
+{
+    if (!spotmeter_dirty) return;
+    spotmeter_dirty = 0;
+
+    int xcb = spot_prev_xcb;
+    int ycb = spot_prev_ycb;
+    int dx = spotmeter_formula <= 3 ? 26 : 52;
+    int y0 = -13;
+    uint32_t* M = (uint32_t*)get_bvram_mirror();
+    uint32_t* B = (uint32_t*)bmp_vram();
+    for(int y = (ycb&~1) + y0 ; y <= (ycb&~1) + 36 ; y++ )
+    {
+        for(int x = xcb - dx ; x <= xcb + dx ; x+=4 )
+        {
+            uint8_t* m = (uint8_t*)(&(M[BM(x,y)/4])); //32bit to 8bit 
+            if (*m == 0x80) *m = 0;
+            m++;
+            if (*m == 0x80) *m = 0;
+            m++;
+            if (*m == 0x80) *m = 0;
+            m++;
+            if (*m == 0x80) *m = 0;
+            B[BM(x,y)/4] = 0;
+        }
+    }
+}
+
 static void spotmeter_step()
 {
     if (gui_menu_shown()) return;
@@ -2903,6 +2987,8 @@ static void spotmeter_step()
 
     if( !vram->vram )
         return;
+
+    spotmeter_erase();
     
     const uint16_t*     vr = (uint16_t*) vram->vram;
     const unsigned      width = vram->width;
@@ -2924,6 +3010,12 @@ static void spotmeter_step()
         xcb = COERCE(xcb, os.x0 + 50, os.x_max - 50);
         ycb = COERCE(ycb, os.y0 + 50, os.y_max - 50);
     }
+    
+    // save coords, so we know where to erase the spotmeter from
+    spot_prev_xcb = xcb;
+    spot_prev_ycb = ycb;
+    spotmeter_dirty = 1;
+    
     int xcl = BM2LV_X(xcb);
     int ycl = BM2LV_Y(ycb);
     int dxl = BM2LV_DX(dxb);
@@ -3362,8 +3454,8 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Display type",
                 .priv = &focus_peaking_disp, 
-                .max = 3,
-                .choices = (const char *[]) {"Blinking dots", "Fine dots", "Alpha blend", "Raw"},
+                .max = 4,
+                .choices = (const char *[]) {"Blinking dots", "Fine dots", "Alpha blend", "Sharpness", "Raw"},
                 .help = "How to display peaking. Alpha looks nicer, but image lags.",
             },
             #endif
@@ -4176,14 +4268,6 @@ int handle_zoom_overlay(struct event * event)
             { move_lv_afframe(0, -300); return 0; }
         if (event->param == BGMT_PRESS_DOWN)
             { move_lv_afframe(0, 300); return 0; }
-
-        #ifdef CONFIG_5D3
-        if (event->param == BGMT_JOY_CENTER)
-            { center_lv_afframe(); return 0; }
-        #elif !defined(CONFIG_4_3_SCREEN)
-        if (event->param == BGMT_PRESS_SET)
-            { center_lv_afframe(); return 0; }
-        #endif
     }
 
     return 1;
@@ -4370,11 +4454,15 @@ void digic_zoom_overlay_step()
             // and make sure the pitch is right
             EngDrvOut(0xc0f140e8, vram_hd.pitch - vram_lv.pitch);
         }
+        
         prev = YUV422_HD_BUFFER_DMA_ADDR;
     }
     else
     {
-        if (prev) EngDrvOut(0xc0f140e8, 0);
+        if (prev) 
+        {
+            EngDrvOut(0xc0f140e8, 0);
+        }
         prev = 0;
     }
 #endif
@@ -4385,7 +4473,7 @@ void digic_zoom_overlay_step()
  */
 static void draw_zoom_overlay(int dirty)
 {   
-    if (digic_zoom_overlay_enabled()) return; // fullscreen zoom done via digic
+    if (zoom_overlay_size == 3) return; // fullscreen zoom done via digic
     
     //~ if (vram_width > 720) return;
     if (!lv) return;
@@ -4415,6 +4503,7 @@ static void draw_zoom_overlay(int dirty)
     lvr = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     #elif defined(CONFIG_5D3)
     lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
+    if (lvr != YUV422_LV_BUFFER_1 && lvr != YUV422_LV_BUFFER_2 && lvr != YUV422_LV_BUFFER_3) return;
     #else
     #endif
     
@@ -4643,6 +4732,8 @@ BMP_LOCK(
     if (spotmeter_draw)
         spotmeter_step();
 
+    draw_histogram_and_waveform(1);
+
     if (falsecolor_draw) 
     {
         draw_false_downsampled();
@@ -4652,8 +4743,6 @@ BMP_LOCK(
         guess_focus_peaking_threshold();
         draw_zebra_and_focus(1,1);
     }
-    
-    draw_histogram_and_waveform(1);
 
     bvram_mirror_clear(); // may remain filled with playback zebras 
 )
@@ -5152,12 +5241,6 @@ clearscreen_loop:
                 bmp_on();
             }
         }
-        
-        if (k % 100 == 0)
-        {
-            if (show_lv_fps) bmp_printf(FONT_MED, 50, 50, "%d.%d fps ", fps_ticks/10, fps_ticks%10);
-            fps_ticks = 0;
-        }
 
         // clear overlays on shutter halfpress
         if (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview) && !gui_menu_shown())
@@ -5393,6 +5476,12 @@ static void digic_zebra_cleanup()
     zebra_digic_dirty = 0;
 }
 
+void update_lv_fps() // to be called every 10 seconds
+{
+    if (show_lv_fps) bmp_printf(FONT_MED, 50, 50, "%d.%d fps ", fps_ticks/10, fps_ticks%10);
+    fps_ticks = 0;
+}
+
 
 // Items which need a high FPS
 // Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
@@ -5449,8 +5538,6 @@ livev_hipriority_task( void* unused )
         lv_vsync(mz);
         guess_fastrefresh_direction();
 
-        display_filter_step(k);
-        
         if (mz)
         {
             //~ msleep(k % 50 == 0 ? MIN_MSLEEP : 10);
@@ -5465,30 +5552,21 @@ livev_hipriority_task( void* unused )
         else
         {
             if (!zoom_overlay_dirty) { redraw(); msleep(700); } // redraw cropmarks after MZ is turned off
-            
-            //~ msleep(MIN_MSLEEP);
             zoom_overlay_dirty = 1;
+
+            msleep(30);
+
+            display_filter_step(k);
+            
             if (falsecolor_draw)
             {
                 if (k % 4 == 0)
                     BMP_LOCK( if (lv) draw_false_downsampled(); )
             }
-            //~ else if (defish_preview)
-            //~ {
-                //~ if (k % 2 == 0)
-                    //~ BMP_LOCK( if (lv) defish_draw(); )
-            //~ }
             else
             {
-                //~ #if defined(CONFIG_5D3) || defined(CONFIG_7D)
-                //~ BMP_LOCK( if (lv) draw_zebra_and_focus(focus_peaking==0 || k % 2 == 1, 1) ) // DIGIC 5 and dual-DIGIC has more CPU power
-                //~ #else
-                // luma zebras are fast
-                // also, if peaking is off, zebra can be faster
                 BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 4 : 2) == 0, k % 2 == 1); )
-                //~ #endif
             }
-            //~ if (MIN_MSLEEP <= 10) msleep(MIN_MSLEEP);
         }
 
         int s = get_seconds_clock();
@@ -5508,12 +5586,7 @@ livev_hipriority_task( void* unused )
         {
             zoom_overlay_triggered_by_focus_ring_countdown--;
         }
-        
-        //~ if ((lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED) || get_halfshutter_pressed())
-            //~ crop_set_dirty(20);
-        
-        //~ if (lens_display_dirty)
-        
+                
         int m = 100;
         if (lens_display_dirty) m = 10;
         if (should_draw_zoom_overlay()) m = 100;
@@ -5845,7 +5918,7 @@ static void zebra_init()
 #ifndef CONFIG_5DC
     menu_add( "Overlay", zebra_menus, COUNT(zebra_menus) );
 #endif
-    //~ menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
+    menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
 #if !defined(CONFIG_5D3_MINIMAL)
@@ -6010,7 +6083,7 @@ PROP_HANDLER(PROP_LV_ACTION)
     zoom_auto_exposure_step();
 }
 
-static void yuv_resize(uint32_t* src, int src_w, int src_h, uint32_t* dst, int dst_w, int dst_h)
+void yuv_resize(uint32_t* src, int src_w, int src_h, uint32_t* dst, int dst_w, int dst_h)
 {
     int i,j;
     for (i = 0; i < dst_h; i++)
@@ -6073,7 +6146,9 @@ void play_422(char* filename)
     else if (size == 1680 *  945 * 2) { w = 1680; h =  945; } 
     else if (size == 1280 *  560 * 2) { w = 1280; h =  560; } 
     else if (size == 1152 *  768 * 2) { w = 1152; h =  768; } 
-    else if (size == 1904 * 1270 * 2) { w = 1904; h = 1270; } 
+    else if (size == 1904 * 1274 * 2) { w = 1904; h = 1274; } 
+    else if (size == 1620 * 1080 * 2) { w = 1620; h = 1080; } 
+    else if (size == 1280 *  720 * 2) { w = 1280; h =  720; } 
     else
     {
         bmp_printf(FONT_LARGE, 0, 50, "Cannot preview this picture.");
