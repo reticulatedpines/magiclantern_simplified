@@ -852,9 +852,12 @@ my_init_task(int a, int b, int c, int d)
     // at this point, gui_main_start should be started and should be able to tell whether SET was pressed at startup
     if (magic_off_request)
     {
-        while (!DISPLAY_IS_ON) msleep(100);
-        msleep(100);
         magic_off = 1;  // magic off request might be sent later (until ml is fully started), but will be ignored
+        for (int i = 0; i < 10; i++)
+        {
+            if (DISPLAY_IS_ON) break;
+            msleep(100);
+        }
         bfnt_puts("Magic OFF", 0, 0, COLOR_WHITE, COLOR_BLACK);
         extern char additional_version[];
         additional_version[0] = '-';
