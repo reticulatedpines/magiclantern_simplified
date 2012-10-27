@@ -5342,7 +5342,7 @@ void auto_iso_tweak_step()
     if (!ml_auto_iso) return;
     if (ISO_ADJUSTMENT_ACTIVE) return;
     if (!display_idle()) return;
-
+    
     int min_iso = MIN_ISO;
     int max_iso = auto_iso_range & 0xFF;
     
@@ -5350,20 +5350,33 @@ void auto_iso_tweak_step()
     {
         int ref_tv = 88 + 8*ml_auto_iso_av_shutter;
 
+        int new_iso = lens_info.raw_iso;
         if (lens_info.raw_shutter <= ref_tv-4)
-            lens_set_rawiso(MIN(lens_info.raw_iso + 8, max_iso));
+            new_iso = MIN(lens_info.raw_iso + 8, max_iso);
         else if (lens_info.raw_shutter > ref_tv+4)
-            lens_set_rawiso(MAX(lens_info.raw_iso - 8, min_iso));
+            new_iso = MAX(lens_info.raw_iso - 8, min_iso);
+        if (new_iso != lens_info.raw_iso)
+            lens_set_rawiso(new_iso);
     }
     else if (shooting_mode == SHOOTMODE_TV)
     {
-        int ref_av = COERCE(8 + 8*ml_auto_iso_tv_aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+        // you can't go fully wide open, because ML would have no way to know when to raise ISO
+        int av_min = (int)lens_info.raw_aperture_min + 4;
+        int av_max = (int)lens_info.raw_aperture_max - 5;
+        if (av_min >= av_max) return;
+        int ref_av = COERCE(16 + 8*(int)ml_auto_iso_tv_aperture, av_min, av_max);
 
+        int new_iso = lens_info.raw_iso;
         if (lens_info.raw_aperture <= ref_av-4)
-            lens_set_rawiso(MIN(lens_info.raw_iso + 8, max_iso));
+            new_iso = MIN(lens_info.raw_iso + 8, max_iso);
         else if (lens_info.raw_aperture > ref_av+4)
-            lens_set_rawiso(MAX(lens_info.raw_iso - 8, min_iso));
+            new_iso = MAX(lens_info.raw_iso - 8, min_iso);
+        if (new_iso != lens_info.raw_iso)
+            lens_set_rawiso(new_iso);
     }
+    else return;
+    
+    if (get_halfshutter_pressed()) msleep(200); // try to reduce the influence over autofocus
 }
 
 
@@ -5689,18 +5702,18 @@ static struct menu_entry expo_menus[] = {
                 .name = "Shutter for Av mode ",
                 .priv = &ml_auto_iso_av_shutter,
                 .min = 0,
-                .max = 8,
+                .max = 7,
                 .icon_type = IT_PERCENT,
-                .choices = (const char *[]) {"1/15", "1/30", "1/60", "1/125", "1/250", "1/500", "1/1000", "1/2000", "1/4000"},
+                .choices = (const char *[]) {"1/15", "1/30", "1/60", "1/125", "1/250", "1/500", "1/1000", "1/2000"},
                 .help = "Preferred shutter speed for Av mode (+/- 0.5 EV)."
             },
             {
                 .name = "Aperture for Tv mode",
                 .priv = &ml_auto_iso_tv_aperture,
                 .min = 0,
-                .max = 9,
+                .max = 8,
                 .icon_type = IT_PERCENT,
-                .choices = (const char *[]) {"f/1.0", "f/1.4", "f/2.0", "f/2.8", "f/4.0", "f/5.6", "f/8", "f/11", "f/16", "f/22"},
+                .choices = (const char *[]) {"f/1.4", "f/2.0", "f/2.8", "f/4.0", "f/5.6", "f/8", "f/11", "f/16", "f/22"},
                 .help = "Preferred aperture for Tv mode (+/- 0.5 EV)."
             },
             /*
