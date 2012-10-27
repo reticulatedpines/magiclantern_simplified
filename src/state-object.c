@@ -153,9 +153,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 
 #ifdef CONFIG_550D
     if (self == DISPLAY_STATE)
-    {
         display_is_on_550D = (self->current_state == 1);
-    }
 #endif
 
 
@@ -194,10 +192,6 @@ static int stateobj_start_spy(struct state_object * stateobj)
 
 static void state_init(void* unused)
 {
-    #ifdef CONFIG_550D
-    display_is_on_550D = (DISPLAY_STATEOBJ->current_state != 0);
-    #endif
-    
     #ifdef DISPLAY_STATE
         stateobj_start_spy(DISPLAY_STATE);
     #endif
@@ -218,6 +212,10 @@ static void state_init(void* unused)
     #ifdef CONFIG_7D
         /* will work, but this is LV only - not recorded */
         // cache_fake(0xFF10D2F4, BL_INSTR(0xFF10D2F4, &vsync_func), TYPE_ICACHE);
+    #endif
+
+    #ifdef CONFIG_550D
+    display_is_on_550D = (DISPLAY_STATEOBJ->current_state != 0);
     #endif
 }
 
