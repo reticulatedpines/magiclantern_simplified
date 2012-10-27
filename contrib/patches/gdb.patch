@@ -1,0 +1,749 @@
+Index: ptp.c
+===================================================================
+--- ptp.c	(revision 874)
++++ ptp.c	(working copy)
+@@ -1759,6 +1759,48 @@
+   return buf;
+ }
+ 
++char* ptp_chdk_gdb_upload(PTPParams* params, PTPDeviceInfo* deviceinfo)
++{
++  uint16_t ret;
++  PTPContainer ptp;
++  char *buf = NULL;
++
++  PTP_CNT_INIT(ptp);
++  ptp.Code=PTP_OC_CHDK;
++  ptp.Nparam=2;
++  ptp.Param1=PTP_CHDK_GDBStub_Upload;
++  ptp.Param2=1024;
++  ptp.Param3=0;
++  ret=ptp_transaction(params, &ptp, PTP_DP_GETDATA, 0, &buf);
++  if ( ret != 0x2001 )
++  {
++    ptp_error(params,"unexpected return code 0x%x",ret);
++    free(buf);
++    return NULL;
++  }
++  return buf;
++}
++
++int ptp_chdk_gdb_download(char *buf, PTPParams* params, PTPDeviceInfo* deviceinfo)
++{
++  uint16_t ret;
++  PTPContainer ptp;
++
++  PTP_CNT_INIT(ptp);
++  ptp.Code=PTP_OC_CHDK;
++  ptp.Nparam=2;
++  ptp.Param1=PTP_CHDK_GDBStub_Download;
++  ptp.Param2=strlen(buf);
++  ptp.Param3=0;
++  ret=ptp_transaction(params, &ptp, PTP_DP_SENDDATA, strlen(buf), &buf);
++  if ( ret != 0x2001 )
++  {
++    ptp_error(params,"unexpected return code 0x%x",ret);
++    return 0;
++  }
++  return 1;
++}
++
+ int ptp_chdk_set_memory_long(int addr, int val, PTPParams* params, PTPDeviceInfo* deviceinfo)
+ {
+   uint16_t ret;
+@@ -1787,8 +1829,10 @@
+ 
+   PTP_CNT_INIT(ptp);
+   ptp.Code=PTP_OC_CHDK;
+-  ptp.Nparam=1;
++  ptp.Nparam=2;
+   ptp.Param1=PTP_CHDK_CallFunction;
++  ptp.Param2=size;
++  ptp.Param3=0;
+   r=ptp_transaction(params, &ptp, PTP_DP_SENDDATA, size*sizeof(int), (char **) &args);
+   if ( r != 0x2001 )
+   {
+Index: ptp.h
+===================================================================
+--- ptp.h	(revision 874)
++++ ptp.h	(working copy)
+@@ -933,6 +933,10 @@
+                             // data length is handled by ptp data phase
+                             // input messages do not have type or subtype, they are always a string destined for the script (similar to USER/string)
+                             // output param1 is ptp_chdk_script_msg_status
++  PTP_CHDK_GDBStub_Upload,
++                            // param2 is the transfer buffer size
++  PTP_CHDK_GDBStub_Download,
++                            // param2 is the transfer buffer size
+ };
+ 
+ // data types as used by ReadScriptMessage
+@@ -1005,6 +1009,10 @@
+ int ptp_chdk_get_script_support(PTPParams* params, PTPDeviceInfo* deviceinfo, int *status);
+ int ptp_chdk_get_script_status(PTPParams* params, PTPDeviceInfo* deviceinfo, int *status);
+ 
++
++int ptp_chdk_gdb_download(char *buf, PTPParams* params, PTPDeviceInfo* deviceinfo);
++char* ptp_chdk_gdb_upload(PTPParams* params, PTPDeviceInfo* deviceinfo);
++
+ typedef struct {
+     unsigned size;
+     unsigned script_id; // id of script message is to/from 
+Index: ptpcam.c
+===================================================================
+--- ptpcam.c	(revision 874)
++++ ptpcam.c	(working copy)
+@@ -2230,6 +2230,16 @@
+   close_camera(&ptp_usb,&params,dev);
+ }
+ 
++
++int kbhit()
++{
++    struct timeval tv = { 0L, 0L };
++    fd_set fds;
++    FD_ZERO(&fds);
++    FD_SET(0, &fds);
++    return select(1, &fds, NULL, NULL, &tv);
++}
++
+ static void reset_connection()
+ {
+   if ( connected )
+@@ -2316,6 +2326,193 @@
+   printf("\n");
+ }
+ 
++int engio_dump(unsigned char * data_buf, int length, int addr)
++{
++    unsigned int reg = 0;
++    unsigned int data = 0;
++    unsigned int pos = 0;
++    
++    do
++    {
++        data =  data_buf[pos + 0] | (data_buf[pos + 1] << 8)  | (data_buf[pos + 2] << 16)  | (data_buf[pos + 3] << 24);
++        pos += 4;
++        reg = data_buf[pos + 0] | (data_buf[pos + 1] << 8)  | (data_buf[pos + 2] << 16)  | (data_buf[pos + 3] << 24);
++        pos += 4;
++        if(reg != 0xFFFFFFFF)
++        {
++            printf("[0x%08X] <- [0x%08X]\r\n", reg, data);
++        }
++    } while (reg != 0xFFFFFFFF && pos <= length - 8);
++    
++    printf("\r\n");
++}
++
++int adtg_dump(unsigned char * data_buf, int length, int addr)
++{
++    unsigned int reg = 0;
++    unsigned int data = 0;
++    unsigned int pos = 0;
++    
++    do
++    {
++        data =  data_buf[pos + 0] | (data_buf[pos + 1] << 8);
++        pos += 2;
++        reg = data_buf[pos + 0] | (data_buf[pos + 1] << 8);
++        pos += 2;
++        if(reg != 0xFFFF && data != 0xFFFF)
++        {
++            printf("[0x%04X] <- [0x%04X]\r\n", reg, data);
++        }
++    } while (reg != 0xFFFF && data != 0xFFFF && pos <= length - 4);
++    
++    printf("\r\n");
++}
++
++#include <sys/socket.h>
++#include <netinet/in.h>
++#include <arpa/inet.h>
++#include <netdb.h>
++#include <unistd.h>
++#define INVALID_SOCKET -1
++int gdb_port = 23946;
++
++int accepttimeout ( int s, struct sockaddr *addr, int *addrlen, int timeout )
++{
++    fd_set fds;
++    int n;
++    struct timeval tv;
++
++    // set up the file descriptor set
++    FD_ZERO(&fds);
++    FD_SET(s, &fds);
++
++    // set up the struct timeval for the timeout
++    tv.tv_sec = 0;
++    tv.tv_usec = timeout * 1000;
++
++    // wait until timeout or data received
++    n = select(s+1, &fds, NULL, NULL, &tv);
++    if (n == 0) return -2; // timeout!
++    if (n == -1) return -1; // error
++
++    // data must be here, so do a normal recv()
++    return accept ( s, addr, addrlen );
++}
++
++
++int recvtimeout ( int s, char *buf, int len, int timeout )
++{
++    fd_set fds;
++    int n;
++    struct timeval tv;
++
++    // set up the file descriptor set
++    FD_ZERO(&fds);
++    FD_SET(s, &fds);
++
++    // set up the struct timeval for the timeout
++    tv.tv_sec = 0;
++    tv.tv_usec = timeout * 1000;
++
++    // wait until timeout or data received
++    n = select(s+1, &fds, NULL, NULL, &tv);
++    if (n == 0) return -2; // timeout!
++    if (n == -1) return -1; // error
++
++    // data must be here, so do a normal recv()
++    return recv ( s, buf, len, 0 );
++}
++
++
++unsigned int gdb_loop (int socket)
++{
++    char buffer[8192];
++    while(1)
++    {
++        {
++            int recvStatus = recv ( socket, buffer, 8192, MSG_DONTWAIT );//recvtimeout (socket, buffer, 8192, 1);
++
++            if(recvStatus > 0)
++            {
++                buffer[recvStatus] = 0;
++                printf("Download: '%s'\n", buffer);
++                
++                if (ptp_chdk_gdb_download(buffer,&params,&params.deviceinfo) == 0)
++                {
++                    printf("error sending command\n");
++                    return;
++                }
++            }
++            else if((recvStatus == EAGAIN ) || (recvStatus == EWOULDBLOCK))//-2)
++            {
++            }
++            else if((recvStatus == -1 ) || (recvStatus == EWOULDBLOCK))//-2)
++            {
++            }
++            else
++            {
++                printf("error %i during recvtimeout\n", recvStatus );
++                return;
++            }
++        }
++        
++        /* upload */
++        {
++            char *buf;
++            
++            buf = ptp_chdk_gdb_upload(&params,&params.deviceinfo);
++            
++            if(buf != NULL && strlen(buf) > 0)
++            {
++                printf("Upload: '%s'\n", buf);
++                send(socket, buf, strlen(buf), 0 );
++            }
++        }
++    }
++}
++
++unsigned int gdb_listen ( )
++{	
++    struct sockaddr_in local;
++    struct sockaddr_in remote;
++    int remotelen = sizeof ( remote );
++    int server_fd = INVALID_SOCKET;
++    int client_fd = INVALID_SOCKET;
++
++#ifdef WIN32
++    if ( WSAStartup ( 0x101, &gdb_wsadata ) != 0 )
++        return E_FAIL;
++#endif
++
++	local.sin_family = AF_INET; 
++	local.sin_addr.s_addr = INADDR_ANY; 
++	local.sin_port = htons ( (u_short)gdb_port );
++
++	server_fd = socket ( AF_INET, SOCK_STREAM, 0 );
++	if ( server_fd == INVALID_SOCKET )
++		printf ("(socket error)\n");
++	else if ( bind ( server_fd, (struct sockaddr*)&local, sizeof(local) ) !=0 )
++		printf ("(port already used)\n" );
++	else if ( listen ( server_fd, 10 ) !=0 )
++		printf ("(listen error)\n");
++	else
++	{
++		while ( 1 )
++		{
++			client_fd = accepttimeout ( server_fd, (struct sockaddr*)&remote, &remotelen, 500 );
++			if ( client_fd >= 0 )
++			{
++				close ( server_fd );
++				printf ("remote connected: %s\n", inet_ntoa ( remote.sin_addr )  );
++				gdb_loop(client_fd);
++				return 1;
++			}
++		}
++	}
++    return 0;
++}
++
++
+ int chdk(int busn, int devn, short force)
+ {
+   char buf[CHDKBUFS], *s;
+@@ -2477,7 +2674,7 @@
+         end = start+strtoul(s+1,NULL,0);
+       } else {
+         start = strtoul(buf2,NULL,0);
+-        end = start+1;
++        end = start + 0x100;
+       }
+      
+       if ( (buf2 = ptp_chdk_get_memory(start,end-start,&params,&params.deviceinfo)) == NULL )
+@@ -2488,8 +2685,432 @@
+         free(buf2);
+       }
+       
+-    } else if ( !strncmp("set ",buf,4) )
++    } else if ( !strncmp("engio",buf,3) )
+     {
++        unsigned int addr = 0;
++        char *buf2;
++        unsigned int block_size = 0x200;
++        unsigned char *data_buf;
++
++        buf2 = strchr(buf,' ')+1;
++
++        while((*buf2 != '\000') && (*buf2 == ' '))
++        {
++            buf2++;
++        }
++        addr = strtoul(buf2,NULL,0);
++        printf("Reading engio buffers from 0x%08X\r\n", addr);
++        
++        if(addr > 0)
++        {
++            unsigned int reg = 0;
++            unsigned int data = 0;
++            
++            while(reg != 0xFFFFFFFF)
++            {
++                if ( (data_buf = ptp_chdk_get_memory(addr,block_size,&params,&params.deviceinfo)) == NULL )
++                {
++                    printf("error getting memory\n");
++                    break;
++                } 
++                else 
++                {
++                    unsigned int pos = 0;
++                    do
++                    {
++                        reg =  data_buf[pos + 0] | (data_buf[pos + 1] << 8)  | (data_buf[pos + 2] << 16)  | (data_buf[pos + 3] << 24);
++                        pos += 4;
++                        data = data_buf[pos + 0] | (data_buf[pos + 1] << 8)  | (data_buf[pos + 2] << 16)  | (data_buf[pos + 3] << 24);
++                        pos += 4;
++                        if(reg != 0xFFFFFFFF)
++                        {
++                            printf("[0x%08X] <- [0x%08X]\r\n", reg, data);
++                        }
++                    } while (reg != 0xFFFFFFFF && pos <= block_size - 8);
++                    free(data_buf);
++                    
++                    addr += block_size;
++                }        
++            }            
++        }
++
++      
++    } else if ( !strncmp("dump ",buf,5) )
++    {
++        unsigned long long start;
++        unsigned long long end;
++        unsigned long long addr;
++        unsigned long long len;
++        unsigned long long block_size = 0x1000;
++        unsigned char *s;
++        unsigned char *buf2;
++        unsigned char *data_buf;
++        FILE *dumpfile;
++
++        buf2 = strchr(buf,' ')+1;
++
++        if ( (s = strchr(buf2,'-')) != NULL )
++        {
++            *s = '\0';
++            start = strtoul(buf2,NULL,0);
++            end = strtoul(s+1,NULL,0)+1;
++        }
++        else if ( (s = strchr(buf2,' ')) != NULL )
++        {
++            *s = '\0';
++            start = strtoul(buf2,NULL,0);
++            end = start+strtoul(s+1,NULL,0);
++        }
++        else {
++            start = strtoul(buf2,NULL,0);
++            end = start + 0x100;
++        }
++        
++        addr = start;
++        
++        dumpfile = fopen("dump.bin", "wb");
++        if(dumpfile != NULL)
++        {
++            while(addr < end)
++            {
++                /* check for maximum block size */
++                if(addr + block_size > end)
++                {
++                    len = end - addr;
++                }
++                else
++                {
++                    len = block_size;
++                }
++                
++                printf("\rReading: 0x%08X...", (unsigned int)addr);
++                fflush(stdout);
++                
++                if ( (data_buf = ptp_chdk_get_memory(addr,block_size,&params,&params.deviceinfo)) == NULL )
++                {
++                    printf("error getting memory\n");
++                    break;
++                } 
++                else 
++                {
++                    fwrite(data_buf, len, 1, dumpfile);
++                    free(data_buf);
++                }
++                addr += len;
++            }
++            fclose(dumpfile);
++            printf("\r\nDone\r\n");
++        }
++      
++    }else if ( !strncmp("ptr",buf,3) )
++    {
++        unsigned int current_address = 0;
++        int done = 0;
++        char *buf2;
++        unsigned char *data_buf;
++        
++        while(!done)
++        {
++            int addr = 0;
++            
++            if ( fgets(buf,CHDKBUFS-1,stdin) == NULL )
++            {
++                printf("\n");
++                break;
++            }
++            
++            if(strlen(buf) < 3)
++            {
++                break;
++            }
++            
++            buf2 = buf;
++      
++            while((*buf2 != '\000') && (*buf2 == ' '))
++            {
++                buf2++;
++            }
++            addr = strtoul(buf2,NULL,0);
++            printf("offset: 0x%08X -> ", addr);
++            
++            current_address += addr;
++            printf("read: 0x%08X -> ", current_address);
++            
++            if(current_address > 0)
++            {
++                if ( (data_buf = ptp_chdk_get_memory(current_address,0x20,&params,&params.deviceinfo)) == NULL )
++                {
++                    printf("error getting memory\n");
++                    break;
++                } 
++                else 
++                {
++                    current_address = data_buf[0] | (data_buf[1] << 8)  | (data_buf[2] << 16)  | (data_buf[3] << 24);
++                    printf("next: 0x%08X\r\n", current_address);
++                    free(data_buf);
++                }            
++            }
++        }
++    } 
++    else if (!strncmp("gdb s ",buf,6))
++    {
++        char *cmd = &(buf[6]);
++        
++        if (ptp_chdk_gdb_download(cmd,&params,&params.deviceinfo) == 0)
++        {
++            printf("error sending command\n");
++        } 
++    }
++    else if (!strncmp("gdbproxy",buf,8))
++    {
++        gdb_listen();
++    }
++    else if (!strncmp("gdb r",buf,5))
++    {
++        char *buf;
++        
++        buf = ptp_chdk_gdb_upload(&params,&params.deviceinfo);
++        
++        if(buf == NULL)
++        {
++            printf("error receiving response\n");
++        } 
++        else
++        {
++            printf("gdb> '%s'\n", buf);
++        }
++    }
++    else if ( !strncmp("delta ",buf,6) || !strncmp("adtgdelta ",buf,6) || !strncmp("engiodelta ",buf,6))
++    {
++      int regdump = 0;
++      int start;
++      int end;
++      int deltaPos;
++      int deltaNum = 0;
++      char *s;
++      unsigned char *buf2;
++      unsigned int *deltaCount;
++      
++      if( !strncmp("adtgdelta ",buf,6))
++      {
++          regdump = 1;
++      }
++      if( !strncmp("engiodelta ",buf,6))
++      {
++          regdump = 2;
++      }
++      buf2 = strchr(buf,' ')+1;
++
++      if ( (s = strchr(buf2,'-')) != NULL )
++      {
++        *s = '\0';
++        start = strtoul(buf2,NULL,0);
++        end = strtoul(s+1,NULL,0)+1;
++      } 
++      else if ( (s = strchr(buf2,' ')) != NULL )
++      {
++        *s = '\0';
++        start = strtoul(buf2,NULL,0);
++        end = start+strtoul(s+1,NULL,0);
++      } 
++      else
++      {
++        start = strtoul(buf2,NULL,0);
++        end = start+0x100;
++      }
++     
++      /* get reference buffer */
++      if ( (buf2 = ptp_chdk_get_memory(start,end-start,&params,&params.deviceinfo)) == NULL )
++      {
++        printf("error getting memory\n");
++      } 
++      else 
++      {
++        if(regdump == 1)
++        {
++            adtg_dump(buf2, end-start, start);
++        }
++        else if(regdump == 2)
++        {
++            engio_dump(buf2, end-start, start);
++        }
++        else
++        {
++            hexdump(buf2,end-start,start);
++        }
++      }
++      
++      
++        deltaCount = malloc(sizeof(unsigned int) * (end-start));
++
++        for(deltaPos = 0; deltaPos < (end-start); deltaPos++)
++        {
++            deltaCount[deltaPos] = 0;
++        }
++      
++        while(!kbhit())
++        {
++            unsigned char *buf3;
++
++            /* get reference buffer */
++            if ( (buf3 = ptp_chdk_get_memory(start,end-start,&params,&params.deviceinfo)) == NULL )
++            {
++                printf("error getting memory\n");
++            } 
++            else 
++            {
++                int pos = 0;
++                int deltas = 0;
++                
++                for(pos = 0; pos < (end-start); pos++)
++                {
++                    if(buf2[pos] != buf3[pos] && deltaCount[pos] < 10)
++                    {                    
++                        printf("Ignoring delta at 0x%08X: 0x%02X -> 0x%02X\r\n", start + pos, buf2[pos], buf3[pos]);
++                        deltaCount[pos]++;
++                        deltas++;
++                    }
++                }
++                
++                if(deltas)
++                {
++                    memcpy(buf2, buf3, end-start);
++                }
++                free(buf3);
++            }            
++        }
++        fgetc(stdin);
++
++        
++      
++        while(!kbhit())
++        {
++            unsigned char *buf3;
++
++            /* get reference buffer */
++            if ( (buf3 = ptp_chdk_get_memory(start,end-start,&params,&params.deviceinfo)) == NULL )
++            {
++                printf("error getting memory\n");
++            } 
++            else 
++            {
++                int pos = 0;
++                int deltas = 0;
++                
++                for(pos = 0; pos < (end-start); pos++)
++                {
++                    if(deltaCount[pos] >= 10)
++                    {
++                        buf3[pos] = 0;
++                        buf2[pos] = 0;
++                    }
++                    
++                    if(buf2[pos] != buf3[pos] )
++                    {                    
++                        printf("Delta #%i at 0x%08X: 0x%02X -> 0x%02X\r\n", deltaNum++, start + pos, buf2[pos], buf3[pos]);
++                        deltas++;
++                    }
++                    
++                }
++                if(deltas)
++                {
++                    memcpy(buf2, buf3, end-start);
++                    if(regdump == 1)
++                    {
++                        adtg_dump(buf2, end-start, start);
++                    }
++                    else if(regdump == 2)
++                    {
++                        engio_dump(buf2, end-start, start);
++                    }
++                    else
++                    {
++                        hexdump(buf2,end-start,start);
++                    }
++                }
++                free(buf3);
++            }            
++        }
++      
++        free(buf2);
++        fgetc(stdin);
++
++    } 
++    else if ( !strncmp("rate ",buf,5))
++    {
++        int regdump = 0;
++        int start;
++        int deltaPos;
++        int deltaNum = 0;
++        char *s;
++        unsigned char *buf2;
++        unsigned int *deltaCount;
++        unsigned int oldVal = 0;
++        unsigned int maxVal = 0;
++        struct timeval oldTv;
++        struct timeval nextTv;
++        unsigned int loops = 0;
++        double avgDelta = -1.0f;
++
++        buf2 = strchr(buf,' ') + 1;
++      
++        start = strtoul(buf2,NULL,0);
++        
++        while(!kbhit())
++        {
++            unsigned char *buf3;
++
++            /* get reference buffer */
++            if ( (buf3 = ptp_chdk_get_memory(start,4,&params,&params.deviceinfo)) == NULL )
++            {
++                printf("error getting memory\n");
++            } 
++            else 
++            {
++                unsigned int nextVal = 0;
++                
++                nextVal = *((unsigned int*)buf3);
++                if(maxVal < nextVal)
++                {
++                    maxVal = nextVal;
++                }
++                
++                if(nextVal < oldVal)
++                {
++                    unsigned int delta = 0;
++                    
++                    gettimeofday(&nextTv, NULL);
++                    delta = ((nextTv.tv_sec - oldTv.tv_sec) * 1000000) + (nextTv.tv_usec - oldTv.tv_usec);
++                    
++                    
++                    if(loops++ > 0)
++                    {
++                        double rate = 0;
++                        
++                        if(avgDelta < 0)
++                        {
++                            avgDelta = delta;
++                        }
++                        else
++                        {
++                            avgDelta = avgDelta - avgDelta/loops + delta / loops;
++                        }
++                        
++                        rate = 1000000.0f / (avgDelta / maxVal);
++                        printf("Overflows: %i µsec (avg: %f), maxVal = 0x%08X, tickRate = %f Hz\n", delta, avgDelta, maxVal, rate);
++                    }
++                }
++                
++                oldVal = nextVal;
++                oldTv = nextTv;
++                
++                free(buf3);
++            }            
++        }
++        fgetc(stdin);
++    }
++    else if ( !strncmp("set ",buf,4) )
++    {
+       int addr;
+       int val;
+       char *s;

@@ -933,6 +933,10 @@ enum ptp_chdk_command {
                             // data length is handled by ptp data phase
                             // input messages do not have type or subtype, they are always a string destined for the script (similar to USER/string)
                             // output param1 is ptp_chdk_script_msg_status
+  PTP_CHDK_GDBStub_Upload,
+                            // param2 is the transfer buffer size
+  PTP_CHDK_GDBStub_Download,
+                            // param2 is the transfer buffer size
 };
 
 // data types as used by ReadScriptMessage
@@ -1004,6 +1008,10 @@ int ptp_chdk_exec_lua(char *script, int get_result, PTPParams* params, PTPDevice
 int ptp_chdk_get_version(PTPParams* params, PTPDeviceInfo* deviceinfo, int *major, int *minor);
 int ptp_chdk_get_script_support(PTPParams* params, PTPDeviceInfo* deviceinfo, int *status);
 int ptp_chdk_get_script_status(PTPParams* params, PTPDeviceInfo* deviceinfo, int *status);
+
+
+int ptp_chdk_gdb_download(char *buf, PTPParams* params, PTPDeviceInfo* deviceinfo);
+char* ptp_chdk_gdb_upload(PTPParams* params, PTPDeviceInfo* deviceinfo);
 
 typedef struct {
     unsigned size;
