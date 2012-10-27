@@ -2940,6 +2940,39 @@ int get_spot_focus(int dxb)
     return sf / (br >> 14);
 }
 
+static int spot_prev_xcb = 0;
+static int spot_prev_ycb = 0;
+static int spotmeter_dirty = 0;
+
+void
+spotmeter_erase()
+{
+    if (!spotmeter_dirty) return;
+    spotmeter_dirty = 0;
+
+    int xcb = spot_prev_xcb;
+    int ycb = spot_prev_ycb;
+    int dx = spotmeter_formula <= 3 ? 26 : 52;
+    int y0 = -13;
+    uint32_t* M = (uint32_t*)get_bvram_mirror();
+    uint32_t* B = (uint32_t*)bmp_vram();
+    for(int y = (ycb&~1) + y0 ; y <= (ycb&~1) + 36 ; y++ )
+    {
+        for(int x = xcb - dx ; x <= xcb + dx ; x+=4 )
+        {
+            uint8_t* m = (uint8_t*)(&(M[BM(x,y)/4])); //32bit to 8bit 
+            if (*m == 0x80) *m = 0;
+            m++;
+            if (*m == 0x80) *m = 0;
+            m++;
+            if (*m == 0x80) *m = 0;
+            m++;
+            if (*m == 0x80) *m = 0;
+            B[BM(x,y)/4] = 0;
+        }
+    }
+}
+
 static void spotmeter_step()
 {
     if (gui_menu_shown()) return;
@@ -2954,6 +2987,8 @@ static void spotmeter_step()
 
     if( !vram->vram )
         return;
+
+    spotmeter_erase();
     
     const uint16_t*     vr = (uint16_t*) vram->vram;
     const unsigned      width = vram->width;
@@ -2975,6 +3010,12 @@ static void spotmeter_step()
         xcb = COERCE(xcb, os.x0 + 50, os.x_max - 50);
         ycb = COERCE(ycb, os.y0 + 50, os.y_max - 50);
     }
+    
+    // save coords, so we know where to erase the spotmeter from
+    spot_prev_xcb = xcb;
+    spot_prev_ycb = ycb;
+    spotmeter_dirty = 1;
+    
     int xcl = BM2LV_X(xcb);
     int ycl = BM2LV_Y(ycb);
     int dxl = BM2LV_DX(dxb);
@@ -4229,8 +4270,8 @@ int handle_zoom_overlay(struct event * event)
             { move_lv_afframe(0, 300); return 0; }
     }
 
+    // quick focus box
     extern int focus_lv_jump;
-
     if (event->param == 
         #ifdef BGMT_JOY_CENTER
         BGMT_JOY_CENTER

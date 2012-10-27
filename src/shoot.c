@@ -752,7 +752,7 @@ static int afframe[AFFRAME_PROP_LEN/4+1];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
     ASSERT(len == AFFRAME_PROP_LEN);
 
-    clear_lv_afframe();
+    spotmeter_erase();
 
     crop_set_dirty(10);
     afframe_set_dirty();

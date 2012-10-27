@@ -641,17 +641,13 @@ void clear_lv_afframe()
             // clear focus box (white pixels, and any black neighbouring pixels from bottom-right - shadow)
             if (p == COLOR_WHITE)
             {
-                for (int di = 2; di >= -1; di--)
+                for (int di = 2; di >= 0; di--)
                 {
-                    for (int dj = 2; dj >= -1; dj--)
+                    for (int dj = 2; dj >= 0; dj--)
                     {
                         int p = Pr(j+dj,i+di);
                         if (p == COLOR_BLACK)
                         {
-                            if (di == -1 || dj == -1) // these offsets are only for clearing spotmeter, not AF frame
-                            {                         // so if it looks like Canon graphics, don't clear these pixels
-                                if (bvram_idle[BM(j+dj,i+di)] == COLOR_BLACK) continue;
-                            }
                             int m = M[BM(j+dj,i+di)];
                             Pw(j+dj,i+di) = g && (m & 0x80) ? m & ~0x80 : 0; // if global draw on, copy color from ML cropmark, otherwise, transparent
                         }
@@ -660,10 +656,6 @@ void clear_lv_afframe()
                 int m = M[BM(j,i)];
                 Pw(j,i) = g && (m & 0x80) ? m & ~0x80 : 0;
             }
-            
-            // clear spotmeter area marked as unsafe for zebras
-            int m = M[BM(j,i)];
-            if (m == 0x80) M[BM(j,i)] = 0;
         }
     }
     #undef Pw
