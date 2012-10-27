@@ -241,7 +241,8 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_expo_preset(event) == 0) return 0;
     if (handle_disp_preset_key(event) == 0) return 0;
     if (handle_fast_zoom_in_play_mode(event) == 0) return 0;
-    
+    if (handle_fast_zoom_box(event) == 0) return 0;
+
     if (handle_voice_tags(event) == 0) return 0;
     //~ if (handle_pause_zebras(event) == 0) return 0;
     //~ if (handle_kenrockwell_zoom(event) == 0) return 0;

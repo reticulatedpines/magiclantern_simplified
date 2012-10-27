@@ -1275,7 +1275,7 @@ static struct menu_entry focus_menu[] = {
         .priv = &focus_lv_jump, 
         .max = 4,
         .choices = (const char *[]) {"OFF", "Center/Top/Right", "Center/T/R/B/L", "Centr/TL/TR/BR/BL", "Center + 8 pts"},
-        .help = "Snap LV focus box to predefined positions (press CENTER).",
+        .help = "LiveView Focus Box: move faster and snap to preset points.",
     },
     {
         .name = "Follow Focus",

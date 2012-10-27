@@ -629,7 +629,6 @@ void clear_lv_afframe()
     // so, try to erase what's white and a few pixels of nearby black
     
     uint8_t * const bvram = bmp_vram();
-    uint8_t * const bvram_idle = bmp_vram_idle();
     #define Pr(X,Y) bvram[BM(X,Y)]
     #define Pw(X,Y) bvram[BM(COERCE(X, BMP_W_MINUS, BMP_W_PLUS-1), COERCE(Y, BMP_H_MINUS, BMP_H_PLUS-1))]
     // not quite efficient, but works
@@ -1023,7 +1022,7 @@ static void protect_image_task()
     fake_simple_button(BGMT_UNPRESS_SET);
     msleep(100);
     intptr_t h = get_current_dialog_handler();
-    if (h == 0xffb6aebc) // ?! null code here...
+    if (h == (intptr_t)0xffb6aebc) // ?! null code here...
     {
         StopPlayProtectGuideApp();
     }
@@ -1122,6 +1121,54 @@ fake_halfshutter_step()
         old_value = hs;
     }
 }
+
+static int arrow_pressed = 0;
+static int arrow_unpressed = 0;
+int handle_fast_zoom_box(struct event * event)
+{
+    extern int focus_lv_jump;
+    if (!lv) return 1;
+    if (!focus_lv_jump) return 1;
+    
+    if (!IS_FAKE(event) && lv)
+    {
+        if (event->param == BGMT_PRESS_LEFT ||
+            event->param == BGMT_PRESS_RIGHT ||
+            event->param == BGMT_PRESS_UP ||
+            event->param == BGMT_PRESS_DOWN
+            #ifdef BGMT_PRESS_UP_RIGHT
+            || event->param == BGMT_PRESS_UP_RIGHT
+            || event->param == BGMT_PRESS_UP_LEFT
+            || event->param == BGMT_PRESS_DOWN_RIGHT
+            || event->param == BGMT_PRESS_DOWN_LEFT
+            #endif
+            )
+        { 
+            arrow_pressed = event->param;
+            arrow_unpressed = 0; 
+        }
+        else if (
+            #ifdef BGMT_UNPRESS_UDLR
+            event->param == BGMT_UNPRESS_UDLR ||
+            #else
+            event->param == BGMT_UNPRESS_LEFT ||
+            event->param == BGMT_UNPRESS_RIGHT ||
+            event->param == BGMT_UNPRESS_UP ||
+            event->param == BGMT_UNPRESS_DOWN ||
+            #endif
+            #ifdef BGMT_JOY_CENTER
+            event->param == BGMT_JOY_CENTER ||
+            #endif
+            event->param == BGMT_PRESS_SET ||
+            event->param == BGMT_UNPRESS_SET
+            )
+        {
+            arrow_unpressed = 1;
+        }
+    }
+    return 1;
+}
+
 
 static int quickzoom_pressed = 0;
 static int quickzoom_unpressed = 0;
@@ -1330,6 +1377,16 @@ tweak_task( void* unused)
             play_zoom_center_pos_update();
         }
         #endif
+        
+        extern int focus_lv_jump;
+        if (arrow_pressed && lv && liveview_display_idle() && focus_lv_jump)
+        {
+            while (!arrow_unpressed)
+            {
+                fake_simple_button(arrow_pressed);
+                msleep(20);
+            }
+        }
         
         //~ expsim_update();
         
@@ -2702,7 +2759,7 @@ int anamorphic_squeeze_bmp_y(int y)
     if (unlikely(y < 0 || y >= 480)) return y;
 
     static int prev_idx = -1;
-    if (unlikely(prev_idx != anamorphic_ratio_idx)) // update the LUT
+    if (unlikely(prev_idx != (int)anamorphic_ratio_idx)) // update the LUT
     {
         int num = anamorphic_ratio_num[anamorphic_ratio_idx];
         int den = anamorphic_ratio_den[anamorphic_ratio_idx];
