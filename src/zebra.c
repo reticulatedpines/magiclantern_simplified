@@ -4237,7 +4237,7 @@ int handle_zoom_overlay(struct event * event)
         #else
         BGMT_PRESS_SET
         #endif
-        //~ && (focus_lv_jump || (recording && is_manual_focus()))
+        && (focus_lv_jump || (recording && is_manual_focus()))
         && liveview_display_idle() && !gui_menu_shown())
     {
         center_lv_afframe();

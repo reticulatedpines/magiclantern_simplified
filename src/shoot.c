@@ -746,8 +746,9 @@ silent_pic_display( void * priv, int x, int y, int selected )
     }
 }
 
+static volatile int afframe_ack = 0;
 #ifdef AFFRAME_PROP_LEN
-static int afframe[AFFRAME_PROP_LEN];
+static int afframe[AFFRAME_PROP_LEN/4+1];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
     ASSERT(len == AFFRAME_PROP_LEN);
 
@@ -757,6 +758,7 @@ PROP_HANDLER( PROP_LV_AFFRAME ) {
     afframe_set_dirty();
     
     my_memcpy(afframe, buf, AFFRAME_PROP_LEN);
+    afframe_ack = 1;
 }
 #else
 static int afframe[100]; // dummy
@@ -1029,9 +1031,12 @@ void move_lv_afframe(int dx, int dy)
     if (is_movie_mode() && video_mode_crop) return;
     if (recording && is_manual_focus()) // prop handler won't trigger, clear spotmeter 
         clear_lv_afframe();
+    
+    static int aff[AFFRAME_PROP_LEN/4+1];
+    memcpy(aff, afframe, AFFRAME_PROP_LEN);
 
-    afframe[2] = COERCE(afframe[2] + dx, 500, afframe[0] - afframe[4]);
-    afframe[3] = COERCE(afframe[3] + dy, 500, afframe[1] - afframe[5]);
+    aff[2] = COERCE(aff[2] + dx, 500, aff[0] - aff[4]);
+    aff[3] = COERCE(aff[3] + dy, 500, aff[1] - aff[5]);
 
     // some cameras apply an offset to X position, when AF is on (not quite predictable)
     // e.g. 60D and 5D2 apply the offset in AF mode, 550D doesn't seem to apply any
@@ -1039,19 +1044,24 @@ void move_lv_afframe(int dx, int dy)
     int af = !is_manual_focus();
     static int off_x = 0;
 
-    int x1 = afframe[2];
-    if (af) afframe[2] -= off_x;
-    prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+    int x1 = aff[2];
+    if (af) aff[2] -= off_x;
+    afframe_ack = 0;
+    prop_request_change(PROP_LV_AFFRAME, aff, AFFRAME_PROP_LEN);
     if (af)
     {
-        msleep(200);
+        for (int i = 0; i < 15; i++)
+        {
+            msleep(20);
+            if (afframe_ack) break;
+        }
         int x2 = afframe[2];
-        if (ABS(x2 - x1) > 160) // the focus box didn't quite end up where we wanted, so... adjust the offset and try again
+        if (afframe_ack && ABS(x2 - x1) > 160) // the focus box didn't quite end up where we wanted, so... adjust the offset and try again
         {
             int delta = (x2 - x1);
             off_x += delta;
-            afframe[2] = x1 - off_x;
-            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+            aff[2] = x1 - off_x;
+            prop_request_change(PROP_LV_AFFRAME, aff, AFFRAME_PROP_LEN);
         }
     }
     
