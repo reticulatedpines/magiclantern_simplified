@@ -629,6 +629,7 @@ void clear_lv_afframe()
     // so, try to erase what's white and a few pixels of nearby black
     
     uint8_t * const bvram = bmp_vram();
+    uint8_t * const bvram_idle = bmp_vram_idle();
     #define Pr(X,Y) bvram[BM(X,Y)]
     #define Pw(X,Y) bvram[BM(COERCE(X, BMP_W_MINUS, BMP_W_PLUS-1), COERCE(Y, BMP_H_MINUS, BMP_H_PLUS-1))]
     // not quite efficient, but works
@@ -647,6 +648,10 @@ void clear_lv_afframe()
                         int p = Pr(j+dj,i+di);
                         if (p == COLOR_BLACK)
                         {
+                            if (di == -1 || dj == -1) // these offsets are only for clearing spotmeter, not AF frame
+                            {                         // so if it looks like Canon graphics, don't clear these pixels
+                                if (bvram_idle[BM(j+dj,i+di)] == COLOR_BLACK) continue;
+                            }
                             int m = M[BM(j+dj,i+di)];
                             Pw(j+dj,i+di) = g && (m & 0x80) ? m & ~0x80 : 0; // if global draw on, copy color from ML cropmark, otherwise, transparent
                         }
