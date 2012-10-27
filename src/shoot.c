@@ -4798,8 +4798,8 @@ static void expo_preset_toggle()
     else
         beep();
     
+    if (pre_tv != 12) lens_set_rawshutter(pre_tv); else ensure_bulb_mode();
     lens_set_rawiso(pre_iso);
-    lens_set_rawshutter(pre_tv);
     lens_set_rawaperture(pre_av);
     if (lens_info.wb_mode == WB_KELVIN)
         lens_set_kelvin(pre_kelvin);
