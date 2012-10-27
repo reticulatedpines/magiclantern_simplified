@@ -5335,22 +5335,33 @@ struct menu_entry tweak_menus_shoot[] = {
 
 CONFIG_INT("auto.iso.ml", ml_auto_iso, 0);
 CONFIG_INT("auto.iso.av.tv", ml_auto_iso_av_shutter, 3);
+CONFIG_INT("auto.iso.tv.av", ml_auto_iso_tv_aperture, 3);
 
 void auto_iso_tweak_step()
 {
     if (!ml_auto_iso) return;
     if (ISO_ADJUSTMENT_ACTIVE) return;
     if (!display_idle()) return;
+
+    int min_iso = MIN_ISO;
+    int max_iso = auto_iso_range & 0xFF;
     
     if (shooting_mode == SHOOTMODE_AV)
     {
         int ref_tv = 88 + 8*ml_auto_iso_av_shutter;
-        int min_iso = MIN_ISO;
-        int max_iso = auto_iso_range & 0xFF;
 
         if (lens_info.raw_shutter <= ref_tv-4)
             lens_set_rawiso(MIN(lens_info.raw_iso + 8, max_iso));
         else if (lens_info.raw_shutter > ref_tv+4)
+            lens_set_rawiso(MAX(lens_info.raw_iso - 8, min_iso));
+    }
+    else if (shooting_mode == SHOOTMODE_TV)
+    {
+        int ref_av = COERCE(8 + 8*ml_auto_iso_tv_aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+
+        if (lens_info.raw_aperture <= ref_av-4)
+            lens_set_rawiso(MIN(lens_info.raw_iso + 8, max_iso));
+        else if (lens_info.raw_aperture > ref_av+4)
             lens_set_rawiso(MAX(lens_info.raw_iso - 8, min_iso));
     }
 }
@@ -5670,18 +5681,27 @@ static struct menu_entry expo_menus[] = {
         .name = "ML Auto ISO\b\b",
         .priv = &ml_auto_iso, 
         .max = 1,
-        .choices = (const char *[]) {"OFF", "ON (Av only)"},
+        .choices = (const char *[]) {"OFF", "ON (Tv/Av only)"},
         .help = "Experimental auto ISO algorithms.",
-        
+        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Shutter for Av",
+                .name = "Shutter for Av mode ",
                 .priv = &ml_auto_iso_av_shutter,
                 .min = 0,
                 .max = 8,
                 .icon_type = IT_PERCENT,
                 .choices = (const char *[]) {"1/15", "1/30", "1/60", "1/125", "1/250", "1/500", "1/1000", "1/2000", "1/4000"},
-                .help = "Preferred shutter speed for Av mode."
+                .help = "Preferred shutter speed for Av mode (+/- 0.5 EV)."
+            },
+            {
+                .name = "Aperture for Tv mode",
+                .priv = &ml_auto_iso_tv_aperture,
+                .min = 0,
+                .max = 9,
+                .icon_type = IT_PERCENT,
+                .choices = (const char *[]) {"f/1.0", "f/1.4", "f/2.0", "f/2.8", "f/4.0", "f/5.6", "f/8", "f/11", "f/16", "f/22"},
+                .help = "Preferred aperture for Tv mode (+/- 0.5 EV)."
             },
             /*
             {
