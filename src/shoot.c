@@ -6658,9 +6658,7 @@ static void misc_shooting_info()
     if (get_global_draw())
     {
         #if !defined(CONFIG_50D) && !defined(CONFIG_1100D)
-        extern thunk ShootOlcApp_handler;
-        if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown()
-            && (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler)
+        if (!lv && display_idle())
         BMP_LOCK
         (
             display_clock();
