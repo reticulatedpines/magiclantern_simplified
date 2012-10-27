@@ -4454,11 +4454,15 @@ void digic_zoom_overlay_step()
             // and make sure the pitch is right
             EngDrvOut(0xc0f140e8, vram_hd.pitch - vram_lv.pitch);
         }
+        
         prev = YUV422_HD_BUFFER_DMA_ADDR;
     }
     else
     {
-        if (prev) EngDrvOut(0xc0f140e8, 0);
+        if (prev) 
+        {
+            EngDrvOut(0xc0f140e8, 0);
+        }
         prev = 0;
     }
 #endif
@@ -4469,7 +4473,7 @@ void digic_zoom_overlay_step()
  */
 static void draw_zoom_overlay(int dirty)
 {   
-    if (digic_zoom_overlay_enabled()) return; // fullscreen zoom done via digic
+    if (zoom_overlay_size == 3) return; // fullscreen zoom done via digic
     
     //~ if (vram_width > 720) return;
     if (!lv) return;
@@ -4499,6 +4503,7 @@ static void draw_zoom_overlay(int dirty)
     lvr = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     #elif defined(CONFIG_5D3)
     lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
+    if (lvr != YUV422_LV_BUFFER_1 && lvr != YUV422_LV_BUFFER_2 && lvr != YUV422_LV_BUFFER_3) return;
     #else
     #endif
     
