@@ -1137,7 +1137,9 @@ int handle_fast_zoom_box(struct event * event)
         #else
         BGMT_PRESS_SET
         #endif
+        #ifndef CONFIG_550D // 550D should always center focus box with SET (it doesn't do by default)
         && ((focus_lv_jump > 1) || (recording && is_manual_focus()))
+        #endif
         && liveview_display_idle() && !gui_menu_shown()
         && !arrow_pressed)
     {
