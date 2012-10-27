@@ -1206,7 +1206,7 @@ menu_display(
             if (advanced_hidden_edit_mode)
             {
                 bmp_printf(
-                    FONT(FONT_MED, COLOR_DARK_RED, COLOR_BLACK),
+                    FONT(FONT_MED, MENU_WARNING_COLOR, COLOR_BLACK),
                      10,  MENU_HELP_Y_POS, 
                         "Press MENU to hide items. Press MENU to show them again.   "
                 );
