@@ -874,7 +874,9 @@ void bv_enable()
     //~ bmp_printf(FONT_LARGE, 50, 50, "ENable ");
     call("lvae_setcontrolbv", 1);
 
-    if (ae_mode_movie == 0 || bv_startup) // auto movie mode
+    int auto_movie = (ae_mode_movie == 0) && is_movie_mode();
+
+    if (auto_movie) // auto movie mode
     {
         CONTROL_BV_TV = bv_tv;
         CONTROL_BV_AV = bv_av;
