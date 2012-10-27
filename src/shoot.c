@@ -257,10 +257,9 @@ static void do_this_every_second() // called every second
     
     #ifndef CONFIG_VXWORKS
     task_update_loads();
-    #endif
-    
     static int k = 0; k++;
     if (k%10 == 0) update_lv_fps();
+    #endif
 }
 
 static void
@@ -1586,6 +1585,7 @@ static void * silent_pic_tmp_buf = 0;
 
 int silent_pic_preview()
 {
+#ifndef CONFIG_VXWORKS
     if (silent_pic_tmp_buf)
     {
         int size = vram_hd.pitch * vram_hd.height;
@@ -1593,6 +1593,7 @@ int silent_pic_preview()
         return 1;
     }
     return 0;
+#endif
 }
 
 void

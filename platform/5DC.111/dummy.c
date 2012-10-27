@@ -98,3 +98,6 @@ int get_effective_hdr_iso_for_display(int raw_iso ) { return 1; };
 void set_movie_digital_iso_gain(int gain) {};
 
 int bmp_is_on() { return 1; }
+
+void* shoot_malloc(int size) { return AllocateMemory(size); }
+void shoot_free(void* ptr) { FreeMemory(ptr); }

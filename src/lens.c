@@ -2163,6 +2163,7 @@ int bv_set_rawaperture(unsigned aperture)
 
 void bv_expsim_shift_try_iso(int newiso)
 {
+#ifndef CONFIG_VXWORKS
     #define MAX_GAIN_EV 6
     int e = 0;
     if (newiso < 72)
@@ -2188,9 +2189,11 @@ void bv_expsim_shift_try_iso(int newiso)
 
     CONTROL_BV_ISO = COERCE(newiso, 72, MAX_ISO_BV);
     set_photo_digital_iso_gain_for_bv(g);
+#endif
 }
 void bv_expsim_shift()
 {
+#ifndef CONFIG_VXWORKS
     set_photo_digital_iso_gain_for_bv(1024);
     if (!lv) return;
     if (!expsim) return;
@@ -2241,6 +2244,7 @@ void bv_expsim_shift()
     }
     
     return;
+#endif
 }
 
 int bv_auto_should_enable()

@@ -2591,6 +2591,7 @@ void brightness_saturation_reset()
 
 void alter_bitmap_palette_entry(int color, int base_color, int scale_factor)
 {
+#ifndef CONFIG_VXWORKS
     extern int LCD_Palette[];
     int orig_palette_entry = LCD_Palette[3*base_color + 2];
     int8_t opacity = (orig_palette_entry >> 24) & 0xFF;
@@ -2611,6 +2612,7 @@ void alter_bitmap_palette_entry(int color, int base_color, int scale_factor)
     if (!DISPLAY_IS_ON) return;
     EngDrvOut(0xC0F14400 + color*4, new_palette_entry);
     EngDrvOut(0xC0F14800 + color*4, new_palette_entry);
+#endif
 }
 
 void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shift)
@@ -2653,6 +2655,7 @@ void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shif
 
 void grayscale_menus_step()
 {
+#ifndef CONFIG_VXWORKS
     static int warning_color_dirty = 0;
     if (gui_menu_shown())
     {
@@ -2666,6 +2669,7 @@ void grayscale_menus_step()
         alter_bitmap_palette_entry(MENU_WARNING_COLOR, MENU_WARNING_COLOR, 256);
         warning_color_dirty = 0;
     }
+#endif
 
     // problem: grayscale registers are not overwritten by Canon when palette is changed
     // so we don't know when to refresh it
