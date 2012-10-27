@@ -1129,6 +1129,21 @@ int handle_fast_zoom_box(struct event * event)
     extern int focus_lv_jump;
     if (!lv) return 1;
     if (!focus_lv_jump) return 1;
+
+    extern int focus_lv_jump;
+    if (event->param == 
+        #ifdef BGMT_JOY_CENTER
+        BGMT_JOY_CENTER
+        #else
+        BGMT_PRESS_SET
+        #endif
+        && (focus_lv_jump || (recording && is_manual_focus()))
+        && liveview_display_idle() && !gui_menu_shown()
+        && !arrow_pressed)
+    {
+        center_lv_afframe();
+        return 0;
+    }
     
     if (!IS_FAKE(event) && lv)
     {
@@ -1386,6 +1401,7 @@ tweak_task( void* unused)
                 fake_simple_button(arrow_pressed);
                 msleep(20);
             }
+            arrow_pressed = 0;
         }
         
         //~ expsim_update();

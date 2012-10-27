@@ -4270,21 +4270,6 @@ int handle_zoom_overlay(struct event * event)
             { move_lv_afframe(0, 300); return 0; }
     }
 
-    // quick focus box
-    extern int focus_lv_jump;
-    if (event->param == 
-        #ifdef BGMT_JOY_CENTER
-        BGMT_JOY_CENTER
-        #else
-        BGMT_PRESS_SET
-        #endif
-        && (focus_lv_jump || (recording && is_manual_focus()))
-        && liveview_display_idle() && !gui_menu_shown())
-    {
-        center_lv_afframe();
-        return 0;
-    }
-
     return 1;
 }
 //~ void zoom_overlay_enable()
