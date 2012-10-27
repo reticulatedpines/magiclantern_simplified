@@ -1809,6 +1809,9 @@ PROP_HANDLER( PROP_LV_LENS )
     const struct prop_lv_lens * const lv_lens = (void*) buf;
     lens_info.focal_len    = bswap16( lv_lens->focal_len );
     lens_info.focus_dist    = bswap16( lv_lens->focus_dist );
+    
+    if (lens_info.focal_len > 1000) // bogus values
+        lens_info.focal_len = 0;
 
     //~ uint32_t lrswap = SWAP_ENDIAN(lv_lens->lens_rotation);
     //~ uint32_t lsswap = SWAP_ENDIAN(lv_lens->lens_step);

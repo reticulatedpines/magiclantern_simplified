@@ -140,7 +140,8 @@ display_lens_hyperfocal()
         y += height;
         bmp_printf( font, x, y,
             "Hyperfocal: %s",
-            lens_format_dist( lens_info.hyperfocal )
+            lens_info.hyperfocal ? lens_format_dist( lens_info.hyperfocal ) : 
+            "unknown, go to LiveView to get focal length"
         );
         y += height;
         bmp_printf( font, x, y,
