@@ -5349,9 +5349,20 @@ CONFIG_INT("auto.iso.tv.av", ml_auto_iso_tv_aperture, 3);
 
 void auto_iso_tweak_step()
 {
-    if (!ml_auto_iso) return;
+    static int last_iso = -1;
+    if (!ml_auto_iso)
+    {
+        if (last_iso != -1) // when disabling ML auto ISO, restore previous ISO
+        {   
+            lens_set_rawiso(last_iso);
+            last_iso = -1;
+        }
+        return;
+    }
     if (ISO_ADJUSTMENT_ACTIVE) return;
     if (!display_idle()) return;
+
+    if (last_iso == -1) last_iso = lens_info.raw_iso;
     
     int min_iso = MIN_ISO;
     int max_iso = auto_iso_range & 0xFF;
