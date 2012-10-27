@@ -38,7 +38,8 @@
 CONFIG_INT("digic.iso.gain.movie", digic_iso_gain_movie, 1024); // units: like with the old display gain
 CONFIG_INT("digic.iso.gain.photo", digic_iso_gain_photo, 1024);
 CONFIG_INT("digic.black", digic_black_level, 100);
-int digic_iso_gain_movie_extra = 1024; // additional gain that won't appear in ML menus, but can be changed from code (to be "added" to digic_iso_gain_movie)
+int digic_iso_gain_movie_for_gradual_expo = 1024; // additional gain that won't appear in ML menus, but can be changed from code (to be "added" to digic_iso_gain_movie)
+int digic_iso_gain_photo_for_bv = 1024;
 
 //~ CONFIG_INT("digic.shadow.lift", digic_shadow_lift, 0);
 // that is: 1024 = 0 EV = disabled
@@ -58,9 +59,14 @@ void set_movie_digital_iso_gain(int gain)
     digic_iso_gain_movie = gain;
 }
 
-void set_movie_digital_iso_gain_extra(int gain)
+void set_movie_digital_iso_gain_for_gradual_expo(int gain)
 {
-    digic_iso_gain_movie_extra = gain;
+    digic_iso_gain_movie_for_gradual_expo = gain;
+}
+
+void set_photo_digital_iso_gain_for_bv(int gain)
+{
+    digic_iso_gain_photo_for_bv = gain;
 }
 
 int gain_to_ev_scaled(int gain, int scale)
@@ -520,8 +526,8 @@ void digic_iso_step()
     if (is_movie_mode())
     {
         if (digic_iso_gain_movie == 0) digic_iso_gain_movie = 1024;
-
-        int total_movie_gain = digic_iso_gain_movie * digic_iso_gain_movie_extra / 1024;
+        if (digic_iso_gain_movie_for_gradual_expo == 0) digic_iso_gain_movie_for_gradual_expo = 1024;
+        int total_movie_gain = digic_iso_gain_movie * digic_iso_gain_movie_for_gradual_expo / 1024;
         if (total_movie_gain != 1024)
         {
             autodetect_default_white_level();
@@ -548,17 +554,20 @@ void digic_iso_step()
     }
     else // photo mode - display gain, for preview only
     {
-        if (digic_iso_gain_photo == 0) digic_iso_gain_photo = 1024;
+        if (digic_iso_gain_photo_for_bv == 0) digic_iso_gain_photo_for_bv = 1024;
+        int total_photo_gain = digic_iso_gain_photo * digic_iso_gain_photo_for_bv / 1024;
+
+        if (total_photo_gain == 0) total_photo_gain = 1024;
     #ifdef CONFIG_5D3
-        int g = digic_iso_gain_photo == 1024 ? 0 : COERCE(digic_iso_gain_photo, 0, 65534);
+        int g = total_photo_gain == 1024 ? 0 : COERCE(total_photo_gain, 0, 65534);
         if (LVAE_DISP_GAIN != g) 
         {
             call("lvae_setdispgain", g);
         }
     #else
-        if (digic_iso_gain_photo > 1024 && !LVAE_DISP_GAIN)
+        if (total_photo_gain > 1024 && !LVAE_DISP_GAIN)
         {
-            int boost_stops = COERCE((int)log2f(digic_iso_gain_photo / 1024), 0, 7);
+            int boost_stops = COERCE((int)log2f(total_photo_gain / 1024), 0, 7);
             EngDrvOut(ISO_PUSH_REGISTER, boost_stops << 8);
         }
     #endif

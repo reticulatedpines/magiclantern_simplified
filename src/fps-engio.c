@@ -1456,7 +1456,7 @@ void fps_ramp_iso_step()
     static int dirty = 0;
     if (!fps_ramp || !fps_ramp_expo)
     {
-        if (dirty) set_movie_digital_iso_gain_extra(1024);
+        if (dirty) set_movie_digital_iso_gain_for_gradual_expo(1024);
         return;
     }
 
@@ -1490,7 +1490,7 @@ void fps_ramp_iso_step()
     int g = (int)roundf(COERCE(gf, 1, 1<<20));
     if (g == 1024) g = 1025; // force override 
 
-    set_movie_digital_iso_gain_extra(g);
+    set_movie_digital_iso_gain_for_gradual_expo(g);
     dirty = 1;
 }
 

@@ -2159,11 +2159,12 @@ int bv_set_rawaperture(unsigned aperture)
 
 void bv_expsim_shift_try_iso(int newiso)
 {
+    #define MAX_GAIN_EV 6
     int e = 0;
     if (newiso < 72)
         e = 72 - newiso;
-    else if (newiso > MAX_ISO_BV)
-        e = MAX_ISO_BV - newiso;
+    else if (newiso > MAX_ISO_BV + MAX_GAIN_EV*8)
+        e = MAX_ISO_BV + MAX_GAIN_EV*8 - newiso;
     e = e * 10/8;
     
     static int prev_e = 0;
@@ -2174,10 +2175,19 @@ void bv_expsim_shift_try_iso(int newiso)
     }
     prev_e = e;
 
+    int g = 1024;
+    while (newiso > MAX_ISO_BV && g < (1024 << MAX_GAIN_EV))
+    {
+        g *= 2;
+        newiso -= 8;
+    }
+
     CONTROL_BV_ISO = COERCE(newiso, 72, MAX_ISO_BV);
+    set_photo_digital_iso_gain_for_bv(g);
 }
 void bv_expsim_shift()
 {
+    set_photo_digital_iso_gain_for_bv(1024);
     if (!lv) return;
     if (!expsim) return;
     if (!CONTROL_BV) return;
