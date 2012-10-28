@@ -2588,6 +2588,9 @@ int chdk(int busn, int devn, short force)
           "  script-status                show script execution and message status\n"
           "  getm                         get messages / return values from script\n"
           "  putm <message>               send <message> to running script\n"
+          "  gdbproxy                     forward gdb commands between a network socket and the camera\n"
+          "  gdb s <command>              send gdb <command> to camera\n"          
+          "  gdb r                        receive the response to 'gdb s'\n"
           );
       
     } else if ( !strcmp("r",buf) || !strcmp("reset",buf) )
