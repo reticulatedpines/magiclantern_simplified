@@ -1765,6 +1765,8 @@ ptp_get_operation_name(PTPParams* params, uint16_t oc)
 		{PTP_OC_CANON_ceresNotifyBtStatus,	N_("CANON EOS ceresNotifyBtStatus")},
 		{PTP_OC_CANON_fapiMessageTX,	N_("CANON EOS fapiMessageTX")},
 		{PTP_OC_CANON_fapiMessageRX,	N_("CANON EOS fapiMessageRX")},
+		{PTP_OC_CANON_CHDK,	N_("CANON EOS CHDK")},
+		{PTP_OC_CANON_MagicLantern,	N_("CANON EOS MagicLantern")},
 		{0,NULL}
 	};
 	switch (params->deviceinfo.VendorExtensionID) {
