@@ -561,22 +561,6 @@ void set_backlight_level(int level)
 
 CONFIG_INT("af.frame.autohide", af_frame_autohide, 1);
 
-static void
-af_frame_autohide_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Focus box (LV) : %s", 
-        af_frame_autohide ? "AutoHide" : "Show"
-    );
-}
-
 int afframe_countdown = 0;
 void afframe_set_dirty()
 {
@@ -1122,15 +1106,13 @@ fake_halfshutter_step()
     }
 }
 
+CONFIG_INT("focus.box.lv.jump", focus_box_lv_jump, 0);
+static CONFIG_INT("focus.box.lv.speed", focus_box_lv_speed, 1);
+
 static int arrow_pressed = 0;
 static int arrow_unpressed = 0;
 int handle_fast_zoom_box(struct event * event)
 {
-    extern int focus_lv_jump;
-    
-    int should_run = (focus_lv_jump && lv) || (quickzoom && PLAY_MODE);
-    if (!should_run) return 1;
-
     if (event->param == 
         #ifdef BGMT_JOY_CENTER
         BGMT_JOY_CENTER
@@ -1138,7 +1120,7 @@ int handle_fast_zoom_box(struct event * event)
         BGMT_PRESS_SET
         #endif
         #ifndef CONFIG_550D // 550D should always center focus box with SET (it doesn't do by default)
-        && ((focus_lv_jump > 1) || (recording && is_manual_focus()))
+        && (focus_box_lv_jump || (recording && is_manual_focus()))
         #endif
         && liveview_display_idle() && !gui_menu_shown()
         && !arrow_pressed)
@@ -1394,9 +1376,9 @@ tweak_task( void* unused)
             play_zoom_center_pos_update();
         }
         #endif
-        
-        extern int focus_lv_jump;
-        if (arrow_pressed && lv && liveview_display_idle() && focus_lv_jump)
+
+        // faster focus box in liveview
+        if (arrow_pressed && lv && liveview_display_idle() && focus_box_lv_speed)
         {
             int delay = 30;
             while (!arrow_unpressed)
@@ -1408,7 +1390,8 @@ tweak_task( void* unused)
             arrow_pressed = 0;
         }
 
-        if (arrow_pressed && PLAY_MODE && quickzoom && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 0)
+        // faster focus box in playback
+        if (arrow_pressed && is_pure_play_photo_mode() && quickzoom && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 0)
         {
             int delay = 100;
             while (!arrow_unpressed)
@@ -2071,6 +2054,40 @@ int handle_zoom_trick_event(struct event * event)
 #endif
 
 static struct menu_entry key_menus[] = {
+    {
+        .name = "Focus box settings...", 
+        .select = menu_open_submenu,
+        .submenu_width = 700,
+        .help = "Tweaks for LiveView focus box: move faster, snap to points.",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Speed\b\b", 
+                .priv = &focus_box_lv_speed,
+                .max = 1,
+                .icon_type = IT_BOOL,
+                .choices = (const char *[]) {"Normal (OFF)", "Fast"},
+                .help = "Move the focus box faster (in LiveView).",
+            },
+            {
+                .name = "Snap points\b\b",
+                .priv = &focus_box_lv_jump,
+                .max = 4,
+                .icon_type = IT_BOOL,
+                .choices = (const char *[]) {"Center (OFF)", "Center/Top/Right", "Center/T/R/B/L", "Center/TL/TR/BR/BL", "Center + 8 pts"},
+                .help = "Snap the focus box to preset points (press CENTER key)",
+            },
+            {
+                .name = "Display\b\b",
+                .priv = &af_frame_autohide, 
+                .max = 1,
+                .choices = (const char *[]) {"Show", "Auto-Hide"},
+                .help = "You can hide the focus box (the little white rectangle).",
+                .icon_type = IT_DISABLE_SOME_FEATURE,
+                //.essential = FOR_LIVEVIEW,
+            },
+            MENU_EOL,
+        }
+    },
     {
         .name       = "Arrow/SET shortcuts...",
         .select = menu_open_submenu,
@@ -3401,15 +3418,6 @@ static struct menu_entry display_menus[] = {
                     //.essential = FOR_LIVEVIEW,
                 },
             #endif
-                {
-                    .name = "Focus box",
-                    .priv = &af_frame_autohide, 
-                    .select = menu_binary_toggle,
-                    .display = af_frame_autohide_display,
-                    .help = "You can hide the focus box (the little white rectangle).",
-                    .icon_type = IT_DISABLE_SOME_FEATURE,
-                    //.essential = FOR_LIVEVIEW,
-                },
             #if !defined(CONFIG_VXWORKS) && !defined(CONFIG_5D3) && !defined(CONFIG_7D_MINIMAL)
                 {
                     .name = "Force HDMI-VGA",

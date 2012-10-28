@@ -21,8 +21,6 @@
 void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
 
-CONFIG_INT("focus.lv.jump", focus_lv_jump, 1);
-
 int override_zoom_buttons; // while focus menu is active and rack focus items are selected
 
 int should_override_zoom_buttons()
@@ -1307,13 +1305,6 @@ static struct menu_entry focus_menu[] = {
             MENU_EOL
         },
 
-    },
-    {
-        .name = "Quick Focus Box", 
-        .priv = &focus_lv_jump, 
-        .max = 5,
-        .choices = (const char *[]) {"OFF", "Move faster", "Center/Top/Right", "Center/T/R/B/L", "Centr/TL/TR/BR/BL", "Center + 8 pts"},
-        .help = "LiveView Focus Box: move faster and snap to preset points.",
     },
 #ifdef CONFIG_MOVIE_AF
     {

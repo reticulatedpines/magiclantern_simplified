@@ -909,7 +909,7 @@ sweep_lv_start(void* priv)
     sweep_lv_on = 1;
 }*/
 
-extern int focus_lv_jump;
+extern int focus_box_lv_jump;
 
 int center_lv_aff = 0;
 void center_lv_afframe()
@@ -924,11 +924,10 @@ void center_lv_afframe_do()
     int pos_y[9];
     
     int n = 
-        focus_lv_jump == 0 ? 1 :
-        focus_lv_jump == 1 ? 1 :
-        focus_lv_jump == 2 ? 3 :
-        focus_lv_jump == 3 ? 5 :
-        focus_lv_jump == 4 ? 5 :
+        focus_box_lv_jump == 0 ? 1 :
+        focus_box_lv_jump == 1 ? 3 :
+        focus_box_lv_jump == 2 ? 5 :
+        focus_box_lv_jump == 3 ? 5 :
                              9 ;
 
     int W = afframe[0];
@@ -942,7 +941,7 @@ void center_lv_afframe_do()
     pos_x[0] = W/2;
     pos_y[0] = H/2;
     
-    if (focus_lv_jump == 2)
+    if (focus_box_lv_jump == 1)
     {
         // top
         pos_x[1] = W / 2;
@@ -951,7 +950,7 @@ void center_lv_afframe_do()
         pos_x[2] = W*6/8;
         pos_y[2] = H / 2;
     }
-    else if (focus_lv_jump == 3)
+    else if (focus_box_lv_jump == 2)
     {
         // top
         pos_x[1] = W / 2;
@@ -966,7 +965,7 @@ void center_lv_afframe_do()
         pos_x[4] = W*2/8;
         pos_y[4] = H / 2;
     }
-    else if (focus_lv_jump == 4)
+    else if (focus_box_lv_jump == 3)
     {
         // top left
         pos_x[1] = W*2/6;
@@ -981,7 +980,7 @@ void center_lv_afframe_do()
         pos_x[4] = W*2/6;
         pos_y[4] = H*4/6;
     }
-    else if (focus_lv_jump == 5)
+    else if (focus_box_lv_jump == 4)
     {
         // top left
         pos_x[1] = W*2/6;
