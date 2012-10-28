@@ -124,7 +124,7 @@ NSTUB(0xffc87c70, prop_deliver)
 NSTUB(0xffc880ac, prop_get_value)
 NSTUB(0xffc87e68, prop_register_slave)
 NSTUB(0xffc88000, _prop_request_change)
-NSTUB(0xFFB93290, ptp_register_handler)
+
 NSTUB(0xffd3e45c, register_func)
 	//NSTUB(0xFFB97BF4, sdReadBlk)                      // might be good (dumps=1, score=8.2)
 	//NSTUB(   0x208D8, sd_device)
@@ -226,3 +226,8 @@ NSTUB(0xFFD69F8C, get_task_info)
 NSTUB(0xFFD6B8B0, get_active_task_list)
 
 NSTUB(0xFFD4EC6C, create_task_cmd_shell)
+
+NSTUB(0xFFB93290, ptp_register_handler)
+NSTUB(0xFFB8B6EC, ptp_register_handlers_0x9800)
+
+NSTUB(0xFFD4C1EC, DM_TryPostEvent)

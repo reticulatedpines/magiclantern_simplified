@@ -74,3 +74,10 @@ ROMBASEADDR     = 0xFF810000
 RESTARTSTART    = 0xB80000
 
 all: autoexec.bin
+
+ptpinstall: autoexec.bin
+	gvfs-mount -s gphoto2
+	ptpcam -i
+	sleep 2
+	cat $(TOP_DIR)/platform/40D.111/ptpcam.txt | ptpcam --chdk
+	diff autoexec.bin autoexec.test
