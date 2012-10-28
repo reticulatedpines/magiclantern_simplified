@@ -93,5 +93,7 @@
 #define PTP_OC_CANON_ceresNotifyBtStatus 0x91f9
 #define PTP_OC_CANON_fapiMessageTX 0x91fe
 #define PTP_OC_CANON_fapiMessageRX 0x91ff
+#define PTP_OC_CANON_CHDK 0x9999
+#define PTP_OC_CANON_MagicLantern 0xa1e8
 #endif
 

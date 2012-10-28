@@ -1765,6 +1765,8 @@ ptp_get_operation_name(PTPParams* params, uint16_t oc)
 		{PTP_OC_CANON_ceresNotifyBtStatus,	N_("CANON EOS ceresNotifyBtStatus")},
 		{PTP_OC_CANON_fapiMessageTX,	N_("CANON EOS fapiMessageTX")},
 		{PTP_OC_CANON_fapiMessageRX,	N_("CANON EOS fapiMessageRX")},
+		{PTP_OC_CANON_CHDK,	N_("CANON EOS CHDK")},
+		{PTP_OC_CANON_MagicLantern,	N_("CANON EOS MagicLantern")},
 		{0,NULL}
 	};
 	switch (params->deviceinfo.VendorExtensionID) {
@@ -1863,6 +1865,48 @@ char* ptp_chdk_get_memory(int start, int num, PTPParams* params, PTPDeviceInfo* 
     return NULL;
   }
   return buf;
+}
+
+char* ptp_chdk_gdb_upload(PTPParams* params, PTPDeviceInfo* deviceinfo)
+{
+  uint16_t ret;
+  PTPContainer ptp;
+  char *buf = NULL;
+
+  PTP_CNT_INIT(ptp);
+  ptp.Code=PTP_OC_CHDK;
+  ptp.Nparam=2;
+  ptp.Param1=PTP_CHDK_GDBStub_Upload;
+  ptp.Param2=1024;
+  ptp.Param3=0;
+  ret=ptp_transaction(params, &ptp, PTP_DP_GETDATA, 0, &buf);
+  if ( ret != 0x2001 )
+  {
+    ptp_error(params,"unexpected return code 0x%x",ret);
+    free(buf);
+    return NULL;
+  }
+  return buf;
+}
+
+int ptp_chdk_gdb_download(char *buf, PTPParams* params, PTPDeviceInfo* deviceinfo)
+{
+  uint16_t ret;
+  PTPContainer ptp;
+
+  PTP_CNT_INIT(ptp);
+  ptp.Code=PTP_OC_CHDK;
+  ptp.Nparam=2;
+  ptp.Param1=PTP_CHDK_GDBStub_Download;
+  ptp.Param2=strlen(buf);
+  ptp.Param3=0;
+  ret=ptp_transaction(params, &ptp, PTP_DP_SENDDATA, strlen(buf), &buf);
+  if ( ret != 0x2001 )
+  {
+    ptp_error(params,"unexpected return code 0x%x",ret);
+    return 0;
+  }
+  return 1;
 }
 
 int ptp_chdk_set_memory_long(int addr, int val, PTPParams* params, PTPDeviceInfo* deviceinfo)

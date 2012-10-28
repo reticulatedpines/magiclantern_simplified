@@ -2368,6 +2368,151 @@ int adtg_dump(unsigned char * data_buf, int length, int addr)
     printf("\r\n");
 }
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <unistd.h>
+#define INVALID_SOCKET -1
+int gdb_port = 23946;
+
+int accepttimeout ( int s, struct sockaddr *addr, int *addrlen, int timeout )
+{
+    fd_set fds;
+    int n;
+    struct timeval tv;
+
+    // set up the file descriptor set
+    FD_ZERO(&fds);
+    FD_SET(s, &fds);
+
+    // set up the struct timeval for the timeout
+    tv.tv_sec = 0;
+    tv.tv_usec = timeout * 1000;
+
+    // wait until timeout or data received
+    n = select(s+1, &fds, NULL, NULL, &tv);
+    if (n == 0) return -2; // timeout!
+    if (n == -1) return -1; // error
+
+    // data must be here, so do a normal recv()
+    return accept ( s, addr, addrlen );
+}
+
+
+int recvtimeout ( int s, char *buf, int len, int timeout )
+{
+    fd_set fds;
+    int n;
+    struct timeval tv;
+
+    // set up the file descriptor set
+    FD_ZERO(&fds);
+    FD_SET(s, &fds);
+
+    // set up the struct timeval for the timeout
+    tv.tv_sec = 0;
+    tv.tv_usec = timeout * 1000;
+
+    // wait until timeout or data received
+    n = select(s+1, &fds, NULL, NULL, &tv);
+    if (n == 0) return -2; // timeout!
+    if (n == -1) return -1; // error
+
+    // data must be here, so do a normal recv()
+    return recv ( s, buf, len, 0 );
+}
+
+
+unsigned int gdb_loop (int socket)
+{
+    char buffer[8192];
+    while(1)
+    {
+        {
+            int recvStatus = recv ( socket, buffer, 8192, MSG_DONTWAIT );//recvtimeout (socket, buffer, 8192, 1);
+
+            if(recvStatus > 0)
+            {
+                buffer[recvStatus] = 0;
+                printf("Download: '%s'\n", buffer);
+                
+                if (ptp_chdk_gdb_download(buffer,&params,&params.deviceinfo) == 0)
+                {
+                    printf("error sending command\n");
+                    return;
+                }
+            }
+            else if((recvStatus == EAGAIN ) || (recvStatus == EWOULDBLOCK))//-2)
+            {
+            }
+            else if((recvStatus == -1 ) || (recvStatus == EWOULDBLOCK))//-2)
+            {
+            }
+            else
+            {
+                printf("error %i during recvtimeout\n", recvStatus );
+                return;
+            }
+        }
+        
+        /* upload */
+        {
+            char *buf;
+            
+            buf = ptp_chdk_gdb_upload(&params,&params.deviceinfo);
+            
+            if(buf != NULL && strlen(buf) > 0)
+            {
+                printf("Upload: '%s'\n", buf);
+                send(socket, buf, strlen(buf), 0 );
+            }
+        }
+    }
+}
+
+unsigned int gdb_listen ( )
+{	
+    struct sockaddr_in local;
+    struct sockaddr_in remote;
+    int remotelen = sizeof ( remote );
+    int server_fd = INVALID_SOCKET;
+    int client_fd = INVALID_SOCKET;
+
+#ifdef WIN32
+    if ( WSAStartup ( 0x101, &gdb_wsadata ) != 0 )
+        return E_FAIL;
+#endif
+
+	local.sin_family = AF_INET; 
+	local.sin_addr.s_addr = INADDR_ANY; 
+	local.sin_port = htons ( (u_short)gdb_port );
+
+	server_fd = socket ( AF_INET, SOCK_STREAM, 0 );
+	if ( server_fd == INVALID_SOCKET )
+		printf ("(socket error)\n");
+	else if ( bind ( server_fd, (struct sockaddr*)&local, sizeof(local) ) !=0 )
+		printf ("(port already used)\n" );
+	else if ( listen ( server_fd, 10 ) !=0 )
+		printf ("(listen error)\n");
+	else
+	{
+		while ( 1 )
+		{
+			client_fd = accepttimeout ( server_fd, (struct sockaddr*)&remote, &remotelen, 500 );
+			if ( client_fd >= 0 )
+			{
+				close ( server_fd );
+				printf ("remote connected: %s\n", inet_ntoa ( remote.sin_addr )  );
+				gdb_loop(client_fd);
+				return 1;
+			}
+		}
+	}
+    return 0;
+}
+
+
 int chdk(int busn, int devn, short force)
 {
   char buf[CHDKBUFS], *s;
@@ -2443,6 +2588,9 @@ int chdk(int busn, int devn, short force)
           "  script-status                show script execution and message status\n"
           "  getm                         get messages / return values from script\n"
           "  putm <message>               send <message> to running script\n"
+          "  gdbproxy                     forward gdb commands between a network socket and the camera\n"
+          "  gdb s <command>              send gdb <command> to camera\n"          
+          "  gdb r                        receive the response to 'gdb s'\n"
           );
       
     } else if ( !strcmp("r",buf) || !strcmp("reset",buf) )
@@ -2539,7 +2687,7 @@ int chdk(int busn, int devn, short force)
         hexdump(buf2,end-start,start);
         free(buf2);
       }
-
+      
     } else if ( !strncmp("engio",buf,3) )
     {
         unsigned int addr = 0;
@@ -2707,6 +2855,34 @@ int chdk(int busn, int devn, short force)
             }
         }
     } 
+    else if (!strncmp("gdb s ",buf,6))
+    {
+        char *cmd = &(buf[6]);
+        
+        if (ptp_chdk_gdb_download(cmd,&params,&params.deviceinfo) == 0)
+        {
+            printf("error sending command\n");
+        } 
+    }
+    else if (!strncmp("gdbproxy",buf,8))
+    {
+        gdb_listen();
+    }
+    else if (!strncmp("gdb r",buf,5))
+    {
+        char *buf;
+        
+        buf = ptp_chdk_gdb_upload(&params,&params.deviceinfo);
+        
+        if(buf == NULL)
+        {
+            printf("error receiving response\n");
+        } 
+        else
+        {
+            printf("gdb> '%s'\n", buf);
+        }
+    }
     else if ( !strncmp("delta ",buf,6) || !strncmp("adtgdelta ",buf,6) || !strncmp("engiodelta ",buf,6))
     {
       int regdump = 0;
