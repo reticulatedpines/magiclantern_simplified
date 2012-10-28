@@ -1127,10 +1127,10 @@ static int arrow_unpressed = 0;
 int handle_fast_zoom_box(struct event * event)
 {
     extern int focus_lv_jump;
-    if (!lv) return 1;
-    if (!focus_lv_jump) return 1;
+    
+    int should_run = (focus_lv_jump && lv) || (quickzoom && PLAY_MODE);
+    if (!should_run) return 1;
 
-    extern int focus_lv_jump;
     if (event->param == 
         #ifdef BGMT_JOY_CENTER
         BGMT_JOY_CENTER
@@ -1147,7 +1147,7 @@ int handle_fast_zoom_box(struct event * event)
         return 0;
     }
     
-    if (!IS_FAKE(event) && lv)
+    if (!IS_FAKE(event))
     {
         if (event->param == BGMT_PRESS_LEFT ||
             event->param == BGMT_PRESS_RIGHT ||
@@ -1398,12 +1398,24 @@ tweak_task( void* unused)
         extern int focus_lv_jump;
         if (arrow_pressed && lv && liveview_display_idle() && focus_lv_jump)
         {
-            int delay = 20;
+            int delay = 30;
             while (!arrow_unpressed)
             {
                 fake_simple_button(arrow_pressed);
                 msleep(delay);
-                if (delay > 10) delay--;
+                if (delay > 10) delay -= 2;
+            }
+            arrow_pressed = 0;
+        }
+
+        if (arrow_pressed && PLAY_MODE && quickzoom && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 0)
+        {
+            int delay = 100;
+            while (!arrow_unpressed)
+            {
+                fake_simple_button(arrow_pressed);
+                msleep(delay);
+                if (delay > 30) delay -= 10;
             }
             arrow_pressed = 0;
         }
