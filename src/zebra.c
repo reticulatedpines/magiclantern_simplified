@@ -4417,11 +4417,11 @@ static void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lu
     //~ }
 }
 
-void digic_zoom_overlay_step()
+void digic_zoom_overlay_step(int force_off)
 {
 #if !defined(CONFIG_VXWORKS)
     static int prev = 0;
-    if (digic_zoom_overlay_enabled())
+    if (digic_zoom_overlay_enabled() && !force_off)
     {
         if (!prev) // first iteration after trigger
         {

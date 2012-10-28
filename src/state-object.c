@@ -137,8 +137,9 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
         {
             hdr_kill_flicker();
             display_filter_lv_vsync(old_state, x, input, z, t);
-            digic_zoom_overlay_step();
+            digic_zoom_overlay_step(0);
         }
+        else digic_zoom_overlay_step(1); // cleanup
     }
     #endif
     
