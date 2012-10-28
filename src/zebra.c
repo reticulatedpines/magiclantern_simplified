@@ -4503,7 +4503,7 @@ static void draw_zoom_overlay(int dirty)
     lvr = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     #elif defined(CONFIG_5D3)
     lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
-    if (lvr != YUV422_LV_BUFFER_1 && lvr != YUV422_LV_BUFFER_2 && lvr != YUV422_LV_BUFFER_3) return;
+    if (lvr != CACHEABLE(YUV422_LV_BUFFER_1) && lvr != CACHEABLE(YUV422_LV_BUFFER_2) && lvr != CACHEABLE(YUV422_LV_BUFFER_3)) return;
     #else
     #endif
     
@@ -5547,7 +5547,7 @@ livev_hipriority_task( void* unused )
             zoom_overlay_dirty = 0;
             //~ crop_set_dirty(10); // don't draw cropmarks while magic zoom is active
             // but redraw them after MZ is turned off
-            continue;
+            //~ continue;
         }
         else
         {
