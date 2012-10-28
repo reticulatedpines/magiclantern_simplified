@@ -389,12 +389,10 @@ pattern_display( void * priv, int x, int y, int selected )
 static struct menu_entry afp_focus_menu[] = {
 #if !defined(CONFIG_5DC) && !defined(CONFIG_5D3) && !defined(CONFIG_7D_MINIMAL)
     {
-        .name = "Focus Patterns",
-        .priv = &af_patterns,
-        .display    = afp_display,
-        .select = menu_binary_toggle,
+        .name = "Focus Patterns...",
+        .select = menu_open_submenu,
         .help = "Custom AF patterns (photo mode only). Ported from 400plus.",
-
+        .submenu_height = 280,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Center selection",
@@ -411,6 +409,12 @@ static struct menu_entry afp_focus_menu[] = {
                 .select = afp_vert_toggle,
                 .display = pattern_display,
                 .help = "Select a vertical AF pattern with LEFT and RIGHT keys.",
+            },
+            {
+                .name = "Shortcut keys",
+                .priv = &af_patterns,
+                .max = 1,
+                .help = "Choose patterns outside ML menu, display OFF, arrows+SET.",
             },
             MENU_EOL
         },

@@ -196,7 +196,6 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_intervalometer(event) == 0) return 0;
     if (handle_transparent_overlay(event) == 0) return 0; // on 500D, these two share the same key
     if (handle_livev_playback(event, BTN_ZEBRAS_FOR_PLAYBACK) == 0) return 0;
-    if (handle_af_patterns(event) == 0) return 0;
     if (handle_set_wheel_play(event) == 0) return 0;
 
     //~ #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
@@ -242,6 +241,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_disp_preset_key(event) == 0) return 0;
     if (handle_fast_zoom_in_play_mode(event) == 0) return 0;
     if (handle_fast_zoom_box(event) == 0) return 0;
+    if (handle_af_patterns(event) == 0) return 0;
 
     if (handle_voice_tags(event) == 0) return 0;
     //~ if (handle_pause_zebras(event) == 0) return 0;

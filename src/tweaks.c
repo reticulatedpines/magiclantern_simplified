@@ -1137,7 +1137,9 @@ int handle_fast_zoom_box(struct event * event)
         #else
         BGMT_PRESS_SET
         #endif
-        && (focus_lv_jump || (recording && is_manual_focus()))
+        #ifndef CONFIG_550D // 550D should always center focus box with SET (it doesn't do by default)
+        && ((focus_lv_jump > 1) || (recording && is_manual_focus()))
+        #endif
         && liveview_display_idle() && !gui_menu_shown()
         && !arrow_pressed)
     {
@@ -1396,10 +1398,12 @@ tweak_task( void* unused)
         extern int focus_lv_jump;
         if (arrow_pressed && lv && liveview_display_idle() && focus_lv_jump)
         {
+            int delay = 20;
             while (!arrow_unpressed)
             {
                 fake_simple_button(arrow_pressed);
-                msleep(20);
+                msleep(delay);
+                if (delay > 10) delay--;
             }
             arrow_pressed = 0;
         }

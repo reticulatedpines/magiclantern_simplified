@@ -21,7 +21,7 @@
 void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
 
-CONFIG_INT("focus.lv.jump", focus_lv_jump, 0);
+CONFIG_INT("focus.lv.jump", focus_lv_jump, 1);
 
 int override_zoom_buttons; // while focus menu is active and rack focus items are selected
 
@@ -140,7 +140,8 @@ display_lens_hyperfocal()
         y += height;
         bmp_printf( font, x, y,
             "Hyperfocal: %s",
-            lens_format_dist( lens_info.hyperfocal )
+            lens_info.hyperfocal ? lens_format_dist( lens_info.hyperfocal ) : 
+            "unknown, go to LiveView to get focal length"
         );
         y += height;
         bmp_printf( font, x, y,
@@ -1271,13 +1272,6 @@ static struct menu_entry focus_menu[] = {
 #if !defined(CONFIG_5DC)
 #if !defined(CONFIG_7D_MINIMAL)
     {
-        .name = "Quick Focus Box", 
-        .priv = &focus_lv_jump, 
-        .max = 4,
-        .choices = (const char *[]) {"OFF", "Center/Top/Right", "Center/T/R/B/L", "Centr/TL/TR/BR/BL", "Center + 8 pts"},
-        .help = "LiveView Focus Box: move faster and snap to preset points.",
-    },
-    {
         .name = "Follow Focus",
         .priv = &follow_focus,
         .display    = follow_focus_print,
@@ -1313,6 +1307,13 @@ static struct menu_entry focus_menu[] = {
             MENU_EOL
         },
 
+    },
+    {
+        .name = "Quick Focus Box", 
+        .priv = &focus_lv_jump, 
+        .max = 5,
+        .choices = (const char *[]) {"OFF", "Move faster", "Center/Top/Right", "Center/T/R/B/L", "Centr/TL/TR/BR/BL", "Center + 8 pts"},
+        .help = "LiveView Focus Box: move faster and snap to preset points.",
     },
 #ifdef CONFIG_MOVIE_AF
     {
@@ -1447,10 +1448,10 @@ focus_init( void* unused )
     focus_task_sem = create_named_semaphore( "focus_task_sem", 1 );
 
     menu_add( "Focus", trap_focus_menu, COUNT(trap_focus_menu) );
+    menu_add( "Focus", focus_menu, COUNT(focus_menu) );
     #ifndef CONFIG_5D3
     afp_menu_init();
     #endif
-    menu_add( "Focus", focus_menu, COUNT(focus_menu) );
     
 }
 
