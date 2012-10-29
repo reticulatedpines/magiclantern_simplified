@@ -111,7 +111,7 @@ NSTUB(0xff13b630, register_func)
 NSTUB(0xff6b16ac, sdReadBlk)
 NSTUB(   0x399D4, sd_device)
 NSTUB(0xff0c10f4, sei_restore)
-NSTUB(0xff1448c4, strcmp)
+//NSTUB(0xff1448c4, strcmp)
 NSTUB(0xff31b930, strcpy)
 NSTUB(0xff0c8008, strlen)
 NSTUB(0xff9e74c8 - RAM_OFFSET, take_semaphore)
@@ -177,3 +177,7 @@ NSTUB(0xff13c180, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff13c298, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0xff9ea118 - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff9e9af0 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
+
+NSTUB(0xFF9EB650 - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)
+
+NSTUB(0xFF195084, GUI_SetRollingPitchingLevelStatus)

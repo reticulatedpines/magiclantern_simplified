@@ -2642,14 +2642,14 @@ void hide_menu_by_name(char* name, char* entry_name)
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
-        if (!strcmp(menu->name, name))
+        if (streq(menu->name, name))
         {
             struct menu_entry * entry = menu->children;
             
             int i;
             for(i = 0 ; entry ; entry = entry->next, i++ )
             {
-                if (!strcmp(entry->name, entry_name))
+                if (streq(entry->name, entry_name))
                 {
                     entry->hidden = 1;
                     menu->childnum--;
