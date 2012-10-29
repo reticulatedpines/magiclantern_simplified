@@ -5198,7 +5198,7 @@ clearscreen_loop:
         #ifdef CONFIG_KILL_FLICKER
         if (kill_canon_gui_mode == 1)
         {
-            if (global_draw && !gui_menu_shown())
+            if (ZEBRAS_IN_LIVEVIEW && !gui_menu_shown())
             {
                 int idle = liveview_display_idle() && lv_disp_mode == 0;
                 if (idle)
@@ -5296,7 +5296,7 @@ clearscreen_loop:
         #ifdef CONFIG_KILL_FLICKER
         if (kill_canon_gui_mode == 2) // LV transparent menus and key presses
         {
-            if (global_draw && !gui_menu_shown() && lv_disp_mode == 0)
+            if (ZEBRAS_IN_LIVEVIEW && !gui_menu_shown() && lv_disp_mode == 0)
                 idle_action_do(&idle_countdown_killflicker, &idle_countdown_killflicker_prev, idle_kill_flicker, idle_stop_killing_flicker);
         }
         #endif
