@@ -111,7 +111,7 @@ display_lens_hyperfocal()
     unsigned        height = fontspec_height( font );
 
     int x = 10;
-    int y = 335;
+    int y = 315;
 
     y += 10;
     y += height;

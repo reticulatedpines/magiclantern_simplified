@@ -1247,7 +1247,7 @@ static void
 show_hidden_items(struct menu * menu, int force_clear)
 {
     // show any items that may be hidden
-    if (!advanced_hidden_edit_mode && !menu_lv_transparent_mode)
+    if (!menu_lv_transparent_mode)
     {
         char hidden_msg[70];
         snprintf(hidden_msg, sizeof(hidden_msg), "Hidden: ");
@@ -1289,7 +1289,7 @@ show_hidden_items(struct menu * menu, int force_clear)
         if (hidden_count)
         {
             bmp_printf(
-                FONT(FONT_MED, COLOR_GRAY50, COLOR_BLACK), 
+                FONT(FONT_MED, advanced_hidden_edit_mode ? MENU_WARNING_COLOR : COLOR_GRAY60 , COLOR_BLACK), 
                  10, hidden_pos_y, 
                  hidden_msg
             );
@@ -1381,6 +1381,8 @@ menus_display(
 
         if( menu->selected )
         {
+            show_hidden_items(menu, 0);
+
             menu_display(
                 menu,
                 orig_x + 40,
@@ -1388,7 +1390,6 @@ menus_display(
                 0
             );
             
-            show_hidden_items(menu, 0);
             show_vscroll(menu);
         }
     }
