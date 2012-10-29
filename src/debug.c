@@ -50,6 +50,7 @@ void HijackFormatDialogBox_main();
 void config_menu_init();
 void display_on();
 void display_off();
+void EngDrvOut(int reg, int value);
 
 
 void fake_halfshutter_step();
@@ -681,6 +682,221 @@ void card_benchmark_task()
     }
     lens_wait_readytotakepic(64);
     msleep(delay);
+}
+
+#define TEST_MSG(fmt, ...) { my_fprintf(log, fmt, ## __VA_ARGS__); bmp_printf(FONT_MED, 0, 0, fmt, ## __VA_ARGS__); }
+#define TEST_TRY_VOID(x) { x; TEST_MSG("       %s\n", #x); }
+#define TEST_TRY_FUNC(x) { int ans = (int)(x); TEST_MSG("       %s => 0x%x\n", #x, ans); }
+#define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); int ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else failed_tests++; }
+#define TEST_TRY_FUNC_CHECK_STR(x, expected_string) { char* ans = (char*)(x); int ok = streq(ans, expected_string); TEST_MSG("[%s] %s => '%s'\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else failed_tests++; }
+
+int test_task_created = 0;
+void test_task() { test_task_created = 1; }
+
+static void stub_test_task(void* unused)
+{
+    msleep(1000);
+    info_led_on();
+    int passed_tests = 0;
+    int failed_tests = 0;
+    
+    FILE* log = FIO_CreateFileEx( CARD_DRIVE "stubtest.log" );
+    
+    // strlen
+    TEST_TRY_FUNC_CHECK(strlen("abc"), == 3);
+    TEST_TRY_FUNC_CHECK(strlen("qwertyuiop"), == 10);
+    TEST_TRY_FUNC_CHECK(strlen(""), == 0);
+    
+    // strcpy
+    char msg[10];
+    TEST_TRY_FUNC_CHECK(strcpy(msg, "hi there"), == (int)msg);
+    TEST_TRY_FUNC_CHECK_STR(msg, "hi there");
+    
+    // strcmp, snprintf
+    // gcc will optimize strcmp calls with constant arguments, so use snprintf to force gcc to call strcmp
+    char a[50]; char b[50];
+  
+    TEST_TRY_FUNC_CHECK(snprintf(a, sizeof(a), "foo"), == 3);
+    TEST_TRY_FUNC_CHECK(snprintf(b, sizeof(b), "foo"), == 3);
+    TEST_TRY_FUNC_CHECK(strcmp(a, b), == 0);
+
+    TEST_TRY_FUNC_CHECK(snprintf(a, sizeof(a), "bar"), == 3);
+    TEST_TRY_FUNC_CHECK(snprintf(b, sizeof(b), "baz"), == 3);
+    TEST_TRY_FUNC_CHECK(strcmp(a, b), < 0);
+
+    TEST_TRY_FUNC_CHECK(snprintf(a, sizeof(a), "Display"), == 7);
+    TEST_TRY_FUNC_CHECK(snprintf(b, sizeof(b), "Defishing"), == 9);
+    TEST_TRY_FUNC_CHECK(strcmp(a, b), > 0);
+
+    // vsnprintf
+    // variable arguments, not sure how to test
+
+    // memcpy, memset, bzero32
+    static char foo[] = "qwertyuiop";
+    static char bar[] = "asdfghjkl;";
+    TEST_TRY_FUNC_CHECK(memcpy(foo, bar, 6), == (int)foo);
+    TEST_TRY_FUNC_CHECK_STR(foo, "asdfghuiop");
+    TEST_TRY_FUNC_CHECK(memset(bar, '*', 5), == (int)bar);
+    TEST_TRY_FUNC_CHECK_STR(bar, "*****hjkl;");
+    TEST_TRY_VOID(bzero32(bar + 5, 5));
+    TEST_TRY_FUNC_CHECK_STR(bar, "****");
+    
+    // digic clock, msleep
+    int t0, t1;
+    TEST_TRY_FUNC(t0 = *(uint32_t*)0xC0242014);
+    TEST_TRY_VOID(msleep(250));
+    TEST_TRY_FUNC(t1 = *(uint32_t*)0xC0242014);
+    TEST_TRY_FUNC_CHECK(ABS(mod(t1-t0, 1048576)/1000 - 250), < 20);
+
+    // calendar
+    struct tm now;
+    int s0, s1;
+    TEST_TRY_VOID(LoadCalendarFromRTC( &now ));
+    TEST_TRY_FUNC(s0 = now.tm_sec);
+
+    TEST_MSG(
+        "       Date/time: %04d/%02d/%02d %02d:%02d:%02d\n",
+        now.tm_year + 1900,
+        now.tm_mon + 1,
+        now.tm_mday,
+        now.tm_hour,
+        now.tm_min,
+        now.tm_sec
+    );
+
+    TEST_TRY_VOID(msleep(1500));
+    TEST_TRY_VOID(LoadCalendarFromRTC( &now ));
+    TEST_TRY_FUNC(s1 = now.tm_sec);
+    TEST_TRY_FUNC_CHECK(mod(s1-s0, 60), >= 1);
+    TEST_TRY_FUNC_CHECK(mod(s1-s0, 60), <= 2);
+
+    // mallocs
+    int m0, m1, m2;
+    void* p;
+    TEST_TRY_FUNC(m0 = MALLOC_FREE_MEMORY);
+    TEST_TRY_FUNC(p = malloc(50*1024));
+    TEST_TRY_FUNC(m1 = MALLOC_FREE_MEMORY);
+    TEST_TRY_VOID(free(p));
+    TEST_TRY_FUNC(m2 = MALLOC_FREE_MEMORY);
+    TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 50*1024), < 2048);
+    TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
+
+    TEST_TRY_FUNC(m0 = GetFreeMemForAllocateMemory());
+    TEST_TRY_FUNC(p = AllocateMemory(256*1024));
+    TEST_TRY_FUNC(m1 = GetFreeMemForAllocateMemory());
+    TEST_TRY_VOID(FreeMemory(p));
+    TEST_TRY_FUNC(m2 = GetFreeMemForAllocateMemory());
+    TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 256*1024), < 2048);
+    TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
+
+    // these buffers may be from different memory pools, just check for leaks in main pools
+    int m01, m02, m11, m12;
+    TEST_TRY_FUNC(m01 = MALLOC_FREE_MEMORY);
+    TEST_TRY_FUNC(m02 = GetFreeMemForAllocateMemory());
+    TEST_TRY_FUNC(p = alloc_dma_memory(256*1024));
+    TEST_TRY_VOID(free_dma_memory(p));
+    TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+    TEST_TRY_FUNC_CHECK(CACHEABLE(p), != (int)p);
+    TEST_TRY_FUNC_CHECK(UNCACHEABLE(CACHEABLE(p)), == (int)p);
+    TEST_TRY_FUNC(p = (void*)shoot_malloc(24*1024*1024));
+    TEST_TRY_VOID(shoot_free(p));
+    TEST_TRY_FUNC(m11 = MALLOC_FREE_MEMORY);
+    TEST_TRY_FUNC(m12 = GetFreeMemForAllocateMemory());
+    TEST_TRY_FUNC_CHECK(ABS(m01-m11), < 2048);
+    TEST_TRY_FUNC_CHECK(ABS(m02-m12), < 2048);
+
+    // engio
+    TEST_TRY_VOID(EngDrvOut(0xC0F14400, 0x1234));
+    TEST_TRY_FUNC_CHECK(shamem_read(0xC0F14400), == 0x1234);
+
+    // call, DISPLAY_IS_ON
+    TEST_TRY_VOID(call("TurnOffDisplay"));
+    TEST_TRY_FUNC_CHECK(DISPLAY_IS_ON, == 0);
+    TEST_TRY_VOID(call("TurnOnDisplay"));
+    TEST_TRY_FUNC_CHECK(DISPLAY_IS_ON, != 0);
+
+    // SetGUIRequestMode, CURRENT_DIALOG_MAYBE
+    TEST_TRY_VOID(SetGUIRequestMode(1); msleep(500););
+    TEST_TRY_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 1);
+    TEST_TRY_VOID(SetGUIRequestMode(2); msleep(500););
+    TEST_TRY_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 2);
+    TEST_TRY_VOID(SetGUIRequestMode(0); msleep(500););
+    TEST_TRY_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 0);
+    
+    // GUI_Control
+    TEST_TRY_VOID(GUI_Control(BGMT_PLAY, 0, 0, 0); msleep(500););
+    TEST_TRY_FUNC_CHECK(PLAY_MODE, != 0);
+    TEST_TRY_FUNC_CHECK(MENU_MODE, == 0);
+    TEST_TRY_VOID(GUI_Control(BGMT_MENU, 0, 0, 0); msleep(500););
+    TEST_TRY_FUNC_CHECK(MENU_MODE, != 0);
+    TEST_TRY_FUNC_CHECK(PLAY_MODE, == 0);
+    TEST_TRY_VOID(GUI_Control(BGMT_MENU, 0, 0, 0); msleep(500););
+    TEST_TRY_FUNC_CHECK(MENU_MODE, == 0);
+    TEST_TRY_FUNC_CHECK(PLAY_MODE, == 0);
+
+    // task_create
+    TEST_TRY_FUNC(task_create("test", 0x1c, 0x1000, test_task, 0));
+    TEST_TRY_FUNC_CHECK(test_task_created, == 1);
+    TEST_TRY_FUNC_CHECK_STR(get_task_name_from_id(get_current_task()), "run_test");
+
+    // mq
+    struct msg_queue * mq = 0;
+    int m = 0;
+    TEST_TRY_FUNC_CHECK(mq = (void*)msg_queue_create("test", 5), != 0);
+    TEST_TRY_FUNC_CHECK(msg_queue_post(mq, 0x1234567), == 0);
+    TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), == 0);
+    TEST_TRY_FUNC_CHECK(m, == 0x1234567);
+    TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), != 0);
+
+    // sem
+    struct semaphore * sem = 0;
+    TEST_TRY_FUNC_CHECK(sem = create_named_semaphore("test", 1), != 0);
+    TEST_TRY_FUNC_CHECK(take_semaphore(sem, 500), == 0);
+    TEST_TRY_FUNC_CHECK(take_semaphore(sem, 500), != 0);
+    TEST_TRY_FUNC_CHECK(give_semaphore(sem), == 0);
+    TEST_TRY_FUNC_CHECK(take_semaphore(sem, 500), == 0);
+
+    // recursive lock
+    void * rlock = 0;
+    TEST_TRY_FUNC_CHECK(rlock = CreateRecursiveLock(0), != 0);
+    TEST_TRY_FUNC_CHECK(AcquireRecursiveLock(rlock, 500), == 0);
+    TEST_TRY_FUNC_CHECK(AcquireRecursiveLock(rlock, 500), == 0);
+    TEST_TRY_FUNC_CHECK(ReleaseRecursiveLock(rlock), == 0);
+    TEST_TRY_FUNC_CHECK(ReleaseRecursiveLock(rlock), == 0);
+    TEST_TRY_FUNC_CHECK(ReleaseRecursiveLock(rlock), != 0);
+
+    // file I/O
+    
+    FILE* f;
+    TEST_TRY_FUNC_CHECK(f = FIO_CreateFileEx(CARD_DRIVE"test.dat"), != (int)INVALID_PTR);
+    TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
+    TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
+    TEST_TRY_VOID(FIO_CloseFile(f));
+    unsigned int size;
+    TEST_TRY_FUNC_CHECK(FIO_GetFileSize(CARD_DRIVE"test.dat", &size), == 0);
+    TEST_TRY_FUNC_CHECK(size, == 0x20000);
+    TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(0x20000), != (int)INVALID_PTR);
+    TEST_TRY_FUNC_CHECK(f = FIO_Open(CARD_DRIVE"test.dat", O_RDONLY | O_SYNC), != (int)INVALID_PTR);
+    TEST_TRY_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
+    TEST_TRY_VOID(FIO_CloseFile(f));
+    TEST_TRY_VOID(free_dma_memory(p));
+    TEST_TRY_FUNC_CHECK(FIO_RemoveFile(CARD_DRIVE"test.dat"), == 0);
+    
+    // sw1
+    TEST_TRY_VOID(SW1(1,100));
+    TEST_TRY_FUNC_CHECK(HALFSHUTTER_PRESSED, == 1);
+    TEST_TRY_VOID(SW1(0,100));
+    TEST_TRY_FUNC_CHECK(HALFSHUTTER_PRESSED, == 0);
+
+    // DLG_SIGNATURE
+    struct gui_task * current = gui_task_list.current;
+    struct dialog * dialog = current->priv;
+    TEST_TRY_FUNC_CHECK(DLG_SIGNATURE, == MEM(dialog->type));
+    
+    FIO_CloseFile(log);
+    
+    
+    NotifyBox(10000, "Test complete.\n%d passed, %d failed.", passed_tests, failed_tests);
 }
 
 static void stress_test_task(void* unused)
@@ -1862,6 +2078,13 @@ void request_crash_log(int type)
     crash_log_requested = type;
 }
 
+int GetFreeMemForAllocateMemory()
+{
+    int a,b;
+    GetMemoryInformation(&a,&b);
+    return b;
+}
+
 void save_crash_log()
 {
     static char log_filename[100];
@@ -1886,12 +2109,11 @@ void save_crash_log()
         build_date,
         build_user);
 
-    int a,b;
-    GetMemoryInformation(&a,&b);
+    int M = GetFreeMemForAllocateMemory();
     int m = MALLOC_FREE_MEMORY;
     my_fprintf(f, 
         "Free Memory  : %dK + %dK\n",
-        m/1024, b/1024
+        m/1024, M/1024
     );
 
     FIO_CloseFile(f);
@@ -2160,8 +2382,7 @@ static void meminfo_display(
     int            selected
 )
 {
-    int a,b;
-    GetMemoryInformation(&a,&b);
+    int M = GetFreeMemForAllocateMemory();
     int m = MALLOC_FREE_MEMORY;
     
 #ifdef CONFIG_5DC
@@ -2169,17 +2390,17 @@ static void meminfo_display(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Free Memory  : %dK",
-        b/1024
+        M/1024
     );
-    menu_draw_icon(x, y, b > 1024*1024 ? MNI_ON : MNI_WARNING, 0);
+    menu_draw_icon(x, y, M > 1024*1024 ? MNI_ON : MNI_WARNING, 0);
 #else
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Free Memory  : %dK + %dK",
-        m/1024, b/1024
+        m/1024, M/1024
     );
-    menu_draw_icon(x, y, b > 1024*1024 && m > 128 * 1024 ? MNI_ON : MNI_WARNING, 0);
+    menu_draw_icon(x, y, M > 1024*1024 && m > 128 * 1024 ? MNI_ON : MNI_WARNING, 0);
 #endif
 }
 
@@ -2658,6 +2879,12 @@ struct menu_entry debug_menus[] = {
         .submenu_width = 650,
         //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
+            {
+                .name = "Stubs API test",
+                .select = (void(*)(void*,int))run_in_separate_task,
+                .priv = stub_test_task,
+                .help = "Tests most Canon functions called by Magic Lantern (stubs)."
+            },
             #ifndef CONFIG_7D_MINIMAL
             #ifndef CONFIG_5D3_MINIMAL // will change some settings and you can't restore them
             {
