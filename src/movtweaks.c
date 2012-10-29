@@ -113,7 +113,7 @@ CONFIG_INT("movie.autostart-at-resume", start_recording_on_resume, 0);
 
 static int movie_autostop_running = 0;
 
-static int movie_cliplen_values[] = {0, 1, 2, 5, 10, 15};
+static int movie_cliplen_values[] = {0, 1, 2, 3, 4, 5, 10, 15};
 
 static int current_cliplen_index(int t)
 {
