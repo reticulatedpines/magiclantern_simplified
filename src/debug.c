@@ -1601,7 +1601,7 @@ int screenshot_sec = 0;
 
 PROP_INT(PROP_ICU_UILOCK, uilock);
 
-#if defined(CONFIG_60D) || defined(CONFIG_7D)
+#ifdef CONFIG_ELECTRONIC_LEVEL
 
 struct rolling_pitching 
 {

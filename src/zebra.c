@@ -3756,7 +3756,7 @@ struct menu_entry zebra_menus[] = {
 };
 
 struct menu_entry level_indic_menus[] = {
-    #if defined(CONFIG_60D) || defined(CONFIG_7D)
+    #ifdef CONFIG_ELECTRONIC_LEVEL
     {
         .name = "Level Indicator", 
         .priv = &electronic_level, 
@@ -5513,7 +5513,7 @@ livev_hipriority_task( void* unused )
             {
                 if (zebra_digic_dirty) digic_zebra_cleanup();
                 if (lv && !gui_menu_shown()) redraw();
-                #ifdef CONFIG_60D
+                #ifdef CONFIG_ELECTRONIC_LEVEL
                 disable_electronic_level();
                 #endif
                 while (!zebra_should_run()) 
@@ -5575,7 +5575,7 @@ livev_hipriority_task( void* unused )
             BMP_LOCK( if (lv) spotmeter_step(); )
         prev_s = s;
 
-        #if defined(CONFIG_60D) || defined(CONFIG_7D)
+        #ifdef CONFIG_ELECTRONIC_LEVEL
         if (electronic_level && k % 8 == 5)
             BMP_LOCK( if (lv) show_electronic_level(); )
         #endif

@@ -34,6 +34,11 @@
 #define CONFIG_VXWORKS
 #endif
 
+#if defined(CONFIG_60D) || defined(CONFIG_7D) || (defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL))
+#define CONFIG_ELECTRONIC_LEVEL
+#endif
+
+
 #include "arm-mcr.h"
 #include "dialog.h"
 #include "gui.h"
