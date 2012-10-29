@@ -2576,11 +2576,13 @@ struct menu_entry debug_menus[] = {
         .help = "0.BIN:0-0FFFFFFF, ROM0.BIN:FF010000, BOOT0.BIN:FFFF0000."
     },
 #endif
+#ifdef CONFIG_40D
     {
         .name        = "Dump camera logs",
         .select      = dump_logs,
         .help = "Dump camera logs to card."
     },
+#endif
 /* moved to tweaks
 #if defined(CONFIG_60D) || defined(CONFIG_600D)
     {
