@@ -862,7 +862,7 @@ int handle_shutter_events(struct event * event)
         static int mlu_should_be_cleared = 0;
         if (event->param == BGMT_PRESS_HALFSHUTTER)
         {
-            if (mlu_handheld_shutter && (lens_info.raw_shutter < 80 || lens_info.raw_shutter > 112)) // 1/8 ... 1/125
+            if (mlu_handheld_shutter && (lens_info.raw_shutter < 64 || lens_info.raw_shutter > 112)) // 1/2 ... 1/125
                 return 1;
             
             if (!get_mlu()) 
@@ -3572,7 +3572,7 @@ mlu_display( void * priv, int x, int y, int selected )
         x, y,
         "Mirror Lockup   : %s",
         MLU_SELF_TIMER ? MLU_SELF_TIMER_STRING
-        : MLU_HANDHELD ? (mlu_handheld_shutter ? "HandH, 1/8-1/125" : "Handheld")
+        : MLU_HANDHELD ? (mlu_handheld_shutter ? "HandH, 1/2-1/125" : "Handheld")
         : get_mlu() ? "ON, CableRelease" : "OFF"
     );
     if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Mirror Lockup does not work in LiveView");
@@ -5197,7 +5197,7 @@ static struct menu_entry shoot_menus[] = {
                 .priv = &mlu_handheld_shutter, 
                 .max = 1,
                 .icon_type = IT_DICE,
-                .choices = (const char *[]) {"All values", "1/8...1/125"},
+                .choices = (const char *[]) {"All values", "1/2...1/125"},
                 .help = "At what shutter speeds you want to use handheld MLU."
             },
             {
