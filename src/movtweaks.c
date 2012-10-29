@@ -24,6 +24,8 @@
 #define RECNOTIFY_BEEP (rec_notify == 3)
 #endif
 
+#define ALLOW_MOVIE_START (movie_rec_key_action == 0 || movie_rec_key_action == 1)
+#define ALLOW_MOVIE_STOP  (movie_rec_key_action == 0 || movie_rec_key_action == 2)
 void update_lvae_for_autoiso_n_displaygain();
 
 CONFIG_INT("hdmi.force.vga", hdmi_force_vga, 0);
@@ -104,6 +106,7 @@ CONFIG_INT("movie.restart", movie_restart,0);
 CONFIG_INT("movie.cliplen", movie_cliplen,0);
 CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
 CONFIG_INT("movie.rec-key", movie_rec_key, 0);
+CONFIG_INT("movie.rec-key-action", movie_rec_key_action, 0);
 #if 0
 CONFIG_INT("movie.autostart-at-resume", start_recording_on_resume, 0);
 #endif
@@ -185,8 +188,8 @@ void movie_rec_halfshutter_step()
         }
         
         while (HALFSHUTTER_PRESSED) msleep(50);
-        if (!recording) schedule_movie_start();
-        else schedule_movie_end();
+        if (!recording && ALLOW_MOVIE_START) schedule_movie_start();
+        else if(ALLOW_MOVIE_STOP) schedule_movie_end();
     }
 }
 
@@ -1270,7 +1273,19 @@ static struct menu_entry mov_menus[] = {
         .display = movie_rec_key_print,
         .max = 2,
         .icon_type = IT_BOOL,
-        .help = "Change the button used for recording. Hint: wired remote."
+        .help = "Change the button used for recording. Hint: wired remote.",
+        .submenu_width = 700,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Allowed actions",
+                .priv = &movie_rec_key_action,
+                .max = 2,
+                .icon_type = IT_BOOL,
+                .choices = (const char *[]) {"START/STOP", "START", "STOP"},
+                .help = "How fast the exposure transitions should be.",
+            },
+            MENU_EOL
+        },
     },
     #endif
     /*{
