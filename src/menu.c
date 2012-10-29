@@ -1268,7 +1268,7 @@ show_hidden_items(struct menu * menu, int force_clear)
             }
             entry = entry->next;
         }
-        STR_APPEND(hidden_msg, " (press MENU).");
+        STR_APPEND(hidden_msg, advanced_hidden_edit_mode ? "." : " (press MENU).");
         
         if (strlen(hidden_msg) > 59)
         {
@@ -1289,7 +1289,7 @@ show_hidden_items(struct menu * menu, int force_clear)
         if (hidden_count)
         {
             bmp_printf(
-                FONT(FONT_MED, advanced_hidden_edit_mode ? MENU_WARNING_COLOR : COLOR_GRAY60 , COLOR_BLACK), 
+                FONT(FONT_MED, advanced_hidden_edit_mode ? MENU_WARNING_COLOR : COLOR_ORANGE , COLOR_BLACK), 
                  10, hidden_pos_y, 
                  hidden_msg
             );
