@@ -1391,6 +1391,7 @@ tweak_task( void* unused)
         }
 
         // faster focus box in playback
+        #ifndef CONFIG_5D3 // doesn't need this, it's already very fast
         if (arrow_pressed && is_pure_play_photo_mode() && quickzoom && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 0)
         {
             int delay = 100;
@@ -1402,6 +1403,7 @@ tweak_task( void* unused)
             }
             arrow_pressed = 0;
         }
+        #endif
         
         //~ expsim_update();
         
