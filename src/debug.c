@@ -573,7 +573,7 @@ void run_in_separate_task(void (*priv)(void), int delta)
 {
     gui_stop_menu();
     if (!priv) return;
-    task_create("run_test", 0x1a, 0x1000, priv, 0);
+    task_create("run_test", 0x1a, 0x1000, priv, delta);
 }
 
 
@@ -687,21 +687,26 @@ void card_benchmark_task()
 #define TEST_MSG(fmt, ...) { my_fprintf(log, fmt, ## __VA_ARGS__); bmp_printf(FONT_MED, 0, 0, fmt, ## __VA_ARGS__); }
 #define TEST_TRY_VOID(x) { x; TEST_MSG("       %s\n", #x); }
 #define TEST_TRY_FUNC(x) { int ans = (int)(x); TEST_MSG("       %s => 0x%x\n", #x, ans); }
-#define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); int ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else failed_tests++; }
-#define TEST_TRY_FUNC_CHECK_STR(x, expected_string) { char* ans = (char*)(x); int ok = streq(ans, expected_string); TEST_MSG("[%s] %s => '%s'\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else failed_tests++; }
+#define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); int ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
+#define TEST_TRY_FUNC_CHECK_STR(x, expected_string) { char* ans = (char*)(x); int ok = streq(ans, expected_string); TEST_MSG("[%s] %s => '%s'\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
 
 int test_task_created = 0;
 void test_task() { test_task_created = 1; }
 
-static void stub_test_task(void* unused)
+static void stub_test_task(void* arg)
 {
+    // this test can be repeated many times, as burn-in test
+    int n = (int)arg > 0 ? 1 : 100;
     msleep(1000);
     info_led_on();
     int passed_tests = 0;
     int failed_tests = 0;
     
     FILE* log = FIO_CreateFileEx( CARD_DRIVE "stubtest.log" );
-    
+
+for (int i=0; i < n; i++) 
+{
+
     // strlen
     TEST_TRY_FUNC_CHECK(strlen("abc"), == 3);
     TEST_TRY_FUNC_CHECK(strlen("qwertyuiop"), == 10);
@@ -732,8 +737,8 @@ static void stub_test_task(void* unused)
     // variable arguments, not sure how to test
 
     // memcpy, memset, bzero32
-    static char foo[] = "qwertyuiop";
-    static char bar[] = "asdfghjkl;";
+    char foo[] __attribute__((aligned(32))) = "qwertyuiop";
+    char bar[] __attribute__((aligned(32))) = "asdfghjkl;";
     TEST_TRY_FUNC_CHECK(memcpy(foo, bar, 6), == (int)foo);
     TEST_TRY_FUNC_CHECK_STR(foo, "asdfghuiop");
     TEST_TRY_FUNC_CHECK(memset(bar, '*', 5), == (int)bar);
@@ -810,6 +815,8 @@ static void stub_test_task(void* unused)
     TEST_TRY_FUNC_CHECK(shamem_read(0xC0F14400), == 0x1234);
 
     // call, DISPLAY_IS_ON
+    TEST_TRY_VOID(call("TurnOnDisplay"));
+    TEST_TRY_FUNC_CHECK(DISPLAY_IS_ON, != 0);
     TEST_TRY_VOID(call("TurnOffDisplay"));
     TEST_TRY_FUNC_CHECK(DISPLAY_IS_ON, == 0);
     TEST_TRY_VOID(call("TurnOnDisplay"));
@@ -822,6 +829,7 @@ static void stub_test_task(void* unused)
     TEST_TRY_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 2);
     TEST_TRY_VOID(SetGUIRequestMode(0); msleep(500););
     TEST_TRY_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 0);
+    TEST_TRY_FUNC_CHECK(display_idle(), != 0);
     
     // GUI_Control
     TEST_TRY_VOID(GUI_Control(BGMT_PLAY, 0, 0, 0); msleep(500););
@@ -830,35 +838,43 @@ static void stub_test_task(void* unused)
     TEST_TRY_VOID(GUI_Control(BGMT_MENU, 0, 0, 0); msleep(500););
     TEST_TRY_FUNC_CHECK(MENU_MODE, != 0);
     TEST_TRY_FUNC_CHECK(PLAY_MODE, == 0);
+
+    // also check DLG_SIGNATURE here, because display is on for sure
+    struct gui_task * current = gui_task_list.current;
+    struct dialog * dialog = current->priv;
+    TEST_TRY_FUNC_CHECK(MEM(dialog->type), == DLG_SIGNATURE);
+
     TEST_TRY_VOID(GUI_Control(BGMT_MENU, 0, 0, 0); msleep(500););
     TEST_TRY_FUNC_CHECK(MENU_MODE, == 0);
     TEST_TRY_FUNC_CHECK(PLAY_MODE, == 0);
 
     // task_create
     TEST_TRY_FUNC(task_create("test", 0x1c, 0x1000, test_task, 0));
+    msleep(100);
     TEST_TRY_FUNC_CHECK(test_task_created, == 1);
     TEST_TRY_FUNC_CHECK_STR(get_task_name_from_id(get_current_task()), "run_test");
-
+    
     // mq
-    struct msg_queue * mq = 0;
+    static struct msg_queue * mq = 0;
     int m = 0;
-    TEST_TRY_FUNC_CHECK(mq = (void*)msg_queue_create("test", 5), != 0);
+    TEST_TRY_FUNC_CHECK(mq = mq ? mq : (void*)msg_queue_create("test", 5), != 0);
     TEST_TRY_FUNC_CHECK(msg_queue_post(mq, 0x1234567), == 0);
     TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), == 0);
     TEST_TRY_FUNC_CHECK(m, == 0x1234567);
     TEST_TRY_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), != 0);
 
     // sem
-    struct semaphore * sem = 0;
-    TEST_TRY_FUNC_CHECK(sem = create_named_semaphore("test", 1), != 0);
+    static struct semaphore * sem = 0;
+    TEST_TRY_FUNC_CHECK(sem = sem ? sem : create_named_semaphore("test", 1), != 0);
     TEST_TRY_FUNC_CHECK(take_semaphore(sem, 500), == 0);
     TEST_TRY_FUNC_CHECK(take_semaphore(sem, 500), != 0);
     TEST_TRY_FUNC_CHECK(give_semaphore(sem), == 0);
     TEST_TRY_FUNC_CHECK(take_semaphore(sem, 500), == 0);
+    TEST_TRY_FUNC_CHECK(give_semaphore(sem), == 0);
 
     // recursive lock
-    void * rlock = 0;
-    TEST_TRY_FUNC_CHECK(rlock = CreateRecursiveLock(0), != 0);
+    static void * rlock = 0;
+    TEST_TRY_FUNC_CHECK(rlock = rlock ? rlock : CreateRecursiveLock(0), != 0);
     TEST_TRY_FUNC_CHECK(AcquireRecursiveLock(rlock, 500), == 0);
     TEST_TRY_FUNC_CHECK(AcquireRecursiveLock(rlock, 500), == 0);
     TEST_TRY_FUNC_CHECK(ReleaseRecursiveLock(rlock), == 0);
@@ -880,19 +896,26 @@ static void stub_test_task(void* unused)
     TEST_TRY_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
     TEST_TRY_VOID(FIO_CloseFile(f));
     TEST_TRY_VOID(free_dma_memory(p));
+
+    {
+    int count = 0;
+    FILE* f = FIO_CreateFileEx(CARD_DRIVE"test.dat");
+    for (int i = 0; i < 1000; i++)
+        count += FIO_WriteFile(f, "Will it blend?\n", 15);
+    FIO_CloseFile(f);
+    TEST_TRY_FUNC_CHECK(count, == 1000*15);
+    }
+
     TEST_TRY_FUNC_CHECK(FIO_RemoveFile(CARD_DRIVE"test.dat"), == 0);
-    
+
     // sw1
     TEST_TRY_VOID(SW1(1,100));
     TEST_TRY_FUNC_CHECK(HALFSHUTTER_PRESSED, == 1);
     TEST_TRY_VOID(SW1(0,100));
     TEST_TRY_FUNC_CHECK(HALFSHUTTER_PRESSED, == 0);
-
-    // DLG_SIGNATURE
-    struct gui_task * current = gui_task_list.current;
-    struct dialog * dialog = current->priv;
-    TEST_TRY_FUNC_CHECK(DLG_SIGNATURE, == MEM(dialog->type));
     
+    beep();
+}
     FIO_CloseFile(log);
     
     
@@ -2883,7 +2906,7 @@ struct menu_entry debug_menus[] = {
                 .name = "Stubs API test",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = stub_test_task,
-                .help = "Tests most Canon functions called by Magic Lantern (stubs)."
+                .help = "Tests Canon functions called by ML. SET=once, PLAY=1000x."
             },
             #ifndef CONFIG_7D_MINIMAL
             #ifndef CONFIG_5D3_MINIMAL // will change some settings and you can't restore them
