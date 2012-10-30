@@ -32,6 +32,8 @@ void find_ml_card()
         beep();
         redraw_after(2000);
     }
+    
+    card_select = ml_card_select;
 }
 
 int cluster_size = 0;
