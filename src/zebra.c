@@ -4108,6 +4108,9 @@ PROP_HANDLER(PROP_GUI_STATE)
     if (ZEBRAS_IN_QUICKREVIEW && buf[0] == GUISTATE_QR)
     {
         fake_simple_button(BTN_ZEBRAS_FOR_PLAYBACK);
+        #ifdef CONFIG_600D
+        if (BTN_ZEBRAS_FOR_PLAYBACK == BGMT_PRESS_DISP) fake_simple_button(BGMT_UNPRESS_DISP);
+        #endif
     }
 }
 
