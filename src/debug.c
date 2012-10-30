@@ -2906,7 +2906,7 @@ struct menu_entry debug_menus[] = {
                 .name = "Stubs API test",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = stub_test_task,
-                .help = "Tests Canon functions called by ML. SET=once, PLAY=1000x."
+                .help = "Tests Canon functions called by ML. SET=once, PLAY=100x."
             },
             #ifndef CONFIG_7D_MINIMAL
             #ifndef CONFIG_5D3_MINIMAL // will change some settings and you can't restore them
