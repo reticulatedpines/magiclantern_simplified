@@ -42,6 +42,10 @@ NSTUB(0xFF83976C, master_msleep)
 NSTUB(0xFF839820, master_task_create)
 NSTUB(0xFF81AD28, master_write_memory)
 
+
+NSTUB(0xFF11A8E0, GetJpegBufForLV)
+NSTUB(0xFF11A8EC, GetJpegSizeForLV)
+
 NSTUB(0xFF0705E4, set_brightness_registers)
 NSTUB(0xFF205FA8, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
 NSTUB(0xff07cd24, AllocateMemory)      
@@ -118,7 +122,7 @@ NSTUB(0xff07b708, gui_timer_something)
 NSTUB(    0x3624, gui_timer_struct)
 NSTUB(0xff018734, init_task)
 NSTUB(0xff0162f0, malloc)
-NSTUB(0xff50ccf8, memcpy)
+NSTUB(0xFF50CB90, memcpy)
 NSTUB(0xff205e5c, msg_queue_post)
 NSTUB(0xff205c70, msg_queue_receive)
 NSTUB(0xff07bdf8, msleep)
@@ -201,3 +205,6 @@ NSTUB(0xff06e8b0, EnableImagePhysicalScreenParameter)
 
 NSTUB(0xFF41E17C, StartPlayProtectGuideApp)
 NSTUB(0xff41dde0, StopPlayProtectGuideApp)
+
+NSTUB(0xFF07A704, BulkOutIPCTransfer)
+NSTUB(0xFF07A7D4, BulkInIPCTransfer)
