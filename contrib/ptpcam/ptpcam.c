@@ -2265,12 +2265,13 @@ static void print_safe(char *buf, int size)
 
 static void hexdump(char *buf, unsigned int size, unsigned int offset)
 {
+  unsigned int start_offset = offset;
   unsigned int i;
   char s[16];
 
   if ( offset % 16 != 0 )
   {
-      printf("%08x  ",offset);
+      printf("0x%08X (+0x%04X)  ",offset, offset-start_offset);
       for (i=0; i<(offset%16); i++)
       {
         printf("   ");
@@ -2291,7 +2292,7 @@ static void hexdump(char *buf, unsigned int size, unsigned int offset)
         print_safe(s,16);
         printf("|\n");
       }
-      printf("%08x",offset);
+      printf("0x%08X (+0x%04X)",offset, offset-start_offset);
       if (i < size)
       {
         printf(" ");
@@ -2322,6 +2323,54 @@ static void hexdump(char *buf, unsigned int size, unsigned int offset)
       printf(" |");
       print_safe(s,16);
       printf("|\n%08x",offset);
+  }
+  printf("\n");
+}
+
+static void hexdump4(char *buf, unsigned int size, unsigned int offset)
+{
+  unsigned int i;
+  char s[16];
+
+  if ( offset % 16 != 0 )
+  {
+      printf("%08x  ",offset);
+      for (i=0; i<(offset%16); i++)
+      {
+        printf("   ");
+      }
+      if ( offset % 16 > 8 )
+      {
+        printf(" ");
+      }
+      memset(s,' ',offset%16);
+  }
+  for (i=0; ; i+=4, offset+=4)
+  {
+    if ( offset % 32 == 0 )
+    {
+      if ( i > 0 )
+      {
+        printf("\n");
+      }
+      printf("%08x",offset);
+      if (i < size)
+      {
+        printf(" ");
+      }
+    }
+    if ( i == size )
+    {
+      break;
+    }
+    printf("%02x",(unsigned char) buf[i+3]);
+    printf("%02x",(unsigned char) buf[i+2]);
+    printf("%02x",(unsigned char) buf[i+1]);
+    printf("%02x ",(unsigned char) buf[i]);
+  }
+  if ( offset % 16 != 0 )
+  {
+      printf("\n%08x",offset);
   }
   printf("\n");
 }
@@ -2656,12 +2705,19 @@ int chdk(int busn, int devn, short force)
         open_connection();
       }
       
-    } else if ( !strncmp("m ",buf,2) || !strncmp("memory ",buf,7) )
+    }
+    else if ( !strncmp("m ",buf,2) || !strncmp("w ",buf,2) || !strncmp("memory ",buf,7) )
     {
+      int width = 1;
       int start;
       int end;
       char *s;
       char *buf2;
+      
+      if( !strncmp("w ",buf,2))
+      {
+        width = 4;
+      }
       
       buf2 = strchr(buf,' ')+1;
 
@@ -2684,7 +2740,14 @@ int chdk(int busn, int devn, short force)
       {
         printf("error getting memory\n");
       } else {
-        hexdump(buf2,end-start,start);
+        if(width == 4)
+        {
+            hexdump4(buf2,end-start,start);
+        }
+        else
+        {
+            hexdump(buf2,end-start,start);
+        }
         free(buf2);
       }
       
@@ -2980,7 +3043,8 @@ int chdk(int busn, int devn, short force)
                     memcpy(buf2, buf3, end-start);
                 }
                 free(buf3);
-            }            
+            }        
+            usleep(5000);
         }
         fgetc(stdin);
 
@@ -3032,7 +3096,8 @@ int chdk(int busn, int devn, short force)
                     }
                 }
                 free(buf3);
-            }            
+            }       
+            usleep(5000);     
         }
       
         free(buf2);
