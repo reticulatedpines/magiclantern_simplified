@@ -573,7 +573,7 @@ void run_in_separate_task(void (*priv)(void), int delta)
 {
     gui_stop_menu();
     if (!priv) return;
-    task_create("run_test", 0x1a, 0x1000, priv, delta);
+    task_create("run_test", 0x1a, 0x1000, priv, (void*)delta);
 }
 
 
