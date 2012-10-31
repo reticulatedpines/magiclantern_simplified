@@ -3389,7 +3389,7 @@ int is_bulb_mode()
 void ensure_bulb_mode()
 {
     lens_wait_readytotakepic(64);
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
     int a = lens_info.raw_aperture;
     set_shooting_mode(SHOOTMODE_BULB);
     if (expsim == 2) set_expsim(1);
