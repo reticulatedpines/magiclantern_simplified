@@ -15,11 +15,7 @@
 CONFIG_INT( "h264.qscale.plus16", qscale_plus16, 16-8 );
 CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
 CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
-#if defined(CONFIG_7D_MINIMAL)
-CONFIG_INT( "time.indicator", time_indicator, 1); // 0 = off, 1 = current clip length
-#else
 CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
-#endif
 CONFIG_INT( "bitrate.indicator", bitrate_indicator, 0);
 #ifdef CONFIG_600D
 CONFIG_INT( "hibr.wav.record", cfg_hibr_wav_record, 0);
@@ -44,9 +40,70 @@ void mvrFixQScale(uint16_t *);    // only safe to call when not recording
 void mvrSetDefQScale(int16_t *);  // when recording, only change qscale by 1 at a time
 // otherwise ther appears a nice error message which shows the shutter count [quote AlinS] :)
 
+
+#if defined(CONFIG_7D)
+#define ADDR_mvrConfig       0x8A14
+#define ADDR_jpDeblock       0x8C19
+
+uint32_t bitrate_flushing_rate = 4;
+uint8_t *bulk_transfer_buf = NULL;
+uint32_t BulkOutIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t, uint32_t, uint32_t), uint32_t cb_parm);
+uint32_t BulkInIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t, uint32_t, uint32_t), uint32_t cb_parm);
+
+void bitrate_bulk_cb(uint32_t parm, uint32_t address, uint32_t length)
+{
+    *(uint32_t*)parm = 0;
+}
+
+void bitrate_read_mvr_config()
+{
+    volatile uint32_t wait = 1;
+    
+    BulkInIPCTransfer(0, bulk_transfer_buf, sizeof(mvr_config), ADDR_mvrConfig, &bitrate_bulk_cb, (uint32_t)&wait);
+    while(wait)
+    {
+        msleep(10);
+    }
+    memcpy(&mvr_config, bulk_transfer_buf, sizeof(mvr_config));
+}
+
+void bitrate_write_mvr_config()
+{
+    volatile uint32_t wait = 1;
+    
+    memcpy(bulk_transfer_buf, &mvr_config, sizeof(mvr_config));
+    BulkOutIPCTransfer(0, bulk_transfer_buf, sizeof(mvr_config), ADDR_mvrConfig, &bitrate_bulk_cb, (uint32_t)&wait);
+    while(wait)
+    {
+        msleep(10);
+    }
+}
+
+/* seems to not work */
+void bitrate_set_deblock(int8_t alpha, int8_t beta)
+{
+    volatile uint32_t wait = 1;
+
+    bulk_transfer_buf[0] = alpha + 6;
+    bulk_transfer_buf[1] = beta + 6;
+    BulkOutIPCTransfer(0, bulk_transfer_buf, 2, ADDR_jpDeblock, &bitrate_bulk_cb, (uint32_t)&wait);
+    while(wait)
+    {
+        msleep(10);
+    }
+} 
+#endif
+
 static struct mvr_config mvr_config_copy;
 void cbr_init()
 {
+#if defined(CONFIG_7D)
+    /* we must do all transfers via uncached memory. prepare that buffer */
+    bulk_transfer_buf = alloc_dma_memory(0x1000);
+    /* now load master's mvr_config into local */
+    bitrate_read_mvr_config();
+#endif
+
     memcpy(&mvr_config_copy, &mvr_config, sizeof(mvr_config_copy));
 }
 
@@ -56,12 +113,64 @@ void vbr_fix(uint16_t param)
     if (!is_movie_mode()) return; 
     if (recording) return; // err70 if you do this while recording
 
+#if defined(CONFIG_7D)
+    bitrate_read_mvr_config();
+    mvr_config.qscale_mode = param;
+    bitrate_write_mvr_config();
+#else
     mvrFixQScale(&param);
+#endif
+
 }
 
 // may be dangerous if mvr_config and numbers are incorrect
 void opt_set(int num, int den)
 {
+#if defined(CONFIG_7D)
+    uint32_t combo = 0;
+    uint32_t entry = 0;
+
+    for (combo = 0; combo < MOV_RES_AND_FPS_COMBINATIONS; combo++)
+    {
+        for (entry = 0; entry < MOV_OPT_NUM_PARAMS; entry++)
+        {
+            /* calc the offset from mvr_config */
+            uint32_t word_offset = MOV_OPT_OFFSET + combo * MOV_OPT_STEP + entry;
+
+            /* get original and current value pointer */
+            uint32_t* opt0 = (uint32_t*) &(mvr_config_copy) + word_offset;
+            uint32_t* opt = (uint32_t*) &(mvr_config) + word_offset;
+            
+            if (*opt0 < 10000)
+            {
+                bmp_printf(FONT_LARGE, 0, 50, "opt_set: err %d %d %d ", combo, entry, *opt0); 
+                return; 
+            }
+            (*opt) = (*opt0) * num / den;
+        }
+        for (entry = 0; entry < MOV_GOP_OPT_NUM_PARAMS; entry++)
+        {
+            /* calc the offset from mvr_config */
+            uint32_t word_offset = MOV_GOP_OFFSET + combo * MOV_OPT_STEP + entry;
+
+            /* get original and current value pointer */
+            uint32_t* opt0 = (uint32_t*) &(mvr_config_copy) + word_offset;
+            uint32_t* opt = (uint32_t*) &(mvr_config) + word_offset;
+            
+            if (*opt0 < 10000)
+            {
+                bmp_printf(FONT_LARGE, 0, 50, "gop_set: err %d %d %d ", combo, entry, *opt0); 
+                return; 
+            }
+            (*opt) = (*opt0) * num / den;
+        }
+    }
+
+    /* write mvr_config to master */
+    bitrate_write_mvr_config();
+    return;
+#endif
+
     int i, j;
     
 
@@ -115,8 +224,15 @@ void bitrate_set()
     {
         vbr_fix(1);
         opt_set(1,1);
+        
+#if defined(CONFIG_7D)
+        bitrate_read_mvr_config();
+        mvr_config.def_q_scale = qscale;
+        bitrate_write_mvr_config();
+#else
         int16_t q = qscale;
         mvrSetDefQScale(&q);
+#endif        
     }
     bitrate_dirty = 1;
 }
@@ -198,7 +314,12 @@ static void
 bitrate_factor_toggle(void* priv, int delta)
 {
     if (recording) return;
+ 
+#if defined(CONFIG_7D)
+    bitrate_factor = mod(bitrate_factor + delta - 1, 200) + 1;
+#else
     bitrate_factor = mod(bitrate_factor + delta - 1, 30) + 1;
+#endif
 }
 
 static void 
@@ -340,6 +461,10 @@ void time_indicator_show()
         return;
     }
     
+#if defined(CONFIG_7D)
+    bitrate_read_mvr_config();
+#endif
+
     // time until filling the card
     // in "movie_elapsed_time_01s" seconds, the camera saved "movie_bytes_written_32k"x32kbytes, and there are left "free_space_32k"x32kbytes
     int time_cardfill = movie_elapsed_time_01s * free_space_32k / movie_bytes_written_32k / 10;
@@ -380,7 +505,6 @@ void time_indicator_show()
             "B%3d ",
             measured_bitrate
         );
-
         int fnts = FONT(FONT_SMALL, COLOR_WHITE, mvr_config.actual_qscale_maybe == -16 ? COLOR_RED : COLOR_BLACK);
         bmp_printf(fnts,
             680,
@@ -503,7 +627,6 @@ static void hibr_wav_record_display( void * priv, int x, int y, int selected ){
 #endif
 
 static struct menu_entry mov_menus[] = {
-#if !defined(CONFIG_7D_MINIMAL)
     {
         .name = "Bit Rate",
         .priv = &bitrate_mode,
@@ -541,6 +664,15 @@ static struct menu_entry mov_menus[] = {
                 .max = 1,
                 .help = "A = average, B = instant bitrate, Q = instant QScale."
             },
+#if defined(CONFIG_7D)
+            {
+                .name = "Flush rate",
+                .priv = &bitrate_flushing_rate,
+                .min  = 1,
+                .max  = 20,
+                .help = "Flush movie buffer every n frames"
+            },
+#endif
             {
                 .name = "BuffWarnLevel",
                 .select     = buffer_warning_level_toggle,
@@ -561,15 +693,10 @@ static struct menu_entry mov_menus[] = {
             MENU_EOL
         },
     },
-#endif
     {
         .name = "Time Indicator",
         .priv       = &time_indicator,
-#if !defined(CONFIG_7D_MINIMAL)
         .select     = menu_quaternary_toggle,
-#else
-        .select     = menu_binary_toggle,
-#endif
         .display    = time_indicator_display,
         .help = "Time indicator while recording.",
         //.essential = 1,
@@ -591,8 +718,29 @@ bitrate_task( void* unused )
 
     TASK_LOOP
     {
+#if defined(CONFIG_7D)
+        /* maybe its better to implement that via cache hacks like on master? */
+        if (recording)
+        {
+            uint32_t *mvr_obj = *(uint32_t**)0x1EE8;
+            if(mvr_obj[0x31] != bitrate_flushing_rate)
+            {
+                mvr_obj[0x31] = bitrate_flushing_rate;
+            }
+            else
+            {
+                wait_till_next_second(); // uses a bit of CPU, but it's precise
+            }
+        }
+        else
+        {
+            /* dont sleep too long here to prevent buffer filling too fast when recording starts */
+            msleep(100);
+        }
+#else
         if (recording) wait_till_next_second(); // uses a bit of CPU, but it's precise
-        else msleep(1000); // relax
+        else msleep(1000); // relax            
+#endif
         
         if (recording) 
         {
