@@ -14,9 +14,13 @@
 #include "property.h"
 #include "lens.h"
 
-/* if this is defined, any memory read/write will read/write processor cache. hacker's toolbox. keep fingers off. */
+/* if this is defined, any memory read will read processor cache. hacker's toolbox. keep fingers off. */
 //#define PTP_CACHE_ACCESS
+
+/* access master processor memories instead of local (slave) */
+#if defined(CONFIG_7D)
 //#define PTP_7D_MASTER_ACCESS
+#endif
 
 extern uint32_t gdb_recv_buffer_length;
 extern uint32_t gdb_send_buffer_length;
@@ -27,10 +31,13 @@ extern void gdb_send_callback();
 
 
 #if defined(PTP_7D_MASTER_ACCESS)
-uint32_t BulkOutIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, uint32_t (*cb)(uint32_t, uint32_t, uint32_t), uint32_t cb_parm);
-uint32_t BulkInIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, uint32_t (*cb)(uint32_t, uint32_t, uint32_t), uint32_t cb_parm);
+/* these can read any address in master, but if it is RAM, it is always in uncacheable. 
+   this means, we can not read the first 8k at 0x00000000 as this is cacheable only and not mirrored at 0x40000000
+*/
+uint32_t BulkOutIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t, uint32_t, uint32_t), uint32_t cb_parm);
+uint32_t BulkInIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t, uint32_t, uint32_t), uint32_t cb_parm);
 
-uint32_t ptp_bulk_cb(uint32_t *parm, uint32_t address, uint32_t length)
+void ptp_bulk_cb(uint32_t *parm, uint32_t address, uint32_t length)
 {
     *parm = 0;
 }
