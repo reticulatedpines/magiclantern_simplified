@@ -147,6 +147,7 @@
 #define COLOR_FG_NONLV 1
 
 #define MVR_516_STRUCT (*(void**)0x1EC4) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
+#define MVR_516_STRUCT_MASTER (*(void**)0x1B80) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
 #define MEM(x) (*(int*)(x))
 #define div_maybe(a,b) ((a)/(b))
@@ -161,12 +162,16 @@
 #define MVR_FRAME_NUMBER  (*(int*)(0x134 + MVR_516_STRUCT)) // in mvrExpStarted
 #define MVR_BYTES_WRITTEN (*(int*)(0x128 + MVR_516_STRUCT)) // in mvrSMEncodeDone
 
-/* those are not sure yet */
-    #define MOV_RES_AND_FPS_COMBINATIONS 5
-    #define MOV_OPT_NUM_PARAMS 2
-    #define MOV_GOP_OPT_NUM_PARAMS 5
-    #define MOV_OPT_STEP 5
-    #define MOV_GOP_OPT_STEP 5
+
+#define MOV_RES_AND_FPS_COMBINATIONS 5
+#define MOV_OPT_NUM_PARAMS 2
+#define MOV_GOP_OPT_NUM_PARAMS 5
+#define MOV_OPT_STEP 5
+#define MOV_GOP_OPT_STEP 5
+
+/* word-offset of OPT/GOP table in mvr_config */
+#define MOV_OPT_OFFSET (0x06) /* look for e.g. mvrSetFullHDOptSize */ 
+#define MOV_GOP_OFFSET (0x36) /* look for e.g. mvrSetGopOptSizeFULLHD */ 
 
     #define AE_VALUE 0
 
