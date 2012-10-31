@@ -411,11 +411,12 @@ static void cache_unlock()
 static uint32_t cache_fake(uint32_t address, uint32_t data, uint32_t type)
 {
     /* that word is already patched? return failure */
+    /*
     if(!cache_is_patchable(address, type))
     {
         return 0;
     }
-    
+    */
     /* is that line not in cache yet? */
     if(!cache_get_cached(address, type))
     {
