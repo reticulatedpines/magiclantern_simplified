@@ -14,6 +14,9 @@
 #include "property.h"
 #include "lens.h"
 
+/* if this is defined, any memory read/write will read/write processor cache. hacker's toolbox. keep fingers off. */
+//#define PTP_CACHE_ACCESS
+//#define PTP_7D_MASTER_ACCESS
 
 extern uint32_t gdb_recv_buffer_length;
 extern uint32_t gdb_send_buffer_length;
@@ -21,6 +24,42 @@ extern uint8_t gdb_recv_buffer[];
 extern uint8_t gdb_send_buffer[];
 extern void gdb_recv_callback(uint32_t);
 extern void gdb_send_callback();
+
+
+#if defined(PTP_7D_MASTER_ACCESS)
+uint32_t BulkOutIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, uint32_t (*cb)(uint32_t, uint32_t, uint32_t), uint32_t cb_parm);
+uint32_t BulkInIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, uint32_t (*cb)(uint32_t, uint32_t, uint32_t), uint32_t cb_parm);
+
+uint32_t ptp_bulk_cb(uint32_t *parm, uint32_t address, uint32_t length)
+{
+    *parm = 0;
+}
+#endif
+
+
+/* want to access cache memory? */
+#if defined(PTP_CACHE_ACCESS)
+#include "cache_hacks.h"
+
+uint32_t ptp_get_cache(uint32_t segment, uint32_t index, uint32_t word, uint32_t type, uint32_t want_tag)
+{
+    uint32_t tag = 0;
+    uint32_t data = 0;
+
+    cache_get_content(segment, index, word, type, &tag, &data);
+    
+    if(want_tag)
+    {
+        return tag;
+    }
+    else
+    {
+        return data;
+    }
+}
+#endif
+
+
 
 PTP_HANDLER( PTP_OC_CHDK, 0 )
 {
@@ -39,6 +78,12 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
     static union {
         char *str;
     } temp_data;
+    
+    uint32_t address = param2;
+    uint32_t length = param3;
+    uint32_t ret = 0;
+    uint32_t errcount = 0;
+    uint8_t *buf = NULL;
 
     // handle command
     switch ( param1 )
@@ -55,9 +100,6 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
         case PTP_CHDK_GetMemory:
             {
                 uint32_t pos = 0;
-                uint32_t address = param2;
-                uint32_t length = param3;
-                uint8_t *buf = NULL;
 
                 if ( length == 0 )
                 {
@@ -65,56 +107,129 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                     break;
                 }
 
-                buf = AllocateMemory( length );
+                buf = alloc_dma_memory(length);
 
                 if ( !buf )
                 {
                     msg.id = PTP_RC_GeneralError;
                     break;
                 }
+                
+                memset(buf, 0xEE, length);
 
+#if defined(PTP_7D_MASTER_ACCESS)
+                volatile uint32_t wait = 1;
+                while(ret = BulkInIPCTransfer(0, buf, length, address, &ptp_bulk_cb, &wait))
+                {
+                    errcount++;
+                    bmp_printf(FONT_LARGE, 0, 0, "Bulk fail err: %X count: %X", ret, errcount);
+
+                    msleep(100);
+                }
+                
+                while(wait)
+                {
+                    msleep(100);
+                }
+                
+#else
                 while ( pos < length )
                 {
                     if ( (length - pos) >= 4 )
                     {
-                        ((uint32_t*)buf)[pos / 4] = *((uint32_t*)(address + pos));
+#if defined(PTP_CACHE_ACCESS)
+                        uint32_t index = 0;
+                        uint32_t ptp_get_cache(uint32_t segment, uint32_t index, uint32_t word, uint32_t type, uint32_t want_tag);
+                        
+                        uint32_t tag = ptp_get_cache((address >> 16) & 3, (address & 0x7E0) >> 5, (address & 0x1C) >> 2, 0, 1);
+                        
+                        if((tag & 0x10) == 0)
+                        {
+                            ((uint32_t*)buf)[pos/4] = 0xEEEEEEEE;
+                        }
+                        else
+                        {
+                            ((uint32_t*)buf)[pos/4] = ptp_get_cache((address >> 16) & 3, (address & 0x7E0) >> 5, (address & 0x1C) >> 2, 0, (address >> 20) & 1);
+                        }
+#else
+                        ((uint32_t*)buf)[pos / 4] = *((uint32_t*)(address));
+#endif
+                        address += 4;
                         pos += 4;
                     }
                     else
                     {
-                        buf[pos] = *((uint8_t*)(address + pos));
+                        buf[pos] = *((uint8_t*)(address));
                         pos++;
+                        address++;
                     }
                 }
+#endif
 
                 if ( !send_ptp_data(context, (char *) buf, length) )
                 {
                     msg.id = PTP_RC_GeneralError;
                 }
 
-                FreeMemory(buf);
+                free_dma_memory(buf);
             }
             break;
 
         case PTP_CHDK_SetMemory:
-            if ( param2 == 0 || param3 < 1 ) // null pointer or invalid size?
+            
+            if ( length < 1 ) // invalid size?
             {
                 msg.id = PTP_RC_GeneralError;
                 break;
             }
+            
+#if defined(PTP_7D_MASTER_ACCESS)
+            length = context->get_data_size(context->handle);
+            buf = alloc_dma_memory( length );
 
+            if ( !buf )
+            {
+                msg.id = PTP_RC_GeneralError;
+                break;
+            }
+            
+            if ( !recv_ptp_data(context,buf,length) )
+            {
+                msg.id = PTP_RC_GeneralError;
+                free_dma_memory(buf);
+                break;
+            }
+            
+            volatile uint32_t wait = 1;
+            
+            while(ret = BulkOutIPCTransfer(0, buf, length, address, &ptp_bulk_cb, &wait))
+            {
+                errcount++;
+                bmp_printf(FONT_LARGE, 0, 0, "Bulk fail err: %X count: %X", ret, errcount);
+
+                msleep(100);
+            }
+            
+            while(wait)
+            {
+                msleep(100);
+            }
+            free_dma_memory(buf);
+            
+#else      
             context->get_data_size(context->handle); // XXX required call before receiving
+            
             if ( !recv_ptp_data(context,(char *) param2,param3) )
             {
                 msg.id = PTP_RC_GeneralError;
             }
+#endif
             break;
 
 #ifdef CONFIG_GDB_PTP // Automatically defined by Make if CONFIG_GDB = y
         case PTP_CHDK_GDBStub_Download:
             {
-                uint32_t length = param2;
-                if (param2 == 0) // null pointer or invalid size?
+                if (length == 0) // invalid size?
                 {
                     msg.id = PTP_RC_GeneralError;
                     break;
@@ -139,8 +254,6 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
             
         case PTP_CHDK_GDBStub_Upload:
             {
-                uint32_t length = param2;
-                
                 /* buffer not filled yet */
                 if(gdb_send_buffer_length == 0)
                 {
@@ -153,7 +266,6 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                 }
                 else
                 {
-                    //bmp_printf(FONT_LARGE, 0, 30, gdb_send_buffer);
                     if (!send_ptp_data(context, (char*)gdb_send_buffer, gdb_send_buffer_length) )
                     {
                         msg.id = PTP_RC_GeneralError;
@@ -174,7 +286,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                 uint32_t *buf = NULL;
 
                 size = context->get_data_size(context->handle);
-                buf = AllocateMemory(size);
+                buf = alloc_dma_memory(size);
 
                 if ( !recv_ptp_data(context, (char *)buf, size) )
                 {
@@ -200,6 +312,12 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                         break;
                     case 4:
                         ret = ((uint32_t (*)(int,int,int,int))buf[0])(buf[1],buf[2],buf[3],buf[4]);
+                        break;
+                    case 5:
+                        ret = ((uint32_t (*)(int,int,int,int,int))buf[0])(buf[1],buf[2],buf[3],buf[4],buf[5]);
+                        break;
+                    case 6:
+                        ret = ((uint32_t (*)(int,int,int,int,int,int))buf[0])(buf[1],buf[2],buf[3],buf[4],buf[5],buf[6]);
                         break;
                     default:
                         bmp_printf(FONT_LARGE, 0, 0, ">= 5 args not supported");
@@ -246,7 +364,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
             {
                 if ( temp_data_kind == 1 )
                 {
-                    FreeMemory(temp_data.str);
+                    free_dma_memory(temp_data.str);
                 } else if ( temp_data_kind == 2 )
                 {
                     //~ lua_close(temp_data.lua_state);
@@ -255,7 +373,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
 
                 temp_data_extra = context->get_data_size(context->handle);
 
-                temp_data.str = (char *) AllocateMemory(temp_data_extra);
+                temp_data.str = (char *) alloc_dma_memory(temp_data_extra);
                 if ( temp_data.str == NULL )
                 {
                     msg.id = PTP_RC_GeneralError;
@@ -273,7 +391,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
             {
                 if ( temp_data_kind == 1 )
                 {
-                    FreeMemory(temp_data.str);
+                    free_dma_memory(temp_data.str);
                 }
                 else if ( temp_data_kind == 2 )
                 {
@@ -294,7 +412,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                 recv_ptp_data(context,(char *) &fn_len,4);
                 s -= 4;
 
-                fn = (char *) AllocateMemory(fn_len+1);
+                fn = (char *) alloc_dma_memory(fn_len+1);
                 if ( fn == NULL )
                 {
                     msg.id = PTP_RC_GeneralError;
@@ -312,12 +430,12 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                 if ( f == NULL )
                 {
                     msg.id = PTP_RC_GeneralError;
-                    FreeMemory(fn);
+                    free_dma_memory(fn);
                     break;
                 }
-                FreeMemory(fn);
+                free_dma_memory(fn);
 
-                buf = (char *) AllocateMemory(BUF_SIZE);
+                buf = (char *) alloc_dma_memory(BUF_SIZE);
                 if ( buf == NULL )
                 {
                     msg.id = PTP_RC_GeneralError;
@@ -339,7 +457,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
 
                 FIO_CloseFile(f);
 
-                FreeMemory(buf);
+                free_dma_memory(buf);
                 break;
             }
 
@@ -369,7 +487,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                 memcpy(fn,temp_data.str,temp_data_extra);
                 fn[temp_data_extra] = '\0';
 
-                FreeMemory(temp_data.str);
+                free_dma_memory(temp_data.str);
                 temp_data_kind = 0;
 
                 if( FIO_GetFileSize( fn, &s ) != 0 )
