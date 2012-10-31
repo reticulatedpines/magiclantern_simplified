@@ -130,6 +130,10 @@ static void fps_read_current_timer_values();
     #define TG_FREQ_BASE 24000000
     #define TG_FREQ_SHUTTER (ntsc ? 39300000 : 40000000)
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 0x262 : 0x228) // trial and error (with digic poke)
+#elif defined(CONFIG_7D)
+    #define TG_FREQ_BASE 24000000
+    #define TG_FREQ_SHUTTER (ntsc ? 51120000 : 50000000) // todo, just copied
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 0x262 : 0x228) // todo
 #elif defined(CONFIG_5D3)
     #define TG_FREQ_BASE 24000000
     #define TG_FREQ_SHUTTER (ntsc ? 51120000 : 50000000)
