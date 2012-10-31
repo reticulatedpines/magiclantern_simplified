@@ -11,6 +11,43 @@ int card_select = 1;
 #define SHOOTING_CARD_LETTER (card_select == 1 ? "A" : "B")
 #define ML_CARD_LETTER (ml_card_select == 1 ? "A" : "B")
 
+void card_test(int type)
+{
+    // some cards have timing issues on 5D3
+    // ML will test for this bug at startup, and refuse to run on cards that can cause trouble
+    // http://www.magiclantern.fm/forum/index.php?topic=2528.0
+    
+    if (is_dir(type ? "B:/" : "A:/"))
+    {
+        FILE* f = FIO_CreateFileEx(type ? "B:/test.dat" : "A:/test.dat");
+        int fail = 0;
+        for (int i = 0; i < 100; i++)
+        {
+            bmp_fill(COLOR_BLACK, 0, 0, 400, 38);
+            char msg[50];
+            snprintf(msg, sizeof(msg), "%s card test (%d%%)...", type ? "SD" : "CF", i+1);
+            bfnt_puts(msg, 0, 0, COLOR_WHITE, COLOR_BLACK);
+            int r = FIO_WriteFile(f, YUV422_LV_BUFFER_1, 1025);
+            if (r != 1025) { fail = 1; break; }
+        }
+        FIO_CloseFile(f);
+        FIO_RemoveFile(type ? "B:/test.dat" : "A:/test.dat");
+        bmp_fill(COLOR_BLACK, 0, 0, 400, 38);
+        
+        if (fail) // fsck!
+        {
+            while(1)
+            {
+                bmp_fill(COLOR_BLACK, 0, 0, 550, 80);
+                bfnt_puts(type ? "SD card test failed!" : "CF card test failed!", 0, 0, COLOR_WHITE, COLOR_BLACK);
+                bfnt_puts("Do not use this card on 5D3!", 0, 40, COLOR_WHITE, COLOR_BLACK);
+                beep();
+                info_led_blink(1, 1000, 1000);
+            }
+        }
+    }
+}
+
 void find_ml_card()
 {
     int ml_cf = is_dir("A:/ML");
@@ -34,6 +71,9 @@ void find_ml_card()
     }
     
     card_select = ml_card_select;
+    
+    card_test(0);
+    card_test(1);
 }
 
 int cluster_size = 0;
