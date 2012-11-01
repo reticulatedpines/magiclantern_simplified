@@ -3162,14 +3162,25 @@ int display_filter_enabled()
 
 static int display_filter_valid_image = 0;
 
+#ifdef CONFIG_5D2
+static int display_broken = 0;
+int display_broken_for_mz() 
+{
+    return display_broken;
+}
+#endif
+
+
 void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
 {
-    if (!display_filter_valid_image) return;
-    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return; }
-
 #ifdef CONFIG_5D2
     int sync = (MEM(x+0xe0) == YUV422_LV_BUFFER_1);
     int hacked = ( MEM(0x44fc+0xBC) == MEM(0x44fc+0xc4) && MEM(0x44fc+0xc4) == MEM(x+0xe0));
+    display_broken = hacked;
+
+    if (!display_filter_valid_image) return;
+    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return; }
+
     if (display_filter_enabled())
     {
         if (sync || hacked)
@@ -3180,6 +3191,10 @@ void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
         }
     }
 #elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_VXWORKS) && !defined(CONFIG_7D) // all new cameras should work with this method
+
+    if (!display_filter_valid_image) return;
+    if (!display_filter_enabled()) { display_filter_valid_image = 0;  return; }
+
     YUV422_LV_BUFFER_DISPLAY_ADDR = YUV422_LV_BUFFER_1 + 720*480*2;
 #endif
 }
