@@ -54,6 +54,8 @@ static void call_init_funcs( void * priv )
 
 }
 
+
+#ifdef CONFIG_PTP
 extern uint32_t ptp_register_handlers_0x9800(void);
 
 uint32_t ml_hijack_ptp_register_handlers()
@@ -66,6 +68,8 @@ uint32_t ml_hijack_ptp_register_handlers()
 
 	return ret;
 }
+#endif
+
 
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
@@ -191,9 +195,11 @@ void configure_cache_replaces()
     /* replace create_task_cmd_shell with our modified version to start ml_init_task */
     cache_fake(0xFF81147C, BL_INSTR(0xFF81147C, &ml_hijack_create_task_cmd_shell), TYPE_ICACHE);  
     
+#ifdef CONFIG_PTP    
     /* replace one ptp_register funtion call with ml_hijack_ptp_register_handlers */
     /* sub_FFBA12E0 - 0xFFBA12E4 : BL sub_FFB9D4E4 */
     cache_fake(0xFFBA12E4, BL_INSTR(0xFFBA12E4, &ml_hijack_ptp_register_handlers), TYPE_ICACHE); // OK
+#endif
 }
 
 /*
