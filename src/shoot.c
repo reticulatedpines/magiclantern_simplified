@@ -3516,7 +3516,7 @@ void mlu_selftimer_update()
 {
     if (MLU_SELF_TIMER && !lv)
     {
-        int mlu_auto_value = ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (!HDR_ENABLED)) ? 1 : 0;
+        int mlu_auto_value = (drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE) ? 1 : 0;
         int mlu_current_value = get_mlu();
         if (mlu_auto_value != mlu_current_value)
         {
@@ -3556,13 +3556,6 @@ mlu_toggle( void * priv, int delta )
     #endif
 }
 
-
-#if defined(CONFIG_550D) || defined(CONFIG_500D)
-#define MLU_SELF_TIMER_STRING "Timer+LCDremote"
-#else
-#define MLU_SELF_TIMER_STRING "Self-timer only"
-#endif
-
 static void
 mlu_display( void * priv, int x, int y, int selected )
 {
@@ -3571,7 +3564,7 @@ mlu_display( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Mirror Lockup   : %s",
-        MLU_SELF_TIMER ? MLU_SELF_TIMER_STRING
+        MLU_SELF_TIMER ? "Self-timer only"
         : MLU_HANDHELD ? (mlu_handheld_shutter ? "HandH, 1/2-1/125" : "Handheld")
         : get_mlu() ? "ON, CableRelease" : "OFF"
     );
