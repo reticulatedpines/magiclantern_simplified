@@ -3189,6 +3189,8 @@ void display_filter_step(int k)
     
     if (!display_filter_enabled()) return;
     
+    msleep(20);
+    
     //~ if (!HALFSHUTTER_PRESSED) return;
 
     if (defish_preview)
