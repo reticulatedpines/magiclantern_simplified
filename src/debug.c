@@ -827,7 +827,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 1);
         TEST_TRY_VOID(SetGUIRequestMode(2); msleep(500););
         TEST_TRY_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 2);
-        TEST_TRY_VOID(SetGUIRequestMode(0); msleep(500););
+        TEST_TRY_VOID(SetGUIRequestMode(0); msleep(1000););
         TEST_TRY_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 0);
         TEST_TRY_FUNC_CHECK(display_idle(), != 0);
         
