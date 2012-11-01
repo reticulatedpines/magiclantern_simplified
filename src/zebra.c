@@ -2737,10 +2737,10 @@ zoom_overlay_display(
 
         zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
             zoom_overlay_pos == 0 ? "AFbox," :
-            zoom_overlay_pos == 1 ? "NW," :
-            zoom_overlay_pos == 2 ? "NE," :
-            zoom_overlay_pos == 3 ? "SE," :
-            zoom_overlay_pos == 4 ? "SW," : "err",
+            zoom_overlay_pos == 1 ? "TL," :
+            zoom_overlay_pos == 2 ? "TR," :
+            zoom_overlay_pos == 3 ? "BR," :
+            zoom_overlay_pos == 4 ? "BL," : "err",
 
         zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
             zoom_overlay_x == 0 ? "1:1" :
@@ -3543,7 +3543,7 @@ struct menu_entry zebra_menus[] = {
                 .name = "Position", 
                 .priv = &zoom_overlay_pos,
                 .max = 4,
-                .choices = (const char *[]) {"Focus box", "NorthWest", "NorthEast", "SouthEast", "SouthWest"},
+                .choices = (const char *[]) {"Focus box", "Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"},
                 .icon_type = IT_DICE,
                 .help = "Position of zoom box (fixed or linked to focus box).",
             },
