@@ -1381,11 +1381,25 @@ void draw_zebras( int Z )
         {
             #ifdef CONFIG_4_3_SCREEN
             // try not to display fast zebras on bottom bar, under the image
+            int screen_layout = get_screen_layout();
             if (lv && hdmi_code != 5)
             {
-                int ymax = MIN(os.y_max + os.y_ex/8 + 3, BMP_H_PLUS-1);
-                if (bmp_getpixel(os.x0, ymax - 3) != COLOR_BLACK)
-                    bmp_fill(COLOR_BLACK, os.x0, os.y_max, os.x_ex, ymax - os.y_max);
+                uint8_t* bu = UNCACHEABLE(bvram);
+                uint8_t* bmu = UNCACHEABLE(bvram_mirror);
+                if (bu[BM(0,479)] != COLOR_BLACK || bmu[BM(0,479)] != (COLOR_BLACK | 0x80))
+                {
+                    for (int i = os.y_max; i < 480; i++)
+                    {
+                        for (int j = 0; j < 720; j++)
+                        {
+                            if (bu[BM(j,i)] == 0)
+                            {
+                                bu[BM(j,i)] = COLOR_BLACK;   // prevent under zebras
+                                bmu[BM(j,i)] = COLOR_BLACK | 0x80; // consider it part of cropmarks
+                            }
+                        }
+                    }
+                }
             }
             #endif
 
