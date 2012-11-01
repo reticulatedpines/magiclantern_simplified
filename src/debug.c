@@ -567,6 +567,9 @@ void my_MREQ_ISR(int a, int b, int c, int d)
 
 void run_test()
 {
+#ifdef CONFIG_40D	
+	debug_intercept();
+#endif
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1714,6 +1717,7 @@ static void dbg_memspy_init() // initial state of the analyzed memory
     bmp_printf(FONT_MED, 10,10, "memspy OK: %x", crc);
     _tic();
 }
+
 static void dbg_memspy_update()
 {
     static int init_done = 0;
@@ -2217,7 +2221,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                 take_screenshot(0);
         }
 
-#if !defined(CONFIG_5D3) && !defined(CONFIG_5DC)
+#if !defined(CONFIG_5D3) && !defined(CONFIG_VXWORKS)
         if (MENU_MODE) 
         {
             HijackFormatDialogBox_main();
@@ -3723,7 +3727,7 @@ void TmpMem_AddFile(char* filename)
     HijackCurrentDialogBox(3, msg);
 }
 
-
+#ifndef CONFIG_40D
 void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
 {
     struct fio_file file;
@@ -3757,6 +3761,7 @@ void CopyMLFilesToRAM_BeforeFormat()
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/LOGS/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0);
 }
+#endif
 
 void CopyMLFilesBack_AfterFormat()
 {
@@ -3802,6 +3807,7 @@ int check_autoexec()
     return 0;
 }
 
+#ifndef CONFIG_40D
 void HijackFormatDialogBox_main()
 {
     if (!MENU_MODE) return;
@@ -3840,12 +3846,14 @@ void HijackFormatDialogBox_main()
     TmpMem_Done();
 }
 #endif
+#endif
 
 void config_menu_init()
 {
     //~ extern struct menu_entry menu_cfg_menu[];
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
-#ifndef CONFIG_5DC
+//~ #ifndef CONFIG_5DC
+#ifndef CONFIG_VXWORKS
     extern struct menu_entry livev_cfg_menus[];
     menu_add( "Prefs", livev_cfg_menus,  1);
 #endif
