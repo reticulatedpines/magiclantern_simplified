@@ -3,8 +3,8 @@ import os,sys,string
 try: 
     f = open("menuindex.txt").readlines()
 except:
-    print "Could not open menuindex.txt"
-    f = []
+    print "Could not open menuindex.txt, will not rewrite help index files"
+    raise SystemExit
 
 os.system("mkdir cam")
 o = open("cam/menuidx.dat", "w")

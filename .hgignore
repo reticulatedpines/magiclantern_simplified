@@ -60,7 +60,6 @@ doc/install-body.tex
 doc/install.wiki
 doc/menuindex.txt
 installer/*/*.lds
-src/menuindexentries.h
 doc/Cropmarks550D.png
 platform/all/zip
 plugins/loader.c
