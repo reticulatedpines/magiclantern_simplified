@@ -3355,6 +3355,10 @@ debug_init_stuff( void )
     //~ set_pic_quality(PICQ_RAW);
     config_ok = 1;
     if (is_movie_mode()) restore_kelvin_wb();
+    
+    #ifdef CONFIG_5D3
+    card_tests();
+    #endif
 
     //~ dm_set_store_level( 255, 0);
     //~ dm_set_print_level( 255, 0);
@@ -3848,6 +3852,11 @@ void config_menu_init()
     crop_factor_menu_init();
     //~ menu_add( "Config", menu_cfg_menu,  1);
     menu_add( "Debug", debug_menus, COUNT(debug_menus) );
+    
+    #ifdef CONFIG_5D3
+    extern struct menu_entry card_menus[];
+    menu_add( "Debug", card_menus, 2 );
+    #endif
 }
 
 void spy_event(struct event * event)

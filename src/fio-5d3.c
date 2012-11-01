@@ -2,14 +2,58 @@
 #include "property.h"
 #include "bmp.h"
 #include "string.h"
+#include "menu.h"
+#include "config.h"
 
 // File I/O wrappers for handling the dual card slot on 5D3
 
-int ml_card_select = 1;
+int ml_card_select = 2; // if autoexec.bin is on both cards, the one from SD is loaded
 int card_select = 1;
 
 #define SHOOTING_CARD_LETTER (card_select == 1 ? "A" : "B")
 #define ML_CARD_LETTER (ml_card_select == 1 ? "A" : "B")
+
+CONFIG_INT("card.test", card_test_enabled, 1);
+
+static void card_info_display(
+    void *            priv,
+    int            x,
+    int            y,
+    int            selected
+)
+{
+    //~ int pcmcia  = *(uint8_t*)0x68c88;
+    //~ int ide     = *(uint8_t*)0x68c89;
+    //~ int udma    = *(uint8_t*)0x68c8A;
+    char* make  = (char*)0x68c8B;
+    char* model = (char*)0x68cAA;
+    int cf_present = is_dir("A:/");
+
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "CF: %s %s", 
+        cf_present ? make : "N/A", model
+    );
+    menu_draw_icon(x, y, cf_present ? MNI_ON : MNI_OFF, 0);
+}
+
+static void
+card_test_display(
+    void *            priv,
+    int            x,
+    int            y,
+    int            selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Card test at startup : %s", 
+        card_test_enabled ? "ON" : "OFF"
+    );
+    menu_draw_icon(x, y, card_test_enabled ? MNI_ON : MNI_WARNING, (intptr_t) "Your choice. Just don't blame ML if you get corrupted files.");
+}
 
 void card_test(int type)
 {
@@ -27,7 +71,7 @@ void card_test(int type)
             char msg[50];
             snprintf(msg, sizeof(msg), "%s card test (%d%%)...", type ? "SD" : "CF", i+1);
             bfnt_puts(msg, 0, 0, COLOR_WHITE, COLOR_BLACK);
-            int r = FIO_WriteFile(f, YUV422_LV_BUFFER_1, 1025);
+            int r = FIO_WriteFile(f, (void*)YUV422_LV_BUFFER_1, 1025);
             if (r != 1025) { fail = 1; break; }
         }
         FIO_CloseFile(f);
@@ -48,6 +92,15 @@ void card_test(int type)
     }
 }
 
+void card_tests()
+{
+    if (card_test_enabled)
+    {
+        card_test(0);
+        card_test(1);
+    }
+}
+
 void find_ml_card()
 {
     int ml_cf = is_dir("A:/ML");
@@ -58,22 +111,27 @@ void find_ml_card()
     else if (ml_cf && ml_sd)
     {
         clrscr();
-        bfnt_puts("ML is on both cards, format one of them!", 0, 0, COLOR_WHITE, COLOR_BLACK);
-        beep();
+        for (int i = 0; i < 5; i++)
+        {
+            bfnt_puts("ML is on both cards, format one of them!", 0, 0, COLOR_WHITE, COLOR_BLACK);
+            msleep(1000);
+            beep();
+        }
         redraw_after(2000);
     }
     else
     {
         clrscr();
-        bfnt_puts("Could not find ML files.", 0, 0, COLOR_WHITE, COLOR_BLACK);
-        beep();
+        for (int i = 0; i < 5; i++)
+        {
+            bfnt_puts("Could not find ML files.", 0, 0, COLOR_WHITE, COLOR_BLACK);
+            msleep(1000);
+            beep();
+        }
         redraw_after(2000);
     }
     
     card_select = ml_card_select;
-    
-    card_test(0);
-    card_test(1);
 }
 
 int cluster_size = 0;
@@ -240,3 +298,18 @@ int FIO_CreateDirectory(const char * dirname)
 }
 
 INIT_FUNC("fio", find_ml_card);
+
+struct menu_entry card_menus[] = {
+    {
+        .name = "CF card", 
+        .display = &card_info_display,
+        .help = "CF card info: make and model."
+    },
+    {
+        .name = "Card test at startup", 
+        .priv = &card_test_enabled,
+        .display = &card_test_display,
+        .max = 1,
+        .help = "File write test. Disable ONLY after testing ALL your cards!"
+    },
+};
