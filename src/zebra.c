@@ -324,6 +324,10 @@ int should_draw_zoom_overlay()
     if (!zebra_should_run()) return 0;
     if (EXT_MONITOR_RCA) return 0;
     if (hdmi_code == 5) return 0;
+    #ifdef CONFIG_5D2
+    if (display_broken_for_mz()) return 0;
+    #endif
+    
     if (zoom_overlay_trigger_mode == 4) return true;
 
     #if defined(CONFIG_5D2) || defined(CONFIG_7D)
@@ -2737,10 +2741,10 @@ zoom_overlay_display(
 
         zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
             zoom_overlay_pos == 0 ? "AFbox," :
-            zoom_overlay_pos == 1 ? "NW," :
-            zoom_overlay_pos == 2 ? "NE," :
-            zoom_overlay_pos == 3 ? "SE," :
-            zoom_overlay_pos == 4 ? "SW," : "err",
+            zoom_overlay_pos == 1 ? "TL," :
+            zoom_overlay_pos == 2 ? "TR," :
+            zoom_overlay_pos == 3 ? "BR," :
+            zoom_overlay_pos == 4 ? "BL," : "err",
 
         zoom_overlay_trigger_mode == 0 || zoom_overlay_size == 3 ? "" :
             zoom_overlay_x == 0 ? "1:1" :
@@ -2759,6 +2763,10 @@ zoom_overlay_display(
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work with SD monitors");
     else if (hdmi_code == 5)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work in HDMI 1080i.");
+    #ifdef CONFIG_5D2
+    if (display_broken_for_mz())
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "After using defish/anamorph, go outside LiveView and back.");
+    #endif
     #ifndef CONFIG_5D3
     else if (is_movie_mode() && video_mode_fps > 30)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work well in current video mode");
@@ -3543,7 +3551,7 @@ struct menu_entry zebra_menus[] = {
                 .name = "Position", 
                 .priv = &zoom_overlay_pos,
                 .max = 4,
-                .choices = (const char *[]) {"Focus box", "NorthWest", "NorthEast", "SouthEast", "SouthWest"},
+                .choices = (const char *[]) {"Focus box", "Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"},
                 .icon_type = IT_DICE,
                 .help = "Position of zoom box (fixed or linked to focus box).",
             },
@@ -4517,7 +4525,17 @@ static void draw_zoom_overlay(int dirty)
 
     // select buffer where MZ should be written (camera-specific, guesswork)
     #if defined(CONFIG_5D2)
-    lvr = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
+    int prev_lvr = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
+    int t0 = *(uint32_t*)0xC0242014;
+    while(1) // dirty, but seems to work
+    {
+        int t1 = *(uint32_t*)0xC0242014;
+        int dt = mod(t1 - t0, 1048576);
+        lvr = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
+        if (lvr != prev_lvr) break;
+        if (dt > 20000) break; // don't busy wait too much
+    }
+    lvr = prev_lvr;
     #elif defined(CONFIG_5D3)
     lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
     if (lvr != CACHEABLE(YUV422_LV_BUFFER_1) && lvr != CACHEABLE(YUV422_LV_BUFFER_2) && lvr != CACHEABLE(YUV422_LV_BUFFER_3)) return;
@@ -5571,7 +5589,7 @@ livev_hipriority_task( void* unused )
             if (!zoom_overlay_dirty) { redraw(); msleep(700); } // redraw cropmarks after MZ is turned off
             zoom_overlay_dirty = 1;
 
-            msleep(30);
+            msleep(10);
 
             display_filter_step(k);
             
