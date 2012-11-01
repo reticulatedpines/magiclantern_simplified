@@ -140,7 +140,7 @@ void vram_params_update_if_dirty()
     hd_size = shamem_read(REG_EDMAC_WRITE_HD_ADDR + 8);
     static uint32_t prev_hd_size = 0;
     if (prev_hd_size != hd_size) vram_params_dirty = 1;
-    prev_hd_size = prev_hd_size;
+    prev_hd_size = hd_size;
     #endif
     
     if (vram_params_dirty)
