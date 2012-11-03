@@ -724,17 +724,16 @@ int init_task_patched_for_1100D(int a, int b, int c, int d)
 #if defined(CONFIG_7D_FIR_MASTER)
 
 #include "cache_hacks.h"
-
 void master_ml_init()
 {
-    master_msleep(1000);
+    master_msleep(100);
 
     cache_lock();
     cache_fake(0xFF88BCB4, 0xE3A01001, TYPE_ICACHE); /* flush video buffer every frame */
     //cache_fake(0xFF8C7C18, 0xE3A01001, TYPE_ICACHE); /* all-I */
     cache_fake(0xFF8C7C18, 0xE3A01004, TYPE_ICACHE); /* GOP4 */
-    cache_fake(0xFF8CD448, 0xE3A00006, TYPE_ICACHE); /* deblock alpha set to 6 */
-    cache_fake(0xFF8CD44C, 0xE3A00106, TYPE_ICACHE); /* deblock beta set to 6 */
+    //cache_fake(0xFF8CD448, 0xE3A00006, TYPE_ICACHE); /* deblock alpha set to 6 */
+    //cache_fake(0xFF8CD44C, 0xE3A00106, TYPE_ICACHE); /* deblock beta set to 6 */
 }
 #endif
 
