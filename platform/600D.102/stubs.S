@@ -71,6 +71,10 @@ NSTUB( 0xFF06ED38, dumpf )
  */
 NSTUB( 0xff1f94bc, vsnprintf )
 
+NSTUB(0xFF075934, dma_memcpy)
+NSTUB(0xFF1115DC, GetJpegBufForLV)
+NSTUB(0xFF1115E8, GetJpegSizeForLV)
+
 NSTUB( 0xFF0714C4, msleep ) // called from EV_GETDONE_CACHE param 0x64
 NSTUB( 0xFF071578, task_create )
 NSTUB( 0xFF1E6254, FIO_Open)
