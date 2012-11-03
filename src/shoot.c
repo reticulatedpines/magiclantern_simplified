@@ -132,9 +132,9 @@ static CONFIG_INT( "audio.release-level", audio_release_level, 10);
 static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 static CONFIG_INT( "lv_3rd_party_flash", lv_3rd_party_flash, 0);
 
-static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );     
-static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );    // 0 = normal, 1 = burst, 2 = hi-res
-#define silent_pic_burst (silent_pic_mode == 1)
+static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );
+static CONFIG_INT( "silent.pic.jpeg", silent_pic_jpeg, 0 );
+static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );    // 0 = normal, 1 = burst, 2 = continuous, 3 = hi-res
 static CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);   // index of matrix size (2x1 .. 5x5)
 static CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
 
@@ -722,26 +722,34 @@ silent_pic_display( void * priv, int x, int y, int selected )
             x, y,
             "Silent Picture  : OFF"
         );
+        
+        return;
     }
-    else if (silent_pic_mode <= 1)
+    
+    switch(silent_pic_mode)
     {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Silent Picture  : %s",
-            silent_pic_burst ? "Burst" : "Simple"
-        );
-    }
-    else if (silent_pic_mode == 2)
-    {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Silent Pic HiRes: %dx%d",
-            SILENTPIC_NL,
-            SILENTPIC_NC
-        );
-        bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
+        case 0:
+            bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Silent Picture  : Simple" );
+            break;
+            
+        case 1:
+            bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Silent Picture  : Burst" );
+            break;
+            
+        case 2:
+            bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Silent Picture  : Contiuous" );
+            break;
+            
+        case 3:
+            bmp_printf(
+                selected ? MENU_FONT_SEL : MENU_FONT,
+                x, y,
+                "Silent Pic HiRes: %dx%d",
+                SILENTPIC_NL,
+                SILENTPIC_NC
+            );
+            bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
+            break;        
     }
 }
 
@@ -1102,6 +1110,15 @@ static char* silent_pic_get_name()
     static int prev_file_number = -1;
     static int prev_folder_number = -1;
     
+    char *extension = "422";
+    
+#if defined(CONFIG_7D) || defined(CONFIG_600D)
+    if(silent_pic_jpeg)
+    {
+        extension = "jpg";
+    }
+#endif
+    
     if (prev_file_number != file_number) silent_number = 1;
     if (prev_folder_number != folder_number) silent_number = 1;
     
@@ -1112,7 +1129,7 @@ static char* silent_pic_get_name()
     {
         for ( ; silent_number < 100000000; silent_number++)
         {
-            snprintf(imgname, sizeof(imgname), "%s/%08d.422", get_dcim_dir(), silent_number);
+            snprintf(imgname, sizeof(imgname), "%s/%08d.%s", get_dcim_dir(), silent_number, extension);
             unsigned size;
             if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
             if (size == 0) break;
@@ -1122,7 +1139,7 @@ static char* silent_pic_get_name()
     {
         for ( ; silent_number < 10000; silent_number++)
         {
-            snprintf(imgname, sizeof(imgname), "%s/%04d%04d.422", get_dcim_dir(), file_number, silent_number);
+            snprintf(imgname, sizeof(imgname), "%s/%04d%04d.%s", get_dcim_dir(), file_number, silent_number, extension);
             unsigned size;
             if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
             if (size == 0) break;
@@ -1599,43 +1616,127 @@ int silent_pic_preview()
 void
 silent_pic_take_simple(int interactive)
 {
-    char* imgname = silent_pic_get_name();
-
     get_yuv422_hd_vram();
     int size = vram_hd.pitch * vram_hd.height;
     int lv_size = vram_lv.pitch * vram_lv.height;
     
     // this buffer will contain the HD image (saved to card) and a LV preview (for display)
-    silent_pic_tmp_buf = (void*)shoot_malloc(size + lv_size);
-    
+    void *silent_pic_buf = NULL;
+
     // start with black preview 
-    bzero32(silent_pic_tmp_buf + size, lv_size);
+    silent_pic_buf = (void*)shoot_malloc(size + lv_size);
+    bzero32(silent_pic_buf + size, lv_size);
     
-    if (silent_pic_tmp_buf)
+    /* when in continuous mode, wait for halfshutter being released before starting */
+    if(silent_pic_mode == 2)
     {
-        // first we will copy the picture in a temporary buffer, to avoid horizontal cuts
-        void* buf = (void*)YUV422_HD_BUFFER_DMA_ADDR;
+        while(get_halfshutter_pressed())
+        {
+            msleep(10);
+        }
+    }
+    
+    if (silent_pic_buf)
+    {
+        do
+        {
+            char* imgname = silent_pic_get_name();
+            // copy the HD picture into the temporary buffer
+            
+#if defined(CONFIG_7D) || defined(CONFIG_600D)
+            if(silent_pic_jpeg)
+            {
+                uint32_t loopcount = 0;
+                uint8_t *oldBuf = GetJpegBufForLV();
+                uint32_t oldLen = GetJpegSizeForLV();
+                
+                /* wait until size or buffer changed, then its likely that it is a new frame */
+                while(GetJpegSizeForLV() == oldLen || GetJpegBufForLV() == oldBuf)
+                {
+                    msleep(MIN_MSLEEP);
+                    if(++loopcount > 500)
+                    {
+                        NotifyBox(2000, "Failed to wait until\nJPEG buffer updates"); 
+                        msleep(5000);
+                        return;
+                    }
+                }
+                uint8_t *srcBuf = GetJpegBufForLV();
+                uint32_t srcLen = GetJpegSizeForLV();
+                
+                /* buffer is for sure larger than the jpeg will ever get */
+                dma_memcpy(silent_pic_buf, srcBuf, srcLen);
+                
+                dump_seg(silent_pic_buf, srcLen, imgname);
+            }
+            else
+#endif
+            {
+                uint32_t loopcount = 0;
+                // first we will copy the picture in a temporary buffer, to avoid horizontal cuts
+                void* buf = (void*)YUV422_HD_BUFFER_DMA_ADDR;
+                
+                // some sort of vsync
+                while ((void*)YUV422_HD_BUFFER_DMA_ADDR == buf)
+                {
+                    msleep(MIN_MSLEEP);
+                    if(++loopcount > 500)
+                    {
+                        NotifyBox(2000, "Failed to wait until\nLV buffer updates");
+                        msleep(5000);
+                        return;
+                    }
+                }
+                
+#if defined(CONFIG_7D) || defined(CONFIG_600D)
+                dma_memcpy(silent_pic_buf, buf, size);
+#else
+                memcpy(silent_pic_buf, buf, size);
+#endif
+                
+                /* we can take our time and resize it for preview purposes, only do that for single pics */
+                if(silent_pic_mode == 0)
+                {
+                    yuv_resize(silent_pic_buf, vram_hd.width, vram_hd.height, silent_pic_buf + size, vram_lv.width, vram_lv.height);
+                }
+                dump_seg(silent_pic_buf, size, imgname);
+            }
+
+            /* in burst mode abort when halfshutter isnt pressed anymore */
+            if(silent_pic_mode == 1)
+            {
+                if(!get_halfshutter_pressed())
+                {
+                    break;
+                }
+            }
+            else if(silent_pic_mode == 2)
+            {
+                /* cancel continuous mode with halfshutter press */
+                if(get_halfshutter_pressed())
+                {
+                    /* wait until button is released to prevent from firing again */
+                    while(get_halfshutter_pressed())
+                    {
+                        msleep(10);
+                    }
+                    break;
+                }
+            }
+            else
+            {
+                break;
+            }
+            
+            /* repeat process if half-shutter is still pressed and burst mode was enabled */
+        } while (1);
         
-        // some sort of vsync
-        while ((void*)YUV422_HD_BUFFER_DMA_ADDR == buf) msleep(10);
-        
-        // copy the HD picture into the temporary buffer
-        memcpy(silent_pic_tmp_buf, buf, size);
-        
-        // picture is now in a temporary buffer
-        
-        // we can take our time and resize it for preview purposes
-        yuv_resize(silent_pic_tmp_buf, vram_hd.width, vram_hd.height, silent_pic_tmp_buf + size, vram_lv.width, vram_lv.height);
-        
-        // ... and save it; meanwhile, LiveView can work normally without interruption
-        dump_seg(silent_pic_tmp_buf, size, imgname);
-        
-        // done :)
         shoot_free(silent_pic_tmp_buf);
-        silent_pic_tmp_buf = 0;
+        silent_pic_tmp_buf = NULL;
     }
 
-    if (interactive && !silent_pic_burst) // single mode
+    /* if not in burst mode, wait until half-shutter was released */
+    if (interactive && silent_pic_mode == 0) // single mode
     {
         while (get_halfshutter_pressed()) msleep(100);
     }
@@ -1856,18 +1957,22 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 
     if (!lv) force_liveview();
 
-    if (silent_pic_mode <= 1) // normal, burst
+    switch(silent_pic_mode)
     {
-        silent_pic_take_simple(interactive);
-    }
-    else if (silent_pic_mode == 2) // hi-res
-    {
-        silent_pic_matrix_running = 1;
-        silent_pic_take_sweep(interactive);
+        /* normal, burst, continuous */
+        case 0:
+        case 1:
+        case 2:
+            silent_pic_take_simple(interactive);
+            break;
+        /* hi-res */
+        case 3:
+            silent_pic_matrix_running = 1;
+            silent_pic_take_sweep(interactive);
+            break;
     }
 
     silent_pic_matrix_running = 0;
-
 }
 
 
@@ -5122,16 +5227,16 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Mode",
                 .priv = &silent_pic_mode, 
-                #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
-                .max = 2, // hi-res works
+                #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D)
+                .max = 3, // hi-res works
                 #else
-                .max = 1, // hi-res doesn't work
+                .max = 2, // hi-res doesn't work
                 #endif
-                .choices = (const char *[]) {"Simple", "Burst", "Hi-Res"},
+                .choices = (const char *[]) {"Simple", "Burst", "Continuous", "Hi-Res"},
                 .icon_type = IT_DICE,
-                .help = "Silent picture mode: simple, burst or high-resolution."
+                .help = "Silent picture mode: simple, burst, continuous or high-resolution."
             },
-            #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
+            #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D)
             {
                 .name = "Hi-Res", 
                 .priv = &silent_pic_highres,
@@ -5139,6 +5244,14 @@ static struct menu_entry shoot_menus[] = {
                 .choices = (const char *[]) {"2x1", "2x2", "2x3", "3x3", "3x4", "4x4", "4x5", "5x5"},
                 .icon_type = IT_SIZE,
                 .help = "For hi-res matrix mode: select number of subpictures."
+            },
+            #endif
+            #if defined(CONFIG_7D) || defined(CONFIG_600D)
+            {
+                .name = "LV JPEG", 
+                .priv = &silent_pic_jpeg,
+                .max = 1,
+                .help = "Save LV as JPEG"
             },
             #endif
             MENU_EOL
@@ -5869,7 +5982,7 @@ static void take_a_pic(int allow_af)
 #endif
     if (silent_pic_enabled)
     {
-        msleep(500);
+        //msleep(500);
         silent_pic_take(0); 
     }
     else
