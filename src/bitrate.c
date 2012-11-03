@@ -42,8 +42,9 @@ void mvrSetDefQScale(int16_t *);  // when recording, only change qscale by 1 at 
 
 
 #if defined(CONFIG_7D)
+#include "cache_hacks.h"
+
 #define ADDR_mvrConfig       0x8A14
-#define ADDR_jpDeblock       0x8C19
 
 uint32_t bitrate_flushing_rate = 4;
 uint8_t *bulk_transfer_buf = NULL;
@@ -78,20 +79,6 @@ void bitrate_write_mvr_config()
         msleep(10);
     }
 }
-
-/* seems to not work */
-void bitrate_set_deblock(int8_t alpha, int8_t beta)
-{
-    volatile uint32_t wait = 1;
-
-    bulk_transfer_buf[0] = alpha + 6;
-    bulk_transfer_buf[1] = beta + 6;
-    BulkOutIPCTransfer(0, bulk_transfer_buf, 2, ADDR_jpDeblock, &bitrate_bulk_cb, (uint32_t)&wait);
-    while(wait)
-    {
-        msleep(10);
-    }
-} 
 #endif
 
 static struct mvr_config mvr_config_copy;
@@ -668,8 +655,8 @@ static struct menu_entry mov_menus[] = {
             {
                 .name = "Flush rate",
                 .priv = &bitrate_flushing_rate,
-                .min  = 1,
-                .max  = 20,
+                .min  = 2,
+                .max  = 50,
                 .help = "Flush movie buffer every n frames"
             },
 #endif
@@ -719,31 +706,14 @@ bitrate_task( void* unused )
     TASK_LOOP
     {
 #if defined(CONFIG_7D)
-        /* maybe its better to implement that via cache hacks like on master? */
+        /* patch flushing rate */
+        cache_fake(0xFF05A6DC, 0xE3A00000 | (bitrate_flushing_rate & 0xFF), TYPE_ICACHE);
+#endif       
+
         if (recording)
         {
-            uint32_t *mvr_obj = *(uint32_t**)0x1EE8;
-            if(mvr_obj[0x31] != bitrate_flushing_rate)
-            {
-                mvr_obj[0x31] = bitrate_flushing_rate;
-            }
-            else
-            {
-                wait_till_next_second(); // uses a bit of CPU, but it's precise
-            }
-        }
-        else
-        {
-            /* dont sleep too long here to prevent buffer filling too fast when recording starts */
-            msleep(100);
-        }
-#else
-        if (recording) wait_till_next_second(); // uses a bit of CPU, but it's precise
-        else msleep(1000); // relax            
-#endif
-        
-        if (recording) 
-        {
+            /* uses a bit of CPU, but it's precise */
+            wait_till_next_second();
             movie_elapsed_time_01s += 10;
             measure_bitrate();
             BMP_LOCK( show_mvr_buffer_status(); )
@@ -751,8 +721,8 @@ bitrate_task( void* unused )
         else
         {
             movie_elapsed_time_01s = 0;
-            if (movie_elapsed_time_01s % 10 == 0)
-                bitrate_set();
+            bitrate_set();
+            msleep(1000);
         }
     }
 }
