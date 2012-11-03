@@ -142,6 +142,10 @@ ifeq ($(CONFIG_PYMITE),y)
 CFLAGS += $(PYMITE_CFLAGS)
 endif
 
+ifeq ($(CONFIG_PTP),y)
+CFLAGS += -DCONFIG_PTP
+endif
+
 ifeq ($(CONFIG_GDB),y)
 CFLAGS += -DCONFIG_GDB_PTP
 endif
