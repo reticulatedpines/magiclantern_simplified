@@ -59,7 +59,7 @@ typedef unsigned gui_event_t;
 #define BGMT_Q                      BGMT_PICSTYLE
 #define BGMT_LV                     BGMT_PRESS_DIRECT_PRINT
 
-#define BTN_ZEBRAS_FOR_PLAYBACK     BGMT_JUMP
+#define BTN_ZEBRAS_FOR_PLAYBACK     BGMT_PICSTYLE
 
 #define GMT_OLC_INFO_CHANGED		-12344
 

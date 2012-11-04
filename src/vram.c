@@ -258,9 +258,24 @@ void update_vram_params()
     os.off_169 = 0;
     os.off_1610 = 0;
 #elif defined(CONFIG_40D)
+    //~ vram_lv.width = 720; // we only know the HD buffer for now... let's try to pretend it can be used as LV :)
+    //~ vram_lv.height = 480;
     vram_lv.width = 1024; // we only know the HD buffer for now... let's try to pretend it can be used as LV :)
     vram_lv.height = 680;
-    vram_lv.pitch = vram_lv.width * 2;
+    vram_lv.pitch = vram_lv.width * 2;    
+    os.x0 = 0;
+    //~ os.y0 = 0;
+    os.y0 = (PLAY_MODE || QR_MODE)? 48 : 0; 
+    os.x_ex = 720;
+    //~ os.y_ex = 480;
+    os.y_ex = 480 - os.y0;    
+    os.x_max = os.x0 + os.x_ex;
+    os.y_max = os.y0 + os.y_ex;
+    os.off_169 = 0;
+    os.off_1610 = 0;     
+    //~ os.off_169 = (os.y_ex - os.y_ex * 4/3 * 9/16) / 2;
+    //~ os.off_1610 = (os.y_ex - os.y_ex * 4/3 * 10/16) / 2;
+       
 #else
     #ifdef CONFIG_1100D
         vram_lv.width  = 720;
@@ -278,6 +293,13 @@ void update_vram_params()
     bm2lv.sy = 1024 * vram_lv.height / (480-52);
     bm2lv.tx = 0;
     bm2lv.ty = -26;
+#elif CONFIG_40D
+    bm2lv.sx = 1024 * vram_lv.width / 720;
+    bm2lv.sy = 1024 * vram_lv.height / 480;
+    //~ bm2lv.sy = 1024 * vram_lv.height / (480-48);    
+    bm2lv.tx = 0;
+    bm2lv.ty = 0;
+    //~ bm2lv.ty = (PLAY_MODE || QR_MODE)? -48 : 0;     
 #else
     // bmp to lv transformation
     // LCD: (0,0) -> (0,0)
@@ -299,6 +321,9 @@ void update_vram_params()
     vram_hd.width = vram_lv.width;
     vram_hd.height = vram_lv.height;
     vram_hd.pitch = vram_lv.pitch;
+    //~ vram_hd.width = 1024;
+    //~ vram_hd.height = 680;
+    //~ vram_hd.pitch = vram_hd.width * 2;
 #elif defined(CONFIG_5DC)
     vram_hd.width = 1872;
     vram_hd.height = 1664;

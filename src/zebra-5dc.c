@@ -2105,6 +2105,30 @@ vectorscope_display( void * priv, int x, int y, int selected )
 }
 
 
+#ifdef CONFIG_40D
+void
+clearscreen_display(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    int mode = clearscreen;
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Clear overlays : %s",
+        //~ mode ? "ON (HalfShutter)" : "OFF"
+        mode == 0 ? "OFF" : 
+        mode == 1 ? "HalfShutter/DofP" : 
+        mode == 2 ? "WhenIdle" :
+        mode == 3 ? "Always" : "Recording"
+    );
+}
+#endif
+
+
 static void
 spotmeter_menu_display(
     void *          priv,

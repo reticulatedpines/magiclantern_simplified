@@ -77,8 +77,20 @@ static void ml_gui_main_task( void )
 
 		if (!magic_is_off() && event_ptr->type == 0)
 		{
-			//bmp_printf(FONT_LARGE, 10, 400, "USING FONT: 0x%08X", BFNT_CHAR_CODES); msleep(500);
+			/*
+			if(event_ptr->param == BGMT_PRESS_DIRECT_PRINT) {				
+				//bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+				int y = (PLAY_MODE || QR_MODE)? 48 : 0;
+				bmp_draw_rect(COLOR_YELLOW, 0, y, 720-2, 480-48-2);
+				bmp_printf(FONT_LARGE, 40, 220, "BGMT_PRINT PRESSED!");
+				msleep(500);
+				//msleep(2000); SetGUIRequestMode(1);
+				goto event_loop_bottom;
+			}
+			*/
 			
+			//bmp_printf(FONT_LARGE, 10, 400, "USING FONT: 0x%08X", BFNT_CHAR_CODES); msleep(500);
+
 			/*
 			if(event_ptr->param == BGMT_LV) {
 				bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
