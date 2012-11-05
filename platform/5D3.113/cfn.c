@@ -13,7 +13,7 @@ void set_htp(int value)
     prop_request_change(PROP_HTP, &value, 4);
 }
 
-int get_alo() { return alo; }
+int get_alo() { return alo & 0xFF; }
 //~ void set_alo(int value)
 //~ {
     //~ value = COERCE(value, 0, 3);
