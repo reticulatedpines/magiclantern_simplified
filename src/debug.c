@@ -826,6 +826,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(DISPLAY_IS_ON, != 0);
 
         // SetGUIRequestMode, CURRENT_DIALOG_MAYBE
+        #ifdef GUIMODE_ML_MENU
         TEST_TRY_VOID(SetGUIRequestMode(1); msleep(500););
         TEST_TRY_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 1);
         TEST_TRY_VOID(SetGUIRequestMode(2); msleep(500););
@@ -833,6 +834,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_VOID(SetGUIRequestMode(0); msleep(1000););
         TEST_TRY_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 0);
         TEST_TRY_FUNC_CHECK(display_idle(), != 0);
+        #endif
         
         // GUI_Control
         TEST_TRY_VOID(GUI_Control(BGMT_PLAY, 0, 0, 0); msleep(500););
