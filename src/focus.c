@@ -582,9 +582,10 @@ focus_stack_print(
     bmp_printf(
         MENU_FONT,
         x, y,
-        "Stack focus    : %s,stepsize=%d",
+        "Stack focus    : %s, %d%ssteps/pic",
         focus_stack_enabled ? "SNAP" : "PLAY",
-        focus_stack_steps_per_picture
+        focus_stack_steps_per_picture,
+        focus_stack_steps_per_picture >= 10 ? "" : " "
     );
     
     if ((!focus_task_delta) && ((focus_bracket_dir == 2) || (!(FOCUS_BRACKET_COUNT-1))))
