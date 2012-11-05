@@ -2296,7 +2296,7 @@ static struct menu_entry tweak_menus[] = {
             },
             MENU_EOL,
         },
-    }
+    },
 /*  {
         .name = "Night Vision Mode",
         .priv = &night_vision, 
