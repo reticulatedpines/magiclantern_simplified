@@ -3669,11 +3669,16 @@ int TmpMem_Init()
 {
     ASSERT(!tmp_buffer);
     ASSERT(!tmp_files);
+    static int retries = 0; 
     tmp_file_index = 0;
     if (!tmp_files) tmp_files = AllocateMemory(200 * sizeof(struct tmp_file));
     if (!tmp_files) 
     { 
-        HijackCurrentDialogBox(4, "Format: malloc error :("); 
+        retries++;
+        HijackCurrentDialogBox(4, 
+            retries > 2 ? "Restart your camera (malloc error)." : 
+                          "Format: malloc error :("
+            );
         beep();
         msleep(2000);
         return 0; 
@@ -3682,13 +3687,18 @@ int TmpMem_Init()
     if (!tmp_buffer) tmp_buffer = (void*)shoot_malloc(TMP_MAX_BUF_SIZE);
     if (!tmp_buffer) 
     { 
-        HijackCurrentDialogBox(4, "Format: shoot_malloc error, retrying...");
+        retries++;
+        HijackCurrentDialogBox(4, 
+            retries > 2 ? "Restart your camera (shoot_malloc err)." : 
+                          "Format: shoot_malloc error, retrying..."
+        );
         beep();
         msleep(2000);
         FreeMemory(tmp_files); tmp_files = 0;
         return 0; 
     }
     
+    retries = 0;
     tmp_buffer_ptr = tmp_buffer;
 
     return 1;
