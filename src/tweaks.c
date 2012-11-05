@@ -2059,6 +2059,7 @@ int handle_zoom_trick_event(struct event * event)
 
 static CONFIG_INT("warn.mode", warn_mode, 0);
 static CONFIG_INT("warn.picq", warn_picq, 0);
+static CONFIG_INT("warn.alo", warn_alo, 0);
 
 void warn_action(int code)
 {
@@ -2098,6 +2099,7 @@ void warn_action(int code)
         msg[0] = '\0';
         if (code & 1) { STR_APPEND(msg, "Mode is not M\n"); } 
         if (code & 2) { STR_APPEND(msg, "Pic quality is not RAW\n"); } 
+        if (code & 4) { STR_APPEND(msg, "ALO is enabled\n"); } 
         NotifyBoxHide(); msleep(200);
         if (code) NotifyBox(3000, msg); 
         prev_code_d = code;
@@ -2114,6 +2116,9 @@ void warn_step()
     int raw = pic_quality & 0x60000;
     if (warn_picq && !raw)
         code |= 2;
+    
+    if (warn_alo && get_alo() != ALO_OFF)
+        code |= 4;
     
     warn_action(code);
 }
@@ -2263,6 +2268,13 @@ static struct menu_entry tweak_menus[] = {
                 .max = 1,
                 .choices = (const char *[]) {"OFF", "other than RAW"},
                 .help = "Warn if you change the picture quality to something else.",
+            },
+            {
+                .name = "ALO warning    ",
+                .priv = &warn_alo,
+                .max = 1,
+                .choices = (const char *[]) {"OFF", "other than OFF"},
+                .help = "Warn if you enable ALO by mistake.",
             },
             MENU_EOL,
         },
