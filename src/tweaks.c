@@ -1429,6 +1429,7 @@ tweak_task( void* unused)
         uniwb_correction_step();
         grayscale_menus_step();
         lcd_adjust_position_step();
+        warn_step();
 
         // if disp presets is enabled, make sure there are no Canon graphics
         extern int disp_profiles_0;
@@ -2055,6 +2056,68 @@ int handle_zoom_trick_event(struct event * event)
 }
 #endif
 
+
+static CONFIG_INT("warn.mode", warn_mode, 0);
+static CONFIG_INT("warn.picq", warn_picq, 0);
+
+void warn_action(int code)
+{
+    // blink LED every second
+    if (code)
+    {
+        static int prev_clk = 0;
+        int clk = get_seconds_clock();
+        if (clk != prev_clk)
+        {
+            static int k = 0; k++;
+            if (k%2) info_led_on(); else info_led_off();
+        }
+        prev_clk = clk;
+    }
+    
+    // when warning condition changes, beep
+    static int prev_code = 0;
+    if (code != prev_code)
+    {
+        if (code) // not good
+        {
+            beep();
+        }
+        else // OK, back to good configuration
+        {
+            info_led_blink(2,50,50);
+        }
+    }
+    prev_code = code;
+
+    // when warning condition changes, and display is on, show what's the problem
+    static int prev_code_d = 0;
+    if (code != prev_code_d && DISPLAY_IS_ON && display_idle())
+    {
+        char msg[200];
+        msg[0] = '\0';
+        if (code & 1) { STR_APPEND(msg, "Mode is not M\n"); } 
+        if (code & 2) { STR_APPEND(msg, "Pic quality is not RAW\n"); } 
+        NotifyBoxHide(); msleep(200);
+        if (code) NotifyBox(3000, msg); 
+        prev_code_d = code;
+    }
+
+}
+
+void warn_step()
+{
+    int code = 0;
+    if (warn_mode && shooting_mode != SHOOTMODE_M)
+        code |= 1;
+
+    int raw = pic_quality & 0x60000;
+    if (warn_picq && !raw)
+        code |= 2;
+    
+    warn_action(code);
+}
+
 static struct menu_entry key_menus[] = {
     {
         .name = "Focus box settings...", 
@@ -2181,6 +2244,29 @@ static struct menu_entry key_menus[] = {
     },
 };
 static struct menu_entry tweak_menus[] = {
+    {
+        .name = "Warnings for bad settings...",
+        .select     = menu_open_submenu,
+        .help = "Warn if some of your settings are changed by mistake.",
+        .submenu_width = 700,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Mode warning   ",
+                .priv = &warn_mode,
+                .max = 1,
+                .choices = (const char *[]) {"OFF", "other than M"},
+                .help = "Warn if you turn the mode dial to some other position.",
+            },
+            {
+                .name = "Quality warning",
+                .priv = &warn_picq,
+                .max = 1,
+                .choices = (const char *[]) {"OFF", "other than RAW"},
+                .help = "Warn if you change the picture quality to something else.",
+            },
+            MENU_EOL,
+        },
+    }
 /*  {
         .name = "Night Vision Mode",
         .priv = &night_vision, 
