@@ -1364,6 +1364,7 @@ static void stress_test_task(void* unused)
     
 }
 
+/*
 static void stress_test_toggle_menu_item(char* menu_name, char* item_name)
 {
     extern struct semaphore * gui_sem;
@@ -1375,152 +1376,46 @@ static void stress_test_toggle_menu_item(char* menu_name, char* item_name)
     give_semaphore( gui_sem );
     msleep(200);
     return;
+} */
+
+static void stress_test_toggle_random_menu_item()
+{
+    extern struct semaphore * gui_sem;
+    if (!gui_menu_shown()) give_semaphore( gui_sem );
+    msleep(400);
+    int dx = rand() % 20 - 10;
+    int dy = rand() % 20 - 10;
+    for (int i = 0; i < ABS(dx); i++)
+        fake_simple_button(dx > 0 ? BGMT_WHEEL_RIGHT : BGMT_WHEEL_LEFT);
+    msleep(200);
+    for (int i = 0; i < ABS(dy); i++)
+        fake_simple_button(dy > 0 ? BGMT_WHEEL_UP : BGMT_WHEEL_DOWN);
+    msleep(200);
+    fake_simple_button(BGMT_PRESS_SET);
+    msleep(200);
+    give_semaphore( gui_sem );
+    msleep(200);
+    return;
 }
+
 static void stress_test_random_action()
 {
-    if (lv)
+    switch (rand() % 50)
     {
-        switch (rand() % 39)
-        {
-            case 0:
-                //~ fake_simple_button(BGMT_LV);
-                return;
-            case 1:
-                stress_test_toggle_menu_item("Overlay", "Global Draw");
-                return;
-            case 2:
-                stress_test_toggle_menu_item("Overlay", "Zebras");
-                return;
-            case 3:
-                stress_test_toggle_menu_item("Overlay", "Cropmarks");
-                return;
-            case 4:
-                stress_test_toggle_menu_item("Overlay", "Focus Peak");
-                return;
-            case 5:
-                stress_test_toggle_menu_item("Overlay", "Magic Zoom");
-                return;
-            case 6:
-                stress_test_toggle_menu_item("Overlay", "Spotmeter");
-                return;
-            case 7:
-                stress_test_toggle_menu_item("Overlay", "Ghost Image");
-                return;
-            case 8:
-                stress_test_toggle_menu_item("Overlay", "False Color");
-                return;
-            case 9:
-                stress_test_toggle_menu_item("Overlay", "Histogram");
-                return;
-            case 10:
-                stress_test_toggle_menu_item("Overlay", "Waveform");
-                return;
-            case 11:
-                stress_test_toggle_menu_item("Audio", "AGC");
-                return;
-            case 12:
-                stress_test_toggle_menu_item("Audio", "Audio Meters");
-                return;
-            case 13:
-                stress_test_toggle_menu_item("Audio", "Headphone Monitoring");
-                return;
-            case 14:
-                stress_test_toggle_menu_item("Expo", "REC PicStyle");
-                return;
-            case 15:
-                stress_test_toggle_menu_item("Expo", "LV ViewType");
-                return;
-            case 16:
-                stress_test_toggle_menu_item("Expo", "Exp.Override");
-                return;
-            case 17:
-                stress_test_toggle_menu_item("Display", "Clear Overlays");
-                return;
-            case 18:
-                stress_test_toggle_menu_item("Display", "Image Position");
-                return;
-            case 19:
-                stress_test_toggle_menu_item("Display", "UpsideDown mode");
-                return;
-            case 20:
-                stress_test_toggle_menu_item("Display", "Screen Layout");
-                return;
-            case 21:
-                stress_test_toggle_menu_item("Movie", "Movie Logging");
-                return;
-            case 22:
-                stress_test_toggle_menu_item("Movie", "Shutter Lock");
-                return;
-            case 23:
-                stress_test_toggle_menu_item("Movie", "FPS override");
-                return;
-            case 24:
-                stress_test_toggle_menu_item("Movie", "HDR video");
-                return;
-            case 25:
-                //~ stress_test_toggle_menu_item("Movie", "Highlight++");
-                return;
-            case 26:
-                //~ stress_test_toggle_menu_item("Movie", "Image Effects");
-                return;
-            case 27:
-                stress_test_toggle_menu_item("Shoot", "HDR Bracketing");
-                return;
-            case 28:
-                stress_test_toggle_menu_item("Shoot", "Intervalometer");
-                return;
-            case 29:
-                stress_test_toggle_menu_item("Shoot", "Bulb Timer");
-                return;
-            case 30:
-                stress_test_toggle_menu_item("Shoot", "LCDsensor Remote");
-                return;
-            case 31:
-                //~ stress_test_toggle_menu_item("Shoot", "Audio RemoteShot");
-                return;
-            case 32:
-                //~ stress_test_toggle_menu_item("Shoot", "Motion Detect");
-                return;
-            case 33:
-                stress_test_toggle_menu_item("Focus", "Follow Focus");
-                return;
-            case 34:
-                //~ stress_test_toggle_menu_item("Tweaks", "LiveView Zoom");
-                return;
-            case 35:
-                //~ fake_simple_button(BGMT_PLAY);
-                return;
-            case 36:
-                //~ fake_simple_button(BGMT_MENU);
-                return;
-            case 37:
-                //~ fake_simple_button(BGMT_INFO);
-                return;
-            case 38:
-                stress_test_toggle_menu_item("Overlay", "Vectorscope");
-                return;
-        }
-    }
-    else
-    {
-        switch (rand() % 5)
-        {
-            case 0:
-                lens_take_picture(64, rand() % 2);
-                return;
-            case 1:
-                stress_test_toggle_menu_item("Play", "After taking a pic");
-                return;
-            case 2:
-                stress_test_toggle_menu_item("Play", "LiveV tools in QR");
-                return;
-            case 3:
-                stress_test_toggle_menu_item("Play", "Zoom in PLAY mode");
-                return;
-            case 4:
-                force_liveview();
-                return;
-        }
+        case 0:
+            lens_take_picture(64, rand() % 2);
+            return;
+        case 1:
+            fake_simple_button(BGMT_LV);
+            return;
+        case 2:
+            fake_simple_button(BGMT_PLAY);
+            return;
+        case 3:
+            fake_simple_button(BGMT_MENU);
+            return;
+        default:
+            stress_test_toggle_random_menu_item();
     }
 }
 
