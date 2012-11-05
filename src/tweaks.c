@@ -2060,6 +2060,17 @@ int handle_zoom_trick_event(struct event * event)
 static CONFIG_INT("warn.mode", warn_mode, 0);
 static CONFIG_INT("warn.picq", warn_picq, 0);
 static CONFIG_INT("warn.alo", warn_alo, 0);
+static int warn_code = 0;
+
+char* get_warn_msg(char* separator)
+{
+    static char msg[200];
+    msg[0] = '\0';
+    if (warn_code & 1) { STR_APPEND(msg, "Mode is not M%s", separator); } 
+    if (warn_code & 2) { STR_APPEND(msg, "Pic quality is not RAW%s", separator); } 
+    if (warn_code & 4) { STR_APPEND(msg, "ALO is enabled%s", separator); } 
+    return msg;
+}
 
 void warn_action(int code)
 {
@@ -2093,15 +2104,10 @@ void warn_action(int code)
 
     // when warning condition changes, and display is on, show what's the problem
     static int prev_code_d = 0;
-    if (code != prev_code_d && DISPLAY_IS_ON)
+    if (code != prev_code_d && DISPLAY_IS_ON && !gui_menu_shown())
     {
-        char msg[200];
-        msg[0] = '\0';
-        if (code & 1) { STR_APPEND(msg, "Mode is not M\n"); } 
-        if (code & 2) { STR_APPEND(msg, "Pic quality is not RAW\n"); } 
-        if (code & 4) { STR_APPEND(msg, "ALO is enabled\n"); } 
         NotifyBoxHide(); msleep(200);
-        if (code) NotifyBox(3000, msg); 
+        if (code) NotifyBox(3000, get_warn_msg("\n")); 
         prev_code_d = code;
     }
 
@@ -2109,18 +2115,29 @@ void warn_action(int code)
 
 void warn_step()
 {
-    int code = 0;
+    warn_code = 0;
     if (warn_mode && shooting_mode != SHOOTMODE_M)
-        code |= 1;
+        warn_code |= 1;
 
     int raw = pic_quality & 0x60000;
     if (warn_picq && !raw)
-        code |= 2;
+        warn_code |= 2;
     
     if (warn_alo && get_alo() != ALO_OFF)
-        code |= 4;
+        warn_code |= 4;
     
-    warn_action(code);
+    warn_action(warn_code);
+}
+
+static void warn_display( void * priv, int x, int y, int selected )
+{
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "Warnings for bad settings..."
+    );
+    if (warn_code)
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) get_warn_msg(", "));
 }
 
 static struct menu_entry key_menus[] = {
@@ -2252,6 +2269,7 @@ static struct menu_entry tweak_menus[] = {
     {
         .name = "Warnings for bad settings...",
         .select     = menu_open_submenu,
+        .display = warn_display,
         .help = "Warn if some of your settings are changed by mistake.",
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
