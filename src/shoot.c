@@ -6783,7 +6783,7 @@ static void misc_shooting_info()
             BMP_LOCK (
                 display_shooting_info_lv();
             )
-            #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_7D)
+            #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_7D) && !defined(CONFIG_1100D)
             if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
             {
                 static int ae_warned = 0;
