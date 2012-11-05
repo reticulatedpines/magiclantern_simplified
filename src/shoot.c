@@ -1112,7 +1112,7 @@ static char* silent_pic_get_name()
     
     char *extension = "422";
     
-#if defined(CONFIG_7D) || defined(CONFIG_600D)
+#if defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
     if(silent_pic_jpeg)
     {
         extension = "jpg";
@@ -1643,7 +1643,7 @@ silent_pic_take_simple(int interactive)
             char* imgname = silent_pic_get_name();
             // copy the HD picture into the temporary buffer
             
-#if defined(CONFIG_7D) || defined(CONFIG_600D)
+#if defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
             if(silent_pic_jpeg)
             {
                 uint32_t loopcount = 0;
@@ -1688,7 +1688,7 @@ silent_pic_take_simple(int interactive)
                     }
                 }
                 
-#if defined(CONFIG_7D) || defined(CONFIG_600D)
+#if defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
                 dma_memcpy(silent_pic_buf, buf, size);
 #else
                 memcpy(silent_pic_buf, buf, size);
@@ -5227,7 +5227,7 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Mode",
                 .priv = &silent_pic_mode, 
-                #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D)
+                #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D) || defined(CONFIG_1100D)
                 .max = 3, // hi-res works
                 #else
                 .max = 2, // hi-res doesn't work
@@ -5236,7 +5236,7 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type = IT_DICE,
                 .help = "Silent picture mode: simple, burst, continuous or high-resolution."
             },
-            #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D)
+            #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D) || defined(CONFIG_1100D)
             {
                 .name = "Hi-Res", 
                 .priv = &silent_pic_highres,
@@ -5246,7 +5246,7 @@ static struct menu_entry shoot_menus[] = {
                 .help = "For hi-res matrix mode: select number of subpictures."
             },
             #endif
-            #if defined(CONFIG_7D) || defined(CONFIG_600D)
+            #if defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
             {
                 .name = "LV JPEG", 
                 .priv = &silent_pic_jpeg,
@@ -6783,7 +6783,7 @@ static void misc_shooting_info()
             BMP_LOCK (
                 display_shooting_info_lv();
             )
-            #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_7D)
+            #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_7D) && !defined(CONFIG_1100D)
             if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
             {
                 static int ae_warned = 0;
