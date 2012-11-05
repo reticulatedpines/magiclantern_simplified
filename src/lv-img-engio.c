@@ -491,6 +491,10 @@ void image_effects_step()
         return;
     }
 
+    #ifdef CONFIG_5D3 // none of the effects works
+    return;
+    #endif
+
     if (!is_movie_mode()) return;
 
     // sharpness trick: at -1, cancel it completely
@@ -705,7 +709,9 @@ static struct menu_entry dbg_menu[] = {
 static void lv_img_init()
 {
     #if !defined(CONFIG_7D_MINIMAL)
+    #ifndef CONFIG_5D3 // none of the effects works
     menu_add( "Movie", lv_img_menu, COUNT(lv_img_menu) );
+    #endif
     #endif
     #ifdef CONFIG_DIGIC_POKE
     menu_add( "Debug", dbg_menu, COUNT(dbg_menu) );
