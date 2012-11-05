@@ -2092,7 +2092,7 @@ void warn_action(int code)
 
     // when warning condition changes, and display is on, show what's the problem
     static int prev_code_d = 0;
-    if (code != prev_code_d && DISPLAY_IS_ON && display_idle())
+    if (code != prev_code_d && DISPLAY_IS_ON)
     {
         char msg[200];
         msg[0] = '\0';
