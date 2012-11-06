@@ -26,9 +26,9 @@ void NormalDisplay();
 void MirrorDisplay();
 void ReverseDisplay();
 
-
 static void upside_down_step();
 static void uniwb_correction_step();
+static void warn_step();
 
 CONFIG_INT("dof.preview.sticky", dofpreview_sticky, 0);
 
@@ -2113,7 +2113,7 @@ void warn_action(int code)
 
 }
 
-void warn_step()
+static void warn_step()
 {
     warn_code = 0;
     if (warn_mode && shooting_mode != SHOOTMODE_M)
@@ -2140,6 +2140,7 @@ static void warn_display( void * priv, int x, int y, int selected )
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) get_warn_msg(", "));
 }
 
+#if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL) 
 static struct menu_entry key_menus[] = {
     {
         .name = "Focus box settings...", 
@@ -2265,6 +2266,8 @@ static struct menu_entry key_menus[] = {
         },
     },
 };
+#endif
+
 static struct menu_entry tweak_menus[] = {
     {
         .name = "Warnings for bad settings...",
@@ -3762,9 +3765,9 @@ static struct menu_entry play_menus[] = {
 
 static void tweak_init()
 {
-    extern struct menu_entry tweak_menus_shoot[];
     menu_add( "Prefs", play_menus, COUNT(play_menus) );
 #if !defined(CONFIG_5DC) && !defined(CONFIG_7D_MINIMAL) && !defined(CONFIG_5D3_MINIMAL)
+    extern struct menu_entry tweak_menus_shoot[];
     menu_add( "Prefs", tweak_menus_shoot, 1 );
     #if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL) 
     menu_add( "Prefs", key_menus, COUNT(key_menus) );

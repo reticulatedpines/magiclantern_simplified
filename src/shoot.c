@@ -1647,11 +1647,11 @@ silent_pic_take_simple(int interactive)
             if(silent_pic_jpeg)
             {
                 uint32_t loopcount = 0;
-                uint8_t *oldBuf = GetJpegBufForLV();
+                uint8_t *oldBuf = (uint8_t*) GetJpegBufForLV();
                 uint32_t oldLen = GetJpegSizeForLV();
                 
                 /* wait until size or buffer changed, then its likely that it is a new frame */
-                while(GetJpegSizeForLV() == oldLen || GetJpegBufForLV() == oldBuf)
+                while((uint32_t)GetJpegSizeForLV() == oldLen || (uint8_t*)GetJpegBufForLV() == oldBuf)
                 {
                     msleep(MIN_MSLEEP);
                     if(++loopcount > 500)
@@ -1661,7 +1661,7 @@ silent_pic_take_simple(int interactive)
                         return;
                     }
                 }
-                uint8_t *srcBuf = GetJpegBufForLV();
+                uint8_t *srcBuf = (uint8_t*) GetJpegBufForLV();
                 uint32_t srcLen = GetJpegSizeForLV();
                 
                 /* buffer is for sure larger than the jpeg will ever get */
@@ -4924,6 +4924,7 @@ int handle_expo_preset(struct event * event)
     return 1;
 }
 
+#if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL)
 static struct menu_entry shoot_menus[] = {
     {
         .name = "HDR Bracketing",
@@ -5329,14 +5330,15 @@ static struct menu_entry shoot_menus[] = {
         .help = "Experimental SRAW/MRAW mode. You may get corrupted files."
     }*/
 };
+#endif
 
+#if !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL)
 static struct menu_entry flash_menus[] = {
     {
         .name = "Flash tweaks...",
         .select     = menu_open_submenu,
         .help = "Flash exposure compensation, 3rd party flash in LiveView...",
         .children =  (struct menu_entry[]) {
-            #ifndef CONFIG_5D2 // no built-in flash; external flashes have their own EV compensation
             {
                 .name = "Flash expo comp.",
                 .display    = flash_ae_display,
@@ -5345,8 +5347,6 @@ static struct menu_entry flash_menus[] = {
                 //.essential = FOR_PHOTO,
                 .edit_mode = EM_MANY_VALUES,
             },
-            #endif
-            #if !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
             {
                 .name = "Flash / No flash",
                 //~ .select     = flash_and_no_flash_toggle,
@@ -5355,8 +5355,7 @@ static struct menu_entry flash_menus[] = {
                 .max = 1,
                 .help = "Take odd pictures with flash, even pictures without flash."
             },
-            #endif
-            #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D)
+            #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
             {
                 .name = "3rd p. flash LV ",
                 .priv = &lv_3rd_party_flash,
@@ -5368,6 +5367,7 @@ static struct menu_entry flash_menus[] = {
         },
     }
 };
+#endif
 
 #ifdef CONFIG_5D3
 extern int zoom_trick;
@@ -5525,7 +5525,7 @@ extern void digic_black_print( void * priv, int x, int y, int selected);
 
 extern int digic_shadow_lift;
 
-#ifndef CONFIG_5DC
+#if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL) && !defined(CONFIG_5DC)
 static struct menu_entry expo_menus[] = {
     {
         .name = "WhiteBalance",
@@ -7027,7 +7027,7 @@ shoot_task( void* unused )
         prev_flash_and_no_flash = flash_and_no_flash;
         #endif
 
-        #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D)
+        #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
         if (lv_3rd_party_flash && !is_movie_mode())
         {
             if (lv && HALFSHUTTER_PRESSED)
@@ -7383,26 +7383,26 @@ void shoot_init()
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
 
 #if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL)
-
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
-#ifndef CONFIG_5DC
+    #ifndef CONFIG_5DC
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
-#endif
+    #endif
+
     #if !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
     menu_add( "Shoot", flash_menus, COUNT(flash_menus) );
     #endif
+    
     //~ menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
 
-#ifndef CONFIG_5DC
+    #ifndef CONFIG_5DC
     extern struct menu_entry expo_override_menus[];
     menu_add( "Expo", expo_override_menus, 1 );
-#endif
+    #endif
 
-#if !defined(CONFIG_600D) && !defined(CONFIG_5DC) // expsim doesn't work
+    #if !defined(CONFIG_600D) && !defined(CONFIG_5DC) // expsim doesn't work
     extern struct menu_entry expo_tweak_menus[];
     menu_add( "Expo", expo_tweak_menus, 1 );
-#endif
-
+    #endif
 #endif
 }
 

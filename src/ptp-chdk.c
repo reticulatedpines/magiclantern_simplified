@@ -88,9 +88,11 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
     
     uint32_t address = param2;
     uint32_t length = param3;
+    uint8_t *buf = NULL;
+#if defined(PTP_7D_MASTER_ACCESS)
     uint32_t ret = 0;
     uint32_t errcount = 0;
-    uint8_t *buf = NULL;
+#endif
 
     // handle command
     switch ( param1 )
