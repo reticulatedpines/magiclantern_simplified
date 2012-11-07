@@ -353,12 +353,24 @@ int nondigic_zoom_overlay_enabled()
 static CONFIG_INT( "focus.peaking", focus_peaking, 0);
 //~ static CONFIG_INT( "focus.peaking.method", focus_peaking_method, 1);
 static CONFIG_INT( "focus.peaking.filter.edges", focus_peaking_filter_edges, 1); // prefer texture details rather than strong edges
-static CONFIG_INT( "focus.peaking.disp", focus_peaking_disp, 0); // display as dots or blended
 static CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 5); // 1%
 static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
 CONFIG_INT( "focus.peaking.grayscale", focus_peaking_grayscale, 0); // R,G,B,C,M,Y,cc1,cc2
 
-int focus_peaking_as_display_filter() { return lv && focus_peaking && focus_peaking_disp; }
+#ifdef CONFIG_DISPLAY_FILTERS
+static CONFIG_INT( "focus.peaking.disp", focus_peaking_disp, 0); // display as dots or blended
+#else
+#define focus_peaking_disp 0
+#endif
+
+int focus_peaking_as_display_filter() 
+{
+    #ifdef CONFIG_DISPLAY_FILTERS
+    return lv && focus_peaking && focus_peaking_disp;
+    #else
+    return 0;
+    #endif
+}
 
 //~ static CONFIG_INT( "focus.graph", focus_graph, 0);
 
@@ -1831,7 +1843,9 @@ static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvra
     //~ int color = COLOR_RED;
     color = (color << 8) | color;
     
+#ifdef CONFIG_DISPLAY_FILTERS
     y = anamorphic_squeeze_bmp_y(y);
+#endif
     
     uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
     uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
@@ -3468,7 +3482,7 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"1st deriv.", "2nd deriv.", "Nyquist H"},
                 .help = "Contrast detection method. 2: more accurate, 1: less noisy.",
             },*/
-            #if !defined(CONFIG_7D_MINIMAL) 
+            #ifdef CONFIG_DISPLAY_FILTERS
             {
                 .name = "Display type",
                 .priv = &focus_peaking_disp, 

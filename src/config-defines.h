@@ -88,6 +88,7 @@
 
 #if defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY) || defined(CONFIG_5D2)
 #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER // some cameras may have specific hacks and still do this, but harder
+#define CONFIG_DISPLAY_FILTERS
 #endif
 
 #if !defined(CONFIG_500D) && !defined(CONFIG_7D) && !defined(CONFIG_VXWORKS)

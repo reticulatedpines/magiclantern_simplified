@@ -3403,6 +3403,7 @@ static struct menu_entry display_menus[] = {
         .max = 1,
         .help = "Emphasizes camera shake on LiveView display.",
     },*/
+#ifdef CONFIG_DISPLAY_FILTERS
     #if !defined(CONFIG_7D_MINIMAL)
     {
         .name = "Defishing",
@@ -3447,6 +3448,7 @@ static struct menu_entry display_menus[] = {
         },
     },
     #endif
+#endif
 /*    #ifdef CONFIG_60D
     {
         .name = "DispOFF in PhotoMode",
