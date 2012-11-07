@@ -838,7 +838,7 @@ void dim_hidden_menu(int x0, int y0, int selected)
 
 void size_icon(int x, int y, int current, int nmax)
 {
-    dot(x, y, COLOR_GREEN1, current * (nmax > 2 ? 9 : 7) / (nmax-1) + 3);
+    dot(x, y, COLOR_GREEN1, COERCE(current * (nmax > 2 ? 9 : 7) / (nmax-1) + 3, 1, 12));
 }
 
 void dice_icon(int x, int y, int current, int nmax)

@@ -168,7 +168,7 @@ extern int lcd_release_running;
 static CONFIG_INT( "motion.release-level", motion_detect_level, 8);
 static CONFIG_INT( "motion.delay", motion_detect_delay, 0);
 static CONFIG_INT( "motion.trigger", motion_detect_trigger, 0);
-static CONFIG_INT( "motion.size", motion_detect_size, 100);
+static CONFIG_INT( "motion.dsize", motion_detect_size, 1);
 static CONFIG_INT( "motion.position", motion_detect_position, 0);
 static CONFIG_INT( "motion.shoottime", motion_detect_shootnum, 1);
 
@@ -5188,32 +5188,27 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Detect Size",
                 .priv = &motion_detect_size, 
-                .min = 10,   
-                .max = 200,
-                .help = "Size of the area on which motion shall be detected",
+                .max = 2,
+                .choices = (const char *[]) {"Small", "Medium", "Large"},
+                .help = "Size of the area on which motion shall be detected.",
             },
-             {
-            .name = "Position",
-                .priv = &motion_detect_position, 
-                .max = 1,
-                .choices = (const char *[]) {"Center", "Focus Box"},
-                .icon_type = IT_DICE,
-                .help = "Center of image or linked to focus box.",
+            {
+                .name = "Num. of pics",
+                .priv = &motion_detect_shootnum,
+                .max = 10,
+                .min = 1,
+                .icon_type = IT_PERCENT,
+                .help = "How many pictures to take for every detected motion.",
             },
-			{
-			.name = "Continuous shoot",
-				.priv = &motion_detect_shootnum,
-				.max = 100,
-				.min = 1,
-				.help = "Take x pictures when continuous mode slected",
-			},
-			{
-			.name = "Delay in 1/10s",
-				.priv = &motion_detect_delay,
-				.max  = 100,
-				.min  = 0,
-				.help = "Wait for x/10 seconds before taking picture",
-			},
+            {
+                .name = "Delay",
+                .priv = &motion_detect_delay,
+                .max  = 10,
+                .min  = 0,
+                .icon_type = IT_PERCENT,
+                .choices = (const char *[]) {"0", "0.1s", "0.2s", "0.3s", "0.4s", "0.5s", "0.6s", "0.7s", "0.8s", "0.9s", "1s"},
+                .help = "Delay between the detected motion and the picture taken.",
+            },
 			MENU_EOL
 		}
 
@@ -7104,14 +7099,19 @@ shoot_task( void* unused )
             //~ bmp_printf(FONT_MED, 0, 50, "K= %d   ", K);
             int xcb = os.x0 + os.x_ex/2;
             int ycb = os.y0 + os.y_ex/2;
+            
+            int detect_size = 
+                motion_detect_size == 0 ? 80 : 
+                motion_detect_size == 1 ? 120 : 
+                                          200 ;
 
-            if (motion_detect_position) // AF frame
+            // center the motion detection window on focus box
             {
                 get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
                 xcb += os.x0;
                 ycb += os.y0;
-                xcb = COERCE(xcb, os.x0 + (int)motion_detect_size, os.x_max - (int)motion_detect_size );
-                ycb = COERCE(ycb, os.y0 + (int)motion_detect_size, os.y_max - (int)motion_detect_size );
+                xcb = COERCE(xcb, os.x0 + (int)detect_size, os.x_max - (int)motion_detect_size );
+                ycb = COERCE(ycb, os.y0 + (int)detect_size, os.y_max - (int)motion_detect_size );
              }
 
             if (motion_detect_trigger == 0)
@@ -7121,7 +7121,7 @@ shoot_task( void* unused )
                 static int old_ae_avg = 0;
                 int y,u,v;
                 //TODO: maybe get the spot yuv of the target box
-                get_spot_yuv_ex(motion_detect_size, xcb-os.x_max/2, ycb-os.y_max/2, &y, &u, &v);
+                get_spot_yuv_ex(detect_size, xcb-os.x_max/2, ycb-os.y_max/2, &y, &u, &v);
                 aev = y / 2;
                 if (K > 40) bmp_printf(FONT_MED, 0, 80, " Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
                 if (K > 40 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
@@ -7142,7 +7142,7 @@ shoot_task( void* unused )
             }
             else if (motion_detect_trigger == 1) 
             {
-                int d = get_spot_motion(motion_detect_size, xcb, ycb, get_global_draw());
+                int d = get_spot_motion(detect_size, xcb, ycb, get_global_draw());
                 if (K > 20) bmp_printf(FONT_MED, 0, 80, " Motion level: %d   ", d);
                 if (K > 20 && d >= (int)motion_detect_level)
                 {
