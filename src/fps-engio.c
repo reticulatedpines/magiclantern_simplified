@@ -1451,9 +1451,7 @@ int handle_fps_events(struct event * event)
 
 void fps_ramp_iso_step()
 {
-    #ifdef CONFIG_500D
-    return;
-    #endif
+#ifdef CONFIG_FRAME_ISO_OVERRIDE
     if (!lv) return;
     if (!is_movie_mode()) return;
     
@@ -1496,6 +1494,7 @@ void fps_ramp_iso_step()
 
     set_movie_digital_iso_gain_for_gradual_expo(g);
     dirty = 1;
+#endif
 }
 
 

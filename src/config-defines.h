@@ -89,3 +89,11 @@
 #if defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY) || defined(CONFIG_5D2)
 #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER // some cameras may have specific hacks and still do this, but harder
 #endif
+
+#if !defined(CONFIG_500D) && !defined(CONFIG_7D) && !defined(CONFIG_VXWORKS)
+#define CONFIG_FRAME_ISO_OVERRIDE // e.g. for HDR video or gradual exposure
+#endif
+
+#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
+#define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY // you can't override digital ISO component via FRAME_ISO
+#endif

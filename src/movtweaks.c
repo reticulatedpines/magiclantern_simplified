@@ -1346,7 +1346,7 @@ static struct menu_entry mov_menus[] = {
         //.essential = FOR_MOVIE,
     },
 #endif
-#if !defined(CONFIG_500D) && !defined(CONFIG_7D)
+#ifdef CONFIG_FRAME_ISO_OVERRIDE
     {
         .name = "Gradual Expo.",
         .priv = &smooth_iso,
