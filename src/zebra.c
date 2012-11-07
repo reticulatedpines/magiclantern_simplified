@@ -460,7 +460,7 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
     if (ml_started) redraw();
 }
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
+#ifdef CONFIG_VARIANGLE_DISPLAY
 volatile int lcd_position = 0;
 volatile int display_dont_mirror_dirty;
 PROP_HANDLER(PROP_LCD_POSITION)
@@ -5374,7 +5374,7 @@ void redraw_do()
     
 BMP_LOCK (
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
+#ifdef CONFIG_VARIANGLE_DISPLAY
     if (display_dont_mirror && display_dont_mirror_dirty)
     {
         if (lcd_position == 1) NormalDisplay();

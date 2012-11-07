@@ -1467,7 +1467,7 @@ display_dont_mirror_display(
     );
 }
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
+#ifdef CONFIG_VARIANGLE_DISPLAY
 void display_orientation_toggle(void* priv, int dir)
 {
     int o = DISPLAY_ORIENTATION;
@@ -3475,7 +3475,7 @@ static struct menu_entry display_menus[] = {
                     .select = menu_binary_toggle,
                     .help = "Displays overlay graphics upside-down and flips arrow keys.",
                 },
-            #if defined(CONFIG_60D) || defined(CONFIG_600D)
+            #ifdef CONFIG_VARIANGLE_DISPLAY
                 {
                     .name = "Orientation    ",
                     .priv = &DISPLAY_ORIENTATION,
@@ -3485,7 +3485,7 @@ static struct menu_entry display_menus[] = {
                     .help = "Display + LiveView orientation: Normal / Reverse / Mirror."
                 },
             #endif
-            #if defined(CONFIG_60D) || defined(CONFIG_600D)
+            #ifdef CONFIG_VARIANGLE_DISPLAY
                 {
                     .name = "Auto Mirroring",
                     .priv = &display_dont_mirror,

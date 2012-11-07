@@ -50,6 +50,10 @@
 #define CONFIG_EYEFI
 #endif
 
+#if defined(CONFIG_600D) || defined(CONFIG_60D) // enable some tricks for flip-out display
+#define CONFIG_VARIANGLE_DISPLAY
+#endif
+
 #include "arm-mcr.h"
 #include "dialog.h"
 #include "gui.h"
