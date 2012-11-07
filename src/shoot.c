@@ -671,7 +671,7 @@ motion_detect_display( void * priv, int x, int y, int selected )
         x, y,
         "Motion Detect   : %s, level=%d",
         motion_detect == 0 ? "OFF" :
-        motion_detect_trigger == 0 ? "EXP" : "DIF",
+        motion_detect_trigger == 0 ? "EXP" : motion_detect_trigger == 1 ? "DIF" : "STDY",
         motion_detect_level
     );
     menu_draw_icon(x, y, MNI_BOOL_LV(motion_detect));
@@ -5173,10 +5173,10 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Trigger by",
                 .priv = &motion_detect_trigger, 
-                .max = 1,
-                .choices = (const char *[]) {"Expo. change", "Frame diff."},
+                .max = 2,
+                .choices = (const char *[]) {"Expo. change", "Frame diff.", "Steady hands"},
                 .icon_type = IT_DICE,
-                .help = "How to compute the difference between two frames.",
+                .help = "Exposure change, subject movement, or lack of motion.",
             },
             {
                 .name = "Trigger level",
@@ -7179,6 +7179,46 @@ shoot_task( void* unused )
                     K = 0;
                 }
                 if (K == 40) idle_force_powersave_in_1s();
+            }
+            else if (motion_detect_trigger == 2)
+            {
+                int hs = HALFSHUTTER_PRESSED;
+                static int prev_hs = 0;
+                static int prev_d[30];
+                if (hs)
+                {
+                    int d = get_spot_motion(detect_size, xcb, ycb, get_global_draw());
+                    
+                    for (int i = 29; i > 0; i--)
+                        prev_d[i] = prev_d[i-1];
+                    prev_d[0] = d;
+                    
+                    int dmax = 0;
+                    for (int i = 0; i < 5; i++)
+                    {
+                        dmax = MAX(dmax, prev_d[i]);
+                    }
+                    int steady = (dmax <= (int)motion_detect_level);
+
+                    for (int i = 1; i < 30; i++)
+                    {
+                        int d = MIN(prev_d[i], 30);
+                        bmp_draw_rect(COLOR_RED, 60 - i*2, 100 - d, 1, d);
+                        bmp_draw_rect(steady ? COLOR_GREEN1 : i < 5 ? COLOR_LIGHTBLUE : COLOR_BLACK, 60 - i*2, 100 - 30, 1, 30 - d);
+                    }
+
+                    bmp_printf(FONT_MED, 0, 20, "Motion level: %d   ", dmax);
+                    if (steady)
+                    {
+                        md_take_pics();
+                    }
+                }
+                else
+                {
+                    if (prev_hs) redraw();
+                    prev_d[0] = 100;
+                }
+                prev_hs = hs;
             }
         }
 
