@@ -2512,6 +2512,7 @@ struct menu_entry expo_tweak_menus[] = {
 CONFIG_INT("preview.brightness", preview_brightness, 0);
 CONFIG_INT("preview.contrast", preview_contrast, 3);
 CONFIG_INT("preview.saturation", preview_saturation, 1);
+CONFIG_INT("preview.sat.wb", preview_saturation_boost_wb, 0);
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
 CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
 
@@ -2526,6 +2527,22 @@ static int focus_peaking_grayscale_running()
         !focus_peaking_as_display_filter() &&
         zebra_should_run()
         ;
+}
+
+int is_adjusting_wb()
+{
+    #if defined(CONFIG_5D2) || defined(CONFIG_5D3)
+    // these cameras have a transparent LiveView dialog for adjusting Kelvin white balance
+    // (maybe 7D too)
+    extern thunk LiveViewWbApp_handler;
+    if ((intptr_t)get_current_dialog_handler() == (intptr_t)&LiveViewWbApp_handler)
+        return 1;
+    #endif
+
+    if (lv && gui_menu_shown() && menu_active_but_hidden() && is_menu_entry_selected("Expo", "WhiteBalance"))
+        return 1;
+
+    return 0;
 }
 
 int joke_mode = 0;
@@ -2554,6 +2571,10 @@ void preview_contrast_n_saturation_step()
     
     if (focus_peaking_grayscale_running())
         desired_saturation = 0;
+
+    // when adjusting WB, you can see color casts easier if saturation is increased
+    if (preview_saturation_boost_wb && is_adjusting_wb())
+        desired_saturation = 0xFF;
 
     if (joke_mode)
     {
@@ -3418,6 +3439,16 @@ static struct menu_entry display_menus[] = {
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
                 //.essential = FOR_LIVEVIEW,
+                .submenu_width = 650,
+                .children =  (struct menu_entry[]) {
+                    {
+                        .name = "Boost when adjusting WB",
+                        .priv = &preview_saturation_boost_wb, 
+                        .max = 1,
+                        .help = "Increase LiveView saturation when adjusting white balance.",
+                    },
+                    MENU_EOL
+                }
             },
         #if !defined(CONFIG_7D_MINIMAL)
             {

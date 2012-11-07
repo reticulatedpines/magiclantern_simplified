@@ -2577,13 +2577,30 @@ TASK_CREATE( "menu_task", menu_task, 0, 0x1a, 0x2000 );
 
 //~ TASK_CREATE( "menu_task_minimal", menu_task_minimal, 0, 0x1a, 0x2000 );
 
+int is_menu_entry_selected(char* menu_name, char* entry_name)
+{
+    struct menu * menu = menus;
+    for( ; menu ; menu = menu->next )
+        if( menu->selected )
+            break;
+    if (streq(menu->name, menu_name))
+    {
+        struct menu_entry * entry = menu->children;
+        for( ; entry ; entry = entry->next)
+            if (entry->selected)
+                break;
+        return streq(entry->name, entry_name);
+    }
+    return 0;
+}
+
 int is_menu_selected(char* name)
 {
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
         if( menu->selected )
             break;
-    return !strcmp(menu->name, name);
+    return streq(menu->name, name);
 }
 int is_menu_active(char* name)
 {
@@ -2597,7 +2614,7 @@ void select_menu(char* name, int entry_index)
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
-        menu->selected = !strcmp(menu->name, name);
+        menu->selected = streq(menu->name, name);
         if (menu->selected)
         {
             struct menu_entry * entry = menu->children;
@@ -2617,7 +2634,7 @@ void select_menu_by_name(char* name, char* entry_name)
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
-        menu->selected = !strcmp(menu->name, name) && !menu_that_was_selected;
+        menu->selected = streq(menu->name, name) && !menu_that_was_selected;
         if (menu->selected) menu_that_was_selected = menu;
         if (menu->selected)
         {
@@ -2626,7 +2643,7 @@ void select_menu_by_name(char* name, char* entry_name)
             int i;
             for(i = 0 ; entry ; entry = entry->next, i++ )
             {
-                entry->selected = !strcmp(entry->name, entry_name) && !entry_was_selected;
+                entry->selected = streq(entry->name, entry_name) && !entry_was_selected;
                 if (entry->selected) entry_was_selected = 1;
             }
         }
