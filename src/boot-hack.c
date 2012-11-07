@@ -38,9 +38,6 @@
 #include "cache_hacks.h"
 #endif
 
-/** If CONFIG_EARLY_PORT is defined, only a few things will be enabled */
-#undef CONFIG_EARLY_PORT
-
 /** These are called when new tasks are created */
 void my_task_dispatch_hook( struct context ** );
 int my_init_task(int a, int b, int c, int d);
@@ -153,9 +150,11 @@ copy_and_restart( int offset )
     */
 
 #ifndef CONFIG_EARLY_PORT
+#ifndef CONFIG_HELLO_WORLD
     // Install our task creation hooks
     task_dispatch_hook = my_task_dispatch_hook;
     tskmon_init();
+#endif
 #endif
 
     // This will jump into the RAM version of the firmware,
@@ -341,6 +340,15 @@ int ml_gui_initialized = 0; // 1 after gui_main_task is started
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
 {
+    #ifdef CONFIG_HELLO_WORLD
+    load_fonts();
+    while(1)
+    {
+        bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
+        bfnt_puts("Hello, World!", 50, 100, COLOR_BLACK, COLOR_WHITE);
+        info_led_blink(1, 500, 500);
+    }
+    #endif
     
     call("DisablePowerSave");
     menu_init();

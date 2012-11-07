@@ -1,6 +1,29 @@
 /**
  *  Conditional defines for features that apply to certain camera families
+ * 
+ *  After editing this file, run: make clean && make
+ * 
  */
+
+
+
+
+/** 
+ * Enable these for early ports
+ */
+
+/** If CONFIG_EARLY_PORT is defined, only a few things will be enabled (e.g. changing version string) */
+//~ #define CONFIG_EARLY_PORT
+
+/** Load fonts and print Hello World (disable CONFIG_EARLY_PORT); will not start any other ML tasks, handlers etc. */
+//~ #define CONFIG_HELLO_WORLD
+
+/** Safe mode, don't alter properties (they are persistent). Highly recommended for new ports. */
+#if defined(CONFIG_5D3_MINIMAL) || defined(CONFIG_7D) || defined(CONFIG_40D)
+#define CONFIG_DISABLE_PROP_REQUEST_CHANGE
+#endif
+
+
 
 /** 
  * Debug features
