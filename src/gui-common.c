@@ -18,6 +18,11 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
 {
     if (class == 131 && level == 1)
         MEM(0x3334C) = 0; // LvApp_struct.off_0x60 /*0x3334C*/ = ret_str:JudgeBottomInfoDispTimerState_FF4B0970
+
+    extern int rec_led_off;
+    if ((class == 34 || class == 35) && level == 1 && rec_led_off && recording) // cfWriteBlk, sdWriteBlk
+        *(uint32_t*)CARD_LED_ADDRESS = 0x838C00;
+    
     return;
 }
 #endif

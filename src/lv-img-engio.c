@@ -17,8 +17,6 @@
 
 #define EngDrvOut(reg, value) *(int*)(reg) = value
 
-//~ #define CONFIG_DIGIC_POKE
-
 //~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
 
 
@@ -491,6 +489,10 @@ void image_effects_step()
         return;
     }
 
+    #ifdef CONFIG_5D3 // none of the effects works
+    return;
+    #endif
+
     if (!is_movie_mode()) return;
 
     // sharpness trick: at -1, cancel it completely
@@ -576,6 +578,7 @@ void digic_iso_step()
 
 void menu_open_submenu();
 
+#if !defined(CONFIG_7D_MINIMAL) && !defined(CONFIG_5D3)
 static struct menu_entry lv_img_menu[] = {
     {
 	.id = 0,
@@ -635,6 +638,7 @@ static struct menu_entry lv_img_menu[] = {
         }
     }
 };
+#endif
 
 #ifdef CONFIG_DIGIC_POKE
 
@@ -704,12 +708,12 @@ static struct menu_entry dbg_menu[] = {
 
 static void lv_img_init()
 {
-    #if !defined(CONFIG_7D_MINIMAL)
+#if !defined(CONFIG_7D_MINIMAL) && !defined(CONFIG_5D3)
     menu_add( "Movie", lv_img_menu, COUNT(lv_img_menu) );
-    #endif
-    #ifdef CONFIG_DIGIC_POKE
+#endif
+#ifdef CONFIG_DIGIC_POKE
     menu_add( "Debug", dbg_menu, COUNT(dbg_menu) );
-    #endif
+#endif
 }
 
 INIT_FUNC("lv_img", lv_img_init);

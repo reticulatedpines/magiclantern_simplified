@@ -38,9 +38,6 @@
 #include "cache_hacks.h"
 #endif
 
-/** If CONFIG_EARLY_PORT is defined, only a few things will be enabled */
-#undef CONFIG_EARLY_PORT
-
 /** These are called when new tasks are created */
 void my_task_dispatch_hook( struct context ** );
 int my_init_task(int a, int b, int c, int d);
@@ -77,20 +74,17 @@ zero_bss( void )
 
 /** Copy firmware to RAM, patch it and restart it */
 void
-__attribute__((noreturn,noinline,naked))
 copy_and_restart( int offset )
 {
-    
     // Clear bss
     zero_bss();
 
     // Set the flag if this was an autoboot load
     autoboot_loaded = (offset == 0);
+    
 #ifdef HIJACK_CACHE_HACK
     /* make sure we have the first segment locked in d/i cache for patching */    
-    uint32_t old_int = cli();
     cache_lock();
-    sei(old_int);
 
     /* patch init code to start our init task instead of canons default */
     cache_fake(HIJACK_CACHE_HACK_INITTASK_ADDR, (uint32_t) my_init_task, TYPE_DCACHE);
@@ -99,7 +93,6 @@ copy_and_restart( int offset )
     void (*reset)(void) = (void*) ROMBASEADDR;
     reset();
 #else
-
     // Copy the firmware to somewhere safe in memory
     const uint8_t * const firmware_start = (void*) ROMBASEADDR;
     const uint32_t firmware_len = RELOCSIZE;
@@ -157,9 +150,11 @@ copy_and_restart( int offset )
     */
 
 #ifndef CONFIG_EARLY_PORT
+#ifndef CONFIG_HELLO_WORLD
     // Install our task creation hooks
     task_dispatch_hook = my_task_dispatch_hook;
     tskmon_init();
+#endif
 #endif
 
     // This will jump into the RAM version of the firmware,
@@ -168,11 +163,11 @@ copy_and_restart( int offset )
     // instead.
     void (*ram_cstart)(void) = (void*) &INSTR( cstart );
     ram_cstart();
+#endif
 
     // Unreachable
     while(1)
         ;
-#endif
 }
 
 
@@ -345,6 +340,15 @@ int ml_gui_initialized = 0; // 1 after gui_main_task is started
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
 {
+    #ifdef CONFIG_HELLO_WORLD
+    load_fonts();
+    while(1)
+    {
+        bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
+        bfnt_puts("Hello, World!", 50, 100, COLOR_BLACK, COLOR_WHITE);
+        info_led_blink(1, 500, 500);
+    }
+    #endif
     
     call("DisablePowerSave");
     menu_init();
@@ -725,6 +729,26 @@ int init_task_patched_for_1100D(int a, int b, int c, int d)
 }
 #endif
 
+#if defined(CONFIG_7D_FIR_MASTER)
+
+#include "cache_hacks.h"
+void master_ml_init()
+{
+    master_msleep(100);
+
+    cache_lock();
+    cache_fake(0xFF88BCB4, 0xE3A01001, TYPE_ICACHE); /* flush video buffer every frame */
+    //cache_fake(0xFF8C7C18, 0xE3A01001, TYPE_ICACHE); /* all-I */
+    cache_fake(0xFF8C7C18, 0xE3A01004, TYPE_ICACHE); /* GOP4 */
+    //cache_fake(0xFF8CD448, 0xE3A00006, TYPE_ICACHE); /* deblock alpha set to 6 */
+    //cache_fake(0xFF8CD44C, 0xE3A00106, TYPE_ICACHE); /* deblock beta set to 6 */
+}
+#endif
+
+
+// flag set to 1 when gui_main_task started to process messages from queue
+int gui_init_done = 0;
+
 
 
 /** Initial task setup.
@@ -737,12 +761,12 @@ int
 my_init_task(int a, int b, int c, int d)
 {
 #if defined(CONFIG_7D_FIR_MASTER)
-    extern int  __attribute__ ((long_call)) master_init_task( int a, int b, int c, int d );
+    extern int master_init_task( int a, int b, int c, int d );
     cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, HIJACK_CACHE_HACK_BSS_END_INSTR, TYPE_ICACHE);
     
     int ans = master_init_task(a,b,c,d);
     
-    //master_task_create("ml_init", 0x18, 0x4000, &master_ml_init, 0 );    
+    master_task_create("ml_init", 0x18, 0x4000, &master_ml_init, 0 );    
     
     return ans;
 #else
@@ -773,7 +797,7 @@ my_init_task(int a, int b, int c, int d)
     
     /* no functions/caches need to get patched anymore, we can disable cache hacking again */    
     /* use all cache pages again, so we run at "full speed" although barely noticeable (<1% speedup/slowdown) */
-    cache_unlock();
+    //cache_unlock();
 #else
     // Call their init task
     #ifdef CONFIG_550D

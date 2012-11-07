@@ -26,9 +26,9 @@ void NormalDisplay();
 void MirrorDisplay();
 void ReverseDisplay();
 
-
 static void upside_down_step();
 static void uniwb_correction_step();
+static void warn_step();
 
 CONFIG_INT("dof.preview.sticky", dofpreview_sticky, 0);
 
@@ -92,7 +92,7 @@ dofp_update()
 //EyeFi Trick (EyeFi confirmed working only on 600D-60D)
 //**********************************************************************/
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
+#ifdef CONFIG_EYEFI
 int check_eyefi()
 {
     FILE * f = FIO_Open(CARD_DRIVE "EYEFI/REQC", 0);
@@ -304,124 +304,6 @@ expsim_display( void * priv, int x, int y, int selected )
     if (CONTROL_BV && expsim<2) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
     //~ else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
 }
-
-// LV metering
-//**********************************************************************/
-#if 0
-CONFIG_INT("lv.metering", lv_metering, 0);
-
-static void
-lv_metering_print( void * priv, int x, int y, int selected )
-{
-    //unsigned z = *(unsigned*) priv;
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "LV Auto ISO (M mode): %s",
-        lv_metering == 0 ? "OFF" :
-        lv_metering == 1 ? "Spotmeter" :
-        lv_metering == 2 ? "CenteredHist" :
-        lv_metering == 3 ? "HighlightPri" :
-        lv_metering == 4 ? "NoOverexpose" : "err"
-    );
-    if (lv_metering)
-    {
-        if (shooting_mode != SHOOTMODE_M || !lv)
-            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in photo mode (M), LiveView");
-        if (!expsim)
-            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "ExpSim is OFF");
-    }
-}
-
-static void
-shutter_alter( int sign)
-{
-    #ifdef CONFIG_60D
-    sign *= 3;
-    #endif
-    
-    if (AE_VALUE > 5*8 && sign < 0) return;
-    if (AE_VALUE < -5*8 && sign > 0) return;
-    
-    int rs = lens_info.raw_shutter;
-    //~ for (int k = 0; k < 8; k++)
-    {
-        rs += sign;
-        lens_set_rawshutter(rs);
-        msleep(10);
-        if (lens_info.raw_shutter == rs) return;
-    }
-}
-
-static void
-iso_alter( int sign)
-{
-    sign = -sign;
-    sign *= 8;
-    
-    if (AE_VALUE > 5*8 && sign < 0) return;
-    if (AE_VALUE < -5*8 && sign > 0) return;
-    
-    int ri = lens_info.raw_iso;
-    //~ for (int k = 0; k < 8; k++)
-    {
-        ri += sign;
-        ri = MIN(ri, 120); // max ISO 6400
-        lens_set_rawiso(ri);
-        msleep(10);
-        if (lens_info.raw_iso == ri) return;
-    }
-}
-
-static void
-lv_metering_adjust()
-{
-    if (!lv) return;
-    if (!expsim) return;
-    if (gui_menu_shown()) return;
-    if (!liveview_display_idle()) return;
-    if (ISO_ADJUSTMENT_ACTIVE) return;
-    if (get_halfshutter_pressed()) return;
-    if (lv_dispsize != 1) return;
-    //~ if (shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV) return;
-    if (shooting_mode != SHOOTMODE_M) return;
-    
-    if (lv_metering == 1)
-    {
-        int Y,U,V;
-        get_spot_yuv(5, &Y, &U, &V);
-        //bmp_printf(FONT_LARGE, 0, 100, "Y %d AE %d  ", Y, lens_info.ae);
-        iso_alter(SGN(Y-128));
-    }
-    else if (lv_metering == 2) // centered histogram
-    {
-        int under, over;
-        get_under_and_over_exposure_autothr(&under, &over);
-        //~ bmp_printf(FONT_MED, 10, 40, "over=%d under=%d ", over, under);
-        if (over > under) iso_alter(1);
-        else iso_alter(-1);
-    }
-    else if (lv_metering == 3) // highlight priority
-    {
-        int under, over;
-        get_under_and_over_exposure(10, 235, &under, &over);
-        //~ bmp_printf(FONT_MED, 10, 40, "over=%d under=%d ", over, under);
-        if (over > 100 && under < over * 5) iso_alter(1);
-        else iso_alter(-1);
-    }
-    else if (lv_metering == 4) // don't overexpose
-    {
-        int under, over;
-        get_under_and_over_exposure(5, 235, &under, &over);
-        //~ bmp_printf(FONT_MED, 10, 40, "over=%d ", over);
-        if (over > 100) iso_alter(1);
-        else iso_alter(-1);
-    }
-    msleep(500);
-    //~ bee
-    //~ beep();
-}
-#endif
 
 // auto burst pic quality
 //**********************************************************************/
@@ -648,6 +530,7 @@ void clear_lv_afframe()
 
 #ifdef CONFIG_5D3
 CONFIG_INT("play.quick.zoom", quickzoom, 0);
+CONFIG_INT("qr.zoom.play", ken_rockwell_zoom, 0);
 #else
 CONFIG_INT("play.quick.zoom", quickzoom, 2);
 #endif
@@ -857,6 +740,23 @@ void print_set_maindial_hint()
     }
 }
 
+#ifdef CONFIG_5D3
+static volatile int krzoom_running = 0;
+static void krzoom_task()
+{
+    krzoom_running = 1;
+    SetGUIRequestMode(0);
+    msleep(50);
+    if (lv)
+    {
+        SetGUIRequestMode(1);
+        msleep(50);
+    }
+    fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+    krzoom_running = 0;
+}
+#endif
+
 int handle_set_wheel_play(struct event * event)
 {
     if (gui_menu_shown()) return 1;
@@ -913,6 +813,15 @@ int handle_set_wheel_play(struct event * event)
         }
     }
     #endif
+    
+    #ifdef CONFIG_5D3
+    if (event->param == BGMT_PRESS_ZOOMIN_MAYBE && ken_rockwell_zoom && QR_MODE && !krzoom_running)
+    {
+        krzoom_running = 1;
+        task_create("krzoom_task", 0x1e, 0x1000, krzoom_task, 0);
+        return 0;
+    }
+    #endif
 
     return 1;
 }
@@ -940,7 +849,7 @@ int play_rate_flag = 0;
 int rating_in_progress = 0;
 void play_lv_key_step()
 {
-#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
+#ifdef CONFIG_Q_MENU_PLAYBACK
 
     // wait for user request to settle
     int prev = play_rate_flag;
@@ -1014,7 +923,7 @@ static void protect_image_task()
 }
 #endif
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2) || defined(CONFIG_1100D)
+#if defined(CONFIG_Q_MENU_PLAYBACK) || defined(CONFIG_5D2)
 
 int handle_lv_play(struct event * event)
 {
@@ -1429,6 +1338,7 @@ tweak_task( void* unused)
         uniwb_correction_step();
         grayscale_menus_step();
         lcd_adjust_position_step();
+        warn_step();
 
         // if disp presets is enabled, make sure there are no Canon graphics
         extern int disp_profiles_0;
@@ -1557,7 +1467,7 @@ display_dont_mirror_display(
     );
 }
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
+#ifdef CONFIG_VARIANGLE_DISPLAY
 void display_orientation_toggle(void* priv, int dir)
 {
     int o = DISPLAY_ORIENTATION;
@@ -2055,6 +1965,91 @@ int handle_zoom_trick_event(struct event * event)
 }
 #endif
 
+
+static CONFIG_INT("warn.mode", warn_mode, 0);
+static CONFIG_INT("warn.picq", warn_picq, 0);
+static CONFIG_INT("warn.alo", warn_alo, 0);
+static int warn_code = 0;
+
+char* get_warn_msg(char* separator)
+{
+    static char msg[200];
+    msg[0] = '\0';
+    if (warn_code & 1) { STR_APPEND(msg, "Mode is not M%s", separator); } 
+    if (warn_code & 2) { STR_APPEND(msg, "Pic quality is not RAW%s", separator); } 
+    if (warn_code & 4) { STR_APPEND(msg, "ALO is enabled%s", separator); } 
+    return msg;
+}
+
+void warn_action(int code)
+{
+    // blink LED every second
+    if (code)
+    {
+        static int prev_clk = 0;
+        int clk = get_seconds_clock();
+        if (clk != prev_clk)
+        {
+            static int k = 0; k++;
+            if (k%2) info_led_on(); else info_led_off();
+        }
+        prev_clk = clk;
+    }
+    
+    // when warning condition changes, beep
+    static int prev_code = 0;
+    if (code != prev_code)
+    {
+        if (code) // not good
+        {
+            beep();
+        }
+        else // OK, back to good configuration
+        {
+            info_led_blink(2,50,50);
+        }
+    }
+    prev_code = code;
+
+    // when warning condition changes, and display is on, show what's the problem
+    static int prev_code_d = 0;
+    if (code != prev_code_d && DISPLAY_IS_ON && !gui_menu_shown())
+    {
+        NotifyBoxHide(); msleep(200);
+        if (code) NotifyBox(3000, get_warn_msg("\n")); 
+        prev_code_d = code;
+    }
+
+}
+
+static void warn_step()
+{
+    warn_code = 0;
+    if (warn_mode && shooting_mode != SHOOTMODE_M)
+        warn_code |= 1;
+
+    int raw = pic_quality & 0x60000;
+    if (warn_picq && !raw)
+        warn_code |= 2;
+    
+    if (warn_alo && get_alo() != ALO_OFF)
+        warn_code |= 4;
+    
+    warn_action(warn_code);
+}
+
+static void warn_display( void * priv, int x, int y, int selected )
+{
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "Warnings for bad settings..."
+    );
+    if (warn_code)
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) get_warn_msg(", "));
+}
+
+#if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL) 
 static struct menu_entry key_menus[] = {
     {
         .name = "Focus box settings...", 
@@ -2180,7 +2175,40 @@ static struct menu_entry key_menus[] = {
         },
     },
 };
+#endif
+
 static struct menu_entry tweak_menus[] = {
+    {
+        .name = "Warnings for bad settings...",
+        .select     = menu_open_submenu,
+        .display = warn_display,
+        .help = "Warn if some of your settings are changed by mistake.",
+        .submenu_width = 700,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Mode warning   ",
+                .priv = &warn_mode,
+                .max = 1,
+                .choices = (const char *[]) {"OFF", "other than M"},
+                .help = "Warn if you turn the mode dial to some other position.",
+            },
+            {
+                .name = "Quality warning",
+                .priv = &warn_picq,
+                .max = 1,
+                .choices = (const char *[]) {"OFF", "other than RAW"},
+                .help = "Warn if you change the picture quality to something else.",
+            },
+            {
+                .name = "ALO warning    ",
+                .priv = &warn_alo,
+                .max = 1,
+                .choices = (const char *[]) {"OFF", "other than OFF"},
+                .help = "Warn if you enable ALO by mistake.",
+            },
+            MENU_EOL,
+        },
+    },
 /*  {
         .name = "Night Vision Mode",
         .priv = &night_vision, 
@@ -2207,7 +2235,7 @@ static struct menu_entry tweak_menus[] = {
     },
     #endif
 };
-#if defined(CONFIG_60D) || defined(CONFIG_600D) 
+#ifdef CONFIG_EYEFI
 static struct menu_entry eyefi_menus[] = {
     {
         .name        = "EyeFi Trick",
@@ -2366,6 +2394,7 @@ struct menu_entry expo_tweak_menus[] = {
 CONFIG_INT("preview.brightness", preview_brightness, 0);
 CONFIG_INT("preview.contrast", preview_contrast, 3);
 CONFIG_INT("preview.saturation", preview_saturation, 1);
+CONFIG_INT("preview.sat.wb", preview_saturation_boost_wb, 0);
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
 CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
 
@@ -2380,6 +2409,22 @@ static int focus_peaking_grayscale_running()
         !focus_peaking_as_display_filter() &&
         zebra_should_run()
         ;
+}
+
+int is_adjusting_wb()
+{
+    #if defined(CONFIG_5D2) || defined(CONFIG_5D3)
+    // these cameras have a transparent LiveView dialog for adjusting Kelvin white balance
+    // (maybe 7D too)
+    extern thunk LiveViewWbApp_handler;
+    if ((intptr_t)get_current_dialog_handler() == (intptr_t)&LiveViewWbApp_handler)
+        return 1;
+    #endif
+
+    if (lv && gui_menu_shown() && menu_active_but_hidden() && is_menu_entry_selected("Expo", "WhiteBalance"))
+        return 1;
+
+    return 0;
 }
 
 int joke_mode = 0;
@@ -2408,6 +2453,10 @@ void preview_contrast_n_saturation_step()
     
     if (focus_peaking_grayscale_running())
         desired_saturation = 0;
+
+    // when adjusting WB, you can see color casts easier if saturation is increased
+    if (preview_saturation_boost_wb && is_adjusting_wb())
+        desired_saturation = 0xFF;
 
     if (joke_mode)
     {
@@ -3135,7 +3184,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
 #ifdef CONFIG_5D2
     *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_2);
-#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_VXWORKS) && !defined(CONFIG_7D) // all new cameras should work with this method
+#elif defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
     *src_buf = (void*)shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_1 + 720*480*2);
 #else // just use some reasonable defaults that won't crash the camera
@@ -3148,7 +3197,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
 // type 2 filters: compute histogram on original image
 int display_filter_enabled()
 {
-    #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_VXWORKS)// || defined(CONFIG_5D3_MINIMAL) // not working on these cameras
+    #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
     return 0;
     #endif
     if (EXT_MONITOR_CONNECTED) return 0; // non-scalable code
@@ -3190,7 +3239,7 @@ void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
             EnableImagePhysicalScreenParameter();
         }
     }
-#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_VXWORKS) && !defined(CONFIG_7D) // all new cameras should work with this method
+#elif defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY) // all new cameras should work with this method
 
     if (!display_filter_valid_image) return;
     if (!display_filter_enabled()) { display_filter_valid_image = 0;  return; }
@@ -3229,6 +3278,29 @@ void display_filter_step(int k)
     display_filter_valid_image = 1;
 }
 
+#ifdef CONFIG_KILL_FLICKER
+CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 1);
+
+static void kill_canon_gui_print(
+    void *            priv,
+    int            x,
+    int            y,
+    int            selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Kill Canon GUI : %s",
+        kill_canon_gui_mode == 0 ? "OFF" :
+        //~ kill_canon_gui_mode == 1 ? "BottomBar" :
+        kill_canon_gui_mode == 1 ? "Idle/Menus" :
+        kill_canon_gui_mode == 2 ? "Idle/Menus+Keys" :
+         "err"
+    );
+    menu_draw_icon(x, y, MNI_BOOL_GDR(kill_canon_gui_mode));
+}
+#endif
 
 extern int clearscreen_enabled;
 extern int clearscreen_mode;
@@ -3272,6 +3344,16 @@ static struct menu_entry display_menus[] = {
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
                 //.essential = FOR_LIVEVIEW,
+                .submenu_width = 650,
+                .children =  (struct menu_entry[]) {
+                    {
+                        .name = "Boost when adjusting WB",
+                        .priv = &preview_saturation_boost_wb, 
+                        .max = 1,
+                        .help = "Increase LiveView saturation when adjusting white balance.",
+                    },
+                    MENU_EOL
+                }
             },
         #if !defined(CONFIG_7D_MINIMAL)
             {
@@ -3321,6 +3403,7 @@ static struct menu_entry display_menus[] = {
         .max = 1,
         .help = "Emphasizes camera shake on LiveView display.",
     },*/
+#ifdef CONFIG_DISPLAY_FILTERS
     #if !defined(CONFIG_7D_MINIMAL)
     {
         .name = "Defishing",
@@ -3365,14 +3448,6 @@ static struct menu_entry display_menus[] = {
         },
     },
     #endif
-#ifdef CONFIG_KILL_FLICKER
-    {
-        .name       = "Kill Canon GUI",
-        .priv       = &kill_canon_gui_mode,
-        .select     = menu_ternary_toggle,
-        .display    = kill_canon_gui_print,
-        .help = "Workarounds for disabling Canon graphics elements."
-    },
 #endif
 /*    #ifdef CONFIG_60D
     {
@@ -3389,6 +3464,15 @@ static struct menu_entry display_menus[] = {
         .submenu_width = 700,
         .help = "Screen orientation, position fine-tuning...",
         .children =  (struct menu_entry[]) {
+            #ifdef CONFIG_KILL_FLICKER
+                {
+                    .name       = "Kill Canon GUI",
+                    .priv       = &kill_canon_gui_mode,
+                    .select     = menu_ternary_toggle,
+                    .display    = kill_canon_gui_print,
+                    .help = "Workarounds for disabling Canon graphics elements."
+                },
+            #endif
 #ifndef CONFIG_5DC
                 {
                     .name = "Screen Layout",
@@ -3416,7 +3500,7 @@ static struct menu_entry display_menus[] = {
                     .select = menu_binary_toggle,
                     .help = "Displays overlay graphics upside-down and flips arrow keys.",
                 },
-            #if defined(CONFIG_60D) || defined(CONFIG_600D)
+            #ifdef CONFIG_VARIANGLE_DISPLAY
                 {
                     .name = "Orientation    ",
                     .priv = &DISPLAY_ORIENTATION,
@@ -3426,7 +3510,7 @@ static struct menu_entry display_menus[] = {
                     .help = "Display + LiveView orientation: Normal / Reverse / Mirror."
                 },
             #endif
-            #if defined(CONFIG_60D) || defined(CONFIG_600D)
+            #ifdef CONFIG_VARIANGLE_DISPLAY
                 {
                     .name = "Auto Mirroring",
                     .priv = &display_dont_mirror,
@@ -3517,6 +3601,12 @@ struct menu_entry play_menus[] = {
             },
         #else // 5D3
             {
+                .name = "QRZoom->Play\b\b",
+                .priv = &ken_rockwell_zoom, 
+                .max = 1,
+                .help = "When you press Zoom in QR mode, it goes to PLAY mode.",
+            },
+            {
                 .name = "Remember last Zoom pos",
                 .priv = &quickzoom, 
                 .max = 1,
@@ -3534,7 +3624,7 @@ struct menu_entry play_menus[] = {
                 .icon_type = IT_BOOL,
             },
             #endif */
-        #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2) || defined(CONFIG_1100D)
+        #if defined(CONFIG_Q_MENU_PLAYBACK) || defined(CONFIG_5D2)
             {
                 .name = "LV button",
                 .priv = &play_lv_action, 
@@ -3646,9 +3736,9 @@ static struct menu_entry play_menus[] = {
 
 static void tweak_init()
 {
-    extern struct menu_entry tweak_menus_shoot[];
     menu_add( "Prefs", play_menus, COUNT(play_menus) );
 #if !defined(CONFIG_5DC) && !defined(CONFIG_7D_MINIMAL) && !defined(CONFIG_5D3_MINIMAL)
+    extern struct menu_entry tweak_menus_shoot[];
     menu_add( "Prefs", tweak_menus_shoot, 1 );
     #if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL) 
     menu_add( "Prefs", key_menus, COUNT(key_menus) );
@@ -3658,7 +3748,7 @@ static void tweak_init()
 #ifndef CONFIG_5DC
     menu_add( "Display", display_menus, COUNT(display_menus) );
 #endif
-#if defined(CONFIG_60D) || defined(CONFIG_600D) 
+#ifdef CONFIG_EYEFI
     if (check_eyefi())
         menu_add( "Shoot", eyefi_menus, COUNT(eyefi_menus) );
 #endif

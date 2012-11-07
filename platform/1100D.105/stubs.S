@@ -129,6 +129,7 @@ NSTUB(0xFF0197D8, init_task)                      // might be good (dumps=1, sco
 NSTUB(0x736b4, lv_path_struct) // first arg of SelectPathDriveMode
 NSTUB(0xFF018D34, malloc)                         // might be good (dumps=1, score=11)
 NSTUB(0xFF530890, memcpy)                         // might be good (dumps=1, score=1.5e+02)
+NSTUB(0xFF073EB0, dma_memcpy)                     // Look for [HPC ERROR] Nothing DMA ch now!
 NSTUB(0xFF1E885C, msg_queue_receive)              // might be good (dumps=1, score=24)
 NSTUB(0xff1e8a48, msg_queue_post)
 NSTUB(0xFF06FA40, msleep)                         // might be good (dumps=1, score=1.1e+02)
@@ -207,3 +208,5 @@ NSTUB(0xFF1E8630, register_interrupt)
 NSTUB(0xFF1CACFC, MREQ_ISR)
 NSTUB(0xFF1CAD8C, SIO3_ISR)
 
+NSTUB(0xFF10DC10, GetJpegBufForLV)  // Actually FA_GetJpegBufForLV check ROM FA_ routines to find it
+NSTUB(0xFF10DC1C, GetJpegSizeForLV) // Actually FA_GetJpegSizeForLV (see above)

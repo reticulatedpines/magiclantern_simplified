@@ -33,3 +33,7 @@
 #ifdef CONFIG_7D
 #include "../platform/7D.203/mvr.h"
 #endif
+
+#ifdef CONFIG_EOSM
+#include "../platform/EOSM.100/mvr.h"
+#endif

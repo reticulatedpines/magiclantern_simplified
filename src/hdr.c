@@ -18,7 +18,7 @@ static CONFIG_INT("hdrv.iso.b", hdr_iso_b, 101);
 
 int is_hdr_valid_iso(int iso)
 {
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3)
+    #ifdef CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
     return is_native_iso(iso);
     #else
     return is_round_iso(iso) && iso != 0;
@@ -43,10 +43,7 @@ void hdr_get_iso_range(int* iso_low, int* iso_high)
 
 void hdr_step()
 {
-    #ifdef CONFIG_500D
-    return;
-    #endif
-    
+#ifdef CONFIG_FRAME_ISO_OVERRIDE
     if (!hdrv_enabled)
     {
         smooth_iso_step();
@@ -78,11 +75,12 @@ void hdr_step()
     int iso = odd_frame ? iso_low : iso_high; // ISO 100-1600
     FRAME_ISO = iso | (iso << 8);
     //~ *(uint8_t*)(lv_struct + 0x54) = iso;
+#endif
 }
 
 void hdr_kill_flicker()
 {
-#if !defined(CONFIG_7D) && !defined(CONFIG_40D)
+#ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
     if (!lv) return;
     if (!is_movie_mode()) return;
     if (!hdrv_enabled) return;
@@ -158,7 +156,7 @@ int get_effective_hdr_iso_for_display(int raw_iso)
 {
     if (!lens_info.raw_iso) return 0;
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3)
+#ifdef CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
     // on recent cameras, HDR video can only alter the analog part of the ISO (and keep the digital one unchanged)
     int ha,hd;
     split_iso(raw_iso, &ha, &hd);
@@ -267,11 +265,9 @@ void iso_test()
 
 static void hdr_init()
 {
-    #ifndef CONFIG_500D
     menu_add( "Movie", hdr_menu, COUNT(hdr_menu) );
-    #endif
 
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3)
+    #ifdef CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
     // round to nearest full-stop ISO (these cameras can't change the digital component)
     hdr_iso_a = ((hdr_iso_a + 3) / 8) * 8;
     hdr_iso_b = ((hdr_iso_b + 3) / 8) * 8;
@@ -279,7 +275,7 @@ static void hdr_init()
 
 }
 
-#if !defined(CONFIG_7D)
+#ifdef CONFIG_FRAME_ISO_OVERRIDE
 INIT_FUNC("hdr", hdr_init);
 #endif
 

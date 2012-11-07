@@ -42,11 +42,7 @@
 #define MZ_BLACK 0x00120034
 #define MZ_GREEN 0x80808080
 
-//~ #if 1
-//~ #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
-#if defined(CONFIG_50D)// || defined(CONFIG_60D)
-#define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
-
+#ifdef CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 extern int kill_canon_gui_mode;
 #endif                      // but it will display ML graphics
 
@@ -290,7 +286,7 @@ int get_zoom_overlay_trigger_mode()
 int get_zoom_overlay_trigger_by_focus_ring()
 {
     int z = get_zoom_overlay_trigger_mode();
-    #if defined(CONFIG_5D2) || defined(CONFIG_7D)
+    #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
     return z == 2 || z == 3;
     #else
     return z == 2;
@@ -299,7 +295,7 @@ int get_zoom_overlay_trigger_by_focus_ring()
 
 int get_zoom_overlay_trigger_by_halfshutter()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_7D)
+    #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
     int z = get_zoom_overlay_trigger_mode();
     return z == 1 || z == 3;
     #else
@@ -330,7 +326,7 @@ int should_draw_zoom_overlay()
     
     if (zoom_overlay_trigger_mode == 4) return true;
 
-    #if defined(CONFIG_5D2) || defined(CONFIG_7D)
+    #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
     if (zoom_overlay_triggered_by_zoom_btn || zoom_overlay_triggered_by_focus_ring_countdown) return true;
     #else
     int zt = zoom_overlay_triggered_by_zoom_btn;
@@ -357,12 +353,24 @@ int nondigic_zoom_overlay_enabled()
 static CONFIG_INT( "focus.peaking", focus_peaking, 0);
 //~ static CONFIG_INT( "focus.peaking.method", focus_peaking_method, 1);
 static CONFIG_INT( "focus.peaking.filter.edges", focus_peaking_filter_edges, 1); // prefer texture details rather than strong edges
-static CONFIG_INT( "focus.peaking.disp", focus_peaking_disp, 0); // display as dots or blended
 static CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 5); // 1%
 static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
 CONFIG_INT( "focus.peaking.grayscale", focus_peaking_grayscale, 0); // R,G,B,C,M,Y,cc1,cc2
 
-int focus_peaking_as_display_filter() { return lv && focus_peaking && focus_peaking_disp; }
+#ifdef CONFIG_DISPLAY_FILTERS
+static CONFIG_INT( "focus.peaking.disp", focus_peaking_disp, 0); // display as dots or blended
+#else
+#define focus_peaking_disp 0
+#endif
+
+int focus_peaking_as_display_filter() 
+{
+    #ifdef CONFIG_DISPLAY_FILTERS
+    return lv && focus_peaking && focus_peaking_disp;
+    #else
+    return 0;
+    #endif
+}
 
 //~ static CONFIG_INT( "focus.graph", focus_graph, 0);
 
@@ -460,7 +468,7 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
     if (ml_started) redraw();
 }
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
+#ifdef CONFIG_VARIANGLE_DISPLAY
 volatile int lcd_position = 0;
 volatile int display_dont_mirror_dirty;
 PROP_HANDLER(PROP_LCD_POSITION)
@@ -1385,7 +1393,7 @@ void draw_zebras( int Z )
         {
             #ifdef CONFIG_4_3_SCREEN
             // try not to display fast zebras on bottom bar, under the image
-            int screen_layout = get_screen_layout();
+            // int screen_layout = get_screen_layout();
             if (lv && hdmi_code != 5)
             {
                 uint8_t* bu = UNCACHEABLE(bvram);
@@ -1835,7 +1843,9 @@ static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvra
     //~ int color = COLOR_RED;
     color = (color << 8) | color;
     
+#ifdef CONFIG_DISPLAY_FILTERS
     y = anamorphic_squeeze_bmp_y(y);
+#endif
     
     uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
     uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
@@ -2724,7 +2734,7 @@ zoom_overlay_display(
         x, y,
         "Magic Zoom  : %s%s%s%s%s",
         zoom_overlay_trigger_mode == 0 ? "err" :
-#if defined(CONFIG_5D2) || defined(CONFIG_7D)
+#ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
         zoom_overlay_trigger_mode == 1 ? "HalfS," :
         zoom_overlay_trigger_mode == 2 ? "Focus," :
         zoom_overlay_trigger_mode == 3 ? "F+HS," : "ALW,",
@@ -3303,7 +3313,7 @@ idle_display_dim_print(
         idle_time_format(*(int*)priv)
     );
 
-    #ifdef CONFIG_5D2
+    #ifdef CONFIG_AUTO_BRIGHTNESS
     if (*(int*)priv)
     {
         int backlight_mode = lcd_brightness_mode;
@@ -3472,7 +3482,7 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"1st deriv.", "2nd deriv.", "Nyquist H"},
                 .help = "Contrast detection method. 2: more accurate, 1: less noisy.",
             },*/
-            #if !defined(CONFIG_7D_MINIMAL) 
+            #ifdef CONFIG_DISPLAY_FILTERS
             {
                 .name = "Display type",
                 .priv = &focus_peaking_disp, 
@@ -3526,7 +3536,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zoom_overlay_trigger_mode, 
                 .min = 1,
                 .max = 4,
-                #if defined(CONFIG_5D2) || defined(CONFIG_7D)
+                #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
                 .choices = (const char *[]) {"OFF", "HalfShutter", "Focus Ring", "FocusR+HalfS", "Always On"},
                 .help = "Trigger Magic Zoom by focus ring or half-shutter.",
                 #else
@@ -3537,7 +3547,7 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Size", 
                 .priv = &zoom_overlay_size,
-                #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2) || defined(CONFIG_7D) // old cameras - simple zoom box
+                #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY // old cameras - simple zoom box
                 .max = 2,
                 .help = "Size of zoom box (small / medium / large).",
                 #else // new cameras can do fullscreen too :)
@@ -3825,7 +3835,7 @@ struct menu_entry livev_dbg_menus[] = {
     }*/
 };
 
-#if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
+#ifdef CONFIG_BATTERY_INFO
 void batt_display(
     void *          priv,
     int         x,
@@ -3909,7 +3919,7 @@ struct menu_entry powersave_menus[] = {
             .help = "Turn off GlobalDraw when idle, to save some CPU cycles.",
             //~ .edit_mode = EM_MANY_VALUES,
         },
-        #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
+        #ifdef CONFIG_BATTERY_INFO
         {
             .name = "Battery remaining",
             .display = batt_display,
@@ -4238,7 +4248,7 @@ int handle_zoom_overlay(struct event * event)
     if (get_disp_pressed()) return 1;
     #endif
 
-#if defined(CONFIG_5D2) || defined(CONFIG_7D)
+#ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
     if (event->param == BGMT_PRESS_HALFSHUTTER && get_zoom_overlay_trigger_by_halfshutter())
         zoom_overlay_toggle();
     if (is_zoom_overlay_triggered_by_zoom_btn() && !get_zoom_overlay_trigger_by_halfshutter())
@@ -4525,13 +4535,13 @@ static void draw_zoom_overlay(int dirty)
 
     // select buffer where MZ should be written (camera-specific, guesswork)
     #if defined(CONFIG_5D2)
-    int prev_lvr = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
+    uint16_t* prev_lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     int t0 = *(uint32_t*)0xC0242014;
     while(1) // dirty, but seems to work
     {
         int t1 = *(uint32_t*)0xC0242014;
         int dt = mod(t1 - t0, 1048576);
-        lvr = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
+        lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
         if (lvr != prev_lvr) break;
         if (dt > 20000) break; // don't busy wait too much
     }
@@ -5124,7 +5134,7 @@ static int old_backlight_level = 0;
 static void idle_display_dim()
 {
     ASSERT(lv);
-    #ifdef CONFIG_5D2
+    #ifdef CONFIG_AUTO_BRIGHTNESS
     int backlight_mode = lcd_brightness_mode;
     if (backlight_mode == 0) // can't restore brightness properly in auto mode
     {
@@ -5292,7 +5302,7 @@ clearscreen_loop:
             bmp_off();
             while ((get_halfshutter_pressed() || dofpreview)) msleep(100);
             bmp_on();
-            #if defined(CONFIG_5D2) || defined(CONFIG_7D)
+            #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
             msleep(100);
             if (get_zoom_overlay_trigger_by_halfshutter()) // this long press should not trigger MZ
                 zoom_overlay_toggle();
@@ -5374,7 +5384,7 @@ void redraw_do()
     
 BMP_LOCK (
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
+#ifdef CONFIG_VARIANGLE_DISPLAY
     if (display_dont_mirror && display_dont_mirror_dirty)
     {
         if (lcd_position == 1) NormalDisplay();

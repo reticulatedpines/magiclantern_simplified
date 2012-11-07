@@ -152,22 +152,20 @@ cstart( void )
     select_normal_vectors();
 #endif
 
-    /* on 7D, the master is booted clean for now. no hooks etc. */
-    #if defined(CONFIG_7D_FIR_MASTER)
-    void (*reboot)(void) = (void*) ROMBASEADDR;
-    reboot();
-    #endif
-    
-
     #ifdef CONFIG_5D3
     int s = compute_signature((int*)0xFF0c0000, 0x10000);
     if (s != (int)0x2e2f65f5)
         fail();
     #endif
 
-    #ifdef CONFIG_7D
+    #if defined(CONFIG_7D_SLAVE)
     int s = compute_signature((int*)0xF8010000, 0x10000);
     if (s != (int)0x50163E93)
+        fail();
+    #endif
+    #if defined(CONFIG_7D_MASTER)
+    int s = compute_signature((int*)0xF8010000, 0x10000);
+    if (s != (int)0x640BF4D1)
         fail();
     #endif
 
@@ -176,16 +174,8 @@ cstart( void )
         *(int*)0xC02200BC = 0x46;  // CF card LED on
     #elif defined(CONFIG_7D)
         *(volatile int*)0xC022D06C = 0x00138800;  // CF card LED on
-        #if !defined(CONFIG_7D_FIR_MASTER) && !defined(CONFIG_7D_FIR_SLAVE)
-            /* clear IPC interrupt lines */
-            *(volatile int*)0xC0A0000C = *(volatile int*)0xC0A00008;
-            /* send command to master processor, so it is in right state for rebooting */
-            *(volatile int*)0xC0A00024 = 0x80000010;
-            /* wait for interrupt */
-            asm("MCR p15, 0, R0, c7, c0, 4\n":::"r0");
-            
-            /* clear IPC interrupt lines */
-            *(volatile int*)0xC0A0000C = *(volatile int*)0xC0A00008;
+        #if !defined(CONFIG_7D_FIR_SLAVE) && !defined(CONFIG_7D_FIR_SLAVE)
+            *(int*)0xC0A00024 = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
         #endif
     #elif defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
         *(int*)0xC0220134 = 0x46;  // SD card LED on

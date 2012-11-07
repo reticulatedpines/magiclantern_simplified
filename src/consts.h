@@ -41,3 +41,7 @@
 #ifdef CONFIG_40D
 #include "../platform/40D.111/consts.h"
 #endif
+
+#ifdef CONFIG_EOSM
+#include "../platform/EOSM.100/consts.h"
+#endif

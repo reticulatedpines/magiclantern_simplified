@@ -44,3 +44,10 @@
         .display = menu_print,
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
+    {
+        .name = "Epilogue",
+        .priv = "Epilogue",
+        .select = menu_help_go_to_label,
+        .display = menu_print,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
+    },

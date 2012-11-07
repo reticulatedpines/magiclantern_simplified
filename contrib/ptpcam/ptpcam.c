@@ -3047,7 +3047,7 @@ int chdk(int busn, int devn, short force)
                 }
                 free(buf3);
             }        
-            usleep(5000);
+            usleep(100000);
         }
         fgetc(stdin);
 
@@ -3100,7 +3100,7 @@ int chdk(int busn, int devn, short force)
                 }
                 free(buf3);
             }       
-            usleep(5000);     
+            usleep(100000);     
         }
       
         free(buf2);

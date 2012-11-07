@@ -132,9 +132,9 @@ static CONFIG_INT( "audio.release-level", audio_release_level, 10);
 static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 static CONFIG_INT( "lv_3rd_party_flash", lv_3rd_party_flash, 0);
 
-static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );     
-static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );    // 0 = normal, 1 = burst, 2 = hi-res
-#define silent_pic_burst (silent_pic_mode == 1)
+static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );
+static CONFIG_INT( "silent.pic.jpeg", silent_pic_jpeg, 0 );
+static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );    // 0 = normal, 1 = burst, 2 = continuous, 3 = hi-res
 static CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);   // index of matrix size (2x1 .. 5x5)
 static CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
 
@@ -168,7 +168,7 @@ extern int lcd_release_running;
 static CONFIG_INT( "motion.release-level", motion_detect_level, 8);
 static CONFIG_INT( "motion.delay", motion_detect_delay, 0);
 static CONFIG_INT( "motion.trigger", motion_detect_trigger, 0);
-static CONFIG_INT( "motion.size", motion_detect_size, 100);
+static CONFIG_INT( "motion.dsize", motion_detect_size, 1);
 static CONFIG_INT( "motion.position", motion_detect_position, 0);
 static CONFIG_INT( "motion.shoottime", motion_detect_shootnum, 1);
 
@@ -249,7 +249,7 @@ static void do_this_every_second() // called every second
     if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
         info_led_blink(1, 50, 0);
 
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
+    #ifdef CONFIG_BATTERY_INFO
     RefreshBatteryLevel_1Hz();
     #endif
     
@@ -671,10 +671,14 @@ motion_detect_display( void * priv, int x, int y, int selected )
         x, y,
         "Motion Detect   : %s, level=%d",
         motion_detect == 0 ? "OFF" :
-        motion_detect_trigger == 0 ? "EXP" : "DIF",
+        motion_detect_trigger == 0 ? "EXP" : motion_detect_trigger == 1 ? "DIF" : "STDY",
         motion_detect_level
     );
-    menu_draw_icon(x, y, MNI_BOOL_LV(motion_detect));
+    
+    if (motion_detect && motion_detect_trigger == 2) 
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Press shutter halfway and be careful (tricky feature).");
+    else
+        menu_draw_icon(x, y, MNI_BOOL_LV(motion_detect));
 }
 
 
@@ -722,26 +726,34 @@ silent_pic_display( void * priv, int x, int y, int selected )
             x, y,
             "Silent Picture  : OFF"
         );
+        
+        return;
     }
-    else if (silent_pic_mode <= 1)
+    
+    switch(silent_pic_mode)
     {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Silent Picture  : %s",
-            silent_pic_burst ? "Burst" : "Simple"
-        );
-    }
-    else if (silent_pic_mode == 2)
-    {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Silent Pic HiRes: %dx%d",
-            SILENTPIC_NL,
-            SILENTPIC_NC
-        );
-        bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
+        case 0:
+            bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Silent Picture  : Simple" );
+            break;
+            
+        case 1:
+            bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Silent Picture  : Burst" );
+            break;
+            
+        case 2:
+            bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Silent Picture  : Contiuous" );
+            break;
+            
+        case 3:
+            bmp_printf(
+                selected ? MENU_FONT_SEL : MENU_FONT,
+                x, y,
+                "Silent Pic HiRes: %dx%d",
+                SILENTPIC_NL,
+                SILENTPIC_NC
+            );
+            bmp_printf(FONT_MED, x + 430, y+5, "%dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
+            break;        
     }
 }
 
@@ -1102,6 +1114,15 @@ static char* silent_pic_get_name()
     static int prev_file_number = -1;
     static int prev_folder_number = -1;
     
+    char *extension = "422";
+    
+#ifdef CONFIG_SILENT_PIC_JPG
+    if(silent_pic_jpeg)
+    {
+        extension = "jpg";
+    }
+#endif
+    
     if (prev_file_number != file_number) silent_number = 1;
     if (prev_folder_number != folder_number) silent_number = 1;
     
@@ -1112,7 +1133,7 @@ static char* silent_pic_get_name()
     {
         for ( ; silent_number < 100000000; silent_number++)
         {
-            snprintf(imgname, sizeof(imgname), "%s/%08d.422", get_dcim_dir(), silent_number);
+            snprintf(imgname, sizeof(imgname), "%s/%08d.%s", get_dcim_dir(), silent_number, extension);
             unsigned size;
             if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
             if (size == 0) break;
@@ -1122,7 +1143,7 @@ static char* silent_pic_get_name()
     {
         for ( ; silent_number < 10000; silent_number++)
         {
-            snprintf(imgname, sizeof(imgname), "%s/%04d%04d.422", get_dcim_dir(), file_number, silent_number);
+            snprintf(imgname, sizeof(imgname), "%s/%04d%04d.%s", get_dcim_dir(), file_number, silent_number, extension);
             unsigned size;
             if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
             if (size == 0) break;
@@ -1599,43 +1620,127 @@ int silent_pic_preview()
 void
 silent_pic_take_simple(int interactive)
 {
-    char* imgname = silent_pic_get_name();
-
     get_yuv422_hd_vram();
     int size = vram_hd.pitch * vram_hd.height;
     int lv_size = vram_lv.pitch * vram_lv.height;
     
     // this buffer will contain the HD image (saved to card) and a LV preview (for display)
-    silent_pic_tmp_buf = (void*)shoot_malloc(size + lv_size);
-    
+    void *silent_pic_buf = NULL;
+
     // start with black preview 
-    bzero32(silent_pic_tmp_buf + size, lv_size);
+    silent_pic_buf = (void*)shoot_malloc(size + lv_size);
+    bzero32(silent_pic_buf + size, lv_size);
     
-    if (silent_pic_tmp_buf)
+    /* when in continuous mode, wait for halfshutter being released before starting */
+    if(silent_pic_mode == 2)
     {
-        // first we will copy the picture in a temporary buffer, to avoid horizontal cuts
-        void* buf = (void*)YUV422_HD_BUFFER_DMA_ADDR;
+        while(get_halfshutter_pressed())
+        {
+            msleep(10);
+        }
+    }
+    
+    if (silent_pic_buf)
+    {
+        do
+        {
+            char* imgname = silent_pic_get_name();
+            // copy the HD picture into the temporary buffer
+            
+#ifdef CONFIG_SILENT_PIC_JPG
+            if(silent_pic_jpeg)
+            {
+                uint32_t loopcount = 0;
+                uint8_t *oldBuf = (uint8_t*) GetJpegBufForLV();
+                uint32_t oldLen = GetJpegSizeForLV();
+                
+                /* wait until size or buffer changed, then its likely that it is a new frame */
+                while((uint32_t)GetJpegSizeForLV() == oldLen || (uint8_t*)GetJpegBufForLV() == oldBuf)
+                {
+                    msleep(MIN_MSLEEP);
+                    if(++loopcount > 500)
+                    {
+                        NotifyBox(2000, "Failed to wait until\nJPEG buffer updates"); 
+                        msleep(5000);
+                        return;
+                    }
+                }
+                uint8_t *srcBuf = (uint8_t*) GetJpegBufForLV();
+                uint32_t srcLen = GetJpegSizeForLV();
+                
+                /* buffer is for sure larger than the jpeg will ever get */
+                dma_memcpy(silent_pic_buf, srcBuf, srcLen);
+                
+                dump_seg(silent_pic_buf, srcLen, imgname);
+            }
+            else
+#endif
+            {
+                uint32_t loopcount = 0;
+                // first we will copy the picture in a temporary buffer, to avoid horizontal cuts
+                void* buf = (void*)YUV422_HD_BUFFER_DMA_ADDR;
+                
+                // some sort of vsync
+                while ((void*)YUV422_HD_BUFFER_DMA_ADDR == buf)
+                {
+                    msleep(MIN_MSLEEP);
+                    if(++loopcount > 500)
+                    {
+                        NotifyBox(2000, "Failed to wait until\nLV buffer updates");
+                        msleep(5000);
+                        return;
+                    }
+                }
+                
+#if defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
+                dma_memcpy(silent_pic_buf, buf, size);
+#else
+                memcpy(silent_pic_buf, buf, size);
+#endif
+                
+                /* we can take our time and resize it for preview purposes, only do that for single pics */
+                if(silent_pic_mode == 0)
+                {
+                    yuv_resize(silent_pic_buf, vram_hd.width, vram_hd.height, silent_pic_buf + size, vram_lv.width, vram_lv.height);
+                }
+                dump_seg(silent_pic_buf, size, imgname);
+            }
+
+            /* in burst mode abort when halfshutter isnt pressed anymore */
+            if(silent_pic_mode == 1)
+            {
+                if(!get_halfshutter_pressed())
+                {
+                    break;
+                }
+            }
+            else if(silent_pic_mode == 2)
+            {
+                /* cancel continuous mode with halfshutter press */
+                if(get_halfshutter_pressed())
+                {
+                    /* wait until button is released to prevent from firing again */
+                    while(get_halfshutter_pressed())
+                    {
+                        msleep(10);
+                    }
+                    break;
+                }
+            }
+            else
+            {
+                break;
+            }
+            
+            /* repeat process if half-shutter is still pressed and burst mode was enabled */
+        } while (1);
         
-        // some sort of vsync
-        while ((void*)YUV422_HD_BUFFER_DMA_ADDR == buf) msleep(10);
-        
-        // copy the HD picture into the temporary buffer
-        memcpy(silent_pic_tmp_buf, buf, size);
-        
-        // picture is now in a temporary buffer
-        
-        // we can take our time and resize it for preview purposes
-        yuv_resize(silent_pic_tmp_buf, vram_hd.width, vram_hd.height, silent_pic_tmp_buf + size, vram_lv.width, vram_lv.height);
-        
-        // ... and save it; meanwhile, LiveView can work normally without interruption
-        dump_seg(silent_pic_tmp_buf, size, imgname);
-        
-        // done :)
         shoot_free(silent_pic_tmp_buf);
-        silent_pic_tmp_buf = 0;
+        silent_pic_tmp_buf = NULL;
     }
 
-    if (interactive && !silent_pic_burst) // single mode
+    /* if not in burst mode, wait until half-shutter was released */
+    if (interactive && silent_pic_mode == 0) // single mode
     {
         while (get_halfshutter_pressed()) msleep(100);
     }
@@ -1856,18 +1961,22 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 
     if (!lv) force_liveview();
 
-    if (silent_pic_mode <= 1) // normal, burst
+    switch(silent_pic_mode)
     {
-        silent_pic_take_simple(interactive);
-    }
-    else if (silent_pic_mode == 2) // hi-res
-    {
-        silent_pic_matrix_running = 1;
-        silent_pic_take_sweep(interactive);
+        /* normal, burst, continuous */
+        case 0:
+        case 1:
+        case 2:
+            silent_pic_take_simple(interactive);
+            break;
+        /* hi-res */
+        case 3:
+            silent_pic_matrix_running = 1;
+            silent_pic_take_sweep(interactive);
+            break;
     }
 
     silent_pic_matrix_running = 0;
-
 }
 
 
@@ -3389,7 +3498,7 @@ int is_bulb_mode()
 void ensure_bulb_mode()
 {
     lens_wait_readytotakepic(64);
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
+    #ifdef CONFIG_SEPARATE_BULB_MODE
     int a = lens_info.raw_aperture;
     set_shooting_mode(SHOOTMODE_BULB);
     if (expsim == 2) set_expsim(1);
@@ -4819,6 +4928,7 @@ int handle_expo_preset(struct event * event)
     return 1;
 }
 
+#if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL)
 static struct menu_entry shoot_menus[] = {
     {
         .name = "HDR Bracketing",
@@ -5034,7 +5144,7 @@ static struct menu_entry shoot_menus[] = {
         //~ .edit_mode = EM_MANY_VALUES,
     },
     #endif
-    #if !defined(CONFIG_50D) && !defined(CONFIG_VXWORKS) && !defined(CONFIG_1100D)
+    #ifdef CONFIG_AUDIO_REMOTE_SHOT
     {
         .name = "Audio RemoteShot",
         .priv       = &audio_release_running,
@@ -5067,10 +5177,10 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Trigger by",
                 .priv = &motion_detect_trigger, 
-                .max = 1,
-                .choices = (const char *[]) {"Expo. change", "Frame diff."},
+                .max = 2,
+                .choices = (const char *[]) {"Expo. change", "Frame diff.", "Steady hands"},
                 .icon_type = IT_DICE,
-                .help = "How to compute the difference between two frames.",
+                .help = "Exposure change, subject movement, or lack of motion.",
             },
             {
                 .name = "Trigger level",
@@ -5082,32 +5192,27 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Detect Size",
                 .priv = &motion_detect_size, 
-                .min = 10,   
-                .max = 200,
-                .help = "Size of the area on which motion shall be detected",
+                .max = 2,
+                .choices = (const char *[]) {"Small", "Medium", "Large"},
+                .help = "Size of the area on which motion shall be detected.",
             },
-             {
-            .name = "Position",
-                .priv = &motion_detect_position, 
-                .max = 1,
-                .choices = (const char *[]) {"Center", "Focus Box"},
-                .icon_type = IT_DICE,
-                .help = "Center of image or linked to focus box.",
+            {
+                .name = "Num. of pics",
+                .priv = &motion_detect_shootnum,
+                .max = 10,
+                .min = 1,
+                .icon_type = IT_PERCENT,
+                .help = "How many pictures to take for every detected motion.",
             },
-			{
-			.name = "Continuous shoot",
-				.priv = &motion_detect_shootnum,
-				.max = 100,
-				.min = 1,
-				.help = "Take x pictures when continuous mode slected",
-			},
-			{
-			.name = "Delay in 1/10s",
-				.priv = &motion_detect_delay,
-				.max  = 100,
-				.min  = 0,
-				.help = "Wait for x/10 seconds before taking picture",
-			},
+            {
+                .name = "Delay",
+                .priv = &motion_detect_delay,
+                .max  = 10,
+                .min  = 0,
+                .icon_type = IT_PERCENT,
+                .choices = (const char *[]) {"0", "0.1s", "0.2s", "0.3s", "0.4s", "0.5s", "0.6s", "0.7s", "0.8s", "0.9s", "1s"},
+                .help = "Delay between the detected motion and the picture taken.",
+            },
 			MENU_EOL
 		}
 
@@ -5122,16 +5227,16 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Mode",
                 .priv = &silent_pic_mode, 
-                #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
-                .max = 2, // hi-res works
+                #ifdef CONFIG_SILENT_PIC_HIRES
+                .max = 3, // hi-res works
                 #else
-                .max = 1, // hi-res doesn't work
+                .max = 2, // hi-res doesn't work
                 #endif
-                .choices = (const char *[]) {"Simple", "Burst", "Hi-Res"},
+                .choices = (const char *[]) {"Simple", "Burst", "Continuous", "Hi-Res"},
                 .icon_type = IT_DICE,
-                .help = "Silent picture mode: simple, burst or high-resolution."
+                .help = "Silent picture mode: simple, burst, continuous or high-resolution."
             },
-            #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
+            #ifdef CONFIG_SILENT_PIC_HIRES
             {
                 .name = "Hi-Res", 
                 .priv = &silent_pic_highres,
@@ -5139,6 +5244,14 @@ static struct menu_entry shoot_menus[] = {
                 .choices = (const char *[]) {"2x1", "2x2", "2x3", "3x3", "3x4", "4x4", "4x5", "5x5"},
                 .icon_type = IT_SIZE,
                 .help = "For hi-res matrix mode: select number of subpictures."
+            },
+            #endif
+            #ifdef CONFIG_SILENT_PIC_JPG
+            {
+                .name = "LV JPEG", 
+                .priv = &silent_pic_jpeg,
+                .max = 1,
+                .help = "Save LV as JPEG"
             },
             #endif
             MENU_EOL
@@ -5216,14 +5329,15 @@ static struct menu_entry shoot_menus[] = {
         .help = "Experimental SRAW/MRAW mode. You may get corrupted files."
     }*/
 };
+#endif
 
+#if !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL)
 static struct menu_entry flash_menus[] = {
     {
         .name = "Flash tweaks...",
         .select     = menu_open_submenu,
         .help = "Flash exposure compensation, 3rd party flash in LiveView...",
         .children =  (struct menu_entry[]) {
-            #ifndef CONFIG_5D2 // no built-in flash; external flashes have their own EV compensation
             {
                 .name = "Flash expo comp.",
                 .display    = flash_ae_display,
@@ -5232,8 +5346,6 @@ static struct menu_entry flash_menus[] = {
                 //.essential = FOR_PHOTO,
                 .edit_mode = EM_MANY_VALUES,
             },
-            #endif
-            #if !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
             {
                 .name = "Flash / No flash",
                 //~ .select     = flash_and_no_flash_toggle,
@@ -5242,8 +5354,7 @@ static struct menu_entry flash_menus[] = {
                 .max = 1,
                 .help = "Take odd pictures with flash, even pictures without flash."
             },
-            #endif
-            #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D)
+            #ifdef CONFIG_LV_3RD_PARTY_FLASH
             {
                 .name = "3rd p. flash LV ",
                 .priv = &lv_3rd_party_flash,
@@ -5255,6 +5366,7 @@ static struct menu_entry flash_menus[] = {
         },
     }
 };
+#endif
 
 #ifdef CONFIG_5D3
 extern int zoom_trick;
@@ -5412,7 +5524,7 @@ extern void digic_black_print( void * priv, int x, int y, int selected);
 
 extern int digic_shadow_lift;
 
-#ifndef CONFIG_5DC
+#if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL) && !defined(CONFIG_5DC)
 static struct menu_entry expo_menus[] = {
     {
         .name = "WhiteBalance",
@@ -5869,7 +5981,7 @@ static void take_a_pic(int allow_af)
 #endif
     if (silent_pic_enabled)
     {
-        msleep(500);
+        //msleep(500);
         silent_pic_take(0); 
     }
     else
@@ -6620,15 +6732,27 @@ static void mlu_step()
     }
 }
 
-void take_fast_pictures( int number ) {
-    // take fast pictures
-    if (
+// continuous, hi-speed, silent continuous, depending on the camera
+int is_continuous_drive()
+{
+    return
         (
             drive_mode == DRIVE_CONTINUOUS 
             #ifdef DRIVE_HISPEED_CONTINUOUS
             || drive_mode == DRIVE_HISPEED_CONTINUOUS
             #endif
-        ) 
+            #ifdef DRIVE_SILENT_CONTINUOUS
+            || drive_mode == DRIVE_SILENT_CONTINUOUS
+            #endif
+        );
+}
+
+void take_fast_pictures( int number ) {
+    // take fast pictures
+    if (
+        number > 1 
+        &&
+        is_continuous_drive()
         &&
         (!silent_pic_enabled && !is_bulb_mode())
        )
@@ -6645,8 +6769,33 @@ void take_fast_pictures( int number ) {
     }
     else
     {
-        take_a_pic(0);
+        for (int i = 0; i < number; i++)
+        {
+            take_a_pic(0);
+        }
     }
+}
+
+void md_take_pics() // for motion detection
+{
+    if (motion_detect_delay > 1) {
+        for (int t=0; t<(int)motion_detect_delay; t++) {
+            bmp_printf(FONT_MED, 0, 80, " Taking picture in %d.%ds   ", (int)(motion_detect_delay-t)/10, (int)(motion_detect_delay-t)%10);
+            msleep(100);
+            int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
+            if (!mdx) return;
+        }
+    }
+    take_fast_pictures( motion_detect_shootnum );
+    
+    // wait until liveview comes back
+    lens_wait_readytotakepic(64);
+    for (int i = 0; i < 50; i++)
+    {
+        msleep(100);
+        if (lv) break;
+    }
+    msleep(1000);
 }
 
 static void misc_shooting_info()
@@ -6670,7 +6819,7 @@ static void misc_shooting_info()
             BMP_LOCK (
                 display_shooting_info_lv();
             )
-            #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_7D)
+            #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_7D) && !defined(CONFIG_1100D)
             if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
             {
                 static int ae_warned = 0;
@@ -6914,7 +7063,7 @@ shoot_task( void* unused )
         prev_flash_and_no_flash = flash_and_no_flash;
         #endif
 
-        #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D)
+        #ifdef CONFIG_LV_3RD_PARTY_FLASH
         if (lv_3rd_party_flash && !is_movie_mode())
         {
             if (lv && HALFSHUTTER_PRESSED)
@@ -6991,14 +7140,19 @@ shoot_task( void* unused )
             //~ bmp_printf(FONT_MED, 0, 50, "K= %d   ", K);
             int xcb = os.x0 + os.x_ex/2;
             int ycb = os.y0 + os.y_ex/2;
+            
+            int detect_size = 
+                motion_detect_size == 0 ? 80 : 
+                motion_detect_size == 1 ? 120 : 
+                                          200 ;
 
-            if (motion_detect_position) // AF frame
+            // center the motion detection window on focus box
             {
                 get_afframe_pos(os.x_ex, os.y_ex, &xcb, &ycb);
                 xcb += os.x0;
                 ycb += os.y0;
-                xcb = COERCE(xcb, os.x0 + (int)motion_detect_size, os.x_max - (int)motion_detect_size );
-                ycb = COERCE(ycb, os.y0 + (int)motion_detect_size, os.y_max - (int)motion_detect_size );
+                xcb = COERCE(xcb, os.x0 + (int)detect_size, os.x_max - (int)motion_detect_size );
+                ycb = COERCE(ycb, os.y0 + (int)detect_size, os.y_max - (int)motion_detect_size );
              }
 
             if (motion_detect_trigger == 0)
@@ -7008,20 +7162,12 @@ shoot_task( void* unused )
                 static int old_ae_avg = 0;
                 int y,u,v;
                 //TODO: maybe get the spot yuv of the target box
-                get_spot_yuv_ex(motion_detect_size, xcb-os.x_max/2, ycb-os.y_max/2, &y, &u, &v);
+                get_spot_yuv_ex(detect_size, xcb-os.x_max/2, ycb-os.y_max/2, &y, &u, &v);
                 aev = y / 2;
-                if (K > 40) bmp_printf(FONT_MED, 0, 80, " Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
+                if (K > 40) bmp_printf(FONT_MED, 0, 20, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
                 if (K > 40 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
                 {
-					if (motion_detect_delay>1) {
-						for (int t=0; t<(int)motion_detect_delay; t++) {
-							bmp_printf(FONT_MED, 0, 80, " Taking picture in %ds   ", (int)(motion_detect_delay-t)/10);
-							msleep(100);
-							mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
-							if (!mdx) break;
-						}
-					}
-					if (mdx) take_fast_pictures( motion_detect_shootnum );
+                    md_take_pics();
                     K = 0;
                 }
                 if (K == 40) idle_force_powersave_in_1s();
@@ -7029,24 +7175,96 @@ shoot_task( void* unused )
             }
             else if (motion_detect_trigger == 1) 
             {
-                int d = get_spot_motion(motion_detect_size, xcb, ycb, get_global_draw());
-                if (K > 20) bmp_printf(FONT_MED, 0, 80, " Motion level: %d   ", d);
+                int d = get_spot_motion(detect_size, xcb, ycb, get_global_draw());
+                if (K > 20) bmp_printf(FONT_MED, 0, 20, "Motion level: %d   ", d);
                 if (K > 20 && d >= (int)motion_detect_level)
                 {
-					if (motion_detect_delay>1) {
-						for (int t=0; t<(int)motion_detect_delay; t++) {
-							bmp_printf(FONT_MED, 0, 80, " Taking picture in %ds   ", (int)(motion_detect_delay-t)/10);
-							msleep(100);
-							mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
-							if (!mdx) break;
-						}
-					}
-					if (mdx) take_fast_pictures( motion_detect_shootnum );
+                    md_take_pics();
                     K = 0;
                 }
                 if (K == 40) idle_force_powersave_in_1s();
             }
+            else if (motion_detect_trigger == 2)
+            {
+                int hs = HALFSHUTTER_PRESSED;
+                static int prev_hs = 0;
+                static int prev_d[30];
+                if (hs)
+                {
+                    int d = get_spot_motion(detect_size, xcb, ycb, get_global_draw());
+                    
+                    for (int i = 29; i > 0; i--)
+                        prev_d[i] = prev_d[i-1];
+                    prev_d[0] = d;
+                    
+                    int dmax = 0;
+                    for (int i = 0; i < 5; i++)
+                    {
+                        dmax = MAX(dmax, prev_d[i]);
+                    }
+                    int steady = (dmax <= (int)motion_detect_level);
+
+                    for (int i = 1; i < 30; i++)
+                    {
+                        int d = MIN(prev_d[i], 30);
+                        bmp_draw_rect(COLOR_RED, 60 - i*2, 100 - d, 1, d);
+                        bmp_draw_rect(steady ? COLOR_GREEN1 : i < 5 ? COLOR_LIGHTBLUE : COLOR_BLACK, 60 - i*2, 100 - 30, 1, 30 - d);
+                    }
+
+                    bmp_printf(FONT_MED, 0, 20, "Motion level: %d   ", dmax);
+                    if (steady)
+                    {
+                        md_take_pics();
+                    }
+                }
+                else
+                {
+                    if (prev_hs) redraw();
+                    prev_d[0] = 100;
+                }
+                prev_hs = hs;
+            }
         }
+        
+        // this is an attempt to make "steady hands" detection work outside liveview too (well, sort of)
+        // when you press shutter halfway, LiveView will be enabled temporarily (with display off)
+        // and once the motion detect engine says "camera steady", the picture is taken and LiveView is turned off
+        static int lv_forced_by_md = 0;
+        if (!mdx && motion_detect && motion_detect_trigger == 2 && !lv && display_idle() && get_halfshutter_pressed())
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                if (!get_halfshutter_pressed()) break;
+                msleep(50);
+            }
+            if (!get_halfshutter_pressed()) continue;
+            SW1(0,50);
+            fake_simple_button(BGMT_LV);
+            for (int i = 0; i < 20; i++)
+            {
+                if (lv && DISPLAY_IS_ON) display_off();
+                msleep(50);
+            }
+            if (lv)
+            {
+                SW1(1,50);
+                lv_forced_by_md = 1;
+                info_led_on();
+            }
+        }
+
+        if (lv_forced_by_md && lv && DISPLAY_IS_ON) display_off();
+        
+        if (lv_forced_by_md && lv && !get_halfshutter_pressed())
+        {
+            info_led_off();
+            fake_simple_button(BGMT_LV);
+            msleep(500);
+            lv_forced_by_md = 0;
+        }
+        
+        
+        
 
         static int silent_pic_countdown;
         if (!display_idle())
@@ -7160,12 +7378,7 @@ shoot_task( void* unused )
             if (dt <= 1) // crazy mode or 1 second - needs to be fast
             {
                 if ( dt == 0 &&
-                    (
-                        drive_mode == DRIVE_CONTINUOUS 
-                        #ifdef DRIVE_HISPEED_CONTINUOUS
-                        || drive_mode == DRIVE_HISPEED_CONTINUOUS
-                        #endif
-                    ) 
+                    is_continuous_drive()
                     &&
                     (!silent_pic_enabled && !is_bulb_mode())
                     #ifdef CONFIG_5DC
@@ -7219,7 +7432,7 @@ shoot_task( void* unused )
             intervalometer_pictures_taken = 0;
             intervalometer_next_shot_time = seconds_clock + timer_values[interval_start_timer_index];
 
-#if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_VXWORKS) // no audio module on these cameras
+#ifdef CONFIG_AUDIO_REMOTE_SHOT
             if (audio_release_running) 
             {
                 static int countdown = 0;
@@ -7270,26 +7483,26 @@ void shoot_init()
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
 
 #if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL)
-
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
-#ifndef CONFIG_5DC
+    #ifndef CONFIG_5DC
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
-#endif
+    #endif
+
     #if !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
     menu_add( "Shoot", flash_menus, COUNT(flash_menus) );
     #endif
+    
     //~ menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
 
-#ifndef CONFIG_5DC
+    #ifndef CONFIG_5DC
     extern struct menu_entry expo_override_menus[];
     menu_add( "Expo", expo_override_menus, 1 );
-#endif
+    #endif
 
-#if !defined(CONFIG_600D) && !defined(CONFIG_5DC) // expsim doesn't work
+    #if !defined(CONFIG_600D) && !defined(CONFIG_5DC) // expsim doesn't work
     extern struct menu_entry expo_tweak_menus[];
     menu_add( "Expo", expo_tweak_menus, 1 );
-#endif
-
+    #endif
 #endif
 }
 
