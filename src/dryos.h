@@ -42,6 +42,10 @@
 #define CONFIG_AUTO_BRIGHTNESS
 #endif
 
+#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) // maybe 7D too
+#define CONFIG_Q_MENU_PLAYBACK // camera has a Q menu in playback mode; this menu can be tweaked a bit (e.g. LV button = Protect or Rate)
+#endif
+
 #include "arm-mcr.h"
 #include "dialog.h"
 #include "gui.h"

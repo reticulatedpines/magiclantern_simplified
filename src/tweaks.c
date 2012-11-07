@@ -849,7 +849,7 @@ int play_rate_flag = 0;
 int rating_in_progress = 0;
 void play_lv_key_step()
 {
-#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
+#ifdef CONFIG_Q_MENU_PLAYBACK
 
     // wait for user request to settle
     int prev = play_rate_flag;
@@ -923,7 +923,7 @@ static void protect_image_task()
 }
 #endif
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2) || defined(CONFIG_1100D)
+#if defined(CONFIG_Q_MENU_PLAYBACK) || defined(CONFIG_5D2)
 
 int handle_lv_play(struct event * event)
 {
@@ -3599,7 +3599,7 @@ struct menu_entry play_menus[] = {
                 .icon_type = IT_BOOL,
             },
             #endif */
-        #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D2) || defined(CONFIG_1100D)
+        #if defined(CONFIG_Q_MENU_PLAYBACK) || defined(CONFIG_5D2)
             {
                 .name = "LV button",
                 .priv = &play_lv_action, 
