@@ -38,6 +38,9 @@
 #define CONFIG_ELECTRONIC_LEVEL
 #endif
 
+#if defined(CONFIG_5D2) || defined(CONFIG_5D3) // not sure about 7D
+#define CONFIG_AUTO_BRIGHTNESS
+#endif
 
 #include "arm-mcr.h"
 #include "dialog.h"
