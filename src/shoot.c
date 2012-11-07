@@ -6757,6 +6757,28 @@ void take_fast_pictures( int number ) {
     }
 }
 
+void md_take_pics() // for motion detection
+{
+    if (motion_detect_delay > 1) {
+        for (int t=0; t<(int)motion_detect_delay; t++) {
+            bmp_printf(FONT_MED, 0, 80, " Taking picture in %d.%ds   ", (int)(motion_detect_delay-t)/10, (int)(motion_detect_delay-t)%10);
+            msleep(100);
+            int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
+            if (!mdx) return;
+        }
+    }
+    take_fast_pictures( motion_detect_shootnum );
+    
+    // wait until liveview comes back
+    lens_wait_readytotakepic(64);
+    for (int i = 0; i < 50; i++)
+    {
+        msleep(100);
+        if (lv) break;
+    }
+    msleep(1000);
+}
+
 static void misc_shooting_info()
 {
     display_shortcut_key_hints_lv();
@@ -7126,15 +7148,7 @@ shoot_task( void* unused )
                 if (K > 40) bmp_printf(FONT_MED, 0, 80, " Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
                 if (K > 40 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
                 {
-					if (motion_detect_delay>1) {
-						for (int t=0; t<(int)motion_detect_delay; t++) {
-							bmp_printf(FONT_MED, 0, 80, " Taking picture in %ds   ", (int)(motion_detect_delay-t)/10);
-							msleep(100);
-							mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
-							if (!mdx) break;
-						}
-					}
-					if (mdx) take_fast_pictures( motion_detect_shootnum );
+                    md_take_pics();
                     K = 0;
                 }
                 if (K == 40) idle_force_powersave_in_1s();
@@ -7146,15 +7160,7 @@ shoot_task( void* unused )
                 if (K > 20) bmp_printf(FONT_MED, 0, 80, " Motion level: %d   ", d);
                 if (K > 20 && d >= (int)motion_detect_level)
                 {
-					if (motion_detect_delay>1) {
-						for (int t=0; t<(int)motion_detect_delay; t++) {
-							bmp_printf(FONT_MED, 0, 80, " Taking picture in %ds   ", (int)(motion_detect_delay-t)/10);
-							msleep(100);
-							mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
-							if (!mdx) break;
-						}
-					}
-					if (mdx) take_fast_pictures( motion_detect_shootnum );
+                    md_take_pics();
                     K = 0;
                 }
                 if (K == 40) idle_force_powersave_in_1s();
