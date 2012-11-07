@@ -18,18 +18,6 @@
 void audio_reg_dump_once();
 #endif
 
-#define CONFIG_STRESS_TEST
-#define CONFIG_BENCHMARKS
-//~ #define CONFIG_HEXDUMP
-#undef CONFIG_ISO_TESTS
-//~ #define CONFIG_DEBUGMSG 1
-
-//~ #define CONFIG_HEXDUMP
-
-#if defined(CONFIG_50D)// || defined(CONFIG_60D)
-#define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
-#endif                      // but it will display ML graphics
-
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused, int delta);
 

@@ -801,7 +801,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
         // battery indicator
         int xr = x_origin + 612 - font_large.width - 4;
 
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
+    #ifdef CONFIG_BATTERY_INFO
         int bat = GetBatteryLevel();
     #else
         int bat = battery_level_bars == 0 ? 5 : battery_level_bars == 1 ? 30 : 100;
@@ -809,7 +809,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
         int col = battery_level_bars == 0 ? COLOR_RED :
                   battery_level_bars == 1 ? COLOR_YELLOW : 
-                #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_7D)
+                #ifdef CONFIG_BATTERY_INFO
                   bat <= 70 ? COLOR_WHITE : 
                 #endif
                   COLOR_GREEN1;
@@ -970,7 +970,7 @@ void draw_ml_topbar(int double_buffering, int clear)
     bmp_printf( font, x, y, (char*)get_picstyle_shortname(lens_info.raw_picstyle));
 
     x += 70;
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || (defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL))
+    #ifdef CONFIG_BATTERY_INFO
         bmp_printf( font, x, y,"T=%d BAT=%d", efic_temp, GetBatteryLevel());
     #elif defined(CONFIG_550D)
         bmp_printf( font, x, y,"T=%dC", EFIC_CELSIUS);

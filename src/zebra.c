@@ -42,11 +42,7 @@
 #define MZ_BLACK 0x00120034
 #define MZ_GREEN 0x80808080
 
-//~ #if 1
-//~ #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
-#if defined(CONFIG_50D)// || defined(CONFIG_60D)
-#define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
-
+#ifdef CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 extern int kill_canon_gui_mode;
 #endif                      // but it will display ML graphics
 

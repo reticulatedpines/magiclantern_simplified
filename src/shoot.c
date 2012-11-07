@@ -249,7 +249,7 @@ static void do_this_every_second() // called every second
     if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
         info_led_blink(1, 50, 0);
 
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
+    #ifdef CONFIG_BATTERY_INFO
     RefreshBatteryLevel_1Hz();
     #endif
     
@@ -1116,7 +1116,7 @@ static char* silent_pic_get_name()
     
     char *extension = "422";
     
-#if defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
+#ifdef CONFIG_SILENT_PIC_JPG
     if(silent_pic_jpeg)
     {
         extension = "jpg";
@@ -1647,7 +1647,7 @@ silent_pic_take_simple(int interactive)
             char* imgname = silent_pic_get_name();
             // copy the HD picture into the temporary buffer
             
-#if defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
+#ifdef CONFIG_SILENT_PIC_JPG
             if(silent_pic_jpeg)
             {
                 uint32_t loopcount = 0;
@@ -3498,7 +3498,7 @@ int is_bulb_mode()
 void ensure_bulb_mode()
 {
     lens_wait_readytotakepic(64);
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
+    #ifdef CONFIG_SEPARATE_BULB_MODE
     int a = lens_info.raw_aperture;
     set_shooting_mode(SHOOTMODE_BULB);
     if (expsim == 2) set_expsim(1);
@@ -5144,7 +5144,7 @@ static struct menu_entry shoot_menus[] = {
         //~ .edit_mode = EM_MANY_VALUES,
     },
     #endif
-    #if !defined(CONFIG_50D) && !defined(CONFIG_VXWORKS) && !defined(CONFIG_1100D)
+    #ifdef CONFIG_AUDIO_REMOTE_SHOT
     {
         .name = "Audio RemoteShot",
         .priv       = &audio_release_running,
@@ -5227,7 +5227,7 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Mode",
                 .priv = &silent_pic_mode, 
-                #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D) || defined(CONFIG_1100D)
+                #ifdef CONFIG_SILENT_PIC_HIRES
                 .max = 3, // hi-res works
                 #else
                 .max = 2, // hi-res doesn't work
@@ -5236,7 +5236,7 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type = IT_DICE,
                 .help = "Silent picture mode: simple, burst, continuous or high-resolution."
             },
-            #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D) || defined(CONFIG_1100D)
+            #ifdef CONFIG_SILENT_PIC_HIRES
             {
                 .name = "Hi-Res", 
                 .priv = &silent_pic_highres,
@@ -5246,7 +5246,7 @@ static struct menu_entry shoot_menus[] = {
                 .help = "For hi-res matrix mode: select number of subpictures."
             },
             #endif
-            #if defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
+            #ifdef CONFIG_SILENT_PIC_JPG
             {
                 .name = "LV JPEG", 
                 .priv = &silent_pic_jpeg,
@@ -5354,7 +5354,7 @@ static struct menu_entry flash_menus[] = {
                 .max = 1,
                 .help = "Take odd pictures with flash, even pictures without flash."
             },
-            #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
+            #ifdef CONFIG_LV_3RD_PARTY_FLASH
             {
                 .name = "3rd p. flash LV ",
                 .priv = &lv_3rd_party_flash,
@@ -7063,7 +7063,7 @@ shoot_task( void* unused )
         prev_flash_and_no_flash = flash_and_no_flash;
         #endif
 
-        #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
+        #ifdef CONFIG_LV_3RD_PARTY_FLASH
         if (lv_3rd_party_flash && !is_movie_mode())
         {
             if (lv && HALFSHUTTER_PRESSED)
@@ -7432,7 +7432,7 @@ shoot_task( void* unused )
             intervalometer_pictures_taken = 0;
             intervalometer_next_shot_time = seconds_clock + timer_values[interval_start_timer_index];
 
-#if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_VXWORKS) // no audio module on these cameras
+#ifdef CONFIG_AUDIO_REMOTE_SHOT
             if (audio_release_running) 
             {
                 static int countdown = 0;
