@@ -674,7 +674,11 @@ motion_detect_display( void * priv, int x, int y, int selected )
         motion_detect_trigger == 0 ? "EXP" : motion_detect_trigger == 1 ? "DIF" : "STDY",
         motion_detect_level
     );
-    menu_draw_icon(x, y, MNI_BOOL_LV(motion_detect));
+    
+    if (motion_detect && motion_detect_trigger == 2) 
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Press shutter halfway and be careful (tricky feature).");
+    else
+        menu_draw_icon(x, y, MNI_BOOL_LV(motion_detect));
 }
 
 
@@ -7221,6 +7225,46 @@ shoot_task( void* unused )
                 prev_hs = hs;
             }
         }
+        
+        // this is an attempt to make "steady hands" detection work outside liveview too (well, sort of)
+        // when you press shutter halfway, LiveView will be enabled temporarily (with display off)
+        // and once the motion detect engine says "camera steady", the picture is taken and LiveView is turned off
+        static int lv_forced_by_md = 0;
+        if (!mdx && motion_detect && motion_detect_trigger == 2 && !lv && display_idle() && get_halfshutter_pressed())
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                if (!get_halfshutter_pressed()) break;
+                msleep(50);
+            }
+            if (!get_halfshutter_pressed()) continue;
+            SW1(0,50);
+            fake_simple_button(BGMT_LV);
+            for (int i = 0; i < 20; i++)
+            {
+                if (lv && DISPLAY_IS_ON) display_off();
+                msleep(50);
+            }
+            if (lv)
+            {
+                SW1(1,50);
+                lv_forced_by_md = 1;
+                info_led_on();
+            }
+        }
+
+        if (lv_forced_by_md && lv && DISPLAY_IS_ON) display_off();
+        
+        if (lv_forced_by_md && lv && !get_halfshutter_pressed())
+        {
+            info_led_off();
+            fake_simple_button(BGMT_LV);
+            msleep(500);
+            lv_forced_by_md = 0;
+        }
+        
+        
+        
 
         static int silent_pic_countdown;
         if (!display_idle())
