@@ -3278,6 +3278,29 @@ void display_filter_step(int k)
     display_filter_valid_image = 1;
 }
 
+#ifdef CONFIG_KILL_FLICKER
+CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 1);
+
+static void kill_canon_gui_print(
+    void *            priv,
+    int            x,
+    int            y,
+    int            selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Kill Canon GUI : %s",
+        kill_canon_gui_mode == 0 ? "OFF" :
+        //~ kill_canon_gui_mode == 1 ? "BottomBar" :
+        kill_canon_gui_mode == 1 ? "Idle/Menus" :
+        kill_canon_gui_mode == 2 ? "Idle/Menus+Keys" :
+         "err"
+    );
+    menu_draw_icon(x, y, MNI_BOOL_GDR(kill_canon_gui_mode));
+}
+#endif
 
 extern int clearscreen_enabled;
 extern int clearscreen_mode;
@@ -3424,15 +3447,6 @@ static struct menu_entry display_menus[] = {
         },
     },
     #endif
-#ifdef CONFIG_KILL_FLICKER
-    {
-        .name       = "Kill Canon GUI",
-        .priv       = &kill_canon_gui_mode,
-        .select     = menu_ternary_toggle,
-        .display    = kill_canon_gui_print,
-        .help = "Workarounds for disabling Canon graphics elements."
-    },
-#endif
 /*    #ifdef CONFIG_60D
     {
         .name = "DispOFF in PhotoMode",
@@ -3448,6 +3462,15 @@ static struct menu_entry display_menus[] = {
         .submenu_width = 700,
         .help = "Screen orientation, position fine-tuning...",
         .children =  (struct menu_entry[]) {
+            #ifdef CONFIG_KILL_FLICKER
+                {
+                    .name       = "Kill Canon GUI",
+                    .priv       = &kill_canon_gui_mode,
+                    .select     = menu_ternary_toggle,
+                    .display    = kill_canon_gui_print,
+                    .help = "Workarounds for disabling Canon graphics elements."
+                },
+            #endif
 #ifndef CONFIG_5DC
                 {
                     .name = "Screen Layout",

@@ -2374,31 +2374,6 @@ static void ambient_display(
 }
 #endif
 
-#ifdef CONFIG_KILL_FLICKER
-CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 1);
-
-static void kill_canon_gui_print(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Kill Canon GUI   : %s",
-        kill_canon_gui_mode == 0 ? "OFF" :
-        //~ kill_canon_gui_mode == 1 ? "BottomBar" :
-        kill_canon_gui_mode == 1 ? "Idle/Menus" :
-        kill_canon_gui_mode == 2 ? "Idle/Menus+Keys" :
-         "err"
-    );
-    menu_draw_icon(x, y, MNI_BOOL_GDR(kill_canon_gui_mode));
-}
-#endif
-
-
 #if CONFIG_DEBUGMSG
 CONFIG_INT("prop.i", prop_i, 0);
 CONFIG_INT("prop.j", prop_j, 0);
