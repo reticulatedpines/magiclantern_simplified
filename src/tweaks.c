@@ -863,8 +863,13 @@ static volatile int krzoom_running = 0;
 static void krzoom_task()
 {
     krzoom_running = 1;
-    fake_simple_button(BGMT_PLAY);
-    while (!PLAY_MODE) msleep(50);
+    SetGUIRequestMode(0);
+    msleep(50);
+    if (lv)
+    {
+        SetGUIRequestMode(1);
+        msleep(50);
+    }
     fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
     krzoom_running = 0;
 }
