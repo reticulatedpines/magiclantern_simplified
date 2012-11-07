@@ -101,6 +101,11 @@
 #ifdef CONFIG_60D
     #define DRIVE_HISPEED_CONTINUOUS 4
     #define DRIVE_CONTINUOUS 5
+#elif defined(CONFIG_5D3)
+    #define DRIVE_HISPEED_CONTINUOUS 4
+    #define DRIVE_CONTINUOUS 5
+    #define DRIVE_SILENT 19
+    #define DRIVE_SILENT_CONTINUOUS 20
 #else
     #define DRIVE_CONTINUOUS 1
 #endif

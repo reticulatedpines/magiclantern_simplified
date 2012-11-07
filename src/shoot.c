@@ -6728,15 +6728,27 @@ static void mlu_step()
     }
 }
 
-void take_fast_pictures( int number ) {
-    // take fast pictures
-    if (
+// continuous, hi-speed, silent continuous, depending on the camera
+int is_continuous_drive()
+{
+    return
         (
             drive_mode == DRIVE_CONTINUOUS 
             #ifdef DRIVE_HISPEED_CONTINUOUS
             || drive_mode == DRIVE_HISPEED_CONTINUOUS
             #endif
-        ) 
+            #ifdef DRIVE_SILENT_CONTINUOUS
+            || drive_mode == DRIVE_SILENT_CONTINUOUS
+            #endif
+        );
+}
+
+void take_fast_pictures( int number ) {
+    // take fast pictures
+    if (
+        number > 1 
+        &&
+        is_continuous_drive()
         &&
         (!silent_pic_enabled && !is_bulb_mode())
        )
@@ -6753,7 +6765,10 @@ void take_fast_pictures( int number ) {
     }
     else
     {
-        take_a_pic(0);
+        for (int i = 0; i < number; i++)
+        {
+            take_a_pic(0);
+        }
     }
 }
 
@@ -7145,7 +7160,7 @@ shoot_task( void* unused )
                 //TODO: maybe get the spot yuv of the target box
                 get_spot_yuv_ex(detect_size, xcb-os.x_max/2, ycb-os.y_max/2, &y, &u, &v);
                 aev = y / 2;
-                if (K > 40) bmp_printf(FONT_MED, 0, 80, " Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
+                if (K > 40) bmp_printf(FONT_MED, 0, 20, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
                 if (K > 40 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
                 {
                     md_take_pics();
@@ -7157,7 +7172,7 @@ shoot_task( void* unused )
             else if (motion_detect_trigger == 1) 
             {
                 int d = get_spot_motion(detect_size, xcb, ycb, get_global_draw());
-                if (K > 20) bmp_printf(FONT_MED, 0, 80, " Motion level: %d   ", d);
+                if (K > 20) bmp_printf(FONT_MED, 0, 20, "Motion level: %d   ", d);
                 if (K > 20 && d >= (int)motion_detect_level)
                 {
                     md_take_pics();
@@ -7279,12 +7294,7 @@ shoot_task( void* unused )
             if (dt <= 1) // crazy mode or 1 second - needs to be fast
             {
                 if ( dt == 0 &&
-                    (
-                        drive_mode == DRIVE_CONTINUOUS 
-                        #ifdef DRIVE_HISPEED_CONTINUOUS
-                        || drive_mode == DRIVE_HISPEED_CONTINUOUS
-                        #endif
-                    ) 
+                    is_continuous_drive()
                     &&
                     (!silent_pic_enabled && !is_bulb_mode())
                     #ifdef CONFIG_5DC
