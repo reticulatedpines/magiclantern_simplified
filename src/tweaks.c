@@ -92,7 +92,7 @@ dofp_update()
 //EyeFi Trick (EyeFi confirmed working only on 600D-60D)
 //**********************************************************************/
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
+#ifdef CONFIG_EYEFI
 int check_eyefi()
 {
     FILE * f = FIO_Open(CARD_DRIVE "EYEFI/REQC", 0);
@@ -2235,7 +2235,7 @@ static struct menu_entry tweak_menus[] = {
     },
     #endif
 };
-#if defined(CONFIG_60D) || defined(CONFIG_600D) 
+#ifdef CONFIG_EYEFI
 static struct menu_entry eyefi_menus[] = {
     {
         .name        = "EyeFi Trick",
@@ -3723,7 +3723,7 @@ static void tweak_init()
 #ifndef CONFIG_5DC
     menu_add( "Display", display_menus, COUNT(display_menus) );
 #endif
-#if defined(CONFIG_60D) || defined(CONFIG_600D) 
+#ifdef CONFIG_EYEFI
     if (check_eyefi())
         menu_add( "Shoot", eyefi_menus, COUNT(eyefi_menus) );
 #endif

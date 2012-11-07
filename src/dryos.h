@@ -46,6 +46,10 @@
 #define CONFIG_Q_MENU_PLAYBACK // camera has a Q menu in playback mode; this menu can be tweaked a bit (e.g. LV button = Protect or Rate)
 #endif
 
+#if defined(CONFIG_600D) || defined(CONFIG_60D) // EyeFi tricks confirmed working only on 600D-60D
+#define CONFIG_EYEFI
+#endif
+
 #include "arm-mcr.h"
 #include "dialog.h"
 #include "gui.h"
