@@ -648,6 +648,7 @@ void clear_lv_afframe()
 
 #ifdef CONFIG_5D3
 CONFIG_INT("play.quick.zoom", quickzoom, 0);
+CONFIG_INT("qr.zoom.play", ken_rockwell_zoom, 0);
 #else
 CONFIG_INT("play.quick.zoom", quickzoom, 2);
 #endif
@@ -857,6 +858,18 @@ void print_set_maindial_hint()
     }
 }
 
+#ifdef CONFIG_5D3
+static volatile int krzoom_running = 0;
+static void krzoom_task()
+{
+    krzoom_running = 1;
+    fake_simple_button(BGMT_PLAY);
+    while (!PLAY_MODE) msleep(50);
+    fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+    krzoom_running = 0;
+}
+#endif
+
 int handle_set_wheel_play(struct event * event)
 {
     if (gui_menu_shown()) return 1;
@@ -911,6 +924,15 @@ int handle_set_wheel_play(struct event * event)
             fake_simple_button(BGMT_WHEEL_DOWN);
             return 1;
         }
+    }
+    #endif
+    
+    #ifdef CONFIG_5D3
+    if (event->param == BGMT_PRESS_ZOOMIN_MAYBE && ken_rockwell_zoom && QR_MODE && !krzoom_running)
+    {
+        krzoom_running = 1;
+        task_create("krzoom_task", 0x1e, 0x1000, krzoom_task, 0);
+        return 0;
     }
     #endif
 
@@ -3635,6 +3657,12 @@ struct menu_entry play_menus[] = {
                 .icon_type = IT_BOOL,
             },
         #else // 5D3
+            {
+                .name = "QRZoom->Play\b\b",
+                .priv = &ken_rockwell_zoom, 
+                .max = 1,
+                .help = "When you press Zoom in QR mode, it goes to PLAY mode.",
+            },
             {
                 .name = "Remember last Zoom pos",
                 .priv = &quickzoom, 
