@@ -3533,7 +3533,7 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Size", 
                 .priv = &zoom_overlay_size,
-                #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2) || defined(CONFIG_7D) // old cameras - simple zoom box
+                #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY // old cameras - simple zoom box
                 .max = 2,
                 .help = "Size of zoom box (small / medium / large).",
                 #else // new cameras can do fullscreen too :)

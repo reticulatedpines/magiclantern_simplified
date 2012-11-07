@@ -3184,7 +3184,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
 #ifdef CONFIG_5D2
     *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_2);
-#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_VXWORKS) && !defined(CONFIG_7D) // all new cameras should work with this method
+#elif defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
     *src_buf = (void*)shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_1 + 720*480*2);
 #else // just use some reasonable defaults that won't crash the camera
@@ -3197,7 +3197,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
 // type 2 filters: compute histogram on original image
 int display_filter_enabled()
 {
-    #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_VXWORKS)// || defined(CONFIG_5D3_MINIMAL) // not working on these cameras
+    #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
     return 0;
     #endif
     if (EXT_MONITOR_CONNECTED) return 0; // non-scalable code
@@ -3239,7 +3239,7 @@ void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
             EnableImagePhysicalScreenParameter();
         }
     }
-#elif !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_VXWORKS) && !defined(CONFIG_7D) // all new cameras should work with this method
+#elif defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY) // all new cameras should work with this method
 
     if (!display_filter_valid_image) return;
     if (!display_filter_enabled()) { display_filter_valid_image = 0;  return; }

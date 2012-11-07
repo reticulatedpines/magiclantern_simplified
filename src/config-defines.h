@@ -81,3 +81,11 @@
 #if defined(CONFIG_5D2) || defined(CONFIG_7D)
 #define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
 #endif
+
+#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
+#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY // by changing YUV422_LV_BUFFER_DISPLAY_ADDR
+#endif
+
+#if defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY) || defined(CONFIG_5D2)
+#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER // some cameras may have specific hacks and still do this, but harder
+#endif
