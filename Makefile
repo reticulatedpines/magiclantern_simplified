@@ -63,6 +63,10 @@ all: $(SUPPORTED_MODELS)
 40D:
 	$(MAKE) -C $(PLATFORM_PATH)/40D.111
 
+EOSM:
+	$(MAKE) -C $(PLATFORM_PATH)/EOSM.100
+
+
 plugins: FORCE
 	$(MAKE) -C $(PLUGINS_DIR)
 
@@ -85,6 +89,7 @@ fir:
 	cd installer/500D.111/; $(MAKE) clean
 	cd installer/5D2.212/; $(MAKE) clean
 	cd installer/1100D.105/; $(MAKE) clean
+	cd installer/EOSM.100/; $(MAKE) clean
 	$(MAKE) -C installer/550D.109/
 	$(MAKE) -C installer/60D.111/
 	$(MAKE) -C installer/600D.102/
@@ -92,6 +97,7 @@ fir:
 	$(MAKE) -C installer/500D.111/
 	$(MAKE) -C installer/5D2.212/
 	$(MAKE) -C installer/1100D.105/
+	$(MAKE) -C installer/EOSM.100/
 
 install_fir: fir
 	cp installer/550D.109/ml-550d-109.fir $(CF_CARD)
@@ -101,6 +107,7 @@ install_fir: fir
 	cp installer/500D.111/ml-500d-111.fir $(CF_CARD)
 	cp installer/5D2.212/ml-5D2-212.fir $(CF_CARD)
 	cp installer/1100D.105/ml-1100d-105.fir $(CF_CARD)
+	cp installer/EOSM.100/$(UPDATE_NAME) $(CF_CARD)
 
 clean:
 	$(call build,CLEAN,$(RM) -f \
@@ -124,7 +131,8 @@ clean:
 	cd $(PLATFORM_PATH)/5D2.212/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/5DC.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/1100D.105/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/40D.111/; $(MAKE) clean	
+	cd $(PLATFORM_PATH)/40D.111/; $(MAKE) clean
+	cd $(PLATFORM_PATH)/EOSM.100/; $(MAKE) clean	
 	$(MAKE) -C $(PLUGINS_DIR) clean
 	$(RM) -rf  $(BINARIES_PATH)
 	$(RM) -rf doxygen-doc/*

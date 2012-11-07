@@ -70,7 +70,7 @@ __attribute__((noreturn))
 cstart( void )
 {
     //~ find LED addresses
-    int i;
+    unsigned i;
     for (i=0xC022C000; i<0xc022CFFF; i+=4)
     {
         *(int*)i |= 2;

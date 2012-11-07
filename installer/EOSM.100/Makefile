@@ -54,14 +54,17 @@ updater: reboot-ins.o
 		$^ \
 	); \
 
-all: 
-	make clean
-	make magiclantern.bin
+
+# Notice I rename these to avoid problems with main Makefile
+all_eosm: 
+	make clean_eosm
+# Don't build ML, too early still. We run code from cstart() in reboot-ins.c
+# make magiclantern.bin
 	make updater.bin
 	python ../../../dumper/build_fir.py -r ../../../dumper/5D300113.FIR updater.bin $(UPDATE_NAME)
 
-clean:
+clean_eosm:
 	rm -f *.fir *.o autoexec* magiclantern* updater* ml.bin
 
-install:
+install_eosm:
 	cp $(UPDATE_NAME) /media/EOS_DIGITAL/ && umount /media/EOS_DIGITAL 

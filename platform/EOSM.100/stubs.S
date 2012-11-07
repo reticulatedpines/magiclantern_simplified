@@ -2,7 +2,9 @@
  * Entry points into the firmware image.
  *
  * These are the functions that we can call from our tasks
- * in the Canon 1.1.3 firmware for the 5D Mark III.
+ * in the Canon 1.0.0 firmware for the EOS M.
+ *
+ *  This is a straight copy from the 5d3, EOS M stubs need found/verified still.
  *
  * \todo Sort this file?  Generate it from the IDA map?
  */
