@@ -286,7 +286,7 @@ int get_zoom_overlay_trigger_mode()
 int get_zoom_overlay_trigger_by_focus_ring()
 {
     int z = get_zoom_overlay_trigger_mode();
-    #if defined(CONFIG_5D2) || defined(CONFIG_7D)
+    #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
     return z == 2 || z == 3;
     #else
     return z == 2;
@@ -295,7 +295,7 @@ int get_zoom_overlay_trigger_by_focus_ring()
 
 int get_zoom_overlay_trigger_by_halfshutter()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_7D)
+    #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
     int z = get_zoom_overlay_trigger_mode();
     return z == 1 || z == 3;
     #else
@@ -326,7 +326,7 @@ int should_draw_zoom_overlay()
     
     if (zoom_overlay_trigger_mode == 4) return true;
 
-    #if defined(CONFIG_5D2) || defined(CONFIG_7D)
+    #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
     if (zoom_overlay_triggered_by_zoom_btn || zoom_overlay_triggered_by_focus_ring_countdown) return true;
     #else
     int zt = zoom_overlay_triggered_by_zoom_btn;
@@ -2720,7 +2720,7 @@ zoom_overlay_display(
         x, y,
         "Magic Zoom  : %s%s%s%s%s",
         zoom_overlay_trigger_mode == 0 ? "err" :
-#if defined(CONFIG_5D2) || defined(CONFIG_7D)
+#ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
         zoom_overlay_trigger_mode == 1 ? "HalfS," :
         zoom_overlay_trigger_mode == 2 ? "Focus," :
         zoom_overlay_trigger_mode == 3 ? "F+HS," : "ALW,",
@@ -3522,7 +3522,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zoom_overlay_trigger_mode, 
                 .min = 1,
                 .max = 4,
-                #if defined(CONFIG_5D2) || defined(CONFIG_7D)
+                #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
                 .choices = (const char *[]) {"OFF", "HalfShutter", "Focus Ring", "FocusR+HalfS", "Always On"},
                 .help = "Trigger Magic Zoom by focus ring or half-shutter.",
                 #else
@@ -3821,7 +3821,7 @@ struct menu_entry livev_dbg_menus[] = {
     }*/
 };
 
-#if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
+#ifdef CONFIG_BATTERY_INFO
 void batt_display(
     void *          priv,
     int         x,
@@ -3905,7 +3905,7 @@ struct menu_entry powersave_menus[] = {
             .help = "Turn off GlobalDraw when idle, to save some CPU cycles.",
             //~ .edit_mode = EM_MANY_VALUES,
         },
-        #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
+        #ifdef CONFIG_BATTERY_INFO
         {
             .name = "Battery remaining",
             .display = batt_display,
@@ -4234,7 +4234,7 @@ int handle_zoom_overlay(struct event * event)
     if (get_disp_pressed()) return 1;
     #endif
 
-#if defined(CONFIG_5D2) || defined(CONFIG_7D)
+#ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
     if (event->param == BGMT_PRESS_HALFSHUTTER && get_zoom_overlay_trigger_by_halfshutter())
         zoom_overlay_toggle();
     if (is_zoom_overlay_triggered_by_zoom_btn() && !get_zoom_overlay_trigger_by_halfshutter())
@@ -5288,7 +5288,7 @@ clearscreen_loop:
             bmp_off();
             while ((get_halfshutter_pressed() || dofpreview)) msleep(100);
             bmp_on();
-            #if defined(CONFIG_5D2) || defined(CONFIG_7D)
+            #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
             msleep(100);
             if (get_zoom_overlay_trigger_by_halfshutter()) // this long press should not trigger MZ
                 zoom_overlay_toggle();

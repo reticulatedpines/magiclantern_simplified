@@ -78,3 +78,6 @@
 #define CONFIG_LV_3RD_PARTY_FLASH
 #endif
 
+#if defined(CONFIG_5D2) || defined(CONFIG_7D)
+#define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
+#endif
