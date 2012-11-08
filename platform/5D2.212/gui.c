@@ -113,8 +113,6 @@ static int handle_buttons(struct event * event)
 	if (event->param == BGMT_UNPRESS_UDLR)
 		joy_center_action_disabled = 0;
 
-	if (handle_lv_play(event) == 0) return 0;
-
 	return 1;
 }
 
