@@ -944,7 +944,7 @@ int handle_lv_play(struct event * event)
 #else
     if (event->param == BGMT_LV && PLAY_MODE)
     {
-        if (is_pure_play_photo_or_movie_mode())
+        if (!is_pure_play_photo_or_movie_mode())
         {
             if (rating_in_progress) return 0; // user presses buttons too fast
             return 1; // not in main play dialog, maybe in Q menu somewhere
