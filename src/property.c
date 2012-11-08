@@ -20,6 +20,9 @@
 #include "property.h"
 #include "bmp.h"
 
+extern struct prop_handler _prop_handlers_start[];
+extern struct prop_handler _prop_handlers_end[];
+
 static void * global_token;
 
 static void global_token_handler( void * token)
@@ -42,9 +45,6 @@ global_property_handler(
 #endif
     
     //~ bfnt_puts("Global prop", 0, 0, COLOR_BLACK, COLOR_WHITE);
-
-    extern struct prop_handler _prop_handlers_start[];
-    extern struct prop_handler _prop_handlers_end[];
     struct prop_handler * handler = _prop_handlers_start;
 
     for( ; handler < _prop_handlers_end ; handler++ )
@@ -52,9 +52,19 @@ global_property_handler(
         if (handler->property == property)
         {
             //~ bmp_printf(FONT_LARGE, 0, 0, "%x %x...", property, handler->handler);
-            current_prop_handler = property;
-            handler->handler(property, priv, buf, len);
-            current_prop_handler = 0;
+            /* cache length of property if not set yet */
+            if(handler->property_length == 0)
+            {
+                handler->property_length = len;
+            }
+            
+            /* execute handler, if any */
+            if(handler->handler != NULL)
+            {
+                current_prop_handler = property;
+                handler->handler(property, priv, buf, len);
+                current_prop_handler = 0;
+            }
             //~ bmp_printf(FONT_LARGE, 0, 0, "%x %x :)", property, handler->handler);
         }
     }
@@ -67,9 +77,6 @@ void
 prop_init( void* unused )
 {
     int actual_num_properties = 0;
-
-    extern struct prop_handler _prop_handlers_start[];
-    extern struct prop_handler _prop_handlers_end[];
     struct prop_handler * handler = _prop_handlers_start;
 
     for( ; handler < _prop_handlers_end ; handler++ )
@@ -161,10 +168,28 @@ int _get_prop_len(int prop)
     return len;
 }*/
 
+/* return cached length of property */
+uint32_t prop_get_prop_len(uint32_t property)
+{
+    struct prop_handler * handler = NULL;
+
+    for(handler = _prop_handlers_start; handler < _prop_handlers_end; handler++ )
+    {
+        if (handler->property == property)
+        {
+            return handler->property_length;
+        }
+    }
+    
+    return 0;
+}
+
+
 /**
  * This is just a safe wrapper for changing camera settings (well... only slightly safer than Canon's) 
  * Double-check the len parameter => less chances that our call will cause permanent damage.
  */
+
 
 /**
  * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -180,10 +205,7 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
     #ifdef CONFIG_DISABLE_PROP_REQUEST_CHANGE
     return;
     #endif
-/* problem: get_prop_len may return 0 :(
-
-
-    int correct_len = get_prop_len((int)property);
+    int correct_len = prop_get_prop_len((int)property);
     
     if (property == PROP_BATTERY_REPORT && len == 1) goto ok; // exception: this call is correct for polling battery level
     
@@ -198,9 +220,9 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
         return;
     }
 
-ok:
-*/
+    ok:
     //~ console_printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
+    
     _prop_request_change(property, addr, len);
 }
 
@@ -209,3 +231,7 @@ ok:
  * For new ports, disable this function on first boots (although it should be pretty much harmless).
  */
 INIT_FUNC( __FILE__, prop_init );
+
+/* register those as dummy handlers to make sure we receive them (for getting prop length) */
+REGISTER_PROP_HANDLER(PROP_REMOTE_SW1, NULL);
+REGISTER_PROP_HANDLER(PROP_REMOTE_SW2, NULL);
