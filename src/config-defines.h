@@ -58,7 +58,8 @@
 #define CONFIG_3_2_SCREEN
 #endif
 
-#if defined(CONFIG_60D) || defined(CONFIG_7D) || (defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL))
+#if defined(CONFIG_60D) || defined(CONFIG_7D)// || (defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL))
+// stability issues on 5D3
 #define CONFIG_ELECTRONIC_LEVEL
 #endif
 
