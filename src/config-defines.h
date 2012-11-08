@@ -52,6 +52,11 @@
 #define CONFIG_KILL_FLICKER
 #endif
 
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_7D) || defined(CONFIG_VXWORKS)
+#define CONFIG_4_3_SCREEN
+#else
+#define CONFIG_3_2_SCREEN
+#endif
 
 #if defined(CONFIG_60D) || defined(CONFIG_7D) || (defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL))
 #define CONFIG_ELECTRONIC_LEVEL
