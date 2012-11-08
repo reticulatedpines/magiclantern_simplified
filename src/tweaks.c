@@ -2590,6 +2590,9 @@ void preview_saturation_display(
     extern int focus_peaking_grayscale;
     if (focus_peaking_grayscale && is_focus_peaking_enabled())
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus peaking with grayscale preview is enabled.");
+    
+    if (preview_saturation_boost_wb)
+        menu_draw_icon(x, y, MNI_AUTO, 0);
 
     if (preview_saturation == 0) menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) "Luma");
     else if (preview_saturation == 1) menu_draw_icon(x, y, MNI_OFF, 0);
