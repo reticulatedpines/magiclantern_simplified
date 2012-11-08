@@ -5964,7 +5964,10 @@ static void zebra_init()
 #ifndef CONFIG_5DC
     menu_add( "Overlay", zebra_menus, COUNT(zebra_menus) );
 #endif
+
+#ifndef CONFIG_5D3_MINIMAL
     menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
+#endif
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
 #if !defined(CONFIG_5D3_MINIMAL)
