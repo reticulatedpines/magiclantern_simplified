@@ -3815,7 +3815,7 @@ int handle_buttons_being_held(struct event * event)
 
 void fake_simple_button(int bgmt_code)
 {
-    if (uilock & 0xFFFF) return;
+    if ((uilock & 0xFFFF) && (bgmt_code >= 0)) return; // Canon events may not be safe to send when UI is locked; ML events are (and should be sent)
     
     if (ml_shutdown_requested) return;
     GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
@@ -3828,7 +3828,8 @@ int handle_tricky_canon_calls(struct event * event)
     // fake ML events are always negative numbers
     if (event->param >= 0) return 1;
     
-    //~ NotifyBox(1000, "tricky call: %d ", event->param); msleep(1000);
+    //~ static int k; k++;
+    //~ bmp_printf(FONT_LARGE, 50, 50, "[%d] tricky call: %d ", k, event->param); msleep(1000);
     
     switch (event->param)
     {

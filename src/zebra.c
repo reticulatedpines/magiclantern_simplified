@@ -5537,7 +5537,7 @@ livev_hipriority_task( void* unused )
     msleep(1000);
     find_cropmarks();
     update_disp_mode_bits_from_params();
-
+    
     TASK_LOOP
     {
         //~ vsync(&YUV422_LV_BUFFER_DISPLAY_ADDR);
@@ -5554,6 +5554,7 @@ livev_hipriority_task( void* unused )
         if (!zebra_should_run())
         {
             while (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) msleep(100);
+            while (recording == 1) msleep(100);
             if (!zebra_should_run())
             {
                 if (zebra_digic_dirty) digic_zebra_cleanup();
