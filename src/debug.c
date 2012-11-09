@@ -742,7 +742,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC(t0 = *(uint32_t*)0xC0242014);
         TEST_TRY_VOID(msleep(250));
         TEST_TRY_FUNC(t1 = *(uint32_t*)0xC0242014);
-        TEST_TRY_FUNC_CHECK(ABS(mod(t1-t0, 1048576)/1000 - 250), < 20);
+        TEST_TRY_FUNC_CHECK(ABS(mod(t1-t0, 1048576)/1000 - 250), < 30);
 
         // calendar
         struct tm now;
@@ -770,7 +770,8 @@ static void stub_test_task(void* arg)
         int m0, m1, m2;
         void* p;
         TEST_TRY_FUNC(m0 = MALLOC_FREE_MEMORY);
-        TEST_TRY_FUNC(p = malloc(50*1024));
+        TEST_TRY_FUNC_CHECK(p = malloc(50*1024), != NULL);
+        TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
         TEST_TRY_FUNC(m1 = MALLOC_FREE_MEMORY);
         TEST_TRY_VOID(free(p));
         TEST_TRY_FUNC(m2 = MALLOC_FREE_MEMORY);
@@ -778,7 +779,8 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
 
         TEST_TRY_FUNC(m0 = GetFreeMemForAllocateMemory());
-        TEST_TRY_FUNC(p = AllocateMemory(256*1024));
+        TEST_TRY_FUNC_CHECK(p = AllocateMemory(256*1024), != NULL);
+        TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
         TEST_TRY_FUNC(m1 = GetFreeMemForAllocateMemory());
         TEST_TRY_VOID(FreeMemory(p));
         TEST_TRY_FUNC(m2 = GetFreeMemForAllocateMemory());
@@ -789,12 +791,13 @@ static void stub_test_task(void* arg)
         int m01, m02, m11, m12;
         TEST_TRY_FUNC(m01 = MALLOC_FREE_MEMORY);
         TEST_TRY_FUNC(m02 = GetFreeMemForAllocateMemory());
-        TEST_TRY_FUNC(p = alloc_dma_memory(256*1024));
-        TEST_TRY_VOID(free_dma_memory(p));
+        TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(256*1024), != NULL);
         TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
         TEST_TRY_FUNC_CHECK(CACHEABLE(p), != (int)p);
         TEST_TRY_FUNC_CHECK(UNCACHEABLE(CACHEABLE(p)), == (int)p);
-        TEST_TRY_FUNC(p = (void*)shoot_malloc(24*1024*1024));
+        TEST_TRY_VOID(free_dma_memory(p));
+        TEST_TRY_FUNC_CHECK(p = (void*)shoot_malloc(24*1024*1024), != NULL);
+        TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
         TEST_TRY_VOID(shoot_free(p));
         TEST_TRY_FUNC(m11 = MALLOC_FREE_MEMORY);
         TEST_TRY_FUNC(m12 = GetFreeMemForAllocateMemory());
@@ -815,9 +818,9 @@ static void stub_test_task(void* arg)
 
         // SetGUIRequestMode, CURRENT_DIALOG_MAYBE
         #ifdef GUIMODE_ML_MENU
-        TEST_TRY_VOID(SetGUIRequestMode(1); msleep(500););
+        TEST_TRY_VOID(SetGUIRequestMode(1); msleep(1000););
         TEST_TRY_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 1);
-        TEST_TRY_VOID(SetGUIRequestMode(2); msleep(500););
+        TEST_TRY_VOID(SetGUIRequestMode(2); msleep(1000););
         TEST_TRY_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 2);
         TEST_TRY_VOID(SetGUIRequestMode(0); msleep(1000););
         TEST_TRY_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 0);
