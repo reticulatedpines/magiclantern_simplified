@@ -1602,15 +1602,16 @@ void ensure_movie_mode()
     if (!lv) force_liveview();
 }
 
-static void * silent_pic_tmp_buf = 0;
+// this buffer will contain the HD image (saved to card) and a LV preview (for display)
+static void * silent_pic_buf = 0;
 
 int silent_pic_preview()
 {
 #ifndef CONFIG_VXWORKS
-    if (silent_pic_tmp_buf)
+    if (silent_pic_buf && silent_pic_mode == 0) // only preview single silent pics (not burst etc)
     {
         int size = vram_hd.pitch * vram_hd.height;
-        YUV422_LV_BUFFER_DISPLAY_ADDR = (intptr_t)silent_pic_tmp_buf + size;
+        YUV422_LV_BUFFER_DISPLAY_ADDR = (intptr_t)silent_pic_buf + size;
         return 1;
     }
     return 0;
@@ -1624,9 +1625,6 @@ silent_pic_take_simple(int interactive)
     int size = vram_hd.pitch * vram_hd.height;
     int lv_size = vram_lv.pitch * vram_lv.height;
     
-    // this buffer will contain the HD image (saved to card) and a LV preview (for display)
-    void *silent_pic_buf = NULL;
-
     // start with black preview 
     silent_pic_buf = (void*)shoot_malloc(size + lv_size);
     bzero32(silent_pic_buf + size, lv_size);
@@ -1735,8 +1733,8 @@ silent_pic_take_simple(int interactive)
             /* repeat process if half-shutter is still pressed and burst mode was enabled */
         } while (1);
         
-        shoot_free(silent_pic_tmp_buf);
-        silent_pic_tmp_buf = NULL;
+        shoot_free(silent_pic_buf);
+        silent_pic_buf = NULL;
     }
 
     /* if not in burst mode, wait until half-shutter was released */
