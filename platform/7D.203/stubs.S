@@ -43,6 +43,8 @@ NSTUB(0xFF839820, master_task_create)
 NSTUB(0xFF81AD28, master_write_memory)
 
 
+NSTUB(0xFF3759F0, GUI_GetCFnForTab4)
+NSTUB(0xFF375998, GUI_SetCFnForTab4)
 NSTUB(0xFF11A8E0, GetJpegBufForLV)
 NSTUB(0xFF11A8EC, GetJpegSizeForLV)
 
