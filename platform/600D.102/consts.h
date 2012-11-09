@@ -8,11 +8,7 @@
 #define HIJACK_INSTR_MY_ITASK 0xff0110dc
 #define HIJACK_TASK_ADDR 0x1a2c
 
-// Critical. Look for a call to prop_request_change(0x80050007, something, len).
-#define AFFRAME_PROP_LEN 108
-
 #define ARMLIB_OVERFLOWING_BUFFER 0x167FC // in AJ_armlib_setup_related3
-#define CUSTOM_WB_PROP_LEN 44
 
 #define DRYOS_ASSERT_HANDLER 0x1A18 // dec TH_assert or assert_0
 

@@ -52,6 +52,10 @@
 #define CONFIG_KILL_FLICKER
 #endif
 
+#ifndef CONFIG_5DC // almost all cameras have LiveView, except for 5Dc
+#define CONFIG_LIVEVIEW
+#endif
+
 #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_7D) || defined(CONFIG_VXWORKS)
 #define CONFIG_4_3_SCREEN
 #else

@@ -206,6 +206,16 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
     return;
     #endif
     int correct_len = prop_get_prop_len((int)property);
+    if (len == 0) len = correct_len;
+    if (len == 0)
+    {
+        char msg[100];
+        snprintf(msg, sizeof(msg), "PROP_LEN(%x) = 0", property);
+        bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), 100, 100, msg);
+        ml_assert_handler(msg, __FILE__, __LINE__, __func__);
+        info_led_blink(10,50,50);
+        return;
+    }
     
     if (property == PROP_BATTERY_REPORT && len == 1) goto ok; // exception: this call is correct for polling battery level
     
@@ -215,7 +225,6 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
         snprintf(msg, sizeof(msg), "PROP_LEN(%x) correct:%x called:%x", property, correct_len, len);
         bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), 100, 100, msg);
         ml_assert_handler(msg, __FILE__, __LINE__, __func__);
-        //~ ASSERT(PROP_LEN_INCORRECT);
         info_led_blink(10,50,50);
         return;
     }

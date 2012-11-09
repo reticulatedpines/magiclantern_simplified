@@ -1668,10 +1668,11 @@ PROP_HANDLER( PROP_WB_KELVIN_LV )
 }
 
 #if !defined(CONFIG_5DC) && !defined(CONFIG_40D)
-uint16_t custom_wb_gains[CUSTOM_WB_PROP_LEN];
+uint16_t custom_wb_gains[128];
 PROP_HANDLER(PROP_CUSTOM_WB)
 {
-    memcpy(custom_wb_gains, buf, CUSTOM_WB_PROP_LEN);
+    ASSERT(len <= sizeof(custom_wb_gains));
+    memcpy(custom_wb_gains, buf, len);
     const uint16_t * gains = (uint16_t *) buf;
     lens_info.WBGain_R = gains[16];
     lens_info.WBGain_G = gains[18];
@@ -1699,7 +1700,7 @@ void lens_set_custom_wb_gains(int gain_R, int gain_G, int gain_B)
     custom_wb_gains[16] = gain_R;
     custom_wb_gains[18] = gain_G;
     custom_wb_gains[19] = gain_B;
-    prop_request_change(PROP_CUSTOM_WB, custom_wb_gains, CUSTOM_WB_PROP_LEN);
+    prop_request_change(PROP_CUSTOM_WB, custom_wb_gains, 0);
 
     int mode = WB_CUSTOM;
     prop_request_change(PROP_WB_MODE_LV, &mode, 4);

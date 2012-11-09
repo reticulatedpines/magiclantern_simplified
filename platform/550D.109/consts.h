@@ -12,10 +12,6 @@
 
 #define DRYOS_ASSERT_HANDLER 0x1a0c // dec TH_assert or assert_0
 
-// Critical. Look for a call to prop_request_change(0x80050007, something, len).
-#define AFFRAME_PROP_LEN 104
-#define CUSTOM_WB_PROP_LEN 52
-
 // 720x480, changes when external monitor is connected
 #define YUV422_LV_BUFFER_1 0x40D07800 
 #define YUV422_LV_BUFFER_2 0x4c233800

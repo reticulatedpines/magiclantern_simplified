@@ -758,17 +758,17 @@ silent_pic_display( void * priv, int x, int y, int selected )
 }
 
 static volatile int afframe_ack = 0;
-#ifdef AFFRAME_PROP_LEN
-static int afframe[AFFRAME_PROP_LEN/4+1];
+#ifdef CONFIG_LIVEVIEW
+static int afframe[128];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
-    ASSERT(len == AFFRAME_PROP_LEN);
+    ASSERT(len <= sizeof(afframe));
 
     spotmeter_erase();
 
     crop_set_dirty(10);
     afframe_set_dirty();
     
-    my_memcpy(afframe, buf, AFFRAME_PROP_LEN);
+    my_memcpy(afframe, buf, len);
     afframe_ack = 1;
 }
 #else
@@ -1037,14 +1037,14 @@ void center_lv_afframe_do()
 
 void move_lv_afframe(int dx, int dy)
 {
-#ifdef AFFRAME_PROP_LEN
+#ifdef CONFIG_LIVEVIEW
     if (!liveview_display_idle()) return;
     if (is_movie_mode() && video_mode_crop) return;
     if (recording && is_manual_focus()) // prop handler won't trigger, clear spotmeter 
         clear_lv_afframe();
     
-    static int aff[AFFRAME_PROP_LEN/4+1];
-    memcpy(aff, afframe, AFFRAME_PROP_LEN);
+    static int aff[128];
+    memcpy(aff, afframe, sizeof(aff));
 
     aff[2] = COERCE(aff[2] + dx, 500, aff[0] - aff[4]);
     aff[3] = COERCE(aff[3] + dy, 500, aff[1] - aff[5]);
@@ -1058,7 +1058,7 @@ void move_lv_afframe(int dx, int dy)
     int x1 = aff[2];
     if (af) aff[2] -= off_x;
     afframe_ack = 0;
-    prop_request_change(PROP_LV_AFFRAME, aff, AFFRAME_PROP_LEN);
+    prop_request_change(PROP_LV_AFFRAME, aff, 0);
     if (af)
     {
         for (int i = 0; i < 15; i++)
@@ -1072,7 +1072,7 @@ void move_lv_afframe(int dx, int dy)
             int delta = (x2 - x1);
             off_x += delta;
             aff[2] = x1 - off_x;
-            prop_request_change(PROP_LV_AFFRAME, aff, AFFRAME_PROP_LEN);
+            prop_request_change(PROP_LV_AFFRAME, aff, 0);
         }
     }
     
@@ -1098,7 +1098,7 @@ sweep_lv()
             bmp_printf(FONT_LARGE, 50, 50, "AFF %d, %d ", i, j);
             afframe[2] = 250 + 918 * j;
             afframe[3] = 434 + 490 * i;
-            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+            prop_request_change(PROP_LV_AFFRAME, afframe, 0);
             msleep(100);
         }
     }
@@ -1775,7 +1775,7 @@ int silent_pic_matrix_running = 0;
  void
 silent_pic_take_sweep(int interactive)
 {
-#ifdef AFFRAME_PROP_LEN
+#ifdef CONFIG_LIVEVIEW
     if (recording) return;
     if (!lv) return;
     if (SILENTPIC_NL > 4 || SILENTPIC_NC > 4)
@@ -1838,7 +1838,7 @@ silent_pic_take_sweep(int interactive)
             bmp_printf(FONT_MED, 100, 100, "Psst! Taking a high-res pic [%d,%d]      ", i, j);
             afframe[2] = x0 + 1024 * j;
             afframe[3] = y0 + 680 * i;
-            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+            prop_request_change(PROP_LV_AFFRAME, afframe, 0);
             //~ msleep(500);
             msleep(silent_pic_sweepdelay);
             FIO_WriteFile(f, vram->vram, 1024 * 680 * 2);
@@ -1853,7 +1853,7 @@ silent_pic_take_sweep(int interactive)
     msleep(1000);
     afframe[2] = afx0;
     afframe[3] = afy0;
-    prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+    prop_request_change(PROP_LV_AFFRAME, afframe, 0);
 
     bmp_printf(FONT_MED, 100, 100, "Psst! Just took a high-res pic   ");
 #endif
@@ -3177,7 +3177,7 @@ static void zoom_x5_x10_toggle(void* priv, int delta)
 
 static void zoom_lv_face_step()
 {
-#ifdef AFFRAME_PROP_LEN
+#ifdef CONFIG_LIVEVIEW
     if (!lv) return;
     if (recording) return;
     /*if (face_zoom_request && lv_dispsize == 1 && !recording)
@@ -3191,7 +3191,7 @@ static void zoom_lv_face_step()
             msleep(100);
             afframe[2] = afx;
             afframe[3] = afy;
-            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+            prop_request_change(PROP_LV_AFFRAME, afframe, 0);
             msleep(1);
             set_lv_zoom(5);
             msleep(1);
@@ -6872,14 +6872,14 @@ static void misc_shooting_info()
 static void
 shoot_task( void* unused )
 {
-    #ifdef AFFRAME_PROP_LEN
+    #ifdef CONFIG_LIVEVIEW
     if (!lv)
     {   // center AF frame at startup in photo mode
         if (!((is_movie_mode() && video_mode_crop)))
         {
             afframe[2] = (afframe[0] - afframe[4])/2;
             afframe[3] = (afframe[1] - afframe[5])/2;
-            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+            prop_request_change(PROP_LV_AFFRAME, afframe, 0);
         }
     }
     #endif
