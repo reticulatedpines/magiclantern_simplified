@@ -1679,15 +1679,14 @@ silent_pic_take_simple(int interactive)
                 void* buf = (void*)YUV422_HD_BUFFER_DMA_ADDR;
                 
                 // some sort of vsync
-                while ((void*)YUV422_HD_BUFFER_DMA_ADDR == buf)
+                int t0 = *(uint32_t*)0xC0242014;
+                while(1) // dirty, but seems to work
                 {
-                    msleep(MIN_MSLEEP);
-                    if(++loopcount > 500)
-                    {
-                        NotifyBox(2000, "Failed to wait until\nLV buffer updates");
-                        msleep(5000);
-                        return;
-                    }
+                    int t1 = *(uint32_t*)0xC0242014;
+                    int dt = mod(t1 - t0, 1048576);
+                    void* new_buf = YUV422_HD_BUFFER_DMA_ADDR;
+                    if (buf != new_buf) break;
+                    if (dt > 100000) break; // don't busy wait too much
                 }
                 
 #if defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
