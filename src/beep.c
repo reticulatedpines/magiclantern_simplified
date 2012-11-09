@@ -673,7 +673,7 @@ static int find_wav(int * index, char* fn)
     dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
     if( IS_ERROR(dirent) )
     {
-        bmp_printf( FONT_LARGE, 40, 40, "dir err" );
+        bmp_printf( FONT_LARGE, 40, 40, "find_wav: dir err" );
         return 0;
     }
 
@@ -697,7 +697,7 @@ static int find_wav(int * index, char* fn)
     dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
     if( IS_ERROR(dirent) )
     {
-        bmp_printf( FONT_LARGE, 40, 40, "dir err" );
+        bmp_printf( FONT_LARGE, 40, 40, "find_wav: dir err" );
         return 0;
     }
 
