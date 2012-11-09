@@ -673,8 +673,7 @@ static int find_wav(int * index, char* fn)
     dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
     if( IS_ERROR(dirent) )
     {
-        bmp_printf( FONT_LARGE, 40, 40, "find_wav: dir err" );
-        return 0;
+        return 0; // can be safely ignored
     }
 
     do {
@@ -748,7 +747,7 @@ filename_display(
 {
     // display only the filename, without the path
     char* fn = current_wav_filename + strlen(current_wav_filename) - 1;
-    while (fn > current_wav_filename && *fn != '/') fn--; fn++;
+    while (fn > current_wav_filename && *fn != '/') fn--; if (*fn == '/') fn++;
     
     bmp_printf(
         MENU_FONT,
