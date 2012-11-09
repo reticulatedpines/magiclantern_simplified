@@ -235,3 +235,4 @@ INIT_FUNC( __FILE__, prop_init );
 /* register those as dummy handlers to make sure we receive them (for getting prop length) */
 REGISTER_PROP_HANDLER(PROP_REMOTE_SW1, NULL);
 REGISTER_PROP_HANDLER(PROP_REMOTE_SW2, NULL);
+REGISTER_PROP_HANDLER(PROP_LV_LENS_DRIVE_REMOTE, NULL);
