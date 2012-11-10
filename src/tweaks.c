@@ -1294,6 +1294,7 @@ tweak_task( void* unused)
         // faster focus box in liveview
         if (arrow_pressed && lv && liveview_display_idle() && focus_box_lv_speed)
         {
+            msleep(200);
             int delay = 30;
             while (!arrow_unpressed)
             {
@@ -1308,6 +1309,7 @@ tweak_task( void* unused)
         #ifndef CONFIG_5D3 // doesn't need this, it's already very fast
         if (arrow_pressed && is_pure_play_photo_mode() && quickzoom && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 0)
         {
+            msleep(200);
             int delay = 100;
             while (!arrow_unpressed)
             {
