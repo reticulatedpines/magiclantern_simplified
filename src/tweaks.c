@@ -1103,15 +1103,20 @@ int handle_fast_zoom_in_play_mode(struct event * event)
         else if (event->param == BGMT_PRESS_SET && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3 && is_pure_play_photo_mode())
         #endif
         {
-            IMGPLAY_ZOOM_POS_X = IMGPLAY_ZOOM_POS_X_CENTER;
-            IMGPLAY_ZOOM_POS_Y = IMGPLAY_ZOOM_POS_Y_CENTER;
-            MEM(IMGPLAY_ZOOM_LEVEL_ADDR) -= 1;
-            #ifdef CONFIG_5D3
-            fake_simple_button(BGMT_WHEEL_RIGHT);
-            #else
-            fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
-            #endif
-            return 0;
+            if (IMGPLAY_ZOOM_POS_X != IMGPLAY_ZOOM_POS_X_CENTER || 
+                IMGPLAY_ZOOM_POS_Y != IMGPLAY_ZOOM_POS_Y_CENTER)
+            {
+                IMGPLAY_ZOOM_POS_X = IMGPLAY_ZOOM_POS_X_CENTER;
+                IMGPLAY_ZOOM_POS_Y = IMGPLAY_ZOOM_POS_Y_CENTER;
+                MEM(IMGPLAY_ZOOM_LEVEL_ADDR) -= 1;
+                #ifdef CONFIG_5D3
+                fake_simple_button(BGMT_WHEEL_RIGHT);
+                #else
+                fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+                fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                #endif
+                return 0;
+            }
         }
         #endif
     }
