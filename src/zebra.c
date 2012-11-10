@@ -4834,7 +4834,7 @@ void draw_histogram_and_waveform(int allow_play)
         if (should_draw_bottom_graphs())
             BMP_LOCK( hist_draw_image( os.x0 + 50,  480 - hist_height - 1, -1); )
         else if (screen_layout == SCREENLAYOUT_3_2)
-            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 2,  os.y_max - (lv ? os.off_169 : 0) - hist_height - 1, -1); )
+            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 2,  os.y_max - (lv ? os.off_169 : 0) - (gui_menu_shown() ? 25 : 0) - hist_height - 1, -1); )
         else
             BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 5, os.y0 + 100, -1); )
     }
@@ -4858,7 +4858,7 @@ void draw_histogram_and_waveform(int allow_play)
         else if (screen_layout == SCREENLAYOUT_3_2)
         {
             if (WAVEFORM_FACTOR == 1)
-                BMP_LOCK( waveform_draw_image( os.x0 + 4, os.y_max - (lv ? os.off_169 : 0) - 54, 54); )
+                BMP_LOCK( waveform_draw_image( os.x0 + 4, os.y_max - (lv ? os.off_169 : 0) - (gui_menu_shown() ? 25 : 0) - 54, 54); )
             else
                 BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR - (WAVEFORM_FULLSCREEN ? 0 : 4), os.y0 + 100, WAVEFORM_HEIGHT*WAVEFORM_FACTOR ); );
         }
@@ -5537,7 +5537,7 @@ livev_hipriority_task( void* unused )
     msleep(1000);
     find_cropmarks();
     update_disp_mode_bits_from_params();
-
+    
     TASK_LOOP
     {
         //~ vsync(&YUV422_LV_BUFFER_DISPLAY_ADDR);
@@ -5554,6 +5554,7 @@ livev_hipriority_task( void* unused )
         if (!zebra_should_run())
         {
             while (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) msleep(100);
+            while (recording == 1) msleep(100);
             if (!zebra_should_run())
             {
                 if (zebra_digic_dirty) digic_zebra_cleanup();
@@ -5963,7 +5964,10 @@ static void zebra_init()
 #ifndef CONFIG_5DC
     menu_add( "Overlay", zebra_menus, COUNT(zebra_menus) );
 #endif
+
+#ifndef CONFIG_5D3_MINIMAL
     menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
+#endif
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
 #if !defined(CONFIG_5D3_MINIMAL)

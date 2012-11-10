@@ -515,6 +515,7 @@ prop_deliver(
 struct prop_handler
 {
         unsigned        property;
+        unsigned        property_length;
 
         void          (*handler)(
                 unsigned                property,
@@ -536,13 +537,17 @@ prop_handler_init(
 
 
 /** Register a property handler with automated token function */
-#define REGISTER_PROP_HANDLER( id, func ) \
+
+#define REGISTER_PROP_HANDLER_EX( id, func, length ) \
 __attribute__((section(".prop_handlers"))) \
 __attribute__((used)) \
 static struct prop_handler _prop_handler_##id##_block = { \
-        .handler        = func, \
-        .property       = id, \
+        .handler         = func, \
+        .property        = id, \
+        .property_length = length, \
 }
+
+#define REGISTER_PROP_HANDLER( id, func ) REGISTER_PROP_HANDLER_EX( id, func, 0 )
 
 #define PROP_HANDLER(id) \
 static void _prop_handler_##id(); \

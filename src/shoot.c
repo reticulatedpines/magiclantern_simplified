@@ -758,17 +758,17 @@ silent_pic_display( void * priv, int x, int y, int selected )
 }
 
 static volatile int afframe_ack = 0;
-#ifdef AFFRAME_PROP_LEN
-static int afframe[AFFRAME_PROP_LEN/4+1];
+#ifdef CONFIG_LIVEVIEW
+static int afframe[128];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
-    ASSERT(len == AFFRAME_PROP_LEN);
+    ASSERT(len <= sizeof(afframe));
 
     spotmeter_erase();
 
     crop_set_dirty(10);
     afframe_set_dirty();
     
-    my_memcpy(afframe, buf, AFFRAME_PROP_LEN);
+    my_memcpy(afframe, buf, len);
     afframe_ack = 1;
 }
 #else
@@ -1037,14 +1037,14 @@ void center_lv_afframe_do()
 
 void move_lv_afframe(int dx, int dy)
 {
-#ifdef AFFRAME_PROP_LEN
+#ifdef CONFIG_LIVEVIEW
     if (!liveview_display_idle()) return;
     if (is_movie_mode() && video_mode_crop) return;
     if (recording && is_manual_focus()) // prop handler won't trigger, clear spotmeter 
         clear_lv_afframe();
     
-    static int aff[AFFRAME_PROP_LEN/4+1];
-    memcpy(aff, afframe, AFFRAME_PROP_LEN);
+    static int aff[128];
+    memcpy(aff, afframe, sizeof(aff));
 
     aff[2] = COERCE(aff[2] + dx, 500, aff[0] - aff[4]);
     aff[3] = COERCE(aff[3] + dy, 500, aff[1] - aff[5]);
@@ -1058,7 +1058,7 @@ void move_lv_afframe(int dx, int dy)
     int x1 = aff[2];
     if (af) aff[2] -= off_x;
     afframe_ack = 0;
-    prop_request_change(PROP_LV_AFFRAME, aff, AFFRAME_PROP_LEN);
+    prop_request_change(PROP_LV_AFFRAME, aff, 0);
     if (af)
     {
         for (int i = 0; i < 15; i++)
@@ -1072,7 +1072,7 @@ void move_lv_afframe(int dx, int dy)
             int delta = (x2 - x1);
             off_x += delta;
             aff[2] = x1 - off_x;
-            prop_request_change(PROP_LV_AFFRAME, aff, AFFRAME_PROP_LEN);
+            prop_request_change(PROP_LV_AFFRAME, aff, 0);
         }
     }
     
@@ -1098,7 +1098,7 @@ sweep_lv()
             bmp_printf(FONT_LARGE, 50, 50, "AFF %d, %d ", i, j);
             afframe[2] = 250 + 918 * j;
             afframe[3] = 434 + 490 * i;
-            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+            prop_request_change(PROP_LV_AFFRAME, afframe, 0);
             msleep(100);
         }
     }
@@ -1454,7 +1454,7 @@ static int find_422(int * index, char* fn)
     dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
     if( IS_ERROR(dirent) )
     {
-        bmp_printf( FONT_LARGE, 40, 40, "dir err" );
+        bmp_printf( FONT_LARGE, 40, 40, "find_422: dir err" );
         return 0;
     }
 
@@ -1478,7 +1478,7 @@ static int find_422(int * index, char* fn)
     dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
     if( IS_ERROR(dirent) )
     {
-        bmp_printf( FONT_LARGE, 40, 40, "dir err" );
+        bmp_printf( FONT_LARGE, 40, 40, "find_422: dir err" );
         return 0;
     }
 
@@ -1602,17 +1602,43 @@ void ensure_movie_mode()
     if (!lv) force_liveview();
 }
 
-static void * silent_pic_tmp_buf = 0;
+// this buffer will contain the HD image (saved to card) and a LV preview (for display)
+static void * silent_pic_buf = 0;
 
 int silent_pic_preview()
 {
 #ifndef CONFIG_VXWORKS
-    if (silent_pic_tmp_buf)
+    if (silent_pic_buf && silent_pic_mode == 0) // only preview single silent pics (not burst etc)
     {
         int size = vram_hd.pitch * vram_hd.height;
-        YUV422_LV_BUFFER_DISPLAY_ADDR = (intptr_t)silent_pic_tmp_buf + size;
+        YUV422_LV_BUFFER_DISPLAY_ADDR = (intptr_t)silent_pic_buf + size;
         return 1;
     }
+    return 0;
+#endif
+}
+
+// uses busy waiting
+// it can be refactored without busy wait, similar to lv_vsync (with another MQ maybe)
+// returns: 1=success, 0=failure
+int busy_vsync(int hd, int timeout_ms)
+{
+#ifdef REG_EDMAC_WRITE_LV_ADDR
+    int timeout_us = timeout_ms * 1000;
+    void* old = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
+    int t0 = *(uint32_t*)0xC0242014;
+    while(1)
+    {
+        int t1 = *(uint32_t*)0xC0242014;
+        int dt = mod(t1 - t0, 1048576);
+        void* new = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
+        if (old != new) break;
+        if (dt > timeout_us)
+            return 0;
+        for (int i = 0; i < 100; i++) asm("nop"); // don't stress the digic too much
+    }
+    return 1;
+#else
     return 0;
 #endif
 }
@@ -1624,9 +1650,6 @@ silent_pic_take_simple(int interactive)
     int size = vram_hd.pitch * vram_hd.height;
     int lv_size = vram_lv.pitch * vram_lv.height;
     
-    // this buffer will contain the HD image (saved to card) and a LV preview (for display)
-    void *silent_pic_buf = NULL;
-
     // start with black preview 
     silent_pic_buf = (void*)shoot_malloc(size + lv_size);
     bzero32(silent_pic_buf + size, lv_size);
@@ -1676,21 +1699,11 @@ silent_pic_take_simple(int interactive)
             else
 #endif
             {
-                uint32_t loopcount = 0;
                 // first we will copy the picture in a temporary buffer, to avoid horizontal cuts
                 void* buf = (void*)YUV422_HD_BUFFER_DMA_ADDR;
-                
-                // some sort of vsync
-                while ((void*)YUV422_HD_BUFFER_DMA_ADDR == buf)
-                {
-                    msleep(MIN_MSLEEP);
-                    if(++loopcount > 500)
-                    {
-                        NotifyBox(2000, "Failed to wait until\nLV buffer updates");
-                        msleep(5000);
-                        return;
-                    }
-                }
+
+                // wait until EDMAC HD buffer changes; at that point, 'buf' will contain a complete picture (and EDMAC starts filling the new one)
+                busy_vsync(1, 100);
                 
 #if defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
                 dma_memcpy(silent_pic_buf, buf, size);
@@ -1735,8 +1748,8 @@ silent_pic_take_simple(int interactive)
             /* repeat process if half-shutter is still pressed and burst mode was enabled */
         } while (1);
         
-        shoot_free(silent_pic_tmp_buf);
-        silent_pic_tmp_buf = NULL;
+        shoot_free(silent_pic_buf);
+        silent_pic_buf = NULL;
     }
 
     /* if not in burst mode, wait until half-shutter was released */
@@ -1778,7 +1791,7 @@ int silent_pic_matrix_running = 0;
  void
 silent_pic_take_sweep(int interactive)
 {
-#ifdef AFFRAME_PROP_LEN
+#ifdef CONFIG_LIVEVIEW
     if (recording) return;
     if (!lv) return;
     if (SILENTPIC_NL > 4 || SILENTPIC_NC > 4)
@@ -1841,7 +1854,7 @@ silent_pic_take_sweep(int interactive)
             bmp_printf(FONT_MED, 100, 100, "Psst! Taking a high-res pic [%d,%d]      ", i, j);
             afframe[2] = x0 + 1024 * j;
             afframe[3] = y0 + 680 * i;
-            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+            prop_request_change(PROP_LV_AFFRAME, afframe, 0);
             //~ msleep(500);
             msleep(silent_pic_sweepdelay);
             FIO_WriteFile(f, vram->vram, 1024 * 680 * 2);
@@ -1856,7 +1869,7 @@ silent_pic_take_sweep(int interactive)
     msleep(1000);
     afframe[2] = afx0;
     afframe[3] = afy0;
-    prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+    prop_request_change(PROP_LV_AFFRAME, afframe, 0);
 
     bmp_printf(FONT_MED, 100, 100, "Psst! Just took a high-res pic   ");
 #endif
@@ -3180,7 +3193,7 @@ static void zoom_x5_x10_toggle(void* priv, int delta)
 
 static void zoom_lv_face_step()
 {
-#ifdef AFFRAME_PROP_LEN
+#ifdef CONFIG_LIVEVIEW
     if (!lv) return;
     if (recording) return;
     /*if (face_zoom_request && lv_dispsize == 1 && !recording)
@@ -3194,7 +3207,7 @@ static void zoom_lv_face_step()
             msleep(100);
             afframe[2] = afx;
             afframe[3] = afy;
-            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+            prop_request_change(PROP_LV_AFFRAME, afframe, 0);
             msleep(1);
             set_lv_zoom(5);
             msleep(1);
@@ -6875,14 +6888,14 @@ static void misc_shooting_info()
 static void
 shoot_task( void* unused )
 {
-    #ifdef AFFRAME_PROP_LEN
+    #ifdef CONFIG_LIVEVIEW
     if (!lv)
     {   // center AF frame at startup in photo mode
         if (!((is_movie_mode() && video_mode_crop)))
         {
             afframe[2] = (afframe[0] - afframe[4])/2;
             afframe[3] = (afframe[1] - afframe[5])/2;
-            prop_request_change(PROP_LV_AFFRAME, afframe, AFFRAME_PROP_LEN);
+            prop_request_change(PROP_LV_AFFRAME, afframe, 0);
         }
     }
     #endif

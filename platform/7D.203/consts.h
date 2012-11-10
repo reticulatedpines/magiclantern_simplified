@@ -20,10 +20,6 @@
 
 #define DRYOS_ASSERT_HANDLER 0x1a14 // dec TH_assert or assert_0
 
-// Critical. Look for a call to prop_request_change(0x80050007, something, len).
-#define AFFRAME_PROP_LEN 100 // ok
-#define CUSTOM_WB_PROP_LEN 52 // ok
-
 // 720x480, changes when external monitor is connected
 #define YUV422_LV_BUFFER_1 0x41B07800
 #define YUV422_LV_BUFFER_2 0x5C307800
@@ -249,8 +245,9 @@
 #define DLG_SIGNATURE 0x4C414944
 
 // from CFn
-    #define AF_BTN_HALFSHUTTER 0
-    #define AF_BTN_STAR 2
+#define AF_BTN_HALFSHUTTER 0
+#define AF_BTN_MEAS_START  1
+#define AF_BTN_STAR        2
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x16A14) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14

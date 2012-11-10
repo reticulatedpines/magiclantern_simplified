@@ -19,7 +19,7 @@
 //~ #define CONFIG_HELLO_WORLD
 
 /** Safe mode, don't alter properties (they are persistent). Highly recommended for new ports. */
-#if defined(CONFIG_5D3_MINIMAL) || defined(CONFIG_7D) || defined(CONFIG_40D)
+#if defined(CONFIG_5D3_MINIMAL) || defined(CONFIG_40D)
 #define CONFIG_DISABLE_PROP_REQUEST_CHANGE
 #endif
 
@@ -52,8 +52,18 @@
 #define CONFIG_KILL_FLICKER
 #endif
 
+#ifndef CONFIG_5DC // almost all cameras have LiveView, except for 5Dc
+#define CONFIG_LIVEVIEW
+#endif
 
-#if defined(CONFIG_60D) || defined(CONFIG_7D) || (defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL))
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_7D) || defined(CONFIG_VXWORKS)
+#define CONFIG_4_3_SCREEN
+#else
+#define CONFIG_3_2_SCREEN
+#endif
+
+#if defined(CONFIG_60D) || defined(CONFIG_7D)// || (defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL))
+// stability issues on 5D3
 #define CONFIG_ELECTRONIC_LEVEL
 #endif
 
@@ -75,9 +85,7 @@
 
 #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
 #ifndef CONFIG_5D3_MINIMAL
-#ifndef CONFIG_7D_MINIMAL
 #define CONFIG_BATTERY_INFO // 5D2-like battery which reports exact percentage
-#endif
 #endif
 #endif
 

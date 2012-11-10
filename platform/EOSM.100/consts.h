@@ -19,10 +19,6 @@
 
 #define DRYOS_ASSERT_HANDLER 0x23DF4 // dec TH_assert or assert_0
 
-// Critical. Look for a call to prop_request_change(0x80050007, something, len).
-#define AFFRAME_PROP_LEN 124
-#define CUSTOM_WB_PROP_LEN 44
-
 #define YUV422_LV_BUFFER_1 0x55207800 
 #define YUV422_LV_BUFFER_2 0x55617800
 #define YUV422_LV_BUFFER_3 0x55a27800

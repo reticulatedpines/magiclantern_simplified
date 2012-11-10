@@ -44,7 +44,6 @@ static int handle_buttons(struct event * event)
 	if (handle_common_events_by_feature(event) == 0) return 0;
 
 	//~ if (!lv && event->param == BGMT_INFO) return handle_disp_button_in_photo_mode();
-	if (handle_lv_play(event) == 0) return 0;
 
 	return 1;
 }

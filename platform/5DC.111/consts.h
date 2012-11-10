@@ -4,10 +4,6 @@
 #define LEDON   0x46
 #define LEDOFF  0x44
 
-// Critical. Look for a call to prop_request_change(0x80050007, something, len).
-//~ #define AFFRAME_PROP_LEN 124
-//~ #define CUSTOM_WB_PROP_LEN 44
-
 #define YUV422_LV_BUFFER_1 0x10b63e8 
 #define YUV422_LV_BUFFER_2 0x10b63ec
 #define YUV422_LV_BUFFER_3 0x10b63f0

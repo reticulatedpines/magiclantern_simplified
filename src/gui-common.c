@@ -251,5 +251,10 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_voice_tags(event) == 0) return 0;
     //~ if (handle_pause_zebras(event) == 0) return 0;
     //~ if (handle_kenrockwell_zoom(event) == 0) return 0;
+
+    #if defined(CONFIG_Q_MENU_PLAYBACK) || defined(CONFIG_5D2)
+	if (handle_lv_play(event) == 0) return 0;
+    #endif
+
     return 1;
 }

@@ -416,14 +416,14 @@ void adjust_backlight_level(int delta)
     {
         if (delta < 0 && G > 0) // decrease display gain first
         {
-            digic_iso_toggle(0, -1);
+            display_gain_toggle(0, -1);
             show_display_gain_level();
             return;
         }
         if (delta > 0 && backlight_level == 7) // backlight at maximum, increase display gain
         {
             int oldG = G;
-            if (G < 7) digic_iso_toggle(0, 1);
+            if (G < 6) display_gain_toggle(0, 1);
             if (oldG == 0) redraw(); // cleanup exposure tools, they are no longer valid
             show_display_gain_level();
             return;
@@ -944,7 +944,7 @@ int handle_lv_play(struct event * event)
 #else
     if (event->param == BGMT_LV && PLAY_MODE)
     {
-        if (is_pure_play_photo_or_movie_mode())
+        if (!is_pure_play_photo_or_movie_mode())
         {
             if (rating_in_progress) return 0; // user presses buttons too fast
             return 1; // not in main play dialog, maybe in Q menu somewhere
@@ -1103,15 +1103,20 @@ int handle_fast_zoom_in_play_mode(struct event * event)
         else if (event->param == BGMT_PRESS_SET && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 3 && is_pure_play_photo_mode())
         #endif
         {
-            IMGPLAY_ZOOM_POS_X = IMGPLAY_ZOOM_POS_X_CENTER;
-            IMGPLAY_ZOOM_POS_Y = IMGPLAY_ZOOM_POS_Y_CENTER;
-            MEM(IMGPLAY_ZOOM_LEVEL_ADDR) -= 1;
-            #ifdef CONFIG_5D3
-            fake_simple_button(BGMT_WHEEL_RIGHT);
-            #else
-            fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
-            #endif
-            return 0;
+            if (IMGPLAY_ZOOM_POS_X != IMGPLAY_ZOOM_POS_X_CENTER || 
+                IMGPLAY_ZOOM_POS_Y != IMGPLAY_ZOOM_POS_Y_CENTER)
+            {
+                IMGPLAY_ZOOM_POS_X = IMGPLAY_ZOOM_POS_X_CENTER;
+                IMGPLAY_ZOOM_POS_Y = IMGPLAY_ZOOM_POS_Y_CENTER;
+                MEM(IMGPLAY_ZOOM_LEVEL_ADDR) -= 1;
+                #ifdef CONFIG_5D3
+                fake_simple_button(BGMT_WHEEL_RIGHT);
+                #else
+                fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+                fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                #endif
+                return 0;
+            }
         }
         #endif
     }
@@ -1202,7 +1207,7 @@ tweak_task( void* unused)
         {
             if (play_zoom_last_x != IMGPLAY_ZOOM_POS_X_CENTER || play_zoom_last_y != IMGPLAY_ZOOM_POS_Y_CENTER)
             {
-                while (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 5) msleep(100);
+                while (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 5 && PLAY_MODE) msleep(100);
                 msleep(200);
                 if (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 5) continue;
                 play_zoom_center_on_last_af_point();
@@ -1271,7 +1276,7 @@ tweak_task( void* unused)
             if (get_zoom_out_pressed())
             {
                 msleep(300);
-                while (get_zoom_out_pressed()) 
+                while (get_zoom_out_pressed() && PLAY_MODE) 
                 { 
                     #ifdef CONFIG_5DC
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 3, 0);
@@ -1289,6 +1294,7 @@ tweak_task( void* unused)
         // faster focus box in liveview
         if (arrow_pressed && lv && liveview_display_idle() && focus_box_lv_speed)
         {
+            msleep(200);
             int delay = 30;
             while (!arrow_unpressed)
             {
@@ -1303,6 +1309,7 @@ tweak_task( void* unused)
         #ifndef CONFIG_5D3 // doesn't need this, it's already very fast
         if (arrow_pressed && is_pure_play_photo_mode() && quickzoom && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 0)
         {
+            msleep(200);
             int delay = 100;
             while (!arrow_unpressed)
             {
@@ -1548,6 +1555,23 @@ CONFIG_INT("arrows.set", arrow_keys_use_set, 1);
 CONFIG_INT("arrows.tv_av", arrow_keys_shutter_aperture, 0);
 CONFIG_INT("arrows.bright_sat", arrow_keys_bright_sat, 0);
 
+void arrow_key_set_toggle(void* priv, int delta)
+{
+    arrow_keys_use_set = !arrow_keys_use_set;
+}
+
+void arrow_key_set_display( void * priv, int x, int y, int selected )
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Use SET button: %s",
+        arrow_keys_use_set ? "ON" : "OFF"
+    );
+    menu_draw_icon(x, y, MNI_BOOL(arrow_keys_use_set), 0);
+}
+
+
 int is_arrow_mode_ok(int mode)
 {
     switch (mode)
@@ -1596,7 +1620,7 @@ int handle_push_wb(struct event * event)
     #endif
 
     #ifdef CONFIG_5D3
-    if (event->param == BGMT_RATE)
+    if (event->param == BGMT_RATE && liveview_display_idle())
     {
         // only do this if no arrow shortcut is enabled
         if (!arrow_keys_audio && !arrow_keys_iso_kelvin && !arrow_keys_shutter_aperture && !arrow_keys_bright_sat)
@@ -1622,8 +1646,8 @@ int handle_arrow_keys(struct event * event)
     // if no shortcut is enabled, do nothing
     if (!arrow_keys_audio && !arrow_keys_iso_kelvin && !arrow_keys_shutter_aperture && !arrow_keys_bright_sat)
         return 1;
-    
-    if (event->param == BGMT_PRESS_HALFSHUTTER)
+
+    if (event->param == BGMT_PRESS_HALFSHUTTER || event->param == BGMT_LV)
     {
         if (arrow_keys_mode%10) 
         {
@@ -2119,8 +2143,8 @@ static struct menu_entry key_menus[] = {
             },
             {
                 .name = "Use SET button",
-                .priv = &arrow_keys_use_set,
-                .max = 1,
+                .select = arrow_key_set_toggle, // use a function => this item will not be considered for submenu color
+                .display = arrow_key_set_display,
                 .help = "Enables functions for SET when you use arrow shortcuts.",
             },
             MENU_EOL,
@@ -2590,6 +2614,9 @@ void preview_saturation_display(
     extern int focus_peaking_grayscale;
     if (focus_peaking_grayscale && is_focus_peaking_enabled())
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus peaking with grayscale preview is enabled.");
+    
+    if (preview_saturation_boost_wb)
+        menu_draw_icon(x, y, MNI_AUTO, 0);
 
     if (preview_saturation == 0) menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) "Luma");
     else if (preview_saturation == 1) menu_draw_icon(x, y, MNI_OFF, 0);

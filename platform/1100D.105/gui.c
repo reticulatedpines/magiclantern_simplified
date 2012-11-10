@@ -108,7 +108,6 @@ static int handle_buttons(struct event * event)
     }
 
     if (handle_common_events_by_feature(event) == 0) return 0;
-    if (handle_lv_play(event) == 0) return 0;
     
     return 1;
 }
