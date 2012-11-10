@@ -1207,7 +1207,7 @@ tweak_task( void* unused)
         {
             if (play_zoom_last_x != IMGPLAY_ZOOM_POS_X_CENTER || play_zoom_last_y != IMGPLAY_ZOOM_POS_Y_CENTER)
             {
-                while (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 5) msleep(100);
+                while (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 5 && PLAY_MODE) msleep(100);
                 msleep(200);
                 if (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 5) continue;
                 play_zoom_center_on_last_af_point();
@@ -1276,7 +1276,7 @@ tweak_task( void* unused)
             if (get_zoom_out_pressed())
             {
                 msleep(300);
-                while (get_zoom_out_pressed()) 
+                while (get_zoom_out_pressed() && PLAY_MODE) 
                 { 
                     #ifdef CONFIG_5DC
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX(MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 3, 0);
