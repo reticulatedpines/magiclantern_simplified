@@ -1618,6 +1618,31 @@ int silent_pic_preview()
 #endif
 }
 
+// uses busy waiting
+// it can be refactored without busy wait, similar to lv_vsync (with another MQ maybe)
+// returns: 1=success, 0=failure
+int busy_vsync(int hd, int timeout_ms)
+{
+#ifdef REG_EDMAC_WRITE_LV_ADDR
+    int timeout_us = timeout_ms * 1000;
+    void* old = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
+    int t0 = *(uint32_t*)0xC0242014;
+    while(1)
+    {
+        int t1 = *(uint32_t*)0xC0242014;
+        int dt = mod(t1 - t0, 1048576);
+        void* new = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
+        if (old != new) break;
+        if (dt > timeout_us)
+            return 0;
+        for (int i = 0; i < 100; i++) asm("nop"); // don't stress the digic too much
+    }
+    return 1;
+#else
+    return 0;
+#endif
+}
+
 void
 silent_pic_take_simple(int interactive)
 {
@@ -1674,20 +1699,11 @@ silent_pic_take_simple(int interactive)
             else
 #endif
             {
-                uint32_t loopcount = 0;
                 // first we will copy the picture in a temporary buffer, to avoid horizontal cuts
                 void* buf = (void*)YUV422_HD_BUFFER_DMA_ADDR;
-                
-                // some sort of vsync
-                int t0 = *(uint32_t*)0xC0242014;
-                while(1) // dirty, but seems to work
-                {
-                    int t1 = *(uint32_t*)0xC0242014;
-                    int dt = mod(t1 - t0, 1048576);
-                    void* new_buf = YUV422_HD_BUFFER_DMA_ADDR;
-                    if (buf != new_buf) break;
-                    if (dt > 100000) break; // don't busy wait too much
-                }
+
+                // wait until EDMAC HD buffer changes; at that point, 'buf' will contain a complete picture (and EDMAC starts filling the new one)
+                busy_vsync(1, 100);
                 
 #if defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
                 dma_memcpy(silent_pic_buf, buf, size);
