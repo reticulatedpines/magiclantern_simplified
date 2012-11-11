@@ -2218,6 +2218,39 @@ int get_spot_motion(int dxb, int xcb, int ycb, int draw)
     return 0;
 }
 
+#ifdef CONFIG_40D
+void
+spotmeter_erase()
+{
+#if 0
+    if (!spotmeter_dirty) return;
+    spotmeter_dirty = 0;
+
+    int xcb = spot_prev_xcb;
+    int ycb = spot_prev_ycb;
+    int dx = spotmeter_formula <= 3 ? 26 : 52;
+    int y0 = -13;
+    uint32_t* M = (uint32_t*)get_bvram_mirror();
+    uint32_t* B = (uint32_t*)bmp_vram();
+    for(int y = (ycb&~1) + y0 ; y <= (ycb&~1) + 36 ; y++ )
+    {
+        for(int x = xcb - dx ; x <= xcb + dx ; x+=4 )
+        {
+            uint8_t* m = (uint8_t*)(&(M[BM(x,y)/4])); //32bit to 8bit 
+            if (*m == 0x80) *m = 0;
+            m++;
+            if (*m == 0x80) *m = 0;
+            m++;
+            if (*m == 0x80) *m = 0;
+            m++;
+            if (*m == 0x80) *m = 0;
+            B[BM(x,y)/4] = 0;
+        }
+    }
+#endif
+}
+#endif
+
 static void spotmeter_step()
 {
     if (gui_menu_shown()) return;
@@ -2774,6 +2807,20 @@ static void zebra_init()
 }
 
 INIT_FUNC(__FILE__, zebra_init);
+
+#ifdef CONFIG_40D
+void yuv_resize(uint32_t* src, int src_w, int src_h, uint32_t* dst, int dst_w, int dst_h)
+{
+    int i,j;
+    for (i = 0; i < dst_h; i++)
+    {
+        for (j = 0; j < dst_w/2; j++)
+        {
+            dst[i * dst_w/2 + j] = src[(i*src_h/dst_h) * src_w/2 + (j*src_w/dst_w)];
+        }
+    }
+}
+#endif
 
 void yuv_halfcopy(uint32_t* dst, uint32_t* src, int w, int h, int top_half)
 {
