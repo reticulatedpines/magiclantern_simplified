@@ -161,6 +161,8 @@ void ml_big_init_task()
 
 void ml_init_task(void * p)
 {
+	msleep(100);
+	
     ml_big_init_task();	
     ml_hijack_gui_main_task();
 }
@@ -172,9 +174,7 @@ void ml_hijack_create_task_cmd_shell(const char * name)
 {
 	// call original create_task_cmd_shell to start taskCmdShell
 	create_task_cmd_shell(name);
-	
-	msleep(500);
-	
+
 	// create ml_init_task to start ML
 	task_create("ml_init_task", 0x1f, 0x2000, ml_init_task, 0);
 }
