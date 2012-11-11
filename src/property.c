@@ -190,6 +190,13 @@ uint32_t prop_get_prop_len(uint32_t property)
  * Double-check the len parameter => less chances that our call will cause permanent damage.
  */
 
+/**
+ * You can also pass len=0; in this case, the length will be detected automatically.
+ * Don't abuse this, only use it for properties where length is camera-specific, 
+ * and if you call something with len=0, don't forget to back it up with an ASSERT
+ * which checks if len is not higher than the max len assumed by ML.
+ */
+
 
 /**
  * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -218,6 +225,9 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
     }
     
     if (property == PROP_BATTERY_REPORT && len == 1) goto ok; // exception: this call is correct for polling battery level
+    
+    if (property == PROP_REMOTE_SW1 || property == PROP_REMOTE_SW2)
+        ASSERT(len <= 4); // some cameras have len=2, others 4; we pass a single integer as param, so max len is 4
     
     if (correct_len != (int)len)
     {
