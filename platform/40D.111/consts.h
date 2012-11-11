@@ -185,3 +185,7 @@
 //~ #define MALLOC_STRUCT 0x249e4
 //~ #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 #define MALLOC_FREE_MEMORY 0
+
+	#define SENSOR_RES_X 3888
+	#define SENSOR_RES_Y 2592
+	
