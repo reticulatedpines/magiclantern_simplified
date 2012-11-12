@@ -260,7 +260,8 @@ void update_vram_params()
 #elif defined(CONFIG_40D)
     //~ vram_lv.width = 720; // we only know the HD buffer for now... let's try to pretend it can be used as LV :)
     //~ vram_lv.height = 480;
-    vram_lv.width = 1024; // we only know the HD buffer for now... let's try to pretend it can be used as LV :)
+    // we only know the HD buffer for now... let's try to pretend it can be used as LV :)
+    vram_lv.width = 768; // real width is 1024 in yuv411, but ML code assumes yuv422
     vram_lv.height = 680;
     vram_lv.pitch = vram_lv.width * 2;    
     os.x0 = 0;
