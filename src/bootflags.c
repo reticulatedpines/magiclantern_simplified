@@ -6,29 +6,57 @@
 #include "menu.h"
 #include "config.h"
 
-/* CF device structure */
+/* CF/SD device structure. we have two types which have different parameter order and little differences in behavior */
+#if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_40D)
 struct cf_device
 {
-    // If block has the top bit set the physical blocks will be read
-    // instead of from the first partition.  Cool.
-    int             (*read_block)(
-        struct cf_device *      dev,
-        uintptr_t           block,
-        size_t              num_blocks,
-        void *              buf
+    /* type b always reads from raw sectors */
+    int (*read_block)(
+        struct cf_device * dev,
+        void * buf,
+        uintptr_t block,
+        size_t num_blocks
     );
 
-    int             (*write_block)(
-        struct cf_device *      dev,
-        uintptr_t           block,
-        size_t              num_blocks,
-        const void *            buf
+    int (*write_block)(
+        struct cf_device * dev,
+        const void * buf,
+        uintptr_t block,
+        size_t num_blocks
+    );
+    
+    /* is 7D the only one with two null pointers between? */
+#if defined(CONFIG_7D)
+    void *null_1;
+    void *null_2;
+#endif
+
+    void * io_control;
+    void * soft_reset;
+};
+#else
+struct cf_device
+{
+    /* If block has the top bit set the physical blocks will be read instead of from the first partition.  Cool. */
+    int (*read_block)(
+        struct cf_device * dev,
+        uintptr_t block,
+        size_t num_blocks,
+        void * buf
     );
 
-    void *          io_control;
-    void *          soft_reset;
+    int (*write_block)(
+        struct cf_device * dev,
+        uintptr_t block,
+        size_t num_blocks,
+        const void * buf
+    );
+    
+    void * io_control;
+    void * soft_reset;
 };
 
+#endif
 
 /** Shadow copy of the NVRAM boot flags stored at 0xF8000000 */
 #define NVRAM_BOOTFLAGS     ((void*) 0xF8000000)
@@ -138,29 +166,21 @@ static void exfat_sum(uint32_t* buffer) // size: 12 sectors (0-11)
 
 // http://www.datarescue.com/laboratory/partition.htm
 // http://magiclantern.wikia.com/wiki/Bootdisk
-#if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_7D) && !defined(CONFIG_40D)
+#if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_40D)
 int
 bootflag_write_bootblock( void )
 {
-    //~ gui_stop_menu();
-    //~ msleep(1000);
+#if defined(CONFIG_7D)
+    struct cf_device * const dev = (struct cf_device *)cf_device[6];
+#else
+    struct cf_device * const dev = (struct cf_device *)sd_device[1];
+#endif
 
-    //~ NotifyBox(1000, "cf0=%08lx cf1=%08lx\n", (uint32_t)cf_device[0], (uint32_t) cf_device[1]);
-
-    struct cf_device * const dev = sd_device[1];
-
-    //~ NotifyBox(1000, "malloc'ing");
     uint8_t *block = alloc_dma_memory( 512 );
-    //~ NotifyBox(1000, "malloc => %x", block);
-    //~ uint8_t * user_block = (void*)((uintptr_t) block & ~0x40000000);
     int i;
-    //~ console_printf("%s: buf=%08x\n", __func__, (uint32_t)block);
     for(i=0 ; i<0x200 ; i++) block[i] = 0xAA;
-    //~ console_printf("mem=%08lx read=%08lx", (uint32_t)block, (uint32_t)dev->read_block );
-    //~ bmp_hexdump( FONT_SMALL, 0, 250, sd_device[1], 0x100 );
     
-    dev->read_block( dev, (uintptr_t) block, 0, (void *) 1 );
-    //~ NotifyBox(1000, "read_block => %x", rc);
+    dev->read_block( dev, block, 0, 1 );
 
     struct partition_table p;
     fsuDecodePartitionTable(block + 446, &p);
@@ -169,13 +189,13 @@ bootflag_write_bootblock( void )
 
     if (p.type == 6 || p.type == 0xb || p.type == 0xc) // FAT16 or FAT32
     {
-        int rc = dev->read_block( dev, (uintptr_t) block, p.sectors_before_partition, (void *) 1 );
+        int rc = dev->read_block( dev, block, p.sectors_before_partition, 1 );
         int off1 = p.type == 6 ? 0x2b : 0x47;
         int off2 = p.type == 6 ? 0x40 : 0x5c;
         my_memcpy( block + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
         my_memcpy( block + off2, (uint8_t*) "BOOTDISK", 0x8 );
         //~ NotifyBox(1000, "writing");
-        rc = dev->write_block( dev, (uintptr_t) block, p.sectors_before_partition, (void *) 1 );
+        rc = dev->write_block( dev, block, p.sectors_before_partition, 1 );
         if (rc != 1)
         {
             NotifyBox(2000, "Bootflag write failed\np.type=%d, p.sec = %d, rc=%d", p.type, p.sectors_before_partition, rc); 
@@ -186,7 +206,7 @@ bootflag_write_bootblock( void )
     else if (p.type == 7) // ExFAT
     {
         uint8_t* buffer = alloc_dma_memory(512*24);
-        dev->read_block( dev, (uintptr_t) buffer, p.sectors_before_partition, (void *) 24 );
+        dev->read_block( dev, buffer, p.sectors_before_partition, 24 );
 
         int off1 = 130;
         int off2 = 122;
@@ -197,11 +217,12 @@ bootflag_write_bootblock( void )
         exfat_sum((uint32_t*)(buffer));
         exfat_sum((uint32_t*)(buffer+512*12));
 
-        dev->write_block( dev, (uintptr_t) buffer, p.sectors_before_partition, (void *) 24 );
+        dev->write_block( dev, buffer, p.sectors_before_partition, 24 );
         free_dma_memory( buffer );
     }
     else
     {
+        free_dma_memory( block );
         NotifyBox(2000, "Unknown partition: %d", p.type); msleep(2000);
         return 0;
     }
@@ -216,12 +237,11 @@ bootflag_write_bootblock( void )
 int
 bootflag_write_bootblock( void )
 {
-    #ifdef CONFIG_500D
+#ifdef CONFIG_500D
     struct cf_device * const dev = sd_device[1];
-    #endif
-    #if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_7D) || defined(CONFIG_40D) // not good for 7D/40D, need checking
+#elif defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_40D) // not good for 40D, need checking
     struct cf_device * const dev = cf_device[5];
-    #endif
+#endif
     
     uint8_t *block = alloc_dma_memory( 512 );
     
@@ -284,8 +304,16 @@ initial_install(void)
     FILE * f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/ROM0.BIN");
     if (f != (void*) -1)
     {
-        bmp_printf(FONT_LARGE, 0, 60, "Writing RAM");
-        FIO_WriteFile(f, (void*) 0xFF010000, 0x900000);
+        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM0");
+        FIO_WriteFile(f, (void*) 0xF0000000, 0x01000000);
+        FIO_CloseFile(f);
+    }
+
+    f = FIO_CreateFile(CARD_DRIVE "ML/LOGS/ROM1.BIN");
+    if (f != (void*) -1)
+    {
+        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM1");
+        FIO_WriteFile(f, (void*) 0xF8000000, 0x01000000);
         FIO_CloseFile(f);
     }
 
