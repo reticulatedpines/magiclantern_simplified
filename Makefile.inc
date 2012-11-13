@@ -575,8 +575,4 @@ DEPS  := $(COBJS:.o=.d)
 %.bin: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
 
-testme:
-	echo $(DEPS)
-
-
 zip: prepare_zip magiclantern-$(VERSION).zip
