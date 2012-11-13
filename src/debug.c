@@ -3583,9 +3583,6 @@ void TmpMem_AddFile(char* filename)
     if (tmp_file_index >= 200) return;
     if (tmp_buffer_ptr + filesize + 10 >= tmp_buffer + TMP_MAX_BUF_SIZE) return;
     
-    char msg[100];
-    snprintf(msg, sizeof(msg), "Reading %s...", filename, tmp_buffer_ptr);
-    HijackCurrentDialogBox(4, msg);
     ReadFileToBuffer(filename, tmp_buffer_ptr, filesize);
     snprintf(tmp_files[tmp_file_index].name, 50, "%s", filename);
     tmp_files[tmp_file_index].buf = tmp_buffer_ptr;
@@ -3596,8 +3593,17 @@ void TmpMem_AddFile(char* filename)
 
     int size = tmp_buffer_ptr - tmp_buffer;
     int size_mb = size * 10 / 1024 / 1024;
-    snprintf(msg, sizeof(msg), "Format       (ML size: %d.%d MB)", size_mb/10, size_mb%10);
-    HijackCurrentDialogBox(3, msg);
+    
+    /* no not update on every file, else it takes too long (90% of time updating display) */
+    if((tmp_file_index % 10) == 0)
+    {
+        char msg[100];
+        
+        snprintf(msg, sizeof(msg), "Reading %s...", filename, tmp_buffer_ptr);
+        HijackCurrentDialogBox(4, msg);
+        snprintf(msg, sizeof(msg), "Format       (ML size: %d.%d MB)", size_mb/10, size_mb%10);
+        HijackCurrentDialogBox(3, msg);
+    }
 }
 
 #ifndef CONFIG_40D
@@ -3624,6 +3630,7 @@ void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
 void CopyMLFilesToRAM_BeforeFormat()
 {
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
+    TmpMem_AddFile(CARD_DRIVE "MAGIC.FIR");
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0);
@@ -3639,13 +3646,16 @@ void CopyMLFilesToRAM_BeforeFormat()
 void CopyMLFilesBack_AfterFormat()
 {
     int i;
+    char msg[100];
     for (i = 0; i < tmp_file_index; i++)
     {
         //~ NotifyBoxHide();
         //~ NotifyBox(1000, "Restoring %s...   ", tmp_files[i].name);
-        char msg[100];
-        snprintf(msg, sizeof(msg), "Restoring %s...", tmp_files[i].name);
-        HijackCurrentDialogBox(STR_LOC, msg);
+        if((i%10) == 0)
+        {
+            snprintf(msg, sizeof(msg), "Restoring %s...", tmp_files[i].name);
+            HijackCurrentDialogBox(STR_LOC, msg);
+        }
         dump_seg(tmp_files[i].buf, tmp_files[i].size, tmp_files[i].name);
         int sig = compute_signature(tmp_files[i].buf, tmp_files[i].size/4); 
         if (sig != tmp_files[i].sig)
