@@ -356,6 +356,23 @@ breakpoint_t *gdb_find_stalled_bkpt()
     return NULL;
 }
 
+/* delete breakpoint (and watchpoint) */
+void gdb_delete_bkpt(breakpoint_t *bkpt)
+{
+    gdb_unarm_bkpt(bkpt);
+    if(bkpt->linkId != GDB_LINK_NONE)
+    {
+        breakpoint_t *link = &gdb_breakpoints[bkpt->linkId];
+            
+        /* and arm linked watchpoint */
+        gdb_unarm_bkpt(link);
+        link->flags &= ~GDB_BKPT_FLAG_ENABLED;
+        link->linkId = GDB_LINK_NONE;
+    }
+    bkpt->flags &= ~GDB_BKPT_FLAG_ENABLED;
+    bkpt->linkId = GDB_LINK_NONE;
+}
+
 /* remove breakpoint instruction (unarm) and set flags accordingly */
 void gdb_unarm_bkpt(breakpoint_t *bkpt)
 {
@@ -741,8 +758,9 @@ uint32_t gdb_setup()
     {
         return 0;
     }
-    
+#if defined(CONFIG_GDBSTUB)
     task_create("gdbstub_task", 0x1e, 0, gdb_main_task, 0);
+#endif
     
     gdb_installed = 1;
     return 1;

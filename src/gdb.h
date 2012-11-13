@@ -64,5 +64,6 @@ breakpoint_t *gdb_add_bkpt(uint32_t address, uint32_t flags);
 uint32_t gdb_instr_is_pc_modifying(uint32_t opcode);
 char *gdb_get_callstack(breakpoint_t *bkpt);
 uint32_t gdb_setup();
+void gdb_delete_bkpt(breakpoint_t *bkpt);
 
 #endif
