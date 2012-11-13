@@ -3573,6 +3573,16 @@ void TmpMem_Done()
     shoot_free(tmp_buffer); tmp_buffer = 0;
 }
 
+void TmpMem_UpdateSizeDisplay(int counting)
+{
+    int size = tmp_buffer_ptr - tmp_buffer;
+    int size_mb = size * 10 / 1024 / 1024;
+    
+    char msg[100];
+    snprintf(msg, sizeof(msg), "Format       (ML size: %s%d.%d MB%s)", counting ? "> " : "", size_mb/10, size_mb%10, counting ? "..." : "");
+    HijackCurrentDialogBox(3, msg);
+}
+
 void TmpMem_AddFile(char* filename)
 {
     if (!tmp_buffer) return;
@@ -3590,9 +3600,6 @@ void TmpMem_AddFile(char* filename)
     tmp_files[tmp_file_index].sig = compute_signature(tmp_buffer_ptr, filesize/4);
     tmp_file_index++;
     tmp_buffer_ptr += (filesize + 10) & ~3;
-
-    int size = tmp_buffer_ptr - tmp_buffer;
-    int size_mb = size * 10 / 1024 / 1024;
     
     /* no not update on every file, else it takes too long (90% of time updating display) */
     static int aux = 0;
@@ -3602,8 +3609,7 @@ void TmpMem_AddFile(char* filename)
         
         snprintf(msg, sizeof(msg), "Reading %s...", filename, tmp_buffer_ptr);
         HijackCurrentDialogBox(4, msg);
-        snprintf(msg, sizeof(msg), "Format       (ML size: %d.%d MB)", size_mb/10, size_mb%10);
-        HijackCurrentDialogBox(3, msg);
+        TmpMem_UpdateSizeDisplay(1);
     }
 }
 
@@ -3641,6 +3647,7 @@ void CopyMLFilesToRAM_BeforeFormat()
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DOC/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/LOGS/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0);
+    TmpMem_UpdateSizeDisplay(0);
 }
 #endif
 
