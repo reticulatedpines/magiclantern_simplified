@@ -1152,7 +1152,7 @@ void assign_af_button_to_star_button()
 void restore_af_button_assignment()
 {
     if (orig_af_button_assignment != AF_BUTTON_NOT_MODIFIED)
-        orig_af_button_assignment = COERCE(orig_af_button_assignment, 0, 5); // just in case, so we don't read invalid values from config file
+        orig_af_button_assignment = COERCE(orig_af_button_assignment, 0, 10); // just in case, so we don't read invalid values from config file
     
     if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) return;
     //~ take_semaphore(lens_sem, 0);
