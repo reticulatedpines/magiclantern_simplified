@@ -160,26 +160,9 @@ AFLAGS=\
 	$(FLAGS) \
 
 
-%.s: %.c
-	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
-%.o: $(SRC_DIR)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
-%.o: $(PLATFORM_DIR)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
-%.i: %.c
-	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
-%: %.c
-	$(call build,LD,$(CC) $(CFLAGS) -o $@ $<)
-%.o: %.S
-	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
-%.bin: %
-	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
-
-
-zip: prepare_zip magiclantern-$(VERSION).zip
 
 FLAGS=\
-	-Wp,-MMD,$(dir $@).$(notdir $@).d \
+	-Wp,-MMD,$(patsubst %.o,%.d,$(dir $@)$(notdir $@)) \
 	-Wp,-MT,$@ \
 	-nostdlib \
 	-fomit-frame-pointer \
@@ -556,7 +539,7 @@ installdoc:
 clean:
 	$(call build,CLEAN,$(RM) -f \
 		*.o   \
-		.*.d \
+		*.d \
 		.*.a \
 		$(BIN_FILES) \
 		magiclantern.lds \
@@ -572,3 +555,28 @@ clean:
 		$(SRC_DIR)/*.o \
 		)
 	$(call build,CLEAN,$(RM) -rf zip)
+
+COBJS := $(filter %.o, $(ML_OBJS-y))
+DEPS  := $(COBJS:.o=.d)
+-include $(DEPS)
+
+%.s: %.c
+	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
+%.o: $(SRC_DIR)/%.c
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.o: $(PLATFORM_DIR)/%.c
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.i: %.c
+	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
+%: %.c
+	$(call build,LD,$(CC) $(CFLAGS) -o $@ $<)
+%.o: %.S
+	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
+%.bin: %
+	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
+
+testme:
+	echo $(DEPS)
+
+
+zip: prepare_zip magiclantern-$(VERSION).zip
