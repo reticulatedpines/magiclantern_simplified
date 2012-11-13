@@ -235,11 +235,48 @@ static const char* format_time_hours_minutes_seconds(int seconds)
 
 
 
-static int seconds_clock = 0;
+static volatile int seconds_clock = 0;
 int get_seconds_clock() { return seconds_clock; } 
 
-static int ms100_clock = 0;
+static volatile int ms100_clock = 0;
 int get_ms_clock_value() { return ms100_clock; }
+
+/**
+ * useful for loop progress updates that shouldn't be done too often
+ * 
+ * for example:
+
+   int aux;
+   for (int i = 0; i < 1000; i++)
+   {
+       process(i);
+       if (should_update_loop_progress(i, &aux)) 
+           NotifyBox(1000, "Progress: %d/%d ", i, 1000);
+   }
+
+   or:
+
+   void process_step() // called periodically
+   {
+       do_one_iteration();
+       
+       static int aux = 0;
+       if (should_update_loop_progress(i, &aux)) 
+           NotifyBox(1000, "some progress update");
+   }
+
+
+ *
+ */
+int should_update_loop_progress(int period_ms, int* last_updated_time)
+{
+    if (ms100_clock >= (*last_updated_time) + period_ms)
+    {
+        *last_updated_time = ms100_clock;
+        return 1;
+    }
+    return 0;
+}
 
 static void do_this_every_second() // called every second
 {

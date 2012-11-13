@@ -3595,7 +3595,8 @@ void TmpMem_AddFile(char* filename)
     int size_mb = size * 10 / 1024 / 1024;
     
     /* no not update on every file, else it takes too long (90% of time updating display) */
-    if((tmp_file_index % 10) == 0)
+    static int aux = 0;
+    if(should_update_loop_progress(500, &aux))
     {
         char msg[100];
         
@@ -3647,11 +3648,10 @@ void CopyMLFilesBack_AfterFormat()
 {
     int i;
     char msg[100];
+    int aux = 0;
     for (i = 0; i < tmp_file_index; i++)
     {
-        //~ NotifyBoxHide();
-        //~ NotifyBox(1000, "Restoring %s...   ", tmp_files[i].name);
-        if((i%10) == 0)
+        if(should_update_loop_progress(500, &aux))
         {
             snprintf(msg, sizeof(msg), "Restoring %s...", tmp_files[i].name);
             HijackCurrentDialogBox(STR_LOC, msg);
