@@ -3791,10 +3791,10 @@ bool get_halfshutter_pressed() { return HALFSHUTTER_PRESSED && !dofpreview; }
 
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
-int set_pressed = 0;
+//~ int set_pressed = 0;
 //~ int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
-int get_set_pressed() { return set_pressed; }
+//~ int get_set_pressed() { return set_pressed; }
 int joy_center_pressed = 0;
 
 int handle_buttons_being_held(struct event * event)
@@ -3803,21 +3803,6 @@ int handle_buttons_being_held(struct event * event)
     #ifdef CONFIG_5DC
     if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
     if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
-    if (event->param == BGMT_PRESS_DIRECT_PRINT) set_pressed = 1;
-    if (event->param == BGMT_UNPRESS_DIRECT_PRINT) set_pressed = 0;
-    #else
-    if (event->param == BGMT_PRESS_SET) 
-    {
-        set_pressed = 1;
-        print_set_maindial_hint();
-    }
-    if (event->param == BGMT_UNPRESS_SET ||
-        event->param == BGMT_PLAY ||
-        event->param == BGMT_MENU)
-    {
-        set_pressed = 0;
-        print_set_maindial_hint();
-    }
     #endif
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
     if (event->param == BGMT_JOY_CENTER) joy_center_pressed = 1;

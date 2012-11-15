@@ -101,3 +101,6 @@ int bmp_is_on() { return 1; }
 
 void* shoot_malloc(int size) { return AllocateMemory(size); }
 void shoot_free(void* ptr) { FreeMemory(ptr); }
+
+void display_gain_toggle(){};
+void yuv_resize(){};

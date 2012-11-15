@@ -668,11 +668,7 @@ play_set_wheel_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        #ifdef CONFIG_5DC
-        "DP+ScrollWhl: %s", 
-        #else
         "SET+MainDial: %s", 
-        #endif
         play_set_wheel_action == 0 ? "422 Preview" :
         play_set_wheel_action == 1 ? "Exposure Fusion" : 
         play_set_wheel_action == 2 ? "Compare Images" : 
@@ -722,15 +718,25 @@ int is_pure_play_movie_mode() // no other dialogs active (such as delete)
 
 int is_pure_play_photo_or_movie_mode() { return is_pure_play_photo_mode() || is_pure_play_movie_mode(); }
 
-void print_set_maindial_hint()
+void print_set_maindial_hint(int set)
 {
     if (is_pure_play_photo_mode())
     {
-        if (get_set_pressed())
+        if (set)
         {
             info_led_on();
             get_yuv422_vram();
-            play_set_wheel_display(0, os.x0, os.y_max - font_large.height, 0);
+            bmp_printf(
+                SHADOW_FONT(FONT_LARGE),
+                os.x0, os.y_max - font_large.height,
+                "Scrollwheel: %s", 
+                play_set_wheel_action == 0 ? "422 Preview" :
+                play_set_wheel_action == 1 ? "Exposure Fusion" : 
+                play_set_wheel_action == 2 ? "Compare Images" : 
+                play_set_wheel_action == 3 ? "Timelapse Play" : 
+                play_set_wheel_action == 4 ? "Exposure Adjust" : 
+                "err"
+            );
         }
         else
         {
@@ -761,21 +767,38 @@ int handle_set_wheel_play(struct event * event)
 {
     if (gui_menu_shown()) return 1;
     
-    extern int set_pressed;
-    // SET button pressed
-    //~ if (event->param == BGMT_PRESS_SET) set_pressed = 1;
-    //~ if (event->param == BGMT_UNPRESS_SET) set_pressed = 0;
-    //~ if (event->param == BGMT_PLAY) set_pressed = 0;
+    static int set_maindial_action_enabled = 0;
+    if (event->param == BGMT_PRESS_SET)
+    {
+        // for cameras where SET does not send an unpress event, pressing SET again should do the trick
+        set_maindial_action_enabled = !set_maindial_action_enabled;
+        print_set_maindial_hint(set_maindial_action_enabled);
+    }
+    else if (event->param == BGMT_UNPRESS_SET)
+    {
+        set_maindial_action_enabled = 0;
+        print_set_maindial_hint(0);
+    }
+    else if (!PLAY_MODE)
+    {
+        set_maindial_action_enabled = 0;
+    }
+    
+    // make sure the display is updated, just in case
+    if (PLAY_MODE && set_maindial_action_enabled)
+    {
+        print_set_maindial_hint(1);
+    }
 
     // reset exposure fusion preview
     extern int expfuse_running;
-    if (set_pressed == 0)
+    if (set_maindial_action_enabled == 0)
     {
         expfuse_running = 0;
     }
 
     // SET+Wheel action in PLAY mode
-    if ( is_pure_play_photo_mode() && get_set_pressed())
+    if ( is_pure_play_photo_mode() && set_maindial_action_enabled)
     {
         if (!IS_FAKE(event) && (event->param == BGMT_WHEEL_LEFT || event->param == BGMT_WHEEL_RIGHT || event->param == BGMT_WHEEL_UP || event->param == BGMT_WHEEL_DOWN))
         {
@@ -799,7 +822,7 @@ int handle_set_wheel_play(struct event * event)
         #endif
     }
     #if defined(CONFIG_5DC)
-    else if (event->param != BGMT_PRESS_DIRECT_PRINT && event->param != BGMT_UNPRESS_DIRECT_PRINT)
+    else if (event->param != BGMT_PRESS_SET)
         expo_adjust_playback(0); // reset value
     #endif
 
@@ -3587,7 +3610,7 @@ struct menu_entry play_menus[] = {
                 .priv = &play_set_wheel_action, 
                 .max = 4,
                 .display = play_set_wheel_display,
-                .help = "What to do when you hold SET and turn MainDial scrollwheel",
+                .help = "What to do when you press SET and turn the scrollwheel.",
                 //.essential = FOR_PHOTO,
                 .icon_type = IT_DICE,
                 //~ .edit_mode = EM_MANY_VALUES,
@@ -3753,7 +3776,7 @@ static struct menu_entry play_menus[] = {
             .min = 3,
             .max = 4,
             .display = play_set_wheel_display,
-            .help = "PLAY: hold DirectPrint and turn wheel => selected action.",
+            .help = "What to do when you press SET and turn the scrollwheel.",
             //.essential = FOR_PHOTO,
             .icon_type = IT_BOOL,
             //~ .edit_mode = EM_MANY_VALUES,
