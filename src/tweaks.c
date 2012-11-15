@@ -763,25 +763,46 @@ static void krzoom_task()
 }
 #endif
 
+void set_maindial_cleanup()
+{
+    // reset exposure fusion preview
+    extern int expfuse_running;
+    expfuse_running = 0;
+
+    #if defined(CONFIG_5DC)
+    expo_adjust_playback(0); // reset value
+    #endif
+
+}
+
 int handle_set_wheel_play(struct event * event)
 {
-    if (gui_menu_shown()) return 1;
-    
     static int set_maindial_action_enabled = 0;
+
+    if (!is_pure_play_photo_mode()) 
+    {
+        if (set_maindial_action_enabled)
+        {
+            set_maindial_action_enabled = 0;
+            print_set_maindial_hint(0);
+        }
+        set_maindial_cleanup();
+        return 1;
+    }
+
     if (event->param == BGMT_PRESS_SET)
     {
         // for cameras where SET does not send an unpress event, pressing SET again should do the trick
         set_maindial_action_enabled = !set_maindial_action_enabled;
+        #if !defined(CONFIG_50D) && !defined(CONFIG_5DC)
+        ASSERT(set_maindial_action_enabled); // most cameras are expected to send Unpress SET event (if they don't, one needs to fix the quick erase feature)
+        #endif
         print_set_maindial_hint(set_maindial_action_enabled);
     }
     else if (event->param == BGMT_UNPRESS_SET)
     {
         set_maindial_action_enabled = 0;
         print_set_maindial_hint(0);
-    }
-    else if (!PLAY_MODE)
-    {
-        set_maindial_action_enabled = 0;
     }
     
     // make sure the display is updated, just in case
@@ -790,24 +811,17 @@ int handle_set_wheel_play(struct event * event)
         print_set_maindial_hint(1);
     }
 
-    // reset exposure fusion preview
-    extern int expfuse_running;
-    if (set_maindial_action_enabled == 0)
-    {
-        expfuse_running = 0;
-    }
-
     // SET+Wheel action in PLAY mode
-    if ( is_pure_play_photo_mode() && set_maindial_action_enabled)
+    if (set_maindial_action_enabled && !IS_FAKE(event))
     {
-        if (!IS_FAKE(event) && (event->param == BGMT_WHEEL_LEFT || event->param == BGMT_WHEEL_RIGHT || event->param == BGMT_WHEEL_UP || event->param == BGMT_WHEEL_DOWN))
+        if (event->param == BGMT_WHEEL_LEFT || event->param == BGMT_WHEEL_RIGHT || event->param == BGMT_WHEEL_UP || event->param == BGMT_WHEEL_DOWN)
         {
             int dir = event->param == BGMT_WHEEL_RIGHT || event->param == BGMT_WHEEL_DOWN ? 1 : -1;
             playback_set_wheel_action(dir);
             return 0;
         }
-        
-        #if !defined(CONFIG_5D3) && !defined(CONFIG_5DC) // 5D3: Canon has it; 5Dc: not working
+    
+        #if !defined(CONFIG_5D3) && !defined(CONFIG_5DC) && !defined(CONFIG_50D) // 5D3: Canon has it; 5Dc/50D: no unpress SET event
         if (quick_delete)
         {
             if (event->param == BGMT_TRASH)
@@ -821,12 +835,14 @@ int handle_set_wheel_play(struct event * event)
         }
         #endif
     }
-    #if defined(CONFIG_5DC)
-    else if (event->param != BGMT_PRESS_SET)
-        expo_adjust_playback(0); // reset value
-    #endif
 
-    #if defined(CONFIG_5DC) // SET does not send "unpress", so just move cursor on "erase" by default
+    // some other key pressed without maindial action being active, cleanup things
+    if (!set_maindial_action_enabled && event->param != BGMT_PRESS_SET && event->param != BGMT_UNPRESS_SET)
+    {
+        set_maindial_cleanup();
+    }
+
+    #if defined(CONFIG_5DC) || defined(CONFIG_50D) // SET does not send "unpress", so just move cursor on "erase" by default
     if (quick_delete && PLAY_MODE)
     {
         if (event->param == BGMT_TRASH)
@@ -3695,8 +3711,12 @@ struct menu_entry play_menus[] = {
                 .name = "Quick Erase\b\b",
                 .priv = &quick_delete, 
                 .max = 1,
+                #ifdef CONFIG_50D // no unpress SET, use the 5Dc method
+                .help = "Delete files quickly with fewer keystrokes (be careful!!!)",
+                #else
                 .choices = (const char *[]) {"OFF", "SET+Erase"},
                 .help = "Delete files quickly with SET+Erase (be careful!!!)",
+                #endif
                 //.essential = FOR_PHOTO,
             },
         #endif
