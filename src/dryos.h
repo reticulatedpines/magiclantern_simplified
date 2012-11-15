@@ -510,6 +510,11 @@ OS_FUNCTION( 0x0300001,	int,	abs, int number );
 // get OS constants
 OS_FUNCTION( 0x0400001,	const char*,	get_card_drive, void );
 
+
+uint32_t RegisterRPCHandler (uint32_t rpc_id, uint32_t (*handler) (uint8_t *, uint32_t));
+uint32_t RequestRPC (uint32_t id, uint32_t data, uint32_t length, uint32_t unk2);
+
+
 extern int _dummy_variable;
 
 const char* get_dcim_dir();

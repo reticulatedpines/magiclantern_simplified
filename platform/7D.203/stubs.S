@@ -42,6 +42,8 @@ NSTUB(0xFF83976C, master_msleep)
 NSTUB(0xFF839820, master_task_create)
 NSTUB(0xFF81AD28, master_write_memory)
 
+NSTUB(0xFF07AED4, RegisterRPCHandler)
+NSTUB(0xFF07AF84, RequestRPC)
 
 NSTUB(0xFF3759F0, GUI_GetCFnForTab4)
 NSTUB(0xFF375998, GUI_SetCFnForTab4)

@@ -202,8 +202,10 @@ reboot.o: $(SRC_DIR)/reboot.c magiclantern.bin
 magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
 	$(call build,CPP,$(CPP) $(CFLAGS) $< | grep -v '^#' > $@)
 
+ifneq ($(CONFIG_NO_PTP),y)
+
 ML_OBJS-$(CONFIG_GDB) += \
-        gdb.o \
+	gdb.o \
 
 ML_OBJS-$(CONFIG_PTP) += \
 	ptp.o \
@@ -213,6 +215,8 @@ ML_OBJS-$(CONFIG_PTP_CHDK) += \
 
 ML_OBJS-$(CONFIG_PTP_ML) += \
 	ptp-ml.o \
+
+endif
 
 NO=\
 	hotplug.o \

@@ -57,6 +57,7 @@ ML_OBJS-y = \
 	aj_port.o \
 	fps-engio.o \
 	hdr.o \
+	gdb.o \
 	lv-img-engio.o \
 	state-object.o \
 	tasks.o \
@@ -65,6 +66,7 @@ ML_OBJS-y = \
 	ptp.o \
 	ptp-ml.o \
 	ptp-chdk.o \
+	exmem.o \
 	vsync-lite.o \
 
 #include generic rules and definitions
@@ -77,23 +79,24 @@ include ../../Makefile.inc
 ROMBASEADDR   = 0xF8010000
 RESTARTSTART  = 0xC80100
 
-CFLAGS += -DCONFIG_7D_MINIMAL=1
+#CFLAGS += -DCONFIG_7D_MINIMAL=1
 
 all: autoexec.bin
 
 FIR-MASTER: autoexec-fir-master
 FIR-SLAVE: autoexec-fir-slave
 
-autoexec-fir-master: CFLAGS += -DCONFIG_7D_FIR_MASTER
-autoexec-fir-slave: CFLAGS += -DCONFIG_7D_FIR_SLAVE
+# autoexec-fir-master: CFLAGS += -DCONFIG_7D_FIR_MASTER
+# autoexec-fir-slave: CFLAGS += -DCONFIG_7D_FIR_SLAVE
 
-autoexec-fir-master: clean autoexec-fir
-	$(call build,OBJCOPY,$(OBJCOPY) -O binary autoexec-fir $@.bin)
-	$(STAT_CMD) $@.bin;
-	$(READELF) -l autoexec-fir | grep -C 2 MemSiz
+# autoexec-fir-master: clean autoexec-fir
+	# $(call build,OBJCOPY,$(OBJCOPY) -O binary autoexec-fir $@.bin)
+	# $(STAT_CMD) $@.bin;
+	# $(READELF) -l autoexec-fir | grep -C 2 MemSiz
+	# cp location.map ../../location.master
 
     
-autoexec-fir-slave: clean autoexec-fir
-	$(call build,OBJCOPY,$(OBJCOPY) -O binary autoexec-fir $@.bin)
-	$(STAT_CMD) $@.bin;
-	$(READELF) -l autoexec-fir | grep -C 2 MemSiz
+# autoexec-fir-slave: clean autoexec-fir
+	# $(call build,OBJCOPY,$(OBJCOPY) -O binary autoexec-fir $@.bin)
+	# $(STAT_CMD) $@.bin;
+	# $(READELF) -l autoexec-fir | grep -C 2 MemSiz

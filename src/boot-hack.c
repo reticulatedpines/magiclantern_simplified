@@ -336,6 +336,17 @@ int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
 int ml_gui_initialized = 0; // 1 after gui_main_task is started 
 
+#if defined(CONFIG_7D)
+uint32_t ml_rpc_handler (uint8_t *buffer, uint32_t length)
+{
+    bmp_printf(FONT_MED, 0, 60, "RPC: 0x%08X 0x%08X  0x%08X", buffer, length, *(uint32_t*)buffer);
+    
+    free_dma_memory(buffer);
+    
+    return 0;
+}
+#endif
+
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
@@ -441,6 +452,11 @@ void my_big_init_task()
         //~ "Magic Lantern is up and running... %d tasks started.",
         //~ ml_tasks
     //~ );
+    
+#if defined(CONFIG_7D)
+    RegisterRPCHandler(0x40FE, &ml_rpc_handler);
+#endif
+
     msleep(500);
     ml_started = 1;
 
@@ -729,23 +745,6 @@ int init_task_patched_for_1100D(int a, int b, int c, int d)
 }
 #endif
 
-#if defined(CONFIG_7D_FIR_MASTER)
-
-#include "cache_hacks.h"
-void master_ml_init()
-{
-    master_msleep(100);
-
-    cache_lock();
-    cache_fake(0xFF88BCB4, 0xE3A01001, TYPE_ICACHE); /* flush video buffer every frame */
-    //cache_fake(0xFF8C7C18, 0xE3A01001, TYPE_ICACHE); /* all-I */
-    cache_fake(0xFF8C7C18, 0xE3A01004, TYPE_ICACHE); /* GOP4 */
-    //cache_fake(0xFF8CD448, 0xE3A00006, TYPE_ICACHE); /* deblock alpha set to 6 */
-    //cache_fake(0xFF8CD44C, 0xE3A00106, TYPE_ICACHE); /* deblock beta set to 6 */
-}
-#endif
-
-
 // flag set to 1 when gui_main_task started to process messages from queue
 int gui_init_done = 0;
 
@@ -760,17 +759,6 @@ int gui_init_done = 0;
 int
 my_init_task(int a, int b, int c, int d)
 {
-#if defined(CONFIG_7D_FIR_MASTER)
-    extern int master_init_task( int a, int b, int c, int d );
-    cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, HIJACK_CACHE_HACK_BSS_END_INSTR, TYPE_ICACHE);
-    
-    int ans = master_init_task(a,b,c,d);
-    
-    master_task_create("ml_init", 0x18, 0x4000, &master_ml_init, 0 );    
-    
-    return ans;
-#else
-
 #ifdef ARMLIB_OVERFLOWING_BUFFER
     // An overflow in Canon code may write a zero right in the middle of ML code
     unsigned int *backup_address = 0;
@@ -904,7 +892,6 @@ my_init_task(int a, int b, int c, int d)
 
     return ans;
 #endif // !CONFIG_EARLY_PORT
-#endif
 }
 
 #ifdef CONFIG_5D3

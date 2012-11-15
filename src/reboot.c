@@ -58,7 +58,7 @@ asm(
     ".globl blob_end\n"
 );
 
-#if defined(CONFIG_5D3) || defined (CONFIG_7D)
+#if defined(CONFIG_5D3) || defined (CONFIG_7D) || defined (CONFIG_7D_MASTER)
 static void busy_wait(int n)
 {
     int i,j;
@@ -77,7 +77,7 @@ static void blink(int n)
         busy_wait(n);
         *(volatile int*)0xC022C06C = 0x838C00;
         busy_wait(n);
-        #elif defined(CONFIG_7D)
+        #elif defined(CONFIG_7D) || defined(CONFIG_7D_MASTER)
         *(volatile int*)0xC022D06C = 0x138800;
         busy_wait(n);
         *(volatile int*)0xC022D06C = 0x838C00;
@@ -158,7 +158,7 @@ cstart( void )
         fail();
     #endif
 
-    #if defined(CONFIG_7D_SLAVE)
+    #if defined(CONFIG_7D)
     int s = compute_signature((int*)0xF8010000, 0x10000);
     if (s != (int)0x50163E93)
         fail();
@@ -172,11 +172,9 @@ cstart( void )
     // turn on the LED as soon as autoexec.bin is loaded (may happen without powering on)
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
         *(int*)0xC02200BC = 0x46;  // CF card LED on
-    #elif defined(CONFIG_7D)
+    #elif defined(CONFIG_7D) || defined(CONFIG_7D_MASTER)
         *(volatile int*)0xC022D06C = 0x00138800;  // CF card LED on
-        #if !defined(CONFIG_7D_FIR_SLAVE) && !defined(CONFIG_7D_FIR_SLAVE)
-            *(int*)0xC0A00024 = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
-        #endif
+        *(int*)0xC0A00024 = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
     #elif defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
         *(int*)0xC0220134 = 0x46;  // SD card LED on
     #elif defined(CONFIG_40D)
