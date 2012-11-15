@@ -38,6 +38,7 @@ PLUGIN_OBJS=lua-ml-compat.o \
   # loslib.o \
 
 include $(PLUGIN_BASE_DIR)/Makefile.top
+CFLAGS += -DCONFIG_PLUGIN
 
 -include $(PLUGIN_DIR)/.*.d
 
