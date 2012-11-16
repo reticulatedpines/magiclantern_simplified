@@ -37,13 +37,13 @@ NSTUB( ROMBASEADDR, firmware_entry )
 NSTUB( 0x67C, next_task_ctx )
 NSTUB( 0x680, current_task_ctx )
 
-NSTUB(0xFF812B4C, master_init_task)
-NSTUB(0xFF83976C, master_msleep)
-NSTUB(0xFF839820, master_task_create)
-NSTUB(0xFF81AD28, master_write_memory)
-
 NSTUB(0xFF07AED4, RegisterRPCHandler)
 NSTUB(0xFF07AF84, RequestRPC)
+NSTUB(0xFF07A704, BulkOutIPCTransfer)
+NSTUB(0xFF07A7D4, BulkInIPCTransfer)
+
+NSTUB(0xFF0640EC, SoundDevActiveIn)
+
 
 NSTUB(0xFF3759F0, GUI_GetCFnForTab4)
 NSTUB(0xFF375998, GUI_SetCFnForTab4)
@@ -211,5 +211,3 @@ NSTUB(0xff06e8b0, EnableImagePhysicalScreenParameter)
 NSTUB(0xFF41E17C, StartPlayProtectGuideApp)
 NSTUB(0xff41dde0, StopPlayProtectGuideApp)
 
-NSTUB(0xFF07A704, BulkOutIPCTransfer)
-NSTUB(0xFF07A7D4, BulkInIPCTransfer)
