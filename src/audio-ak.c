@@ -40,6 +40,14 @@ int audio_meters_are_drawn()
 {
     if (!SOUND_RECORDING_ENABLED && !fps_should_record_wav())
         return 0;
+        
+#if defined(CONFIG_7D)
+    if(!recording)
+    {
+        return 0;
+    }
+#endif
+
     return 
         (
          is_movie_mode() && cfg_draw_meters && do_draw_meters && (zebra_should_run() || get_halfshutter_pressed()) && !gui_menu_shown()
@@ -582,7 +590,7 @@ audio_micpower_display( void * priv, int x, int y, int selected )
 }
 
 static struct menu_entry audio_menus[] = {
-#if !(defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_7D))
+#if !(defined(CONFIG_1100D) || defined(CONFIG_5D3) )
 #if 0
     {
         .priv           = &o2gain,
@@ -709,7 +717,11 @@ static struct menu_entry audio_menus[] = {
         .priv           = &cfg_draw_meters,
         .select         = menu_binary_toggle,
         .display        = audio_meter_display,
+#if defined(CONFIG_7D)
+        .help = "While recording only. -40...0 dB, yellow -12 dB, red -3 dB.",
+#else
         .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
+#endif
         //.essential = FOR_MOVIE,
     },
 };

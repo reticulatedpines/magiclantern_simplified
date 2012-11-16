@@ -400,10 +400,10 @@ meter_task( void* unused )
             if (is_menu_help_active()) continue;
                 
             if (audio_meters_are_drawn())
-                {
-                    if (!is_mvr_buffer_almost_full())
-                        BMP_LOCK( draw_meters(); )
-                            }
+            {
+                if (!is_mvr_buffer_almost_full())
+                    BMP_LOCK( draw_meters(); )
+            }
         
             if (audio_monitoring)
                 {
