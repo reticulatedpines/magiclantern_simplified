@@ -14,6 +14,10 @@
 #include "version.h"
 //#include "lua.h"
 
+#if defined(CONFIG_7D)
+#include "ml_rpc.h"
+#endif
+
 #if defined(CONFIG_600D) && defined(CONFIG_AUDIO_600D_DEBUG)
 void audio_reg_dump_once();
 #endif
@@ -917,6 +921,23 @@ static void stub_test_task(void* arg)
     
     NotifyBox(10000, "Test complete.\n%d passed, %d failed.", passed_tests, failed_tests);
 }
+
+#if defined(CONFIG_7D)
+static void rpc_test_task(void* unused)
+{
+    uint32_t loops = 0;
+    
+    ml_rpc_verbose(1);
+    while(1)
+    {
+        msleep(50);
+        
+        ml_rpc_send(ML_RPC_PING, *(volatile uint32_t *)0xC0242014, 0, 0, 1);
+        loops++;
+    }    
+    ml_rpc_verbose(0);
+}
+#endif
 
 static void stress_test_task(void* unused)
 {
@@ -2721,6 +2742,16 @@ struct menu_entry debug_menus[] = {
         .select        = (void(*)(void*,int))run_in_separate_task,
         .help = "The camera may turn into a 1DX or it may explode."
     },
+#if defined(CONFIG_7D)
+    {
+        .name        = "LV dumping",
+        .priv = 0x60D8, 
+        .max = 6,
+        .icon_type = IT_DICE,
+        .help = "Silent picture mode: simple, burst, continuous or high-resolution.",
+        .choices = (const char *[]) {"Disabled", "A:/.JPEG", "B:/.JPEG", "A:/.422", "B:/.422", "A:/.JPEG/.422", "B:/.JPEG/.422"},
+    },
+#endif
 #ifdef CONFIG_ISO_TESTS
     {
         .name        = "ISO tests...",
@@ -2775,6 +2806,14 @@ struct menu_entry debug_menus[] = {
                 .priv = stub_test_task,
                 .help = "Tests Canon functions called by ML. SET=once, PLAY=100x."
             },
+            #if defined(CONFIG_7D)
+            {
+                .name = "RPC reliability test (infinite loop)",
+                .select = (void(*)(void*,int))run_in_separate_task,
+                .priv = rpc_test_task,
+                .help = "Flood master with RPC requests and print delay. "
+            },
+            #endif
             #ifndef CONFIG_7D_MINIMAL
             #ifndef CONFIG_5D3_MINIMAL // will change some settings and you can't restore them
             {
