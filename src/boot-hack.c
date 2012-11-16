@@ -337,14 +337,6 @@ int ml_started = 0; // 1 after ML is fully loaded
 int ml_gui_initialized = 0; // 1 after gui_main_task is started 
 
 #if defined(CONFIG_7D)
-uint32_t ml_rpc_handler (uint8_t *buffer, uint32_t length)
-{
-    bmp_printf(FONT_MED, 0, 60, "RPC: 0x%08X 0x%08X  0x%08X", buffer, length, *(uint32_t*)buffer);
-    
-    free_dma_memory(buffer);
-    
-    return 0;
-}
 #endif
 
 // Only after this task finished, the others are started
@@ -453,10 +445,6 @@ void my_big_init_task()
         //~ ml_tasks
     //~ );
     
-#if defined(CONFIG_7D)
-    RegisterRPCHandler(0x40FE, &ml_rpc_handler);
-#endif
-
     msleep(500);
     ml_started = 1;
 

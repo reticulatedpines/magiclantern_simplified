@@ -44,10 +44,14 @@ void mvrSetDefQScale(int16_t *);  // when recording, only change qscale by 1 at 
 
 #if defined(CONFIG_7D)
 #include "cache_hacks.h"
+#include "ml_rpc.h"
 
 #define ADDR_mvrConfig       0x8A14
 
+uint32_t bitrate_cache_hacks = 0;
 uint32_t bitrate_flushing_rate = 4;
+uint32_t bitrate_gop_size = 12;
+
 uint8_t *bulk_transfer_buf = NULL;
 uint32_t BulkOutIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t, uint32_t, uint32_t), uint32_t cb_parm);
 uint32_t BulkInIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t, uint32_t, uint32_t), uint32_t cb_parm);
@@ -78,6 +82,71 @@ void bitrate_write_mvr_config()
     while(wait)
     {
         msleep(10);
+    }
+}
+
+static void
+bitrate_cache_hacks_display( void * priv, int x, int y, int selected )
+{
+    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
+               x, y,
+               "Video hacks   : %s", 
+               bitrate_cache_hacks ? "ON" : "OFF"
+               );
+
+    if(!ml_rpc_available())
+    {
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Master DIGiC hacks not available in this release.");
+    }
+    else
+    {
+        menu_draw_icon(x, y, MNI_ON, 0);
+    }
+}
+
+static void
+bitrate_flushing_rate_display( void * priv, int x, int y, int selected )
+{
+    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
+               x, y,
+               "Flush every   : %d frames", 
+               bitrate_flushing_rate
+               );
+
+    if(!ml_rpc_available())
+    {
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Master DIGiC hacks not available in this release.");
+    }
+    else if(!bitrate_cache_hacks)
+    {
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Video hacks disabled.");
+    }
+    else
+    {
+        menu_draw_icon(x, y, MNI_ON, 0);
+    }
+}
+
+static void
+bitrate_gop_size_display( void * priv, int x, int y, int selected )
+{
+    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
+               x, y,
+               "GOP size      : %d frames", 
+               bitrate_gop_size
+               );
+
+    if(!ml_rpc_available())
+    {
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Master DIGiC hacks not available in this release.");
+    }
+    else if(!bitrate_cache_hacks)
+    {
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Video hacks disabled.");
+    }
+    else
+    {
+        menu_draw_icon(x, y, MNI_ON, 0);
     }
 }
 #endif
@@ -654,11 +723,27 @@ static struct menu_entry mov_menus[] = {
             },
 #if defined(CONFIG_7D)
             {
+                .name = "Video hacks",
+                .priv = &bitrate_cache_hacks,
+                .display = bitrate_cache_hacks_display,
+                .max  = 1,
+                .help = "Enable experimental hacks through cache hacks."
+            },
+            {
                 .name = "Flush rate",
                 .priv = &bitrate_flushing_rate,
+                .display    = bitrate_flushing_rate_display,
                 .min  = 2,
                 .max  = 50,
-                .help = "Flush movie buffer every n frames"
+                .help = "Flush movie buffer every n frames."
+            },
+            {
+                .name = "GOP size",
+                .priv = &bitrate_gop_size,
+                .display    = bitrate_gop_size_display,
+                .min  = 1,
+                .max  = 100,
+                .help = "Set GOP size to n frames."
             },
 #endif
             {
@@ -707,8 +792,27 @@ bitrate_task( void* unused )
     TASK_LOOP
     {
 #if defined(CONFIG_7D)
-        /* patch flushing rate */
-        cache_fake(0xFF05A6DC, 0xE3A00000 | (bitrate_flushing_rate & 0xFF), TYPE_ICACHE);
+        if(ml_rpc_available())
+        {
+            if(bitrate_cache_hacks)
+            {
+                /* patch flushing rate */
+                cache_fake(0xFF05A6DC, 0xE3A00000 | (bitrate_flushing_rate & 0xFF), TYPE_ICACHE);
+                ml_rpc_send(ML_RPC_CACHE_HACK, 0xFF88BCB4, 0xE3A01000 | (bitrate_flushing_rate & 0xFF), TYPE_ICACHE, 2);
+                
+                /* set GOP size */
+                ml_rpc_send(ML_RPC_CACHE_HACK, 0xFF8C7C18, 0xE3A01000 | (bitrate_gop_size & 0xFF), TYPE_ICACHE, 2);
+            }
+            else
+            {
+                /* undo flushing rate */
+                cache_fake(0xFF05A6DC, MEM(0xFF05A6DC), TYPE_ICACHE);
+                ml_rpc_send(ML_RPC_CACHE_HACK_DEL, 0xFF88BCB4, TYPE_ICACHE, 0, 2);
+                
+                /* undo GOP size */
+                ml_rpc_send(ML_RPC_CACHE_HACK_DEL, 0xFF8C7C18, TYPE_ICACHE, 0, 2);
+            }
+        }
 #endif       
 
         if (recording)

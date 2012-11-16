@@ -29,6 +29,7 @@
 #include "config.h"
 #include "version.h"
 #include "consts.h"
+#include "ml_rpc.h"
 #ifdef HIJACK_CACHE_HACK
 #include "cache_hacks.h"
 #endif
@@ -113,23 +114,11 @@ void master_callback(breakpoint_t *bkpt)
 }
 #endif
 
-/* this is the Magic Lantern RPC handler on master side.
-   it will reing responsible for setting parameters requested by slave side.
- */
-uint32_t ml_rpc_handler (uint8_t *buffer, uint32_t length)
-{
-    /* play ping pong for now */
-    RequestRPC(0x40FE, buffer, length, 0);
-    
-    free_dma_memory(buffer);
-    return 0;
-}
-
 void ml_init()
 {
-    RegisterRPCHandler(0x40FF, &ml_rpc_handler);
+    ml_rpc_init();
     
-    cache_fake(0xFF88BCB4, 0xE3A01001, TYPE_ICACHE); /* flush video buffer every frame */
+    //cache_fake(0xFF88BCB4, 0xE3A01001, TYPE_ICACHE); /* flush video buffer every frame */
     //cache_fake(0xFF8C7C18, 0xE3A01001, TYPE_ICACHE); /* all-I */
     //cache_fake(0xFF8C7C18, 0xE3A01004, TYPE_ICACHE); /* GOP4 */
     //cache_fake(0xFF8CD448, 0xE3A00006, TYPE_ICACHE); /* deblock alpha set to 6 */

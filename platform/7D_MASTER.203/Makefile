@@ -24,6 +24,7 @@ ML_OBJS-y = \
 	$(SRC_DIR)/entry.o \
 	master_boot.o \
 	stubs.o \
+	ml_rpc.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

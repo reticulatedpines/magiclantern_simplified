@@ -23,6 +23,7 @@ ML_OBJS-y = \
 	boot-hack.o \
 	stubs.o \
 	version.o \
+	ml_rpc.o \
 	bmp.o \
 	font-dyn.o \
 	config.o \
