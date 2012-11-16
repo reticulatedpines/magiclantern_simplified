@@ -278,7 +278,7 @@ void WAV_RecordSmall(char* filename, int duration, int show_progress)
     
 #if defined(CONFIG_7D)
     /* experimental for 7D now, has to be made generic */
-    void (*SoundDevActiveIn) (uint32_t) = 0xFF0640EC;
+    void SoundDevActiveIn (uint32_t);
     SoundDevActiveIn(0);
 #endif
 
@@ -400,9 +400,10 @@ static void asif_rec_continue_cbr()
         
 #if defined(CONFIG_7D)
         /* experimental for 7D now, has to be made generic */
-        void (*SoundDevShutDownIn)() = 0xFF064304;
-        SoundDevShutDownIn();
+        void SoundDevActiveIn (uint32_t);
+        SoundDevActiveIn(0);
 #endif
+
         return;
     }
     SetNextASIFADCBuffer(buf, WAV_BUF_SIZE);
@@ -426,9 +427,10 @@ void WAV_Record(char* filename, int show_progress)
     SetSamplingRate(48000, 1);
     MEM(0xC092011C) = 4; // SetASIFADCModeSingleINT16
 
+
 #if defined(CONFIG_7D)
     /* experimental for 7D now, has to be made generic */
-    void (*SoundDevActiveIn) (uint32_t) = 0xFF0640EC;
+    void SoundDevActiveIn (uint32_t);
     SoundDevActiveIn(0);
 #endif
 
@@ -915,6 +917,7 @@ static struct menu_entry beep_menus[] = {
                 .max = 1,
                 .help = "Enable beep signal for misc events in ML.",
             },
+#if !defined(CONFIG_7D)
             {
                 .name = "Beep Volume",
                 .priv       = &beep_volume,
@@ -924,6 +927,7 @@ static struct menu_entry beep_menus[] = {
                 //~ .select = beep_volume_toggle,
                 .help = "Volume for ML beep and test tones (1-5).",
             },
+#endif
             {
                 .name = "Tone Waveform", 
                 .priv = &beep_wavetype,
