@@ -55,9 +55,6 @@ static uint8_t _reloc[ RELOCSIZE ];
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
     INSTR( rom_addr ) = BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
 
-/** Was this an autoboot or firmware file load? */
-int autoboot_loaded;
-
 
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
@@ -74,14 +71,11 @@ zero_bss( void )
 
 /** Copy firmware to RAM, patch it and restart it */
 void
-copy_and_restart( int offset )
+copy_and_restart( )
 {
     // Clear bss
     zero_bss();
 
-    // Set the flag if this was an autoboot load
-    autoboot_loaded = (offset == 0);
-    
 #ifdef HIJACK_CACHE_HACK
     /* make sure we have the first segment locked in d/i cache for patching */    
     cache_lock();
@@ -290,7 +284,7 @@ int magic_is_off()
 }
 
 
-#if defined(CONFIG_7D_MINIMAL)
+#if defined(CONFIG_AUTOBACKUP_ROM)
 
 #define BACKUP_BLOCKSIZE 0x00100000
 
@@ -329,6 +323,7 @@ void backup_region(char *file, uint32_t base, uint32_t length)
 void backup_task()
 {
     backup_region(CARD_DRIVE "ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
+    backup_region(CARD_DRIVE "ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
 }
 #endif
 
@@ -336,8 +331,6 @@ int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
 int ml_gui_initialized = 0; // 1 after gui_main_task is started 
 
-#if defined(CONFIG_7D)
-#endif
 
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
@@ -873,7 +866,7 @@ my_init_task(int a, int b, int c, int d)
 
     task_create("ml_init", 0x1e, 0x4000, my_big_init_task, 0 );
 
-#if defined(CONFIG_7D_MINIMAL)
+#if defined(CONFIG_AUTOBACKUP_ROM)
     /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
     task_create("ml_backup", 0x1f, 0x4000, backup_task, 0 );
 #endif
