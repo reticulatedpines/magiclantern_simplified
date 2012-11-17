@@ -36,6 +36,7 @@ all: $(SUPPORTED_MODELS)
 
 600D:
 	$(MAKE) -C $(PLATFORM_PATH)/600D.102
+	cp $(PLATFORM_PATH)/600D.102/autoexec.bin /media/sf_F_DRIVE/
 
 1100D:
 	$(MAKE) -C $(PLATFORM_PATH)/1100D.105
@@ -54,6 +55,7 @@ all: $(SUPPORTED_MODELS)
     
 7D: 7D_MASTER
 	$(MAKE) -C $(PLATFORM_PATH)/7D.203
+	cp platform/7D.203/autoexec.bin /media/sf_G_DRIVE
 
 7DFIR: 7D_MASTER 7D
 	dd if=$(PLATFORM_PATH)/7D.203/autoexec.bin of=$(PLATFORM_PATH)/7D.203/autoexec.fir bs=288 skip=1 >/dev/null 2>&1

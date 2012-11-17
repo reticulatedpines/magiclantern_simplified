@@ -2206,12 +2206,14 @@ static struct menu_entry key_menus[] = {
                 .help = "Use the LCD face sensor as an extra key in ML.",
             },
             #endif
+            #if defined(CONFIG_7D)
             {
                 .name = "Sticky DOF Preview  ", 
                 .priv = &dofpreview_sticky, 
                 .max = 1,
                 .help = "Makes the DOF preview button sticky (press to toggle).",
             },
+            #endif
             {
                 .name       = "Sticky HalfShutter  ",
                 .priv = &halfshutter_sticky,
