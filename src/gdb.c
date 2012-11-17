@@ -233,20 +233,58 @@ void *gdb_memset(void *dst, uint8_t val, uint32_t length)
     return dst;
 }
 
-/* gets called when new data arrived in buffer */
-void gdb_recv_callback(uint32_t length)
+/* tell if given opcode is a "clean" BL (ret=1) or some branch/BX/MOV (ret=2) or if it is not PC-modifying (ret=0) */
+uint32_t gdb_instr_is_pc_modifying(uint32_t opcode)
 {
-    gdb_recv_buffer_length = length;
+    /* check if it was a BL 0x.. */
+    if((opcode & 0x0F000000) == 0x0B000000)
+    {
+        return 1;
+    }
+    
+    /* check if it was a B 0x.. */
+    if((opcode & 0x0E000000) == 0x0A000000)
+    {
+        return 2;
+    }
+    
+    /* check if it was smth like a MOV R15,... */
+    if((opcode & 0x0E0F0010) == 0x000F0000)
+    {
+        return 2;
+    }
+    if((opcode & 0x0E0F0090) == 0x000F0010)
+    {
+        return 2;
+    }
+    
+    /* check if it was smth like a BX R.. */
+    if((opcode& 0x0FF000F0) == 0x01200030)
+    {
+        return 2;
+    }
+    
+    /* load with immediate offset */
+    if((opcode & 0x0E10F000) == 0x0410F000)
+    {
+        return 2;
+    }
+    
+    /* load with register offset */
+    if((opcode & 0x0E10F010) == 0x0610F000)
+    {
+        return 2;
+    }
+    
+    /* load multiple with R15 set */
+    if((opcode & 0x0E108000) == 0x08108000)
+    {
+        return 2;
+    }
+
+    return 0;
 }
 
-/* gets called when data from buffer was uploaded to host */
-void gdb_send_callback()
-{
-    /* set the pointer to first payload byte again */
-    gdb_memset(gdb_send_buffer, 0, GDB_TRANSMIT_BUFFER_SIZE);
-    gdb_send_buffer_length = 0;
-    gdb_send_ptr = (char*)gdb_send_buffer;
-}
 
 #if defined(GDB_TASK_CTX)
 struct task *gdb_get_current_task()
@@ -766,6 +804,23 @@ uint32_t gdb_setup()
     return 1;
 }
 
+#if defined(CONFIG_GDBSTUB)
+
+/* gets called when new data arrived in buffer */
+void gdb_recv_callback(uint32_t length)
+{
+    gdb_recv_buffer_length = length;
+}
+
+/* gets called when data from buffer was uploaded to host */
+void gdb_send_callback()
+{
+    /* set the pointer to first payload byte again */
+    gdb_memset(gdb_send_buffer, 0, GDB_TRANSMIT_BUFFER_SIZE);
+    gdb_send_buffer_length = 0;
+    gdb_send_ptr = (char*)gdb_send_buffer;
+}
+
 
 void gdb_byte2hexbyte(char *s, int byte)
 {
@@ -856,58 +911,6 @@ uint32_t gdb_get_hexnumber(char **buffer, uint32_t *value)
     *buffer = args;
 
     return parsed;
-}
-
-/* tell if given opcode is a "clean" BL (ret=1) or some branch/BX/MOV (ret=2) or if it is not PC-modifying (ret=0) */
-uint32_t gdb_instr_is_pc_modifying(uint32_t opcode)
-{
-    /* check if it was a BL 0x.. */
-    if((opcode & 0x0F000000) == 0x0B000000)
-    {
-        return 1;
-    }
-    
-    /* check if it was a B 0x.. */
-    if((opcode & 0x0E000000) == 0x0A000000)
-    {
-        return 2;
-    }
-    
-    /* check if it was smth like a MOV R15,... */
-    if((opcode & 0x0E0F0010) == 0x000F0000)
-    {
-        return 2;
-    }
-    if((opcode & 0x0E0F0090) == 0x000F0010)
-    {
-        return 2;
-    }
-    
-    /* check if it was smth like a BX R.. */
-    if((opcode& 0x0FF000F0) == 0x01200030)
-    {
-        return 2;
-    }
-    
-    /* load with immediate offset */
-    if((opcode & 0x0E10F000) == 0x0410F000)
-    {
-        return 2;
-    }
-    
-    /* load with register offset */
-    if((opcode & 0x0E10F010) == 0x0610F000)
-    {
-        return 2;
-    }
-    
-    /* load multiple with R15 set */
-    if((opcode & 0x0E108000) == 0x08108000)
-    {
-        return 2;
-    }
-
-    return 0;
 }
 
 char *gdb_get_callstack(breakpoint_t *bkpt)
@@ -1133,7 +1136,7 @@ void gdb_reply_signal(int signal, char *reply)
 
 void gdb_reply_ok(char *reply)
 {
-    strcpy(reply, "OK");
+    gdb_strncpy(reply, "OK", 2);
 }
 
 unsigned long gdb_get_general_reg(int n)
@@ -1467,11 +1470,11 @@ void gdb_cmd_go(char *args, char *reply)
         gdb_current_bkpt->flags &= ~GDB_BKPT_FLAG_TASK_STALLED;
         gdb_current_bkpt->flags |= GDB_BKPT_FLAG_RESUME;
         gdb_current_bkpt->unStall = 1;
-        bmp_printf(FONT_MED, 0, 300, "gdb_cmd_go: resumed 0x%08X", gdb_current_bkpt->address);
+        //bmp_printf(FONT_MED, 0, 300, "gdb_cmd_go: resumed 0x%08X", gdb_current_bkpt->address);
     }
     else
     {
-        bmp_printf(FONT_MED, 0, 300, "gdb_cmd_go: nothing to resume, waiting");
+        //bmp_printf(FONT_MED, 0, 300, "gdb_cmd_go: nothing to resume, waiting");
     }
     
     /* wait for some breakpoint to be reached */
@@ -1520,7 +1523,7 @@ void gdb_cmd_query(char *args, char *reply)
     else
 #endif   
     {
-        strcpy(reply, "");
+        gdb_strncpy(reply, "", 0);
     }
 }
 
@@ -1653,3 +1656,4 @@ void gdb_api_log(char *msg)
     reply_buf[i] = 0;
     gdb_send_packet(reply_buf);
 }
+#endif

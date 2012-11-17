@@ -10,6 +10,7 @@ UPDATE_NAME=7D_203.fir
 ML_VERSION=unified1 
 
 CONFIG_NO_PTP=y
+CFLAGS += -DCONFIG_AUTOBACKUP_ROM
 
 #used in CFLAGS
 PLATFORM_INC=.
@@ -24,6 +25,7 @@ ML_OBJS-y = \
 	$(SRC_DIR)/entry.o \
 	master_boot.o \
 	stubs.o \
+	gdb.o \
 	ml_rpc.o \
 
 #include generic rules and definitions
