@@ -578,7 +578,7 @@ void digic_iso_step()
 
 void menu_open_submenu();
 
-#if !defined(CONFIG_7D_MINIMAL) && !defined(CONFIG_5D3)
+#if !defined(CONFIG_7D) && !defined(CONFIG_5D3)
 static struct menu_entry lv_img_menu[] = {
     {
 	.id = 0,
@@ -708,7 +708,7 @@ static struct menu_entry dbg_menu[] = {
 
 static void lv_img_init()
 {
-#if !defined(CONFIG_7D_MINIMAL) && !defined(CONFIG_5D3)
+#if !defined(CONFIG_7D) && !defined(CONFIG_5D3)
     menu_add( "Movie", lv_img_menu, COUNT(lv_img_menu) );
 #endif
 #ifdef CONFIG_DIGIC_POKE

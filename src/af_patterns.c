@@ -387,7 +387,7 @@ pattern_display( void * priv, int x, int y, int selected )
 }
 
 static struct menu_entry afp_focus_menu[] = {
-#if !defined(CONFIG_5DC) && !defined(CONFIG_5D3) && !defined(CONFIG_7D_MINIMAL)
+#if !defined(CONFIG_5DC) && !defined(CONFIG_5D3) && !defined(CONFIG_7D)
     {
         .name = "Focus Patterns...",
         .select = menu_open_submenu,

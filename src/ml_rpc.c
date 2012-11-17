@@ -82,6 +82,11 @@ uint32_t ml_rpc_available()
     {
         ml_rpc_available_cached = 1;
     }
+    /* again wait 200ms for a successful reply */
+    else if(ml_rpc_send(ML_RPC_PING, *(volatile uint32_t *)0xC0242014, 0, 0, 4) == ML_RPC_PING_REPLY)
+    {
+        ml_rpc_available_cached = 1;
+    }
     else
     {
         ml_rpc_available_cached = 2;

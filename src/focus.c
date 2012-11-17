@@ -76,7 +76,7 @@ int is_follow_focus_active()
 
 int get_follow_focus_mode()
 {
-    #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
+    #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2) || defined(CONFIG_7D)
     return follow_focus_mode;
     #else
     return 0; // no LCD sensor, use arrows only
@@ -1255,11 +1255,7 @@ static struct menu_entry trap_focus_menu[] = {
     {
         .name = "Trap Focus",
         .priv       = &trap_focus,
-        #if defined(CONFIG_7D_MINIMAL)
-        .max = 1,
-        #else
         .max = 2,
-        #endif
         .display    = trap_focus_display,
         .help = "Takes a picture when the subject comes in focus. MF only.",
         //.essential = FOR_PHOTO,
@@ -1269,7 +1265,6 @@ static struct menu_entry trap_focus_menu[] = {
 };
 static struct menu_entry focus_menu[] = {
 #if !defined(CONFIG_5DC)
-#if !defined(CONFIG_7D_MINIMAL)
     {
         .name = "Follow Focus",
         .priv = &follow_focus,
@@ -1280,7 +1275,7 @@ static struct menu_entry focus_menu[] = {
         //.essential = FOR_LIVEVIEW,
 
         .children =  (struct menu_entry[]) {
-            #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
+            #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2) || defined(CONFIG_7D)
             {
                 .name = "Focus using",
                 .priv = &follow_focus_mode, 
@@ -1397,8 +1392,6 @@ static struct menu_entry focus_menu[] = {
             MENU_EOL
         },
     },
-#endif // CONFIG_7D_MINIMAL
-
     {
         .name = "Focus step settings...",
         .select     = menu_open_submenu,

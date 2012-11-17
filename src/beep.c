@@ -903,7 +903,6 @@ PROP_HANDLER( PROP_MVR_REC_START )
     else if (rec == 0) audio_stop_recording();
 }
 
-#if !defined(CONFIG_7D_MINIMAL)
 static struct menu_entry beep_menus[] = {
     {
         .name = "Beep and test tones...",
@@ -999,7 +998,6 @@ static struct menu_entry beep_menus[] = {
         }
     },
 };
-#endif
 
 static void beep_init()
 {
@@ -1011,9 +1009,7 @@ static void beep_init()
     rootq->multiplex=100;
 
     beep_sem = create_named_semaphore( "beep_sem", 0 );
-#if !defined(CONFIG_7D_MINIMAL)
     menu_add( "Audio", beep_menus, COUNT(beep_menus) );
-#endif
     find_next_wav(0,1);
 
 #ifdef CONFIG_600D

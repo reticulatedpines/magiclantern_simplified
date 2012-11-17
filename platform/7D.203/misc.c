@@ -56,12 +56,6 @@ void display_shooting_info() // called from debug task
 }
 
 
-// some dummy stubs
-int lcd_release_running = 0;
-void lcd_release_step() {};
-int get_lcd_sensor_shortcuts() { return 0; }
-void display_lcd_remote_icon(int x0, int y0) {}
-
 int battery_level = 0;
 CONFIG_INT("battery.drain.rate.rev", battery_seconds_same_level_ok, 0);
 int battery_seconds_same_level_tmp = 0;

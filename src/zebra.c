@@ -5970,10 +5970,8 @@ static void zebra_init()
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
 #if !defined(CONFIG_5D3_MINIMAL)
-#ifndef CONFIG_7D_MINIMAL
 #ifndef CONFIG_5DC
     menu_add( "Prefs", powersave_menus, COUNT(powersave_menus) );
-#endif
 #endif
     menu_add( "Display", level_indic_menus, COUNT(level_indic_menus) );
 #endif

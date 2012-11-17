@@ -4978,7 +4978,7 @@ int handle_expo_preset(struct event * event)
     return 1;
 }
 
-#if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL)
+#if !defined(CONFIG_5D3_MINIMAL)
 static struct menu_entry shoot_menus[] = {
     {
         .name = "HDR Bracketing",
@@ -5381,7 +5381,7 @@ static struct menu_entry shoot_menus[] = {
 };
 #endif
 
-#if !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL)
+#if !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL)
 static struct menu_entry flash_menus[] = {
     {
         .name = "Flash tweaks...",
@@ -5430,7 +5430,7 @@ struct menu_entry tweak_menus_shoot[] = {
         .icon_type = IT_SUBMENU,
         .help = "Disable x5 or x10, boost contrast/sharpness...",
         .children =  (struct menu_entry[]) {
-            #if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL)
+            #if !defined(CONFIG_5D3_MINIMAL)
             {
                 .name = "Zoom x5",
                 .priv = &zoom_disable_x5, 
@@ -5574,7 +5574,7 @@ extern void digic_black_print( void * priv, int x, int y, int selected);
 
 extern int digic_shadow_lift;
 
-#if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL) && !defined(CONFIG_5DC)
+#if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_5DC)
 static struct menu_entry expo_menus[] = {
     {
         .name = "WhiteBalance",
@@ -6629,7 +6629,6 @@ void remote_shot(int wait)
 
 static void display_expsim_status()
 {
-#if !defined(CONFIG_7D_MINIMAL)
     get_yuv422_vram();
     static int prev_expsim = 0;
     int x = 610 + font_med.width;
@@ -6645,7 +6644,6 @@ static void display_expsim_status()
             bmp_printf( FONT(FONT_MED, COLOR_WHITE, 0), x, y, "        " );
     }
     prev_expsim = expsim;
-#endif
 }
 
 
@@ -7483,6 +7481,21 @@ shoot_task( void* unused )
             intervalometer_next_shot_time = seconds_clock + timer_values[interval_start_timer_index];
 
 #ifdef CONFIG_AUDIO_REMOTE_SHOT
+#if defined(CONFIG_7D)
+            /* experimental for 7D now, has to be made generic */
+            static int last_audio_release_running = 0;
+            
+            if(audio_release_running != last_audio_release_running)
+            {
+                last_audio_release_running = audio_release_running;
+                
+                if(audio_release_running)
+                {
+                    void (*SoundDevActiveIn) (uint32_t) = 0xFF0640EC;
+                    SoundDevActiveIn(0);
+                }
+            }
+#endif
             if (audio_release_running) 
             {
                 static int countdown = 0;
@@ -7532,7 +7545,7 @@ void shoot_init()
 {
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
 
-#if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL)
+#if !defined(CONFIG_5D3_MINIMAL)
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
     #ifndef CONFIG_5DC
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );

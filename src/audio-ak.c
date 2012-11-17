@@ -590,7 +590,7 @@ audio_micpower_display( void * priv, int x, int y, int selected )
 }
 
 static struct menu_entry audio_menus[] = {
-#if !(defined(CONFIG_1100D) || defined(CONFIG_5D3) )
+#if !(defined(CONFIG_1100D) || defined(CONFIG_5D3))
 #if 0
     {
         .priv           = &o2gain,

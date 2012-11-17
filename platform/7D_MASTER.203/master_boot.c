@@ -30,15 +30,10 @@
 #include "version.h"
 #include "consts.h"
 #include "ml_rpc.h"
-#ifdef HIJACK_CACHE_HACK
 #include "cache_hacks.h"
-#endif
 
 void my_bzero( uint8_t * base, uint32_t size );
 int my_init_task(int a, int b, int c, int d);
-
-/** Was this an autoboot or firmware file load? */
-int autoboot_loaded;
 
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
@@ -60,9 +55,6 @@ copy_and_restart( int offset )
     // Clear bss
     zero_bss();
 
-    // Set the flag if this was an autoboot load
-    autoboot_loaded = (offset == 0);
-    
     /* make sure we have the first segment locked in d/i cache for patching */    
     cache_lock();
 
@@ -78,7 +70,49 @@ copy_and_restart( int offset )
 }
 
 
-#include "cache_hacks.h"
+#if defined(CONFIG_AUTOBACKUP_ROM)
+
+#define BACKUP_BLOCKSIZE 0x00100000
+
+void backup_region(char *file, uint32_t base, uint32_t length)
+{
+    FILE *handle = NULL;
+    unsigned int size = 0;
+    uint32_t pos = 0;
+    
+    /* already backed up that region? */
+    if((FIO_GetFileSize( file, &size ) == 0) && (size == length) )
+    {
+        return;
+    }
+    
+    /* no, create file and store data */
+    handle = FIO_CreateFileEx(file);
+    while(pos < length)
+    {
+        uint32_t blocksize = BACKUP_BLOCKSIZE;
+        
+        if(length - pos < blocksize)
+        {
+            blocksize = length - pos;
+        }
+        
+        FIO_WriteFile(handle, &((uint8_t*)base)[pos], blocksize);
+        pos += blocksize;
+        
+        /* to make sure lower prio tasks can also run */
+        msleep(20);
+    }
+    FIO_CloseFile(handle);
+}
+
+void backup_task()
+{
+    msleep(1000);
+    backup_region(CARD_DRIVE "ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
+    backup_region(CARD_DRIVE "ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
+}
+#endif
 
 #if 0
 #include "gdb.h"
@@ -86,28 +120,35 @@ uint32_t master_hook_regs[16*4];
 uint32_t master_hook_addr = 0;
 uint32_t master_hook_addr_last = 0;
 uint32_t master_cb_calls = 0;
+uint32_t master_cb_calls2 = 0;
 uint32_t master_cb_read = 0;
-uint32_t master_hook_timer_08 = 0;
-uint32_t master_hook_timer_14 = 0;
+uint32_t master_hook_timer_08 = 0x1b6;
+uint32_t master_hook_timer_14 = 0x3B0;
+uint32_t master_hook_timer_3C = 0;
+uint32_t master_hook_timer_50 = 0;
 
 void master_callback(breakpoint_t *bkpt)
 {
     master_cb_calls++;
-    
+    /*
     for(int reg = 0; reg < 16; reg++)
     {
         master_hook_regs[reg] = bkpt->ctx[reg];
     }
+    */
     
+    /* do stuff when engio write is called */
     if(master_hook_addr == 0xFF931A40)
     {
         uint32_t addr = MEM(bkpt->ctx[4]);
         if(addr == 0xC0F06008 && master_hook_timer_08 != 0)
         {
+            master_cb_calls2++;
             MEM(bkpt->ctx[4] + 0x04) = (master_hook_timer_08<<16) | master_hook_timer_08;
         }
         if(addr == 0xC0F06014 && master_hook_timer_14 != 0)
         {
+            master_cb_calls2++;
             MEM(bkpt->ctx[4] + 0x04) = (master_hook_timer_14<<16) | master_hook_timer_14;
         }
     }
@@ -124,8 +165,6 @@ void ml_init()
     //cache_fake(0xFF8CD448, 0xE3A00006, TYPE_ICACHE); /* deblock alpha set to 6 */
     //cache_fake(0xFF8CD44C, 0xE3A00106, TYPE_ICACHE); /* deblock beta set to 6 */
    
-    return;
-    
 #if 0
     breakpoint_t *bp = NULL;
     msleep(100);
@@ -166,11 +205,16 @@ my_init_task(int a, int b, int c, int d)
 {
     extern int master_init_task( int a, int b, int c, int d );
     cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, HIJACK_CACHE_HACK_BSS_END_INSTR, TYPE_ICACHE);
-    
+        
     int ans = init_task(a,b,c,d);
     
     task_create("ml_init", 0x18, 0x4000, &ml_init, 0 );    
     
+#if defined(CONFIG_AUTOBACKUP_ROM)
+    /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
+    task_create("ml_backup", 0x1f, 0x4000, backup_task, 0 );
+#endif
+
     return ans;
 }
 

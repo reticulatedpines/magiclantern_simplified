@@ -43,6 +43,7 @@ NSTUB(0xFF07A704, BulkOutIPCTransfer)
 NSTUB(0xFF07A7D4, BulkInIPCTransfer)
 
 NSTUB(0xFF0640EC, SoundDevActiveIn)
+NSTUB(0xFF202814, LightMeasure_n_Callback_r0)
 
 
 NSTUB(0xFF3759F0, GUI_GetCFnForTab4)

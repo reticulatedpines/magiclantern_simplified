@@ -2112,7 +2112,7 @@ static void warn_display( void * priv, int x, int y, int selected )
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) get_warn_msg(", "));
 }
 
-#if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL) 
+#if !defined(CONFIG_5D3_MINIMAL)
 static struct menu_entry key_menus[] = {
     {
         .name = "Focus box settings...", 
@@ -2148,6 +2148,7 @@ static struct menu_entry key_menus[] = {
             MENU_EOL,
         }
     },
+    #if !defined(CONFIG_7D)
     {
         .name       = "Arrow/SET shortcuts...",
         .select = menu_open_submenu,
@@ -2189,6 +2190,7 @@ static struct menu_entry key_menus[] = {
             MENU_EOL,
         },
     },
+    #endif
     {
         .name       = "Misc key settings...",
         .select = menu_open_submenu,
@@ -3421,7 +3423,7 @@ static struct menu_entry display_menus[] = {
                     MENU_EOL
                 }
             },
-        #if !defined(CONFIG_7D_MINIMAL)
+            #if !defined(CONFIG_7D)
             {
                 .name = "LV display gain",
                 .display = display_gain_print,
@@ -3429,7 +3431,7 @@ static struct menu_entry display_menus[] = {
                 .help = "Boost LiveView display gain, for night vision (photo mode).",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
-        #endif
+            #endif
             {
                 .name = "Color scheme   ",
                 .priv     = &bmp_color_scheme,
@@ -3553,7 +3555,12 @@ static struct menu_entry display_menus[] = {
                 {
                     .name = "Image position ",
                     .priv = &lcd_adjust_position,
+#if defined(CONFIG_7D)
+                    /* 7D does only allow little */
+                    .max = 1,
+#else
                     .max = 2,
+#endif
                     .choices = (const char *[]) {"Normal", "Lowered", "Lowered even more"},
                     .icon_type = IT_BOOL,
                     .help = "May make the image easier to see from difficult angles.",
@@ -3587,7 +3594,7 @@ static struct menu_entry display_menus[] = {
                     //.essential = FOR_LIVEVIEW,
                 },
             #endif
-            #if !defined(CONFIG_VXWORKS) && !defined(CONFIG_5D3) && !defined(CONFIG_7D_MINIMAL)
+            #if !defined(CONFIG_VXWORKS) && !defined(CONFIG_5D3) && !defined(CONFIG_7D)
                 {
                     .name = "Force HDMI-VGA",
                     .priv = &hdmi_force_vga, 
@@ -3807,10 +3814,10 @@ static struct menu_entry play_menus[] = {
 static void tweak_init()
 {
     menu_add( "Prefs", play_menus, COUNT(play_menus) );
-#if !defined(CONFIG_5DC) && !defined(CONFIG_7D_MINIMAL) && !defined(CONFIG_5D3_MINIMAL)
+#if !defined(CONFIG_5DC) && !defined(CONFIG_5D3_MINIMAL)
     extern struct menu_entry tweak_menus_shoot[];
     menu_add( "Prefs", tweak_menus_shoot, 1 );
-    #if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_7D_MINIMAL) 
+    #if !defined(CONFIG_5D3_MINIMAL)
     menu_add( "Prefs", key_menus, COUNT(key_menus) );
     #endif
 #endif

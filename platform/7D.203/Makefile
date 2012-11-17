@@ -9,6 +9,8 @@ MODEL=7D
 UPDATE_NAME=7D_203.fir
 ML_VERSION=unified1 
 
+CFLAGS += -DCONFIG_AUTOBACKUP_ROM
+
 #used in CFLAGS
 PLATFORM_INC=.
 
@@ -68,6 +70,7 @@ ML_OBJS-y = \
 	ptp-ml.o \
 	ptp-chdk.o \
 	exmem.o \
+	lightsensor.o \
 	vsync-lite.o \
 
 #include generic rules and definitions
