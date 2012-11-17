@@ -37,7 +37,7 @@
 #include "config.h"
 #include "math.h"
 
-#if defined(CONFIG_5D3_MINIMAL) || defined(CONFIG_7D_MINIMAL)
+#if defined(CONFIG_5D3_MINIMAL) || defined(CONFIG_7D)
 #include "disable-this-module.h"
 #endif
 
@@ -188,7 +188,7 @@ static void fps_read_current_timer_values();
     #define TG_FREQ_BASE 32070000
     #undef FPS_TIMER_A_MIN
 
-    #define FPS_TIMER_A_MIN 872
+    #define FPS_TIMER_A_MIN 940
     #undef FPS_TIMER_B_MIN
     #define FPS_TIMER_B_MIN 1040
 
