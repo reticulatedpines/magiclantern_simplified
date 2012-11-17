@@ -4,7 +4,8 @@
  *  After editing this file, run: make clean && make
  * 
  */
-
+#ifndef _config_defines_h_
+#define _config_defines_h_
 
 
 
@@ -129,3 +130,7 @@
 #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
 #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY // you can't override digital ISO component via FRAME_ISO
 #endif
+
+
+#endif
+
