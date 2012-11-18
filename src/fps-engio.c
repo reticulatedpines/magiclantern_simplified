@@ -184,9 +184,9 @@ static void fps_read_current_timer_values();
     #undef TG_FREQ_BASE
     #define TG_FREQ_BASE 32070000
     #undef FPS_TIMER_A_MIN
-    #define FPS_TIMER_A_MIN 940
+    #define FPS_TIMER_A_MIN (lv_dispsize > 1 ? 872 : 940)
     #undef FPS_TIMER_B_MIN
-    #define FPS_TIMER_B_MIN 1040
+    #define FPS_TIMER_B_MIN 1050
     #define SENSOR_TIMING_TABLE MEM(0xce98)
     #define VIDEO_PARAMETERS_SRC_3 0x70C0C
     static const int mode_offset_map[] = { 3, 6, 1, 5, 4, 0, 2 };
