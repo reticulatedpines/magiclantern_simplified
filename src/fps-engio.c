@@ -968,6 +968,37 @@ int fps_try_to_get_180_360_shutter(int fps_x1000)
     return Ta_corrected;
 }
 
+/**
+
+Timer side effects:
+- timer A: increase jello effect and multiply shutter speed (exposure time)
+- timer B: the difference in FPS, computed as time units, is added to shutter speed (exposure time)
+           for example: 1/500 in Canon menu, 12fps from 24 by doubling timer B. Resulting shutter speed:
+           1/500 + 1/12 - 1/24 = 0.0437 = 1/22.9 
+- with NEW_FPS_METHOD, the side effect of timer B can be cancelled
+
+The algorithm for choosing timer values depends on the optimization setting:
+
+- low light (for low frame rates): try to increase only timer B
+- exact FPS: try to get as close as possible to the exact value; if there are more solutions, 
+  the one with smallest timer A is chosen (that results in lowest jello effect)
+- high FPS (NEW_FPS_METHOD): try to decrease timer B first (no side effect on shutter speed)
+- low jello, 180d (not NEW_FPS_METHOD): at moderately low FPS, make sure you can get 180-degree 
+  shutter speed, and choose the solution with the lowest jello effect. Usually you have to select 
+  1/4000 from Canon menu.
+- high jello: try to increase timer A first, since this is what causes jello effect
+
+At extremes, in all cases the algorithm should hit the hard limits for both timers (at least in theory).
+
+On new cameras (NEW_FPS_METHOD), timer B can be changed either with or without the side effect of altering 
+the shutter speed (you can choose whether you want the side effect, or not). So, low light mode includes 
+the side effect, to get slower shutter speeds, but the other modes will cancel the side effect.
+
+Technical: timer B can be altered via engio (with side effect) or via table patching 
+(without side effect, but requires a video mode change to take effect).
+
+*/
+
 void fps_setup_timerA(int fps_x1000)
 {
     if (!lv) return;
