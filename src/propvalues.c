@@ -55,7 +55,7 @@ PROP_HANDLER(PROP_DOF_PREVIEW_MAYBE) // len=2
     dofpreview = buf[0] & 0xFFFF;
 }
 
-volatile int lv;
+volatile int lv = 0;
 volatile int lv_paused = 0; // not a property, but related
 
 bool is_movie_mode()

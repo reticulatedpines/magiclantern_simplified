@@ -131,7 +131,7 @@ int handle_common_events_startup(struct event * event)
         
         #ifdef CONFIG_5D3
         // block LV button at startup to avoid lockup with manual lenses (Canon bug?)
-        if (event->param == BGMT_LV && (lv_movie_select == 0 || is_movie_mode()) && !DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED && !DLG_MOVIE_PRESS_LV_TO_RESUME)
+        if (event->param == BGMT_LV && !lv && (lv_movie_select == 0 || is_movie_mode()) && !DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED && !DLG_MOVIE_PRESS_LV_TO_RESUME)
             return 0;
         #endif
                 
