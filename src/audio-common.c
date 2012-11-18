@@ -831,8 +831,8 @@ int get_input_source()
 static void
 audio_set_meterlabel(){
 
-#ifdef CONFIG_500D //500d only has internal mono audio :(
-	int input_source = 0;
+#if (defined(CONFIG_500D) || defined(CONFIG_1100D))  //500d and 1100d only have internal mono audio :(
+	int input_source = 4;
 #else
 	int input_source = get_input_source();
 #endif
@@ -857,6 +857,9 @@ audio_set_meterlabel(){
         case 3:
             snprintf(left_label,  sizeof(left_label),  "L INT");
             snprintf(right_label, sizeof(right_label), "R BAL");
+            break;
+        case 4:
+            snprintf(left_label,  sizeof(left_label),  "MIC ");
             break;
         }
 
