@@ -3,6 +3,8 @@
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
+
+
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
 FW_VERSION=105
 MODEL=1100D
@@ -24,7 +26,9 @@ ML_OBJS-y = \
 	version.o \
 	exmem.o \
 	bmp.o \
-	font-dyn.o \
+	font-small.o\
+	font-med.o\
+	font-large.o\
 	config.o \
 	menu.o \
 	debug.o \
@@ -68,6 +72,8 @@ ML_OBJS-y = \
 #include generic rules and definitions
 
 include  $(TOP_DIR)/Makefile.inc
+
+CFLAGS += -D CONFIG_STATIC_FONTS=1 
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss

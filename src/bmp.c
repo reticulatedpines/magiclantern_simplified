@@ -276,6 +276,12 @@ bmp_puts(
     const char *        s
 )
 {
+#ifdef CONFIG_1100D
+    //fonts look much better if coordinates are odd
+    *x = *x | 1;
+    *y = *y | 1;
+#endif
+
     *x = COERCE(*x, BMP_W_MINUS, BMP_W_PLUS);
     *y = COERCE(*y, BMP_H_MINUS, BMP_H_PLUS);
     
