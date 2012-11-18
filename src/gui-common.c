@@ -128,6 +128,12 @@ int handle_common_events_startup(struct event * event)
         #if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
         if (event->param == BGMT_LV) return 0; // discard REC button if it's pressed too early
         #endif
+        
+        #ifdef CONFIG_5D3
+        // block LV button at startup to avoid lockup with manual lenses (Canon bug?)
+        if (event->param == BGMT_LV && (lv_movie_select == 0 || is_movie_mode()) && !DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED && !DLG_MOVIE_PRESS_LV_TO_RESUME)
+            return 0;
+        #endif
                 
         return 1; // don't alter any other buttons/events until ML is fully initialized
     }
