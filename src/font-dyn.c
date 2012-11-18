@@ -1,5 +1,7 @@
 #include "font.h"
 #include "bmp.h"
+
+#ifndef CONFIG_STATIC_FONTS
 struct font font_large = {
     .width      = 20,
     .height     = 32,
@@ -17,26 +19,27 @@ struct font font_small = {
     .height     = 12,
     .bitmap     = 0,
 };
+#endif
 
-struct font font_large_shadow = {
+struct sfont font_large_shadow = {
     .width      = 20,
     .height     = 32,
     .bitmap     = 0,
 };
 
-struct font font_med_shadow = {
+struct sfont font_med_shadow = {
     .width      = 12,
     .height     = 20,
     .bitmap     = 0,
 };
 
-struct font font_small_shadow = {
+struct sfont font_small_shadow = {
     .width      = 8,
     .height     = 12,
     .bitmap     = 0,
 };
 
-static void shadow_char_compute(struct font * src, struct font * dst, char c)
+static void shadow_char_compute(struct font * src, struct sfont * dst, char c)
 {
     #define PIX(i,j) (src->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
     #define PIX_SET(i,j) dst->bitmap[ c + ((i) << 7) ] |= (1 << (31-(j)))
@@ -86,8 +89,9 @@ void load_fonts(void* unused)
     if (fonts_done) return;
     
     // if something goes wrong, you will see chinese fonts :)
+    
+#ifndef CONFIG_STATIC_FONTS
     int size;
-
     for (int i = 0; i < 10; i++)
     {
         //cat SMALL.FNT MEDIUM.FNT LARGE.FNT > FONTS.DAT
@@ -114,11 +118,20 @@ void load_fonts(void* unused)
         return;
     }
     //~ bfnt_puts("FONTS OK", 0, 0, COLOR_WHITE, COLOR_BLACK);
+    //#else
+#endif
 
-    font_small_shadow.bitmap = AllocateMemory(size);
+    /*font_small_shadow.bitmap = AllocateMemory(size);
     memcpy(font_small_shadow.bitmap, font_small.bitmap, size);
     font_med_shadow.bitmap = font_small_shadow.bitmap + 6136/4; // size of SMALL.FNT
     font_large_shadow.bitmap = font_med_shadow.bitmap + 10232/4; // size of MEDIUM.FNT
+	*/
+    font_small_shadow.bitmap = AllocateMemory(font_small.height*4*0x80);
+    memcpy(font_small_shadow.bitmap, font_small.bitmap, font_small.height*4*0x80);
+    font_med_shadow.bitmap = AllocateMemory(font_med.height*4*0x80);
+    memcpy(font_med_shadow.bitmap, font_med.bitmap, font_med.height*4*0x80);
+    font_large_shadow.bitmap = AllocateMemory(font_large.height*4*0x80);
+    memcpy(font_large_shadow.bitmap, font_large.bitmap, font_large.height*4*0x80);
 
     shadow_fonts_compute();
     fonts_done = 1;

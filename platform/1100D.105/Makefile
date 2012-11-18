@@ -24,6 +24,9 @@ ML_OBJS-y = \
 	version.o \
 	exmem.o \
 	bmp.o \
+	font-small2.o \
+	font-med.o \
+	font-large.o \
 	font-dyn.o \
 	config.o \
 	menu.o \
@@ -68,6 +71,8 @@ ML_OBJS-y = \
 #include generic rules and definitions
 
 include  $(TOP_DIR)/Makefile.inc
+
+CFLAGS += -D CONFIG_STATIC_FONTS=1 
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
