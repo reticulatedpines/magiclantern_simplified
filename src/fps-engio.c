@@ -184,7 +184,7 @@ static void fps_read_current_timer_values();
     #undef TG_FREQ_BASE
     #define TG_FREQ_BASE 32070000
     #undef FPS_TIMER_A_MIN
-    #define FPS_TIMER_A_MIN (lv_dispsize > 1 ? 872 : 940)
+    #define FPS_TIMER_A_MIN (lv_dispsize > 1 ? 940 : 872)
     #undef FPS_TIMER_B_MIN
     #define FPS_TIMER_B_MIN 1050
     #define SENSOR_TIMING_TABLE MEM(0xce98)
