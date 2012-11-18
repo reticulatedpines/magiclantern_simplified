@@ -25,7 +25,7 @@ ML_OBJS-y = \
 	exmem.o \
 	bmp.o \
 	font-small2.o \
-	font-med.o \
+	font-med2.o \
 	font-large.o \
 	font-dyn.o \
 	config.o \
