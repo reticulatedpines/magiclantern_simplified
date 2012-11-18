@@ -616,6 +616,7 @@ static struct menu_entry lv_img_menu[] = {
                 .choices = (const char *[]) {"OFF", "Weak", "Strong"},
                 .help = "Cartoonish look obtained by emphasizing the edges.",
             },
+#if !(defined(CONFIG_600D) || defined(CONFIG_1100D))
             {
                 .name = "Oil painting", 
                 .priv = &oilpaint, 
@@ -627,6 +628,7 @@ static struct menu_entry lv_img_menu[] = {
                 .priv = &sharp, 
                 .max = 1,
             },
+#endif
             /*{
                 .name = "Purple Fringe",
                 .priv       = &fringing,
