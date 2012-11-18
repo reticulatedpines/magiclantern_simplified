@@ -1080,7 +1080,7 @@ waveform_draw_image(
 
     // Ensure that x_origin is quad-word aligned
     x_origin &= ~3;
-
+    
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
     unsigned pitch = BMPPITCH;
@@ -1094,7 +1094,11 @@ waveform_draw_image(
     {
         for( y=WAVEFORM_HEIGHT-1 ; y>=0 ; y-- )
         {
-            uint8_t * row = bvram + x_origin + (y_origin + y * height / WAVEFORM_HEIGHT + k) * pitch;
+            int y_bmp = y_origin + y * height / WAVEFORM_HEIGHT + k;
+            if (y_bmp < 0) continue;
+            if (y_bmp >= os.y_max) continue;
+
+            uint8_t * row = bvram + x_origin + y_bmp * pitch;
             //int y_next = (y-1) * height / WAVEFORM_HEIGHT;
             uint32_t pixel = 0;
             int w = WAVEFORM_WIDTH*WAVEFORM_FACTOR;
@@ -4855,12 +4859,12 @@ void draw_histogram_and_waveform(int allow_play)
         #endif
         if (should_draw_bottom_graphs() && WAVEFORM_FACTOR == 1)
             BMP_LOCK( waveform_draw_image( os.x0 + 250,  480 - 54, 54); )
-        else if (screen_layout == SCREENLAYOUT_3_2)
+        else if (screen_layout == SCREENLAYOUT_3_2 && !WAVEFORM_FULLSCREEN)
         {
             if (WAVEFORM_FACTOR == 1)
                 BMP_LOCK( waveform_draw_image( os.x0 + 4, os.y_max - (lv ? os.off_169 : 0) - (gui_menu_shown() ? 25 : 0) - 54, 54); )
             else
-                BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR - (WAVEFORM_FULLSCREEN ? 0 : 4), os.y0 + 100, WAVEFORM_HEIGHT*WAVEFORM_FACTOR ); );
+                BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR - 4, os.y0 + 100, WAVEFORM_HEIGHT*WAVEFORM_FACTOR ); );
         }
         else
             BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR - (WAVEFORM_FULLSCREEN ? 0 : 4), os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET, WAVEFORM_HEIGHT*WAVEFORM_FACTOR ); )
