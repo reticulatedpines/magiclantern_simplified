@@ -166,14 +166,14 @@ _draw_char(
     }
     else // shadowed fonts
     {
-        struct font * shadow =
-        #ifdef CONFIG_STATIC_FONTS
-            (struct font *) font;
-        #else
+        struct sfont * shadow =
+        /*#ifdef CONFIG_STATIC_FONTS
+            (stshadowruct font *) font;
+        #else*/
             font == &font_large ? &font_large_shadow :
             font == &font_med ? &font_med_shadow :
             font == &font_small ? &font_small_shadow : 0;
-        #endif
+        //#endif
 
         fg_color >>= 24;
         bg_color >>= 24;
@@ -278,6 +278,7 @@ bmp_puts(
 {
 #ifdef CONFIG_1100D
     //fonts look much better if coordinates are odd
+    //hack until there is a better medium font for 1100D
     *x = *x | 1;
     *y = *y | 1;
 #endif
