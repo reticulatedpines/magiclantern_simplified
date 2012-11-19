@@ -832,7 +832,7 @@ static void
 audio_set_meterlabel(){
 
 #if (defined(CONFIG_500D) || defined(CONFIG_1100D))  //500d and 1100d only have internal mono audio :(
-	int input_source = 4;
+	int input_source = 0;
 #else
 	int input_source = get_input_source();
 #endif
@@ -843,8 +843,13 @@ audio_set_meterlabel(){
     switch (input_source)
         {
         case 0:
+            #if (defined(CONFIG_500D) || defined(CONFIG_1100D))
+            snprintf(left_label,  sizeof(left_label),  " MIC ");
+            snprintf(right_label, sizeof(right_label), " N/C ");
+            #else
             snprintf(left_label,  sizeof(left_label),  "L INT");
             snprintf(right_label, sizeof(right_label), "R INT");
+            #endif
             break;
         case 1:
             snprintf(left_label,  sizeof(left_label),  "L INT");
@@ -857,9 +862,6 @@ audio_set_meterlabel(){
         case 3:
             snprintf(left_label,  sizeof(left_label),  "L INT");
             snprintf(right_label, sizeof(right_label), "R BAL");
-            break;
-        case 4:
-            snprintf(left_label,  sizeof(left_label),  "MIC ");
             break;
         }
 
