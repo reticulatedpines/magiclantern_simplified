@@ -106,6 +106,11 @@
 #define CONFIG_AUDIO_REMOTE_SHOT
 #endif
 
+#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_600D) || defined(CONFIG_500D)
+#define CONFIG_AUDIO_CONTROLS
+#endif
+
+
 #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
 #define CONFIG_LV_3RD_PARTY_FLASH
 #endif
@@ -129,6 +134,18 @@
 
 #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
 #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY // you can't override digital ISO component via FRAME_ISO
+#endif
+
+#if defined(CONFIG_LIVEVIEW) && !defined(CONFIG_600D) && !defined(CONFIG_1100D)
+#define CONFIG_EXPSIM
+#endif
+
+#if defined(CONFIG_500D) || defined(CONFIG_550D) // high-end cameras doesn't need this (on 600D don't works)
+#define CONFIG_AUTO_BURST_PICQ
+#endif
+
+#if !defined(CONFIG_5D2) && !defined(CONFIG_5D3) // no built-in flash
+#define CONFIG_FLASH_TWEAKS
 #endif
 
 

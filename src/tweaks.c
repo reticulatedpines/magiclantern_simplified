@@ -238,6 +238,8 @@ static void MP4to422(void* priv, int delta)
 // ExpSim
 //**********************************************************************/
 
+#ifdef CONFIG_EXPSIM
+
 void video_refresh()
 {
     set_lv_zoom(lv_dispsize);
@@ -305,12 +307,16 @@ expsim_display( void * priv, int x, int y, int selected )
     //~ else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
 }
 
+#else // no expsim, use some dummy stubs
+void set_expsim(){};
+#endif
+
 // auto burst pic quality
 //**********************************************************************/
 
 CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
 
-#if defined(CONFIG_500D) || defined(CONFIG_550D)
+#ifdef CONFIG_AUTO_BURST_PICQ
 static void set_pic_quality(int q)
 {
     if (q == -1) return;
@@ -468,8 +474,6 @@ void clear_lv_affframe_if_dirty()
     //~ #endif
 }
 
-// to be called only from prop_handler PROP_LV_AFFRAME
-// no BMP_LOCK here, please
 void clear_lv_afframe()
 {
     if (!lv) return;
@@ -2155,7 +2159,7 @@ static struct menu_entry key_menus[] = {
         .submenu_width = 500,
         .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .children =  (struct menu_entry[]) {
-            #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
+            #ifdef CONFIG_AUDIO_CONTROLS
             {
                 .name = "Audio Gain",
                 .priv       = &arrow_keys_audio,
@@ -2206,14 +2210,12 @@ static struct menu_entry key_menus[] = {
                 .help = "Use the LCD face sensor as an extra key in ML.",
             },
             #endif
-            #if defined(CONFIG_7D)
             {
                 .name = "Sticky DOF Preview  ", 
                 .priv = &dofpreview_sticky, 
                 .max = 1,
                 .help = "Makes the DOF preview button sticky (press to toggle).",
             },
-            #endif
             {
                 .name       = "Sticky HalfShutter  ",
                 .priv = &halfshutter_sticky,
@@ -2283,7 +2285,7 @@ static struct menu_entry tweak_menus[] = {
         .display = night_vision_print,
         .help = "Maximize LV display gain for framing in darkness (photo)"
     },*/
-    #if defined(CONFIG_500D) || defined(CONFIG_550D) // high-end cameras doesn't need this (on 600D don't works)
+    #ifdef CONFIG_AUTO_BURST_PICQ
     {
         .name = "Auto BurstPicQuality",
         .priv = &auto_burst_pic_quality, 
@@ -2443,6 +2445,7 @@ static void upside_down_step()
 
 void screenshot_start();
 
+#ifdef CONFIG_EXPSIM
 struct menu_entry expo_tweak_menus[] = {
     {
         .name = "LV Display",
@@ -2457,6 +2460,7 @@ struct menu_entry expo_tweak_menus[] = {
         //~ .show_liveview = 1,
     },
 };
+#endif
 
 CONFIG_INT("preview.brightness", preview_brightness, 0);
 CONFIG_INT("preview.contrast", preview_contrast, 3);

@@ -721,6 +721,7 @@ motion_detect_display( void * priv, int x, int y, int selected )
 
 int get_trap_focus() { return trap_focus; }
 
+#ifdef CONFIG_FLASH_TWEAKS
 void set_flash_firing(int mode)
 {
     lens_wait_readytotakepic(64);
@@ -739,14 +740,7 @@ flash_and_no_flash_display( void * priv, int x, int y, int selected )
     );
 }
 
-/*static void
-flash_and_no_flash_toggle( void * priv )
-{
-    flash_and_no_flash = !flash_and_no_flash;
-    if (!flash_and_no_flash)
-        set_flash_firing(0); // force on
-}*/
-
+#endif
                                                  //2  4  6  9 12 16 20 25
 static const int16_t silent_pic_sweep_modes_l[] = {2, 2, 2, 3, 3, 4, 4, 5};
 static const int16_t silent_pic_sweep_modes_c[] = {1, 2, 3, 3, 4, 4, 5, 5};
@@ -5381,7 +5375,7 @@ static struct menu_entry shoot_menus[] = {
 };
 #endif
 
-#if !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL)
+#ifdef CONFIG_FLASH_TWEAKS
 static struct menu_entry flash_menus[] = {
     {
         .name = "Flash tweaks...",
@@ -7097,7 +7091,7 @@ shoot_task( void* unused )
             picture_was_taken_flag = 0;
         }
 
-        #if !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
+        #ifdef CONFIG_FLASH_TWEAKS
         // toggle flash on/off for next picture
         if (!is_movie_mode() && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
         {
@@ -7109,7 +7103,6 @@ shoot_task( void* unused )
         if (!flash_and_no_flash && prev_flash_and_no_flash && strobo_firing==1)
             set_flash_firing(0);
         prev_flash_and_no_flash = flash_and_no_flash;
-        #endif
 
         #ifdef CONFIG_LV_3RD_PARTY_FLASH
         if (lv_3rd_party_flash && !is_movie_mode())
@@ -7124,6 +7117,7 @@ shoot_task( void* unused )
                 fake_simple_button(BGMT_LV);
             }
         }
+        #endif
         #endif
                 
         // trap focus (outside LV) and all the preconditions
@@ -7551,7 +7545,7 @@ void shoot_init()
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
     #endif
 
-    #if !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
+    #ifdef CONFIG_FLASH_TWEAKS
     menu_add( "Shoot", flash_menus, COUNT(flash_menus) );
     #endif
     
@@ -7562,7 +7556,7 @@ void shoot_init()
     menu_add( "Expo", expo_override_menus, 1 );
     #endif
 
-    #if !defined(CONFIG_600D) && !defined(CONFIG_5DC) // expsim doesn't work
+    #ifdef CONFIG_EXPSIM
     extern struct menu_entry expo_tweak_menus[];
     menu_add( "Expo", expo_tweak_menus, 1 );
     #endif

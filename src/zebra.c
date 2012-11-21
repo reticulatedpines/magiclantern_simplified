@@ -2980,6 +2980,8 @@ static int spot_prev_xcb = 0;
 static int spot_prev_ycb = 0;
 static int spotmeter_dirty = 0;
 
+// will be called from prop_handler PROP_LV_AFFRAME
+// no BMP_LOCK here, please
 void
 spotmeter_erase()
 {
