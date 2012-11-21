@@ -156,5 +156,13 @@
 #define CONFIG_BEEP
 #endif
 
+#if defined(CONFIG_500D) || defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_60D) 
+#define CONFIG_WB_WORKAROUND // these cameras don't save Kelvin and/or WBShift in movie mode, so ML has to do this instead
+#endif
+
+#if !defined(CONFIG_VXWORKS) && !defined(CONFIG_5D3)
+#define CONFIG_RESTORE_AFTER_FORMAT
+#endif
+
 #endif
 

@@ -229,7 +229,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_quick_access_menu_items(event) == 0) return 0;
     #endif
     
-#ifndef CONFIG_5D3
+#ifdef CONFIG_RESTORE_AFTER_FORMAT
     #ifdef BGMT_Q
     if (MENU_MODE && (event->param == BGMT_Q
         #ifdef BGMT_Q_ALT

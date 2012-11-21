@@ -3255,93 +3255,24 @@ void show_logo()
     }
 }*/
 
+// initialization done AFTER reading the config file, 
+// but BEFORE starting ML tasks
 void
 debug_init_stuff( void )
 {
     //~ set_pic_quality(PICQ_RAW);
     config_ok = 1;
+    
+    #ifdef CONFIG_WB_WORKAROUND
     if (is_movie_mode()) restore_kelvin_wb();
+    #endif
     
     #ifdef CONFIG_5D3
     card_tests();
     #endif
-
-    //~ dm_set_store_level( 255, 0);
-    //~ dm_set_print_level( 255, 0);
-    
-    /*
-    DEBUG();
-    dm_set_store_level( DM_DISP, 7 );
-    dm_set_store_level( DM_LVFD, 7 );
-    dm_set_store_level( DM_LVCFG, 7 );
-    dm_set_store_level( DM_LVCDEV, 7 );
-    dm_set_store_level( DM_LV, 7 );
-    dm_set_store_level( DM_RSC, 7 );
-    dm_set_store_level( DM_MAC, 7 );
-    dm_set_store_level( DM_CRP, 7 );
-    dm_set_store_level( DM_SETPROP, 7 );
-    dm_set_store_level( DM_PRP, 7 );
-    dm_set_store_level( DM_PROPAD, 7 );
-    dm_set_store_level( DM_INTCOM, 7 );
-    dm_set_store_level( DM_WINSYS, 7 );
-    dm_set_store_level( DM_CTRLSRV, 7 );
-    dm_set_store_level( DM_GUI, 7);
-    dm_set_store_level( DM_GUI_M, 7);
-    dm_set_store_level( DM_GUI_E, 7);
-    dm_set_store_level( DM_BIND, 7);
-    dm_set_store_level( DM_DISP, 7);
-    DEBUG();*/
-
-    //~ int i;
-    //~ for (i = 0; i < 256; i++)
-        //~ dm_set_store_level( i, 15);
-    
-    //msleep(1000);
-    //bmp_draw_palette();
-    //dispcheck();
-
 }
 
-
-//~ TASK_CREATE( "dump_task", dump_task, 0, 0x1e, 0x1000 );
 TASK_CREATE( "debug_task", debug_loop_task, 0, 0x1e, 0x2000 );
-//~ CONFIG_INT( "debug.timed-start",    timed_start, 0 );
-/*
-static void
-movie_start( void )
-{
-    int sec = timed_start;
-    if( sec == 0 )
-        return;
-
-    const int x = 320;
-    const int y = 150;
-
-    while( --sec > 0 )
-    {
-        msleep( 1000 );
-        bmp_printf(
-            FONT(
-                FONT_LARGE,
-                sec > 4 ? COLOR_WHITE : COLOR_RED,
-                0
-            ),
-            x, y,
-            "T-%d",
-            sec
-        );
-    }
-
-    bmp_printf( FONT(FONT_LARGE,COLOR_WHITE,0), x, y, "GO!" );
-
-    call( "MovieStart" );
-
-    msleep( 1000 );
-
-    bmp_printf( FONT(FONT_LARGE,COLOR_WHITE,0), x, y, "   " );
-}*/
-
-//~ TASK_CREATE( "movie_start", movie_start, 0, 0x1f, 0x1000 );
 
 void config_save_at_shutdown()
 {
@@ -3461,9 +3392,10 @@ PROP_HANDLER(PROP_ISO)
 
 #endif
 
+#ifdef CONFIG_RESTORE_AFTER_FORMAT
+
 int keep_ml_after_format = 1;
 
-#ifndef CONFIG_5DC
 void HijackFormatDialogBox()
 {
     if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
@@ -3779,15 +3711,12 @@ void HijackFormatDialogBox_main()
 
 void config_menu_init()
 {
-    //~ extern struct menu_entry menu_cfg_menu[];
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
-//~ #ifndef CONFIG_5DC
 #ifndef CONFIG_VXWORKS
     extern struct menu_entry livev_cfg_menus[];
     menu_add( "Prefs", livev_cfg_menus,  1);
 #endif
     crop_factor_menu_init();
-    //~ menu_add( "Config", menu_cfg_menu,  1);
     menu_add( "Debug", debug_menus, COUNT(debug_menus) );
     
     #ifdef CONFIG_5D3
@@ -3830,10 +3759,7 @@ bool get_halfshutter_pressed() { return HALFSHUTTER_PRESSED && !dofpreview; }
 
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
-//~ int set_pressed = 0;
-//~ int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
-//~ int get_set_pressed() { return set_pressed; }
 int joy_center_pressed = 0;
 
 int handle_buttons_being_held(struct event * event)
@@ -3897,30 +3823,6 @@ int handle_tricky_canon_calls(struct event * event)
         case MLEV_REDRAW:
             redraw_do();
             break;
-/*        case MLEV_KILL_FLICKER:
-            canon_gui_disable_gmt();
-            break;
-        case MLEV_STOP_KILLING_FLICKER:
-            canon_gui_enable_gmt();
-            break; */
-/*        case MLEV_BV_ENABLE:
-            bv_enable_do();
-            break;
-        case MLEV_BV_DISABLE:
-            bv_disable_do();
-            break;
-        case MLEV_BV_AUTO_UPDATE:
-            bv_auto_update_do();
-            break;*/
-        //~ case MLEV_MENU_OPEN:
-            //~ menu_open_gmt();
-            //~ break;
-        //~ case MLEV_MENU_CLOSE:
-            //~ menu_close_gmt();
-            //~ break;
-        //~ case MLEV_MENU_REDRAW:
-            //~ menu_inject_redraw_event();
-            //~ break;
     }
     return 0;
 }
@@ -3933,27 +3835,12 @@ void display_off()
 {
     fake_simple_button(MLEV_TURN_OFF_DISPLAY);
 }
-//~ int display_is_on() { return DISPLAY_IS_ON; }
 
 
 // engio functions may fail and lock the camera
-// at least make sure the LED is ON, so you know to take the battery out
-
 void EngDrvOut(int reg, int value)
 {
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return; // these are normally used with display on; otherwise, they may lock-up the camera
-    //~ _card_led_on();
     _EngDrvOut(reg, value);
-    //~ _card_led_off();
 }
-
-/*void engio_write(int* command_sequence)
-{
-    if (ml_shutdown_requested) return;
-    if (!DISPLAY_IS_ON) return;
-    //~ _card_led_on();
-    _engio_write(command_sequence);
-    //~ _card_led_off();
-}
-*/
