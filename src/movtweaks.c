@@ -13,9 +13,6 @@
 #include "lens.h"
 #include "math.h"
 
-#ifdef CONFIG_4_3_SCREEN
-#define CONFIG_BLUE_LED 1
-#endif
 #ifdef CONFIG_BLUE_LED
 #define RECNOTIFY_LED (rec_notify == 3)
 #define RECNOTIFY_BEEP (rec_notify == 4)
@@ -695,7 +692,7 @@ static void movie_expo_lock_print(
 }
 #endif
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+#ifdef CONFIG_BLUE_LED
 CONFIG_INT("rec.notify", rec_notify, 3);
 #else
 CONFIG_INT("rec.notify", rec_notify, 0);
@@ -1261,12 +1258,14 @@ static struct menu_entry mov_menus[] = {
         .name = "REC/STBY notify", 
         .priv = &rec_notify, 
         .display = rec_notify_print, 
-        #if defined(CONFIG_5D2) || defined(CONFIG_500D)
-        .select = menu_quinternary_toggle, // beeps and blue led
-        #elif defined(CONFIG_600D) || defined(CONFIG_5D3) || defined(CONFIG_7D)
-        .select = menu_ternary_toggle, // no beeps, no blue led
+        #if defined(CONFIG_BLUE_LED) && defined(CONFIG_BEEP)
+        .max = 4,
+        #elif defined(CONFIG_BLUE_LED) && !defined(CONFIG_BEEP)
+        .max = 3,
+        #elif !defined(CONFIG_BLUE_LED) && defined(CONFIG_BEEP)
+        .max = 3,
         #else
-        .select = menu_quaternary_toggle, // beeps are OK, no blue led
+        .max = 2,
         #endif
         .help = "Custom REC/STANDBY notifications, visual or audible",
         //.essential = FOR_MOVIE,

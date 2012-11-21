@@ -148,6 +148,13 @@
 #define CONFIG_FLASH_TWEAKS
 #endif
 
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_7D) || defined(CONFIG_VXWORKS)
+#define CONFIG_BLUE_LED
+#endif
+
+#if !( defined(CONFIG_50D) || defined(CONFIG_VXWORKS) || defined(CONFIG_5D3_MINIMAL) )
+#define CONFIG_BEEP
+#endif
 
 #endif
 
