@@ -219,17 +219,17 @@ int should_draw_bottom_bar()
 int raw2shutter_ms(int raw_shutter)
 {
     if (!raw_shutter) return 0;
-    return (int) roundf(powf(2.0, (56.0 - raw_shutter)/8.0) * 1000.0);
+    return (int) roundf(powf(2.0, (56.0f - raw_shutter)/8.0f) * 1000.0f);
 }
 int shutter_ms_to_raw(int shutter_ms)
 {
     if (shutter_ms == 0) return 160;
-    return (int) roundf(56.0 - log2f((float)shutter_ms / 1000.0) * 8.0);
+    return (int) roundf(56.0f - log2f((float)shutter_ms / 1000.0f) * 8.0f);
 }
 int shutterf_to_raw(float shutterf)
 {
     if (shutterf == 0) return 160;
-    return (int) roundf(56.0 - log2f(shutterf) * 8.0);
+    return (int) roundf(56.0f - log2f(shutterf) * 8.0f);
 }
 
 // this one attempts to round in the same way as with previous call
@@ -271,7 +271,7 @@ void round_noflicker_test()
 int shutterf_to_raw_noflicker(float shutterf)
 {
     if (shutterf == 0) return 160;
-    return round_noflicker(56.0 - log2f(shutterf) * 8.0);
+    return round_noflicker(56.0f - log2f(shutterf) * 8.0f);
 }
 
 float raw2shutterf(int raw_shutter)
@@ -282,7 +282,7 @@ float raw2shutterf(int raw_shutter)
 
 int raw2iso(int raw_iso)
 {
-    int iso = (int) roundf(100.0 * powf(2.0, (raw_iso - 72.0)/8.0));
+    int iso = (int) roundf(100.0f * powf(2.0f, (raw_iso - 72.0f)/8.0f));
     if (iso >= 100 && iso <= 6400)
         iso = values_iso[raw2index_iso(raw_iso)];
     else if (raw_iso == 123)
@@ -542,7 +542,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
 
 
       int shutter_x10 = raw2shutter_ms(info->raw_shutter) / 100;
-      int shutter_reciprocal = info->raw_shutter ? (int) roundf(4000.0 / powf(2.0, (152 - info->raw_shutter)/8.0)) : 0;
+      int shutter_reciprocal = info->raw_shutter ? (int) roundf(4000.0f / powf(2.0f, (152 - info->raw_shutter)/8.0f)) : 0;
 
       // in movie mode we can get the exact value from Canon timers
       if (is_movie_mode()) 

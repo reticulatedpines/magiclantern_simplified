@@ -897,7 +897,7 @@ void update_lvae_for_autoiso_n_displaygain()
 int gain_to_ev_x8(int gain)
 {
     if (gain == 0) return 0;
-    return (int) roundf(log2f(gain) * 8.0);
+    return (int) roundf(log2f(gain) * 8.0f);
 }
 
 CONFIG_INT("iso.smooth", smooth_iso, 0);
@@ -936,7 +936,7 @@ void smooth_iso_step()
     }
     if (iso_acc)
     {
-        float gf = 1024.0 * powf(2, iso_acc / (8.0 * (1 << smooth_iso_speed)));
+        float gf = 1024.0f * powf(2, iso_acc / (8.0f * (1 << smooth_iso_speed)));
 
         // it's not a good idea to use a digital ISO gain higher than +/- 0.5 EV (noise or pink highlights), 
         // so alter it via FRAME_ISO

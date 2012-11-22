@@ -509,7 +509,7 @@ static void cordic_ex(int theta, int* s, int* c, int n)
     
     // for sine wave: 1 hz => t = i * 2*pi*MUL / 48000
     int twopi = 102944;
-    float factor = (int)roundf((float)twopi / 48000.0 * beep_freq);
+    float factor = (int)roundf((float)twopi / 48000.0f * beep_freq);
     
     for (int i = 0; i < N; i++)
     {

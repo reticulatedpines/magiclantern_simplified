@@ -71,7 +71,7 @@ const char* get_dcim_dir()
 #endif
 
 static float bulb_shutter_valuef = 1.0;
-#define BULB_SHUTTER_VALUE_MS (int)roundf(bulb_shutter_valuef * 1000.0)
+#define BULB_SHUTTER_VALUE_MS (int)roundf(bulb_shutter_valuef * 1000.0f)
 #define BULB_SHUTTER_VALUE_S (int)roundf(bulb_shutter_valuef)
 
 int get_bulb_shutter_raw_equiv()
@@ -513,7 +513,7 @@ intervalometer_display( void * priv, int x, int y, int selected )
 
 static int get_smooth_factor_from_max_ev_speed(int speed_x1000)
 {
-    float ev = COERCE((float)speed_x1000 / 1000.0, 0.001, 0.98);
+    float ev = COERCE((float)speed_x1000 / 1000.0f, 0.001f, 0.98f);
     float f = (sqrtf(2*ev - ev*ev) - 1) / (ev-1);
     int fi = (int)roundf(f * 100);
     return COERCE(fi, 1, 99);
@@ -4557,7 +4557,7 @@ static void compute_exposure_for_next_shot()
             // set Canon shutter speed close to bulb one (just for display)
             lens_set_rawshutter(shutterf_to_raw(bulb_shutter_valuef));
 
-            my_fprintf(bramp_log_file, "harsh: cor=%d shutter=%6dms iso=%4d\n", (int)roundf(cor * 100.0), BULB_SHUTTER_VALUE_MS, lens_info.iso);
+            my_fprintf(bramp_log_file, "harsh: cor=%d shutter=%6dms iso=%4d\n", (int)roundf(cor * 100.0f), BULB_SHUTTER_VALUE_MS, lens_info.iso);
 
             // force next shot to be taken quicker
             intervalometer_next_shot_time = seconds_clock;
@@ -4569,8 +4569,8 @@ static void compute_exposure_for_next_shot()
 
             float u = 0;
             int fi = get_smooth_factor_from_max_ev_speed(bramp_auto_ramp_speed);
-            float f = (float)fi / 100.0;
-            float e = (float)e_x100 / 100.0;
+            float f = (float)fi / 100.0f;
+            float e = (float)e_x100 / 100.0f;
 
             if (LRT_HOLY_GRAIL)
             {
@@ -4597,7 +4597,7 @@ static void compute_exposure_for_next_shot()
             bulb_shutter_valuef *= powf(2, u);
 
             // display some info
-            int corr_x100 = (int) roundf(u * 100.0);
+            int corr_x100 = (int) roundf(u * 100.0f);
             NotifyBox(2000, "Exposure difference: %s%d.%02d EV \n"
                             "Exposure correction: %s%d.%02d EV ",
                             FMT_FIXEDPOINT2S(e_x100),
@@ -4612,7 +4612,7 @@ static void compute_exposure_for_next_shot()
 
     // apply manual exposure ramping, if any
     if (manual_evx1000)
-        bulb_shutter_valuef *= powf(2, (float)manual_evx1000 / 1000.0);
+        bulb_shutter_valuef *= powf(2, (float)manual_evx1000 / 1000.0f);
     
     if (BULB_EXPOSURE_CONTROL_ACTIVE)
     {
@@ -6140,7 +6140,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
 
         // apply EV correction in both "domains" (milliseconds and EV)
         int ms = get_exposure_time_ms();
-        int msc = ms * roundf(1000.0*powf(2, ev_x8 / 8.0))/1000;
+        int msc = ms * roundf(1000.0f * powf(2, ev_x8 / 8.0f))/1000;
         
         int rs = (BULB_EXPOSURE_CONTROL_ACTIVE) ? shutterf_to_raw_noflicker(bulb_shutter_valuef) : get_exposure_time_raw();
         int rc = rs - ev_x8;
@@ -6177,7 +6177,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             {
                 // since actual shutter speed differs from float value quite a bit, 
                 // we will need this to correct metering readings
-                bramp_last_exposure_rounding_error_evx1000 = (int)roundf(log2f(raw2shutterf(rs) / bulb_shutter_valuef) * 1000.0);
+                bramp_last_exposure_rounding_error_evx1000 = (int)roundf(log2f(raw2shutterf(rs) / bulb_shutter_valuef) * 1000.0f);
                 ASSERT(ABS(bramp_last_exposure_rounding_error_evx1000) < 500);
             }
             else bramp_last_exposure_rounding_error_evx1000 = 0;
