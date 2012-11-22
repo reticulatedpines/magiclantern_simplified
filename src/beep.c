@@ -14,14 +14,7 @@ extern int cfg_hibr_wav_record;
 
 int beep_playing = 0;
 
-#if defined(CONFIG_50D) || defined(CONFIG_VXWORKS) || defined(CONFIG_5D3_MINIMAL) // beep not working, keep dummy stubs
-    void unsafe_beep(){}
-    void beep(){}
-    void Beep(){}
-    void beep_times(int times){};
-    int beep_enabled = 0;
-    int handle_voice_tags(struct event * event) { return 1; }
-#else // beep working
+#ifdef CONFIG_BEEP
 
 #define BEEP_LONG -1
 #define BEEP_SHORT 0
@@ -1018,6 +1011,15 @@ static void beep_init()
 }
 
 INIT_FUNC("beep.init", beep_init);
+
+#else // beep not working, keep dummy stubs
+
+    void unsafe_beep(){}
+    void beep(){}
+    void Beep(){}
+    void beep_times(int times){};
+    int beep_enabled = 0;
+    int handle_voice_tags(struct event * event) { return 1; }
 
 #endif
 
