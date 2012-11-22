@@ -149,8 +149,14 @@ cstart( void )
     clean_d_cache();
     flush_caches();
 
-    /* Jump into the newly relocated code */
-    void (*copy_and_restart)() = (void*) RESTARTSTART;
+    /* Jump into the newly relocated code
+       Q: Why target/compiler-specific attribute long_call?
+       A: If in any case the base address passed to linker (-Ttext 0x40800000) doesnt fit because we 
+          e.g. run at the cached address 0x00800000, we wont risk jumping into nirvana here.
+          This will not help when the offset is oddly misplaced, like the 0x120 fir offset. Why? 
+          Because the code above (blob_memcpy) already made totally wrong assumptions about memory addresses.
+     */
+    void __attribute__((long_call)) (*copy_and_restart)() = (void*) RESTARTSTART;
     
     copy_and_restart();
     
