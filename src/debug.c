@@ -72,51 +72,39 @@ draw_prop_reset( void * priv )
 #endif
 
 #ifdef CONFIG_5D3
-void _card_led_on() { int f = cli_save(); *(uint32_t*)CARD_LED_ADDRESS = 0x138800; sei_restore(f); }
-void _card_led_off() { int f = cli_save(); *(uint32_t*)CARD_LED_ADDRESS = 0x838C00; sei_restore(f); }
+void _card_led_on() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x138800; }
+void _card_led_off() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x838C00; }
 #elif defined(CONFIG_7D)
-void _card_led_on() { int f = cli_save(); *(uint32_t*)CARD_LED_ADDRESS = 0x138800; sei_restore(f); }
-void _card_led_off() { int f = cli_save(); *(uint32_t*)CARD_LED_ADDRESS = 0x38400; sei_restore(f); }
+void _card_led_on() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x138800; }
+void _card_led_off() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x38400; }
 #else
- void _card_led_on() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x46; sei_restore(f); }
- void _card_led_off() { int f = cli_save(); *(uint8_t*)CARD_LED_ADDRESS = 0x44; sei_restore(f); }
+ void _card_led_on() { *(volatile uint8_t*)CARD_LED_ADDRESS = 0x46; }
+ void _card_led_off() { *(volatile uint8_t*)CARD_LED_ADDRESS = 0x44; }
 #endif
-/*void _card_led_blink(int times, int delay_on, int delay_off)
-{
-    int i;
-    for (i = 0; i < times; i++)
-    {
-        card_led_on();
-        msleep(delay_on);
-        card_led_off();
-        msleep(delay_off);
-    }
-}*/
 
 void info_led_on()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_7D)
-    call("EdLedOn");
-    #elif defined(CONFIG_VXWORKS)
+    #ifdef CONFIG_VXWORKS
     LEDBLUE = LEDON;
+    #elif defined(CONFIG_BLUE_LED)
+    call("EdLedOn");
     #else
     _card_led_on();
     #endif
 }
 void info_led_off()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_7D)
-    call("EdLedOff");
-    #elif defined(CONFIG_VXWORKS)
+    #ifdef CONFIG_VXWORKS
     LEDBLUE = LEDOFF;
+    #elif defined(CONFIG_BLUE_LED)
+    call("EdLedOff");
     #else
     _card_led_off();
     #endif
 }
 void info_led_blink(int times, int delay_on, int delay_off)
 {
-    int i;
-    for (i = 0; i < times; i++)
+    for (int i = 0; i < times; i++)
     {
         info_led_on();
         msleep(delay_on);
