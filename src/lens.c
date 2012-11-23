@@ -34,10 +34,6 @@
 // for movie logging
 char* mvr_logfile_buffer = 0;
 
-#if defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_5DC)
-#define CONFIG_FULLFRAME
-#endif
-
 void update_stuff();
 
 //~ extern struct semaphore * bv_sem;
@@ -797,7 +793,6 @@ void draw_ml_bottombar(int double_buffering, int clear)
                       );
       }
 
-#ifndef CONFIG_5D3_MINIMAL
         // battery indicator
         int xr = x_origin + 612 - font_large.width - 4;
 
@@ -823,7 +818,6 @@ void draw_ml_bottombar(int double_buffering, int clear)
         bmp_draw_rect(col, xr-2, y_origin, 15, 29);
         bmp_draw_rect(col, xr-1, y_origin + 1, 13, 27);
         bmp_fill(col, xr+4, y_origin + 26 - bat, 8, bat);
-#endif
 
     //~ if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
     //~ if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
@@ -967,7 +961,9 @@ void draw_ml_topbar(int double_buffering, int clear)
     );
 
     x += 45;
+    #ifdef FEATURE_PICSTYLE
     bmp_printf( font, x, y, (char*)get_picstyle_shortname(lens_info.raw_picstyle));
+    #endif
 
     x += 70;
     #ifdef CONFIG_BATTERY_INFO
@@ -1060,8 +1056,10 @@ lens_focus(
         info_led_off();
     }
 
+    #ifdef FEATURE_MAGIC_ZOOM
     if (get_zoom_overlay_trigger_by_focus_ring()) zoom_overlay_set_countdown(300);
-    //~ if (get_global_draw()) BMP_LOCK( draw_ml_bottombar(); )
+    #endif
+
     idle_wakeup_reset_counters(-10);
     lens_display_set_dirty();
     
@@ -1227,6 +1225,8 @@ lens_take_picture(
     }
 }
 
+#ifdef FEATURE_MOVIE_LOGGING
+
 /** Write the current lens info into the logfile */
 static void
 mvr_update_logfile(
@@ -1380,7 +1380,7 @@ mvr_create_logfile(
         lens_info.wbs_ba > 0 ? "Amber" : "Blue", ABS(lens_info.wbs_ba)
         );
 
-    
+    #ifdef FEATURE_PICSTYLE
     MVR_LOG_APPEND (
         "Picture Style  : %s (%d,%d,%d,%d)\n", 
         get_picstyle_name(lens_info.raw_picstyle), 
@@ -1389,6 +1389,7 @@ mvr_create_logfile(
         ABS(lens_get_saturation()) < 10 ? lens_get_saturation() : 0,
         ABS(lens_get_color_tone()) < 10 ? lens_get_color_tone() : 0
         );
+    #endif
 
     fps_mvr_log(mvr_logfile_buffer);
     hdr_mvr_log(mvr_logfile_buffer);
@@ -1402,8 +1403,7 @@ mvr_create_logfile(
     // Force the initial values to be written
     mvr_update_logfile( &lens_info, 1 );
 }
-
-
+#endif
 
 static inline uint16_t
 bswap16(
@@ -1416,7 +1416,10 @@ bswap16(
 PROP_HANDLER( PROP_MVR_REC_START )
 {
     mvr_rec_start_shoot(buf[0]);
+    
+    #ifdef FEATURE_MOVIE_LOGGING
     mvr_create_logfile( *(unsigned*) buf );
+    #endif
 }
 
 
@@ -1519,6 +1522,7 @@ static int iso_ack = -1;
 PROP_HANDLER( PROP_ISO )
 {
     if (!CONTROL_BV) lensinfo_set_iso(buf[0]);
+    #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0] && !gui_menu_shown() && ISO_ADJUSTMENT_ACTIVE
         #ifdef CONFIG_500D
         && !is_movie_mode()
@@ -1529,6 +1533,7 @@ PROP_HANDLER( PROP_ISO )
         bv_auto_needed_by_iso = 0;
     }
     bv_auto_update();
+    #endif
     lens_display_set_dirty();
     iso_ack = buf[0];
 }
@@ -1578,6 +1583,7 @@ PROP_HANDLER( PROP_SHUTTER )
         if (shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_P)
             lensinfo_set_shutter(buf[0]);
     }
+    #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0]  // sync expo override to Canon values
             && (!shutter_was_set_from_ml || ABS(buf[0] - lens_info.raw_shutter) > 3) // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
                                                        // especially when pressing half-shutter
@@ -1593,6 +1599,7 @@ PROP_HANDLER( PROP_SHUTTER )
         shutter_was_set_from_ml = 0;
     }
     bv_auto_update();
+    #endif
     lens_display_set_dirty();
     shutter_ack = buf[0];
 }
@@ -1602,6 +1609,7 @@ PROP_HANDLER( PROP_APERTURE2 )
 {
     //~ NotifyBox(2000, "%x %x %x %x ", buf[0], CONTROL_BV, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
     if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
+    #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0] && !gui_menu_shown()
         #ifdef CONFIG_500D
         && !is_movie_mode()
@@ -1612,6 +1620,7 @@ PROP_HANDLER( PROP_APERTURE2 )
         bv_auto_needed_by_aperture = 0;
     }
     bv_auto_update();
+    #endif
     lens_display_set_dirty();
     aperture_ack = buf[0];
 }
@@ -1800,7 +1809,11 @@ void update_stuff()
 {
     calc_dof( &lens_info );
     //~ if (gui_menu_shown()) lens_display_set_dirty();
+    
+    #ifdef FEATURE_MOVIE_LOGGING
     if (movie_log) mvr_update_logfile( &lens_info, 0 ); // do not force it
+    #endif
+    
     iso_components_update();
 }
 
@@ -1824,10 +1837,16 @@ PROP_HANDLER( PROP_LV_LENS )
     static unsigned old_focal_len = 0;
     if (lv && (old_focus_dist && lens_info.focus_dist != old_focus_dist) && (old_focal_len && lens_info.focal_len == old_focal_len))
     {
+        #ifdef FEATURE_MAGIC_ZOOM
         if (get_zoom_overlay_trigger_by_focus_ring()) zoom_overlay_set_countdown(300);
+        #endif
+        
         idle_wakeup_reset_counters(-11);
         lens_display_set_dirty();
+        
+        #ifdef FEATURE_LV_ZOOM_SETTINGS
         zoom_focus_ring_trigger();
+        #endif
     }
     old_focus_dist = lens_info.focus_dist;
     old_focal_len = lens_info.focal_len;
@@ -1868,6 +1887,7 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
     //~ bv_auto_update();
 }
 
+#ifdef FEATURE_MOVIE_LOGGING
 static void 
 movielog_display( void * priv, int x, int y, int selected )
 {
@@ -1878,17 +1898,18 @@ movielog_display( void * priv, int x, int y, int selected )
         movie_log ? "ON" : "OFF"
     );
 }
+#endif
+
 static struct menu_entry lens_menus[] = {
-#ifndef CONFIG_50D
+    #ifdef FEATURE_MOVIE_LOGGING
     {
         .name = "Movie Logging",
         .priv = &movie_log,
         .select = menu_binary_toggle,
         .display = movielog_display,
         .help = "Save metadata for each movie, e.g. MVI_1234.LOG",
-        //.essential = 1,
     },
-#endif
+    #endif
 };
 
 #ifndef CONFIG_FULLFRAME
@@ -1925,17 +1946,10 @@ crop_factor_menu_init()
 static void
 lens_init( void* unused )
 {
-    //~ lens_sem = create_named_semaphore( "lens_info", 1 );
     focus_done_sem = create_named_semaphore( "focus_sem", 1 );
-    //~ job_sem = create_named_semaphore( "job", 1 ); // seems to cause lockups
 #ifndef CONFIG_5DC
     menu_add("Movie", lens_menus, COUNT(lens_menus));
 #endif
-
-    //~ lens_info.lens_rotation = 0.1;
-    //~ lens_info.lens_step = 1.0;
-     //~ FIO_RemoveFile("B:/lens.log");
-    //~ logfile = FIO_CreateFile("B:/lens.log");
 }
 
 INIT_FUNC( "lens", lens_init );
@@ -2108,6 +2122,8 @@ int prop_set_rawiso(unsigned iso)
 }
 
 /** Exposure primitives (the "dirty" way, via BV control, bypasses protections) */
+
+#ifdef FEATURE_EXPO_OVERRIDE
 
 extern int bv_iso;
 extern int bv_tv;
@@ -2331,21 +2347,26 @@ void bv_auto_update_startup()
     bv_auto_update();
     if (CONTROL_BV) shutter_was_set_from_ml = 1;
 }
+#endif
 
 /** Camera control functions */
 int lens_set_rawaperture( int aperture)
 {
     bv_auto_needed_by_aperture = !prop_set_rawaperture(aperture); // first try to set via property
+    #ifdef FEATURE_EXPO_OVERRIDE
     bv_auto_update(); // auto flip between "BV" or "normal"
     if (bv_auto_should_enable() || CONTROL_BV) return bv_set_rawaperture(aperture);
+    #endif
     return !bv_auto_needed_by_aperture;
 }
 
 int lens_set_rawiso( int iso )
 {
     bv_auto_needed_by_iso = !prop_set_rawiso(iso); // first try to set via property
+    #ifdef FEATURE_EXPO_OVERRIDE
     bv_auto_update(); // auto flip between "BV" or "normal"
     if (bv_auto_should_enable() || CONTROL_BV) return bv_set_rawiso(iso);
+    #endif
     return !bv_auto_needed_by_iso;
 }
 
@@ -2358,8 +2379,10 @@ int lens_set_rawshutter( int shutter )
     //~ bmp_printf(FONT_MED, 500, 300, "lsr %d ...", shutter);
     bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter); // first try to set via property
     //~ bmp_printf(FONT_MED, 500, 300, "lsr %d %d  ", shutter, bv_auto_needed_by_shutter);
+    #ifdef FEATURE_EXPO_OVERRIDE
     bv_auto_update(); // auto flip between "BV" or "normal"
     if (bv_auto_should_enable() || CONTROL_BV) { shutter_was_set_from_ml = 1; return bv_set_rawshutter(shutter); }
+    #endif
     return !bv_auto_needed_by_shutter;
 }
 

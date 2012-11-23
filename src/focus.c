@@ -13,11 +13,6 @@
 #include "config.h"
 #include "ptp.h"
 
-#ifdef CONFIG_5D3_MINIMAL
-#include "disable-this-module.h"
-#endif
-
-
 void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
 
@@ -222,6 +217,7 @@ void focus_stack_ensure_preconditions()
     msleep(300);
 }
 
+#ifdef FEATURE_FOCUS_STACKING
 // will be called from shoot_task
 void
 focus_stack(
@@ -318,6 +314,7 @@ focus_stack_task( void* unused )
 }*/
 
 //~ TASK_CREATE( "fstack_task", focus_stack_task, 0, 0x1c, 0x1000 );
+#endif
 
 static struct semaphore * focus_task_sem;
 static int focus_task_dir_n_speedx;
@@ -326,6 +323,7 @@ static int focus_rack_delta;
 
 int is_focus_stack_enabled() { return focus_stack_enabled && (focus_task_delta || (FOCUS_BRACKET_COUNT-1)); }
 
+#ifdef FEATURE_FOCUS_STACKING
 void focus_stack_run(int skip_frame)
 {
     int focus_bracket_sign = -1;
@@ -355,6 +353,7 @@ void focus_stack_trigger_from_menu(void* priv, int delta)
 {
     run_in_separate_task(focus_stack_trigger_from_menu_work, 0);
 }
+#endif
 
 int is_rack_focus_enabled() { return focus_task_delta ? 1 : 0; }
 /*
@@ -876,7 +875,9 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
     if (buf[0] && !hsp) movie_af_reverse_dir_request = 1;
     hsp = buf[0];
     hsp_countdown = 3;
+    #ifdef FEATURE_MAGIC_ZOOM
     if (get_zoom_overlay_trigger_mode() <= 2) zoom_overlay_set_countdown(0);
+    #endif
 }
 
 
@@ -1195,7 +1196,7 @@ focus_misc_task(void* unused)
         if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE && is_manual_focus())
 #endif
         {   
-            #ifndef CONFIG_50D
+            #ifdef FEATURE_TRAP_FOCUS
             trap_focus_toggle_from_af_dlg();
             #endif
             
@@ -1210,6 +1211,7 @@ focus_misc_task(void* unused)
 
 TASK_CREATE( "focus_misc_task", focus_misc_task, 0, 0x1e, 0x1000 );
 
+#ifdef FEATURE_TRAP_FOCUS
 static void 
 trap_focus_display( void * priv, int x, int y, int selected )
 {
@@ -1238,6 +1240,7 @@ extern int trap_focus;
 
 void trap_focus_toggle_from_af_dlg()
 {
+    #ifndef CONFIG_50D
     trap_focus = !trap_focus;
     clrscr();
     NotifyBoxHide();
@@ -1248,6 +1251,7 @@ void trap_focus_toggle_from_af_dlg()
     if (beep_enabled) beep();
     if (trap_focus) info_led_blink(3, 50, 50);
     else info_led_blink(1, 50, 50);
+    #endif
 }
 
 static struct menu_entry trap_focus_menu[] = {
@@ -1263,8 +1267,10 @@ static struct menu_entry trap_focus_menu[] = {
     },
 #endif
 };
+#endif
+
 static struct menu_entry focus_menu[] = {
-#if !defined(CONFIG_5DC)
+    #ifdef FEATURE_FOLLOW_FOCUS
     {
         .name = "Follow Focus",
         .priv = &follow_focus,
@@ -1272,10 +1278,9 @@ static struct menu_entry focus_menu[] = {
         .select     = menu_binary_toggle,
 
         .help = "Focus with arrow keys. MENU while REC = save focus point.",
-        //.essential = FOR_LIVEVIEW,
 
         .children =  (struct menu_entry[]) {
-            #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2) || defined(CONFIG_7D)
+            #ifdef CONFIG_LCD_SENSOR
             {
                 .name = "Focus using",
                 .priv = &follow_focus_mode, 
@@ -1300,9 +1305,10 @@ static struct menu_entry focus_menu[] = {
             },
             MENU_EOL
         },
-
     },
-#ifdef CONFIG_MOVIE_AF
+    #endif
+    
+    #ifdef FEATURE_MOVIE_AF
     {
         .name = "Movie AF",
         .priv = &movie_af,
@@ -1312,8 +1318,9 @@ static struct menu_entry focus_menu[] = {
         .select_auto = movie_af_aggressiveness_bump,
         .help = "Custom AF algorithm in movie mode. Not very efficient."
     },
-#endif
+    #endif
 
+    #ifdef FEATURE_RACK_FOCUS
     {
         .name = "Focus End Point",
         .display    = focus_show_a,
@@ -1337,13 +1344,8 @@ static struct menu_entry focus_menu[] = {
         .help = "Press SET for rack focus, or PLAY to also start recording.",
         .icon_type = IT_ACTION,
     },
-    /*{
-        .name = "Focus dir",
-        .priv       = &focus_dir,
-        .display    = focus_dir_display,
-        .select     = menu_binary_toggle,
-        .help = "Focus direction used when you press the 'Zoom In' button."
-    },*/
+    #endif
+    #ifdef FEATURE_FOCUS_STACKING
     {
         .name = "Stack/Bracket focus",
         .priv = &focus_stack_enabled,
@@ -1392,6 +1394,8 @@ static struct menu_entry focus_menu[] = {
             MENU_EOL
         },
     },
+    #endif
+    #if defined(FEATURE_FOLLOW_FOCUS) || defined(FEATURE_RACK_FOCUS) || defined(FEATURE_FOCUS_STACKING)
     {
         .name = "Focus step settings...",
         .select     = menu_open_submenu,
@@ -1419,8 +1423,7 @@ static struct menu_entry focus_menu[] = {
             MENU_EOL
         },
     },
-
-#endif // CONFIG_5DC
+    #endif
 };
 
 
@@ -1432,9 +1435,13 @@ focus_init( void* unused )
     //~ focus_stack_sem = create_named_semaphore( "focus_stack_sem", 0 );
     focus_task_sem = create_named_semaphore( "focus_task_sem", 1 );
 
+    #ifdef FEATURE_TRAP_FOCUS
     menu_add( "Focus", trap_focus_menu, COUNT(trap_focus_menu) );
+    #endif
+    
     menu_add( "Focus", focus_menu, COUNT(focus_menu) );
-    #ifndef CONFIG_5D3
+
+    #ifdef FEATURE_AF_PATTERNS
     afp_menu_init();
     #endif
     

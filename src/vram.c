@@ -545,6 +545,7 @@ struct vram_info * get_yuv422_vram()
         return &vram_lv;
     }
 
+    #ifdef CONFIG_DISPLAY_FILTERS
     int d = display_filter_enabled();
     if (d)
     {
@@ -554,6 +555,7 @@ struct vram_info * get_yuv422_vram()
         vram_lv.vram = (void*)(d == 1 ? dst_buf : src_buf);
         return &vram_lv;
     }
+    #endif
 
     #ifdef CONFIG_500D // workaround for issue 1108 - zebras flicker on first clip
     

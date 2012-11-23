@@ -962,11 +962,7 @@ PROP_HANDLER( PROP_PLAYMODE_VOL_CHANGE_600D )
 
 static void audio_menus_init()
 {
-#ifdef CONFIG_5D3_MINIMAL
-    menu_add( "Overlay", audio_menus, COUNT(audio_menus) );
-#else
     menu_add( "Audio", audio_menus, COUNT(audio_menus) );
-#endif
 }
 
 

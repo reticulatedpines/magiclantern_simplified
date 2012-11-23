@@ -38,6 +38,7 @@ CONFIG_INT( "audio.o2gain",     o2gain,         0 );
 
 int audio_meters_are_drawn()
 {
+#ifdef FEATURE_AUDIO_METERS
     if (!SOUND_RECORDING_ENABLED && !fps_should_record_wav())
         return 0;
         
@@ -56,9 +57,12 @@ int audio_meters_are_drawn()
         (
          gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
          );
+#else
+    return 0;
+#endif
 }
 
-
+#ifdef FEATURE_ANALOG_GAIN
 #if defined(CONFIG_500D)
 
 static inline void
@@ -172,7 +176,9 @@ audio_ic_set_mgain(
     gain.sig2 = sig2;
 }
 #endif
+#endif
 
+#ifdef FEATURE_DIGITAL_GAIN
 #if !defined(CONFIG_500D)
 //no support for anything but gain for now.
 static inline void
@@ -190,15 +196,18 @@ audio_ic_set_input_volume(
     audio_ic_write( cmd );
 }
 #endif
+#endif
 
+#ifdef FEATURE_MIC_POWER
 int get_mic_power(int input_source)
 {
     return (input_source >= 2) ? mic_power : 1;
 }
+#endif
 
+#ifdef FEATURE_HEADPHONE_MONITORING
 static void audio_monitoring_update()
 {
-    #ifdef HOTPLUG_VIDEO_OUT_STATUS_ADDR
     // kill video connect/disconnect event... or not
     *(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = audio_monitoring ? 2 : 0;
         
@@ -208,17 +217,12 @@ static void audio_monitoring_update()
             msleep(1000);
             audio_monitoring_display_headphones_connected_or_not();
         }
-    #endif
 }
-
+#endif
 
 void
 audio_configure( int force )
 {
-#if defined(CONFIG_5D3)
-    return;
-#endif
-
     extern int beep_playing;
     if (beep_playing && !(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED))
         return; // don't redirect wav playing to headphones if they are not connected
@@ -239,9 +243,8 @@ audio_configure( int force )
 
     audio_set_meterlabel();
     
-#ifdef CONFIG_1100D
-    return;
-#endif
+#ifdef CONFIG_AUDIO_CONTROLS
+
     if( !force )
         {
             // Check for ALC configuration; do nothing if it is
@@ -264,8 +267,13 @@ audio_configure( int force )
 #else
     int input_source = get_input_source();
 #endif
+
+#ifdef FEATURE_MIC_POWER
     //mic_power is forced on if input source is 0 or 1
     int mic_pow = get_mic_power(input_source);
+#else
+    int mic_pow = 1;
+#endif
     
     audio_ic_write( AUDIO_IC_SIG1
                     | 0x10
@@ -289,15 +297,17 @@ audio_configure( int force )
     gain.alc1 = alc_enable ? (1<<5) : 0;
     audio_ic_write( AUDIO_IC_ALC1 | gain.alc1 ); // disable all ALC
     
-#ifndef CONFIG_500D
+#ifdef FEATURE_DIGITAL_GAIN
     // Control left/right gain independently
     audio_ic_write( AUDIO_IC_MODE4 | 0x00 );
-        
+    
     audio_ic_set_input_volume( 0, dgain_r );
     audio_ic_set_input_volume( 1, dgain_l );
 #endif
-        
+    
+#ifdef FEATURE_ANALOG_GAIN
     audio_ic_set_mgain( mgain );
+#endif
     
 #ifdef CONFIG_500D
     // nothing here yet.
@@ -316,23 +326,10 @@ audio_configure( int force )
                     | (o2gain & 0x3) << 2        // output volume
                     );
 #endif /* CONFIG_500D nothing here yet*/
-    
-    //draw_audio_regs();
-    /*bmp_printf( FONT_SMALL, 500, 450,
-      "Gain %d/%d Mgain %d Src %d",
-      dgain_l,
-      dgain_r,
-      mgain_index2gain(mgain),
-      input_source
-      );*/
-    
-    DebugMsg( DM_AUDIO, 3,
-              "Gain mgain=%d dgain=%d/%d",
-              mgain_index2gain(mgain),
-              dgain_l,
-              dgain_r
-              );
+#endif
 }
+
+#ifdef FEATURE_ANALOG_GAIN
 #ifdef CONFIG_500D
 static inline unsigned mgain_index2gain(int index) // sorted mgain values
 {
@@ -357,6 +354,7 @@ static inline unsigned mgain_index2bits(int index) // sorted mgain values
     static uint8_t bitsv[] = { 0, 0x4, 0x5, 0x01, 0x06, 0x02, 0x07, 0x03 };
     return bitsv[index & 0x7];
 }
+#endif
 #endif
 
 
@@ -403,6 +401,15 @@ audio_3bit_toggle_reverse( void * priv, int delta )
 }
 
 static void
+audio_binary_toggle( void * priv, int delta )
+{
+    unsigned * ptr = priv;
+    *ptr = !*ptr;
+    audio_configure( 1 );
+}
+
+#ifdef FEATURE_ANALOG_GAIN
+static void
 audio_mgain_toggle( void * priv, int delta )
 {
     unsigned * ptr = priv;
@@ -427,15 +434,6 @@ audio_mgain_toggle_reverse( void * priv, int delta )
 }
 
 static void
-audio_binary_toggle( void * priv, int delta )
-{
-    unsigned * ptr = priv;
-    *ptr = !*ptr;
-    audio_configure( 1 );
-}
-
-
-static void
 audio_mgain_display( void * priv, int x, int y, int selected )
 {
     unsigned gain_index = *(unsigned*) priv;
@@ -454,7 +452,9 @@ audio_mgain_display( void * priv, int x, int y, int selected )
     check_sound_recording_warning(x, y);
     menu_draw_icon(x, y, MNI_PERCENT, mgain_index2gain(gain_index) * 100 / 32);
 }
+#endif
 
+#ifdef FEATURE_DIGITAL_GAIN
 static void
 audio_dgain_toggle( void * priv, int delta )
 {
@@ -499,7 +499,9 @@ audio_dgain_display( void * priv, int x, int y, int selected )
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "AGC is enabled");
     }
 }
+#endif
 
+#ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
 static void
 audio_lovl_display( void * priv, int x, int y, int selected )
 {
@@ -514,7 +516,9 @@ audio_lovl_display( void * priv, int x, int y, int selected )
     if (audio_monitoring) menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
     else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Headphone monitoring is disabled");
 }
+#endif
 
+#ifdef FEATURE_INPUT_SOURCE
 static void
 audio_input_toggle( void * priv, int delta )
 {
@@ -527,7 +531,9 @@ audio_input_toggle_reverse( void * priv, int delta )
     menu_quinternary_toggle_reverse(priv, -1);
     audio_configure( 1 );
 }
+#endif
 
+#ifdef FEATURE_WIND_FILTER
 void audio_filters_display( void * priv, int x, int y, int selected )
 {
     bmp_printf(
@@ -538,43 +544,9 @@ void audio_filters_display( void * priv, int x, int y, int selected )
                );
     check_sound_recording_warning(x, y);
 }
+#endif
 
-/*
-  static void
-  audio_loopback_display( void * priv, int x, int y, int selected )
-  {
-  bmp_printf(
-  selected ? MENU_FONT_SEL : MENU_FONT,
-  x, y,
-  "Loopback      : %s",
-  loopback ? "ON " : "OFF"
-  );
-  }*/
-
-/*
-  PROP_INT(PROP_WINDCUT_MODE, windcut_mode);
- 
-  void windcut_display( void * priv, int x, int y, int selected )
-  {
-  bmp_printf(
-  selected ? MENU_FONT_SEL : MENU_FONT,
-  x, y,
-  "Wind Cut Mode : %d",
-  windcut_mode
-  );
-  }
- 
-  void set_windcut(int value)
-  {
-  prop_request_change(PROP_WINDCUT_MODE, &value, 4);
-  }
- 
-  void windcut_toggle(void* priv)
-  {
-  windcut_mode = !windcut_mode;
-  set_windcut(windcut_mode);
-  }*/
-
+#ifdef FEATURE_MIC_POWER
 static void
 audio_micpower_display( void * priv, int x, int y, int selected )
 {
@@ -588,16 +560,10 @@ audio_micpower_display( void * priv, int x, int y, int selected )
     check_sound_recording_warning(x, y);
     if (mic_pow != mic_power) menu_draw_icon(x,y, MNI_WARNING, (intptr_t) "Mic power is required by internal mic.");
 }
+#endif
 
 static struct menu_entry audio_menus[] = {
-#if !(defined(CONFIG_1100D) || defined(CONFIG_5D3))
-#if 0
-    {
-        .priv           = &o2gain,
-        .select         = audio_o2gain_toggle,
-        .display        = audio_o2gain_display,
-    },
-#endif
+    #ifdef FEATURE_ANALOG_GAIN
     {
         .name = "Analog Gain",
         .priv           = &mgain,
@@ -608,7 +574,8 @@ static struct menu_entry audio_menus[] = {
         //.essential = FOR_MOVIE,
         .edit_mode = EM_MANY_VALUES,
     },
-#ifndef CONFIG_500D
+    #endif
+    #ifdef FEATURE_DIGITAL_GAIN
     {
         .name = "Digital Gain...", 
         .select = menu_open_submenu, 
@@ -632,6 +599,7 @@ static struct menu_entry audio_menus[] = {
                 .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
                 .edit_mode = EM_MANY_VALUES,
             },
+            #ifdef FEATURE_AGC_TOGGLE
             {
                 .name = "AGC",
                 .priv           = &alc_enable,
@@ -641,9 +609,12 @@ static struct menu_entry audio_menus[] = {
                 //~ .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
                 //.essential = FOR_MOVIE, // nobody needs to toggle this, but newbies want to see "AGC:OFF", manual controls are not enough...
             },
+            #endif
             MENU_EOL,
         },
     },
+    #endif
+    #ifdef FEATURE_INPUT_SOURCE
     {
         .name = "Input source",
         .priv           = &input_choice,
@@ -654,13 +625,9 @@ static struct menu_entry audio_menus[] = {
         //.essential = FOR_MOVIE,
         //~ .edit_mode = EM_MANY_VALUES,
     },
-#endif
-    /*{
-      .priv              = &windcut_mode,
-      .select            = windcut_toggle,
-      .display   = windcut_display,
-      },*/
-#if !defined(CONFIG_550D) && !defined(CONFIG_500D)
+    #endif
+
+    #ifdef FEATURE_WIND_FILTER
     {
         .name = "Wind Filter",
         .priv              = &enable_filters,
@@ -670,20 +637,17 @@ static struct menu_entry audio_menus[] = {
         //~ .icon_type = IT_DISABLE_SOME_FEATURE,
         //.essential = FOR_MOVIE,
     },
-#endif
-#ifdef CONFIG_AUDIO_REG_LOG
+    #endif
+    
+    #ifdef CONFIG_AUDIO_REG_LOG
     {
         .priv           = "Close register log",
         .select         = audio_reg_close,
         .display        = menu_print,
     },
-#endif
-    /*{
-      .priv              = &loopback,
-      .select            = audio_binary_toggle,
-      .display   = audio_loopback_display,
-      },*/
-#if !defined(CONFIG_500D)
+    #endif
+
+    #ifdef FEATURE_MIC_POWER
     {
         .name = "Mic Power",
         .priv           = &mic_power,
@@ -692,6 +656,11 @@ static struct menu_entry audio_menus[] = {
         .help = "Needed for int. and some other mics, but lowers impedance.",
         //.essential = FOR_MOVIE,
     },
+    #endif
+
+
+    #ifdef FEATURE_HEADPHONE_MONITORING
+    #ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
     {
         .name = "Output volume",
         .priv           = &lovl,
@@ -701,8 +670,7 @@ static struct menu_entry audio_menus[] = {
         .help = "Output volume for audio monitoring (headphones only).",
         //~ .edit_mode = EM_MANY_VALUES,
     },
-
-#endif /*ifNNNdef CONFIG_500D*/
+    #endif
     {
         .name = "Headphone Monitoring",
         .priv = &audio_monitoring,
@@ -711,21 +679,25 @@ static struct menu_entry audio_menus[] = {
         .help = "Monitoring via A-V jack. Disable if you use a SD display.",
         //.essential = FOR_MOVIE,
     },
-#endif /* ifNNNdef CONFIG_1100D */
+    #endif
+
+    #ifdef FEATURE_AUDIO_METERS
     {
         .name = "Audio Meters",
         .priv           = &cfg_draw_meters,
         .select         = menu_binary_toggle,
         .display        = audio_meter_display,
-#if defined(CONFIG_7D)
+#ifndef CONFIG_AUDIO_CONTROLS
         .help = "While recording only. -40...0 dB, yellow -12 dB, red -3 dB.",
 #else
         .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
 #endif
         //.essential = FOR_MOVIE,
     },
+    #endif
 };
 
+#ifdef CONFIG_AUDIO_CONTROLS
 
 void sounddev_task();
 
@@ -769,7 +741,9 @@ my_sounddev_task()
 #endif
     
     msleep(500);
+    #ifdef FEATURE_HEADPHONE_MONITORING
     audio_monitoring_update();
+    #endif
     
     while(1)
         {
@@ -781,121 +755,26 @@ my_sounddev_task()
         }
 }
 
-#if !defined(CONFIG_5D3) && !defined(CONFIG_7D)
 TASK_OVERRIDE( sounddev_task, my_sounddev_task );
-#endif
-
-#if 0
-/** Replace the audio level task with our own.
- *
- * This task runs when the sound device is activated to keep track of
- * the average audio level and translate it to dB.  Nothing ever seems
- * to activate it, so it is commented out for now.
- */
-static void
-my_audio_level_task( void )
-{
-    //const uint32_t * const thresholds = (void*) 0xFFC60ABC;
-    DebugMsg( DM_AUDIO, 3, "!!!!! %s: Replaced Canon task %x", __func__, audio_level_task );
-    
-    audio_in.gain           = -40;
-    audio_in.sample_count   = 0;
-    audio_in.max_sample     = 0;
-    audio_in.sem_interval   = create_named_semaphore( 0, 1 );
-    audio_in.sem_task       = create_named_semaphore( 0, 0 );
-    
-    while(1)
-        {
-            DebugMsg( DM_AUDIO, 3, "%s: sleeping init=%d",
-                      __func__,
-                      audio_in.initialized
-                      );
-        
-            if( take_semaphore( audio_in.sem_interval, 0 ) & 1 )
-                {
-                    //DebugAssert( "!IS_ERROR", "SoundDevice sem_interval", 0x82 );
-                    break;
-                }
-        
-            if( take_semaphore( audio_in.sem_task, 0 ) & 1 )
-                {
-                    //DebugAssert( "!IS_ERROR", SoundDevice", 0x83 );
-                    break;
-                }
-        
-            DebugMsg( DM_AUDIO, 3, "%s: awake init=%d\n", __func__, audio_in.initialized );
-        
-            if( !audio_in.initialized )
-                {
-                    DebugMsg( DM_AUDIO, 3, "**** %s: agc=%d/%d wind=%d volume=%d",
-                              __func__,
-                              audio_in.agc_on,
-                              audio_in.last_agc_on,
-                              audio_in.windcut,
-                              audio_in.volume
-                              );
-            
-                    audio_set_filter_off();
-            
-                    if( audio_in.last_agc_on == 1
-                        &&  audio_in.agc_on == 0
-                        )
-                        audio_set_alc_off();
-                        
-                    audio_in.last_agc_on = audio_in.agc_on;
-                    audio_set_windcut( audio_in.windcut );
-            
-                    audio_set_sampling_param( 44100, 0x10, 1 );
-                    audio_set_volume_in(
-                                        audio_in.agc_on,
-                                        audio_in.volume
-                                        );
-            
-                    if( audio_in.agc_on == 1 )
-                        audio_set_alc_on();
-            
-                    audio_in.initialized    = 1;
-                    audio_in.gain           = -39;
-                    audio_in.sample_count   = 0;
-            
-                }
-        
-            if( audio_in.asif_started == 0 )
-                {
-                    DebugMsg( DM_AUDIO, 3, "%s: Starting asif observer", __func__ );
-                    audio_start_asif_observer();
-                    audio_in.asif_started = 1;
-                }
-        
-            //uint32_t level = audio_read_level(0);
-            give_semaphore( audio_in.sem_task );
-        
-            // Never adjust it!
-            //set_audio_agc();
-            //if( file != (void*) 0xFFFFFFFF )
-            //FIO_WriteFile( file, &level, sizeof(level) );
-        
-            // audio_interval_wakeup will unlock our semaphore
-            oneshot_timer( 0x200, audio_interval_unlock, audio_interval_unlock, 0 );
-        }
-    
-    DebugMsg( DM_AUDIO, 3, "!!!!! %s task exited????", __func__ );
-}
-
-TASK_OVERRIDE( audio_level_task, my_audio_level_task );
 #endif
 
 static void volume_display()
 {
     int mgain_db = mgain_index2gain(mgain);
+    #ifdef FEATURE_DIGITAL_GAIN
     NotifyBox(2000, "Volume: %d + (%d,%d) dB", mgain_db, dgain_l, dgain_r);
+    #elif defined(FEATURE_ANALOG_GAIN)
+    NotifyBox(2000, "Volume: %d dB", mgain_db);
+    #endif
 }
 
+#ifdef FEATURE_ANALOG_GAIN
 void volume_up()
 {
     int mgain_db = mgain_index2gain(mgain);
     if (mgain_db < 32)
         audio_mgain_toggle(&mgain, 0);
+    #ifdef FEATURE_DIGITAL_GAIN
     else
         {
             if( MAX(dgain_l, dgain_r) + 6 <= 40 )
@@ -904,6 +783,7 @@ void volume_up()
                     audio_dgain_toggle(&dgain_r, 0);
                 }
         }
+    #endif
     volume_display();
 }
 
@@ -911,15 +791,19 @@ void volume_down()
 {
     int mgain_db = mgain_index2gain(mgain);
     
+    #ifdef FEATURE_DIGITAL_GAIN
     if( MIN(dgain_l, dgain_r) > 0 )
         {
             audio_dgain_toggle_reverse(&dgain_l, 0);
             audio_dgain_toggle_reverse(&dgain_r, 0);
         }
-    else if (mgain_db > 0)
+    else 
+    #endif
+    if (mgain_db > 0)
         audio_mgain_toggle_reverse(&mgain, 0);
     volume_display();
 }
+#endif
 
 static void out_volume_display()
 {
@@ -942,11 +826,7 @@ void out_volume_down()
 
 static void audio_menus_init()
 {
-#if defined(CONFIG_5D3_MINIMAL) || defined(CONFIG_7D_MINIMAL)
-    menu_add( "Overlay", audio_menus, COUNT(audio_menus) );
-#else
     menu_add( "Audio", audio_menus, COUNT(audio_menus) );
-#endif
 }
 
 

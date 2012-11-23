@@ -107,7 +107,11 @@ CONFIG_INT("iso_selection", iso_selection, 0);
 CONFIG_INT("hdr.enabled", hdr_enabled, 0);
 
 PROP_INT(PROP_AEB, aeb_setting);
+#ifdef FEATURE_HDR_BRACKETING
 #define HDR_ENABLED (hdr_enabled && !aeb_setting) // when Canon bracketing is active, ML bracketing should not run
+#else
+#define HDR_ENABLED 0
+#endif
 
 CONFIG_INT("hdr.type", hdr_type, 0); // exposure, aperture, flash
 CONFIG_INT("hdr.frames", hdr_steps, 1);
@@ -194,19 +198,6 @@ int motion_detect = 0;
 //int motion_detect_level = 8;
 
 static int timer_values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20, 25, 26, 27, 28, 29, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100, 110, 120, 135, 150, 165, 180, 195, 210, 225, 240, 270, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 1200, 1800, 2700, 3600, 5400, 7200, 9000, 10800, 14400, 18000, 21600, 25200, 28800};
-//~ static int timer_values_longexp[] = {5, 7, 10, 15, 20, 30, 50, 60, 120, 180, 300, 600, 900, 1800};
-/*
-static const char* format_time_minutes_seconds(int seconds)
-{
-    static char msg[30];
-    if (seconds < 60)
-        snprintf(msg, sizeof(msg), "%ds", seconds);
-    else if (seconds % 60 == 0)
-        snprintf(msg, sizeof(msg), "%dm", seconds / 60);
-    else
-        snprintf(msg, sizeof(msg), "%dm%ds", seconds / 60, seconds % 60);
-    return msg;
-}*/
 
 static const char* format_time_hours_minutes_seconds(int seconds)
 {
@@ -232,8 +223,6 @@ static const char* format_time_hours_minutes_seconds(int seconds)
     
     return msg;
 }
-
-
 
 static volatile int seconds_clock = 0;
 int get_seconds_clock() { return seconds_clock; } 
@@ -280,11 +269,15 @@ int should_update_loop_progress(int period_ms, int* last_updated_time)
 
 static void do_this_every_second() // called every second
 {
+    #ifdef FEATURE_BULB_RAMPING
     if (BULB_EXPOSURE_CONTROL_ACTIVE && !gui_menu_shown())
         bulb_ramping_showinfo();
+    #endif
 
+    #ifdef FEATURE_INTERVALOMETER
     if (intervalometer_running && lens_info.job_state == 0 && !gui_menu_shown() && !get_halfshutter_pressed())
         info_led_blink(1, 50, 0);
+    #endif
 
     #ifdef CONFIG_BATTERY_INFO
     RefreshBatteryLevel_1Hz();
@@ -292,8 +285,11 @@ static void do_this_every_second() // called every second
     
     reset_pre_shutdown_flag_step();
     
-    #ifndef CONFIG_VXWORKS
+    #ifdef FEATURE_SHOW_CPU_USAGE
     task_update_loads();
+    #endif
+    
+    #ifdef FEATURE_SHOW_OVERLAY_FPS
     static int k = 0; k++;
     if (k%10 == 0) update_lv_fps();
     #endif
@@ -360,6 +356,7 @@ int get_exposure_time_raw()
 
 static PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
+#ifdef FEATURE_INTERVALOMETER
 static void timelapse_calc_display(void* priv, int x, int y, int selected)
 {
     int d = timer_values[*(int*)priv];
@@ -490,27 +487,9 @@ intervalometer_display( void * priv, int x, int y, int selected )
         );
     }
 }
+#endif
 
-/*static void bramp_auto_smooth_print( void * priv, int x, int y, int selected )
-{
-    float f = (float)bramp_auto_smooth / 100.0;
-    float b = f*f - 2*f + 1;
-    float a = f*f;
-    float max_ev = b/(1+a); // at 1EV exposure difference
-    int max_ev_x100 = (int)roundf(max_ev*100.0);
-
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Smooth Factor: 0.%d",
-        bramp_auto_smooth/10
-    );
-    bmp_printf(FONT_MED, x + font_large.width * 19, y + (font_large.height - font_med.height)/2, 
-        "MAX %d.%02d EV/shot", 
-        max_ev_x100 / 100, max_ev_x100 % 100
-    );
-}*/
-
+#ifdef FEATURE_BULB_RAMPING
 static int get_smooth_factor_from_max_ev_speed(int speed_x1000)
 {
     float ev = COERCE((float)speed_x1000 / 1000.0f, 0.001f, 0.98f);
@@ -664,20 +643,9 @@ static void bramp_auto_ramp_speed_toggle(void* priv, int delta)
         
     bramp_auto_ramp_speed = ev_values[i];
 }
+#endif
 
-// 10-90
-/*
-static void bramp_smooth_toggle(void* priv, int delta)
-{
-    int value = *(int*)priv / 10 - 10;
-    value = mod(value + delta, 9);
-    *(int*)priv = value * 10 + 10;
-}
-*/
-
-// in lcdsensor.c
-void lcd_release_display( void * priv, int x, int y, int selected );
-
+#ifdef FEATURE_AUDIO_REMOTE_SHOT
 static void
 audio_release_display( void * priv, int x, int y, int selected )
 {
@@ -697,9 +665,10 @@ audio_release_display( void * priv, int x, int y, int selected )
         );*/
     //~ menu_draw_icon(x, y, audio_release_running ? MNI_PERCENT : MNI_OFF, audio_release_level * 100 / 30);
 }
+#endif
 
+#ifdef FEATURE_MOTION_DETECT
 //GUI Functions for the motion detect sensitivity.  
-
 static void 
 motion_detect_display( void * priv, int x, int y, int selected )
 {
@@ -717,11 +686,11 @@ motion_detect_display( void * priv, int x, int y, int selected )
     else
         menu_draw_icon(x, y, MNI_BOOL_LV(motion_detect));
 }
-
+#endif
 
 int get_trap_focus() { return trap_focus; }
 
-#ifdef CONFIG_FLASH_TWEAKS
+#ifdef FEATURE_FLASH_TWEAKS
 void set_flash_firing(int mode)
 {
     lens_wait_readytotakepic(64);
@@ -741,6 +710,8 @@ flash_and_no_flash_display( void * priv, int x, int y, int selected )
 }
 
 #endif
+
+#ifdef FEATURE_SILENT_PIC
                                                  //2  4  6  9 12 16 20 25
 static const int16_t silent_pic_sweep_modes_l[] = {2, 2, 2, 3, 3, 4, 4, 5};
 static const int16_t silent_pic_sweep_modes_c[] = {1, 2, 3, 3, 4, 4, 5, 5};
@@ -787,6 +758,7 @@ silent_pic_display( void * priv, int x, int y, int selected )
             break;        
     }
 }
+#endif
 
 static volatile int afframe_ack = 0;
 #ifdef CONFIG_LIVEVIEW
@@ -794,7 +766,9 @@ static int afframe[128];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
     ASSERT(len <= sizeof(afframe));
 
+    #ifdef FEATURE_SPOTMETER
     spotmeter_erase();
+    #endif
 
     crop_set_dirty(10);
     afframe_set_dirty();
@@ -812,25 +786,14 @@ void get_afframe_pos(int W, int H, int* x, int* y)
     *y = (afframe[3] + afframe[5]/2) * H / afframe[1];
 }
 
-//~ static int face_zoom_request = 0;
-
+#ifdef FEATURE_LV_ZOOM_SETTINGS
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
-/*    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
-    int v = *(int*)buf;
-    if (zoom_enable_face)
-    {
-        if (v == 0 && lv && lvaf_mode == 2 && gui_state == 0 && !recording) // face detect
-            face_zoom_request = 1;
-    }
-    #endif*/
-
     zoom_sharpen_step();
     zoom_auto_exposure_step();
 }
 
 static int zoom_was_triggered_by_halfshutter = 0;
 
-#ifndef CONFIG_5DC
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
     ASSERT(buf[0] == 1 || buf[0] == 5 || buf[0] == 10);
@@ -840,7 +803,7 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
     
     if (buf[0] == 1) zoom_was_triggered_by_halfshutter = 0;
 }
-#endif
+#endif // FEATURE_LV_ZOOM_SETTINGS
 
 void set_lv_zoom(int zoom)
 {
@@ -851,6 +814,7 @@ void set_lv_zoom(int zoom)
     prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
 }
 
+#ifdef FEATURE_MLU_HANDHELD
 void mlu_take_pic()
 {
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) // not sure about 7D
@@ -866,32 +830,33 @@ void mlu_take_pic()
 int mlu_shake_running = 0;
 void mlu_shake_task()
 {
-#ifndef CONFIG_5DC
-
+    #ifdef FEATURE_MLU_HANDHELD_DEBUG
     if (mlu_handled_debug) { msleep(1000); NotifyBox(5000, "Taking pic..."); msleep(1000); }
+    #endif
 
     //~ beep();
     msleep(mlu_handheld_delay == 6 ? 750 : mlu_handheld_delay == 7 ? 1000 : mlu_handheld_delay * 100);
     SW1(0,0); SW2(0,0);
     mlu_take_pic();
     mlu_shake_running = 0;
-#endif
 }
 
+#ifdef FEATURE_MLU_HANDHELD_DEBUG
 static char mlu_msg[1000] = "";
+#endif
 
-int handle_shutter_events(struct event * event)
+int handle_mlu_handheld(struct event * event)
 {
-#ifndef CONFIG_5DC
-
     if (MLU_HANDHELD && !lv)
     {
+        #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug && event->param == GMT_OLC_INFO_CHANGED)
         {
             STR_APPEND(mlu_msg, "%8x ", MEM(event->obj));
             static int k = 0; k++;
             if (k % 5 == 0) { STR_APPEND(mlu_msg, "\n"); }
         }
+        #endif
         
         if (event->param == GMT_OLC_INFO_CHANGED 
             && ((MEM(event->obj) & 0x00FFF001) == 0x80001) // OK on 5D3, 5D2, 550D, 600D, 500D, maybe others
@@ -923,35 +888,11 @@ int handle_shutter_events(struct event * event)
             info_led_off();
         }
     }
-#endif
-
     return 1;
-
-#if 0 // not reliable
-    if (HDR_ENABLED)
-    {
-        switch(event->param)
-        {
-            case BGMT_PRESS_HALFSHUTTER:
-            case BGMT_UNPRESS_HALFSHUTTER:
-            {
-                int h = HALFSHUTTER_PRESSED;
-                if (!h) msleep(50); // avoids cancelling self-timer too early
-                halfshutter_action(h);
-            }
-        }
-    }
-    return 1;
-#endif
 }
+#endif // FEATURE_MLU_HANDHELD
 
-/*int sweep_lv_on = 0;
-static void 
-sweep_lv_start(void* priv)
-{
-    sweep_lv_on = 1;
-}*/
-
+#ifdef FEATURE_LV_FOCUS_BOX_SNAP
 extern int focus_box_lv_jump;
 
 int center_lv_aff = 0;
@@ -961,6 +902,7 @@ void center_lv_afframe()
 }
 void center_lv_afframe_do()
 {
+#ifdef CONFIG_LIVEVIEW
     if (!lv || gui_menu_shown() || gui_state != GUISTATE_IDLE) return;
 
     int pos_x[9];
@@ -1064,7 +1006,9 @@ void center_lv_afframe_do()
     
     //~ bmp_printf(FONT_MED, 50, 50, "%d %d %d %d ", Xc, Yc, pos_x[0], pos_y[0]);
     move_lv_afframe(pos_x[next] - Xc, pos_y[next] - Yc);
+#endif
 }
+#endif
 
 void move_lv_afframe(int dx, int dy)
 {
@@ -1110,33 +1054,7 @@ void move_lv_afframe(int dx, int dy)
 #endif
 }
 
-/*
-static void 
-sweep_lv()
-{
-    if (recording) return;
-    if (!lv) return;
-    menu_stop();
-    msleep(2000);
-    set_lv_zoom(5);
-    msleep(2000);
-    
-    int i,j;
-    for (i = 0; i < 5; i++)
-    {
-        for (j = 0; j < 5; j++)
-        {
-            bmp_printf(FONT_LARGE, 50, 50, "AFF %d, %d ", i, j);
-            afframe[2] = 250 + 918 * j;
-            afframe[3] = 434 + 490 * i;
-            prop_request_change(PROP_LV_AFFRAME, afframe, 0);
-            msleep(100);
-        }
-    }
-
-    set_lv_zoom(1);
-}*/
-
+#ifdef FEATURE_SILENT_PIC
 static char* silent_pic_get_name()
 {
     static char imgname[100];
@@ -1147,7 +1065,7 @@ static char* silent_pic_get_name()
     
     char *extension = "422";
     
-#ifdef CONFIG_SILENT_PIC_JPG
+#ifdef FEATURE_SILENT_PIC_JPG
     if(silent_pic_jpeg)
     {
         extension = "jpg";
@@ -1183,10 +1101,7 @@ static char* silent_pic_get_name()
     bmp_printf(FONT_MED, 0, 35, "%s    ", imgname);
     return imgname;
 }
-
-int expfuse_running = 0;
-static int expfuse_num_images = 0;
-static struct semaphore * set_maindial_sem = 0;
+#endif
 
 int compute_signature(int* start, int num)
 {
@@ -1196,9 +1111,15 @@ int compute_signature(int* start, int num)
     {
         c += *p;
     }
-    //~ return SIG_60D_110;
     return c;
 }
+
+static struct semaphore * set_maindial_sem = 0;
+
+#ifdef FEATURE_PLAY_EXPOSURE_FUSION
+
+int expfuse_running = 0;
+static int expfuse_num_images = 0;
 
 /*
 static void add_yuv_acc16bit_src8bit(void* acc, void* src, int numpix)
@@ -1277,6 +1198,7 @@ static void weighted_mean_yuv_div_dst8bit_src32bit_ws16bit(void* dst, void* src,
         dstu[i*2+1] = COERCE(srcu[i*2+1] / wt, 0, 255); // luma, unsigned
     }
 }
+#endif
 
 void next_image_in_play_mode(int dir)
 {
@@ -1292,6 +1214,8 @@ void next_image_in_play_mode(int dir)
         k++;
     }
 }
+
+#ifdef FEATURE_PLAY_COMPARE_IMAGES
 
 void playback_compare_images_task(int dir)
 {
@@ -1326,7 +1250,9 @@ void playback_compare_images(int dir)
 {
     task_create("playcompare_task", 0x1c, 0, playback_compare_images_task, (void*)dir);
 }
+#endif
 
+#ifdef FEATURE_PLAY_EXPOSURE_FUSION
 void expfuse_preview_update_task(int dir)
 {
     ASSERT(set_maindial_sem);
@@ -1360,7 +1286,9 @@ void expfuse_preview_update(int dir)
 {
     task_create("expfuse_task", 0x1c, 0, expfuse_preview_update_task, (void*)dir);
 }
+#endif
 
+#ifdef FEATURE_PLAY_EXPOSURE_ADJUST
 // increase exposure: f = @(x) (1-((255-x)/255).^2)*255
 // decrease exposure: g = @(x) (1-((255-x)/255).^(1/2))*255
 // one iteration = roughly one stop of exposure change
@@ -1377,7 +1305,7 @@ static const uint8_t chroma_cor[256] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
 
 void expo_adjust_playback(int dir)
 {
-    #ifdef CONFIG_5DC
+#ifdef CONFIG_5DC
     static int expo_value = 0;
     if (dir == 0) 
     { 
@@ -1405,9 +1333,8 @@ void expo_adjust_playback(int dir)
     }
     EngDrvOut(0xC0F14078, 1);
     BmpDDev_give_semaphore();
-    return;
-    #endif
-    
+
+#else
     ASSERT(set_maindial_sem);
     take_semaphore(set_maindial_sem, 0);
 
@@ -1473,7 +1400,12 @@ void expo_adjust_playback(int dir)
     }
 
     give_semaphore(set_maindial_sem);
+#endif
 }
+
+#endif
+
+#ifdef FEATURE_PLAY_422
 
 // that's extremely inefficient
 static int find_422(int * index, char* fn)
@@ -1560,58 +1492,12 @@ void play_next_422(int dir)
 {
     task_create("422_task", 0x1c, 0, play_next_422_task, (void*)dir);
 }
+#endif
 
-
-/*
-static void
-silent_pic_take_longexp()
-{
-    bmp_printf(FONT_MED, 100, 100, "Psst!");
-    struct vram_info * vram = get_yuv422_hd_vram();
-    int bufsize = vram->height * vram->pitch;
-    int numpix = vram->height * vram->width;
-    void* longexp_buf = 0x44000060 + bufsize + 4096;
-    bzero32(longexp_buf, bufsize*2);
-    
-    // check if the buffer appears to be used
-    int i;
-    int s1 = compute_signature(longexp_buf, bufsize/2);
-    msleep(100);
-    int s2 = compute_signature(longexp_buf, bufsize/2);
-    if (s1 != s2) { bmp_printf(FONT_MED, 100, 100, "Psst! can't use buffer at %x ", longexp_buf); return; }
-
-    ms100_clock = 0;
-    int tmax = timer_values_longexp[silent_pic_longexp_time_index] * 1000;
-    int num = 0;
-    while (ms100_clock < tmax)
-    {
-        bmp_printf(FONT_MED, 100, 100, "Psst! Taking a long-exp silent pic (%dimg,%ds/%ds)...   ", num, ms100_clock/1000, tmax/1000);
-        add_yuv_acc16bit_src8bit(longexp_buf, vram->vram, numpix);
-        num += 1;
-    }
-    open_canon_menu();
-    msleep(500);
-    div_yuv_by_const_dst8bit_src16bit(vram->vram, longexp_buf, numpix, num);
-    char* imgname = silent_pic_get_name();
-    FILE* f = FIO_CreateFileEx(imgname);
-    if (f == INVALID_PTR)
-    {
-        bmp_printf(FONT_SMALL, 120, 40, "FCreate: Err %s", imgname);
-        return;
-    }
-    FIO_WriteFile(f, vram->vram, vram->height * vram->pitch);
-    FIO_CloseFile(f);
-    clrscr(); play_422(imgname);
-    bmp_printf(FONT_MED, 100, 100, "Psst! Just took a long-exp silent pic   ");
-}
-*/
 
 void ensure_movie_mode()
 {
-    #ifdef CONFIG_VXWORKS
-    return;
-    #endif
-    
+#ifdef CONFIG_MOVIE
     if (!is_movie_mode())
     {
         #ifdef CONFIG_50D
@@ -1631,11 +1517,15 @@ void ensure_movie_mode()
         msleep(500); 
     }
     if (!lv) force_liveview();
+#endif
 }
 
+#ifdef FEATURE_SILENT_PIC
 // this buffer will contain the HD image (saved to card) and a LV preview (for display)
 static void * silent_pic_buf = 0;
 
+
+#ifdef CONFIG_DISPLAY_FILTERS
 int silent_pic_preview()
 {
 #ifndef CONFIG_VXWORKS
@@ -1648,6 +1538,7 @@ int silent_pic_preview()
     return 0;
 #endif
 }
+#endif
 
 // uses busy waiting
 // it can be refactored without busy wait, similar to lv_vsync (with another MQ maybe)
@@ -1701,7 +1592,7 @@ silent_pic_take_simple(int interactive)
             char* imgname = silent_pic_get_name();
             // copy the HD picture into the temporary buffer
             
-#ifdef CONFIG_SILENT_PIC_JPG
+#ifdef FEATURE_SILENT_PIC_JPG
             if(silent_pic_jpeg)
             {
                 uint32_t loopcount = 0;
@@ -1736,11 +1627,11 @@ silent_pic_take_simple(int interactive)
                 // wait until EDMAC HD buffer changes; at that point, 'buf' will contain a complete picture (and EDMAC starts filling the new one)
                 busy_vsync(1, 100);
                 
-#if defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
+                #ifdef CONFIG_DMA_MEMCPY
                 dma_memcpy(silent_pic_buf, buf, size);
-#else
+                #else
                 memcpy(silent_pic_buf, buf, size);
-#endif
+                #endif
                 
                 /* we can take our time and resize it for preview purposes, only do that for single pics */
                 if(silent_pic_mode == 0)
@@ -1789,7 +1680,11 @@ silent_pic_take_simple(int interactive)
         while (get_halfshutter_pressed()) msleep(100);
     }
 }
+#else // no silent pics, need some dummy stubs
+int silent_pic_preview(){ return 0; }
+#endif
 
+#ifdef FEATURE_SCREENSHOT_422
 void
 silent_pic_take_lv_dbg()
 {
@@ -1805,21 +1700,14 @@ silent_pic_take_lv_dbg()
     }
     dump_seg(vram->vram, vram->pitch * vram->height, imgname);
 }
+#endif
 
-/*void
-silent_pic_take_test()
-{
-    char* imgname = silent_pic_get_name();
-
-    struct vram_info * vram = get_yuv422_hd_vram();
-    int p = vram->pitch;
-    int h = vram->height;
-    
-    dump_seg(get_yuv422_hd_vram()->vram, p * h, imgname);
-}*/
+#ifdef FEATURE_SILENT_PIC
 
 int silent_pic_matrix_running = 0;
- void
+
+#ifdef FEATURE_SILENT_PIC_HIRES
+void
 silent_pic_take_sweep(int interactive)
 {
 #ifdef CONFIG_LIVEVIEW
@@ -1905,98 +1793,8 @@ silent_pic_take_sweep(int interactive)
     bmp_printf(FONT_MED, 100, 100, "Psst! Just took a high-res pic   ");
 #endif
 }
+#endif
 
-/*static void vsync(volatile int* addr)
-{
-    int i;
-    int v0 = *addr;
-    for (i = 0; i < 100; i++)
-    {
-        if (*addr != v0) return;
-        msleep(MIN_MSLEEP);
-    }
-    bmp_printf(FONT_MED, 30, 100, "vsync failed");
-}*/
-
-/*
-static void
-silent_pic_take_slitscan(int interactive)
-{
-    #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_60D)
-    //~ if (recording) return; // vsync fails
-    if (!lv) return;
-    menu_stop();
-
-    int movie_started = silent_pic_ensure_movie_mode();
-
-    while (get_halfshutter_pressed()) msleep(100);
-    msleep(500);
-    clrscr();
-
-    uint8_t * const lvram = UNCACHEABLE(YUV422_LV_BUFFER_1);
-    int lvpitch = YUV422_LV_PITCH;
-    uint8_t * const bvram = bmp_vram();
-    if (!bvram) return;
-    #define BMPPITCH 960
-
-    struct vram_info * vram = get_yuv422_hd_vram();
-    NotifyBox(60000, "Psst! Slit-scan pic (%dx%d)", vram->width, vram->height);
-
-    char* imgname = silent_pic_get_name();
-
-    FILE* f = FIO_CreateFileEx(imgname);
-    if (f == INVALID_PTR)
-    {
-        bmp_printf(FONT_SMALL, 120, 40, "FCreate: Err %s", imgname);
-        return;
-    }
-    int i;
-    for (i = 0; i < vram->height; i++)
-    {
-        int k;
-        for (k = 0; k < (int)silent_pic_slitscan_skipframes; k++)
-            vsync((void*)YUV422_HD_BUFFER_DMA_ADDR);
-        
-        FIO_WriteFile(f, (void*)(YUV422_HD_BUFFER_DMA_ADDR + i * vram->pitch), vram->pitch);
-
-        int y = i * 480 / vram->height;
-        uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
-        uint8_t * const b_row = (uint8_t*)( bvram + y * BMPPITCH);          // 1 pixel
-        uint16_t* lvp; // that's a moving pointer through lv vram
-        uint8_t* bp;  // through bmp vram
-        for (lvp = v_row, bp = b_row; lvp < v_row + 720 ; lvp++, bp++)
-            *bp = ((*lvp) * 41 >> 16) + 38;
-        
-        if (get_halfshutter_pressed())
-        {
-            FIO_CloseFile(f);
-            FIO_RemoveFile(imgname);
-            clrscr();
-            NotifyBoxHide();
-            NotifyBox(2000, "Slit-scan cancelled.");
-            while (get_halfshutter_pressed()) msleep(100);
-            if (movie_started) silent_pic_stop_dummy_movie();
-            return;
-        }
-    }
-    FIO_CloseFile(f);
-    if (movie_started) silent_pic_stop_dummy_movie();
-
-    NotifyBoxHide();
-    //~ NotifyBox(2000, "Psst! Just took a slit-scan pic");
-
-    if (!interactive) return;
-
-    PauseLiveView();
-    play_422(imgname);
-    // wait half-shutter press and clear the screen
-    while (!get_halfshutter_pressed()) msleep(100);
-    while (get_halfshutter_pressed()) msleep(100);
-    clrscr();
-    ResumeLiveView();
-    
-    #endif
-}*/
 
 static void
 silent_pic_take(int interactive) // for remote release, set interactive=0
@@ -2013,16 +1811,19 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
         case 2:
             silent_pic_take_simple(interactive);
             break;
-        /* hi-res */
+        #ifdef FEATURE_SILENT_PIC_HIRES
         case 3:
             silent_pic_matrix_running = 1;
             silent_pic_take_sweep(interactive);
             break;
+        #endif
     }
 
     silent_pic_matrix_running = 0;
 }
+#endif
 
+#ifdef FEATURE_EXPO_ISO
 
 static void 
 iso_display( void * priv, int x, int y, int selected )
@@ -2091,6 +1892,7 @@ iso_display( void * priv, int x, int y, int selected )
 
     menu_draw_icon(x, y, lens_info.iso ? MNI_PERCENT : MNI_AUTO, (lens_info.raw_iso - codes_iso[1]) * 100 / (codes_iso[COUNT(codes_iso)-1] - codes_iso[1]));
 }
+#endif
 
 int is_native_iso(int iso)
 {
@@ -2136,6 +1938,7 @@ int is_round_iso(int iso)
         || iso == 6400 || iso == 12800 || iso == 25600;
 }
 
+#ifdef FEATURE_EXPO_ISO
 void
 analog_iso_toggle( void * priv, int sign )
 {
@@ -2213,6 +2016,9 @@ iso_toggle( void * priv, int sign )
     }
 }
 
+#endif // FEATURE_EXPO_ISO
+
+#ifdef FEATURE_EXPO_SHUTTER
 
 static void 
 shutter_display( void * priv, int x, int y, int selected )
@@ -2282,6 +2088,10 @@ shutter_toggle(void* priv, int sign)
     }
 }
 
+#endif // FEATURE_EXPO_SHUTTER
+
+#ifdef FEATURE_EXPO_APERTURE
+
 static void 
 aperture_display( void * priv, int x, int y, int selected )
 {
@@ -2344,6 +2154,9 @@ aperture_toggle( void* priv, int sign)
     }
 }
 
+#endif
+
+#ifdef FEATURE_WHITE_BALANCE
 
 void
 kelvin_toggle( void* priv, int sign )
@@ -2696,6 +2509,10 @@ wbs_ba_toggle( void * priv, int sign )
     prop_request_change(PROP_WBS_BA, &newba, 4);
 }
 
+#endif
+
+#ifdef FEATURE_PICSTYLE
+
 static void
 contrast_toggle( void * priv, int sign )
 {
@@ -2788,7 +2605,6 @@ color_tone_display( void * priv, int x, int y, int selected )
     if (s >= -4 && s <= 4) menu_draw_icon(x, y, MNI_PERCENT, (s + 4) * 100 / 8);
     else menu_draw_icon(x, y, MNI_WARNING, 0);
 }
-
 
 static CONFIG_INT("picstyle.rec.sub", picstyle_rec_sub, 1);
 static CONFIG_INT("picstyle.rec", picstyle_rec, 0);
@@ -2919,6 +2735,8 @@ picstyle_toggle(void* priv, int sign )
     }
 }
 
+#ifdef FEATURE_REC_PICSTYLE
+
 static void 
 picstyle_rec_display( void * priv, int x, int y, int selected )
 {
@@ -2976,16 +2794,6 @@ picstyle_rec_sub_toggle( void * priv, int delta )
     picstyle_rec_sub = mod(picstyle_rec_sub + delta - 1, NUM_PICSTYLES) + 1;
     if (picstyle_rec) picstyle_rec = picstyle_rec_sub;
 }
-static void redraw_after_task(int msec)
-{
-    msleep(msec);
-    redraw();
-}
-
-void redraw_after(int msec)
-{
-    task_create("redraw", 0x1d, 0, redraw_after_task, (void*)msec);
-}
 
 static void rec_picstyle_change(int rec)
 {
@@ -3017,23 +2825,51 @@ static void rec_picstyle_change(int rec)
     prev = rec;
 }
 
+#endif // REC pic style
+#endif // pic style
+
+
+static void redraw_after_task(int msec)
+{
+    msleep(msec);
+    redraw();
+}
+
+void redraw_after(int msec)
+{
+    task_create("redraw", 0x1d, 0, redraw_after_task, (void*)msec);
+}
+
 #ifdef CONFIG_50D
 PROP_HANDLER(PROP_SHOOTING_TYPE)
 {
     int rec = (shooting_type == 4 ? 2 : 0);
-    rec_picstyle_change(rec);
-    shutter_btn_rec_do(rec);
+
+    #ifdef FEATURE_REC_NOTIFY
     rec_notify_trigger(rec);
+    #endif
+    
+    #ifdef FEATURE_REC_PICSTYLE
+    rec_picstyle_change(rec);
+    #endif
+    
+    shutter_btn_rec_do(rec);
 }
 void mvr_rec_start_shoot(){}
 #else
 void mvr_rec_start_shoot(int rec)
 {
+    #ifdef FEATURE_REC_NOTIFY
     rec_notify_trigger(rec);
+    #endif
+    
+    #ifdef FEATURE_REC_PICSTYLE
     rec_picstyle_change(rec);
+    #endif
 }
 #endif
 
+#ifdef FEATURE_FLASH_TWEAKS
 static void
 flash_ae_toggle(void* priv, int sign )
 {
@@ -3054,123 +2890,9 @@ flash_ae_display( void * priv, int x, int y, int selected )
     );
     menu_draw_icon(x, y, MNI_PERCENT, (ae_ev + 80) * 100 / (24+80));
 }
-
-// 0 = off, 1 = alo, 2 = htp
-/*static int get_ladj()
-{
-    int alo = get_alo();
-    if (get_htp()) return 4;
-    if (alo == ALO_LOW) return 1;
-    if (alo == ALO_STD) return 2;
-    if (alo == ALO_HIGH) return 3;
-    return 0;
-}*/
-
-/*
-#if defined(CONFIG_500D) || defined(CONFIG_5D2) || defined(CONFIG_50D)
-static void
-alo_toggle( void * priv )
-{
-    int alo = get_alo();
-    switch (alo)
-    {
-        case ALO_OFF:
-            set_alo(ALO_STD);
-            break;
-        case ALO_STD:
-            set_alo(ALO_LOW);
-            break;
-        case ALO_LOW:
-            set_alo(ALO_HIGH);
-            break;
-        case ALO_HIGH:
-            set_alo(ALO_OFF);
-            break;
-    }
-}
-
-static void
-htp_toggle( void * priv )
-{
-    int htp = get_htp();
-    if (htp)
-        set_htp(0);
-    else
-        set_htp(1);
-}
-
 #endif
 
-static void
-ladj_toggle(void* priv, int sign )
-{
-    int ladj = get_ladj();
-    ladj = mod(ladj + sign, 5);
-    if (ladj == 0)
-    {
-        set_htp(0);
-        set_alo(ALO_OFF);
-    }
-    else if (ladj == 1)
-    {
-        set_htp(0);
-        set_alo(ALO_LOW);
-    }
-    else if (ladj == 2)
-    {
-        set_htp(0);
-        set_alo(ALO_STD);
-    }
-    else if (ladj == 3)
-    {
-        set_htp(0);
-        set_alo(ALO_HIGH);
-    }
-    else
-    {
-        set_htp(1); // this disables ALO
-    }
-}
-
-#if defined(CONFIG_500D) || defined(CONFIG_5D2) || defined(CONFIG_50D)
-static void 
-ladj_display( void * priv, int x, int y, int selected )
-{
-    int htp = get_htp();
-    int alo = get_alo();
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "HTP / ALO   : %s/%s",
-               (htp ? "ON" : "OFF"),
-               (alo == ALO_STD ? "Standard" :
-                alo == ALO_LOW ? "Low" :
-                alo == ALO_HIGH ? "Strong" :
-                alo == ALO_OFF ? "OFF" : "err")
-               );
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(htp || (alo != ALO_OFF)));
-}
-#else
-static void 
-ladj_display( void * priv, int x, int y, int selected )
-{
-    int htp = get_htp();
-    int alo = get_alo();
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "HTP / ALO   : %s",
-               (htp ? "HTP" :
-                (alo == ALO_STD ? "ALO std" :
-                 (alo == ALO_LOW ? "ALO low" : 
-                  (alo == ALO_HIGH ? "ALO strong " :
-                   (alo == ALO_OFF ? "OFF" : "err")))))
-               );
-    menu_draw_icon(x, y, alo != ALO_OFF ? MNI_ON : htp ? MNI_AUTO : MNI_OFF, 0);
-}
-#endif
-*/
-
+#ifdef FEATURE_EXPO_ISO_HTP
 static void
 htp_toggle( void * priv )
 {
@@ -3194,8 +2916,9 @@ htp_display( void * priv, int x, int y, int selected )
                );
     menu_draw_icon(x, y, MNI_BOOL(htp), 0);
 }
+#endif
 
-
+#ifdef FEATURE_LV_ZOOM_SETTINGS
 static void 
 zoom_auto_exposure_print( void * priv, int x, int y, int selected )
 {
@@ -3398,6 +3121,7 @@ void zoom_sharpen_step()
     }
 }
 
+#ifdef CONFIG_EXPSIM
 void restore_expsim_task(int es)
 {
     for (int i = 0; i < 50; i++)
@@ -3410,9 +3134,12 @@ void restore_expsim_task(int es)
     NotifyBox(5000, "Could not restore ExpSim :(");
     info_led_blink(5, 50, 50);
 }
+#endif
+
 // to be called from the same places as zoom_sharpen_step
 void zoom_auto_exposure_step()
 {
+#ifdef CONFIG_EXPSIM
     if (!zoom_auto_exposure) return;
 
     static int es = -1;
@@ -3466,8 +3193,26 @@ void zoom_auto_exposure_step()
             aem = -1;
         }*/
     }
+#endif
 }
 
+#endif // FEATURE_LV_ZOOM_SETTINGS
+
+void hdr_display_status(int fnt)
+{
+    #ifdef FEATURE_HDR_BRACKETING
+    #ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
+    if (HDR_ENABLED)
+        bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y, 
+            "HDR %Xx%d%sEV",
+            hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
+            hdr_stepsize / 8,
+            ((hdr_stepsize/4) % 2) ? ".5" : "");
+    #endif
+    #endif
+}
+
+#ifdef FEATURE_HDR_BRACKETING
 static void 
 hdr_display( void * priv, int x, int y, int selected )
 {
@@ -3501,18 +3246,6 @@ hdr_display( void * priv, int x, int y, int selected )
     }
 }
 
-#if !defined(CONFIG_50D) && !defined(CONFIG_1100D)
-void hdr_display_status(int fnt)
-{
-    if (HDR_ENABLED)
-        bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y, 
-            "HDR %Xx%d%sEV",
-            hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
-            hdr_stepsize / 8,
-            ((hdr_stepsize/4) % 2) ? ".5" : "");
-}
-#endif
-
 // 0,4,8,12,16, 24, 32, 40
 static void
 hdr_stepsize_toggle( void * priv, int delta )
@@ -3524,42 +3257,48 @@ hdr_stepsize_toggle( void * priv, int delta )
     if (h < 0) h = 40;
     hdr_stepsize = h;
 }
+#endif
 
 int is_bulb_mode()
 {
-    #ifdef CONFIG_5DC
-    return 0; // bulb not working
-    #endif
+#ifdef CONFIG_BULB
     //~ bmp_printf(FONT_LARGE, 0, 0, "%d %d %d %d ", bulb_ramping_enabled, intervalometer_running, shooting_mode, lens_info.raw_shutter);
-    //~ msleep(0); // what the duck?!
     if (BULB_EXPOSURE_CONTROL_ACTIVE) return 1; // this will force bulb mode when needed
     if (shooting_mode == SHOOTMODE_BULB) return 1;
     if (shooting_mode != SHOOTMODE_M) return 0;
     if (lens_info.raw_shutter != 0xC) return 0;
     return 1;
+#else
+    return 0;
+#endif
 }
 
 void ensure_bulb_mode()
 {
+#ifdef CONFIG_BULB
+
     lens_wait_readytotakepic(64);
+
     #ifdef CONFIG_SEPARATE_BULB_MODE
-    int a = lens_info.raw_aperture;
-    set_shooting_mode(SHOOTMODE_BULB);
-    if (expsim == 2) set_expsim(1);
-    lens_set_rawaperture(a);
+        int a = lens_info.raw_aperture;
+        set_shooting_mode(SHOOTMODE_BULB);
+        if (expsim == 2) set_expsim(1);
+        lens_set_rawaperture(a);
     #else
-    if (shooting_mode != SHOOTMODE_M)
-        set_shooting_mode(SHOOTMODE_M);
-    int shutter = 12; // huh?!
-    prop_request_change( PROP_SHUTTER, &shutter, 4 );
-    prop_request_change( PROP_SHUTTER_ALSO, &shutter, 4 );
+        if (shooting_mode != SHOOTMODE_M)
+            set_shooting_mode(SHOOTMODE_M);
+        int shutter = 12; // huh?!
+        prop_request_change( PROP_SHUTTER, &shutter, 4 );
+        prop_request_change( PROP_SHUTTER_ALSO, &shutter, 4 );
     #endif
+#endif
 }
 
 // goes to Bulb mode and takes a pic with the specified duration (ms)
 void
 bulb_take_pic(int duration)
 {
+#ifdef CONFIG_BULB
     //~ NotifyBox(2000,  "Bulb: %d ", duration); msleep(2000);
     duration = MAX(duration, BULB_MIN_EXPOSURE) + BULB_EXPOSURE_CORRECTION;
     int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
@@ -3627,13 +3366,17 @@ bulb_take_pic(int duration)
     prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
     set_shooting_mode(m0r);
     msleep(200);
+#endif
 }
 
+#ifdef FEATURE_BULB_TIMER
 static void bulb_toggle(void* priv, int delta)
 {
     bulb_duration_index = mod(bulb_duration_index + delta - 1, COUNT(timer_values) - 1) + 1;
     bulb_shutter_valuef = (float)timer_values[bulb_duration_index];
+    #ifdef FEATURE_EXPO_OVERRIDE
     bv_auto_update();
+    #endif
 }
 
 static void
@@ -3664,7 +3407,9 @@ bulb_display_submenu( void * priv, int x, int y, int selected )
     );
     menu_draw_icon(x, y, MNI_PERCENT, (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)));
 }
+#endif
 
+#ifdef FEATURE_MLU
 void mlu_selftimer_update()
 {
     if (MLU_SELF_TIMER && !lv)
@@ -3692,10 +3437,10 @@ mlu_update()
 static void
 mlu_toggle_mode( void * priv, int delta )
 {
-    #if defined(CONFIG_5DC) || defined(CONFIG_5D3)
-    mlu_mode = !mlu_mode;
-    #else
+    #ifdef FEATURE_MLU_HANDHELD
     mlu_mode = mod(mlu_mode + delta, 3);
+    #else
+    mlu_mode = !mlu_mode;
     #endif
     mlu_update();
 }
@@ -3724,8 +3469,9 @@ mlu_display( void * priv, int x, int y, int selected )
     if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Mirror Lockup does not work in LiveView");
     else menu_draw_icon(x, y, mlu_auto ? MNI_AUTO : MNI_BOOL(get_mlu()), 0);
 }
+#endif // FEATURE_MLU
 
-#if 0
+#ifdef FEATURE_PICQ_DANGEROUS
 static void
 picq_display( void * priv, int x, int y, int selected )
 {
@@ -3744,57 +3490,6 @@ picq_display( void * priv, int x, int y, int selected )
         jpegtype == 2 ? "Coarse" : jpegtype == 3 ? "Fine" : ""
     );
     menu_draw_icon(x, y, MNI_ON, 0);
-}
-
-static void picq_toggle_rawsize(void* priv)
-{
-    int p = pic_quality;
-    int r = p & 0xF;
-    r = mod(r+1, 3);
-    int newp = (p & 0xfffffff0) | r;
-    set_pic_quality(newp);
-}
-
-static void picq_toggle_raw_on_off(void* priv)
-{
-    int raw = pic_quality & 0x60000;
-    int newp;
-    if (raw)
-    {
-        int jt = (pic_quality >> 24) & 0xF;
-        if (jt == 4) newp = PICQ_LARGE_FINE;
-        else newp = (pic_quality & 0xf0f1fff0) | (jt << 24);
-    }
-    else newp = pic_quality | 0x60000;
-    console_printf("%x\n", newp);
-    set_pic_quality(newp);
-}
-
-static void picq_toggle_raw(void* priv)
-{
-    int raw = pic_quality & 0x60000;
-    int rsize = pic_quality & 0xF;
-    if (raw && rsize < 2) picq_toggle_rawsize(0);
-    else picq_toggle_raw_on_off(0);
-}
-
-static void picq_toggle_jpegsize(void* priv)
-{
-    int js = (pic_quality >> 8) & 0xF;
-    js = mod(js+1, 3);
-    int newp = (pic_quality & 0xfffff0ff) | (js << 8);
-    set_pic_quality(newp);
-}
-
-static void picq_toggle_jpegtype(void* priv)
-{
-    int jt = (pic_quality >> 24) & 0xF;
-    jt = mod(jt-1, 3) + 2;
-    int newp = (pic_quality & 0xf0ffffff) | (jt << 24);
-    int raw = pic_quality & 0x60000;
-    int rawsize = pic_quality & 0xF;
-    if (jt == 4) newp = PICQ_RAW + rawsize;
-    set_pic_quality(newp);
 }
 
 static int picq_next(int p)
@@ -3821,6 +3516,8 @@ static void picq_toggle(void* priv)
     set_pic_quality(newp);
 }
 #endif
+
+#ifdef FEATURE_BULB_RAMPING
 
 static int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int intervalometer_delay)
 {
@@ -4678,6 +4375,19 @@ static void bulb_ramping_showinfo()
     }
 }
 
+#endif // FEATURE_BULB_RAMPING
+
+int expo_value_rounding_ok(int raw)
+{
+    if (raw == lens_info.raw_aperture_min || raw == lens_info.raw_aperture_max) return 1;
+    int r = raw % 8;
+    if (r != 0 && r != 4 && r != 3 && r != 5)
+        return 0;
+    return 1;
+}
+
+#ifdef FEATURE_EXPO_LOCK
+
 static CONFIG_INT("expo.lock", expo_lock, 0);
 static CONFIG_INT("expo.lock.tv", expo_lock_tv, 0);
 static CONFIG_INT("expo.lock.av", expo_lock_av, 1);
@@ -4720,15 +4430,6 @@ expo_lock_display( void * priv, int x, int y, int selected )
 static int expo_lock_get_current_value()
 {
     return APEX_TV(lens_info.raw_shutter) + APEX_AV(lens_info.raw_aperture) - APEX_SV(lens_info.iso_equiv_raw);
-}
-
-int expo_value_rounding_ok(int raw)
-{
-    if (raw == lens_info.raw_aperture_min || raw == lens_info.raw_aperture_max) return 1;
-    int r = raw % 8;
-    if (r != 0 && r != 4 && r != 3 && r != 5)
-        return 0;
-    return 1;
 }
 
 // returns the remainder
@@ -4901,17 +4602,9 @@ static void expo_lock_step()
     
 }
 
+#endif
 
-/*static void 
-bulb_ramping_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Bulb Ramping    : %s", 
-        bulb_ramping_enabled ? "ON" : "OFF"
-    );
-}*/
+#ifdef FEATURE_EXPO_PRESET
 
 static CONFIG_INT("expo.preset", expo_preset, 0);
 static CONFIG_INT("expo.pre.iso", pre_iso, 1234);
@@ -4971,9 +4664,13 @@ int handle_expo_preset(struct event * event)
     
     return 1;
 }
+#endif // FEATURE_EXPO_PRESET
 
-#if !defined(CONFIG_5D3_MINIMAL)
+// in lcdsensor.c
+void lcd_release_display( void * priv, int x, int y, int selected );
+
 static struct menu_entry shoot_menus[] = {
+    #ifdef FEATURE_HDR_BRACKETING
     {
         .name = "HDR Bracketing",
         .priv = &hdr_enabled,
@@ -5041,6 +4738,9 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
     },
+    #endif
+    
+    #ifdef FEATURE_INTERVALOMETER
     {
         .name = "Intervalometer",
         .priv       = &intervalometer_running,
@@ -5072,7 +4772,7 @@ static struct menu_entry shoot_menus[] = {
                 //~ .select     = intervalometer_stop_after_toggle,
                 .help = "Stop the intervalometer after taking X shots.",
             },
-            #ifndef CONFIG_5DC
+            #ifdef FEATURE_INTERVALOMETER_AF
             {
                 .name = "Use Autofocus   ", 
                 .priv = &interval_use_autofocus,
@@ -5081,6 +4781,8 @@ static struct menu_entry shoot_menus[] = {
                 .help = "Whether the camera should auto-focus at each shot.",
                 .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
             },
+            #endif
+            #ifdef FEATURE_INTERVALOMETER_MOVIE
             {
                 .name = "Stop REC after",
                 .priv       = &interval_movie_duration_index,
@@ -5092,7 +4794,8 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
     },
-    #ifndef CONFIG_5DC
+    #endif
+    #ifdef FEATURE_BULB_RAMPING
     {
         .name = "Timelapse Ramping",
         .priv       = &bulb_ramping_enabled,
@@ -5156,6 +4859,8 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL,
         }
     },
+    #endif
+    #ifdef FEATURE_BULB_TIMER
     {
         .name = "Bulb Timer",
         .priv = &bulb_timer,
@@ -5173,7 +4878,7 @@ static struct menu_entry shoot_menus[] = {
         },
     },
     #endif
-    #if defined(CONFIG_550D) || defined(CONFIG_500D)
+    #ifdef FEATURE_LCD_SENSOR_REMOTE
     {
         .name = "LCDsensor Remote",
         .priv       = &lcd_release_running,
@@ -5188,7 +4893,7 @@ static struct menu_entry shoot_menus[] = {
         //~ .edit_mode = EM_MANY_VALUES,
     },
     #endif
-    #ifdef CONFIG_AUDIO_REMOTE_SHOT
+    #ifdef FEATURE_AUDIO_REMOTE_SHOT
     {
         .name = "Audio RemoteShot",
         .priv       = &audio_release_running,
@@ -5208,7 +4913,7 @@ static struct menu_entry shoot_menus[] = {
         },
     },
     #endif
-#ifndef CONFIG_5DC
+    #ifdef FEATURE_MOTION_DETECT
     {
         .name = "Motion Detect",
         .priv       = &motion_detect,
@@ -5261,6 +4966,8 @@ static struct menu_entry shoot_menus[] = {
 		}
 
     },
+    #endif
+    #ifdef FEATURE_SILENT_PIC
     {
         .name = "Silent Picture",
         .priv = &silent_pic_enabled,
@@ -5271,7 +4978,7 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Mode",
                 .priv = &silent_pic_mode, 
-                #ifdef CONFIG_SILENT_PIC_HIRES
+                #ifdef FEATURE_SILENT_PIC_HIRES
                 .max = 3, // hi-res works
                 #else
                 .max = 2, // hi-res doesn't work
@@ -5280,7 +4987,7 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type = IT_DICE,
                 .help = "Silent picture mode: simple, burst, continuous or high-resolution."
             },
-            #ifdef CONFIG_SILENT_PIC_HIRES
+            #ifdef FEATURE_SILENT_PIC_HIRES
             {
                 .name = "Hi-Res", 
                 .priv = &silent_pic_highres,
@@ -5290,7 +4997,7 @@ static struct menu_entry shoot_menus[] = {
                 .help = "For hi-res matrix mode: select number of subpictures."
             },
             #endif
-            #ifdef CONFIG_SILENT_PIC_JPG
+            #ifdef FEATURE_SILENT_PIC_JPG
             {
                 .name = "LV JPEG", 
                 .priv = &silent_pic_jpeg,
@@ -5301,8 +5008,8 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
     },
-#endif
-#if !defined(CONFIG_1100D)
+    #endif
+    #ifdef FEATURE_MLU
     {
         // 5DC can't do handheld MLU
         // 5D3 can do, but doesn't need it (it has silent mode with little or no vibration)
@@ -5310,12 +5017,12 @@ static struct menu_entry shoot_menus[] = {
         .priv = &mlu_auto,
         .display = mlu_display, 
         .select = mlu_toggle,
-        #if defined(CONFIG_5DC)
-        .help = "You can toggle MLU w. DirectPrint or link it to self-timer.",
-        #elif defined(CONFIG_5D3)
-        .help = "You can link MLU with self-timer (handy).",
-        #else
+        #ifdef FEATURE_MLU_HANDHELD
         .help = "MLU tricks: hand-held or self-timer modes.",
+        #elif defined(CONFIG_5DC)
+        .help = "You can toggle MLU w. DirectPrint or link it to self-timer.",
+        #else
+        .help = "You can link MLU with self-timer (handy).",
         #endif
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
@@ -5323,16 +5030,16 @@ static struct menu_entry shoot_menus[] = {
                 .name = "MLU mode      ",
                 .priv = &mlu_mode,
                 .select = mlu_toggle_mode,
-                #if defined(CONFIG_5DC) || defined(CONFIG_5D3)
-                .max = 1,
-                .help = "Cable Release (press twice), or Self-timer (press once).",
-                #else
+                #ifdef FEATURE_MLU_HANDHELD
                 .max = 2,
                 .help = "Cable Rel (press twice), Self-timer, Handheld (press once).",
+                #else
+                .max = 1,
+                .help = "Cable Release (press twice), or Self-timer (press once).",
                 #endif
                 .choices = (const char *[]) {"Cable Release", "Self-Timer", "Handheld"},
             },
-            #if !defined(CONFIG_5DC) && !defined(CONFIG_5D3)
+            #ifdef FEATURE_MLU_HANDHELD
             {
                 .name = "Handheld Delay",
                 .priv = &mlu_handheld_delay, 
@@ -5350,6 +5057,7 @@ static struct menu_entry shoot_menus[] = {
                 .choices = (const char *[]) {"All values", "1/2...1/125"},
                 .help = "At what shutter speeds you want to use handheld MLU."
             },
+            #ifdef FEATURE_MLU_HANDHELD_DEBUG
             {
                 .name = "Handheld Debug",
                 .priv = &mlu_handled_debug, 
@@ -5357,25 +5065,22 @@ static struct menu_entry shoot_menus[] = {
                 .help = "Check whether the 'mirror up' event is detected correctly."
             },
             #endif
+            #endif
             MENU_EOL
         },
     },
-#endif
-    /*{
-        .display = picq_display, 
-        .select = picq_toggle_raw,
-        .select_reverse = picq_toggle_jpegsize, 
-        .select_auto = picq_toggle_jpegtype,
-    }
+    #endif
+
+    #ifdef FEATURE_PICQ_DANGEROUS
     {
         .display = picq_display, 
         .select = picq_toggle, 
         .help = "Experimental SRAW/MRAW mode. You may get corrupted files."
-    }*/
+    }
+    #endif
 };
-#endif
 
-#ifdef CONFIG_FLASH_TWEAKS
+#ifdef FEATURE_FLASH_TWEAKS
 static struct menu_entry flash_menus[] = {
     {
         .name = "Flash tweaks...",
@@ -5398,7 +5103,7 @@ static struct menu_entry flash_menus[] = {
                 .max = 1,
                 .help = "Take odd pictures with flash, even pictures without flash."
             },
-            #ifdef CONFIG_LV_3RD_PARTY_FLASH
+            #ifdef FEATURE_LV_3RD_PARTY_FLASH
             {
                 .name = "3rd p. flash LV ",
                 .priv = &lv_3rd_party_flash,
@@ -5412,10 +5117,12 @@ static struct menu_entry flash_menus[] = {
 };
 #endif
 
-#ifdef CONFIG_5D3
+#ifdef FEATURE_ZOOM_TRICK_5D3
 extern int zoom_trick;
 #endif
+
 struct menu_entry tweak_menus_shoot[] = {
+    #ifdef FEATURE_LV_ZOOM_SETTINGS
     {
         .name = "LiveView zoom settings...",
         .select = menu_open_submenu,
@@ -5424,7 +5131,6 @@ struct menu_entry tweak_menus_shoot[] = {
         .icon_type = IT_SUBMENU,
         .help = "Disable x5 or x10, boost contrast/sharpness...",
         .children =  (struct menu_entry[]) {
-            #if !defined(CONFIG_5D3_MINIMAL)
             {
                 .name = "Zoom x5",
                 .priv = &zoom_disable_x5, 
@@ -5443,15 +5149,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .help = "Disable x10 zoom in LiveView.",
                 .icon_type = IT_DISABLE_SOME_FEATURE,
             },
-    /*        #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
-            {
-                .name = "Zoom :-)",
-                .priv = &zoom_enable_face, 
-                .max = 1,
-                .icon_type = IT_BOOL,
-                .help = "Enable zoom when Face Detection is active."
-            },
-            #endif */
+            #ifdef CONFIG_EXPSIM
             {
                 .name = "Auto exposure on Zoom ",
                 .priv = &zoom_auto_exposure,
@@ -5459,6 +5157,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .display = zoom_auto_exposure_print,
                 .help = "Auto adjusts exposure, so you can focus manually wide open."
             },
+            #endif
             {
                 .name = "Increase SharpContrast",
                 .priv = &zoom_sharpen,
@@ -5479,7 +5178,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .choices = (const char *[]) {"OFF", "MF", "AF+MF"},
                 .help = "Zoom when you turn the focus ring (only some Canon lenses)."
             },
-            #ifdef CONFIG_5D3 // not reliable
+            #ifdef FEATURE_ZOOM_TRICK_5D3
             {
                 .name = "Zoom w. old btn / M-Fn",
                 .priv = &zoom_trick,
@@ -5487,11 +5186,13 @@ struct menu_entry tweak_menus_shoot[] = {
                 .help = "Use the old Zoom In button (top-right) or the M-Fn button."
             },
             #endif
-            #endif
             MENU_EOL
         },
     },
+    #endif
 };
+
+#ifdef FEATURE_ML_AUTO_ISO
 
 CONFIG_INT("auto.iso.ml", ml_auto_iso, 0);
 CONFIG_INT("auto.iso.av.tv", ml_auto_iso_av_shutter, 3);
@@ -5553,7 +5254,7 @@ void auto_iso_tweak_step()
     
     if (get_halfshutter_pressed()) msleep(200); // try to reduce the influence over autofocus
 }
-
+#endif // FEATURE_ML_AUTO_ISO
 
 extern int lvae_iso_max;
 extern int lvae_iso_min;
@@ -5568,16 +5269,14 @@ extern void digic_black_print( void * priv, int x, int y, int selected);
 
 extern int digic_shadow_lift;
 
-#if !defined(CONFIG_5D3_MINIMAL) && !defined(CONFIG_5DC)
 static struct menu_entry expo_menus[] = {
+    #ifdef FEATURE_WHITE_BALANCE
     {
         .name = "WhiteBalance",
         .display    = kelvin_wbs_display,
         .select     = kelvin_toggle,
         .help = "Adjust Kelvin white balance and GM/BA WBShift.",
-        //.essential = FOR_PHOTO | FOR_MOVIE,
         .edit_mode = EM_MANY_VALUES_LV,
-        //~ .show_liveview = 1,
         .children =  (struct menu_entry[]) {
             {
                 .name = "WhiteBalance",
@@ -5590,10 +5289,7 @@ static struct menu_entry expo_menus[] = {
                 .name = "WBShift G/M",
                 .display = wbs_gm_display, 
                 .select = wbs_gm_toggle,
-                //~ .select_auto = wbs_gm_auto,
                 .help = "Green-Magenta white balance shift, for fluorescent lights.",
-                //~ .show_liveview = 1,
-                //.essential = FOR_MOVIE,
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
@@ -5601,7 +5297,6 @@ static struct menu_entry expo_menus[] = {
                 .display = wbs_ba_display, 
                 .select = wbs_ba_toggle, 
                 .help = "Blue-Amber WBShift; 1 unit = 5 mireks on Kelvin axis.",
-                //~ .show_liveview = 1,
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
@@ -5663,14 +5358,14 @@ static struct menu_entry expo_menus[] = {
             MENU_EOL
         },
     },
+    #endif
+    #ifdef FEATURE_EXPO_ISO
     {
         .name = "ISO",
         .display    = iso_display,
         .select     = iso_toggle,
         .help = "Adjust and fine-tune ISO. Displays APEX Sv and Bv values.",
-        //.essential = FOR_PHOTO | FOR_MOVIE,
         .edit_mode = EM_MANY_VALUES_LV,
-        //~ .show_liveview = 1,
         .submenu_width = 650,
 
         .children =  (struct menu_entry[]) {
@@ -5698,6 +5393,7 @@ static struct menu_entry expo_menus[] = {
                 .select     = digital_iso_toggle,
                 .edit_mode = EM_MANY_VALUES_LV,
             },
+            #ifdef FEATURE_EXPO_ISO_DIGIC
             {
                 .name = "ML digital ISO",
                 .display = digic_iso_print,
@@ -5705,12 +5401,16 @@ static struct menu_entry expo_menus[] = {
                 .help = "Movie: use negative gain. Photo: use it for night vision.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
+            #endif
+            #ifdef FEATURE_EXPO_ISO_HTP
             {
                 .name = "Highlight Tone Priority",
                 .select = (void (*)(void *,int))htp_toggle,
                 .display = htp_display,
                 .help = "Highlight Tone Priority. Use with negative ML digital ISO.",
             },
+            #endif
+            #ifdef FEATURE_EXPO_ISO_DIGIC
             {
                 .name = "ISO Selection    ",
                 .priv = &iso_selection,
@@ -5719,13 +5419,7 @@ static struct menu_entry expo_menus[] = {
                 .choices = (const char *[]) {"C 100/160x", "ML ISOs"},
                 .icon_type = IT_DICE,
             },
-            /*{
-                .name = "Lift Shadows",
-                .priv = &digic_shadow_lift,
-                .min = 0,
-                .max = 50,
-                .help = "Raises shadow level.",
-            },*/
+            #endif
             #if 0 // unstable
             {
                 .name = "Min Movie AutoISO",
@@ -5757,15 +5451,17 @@ static struct menu_entry expo_menus[] = {
             MENU_EOL
         },
     },
+    #endif
+    #ifdef FEATURE_EXPO_SHUTTER
     {
         .name = "Shutter",
         .display    = shutter_display,
         .select     = shutter_toggle,
         .help = "Fine-tune shutter value. Displays APEX Tv or degrees equiv.",
-        //.essential = FOR_PHOTO | FOR_MOVIE,
         .edit_mode = EM_MANY_VALUES_LV,
-        //~ .show_liveview = 1,
     },
+    #endif
+    #ifdef FEATURE_EXPO_APERTURE
     {
         .name = "Aperture",
         .display    = aperture_display,
@@ -5775,6 +5471,8 @@ static struct menu_entry expo_menus[] = {
         .edit_mode = EM_MANY_VALUES_LV,
         //~ .show_liveview = 1,
     },
+    #endif
+    #ifdef FEATURE_PICSTYLE
     {
         .name = "PictureStyle",
         .display    = picstyle_display,
@@ -5827,6 +5525,13 @@ static struct menu_entry expo_menus[] = {
             MENU_EOL
         },
     },
+    #endif
+    #ifdef FEATURE_REC_PICSTYLE
+    
+    #ifndef FEATURE_PICSTYLE
+    #error This requires FEATURE_PICSTYLE.
+    #endif
+    
     {
         .priv = &picstyle_rec,
         .name = "REC PicStyle",
@@ -5846,25 +5551,8 @@ static struct menu_entry expo_menus[] = {
             MENU_EOL
         },
     },
-
-/*#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2)
-    {
-        .name        = "HTP / ALO",
-        .select      = htp_toggle,
-        .select_reverse = alo_toggle,
-        .display     = ladj_display,
-        .help = "Enable/disable HTP [SET] and ALO [PLAY]."
-    }, 
-#else
-    {
-        .name = "HTP / ALO",
-        .display    = ladj_display,
-        .select     = ladj_toggle,
-        .help = "Enable/disable HTP and ALO from the same place.",
-        .edit_mode = EM_MANY_VALUES_LV,
-    },
-#endif
-*/
+    #endif
+    #ifdef FEATURE_ML_AUTO_ISO
     {
         .name = "ML Auto ISO\b\b",
         .priv = &ml_auto_iso, 
@@ -5903,6 +5591,8 @@ static struct menu_entry expo_menus[] = {
             MENU_EOL
         }
     },
+    #endif
+    #ifdef FEATURE_EXPO_LOCK
     {
         .name = "Expo.Lock",
         .priv = &expo_lock,
@@ -5937,18 +5627,23 @@ static struct menu_entry expo_menus[] = {
             MENU_EOL
         },
     },
+    #endif
+    #ifdef FEATURE_EXPO_PRESET
     {
         .name = "Expo.Presets\b\b",
         .priv = &expo_preset,
         .max = 2,
         .choices = (const char *[]) {"OFF", "Press SET", "Press " INFO_BTN_NAME},
         .help = "Quickly toggle between two expo presets (ISO,Tv,Av,Kelvin).",
-    }
+    },
+    #endif
 };
-#endif
 
-// for firing HDR shots - avoids random misfire due to low polling frequency
+
 int picture_was_taken_flag = 0;
+
+#if defined(FEATURE_HDR_BRACKETING) || defined(FEATURE_FOCUS_STACKING)
+// for firing HDR shots - avoids random misfire due to low polling frequency
 PROP_HANDLER(PROP_LAST_JOB_STATE)
 {
     if (buf[0] > 10) picture_was_taken_flag = 1;
@@ -5956,9 +5651,9 @@ PROP_HANDLER(PROP_LAST_JOB_STATE)
 
 void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
 {
-#ifndef CONFIG_NO_SNAP_SIM
+    #ifdef FEATURE_SNAP_SIM
     if (get_snap_sim()) return; // no script for virtual shots
-#endif
+    #endif
     if (steps <= 1) return;
     
     if (hdr_scripts == 1)
@@ -6007,11 +5702,12 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
         FIO_CloseFile(f);
     }
 }
+#endif // HDR/FST
 
 // normal pic, silent pic, bulb pic...
 static void take_a_pic(int allow_af)
 {
-#ifndef CONFIG_NO_SNAP_SIM
+    #ifdef FEATURE_SNAP_SIM
     int snap_sim = get_snap_sim();
     if (snap_sim) {
         beep();
@@ -6022,13 +5718,15 @@ static void take_a_pic(int allow_af)
         _card_led_off();
         return;
     }
-#endif
+    #endif
+    #ifdef FEATURE_SILENT_PIC
     if (silent_pic_enabled)
     {
         //msleep(500);
         silent_pic_take(0); 
     }
     else
+    #endif
     {
         //~ beep();
         if (is_bulb_mode()) bulb_take_pic(BULB_SHUTTER_VALUE_MS);
@@ -6079,7 +5777,6 @@ void hdr_iso_shift_restore()
 {
     hdr_set_rawiso(hdr_iso00);
 }
-
 // Here, you specify the correction in 1/8 EV steps (for shutter or exposure compensation)
 // The function chooses the best method for applying this correction (as exposure compensation, altering shutter value, or bulb timer)
 // And then it takes a picture
@@ -6152,12 +5849,14 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
         
         //~ NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
 
-#ifndef CONFIG_5DC // bulb not working
+#ifdef CONFIG_BULB
         // then choose the best option (bulb for long exposures, regular for short exposures)
         if (msc >= 10000 || (BULB_EXPOSURE_CONTROL_ACTIVE && msc > BULB_MIN_EXPOSURE && !LRT_HOLY_GRAIL))
         {
             bulb_take_pic(msc);
+            #ifdef FEATURE_BULB_RAMPING
             bramp_last_exposure_rounding_error_evx1000 = 0; // bulb ramping assumed to be exact
+            #endif
         }
         else
 #endif
@@ -6173,6 +5872,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             
             bulb_ramping_enabled = b;
             
+            #ifdef FEATURE_BULB_RAMPING
             if (BULB_EXPOSURE_CONTROL_ACTIVE)
             {
                 // since actual shutter speed differs from float value quite a bit, 
@@ -6181,6 +5881,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
                 ASSERT(ABS(bramp_last_exposure_rounding_error_evx1000) < 500);
             }
             else bramp_last_exposure_rounding_error_evx1000 = 0;
+            #endif
         }
         
         if (drive_mode == DRIVE_SELFTIMER_2SEC) msleep(2500);
@@ -6201,6 +5902,8 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
     lens_wait_readytotakepic(64);
     return ans;
 }
+
+#ifdef FEATURE_HDR_BRACKETING
 
 static int hdr_check_cancel(int init)
 {
@@ -6225,6 +5928,7 @@ static int hdr_check_cancel(int init)
     }
     return 0;
 }
+#endif // FEATURE_HDR_BRACKETING
 
 void ensure_play_or_qr_mode_after_shot()
 {
@@ -6253,6 +5957,8 @@ void ensure_play_or_qr_mode_after_shot()
         msleep(1000);
     }
 }
+
+#ifdef FEATURE_HDR_BRACKETING
 
 void hdr_check_for_under_or_over_exposure(int* under, int* over)
 {
@@ -6438,6 +6144,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
 end:
     restore_af_button_assignment();
 }
+#endif
 
 static void press_rec_button()
 {
@@ -6452,10 +6159,7 @@ static void press_rec_button()
 
 void movie_start()
 {
-    #ifdef CONFIG_VXWORKS
-    return;
-    #endif
-
+#ifdef CONFIG_MOVIE
     while (get_halfshutter_pressed()) msleep(100);
     if (lens_info.job_state >= 10) return; 
 
@@ -6486,14 +6190,12 @@ void movie_start()
         if (recording == 2) break; // recording started
     }
     msleep(500);
+#endif
 }
 
 void movie_end()
 {
-    #ifdef CONFIG_VXWORKS
-    return;
-    #endif
-
+#ifdef CONFIG_MOVIE
     if (shooting_type != 3 && !is_movie_mode())
     {
         NotifyBox(2000, "movie_end: not movie mode (%d,%d) ", shooting_type, shooting_mode);
@@ -6518,9 +6220,10 @@ void movie_end()
         if (!recording) break;
     }
     msleep(500);
+#endif
 }
 
-
+#ifdef FEATURE_INTERVALOMETER_MOVIE
 static void
 short_movie()
 {
@@ -6528,12 +6231,14 @@ short_movie()
     msleep(timer_values[interval_movie_duration_index] * 1000);
     movie_end();
 }
+#endif
 
 // take one picture or a HDR / focus stack sequence
 // to be used with the intervalometer
 void hdr_shot(int skip0, int wait)
 {
     NotifyBoxHide();
+#ifdef FEATURE_HDR_BRACKETING
     if (HDR_ENABLED)
     {
         //~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8); msleep(1000);
@@ -6551,6 +6256,7 @@ void hdr_shot(int skip0, int wait)
         if (drive_mode_bak) lens_set_drivemode(drive_mode_bak);
     }
     else // regular pic (not HDR)
+#endif
     {
     int should_af = 1;
     if(intervalometer_running && !interval_use_autofocus) should_af = 0;
@@ -6597,11 +6303,14 @@ void remote_shot(int wait)
     // save zoom value (x1, x5 or x10)
     int zoom = lv_dispsize;
     
+    #ifdef FEATURE_FOCUS_STACKING
     if (is_focus_stack_enabled())
     {
         focus_stack_run(0);
     }
-    else if (is_movie_mode())
+    else
+    #endif
+    if (is_movie_mode())
     {
         movie_start();
     }
@@ -6623,6 +6332,7 @@ void remote_shot(int wait)
 
 static void display_expsim_status()
 {
+#ifdef CONFIG_EXPSIM
     get_yuv422_vram();
     static int prev_expsim = 0;
     int x = 610 + font_med.width;
@@ -6638,8 +6348,8 @@ static void display_expsim_status()
             bmp_printf( FONT(FONT_MED, COLOR_WHITE, 0), x, y, "        " );
     }
     prev_expsim = expsim;
+#endif
 }
-
 
 void display_shooting_info_lv()
 {
@@ -6656,6 +6366,7 @@ void display_shooting_info_lv()
 
 void display_trap_focus_info()
 {
+#ifdef FEATURE_TRAP_FOCUS
     int show, fg, bg, x, y;
     static int show_prev = 0;
     if (lv)
@@ -6676,6 +6387,7 @@ void display_trap_focus_info()
         if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? DISPLAY_TRAP_FOCUS_MSG : DISPLAY_TRAP_FOCUS_MSG_BLANK);
     }
     show_prev = show;
+#endif
 }
 
 int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
@@ -6691,21 +6403,27 @@ int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
 
 void intervalometer_stop()
 {
+#ifdef FEATURE_INTERVALOMETER
     if (intervalometer_running)
     {
         intervalometer_running = 0;
+        #ifdef FEATURE_BULB_RAMPING
         bramp_init_state = 0;
+        #endif
         NotifyBox(2000, "Intervalometer stopped.");
         //~ display_on();
     }
+#endif
 }
 
 int handle_intervalometer(struct event * event)
 {
+#ifdef FEATURE_INTERVALOMETER
     // stop intervalometer with MENU or PLAY
     if (!IS_FAKE(event) && (event->param == BGMT_MENU || event->param == BGMT_PLAY) && !gui_menu_shown())
         intervalometer_stop();
     return 1;
+#endif
 }
 
 // this syncs with DIGIC clock (counts in microseconds and overflows every second)
@@ -6721,7 +6439,7 @@ void wait_till_next_second()
     }
 }
 
-#ifdef CONFIG_5DC
+#ifdef FEATURE_MLU_DIRECT_PRINT_SHORTCUT
 // use direct print button to toggle MLU and display its status
 int handle_mlu_toggle(struct event * event)
 {
@@ -6748,6 +6466,7 @@ int handle_mlu_toggle(struct event * event)
 }
 #endif
 
+#ifdef FEATURE_MLU
 PROP_HANDLER(PROP_DRIVE)
 {
     drive_mode = buf[0];
@@ -6756,11 +6475,8 @@ PROP_HANDLER(PROP_DRIVE)
 
 static void mlu_step()
 {
-#if defined(CONFIG_1100D)
-    return;
-#endif
 
-#if defined(CONFIG_5DC)
+#ifdef FEATURE_MLU_DIRECT_PRINT_SHORTCUT
     int mlu = get_mlu();
     static int prev_mlu = 0;
     if (mlu) info_led_on();
@@ -6773,6 +6489,7 @@ static void mlu_step()
         if (!get_mlu()) set_mlu(1);
     }
 }
+#endif
 
 // continuous, hi-speed, silent continuous, depending on the camera
 int is_continuous_drive()
@@ -6818,6 +6535,7 @@ void take_fast_pictures( int number ) {
     }
 }
 
+#ifdef FEATURE_MOTION_DETECT
 void md_take_pics() // for motion detection
 {
     if (motion_detect_delay > 1) {
@@ -6839,6 +6557,7 @@ void md_take_pics() // for motion detection
     }
     msleep(1000);
 }
+#endif
 
 static void misc_shooting_info()
 {
@@ -6846,7 +6565,7 @@ static void misc_shooting_info()
 
     if (get_global_draw())
     {
-        #if !defined(CONFIG_50D) && !defined(CONFIG_1100D)
+        #ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
         if (!lv && display_idle())
         BMP_LOCK
         (
@@ -6861,21 +6580,8 @@ static void misc_shooting_info()
             BMP_LOCK (
                 display_shooting_info_lv();
             )
-            #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_7D) && !defined(CONFIG_1100D)
-            if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
-            {
-                static int ae_warned = 0;
-                if (!ae_warned && !gui_menu_shown())
-                {
-                    bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
-                        "!!! Auto exposure !!!\n"
-                        "Set 'Movie Exposure -> Manual' from Canon menu");
-                    msleep(2000);
-                    redraw();
-                    ae_warned = 1;
-                }
-            }
-            #elif defined(CONFIG_5D2)
+            #ifdef CONFIG_MOVIE_AE_WARNING
+            #if defined(CONFIG_5D2)
             static int ae_warned = 0;
             if (is_movie_mode() && !lens_info.raw_shutter && recording && MVR_FRAME_NUMBER < 10)
             {
@@ -6891,6 +6597,21 @@ static void misc_shooting_info()
                 }
             }
             else ae_warned = 0;
+            #else
+            if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
+            {
+                static int ae_warned = 0;
+                if (!ae_warned && !gui_menu_shown())
+                {
+                    bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
+                        "!!! Auto exposure !!!\n"
+                        "Set 'Movie Exposure -> Manual' from Canon menu");
+                    msleep(2000);
+                    redraw();
+                    ae_warned = 1;
+                }
+            }
+            #endif
             #endif
             
             if (EXT_MONITOR_RCA) 
@@ -6931,7 +6652,9 @@ shoot_task( void* unused )
 
     bulb_shutter_valuef = (float)timer_values[bulb_duration_index];
     
+    #ifdef FEATURE_MLU
     mlu_selftimer_update();
+    #endif
     
     TASK_LOOP
     {
@@ -6939,8 +6662,11 @@ shoot_task( void* unused )
         
         if (k%10 == 0) misc_shooting_info();
         
+        #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);
+        #endif
 
+        #ifdef FEATURE_WHITE_BALANCE
         if (kelvin_auto_flag)
         {
             kelvin_auto_run();
@@ -6951,23 +6677,29 @@ shoot_task( void* unused )
             wbs_gm_auto_run();
             wbs_gm_auto_flag = 0;
         }
+        #endif
         
-        //~ if (gui_menu_shown()) continue; // be patient :)
-        
+        #ifdef FEATURE_LCD_SENSOR_REMOTE
         lcd_release_step();
+        #endif
         
+        #ifdef FEATURE_EXPO_LOCK
         expo_lock_step();
+        #endif
         
         if (remote_shot_flag)
         {
             remote_shot(1);
             remote_shot_flag = 0;
         }
+        #ifdef CONFIG_MLU
         if (mlu_lock_flag)
         {
             mlu_lock_mirror_if_needed();
             mlu_lock_flag = 0;
         }
+        #endif
+        #ifdef CONFIG_MOVIE
         if (movie_start_flag)
         {
             movie_start();
@@ -6978,25 +6710,34 @@ shoot_task( void* unused )
             movie_end();
             movie_end_flag = 0;
         }
+        #endif
+        #ifdef FEATURE_LV_ZOOM_SETTINGS
         if (zoom_focus_ring_flag)
         {
             zoom_focus_ring_engage();
             zoom_focus_ring_flag = 0;
         }
-        
-        auto_iso_tweak_step();
-        
-        mlu_step();
         zoom_lv_face_step();
         zoom_focus_ring_step();
-        //~ uniwb_step();
+        #endif
+        
+        #ifdef FEATURE_ML_AUTO_ISO
+        auto_iso_tweak_step();
+        #endif
+        
+        #ifdef FEATURE_MLU
+        mlu_step();
+        #endif
 
+        #ifdef FEATURE_LV_FOCUS_BOX_SNAP
         if (center_lv_aff)
         {
             center_lv_afframe_do();
             center_lv_aff = 0;
         }
+        #endif
 
+        #if defined(FEATURE_HDR_BRACKETING) || defined(FEATURE_FOCUS_STACKING)
         // avoid camera shake for HDR shots => force self timer
         static int drive_mode_bk = -1;
         if (((HDR_ENABLED && hdr_delay) || is_focus_stack_enabled()) && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
@@ -7016,7 +6757,9 @@ shoot_task( void* unused )
             drive_mode_bk = -1;
             info_led_off();
         }
+        #endif
     
+        #ifdef FEATURE_BULB_TIMER
         if (bulb_timer && is_bulb_mode() && !gui_menu_shown())
         {
             // look for a transition of half-shutter during idle state
@@ -7070,28 +6813,33 @@ shoot_task( void* unused )
                 bulb_take_pic(d * 1000);
             }
         }
+        #endif
         
         if (picture_was_taken_flag) // just took a picture, maybe we should take another one
         {
             if (!recording)
             {
+                #ifdef FEATURE_HDR_BRACKETING
                 if (HDR_ENABLED)
                 {
                     lens_wait_readytotakepic(64);
                     hdr_shot(1,1); // skip the middle exposure, which was just taken
                     lens_wait_readytotakepic(64); 
                 }
+                #endif
+                #ifdef FEATURE_FOCUS_STACKING
                 if (is_focus_stack_enabled())
                 {
                     lens_wait_readytotakepic(64);
                     focus_stack_run(1); // skip first exposure, we already took it
                     lens_wait_readytotakepic(64); 
                 }
+                #endif
             }
             picture_was_taken_flag = 0;
         }
 
-        #ifdef CONFIG_FLASH_TWEAKS
+        #ifdef FEATURE_FLASH_TWEAKS
         // toggle flash on/off for next picture
         if (!is_movie_mode() && flash_and_no_flash && strobo_firing < 2 && strobo_firing != file_number % 2)
         {
@@ -7104,7 +6852,7 @@ shoot_task( void* unused )
             set_flash_firing(0);
         prev_flash_and_no_flash = flash_and_no_flash;
 
-        #ifdef CONFIG_LV_3RD_PARTY_FLASH
+        #ifdef FEATURE_LV_3RD_PARTY_FLASH
         if (lv_3rd_party_flash && !is_movie_mode())
         {
             if (lv && HALFSHUTTER_PRESSED)
@@ -7119,7 +6867,8 @@ shoot_task( void* unused )
         }
         #endif
         #endif
-                
+        
+        #ifdef FEATURE_TRAP_FOCUS
         // trap focus (outside LV) and all the preconditions
         int tfx = trap_focus && is_manual_focus() && display_idle() && !intervalometer_running && !is_movie_mode();
 
@@ -7138,18 +6887,21 @@ shoot_task( void* unused )
             NotifyBox(2000, "Trap focus: buttons are locked. \n"
                             "Press shutter halfway to unlock.");
         }
+        #else
+        int tfx = 0;
+        #endif
 
+        #ifdef FEATURE_MOTION_DETECT
         // same for motion detect
         int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
+        #else
+        int mdx = 0;
+        #endif
         
         if (!tfx && !mdx)  // no need to react very fast, can powersave a bit
             msleep(DISPLAY_IS_ON ? 50 : 200);
-        
-        //Reset the counter so that if you go in and out of live view, it doesn't start clicking away right away.
-        static int K = 0;
 
-        if(!mdx) K = 0;
-
+        #ifdef FEATURE_TRAP_FOCUS
         if (tfx) // MF
         {
             static int info_led_turned_on = 0;
@@ -7175,6 +6927,13 @@ shoot_task( void* unused )
                 //~ remote_shot(0);
             }
         }
+        #endif
+
+        #ifdef FEATURE_MOTION_DETECT
+        //Reset the counter so that if you go in and out of live view, it doesn't start clicking away right away.
+        static int K = 0;
+
+        if(!mdx) K = 0;
         
         if (mdx)
         {
@@ -7305,9 +7064,9 @@ shoot_task( void* unused )
             lv_forced_by_md = 0;
         }
         
+        #endif // motion detect
         
-        
-
+        #ifdef FEATURE_SILENT_PIC
         static int silent_pic_countdown;
         if (!display_idle())
         {
@@ -7322,8 +7081,10 @@ shoot_task( void* unused )
         {
             if (silent_pic_countdown) // half-shutter was pressed while in playback mode, for example
                 continue;
-            if (is_focus_stack_enabled()) focus_stack_run(0); // shoot all frames
-            else if (!HDR_ENABLED) silent_pic_take(1);
+            #ifdef FEATURE_FOCUS_STACKING
+            if (is_focus_stack_enabled()) focus_stack_run(0); else // shoot all frames
+            #endif
+            if (!HDR_ENABLED) silent_pic_take(1);
             else 
             {
                 NotifyBox(5000, "HDR silent picture...");
@@ -7333,6 +7094,9 @@ shoot_task( void* unused )
                 hdr_shot(0,1);
             }
         }
+        #endif
+        
+        #ifdef FEATURE_INTERVALOMETER
         
         #define SECONDS_REMAINING (intervalometer_next_shot_time - seconds_clock)
         #define SECONDS_ELAPSED (seconds_clock - seconds_clock_0)
@@ -7344,10 +7108,12 @@ shoot_task( void* unused )
             msleep(20);
             while (SECONDS_REMAINING > 0 && !ml_shutdown_requested)
             {
+                #ifdef FEATURE_BULB_RAMPING
                 if (bulb_ramping_enabled)
                 {
                     bulb_ramping_init();
                 }
+                #endif
 
                 int dt = timer_values[interval_timer_index];
                 msleep(dt < 5 ? 20 : 300);
@@ -7415,7 +7181,9 @@ shoot_task( void* unused )
             //~ intervalometer_next_shot_time = intervalometer_next_shot_time + dt;
             intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock, seconds_clock + dt);
             
+            #ifdef FEATURE_MLU
             mlu_step(); // who knows who has the idea of changing drive mode with intervalometer active :)
+            #endif
             
             if (dt <= 1) // crazy mode or 1 second - needs to be fast
             {
@@ -7442,21 +7210,25 @@ shoot_task( void* unused )
                     take_a_pic(0);
                 }
             }
-            else if (!is_movie_mode() || silent_pic_enabled || bulb_ramping_enabled)
-            {
-                hdr_shot(0, 1);
-            }
-            else
+            #ifdef FEATURE_INTERVALOMETER_MOVIE
+            else if (is_movie_mode() && !silent_pic_enabled && !bulb_ramping_enabled)
             {
                 short_movie();
+            }
+            #endif
+            else
+            {
+                hdr_shot(0, 1);
             }
             intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);
             intervalometer_pictures_taken++;
 
+            #ifdef FEATURE_BULB_RAMPING
             if (bulb_ramping_enabled)
             {
                 compute_exposure_for_next_shot();
             }
+            #endif
 
            if (lv && silent_pic_enabled) // half-press shutter to disable power management
            {
@@ -7468,13 +7240,18 @@ shoot_task( void* unused )
            }
         }
         else // intervalometer not running
+        #endif // FEATURE_INTERVALOMETER
         {
+            #ifdef FEATURE_INTERVALOMETER
+            #ifdef FEATURE_BULB_RAMPING
             bramp_init_done = 0;
             bramp_cleanup();
+            #endif
             intervalometer_pictures_taken = 0;
             intervalometer_next_shot_time = seconds_clock + timer_values[interval_start_timer_index];
+            #endif
 
-#ifdef CONFIG_AUDIO_REMOTE_SHOT
+#ifdef FEATURE_AUDIO_REMOTE_SHOT
 #if defined(CONFIG_7D)
             /* experimental for 7D now, has to be made generic */
             static int last_audio_release_running = 0;
@@ -7531,46 +7308,37 @@ shoot_task( void* unused )
     }
 }
 
-#ifndef CONFIG_5D3_MINIMAL
 TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x2000 );
-#endif
 
 void shoot_init()
 {
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
 
-#if !defined(CONFIG_5D3_MINIMAL)
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
-    #ifndef CONFIG_5DC
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
-    #endif
 
-    #ifdef CONFIG_FLASH_TWEAKS
+    #ifdef FEATURE_FLASH_TWEAKS
     menu_add( "Shoot", flash_menus, COUNT(flash_menus) );
     #endif
     
     //~ menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
 
-    #ifndef CONFIG_5DC
+    #ifdef FEATURE_EXPO_OVERRIDE
     extern struct menu_entry expo_override_menus[];
     menu_add( "Expo", expo_override_menus, 1 );
     #endif
 
-    #ifdef CONFIG_EXPSIM
+    #ifdef FEATURE_EXPSIM
     extern struct menu_entry expo_tweak_menus[];
     menu_add( "Expo", expo_tweak_menus, 1 );
     #endif
-#endif
 }
 
-#if !defined(CONFIG_7D_MINIMAL)
 INIT_FUNC("shoot", shoot_init);
-#endif
-
 
 void iso_refresh_display() // in photo mode
 {
-    #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D)
+#ifdef FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY
     if (!lv && display_idle())
     {
         if (lens_info.raw_iso % 8 != 0)
@@ -7583,5 +7351,5 @@ void iso_refresh_display() // in photo mode
             bfnt_puts(msg, MENU_DISP_ISO_POS_X + w + 10, MENU_DISP_ISO_POS_Y + 10, COLOR_FG_NONLV, bg);
         }
     }
-    #endif
+#endif
 }

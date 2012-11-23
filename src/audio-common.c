@@ -874,11 +874,7 @@ audio_meter_display( void * priv, int x, int y, int selected )
     bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
-#ifdef CONFIG_5D3_MINIMAL
-               "Audio Meters: %s",
-#else
                "Audio Meters  : %s",
-#endif
                v ? "ON" : "OFF"
                );
     check_sound_recording_warning(x, y);
@@ -1051,7 +1047,9 @@ PROP_HANDLER( PROP_MVR_REC_START )
 
 void input_toggle()
 {
+#ifdef FEATURE_INPUT_SOURCE
     audio_input_toggle(&input_choice, 1);
     NotifyBox(2000, "Input: %s", get_audio_input_string());
+#endif
 }
 

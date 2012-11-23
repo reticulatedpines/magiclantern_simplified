@@ -1788,11 +1788,7 @@ audio_meter_display( void * priv, int x, int y, int selected )
         bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
-               #ifdef CONFIG_5D3_MINIMAL
-               "Audio Meters: %s",
-               #else
                "Audio Meters  : %s",
-               #endif
                v ? "ON" : "OFF"
                );
         check_sound_recording_warning(x, y);

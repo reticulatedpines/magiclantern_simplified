@@ -46,9 +46,13 @@ void hdr_step()
 #ifdef CONFIG_FRAME_ISO_OVERRIDE
     if (!hdrv_enabled)
     {
+        #ifdef FEATURE_GRADUAL_EXPOSURE
         smooth_iso_step();
+        #endif
         return;
     }
+    
+    #ifdef FEATURE_HDR_VIDEO
     if (!lv) return;
     if (!is_movie_mode()) return;
     if (!lens_info.raw_iso) return;
@@ -74,7 +78,7 @@ void hdr_step()
 
     int iso = odd_frame ? iso_low : iso_high; // ISO 100-1600
     FRAME_ISO = iso | (iso << 8);
-    //~ *(uint8_t*)(lv_struct + 0x54) = iso;
+    #endif
 #endif
 }
 
@@ -275,7 +279,7 @@ static void hdr_init()
 
 }
 
-#ifdef CONFIG_FRAME_ISO_OVERRIDE
+#ifdef FEATURE_HDR_VIDEO
 INIT_FUNC("hdr", hdr_init);
 #endif
 

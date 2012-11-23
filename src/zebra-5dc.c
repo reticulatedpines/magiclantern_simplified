@@ -1472,122 +1472,6 @@ static inline int peak_blend_alpha(uint32_t* s, int e)
 {
 }
 
-void peak_disp_filter()
-{
-    if (!lv) return;
-
-    uint32_t* src_buf;
-    uint32_t* dst_buf;
-    display_filter_get_buffers(&src_buf, &dst_buf);
-
-    static int thr = 50;
-    static int thr_increment = 1;
-    static int thr_delta = 0;
-    
-    #define FOCUSED_THR 64
-    // the percentage selected in menu represents how many pixels are considered in focus
-    // let's say above some FOCUSED_THR
-    // so, let's scale edge value so that e=thr maps to e=FOCUSED_THR
-    for (int i = 0; i < 255; i++)
-        peak_scaling[i] = MIN(i * FOCUSED_THR / thr, 255);
-    
-    int n_over = 0;
-    int n_total = 720 * (os.y_max - os.y0) / 2;
-
-    #define PEAK_LOOP for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
-    // generic loop:
-    //~ for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
-    //~ {
-        //~ int e = peak_compute((uint8_t*)&src_buf[i] + 1);
-        //~ dst_buf[i] = peak_blend(&src_buf[i], e, blend_thr);
-        //~ if (unlikely(e > FOCUSED_THR)) n_over++;
-    //~ }
-
-    if (focus_peaking_disp == 3) // raw
-    {
-        PEAK_LOOP
-        {
-            int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
-            e = MIN(e * 4, 255);
-            dst_buf[i] = (e << 8) | (e << 24);
-        }
-    }
-    
-    else if (focus_peaking_grayscale)
-    {
-        if (focus_peaking_disp == 1) 
-        {
-            PEAK_LOOP
-            {
-                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
-                e = peak_scaling[MIN(e, 255)];
-                if (likely(e < FOCUSED_THR)) dst_buf[i] = src_buf[i] & 0xFF00FF00;
-                else 
-                { 
-                    dst_buf[i] = 0x4C7F4CD5; // red
-                    n_over++;
-                }
-            }
-        }
-        else if (focus_peaking_disp == 2) // alpha
-        {
-            PEAK_LOOP
-            {
-                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
-                e = peak_scaling[MIN(e, 255)];
-                if (likely(e < 20)) dst_buf[i] = src_buf[i] & 0xFF00FF00;
-                else dst_buf[i] = peak_blend_alpha(&src_buf[i], e);
-                if (unlikely(e > FOCUSED_THR)) n_over++;
-            }
-        }
-    }
-    else // color
-    {
-        if (focus_peaking_disp == 1) 
-        {
-            PEAK_LOOP
-            {
-                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
-                e = peak_scaling[MIN(e, 255)];
-                if (likely(e < FOCUSED_THR)) dst_buf[i] = src_buf[i];
-                else 
-                { 
-                    dst_buf[i] = 0x4C7F4CD5; // red
-                    n_over++;
-                }
-            }
-        }
-        else if (focus_peaking_disp == 2) // alpha
-        {
-            PEAK_LOOP
-            {
-                int e = peak_d2xy((uint8_t*)&src_buf[i] + 1);
-                e = peak_scaling[MIN(e, 255)];
-                if (likely(e < 20)) dst_buf[i] = src_buf[i];
-                else dst_buf[i] = peak_blend_alpha(&src_buf[i], e);
-                if (unlikely(e > FOCUSED_THR)) n_over++;
-            }
-        }
-    }
-
-    // update threshold for next iteration
-    if (1000 * n_over / n_total > (int)focus_peaking_pthr)
-    {
-        if (thr_delta > 0) thr_increment++; else thr_increment = 1;
-        thr += thr_increment;
-    }
-    else
-    {
-        if (thr_delta < 0) thr_increment++; else thr_increment = 1;
-        thr -= thr_increment;
-    }
-
-    thr_increment = COERCE(thr_increment, -10, 10);
-    thr = COERCE(thr, 10, 255);
-    
-    if (focus_peaking_disp == 3) thr = 64;
-}
-
 static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
 {    
     int color = get_focus_color(thr, e);
@@ -2648,10 +2532,6 @@ void draw_livev_for_playback()
     if (falsecolor_draw) 
     {
         draw_false_downsampled();
-    }
-    else if (defish_preview)
-    {
-        defish_draw_play();
     }
     else
     {

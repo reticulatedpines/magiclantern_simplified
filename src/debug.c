@@ -47,12 +47,16 @@ void EngDrvOut(int reg, int value);
 
 void fake_halfshutter_step();
 
+#ifdef FEATURE_SCREENSHOT
 void take_screenshot( void * priv )
 {
     Beep();
     call( "dispcheck" );
+    #ifdef FEATURE_SCREENSHOT_422
     silent_pic_take_lv_dbg();
+    #endif
 }
+#endif
 
 #ifdef CONFIG_DEBUGMSG
 int draw_prop = 0;
@@ -120,12 +124,16 @@ int config_ok = 0;
 void
 save_config( void * priv, int delta )
 {
+#ifdef CONFIG_CONFIG_FILE
     take_semaphore(config_save_sem, 0);
     update_disp_mode_bits_from_params();
     config_save_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" ); 
     config_menu_save_hidden_items();
     give_semaphore(config_save_sem);
+#endif
 }
+
+#ifdef CONFIG_CONFIG_FILE
 static void
 delete_config( void * priv, int delta )
 {
@@ -149,6 +157,7 @@ config_autosave_display(
         config_autosave ? "ON" : "OFF"
     );
 }
+#endif
 
 #if CONFIG_DEBUGMSG
 
@@ -222,64 +231,6 @@ unsigned int rand (void)
    z4 = ((z4 & 4294967168U) << 13) ^ b;
    return (z1 ^ z2 ^ z3 ^ z4);
 }
-
-void fake_buttons()
-{
-    msleep(2000);
-    int i;
-    int delay = 1000;
-    for (i = 0; i < 10000; i++)
-    {
-        switch(rand() % 5) {
-            case 0: 
-                fake_simple_button(BGMT_PLAY); msleep(rand() % delay);
-                break;
-            case 1:
-                fake_simple_button(BGMT_MENU); msleep(rand() % delay);
-                break;
-            case 2:
-#ifdef BGMT_Q
-                fake_simple_button(BGMT_Q); msleep(rand() % delay);
-#endif
-                break;
-            case 3:
-                SW1(1,rand() % 2000);
-                SW1(0,rand() % 2000);
-                break;
-            //~ case 4:
-                //~ fake_simple_button(BGMT_LV); msleep(rand() % delay);
-                //~ break;
-        }
-    }
-}
-
-void change_colors_like_crazy()
-{
-    msleep(2000);
-    int i;
-    int delay = 200;
-    for (i = 0; i < 10000; i++)
-    {
-        bmp_off();
-        msleep(rand() % delay);
-        bmp_on();
-        msleep(rand() % delay);
-        redraw();
-        PauseLiveView();
-        msleep(rand() % delay);
-        ResumeLiveView();
-        msleep(rand() % delay);
-        display_on();
-        msleep(rand() % delay);
-        display_off();
-        msleep(rand() % delay);
-        //~ cli_save();
-        //~ if (tft_status == 1 && lv) ChangeColorPalette(rand() % 5);
-        //~ sei_restore();
-        //~ msleep(rand() % delay);
-    }
-}
-
 
 volatile int aff[26];
 
@@ -561,6 +512,14 @@ void run_in_separate_task(void (*priv)(void), int delta)
 
 
 #ifdef CONFIG_BENCHMARKS
+
+static int tic()
+{
+    struct tm now;
+    LoadCalendarFromRTC(&now);
+    return now.tm_sec + now.tm_min * 60 + now.tm_hour * 3600 + now.tm_mday * 3600 * 24;
+}
+
 void card_benchmark_wr(int bufsize, int K, int N)
 {
     int x = 0;
@@ -1044,7 +1003,7 @@ static void stress_test_task(void* unused)
 
     msleep(2000);
 
-#ifndef CONFIG_5DC // no such functionality
+#ifdef FEATURE_PLAY_COMPARE_IMAGES
     beep();
     fake_simple_button(BGMT_PLAY); msleep(1000);
     for (int i = 0; i < 100; i++)
@@ -1054,7 +1013,9 @@ static void stress_test_task(void* unused)
     }
     get_out_of_play_mode();
     msleep(2000);
+#endif
 
+#ifdef FEATURE_PLAY_EXPOSURE_FUSION
     fake_simple_button(BGMT_PLAY); msleep(1000);
     for (int i = 0; i < 10; i++)
     {
@@ -1063,7 +1024,9 @@ static void stress_test_task(void* unused)
     }
     get_out_of_play_mode();
     msleep(2000);
+#endif
 
+#ifdef FEATURE_PLAY_422
     fake_simple_button(BGMT_PLAY); msleep(1000);
     for (int i = 0; i < 100; i++)
     {
@@ -1094,7 +1057,7 @@ static void stress_test_task(void* unused)
 
     if (!lv) force_liveview();
 
-#ifndef CONFIG_5DC // no LV
+#ifdef CONFIG_LIVEVIEW
     for (int i = 0; i <= 100; i++)
     {
         int r = rand()%3;
@@ -1105,6 +1068,7 @@ static void stress_test_task(void* unused)
     set_lv_zoom(1);
     msleep(2000);
 
+#ifdef CONFIG_EXPSIM
     for (int i = 0; i <= 100; i++)
     {
         set_expsim(i%3);
@@ -1113,15 +1077,16 @@ static void stress_test_task(void* unused)
     }
 
     msleep(2000);
-
+#endif
+#ifdef FEATURE_EXPO_OVERRIDE
     for (int i = 0; i <= 100; i++)
     {
         bv_toggle(0, 1);
         NotifyBox(1000, "Exp.Override toggle: %d", i/10);
         msleep(rand()%100);
     }
-
     msleep(2000);
+#endif
 #endif
 
 /*    for (int i = 0; i < 100; i++)
@@ -1509,31 +1474,6 @@ void ui_lock(int x)
     msleep(50);
 }
 
-/*void toggle_mirror_display()
-{
-    #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
-    //~ zebra_pause();
-    if (lv) msleep(200); // redrawing screen while zebra is active seems to cause trouble
-    static int i = 0;
-    if (i) MirrorDisplay();
-    else NormalDisplay();
-    i = !i;
-    msleep(200);
-    //~ zebra_resume();
-    #endif
-}*/
-
-/*void fake_simple_button(int bgmt_code)
-{
-    struct event e = {
-        .type = 0,
-        .param = bgmt_code, 
-        .obj = 0,
-        .arg = 0,
-    };
-    GUI_CONTROL(&e);
-}*/
-
 int mem_spy = 0;
 
 #if CONFIG_DEBUGMSG
@@ -1809,7 +1749,7 @@ void show_electronic_level()
 
 #endif
 
-#ifndef CONFIG_NO_SNAP_SIM
+#ifdef FEATURE_SNAP_SIM
 static int snap_sim = 0;
 int get_snap_sim() { return snap_sim; }
 static void
@@ -1828,7 +1768,6 @@ snap_sim_display(
     );
 }
 #endif
-
 
 #ifdef CONFIG_HEXDUMP
 
@@ -2009,6 +1948,7 @@ int GetFreeMemForAllocateMemory()
     return b;
 }
 
+#ifdef CONFIG_CRASH_LOG
 void save_crash_log()
 {
     static char log_filename[100];
@@ -2079,37 +2019,20 @@ void crash_log_step()
     }
     else dmlog_saved = 0;
 }
-
-//~ TASK_CREATE( "crash_log_task", crash_log_task, 0, 0x1e, 0x2000);
-
+#endif
 
 int x = 0;
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
-    //~ ensure_movie_mode();
-    //~ movie_start();
-    //~ msleep(2000);
-    //~ extern struct semaphore * gui_sem;
-    
-    
-    //~ give_semaphore(gui_sem);
-    //~ msleep(600);
-    //~ give_semaphore(gui_sem);
-    //~ return;
-    
-    
-    //~ msleep(2000);
-    //~ stress_test_random_task(0);
-    //~ TASK_RETURN;
-    
     TASK_LOOP
     {
 #ifdef CONFIG_HEXDUMP
         if (hexdump_enabled)
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
-        
+      
+        #ifdef FEATURE_SCREENSHOT
         if (screenshot_sec)
         {
             info_led_blink(1, 20, 1000-20-200);
@@ -2117,13 +2040,14 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             if (!screenshot_sec)
                 take_screenshot(0);
         }
+        #endif
 
-#if !defined(CONFIG_5D3) && !defined(CONFIG_VXWORKS)
+        #ifdef CONFIG_RESTORE_AFTER_FORMAT
         if (MENU_MODE) 
         {
             HijackFormatDialogBox_main();
         }
-#endif
+        #endif
         
         #if CONFIG_DEBUGMSG
         if (draw_prop)
@@ -2138,7 +2062,9 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         }
         #endif
         
+        #ifdef CONFIG_CRASH_LOG
         crash_log_step();
+        #endif
         
         msleep(200);
     }
@@ -2189,6 +2115,7 @@ void screenshot_start(void* priv, int delta)
 
 void toggle_draw_event( void * priv );
 
+#ifdef CONFIG_DEBUGMSG
 static void
 spy_print(
     void *            priv,
@@ -2207,82 +2134,9 @@ spy_print(
     );
     menu_draw_icon(x, y, MNI_BOOL(draw_prop || get_draw_event() || mem_spy), 0);
 }
+#endif
 
-/*
-
-PROP_INT(PROP_STROBO_REDEYE, red_eye);
-void flashlight_frontled_task(void* priv)
-{
-    msleep(100);
-    display_off();
-    int r = red_eye;
-    int x = 1;
-    int l = lv;
-    int m = shooting_mode;
-    int d = drive_mode;
-    set_shooting_mode(SHOOTMODE_AUTO);
-    msleep(100);
-    if (lv) { fake_simple_button(BGMT_LV); while (lv) msleep(100); }
-    msleep(100);
-    prop_request_change(PROP_POPUP_BUILTIN_FLASH, &x, 4);
-    assign_af_button_to_star_button();
-    prop_request_change(PROP_STROBO_REDEYE, &x, 4);
-    lens_set_drivemode(DRIVE_SINGLE);
-    msleep(100);
-    SW1(1,0);
-    msleep(100);
-    while (get_halfshutter_pressed()) { msleep(100); display_off(); }
-    lens_set_drivemode(d);
-    prop_request_change(PROP_STROBO_REDEYE, &r, 4);
-    restore_af_button_assignment();
-    set_shooting_mode(m);
-    display_on();
-    if (l) force_liveview();
-}
-
-void flashlight_lcd_task(void *priv)
-{
-    msleep(500);
-    while (get_halfshutter_pressed()) msleep(100);
-    idle_globaldraw_dis();
-    msleep(100);
-    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_INFO); msleep(500); }
-
-    canon_gui_disable_front_buffer();
-    int b = backlight_level;
-    set_backlight_level(7);
-    
-    while (!get_halfshutter_pressed() && DISPLAY_IS_ON && display_idle())
-    {
-        bmp_fill(COLOR_WHITE, 0, 0, 960, 540);
-        msleep(50);
-        idle_wakeup_reset_counters(-12345678);
-    }
-    set_backlight_level(b);
-    canon_gui_enable_front_buffer(1);
-    idle_globaldraw_en();
-}
-
-static void flashlight_frontled(void* priv, int delta)
-{
-    gui_stop_menu();
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2)
-    if (1) 
-    #else
-    if (is_movie_mode()) 
-    #endif
-        task_create("flashlight_task", 0x1e, 0, flashlight_lcd_task, 0);
-    else
-        task_create("flashlight_task", 0x1e, 0, flashlight_frontled_task, 0);
-}
-
-static void flashlight_lcd(void* priv, int delta)
-{
-    gui_stop_menu();
-    task_create("flashlight_task", 0x1e, 0, flashlight_lcd_task, 0);
-}
-*/
-
+#ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
 static void image_buf_display(
     void *            priv,
     int            x,
@@ -2298,7 +2152,9 @@ static void image_buf_display(
         vram_hd.width, vram_hd.height
     );
 }
+#endif
 
+#ifdef FEATURE_SHOW_FREE_MEMORY
 static void meminfo_display(
     void *            priv,
     int            x,
@@ -2327,7 +2183,9 @@ static void meminfo_display(
     menu_draw_icon(x, y, M > 1024*1024 && m > 128 * 1024 ? MNI_ON : MNI_WARNING, 0);
 #endif
 }
+#endif
 
+#ifdef FEATURE_SHOW_SHUTTER_COUNT
 static void shuttercount_display(
     void *            priv,
     int            x,
@@ -2344,7 +2202,9 @@ static void shuttercount_display(
     );
     menu_draw_icon(x, y, shutter_count_plus_lv_actuations > 50000 ? MNI_WARNING : MNI_ON, 0);
 }
+#endif
 
+#ifdef FEATURE_SHOW_CMOS_TEMPERATURE
 static void efictemp_display(
     void *            priv,
     int            x,
@@ -2365,6 +2225,7 @@ static void efictemp_display(
     );
     menu_draw_icon(x, y, MNI_ON, 0);
 }
+#endif
 
 #if 0 // CONFIG_5D2
 static void ambient_display(
@@ -2465,126 +2326,13 @@ static void prop_toggle_j(void* priv) {prop_j = mod(prop_j + 1, 0x10); }
 static void prop_toggle_k(void* priv) {prop_k = mod(prop_k + 1, 0x51); }
 #endif
 
+#ifdef CONFIG_KILL_FLICKER
 void menu_kill_flicker()
 {
     gui_stop_menu();
     canon_gui_disable_front_buffer();
 }
-
-/* moved to tweaks
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
-
-void EyeFi_RenameCR2toAVI(char* dir)
-{
-    struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
-    if( IS_ERROR(dirent) )
-        return;
-
-    do {
-        if (file.mode & 0x10) continue; // is a directory
-        if (file.name[0] == '.') continue;
-        if (!streq(file.name + 8, ".CR2")) continue;
-
-        static char oldname[50];
-        static char newname[50];
-        snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
-        strcpy(newname, oldname);
-        newname[strlen(newname) - 4] = 0;
-        STR_APPEND(newname, ".AVI");
-        bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
-        FIO_RenameFile(oldname, newname);
-
-    } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
-    beep();
-    redraw();
-}
-
-void EyeFi_RenameAVItoCR2(char* dir)
-{
-    struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
-    if( IS_ERROR(dirent) )
-        return;
-
-    do {
-        if (file.mode & 0x10) continue; // is a directory
-        if (file.name[0] == '.') continue;
-        if (!streq(file.name + 8, ".AVI")) continue;
-
-        static char oldname[50];
-        static char newname[50];
-        snprintf(oldname, sizeof(oldname), "%s/%s", dir, file.name);
-        strcpy(newname, oldname);
-        newname[strlen(newname) - 4] = 0;
-        STR_APPEND(newname, ".CR2");
-        bmp_printf(FONT_LARGE, 0, 0, "%s...", newname);
-        FIO_RenameFile(oldname, newname);
-
-    } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
-    beep();
-    redraw();
-}
-
 #endif
-
-static void CR2toAVI(void* priv, int delta)
-{
-    EyeFi_RenameCR2toAVI(get_dcim_dir());
-}
-
-static void AVItoCR2(void* priv, int delta)
-{
-    EyeFi_RenameAVItoCR2(get_dcim_dir());
-}*/
-
-/*
-static void frozen_task()
-{
-    msleep(2000);
-    while(1);
-}
-
-static void freeze_gui_task()
-{
-    while(1) msleep(1000);
-}
-
-static void divzero_task()
-{
-    for (int i = -10; i < 10; i++)
-    {
-        NotifyBox(1000, "1000/%d = %d = %d", i, 1000/i, (int)(1000.0 / (float)i));
-        msleep(500);
-    }
-}
-
-static void alloc_1M_task()
-{
-    AllocateMemory(1024 * 1024);
-}
-*/
-
-static void save_cpu_usage_log_task()
-{
-    NotifyBox(1000, "Measuring CPU usage...");
-    msleep(1000);
-    info_led_blink(1,50,50);
-    call("CUStart");
-    for (int i = 0; i < 20; i++)
-    {
-        info_led_blink(1,50,50);
-        msleep(1000);
-    }
-    NotifyBox(10000, "Saving CPU usage log...");
-    call("CUPrintSummary");
-    //~ call("CUPrintDetail"); // takes a lot of time 
-    info_led_blink(1,50,50);
-    NotifyBox(5000, "CPU usage log saved.\n"
-                    "Restart your camera.");
-}
 
 extern void menu_open_submenu();
 extern void tasks_print(void* priv, int x0, int y0, int selected);
@@ -2654,7 +2402,7 @@ struct menu_entry debug_menus[] = {
         .select_reverse = flashlight_frontled,
         .help = "Turn on the front LED [PLAY] or make display bright [SET]."
     },*/
-#ifndef CONFIG_5DC
+    #ifdef FEATURE_SCREENSHOT
     {
         .name = "Screenshot - 10s",
         .select     = screenshot_start,
@@ -2664,7 +2412,7 @@ struct menu_entry debug_menus[] = {
         .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
         #endif
     },
-#endif
+    #endif
 /*    {
         .name = "Menu screenshots",
         .select     = (void (*)(void*,int))run_in_separate_task,
@@ -2703,33 +2451,14 @@ struct menu_entry debug_menus[] = {
         .help = "Dump camera logs to card."
     },
 #endif
-/* moved to tweaks
-#if defined(CONFIG_60D) || defined(CONFIG_600D)
-    {
-        .name        = "EyeFi Trick",
-        .select        = menu_open_submenu,
-        .help = "Rename CR2 files to AVI (trick for EyeFi cards).",
-        .children =  (struct menu_entry[]) {
-            {
-            	.name        = "Rename CR2 to AVI",
-            	.select        = CR2toAVI,
-            	.help = "Rename CR2 files to AVI (trick for EyeFi cards)."
-         	},
-            {
-            	.name        = "Rename AVI to CR2",
-            	.select        = AVItoCR2,
-            	.help = "Rename back AVI files to CR2 (trick for EyeFi cards)."
-         	},
-            MENU_EOL
-        },
-    },
-#endif*/
+#ifdef FEATURE_DONT_CLICK_ME
     {
         .name        = "Don't click me!",
         .priv =         run_test,
         .select        = (void(*)(void*,int))run_in_separate_task,
         .help = "The camera may turn into a 1DX or it may explode."
     },
+#endif
 #if defined(CONFIG_7D)
     {
         .name        = "LV dumping",
@@ -2802,22 +2531,18 @@ struct menu_entry debug_menus[] = {
                 .help = "Flood master with RPC requests and print delay. "
             },
             #endif
-            #ifndef CONFIG_7D_MINIMAL
-            #ifndef CONFIG_5D3_MINIMAL // will change some settings and you can't restore them
             {
                 .name = "Quick test (around 15 min)",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = stress_test_task,
                 .help = "A quick test which covers basic functionality. "
             },
-            #endif
             {
                 .name = "Random tests (infinite loop)",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = stress_test_random_task,
                 .help = "A thorough test which randomly enables functions from menu. "
             },
-            #endif
             {
                 .name = "Menu backend test (infinite)",
                 .select = (void(*)(void*,int))run_in_separate_task,
@@ -2888,16 +2613,19 @@ struct menu_entry debug_menus[] = {
                 .priv = card_benchmark_task,
                 .help = "Check card read/write speed. Uses a 256MB temp file."
             },
+            #ifdef FEATURE_FOCUS_PEAK
             {
                 .name = "Focus peaking benchmark (30s)",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = peaking_benchmark,
                 .help = "Check how fast peaking runs in PLAY mode (1000 iterations)."
             },
+            #endif
             MENU_EOL,
         }
     },
 #endif
+#ifdef FEATURE_SHOW_TASKS
     {
         .name = "Show tasks...",
         .select = menu_open_submenu,
@@ -2918,7 +2646,8 @@ struct menu_entry debug_menus[] = {
             MENU_EOL
         }
     },
-#ifndef CONFIG_VXWORKS
+#endif
+#ifdef FEATURE_SHOW_CPU_USAGE
     {
         .name = "Show CPU usage",
         .priv = &show_cpu_usage_flag,
@@ -2926,15 +2655,8 @@ struct menu_entry debug_menus[] = {
         .choices = (const char *[]) {"OFF", "Percentage", "Busy tasks (ABS)", "Busy tasks (REL)"},
         .help = "Display total CPU usage (percentage).",
     },
-    #if 0
-    {
-        .name = "Save CPU usage log",
-        .select = (void(*)(void*,int))run_in_separate_task,
-        .priv = save_cpu_usage_log_task,
-        .help = "Saves a log with the CPU usage for all tasks (Canon+ML).",
-    },
-    #endif
 #endif
+#ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
     {
         .name = "Image buffers",
         .display = image_buf_display,
@@ -2942,6 +2664,8 @@ struct menu_entry debug_menus[] = {
         .help = "Display the image buffer sizes (LiveView and Craw).",
         //.essential = 0,
     },
+#endif
+#ifdef FEATURE_SHOW_FREE_MEMORY
     {
         .name = "Free Memory",
         .display = meminfo_display,
@@ -2952,7 +2676,8 @@ struct menu_entry debug_menus[] = {
 #endif
         //.essential = 0,
     },
-#ifndef CONFIG_5DC
+#endif
+#ifdef FEATURE_SHOW_SHUTTER_COUNT
     {
         .name = "Shutter Count",
         .display = shuttercount_display,
@@ -2960,6 +2685,7 @@ struct menu_entry debug_menus[] = {
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
 #endif
+#ifdef FEATURE_SHOW_CMOS_TEMPERATURE
     {
         .name = "CMOS temperature",
         .display = efictemp_display,
@@ -2970,6 +2696,7 @@ struct menu_entry debug_menus[] = {
         #endif
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
+#endif
     #if 0 // CONFIG_5D2
     {
         .name = "Ambient light",
@@ -2978,17 +2705,15 @@ struct menu_entry debug_menus[] = {
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     #endif
-    #if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
-    #ifndef CONFIG_5D3_MINIMAL
+#ifdef CONFIG_BATTERY_INFO
     {
         .name = "Battery remaining",
         .display = batt_display,
         .help = "Battery remaining. Wait for 2%% discharge before reading.",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
-    #endif
-    #endif
-    #if CONFIG_DEBUGMSG
+#endif
+#if CONFIG_DEBUGMSG
     {
         .name = "PROP display",
         .display = prop_display,
@@ -2997,8 +2722,8 @@ struct menu_entry debug_menus[] = {
         .select_Q = prop_toggle_i,
         .help = "Raw property display (read-only)",
     },
-    #endif
-    #ifndef CONFIG_NO_SNAP_SIM
+#endif
+#ifdef FEATURE_SNAP_SIM
     {
         .name = "Snap Simulation",
         .priv = &snap_sim, 
@@ -3007,9 +2732,10 @@ struct menu_entry debug_menus[] = {
         .choices = (const char *[]) {"Take real pic", "Blink & Beep"},
         .help = "Save shutter cycles while trying Magic Lantern.",
     },
-    #endif
+#endif
 };
 
+#ifdef CONFIG_CONFIG_FILE
 static struct menu_entry cfg_menus[] = {
 {
     .name = "Config file...",
@@ -3037,6 +2763,7 @@ static struct menu_entry cfg_menus[] = {
     },
 },
 };
+#endif
 
 #if CONFIG_DEBUGMSG
 
@@ -3264,6 +2991,7 @@ TASK_CREATE( "debug_task", debug_loop_task, 0, 0x1e, 0x2000 );
 
 void config_save_at_shutdown()
 {
+#ifdef CONFIG_CONFIG_FILE
     static int config_saved = 0;
     if (config_ok && config_autosave && !config_saved)
     {
@@ -3271,51 +2999,10 @@ void config_save_at_shutdown()
         save_config(0, 0);
         msleep(100);
     }
+#endif
 }
 
-
-/*
-PROP_HANDLER(PROP_APERTURE)
-{
-    static int old = 0;
-    
-    if (old && lv)
-    {
-        if (display_sensor)
-        {
-            if (buf[0] != old)
-            {
-                int newiso = COERCE(lens_info.raw_iso + buf[0] - old, codes_iso[1], codes_iso[COUNT(codes_iso)-1]);
-                lens_set_rawiso(newiso);
-            }
-        }
-    }
-
-    old = buf[0];
-
-}*/
-
-/*
-PROP_HANDLER(PROP_SHUTTER)
-{
-    if (lv && is_movie_mode())
-    {
-        static volatile int old = 0;
-        
-        if (old)
-        {
-            if (buf[0] != old)
-            {
-                //~ int newiso = COERCE(lens_info.raw_iso + buf[0] - old, codes_iso[1], codes_iso[COUNT(codes_iso)-1]);
-                //~ lens_set_rawiso(newiso);
-                buf[0] = old;
-            }
-        }
-        old = buf[0];
-    }
-}*/
-
-#ifdef CONFIG_550D
+#ifdef FEATURE_INTERMEDIATE_ISO_INTERCEPT_SCROLLWHEEL
 
 int iso_intercept = 1;
 
@@ -3572,7 +3259,6 @@ void TmpMem_AddFile(char* filename)
     }
 }
 
-#ifndef CONFIG_40D
 void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
 {
     struct fio_file file;
@@ -3608,7 +3294,6 @@ void CopyMLFilesToRAM_BeforeFormat()
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0);
     TmpMem_UpdateSizeDisplay(0);
 }
-#endif
 
 void CopyMLFilesBack_AfterFormat()
 {
@@ -3656,7 +3341,6 @@ int check_autoexec()
     return 0;
 }
 
-#ifndef CONFIG_40D
 void HijackFormatDialogBox_main()
 {
     if (!MENU_MODE) return;
@@ -3695,15 +3379,18 @@ void HijackFormatDialogBox_main()
     TmpMem_Done();
 }
 #endif
-#endif
 
 void config_menu_init()
 {
+    #ifdef CONFIG_CONFIG_FILE
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
-#ifndef CONFIG_VXWORKS
+    #endif
+    
+    #ifdef FEATURE_LV_DISPLAY_PRESETS
     extern struct menu_entry livev_cfg_menus[];
     menu_add( "Prefs", livev_cfg_menus,  1);
-#endif
+    #endif
+    
     crop_factor_menu_init();
     menu_add( "Debug", debug_menus, COUNT(debug_menus) );
     
@@ -3791,9 +3478,11 @@ int handle_tricky_canon_calls(struct event * event)
     
     switch (event->param)
     {
+        #ifdef CONFIG_RESTORE_AFTER_FORMAT
         case MLEV_HIJACK_FORMAT_DIALOG_BOX:
             HijackFormatDialogBox();
             break;
+        #endif
         case MLEV_TURN_ON_DISPLAY:
             if (!DISPLAY_IS_ON) call("TurnOnDisplay");
             break;

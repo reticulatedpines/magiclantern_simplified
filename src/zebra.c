@@ -4,7 +4,6 @@
  */
 /*
  * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
- * Edge detection code by Robert Thiel <rthiel@gmail.com>
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -199,18 +198,12 @@ int lv_luma_is_accurate()
 {
     if (is_movie_mode()) return 1;
     
-#if defined(CONFIG_7D)
-    return 1;
-#endif    
-    
     extern int digic_iso_gain_photo;
     return expsim && digic_iso_gain_photo == 1024;
 }
 
 int show_lv_fps = 0; // for debugging
 
-
-//~ static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
 static int _bmp_muted = false;
 static int _bmp_unmuted = false;
@@ -273,34 +266,44 @@ static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 4); // less flicker whe
 static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
 #endif
 static CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
-//~ static CONFIG_INT( "zoom.overlay.lut", zoom_overlay_lut, 0);
 
-//~ static CONFIG_INT( "zoom.overlay.split.zerocross", zoom_overlay_split_zerocross, 1);
 int get_zoom_overlay_trigger_mode() 
 { 
+#ifdef FEATURE_MAGIC_ZOOM
     if (!get_global_draw()) return 0;
     if (!zoom_overlay_enabled) return 0;
     return zoom_overlay_trigger_mode;
+#else
+    return 0;
+#endif
 }
 
 int get_zoom_overlay_trigger_by_focus_ring()
 {
+#ifdef FEATURE_MAGIC_ZOOM
     int z = get_zoom_overlay_trigger_mode();
     #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
     return z == 2 || z == 3;
     #else
     return z == 2;
     #endif
+#else
+    return 0;
+#endif
 }
 
 int get_zoom_overlay_trigger_by_halfshutter()
 {
+#ifdef FEATURE_MAGIC_ZOOM
     #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
     int z = get_zoom_overlay_trigger_mode();
     return z == 1 || z == 3;
     #else
     return 0;
     #endif
+#else
+    return 0;
+#endif
 }
 
 int zoom_overlay_triggered_by_zoom_btn = 0;
@@ -315,6 +318,7 @@ int zoom_overlay_dirty = 0;
 
 int should_draw_zoom_overlay()
 {
+#ifdef FEATURE_MAGIC_ZOOM
     if (!lv) return 0;
     if (!zoom_overlay_enabled) return 0;
     if (!zebra_should_run()) return 0;
@@ -334,7 +338,7 @@ int should_draw_zoom_overlay()
     if (zt && (zm==1 || zm==2) && !recording) zt = 0; // in ZR and ZR+F modes, if triggered while recording, it should only work while recording
     if (zt || zoom_overlay_triggered_by_focus_ring_countdown) return true;
     #endif
-
+#endif
     return false;
 }
 
@@ -357,7 +361,7 @@ static CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 5); // 1%
 static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
 CONFIG_INT( "focus.peaking.grayscale", focus_peaking_grayscale, 0); // R,G,B,C,M,Y,cc1,cc2
 
-#ifdef CONFIG_DISPLAY_FILTERS
+#if defined(CONFIG_DISPLAY_FILTERS) && defined(FEATURE_FOCUS_PEAK_DISP_FILTER)
 static CONFIG_INT( "focus.peaking.disp", focus_peaking_disp, 0); // display as dots or blended
 #else
 #define focus_peaking_disp 0
@@ -365,22 +369,17 @@ static CONFIG_INT( "focus.peaking.disp", focus_peaking_disp, 0); // display as d
 
 int focus_peaking_as_display_filter() 
 {
-    #ifdef CONFIG_DISPLAY_FILTERS
+    #if defined(CONFIG_DISPLAY_FILTERS) && defined(FEATURE_FOCUS_PEAK_DISP_FILTER)
     return lv && focus_peaking && focus_peaking_disp;
     #else
     return 0;
     #endif
 }
 
-//~ static CONFIG_INT( "focus.graph", focus_graph, 0);
-
-//~ static CONFIG_INT( "edge.draw", edge_draw,  0 );
 static CONFIG_INT( "hist.draw", hist_draw,  1 );
 static CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
 static CONFIG_INT( "hist.warn", hist_warn,  5 );
 static CONFIG_INT( "hist.log",  hist_log,   1 );
-//~ static CONFIG_INT( "hist.x",        hist_x,     720 - HIST_WIDTH - 4 );
-//~ static CONFIG_INT( "hist.y",        hist_y,     100 );
 static CONFIG_INT( "waveform.draw", waveform_draw,
 #ifdef CONFIG_4_3_SCREEN
 1
@@ -389,8 +388,6 @@ static CONFIG_INT( "waveform.draw", waveform_draw,
 #endif
  );
 static CONFIG_INT( "waveform.size", waveform_size,  0 );
-//~ static CONFIG_INT( "waveform.x",    waveform_x, 720 - WAVEFORM_WIDTH );
-//~ static CONFIG_INT( "waveform.y",    waveform_y, 480 - 50 - WAVEFORM_WIDTH );
 static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_ALMOST_BLACK ); // solid black
 
 
@@ -446,8 +443,6 @@ int cropmark_cache_dirty = 1;
 int crop_dirty = 0;       // redraw cropmarks after some time (unit: 0.1s)
 int clearscreen_countdown = 20;
 
-//~ int recording = 0;
-
 static uint8_t false_colour[][256] = {
     {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
     {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x26, 0x26, 0x27, 0x27, 0x27, 0x27, 0x27, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x29, 0x29, 0x29, 0x29, 0x29, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2F, 0x2F, 0x2F, 0x2F, 0x2F, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31, 0x31, 0x31, 0x31, 0x31, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x33, 0x33, 0x33, 0x33, 0x33, 0x34, 0x34, 0x34, 0x34, 0x34, 0x34, 0x35, 0x35, 0x35, 0x35, 0x35, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x37, 0x37, 0x37, 0x37, 0x37, 0x38, 0x38, 0x38, 0x38, 0x38, 0x38, 0x39, 0x39, 0x39, 0x39, 0x39, 0x3A, 0x3A, 0x3A, 0x3A, 0x3A, 0x3A, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3D, 0x3D, 0x3D, 0x3D, 0x3D, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x41, 0x41, 0x41, 0x41, 0x41, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x43, 0x43, 0x43, 0x43, 0x43, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x45, 0x45, 0x45, 0x45, 0x45, 0x46, 0x46, 0x46, 0x46, 0x46, 0x46, 0x47, 0x47, 0x47, 0x47, 0x47, 0x48, 0x48, 0x48, 0x48, 0x48, 0x48, 0x49, 0x49, 0x49, 0x49, 0x49, 0x4A, 0x4A, 0x4A, 0x4A, 0x4A, 0x4A, 0x4B, 0x4B, 0x4B, 0x4B, 0x4B, 0x4C, 0x4C, 0x4C, 0x4C, 0x4C, 0x4C, 0x4D, 0x4D, 0x4D, 0x4D, 0x4D, 0x4E, 0x4E, 0x4E, 0x4E, 0x4E, 0x4E, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
@@ -478,13 +473,6 @@ PROP_HANDLER(PROP_LCD_POSITION)
     redraw_after(100);
 }
 #endif
-
-/*int gui_state;
-PROP_HANDLER(PROP_GUI_STATE) {
-    gui_state = buf[0];
-    if (gui_state == GUISTATE_IDLE) crop_set_dirty(40);
-    return prop_cleanup( token, property );
-}*/
 
 static int idle_globaldraw_disable = 0;
 
@@ -546,6 +534,8 @@ static uint32_t hist_max;
 
 /** total number of pixels analyzed by histogram */
 static uint32_t hist_total_px;
+
+#ifdef FEATURE_VECTORSCOPE
 
 static uint8_t *vectorscope = NULL;
 
@@ -734,7 +724,7 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
         }
     }
 }
-
+#endif
 
 /** Generate the histogram data from the YUV frame buffer.
  *
@@ -747,6 +737,8 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
  * to scale the histogram to fit the display box from top to
  * bottom.
  */
+
+#if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM) || defined(FEATURE_VECTORSCOPE)
 void
 hist_build()
 {
@@ -754,7 +746,8 @@ hist_build()
     uint32_t* buf = (uint32_t*)lv->vram;
 
     int x,y;
-    
+
+    #ifdef FEATURE_HISTOGRAM
     hist_max = 0;
     hist_total_px = 0;
     for( x=0 ; x<HIST_WIDTH ; x++ )
@@ -764,17 +757,22 @@ hist_build()
         hist_g[x] = 0;
         hist_b[x] = 0;
     }
+    #endif
 
+    #ifdef FEATURE_WAVEFORM
     if (waveform_draw)
     {
         waveform_init();
     }
+    #endif
     
+    #ifdef FEATURE_VECTORSCOPE
     if (vectorscope_draw)
     {
         vectorscope_init();
         vectorscope_clear();
     }
+    #endif
     
     int mz = nondigic_zoom_overlay_enabled();
     int off = get_y_skip_offset_for_overlays();
@@ -788,6 +786,7 @@ hist_build()
             if (mz && (pixel == MZ_WHITE || pixel == MZ_BLACK || pixel == MZ_GREEN))
                 continue;
             
+            #ifdef FEATURE_HISTOGRAM
             int Y;
             if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // rgb
             {
@@ -817,26 +816,33 @@ hist_build()
             unsigned count = ++ (hist[ hist_level & 0x7F]);
             if( hist_level && count > hist_max )
                 hist_max = count;
-
+            #endif
+            
+            #ifdef FEATURE_WAVEFORM
             // Update the waveform plot
             if (waveform_draw) 
             {
                 uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) / 256);
                 if ((*w) < 250) (*w)++;
             }
-
+            #endif
+            
+            #ifdef FEATURE_VECTORSCOPE
             if (vectorscope_draw)
             {
                 int8_t U = (pixel >>  0) & 0xFF;
                 int8_t V = (pixel >> 16) & 0xFF;
                 vectorscope_addpixel(Y, U, V);
             }
+            #endif
         }
     }
 }
+#endif
 
 int hist_get_percentile_level(int percentile)
 {
+#ifdef FEATURE_HISTOGRAM
     int total = 0;
     int i;
     for( i=0 ; i < HIST_WIDTH ; i++ )
@@ -850,6 +856,7 @@ int hist_get_percentile_level(int percentile)
         if (n >= thr)
             return i * 255 / HIST_WIDTH;
     }
+#endif
     return -1; // invalid argument?
 }
 
@@ -885,6 +892,7 @@ int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
     return total;
 }
 
+#ifdef FEATURE_HISTOGRAM
 static int hist_rgb_color(int y, int sizeR, int sizeG, int sizeB)
 {
     switch ((y > sizeR ? 0 : 1) |
@@ -902,7 +910,9 @@ static int hist_rgb_color(int y, int sizeR, int sizeG, int sizeB)
     }
     return 0;
 }
+#endif
 
+#ifdef FEATURE_ZEBRA
 #define ZEBRA_COLOR_WORD_SOLID(x) ( (x) | (x)<<8 | (x)<<16 | (x)<<24 )
 static int zebra_rgb_color(int underexposed, int clipR, int clipG, int clipB, int y)
 {
@@ -923,8 +933,9 @@ static int zebra_rgb_color(int underexposed, int clipR, int clipG, int clipB, in
     }
     return 0;
 }
+#endif
 
-
+#ifdef FEATURE_HISTOGRAM
 static void hist_dot(int x, int y, int fg_color, int bg_color, int radius, int label)
 {
     for (int r = 0; r < radius; r++)
@@ -1052,13 +1063,17 @@ hist_draw_image(
     }
     bmp_draw_rect(60, x_origin-1, y_origin-1, HIST_WIDTH+1, hist_height+1);
 }
+#endif
 
 void hist_highlight(int level)
 {
+#ifdef FEATURE_HISTOGRAM
     get_yuv422_vram();
     hist_draw_image( os.x_max - HIST_WIDTH, os.y0 + 100, level );
+#endif
 }
 
+#ifdef FEATURE_WAVEFORM
 /** Draw the waveform image into the bitmap framebuffer.
  *
  * Draw one pixel at a time; it seems to be ok with err70.
@@ -1154,7 +1169,7 @@ waveform_draw_image(
         bmp_draw_rect(60, x_origin-1, y_origin-1, WAVEFORM_WIDTH*WAVEFORM_FACTOR+1, height+1);
     }
 }
-
+#endif
 
 static FILE * g_aj_logfile = INVALID_PTR;
 unsigned int aj_create_log_file( char * name)
@@ -1203,28 +1218,15 @@ void dump_big_seg(int k, char* filename)
     DEBUG();
 }
 
-int tic()
-{
-    struct tm now;
-    LoadCalendarFromRTC(&now);
-    return now.tm_sec + now.tm_min * 60 + now.tm_hour * 3600 + now.tm_mday * 3600 * 24;
-}
-
-/*static void dump_vram()
-{
-    dump_big_seg(4, CARD_DRIVE "ML/LOGS/4.bin");
-    dump_big_seg(4, CARD_DRIVE "ML/LOGS/4-1.bin");
-    //dump_seg(0x1000, 0x100000, CARD_DRIVE "ML/LOGS/ram.bin");
-    //~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, CARD_DRIVE "ML/LOGS/VRAM.BIN");
-}*/
-
 int fps_ticks = 0;
 
 static void waveform_init()
 {
+#ifdef FEATURE_WAVEFORM
     if (!waveform)
         waveform = AllocateMemory(WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
     bzero32(waveform, WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
+#endif
 }
 
 void bvram_mirror_clear()
@@ -1257,6 +1259,7 @@ void bvram_mirror_init()
     }
 }
 
+#ifdef FEATURE_FOCUS_PEAK
 static int get_focus_color(int thr, int d)
 {
     return
@@ -1277,6 +1280,7 @@ static int get_focus_color(int thr, int d)
                                      d > 20 ? 5 /*cyan*/ : 
                                      9 /*light blue*/) : 1;
 }
+#endif
 
 static void little_cleanup(void* BP, void* MP)
 {
@@ -1290,7 +1294,7 @@ static void little_cleanup(void* BP, void* MP)
     if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
 }
 
-
+#ifdef FEATURE_ZEBRA
 static inline int zebra_color_word_row(int c, int y)
 {
     if (!c) return 0;
@@ -1313,7 +1317,9 @@ static inline int zebra_color_word_row(int c, int y)
     }
     return cw;
 }
+#endif
 
+#ifdef FEATURE_FOCUS_PEAK
 
 static int* dirty_pixels = 0;
 static int dirty_pixels_num = 0;
@@ -1349,36 +1355,15 @@ void zebra_update_lut()
     }
 }
 
-/*static int zebra_color_word_row_thick(int c, int y)
-{
-    //~ return zebra_color_word_row(c,y);
-    if (!c) return 0;
-    
-    uint32_t cw = 0;
-    switch(y % 4)
-    {
-        case 0:
-            cw  = c  | c  << 8 | c << 16;
-            break;
-        case 1:
-            cw  = c << 8 | c << 16 | c << 24;
-            break;
-        case 2:
-            cw = c  << 16 | c << 24 | c;
-            break;
-        case 3:
-            cw  = c  << 24 | c | c << 8;
-            break;
-    }
-    return cw;
-}*/
-
 #define MAX_DIRTY_PIXELS 5000
 
 int focus_peaking_debug = 0;
+#endif
+
 
 static int zebra_digic_dirty = 0;
 
+#ifdef FEATURE_ZEBRA
 void draw_zebras( int Z )
 {
     uint8_t * const bvram = bmp_vram_real();
@@ -1393,6 +1378,7 @@ void draw_zebras( int Z )
         int only_one = only_over || only_under;
 
         // fast zebras
+        #ifdef FEATURE_ZEBRA_FAST
         if (zebra_colorspace == 2 && (lv || only_one)) // if both under and over are enabled, fall back to regular zebras in play mode
         {
             #ifdef CONFIG_4_3_SCREEN
@@ -1436,7 +1422,9 @@ void draw_zebras( int Z )
             
             return;
         }
-        else if (PLAY_OR_QR_MODE) EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); // disable Canon highlight warning, looks ugly with both on the screen :)
+        else 
+        #endif
+        if (PLAY_OR_QR_MODE) EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); // disable Canon highlight warning, looks ugly with both on the screen :)
         
         uint8_t * lvram = get_yuv422_vram()->vram;
 
@@ -1591,7 +1579,9 @@ void draw_zebras( int Z )
         }
     }
 }
+#endif
 
+#ifdef FEATURE_FOCUS_PEAK
 static int peak_scaling[256];
 
 /*
@@ -1695,6 +1685,7 @@ static inline int peak_blend_alpha(uint32_t* s, int e)
     return UYVY_PACK(u,y,v,y);
 }
 
+#ifdef FEATURE_FOCUS_PEAK_DISP_FILTER
 void peak_disp_filter()
 {
     uint32_t* src_buf;
@@ -1840,6 +1831,7 @@ void peak_disp_filter()
     
     if (focus_peaking_disp == 3) thr = 64;
 }
+#endif
 
 static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
 {    
@@ -1847,7 +1839,7 @@ static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvra
     //~ int color = COLOR_RED;
     color = (color << 8) | color;
     
-#ifdef CONFIG_DISPLAY_FILTERS
+#ifdef FEATURE_ANAMORPHIC_PREVIEW
     y = anamorphic_squeeze_bmp_y(y);
 #endif
     
@@ -1893,6 +1885,7 @@ static void focus_found_pixel_playback(int x, int y, int e, int thr, uint8_t * c
     bmp_putpixel_fast(bvram, x, y, color);
     bmp_putpixel_fast(bvram, x+1, y, color);
 }
+#endif
 
 // returns how the focus peaking threshold changed
 static int
@@ -1904,8 +1897,11 @@ draw_zebra_and_focus( int Z, int F )
     if (unlikely(!bvram)) return 0;
     if (unlikely(!bvram_mirror)) return 0;
     
+    #ifdef FEATURE_ZEBRA
     draw_zebras(Z);
+    #endif
     
+    #ifdef FEATURE_FOCUS_PEAK
     if (focus_peaking && focus_peaking_disp && !EXT_MONITOR_CONNECTED)
     {
         if (lv) 
@@ -1960,42 +1956,6 @@ draw_zebra_and_focus( int Z, int F )
         
         zebra_update_lut();
 
-#if 0 // deprecated        
-        if(focus_peaking_method == 0)
-        {
-            for(int y = yStart; y < yEnd; y += 2)
-            {
-                uint32_t hd_row = hdvram + BM2HD_R(y);
-                
-                for (int x = xStart; x < xEnd; x += 2)
-                {
-                    p8 = (uint8_t *)(hd_row + bm_hd_x_cache[x - BMP_W_MINUS]);
-                    
-                    int p_cc = (int)(*p8);
-                    int p_rc = (int)(*(p8 + 2));
-                    int p_cd = (int)(*(p8 + vram_lv.pitch));
-                    
-                    int e_dx = ABS(p_rc - p_cc);
-                    int e_dy = ABS(p_cd - p_cc);
-                    
-                    int e = MAX(e_dx, e_dy);
-                    
-                    /* executed for 1% of pixels */
-                    if (unlikely(e >= thr))
-                    {
-                        n_over++;
-
-                        if (unlikely(dirty_pixels_num >= MAX_DIRTY_PIXELS)) // threshold too low, abort
-                            break;
-
-                        focus_found_pixel(x, y, e, thr, bvram);
-                    }
-                }
-            }
-        }
-        else
-#endif
-        
         int n_total = 0;
         if (lv) // fast, realtime
         {
@@ -2086,10 +2046,14 @@ draw_zebra_and_focus( int Z, int F )
     }
 
     return thr_delta;
+    #endif
+    
+    return 0;
 }
 
 void guess_focus_peaking_threshold()
 {
+#ifdef FEATURE_FOCUS_PEAK
     if (!focus_peaking) return;
     int prev_thr_delta = 1234;
     for (int i = 0; i < 50; i++)
@@ -2100,6 +2064,7 @@ void guess_focus_peaking_threshold()
         if (prev_thr_delta != 1234 && SGN(thr_delta) != SGN(prev_thr_delta)) break;
         prev_thr_delta = thr_delta;
     }
+#endif
 }
 
 
@@ -2134,6 +2099,7 @@ clrscr_mirror( void )
     }
 }
 
+#ifdef FEATURE_FALSE_COLOR
 static void
 draw_false_downsampled( void )
 {
@@ -2196,7 +2162,9 @@ draw_false_downsampled( void )
         }
     }
 }
+#endif
 
+#ifdef FEATURE_BULB_RAMPING
 void
 highlight_luma_range(int lo, int hi, int color1, int color2)
 {
@@ -2228,6 +2196,9 @@ highlight_luma_range(int lo, int hi, int color1, int color2)
         }
     }
 }
+#endif
+
+#ifdef FEATURE_CROPMARKS
 
 #define MAX_CROP_NAME_LEN 15
 #define MAX_CROPMARKS 9
@@ -2256,6 +2227,7 @@ static void sort_cropmarks()
         }
     }
 }
+#endif
 
 int is_valid_cropmark_filename(char* filename)
 {
@@ -2265,6 +2237,7 @@ int is_valid_cropmark_filename(char* filename)
     return 0;
 }
 
+#ifdef FEATURE_CROPMARKS
 static void find_cropmarks()
 {
     struct fio_file file;
@@ -2325,7 +2298,9 @@ crop_toggle( void* priv, int sign )
     //~ reload_cropmark(crop_index);
     crop_set_dirty(10);
 }
+#endif
 
+#ifdef FEATURE_ZEBRA
 static void
 zebra_draw_display( void * priv, int x, int y, int selected )
 {
@@ -2408,12 +2383,9 @@ zebra_level_display( void * priv, int x, int y, int selected )
         );
     }
 }
-/*static void
-zebra_toggle( void* priv, int sign )
-{
-    menu_ternary_toggle(priv, -sign);
-}*/
+#endif
 
+#ifdef FEATURE_FALSE_COLOR
 static char* falsecolor_palette_name()
 {
     return
@@ -2458,20 +2430,9 @@ falsecolor_display_palette( void * priv, int x, int y, int selected )
     );
     falsecolor_palette_preview(x - 420, y + font_large.height + 10);
 }
+#endif
 
-/*
-static void
-focus_debug_display( void * priv, int x, int y, int selected )
-{
-    unsigned fc = *(unsigned*) priv;
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "FPeak debug : %s",
-        focus_peaking_debug ? "ON" : "OFF"
-    );
-}*/
-
+#ifdef FEATURE_FOCUS_PEAK
 static void
 focus_peaking_display( void * priv, int x, int y, int selected )
 {
@@ -2507,6 +2468,9 @@ static void focus_peaking_adjust_thr(void* priv, int delta)
     if ((int)focus_peaking_pthr > 50) focus_peaking_pthr = 1;
     if ((int)focus_peaking_pthr <= 0) focus_peaking_pthr = 50;
 }
+#endif
+
+#ifdef FEATURE_CROPMARKS
 
 static void
 crop_display( void * priv, int x, int y, int selected )
@@ -2543,52 +2507,13 @@ crop_display_submenu( void * priv, int x, int y, int selected )
     int xc = x + 315;
     int yc = y + font_large.height * 3 + 10;
     BMP_LOCK( reload_cropmark(); )
-    //~ task_create("crop_reload", 0x1a, 0x1000, reload_cropmark, 0); // reloads only when needed - will be applied at next redraw though
-    //~ reload_cropmark(crop_index);
-    //~ ASSERT(cropmarks);
     bmp_fill(0, xc, yc, w, h);
     BMP_LOCK( bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0); )
     bmp_draw_rect(COLOR_WHITE, xc, yc, w, h);
 }
+#endif
 
-/*
-static void
-focus_graph_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Focus Graph : %s",
-        *(unsigned*) priv ? "ON " : "OFF"
-    );
-}*/
-
-/*
-static void
-edge_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Edgedetect  : %s",
-        *(unsigned*) priv ? "ON " : "OFF"
-    );
-}*/
-
-/*static void
-hist_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Histo/Wavefm: %s/%s",
-        hist_draw == 1 ? "Luma" : hist_draw == 2 ? "RGB" : "OFF",
-        //~ hist_draw ? "RGB" : "OFF",
-        waveform_draw == 1 ? "Small" : waveform_draw == 2 ? "Large" : waveform_draw == 3 ? "FullScreen" : "OFF"
-    );
-    //~ bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(hist_draw || waveform_draw));
-}*/
+#ifdef FEATURE_HISTOGRAM
 
 static void
 hist_print( void * priv, int x, int y, int selected )
@@ -2620,7 +2545,9 @@ hist_warn_display( void * priv, int x, int y, int selected )
     );
     menu_draw_icon(x, y, MNI_BOOL(hist_warn), 0);
 }
+#endif
 
+#ifdef FEATURE_WAVEFORM
 static void
 waveform_print( void * priv, int x, int y, int selected )
 {
@@ -2635,8 +2562,9 @@ waveform_print( void * priv, int x, int y, int selected )
     );
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(waveform_draw));
 }
+#endif
 
-
+#ifdef FEATURE_GLOBAL_DRAW
 static void
 global_draw_display( void * priv, int x, int y, int selected )
 {
@@ -2666,19 +2594,9 @@ global_draw_display( void * priv, int x, int y, int selected )
     if (global_draw && !lv && !ZEBRAS_IN_QUICKREVIEW)
         menu_draw_icon(x, y, MNI_WARNING, 0);
 }
+#endif
 
-/*static void
-waveform_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Waveform    : %s",
-        *(unsigned*) priv ? "ON " : "OFF"
-    );
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(*(unsigned*) priv));
-}*/
-
+#ifdef FEATURE_VECTORSCOPE
 static void
 vectorscope_display( void * priv, int x, int y, int selected )
 {
@@ -2690,9 +2608,9 @@ vectorscope_display( void * priv, int x, int y, int selected )
     );
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(*(unsigned*) priv));
 }
+#endif
 
-
-
+#ifdef FEATURE_CLEAR_OVERLAYS
 void
 clearscreen_display(
     void *          priv,
@@ -2706,14 +2624,15 @@ clearscreen_display(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Clear overlays : %s",
-        //~ mode ? "ON (HalfShutter)" : "OFF"
         mode == 0 ? "OFF" : 
         mode == 1 ? "HalfShutter/DofP" : 
         mode == 2 ? "WhenIdle" :
         mode == 3 ? "Always" : "Recording"
     );
 }
+#endif
 
+#ifdef FEATURE_MAGIC_ZOOM
 static void
 zoom_overlay_display(
     void *          priv,
@@ -2722,8 +2641,6 @@ zoom_overlay_display(
     int         selected
 )
 {
-    //~ zoom_overlay_size = mod(zoom_overlay_size, 3);
-
     if (!zoom_overlay_enabled)
     {
         bmp_printf(
@@ -2790,8 +2707,9 @@ zoom_overlay_display(
     else
         menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_trigger_mode));
 }
+#endif
 
-
+#ifdef FEATURE_SPOTMETER
 static void
 spotmeter_menu_display(
     void *          priv,
@@ -2817,6 +2735,7 @@ spotmeter_menu_display(
     );
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
 }
+#endif
 
 // for surface cleaning
 int spy_pre_xcb = -1;
@@ -2975,6 +2894,8 @@ int get_spot_focus(int dxb)
     }
     return sf / (br >> 14);
 }
+
+#ifdef FEATURE_SPOTMETER
 
 static int spot_prev_xcb = 0;
 static int spot_prev_ycb = 0;
@@ -3169,6 +3090,9 @@ static void spotmeter_step()
     }
 }
 
+#endif
+
+#ifdef FEATURE_LV_DISPLAY_PRESETS
 
 static void
 disp_profiles_0_display(
@@ -3186,8 +3110,9 @@ disp_profiles_0_display(
         disp_profiles_0 ? " (ON)" : " (OFF)"
     );
 }
+#endif
 
-
+#ifdef FEATURE_GHOST_IMAGE
 static void
 transparent_overlay_display(
     void *          priv,
@@ -3221,7 +3146,6 @@ static void transparent_overlay_offset(int dx, int dy)
     transparent_overlay_offy = COERCE((int)transparent_overlay_offy + dy, -400, 400);
     transparent_overlay_hidden = 0;
     redraw();
-    //~ BMP_LOCK( show_overlay(); )
 }
 
 static void transparent_overlay_center_or_toggle()
@@ -3235,8 +3159,6 @@ static void transparent_overlay_center_or_toggle()
     {
         transparent_overlay_hidden = !transparent_overlay_hidden;
         redraw();
-        //~ if (!transparent_overlay_hidden) BMP_LOCK( show_overlay(); )
-        //~ else redraw();
     }
 }
 
@@ -3293,7 +3215,9 @@ int handle_transparent_overlay(struct event * event)
     }
     return 1;
 }
+#endif
 
+#ifdef FEATURE_POWERSAVE_LIVEVIEW
 static char* idle_time_format(int t)
 {
     static char msg[50];
@@ -3381,9 +3305,12 @@ static void idle_timeout_toggle(void* priv, int sign)
     i = mod(i + sign, COUNT(timeout_values));
     *(int*)priv = timeout_values[i];
 }
-
+#endif
 
 CONFIG_INT("electronic.level", electronic_level, 0);
+
+#ifdef FEATURE_LEVEL_INDICATOR
+
 static void
 electronic_level_display(
     void *          priv,
@@ -3401,14 +3328,10 @@ electronic_level_display(
     menu_draw_icon(x, y, MNI_BOOL_GDR(electronic_level));
 }
 
-/*static void clearscreen_now()
-{
-    gui_stop_menu();
-    bmp_on();
-    bmp_off();
-}*/
+#endif
 
 struct menu_entry zebra_menus[] = {
+    #ifdef FEATURE_GLOBAL_DRAW
     {
         .name = "Global Draw",
         .priv       = &global_draw,
@@ -3420,6 +3343,8 @@ struct menu_entry zebra_menus[] = {
         .help = "Enable/disable ML overlay graphics (zebra, cropmarks...)",
         //.essential = FOR_LIVEVIEW,
     },
+    #endif
+    #ifdef FEATURE_ZEBRA
     {
         .name = "Zebras",
         .priv       = &zebra_draw,
@@ -3431,7 +3356,11 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Color space",
                 .priv = &zebra_colorspace, 
+                #ifdef FEATURE_ZEBRA_FAST
                 .max = 2,
+                #else
+                .max = 1,
+                #endif
                 .choices = (const char *[]) {"Luma", "RGB", "Luma Fast"},
                 .icon_type = IT_NAMED_COLOR,
                 .help = "Luma: red/blue. RGB: color is reverse of clipped channel.",
@@ -3452,6 +3381,7 @@ struct menu_entry zebra_menus[] = {
                 .display = zebra_level_display,
                 .help = "Overexposure threshold.",
             },
+            #ifdef CONFIG_MOVIE
             {
                 .name = "When recording", 
                 .priv = &zebra_rec,
@@ -3460,9 +3390,12 @@ struct menu_entry zebra_menus[] = {
                 .help = "You can hide zebras when recording.",
                 .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
             },
+            #endif
             MENU_EOL
         },
     },
+    #endif
+    #ifdef FEATURE_FOCUS_PEAK
     {
         .name = "Focus Peak",
         .priv           = &focus_peaking,
@@ -3489,6 +3422,7 @@ struct menu_entry zebra_menus[] = {
                 .help = "Contrast detection method. 2: more accurate, 1: less noisy.",
             },*/
             #ifdef CONFIG_DISPLAY_FILTERS
+            #ifdef FEATURE_FOCUS_PEAK_DISP_FILTER
             {
                 .name = "Display type",
                 .priv = &focus_peaking_disp, 
@@ -3496,6 +3430,7 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"Blinking dots", "Fine dots", "Alpha blend", "Sharpness", "Raw"},
                 .help = "How to display peaking. Alpha looks nicer, but image lags.",
             },
+            #endif
             #endif
             {
                 .name = "Threshold", 
@@ -3527,6 +3462,8 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
+    #endif
+    #ifdef FEATURE_MAGIC_ZOOM
     {
         .name = "Magic Zoom",
         .priv = &zoom_overlay_enabled,
@@ -3579,7 +3516,7 @@ struct menu_entry zebra_menus[] = {
                 .icon_type = IT_SIZE,
                 .help = "1:1 displays recorded pixels, 2:1 displays them doubled.",
             },
-            #if !defined(CONFIG_50D) && !defined(CONFIG_500D)
+            #ifdef CONFIG_LV_FOCUS_INFO
             {
                 .name = "Focus confirm", 
                 .priv = &zoom_overlay_split,
@@ -3599,6 +3536,8 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
+    #endif
+    #ifdef FEATURE_CROPMARKS
     {
         .name = "Cropmarks",
         .priv = &crop_enabled,
@@ -3633,6 +3572,8 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
+    #endif
+    #ifdef FEATURE_GHOST_IMAGE
     {
         .name = "Ghost image",
         .priv = &transparent_overlay, 
@@ -3645,6 +3586,8 @@ struct menu_entry zebra_menus[] = {
 #endif
         //.essential = FOR_PLAYBACK,
     },
+    #endif
+    #ifdef FEATURE_SPOTMETER
     {
         .name = "Spotmeter",
         .priv           = &spotmeter_draw,
@@ -3672,7 +3615,8 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         }
     },
-    #ifndef CONFIG_5D3_MINIMAL
+    #endif
+    #ifdef FEATURE_FALSE_COLOR
     {
         .name = "False color",
         .priv       = &falsecolor_draw,
@@ -3694,16 +3638,7 @@ struct menu_entry zebra_menus[] = {
         }
     },
     #endif
-/*  {
-        .name = "Histo/Wavefm",
-        .priv       = &hist_draw,
-        .select     = zebra_toggle,
-        .select_auto = waveform_toggle,
-        .display    = hist_display,
-        .help = "Histogram [SET] and Waveform [Q] for evaluating exposure.",
-        //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
-    },
-    */
+    #ifdef FEATURE_HISTOGRAM
     {
         .name = "Histogram",
         .priv       = &hist_draw,
@@ -3738,6 +3673,8 @@ struct menu_entry zebra_menus[] = {
             MENU_EOL
         },
     },
+    #endif
+    #ifdef FEATURE_WAVEFORM
     {
         .name = "Waveform",
         .priv       = &waveform_draw,
@@ -3757,6 +3694,8 @@ struct menu_entry zebra_menus[] = {
         },
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
     },
+    #endif
+    #ifdef FEATURE_VECTORSCOPE
     {
         .name = "Vectorscope",
         .display = vectorscope_display,
@@ -3765,80 +3704,31 @@ struct menu_entry zebra_menus[] = {
         .help = "Shows color distribution as U-V plot. For grading & WB.",
         //.essential = FOR_LIVEVIEW,
     },
-    /*{
-        .priv           = &focus_graph,
-        .display        = focus_graph_display,
-        .select         = menu_binary_toggle,
-    },*/
-    //~ {
-        //~ .display        = crop_off_display,
-        //~ .select         = crop_off_toggle,
-        //~ .select_reverse = crop_off_toggle_rev, 
-    //~ },
-    
-    //~ {
-        //~ .priv = "[debug] HDMI test", 
-        //~ .display = menu_print, 
-        //~ .select = hdmi_test_toggle,
-    //~ }
-    //~ {
-        //~ .priv       = &edge_draw,
-        //~ .select     = menu_binary_toggle,
-        //~ .display    = edge_display,
-    //~ },
-    //~ {
-        //~ .priv       = &waveform_draw,
-        //~ .select     = menu_binary_toggle,
-        //~ .display    = waveform_display,
-    //~ },
+    #endif
 };
 
 struct menu_entry level_indic_menus[] = {
     #ifdef CONFIG_ELECTRONIC_LEVEL
+    #ifdef FEATURE_LEVEL_INDICATOR
     {
         .name = "Level Indicator", 
         .priv = &electronic_level, 
         .select = menu_binary_toggle, 
         .display = electronic_level_display,
         .help = "Electronic level indicator in 0.5 degree steps.",
-        //.essential = FOR_LIVEVIEW,
     },
+    #endif
     #endif
 };
 struct menu_entry livev_dbg_menus[] = {
+    #ifdef FEATURE_SHOW_OVERLAY_FPS
     {
-        .name = "Show LiveV FPS",
+        .name = "Show Overlay FPS",
         .priv = &show_lv_fps, 
         .max = 1,
-        .help = "Show the frame rate of LiveV loop (zebras, peaking)"
+        .help = "Show the frame rate of overlay loop (zebras, peaking...)"
     },
-    /*
-    {
-        .priv = "Dump RAM",
-        .display = menu_print, 
-        .select = dump_vram,
-    },
-    {
-        .priv       = &unified_loop,
-        .select     = menu_ternary_toggle,
-        .display    = unified_loop_display,
-        .help = "Unique loop for zebra and FP. Used with HDMI and 720p."
-    },
-    {
-        .priv       = &zebra_density,
-        .select     = menu_ternary_toggle,
-        .display    = zebra_mode_display,
-    },
-    {
-        .priv       = &use_hd_vram,
-        .select     = menu_binary_toggle,
-        .display    = use_hd_vram_display,
-    },
-    {
-        .priv = &focus_peaking_debug,
-        .select = menu_binary_toggle, 
-        .display = focus_debug_display,
-    }*/
+    #endif
 };
 
 #ifdef CONFIG_BATTERY_INFO
@@ -3864,15 +3754,15 @@ void batt_display(
 }
 #endif
 
-#if defined(CONFIG_550D) || defined(CONFIG_500D)
+#ifdef CONFIG_LCD_SENSOR
 CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup, 1);
 #else
 int lcd_sensor_wakeup = 0;
 CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup_unused, 1);
 #endif
 
-#ifndef CONFIG_5DC
 struct menu_entry powersave_menus[] = {
+#ifdef FEATURE_POWERSAVE_LIVEVIEW
 {
     .name = "Powersave in LiveView...",
     .select = menu_open_submenu,
@@ -3886,7 +3776,7 @@ struct menu_entry powersave_menus[] = {
             .choices = (const char *[]) {"on Standby", "on Recording", "on STBY+REC"},
             .help = "If enabled, powersave (see above) works when recording too."
         },
-        #if defined(CONFIG_550D) || defined(CONFIG_500D)
+        #ifdef CONFIG_LCD_SENSOR
         {
             .name = "Use LCD sensor     ",
             .priv           = &lcd_sensor_wakeup,
@@ -3936,9 +3826,10 @@ struct menu_entry powersave_menus[] = {
         MENU_EOL
     },
 }
-};
 #endif
+};
 
+#ifdef FEATURE_LV_DISPLAY_PRESETS
 struct menu_entry livev_cfg_menus[] = {
     {
         .name = "LV Display Presets",
@@ -3948,7 +3839,9 @@ struct menu_entry livev_cfg_menus[] = {
         .help = "Num. of LV display presets. Switch with " INFO_BTN_NAME " or from LiveV.",
     },
 };
+#endif
 
+#ifdef FEATURE_CROPMARKS
 void cropmark_draw_from_cache()
 {
     uint8_t* B = bmp_vram();
@@ -3975,6 +3868,7 @@ void cropmark_draw_from_cache()
         }
     }
 }
+#endif
 
 void copy_zebras_from_mirror()
 {
@@ -4024,13 +3918,16 @@ void clear_zebras_from_mirror()
 
 void cropmark_clear_cache()
 {
+#ifdef FEATURE_CROPMARKS
     BMP_LOCK(
         clrscr_mirror();
         bvram_mirror_clear();
         default_movie_cropmarks();
     )
+#endif
 }
 
+#ifdef FEATURE_CROPMARKS
 static void 
 cropmark_draw()
 {
@@ -4039,12 +3936,14 @@ cropmark_draw()
     get_yuv422_vram(); // just to refresh VRAM params
     clear_lv_affframe_if_dirty();
 
+    #ifdef FEATURE_GHOST_IMAGE
     if (transparent_overlay && !transparent_overlay_hidden && !PLAY_MODE)
     {
         show_overlay();
         zoom_overlay_dirty = 1;
         cropmark_cache_dirty = 1;
     }
+    #endif
     crop_dirty = 0;
 
     reload_cropmark(); // reloads only when changed
@@ -4137,12 +4036,14 @@ cropmark_redraw()
         cropmark_draw(); 
     )
 }
+#endif
 
 PROP_HANDLER(PROP_GUI_STATE)
 {
     extern int _bmp_draw_should_stop;
     _bmp_draw_should_stop = 1; // abort drawing any slow cropmarks
 
+#ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
     if (ZEBRAS_IN_QUICKREVIEW && buf[0] == GUISTATE_QR)
     {
         fake_simple_button(BTN_ZEBRAS_FOR_PLAYBACK);
@@ -4150,24 +4051,9 @@ PROP_HANDLER(PROP_GUI_STATE)
         if (BTN_ZEBRAS_FOR_PLAYBACK == BGMT_PRESS_DISP) fake_simple_button(BGMT_UNPRESS_DISP);
         #endif
     }
+#endif
 }
 
-// those functions will do nothing if called multiple times (it's safe to do this)
-// they might cause ERR80 if called while taking a picture
-
-/*int is_safe_to_mess_with_the_display(int timeout_ms)
-{
-    int k = 0;
-    while (lens_info.job_state >= 10 || !DISPLAY_IS_ON || recording == 1)
-    {
-        k++;
-        if (k * 100 > timeout_ms) return 0;
-        msleep(100);
-    }
-    return 1;
-}*/
-
-//~ #if defined(CONFIG_7D)
 extern uint32_t LCD_Palette[];
 
 void palette_disable(uint32_t disabled)
@@ -4219,29 +4105,13 @@ void bmp_mute_flag_reset()
     _bmp_unmuted = 0;
 }
 
-/*
-int _lvimage_cleared = 0;
-void lvimage_on()
-{
-    if (!is_safe_to_mess_with_the_display(500)) return;
-    if (!_lvimage_cleared) call("MuteOffImage");
-    _lvimage_cleared = 1;
-}
-void lvimage_off()
-{
-    if (!is_safe_to_mess_with_the_display(500)) return;
-    if (_lvimage_cleared) GMT_LOCK( call("MuteOnImage"); )
-    _lvimage_cleared = 0;
-}*/
-
+#ifdef FEATURE_MAGIC_ZOOM
 void zoom_overlay_toggle()
 {
     zoom_overlay_triggered_by_zoom_btn = !zoom_overlay_triggered_by_zoom_btn;
     if (!zoom_overlay_triggered_by_zoom_btn)
     {
         zoom_overlay_triggered_by_focus_ring_countdown = 0;
-        //~ crop_set_dirty(10);
-        //~ redraw_after(500);
     }
 }
 
@@ -4313,10 +4183,6 @@ int handle_zoom_overlay(struct event * event)
 
     return 1;
 }
-//~ void zoom_overlay_enable()
-//~ {
-    //~ zoom_overlay_triggered_by_zoom_btn = 1;
-//~ }
 
 void zoom_overlay_disable()
 {
@@ -4328,11 +4194,6 @@ void zoom_overlay_set_countdown(int x)
 {
     zoom_overlay_triggered_by_focus_ring_countdown = x;
 }
-
-
-/*static const unsigned char TechnicolLUT[256] = {
-    0,0,0,0,0,0,0,0,0,1,1,1,1,1,2,2,2,3,3,3,4,4,5,5,5,6,6,7,8,8,9,9,10,10,11,12,12,13,14,15,15,16,17,18,18,19,20,21,22,23,24,25,26,26,27,28,29,30,32,33,34,35,36,37,38,39,40,41,43,44,45,46,47,49,50,51,52,54,55,56,58,59,60,62,63,64,66,67,68,70,71,73,74,75,77,78,80,81,83,84,86,87,89,90,92,93,95,96,98,99,101,102,104,105,107,109,110,112,113,115,116,118,119,121,123,124,126,127,129,130,132,134,135,137,138,140,141,143,145,146,148,149,151,152,154,155,157,158,160,161,163,164,166,167,169,170,172,173,175,176,178,179,181,182,183,185,186,188,189,190,192,193,194,196,197,198,200,201,202,204,205,206,207,209,210,211,212,213,214,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,235,236,237,238,239,239,240,241,242,242,243,244,244,245,246,246,247,247,248,248,249,249,250,250,251,251,252,252,252,253,253,253,253,254,254,254,254,255,255,255,255,255,255,255,255,255,255 
-};*/
 
 static void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 {
@@ -4365,97 +4226,20 @@ static void yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
     }
 }
 
-/*
-static void yuvcpy_x3_lut(uint32_t* dst, uint32_t* src, int num_pix)
-{
-    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
-    src = (void*)((unsigned int)src & 0xFFFFFFFC);
-    uint32_t* last_s = src + (num_pix>>1);
-    for (; src < last_s; src++, dst += 3)
-    {
-        uint32_t chroma = (*src)  & 0x00FF00FF;
-        uint32_t luma1 = (*src >>  8) & 0xFF;
-        uint32_t luma2 = (*src >> 24) & 0xFF;
-        luma1 = TechnicolLUT[luma1];
-        luma2 = TechnicolLUT[luma2];
-        *(dst)   = chroma | (luma1 << 8) | (luma1 << 24);
-        *(dst+1) = chroma | (luma1 << 8) | (luma2 << 24);
-        *(dst+2) = chroma | (luma2 << 8) | (luma2 << 24);
-    }
-}
-*/
-
-/*static void yuvcpy_x4(uint32_t* dst, uint32_t* src, int num_pix)
-{
-    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
-    src = (void*)((unsigned int)src & 0xFFFFFFFC);
-    uint32_t* last_s = src + (num_pix>>1);
-    for (; src < last_s; src++, dst += 4)
-    {
-        uint32_t chroma = (*src)  & 0x00FF00FF;
-        uint32_t luma1 = (*src >>  8) & 0xFF;
-        uint32_t luma2 = (*src >> 24) & 0xFF;
-        *(dst) = *(dst+1) = chroma | (luma1 << 8) | (luma1 << 24);
-        *(dst+2) = *(dst+3) = chroma | (luma2 << 8) | (luma2 << 24);
-    }
-}*/
-/*
-static void yuvcpy_lut(uint32_t* dst, uint32_t* src, int num_pix)
-{
-    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
-    src = (void*)((unsigned int)src & 0xFFFFFFFC);
-    uint32_t* last_s = src + (num_pix>>1);
-    for (; src < last_s; src++, dst++)
-    {
-        uint32_t chroma = (*src)  & 0x00FF00FF;
-        uint32_t luma1 = (*src >>  8) & 0xFF;
-        uint32_t luma2 = (*src >> 24) & 0xFF;
-        *(dst) = chroma | ((uint32_t)(TechnicolLUT[luma1]) << 8) | ((uint32_t)(TechnicolLUT[luma2]) << 24);
-    }
-}*/
-/*
-static void yuvcpy_x2_lut(uint32_t* dst, uint32_t* src, int num_pix)
-{
-    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
-    src = (void*)((unsigned int)src & 0xFFFFFFFC);
-    uint32_t* last_s = src + (num_pix>>1);
-    for (; src < last_s; src++, dst += 2)
-    {
-        uint32_t chroma = (*src)  & 0x00FF00FF;
-        uint32_t luma1 = (*src >>  8) & 0xFF;
-        uint32_t luma2 = (*src >> 24) & 0xFF;
-        luma1 = TechnicolLUT[luma1];
-        luma2 = TechnicolLUT[luma2];
-        *(dst) = chroma | (luma1 << 8) | (luma1 << 24);
-        *(dst+1) = chroma | (luma2 << 8) | (luma2 << 24);
-    }
-}*/
-
 static void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lut)
 {
     if (X==1)
     {
-        //~ if (lut) yuvcpy_lut(dst, src, num_pix);
-        //~ else 
         memcpy(dst, src, num_pix*2);
     }
     else if (X==2)
     {
-        //~ if (lut) yuvcpy_x2_lut(dst, src, num_pix/2);
-        //~ else 
         yuvcpy_x2(dst, src, num_pix/2);
     }
     else if (X==3)
     {
-        //~ if (lut) yuvcpy_x3_lut(dst, src, num_pix/3);
-        //~ else 
         yuvcpy_x3(dst, src, num_pix/3);
     }
-    //~ else if (X==4)
-    //~ {
-        //~ if (lut) yuvcpy_x4(dst, src, num_pix/4);
-        //~ else yuvcpy_x4(dst, src, num_pix/2);
-    //~ }
 }
 
 void digic_zoom_overlay_step(int force_off)
@@ -4694,10 +4478,7 @@ static void draw_zoom_overlay(int dirty)
     //~ bmp_fill(rawoff ? COLOR_WHITE : COLOR_GREEN2, x0c, y0c + H - 1, W, 1);
     //~ bmp_fill(rawoff ? COLOR_BLACK : COLOR_GREEN1, x0c, y0c + H, W, 1);
 }
-
-//~ int zebra_paused = 0;
-//~ void zebra_pause() { zebra_paused = 1; }
-//~ void zebra_resume() { zebra_paused = 0; }
+#endif // FEATURE_MAGIC_ZOOM
 
 int liveview_display_idle()
 {
@@ -4705,18 +4486,9 @@ int liveview_display_idle()
     struct dialog * dialog = current->priv;
     extern thunk LiveViewApp_handler;
     extern uintptr_t new_LiveViewApp_handler;
-    //~ extern thunk test_minimal_handler;
     #ifdef CONFIG_5D3
     extern thunk LiveViewLevelApp_handler;
     #endif
-
-/*
-    if (dialog->handler == (dialog_handler_t) &test_minimal_handler)
-    { // ML is clearing the screen with a fake dialog, let's see what's underneath
-        current = current->next;
-        dialog = current->priv;
-    }
-    */
 
     return
         LV_NON_PAUSED && 
@@ -4736,10 +4508,7 @@ int liveview_display_idle()
             lens_info.job_state < 10 &&
             !mirror_down )
         );
-        //~ !zebra_paused &&
-        //~ !(clearscreen == 1 && (get_halfshutter_pressed() || dofpreview));
 }
-
 
 // when it's safe to draw zebras and other on-screen stuff
 int zebra_should_run()
@@ -4750,6 +4519,7 @@ int zebra_should_run()
         !WAVEFORM_FULLSCREEN;
 }
 
+#ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
 int livev_for_playback_running = 0;
 void draw_livev_for_playback()
 {
@@ -4777,19 +4547,25 @@ BMP_LOCK(
 
     cropmark_redraw();
 
+    #ifdef FEATURE_DEFISHING_PREVIEW
     if (defish_preview)
         defish_draw_play();
+    #endif
 
+    #ifdef FEATURE_SPOTMETER
     if (spotmeter_draw)
         spotmeter_step();
+    #endif
 
     draw_histogram_and_waveform(1);
 
+    #ifdef FEATURE_FALSE_COLOR
     if (falsecolor_draw) 
     {
         draw_false_downsampled();
     }
     else
+    #endif
     {
         guess_focus_peaking_threshold();
         draw_zebra_and_focus(1,1);
@@ -4800,6 +4576,7 @@ BMP_LOCK(
     info_led_off();
     livev_for_playback_running = 0;
 }
+#endif
 
 int should_draw_bottom_graphs()
 {
@@ -4817,11 +4594,12 @@ void draw_histogram_and_waveform(int allow_play)
     
     get_yuv422_vram();
 
-
+#if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM) || defined(FEATURE_VECTORSCOPE)
     if (hist_draw || waveform_draw || vectorscope_draw)
     {
         hist_build();
     }
+#endif
     
     //~ if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
     if (!get_global_draw()) return;
@@ -4830,6 +4608,7 @@ void draw_histogram_and_waveform(int allow_play)
 
     int screen_layout = get_screen_layout();
 
+#ifdef FEATURE_HISTOGRAM
     if( hist_draw && !WAVEFORM_FULLSCREEN)
     {
         #ifdef CONFIG_4_3_SCREEN
@@ -4844,6 +4623,7 @@ void draw_histogram_and_waveform(int allow_play)
         else
             BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 5, os.y0 + 100, -1); )
     }
+#endif
 
     if (nondigic_zoom_overlay_enabled()) return;
 
@@ -4852,6 +4632,7 @@ void draw_histogram_and_waveform(int allow_play)
     if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play)) return;
     if (is_zoom_mode_so_no_zebras()) return;
         
+#ifdef FEATURE_WAVEFORM
     if( waveform_draw)
     {
         #ifdef CONFIG_4_3_SCREEN
@@ -4871,12 +4652,15 @@ void draw_histogram_and_waveform(int allow_play)
         else
             BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR - (WAVEFORM_FULLSCREEN ? 0 : 4), os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET, WAVEFORM_HEIGHT*WAVEFORM_FACTOR ); )
     }
-    
+#endif
+
+#ifdef FEATURE_VECTORSCOPE
     if(vectorscope_draw)
     {
         /* make sure memory address of bvram will be 4 byte aligned */
         BMP_LOCK( vectorscope_draw_image(os.x0 + 32, 64); )
     }
+#endif
 }
 
 static int idle_countdown_display_dim = 50;
@@ -4895,14 +4679,22 @@ static int idle_countdown_killflicker_prev = 5;
 
 int idle_is_powersave_enabled()
 {
+#ifdef FEATURE_POWERSAVE_LIVEVIEW
     return idle_display_dim_after || idle_display_turn_off_after || idle_display_global_draw_off_after;
+#else
+    return 0;
+#endif
 }
 
 int idle_is_powersave_active()
 {
+#ifdef FEATURE_POWERSAVE_LIVEVIEW
     return (idle_display_dim_after && !idle_countdown_display_dim_prev) || 
            (idle_display_turn_off_after && !idle_countdown_display_off_prev) || 
            (idle_display_global_draw_off_after && !idle_countdown_globaldraw_prev);
+#else
+    return 0;
+#endif
 }
 
 void idle_force_powersave_in_1s()
@@ -4921,6 +4713,7 @@ void idle_force_powersave_now()
 
 int handle_powersave_key(struct event * event)
 {
+    #ifdef FEATURE_POWERSAVE_LIVEVIEW
     if (event->param == BGMT_INFO)
     {
         if (!idle_shortcut_key) return 1;
@@ -4936,6 +4729,7 @@ int handle_powersave_key(struct event * event)
         }
         return 0;
     }
+    #endif
     return 1;
 }
 
@@ -4948,16 +4742,6 @@ void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 #endif
 
     //~ bmp_printf(FONT_LARGE, 50, 50, "wakeup: %d   ", reason);
-    #if 0
-    if (lv && reason == GMT_OLC_INFO_CHANGED) return;
-    if(start_recording_on_resume) {
-        if(reason == BGMT_PRESS_HALFSHUTTER) {
-            resumed_due_to_halfshutter = 1;
-        }
-    } else {
-      resumed_due_to_halfshutter = 0;
-    }
-    #endif
     
     // when sensor is covered, timeout changes to 3 seconds
     int sensor_status = lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED;
@@ -5033,10 +4817,7 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
 int lv_zoom_before_pause = 0;
 void PauseLiveView() // this should not include "display off" command
 {
-    #ifdef CONFIG_5DC
-    return;
-    #endif
-    
+#if defined(CONFIG_LIVEVIEW) && defined(FEATURE_POWERSAVE_LIVEVIEW)
     if (ml_shutdown_requested) return;
     if (sensor_cleaning) return;
     if (PLAY_MODE) return;
@@ -5056,15 +4837,13 @@ void PauseLiveView() // this should not include "display off" command
         )
         ASSERT(LV_PAUSED);
     }
+#endif
 }
 
 // returns 1 if it did wakeup
 int ResumeLiveView()
 {
-    #ifdef CONFIG_5DC
-    return;
-    #endif
-
+#if defined(CONFIG_LIVEVIEW) && defined(FEATURE_POWERSAVE_LIVEVIEW)
     if (ml_shutdown_requested) return 0;
     if (sensor_cleaning) return 0;
     if (PLAY_MODE) return 0;
@@ -5088,8 +4867,10 @@ int ResumeLiveView()
     }
     lv_paused = 0;
     return ans;
+#endif
 }
 
+#ifdef FEATURE_POWERSAVE_LIVEVIEW
 static void idle_display_off_show_warning()
 {
     extern int motion_detect;
@@ -5162,9 +4943,10 @@ static void idle_display_undim()
     }
 }
 
+#endif
+
 void idle_globaldraw_dis()
 {
-    //~ ASSERT(lv);
     idle_globaldraw_disable = 1;
 }
 void idle_globaldraw_en()
@@ -5172,14 +4954,7 @@ void idle_globaldraw_en()
     idle_globaldraw_disable = 0;
 }
 
-/*void clear_liveview_area()
-{
-    if (is_movie_mode())
-        bmp_fill(0, os.x0, os.y0 + os.off_169, os.x_ex, os.y_ex - os.off_169 * 2 + 2);
-    else
-        bmp_fill(0, os.x0, os.y0, os.x_ex, os.y_ex);
-}*/
-
+#ifdef CONFIG_KILL_FLICKER
 static void idle_kill_flicker()
 {
     if (!canon_gui_front_buffer_disabled())
@@ -5202,6 +4977,7 @@ static void idle_stop_killing_flicker()
         canon_gui_enable_front_buffer(0);
     }
 }
+#endif
 
 static PROP_INT(PROP_LOGICAL_CONNECT, logical_connect); // EOS utility?
 
@@ -5209,22 +4985,12 @@ static void
 clearscreen_task( void* unused )
 {
     idle_wakeup_reset_counters(0);
-    //~ #ifdef CONFIG_KILL_FLICKER
-    //~ idle_stop_killing_flicker();
-    //~ #endif
 
     TASK_LOOP
     {
 clearscreen_loop:
-        //~ msleep(100);
-        //~ if (lens_info.job_state == 0 && !DISPLAY_IS_ON) // unsafe when taking pics, not needed with display on
-        //~ {
-            //~ call("DisablePowerSave");
-            //~ call("EnablePowerSave");
-        //~ }
         msleep(100);
-        //~ card_led_blink(1,10,90);
-        
+
         //~ bmp_printf(FONT_MED, 100, 100, "%d %d %d", idle_countdown_display_dim, idle_countdown_display_off, idle_countdown_globaldraw);
 
         // Here we're blinking the info LED approximately once every five
@@ -5239,11 +5005,6 @@ clearscreen_loop:
                 info_led_blink(1, 10, 10);
 
         if (!lv) continue;
-
-
-        //~ if (lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED && !get_halfshutter_pressed())
-            //~ canon_gui_disable_front_buffer();
-        //~ else canon_gui_enable_front_buffer(0);
 
         // especially for 50D
         #ifdef CONFIG_KILL_FLICKER
@@ -5269,6 +5030,7 @@ clearscreen_loop:
         }
         #endif
         
+        #ifdef FEATURE_CLEAR_OVERLAYS
         if (clearscreen == 3)
         {
             if (liveview_display_idle() && !gui_menu_shown())
@@ -5314,10 +5076,7 @@ clearscreen_loop:
                 zoom_overlay_toggle();
             #endif
         }
-        //~ else if (clearscreen == 2)  // always clear overlays
-        //~ {
-            //~ idle_action_do(&idle_countdown_display_clear, bmp_off, bmp_on);
-        //~ }
+        #endif
 
         if (recording && idle_rec == 0) // don't go to powersave when recording
             idle_wakeup_reset_counters(-2345);
@@ -5328,6 +5087,7 @@ clearscreen_loop:
         if (logical_connect)
             idle_wakeup_reset_counters(-305); // EOS utility
         
+        #ifdef FEATURE_POWERSAVE_LIVEVIEW
         if (idle_display_dim_after)
             idle_action_do(&idle_countdown_display_dim, &idle_countdown_display_dim_prev, idle_display_dim, idle_display_undim);
 
@@ -5343,6 +5103,7 @@ clearscreen_loop:
 
         if (clearscreen == 2) // clear overlay when idle
             idle_action_do(&idle_countdown_clrscr, &idle_countdown_clrscr_prev, idle_bmp_off, idle_bmp_on);
+        #endif
         
         #ifdef CONFIG_KILL_FLICKER
         if (kill_canon_gui_mode == 2) // LV transparent menus and key presses
@@ -5352,6 +5113,7 @@ clearscreen_loop:
         }
         #endif
 
+        #ifdef FEATURE_CROPMARKS
         // since this task runs at 10Hz, I prefer cropmark redrawing here
 
         if (crop_dirty && lv && zebra_should_run())
@@ -5371,6 +5133,7 @@ clearscreen_loop:
             if (crop_dirty == 0)
                 cropmark_redraw();
         }
+        #endif
     }
 }
 
@@ -5432,9 +5195,9 @@ BMP_LOCK (
     // ask other stuff to redraw
     afframe_set_dirty();
 
-    //~ if (cropmark_cache_is_valid()) cropmark_redraw();
-    //~ else 
+    #ifdef FEATURE_CROPMARKS
     crop_set_dirty(cropmark_cache_is_valid() ? 2 : 10);
+    #endif
     
     menu_set_dirty();
     lens_display_set_dirty();
@@ -5446,39 +5209,13 @@ void redraw()
     fake_simple_button(MLEV_REDRAW);
 }
 
-/*void test_fps(int* x)
-{
-    int x0 = 0;
-    int F = 0;
-    //~ int f = 0;
-    bmp_printf(FONT_SMALL, 10, 100, "testing %x...", x);
-    while(F < 500)
-    {
-        if (x0 != *x)
-        {
-            x0 = *x;
-            fps_ticks++;
-        }
-        F++;
-        msleep(1);
-    }
-    bmp_printf(FONT_SMALL, 10, 100, "testing done.");
-    return;
-}
-*/
-
-
-/*static void false_color_toggle()
-{
-    falsecolor_draw = !falsecolor_draw;
-    if (falsecolor_draw) zoom_overlay_disable();
-}*/
-
+#ifdef FEATURE_GHOST_IMAGE
 static int transparent_overlay_flag = 0;
 void schedule_transparent_overlay()
 {
     transparent_overlay_flag = 1;
 }
+#endif
 
 volatile int lens_display_dirty = 0;
 void lens_display_set_dirty() 
@@ -5500,6 +5237,7 @@ void draw_cropmark_area()
     draw_line(HD2BM_X(0), HD2BM_Y(vram_hd.height), HD2BM_X(vram_hd.width), HD2BM_Y(0), COLOR_RED);
 }
 
+/*
 void show_apsc_crop_factor()
 {
     int x_ex_crop = os.x_ex * 10/16;
@@ -5509,6 +5247,7 @@ void show_apsc_crop_factor()
     bmp_draw_rect(COLOR_WHITE, os.x0 + x_off, os.y0 + y_off, x_ex_crop, y_ex_crop);
     bmp_draw_rect(COLOR_BLACK, os.x0 + x_off + 1, os.y0 + y_off + 1, x_ex_crop - 2, y_ex_crop - 2);
 }
+*/
 
 int is_focus_peaking_enabled()
 {
@@ -5520,19 +5259,22 @@ int is_focus_peaking_enabled()
     ;
 }
 
+#ifdef FEATURE_ZEBRA_FAST
 static void digic_zebra_cleanup()
 {
     if (!DISPLAY_IS_ON) return;
     EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); 
     zebra_digic_dirty = 0;
 }
+#endif
 
+#ifdef FEATURE_SHOW_OVERLAY_FPS
 void update_lv_fps() // to be called every 10 seconds
 {
     if (show_lv_fps) bmp_printf(FONT_MED, 50, 50, "%d.%d fps ", fps_ticks/10, fps_ticks%10);
     fps_ticks = 0;
 }
-
+#endif
 
 // Items which need a high FPS
 // Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
@@ -5541,8 +5283,14 @@ void update_lv_fps() // to be called every 10 seconds
 livev_hipriority_task( void* unused )
 {
     msleep(1000);
+    
+    #ifdef FEATURE_CROPMARKS
     find_cropmarks();
+    #endif
+    
+    #ifdef FEATURE_LV_DISPLAY_PRESETS
     update_disp_mode_bits_from_params();
+    #endif
     
     TASK_LOOP
     {
@@ -5555,7 +5303,10 @@ livev_hipriority_task( void* unused )
         }
         
         int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras (should match the one from draw_zebra_and_focus)
+
+        #ifdef FEATURE_LV_DISPLAY_PRESETS
         if (zebra_digic_dirty && !zd) digic_zebra_cleanup();
+        #endif
         
         if (!zebra_should_run())
         {
@@ -5590,6 +5341,7 @@ livev_hipriority_task( void* unused )
         lv_vsync(mz);
         guess_fastrefresh_direction();
 
+        #ifdef FEATURE_MAGIC_ZOOM
         if (mz)
         {
             //~ msleep(k % 50 == 0 ? MIN_MSLEEP : 10);
@@ -5602,41 +5354,52 @@ livev_hipriority_task( void* unused )
             //~ continue;
         }
         else
+        #endif
         {
             if (!zoom_overlay_dirty) { redraw(); msleep(700); } // redraw cropmarks after MZ is turned off
             zoom_overlay_dirty = 1;
 
             msleep(10);
 
+            #ifdef CONFIG_DISPLAY_FILTERS
             display_filter_step(k);
+            #endif
             
+            #ifdef FEATURE_FALSE_COLOR
             if (falsecolor_draw)
             {
                 if (k % 4 == 0)
                     BMP_LOCK( if (lv) draw_false_downsampled(); )
             }
             else
+            #endif
             {
                 BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 4 : 2) == 0, k % 2 == 1); )
             }
         }
 
+        #ifdef FEATURE_SPOTMETER
         // update spotmeter every second, not more often than that
         static int spotmeter_aux = 0;
         if (spotmeter_draw && should_update_loop_progress(1000, &spotmeter_aux))
             BMP_LOCK( if (lv) spotmeter_step(); )
+        #endif
 
         #ifdef CONFIG_ELECTRONIC_LEVEL
         if (electronic_level && k % 8 == 5)
             BMP_LOCK( if (lv) show_electronic_level(); )
         #endif
 
+        #ifdef FEATURE_REC_NOTIFY
         if (k % 8 == 7) rec_notify_continuous(0);
+        #endif
         
+        #ifdef FEATURE_MAGIC_ZOOM
         if (zoom_overlay_triggered_by_focus_ring_countdown)
         {
             zoom_overlay_triggered_by_focus_ring_countdown--;
         }
+        #endif
                 
         int m = 100;
         if (lens_display_dirty) m = 10;
@@ -5752,11 +5515,14 @@ livev_lopriority_task( void* unused )
     msleep(500);
     TASK_LOOP
     {
+        #ifdef FEATURE_CROPMARKS
+        #ifdef FEATURE_GHOST_IMAGE
         if (transparent_overlay_flag)
         {
             transparent_overlay_from_play();
             transparent_overlay_flag = 0;
         }
+        #endif
 
         // here, redrawing cropmarks does not block fast zoom
         if (cropmarks_play && PLAY_MODE && DISPLAY_IS_ON && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) <= 0)
@@ -5768,6 +5534,7 @@ livev_lopriority_task( void* unused )
                 if (MEM(IMGPLAY_ZOOM_LEVEL_ADDR) >= 0) redraw(); // whoops, CTRL-Z, CTRL-Z :)
             }
         }
+        #endif
 
         loprio_sleep();
         if (!zebra_should_run())
@@ -5915,6 +5682,7 @@ int handle_disp_preset_key(struct event * event)
     return 1;
 }
 
+#ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
 int livev_playback = 0;
 
 static void livev_playback_toggle()
@@ -5961,26 +5729,17 @@ int handle_livev_playback(struct event * event, int button)
     }
     return 1;
 }
-
+#endif
 
 static void zebra_init()
 {
     precompute_yuv2rgb();
-#ifndef CONFIG_5DC
     menu_add( "Overlay", zebra_menus, COUNT(zebra_menus) );
-#endif
-
-#ifndef CONFIG_5D3_MINIMAL
     menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
-#endif
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
-#if !defined(CONFIG_5D3_MINIMAL)
-#ifndef CONFIG_5DC
     menu_add( "Prefs", powersave_menus, COUNT(powersave_menus) );
-#endif
     menu_add( "Display", level_indic_menus, COUNT(level_indic_menus) );
-#endif
 }
 
 INIT_FUNC(__FILE__, zebra_init);
@@ -6126,13 +5885,22 @@ static void transparent_overlay_from_play()
 PROP_HANDLER(PROP_LV_ACTION)
 {
     zoom_overlay_triggered_by_focus_ring_countdown = 0;
+    
+    #ifdef FEATURE_POWERSAVE_LIVEVIEW
     idle_display_undim(); // restore LCD brightness, especially for shutdown
-    //~ idle_wakeup_reset_counters(-4);
+    #endif
+    
     idle_globaldraw_disable = 0;
     if (buf[0] == 0) lv_paused = 0;
+    
+    #ifdef FEATURE_EXPO_OVERRIDE
     bv_auto_update();
+    #endif
+    
+    #ifdef FEATURE_LV_ZOOM_SETTINGS
     zoom_sharpen_step();
     zoom_auto_exposure_step();
+    #endif
 }
 
 void yuv_resize(uint32_t* src, int src_w, int src_h, uint32_t* dst, int dst_w, int dst_h)

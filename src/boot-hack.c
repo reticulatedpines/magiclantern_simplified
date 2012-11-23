@@ -360,9 +360,11 @@ void my_big_init_task()
     }
     return;
 */
-
+    #ifdef CONFIG_CONFIG_FILE
     // Read ML config
     config_parse_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
+    #endif
+    
     debug_init_stuff();
 
     _hold_your_horses = 0; // config read, other overriden tasks may start doing their job

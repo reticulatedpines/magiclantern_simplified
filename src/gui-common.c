@@ -154,7 +154,8 @@ int handle_common_events_by_feature(struct event * event)
 {
     // common to most cameras
     // there may be exceptions
-    
+
+#ifdef FEATURE_CONFIG_SAVE
     // these are required for correct shutdown from powersave mode
     if (event->param == GMT_GUICMD_START_AS_CHECK || 
         event->param == GMT_GUICMD_OPEN_SLOT_COVER || 
@@ -164,7 +165,9 @@ int handle_common_events_by_feature(struct event * event)
         config_save_at_shutdown();
         return 1;
     }
+#endif
 
+#ifdef FEATURE_POWERSAVE_LIVEVIEW
     if (LV_PAUSED && event->param != GMT_OLC_INFO_CHANGED) 
     { 
         int ans =  (ml_shutdown_requested || pre_shutdown_requested || sensor_cleaning || PLAY_MODE || MENU_MODE);
@@ -176,6 +179,8 @@ int handle_common_events_by_feature(struct event * event)
         if (handle_disp_preset_key(event) == 0) return 0;
         return !ans;  // if LiveView was resumed, don't do anything else (just wakeup)
     }
+#endif
+
     idle_wakeup_reset_counters(event->param);
     
     // If we're here, we're dealing with a button press.  Record the timestamp
@@ -183,15 +188,28 @@ int handle_common_events_by_feature(struct event * event)
     if (event->param != GMT_OLC_INFO_CHANGED)
         last_time_active = get_seconds_clock();
 
+    #ifdef FEATURE_UPSIDE_DOWN
     if (handle_upside_down(event) == 0) return 0;
+    #endif
+    
+    #ifdef FEATURE_SWAP_MENU_ERASE
+    if (handle_swap_menu_erase(event) == 0) return 0;
+    #endif
+
     if (handle_ml_menu_keys(event) == 0) return 0;
-       
+    
+    #ifdef CONFIG_DIGIC_POKE
     if (handle_digic_poke(event) == 0) return 0;
+    #endif
+    
     spy_event(event); // for debugging only
-    if (handle_shutter_events(event) == 0) return 0;
+    
+    #ifdef FEATURE_MLU_HANDHELD
+    if (handle_mlu_handheld(event) == 0) return 0;
+    #endif
+    
     if (recording && event->param == BGMT_MENU) redraw(); // MENU while recording => force a redraw
     
-
     if (handle_buttons_being_held(event) == 0) return 0;
     //~ if (handle_morse_keys(event) == 0) return 0;
     
@@ -199,31 +217,49 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_ml_menu_erase(event) == 0) return 0;
     #endif
 
-    #if defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL) // not reliable
+    #ifdef FEATURE_ZOOM_TRICK_5D3 // not reliable
     if (handle_zoom_trick_event(event) == 0) return 0;
     #endif
 
+    #ifdef FEATURE_RACK_FOCUS
     if (handle_rack_focus(event) == 0) return 0;
+    #endif
+    
+    #ifdef FEATURE_INTERVALOMETER
     if (handle_intervalometer(event) == 0) return 0;
+    #endif
+    
+    #ifdef FEATURE_GHOST_IMAGE
     if (handle_transparent_overlay(event) == 0) return 0; // on 500D, these two share the same key
+    #endif
+    
+    #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
     if (handle_livev_playback(event, BTN_ZEBRAS_FOR_PLAYBACK) == 0) return 0;
-    if (handle_set_wheel_play(event) == 0) return 0;
+    #endif
 
-    //~ #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
-    #ifndef CONFIG_5D3_MINIMAL
+    #if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_QUICK_ERASE) || defined(FEATURE_KEN_ROCKWELL_ZOOM_5D3)
+    if (handle_set_wheel_play(event) == 0) return 0;
+    #endif
+
+    #ifdef FEATURE_ARROW_SHORTCUTS
     if (handle_arrow_keys(event) == 0) return 0;
     #endif
-    //~ if (handle_lcd_sensor_shortcuts(event) == 0) return 0;
-    //~ #endif
     
-    //~ if (handle_movie_rec_key(event) == 0) return 0; // movie REC key
-
+    #ifdef FEATURE_TRAP_FOCUS
     if (handle_trap_focus(event) == 0) return 0;
+    #endif
 
+    #ifdef FEATURE_FOLLOW_FOCUS
     if (handle_follow_focus(event) == 0) return 0;
+    #endif
+    
+    #ifdef FEATURE_MAGIC_ZOOM
     if (handle_zoom_overlay(event) == 0) return 0;
+    #endif
+    
+    #ifdef FEATURE_LV_ZOOM_SETTINGS
     if (handle_zoom_x5_x10(event) == 0) return 0;
-    //~ if (handle_movie_mode_shortcut(event) == 0) return 0; // unstable
+    #endif
     
     #if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
     if (handle_quick_access_menu_items(event) == 0) return 0;
@@ -246,20 +282,40 @@ int handle_common_events_by_feature(struct event * event)
          return handle_keep_ml_after_format_toggle();
 #endif
     
+    #ifdef FEATURE_BULB_RAMPING
     if (handle_bulb_ramping_keys(event) == 0) return 0;
+    #endif
+    
+    #ifdef FEATURE_FPS_OVERRIDE
     if (handle_fps_events(event) == 0) return 0;
+    #endif
+    
+    #ifdef FEATURE_EXPO_PRESET
     if (handle_expo_preset(event) == 0) return 0;
+    #endif
+    
+    #ifdef FEATURE_LV_DISPLAY_PRESETS
     if (handle_disp_preset_key(event) == 0) return 0;
+    #endif
+    
+    #ifdef FEATURE_QUICK_ZOOM
     if (handle_fast_zoom_in_play_mode(event) == 0) return 0;
+    #endif
+    
+    #ifdef FEATURE_LV_FOCUS_BOX_FAST
     if (handle_fast_zoom_box(event) == 0) return 0;
+    #endif
+    
+    #ifdef FEATURE_AF_PATTERNS
     if (handle_af_patterns(event) == 0) return 0;
+    #endif
 
+    #ifdef FEATURE_VOICE_TAGS
     if (handle_voice_tags(event) == 0) return 0;
-    //~ if (handle_pause_zebras(event) == 0) return 0;
-    //~ if (handle_kenrockwell_zoom(event) == 0) return 0;
+    #endif
 
-    #if defined(CONFIG_Q_MENU_PLAYBACK) || defined(CONFIG_5D2)
-	if (handle_lv_play(event) == 0) return 0;
+    #if defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE)
+    if (handle_lv_play(event) == 0) return 0;
     #endif
 
     return 1;

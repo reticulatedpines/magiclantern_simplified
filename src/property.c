@@ -209,9 +209,7 @@ uint32_t prop_get_prop_len(uint32_t property)
 
 void prop_request_change(unsigned property, const void* addr, size_t len)
 {
-    #ifdef CONFIG_DISABLE_PROP_REQUEST_CHANGE
-    return;
-    #endif
+#ifdef CONFIG_PROP_REQUEST_CHANGE
     int correct_len = prop_get_prop_len((int)property);
     if (len == 0) len = correct_len;
     if (len == 0)
@@ -243,6 +241,7 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
     //~ console_printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
     
     _prop_request_change(property, addr, len);
+#endif
 }
 
 

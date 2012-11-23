@@ -18,9 +18,14 @@ CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
 CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
 CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
 CONFIG_INT( "bitrate.indicator", bitrate_indicator, 0);
-#ifdef CONFIG_600D
 CONFIG_INT( "hibr.wav.record", cfg_hibr_wav_record, 0);
+
+#ifdef FEATURE_NITRATE_WAV_RECORD
+int hibr_should_record_wav() { return cfg_hibr_wav_record; }
+#else
+int hibr_should_record_wav() { return 0; }
 #endif
+
 int time_indic_x =  720 - 160;
 int time_indic_y = 0;
 int time_indic_width = 160;
@@ -683,6 +688,24 @@ static void hibr_wav_record_display( void * priv, int x, int y, int selected ){
 }
 #endif
 
+void movie_indicators_show()
+{
+    if (recording)
+    {
+        BMP_LOCK( time_indicator_show(); )
+    }
+    else
+    {
+        BMP_LOCK(
+            free_space_show(); 
+            fps_show();
+        )
+    }
+}
+
+
+#ifdef FEATURE_NITRATE
+
 static struct menu_entry mov_menus[] = {
     {
         .name = "Bit Rate",
@@ -832,19 +855,6 @@ bitrate_task( void* unused )
     }
 }
 
-void movie_indicators_show()
-{
-    if (recording)
-    {
-        BMP_LOCK( time_indicator_show(); )
-    }
-    else
-    {
-        BMP_LOCK(
-            free_space_show(); 
-            fps_show();
-        )
-    }
-}
-
 TASK_CREATE("bitrate_task", bitrate_task, 0, 0x1d, 0x1000 );
+
+#endif
