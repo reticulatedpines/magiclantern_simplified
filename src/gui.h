@@ -28,7 +28,7 @@
 #elif defined(CONFIG_40D)
 #include "../platform/40D.111/gui.h"
 #elif defined(CONFIG_EOSM)
-#include "../platform/EOSM.100/gui.h"
+#include "../platform/EOSM.106/gui.h"
 #else
 
 #error This file does not contain this camera model. Please add it.

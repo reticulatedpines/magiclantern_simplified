@@ -44,6 +44,8 @@ static int handle_buttons(struct event * event)
 	return 1;
 }
 
+/* wrong
+
 struct gui_main_struct {
 	void *			obj;		// off_0x00;
 	uint32_t		off_0x04;
@@ -99,5 +101,6 @@ static void my_gui_main_task()
 		f(event);
 	}
 } 
+*/
 
-TASK_OVERRIDE( gui_main_task, my_gui_main_task );
+//~ TASK_OVERRIDE( gui_main_task, my_gui_main_task );
