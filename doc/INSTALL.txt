@@ -93,7 +93,7 @@ First-time installation
 Step 1. Preparing your camera
 -----------------------------
 
-* Fully charge your battery.
+* Use a **fully charged Canon battery** (original, not third party).
 
 * Remove any accessories from your camera (such as battery grip or external flash).
 
