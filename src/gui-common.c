@@ -220,10 +220,6 @@ int handle_common_events_by_feature(struct event * event)
     #ifdef FEATURE_ZOOM_TRICK_5D3 // not reliable
     if (handle_zoom_trick_event(event) == 0) return 0;
     #endif
-
-    #ifdef FEATURE_RACK_FOCUS
-    if (handle_rack_focus(event) == 0) return 0;
-    #endif
     
     #ifdef FEATURE_INTERVALOMETER
     if (handle_intervalometer(event) == 0) return 0;
@@ -251,6 +247,7 @@ int handle_common_events_by_feature(struct event * event)
 
     #ifdef FEATURE_FOLLOW_FOCUS
     if (handle_follow_focus(event) == 0) return 0;
+    if (handle_follow_focus_save_restore(event) == 0) return 0;
     #endif
     
     #ifdef FEATURE_MAGIC_ZOOM

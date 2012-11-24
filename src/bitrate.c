@@ -665,7 +665,7 @@ static void load_h264_ini()
     NotifyBox(2000, "%s", 0x4da10);
 }
 
-#ifdef CONFIG_600D
+#ifdef FEATURE_NITRATE_WAV_RECORD
 static void hibr_wav_record_select( void * priv, int x, int y, int selected ){
     menu_numeric_toggle(priv, 1, 0, 1);
     if (recording) return;
@@ -679,22 +679,17 @@ static void hibr_wav_record_select( void * priv, int x, int y, int selected ){
         }
     }
 }
-static void hibr_wav_record_display( void * priv, int x, int y, int selected ){
-    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Sound rec     : %s", 
-               (cfg_hibr_wav_record ? "Separate WAV" : "Normal")
-               );
-}
 #endif
 
 void movie_indicators_show()
 {
+    #ifdef FEATURE_REC_INDICATOR
     if (recording)
     {
         BMP_LOCK( time_indicator_show(); )
     }
     else
+    #endif
     {
         BMP_LOCK(
             free_space_show(); 
@@ -775,20 +770,20 @@ static struct menu_entry mov_menus[] = {
                 .display    = buffer_warning_level_display,
                 .help = "ML will pause CPU-intensive graphics if buffer gets full."
             },
-  #ifdef CONFIG_600D
+  #ifdef FEATURE_NITRATE_WAV_RECORD
             {
-                .name = "Sound Record\b",
+                .name = "Sound Record",
                 .priv = &cfg_hibr_wav_record,
                 .select = hibr_wav_record_select,
-                .display    = hibr_wav_record_display,
-                //                .choices = (const char *[]) {"Disabled", "Separate WAV"},
-                //                .icon_type = IT_BOOL,
-                .help = "Sound goes out of sync, so it has to be recorded separately.",
+                .max = 1,
+                .choices = (const char *[]) {"Normal", "Separate WAV"},
+                .help = "You may get higher bitrates if you record sound separately.",
             },
   #endif
             MENU_EOL
         },
     },
+    #ifdef FEATURE_REC_INDICATOR
     {
         .name = "Time Indicator",
         .priv       = &time_indicator,
@@ -798,6 +793,7 @@ static struct menu_entry mov_menus[] = {
         //.essential = 1,
         //~ .edit_mode = EM_MANY_VALUES,
     },
+    #endif
 };
 
 void bitrate_init()

@@ -1181,7 +1181,7 @@ static struct menu_entry mov_menus[] = {
         .priv       = &movie_expo_lock,
         .select     = movie_expo_lock_toggle,
         .display    = movie_expo_lock_print,
-        .help       = "Lock the exposure in movie mode (50D/500D)",
+        .help       = "Lock the exposure in movie mode.",
     },
     #endif
     #ifdef FEATURE_SHUTTER_LOCK

@@ -84,7 +84,7 @@
 
 /** Movie menu **/
     #define FEATURE_NITRATE
-    #define FEATURE_NITRATE_WAV_RECORD
+    //~ #define FEATURE_NITRATE_WAV_RECORD // not user-proof at all
 
     #define FEATURE_REC_INDICATOR
     #define FEATURE_MOVIE_LOGGING
@@ -118,6 +118,7 @@
 
     #define FEATURE_HDR_BRACKETING
     #define FEATURE_INTERVALOMETER
+    #define FEATURE_INTERVALOMETER_MOVIE
     #define FEATURE_BULB_RAMPING
     #define FEATURE_BULB_TIMER
 #ifdef CONFIG_LCD_SENSOR

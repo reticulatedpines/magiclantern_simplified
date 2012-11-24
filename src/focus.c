@@ -58,7 +58,8 @@ CONFIG_INT( "focus.follow.rev.v", follow_focus_reverse_v, 0); // for up/down but
 static int focus_dir;
 //~ int get_focus_dir() { return focus_dir; }
 int is_follow_focus_active() 
-{ 
+{
+#ifdef FEATURE_FOLLOW_FOCUS
     if (!follow_focus) return 0;
     if (!lv) return 0;
     if (is_manual_focus()) return 0;
@@ -67,11 +68,14 @@ int is_follow_focus_active()
     if (display_sensor && get_lcd_sensor_shortcuts() && follow_focus_mode==0) return 0;
     if (get_halfshutter_pressed()) return 0;
     return 1;
+#else
+    return 0;
+#endif
 }
 
 int get_follow_focus_mode()
 {
-    #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_5D2) || defined(CONFIG_7D)
+    #ifdef CONFIG_LCD_SENSOR
     return follow_focus_mode;
     #else
     return 0; // no LCD sensor, use arrows only
@@ -81,22 +85,6 @@ int get_follow_focus_mode()
 
 int get_follow_focus_dir_v() { return follow_focus_reverse_v ? -1 : 1; }
 int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
-
-#define FOCUS_MAX 1700
-//~ static int focus_position;
-
-//~ static struct semaphore * focus_stack_sem;
-
-
-
-
-/*static void
-focus_stack_unlock( void * priv )
-{
-    gui_stop_menu();
-    give_semaphore( focus_stack_sem );
-}*/
-
 
 void
 display_lens_hyperfocal()
@@ -813,11 +801,13 @@ follow_focus_print(
     menu_draw_icon(x, y, MNI_BOOL_LV(follow_focus));
 }
 
+#ifdef FEATURE_MOVIE_AF
 CONFIG_INT("movie.af", movie_af, 0);
-#ifdef CONFIG_MOVIE_AF
 CONFIG_INT("movie.af.aggressiveness", movie_af_aggressiveness, 4);
 CONFIG_INT("movie.af.noisefilter", movie_af_noisefilter, 7); // 0 ... 9
 int movie_af_stepsize = 10;
+#else
+#define movie_af 0
 #endif
 
 
@@ -853,9 +843,7 @@ int lv_focus_confirmation = 0;
 static int hsp_countdown = 0;
 int can_lv_trap_focus_be_active()
 {
-    #ifdef CONFIG_50D
-    return 0;
-    #endif
+#ifdef CONFIG_LV_FOCUS_INFO
     //~ bmp_printf(FONT_MED, 100, 100, "LVTF 0 lv=%d hsc=%d dof=%d sm=%d gs=%d sp=%d mf=%d",lv,hsp_countdown,dofpreview,shooting_mode,gui_state,get_silent_pic_mode(),is_manual_focus());
     if (!lv) return 0;
     if (hsp_countdown) return 0; // half-shutter can be mistaken for DOF preview, but DOF preview property triggers a bit later
@@ -866,6 +854,9 @@ int can_lv_trap_focus_be_active()
     if (!is_manual_focus()) return 0;
     //~ bmp_printf(FONT_MED, 100, 100, "LVTF 1");
     return 1;
+#else
+    return 0;
+#endif
 }
 
 static int hsp = 0;
@@ -895,7 +886,7 @@ int is_manual_focus()
     return (af_mode & 0xF) == 3;
 }
 
-#ifdef CONFIG_MOVIE_AF
+#ifdef FEATURE_MOVIE_AF
 int movie_af_active()
 {
     return is_movie_mode() && lv && !is_manual_focus() && (focus_done || movie_af==3);
@@ -986,13 +977,29 @@ static void movie_af_step(int mag)
 }
 #endif
 
+int trap_focus_autoscaling = 1;
+
+#ifdef FEATURE_TRAP_FOCUS
+int handle_trap_focus(struct event * event)
+{
+    if (event->param == BGMT_PRESS_SET && get_trap_focus() && can_lv_trap_focus_be_active() && zebra_should_run())
+    {
+        trap_focus_autoscaling = !trap_focus_autoscaling;
+        return 0;
+    }
+    return 1;
+}
+#endif
+
+int focus_graph_dirty = 0;
+
+#if defined(FEATURE_TRAP_FOCUS) || defined(FEATURE_MAGIC_ZOOM) || defined(FEATURE_MOVIE_AF)
+
 #define NMAGS 64
 static int mags[NMAGS] = {0};
 #define FH COERCE(mags[i] * 45 / maxmagf, 0, 54)
 int maxmagf = 1;
-int trap_focus_autoscaling = 1;
 int minmag = 0;
-int focus_graph_dirty = 0;
 
 static void update_focus_mag(int mag)
 {
@@ -1051,59 +1058,10 @@ void plot_focus_mag()
 #undef FH
 #undef NMAGS
 
-int handle_trap_focus(struct event * event)
-{
-    if (event->param == BGMT_PRESS_SET && get_trap_focus() && can_lv_trap_focus_be_active() && zebra_should_run())
-    {
-        trap_focus_autoscaling = !trap_focus_autoscaling;
-        return 0;
-    }
-    return 1;
-}
-
-/*
-void ff_check_autolock()
-{
-    static int rev_countdown = 0;
-    static int stop_countdown = 0;
-    if (is_follow_focus_active())
-    {
-        if (get_global_draw())
-        {
-            plot_focus_status();
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "    ");
-        }
-        if (get_follow_focus_stop_on_focus() && !stop_countdown)
-        {
-            if (!rev_countdown)
-            {
-                if (focus_value - focus_value_delta*5 > 110)
-                {
-                    follow_focus_reverse_dir();
-                    rev_countdown = 5;
-                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "PEAK");
-                }
-            }
-            else
-            {
-                rev_countdown--;
-                bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "PEAK");
-                if (focus_value + focus_value_delta*5 > 110) rev_countdown = 0;
-                if (!rev_countdown)
-                {
-                    bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "LOCK");
-                    lens_focus_stop();
-                    stop_countdown = 10;
-                }
-            }
-        }
-        if (stop_countdown) stop_countdown--;
-    }
-}*/
-
 int focus_mag_a = 0;
 int focus_mag_b = 0;
 int focus_mag_c = 0;
+
 PROP_HANDLER(PROP_LV_FOCUS_DATA)
 {
     focus_done = 1;
@@ -1116,19 +1074,22 @@ PROP_HANDLER(PROP_LV_FOCUS_DATA)
     int focus_mag = focus_mag_a + focus_mag_b;
     #endif
     
-#ifdef CONFIG_MOVIE_AF
+#ifdef FEATURE_MOVIE_AF
     if (movie_af != 3)
 #endif
     {
         update_focus_mag(focus_mag);
-#ifdef CONFIG_MOVIE_AF
+#ifdef FEATURE_MOVIE_AF
         if ((movie_af == 2) || (movie_af == 1 && get_halfshutter_pressed())) 
             movie_af_step(focus_mag);
 #endif
     }
 }
+#else
+void plot_focus_mag(){};
+#endif
 
-#ifdef CONFIG_MOVIE_AF
+#ifdef FEATURE_MOVIE_AF
 static void
 movie_af_print(
     void *          priv,
@@ -1174,7 +1135,7 @@ focus_misc_task(void* unused)
         
         if (hsp_countdown) hsp_countdown--;
 
-#ifdef CONFIG_MOVIE_AF
+#ifdef FEATURE_MOVIE_AF
         if (movie_af == 3)
         {
             int fm = get_spot_focus(100);
@@ -1227,8 +1188,8 @@ trap_focus_display( void * priv, int x, int y, int selected )
         if (is_movie_mode()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Trap focus only works in photo mode.");
         if (!is_manual_focus()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Trap focus only works with manual focus.");
         if (!lv && !lens_info.name[0]) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Trap focus outside LiveView requires a chipped lens");
-        #ifdef CONFIG_50D
-        if (lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "On 50D, trap focus doesn't work in LiveView.");
+        #ifndef CONFIG_LV_FOCUS_INFO
+        if (lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "On your camera, trap focus doesn't work in LiveView.");
         #endif
         if (lv && is_movie_mode()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Trap focus does not work in movie mode.");
         if (t == 2 && cfn_get_af_button_assignment()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Assign AF button to half-shutter from CFn!");
@@ -1315,7 +1276,7 @@ static struct menu_entry focus_menu[] = {
         .display    = movie_af_print,
         .select     = menu_quaternary_toggle,
         .select_reverse = movie_af_noisefilter_bump,
-        .select_auto = movie_af_aggressiveness_bump,
+        .select_Q = movie_af_aggressiveness_bump,
         .help = "Custom AF algorithm in movie mode. Not very efficient."
     },
     #endif
@@ -1447,41 +1408,11 @@ focus_init( void* unused )
     
 }
 
-/*
-PTP_HANDLER( 0x9998, 0 )
-{
-    int step = (int) param1;
-
-    focus_position += step;
-    if( focus_position < 0 )
-        focus_position = 0;
-    else
-    if( focus_position > FOCUS_MAX )
-        focus_position = FOCUS_MAX;
-
-    lens_focus( 0x7, (int) param1 );
-    bmp_printf( FONT_MED, 650, 35, "%04d", focus_position );
-
-    struct ptp_msg msg = {
-        .id     = PTP_RC_OK,
-        .session    = session,
-        .transaction    = transaction,
-        .param_count    = 2,
-        .param      = { param1, focus_position },
-    };
-
-    context->send(
-        context->handle,
-        &msg
-    );
-
-    return 0;
-}
-*/
-
 INIT_FUNC( __FILE__, focus_init );
 
-int handle_rack_focus(struct event * event)
+#ifdef FEATURE_FOLLOW_FOCUS
+
+int handle_follow_focus_save_restore(struct event * event)
 {
     if (!lv) return 1;
     if (is_manual_focus()) return 1;
@@ -1504,9 +1435,11 @@ int handle_rack_focus(struct event * event)
     }
     return 1;
 }
+#endif
 
 int handle_rack_focus_menu_overrides(struct event * event)
 {
+#ifdef FEATURE_RACK_FOCUS
     if (!lv) return 1;
     if (is_manual_focus()) return 1;
     if (!should_override_zoom_buttons()) return 1;
@@ -1547,8 +1480,11 @@ int handle_rack_focus_menu_overrides(struct event * event)
                 return 1;
         }
     }
+#endif
     return 1;
 }
+
+#ifdef FEATURE_FOLLOW_FOCUS
 int handle_follow_focus(struct event * event)
 {
     if (is_follow_focus_active())
@@ -1585,3 +1521,4 @@ int handle_follow_focus(struct event * event)
     }
     return 1;
 }
+#endif

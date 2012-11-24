@@ -324,8 +324,7 @@ void set_expsim(){};
 
 CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
 
-#ifdef FEATURE_AUTO_BURST_PICQ
-static void set_pic_quality(int q)
+void set_pic_quality(int q)
 {
     if (q == -1) return;
     prop_request_change(PROP_PIC_QUALITY, &q, 4);
@@ -333,6 +332,7 @@ static void set_pic_quality(int q)
     prop_request_change(PROP_PIC_QUALITY3, &q, 4);
 }
 
+#ifdef FEATURE_AUTO_BURST_PICQ
 int picq_saved = -1;
 static void decrease_pic_quality()
 {
@@ -2477,8 +2477,6 @@ CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
 
 CONFIG_INT("uniwb.correction", uniwb_correction, 7);
 
-#ifdef FEATURE_LV_SATURATION
-
 static int focus_peaking_grayscale_running()
 {
     extern int focus_peaking_grayscale;
@@ -2489,6 +2487,8 @@ static int focus_peaking_grayscale_running()
         zebra_should_run()
         ;
 }
+
+#ifdef FEATURE_LV_SATURATION
 
 int is_adjusting_wb()
 {
@@ -2951,8 +2951,16 @@ static CONFIG_INT("defish.projection", defish_projection, 0);
 //~ static CONFIG_INT("defish.hd", DEFISH_HD, 1);
 #define DEFISH_HD 1
 
+#ifndef FEATURE_DEFISHING_PREVIEW
+#define defish_preview 0
+#endif
+
 CONFIG_INT("anamorphic.preview", anamorphic_preview, 0);
 CONFIG_INT("anamorphic.ratio.idx", anamorphic_ratio_idx, 0);
+
+#ifndef FEATURE_ANAMORPHIC_PREVIEW
+#define anamorphic_preview 0
+#endif
 
 #ifdef FEATURE_ANAMORPHIC_PREVIEW
 
@@ -3506,6 +3514,9 @@ static struct menu_entry display_menus[] = {
     },
     #endif
     #ifdef FEATURE_DISPLAY_SHAKE
+        #ifndef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+        #define This requires CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY.
+        #endif
     {
         .name = "Display Shake  ",
         .priv     = &display_shake,
@@ -3722,7 +3733,7 @@ struct menu_entry play_menus[] = {
                 .name = "LV button",
                 .priv = &play_lv_action, 
                 .display = play_lv_display,
-                #if defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE)
+                #if defined(FEATURE_LV_BUTTON_PROTECT) && defined(FEATURE_LV_BUTTON_RATE)
                 .max = 2,
                 .help = "You may use the LiveView button to Protect or Rate images.",
                 #elif defined(FEATURE_LV_BUTTON_PROTECT)

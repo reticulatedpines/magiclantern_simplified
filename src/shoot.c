@@ -2853,7 +2853,9 @@ PROP_HANDLER(PROP_SHOOTING_TYPE)
     rec_picstyle_change(rec);
     #endif
     
+    #ifdef FEATURE_MOVIE_RECORDING_50D_SHUTTER_HACK
     shutter_btn_rec_do(rec);
+    #endif
 }
 void mvr_rec_start_shoot(){}
 #else
@@ -4796,6 +4798,12 @@ static struct menu_entry shoot_menus[] = {
     },
     #endif
     #ifdef FEATURE_BULB_RAMPING
+        #ifndef FEATURE_INTERVALOMETER
+        #error This requires FEATURE_INTERVALOMETER.
+        #endif
+        #ifndef FEATURE_HISTOGRAM
+        #error This requires FEATURE_HISTOGRAM.
+        #endif
     {
         .name = "Timelapse Ramping",
         .priv       = &bulb_ramping_enabled,
@@ -5009,6 +5017,11 @@ static struct menu_entry shoot_menus[] = {
         },
     },
     #endif
+    #ifdef FEATURE_MLU_HANDHELD
+        #ifndef FEATURE_MLU
+        #error This requires FEATURE_MLU.
+        #endif
+    #endif
     #ifdef FEATURE_MLU
     {
         // 5DC can't do handheld MLU
@@ -5057,14 +5070,17 @@ static struct menu_entry shoot_menus[] = {
                 .choices = (const char *[]) {"All values", "1/2...1/125"},
                 .help = "At what shutter speeds you want to use handheld MLU."
             },
+            #endif
             #ifdef FEATURE_MLU_HANDHELD_DEBUG
+                #ifndef FEATURE_MLU_HANDHELD
+                #error This requires FEATURE_MLU_HANDHELD.
+                #endif
             {
                 .name = "Handheld Debug",
                 .priv = &mlu_handled_debug, 
                 .max = 1,
                 .help = "Check whether the 'mirror up' event is detected correctly."
             },
-            #endif
             #endif
             MENU_EOL
         },
@@ -5079,6 +5095,12 @@ static struct menu_entry shoot_menus[] = {
     }
     #endif
 };
+
+#ifdef FEATURE_LV_3RD_PARTY_FLASH
+    #ifndef FEATURE_FLASH_TWEAKS
+    #error This requires FEATURE_FLASH_TWEAKS.
+    #endif 
+#endif
 
 #ifdef FEATURE_FLASH_TWEAKS
 static struct menu_entry flash_menus[] = {
@@ -5359,6 +5381,19 @@ static struct menu_entry expo_menus[] = {
         },
     },
     #endif
+
+    #ifdef FEATURE_EXPO_ISO_DIGIC
+        #ifndef FEATURE_EXPO_ISO
+        #error This requires FEATURE_EXPO_ISO.
+        #endif
+    #endif
+
+    #ifdef FEATURE_EXPO_ISO_HTP
+        #ifndef FEATURE_EXPO_ISO
+        #error This requires FEATURE_EXPO_ISO.
+        #endif
+    #endif
+
     #ifdef FEATURE_EXPO_ISO
     {
         .name = "ISO",
@@ -5527,10 +5562,9 @@ static struct menu_entry expo_menus[] = {
     },
     #endif
     #ifdef FEATURE_REC_PICSTYLE
-    
-    #ifndef FEATURE_PICSTYLE
-    #error This requires FEATURE_PICSTYLE.
-    #endif
+        #ifndef FEATURE_PICSTYLE
+        #error This requires FEATURE_PICSTYLE.
+        #endif
     
     {
         .priv = &picstyle_rec,

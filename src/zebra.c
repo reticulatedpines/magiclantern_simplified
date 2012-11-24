@@ -478,6 +478,7 @@ static int idle_globaldraw_disable = 0;
 
 int get_global_draw() // menu setting, or off if 
 {
+#ifdef FEATURE_GLOBAL_DRAW
     extern int ml_started;
     if (!ml_started) return 0;
     if (!global_draw) return 0;
@@ -506,7 +507,7 @@ int get_global_draw() // menu setting, or off if
     {
         return DISPLAY_IS_ON;
     }
-        
+#endif
     return 0;
 }
 
@@ -786,8 +787,9 @@ hist_build()
             if (mz && (pixel == MZ_WHITE || pixel == MZ_BLACK || pixel == MZ_GREEN))
                 continue;
             
-            #ifdef FEATURE_HISTOGRAM
             int Y;
+
+            #ifdef FEATURE_HISTOGRAM
             if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // rgb
             {
                 int R, G, B;
@@ -803,12 +805,17 @@ hist_build()
                 hist_b[B_level & 0x7F]++;
             }
             else // luma
+            #endif
+
+            #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM)
             {
                 uint32_t p1 = ((pixel >> 16) & 0xFF00) >> 8;
                 uint32_t p2 = ((pixel >>  0) & 0xFF00) >> 8;
                 Y = (p1+p2) / 2; 
             }
+            #endif
 
+            #ifdef FEATURE_HISTOGRAM
             hist_total_px++;
             uint32_t hist_level = Y * HIST_WIDTH / 256;
 
@@ -3335,8 +3342,11 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Global Draw",
         .priv       = &global_draw,
+        #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
         .max = 3,
-        //~ .select     = menu_binary_toggle,
+        #else
+        .max = 1,
+        #endif
         .select_Q   = toggle_disp_mode_menu,
         .display    = global_draw_display,
         .icon_type = IT_BOOL,
@@ -3395,6 +3405,13 @@ struct menu_entry zebra_menus[] = {
         },
     },
     #endif
+
+    #ifdef FEATURE_FOCUS_PEAK_DISP_FILTER
+        #ifndef FEATURE_FOCUS_PEAK
+        #error This requires FEATURE_FOCUS_PEAK.
+        #endif
+    #endif
+
     #ifdef FEATURE_FOCUS_PEAK
     {
         .name = "Focus Peak",
@@ -3421,8 +3438,10 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"1st deriv.", "2nd deriv.", "Nyquist H"},
                 .help = "Contrast detection method. 2: more accurate, 1: less noisy.",
             },*/
-            #ifdef CONFIG_DISPLAY_FILTERS
             #ifdef FEATURE_FOCUS_PEAK_DISP_FILTER
+                #ifndef CONFIG_DISPLAY_FILTERS
+                #error This requires CONFIG_DISPLAY_FILTERS.
+                #endif
             {
                 .name = "Display type",
                 .priv = &focus_peaking_disp, 
@@ -3430,7 +3449,6 @@ struct menu_entry zebra_menus[] = {
                 .choices = (const char *[]) {"Blinking dots", "Fine dots", "Alpha blend", "Sharpness", "Raw"},
                 .help = "How to display peaking. Alpha looks nicer, but image lags.",
             },
-            #endif
             #endif
             {
                 .name = "Threshold", 
@@ -3574,6 +3592,9 @@ struct menu_entry zebra_menus[] = {
     },
     #endif
     #ifdef FEATURE_GHOST_IMAGE
+        #ifndef FEATURE_CROPMARKS
+        #error This requires FEATURE_CROPMARKS.
+        #endif
     {
         .name = "Ghost image",
         .priv = &transparent_overlay, 
@@ -4309,7 +4330,7 @@ static void draw_zoom_overlay(int dirty)
     //~ if (get_halfshutter_pressed() && clearscreen != 2) return;
     if (recording == 1) return;
     
-    #if defined(CONFIG_50D) || defined(CONFIG_500D)
+    #ifndef CONFIG_LV_FOCUS_INFO
     zoom_overlay_split = 0; // 50D doesn't report focus
     #endif
     
@@ -4545,7 +4566,9 @@ BMP_LOCK(
     bvram_mirror_clear(); // may be filled with liveview cropmark / masking info, not needed in play mode
     clrscr();
 
+    #ifdef FEATURE_CROPMARKS
     cropmark_redraw();
+    #endif
 
     #ifdef FEATURE_DEFISHING_PREVIEW
     if (defish_preview)
@@ -5251,12 +5274,16 @@ void show_apsc_crop_factor()
 
 int is_focus_peaking_enabled()
 {
+#ifdef FEATURE_FOCUS_PEAK
     return
         focus_peaking &&
         (lv || (QR_MODE && ZEBRAS_IN_QUICKREVIEW))
         && get_global_draw()
         && !should_draw_zoom_overlay()
     ;
+#else
+    return 0;
+#endif
 }
 
 #ifdef FEATURE_ZEBRA_FAST

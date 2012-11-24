@@ -3003,6 +3003,9 @@ void config_save_at_shutdown()
 }
 
 #ifdef FEATURE_INTERMEDIATE_ISO_INTERCEPT_SCROLLWHEEL
+    #ifndef FEATURE_EXPO_ISO
+    #error This requires FEATURE_EXPO_ISO.
+    #endif
 
 int iso_intercept = 1;
 
@@ -3444,7 +3447,7 @@ int handle_buttons_being_held(struct event * event)
     if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
     if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
     #endif
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
+    #ifdef BGMT_JOY_CENTER
     if (event->param == BGMT_JOY_CENTER) joy_center_pressed = 1;
     if (event->param == BGMT_UNPRESS_UDLR) joy_center_pressed = 0;
     #endif
@@ -3493,7 +3496,7 @@ int handle_tricky_canon_calls(struct event * event)
             ChangeHDMIOutputSizeToVGA();
             break;
         case MLEV_LCD_SENSOR_START:
-            #if defined(CONFIG_550D) || defined(CONFIG_500D)
+            #ifdef CONFIG_LCD_SENSOR
             DispSensorStart();
             #endif
             break;

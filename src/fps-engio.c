@@ -101,6 +101,12 @@ static int fps_ramp_timings[] = {1, 2, 5, 15, 30, 60, 120, 300, 600, 1200, 1800}
 static int fps_ramp_up = 0;
 
 #ifdef FEATURE_FPS_WAV_RECORD
+    #ifndef FEATURE_FPS_OVERRIDE
+    #error This requires FEATURE_FPS_OVERRIDE.
+    #endif
+    #ifndef FEATURE_WAV_RECORDING
+    #error This requires FEATURE_WAV_RECORDING.
+    #endif
 int fps_should_record_wav() { return fps_override && fps_wav_record && is_movie_mode() && FPS_SOUND_DISABLE && was_sound_recording_disabled_by_fps_override(); }
 #else
 int fps_should_record_wav() { return 0; }
@@ -1129,6 +1135,7 @@ static struct menu_entry fps_menu[] = {
                 .icon_type = IT_DISABLE_SOME_FEATURE,
                 .help = "Sound usually goes out of sync and may stop recording.",
             },*/
+            #ifdef FEATURE_FPS_WAV_RECORD
             {
                 .name = "Sound Record\b",
                 .priv = &fps_wav_record,
@@ -1137,10 +1144,15 @@ static struct menu_entry fps_menu[] = {
                 .icon_type = IT_BOOL,
                 .help = "Sound goes out of sync, so it has to be recorded separately.",
             },
+            #endif
             MENU_EOL
         },
     },
+    #endif
     #ifdef FEATURE_FPS_RAMPING
+        #ifndef FEATURE_FPS_OVERRIDE
+        #error This requires FEATURE_FPS_OVERRIDE.
+        #endif
     {
         .name = "FPS ramping", 
         .priv = &fps_ramp,
@@ -1175,7 +1187,6 @@ static struct menu_entry fps_menu[] = {
             MENU_EOL,
         },
     },
-    #endif
     #endif
 };
 
