@@ -4,4 +4,7 @@
 #define FEATURE_MONO_MIC
 
 #undef FEATURE_AUTO_BURST_PICQ // not working on 600D, not sure about 1100D
+#undef FEATURE_MLU
+#undef FEATURE_MLU_HANDHELD
+#undef FEATURE_AUDIO_REMOTE_SHOT
 
