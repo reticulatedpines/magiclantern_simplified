@@ -130,7 +130,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
         //~ lv_vsync_signal();
     }
 #elif defined(CONFIG_60D)
-    if (self == DISPLAY_STATE && input >= 19)
+    if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt
         lv_vsync_signal();
 #endif
 
