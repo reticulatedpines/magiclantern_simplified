@@ -1,7 +1,7 @@
 /**
  *  Conditional defines for camera internals and ML features.
  */
-#ifndef CONFIG_PLUGIN
+#ifndef PLUGIN_CLIENT
 #ifndef _config_defines_h_
 #define _config_defines_h_
 

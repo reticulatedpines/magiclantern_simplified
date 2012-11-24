@@ -33,14 +33,19 @@
 #include "config-defines.h"
 #include "arm-mcr.h"
 #include "dialog.h"
+#ifndef PLUGIN_CLIENT
 #include "gui.h"
+#endif
+#include "gui-common.h"
 #include "vram.h"
 #include "state-object.h"
 #include "camera.h"
 #include "tasks.h"
 #include "debug.h"
 #include "audio.h"
+#ifndef PLUGIN_CLIENT
 #include "consts.h"
+#endif
 #include <stdarg.h>
 #include "plugin.h"
 

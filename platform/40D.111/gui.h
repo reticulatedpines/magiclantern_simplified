@@ -2,8 +2,6 @@
 #ifndef _cameraspecific_gui_h_
 #define _cameraspecific_gui_h_
 
-typedef unsigned gui_event_t;
-
 #define EVENT   event->param
 
 

@@ -5,4 +5,3 @@ PLUGIN_NAME=testplug
 PLUGIN_OBJS=testplug.o
 
 include ../Makefile.top
-CFLAGS += -DCONFIG_PLUGIN

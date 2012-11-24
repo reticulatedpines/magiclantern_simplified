@@ -1,84 +1,81 @@
 #ifndef _cameraspecific_gui_h_
 #define _cameraspecific_gui_h_
 
-/** Event types */
-typedef enum {
-	GOT_TOP_OF_CONTROL		= 0x800,
-	LOST_TOP_OF_CONTROL		= 0x801,
-	INITIALIZE_CONTROLLER		= 0x802,
-	TERMINATE_WINSYS		= 0x804,
-	DELETE_DIALOG_REQUEST		= 0x805,
-	PRESS_RIGHT_BUTTON		= 0x807,
-	PRESS_LEFT_BUTTON		= 0x809,
-	PRESS_UP_BUTTON			= 0x80B,
-	PRESS_DOWN_BUTTON		= 0x80D,
-	PRESS_MENU_BUTTON		= 0x80F,
-	PRESS_SET_BUTTON		= 0x812, // also joy center?
-	UNPRESS_SET_BUTTON		= 0x813,
-	PRESS_PICSTYLE_BUTTON		= 0x81C,
-	PRESS_ZOOM_IN_BUTTON		= 0x819,
-	UNPRESS_ZOOM_IN_BUTTON		= 0x81A,
-	PRESS_ZOOM_OUT_BUTTON		= 0x10000039,
-	UNPRESS_ZOOM_OUT_BUTTON		= 0x1000003A,
-	PRESS_JOY_LEFT			= 0x820,
-	PRESS_JOY_UP			= 0x822,
-	PRESS_JOY_DOWN			= 0x824,
-	PRESS_JOY_RIGHT			= 0x826,
-	JOY_CENTER			= 0x828,
-	PRESS_INFO_BUTTON		= 0x829,
-	ELECTRONIC_SUB_DIAL_RIGHT	= 0x82B,
-	ELECTRONIC_SUB_DIAL_LEFT	= 0x82C,
-	DIAL_LEFT			= 0x82E,
-	DIAL_RIGHT			= 0x82F,
-	PRESS_PLAY_BUTTON		= 0x10000000,
-	PRESS_ERASE_BUTTON		= 0x10000001,
-	PRESS_DIRECT_PRINT_BUTTON	= 0x10000013,
-	PRESS_FUNC_BUTTON		= 0x10000007,
-	PRESS_PICTURE_STYLE_BUTTON	= 0x10000009,
-	GUICMD_OPEN_SLOT_COVER		= 0x1000000B,
-	GUICMD_CLOSE_SLOT_COVER		= 0x1000000C,
-	GUICMD_MADE_QR			= 0x10000037,
-	GUICMD_MADE_FILE		= 0x10000038,
-	GUI_TIMER4			= 0x10000054, // no idea
-	GUI_TIMER2			= 0x10000069, // no idea
-	GUI_TIMER3			= 0x1000006D, // no idea
-	START_SHOOT_MOVIE		= 0x1000008A,
-	GUI_PROP_EVENT			= 0x100000A6, // maybe?
-	LOCAL_MOVIE_RECORD_STOP		= 0x10000078, // DlgLiveViewApp
-	GUICMD_UI_OK			= 0x100000A1,
-	GUICMD_START_AS_CHECK		= 0x100000A2,
-	GUICMD_LOCK_OFF			= 0x100000A3,
-	GUICMD_LOCK_ON			= 0x100000A4,
-	PRESS_HALFSHUTTER_MAYBE = 0x10000048,
-	UNPRESS_HALFSHUTTER_MAYBE = 0x10000049,
+// BGMT Button codes as received by gui_main_task
 
-	EVENTID_METERING_START			= 0x1000006b,
-	EVENTID_METERING_TIMER_START	= 0x1000006c,
-	EVENTID_RELEASE_START			= 0x1000006d,
-	EVENTID_RELEASE_END				= 0x1000006e,
+#define BGMT_BUTTON_HANDLING_EVENT_TYPE 0 // Event type for button handing
 
-	EVENTID_94			= 0x10000094,
-	EVENT_10000086 = 0x10000086,
-	EVENT_1 = 1
-} gui_event_t;
+// Generic button code sent after many events or initialization (non-deterministic)
+#define BGMT_UNKNOWN1 0xF
+#define BGMT_UNKNOWN2 0x11
+#define BGMT_UNKNOWN3 0x34
+#define BGMT_UNKNOWN4 0x4C
+#define BGMT_UNKNOWN5 0x54
+#define BGMT_UNKNOWN6 0x56
+#define BGMT_UNKNOWN7 0x58
+#define BGMT_UNKNOWN8 0x59
+#define BGMT_UNKNOWN9 0x61
 
+#define BGMT_MENU 6 // same
+#define BGMT_INFO 7 // new, old value for BGMT_DISP
+#define BGMT_PRESS_DISP 8 // new, old value for BGMT_Q
+#define BGMT_UNPRESS_DISP 9 // new, old value for BGMT_PLAY
+#define BGMT_PLAY 0xB // was 9
+#define BGMT_ZOOM_OUT 0xE // new
 
-/** Create a GUI event handler.
- * Does this always take a dialog pointer?
- *
- * The handler must return 0 if it has handled the event or 1 if
- * it did not handle it and the event should be propagated to the
- * next task on the stack until it reaches the idle task.
- *
- * Event types are defined below.
- */
+#define BGMT_Q 0x1C // was 8
+#define BGMT_Q_ALT 0x13
+#define BGMT_LV 0x1D // new
 
-typedef int (*gui_event_handler)(
-	void *			priv,
-	gui_event_t		event,
-	int			arg2,
-	int			arg3,
-	unsigned		arg4
-);
+#define BGMT_WHEEL_LEFT 2
+#define BGMT_WHEEL_RIGHT 3
+
+#define BGMT_PRESS_SET 4 // same
+#define BGMT_UNPRESS_SET 5 // new, only in menu mode
+#define BGMT_PRESS_RIGHT 0x23 // was 0x1a
+#define BGMT_UNPRESS_RIGHT 0x24 // was 0x1b
+#define BGMT_PRESS_LEFT 0x25 // was 0x1c
+#define BGMT_UNPRESS_LEFT 0x26 // was 0x1d
+#define BGMT_PRESS_UP 0x27 // was 0x1e
+#define BGMT_UNPRESS_UP 0x28 // was 0x1f
+#define BGMT_PRESS_DOWN 0x29 // was 0x20
+#define BGMT_UNPRESS_DOWN 0x2A // was 0x21
+
+#define BGMT_ISO 0x33 // new
+
+#define BGMT_PRESS_HALFSHUTTER 0x48 // was 0x3F, shared with magnify/zoom out
+#define BGMT_UNPRESS_HALFSHUTTER 0x49 // was 0x40, shared with magnify/zoom out, shared with unpress full shutter?
+#define BGMT_PRESS_FULLSHUTTER 0x52    // was 0x41, can't return 0 to block this (to verify)...
+
+//~ #define BGMT_SHUTDOWN 0x53 // new
+
+// AV / AE COMP button 
+/// See gui.c for the actual press/unpress handling
+#define BGMT_AV (event->type == 0 && event->param == 0x61 && ( \
+			(is_movie_mode() && event->arg == 0xa) || \
+			(shooting_mode == SHOOTMODE_P && event->arg == 0xa) || \
+			(shooting_mode == SHOOTMODE_ADEP && event->arg == 0xa) || \
+			(shooting_mode == SHOOTMODE_AV && event->arg == 0xf) || \
+			(shooting_mode == SHOOTMODE_M && event->arg == 0xe) || \
+			(shooting_mode == SHOOTMODE_TV && event->arg == 0x10)) )
+
+#define INT_EV_OBJ (*(int*)(event->obj))
+
+#define BGMT_TRASH (0xD)
+
+#define BGMT_WHEEL_LEFT 2
+#define BGMT_WHEEL_RIGHT 3
+#define BGMT_WHEEL_UP 0
+#define BGMT_WHEEL_DOWN 1
+
+#define GMT_OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in IDLEHandler
+#define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x100000a1 in 600d
+
+// needed for correct shutdown from powersave modes
+#define GMT_GUICMD_START_AS_CHECK 89
+#define GMT_GUICMD_OPEN_SLOT_COVER 85
+#define GMT_GUICMD_LOCK_OFF 83
+
+#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PRESS_DISP // what button to use for zebras in Play mode
 
 #endif
