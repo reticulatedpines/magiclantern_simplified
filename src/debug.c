@@ -481,21 +481,6 @@ void iso_movie_test()
 }
 #endif // CONFIG_ISO_TESTS
 
-#ifdef CONFIG_1100D
-void my_SIO3_ISR(int a, int b, int c, int d)
-{
-    static int k = 0;
-    bmp_printf(FONT_LARGE,0,50,"sio3[%d] %x %x %x %x\n", k++, a, b, c, d);
-    SIO3_ISR();
-}
-void my_MREQ_ISR(int a, int b, int c, int d)
-{
-    static int k = 0;
-    bmp_printf(FONT_LARGE,0,0,"mreq[%d] %x %x %x %x\n", k++, a, b, c, d);
-    MREQ_ISR();
-}
-#endif
-
 void run_test()
 {
 #ifdef CONFIG_40D	
