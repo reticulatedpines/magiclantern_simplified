@@ -1118,7 +1118,7 @@ waveform_draw_image(
         {
             int y_bmp = y_origin + y * height / WAVEFORM_HEIGHT + k;
             if (y_bmp < 0) continue;
-            if (y_bmp >= os.y_max) continue;
+            if (y_bmp >= BMP_H_PLUS) continue;
 
             uint8_t * row = bvram + x_origin + y_bmp * pitch;
             //int y_next = (y-1) * height / WAVEFORM_HEIGHT;
