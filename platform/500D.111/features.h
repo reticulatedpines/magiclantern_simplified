@@ -2,6 +2,7 @@
 
 #define FEATURE_AUTO_BURST_PICQ
 #define FEATURE_LV_3RD_PARTY_FLASH
+#define FEATURE_MONO_MIC
 
 // audio controls kinda work, but very limited
 #undef FEATURE_DIGITAL_GAIN

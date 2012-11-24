@@ -39,6 +39,7 @@
     #define FEATURE_BEEP
     #define FEATURE_WAV_RECORDING
     #define FEATURE_VOICE_TAGS
+    //~ #define FEATURE_MONO_MIC // 1100D and 500D only
 
 /** Expo menu **/
 
