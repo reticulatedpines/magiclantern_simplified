@@ -1,136 +1,52 @@
 /**
- *  Conditional defines for features that apply to certain camera families
- * 
- *  After editing this file, run: make clean && make
- * 
+ *  Conditional defines for camera internals and ML features.
  */
+#ifndef PLUGIN_CLIENT
 #ifndef _config_defines_h_
 #define _config_defines_h_
-
-
 
 /** 
  * Enable these for early ports
  */
 
-/** If CONFIG_EARLY_PORT is defined, only a few things will be enabled (e.g. changing version string) */
-//~ #define CONFIG_EARLY_PORT
+    /** If CONFIG_EARLY_PORT is defined, only a few things will be enabled (e.g. changing version string) */
+    //~ #define CONFIG_EARLY_PORT
 
-/** Load fonts and print Hello World (disable CONFIG_EARLY_PORT); will not start any other ML tasks, handlers etc. */
-//~ #define CONFIG_HELLO_WORLD
-
-/** Safe mode, don't alter properties (they are persistent). Highly recommended for new ports. */
-#if defined(CONFIG_5D3_MINIMAL) || defined(CONFIG_40D)
-#define CONFIG_DISABLE_PROP_REQUEST_CHANGE
-#endif
-
-
-
-/** 
- * Debug features
- */
-
-#define CONFIG_STRESS_TEST
-#define CONFIG_BENCHMARKS
-//~ #define CONFIG_DEBUGMSG 1
-//~ #define CONFIG_ISO_TESTS
-//~ #define CONFIG_DIGIC_POKE
-//~ #define CONFIG_HEXDUMP
+    /** Load fonts and print Hello World (disable CONFIG_EARLY_PORT); will not start any other ML tasks, handlers etc. */
+    //~ #define CONFIG_HELLO_WORLD
 
 /**
- * Camera-specific stuff
+ * Some common stuff - you can override them in platform files
  */
 
-#if defined(CONFIG_5DC) || defined(CONFIG_40D)
-#define CONFIG_VXWORKS
-#endif
+    /** If something goes wrong (ERR70), we can save a crash log **/
+    #define CONFIG_CRASH_LOG
 
-#if defined(CONFIG_50D)
-// Canon graphics redraw continuously (even when completely disabled) and will erase ML graphics.
-// Therefore, ML has to disable them completely.
-// This can be enabled on any other camera for testing.
-// Used in zebra.c and debug.c.
-#define CONFIG_KILL_FLICKER
-#endif
+    /** It's a good idea to back up ROM contents on the card - just in case **/
+    #define CONFIG_AUTOBACKUP_ROM
 
-#ifndef CONFIG_5DC // almost all cameras have LiveView, except for 5Dc
-#define CONFIG_LIVEVIEW
-#endif
+    /** It's a good idea to run some automated tests **/
+    #define CONFIG_STRESS_TEST
+    #define CONFIG_BENCHMARKS
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_7D) || defined(CONFIG_VXWORKS)
-#define CONFIG_4_3_SCREEN
-#else
-#define CONFIG_3_2_SCREEN
-#endif
+    /** You may want to disable this for troubleshooting **/
+    #define CONFIG_CONFIG_FILE
 
-#if defined(CONFIG_60D) || defined(CONFIG_7D)// || (defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL))
-// stability issues on 5D3
-#define CONFIG_ELECTRONIC_LEVEL
-#endif
+    /** This may help discovering some cool new stuff - http://magiclantern.wikia.com/wiki/Register_Map/Brute_Force **/
+    /** For developers only; can be dangerous **/
+    //~ #define CONFIG_DIGIC_POKE
 
-#if defined(CONFIG_5D2) || defined(CONFIG_5D3) // not sure about 7D
-#define CONFIG_AUTO_BRIGHTNESS
-#endif
+    /** A bunch of debug tools **/
+    //~ #define CONFIG_DEBUGMSG
 
-#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) // maybe 7D too
-#define CONFIG_Q_MENU_PLAYBACK // camera has a Q menu in playback mode; this menu can be tweaked a bit (e.g. LV button = Protect or Rate)
-#endif
+    /** Useful to test battery consumption without any other ML code running **/
+    //~ #define CONFIG_BATTERY_TEST
 
-#if defined(CONFIG_600D) || defined(CONFIG_60D) // EyeFi tricks confirmed working only on 600D-60D
-#define CONFIG_EYEFI
-#endif
+/** What internals do we have on each camera? **/
+#include "internals.h" // from platform directory
 
-#if defined(CONFIG_600D) || defined(CONFIG_60D) // enable some tricks for flip-out display
-#define CONFIG_VARIANGLE_DISPLAY
-#endif
-
-#if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
-#ifndef CONFIG_5D3_MINIMAL
-#define CONFIG_BATTERY_INFO // 5D2-like battery which reports exact percentage
-#endif
-#endif
-
-#if defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_7D)
-#define CONFIG_SEPARATE_BULB_MODE // other cameras have BULB = M + shutter speed beyond 30s
-#endif
-
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D) || defined(CONFIG_1100D)
-#define CONFIG_SILENT_PIC_HIRES
-#endif
-
-#if defined(CONFIG_7D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
-#define CONFIG_SILENT_PIC_JPG
-#endif
-
-#if !defined(CONFIG_50D) && !defined(CONFIG_VXWORKS) && !defined(CONFIG_1100D)
-#define CONFIG_AUDIO_REMOTE_SHOT
-#endif
-
-#if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
-#define CONFIG_LV_3RD_PARTY_FLASH
-#endif
-
-#if defined(CONFIG_5D2) || defined(CONFIG_7D)
-#define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
-#endif
-
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
-#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY // by changing YUV422_LV_BUFFER_DISPLAY_ADDR
-#endif
-
-#if defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY) || defined(CONFIG_5D2)
-#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER // some cameras may have specific hacks and still do this, but harder
-#define CONFIG_DISPLAY_FILTERS
-#endif
-
-#if !defined(CONFIG_500D) && !defined(CONFIG_7D) && !defined(CONFIG_VXWORKS)
-#define CONFIG_FRAME_ISO_OVERRIDE // e.g. for HDR video or gradual exposure
-#endif
-
-#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
-#define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY // you can't override digital ISO component via FRAME_ISO
-#endif
-
+/** What features are enabled on each camera? **/
+#include "features.h" // from platform directory
 
 #endif
-
+#endif

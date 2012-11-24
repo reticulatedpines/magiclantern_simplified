@@ -14,8 +14,6 @@
 #ifndef _cameraspecific_gui_h_
 #define _cameraspecific_gui_h_
 
-typedef unsigned gui_event_t;
-
 #define EVENT   event->param
 
 
@@ -59,6 +57,9 @@ typedef unsigned gui_event_t;
 #define GMT_GUICMD_OPEN_SLOT_COVER -12345678
 #define GMT_GUICMD_START_AS_CHECK -12345678
 #define GMT_GUICMD_LOCK_OFF -12345678
+
+
+#define GMT_OLC_INFO_CHANGED -1
 
 
 //~ #define BGMT_Q 

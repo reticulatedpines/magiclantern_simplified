@@ -11,6 +11,8 @@
 #include "gui.h"
 #include "lens.h"
 
+int hibr_should_record_wav() { return 0; }
+
 static CONFIG_INT("h264.bitrate", bitrate, 3);
 CONFIG_INT( "rec_indicator", rec_indicator, 1);
 
@@ -204,7 +206,7 @@ static struct menu_entry mov_menus[] = {
         .max = 20,
         .help = "H.264 bitrate. One unit = 10 mb/s."
     },*/
-#ifndef CONFIG_5D3_MINIMAL
+#ifdef FEATURE_NITRATE
     {
         .name = "Load H264.ini     ",
         //~ .priv = &bitrate,

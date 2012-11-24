@@ -351,18 +351,28 @@ void my_big_init_task()
     debug_init();
     call_init_funcs( 0 );
     msleep(200); // leave some time for property handlers to run
-/* battery test
- *  while(1)
+
+    #ifdef CONFIG_BATTERY_TEST
+    while(1)
     {
         RefreshBatteryLevel_1Hz();
         wait_till_next_second();
         batt_display(0, 0, 0, 0);
     }
     return;
-*/
+    #endif
 
+    #if defined(CONFIG_AUTOBACKUP_ROM)
+    /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
+    /* On 5D3, this needs to run after init functions (after card tests) */
+    task_create("ml_backup", 0x1f, 0x4000, backup_task, 0 );
+    #endif
+
+    #ifdef CONFIG_CONFIG_FILE
     // Read ML config
     config_parse_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
+    #endif
+    
     debug_init_stuff();
 
     _hold_your_horses = 0; // config read, other overriden tasks may start doing their job
@@ -788,10 +798,12 @@ my_init_task(int a, int b, int c, int d)
     }
 #endif
 
+#ifdef CONFIG_CRASH_LOG
 #ifdef DRYOS_ASSERT_HANDLER
     // decompile TH_assert to find out the location
     old_assert_handler = (void*)MEM(DRYOS_ASSERT_HANDLER);
     *(void**)(DRYOS_ASSERT_HANDLER) = (void*)my_assert_handler;
+#endif
 #endif
     
 #ifndef CONFIG_EARLY_PORT
@@ -865,11 +877,6 @@ my_init_task(int a, int b, int c, int d)
     }
 
     task_create("ml_init", 0x1e, 0x4000, my_big_init_task, 0 );
-
-#if defined(CONFIG_AUTOBACKUP_ROM)
-    /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
-    task_create("ml_backup", 0x1f, 0x4000, backup_task, 0 );
-#endif
 
     return ans;
 #endif // !CONFIG_EARLY_PORT

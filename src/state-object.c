@@ -10,6 +10,8 @@
 #include "state-object.h"
 #include "property.h"
 
+#ifdef CONFIG_STATE_OBJECT_HOOKS
+
 #ifdef CONFIG_7D
 #include "cache_hacks.h"
 #endif
@@ -97,6 +99,9 @@ static void vsync_func() // called once per frame.. in theory :)
     digic_iso_step();
     image_effects_step();
 
+    #ifdef FEATURE_DISPLAY_SHAKE
+    display_shake_step();
+    #endif
 }
 
 #ifdef CONFIG_550D
@@ -137,9 +142,13 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
         {
             hdr_kill_flicker();
             display_filter_lv_vsync(old_state, x, input, z, t);
+            #ifdef FEATURE_MAGIC_ZOOM
             digic_zoom_overlay_step(0);
+            #endif
         }
+        #ifdef FEATURE_MAGIC_ZOOM
         else digic_zoom_overlay_step(1); // cleanup
+        #endif
     }
     #endif
     
@@ -221,3 +230,5 @@ static void state_init(void* unused)
 }
 
 INIT_FUNC("state_init", state_init);
+
+#endif

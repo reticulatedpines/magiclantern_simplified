@@ -28,20 +28,6 @@
 #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x2438))
 #define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR))
 
-// AV / AE COMP button 
-/// See gui.c for the actual press/unpress handling
-#define BGMT_AV (event->type == 0 && event->param == 0x61 && ( \
-			(is_movie_mode() && event->arg == 0xa) || \
-			(shooting_mode == SHOOTMODE_P && event->arg == 0xa) || \
-			(shooting_mode == SHOOTMODE_ADEP && event->arg == 0xa) || \
-			(shooting_mode == SHOOTMODE_AV && event->arg == 0xf) || \
-			(shooting_mode == SHOOTMODE_M && event->arg == 0xe) || \
-			(shooting_mode == SHOOTMODE_TV && event->arg == 0x10)) )
-
-#define INT_EV_OBJ (*(int*)(event->obj))
-
-#define BGMT_TRASH (0xD)
-
 // From Alex
 #define FOCUS_CONFIRMATION (*(int*)0x41C8) // see "focusinfo" and Wiki:Struct_Guessing
 #define HALFSHUTTER_PRESSED (*(int*)0x1b98) // used for Trap Focus and Magic Off.
@@ -77,14 +63,6 @@
 #define DIALOG_MnCardFormatBegin   (0x12994+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x1570C+4) // similar
 
-#define GMT_OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in IDLEHandler
-#define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x100000a1 in 600d
-
-// needed for correct shutdown from powersave modes
-#define GMT_GUICMD_START_AS_CHECK 89
-#define GMT_GUICMD_OPEN_SLOT_COVER 85
-#define GMT_GUICMD_LOCK_OFF 83
-
 #define BULB_MIN_EXPOSURE 1000
 
 // http://magiclantern.wikia.com/wiki/Fonts
@@ -100,14 +78,7 @@
 
 #define BULB_EXPOSURE_CORRECTION 100 // min value for which bulb exif is OK [not tested]
 
-#define BGMT_WHEEL_LEFT 2
-#define BGMT_WHEEL_RIGHT 3
-#define BGMT_WHEEL_UP 0
-#define BGMT_WHEEL_DOWN 1
-
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0xB198+0x2C) // see http://magiclantern.wikia.com/wiki/VRAM/BMP
-
-#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PRESS_DISP // what button to use for zebras in Play mode
 
 // manual exposure overrides
 #define LVAE_STRUCT 0x8b7c

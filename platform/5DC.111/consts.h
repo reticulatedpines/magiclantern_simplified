@@ -18,8 +18,6 @@
 #define HALFSHUTTER_PRESSED get_halfshutter_pressed()
 //~ #define DISPLAY_SENSOR_POWERED 0
 
-#define GMT_OLC_INFO_CHANGED -1
-
 #define LV_BOTTOM_BAR_DISPLAYED 0
 #define ISO_ADJUSTMENT_ACTIVE 0
 

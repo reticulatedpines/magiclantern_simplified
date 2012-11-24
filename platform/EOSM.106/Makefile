@@ -4,7 +4,7 @@ TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=100
+FW_VERSION=106
 MODEL=EOSM
 ML_VERSION=unified1 
 
@@ -24,13 +24,11 @@ ML_OBJS-y = \
 	version.o \
 	exmem.o \
 	bmp.o \
-	fio-5d3.o \
 	font-dyn.o \
 	config.o \
 	menu.o \
 	debug.o \
 	stdio.o \
-	bitrate-5d3.o \
 	tweaks.o \
 	lens.o \
 	property.o \

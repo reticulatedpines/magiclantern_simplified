@@ -3,6 +3,7 @@ Makefile.user
 *.bin
 *.elf
 *.o
+*.d
 *.a
 *.fir
 .*

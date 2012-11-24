@@ -11,10 +11,6 @@
 #include "config.h"
 #include "math.h"
 
-#ifdef CONFIG_5D3_MINIMAL
-#include "disable-this-module.h"
-#endif
-
 #define EngDrvOut(reg, value) *(int*)(reg) = value
 
 //~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
@@ -464,11 +460,6 @@ void digic_dump_h264()
     FIO_CloseFile(f);
 }
 
-
-#else
-
-int handle_digic_poke(struct event * event){ return 1; }; // dummy
-
 #endif // CONFIG_DIGIC_POKE
 
 void image_effects_step()
@@ -481,6 +472,8 @@ void image_effects_step()
     digic_poke_step();
     #endif
     
+    #ifdef FEATURE_IMAGE_EFFECTS
+    
     // bulb ramping calibration works best on grayscale image
     extern int bulb_ramp_calibration_running;
     if (bulb_ramp_calibration_running)
@@ -488,10 +481,6 @@ void image_effects_step()
         EngDrvOut(0xc0f0f070, 0x01000100);
         return;
     }
-
-    #ifdef CONFIG_5D3 // none of the effects works
-    return;
-    #endif
 
     if (!is_movie_mode()) return;
 
@@ -513,19 +502,24 @@ void image_effects_step()
     if (sharp)      EngDrvOut(0xc0f0f280, -1);
 
     prev_swap_uv = swap_uv;
+    
+    #endif
 }
 
 void digic_iso_step()
 {
+#if defined(FEATURE_EXPO_ISO_DIGIC) || defined(FEATURE_LV_DISPLAY_GAIN)
     if (!DISPLAY_IS_ON && !recording) return;
     if (!lv) return;
     if (lv_paused) return;
-    if (is_movie_mode() && lens_info.iso == 0) return; // no auto ISO, please
+    int mv = is_movie_mode();
+    if (mv && lens_info.iso == 0) return; // no auto ISO, please
 
     extern int bulb_ramp_calibration_running;
     if (bulb_ramp_calibration_running) return;
-
-    if (is_movie_mode())
+#endif
+#ifdef FEATURE_EXPO_ISO_DIGIC
+    if (mv)
     {
         if (digic_iso_gain_movie == 0) digic_iso_gain_movie = 1024;
         if (digic_iso_gain_movie_for_gradual_expo == 0) digic_iso_gain_movie_for_gradual_expo = 1024;
@@ -554,7 +548,9 @@ void digic_iso_step()
         #endif
 
     }
-    else // photo mode - display gain, for preview only
+#endif
+#ifdef FEATURE_LV_DISPLAY_GAIN
+    if (!mv) // photo mode - display gain, for preview only
     {
         if (digic_iso_gain_photo_for_bv == 0) digic_iso_gain_photo_for_bv = 1024;
         int total_photo_gain = digic_iso_gain_photo * digic_iso_gain_photo_for_bv / 1024;
@@ -574,14 +570,14 @@ void digic_iso_step()
         }
     #endif
     }
+#endif
 }
 
 void menu_open_submenu();
 
-#if !defined(CONFIG_7D) && !defined(CONFIG_5D3)
 static struct menu_entry lv_img_menu[] = {
+    #ifdef FEATURE_IMAGE_EFFECTS
     {
-	.id = 0,
         .name = "Image Effects...",
         .max = 1,
         .select = menu_open_submenu,
@@ -639,8 +635,8 @@ static struct menu_entry lv_img_menu[] = {
             MENU_EOL
         }
     }
+    #endif
 };
-#endif
 
 #ifdef CONFIG_DIGIC_POKE
 
@@ -710,9 +706,8 @@ static struct menu_entry dbg_menu[] = {
 
 static void lv_img_init()
 {
-#if !defined(CONFIG_7D) && !defined(CONFIG_5D3)
     menu_add( "Movie", lv_img_menu, COUNT(lv_img_menu) );
-#endif
+    
 #ifdef CONFIG_DIGIC_POKE
     menu_add( "Debug", dbg_menu, COUNT(dbg_menu) );
 #endif

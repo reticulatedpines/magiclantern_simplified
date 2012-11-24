@@ -37,11 +37,6 @@
 #include "config.h"
 #include "math.h"
 
-#if defined(CONFIG_5D3_MINIMAL) || defined(CONFIG_7D)
-#include "disable-this-module.h"
-#endif
-
-
 #define FPS_REGISTER_A 0xC0F06008
 #define FPS_REGISTER_B 0xC0F06014
 
@@ -84,11 +79,11 @@ static CONFIG_INT("fps.override", fps_override, 0);
 
 static CONFIG_INT("fps.override.idx", fps_override_index, 10);
 
-// in simple menu, FPS override is only displayed in movie mode
-// so... it should only take effect in movie mode, no?
-// but in advanced mode, it can be used in photo mode too (for night vision)
-//~ #define FPS_OVERRIDE (fps_override && (is_movie_mode() || get_menu_advanced_mode()))
+#ifdef FEATURE_FPS_OVERRIDE
 #define FPS_OVERRIDE fps_override
+#else
+#define FPS_OVERRIDE 0
+#endif
 
 // 1000 = zero, more is positive, less is negative
 static CONFIG_INT("fps.timer.a.off", desired_fps_timer_a_offset, 1000); // add this to default Canon value
@@ -105,7 +100,17 @@ static CONFIG_INT("fps.ramp.expo", fps_ramp_expo, 0);
 static int fps_ramp_timings[] = {1, 2, 5, 15, 30, 60, 120, 300, 600, 1200, 1800};
 static int fps_ramp_up = 0;
 
+#ifdef FEATURE_FPS_WAV_RECORD
+    #ifndef FEATURE_FPS_OVERRIDE
+    #error This requires FEATURE_FPS_OVERRIDE.
+    #endif
+    #ifndef FEATURE_WAV_RECORDING
+    #error This requires FEATURE_WAV_RECORDING.
+    #endif
 int fps_should_record_wav() { return fps_override && fps_wav_record && is_movie_mode() && FPS_SOUND_DISABLE && was_sound_recording_disabled_by_fps_override(); }
+#else
+int fps_should_record_wav() { return 0; }
+#endif
 
 #if defined(CONFIG_50D) || defined(CONFIG_500D)
 PROP_INT(PROP_VIDEO_SYSTEM, pal);
@@ -307,9 +312,9 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
 
 int get_current_shutter_reciprocal_x1000()
 {
-#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_40D)
+#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_40D) || defined(CONFIG_EOSM)
     if (!lens_info.raw_shutter) return 0;
-    return (int) roundf(powf(2.0, (lens_info.raw_shutter - 136) / 8.0) * 1000.0 * 1000.0);
+    return (int) roundf(powf(2.0f, (lens_info.raw_shutter - 136) / 8.0f) * 1000.0f * 1000.0f);
 #else
 
     int timer = FRAME_SHUTTER_TIMER;
@@ -363,7 +368,7 @@ int fps_get_shutter_speed_shift(int raw_shutter)
     int unaltered = (int)roundf(1000/raw2shutterf(MAX(raw_shutter, 96)));
     int altered_by_fps = get_shutter_reciprocal_x1000(unaltered, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
     
-    return (int)roundf(8.0 * log2f((float)unaltered / (float)altered_by_fps));    
+    return (int)roundf(8.0f * log2f((float)unaltered / (float)altered_by_fps));    
 }
 
 //--------------------------------------------------------
@@ -776,36 +781,6 @@ static void fps_enable_disable(void* priv, int delta)
     if (FPS_OVERRIDE) fps_needs_updating = 1;
 }
 
-/*static int find_fps_index(int fps_x1000)
-{
-    for (int i = 0; i < COUNT(fps_values_x1000); i++)
-    {
-        if (fps_values_x1000[i] >= fps_x1000)
-            return i;
-    }
-    return -1;
-}*/
-
-
-/*void fps_range_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    int fps_low = calc_fps_x1000(fps_timer_a, FPS_TIMER_B_MAX);
-    int fps_high = calc_fps_x1000(fps_timer_a, FPS_TIMER_B_MIN);
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "FPS range    : %d.%03d..%d.%03d",
-        fps_low  / 1000, fps_low  % 1000, 
-        fps_high / 1000, fps_high % 1000
-    );
-    menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
-}*/
-
 void shutter_range_print(
     void *          priv,
     int         x,
@@ -858,7 +833,6 @@ static void fps_timer_print(
         finetune_delta ? finetune_delta : ABS(delta) >= 100 ? t / t0 : delta, 
         dec
     );
-    //~ ASSERT(fps_override || delta==0);
 
     if (!fps_override)
         menu_draw_icon(x, y, MNI_OFF, 0);
@@ -884,21 +858,6 @@ static void tg_freq_print(
     menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
 }
 
-/*
-static void fps_timer_a_big_change(void* priv, int delta)
-{
-    int tmin = FPS_TIMER_A_MIN; // map this to -1
-    int t0 = fps_timer_a_orig;  // this is the reference point: k=0
-    int tmax = FPS_TIMER_A_MAX; // map this to k=20
-    int k = ((fps_timer_a - t0) * 20 + (tmax - t0) / 2) / (tmax - t0);
-    if (fps_timer_a < t0) k = -1;
-    
-    k += delta;
-    
-    fps_change_timer_a(t0 + k * (tmax - t0) / 20);
-    if (FPS_OVERRIDE) fps_needs_updating = 1;
-}*/
-
 static void fps_timer_fine_tune_a(void* priv, int delta)
 {
     desired_fps_timer_a_offset += delta * 2;
@@ -916,12 +875,6 @@ static void fps_timer_fine_tune_b(void* priv, int delta)
     desired_fps_timer_b_offset += delta;
     if (FPS_OVERRIDE) fps_needs_updating = 1;
 }
-
-/*static void fps_bool_toggle(void* priv, int delta)
-{
-    *(int*)priv = !*(int*)priv;
-    fps_needs_updating = 1;
-}*/
 
 
 // dumb heuristic :)
@@ -1097,14 +1050,8 @@ static void fps_criteria_change(void* priv, int delta)
     if (FPS_OVERRIDE) fps_needs_updating = 1;
 }
 
-//~ static void fps_sound_toggle(void* priv, int delta)
-//~ {
-    //~ FPS_SOUND_DISABLE = !FPS_SOUND_DISABLE;
-    //~ if (FPS_OVERRIDE) fps_needs_updating = 1;
-//~ }
-
-
 static struct menu_entry fps_menu[] = {
+    #ifdef FEATURE_FPS_OVERRIDE
     {
         .name = "FPS override", 
         .priv = &fps_override,
@@ -1114,14 +1061,6 @@ static struct menu_entry fps_menu[] = {
         //.essential = FOR_MOVIE,
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
-/*            {
-                .name = "Preset\b",
-                .priv       = &fps_criteria,
-                .choices = (const char *[]) {"Custom", "24.000fps", "FPS/2 night", "10p jello", "5p jello", "2p jello", "2p 360deg", "1p 360deg", "0.5p 360deg", "0.25p 360deg"},
-                .icon_type = IT_BOOL,
-                .select = fps_criteria_change,
-                .help = "FPS presets - a few useful combinations.",
-            },*/
             {
                 .name = "Desired FPS", 
                 .priv    = &fps_override_index,
@@ -1148,11 +1087,6 @@ static struct menu_entry fps_menu[] = {
                 .select = fps_criteria_change,
                 .help = "Optimization criteria - how to setup the two timers.",
             },
-            /*{
-                .display = fps_range_print,
-                //~ .select = fps_timer_a_big_change,
-                .help = "FPS range. Changing this will change FPS timer A.",
-            },*/
             {
                 .name = "Shutter range",
                 .display = shutter_range_print,
@@ -1201,6 +1135,7 @@ static struct menu_entry fps_menu[] = {
                 .icon_type = IT_DISABLE_SOME_FEATURE,
                 .help = "Sound usually goes out of sync and may stop recording.",
             },*/
+            #ifdef FEATURE_FPS_WAV_RECORD
             {
                 .name = "Sound Record\b",
                 .priv = &fps_wav_record,
@@ -1209,9 +1144,15 @@ static struct menu_entry fps_menu[] = {
                 .icon_type = IT_BOOL,
                 .help = "Sound goes out of sync, so it has to be recorded separately.",
             },
+            #endif
             MENU_EOL
         },
     },
+    #endif
+    #ifdef FEATURE_FPS_RAMPING
+        #ifndef FEATURE_FPS_OVERRIDE
+        #error This requires FEATURE_FPS_OVERRIDE.
+        #endif
     {
         .name = "FPS ramping", 
         .priv = &fps_ramp,
@@ -1246,6 +1187,7 @@ static struct menu_entry fps_menu[] = {
             MENU_EOL,
         },
     },
+    #endif
 };
 
 
@@ -1306,17 +1248,21 @@ static void fps_check_refresh()
     old_fps_ov = fps_ov;
 }
 
+#ifdef FEATURE_FPS_OVERRIDE
+
 // do all FPS changes from this task only - to avoid trouble ;)
 static void fps_task()
 {
     TASK_LOOP
     {
      
+        #ifdef FEATURE_FPS_RAMPING
         if (fps_ramp) 
         {
             msleep(20);
         }
         else
+        #endif
         {
             #if defined(CONFIG_500D) || defined(CONFIG_1100D)
             msleep(fps_override && recording ? 10 : 100);
@@ -1349,7 +1295,9 @@ static void fps_task()
                 fps_reset();
                 fps_read_current_timer_values();
                 fps_read_default_timer_values();
+                #ifdef FEATURE_EXPO_OVERRIDE
                 bv_auto_update();
+                #endif
             }
                             
             continue;
@@ -1357,6 +1305,7 @@ static void fps_task()
 
         int f = fps_values_x1000[fps_override_index];
         
+        #ifdef FEATURE_FPS_RAMPING
         if (fps_ramp) // artistic effect - http://www.magiclantern.fm/forum/index.php?topic=2963.0
         {
             int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
@@ -1389,6 +1338,7 @@ static void fps_task()
             }
             continue;
         }
+        #endif
         
         // Very low FPS: first few frames will be recorded at normal FPS, to bypass Canon's internal checks
         if (f < 5000)
@@ -1429,8 +1379,10 @@ static void fps_task()
             fps_warned = 1;
         }
         
+        #ifdef FEATURE_EXPO_OVERRIDE
         if (CONTROL_BV && !is_movie_mode()) // changes in FPS may affect expsim calculations in photo mode
             bv_auto_update();
+        #endif
     }
 }
 
@@ -1439,7 +1391,7 @@ TASK_CREATE("fps_task", fps_task, 0, 0x17, 0x1000 );
 #else
 TASK_CREATE("fps_task", fps_task, 0, 0x1c, 0x1000 );
 #endif
-
+#endif
 
 void fps_mvr_log(char* mvr_logfile_buffer)
 {
@@ -1457,7 +1409,9 @@ int handle_fps_events(struct event * event)
     if (fps_ramp && event->param == BGMT_INFO)
     {
         fps_ramp_up = !fps_ramp_up;
+        #ifdef FEATURE_EXPO_PRESET
         handle_expo_preset(event); // will trigger both rampings if they are both enabled
+        #endif
         return 0;
     }
     
@@ -1643,4 +1597,4 @@ static void sensor_timing_table_init()
 
 INIT_FUNC("sensor-timing", sensor_timing_table_init);
 
-#endif
+#endif // NEW_FPS_METHOD

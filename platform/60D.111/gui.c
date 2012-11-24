@@ -30,8 +30,6 @@
 #include <consts.h>
 #include <lens.h>
 
-extern int swap_menu;
-
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
@@ -40,7 +38,6 @@ static int handle_buttons(struct event * event)
 	extern int ml_started;
 	if (!ml_started) return 1;
 
-	if (handle_swap_menu_erase(event) == 0) return 0;
 	if (handle_common_events_by_feature(event) == 0) return 0;
 
 	//~ if (!lv && event->param == BGMT_INFO) return handle_disp_button_in_photo_mode();

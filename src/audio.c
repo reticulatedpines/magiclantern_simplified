@@ -358,7 +358,7 @@ static void draw_meters(void)
         {
                 draw_meter( x0, y0 + 0, 10, &audio_levels[0], left_label);
                 draw_ticks( x0, y0 + 10, 3 );
-#if !(defined(CONFIG_500D) || defined(CONFIG_1100D))         // mono mic on 500d and 1100d
+#if !defined(FEATURE_MONO_MIC)
                 draw_meter( x0, y0 + 12, 10, &audio_levels[1], right_label);
 #endif
         }
@@ -366,7 +366,7 @@ static void draw_meters(void)
         {
                 draw_meter( x0, y0 + 0, 7, &audio_levels[0], left_label);
                 draw_ticks( x0, y0 + 7, 2 );
-#if !(defined(CONFIG_500D) || defined(CONFIG_1100D))
+#if !defined(FEATURE_MONO_MIC)
                 draw_meter( x0, y0 + 8, 7, &audio_levels[1], right_label);
 #endif
         }
@@ -1788,11 +1788,7 @@ audio_meter_display( void * priv, int x, int y, int selected )
         bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
-               #ifdef CONFIG_5D3_MINIMAL
-               "Audio Meters: %s",
-               #else
                "Audio Meters  : %s",
-               #endif
                v ? "ON" : "OFF"
                );
         check_sound_recording_warning(x, y);

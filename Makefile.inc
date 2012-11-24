@@ -132,6 +132,7 @@ CFLAGS=\
 	-Wno-unused-function \
 	-Wno-missing-field-initializers \
 	-Wno-format \
+	-Wdouble-promotion \
 	-std=gnu99 \
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \

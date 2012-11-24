@@ -8,20 +8,10 @@
 
 extern int gui_state;
 extern int file_number;
-#ifdef CONFIG_600D
-extern int cfg_hibr_wav_record;
-#endif
 
 int beep_playing = 0;
 
-#if defined(CONFIG_50D) || defined(CONFIG_VXWORKS) || defined(CONFIG_5D3_MINIMAL) // beep not working, keep dummy stubs
-    void unsafe_beep(){}
-    void beep(){}
-    void Beep(){}
-    void beep_times(int times){};
-    int beep_enabled = 0;
-    int handle_voice_tags(struct event * event) { return 1; }
-#else // beep working
+#ifdef CONFIG_BEEP
 
 #define BEEP_LONG -1
 #define BEEP_SHORT 0
@@ -82,6 +72,11 @@ void normalize_audio(int16_t* buf, int N)
     for (int i = 0; i < N/2; i++)
         buf[i] = (int)buf[i] * 32767 / m;
 }
+
+#ifdef FEATURE_WAV_RECORDING
+    #ifndef FEATURE_BEEP
+    #error This requires FEATURE_BEEP.
+    #endif
 
 // https://ccrma.stanford.edu/courses/422/projects/WaveFormat/
 // http://www.sonicspot.com/guide/wavefiles.html
@@ -297,8 +292,11 @@ void WAV_RecordSmall(char* filename, int duration, int show_progress)
     free_dma_memory(wav_buf);
 }
 
+#endif
+
 static void audio_stop_playback()
 {
+#ifdef FEATURE_WAV_RECORDING
     if (beep_playing && file != INVALID_PTR) 
     {
         info_led_on();
@@ -307,8 +305,12 @@ static void audio_stop_playback()
         ASSERT(file == INVALID_PTR);
     }
     else // simple beep, just stop it 
+#endif
         asif_stop_cbr();
 }
+
+#ifdef FEATURE_WAV_RECORDING
+
 static void audio_stop_recording()
 {
     info_led_on();
@@ -316,15 +318,20 @@ static void audio_stop_recording()
     while (audio_recording) msleep(100);
     ASSERT(file == INVALID_PTR);
 }
+#endif
 
 int audio_stop_rec_or_play() // true if it stopped anything
 {
+    #ifndef FEATURE_WAV_RECORDING
+    int audio_recording = 0;
+    #endif
     int ans = beep_playing || audio_recording;
     if (beep_playing) audio_stop_playback();
     if (audio_recording) audio_stop_recording();
     return ans;
 }
 
+#ifdef FEATURE_WAV_RECORDING
 typedef struct _write_q {
     int multiplex;
     void *buf;
@@ -444,24 +451,6 @@ void WAV_Record(char* filename, int show_progress)
     info_led_off();
 }
 
-#ifdef CONFIG_600D
-
-void Load_ASIFDMAADC(){
-    uint8_t* buf1 = (uint8_t*)wav_buf[0];
-    uint8_t* buf2 = (uint8_t*)wav_buf[1];
-    if (!buf1) return;
-    if (!buf2) return;
-
-    audio_recording = 0;
-    SetSamplingRate(48000, 1);
-    MEM(0xC092011C) = 4; // SetASIFADCModeSingleINT16
-
-    wav_ibuf = 0;
-    StartASIFDMAADC(buf1, WAV_BUF_SIZE, buf2, WAV_BUF_SIZE, asif_rec_continue_cbr, 0);
-}
-#endif
-
-
 static void
 record_display(
     void *          priv,
@@ -491,6 +480,7 @@ record_display(
     }
 }
 
+#endif
 
 static void cordic_ex(int theta, int* s, int* c, int n)
 {
@@ -516,7 +506,7 @@ static void cordic_ex(int theta, int* s, int* c, int n)
     
     // for sine wave: 1 hz => t = i * 2*pi*MUL / 48000
     int twopi = 102944;
-    float factor = (int)roundf((float)twopi / 48000.0 * beep_freq);
+    float factor = (int)roundf((float)twopi / 48000.0f * beep_freq);
     
     for (int i = 0; i < N; i++)
     {
@@ -606,6 +596,8 @@ void Beep()
     beep();
 }
 
+#ifdef FEATURE_WAV_RECORDING
+
 static void wav_playback_do();
 static void wav_record_do();
 
@@ -623,6 +615,7 @@ static void write_q_task()
 }
 
 TASK_CREATE( "write_q_task", write_q_task, 0, 0x16, 0x1000 );
+#endif
 
 static void beep_task()
 {
@@ -632,14 +625,18 @@ static void beep_task()
         
         if (record_flag)
         {
+            #ifdef FEATURE_WAV_RECORDING
             wav_record_do();
+            #endif
             record_flag = 0;
             continue;
         }
         
         if (beep_type == BEEP_WAV)
         {
+            #ifdef FEATURE_WAV_RECORDING
             wav_playback_do();
+            #endif
         }
         else if (beep_type == BEEP_LONG)
         {
@@ -683,6 +680,7 @@ static void beep_task()
 
 TASK_CREATE( "beep_task", beep_task, 0, 0x18, 0x1000 );
 
+#ifdef FEATURE_WAV_RECORDING
 
 // that's extremely inefficient
 static int find_wav(int * index, char* fn)
@@ -783,6 +781,7 @@ static void wav_playback_do()
     if (audio_recording) return;
     WAV_Play(current_wav_filename);
 }
+#endif
 
 static void playback_start(void* priv, int delta)
 {
@@ -824,6 +823,8 @@ static char* wav_get_new_filename()
     return imgname;
 }
 
+#ifdef FEATURE_WAV_RECORDING
+
 static void wav_notify_filename()
 {
     // display only the filename, without the path
@@ -852,12 +853,16 @@ static void wav_record_do()
 static void record_start(void* priv, int delta)
 {
     if (audio_stop_rec_or_play()) return;
-#ifdef CONFIG_600D //another camera models can't support canon audio off with wav recording.
-    if (recording && sound_recording_mode != 1){
-        NotifyBox(2000,"Cannot record sound with canon audio enabled");
+
+    if (recording && sound_recording_mode != 1)
+    {
+        NotifyBox(2000, 
+            "Cannot record WAV sound \n"
+            "with Canon audio enabled"
+        );
         return ;
     }
-#endif
+
     record_flag = 1;
     give_semaphore(beep_sem);
 }
@@ -869,8 +874,14 @@ static void delete_file(void* priv, int delta)
     FIO_RemoveFile(current_wav_filename);
     find_next_wav(0,1);
 }
+#endif
 
 static CONFIG_INT("voice.tags", voice_tags, 0);
+
+#ifdef FEATURE_VOICE_TAGS
+    #ifndef FEATURE_WAV_RECORDING
+    #error This requires FEATURE_WAV_RECORDING.
+    #endif
 
 int handle_voice_tags(struct event * event)
 {
@@ -890,20 +901,20 @@ int handle_voice_tags(struct event * event)
     }
     return 1;
 }
+#endif
 
+#ifdef FEATURE_WAV_RECORDING
 PROP_HANDLER( PROP_MVR_REC_START )
 {
-#ifdef CONFIG_600D
-    if (!fps_should_record_wav() && !cfg_hibr_wav_record) return;
-#else
-    if (!fps_should_record_wav()) return;
-#endif
+    if (!fps_should_record_wav() && !hibr_should_record_wav()) return;
     int rec = buf[0];
     if (rec == 1) record_start(0,0);
     else if (rec == 0) audio_stop_recording();
 }
+#endif
 
 static struct menu_entry beep_menus[] = {
+    #ifdef FEATURE_BEEP
     {
         .name = "Beep and test tones...",
         .select = menu_open_submenu,
@@ -960,6 +971,8 @@ static struct menu_entry beep_menus[] = {
             MENU_EOL,
         }
     },
+    #endif
+    #ifdef FEATURE_WAV_RECORDING
     {
         .name = "Sound recorder...",
         .select = menu_open_submenu,
@@ -988,36 +1001,69 @@ static struct menu_entry beep_menus[] = {
                 .select = delete_file,
                 .help = "Be careful :)",
             },
+            #ifdef FEATURE_VOICE_TAGS
             {
                 .name = "Voice tags", 
                 .priv = &voice_tags, 
                 .max = 1,
                 .help = "After you take a picture, press SET to add a voice tag.",
             },
+            #endif
             MENU_EOL,
         }
     },
+    #endif
 };
+
+#if 0 // wtf is that?! start recording at startup?!
+#ifdef CONFIG_600D
+void Load_ASIFDMAADC(){
+    uint8_t* buf1 = (uint8_t*)wav_buf[0];
+    uint8_t* buf2 = (uint8_t*)wav_buf[1];
+    if (!buf1) return;
+    if (!buf2) return;
+
+    audio_recording = 0;
+    SetSamplingRate(48000, 1);
+    MEM(0xC092011C) = 4; // SetASIFADCModeSingleINT16
+
+    wav_ibuf = 0;
+    StartASIFDMAADC(buf1, WAV_BUF_SIZE, buf2, WAV_BUF_SIZE, asif_rec_continue_cbr, 0);
+}
+#endif
+#endif
 
 static void beep_init()
 {
+#ifdef FEATURE_WAV_RECORDING
     wav_buf[0] = alloc_dma_memory(WAV_BUF_SIZE);
     wav_buf[1] = alloc_dma_memory(WAV_BUF_SIZE);
     
     rootq = AllocateMemory(sizeof(WRITE_Q));
     memset(rootq,0,sizeof(WRITE_Q));
     rootq->multiplex=100;
+#endif
 
     beep_sem = create_named_semaphore( "beep_sem", 0 );
     menu_add( "Audio", beep_menus, COUNT(beep_menus) );
-    find_next_wav(0,1);
 
-#ifdef CONFIG_600D
-    Load_ASIFDMAADC();
+#ifdef FEATURE_WAV_RECORDING
+    find_next_wav(0,1);
 #endif
+
+//~ #ifdef CONFIG_600D
+    //~ Load_ASIFDMAADC();
+//~ #endif
 }
 
 INIT_FUNC("beep.init", beep_init);
 
+#else // beep not working, keep dummy stubs
+
+    void unsafe_beep(){}
+    void beep(){}
+    void Beep(){}
+    void beep_times(int times){};
+    int beep_enabled = 0;
 #endif
 

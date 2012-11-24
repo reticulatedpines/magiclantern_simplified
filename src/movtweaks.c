@@ -13,9 +13,8 @@
 #include "lens.h"
 #include "math.h"
 
-#ifdef CONFIG_4_3_SCREEN
-#define CONFIG_BLUE_LED 1
-#endif
+#ifdef FEATURE_REC_NOTIFY
+
 #ifdef CONFIG_BLUE_LED
 #define RECNOTIFY_LED (rec_notify == 3)
 #define RECNOTIFY_BEEP (rec_notify == 4)
@@ -24,8 +23,13 @@
 #define RECNOTIFY_BEEP (rec_notify == 3)
 #endif
 
+#endif
+
+#ifdef FEATURE_MOVIE_REC_KEY
 #define ALLOW_MOVIE_START (movie_rec_key_action == 0 || movie_rec_key_action == 1)
 #define ALLOW_MOVIE_STOP  (movie_rec_key_action == 0 || movie_rec_key_action == 2)
+#endif
+
 void update_lvae_for_autoiso_n_displaygain();
 
 CONFIG_INT("hdmi.force.vga", hdmi_force_vga, 0);
@@ -33,18 +37,16 @@ CONFIG_INT("hdmi.force.vga", hdmi_force_vga, 0);
 // WB workaround (not saved in movie mode)
 //**********************************************************************
 //~ CONFIG_INT( "white.balance.workaround", white_balance_workaround, 1);
+
 CONFIG_INT( "wb.kelvin", workaround_wb_kelvin, 6500);
 CONFIG_INT( "wbs.gm", workaround_wbs_gm, 100);
 CONFIG_INT( "wbs.ba", workaround_wbs_ba, 100);
-
 int kelvin_wb_dirty = 1;
+
+#ifdef CONFIG_WB_WORKAROUND
 
 void save_kelvin_wb()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5D3)
-    return;
-    #endif
-    
     if (!lens_info.kelvin) return;
     workaround_wb_kelvin = lens_info.kelvin;
     workaround_wbs_gm = lens_info.wbs_gm + 100;
@@ -54,10 +56,6 @@ void save_kelvin_wb()
 
 void restore_kelvin_wb()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5D3)
-    return;
-    #endif
-    //~ if (!white_balance_workaround) return;
     msleep(500); // to make sure mode switch is complete
     // sometimes Kelvin WB and WBShift are not remembered, usually in Movie mode 
     lens_set_kelvin_value_only(workaround_wb_kelvin);
@@ -66,11 +64,9 @@ void restore_kelvin_wb()
     //~ NotifyBox(1000, "Restored WB: %dK GM%d BA%d", workaround_wb_kelvin, workaround_wbs_gm, workaround_wbs_ba); msleep(1000);
 }
 
+// called only in movie mode
 void kelvin_wb_workaround_step()
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5D3)
-    return;
-    #endif
     if (!kelvin_wb_dirty)
     {
         save_kelvin_wb();
@@ -81,13 +77,16 @@ void kelvin_wb_workaround_step()
         kelvin_wb_dirty = 0;
     }
 }
+#endif
 
 int ml_changing_shooting_mode = 0;
 PROP_HANDLER(PROP_SHOOTING_MODE)
 {
     kelvin_wb_dirty = 1;
     if (!ml_changing_shooting_mode) intervalometer_stop();
+    #ifdef FEATURE_EXPO_OVERRIDE
     bv_auto_update();
+    #endif
 }
 
 void set_shooting_mode(int m)
@@ -107,9 +106,8 @@ CONFIG_INT("movie.cliplen", movie_cliplen,0);
 CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
 CONFIG_INT("movie.rec-key", movie_rec_key, 0);
 CONFIG_INT("movie.rec-key-action", movie_rec_key_action, 0);
-#if 0
-CONFIG_INT("movie.autostart-at-resume", start_recording_on_resume, 0);
-#endif
+
+#ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
 
 static int movie_autostop_running = 0;
 
@@ -148,7 +146,9 @@ static void movie_cliplen_display(
     );
     menu_draw_icon(x, y, MNI_BOOL(val), 0);
 }
+#endif
 
+#ifdef FEATURE_MOVIE_REC_KEY
 static void
 movie_rec_key_print(
     void *          priv,
@@ -192,7 +192,9 @@ void movie_rec_halfshutter_step()
         else if(ALLOW_MOVIE_STOP) schedule_movie_end();
     }
 }
+#endif
 
+#ifdef FEATURE_MOVIE_RESTART
 static void
 movie_restart_print(
     void *          priv,
@@ -208,6 +210,7 @@ movie_restart_print(
         movie_restart ? "ON " : "OFF"
     );
 }
+#endif
 
 #if 0 // unstable
 void do_movie_mode_remap()
@@ -221,61 +224,7 @@ void do_movie_mode_remap()
         ensure_movie_mode();
     }
 }
-#endif
-/*
-CONFIG_INT("dof.adjust", dof_adjust, 1);
-int get_dof_adjust() { return dof_adjust; }
 
-static void
-dof_adjust_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "DOF adjust    : %s",
-        dof_adjust ? "ON (sensor+Av)" : "OFF"
-    );
-}
-
-static void apershutter_close(void* priv)
-{
-    lens_set_rawaperture(lens_info.raw_aperture + 4);
-    lens_set_rawshutter(lens_info.raw_shutter - 4);
-}
-static void apershutter_open(void* priv)
-{
-    lens_set_rawaperture(lens_info.raw_aperture - 4);
-    lens_set_rawshutter(lens_info.raw_shutter + 4);
-}
-
-int aperiso_rawap = 0;
-int aperiso_rawiso = 0;
-static void aperiso_init()
-{
-    aperiso_rawap = lens_info.raw_aperture;
-    aperiso_rawiso = lens_info.raw_iso;
-}
-static void aperiso_close(void* priv)
-{
-    aperiso_rawap += 4;
-    aperiso_rawiso += 4;
-    lens_set_rawaperture(aperiso_rawap);
-    lens_set_rawiso(aperiso_rawiso);
-}
-static void aperiso_open(void* priv)
-{
-    aperiso_rawap -= 4;
-    aperiso_rawiso -= 4;
-    lens_set_rawaperture(aperiso_rawap);
-    lens_set_rawiso(aperiso_rawiso);
-}*/
-
-#if 0
 static void
 mode_remap_print(
     void *          priv,
@@ -303,6 +252,8 @@ CONFIG_INT( "enable-liveview",  enable_liveview,
     1
     #endif
 );
+
+#ifdef FEATURE_FORCE_LIVEVIEW
 static void
 enable_liveview_print(
     void *          priv,
@@ -319,13 +270,11 @@ enable_liveview_print(
     );
     menu_draw_icon(x, y, enable_liveview == 1 ? MNI_AUTO : enable_liveview == 2 ? MNI_ON : MNI_OFF, 0);
 }
+#endif
 
 void force_liveview()
 {
-    #ifdef CONFIG_5DC // obvious :)
-    return;
-    #endif
-
+#ifdef CONFIG_LIVEVIEW
     extern int ml_started;
     while (!ml_started) msleep(50);
 
@@ -340,10 +289,13 @@ void force_liveview()
     info_led_off();
     if (!lv) fake_simple_button(BGMT_LV);
     msleep(1500);
+#endif
 }
 
 CONFIG_INT("shutter.lock", shutter_lock, 0);
 CONFIG_INT("shutter.lock.value", shutter_lock_value, 0);
+
+#ifdef FEATURE_SHUTTER_LOCK
 static void
 shutter_lock_print(
     void *          priv,
@@ -362,7 +314,6 @@ shutter_lock_print(
 
 void shutter_lock_step()
 {
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D3)
     if (is_movie_mode()) // no effect in photo mode
     {
         unsigned shutter = lens_info.raw_shutter;
@@ -380,10 +331,11 @@ void shutter_lock_step()
         else
             shutter_lock_value = shutter; // accept change from ML menu
     }
-#endif
 }
+#endif
 
-#ifdef CONFIG_50D
+#ifdef FEATURE_MOVIE_RECORDING_50D_SHUTTER_HACK
+
 CONFIG_INT("shutter.btn.rec", shutter_btn_rec, 1);
 
 static void
@@ -421,31 +373,38 @@ void shutter_btn_rec_do(int rec)
 
 int movie_was_stopped_by_set = 0;
 
+#ifdef FEATURE_EXPO_OVERRIDE
 // at startup don't try to sync with Canon values; use saved values instead
 int bv_startup = 1;
+#endif
 
 void
 movtweak_task_init()
 {
-    //~ msleep(500);
-
+#ifdef FEATURE_FORCE_LIVEVIEW
     if (!lv && enable_liveview && is_movie_mode()
         && (DLG_MOVIE_PRESS_LV_TO_RESUME || DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
     {
         force_liveview();
     }
+#endif
 
     extern int ml_started;
     while (!ml_started) msleep(100);
+
+#ifdef FEATURE_EXPO_OVERRIDE
     bv_auto_update_startup();
     bv_startup = 0;
+#endif
 }
 
 void movtweak_step()
 {
+    #ifdef FEATURE_MOVIE_REC_KEY
     movie_rec_halfshutter_step();
+    #endif
 
-#ifndef CONFIG_5D3 // movie restart not needed
+    #ifdef FEATURE_MOVIE_RESTART
         static int recording_prev = 0;
         #if defined(CONFIG_5D2) || defined(CONFIG_50D)
         if (recording == 0 && recording_prev && !movie_was_stopped_by_set)
@@ -462,16 +421,23 @@ void movtweak_step()
         recording_prev = recording;
 
         if (!recording) movie_was_stopped_by_set = 0;
-#endif
+    #endif
 
-	if (!recording) movie_autostop_running = 0;
-        //~ do_movie_mode_remap();
+        #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
+        if (!recording) movie_autostop_running = 0;
+        #endif
         
         if (is_movie_mode())
         {
+            #ifdef CONFIG_WB_WORKAROUND
             kelvin_wb_workaround_step();
-
+            #endif
+            
+            #ifdef FEATURE_SHUTTER_LOCK
             if (shutter_lock) shutter_lock_step();
+            #endif
+            
+            #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
             if (recording && movie_cliplen) {
                 if (!movie_autostop_running) {
                     movie_autostop_running = get_seconds_clock();
@@ -485,8 +451,10 @@ void movtweak_step()
                     }
                 }
             }
+            #endif
         }
 
+        #ifdef FEATURE_FORCE_LIVEVIEW
         if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
             (enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
         {
@@ -496,68 +464,30 @@ void movtweak_step()
                 (enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
                 force_liveview();
         }
+        #endif
 
         //~ update_lvae_for_autoiso_n_displaygain();
         
-        #ifndef CONFIG_5D3 // not needed
+        #ifdef FEATURE_FORCE_HDMI_VGA
         if (hdmi_force_vga && is_movie_mode() && (lv || PLAY_MODE) && !gui_menu_shown())
         {
             if (hdmi_code == 5)
             {
                 msleep(1000);
-                //~ NotifyBox(2000, "HDMI resolution: 720x480");
-                //~ beep();
-                    ui_lock(UILOCK_EVERYTHING);
-                    BMP_LOCK(
-                        ChangeHDMIOutputSizeToVGA();
-                        msleep(300);
-                    )
-                    msleep(2000);
-                    ui_lock(UILOCK_NONE);
+                ui_lock(UILOCK_EVERYTHING);
+                BMP_LOCK(
+                    ChangeHDMIOutputSizeToVGA();
+                    msleep(300);
+                )
+                msleep(2000);
+                ui_lock(UILOCK_NONE);
                 msleep(5000);
             }
         }
         #endif
 }
 
-// called from tweak_task
-//~ TASK_CREATE("movtweak_task", movtweak_task, 0, 0x1e, 0x1000 );
-
-/*
-static void
-wb_workaround_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "WB workaround : %s", 
-        white_balance_workaround ? "ON(save WB in cfg)" : "OFF"
-    );
-}*/
-
-/*extern int zebra_nrec;
-
-static void
-zebra_nrec_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Zebra when REC: %s", 
-        zebra_nrec ? "Hide" : "Show"
-    );
-    menu_draw_icon(x, y, MNI_BOOL(!zebra_nrec), 0);
-}*/
+#ifdef FEATURE_FORCE_HDMI_VGA
 
 void
 hdmi_force_display(
@@ -574,11 +504,14 @@ hdmi_force_display(
         hdmi_force_vga ? "ON" : "OFF"
     );
 }
+#endif
 
 CONFIG_INT("screen_layout.lcd", screen_layout_lcd, SCREENLAYOUT_3_2_or_4_3);
 CONFIG_INT("screen_layout.ext", screen_layout_ext, SCREENLAYOUT_16_10);
 unsigned* get_screen_layout_ptr() { return EXT_MONITOR_CONNECTED ? &screen_layout_ext : &screen_layout_lcd; }
 int get_screen_layout() { return (int) *get_screen_layout_ptr(); }
+
+#ifdef FEATURE_SCREEN_LAYOUT
 
 void
 screen_layout_display(
@@ -605,9 +538,9 @@ screen_layout_display(
 }
 
 void screen_layout_toggle(void* priv, int delta) { menu_quinternary_toggle(get_screen_layout_ptr(), delta); }
+#endif
 
-
-#ifdef CONFIG_50D
+#ifdef FEATURE_MOVIE_RECORDING_50D
 
 static void
 lv_movie_print(
@@ -641,32 +574,8 @@ void lv_movie_size_toggle(void* priv, int delta)
     GUI_SetMovieSize_a(s);
 }
 #endif
-/*
-static void
-movie_size_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Movie size      : %s",
-        movie_size_50d == 0 ? "Invalid" :
-        movie_size_50d == 1 ? "1920x1088" :
-        movie_size_50d == 2 ? "640x480" : "err" // not sure
-    );
-    menu_draw_icon(x, y, movie_size_50d == 0 ? MNI_WARNING : MNI_ON, 0);
-}
 
-void movie_size_toggle(void* priv)
-{
-    int newvalue = movie_size_50d == 1 ? 2 : 1;
-    GUI_SetMovieSize_b(newvalue);
-}*/
-#if defined(CONFIG_50D) || defined(CONFIG_500D)
+#ifdef FEATURE_LVAE_EXPO_LOCK
 int movie_expo_lock = 0;
 static void movie_expo_lock_toggle()
 {
@@ -695,7 +604,7 @@ static void movie_expo_lock_print(
 }
 #endif
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+#ifdef CONFIG_BLUE_LED
 CONFIG_INT("rec.notify", rec_notify, 3);
 #else
 CONFIG_INT("rec.notify", rec_notify, 0);
@@ -706,7 +615,7 @@ CONFIG_INT("rec.led.off", rec_led_off, 0);
 // implemented in the modified DebugMsg (for now in gui-common.c)
 #endif
 
-
+#ifdef FEATURE_REC_NOTIFY
 static void rec_notify_print(
     void *          priv,
     int         x,
@@ -760,14 +669,8 @@ void rec_notify_continuous(int called_from_menu)
                 "Not recording");
             bmp_draw_rect(COLOR_RED, xc - rx, yc - ry, rx * 2, ry * 2);
             bmp_draw_rect(COLOR_RED, xc - rx + 1, yc - ry + 1, rx * 2 - 2, ry * 2 - 2);
-            //~ draw_circle(xc, yc, r, COLOR_RED);
-            //~ draw_circle(xc, yc, r-1, COLOR_RED);
             draw_line(xc + rx, yc - ry, xc - rx, yc + ry, COLOR_RED);
             draw_line(xc + rx, yc - ry + 1, xc - rx, yc + ry + 1, COLOR_RED);
-            //~ bmp_draw_rect(COLOR_RED, os.x0 + 50, os.y0 + 75, os.x_ex - 100, os.y_ex - 150);
-            //~ bmp_draw_rect(COLOR_RED, os.x0 + 51, os.y0 + 76, os.x_ex - 102, os.y_ex - 152);
-            //~ draw_line(os.x0 + 50, os.y0 + 75, os.x0 + os.x_ex - 50, os.y0 + os.y_ex - 75, COLOR_RED);
-            //~ draw_line(os.x0 + 50, os.y0 + 76, os.x0 + os.x_ex - 50, os.y0 + os.y_ex - 74, COLOR_RED);
         )
     }
     else if (rec_notify == 2)
@@ -805,7 +708,10 @@ void rec_notify_trigger(int rec)
         NotifyBox(1000, "Sound is disabled.");
 #endif
 }
+#endif
 
+
+#ifdef FEATURE_EXPO_OVERRIDE
 /**
  * Exposure override mode
  * ======================
@@ -904,13 +810,6 @@ void bv_enable()
     give_semaphore(bv_sem);
 }
 
-//~ static PROP_INT(PROP_ISO, prop_iso);
-//~ static PROP_INT(PROP_SHUTTER, prop_shutter);
-//~ static PROP_INT(PROP_APERTURE, prop_aperture);
-//~ static PROP_INT(PROP_SHUTTER_ALSO, prop_shutter_also);
-//~ static PROP_INT(PROP_APERTURE2, prop_aperture2);
-
-
 void bv_disable()
 {
     //~ bmp_printf(FONT_LARGE, 50, 50, "DIS    ");
@@ -924,9 +823,6 @@ void bv_disable()
     iso_auto_restore_hack();
 
     //~ bmp_printf(FONT_LARGE, 50, 50, "DISable");
-    //~ lensinfo_set_iso(prop_iso);
-    //~ lensinfo_set_shutter(prop_shutter ? prop_shutter : prop_shutter_also);
-    //~ lensinfo_set_aperture(prop_aperture ? prop_aperture : prop_aperture2);
 
 end:
     give_semaphore(bv_sem);
@@ -943,6 +839,7 @@ PROP_HANDLER(PROP_LIVE_VIEW_VIEWTYPE)
 {
     bv_auto_update();
 }
+#endif
 
 CONFIG_INT("lvae.iso.min", lvae_iso_min, 72);
 CONFIG_INT("lvae.iso.max", lvae_iso_max, 104);
@@ -1041,20 +938,25 @@ void update_lvae_for_autoiso_n_displaygain()
 }
 #endif
 
-/*int gain_to_ev(int gain)
-{
-    if (gain == 0) return 0;
-    return (int) roundf(log2f(gain));
-}*/
-
 int gain_to_ev_x8(int gain)
 {
     if (gain == 0) return 0;
-    return (int) roundf(log2f(gain) * 8.0);
+    return (int) roundf(log2f(gain) * 8.0f);
 }
 
 CONFIG_INT("iso.smooth", smooth_iso, 0);
 CONFIG_INT("iso.smooth.spd", smooth_iso_speed, 2);
+
+#ifdef FEATURE_GRADUAL_EXPOSURE
+
+#ifndef CONFIG_FRAME_ISO_OVERRIDE
+#error This requires CONFIG_FRAME_ISO_OVERRIDE. 
+#endif
+
+#ifndef FEATURE_EXPO_ISO_DIGIC
+#error This requires FEATURE_EXPO_ISO_DIGIC. 
+#endif
+
 void smooth_iso_step()
 {
     static int iso_acc = 0;
@@ -1087,7 +989,7 @@ void smooth_iso_step()
     }
     if (iso_acc)
     {
-        float gf = 1024.0 * powf(2, iso_acc / (8.0 * (1 << smooth_iso_speed)));
+        float gf = 1024.0f * powf(2, iso_acc / (8.0f * (1 << smooth_iso_speed)));
 
         // it's not a good idea to use a digital ISO gain higher than +/- 0.5 EV (noise or pink highlights), 
         // so alter it via FRAME_ISO
@@ -1168,9 +1070,10 @@ void smooth_iso_step()
     }
 
 }
+#endif
 
 static struct menu_entry mov_menus[] = {
-#ifdef CONFIG_50D
+    #ifdef FEATURE_MOVIE_RECORDING_50D
     {
         .name       = "Movie Record",
         .priv       = &lv_movie_select,
@@ -1178,64 +1081,35 @@ static struct menu_entry mov_menus[] = {
         .select_Q   = lv_movie_size_toggle,
         .display    = lv_movie_print,
         .help       = "Enable movie recording on 50D :) ",
-        //.essential = FOR_LIVEVIEW,
     },
-#endif
-#ifdef CONFIG_50D
+    #endif
+    #ifdef FEATURE_MOVIE_RECORDING_50D_SHUTTER_HACK
     {
         .name = "Shutter Button",
         .priv = &shutter_btn_rec,
         .display = shutter_btn_rec_print, 
         .select = menu_ternary_toggle,
         .help = "Block it while REC (avoids ERR99) or hold it (enables IS).",
-        //.essential = FOR_MOVIE,
     },
-#endif
-    /*{
-        .name       = "Movie size",
-        .select     = movie_size_toggle,
-        .display    = movie_size_print,
-        .help = "Movie recording size maybe, on 50D :) "
-    },*/
-    /*{
-        .priv = &bitrate_mode,
-        .display    = bitrate_print,
-        .select     = menu_ternary_toggle,
-        .select_auto    = bitrate_toggle_forward,
-        .select_reverse = bitrate_toggle_reverse,
-    },*/
-    /*{
-        .display    = vbr_print,
-        .select     = vbr_toggle,
-    },*/
-    #if !defined(CONFIG_500D) && !defined(CONFIG_5D3)
+    #endif
+    #ifdef FEATURE_MOVIE_RESTART
     {
         .name = "Movie Restart",
         .priv = &movie_restart,
         .display    = movie_restart_print,
         .select     = menu_binary_toggle,
         .help = "Auto-restart movie recording, if it happens to stop.",
-        //.essential = FOR_MOVIE,
     },
     #endif
-#ifndef CONFIG_5D3_MINIMAL
+    #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
     {
         .name    = "Stop recording",
         .priv    = &movie_cliplen,
         .display = movie_cliplen_display,
         .select  = movie_cliplen_toggle,
         .help = "Auto-stop the movie after a set amount of minutes.",
-        //.essential = FOR_MOVIE,
     },
-#endif
-    /*{
-        .priv = &movie_af,
-        .display    = movie_af_print,
-        .select     = menu_quaternary_toggle,
-        .select_reverse = movie_af_noisefilter_bump,
-        .select_auto = movie_af_aggressiveness_bump,
-    },*/
-    //~ #if !defined(CONFIG_50D) && !defined(CONFIG_5D2)
+    #endif
     #if 0
     {
         .name = "MovieModeRemap",
@@ -1243,35 +1117,25 @@ static struct menu_entry mov_menus[] = {
         .display    = mode_remap_print,
         .select     = menu_ternary_toggle,
         .help = "Remap movie mode to A-DEP, CA or C. Shortcut key: ISO+LV.",
-        //.essential = FOR_MOVIE,
     },
     #endif
-    /*{
-        .priv = &as_swap_enable, 
-        .display = as_swap_print,
-        .select = menu_binary_toggle,
-    },
-    {
-        .priv = &dof_adjust, 
-        .display = dof_adjust_print, 
-        .select = menu_binary_toggle,
-        .help = "Cover LCD sensor and adjust aperture => ISO changes too."
-    },*/
+    #ifdef FEATURE_REC_NOTIFY
     {
         .name = "REC/STBY notify", 
         .priv = &rec_notify, 
         .display = rec_notify_print, 
-        #if defined(CONFIG_5D2) || defined(CONFIG_500D)
-        .select = menu_quinternary_toggle, // beeps and blue led
-        #elif defined(CONFIG_600D) || defined(CONFIG_5D3) || defined(CONFIG_7D)
-        .select = menu_ternary_toggle, // no beeps, no blue led
+        #if defined(CONFIG_BLUE_LED) && defined(CONFIG_BEEP)
+        .max = 4,
+        #elif defined(CONFIG_BLUE_LED) && !defined(CONFIG_BEEP)
+        .max = 3,
+        #elif !defined(CONFIG_BLUE_LED) && defined(CONFIG_BEEP)
+        .max = 3,
         #else
-        .select = menu_quaternary_toggle, // beeps are OK, no blue led
+        .max = 2,
         #endif
         .help = "Custom REC/STANDBY notifications, visual or audible",
-        //.essential = FOR_MOVIE,
-        //~ .edit_mode = EM_MANY_VALUES_LV,
     },
+    #endif
     #ifdef CONFIG_5D3
     {
         .name = "Dim REC LED",
@@ -1280,7 +1144,7 @@ static struct menu_entry mov_menus[] = {
         .help = "Make the red LED light less distracting while recording.",
     },
     #endif
-    #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_7D)
+    #ifdef FEATURE_MOVIE_REC_KEY
     {
         .name = "Movie REC key",
         .priv = &movie_rec_key, 
@@ -1302,51 +1166,34 @@ static struct menu_entry mov_menus[] = {
         },
     },
     #endif
-    /*{
-        .name = "WB workaround",
-        .priv = &white_balance_workaround,
-        .display = wb_workaround_display, 
-        .select = menu_binary_toggle,
-        .help = "Without this, camera forgets some WB params in Movie mode."
-    },*/
-    /*{
-        .name = "Zebra when REC",
-        .priv = &zebra_nrec,
-        .select = menu_binary_toggle,
-        .display = zebra_nrec_display,
-        .help = "You can disable zebra during recording."
-    },*/
-    #if !defined(CONFIG_50D) && !defined(CONFIG_7D)
+    #ifdef FEATURE_FORCE_LIVEVIEW
     {
         .name = "Force LiveView",
         .priv = &enable_liveview,
         .display    = enable_liveview_print,
         .select     = menu_ternary_toggle,
         .help = "Always use LiveView (with manual lens or after lens swap).",
-        //.essential  = FOR_MOVIE,
     },
     #endif
-#if defined(CONFIG_50D) //|| defined(CONFIG_500D)
+    #ifdef FEATURE_LVAE_EXPO_LOCK
     {
         .name       = "Exposure Lock",
         .priv       = &movie_expo_lock,
         .select     = movie_expo_lock_toggle,
         .display    = movie_expo_lock_print,
-        .help       = "Lock the exposure in movie mode (50D/500D)",
-        //.essential = FOR_MOVIE,
+        .help       = "Lock the exposure in movie mode.",
     },
-#endif
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D3) && !defined(CONFIG_7D)
+    #endif
+    #ifdef FEATURE_SHUTTER_LOCK
     {
         .name = "Shutter Lock",
         .priv = &shutter_lock,
         .display = shutter_lock_print, 
         .select = menu_binary_toggle,
         .help = "Lock shutter value in movie mode (change from Expo only).",
-        //.essential = FOR_MOVIE,
     },
-#endif
-#ifdef CONFIG_FRAME_ISO_OVERRIDE
+    #endif
+    #ifdef FEATURE_GRADUAL_EXPOSURE
     {
         .name = "Gradual Expo.",
         .priv = &smooth_iso,
@@ -1366,7 +1213,7 @@ static struct menu_entry mov_menus[] = {
             MENU_EOL
         },
     },
-#endif
+    #endif
     #if 0
     {
         .name = "REC on resume",
@@ -1377,36 +1224,23 @@ static struct menu_entry mov_menus[] = {
     #endif
 };
 
+#ifdef FEATURE_EXPO_OVERRIDE
 struct menu_entry expo_override_menus[] = {
     {
         .name = "Exp.Override",
         .select     = bv_toggle,
         .display    = bv_display,
         .help = "Low-level manual exposure controls (bypasses Canon limits)",
-        //.essential = FOR_LIVEVIEW,
-        //~ .show_liveview = 1,
     },
 };
+#endif
 
 void movtweak_init()
 {
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
-    //~ menu_add( "Display", display_menus, COUNT(display_menus) );
+    #ifdef FEATURE_EXPO_OVERRIDE
     bv_sem = create_named_semaphore( "bv", 1 );
+    #endif
 }
 
 INIT_FUNC(__FILE__, movtweak_init);
-
-/*int handle_movie_mode_shortcut(struct event * event)
-{
-    // movie mode shortcut
-    if (event->param == BGMT_LV && ISO_ADJUSTMENT_ACTIVE)
-    {
-        if (!is_movie_mode())
-        {
-            set_shooting_mode(SHOOTMODE_MOVIE);
-            return 0;
-        }
-    }
-    return 1;
-}*/

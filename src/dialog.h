@@ -25,7 +25,8 @@
 #define _dryos_dialog_h_
 
 #include "arm-mcr.h"
-#include "gui.h"
+
+typedef uint32_t gui_event_t; // not used
 
 /** Windowing system elements */
 struct winsys_struct
