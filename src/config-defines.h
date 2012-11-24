@@ -22,6 +22,9 @@
     /** If something goes wrong (ERR70), we can save a crash log **/
     #define CONFIG_CRASH_LOG
 
+    /** It's a good idea to back up ROM contents on the card - just in case **/
+    #define CONFIG_AUTOBACKUP_ROM
+
     /** It's a good idea to run some automated tests **/
     #define CONFIG_STRESS_TEST
     #define CONFIG_BENCHMARKS
@@ -35,6 +38,9 @@
 
     /** A bunch of debug tools **/
     //~ #define CONFIG_DEBUGMSG
+
+    /** Useful to test battery consumption without any other ML code running **/
+    //~ #define CONFIG_BATTERY_TEST
 
 /** What internals do we have on each camera? **/
 #include "internals.h" // from platform directory
