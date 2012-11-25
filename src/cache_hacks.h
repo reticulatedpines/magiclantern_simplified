@@ -12,7 +12,7 @@
 /* INDEX in tag field starts at bit 5 */
 #define CACHE_INDEX_TAGOFFSET(t)    5
 /* bitmask that matches the INDEX value bits */
-#define CACHE_INDEX_BITMASK(t)      ((1<<CACHE_INDEX_BITS(t)) - 1)
+#define CACHE_INDEX_BITMASK(t)      ((1U<<CACHE_INDEX_BITS(t)) - 1)
 /* bitmask to mask out the INDEX field in a tag */
 #define CACHE_INDEX_ADDRMASK(t)     (CACHE_INDEX_BITMASK(t)<<CACHE_INDEX_TAGOFFSET(t))
 
@@ -21,7 +21,7 @@
 /* TAG in tag field starts at bit 5 plus INDEX size */
 #define CACHE_TAG_TAGOFFSET(t)      (5+CACHE_INDEX_BITS(t))
 /* bitmask that matches the TAG value bits */
-#define CACHE_TAG_BITMASK(t)        ((1<<CACHE_TAG_BITS(t)) - 1)
+#define CACHE_TAG_BITMASK(t)        ((1U<<CACHE_TAG_BITS(t)) - 1)
 /* bitmask to mask out the TAG field in a tag */
 #define CACHE_TAG_ADDRMASK(t)       (CACHE_TAG_BITMASK(t)<<CACHE_TAG_TAGOFFSET(t))
 
@@ -30,7 +30,7 @@
 /* WORD in tag field starts at this bit position */
 #define CACHE_WORD_TAGOFFSET(t)     2
 /* bitmask that matches the WORD value bits */
-#define CACHE_WORD_BITMASK(t)       ((1<<CACHE_WORD_BITS(t)) - 1)
+#define CACHE_WORD_BITMASK(t)       ((1U<<CACHE_WORD_BITS(t)) - 1)
 /* bitmask to mask out the WORD field in a tag */
 #define CACHE_WORD_ADDRMASK(t)      (CACHE_WORD_BITMASK(t)<<CACHE_WORD_TAGOFFSET(t))
 
@@ -39,7 +39,7 @@
 /* SEGMENT in tag field starts at this bit position */
 #define CACHE_SEGMENT_TAGOFFSET(t)  30
 /* bitmask that matches the SEGMENT value bits */
-#define CACHE_SEGMENT_BITMASK(t)    ((1<<CACHE_SEGMENT_BITS(t)) - 1)
+#define CACHE_SEGMENT_BITMASK(t)    ((1U<<CACHE_SEGMENT_BITS(t)) - 1)
 /* bitmask to mask out the SEGMENT field in a tag */
 #define CACHE_SEGMENT_ADDRMASK(t)   (CACHE_SEGMENT_BITMASK(t)<<CACHE_SEGMENT_TAGOFFSET(t))
 
@@ -120,13 +120,13 @@ static void cache_fetch_line(uint32_t address, uint32_t type)
     /* our ARM946 has 0x20 byte temp_cachelines. fetch the current line
        thanks to unified memories, we can do LDR on instructions.
     */
-    for(int pos = 0; pos < 8; pos++)
+    for(uint32_t pos = 0; pos < 8; pos++)
     {
         temp_cacheline[pos] = ((uint32_t *)base)[pos];
     }
 
     /* and nail it into locked cache */
-    for(int pos = 0; pos < 8; pos++)
+    for(uint32_t pos = 0; pos < 8; pos++)
     {
         cache_patch_single_word(base + pos * 4, temp_cacheline[pos], type);
     }
@@ -248,7 +248,7 @@ static void icache_unlock()
     uint32_t old_int = cli();
 
     /* make sure all entries are set to invalid */
-    for(int index = 0; index < (1<<CACHE_INDEX_BITS(TYPE_ICACHE)); index++)
+    for(uint32_t index = 0; index < (1U<<CACHE_INDEX_BITS(TYPE_ICACHE)); index++)
     {
         asm volatile ("\
            /* write index for address to write */\
@@ -280,9 +280,9 @@ static void dcache_unlock()
     uint32_t old_int = cli();
 
     /* first clean and flush dcache entries */
-    for(uint32_t segment = 0; segment < (1<<CACHE_SEGMENT_BITS(TYPE_DCACHE)); segment++ )
+    for(uint32_t segment = 0; segment < (1U<<CACHE_SEGMENT_BITS(TYPE_DCACHE)); segment++ )
     {
-        for(uint32_t index = 0; index < (1<<CACHE_INDEX_BITS(TYPE_DCACHE)); index++)
+        for(uint32_t index = 0; index < (1U<<CACHE_INDEX_BITS(TYPE_DCACHE)); index++)
         {
             uint32_t seg_index = (segment << CACHE_SEGMENT_TAGOFFSET(TYPE_DCACHE)) | (index << CACHE_INDEX_TAGOFFSET(TYPE_DCACHE));
             asm volatile ("\
@@ -293,7 +293,7 @@ static void dcache_unlock()
     }
     
     /* make sure all entries are set to invalid */
-    for(int index = 0; index < (1<<CACHE_INDEX_BITS(TYPE_ICACHE)); index++)
+    for(uint32_t index = 0; index < (1U<<CACHE_INDEX_BITS(TYPE_ICACHE)); index++)
     {
         asm volatile ("\
            /* write index for address to write */\
@@ -340,7 +340,7 @@ static void icache_lock()
        " : : : "r0");
 
     /* make sure all entries are set to invalid */
-    for(int index = 0; index < (1<<CACHE_INDEX_BITS(TYPE_ICACHE)); index++)
+    for(uint32_t index = 0; index < (1U<<CACHE_INDEX_BITS(TYPE_ICACHE)); index++)
     {
         asm volatile ("\
            /* write index for address to write */\
@@ -358,9 +358,9 @@ static void dcache_lock()
     uint32_t old_int = cli();
 
     /* first clean and flush dcache entries */
-    for(uint32_t segment = 0; segment < (1<<CACHE_SEGMENT_BITS(TYPE_DCACHE)); segment++ )
+    for(uint32_t segment = 0; segment < (1U<<CACHE_SEGMENT_BITS(TYPE_DCACHE)); segment++ )
     {
-        for(uint32_t index = 0; index < (1<<CACHE_INDEX_BITS(TYPE_DCACHE)); index++)
+        for(uint32_t index = 0; index < (1U<<CACHE_INDEX_BITS(TYPE_DCACHE)); index++)
         {
             uint32_t seg_index = (segment << CACHE_SEGMENT_TAGOFFSET(TYPE_DCACHE)) | (index << CACHE_INDEX_TAGOFFSET(TYPE_DCACHE));
             asm volatile ("\
@@ -382,7 +382,7 @@ static void dcache_lock()
        " : : : "r0");
 
     /* make sure all entries are set to invalid */
-    for(int index = 0; index < (1<<CACHE_INDEX_BITS(TYPE_DCACHE)); index++)
+    for(uint32_t index = 0; index < (1U<<CACHE_INDEX_BITS(TYPE_DCACHE)); index++)
     {
         asm volatile ("\
            /* write index for address to write */\
