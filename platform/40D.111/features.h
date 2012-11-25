@@ -23,4 +23,8 @@
 
 #define FEATURE_AF_PATTERNS
 
+/** Shoot menu **/
+
+#define FEATURE_INTERVALOMETER
+
 // anything else working? no idea
