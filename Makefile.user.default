@@ -50,17 +50,18 @@ BUILDVER=$(shell whoami).$(shell hg id -i -r .)
 VERSION:=v2.3.NEXT.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION)
 
 # Build configuration
-CONFIG_PYMITE		= n
-CONFIG_RELOC		= n
-CONFIG_TIMECODE		= n
-CONFIG_PTP 		= n
-CONFIG_PTP_CHDK 	= n
-CONFIG_PTP_ML 		= n
-CONFIG_GDB              = n
-CONFIG_PLUGINS          = n
-CONFIG_CONSOLE		= n
-CONFIG_DEBUGMSG 	= 0
-CONFIG_CCACHE		= n
+CONFIG_PYMITE       = n
+CONFIG_RELOC        = n
+CONFIG_TIMECODE     = n
+CONFIG_PTP          = n
+CONFIG_PTP_CHDK     = n
+CONFIG_PTP_ML       = n
+CONFIG_GDB          = n
+CONFIG_GDBSTUB      = n
+CONFIG_PLUGINS      = n
+CONFIG_CONSOLE      = n
+CONFIG_DEBUGMSG     = 0
+CONFIG_CCACHE       = n
 
 # You can customize CFLAG here
 #CFLAG_USER = -march=armv5te -mcpu=arm946e-s -O2 -DCONFIG_RELEASE_BUILD \
