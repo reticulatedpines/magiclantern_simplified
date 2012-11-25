@@ -70,6 +70,8 @@ CFLAGS += -DCONFIG_STATIC_FONTS=1
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR     = 0xFF810000
-RESTARTSTART    = 0x980000
+RESTARTSTART    = 0x00980000
+AUTOEXEC_BASE   = 0x40800000
+FIR_BASE        = 0x40800120
 
 all: autoexec.bin

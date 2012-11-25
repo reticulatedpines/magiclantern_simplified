@@ -72,7 +72,9 @@ include ../../Makefile.inc
 #
 
 ROMBASEADDR     = 0xFF810000
-RESTARTSTART    = 0xB80000
+RESTARTSTART    = 0x00B80000
+AUTOEXEC_BASE   = 0x10800000
+FIR_BASE        = 0x10800120
 
 all: autoexec.bin
 

@@ -336,7 +336,7 @@ autoexec: reboot.o
 		-nostdlib \
 		-march=armv5te \
 		-e _start \
-		-Ttext 0x40800000 \
+		-Ttext $(AUTOEXEC_BASE) \
 		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
 	); \
 	$(STAT_CMD) autoexec.bin; \
@@ -348,7 +348,7 @@ autoexec-fir: reboot.o
 		-nostdlib \
 		-march=armv5te \
 		-e _start \
-		-Ttext 0x40800120 \
+		-Ttext $(FIR_BASE) \
 		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
 	);
 
