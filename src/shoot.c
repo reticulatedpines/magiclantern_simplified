@@ -295,6 +295,8 @@ static void do_this_every_second() // called every second
     #endif
 }
 
+static int bulb_exposure_running_accurate_clock_needed = 0;
+
 static void
 seconds_clock_task( void* unused )
 {
@@ -323,7 +325,7 @@ seconds_clock_task( void* unused )
             prev_s_clock = seconds_clock;
         }
 
-        msleep(100);
+        msleep(bulb_exposure_running_accurate_clock_needed ? MIN_MSLEEP : 100);
     }
 }
 TASK_CREATE( "clock_task", seconds_clock_task, 0, 0x19, 0x2000 );
@@ -3307,62 +3309,63 @@ bulb_take_pic(int duration)
     int m0r = shooting_mode;
     ensure_bulb_mode();
     
-    //~ #ifdef CONFIG_600D
     assign_af_button_to_star_button();
-    //~ #endif
     
     msleep(100);
-    //~ if (beep_enabled) beep();
     
     int d0 = drive_mode;
     lens_set_drivemode(DRIVE_SINGLE);
     //~ NotifyBox(3000, "BulbStart (%d)", duration); msleep(1000);
     mlu_lock_mirror_if_needed();
-    //~ SW1(1,50);
-    //~ SW2(1,0);
-
-    //~ SW1(1,100);
-    //~ SW1(0,100);
-    SW1(1,100);
-    wait_till_next_second();
     
-    //~ int x = 0;
-    //~ prop_request_change(PROP_REMOTE_BULB_RELEASE_START, &x, 4);
+    // with this, clock_task will update the millisecond timer as fast as it can
+    bulb_exposure_running_accurate_clock_needed = 1;
+    
+    SW1(1,100);
+    msleep(200);
+    
+    int t_start = get_ms_clock_value();
+    int t_end = t_start + duration;
     SW2(1,0);
     
     //~ msleep(duration);
     int d = duration/1000;
-    for (int i = 0; i < d; i++)
+    while (get_ms_clock_value() <= t_end - 1500)
     {
+        msleep(100);
+
+        // number of seconds that passed
+        static int prev_s = 0;
+        int s = (get_ms_clock_value() - t_start) / 1000;
+        if (s == prev_s) continue;
+        prev_s = s;
+        
+        // check the following at every second:
+        
         // for 550D and other cameras that may keep the display on during bulb exposures -> always turn it off
-        if (DISPLAY_IS_ON && i==1) fake_simple_button(BGMT_INFO);
+        if (DISPLAY_IS_ON && s==1) fake_simple_button(BGMT_INFO);
         
         // turn off the LED - no light pollution, please :)
         // but blink it quickly every 10 seconds to have some feedback
-        if (i % 10 == 1) { _card_led_on(); msleep(10); _card_led_off(); }
+        if (s % 10 == 1) { _card_led_on(); msleep(10); _card_led_off(); }
 
         // blink twice every minute, and beep as many times as elapsed minutes
-        if (i % 60 == 1) { msleep(200); _card_led_on(); msleep(10); _card_led_off(); if (i/60) beep_times(i/60); }
-        
-        // count one second (sync'ed to RTC)
-        wait_till_next_second();
+        if (s % 60 == 1) { msleep(200); _card_led_on(); msleep(10); _card_led_off(); if (s/60) beep_times(s/60); }
         
         // exposure was canceled earlier by user
         if (lens_info.job_state == 0) break;
     }
     
-    msleep(duration % 1000);
-    //~ prop_request_change(PROP_REMOTE_BULB_RELEASE_END, &x, 4);
+    while (get_ms_clock_value() < t_end)
+        msleep(MIN_MSLEEP);
     //~ NotifyBox(3000, "BulbEnd");
     SW2(0,0);
     SW1(0,0);
-    //~ msleep(100);
-    //~ #ifdef CONFIG_600D
+    
+    bulb_exposure_running_accurate_clock_needed = 0;
+    
     lens_wait_readytotakepic(64);
-    //~ if (beep_enabled) beep();
     restore_af_button_assignment();
-    //~ #endif
-    //~ get_out_of_play_mode(1000);
     lens_set_drivemode(d0);
     prop_request_change( PROP_SHUTTER, &s0r, 4 );
     prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
@@ -6460,14 +6463,14 @@ int handle_intervalometer(struct event * event)
 #endif
 }
 
-// this syncs with DIGIC clock (counts in microseconds and overflows every second)
+// this syncs with DIGIC clock from clock_task
 void wait_till_next_second()
 {
-    int prev_t = 0;
+    int prev_t = get_seconds_clock();
     while (1)
     {
-        int t = *(uint32_t*)0xC0242014;
-        if (t < prev_t) break;
+        int t = get_seconds_clock();
+        if (t != prev_t) break;
         prev_t = t;
         msleep(20);
     }

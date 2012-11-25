@@ -1118,7 +1118,7 @@ waveform_draw_image(
         {
             int y_bmp = y_origin + y * height / WAVEFORM_HEIGHT + k;
             if (y_bmp < 0) continue;
-            if (y_bmp >= os.y_max) continue;
+            if (y_bmp >= BMP_H_PLUS) continue;
 
             uint8_t * row = bvram + x_origin + y_bmp * pitch;
             //int y_next = (y-1) * height / WAVEFORM_HEIGHT;
@@ -4346,17 +4346,8 @@ static void draw_zoom_overlay(int dirty)
 
     // select buffer where MZ should be written (camera-specific, guesswork)
     #if defined(CONFIG_5D2)
-    uint16_t* prev_lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
-    int t0 = *(uint32_t*)0xC0242014;
-    while(1) // dirty, but seems to work
-    {
-        int t1 = *(uint32_t*)0xC0242014;
-        int dt = mod(t1 - t0, 1048576);
-        lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
-        if (lvr != prev_lvr) break;
-        if (dt > 20000) break; // don't busy wait too much
-    }
-    lvr = prev_lvr;
+    lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
+    busy_vsync(0, 20);
     #elif defined(CONFIG_5D3)
     lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
     if (lvr != CACHEABLE(YUV422_LV_BUFFER_1) && lvr != CACHEABLE(YUV422_LV_BUFFER_2) && lvr != CACHEABLE(YUV422_LV_BUFFER_3)) return;

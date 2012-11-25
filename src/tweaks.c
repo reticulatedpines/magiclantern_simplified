@@ -3151,6 +3151,16 @@ void defish_draw_lv_color()
     {
         ind = AllocateMemory(720*240*4);
     }
+    if (!ind) 
+    {
+        ind = shoot_malloc(720*240*4);
+        return;
+    }
+    if (!ind) 
+    {
+        NotifyBox(2000, "Not enough RAM for defishing :(");
+        return;
+    }
     
     static int prev_sig = 0;
     int sig = defish_projection + vram_lv.width + vram_hd.width + DEFISH_HD*314;
@@ -3300,7 +3310,16 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
     *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_2);
 #elif defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
-    *src_buf = (void*)shamem_read(REG_EDMAC_WRITE_LV_ADDR);
+    
+    // the EDMAC buffer is currently updating; use the previous one, which is complete
+    static void* prev = 0;
+    static void* buff = 0;
+    void* current = (void*)shamem_read(REG_EDMAC_WRITE_LV_ADDR);
+    if (current != prev)
+        buff = prev;
+    prev = current;
+    *src_buf = buff;
+
     *dst_buf = CACHEABLE(YUV422_LV_BUFFER_1 + 720*480*2);
 #else // just use some reasonable defaults that won't crash the camera
     *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);

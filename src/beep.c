@@ -670,7 +670,7 @@ static void beep_task()
             {
                 play_beep(beep_buf, 3000);
                 while (beep_playing) msleep(20);
-                msleep(70);
+                msleep(120);
             }
         }
         msleep(100);

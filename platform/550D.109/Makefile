@@ -74,7 +74,7 @@ include ../../Makefile.inc
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
-ROMBASEADDR		= 0xFF010000
+ROMBASEADDR     = 0xFF010000
 
 # for injecting ML into malloc pool (Trammell's approach)
 #RESTARTSTART		= 0x0008B000
@@ -83,7 +83,10 @@ ROMBASEADDR		= 0xFF010000
 # For injecting ML into AllocateMemory (system memory) pool - which is much bigger; 
 # The malloc pool is very small on 550D and creates problems when Canon firmware tries to malloc.
 # They don't always check for successful mallocs, and this causes weird bugs - camera acting like drunk :)
-RESTARTSTART		= 0xC80100
+RESTARTSTART    = 0xC80100
+
+AUTOEXEC_BASE   = 0x40800000
+FIR_BASE        = 0x40800120
 
 #not used but...
 FIRMWARE_ID_550D	= 0x80000270

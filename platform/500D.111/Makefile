@@ -73,7 +73,9 @@ include ../../Makefile.inc
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
-ROMBASEADDR		= 0xFF010000
-RESTARTSTART		= 0x0004D000
+ROMBASEADDR     = 0xFF010000
+RESTARTSTART    = 0x0004D000
+AUTOEXEC_BASE   = 0x40800000
+FIR_BASE        = 0x40800120
 
 all: autoexec.bin
