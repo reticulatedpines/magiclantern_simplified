@@ -11,10 +11,10 @@
     #define BGMT_PRESS_SET 4
     #define BGMT_UNPRESS_SET 5
 
-    #define BGMT_MENU 6
-    #define BGMT_INFO 7
-    #define BGMT_PLAY 0xB // ?!
-    #define BGMT_TRASH 0xD
+#define BGMT_MENU 6
+#define BGMT_INFO 7
+#define BGMT_PLAY 0xB
+#define BGMT_TRASH 0xD
 
     #define BGMT_PRESS_DP 0x2f
     #define BGMT_UNPRESS_DP 0x35
@@ -63,15 +63,15 @@
 
     #define BGMT_LIGHT 0x20 // the little button for top screen backlight
 
-    #define GMT_OLC_INFO_CHANGED 103 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
+#define GMT_OLC_INFO_CHANGED 105 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 
-    // needed for correct shutdown from powersave modes
-    #define GMT_GUICMD_START_AS_CHECK 95
-    #define GMT_GUICMD_OPEN_SLOT_COVER 91
-    #define GMT_GUICMD_LOCK_OFF 89
+// needed for correct shutdown from powersave modes
+#define GMT_GUICMD_START_AS_CHECK 97
+#define GMT_GUICMD_OPEN_SLOT_COVER 93
+#define GMT_GUICMD_LOCK_OFF 91
 
     #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_LIGHT // what button to use for zebras in Play mode
 
-    #define GMT_LOCAL_DIALOG_REFRESH_LV 0x36 // event type = 2, gui code = 0x100000BC in 5d3
+#define GMT_LOCAL_DIALOG_REFRESH_LV 0x36 // event type = 2, gui code = 0x100000C6 in EOS-M
 
 #endif
