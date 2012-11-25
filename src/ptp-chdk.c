@@ -22,12 +22,14 @@
 //#define PTP_7D_MASTER_ACCESS
 #endif
 
+#if defined(CONFIG_GDBSTUB)
 extern uint32_t gdb_recv_buffer_length;
 extern uint32_t gdb_send_buffer_length;
 extern uint8_t gdb_recv_buffer[];
 extern uint8_t gdb_send_buffer[];
 extern void gdb_recv_callback(uint32_t);
 extern void gdb_send_callback();
+#endif
 
 
 #if defined(PTP_7D_MASTER_ACCESS)
@@ -235,7 +237,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
 #endif
             break;
 
-#ifdef CONFIG_GDB_PTP // Automatically defined by Make if CONFIG_GDB = y
+#ifdef CONFIG_GDBSTUB // Automatically defined by Make if CONFIG_GDB = y
         case PTP_CHDK_GDBStub_Download:
             {
                 if (length == 0) // invalid size?

@@ -55,13 +55,16 @@ void (*gdb_orig_undef_handler)(void) = 0;
 
 void gdb_main_task(void);
 
+#if defined(CONFIG_GDBSTUB)
 uint32_t gdb_recv_buffer_length = 0;
 uint32_t gdb_send_buffer_length = 0;
 uint8_t gdb_recv_buffer[GDB_TRANSMIT_BUFFER_SIZE];
 uint8_t gdb_send_buffer[GDB_TRANSMIT_BUFFER_SIZE];
 char *gdb_send_ptr = NULL;
+#endif
 
 
+#if defined(USE_HOOKS)
 uint32_t gdb_pre_task_hook_cnt = 0;
 uint32_t gdb_post_task_hook_cnt = 0;
 uint32_t gdb_pre_isr_hook_cnt = 0;
@@ -71,6 +74,8 @@ void (*orig_pre_task_hook) (void) = 0;
 void (*orig_post_task_hook)(uint32_t *,uint32_t *,uint32_t *) = 0;
 void (*orig_pre_isr_hook)  (uint32_t) = 0;
 void (*orig_post_isr_hook) (uint32_t) = 0;
+#endif
+
 
 void gdb_task_stall(void);
 void gdb_task_resume(void);
@@ -783,9 +788,11 @@ uint32_t gdb_setup()
 
     icache_lock();
 
+#if defined(CONFIG_GDBSTUB)
     gdb_memset(gdb_send_buffer, 0, GDB_TRANSMIT_BUFFER_SIZE);
     gdb_memset(gdb_recv_buffer, 0, GDB_TRANSMIT_BUFFER_SIZE);
     gdb_send_ptr = (char*)gdb_send_buffer;
+#endif
 
     if(!gdb_install_handler())
     {
@@ -796,6 +803,7 @@ uint32_t gdb_setup()
     {
         return 0;
     }
+    
 #if defined(CONFIG_GDBSTUB)
     task_create("gdbstub_task", 0x1e, 0, gdb_main_task, 0);
 #endif

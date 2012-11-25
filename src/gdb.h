@@ -65,5 +65,6 @@ uint32_t gdb_instr_is_pc_modifying(uint32_t opcode);
 char *gdb_get_callstack(breakpoint_t *bkpt);
 uint32_t gdb_setup();
 void gdb_delete_bkpt(breakpoint_t *bkpt);
+void gdb_unarm_bkpt(breakpoint_t *bkpt);
 
 #endif
