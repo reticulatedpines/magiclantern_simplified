@@ -75,9 +75,9 @@ draw_prop_reset( void * priv )
 }
 #endif
 
-#ifdef CONFIG_5D3
-void _card_led_on() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x138800; }
-void _card_led_off() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x838C00; }
+#if defined(CONFIG_5D3) || defined(CONFIG_EOSM)
+void _card_led_on() { *(volatile uint32_t*)CARD_LED_ADDRESS = LEDON; }
+void _card_led_off() { *(volatile uint32_t*)CARD_LED_ADDRESS = LEDOFF; }
 #elif defined(CONFIG_7D)
 void _card_led_on() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x138800; }
 void _card_led_off() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x38400; }

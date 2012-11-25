@@ -6,8 +6,8 @@
 
 #define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC022C188 // http://magiclantern.wikia.com/wiki/Led_addresses
-#define LEDON 0x93D800
-#define LEDOFF 0x83DC00
+#define LEDON 0x138800
+#define LEDOFF 0x838C00
 
 #define HIJACK_INSTR_BL_CSTART  0xff0c0d80
 #define HIJACK_INSTR_BSS_END 0xff0c1cbc
