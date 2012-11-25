@@ -58,8 +58,6 @@ extern struct gui_timer_struct gui_timer_struct;
 
 int max_gui_queue_len = 0;
 
-extern int FA_GetPropertyAddress(const char *);	
-
 // Replaces the gui_main_task
 static void ml_gui_main_task( void )
 {
@@ -82,7 +80,7 @@ static void ml_gui_main_task( void )
 			/*
 			if(event_ptr->param == BGMT_PRESS_DIRECT_PRINT) {	
 				const char * prop_afp_name = "PROP_AFPOINT";
-				int prop_afp_addr = PROP_AFPOINT; //FA_GetPropertyAddress(prop_afp_name);
+				int prop_afp_addr = PROP_AFPOINT;
 				bmp_printf(FONT_LARGE, 50, 100, "Prop name=%s", prop_afp_name);
 				bmp_printf(FONT_LARGE, 50, 150, "Prop address=0x%08X", prop_afp_addr);
 				
@@ -97,8 +95,8 @@ static void ml_gui_main_task( void )
 				msleep(1000);
 				goto event_loop_bottom;
 			}
-			*/	
-						
+			**/
+
 			/*
 			if(event_ptr->param == BGMT_PRESS_DIRECT_PRINT) {				
 				//bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
