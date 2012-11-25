@@ -1622,6 +1622,7 @@ static void dbg_memspy_update()
 
 void display_clock()
 {
+#ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
     int bg = bmp_getpixel(15, 430);
 
     struct tm now;
@@ -1635,6 +1636,7 @@ void display_clock()
     static int prev_min = 0;
     if (prev_min != now.tm_min) redraw();
     prev_min = now.tm_min;
+#endif
 }
 
 
