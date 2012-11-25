@@ -55,9 +55,6 @@ ML_OBJS-y = \
 	vram.o \
 	morse.o \
 	liveview.o \
-	ptp.o \
-	ptp-ml.o \
-	ptp-chdk.o \
 	reloc.o \
 	aj_port.o \
 	fps-engio.o \
@@ -65,7 +62,6 @@ ML_OBJS-y = \
 	lv-img-engio.o \
 	state-object.o \
 	tasks.o \
-	gdb.o \
 	tskmon.o \
 	beep.o \
 	vsync-lite.o \
