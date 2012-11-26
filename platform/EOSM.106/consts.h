@@ -21,18 +21,18 @@
 
 #define DRYOS_ASSERT_HANDLER 0x3E2B8 // dec TH_assert or assert_0
 
-    #define YUV422_LV_BUFFER_1 0x55207800 
-    #define YUV422_LV_BUFFER_2 0x55617800
-    #define YUV422_LV_BUFFER_3 0x55a27800
+#define YUV422_LV_BUFFER_1 0x4F1D7800
+#define YUV422_LV_BUFFER_2 0x4F5E7800
+#define YUV422_LV_BUFFER_3 0x4F9F7800
 
-    // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
-    // stateobj_disp[1]
-    #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x246a4+0x11c))
+// http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
+// stateobj_disp[1]
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x3EAB0+0x11c))
 
     #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04508 // SDRAM address of LV buffer (aka VRAM)
     #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04a08 // SDRAM address of HD buffer (aka YUV)
 
-    //~ #define EVF_STATEOBJ *(struct state_object**)0x2600C)
+    #define EVF_STATEOBJ *(struct state_object**)0x40944)
     #define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR) + vram_hd.pitch) // first line from DMA is dummy
 
 
@@ -45,7 +45,8 @@
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x42540)
 
-    #define HALFSHUTTER_PRESSED 0 
+//~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
+#define HALFSHUTTER_PRESSED (*(int*)0x3F684)
 
 #define DISPLAY_SENSOR_POWERED 0
 
@@ -84,7 +85,7 @@
 
     #define AE_VALUE 0 // 404
 
- #define CURRENT_DIALOG_MAYBE (*(int*)0x41414) // not sure
+#define CURRENT_DIALOG_MAYBE (*(int*)0x41414)
 
 #define DLG_PLAY 1
 #define DLG_MENU 2
@@ -123,7 +124,7 @@
 #define BFNT_BITMAP_OFFSET 0xffcbcb88
 #define BFNT_BITMAP_DATA   0xffcbfb0c
 
-    #define DLG_SIGNATURE 0x6E4944
+#define DLG_SIGNATURE 0x6e6144
 
     // from CFn
      #define AF_BTN_HALFSHUTTER 0

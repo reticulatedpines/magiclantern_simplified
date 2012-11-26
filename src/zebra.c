@@ -4501,6 +4501,9 @@ int liveview_display_idle()
     #ifdef CONFIG_5D3
     extern thunk LiveViewLevelApp_handler;
     #endif
+    #ifdef CONFIG_EOSM
+    extern thunk LiveViewShutterApp_handler;
+    #endif
 
     return
         LV_NON_PAUSED && 
@@ -4511,6 +4514,9 @@ int liveview_display_idle()
               (dialog->handler == (dialog_handler_t) &LiveViewApp_handler || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler
                   #ifdef CONFIG_5D3
                   || dialog->handler == (dialog_handler_t) &LiveViewLevelApp_handler
+                  #endif
+                  #ifdef CONFIG_EOSM
+                  || dialog->handler == (dialog_handler_t) &LiveViewShutterApp_handler
                   #endif
               ) &&
             CURRENT_DIALOG_MAYBE <= 3 && 

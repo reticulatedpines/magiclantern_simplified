@@ -12,7 +12,7 @@
 #define BGMT_UNPRESS_SET 0x5
 
 #define BGMT_MENU 0x6
-#define BGMT_INFO 0x7
+#define BGMT_INFO 0xfff
 #define BGMT_PLAY 0xb
 #define BGMT_TRASH 0x2c
 
@@ -28,7 +28,7 @@
     //~ #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x5678
 
     #define BGMT_LV 0x1E
-#define BGMT_Q 0x1d
+#define BGMT_Q 0x7
     //~ #define BGMT_Q_ALT 0x67
 
     //~ #define BGMT_FUNC 0x12
