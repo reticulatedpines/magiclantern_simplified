@@ -29,18 +29,17 @@
 // stateobj_disp[1]
 #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x3EAB0+0x11c))
 
-    #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04508 // SDRAM address of LV buffer (aka VRAM)
-    #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04a08 // SDRAM address of HD buffer (aka YUV)
+#define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)
+#define REG_EDMAC_WRITE_HD_ADDR 0xc0f04108 // SDRAM address of HD buffer (aka YUV)
 
     #define EVF_STATEOBJ *(struct state_object**)0x40944)
-    #define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR) + vram_hd.pitch) // first line from DMA is dummy
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR))
 
 
-    // http://magiclantern.wikia.com/wiki/ASM_Zedbra
-    #define YUV422_HD_BUFFER_1 0x54000000
-    #define YUV422_HD_BUFFER_2 0x4ee00000
-    //~ #define YUV422_HD_BUFFER_3 0x50000080
-    #define IS_HD_BUFFER(x)  (1) // disable the check, it's complicated
+// http://magiclantern.wikia.com/wiki/ASM_Zedbra
+#define YUV422_HD_BUFFER_1 0x44000080
+#define YUV422_HD_BUFFER_2 0x46000080
+#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x42540)
