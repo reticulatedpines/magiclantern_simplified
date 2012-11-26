@@ -6828,7 +6828,6 @@ shoot_task( void* unused )
                 info_led_on();
                 
                 int d = BULB_SHUTTER_VALUE_S;
-                //~ NotifyBoxHide();
                 NotifyBox(10000, "[HalfShutter] Bulb timer: %s", format_time_hours_minutes_seconds(d));
                 while (get_halfshutter_pressed())
                 {
@@ -6836,22 +6835,24 @@ shoot_task( void* unused )
                 }
                 int m0 = shooting_mode;
                 wait_till_next_second();
-                //~ NotifyBoxHide();
                 NotifyBox(2000, "[2s] Bulb timer: %s", format_time_hours_minutes_seconds(d));
                 info_led_on();
                 wait_till_next_second();
-                if (get_halfshutter_pressed()) continue;
-                if (!display_idle()) continue;
-                if (m0 != shooting_mode) continue;
-                if (lens_info.job_state >= 10) continue;
-                //~ NotifyBoxHide();
+                if (get_halfshutter_pressed() || !display_idle() || m0 != shooting_mode || lens_info.job_state >= 10) 
+                {
+                    NotifyBox(2000, "Bulb timer canceled.");
+                    info_led_off();
+                    continue;
+                }
                 NotifyBox(2000, "[1s] Bulb timer: %s", format_time_hours_minutes_seconds(d));
                 info_led_on();
                 wait_till_next_second();
-                if (get_halfshutter_pressed()) continue;
-                if (!display_idle()) continue;
-                if (m0 != shooting_mode) continue;
-                if (lens_info.job_state >= 10) continue;
+                if (get_halfshutter_pressed() || !display_idle() || m0 != shooting_mode || lens_info.job_state >= 10) 
+                {
+                    NotifyBox(2000, "Bulb timer canceled.");
+                    info_led_off();
+                    continue;
+                }
                 info_led_off();
                 bulb_take_pic(d * 1000);
             }
