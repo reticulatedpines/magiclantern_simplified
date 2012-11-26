@@ -88,8 +88,8 @@
 /** This camera has no trouble saving Kelvin and/or WBShift in movie mode **/
 //~ #define CONFIG_WB_WORKAROUND
 
-/** We can't restore ML files after formatting the card in the camera **/
-//~ #define CONFIG_RESTORE_AFTER_FORMAT
+/** We can restore ML files after formatting the card in the camera **/
+#define CONFIG_RESTORE_AFTER_FORMAT
 
 /** We don't know how to use DMA_MEMCPY (yet) **/
 //~ #define CONFIG_DMA_MEMCPY

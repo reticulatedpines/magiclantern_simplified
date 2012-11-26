@@ -7,7 +7,7 @@
 #include "config.h"
 
 /* CF/SD device structure. we have two types which have different parameter order and little differences in behavior */
-#if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_40D)
+#if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_40D) && !defined(CONFIG_EOSM)
 struct cf_device
 {
     /* type b always reads from raw sectors */

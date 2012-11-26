@@ -189,3 +189,10 @@ NSTUB(0xFFA71DBC - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFFA7391C - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)
 
 NSTUB(0xFF1B4454, GUI_SetRollingPitchingLevelStatus)
+
+
+NSTUB(0xFF2C04E0, mvrSetPrintMovieLog)
+NSTUB(0xFF2BFEF0, mvrSetQscale)
+NSTUB(   0x4C584, mvr_config)
+NSTUB(0xFF2C04BC, mvrFixQScale)
+NSTUB(0xFF2BFFB4, mvrSetDefQScale)

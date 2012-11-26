@@ -29,6 +29,7 @@ ML_OBJS-y = \
 	menu.o \
 	debug.o \
 	stdio.o \
+	bitrate.o \
 	tweaks.o \
 	lens.o \
 	property.o \
@@ -47,6 +48,7 @@ ML_OBJS-y = \
 	menuindex.o \
 	focus.o \
 	notify_box.o \
+	bootflags.o \
 	dialog_test.o \
 	vram.o \
 	aj_port.o \

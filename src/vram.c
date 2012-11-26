@@ -349,7 +349,7 @@ void update_vram_params()
     int bar_x = 0;
     int bar_y = is_movie_mode() && video_mode_resolution == 1 ? os.off_169 : 0;
     off_43+=0; // bypass warning
-    #elif defined(CONFIG_500D) || defined(CONFIG_7D)
+    #elif defined(CONFIG_500D) || defined(CONFIG_7D) || defined(CONFIG_EOSM)
     int bar_x = 0;
     int bar_y = 0;
     off_43+=0; // bypass warning

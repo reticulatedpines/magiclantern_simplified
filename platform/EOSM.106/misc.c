@@ -35,29 +35,13 @@ void display_shooting_info() // called from debug task
 	display_trap_focus_info();
 }
 
-// gcc mempcy has odd alignment issues?
-void
-my_memcpy(
-    void *       dest,
-    const void *     src,
-    size_t          len
-)
-{
-    while( len-- > 0 )
-        *(uint8_t*)dest++ = *(const uint8_t*)src++;
-}
+int new_LiveViewApp_handler = 0xff123456;
+
+
 
 // dummy stubs
 int lcd_release_running = 0;
 void lcd_release_step() {};
 int get_lcd_sensor_shortcuts() { return 0; }
 void display_lcd_remote_icon(int x0, int y0) {}
-int new_LiveViewApp_handler = 0xff123456;
-void bootflag_write_bootblock(){};
 int handle_af_patterns(struct event * event) { return 1; }
-int is_mvr_buffer_almost_full(){ return 0; }
-void movie_indicators_show() { }
-void free_space_show() { }
-void fps_show() { }
-int time_indic_x = 720 - 160;
-int time_indic_y = 0;

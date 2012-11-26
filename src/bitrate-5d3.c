@@ -48,8 +48,13 @@ PROP_HANDLER(PROP_MVR_REC_START)
         movie_start_timestamp = get_seconds_clock();
 }
 
+#ifdef CONFIG_EOSM
+PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
+PROP_INT(PROP_FREE_SPACE, free_space_raw);
+#else
 extern int cluster_size;
 extern int free_space_raw;
+#endif
 #define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
 
 void free_space_show()

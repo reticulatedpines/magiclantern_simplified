@@ -32,8 +32,8 @@
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04108 // SDRAM address of HD buffer (aka YUV)
 
-    #define EVF_STATEOBJ *(struct state_object**)0x40944)
-#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR))
+#define EVF_STATEOBJ *(struct state_object**)0x40944)
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR)) // first line from DMA is dummy
 
 
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
@@ -53,8 +53,8 @@
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xff7f8e04 // dec gui_main_task
 
-     #define SENSOR_RES_X 4752
-     #define SENSOR_RES_Y 3168
+#define SENSOR_RES_X 4752
+#define SENSOR_RES_Y 3168
 
 #define LV_BOTTOM_BAR_DISPLAYED 0
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x4C2CC) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
@@ -69,18 +69,18 @@
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
 // macros copied from arm-console
-#define MVR_BUFFER_USAGE_FRAME div_maybe(MEM(MVR_516_STRUCT + 0x344), MEM(MVR_516_STRUCT + 0x1f4), MEM(MVR_516_STRUCT + 0x2a4))
-#define MVR_BUFFER_USAGE_SOUND div_maybe(-100*MEM(MVR_516_STRUCT + 0x2CC) + 100*MEM(MVR_516_STRUCT + 0x2C0), 0xA)
+#define MVR_BUFFER_USAGE_FRAME MAX(MEM(MVR_516_STRUCT + 0x580), MEM(MVR_516_STRUCT + 0x57C))
+#define MVR_BUFFER_USAGE_SOUND 0 // not sure
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
-    #define MVR_FRAME_NUMBER  (*(int*)(0x1F4 + MVR_516_STRUCT)) // in mvrExpStarted
-    #define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))
+#define MVR_FRAME_NUMBER  (*(int*)(0x1F4 + MVR_516_STRUCT)) // in mvrExpStarted
+#define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))
 
-    #define MOV_RES_AND_FPS_COMBINATIONS 5 // 3 fullhd, 2 hd, not changing the two VGA modes; worth trying with 9
-    #define MOV_OPT_NUM_PARAMS 2
-    #define MOV_GOP_OPT_NUM_PARAMS 5
-    #define MOV_OPT_STEP 5
-    #define MOV_GOP_OPT_STEP 5
+#define MOV_RES_AND_FPS_COMBINATIONS 9
+#define MOV_OPT_NUM_PARAMS 2
+#define MOV_GOP_OPT_NUM_PARAMS 5
+#define MOV_OPT_STEP 5
+#define MOV_GOP_OPT_STEP 5
 
     #define AE_VALUE 0 // 404
 
@@ -91,8 +91,10 @@
 
     #define DLG_FOCUS_MODE 0x123456
 
- #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0
- #define DLG_MOVIE_PRESS_LV_TO_RESUME 0
+/* these don't exist in the M */
+#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0
+#define DLG_MOVIE_PRESS_LV_TO_RESUME 0
+/*--------------*/
 
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
@@ -105,18 +107,24 @@
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
  #define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 90...102 ?!
 
-    #define NUM_PICSTYLES 9
-    #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
+// for displaying TRAP FOCUS msg outside LV
+#define DISPLAY_TRAP_FOCUS_POS_X 50
+#define DISPLAY_TRAP_FOCUS_POS_Y 360
+#define DISPLAY_TRAP_FOCUS_MSG       "TRAP FOCUS"
+#define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
-    #define FLASH_MAX_EV 3
-    #define FLASH_MIN_EV -10 // not sure if it actually works
-    #define FASTEST_SHUTTER_SPEED_RAW 160
-    #define MAX_AE_EV 5
+#define NUM_PICSTYLES 10
+#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
+
+#define FLASH_MAX_EV 3
+#define FLASH_MIN_EV -10 // not sure if it actually works
+#define FASTEST_SHUTTER_SPEED_RAW 152
+#define MAX_AE_EV 5
 
 #define DIALOG_MnCardFormatBegin (0x60DC0) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x64840) // similar
 
-    #define BULB_MIN_EXPOSURE 100
+#define BULB_MIN_EXPOSURE 100
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xffcb9c04
@@ -129,12 +137,12 @@
      #define AF_BTN_HALFSHUTTER 0
      #define AF_BTN_STAR 2
 
-    //~ #define IMGPLAY_ZOOM_LEVEL_ADDR (0x2E9C4) // dec GuiImageZoomDown and look for a negative counter
-    //~ #define IMGPLAY_ZOOM_LEVEL_MAX 14
-    //~ #define IMGPLAY_ZOOM_POS_X MEM(0x570EC) // CentrePos
-    //~ #define IMGPLAY_ZOOM_POS_Y MEM(0x570F0)
-    //~ #define IMGPLAY_ZOOM_POS_X_CENTER 360
-    //~ #define IMGPLAY_ZOOM_POS_Y_CENTER 240
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x51E28) // dec GuiImageZoomDown and look for a negative counter
+#define IMGPLAY_ZOOM_LEVEL_MAX 14
+#define IMGPLAY_ZOOM_POS_X MEM(0x8D38C) // CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x8D390)
+#define IMGPLAY_ZOOM_POS_X_CENTER 360
+#define IMGPLAY_ZOOM_POS_Y_CENTER 240
 
     #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
