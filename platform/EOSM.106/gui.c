@@ -44,8 +44,6 @@ static int handle_buttons(struct event * event)
 	return 1;
 }
 
-/* wrong
-
 struct gui_main_struct {
 	void *			obj;		// off_0x00;
 	uint32_t		off_0x04;
@@ -64,6 +62,8 @@ struct gui_main_struct {
 
 extern struct gui_main_struct gui_main_struct;
 
+int param, obj, arg;
+
 static void my_gui_main_task()
 {
 	struct event * event = NULL;
@@ -77,6 +77,15 @@ static void my_gui_main_task()
 		gui_main_struct.counter--;
 		if (event == NULL) continue;
 		index = event->type;
+        
+       /*if ((event->type == 0) && (event->param != 0x54) && (event->param != 0x69))
+        {
+            msleep(250);
+            param = event->param;
+            obj = event->obj;
+            arg = event->arg;
+        }*/
+
 		
 		if (!magic_is_off())
 		{
@@ -101,6 +110,5 @@ static void my_gui_main_task()
 		f(event);
 	}
 } 
-*/
 
-//~ TASK_OVERRIDE( gui_main_task, my_gui_main_task );
+TASK_OVERRIDE( gui_main_task, my_gui_main_task );

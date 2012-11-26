@@ -69,7 +69,7 @@ include ../../Makefile.inc
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF0C0000
-RESTARTSTART	= 0x00069500
+RESTARTSTART	= 0x0009E300
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120
 

@@ -14,7 +14,7 @@
 #define HIJACK_FIXBR_BZERO32 0xff0c1c20
 #define HIJACK_FIXBR_CREATE_ITASK 0xff0c1cac
 #define HIJACK_INSTR_MY_ITASK 0xff0c1cc8
-#define HIJACK_TASK_ADDR 0xc2e4
+#define HIJACK_TASK_ADDR 0x3E2D8
 
     // no idea if it's overflowing, need to check experimentally 
     //~ #define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3

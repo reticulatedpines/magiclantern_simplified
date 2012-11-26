@@ -8,13 +8,13 @@
     #define BGMT_WHEEL_LEFT 2
     #define BGMT_WHEEL_RIGHT 3
 
-    #define BGMT_PRESS_SET 4
-    #define BGMT_UNPRESS_SET 5
+#define BGMT_PRESS_SET 0x4
+#define BGMT_UNPRESS_SET 0x5
 
-#define BGMT_MENU 6
-#define BGMT_INFO 7
-#define BGMT_PLAY 0xB
-#define BGMT_TRASH 0xD
+#define BGMT_MENU 0x6
+#define BGMT_INFO 0x7
+#define BGMT_PLAY 0xb
+#define BGMT_TRASH 0x2c
 
     #define BGMT_PRESS_DP 0x2f
     #define BGMT_UNPRESS_DP 0x35
@@ -28,26 +28,32 @@
     //~ #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x5678
 
     #define BGMT_LV 0x1E
-    #define BGMT_Q 0x1d
+#define BGMT_Q 0x1d
     //~ #define BGMT_Q_ALT 0x67
 
     //~ #define BGMT_FUNC 0x12
     #define BGMT_PICSTYLE 0x13
     //~ #define BGMT_JOY_CENTER (lv ? 0x1e : 0x3b)
-    #define BGMT_JOY_CENTER 0x3e
+#if 0
+#define BGMT_JOY_CENTER 0x3e
+#define BGMT_UNPRESS_UDLR 0x35
+#endif
 
-    #define BGMT_PRESS_UP 0x36
+#define BGMT_PRESS_UP 0x2a          //~ unpress = 0x2b
+#define BGMT_UNPRESS_UP 0x2b
     #define BGMT_PRESS_UP_RIGHT 0x17
     #define BGMT_PRESS_UP_LEFT 0x18
-    #define BGMT_PRESS_RIGHT 0x39
-    #define BGMT_PRESS_LEFT 0x3a
+#define BGMT_PRESS_RIGHT 0x26       //~ unpress = 0x27
+#define BGMT_UNPRESS_RIGHT 0x27
+#define BGMT_PRESS_LEFT 0x28        //~ unpress = 0x29
+#define BGMT_UNPRESS_LEFT 0x29
     #define BGMT_PRESS_DOWN_RIGHT 0x1B
     #define BGMT_PRESS_DOWN_LEFT 0x1C
-    #define BGMT_PRESS_DOWN 0x3d
+#define BGMT_PRESS_DOWN 0x2c        //~ unpress = 0x2d
+#define BGMT_UNPRESS_DOWN 0x2d
 
-    #define BGMT_UNPRESS_UDLR 0x35
-    #define BGMT_PRESS_HALFSHUTTER 0x4e
-    #define BGMT_UNPRESS_HALFSHUTTER 0x4f
+#define BGMT_PRESS_HALFSHUTTER 0x50
+#define BGMT_UNPRESS_HALFSHUTTER 0x51
     #define BGMT_PRESS_FULLSHUTTER 0x50
     #define BGMT_UNPRESS_FULLSHUTTER 0x51
 

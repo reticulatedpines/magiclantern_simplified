@@ -17,7 +17,7 @@ Magic Lantern is being developed by a small team, helped by a very enthusiastic 
  
  `G3gg0 <http://www.magiclantern.fm/forum/index.php?action=profile;u=158>`_ -- reverse engineering guru
  
- `Coutts <http://www.magiclantern.fm/forum/index.php?action=profile;u=155>`_ -- porting ML to 5D classic
+ `Coutts <http://www.magiclantern.fm/forum/index.php?action=profile;u=155>`_ -- porting ML to 5Dc and EOS M
  
  `Nanomad <http://www.magiclantern.fm/forum/index.php?action=profile;u=123>`_ -- porting ML to 1100D/T3
 
