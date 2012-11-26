@@ -3353,12 +3353,18 @@ bulb_take_pic(int duration)
         if (s % 60 == 1) { msleep(200); _card_led_on(); msleep(10); _card_led_off(); if (s/60) beep_times(s/60); }
         
         // exposure was canceled earlier by user
-        if (lens_info.job_state == 0) break;
+        if (lens_info.job_state < 10) 
+        {
+            beep();
+            break;
+        }
     }
     
-    while (get_ms_clock_value() < t_end)
+    while (get_ms_clock_value() < t_end && lens_info.job_state >= 10)
         msleep(MIN_MSLEEP);
+    
     //~ NotifyBox(3000, "BulbEnd");
+    
     SW2(0,0);
     SW1(0,0);
     
