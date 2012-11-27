@@ -183,3 +183,34 @@
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
     //~ #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
+
+
+/******************************************************************************************************************
+ * touch_num_fingers_ptr:
+ * --> value=0x11100 when screen isn't being touched, value=0x11101 when 1 finger is held touching the screen
+ * --> value=0x11102 with 2 fingers touching the screen
+ * --> value=0x11103 with 3 fingers
+ * --> value=0x1104 with 4 fingers! Note: only the LSB seems to be used here, other bits seem to change sometimes.
+ *  but the rightmost bit always changes to match how many fingers are touching the screen.
+ *
+ * touch_coord_ptr:
+ *  --> top left corner = 0x0000000
+ *  --> top right corner = 0x00002CF
+ *  --> bottom right corner = 0x1DF02CF
+ *  --> bottom left corner = 0x1DF0000
+ *
+ *  [**] lower 3 bits represent the X coordinates, from 0 to 719 (720px wide)
+ *  [**] middle bit is always 0
+ *  [**] upper 3 bits represent the Y coordinates, from 0 to 479 (480px tall)
+ *
+ *  And that's how Canon's touch screen works :)
+ *******************************************************************************************************************/
+#define touch_coord_ptr 0x4D868
+#define touch_num_fingers_ptr 0x4D810   //~ found these with memspy
+
+
+
+
+
+
+

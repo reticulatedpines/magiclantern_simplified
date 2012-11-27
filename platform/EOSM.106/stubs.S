@@ -196,3 +196,6 @@ NSTUB(0xFF2BFEF0, mvrSetQscale)
 NSTUB(   0x4C584, mvr_config)
 NSTUB(0xFF2C04BC, mvrFixQScale)
 NSTUB(0xFF2BFFB4, mvrSetDefQScale)
+
+NSTUB(0xFF1202B8, prop_get_value)
+
