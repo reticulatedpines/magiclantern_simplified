@@ -20,6 +20,8 @@
 /** Movie menu **/
 #define FEATURE_REC_INDICATOR
 #define FEATURE_MOVIE_LOGGING
+#define FEATURE_NITRATE
+#define FEATURE_FPS_OVERRIDE
 
 
 /** Shoot menu **/

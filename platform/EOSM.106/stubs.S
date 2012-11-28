@@ -88,7 +88,7 @@ NSTUB(0xFF0C1C10, cstart)
 NSTUB(0xFF4C135C, ctrlman_dispatch_event)
 NSTUB(0xFF4C4314, dialog_redraw)
 NSTUB(0xFF52F148, dialog_set_property_str)
-NSTUB(   0x3EFBC, dm_names)
+NSTUB(   0x3F0DC, dm_names)
 NSTUB(0xFFA6D11C - RAM_OFFSET, dm_set_store_level)
 NSTUB(0xFFA6D0B4 - RAM_OFFSET, dm_set_print_level)
 NSTUB(0xFF0C83C0, free) // see "can't malloc"
@@ -198,4 +198,3 @@ NSTUB(0xFF2C04BC, mvrFixQScale)
 NSTUB(0xFF2BFFB4, mvrSetDefQScale)
 
 NSTUB(0xFF1202B8, prop_get_value)
-
