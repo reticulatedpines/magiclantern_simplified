@@ -174,7 +174,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                     }
                     else
                     {
-                        buf[pos] = shamem_read(address);
+                        buf[pos] = *((uint8_t*)(address));
                         pos++;
                         address++;
                     }
