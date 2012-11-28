@@ -43,18 +43,73 @@ void config_menu_init();
 void display_on();
 void display_off();
 void EngDrvOut(int reg, int value);
+unsigned GetFileSize(char* filename);
 
 
 void fake_halfshutter_step();
 
 #ifdef FEATURE_SCREENSHOT
-void take_screenshot( void * priv )
+
+int rename_file(char* src, char* dst)
+{
+#if defined(CONFIG_FIO_RENAMEFILE_WORKS) // FIO_RenameFile known to work
+
+    return FIO_RenameFile(src, dst);
+
+#else 
+    // FIO_RenameFile not known, or doesn't work
+    // emulate it by copy + erase (poor man's rename :P )
+    
+    const int bufsize = 128*1024;
+    void* buf = alloc_dma_memory(bufsize);
+    if (!buf) return 1;
+    
+    FILE* f = FIO_Open(src, O_RDONLY | O_SYNC);
+    if (f == INVALID_PTR) return 1;
+
+    FILE* g = FIO_CreateFile(dst);
+    if (g == INVALID_PTR) { FIO_CloseFile(f); return 1; }
+
+    int r = 0;
+    while ((r = FIO_ReadFile(f, buf, bufsize)))
+        FIO_WriteFile(g, buf, r);
+    
+    FIO_CloseFile(f);
+    FIO_CloseFile(g);
+    
+    free_dma_memory(buf);
+    FIO_RemoveFile(src);
+    return 0;
+#endif
+}
+
+void take_screenshot( int also_lv )
 {
     Beep();
+    
+    FIO_RemoveFile(CARD_DRIVE"TEST.BMP");
+    
     call( "dispcheck" );
     #ifdef FEATURE_SCREENSHOT_422
-    silent_pic_take_lv_dbg();
+    if (also_lv) silent_pic_take_lv_dbg();
     #endif
+    
+    if (GetFileSize(CARD_DRIVE"TEST.BMP") != 0xFFFFFFFF)
+    { // old camera, screenshot saved as TEST.BMP => move it to VRAMxx.BMP
+        msleep(300);
+        for (int i = 0; i < 100; i++)
+        {
+            char fn[50];
+            snprintf(fn, sizeof(fn), CARD_DRIVE"VRAM%d.BMP", i);
+            if (GetFileSize(fn) == 0xFFFFFFFF) // this file does not exist
+            {
+                rename_file(CARD_DRIVE"TEST.BMP", fn);
+                break;
+            }
+        }
+    }
+
+
 }
 #endif
 
@@ -480,6 +535,43 @@ void iso_movie_test()
     bv_auto = bva0;
 }
 #endif // CONFIG_ISO_TESTS
+
+
+#ifdef FEATURE_GUIMODE_TEST
+// beware, might be dangerous, some gui modes will give errors
+void guimode_test()
+{
+    msleep(1000);
+    for (int i = 0; i < 99; i++)
+    {
+        // some GUI modes may lock-up the camera or reboot
+        // if this is the case, the troublesome mode will be skipped at next reboot.
+        char fn[50];
+        snprintf(fn, sizeof(fn), CARD_DRIVE"VRAM%d.BMP", i);
+
+        if (GetFileSize(fn) != 0xFFFFFFFF) // this gui mode was already tested?
+            continue;
+
+        NotifyBox(500, "Trying GUI mode %d...", i);
+        dump_seg(0, 0, fn); // temporary flag to indicate that this GUI mode was tried (and probably found to be troublesome)
+        msleep(200);
+        
+        SetGUIRequestMode(i);
+        
+        msleep(1000);
+        FIO_RemoveFile(fn);
+
+        take_screenshot(0);
+        
+        // try to reset to initial gui mode
+        SetGUIRequestMode(0);
+        SetGUIRequestMode(1);
+        SetGUIRequestMode(0);
+        
+        msleep(1000);
+    }
+}
+#endif
 
 void run_test()
 {
@@ -2025,7 +2117,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             info_led_blink(1, 20, 1000-20-200);
             screenshot_sec--;
             if (!screenshot_sec)
-                take_screenshot(0);
+                take_screenshot(1);
         }
         #endif
 
@@ -2393,11 +2485,7 @@ struct menu_entry debug_menus[] = {
     {
         .name = "Screenshot - 10s",
         .select     = screenshot_start,
-        #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) 
-        .help = "Screenshot after 10 seconds => TEST.BMP / VRAMx.422.",
-        #else
         .help = "Screenshot after 10 seconds => VRAMx.BMP / VRAMx.422.",
-        #endif
     },
     #endif
 /*    {
@@ -2641,6 +2729,14 @@ struct menu_entry debug_menus[] = {
         .max = 3,
         .choices = (const char *[]) {"OFF", "Percentage", "Busy tasks (ABS)", "Busy tasks (REL)"},
         .help = "Display total CPU usage (percentage).",
+    },
+#endif
+#ifdef FEATURE_GUIMODE_TEST
+    {
+        .name = "Test GUI modes (DANGEROUS!!!)",
+        .select = (void(*)(void*,int))run_in_separate_task,
+        .priv = guimode_test,
+        .help = "Cycle through all GUI modes and take screenshots.",
     },
 #endif
 #ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO

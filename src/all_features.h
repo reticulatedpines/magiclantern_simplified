@@ -242,3 +242,5 @@
     #define FEATURE_SHOW_CMOS_TEMPERATURE
     
     #define FEATURE_SNAP_SIM
+
+    //~ #define FEATURE_GUIMODE_TEST // dangerous
