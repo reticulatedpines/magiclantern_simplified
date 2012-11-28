@@ -104,6 +104,10 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
             msg.param_count = 2;
             msg.param[0] = PTP_CHDK_VERSION_MAJOR;
             msg.param[1] = PTP_CHDK_VERSION_MINOR;
+    #ifdef CONFIG_EOSM
+            //~ unlock camera UI once ptpcam connects
+            ptpPropSetUILock(0, 2);
+    #endif
             break;
 
 
@@ -170,7 +174,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                     }
                     else
                     {
-                        buf[pos] = *((uint8_t*)(address));
+                        buf[pos] = shamem_read(address);
                         pos++;
                         address++;
                     }

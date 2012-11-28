@@ -63,6 +63,8 @@ ML_OBJS-y = \
 	audio-ak.o \
 	vsync-lite.o \
 	dm-spy.o \
+	ptp-chdk.o \
+	ptp.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

@@ -198,3 +198,4 @@ NSTUB(0xFF2C04BC, mvrFixQScale)
 NSTUB(0xFF2BFFB4, mvrSetDefQScale)
 
 NSTUB(0xFF1202B8, prop_get_value)
+NSTUB(0xFF2A3378, ptpPropSetUILock)
