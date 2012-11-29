@@ -76,9 +76,9 @@ int rename_file(char* src, char* dst)
     
     FIO_CloseFile(f);
     FIO_CloseFile(g);
-    
-    free_dma_memory(buf);
     FIO_RemoveFile(src);
+    msleep(1000); // this decreases the chances of getting corrupted files (figure out why!)
+    free_dma_memory(buf);
     return 0;
 #endif
 }
