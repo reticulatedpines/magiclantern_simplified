@@ -130,7 +130,7 @@ draw_prop_reset( void * priv )
 }
 #endif
 
-#if defined(CONFIG_5D3) || defined(CONFIG_EOSM)
+#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
 void _card_led_on() { *(volatile uint32_t*)CARD_LED_ADDRESS = LEDON; }
 void _card_led_off() { *(volatile uint32_t*)CARD_LED_ADDRESS = LEDOFF; }
 #elif defined(CONFIG_7D)

@@ -27,7 +27,7 @@ struct menu_entry help_menus[] = {
     },
     {
         .select = menu_nav_help_open,
-        #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_7D)
+        #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_650D)
         .name = "Press Q    : Bring up submenu...",
         #elif defined(CONFIG_500D)
         .name = "LiveView(Q): Bring up submenu...",

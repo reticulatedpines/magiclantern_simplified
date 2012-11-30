@@ -104,7 +104,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
             msg.param_count = 2;
             msg.param[0] = PTP_CHDK_VERSION_MAJOR;
             msg.param[1] = PTP_CHDK_VERSION_MINOR;
-    #ifdef CONFIG_EOSM
+    #if defined(CONFIG_EOSM) || defined(CONFIG_650D)
             //~ unlock camera UI once ptpcam connects
             ptpPropSetUILock(0, 2);
     #endif

@@ -48,7 +48,7 @@ PROP_HANDLER(PROP_MVR_REC_START)
         movie_start_timestamp = get_seconds_clock();
 }
 
-#ifdef CONFIG_EOSM
+#if defined(CONFIG_EOSM) || defined(CONFIG_650D)
 PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
 PROP_INT(PROP_FREE_SPACE, free_space_raw);
 #else

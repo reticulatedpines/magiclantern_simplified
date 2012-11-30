@@ -154,6 +154,10 @@ static void fps_read_current_timer_values();
     #define TG_FREQ_BASE 32000000
     #define TG_FREQ_SHUTTER (ntsc || !recording ? 56760000 : 50000000)
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 500 : 400)
+#elif defined(CONFIG_650D)
+    #define TG_FREQ_BASE 32000000
+    #define TG_FREQ_SHUTTER (ntsc || !recording ? 56760000 : 50000000)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 500 : 400)
 #elif defined(CONFIG_500D)
     #define TG_FREQ_BASE 32000000    // not 100% sure
     #define TG_FREQ_SHUTTER 23188405 // not sure
@@ -280,6 +284,10 @@ static int get_current_tg_freq()
 #endif
 
 #ifdef CONFIG_EOSM
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
+#endif
+
+#ifdef CONFIG_650D
 #define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
 #endif
 
