@@ -191,7 +191,9 @@
  * --> value=0x11102 with 2 fingers touching the screen
  * --> value=0x11103 with 3 fingers
  * --> value=0x1104 with 4 fingers! Note: only the LSB seems to be used here, other bits seem to change sometimes.
- *  but the rightmost bit always changes to match how many fingers are touching the screen.
+ *  but the rightmost bit always changes to match how many fingers are touching the screen. We can recognize up to
+ *  2 touch points active. Looks like canon doesn't utilize more than 2 finger gestures, it does't report the
+ *  coordinates of the 3rd-6th fingers.
  *
  * touch_coord_ptr:
  *  --> top left corner = 0x0000000
@@ -205,8 +207,12 @@
  *
  *  And that's how Canon's touch screen works :)
  *******************************************************************************************************************/
-#define touch_coord_ptr 0x4D868
-#define touch_num_fingers_ptr 0x4D810   //~ found these with memspy
+//~ not used [was for early implemenation]
+#define TOUCH_XY_RAW1 0x4D868
+#define TOUCH_XY_RAW2 (TOUCH_XY_RAW1+4)
+#define TOUCH_MULTI 0x4D810   //~ found these with memspy. look for addresses changing with screen touches.
+//--------------
+#define HIJACK_TOUCH_CBR_PTR 0x4D858
 
 
 

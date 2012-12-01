@@ -65,6 +65,7 @@ ML_OBJS-y = \
 	dm-spy.o \
 	ptp-chdk.o \
 	ptp.o \
+	touchscreen.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

@@ -99,3 +99,6 @@
 
 /** No photo mode outside LiveView **/
 //~ #define CONFIG_PHOTO_MODE_INFO_DISPLAY
+
+/** This camera has a touch-sensitive screen **/
+#define CONFIG_TOUCHSCREEN
