@@ -2,10 +2,11 @@
  * Entry points into the firmware image.
  *
  * These are the functions that we can call from our tasks
- * in the Canon 1.0.1 firmware for the 650D
+ * in the Canon 1.0.1 firmware for the 650D.
  *
- *  This is a straight copy from the EOS M stubs need found/verified still.
- *
+ *  This is a straight copy from the 5d3, EOS M stubs need found/verified still.
+ *  Indented line = incorrect.
+ *  
  * \todo Sort this file?  Generate it from the IDA map?
  */
 /*
@@ -31,41 +32,56 @@
 .text
 
 #define NSTUB(addr,name) \
-	.global name; \
-	name = addr
+        .global name; \
+        name = addr
+
+// ROMBASEADDR 0xff0c0000
 
 NSTUB( ROMBASEADDR, firmware_entry )
+// FFA4DF58 assert
 
-    #define RAM_OFFSET 0xFFA68D58 // some functions are copied to RAM at around ff0c009c; they have to be called from RAM...
+#define RAM_OFFSET (0xFFA4DF58-0x1900) // some functions are copied to RAM at around ff0c0098; they have to be called from RAM...
 
-    NSTUB(0xFFA87C1C - RAM_OFFSET, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
-    NSTUB(0xFFA70BB4 - RAM_OFFSET, AllocateMemory)
-    NSTUB(0xFF4C35D8, CreateDialogBox)
-    NSTUB(0xFFA735B8 - RAM_OFFSET, CreateRecursiveLock)
-    NSTUB(0xFF4C25A0, DeleteDialogBox)
-    NSTUB(0xFFA6CDB0 - RAM_OFFSET, DryosDebugMsg)
+// 0x1C45C, bzero32        
+// 0x2EB8, create_init_task     = ffa4f510
+
+NSTUB(FF0C10E4, cli_save)
+NSTUB(FF0C10F8, sei_restore)
+NSTUB(FF0C1C10, cstart )
+NSTUB(FF137B18, EnableBootDisk)
+NSTUB(FF137B24, DisableBootDisk)
+
+NSTUB(0xFFA5FF00 - RAM_OFFSET, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
+NSTUB(0xFFA53D50 - RAM_OFFSET, AllocateMemory)
+NSTUB(0xFF4B2918, CreateDialogBox)
+NSTUB(0xFFA56754 - RAM_OFFSET, CreateRecursiveLock)
+NSTUB(0xFF4B18E0, DeleteDialogBox)
+NSTUB(0xFFA4FFB4 - RAM_OFFSET, DryosDebugMsg)
+
+//FIO Functions
+NSTUB(FF341CE4, FIO_CreateFile)
+NSTUB(FF341FD8, FIO_WriteFile)
+NSTUB(FF342088, FIO_CloseFile)
     NSTUB(0xFF347460, FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
-    NSTUB(0xFF346468, FIO_CloseFile)
     NSTUB(0xFF346CC4, FIO_CreateDirectory)
-    NSTUB(0xFF3460C4, FIO_CreateFile)
-    NSTUB(0xFF34728C, FIO_FindFirstEx)
-    NSTUB(0xFF347380, FIO_FindNextEx)
-    NSTUB(0xFF3465E4, FIO_GetFileSize)
-    NSTUB(0xFF346008, FIO_Open)
-    NSTUB(0xFF346218, FIO_ReadFile)
-    NSTUB(0xFF346170, FIO_RemoveFile)
-    NSTUB(0xFF3463B8, FIO_WriteFile)
-    NSTUB(0xFFA70F50 - RAM_OFFSET, FreeMemory)
-    //NSTUB(0xFF0DEE48, GUI_ChangeMode)
-    NSTUB(0xFF0D7680, GUI_Control)
-    NSTUB(0xFF1BD13C, GUI_GetFirmVersion)
-    NSTUB(0xFF1320E8, LoadCalendarFromRTC)
+NSTUB(0xFF342EAC, FIO_FindFirstEx)  
+NSTUB(0xFF342FA0, FIO_FindNextEx)
+NSTUB(0xFF342204, FIO_GetFileSize)
+NSTUB(0xFF341C28, FIO_Open)
+NSTUB(0xFF341E38, FIO_ReadFile)
+NSTUB(0xFF341D90, FIO_RemoveFile)
+
+NSTUB(0xFFA540EC - RAM_OFFSET, FreeMemory)
+NSTUB(0xFF0D6E88, GUI_ChangeMode)
+NSTUB(0xFF0D6CCC, GUI_Control)
+NSTUB(0xFF1BDDC4, GUI_GetFirmVersion)
+NSTUB(0xFF1308C4, LoadCalendarFromRTC) // Not so sure....
     NSTUB(0xFF32D348, MuteOff_0)
     NSTUB(0xFF32D300, MuteOn_0)
-    NSTUB(0xFF4E3D50, RedrawDisplay)
+NSTUB(0xFF4D3090, RedrawDisplay)
     NSTUB(0xFFA87D30 - RAM_OFFSET, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
-    NSTUB(0xFF1299C4, SetBitmapVramAddress)
-    NSTUB(0xFF1A7BD0, SetGUIRequestMode)
+NSTUB(0xFF128734, SetBitmapVramAddress)
+NSTUB(0xFF1A953C, SetGUIRequestMode)
 
     /* find */
     NSTUB(0xff136f5c, _audio_ic_read)
@@ -73,18 +89,15 @@ NSTUB( ROMBASEADDR, firmware_entry )
     NSTUB(   0x468b8, additional_version)
     /*--------------*/
 
-
-    NSTUB(0xFFA8B200 - RAM_OFFSET, alloc_dma_memory)
-    NSTUB(   0x6D6F4, bmp_vram_info )                 // look in SetBitmapVramAddress - as in 60D
-    NSTUB(0xFFAA0090 - RAM_OFFSET, bzero32)
-    NSTUB(0xFF137AD4, call)
+NSTUB(0xFFA634E4 - RAM_OFFSET, alloc_dma_memory)
+NSTUB(   0x51DEC, bmp_vram_info ) // look in SetBitmapVramAddress - as in 60D
+NSTUB(0xFFA68AB4 - RAM_OFFSET, bzero32)
+NSTUB(0xFF137E84, call)
     NSTUB(0xC0220000, camera_engine)
-    NSTUB(0xFF63BD00, cfReadBlk)
+NSTUB(0xFF73C608, cfReadBlk)
         //	NSTUB(   0x20890, cf_device) idk...
-    NSTUB(0xFF0C10E4, cli_save)
-    NSTUB(0xFFA6BC10 - RAM_OFFSET, create_init_task)
-    NSTUB(0xFFA6F634 - RAM_OFFSET, create_named_semaphore)
-    NSTUB(0xFF0C1C10, cstart)
+NSTUB(0xFFA4F510 - RAM_OFFSET, create_init_task)
+NSTUB(0xFFA527D0 - RAM_OFFSET, create_named_semaphore)
     NSTUB(0xFF4C135C, ctrlman_dispatch_event)
     NSTUB(0xFF4C4314, dialog_redraw)
     NSTUB(0xFF52F148, dialog_set_property_str)
@@ -92,19 +105,19 @@ NSTUB( ROMBASEADDR, firmware_entry )
     NSTUB(0xFFA6D11C - RAM_OFFSET, dm_set_store_level)
     NSTUB(0xFFA6D0B4 - RAM_OFFSET, dm_set_print_level)
     NSTUB(0xFF0C83C0, free) // see "can't malloc"
-    NSTUB(0xFFA8B234 - RAM_OFFSET, free_dma_memory)
+NSTUB(0xFFA63518 - RAM_OFFSET, free_dma_memory)
     NSTUB(0xFF4F7D60, fsuDecodePartitionTable) // AJ_fsuGetPart_related
-    NSTUB(0xFFA6F880 - RAM_OFFSET, give_semaphore)
+NSTUB(0xFFA52A1C - RAM_OFFSET, give_semaphore)
     NSTUB(0xFF0D7D24, gui_init_end)
     NSTUB(   0x3E5B4, gui_main_struct)
     NSTUB(0xFF0D72AC, gui_main_task)
     NSTUB(0xff1a4fc8, gui_massive_event_loop)         // no match
     //NSTUB(0xff44a7b8, gui_task_create)
-        //NSTUB(0xFF44A870, gui_task_destroy)
+    //NSTUB(0xFF44A870, gui_task_destroy)
     NSTUB(   0x591F0, gui_task_list)
     NSTUB(0xFF0C5488, init_task)
     NSTUB(0xFF0C8368, malloc)
-    NSTUB(0xFFA9FFAC - RAM_OFFSET, memcpy)
+NSTUB(0xFFA689D0 - RAM_OFFSET, memcpy)
     NSTUB(0xFFA87AD0 - RAM_OFFSET, msg_queue_post)
     NSTUB(0xFFA878E4 - RAM_OFFSET, msg_queue_receive)
     NSTUB(0xFFA6FC70 - RAM_OFFSET, msleep)
@@ -117,7 +130,6 @@ NSTUB( ROMBASEADDR, firmware_entry )
     NSTUB(0xFF3420F4, register_func)
     NSTUB(0xFF6421C0, sdReadBlk)
     NSTUB(   0x60B2C, sd_device)
-    NSTUB(0xFF0C10F8, sei_restore)
     //NSTUB(0xff1448c4, strcmp)
     NSTUB(0xFF35912C, strcpy)
     NSTUB(0xFF0C8284, strlen)
@@ -143,10 +155,10 @@ NSTUB(0xFF512250, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, 
     NSTUB(0xFF2C12A8, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
     NSTUB(0xFF2C120C, _EngDrvOut) // AJ_EngDrvOut_1xVar_to_ShadowStruct
 
-		//NSTUB(0xff9b1be0 - RAM_OFFSET, LightMeasure_n_Callback_r0) - looks a bit different, disabling for now
+    //NSTUB(0xff9b1be0 - RAM_OFFSET, LightMeasure_n_Callback_r0) - looks a bit different, disabling for now
     NSTUB(0xFF541484, ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
 
-            //NSTUB(0xff987200 - RAM_OFFSET, set_fps_maybe)
+    //NSTUB(0xff987200 - RAM_OFFSET, set_fps_maybe)
 
     NSTUB(0xFFA6B284 - RAM_OFFSET, get_current_task)
 

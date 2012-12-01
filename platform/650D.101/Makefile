@@ -1,4 +1,4 @@
-#Makefile for EOS M firmware 100
+#Makefile for EOS 650D firmware 101
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
@@ -74,7 +74,7 @@ include ../../Makefile.inc
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF0C0000
-RESTARTSTART	= 0x0009E300
+RESTARTSTART	= 0x0007E100
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120
 

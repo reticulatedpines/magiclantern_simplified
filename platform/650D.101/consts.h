@@ -1,19 +1,20 @@
 /*
- *  Almost none of this is correct yet, only a skeleton to be fille in later.
+ *  Almost none of this is correct yet, only a skeleton to be filled in later.
  *
  *  Indented line = incorrect.
  */
 
 #define CARD_DRIVE "B:/"
-#define CARD_LED_ADDRESS 0xC022C188 // http://magiclantern.wikia.com/wiki/Led_addresses
+#define CARD_LED_ADDRESS 0xC022C188 // like 5dm3 and EOS-M
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
 
-#define HIJACK_INSTR_BL_CSTART  0xff0c0d80
-#define HIJACK_INSTR_BSS_END 0xff0c1cbc
-#define HIJACK_FIXBR_BZERO32 0xff0c1c20
-#define HIJACK_FIXBR_CREATE_ITASK 0xff0c1cac
-#define HIJACK_INSTR_MY_ITASK 0xff0c1cc8
+// RESTARTSTART 0x7e100
+#define HIJACK_INSTR_BL_CSTART  0xFF0C0D80
+#define HIJACK_INSTR_BSS_END 0xFF0C1CBC
+#define HIJACK_FIXBR_BZERO32 0xFF0C1C20
+#define HIJACK_FIXBR_CREATE_ITASK 0xFF0C1CAC
+#define HIJACK_INSTR_MY_ITASK 0xFF0C1CC8
 #define HIJACK_TASK_ADDR 0x233D8
 
     // no idea if it's overflowing, need to check experimentally 
