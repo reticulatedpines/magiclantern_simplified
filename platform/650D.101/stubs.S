@@ -48,8 +48,8 @@ NSTUB( ROMBASEADDR, firmware_entry )
 NSTUB(FF0C10E4, cli_save)
 NSTUB(FF0C10F8, sei_restore)
 NSTUB(FF0C1C10, cstart )
-NSTUB(FF137B18, EnableBootDisk)
-NSTUB(FF137B24, DisableBootDisk)
+NSTUB(FF137B18, bootdisk_enable)
+NSTUB(FF137B24, bootdisk_disable)
 
 NSTUB(0xFFA5FF00 - RAM_OFFSET, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
 NSTUB(0xFFA53D50 - RAM_OFFSET, AllocateMemory)
