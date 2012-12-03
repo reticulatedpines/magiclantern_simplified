@@ -102,8 +102,8 @@ NSTUB(0xFF4B069C, ctrlman_dispatch_event)
     NSTUB(0xFF4C4314, dialog_redraw)
     NSTUB(0xFF52F148, dialog_set_property_str)
 NSTUB(   0x241BC, dm_names)
-    NSTUB(0xFFA6D11C - RAM_OFFSET, dm_set_store_level)
-    NSTUB(0xFFA6D0B4 - RAM_OFFSET, dm_set_print_level)
+NSTUB(0xFFA50320 - RAM_OFFSET, dm_set_store_level) // Not so sure
+//NSTUB(0xFFA502B8 - RAM_OFFSET, dm_set_print_level) // Not so sure
 NSTUB(0xFF327FCC, dispcheck)
 
 NSTUB(0xFF0C8364, free) // see "can't malloc"
@@ -113,10 +113,9 @@ NSTUB(0xFFA52A1C - RAM_OFFSET, give_semaphore)
 NSTUB(0xFF0D7340, gui_init_end)
 NSTUB(   0x236A8, gui_main_struct)
 NSTUB(0xFF0D68F8, gui_main_task)
-    NSTUB(0xff1a4fc8, gui_massive_event_loop)         // no match
-    //NSTUB(0xff44a7b8, gui_task_create)
-    //NSTUB(0xFF44A870, gui_task_destroy)
-    NSTUB(   0x591F0, gui_task_list)
+//NSTUB(0xFF4B07EC, gui_task_create)
+//NSTUB(0xFF4B0918, gui_task_destroy)
+NSTUB(   0x3D7A0, gui_task_list)
 NSTUB(0xFF0C542C, init_task)
 NSTUB(0xFF0C830C, malloc)
 NSTUB(0xFFA689D0 - RAM_OFFSET, memcpy)
@@ -132,7 +131,7 @@ NSTUB(0xFF4543AC, ptp_register_handler)
 NSTUB(0xFF33DBC0, register_func)
     NSTUB(0xFF6421C0, sdReadBlk)
     NSTUB(   0x60B2C, sd_device)
-    //NSTUB(0xff1448c4, strcmp)
+//NSTUB(0xFF143E4C, strcmp)
 NSTUB(0xFF354424, strcpy)
 NSTUB(0xFF0C8228, strlen)
     NSTUB(0xFFA6F794 - RAM_OFFSET, take_semaphore)
@@ -162,7 +161,7 @@ NSTUB(0xFF52E4E4, ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
 
     //NSTUB(0xff987200 - RAM_OFFSET, set_fps_maybe)
 
-    NSTUB(0xFFA6B284 - RAM_OFFSET, get_current_task)
+NSTUB(0xFFA4EB84 - RAM_OFFSET, get_current_task)
 
 NSTUB(0x505EC, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
@@ -173,16 +172,16 @@ NSTUB(0x505EC, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc
     NSTUB(0xFFA70954 - RAM_OFFSET, GetMemoryInformation)
     NSTUB(0xFF143C18, copy_malloc_info_maybe)
 
-    NSTUB(0xFFA733D0 - RAM_OFFSET, msg_queue_create)
+NSTUB(0xFFA5FAB8 - RAM_OFFSET, msg_queue_create)
 
-    NSTUB(0xFF101E04, PD_RemoteRelease)
+NSTUB(0xFF1001BC, PD_RemoteRelease)
 
-        // for task information
-    NSTUB(0x3F5AC, task_max)
+    // for task information
+    NSTUB(0x247A4, task_max) // Not so sure....
 //NSTUB(0xFFA65F84 - RAM_OFFSET, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xFFA65F84, is_taskid_valid)
-    NSTUB(0xFFA77B48 - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
-
+//NSTUB(0xFFA5ACE4 - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
+NSTUB(0xFFA5ACE4, get_obj_attr)
     NSTUB(0xFF2BDD84, PowerAudioOutput)
 NSTUB(0xFF108918, StartASIFDMADAC)  //~ warning: looks different
 NSTUB(0xFF108760, StartASIFDMAADC)  //~ warning: looks different
@@ -195,15 +194,15 @@ NSTUB(0xFF1325B8, SetAudioVolumeOut)
 
 NSTUB(0xFF19CD0C, ENCODE_StartEncodeJpeg)
 
-    NSTUB(0xFF13B678, AllocateMemoryResource) // m_pfAllocMemoryCBR
-    NSTUB(0xFF13B6C4, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
-    NSTUB(0xFF13B7DC, FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xFF13BA28, AllocateMemoryResource) // m_pfAllocMemoryCBR
+NSTUB(0xFF13BA74, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
+NSTUB(0xFF13BB8C, FreeMemoryResource) // m_pfFreeMemoryCBR
     NSTUB(0xFFA723E4 - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
     NSTUB(0xFFA71DBC - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 
     NSTUB(0xFFA7391C - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)
 
-    NSTUB(0xFF1B4454, GUI_SetRollingPitchingLevelStatus)
+NSTUB(0xFF1B54F8, GUI_SetRollingPitchingLevelStatus)
 
 
 NSTUB(0xFF2BEEDC, mvrSetPrintMovieLog)
@@ -212,5 +211,4 @@ NSTUB(   0x31424, mvr_config)
 NSTUB(0xFF2BEEB8, mvrFixQScale)
 NSTUB(0xFF2BE9B0, mvrSetDefQScale)
 
-    NSTUB(0xFF1202B8, prop_get_value)
-    NSTUB(0xFF2A3378, ptpPropSetUILock)
+NSTUB(0xFF2A4840, ptpPropSetUILock)
