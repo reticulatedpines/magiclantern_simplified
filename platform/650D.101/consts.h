@@ -4,6 +4,9 @@
  *  Indented line = incorrect.
  */
 
+/* 
+ * Initial constants as found by Indy 
+ */
 #define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC022C188 // like 5dm3 and EOS-M
 #define LEDON 0x138800
@@ -17,6 +20,9 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1CC8
 #define HIJACK_TASK_ADDR 0x233D8
 
+/*
+ * Most of the stuff that follows is taken directly from the EOSM or 5D3
+ */
     // no idea if it's overflowing, need to check experimentally 
     //~ #define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3
 
@@ -179,9 +185,9 @@
 #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
 
-// see "Malloc Information"
-#define MALLOC_STRUCT 0x66d08
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+    // see "Malloc Information"
+    #define MALLOC_STRUCT 0x66d08
+    #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
     //~ #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
 
@@ -206,8 +212,8 @@
  *
  *  And that's how Canon's touch screen works :)
  *******************************************************************************************************************/
-#define touch_coord_ptr 0x4D868
-#define touch_num_fingers_ptr 0x4D810   //~ found these with memspy
+    #define touch_coord_ptr 0x4D868
+    #define touch_num_fingers_ptr 0x4D810   //~ found these with memspy
 
 
 
