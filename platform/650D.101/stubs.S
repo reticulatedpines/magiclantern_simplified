@@ -80,7 +80,7 @@ NSTUB(0xFF1308C4, LoadCalendarFromRTC) // Not so sure....
     NSTUB(0xFF32D348, MuteOff_0)
     NSTUB(0xFF32D300, MuteOn_0)
 NSTUB(0xFF4D3090, RedrawDisplay)
-    NSTUB(0xFFA87D30 - RAM_OFFSET, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
+NSTUB(0xFFFA60014 - RAM_OFFSET, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
 NSTUB(0xFF128734, SetBitmapVramAddress)
 NSTUB(0xFF1A953C, SetGUIRequestMode)
 
@@ -100,7 +100,7 @@ NSTUB(0xFF73C608, cfReadBlk)
 NSTUB(0xFFA4F510 - RAM_OFFSET, create_init_task)
 NSTUB(0xFFA527D0 - RAM_OFFSET, create_named_semaphore)
 NSTUB(0xFF4B069C, ctrlman_dispatch_event)
-    NSTUB(0xFF4C4314, dialog_redraw)
+NSTUB(0xFF4B3654, dialog_redraw)
     NSTUB(0xFF52F148, dialog_set_property_str)
 NSTUB(   0x241BC, dm_names)
 NSTUB(0xFFA50320 - RAM_OFFSET, dm_set_store_level) // Not so sure
@@ -138,9 +138,10 @@ NSTUB(0xFF0C8228, strlen)
 NSTUB(0xFFA52930 - RAM_OFFSET, take_semaphore)
 NSTUB(0xFFA52EC0 - RAM_OFFSET, task_create)
     NSTUB(   0x3E1C0, task_dispatch_hook )
-    NSTUB(0xFFA7503C - RAM_OFFSET, task_trampoline)
+NSTUB(0xFFA581D8 - RAM_OFFSET, task_trampoline)
 NSTUB(0xFFA6153C - RAM_OFFSET, vsnprintf) // not sure it gets called from RAM
-    NSTUB(   0x8D330, vram_info)
+NSUB(0xFF3F6AA4, vram_get_number)
+NSTUB(   0x6E4A4, vram_info) // in vram_get_number
 NSTUB(0xFF6DF964, LiveViewShutterApp_handler)
 
 NSTUB(0xFF527C14, LiveViewApp_handler)
@@ -177,8 +178,8 @@ NSTUB(0xFFA5FAB8 - RAM_OFFSET, msg_queue_create)
 
 NSTUB(0xFF1001BC, PD_RemoteRelease)
 
-    // for task information
-    NSTUB(0x247A4, task_max) // Not so sure....
+// for task information
+NSTUB(0x247A4, task_max) // Not so sure....
 //NSTUB(0xFFA65F84 - RAM_OFFSET, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xFFA65F84, is_taskid_valid)
 //NSTUB(0xFFA5ACE4 - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
