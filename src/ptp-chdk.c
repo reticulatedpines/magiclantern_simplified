@@ -309,6 +309,26 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                 }
                 else
                 {
+                    #if defined(PTP_7D_MASTER_ACCESS)
+                    bmp_printf(FONT_LARGE, 0, 0, "BL MASTER 0x%08X", buf[0]);
+
+                    switch((size/4) - 1)
+                    {
+                    case 0:
+                        ret = ml_rpc_call(buf[0], 0, 0);
+                        break;
+                    case 1:
+                        ret = ml_rpc_call(buf[0], buf[1], 0);
+                        break;
+                    case 2:
+                        ret = ml_rpc_call(buf[0], buf[1], buf[2]);
+                        break;
+                    default:
+                        bmp_printf(FONT_LARGE, 0, 0, ">= 3 args not supported");
+                        msg.id = PTP_RC_GeneralError;
+                        break;
+                    }
+                    #else
                     bmp_printf(FONT_LARGE, 0, 0, "BL 0x%08X", buf[0]);
 
                     switch((size/4) - 1)
@@ -339,7 +359,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                         msg.id = PTP_RC_GeneralError;
                         break;
                     }
-
+                    #endif
                     msg.param_count = 1;
                     msg.param[0] = ret;
                 }
