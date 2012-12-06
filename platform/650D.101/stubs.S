@@ -77,8 +77,8 @@ NSTUB(0xFF0D6E88, GUI_ChangeMode)
 NSTUB(0xFF0D6CCC, GUI_Control)
 NSTUB(0xFF1BDDC4, GUI_GetFirmVersion)
 NSTUB(0xFF1308C4, LoadCalendarFromRTC) // Not so sure....
-    NSTUB(0xFF32D348, MuteOff_0)
-    NSTUB(0xFF32D300, MuteOn_0)
+NSTUB(0xFF32861C, MuteOff_0)
+NSTUB(0xFF3285D4, MuteOn_0)
 NSTUB(0xFF4D3090, RedrawDisplay)
 NSTUB(0xFFFA60014 - RAM_OFFSET, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
 NSTUB(0xFF128734, SetBitmapVramAddress)
@@ -101,7 +101,7 @@ NSTUB(0xFFA4F510 - RAM_OFFSET, create_init_task)
 NSTUB(0xFFA527D0 - RAM_OFFSET, create_named_semaphore)
 NSTUB(0xFF4B069C, ctrlman_dispatch_event)
 NSTUB(0xFF4B3654, dialog_redraw)
-    NSTUB(0xFF52F148, dialog_set_property_str)
+NSTUB(0xFF51FCE0, dialog_set_property_str)
 NSTUB(   0x241BC, dm_names)
 NSTUB(0xFFA50320 - RAM_OFFSET, dm_set_store_level) // Not so sure
 //NSTUB(0xFFA502B8 - RAM_OFFSET, dm_set_print_level) // Not so sure
@@ -109,7 +109,7 @@ NSTUB(0xFF327FCC, dispcheck)
 
 NSTUB(0xFF0C8364, free) // see "can't malloc"
 NSTUB(0xFFA63518 - RAM_OFFSET, free_dma_memory)
-    NSTUB(0xFF4F7D60, fsuDecodePartitionTable) // AJ_fsuGetPart_related
+NSTUB(0xFF62A628, fsuDecodePartitionTable) // AJ_fsuGetPart_related
 NSTUB(0xFFA52A1C - RAM_OFFSET, give_semaphore)
 NSTUB(0xFF0D7340, gui_init_end)
 NSTUB(   0x236A8, gui_main_struct)
@@ -130,8 +130,8 @@ NSTUB(0xFF11E704, prop_register_slave)
 NSTUB(0xFF11E8F8, _prop_request_change)
 NSTUB(0xFF4543AC, ptp_register_handler)
 NSTUB(0xFF33DBC0, register_func)
-    NSTUB(0xFF6421C0, sdReadBlk)
-    NSTUB(   0x60B2C, sd_device)
+NSTUB(0xFF742AC8, sdReadBlk)
+NSTUB(   0x48B6C, sd_device)
 //NSTUB(0xFF143E4C, strcmp)
 NSTUB(0xFF354424, strcpy)
 NSTUB(0xFF0C8228, strlen)
@@ -202,7 +202,7 @@ NSTUB(0xFF13BB8C, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0xFFA55580 - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
 NSTUB(0xFFA54F58 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 
-    //NSTUB(0xFFA7391C - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)
+NSTUB(0xFFA56AB8 - RAM_OFFSET, dma_memcpy) // AJ_HP_Copy_n_DMA_channel_n_BLTDMA
 
 NSTUB(0xFF1B54F8, GUI_SetRollingPitchingLevelStatus)
 
