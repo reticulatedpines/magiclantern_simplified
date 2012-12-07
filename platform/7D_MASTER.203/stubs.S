@@ -42,4 +42,10 @@ NSTUB(0xFF838EA0, RegisterRPCHandler)
 NSTUB(0xFF838F50, RequestRPC)
 
 NSTUB(0xFF841DE0, free_dma_memory)
+NSTUB(0xFF969A2C, memcpy)
+
+NSTUB(0x193C, pre_isr_hook)
+NSTUB(0x400006F8, isr_table_handler)
+NSTUB(0x40000AF8, isr_table_param)
+
 

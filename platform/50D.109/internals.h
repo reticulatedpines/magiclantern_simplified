@@ -97,3 +97,6 @@
 
 /** We can't display some extra info in photo mode (not LiveView) - things are misaligned **/
 //~ #define CONFIG_PHOTO_MODE_INFO_DISPLAY
+
+/** Canon drawing code has to be disabled in LiveView, otherwise it will erase all ML graphics **/
+#define CONFIG_KILL_FLICKER

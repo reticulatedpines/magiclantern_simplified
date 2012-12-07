@@ -1205,6 +1205,12 @@ lens_take_picture(
     }
     #elif defined(CONFIG_5DC)
     call("rssRelease");
+    #elif defined(CONFIG_7D)
+    SW2(1,50);
+    SW2(0,50);
+    lens_wait_readytotakepic(130000);
+    SW1(1,50);
+    SW1(0,50);
     #else
     call("Release");
     #endif

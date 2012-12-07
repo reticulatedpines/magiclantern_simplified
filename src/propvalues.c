@@ -145,7 +145,7 @@ int lv_disp_mode;
 
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3) || defined(CONFIG_1100D)
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3) || defined(CONFIG_1100D) || defined(CONFIG_50D)
     lv_disp_mode = (uint8_t)buf[1];
     #else
     lv_disp_mode = (uint8_t)buf[0];

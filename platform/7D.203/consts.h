@@ -43,12 +43,12 @@
 #define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR))
 
 // see "focusinfo" and Wiki:Struct_Guessing
-#define FOCUS_CONFIRMATION (*(int*)0x3A90)
+#define FOCUS_CONFIRMATION (*(volatile int*)0x3A90)
 
 // used for Trap Focus 
 // To find it, go to MainCtrl task and take the number from the second line minus 4.
 // See also "cam event metering"
-#define HALFSHUTTER_PRESSED (*(int*)0x1B70) // or 0x30D0, not sure
+#define HALFSHUTTER_PRESSED (*(int*)0x1B70)
 
 #define DISPLAY_SENSOR_POWERED 0
 
@@ -188,6 +188,8 @@
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x1aa38+0x2c)
 // DebugMsg(4, 2, msg='Whole Screen Backup end')
 // winsys_struct.WINSYS_BMP_DIRTY_BIT_NEG /*off_0x30, 0x12BBC*/ = 0
+
+    #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PICSTYLE // what button to use for zebras in Play mode
 
 // manual exposure overrides
 #define LVAE_STRUCT 0x611c

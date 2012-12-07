@@ -41,6 +41,11 @@ void ml_rpc_verbose(uint32_t state)
     ml_rpc_verbosity = state;
 }
 
+uint32_t ml_rpc_call(uint32_t address, uint32_t arg0, uint32_t arg1)
+{
+    ml_rpc_send(ML_RPC_CALL, address, arg0, arg1, 10);
+}
+
 /* send a command with parameters to other digic. wait n*50ms for a response */
 uint32_t ml_rpc_send(uint32_t command, uint32_t parm1, uint32_t parm2, uint32_t parm3, uint32_t wait)
 {
@@ -117,7 +122,15 @@ uint32_t ml_rpc_handler (uint8_t *buffer, uint32_t length)
         switch(req->message)
         {
             case ML_RPC_PING:
-                ml_rpc_send(ML_RPC_PING_REPLY, req->parm1, req->parm3, req->parm3, 0);
+                ml_rpc_send(ML_RPC_PING_REPLY, req->parm1, req->parm2, req->parm3, 0);
+                break;
+                
+            case ML_RPC_CALL:
+                {
+                    uint32_t (*func)(uint32_t, uint32_t) = (uint32_t (*)())req->parm1;
+                    uint32_t func_ret = func(req->parm2, req->parm3);
+                    ml_rpc_send(ML_RPC_OK, req->message, func_ret, 0, 0);
+                }
                 break;
                 
             case ML_RPC_CACHE_HACK:
