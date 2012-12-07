@@ -3153,6 +3153,15 @@ PROP_HANDLER(PROP_ISO)
 
 #endif
 
+unsigned GetFileSize(char* filename)
+{
+    unsigned size;
+    if( FIO_GetFileSize( filename, &size ) != 0 )
+        return 0xFFFFFFFF;
+    return size;
+}
+
+
 #ifdef CONFIG_RESTORE_AFTER_FORMAT
 
 int keep_ml_after_format = 1;
@@ -3223,15 +3232,6 @@ void HijackDialogBox()
             dialog_set_property_str(dialog, i, s);
     }
     dialog_redraw(dialog);
-}
-
-
-unsigned GetFileSize(char* filename)
-{
-    unsigned size;
-    if( FIO_GetFileSize( filename, &size ) != 0 )
-        return 0xFFFFFFFF;
-    return size;
 }
 
 
