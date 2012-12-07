@@ -64,7 +64,7 @@ ML_OBJS-y = \
 #TOP_DIR defined in upper Makefile
 include ../../Makefile.inc
 
-CFLAGS += -DCONFIG_STATIC_FONTS=1
+CFLAGS += -DCONFIG_STATIC_FONTS=1 -Wno-unused-variable
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
