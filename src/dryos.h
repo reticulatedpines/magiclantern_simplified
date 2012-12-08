@@ -449,7 +449,7 @@ unsigned int rand (void);
         ((((int)(x)) & 0xF0000000) == 0xE0000000) ? (int)0xDEADBEAF : \
         ((((int)(x)) & 0xF0000000) == 0x70000000) ? (int)0xDEADBEAF : \
         ((((int)(x)) & 0xF0000000) == 0x80000000) ? (int)0xDEADBEAF : \
-        *(int*)(x) \
+        *(volatile uint32_t *)(x) \
 )
 
 // export functions to plugins
