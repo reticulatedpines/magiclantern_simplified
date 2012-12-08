@@ -35,6 +35,11 @@
 void my_bzero( uint8_t * base, uint32_t size );
 int my_init_task(int a, int b, int c, int d);
 
+
+extern void (*pre_isr_hook)  (uint32_t);
+extern uint32_t isr_table_handler[];
+extern uint32_t isr_table_param[];
+
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
 
@@ -114,7 +119,102 @@ void backup_task()
 }
 #endif
 
-#if 0
+
+#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) | 0x40000000))
+#define PTPBUF_BUFS      16
+#define PTPBUF_BUFSIZE   (16*4+16)
+#define PTPBUF_MAGIC 0xEAEA3388
+
+typedef struct
+{
+    uint32_t bytes_used;
+    uint8_t data[PTPBUF_BUFSIZE];
+} ptpbuf_buffer_t;
+
+typedef struct
+{
+    uint32_t type;
+    uint32_t length;
+} ptpbuf_packet_t;
+
+typedef struct
+{
+    uint32_t magic;
+    uint32_t buffer_count;
+    uint32_t buffer_size;
+    uint32_t current_buffer;
+    uint32_t overflow;
+    ptpbuf_buffer_t *buffers;
+    uint32_t *fetchable;
+} ptpbuf_t;
+
+
+ptpbuf_buffer_t ptpbuf_buffers[PTPBUF_BUFS];
+uint32_t ptpbuf_fetchable[PTPBUF_BUFS];
+ptpbuf_t ptpbuf_data = { PTPBUF_MAGIC, PTPBUF_BUFS, PTPBUF_BUFSIZE, 0, 0, ptpbuf_buffers, ptpbuf_fetchable};
+
+uint32_t get_free_buffer()
+{
+    ptpbuf_t *ptpbuf = UNCACHEABLE(&ptpbuf_data);
+    uint32_t *fetchable = UNCACHEABLE(ptpbuf->fetchable);
+    
+    /* go through all buffers */
+    for(uint32_t buf = 0; buf < ptpbuf->buffer_count; buf++)
+    {
+        /* check if buffer is free for us */
+        if(fetchable[buf] == 0)
+        {
+            ptpbuf_buffer_t *buffer = UNCACHEABLE(&(ptpbuf->buffers[buf]));
+            buffer->bytes_used = 0;
+            return buf;
+        }
+    }
+    
+    return 0xFFFFFFFF;
+}
+
+uint32_t ptpbuf_add(uint32_t type, uint8_t *data, uint32_t length)
+{
+    ptpbuf_t *ptpbuf = UNCACHEABLE(&ptpbuf_data);
+    uint32_t *fetchable = UNCACHEABLE(ptpbuf->fetchable);
+    ptpbuf_buffer_t *buffer = UNCACHEABLE(&(ptpbuf->buffers[ptpbuf->current_buffer]));
+    ptpbuf_packet_t packet;
+    
+    /* check for enough space in current buffer */
+    if(buffer->bytes_used + sizeof(ptpbuf_packet_t) + length >= ptpbuf->buffer_size)
+    {
+        /* buffer is full, get next */
+        fetchable[ptpbuf->current_buffer] = 1;
+        uint32_t next_buffer = get_free_buffer();
+        
+        if(next_buffer >= ptpbuf->buffer_count)
+        {
+            /* no free buffers. fail. */
+            ptpbuf->overflow = 1;
+            return 0;
+        }
+        
+        ptpbuf->overflow = 0;        
+        ptpbuf->current_buffer = next_buffer;
+        buffer = UNCACHEABLE(&(ptpbuf->buffers[ptpbuf->current_buffer]));
+        buffer->bytes_used = 0;
+    }
+    
+    packet.type = type;
+    packet.length = length;
+    
+    /* store packet header */
+    memcpy(&(buffer->data[buffer->bytes_used]), &packet, sizeof(ptpbuf_packet_t));
+    buffer->bytes_used += sizeof(ptpbuf_packet_t);
+    
+    /* store data */
+    memcpy(&(buffer->data[buffer->bytes_used]), data, length);
+    buffer->bytes_used += length;
+    
+    return 1;
+}
+
+#if 1
 #include "gdb.h"
 uint32_t master_hook_regs[16*4];
 uint32_t master_hook_addr = 0;
@@ -152,12 +252,96 @@ void master_callback(breakpoint_t *bkpt)
             MEM(bkpt->ctx[4] + 0x04) = (master_hook_timer_14<<16) | master_hook_timer_14;
         }
     }
+    /* do stuff when SIO3_BufferReceived is called */
+    if(master_hook_addr == 0xFF8333A4)
+    {
+        uint8_t *buffer = bkpt->ctx[0];
+        uint32_t size = *(unsigned char*)(bkpt->ctx[0] - 2);
+
+        ptpbuf_add(0x4001, buffer, size);
+    }
+    
+    if(master_hook_addr == 0xFF891494)
+    {
+        ptpbuf_add(0x4002, bkpt->ctx[6], 64);
+    }
+    
+    if(master_hook_addr == 0xFF826728)
+    {
+        ptpbuf_add(0x4003, bkpt->ctx, 64);
+        ptpbuf_add(0x4004, bkpt->ctx[1], 8);
+    }
 }
 #endif
 
+/*
+output:
+    0000003a 00004b28 ff812d88 00000000 | 0000000a 00003e0d ff810974 00000000
+    00000074 0000049c ff83e31c 00019f08 | 00000052 000001b0 ff8d3a74 00000000
+    00000036 00000794 ff8d3b04 00000000 | 00000057 00000001 ff817f80 00000000
+    00000051 00011b3e ff8db298 00000000 | 0000002f 00000001 ff83dc94 00019ef8
+    00000034 000012b4 ff83d00c 00000001 | 00000064 00000001 ff8d5960 00000000
+    00000065 00000002 ff95622c 00000000 | 0000005f 00000002 ff8d40f0 0000000a
+    0000006e 00000002 ff8d40f0 0000000b | 0000005b 00000002 ff8d3eb8 00000003
+    00000010 00000007 ff8371a4 00000000 | 00000054 00000001 ff8c2b14 00000000
+
+
+*/
+#define MAX_ISR_LOG 8192
+
+typedef struct
+{
+    uint32_t isr_id;
+    uint32_t count;
+    uint32_t handler;
+    uint32_t param;
+} isrlog_t;
+
+isrlog_t master_isr_log[MAX_ISR_LOG];
+
+int locate_isr_entry(uint32_t isr_id)
+{
+    for(uint32_t pos = 0; pos < MAX_ISR_LOG; pos++)
+    {
+        if(master_isr_log[pos].isr_id == 0 || master_isr_log[pos].isr_id == isr_id)
+        {
+            return pos;
+        }
+    }
+    return 0;
+}
+
+void isrlog(uint32_t isr_id)
+{
+    uint32_t pos = 0;
+    
+    pos = locate_isr_entry(isr_id);
+    
+    master_isr_log[pos].isr_id = isr_id;
+    master_isr_log[pos].handler = isr_table_handler[isr_id];
+    master_isr_log[pos].param = isr_table_param[isr_id];
+    master_isr_log[pos].count++;
+    
+    clean_d_cache();
+}
+
+
 void ml_init()
 {
+    uint32_t EventMgr = MEM(0x1BA4);
+    uint32_t listener = MEM(EventMgr + 0x18);
+    uint32_t handler = MEM(listener + 0x04);
+    uint8_t buf[32];
+    
     ml_rpc_init();
+    
+    return;
+    
+    
+    //MulticastService_2(handler, 0, 0, buf, 0x2A);
+    
+    
+    //pre_isr_hook = isrlog;
     
     //cache_fake(0xFF88BCB4, 0xE3A01001, TYPE_ICACHE); /* flush video buffer every frame */
     //cache_fake(0xFF8C7C18, 0xE3A01001, TYPE_ICACHE); /* all-I */
@@ -165,7 +349,7 @@ void ml_init()
     //cache_fake(0xFF8CD448, 0xE3A00006, TYPE_ICACHE); /* deblock alpha set to 6 */
     //cache_fake(0xFF8CD44C, 0xE3A00106, TYPE_ICACHE); /* deblock beta set to 6 */
    
-#if 0
+#if 1
     breakpoint_t *bp = NULL;
     msleep(100);
     
@@ -174,6 +358,11 @@ void ml_init()
     
     /* hook engio writes */
     master_hook_addr = 0xFF931A40;
+    /* hook SIO3 packets */
+    master_hook_addr = 0xFF8333A4;
+    
+    //master_hook_addr = 0xFF891494;
+    master_hook_addr = 0xFF826728;
     
     while(1)
     {
