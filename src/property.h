@@ -328,6 +328,11 @@
 #define PROP_REMOTE_RELEASE            0x8003000A
 #define PROP_REMOTE_SET_BUTTON         0x80020018
 
+/* some properties found while reverse engineering */
+#define PROP_FA_ADJUST_FLAG            0x80040000
+
+
+
 #if defined(CONFIG_5DC) || defined(CONFIG_40D) // not sure, it might be like 5D2
     #define PROP_FOLDER_NUMBER     0x2010000
     #define PROP_FILE_NUMBER       0x2010002
@@ -373,6 +378,8 @@
 #define PROP_CARD_COVER 0x8003002F
 
 #define PROP_TERMINATE_SHUT_REQ 0x80010001
+
+#define PROP_BUTTON_ASSIGNMENT 0x80010007
 
 #define PROP_PIC_QUALITY   0x8000002f
 #define PROP_PIC_QUALITY2  0x80000030
