@@ -371,7 +371,7 @@ static PROP_INT(PROP_VIDEO_SYSTEM, pal);
 static void timelapse_calc_display(void* priv, int x, int y, int selected)
 {
     int d = timer_values[*(int*)priv];
-    int total_shots = interval_stop_after ? (int)MIN((int)interval_stop_after*100, (int)avail_shot) : (int)avail_shot;
+    int total_shots = interval_stop_after ? (int)MIN((int)interval_stop_after, (int)avail_shot) : (int)avail_shot;
     int total_time_s = d * total_shots;
     int total_time_m = total_time_s / 60;
     int fps = video_mode_fps;
@@ -433,7 +433,7 @@ interval_start_after_display( void * priv, int x, int y, int selected )
 static void
 interval_stop_after_display( void * priv, int x, int y, int selected )
 {
-    int d = (*(int*)priv) * 100;
+    int d = (*(int*)priv);
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
@@ -471,6 +471,30 @@ interval_timer_toggle( void * priv, int delta )
 {
     int * ptr = priv;
     *ptr = mod(*ptr + delta, COUNT(timer_values));
+}
+
+static void
+interval_stop_after_toggle( void * priv, int delta )
+{
+    int *stop = priv;
+    int val = *stop;
+    
+    if(val + delta <= 10)
+    {
+        val += delta;
+    }
+    else if(val + delta <= 100)
+    {
+        val += 10 * delta;
+    }
+    else
+    {
+        val += 100 * delta;
+    }
+    
+    val = COERCE(val, 0, 5000);
+    
+    *stop = val;    
 }
 
 static void 
@@ -4787,9 +4811,9 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Stop after",
                 .priv       = &interval_stop_after,
-                .max = 50, // 5000 shots
+                .max = 5000, // 5000 shots
                 .display    = interval_stop_after_display,
-                //~ .select     = intervalometer_stop_after_toggle,
+                .select     = interval_stop_after_toggle,
                 .help = "Stop the intervalometer after taking X shots.",
             },
             #ifdef FEATURE_INTERVALOMETER_AF
@@ -7308,14 +7332,14 @@ shoot_task( void* unused )
                                 " Pictures taken:%4d ", 
                                 SECONDS_REMAINING,
                                 intervalometer_pictures_taken);
-                if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after*100); }
+                if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after); }
                 #ifdef CONFIG_VXWORKS
                 bmp_printf(FONT_LARGE, 50, 310, msg);
                 #else
                 bmp_printf(FONT_MED, 50, 310, msg);
                 #endif
 
-                if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after*100))
+                if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after))
                     intervalometer_stop();
 
                 //~ if (bulb_ramping_enabled)
@@ -7340,7 +7364,7 @@ shoot_task( void* unused )
                 }
             }
 
-            if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after*100))
+            if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after))
                 intervalometer_stop();
 
             if (PLAY_MODE) get_out_of_play_mode(500);
