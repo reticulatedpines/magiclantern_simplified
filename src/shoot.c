@@ -131,7 +131,16 @@ static CONFIG_INT( "interval.use_autofocus", interval_use_autofocus, 0 );
 static int intervalometer_pictures_taken = 0;
 static int intervalometer_next_shot_time = 0;
 
+
+#define TRAP_NONE    0
+#define TRAP_ERR_CFN 1
+#define TRAP_IDLE    2
+#define TRAP_ACTIVE  3
+static uint32_t trap_focus_continuous_state = 0;
+static uint32_t trap_focus_msg = 0;
+
 CONFIG_INT( "focus.trap", trap_focus, 0);
+CONFIG_INT( "focus.trap.duration", trap_focus_shoot_duration, 0);
 static CONFIG_INT( "audio.release-level", audio_release_level, 10);
 static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 static CONFIG_INT( "lv_3rd_party_flash", lv_3rd_party_flash, 0);
@@ -6407,6 +6416,34 @@ void display_shooting_info_lv()
     display_expsim_status();
 }
 
+void display_trap_focus_msg()
+{
+#ifdef FEATURE_TRAP_FOCUS
+#ifndef DISPLAY_TRAP_FOCUSMSG_POS_X
+#define DISPLAY_TRAP_FOCUSMSG_POS_X 10
+#define DISPLAY_TRAP_FOCUSMSG_POS_Y 10
+#endif
+    int bg = bmp_getpixel(DISPLAY_TRAP_FOCUS_POS_X, DISPLAY_TRAP_FOCUS_POS_Y);
+    int fg = COLOR_FG_NONLV;
+    char *msg = "                \n                \n                ";
+
+    switch(trap_focus_msg)
+    {
+        case TRAP_ERR_CFN:
+            msg = "Trap Focus:     \nCFn Fail. Set AF\n to shutter btn ";
+            break;
+        case TRAP_IDLE:
+            msg = "Trap Focus:     \nIDLE, press half\nshutter shortly ";
+            break;
+        case TRAP_ACTIVE:
+            msg = "Trap Focus:     \nACTIVE, keys are\ncurrently locked";
+            break;
+    }
+
+    bmp_printf(FONT(FONT_MED, fg, bg), DISPLAY_TRAP_FOCUSMSG_POS_X, DISPLAY_TRAP_FOCUSMSG_POS_Y, msg);
+#endif
+}
+
 void display_trap_focus_info()
 {
 #ifdef FEATURE_TRAP_FOCUS
@@ -6419,7 +6456,10 @@ void display_trap_focus_info()
         bg = active ? COLOR_BG : 0;
         fg = active ? COLOR_RED : COLOR_BG;
         x = 8; y = 160;
-        if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? "TRAP \nFOCUS" : "     \n     ");
+        if (show || show_prev)
+        {
+            bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? "TRAP \nFOCUS" : "     \n     ");
+        }
     }
     else
     {
@@ -6428,6 +6468,8 @@ void display_trap_focus_info()
         fg = HALFSHUTTER_PRESSED ? COLOR_RED : COLOR_FG_NONLV;
         x = DISPLAY_TRAP_FOCUS_POS_X; y = DISPLAY_TRAP_FOCUS_POS_Y;
         if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? DISPLAY_TRAP_FOCUS_MSG : DISPLAY_TRAP_FOCUS_MSG_BLANK);
+        
+        display_trap_focus_msg();
     }
     show_prev = show;
 #endif
@@ -6897,16 +6939,42 @@ shoot_task( void* unused )
         prev_flash_and_no_flash = flash_and_no_flash;
 
         #ifdef FEATURE_LV_3RD_PARTY_FLASH
+        /* when pressing half-shutter in LV mode, this code will first switch to photo mode, wait for half-
+           shutter release and then switches back. this will fire external flashes when running in LV mode.
+         */
         if (lv_3rd_party_flash && !is_movie_mode())
         {
             if (lv && HALFSHUTTER_PRESSED)
             {
+                /* timeout after 2 minutes */
+                uint32_t loops = 1200;
+
+                /* unpress half-shutter, maybe not really needed but might prevent confusion of gui tasks */
+                SW1(0,100);
+                
+                /* switch into normal mode */
                 fake_simple_button(BGMT_LV);
-                while (lv) msleep(100);
-                SW1(1,10);
-                msleep(500);
-                while (HALFSHUTTER_PRESSED) msleep(100);
-                fake_simple_button(BGMT_LV);
+                
+                while (lv && loops--)
+                {
+                    msleep(100);
+                }
+
+                /* re-press half-shutter */
+                SW1(1,100);
+                
+                bmp_printf(FONT_MED, 0, 20, "(waiting for releasing half-shutter)");
+                
+                /* timeout after 2 minutes */
+                loops = 1200;
+                /* and wait for being released again */
+                while (HALFSHUTTER_PRESSED && loops--) msleep(100);
+
+                if(loops)
+                {
+                    /* switch into LV mode again */
+                    fake_simple_button(BGMT_LV);
+                }
             }
         }
         #endif
@@ -6916,20 +6984,72 @@ shoot_task( void* unused )
         // trap focus (outside LV) and all the preconditions
         int tfx = trap_focus && is_manual_focus() && display_idle() && !intervalometer_running && !is_movie_mode();
 
-        if (trap_focus == 2 && tfx && !HALFSHUTTER_PRESSED && cfn_get_af_button_assignment()==0) 
+        static int trap_focus_display_time = 0;
+       
+        /* in continuous mode force half shutter being pressed */
+        switch(trap_focus_continuous_state)
         {
-            info_led_off();
-            msleep(1000);
-            if (!display_idle()) continue;
-            if (gui_menu_shown()) continue;
-            if (HALFSHUTTER_PRESSED) continue;
-            msleep(1000);
-            if (!display_idle()) continue;
-            if (gui_menu_shown()) continue;
-            if (HALFSHUTTER_PRESSED) continue;
-            SW1(1,200);
-            NotifyBox(2000, "Trap focus: buttons are locked. \n"
-                            "Press shutter halfway to unlock.");
+            case 0:
+                /* do this only in continuous mode */
+                if(trap_focus == 2)
+                {
+                    if(cfn_get_af_button_assignment()!=0)
+                    {
+                        if(should_update_loop_progress(250, &trap_focus_display_time) && !gui_menu_shown())
+                        {
+                            trap_focus_msg = TRAP_ERR_CFN;
+                        }
+                    }
+                    else if(HALFSHUTTER_PRESSED)
+                    {
+                        /* user requested enabling trap focus */
+                        trap_focus_continuous_state = 1;
+                    }
+                    else
+                    {
+                        if(should_update_loop_progress(250, &trap_focus_display_time) && !gui_menu_shown())
+                        {
+                            trap_focus_msg = TRAP_IDLE;
+                        }
+                    }
+                }
+                else
+                {
+                    trap_focus_msg = TRAP_NONE;
+                }
+                break;
+                
+            case 1:
+                /* wait for user to release his shutter button, then set it on our own */
+                if(!HALFSHUTTER_PRESSED)
+                {
+                    trap_focus_continuous_state = 2;
+                    SW1(1,50);
+                }
+                break;
+                
+            case 2:
+                info_led_off();
+                /* some abort situation happened? */
+                if(gui_menu_shown() || !display_idle() || !HALFSHUTTER_PRESSED || !tfx || trap_focus != 2)
+                {
+                    trap_focus_continuous_state = 0;
+                    SW1(0,50);
+                }
+                else
+                {
+                    if(should_update_loop_progress(250, &trap_focus_display_time))
+                    {
+                        trap_focus_msg = TRAP_ACTIVE;
+                    }
+                }
+                break;
+                
+            case 3:
+                /* re-enable after pic was taken */
+                trap_focus_continuous_state = 2;
+                SW1(1,50);
+                break;        
         }
         #else
         int tfx = 0;
@@ -6951,8 +7071,8 @@ shoot_task( void* unused )
             static int info_led_turned_on = 0;
             if (HALFSHUTTER_PRESSED)
             {
-                 info_led_on();
-                 info_led_turned_on = 1;
+                info_led_on();
+                info_led_turned_on = 1;
             }
             else if (info_led_turned_on)
             {
@@ -6961,14 +7081,26 @@ shoot_task( void* unused )
             }
             if ((!lv && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
             {
-                lens_take_picture(64,0);
-                if (trap_focus==2) // engage half-shutter for next shot
+                if(trap_focus_shoot_duration)
                 {
-                    if (image_review_time) msleep(2000);
-                    SW1(1,0);
+                    lens_take_pictures(64,0, trap_focus_shoot_duration*1000);
                 }
-                //~ call("Release");
-                //~ remote_shot(0);
+                else
+                {
+                    lens_take_picture(64,0);
+                }
+
+                /* continuous shooting active? */
+                if (trap_focus_continuous_state)
+                {
+                    /* wait the review time then re-engage again */
+                    if (image_review_time)
+                    {
+                        msleep(2000);
+                    }
+
+                    trap_focus_continuous_state = 3;
+                }
             }
         }
         #endif

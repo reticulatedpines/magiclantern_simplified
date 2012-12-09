@@ -1176,7 +1176,7 @@ void restore_af_button_assignment_at_shutdown()
 
 int
 lens_take_picture(
-    int            wait, 
+    int wait, 
     int allow_af
 )
 {
@@ -1206,8 +1206,14 @@ lens_take_picture(
     #elif defined(CONFIG_5DC)
     call("rssRelease");
     #elif defined(CONFIG_7D)
+    
     SW2(1,50);
     SW2(0,50);
+    /* on EOS 7D the code to trigger SW1/SW2 is buggy that the metering somehow locks up.
+     * This causes the camera not to shut down when the card door is opened.
+     * There is a workaround: Just wait until shooting is possible again and then trigger SW1 for a short time.
+     * Then the camera will shut down clean.
+     */
     lens_wait_readytotakepic(130000);
     SW1(1,50);
     SW1(0,50);
@@ -1226,6 +1232,48 @@ lens_take_picture(
         msleep(200);
         lens_wait_readytotakepic(wait);
         //~ give_semaphore(lens_sem);
+        if (!allow_af) restore_af_button_assignment();
+        return lens_info.job_state;
+    }
+}
+
+/* this function tries to press the shutter given duration */
+int
+lens_take_pictures(
+    int wait,
+    int allow_af,
+    int duration 
+)
+{
+    if (!allow_af) assign_af_button_to_star_button();
+
+    lens_wait_readytotakepic(64);    
+    mlu_lock_mirror_if_needed();
+    
+    /* take picture(s) */
+    SW2(1,duration);
+    SW2(0,50);
+    
+    #if defined(CONFIG_7D)
+    /* on EOS 7D the code to trigger SW1/SW2 is buggy that the metering somehow locks up.
+     * This causes the camera not to shut down when the card door is opened.
+     * There is a workaround: Just wait until shooting is possible again and then trigger SW1 for a short time.
+     * Then the camera will shut down clean.
+     */
+    lens_wait_readytotakepic(130000);
+    SW1(1,50);
+    SW1(0,50);
+    #endif
+    
+    if( !wait )
+    {
+        if (!allow_af) restore_af_button_assignment();
+        return 0;
+    }
+    else
+    {
+        msleep(200);
+        lens_wait_readytotakepic(wait);
         if (!allow_af) restore_af_button_assignment();
         return lens_info.job_state;
     }

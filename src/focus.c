@@ -1198,6 +1198,7 @@ trap_focus_display( void * priv, int x, int y, int selected )
 
 
 extern int trap_focus;
+extern int trap_focus_shoot_duration;
 
 void trap_focus_toggle_from_af_dlg()
 {
@@ -1223,8 +1224,18 @@ static struct menu_entry trap_focus_menu[] = {
         .max = 2,
         .display    = trap_focus_display,
         .help = "Takes a picture when the subject comes in focus. MF only.",
-        //.essential = FOR_PHOTO,
         .icon_type = IT_BOOL,
+        
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Shooting duration",
+                .priv = &trap_focus_shoot_duration, 
+                .min = 0,
+                .max = 60,
+                .help = "How many seconds the shutter should be pressed.",
+            },
+            MENU_EOL
+        }
     },
 #endif
 };
