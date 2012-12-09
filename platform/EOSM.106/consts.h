@@ -42,7 +42,7 @@
 #define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
-#define FOCUS_CONFIRMATION (*(int*)0x42540)
+    #define FOCUS_CONFIRMATION (*(int*)0x42540)
 
 //~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
 #define HALFSHUTTER_PRESSED (*(int*)0x3F684)

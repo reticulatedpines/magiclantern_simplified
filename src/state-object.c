@@ -61,6 +61,10 @@
 #define MOVREC_STATE (*(struct state_object **)0x27850)
 #endif
 
+#ifdef CONFIG_EOSM
+#define EVF_STATE (*(struct state_object **)0x40944)
+#endif
+
 #ifdef CONFIG_1100D
 #define DISPLAY_STATE DISPLAY_STATEOBJ
 #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
@@ -92,7 +96,7 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 
 static void vsync_func() // called once per frame.. in theory :)
 {
-    #if !defined(CONFIG_60D) && !defined(CONFIG_600D) && !defined(CONFIG_1100D) && !defined(CONFIG_5D3) // for those cameras, it's called from a different spot of the evf state object
+    #if !defined(CONFIG_60D) && !defined(CONFIG_600D) && !defined(CONFIG_1100D) && !defined(CONFIG_5D3) && !defined(CONFIG_EOSM) // for those cameras, it's called from a different spot of the evf state object
     hdr_step();
     #endif
     
@@ -173,14 +177,14 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     if (self == LV_STATE && input==4 && old_state==4) // AJ_ResetPSave_n_WB_n_LVREC_MVR_EV_EXPOSURESTARTED => perfect sync for digic on 5D2 :)
     #elif defined(CONFIG_550D)
     if (self == LV_STATE && input==5 && old_state == 5) // SYNC_GetEngineResource => perfect sync for digic :)
-    #elif defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
+    #elif defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_EOSM)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt => perfect sync for digic :)
     #else
     if (0)
     #endif
         vsync_func();
 
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) // exception for overriding ISO
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_EOSM) // exception for overriding ISO
     if (self == EVF_STATE && input == 4 && old_state == 5) // evfSetParamInterrupt
         hdr_step();
     #endif

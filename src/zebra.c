@@ -4348,7 +4348,8 @@ static void draw_zoom_overlay(int dirty)
     #if defined(CONFIG_5D2)
     lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     busy_vsync(0, 20);
-    #elif defined(CONFIG_5D3)
+    #endif
+    #if defined(CONFIG_5D3) || defined(CONFIG_EOSM)
     lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
     if (lvr != CACHEABLE(YUV422_LV_BUFFER_1) && lvr != CACHEABLE(YUV422_LV_BUFFER_2) && lvr != CACHEABLE(YUV422_LV_BUFFER_3)) return;
     #else

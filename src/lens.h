@@ -238,7 +238,7 @@ void aperture_toggle( void* priv, int sign);
 #define MAX_ISO 136 // may be better to fine-tune this for each camera
 
 // max iso with expo override
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3) || defined(CONFIG_EOSM)
 #define MAX_ISO_BV 199
 #elif defined(CONFIG_500D)
 #define MAX_ISO_BV (is_movie_mode() ? 104 : 112) // 1600 or 3200
@@ -249,7 +249,7 @@ void aperture_toggle( void* priv, int sign);
 // max ISO that can be set via FRAME_ISO 
 // I think it's the same as max analog ISO
 // todo: ask Guillermo Luijk :)
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3) || defined(CONFIG_EOSM)
 #define MAX_ANALOG_ISO 136 // iso 25600
 #else
 #define MAX_ANALOG_ISO 112 // iso 3200

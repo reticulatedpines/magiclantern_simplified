@@ -1915,7 +1915,7 @@ int is_native_iso(int iso)
         case 800:
         case 1600:
         case 3200:
-        #ifdef CONFIG_5D3
+        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM)
         case 6400: // on digic 4, those are digital gains applied to 3200 ISO
         case 12800:
         case 25600:
@@ -1934,7 +1934,7 @@ int is_lowgain_iso(int iso)
         case 640:  // ISO 800 - 1/3EV
         case 1250: // ISO 1600 - 1/3EV
         case 2500: // ISO 3200 - 1/3EV
-        #ifdef CONFIG_5D3
+        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM)
         case 5000:
         case 10000:
         #endif
