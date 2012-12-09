@@ -48,28 +48,28 @@
     #define YUV422_HD_BUFFER_2 0x46000080
     #define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
-    // see "focusinfo" and Wiki:Struct_Guessing
-    #define FOCUS_CONFIRMATION (*(int*)0x42540)
+// see "focusinfo" and Wiki:Struct_Guessing
+#define FOCUS_CONFIRMATION (*(int*)0x275A0)
 
-    //~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
-    #define HALFSHUTTER_PRESSED (*(int*)0x3F684)
+//~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
+#define HALFSHUTTER_PRESSED (*(int*)0x24878)
 
     #define DISPLAY_SENSOR_POWERED 0
 
-    // for gui_main_tas
-    #define GMT_NFUNCS 7
-    #define GMT_FUNCTABLE 0xff7f8e04 // dec gui_main_task
+// for gui_main_tas
+#define GMT_NFUNCS 7
+#define GMT_FUNCTABLE 0xff7ef1e8 // dec gui_main_task
 
 #define SENSOR_RES_X 5184
 #define SENSOR_RES_Y 3456
 
 #define LV_BOTTOM_BAR_DISPLAYED 0
-#define ISO_ADJUSTMENT_ACTIVE ((*(int*)(0x31140+0x44C)) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
+#define ISO_ADJUSTMENT_ACTIVE ((*(int*)(0x31184)) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
     // from a screenshot
     #define COLOR_FG_NONLV 1
 
-    #define MVR_516_STRUCT (*(void**)0x3E640) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
+#define MVR_516_STRUCT (*(void**)0x2372C) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
 #define MEM(x) (*(int*)(x))
 #define div_maybe(a,b) ((a)/(b))
@@ -91,7 +91,7 @@
 
     #define AE_VALUE 0 // 404
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x41414)
+#define CURRENT_DIALOG_MAYBE (*(int*)0x264DC) // in SetGUIRequestMode
 
 #define DLG_PLAY 1
 #define DLG_MENU 2
@@ -112,7 +112,7 @@
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
- #define GUIMODE_ML_MENU (recording ? 0 : lv ? 93 : 2) // any from 90...102 ?!
+ #define GUIMODE_ML_MENU (recording ? 0 : lv ? 88 : 2) // any from 88...98 ?!
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 50
@@ -128,36 +128,36 @@
 #define FASTEST_SHUTTER_SPEED_RAW 152
 #define MAX_AE_EV 5
 
-#define DIALOG_MnCardFormatBegin (0x60DC0) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
-#define DIALOG_MnCardFormatExecute (0x64840) // similar
+#define DIALOG_MnCardFormatBegin (0x44C38) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
+#define DIALOG_MnCardFormatExecute (0x48CFC) // similar
 
-#define BULB_MIN_EXPOSURE 100
+    #define BULB_MIN_EXPOSURE 1000
 
-// http://magiclantern.wikia.com/wiki/Fonts
-#define BFNT_CHAR_CODES    0xffcb9c04
-#define BFNT_BITMAP_OFFSET 0xffcbcb88
-#define BFNT_BITMAP_DATA   0xffcbfb0c
+    // http://magiclantern.wikia.com/wiki/Fonts
+    #define BFNT_CHAR_CODES    0xffcb9c04
+    #define BFNT_BITMAP_OFFSET 0xffcbcb88
+    #define BFNT_BITMAP_DATA   0xffcbfb0c
 
-#define DLG_SIGNATURE 0x6e6144
+    #define DLG_SIGNATURE 0x6e6144
 
     // from CFn
      #define AF_BTN_HALFSHUTTER 0
      #define AF_BTN_STAR 2
 
-#define IMGPLAY_ZOOM_LEVEL_ADDR (0x51E28) // dec GuiImageZoomDown and look for a negative counter
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x368A8) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
-#define IMGPLAY_ZOOM_POS_X MEM(0x8D38C) // CentrePos
-#define IMGPLAY_ZOOM_POS_Y MEM(0x8D390)
-#define IMGPLAY_ZOOM_POS_X_CENTER 360
-#define IMGPLAY_ZOOM_POS_Y_CENTER 240
+#define IMGPLAY_ZOOM_POS_X MEM(0x6E500) // CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x6E504)
+    #define IMGPLAY_ZOOM_POS_X_CENTER 360
+    #define IMGPLAY_ZOOM_POS_Y_CENTER 240
 
     #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
 // see http://magiclantern.wikia.com/wiki/VRAM/BMP
-#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x59364+0x2c)
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x3d914+0x2c)
 
 // manual exposure overrides
-#define LVAE_STRUCT 0x96A68
+#define LVAE_STRUCT 0x77B2C
 #define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x20)) // EP_SetControlBv
 #define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x22)) // EP_SetControlParam
 #define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x24))
@@ -175,8 +175,9 @@
 #define Q_BTN_NAME "[Q]"
     #define ARROW_MODE_TOGGLE_KEY "IDK"
 
-#define DISPLAY_STATEOBJ (*(struct state_object **)0x3EBB8)
-#define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+    //~ #define DISPLAY_STATEOBJ (*(struct state_object **)0x3EBB8)
+    //~ #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+    #define DISPLAY_IS_ON 1
 
 #define VIDEO_PARAMETERS_SRC_3 MEM(0x40928)
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
@@ -185,9 +186,9 @@
 #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
 
-    // see "Malloc Information"
-    #define MALLOC_STRUCT 0x66d08
-    #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+// see "Malloc Information"
+#define MALLOC_STRUCT 0x4b428
+#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
     //~ #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
 
@@ -212,8 +213,8 @@
  *
  *  And that's how Canon's touch screen works :)
  *******************************************************************************************************************/
-    #define touch_coord_ptr 0x4D868
-    #define touch_num_fingers_ptr 0x4D810   //~ found these with memspy
+    //~ #define touch_coord_ptr 0x4D868
+    //~ #define touch_num_fingers_ptr 0x4D810   //~ found these with memspy
 
 
 
@@ -221,5 +222,5 @@
 
 
 
-    #define DISPLAY_ORIENTATION MEM(0x23C10+0xB8) // read-only; string: UpdateReverseTFT. Dunno if it's correct
+#define DISPLAY_ORIENTATION MEM(0x23C10+0xB8) // read-only; string: UpdateReverseTFT.
 

@@ -78,9 +78,7 @@ RESTARTSTART	= 0x0007E100
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120
 
-CFLAGS += -DCONFIG_5D3_MINIMAL=1 -DCONFIG_NO_SNAP_SIM=1
-
 x: 
 	make clean
 	make autoexec.bin
-	python ../../../dumper/build_fir.py -r ../../../dumper/5D300113.FIR autoexec.bin ml-5D3-113.fir
+	python ../../../dumper/build_fir.py -r ../../../dumper/5D300113.FIR autoexec.bin ml-650D-112.fir

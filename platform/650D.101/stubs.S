@@ -46,11 +46,11 @@ NSTUB( ROMBASEADDR, firmware_entry )
 // 0x1C45C, bzero32        
 // 0x2EB8, create_init_task     = ffa4f510
 
-NSTUB(FF0C10E4, cli_save) // from Indy
-NSTUB(FF0C10F8, sei_restore) // from Indy
-NSTUB(FF0C1C10, cstart ) // from Indy
-NSTUB(FF137B18, bootdisk_enable) // from Indy
-NSTUB(FF137B24, bootdisk_disable) // from Indy
+NSTUB(0xFF0C10E4, cli_save) // from Indy
+NSTUB(0xFF0C10F8, sei_restore) // from Indy
+NSTUB(0xFF0C1C10, cstart ) // from Indy
+//NSTUB(0xFF137B18, bootdisk_enable) // from Indy
+//NSTUB(0xFF137B24, bootdisk_disable) // from Indy
 
 NSTUB(0xFFA5FF00 - RAM_OFFSET, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
 NSTUB(0xFFA53D50 - RAM_OFFSET, AllocateMemory)
@@ -60,11 +60,11 @@ NSTUB(0xFF4B18E0, DeleteDialogBox)
 NSTUB(0xFFA4FFB4 - RAM_OFFSET, DryosDebugMsg)
 
 //FIO Functions
-NSTUB(FF341CE4, FIO_CreateFile) // from Indy
-NSTUB(FF341FD8, FIO_WriteFile) // from Indy
-NSTUB(FF342088, FIO_CloseFile) // from Indy
+NSTUB(0xFF341CE4, FIO_CreateFile) // from Indy
+NSTUB(0xFF341FD8, FIO_WriteFile) // from Indy
+NSTUB(0xFF342088, FIO_CloseFile) // from Indy
 NSTUB(0xFF343080, FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
-NSTUB(0xFF1D9E5C FIO_CreateDirectory)
+NSTUB(0xFF1D9E5C, FIO_CreateDirectory)
 NSTUB(0xFF342EAC, FIO_FindFirstEx)  
 NSTUB(0xFF342FA0, FIO_FindNextEx)
 NSTUB(0xFF342204, FIO_GetFileSize)
@@ -139,7 +139,7 @@ NSTUB(0xFFA52EC0 - RAM_OFFSET, task_create)
     NSTUB(   0x3E1C0, task_dispatch_hook )
 NSTUB(0xFFA581D8 - RAM_OFFSET, task_trampoline)
 NSTUB(0xFFA6153C - RAM_OFFSET, vsnprintf) // not sure it gets called from RAM
-NSUB(0xFF3F6AA4, vram_get_number)
+NSTUB(0xFF3F6AA4, vram_get_number)
 NSTUB(   0x6E4A4, vram_info) // in vram_get_number
 NSTUB(0xFF6DF964, LiveViewShutterApp_handler)
 
