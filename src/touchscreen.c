@@ -30,6 +30,9 @@
 #include "bmp.h"
 #include "touchscreen.h"
 #include "cache_hacks.h"
+#include "property.h"
+
+#define TOUCH_RECORD_MS 500
 
 struct touch
 {
@@ -47,16 +50,6 @@ static int xold = 0;
 static int xnew = 0;
 
 
-
-
-static int record_gesture()
-{
-    //~ do msleep on separate task so we can still report the latest touch values.
-    lock = 1;
-    
-    return xnew;
-}
-
 static int check_horizontal_swipe()
 {
     if (ABS(xnew - xold) > 80)
@@ -68,6 +61,21 @@ static int check_horizontal_swipe()
     }
 }
 
+static void gesture_task()
+{
+    while (lock)
+        msleep(50);
+    
+    check_horizontal_swipe();
+}
+
+
+static void record_gesture()
+{
+    lock = 1;
+    task_create("gesture_record_task", gesture_task, 0, 0x1c, 0x1000);
+}
+
 
 //~ This replaces touch_cbr_canon with our function. We don't need to worry
 //~ about calling canon's CBR as it only prints a DebugMsg.
@@ -77,15 +85,8 @@ static int my_touch_event_cbr(int x, int y, int num_touch_points, int touch_id)
     touch.y = y;
     touch.num_touch_points = num_touch_points;
     touch.touch_id = touch_id;
-    
-    if (touch.num_touch_points)
-    {
-        xold = touch.x;
-        //~ bmp_printf(FONT_MED, 0, 300, "oldx: %d", xold);
-        xnew = record_gesture();
-        //~ bmp_printf(FONT_MED, 0, 320, "newx: %d", xnew);
-        check_horizontal_swipe();
-    }
+    xold = x;
+    lock = 1;
 }
 
 
@@ -100,11 +101,13 @@ static void touch_init(void* unused)
 static int touch_gesture_task()
 {
     
+    
     TASK_LOOP
     {
+        /*
         if (lock)
         {
-            msleep(20);
+            msleep(TOUCH_RECORD_MS);
             xnew = touch.x;
             //~ bmp_printf(FONT_MED, 0, 100, "xnew from task: %d", xnew);
             lock = 0;
@@ -112,10 +115,16 @@ static int touch_gesture_task()
         else
         {
             msleep(50);
-        }
+        }*/
+        
+        
+        
     }
 }
 
-TASK_CREATE("touch_gesture_task", touch_gesture_task, 0, 0x1f, 0x1000);
+//TASK_CREATE("touch_gesture_task", touch_gesture_task, 0, 0x1d, 0x1000);
 
-INIT_FUNC(__FILE__, touch_init);
+//INIT_FUNC(__FILE__, touch_init);
+
+
+

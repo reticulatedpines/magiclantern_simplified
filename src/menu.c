@@ -1120,9 +1120,17 @@ menu_display(
                 if (submenu_mode || menu_lv_transparent_mode || only_selected)
                 {
                     STR_APPEND(msg, "      ");
+                    #ifdef CONFIG_EOSM
+                    if (!CURRENT_DIALOG_MAYBE)
+                    #else
                     if (CURRENT_DIALOG_MAYBE) // GUIMode nonzero => wheel events working
+                    #endif
                     {
+                        #ifdef CONFIG_EOSM
+                        STR_APPEND(msg, "Left/Right: ");
+                        #else
                         STR_APPEND(msg, "L/R/Wheel : ");
+                        #endif
                     }
                     else
                     {
@@ -1141,7 +1149,11 @@ menu_display(
                         STR_APPEND(msg, "change value");
                     }
 
+                    #ifdef CONFIG_EOSM
+                    if (!CURRENT_DIALOG_MAYBE)
+                    #else
                     if (CURRENT_DIALOG_MAYBE) // we can use scrollwheel
+                    #endif
                         bfnt_draw_char(ICON_MAINDIAL, 680, 415, COLOR_CYAN, COLOR_BLACK);
                     else
                         leftright_sign(690, 415);
@@ -1172,7 +1184,7 @@ menu_display(
                     msg
                 );
                 
-            #ifndef CONFIG_5DC
+            #if !defined(CONFIG_5DC) && !defined(CONFIG_EOSM)
                 if (!submenu_mode && !menu_lv_transparent_mode) // we can use scrollwheel for navigation
                 {
                     bfnt_draw_char(ICON_MAINDIAL, 680, 415, COLOR_GRAY50, COLOR_BLACK);
@@ -1720,6 +1732,12 @@ CONFIG_INT("menu.upside.down", menu_upside_down, 0);
 static void 
 menu_redraw_do()
 {
+    //~ in EOS M, force dialog change when canon dialog times out. Not sure how else to do this at the moment.
+#ifdef CONFIG_EOSM
+        if (!CURRENT_DIALOG_MAYBE)
+            SetGUIRequestMode(GUIMODE_ML_MENU);
+#endif
+
         menu_damage = 0;
         g_submenu_width = 720;
         
@@ -2756,9 +2774,14 @@ int handle_ml_menu_erase(struct event * event)
 {
     if (dofpreview) return 1; // don't open menu when DOF preview is locked
     
+#ifdef CONFIG_EOSM
+    if (recording)
+        return 1;
+#endif
+    
     if (event->param == BGMT_TRASH)
     {
-        if (gui_menu_shown() || gui_state == GUISTATE_IDLE) 
+        if (gui_menu_shown() || gui_state == GUISTATE_IDLE)
         {
             give_semaphore( gui_sem );
             return 0;

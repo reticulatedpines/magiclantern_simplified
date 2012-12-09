@@ -60,7 +60,7 @@ void debug_intercept()
     {
         buf = alloc_dma_memory(BUF_SIZE);
         
-        #ifdef CONFIG_5D3
+        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM)
         uint32_t d = (uint32_t)&DryosDebugMsg;
         *(uint32_t*)(d) = B_INSTR((uint32_t)&DryosDebugMsg, my_DebugMsg);
         #else

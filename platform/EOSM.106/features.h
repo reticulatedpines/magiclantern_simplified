@@ -35,6 +35,7 @@
 #define FEATURE_EXPO_ISO_DIGIC
 #define FEATURE_EXPO_SHUTTER
 #define FEATURE_EXPO_APERTURE
+#define FEATURE_EXPO_OVERRIDE
 
 
 /** Display menu **/
