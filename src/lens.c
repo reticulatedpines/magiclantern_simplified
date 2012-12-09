@@ -1871,7 +1871,21 @@ void update_stuff()
     iso_components_update();
 }
 
-
+#ifdef CONFIG_EOSM
+PROP_HANDLER( PROP_LV_FOCAL_DISTANCE )
+{
+#ifdef FEATURE_MAGIC_ZOOM
+    if (get_zoom_overlay_trigger_by_focus_ring()) zoom_overlay_set_countdown(300);
+#endif
+    
+    idle_wakeup_reset_counters(-11);
+    lens_display_set_dirty();
+    
+#ifdef FEATURE_LV_ZOOM_SETTINGS
+    zoom_focus_ring_trigger();
+#endif
+}
+#else
 PROP_HANDLER( PROP_LV_LENS )
 {
     const struct prop_lv_lens * const lv_lens = (void*) buf;
@@ -1907,6 +1921,7 @@ PROP_HANDLER( PROP_LV_LENS )
 
     update_stuff();
 }
+#endif
 
 PROP_HANDLER( PROP_LAST_JOB_STATE )
 {

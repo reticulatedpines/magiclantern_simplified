@@ -238,7 +238,7 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
     {
         char msg[100];
         snprintf(msg, sizeof(msg), "PROP_LEN(%x) correct:%x called:%x", property, correct_len, len);
-        bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), 100, 100, msg);
+        bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_RED), 0, 100, msg);
         ml_assert_handler(msg, __FILE__, __LINE__, __func__);
         info_led_blink(10,50,50);
         return;

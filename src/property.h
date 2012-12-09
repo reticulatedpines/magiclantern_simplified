@@ -81,6 +81,9 @@
 #define PROP_HALF_SHUTTER       0x8005000a // two bytes, 1==held; only updated in LV mode
 #define PROP_ORIENTATION        0x8005000d // 0 == 0 deg, 1 == +90 deg, 2 == -90 deg
 #define PROP_LV_LENS_DRIVE_REMOTE 0x80050013 // what values?!
+#ifdef CONFIG_EOSM
+#define PROP_LV_FOCAL_DISTANCE 0x80050045
+#endif
 
 #define PROP_APERTURE2          0x8000002d
 #define PROP_APERTURE3          0x80000036
