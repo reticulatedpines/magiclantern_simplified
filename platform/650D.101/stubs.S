@@ -125,7 +125,6 @@ NSTUB(0xFFA5FBC8 - RAM_OFFSET, msg_queue_receive)
 NSTUB(0xFFA52E0C - RAM_OFFSET, msleep)
 NSTUB(0xFF11EF80, _prop_cleanup)
 NSTUB(0xFF11EEB4, prop_deliver)
-//NSTUB(0xFF11F0DC, prop_get_value) // unsafe?
 NSTUB(0xFF11E704, prop_register_slave)
 NSTUB(0xFF11E8F8, _prop_request_change)
 NSTUB(0xFF4543AC, ptp_register_handler)
@@ -207,10 +206,16 @@ NSTUB(0xFFA56AB8 - RAM_OFFSET, dma_memcpy) // AJ_HP_Copy_n_DMA_channel_n_BLTDMA
 NSTUB(0xFF1B54F8, GUI_SetRollingPitchingLevelStatus)
 
 
+
+
 NSTUB(0xFF2BEEDC, mvrSetPrintMovieLog)
 NSTUB(0xFF2BE8EC, mvrSetQscale)
 NSTUB(   0x31424, mvr_config)
 NSTUB(0xFF2BEEB8, mvrFixQScale)
 NSTUB(0xFF2BE9B0, mvrSetDefQScale)
 
+NSTUB(0xFF11F0DC, prop_get_value)
 NSTUB(0xFF2A4840, ptpPropSetUILock)
+NSTUB(0xFF330408, touch_cbr_canon)
+
+NSTUB(0xFF5A55FC, lvae_setdispgain)
