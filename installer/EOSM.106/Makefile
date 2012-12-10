@@ -1,4 +1,4 @@
-#Makefile for EOS M firmware 106
+#Makefile for EOS M firmware 106 installer
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
@@ -24,10 +24,9 @@ ML_OBJS-y = \
 	$(PLATFORM_DIR)/stubs.o \
 	version.o \
 	bmp.o \
-#	font-large.o \
-#	font-med.o \
-#	font-small.o \
+	chdk-gui_draw.o \
 	font-dyn.o \
+	stdio.o \
 	property.o \
 	propvalues.o \
 	dialog_test.o \
@@ -35,10 +34,7 @@ ML_OBJS-y = \
 	vram.o \
 
 #include generic rules and definitions
-
 include  $(TOP_DIR)/Makefile.inc
-
-CFLAGS += -DCONFIG_STATIC_FONTS=1
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
