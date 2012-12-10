@@ -3359,7 +3359,7 @@ bulb_take_pic(int duration)
     
     int t_start = get_ms_clock_value();
     int t_end = t_start + duration;
-    SW2(1,0);
+    SW2(1,100);
     
     //~ msleep(duration);
     int d = duration/1000;
