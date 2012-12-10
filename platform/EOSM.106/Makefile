@@ -1,4 +1,4 @@
-#Makefile for EOS M firmware 100
+#Makefile for EOS M firmware 106
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
@@ -63,9 +63,6 @@ ML_OBJS-y = \
 	audio-ak.o \
 	vsync-lite.o \
 	dm-spy.o \
-	ptp-chdk.o \
-	ptp.o \
-	touchscreen.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
@@ -79,9 +76,4 @@ RESTARTSTART	= 0x0009E300
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120
 
-CFLAGS += -DCONFIG_5D3_MINIMAL=1 -DCONFIG_NO_SNAP_SIM=1
-
-x: 
-	make clean
-	make autoexec.bin
-	python ../../../dumper/build_fir.py -r ../../../dumper/5D300113.FIR autoexec.bin ml-5D3-113.fir
+all: autoexec.bin

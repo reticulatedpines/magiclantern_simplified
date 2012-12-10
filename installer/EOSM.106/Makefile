@@ -1,12 +1,13 @@
-#Makefile for EOS M firmware 100
+#Makefile for EOS M firmware 106
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=100
+FW_VERSION=106
 MODEL=EOSM
-UPDATE_NAME=EOSM-100.fir 
+UPDATE_NAME=EOSM106.fir 
+ML_VERSION=unified1
 
 #used in CFLAGS
 PLATFORM_INC=../../platform/$(MODEL).$(FW_VERSION)
@@ -23,9 +24,10 @@ ML_OBJS-y = \
 	$(PLATFORM_DIR)/stubs.o \
 	version.o \
 	bmp.o \
-	font-large.o \
-	font-med.o \
-	font-small.o \
+#	font-large.o \
+#	font-med.o \
+#	font-small.o \
+	font-dyn.o \
 	property.o \
 	propvalues.o \
 	dialog_test.o \
@@ -33,8 +35,8 @@ ML_OBJS-y = \
 	vram.o \
 
 #include generic rules and definitions
-#TOP_DIR defined in upper Makefile
-include ../../Makefile.inc
+
+include  $(TOP_DIR)/Makefile.inc
 
 CFLAGS += -DCONFIG_STATIC_FONTS=1
 
@@ -42,7 +44,7 @@ CFLAGS += -DCONFIG_STATIC_FONTS=1
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF0C0000
-RESTARTSTART		= 0x00069500
+RESTARTSTART		= 0x0009E300
 
 updater: reboot-ins.o
 	$(call build,LD,$(LD) \
@@ -56,15 +58,14 @@ updater: reboot-ins.o
 
 
 # Notice I rename these to avoid problems with main Makefile
-all_eosm: 
-	make clean_eosm
-# Don't build ML, too early still. We run code from cstart() in reboot-ins.c
-# make magiclantern.bin
+all: 
+	make clean
+	make magiclantern.bin
 	make updater.bin
 	python ../../../dumper/build_fir.py -r ../../../dumper/5D300113.FIR updater.bin $(UPDATE_NAME)
 
-clean_eosm:
+clean:
 	rm -f *.fir *.o autoexec* magiclantern* updater* ml.bin
 
-install_eosm:
+install:
 	cp $(UPDATE_NAME) /media/EOS_DIGITAL/ && umount /media/EOS_DIGITAL 
