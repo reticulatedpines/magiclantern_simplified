@@ -494,7 +494,7 @@ void clear_lv_afframe()
     if (lv_disp_mode) return;
     int xaf,yaf;
     
-    //~ get_yuv422_vram();
+    get_yuv422_vram();
 
     uint8_t* M = (uint8_t*)get_bvram_mirror();
     if (!M) return;
