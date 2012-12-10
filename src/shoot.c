@@ -6463,8 +6463,18 @@ void display_trap_focus_msg()
             msg = "Trap Focus:     \nACTIVE, keys are\ncurrently locked";
             break;
     }
-
-    bmp_printf(FONT(FONT_MED, fg, bg), DISPLAY_TRAP_FOCUSMSG_POS_X, DISPLAY_TRAP_FOCUSMSG_POS_Y, msg);
+    
+    static int dirty = 0;
+    if (trap_focus_msg)
+    {
+        bmp_printf(FONT(FONT_MED, fg, bg), DISPLAY_TRAP_FOCUSMSG_POS_X, DISPLAY_TRAP_FOCUSMSG_POS_Y, msg);
+        dirty = 1;
+    }
+    else if (dirty) // clean old message, if any
+    {
+        redraw();
+        dirty = 0;
+    }
 #endif
 }
 
