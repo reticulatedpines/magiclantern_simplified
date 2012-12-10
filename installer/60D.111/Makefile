@@ -11,7 +11,7 @@ UPDATE_NAME=60D-111.fir
 ML_FIR=ml-60D-111.fir
 
 #used in CFLAGS
-PLATFORM_INC=.
+PLATFORM_INC=../../platform/$(MODEL).$(FW_VERSION)
 
 PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
@@ -25,9 +25,9 @@ ML_OBJS-y = \
 	$(PLATFORM_DIR)/stubs.o \
 	version.o \
 	bmp.o \
-	font-large.o \
-	font-med.o \
-	font-small.o \
+	chdk-gui_draw.o \
+	font-dyn.o \
+	stdio.o \
 	property.o \
 	propvalues.o \
 	dialog_test.o \
@@ -35,10 +35,7 @@ ML_OBJS-y = \
 	vram.o \
 
 #include generic rules and definitions
-
 include  $(TOP_DIR)/Makefile.inc
-
-CFLAGS += -DCONFIG_STATIC_FONTS=1
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
@@ -59,7 +56,7 @@ updater: reboot-ins.o
 		$^ \
 	); \
 
-all: magiclantern.bin updater.bin
+installer: magiclantern.bin updater.bin
 	python ../../../dumper/build_fir.py -r ../../../dumper/60D00111.FIR updater.bin $(UPDATE_NAME)
 
 clean:

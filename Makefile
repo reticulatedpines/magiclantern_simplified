@@ -96,15 +96,15 @@ fir:
 	cd installer/1100D.105/; $(MAKE) clean
 	cd installer/EOSM.106/; $(MAKE) clean
 	cd installer/650D.101/; $(MAKE) clean
-	$(MAKE) -C installer/550D.109/
-	$(MAKE) -C installer/60D.111/
-	$(MAKE) -C installer/600D.102/
-	$(MAKE) -C installer/50D.109/
-	$(MAKE) -C installer/500D.111/
-	$(MAKE) -C installer/5D2.212/
-	$(MAKE) -C installer/1100D.105/
-	$(MAKE) -C installer/EOSM.106/
-	$(MAKE) -C installer/650D.101/
+	$(MAKE) installer -C installer/550D.109/
+	$(MAKE) installer -C installer/60D.111/
+	$(MAKE) installer -C installer/600D.102/
+	$(MAKE) installer -C installer/50D.109/
+	$(MAKE) installer -C installer/500D.111/
+	$(MAKE) installer -C installer/5D2.212/
+	$(MAKE) installer -C installer/1100D.105/
+	$(MAKE) installer -C installer/EOSM.106/
+	$(MAKE) installer -C installer/650D.101/
 
 install_fir: fir
 	cp installer/550D.109/ml-550d-109.fir $(CF_CARD)

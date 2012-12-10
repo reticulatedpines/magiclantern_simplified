@@ -114,6 +114,12 @@ cstart( void )
     if (s != (int)0x2e2f65f5)
         fail();
     #endif
+    
+    #ifdef CONFIG_EOSM
+    int s = compute_signature((int*)0xFF0C0000, 0x10000);
+    if (s != (int)0x6393A881)
+        fail();
+    #endif
 
     #if defined(CONFIG_7D)
     int s = compute_signature((int*)0xF8010000, 0x10000);

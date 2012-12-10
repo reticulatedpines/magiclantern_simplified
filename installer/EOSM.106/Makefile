@@ -54,7 +54,7 @@ updater: reboot-ins.o
 
 
 # Notice I rename these to avoid problems with main Makefile
-all: 
+installer: 
 	make clean
 	make magiclantern.bin
 	make updater.bin

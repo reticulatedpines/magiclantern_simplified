@@ -40,24 +40,6 @@ int old_shooting_mode; // to detect when mode dial changes
 int bootflag_written = 0;
 
 
-/** Dummies **/
-int lv;
-int sensor_cleaning;
-int shooting_mode;
-struct font font_small;
-struct font font_med;
-struct font font_large;
-struct sfont font_small_shadow;
-struct sfont font_med_shadow;
-struct sfont font_large_shadow;
-void ml_assert_handler(char* msg, char* file, int line, const char* func) {};
-void bmp_mute_flag_reset(){};
-void afframe_set_dirty(){};
-int digic_zoom_overlay_enabled(){};
-
-PROP_INT( PROP_ICU_UILOCK, uilockprop);
-
-
 void NotifyBox(int timeout, char* fmt, ...)
 {
     beep();
@@ -67,38 +49,6 @@ void NotifyBox(int timeout, char* fmt, ...)
     vsnprintf( notify_box_msg, sizeof(notify_box_msg), fmt, ap );
     va_end( ap );
     big_bmp_printf(FONT_LARGE, 0, 0, "%s", notify_box_msg);
-}
-
-static uint8_t* bvram_mirror_start = 0;
-static uint8_t* bvram_mirror = 0;
-void bvram_mirror_clear()
-{
-    ASSERT(bvram_mirror_start);
-    BMP_LOCK( bzero32(bvram_mirror_start, BMP_VRAM_SIZE); )
-}
-
-void bvram_mirror_init()
-{
-    if (!bvram_mirror_start)
-    {
-        // shoot_malloc is not that stable
-        //~ #if defined(CONFIG_600D) || defined(CONFIG_1100D)
-        //~ bvram_mirror_start = (void*)shoot_malloc(BMP_VRAM_SIZE); // there's little memory available in system pool
-        //~ #else
-        bvram_mirror_start = (void*)AllocateMemory(BMP_VRAM_SIZE);
-        //~ #endif
-        if (!bvram_mirror_start)
-        {
-            while(1)
-            {
-                bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
-                msleep(100);
-            }
-        }
-        // to keep the same addressing mode as with normal BMP VRAM - origin in 720x480 center crop
-        bvram_mirror = bvram_mirror_start + BMP_HDMI_OFFSET;
-        bvram_mirror_clear();
-    }
 }
 
 
@@ -267,70 +217,7 @@ copy_and_restart( int offset )
         ;
 }
 
-void
-call_init_funcs( void * priv )
-{
-    // Call all of the init functions
-    extern struct task_create _init_funcs_start[];
-    extern struct task_create _init_funcs_end[];
-    struct task_create * init_func = _init_funcs_start;
-    
-    for( ; init_func < _init_funcs_end ; init_func++ )
-    {
-        DebugMsg( DM_MAGIC, 3,
-                 "Calling init_func %s (%x)",
-                 init_func->name,
-                 (unsigned) init_func->entry
-                 );
-        thunk entry = (thunk) init_func->entry;
-        entry();
-    }
-    
-}
 
-// this Msleep works with display off too
-void Msleep(int ms)
-{
-    int i;
-    for (i = 0; i < ms/100; i++)
-    {
-        msleep(100);
-        call("DisablePowerSave"); // trick from AJ_MREQ_ISR
-        call("EnablePowerSave"); // to prevent camera for entering "deep sleep"
-    }
-}
-
-void fake_simple_button(int bgmt_code)
-{
-    GUI_Control(bgmt_code, 0, 0, 0);
-}
-
-/** card LED operations **/
-void card_led_on() { cli_save(); *(int*)CARD_LED_ADDRESS |= 2; sei_restore(); }
-void card_led_off() { cli_save(); *(int*)CARD_LED_ADDRESS &= ~2; sei_restore(); }
-void card_led_blink(int times, int delay_on, int delay_off)
-{
-    int i;
-    for (i = 0; i < times; i++)
-    {
-        card_led_on();
-        Msleep(delay_on);
-        card_led_off();
-        Msleep(delay_off);
-    }
-}
-
-#define UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL 0x4100014f
-#define UILOCK_EVERYTHING 0x4100017f
-
-void ui_lock(int x)
-{
-    int unlocked = 0x41000000;
-    prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
-    Msleep(200);
-    prop_request_change(PROP_ICU_UILOCK, &x, 4);
-    Msleep(200);
-}
 
 // check if fonts.dat is present on the card
 int check_fonts()
@@ -356,6 +243,9 @@ int check_autoexec()
     return 0;
 }
 
+
+#define BG_COLOR COLOR_BLACK
+
 // check ML installation and print a message
 void check_install()
 {
@@ -364,7 +254,7 @@ void check_install()
     
     if (boot_flags->firmware)
     {
-        big_bmp_printf(FONT(FONT_LARGE, COLOR_RED, 0), 0, 0,
+        big_bmp_printf(FONT(FONT_LARGE, COLOR_RED, BG_COLOR), 0, 0,
                        " MAIN_FIRMWARE flag is DISABLED!    \n"
                        "                                    \n"
                        " This was probably caused by a      \n"
@@ -388,7 +278,7 @@ void check_install()
         {
             if (fonts_ok)
             {
-                big_bmp_printf(FONT(FONT_LARGE, COLOR_GREEN1, 0), 0, 0,
+                big_bmp_printf(FONT(FONT_LARGE, COLOR_GREEN1, BG_COLOR), 0, 0,
                                " ********************************** \n"
                                " *            SUCCESS!            * \n"
                                " ********************************** \n"
@@ -411,7 +301,7 @@ void check_install()
             }
             else
             {
-                big_bmp_printf(FONT(FONT_LARGE, COLOR_YELLOW, 0), 0, 0,
+                big_bmp_printf(FONT(FONT_LARGE, COLOR_YELLOW, BG_COLOR), 0, 0,
                                "                                    \n"
                                " BOOTDISK flag is ENABLED.          \n"
                                " AUTOEXEC.BIN found.                \n"
@@ -432,7 +322,7 @@ void check_install()
         }
         else
         {
-            big_bmp_printf(FONT(FONT_LARGE, COLOR_RED, 0), 0, 0,
+            big_bmp_printf(FONT(FONT_LARGE, COLOR_RED, BG_COLOR), 0, 0,
                            "                                    \n"
                            " BOOTDISK flag is ENABLED.          \n"
                            "                                    \n"
@@ -453,7 +343,7 @@ void check_install()
     }
     else
     {
-        big_bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), 0, 0,
+        big_bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, BG_COLOR), 0, 0,
                        "                                    \n"
                        " BOOTDISK flag is DISABLED.         \n"
                        "                                    \n"
@@ -499,12 +389,12 @@ void firmware_fix()
         for (i = 0; i < 10; i++)
         {
             big_bmp_printf(FONT_LARGE, 50, 100, "EnableMainFirm");
-            card_led_blink(1, 50, 50);
+            info_led_blink(1, 50, 50);
         }
         if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
             call( "EnableMainFirm" ); // in movie mode, it causes ERR80 and then asks for a firmware update
     }
-    card_led_blink(5, 100, 100);
+    info_led_blink(5, 100, 100);
     ui_lock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
 }
 
@@ -527,7 +417,7 @@ void bootflag_toggle()
         for (i = 0; i < 10; i++)
         {
             big_bmp_printf(FONT_LARGE, 50, 100, "DisableBootDisk");
-            card_led_blink(1, 50, 50);
+            info_led_blink(1, 50, 50);
         }
         if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
             call( "DisableBootDisk" ); // in movie mode, it causes ERR80 and then asks for a firmware update
@@ -537,13 +427,24 @@ void bootflag_toggle()
         for (i = 0; i < 10; i++)
         {
             big_bmp_printf(FONT_LARGE, 50, 100, "EnableBootDisk");
-            card_led_blink(1, 50, 50);
+            info_led_blink(1, 50, 50);
         }
         if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
             call( "EnableBootDisk" );
     }
-    card_led_blink(5, 100, 100);
+    info_led_blink(5, 100, 100);
     ui_lock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
+}
+
+static int compute_signature(int* start, int num)
+{
+	int c = 0;
+	int* p;
+	for (p = start; p < start + num; p++)
+	{
+		c += *p;
+	}
+	return c;
 }
 
 
@@ -568,12 +469,12 @@ void install_task()
     
     if (!DISPLAY_IS_ON)
     {
-        card_led_blink(10, 10, 90);
-        card_led_blink(10, 90, 10);
-        card_led_blink(10, 10, 90);
-        card_led_blink(10, 90, 10);
-        card_led_blink(10, 10, 90);
-        card_led_blink(10, 90, 10);
+        info_led_blink(10, 10, 90);
+        info_led_blink(10, 90, 10);
+        info_led_blink(10, 10, 90);
+        info_led_blink(10, 90, 10);
+        info_led_blink(10, 10, 90);
+        info_led_blink(10, 90, 10);
         beep();
         return; // display off, won't install
     }
@@ -589,6 +490,13 @@ void install_task()
     fonts_ok = check_fonts();
     
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Autoexec & fonts checked");
+    
+    //~ if we're in LV, start canon menu to exit, for safety reasons.
+    if (lv)
+    {
+        fake_simple_button(BGMT_MENU);
+        msleep(200);
+    }
     
     initial_install();
     
@@ -616,7 +524,6 @@ void install_task()
         Msleep(100);
     }
 }
-
 
 /** Initial task setup.
  *
@@ -652,7 +559,7 @@ int my_init_task(int a, int b, int c, int d)
     additional_version[2] = 'l';
     additional_version[3] = '\0';
     
-    Msleep( 4000 );
+    msleep(3000);
     
     task_create("install_task", 0x1b, 0x4000, install_task, 0);
     return ans;
@@ -661,53 +568,6 @@ int my_init_task(int a, int b, int c, int d)
 // print a message and redraw it continuously (so it won't be erased by camera firmware)
 #define PERSISTENT_PRINTF(times, font, x, y, msg, ...) { int X = times; while(X--) { big_bmp_printf(font, x, y, msg, ## __VA_ARGS__); Msleep(100); } }
 
-void beep()
-{
-    call("StartPlayWaveData");
-    Msleep(1000);
-    call("StopPlayWaveData");
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void redraw() { clrscr(); }
-
-static volatile int init_funcs_done;
-
-
-
-
-
-void SW1(int v, int wait)
-{
-    prop_request_change(PROP_REMOTE_SW1, &v, 2);
-    Msleep(wait);
-}
-
-void SW2(int v, int wait)
-{
-    prop_request_change(PROP_REMOTE_SW2, &v, 2);
-    Msleep(wait);
-}
 
 /** Perform an initial install and configuration */
 void
@@ -773,23 +633,103 @@ initial_install(void)
     Msleep(1000);
 }
 
-// dummy definitions for bmp.c
-/*int ext_monitor_hdmi = 0;
-int ext_monitor_rca = 0;
-int hdmi_code = 0;
-int lv = 0;
-void bvram_mirror_init(){};
+
+
+/** Dummies **/
+int lv;
+int sensor_cleaning;
+int shooting_mode;
+struct font font_small;
+struct font font_med;
+struct font font_large;
+struct sfont font_small_shadow;
+struct sfont font_med_shadow;
+struct sfont font_large_shadow;
+void ml_assert_handler(char* msg, char* file, int line, const char* func) {};
 void bmp_mute_flag_reset(){};
-struct font font_small_shadow;
-struct font font_med_shadow;
-struct font font_large_shadow;
-
-void ml_assert_handler(char* msg, char* file, int line, const char* func) {}
-void CheckBmpAcquireRecursiveLock(){};
-void CheckBmpReleaseRecursiveLock(){};
-
 void afframe_set_dirty(){};
-void draw_line(){};
+int digic_zoom_overlay_enabled(){return 0;}
+void bvram_mirror_init(){};
+void bvram_mirror_clear(){};
+int display_is_on_550D = 0;
+int get_display_is_on_550D() { return display_is_on_550D; }
+void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf){};
+int display_filter_enabled;
 
-int display_filter_enabled() { return 0; };
-void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf) {};*/
+//~ doesn't use _AllocateMemory()
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_550D) && !defined(CONFIG_5D2) && !defined(CONFIG_EOSM)
+void *AllocateMemory(size_t size){return 0;}
+#endif
+
+PROP_INT( PROP_ICU_UILOCK, uilockprop);
+
+void redraw() { clrscr(); }
+
+void SW1(int v, int wait)
+{
+    prop_request_change(PROP_REMOTE_SW1, &v, 2);
+    Msleep(wait);
+}
+
+void SW2(int v, int wait)
+{
+    prop_request_change(PROP_REMOTE_SW2, &v, 2);
+    Msleep(wait);
+}
+
+void beep()
+{
+    call("StartPlayWaveData");
+    Msleep(1000);
+    call("StopPlayWaveData");
+}
+
+void
+call_init_funcs( void * priv )
+{
+    // Call all of the init functions
+    extern struct task_create _init_funcs_start[];
+    extern struct task_create _init_funcs_end[];
+    struct task_create * init_func = _init_funcs_start;
+    
+    for( ; init_func < _init_funcs_end ; init_func++ )
+    {
+        DebugMsg( DM_MAGIC, 3,
+                 "Calling init_func %s (%x)",
+                 init_func->name,
+                 (unsigned) init_func->entry
+                 );
+        thunk entry = (thunk) init_func->entry;
+        entry();
+    }
+    
+}
+
+// this Msleep works with display off too
+void Msleep(int ms)
+{
+    int i;
+    for (i = 0; i < ms/100; i++)
+    {
+        msleep(100);
+        call("DisablePowerSave"); // trick from AJ_MREQ_ISR
+        call("EnablePowerSave"); // to prevent camera for entering "deep sleep"
+    }
+}
+
+void fake_simple_button(int bgmt_code)
+{
+    GUI_Control(bgmt_code, 0, 0, 0);
+}
+
+#define UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL 0x4100014f
+#define UILOCK_EVERYTHING 0x4100017f
+
+void ui_lock(int x)
+{
+    int unlocked = 0x41000000;
+    prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
+    Msleep(200);
+    prop_request_change(PROP_ICU_UILOCK, &x, 4);
+    Msleep(200);
+}

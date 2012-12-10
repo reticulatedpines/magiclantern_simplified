@@ -6,17 +6,17 @@
  */
 /*
  * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
@@ -27,7 +27,7 @@
 #include "arm-mcr.h"
 
 #define SIG_LEN 0x10000
-//~ #define FIRMWARE_SIGNATURE 0xae78b938 // from FF810000
+#define FIRMWARE_SIGNATURE 0x6393A881 // from FF0C0000
 
 asm(
     ".text\n"
@@ -124,8 +124,8 @@ __attribute__((noreturn))
 cstart( void )
 {
 	// check firmware version
-	//~ if (compute_signature(ROMBASEADDR, SIG_LEN) != FIRMWARE_SIGNATURE)
-    //~ fail();
+	if (compute_signature(ROMBASEADDR, SIG_LEN) != FIRMWARE_SIGNATURE)
+    fail();
     
 	// there is a bug in that we are 0x120 bytes off from
 	// where we should be, so we must offset the blob start.
