@@ -37,7 +37,7 @@
     //~ #define CONFIG_DIGIC_POKE
 
     /** A bunch of debug tools **/
-    //~ #define CONFIG_DEBUGMSG
+    //~ #define CONFIG_DEBUGMSG 1
 
     /** Useful to test battery consumption without any other ML code running **/
     //~ #define CONFIG_BATTERY_TEST
