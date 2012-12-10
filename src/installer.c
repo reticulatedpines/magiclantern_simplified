@@ -246,11 +246,27 @@ int check_autoexec()
 
 #define BG_COLOR COLOR_BLACK
 
+void ensure_preconditions()
+{
+    msleep(300);
+    
+    while (sensor_cleaning)
+    {
+        bmp_printf(FONT_LARGE, 50, 50, "Sensor cleaning...");
+        msleep(200);
+    }
+
+    while (!DISPLAY_IS_ON || lv)
+    { 
+        fake_simple_button(BGMT_MENU); 
+        msleep(1000); 
+    }
+}
+
 // check ML installation and print a message
 void check_install()
 {
-    //~ Msleep(1);
-    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_MENU); Msleep(1000); }
+    ensure_preconditions();
     
     if (boot_flags->firmware)
     {
@@ -378,7 +394,7 @@ void check_install()
 
 void firmware_fix()
 {
-    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_MENU); Msleep(1000); }
+    ensure_preconditions();
     
     clrscr();
     ui_lock(UILOCK_EVERYTHING);
@@ -406,7 +422,7 @@ void bootflag_toggle()
         return;
     }
     
-    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_MENU); Msleep(1000); }
+    ensure_preconditions();
     
     clrscr();
     ui_lock(UILOCK_EVERYTHING);
@@ -453,21 +469,11 @@ void install_task()
 {
     call_init_funcs(0);
     
-    Msleep(500);
+    msleep(500);
     
-    //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Install task starting...");
+    ensure_preconditions();
     
-    while (sensor_cleaning) Msleep(200);
-    
-    //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Sensor cleaning done... ");
-    
-    Msleep(200);
-    
-    //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status: %d          ", !DISPLAY_IS_ON);
-    
-    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_MENU); Msleep(1000); }
-    
-    if (!DISPLAY_IS_ON)
+    if (!DISPLAY_IS_ON || lv)
     {
         info_led_blink(10, 10, 90);
         info_led_blink(10, 90, 10);
@@ -476,9 +482,9 @@ void install_task()
         info_led_blink(10, 10, 90);
         info_led_blink(10, 90, 10);
         beep();
-        return; // display off, won't install
+        return; // display off, or liveview, won't install
     }
-    Msleep(500);
+    msleep(500);
     
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status OK!          ");
     canon_gui_disable_front_buffer();
@@ -490,13 +496,6 @@ void install_task()
     fonts_ok = check_fonts();
     
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Autoexec & fonts checked");
-    
-    //~ if we're in LV, start canon menu to exit, for safety reasons.
-    if (lv)
-    {
-        fake_simple_button(BGMT_MENU);
-        msleep(200);
-    }
     
     initial_install();
     
@@ -521,7 +520,7 @@ void install_task()
         }
         old_shooting_mode = shooting_mode;
         
-        Msleep(100);
+        msleep(100);
     }
 }
 
@@ -559,14 +558,16 @@ int my_init_task(int a, int b, int c, int d)
     additional_version[2] = 'l';
     additional_version[3] = '\0';
     
-    msleep(3000);
+    msleep(1000);
+    call("DisablePowerSave");
+    msleep(2000);
     
     task_create("install_task", 0x1b, 0x4000, install_task, 0);
     return ans;
 }
 
 // print a message and redraw it continuously (so it won't be erased by camera firmware)
-#define PERSISTENT_PRINTF(times, font, x, y, msg, ...) { int X = times; while(X--) { big_bmp_printf(font, x, y, msg, ## __VA_ARGS__); Msleep(100); } }
+#define PERSISTENT_PRINTF(times, font, x, y, msg, ...) { int X = times; while(X--) { big_bmp_printf(font, x, y, msg, ## __VA_ARGS__); msleep(100); } }
 
 
 /** Perform an initial install and configuration */
@@ -630,7 +631,7 @@ initial_install(void)
     //~ dumpf();
 
     big_bmp_printf(FONT_LARGE, 0, y+=30, "Done!");
-    Msleep(1000);
+    msleep(1000);
 }
 
 
@@ -668,19 +669,19 @@ void redraw() { clrscr(); }
 void SW1(int v, int wait)
 {
     prop_request_change(PROP_REMOTE_SW1, &v, 2);
-    Msleep(wait);
+    msleep(wait);
 }
 
 void SW2(int v, int wait)
 {
     prop_request_change(PROP_REMOTE_SW2, &v, 2);
-    Msleep(wait);
+    msleep(wait);
 }
 
 void beep()
 {
     call("StartPlayWaveData");
-    Msleep(1000);
+    msleep(1000);
     call("StopPlayWaveData");
 }
 
@@ -705,18 +706,6 @@ call_init_funcs( void * priv )
     
 }
 
-// this Msleep works with display off too
-void Msleep(int ms)
-{
-    int i;
-    for (i = 0; i < ms/100; i++)
-    {
-        msleep(100);
-        call("DisablePowerSave"); // trick from AJ_MREQ_ISR
-        call("EnablePowerSave"); // to prevent camera for entering "deep sleep"
-    }
-}
-
 void fake_simple_button(int bgmt_code)
 {
     GUI_Control(bgmt_code, 0, 0, 0);
@@ -729,7 +718,7 @@ void ui_lock(int x)
 {
     int unlocked = 0x41000000;
     prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
-    Msleep(200);
+    msleep(200);
     prop_request_change(PROP_ICU_UILOCK, &x, 4);
-    Msleep(200);
+    msleep(200);
 }
