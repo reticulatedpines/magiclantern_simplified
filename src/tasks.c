@@ -129,7 +129,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
     {
         get_task_info(tasks[i], task_info);
         
-        char* name = task_info[1]+1;
+        char* name = (char*) task_info[1]+1;
         char short_name[] = "             \0";
         my_memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
 

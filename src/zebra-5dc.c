@@ -200,6 +200,8 @@ int yuv411_to_422(uint32_t addr)
             return UYVY_PACK(u,y1,v,y2);
         }
     }
+
+	return 0; // unreachable, shut the compiler warnings
 }
 
 void yuv411_to_rgb(uint32_t addr, int* Y, int* R, int* G, int* B)
@@ -221,7 +223,7 @@ void yuv411_to_rgb(uint32_t addr, int* Y, int* R, int* G, int* B)
     static int am3 = 0;
     static int c = 0;
     
-    static int prev_addr = 0;
+    static unsigned int prev_addr = 0;
     if (likely(addr == prev_addr + 4))
     {
         am3 = am3 + 1;
@@ -694,7 +696,7 @@ hist_build()
             if (hist_draw && hist_colorspace == 1 && !ext_monitor_rca) // rgb
             {
                 int R, G, B;
-                yuv411_to_rgb(p, &Y, &R, &G, &B);
+                yuv411_to_rgb((uint32_t) p, &Y, &R, &G, &B);
                 //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
                 //~ COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
                 // YRGB range: 0-255
@@ -731,7 +733,7 @@ hist_build()
 
             if (vectorscope_draw)
             {
-                uint32_t pixel = yuv411_to_422(p);
+                uint32_t pixel = yuv411_to_422((uint32_t) p);
                 int8_t U = (pixel >>  0) & 0xFF;
                 int8_t V = (pixel >> 16) & 0xFF;
                 vectorscope_addpixel(Y, U, V);
@@ -781,7 +783,7 @@ int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
             uint32_t* p = &v_row[x/2];
             
             int Y, R, G, B;
-            yuv411_to_rgb(p, &Y, &R, &G, &B);
+            yuv411_to_rgb((uint32_t)p, &Y, &R, &G, &B);
 
             //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
             //~ COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
@@ -1300,7 +1302,7 @@ void draw_zebras( int Z )
                 {
                     int Y, R, G, B;
                     //~ uyvy2yrgb(*lvp, &Y, &R, &G, &B);
-                    yuv411_to_rgb(lvp, &Y, &R, &G, &B);
+                    yuv411_to_rgb((uint32_t)lvp, &Y, &R, &G, &B);
                     //~ COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
 
                     if(unlikely(Y < zll)) // underexposed
@@ -1459,10 +1461,10 @@ static inline int peak_d2xy_hd(const uint8_t* p8)
 // should be more accurate for 5Dc - there is a hi-res buffer in playback mode
 static int peak_d2xy_hd_avg2x2(const uint8_t* p8)
 {
-    int p00 = peak_d2xy(p8);
-    int p01 = peak_d2xy(p8 + 4);
-    int p10 = peak_d2xy(p8 + vram_hd.pitch);
-    int p11 = peak_d2xy(p8 + vram_hd.pitch + 4);
+    int p00 = peak_d2xy((uint8_t *) p8);
+    int p01 = peak_d2xy((uint8_t *) p8 + 4);
+    int p10 = peak_d2xy((uint8_t *) p8 + vram_hd.pitch);
+    int p11 = peak_d2xy((uint8_t *) p8 + vram_hd.pitch + 4);
     return (p00 + p01 + p10 + p11) / 4;
 }
 
@@ -1470,6 +1472,7 @@ static int peak_d2xy_hd_avg2x2(const uint8_t* p8)
 //~ static inline int peak_blend_raw(uint32_t* s, int e) { return (e << 8) | (e << 24); }
 static inline int peak_blend_alpha(uint32_t* s, int e)
 {
+	return 0; // TODO: ???
 }
 
 static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
@@ -2172,7 +2175,7 @@ static void spotmeter_step()
     {
         for( x = xcl - dxl ; x <= xcl + dxl ; x += 2 )
         {
-            uint32_t uyvy = yuv411_to_422(&vr[ x + y * width ]);
+            uint32_t uyvy = yuv411_to_422((uint32_t)&vr[ x + y * width ]);
             sy += UYVY_GET_AVG_Y(uyvy);
             su += UYVY_GET_U(uyvy);
             sv += UYVY_GET_V(uyvy);

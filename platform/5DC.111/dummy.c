@@ -8,11 +8,11 @@
 void movtweak_task_init() {}
 void movtweak_step() {}
 
-int fps_get_shutter_speed_shift() {}
+int fps_get_shutter_speed_shift() { return 0; }
 
-void *AcquireRecursiveLock(void *lock, int n){}
+void *AcquireRecursiveLock(void *lock, int n){ return NULL; }
 //~ void *CreateRecursiveLock(int n){}
-void *ReleaseRecursiveLock(void *lock){}
+void *ReleaseRecursiveLock(void *lock){ return NULL; }
 int audio_meters_are_drawn() { return 0; } 
 int override_zoom_buttons = 0;
 void lcd_release_step(){};
@@ -22,7 +22,7 @@ void set_shooting_mode(){};
 int get_screen_layout(){ return 0; };
 void rec_notify_trigger(){};
 void set_display_gain_equiv(){};
-void fps_get_current_x1000() { return 0; }
+int fps_get_current_x1000() { return 0; }
 void display_lcd_remote_icon(){}
 int get_lcd_sensor_shortcuts(){ return 0; }
 void digic_iso_toggle(){}

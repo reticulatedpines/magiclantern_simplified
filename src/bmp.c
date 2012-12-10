@@ -85,6 +85,10 @@ void bmp_idle_clear()
     bzero32(BMP_VRAM_START(bmp_vram_idle()), BMP_VRAM_SIZE);
 }*/
 
+#ifdef CONFIG_VXWORKS
+void set_ml_palette_if_dirty(); // forward declaration
+#endif
+
 /** Returns a pointer to currently selected BMP vram (real or mirror) */
 uint8_t * bmp_vram(void)
 {
@@ -220,7 +224,7 @@ _draw_char(
 #else // 5DC    
     #define FPIX(i,j) (font->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
     //- #define BMPIX(i,j) bmp_vram_row[(i) * BMPPITCH + (j)]
-    #define BMPIX(i,j,color) char* p = &bmp_vram_row[((i)/2) * BMPPITCH + (j)/2]; SET_4BIT_PIXEL(p, j, color);
+    #define BMPIX(i,j,color) unsigned char* p = &bmp_vram_row[((i)/2) * BMPPITCH + (j)/2]; SET_4BIT_PIXEL(p, j, color);
     
     if (font == &font_large) // large fonts look better with line skipping
     {
@@ -1135,7 +1139,7 @@ int D2V(unsigned color) { return bmp_lut[MIN(color & 0xFF,79)]; }
         if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue; \
         if ((p == 0x14 || p == 0x3) && bmp_color == 0) continue; \
     } \
-    char* p = &b_row[ xs/2 ];  \
+    unsigned char* p = &b_row[ xs/2 ];  \
     SET_4BIT_PIXEL(p, xs, bmp_color); \
 
 #else

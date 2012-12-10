@@ -54,7 +54,7 @@ void dumpmem(int addr, int len)
 {
     FIO_RemoveFile("A:/0x0.BIN");
     FILE* f = FIO_CreateFile("A:/0x0.BIN");
-    if (f!=-1)
+    if ((int32_t)f!=-1)
     { 
         FIO_WriteFile(f, (void*)addr, len);
         LEDBLUE = LEDON;
@@ -67,7 +67,7 @@ void dump_with_buffer(int addr, int len, char* filename)
 {
     FIO_RemoveFile(filename);
     FILE* f = FIO_CreateFile(filename);
-    if (f!=-1)
+    if ((int32_t)f!=-1)
     { 
         int address = addr;
         while (address<addr+len)
@@ -146,7 +146,7 @@ static void hijack_event_dispatches( void )
 void rewrite_version_string()
 {
     // only 3 characters available :(
-    char * additional_version = 0x1DA0;
+    char * additional_version = (char *)0x1DA0;
     additional_version[0] = '-';
     additional_version[1] = 'M';
     additional_version[2] = 'L';
@@ -155,13 +155,15 @@ void rewrite_version_string()
 
 int bmp_vram_idle_ptr;
 
+void my_big_init_task(); // forward declaration
+
 void my_init_task()
 {
     LEDBLUE = LEDON;
     _card_led_on();
     msleep(200);
     hijack_gui_main_task();
-    bmp_vram_idle_ptr = malloc(360*240);
+    bmp_vram_idle_ptr = (int)malloc(360*240);
     my_big_init_task();
     LEDBLUE = LEDOFF;
     _card_led_off();

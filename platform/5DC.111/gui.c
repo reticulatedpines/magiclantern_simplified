@@ -43,9 +43,9 @@ void my_gui_task( void )
     while(1)
     {
         struct event * event;
-        msg_queue_receive( MEM(0x1271C), &event, 0);
+        msg_queue_receive( (uint32_t *) MEM(0x1271C), &event, 0);
         
-        take_semaphore(MEM(0x12720), 0);
+        take_semaphore((struct semaphore *) MEM(0x12720), 0);
         
         if ( !event )
             goto event_loop_bottom;
@@ -139,7 +139,7 @@ void my_gui_task( void )
         
     event_loop_bottom:
         
-        give_semaphore( MEM(0x12720) );
+        give_semaphore( (struct semaphore *) MEM(0x12720) );
         continue;
         
     queue_clear:
@@ -197,7 +197,7 @@ void hijack_gui_main_task()
         int mq_count = MEM(MEM(0x1271C) + 0x18);
         if (mq_count == 0 && sem_state == 1)
         {
-            take_semaphore(MEM(0x12720), 0); // so Canon GUI task can no longer handle events
+            take_semaphore((struct semaphore *) MEM(0x12720), 0); // so Canon GUI task can no longer handle events
             break;
         }
         msleep(100);
@@ -210,7 +210,7 @@ void hijack_gui_main_task()
     task_create("GuiMainTask", 0x17, 0x2000, my_gui_task, 0);
 
     //~ also hijack my_bindGUISwitchCBR - to decode top vs bottom wheel
-    MEM(0xF654) = my_bindGUISwitchCBR;
+    MEM(0xF654) = (uint32_t)my_bindGUISwitchCBR;
 
-    give_semaphore(MEM(0x12720));
+    give_semaphore((struct semaphore *) MEM(0x12720));
 }
