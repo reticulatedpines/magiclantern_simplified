@@ -81,6 +81,9 @@
 #define PROP_HALF_SHUTTER       0x8005000a // two bytes, 1==held; only updated in LV mode
 #define PROP_ORIENTATION        0x8005000d // 0 == 0 deg, 1 == +90 deg, 2 == -90 deg
 #define PROP_LV_LENS_DRIVE_REMOTE 0x80050013 // what values?!
+#ifdef CONFIG_EOSM
+#define PROP_LV_FOCAL_DISTANCE 0x80050045
+#endif
 
 #define PROP_APERTURE2          0x8000002d
 #define PROP_APERTURE3          0x80000036
@@ -328,6 +331,11 @@
 #define PROP_REMOTE_RELEASE            0x8003000A
 #define PROP_REMOTE_SET_BUTTON         0x80020018
 
+/* some properties found while reverse engineering */
+#define PROP_FA_ADJUST_FLAG            0x80040000
+
+
+
 #if defined(CONFIG_5DC) || defined(CONFIG_40D) // not sure, it might be like 5D2
     #define PROP_FOLDER_NUMBER     0x2010000
     #define PROP_FILE_NUMBER       0x2010002
@@ -373,6 +381,8 @@
 #define PROP_CARD_COVER 0x8003002F
 
 #define PROP_TERMINATE_SHUT_REQ 0x80010001
+
+#define PROP_BUTTON_ASSIGNMENT 0x80010007
 
 #define PROP_PIC_QUALITY   0x8000002f
 #define PROP_PIC_QUALITY2  0x80000030

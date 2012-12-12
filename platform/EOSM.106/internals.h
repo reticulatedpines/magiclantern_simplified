@@ -70,11 +70,11 @@
 #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
 /** Therefore, we can implement display filters (features that alter the LiveView image in real-time) **/
-#define CONFIG_DISPLAY_FILTERS
+//-#define CONFIG_DISPLAY_FILTERS
 
 /** We can override ISO on a per-frame basis, by changing FRAME_ISO (e.g. for HDR video or gradual exposure) **/
 /** Well, I hope so **/
-#define CONFIG_FRAME_ISO_OVERRIDE
+//-#define CONFIG_FRAME_ISO_OVERRIDE
 
 /** But we can't override the digital ISO component via FRAME_ISO **/
 #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
@@ -99,6 +99,3 @@
 
 /** No photo mode outside LiveView **/
 //~ #define CONFIG_PHOTO_MODE_INFO_DISPLAY
-
-/** This camera has a touch-sensitive screen **/
-#define CONFIG_TOUCHSCREEN

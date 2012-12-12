@@ -333,7 +333,7 @@ void update_vram_params()
     vram_hd.pitch = hd_size & 0xFFFF;
     vram_hd.width = vram_hd.pitch / 2;
     vram_hd.height = ((hd_size >> 16) & 0xFFFF)
-        #ifndef CONFIG_5D3
+        #if !defined(CONFIG_5D3) && !defined(CONFIG_EOSM)
         + 1
         #endif
         ;
@@ -345,7 +345,7 @@ void update_vram_params()
     #if defined(CONFIG_600D)
     int bar_x = is_movie_mode() && video_mode_resolution >= 2 ? off_43 : 0;
     int bar_y = is_movie_mode() && video_mode_resolution <= 1 ? os.off_169 : 0;
-    #elif defined(CONFIG_5D3) || defined(CONFIG_1100D)
+    #elif defined(CONFIG_5D3) || defined(CONFIG_1100D) || defined(CONFIG_EOSM)
     int bar_x = 0;
     int bar_y = is_movie_mode() && video_mode_resolution == 1 ? os.off_169 : 0;
     off_43+=0; // bypass warning

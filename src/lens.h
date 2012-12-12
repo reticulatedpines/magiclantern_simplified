@@ -151,7 +151,8 @@ extern int bv_set_rawshutter(unsigned shutter);
 extern int bv_set_rawaperture(unsigned aperture);
 extern int bv_set_rawiso(unsigned iso);
 
-OS_FUNCTION( 0x0900001, int,	lens_take_picture, int wait, int allow_af );
+OS_FUNCTION( 0x0900001, int, lens_take_picture, int wait, int allow_af );
+OS_FUNCTION( 0x0900002, int, lens_take_pictures, int wait, int allow_af, int duration );
 
 /** Will block if it is not safe to send the focus command */
 extern int
@@ -237,7 +238,7 @@ void aperture_toggle( void* priv, int sign);
 #define MAX_ISO 136 // may be better to fine-tune this for each camera
 
 // max iso with expo override
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3) || defined(CONFIG_EOSM)
 #define MAX_ISO_BV 199
 #elif defined(CONFIG_500D)
 #define MAX_ISO_BV (is_movie_mode() ? 104 : 112) // 1600 or 3200
@@ -248,7 +249,7 @@ void aperture_toggle( void* priv, int sign);
 // max ISO that can be set via FRAME_ISO 
 // I think it's the same as max analog ISO
 // todo: ask Guillermo Luijk :)
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3) || defined(CONFIG_EOSM)
 #define MAX_ANALOG_ISO 136 // iso 25600
 #else
 #define MAX_ANALOG_ISO 112 // iso 3200

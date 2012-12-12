@@ -22,12 +22,11 @@ ML_OBJS-y = \
 	$(SRC_DIR)/entry.o \
 	installer.o \
 	$(PLATFORM_DIR)/stubs.o \
-	$(PLATFORM_DIR)/misc.o \
 	version.o \
 	bmp.o \
-	font-large.o \
-	font-med.o \
-	font-small.o \
+	chdk-gui_draw.o \
+	font-dyn.o \
+	stdio.o \
 	property.o \
 	propvalues.o \
 	dialog_test.o \
@@ -35,10 +34,7 @@ ML_OBJS-y = \
 	vram.o \
 
 #include generic rules and definitions
-
 include  $(TOP_DIR)/Makefile.inc
-
-CFLAGS += -DCONFIG_STATIC_FONTS=1
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
@@ -59,7 +55,7 @@ updater: reboot-ins.o
 		$^ \
 	); \
 
-all: 
+installer: 
 	make clean
 	make magiclantern.bin
 	make updater.bin

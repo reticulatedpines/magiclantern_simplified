@@ -494,7 +494,7 @@ void clear_lv_afframe()
     if (lv_disp_mode) return;
     int xaf,yaf;
     
-    //~ get_yuv422_vram();
+    get_yuv422_vram();
 
     uint8_t* M = (uint8_t*)get_bvram_mirror();
     if (!M) return;
@@ -1171,6 +1171,34 @@ void play_zoom_center_pos_update()
 }
 
 #endif // FEATURE_QUICK_ZOOM
+
+
+#ifdef CONFIG_EOSM
+static int num_skip_events = 2;
+/** EOS M: this is how we know if the LV overlays are hidden or not */
+void handle_canon_overlays_update(struct event * event)
+{
+    if (num_skip_events)
+    {
+        num_skip_events--;
+        return;
+    }
+    
+    switch( event->param )
+    {
+        case GUI_LV_OVERLAYS_HIDDEN:
+            lv_disp_mode = 0;
+            return;
+            
+        case GUI_LV_OVERLAYS_VISIBLE:
+            lv_disp_mode = 1;
+            return;
+            
+        default:
+            return;
+    }
+}
+#endif
 
 static void
 tweak_task( void* unused)

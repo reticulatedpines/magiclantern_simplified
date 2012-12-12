@@ -28,6 +28,21 @@
 #include "arm-mcr.h"
 
 
+/** Manager struct in DryOS */
+struct Manager_DryOS    //~ size=0x84
+{
+    const char *                    name;                   //~ off_0x00    ie: Evf, PropMgr, etc.
+    
+    struct TaskClass *              taskclass_ptr;          //~ off_0x08
+    struct state_object  *          stateobj_ptr;           //~ off_0x0c
+    int                             off_0x10;               //~ off_0x10    arg0 to CreateManager function.
+    int                             off_0x14;               //~ off_0x14    arg1 to CreateManager function.
+    int                             off_0x18;               //~ off_0x18    initialized to *(0x3E568), not known.
+    
+    //~ rest of offsets unknown at this time.
+};
+
+
 /*** For VxWorks / 5dc ONLY! NOT tested for DryOS yet. ***/
 //~ Calls CreateTaskClass from canon startup task.
 //~ Ex: PropMgr, GenMgr, FileMgr

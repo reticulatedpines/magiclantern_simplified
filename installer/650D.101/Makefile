@@ -1,13 +1,12 @@
-#Makefile for 600D firmware 101
+#Makefile for 650D firmware 101
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=112
-MODEL=5D3
-UPDATE_NAME=5D3-112.fir
-ML_VERSION=unified1 
+FW_VERSION=101
+MODEL=650D
+UPDATE_NAME=$(MODEL)-$(FW_VERSION).fir 
 
 #used in CFLAGS
 PLATFORM_INC=../../platform/$(MODEL).$(FW_VERSION)
@@ -24,9 +23,9 @@ ML_OBJS-y = \
 	$(PLATFORM_DIR)/stubs.o \
 	version.o \
 	bmp.o \
-	chdk-gui_draw.o \
-	font-dyn.o \
-	stdio.o \
+	font-large.o \
+	font-med.o \
+	font-small.o \
 	property.o \
 	propvalues.o \
 	dialog_test.o \
@@ -37,13 +36,15 @@ ML_OBJS-y = \
 #TOP_DIR defined in upper Makefile
 include ../../Makefile.inc
 
+CFLAGS += -DCONFIG_STATIC_FONTS=1
+
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF0C0000
-RESTARTSTART		= 0x00069500
+RESTARTSTART		= 0x0007e100
 
-updater: reboot-ins.o
+updater: reboot-ins.o 
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-nostdlib \
@@ -53,12 +54,12 @@ updater: reboot-ins.o
 		$^ \
 	); \
 
-installer: 
+# Notice I rename these to avoid problems with main Makefile
+installer: magiclantern.bin updater.bin
 	make clean
 	make magiclantern.bin
 	make updater.bin
-	python ../../../dumper/build_fir.py -r ../../../dumper/5D300112.FIR updater.bin $(UPDATE_NAME)
-
+	python ../../../../550_alex/dumper/build_fir7.py -r -i 0x301 -s updater.bin ../../../../550_alex/dumper/550d_109.fir 650D_101.fir
 clean:
 	rm -f *.fir *.o autoexec* magiclantern* updater* ml.bin
 

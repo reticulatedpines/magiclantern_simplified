@@ -1,5 +1,5 @@
 /*
- *  Almost none of this is correct yet, only a skeleton to be fille in later.
+ *  Almost none of this is correct yet, only a skeleton to be filled in later.
  *
  *  Indented line = incorrect.
  */
@@ -42,7 +42,7 @@
 #define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
-#define FOCUS_CONFIRMATION (*(int*)0x42540)
+    #define FOCUS_CONFIRMATION (*(int*)0x42540)
 
 //~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
 #define HALFSHUTTER_PRESSED (*(int*)0x3F684)
@@ -56,8 +56,12 @@
 #define SENSOR_RES_X 4752
 #define SENSOR_RES_Y 3168
 
-#define LV_BOTTOM_BAR_DISPLAYED 0
-#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x4C2CC) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
+
+#define CURRENT_DIALOG_MAYBE (*(int*)0x41414)
+
+#define LV_BOTTOM_BAR_DISPLAYED (lv_disp_mode)
+
+    #define ISO_ADJUSTMENT_ACTIVE 0 // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
     // from a screenshot
     #define COLOR_FG_NONLV 1
@@ -84,8 +88,6 @@
 
     #define AE_VALUE 0 // 404
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x41414)
-
 #define DLG_PLAY 1
 #define DLG_MENU 2
 
@@ -105,7 +107,7 @@
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
- #define GUIMODE_ML_MENU (recording ? 0 : lv ? 93 : 2) // any from 90...102 ?!
+ #define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 90...102 ?!
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 50
@@ -165,7 +167,7 @@
 #define MIN_MSLEEP 10
 
 #define INFO_BTN_NAME "INFO"
-#define Q_BTN_NAME "[Q]"
+#define Q_BTN_NAME "[1-Finger Tap]"
     #define ARROW_MODE_TOGGLE_KEY "IDK"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x3EBB8)

@@ -4345,10 +4345,11 @@ static void draw_zoom_overlay(int dirty)
     uint16_t*       hdr = (uint16_t*) hd->vram;
 
     // select buffer where MZ should be written (camera-specific, guesswork)
-    #if defined(CONFIG_5D2)
+    #if defined(CONFIG_5D2) || defined(CONFIG_EOSM)
     lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     busy_vsync(0, 20);
-    #elif defined(CONFIG_5D3)
+    #endif
+    #if defined(CONFIG_5D3)
     lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
     if (lvr != CACHEABLE(YUV422_LV_BUFFER_1) && lvr != CACHEABLE(YUV422_LV_BUFFER_2) && lvr != CACHEABLE(YUV422_LV_BUFFER_3)) return;
     #else
@@ -5328,7 +5329,7 @@ livev_hipriority_task( void* unused )
         
         int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras (should match the one from draw_zebra_and_focus)
 
-        #ifdef FEATURE_LV_DISPLAY_PRESETS
+        #ifdef FEATURE_ZEBRA_FAST
         if (zebra_digic_dirty && !zd) digic_zebra_cleanup();
         #endif
         

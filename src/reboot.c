@@ -59,7 +59,7 @@ asm(
     ".globl blob_end\n"
 );
 
-#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER)
+#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER) || defined(CONFIG_EOSM)
 static void busy_wait(int n)
 {
     int i,j;
@@ -112,6 +112,12 @@ cstart( void )
     #ifdef CONFIG_5D3
     int s = compute_signature((int*)0xFF0C0000, 0x10000);
     if (s != (int)0x2e2f65f5)
+        fail();
+    #endif
+    
+    #ifdef CONFIG_EOSM
+    int s = compute_signature((int*)0xFF0C0000, 0x10000);
+    if (s != (int)0x6393A881)
         fail();
     #endif
 

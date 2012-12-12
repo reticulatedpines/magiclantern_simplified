@@ -117,6 +117,34 @@ usage()
 	printf("USAGE: ptpcam [OPTION]\n\n");
 }
 
+
+#define PTPBUF_MAGIC 0xEAEA3388
+#define PTPBUF_MAGIC_REV 0x8833EAEA
+
+typedef struct
+{
+    uint32_t bytes_used;
+    uint8_t data;
+} ptpbuf_buffer_t;
+
+typedef struct
+{
+    uint32_t type;
+    uint32_t length;
+} ptpbuf_packet_t;
+
+typedef struct
+{
+    uint32_t magic;
+    uint32_t buffer_count;
+    uint32_t buffer_size;
+    uint32_t current_buffer;
+    uint32_t overflow;
+    ptpbuf_buffer_t *buffers;
+    uint32_t *fetchable;
+} ptpbuf_t;
+
+
 void
 help()
 {
@@ -2322,7 +2350,7 @@ static void hexdump(char *buf, unsigned int size, unsigned int offset)
       memset(s+(offset%16),' ',16-(offset%16));
       printf(" |");
       print_safe(s,16);
-      printf("|\n%08x",offset);
+      printf("|");
   }
   printf("\n");
 }
@@ -2617,6 +2645,7 @@ int chdk(int busn, int devn, short force)
           "  reboot                       reboot camera\n"
           "  reboot <filename>            reboot camera using specified firmware update\n"
           "  reboot-fi2                   reboot camera using default firmware update\n"
+          "ptpbuf <address>               dump ptpbuf packets at given base address\n" 
           "m memory <address>             get byte at address\n" 
           "m memory <address>-<address>   get bytes at given range\n" 
           "m memory <address> <num>       get num bytes at given address\n"
@@ -2949,11 +2978,126 @@ int chdk(int busn, int devn, short force)
             printf("gdb> '%s'\n", buf);
         }
     }
-    else if ( !strncmp("delta ",buf,6) || !strncmp("adtgdelta ",buf,6) || !strncmp("engiodelta ",buf,6))
+    else if ( !strncmp("ptpbuf ",buf,7))
+    {
+        int start;
+        unsigned char *buf2;
+        ptpbuf_t *ptpbuf;
+
+        buf2 = strchr(buf,' ')+1;
+        start = strtoul(buf2,NULL,0);
+
+        /* get reference buffer */
+        if((ptpbuf = ptp_chdk_get_memory(start,sizeof(ptpbuf_t),&params,&params.deviceinfo)) == NULL )
+        {
+            printf("error getting memory\n");
+        }
+        if(ptpbuf->magic == PTPBUF_MAGIC_REV)
+        {
+            printf("PTPbuf found but endianess mismatch. Please add endianess conversion to ptpcam\r\n");
+        }
+        else if(ptpbuf->magic != PTPBUF_MAGIC)
+        {
+            printf("PTPbuf not found at given address\r\n");
+        }
+        else
+        {
+            int error = 0;
+            
+            printf("PTPbuf: 0x%02X buffers, 0x%04X bytes each\r\n", ptpbuf->buffer_count, ptpbuf->buffer_size);
+            
+            while(!kbhit() && !error)
+            {
+                uint32_t *fetchable;
+                int idle = 1;
+                
+                /* refetch buffer */
+                free(ptpbuf);
+                if((ptpbuf = ptp_chdk_get_memory(start,sizeof(ptpbuf_t),&params,&params.deviceinfo)) == NULL )
+                {
+                    printf("error getting memory\n");
+                }
+                
+                if(ptpbuf->overflow)
+                {
+                    printf("PTPbuf overflowed. The dump is incomplete!\n");
+                }
+                
+                if((fetchable = ptp_chdk_get_memory(ptpbuf->fetchable, ptpbuf->buffer_count * 4,&params,&params.deviceinfo)) == NULL )
+                {
+                    printf("error getting memory\n");
+                    error = 1;
+                }
+                else
+                {
+                    int num = 0;
+                    for(num = 0; num < ptpbuf->buffer_count; num++)
+                    {
+                        if(fetchable[num])
+                        {
+                            ptpbuf_buffer_t *buffer;
+                            uint32_t buffer_address = (uint32_t)ptpbuf->buffers + (num * (ptpbuf->buffer_size + 4));
+                            
+                            idle = 0;
+                            //printf("PTPbuf: buffer 0x%02X at 0x%08X is full. fetching...\r\n", num, buffer_address);
+                            
+                            if((buffer = ptp_chdk_get_memory(buffer_address, ptpbuf->buffer_size + 4,&params,&params.deviceinfo)) == NULL )
+                            {
+                                printf("error getting memory\n");
+                                error = 1;
+                            }
+                            else
+                            {
+                                /* set buffer free */
+                                if (!ptp_chdk_set_memory_long((uint32_t)ptpbuf->fetchable + num * 4, 0,&params,&params.deviceinfo) )
+                                {
+                                    printf("error writing memory\n");
+                                    error = 1;
+                                }
+                                else
+                                {
+                                    int pos = 0;
+                                    
+                                    //printf("PTPbuf: 0x%02X bytes used\r\n", buffer->bytes_used);
+                                    
+                                    while(pos < buffer->bytes_used)
+                                    {
+                                        ptpbuf_packet_t *packet = &(buffer->data) + pos;
+                                        uint8_t *payload = &(buffer->data) + pos + sizeof(ptpbuf_packet_t);
+                                        uint32_t packet_length = sizeof(ptpbuf_packet_t) + packet->length;
+                                        
+                                        if(packet->length <= ptpbuf->buffer_size - pos - sizeof(ptpbuf_packet_t))
+                                        {
+                                            hexdump(payload, packet->length, 0);
+                                            pos += packet_length;
+                                        }
+                                        else
+                                        {
+                                            printf("PTPbuf: 0x%02X bytes is too large. buffer corrupted\r\n", packet->length);
+                                            pos = buffer->bytes_used;
+                                        }
+                                    }
+                                    
+                                }
+                                free(buffer);
+                            }                            
+                        }
+                    }
+                    free(fetchable);
+                }
+                if(idle)
+                {
+                    usleep(500000);
+                }
+            }            
+        }
+    }
+    else if ( !strncmp("delta ",buf,6) ||  !strncmp("deltaw ",buf,7) || !strncmp("adtgdelta ",buf,6) || !strncmp("engiodelta ",buf,6))
     {
       int regdump = 0;
       int start;
       int end;
+      int width = 1;
       int deltaPos;
       int deltaNum = 0;
       char *s;
@@ -2967,6 +3111,10 @@ int chdk(int busn, int devn, short force)
       if( !strncmp("engiodelta ",buf,6))
       {
           regdump = 2;
+      }
+      if( !strncmp("deltaw ",buf,7))
+      {
+          width = 4;
       }
       buf2 = strchr(buf,' ')+1;
 
@@ -3005,7 +3153,14 @@ int chdk(int busn, int devn, short force)
         }
         else
         {
-            hexdump(buf2,end-start,start);
+            if(width == 4)
+            {
+                hexdump4(buf2,end-start,start);
+            }
+            else
+            {
+                hexdump(buf2,end-start,start);
+            }
         }
       }
       
@@ -3095,7 +3250,14 @@ int chdk(int busn, int devn, short force)
                     }
                     else
                     {
-                        hexdump(buf2,end-start,start);
+                        if(width == 4)
+                        {
+                            hexdump4(buf2,end-start,start);
+                        }
+                        else
+                        {
+                            hexdump(buf2,end-start,start);
+                        }
                     }
                 }
                 free(buf3);

@@ -62,8 +62,6 @@ struct gui_main_struct {
 
 extern struct gui_main_struct gui_main_struct;
 
-int param, obj, arg;
-
 static void my_gui_main_task()
 {
 	struct event * event = NULL;
@@ -77,15 +75,6 @@ static void my_gui_main_task()
 		gui_main_struct.counter--;
 		if (event == NULL) continue;
 		index = event->type;
-        
-       /*if ((event->type == 0) && (event->param != 0x54) && (event->param != 0x69))
-        {
-            msleep(250);
-            param = event->param;
-            obj = event->obj;
-            arg = event->arg;
-        }*/
-
 		
 		if (!magic_is_off())
 		{

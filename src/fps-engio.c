@@ -134,7 +134,13 @@ static void fps_read_current_timer_values();
 
 
 #define FPS_TIMER_A_MAX 0x2000
-#define FPS_TIMER_B_MAX (0x4000-1)
+
+#ifdef CONFIG_EOSM
+    #define FPS_TIMER_B_MAX fps_timer_b_orig
+#else
+    #define FPS_TIMER_B_MAX (0x4000-1)
+#endif
+
 //~ #define FPS_TIMER_B_MIN (fps_timer_b_orig-100)
 #define FPS_TIMER_B_MIN fps_timer_b_orig // it might go lower than that, but it causes trouble high shutter speeds
 
@@ -328,7 +334,7 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
 
 int get_current_shutter_reciprocal_x1000()
 {
-#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_40D)
+#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_40D) || defined(CONFIG_EOSM)
     if (!lens_info.raw_shutter) return 0;
     return (int) roundf(powf(2.0f, (lens_info.raw_shutter - 136) / 8.0f) * 1000.0f * 1000.0f);
 #else
@@ -1086,6 +1092,7 @@ static struct menu_entry fps_menu[] = {
                 .select = fps_change_value,
                 .help = "FPS value for recording. Video will play back at Canon FPS.",
             },
+#ifndef CONFIG_EOSM     //~ we only modify FPS_REGISTER_A, so no optimizations possible.
             {
                 .name = "Optimize for\b",
                 .priv       = &fps_criteria,
@@ -1103,6 +1110,7 @@ static struct menu_entry fps_menu[] = {
                 .select = fps_criteria_change,
                 .help = "Optimization criteria - how to setup the two timers.",
             },
+#endif
             {
                 .name = "Shutter range",
                 .display = shutter_range_print,
@@ -1280,7 +1288,7 @@ static void fps_task()
         else
         #endif
         {
-            #if defined(CONFIG_500D) || defined(CONFIG_1100D)
+            #if defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_EOSM)
             msleep(fps_override && recording ? 10 : 100);
             #else
             msleep(100);
@@ -1342,7 +1350,9 @@ static void fps_task()
                 float ff = default_fps * ks + f * (1-ks);
                 int fr = (int)roundf(ff);
                 fps_setup_timerA(fr);
+#ifndef CONFIG_EOSM
                 fps_setup_timerB(fr);
+#endif
                 fps_read_current_timer_values();
 
                 int x0 = os.x0;
@@ -1379,7 +1389,9 @@ static void fps_task()
         
         //~ info_led_on();
         fps_setup_timerA(f);
+#ifndef CONFIG_EOSM
         fps_setup_timerB(f);
+#endif
         //~ info_led_off();
         fps_read_current_timer_values();
         //~ bmp_printf(FONT_LARGE, 50, 100, "%dx, new timers: %d,%d ", lv_dispsize, fps_timer_a, fps_timer_b);

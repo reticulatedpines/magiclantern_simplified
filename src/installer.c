@@ -30,8 +30,17 @@
 #include "property.h"
 #include "consts.h"
 
+/** These are called when new tasks are created */
+int my_init_task(int a, int b, int c, int d);
+void my_bzero( uint8_t * base, uint32_t size );
 
-void NotifyBox(int timeout, char* fmt, ...) 
+int autoexec_ok; // true if autoexec.bin was found
+int fonts_ok; // true if fonts.dat was found
+int old_shooting_mode; // to detect when mode dial changes
+int bootflag_written = 0;
+
+
+void NotifyBox(int timeout, char* fmt, ...)
 {
     beep();
     static char notify_box_msg[100];
@@ -42,9 +51,69 @@ void NotifyBox(int timeout, char* fmt, ...)
     big_bmp_printf(FONT_LARGE, 0, 0, "%s", notify_box_msg);
 }
 
-/** These are called when new tasks are created */
-int my_init_task(int a, int b, int c, int d);
-void my_bzero( uint8_t * base, uint32_t size );
+
+#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+void _card_led_on() { *(volatile uint32_t*)CARD_LED_ADDRESS = LEDON; }
+void _card_led_off() { *(volatile uint32_t*)CARD_LED_ADDRESS = LEDOFF; }
+#elif defined(CONFIG_7D)
+void _card_led_on() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x138800; }
+void _card_led_off() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x38400; }
+#else
+void _card_led_on() { *(volatile uint8_t*)CARD_LED_ADDRESS = 0x46; }
+void _card_led_off() { *(volatile uint8_t*)CARD_LED_ADDRESS = 0x44; }
+#endif
+
+void info_led_on()
+{
+#ifdef CONFIG_VXWORKS
+    LEDBLUE = LEDON;
+#elif defined(CONFIG_BLUE_LED)
+    call("EdLedOn");
+#else
+    _card_led_on();
+#endif
+}
+void info_led_off()
+{
+#ifdef CONFIG_VXWORKS
+    LEDBLUE = LEDOFF;
+#elif defined(CONFIG_BLUE_LED)
+    call("EdLedOff");
+#else
+    _card_led_off();
+#endif
+}
+void info_led_blink(int times, int delay_on, int delay_off)
+{
+    for (int i = 0; i < times; i++)
+    {
+        info_led_on();
+        msleep(delay_on);
+        info_led_off();
+        msleep(delay_off);
+    }
+}
+
+
+
+
+
+/** Shadow copy of the NVRAM boot flags stored at 0xF8000000 */
+#define NVRAM_BOOTFLAGS     ((void*) 0xF8000000)
+struct boot_flags
+{
+    uint32_t        firmware;   // 0x00
+    uint32_t        bootdisk;   // 0x04
+    uint32_t        ram_exe;    // 0x08
+    uint32_t        update;     // 0x0c
+    uint32_t        flag_0x10;
+    uint32_t        flag_0x14;
+    uint32_t        flag_0x18;
+    uint32_t        flag_0x1c;
+};
+
+static struct boot_flags * const    boot_flags = NVRAM_BOOTFLAGS;
+
 
 /** This just goes into the bss */
 #define RELOCSIZE 0x10000
@@ -72,19 +141,6 @@ zero_bss( void )
         *(bss++) = 0;
 }
 
-void card_led_on() { cli_save(); *(int*)CARD_LED_ADDRESS |= 2; sei_restore(); }
-void card_led_off() { cli_save(); *(int*)CARD_LED_ADDRESS &= ~2; sei_restore(); }
-void card_led_blink(int times, int delay_on, int delay_off)
-{
-    int i;
-    for (i = 0; i < times; i++)
-    {
-        card_led_on();
-        Msleep(delay_on);
-        card_led_off();
-        Msleep(delay_off);
-    }
-}
 
 void
 __attribute__((noreturn,noinline,naked))
@@ -161,86 +217,294 @@ copy_and_restart( int offset )
         ;
 }
 
-int autoexec_ok; // true if autoexec.bin was found
-int fonts_ok; // true if fonts.dat was found
-int old_shooting_mode; // to detect when mode dial changes
-int bootflag_written = 0;
-// print a message and redraw it continuously (so it won't be erased by camera firmware)
-#define PERSISTENT_PRINTF(times, font, x, y, msg, ...) { int X = times; while(X--) { big_bmp_printf(font, x, y, msg, ## __VA_ARGS__); Msleep(100); } }
 
-#define UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL 0x4100014f
-#define UILOCK_EVERYTHING 0x4100017f
 
-void ui_lock(int x)
+// check if fonts.dat is present on the card
+int check_fonts()
 {
-    int unlocked = 0x41000000;
-    prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
-    Msleep(200);
-    prop_request_change(PROP_ICU_UILOCK, &x, 4);
-    Msleep(200);
+    FILE * f = FIO_Open(CARD_DRIVE "ML/DATA/FONTS.DAT", 0);
+    if (f != (void*) -1)
+    {
+        FIO_CloseFile(f);
+        return 1;
+    }
+    return 0;
 }
 
-void beep()
+// check if autoexec.bin is present on the card
+int check_autoexec()
 {
-    call("StartPlayWaveData");
-    Msleep(1000);
-    call("StopPlayWaveData");
-}
-void fake_simple_button(int bgmt_code)
-{
-    GUI_Control(bgmt_code, 0, 0, 0);
+    FILE * f = FIO_Open(CARD_DRIVE "AUTOEXEC.BIN", 0);
+    if (f != (void*) -1)
+    {
+        FIO_CloseFile(f);
+        return 1;
+    }
+    return 0;
 }
 
+
+#define BG_COLOR COLOR_BLACK
+
+void ensure_preconditions()
+{
+    msleep(300);
+    
+    while (sensor_cleaning)
+    {
+        bmp_printf(FONT_LARGE, 50, 50, "Sensor cleaning...");
+        msleep(200);
+    }
+
+    while (!DISPLAY_IS_ON || lv)
+    { 
+        fake_simple_button(BGMT_MENU); 
+        msleep(1000); 
+    }
+}
+
+// check ML installation and print a message
+void check_install()
+{
+    ensure_preconditions();
+    
+    if (boot_flags->firmware)
+    {
+        big_bmp_printf(FONT(FONT_LARGE, COLOR_RED, BG_COLOR), 0, 0,
+                       " MAIN_FIRMWARE flag is DISABLED!    \n"
+                       "                                    \n"
+                       " This was probably caused by a      \n"
+                       " failed install process.            \n"
+                       "                                    \n"
+                       " Camera may work with Magic Lantern,\n"
+                       " but it will ask for a firmware     \n"
+                       " update as soon as you insert a     \n"
+                       " formatted card.                    \n"
+                       "                                    \n"
+                       " To fix this (at your own risk!):   \n"
+                       " a) Turn the mode dial (P/Tv/Av/M)  \n"
+                       "    (ML will try to fix this)       \n"
+                       " b) Reinstall Canon firmware.       \n"
+                       "                                    \n"
+                       );
+    }
+    else if( boot_flags->bootdisk )
+    {
+        if (autoexec_ok)
+        {
+            if (fonts_ok)
+            {
+                big_bmp_printf(FONT(FONT_LARGE, COLOR_GREEN1, BG_COLOR), 0, 0,
+                               " ********************************** \n"
+                               " *            SUCCESS!            * \n"
+                               " ********************************** \n"
+                               "                                    \n"
+                               " BOOTDISK flag is ENABLED.          \n"
+                               " AUTOEXEC.BIN found.                \n"
+                               "                                    \n"
+                               " Magic Lantern is installed.        \n"
+                               " You may now restart your camera.   \n"
+                               "%s"
+                               "                                    \n"
+                               " To disable the BOOTDISK flag,      \n"
+                               " change the shooting mode from the  \n"
+                               " mode dial (P/Tv/Av/M).             \n"
+                               "                                    \n",
+                               bootflag_written ?
+                               "                                    \n" :
+                               " DON'T FORGET to make card bootable!\n"
+                               );
+            }
+            else
+            {
+                big_bmp_printf(FONT(FONT_LARGE, COLOR_YELLOW, BG_COLOR), 0, 0,
+                               "                                    \n"
+                               " BOOTDISK flag is ENABLED.          \n"
+                               " AUTOEXEC.BIN found.                \n"
+                               "                                    \n"
+                               "     !!! ML/DATA/FONTS.DAT !!!      \n"
+                               "         !!! NOT FOUND !!!          \n"
+                               "                                    \n"
+                               " Please copy ALL ML files on your   \n"
+                               " SD card. They only take a few MB.  \n"
+                               "                                    \n"
+                               " You may now turn off your camera.  \n"
+                               " To disable the BOOTDISK flag,      \n"
+                               " change the shooting mode from the  \n"
+                               " mode dial (P/Tv/Av/M).             \n"
+                               "                                    \n"
+                               );
+            }
+        }
+        else
+        {
+            big_bmp_printf(FONT(FONT_LARGE, COLOR_RED, BG_COLOR), 0, 0,
+                           "                                    \n"
+                           " BOOTDISK flag is ENABLED.          \n"
+                           "                                    \n"
+                           " !!! AUTOEXEC.BIN NOT FOUND !!!     \n"
+                           "                                    \n"
+                           " Remove battery and card            \n"
+                           " and copy AUTOEXEC.BIN,             \n"
+                           " otherwise camera will not boot!    \n"
+                           "                                    \n"
+                           "                                    \n"
+                           "                                    \n"
+                           " To disable the BOOTDISK flag,      \n"
+                           " change the shooting mode from the  \n"
+                           " mode dial (P/Tv/Av/M).             \n"
+                           "                                    \n"
+                           );
+        }
+    }
+    else
+    {
+        big_bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, BG_COLOR), 0, 0,
+                       "                                    \n"
+                       " BOOTDISK flag is DISABLED.         \n"
+                       "                                    \n"
+                       " Magic Lantern is NOT installed.    \n"
+                       " You may now restart your camera.   \n"
+                       "                                    \n"
+                       " After reboot, clear all the        \n"
+                       " settings and custom functions      \n"
+                       " to complete the uninstallation.    \n"
+                       "                                    \n"
+                       "                                    \n"
+                       " To enable the BOOTDISK flag,       \n"
+                       " change the shooting mode from the  \n"
+                       " mode dial (P/Tv/Av/M).             \n"
+                       "                                    \n"
+                       );
+    }
+    big_bmp_printf( FONT_SMALL,
+                   620,
+                   430,
+                   "Firmware  %d\n"
+                   "Bootdisk  %d\n"
+                   "RAM_EXE   %d\n"
+                   "Update    %d\n",
+                   boot_flags->firmware,
+                   boot_flags->bootdisk,
+                   boot_flags->ram_exe,
+                   boot_flags->update
+                   );
+}
+
+
+void firmware_fix()
+{
+    ensure_preconditions();
+    
+    clrscr();
+    ui_lock(UILOCK_EVERYTHING);
+    clrscr();
+    int i;
+    if( boot_flags->firmware )
+    {
+        for (i = 0; i < 10; i++)
+        {
+            big_bmp_printf(FONT_LARGE, 50, 100, "EnableMainFirm");
+            info_led_blink(1, 50, 50);
+        }
+        if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
+            call( "EnableMainFirm" ); // in movie mode, it causes ERR80 and then asks for a firmware update
+    }
+    info_led_blink(5, 100, 100);
+    ui_lock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
+}
+
+void bootflag_toggle()
+{
+    if( boot_flags->firmware )
+    {
+        firmware_fix();
+        return;
+    }
+    
+    ensure_preconditions();
+    
+    clrscr();
+    ui_lock(UILOCK_EVERYTHING);
+    clrscr();
+    int i;
+    if( boot_flags->bootdisk )
+    {
+        for (i = 0; i < 10; i++)
+        {
+            big_bmp_printf(FONT_LARGE, 50, 100, "DisableBootDisk");
+            info_led_blink(1, 50, 50);
+        }
+        if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
+            call( "DisableBootDisk" ); // in movie mode, it causes ERR80 and then asks for a firmware update
+    }
+    else
+    {
+        for (i = 0; i < 10; i++)
+        {
+            big_bmp_printf(FONT_LARGE, 50, 100, "EnableBootDisk");
+            info_led_blink(1, 50, 50);
+        }
+        if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
+            call( "EnableBootDisk" );
+    }
+    info_led_blink(5, 100, 100);
+    ui_lock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
+}
+
+static int compute_signature(int* start, int num)
+{
+	int c = 0;
+	int* p;
+	for (p = start; p < start + num; p++)
+	{
+		c += *p;
+	}
+	return c;
+}
+
+
+//~ Called from my_init_task
 void install_task()
 {
     call_init_funcs(0);
-
-    Msleep(500);
-
-    //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Install task starting...");
     
-    while (sensor_cleaning) Msleep(200);
-
-    //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Sensor cleaning done... ");
+    msleep(500);
     
-    Msleep(200);
+    ensure_preconditions();
     
-    //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status: %d          ", !DISPLAY_IS_ON);
-    
-    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_MENU); Msleep(1000); }
-
-    if (!DISPLAY_IS_ON)
+    if (!DISPLAY_IS_ON || lv)
     {
-        card_led_blink(10, 10, 90);
-        card_led_blink(10, 90, 10);
-        card_led_blink(10, 10, 90);
-        card_led_blink(10, 90, 10);
-        card_led_blink(10, 10, 90);
-        card_led_blink(10, 90, 10);
+        info_led_blink(10, 10, 90);
+        info_led_blink(10, 90, 10);
+        info_led_blink(10, 10, 90);
+        info_led_blink(10, 90, 10);
+        info_led_blink(10, 10, 90);
+        info_led_blink(10, 90, 10);
         beep();
-        return; // display off, won't install
+        return; // display off, or liveview, won't install
     }
-    Msleep(500);
-
+    msleep(500);
+    
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "TFT status OK!          ");
     canon_gui_disable_front_buffer();
     ui_lock(UILOCK_EVERYTHING);
-
+    
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "UI locked!              ");
-
+    
     autoexec_ok = check_autoexec();
     fonts_ok = check_fonts();
-
+    
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Autoexec & fonts checked");
-
+    
     initial_install();
-
+    
     old_shooting_mode = shooting_mode;
-
+    
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Initial install DONE!!! ");
     
     ui_lock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
-
+    
     //~ PERSISTENT_PRINTF(30, FONT_LARGE, 50, 50, "Going interactive.......");
     
     int k = 0;
@@ -249,51 +513,14 @@ void install_task()
         while (sensor_cleaning) msleep(100);
         
         check_install();
-    
+        
         if (shooting_mode != old_shooting_mode)
         {
             bootflag_toggle();
         }
         old_shooting_mode = shooting_mode;
         
-        Msleep(100);
-    }
-}
-
-void redraw() { clrscr(); }
-
-static volatile int init_funcs_done;
-
-void
-call_init_funcs( void * priv )
-{
-    // Call all of the init functions
-    extern struct task_create _init_funcs_start[];
-    extern struct task_create _init_funcs_end[];
-    struct task_create * init_func = _init_funcs_start;
-
-    for( ; init_func < _init_funcs_end ; init_func++ )
-    {
-        DebugMsg( DM_MAGIC, 3,
-            "Calling init_func %s (%x)",
-            init_func->name,
-            (unsigned) init_func->entry
-        );
-        thunk entry = (thunk) init_func->entry;
-        entry();
-    }
-
-}
-
-// this Msleep works with display off too
-void Msleep(int ms)
-{
-    int i;
-    for (i = 0; i < ms/100; i++)
-    {
         msleep(100);
-        call("DisablePowerSave"); // trick from AJ_MREQ_ISR
-        call("EnablePowerSave"); // to prevent camera for entering "deep sleep"
     }
 }
 
@@ -307,21 +534,21 @@ int my_init_task(int a, int b, int c, int d)
 {
     // Call their init task
     int ans = init_task(a,b,c,d);
-
+    
     // Overwrite the PTPCOM message
     dm_names[ DM_MAGIC ] = "[MAGIC] ";
     //~ dmstart(); // already called by firmware?
-
+    
     DebugMsg( DM_MAGIC, 3, "Magic Lantern %s (%s)",
-        build_version,
-        build_id
-    );
-
+             build_version,
+             build_id
+             );
+    
     DebugMsg( DM_MAGIC, 3, "Built on %s by %s",
-        build_date,
-        build_user
-    );
-
+             build_date,
+             build_user
+             );
+    
     // Re-write the version string.
     // Don't use strcpy() so that this can be done
     // before strcpy() or memcpy() are located.
@@ -330,40 +557,18 @@ int my_init_task(int a, int b, int c, int d)
     additional_version[1] = 'm';
     additional_version[2] = 'l';
     additional_version[3] = '\0';
-
-    Msleep( 4000 );
-
+    
+    msleep(1000);
+    call("DisablePowerSave");
+    msleep(2000);
+    
     task_create("install_task", 0x1b, 0x4000, install_task, 0);
     return ans;
 }
 
-/** Shadow copy of the NVRAM boot flags stored at 0xF8000000 */
-#define NVRAM_BOOTFLAGS     ((void*) 0xF8000000)
-struct boot_flags
-{
-    uint32_t        firmware;   // 0x00
-    uint32_t        bootdisk;   // 0x04
-    uint32_t        ram_exe;    // 0x08
-    uint32_t        update;     // 0x0c
-    uint32_t        flag_0x10;
-    uint32_t        flag_0x14;
-    uint32_t        flag_0x18;
-    uint32_t        flag_0x1c;
-};
+// print a message and redraw it continuously (so it won't be erased by camera firmware)
+#define PERSISTENT_PRINTF(times, font, x, y, msg, ...) { int X = times; while(X--) { big_bmp_printf(font, x, y, msg, ## __VA_ARGS__); msleep(100); } }
 
-static struct boot_flags * const    boot_flags = NVRAM_BOOTFLAGS;;
-
-void SW1(int v, int wait)
-{
-    prop_request_change(PROP_REMOTE_SW1, &v, 2);
-    Msleep(wait);
-}
-
-void SW2(int v, int wait)
-{
-    prop_request_change(PROP_REMOTE_SW2, &v, 2);
-    Msleep(wait);
-}
 
 /** Perform an initial install and configuration */
 void
@@ -426,239 +631,94 @@ initial_install(void)
     //~ dumpf();
 
     big_bmp_printf(FONT_LARGE, 0, y+=30, "Done!");
-    Msleep(1000);
+    msleep(1000);
 }
 
-void bootflag_toggle( void * priv )
-{
-    if( boot_flags->firmware )
-    {
-        firmware_fix();
-        return;
-    }
 
-    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_MENU); Msleep(1000); }
 
-    clrscr();
-    ui_lock(UILOCK_EVERYTHING);
-    clrscr();
-    int i;
-    if( boot_flags->bootdisk )
-    {
-        for (i = 0; i < 10; i++)
-        {
-            big_bmp_printf(FONT_LARGE, 50, 100, "DisableBootDisk");
-            card_led_blink(1, 50, 50);
-        }
-        if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
-            call( "DisableBootDisk" ); // in movie mode, it causes ERR80 and then asks for a firmware update
-    }
-    else
-    {
-        for (i = 0; i < 10; i++)
-        {
-            big_bmp_printf(FONT_LARGE, 50, 100, "EnableBootDisk");
-            card_led_blink(1, 50, 50);
-        }
-        if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
-            call( "EnableBootDisk" );
-    }
-    card_led_blink(5, 100, 100);
-    ui_lock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
-}
-
-void firmware_fix( void * priv )
-{
-    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_MENU); Msleep(1000); }
-
-    clrscr();
-    ui_lock(UILOCK_EVERYTHING);
-    clrscr();
-    int i;
-    if( boot_flags->firmware )
-    {
-        for (i = 0; i < 10; i++)
-        {
-            big_bmp_printf(FONT_LARGE, 50, 100, "EnableMainFirm");
-            card_led_blink(1, 50, 50);
-        }
-        if (!lv && !sensor_cleaning && shooting_mode != SHOOTMODE_MOVIE)
-            call( "EnableMainFirm" ); // in movie mode, it causes ERR80 and then asks for a firmware update
-    }
-    card_led_blink(5, 100, 100);
-    ui_lock(UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL);
-}
-
-// check if autoexec.bin is present on the card
-int check_autoexec()
-{
-    FILE * f = FIO_Open(CARD_DRIVE "AUTOEXEC.BIN", 0);
-    if (f != (void*) -1)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
-}
-
-// check if fonts.dat is present on the card
-int check_fonts()
-{
-    FILE * f = FIO_Open(CARD_DRIVE "ML/DATA/FONTS.DAT", 0);
-    if (f != (void*) -1)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
-}
-
-// check ML installation and print a message
-void check_install()
-{
-    //~ Msleep(1);
-    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_MENU); Msleep(1000); }
-
-    if (boot_flags->firmware)
-    {
-        big_bmp_printf(FONT(FONT_LARGE, COLOR_RED, 0), 0, 0, 
-            " MAIN_FIRMWARE flag is DISABLED!    \n"
-            "                                    \n"
-            " This was probably caused by a      \n"
-            " failed install process.            \n"
-            "                                    \n"
-            " Camera may work with Magic Lantern,\n"
-            " but it will ask for a firmware     \n"
-            " update as soon as you insert a     \n"
-            " formatted card.                    \n"
-            "                                    \n"
-            " To fix this (at your own risk!):   \n"
-            " a) Turn the mode dial (P/Tv/Av/M)  \n"
-            "    (ML will try to fix this)       \n"
-            " b) Reinstall Canon firmware.       \n"
-            "                                    \n"
-        );
-    }
-    else if( boot_flags->bootdisk )
-    {
-        if (autoexec_ok)
-        {
-            if (fonts_ok)
-            {
-                big_bmp_printf(FONT(FONT_LARGE, COLOR_GREEN1, 0), 0, 0, 
-                    " ********************************** \n"
-                    " *            SUCCESS!            * \n"
-                    " ********************************** \n"
-                    "                                    \n"
-                    " BOOTDISK flag is ENABLED.          \n"
-                    " AUTOEXEC.BIN found.                \n"
-                    "                                    \n"
-                    " Magic Lantern is installed.        \n"
-                    " You may now restart your camera.   \n"
-                    "%s"
-                    "                                    \n"
-                    " To disable the BOOTDISK flag,      \n"
-                    " change the shooting mode from the  \n"
-                    " mode dial (P/Tv/Av/M).             \n"
-                    "                                    \n",
-                    bootflag_written ?
-                    "                                    \n" : 
-                    " DON'T FORGET to make card bootable!\n"
-                );
-            }
-            else
-            {
-                big_bmp_printf(FONT(FONT_LARGE, COLOR_YELLOW, 0), 0, 0, 
-                    "                                    \n"
-                    " BOOTDISK flag is ENABLED.          \n"
-                    " AUTOEXEC.BIN found.                \n"
-                    "                                    \n"
-                    "     !!! ML/DATA/FONTS.DAT !!!      \n" 
-                    "         !!! NOT FOUND !!!          \n"
-                    "                                    \n"
-                    " Please copy ALL ML files on your   \n"
-                    " SD card. They only take a few MB.  \n"
-                    "                                    \n"
-                    " You may now turn off your camera.  \n"
-                    " To disable the BOOTDISK flag,      \n"
-                    " change the shooting mode from the  \n"
-                    " mode dial (P/Tv/Av/M).             \n"
-                    "                                    \n"
-               );
-            }
-        }
-        else
-        {
-            big_bmp_printf(FONT(FONT_LARGE, COLOR_RED, 0), 0, 0, 
-                "                                    \n"
-                " BOOTDISK flag is ENABLED.          \n"
-                "                                    \n"
-                " !!! AUTOEXEC.BIN NOT FOUND !!!     \n"
-                "                                    \n"
-                " Remove battery and card            \n"
-                " and copy AUTOEXEC.BIN,             \n"
-                " otherwise camera will not boot!    \n"
-                "                                    \n"
-                "                                    \n"
-                "                                    \n"
-                " To disable the BOOTDISK flag,      \n"
-                " change the shooting mode from the  \n"
-                " mode dial (P/Tv/Av/M).             \n"
-                "                                    \n"
-            );
-        }
-    }
-    else
-    {
-            big_bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), 0, 0, 
-                "                                    \n"
-                " BOOTDISK flag is DISABLED.         \n"
-                "                                    \n"
-                " Magic Lantern is NOT installed.    \n"
-                " You may now restart your camera.   \n"
-                "                                    \n"
-                " After reboot, clear all the        \n"
-                " settings and custom functions      \n"
-                " to complete the uninstallation.    \n"
-                "                                    \n"
-                "                                    \n"
-                " To enable the BOOTDISK flag,       \n"
-                " change the shooting mode from the  \n"
-                " mode dial (P/Tv/Av/M).             \n"
-                "                                    \n"
-            );
-    }
-    big_bmp_printf( FONT_SMALL,
-        620,
-        430,
-        "Firmware  %d\n"
-        "Bootdisk  %d\n"
-        "RAM_EXE   %d\n"
-        "Update    %d\n",
-        boot_flags->firmware,
-        boot_flags->bootdisk,
-        boot_flags->ram_exe,
-        boot_flags->update
-    );
-}
-
-// dummy definitions for bmp.c
-int ext_monitor_hdmi = 0;
-int ext_monitor_rca = 0;
-int hdmi_code = 0;
-int lv = 0;
-void bvram_mirror_init(){};
+/** Dummies **/
+int lv;
+int sensor_cleaning;
+int shooting_mode;
+struct font font_small;
+struct font font_med;
+struct font font_large;
+struct sfont font_small_shadow;
+struct sfont font_med_shadow;
+struct sfont font_large_shadow;
+void ml_assert_handler(char* msg, char* file, int line, const char* func) {};
 void bmp_mute_flag_reset(){};
-struct font font_small_shadow;
-struct font font_med_shadow;
-struct font font_large_shadow;
-
-void ml_assert_handler(char* msg, char* file, int line, const char* func) {}
-void CheckBmpAcquireRecursiveLock(){};
-void CheckBmpReleaseRecursiveLock(){};
-
 void afframe_set_dirty(){};
-void draw_line(){};
+int digic_zoom_overlay_enabled(){return 0;}
+void bvram_mirror_init(){};
+void bvram_mirror_clear(){};
+int display_is_on_550D = 0;
+int get_display_is_on_550D() { return display_is_on_550D; }
+void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf){};
+int display_filter_enabled;
 
-int display_filter_enabled() { return 0; };
-void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf) {};
+//~ doesn't use _AllocateMemory()
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_550D) && !defined(CONFIG_5D2) && !defined(CONFIG_EOSM)
+void *AllocateMemory(size_t size){return 0;}
+#endif
+
+PROP_INT( PROP_ICU_UILOCK, uilockprop);
+
+void redraw() { clrscr(); }
+
+void SW1(int v, int wait)
+{
+    prop_request_change(PROP_REMOTE_SW1, &v, 2);
+    msleep(wait);
+}
+
+void SW2(int v, int wait)
+{
+    prop_request_change(PROP_REMOTE_SW2, &v, 2);
+    msleep(wait);
+}
+
+void beep()
+{
+    call("StartPlayWaveData");
+    msleep(1000);
+    call("StopPlayWaveData");
+}
+
+void
+call_init_funcs( void * priv )
+{
+    // Call all of the init functions
+    extern struct task_create _init_funcs_start[];
+    extern struct task_create _init_funcs_end[];
+    struct task_create * init_func = _init_funcs_start;
+    
+    for( ; init_func < _init_funcs_end ; init_func++ )
+    {
+        DebugMsg( DM_MAGIC, 3,
+                 "Calling init_func %s (%x)",
+                 init_func->name,
+                 (unsigned) init_func->entry
+                 );
+        thunk entry = (thunk) init_func->entry;
+        entry();
+    }
+    
+}
+
+void fake_simple_button(int bgmt_code)
+{
+    GUI_Control(bgmt_code, 0, 0, 0);
+}
+
+#define UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL 0x4100014f
+#define UILOCK_EVERYTHING 0x4100017f
+
+void ui_lock(int x)
+{
+    int unlocked = 0x41000000;
+    prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
+    msleep(200);
+    prop_request_change(PROP_ICU_UILOCK, &x, 4);
+    msleep(200);
+}
