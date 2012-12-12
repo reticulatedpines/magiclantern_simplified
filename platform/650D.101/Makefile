@@ -63,8 +63,6 @@ ML_OBJS-y = \
 	audio-ak.o \
 	vsync-lite.o \
 	dm-spy.o \
-	ptp-chdk.o \
-	ptp.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
@@ -78,7 +76,4 @@ RESTARTSTART	= 0x0007E100
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120
 
-x: 
-	make clean
-	make autoexec.bin
-	python ../../../dumper/build_fir.py -r ../../../dumper/5D300113.FIR autoexec.bin ml-650D-112.fir
+all: autoexec.bin
