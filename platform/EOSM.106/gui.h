@@ -1,6 +1,17 @@
 #ifndef _cameraspecific_gui_h_
 #define _cameraspecific_gui_h_
 
+// touch events
+#define TOUCH_1_FINGER 0x6f
+#define UNTOUCH_1_FINGER 0x70
+#define TOUCH_2_FINGER 0x76
+#define UNTOUCH_2_FINGER 0x77
+
+// used for knowing when canon's lv overlays are showing
+#define GUI_LV_OVERLAYS_HIDDEN -7
+#define GUI_LV_OVERLAYS_VISIBLE 0x37
+
+
 // button codes as received by gui_main_task
 #define BGMT_WHEEL_UP 2
 #define BGMT_WHEEL_DOWN 3
@@ -13,7 +24,7 @@
 #define BGMT_MENU 0x6
 #define BGMT_INFO 0x7
 #define BGMT_PLAY 0xb
-#define BGMT_TRASH 0x76
+#define BGMT_TRASH TOUCH_2_FINGER
 
     #define BGMT_PRESS_DP 0x2f
     #define BGMT_UNPRESS_DP 0x35
@@ -27,7 +38,7 @@
     //~ #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x5678
 
     #define BGMT_LV 0x1E
-#define BGMT_Q 0x6f
+#define BGMT_Q TOUCH_1_FINGER
     //~ #define BGMT_Q_ALT 0x67
 
     //~ #define BGMT_FUNC 0x12
@@ -53,8 +64,8 @@
 
 #define BGMT_PRESS_HALFSHUTTER 0x50
 #define BGMT_UNPRESS_HALFSHUTTER 0x51
-    #define BGMT_PRESS_FULLSHUTTER 0x50
-    #define BGMT_UNPRESS_FULLSHUTTER 0x51
+#define BGMT_PRESS_FULLSHUTTER 0x52
+#define BGMT_UNPRESS_FULLSHUTTER 0x53
 
     #define BGMT_FLASH_MOVIE 0
     #define BGMT_PRESS_FLASH_MOVIE 0

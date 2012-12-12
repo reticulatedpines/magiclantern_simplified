@@ -56,8 +56,12 @@
 #define SENSOR_RES_X 4752
 #define SENSOR_RES_Y 3168
 
-#define LV_BOTTOM_BAR_DISPLAYED 0
-#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x4C2CC) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
+
+#define CURRENT_DIALOG_MAYBE (*(int*)0x41414)
+
+#define LV_BOTTOM_BAR_DISPLAYED (lv_disp_mode)
+
+    #define ISO_ADJUSTMENT_ACTIVE 0 // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
     // from a screenshot
     #define COLOR_FG_NONLV 1
@@ -83,8 +87,6 @@
 #define MOV_GOP_OPT_STEP 5
 
     #define AE_VALUE 0 // 404
-
-#define CURRENT_DIALOG_MAYBE (*(int*)0x41414)
 
 #define DLG_PLAY 1
 #define DLG_MENU 2

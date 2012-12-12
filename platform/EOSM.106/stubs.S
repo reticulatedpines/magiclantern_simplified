@@ -202,3 +202,5 @@ NSTUB(0xFF2A3378, ptpPropSetUILock)
 NSTUB(0xFF334610, touch_cbr_canon)
 
 NSTUB(0xFF5B6688, lvae_setdispgain)
+
+NSTUB(0xFF0E5808, MVR_NotifyLvFrameTiming)
