@@ -99,7 +99,7 @@ NSTUB(0xFF0D7D24, gui_init_end)
 NSTUB(   0x3E5B4, gui_main_struct)
 NSTUB(0xFF0D72AC, gui_main_task)
 NSTUB(0xff1a4fc8, gui_massive_event_loop)         // no match
-//NSTUB(0xff44a7b8, gui_task_create)
+    //NSTUB(0xff44a7b8, gui_task_create)
 	//NSTUB(0xFF44A870, gui_task_destroy)
 NSTUB(   0x591F0, gui_task_list)
 NSTUB(0xFF0C5488, init_task)
