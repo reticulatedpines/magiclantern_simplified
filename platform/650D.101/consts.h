@@ -56,13 +56,13 @@
 
     #define DISPLAY_SENSOR_POWERED 0
 
-// for gui_main_tas
+// for gui_main_task
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xff7ef1e8 // dec gui_main_task
 
 #define SENSOR_RES_X 5184
 #define SENSOR_RES_Y 3456
-
+#define CURRENT_DIALOG_MAYBE (*(int*)0x264DC) // in SetGUIRequestMode
 #define LV_BOTTOM_BAR_DISPLAYED 0
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)(0x31184)) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
@@ -91,8 +91,6 @@
 
     #define AE_VALUE 0 // 404
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x264DC) // in SetGUIRequestMode
-
 #define DLG_PLAY 1
 #define DLG_MENU 2
 
@@ -112,7 +110,7 @@
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
- #define GUIMODE_ML_MENU (recording ? 0 : lv ? 88 : 2) // any from 88...98 ?!
+ #define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 88...98 ?!
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 50
@@ -133,10 +131,10 @@
 
     #define BULB_MIN_EXPOSURE 1000
 
-    // http://magiclantern.wikia.com/wiki/Fonts
-    #define BFNT_CHAR_CODES    0xffcb9c04
-    #define BFNT_BITMAP_OFFSET 0xffcbcb88
-    #define BFNT_BITMAP_DATA   0xffcbfb0c
+// http://magiclantern.wikia.com/wiki/Fonts
+#define BFNT_CHAR_CODES    0xffcca8a8
+#define BFNT_BITMAP_OFFSET 0xffccd7b8
+#define BFNT_BITMAP_DATA   0xffcd06c8
 
     #define DLG_SIGNATURE 0x6e6144
 
@@ -144,10 +142,10 @@
      #define AF_BTN_HALFSHUTTER 0
      #define AF_BTN_STAR 2
 
-#define IMGPLAY_ZOOM_LEVEL_ADDR (0x368A8) // dec GuiImageZoomDown and look for a negative counter
-#define IMGPLAY_ZOOM_LEVEL_MAX 14
-#define IMGPLAY_ZOOM_POS_X MEM(0x6E500) // CentrePos
-#define IMGPLAY_ZOOM_POS_Y MEM(0x6E504)
+    #define IMGPLAY_ZOOM_LEVEL_ADDR (0x368A8) // dec GuiImageZoomDown and look for a negative counter
+    #define IMGPLAY_ZOOM_LEVEL_MAX 14
+    #define IMGPLAY_ZOOM_POS_X MEM(0x6E500) // CentrePos
+    #define IMGPLAY_ZOOM_POS_Y MEM(0x6E504)
     #define IMGPLAY_ZOOM_POS_X_CENTER 360
     #define IMGPLAY_ZOOM_POS_Y_CENTER 240
 
@@ -173,7 +171,7 @@
 
 #define INFO_BTN_NAME "INFO"
 #define Q_BTN_NAME "[Q]"
-    #define ARROW_MODE_TOGGLE_KEY "IDK"
+#define ARROW_MODE_TOGGLE_KEY "DISP"
 
     //~ #define DISPLAY_STATEOBJ (*(struct state_object **)0x3EBB8)
     //~ #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
@@ -199,7 +197,9 @@
  * --> value=0x11102 with 2 fingers touching the screen
  * --> value=0x11103 with 3 fingers
  * --> value=0x1104 with 4 fingers! Note: only the LSB seems to be used here, other bits seem to change sometimes.
- *  but the rightmost bit always changes to match how many fingers are touching the screen.
+ *  but the rightmost bit always changes to match how many fingers are touching the screen. We can recognize up to
+ *  2 touch points active. Looks like canon doesn't utilize more than 2 finger gestures, it does't report the
+ *  coordinates of the 3rd-6th fingers.
  *
  * touch_coord_ptr:
  *  --> top left corner = 0x0000000
@@ -213,8 +213,12 @@
  *
  *  And that's how Canon's touch screen works :)
  *******************************************************************************************************************/
-    //~ #define touch_coord_ptr 0x4D868
-    //~ #define touch_num_fingers_ptr 0x4D810   //~ found these with memspy
+    //~ not used [was for early implemenation]
+    #define TOUCH_XY_RAW1 0x4D868
+    #define TOUCH_XY_RAW2 (TOUCH_XY_RAW1+4)
+    #define TOUCH_MULTI 0x4D810   //~ found these with memspy. look for addresses changing with screen touches.
+    //--------------
+    #define HIJACK_TOUCH_CBR_PTR 0x4D858
 
 
 

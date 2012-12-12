@@ -3,8 +3,8 @@
  */
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
-/** The EOS_M port is very young, so we don't enable these for now. **/
-#define CONFIG_PROP_REQUEST_CHANGE
+/** The 650D port is very young, so we don't enable these for now. **/
+//#define CONFIG_PROP_REQUEST_CHANGE
 
 /** 
  * State object hooks are pieces of code that run in Canon tasks (state objects). See state-object.c . 
@@ -31,6 +31,7 @@
 /** There's a display sensor, but I've yet to find the correct stubs **/
 //~ #define CONFIG_LCD_SENSOR
 
+/** This camera has a mirror lockup feature **/
 #define CONFIG_MLU
 
 /** This camera reports focus info in LiveView **/
@@ -42,18 +43,21 @@
 /** Define this if the camera has an ambient light sensor used for auto brightness **/
 //~ #define CONFIG_AUTO_BRIGHTNESS
 
+/** There is a Q menu in Play mode, with image protect, rate etc **/
 #define CONFIG_Q_MENU_PLAYBACK
-/** Missing stubs, but the functionality is there **/
-//~ #define CONFIG_VARIANGLE_DISPLAY
 
-/** Battery does not report exact percentage (I doubt) **/
+/** It has a flip-out display **/
+/** Missing stubs, disabled for now **/
+//#define CONFIG_VARIANGLE_DISPLAY
+
+/** Battery does not report exact percentage **/
 //~ #define CONFIG_BATTERY_INFO
 
-/** We can do bulb exposures (well, I hope) **/
+/** We can do bulb exposures **/
 #define CONFIG_BULB
 
-/** No idea here **/
-#define CONFIG_SEPARATE_BULB_MODE
+/** Bulb mode is done by going to M mode and setting shutter speed beyond 30s **/
+//~ #define CONFIG_SEPARATE_BULB_MODE
 
 /** We can't control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS
@@ -76,10 +80,10 @@
 /** But we can't override the digital ISO component via FRAME_ISO **/
 #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
 
-/** We can't change ExpSim from ML (at least not yet) **/
+/** We can't change ExpSim from ML :( **/
 //~ #define CONFIG_EXPSIM
 
-/** We can;t playback sounds via ASIF DMA (yet) **/
+/** We can't playback sounds via ASIF DMA (yet) **/
 //~ #define CONFIG_BEEP
 
 /** This camera has no trouble saving Kelvin and/or WBShift in movie mode **/
@@ -91,8 +95,8 @@
 /** We don't know how to use DMA_MEMCPY (yet) **/
 //~ #define CONFIG_DMA_MEMCPY
 
-/** We shouldn't warn the user if movie exposure is Auto **/
-//~ #define CONFIG_MOVIE_AE_WARNING
+/** We should warn the user if movie exposure is Auto, otherwise he may report it as a bug **/
+#define CONFIG_MOVIE_AE_WARNING
 
 /** No photo mode outside LiveView **/
 //~ #define CONFIG_PHOTO_MODE_INFO_DISPLAY
