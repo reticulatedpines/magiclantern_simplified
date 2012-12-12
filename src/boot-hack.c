@@ -331,20 +331,45 @@ int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
 int ml_gui_initialized = 0; // 1 after gui_main_task is started 
 
+static int compute_signature(int* start, int num)
+{
+        int c = 0;
+        int* p;
+        for (p = start; p < start + num; p++)
+        {
+                c += *p;
+        }
+        return c;
+}
+
 
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
 {
-    #ifdef CONFIG_HELLO_WORLD
+  uint32_t len;
+
+#ifdef CONFIG_HELLO_WORLD
     load_fonts();
-    while(1)
-    {
-        bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
-        bfnt_puts("Hello, World!", 50, 100, COLOR_BLACK, COLOR_WHITE);
-        info_led_blink(1, 500, 500);
+    bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
+    bfnt_puts("Hello, World", 50, 100, COLOR_BLACK, COLOR_WHITE);
+	len = compute_signature(0xff0c0000, 0x10000);
+    bmp_printf(FONT_LARGE, 50, 150, "signature=0x%x", len);
+    #ifdef CONFIG_DUMPER_BOOTFLAG
+    msleep(500);
+    call("EnableBootDisk");
+    bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk");
+    msleep(500);
+    FILE* f = FIO_CreateFile(CARD_DRIVE "k301_101.dat");
+    if (f) {
+        len=FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
+        FIO_CloseFile(f);
+        bmp_printf(FONT_LARGE, 50, 250, "Oops!");    
     }
+    info_led_blink(1, 500, 500);
     #endif
+
+#endif
     
     call("DisablePowerSave");
     menu_init();
