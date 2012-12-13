@@ -38,8 +38,7 @@ static int handle_buttons(struct event * event)
 	if (handle_common_events_startup(event) == 0) return 0;
 	extern int ml_started;
 	if (!ml_started) return 1;
-    bmp_printf(FONT_LARGE,10,10,"%08x D:%08x", event->param, CURRENT_DIALOG_MAYBE);
-	if (handle_common_events_by_feature(event) == 0) return 0;
+    if (handle_common_events_by_feature(event) == 0) return 0;
 
 	return 1;
 }
@@ -64,7 +63,6 @@ extern struct gui_main_struct gui_main_struct;
 
 static void my_gui_main_task()
 {
-    bmp_printf(FONT_LARGE,200,200,"GUI_INIT");
 	struct event * event = NULL;
 	int index = 0;
 	void* funcs[GMT_NFUNCS];

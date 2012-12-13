@@ -62,9 +62,9 @@
     #define GMT_OLC_INFO_CHANGED 105 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 
 // needed for correct shutdown from powersave modes
-#define GMT_GUICMD_START_AS_CHECK 89
-#define GMT_GUICMD_OPEN_SLOT_COVER 85
-#define GMT_GUICMD_LOCK_OFF 83
+#define GMT_GUICMD_START_AS_CHECK 95
+#define GMT_GUICMD_OPEN_SLOT_COVER 91
+#define GMT_GUICMD_LOCK_OFF 89
 
     #define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x61 && is_movie_mode() && event->arg == 9)
     #define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
