@@ -136,7 +136,7 @@ NSTUB(0xFF354424, strcpy)
 NSTUB(0xFF0C8228, strlen)
 NSTUB(0xFFA52930 - RAM_OFFSET, take_semaphore)
 NSTUB(0xFFA52EC0 - RAM_OFFSET, task_create)
-    NSTUB(   0x3E1C0, task_dispatch_hook )
+NSTUB(   0x232C4, task_dispatch_hook )
 NSTUB(0xFFA581D8 - RAM_OFFSET, task_trampoline)
 NSTUB(0xFFA6153C - RAM_OFFSET, vsnprintf) // not sure it gets called from RAM
 NSTUB(0xFF3F6AA4, vram_get_number)

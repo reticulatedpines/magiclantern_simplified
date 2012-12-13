@@ -64,6 +64,7 @@ extern struct gui_main_struct gui_main_struct;
 
 static void my_gui_main_task()
 {
+    bmp_printf(FONT_LARGE,200,200,"GUI_INIT");
 	struct event * event = NULL;
 	int index = 0;
 	void* funcs[GMT_NFUNCS];

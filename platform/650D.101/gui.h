@@ -29,12 +29,6 @@
 
     #define BGMT_REC 0x1E
 
-
-    #define BGMT_PRESS_ZOOMIN_MAYBE 0x12
-    #define BGMT_UNPRESS_ZOOMIN_MAYBE 0x13
-    //~ #define BGMT_PRESS_ZOOMOUT_MAYBE 0x1234 // no zoom out button in play mode?!
-    //~ #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x5678
-
     #define BGMT_LV 0x1E
     #define BGMT_Q 0x1D
     //~ #define BGMT_Q_ALT 0x67
@@ -60,14 +54,6 @@
     #define BGMT_UNPRESS_HALFSHUTTER 0x51
     #define BGMT_PRESS_FULLSHUTTER 0x52
     #define BGMT_UNPRESS_FULLSHUTTER 0x53
-
-    #define BGMT_FLASH_MOVIE 0
-    #define BGMT_PRESS_FLASH_MOVIE 0
-    #define BGMT_UNPRESS_FLASH_MOVIE 0
-    #define FLASH_BTN_MOVIE_MODE 0
-    #define BGMT_ISO_MOVIE 0
-    #define BGMT_PRESS_ISO_MOVIE 0
-    #define BGMT_UNPRESS_ISO_MOVIE 0
 
     #define GMT_GUICMD_PRESS_BUTTON_SOMETHING 0x52 // unhandled buttons?
 
