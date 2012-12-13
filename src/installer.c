@@ -658,7 +658,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf){};
 int display_filter_enabled;
 
 //~ doesn't use _AllocateMemory()
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_550D) && !defined(CONFIG_5D2) && !defined(CONFIG_EOSM)
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_550D) && !defined(CONFIG_5D2) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D)
 void *AllocateMemory(size_t size){return 0;}
 #endif
 

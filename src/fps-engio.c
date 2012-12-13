@@ -135,7 +135,7 @@ static void fps_read_current_timer_values();
 
 #define FPS_TIMER_A_MAX 0x2000
 
-#ifdef CONFIG_EOSM
+#if defined(CONFIG_EOSM) || defined(CONFIG_650D)
     #define FPS_TIMER_B_MAX fps_timer_b_orig
 #else
     #define FPS_TIMER_B_MAX (0x4000-1)
@@ -334,7 +334,7 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
 
 int get_current_shutter_reciprocal_x1000()
 {
-#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_40D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_40D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
     if (!lens_info.raw_shutter) return 0;
     return (int) roundf(powf(2.0f, (lens_info.raw_shutter - 136) / 8.0f) * 1000.0f * 1000.0f);
 #else
@@ -1092,7 +1092,7 @@ static struct menu_entry fps_menu[] = {
                 .select = fps_change_value,
                 .help = "FPS value for recording. Video will play back at Canon FPS.",
             },
-#ifndef CONFIG_EOSM     //~ we only modify FPS_REGISTER_A, so no optimizations possible.
+#if !(defined(CONFIG_EOSM) || defined(CONFIG_650D))     //~ we only modify FPS_REGISTER_A, so no optimizations possible.
             {
                 .name = "Optimize for\b",
                 .priv       = &fps_criteria,
@@ -1288,7 +1288,7 @@ static void fps_task()
         else
         #endif
         {
-            #if defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_EOSM)
+            #if defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
             msleep(fps_override && recording ? 10 : 100);
             #else
             msleep(100);
@@ -1350,7 +1350,7 @@ static void fps_task()
                 float ff = default_fps * ks + f * (1-ks);
                 int fr = (int)roundf(ff);
                 fps_setup_timerA(fr);
-#ifndef CONFIG_EOSM
+#if !(defined(CONFIG_EOSM) || defined(CONFIG_650D))
                 fps_setup_timerB(fr);
 #endif
                 fps_read_current_timer_values();
@@ -1389,7 +1389,7 @@ static void fps_task()
         
         //~ info_led_on();
         fps_setup_timerA(f);
-#ifndef CONFIG_EOSM
+#if !(defined(CONFIG_EOSM) || defined(CONFIG_650D))
         fps_setup_timerB(f);
 #endif
         //~ info_led_off();

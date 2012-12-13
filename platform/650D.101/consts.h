@@ -170,7 +170,7 @@
 #define MIN_MSLEEP 10
 
 #define INFO_BTN_NAME "INFO"
-#define Q_BTN_NAME "[Q]"
+#define Q_BTN_NAME "[1-Finger Tap]"
 #define ARROW_MODE_TOGGLE_KEY "DISP"
 
     //~ #define DISPLAY_STATEOBJ (*(struct state_object **)0x3EBB8)

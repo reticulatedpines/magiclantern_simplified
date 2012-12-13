@@ -38,7 +38,7 @@ static int handle_buttons(struct event * event)
 	if (handle_common_events_startup(event) == 0) return 0;
 	extern int ml_started;
 	if (!ml_started) return 1;
-
+    bmp_printf(FONT_LARGE,10,10,"%08x", event->arg);
 	if (handle_common_events_by_feature(event) == 0) return 0;
 
 	return 1;
