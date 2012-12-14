@@ -3153,6 +3153,26 @@ PROP_HANDLER(PROP_ISO)
 
 #endif
 
+unsigned GetFileSize(char* filename)
+{
+    unsigned size;
+    if( FIO_GetFileSize( filename, &size ) != 0 )
+        return 0xFFFFFFFF;
+    return size;
+}
+
+int ReadFileToBuffer(char* filename, void* buf, int maxsize)
+{
+    int size = GetFileSize(filename);
+    if (!size) return 0;
+
+    FILE* f = FIO_Open(filename, O_RDONLY | O_SYNC);
+    if (f == INVALID_PTR) return 0;
+    int r = FIO_ReadFile(f, UNCACHEABLE(buf), MIN(size, maxsize));
+    FIO_CloseFile(f);
+    return r;
+}
+
 #ifdef CONFIG_RESTORE_AFTER_FORMAT
 
 int keep_ml_after_format = 1;
@@ -3223,28 +3243,6 @@ void HijackDialogBox()
             dialog_set_property_str(dialog, i, s);
     }
     dialog_redraw(dialog);
-}
-
-
-unsigned GetFileSize(char* filename)
-{
-    unsigned size;
-    if( FIO_GetFileSize( filename, &size ) != 0 )
-        return 0xFFFFFFFF;
-    return size;
-}
-
-
-int ReadFileToBuffer(char* filename, void* buf, int maxsize)
-{
-    int size = GetFileSize(filename);
-    if (!size) return 0;
-
-    FILE* f = FIO_Open(filename, O_RDONLY | O_SYNC);
-    if (f == INVALID_PTR) return 0;
-    int r = FIO_ReadFile(f, UNCACHEABLE(buf), MIN(size, maxsize));
-    FIO_CloseFile(f);
-    return r;
 }
 
 struct tmp_file {
