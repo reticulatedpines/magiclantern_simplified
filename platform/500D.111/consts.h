@@ -1,5 +1,7 @@
 #define CARD_DRIVE "B:/"
-#define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
+#define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses. TODO: Alex, plese double check it. reboot.c used a different address
+#define LEDON 0x46
+#define LEDOFF 0x44
 
 #define HIJACK_INSTR_BL_CSTART 0xFF012AE8
 #define HIJACK_INSTR_BSS_END 0xFF01093C

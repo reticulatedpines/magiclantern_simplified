@@ -130,15 +130,15 @@ draw_prop_reset( void * priv )
 }
 #endif
 
-#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
-void _card_led_on() { *(volatile uint32_t*)CARD_LED_ADDRESS = LEDON; }
-void _card_led_off() { *(volatile uint32_t*)CARD_LED_ADDRESS = LEDOFF; }
-#elif defined(CONFIG_7D)
-void _card_led_on() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x138800; }
-void _card_led_off() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x38400; }
+#if defined(CONFIG_7D)
+void _card_led_on()  { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON); }
+void _card_led_off() { *(volatile uint32_t*) (CARD_LED_ADDRESS) = 0x38400; } //TODO: Check if this is correct, because reboot.c said 0x838C00
+#elif defined(CARD_LED_ADDRESS) && defined(LEDON) && defined(LEDOFF)
+void _card_led_on()  { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON); }
+void _card_led_off() { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF); }
 #else
- void _card_led_on() { *(volatile uint8_t*)CARD_LED_ADDRESS = 0x46; }
- void _card_led_off() { *(volatile uint8_t*)CARD_LED_ADDRESS = 0x44; }
+void _card_led_on()  { return; }
+void _card_led_off() { return; }
 #endif
 
 void info_led_on()
