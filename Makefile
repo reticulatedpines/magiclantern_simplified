@@ -72,6 +72,9 @@ EOSM:
 650D:
 	$(MAKE) -C $(PLATFORM_PATH)/650D.101
 
+6D:
+	$(MAKE) -C $(PLATFORM_PATH)/6D.112
+
 plugins: FORCE
 	$(MAKE) -C $(PLUGINS_DIR)
 
@@ -96,6 +99,7 @@ fir:
 	cd installer/1100D.105/; $(MAKE) clean
 	cd installer/EOSM.106/; $(MAKE) clean
 	cd installer/650D.101/; $(MAKE) clean
+	cd installer/6D.112/; $(MAKE) clean
 	$(MAKE) installer -C installer/550D.109/
 	$(MAKE) installer -C installer/60D.111/
 	$(MAKE) installer -C installer/600D.102/
@@ -105,17 +109,19 @@ fir:
 	$(MAKE) installer -C installer/1100D.105/
 	$(MAKE) installer -C installer/EOSM.106/
 	$(MAKE) installer -C installer/650D.101/
+	$(MAKE) installer -C installer/6D.112/
 
 install_fir: fir
-	cp installer/550D.109/ml-550d-109.fir $(CF_CARD)
-	cp installer/60D.111/ml-60d-111.fir $(CF_CARD)
-	cp installer/600D.102/ml-600d-102.fir $(CF_CARD)
-	cp installer/50D.109/ml-50d-102.fir $(CF_CARD)
-	cp installer/500D.111/ml-500d-111.fir $(CF_CARD)
-	cp installer/5D2.212/ml-5D2-212.fir $(CF_CARD)
-	cp installer/1100D.105/ml-1100d-105.fir $(CF_CARD)
+	cp installer/550D.109/$(UPDATE_NAME) $(CF_CARD)
+	cp installer/60D.111/$(UPDATE_NAME) $(CF_CARD)
+	cp installer/600D.102/$(UPDATE_NAME) $(CF_CARD)
+	cp installer/50D.109/$(UPDATE_NAME) $(CF_CARD)
+	cp installer/500D.111/$(UPDATE_NAME) $(CF_CARD)
+	cp installer/5D2.212/$(UPDATE_NAME) $(CF_CARD)
+	cp installer/1100D.105/$(UPDATE_NAME) $(CF_CARD)
 	cp installer/EOSM.106/$(UPDATE_NAME) $(CF_CARD)
 	cp installer/650D.101/$(UPDATE_NAME) $(CF_CARD)
+	cp installer/6D.112/$(UPDATE_NAME) $(CF_CARD)
 
 clean:
 	$(call build,CLEAN,$(RM) -f \
@@ -142,7 +148,8 @@ clean:
 	cd $(PLATFORM_PATH)/1100D.105/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/40D.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/EOSM.106/; $(MAKE) clean	
-	cd $(PLATFORM_PATH)/650D.101/; $(MAKE) clean	
+	cd $(PLATFORM_PATH)/650D.101/; $(MAKE) clean
+	cd $(PLATFORM_PATH)/6D.112/; $(MAKE) clean	
 	$(MAKE) -C $(PLUGINS_DIR) clean
 	$(RM) -rf  $(BINARIES_PATH)
 	$(RM) -rf doxygen-doc/*
