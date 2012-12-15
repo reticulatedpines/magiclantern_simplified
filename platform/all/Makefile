@@ -3,7 +3,9 @@
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
  
-MODEL=$(shell echo $(SUPPORTED_MODELS) | tr " " . )
+empty:=
+space:= $(empty) $(empty)
+MODEL=$(subst $(space),.,$(SUPPORTED_MODELS))
 
 include  $(TOP_DIR)/Makefile.inc
 
