@@ -1,12 +1,12 @@
-#Makefile for 600D firmware 101
+#Makefile for 6D firmware 112
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
 FW_VERSION=112
-MODEL=5D3
-UPDATE_NAME=5D3-112.fir
+MODEL=6D
+UPDATE_NAME=6D-112.fir
 ML_VERSION=unified1 
 
 #used in CFLAGS
@@ -49,15 +49,15 @@ updater: reboot-ins.o
 		-nostdlib \
 		-march=armv5te \
 		-e _start \
-		-Ttext 0x800000 \
+		-Ttext 0x800120 \	# change this to 0x800000 if not packing a FIR file.
 		$^ \
 	); \
 
 installer: 
 	make clean
-	make magiclantern.bin
+#	make magiclantern.bin
 	make updater.bin
-	python ../../../dumper/build_fir.py -r ../../../dumper/5D300112.FIR updater.bin $(UPDATE_NAME)
+	python ../../../dumper/build_fir.py -r ../../../dumper/6D000112.FIR updater.bin $(UPDATE_NAME)
 
 clean:
 	rm -f *.fir *.o autoexec* magiclantern* updater* ml.bin

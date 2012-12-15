@@ -100,4 +100,4 @@ static void my_gui_main_task()
 	}
 } 
 
-TASK_OVERRIDE( gui_main_task, my_gui_main_task );
+//TASK_OVERRIDE( gui_main_task, my_gui_main_task );

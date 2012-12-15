@@ -39,6 +39,8 @@ struct menu_entry help_menus[] = {
         .name = "Press JUMP : Bring up submenu...",
         #elif defined(CONFIG_EOSM) || defined(CONFIG_650D)
         .name = "1-fingr Tap: Bring up submenu...",
+        #elif defined(CONFIG_6D)
+        .name = "Press Zoom : Bring up submenu...",
         #else
         error
         #endif

@@ -1,11 +1,11 @@
-#Makefile for 5D Mark III firmware 113
+#Makefile for 6D 112 firmware
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=113
-MODEL=5D3
+FW_VERSION=112
+MODEL=6D
 ML_VERSION=unified1 
 
 #used in CFLAGS
@@ -24,13 +24,12 @@ ML_OBJS-y = \
 	version.o \
 	exmem.o \
 	bmp.o \
-	fio-5d3.o \
 	font-dyn.o \
 	config.o \
 	menu.o \
 	debug.o \
 	stdio.o \
-	bitrate-5d3.o \
+	bitrate.o \
 	tweaks.o \
 	lens.o \
 	property.o \
@@ -49,6 +48,7 @@ ML_OBJS-y = \
 	menuindex.o \
 	focus.o \
 	notify_box.o \
+	bootflags.o \
 	dialog_test.o \
 	vram.o \
 	aj_port.o \
@@ -62,6 +62,7 @@ ML_OBJS-y = \
 	beep.o \
 	audio-ak.o \
 	vsync-lite.o \
+	dm-spy.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
@@ -71,13 +72,8 @@ include ../../Makefile.inc
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF0C0000
-RESTARTSTART	= 0x00069500
+RESTARTSTART	= 0x000D7900
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120
 
-CFLAGS += -DCONFIG_5D3_MINIMAL=1 -DCONFIG_NO_SNAP_SIM=1
-
-x: 
-	make clean
-	make autoexec.bin
-	python ../../../dumper/build_fir.py -r ../../../dumper/5D300113.FIR autoexec.bin ml-5D3-113.fir
+all: autoexec.bin
