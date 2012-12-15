@@ -133,7 +133,8 @@ void ml_big_init_task()
                 //~ 
                 streq(task->name, "notifybox_task") ||
                 //~ streq(task->name, "plugins_task") ||
-                //~ streq(task->name, "seconds_clock_task") ||
+                //~ 
+                streq(task->name, "clock_task") ||
                 //~ 
                 streq(task->name, "shoot_task") ||
                 //~ streq(task->name, "tweak_task") ||
