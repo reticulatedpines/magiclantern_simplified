@@ -1107,6 +1107,8 @@ void mlu_lock_mirror_if_needed() // called by lens_take_picture
             SW2(1,500);
             SW2(0,50);
             SW1(0,50);
+            #elif defined(CONFIG_40D)
+            call("FA_Release");
             #else
             call("Release");
             #endif
@@ -1205,8 +1207,9 @@ lens_take_picture(
     }
     #elif defined(CONFIG_5DC)
     call("rssRelease");
-    #elif defined(CONFIG_7D)
-    
+    #elif defined(CONFIG_40D)
+    call("FA_Release");
+    #elif defined(CONFIG_7D)    
     SW2(1,50);
     SW2(0,50);
     /* on EOS 7D the code to trigger SW1/SW2 is buggy that the metering somehow locks up.

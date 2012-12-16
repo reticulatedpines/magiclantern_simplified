@@ -857,6 +857,8 @@ void mlu_take_pic()
     SW2(1,250);
     SW2(0,50);
     SW1(0,50);
+    #elif defined(CONFIG_40D)
+    call("FA_Release");
     #else
     call("Release"); // new cameras (including 500D)
     #endif
@@ -7305,9 +7307,8 @@ shoot_task( void* unused )
             }
         }
         #endif
-        
-        #ifdef FEATURE_INTERVALOMETER
-        
+
+        #ifdef FEATURE_INTERVALOMETER        
         #define SECONDS_REMAINING (intervalometer_next_shot_time - seconds_clock)
         #define SECONDS_ELAPSED (seconds_clock - seconds_clock_0)
         if (intervalometer_running)
@@ -7336,6 +7337,7 @@ shoot_task( void* unused )
                     wait_till_next_second();
                     continue;
                 }
+                
                 static char msg[50];
                 snprintf(msg, sizeof(msg),
                                 " Intervalometer:%4d \n"
@@ -7362,6 +7364,7 @@ shoot_task( void* unused )
                     //~ playback_compare_images(0);
                     //~ images_compared = 1; // do this only once
                 //~ }
+                
                 if (PLAY_MODE && SECONDS_ELAPSED >= image_review_time)
                 {
                     get_out_of_play_mode(0);
@@ -7401,7 +7404,7 @@ shoot_task( void* unused )
                     is_continuous_drive()
                     &&
                     (!silent_pic_enabled && !is_bulb_mode())
-                    #ifdef CONFIG_5DC
+                    #ifdef CONFIG_VXWORKS
                     && 0 // SW1/2 not working
                     #endif
                    )
@@ -7440,14 +7443,17 @@ shoot_task( void* unused )
             }
             #endif
 
-           if (lv && silent_pic_enabled) // half-press shutter to disable power management
-           {
-               assign_af_button_to_halfshutter();
-               SW1(1,10);
-               SW1(0,50);
-               restore_af_button_assignment();
-               msleep(300);
-           }
+            #ifndef CONFIG_VXWORKS
+            if (lv && silent_pic_enabled) // half-press shutter to disable power management
+            {
+                assign_af_button_to_halfshutter();
+                SW1(1,10);
+                SW1(0,50);
+                restore_af_button_assignment();
+                msleep(300);
+            }
+            #endif
+           
         }
         else // intervalometer not running
         #endif // FEATURE_INTERVALOMETER
