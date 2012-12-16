@@ -176,6 +176,7 @@ static CONFIG_INT("mlu.handheld.shutter", mlu_handheld_shutter, 1); // restrict 
 #endif
 
 extern int lcd_release_running;
+extern int lens_mlu_delay;
 
 //New option for the sensitivty of the motion release
 static CONFIG_INT( "motion.release-level", motion_detect_level, 8);
@@ -474,16 +475,16 @@ interval_timer_toggle( void * priv, int delta )
 }
 
 static void
-interval_stop_after_toggle( void * priv, int delta )
+shoot_exponential_toggle( void * priv, int delta )
 {
-    int *stop = priv;
-    int val = *stop;
+    int *ptr = priv;
+    int val = *ptr;
     
-    if(val + delta <= 10)
+    if(val + delta <= 20)
     {
         val += delta;
     }
-    else if(val + delta <= 100)
+    else if(val + delta <= 200)
     {
         val += 10 * delta;
     }
@@ -494,7 +495,7 @@ interval_stop_after_toggle( void * priv, int delta )
     
     val = COERCE(val, 0, 5000);
     
-    *stop = val;    
+    *ptr = val;    
 }
 
 static void 
@@ -4815,7 +4816,7 @@ static struct menu_entry shoot_menus[] = {
                 .priv       = &interval_stop_after,
                 .max = 5000, // 5000 shots
                 .display    = interval_stop_after_display,
-                .select     = interval_stop_after_toggle,
+                .select     = shoot_exponential_toggle,
                 .help = "Stop the intervalometer after taking X shots.",
             },
             #ifdef FEATURE_INTERVALOMETER_AF
@@ -4929,7 +4930,7 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
     },
-    #endif
+    #endif  
     #ifdef FEATURE_LCD_SENSOR_REMOTE
     {
         .name = "LCDsensor Remote",
@@ -5126,6 +5127,14 @@ static struct menu_entry shoot_menus[] = {
                 .help = "Check whether the 'mirror up' event is detected correctly."
             },
             #endif
+            {
+                .name   = "Normal MLU Delay",
+                .priv   = &lens_mlu_delay,
+                .select = shoot_exponential_toggle, 
+                .min    = 1,
+                .max    = 1000,
+                .help = "100ms steps to wait after mirror lock up for vibr. to settle.",
+            }, 
             MENU_EOL
         },
     },
@@ -6336,8 +6345,11 @@ void hdr_shot(int skip0, int wait)
     else // regular pic (not HDR)
 #endif
     {
-    int should_af = 1;
-    if(intervalometer_running && !interval_use_autofocus) should_af = 0;
+        int should_af = 1;
+        if(intervalometer_running && !interval_use_autofocus)
+        {
+            should_af = 0;
+        }
         hdr_shutter_release(0, should_af); //Enable AF on intervalometer if the user wishes so, allow it otherwise
     }
 
