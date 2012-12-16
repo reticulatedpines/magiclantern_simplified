@@ -3364,7 +3364,7 @@ bulb_take_pic(int duration)
     SW2(1,100);
     
     //~ msleep(duration);
-    int d = duration/1000;
+    //int d = duration/1000;
     while (get_ms_clock_value() <= t_end - 1500)
     {
         msleep(100);

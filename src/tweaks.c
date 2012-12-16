@@ -3181,7 +3181,7 @@ void defish_draw_lv_color()
     }
     if (!ind) 
     {
-        ind = shoot_malloc(720*240*4);
+        ind = (int*) shoot_malloc(720*240*4);
         return;
     }
     if (!ind) 
@@ -3442,7 +3442,8 @@ void display_filter_step(int k)
             BMP_LOCK( if (lv) peak_disp_filter(); )
     } else
     #endif
-    ;
+    {
+    }
     
     display_filter_valid_image = 1;
 }
