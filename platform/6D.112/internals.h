@@ -1,9 +1,6 @@
 /**
- * Camera internals for EOS-M 1.0.6
+ * Camera internals for 6D 112
  */
-
-/* testing for now, pretty much nothing fixed up yet */
-#define CONFIG_HELLO_WORLD
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
 /** The EOS_M port is very young, so we don't enable these for now. **/

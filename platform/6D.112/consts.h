@@ -55,11 +55,11 @@
     #define DISPLAY_SENSOR_POWERED 0
 
 // for gui_main_task
-    #define GMT_NFUNCS 7
-    #define GMT_FUNCTABLE 0xff7f8e04 // dec gui_main_task
+#define GMT_NFUNCS 7
+#define GMT_FUNCTABLE 0xFF9CDB54 // dec gui_main_task
 
-    #define SENSOR_RES_X 4752
-    #define SENSOR_RES_Y 3168
+#define SENSOR_RES_X 4752
+#define SENSOR_RES_Y 3168
 
 
     #define CURRENT_DIALOG_MAYBE (*(int*)0x41414)
@@ -134,9 +134,9 @@
     #define BULB_MIN_EXPOSURE 100
 
 // http://magiclantern.wikia.com/wiki/Fonts
-    #define BFNT_CHAR_CODES    0xf03664d0
-    #define BFNT_BITMAP_OFFSET 0xf0369794
-    #define BFNT_BITMAP_DATA   0xf036ca58
+#define BFNT_CHAR_CODES    0xf03664d0
+#define BFNT_BITMAP_OFFSET 0xf0369794
+#define BFNT_BITMAP_DATA   0xf036ca58
 
     #define DLG_SIGNATURE 0x6e6144
 
@@ -190,40 +190,4 @@
     #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
     //~     #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
-
-
-/******************************************************************************************************************
- * touch_num_fingers_ptr:
- * --> value=0x11100 when screen isn't being touched, value=0x11101 when 1 finger is held touching the screen
- * --> value=0x11102 with 2 fingers touching the screen
- * --> value=0x11103 with 3 fingers
- * --> value=0x1104 with 4 fingers! Note: only the LSB seems to be used here, other bits seem to change sometimes.
- *  but the rightmost bit always changes to match how many fingers are touching the screen. We can recognize up to
- *  2 touch points active. Looks like canon doesn't utilize more than 2 finger gestures, it does't report the
- *  coordinates of the 3rd-6th fingers.
- *
- * touch_coord_ptr:
- *  --> top left corner = 0x0000000
- *  --> top right corner = 0x00002CF
- *  --> bottom right corner = 0x1DF02CF
- *  --> bottom left corner = 0x1DF0000
- *
- *  [**] lower 3 bits represent the X coordinates, from 0 to 719 (720px wide)
- *  [**] middle bit is always 0
- *  [**] upper 3 bits represent the Y coordinates, from 0 to 479 (480px tall)
- *
- *  And that's how Canon's touch screen works :)
- *******************************************************************************************************************/
-//~ not used [was for early implemenation]
-    #define TOUCH_XY_RAW1 0x4D868
-    #define TOUCH_XY_RAW2 (TOUCH_XY_RAW1+4)
-    #define TOUCH_MULTI 0x4D810   //~ found these with memspy. look for addresses changing with screen touches.
-//--------------
-    #define HIJACK_TOUCH_CBR_PTR 0x4D858
-
-
-
-
-
-
 

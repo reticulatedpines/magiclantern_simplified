@@ -75,6 +75,11 @@ static void my_gui_main_task()
 		gui_main_struct.counter--;
 		if (event == NULL) continue;
 		index = event->type;
+        
+        if (event->type == 0)
+        {
+            bmp_printf(FONT_LARGE, 0, 200, "param: 0x%x", event->param);
+        }
 		
 		if (!magic_is_off())
 		{
