@@ -122,7 +122,7 @@ void backup_task()
 
 #define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) | 0x40000000))
 #define PTPBUF_BUFS      16
-#define PTPBUF_BUFSIZE   (16*4+16)
+#define PTPBUF_BUFSIZE   256
 #define PTPBUF_MAGIC 0xEAEA3388
 
 typedef struct
@@ -222,8 +222,8 @@ uint32_t master_hook_addr_last = 0;
 uint32_t master_cb_calls = 0;
 uint32_t master_cb_calls2 = 0;
 uint32_t master_cb_read = 0;
-uint32_t master_hook_timer_08 = 0x1b6;
-uint32_t master_hook_timer_14 = 0x3B0;
+uint32_t master_hook_timer_08 = 0;
+uint32_t master_hook_timer_14 = 0;
 uint32_t master_hook_timer_3C = 0;
 uint32_t master_hook_timer_50 = 0;
 
@@ -241,15 +241,26 @@ void master_callback(breakpoint_t *bkpt)
     if(master_hook_addr == 0xFF931A40)
     {
         uint32_t addr = MEM(bkpt->ctx[4]);
-        if(addr == 0xC0F06008 && master_hook_timer_08 != 0)
+        if(addr == 0xC0F06008)
         {
             master_cb_calls2++;
-            MEM(bkpt->ctx[4] + 0x04) = (master_hook_timer_08<<16) | master_hook_timer_08;
+            if(master_hook_timer_08 != 0)
+            {
+                MEM(bkpt->ctx[4] + 0x04) = (master_hook_timer_08<<16) | master_hook_timer_08;
+            }
+            
+            char *callstack = gdb_get_callstack(bkpt);
+            ptpbuf_add(0x4005, callstack, strlen(callstack));
         }
-        if(addr == 0xC0F06014 && master_hook_timer_14 != 0)
+        if(addr == 0xC0F06014)
         {
             master_cb_calls2++;
-            MEM(bkpt->ctx[4] + 0x04) = (master_hook_timer_14<<16) | master_hook_timer_14;
+            if(master_hook_timer_14 != 0)
+            {
+                MEM(bkpt->ctx[4] + 0x04) = (master_hook_timer_14<<16) | master_hook_timer_14;
+            }
+            char *callstack = gdb_get_callstack(bkpt);
+            ptpbuf_add(0x4006, callstack, strlen(callstack));
         }
     }
     /* do stuff when SIO3_BufferReceived is called */
@@ -328,28 +339,17 @@ void isrlog(uint32_t isr_id)
 
 void ml_init()
 {
-    uint32_t EventMgr = MEM(0x1BA4);
-    uint32_t listener = MEM(EventMgr + 0x18);
-    uint32_t handler = MEM(listener + 0x04);
-    uint8_t buf[32];
-    
     ml_rpc_init();
-    
-    return;
-    
-    
-    //MulticastService_2(handler, 0, 0, buf, 0x2A);
-    
     
     //pre_isr_hook = isrlog;
     
-    //cache_fake(0xFF88BCB4, 0xE3A01001, TYPE_ICACHE); /* flush video buffer every frame */
+    //cache_fake(0xFF88BCB4, 0xE3A01002, TYPE_ICACHE); /* flush video buffer every frame */
     //cache_fake(0xFF8C7C18, 0xE3A01001, TYPE_ICACHE); /* all-I */
     //cache_fake(0xFF8C7C18, 0xE3A01004, TYPE_ICACHE); /* GOP4 */
     //cache_fake(0xFF8CD448, 0xE3A00006, TYPE_ICACHE); /* deblock alpha set to 6 */
     //cache_fake(0xFF8CD44C, 0xE3A00106, TYPE_ICACHE); /* deblock beta set to 6 */
    
-#if 1
+#if 0
     breakpoint_t *bp = NULL;
     msleep(100);
     
@@ -359,10 +359,10 @@ void ml_init()
     /* hook engio writes */
     master_hook_addr = 0xFF931A40;
     /* hook SIO3 packets */
-    master_hook_addr = 0xFF8333A4;
+    //master_hook_addr = 0xFF8333A4;
     
     //master_hook_addr = 0xFF891494;
-    master_hook_addr = 0xFF826728;
+    //master_hook_addr = 0xFF826728;
     
     while(1)
     {
