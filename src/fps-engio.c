@@ -37,6 +37,10 @@
 #include "config.h"
 #include "math.h"
 
+#if defined(CONFIG_7D)
+#include "ml_rpc.h"
+#endif
+
 #define FPS_REGISTER_A 0xC0F06008
 #define FPS_REGISTER_B 0xC0F06014
 
@@ -48,11 +52,32 @@
 
 void SafeEngDrvOut(int reg, int val)
 {
-    //~ info_led_blink(1,50,50);
+    info_led_blink(1,50,50);
     if (!lv) return;
     if (!DISPLAY_IS_ON && !recording) return;
     if (lens_info.job_state) return;
     if (ml_shutdown_requested) return;
+
+#if defined(CONFIG_7D)
+    /* okay first write to the register on master side */
+    ml_rpc_send(ML_RPC_ENGIO_WRITE, reg, val, 0, 0);
+    
+    /* then update the memory structure that contains the register's value.
+       if we dont patch that, master will crash on record stop due to rewriting 
+       with inconsistent values
+    */
+    if(reg == 0xC0F06008)
+    {
+        ml_rpc_send(ML_RPC_ENGIO_WRITE, 0x8704, val, 0, 0);
+    }
+    if(reg == 0xC0F0601)
+    {
+        ml_rpc_send(ML_RPC_ENGIO_WRITE, 0x8774, val, 0, 0);
+    }
+    
+    /* fall through here and also update slave registers. should not hurt. to be verified. */
+#endif
+
     _EngDrvOut(reg, val);
 }
 
