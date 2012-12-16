@@ -43,13 +43,15 @@ include ../../Makefile.inc
 ROMBASEADDR		= 0xFF0C0000
 RESTARTSTART		= 0x00069500
 
+
+# change -Ttext to 0x800000 if not packing a FIR file.
 updater: reboot-ins.o
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-nostdlib \
 		-march=armv5te \
 		-e _start \
-		-Ttext 0x800120 \	# change this to 0x800000 if not packing a FIR file.
+		-Ttext 0x800120 \
 		$^ \
 	); \
 

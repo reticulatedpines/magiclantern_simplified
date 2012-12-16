@@ -126,78 +126,70 @@ NSTUB(0xFFCFB678 - RAM_OFFSET, vsnprintf)
 NSTUB(   0xB99DC, vram_info)
     NSTUB(0xFF6FB53C, LiveViewShutterApp_handler)
 
-    NSTUB(0xFF539DC4, LiveViewApp_handler)
+NSTUB(0xFF52C7FC, LiveViewApp_handler)
 //    NSTUB(0xff4b09e4, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 //    NSTUB(0xff4b1cc4, LiveViewApp_handler_end) // start of next function
 
-    NSTUB(0xFF3BBAFC, PlayMain_handler)
-    NSTUB(0xFF553994, PlayMovieGuideApp_handler)
+NSTUB(0xFF3A195C, PlayMain_handler)
+NSTUB(0xFF558BAC, PlayMovieGuideApp_handler)
 	    NSTUB(0xff49c124, ErrCardForLVApp_handler) // not sure
-    NSTUB(0xFF520378, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
-    NSTUB(0xFF53786C, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
+NSTUB(0xFF50C514, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
+NSTUB(0xFF52A268, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
 
-    NSTUB(0xFF2C1524, _engio_write)
-    NSTUB(0xFF2C12A8, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
-    NSTUB(0xFF2C120C, _EngDrvOut) // AJ_EngDrvOut_1xVar_to_ShadowStruct
+NSTUB(0xFF2AE134, _engio_write)
+NSTUB(0xFF2ADEB8, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
+NSTUB(0xFF2ADE1C, _EngDrvOut) // AJ_EngDrvOut_1xVar_to_ShadowStruct
 
 		//    NSTUB(0xff9b1be0 - RAM_OFFSET, LightMeasure_n_Callback_r0) - looks a bit different, disabling for now
-    NSTUB(0xFF541484, ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
+NSTUB(0xFF539B94, ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
 
 		//    NSTUB(0xff987200 - RAM_OFFSET, set_fps_maybe)
 
 NSTUB(0xFFCC5A70 - RAM_OFFSET, get_current_task)
 
-    NSTUB(0x6BEF4, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+NSTUB(0x9A478, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
 	//    NSTUB(0xff34db4c, GuiSetAutoBrightness) // guess: refreshes brightness in auto mode?
 
 	//    NSTUB(0xFF195A3C, Gui_SetSoundRecord) danger
 
-    NSTUB(0xFFA70954 - RAM_OFFSET, GetMemoryInformation)
-    NSTUB(0xFF143C18, copy_malloc_info_maybe)
+NSTUB(0xFFCCD840 - RAM_OFFSET, GetMemoryInformation)
+NSTUB(0xFF1529A0, copy_malloc_info_maybe)
 
-    NSTUB(0xFFA733D0 - RAM_OFFSET, msg_queue_create)
+NSTUB(0xFFCD02BC - RAM_OFFSET, msg_queue_create)
 
-    NSTUB(0xFF101E04, PD_RemoteRelease)
+NSTUB(0xFF10ACAC, PD_RemoteRelease) //~ string: "COM_RemoteRelease:%lx, %lx"
 
 	// for task information
-    NSTUB(0x3F5AC, task_max)
-    NSTUB(0xFFA96158 - RAM_OFFSET, is_taskid_valid) // AJ_task_trampoline_related_p10
-    NSTUB(0xFFA77B48 - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
+NSTUB(0x75F0C, task_max)
+NSTUB(0xFFD0EF90 - RAM_OFFSET, is_taskid_valid) // AJ_task_trampoline_related_p10
+NSTUB(0xFFCD4DC8 - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 
-    NSTUB(0xFF2BDD84, PowerAudioOutput)
-    NSTUB(0xFF10AA18, StartASIFDMADAC)  //~ warning: looks different
-    NSTUB(0xFF10A644, StartASIFDMAADC)  //~ warning: looks different
-    NSTUB(0xFF10AC98, StopASIFDMADAC)   //~ warning: looks different
-    NSTUB(0xFF10B0DC, SetNextASIFADCBuffer)
-    NSTUB(0xFF10B2C4, SetNextASIFDACBuffer)
+NSTUB(0xFF2AA934, PowerAudioOutput)
+NSTUB(0xFF11C9A4, StartASIFDMADAC)  //~ warning: looks different
+NSTUB(0xFF11C5D0, StartASIFDMAADC)  //~ warning: looks different
+NSTUB(0xFF11CC24, StopASIFDMADAC)   //~ warning: looks different
+NSTUB(0xFF11D068, SetNextASIFADCBuffer)
+NSTUB(0xFF11D250, SetNextASIFDACBuffer)
     NSTUB(0xFF134458, SetSamplingRate )
-    NSTUB(0xFF2BECD8, SetAudioVolumeOut)
+NSTUB(0xFF2AB888, SetAudioVolumeOut)
 
 
-    NSTUB(0xFF19991C, ENCODE_StartEncodeJpeg)
+NSTUB(0xFFCE3178 - RAM_OFFSET, ENCODE_StartEncodeJpeg)  //~ called from RAM in 6D, wasn't in EOS M.
 
-    NSTUB(0xFF13B678, AllocateMemoryResource) // m_pfAllocMemoryCBR
-    NSTUB(0xFF13B6C4, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
-    NSTUB(0xFF13B7DC, FreeMemoryResource) // m_pfFreeMemoryCBR
-    NSTUB(0xFFA723E4 - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
-    NSTUB(0xFFA71DBC - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
+NSTUB(0xFF14A410, AllocateMemoryResource) // m_pfAllocMemoryCBR
+NSTUB(0xFF14A45C, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
+NSTUB(0xFF14A574, FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xFFCCED1C - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xFFCCECA8 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 
-    NSTUB(0xFFA7391C - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)
+NSTUB(0xFFCD0808 - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)
 
-    NSTUB(0xFF1B4454, GUI_SetRollingPitchingLevelStatus)
+NSTUB(0xFF19A918, GUI_SetRollingPitchingLevelStatus)
 
 
-    NSTUB(0xFF2C04E0, mvrSetPrintMovieLog)
-    NSTUB(0xFF2BFEF0, mvrSetQscale)
-    NSTUB(   0x4C584, mvr_config)
-    NSTUB(0xFF2C04BC, mvrFixQScale)
-    NSTUB(0xFF2BFFB4, mvrSetDefQScale)
-
-    NSTUB(0xFF1202B8, prop_get_value)
-    NSTUB(0xFF2A3378, ptpPropSetUILock)
-    NSTUB(0xFF334610, touch_cbr_canon)
-
-    NSTUB(0xFF5B6688, lvae_setdispgain)
-
-    NSTUB(0xFF0E5808, MVR_NotifyLvFrameTiming)
+NSTUB(0xFF2AD0F0, mvrSetPrintMovieLog)
+NSTUB(0xFF2ACB00, mvrSetQscale)
+NSTUB(   0x7AE8C, mvr_config)
+NSTUB(0xFF2AD0CC, mvrFixQScale)
+NSTUB(0xFF2ACBC4, mvrSetDefQScale)

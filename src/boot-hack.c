@@ -358,7 +358,7 @@ void my_big_init_task()
     while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
-        //bfnt_puts("Hello, World", 50, 100, COLOR_BLACK, COLOR_WHITE);
+        bfnt_puts("Hello, World", 50, 100, COLOR_BLACK, COLOR_WHITE);
         bmp_printf(FONT_LARGE, 50, 400, "firmware signature = 0x%x", len);
         info_led_blink(1, 500, 500);
     }
