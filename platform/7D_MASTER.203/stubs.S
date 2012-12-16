@@ -34,6 +34,9 @@
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
+
+NSTUB(0xFF9314D8, shamem_read)
+NSTUB(0xFF9315E8, EngDrvOut)
 NSTUB(0xFF812B4C, init_task)
 NSTUB(0xFF83976C, msleep)
 NSTUB(0xFF839820, task_create)
