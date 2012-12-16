@@ -229,24 +229,24 @@ static int vmax(int* x, int n)
 static void dump_rom_task(void* priv)
 {
     msleep(200);
-    FILE * f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/ROM0.BIN");
-    if (f != (void*) -1)
-    {
-        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM");
-        FIO_WriteFile(f, (void*) 0xFF010000, 0x900000);
-        FIO_CloseFile(f);
-    }
-
-    msleep(200);
-
-    f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/BOOT0.BIN");
-    if (f != (void*) -1)
-    {
-        bmp_printf(FONT_LARGE, 0, 60, "Writing BOOT");
-        FIO_WriteFile(f, (void*) 0xFFFF0000, 0x10000);
-        FIO_CloseFile(f);
-    }
+    FILE * f = NULL;
     
+    f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/ROM0.BIN");
+    if (f != (void*) -1)
+    {
+        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM0");
+        FIO_WriteFile(f, (void*) 0xF0000000, 0x01000000);
+        FIO_CloseFile(f);
+    }
+    msleep(200);
+    
+    f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/ROM1.BIN");
+    if (f != (void*) -1)
+    {
+        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM1");
+        FIO_WriteFile(f, (void*) 0xF8000000, 0x01000000);
+        FIO_CloseFile(f);
+    }
     msleep(200);
 
     dump_big_seg(4, CARD_DRIVE "ML/LOGS/RAM4.BIN");
@@ -2516,7 +2516,7 @@ struct menu_entry debug_menus[] = {
     {
         .name        = "Dump ROM and RAM",
         .select        = dump_rom,
-        .help = "0.BIN:0-0FFFFFFF, ROM0.BIN:FF010000, BOOT0.BIN:FFFF0000."
+        .help = "0.BIN:0-0FFFFFFF, ROM0.BIN:F0000000, ROM1.BIN:F8000000"
     },
 #endif
 #ifdef CONFIG_40D
