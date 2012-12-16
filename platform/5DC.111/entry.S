@@ -23,6 +23,13 @@
 
 start:
 _start:
+		MOV R1, #0x46
+		MOV R0, #0x220000
+		ADD R0, R0, #0xC0000000
+
+		STR R1, [R0,#0xA0]
+		STR R1, [R0,#0xF0]
+
         B  copy_and_restart
 
 
@@ -200,7 +207,7 @@ my_task_Startup:
 		BL	sub_FFB10D68
 		MOV	R0, R5
 		BL	sub_FFB291AC
-		MOV	R1, #0x980000
+		MOV	R1, #0x980000 // AF: the OFW is 0xA00000 (this is our 512k for the hack)
 		MOV	R0, #0x280000
 		BL	sub_FFB2F5CC
 		BL	sub_FFB18668        // InitializeKernel
@@ -274,7 +281,7 @@ loc_FF8111C0:
 		STR	R5, [SP]
 		BL	sub_FFB18B40    // CreateTask
                             // BL  DisablePowerSave
-        BL  Create5dplusInit
+        //BL  Create5dplusInit // AF
 		MOV	R3, R0
 		ANDS	R0, R3,	#1
 		BEQ	loc_FF8111F8
@@ -293,7 +300,7 @@ loc_FF8111F8:
 		BL	sub_FFB207B8
 		BL	sub_FFB2AD78
 		LDR	R0, =aK213
-		BL	sub_FFB22394
+		BL	create_task_cmd_shell
 
 loc_FF81121C:	
 		ADD	SP, SP,	#0x2C

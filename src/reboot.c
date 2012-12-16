@@ -145,6 +145,8 @@ cstart( void )
     #elif defined(CONFIG_40D)
         *(volatile int*)0xC02200E8 = 0x46;
         *(volatile int*)0xC02200E0 = 0x46;
+    #elif defined(CONFIG_5DC)
+        //*(volatile int*)0xC02200F0 = 0x46;
     #endif
 
     blob_memcpy(

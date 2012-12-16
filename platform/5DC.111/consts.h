@@ -1,6 +1,7 @@
 #define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC02200A0 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDBLUE     *(int*)0xC02200F0
+#define LEDRED      *(int*)0xC02200A0
 #define LEDON   0x46
 #define LEDOFF  0x44
 
