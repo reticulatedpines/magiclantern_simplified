@@ -133,7 +133,7 @@ cstart( void )
         *(volatile int*) (LEDBLUE) = (LEDON);
         *(volatile int*) (LEDRED)  = (LEDON);
 	#elif defined(CARD_LED_ADDRESS) && defined(LEDON) // A more portable way, hopefully
-        *(volatile int*) (CARD_LED_ADDRESS) = (LEDON)
+        *(volatile int*) (CARD_LED_ADDRESS) = (LEDON);
 	#endif
 	#if defined(CONFIG_7D)
 		*(volatile int*)0xC0A00024 = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting

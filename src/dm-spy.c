@@ -39,7 +39,7 @@ void my_DebugMsg(int class, int level, char* fmt, ...)
     
     //~ len += snprintf( buf+len, MIN(10, BUF_SIZE-len), "%s%d ", dm_names[class], level );
 
-    char* msg = buf+len;
+    // char* msg = buf+len;
 
     va_start( ap, fmt );
     len += vsnprintf( buf+len, BUF_SIZE-len, fmt, ap );
