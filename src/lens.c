@@ -33,6 +33,8 @@
 
 // for movie logging
 char* mvr_logfile_buffer = 0;
+/* delay to be waited after mirror is locked */
+uint32_t lens_mlu_delay = 10;
 
 void update_stuff();
 
@@ -1112,7 +1114,7 @@ void mlu_lock_mirror_if_needed() // called by lens_take_picture
             #else
             call("Release");
             #endif
-            msleep(1000);
+            msleep(lens_mlu_delay * 100);
         }
     }
     //~ NotifyBox(1000, "MLU locked");
@@ -1209,10 +1211,12 @@ lens_take_picture(
     call("rssRelease");
     #elif defined(CONFIG_40D)
     call("FA_Release");
-    #elif defined(CONFIG_7D)    
-    SW2(1,50);
-    SW2(0,50);
-    /* on EOS 7D the code to trigger SW1/SW2 is buggy that the metering somehow locks up.
+    #else
+    call("Release");
+    #endif
+    
+    #if defined(CONFIG_7D)
+    /* on EOS 7D the code to trigger SW1/SW2 is buggy that the metering somehow locks up when exposure time is >1.x seconds.
      * This causes the camera not to shut down when the card door is opened.
      * There is a workaround: Just wait until shooting is possible again and then trigger SW1 for a short time.
      * Then the camera will shut down clean.
@@ -1220,8 +1224,8 @@ lens_take_picture(
     lens_wait_readytotakepic(130000);
     SW1(1,50);
     SW1(0,50);
-    #else
-    call("Release");
+    SW1(1,50);
+    SW1(0,50);
     #endif
     
     if( !wait )
