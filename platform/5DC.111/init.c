@@ -11,6 +11,42 @@ extern void create_task_cmd_shell(const char * name);
 void ml_big_init_task(); // forward declaration
 int bmp_vram_idle_ptr;
 
+
+static void busy_wait(int n)
+{
+	int i,j;
+	static volatile int k = 0;
+	for (i = 0; i < n; i++)
+		for (j = 0; j < 100000; j++)
+			k++;
+}
+#if 0
+asm(
+	"MOV R1, #0x46\n"
+	"MOV R0, #0x220000\n"
+	"ADD R0, R0, #0xC0000000\n"
+
+	"STR R1, [R0,#0xA0]\n"
+	"STR R1, [R0,#0xF0]\n"
+);
+#endif
+
+void blink(int times)
+{
+	if (!times) times=2;
+	while(times--) {
+		LEDBLUE = LEDON;
+		LEDRED = LEDON;
+		busy_wait(50);
+		LEDBLUE = LEDOFF;
+		LEDRED = LEDOFF;
+		busy_wait(50);
+	}
+}
+
+
+
+
 static inline void
 zero_bss( void )
 {/*{{{*/
@@ -83,11 +119,13 @@ void ml_init_task()
 
 void ml_hijack_create_task_cmd_shell(const char * name)
 {/*{{{*/
+	blink(2);
+
 	// call original create_task_cmd_shell to start taskCmdShell
 	create_task_cmd_shell(name);
 
 	// create ml_init_task to start ML
-	task_create("ml_init_task", 0x1f, 0x2000, ml_init_task, 0);
+	//task_create("ml_init_task", 0x1f, 0x2000, ml_init_task, 0);
 }/*}}}*/
 
 void configure_cache_replaces()
@@ -105,50 +143,8 @@ void configure_cache_replaces()
 #endif
 }/*}}}*/
 
-
-static void busy_wait(int n)
-{
-	int i,j;
-	static volatile int k = 0;
-	for (i = 0; i < n; i++)
-		for (j = 0; j < 100000; j++)
-			k++;
-}
-#if 0
-asm(
-	"MOV R1, #0x46\n"
-	"MOV R0, #0x220000\n"
-	"ADD R0, R0, #0xC0000000\n"
-
-	"STR R1, [R0,#0xA0]\n"
-	"STR R1, [R0,#0xF0]\n"
-);
-#endif
-
-void blink(int times)
-{
-	while(times--) {
-		LEDBLUE = LEDON;
-		LEDRED = LEDON;
-		busy_wait(100);
-		LEDBLUE = LEDOFF;
-		LEDRED = LEDOFF;
-		busy_wait(100);
-	}
-}
-
 void copy_and_restart()
 {/*{{{*/
-asm(
-	"MOV R1, #0x46\n"
-	"MOV R0, #0x220000\n"
-	"ADD R0, R0, #0xC0000000\n"
-
-	"STR R1, [R0,#0xA0]\n"
-	"STR R1, [R0,#0xF0]\n"
-);
-
-	blink(50);
 	zero_bss();
 
 	/* lock down caches */
@@ -158,23 +154,18 @@ asm(
 
 	configure_cache_replaces();
 
-	/* now restart firmware */
+	/* now start the original firmware (OFW) */
 	firmware_entry();
-
-	// jump to modified Canon startup code from entry.S
-	// (which will call Create5dplusInit - where we create our tasks)
-	//init_code_run(2);
 
 	// unreachable
 	while(1) {
 		LEDBLUE = LEDON;
 		LEDRED = LEDOFF;
-		msleep(100);
+		busy_wait(100);
 		LEDBLUE = LEDOFF;
 		LEDRED = LEDON;
-		msleep(100);
+		busy_wait(100);
 	}
-	while(1) LEDBLUE = LEDON;
 }/*}}}*/
 
 // //////////////////////////////////////////////////////////////////////// //
@@ -351,7 +342,7 @@ void ml_big_init_task()
 				streq(task->name, "menu_redraw_task") ||
 				//~ streq(task->name, "morse_task") ||
 				//~ streq(task->name, "movtweak_task") ||
-				streq(task->name, "ms100_clock_task") ||
+				streq(task->name, "ms100_clock_task") || // missing ?
 				streq(task->name, "notifybox_task") ||
 				//~ streq(task->name, "plugins_task") ||
 				streq(task->name, "clock_task") ||
