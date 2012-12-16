@@ -25,6 +25,7 @@
  */
 
 #include "arm-mcr.h"
+#include "consts.h"
 
 asm(
     ".text\n"
