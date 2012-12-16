@@ -806,30 +806,49 @@ INIT_FUNC(__FILE__, bitrate_init);
 static void
 bitrate_task( void* unused )
 {
-    cbr_init();
+#if defined(CONFIG_7D)
+    int old_bitrate_cache_hacks = 0;
+    int old_bitrate_gop_size = 0;
+    int old_bitrate_flushing_rate = 0;
+#endif
 
+    cbr_init();
+    
     TASK_LOOP
     {
 #if defined(CONFIG_7D)
         if(ml_rpc_available())
         {
-            if(bitrate_cache_hacks)
+            /* anything changed? */
+            if(bitrate_cache_hacks != old_bitrate_cache_hacks || bitrate_flushing_rate != old_bitrate_flushing_rate || bitrate_gop_size != old_bitrate_gop_size)
             {
-                /* patch flushing rate */
-                cache_fake(0xFF05A6DC, 0xE3A00000 | (bitrate_flushing_rate & 0xFF), TYPE_ICACHE);
-                ml_rpc_send(ML_RPC_CACHE_HACK, 0xFF88BCB4, 0xE3A01000 | (bitrate_flushing_rate & 0xFF), TYPE_ICACHE, 2);
+                if(bitrate_cache_hacks)
+                {
+                    /* patch flushing rate */
+                    cache_fake(CACHE_HACK_FLUSH_RATE_SLAVE, 0xE3A00000 | (bitrate_flushing_rate & 0xFF), TYPE_ICACHE);
+                    ml_rpc_send(ML_RPC_CACHE_HACK, CACHE_HACK_FLUSH_RATE_MASTER, 0xE3A01000 | (bitrate_flushing_rate & 0xFF), TYPE_ICACHE, 2);
+                    
+                    /* set GOP size */
+                    ml_rpc_send(ML_RPC_CACHE_HACK, CACHE_HACK_GOP_SIZE_MASTER, 0xE3A01000 | (bitrate_gop_size & 0xFF), TYPE_ICACHE, 2);
+                    
+                    /* make sure canon sound is disabled */
+                    int mode  = 1;
+                    prop_request_change(PROP_MOVIE_SOUND_RECORD, &mode, 4);
+                    NotifyBox(2000,"Canon sound disabled");
+                }
+                else
+                {
+                    /* undo flushing rate */
+                    cache_fake(CACHE_HACK_FLUSH_RATE_SLAVE, MEM(CACHE_HACK_FLUSH_RATE_SLAVE), TYPE_ICACHE);
+                    ml_rpc_send(ML_RPC_CACHE_HACK_DEL, CACHE_HACK_FLUSH_RATE_MASTER, TYPE_ICACHE, 0, 2);
+                    
+                    /* undo GOP size */
+                    ml_rpc_send(ML_RPC_CACHE_HACK_DEL, CACHE_HACK_GOP_SIZE_MASTER, TYPE_ICACHE, 0, 2);
+                }
                 
-                /* set GOP size */
-                ml_rpc_send(ML_RPC_CACHE_HACK, 0xFF8C7C18, 0xE3A01000 | (bitrate_gop_size & 0xFF), TYPE_ICACHE, 2);
-            }
-            else
-            {
-                /* undo flushing rate */
-                cache_fake(0xFF05A6DC, MEM(0xFF05A6DC), TYPE_ICACHE);
-                ml_rpc_send(ML_RPC_CACHE_HACK_DEL, 0xFF88BCB4, TYPE_ICACHE, 0, 2);
-                
-                /* undo GOP size */
-                ml_rpc_send(ML_RPC_CACHE_HACK_DEL, 0xFF8C7C18, TYPE_ICACHE, 0, 2);
+                old_bitrate_cache_hacks = bitrate_cache_hacks;
+                old_bitrate_gop_size = bitrate_gop_size;
+                old_bitrate_flushing_rate = bitrate_flushing_rate;
             }
         }
 #endif       

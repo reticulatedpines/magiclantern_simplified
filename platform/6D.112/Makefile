@@ -1,11 +1,11 @@
-#Makefile for EOS 650D firmware 101
+#Makefile for 6D 112 firmware
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=101
-MODEL=650D
+FW_VERSION=112
+MODEL=6D
 ML_VERSION=unified1 
 
 #used in CFLAGS
@@ -72,7 +72,7 @@ include ../../Makefile.inc
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF0C0000
-RESTARTSTART	= 0x0007E100
+RESTARTSTART	= 0x000D7900
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120
 

@@ -39,7 +39,6 @@
     #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)
     #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04108 // SDRAM address of HD buffer (aka YUV)
 
-    #define EVF_STATEOBJ *(struct state_object**)0x40944)
     #define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR)) // first line from DMA is dummy
 
 
@@ -110,7 +109,7 @@
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
- #define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 88...98 ?!
+#define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 88...98 ?!
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 50

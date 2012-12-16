@@ -290,6 +290,52 @@ uint32_t gdb_instr_is_pc_modifying(uint32_t opcode)
     return 0;
 }
 
+char *gdb_get_callstack(breakpoint_t *bkpt)
+{
+    uint32_t *sp = (uint32_t*)bkpt->ctx[13];
+    uint32_t pos = 1;
+    uint32_t depth = 0;
+    char tmpBuf[9];
+    
+    /* gdb_word2hexword will write the first 8 byte */
+    tmpBuf[8] = 0;
+    gdb_strncpy(gdb_callstack, "BL: ", GDB_STRING_BUFFER_SIZE);
+    
+    while(depth < 5 && pos < 100)
+    {
+        uint32_t lr = sp[pos];
+        
+        /* address in ROM? -> might be a LR */
+        if((lr & 0xF8000000) == 0xF8000000)
+        {
+            uint32_t *pc = (uint32_t*)(lr - 4);
+            
+            /* check if opcode before LR position was a BL/B/BX/... */
+            if(gdb_instr_is_pc_modifying(*pc))
+            {
+                /* yes, so it might have been our caller */
+                gdb_word2hexword(tmpBuf, (uint32_t)pc);
+                
+                /* mark BX/B with a dot, BLs without one */
+                if(gdb_instr_is_pc_modifying(*pc) != 1)
+                {
+                    gdb_strlcat(gdb_callstack, ".", GDB_STRING_BUFFER_SIZE);
+                }
+                else
+                {
+                    gdb_strlcat(gdb_callstack, " ", GDB_STRING_BUFFER_SIZE);
+                }
+                gdb_strlcat(gdb_callstack, tmpBuf, GDB_STRING_BUFFER_SIZE);
+                gdb_strlcat(gdb_callstack, " ", GDB_STRING_BUFFER_SIZE);
+                depth++;
+            }
+        }
+        pos++;        
+    }
+    
+    return gdb_callstack;
+}
+
 
 #if defined(GDB_TASK_CTX)
 struct task *gdb_get_current_task()
@@ -812,24 +858,6 @@ uint32_t gdb_setup()
     return 1;
 }
 
-#if defined(CONFIG_GDBSTUB)
-
-/* gets called when new data arrived in buffer */
-void gdb_recv_callback(uint32_t length)
-{
-    gdb_recv_buffer_length = length;
-}
-
-/* gets called when data from buffer was uploaded to host */
-void gdb_send_callback()
-{
-    /* set the pointer to first payload byte again */
-    gdb_memset(gdb_send_buffer, 0, GDB_TRANSMIT_BUFFER_SIZE);
-    gdb_send_buffer_length = 0;
-    gdb_send_ptr = (char*)gdb_send_buffer;
-}
-
-
 void gdb_byte2hexbyte(char *s, int byte)
 {
     static char hexchars[] = "0123456789abcdef";
@@ -921,50 +949,22 @@ uint32_t gdb_get_hexnumber(char **buffer, uint32_t *value)
     return parsed;
 }
 
-char *gdb_get_callstack(breakpoint_t *bkpt)
+
+#if defined(CONFIG_GDBSTUB)
+
+/* gets called when new data arrived in buffer */
+void gdb_recv_callback(uint32_t length)
 {
-    uint32_t *sp = (uint32_t*)bkpt->ctx[13];
-    uint32_t pos = 1;
-    uint32_t depth = 0;
-    char tmpBuf[9];
-    
-    /* gdb_word2hexword will write the first 8 byte */
-    tmpBuf[8] = 0;
-    gdb_strncpy(gdb_callstack, "BL: ", GDB_STRING_BUFFER_SIZE);
-    
-    while(depth < 5 && pos < 100)
-    {
-        uint32_t lr = sp[pos];
-        
-        /* address in ROM? -> might be a LR */
-        if((lr & 0xF8000000) == 0xF8000000)
-        {
-            uint32_t *pc = (uint32_t*)(lr - 4);
-            
-            /* check if opcode before LR position was a BL/B/BX/... */
-            if(gdb_instr_is_pc_modifying(*pc))
-            {
-                /* yes, so it might have been our caller */
-                gdb_word2hexword(tmpBuf, (uint32_t)pc);
-                
-                /* mark BX/B with a dot, BLs without one */
-                if(gdb_instr_is_pc_modifying(*pc) != 1)
-                {
-                    gdb_strlcat(gdb_callstack, ".", GDB_STRING_BUFFER_SIZE);
-                }
-                else
-                {
-                    gdb_strlcat(gdb_callstack, " ", GDB_STRING_BUFFER_SIZE);
-                }
-                gdb_strlcat(gdb_callstack, tmpBuf, GDB_STRING_BUFFER_SIZE);
-                gdb_strlcat(gdb_callstack, " ", GDB_STRING_BUFFER_SIZE);
-                depth++;
-            }
-        }
-        pos++;        
-    }
-    
-    return gdb_callstack;
+    gdb_recv_buffer_length = length;
+}
+
+/* gets called when data from buffer was uploaded to host */
+void gdb_send_callback()
+{
+    /* set the pointer to first payload byte again */
+    gdb_memset(gdb_send_buffer, 0, GDB_TRANSMIT_BUFFER_SIZE);
+    gdb_send_buffer_length = 0;
+    gdb_send_ptr = (char*)gdb_send_buffer;
 }
 
 

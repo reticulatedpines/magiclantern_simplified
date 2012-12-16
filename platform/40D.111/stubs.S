@@ -231,3 +231,5 @@ NSTUB(0xFFB93290, ptp_register_handler)
 NSTUB(0xFFB8B6EC, ptp_register_handlers_0x9800)
 
 NSTUB(0xFFD4C1EC, DM_TryPostEvent)
+
+NSTUB(0xFF84768C, FA_Release)

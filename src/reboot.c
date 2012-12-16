@@ -25,6 +25,7 @@
  */
 
 #include "arm-mcr.h"
+#include "consts.h"
 
 asm(
     ".text\n"
@@ -59,7 +60,7 @@ asm(
     ".globl blob_end\n"
 );
 
-#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER) || defined(CONFIG_EOSM)
+#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
 static void busy_wait(int n)
 {
     int i,j;
@@ -73,17 +74,12 @@ static void blink(int n)
 {
     while (1)
     {
-        #if defined(CONFIG_5D3)
-        *(volatile int*)0xC022C06C = 0x138800;
-        busy_wait(n);
-        *(volatile int*)0xC022C06C = 0x838C00;
-        busy_wait(n);
-        #elif defined(CONFIG_7D) || defined(CONFIG_7D_MASTER)
-        *(volatile int*)0xC022D06C = 0x138800;
-        busy_wait(n);
-        *(volatile int*)0xC022D06C = 0x838C00;
-        busy_wait(n);
-        #endif
+        #if defined(CARD_LED_ADDRESS) && defined(LEDON) && defined(LEDOFF)
+        *(volatile int*) (CARD_LED_ADDRESS) = (LEDON);
+		busy_wait(n);
+		*(volatile int*)(CARD_LED_ADDRESS) = (LEDOFF);
+		busy_wait(n);
+		#endif
     }
 }
 
@@ -133,21 +129,15 @@ cstart( void )
     #endif
 
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
-        *(volatile int*)0xC02200BC = 0x46;  // CF card LED on
-    #elif defined(CONFIG_7D)
-        *(volatile int*)0xC022D06C = 0x00138800;  // CF card LED on
-        *(volatile int*)0xC0A00024 = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
-    #elif defined(CONFIG_7D_MASTER)
-        *(volatile int*)0xC022D06C = 0x00138800;  // CF card LED on
-    #elif defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
-        *(volatile int*)0xC0220134 = 0x46;  // SD card LED on
-    #elif defined(CONFIG_40D)
-        *(volatile int*)0xC02200E8 = 0x46;
-        *(volatile int*)0xC02200E0 = 0x46;
-    #elif defined(CONFIG_5DC)
-        *(volatile int*)0xC02200F0 = 0x46;
-    #endif
+	#if defined(CONFIG_40D) || defined(CONFIG_5DC)
+        *(volatile int*) (LEDBLUE) = (LEDON);
+        *(volatile int*) (LEDRED)  = (LEDON); // do we need the red too ?
+	#elif defined(CARD_LED_ADDRESS) && defined(LEDON) // A more portable way, hopefully
+        *(volatile int*) (CARD_LED_ADDRESS) = (LEDON);
+	#endif
+	#if defined(CONFIG_7D)
+		*(volatile int*)0xC0A00024 = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
+	#endif
 
     blob_memcpy(
         (void*) RESTARTSTART,

@@ -176,6 +176,7 @@ static CONFIG_INT("mlu.handheld.shutter", mlu_handheld_shutter, 1); // restrict 
 #endif
 
 extern int lcd_release_running;
+extern int lens_mlu_delay;
 
 //New option for the sensitivty of the motion release
 static CONFIG_INT( "motion.release-level", motion_detect_level, 8);
@@ -474,16 +475,16 @@ interval_timer_toggle( void * priv, int delta )
 }
 
 static void
-interval_stop_after_toggle( void * priv, int delta )
+shoot_exponential_toggle( void * priv, int delta )
 {
-    int *stop = priv;
-    int val = *stop;
+    int *ptr = priv;
+    int val = *ptr;
     
-    if(val + delta <= 10)
+    if(val + delta <= 20)
     {
         val += delta;
     }
-    else if(val + delta <= 100)
+    else if(val + delta <= 200)
     {
         val += 10 * delta;
     }
@@ -494,7 +495,7 @@ interval_stop_after_toggle( void * priv, int delta )
     
     val = COERCE(val, 0, 5000);
     
-    *stop = val;    
+    *ptr = val;    
 }
 
 static void 
@@ -857,6 +858,8 @@ void mlu_take_pic()
     SW2(1,250);
     SW2(0,50);
     SW1(0,50);
+    #elif defined(CONFIG_40D)
+    call("FA_Release");
     #else
     call("Release"); // new cameras (including 500D)
     #endif
@@ -1939,7 +1942,7 @@ int is_native_iso(int iso)
         case 800:
         case 1600:
         case 3200:
-        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM)
+        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
         case 6400: // on digic 4, those are digital gains applied to 3200 ISO
         case 12800:
         case 25600:
@@ -1958,7 +1961,7 @@ int is_lowgain_iso(int iso)
         case 640:  // ISO 800 - 1/3EV
         case 1250: // ISO 1600 - 1/3EV
         case 2500: // ISO 3200 - 1/3EV
-        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM)
+        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
         case 5000:
         case 10000:
         #endif
@@ -3362,7 +3365,7 @@ bulb_take_pic(int duration)
     SW2(1,100);
     
     //~ msleep(duration);
-    int d = duration/1000;
+    //int d = duration/1000;
     while (get_ms_clock_value() <= t_end - 1500)
     {
         msleep(100);
@@ -4813,7 +4816,7 @@ static struct menu_entry shoot_menus[] = {
                 .priv       = &interval_stop_after,
                 .max = 5000, // 5000 shots
                 .display    = interval_stop_after_display,
-                .select     = interval_stop_after_toggle,
+                .select     = shoot_exponential_toggle,
                 .help = "Stop the intervalometer after taking X shots.",
             },
             #ifdef FEATURE_INTERVALOMETER_AF
@@ -4927,7 +4930,7 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
     },
-    #endif
+    #endif  
     #ifdef FEATURE_LCD_SENSOR_REMOTE
     {
         .name = "LCDsensor Remote",
@@ -5124,6 +5127,14 @@ static struct menu_entry shoot_menus[] = {
                 .help = "Check whether the 'mirror up' event is detected correctly."
             },
             #endif
+            {
+                .name   = "Normal MLU Delay",
+                .priv   = &lens_mlu_delay,
+                .select = shoot_exponential_toggle, 
+                .min    = 1,
+                .max    = 1000,
+                .help = "100ms steps to wait after mirror lock up for vibr. to settle.",
+            }, 
             MENU_EOL
         },
     },
@@ -6334,8 +6345,11 @@ void hdr_shot(int skip0, int wait)
     else // regular pic (not HDR)
 #endif
     {
-    int should_af = 1;
-    if(intervalometer_running && !interval_use_autofocus) should_af = 0;
+        int should_af = 1;
+        if(intervalometer_running && !interval_use_autofocus)
+        {
+            should_af = 0;
+        }
         hdr_shutter_release(0, should_af); //Enable AF on intervalometer if the user wishes so, allow it otherwise
     }
 
@@ -7305,9 +7319,8 @@ shoot_task( void* unused )
             }
         }
         #endif
-        
-        #ifdef FEATURE_INTERVALOMETER
-        
+
+        #ifdef FEATURE_INTERVALOMETER        
         #define SECONDS_REMAINING (intervalometer_next_shot_time - seconds_clock)
         #define SECONDS_ELAPSED (seconds_clock - seconds_clock_0)
         if (intervalometer_running)
@@ -7336,6 +7349,7 @@ shoot_task( void* unused )
                     wait_till_next_second();
                     continue;
                 }
+                
                 static char msg[50];
                 snprintf(msg, sizeof(msg),
                                 " Intervalometer:%4d \n"
@@ -7362,6 +7376,7 @@ shoot_task( void* unused )
                     //~ playback_compare_images(0);
                     //~ images_compared = 1; // do this only once
                 //~ }
+                
                 if (PLAY_MODE && SECONDS_ELAPSED >= image_review_time)
                 {
                     get_out_of_play_mode(0);
@@ -7401,7 +7416,7 @@ shoot_task( void* unused )
                     is_continuous_drive()
                     &&
                     (!silent_pic_enabled && !is_bulb_mode())
-                    #ifdef CONFIG_5DC
+                    #ifdef CONFIG_VXWORKS
                     && 0 // SW1/2 not working
                     #endif
                    )
@@ -7440,14 +7455,17 @@ shoot_task( void* unused )
             }
             #endif
 
-           if (lv && silent_pic_enabled) // half-press shutter to disable power management
-           {
-               assign_af_button_to_halfshutter();
-               SW1(1,10);
-               SW1(0,50);
-               restore_af_button_assignment();
-               msleep(300);
-           }
+            #ifndef CONFIG_VXWORKS
+            if (lv && silent_pic_enabled) // half-press shutter to disable power management
+            {
+                assign_af_button_to_halfshutter();
+                SW1(1,10);
+                SW1(0,50);
+                restore_af_button_assignment();
+                msleep(300);
+            }
+            #endif
+           
         }
         else // intervalometer not running
         #endif // FEATURE_INTERVALOMETER

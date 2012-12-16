@@ -96,7 +96,7 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 
 static void vsync_func() // called once per frame.. in theory :)
 {
-    #if !defined(CONFIG_60D) && !defined(CONFIG_600D) && !defined(CONFIG_1100D) && !defined(CONFIG_5D3) && !defined(CONFIG_EOSM) // for those cameras, it's called from a different spot of the evf state object
+    #if !defined(CONFIG_60D) && !defined(CONFIG_600D) && !defined(CONFIG_1100D) && !defined(CONFIG_5D3) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D) // for those cameras, it's called from a different spot of the evf state object
     hdr_step();
     #endif
     

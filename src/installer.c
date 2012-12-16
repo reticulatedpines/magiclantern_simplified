@@ -51,16 +51,15 @@ void NotifyBox(int timeout, char* fmt, ...)
     big_bmp_printf(FONT_LARGE, 0, 0, "%s", notify_box_msg);
 }
 
-
-#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
-void _card_led_on() { *(volatile uint32_t*)CARD_LED_ADDRESS = LEDON; }
-void _card_led_off() { *(volatile uint32_t*)CARD_LED_ADDRESS = LEDOFF; }
-#elif defined(CONFIG_7D)
-void _card_led_on() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x138800; }
-void _card_led_off() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x38400; }
+#if defined(CONFIG_7D)
+void _card_led_on()  { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON); }
+void _card_led_off() { *(volatile uint32_t*) (CARD_LED_ADDRESS) = 0x38400; } //TODO: Check if this is correct, because reboot.c said 0x838C00
+#elif defined(CARD_LED_ADDRESS) && defined(LEDON) && defined(LEDOFF)
+void _card_led_on()  { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON); }
+void _card_led_off() { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF); }
 #else
-void _card_led_on() { *(volatile uint8_t*)CARD_LED_ADDRESS = 0x46; }
-void _card_led_off() { *(volatile uint8_t*)CARD_LED_ADDRESS = 0x44; }
+void _card_led_on()  { return; }
+void _card_led_off() { return; }
 #endif
 
 void info_led_on()
@@ -658,7 +657,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf){};
 int display_filter_enabled;
 
 //~ doesn't use _AllocateMemory()
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_550D) && !defined(CONFIG_5D2) && !defined(CONFIG_EOSM)
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_550D) && !defined(CONFIG_5D2) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D)
 void *AllocateMemory(size_t size){return 0;}
 #endif
 

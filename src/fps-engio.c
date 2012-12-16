@@ -37,6 +37,10 @@
 #include "config.h"
 #include "math.h"
 
+#if defined(CONFIG_7D)
+#include "ml_rpc.h"
+#endif
+
 #define FPS_REGISTER_A 0xC0F06008
 #define FPS_REGISTER_B 0xC0F06014
 
@@ -48,11 +52,32 @@
 
 void SafeEngDrvOut(int reg, int val)
 {
-    //~ info_led_blink(1,50,50);
+    info_led_blink(1,50,50);
     if (!lv) return;
     if (!DISPLAY_IS_ON && !recording) return;
     if (lens_info.job_state) return;
     if (ml_shutdown_requested) return;
+
+#if defined(CONFIG_7D)
+    /* okay first write to the register on master side */
+    ml_rpc_send(ML_RPC_ENGIO_WRITE, reg, val, 0, 0);
+    
+    /* then update the memory structure that contains the register's value.
+       if we dont patch that, master will crash on record stop due to rewriting 
+       with inconsistent values
+    */
+    if(reg == 0xC0F06008)
+    {
+        ml_rpc_send(ML_RPC_ENGIO_WRITE, 0x8704, val, 0, 0);
+    }
+    if(reg == 0xC0F0601)
+    {
+        ml_rpc_send(ML_RPC_ENGIO_WRITE, 0x8774, val, 0, 0);
+    }
+    
+    /* fall through here and also update slave registers. should not hurt. to be verified. */
+#endif
+
     _EngDrvOut(reg, val);
 }
 
@@ -135,7 +160,7 @@ static void fps_read_current_timer_values();
 
 #define FPS_TIMER_A_MAX 0x2000
 
-#ifdef CONFIG_EOSM
+#if defined(CONFIG_EOSM) || defined(CONFIG_650D)
     #define FPS_TIMER_B_MAX fps_timer_b_orig
 #else
     #define FPS_TIMER_B_MAX (0x4000-1)
@@ -334,7 +359,7 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
 
 int get_current_shutter_reciprocal_x1000()
 {
-#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_40D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_40D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
     if (!lens_info.raw_shutter) return 0;
     return (int) roundf(powf(2.0f, (lens_info.raw_shutter - 136) / 8.0f) * 1000.0f * 1000.0f);
 #else
@@ -1092,7 +1117,7 @@ static struct menu_entry fps_menu[] = {
                 .select = fps_change_value,
                 .help = "FPS value for recording. Video will play back at Canon FPS.",
             },
-#ifndef CONFIG_EOSM     //~ we only modify FPS_REGISTER_A, so no optimizations possible.
+#if !(defined(CONFIG_EOSM) || defined(CONFIG_650D))     //~ we only modify FPS_REGISTER_A, so no optimizations possible.
             {
                 .name = "Optimize for\b",
                 .priv       = &fps_criteria,
@@ -1288,7 +1313,7 @@ static void fps_task()
         else
         #endif
         {
-            #if defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_EOSM)
+            #if defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
             msleep(fps_override && recording ? 10 : 100);
             #else
             msleep(100);
@@ -1350,7 +1375,7 @@ static void fps_task()
                 float ff = default_fps * ks + f * (1-ks);
                 int fr = (int)roundf(ff);
                 fps_setup_timerA(fr);
-#ifndef CONFIG_EOSM
+#if !(defined(CONFIG_EOSM) || defined(CONFIG_650D))
                 fps_setup_timerB(fr);
 #endif
                 fps_read_current_timer_values();
@@ -1389,7 +1414,7 @@ static void fps_task()
         
         //~ info_led_on();
         fps_setup_timerA(f);
-#ifndef CONFIG_EOSM
+#if !(defined(CONFIG_EOSM) || defined(CONFIG_650D))
         fps_setup_timerB(f);
 #endif
         //~ info_led_off();

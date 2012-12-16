@@ -1,5 +1,7 @@
 #define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC022D06C // http://magiclantern.wikia.com/wiki/Led_addresses
+#define LEDON 0x138800
+#define LEDOFF 0x838C00
 
 #define HIJACK_CACHE_HACK
 
@@ -12,6 +14,14 @@
 #define HIJACK_CACHE_HACK_BSS_END_INSTR  0xE3A01732
 #define HIJACK_CACHE_HACK_INITTASK_ADDR  0xFF011064
 #endif
+
+
+/* these are used in bitrate.c for video bitrate hacks */
+#define CACHE_HACK_FLUSH_RATE_SLAVE  0xFF05A6DC
+#define CACHE_HACK_FLUSH_RATE_MASTER 0xFF88BCB4
+#define CACHE_HACK_GOP_SIZE_MASTER   0xFF8C7C18
+
+
 
 // thanks Indy
 #define HIJACK_TASK_ADDR 0x1A1C

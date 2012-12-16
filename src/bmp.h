@@ -271,7 +271,7 @@ bmp_hexdump(
         unsigned                x,
         unsigned                y,
         const void *            buf,
-        int                     len
+        unsigned                     len
 );
 
 

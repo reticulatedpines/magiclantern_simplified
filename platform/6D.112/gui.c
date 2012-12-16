@@ -38,7 +38,8 @@ static int handle_buttons(struct event * event)
 	if (handle_common_events_startup(event) == 0) return 0;
 	extern int ml_started;
 	if (!ml_started) return 1;
-    if (handle_common_events_by_feature(event) == 0) return 0;
+
+	if (handle_common_events_by_feature(event) == 0) return 0;
 
 	return 1;
 }
@@ -99,4 +100,4 @@ static void my_gui_main_task()
 	}
 } 
 
-TASK_OVERRIDE( gui_main_task, my_gui_main_task );
+//TASK_OVERRIDE( gui_main_task, my_gui_main_task );

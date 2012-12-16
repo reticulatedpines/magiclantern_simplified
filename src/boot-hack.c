@@ -347,15 +347,23 @@ static int compute_signature(int* start, int num)
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
 {
+    load_fonts();
+    
+#if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
   uint32_t len;
+#endif
 
 #ifdef CONFIG_HELLO_WORLD
-    load_fonts();
-    bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
-    bfnt_puts("Hello, World", 50, 100, COLOR_BLACK, COLOR_WHITE);
-	len = compute_signature(0xff0c0000, 0x10000);
-    bmp_printf(FONT_LARGE, 50, 150, "signature=0x%x", len);
-    #ifdef CONFIG_DUMPER_BOOTFLAG
+    len = compute_signature(0xff0c0000, 0x10000);
+    while(1)
+    {
+        bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
+        bfnt_puts("Hello, World", 50, 100, COLOR_BLACK, COLOR_WHITE);
+        bmp_printf(FONT_LARGE, 50, 400, "firmware signature = 0x%x", len);
+        info_led_blink(1, 500, 500);
+    }
+#endif
+#ifdef CONFIG_DUMPER_BOOTFLAG
     msleep(500);
     call("EnableBootDisk");
     bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk");
@@ -367,8 +375,6 @@ void my_big_init_task()
         bmp_printf(FONT_LARGE, 50, 250, "Oops!");    
     }
     info_led_blink(1, 500, 500);
-    #endif
-
 #endif
     
     call("DisablePowerSave");

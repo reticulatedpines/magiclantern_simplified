@@ -4345,7 +4345,7 @@ static void draw_zoom_overlay(int dirty)
     uint16_t*       hdr = (uint16_t*) hd->vram;
 
     // select buffer where MZ should be written (camera-specific, guesswork)
-    #if defined(CONFIG_5D2) || defined(CONFIG_EOSM)
+    #if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
     lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     busy_vsync(0, 20);
     #endif

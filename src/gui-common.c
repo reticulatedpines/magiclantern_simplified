@@ -21,7 +21,7 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
 
     extern int rec_led_off;
     if ((class == 34 || class == 35) && level == 1 && rec_led_off && recording) // cfWriteBlk, sdWriteBlk
-        *(uint32_t*)CARD_LED_ADDRESS = 0x838C00;
+        *(uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
     
     return;
 }

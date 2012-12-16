@@ -16,7 +16,7 @@ FLAGS=\
 	-fomit-frame-pointer \
 	-fno-strict-aliasing \
 	-DCONFIG_MAGICLANTERN=1 \
-	-DCONFIG_$(MODEL)=1 \
+	-DCONFIG_$(subst .,_,$(MODEL))=1 \
 	-DRESTARTSTART=$(RESTARTSTART) \
 	-DROMBASEADDR=$(ROMBASEADDR) \
 	-DVERSION=\"$(VERSION)\" \

@@ -80,7 +80,7 @@ NSTUB(0xFF1308C4, LoadCalendarFromRTC) // Not so sure....
 NSTUB(0xFF32861C, MuteOff_0)
 NSTUB(0xFF3285D4, MuteOn_0)
 NSTUB(0xFF4D3090, RedrawDisplay)
-NSTUB(0xFFFA60014 - RAM_OFFSET, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
+NSTUB(0xFFA60014 - RAM_OFFSET, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
 NSTUB(0xFF128734, SetBitmapVramAddress)
 NSTUB(0xFF1A953C, SetGUIRequestMode)
 
@@ -104,7 +104,7 @@ NSTUB(0xFF4B3654, dialog_redraw)
 NSTUB(0xFF51FCE0, dialog_set_property_str)
 NSTUB(   0x241BC, dm_names)
 NSTUB(0xFFA50320 - RAM_OFFSET, dm_set_store_level) // Not so sure
-//NSTUB(0xFFA502B8 - RAM_OFFSET, dm_set_print_level) // Not so sure
+NSTUB(0xFFA502B8 - RAM_OFFSET, dm_set_print_level) // Not so sure
 NSTUB(0xFF327FCC, dispcheck)
 
 NSTUB(0xFF0C8364, free) // see "can't malloc"
@@ -136,7 +136,7 @@ NSTUB(0xFF354424, strcpy)
 NSTUB(0xFF0C8228, strlen)
 NSTUB(0xFFA52930 - RAM_OFFSET, take_semaphore)
 NSTUB(0xFFA52EC0 - RAM_OFFSET, task_create)
-    NSTUB(   0x3E1C0, task_dispatch_hook )
+NSTUB(   0x232C4, task_dispatch_hook )
 NSTUB(0xFFA581D8 - RAM_OFFSET, task_trampoline)
 NSTUB(0xFFA6153C - RAM_OFFSET, vsnprintf) // not sure it gets called from RAM
 NSTUB(0xFF3F6AA4, vram_get_number)
@@ -179,10 +179,8 @@ NSTUB(0xFF1001BC, PD_RemoteRelease)
 
 // for task information
 NSTUB(0x247A4, task_max) // Not so sure....
-//NSTUB(0xFFA65F84 - RAM_OFFSET, is_taskid_valid) // AJ_task_trampoline_related_p10
-NSTUB(0xFFA65F84, is_taskid_valid)
-//NSTUB(0xFFA5ACE4 - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
-NSTUB(0xFFA5ACE4, get_obj_attr)
+NSTUB(0xFFA65F84 - RAM_OFFSET, is_taskid_valid) // AJ_task_trampoline_related_p10
+NSTUB(0xFFA5ACE4 - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF1337F0, PowerAudioOutput) // not sure, looks different
 NSTUB(0xFF108918, StartASIFDMADAC)  //~ warning: looks different
 NSTUB(0xFF108760, StartASIFDMAADC)  //~ warning: looks different

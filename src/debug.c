@@ -130,15 +130,15 @@ draw_prop_reset( void * priv )
 }
 #endif
 
-#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
-void _card_led_on() { *(volatile uint32_t*)CARD_LED_ADDRESS = LEDON; }
-void _card_led_off() { *(volatile uint32_t*)CARD_LED_ADDRESS = LEDOFF; }
-#elif defined(CONFIG_7D)
-void _card_led_on() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x138800; }
-void _card_led_off() { *(volatile uint32_t*)CARD_LED_ADDRESS = 0x38400; }
+#if defined(CONFIG_7D)
+void _card_led_on()  { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON); }
+void _card_led_off() { *(volatile uint32_t*) (CARD_LED_ADDRESS) = 0x38400; } //TODO: Check if this is correct, because reboot.c said 0x838C00
+#elif defined(CARD_LED_ADDRESS) && defined(LEDON) && defined(LEDOFF)
+void _card_led_on()  { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON); }
+void _card_led_off() { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF); }
 #else
- void _card_led_on() { *(volatile uint8_t*)CARD_LED_ADDRESS = 0x46; }
- void _card_led_off() { *(volatile uint8_t*)CARD_LED_ADDRESS = 0x44; }
+void _card_led_on()  { return; }
+void _card_led_off() { return; }
 #endif
 
 void info_led_on()
@@ -229,24 +229,24 @@ static int vmax(int* x, int n)
 static void dump_rom_task(void* priv)
 {
     msleep(200);
-    FILE * f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/ROM0.BIN");
-    if (f != (void*) -1)
-    {
-        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM");
-        FIO_WriteFile(f, (void*) 0xFF010000, 0x900000);
-        FIO_CloseFile(f);
-    }
-
-    msleep(200);
-
-    f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/BOOT0.BIN");
-    if (f != (void*) -1)
-    {
-        bmp_printf(FONT_LARGE, 0, 60, "Writing BOOT");
-        FIO_WriteFile(f, (void*) 0xFFFF0000, 0x10000);
-        FIO_CloseFile(f);
-    }
+    FILE * f = NULL;
     
+    f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/ROM0.BIN");
+    if (f != (void*) -1)
+    {
+        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM0");
+        FIO_WriteFile(f, (void*) 0xF0000000, 0x01000000);
+        FIO_CloseFile(f);
+    }
+    msleep(200);
+    
+    f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/ROM1.BIN");
+    if (f != (void*) -1)
+    {
+        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM1");
+        FIO_WriteFile(f, (void*) 0xF8000000, 0x01000000);
+        FIO_CloseFile(f);
+    }
     msleep(200);
 
     dump_big_seg(4, CARD_DRIVE "ML/LOGS/RAM4.BIN");
@@ -2516,7 +2516,7 @@ struct menu_entry debug_menus[] = {
     {
         .name        = "Dump ROM and RAM",
         .select        = dump_rom,
-        .help = "0.BIN:0-0FFFFFFF, ROM0.BIN:FF010000, BOOT0.BIN:FFFF0000."
+        .help = "0.BIN:0-0FFFFFFF, ROM0.BIN:F0000000, ROM1.BIN:F8000000"
     },
 #endif
 #ifdef CONFIG_40D
@@ -3161,6 +3161,17 @@ unsigned GetFileSize(char* filename)
     return size;
 }
 
+int ReadFileToBuffer(char* filename, void* buf, int maxsize)
+{
+    int size = GetFileSize(filename);
+    if (!size) return 0;
+
+    FILE* f = FIO_Open(filename, O_RDONLY | O_SYNC);
+    if (f == INVALID_PTR) return 0;
+    int r = FIO_ReadFile(f, UNCACHEABLE(buf), MIN(size, maxsize));
+    FIO_CloseFile(f);
+    return r;
+}
 
 #ifdef CONFIG_RESTORE_AFTER_FORMAT
 
@@ -3232,19 +3243,6 @@ void HijackDialogBox()
             dialog_set_property_str(dialog, i, s);
     }
     dialog_redraw(dialog);
-}
-
-
-int ReadFileToBuffer(char* filename, void* buf, int maxsize)
-{
-    int size = GetFileSize(filename);
-    if (!size) return 0;
-
-    FILE* f = FIO_Open(filename, O_RDONLY | O_SYNC);
-    if (f == INVALID_PTR) return 0;
-    int r = FIO_ReadFile(f, UNCACHEABLE(buf), MIN(size, maxsize));
-    FIO_CloseFile(f);
-    return r;
 }
 
 struct tmp_file {
