@@ -15,6 +15,14 @@
 #define HIJACK_CACHE_HACK_INITTASK_ADDR  0xFF011064
 #endif
 
+
+/* these are used in bitrate.c for video bitrate hacks */
+#define CACHE_HACK_FLUSH_RATE_SLAVE  0xFF05A6DC
+#define CACHE_HACK_FLUSH_RATE_MASTER 0xFF88BCB4
+#define CACHE_HACK_GOP_SIZE_MASTER   0xFF8C7C18
+
+
+
 // thanks Indy
 #define HIJACK_TASK_ADDR 0x1A1C
 
