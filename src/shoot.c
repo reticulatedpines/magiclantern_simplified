@@ -4719,7 +4719,7 @@ void lcd_release_display( void * priv, int x, int y, int selected );
 static struct menu_entry shoot_menus[] = {
     #ifdef FEATURE_HDR_BRACKETING
     {
-        .name = "HDR Bracketing",
+        .name = "Advanced Bracketing",
         .priv = &hdr_enabled,
         .display    = hdr_display,
         .select     = menu_binary_toggle,
