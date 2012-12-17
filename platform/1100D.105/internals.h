@@ -97,3 +97,7 @@
 
 /** We can't display extra info in photo mode (not LiveView) - missing constants **/
 //~ #define CONFIG_PHOTO_MODE_INFO_DISPLAY
+
+/** FIO_RenameFile works **/
+#define CONFIG_FIO_RENAMEFILE_WORKS
+

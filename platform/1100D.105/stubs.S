@@ -54,6 +54,7 @@ NSTUB(0xFF1D91C0, FIO_Open)                       // might be good (dumps=1, sco
 NSTUB(0xFF1D93D0, FIO_ReadFile)                   // might be good (dumps=1, score=87)
 NSTUB(0xFF1D9328, FIO_RemoveFile)                 // might be good (dumps=1, score=53)
 NSTUB(0xFF1D9570, FIO_WriteFile)                  // might be good (dumps=1, score=65)
+NSTUB(0xFF1D9C94, FIO_RenameFile)
 NSTUB(0xFF070CFC, FreeMemory)                     // might be good (dumps=1, score=1.6e+02)
 NSTUB(0xFF020DFC, GUI_Control)                    // might be good (dumps=1, score=26)
 NSTUB(0xFF223218, GUI_GetFirmVersion)             // might be good (dumps=1, score=11)
