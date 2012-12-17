@@ -60,7 +60,7 @@ asm(
     ".globl blob_end\n"
 );
 
-#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
 static void busy_wait(int n)
 {
     int i,j;

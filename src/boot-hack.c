@@ -354,7 +354,7 @@ void my_big_init_task()
 #endif
 
 #ifdef CONFIG_HELLO_WORLD
-    len = compute_signature(0xff0c0000, 0x10000);
+    len = compute_signature(ROMBASEADDR, 0x10000);
     while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");

@@ -64,22 +64,27 @@ extern struct gui_main_struct gui_main_struct;
 
 static void my_gui_main_task()
 {
+    gui_main_task();
+    return;
+
 	struct event * event = NULL;
 	int index = 0;
 	void* funcs[GMT_NFUNCS];
 	memcpy(funcs, (void*)GMT_FUNCTABLE, 4*GMT_NFUNCS);
 	gui_init_end();
+
 	while(1)
 	{
 		msg_queue_receive(gui_main_struct.msg_queue, &event, 0);
 		gui_main_struct.counter--;
 		if (event == NULL) continue;
 		index = event->type;
-        
+
+        /*
         if (event->type == 0)
         {
             bmp_printf(FONT_LARGE, 0, 200, "param: 0x%x", event->param);
-        }
+        }*/
 		
 		if (!magic_is_off())
 		{
@@ -105,4 +110,4 @@ static void my_gui_main_task()
 	}
 } 
 
-//TASK_OVERRIDE( gui_main_task, my_gui_main_task );
+TASK_OVERRIDE( gui_main_task, my_gui_main_task );

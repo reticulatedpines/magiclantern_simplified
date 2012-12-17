@@ -50,7 +50,7 @@
         #define FOCUS_CONFIRMATION (*(int*)0x42540)
 
 //~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
-    #define HALFSHUTTER_PRESSED (*(int*)0x3F684)
+#define HALFSHUTTER_PRESSED (*(int*)0x75FCC)
 
     #define DISPLAY_SENSOR_POWERED 0
 
@@ -66,23 +66,23 @@
 
     #define LV_BOTTOM_BAR_DISPLAYED (lv_disp_mode)
 
-        #define ISO_ADJUSTMENT_ACTIVE 0 // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
+#define ISO_ADJUSTMENT_ACTIVE 0x7AAD0 // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
-    // from a screenshot
-        #define COLOR_FG_NONLV 1
+// from a screenshot
+#define COLOR_FG_NONLV 1
 
-    #define MVR_516_STRUCT (*(void**)0x3E640) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
+#define MVR_516_STRUCT (*(void**)0x74FA0) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
-    #define MEM(x) (*(int*)(x))
-    #define div_maybe(a,b) ((a)/(b))
+#define MEM(x) (*(int*)(x))
+#define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
 // macros copied from arm-console
-    #define MVR_BUFFER_USAGE_FRAME MAX(MEM(MVR_516_STRUCT + 0x580), MEM(MVR_516_STRUCT + 0x57C))
+#define MVR_BUFFER_USAGE_FRAME MAX(MEM(MVR_516_STRUCT + 0x594), MEM(MVR_516_STRUCT + 0x590))
     #define MVR_BUFFER_USAGE_SOUND 0 // not sure
-    #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
+#define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
-    #define MVR_FRAME_NUMBER  (*(int*)(0x1F4 + MVR_516_STRUCT)) // in mvrExpStarted
+#define MVR_FRAME_NUMBER  (*(int*)(0x1FC + MVR_516_STRUCT)) // in mvrExpStarted
     #define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))
 
     #define MOV_RES_AND_FPS_COMBINATIONS 9
@@ -93,8 +93,8 @@
 
         #define AE_VALUE 0 // 404
 
-    #define DLG_PLAY 1
-    #define DLG_MENU 2
+#define DLG_PLAY 1
+#define DLG_MENU 2
 
         #define DLG_FOCUS_MODE 0x123456
 
@@ -103,8 +103,8 @@
     #define DLG_MOVIE_PRESS_LV_TO_RESUME 0
 /*--------------*/
 
-    #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-    #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
     #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
     #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0
@@ -113,6 +113,17 @@
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
      #define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 90...102 ?!
+
+// position for displaying clock outside LV
+    #define DISPLAY_CLOCK_POS_X 435
+    #define DISPLAY_CLOCK_POS_Y 452
+
+    #define MENU_DISP_ISO_POS_X 500
+    #define MENU_DISP_ISO_POS_Y 27
+
+// for HDR status
+    #define HDR_STATUS_POS_X 180
+    #define HDR_STATUS_POS_Y 460
 
 // for displaying TRAP FOCUS msg outside LV
     #define DISPLAY_TRAP_FOCUS_POS_X 50
@@ -128,10 +139,10 @@
     #define FASTEST_SHUTTER_SPEED_RAW 152
     #define MAX_AE_EV 5
 
-    #define DIALOG_MnCardFormatBegin (0x60DC0) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
-    #define DIALOG_MnCardFormatExecute (0x64840) // similar
+#define DIALOG_MnCardFormatBegin (0x8888C) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
+#define DIALOG_MnCardFormatExecute (0x8DAF0) // similar
 
-    #define BULB_MIN_EXPOSURE 100
+#define BULB_MIN_EXPOSURE 100
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xf03664d0
@@ -186,7 +197,7 @@
 
 
 // see "Malloc Information"
-    #define MALLOC_STRUCT 0x66d08
+    #define MALLOC_STRUCT 0x94818
     #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
     //~     #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer

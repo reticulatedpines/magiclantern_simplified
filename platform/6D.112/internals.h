@@ -16,7 +16,7 @@
 //~ #define CONFIG_VXWORKS
 
 /** This camera has an APS-C sensor */
-//~ #define CONFIG_FULLFRAME
+#define CONFIG_FULLFRAME
 
 /** This camera has LiveView and can record video **/
 #define CONFIG_LIVEVIEW
@@ -26,31 +26,31 @@
 #define CONFIG_3_2_SCREEN
 
 /** We only have a single LED **/
-//~ #define CONFIG_BLUE_LED
+#define CONFIG_BLUE_LED
 
 /** There is no LCD sensor that turns the display off **/
 //~ #define CONFIG_LCD_SENSOR
 
 /** This camera has no miror **/
-//~ #define CONFIG_MLU
+#define CONFIG_MLU
 
 /** This camera reports focus info in LiveView **/
 #define CONFIG_LV_FOCUS_INFO
 
 /** No level sensor I guess **/
-//~ #define CONFIG_ELECTRONIC_LEVEL
+#define CONFIG_ELECTRONIC_LEVEL
 
 /** Define this if the camera has an ambient light sensor used for auto brightness **/
 //~ #define CONFIG_AUTO_BRIGHTNESS
 
 /** idk **/
-//~ #define CONFIG_Q_MENU_PLAYBACK
+#define CONFIG_Q_MENU_PLAYBACK
 
 /** No flip-out display **/
 //~ #define CONFIG_VARIANGLE_DISPLAY
 
 /** Battery does not report exact percentage (I doubt) **/
-//~ #define CONFIG_BATTERY_INFO
+//#define CONFIG_BATTERY_INFO
 
 /** We can do bulb exposures (well, I hope) **/
 #define CONFIG_BULB
@@ -62,7 +62,7 @@
 //~ #define CONFIG_AUDIO_CONTROLS
 
 /** No zoom button **/
-//~ #define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
+#define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
 /** Well, I hope so **/
@@ -98,4 +98,4 @@
 //~ #define CONFIG_MOVIE_AE_WARNING
 
 /** No photo mode outside LiveView **/
-//~ #define CONFIG_PHOTO_MODE_INFO_DISPLAY
+#define CONFIG_PHOTO_MODE_INFO_DISPLAY

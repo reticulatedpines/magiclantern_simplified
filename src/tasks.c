@@ -247,7 +247,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
                 task_id, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
             }
 
-            #if defined(CONFIG_5D3) || defined(CONFIG_60D) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+            #if defined(CONFIG_5D3) || defined(CONFIG_60D) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
             y += font_small.height - ((tasks_show_flags & 1) ? 2 : 0); // too many tasks - they don't fit on the screen :)
             #else
             y += font_small.height;
