@@ -34,7 +34,7 @@
 #include "property.h"
 #include "consts.h"
 #include "tskmon.h"
-#ifdef HIJACK_CACHE_HACK
+#if defined(HIJACK_CACHE_HACK) || defined(CONFIG_6D)
 #include "cache_hacks.h"
 #endif
 
@@ -66,6 +66,12 @@ zero_bss( void )
     uint32_t *bss = _bss_start;
     while( bss < _bss_end )
         *(bss++) = 0;
+}
+
+void hijack_6d_guitask()
+{
+    void my_gui_main_task();
+    task_create("GuiMainTask", 0x17, 0x2000, my_gui_main_task, 0);
 }
 
 
@@ -121,6 +127,13 @@ copy_and_restart( )
     // Make sure that our self-modifying code clears the cache
     clean_d_cache();
     flush_caches();
+    
+    //~ temporary, this is the only way I could manage to hijack the GUI task. just hacking data cache
+    //~ didn't work..
+#ifdef CONFIG_6D
+    cache_lock();
+    cache_fake(0xFF0DF6DC, BL_INSTR(0xFF0DF6DC, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
+#endif
 
     // We enter after the signature, avoiding the
     // relocation jump that is at the head of the data
@@ -143,8 +156,9 @@ copy_and_restart( )
     * install our own handlers.
     */
 
-#ifndef CONFIG_EARLY_PORT
-#ifndef CONFIG_HELLO_WORLD
+    //~ Canon changed their task starting method in the 6D so our old hook method doesn't work.
+#ifndef CONFIG_6D
+#if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD)
     // Install our task creation hooks
     task_dispatch_hook = my_task_dispatch_hook;
     tskmon_init();

@@ -13,18 +13,18 @@
 
 
 // button codes as received by gui_main_task
-#define BGMT_WHEEL_UP 2
-#define BGMT_WHEEL_DOWN 3
-    #define BGMT_WHEEL_LEFT 12345
-    #define BGMT_WHEEL_RIGHT 123456
+#define BGMT_WHEEL_UP 0
+#define BGMT_WHEEL_DOWN 1
+#define BGMT_WHEEL_LEFT 2
+#define BGMT_WHEEL_RIGHT 3
 
 #define BGMT_PRESS_SET 0x4
 #define BGMT_UNPRESS_SET 0x5
 
 #define BGMT_MENU 0x6
 #define BGMT_INFO 0x7
-#define BGMT_PLAY 0xb
-#define BGMT_TRASH TOUCH_2_FINGER
+#define BGMT_PLAY 0xc
+#define BGMT_TRASH 0xd
 
     #define BGMT_PRESS_DP 0x2f
     #define BGMT_UNPRESS_DP 0x35
@@ -37,8 +37,8 @@
     //~ #define BGMT_PRESS_ZOOMOUT_MAYBE 0x1234 // no zoom out button in play mode?!
     //~ #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x5678
 
-    #define BGMT_LV 0x1E
-#define BGMT_Q TOUCH_1_FINGER
+#define BGMT_LV 0x1E
+#define BGMT_Q 0x1d
     //~ #define BGMT_Q_ALT 0x67
 
     //~ #define BGMT_FUNC 0x12
@@ -46,21 +46,22 @@
     //~ #define BGMT_JOY_CENTER (lv ? 0x1e : 0x3b)
 #if 0
 #define BGMT_JOY_CENTER 0x3e
-#define BGMT_UNPRESS_UDLR 0x35
 #endif
+#define BGMT_UNPRESS_UDLR 0x36
 
-#define BGMT_PRESS_UP 0x2a          //~ unpress = 0x2b
-#define BGMT_UNPRESS_UP 0x2b
-    #define BGMT_PRESS_UP_RIGHT 0x17
-    #define BGMT_PRESS_UP_LEFT 0x18
-#define BGMT_PRESS_RIGHT 0x26       //~ unpress = 0x27
-#define BGMT_UNPRESS_RIGHT 0x27
-#define BGMT_PRESS_LEFT 0x28        //~ unpress = 0x29
-#define BGMT_UNPRESS_LEFT 0x29
-    #define BGMT_PRESS_DOWN_RIGHT 0x1B
-    #define BGMT_PRESS_DOWN_LEFT 0x1C
-#define BGMT_PRESS_DOWN 0x2c        //~ unpress = 0x2d
-#define BGMT_UNPRESS_DOWN 0x2d
+
+#define BGMT_PRESS_UP 0x2e
+    #define BGMT_UNPRESS_UP 0x2b
+#define BGMT_PRESS_UP_RIGHT 0x2f
+#define BGMT_PRESS_UP_LEFT 0x35
+#define BGMT_PRESS_RIGHT 0x30
+    #define BGMT_UNPRESS_RIGHT 0x27
+#define BGMT_PRESS_LEFT 0x34
+    #define BGMT_UNPRESS_LEFT 0x29
+#define BGMT_PRESS_DOWN_RIGHT 0x31
+#define BGMT_PRESS_DOWN_LEFT 0x1C
+#define BGMT_PRESS_DOWN 0x32
+    #define BGMT_UNPRESS_DOWN 0x2d
 
 #define BGMT_PRESS_HALFSHUTTER 0x50
 #define BGMT_UNPRESS_HALFSHUTTER 0x51
