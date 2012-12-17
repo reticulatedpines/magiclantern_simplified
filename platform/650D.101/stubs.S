@@ -64,7 +64,7 @@ NSTUB(0xFF341CE4, FIO_CreateFile) // from Indy
 NSTUB(0xFF341FD8, FIO_WriteFile) // from Indy
 NSTUB(0xFF342088, FIO_CloseFile) // from Indy
 NSTUB(0xFF343080, FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
-NSTUB(0xFF1D9E5C, FIO_CreateDirectory)
+NSTUB(0xFF3428E4, FIO_CreateDirectory)
 NSTUB(0xFF342EAC, FIO_FindFirstEx)  
 NSTUB(0xFF342FA0, FIO_FindNextEx)
 NSTUB(0xFF342204, FIO_GetFileSize)

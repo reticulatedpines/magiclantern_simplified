@@ -104,9 +104,9 @@
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
-#define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
-#define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0
-#define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0
+    #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
+    #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0
+    #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
@@ -173,8 +173,9 @@
 #define Q_BTN_NAME "[Q]"
 #define ARROW_MODE_TOGGLE_KEY "DISP"
 
-#define DISPLAY_STATEOBJ (*(struct state_object **)0x23D1C)
-#define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+    //#define DISPLAY_STATEOBJ (*(struct state_object **)0x23D1C)
+    //#define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+    #define DISPLAY_IS_ON 1
 
 #define VIDEO_PARAMETERS_SRC_3 MEM(0x40928)
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
