@@ -28,24 +28,25 @@
 
 #define DRYOS_ASSERT_HANDLER 0x233B8 // dec TH_assert or assert_0
 
-    #define YUV422_LV_BUFFER_1 0x4F1D7800
-    #define YUV422_LV_BUFFER_2 0x4F5E7800
-    #define YUV422_LV_BUFFER_3 0x4F9F7800
+#define YUV422_LV_BUFFER_1 0x4bde7800
+#define YUV422_LV_BUFFER_2 0x4b9d7800
+#define YUV422_LV_BUFFER_3 0x4c1f7800
 
     // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
     // stateobj_disp[1]
     #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x3EAB0+0x11c))
 
-    #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)
-    #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04108 // SDRAM address of HD buffer (aka YUV)
+#define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)
+#define REG_EDMAC_WRITE_HD_ADDR 0xc0f04108 // SDRAM address of HD buffer (aka YUV)
 
-    #define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR)) // first line from DMA is dummy
+    #define EVF_STATEOBJ *(struct state_object**)0x40944)
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR)) // first line from DMA is dummy
 
 
     // http://magiclantern.wikia.com/wiki/ASM_Zedbra
     #define YUV422_HD_BUFFER_1 0x44000080
-    #define YUV422_HD_BUFFER_2 0x46000080
-    #define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
+#define YUV422_HD_BUFFER_2 0x46000080
+#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x275A0)
@@ -128,7 +129,7 @@
 #define DIALOG_MnCardFormatBegin (0x44C38) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x48CFC) // similar
 
-    #define BULB_MIN_EXPOSURE 1000
+    #define BULB_MIN_EXPOSURE 100
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xffcca8a8
@@ -141,12 +142,12 @@
      #define AF_BTN_HALFSHUTTER 0
      #define AF_BTN_STAR 2
 
-    #define IMGPLAY_ZOOM_LEVEL_ADDR (0x368A8) // dec GuiImageZoomDown and look for a negative counter
-    #define IMGPLAY_ZOOM_LEVEL_MAX 14
-    #define IMGPLAY_ZOOM_POS_X MEM(0x6E500) // CentrePos
-    #define IMGPLAY_ZOOM_POS_Y MEM(0x6E504)
-    #define IMGPLAY_ZOOM_POS_X_CENTER 360
-    #define IMGPLAY_ZOOM_POS_Y_CENTER 240
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x3689C+0xC) // dec GuiImageZoomDown and look for a negative counter
+#define IMGPLAY_ZOOM_LEVEL_MAX 14
+#define IMGPLAY_ZOOM_POS_X MEM(0x6E500) // CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x6E504)
+#define IMGPLAY_ZOOM_POS_X_CENTER 360
+#define IMGPLAY_ZOOM_POS_Y_CENTER 240
 
     #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
@@ -172,9 +173,8 @@
 #define Q_BTN_NAME "[Q]"
 #define ARROW_MODE_TOGGLE_KEY "DISP"
 
-    //~ #define DISPLAY_STATEOBJ (*(struct state_object **)0x3EBB8)
-    //~ #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
-    #define DISPLAY_IS_ON 1
+#define DISPLAY_STATEOBJ (*(struct state_object **)0x23D1C)
+#define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
 #define VIDEO_PARAMETERS_SRC_3 MEM(0x40928)
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
@@ -189,6 +189,7 @@
 
     //~ #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
 
+#define DISPLAY_ORIENTATION MEM(0x23C10+0xB8) // read-only; string: UpdateReverseTFT.
 
 /******************************************************************************************************************
  * touch_num_fingers_ptr:
@@ -218,12 +219,3 @@
     #define TOUCH_MULTI 0x4D810   //~ found these with memspy. look for addresses changing with screen touches.
     //--------------
     #define HIJACK_TOUCH_CBR_PTR 0x4D858
-
-
-
-
-
-
-
-#define DISPLAY_ORIENTATION MEM(0x23C10+0xB8) // read-only; string: UpdateReverseTFT.
-
