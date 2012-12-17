@@ -1589,9 +1589,8 @@ void draw_zebras( int Z )
 #endif
 
 #ifdef FEATURE_FOCUS_PEAK
-static int peak_scaling[256];
 
-/*
+/* superseded by the peak_d2xy algorithm (2012-09-01)
 static inline int peak_d1xy(uint8_t* p8)
 {
     int p_cc = (int)(*p8);
@@ -1693,6 +1692,8 @@ static inline int peak_blend_alpha(uint32_t* s, int e)
 }
 
 #ifdef FEATURE_FOCUS_PEAK_DISP_FILTER
+static int peak_scaling[256];
+
 void peak_disp_filter()
 {
     uint32_t* src_buf;
