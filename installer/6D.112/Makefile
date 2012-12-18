@@ -41,7 +41,7 @@ include ../../Makefile.inc
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF0C0000
-RESTARTSTART		= 0x00069500
+RESTARTSTART		= 0x000D7900
 
 
 # change -Ttext to 0x800000 if not packing a FIR file.
@@ -51,7 +51,7 @@ updater: reboot-ins.o
 		-nostdlib \
 		-march=armv5te \
 		-e _start \
-		-Ttext 0x800120 \
+		-Ttext 0x800000 \
 		$^ \
 	); \
 

@@ -78,11 +78,11 @@ void my_gui_main_task()
 		index = event->type;
 
         
-        if (event->type == 0 && event->param != 0x69)
+        /*if (event->type == 0 && event->param != 0x69)
         {
             bmp_printf(FONT_LARGE, 0, 200, "                  ");
             bmp_printf(FONT_LARGE, 0, 200, "param: 0x%x", event->param);
-        }
+        }*/
 		
 		if (!magic_is_off())
 		{
