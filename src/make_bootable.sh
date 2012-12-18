@@ -23,12 +23,13 @@ elif [[ $OSTYPE == linux* ]]; then   # New: Linux
 fi
 
 # read the boot sector to determine the filesystem version
+EXFAT=`dd if=$dev bs=1 skip=3 count=8`
 DEV32=`dd if=$dev bs=1 skip=82 count=8`
 DEV16=`dd if=$dev bs=1 skip=54 count=8`
-if [ "$DEV16" != 'FAT16   ' -a "$DEV32" != 'FAT32   ' ]; then
-  echo "Error: "$dev" is not a FAT16 or FAT32 device"
-  echo "Format your card in camera before using this script on Osx"
-  echo debug $dev $DEV16 $DEV32
+if [ "$DEV16" != 'FAT16   ' -a "$DEV32" != 'FAT32   ' -a "$EXFAT" != 'EXFAT   ' ]; then
+  echo "Error: $dev is not a FAT16, FAT32 of EXFAT device"
+  echo "Format your card in camera before using this script"
+  echo debug $dev $DEV16 $DEV32 $EXFAT
   exit
 fi
 if [ "$DEV16" = 'FAT16   ' ]; then
@@ -39,8 +40,14 @@ elif [ "$DEV32" = 'FAT32   ' ]; then
   offset1=71
   offset2=92
   FS='FAT32'
+elif [ "$EXFAT" = 'EXFAT   ' ]; then
+  offset1=130
+  offset1b=6274
+  offset2=122
+  offset2b=6266
+  FS='EXFAT'
 else
-  echo "Error: "$dev" is not a FAT16 or FAT32 device"
+  echo "Error: "$dev" is not a FAT16, FAT32 or EXFAT device"
   exit
 fi
 echo "Applying "$FS" parameters on "$dev" device:"
@@ -48,3 +55,9 @@ echo " writing EOS_DEVELOP at offset" $offset1 "(Volume label)"
 echo EOS_DEVELOP | dd of="$dev" bs=1 seek=$offset1 count=11
 echo " writing BOOTDISK at offset" $offset2 "(Boot code)"
 echo BOOTDISK | dd of="$dev" bs=1 seek=$offset2 count=8
+if [ "$FS" = 'EXFAT' ]; then
+echo " writing EOS_DEVELOP at offset" $offset1b "(Volume label)"
+echo EOS_DEVELOP | dd of="$dev" bs=1 seek=$offset1b count=11
+echo " writing EOS_DEVELOP at offset" $offset2b "(Boot code)"
+echo EOS_DEVELOP | dd of="$dev" bs=1 seek=$offset2b count=8
+fi
