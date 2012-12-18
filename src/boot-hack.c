@@ -911,6 +911,7 @@ my_init_task(int a, int b, int c, int d)
             msleep(100);
         }
         bfnt_puts("Magic OFF", 0, 0, COLOR_WHITE, COLOR_BLACK);
+    #if !defined(CONFIG_EOSM) && !defined(CONFIG_6D)
         extern char additional_version[];
         additional_version[0] = '-';
         additional_version[1] = 'm';
@@ -920,6 +921,7 @@ my_init_task(int a, int b, int c, int d)
         additional_version[5] = 'f';
         additional_version[6] = 'f';
         additional_version[7] = '\0';
+    #endif
         return ans;
     }
 
