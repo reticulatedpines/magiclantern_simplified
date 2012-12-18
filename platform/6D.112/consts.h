@@ -62,7 +62,7 @@
 #define SENSOR_RES_Y 3168
 
 
-    #define CURRENT_DIALOG_MAYBE (*(int*)0x41414)
+#define CURRENT_DIALOG_MAYBE (*(int*)0x77638)
 
     #define LV_BOTTOM_BAR_DISPLAYED (lv_disp_mode)
 
@@ -186,8 +186,8 @@
     #define Q_BTN_NAME "[1-Finger Tap]"
         #define ARROW_MODE_TOGGLE_KEY "IDK"
 
-    #define DISPLAY_STATEOBJ (*(struct state_object **)0x3EBB8)
-    #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+#define DISPLAY_STATEOBJ (*(struct state_object **)0x75550)
+#define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
     #define VIDEO_PARAMETERS_SRC_3 MEM(0x40928)
     #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
