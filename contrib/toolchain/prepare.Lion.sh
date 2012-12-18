@@ -61,7 +61,7 @@ else
     brew doctor
 fi
 echo "Updating Homebrew..."
-#brew update
+brew update
 echo "Done"
 if [ $(which pip) ]; then
 	echo "pip already installed"
@@ -71,7 +71,7 @@ else
 	echo "Done"
 fi
 	echo "Updating pip..."
-#	sudo pip install -U pip
+	sudo pip install -U pip
 	echo "Done"
 echo
 
@@ -79,15 +79,15 @@ echo
 # Uninstalling
 if [ "$1" == r ] || [ "$1" == remove ];then
 	 echo "Are you sure to remove all thing installed? Y or N"
-	 read install
-	 if [ "$install" == Y ] || [ "$install" == y ]; then
+	 read uninstall
+	 if [ "$uninstall" == Y ] || [ "$uninstall" == y ]; then
 		for f in $BREW_ML; do
 			echo "brew uninstall $f"
-#			brew uninstall "$f"
+			brew uninstall "$f"
 		done
 		for f in $PIP_ML; do
 			echo "pip uninstall $f"
-#			pip uninstall "$f"
+			pip uninstall "$f"
 		done
 	fi
 	exit 1
@@ -121,7 +121,9 @@ for f in $PIP_ML; do
 	fi
 done
 if [ ! $(which enfuse) ]; then
-	curl O http://downloads.sourceforge.net/project/enblend/enblend-enfuse/enblend-enfuse-4.0/enblend-enfuse-4.0-mac.tar.gz
+#	at this stage we may not have already installed wget, so here is better have curl -OL
+	curl -OL http://downloads.sourceforge.net/project/enblend/enblend-enfuse/enblend-enfuse-4.0/enblend-enfuse-4.0-mac.tar.gz
+#	wget http://downloads.sourceforge.net/project/enblend/enblend-enfuse/enblend-enfuse-4.0/enblend-enfuse-4.0-mac.tar.gz
 	echo "enfuse installation (tar)"
 	tar xvfz enblend-enfuse-4.0-mac.tar.gz
 	cp enblend-enfuse-4.0-mac/enfuse /usr/bin/
