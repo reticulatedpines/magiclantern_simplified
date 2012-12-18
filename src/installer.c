@@ -548,6 +548,7 @@ int my_init_task(int a, int b, int c, int d)
              build_user
              );
     
+#if !defined(CONFIG_EOSM) && !defined(CONFIG_6D)
     // Re-write the version string.
     // Don't use strcpy() so that this can be done
     // before strcpy() or memcpy() are located.
@@ -556,6 +557,7 @@ int my_init_task(int a, int b, int c, int d)
     additional_version[1] = 'm';
     additional_version[2] = 'l';
     additional_version[3] = '\0';
+#endif
     
     msleep(1000);
     call("DisablePowerSave");

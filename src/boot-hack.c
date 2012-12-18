@@ -867,6 +867,7 @@ my_init_task(int a, int b, int c, int d)
     );
 #endif
 
+#if !defined(CONFIG_EOSM) && !defined(CONFIG_6D)
     // Re-write the version string.
     // Don't use strcpy() so that this can be done
     // before strcpy() or memcpy() are located.
@@ -885,6 +886,7 @@ my_init_task(int a, int b, int c, int d)
     additional_version[11] = build_version[7];
     additional_version[12] = build_version[8];
     additional_version[13] = '\0';
+#endif
 
 #ifndef CONFIG_EARLY_PORT
 

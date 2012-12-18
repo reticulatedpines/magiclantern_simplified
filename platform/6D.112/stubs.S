@@ -72,7 +72,7 @@ NSTUB(0xFF18DFD4, SetGUIRequestMode)
     NSTUB(0xff136f5c, _audio_ic_read)
     NSTUB(0xff136ea4, _audio_ic_write) // str:Reg_0x_02X_Data_04x
 NSTUB(0xFF9D0308, audio_thresholds)
-NSTUB(   0x77DC8, additional_version)
+//NSTUB(   0x77DC8, additional_version)
 
 
 NSTUB(0xFFCFD620 - RAM_OFFSET, alloc_dma_memory)
