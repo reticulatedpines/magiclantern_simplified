@@ -30,6 +30,10 @@
 
 struct semaphore * gui_sem;
 
+#ifdef CONFIG_GUI_DEBUG
+int event_ctr = 0;
+#endif
+
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
@@ -77,6 +81,18 @@ static void my_gui_main_task()
 		gui_main_struct.counter--;
 		if (event == NULL) continue;
 		index = event->type;
+    
+    #ifdef CONFIG_GUI_DEBUG
+        if (event->type == 0
+            && event->param != 0x69
+            && event->param != 0x11
+            && event->param != 0xf
+            && event->param != 0x54
+            )   //~ block some common events
+        {
+            console_printf("[%d] event->param: 0x%x\n", event_ctr++, event->param);
+        }
+    #endif
 
 		if (!magic_is_off())
 		{
