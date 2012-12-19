@@ -87,7 +87,7 @@ NSTUB(0xFF1A953C, SetGUIRequestMode)
 /* find */
     NSTUB(0xff136f5c, _audio_ic_read)
     NSTUB(0xff136ea4, _audio_ic_write) // str:Reg_0x_02X_Data_04x
-NSTUB(   0x26C34, additional_version) // not sure
+//NSTUB(   0x26C34, additional_version) // not working
 /*--------------*/
 
 NSTUB(0xFFA634E4 - RAM_OFFSET, alloc_dma_memory)

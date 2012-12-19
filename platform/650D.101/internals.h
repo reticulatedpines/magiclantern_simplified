@@ -100,3 +100,6 @@
 
 /** No photo mode outside LiveView **/
 //~ #define CONFIG_PHOTO_MODE_INFO_DISPLAY
+
+/** No additional_version stub on this DryOS version **/
+#define CONFIG_NO_ADDITIONAL_VERSION
