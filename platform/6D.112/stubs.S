@@ -2,7 +2,7 @@
  * Entry points into the firmware image.
  *
  * These are the functions that we can call from our tasks
- * in the Canon 1.0.6 firmware for the EOS M.
+ * in the Canon 1.1.2 firmware for the 6D.
  *
  *  This is a straight copy from the 5d3, EOS M stubs need found/verified still.
  *
@@ -72,7 +72,7 @@ NSTUB(0xFF18DFD4, SetGUIRequestMode)
     NSTUB(0xff136f5c, _audio_ic_read)
     NSTUB(0xff136ea4, _audio_ic_write) // str:Reg_0x_02X_Data_04x
 NSTUB(0xFF9D0308, audio_thresholds)
-NSTUB(   0x77DC8, additional_version)
+//NSTUB(   0x77DC8, additional_version)
 
 
 NSTUB(0xFFCFD620 - RAM_OFFSET, alloc_dma_memory)
@@ -180,7 +180,7 @@ NSTUB(0xFFCE3178 - RAM_OFFSET, ENCODE_StartEncodeJpeg)  //~ called from RAM in 6
 NSTUB(0xFF14A410, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xFF14A45C, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xFF14A574, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xFFCCED1C - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xFFCCF2D0 - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
 NSTUB(0xFFCCECA8 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 
 NSTUB(0xFFCD0808 - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)

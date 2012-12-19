@@ -70,7 +70,7 @@ NSTUB(0xFF1A7BD0, SetGUIRequestMode)
 /* find */
 NSTUB(0xff136f5c, _audio_ic_read)
 NSTUB(0xff136ea4, _audio_ic_write) // str:Reg_0x_02X_Data_04x
-NSTUB(   0x468b8, additional_version)
+//NSTUB(   0x468b8, additional_version)
 /*--------------*/
 
 
