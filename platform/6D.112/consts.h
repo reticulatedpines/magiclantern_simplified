@@ -37,7 +37,7 @@
     #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)
     #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04108 // SDRAM address of HD buffer (aka YUV)
 
-    #define EVF_STATEOBJ *(struct state_object**)0x40944)
+    #define EVF_STATEOBJ (*(struct state_object**)0x40944)
     #define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR)) // first line from DMA is dummy
 
 

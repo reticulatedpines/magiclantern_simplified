@@ -32,14 +32,15 @@
 #define YUV422_LV_BUFFER_2 0x4b9d7800
 #define YUV422_LV_BUFFER_3 0x4c1f7800
 
-    // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
-    // stateobj_disp[1]
-    #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x3EAB0+0x11c))
-
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04108 // SDRAM address of HD buffer (aka YUV)
 
-    #define EVF_STATEOBJ *(struct state_object**)0x40944)
+// http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
+// stateobj_disp[1]
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x3EAB0+0x11c))
+
+
+#define EVF_STATEOBJ (*(struct state_object**)0x25B00)
 #define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR)) // first line from DMA is dummy
 
 
@@ -173,9 +174,9 @@
 #define Q_BTN_NAME "[Q]"
 #define ARROW_MODE_TOGGLE_KEY "DISP"
 
-    //#define DISPLAY_STATEOBJ (*(struct state_object **)0x23D1C)
-    //#define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
-    #define DISPLAY_IS_ON 1
+    #define DISPLAY_STATEOBJ (*(struct state_object **)0x23D1C)
+    #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+    //#define DISPLAY_IS_ON 1
 
 #define VIDEO_PARAMETERS_SRC_3 MEM(0x40928)
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
