@@ -184,14 +184,14 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     if (self == LV_STATE && input==4 && old_state==4) // AJ_ResetPSave_n_WB_n_LVREC_MVR_EV_EXPOSURESTARTED => perfect sync for digic on 5D2 :)
     #elif defined(CONFIG_550D)
     if (self == LV_STATE && input==5 && old_state == 5) // SYNC_GetEngineResource => perfect sync for digic :)
-    #elif defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_EOSM)
+    #elif defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt => perfect sync for digic :)
     #else
     if (0)
     #endif
         vsync_func();
 
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_EOSM) // exception for overriding ISO
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) // exception for overriding ISO
     if (self == EVF_STATE && input == 4 && old_state == 5) // evfSetParamInterrupt
         hdr_step();
     #endif
