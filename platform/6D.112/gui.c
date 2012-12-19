@@ -29,6 +29,10 @@
 
 struct semaphore * gui_sem;
 
+#ifdef CONFIG_GUI_DEBUG
+int event_ctr = 0;
+#endif
+
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
@@ -77,12 +81,18 @@ void my_gui_main_task()
 		if (event == NULL) continue;
 		index = event->type;
 
-        
-        /*if (event->type == 0 && event->param != 0x69)
+        /** Don't forget to enable CONFIG_CONSOLE from 'Makefile.user.default' for this to work!! */
+    #ifdef CONFIG_GUI_DEBUG
+        if (event->type == 0
+            && event->param != 0x69
+            && event->param != 0x11
+            && event->param != 0xf
+            && event->param != 0x54
+            )   //~ block some common events
         {
-            bmp_printf(FONT_LARGE, 0, 200, "                  ");
-            bmp_printf(FONT_LARGE, 0, 200, "param: 0x%x", event->param);
-        }*/
+            console_printf("[%d] event->param: 0x%x\n", event_ctr++, event->param);
+        }
+    #endif
 		
 		if (!magic_is_off())
 		{

@@ -258,7 +258,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_zoom_x5_x10(event) == 0) return 0;
     #endif
     
-    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
+    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_6D)
     if (handle_quick_access_menu_items(event) == 0) return 0;
     #endif
     

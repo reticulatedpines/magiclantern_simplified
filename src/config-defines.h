@@ -15,6 +15,10 @@
     /** Load fonts and print Hello World (disable CONFIG_EARLY_PORT); will not start any other ML tasks, handlers etc. */
     //~ #define CONFIG_HELLO_WORLD
 
+    /** Print button codes in the console as they're received by gui_main_task.
+        ---> look at 6D gui.c for example of how to implement */
+    //#define CONFIG_GUI_DEBUG
+
 /**
  * Some common stuff - you can override them in platform files
  */
