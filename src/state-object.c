@@ -66,7 +66,10 @@
 #endif
 
 #ifdef CONFIG_650D
+#define DISPLAY_STATE DISPLAY_STATEOBJ
+    #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
 #define EVF_STATE (*(struct state_object **)0x25B00)
+#define MOVREC_STATE (*(struct state_object **)0x27704)
 #endif
 
 #ifdef CONFIG_1100D
