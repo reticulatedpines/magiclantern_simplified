@@ -68,11 +68,13 @@ zero_bss( void )
         *(bss++) = 0;
 }
 
+#if defined(CONFIG_6D)
 void hijack_6d_guitask()
 {
     void my_gui_main_task();
     task_create("GuiMainTask", 0x17, 0x2000, my_gui_main_task, 0);
 }
+#endif
 
 
 /** Copy firmware to RAM, patch it and restart it */
@@ -911,7 +913,7 @@ my_init_task(int a, int b, int c, int d)
             msleep(100);
         }
         bfnt_puts("Magic OFF", 0, 0, COLOR_WHITE, COLOR_BLACK);
-    #if !defined(CONFIG_EOSM) && !defined(CONFIG_6D)
+    #if !defined(CONFIG_NO_ADDITIONAL_VERSION)
         extern char additional_version[];
         additional_version[0] = '-';
         additional_version[1] = 'm';

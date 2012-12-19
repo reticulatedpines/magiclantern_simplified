@@ -548,7 +548,7 @@ int my_init_task(int a, int b, int c, int d)
              build_user
              );
     
-#if !defined(CONFIG_EOSM) && !defined(CONFIG_6D)
+#if !defined(CONFIG_NO_ADDITIONAL_VERSION)
     // Re-write the version string.
     // Don't use strcpy() so that this can be done
     // before strcpy() or memcpy() are located.
