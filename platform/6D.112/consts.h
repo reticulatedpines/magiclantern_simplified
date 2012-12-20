@@ -26,25 +26,24 @@
     #define FRAME_SHUTTER_TIMER 0   //~ this will be defined later in fps-engio.c like it should be.
 /*--------------------*/
 
-    #define YUV422_LV_BUFFER_1 0x4F1D7800
-    #define YUV422_LV_BUFFER_2 0x4F5E7800
-    #define YUV422_LV_BUFFER_3 0x4F9F7800
+#define YUV422_LV_BUFFER_1 0x5F227800
+#define YUV422_LV_BUFFER_2 0x5F637800
+#define YUV422_LV_BUFFER_3 0x5EE17800
 
 // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
 // stateobj_disp[1]
-    #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x3EAB0+0x11c))
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x754BC+0xA4))
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04008 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04a08 // SDRAM address of HD buffer (aka YUV)
 
     #define EVF_STATEOBJ (*(struct state_object**)0x40944)
-    #define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR)) // first line from DMA is dummy
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR) + vram_hd.pitch) // first line from DMA is dummy
 
 
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
-    #define YUV422_HD_BUFFER_1 0x44000080
-    #define YUV422_HD_BUFFER_2 0x46000080
-    #define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
+#define YUV422_HD_BUFFER_1 0x13FFF780
+#define YUV422_HD_BUFFER_2 0x0EFFF780
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x78664)
@@ -149,7 +148,8 @@
 #define BFNT_BITMAP_OFFSET 0xf0369794
 #define BFNT_BITMAP_DATA   0xf036ca58
 
-    #define DLG_SIGNATURE 0x6e6144
+
+#define DLG_SIGNATURE 0x6e6144  //~ look in stubs api stability test log: [Pass] MEM(dialog->type) => 0x6e6144
 
     // from CFn
          #define AF_BTN_HALFSHUTTER 0
@@ -165,20 +165,20 @@
         #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
 // see http://magiclantern.wikia.com/wiki/VRAM/BMP
-    #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x59364+0x2c)
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x82B24)   //~ from string: refresh partly
 
 // manual exposure overrides
-    #define LVAE_STRUCT 0x96A68
-    #define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x20)) // EP_SetControlBv
-    #define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x22)) // EP_SetControlParam
-    #define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x24))
-    #define CONTROL_BV_ISO  (*(uint16_t*)(LVAE_STRUCT+0x26))
-    #define CONTROL_BV_ZERO (*(uint16_t*)(LVAE_STRUCT+0x28))
-    #define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT))      // offset 0x0; at 3 it changes iso very slowly
+#define LVAE_STRUCT 0xC4D78
+#define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x20)) // EP_SetControlBv
+#define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x22)) // EP_SetControlParam
+#define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x24))
+#define CONTROL_BV_ISO  (*(uint16_t*)(LVAE_STRUCT+0x26))
+#define CONTROL_BV_ZERO (*(uint16_t*)(LVAE_STRUCT+0x28))
+#define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT))      // offset 0x0; at 3 it changes iso very slowly
 //~     #define LVAE_ISO_MIN    (*(uint8_t* )(LVAE_STRUCT+0x28)) // string: ISOMin:%d
 //~     #define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0x2a)) // no idea what this is
-    #define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x3c)) // lvae_setdispgain
-    #define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x1c)) // lvae_setmoviemanualcontrol
+#define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x3c)) // lvae_setdispgain
+#define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x1c)) // lvae_setmoviemanualcontrol
 
     #define MIN_MSLEEP 10
 
@@ -187,7 +187,7 @@
         #define ARROW_MODE_TOGGLE_KEY "IDK"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x75550)
-    #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+#define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
     #define VIDEO_PARAMETERS_SRC_3 MEM(0x40928)
     #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
@@ -197,8 +197,8 @@
 
 
 // see "Malloc Information"
-    #define MALLOC_STRUCT 0x94818
-    #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT 0x94818
+#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
     //~     #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
 
