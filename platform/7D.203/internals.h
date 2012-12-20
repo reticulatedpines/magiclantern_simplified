@@ -96,3 +96,7 @@
 
 /** We can display some extra info in photo mode (not LiveView) **/
 #define CONFIG_PHOTO_MODE_INFO_DISPLAY
+
+/* we can use virtual keyboard here */
+//#define CONFIG_VKBD_IMPLEMENTED
+

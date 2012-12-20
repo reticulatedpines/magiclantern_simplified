@@ -3379,6 +3379,31 @@ void CopyMLFilesToRAM_BeforeFormat()
     TmpMem_UpdateSizeDisplay(0);
 }
 
+// check if autoexec.bin is present on the card
+int check_autoexec()
+{
+    FILE * f = FIO_Open(CARD_DRIVE "AUTOEXEC.BIN", 0);
+    if (f != (void*) -1)
+    {
+        FIO_CloseFile(f);
+        return 1;
+    }
+    return 0;
+}
+
+    
+// check if magic.fir is present on the card
+int check_fir()
+{
+    FILE * f = FIO_Open(CARD_DRIVE "MAGIC.FIR", 0);
+    if (f != (void*) -1)
+    {
+        FIO_CloseFile(f);
+        return 1;
+    }
+    return 0;
+}
+
 void CopyMLFilesBack_AfterFormat()
 {
     int i;
@@ -3404,25 +3429,16 @@ void CopyMLFilesBack_AfterFormat()
         }
     }
     
-    HijackCurrentDialogBox(STR_LOC, "Writing bootflags...");
-    bootflag_write_bootblock();
+    /* make sure we don't enable bootflag when there is no autoexec.bin (anymore) */
+    if(check_autoexec())
+    {
+        HijackCurrentDialogBox(STR_LOC, "Writing bootflags...");
+        bootflag_write_bootblock();
+    }
 
     HijackCurrentDialogBox(STR_LOC, "Magic Lantern restored :)");
     msleep(1000);
     HijackCurrentDialogBox(STR_LOC, "Format");
-    //~ NotifyBox(2000, "Magic Lantern restored :)   ");
-}
-
-// check if autoexec.bin is present on the card
-int check_autoexec()
-{
-    FILE * f = FIO_Open(CARD_DRIVE "AUTOEXEC.BIN", 0);
-    if (f != (void*) -1)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
 }
 
 void HijackFormatDialogBox_main()
@@ -3432,7 +3448,7 @@ void HijackFormatDialogBox_main()
     // at this point, Format dialog box is active
 
     // make sure we have something to restore :)
-    if (!check_autoexec()) return;
+    if (!check_autoexec() && !check_fir()) return;
 
     if (!TmpMem_Init()) return;
     
