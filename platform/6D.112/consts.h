@@ -180,10 +180,10 @@
 #define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x3c)) // lvae_setdispgain
 #define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x1c)) // lvae_setmoviemanualcontrol
 
-    #define MIN_MSLEEP 10
+#define MIN_MSLEEP 10
 
-    #define INFO_BTN_NAME "INFO"
-    #define Q_BTN_NAME "[1-Finger Tap]"
+#define INFO_BTN_NAME "INFO"
+#define Q_BTN_NAME "[Q]"
         #define ARROW_MODE_TOGGLE_KEY "IDK"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x75550)
