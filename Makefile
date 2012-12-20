@@ -54,13 +54,11 @@ all: $(SUPPORTED_MODELS)
     
 7D: 7D_MASTER
 	$(MAKE) -C $(PLATFORM_PATH)/7D.203
-	cp $(PLATFORM_PATH)/7D.203/autoexec.bin /media/sf_G_DRIVE
 
 7DFIR: 7D_MASTER 7D
 	dd if=$(PLATFORM_PATH)/7D.203/autoexec.bin of=$(PLATFORM_PATH)/7D.203/autoexec.fir bs=288 skip=1 >/dev/null 2>&1
 	dd if=$(PLATFORM_PATH)/7D_MASTER.203/autoexec.bin of=$(PLATFORM_PATH)/7D_MASTER.203/autoexec.fir bs=288 skip=1 >/dev/null 2>&1
 	./build_fir7.py -r -s $(PLATFORM_PATH)/7D.203/autoexec.fir -m $(PLATFORM_PATH)/7D_MASTER.203/autoexec.fir $(PLATFORM_PATH)/7D.203/7D000203.FIR $(PLATFORM_PATH)/7D.203/MAGIC.FIR >/dev/null
-	cp $(PLATFORM_PATH)/7D.203/MAGIC.FIR /media/sf_G_DRIVE
 
 5DC:
 	$(MAKE) -C $(PLATFORM_PATH)/5DC.111
