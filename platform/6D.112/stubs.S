@@ -124,7 +124,7 @@ NSTUB(   0x74ACC, task_dispatch_hook )
 NSTUB(0xFFCD1F34 - RAM_OFFSET, task_trampoline)
 NSTUB(0xFFCFB678 - RAM_OFFSET, vsnprintf)
 NSTUB(   0xB99DC, vram_info)
-    NSTUB(0xFF6FB53C, LiveViewShutterApp_handler)
+NSTUB(0xFF713760, LiveViewShutterApp_handler)
 
 NSTUB(0xFF52C7FC, LiveViewApp_handler)
 //    NSTUB(0xff4b09e4, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
