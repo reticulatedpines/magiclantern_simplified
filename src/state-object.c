@@ -65,6 +65,10 @@
 #define EVF_STATE (*(struct state_object **)0x40944)
 #endif
 
+#ifdef CONFIG_6D
+#define EVF_STATE (*(struct state_object**)0x76D18)
+#endif
+
 #ifdef CONFIG_650D
 #define DISPLAY_STATE DISPLAY_STATEOBJ
     #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
