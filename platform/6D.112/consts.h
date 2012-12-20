@@ -114,8 +114,8 @@
 #define GUIMODE_ML_MENU (recording ? 0 : lv ? 92 : 2) // any from 90...102 ?! find one that works (trial/error)
 
 // position for displaying clock outside LV
-    #define DISPLAY_CLOCK_POS_X 435
-    #define DISPLAY_CLOCK_POS_Y 452
+#define DISPLAY_CLOCK_POS_X 435
+#define DISPLAY_CLOCK_POS_Y 452
 
     #define MENU_DISP_ISO_POS_X 500
     #define MENU_DISP_ISO_POS_Y 27

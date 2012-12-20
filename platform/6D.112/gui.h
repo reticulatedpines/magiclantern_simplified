@@ -23,7 +23,7 @@
 
 #define BGMT_MENU 0x6
 #define BGMT_INFO 0x7
-#define BGMT_PLAY 0xc
+#define BGMT_PLAY 0xb
 #define BGMT_TRASH 0xd
 
 #define BGMT_REC 0x1E
