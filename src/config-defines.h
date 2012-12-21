@@ -15,10 +15,6 @@
     /** Load fonts and print Hello World (disable CONFIG_EARLY_PORT); will not start any other ML tasks, handlers etc. */
     //~ #define CONFIG_HELLO_WORLD
 
-    //** Use this for printing GUI codes in debug console */
-    //~ #define CONFIG_GUI_DEBUG
-
-
 /**
  * Some common stuff - you can override them in platform files
  */
@@ -51,7 +47,7 @@
 
     /** Print button codes in the console as they're received by gui_main_task.
         ---> look at 6D gui.c for example of how to implement */
-    #define CONFIG_GUI_DEBUG
+    //~ #define CONFIG_GUI_DEBUG
 
 /** What internals do we have on each camera? **/
 #include "internals.h" // from platform directory
