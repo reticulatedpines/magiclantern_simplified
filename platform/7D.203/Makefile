@@ -69,6 +69,7 @@ ML_OBJS-y = \
 	ptp.o \
 	ptp-ml.o \
 	ptp-chdk.o \
+	ptpbuf.o \
 	exmem.o \
 	lightsensor.o \
 	vsync-lite.o \

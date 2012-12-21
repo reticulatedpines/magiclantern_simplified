@@ -26,6 +26,7 @@ ML_OBJS-y = \
 	master_boot.o \
 	stubs.o \
 	gdb.o \
+	ptpbuf.o \
 	ml_rpc.o \
 
 #include generic rules and definitions
