@@ -181,9 +181,13 @@ static void fps_read_current_timer_values();
     #define TG_FREQ_BASE 24000000
     #define TG_FREQ_SHUTTER (ntsc ? 51120000 : 50000000)
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 500 : 400)
-#elif defined(CONFIG_EOSM) || defined(CONFIG_6D)
+#elif defined(CONFIG_EOSM)
     #define TG_FREQ_BASE 32000000
     #define TG_FREQ_SHUTTER (ntsc || !recording ? 56760000 : 50000000)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 500 : 400)
+#elif defined(CONFIG_6D)
+    #define TG_FREQ_BASE 25600000
+    #define TG_FREQ_SHUTTER (ntsc ? 44000000 : 40000000)
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 500 : 400)
 #elif defined(CONFIG_650D)
     #define TG_FREQ_BASE 32000000
@@ -322,7 +326,11 @@ static int get_current_tg_freq()
 #define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0))
 #endif
 
-#if defined(CONFIG_EOSM) || defined(CONFIG_6D) || defined(CONFIG_650D)
+#if defined(CONFIG_EOSM) || defined(CONFIG_6D)
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
+#endif
+
+#ifdef CONFIG_650D
 #define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
 #endif
 
@@ -1122,7 +1130,7 @@ static struct menu_entry fps_menu[] = {
                 .help = "FPS value for recording. Video will play back at Canon FPS.",
             },
 //~ we only modify FPS_REGISTER_A, so no optimizations possible.
-#if !(defined(CONFIG_EOSM) || defined(CONFIG_650D)) || defined(CONFIG_6D)
+#if !defined(CONFIG_EOSM) && defined(CONFIG_650D) && !defined(CONFIG_6D)
             {
                 .name = "Optimize for\b",
                 .priv       = &fps_criteria,
