@@ -2255,6 +2255,7 @@ handle_ml_menu_keys(struct event * event)
     return 0;
 }
 
+#ifdef CONFIG_TOUCHSCREEN
 int handle_ml_menu_touch(struct event * event)
 {
     int button_code = event->param;
@@ -2266,10 +2267,12 @@ int handle_ml_menu_touch(struct event * event)
         case UNTOUCH_1_FINGER:
         case UNTOUCH_2_FINGER:
             return 0;
+        default:
+            return 1;
     }
-
+    return 1;
 }
-
+#endif
 
 
 void
