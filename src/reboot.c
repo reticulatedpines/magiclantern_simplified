@@ -122,12 +122,19 @@ cstart( void )
     if (s != (int)0x50163E93)
         fail();
     #endif
+    
     #if defined(CONFIG_7D_MASTER)
     int s = compute_signature((int*)0xF8010000, 0x10000);
     if (s != (int)0x640BF4D1)
         fail();
     #endif
-
+    
+    #ifdef CONFIG_6D
+    int s = compute_signature((int*)0xFF0C0000, 0x10000);
+    if (s != (int)0x6D677512)
+        fail();
+    #endif
+    
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */
 	#if defined(CONFIG_40D)
         *(volatile int*) (LEDBLUE) = (LEDON);
