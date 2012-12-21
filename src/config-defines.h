@@ -51,7 +51,7 @@
 
     /** Print button codes in the console as they're received by gui_main_task.
         ---> look at 6D gui.c for example of how to implement */
-    //~ #define CONFIG_GUI_DEBUG
+    #define CONFIG_GUI_DEBUG
 
 /** What internals do we have on each camera? **/
 #include "internals.h" // from platform directory
