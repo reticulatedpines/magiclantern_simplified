@@ -11,21 +11,27 @@ static int last_time_active = 0;
 int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
 int get_last_time_active() { return last_time_active; }
 
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3) || defined(CONFIG_6D)
 // disable Canon bottom bar
 static uint32_t orig_DebugMsg_instr = 0;
 static void hacked_DebugMsg(int class, int level, char* fmt, ...)
 {
     if (class == 131 && level == 1)
+    #if defined(CONFIG_5D3)
         MEM(0x3334C) = 0; // LvApp_struct.off_0x60 /*0x3334C*/ = ret_str:JudgeBottomInfoDispTimerState_FF4B0970
-
+    #elif defined(CONFIG_6D)
+        MEM(0x841C0) = 0;
+    #endif
+    
+#ifdef CONFIG_5D3
     extern int rec_led_off;
     if ((class == 34 || class == 35) && level == 1 && rec_led_off && recording) // cfWriteBlk, sdWriteBlk
         *(uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
-    
+#endif
     return;
 }
 #endif
+
 
 int handle_other_events(struct event * event)
 {
@@ -38,7 +44,7 @@ int handle_other_events(struct event * event)
         if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
         {
             // install a modified handler which does not activate bottom bar display timer
-            reloc_liveviewapp_install(); 
+            reloc_liveviewapp_install();
             
             if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
 
@@ -63,7 +69,7 @@ int handle_other_events(struct event * event)
             lens_display_set_dirty();
         }
     }
-#elif defined(CONFIG_5D3)
+#elif defined(CONFIG_5D3) || defined(CONFIG_6D)
     if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
     {
         if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
