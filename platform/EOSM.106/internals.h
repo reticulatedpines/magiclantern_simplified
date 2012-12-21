@@ -104,4 +104,5 @@
 #define CONFIG_NO_ADDITIONAL_VERSION
 
 /** Touchscreen support **/
-#define CONFIG_TOUCHSCREEN
+// Needs more hacking, I'll fix it once i get the EOSM - nanomad
+//~ #define CONFIG_TOUCHSCREEN
