@@ -1,5 +1,5 @@
 /**
- * Camera internals for EOS-M 1.0.6
+ * Camera internals for 650D 1.0.1
  */
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
@@ -103,3 +103,6 @@
 
 /** No additional_version stub on this DryOS version **/
 #define CONFIG_NO_ADDITIONAL_VERSION
+
+/** Touch screen support **/
+#define CONFIG_TOUCHSCREEN

@@ -21,11 +21,6 @@
 
 #define DRYOS_ASSERT_HANDLER 0x74BB8 // dec TH_assert or assert_0
 
-
-/** dummies, only for hello world */
-    #define FRAME_SHUTTER_TIMER 0   //~ this will be defined later in fps-engio.c like it should be.
-/*--------------------*/
-
 #define YUV422_LV_BUFFER_1 0x5F227800
 #define YUV422_LV_BUFFER_2 0x5F637800
 #define YUV422_LV_BUFFER_3 0x5EE17800
@@ -160,6 +155,8 @@
     #define IMGPLAY_ZOOM_POS_Y MEM(0x8D390)
     #define IMGPLAY_ZOOM_POS_X_CENTER 360
     #define IMGPLAY_ZOOM_POS_Y_CENTER 240
+#define IMGPLAY_ZOOM_POS_DELTA_X 110 //(0x2be - 0x190)
+#define IMGPLAY_ZOOM_POS_DELTA_Y 90 //(0x1d4 - 0x150)
 
         #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
@@ -188,10 +185,10 @@
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x75550)
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
-    #define VIDEO_PARAMETERS_SRC_3 MEM(0x40928)
-    #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
-    #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
-    #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))
+#define VIDEO_PARAMETERS_SRC_3 MEM(0x76CFC)
+    #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+3))
+    #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))
+    #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
     #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
 
@@ -199,5 +196,6 @@
 #define MALLOC_STRUCT 0x94818
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
-    //~     #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
+//~ needs fixed to prevent half shutter making canon overlays visible.
+    #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x84100) != 0x17) // dec CancelUnaviFeedBackTimer
 

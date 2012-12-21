@@ -45,9 +45,9 @@
 
 
     // http://magiclantern.wikia.com/wiki/ASM_Zedbra
-    #define YUV422_HD_BUFFER_1 0x44000080
+#define YUV422_HD_BUFFER_1 0x463cc080
 #define YUV422_HD_BUFFER_2 0x46000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
+#define IS_HD_BUFFER(x)  (1) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x275A0)
@@ -174,11 +174,10 @@
 #define Q_BTN_NAME "[Q]"
 #define ARROW_MODE_TOGGLE_KEY "DISP"
 
-    #define DISPLAY_STATEOBJ (*(struct state_object **)0x23D1C)
-    #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
-    //#define DISPLAY_IS_ON 1
+#define DISPLAY_STATEOBJ (*(struct state_object **)0x23D1C)
+#define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
-#define VIDEO_PARAMETERS_SRC_3 MEM(0x40928)
+#define VIDEO_PARAMETERS_SRC_3 MEM(0x25AE4) // Look for MAX_FRAMEDATA_DEBUGMEMBER then go up -> 0x25AA4 + 0x40
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
 #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))

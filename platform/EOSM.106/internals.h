@@ -102,3 +102,7 @@
 
 /** No additional_version stub on this DryOS version **/
 #define CONFIG_NO_ADDITIONAL_VERSION
+
+/** Touchscreen support **/
+// Needs more hacking, I'll fix it once i get the EOSM - nanomad
+//~ #define CONFIG_TOUCHSCREEN

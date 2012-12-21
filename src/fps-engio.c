@@ -160,7 +160,7 @@ static void fps_read_current_timer_values();
 
 #define FPS_TIMER_A_MAX 0x2000
 
-#if defined(CONFIG_EOSM) || defined(CONFIG_650D)
+#if defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
     #define FPS_TIMER_B_MAX fps_timer_b_orig
 #else
     #define FPS_TIMER_B_MAX (0x4000-1)
@@ -184,6 +184,10 @@ static void fps_read_current_timer_values();
 #elif defined(CONFIG_EOSM)
     #define TG_FREQ_BASE 32000000
     #define TG_FREQ_SHUTTER (ntsc || !recording ? 56760000 : 50000000)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 500 : 400)
+#elif defined(CONFIG_6D)
+    #define TG_FREQ_BASE 25600000
+    #define TG_FREQ_SHUTTER (ntsc ? 44000000 : 40000000)
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 500 : 400)
 #elif defined(CONFIG_650D)
     #define TG_FREQ_BASE 32000000
@@ -273,6 +277,14 @@ static int get_current_tg_freq()
     return f;
 }
 
+
+
+
+/** For FRAME_SHUTTER_TIMER, hex dump VIDEO_PARAMETERS_SRC_3 and look for a value that gets smaller
+ *  when you select a faster shutter speed (in movie mode), and gets bigger when you select a slower
+ *  shutter speed.
+ */
+
 #define TG_FREQ_FPS get_current_tg_freq()
 
 #ifdef CONFIG_550D
@@ -314,7 +326,7 @@ static int get_current_tg_freq()
 #define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0))
 #endif
 
-#ifdef CONFIG_EOSM
+#if defined(CONFIG_EOSM) || defined(CONFIG_6D)
 #define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
 #endif
 
@@ -359,7 +371,7 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
 
 int get_current_shutter_reciprocal_x1000()
 {
-#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_40D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_40D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
     if (!lens_info.raw_shutter) return 0;
     return (int) roundf(powf(2.0f, (lens_info.raw_shutter - 136) / 8.0f) * 1000.0f * 1000.0f);
 #else
@@ -1117,7 +1129,8 @@ static struct menu_entry fps_menu[] = {
                 .select = fps_change_value,
                 .help = "FPS value for recording. Video will play back at Canon FPS.",
             },
-#if !(defined(CONFIG_EOSM) || defined(CONFIG_650D))     //~ we only modify FPS_REGISTER_A, so no optimizations possible.
+//~ we only modify FPS_REGISTER_A, so no optimizations possible.
+#if !defined(CONFIG_EOSM) && defined(CONFIG_650D) && !defined(CONFIG_6D)
             {
                 .name = "Optimize for\b",
                 .priv       = &fps_criteria,
@@ -1313,7 +1326,7 @@ static void fps_task()
         else
         #endif
         {
-            #if defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+            #if defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
             msleep(fps_override && recording ? 10 : 100);
             #else
             msleep(100);
@@ -1375,7 +1388,7 @@ static void fps_task()
                 float ff = default_fps * ks + f * (1-ks);
                 int fr = (int)roundf(ff);
                 fps_setup_timerA(fr);
-#if !(defined(CONFIG_EOSM) || defined(CONFIG_650D))
+#if !defined(CONFIG_EOSM) && !defined(CONFIG_650D) && !defined(CONFIG_6D)
                 fps_setup_timerB(fr);
 #endif
                 fps_read_current_timer_values();
@@ -1414,7 +1427,7 @@ static void fps_task()
         
         //~ info_led_on();
         fps_setup_timerA(f);
-#if !(defined(CONFIG_EOSM) || defined(CONFIG_650D))
+#if !defined(CONFIG_EOSM) && !defined(CONFIG_650D) && !defined(CONFIG_6D)
         fps_setup_timerB(f);
 #endif
         //~ info_led_off();

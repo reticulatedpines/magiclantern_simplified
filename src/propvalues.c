@@ -66,7 +66,7 @@ bool is_movie_mode()
             && expsim == 2  // movie enabled, but photo display is considered photo mode
             #endif
         ;
-    #elif defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+    #elif defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
     return lv_movie_select == LVMS_ENABLE_MOVIE;
     #else
     return shooting_mode == SHOOTMODE_MOVIE;
