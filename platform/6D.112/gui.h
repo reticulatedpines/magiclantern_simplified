@@ -1,17 +1,6 @@
 #ifndef _cameraspecific_gui_h_
 #define _cameraspecific_gui_h_
 
-// touch events
-#define TOUCH_1_FINGER 0x6f
-#define UNTOUCH_1_FINGER 0x70
-#define TOUCH_2_FINGER 0x76
-#define UNTOUCH_2_FINGER 0x77
-
-// used for knowing when canon's lv overlays are showing
-#define GUI_LV_OVERLAYS_HIDDEN -7
-#define GUI_LV_OVERLAYS_VISIBLE 0x37
-
-
 // button codes as received by gui_main_task
 #define BGMT_WHEEL_UP 0
 #define BGMT_WHEEL_DOWN 1

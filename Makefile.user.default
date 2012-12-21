@@ -61,7 +61,6 @@ CONFIG_GDBSTUB      = n
 CONFIG_PLUGINS      = n
 CONFIG_CONSOLE      = n
 CONFIG_DEBUGMSG     = 0
-CONFIG_GUI_DEBUG	= 0
 CONFIG_CCACHE       = n
 
 # You can customize CFLAG here
