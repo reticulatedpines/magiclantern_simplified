@@ -45,9 +45,9 @@
 
 
     // http://magiclantern.wikia.com/wiki/ASM_Zedbra
-    #define YUV422_HD_BUFFER_1 0x44000080
+#define YUV422_HD_BUFFER_1 0x463cc080
 #define YUV422_HD_BUFFER_2 0x46000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
+#define IS_HD_BUFFER(x)  (1) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x275A0)
