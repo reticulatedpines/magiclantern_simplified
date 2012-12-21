@@ -6768,9 +6768,26 @@ static void misc_shooting_info()
     }
 }
 
+struct msg_queue * shoot_task_mqueue = NULL;
+
+/* cause an immediate redraw of the shooting task infos. not used yet, but can be triggered by model-specific code */
+void shoot_task_redraw()
+{
+    if(shoot_task_mqueue)
+    {
+        msg_queue_post(shoot_task_mqueue, 1);
+    }
+}
+
 static void
 shoot_task( void* unused )
 {
+    /* this is used to determine if a feature is active that requires high task rate */
+    int priority_feature_enabled = 0;
+    
+    /* creating a message queue primarily for interrupting sleep to repaint immediately */
+    shoot_task_mqueue = (void*)msg_queue_create("shoot_task_mqueue", 1);
+     
     #ifdef CONFIG_LIVEVIEW
     if (!lv)
     {   // center AF frame at startup in photo mode
@@ -6789,11 +6806,28 @@ shoot_task( void* unused )
     mlu_selftimer_update();
     #endif
     
+    int loops = 0;
+    int loops_abort = 0;
     TASK_LOOP
     {
-        msleep(MIN_MSLEEP);
+        int msg;
+        int delay = 50;
         
-        if (k%10 == 0) misc_shooting_info();
+        /* specify the maximum wait time */
+        if(!DISPLAY_IS_ON)
+        {
+            delay = 200;
+        }
+        if(priority_feature_enabled)
+        {
+            delay = MIN_MSLEEP;
+        }
+        
+        int err = msg_queue_receive(shoot_task_mqueue, (struct event**)&msg, delay);        
+        priority_feature_enabled = 0;
+        
+        /* when we received a message, redraw immediately */
+        if (k%5 == 0 || !err) misc_shooting_info();
         
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);
@@ -7078,6 +7112,7 @@ shoot_task( void* unused )
                 
             case 2:
                 info_led_off();
+                priority_feature_enabled = 1;
                 /* some abort situation happened? */
                 if(gui_menu_shown() || !display_idle() || !HALFSHUTTER_PRESSED || !tfx || trap_focus != 2)
                 {
@@ -7096,6 +7131,7 @@ shoot_task( void* unused )
             case 3:
                 /* re-enable after pic was taken */
                 trap_focus_continuous_state = 2;
+                priority_feature_enabled = 1;
                 SW1(1,50);
                 break;        
         }
@@ -7109,14 +7145,12 @@ shoot_task( void* unused )
         #else
         int mdx = 0;
         #endif
-        
-        if (!tfx && !mdx)  // no need to react very fast, can powersave a bit
-            msleep(DISPLAY_IS_ON ? 50 : 200);
 
         #ifdef FEATURE_TRAP_FOCUS
         if (tfx) // MF
         {
             static int info_led_turned_on = 0;
+            
             if (HALFSHUTTER_PRESSED)
             {
                 info_led_on();
@@ -7161,6 +7195,7 @@ shoot_task( void* unused )
         
         if (mdx)
         {
+            priority_feature_enabled = 1;
             K = COERCE(K+1, 0, 1000);
             //~ bmp_printf(FONT_MED, 0, 50, "K= %d   ", K);
             int xcb = os.x0 + os.x_ex/2;
@@ -7257,6 +7292,7 @@ shoot_task( void* unused )
         static int lv_forced_by_md = 0;
         if (!mdx && motion_detect && motion_detect_trigger == 2 && !lv && display_idle() && get_halfshutter_pressed())
         {
+            priority_feature_enabled = 1;
             for (int i = 0; i < 10; i++)
             {
                 if (!get_halfshutter_pressed()) break;
@@ -7287,7 +7323,6 @@ shoot_task( void* unused )
             msleep(500);
             lv_forced_by_md = 0;
         }
-        
         #endif // motion detect
         
         #ifdef FEATURE_SILENT_PIC
