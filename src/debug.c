@@ -2106,6 +2106,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 {
     TASK_LOOP
     {
+        bmp_hexdump(FONT_SMALL, 0, 200, 0x84100, 32*10);
+        
 #ifdef CONFIG_HEXDUMP
         if (hexdump_enabled)
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);

@@ -196,5 +196,6 @@
 #define MALLOC_STRUCT 0x94818
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
-#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x84100) != 0x17) // dec CancelUnaviFeedBackTimer
+//~ needs fixed to prevent half shutter making canon overlays visible.
+    #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x84100) != 0x17) // dec CancelUnaviFeedBackTimer
 

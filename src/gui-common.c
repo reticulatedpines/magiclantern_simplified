@@ -11,7 +11,7 @@ static int last_time_active = 0;
 int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
 int get_last_time_active() { return last_time_active; }
 
-#if defined(CONFIG_5D3) || defined(CONFIG_6D)
+#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
 // disable Canon bottom bar
 static uint32_t orig_DebugMsg_instr = 0;
 static void hacked_DebugMsg(int class, int level, char* fmt, ...)
@@ -21,6 +21,8 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
         MEM(0x3334C) = 0; // LvApp_struct.off_0x60 /*0x3334C*/ = ret_str:JudgeBottomInfoDispTimerState_FF4B0970
     #elif defined(CONFIG_6D)
         MEM(0x841C0) = 0;
+    #elif defined(CONFIG_EOSM)
+        MEM(0x5D88C) = 0;
     #endif
     
 #ifdef CONFIG_5D3
@@ -69,7 +71,7 @@ int handle_other_events(struct event * event)
             lens_display_set_dirty();
         }
     }
-#elif defined(CONFIG_5D3) || defined(CONFIG_6D)
+#elif defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
     if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
     {
         if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
