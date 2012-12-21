@@ -4,13 +4,13 @@
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
 /** The EOS_M port is very young, so we don't enable these for now. **/
-//#define CONFIG_PROP_REQUEST_CHANGE
+#define CONFIG_PROP_REQUEST_CHANGE
 
 /** 
  * State object hooks are pieces of code that run in Canon tasks (state objects). See state-object.c . 
  * They might slow down Canon code, so here you can disable all of them (useful for debugging or early ports) 
  */
-//#define CONFIG_STATE_OBJECT_HOOKS
+#define CONFIG_STATE_OBJECT_HOOKS
 
 /** This camera runs DryOS **/
 //~ #define CONFIG_VXWORKS
@@ -70,7 +70,7 @@
 #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
 /** Therefore, we can implement display filters (features that alter the LiveView image in real-time) **/
-//-#define CONFIG_DISPLAY_FILTERS
+#define CONFIG_DISPLAY_FILTERS
 
 /** We can override ISO on a per-frame basis, by changing FRAME_ISO (e.g. for HDR video or gradual exposure) **/
 /** Well, I hope so **/
