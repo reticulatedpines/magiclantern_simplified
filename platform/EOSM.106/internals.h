@@ -102,3 +102,6 @@
 
 /** No additional_version stub on this DryOS version **/
 #define CONFIG_NO_ADDITIONAL_VERSION
+
+/** Touchscreen support **/
+#define CONFIG_TOUCHSCREEN
