@@ -40,7 +40,7 @@ draw_beta_warning()
 {
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
-    bmp_printf(FONT_LARGE, 360 - font_large.width * 6, 50, "Magic Lantern");
+    bmp_printf(FONT_LARGE, 360 - font_large.width * 17, 50, "Magic Lantern for EOS 7D - Alpha 2");
     
     bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
 
