@@ -225,6 +225,7 @@
 #define ARROW_MODE_TOGGLE_KEY "PicStyle"
 
 #define DISPLAY_IS_ON MEM(0x21B0) // TurnOnDisplay (PUB) Type=%ld fDisplayTurnOn=%ld
+#define SOUNDDEV_STARTED MEM(0x1F60)
 
 #define LV_STRUCT_PTR 0x1D34
 #define FRAME_ISO *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x74) // smooth ISO is +0x60
