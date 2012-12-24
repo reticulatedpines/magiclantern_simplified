@@ -1373,16 +1373,14 @@ menus_display(
         
         if (!menu_lv_transparent_mode)
         {
-            int w = fontspec_font( fontspec )->width * 6;
-            if (menu->icon)
-            {
-                bmp_fill(bg, x, y, icon_spacing, 40);
-                
-                int icon_width = bfnt_char_get_width(menu->icon);
-                int x_ico = (x & ~3) + (icon_spacing - icon_width) / 2;
-                bfnt_draw_char(menu->icon, x_ico, y, fg, bg);
-            }
-            if (!menu->icon || menu->selected)
+            bmp_fill(bg, x, y, icon_spacing, 40);
+
+            int icon_char = menu->icon ? menu->icon : menu->name[0];
+            int icon_width = bfnt_char_get_width(icon_char);
+            int x_ico = (x & ~3) + (icon_spacing - icon_width) / 2;
+            bfnt_draw_char(icon_char, x_ico, y, fg, bg);
+
+            if (menu->selected)
             {
                 bfnt_puts(menu->name, 5, y, fg, bg);
             }
