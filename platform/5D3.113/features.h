@@ -8,3 +8,4 @@
 #undef FEATURE_NITRATE_WAV_RECORD // not implemented
 #undef FEATURE_AF_PATTERNS // Canon has it
 #undef FEATURE_MLU_HANDHELD // not needed, Canon's silent mode is much better
+#undef FEATURE_SHUTTER_LOCK // Canon has a dedicated button for it
