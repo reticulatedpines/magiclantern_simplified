@@ -1363,7 +1363,7 @@ menus_display(
         if (IS_SUBMENU(menu))
             continue;
         int color_selected = advanced_hidden_edit_mode ? COLOR_DARK_RED : COLOR_BLUE;
-        int fg = menu->selected ? COLOR_WHITE : 55;
+        int fg = menu->selected ? COLOR_WHITE : 50;
         int bg = menu->selected ? color_selected : 40;
         unsigned fontspec = FONT(
             menu->selected ? FONT_LARGE : FONT_MED,
@@ -1379,7 +1379,8 @@ menus_display(
                 bmp_fill(bg, x, y, icon_spacing, 40);
                 
                 int icon_width = bfnt_char_get_width(menu->icon);
-                bfnt_draw_char(menu->icon, x + (icon_spacing - icon_width) / 2, y, fg, bg);
+                int x_ico = (x & ~3) + (icon_spacing - icon_width) / 2;
+                bfnt_draw_char(menu->icon, x_ico, y, fg, bg);
             }
             if (!menu->icon || menu->selected)
             {
