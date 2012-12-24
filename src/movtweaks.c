@@ -1133,6 +1133,7 @@ static struct menu_entry mov_menus[] = {
         #else
         .max = 2,
         #endif
+        .icon_type = IT_BOOL,
         .help = "Custom REC/STANDBY notifications, visual or audible",
     },
     #endif
