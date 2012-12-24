@@ -814,12 +814,14 @@ void out_volume_up()
 {
     int* p = (int*) &lovl;
     *p = COERCE(*p + 1, 0, 3);
+    audio_configure( 1 );
     out_volume_display();
 }
 void out_volume_down()
 {
     int* p = (int*) &lovl;
     *p = COERCE(*p - 1, 0, 3);
+    audio_configure( 1 );
     out_volume_display();
 }
 
