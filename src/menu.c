@@ -1354,7 +1354,7 @@ menus_display(
     
     int icon_spacing = (720 - 150) / num_tabs;
 
-    bmp_fill(COLOR_GRAY40, orig_x, y, 720, 42);
+    bmp_fill(COLOR_BLACK, orig_x, y, 720, 42);
     bmp_fill(COLOR_GRAY45, orig_x, y+42, 720, 1);
     for( ; menu ; menu = menu->next )
     {
@@ -1364,7 +1364,7 @@ menus_display(
             continue;
         int color_selected = advanced_hidden_edit_mode ? COLOR_DARK_RED : COLOR_BLUE;
         int fg = menu->selected ? COLOR_WHITE : 50;
-        int bg = menu->selected ? color_selected : 40;
+        int bg = menu->selected ? color_selected : COLOR_BLACK;
         unsigned fontspec = FONT(
             menu->selected ? FONT_LARGE : FONT_MED,
             fg,
