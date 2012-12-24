@@ -1333,19 +1333,26 @@ menus_display(
     int         y
 )
 {
-    int         x = orig_x;
+    int         x = orig_x + 150;
 
     take_semaphore( menu_sem, 0 );
 
     extern int override_zoom_buttons; // from focus.c
     override_zoom_buttons = 0; // will override them only if rack focus items are selected
 
-    //~ if (!menu_lv_transparent_mode)
-        //~ bmp_printf(
-            //~ FONT(FONT_MED, 55, COLOR_BLACK), // gray
-            //~  10,  430, 
-                //~ MENU_NAV_HELP_STRING
-        //~ );
+    // how many tabs should we display? we should know in order to adjust the spacing between them
+    // keep the conditions in sync with the next loop
+    int num_tabs = 0;
+    for(struct menu * tmp_menu = menu ; tmp_menu ; tmp_menu = tmp_menu->next )
+    {
+        if (!menu_has_visible_items(tmp_menu->children) && !tmp_menu->selected)
+            continue; // empty menu
+        if (IS_SUBMENU(tmp_menu))
+            continue;
+        num_tabs++;
+    }
+    
+    int icon_spacing = (720 - 150) / num_tabs;
 
     bmp_fill(COLOR_GRAY40, orig_x, y, 720, 42);
     bmp_fill(COLOR_GRAY45, orig_x, y+42, 720, 1);
@@ -1367,28 +1374,18 @@ menus_display(
         if (!menu_lv_transparent_mode)
         {
             int w = fontspec_font( fontspec )->width * 6;
-            //int h = fontspec_font( fontspec )->height;
-            int icon_w = 0;
             if (menu->icon)
             {
-                bmp_fill(bg, x+1, y, 200, 40);
-                if (menu->icon == ICON_ML_PLAY) icon_w = playicon_square(x,y,fg);
-                else icon_w = bfnt_draw_char(menu->icon, x, y, fg, bg);
+                bmp_fill(bg, x, y, icon_spacing, 40);
+                
+                int icon_width = bfnt_char_get_width(menu->icon);
+                bfnt_draw_char(menu->icon, x + (icon_spacing - icon_width) / 2, y, fg, bg);
             }
             if (!menu->icon || menu->selected)
             {
-                bfnt_puts(menu->name, x + icon_w, y, fg, bg);
-                //~ bmp_printf( fontspec, x + icon_w + 5, y + (40 - h)/2, "%6s", menu->name );
-                x += w;
+                bfnt_puts(menu->name, 5, y, fg, bg);
             }
-            x += 62;
-            #ifdef CONFIG_5DC
-            x += 50;
-            #endif
-            //~ if (menu->selected)
-            //~ {
-                //~ bmp_printf( FONT(FONT_LARGE,fg,40), orig_x + 700 - font_large.width * strlen(menu->name), y + 4, menu->name );
-            //~ }
+            x += icon_spacing;
         }
 
         if( menu->selected )

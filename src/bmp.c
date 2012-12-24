@@ -1394,6 +1394,25 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
     return crw;
 }
 
+int bfnt_char_get_width(int c)
+{
+    if (!bfnt_ok())
+    {
+        bmp_printf(FONT_SMALL, 0, 0, "font addr bad");
+        return 0;
+    }
+    
+#ifdef CONFIG_40D
+    //isLower((char)c)
+    if(c >= 'a' && c <= 'z') { c += 1; }
+#endif
+
+    uint16_t* chardata = (uint16_t*) bfnt_find_char(c);
+    if (!chardata) return 0;
+    int crw = chardata[2]; // the displayed character width
+    return crw;
+}
+
 /*
 int bfnt_draw_char_half(int c, int px, int py, int fg, int bg, int g1, int g2)
 {
