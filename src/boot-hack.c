@@ -363,10 +363,9 @@ static int compute_signature(int* start, int num)
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
 {
-    load_fonts();
-    
 #if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
   uint32_t len;
+  load_fonts();
 #endif
 
 #ifdef CONFIG_HELLO_WORLD
