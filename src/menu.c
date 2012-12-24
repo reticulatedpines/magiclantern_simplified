@@ -1348,7 +1348,7 @@ menus_display(
         //~ );
 
     bmp_fill(COLOR_GRAY40, orig_x, y, 720, 42);
-    bmp_fill(COLOR_GRAY70, orig_x, y+42, 720, 1);
+    bmp_fill(COLOR_GRAY45, orig_x, y+42, 720, 1);
     for( ; menu ; menu = menu->next )
     {
         if (!menu_has_visible_items(menu->children) && !menu->selected)
@@ -1356,7 +1356,7 @@ menus_display(
         if (IS_SUBMENU(menu))
             continue;
         int color_selected = advanced_hidden_edit_mode ? COLOR_DARK_RED : COLOR_BLUE;
-        int fg = menu->selected ? COLOR_WHITE : 70;
+        int fg = menu->selected ? COLOR_WHITE : 55;
         int bg = menu->selected ? color_selected : 40;
         unsigned fontspec = FONT(
             menu->selected ? FONT_LARGE : FONT_MED,
