@@ -2283,15 +2283,12 @@ menu_init( void )
     gui_sem = create_named_semaphore( "gui", 0 );
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_7D)
     menu_find_by_name( "Audio", ICON_MIC);
-#endif
     menu_find_by_name( "Expo", ICON_AE);
     menu_find_by_name( "Overlay", ICON_LV);
 #if defined(CONFIG_500D)
     menu_find_by_name( "Movie", ICON_FILM );
-#endif
-#ifndef CONFIG_5DC
+#else
     menu_find_by_name( "Movie", ICON_VIDEOCAM );
 #endif
     menu_find_by_name( "Shoot", ICON_PHOTOCAM );
@@ -2299,9 +2296,7 @@ menu_init( void )
     menu_find_by_name( "Focus", ICON_SHARPNESS );
     //~ menu_find_by_name( "LUA" );
     //menu_find_by_name( "Games" );
-#ifndef CONFIG_5DC
     menu_find_by_name( "Display", ICON_MONITOR );
-#endif
     menu_find_by_name( "Prefs", ICON_SMILE );
     //~ menu_find_by_name( "Play", ICON_ML_PLAY );
     //~ menu_find_by_name( "Power", ICON_P_SQUARE );
