@@ -2282,40 +2282,14 @@ menu_init( void )
     menu_find_by_name( "Audio", ICON_MIC);
     menu_find_by_name( "Expo", ICON_AE);
     menu_find_by_name( "Overlay", ICON_LV);
-#if defined(CONFIG_500D)
-    menu_find_by_name( "Movie", ICON_FILM );
-#else
     menu_find_by_name( "Movie", ICON_VIDEOCAM );
-#endif
     menu_find_by_name( "Shoot", ICON_PHOTOCAM );
-    //~ menu_find_by_name( "Brack" );
     menu_find_by_name( "Focus", ICON_SHARPNESS );
-    //~ menu_find_by_name( "LUA" );
-    //menu_find_by_name( "Games" );
     menu_find_by_name( "Display", ICON_MONITOR );
     menu_find_by_name( "Prefs", ICON_SMILE );
-    //~ menu_find_by_name( "Play", ICON_ML_PLAY );
-    //~ menu_find_by_name( "Power", ICON_P_SQUARE );
     menu_find_by_name( "Debug", ICON_HEAD_WITH_RAYS );
-    //~ menu_find_by_name( "Config" );
-    //~ menu_find_by_name( "Config", ICON_CF );
     menu_find_by_name( "Help", ICON_i );
-    //~ menu_find_by_name( "Boot" );
 
-/*
-    bmp_printf( FONT_LARGE, 0, 40, "Yes, use this battery" );
-    gui_control( ELECTRONIC_SUB_DIAL_RIGHT, 1, 0 );
-    msleep( 2000 );
-    gui_control( PRESS_SET_BUTTON, 1, 0 );
-    msleep( 2000 );
-
-    // Try to defeat the battery message
-    //GUI_SetErrBattery( 1 );
-    //msleep( 100 );
-    //StopErrBatteryApp();
-
-    msleep( 1000 );
-*/
 }
 
 /*
