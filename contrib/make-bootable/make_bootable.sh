@@ -63,7 +63,7 @@ echo " writing BOOTDISK at offset" $offset2 "(Boot code)"
 echo BOOTDISK | dd of="$dev" bs=1 seek=$offset2 count=8
 if [ "$FS" = 'EXFAT' ]; then
 # write them also in backup VBR, at sector 13
-echo EOS_DEVELOP | dd of="$dev" bs=1 seek=$(($offset1++512*12)) count=11 2>/dev/null
+echo EOS_DEVELOP | dd of="$dev" bs=1 seek=$(($offset1+512*12)) count=11 2>/dev/null
 echo BOOTDISK | dd of="$dev" bs=1 seek=$(($offset2+512*12)) count=8 2>/dev/null
 dd if=$dev of="$dump_file" bs=1 skip=0 count=6144 2>/dev/null
 echo -n ' recompute checksum. '
