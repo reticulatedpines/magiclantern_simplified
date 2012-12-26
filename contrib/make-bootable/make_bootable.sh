@@ -62,6 +62,7 @@ echo EOS_DEVELOP | dd of="$dev" bs=1 seek=$offset1 count=11
 echo " writing BOOTDISK at offset" $offset2 "(Boot code)"
 echo BOOTDISK | dd of="$dev" bs=1 seek=$offset2 count=8
 if [ "$FS" = 'EXFAT' ]; then
+echo "Tested only on 8GB card, correct BACKUP OFFSET may be different for bigger cards. Post feedback to www.magiclantern.fm/forum/"
 # write them also in backup VBR, at sector 13
 echo EOS_DEVELOP | dd of="$dev" bs=1 seek=$(($offset1+512*12)) count=11 2>/dev/null
 echo BOOTDISK | dd of="$dev" bs=1 seek=$(($offset2+512*12)) count=8 2>/dev/null
