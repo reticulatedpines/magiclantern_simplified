@@ -867,6 +867,7 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
 
 void set_lv_zoom(int zoom)
 {
+    if (!lv) return;
     if (recording) return;
     if (is_movie_mode() && video_mode_crop) return;
     zoom = COERCE(zoom, 1, 10);
@@ -1597,8 +1598,8 @@ int silent_pic_preview()
         YUV422_LV_BUFFER_DISPLAY_ADDR = (intptr_t)silent_pic_buf + size;
         return 1;
     }
-    return 0;
 #endif
+    return 0;
 }
 #endif
 
@@ -5312,10 +5313,10 @@ struct menu_entry tweak_menus_shoot[] = {
             },
             #ifdef FEATURE_ZOOM_TRICK_5D3
             {
-                .name = "Zoom w. old btn / M-Fn",
+                .name = "Zoom with old button  ",
                 .priv = &zoom_trick,
                 .max = 1,
-                .help = "Use the old Zoom In button (top-right) or the M-Fn button."
+                .help = "Use the old Zoom In button, as in 5D2. Double-click in LV."
             },
             #endif
             MENU_EOL

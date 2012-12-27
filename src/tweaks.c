@@ -1195,7 +1195,7 @@ int handle_fast_zoom_box(struct event * event)
     return 1;
 }
 
-#ifdef FEATURE_QUICK_ZOOM
+#if defined(FEATURE_QUICK_ZOOM) || defined(FEATURE_REMEMBER_LAST_ZOOM_POS_5D3)
 
 static int quickzoom_pressed = 0;
 static int quickzoom_unpressed = 0;
@@ -1323,7 +1323,7 @@ tweak_task( void* unused)
         
         movtweak_step();
 
-        #if defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL) // not reliable
+        #ifdef FEATURE_ZOOM_TRICK_5D3 // not reliable
         zoom_trick_step();
         #endif
 
@@ -2108,6 +2108,8 @@ CONFIG_INT("zoom.trick", zoom_trick, 0);
 
 static int countdown_for_unknown_button = 0;
 static int timestamp_for_unknown_button = 0;
+static int numclicks_for_unknown_button = 0;
+
 void zoom_trick_step()
 {
     if (!zoom_trick) return;
@@ -2126,15 +2128,19 @@ void zoom_trick_step()
     if (lv && !liveview_display_idle())
     {
         timestamp_for_unknown_button = 0;
+        numclicks_for_unknown_button = 0;
         return;
     }
 
     if (!timestamp_for_unknown_button) return;
     
-    if (current_timestamp - timestamp_for_unknown_button >= 300)
+    if ((lv && current_timestamp - timestamp_for_unknown_button >= 300 && numclicks_for_unknown_button == 2) ||
+        //~ (PLAY_MODE && is_pure_play_photo_mode() && current_timestamp - timestamp_for_unknown_button >= 100) ||
+        (PLAY_OR_QR_MODE && current_timestamp - timestamp_for_unknown_button >= 100))
     {
         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
         timestamp_for_unknown_button = 0;
+        numclicks_for_unknown_button = 0;
     }
 }
 
@@ -2151,13 +2157,19 @@ int handle_zoom_trick_event(struct event * event)
     {
         if (!countdown_for_unknown_button)
         {
-            timestamp_for_unknown_button = get_ms_clock_value();
+            int t = get_ms_clock_value();
+            if (t - timestamp_for_unknown_button > 500)
+                numclicks_for_unknown_button = 0;
+            
+            timestamp_for_unknown_button = t;
+            numclicks_for_unknown_button++;
         }
     }
     else
     {
         timestamp_for_unknown_button = 0;
         countdown_for_unknown_button = 2;
+        numclicks_for_unknown_button = 0;
     }
     return 1;
 }
