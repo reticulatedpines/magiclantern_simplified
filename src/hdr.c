@@ -63,9 +63,6 @@ void hdr_step()
         
     if (recording)
     {
-        #ifdef MOVREC_STATE // sync by Canon frame number
-        frame = MVR_FRAME_NUMBER;
-        #endif
         odd_frame = frame % 2;
     }
     else
@@ -92,13 +89,6 @@ void hdr_kill_flicker()
     static int odd_frame = 0;
     static int frame;
     frame++;
-        
-    if (recording)
-    {
-        #ifdef MOVREC_STATE // sync by Canon frame number
-        frame = MVR_FRAME_NUMBER;
-        #endif
-    }
 
     odd_frame = (get_seconds_clock() / 4) % 2;
  
