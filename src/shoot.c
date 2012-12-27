@@ -529,7 +529,7 @@ intervalometer_display( void * priv, int x, int y, int selected )
 static int get_smooth_factor_from_max_ev_speed(int speed_x1000)
 {
     float ev = COERCE((float)speed_x1000 / 1000.0f, 0.001f, 0.98f);
-    float f = (sqrtf(2*ev - ev*ev) - 1) / (ev-1);
+    float f = -(ev-1) / (ev+1);
     int fi = (int)roundf(f * 100);
     return COERCE(fi, 1, 99);
 }
@@ -4298,7 +4298,7 @@ static void compute_exposure_for_next_shot()
          * S = B*P / (1 + B*P)
          *
          * We want to fix the closed loop response (S), so we try to find out the controller B by inverting the process P
-         * => B = S / ( 1 - S) / P
+         * => B = S / (P - S*P)
          *
          * We will place both closed-loop poles at smoothing factor value f in range [0.1 ... 0.9] and keep the static gain at 1.
          * S = z / (z-f) / (z-f) / (1 / (1-f) / (1-f))
@@ -4307,7 +4307,7 @@ static void compute_exposure_for_next_shot()
          *
          *      b*z          b
          * B = -----  = -----------
-         *     z + a     1 + a*z^-1
+         *     z - a     1 - a*z^-1
          *
          * with:
          *    b = f^2 - 2f + 1
@@ -4316,7 +4316,7 @@ static void compute_exposure_for_next_shot()
          * Computing exposure correction:
          * 
          * u = B/A * e
-         *    => u(k) = b e(k) - a u(k-1)
+         *    => u(k) = b e(k) + a u(k-1)
          * 
          * Exception: if ABS(e) > 2 EV, apply almost-full correction (B = 0.9) to bring it quickly back on track, 
          * without caring about flicker.
@@ -4391,7 +4391,7 @@ static void compute_exposure_for_next_shot()
                 
                 float b = f*f - 2*f + 1;
                 float a = f*f;
-                u = b*e - a*bramp_u1;
+                u = b*e + a*bramp_u1;
                 bramp_u1 = u;
             }
             
