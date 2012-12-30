@@ -3243,11 +3243,43 @@ void hdr_display_status(int fnt)
     #ifdef FEATURE_HDR_BRACKETING
     #ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
     if (HDR_ENABLED)
+    {
+    #ifdef CONFIG_7D
+        /* in CA mode this field is used */
+        if(shooting_mode != SHOOTMODE_CA)
+        {
+            int bg = bmp_getpixel(1,1);
+            bmp_draw_rect(bg,617,24,5,86);
+            bmp_draw_rect(bg,618,25,3,84);
+            bmp_draw_rect(bg,619,26,1,82);
+            draw_line(623,25,623,109,bmp_getpixel(600,24));
+            bg = bmp_getpixel(HDR_STATUS_POS_X,HDR_STATUS_POS_Y);
+            fnt = FONT(FONT_LARGE, COLOR_YELLOW, bg);
+            
+            if (get_htp())
+            {
+                bmp_fill(bg,HDR_STATUS_POS_X-2,HDR_STATUS_POS_Y,63,76);
+                bmp_printf(FONT(FONT_MED, COLOR_YELLOW, bg), 474, 25, "HTP on");
+            }
+            
+            bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y, "HDR");
+            bmp_printf(FONT(FONT_LARGE, COLOR_FG_NONLV, bg), HDR_STATUS_POS_X+10 , HDR_STATUS_POS_Y+27,
+                "%Xx",
+                hdr_steps == 1 ? 10 : hdr_steps); // trick: when steps=1 (auto) it will display A :)
+            bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, bg), HDR_STATUS_POS_X-2 , HDR_STATUS_POS_Y+57,
+                "%s%d%sEV",
+                ((hdr_stepsize/4) % 2) ? "" : " ",
+                hdr_stepsize / 8,
+                ((hdr_stepsize/4) % 2) ? ".5" : "");
+        }
+    #else
         bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y, 
             "HDR %Xx%d%sEV",
             hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
             hdr_stepsize / 8,
             ((hdr_stepsize/4) % 2) ? ".5" : "");
+    #endif
+    }
     #endif
     #endif
 }
@@ -7546,7 +7578,11 @@ shoot_task( void* unused )
     
                 if (countdown == 0)
                 {
+#if defined(CONFIG_7D)
+                    bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, (lv ? COLOR_BG : bmp_getpixel(28, 3))), (lv ? 2 : 28),  (lv ? 30 : 3), "Audio release ON (%2d / %2d)", current_pulse_level, audio_release_level);
+#else
                     bmp_printf(FONT_MED, 20,  (lv ? 40 : 3), "Audio release ON (%d / %d)   ", current_pulse_level, audio_release_level);
+#endif
                     if (current_pulse_level > (int)audio_release_level) 
                     {
                         remote_shot(1);

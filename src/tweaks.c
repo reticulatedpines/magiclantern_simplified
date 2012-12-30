@@ -551,6 +551,103 @@ CONFIG_INT("qr.zoom.play", ken_rockwell_zoom, 0);
 CONFIG_INT("play.quick.zoom", quickzoom, 2);
 #endif
 
+#ifdef DISPLAY_HEADER_FOOTER_INFO
+
+CONFIG_INT("info.header_left", header_left_info, 0);
+CONFIG_INT("info.header_right", header_right_info, 0);
+CONFIG_INT("info.footer_left", footer_left_info, 0);
+CONFIG_INT("info.foorer_right", footer_right_info, 0);
+
+static void
+header_left_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Header left : %s",
+        header_left_info == 0 ? "Off" :
+        header_left_info == 1 ? "Author's name" :
+        header_left_info == 2 ? "Copyright" :
+        header_left_info == 3 ? "Date" :
+        header_left_info == 4 ? "Lens name" :
+        header_left_info == 5 ? "ML version" :
+        "err"
+    );
+}
+
+static void
+header_right_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Header right: %s",
+        header_right_info == 0 ? "Off" :
+        header_right_info == 1 ? "Author's name" :
+        header_right_info == 2 ? "Copyright" :
+        header_right_info == 3 ? "Date" :
+        header_right_info == 4 ? "Lens name" :
+        header_right_info == 5 ? "ML version" :
+        "err"
+    );
+}
+
+static void
+footer_left_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Footer left : %s",
+        footer_left_info == 0 ? "Off" :
+        footer_left_info == 1 ? "Author's name" :
+        footer_left_info == 2 ? "Copyright" :
+        footer_left_info == 3 ? "Date" :
+        footer_left_info == 4 ? "Lens name" :
+        footer_left_info == 5 ? "ML version" :
+        "err"
+    );
+}
+
+static void
+footer_right_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "Footer right: %s",
+        footer_right_info == 0 ? "Off" :
+        footer_right_info == 1 ? "Author's name" :
+        footer_right_info == 2 ? "Copyright" :
+        footer_right_info == 3 ? "Date" :
+        footer_right_info == 4 ? "Lens name" :
+        footer_right_info == 5 ? "ML version" :
+        "err"
+    );
+}
+
+#endif
+
 #ifdef FEATURE_QUICK_ZOOM
 
 static void
@@ -2069,7 +2166,10 @@ char* get_warn_msg(char* separator)
 {
     static char msg[200];
     msg[0] = '\0';
-    if (warn_code & 1) { STR_APPEND(msg, "Mode is not M%s", separator); } 
+    if (warn_code & 1 && warn_mode==1) { STR_APPEND(msg, "Mode is not P%s", separator); }
+    if (warn_code & 1 && warn_mode==2) { STR_APPEND(msg, "Mode is not Tv%s", separator); }
+    if (warn_code & 1 && warn_mode==3) { STR_APPEND(msg, "Mode is not Av%s", separator); }
+    if (warn_code & 1 && warn_mode==4) { STR_APPEND(msg, "Mode is not M%s", separator); }
     if (warn_code & 2) { STR_APPEND(msg, "Pic quality is not RAW%s", separator); } 
     if (warn_code & 4) { STR_APPEND(msg, "ALO is enabled%s", separator); } 
     return msg;
@@ -2119,7 +2219,16 @@ void warn_action(int code)
 static void warn_step()
 {
     warn_code = 0;
-    if (warn_mode && shooting_mode != SHOOTMODE_M)
+    if (warn_mode == 1 && shooting_mode != SHOOTMODE_P)
+        warn_code |= 1;
+
+    if (warn_mode == 2 && shooting_mode != SHOOTMODE_TV)
+        warn_code |= 1;
+
+    if (warn_mode == 3 && shooting_mode != SHOOTMODE_AV)
+        warn_code |= 1;
+
+    if (warn_mode == 4 && shooting_mode != SHOOTMODE_M)
         warn_code |= 1;
 
     int raw = pic_quality & 0x60000;
@@ -2231,6 +2340,51 @@ static struct menu_entry key_menus[] = {
     },
     #endif
 
+	#ifdef DISPLAY_HEADER_FOOTER_INFO
+	{
+        .name       = "Info screen settings...",
+        .select = menu_open_submenu,
+        .submenu_width = 620,
+        .help = "Choose infos to display.",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Header left",
+                .priv       = &header_left_info,
+                .max = 5,
+                .icon_type = IT_DICE,
+                .display = header_left_display,
+                .help = "What info do you want to display at the top left corner",
+            },
+            {
+                .name = "Header right",
+                .priv       = &header_right_info,
+                .max = 5,
+                .icon_type = IT_DICE,
+                .display = header_right_display,
+                .help = "What info do you want to display at the top right corner",
+            },
+            {
+                .name = "Footer left",
+                .priv       = &footer_left_info,
+                .max = 5,
+                .icon_type = IT_DICE,
+                .display = footer_left_display,
+                .help = "What info do you want to display at the bottom left corner",
+            },
+            {
+                .name = "Footer right",
+                .priv       = &footer_right_info,
+                .max = 5,
+                .icon_type = IT_DICE,
+                .display = footer_right_display,
+                .help = "What info do you want to display at the bottom right corner",
+            },
+            MENU_EOL
+		},
+		
+	},
+	#endif
+
     #if defined(CONFIG_LCD_SENSOR) || defined(FEATURE_STICKY_DOF) || defined(FEATURE_STICKY_HALFSHUTTER) || defined(FEATURE_SWAP_MENU_ERASE) || defined(FEATURE_DIGITAL_ZOOM_SHORTCUT_600D)
     {
         .name       = "Misc key settings...",
@@ -2299,8 +2453,9 @@ static struct menu_entry tweak_menus[] = {
             {
                 .name = "Mode warning   ",
                 .priv = &warn_mode,
-                .max = 1,
-                .choices = (const char *[]) {"OFF", "other than M"},
+                .max = 4,
+                .icon_type = IT_DICE,
+                .choices = (const char *[]) {"OFF", "other than P", "other than Tv", "other than Av", "other than M"},
                 .help = "Warn if you turn the mode dial to some other position.",
             },
             {

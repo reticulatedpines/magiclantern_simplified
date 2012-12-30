@@ -257,7 +257,11 @@
 #define PROP_PC_FLAVOR2_PARAM             0x4010003
 #define PROP_PC_FLAVOR3_PARAM             0x4010005
 
+#ifdef CONFIG_7D
+#define PROP_ALO 0x02050012
+#else
 #define PROP_ALO 0x8000003D
+#endif
 #define ALO_STD 0
 #define ALO_LOW 1
 #define ALO_HIGH 2

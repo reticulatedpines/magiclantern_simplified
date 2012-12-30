@@ -1721,8 +1721,16 @@ void display_clock()
     LoadCalendarFromRTC( &now );
     if (!lv)
     {
+#ifdef CONFIG_7D
+        char msg[5];
+        snprintf(msg, sizeof(msg), "%02d:%02d", now.tm_hour, now.tm_min);
+        bg = bmp_getpixel(DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y);
+        int w = bfnt_puts(msg, DISPLAY_CLOCK_POS_X , DISPLAY_CLOCK_POS_Y, COLOR_CYAN, bg);
+       	bmp_printf(FONT(FONT_MED, COLOR_CYAN, bg), DISPLAY_CLOCK_POS_X+w+2, DISPLAY_CLOCK_POS_Y+18, "%02d", now.tm_sec);
+#else
         uint32_t fnt = FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bg);
         bmp_printf(fnt, DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y, "%02d:%02d", now.tm_hour, now.tm_min);
+#endif
     }
 
     static int prev_min = 0;
