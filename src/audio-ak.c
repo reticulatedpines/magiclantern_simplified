@@ -241,11 +241,11 @@ audio_configure( int force )
     int loopback0 = beep_playing ? 0 : loopback;
 #endif
     
-    int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
 
     audio_set_meterlabel();
     
 #ifdef CONFIG_AUDIO_CONTROLS
+    int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
 
     if( !force )
         {
