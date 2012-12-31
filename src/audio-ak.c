@@ -236,8 +236,10 @@ audio_configure( int force )
     return;
 #endif
 
+#if defined(CONFIG_AUDIO_CONTROLS) && !defined(CONFIG_500D)
     // redirect wav playing to headphones if they are connected
     int loopback0 = beep_playing ? 0 : loopback;
+#endif
     
     int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
 
