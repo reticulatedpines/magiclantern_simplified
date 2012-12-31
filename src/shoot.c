@@ -6838,8 +6838,8 @@ shoot_task( void* unused )
     mlu_selftimer_update();
     #endif
     
-    int loops = 0;
-    int loops_abort = 0;
+    /*int loops = 0;
+    int loops_abort = 0;*/
     TASK_LOOP
     {
         int msg;
