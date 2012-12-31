@@ -762,10 +762,11 @@ TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 
 static void volume_display()
 {
-    int mgain_db = mgain_index2gain(mgain);
     #ifdef FEATURE_DIGITAL_GAIN
+    int mgain_db = mgain_index2gain(mgain);
     NotifyBox(2000, "Volume: %d + (%d,%d) dB", mgain_db, dgain_l, dgain_r);
     #elif defined(FEATURE_ANALOG_GAIN)
+    int mgain_db = mgain_index2gain(mgain);
     NotifyBox(2000, "Volume: %d dB", mgain_db);
     #endif
 }
