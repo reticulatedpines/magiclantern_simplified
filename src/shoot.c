@@ -200,12 +200,12 @@ static CONFIG_INT("bulb.ramping.manual.focus", bramp_manual_speed_focus_steps_pe
 #define LRT_HOLY_GRAIL_STOPS (bramp_auto_exposure - 3)
 
 #define BULB_EXPOSURE_CONTROL_ACTIVE (intervalometer_running && bulb_ramping_enabled && (bramp_auto_exposure || bramp_manual_speed_evx1000_per_shot!=1000))
-
 static int intervalometer_running = 0;
 int is_intervalometer_running() { return intervalometer_running; }
+int motion_detect = 0; //int motion_detect_level = 8;
+#ifdef FEATURE_AUDIO_REMOTE_SHOT
 static int audio_release_running = 0;
-int motion_detect = 0;
-//int motion_detect_level = 8;
+#endif
 
 static int timer_values[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20, 25, 26, 27, 28, 29, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100, 110, 120, 135, 150, 165, 180, 195, 210, 225, 240, 270, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 1200, 1800, 2700, 3600, 5400, 7200, 9000, 10800, 14400, 18000, 21600, 25200, 28800};
 
@@ -6838,8 +6838,8 @@ shoot_task( void* unused )
     mlu_selftimer_update();
     #endif
     
-    int loops = 0;
-    int loops_abort = 0;
+    /*int loops = 0;
+    int loops_abort = 0;*/
     TASK_LOOP
     {
         int msg;

@@ -14,7 +14,9 @@ static void volume_display();
 
 static void audio_monitoring_display_headphones_connected_or_not();
 static void audio_menus_init();
+#ifdef FEATURE_HEADPHONE_MONITORING
 static void audio_monitoring_update();
+#endif
 static void check_sound_recording_warning(int x, int y);
 static void audio_input_toggle( void * priv, int delta );
 

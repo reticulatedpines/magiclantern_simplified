@@ -1365,11 +1365,11 @@ menus_display(
         int color_selected = advanced_hidden_edit_mode ? COLOR_DARK_RED : COLOR_BLUE;
         int fg = menu->selected ? COLOR_WHITE : 50;
         int bg = menu->selected ? color_selected : COLOR_BLACK;
-        unsigned fontspec = FONT(
+        /*unsigned fontspec = FONT(
             menu->selected ? FONT_LARGE : FONT_MED,
             fg,
             bg
-        );
+        );*/
         
         if (!menu_lv_transparent_mode)
         {

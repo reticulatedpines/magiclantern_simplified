@@ -4559,7 +4559,10 @@ void draw_livev_for_playback()
     livev_for_playback_running = 1;
     get_yuv422_vram(); // just to refresh VRAM params
     
+	#ifdef FEATURE_DEFISHING_PREVIEW
     extern int defish_preview;
+	#endif
+
     info_led_on();
 BMP_LOCK(
 
