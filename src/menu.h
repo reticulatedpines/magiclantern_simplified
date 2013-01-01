@@ -45,6 +45,7 @@ void menu_show_only_selected();
 int get_menu_advanced_mode();
 
 extern int submenu_mode;
+extern int page_number_active;
 
 struct menu_entry
 {

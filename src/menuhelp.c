@@ -39,9 +39,14 @@ void
 draw_beta_warning()
 {
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+    if (page_number_active) draw_page_number(1);
 
-    bmp_printf(FONT_LARGE, 360 - font_large.width * 6, 50, "Magic Lantern");
-    
+//    bmp_printf(FONT_LARGE, 360 - font_large.width * 6, 50, "Magic Lantern");
+	char ml[13];
+	snprintf(ml, sizeof(ml), "Magic Lantern");
+	bfnt_puts(ml, 242, 53, COLOR_FG_NONLV, COLOR_BG);
+
+       
     bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
 
     bmp_printf(FONT_MED, 50, 200, "   Please report all bugs at www.magiclantern.fm.   ");
@@ -104,28 +109,46 @@ void menu_help_show_page(int page)
     if (page == 0) { draw_404_page(); return; } // help page not found
     if (page == -1) { draw_help_not_installed_page(); return; } // help page not found
     
-    char path[100];
+    char path[100],rpath[30];
     struct bmp_file_t * doc = (void*) -1;
 
-    snprintf(path, sizeof(path), CARD_DRIVE "ML/doc/page-%03d.bmh", page);
-    doc = bmp_load(path, 1);
-    if (!doc)
+    snprintf(rpath, sizeof(rpath), CARD_DRIVE "ML/doc/page-%03d.vrm", page);
+    if (load_vram(rpath)==-1)
     {
-        snprintf(path, sizeof(path), CARD_DRIVE "ML/doc/page-%03d.bmp", page);
-        doc = bmp_load(path, 1);
-    }
+		snprintf(path, sizeof(path), CARD_DRIVE "ML/doc/page-%03d.bmh", page);
+		doc = bmp_load(path, 1);
+		if (!doc)
+		{
+			snprintf(path, sizeof(path), CARD_DRIVE "ML/doc/page-%03d.bmp", page);
+			doc = bmp_load(path, 1);
+		}
 
-    if (doc)
-    {
-        bmp_draw_scaled_ex(doc, 0, 0, 720, 480, 0);
-        msleep(200); // no idea if it helps on 500D, but who knows (at least feels better on the UI)
-        FreeMemory(doc);
-    }
-    else
-    {
-        clrscr();
-        bmp_printf(FONT_MED, 0, 0, "Could not load help page %s.", path);
-    }
+		if (doc)
+		{
+			bmp_draw_scaled_ex(doc, 0, 0, 720, 480, 0);
+
+#ifdef CONVERT_BMH_TO_VRM	
+			save_vram(rpath);
+#endif			
+
+			msleep(200); // no idea if it helps on 500D, but who knows (at least feels better on the UI)
+			FreeMemory(doc);
+		}
+		else
+		{
+			clrscr();
+			bmp_printf(FONT_MED, 0, 0, "Could not load help page %s.", path);
+		}
+	}
+	if (page_number_active==1) draw_page_number(page);
+}
+
+void draw_page_number(int page)
+{
+	char pg[3];
+	snprintf(pg, sizeof(pg), "%3d", page);
+	bfnt_puts(pg, 650+(page<10 ? 14 : page<100 ? 4 : 0) , 2, COLOR_FG_NONLV, COLOR_BG);
+
 }
 
 void menu_help_redraw()
