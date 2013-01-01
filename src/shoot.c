@@ -3273,7 +3273,17 @@ void hdr_display_status(int fnt)
                 ((hdr_stepsize/4) % 2) ? ".5" : "");
         }
     #else
-        bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y, 
+        int bg = bmp_getpixel(HTP_STATUS_POS_X,HTP_STATUS_POS_Y);
+        if (get_htp())
+        {
+            bmp_fill(bg,HTP_STATUS_POS_X,HTP_STATUS_POS_Y,60,46); // HIDE ALO ICON
+            bmp_printf(FONT(FONT_LARGE, COLOR_FG_NONLV, bg), HTP_STATUS_POS_X, HTP_STATUS_POS_Y, "HTP");
+            bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, bg), HTP_STATUS_POS_X+40, HTP_STATUS_POS_Y+30, "ON");
+        }
+        
+        bg = bmp_getpixel(HDR_STATUS_POS_X-30,HDR_STATUS_POS_Y);
+        //fnt = FONT(FONT_LARGE, COLOR_YELLOW, bg);
+        bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y,
             "HDR %Xx%d%sEV",
             hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
             hdr_stepsize / 8,
