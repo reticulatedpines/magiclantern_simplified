@@ -162,7 +162,7 @@ movie_rec_key_print(
         x, y,
         "Movie REC key : %s ",
         movie_rec_key == 1 ? "HalfShutter" :
-        movie_rec_key == 2 ? "Long HalfShutter (1s)" :
+        movie_rec_key == 2 ? "Long HalfSh. (1s)" :
         "Default"
     );
 }
@@ -1133,7 +1133,7 @@ static struct menu_entry mov_menus[] = {
         #else
         .max = 2,
         #endif
-        .icon_type = IT_BOOL,
+        .icon_type = IT_DICE_OFF,
         .help = "Custom REC/STANDBY notifications, visual or audible",
     },
     #endif

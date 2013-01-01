@@ -2547,7 +2547,7 @@ struct menu_entry debug_menus[] = {
         .name        = "LV dumping",
         .priv = 0x60D8, 
         .max = 6,
-        .icon_type = IT_DICE,
+        .icon_type = IT_DICE_OFF,
         .help = "Silent picture mode: simple, burst, continuous or high-resolution.",
         .choices = (const char *[]) {"Disabled", "A:/.JPEG", "B:/.JPEG", "A:/.422", "B:/.422", "A:/.JPEG/.422", "B:/.JPEG/.422"},
     },
