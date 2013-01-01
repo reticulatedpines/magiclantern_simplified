@@ -674,8 +674,8 @@ static void vram_toggle(void* priv, int delta)
     //~ update_vram_params_calc();
 }
 
-static void vram_toggle_fwd(void* priv) { vram_toggle(priv,  increment); }
-static void vram_toggle_rev(void* priv) { vram_toggle(priv, -increment); }
+static void vram_toggle_fwd(void* priv, int unused) { vram_toggle(priv,  increment); }
+static void vram_toggle_rev(void* priv, int unused) { vram_toggle(priv, -increment); }
 //~ static void vram_toggle_delta(void* priv)  { menu_quinternary_toggle(&increment, 1); }
 
 #define VRAM_MENU_ENTRY(x)  { \

@@ -117,7 +117,7 @@ void take_screenshot( int also_lv )
 int draw_prop = 0;
 
 static void
-draw_prop_select( void * priv )
+draw_prop_select( void * priv , int unused )
 {
     draw_prop = !draw_prop;
 }
@@ -226,7 +226,7 @@ static int vmax(int* x, int n)
     return m;
 }
 
-static void dump_rom_task(void* priv)
+static void dump_rom_task(void* priv, int unused)
 {
     msleep(200);
     FILE * f = NULL;
@@ -252,7 +252,7 @@ static void dump_rom_task(void* priv)
     dump_big_seg(4, CARD_DRIVE "ML/LOGS/RAM4.BIN");
 }
 
-static void dump_rom(void* priv)
+static void dump_rom(void* priv, int unused)
 {
     gui_stop_menu();
     task_create("dump_task", 0x1e, 0, dump_rom_task, 0);
@@ -1583,7 +1583,7 @@ static int dbg_memspy_get_addr(int i)
 }
 
 static void
-mem_spy_select( void * priv )
+mem_spy_select( void * priv, int unused)
 {
     mem_spy = !mem_spy;
 }
@@ -2200,7 +2200,7 @@ void screenshot_start(void* priv, int delta)
 }
 */
 
-void toggle_draw_event( void * priv );
+void toggle_draw_event( void * priv, int unused);
 
 #ifdef CONFIG_DEBUGMSG
 static void
@@ -2408,9 +2408,9 @@ void prop_dump()
     redraw();
 }
 
-static void prop_toggle_i(void* priv) {prop_i = prop_i < 5 ? prop_i + 1 : prop_i == 5 ? 0xE : prop_i == 0xE ? 0x80 : 0; }
-static void prop_toggle_j(void* priv) {prop_j = mod(prop_j + 1, 0x10); }
-static void prop_toggle_k(void* priv) {prop_k = mod(prop_k + 1, 0x51); }
+static void prop_toggle_i(void* priv, int unused) {prop_i = prop_i < 5 ? prop_i + 1 : prop_i == 5 ? 0xE : prop_i == 0xE ? 0x80 : 0; }
+static void prop_toggle_j(void* priv, int unused) {prop_j = mod(prop_j + 1, 0x10); }
+static void prop_toggle_k(void* priv, int unused) {prop_k = mod(prop_k + 1, 0x51); }
 #endif
 
 #ifdef CONFIG_KILL_FLICKER
@@ -2505,7 +2505,7 @@ struct menu_entry debug_menus[] = {
 #if CONFIG_DEBUGMSG
     {
         .name = "Draw palette",
-        .select        = (void(*)(void*))bmp_draw_palette,
+        .select        = (void(*)(void*,int))bmp_draw_palette,
         .help = "Display a test pattern to see the color palette."
     },
     {
@@ -2893,7 +2893,7 @@ static void dbg_draw_props(int changed)
     int i; 
     for (i = 0; i < dbg_propn; i++)
     {
-        unsigned x =  80;
+    	int x =  80;
         unsigned property = dbg_props[i];
         unsigned len = dbg_props_len[i];
 #ifdef CONFIG_VXWORKS
@@ -2901,7 +2901,7 @@ static void dbg_draw_props(int changed)
         unsigned y =  15 + i * font_med.height;
 #else
         uint32_t fnt = FONT_SMALL;
-        unsigned y =  15 + i * font_small.height;
+        int y =  15 + i * font_small.height;
 #endif
         if (i == changed) fnt = FONT(fnt, 5, COLOR_BG);
         char msg[100];
@@ -2980,7 +2980,7 @@ debug_property_handler(
     dbg_draw_props(dbg_propn);
 
 ack:
-    return _prop_cleanup( debug_token, property );
+    return (void*)_prop_cleanup( debug_token, property );
 }
 
 #endif
