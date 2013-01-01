@@ -109,9 +109,23 @@
     #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0
     #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0
 
+// position for displaying shutter count and other info 
+#define MENU_DISP_INFO_POS_X 0 
+#define MENU_DISP_INFO_POS_Y 395 
+ 
+#define MENU_DISP_ISO_POS_X 527 
+#define MENU_DISP_ISO_POS_Y 45 
+ 
+#define HDR_STATUS_POS_X 190 
+#define HDR_STATUS_POS_Y 450 
+
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
 #define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 88...98 ?!
+
+// position for displaying clock outside LV
+#define DISPLAY_CLOCK_POS_X 400
+#define DISPLAY_CLOCK_POS_Y 410
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 50
@@ -147,8 +161,11 @@
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
 #define IMGPLAY_ZOOM_POS_X MEM(0x6E500) // CentrePos
 #define IMGPLAY_ZOOM_POS_Y MEM(0x6E504)
-#define IMGPLAY_ZOOM_POS_X_CENTER 360
-#define IMGPLAY_ZOOM_POS_Y_CENTER 240
+#define IMGPLAY_ZOOM_POS_X_CENTER 0x144
+#define IMGPLAY_ZOOM_POS_Y_CENTER 0xd8
+#define IMGPLAY_ZOOM_POS_DELTA_X (0x144 - 0x93)
+#define IMGPLAY_ZOOM_POS_DELTA_Y (0xd8 - 0x7d)
+
 
     #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
