@@ -1,4 +1,4 @@
-7/** \file
+/** \file
  * Bitrate
  */
 #include "dryos.h"
