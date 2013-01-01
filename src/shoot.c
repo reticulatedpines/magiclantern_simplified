@@ -6860,6 +6860,10 @@ shoot_task( void* unused )
         
         /* when we received a message, redraw immediately */
         if (k%5 == 0 || !err) misc_shooting_info();
+
+#if defined(CONFIG_7D) && defined(CONFIG_PHOTO_MODE_INFO_DISPLAY)        
+        else if (GetBatteryLevel()<10 && !lv && display_idle()) RedrawBatteryIcon(); // Necessary for flicker free battery icon
+#endif
         
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);

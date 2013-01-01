@@ -39,9 +39,9 @@ void display_shooting_info() // called from debug task
 		struct tm now;
 		LoadCalendarFromRTC( &now );
 // need to find the date format settings and use it here
-//		snprintf(adate, sizeof(adate), "%2d.%2d.%4d.", (now.tm_mon+1),now.tm_mday,(now.tm_year+1900));
-//		snprintf(adate, sizeof(adate), "%2d.%2d.%4d.", now.tm_mday,(now.tm_mon+1),(now.tm_year+1900));
-		snprintf(adate, sizeof(adate), "%4d.%2d.%2d.", (now.tm_year+1900),(now.tm_mon+1),now.tm_mday);
+//		snprintf(adate, sizeof(adate), "%02d.%02d.%4d", (now.tm_mon+1),now.tm_mday,(now.tm_year+1900));
+//		snprintf(adate, sizeof(adate), "%02d.%02d.%4d", now.tm_mday,(now.tm_mon+1),(now.tm_year+1900));
+		snprintf(adate, sizeof(adate), "%4d.%02d.%02d", (now.tm_year+1900),(now.tm_mon+1),now.tm_mday);
 	}
     
     fnt = FONT(FONT_MED, COLOR_FG_NONLV, col_bg); 
@@ -140,7 +140,44 @@ void display_shooting_info() // called from debug task
 
 	hdr_display_status(fnt);
 
+    RedrawBatteryIcon();
+
+	bg = bmp_getpixel(MLU_STATUS_POS_X, MLU_STATUS_POS_Y);
+	bmp_printf(FONT(FONT_MED, COLOR_YELLOW, bg), MLU_STATUS_POS_X, MLU_STATUS_POS_Y, get_mlu() ? "MLU" : "   ");
+
+    if (avail_shot>999) // it is a Canon bug (only 3 digits), it can display on the other info screen four digit number
+    {                   // but we can write 5 digits if necessary
+		bmp_fill(col_field,540,384,152,72); // clear the "[999]" 
+		if (avail_shot>9999) 
+		{
+            char msg[7];
+            snprintf(msg, sizeof(msg), "[%5d%]", avail_shot);
+            bfnt_puts(msg, 550 , 402, COLOR_FG_NONLV, col_field);
+		} 
+		else 
+		{
+            char msg[6];
+            snprintf(msg, sizeof(msg), "[%4d%]", avail_shot);
+            bfnt_puts(msg, 560 , 402, COLOR_FG_NONLV, col_field);
+		}
+    }
+
+	//~ display_lcd_remote_info();
+	display_trap_focus_info();
+}
+
+
+int battery_level = 0;
+CONFIG_INT("battery.drain.rate.rev", battery_seconds_same_level_ok, 0);
+int battery_seconds_same_level_tmp = 0;
+int battery_level_transitions = 0;
+
+void RedrawBatteryIcon()
+{
     int batlev = GetBatteryLevel();
+	int col_bg = bmp_getpixel(1,1);;
+	int col_field = bmp_getpixel(615,455);
+	uint32_t fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, col_field);
 
     if (batlev >= 10) // if battery level<10 and the icon is flashing we don't redraw our battery 
     {
@@ -175,44 +212,13 @@ void display_shooting_info() // called from debug task
 		bmp_fill(col_field,DISPLAY_BATTERY_POS_X+14,DISPLAY_BATTERY_POS_Y+4,76,24);
 		batfil = batlev*68/100;
 		bmp_fill(batcol,DISPLAY_BATTERY_POS_X+18+69-batfil,DISPLAY_BATTERY_POS_Y+8,batfil,16);
-		fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, col_field);
 		bmp_printf(fnt, DISPLAY_BATTERY_POS_X+14, DISPLAY_BATTERY_POS_Y+35, "%3d%%", batlev);
     }
     else
     {
-		fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, col_field);
 		bmp_printf(fnt, DISPLAY_BATTERY_POS_X+14, DISPLAY_BATTERY_POS_Y+35, "%3d%%", batlev);
 	}
-
-	bg = bmp_getpixel(MLU_STATUS_POS_X, MLU_STATUS_POS_Y);
-	bmp_printf(FONT(FONT_MED, COLOR_YELLOW, bg), MLU_STATUS_POS_X, MLU_STATUS_POS_Y, get_mlu() ? "MLU" : "   ");
-
-    if (avail_shot>999) // it is a Canon bug (only 3 digits), it can display on the other info screen four digit number
-    {                   // but we can write 5 digits if necessary
-		bmp_fill(col_field,540,384,152,72); // clear the "[999]" 
-		if (avail_shot>9999) 
-		{
-            char msg[7];
-            snprintf(msg, sizeof(msg), "[%5d%]", avail_shot);
-            bfnt_puts(msg, 550 , 402, COLOR_FG_NONLV, col_field);
-		} 
-		else 
-		{
-            char msg[6];
-            snprintf(msg, sizeof(msg), "[%4d%]", avail_shot);
-            bfnt_puts(msg, 560 , 402, COLOR_FG_NONLV, col_field);
-		}
-    }
-
-	//~ display_lcd_remote_info();
-	display_trap_focus_info();
 }
-
-
-int battery_level = 0;
-CONFIG_INT("battery.drain.rate.rev", battery_seconds_same_level_ok, 0);
-int battery_seconds_same_level_tmp = 0;
-int battery_level_transitions = 0;
 
 PROP_HANDLER(PROP_BATTERY_REPORT)
 {
