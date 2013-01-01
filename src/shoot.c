@@ -810,7 +810,7 @@ silent_pic_display_highres( void * priv, int x, int y, int selected )
 	else
 	{
 		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y,
-			"Hi-Res        : Off"
+			"Hi-Res        : OFF"
 		);
 		menu_draw_icon(x,y,MNI_NEUTRAL,0);
 	}
