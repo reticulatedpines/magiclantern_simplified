@@ -7590,6 +7590,8 @@ shoot_task( void* unused )
                 {
 #if defined(CONFIG_7D)
                     bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, (lv ? COLOR_BG : bmp_getpixel(28, 3))), (lv ? 2 : 28),  (lv ? 30 : 3), "Audio release ON (%2d / %2d)", current_pulse_level, audio_release_level);
+#elif defined(CONFIG_600D)
+                    bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, (lv ? COLOR_BG : bmp_getpixel(198, 386))), (lv ? 2 : 200),  (lv ? 30 : 386), "Audio release ON (%2d / %2d)", current_pulse_level, audio_release_level);
 #else
                     bmp_printf(FONT_MED, 20,  (lv ? 40 : 3), "Audio release ON (%d / %d)   ", current_pulse_level, audio_release_level);
 #endif
