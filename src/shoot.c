@@ -3289,6 +3289,7 @@ void hdr_display_status(int fnt)
 #ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
     if (get_htp())
     {
+        int bg = bmp_getpixel(HTP_STATUS_POS_X,HTP_STATUS_POS_Y);
         bmp_fill(bg,HTP_STATUS_POS_X,HTP_STATUS_POS_Y,60,46); // HIDE ALO ICON
         bmp_printf(FONT(FONT_LARGE, COLOR_FG_NONLV, bg), HTP_STATUS_POS_X, HTP_STATUS_POS_Y, "HTP");
         bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, bg), HTP_STATUS_POS_X+40, HTP_STATUS_POS_Y+30, "ON");
