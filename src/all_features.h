@@ -244,3 +244,5 @@
     #define FEATURE_SNAP_SIM
 
     //~ #define FEATURE_GUIMODE_TEST // dangerous
+
+#define FEATURE_CUSTOM_ICON // save/restore autorun.inf and ML23icon.ico with ML when formatting
