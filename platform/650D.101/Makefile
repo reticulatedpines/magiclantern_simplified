@@ -46,6 +46,7 @@ ML_OBJS-y = \
 	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
+	af_patterns.o \
 	focus.o \
 	notify_box.o \
 	bootflags.o \
@@ -54,11 +55,11 @@ ML_OBJS-y = \
 	aj_port.o \
 	lv-img-engio.o \
 	fps-engio.o \
-	tasks.o \
-	tskmon.o \
-	state-object.o \
 	hdr.o \
 	lv-img-engio.o \
+	state-object.o \
+	tasks.o \
+	tskmon.o \
 	beep.o \
 	audio-ak.o \
 	vsync-lite.o \
