@@ -364,7 +364,7 @@ How do I get a ROM0.bin firmware image?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **We do not distribute ROM images**, nor IDA .idb files, since they are verbatim copies of Canon's copyrighted code.
-You can generate the ROM images from your own camera by enabling ``CONFIG_DEBUGMSG=1`` in ``debug.c`` and then selecting ``Dump ROM`` from Debug menu.
+You can generate the ROM images from your own camera by enabling ``CONFIG_DEBUGMSG=1`` in ``Makefile.user.default`` and then selecting ``Dump ROM`` from Debug menu.
 
 What are all of the 0xff81beef things and funny names like EP_SetManualMovieMode()?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
