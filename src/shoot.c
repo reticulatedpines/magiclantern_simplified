@@ -794,7 +794,31 @@ silent_pic_display( void * priv, int x, int y, int selected )
             break;        
     }
 }
+
+#ifdef FEATURE_SILENT_PIC_HIRES
+static void
+silent_pic_display_highres( void * priv, int x, int y, int selected )
+{
+	char choices[8][4] = {"2x1", "2x2", "2x3", "3x3", "3x4", "4x4", "4x5", "5x5"};
+	if (silent_pic_mode == 3)
+	{
+		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y,
+			"Hi-Res        : %s", choices[MEM(priv)]
+		);
+		// menu.c can draw the icon later
+	}
+	else
+	{
+		bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y,
+			"Hi-Res        : OFF"
+		);
+		menu_draw_icon(x,y,MNI_NEUTRAL,0);
+	}
+
+}
 #endif
+
+#endif //#ifdef FEATURE_SILENT_PIC
 
 static volatile int afframe_ack = 0;
 #ifdef CONFIG_LIVEVIEW
@@ -5062,22 +5086,23 @@ static struct menu_entry shoot_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Mode",
-                .priv = &silent_pic_mode, 
+                .priv = &silent_pic_mode,
                 #ifdef FEATURE_SILENT_PIC_HIRES
                 .max = 3, // hi-res works
+                .help = "Silent picture mode: simple, burst, continuous or high-resolution.",
                 #else
                 .max = 2, // hi-res doesn't work
+                .help = "Silent picture mode: simple, burst or continuous.",
                 #endif
                 .choices = (const char *[]) {"Simple", "Burst", "Continuous", "Hi-Res"},
                 .icon_type = IT_DICE,
-                .help = "Silent picture mode: simple, burst, continuous or high-resolution."
             },
             #ifdef FEATURE_SILENT_PIC_HIRES
             {
                 .name = "Hi-Res", 
                 .priv = &silent_pic_highres,
-                .max = 7,
-                .choices = (const char *[]) {"2x1", "2x2", "2x3", "3x3", "3x4", "4x4", "4x5", "5x5"},
+                .display = &silent_pic_display_highres,
+                .max = MIN(COUNT(silent_pic_sweep_modes_l),COUNT(silent_pic_sweep_modes_c))-1,
                 .icon_type = IT_SIZE,
                 .help = "For hi-res matrix mode: select number of subpictures."
             },
