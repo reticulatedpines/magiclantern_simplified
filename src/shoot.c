@@ -119,7 +119,7 @@ CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 16);
 static CONFIG_INT("hdr.delay", hdr_delay, 1);
 static CONFIG_INT("hdr.seq", hdr_sequence, 1);
 static CONFIG_INT("hdr.iso", hdr_iso, 0);
-static CONFIG_INT("hdr.scripts", hdr_scripts, 2); //1 enfure, 2 align+enfuse, 3 only list images
+static CONFIG_INT("hdr.scripts", hdr_scripts, 2); //1 enfuse, 2 align+enfuse, 3 only list images
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
@@ -4835,7 +4835,7 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Post scripts",
                 .priv       = &hdr_scripts,
                 .max = 3,
-                .help = "ML can write enfuse scripts or list files (for focus stacking too).",
+                .help = "ML can write enfuse scripts or a file list (for focus stacking too).",
                 .choices = (const char *[]) {"OFF", "Enfuse", "Align+Enfuse", "File List"},
             },
             MENU_EOL
@@ -5854,7 +5854,7 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
         f = FIO_CreateFileEx(name);
         if ( f == INVALID_PTR )
         {
-            bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
+            bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileEx: error for %s", name );
             return;
         }
         for(int i = 0; i < steps; i++ )
