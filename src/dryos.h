@@ -445,11 +445,11 @@ unsigned int rand (void);
 #define STR_APPEND(orig,fmt,...) snprintf(orig + strlen(orig), sizeof(orig) - strlen(orig) - 1, fmt, ## __VA_ARGS__);
 
 #define MEMX(x) ( \
-        ((((int)(x)) & 0xF0000000) == 0xC0000000) ? shamem_read(x) : \
-        ((((int)(x)) & 0xF0000000) == 0xE0000000) ? (int)0xDEADBEAF : \
-        ((((int)(x)) & 0xF0000000) == 0x70000000) ? (int)0xDEADBEAF : \
-        ((((int)(x)) & 0xF0000000) == 0x80000000) ? (int)0xDEADBEAF : \
-        *(volatile int *)(x) \
+        ((((uint32_t)(x)) & 0xF0000000UL) == 0xC0000000UL) ? (uint32_t)shamem_read(x) : \
+        ((((uint32_t)(x)) & 0xF0000000UL) == 0xE0000000UL) ? (uint32_t)0xDEADBEAF : \
+        ((((uint32_t)(x)) & 0xF0000000UL) == 0x70000000UL) ? (uint32_t)0xDEADBEAF : \
+        ((((uint32_t)(x)) & 0xF0000000UL) == 0x80000000UL) ? (uint32_t)0xDEADBEAF : \
+        *(volatile uint32_t *)(x) \
 )
 
 // export functions to plugins
