@@ -11,6 +11,60 @@
 #endif
 #include <version.h>
 
+int battery_level = 0;
+CONFIG_INT("battery.drain.rate.rev", battery_seconds_same_level_ok, 0);
+int battery_seconds_same_level_tmp = 0;
+int battery_level_transitions = 0;
+
+struct battery_info {
+	int num_of_batt;
+	int level;
+	int performance;
+	int expo;
+	uint32_t serial;
+	int num_of_hist;
+	int act_hist;
+	char name[6];
+};
+
+struct battery_history {
+  uint32_t serial;
+  int level;
+  int year;
+  int month;
+  int day;
+};
+
+struct battery_history bat_hist[6];
+struct battery_info bat_info;
+
+PROP_HANDLER(PROP_BATTERY_REPORT) // also in memory address 7AF60 length 96 bytes
+{
+	bat_info.level = buf[1] & 0xff;
+
+	bat_info.level = bat_info.level;
+	bat_info.performance = (buf[1] >> 8) & 0xff;
+	bat_info.serial = (buf[5] & 0xff000000) + SWAP_ENDIAN(buf[6] << 8);
+	bat_info.num_of_batt = buf[0];
+	bat_info.expo = (buf[2] >> 8) & 0xffff; //expo taken with the battery 
+	// from buf[2] >> 24 : battery name (byte 11-...) LP-E6 or ???
+}
+
+PROP_HANDLER(PROP_BATTERY_HISTORY) // also in memory address 7AFC0 length 76 bytes
+{
+	bat_info.num_of_hist = buf[0];
+	bat_info.act_hist = 0;
+	for (int i=0;i<MIN(bat_info.num_of_hist,6);i++) 
+	{
+		bat_hist[i].serial = buf[1+i*3];
+		if (bat_hist[i].serial == bat_info.serial) bat_info.act_hist = i+1;
+		bat_hist[i].level = buf[2+i*3] & 0xffff;
+		bat_hist[i].year = (buf[2+i*3] >> 16);
+		bat_hist[i].month = buf[3+i*3] & 0xffff;
+		bat_hist[i].day = (buf[3+i*3] >> 16);
+	}
+}
+
 void display_shooting_info() // called from debug task
 {
 	if (lv) return;
@@ -22,6 +76,10 @@ void display_shooting_info() // called from debug task
 
     col_bg = bmp_getpixel(1,1);
     col_field = bmp_getpixel(615,455);
+
+	if (bat_info.act_hist == 0) 
+		for (int i=0;i<MIN(bat_info.num_of_hist,6);i++) 
+			if (bat_hist[i].serial == bat_info.serial) bat_info.act_hist = i+1;
     
 #ifdef DISPLAY_HEADER_FOOTER_INFO
     extern int header_left_info;
@@ -31,8 +89,8 @@ void display_shooting_info() // called from debug task
     char adate[11];
     char info[63];
 
-    bmp_fill(col_bg,28,3,694,21);
-    bmp_fill(col_bg,28,459,694,21);
+//    bmp_fill(col_bg,28,3,694,21);
+//    bmp_fill(col_bg,28,459,694,21);
 
     if (header_left_info==3 || header_right_info==3 || footer_left_info==3 || footer_right_info==3) 
     {
@@ -166,16 +224,9 @@ void display_shooting_info() // called from debug task
 	display_trap_focus_info();
 }
 
-
-int battery_level = 0;
-CONFIG_INT("battery.drain.rate.rev", battery_seconds_same_level_ok, 0);
-int battery_seconds_same_level_tmp = 0;
-int battery_level_transitions = 0;
-
 void RedrawBatteryIcon()
 {
-    int batlev = GetBatteryLevel();
-	int col_bg = bmp_getpixel(1,1);;
+    int batlev = bat_info.level;
 	int col_field = bmp_getpixel(615,455);
 	uint32_t fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, col_field);
 
@@ -212,25 +263,23 @@ void RedrawBatteryIcon()
 		bmp_fill(col_field,DISPLAY_BATTERY_POS_X+14,DISPLAY_BATTERY_POS_Y+4,76,24);
 		batfil = batlev*68/100;
 		bmp_fill(batcol,DISPLAY_BATTERY_POS_X+18+69-batfil,DISPLAY_BATTERY_POS_Y+8,batfil,16);
-		bmp_printf(fnt, DISPLAY_BATTERY_POS_X+14, DISPLAY_BATTERY_POS_Y+35, "%3d%%", batlev);
+		if (bat_info.act_hist>0) 
+        	bmp_printf(FONT(FONT_LARGE, COLOR_YELLOW, col_field), DISPLAY_BATTERY_POS_X+101, DISPLAY_BATTERY_POS_Y+1, "%d", bat_info.act_hist);
+		int x = 276; int y = 406; int w = 12;
+		bmp_fill((bat_info.performance<3 ? COLOR_GRAY50 : COLOR_GREEN2),x,y,w,w);
+		bmp_fill((bat_info.performance<2 ? COLOR_GRAY50 : COLOR_GREEN2),x,y+4+w,w,w);
+		bmp_fill((bat_info.performance<1 ? COLOR_GRAY50 : COLOR_GREEN2),x,y+8+2*w,w,w);
     }
-    else
-    {
-		bmp_printf(fnt, DISPLAY_BATTERY_POS_X+14, DISPLAY_BATTERY_POS_Y+35, "%3d%%", batlev);
-	}
+	bmp_printf(fnt, DISPLAY_BATTERY_POS_X+14, DISPLAY_BATTERY_POS_Y+35, "%3d%%", batlev);
 }
 
-PROP_HANDLER(PROP_BATTERY_REPORT)
-{
-	battery_level = buf[1] & 0xff;
-}
 int GetBatteryLevel()
 {
-	return battery_level;
+	return bat_info.level;
 }
 int GetBatteryTimeRemaining()
 {
-	return battery_seconds_same_level_ok * battery_level;
+	return battery_seconds_same_level_ok * bat_info.level;
 }
 int GetBatteryDrainRate() // percents per hour
 {
@@ -257,7 +306,7 @@ void RefreshBatteryLevel_1Hz()
 	// check how many seconds battery indicator was at the same percentage
 	// this is a rough indication of how fast the battery is draining
 	static int old_battery_level = -1;
-	if (battery_level == old_battery_level)
+	if (bat_info.level == old_battery_level)
 	{
 		battery_seconds_same_level_tmp++;
 	}
@@ -268,7 +317,7 @@ void RefreshBatteryLevel_1Hz()
 			battery_seconds_same_level_ok = battery_seconds_same_level_tmp;
 		battery_seconds_same_level_tmp = 0;
 	}
-	old_battery_level = battery_level;
+	old_battery_level = bat_info.level;
 }
 
 // dummy stub
