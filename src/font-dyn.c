@@ -1,5 +1,7 @@
 #include "font.h"
 #include "bmp.h"
+
+#ifndef CONFIG_STATIC_FONTS
 struct font font_large = {
     .width      = 20,
     .height     = 32,
@@ -17,26 +19,27 @@ struct font font_small = {
     .height     = 12,
     .bitmap     = 0,
 };
+#endif
 
-struct font font_large_shadow = {
+struct sfont font_large_shadow = {
     .width      = 20,
     .height     = 32,
     .bitmap     = 0,
 };
 
-struct font font_med_shadow = {
+struct sfont font_med_shadow = {
     .width      = 12,
     .height     = 20,
     .bitmap     = 0,
 };
 
-struct font font_small_shadow = {
+struct sfont font_small_shadow = {
     .width      = 8,
     .height     = 12,
     .bitmap     = 0,
 };
 
-static void shadow_char_compute(struct font * src, struct font * dst, char c)
+static void shadow_char_compute(struct font * src, struct sfont * dst, char c)
 {
     #define PIX(i,j) (src->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
     #define PIX_SET(i,j) dst->bitmap[ c + ((i) << 7) ] |= (1 << (31-(j)))
@@ -83,25 +86,28 @@ int fonts_done = 0;
 
 void load_fonts(void* unused)
 {
+    if (fonts_done) return;
+    
     // if something goes wrong, you will see chinese fonts :)
+    
+#ifndef CONFIG_STATIC_FONTS
     int size;
-
     for (int i = 0; i < 10; i++)
     {
         //cat SMALL.FNT MEDIUM.FNT LARGE.FNT > FONTS.DAT
-        font_small.bitmap = (unsigned *) read_entire_file(CARD_DRIVE "ML/FONTS.DAT", &size);
+        font_small.bitmap = (unsigned *) read_entire_file(CARD_DRIVE "ML/DATA/FONTS.DAT", &size);
         font_med.bitmap = font_small.bitmap + 6136/4; // size of SMALL.FNT
         font_large.bitmap = font_med.bitmap + 10232/4; // size of MEDIUM.FNT
         if (font_small.bitmap) break; // OK!
 
-        bfnt_puts( "ML/FONTS.DAT retry...");
+        bfnt_puts( "ML/DATA/FONTS.DAT retry...", 0, 0, COLOR_WHITE, COLOR_BLACK);
         msleep(500);
     }
 
     if (font_small.bitmap == 0) // fonts not loaded
     {
         clrscr();
-        bfnt_puts("ML/FONTS.DAT not found", 0, 0, COLOR_WHITE, COLOR_BLACK);
+        bfnt_puts("ML/DATA/FONTS.DAT not found", 0, 0, COLOR_WHITE, COLOR_BLACK);
         beep();
         msleep(2000);
         clrscr();
@@ -112,11 +118,20 @@ void load_fonts(void* unused)
         return;
     }
     //~ bfnt_puts("FONTS OK", 0, 0, COLOR_WHITE, COLOR_BLACK);
+    //#else
+#endif
 
-    font_small_shadow.bitmap = AllocateMemory(size);
+    /*font_small_shadow.bitmap = AllocateMemory(size);
     memcpy(font_small_shadow.bitmap, font_small.bitmap, size);
     font_med_shadow.bitmap = font_small_shadow.bitmap + 6136/4; // size of SMALL.FNT
     font_large_shadow.bitmap = font_med_shadow.bitmap + 10232/4; // size of MEDIUM.FNT
+	*/
+    font_small_shadow.bitmap = AllocateMemory(font_small.height*4*0x80);
+    memcpy(font_small_shadow.bitmap, font_small.bitmap, font_small.height*4*0x80);
+    font_med_shadow.bitmap = AllocateMemory(font_med.height*4*0x80);
+    memcpy(font_med_shadow.bitmap, font_med.bitmap, font_med.height*4*0x80);
+    font_large_shadow.bitmap = AllocateMemory(font_large.height*4*0x80);
+    memcpy(font_large_shadow.bitmap, font_large.bitmap, font_large.height*4*0x80);
 
     shadow_fonts_compute();
     fonts_done = 1;

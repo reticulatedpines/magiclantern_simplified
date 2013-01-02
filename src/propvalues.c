@@ -15,8 +15,10 @@ volatile PROP_INT(PROP_GUI_STATE, gui_state);
 volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
 volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
 volatile PROP_INT(PROP_AF_MODE, af_mode);
+#ifndef CONFIG_5D3
 volatile PROP_INT(PROP_FILE_NUMBER, file_number);
 volatile PROP_INT(PROP_FOLDER_NUMBER, folder_number);
+#endif
 //volatile PROP_INT(PROP_FILE_NUMBER_ALSO, file_number_also);
 volatile PROP_INT(PROP_DRIVE, drive_mode);
 volatile PROP_INT(PROP_STROBO_FIRING, strobo_firing);
@@ -24,7 +26,6 @@ volatile PROP_INT(PROP_LVAF_MODE, lvaf_mode);
 volatile PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
 volatile PROP_INT(PROP_MIRROR_DOWN, mirror_down);
 volatile PROP_INT(PROP_LCD_BRIGHTNESS, backlight_level);
-volatile PROP_INT(PROP_BEEP, beep_enabled);
 volatile PROP_INT(PROP_LV_MOVIE_SELECT, lv_movie_select);
 volatile PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
 volatile PROP_INT(PROP_BURST_COUNT, burst_count);
@@ -54,17 +55,19 @@ PROP_HANDLER(PROP_DOF_PREVIEW_MAYBE) // len=2
     dofpreview = buf[0] & 0xFFFF;
 }
 
-volatile int lv;
+volatile int lv = 0;
 volatile int lv_paused = 0; // not a property, but related
 
 bool is_movie_mode()
 {
-    #if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_5D3)
+    #if defined(CONFIG_50D) || defined(CONFIG_5D2)
     return lv && lv_movie_select == LVMS_ENABLE_MOVIE
-            #ifndef CONFIG_50D
+            #if !defined(CONFIG_50D)
             && expsim == 2  // movie enabled, but photo display is considered photo mode
             #endif
         ;
+    #elif defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+    return lv_movie_select == LVMS_ENABLE_MOVIE;
     #else
     return shooting_mode == SHOOTMODE_MOVIE;
     #endif
@@ -107,12 +110,17 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 
 PROP_HANDLER( PROP_LV_ACTION )
 {
+#ifdef CONFIG_5DC
+    //~ make sure ML never thinks LV is open, because 5dc doesn't have LV.
+    lv = 0;
+#else
     lv = !buf[0];
+#endif
 }
 
 volatile PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code);
 volatile PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
-volatile PROP_INT(PROP_USBRCA_MONITOR, ext_monitor_rca);
+volatile PROP_INT(PROP_USBRCA_MONITOR, _ext_monitor_rca);
 
 #ifdef CONFIG_50D
 int recording = 0;
@@ -137,7 +145,7 @@ int lv_disp_mode;
 
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3)
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3) || defined(CONFIG_1100D) || defined(CONFIG_50D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
     lv_disp_mode = (uint8_t)buf[1];
     #else
     lv_disp_mode = (uint8_t)buf[0];
@@ -154,3 +162,17 @@ int auto_iso_range = 0x4868; // no auto ISO in Canon menus; considering it fixed
 #else
 volatile PROP_INT(PROP_AUTO_ISO_RANGE, auto_iso_range);
 #endif
+
+char artist_name[63]="                                                               ";
+PROP_HANDLER( PROP_ARTIST_STRING )
+{
+    if( len > sizeof(artist_name) ) len = sizeof(artist_name);
+    memcpy( artist_name, buf, len );
+}
+
+char copyright_info[63]="                                                               ";
+PROP_HANDLER( PROP_COPYRIGHT_STRING )
+{
+    if( len > sizeof(copyright_info) ) len = sizeof(copyright_info);
+    memcpy( copyright_info, buf, len );
+}

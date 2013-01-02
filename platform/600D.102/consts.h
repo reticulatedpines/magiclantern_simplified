@@ -1,5 +1,7 @@
 #define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
+#define LEDON 0x46
+#define LEDOFF 0x44
 
 #define HIJACK_INSTR_BL_CSTART  0xff01019c
 #define HIJACK_INSTR_BSS_END 0xff0110d0
@@ -8,73 +10,9 @@
 #define HIJACK_INSTR_MY_ITASK 0xff0110dc
 #define HIJACK_TASK_ADDR 0x1a2c
 
-// Critical. Look for a call to prop_request_change(0x80050007, something, len).
-#define AFFRAME_PROP_LEN 108
-
 #define ARMLIB_OVERFLOWING_BUFFER 0x167FC // in AJ_armlib_setup_related3
-#define CUSTOM_WB_PROP_LEN 44
 
 #define DRYOS_ASSERT_HANDLER 0x1A18 // dec TH_assert or assert_0
-
-// BGMT Button codes as received by gui_main_task
-
-#define BGMT_BUTTON_HANDLING_EVENT_TYPE 0 // Event type for button handing
-
-// Generic button code sent after many events or initialization (non-deterministic)
-#define BGMT_UNKNOWN1 0xF
-#define BGMT_UNKNOWN2 0x11
-#define BGMT_UNKNOWN3 0x34
-#define BGMT_UNKNOWN4 0x4C
-#define BGMT_UNKNOWN5 0x54
-#define BGMT_UNKNOWN6 0x56
-#define BGMT_UNKNOWN7 0x58
-#define BGMT_UNKNOWN8 0x59
-#define BGMT_UNKNOWN9 0x61
-
-
-
-
-#define BGMT_WHEEL_UP 0
-#define BGMT_WHEEL_DOWN 1
-#define BGMT_WHEEL_LEFT 2
-#define BGMT_WHEEL_RIGHT 3
-#define BGMT_PRESS_SET 4 // same
-#define BGMT_UNPRESS_SET 5 // new, only in menu mode
-#define BGMT_MENU 6 // same
-#define BGMT_INFO 7 // new, old value for BGMT_DISP
-#define BGMT_PRESS_DISP 8 // new, old value for BGMT_Q
-#define BGMT_UNPRESS_DISP 9 // new, old value for BGMT_PLAY
-#define BGMT_PLAY 0xB // was 9
-#define BGMT_TRASH 0xD // old value for BGMT_PRESS_ZOOMOUT_MAYBE, was 0xA
-#define BGMT_ZOOM_OUT 0xE // new (unpress?)
-#define BGMT_Q_ALT 0x13
-#define BGMT_Q 0x1C // was 8
-#define BGMT_LV 0x1D // new
-#define BGMT_PRESS_RIGHT 0x23 // was 0x1a
-#define BGMT_UNPRESS_RIGHT 0x24 // was 0x1b
-#define BGMT_PRESS_LEFT 0x25 // was 0x1c
-#define BGMT_UNPRESS_LEFT 0x26 // was 0x1d
-#define BGMT_PRESS_UP 0x27 // was 0x1e
-#define BGMT_UNPRESS_UP 0x28 // was 0x1f
-#define BGMT_PRESS_DOWN 0x29 // was 0x20
-#define BGMT_UNPRESS_DOWN 0x2A // was 0x21
-
-#define BGMT_ISO 0x33 // new
-
-#define BGMT_PRESS_HALFSHUTTER 0x48 // was 0x3F, shared with magnify/zoom out
-#define BGMT_UNPRESS_HALFSHUTTER 0x49 // was 0x40, shared with magnify/zoom out, shared with unpress full shutter?
-#define BGMT_PRESS_FULLSHUTTER 0x52    // was 0x41, can't return 0 to block this (to verify)...
-
-#define BGMT_SHUTDOWN 0x53 // new
-
-#define GMT_OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
-#define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x100000a1 in 600d
-#define GMT_LOCAL_UNAVI_FEED_BACK 0x36 // event type = 2, sent when Q menu disappears; look for StartUnaviFeedBackTimer
-
-// needed for correct shutdown from powersave modes
-#define GMT_GUICMD_START_AS_CHECK 89
-#define GMT_GUICMD_OPEN_SLOT_COVER 85
-#define GMT_GUICMD_LOCK_OFF 83
 
 // these were found in ROM, but not tested yet
 
@@ -107,69 +45,12 @@
 #define YUV422_LV_BUFFER_1 0x40d07800 
 #define YUV422_LV_BUFFER_2 0x4c233800
 #define YUV422_LV_BUFFER_3 0x4f11d800
-#define YUV422_LV_PITCH 1440
- //~ #define YUV422_LV_PITCH_RCA 1080
- //~ #define YUV422_LV_PITCH_HDMI 3840
- //~ #define YUV422_LV_HEIGHT 480
- //~ #define YUV422_LV_HEIGHT_RCA 540
- //~ #define YUV422_LV_HEIGHT_HDMI 1080
+ 
+#define REG_EDMAC_WRITE_LV_ADDR 0xc0f04308 // SDRAM address of LV buffer (aka VRAM)
+#define REG_EDMAC_WRITE_HD_ADDR 0xc0f04208 // SDRAM address of HD buffer (aka YUV)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Below this line, all constant are from 550D/T2i 1.0.9 and not yet confirmed for 600D/T3i 1.0.1 !!!
-
-
-#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x2490)
-#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x73620)
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)0x2490)
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR))
 
 // changes during record
 #define YUV422_HD_BUFFER_1 0x44000080
@@ -210,11 +91,6 @@
 
 #define SENSOR_RES_X 5202
 #define SENSOR_RES_Y 3465
-
-#define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x61 && is_movie_mode() && event->arg == 9)
-#define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
-#define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000) == 0)
-#define FLASH_BTN_MOVIE_MODE (get_disp_pressed() && lv)
 
  #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
@@ -261,8 +137,8 @@
 #define MENU_DISP_INFO_POS_X 0
 #define MENU_DISP_INFO_POS_Y 395
 
-#define MENU_DISP_ISO_POS_X 590
-#define MENU_DISP_ISO_POS_Y 26
+#define MENU_DISP_ISO_POS_X 527
+#define MENU_DISP_ISO_POS_Y 45
 
 #define HDR_STATUS_POS_X 190
 #define HDR_STATUS_POS_Y 450
@@ -281,13 +157,6 @@
 #define DISPLAY_TRAP_FOCUS_MSG       "TRAP FOCUS"
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
-
-// these are wrong (just for compiling)
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0x10
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x11
-
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xe
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xf
 
 #define NUM_PICSTYLES 10
 #define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
@@ -322,12 +191,16 @@
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x8428+12) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
+#define IMGPLAY_ZOOM_POS_X MEM(0x75e38) // Zoom CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x75e3c)
+#define IMGPLAY_ZOOM_POS_X_CENTER 0x144
+#define IMGPLAY_ZOOM_POS_Y_CENTER 0xd8
+#define IMGPLAY_ZOOM_POS_DELTA_X (0x144 - 0x93)
+#define IMGPLAY_ZOOM_POS_DELTA_Y (0xd8 - 0x7d)
 
 #define BULB_EXPOSURE_CORRECTION 100 // min value for which bulb exif is OK [not tested]
 
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0xad80+0x2C) // see http://magiclantern.wikia.com/wiki/VRAM/BMP
-
-#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PRESS_DISP // what button to use for zebras in Play mode
 
 // manual exposure overrides
 #define LVAE_STRUCT 0x8b0c
@@ -355,6 +228,9 @@
 
 #define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
+#define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0x9))
+#define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xa))
+#define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x172c8

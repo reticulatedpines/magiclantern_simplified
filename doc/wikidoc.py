@@ -8,10 +8,11 @@ from getpass import getpass
 from twill.commands import *
 from twill import get_browser
 
-f = open("FEATURES.txt").readlines();
-m = open("MANUAL.txt").readlines();
-c = open("CONFIG.txt").readlines();
-q = open("FAQ.txt").readlines();
+def include(o, filename, start=0):
+    f = open(filename).readlines();
+    for l in f[start:]:
+        o.write(l)
+    o.write("\n");
 
 def sub(file, fr, to):
     txt = open(file).read()
@@ -21,33 +22,38 @@ def sub(file, fr, to):
     f.close()
 
 o = open("userguide.rst", "w")
-print >> o, """Magic Lantern v2.3
-=========================
+print >> o, """{{page>:userguide-header&nofooter}}
+
 
 """
-for l in f:
-    o.write(l)
-for l in m:
-    o.write(l)
-for l in c:
-    o.write(l)
+include(o, "FEATURES.txt");
+include(o, "MANUAL.txt");
+include(o, "MN-AUDIO.txt");
+include(o, "MN-EXPO.txt");
+include(o, "MN-OVERLAY.txt");
+include(o, "MN-MOVIE.txt");
+include(o, "MN-SHOOT.txt");
+include(o, "MN-FOCUS.txt");
+include(o, "MN-DISPLAY.txt");
+include(o, "MN-PREFS.txt");
+include(o, "MN-DEBUG.txt");
+
 o.close()
 
 o = open("faq.rst", "w")
 print >> o, """{{page>faq-header&nofooter}}
 """
-
-for l in q[2:]:
-    o.write(l)
+include(o, "FAQ.txt");
 o.close()
 
+os.system(r"sed -i -e 's/^#//g' userguide.rst")
 os.system("rst2html.py userguide.rst > userguide.html")
 os.system("html2wiki --no-escape-entities --dialect DokuWiki userguide.html > userguide.wiki")
 
 os.system("rst2html.py faq.rst > faq.html")
 os.system("html2wiki --no-escape-entities --dialect DokuWiki faq.html > faq.wiki")
 
-sub("userguide.wiki", r"{{([^>: ]*)\|(.*)}}", r"{{ \1?200|\2}}")
+sub("userguide.wiki", r"{{([^>: ]*)\|(.*)}}", r"{{\1?nolink|\2}}")
 sub("userguide.wiki", r'"', r"''")
 
 sub("faq.wiki", r"{{([^>: ]*)\|(.*)}}", r"{{ \1?200|\2}}")

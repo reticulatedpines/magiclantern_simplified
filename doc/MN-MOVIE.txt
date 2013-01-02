@@ -1,0 +1,214 @@
+Movie
+~~~~~
+
+.. figure:: 04.movie.png
+    :align: center
+    :width: 5cm
+
+Functions specific to movie mode.
+
+.. _Bitrate control:
+.. _bitrate:
+
+Bit Rate
+````````
+
+Controls H.264 bitrate used for video recording.
+  
+Possible modes:
+  
+* **CBR**: constant bitrate. You specify a factor for multiplying default video bitrate, between 0.1x and 3x. CBR 1x is the firmware default setting.
+* **QScale**: constant quality, variable bitrate (VBR). Available values: -16 ... +16. Lower numbers mean higher bitrates.
+* **Firmware default**: completely disable bitrate control.
+    
+Notes:
+ 
+* Increasing the bitrate **may cause recording to stop**. You need a fast card.
+* CBR actually works by adjusting QScale on the fly; the instant value is displayed near the recording dot.
+* In QScale mode, bitrate is completely out of control (don't use it!).
+* In CBR mode, QScale will not go outside [-16...+16]. When QScale reaches the extreme values (-16 or +16), bitrate **will be different** than your CBR setting. Watch the bitrate indicators. This is not a bug, please do not report it.
+* You can push the bitrate higher if you record without sound, then use `Audio RemoteShot`_ to sync the video with an external audio track.
+* You can't change this setting during recording.
+* If buffer usage gets too high, ML will pause all CPU-intensive graphics. Change the ``BuffWarnLevel`` setting to customize this.
+
+.. _time remaining display:
+
+Time Indicator
+``````````````
+
+When recording a movie, ML will display a small time counter in the upper right corner, 
+which can be:
+
+* **Elapsed**: duration of the current clip
+* **Remain.Card**: estimated amount of recording time remaining on the card.
+* **Remain.4GB**:  estimated amount of recording time until reaching 4GB (or until filling the card, whichever comes first).
+
+Unlike Canon's timer which assumes constant bitrate, ML timer assumes variable bitrate and works even if QScale is enabled.
+However, due to variations in bitrate, the estimated value will fluctuate a lot, and **this is normal**.
+
+.. _movie logging:
+
+Movie Logging
+`````````````
+
+If this setting is ``ON``, Magic Lantern will write out a metadata file for the each movie to ``MVI_1234.LOG`` (numbered after the movie). The log file contains lens and exposure info, as well as a timestamp every time any of the parameters is changed during recording. 
+  
+Log files are placed in the same folder as the movies: ``DCIM/100CANON/``, ``101CANON`` etc.
+  
+Tip: you can rename ``LOG`` files to ``CSV`` and import them in MS Excel.
+
+.. _auto-restart:
+.. _movie restart:
+
+Movie Restart
+`````````````
+
+While this setting is on, movie recording will restart automatically, unless you stop it. There will be a few seconds skipped during restarting.
+
+
+REC/STBY notify
+```````````````
+
+Custom notifications for recording or standby:
+  
+* **Red Crossout** (highly recommended if you forget to press record);
+* **Message** (it shows ``STBY`` or ``REC``);
+* **Beeps** (it will beep when recording starts or stops);
+* **Blue LED** (obvious if your camera has it).
+
+.. _Movie REC key:
+
+Movie REC key
+`````````````
+
+This option enables you to start/stop movie recording by half-pressing the shutter button.
+
+Tip: with this, you can use a wired remote to start/stop recording.
+
+Force LiveView
+``````````````
+
+Force LiveView in Movie mode (bypass the dialog saying *Press LV button to activate movie shooting*).
+  
+* **Always**: force LiveView even if you use an unchipped lens, or no lens at all. Be careful, you may get dust on the sensor while changing lenses.
+* **Start & CPU lenses**: it will force LiveView at startup, regardless of the lens used. After this, it will only bypass the dialog when a chipped lens is attached (i.e. it will enter LiveView as soon as you attach a chipped lens).
+
+Shutter Lock
+````````````
+
+This option locks the shutter value in movie mode, so you don't change it by mistake (you will be able to change it only from ML menu).
+
+.. _FPS:
+.. _FPS override:
+.. _FPS control:
+.. _slit-scan pictures:
+
+FPS override
+````````````
+
+This setting alters FPS for all video modes. Only undercranking works well.
+
+FPS is changed by altering two timer values (let's call them Timer A and Timer B). Increasing any of these values results in lower FPS. Aside from FPS, changing these timers may alter shutter speed and rolling shutter.
+
+Options:
+  
+* **Desired FPS**: choose a value from 0.2 fps to 65 fps. If the desired value is not possible, ML will choose the closest safe option (look at 'Actual FPS' below).
+  
+* **Optimize for**: 
+    
+  * **Low light**: use this option for recording timelapse with shutter speeds close to 1/fps (360 degrees); at high FPS values, you may be able to use other shutter speed values.
+  * **Exact FPS**: tries to achieve an exact FPS value, such as 24.000 or 30.000 or 12.500. If more exact solutions are found, ML will choose the one with lowest jello effect.
+  * **High FPS**: changes FPS without altering shutter speed and allows a slight overcranking (60D, 600D).
+  * **LowJello, 180d**: tries to minimize the jello effect (caused by rolling shutter), while allowing you to expose at 180 degrees (0.5/fps) if possible.
+  * **High Jello**: maximizes the jello effect and enables fast shutter speeds. You can use this mode for recording slit-scan frames (distorted images `like these <http://people.rit.edu/andpph/text-slit-scan.html>`_, which use the extreme jello effect in creative ways).
+
+* **Shutter range**: displays the available shutter speed range with current settings. When you use FPS override, Canon menu will still display 1/30 ... 1/4000, but the actual shutter speed will be different; read it from ML displays. You can alter shutter speed range by changing the ratio between the two timer values (decreasing timer B will result in faster shutter speeds available).
+ 
+* **Timer A**: displays the value of timer A and lets you fine-tune it. ML will re-adjust timer B to match your FPS choice.
+  
+* **Timer B**: displays the value of timer B and lets you fine-tune it. ML will not re-adjust timer A, so this option will let you fine-tune the exact FPS value.
+ 
+* **TG Frequency**: displays the crystal oscillator frequency of the FPS circuit driver (read-only, depends on your camera).
+  
+* **Actual FPS**: this displays the current FPS, computed as TG_FREQ / timerA / timerB (read-only).
+  
+* **Sound Record**: by default, ML will disable sound recording when FPS override is enabled; otherwise, audio will go out of sync and recording will stop. Only enable sound if you know what you are doing.
+
+Notes and tips:  
+
+* This function will **not** change the frame rate from the video header; the video will playback at the setting from Canon menu.
+
+* Recommended usage: set FPS to a very low value (for example, 3fps) to record a timelapse.
+
+* To get 180-degree shutter speed at very low FPS, simply discard half of the frames in post.
+
+* If 0.2 FPS is not enough, use `Frame Merger <http://bit.ly/frame-merger>`_ (a VirtualDub plugin).
+
+* Exact frame rate may be "rounded" to be an exact multiple of PAL/NTSC frame rates.
+      
+  * PAL modes: 25p/50p. Rounded frame rates: 33.333fps, 12.5fps, 11.111fps and so on.
+  * NTSC modes: 30p/60p/24p. Rounded frame rates: 29.97fps, 23.976fps, 11.988fps and so on.
+
+* For fine-tuning and calibrating custom frame rates, use `EOSTimerGen <http://bit.ly/EOSTimerGen>`_.
+
+* Tip: this feature **also works in photo mode**, making LiveView usable in dark environments. Combine it with `display gain`_.
+
+HDR video
+`````````
+
+{{ vimeo>33987353?250x140|Magic Lantern HDR Video}}
+
+This feature allows you to shoot a high dynamic range video by alternating ISO every other frame. Select the two ISO values from the submenu.
+
+Possible postprocessing workflows:
+
+* Interframe script: `user-friendly version <https://bitbucket.org/a1ex/magic-lantern/downloads/HDR-workflow-051.zip>`_ and `bare-bone version <https://bitbucket.org/hudson/magic-lantern/src/tip/hdr>`_;
+* `GingerHDR <http://www.gingerhdr.com/>`_ (plugin for Adobe After Effects and Premiere)
+* `Magic Lantern HDR Compose generator for FCP X <http://alex4d.wordpress.com/2012/01/03/ml-u-hdr-compose-fcpx-plug-in/>`_
+* `HDR Glogger Web Service <http://hdr.glogger.mobi/upload_hdr.php>`_
+* etc (please help me filling the list!)
+
+#See also the `postprocessing thread on the forum <http://www.magiclantern.fm/forum/index.php?board=14.0>`_.
+
+Note: this feature does not work on 500D/T1i.
+
+Image Effects...
+````````````````
+
+Custom image effects found by investigating DIGIC registers:
+
+* **Desaturate** (tip: this lets you record grayscale with any picture style);
+* **Negative** image;
+* **Swap U-V** (red becomes blue);
+* **Cartoon look** (for this to work, set sharpness in your picture style to any nonzero value).
+
+
+Movie Record (50D)
+``````````````````
+  
+Enable movie recording on 50D (1920x1080, 30fps, without sound). To start recording, go to LiveView (P/Tv/Av/M) and press SET.
+  
+**WARNING:** Canon 50D was **NOT** designed to record movies. Keep in mind:
+  
+* This feature was not thoroughly tested by Canon and may be unstable (even if you record without ML).
+* Always disable movie recording when you don't use it.
+* Battery will drain quickly when recording; also, the camera may overheat.
+  
+Limitations:
+  
+* The camera will not record sound. You can use an external recorder (for example, `Zoom H1, H2 or H4n <http://amzn.to/zoom-h>`_) and sync the sound in post with a clapperboard.
+* You can't play back movies in the camera.
+  
+#This setting remains active even if you start the camera with standard firmware (until you clear your settings).
+
+Shutter Button (50D)
+````````````````````
+
+* **Leave unchanged**: obvious :)
+* **Block during REC**: blocks the shutter and related (AF, ``*``) buttons while recording. In 50D, taking pictures while recording would result in ERR99; with this option, you can avoid taking pictures while recording by mistake. Side effect: this will disable image stabilization during recording.
+* **Hold during REC (IS)**: ML will keep the shutter button pressed half-way during recording, which will enable image stabilization (IS). Side effect: you need to press the shutter button half way to turn IS off before the camera will let you stop recording.
+
+Exposure Lock (50D)
+```````````````````
+
+Locks the exposure in movie mode. You can also use the ``*`` button (you don't have to hold it pressed).

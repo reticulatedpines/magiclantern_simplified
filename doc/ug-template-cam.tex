@@ -23,16 +23,16 @@
 %~ \usepackage[cmttb]{bold-extra}
 %\usepackage{lmodern}
 
-\newcommand{\DUroletitlereference}[1]{\texttt{\textbf{#1}}}
+%~ \newcommand{\DUroletitlereference}[1]{\texttt{\textbf{#1}}}
 
 \definecolor{darkgray}{rgb}{0.05,0.05,0.05}
 \definecolor{cyan}{rgb}{0.4,1,1}
 %\definecolor{cyan}{rgb}{1,0.8,0}
 
 % avoid hyphenation and a few other things 
-\hyphenpenalty=1000000
-\widowpenalty=1000000
-\clubpenalty=1000000
+%~ \hyphenpenalty=1000000
+%~ \widowpenalty=1000000
+%~ \clubpenalty=1000000
 
 \newlength{\DUtablewidth} % internal use in tables
 
@@ -60,30 +60,32 @@
 \def\wave{\tikz{ \draw [xscale=0.05,yscale=0.15] (0,0)--(1,1)--(2,0)--(3,1)--(4,0)--(5,1); }}
 
 % unused (but maybe it will be in the future)
-\def\overexposed{\tikz{\node [rectangle, pattern=north west lines, pattern color=red, minimum width=5mm, minimum height=3mm] {}; }}
-\def\underexposed{\tikz{\node [rectangle, pattern=north west lines, pattern color=blue, minimum width=5mm, minimum height=3mm] {}; }}
+%~ \def\overexposed{\tikz{\node [rectangle, pattern=north west lines, pattern color=red, minimum width=5mm, minimum height=3mm] {}; }}
+%~ \def\underexposed{\tikz{\node [rectangle, pattern=north west lines, pattern color=blue, minimum width=5mm, minimum height=3mm] {}; }}
 
 \usepackage[colorlinks=true,linkcolor=cyan,urlcolor=cyan]{hyperref}
-\hypersetup{
-  pdftitle={Magic Lantern 0.2 for Canon 550D, Firmware 1.0.9 -- User's Guide},
-  pdfauthor = {Alex Dumitrache <broscutamaker@gmail.com>},
-  pdfpagelayout = {OneColumn},
-  pdfpagemode = {UseNone},
-  pdfstartview = {FitH},
-  pdfborder = {0 0 0}
-}
+%~ \hypersetup{
+  %~ pdftitle={Magic Lantern v2.3 -- User's Guide},
+  %~ pdfauthor = {Alex Dumitrache <broscutamaker@gmail.com>},
+  %~ pdfpagelayout = {OneColumn},
+  %~ pdfpagemode = {UseNone},
+  %~ pdfstartview = {FitH},
+  %~ pdfborder = {0 0 0}
+%~ }
 
 
 % page size (should result in a readable font on a 720x480 bitmap)
 %\usepackage[papersize={94mm, 142mm}, total={90mm, 136mm}, centering]{geometry}
-\usepackage[papersize={120mm, 81mm}, total={115mm, 73mm}, centering]{geometry} % bottom line is always white... rounding bug?
+\usepackage[papersize={120mm, 81mm}, total={115mm, 70mm}, centering]{geometry} % bottom line is always white... rounding bug?
 %\usepackage[papersize={94mm, 2000mm}, total={90mm, 2000mm}, centering]{geometry}
+
+\pagestyle{empty}
 
 % sans serif font (easier to read on monitors, unlike serif which is easier to read on paper)
 \renewcommand{\familydefault}{\sfdefault} 
 
 % tighter layout (camera screen is small)
-\setlength{\parskip}{0mm plus1fil}
+\setlength{\parskip}{0mm plus0.5fil}
 \setlength{\parindent}{0mm}
 
 % redefine itemize and enumerate for tighter spacing, and a bit of rubber space (fil)
@@ -92,12 +94,12 @@
 
 \def\itemize{
 \olditemize
-\setlength{\itemsep}{0mm plus1fil}
+\setlength{\itemsep}{0mm plus0.5fil}
 \setlength{\leftskip}{-3mm}
 }
 \def\enumerate{
 \oldenumerate
-\setlength{\itemsep}{0mm plus1fil}
+\setlength{\itemsep}{0mm plus0.5fil}
 \setlength{\leftskip}{-3mm}
 }
 
@@ -110,7 +112,10 @@
 % iq = inside quote
 % if a quote environment spans on more than one page, add a "continued on next page" hint
 \newcount\iq
-\renewenvironment{quote}{\par\vfil\setlength{\voffset}{-1mm}\iq=1}{\vfil\setlength{\voffset}{0mm}\iq=0}
+%~ \renewenvironment{quote}{\par\vfil\setlength{\voffset}{-1mm}\iq=1}{\vfil\setlength{\voffset}{0mm}\iq=0}
+
+\let\oldnewpage=\newpage
+\def\newpage{\iq=0\oldnewpage\iq=1}
 
 % this hint is only displayed if iq=1
 \newcommand{\nextpagehint}{%
@@ -132,6 +137,10 @@
 %~ \let\oldsubsection=\subsection
 %~ \def\subsection{\newpage\oldsubsection}
 
+%~ \oldsubsubsection=\subsubsection*
+%~ \subsubsection*{\newpage\oldsubsubsection}
+
+
 % this is readable enough to skip the comments :)
 \usepackage{everypage}
 \AddEverypageHook{\nextpagehint}
@@ -150,8 +159,8 @@
 
 %%% Body
 \begin{document}
-\title{\vspace{-1cm}\includegraphics[width=3cm]{logo-trans.png}\\Magic Lantern pre0.2.2\\{\small for Canon 550D, 60D, 600D, 500D and 50D}}
-\author{\url{http://magiclantern.wikia.com/unified}}
+\title{\vspace{-1cm}\includegraphics[width=3cm]{logo-trans.png}\\Magic Lantern v2.3\\{\small \vskip1mm Stable ports: Canon 5D Mark II, 550D, 60D, 600D, 50D and 500D \\\vskip-3mm \scriptsize Ports in progress: Canon 5D Mark III, Canon 5D (classic), Canon 1100D/T3 }}
+\author{\url{www.magiclantern.fm}}
 \maketitle
 
 %~ \setlength{\baselineskip}{0mm plus1fil}
@@ -173,28 +182,32 @@
 %~ \end{minipage}
 %~ \end{center}
 
-Magic Lantern is an open framework for developing enhancements to the amazing Canon digital SLRs, including, but not limited to,
-5D Mark II, 60D, 500D/T1i, 550D/T2i and 600D/T3i.
+Magic Lantern is free software for enhancing the amazing Canon digital SLRs.
+\vspace{3mm}
 
-Magic Lantern is free software, licensed under the GPL, brought to you by a small 
-development team:
+Active developers:
 \begin{itemize}
-\item Trammell Hudson -- original author and lead of Magic Lantern project
-\item Alex -- main developer for 550D and 60D branches
-\item Arm.Indy -- author of crypto tools and virtually all new ports
-\item AJ -- developer of AJ version of Magic Lantern for 5D Mark II
-\item Coutts -- developer of 500D branch
-\item SztupY -- developer of 60D branch
+\item Alex -- main developer
+\item Arm.Indy -- author of crypto tools and most new ports
+\item G3gg0 -- reverse engineering guru
+\item Coutts -- porting ML to 5D classic
+\item Nanomad -- porting ML to 1100D/T3
+\item Miyake, 1\%, Scrax -- 600D developers
+\item SztupY -- author of ML USB controller and others
 \end{itemize}
 
+Past developers (come back guys!):
+\begin{itemize}
+\item Trammell Hudson -- original author and former leader of ML project
+\item AJ -- developed the AJ version of Magic Lantern for 5D Mark II
+\end{itemize}
 \newpage
 \subsubsection*{Thanks}
 
 \begin{itemize}
-\item Code contributions: piersg, nandoide, stefano, trho, deti, tapani, phil, xaos, Jason, AlinS, Chuchin, RoaldFre, Vincent Olivier, Colin Peart, cpc, msi, robotsound, Maclema, Adijiwa, nanomad, Max Chen, g3gg0, kyselejsyrecek, mk11174...
+\item Code contributions: piersg, nandoide, stefano, trho, deti, tapani, phil, xaos, Jason, AlinS, Chuchin, RoaldFre, Vincent Olivier, Colin Peart, cpc, msi, robotsound, Maclema, Adijiwa, nanomad, Max Chen, kyselejsyrecek, mk11174, Raymond Lo, Rob Kramer, Tobias Doerffel, Paul Nolan, Martin M ...
 \item Card tools authors: Pel, Zeno, lichtjaar
-\item Cropmark authors: CameraRick, Robert, bwwd, turbinicarpus, similaar, dremelv21, Piepas...
-\item Tutorial authors: sawomedia, Chung Dha, Dave Dugdale, Malcolm Debono, MediaUnlocked, Jeremy, Lauren Stevens, Shayne35mm, Renny Hayes, Daniel Thurau, Dod3032, 3615geek, CineDigital.tv, jeveuxdoncjevilme, Chadwick Shoults...
+\item Website team: Bart, Nanomad, Michael Zoller, CameraRick, Malcolm Debono, Francis Danforth...
 \item All users who tested this software, provided feedback and reported bugs
 \item All users who supported Magic Lantern development with donations
 \item CHDK and 400plus

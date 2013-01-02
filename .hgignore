@@ -1,7 +1,9 @@
 syntax: glob
+Makefile.user
 *.bin
 *.elf
 *.o
+*.d
 *.a
 *.fir
 .*
@@ -29,6 +31,7 @@ tags
 *.i
 *.log
 location.map
+autoexec.map
 platform/*.OLD
 plugins/plugin.lds
 docs/html
@@ -58,11 +61,10 @@ doc/install-body.tex
 doc/install.wiki
 doc/menuindex.txt
 installer/*/*.lds
-src/menuindexentries.h
 doc/Cropmarks550D.png
 platform/all/zip
 plugins/loader.c
-
+contrib/ptpcam/ptpcam
 loader.c
 doc/cam
 INSTALL.tex-e
@@ -70,5 +72,5 @@ UserGuide.tex-e
 UserGuide-cam.tex-e
 platform/all/ML
 zip.txt
+doxygen-doc/*
 syntax: regexp
-^plugins/(.*)/\1$

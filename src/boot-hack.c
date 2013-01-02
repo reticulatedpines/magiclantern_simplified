@@ -33,9 +33,10 @@
 #include "version.h"
 #include "property.h"
 #include "consts.h"
-
-/** If CONFIG_EARLY_PORT is defined, only a few things will be enabled */
-#undef CONFIG_EARLY_PORT
+#include "tskmon.h"
+#if defined(HIJACK_CACHE_HACK) || defined(CONFIG_6D)
+#include "cache_hacks.h"
+#endif
 
 /** These are called when new tasks are created */
 void my_task_dispatch_hook( struct context ** );
@@ -54,13 +55,11 @@ static uint8_t _reloc[ RELOCSIZE ];
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
     INSTR( rom_addr ) = BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
 
-/** Was this an autoboot or firmware file load? */
-int autoboot_loaded;
-
 
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
 
+/** Zeroes out bss */
 static inline void
 zero_bss( void )
 {
@@ -69,16 +68,33 @@ zero_bss( void )
         *(bss++) = 0;
 }
 
-
-void
-__attribute__((noreturn,noinline,naked))
-copy_and_restart( int offset )
+#if defined(CONFIG_6D)
+void hijack_6d_guitask()
 {
+    void my_gui_main_task();
+    task_create("GuiMainTask", 0x17, 0x2000, my_gui_main_task, 0);
+}
+#endif
+
+
+/** Copy firmware to RAM, patch it and restart it */
+void
+copy_and_restart( )
+{
+    // Clear bss
     zero_bss();
 
-    // Set the flag if this was an autoboot load
-    autoboot_loaded = (offset == 0);
+#ifdef HIJACK_CACHE_HACK
+    /* make sure we have the first segment locked in d/i cache for patching */    
+    cache_lock();
 
+    /* patch init code to start our init task instead of canons default */
+    cache_fake(HIJACK_CACHE_HACK_INITTASK_ADDR, (uint32_t) my_init_task, TYPE_DCACHE);
+
+    /* now start main firmware */
+    void (*reset)(void) = (void*) ROMBASEADDR;
+    reset();
+#else
     // Copy the firmware to somewhere safe in memory
     const uint8_t * const firmware_start = (void*) ROMBASEADDR;
     const uint32_t firmware_len = RELOCSIZE;
@@ -99,7 +115,7 @@ copy_and_restart( int offset )
      * create_init_task
      */
     // Reserve memory after the BSS for our application
-    #ifndef CONFIG_550D // 550D loads ML in the AllocateMemory pool
+    #if !defined(CONFIG_550D) && !defined(CONFIG_600D) && !defined(CONFIG_1100D) // 550D/600D/1100D load ML in the AllocateMemory pool
     INSTR( HIJACK_INSTR_BSS_END ) = (uintptr_t) _bss_end;
     #endif
 
@@ -113,6 +129,13 @@ copy_and_restart( int offset )
     // Make sure that our self-modifying code clears the cache
     clean_d_cache();
     flush_caches();
+    
+    //~ temporary, this is the only way I could manage to hijack the GUI task. just hacking data cache
+    //~ didn't work..
+#ifdef CONFIG_6D
+    cache_lock();
+    cache_fake(0xFF0DF6DC, BL_INSTR(0xFF0DF6DC, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
+#endif
 
     // We enter after the signature, avoiding the
     // relocation jump that is at the head of the data
@@ -135,9 +158,13 @@ copy_and_restart( int offset )
     * install our own handlers.
     */
 
-#ifndef CONFIG_EARLY_PORT
+    //~ Canon changed their task starting method in the 6D so our old hook method doesn't work.
+#ifndef CONFIG_6D
+#if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD)
     // Install our task creation hooks
     task_dispatch_hook = my_task_dispatch_hook;
+    tskmon_init();
+#endif
 #endif
 
     // This will jump into the RAM version of the firmware,
@@ -146,6 +173,7 @@ copy_and_restart( int offset )
     // instead.
     void (*ram_cstart)(void) = (void*) &INSTR( cstart );
     ram_cstart();
+#endif
 
     // Unreachable
     while(1)
@@ -155,6 +183,7 @@ copy_and_restart( int offset )
 
 #ifndef CONFIG_EARLY_PORT
 
+/** This task does nothing */
 void
 null_task( void )
 {
@@ -174,6 +203,8 @@ my_task_dispatch_hook(
     if( !context )
         return;
     
+    tskmon_task_dispatch();
+
     // Do nothing unless a new task is starting via the trampoile
     if( (*context)->pc != (uint32_t) task_trampoline )
         return;
@@ -208,7 +239,8 @@ my_task_dispatch_hook(
 }
 
 
-/** First task after a fresh rebuild.
+/** 
+ * First task after a fresh rebuild.
  *
  * Try to dump the debug log after ten seconds.
  * This requires the create_task(), dmstart(), msleep() and dumpf()
@@ -232,10 +264,10 @@ struct config * global_config;
 static volatile int init_funcs_done;
 
 
+/** Call all of the init functions  */
 static void
 call_init_funcs( void * priv )
 {
-    // Call all of the init functions
     extern struct task_create _init_funcs_start[];
     extern struct task_create _init_funcs_end[];
     struct task_create * init_func = _init_funcs_start;
@@ -260,36 +292,133 @@ static void nop( void ) { }
 void menu_init( void ) __attribute__((weak,alias("nop")));
 void debug_init( void ) __attribute__((weak,alias("nop")));
 
-int magic_off = 0;
+int magic_off = 0; // Set to 1 to disable ML
 int magic_off_request = 0;
 int magic_is_off() 
 {
     return magic_off; 
 }
 
+
+#if defined(CONFIG_AUTOBACKUP_ROM)
+
+#define BACKUP_BLOCKSIZE 0x00100000
+
+void backup_region(char *file, uint32_t base, uint32_t length)
+{
+    FILE *handle = NULL;
+    unsigned int size = 0;
+    uint32_t pos = 0;
+    
+    /* already backed up that region? */
+    if((FIO_GetFileSize( file, &size ) == 0) && (size == length) )
+    {
+        return;
+    }
+    
+    /* no, create file and store data */
+    handle = FIO_CreateFileEx(file);
+    while(pos < length)
+    {
+        uint32_t blocksize = BACKUP_BLOCKSIZE;
+        
+        if(length - pos < blocksize)
+        {
+            blocksize = length - pos;
+        }
+        
+        FIO_WriteFile(handle, &((uint8_t*)base)[pos], blocksize);
+        pos += blocksize;
+        
+        /* to make sure lower prio tasks can also run */
+        msleep(20);
+    }
+    FIO_CloseFile(handle);
+}
+
+void backup_task()
+{
+    backup_region(CARD_DRIVE "ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
+    backup_region(CARD_DRIVE "ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
+}
+#endif
+
 int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
+int ml_gui_initialized = 0; // 1 after gui_main_task is started 
+
+static int compute_signature(int* start, int num)
+{
+        int c = 0;
+        int* p;
+        for (p = start; p < start + num; p++)
+        {
+                c += *p;
+        }
+        return c;
+}
+
 
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
-{   
+{
+#if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
+  uint32_t len;
+  load_fonts();
+#endif
+
+#ifdef CONFIG_HELLO_WORLD
+    len = compute_signature(ROMBASEADDR, 0x10000);
+    while(1)
+    {
+        bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
+        bfnt_puts("Hello, World", 50, 100, COLOR_BLACK, COLOR_WHITE);
+        bmp_printf(FONT_LARGE, 50, 400, "firmware signature = 0x%x", len);
+        info_led_blink(1, 500, 500);
+    }
+#endif
+#ifdef CONFIG_DUMPER_BOOTFLAG
+    msleep(500);
+    call("EnableBootDisk");
+    bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk");
+    msleep(500);
+    FILE* f = FIO_CreateFile(CARD_DRIVE "k301_101.dat");
+    if (f) {
+        len=FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
+        FIO_CloseFile(f);
+        bmp_printf(FONT_LARGE, 50, 250, "Oops!");    
+    }
+    info_led_blink(1, 500, 500);
+#endif
+    
     call("DisablePowerSave");
     menu_init();
     debug_init();
     call_init_funcs( 0 );
     msleep(200); // leave some time for property handlers to run
-/* battery test
- *  while(1)
+
+    #ifdef CONFIG_BATTERY_TEST
+    while(1)
     {
         RefreshBatteryLevel_1Hz();
         wait_till_next_second();
         batt_display(0, 0, 0, 0);
     }
     return;
-*/
+    #endif
 
-    config_parse_file( CARD_DRIVE "ML/magic.cfg" );
+    #if defined(CONFIG_AUTOBACKUP_ROM)
+    /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
+    /* On 5D3, this needs to run after init functions (after card tests) */
+    task_create("ml_backup", 0x1f, 0x4000, backup_task, 0 );
+    #endif
+
+    #ifdef CONFIG_CONFIG_FILE
+    // Read ML config
+    config_parse_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
+    #endif
+    
     debug_init_stuff();
 
     _hold_your_horses = 0; // config read, other overriden tasks may start doing their job
@@ -340,6 +469,8 @@ void my_big_init_task()
                 //~ streq(task->name, "seconds_clock_task") ||
                 //~ streq(task->name, "shoot_task") ||
                 //~ streq(task->name, "tweak_task") ||
+                //~ streq(task->name, "beep_task") ||
+                //~ streq(task->name, "crash_log_task") ||
             0 )
         #endif
         {
@@ -352,11 +483,17 @@ void my_big_init_task()
             );
             ml_tasks++;
         }
+        //~ else
+        //~ {
+            //~ bmp_printf(FONT_LARGE, 50, 50, "skip %s  ", task->name);
+            //~ msleep(1000);
+        //~ }
     }
     //~ bmp_printf( FONT_MED, 0, 85,
         //~ "Magic Lantern is up and running... %d tasks started.",
         //~ ml_tasks
     //~ );
+    
     msleep(500);
     ml_started = 1;
 
@@ -370,6 +507,7 @@ void my_big_init_task()
     stop_killing_flicker();
 }*/
 
+/** Blocks execution until config is read */
 void hold_your_horses(int showlogo)
 {
     while (_hold_your_horses)
@@ -491,8 +629,163 @@ int init_task_patched_for_550D(int a, int b, int c, int d)
 }
 #endif
 
+#ifdef CONFIG_600D
+int init_task_patched_for_600D(int a, int b, int c, int d)
+{
+    // We shrink the AllocateMemory (system memory) pool in order to make space for ML binary
+    // ff0197fc: init_task:
+    // ff019870: b CreateTaskMain
+    //
+    // ff0123c4 CreateTaskMain:
+    // ff0123e4: mov r1, #13631488  ; 0xd00000  <-- end address
+    // ff0123e8: mov r0, #3997696   ; 0x3d0000  <-- start address
+    // ff0123ec: bl  allocatememory_init_pool
+
+    // So... we need to patch CreateTaskMain, which is called by init_task.
+    //
+    // First we use Trammell's reloc.c code to relocate init_task and CreateTaskMain...
+
+    #define init_task_start 0xff0197fc
+    #define init_task_end   0xFF0199D4
+    #define init_task_len   (init_task_end - init_task_start)
+
+    #define CreateTaskMain_start 0xFF0123C4
+    #define CreateTaskMain_end   0xFF0126B8
+    #define CreateTaskMain_len   (CreateTaskMain_end - CreateTaskMain_start)
+    
+    static char init_task_reloc_buf[init_task_len+64];
+    static char CreateTaskMain_reloc_buf[CreateTaskMain_len+64];
+    
+    int (*new_init_task)(int,int,int,int) = (void*)reloc(
+        0,      // we have physical memory
+        0,      // with no virtual offset
+        init_task_start,
+        init_task_end,
+        init_task_reloc_buf
+    );
+
+    int (*new_CreateTaskMain)(void) = (void*)reloc(
+        0,      // we have physical memory
+        0,      // with no virtual offset
+        CreateTaskMain_start,
+        CreateTaskMain_end,
+        CreateTaskMain_reloc_buf
+    );
+    
+    const uintptr_t init_task_offset = (intptr_t)new_init_task - (intptr_t)init_task_reloc_buf - (intptr_t)init_task_start;
+    const uintptr_t CreateTaskMain_offset = (intptr_t)new_CreateTaskMain - (intptr_t)CreateTaskMain_reloc_buf - (intptr_t)CreateTaskMain_start;
+
+    // Done relocating, now we can patch things.
+
+    uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + 0xff0123e4 + CreateTaskMain_offset);
+    uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + 0xff0123ec + CreateTaskMain_offset);
+
+    // change end limit to 0xc800000 => reserve 500K for ML
+    // thanks to ARMada by g3gg0 for the black magic :)
+    *addr_AllocMem_end = 0xE3A01732;
+
+    // relocating CreateTaskMain does some nasty things, so, right after patching,
+    // we jump back to ROM version; at least, what's before patching seems to be relocated properly
+    *addr_BL_AllocMem_init = B_INSTR(addr_BL_AllocMem_init, 0xff0123ec);
+    
+    uint32_t* addr_B_CreateTaskMain = (void*)init_task_reloc_buf + 0xff019870 + init_task_offset;
+    *addr_B_CreateTaskMain = B_INSTR(addr_B_CreateTaskMain, new_CreateTaskMain);
+    
+    
+    /* FIO_RemoveFile("B:/dump.hex");
+    FILE* f = FIO_CreateFile("B:/dump.hex");
+    FIO_WriteFile(f, UNCACHEABLE(new_CreateTaskMain), CreateTaskMain_len);
+    FIO_CloseFile(f);
+    
+    NotifyBox(10000, "%x ", new_CreateTaskMain); */
+    
+    // Well... let's cross the fingers and call the relocated stuff
+    return new_init_task(a,b,c,d);
+
+}
+#endif
+
+
+#ifdef CONFIG_1100D
+int init_task_patched_for_1100D(int a, int b, int c, int d)
+{
+    // We shrink the AllocateMemory (system memory) pool in order to make space for ML binary
+    // ff0197d8: init_task:
+    // ff01984c: b CreateTaskMain
+    //
+    // ff0123c4 CreateTaskMain:
+    // ff0123e4: mov r1, #13631488  ; 0xd00000  <-- end address
+    // ff0123e8: mov r0, #3997696   ; 0x3d0000  <-- start address
+    // ff0123ec: bl  allocatememory_init_pool
+
+    // So... we need to patch CreateTaskMain, which is called by init_task.
+    //
+    // First we use Trammell's reloc.c code to relocate init_task and CreateTaskMain...
+
+    #define init_task_start 0xff0197d8
+    #define init_task_end   0xff0199b0
+    #define init_task_len   (init_task_end - init_task_start)
+
+    #define CreateTaskMain_start 0xFF0123C4
+    #define CreateTaskMain_end   0xFF0126B4
+    #define CreateTaskMain_len   (CreateTaskMain_end - CreateTaskMain_start)
+    
+    static char init_task_reloc_buf[init_task_len+64];
+    static char CreateTaskMain_reloc_buf[CreateTaskMain_len+64];
+    
+    int (*new_init_task)(int,int,int,int) = (void*)reloc(
+        0,      // we have physical memory
+        0,      // with no virtual offset
+        init_task_start,
+        init_task_end,
+        init_task_reloc_buf
+    );
+
+    int (*new_CreateTaskMain)(void) = (void*)reloc(
+        0,      // we have physical memory
+        0,      // with no virtual offset
+        CreateTaskMain_start,
+        CreateTaskMain_end,
+        CreateTaskMain_reloc_buf
+    );
+    
+    const uintptr_t init_task_offset = (intptr_t)new_init_task - (intptr_t)init_task_reloc_buf - (intptr_t)init_task_start;
+    const uintptr_t CreateTaskMain_offset = (intptr_t)new_CreateTaskMain - (intptr_t)CreateTaskMain_reloc_buf - (intptr_t)CreateTaskMain_start;
+
+    // Done relocating, now we can patch things.
+
+    uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + 0xff0123e4 + CreateTaskMain_offset);
+    uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + 0xff0123ec + CreateTaskMain_offset);
+
+    // change end limit to 0xc800000 => reserve 500K for ML
+    // thanks to ARMada by g3gg0 for the black magic :)
+    *addr_AllocMem_end = 0xE3A01732;
+
+    // relocating CreateTaskMain does some nasty things, so, right after patching,
+    // we jump back to ROM version; at least, what's before patching seems to be relocated properly
+    *addr_BL_AllocMem_init = B_INSTR(addr_BL_AllocMem_init, 0xff0123ec);
+    
+    uint32_t* addr_B_CreateTaskMain = (void*)init_task_reloc_buf + 0xff01984c + init_task_offset;
+    *addr_B_CreateTaskMain = B_INSTR(addr_B_CreateTaskMain, new_CreateTaskMain);
+    
+    
+    /* FIO_RemoveFile("B:/dump.hex");
+    FILE* f = FIO_CreateFile("B:/dump.hex");
+    FIO_WriteFile(f, UNCACHEABLE(new_CreateTaskMain), CreateTaskMain_len);
+    FIO_CloseFile(f);
+    
+    NotifyBox(10000, "%x ", new_CreateTaskMain); */
+    
+    // Well... let's cross the fingers and call the relocated stuff
+    return new_init_task(a,b,c,d);
+
+}
+#endif
+
 // flag set to 1 when gui_main_task started to process messages from queue
 int gui_init_done = 0;
+
+
 
 /** Initial task setup.
  *
@@ -517,12 +810,31 @@ my_init_task(int a, int b, int c, int d)
     }
 #endif
 
+#ifdef HIJACK_CACHE_HACK
+    /* as we do not return in the middle of te init task as in the hijack-through-copy method, we have to install the hook here */
+    task_dispatch_hook = my_task_dispatch_hook;
+    tskmon_init();
+    
+    /* now patch init task and continue execution */
+    cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, HIJACK_CACHE_HACK_BSS_END_INSTR, TYPE_ICACHE);
+    
+    int ans = init_task(a,b,c,d);
+    
+    /* no functions/caches need to get patched anymore, we can disable cache hacking again */    
+    /* use all cache pages again, so we run at "full speed" although barely noticeable (<1% speedup/slowdown) */
+    //cache_unlock();
+#else
     // Call their init task
     #ifdef CONFIG_550D
     int ans = init_task_patched_for_550D(a,b,c,d);
+    #elif defined(CONFIG_600D)
+    int ans = init_task_patched_for_600D(a,b,c,d);
+    #elif defined(CONFIG_1100D)
+    int ans = init_task_patched_for_1100D(a,b,c,d);
     #else
     int ans = init_task(a,b,c,d);
     #endif
+#endif
 
 #ifdef ARMLIB_OVERFLOWING_BUFFER
     // Restore the overwritten value, if any
@@ -532,10 +844,12 @@ my_init_task(int a, int b, int c, int d)
     }
 #endif
 
+#ifdef CONFIG_CRASH_LOG
 #ifdef DRYOS_ASSERT_HANDLER
     // decompile TH_assert to find out the location
     old_assert_handler = (void*)MEM(DRYOS_ASSERT_HANDLER);
     *(void**)(DRYOS_ASSERT_HANDLER) = (void*)my_assert_handler;
+#endif
 #endif
     
 #ifndef CONFIG_EARLY_PORT
@@ -554,6 +868,7 @@ my_init_task(int a, int b, int c, int d)
     );
 #endif
 
+#if !defined(CONFIG_NO_ADDITIONAL_VERSION)
     // Re-write the version string.
     // Don't use strcpy() so that this can be done
     // before strcpy() or memcpy() are located.
@@ -572,19 +887,32 @@ my_init_task(int a, int b, int c, int d)
     additional_version[11] = build_version[7];
     additional_version[12] = build_version[8];
     additional_version[13] = '\0';
+#endif
 
 #ifndef CONFIG_EARLY_PORT
 
     // wait for firmware to initialize
     while (!bmp_vram_raw()) msleep(100);
-    msleep(200);
     
+    // wait for overriden gui_main_task (but use a timeout so it doesn't break if you disable that for debugging)
+    for (int i = 0; i < 30; i++)
+    {
+        if (ml_gui_initialized) break;
+        msleep(100);
+    }
+    msleep(200);
+
+    // at this point, gui_main_start should be started and should be able to tell whether SET was pressed at startup
     if (magic_off_request)
     {
-        while (!DISPLAY_IS_ON) msleep(100);
-        msleep(100);
         magic_off = 1;  // magic off request might be sent later (until ml is fully started), but will be ignored
+        for (int i = 0; i < 10; i++)
+        {
+            if (DISPLAY_IS_ON) break;
+            msleep(100);
+        }
         bfnt_puts("Magic OFF", 0, 0, COLOR_WHITE, COLOR_BLACK);
+    #if !defined(CONFIG_NO_ADDITIONAL_VERSION)
         extern char additional_version[];
         additional_version[0] = '-';
         additional_version[1] = 'm';
@@ -594,9 +922,12 @@ my_init_task(int a, int b, int c, int d)
         additional_version[5] = 'f';
         additional_version[6] = 'f';
         additional_version[7] = '\0';
+    #endif
         return ans;
     }
-    task_create("ml_init", 0x1e, 0x1000, my_big_init_task, 0 );
+
+    task_create("ml_init", 0x1e, 0x4000, my_big_init_task, 0 );
+
     return ans;
 #endif // !CONFIG_EARLY_PORT
 }
@@ -607,19 +938,8 @@ int lcd_release_running = 0;
 void lcd_release_step() {};
 int get_lcd_sensor_shortcuts() { return 0; }
 void display_lcd_remote_icon(int x0, int y0) {}
-int audio_meters_are_drawn() { return 0; }
-void volume_up(){};
-void volume_down(){};
-void out_volume_up(){};
-void out_volume_down(){};
 int new_LiveViewApp_handler = 0xff123456;
 void bootflag_write_bootblock(){};
-void hdr_mvr_log() {}
-void hdr_get_iso_range() {}
-int hdrv_enabled = 0;
-int audio_levels = 0;
 int handle_af_patterns(struct event * event) { return 1; }
-void lv_request_pause_updating(){}
-void lv_wait_for_pause_updating_to_finish(){}
 
 #endif

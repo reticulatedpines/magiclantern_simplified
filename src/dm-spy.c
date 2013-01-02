@@ -1,139 +1,78 @@
 /** 
- * Spy the dmstate object and steal debug messages
+ * Attempt to intercept all Canon debug messages by overriding DebugMsg call with cache hacks
+ * 
+ * Usage: 
+ * 
+ * 1) Make sure the cache hack is working.
+ * For example, add this in boot-hack.c:
+ *     // Make sure that our self-modifying code clears the cache
+ *     clean_d_cache();
+ *     flush_caches();
+ *     + cache_lock();
+ *
+ * 
+ * 2) call "debug_intercept" from "don't click me"
  * 
  **/
 
 #include "dryos.h"
 #include "bmp.h"
-#include "state-object.h"
-#include "config.h"
-#include "menu.h"
+#include "cache_hacks.h"
 
-#ifdef CONFIG_60D
-#define dm_state (*(struct state_object **)0x7318)
-#define MAX_MSG 3119 // trial and error, try with gui messages
-#endif
+#define BUF_SIZE (1024*1024)
+static char* buf = 0;
+static int len = 0;
 
-static CONFIG_INT("dm.enable", dm_enable, 0);
-static CONFIG_INT("dm.global.level", dm_global_level, 0xff);
-static CONFIG_INT("dm.class", dm_class, 137);
-static CONFIG_INT("dm.class.level", dm_class_level, 0);
-
-FILE* logfile = 0;
-static void log_msg(int k)
+void my_DebugMsg(int class, int level, char* fmt, ...)
 {
-    int a = MEM(MEM(0x2D14)+0x10);
-    //~ int b = a + 85 * MEM(8 + a + 3*60);
-    static int y = 0;
+    if (!buf) return;
+        
+    if (class == 21) // engio
+        return;
+    
+    va_list            ap;
 
-    //~ if (logfile)
-    /*
-    my_fprintf(logfile,
-    //~ bmp_printf(FONT_SMALL, 0, y,
-        "%d:%s\n",
-        //~ "%d:%s\n                                                                                          ",
-        k, a + 0x88 + k * 84
-    );*/
-    y += font_small.height;
-    if (y > 450) y = 0;
+    // not quite working due to concurrency issues
+    // semaphores don't help, camera locks
+    // same thing happens with recursive locks
+    // cli/sei don't lock the camera, but didn't seem to help
+    
+    //~ len += snprintf( buf+len, MIN(10, BUF_SIZE-len), "%s%d ", dm_names[class], level );
 
-    MEM(a + 0x88 + k * 84 + 30) = 0;
-    NotifyBox(5000, "%d:\n%s", k, a + 0x88 + k * 84);
+    // char* msg = buf+len;
 
+    va_start( ap, fmt );
+    len += vsnprintf( buf+len, BUF_SIZE-len, fmt, ap );
+    va_end( ap );
+
+    len += snprintf( buf+len, BUF_SIZE-len, "\n" );
+    
+    //~ static int y = 0;
+    //~ bmp_printf(FONT_SMALL, 0, y, "%s\n                                                               ", msg);
+    //~ y += font_small.height;
+    //~ if (y > 450) y = 0;
 }
 
-static int (*StateTransition)(void*,int,int,int,int) = 0;
-static int stateobj_spy(struct state_object * self, int x, int input, int z, int t)
+// call this from "don't click me"
+void debug_intercept()
 {
-    int ans = StateTransition(self, x, input, z, t);
-    if (input == 2)
+    if (!buf) // first call, intercept debug messages
     {
-        static int last = -1;
-        for (int k = last+1; k <= t; k++)
-        {
-            log_msg(k % MAX_MSG);
-            last = k;
-        }
+        buf = alloc_dma_memory(BUF_SIZE);
+        
+        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+        uint32_t d = (uint32_t)&DryosDebugMsg;
+        *(uint32_t*)(d) = B_INSTR((uint32_t)&DryosDebugMsg, my_DebugMsg);
+        #else
+        cache_fake((uint32_t)&DryosDebugMsg, B_INSTR((uint32_t)&DryosDebugMsg, my_DebugMsg), TYPE_ICACHE);
+        #endif
+        NotifyBox(2000, "Now logging... ALL DebugMsg's :)", len);
     }
-    return ans;
-}
-
-static void stateobj_start_spy(struct state_object * stateobj)
-{
-    StateTransition = (void*)stateobj->StateTransition_maybe;
-    stateobj->StateTransition_maybe = (void*)stateobj_spy;
-}
-
-static void dm_update()
-{
-    if (dm_enable)
+    else // subsequent call, save log to file
     {
-        dmstart();
-        FIO_RemoveFile(CARD_DRIVE "ML/dm.log");
-        logfile = FIO_CreateFile(CARD_DRIVE "ML/dm.log");
+        dump_seg(buf, len, CARD_DRIVE"dm.log");
+        NotifyBox(2000, "Saved %d bytes.", len);
     }
-    else
-    {
-        dmstop();
-        FIO_CloseFile(logfile);
-        logfile = 0;
-    }
-
-    dm_set_store_level(0xFF, dm_global_level);
-    dm_set_print_level(0xFF, dm_global_level);
-
-    dm_set_store_level(dm_class, dm_class_level);
-    dm_set_print_level(dm_class, dm_class_level);
+    beep();
 }
-
-static void dm_toggle(void* priv, int dir)
-{
-    dm_enable = !dm_enable;
-    dm_update();
-}
-
-static struct menu_entry debug_menus[] = {
-    {
-        .name = "Debug Logging",
-        .priv = &dm_enable,
-        .max = 1,
-        .select = dm_toggle,
-        .help = "Enable debug logging.",
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Log class",
-                .priv = &dm_class,
-                .min = 0,
-                .max = 255,
-                .help = "Choose which class of messages to log."
-            },
-            {
-                .name = "Class level",
-                .priv = &dm_class_level,
-                .min = 0,
-                .max = 255,
-                .help = "Debug level for selected class. 0 = all messages."
-            },
-            {
-                .name = "Global level",
-                .priv = &dm_global_level,
-                .min = 0,
-                .max = 255,
-                .help = "Global debug level. Higher = less messages saved."
-            },
-            MENU_EOL
-        },
-    },
-};
-
-static void dmspy_task(void* unused)
-{
-    menu_add("Debug", debug_menus, COUNT(debug_menus));
-    dm_update();
-    DEBUG("hello world");
-    stateobj_start_spy(dm_state);
-    TASK_RETURN;
-}
-
-TASK_CREATE("dmspy_task", dmspy_task, 0, 0x1d, 0x1000 );
 

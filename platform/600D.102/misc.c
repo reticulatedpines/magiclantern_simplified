@@ -52,3 +52,7 @@ void lcd_release_step() {};
 int get_lcd_sensor_shortcuts() { return 0; }
 void display_lcd_remote_icon(int x0, int y0) {}
 
+void* AllocateMemory(size_t size) // this won't throw ERR70
+{
+	return (void*) AllocateMemory_do(*(int*)0x3070, size);
+}

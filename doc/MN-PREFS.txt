@@ -1,0 +1,205 @@
+Prefs
+~~~~~
+
+.. figure:: 08.prefs.png
+    :align: center
+    :width: 5cm
+
+Image review settings...
+````````````````````````
+
+Customize the image review (playback) mode:
+
+.. _SET+MainDial:
+
+SET+MainDial
+""""""""""""
+
+.. figure:: Compare_and_hdr.png
+    :align: center
+    :width: 7cm
+ 
+When you hold ``SET`` pressed and turn the main dial (scrollwheel), ML may perform one of these functions:
+  
+* **Play 422**: display silent pictures from ``DCIM/100CANON`` (low-res only).
+* **Exposure Fusion**: combine two or more images, useful for previewing `HDR`_ images or multiple exposures.
+* **Compare Images**: compare two images with a diagonal split view. The current image will always end up in the top half.
+* **Timelapse Play**: scroll through all your pictures quickly.
+
+.. _Change image review mode to PLAY:
+
+Image review
+""""""""""""
+  
+* **QuickReview default**: just like in standard firmware.
+* **CanonMenu:Hold->PLAY**: if you set ``ImageReview:Hold`` in Canon menu, it will go to ``PLAY`` mode instead. This allows you to zoom in as soon as you take the picture (without having to press ``PLAY``). Credits goto Ken Rockwell for hint `("You have to hit PLAY") <http://www.kenrockwell.com/canon/5d-mk-ii.htm>`_.
+
+Quick Zoom
+""""""""""
+
+Faster zoom in PLAY mode, for checking critical focus:
+
+* **OFF**
+* **ON (fast zoom)** - zooms faster than Canon firmware.
+* **SinglePress -> 100%**: a single press of ``Zoom In`` will zoom all the way in (to 100%) - on center point. Next press will zoom out (full screen image).
+* **Full zoom on AF point**: similar, but it will zoom on currently selected autofocus point.
+* **Full zoom on last position**: similar, but it will remember the last position of the zoom box.
+
+LV button
+"""""""""
+
+Customize the LiveView button in ``PLAY`` mode:
+  
+* **Default** (enter LiveView)
+* **Protect image**
+* **Rate image**
+
+Quick Erase
+"""""""""""
+
+Shortcut for erasing images without confirmation (hold SET and press ERASE). Be careful!
+
+LiveView Zoom Settings...
+`````````````````````````
+
+Customize Canon's x5/x10 zoom in LiveView:
+
+* **Zoom x5, x10**: you can disable one of them, so the first ``Zoom In`` press will zoom in, and the second will zoom out;
+* **Auto exposure on zoom**: auto adjusts exposure while zoom is active. This lets you adjust aperture freely on a manual lens, without the image going too bright or too dark (so it helps when focusing);
+* **Increase SharpContrast**: when zoom is active, sharpness and contrast are maximized. Increased sharpness works somewhat like focus peaking.
+* **Zoom on HalfShutter**: zoom is enabled when you press the shutter halfway.
+* **Zoom with Focus Ring**: if your Canon lens reports focus distance, you can enable zooming just by turning the focus ring. If you'd like the zoom to stay enabled for a longer time, press and hold the shutter halfway.
+
+.. _Arrow/SET shortcuts:
+
+Arrow/SET shortcuts...
+``````````````````````
+
+Select the features you want to adjust quickly with arrow keys:
+
+* Audio gain
+* ISO/Kelvin
+* Shutter/Aperture
+* LCD Brightness/Saturation
+
+You can also enable quick functions for the SET button, coupled with the corresponding arrow adjustments:
+
+* Audio input (internal mic, external mic, balanced...)
+* Push-button white balance
+* 180-degree shutter speed (or the closest approximation)
+* Reset LCD brightness to 5 and saturation to Normal.
+
+
+
+Misc key settings...
+````````````````````
+
+.. _SensorShortcuts:
+
+LCD Sensor Shortcuts
+""""""""""""""""""""
+
+Use the LCD face sensor as an extra key in ML (e.g. for triggering arrow keys, for blocking follow focus or for bypassing magic zoom key).
+
+To fully disable the LCD sensor in Magic Lantern, disable ``LCD auto off`` from Canon menu (Wrench 1). You need to do this if you are using a device which covers the LCD sensor (e.g. a loupe).
+
+Sticky DOF Preview
+""""""""""""""""""
+
+This will make the DOF preview button sticky (so you no longer have to hold it pressed).
+  
+Note: enabling DOF preview will block most other buttons.
+  
+Tip: enable `Exposure Override`_ to preview DOF without blocking the buttons.
+
+Sticky HalfShutter
+""""""""""""""""""
+
+This will make the half-shutter press sticky (so you no longer have to hold it pressed).
+
+Tip: use this to prevent the camera from turning off LiveView after 30 minutes.
+
+Swap MENU <-> ERASE (60D)
+"""""""""""""""""""""""""
+
+Swaps ``MENU`` and ``ERASE`` buttons. This feature allows one-handed navigation in ML menu on 60D, but will have to use ``MENU`` button to delete the pictures.
+
+.. _DigitalZoom Shortcut:
+
+DigitalZoom Shortcut (600D)
+"""""""""""""""""""""""""""
+
+On 600D/T3i, this lets you customize the behavior of ``DISP`` + ``Zoom In / Zoom Out`` shortcut key in movie mode:
+
+* ``1x,3x`` : toggle between 1x and 3x digital zoom modes (FullHD)
+* ``3x...10x``: default Canon setting (change digital zoom value between 3x and 10x).
+  
+Note: by default, Magic Lantern **disables digital zoom values greater than 3x** in order to avoid image quality degradation.
+
+.. _Auto Burst PicQ:
+
+Auto BurstPicQuality
+````````````````````
+
+When enabled, it will temporarily reduce picture quality in burst mode in order to maintain a decent frame rate even when the buffer becomes almost full. 
+  
+This function will reduce picture quality if the buffer has space for less than 4 pictures:
+
+* ``RAW+JPG`` -> ``JPG Large Fine`` -> ``JPG Medium Fine``
+* ``RAW`` -> ``JPG Large Fine`` -> ``JPG Medium Fine``
+* ``JPG Large Coarse`` -> ``JPG Medium Coarse``
+  
+Possible results (550D, Transcend Class 10, your mileage may vary):
+  
+* ``RAW+JPG``, ``JPG-L``, all others ``JPG-M``
+* ``RAW``, ``RAW``, all others ``JPG-M``
+
+.. _power saving:
+.. _Dim display:
+.. _Turn off display:
+
+Powersave in LiveView...
+````````````````````````
+
+Options for maximizing battery life when using LiveView.
+
+* **Enable power saving**: on Standby, during Recording, or always.
+* **Use LCD sensor**: you can use it to wake up from powersave (wave your hand near it), or to force powersave mode (cover the sensor for a few seconds).
+* **Dim display**: In LiveView, if the camera is idle, Magic Lantern will reduce the LCD backlight level to minimum in order to save power.
+* **Turn off LCD and LV**: this will turn off the display and the sensor activity in LiveView. Mirror will not be moved. If the camera is recording or motion detection is enabled, only the display will be turned off (so recording will not stop).
+* **Turn off GlobalDraw**: if the camera is idle, ML overlay graphics will be disabled to reduce CPU usage.
+
+.. _magic.cfg:
+
+Config file...
+``````````````
+
+Magic Lantern saves its settings in a configuration file named ``MAGIC.CFG``, located under ``ML/SETTINGS`` directory on your card. This submenu lets you customize how these settings are saved.
+
+* **Config Autosave**: If enabled, settings are saved automatically to ''MAGIC.CFG'' whenever you change a setting in ML menu. Config saving process will take place as soon as you close the menu.
+* **Save config now**: Save ML settings to ``ML/SETTINGS/MAGIC.CFG``.
+* **Delete config file**: use this to restore ML default settings. After deleting the config file, restart your camera.
+
+.. _display preset:
+.. _display presets:
+
+LV Display Presets
+``````````````````
+
+This feature lets you use up to 4 display presets for the settings in the `Overlay`_ menu.
+
+On the top bar, you will see ``DISP`` 0, 1, 2 or 3. Each of those is a preset for the settings in ``Overlay`` menu. So you can, for example, configure ``DISP 0`` with false colors, ``DISP 1`` with zebras and focus peaking, and ``DISP 2`` with cropmarks.
+
+This menu item sets the maximum number of available display presets. To disable this feature, set the number of presets to 1.
+
+To change the current display preset, press ``INFO/DISP`` in LiveView, or ``[Q]`` on the GlobalDraw entry in the Overlay menu.
+
+Crop Factor Display
+```````````````````
+
+If enabled, ML bottom bar will display the 35mm equivalent focal length, including crop factor (1.6x).
+  
+For example, a 50mm lens at f1.8 will be displayed as:
+  
+* ``50mm f/1.8`` with this option disabled;
+* ``80eq f/1.8`` with this option enabled.

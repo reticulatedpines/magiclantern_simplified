@@ -1,5 +1,7 @@
 #define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC02200BC // http://magiclantern.wikia.com/wiki/Led_addresses
+#define LEDON 0x46
+#define LEDOFF 0x44
 
 #define HIJACK_INSTR_BL_CSTART  0xff812ae8
 #define HIJACK_INSTR_BSS_END 0xff81093c
@@ -7,10 +9,6 @@
 #define HIJACK_FIXBR_CREATE_ITASK 0xff81092c
 #define HIJACK_INSTR_MY_ITASK 0xff810948
 #define HIJACK_TASK_ADDR 0x1A70
-
-// Critical. Look for a call to prop_request_change(0x80050007, something, len).
-#define AFFRAME_PROP_LEN 64
-#define CUSTOM_WB_PROP_LEN 52
 
 #define ARMLIB_OVERFLOWING_BUFFER 0x1e948 // in AJ_armlib_setup_related3
 
@@ -27,9 +25,12 @@
 //~ #define YUV422_LV_HEIGHT_RCA 540
 //~ #define YUV422_LV_HEIGHT_HDMI 1080
 
-#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x28f8) // workaround
-//#define YUV422_LV_BUFFER_DMA_ANOTHER_ADDR (*(uint32_t*)0x4c60)
-#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)(0x455c + 0xB8))
+// not 100% sure, copied from 550D/5D2/500D
+#define REG_EDMAC_WRITE_LV_ADDR 0xc0f26208 // SDRAM address of LV buffer (aka VRAM)
+#define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
+
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)0x28f8)
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR))
 
 #define YUV422_HD_BUFFER_1 0x44000080
 #define YUV422_HD_BUFFER_2 0x46000080
@@ -66,69 +67,8 @@
 
 #define GMT_IDLEHANDLER_TASK (*(int*)0x10000) // dec create_idleHandler_task
 
-// button codes as received by gui_main_task
-#define BGMT_PRESS_UP 0x16
-#define BGMT_PRESS_UP_RIGHT 0x17
-#define BGMT_PRESS_UP_LEFT 0x18
-#define BGMT_PRESS_RIGHT 0x19
-#define BGMT_PRESS_LEFT 0x1a
-#define BGMT_PRESS_DOWN_RIGHT 0x1B
-#define BGMT_PRESS_DOWN_LEFT 0x1C
-#define BGMT_PRESS_DOWN 0x1d
-
-#define BGMT_UNPRESS_UDLR 0x15
-
-#define BGMT_PRESS_SET 4
-#define BGMT_UNPRESS_SET 0x3d
-
-#define BGMT_TRASH 9
-#define BGMT_MENU 5
-#define BGMT_INFO 6
-//~ #define BGMT_Q 0xE
-//~ #define BGMT_Q_ALT 0xE
-#define BGMT_PLAY 8
-#define BGMT_PRESS_HALFSHUTTER 0x1f
-#define BGMT_UNPRESS_HALFSHUTTER 0x20
-#define BGMT_PRESS_FULLSHUTTER 0x21
-#define BGMT_UNPRESS_FULLSHUTTER 0x22
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xA
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xB
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xC
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xD
-#define BGMT_PICSTYLE 0x13
-#define BGMT_FUNC 0x12
-#define BGMT_JOY_CENTER 0x1e // press the joystick maybe?
-
-#define BGMT_LV 0xE
-
-#define BGMT_WHEEL_LEFT 2
-#define BGMT_WHEEL_RIGHT 3
-#define BGMT_WHEEL_UP 0
-#define BGMT_WHEEL_DOWN 1
-
-#define BGMT_FLASH_MOVIE 0
-#define BGMT_PRESS_FLASH_MOVIE 0
-#define BGMT_UNPRESS_FLASH_MOVIE 0
-#define FLASH_BTN_MOVIE_MODE 0
-
-#define BGMT_ISO_MOVIE 0
-#define BGMT_PRESS_ISO_MOVIE 0
-#define BGMT_UNPRESS_ISO_MOVIE 0
-
-#define GMT_OLC_INFO_CHANGED 59 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
-
-// needed for correct shutdown from powersave modes
-#define GMT_GUICMD_START_AS_CHECK 43
-#define GMT_GUICMD_OPEN_SLOT_COVER 40
-#define GMT_GUICMD_LOCK_OFF 38
-
 #define SENSOR_RES_X 4752
 #define SENSOR_RES_Y 3168
-
-//~ #define FLASH_BTN_MOVIE_MODE (((*(int*)0x14c1c) & 0x40000) && (shooting_mode == SHOOTMODE_MOVIE))
-//~ #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
-
-//~ #define AJ_LCD_Palette 0x2CDB0
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x6A50) == 0xF) /*|| ((*(int8_t*)0x20164) != 0x17)*/ )
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x6A50) == 0xF)
@@ -236,14 +176,18 @@
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0xFA14+12) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
+#define IMGPLAY_ZOOM_POS_X MEM(0x36360) // Zoom CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x36364)
+#define IMGPLAY_ZOOM_POS_X_CENTER 0x252
+#define IMGPLAY_ZOOM_POS_Y_CENTER 0x18c
+#define IMGPLAY_ZOOM_POS_DELTA_X (0x380 - 0x252)
+#define IMGPLAY_ZOOM_POS_DELTA_Y (0x18c - 0xd8)
 
 #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x12b8c+0x30)
 // DebugMsg(4, 2, msg='Whole Screen Backup end')
 // winsys_struct.WINSYS_BMP_DIRTY_BIT_NEG /*off_0x30, 0x12BBC*/ = 0
-
-#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_FUNC // what button to use for zebras in Play mode
 
 // manual exposure overrides
 #define LVAE_STRUCT 0x10dd0

@@ -1,15 +1,16 @@
 #!/usr/bin/env ruby
 
-if ARGV.count!=3
-  puts "Usage #{__FILE__} input input.bin.reloc output.bin"
+if ARGV.count!=4
+  puts "Usage #{__FILE__} input input.bin.reloc output.bin readelf_binary_path"
   exit 1
 end
 
+READELF=ARGV[3]
 File.open(ARGV[2],"wb+") do |out|
   File.open(ARGV[1],"rb") do |inp|
     out.write inp.read
   end
-  symtbl=`arm-elf-readelf -r #{ARGV[0]}`
+  symtbl=`#{READELF} -r #{ARGV[0]}`
   symbols = {}
   symtbl.each_line do |line|
     # readelf input is expected as Offset, Info, Type, ..."

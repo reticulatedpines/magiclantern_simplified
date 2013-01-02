@@ -107,7 +107,8 @@ NSTUB( 0x55500, vram_info )
  
 NSTUB( 0xff01891c, malloc )     
 NSTUB( 0xff018974, free )
-NSTUB( 0xff06f934, AllocateMemory ) 
+NSTUB( 0xff06f934, _AllocateMemory ) 
+NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure 
 NSTUB( 0xFF06FCC4, FreeMemory )
  	
 NSTUB( 0x2D1C, dm_names )                // in DebugMsg, before the 1st loop target
@@ -233,3 +234,13 @@ NSTUB(0xff073af4, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff073c0c, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0xff0710a8, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff070af0, GetMemoryAddressOfMemoryChunk)
+
+NSTUB(0xff0686f4, PowerAudioOutput)
+NSTUB(0xff0554dc, StartASIFDMADAC)
+NSTUB(0xFF055328, StartASIFDMAADC)
+NSTUB(0xff0555b0, StopASIFDMADAC)
+NSTUB(0xFF055AF0, SetNextASIFADCBuffer)
+NSTUB(0xFF055BA8, SetNextASIFDACBuffer)
+NSTUB(0xff06877c, SetSamplingRate )
+NSTUB(0xff068478, SetAudioVolumeOut)
+

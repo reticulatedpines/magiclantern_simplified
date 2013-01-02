@@ -4,26 +4,19 @@
 #define LEDON   0x46
 #define LEDOFF  0x44
 
-// Critical. Look for a call to prop_request_change(0x80050007, something, len).
-//~ #define AFFRAME_PROP_LEN 124
-//~ #define CUSTOM_WB_PROP_LEN 44
-
-// not good, just to compile
-#define YUV422_LV_BUFFER_1 0x55207800 
-#define YUV422_LV_BUFFER_2 0x55617800
-#define YUV422_LV_BUFFER_3 0x55a27800
-#define YUV422_LV_BUFFER_DMA_ADDR YUV422_LV_BUFFER_1
-#define YUV422_HD_BUFFER_DMA_ADDR 0x54000000
-#define YUV422_HD_BUFFER_1 0x54000000
-#define YUV422_HD_BUFFER_2 0x4ee00000
-#define IS_HD_BUFFER(x)  ((0x400FFFFF & (x)) == 0x40000000 )
+#define YUV422_LV_BUFFER_1 0x10b63e8 
+#define YUV422_LV_BUFFER_2 0x10b63ec
+#define YUV422_LV_BUFFER_3 0x10b63f0
+#define YUV422_LV_BUFFER_DISPLAY_ADDR YUV422_LV_BUFFER_1
+#define YUV422_HD_BUFFER_DMA_ADDR 0xa5f100
+#define YUV422_HD_BUFFER_1 0xa5f100
+#define YUV422_HD_BUFFER_2 0xa5f104
+#define IS_HD_BUFFER(x)  (1)
 
 // idk
 #define FOCUS_CONFIRMATION 0
-#define HALFSHUTTER_PRESSED 0
+#define HALFSHUTTER_PRESSED get_halfshutter_pressed()
 //~ #define DISPLAY_SENSOR_POWERED 0
-
-#define GMT_OLC_INFO_CHANGED -1
 
 #define LV_BOTTOM_BAR_DISPLAYED 0
 #define ISO_ADJUSTMENT_ACTIVE 0
@@ -37,11 +30,8 @@
 
 #define CURRENT_DIALOG_MAYBE 0
 
-#define DLG_PLAY 1
-#define DLG_MENU 2
-
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && MEM(0x27D8) && !MEM(0x3D50)) // StartPl1App, but not StartPlEraseApp
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && MEM(0x4C48)) // StartMenuMainHeaderApp
 
 #define NUM_PICSTYLES 9
 #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
@@ -62,9 +52,9 @@
 
 // from CFn
  #define AF_BTN_HALFSHUTTER 0
- #define AF_BTN_STAR 2
+ #define AF_BTN_STAR 1
 
-#define IMGPLAY_ZOOM_LEVEL_ADDR (0x2E9C4) // dec GuiImageZoomDown and look for a negative counter
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x27DC) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
 
 #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
@@ -108,6 +98,3 @@
 #define ARROW_MODE_TOGGLE_KEY ""
 
 #define WINSYS_BMP_DIRTY_BIT_NEG 0
-
-#define cli_save cli
-#define sei_restore sei

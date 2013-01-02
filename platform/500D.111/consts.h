@@ -1,5 +1,7 @@
 #define CARD_DRIVE "B:/"
-#define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
+#define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses. TODO: Alex, plese double check it. reboot.c used a different address
+#define LEDON 0x46
+#define LEDOFF 0x44
 
 #define HIJACK_INSTR_BL_CSTART 0xFF012AE8
 #define HIJACK_INSTR_BSS_END 0xFF01093C
@@ -7,10 +9,6 @@
 #define HIJACK_FIXBR_CREATE_ITASK 0xFF01092C
 #define HIJACK_INSTR_MY_ITASK 0xFF010948
 #define HIJACK_TASK_ADDR 0x1A74
-
-// Critical. Look for a call to prop_request_change(0x80050007, something, len).
-#define AFFRAME_PROP_LEN 100
-#define CUSTOM_WB_PROP_LEN 52
 
 #define ARMLIB_OVERFLOWING_BUFFER 0x244c0 // in AJ_armlib_setup_related3
 
@@ -27,10 +25,11 @@
 //~ #define YUV422_LV_HEIGHT_RCA 540
 //~ #define YUV422_LV_HEIGHT_HDMI 1080
 
-#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x26A8) // workaround
-//#define YUV422_LV_BUFFER_DMA_ANOTHER_ADDR (*(uint32_t*)0x4c60)
-#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x48a0)
+#define REG_EDMAC_WRITE_LV_ADDR 0xc0f26208 // SDRAM address of LV buffer (aka VRAM)
+#define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
 
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)0x26A8)
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR))
 
 #define YUV422_HD_BUFFER_1 0x44000080
 #define YUV422_HD_BUFFER_2 0x46000080
@@ -62,68 +61,7 @@
 //~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)
 #define DISPLAY_SENSOR_POWERED (*(int*)0x328c) // dec AJ_Req_DispSensorStart
 
-// button codes as received by gui_main_task
-#define BGMT_PRESS_LEFT 0x39
-#define BGMT_UNPRESS_LEFT 0x3a
-#define BGMT_PRESS_UP 0x3b
-#define BGMT_UNPRESS_UP 0x3c
-#define BGMT_PRESS_RIGHT 0x37
-#define BGMT_UNPRESS_RIGHT 0x38
-#define BGMT_PRESS_DOWN 0x3d
-#define BGMT_UNPRESS_DOWN 0x3e
-#define BGMT_PRESS_SET 4
-#define BGMT_UNPRESS_SET 5
-#define BGMT_TRASH 0xA
-#define BGMT_MENU 6
-#define BGMT_INFO 7
-#define BGMT_Q 0xF
-//#define BGMT_Q_ALT 0xF
-#define BGMT_PLAY 9
-#define BGMT_PRESS_HALFSHUTTER 0x23
-#define BGMT_UNPRESS_HALFSHUTTER 0x24
-#define BGMT_PRESS_FULLSHUTTER 0x25
-#define BGMT_UNPRESS_FULLSHUTTER 0x26
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xB
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xD
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xE
-#define BGMT_JOY_CENTER 0x1e // press the joystick maybe?		???
-
-#define BGMT_LV 0xf						// idk?
-
-#define BGMT_WHEEL_LEFT 2
-#define BGMT_WHEEL_RIGHT 3
-#define BGMT_WHEEL_UP 0
-#define BGMT_WHEEL_DOWN 1
-
-/*#define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x3f && shooting_mode == SHOOTMODE_MOVIE && event->arg == 0x9)
-#define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x1000000))
-#define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x1000000) == 0)
-#define FLASH_BTN_MOVIE_MODE get_flash_movie_pressed()
-
-#define BGMT_ISO_MOVIE (event->type == 0 && event->param == 0x56 && shooting_mode == SHOOTMODE_MOVIE && event->arg == 0x9)
-#define BGMT_PRESS_ISO_MOVIE (BGMT_ISO_MOVIE && (*(int*)(event->obj) & 0x1000000))
-#define BGMT_UNPRESS_ISO_MOVIE (BGMT_ISO_MOVIE && (*(int*)(event->obj) & 0x1000000) == 0)*/
-
-#define BGMT_FLASH_MOVIE 0
-#define BGMT_PRESS_FLASH_MOVIE 0
-#define BGMT_UNPRESS_FLASH_MOVIE 0
-#define FLASH_BTN_MOVIE_MODE 0
-
-#define BGMT_ISO_MOVIE 0
-#define BGMT_PRESS_ISO_MOVIE 0
-#define BGMT_UNPRESS_ISO_MOVIE 0
-
 #define LV_BOTTOM_BAR_DISPLAYED (MEM(0x329D8) != 3)
-
-
-
-#define GMT_OLC_INFO_CHANGED 63 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
-
-// needed for correct shutdown from powersave modes
-#define GMT_GUICMD_START_AS_CHECK 47
-#define GMT_GUICMD_OPEN_SLOT_COVER 44
-#define GMT_GUICMD_LOCK_OFF 42
 
 #define SENSOR_RES_X 4752
 #define SENSOR_RES_Y 3168
@@ -134,7 +72,7 @@
 //~ #define AJ_LCD_Palette 0x2CDB0
 
 
-#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x77BC) == 0xF)
+#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x784C) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 #define SHOOTING_MODE (*(int*)0x313C)
 
 #define COLOR_FG_NONLV 80
@@ -187,17 +125,17 @@
 #define DISPLAY_CLOCK_POS_X 200
 #define DISPLAY_CLOCK_POS_Y 410
 
-#define MENU_DISP_ISO_POS_X 500
-#define MENU_DISP_ISO_POS_Y 27
+#define MENU_DISP_ISO_POS_X 470
+#define MENU_DISP_ISO_POS_Y 40
 
 #define HDR_STATUS_POS_X 380
 #define HDR_STATUS_POS_Y 450
 
 // for displaying TRAP FOCUS msg outside LV
-#define DISPLAY_TRAP_FOCUS_POS_X 410
-#define DISPLAY_TRAP_FOCUS_POS_Y 330
-#define DISPLAY_TRAP_FOCUS_MSG       "TRAP \nFOCUS"
-#define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
+#define DISPLAY_TRAP_FOCUS_POS_X 401
+#define DISPLAY_TRAP_FOCUS_POS_Y 326
+#define DISPLAY_TRAP_FOCUS_MSG       " TRAP  \n FOCUS "
+#define DISPLAY_TRAP_FOCUS_MSG_BLANK "       \n       " // not needed, camera redraws the place itself
 
 #define NUM_PICSTYLES 9
 #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
@@ -233,14 +171,18 @@
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x14BB0) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
+#define IMGPLAY_ZOOM_POS_X MEM(0x373E0) // Zoom CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x373E4)
+#define IMGPLAY_ZOOM_POS_X_CENTER 0x252
+#define IMGPLAY_ZOOM_POS_Y_CENTER 0x18c
+#define IMGPLAY_ZOOM_POS_DELTA_X (0x252 - 0x117)
+#define IMGPLAY_ZOOM_POS_DELTA_Y (0x18c - 0xb4)
 
 #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK
 
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x1888c+0x30)
 // DebugMsg(4, 2, msg='Whole Screen Backup end')
 // winsys_struct.WINSYS_BMP_DIRTY_BIT_NEG /*off_0x30, 0x188BC*/ = 0
-
-#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_Q // what button to use for zebras in Play mode
 
 // manual exposure overrides
 #define LVAE_STRUCT 0x168B8

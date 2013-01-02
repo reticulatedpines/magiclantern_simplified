@@ -40,17 +40,24 @@ ML_OBJS-y = \
 	lens.o \
 	picstyle.o \
 	cfn.o \
-	zebra.o \
+	zebra-5dc.o \
 	shoot.o \
 	chdk-gui_draw.o \
 	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
+	af_patterns.o \
+	focus.o \
 	notify_box.o \
 	dialog_test.o \
 	vram.o \
 	aj_port.o \
+	state-object.o \
 	tasks.o \
+	beep.o \
+	dm-spy.o \
+	tp-spy.o \
+	reloc.o \
 
 
 #include generic rules and definitions
@@ -63,6 +70,8 @@ CFLAGS += -DCONFIG_STATIC_FONTS=1
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR     = 0xFF810000
-RESTARTSTART    = 0x980000
+RESTARTSTART    = 0x00980000
+AUTOEXEC_BASE   = 0x40800000
+FIR_BASE        = 0x40800120
 
 all: autoexec.bin

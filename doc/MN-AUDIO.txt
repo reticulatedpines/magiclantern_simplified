@@ -1,0 +1,107 @@
+Audio
+~~~~~
+
+.. figure:: 01.audio.png
+    :alt: Audio menu
+    :align: center
+    :width: 5cm
+
+Manual audio controls.
+
+.. _manual audio controls:
+
+{{vimeo>18507408?250x140|Audio tests by Ryan Sauvé }}{{vimeo>5903379?250x140|Audio_Conclusions}}
+
+Analog Gain
+```````````
+
+Gain applied to both inputs in the analog domain, in dB. If you use an external preamp, set this parameter as low as possible; otherwise, set it as high as possible without clipping (audio meters should be green).
+
+L-DigitalGain and R-DigitalGain
+```````````````````````````````
+
+Digital gain applied to left and right channel. Recommended setting: 0.
+
+.. _input source:
+
+Input source
+````````````
+
+Audio input source for recording: 
+  
+* **internal mic**
+* **L:int R:ext**
+* **external stereo**
+* **L:int R:balanced** (internal mic on Left, external mic on Right from both external pins as balanced audio)
+* **Auto int/ext**: camera detects if a mic is plugged in. Int is dual mono, ext is stereo.
+
+.. _balanced:
+
+.. figure:: XLRtoBalancedCable.jpg
+    :alt: XLR microphone to Balanced input pinouts
+    :align: center
+    :width: 6cm
+
+"Balanced audio allows for very long cable runs without interference. Usually balanced mics have three pin XLR connectors and it is very easy to out together an XLR to Canon mic input cable. Balanced allows us to use such pro mics with our little Canons and this is a very welcome surprise for audio guys." `(source) <http://www.cinema5d.com/viewtopic.php?f=39&t=24384&st=0&sk=t&sd=a&start=330#p164691>`_
+
+Wind Filter
+```````````
+
+Digital high-pass filter. See `AK4646 datasheet <http://wiki.magiclantern.fm/_media/ak4646.pdf>`_ p.34.
+
+Mic Power
+`````````
+
+This is required for internal mic and certain types of external mics, but it reduces input impedance. See `AK4646 datasheet <http://wiki.magiclantern.fm/_media/ak4646.pdf>`_ p.31 and the `Mic power control <http://groups.google.com/group/ml-devel/browse_thread/thread/516d22e75dcb9357>`_ thread.
+
+* ``ON``: input impedance is 2 kOhm;
+* ``OFF``: input impedance is 30 kOhm.
+  
+This setting is always ``ON`` when input source is either ``internal mic`` or ``L:int R:ext``.
+
+.. _disable AGC:
+
+AGC
+```
+
+Enable/disable Automatic Gain Control. AGC is applied only in digital domain (i.e. it overrides digital gains, but you can still adjust analog gain). 
+  
+Recommended setting: OFF.
+
+.. _audio monitoring:
+
+Headphone Monitoring
+````````````````````
+  
+{{ vimeo>21672001?250x140| Audio monitoring tutorial}}
+  
+Audio monitoring with headphones, using the A/V cable.
+
+**Disable this setting if you are using a SD monitor**!
+
+To use audio monitoring, you need a special cable:
+  
+* your Canon A/V cable with `a RCA - 3.5mm jack adapter <http://amzn.to/ml-audiomon-rca35>`_;
+* `a dedicated cable from Sescom <http://www.sescom.com/product.asp?item=DSLR-550D-HOCF>`_;
+* or you may solder it yourself (you will have to cut your A/V cable). 
+  
+Warning: mobile phone cables **will not work**; even if the connector looks similar, it's not identical. You must use `the original cable which came with your camera <http://amzn.to/canon-usb-rca>`_.
+
+Output volume
+`````````````
+
+Digital output gain for audio monitoring. It does not have any effect on the built-in speaker.
+
+For best results, you should a pair of low impedance headphones, for example `Audio Technica ATH-M50 (38 ohms) <http://amzn.to/ml-athm50>`_.
+With high-impedance headphones, you may have to use a headphone amplifier like `FiiO E5 <http://amzn.to/fiio-e5>`_.
+
+.. _audio meters:
+
+Audio Meters
+````````````
+
+Display input audio level, from -40dB to 0dB; meters become yellow at -12dB and red at -3dB.
+
+Audio meters are only displayed in movie mode.
+
+

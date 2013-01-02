@@ -12,15 +12,6 @@
 If you are not comfortable with this, stop reading and delete the
 software before you are tempted to try running it on your camera.
 
-Translations: 
-    `Deutsch  <http://magiclantern.wikia.com/wiki/Unified/Install/DE>`_ |
-    `Česky    <http://magiclantern.wikia.com/wiki/Unified/Install/CZ>`_ |
-    `Español  <http://magiclantern.wikia.com/wiki/Unified/Install/ES>`_ |
-    `Français <http://magiclantern.wikia.com/wiki/Unified/Install/FR>`_ |
-    `Italiano <http://magiclantern.wikia.com/wiki/Unified/Install/IT>`_ |
-    `Chinese (simplified) <http://magiclantern.wikia.com/wiki/Unified/Install/CHS>`_ |
-    `Japanese <http://magiclantern.wikia.com/wiki/Unified/Install/JA>`_
-
 .. raw:: latex
 
   {
@@ -36,6 +27,8 @@ Translations:
 Important notes
 ===============
 
+* **After opening the card door, always wait for LED confirmation (or for 5 seconds) before removing the card!!!** (no such problem on 550D).
+
 * **EyeFi cards will not work**; you will have to use SD / SDHC / SDXC / CF cards.
 
 * If you have a bootable card and have the ``BOOTDISK`` flag set in the camera (which the installer does), and you do not have an ``AUTOEXEC.BIN`` file on the card the camera **WILL NOT BOOT**! It will hang and not wake up until the battery is removed.
@@ -49,11 +42,11 @@ Important notes
 Introduction
 ============
 
-There are 2 ways of running user code on Canon DSLR cameras:
+There are two ways of running user code on Canon DSLR cameras:
 
-1. using the update process with a ``.fir`` file, which must be digitally signed.
+1. Using the update process with a ``.fir`` file, which must be digitally signed.
 
-2. using the bootdisk process: the ``autoexec.bin`` file is loaded and executed. 
+2. Using the bootdisk process: the ``autoexec.bin`` file is loaded and executed. 
    This file does not have to be signed, but the bootdisk flag must be enabled in the camera.
 
 With great power comes great responsibility!
@@ -62,54 +55,69 @@ With great power comes great responsibility!
 Before installing Magic Lantern, you need to:
 
 * Know how to use a computer (how to download a file, how to unzip an archive, how to open a PDF document...)
-* `Know your camera. <http://blog.epicedits.com/2007/11/12/how-well-do-you-really-know-your-camera/>`_ Please don't ask us how to change ISO in video mode or what is Highlight Tone Priority. Magic Lantern `is a tool for power users <http://groups.google.com/group/ml-devel/msg/95e8e9d468eaf624>`_, not a cool toy for beginners. We recommend you to use your camera for a few months (or more!) before even thinking of installing third-party firmware.
-* Do your research. Read the `user guide <http://magiclantern.wikia.com/wiki/Unified/UserGuide>`_ and the [[FAQ]], explore the `wiki <http://magiclantern.wikia.com/wiki/Special:AllPages>`_ and the `forums <http://magiclantern.wikia.com/wiki/Unified#Magic_Lantern_Community>`_.
-* Be patient. Magic Lantern is actually very easy to use once you know the basics.
+* We recommend you to use your camera for a few months. Then you know how to operate it properly and know your way around the different functions. Then take the next step and consider installing Magic Lantern.
+* Do your research. There is a lot of information available on Magic Lantern web site. Read the `user guide <http://wiki.magiclantern.fm/userguide>`_ and the `FAQ <http://wiki.magiclantern.fm/faq>`_, explore the in-depth articles and the `documentation <http://magiclantern.fm/documentation>`_ section.
+* Be patient. Magic Lantern can overwhelm with the amount of functions added. But it is actually very easy to use once you know the basics.
+
+Very important
+--------------
+
+* Magic Lantern v2.3 uses a slightly **different directory structure** than previous versions (ML data files were moved to the ML subdirectory). For this reason, we strongly recommend to **format your cards and do a fresh install**.
+* After opening the card door, **always wait for LED confirmation** (or for 5 seconds) before removing the card!!! During that period, Canon firmware **accesses the card without turning on the LED**, and if you remove the card too early, the camera will freeze and will drain the battery. Exception: 550D users don't have to wait.
+
+
+
+Get the right camera firmware version
+=====================================
+
+Firmware updates in general can damage your camera. Read the section in your camera manual before updating your firmware. If you are not comfortable with the risks, stop reading and delete the software before you are tempted to try running it on your camera. 
+
+Magic Lantern v2.3 works **only** with the following camera firmware versions: 
+
+* Canon **500D / T1i / Kiss X3**: firmware `1.1.1 <http://www.usa.canon.com/cusa/windows_vista/cameras/eos_slr_camera_systems/eos_rebel_t1i#DriversAndSoftware>`_
+* Canon **550D / T2i / Kiss X4**: firmware `1.0.9 <http://web.canon.jp/imaging/eosd/firm-e/eosdigital7/firmware.html>`_
+* Canon **600D / T3i / Kiss X5**: firmware `1.0.2 <http://www.usa.canon.com/cusa/consumer/products/cameras/slr_cameras/eos_rebel_t3i_18_55mm_is_ii_kit#DriversAndSoftware>`_
+* Canon **50D**: firmware `1.0.9. <http://www.usa.canon.com/cusa/support/consumer/eos_slr_camera_systems/eos_digital_slr_cameras/eos_50d#DriversAndSoftware>`_
+* Canon **60D**: firmware `1.1.1. <http://www.usa.canon.com/cusa/consumer/products/cameras/slr_cameras/eos_60d#DriversAndSoftware>`_
+* Canon **5D Mark II**: firmware `2.1.2 <http://www.usa.canon.com/cusa/consumer/products/cameras/slr_cameras/eos_5d_mark_ii#DriversAndSoftware>`_
+
+If, for some reason, these links don't work, `check the online install guide for updated links <http://wiki.magiclantern.fm/install>`_.
+
+You can check your firmware version by setting your mode dial to **Manual (M)** and looking in the Canon menu. 
+
+Nothing bad will happen if you try to run ML on a different firmware version - the card LED will start blinking and you'll have to take the battery out. Magic Lantern checks firmware version before attempting to run. 
 
 First-time installation 
 =======================
 
-Step 0. Downloading
--------------------
-
-* Download `latest release <http://magiclantern.wikia.com/wiki/Unified#Downloads>`_
-
-* Read the release notes and the discussion thread from the download page. 
-
 Step 1. Preparing your camera
 -----------------------------
 
-* Fully charge your battery.
+* Use a **fully charged Canon battery** (original, not third party).
 
 * Remove any accessories from your camera (such as battery grip or external flash).
 
-* Use a simple SD/SDHC/CF card for first install (SDXC will not work).
+* For first install, use a simple **SD/SDHC/CF** card (**32 GB or smaller**). 64GB cards and larger will not work for first install (but you can use them with ML, see below).
 
-* Make sure you have a `card reader <http://amzn.to/oHENg3>`_.
+* Make sure you have a card reader.
 
-* Upgrade your Canon firmware:
-
-  - for **Canon 550D / T2i / Kiss X4**: upgrade to firmware `1.0.9 <http://web.canon.jp/imaging/eosd/firm-e/eosdigital7/firmware.html>`_.
-  - for **Canon 60D**: upgrade to firmware `1.1.0 <http://www.usa.canon.com/cusa/consumer/products/cameras/slr_cameras/eos_60d#DriversAndSoftware>`_.
-  - for **Canon 600D / T3i / Kiss X5**: upgrade to firmware `1.0.1 <http://www.canon.co.uk/Support/Consumer_Products/products/cameras/Digital_SLR/EOS_600D.aspx?DLtcmuri=tcm:14-839391&page=1&type=download>`_.
-  - for **Canon 50D**: upgrade to firmware `1.0.8 <http://www.canon-europe.com/Support/Consumer_Products/products/cameras/Digital_SLR/EOS_50D.aspx?DLtcmuri=tcm:13-845724&page=1&type=download>`_.
-  - for **Canon 500D**: upgrade to firmware `1.1.1 <http://www.usa.canon.com/cusa/windows_vista/cameras/eos_slr_camera_systems/eos_rebel_t1i#DriversAndSoftware>`_.
-  - for **Canon 5D Mark II**: upgrade to firmware `2.1.1 <http://usa.canon.com/cusa/consumer/products/cameras/slr_cameras/eos_5d_mark_ii#DriversAndSoftware>`_.
+* Double-check your Canon firmware version.
 
 * Rotate your mode dial to **Manual (M)** position.
 
-* Restore your camera to default settings (``Clear all camera settings``, ``Wrench 3`` menu) 
+* *Recommended*: Restore your camera to default settings (*Clear camera settings*). *Remember this will reset all canon settings and removes custom picture styles!*
+
 
 Step 2. Installation
 --------------------
 
-* Format the card **from the camera** (low level format).
+* Format the card **in the camera** (low level format).
 
-* Unzip **all** the files from from Magic Lantern zip archive on the **root** of your card.
+* Unzip **all** of the files from from Magic Lantern zip archive on the **root** of your card.
 
 * Launch the **Firmware Update** process.
 
-* If the screen goes black and card LED starts blinking, **upgrade your Canon firmware** (see Step 1, even if you already have the correct version number) and try again.
+* If the screen goes black and card LED starts blinking, **upgrade your Canon firmware** from the links above (**even if you already have the correct version number!**) and try again.
 
 * Once you see the **green confirmation screen**, restart your camera. Done.
 
@@ -120,12 +128,20 @@ Step 2. Installation
 
 * If something goes wrong, **check the Troubleshooting section** below. 
 
-**Side note (you don't have to do this):**
+Step 3. Magic Lantern first startup
+-----------------------------------
 
-The installer (``ml-*.fir``) will perform two actions:
+* Go to Canon menus and restore your preferences. Don't forget these:
 
-- enables the ``BOOTDISK`` flag in NVRAM by calling the ``EnableBootDisk()`` function from Canon firmware. This change is persistent, but it can be reverted easily.
-- makes the card bootable, by writing the ``BOOTDISK`` and ``EOS_DEVELOP`` strings on the card according to [[Bootdisk]] page. 
+  - On 550D/60D/600D, enable manual video exposure.
+  - On 5D Mark II and 50D, enable LiveView shooting.
+  - You may also have to re-install your custom picture styles.
+
+* In LiveView, toggle the ``INFO/DISP`` button until you see the Magic Lantern audio levels and bottom info bar.
+* Press the **DELETE** button to open ML menu and **READ THE HELP TEXT** that pops up.
+* Read the User Guide and start using Magic Lantern.
+* **Don't forget to wait for LED confirmation before removing the card!** (unless you use a 550D)
+
 
 Installing Magic Lantern on other cards
 =======================================
@@ -137,13 +153,11 @@ Installing Magic Lantern on other cards
 Updating Magic Lantern
 ======================
 
-* Bookmark this page ([[Unified#Downloads]]) and check for updates periodically.
+* **To update to v2.3 from an earlier version, format your card(s), update to latest Canon firmware if needed, unzip new ML files and make the card(s) bootable.** If you get stuck, do a fresh install.
 
-* To install an updated version, just unzip (or copy) all new Magic Lantern files on your card and overwrite the old ones.
+* Check the `Download page <http://magiclantern.fm/download>`_ for updates.
 
-.. raw:: latex
-
-   \newpage
+* To install a nightly build or an experimental version, just unzip (or copy) the modified Magic Lantern files on your card and overwrite the old ones.
 
 Uninstalling Magic Lantern
 ==========================
@@ -161,7 +175,7 @@ Uninstalling Magic Lantern
 Uninstalling ML from one card
 -------------------------------
 
-* Format that card from the camera (select this option: ``Format card, remove Magic Lantern``) and reboot. Your camera will load the original firmware when you use that card.
+* Format that card from the camera (select this option: *Format card, **remove** Magic Lantern*) and reboot. Your camera will load the original firmware when you use that card.
 
 Uninstalling ML from the camera
 -------------------------------
@@ -177,10 +191,22 @@ Uninstalling ML from the camera
 Troubleshooting
 ===============
 
-* **If the camera asks for a firmware update**, place Canon firmware on the card. (it may happen on 60D `when the FIR is started with display off <https://bitbucket.org/hudson/magic-lantern/issue/614/no-green-confirmation-screen-on-60d>`_)
-* **If the card LED blinks continuously after running Firmware Upgrade**, it's because Magic Lantern did not recognize the firmware version. To fix it, install the official Canon firmware upgrade from the links listed under **Step 1**, even if you already have the correct version number.
+* **If the card LED blinks continuously after running Firmware Upgrade**, you don't have the right Canon firmware version or sub-version. To fix it, install the official Canon firmware upgrade from the links from this guide, even if you already have the correct version number (you may have a different sub-version number).
 * **If the screen does not turn on, but autofocus works**, remove the battery and format the card. This happens when the card is bootable, but autoexec.bin is not there.
 * **Check if all doors are closed.** The camera will not boot if any of the card or battery doors are open!
 * **If the camera does not boot** (seems dead), **remove the battery and the card**. Then put the battery back and try to boot the camera without card. Then put a formatted card in the camera and try to boot **without** Magic Lantern. Only after you are sure the camera is OK, you can try to see what's wrong with Magic Lantern.
+* **If the camera asks for a firmware update**, place Canon firmware on the card (this was a problem in older versions).
 * **DO NOT use a bootable card without a working autoexec.bin on it!** If you do, remove the battery immediately, switching the camera off is not enough !!!
-* Check the `issue tracker <https://bitbucket.org/hudson/magic-lantern/issues issue tracker>`_ for similar problems; if you can't find the solution, create a new issue there.
+* Check our `support forum <http://www.magiclantern.fm/forum/index.php?board=4.0>`_ for similar problems; if you can't find the solution, just ask.
+
+LED blinking codes
+==================
+
+* From installer (FIR file, launched via Firmware Update):
+  - Intermittent blinking: wrong firmware version. Upgrade Canon firmware and try again.
+
+* From autoexec.bin (loaded automatically at startup):
+  - 1 blink, cyclic: wrong ROM checksum (usually wrong firmware version).
+  - 2 blinks, cyclic: internal error (report to developers).
+  - 3 blinks, cyclic: error loading camera-specific binary. Format card and copy ML files again.
+  - 4 blinks, cyclic: checksum error for camera-specific binary. Most probably filesystem corruption. Format card and copy ML files again.

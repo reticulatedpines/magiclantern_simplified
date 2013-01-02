@@ -3,60 +3,35 @@
     { \small \vspace{-10mm}
 
 Magic Lantern is an open (GPL) framework for developing enhancements to the amazing Canon 5D Mark II and 550D/T2i digital SLRs. 
-Magic Lantern is being `developed <http://groups.google.com/group/ml-devel>`_ by a small team, helped by a very enthusiastic and respectful `user community <http://vimeo.com/groups/magiclantern>`_.
+Magic Lantern is being developed by a small team, helped by a very enthusiastic and respectful `user community <http://www.magiclantern.fm/forum>`_.
 
 .. raw:: latex
 
-    { \scriptsize \vspace{5mm}
+    { \small \vspace{5mm}
 
-**Initial version by** `Trammell Hudson <http://magiclantern.wikia.com/wiki/User:Autopilot>`_ (original author and lead of Magic Lantern project)
+**Active developers**:
 
-**Crypto tools and firmware analysis by**
- `Arm.Indy <http://magiclantern.wikia.com/wiki/User:Arm.indy>`_,
- `AJ <http://magiclantern.wikia.com/wiki/2.0.4_AJ>`_
+ `Alex <http://www.magiclantern.fm/forum/index.php?action=profile;u=3>`_ -- main developer
+ 
+ `Arm.Indy <http://www.magiclantern.fm/forum/index.php?action=profile;u=1021>`_ -- author of crypto tools and most new ports
+ 
+ `G3gg0 <http://www.magiclantern.fm/forum/index.php?action=profile;u=158>`_ -- reverse engineering guru
+ 
+ `Coutts <http://www.magiclantern.fm/forum/index.php?action=profile;u=155>`_ -- porting ML to 5Dc and EOS M
+ 
+ `Nanomad <http://www.magiclantern.fm/forum/index.php?action=profile;u=123>`_ -- porting ML to 1100D/T3
 
-**Main developer for 550D and 60D cameras:**
- `Alex <http://magiclantern.wikia.com/wiki/User:Alexdu>`_
+ `Miyake <http://www.magiclantern.fm/forum/index.php?action=profile;u=472>`_, `1% <http://www.magiclantern.fm/forum/index.php?action=profile;u=407>`_, `Scrax <http://www.magiclantern.fm/forum/index.php?action=profile;u=171>`_ -- 600D developers
+ 
+ `SztupY <http://www.magiclantern.fm/forum/index.php?action=profile;u=805>`_ -- author of ML USB controller and others
 
-**550D/1.0.9 port by**
- `Arm.Indy <http://magiclantern.wikia.com/wiki/User:Arm.indy>`_
+**Past developers** (come back guys!):
 
-**60D port by**
- `Arm.Indy <http://magiclantern.wikia.com/wiki/User:Arm.indy>`_,
- `Jason <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=jason&qt_g=Search+this+group>`_, 
- `xaos <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=xaos&qt_g=Search+this+group>`_, 
- `SztupY <http://sztupy.hu/magiclantern/>`_, 
- `Alex <http://magiclantern.wikia.com/wiki/User:Alexdu>`_
+ `Trammell Hudson <http://magiclantern.wikia.com/wiki/User:Autopilot>`_ -- original author and former leader of Magic Lantern project
+ 
+ `AJ <http://magiclantern.wikia.com/wiki/2.0.4_AJ>`_ -- developed the AJ version of Magic Lantern for 5D Mark II
 
-**600D port by**
- `Arm.Indy <http://magiclantern.wikia.com/wiki/User:Arm.indy>`_,
- `Vincent Olivier <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=Vincent Olivier&qt_g=Search+this+group>`_, 
- `Alex <http://magiclantern.wikia.com/wiki/User:Alexdu>`_,
- tested by `Scrax <http://magiclantern.wikia.com/wiki/User:ScraxIT>`_
-
-**50D port by**
- `Arm.Indy <http://magiclantern.wikia.com/wiki/User:Arm.indy>`_,
- `Chuchin <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=Chuchin&qt_g=Search+this+group>`_, 
- `Pelican <http://pel.hu>`_,
- `Alex <http://magiclantern.wikia.com/wiki/User:Alexdu>`_,
- tested by `Smeangol <http://www.youtube.com/user/UML50D>`_,
- `Max Chen <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=max chen&qt_g=Search+this+group>`_,
- `ectaVgen <http://chdk.setepontos.com/index.php?action=profile;u=20756>`_,
- `ilguercio <http://chdk.setepontos.com/index.php?action=profile;u=16461>`_
-  and `others <http://chdk.setepontos.com/index.php?topic=6161.90>`_
-
-**1100D port by**
- `Arm.Indy <http://magiclantern.wikia.com/wiki/User:Arm.indy>`_,
- `Nanomad <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=nanomad&qt_g=Search+this+group>`_, 
- `Alex <http://magiclantern.wikia.com/wiki/User:Alexdu>`_,
- early testing by `Heavendew <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=heavendew&qt_g=Search+this+group>`_
-
-**500D port by**
- `Chuchin <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=Chuchin&qt_g=Search+this+group>`_, 
- `AlinS <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=Alin Simionoiu&qt_g=Search+this+group>`_, 
- `Coutts <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=Coutts&qt_g=Search+this+group>`_
-
-**Patches by**
+**Code contributions**
  `piersg <http://pdaddy.wordpress.com/2010/11/07/quick-notes-on-magic-lantern-for-550d/>`_, 
  `nandoide <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=nandoide+|+nangdoide&qt_g=Search+this+group>`_, 
  `stefano <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=stefano&qt_g=Search+this+group>`_, 
@@ -71,49 +46,37 @@ Magic Lantern is being `developed <http://groups.google.com/group/ml-devel>`_ by
  `robotsound <http://www.dvxuser.com/V6/showthread.php?218686-Magic-Lantern-for-550D-in-progress!/page117>`_,
  `maclema <https://bitbucket.org/maclema/ml500d/overview>`_,
  `adijiwa <https://bitbucket.org/adijiwa/magic-lantern-for-500d-local-hacks/>`_,
- `g3gg0 <http://www.g3gg0.de/>`_,
  `kyselejsyrecek <http://chdk.setepontos.com/index.php?action=profile;u=20247/>`_,
- `mk11174 <http://chdk.setepontos.com/index.php?action=profile;u=17096/>`_
+ `mk11174 <http://chdk.setepontos.com/index.php?action=profile;u=17096/>`_, 
+  Raymond Lo, 
+  Rob Kramer, 
+  Tobias Doerffel, 
+  Paul Nolan, 
+  Martin M,
+  and the list is growing :)
 
 **Card tools by** 
   `Pel <http://pel.hu>`_,
   `Zeno <http://www.zenoshrdlu.com/>`_,
   `lichtjaar <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=lichtjaar&qt_g=Search+this+group>`_
 
-**Cropmarks by**
-  `CameraRick <http://magiclantern.wikia.com/wiki/User:CameraRick>`_, 
-  `Robert <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=robert&qt_g=Search+this+group>`_, 
-  `bwwd <http://www.dvxuser.com/V6/member.php?42938-bwwd>`_, 
-  `turbinicarpus <http://www.canonistas.com/foros/members/turbinicarpus-61719.html>`_,
-  `Dremelv21 <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=Dremelv21&qt_g=Search+this+group>`_,
-  `similaar <http://www.similaar.com/foto/cropmarks/mlcropmarks.html>`_
-
-**Tutorials by**
- `sawomedia <http://vimeo.com/sawo>`_,
- `Chung Dha <http://www.youtube.com/user/chungdha>`_,
- `Dave Dugdale <http://www.learningdslrvideo.com/category/video-tutorials/>`_,
- `Malcolm Debono <http://vimeo.com/user4129652>`_,
- `MediaUnlocked <http://www.youtube.com/user/MediaUnlocked>`_,
- `Jeremy <http://vimeo.com/l33t>`_, 
- `Lauren Stevens <http://vimeo.com/22818564>`_, 
- `Shayne35mm <http://www.youtube.com/watch?v=ugyeulukDfY>`_,
- `Mordy Gilden <http://vimeo.com/groups/magiclantern/videos/20546775>`_,
- `Ryan Sauvé <http://www.vimeo.com/18507408>`_,
- `Renny Hayes <http://vimeo.com/renny>`_,
- `Daniel <http://vimeo.com/gefilmt>`_,
- `Dod3032 <http://www.youtube.com/user/Dod3032>`_, 
- `3615geek <http://vimeo.com/user5714625>`_, 
- `CineDigital.tv <http://www.cinedigital.tv/>`_,
- `jeveuxdoncjevilme <http://www.jeveuxdoncjefilme.fr/>`_, 
- `Chadwick Shoults <http://vimeo.com/30803116>`_
+**Website Team**
+  `Redkite Bart <http://www.magiclantern.fm/forum/index.php?action=profile;u=78>`_,
+  `Nanomad <http://www.magiclantern.fm/forum/index.php?action=profile;u=123>`_, 
+  `Michael Zöller <http://www.magiclantern.fm/forum/index.php?action=profile;u=149>`_, 
+  `Malcolm Debono <http://www.magiclantern.fm/forum/index.php?action=profile;u=143>`_, 
+  `CameraRick <http://www.magiclantern.fm/forum/index.php?action=profile;u=145>`_, 
+  `Francis Danforth <http://www.magiclantern.fm/forum/index.php?action=profile;u=146>`_,
+  `Scrax <http://www.magiclantern.fm/forum/index.php?action=profile;u=171>`_,
+  `1% <http://www.magiclantern.fm/forum/index.php?action=profile;u=407>`_
 
 **Magic Lantern logo by**
  `elJoseph <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=eljoseph&qt_g=Search+this+group>`_
 
-Thanks to all the users who `provided feedback <http://groups.google.com/group/ml-devel>`_, `reported bugs <http://bitbucket.org/hudson/magic-lantern/issues>`_, 
-and supported the Magic Lantern project by `donations <https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=ELJ6U9GGFPL3U&lc=RO&item_name=Magic%20Lantern%20firmware%20for%20Canon%20550D&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHostedGuest>`_!
+Thanks to all the users who provided feedback, `reported bugs <http://bitbucket.org/hudson/magic-lantern/issues>`_, 
+and supported the Magic Lantern project by donations!
 
-Also, thanks to `CHDK team <http://chdk.wikia.com/>`_ and all the `contributors and donors for the 5D2 Magic Lantern <http://magiclantern.wikia.com/wiki/Thanks>`_!
+Also, thanks to `CHDK team <http://chdk.wikia.com/>`_ and all the `supporters of the old 5D2 Magic Lantern <http://magiclantern.wikia.com/wiki/Thanks>`_!
 
 .. raw:: latex
 

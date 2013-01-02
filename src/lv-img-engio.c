@@ -13,8 +13,6 @@
 
 #define EngDrvOut(reg, value) *(int*)(reg) = value
 
-//~ #define CONFIG_DIGIC_POKE
-
 //~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
 
 
@@ -34,6 +32,9 @@
 CONFIG_INT("digic.iso.gain.movie", digic_iso_gain_movie, 1024); // units: like with the old display gain
 CONFIG_INT("digic.iso.gain.photo", digic_iso_gain_photo, 1024);
 CONFIG_INT("digic.black", digic_black_level, 100);
+int digic_iso_gain_movie_for_gradual_expo = 1024; // additional gain that won't appear in ML menus, but can be changed from code (to be "added" to digic_iso_gain_movie)
+int digic_iso_gain_photo_for_bv = 1024;
+
 //~ CONFIG_INT("digic.shadow.lift", digic_shadow_lift, 0);
 // that is: 1024 = 0 EV = disabled
 // 2048 = 1 EV etc
@@ -44,6 +45,22 @@ void set_display_gain_equiv(int gain)
     if (gain == 0) gain = 1024;
     if (is_movie_mode()) digic_iso_gain_movie = gain;
     else digic_iso_gain_photo = gain;
+}
+
+void set_movie_digital_iso_gain(int gain)
+{
+    if (gain == 0) gain = 1024;
+    digic_iso_gain_movie = gain;
+}
+
+void set_movie_digital_iso_gain_for_gradual_expo(int gain)
+{
+    digic_iso_gain_movie_for_gradual_expo = gain;
+}
+
+void set_photo_digital_iso_gain_for_bv(int gain)
+{
+    digic_iso_gain_photo_for_bv = gain;
 }
 
 int gain_to_ev_scaled(int gain, int scale)
@@ -95,6 +112,31 @@ digic_iso_print(
 }
 
 void
+display_gain_print(
+    void *          priv,
+    int         x,
+    int         y,
+    int         selected
+)
+{
+    int G = gain_to_ev_scaled(digic_iso_gain_photo, 8) - 80;
+    G = G * 10/8;
+    int GA = abs(G);
+
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "LV display gain: %s%d.%d EV",
+        G > 0 ? "+" : G < 0 ? "-" : "",
+        GA/10, GA%10
+    );
+
+    if (G && is_movie_mode())
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only for photo mode. For movie mode, use ML digital ISO.");
+    menu_draw_icon(x, y, MNI_BOOL(G), 0);
+}
+
+void
 digic_black_print(
     void *          priv,
     int         x,
@@ -105,7 +147,7 @@ digic_black_print(
     bmp_printf(
         MENU_FONT,
         x, y,
-        "Black Level   : %s%d",
+        "Black Level : %s%d",
         digic_black_level > 100 ? "+" : "",
         digic_black_level-100
     );
@@ -116,20 +158,46 @@ digic_black_print(
 
 static int digic_iso_presets[] = {256, 362, 512, 609, 664, 724, 790, 861, 939, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072};
 
-void digic_iso_toggle(int* priv, int delta)
+// for debugging
+/*static int digic_iso_presets[] = {256, 362, 512, 609, 664, 724, 790, 861, 939, 
+    1024, 1117, 1218, 1328, 1448, 1579, 1722, 1878,
+    2048, 2233, 2435, 2656, 2896, 3158, 3444, 3756,
+    4096, 4467, 4871, 5312, 5793, 6317, 6889, 7512,
+    8192, 16384, 32768, 65536, 131072};
+*/
+
+void digic_iso_or_gain_toggle(int* priv, int delta)
 {
-    if (is_movie_mode()) priv = (int*)&digic_iso_gain_movie;
-    else priv = (int*)&digic_iso_gain_photo;
-    
+    int mv = (priv == (int*)&digic_iso_gain_movie);
     int i;
     for (i = 0; i < COUNT(digic_iso_presets); i++)
         if (digic_iso_presets[i] >= *priv) break;
     
     do {
         i = mod(i + delta, COUNT(digic_iso_presets));
-    } while (!is_movie_mode() && digic_iso_presets[i] < 1024);
+    } while ((!mv && digic_iso_presets[i] < 1024)
+    #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+    || (mv && digic_iso_presets[i] > 2048) // high display gains not working
+    || (!mv && digic_iso_presets[i] > 65536) // +7EV not working
+    #endif
+    );
     
     *priv = digic_iso_presets[i];
+}
+
+void digic_iso_toggle(int* priv, int delta)
+{
+    if (is_movie_mode()) priv = (int*)&digic_iso_gain_movie;
+    else priv = (int*)&digic_iso_gain_photo;
+    
+    digic_iso_or_gain_toggle(priv, delta);
+}
+
+void display_gain_toggle(int* priv, int delta)
+{
+    priv = (int*)&digic_iso_gain_photo;
+    
+    digic_iso_or_gain_toggle(priv, delta);
 }
 
 //~ static CONFIG_INT("digic.effects", image_effects, 0);
@@ -137,6 +205,8 @@ static CONFIG_INT("digic.desaturate", desaturate, 0);
 static CONFIG_INT("digic.negative", negative, 0);
 static CONFIG_INT("digic.swap-uv", swap_uv, 0);
 static CONFIG_INT("digic.cartoon", cartoon, 0);
+static CONFIG_INT("digic.oilpaint", oilpaint, 0);
+static CONFIG_INT("digic.sharp", sharp, 0);
 //~ static CONFIG_INT("digic.fringing", fringing, 0);
 
 int default_white_level = 4096;
@@ -152,11 +222,27 @@ void autodetect_default_white_level()
     default_white_level = current_shad_gain;
 }
 
-int get_new_white_level()
+// get digic ISO level for movie mode
+// use SHAD_GAIN as much as possible (range: 0-8191)
+// if out of range, return a number of integer stops for boosting the ISO via ISO_PUSH_REGISTER and use SHAD_GAIN for the remainder
+int get_new_white_level(int movie_gain, int* boost_stops)
 {
-    if (digic_iso_gain_movie < 1024) 
-        return default_white_level * digic_iso_gain_movie / 1024;
-    return 0;
+    int result = default_white_level;
+    *boost_stops = 0;
+    while (1)
+    {
+        result = default_white_level * COERCE(movie_gain, 0, 65536) / 1024;
+        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+        break;
+        #endif
+        if (result > 8192 && *boost_stops < 7) 
+        { 
+            movie_gain /= 2; 
+            (*boost_stops)++;
+        }
+        else break;
+    }
+    return COERCE(result, 0, 8191);
 }
 
 #ifdef CONFIG_DIGIC_POKE
@@ -207,7 +293,7 @@ void update_digic_register_addr(int dr, int delta, int skip_zero)
     }
 
     digic_value = MEMX(digic_register);
-    if (digic_value & 0xFFF == 0x800) beep();
+    if ((digic_value & 0xFFF) == 0x800) beep();
     digic_show();
 }
 
@@ -221,7 +307,7 @@ void digic_find_lv_buffer(int dr, int delta)
         digic_register_off  = (dr & 0x000000FC) >> 0;
         digic_register = get_digic_register_addr();
 
-        if (MEMX(digic_register) & 0xFFF == 0x800) break;
+        if ((MEMX(digic_register) & 0xFFF) == 0x800) break;
     }
 
     digic_value = MEMX(digic_register);
@@ -330,8 +416,20 @@ digic_value_print(
 void digic_dump()
 {
     msleep(1000);
-    FIO_RemoveFile(CARD_DRIVE "ML/digic.log");
-    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/digic.log");
+
+
+    static char log_filename[100];
+    
+    int log_number = 0;
+    for (log_number = 0; log_number < 100; log_number++)
+    {
+        snprintf(log_filename, sizeof(log_filename), CARD_DRIVE "digic%02d.LOG", log_number);
+        unsigned size;
+        if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
+        if (size == 0) break;
+    }
+
+    FILE* f = FIO_CreateFileEx(log_filename);
     
     for (uint32_t reg = 0xc0f00000; reg < 0xC0f40000; reg+=4)
     {
@@ -348,8 +446,7 @@ void digic_dump()
 void digic_dump_h264()
 {
     msleep(1000);
-    FIO_RemoveFile(CARD_DRIVE "ML/h264.log");
-    FILE* f = FIO_CreateFile(CARD_DRIVE "ML/h264.log");
+    FILE* f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/h264.log");
     
     for (uint32_t reg = 0xc0e10000; reg < 0xC0f00000; reg+=4)
     {
@@ -363,22 +460,19 @@ void digic_dump_h264()
     FIO_CloseFile(f);
 }
 
-
-#else
-
-int handle_digic_poke(struct event * event){ return 1; }; // dummy
-
 #endif // CONFIG_DIGIC_POKE
 
 void image_effects_step()
 {
-    if (!DISPLAY_IS_ON) return;
+    if (!DISPLAY_IS_ON && !recording) return;
     if (!lv) return;
     if (lv_paused) return;
 
     #ifdef CONFIG_DIGIC_POKE
     digic_poke_step();
     #endif
+    
+    #ifdef FEATURE_IMAGE_EFFECTS
     
     // bulb ramping calibration works best on grayscale image
     extern int bulb_ramp_calibration_running;
@@ -390,68 +484,100 @@ void image_effects_step()
 
     if (!is_movie_mode()) return;
 
+    // sharpness trick: at -1, cancel it completely
+    if (lens_get_sharpness() < 0)
+        EngDrvOut(0xc0f2116c, 0x0);
+
     static int prev_swap_uv = 0;
     if (desaturate) EngDrvOut(0xc0f0f070, 0x01000100);
     if (negative)   EngDrvOut(0xc0f0f000, 0xb1);
     if (swap_uv)    EngDrvOut(0xc0f0de2c, 0x10); else if (prev_swap_uv) EngDrvOut(0xc0f0de2c, 0);
-    if (cartoon)    EngDrvOut(0xc0f0f29c, 0xffff);
-    //~ if (cartoon)    EngDrvOut(0xc0f0f438, 29100 + cartoon);
+    if (cartoon)    
+    {
+        if (cartoon >= 1) EngDrvOut(0xc0f23164, -1);
+        if (cartoon >= 2) EngDrvOut(0xc0f0f29c, 0xffff); // also c0f2194c?
+        EngDrvOut(0xc0f2116c, 0xffff0000); // boost picturestyle sharpness to max
+    }
+    if (oilpaint)   EngDrvOut(0xc0f2135c, -1);
+    if (sharp)      EngDrvOut(0xc0f0f280, -1);
+
     prev_swap_uv = swap_uv;
+    
+    #endif
 }
 
 void digic_iso_step()
 {
-    if (!DISPLAY_IS_ON) return;
+#if defined(FEATURE_EXPO_ISO_DIGIC) || defined(FEATURE_LV_DISPLAY_GAIN)
+    if (!DISPLAY_IS_ON && !recording) return;
     if (!lv) return;
     if (lv_paused) return;
-    if (is_movie_mode() && lens_info.iso == 0) return; // no auto ISO, please
+    int mv = is_movie_mode();
+    if (mv && lens_info.iso == 0) return; // no auto ISO, please
 
     extern int bulb_ramp_calibration_running;
     if (bulb_ramp_calibration_running) return;
-
-    if (is_movie_mode())
+#endif
+#ifdef FEATURE_EXPO_ISO_DIGIC
+    if (mv)
     {
         if (digic_iso_gain_movie == 0) digic_iso_gain_movie = 1024;
-
-        if (digic_iso_gain_movie < 1024)
+        if (digic_iso_gain_movie_for_gradual_expo == 0) digic_iso_gain_movie_for_gradual_expo = 1024;
+        int total_movie_gain = digic_iso_gain_movie * digic_iso_gain_movie_for_gradual_expo / 1024;
+        if (total_movie_gain != 1024)
         {
             autodetect_default_white_level();
-            int new_gain = get_new_white_level();
+            int boost_stops = 0;
+            int new_gain = get_new_white_level(total_movie_gain, &boost_stops);
             EngDrvOut(SHAD_GAIN, new_gain);
             shad_gain_last_written = new_gain;
-        }
-        else if (digic_iso_gain_movie > 1024)
-        {
-            int ev_x255 = gain_to_ev_scaled(digic_iso_gain_movie, 255) - 2550 + 255;
-            EngDrvOut(ISO_PUSH_REGISTER, ev_x255);
+            #if !defined(CONFIG_5D3) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D) && !defined(CONFIG_6D)
+            EngDrvOut(ISO_PUSH_REGISTER, boost_stops << 8);
+            #endif
         }
 
-        #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
         if (digic_black_level != 100)
         {
             int presetup = MEMX(SHAD_PRESETUP);
             presetup = ((presetup + 100) & 0xFF00) + ((int)digic_black_level-100);
             EngDrvOut(SHAD_PRESETUP, presetup);
         }
+
+        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+        if (LVAE_DISP_GAIN) call("lvae_setdispgain", 0); // reset display gain
         #endif
 
     }
-    else // photo mode - display gain, for preview only
+#endif
+#ifdef FEATURE_LV_DISPLAY_GAIN
+    if (!mv) // photo mode - display gain, for preview only
     {
-        if (digic_iso_gain_photo == 0) digic_iso_gain_photo = 1024;
-        if (digic_iso_gain_photo > 1024 && !LVAE_DISP_GAIN)
+        if (digic_iso_gain_photo_for_bv == 0) digic_iso_gain_photo_for_bv = 1024;
+        int total_photo_gain = digic_iso_gain_photo * digic_iso_gain_photo_for_bv / 1024;
+
+        if (total_photo_gain == 0) total_photo_gain = 1024;
+    #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+        int g = total_photo_gain == 1024 ? 0 : COERCE(total_photo_gain, 0, 65534);
+        if (LVAE_DISP_GAIN != g) 
         {
-            int ev_x255 = gain_to_ev_scaled(digic_iso_gain_photo, 255) - 2550 + 255;
-            EngDrvOut(ISO_PUSH_REGISTER, ev_x255);
+            call("lvae_setdispgain", g);
         }
+    #else
+        if (total_photo_gain > 1024 && !LVAE_DISP_GAIN)
+        {
+            int boost_stops = COERCE((int)log2f(total_photo_gain / 1024), 0, 7);
+            EngDrvOut(ISO_PUSH_REGISTER, boost_stops << 8);
+        }
+    #endif
     }
+#endif
 }
 
 void menu_open_submenu();
 
 static struct menu_entry lv_img_menu[] = {
+    #ifdef FEATURE_IMAGE_EFFECTS
     {
-	.id = 0,
         .name = "Image Effects...",
         .max = 1,
         .select = menu_open_submenu,
@@ -482,9 +608,23 @@ static struct menu_entry lv_img_menu[] = {
                 .name = "Cartoon look",
                 .priv       = &cartoon,
                 .min = 0,
-                .max = 1,
-                .help = "Cartoonish look. Set sharpness to some positive value.",
+                .max = 2,
+                .choices = (const char *[]) {"OFF", "Weak", "Strong"},
+                .help = "Cartoonish look obtained by emphasizing the edges.",
             },
+#if !(defined(CONFIG_600D) || defined(CONFIG_1100D))
+            {
+                .name = "Oil painting", 
+                .priv = &oilpaint, 
+                .max = 1,
+                .help = "Some sort of movie noise reduction"
+            },
+            {
+                .name = "High sharpness", 
+                .priv = &sharp, 
+                .max = 1,
+            },
+#endif
             /*{
                 .name = "Purple Fringe",
                 .priv       = &fringing,
@@ -495,6 +635,7 @@ static struct menu_entry lv_img_menu[] = {
             MENU_EOL
         }
     }
+    #endif
 };
 
 #ifdef CONFIG_DIGIC_POKE
@@ -566,9 +707,10 @@ static struct menu_entry dbg_menu[] = {
 static void lv_img_init()
 {
     menu_add( "Movie", lv_img_menu, COUNT(lv_img_menu) );
-    #ifdef CONFIG_DIGIC_POKE
+    
+#ifdef CONFIG_DIGIC_POKE
     menu_add( "Debug", dbg_menu, COUNT(dbg_menu) );
-    #endif
+#endif
 }
 
 INIT_FUNC("lv_img", lv_img_init);

@@ -206,11 +206,11 @@ config_save_file(
     
     #define MAX_SIZE 10240
     char* msg = alloc_dma_memory(MAX_SIZE);
-    char* msgc = CACHEABLE(msg);
+    msg[0] = '\0';
   
-    snprintf( msgc, MAX_SIZE,
+    snprintf( msg, MAX_SIZE,
         "# Magic Lantern %s (%s)\n"
-        "# Build on %s by %s\n",
+        "# Built on %s by %s\n",
         build_version,
         build_id,
         build_date,
@@ -220,7 +220,7 @@ config_save_file(
     struct tm now;
     LoadCalendarFromRTC( &now );
 
-    snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
+    snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg),
         "# Configuration saved on %04d/%02d/%02d %02d:%02d:%02d\n",
         now.tm_year + 1900,
         now.tm_mon + 1,
@@ -233,13 +233,13 @@ config_save_file(
     for( ; var < _config_vars_end ; var++ )
     {
         if( var->type == 0 )
-            snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
+            snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1,
                 "%s = %d\r\n",
                 var->name,
                 *(unsigned*) var->value
             );
         else
-            snprintf(msgc + strlen(msgc), MAX_SIZE - strlen(msgc),
+            snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1,
                 "%s = %s\r\n",
                 var->name,
                 *(const char**) var->value
@@ -248,12 +248,11 @@ config_save_file(
         count++;
     }
     
-    FIO_RemoveFile(filename);
-    FILE * file = FIO_CreateFile( filename );
+    FILE * file = FIO_CreateFileEx( filename );
     if( file == INVALID_PTR )
         return -1;
     
-    FIO_WriteFile(file, msg, strlen(msgc));
+    FIO_WriteFile(file, msg, strlen(msg));
 
     FIO_CloseFile( file );
     return count;
@@ -295,7 +294,7 @@ error:
 }
 
 int config_autosave = 1;
-#define CONFIG_AUTOSAVE_FLAG_FILE CARD_DRIVE "ML/AUTOSAVE.NEG"
+#define CONFIG_AUTOSAVE_FLAG_FILE CARD_DRIVE "ML/SETTINGS/AUTOSAVE.NEG"
 
 static int config_flag_file_setting_load(char* file)
 {
@@ -308,7 +307,7 @@ static void config_flag_file_setting_save(char* file, int setting)
     FIO_RemoveFile(file);
     if (setting)
     {
-        FILE* f = FIO_CreateFile(file);
+        FILE* f = FIO_CreateFileEx(file);
         FIO_CloseFile(f);
     }
 }
@@ -370,3 +369,4 @@ struct config_var* get_config_vars_start() {
 struct config_var* get_config_vars_end() {
 	return _config_vars_end;
 }
+

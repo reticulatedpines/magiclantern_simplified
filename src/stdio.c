@@ -67,105 +67,105 @@ int __errno;
 #define _STRTO_ENDPTR           1
 
 unsigned long long strto_ll(
-	const char* str,
-	char ** endptr,
-	int base,
-	int sflag)
+    const char* str,
+    char ** endptr,
+    int base,
+    int sflag)
 {
-	unsigned long long number;
+    unsigned long long number;
 #if _STRTO_ENDPTR
-	const char *fail_char;
+    const char *fail_char;
 #define SET_FAIL(X) fail_char = (X)
 #else
 #define SET_FAIL(X) ((void)(X)) /* Keep side effects. */
 #endif
-	unsigned int n1;
-	unsigned char negative, digit;
+    unsigned int n1;
+    unsigned char negative, digit;
 
-	SET_FAIL(str);
+    SET_FAIL(str);
 
-	while (ISSPACE(*str)) {		/* Skip leading whitespace. */
-		++str;
-	}
+    while (ISSPACE(*str)) {        /* Skip leading whitespace. */
+        ++str;
+    }
 
-	/* Handle optional sign. */
-	negative = 0;
-	switch (*str) {
-		case '-': negative = 1;	/* Fall through to increment str. */
-		case '+': ++str;
-	}
+    /* Handle optional sign. */
+    negative = 0;
+    switch (*str) {
+        case '-': negative = 1;    /* Fall through to increment str. */
+        case '+': ++str;
+    }
 
-	if (!(base & ~0x10)) {		/* Either dynamic (base = 0) or base 16. */
-		base += 10;				/* Default is 10 (26). */
-		if (*str == '0') {
-			SET_FAIL(++str);
-			base -= 2;			/* Now base is 8 or 16 (24). */
-			if ((0x20|(*str)) == 'x') { /* WARNING: assumes ascii. */
-				++str;
-				base += base;	/* Base is 16 (16 or 48). */
-			}
-		}
+    if (!(base & ~0x10)) {        /* Either dynamic (base = 0) or base 16. */
+        base += 10;                /* Default is 10 (26). */
+        if (*str == '0') {
+            SET_FAIL(++str);
+            base -= 2;            /* Now base is 8 or 16 (24). */
+            if ((0x20|(*str)) == 'x') { /* WARNING: assumes ascii. */
+                ++str;
+                base += base;    /* Base is 16 (16 or 48). */
+            }
+        }
 
-		if (base > 16) {		/* Adjust in case base wasn't dynamic. */
-			base = 16;
-		}
-	}
+        if (base > 16) {        /* Adjust in case base wasn't dynamic. */
+            base = 16;
+        }
+    }
 
-	number = 0;
+    number = 0;
 
-	if (((unsigned)(base - 2)) < 35) { /* Legal base. */
-		do {
-			digit = ((unsigned char)(*str - '0') <= 9)
-				? /* 0..9 */ (*str - '0')
-				: /* else */ (((unsigned char)(0x20 | *str) >= 'a') /* WARNING: assumes ascii. */
-				   ? /* >= A/a */ ((unsigned char)(0x20 | *str) - ('a' - 10))
-				   : /* else   */ 40 /* bad value */);
+    if (((unsigned)(base - 2)) < 35) { /* Legal base. */
+        do {
+            digit = ((unsigned char)(*str - '0') <= 9)
+                ? /* 0..9 */ (*str - '0')
+                : /* else */ (((unsigned char)(0x20 | *str) >= 'a') /* WARNING: assumes ascii. */
+                   ? /* >= A/a */ ((unsigned char)(0x20 | *str) - ('a' - 10))
+                   : /* else   */ 40 /* bad value */);
 
-			if (digit >= base) {
-				break;
-			}
+            if (digit >= base) {
+                break;
+            }
 
-			SET_FAIL(++str);
+            SET_FAIL(++str);
 
 #if 1
-			/* Optional, but speeds things up in the usual case. */
-			if (number <= (ULLONG_MAX >> 6)) {
-				number = number * base + digit;
-			} else
+            /* Optional, but speeds things up in the usual case. */
+            if (number <= (ULLONG_MAX >> 6)) {
+                number = number * base + digit;
+            } else
 #endif
-			{
-				n1 = ((unsigned char) number) * base + digit;
-				number = (number >> CHAR_BIT) * base;
+            {
+                n1 = ((unsigned char) number) * base + digit;
+                number = (number >> CHAR_BIT) * base;
 
-				if (number + (n1 >> CHAR_BIT) <= (ULLONG_MAX >> CHAR_BIT)) {
-					number = (number << CHAR_BIT) + n1;
-				} else {		/* Overflow. */
-					number = ULLONG_MAX;
-					negative &= sflag;
-					SET_ERRNO(ERANGE);
-				}
-			}
+                if (number + (n1 >> CHAR_BIT) <= (ULLONG_MAX >> CHAR_BIT)) {
+                    number = (number << CHAR_BIT) + n1;
+                } else {        /* Overflow. */
+                    number = ULLONG_MAX;
+                    negative &= sflag;
+                    SET_ERRNO(ERANGE);
+                }
+            }
 
-		} while (1);
-	}
+        } while (1);
+    }
 
 #if _STRTO_ENDPTR
-	if (endptr) {
-		*endptr = (char *) fail_char;
-	}
+    if (endptr) {
+        *endptr = (char *) fail_char;
+    }
 #endif
 
-	{
-		unsigned long long tmp = ((negative)
-								  ? ((unsigned long long)(-(1+LLONG_MIN)))+1
-								  : LLONG_MAX);
-		if (sflag && (number > tmp)) {
-			number = tmp;
-			SET_ERRNO(ERANGE);
-		}
-	}
+    {
+        unsigned long long tmp = ((negative)
+                                  ? ((unsigned long long)(-(1+LLONG_MIN)))+1
+                                  : LLONG_MAX);
+        if (sflag && (number > tmp)) {
+            number = tmp;
+            SET_ERRNO(ERANGE);
+        }
+    }
 
-	return negative ? (unsigned long long)(-((long long)number)) : number;
+    return negative ? (unsigned long long)(-((long long)number)) : number;
 }
 
 long
@@ -179,7 +179,7 @@ strtol(
 }
 
 
-double
+/*double
 strtod(
     const char *        str,
     char **         endptr
@@ -197,7 +197,7 @@ strtod(
     return val;
 #endif
 }
-
+*/
 
 unsigned long
 strtoul(
@@ -224,13 +224,13 @@ streq( const char * a, const char * b )
 /** Exit is tough; we want to kill the current thread, but how? */
 #include "bmp.h"
 
-void
+/*void
 exit( int rc )
 {
     bmp_printf( FONT_SMALL, 0, 50, "Exit %d", rc );
     while(1)
         ;
-}
+}*/
 
 
 /** realloc is implemented via malloc/free */
@@ -297,96 +297,96 @@ realloc(
 }
 
 int abs(int num) {
-	return (num >= 0) ? num : -num;
+    return (num >= 0) ? num : -num;
 }
 
 char *strstr(const char *haystack, const char *needle)
 {
-	size_t needlelen;
-	/* Check for the null needle case.  */
-	if (*needle == '\0')
-		return (char *) haystack;
-	needlelen = strlen(needle);
-	for (; (haystack = strchr(haystack, *needle)) != NULL; haystack++)
-		if (memcmp(haystack, needle, needlelen) == 0)
-			return (char *) haystack;
-	return NULL;
+    size_t needlelen;
+    /* Check for the null needle case.  */
+    if (*needle == '\0')
+        return (char *) haystack;
+    needlelen = strlen(needle);
+    for (; (haystack = strchr(haystack, *needle)) != NULL; haystack++)
+        if (memcmp(haystack, needle, needlelen) == 0)
+            return (char *) haystack;
+    return NULL;
 }
 
 char* strchr(const char* s, int c) {
-	while (*s != '\0' && *s != (char)c)
-		s++;
-	return ( (*s == c) ? (char *) s : NULL );
+    while (*s != '\0' && *s != (char)c)
+        s++;
+    return ( (*s == c) ? (char *) s : NULL );
 }
 
 char* strpbrk(const char* s1, const char* s2)
 {
-	const char *sc1;
-	for (sc1 = s1; *sc1 != '\0'; sc1++)
-		if (strchr(s2, *sc1) != NULL)
-			return (char *)sc1;
-	return NULL;
+    const char *sc1;
+    for (sc1 = s1; *sc1 != '\0'; sc1++)
+        if (strchr(s2, *sc1) != NULL)
+            return (char *)sc1;
+    return NULL;
 }
 
 #define MAX_VSNPRINTF_SIZE 4096
 
 int sprintf(char* str, const char* fmt, ...)
 {
-	int num;
-	va_list            ap;
+    int num;
+    va_list            ap;
 
-	va_start( ap, fmt );
-	num = vsnprintf( str, MAX_VSNPRINTF_SIZE, fmt, ap );
-	va_end( ap );
-	return num;
+    va_start( ap, fmt );
+    num = vsnprintf( str, MAX_VSNPRINTF_SIZE, fmt, ap );
+    va_end( ap );
+    return num;
 }
 
 int memcmp(const void* s1, const void* s2,size_t n)
 {
-	const unsigned char *us1 = (const unsigned char *) s1;
-	const unsigned char *us2 = (const unsigned char *) s2;
-	while (n-- != 0) {
-		if (*us1 != *us2)
-			return (*us1 < *us2) ? -1 : +1;
-		us1++;
-		us2++;
-	}
-	return 0;
+    const unsigned char *us1 = (const unsigned char *) s1;
+    const unsigned char *us2 = (const unsigned char *) s2;
+    while (n-- != 0) {
+        if (*us1 != *us2)
+            return (*us1 < *us2) ? -1 : +1;
+        us1++;
+        us2++;
+    }
+    return 0;
 }
 
 int toupper(int c)
 {
-	if(('a' <= c) && (c <= 'z'))
-		return 'A' + c - 'a';
-	return c;
+    if(('a' <= c) && (c <= 'z'))
+        return 'A' + c - 'a';
+    return c;
 }
 
 int tolower(int c)
 {
-	if(('A' <= c) && (c <= 'Z'))
-		return 'a' + c - 'A';
-	return c;
+    if(('A' <= c) && (c <= 'Z'))
+        return 'a' + c - 'A';
+    return c;
 }
 
 void *memchr(const void *s, int c, size_t n)
 {
-	const unsigned char *src = s;
-	unsigned char uc = c;
-	while (n-- != 0) {
-		if (*src == uc)
-			return (void *) src;
-		src++;
-	}
-	return NULL;
+    const unsigned char *src = s;
+    unsigned char uc = c;
+    while (n-- != 0) {
+        if (*src == uc)
+            return (void *) src;
+        src++;
+    }
+    return NULL;
 }
 
 size_t strspn(const char *s1, const char *s2)
 {
-	const char *sc1;
-	for (sc1 = s1; *sc1 != '\0'; sc1++)
-		if (strchr(s2, *sc1) == NULL)
-			return (sc1 - s1);
-	return sc1 - s1;
+    const char *sc1;
+    for (sc1 = s1; *sc1 != '\0'; sc1++)
+        if (strchr(s2, *sc1) == NULL)
+            return (sc1 - s1);
+    return sc1 - s1;
 }
 
 int islower(int x) { return ((x)>='a') && ((x)<='z'); }
@@ -400,3 +400,73 @@ int isgraph(int x) { return ispunct(x) || isalnum(x); }
 int isspace(int x) { return strchr(" \r\n\t",x)!=0; }
 int iscntrl(int x) { return strchr("\x07\x08\r\n\x0C\x0B\x09",x)!=0; }
 
+int is_dir(char* path)
+{
+    struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
+    if( IS_ERROR(dirent) )
+    {
+        return 0; // this dir does not exist
+    }
+    else 
+    {
+        FIO_CleanupAfterFindNext_maybe(dirent);
+        return 1; // dir found
+    }
+}
+void FIO_CreateDir_recursive(char* path)
+{
+    //~ NotifyBox(2000, "create dir: %s ", path); msleep(2000);
+    // B:/ML/something
+    
+    if (is_dir(path)) return;
+    
+    int n = strlen(path);
+    for (int i = n-1; i > 2; i--)
+    {
+         if (path[i] == '/')
+         {
+             path[i] = '\0';
+             if (!is_dir(path))
+                FIO_CreateDir_recursive(path);
+             path[i] = '/';
+         }
+    }
+
+        FIO_CreateDirectory(path);
+}
+
+// a wrapper that also creates missing dirs and removes existing file
+FILE* FIO_CreateFileEx(const char* name)
+{
+    //~ NotifyBox(2000, "create file: %s ", name); msleep(2000);
+    // first assume the path is alright
+    FIO_RemoveFile(name);
+    FILE* f = FIO_CreateFile(name);
+    if (f != INVALID_PTR)
+    {
+        //~ NotifyBox(2000, "create file: %s => success :) ", name); msleep(2000);
+        return f;
+    }
+    
+    //~ info_led_blink(5,50,50);
+
+    // if we are here, the path may be inexistent => create it
+    int n = strlen(name);
+    char* namae = (char*) name; // trick to ignore the const declaration and split the path easily
+    for (int i = n-1; i > 2; i--)
+    {
+         if (namae[i] == '/')
+         {
+             namae[i] = '\0';
+             FIO_CreateDir_recursive(namae);
+             namae[i] = '/';
+         }
+    }
+
+    f = FIO_CreateFile(name);
+
+    //~ if (f != INVALID_PTR) NotifyBox(2000, "create file: %s => success", name); msleep(2000);
+        
+    return f;
+}

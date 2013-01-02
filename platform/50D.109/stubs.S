@@ -234,6 +234,8 @@ NSTUB(0xffa86e8c, LiveViewApp_handler)
 NSTUB(0xffaa7c9c, ShootOlcApp_handler)
 NSTUB(0xdeadbeef, ErrCardForLVApp_handler)
 NSTUB(0xFFA796BC, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
+NSTUB(0xffa9c890, PlayMain_handler)
+NSTUB(0xdeadbeef, PlayMovieGuideApp_handler)
 
 NSTUB(0xFF97D904, _engio_write)
 NSTUB(0xff97d7f8, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
@@ -251,3 +253,16 @@ NSTUB(0xFF8180BC, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xFF817F04, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 
 NSTUB(0xFF8875E4, SetGUIRequestMode)
+
+NSTUB(0xff8542c4, PowerAudioOutput)
+NSTUB(0xff852494, StartASIFDMADAC)
+NSTUB(0xff855290, SetSamplingRate )
+NSTUB(0xff85460c, SetAudioVolumeOut)
+NSTUB(0xff853250, TH_asif_initialize)
+NSTUB(0xff854fc8, TH_audio_ic_initialize)
+
+NSTUB(0xff86be28, AllocateMemoryResource) // m_pfAllocMemoryCBR
+NSTUB(0xff86be6c, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
+NSTUB(0xff86bf7c, FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xff869524, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff868f44, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature

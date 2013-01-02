@@ -1,0 +1,14 @@
+#include "all_features.h"
+
+#define FEATURE_AUTO_BURST_PICQ
+#define FEATURE_LV_3RD_PARTY_FLASH
+#define FEATURE_MONO_MIC
+
+// audio controls kinda work, but very limited
+#undef FEATURE_DIGITAL_GAIN
+#undef FEATURE_AGC_TOGGLE
+#undef FEATURE_WIND_FILTER
+#undef FEATURE_INPUT_SOURCE
+#undef FEATURE_MIC_POWER
+#undef FEATURE_HEADPHONE_MONITORING
+#undef FEATURE_HEADPHONE_OUTPUT_VOLUME

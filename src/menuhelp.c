@@ -35,9 +35,75 @@ extern int menu_help_active;
 int current_page = 1;
 extern int help_pages;
 
+void 
+draw_beta_warning()
+{
+    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+
+    bmp_printf(FONT_LARGE, 360 - font_large.width * 6, 50, "Magic Lantern");
+    
+    bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
+
+    bmp_printf(FONT_MED, 50, 200, "   Please report all bugs at www.magiclantern.fm.   ");
+
+    bmp_printf(FONT_MED, 50, 250, "      Be careful using it for production work.      ");
+
+    bmp_printf(FONT_MED, 50, 300, "                       Enjoy!                       ");
+
+    big_bmp_printf(FONT_MED,  10,  410,
+        "Magic Lantern version : %s\n"
+        "Mercurial changeset   : %s\n"
+        "Built on %s by %s.",
+        build_version,
+        build_id,
+        build_date,
+        build_user);
+}
+
+void 
+draw_404_page()
+{
+    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+
+    bfnt_puts("404 Undocumented Feature", 10, 20, COLOR_WHITE, COLOR_BLACK);
+    
+    bmp_printf(FONT_MED, 10, 100, "This feature is probably not yet documented.");
+    bmp_printf(FONT_MED, 10, 120, "After all, we are programmers, not tech writers.");
+
+    bmp_printf(FONT_MED, 10, 180, "But... you can simply try it and see what it does.");
+
+    bmp_printf(FONT_MED, 10, 240, "Then, write a short paragraph to describe it,");
+    bmp_printf(FONT_MED, 10, 260, "and we will include it in the user guide.");
+
+    bmp_printf(FONT_MED, 10, 320, "Thanks!");
+
+}
+
+void 
+draw_help_not_installed_page()
+{
+    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+
+    bfnt_puts("Help files not found", 10, 20, COLOR_WHITE, COLOR_BLACK);
+    
+    bmp_printf(FONT_MED, 10, 150, "Magic Lantern help files could not be found.              ");
+
+    bmp_printf(FONT_MED, 10, 200, "Make sure all ML files are installed to your card.        ");
+
+    bmp_printf(FONT_MED, 10, 250, "See http://wiki.magiclantern.fm/install for instructions. ");
+}
+
 void menu_help_show_page(int page)
 {
     menu_help_active = 1;
+    
+#ifndef CONFIG_RELEASE_BUILD
+    if (page == 1) { draw_beta_warning(); return; } // display this instead of the main About page
+#endif
+
+    if (page == 0) { draw_404_page(); return; } // help page not found
+    if (page == -1) { draw_help_not_installed_page(); return; } // help page not found
+    
     char path[100];
     struct bmp_file_t * doc = (void*) -1;
 
@@ -52,12 +118,13 @@ void menu_help_show_page(int page)
     if (doc)
     {
         bmp_draw_scaled_ex(doc, 0, 0, 720, 480, 0);
+        msleep(200); // no idea if it helps on 500D, but who knows (at least feels better on the UI)
         FreeMemory(doc);
     }
     else
     {
         clrscr();
-        bmp_printf(FONT_MED, 0, 0, "Could not load help page %s\nPlease unzip 'doc' directory on your SD card.", path);
+        bmp_printf(FONT_MED, 0, 0, "Could not load help page %s.", path);
     }
 }
 
@@ -84,29 +151,45 @@ void menu_help_go_to_page(int page)
     menu_help_active = 1;
 }
 
-void menu_help_go_to_label(void* label)
+void str_make_lowercase(char* s)
 {
-    int page = 1;
+    while (*s) { *s = tolower(*s); s++; }
+}
+
+void menu_help_go_to_label(void* label, int delta)
+{
+    int page = 0; // if help page won't be found, will show 404
+    if (is_menu_selected("Help")) page = 1; // don't show the 404 page in Help menu :P
     
     // hack: use config file routines to parse menu index file
     extern int config_file_size, config_file_pos;
     extern char* config_file_buf;
     config_file_buf = (void*)read_entire_file(CARD_DRIVE "ML/doc/menuidx.dat", &config_file_size);
     config_file_pos = 0;
+    
+    if (!config_file_size) page = -1; // show "help not found" warning
 
     char line_buf[ 100 ];
+    
+    // trim spaces
+    char label_adj[100];
+    snprintf(label_adj, sizeof(label_adj), "%s", label);
+    while (label_adj[strlen(label_adj)-1] == ' ')
+    {
+        label_adj[strlen(label_adj)-1] = '\0';
+    }
+    str_make_lowercase(label_adj);
 
     while( read_line(line_buf, sizeof(line_buf) ) >= 0 )
     {
         char* name = line_buf+4;
-        if(!strcmp(name, label))
+        str_make_lowercase(name);
+        int pagenum = atoi(line_buf);
+        if(streq(name, label_adj))
         {
-            page = atoi(line_buf);
+            page = pagenum;
         }
-        if(!strcmp(name, "end"))
-        {
-            help_pages = atoi(line_buf);
-        }
+        help_pages = MAX(help_pages, pagenum);
     }
     free_dma_memory(config_file_buf);
     config_file_buf = 0;

@@ -22,13 +22,17 @@ ML_OBJS-y = \
 	boot-hack.o \
 	stubs.o \
 	version.o \
+	exmem.o \
 	bmp.o \
+	font-small2.o \
+	font-med2.o \
+	font-large.o \
 	font-dyn.o \
 	config.o \
 	menu.o \
 	debug.o \
 	stdio.o \
-	audio.o \
+	audio-ak.o \
 	bitrate.o \
 	tweaks.o \
 	lens.o \
@@ -49,31 +53,35 @@ ML_OBJS-y = \
 	af_patterns.o \
 	focus.o \
 	notify_box.o \
-	qtimer.o \
 	dialog_test.o \
 	bootflags.o \
 	vram.o \
 	morse.o \
-	liveview.o \
 	reloc.o \
 	aj_port.o \
 	fps-engio.o \
-	cartridge.o \
 	hdr.o \
 	lv-img-engio.o \
 	state-object.o \
 	tasks.o \
+	tskmon.o \
+	beep.o \
+	vsync-lite.o \
 
 #include generic rules and definitions
 
 include  $(TOP_DIR)/Makefile.inc
+
+CFLAGS += -D CONFIG_STATIC_FONTS=1 
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF010000
 #RESTARTSTART		= 0x0008B000
-RESTARTSTART		= 0x0007f000
+RESTARTSTART    = 0x00C80100
+AUTOEXEC_BASE   = 0x40800000
+FIR_BASE        = 0x40800120
 
 #not used but...
 FIRMWARE_ID_1100D	= 0x80000288

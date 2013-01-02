@@ -1,5 +1,7 @@
 #define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
+#define LEDON 0x46
+#define LEDOFF 0x44
 
 #define HIJACK_INSTR_BL_CSTART  0xFF01019C
 #define HIJACK_INSTR_BSS_END 0xFF01109C
@@ -12,10 +14,6 @@
 
 #define DRYOS_ASSERT_HANDLER 0x1a0c // dec TH_assert or assert_0
 
-// Critical. Look for a call to prop_request_change(0x80050007, something, len).
-#define AFFRAME_PROP_LEN 104
-#define CUSTOM_WB_PROP_LEN 52
-
 // 720x480, changes when external monitor is connected
 #define YUV422_LV_BUFFER_1 0x40D07800 
 #define YUV422_LV_BUFFER_2 0x4c233800
@@ -27,10 +25,11 @@
 //~ #define YUV422_LV_HEIGHT_RCA 540
 //~ #define YUV422_LV_HEIGHT_HDMI 1080
 
-#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x246c)
-#define YUV422_LV_BUFFER_DMA_ANOTHER_ADDR (*(uint32_t*)0x4c60)
-#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x4c5c)
+#define REG_EDMAC_WRITE_LV_ADDR 0xc0f26208 // SDRAM address of LV buffer (aka VRAM)
+#define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
 
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)0x246c)
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR))
 
 // changes during record
 #define YUV422_HD_BUFFER_1 0x44000080
@@ -71,75 +70,6 @@
 #define GMT_NFUNCS 8
 #define GMT_FUNCTABLE 0xFF453E14
 #define GMT_IDLEHANDLER_TASK (*(int*)0x15168) // dec create_idleHandler_task
-
-// button codes as received by gui_main_task
-#define BGMT_PRESS_LEFT 0x1c
-#define BGMT_UNPRESS_LEFT 0x1d
-#define BGMT_PRESS_UP 0x1e
-#define BGMT_UNPRESS_UP 0x1f
-#define BGMT_PRESS_RIGHT 0x1a
-#define BGMT_UNPRESS_RIGHT 0x1b
-#define BGMT_PRESS_DOWN 0x20
-#define BGMT_UNPRESS_DOWN 0x21
-
-#define BGMT_PRESS_SET 0x4
-#define BGMT_UNPRESS_SET 0x5
-
-#define BGMT_TRASH 0xA
-#define BGMT_MENU 6
-#define BGMT_INFO 7
-#define BGMT_Q 8
-#define BGMT_Q_ALT 0xF
-#define BGMT_PLAY 9
-
-#define BGMT_PRESS_HALFSHUTTER 0x3F
-#define BGMT_UNPRESS_HALFSHUTTER 0x40
-#define BGMT_PRESS_FULLSHUTTER 0x41    // can't return 0 to block this...
-#define BGMT_UNPRESS_FULLSHUTTER 0x42
-
-#define BGMT_LV 0x18
-
-#define BGMT_WHEEL_LEFT 2
-#define BGMT_WHEEL_RIGHT 3
-#define BGMT_WHEEL_UP 0
-#define BGMT_WHEEL_DOWN 1
-
-// these are not sent always
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xD
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xE
-
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xB
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
-
-#define BGMT_AV (event->type == 0 && event->param == 0x56 && ( \
-			(is_movie_mode() && event->arg == 0xe) || \
-			(shooting_mode == SHOOTMODE_P && event->arg == 0xa) || \
-			(shooting_mode == SHOOTMODE_AV && event->arg == 0xf) || \
-			(shooting_mode == SHOOTMODE_M && event->arg == 0xe) || \
-			(shooting_mode == SHOOTMODE_TV && event->arg == 0x10)) )
-
-#define BGMT_AV_MOVIE (event->type == 0 && event->param == 0x56 && (is_movie_mode() && event->arg == 0xe))
-
-#define BGMT_PRESS_AV (BGMT_AV && (*(int*)(event->obj) & 0x2000000) == 0)
-#define BGMT_UNPRESS_AV (BGMT_AV && (*(int*)(event->obj) & 0x2000000))
-
-#define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x56 && is_movie_mode() && event->arg == 9)
-#define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
-#define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000) == 0)
-#define FLASH_BTN_MOVIE_MODE get_flash_movie_pressed()
-
-#define BGMT_ISO_MOVIE (event->type == 0 && event->param == 0x56 && is_movie_mode() && event->arg == 0x1b)
-#define BGMT_PRESS_ISO_MOVIE (BGMT_ISO_MOVIE && (*(int*)(event->obj) & 0xe0000))
-#define BGMT_UNPRESS_ISO_MOVIE (BGMT_ISO_MOVIE && (*(int*)(event->obj) & 0xe0000) == 0)
-
-#define GMT_OLC_INFO_CHANGED 0x56 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
-#define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x1000007d in 550d
-//~ #define GMT_OLC_BLINK_TIMER 0x2f // event type = 2, look for OlcBlinkTimer and send_message_to_gui_main_task
-
-// needed for correct shutdown from powersave modes
-#define GMT_GUICMD_START_AS_CHECK 78
-#define GMT_GUICMD_OPEN_SLOT_COVER 75
-#define GMT_GUICMD_LOCK_OFF 73
 
 
 #define SENSOR_RES_X 5202
@@ -236,8 +166,8 @@
 #define DISPLAY_CLOCK_POS_Y 410
 
 // for intermediate ISO
-#define MENU_DISP_ISO_POS_X 500
-#define MENU_DISP_ISO_POS_Y 27
+#define MENU_DISP_ISO_POS_X 470
+#define MENU_DISP_ISO_POS_Y 40
 
 // for HDR status
 #define HDR_STATUS_POS_X 380
@@ -282,12 +212,16 @@
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x14adc+12) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
+#define IMGPLAY_ZOOM_POS_X MEM(0x819a8) // Zoom CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x819ac)
+#define IMGPLAY_ZOOM_POS_X_CENTER 0x144
+#define IMGPLAY_ZOOM_POS_Y_CENTER 0xd8
+#define IMGPLAY_ZOOM_POS_DELTA_X (0x144 - 0x93)
+#define IMGPLAY_ZOOM_POS_DELTA_Y (0xd8 - 0x7d)
 
 #define BULB_EXPOSURE_CORRECTION 100 // min value for which bulb exif is OK [not tested]
 
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x1E774+0x2C) // see http://magiclantern.wikia.com/wiki/VRAM/BMP
-
-#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_Q_ALT // what button to use for zebras in Play mode
 
 // manual exposure overrides
 #define LVAE_STRUCT 0x529c
@@ -310,10 +244,13 @@
 #define ARROW_MODE_TOGGLE_KEY "Av/FLASH/LCDsen"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x245c)
-#define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+//~ #define DISPLAY_IS_ON (MEM(0xc022010c) & 2) // from BackLightOn
+#define DISPLAY_IS_ON get_display_is_on_550D() // from state object
 
 #define LV_STRUCT_PTR 0x1d14
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)
+#define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x5e)
+#define FRAME_BV *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x62)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x27c28

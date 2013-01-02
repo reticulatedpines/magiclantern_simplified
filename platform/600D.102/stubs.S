@@ -71,6 +71,10 @@ NSTUB( 0xFF06ED38, dumpf )
  */
 NSTUB( 0xff1f94bc, vsnprintf )
 
+NSTUB(0xFF075934, dma_memcpy)
+NSTUB(0xFF1115DC, GetJpegBufForLV)
+NSTUB(0xFF1115E8, GetJpegSizeForLV)
+
 NSTUB( 0xFF0714C4, msleep ) // called from EV_GETDONE_CACHE param 0x64
 NSTUB( 0xFF071578, task_create )
 NSTUB( 0xFF1E6254, FIO_Open)
@@ -102,8 +106,9 @@ NSTUB( 0xFF1E7C04, vram_get_pos_and_size )
 NSTUB( 0xFF018D58, malloc ) // maybe it's better to use Allocate/Free?
 NSTUB( 0xFF018DB0, free )
 
-NSTUB( 0xff0723f0, AllocateMemory ) // "[MEM] NG AllocateMemory"
+NSTUB( 0xff0723f0, _AllocateMemory ) // "[MEM] NG AllocateMemory"
 NSTUB( 0xFF072780, FreeMemory ) 
+NSTUB( 0xff072280, AllocateMemory_do) // no err70, malloc structure at 0x3070
 // FF05FECC WinSys_FreeMemory
 
 NSTUB( 0x2E0C, dm_names )                // in DebugMsg, before the 1st loop target
@@ -250,6 +255,8 @@ NSTUB(0xff37f29c, LiveViewApp_handler_end) // start of next function
 NSTUB(0xff38c928, ShootOlcApp_handler)
 NSTUB(0xff476bf4, ErrCardForLVApp_handler) // LiveViewErrorApp, as in 60D
 NSTUB(0xFF3629B0, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
+NSTUB(0xff398abc, PlayMain_handler)
+NSTUB(0xff4b1920, PlayMovieGuideApp_handler)
 
 NSTUB(0x73590, lv_path_struct) // first arg of SelectPathDriveMode
 
@@ -271,3 +278,19 @@ NSTUB(0xFF3557F0, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xFF080ECC, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 
 NSTUB(0xff0a5e44, SetGUIRequestMode)
+
+NSTUB(0xff0765a0, AllocateMemoryResource) // m_pfAllocMemoryCBR
+NSTUB(0xff0765ec, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
+NSTUB(0xff076704, FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xff073b98, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff0735e0, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature
+
+NSTUB(0xff06a93c, PowerAudioOutput)
+NSTUB(0xff05587c, StartASIFDMADAC)
+NSTUB(0xff0556c8, StartASIFDMAADC)
+NSTUB(0xFF055E90, SetNextASIFADCBuffer)
+NSTUB(0xFF055F48, SetNextASIFDACBuffer)
+NSTUB(0xff055950, StopASIFDMADAC)
+NSTUB(0xff06a9e0, SetSamplingRate )
+NSTUB(0xff06a420, SetAudioVolumeOut)
+

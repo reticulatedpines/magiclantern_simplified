@@ -30,6 +30,10 @@
 
 #include "property.h"
 
+// for movie logging
+#define MVR_LOG_BUF_SIZE 8192
+#define MVR_LOG_APPEND(...) snprintf(mvr_logfile_buffer + strlen(mvr_logfile_buffer), MVR_LOG_BUF_SIZE - strlen(mvr_logfile_buffer) - 2, ## __VA_ARGS__ );
+
 int get_htp();
 
 struct lens_info
@@ -75,9 +79,11 @@ struct lens_info
 
         uint8_t         raw_aperture_min;
         uint8_t         raw_aperture_max;
+        
+        int8_t flash_ae;
 
-        float                   lens_rotation;
-        float                   lens_step;
+        //~ float                   lens_rotation;
+        //~ float                   lens_step;
 };
 
 extern struct lens_info lens_info;
@@ -145,7 +151,8 @@ extern int bv_set_rawshutter(unsigned shutter);
 extern int bv_set_rawaperture(unsigned aperture);
 extern int bv_set_rawiso(unsigned iso);
 
-OS_FUNCTION( 0x0900001, int,	lens_take_picture, int wait, int allow_af );
+OS_FUNCTION( 0x0900001, int, lens_take_picture, int wait, int allow_af );
+OS_FUNCTION( 0x0900002, int, lens_take_pictures, int wait, int allow_af, int duration );
 
 /** Will block if it is not safe to send the focus command */
 extern int
@@ -202,13 +209,18 @@ static const int codes_aperture[] =  {0,  10,  11,  12,  13,  14,  15,  16,  17,
 //~ static const int values_aperture[] = {0,12,13,14,16,18,20,22,25,28,32,35,40,45,50,56,63,67,71,80,90,95,100,110,130,140,160,180,190,200,220,250,270,290,320,360,380,400,450};
 //~ static const int codes_aperture[] =  {0,13,14,16,19,21,24,27,29,32,35,37,40,44,45,48,51,52,53,56,59,60, 61, 64, 68, 69, 72, 75, 76, 77, 80, 83, 84, 85, 88, 91, 92, 93, 96};
 
+#define APEX_TV(raw) ((int)(raw) - 56)
+#define APEX_AV(raw) ((raw) ? (int)(raw) - 8 : 0)
+#define APEX_SV(raw) ((int)(raw) - 32)
+
 // Conversions
 int raw2shutter_ms(int raw_shutter);
 int shutter_ms_to_raw(int shutter_ms);
 int shutterf_to_raw(float shutterf);
 float raw2shutterf(int raw_shutter);
 int raw2iso(int raw_iso);
-
+int shutterf_to_raw_noflicker(float shutterf);
+int round_noflicker(float value);
 
 #define SWAP_ENDIAN(x) (((x)>>24) | (((x)<<8) & 0x00FF0000) | (((x)>>8) & 0x0000FF00) | ((x)<<24))
 
@@ -217,5 +229,30 @@ void draw_ml_bottombar(int double_buffering, int clear);
 
 void SW1(int v, int wait);
 void SW2(int v, int wait);
+
+void iso_toggle( void * priv, int sign );
+void shutter_toggle(void* priv, int sign);
+void aperture_toggle( void* priv, int sign);
+
+#define MIN_ISO (get_htp() ? 80 : 72)
+#define MAX_ISO 136 // may be better to fine-tune this for each camera
+
+// max iso with expo override
+#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+#define MAX_ISO_BV 199
+#elif defined(CONFIG_500D)
+#define MAX_ISO_BV (is_movie_mode() ? 104 : 112) // 1600 or 3200
+#else
+#define MAX_ISO_BV 120
+#endif
+
+// max ISO that can be set via FRAME_ISO 
+// I think it's the same as max analog ISO
+// todo: ask Guillermo Luijk :)
+#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+#define MAX_ANALOG_ISO 136 // iso 25600
+#else
+#define MAX_ANALOG_ISO 112 // iso 3200
+#endif
 
 #endif

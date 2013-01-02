@@ -3,8 +3,8 @@ import os,sys,string
 try: 
     f = open("menuindex.txt").readlines()
 except:
-    print "Could not open menuindex.txt"
-    f = []
+    print "Could not open menuindex.txt, will not rewrite help index files"
+    raise SystemExit
 
 os.system("mkdir cam")
 o = open("cam/menuidx.dat", "w")
@@ -32,8 +32,15 @@ for l in f[1:]:
 
     if type == "subsubsection": # each menu entry is a subsection
         item = name.split(":")[0]
-        item = item.split(" and ")[0] # hacks, to be removed
+        
+        if " and " in item:
+            and_terms = item.split(" and ")
+            for t in and_terms:
+                print >> o, "%03d %s" % (page, t.strip())
+            continue
+            
         item = item.split(" / ")[0]
+        item = item.split(" (")[0]
         item = item.split(" X sec")[0]
         item = item.strip()
         #~ idx[item] = page
@@ -51,7 +58,7 @@ for l in f[1:]:
         .priv = "%s",
         .select = menu_help_go_to_label,
         .display = menu_print,
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },""" % (item, item)
 
     if type == "end":

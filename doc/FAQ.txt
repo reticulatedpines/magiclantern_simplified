@@ -27,7 +27,7 @@ To go back to Canon firmware, you may:
 Is Magic Lantern only for video?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**No.** First versions were developed by independent filmmakers and tailored for video production on 5D Mark II. 
+**No.** Early versions were developed by independent filmmakers and tailored for video production on 5D Mark II. 
 Things changed when Magic Lantern was ported to smaller (APS-C) cameras, like 550D, 60D, 600D and 500D, which attracted developers interested in both still photography and DSLR video. 
 
 `Visit the gallery for photo examples. <http://magiclantern.fm/hdrbracketing>`_
@@ -40,23 +40,24 @@ This is a "clean room" / "black box" reverse engineering effort and as such shou
 addresses the `legality question <http://www.chillingeffects.org/reverse/faq.cgi#QID195>`_;
 producing an interoperable product is one of the explicit allowances enshrined in law. 
 
+Magic Lantern **does not contain any Canon code**. Furthermore, we **do not distribute any copyrighted code or cryptographic secrets**, neither from Canon nor from any other third party. All the knowledge used for development was obtained by analyzing ARM code from the firmware, by experimenting, and from lawfully obtained documentation. 
+
 Is it safe?
 ~~~~~~~~~~~
 
-**No.** Magic Lantern was created by reverse engineering an undocumented system that controls hardware. Therefore, **we can't be certain that it's 100% safe.**
+**No.** Magic Lantern was created by reverse engineering an undocumented system that controls hardware. Therefore, **we can't be certain that it's 100% safe**.
 
 Magic Lantern does not replace Canon code (which is stored in ROM), but it **does change the settings** 
 (which are saved to a non-volatile memory). If Magic Lantern would set incorrect values for certain settings, 
 this may cause the camera not to boot (even without ML).
 
-**The same risk is present if you use third party software for USB remote control.**
-These programs use the same API for changing camera settings (properties), and Canon code does not always check
-the validity of the settings before saving them to NVRAM. `Here's a proof <https://vimeo.com/groups/magiclantern/forum/topic:255083>`_.
+**The same risk is present if you use third party software for USB remote control.** These programs use the same API for changing camera settings (properties), and Canon code does not always check
+the validity of the settings before saving them to NVRAM. `Here's a proof <https://vimeo.com/groups/magiclantern/forum/topic:255083>`_. Even developers of USB control software, who use Canon's own SDK, `agree with this <http://www.reikan.co.uk/photography/blog/?p=1550>`_. 
 
 Imagine that your config file gets corrupted and you can't just delete it and start from scratch.
 We consider this a design flaw in Canon software. We did encounter such problems during development, but we were able to recover from them. For technical details, see [[Unbricking]].
 
-**Probably the safest way to run Magic Lantern (or any third party camera control software) is to use custom modes - in these modes, Canon code does not save user settings to NVRAM.**
+**Probably the safest way to run Magic Lantern (or any third party camera control software) is to use custom modes** - in these modes, Canon code does not save user settings to NVRAM.
 
 In practice, we are doing our best to prevent these situations, and thousands of users are enjoying it without problems. However, this does not represent a guarantee - **use it at your own risk**.
 
@@ -65,20 +66,21 @@ Actually, using Magic Lantern we have successfully `unbricked a 5D Mark II damag
 Does it void my warranty?
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-It is very similar to CHDK, which has a FAQ: `Does using the CHDK program void your warranty? <http://chdk.wikia.com/wiki/FAQ#Q._Does_using_the_CHDK_program_void_your_warranty.3F>`_:
-
-    First, please bear in mind that CHDK comes with no warranty for any use; you use it at your own risk. What follows is just a few thoughts, and is not a legal opinion. Many believe that using the CHDK does not harm your warranty, since it is said to be loaded into the memory only temporarily (turn off the cam and it's gone completely) and that it leaves the original camera firmware untouched.
-
-They include an email exchange with Canon:
-
-    After researching this software on the internet it appears that CHDK doesn't make any actual changes to your camera. If you delete the CHDK software from your memory card, or if you choose not to activate the CHDK software on the card (or remove and replace the batteries), then the camera will behave absolutely normally - nothing has been (or ever is) changed, so the warranty is not affected.
-
-Also, a Magic Lantern user `posted this on dpreview <http://forums.dpreview.com/forums/read.asp?forum=1032&message=39444192>`_):
+A Magic Lantern user `posted this on dpreview <http://forums.dpreview.com/forums/read.asp?forum=1032&message=39444192>`_:
 
     I've spoken to canon Cps (pro service in UK) and they've advised me that it's quite possible to downgrade firmware from new version to older version BUT they advised me to send it in to Canon for them to do it and test. Small service charge would be involved but could be done while I wait.
     
     Interestingly enough, they also advised me that Magic Lantern firmware would not invalidate my Canon Warranty as it's not a hardware modification. Though I'm reluctant to find out for sure :-) 
+
+And another user `posted this on t2iforum <http://www.t2iforum.com/firmware-updates/noob-questions-about-magic-lantern-and-warranty/msg28145/#msg28145>`_: 
+
+    I contacted Canon Support Portugal about using ML, the answer was the following:
     
+    Quote
+    
+    (...) the use of custom firmware or any other third party acessory with our equpment will void the warranty of the product IF PROVEN that the malfunction of the device was caused by the use of those.
+    Canon respects the rights that their customers have to decide what accessories or firmware to use, although **we do not recommended their use, and we are not responsible for any damage to the equipment**.
+
 The Magic Lantern firmware is distributed with **NO WARRANTY** and **NO GUARANTEES** are provided. It might work. It might not. It hasn't destroyed any cameras yet, but who knows. 
 
 How will it interact with future upgrades from Canon?
@@ -94,6 +96,84 @@ Despite this tight integration, **Magic Lantern software does not contain any Ca
 It is entirely a clean-room implementation that runs along side the official Canon firmware 
 as a separate DryOS task. 
 
+
+Installation
+------------
+
+How do I install it?
+~~~~~~~~~~~~~~~~~~~~
+
+Follow the [[install]] guide. You will have to copy Magic Lantern files on your card and run Update firmware from the menu.
+The running firmware shuts down, loads the file into RAM and starts it running. 
+Rather than reflashing the ROMs, this new program starts the DryOS boot process to install itself. 
+
+What happens during installation?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are two ways of running user code on Canon DSLR cameras:
+
+1. Using the update process with a ``.fir`` file, which must be digitally signed.
+
+2. Using the bootdisk process: if the camera finds ``AUTOEXEC.BIN`` on the card, this file is loaded and executed. 
+   This file does not have to be signed, but the ``BOOTDISK`` flag must be enabled in the camera and the card must be prepared in a special way (labeled as "bootable").
+
+When you run ML installer via *Firmware Update*, it will do the following:
+
+* it will enable the ``BOOTDISK`` flag in the camera, by calling ``EnableBootDisk`` function from Canon firmware; this flag is stored in ROM, so the modification is persistent, but can be reverted easily;
+* it prepares the card (makes it bootable) by writing the following strings in the boot area: ``EOS_DEVELOP`` and ``BOOTDISK``;
+* it **does not reflash the original firmware**.
+
+Do I have to install Magic Lantern on all my cards?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Yes, because Magic Lantern runs from the card.
+
+If you prefer, you can use cards with Magic Lantern loaded, and cards without it. Just make sure you don't delete Magic Lantern files from the card; always format them from the camera, if possible.
+
+The 5D Mark III has two card slots, so you can install Magic Lantern on a SD card, keep that card permanently in the camera, and record images/movies on regular CF cards which can be freely swapped or formatted.
+
+ML saves settings on the card. Can I use the same settings for all my cards?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You have to copy the configuration files (from ``ML/SETTINGS`` directory) on all your cards.
+
+Can I use the same card in two compatible cameras?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It will work, but it's not a good practice. We do not recommend doing this.
+
+How do I uninstall it?
+~~~~~~~~~~~~~~~~~~~~~~
+
+Simply format the card. The boot flag will be still there, but it will not affect normal operation (except for EyeFi cards).
+
+To remove the boot flag (for using EyeFi cards), run *Firmware Update* from a ML card and follow the instructions.
+
+Does ML do any persistent changes to my camera?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Yes.** Besides the bootflag (which is required for auto-boot), there are a couple of other changes which are saved into NVRAM. These are:
+
+* ISO, shutter, aperture, white balance;
+* Exposure compensation, exposure simulation, drive mode, AF points, AF mode;
+* Picture style and associated parameters;
+* Flash settings (enabled/disabled, exposure compensation, red eye reduction);
+* Backlight level (for example, it's lowered temporarily if you use `Dim display`_ for power saving);
+* Autofocus is moved temporarily to back (``*``) button whenever ML has to take a picture without autofocusing. This includes HDR bracketing and bulb exposures.
+* Autofocus is moved temporarily to half-shutter when you use `AF patterns`_, while changing the AF point;
+* Sound recording is disabled temporarily when you use `FPS override`_;
+* On 600D, video mode (3x crop vs 1x non-crop) may be changed via ML shortcut key;
+* On 50D, movie recording function is changed from ML menu (yes, this is a persistent Canon setting, but it's not present in Canon menus).
+
+With few exceptions, these settings can also be changed from Canon menus or controls.
+
+A few settings are changed temporarily during certain operations (for example, autofocus for bracketed shots), but these settings are saved by Canon firmware in NVRAM. If you take the battery out in the middle of the operation (for example, in the middle of taking a picture), ML won't be able to restore these settings back to your initial values, and you'll have to change them back from Canon menus.
+
+To the best of our knowledge, all these settings are restored to default values when you run "Clear camera settings" and "Clear custom functions" from Canon menu.
+
+All persistent changes can be seen in ML source code by examining the calls to ``prop_request_change``. Some of the changes are not persistent (for example, LiveView zooming), and they were not included in the above list.
+
+
 Usage
 -----
 
@@ -102,18 +182,15 @@ How do I bring up the Magic Lantern menus?
 
 Press the ``DELETE`` button.
 
-Why do I see only a few options in the menu?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+What! So many options in the menu, I'm lost!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You may be in Easy menu mode, where Magic Lantern only shows the features considered essential. 
-This menu may vary with the shooting mode (photo mode, movie mode, LiveView, HDMI etc).
-
-Press ``MENU`` to open the advanced menu, where all options are displayed.
+Press ``MENU`` to hide what you don't use. Press ``INFO/DISP`` to get context help.
 
 How do I restore ML default settings?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Delete the config file (``MAGIC.CFG``) and restart the camera.
+Delete the config file (``MAGIC.CFG``) from `Prefs`_ menu and restart the camera.
 
 How do I erase all of the images without removing ML?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -144,10 +221,10 @@ How do I see shutter counter / CMOS temperature?
 
 Look in `Debug`_ menu.
 
-Can I use LiveView to preview images in complete darkness?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Can I use LiveView in complete darkness?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes. Increase display gain (under ISO submenu, or on arrow key shortcuts), use a low FPS (with FPS override), or both.
+**Yes.** Increase `display gain`_ (from Display menu), use a low FPS (with `FPS override`_), or both.
 
 Also check out the dark color schemes optimized for night shooting, or try disabling exposure simulation.
 
@@ -156,21 +233,21 @@ How do I shoot timelapse?
 
 You have a couple of options:
 
-* Intervalometer - the classic way. You will have to postprocess the shots in order to create the final movie. In this mode, you also have access to advanced options like bulb and focus ramping, HDR timelapse or very long exposures.
-* FPS override - simply select a low FPS value (down to about 0.2 FPS) and ML will record a timelapse.
-* Silent picture timelapse. Only for very advanced users.
+* `Intervalometer`_ - the classic way. You will have to postprocess the shots in order to create the final movie. With this method, you also have access to advanced options like bulb and focus ramping, HDR timelapse or very long exposures.
+* `FPS override`_ - simply select a low FPS value (down to about 0.2 FPS) and ML will record a timelapse.
+* `Silent picture`_ timelapse. Only for very advanced users.
 
 I want to use my camera as quickly as possible. Can ML help me?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Yes. Check out these features:
 
-* Shortcut keys for commonly used functions.
-* Display presets - create custom LiveView modes (for example, your favorite settings for checking exposure, focus, framing and so on).
-* Ultra fast zoom in playback mode.
-* Change image review mode to PLAY - after taking a picture you can press Zoom In right away and check critical focus in a split-second.
+* `Shortcut keys`_ for commonly used functions.
+* `Display presets`_ - create custom LiveView modes (for example, your favorite settings for checking exposure, focus, framing and so on).
+* `Quick zoom`_ in playback (image review) mode.
+* `Change image review mode to PLAY`_ - after taking a picture you can press Zoom In right away and check critical focus in a split-second.
 * Navigate the menu using the scrollwheels - much faster than with arrow keys.
-* Simple menu - only display the essentials, so you don't have to scroll through lots of menus.
+* Hide unused menu items, so you don't have to scroll through all of them (press ``MENU``).
 
 Does Magic Lantern consume more power than standard Canon firmware?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -192,60 +269,36 @@ Best audio is obtained by use of a preamp system fed to the camera. As a general
 For more info, check out the `Canon DSLR Audio thread on dvxuser <http://www.dvxuser.com/V6/showthread.php?240822-The-Canon-DSLR-Audio-thread>`_ and `AGC Disable - Magic Lantern vs. Juicedlink? on dvinfo <http://www.dvinfo.net/forum/all-things-audio/498727-agc-disable-magic-lantern-vs-juicedlink-2.html>`_.
 
 
-Installation
-------------
-
-How do I install it?
-~~~~~~~~~~~~~~~~~~~~
-
-Follow the [[install]] guide. You will have to copy Magic Lantern files on your card and run Update firmware from the menu.
-The running firmware shuts down, loads the file into RAM and starts it running. 
-Rather than reflashing the ROMs, this new program starts the DryOS boot process to install itself. 
-
-How do I uninstall it?
-~~~~~~~~~~~~~~~~~~~~~~
-
-Simply format the card. The bootflag will be still there, but it will not affect normal operation (except for EyeFi cards).
-
-To remove the bootflag (for using EyeFi cards), run Firmware Update from a ML card and follow the instructions.
-
-Does ML do any persistent changes to my camera?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Yes.** Besides the bootflag (which is required for auto-boot), there are a couple of other changes which are saved into NVRAM. These are:
-
-* ISO, shutter, aperture, white balance;
-* Exposure compensation, drive mode;
-* Picture style and associated parameters;
-* Flash settings (enabled/disabled, exposure compensation, red eye reduction);
-* AF points, AF mode in LiveView, focus box position;
-* Exposure simulation setting (in Expo menu; disabled temporarily when using 5x/10x zoom modes);
-* Backlight level (for example, it's lowered temporarily if you use `Dim display`_ for power saving);
-* Autofocus is moved temporarily to back (``*``) button whenever ML has to take a picture without autofocusing. This includes HDR bracketing and bulb exposures.
-* Autofocus is moved temporarily to half-shutter when you use `AF patterns`_, while changing the AF point;
-* Sound recording is disabled temporarily when you use `FPS override`_;
-* On 600D, video mode may be changed via ML shortcut key;
-* On 60D, INFO button function may be changed if you enable ``DispOFF in photo mode``;
-* On 50D, movie recording function is changed from ML menu (yes, this is a persistent Canon setting, but it's not present in Canon menus).
-
-With few exceptions, these settings can also be changed from Canon menus or controls.
-
-A few settings are changed temporarily during certain operations (for example, autofocus for bracketed shots), but these settings are saved by Canon firmware in NVRAM. If you take the battery out in the middle of the operation (for example, in the middle of taking a picture), ML won't be able to restore these settings back to your initial values, and you'll have to change them back from Canon menus.
-
-To the best of our knowledge, all these settings are restored to default values when you run "Clear camera settings" and "Clear custom functions" from Canon menu.
-
-All persistent changes can be seen in ML source code by examining the calls to ``prop_request_change``. Some of the changes are not persistent (for example, LiveView zooming), and they were not included in the above list.
-
-
 Troubleshooting
 ---------------
 
 It won't boot!
 ~~~~~~~~~~~~~~
 
-* If the LED is blinking continuously, you have the **wrong Canon firmware version**.
+* If the LED is blinking continuously, **you have the wrong Canon firmware version**.
 * Make sure you didn't delete ``AUTOEXEC.BIN`` from your ML card. If you did, format the card, take the battery out, and reboot.
-* If you still have problems, `ask on the forum <http://magiclantern.fm/forum/>`_.
+* If you still have problems, `ask on the forum <http://www.magiclantern.fm/forum/index.php?board=45.0>`_.
+
+After shutdown, it won't power on unless removing battery!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You are removing the card too early. **Always wait for LED blinking confirmation** (or for 5 seconds) before removing the card!
+
+What's going on: on certain cameras, a few seconds after you open the card door, Canon firmware *is accessing the card without any LED activity*. If you remove the card during this period, 
+the camera will get stuck in an infinite loop, will slowly drain your battery, and will not reboot until you take the battery out and you put back in.
+
+Magic Lantern v2.3 will show a confirmation LED blink after this process ended. With older versions, after you open the card door, wait for 5 seconds before removing the card.
+
+This problem can't be fixed without rewriting Canon bootloader code (which we won't do), so you really have to **be patient when removing the card**.
+
+What happened with movie mode remap?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We had `serious problems <http://www.magiclantern.fm/forum/index.php?topic=1126.0>`_ with it, so it was disabled. The problems were confirmed with a `minimal example <http://theoval.cmp.uea.ac.uk/~nlct/latex/minexample/>`_ code, so the issue is either in Canon firmware (which was probably not designed for dynamic mode remapping) or in the way we request the mode remapping procedure.
+
+**The only way to get it back is to show us a safe way to change the shooting mode.** For this you need to point out what's wrong with this call: ''prop_request_change(PROP_SHOOTING_MODE, &new_mode, 4)'', and suggest a different method - which can only be done by examining Canon code and understanding how mode switching works.
+
+**Testing will not help** - the probability of things going wrong is very low, but nonzero.
 
 Why does the camera take pictures when pressing the shutter half-way?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -257,12 +310,15 @@ Why do I have to press the shutter button twice to take a picture?
 
 Mirror Lockup (MLU) is active.
 
+Why is the LED blinking every 5 seconds?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You have forgotten your camera on... with the main display off.
+
 Why did the autofocus stop working?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It was probably moved to back button (``*`` or ``AF-ON``). Check your custom functions. It may happen if you take the battery out in the middle of photo shooting.
-
-Anyway... any serious DSLR user should set AF to the back button ;)
 
 Why picture style X does not appear in movie mode?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -273,17 +329,14 @@ You may need to register it from Canon menu. This is not related to ML, but peop
 My camera freezes / I get ERR70/80/99 / I get corrupted files. Why?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Format your card. Some of these problems are caused by filesystem corruption or cheap card readers. Always use the safe removal feature before you unplug your card from your computer.
-* If you get ERR70, you will also get a crash log on your card. Please send this file to developers.
-* Run the stability tests from the Debug menu. If it fails, report a bug and send your config file to developers.
-* To report bugs, `go here <http://www.magiclantern.fm/forum/index.php?board=23.0>`_.
+* **Format your card from your camera**. Some of these problems are caused by filesystem corruption or cheap card readers. Always use the safe removal feature before you unplug your card from your computer.
+* If you get **ERR70**, you will also get a crash log on your card (``ML/LOGS/CRASHnn.LOG``). `Please send this file to developers <http://www.magiclantern.fm/forum/index.php?board=23.0>`_.
+* Run the stability tests from the Debug menu. If it fails, `report a bug <http://www.magiclantern.fm/forum/index.php?board=23.0>`_ and send your config file to developers.
 
 What about ERR20 when taking pictures?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This problem is not related to (or caused by) Magic Lantern.
-
-You will get this error when your shutter mechanism no longer works properly. Contact your Canon service center.
+**This problem is not related to (or caused by) Magic Lantern**. You will get this error when your shutter mechanism no longer works properly. Contact your Canon service center.
 
 Consider entering your shutter count in the `Camera Shutter Life Database <http://www.olegkikin.com/shutterlife/>`_.
 
@@ -300,12 +353,7 @@ Does it work with CHDK?
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 We have used some of the CHDK tools to learn about Canon firmware files, but this is all new code. 
-They have done an amazing job of supporting hundreds of different camera models across multiple architectures and operating systems. At some point in the future chdk might be ported to the 5D Mark 2, but this project is much more focused on just the 5D Mark II and the needs of film makers. CHDK is a great project for Canon's Point-and-Shoot cameras. Without their initial effort in understanding DryOS, Canon's firmware files and the boot process, I wouldn't have been able to make as much progress as quickly as I did. While I was able to use modern tools to analyze dump files of ROM images thanks to their efforts, they got started bitbanging a UART via the status LED on a camera body. That's truly hardcore.
-
-Why the name change?
-~~~~~~~~~~~~~~~~~~~~
-
-Originally the project was called just "5D Mark Free", but out of an abundance of caution it seemed best to avoid Canon's trademarks.
+They have done an amazing job of supporting hundreds of different camera models across multiple architectures and operating systems. CHDK is a great project for Canon's Point-and-Shoot cameras. Without their initial effort in understanding DryOS, Canon's firmware files and the boot process, we wouldn't have been able to make as much progress as quickly as we did. While we were able to use modern tools to analyze dump files of ROM images thanks to their efforts, they got started bitbanging a UART via the status LED on a camera body. That's truly hardcore.
 
 What is it written in? Can I get the source?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -315,8 +363,8 @@ The firmware hack is in C, with some inline assembly for boot strapping. The fir
 How do I get a ROM0.bin firmware image?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We do not distribute ROM images, nor IDA .idb files, since they are verbatim copies of Canon's copyrighted code.
-You can generate the ROM images from your own camera by compiling with ``CONFIG_DEBUGMSG=1`` and then selecting ``Dump ROM`` from Debug menu.
+**We do not distribute ROM images**, nor IDA .idb files, since they are verbatim copies of Canon's copyrighted code.
+You can generate the ROM images from your own camera by enabling ``CONFIG_DEBUGMSG=1`` in ``Makefile.user.default`` and then selecting ``Dump ROM`` from Debug menu.
 
 What are all of the 0xff81beef things and funny names like EP_SetManualMovieMode()?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

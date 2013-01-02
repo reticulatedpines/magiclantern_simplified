@@ -36,13 +36,20 @@ struct font
 #endif
 };
 
+struct sfont
+{
+        unsigned        height;
+        unsigned        width;
+        unsigned*       bitmap;
+};
+
 
 extern struct font font_small;
 extern struct font font_med;
 extern struct font font_large;
 
-extern struct font font_small_shadow;
-extern struct font font_med_shadow;
-extern struct font font_large_shadow;
+extern struct sfont font_small_shadow;
+extern struct sfont font_med_shadow;
+extern struct sfont font_large_shadow;
 
 #endif

@@ -1,0 +1,124 @@
+Expo
+~~~~
+
+.. _image settings:
+
+.. figure:: 02.expo.png
+    :align: center
+    :width: 5cm
+
+Adjusting the exposure parameters. Most of these settings only work in Manual (photo and video), and some of them work in P, Av and Tv too.
+
+.. _White balance:
+.. _WhiteBalance:
+.. _Kelvin white balance:
+
+
+WhiteBalance
+````````````
+
+Advanced white balance control. The preferred method is Kelvin white balance (range: 1500...15000K).
+  
+Submenu options:
+  
+* Kelvin white balance;
+* WBShift G/M: Green-Magenta white balance shift. Useful for fluorescent lighting;
+#* WBShift B/A: Blue-Amber white balance shift. 1 unit = 5 mireks on Kelvin axis, according to `this post <http://www.openphotographyforums.com/forums/archive/index.php/t-5450.html>`_;
+* Custom RGB multipliers: fine-tune custom white balance;
+* Black level: this parameter is applied on RAW data, before applying white balance. Adjust it if you have problems with green or magenta shadows;
+* Auto adjust Kelvin + G/M: in LiveView, ML will compute the white balance for the current scene, using the center (200x200 pixels rectangle) as reference gray.
+
+
+.. _ISO:
+
+ISO
+```
+
+Advanced ISO control.
+
+Color coding:
+
+* yellow = full-stop ISO obtained with analog gain only (100, 200, ... 3200).
+* green = ISO with negative digital gain applied (80, 90, 160, 320) - they tend to have lower noise. For 160 multiples, ISOs obtained with ML digital gain may have smoother highlight rolloff than the same ISOs obtained with Canon gain.
+* red = ISO with positive digital gain (avoid these values).
+
+Submenu options:
+
+* **Equivalent ISO**;
+* **Analog ISO**;
+* **Canon digital ISO** - used for obtaining intermediate ISOs like 160, 320, 640;
+* **ML digital ISO** (DIGIC) - in movie mode: enables ISO 50, ISO 80, ISO 51200 and many other intermediate or astronomical ISOs;
+* **Highlight Tone Priority** (which increases dynamic range by 1 stop in movie mode);
+* **ISO selection** (Canon ISOs or ML ISOs) - only used in movie mode:
+
+  - Canon ISO option will select 100, 160, 200, 320 and so on, and will also clear ML digital gain, if any is set.
+  - ML ISO option will increment ISOs in full stops, but will keep ML digital gain, if any is set.
+
+Notes and tips for ML digital ISO, in movie mode only:
+
+* Negative values will reduce noise, but may cause color issues in highlights (pink highlights).
+* Positive values will increase noise, but in very dark scenes they will also get more shadow detail (at the cost of clipped highlights).
+* Consider using negative ISO when you notice noise in shadows or when you want a smooth highlight rolloff.
+* Try to use as much negative ISO gain as possible, but without getting pink highlights (-0.3 EV will probably work best; if you use HTP you may go up to -1 EV).
+* For increased dynamic range, combine negative digital ISO (which reduces shadow noise) with the excellent `Flaat picture styles <http://www.similaar.com/foto/flaat-picture-styles/index.html>`_ (which are a very good approximation of log-gamma curves).
+
+.. _shutter:
+
+Shutter
+```````
+
+Fine-tune shutter speed.
+
+* When exposure override is enabled, you can adjust it in 1/8-stop increments (movie mode only).
+* In **photo mode**, Magic Lantern displays integer shutter values without rounding them (e.g. 1/50 will be displayed by ML as 1/48). This is not a bug.
+* In **movie mode**, shutter values are displayed with one decimal place (for example, in PAL mode, Canon uses 1/33.3 to avoid flicker).
+* To use shutter speeds normally not available in Canon firmware (like 1/25 or 1/8000 in movie mode), enable `exposure override`_.
+
+Aperture
+````````
+
+Adjust aperture. When `exposure override`_ is enabled, you can adjust it in 1/8-stop increments (movie mode only).
+
+PictureStyle
+````````````
+
+Change picture style or adjust its parameters.
+  
+REC PicStyle
+````````````
+
+You can use a different picture style when recording (toggled automagically). May be useful with flat picture styles.
+
+.. _exposure override:
+
+Exp.Override
+````````````
+
+This mode bypasses Canon exposure limitations (for ISO, Tv, Av). Advantages:
+ 
+* Fixes the `LiveView underexposure bug with manual lenses <http://groups.google.com/group/ml-devel/browse_thread/thread/f1c9cb4ff163808c>`_.
+* Enables manual video exposure controls in cameras without it (500D, 50D, 1100D).
+* Enables 1/25s in movie mode (24p/25p) -> 1/3 stops better in low light.
+* Enables 1/8000s in movie mode, `useful for slow motion <http://www.youtube.com/watch?v=5ztuUh3bgqA>`_.
+* Enables ISO 12800 in movie mode on 60D and 600D.
+* Allows full-time DOF preview in photo mode, without blocking certain keys.
+
+Settings:
+
+* **OFF**: Canon default exposure mode.
+* **ON**: ML overrides exposure values (change them from Expo menu).
+* **Auto**: ML enables it only when needed (that's not auto exposure, but automatic decision of when you need low-level manual controls):
+
+  - For 500D, 50D, 1100D: in movie mode, to enable manual exposure controls.
+  - For 60D and 5D Mark III: in Manual mode with a manual lens, to fix the `LiveView underexposure bug <http://groups.google.com/group/ml-devel/browse_thread/thread/f1c9cb4ff163808c>`_.
+  - For 550D/60D/600D/5D2: when you select a shutter speed, aperture or ISO value which is not available in standard firmware (e.g. 1/25s or 1/8000s in movie mode).
+
+
+LV Display
+``````````
+Selects or displays LiveView display type:
+
+* **Photo display, with exposure simulation**
+* **Photo display, without exposure simulation** (for framing and for flash photography)
+* **Movie display**.
+

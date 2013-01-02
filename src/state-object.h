@@ -27,6 +27,91 @@
 
 #include "arm-mcr.h"
 
+
+/** Manager struct in DryOS */
+struct Manager_DryOS    //~ size=0x84
+{
+    const char *                    name;                   //~ off_0x00    ie: Evf, PropMgr, etc.
+    
+    struct TaskClass *              taskclass_ptr;          //~ off_0x08
+    struct state_object  *          stateobj_ptr;           //~ off_0x0c
+    int                             off_0x10;               //~ off_0x10    arg0 to CreateManager function.
+    int                             off_0x14;               //~ off_0x14    arg1 to CreateManager function.
+    int                             off_0x18;               //~ off_0x18    initialized to *(0x3E568), not known.
+    
+    //~ rest of offsets unknown at this time.
+};
+
+
+/*** For VxWorks / 5dc ONLY! NOT tested for DryOS yet. ***/
+//~ Calls CreateTaskClass from canon startup task.
+//~ Ex: PropMgr, GenMgr, FileMgr
+struct Manager      //~ size=0x30
+{
+    const char *                    name;                   //~ off_0x00    name of manager. ie: PropMgr
+    struct TaskClass *              taskclass_ptr;          //~ off_0x04    pointer to taskclass struct
+    const struct state_object *     stateobj_ptr;           //~ off_0x08    pointer to stateobject struct
+    int                             debugmsg_class;         //~ off_0x0C    used with DebugMsg calls to determine arg0 (debug class)
+    const struct unk_struct *       unk_struct_ptr;         //~ off_0x10    some unknown struct allocated, size varies
+    int                             off_0x14;               //~ unknown     
+    const struct semaphore *        mgr_semaphore;          //~ off_0x18    result of create_named_semaphore
+    int                             off_0x1c;               //~ unknown     
+    int                             off_0x20;               //~ unknown
+    int                             off_0x24;               //~ unknown
+    int                             off_0x28;               //~ unknown
+    int                             off_0x2c;               //~ unknown
+};
+
+//~ CreateTaskClass called from canon startup task.
+struct TaskClass    //~ size=0x18
+{
+    const char *                    identifier;             //~ off_0x00    "TaskClass"
+    const char *                    name;                   //~ off_0x04    task class name. ie: PropMgr
+    int                             off_0x08;               //~ unknown     initialized to 1 in CreateTaskClass
+    const struct task *             task_struct_ptr;        //~ off_0x0c    ret_CreateTask (ptr to task struct) called from CreateTaskClass
+    const struct msg_queue *        msg_queue_ptr_maybe;    //~ off_0x10    some kind of message queue pointer (very low level functions at work)
+    void *                          eventdispatch_func_ptr; //~ off_0x14    event dispatch pointer. ie: propmgrEventDispatch
+};
+
+
+//~ ex: shoot capture module struct pointer stored at 0x4E74, setup in SCS_Initialize
+struct Module   //~ size=0x24
+{
+    const char *                    name;                   //~ off_0x00    ie: "ShootCapture"
+    int                             off_0x04;               //~ unknown
+    struct StageClass *             stageclass_ptr;         //~ off_0x08    stageclass struct ptr
+    const struct state_object *     stateobj_ptr;           //~ off_0x0C    SCSState struct ptr
+    int                             debugmsg_class;         //~ off_0x10    arg0 to SCS_Initialize, used for arg0 to SCS debug messages (debug class)
+    int                             off_0x14;               //~ unknown
+    int                             off_0x18;               //~ unknown
+    int                             off_0x1c;               //~ unknown
+    int                             off_0x20;               //~ unknown  
+};
+
+//~ called during initialization of each state machine
+struct StageClass   //~ size=0x1C
+{
+    const char *                    identifier;             //~ off_0x00    "StageClass"
+    const char *                    name;                   //~ off_0x04    arg0 to CreateStageClass, name of stage class.
+    int                             off_0x08;               //~ unknown     unk, set to 1 when initialized. could signal if stageclass is initialized
+    const struct task *             task_struct_ptr;        //~ off_0x0c    ret_CreateTask (ptr to task struct) called from CreateStageClass
+    const struct msg_queue *        msg_queue_ptr_maybe;    //~ off_0x10    some kind of message queue pointer (very low level functions at work)
+    const struct JobQueue *         jobqueue_struct_ptr;    //~ off_0x14    pointer to struct created in CreateJobQueue
+    void *                          eventdispatch_func_ptr; //~ off_0x18    event dispatch function pointer. ie: scsEventDispatch
+};
+
+
+//~ CreateJobQueue called by CreateStageClass
+struct JobQueue     //~ size=0x14
+{
+    const char *                    identifier;             //~ off_0x00    "JobQueue"
+    const struct unk_struct *       unk_struct_ptr;         //~ off_0x04    some unknown struct allocated, size is CreateJobQueue arg0*4
+    int                             unk_arg0;               //~ unknown     arg0 to CreateJobQueue, unknown.
+    int                             off_0x0C;               //~ unknown
+    int                             off_0x10;               //~ unknown
+};
+
+
 /** State objects.
  *
  * Size 0x20

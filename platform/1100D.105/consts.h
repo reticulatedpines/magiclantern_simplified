@@ -1,7 +1,9 @@
-// constants for 1100D 1.0.4
+// constants for 1100D 1.0.5
 #include "consts-600d.101.h"
 #define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
+#define LEDON 0x46
+#define LEDOFF 0x44
 
 #define HIJACK_INSTR_BL_CSTART  0xFF01019C
 #define HIJACK_INSTR_BSS_END 0xFF0110D0
@@ -14,44 +16,25 @@
 
 #define DRYOS_ASSERT_HANDLER 0x1A18 // dec TH_assert or assert_0
 
-// Critical. Look for a call to prop_request_change(0x80050007, something, len).
-#define AFFRAME_PROP_LEN 108
-#define CUSTOM_WB_PROP_LEN 44
-
 // Found by Alex using Heavendew dump
 #define YUV422_LV_BUFFER_1 0x41ae8e50
 #define YUV422_LV_BUFFER_2 0x412c8e50
 #define YUV422_LV_BUFFER_3 0x416d8e50
 
 #define YUV422_HD_BUFFER_1 0x468cb600
-#define YUV422_HD_BUFFER_2 0x4e8cb600
+#define YUV422_HD_BUFFER_2 0x47465c00
 // maybe there are more
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x408cb600 ) // quick check if x looks like a valid HD buffer
+//#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x408cb600 ) // quick check if x looks like a valid HD buffer
 
 // PLACEHOLDER UNTIL WE GET THE REAL VALUES
-#define YUV422_LV_BUFFER_DMA_ADDR 0x41ae8e50
-#define YUV422_HD_BUFFER_DMA_ADDR 0x468cb600
-
-// AV / AE COMP button 
-#define BGMT_AV (event->type == 0 && event->param == 0x61 && ( \
-			(is_movie_mode() && event->arg == 0xa) || \
-			(shooting_mode == SHOOTMODE_P && event->arg == 0xa) || \
-			(shooting_mode == SHOOTMODE_AV && event->arg == 0xf) || \
-			(shooting_mode == SHOOTMODE_M && event->arg == 0xe) || \
-			(shooting_mode == SHOOTMODE_TV && event->arg == 0x10)) )
-
-#define BGMT_AV_MOVIE (event->type == 0 && event->param == 0x61 && (is_movie_mode() && event->arg == 0xa))
-#define BGMT_PRESS_AV (BGMT_AV && (*(int*)(event->obj) == 0x3010040))
-#define BGMT_UNPRESS_AV (BGMT_AV && (*(int*)(event->obj) == 0x1010040))
-
-// USED TO MAKE ML COMPILE
-#define SHOOTING_MODE 0
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x2438))
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR))
 
 // From Alex
 #define FOCUS_CONFIRMATION (*(int*)0x41C8) // see "focusinfo" and Wiki:Struct_Guessing
 #define HALFSHUTTER_PRESSED (*(int*)0x1b98) // used for Trap Focus and Magic Off.
 //~ #define AF_BUTTON_PRESSED_LV 0
-#define CURRENT_DIALOG_MAYBE (*(int*)0x3960) // GUIMode_maybe in Indy's IDC
+#define CURRENT_DIALOG_MAYBE (*(int*)0x3964) // GUIMode_maybe in Indy's IDC
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5350) == 0xF) ||((*(int8_t*)0xCBD4) != 0x17)) // dec CancelBottomInfoDispTimer
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5350) == 0xF) // dec ptpNotifyOlcInfoChanged
 #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0xCBD0) != 0x17) // dec CancelUnaviFeedBackTimer
@@ -79,86 +62,8 @@
 
 #define DIALOG_MnCardFormatBegin (0x12994+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 
-// RESTARTSTART 0x7f000
-#if 0
-
-// below not changed yet (60d)
-
-// 720x480, changes when external monitor is connected
-#define YUV422_LV_PITCH 1440
-#define YUV422_LV_PITCH_RCA 1080
-#define YUV422_LV_PITCH_HDMI 3840
-#define YUV422_LV_HEIGHT 480
-#define YUV422_LV_HEIGHT_RCA 540
-#define YUV422_LV_HEIGHT_HDMI 1080
-
-
-#define YUV422_HD_PITCH_IDLE 2112
-#define YUV422_HD_HEIGHT_IDLE 704
-
-#define YUV422_HD_PITCH_ZOOM 2048
-#define YUV422_HD_HEIGHT_ZOOM 680
-
-#define YUV422_HD_PITCH_REC_FULLHD 3440
-#define YUV422_HD_HEIGHT_REC_FULLHD 974
-
-// guess
-#define YUV422_HD_PITCH_REC_720P 2560
-#define YUV422_HD_HEIGHT_REC_720P 580
-
-#define YUV422_HD_PITCH_REC_480P 1280
-#define YUV422_HD_HEIGHT_REC_480P 480
-
-#define FOCUS_CONFIRMATION 0x4698	// 60D: 0 - none; 1 - success; 2 - failed
-#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bdc) // only used to show trap focus status
-#define DISPLAY_SENSOR 0x2dec
-#define DISPLAY_SENSOR_MAYBE 0xC0220104
-
-// button codes as received by gui_main_task
-#define BGMT_PRESS_LEFT 0x1c
-#define BGMT_UNPRESS_LEFT 0x1d
-#define BGMT_PRESS_UP 0x1e
-#define BGMT_UNPRESS_UP 0x1f
-#define BGMT_PRESS_RIGHT 0x1a
-#define BGMT_UNPRESS_RIGHT 0x1b
-#define BGMT_PRESS_DOWN 0x20
-#define BGMT_UNPRESS_DOWN 0x21
-
-#define BGMT_PRESS_SET 0x4
-#define BGMT_UNPRESS_SET 0x5
-
-#define BGMT_TRASH 0xC
-#define BGMT_MENU 6
-#define BGMT_INFO 7
-#define BGMT_Q 8
-
-#define BGMT_PRESS_HALFSHUTTER 0x48
-#define BGMT_UNPRESS_HALFSHUTTER 0x49
-
-// these are not sent always
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xD
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xE
-
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xB
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
-
-#define SENSOR_RES_X 5202
-#define SENSOR_RES_Y 3465
-
-#define FLASH_BTN_MOVIE_MODE ((*(int*)0x14c1c) & 0x40000)
-#define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
-#endif
-
 #define DIALOG_MnCardFormatBegin   (0x12994+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x1570C+4) // similar
-
-#define GMT_OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in IDLEHandler
-#define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x100000a1 in 600d
-
-// needed for correct shutdown from powersave modes
-#define GMT_GUICMD_START_AS_CHECK 89
-#define GMT_GUICMD_OPEN_SLOT_COVER 85
-#define GMT_GUICMD_LOCK_OFF 83
 
 #define BULB_MIN_EXPOSURE 1000
 
@@ -167,7 +72,7 @@
 #define BFNT_BITMAP_OFFSET 0xff7f3f2c
 #define BFNT_BITMAP_DATA   0xff7f6994
 
-#define DLG_SIGNATURE 0x006e4944 // just print it
+#define DLG_SIGNATURE 0x4c414944 // just print it
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0
@@ -175,14 +80,7 @@
 
 #define BULB_EXPOSURE_CORRECTION 100 // min value for which bulb exif is OK [not tested]
 
-#define BGMT_WHEEL_LEFT 2
-#define BGMT_WHEEL_RIGHT 3
-#define BGMT_WHEEL_UP 0
-#define BGMT_WHEEL_DOWN 1
-
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0xB198+0x2C) // see http://magiclantern.wikia.com/wiki/VRAM/BMP
-
-#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PRESS_DISP // what button to use for zebras in Play mode
 
 // manual exposure overrides
 #define LVAE_STRUCT 0x8b7c
@@ -197,7 +95,6 @@
 #define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x26)) // lvae_setdispgain
 #define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x78)) // lvae_setmoviemanualcontrol
 
-
 #define MIN_MSLEEP 10
 
 #define INFO_BTN_NAME "DISP"
@@ -208,6 +105,8 @@
 
 #define VIDEO_PARAMETERS_SRC_3 0x70C0C
 #define FRAME_ISO (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
+#define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xa))
+#define FRAME_BV (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xb))
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x16fc8
@@ -218,3 +117,19 @@
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
 #define GUIMODE_ML_MENU (recording ? 0 : lv ? 68 : 2)
+
+#define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
+
+#define MVR_992_STRUCT (*(void**)0x1DF4)
+
+// Dummy defines for features that we don't really have
+#define DISPLAY_SENSOR_POWERED 0
+
+#define SENSOR_RES_X 4272
+#define SENSOR_RES_Y 2848
+
+//Same as 600D
+#define REG_EDMAC_WRITE_LV_ADDR 0xc0f04308
+#define REG_EDMAC_WRITE_HD_ADDR 0xc0f04208 // SDRAM address of HD buffer (aka YUV)
+
+#define AE_VALUE 0 // 404

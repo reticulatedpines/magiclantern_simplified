@@ -1,21 +1,13 @@
 #generic makefile
-
-ARM_PATH=~/arm-toolchain462
-ARM_BINPATH=$(ARM_PATH)/bin
-GCC_VERSION=4.6.2
-CC=$(ARM_BINPATH)/arm-elf-gcc-$(GCC_VERSION)
-OBJCOPY=$(ARM_BINPATH)/arm-elf-objcopy
-AR=$(ARM_BINPATH)/arm-elf-ar
-RANLIB=$(ARM_BINPATH)/arm-elf-ranlib
-LD=$(CC)
-HOST_CC=gcc
-HOST_CFLAGS=-g -O3 -W -Wall
+# GCC and other options are pulled from MagicLantern Makefile.user if available
+# The path to readelf needs to be configured in symtblgen.rb too
 ML_SRC_DIR=$(PLUGIN_BASE_DIR)/../src
 SYMTBLGEN=$(PLUGIN_BASE_DIR)/symtblgen.rb
 
-PLUGIN_MAIN_OBJS = $(PLUGIN_BASE_DIR)/plugin.lds $(PLUGIN_BASE_DIR)/entry.o $(PLUGIN_BASE_DIR)/loader.o $(PLUGIN_OBJS)
+include $(PLUGIN_BASE_DIR)/../Makefile.user.default
+-include $(PLUGIN_BASE_DIR)/../Makefile.user
 
-CONFIG_DEBUGMSG=0
+PLUGIN_MAIN_OBJS = $(PLUGIN_BASE_DIR)/plugin.lds $(PLUGIN_BASE_DIR)/entry.o $(PLUGIN_BASE_DIR)/loader.o $(PLUGIN_OBJS)
 
 FLAGS=\
 	-Wp,-MMD,$(dir $@).$(notdir $@).d \
@@ -24,7 +16,7 @@ FLAGS=\
 	-fomit-frame-pointer \
 	-fno-strict-aliasing \
 	-DCONFIG_MAGICLANTERN=1 \
-	-DCONFIG_$(MODEL)=1 \
+	-DCONFIG_$(subst .,_,$(MODEL))=1 \
 	-DRESTARTSTART=$(RESTARTSTART) \
 	-DROMBASEADDR=$(ROMBASEADDR) \
 	-DVERSION=\"$(VERSION)\" \
@@ -51,6 +43,8 @@ CFLAGS=\
 	-nostartfiles \
 	-ffreestanding
 
+CFLAGS += $(CFLAG_USER)
+
 all: $(PLUGIN_NAME).bin
 
 #$(PLUGIN_BASE_DIR)/entry.o: FORCE
@@ -72,7 +66,7 @@ comma:=,
 %.bin.reloc: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary --set-section-flags .bss=alloc$(comma)load$(comma)contents $< $@)
 %.bin: % %.bin.reloc
-	$(call build,SYMTBLG,$(SYMTBLGEN) $^ $@)
+	$(call build,SYMTBLG,$(SYMTBLGEN) $^ $@ $(READELF))
 #%.bin: %
 #	$(call build,OBJCOPY,$(OBJCOPY) -O binary --set-section-flags .bss=alloc$(comma)load$(comma)contents $< $@)
 

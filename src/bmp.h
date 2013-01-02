@@ -68,7 +68,7 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
  */
 
 /** These are the hard limits - never ever write outside them! */
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
 
 #define BMP_W_PLUS 720
 #define BMP_W_MINUS 0
@@ -80,7 +80,13 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
 #define BMP_HDMI_OFFSET 0
 
 /** Returns a pointer to the real BMP vram */
+#ifdef CONFIG_5DC
 inline uint8_t* bmp_vram_real() { return (uint8_t*) MEM(0x29328); }
+#elif defined(CONFIG_40D)
+inline uint8_t* bmp_vram_real() { return (uint8_t*) MEM(0x1E330); }
+#else
+error
+#endif
 
 extern int bmp_vram_idle_ptr;
 
@@ -92,6 +98,8 @@ inline uint8_t* bmp_vram_idle()
 
 inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf) { return bmp_buf; }
 #define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
+
+#define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = ((x) % 2) ? ((*(char*)(p) & 0x0F) | (D2V(color) << 4)) : ((*(char*)(p) & 0xF0) | (D2V(color) & 0x0F))    
 
 #else // dryos
 
@@ -143,13 +151,47 @@ inline uint8_t* bmp_vram_real()
 /** Returns a pointer to idle BMP vram */
 inline uint8_t* bmp_vram_idle()
 {
+#ifdef CONFIG_1100D
+	return (uint8_t *)((((uintptr_t)bmp_vram_real() + 0x80000) ^ 0x80000) - 0x80000);
+#else
     return (uint8_t *)((uintptr_t)bmp_vram_real() ^ 0x80000);
+#endif
 }
 #endif
 
 
 #define BMP_TOTAL_WIDTH (BMP_W_PLUS - BMP_W_MINUS)
 #define BMP_TOTAL_HEIGHT (BMP_H_PLUS - BMP_H_MINUS)
+
+
+inline void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color)
+{
+    #ifdef CONFIG_VXWORKS
+    char* p = (char*)&bvram[(x)/2 + (y)/2 * BMPPITCH]; 
+    SET_4BIT_PIXEL(p, x, color);
+    #else
+    bvram[x + y * BMPPITCH] = color;
+    #endif
+
+     #ifdef CONFIG_500D // err70?!
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+     #endif
+}
 
 
 /** Font specifiers include the font, the fg color and bg color */
@@ -173,72 +215,64 @@ inline uint8_t* bmp_vram_idle()
 
 static inline struct font *
 fontspec_font(
-        unsigned                fontspec
+    uint32_t fontspec
 )
 {
-        switch( fontspec & FONT_MASK )
-        {
+    switch( fontspec & FONT_MASK )
+    {
         default:
         case FONT_SMALL:        return &font_small;
         case FONT_MED:          return &font_med;
         case FONT_LARGE:        return &font_large;
-        //~ case FONT_HUGE:             return &font_huge;
-        }
+    //~ case FONT_HUGE:             return &font_huge;
+    }
 }
 
 
-static inline unsigned
-fontspec_fg(
-        unsigned                fontspec
-)
+static inline uint32_t
+fontspec_fg(uint32_t fontspec)
 {
-        return (fontspec >> 0) & 0xFF;
+    return (fontspec >> 0) & 0xFF;
 }
 
-static inline unsigned
-fontspec_bg(
-        unsigned                fontspec
-)
+static inline uint32_t
+fontspec_bg(uint32_t fontspec)
 {
-        return (fontspec >> 8) & 0xFF;
+    return (fontspec >> 8) & 0xFF;
 }
 
-
-
-static inline unsigned
-fontspec_height(
-        unsigned                fontspec
-)
+static inline uint32_t
+fontspec_height(uint32_t fontspec)
 {
-        return fontspec_font(fontspec)->height;
+    return fontspec_font(fontspec)->height;
 }
 
-OS_FUNCTION( 0x0500001,	void,	bmp_printf, unsigned fontspec, unsigned x, unsigned y, const char* fmt, ... );
+OS_FUNCTION( 0x0500001,	void,	bmp_printf, uint32_t fontspec, int x, int y, const char* fmt, ... );
 OS_FUNCTION( 0x0500002, size_t,	read_file, const char * filename, void * buf, size_t size);
 
 extern void
 con_printf(
-        unsigned                fontspec,
-        const char *            fmt,
+        uint32_t fontspec,
+        const char *fmt,
         ...
 ) __attribute__((format(printf,2,3)));
 
 extern void
 bmp_hexdump(
-        unsigned                fontspec,
-        unsigned                x,
-        unsigned                y,
-        const void *            buf,
-        int                     len
+    uint32_t fontspec,
+    uint32_t x,
+    uint32_t y,
+    const void *buf,
+    uint32_t len
 );
 
 
 extern void
 bmp_puts(
-        unsigned                fontspec,
-        unsigned *              x,
-        unsigned *              y,
-        const char *            s
+        uint32_t fontspec,
+        int *x,
+        int *y,
+        const char *s
 );
 
 /** Fill the screen with a bitmap palette */
@@ -251,55 +285,18 @@ bmp_draw_palette( void );
  */
 extern void
 bmp_fill(
-        uint8_t                 color,
-        int                x,
-        int                y,
-        int                w,
-        int                h
+        uint8_t color,
+        int x,
+        int y,
+        int w,
+        int h
 );
 
 
 /** Some selected colors */
 
-/* 5dc uses 4-bit colors :(
- -----------------------------
- 0x11 // lighter gray
- 0x22 // dark gray almost black
- 0x33 // light gray
- 0x44 // light grey background of menu
- 0x55 // light green / lime green
- 0x66 // red
- 0x77 // brown red / maroon
- 0x88 // light blue
- 0x99 // light gray
- 0xAA // darker gray
- 0xBB // brown red / maroon
- 0xCC // light blue
- 0xDD // light orange / pale yellow
- 0xEE // orange
- 0xFF // white
- -------------------------------
- */
-#ifdef CONFIG_5DC
-    #define COLOR_EMPTY             0x00 // total transparent
-    #define COLOR_BG                0x33 // transparent gray
-    #define COLOR_BG_DARK           0xAA // transparent black
-    #define COLOR_WHITE             0xFF // Normal white
-    #define COLOR_BLUE              0xCC // normal blue
-    #define COLOR_LIGHTBLUE         0x99
-    #define COLOR_RED               0x66 // normal red
-    #define COLOR_YELLOW            0xDD // normal yellow
-    #define COLOR_BLACK             0x22
-    #define COLOR_ALMOST_BLACK      0x22
-    #define COLOR_CYAN              0x99
-    #define COLOR_GREEN1            0x55
-    #define COLOR_GREEN2            0x55
-    #define COLOR_ORANGE            0xEE
-#else
-
-
 #define COLOR_EMPTY             0x00 // total transparent
-#if defined(CONFIG_5D2) || defined(CONFIG_50D)
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5DC)
 #define COLOR_BG                0x03 // transparent black
 #else
 #define COLOR_BG                0x14 // transparent gray
@@ -316,8 +313,12 @@ bmp_fill(
 #define COLOR_GREEN1 6
 #define COLOR_GREEN2 7
 #define COLOR_ORANGE 19
-
-#endif
+#define COLOR_DARK_RED 0xC
+#define COLOR_GRAY40 40
+#define COLOR_GRAY45 45
+#define COLOR_GRAY50 50
+#define COLOR_GRAY60 60
+#define COLOR_GRAY70 70
 
 static inline uint32_t
 color_word(
@@ -403,17 +404,18 @@ extern void *AcquireRecursiveLock(void *lock, int n);
 extern void *CreateRecursiveLock(int n);
 extern void *ReleaseRecursiveLock(void *lock);
 
-//~ #define BMP_LOCK(x) { AcquireRecursiveLock(bmp_lock, 0); x; ReleaseRecursiveLock(bmp_lock);}
+#define BMP_LOCK(x) { AcquireRecursiveLock(bmp_lock, 0); x; ReleaseRecursiveLock(bmp_lock);}
 #define GMT_LOCK(x) { error }
 
-#define BMP_LOCK(x) { CheckBmpAcquireRecursiveLock(bmp_lock, __LINE__, __func__); x; CheckBmpReleaseRecursiveLock(bmp_lock);}
+//~ #define BMP_LOCK(x) { CheckBmpAcquireRecursiveLock(bmp_lock, __LINE__, __func__); x; CheckBmpReleaseRecursiveLock(bmp_lock);}
 
 //~ #define BMP_LOCK(x) { x; }
 //~ #define BMP_LOCK(x) { bmp_ctr++; bmp_printf(FONT_SMALL, 50, 150, "BMP_LOCK try %s:%d  ", __func__, __LINE__); AcquireRecursiveLock(bmp_lock, 500); bmp_printf(FONT_SMALL, 50, 150, "                          "); bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 1 %s:%d  ", __func__, __LINE__); x; bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 0 releasing...                    "); ReleaseRecursiveLock(bmp_lock); bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 0 %s:%d ", __func__, __LINE__); bmp_ctr--;}
 //~ #define GMT_LOCK(x) { bmp_ctr++; bmp_printf(FONT_SMALL, 50, 200, "GMT_LOCK try %s:%d  ", __func__, __LINE__); AcquireRecursiveLock(gmt_lock, 500); bmp_printf(FONT_SMALL, 50, 200, "                          "); bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 1 %s:%d  ", __func__, __LINE__); x; bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 0 releasing...                    "); ReleaseRecursiveLock(gmt_lock); bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 0 %s:%d ", __func__, __LINE__); bmp_ctr--;}
 
-#endif
 
+void bmp_flip(uint8_t* dst, uint8_t* src, int voffset);
+void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);
 
 
 /** 5dc bitmap icons (ones that work and what they are) */
@@ -479,16 +481,21 @@ extern void *ReleaseRecursiveLock(void *lock);
 #define ICON_FLASH_A 0xa29aee
 #define ICON_FLASH_B 0xa59aee
 
-#define ICON_ML_PLAY -1
+#ifdef CONFIG_500D
+#undef ICON_VIDEOCAM
+#define ICON_VIDEOCAM ICON_FILM
+#endif
+
+//~ #define ICON_ML_PLAY -1
 #define ICON_ML_SUBMENU -100
 
 /** 5dc has to use some different icons than dryos cameras */
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
 #define ICON_CF 0xAC96EE
 #define ICON_AE 0xB096EE
 #define ICON_P_SQUARE 0xA596EE
-#define ICON_SMILE 0xB596EE
-#define ICON_LV 0xA996EE
+#define ICON_SMILE 0xaf96ee
+#define ICON_LV 0xbd96EE
 #else
 #define ICON_CF 0x8e9aee
 #define ICON_AE 0x919aee
@@ -496,3 +503,5 @@ extern void *ReleaseRecursiveLock(void *lock);
 #define ICON_SMILE 0x949aee
 #define ICON_LV 0x989aee
 #endif
+
+#endif //#ifndef _bmp_h_

@@ -26,151 +26,55 @@ _start:
         B  copy_and_restart
 
 
+
 init_code_run:
-		TEQ	R0, #2
-		MOV	R1, #0x78
-		MCR	p15, 0,	R1,c1,c0, 0
-		MOV	R1, #0
-		MCR	p15, 0,	R1,c7,c10, 4
-		MCR	p15, 0,	R1,c7,c7, 0
-		MOV	R0, #0x40000006
-		MCR	p15, 0,	R0,c9,c1, 0
-		MRC	p15, 0,	R0,c1,c0, 0
-		ORR	R0, R0,	#0x10000
-		MCR	p15, 0,	R0,c1,c0, 0
-		MRS	R1, CPSR
-		BIC	R1, R1,	#0x3F
-		ORR	R1, R1,	#0xD3
-		MSR	CPSR_cf, R1
-		LDR	R2, =0xC0200000
-		MOV	R1, #0xFFFFFFFF
-		STR	R1, [R2,#0x10C]
-		STR	R1, [R2,#0xC]
-		STR	R1, [R2,#0x1C]
-		STR	R1, [R2,#0x2C]
-		STR	R1, [R2,#0x3C]
-		STR	R1, [R2,#0x4C]
-		STR	R1, [R2,#0x5C]
-		STR	R1, [R2,#0x6C]
-		STR	R1, [R2,#0x7C]
-		STR	R1, [R2,#0x8C]
-		STR	R1, [R2,#0x9C]
-		STR	R1, [R2,#0xAC]
-		STR	R1, [R2,#0xBC]
-		STR	R1, [R2,#0xCC]
-		STR	R1, [R2,#0xDC]
-		STR	R1, [R2,#0xEC]
-		STR	R1, [R2,#0xFC]
-		LDR	R1, =0xC0220000
-		MOV	R2, #0x46
-		STR	R2, [R1,#0x94]
-		LDR	R1, =0xC0400000
-		LDR	R2, [R1,#4]
-		ORR	R2, R2,	#0x10000003
-		STR	R2, [R1,#4]
-		MOV	R3, #0xF
+TEQ     R0, #2
 
-loc_FF810100:				
-		NOP
-		SUB	R3, R3,	#1
-		CMP	R3, #0
-		BNE	loc_FF810100
-		MOV	R1, #0xC0000000
-		LDR	R2, =0x3806488
-		STR	R2, [R1]
-		MOV	R1, #0xC0000000
-		LDR	R2, =0xD9C50000
-		STR	R2, [R1,#0x10]
-//		LDR	R1, =0xC0400000
-//		LDR	R2, =0x410004
-//      STR	R2, [R1,#8]
-		MOV	R3, #0xF
+loc_800088:
+        MOV     R1, #0x78
+        MCR     p15, 0, R1,c1,c0, 0
+        MOV     R1, #0
+        MCR     p15, 0, R1,c7,c10, 4
+        MCR     p15, 0, R1,c7,c7, 0
+        MOV     R0, #0x40000006
+        MCR     p15, 0, R0,c9,c1, 0
+        MRC     p15, 0, R0,c1,c0, 0
+        ORR     R0, R0, #0x10000
+        MCR     p15, 0, R0,c1,c0, 0
+        MRS     R1, CPSR
+        BIC     R1, R1, #0x3F
+        ORR     R1, R1, #0xD3
+        MSR     CPSR_cf, R1
+        LDR     R2, =0xC0200000
+        MOV     R1, #0xFFFFFFFF
+        STR     R1, [R2,#0x10C]
+        STR     R1, [R2,#0xC]
+        STR     R1, [R2,#0x1C]
+        STR     R1, [R2,#0x2C]
+        STR     R1, [R2,#0x3C]
+        STR     R1, [R2,#0x4C]
+        STR     R1, [R2,#0x5C]
+        STR     R1, [R2,#0x6C]
+        STR     R1, [R2,#0x7C]
+        STR     R1, [R2,#0x8C]
+        STR     R1, [R2,#0x9C]
+        STR     R1, [R2,#0xAC]
+        STR     R1, [R2,#0xBC]
+        STR     R1, [R2,#0xCC]
 
-loc_FF810138:				
-		NOP
-		SUB	R3, R3,	#1
-		CMP	R3, #0
-		BNE	loc_FF810138
-		LDR	R1, =0xC022F000
-		MOV	R2, #0x7F
-		STR	R2, [R1,#0x304]
-		MOV	R3, #0x1E
-
-loc_FF810158:				
-		SUB	R3, R3,	#1
-		CMP	R3, #0
-		BNE	loc_FF810158
-		STR	R2, [R1,#0x300]
-		NOP
-		NOP
-		NOP
-		LDR	R1, =0xC0100000
-		LDR	R2, =0x114A3
-		STR	R2, [R1]
-		LDR	R2, =0xFFF84
-		STR	R2, [R1,#0x1C]
-		MOV	R2, #0x1A
-		STR	R2, [R1,#4]
-		LDR	R1, =0xC0400000
-		LDR	R2, =0x410004
-		ORR	R2, R2,	#1
-		STR	R2, [R1,#8]
-		MOV	R3, #0x100
-
-loc_FF8101A4:				
-		NOP
-		SUB	R3, R3,	#1
-		CMP	R3, #0
-		BNE	loc_FF8101A4
-		NOP
-		NOP
-		NOP
-		NOP
-		LDR	R1, =0xC0100000
-		LDR	R2, =0xFFF84
-		ORR	R2, R2,	#2
-		STR	R2, [R1,#0x1C]
-
-loc_FF8101D4:				
-		LDR	R2, [R1,#0x1C]
-		AND	R2, R2,	#1
-		CMP	R2, #1
-		BNE	loc_FF8101D4
-		MOV	R2, #0xC0000000
-		STR	R2, [R1,#8]
-		MOV	R2, #0x40000000
-		STR	R2, [R1,#8]
-		LDR	R2, =0xE0002000
-		STR	R2, [R1,#8]
-		LDR	R2, =0xE0000100
-		ORR	R2, R2,	#0x23
-		STR	R2, [R1,#8]
-		MOV	R3, #0x100
-
-loc_FF81020C:				
-		NOP
-		SUB	R3, R3,	#1
-		CMP	R3, #0
-		BNE	loc_FF81020C
-		LDR	R1, =0xC0100000
-		MOV	R2, #0x40000000
-		STR	R2, [R1,#8]
-		MOV	R2, #0x20000000
-		STR	R2, [R1,#8]
-		MOV	R2, #0x20000000
-		STR	R2, [R1,#8]
-		MOV	R2, #0x23               // MOV	R2, 0xE0000023
-		ADD	R2, R2, #0xE0000000		// R2 = 0x23 + 0xE0000000 = 0xE0000023			
-		STR	R2, [R1,#8]
-		LDR	R1, =0xC0210600
-		LDR	R2, =0x201
-		STR	R2, [R1]
-		LDR	R1, =0xC0100000
-		MOV	R2, #0
-		STR	R2, [R1,#0xC]
-		LDR	SP, =0x40000FFC
-		MOV	R11, #0
-		LDR	PC, =my_romStart
+loc_800100:
+        STR     R1, [R2,#0xDC]
+        STR     R1, [R2,#0xEC]
+        STR     R1, [R2,#0xFC]
+        LDR     R1, =0xC0220000
+        MOV     R2, #0x46
+        STR     R2, [R1,#0x94]
+        MOV     R1, #0xC0000000
+        LDR     R2, =0xD9C50000
+        STR     R2, [R1,#0x10]
+        LDR     SP, =0x40000FFC
+        MOV     R11, #0
+        LDR     PC, =my_romStart
 		
 my_romStart:								
 		MOV	R12, SP

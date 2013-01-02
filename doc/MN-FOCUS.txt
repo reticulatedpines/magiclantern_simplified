@@ -1,0 +1,186 @@
+Focus
+~~~~~
+
+.. figure:: 06.focus.png
+    :align: center
+    :width: 5cm
+
+ 
+.. _trap focus:
+
+Trap Focus
+``````````
+
+[[http://www.flickr.com/photos/ml_kap/5404489873|{{ TrapFocus-Hummingbird.jpg?200}}]]
+
+For MF users: takes a picture when the subject comes into focus.
+
+Modes: 
+
+* **Hold AF button**: you need to hold the autofocus button (half-shutter, ``*`` or ``AF-ON``, depending on your settings).
+* **Continuous**: you don't need to hold any button; ML will "hold" the half-shutter pressed for you. This will also block most buttons; press the shutter halfway to unlock them for two seconds.
+
+Notes:
+
+* Outside LiveView, it only works with lenses with chip.
+* In LiveView it only works for photos, and it will take a picture 
+  when the focus indicator has (almost) maximum value on the focus graph. 
+    
+Notes for LiveView trap focus:
+    
+* You may have to turn the lens back and forth a few times in order to let ML
+  compute the correct focus scaling factor for the current scene. 
+* If you move from a high-contrast scene to a low-contrast one, you will also have to wait a bit until the high-contrast data disappears from the focus graph.
+* Press ``SET`` to temporarily disable automatic scaling of focus magnitude.
+
+.. _AF patterns:
+
+Focus Patterns
+``````````````
+
+Custom focus patterns which can be used either with autofocus or `trap focus`_.
+  
+.. figure:: AFP.png
+    :align: center
+    :width: 11.8cm
+  
+To change the focus pattern:
+  
+* Set your camera in photo mode, non-LiveView;
+* Look through the viewfinder and make sure the main display is off;
+* Change the focus pattern with the arrow keys and ``SET``; you may or may not receive visual feedback.
+* Press the ``Zoom In`` button twice to see the current selection.
+
+You can use the custom focus patterns in LiveView Quick Focus mode, too, but the pattern won't be displayed on the screen.
+
+This feature was ported from `400plus <http://code.google.com/p/400plus/>`_.
+
+.. _follow focus:
+
+Follow Focus
+````````````
+
+Very simple follow focus (like a rack focus controlled manually).
+  
+* **Arrows**: you will be able to focus with the arrow keys.
+* **LCD Sensor**: on 550D/500D, focus by placing your hand near the LCD sensor (avoiding shake). To use this, you may need to disable `LCDsensor Remote`_.
+
+Recommended focus step settings: 
+  
+* Focus StepSize: 1 or 2
+* Focus StepDelay: small values, without ``Wait`` flag.
+* If the motion is not smooth, try larger delays (100ms)
+
+Quick rack focus **while recording**:
+
+* Press ``MENU`` to save current focus point (this means "I want to return here");
+* Use follow focus to change focus point (focus somewhere else);
+* Press ``PLAY`` to go to saved focus point;
+* Press ``PLAY`` again to go back.
+
+.. _focus speed:
+
+Focus StepSize
+``````````````
+
+Step size for one focus command, as used by EOS Utility.
+
+Focus StepDelay
+```````````````
+
+Delay between two successive focus commands, with an optional waiting flag.
+  
+* If ``Wait`` is not active, ML will only wait a for fixed delay before sending next focus command. This will reduce stutter, but may affect rack focus accuracy. This setting is recommended if you only use follow focus.
+
+* If ``Wait`` is active, ML will wait until each focus command is completed, and then it will wait for a fixed delay, as configured here. This will increase rack focus accuracy, but may cause stutter with certain lenses.
+
+.. _rack focus:
+
+Focus End Point
+```````````````
+  
+This is end point of rack focus (X focus steps from the start point, i.e. from current focus point).
+  
+First you have to set the end point. Focus the lens, then press ``SET`` on this menu item.
+  
+After pressing SET, ML will display ``Focus End Point: 0 (here)``.
+This means the end point is now assigned to current focus position.
+  
+At this point, you will see the LiveView image and set the start point using left and right keys (just like with `follow focus`_) or the main dial (scrollwheel).
+The start point will be always the current focus point (which you are changing); the end point will remain fixed.
+
+
+
+Rack Delay
+``````````
+
+Sets the number of seconds before starting a rack focus. This lets you film the start point first, then initialise the rack focus without touching the camera.
+
+Rack Focus
+``````````
+
+Triggers the rack focus operation that moves between the start and end focus points. After the move is complete pressing again reverses the move. 
+    
+* ``SET``: rack focus will start after 2 seconds;
+* ``Q``: rack focus will start immediately;
+* ``PLAY``: ML will automatically record a short clip with the rack focus operation;
+* **Outside ML menu, while recording**, press ``PLAY`` to start rack focus.
+
+Step-by-step:
+  
+1. Pick the end point of rack focus by focusing on it (manually or with AF).
+
+2. Configure focus parameters (step size and delay). Different lenses may require different parameters.
+
+3. Open the ``Focus`` menu, go to ``Focus End Point`` and press ``Set`` to zero it out.
+  
+4. Pick the start point by focusing on it with the ``LEFT/RIGHT`` buttons while the Focus menu is active. Make sure the number from ``Focus End Point`` is changing as you focus. Fine-tune the position with scrollwheel.
+    
+5. Go to ``Rack Focus`` and press ``SET`` or ``PLAY`` to start rack focus.
+  
+6. To return to the starting point, run rack focus again.
+  
+Tip: when `LCDsensor Remote`_ is set on ``Near`` or ``Away``, you can trigger rack focus from the LCD sensor, avoiding camera shake.
+
+Recommended focus step settings: 
+  
+* Focus StepSize: 1 or 2
+* Focus StepDelay:
+
+  - without ``Wait`` flag: large delays (around 100 ms) => will ignore small position errors
+  - with ``Wait`` flag: small delays (only lens is in very good mechanical condition)
+
+.. _focus stacking:
+
+Stack focus
+```````````
+
+{{ vimeo>5879032??250x140}}
+
+This selection will shoot a series of photographs with varying focus points.
+It is used in macro photography to assemble sharper final images by merging photos where each has a different focus point. 
+
+This function can also create scripts named like named ``FST_1234.SH``, which can be used for stacking the images with enfuse. See `Exposure bracketing`_ for details on how to use these scripts, and the `focus stacking section <http://panorama.dyndns.org/EandE-documentation/enfuse.html#Focus-Stacks>`_ from Enfuse reference manual. To enable (or disable) the post-processing scripts, go to `HDR bracketing`_ submenu.
+  
+Usage:
+  
+1. Configure `rack focus`_ and use it to preview the focus range. 
+2. Select the number of focus steps to skip. This will determine the number of pictures to be taken.
+3. Press PLAY to start the focus sequence (``PLAY`` mode) or take the first picture (``SNAP`` mode).
+  
+You can also combine this function with `HDR`_ bracketing and `silent pictures`_.
+
+Recommended focus step settings: same as for `rack focus`_.
+
+.. _focus and DOF info:
+
+Focus distance and DOF info
+```````````````````````````
+
+These items are read-only:
+
+* **Lens info**: displays lens name, current focal length and current aperture.
+* **Focus Dist**: The distance to the focal point. Most newer newer Canon lenses report this value, but not all.
+* **Hyperfocal**: The hyperfocal distance is the point of focus where everything from half that distance to infinity falls within the depth of field. This is the largest depth of field possible for the current f-number. 
+* **DOF Near**: The nearest distance in which objects appear in focus.
+* **DOF Far**: The farthest distance in which objects appear in focus.

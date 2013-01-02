@@ -7,34 +7,42 @@
 void menu_open_submenu();
 extern void menu_easy_advanced_display(void* priv, int x0, int y0, int selected);
 
+static void menu_nav_help_open(void* priv, int delta)
+{
+    menu_help_go_to_label("Magic Lantern menu", 0);
+}
+
+
 struct menu_entry help_menus[] = {
-    {
+    /*{
         .name = "Press MENU : Easy/Advanced mode",
         .display = menu_easy_advanced_display,
-        .essential = FOR_MOVIE | FOR_PHOTO,
-    },
+        //.essential = FOR_MOVIE | FOR_PHOTO,
+    },*/
     {
+        .select = menu_nav_help_open,
         .name = "Press " INFO_BTN_NAME
                           " : Bring up Help menu",
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
-        #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
+        .select = menu_nav_help_open,
+        #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_650D) || defined(CONFIG_6D)
         .name = "Press Q    : Bring up submenu...",
-        #endif
-        #ifdef CONFIG_500D
+        #elif defined(CONFIG_500D)
         .name = "LiveView(Q): Bring up submenu...",
-        #endif
-        #ifdef CONFIG_50D
+        #elif defined(CONFIG_50D)
         .name = "Press FUNC : Bring up submenu...",
-        #endif
-        #ifdef CONFIG_5D2
+        #elif defined(CONFIG_5D2)
         .name = "Pict.Style : Bring up submenu...",
-        #endif
-        #ifdef CONFIG_5DC
+        #elif defined(CONFIG_5DC) || defined(CONFIG_40D)
         .name = "Press JUMP : Bring up submenu...",
+        #elif defined(CONFIG_EOSM) || defined(CONFIG_650D)
+        .name = "1-fingr Tap: Bring up submenu...",
+        #else
+        error
         #endif
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             {
                 .name = "... like this :)",
@@ -43,24 +51,31 @@ struct menu_entry help_menus[] = {
         }
     },
     {
+        .select = menu_nav_help_open,
         .name = "SET/PLAY   : Change values",
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
+        .select = menu_nav_help_open,
         .name = "Zoom In    : Preview LiveView",
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
+    },
+    {
+        .select = menu_nav_help_open,
+        .name = "Press MENU : Show/hide items",
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .name = "Key shortcuts",
         .priv = "Key shortcuts",
         .select = menu_help_go_to_label,
         .display = menu_print,
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .name = "Complete user guide",
         .select = menu_open_submenu,
-        .essential = FOR_MOVIE | FOR_PHOTO,
+        //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             #include "menuindexentries.h"
             MENU_EOL

@@ -62,5 +62,9 @@ void lcd_release_step() {};
 int get_lcd_sensor_shortcuts() { return 0; }
 void display_lcd_remote_icon(int x0, int y0) {}
 
-void ChangeColorPalette(){}
-void HideBottomInfoDisp_maybe(){}
+void* AllocateMemory(size_t size) // this won't throw ERR70
+{
+	return (void*) AllocateMemory_do(*(int*)0x2B48, size);
+}
+
+int new_LiveViewApp_handler = 0xff123456;

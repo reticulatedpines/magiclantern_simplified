@@ -57,18 +57,30 @@ struct ext_plugin * load_plugin(const char* filename) {
 	unsigned int text_start;
 
     if( FIO_GetFileSize( filename, &size ) != 0 )
+    {
+		console_printf("file size fail: %s\n", filename);
         goto getfilesize_fail;
+	}
 
 	buf = alloc_dma_memory(size);
 	if (!buf)
+	{
+		console_printf("malloc fail: %d\n", size);
 		goto malloc_fail;
+	}
 
 	if ((unsigned)read_file(filename, buf, size)!=size)
+	{
+		console_printf("read fail: %d\n", size);
 		goto read_fail;
+	}
 
 	retval = Allocator(size);
 	if (!retval)
+	{
+		console_printf("malloc2 fail: %d\n", size);
 		goto copy_fail;
+	}
 	msleep(1);
 	memcpy(retval, buf, size);
 	free_dma_memory(buf);
@@ -136,7 +148,7 @@ read_fail:
 	free_dma_memory(buf);
 malloc_fail:
 getfilesize_fail:
-    DebugMsg( DM_MAGIC, 3, "plugin load failed");
+    DebugMsg( DM_MAGIC, 3, "plugin load failed (%s)", filename);
     return 0;
 }
 
@@ -172,7 +184,7 @@ static void select_plugins_submenu(void* priv, int delta)
 	struct loaded_plugin * plug = (struct loaded_plugin*)priv;
 	if (!plug->plug) {
 		char filename[50];
-		snprintf(filename, sizeof(filename), "%sML/PLUGINS/%s", CARD_DRIVE, plug->name);
+		snprintf(filename, sizeof(filename), CARD_DRIVE"ML/PLUGINS/%s", plug->name);
 		plug->plug = load_plugin(filename);
 	}
 	if (plug->plug) {
@@ -273,7 +285,7 @@ static void plugins_task(void* unused) {
 static void plugins_init(void* unused) {
 	find_plugins();
 	if (plugins_count)
-		menu_add("Tweaks", plugin_menus, COUNT(plugin_menus));
+		menu_add("Debug", plugin_menus, COUNT(plugin_menus));
 }
 
 INIT_FUNC( __FILE__, plugins_init);

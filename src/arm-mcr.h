@@ -154,29 +154,28 @@ set_i_tcm( uint32_t value )
 static inline uint32_t
 cli(void)
 {
-    uint32_t old_cpsr;
-    uint32_t new_cpsr;
+    uint32_t old_irq;
+    
     asm __volatile__ (
         "mrs %0, CPSR\n"
-        "orr %1, %0, #0x80\n" // set I flag to disable IRQ
-        "msr CPSR_c, %1\n"
-        : "=r"(old_cpsr)
-        : "r"(new_cpsr)
+        "orr r1, %0, #0xC0\n" // set I flag to disable IRQ
+        "msr CPSR_c, r1\n"
+        "and %0, %0, #0xC0\n"
+        : "=r"(old_irq) : : "r1"
     );
-    return old_cpsr & 0x80; // return true if the flags are set
+    return old_irq; // return the flag itself
 }
 
 static inline void
-sei( uint32_t old_cpsr )
+sei( uint32_t old_irq )
 {
-    uint32_t new_cpsr;
     asm __volatile__ (
-        "mrs %0, CPSR\n"
-        "bic %0, %0, #0x80\n"
-        "orr %0, %0, %1\n"
-        "msr CPSR_c, %0" : : "r"(new_cpsr), "r"(old_cpsr) );
+        "mrs r1, CPSR\n"
+        "bic r1, r1, #0xC0\n"
+        "and %0, %0, #0xC0\n"
+        "orr r1, r1, %0\n"
+        "msr CPSR_c, r1" : : "r"(old_irq) : "r1" );
 }
-
 
 /**
  * Some common instructions.

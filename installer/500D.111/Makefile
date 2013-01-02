@@ -6,7 +6,7 @@ include $(TOP_DIR)/Makefile.top
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
 FW_VERSION=111
 MODEL=500D
-UPDATE_NAME=500d_111.fir
+UPDATE_NAME=500D-111.fir
 ML_VERSION=unified1 
 
 #used in CFLAGS
@@ -24,19 +24,17 @@ ML_OBJS-y = \
 	$(PLATFORM_DIR)/stubs.o \
 	version.o \
 	bmp.o \
-	font-large.o \
-	font-med.o \
-	font-small.o \
+	chdk-gui_draw.o \
+	font-dyn.o \
+	stdio.o \
 	property.o \
 	propvalues.o \
 	dialog_test.o \
 	bootflags.o \
+	vram.o \
 
 #include generic rules and definitions
-
 include  $(TOP_DIR)/Makefile.inc
-
-CFLAGS += -DCONFIG_STATIC_FONTS=1
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
@@ -54,11 +52,11 @@ updater: reboot-ins.o
 		$^ \
 	); \
 
-all: magiclantern.bin updater.bin
-	python ../../../dumper/build_fir.py -r ../../../dumper/E7KR6111.FIR updater.bin ml-500d-111.fir
+installer: magiclantern.bin updater.bin
+	python ../../../dumper/build_fir.py -r ../../../dumper/E7KR6111.FIR updater.bin $(UPDATE_NAME)
 
 clean:
 	rm -f *.fir *.o autoexec* magiclantern* updater* ml.bin
 
 install:
-	cp ml-500d-111.fir /media/EOS_DIGITAL/ && umount /media/EOS_DIGITAL 
+	cp $(UPDATE_NAME) /media/EOS_DIGITAL/ && umount /media/EOS_DIGITAL 

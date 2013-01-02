@@ -94,8 +94,7 @@ void console_init()
 	msleep(500);
 
 	if (!console_log_file) {
-	    FIO_RemoveFile(CARD_DRIVE "ML/console.log");
-	    console_log_file = FIO_CreateFile(CARD_DRIVE "ML/console.log");
+	    console_log_file = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/console.log");
 	}
 }
 

@@ -11,7 +11,7 @@
 // These might be camera-specific, but codes are the same on 550D and 60D
 // [5] Values for "af_point" (can be ORed together to form patterns)
 
-#if defined(CONFIG_50D) || defined(CONFIG_5D2)
+#if defined(CONFIG_50D) || defined(CONFIG_5D2) || defined(CONFIG_40D)
 #define AF_POINT_C  0x01 // Center
 #define AF_POINT_T  0x02 // Top
 #define AF_POINT_B  0x04 // Bottom
@@ -21,6 +21,34 @@
 #define AF_POINT_BR 0x40 // Bottom-right
 #define AF_POINT_L  0x80 // Left
 #define AF_POINT_R  0x100 // Right
+#elif defined(CONFIG_7D)        // 7D focus points
+/*
+          TT
+   TLL TL T  TR TRR
+LLL LL L  C  R  RR  RRR
+   BLL BL B  BR  BRR
+          BB
+*/
+#define AF_POINT_C    0x44a00 // Center
+#define AF_POINT_T    0x42a00 // Top
+#define AF_POINT_TT   0x40a00 // Top
+#define AF_POINT_B    0x46a00 // Bottom
+#define AF_POINT_BB   0x48a00 // Bottom
+#define AF_POINT_TL   0x42800 // Top-left
+#define AF_POINT_TLL  0x42600 // Top-left-left
+#define AF_POINT_TR   0x42c00 // Top-right
+#define AF_POINT_TRR  0x42e00 // Top-right-right
+#define AF_POINT_BL   0x46800 // Bottom-left
+#define AF_POINT_BLL  0x46600 // Bottom-left-left
+#define AF_POINT_BR   0x46c00 // Bottom-right
+#define AF_POINT_BRR  0x46e00 // Bottom-right-right
+#define AF_POINT_L    0x44800 // Left
+#define AF_POINT_LL   0x44600 // Left-left
+#define AF_POINT_LLL  0x44400 // Left-left-left
+#define AF_POINT_R    0x44c00 // Right
+#define AF_POINT_RR   0x44e00 // Right-right
+#define AF_POINT_RRR  0x45000 // Right-right-right
+// ----------------------------------------------------
 #else
 #define AF_POINT_C  0x0100 // Center
 #define AF_POINT_T  0x0200 // Top

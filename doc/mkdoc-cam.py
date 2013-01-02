@@ -11,26 +11,47 @@
 import os, re, time, sys
 import urllib
 
-m = open("MANUAL.txt").readlines();
-c = open("CONFIG.txt").readlines();
-e = open("EPILOGUE.txt").readlines();
+def include(o, filename, start=0):
+    f = open(filename).readlines();
+    for l in f[start:]:
+        o.write(l)
+    o.write("\n");
+
+def include_indent(o, filename, start=0):
+    f = open(filename).readlines();
+    for l in f[start:]:
+        o.write(l.replace("~", "`").replace("--", "~~").replace("~-", "~~").replace("==", "--").replace("-=", "--"))
+    o.write("\n");
 
 o = open("userguide.rst", "w")
-print >> o, """Magic Lantern 0.2.1
+print >> o, """Magic Lantern v2.3
 ==================================
 
 """
-for l in m:
-    o.write(l)
-for l in c:
-    o.write(l)
-for l in e:
-    o.write(l)
+include(o, "MANUAL.txt", 1);
+include(o, "MN-AUDIO.txt");
+include(o, "MN-EXPO.txt");
+include(o, "MN-OVERLAY.txt");
+include(o, "MN-MOVIE.txt");
+include(o, "MN-SHOOT.txt");
+include(o, "MN-FOCUS.txt");
+include(o, "MN-DISPLAY.txt");
+include(o, "MN-PREFS.txt");
+include(o, "MN-DEBUG.txt");
+include(o, "EPILOGUE.txt");
+
 o.close()
 
 def sub(file, fr, to):
     txt = open(file).read()
     txt = re.sub(fr, to, txt);
+    f = open(file,"w")
+    f.write(txt)
+    f.close()
+
+def replace(file, fr, to):
+    txt = open(file).read()
+    txt = txt.replace(fr, to);
     f = open(file,"w")
     f.write(txt)
     f.close()
@@ -63,7 +84,7 @@ def labelhack(file): # bug in rst2latex? it forgets to place labels in tex sourc
             label = m.groups()[0]
             txt += r""".. raw:: latex
     
-    \vspace{-10mm}\subsubsection*{}\label{%s}
+    \subsubsection*{}\label{%s}
 """ % label.lower().replace("/"," ").replace("   ", " ").replace("  ", " ").replace(" ", "-").replace(".", "-")
     f = open(file,"w")
     f.write(txt)
@@ -87,6 +108,7 @@ nonewlineitems = [
     "Free Memory", "EFIC temperature", "Shutter Count", "Battery remaining"
     "LV button", "Quick Erase", "Shutter Lock", "Shutter Button"]
 def should_add_newline(l):
+    return 1
     for it in nonewlineitems:
         if it in l:
             return 0
@@ -116,14 +138,21 @@ def add_menu_items_to_contents(file):
     f.write(txt)
     f.close()
 
+os.system(r"sed -i -e s/.*{{.*}}.*//g userguide.rst")
+
 os.system("pandoc -f rst -t latex -o credits.tex CREDITS.txt")
 
 fixwikilinks("userguide.rst")
-labelhack("userguide.rst")
-add_menu_items_to_contents("userguide.rst")
+#~ labelhack("userguide.rst")
+#~ add_menu_items_to_contents("userguide.rst")
 #os.system("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
+os.system(r"sed -i -e 's/^#.*$//g' userguide.rst")
 os.system("rst2latex.py userguide.rst --output-encoding=utf8 --template=ug-template-cam.tex --table-style booktabs > UserGuide-cam.tex")
-os.system(r"sed -i -e 's/\\{\\{clr\\}\\}//g' UserGuide-cam.tex")
+#~ os.system(r"sed -i -e 's/\\{\\{.*\\}\\}//g' UserGuide-cam.tex")
+sub("UserGuide-cam.tex", r"\\subsubsection", r"\\newpage\\subsubsection")
+sub("UserGuide-cam.tex", r"\\subsection", r"\\newpage\\subsection")
+
+os.system(r"sed -i -e 's/width=10cm/width=7cm/g' UserGuide-cam.tex") # hack for liveview screen
 
 os.system(r"sed -i -e 's/⬜/$\\square$/g' UserGuide-cam.tex")
 os.system(r"sed -i -e 's/⨂/$\\otimes$/g' UserGuide-cam.tex")
@@ -140,6 +169,17 @@ os.system(r"sed -i -e 's/=>/$\\Rightarrow$/g' UserGuide-cam.tex")
 os.system(r"sed -i -e 's/>=/$\\ge$/g' UserGuide-cam.tex")
 os.system(r"sed -i -e 's/<=/$\\le$/g' UserGuide-cam.tex")
 os.system(r"sed -i -e 's/kOhm/$\\textrm k\\Omega$/g' UserGuide-cam.tex")
+
+replace("UserGuide-cam.tex", r"""\newpage\subsection*{\phantomsection%
+  Movie mode%""", r"""\subsection*{\phantomsection%
+  Movie mode%""");
+
+replace("UserGuide-cam.tex", r"""\newpage\subsection*{\phantomsection%
+  PLAY mode shortcuts%""", r"""\subsection*{\phantomsection%
+  PLAY mode shortcuts%""");
+
+
+  
 
 #~ os.system(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide-cam.tex")
 os.system("lualatex -interaction=batchmode UserGuide-cam.tex")
@@ -232,7 +272,7 @@ def save_img(im,M,file):
     ix.save(file)
 
 
-M = read_rgb("../vram/Palette.jpg")
+M = read_rgb("../data/vram/Palette.jpg")
 for i in range(3):
     print M[:,:,i].astype(uint8)
 

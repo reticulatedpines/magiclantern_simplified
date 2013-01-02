@@ -20,6 +20,9 @@
 #include "property.h"
 #include "bmp.h"
 
+extern struct prop_handler _prop_handlers_start[];
+extern struct prop_handler _prop_handlers_end[];
+
 static void * global_token;
 
 static void global_token_handler( void * token)
@@ -42,9 +45,6 @@ global_property_handler(
 #endif
     
     //~ bfnt_puts("Global prop", 0, 0, COLOR_BLACK, COLOR_WHITE);
-
-    extern struct prop_handler _prop_handlers_start[];
-    extern struct prop_handler _prop_handlers_end[];
     struct prop_handler * handler = _prop_handlers_start;
 
     for( ; handler < _prop_handlers_end ; handler++ )
@@ -52,9 +52,19 @@ global_property_handler(
         if (handler->property == property)
         {
             //~ bmp_printf(FONT_LARGE, 0, 0, "%x %x...", property, handler->handler);
-            current_prop_handler = property;
-            handler->handler(property, priv, buf, len);
-            current_prop_handler = 0;
+            /* cache length of property if not set yet */
+            if(handler->property_length == 0)
+            {
+                handler->property_length = len;
+            }
+            
+            /* execute handler, if any */
+            if(handler->handler != NULL)
+            {
+                current_prop_handler = property;
+                handler->handler(property, priv, buf, len);
+                current_prop_handler = 0;
+            }
             //~ bmp_printf(FONT_LARGE, 0, 0, "%x %x :)", property, handler->handler);
         }
     }
@@ -67,9 +77,6 @@ void
 prop_init( void* unused )
 {
     int actual_num_properties = 0;
-
-    extern struct prop_handler _prop_handlers_start[];
-    extern struct prop_handler _prop_handlers_end[];
     struct prop_handler * handler = _prop_handlers_start;
 
     for( ; handler < _prop_handlers_end ; handler++ )
@@ -105,6 +112,7 @@ prop_init( void* unused )
     );
 }
 
+#if 0
 // for reading simple integer properties
 // not reliable in realtime scenarios (race condition?)
 int _get_prop(int prop)
@@ -126,6 +134,7 @@ char* _get_prop_str(int prop)
     if (!err) return data;
     return 0;
 }
+#endif
 /* not reliable
 
 
@@ -159,10 +168,35 @@ int _get_prop_len(int prop)
     return len;
 }*/
 
+/* return cached length of property */
+uint32_t prop_get_prop_len(uint32_t property)
+{
+    struct prop_handler * handler = NULL;
+
+    for(handler = _prop_handlers_start; handler < _prop_handlers_end; handler++ )
+    {
+        if (handler->property == property)
+        {
+            return handler->property_length;
+        }
+    }
+    
+    return 0;
+}
+
+
 /**
  * This is just a safe wrapper for changing camera settings (well... only slightly safer than Canon's) 
  * Double-check the len parameter => less chances that our call will cause permanent damage.
  */
+
+/**
+ * You can also pass len=0; in this case, the length will be detected automatically.
+ * Don't abuse this, only use it for properties where length is camera-specific, 
+ * and if you call something with len=0, don't forget to back it up with an ASSERT
+ * which checks if len is not higher than the max len assumed by ML.
+ */
+
 
 /**
  * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -175,28 +209,46 @@ int _get_prop_len(int prop)
 
 void prop_request_change(unsigned property, const void* addr, size_t len)
 {
-/* problem: get_prop_len may return 0 :(
+#ifdef CONFIG_PROP_REQUEST_CHANGE
 
+	#if defined(CONFIG_40D)
+	if(property != PROP_AFPOINT) {
+		return;
+	}
+	#endif
 
-    int correct_len = get_prop_len((int)property);
+    int correct_len = prop_get_prop_len((int)property);
+    if (len == 0) len = correct_len;
+    if (len == 0)
+    {
+        char msg[100];
+        snprintf(msg, sizeof(msg), "PROP_LEN(%x) = 0", property);
+        bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), 100, 100, msg);
+        ml_assert_handler(msg, __FILE__, __LINE__, __func__);
+        info_led_blink(10,50,50);
+        return;
+    }
     
     if (property == PROP_BATTERY_REPORT && len == 1) goto ok; // exception: this call is correct for polling battery level
+    
+    if (property == PROP_REMOTE_SW1 || property == PROP_REMOTE_SW2)
+        ASSERT(len <= 4); // some cameras have len=2, others 4; we pass a single integer as param, so max len is 4
     
     if (correct_len != (int)len)
     {
         char msg[100];
         snprintf(msg, sizeof(msg), "PROP_LEN(%x) correct:%x called:%x", property, correct_len, len);
-        bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), 100, 100, msg);
+        bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_RED), 0, 100, msg);
         ml_assert_handler(msg, __FILE__, __LINE__, __func__);
-        //~ ASSERT(PROP_LEN_INCORRECT);
         info_led_blink(10,50,50);
         return;
     }
 
-ok:
-*/
+    ok:
     //~ console_printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
+    
     _prop_request_change(property, addr, len);
+#endif
 }
 
 
@@ -204,3 +256,10 @@ ok:
  * For new ports, disable this function on first boots (although it should be pretty much harmless).
  */
 INIT_FUNC( __FILE__, prop_init );
+
+/* register those as dummy handlers to make sure we receive them (for getting prop length) */
+REGISTER_PROP_HANDLER(PROP_REMOTE_SW1, NULL);
+REGISTER_PROP_HANDLER(PROP_REMOTE_SW2, NULL);
+REGISTER_PROP_HANDLER(PROP_LV_LENS_DRIVE_REMOTE, NULL);
+REGISTER_PROP_HANDLER(PROP_WB_MODE_PH, NULL);
+REGISTER_PROP_HANDLER(PROP_WB_KELVIN_PH, NULL);

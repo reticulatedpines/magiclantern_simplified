@@ -25,21 +25,25 @@
  */
 
 #include "arm-mcr.h"
+#include "consts.h"
 
 asm(
-".text\n"
-".globl _start\n"
-"_start:\n"
-"   b 1f\n"
-".ascii \"gaonisoy\"\n"     // 0x124, 128
-"1:\n"
-"MRS     R0, CPSR\n"
-"BIC     R0, R0, #0x3F\n"   // Clear I,F,T
-"ORR     R0, R0, #0xD3\n"   // Set I,T, M=10011 == supervisor
-"MSR     CPSR, R0\n"
-"   ldr sp, =0x1900\n"  // 0x130
-"   mov fp, #0\n"
-"   b cstart\n"
+    ".text\n"
+    ".globl _start\n"
+    "_start:\n"
+ 
+    /* if used in a .fir file, there is a 0x120 byte address offset.
+       so cut the first 0x120 bytes off autoexec.bin before embedding into .fir 
+     */
+    "B       skip_fir_header\n"
+    ".space 0x11C\n"
+    "skip_fir_header:\n"
+
+    "MRS     R0, CPSR\n"
+    "BIC     R0, R0, #0x3F\n"   // Clear I,F,T
+    "ORR     R0, R0, #0xD3\n"   // Set I,T, M=10011 == supervisor
+    "MSR     CPSR, R0\n"
+    "B       cstart\n"
 );
 
 
@@ -49,89 +53,118 @@ extern uint8_t blob_end;
 
 asm(
     ".text\n"
-    ".align 12\n" // 2^12 == 4096 bytes
     ".globl blob_start\n"
     "blob_start:\n"
-    ".incbin \"magiclantern.bin\"\n" // 
-    ".align 12\n"
+    ".incbin \"magiclantern.bin\"\n"
     "blob_end:\n"
     ".globl blob_end\n"
 );
 
-
-/** Determine the in-memory offset of the code.
- * If we are autobooting, there is no offset (code is loaded at
- * 0x800000).  If we are loaded via a firmware file then there
- * is a 0x120 byte header infront of our code.
- *
- * Note that mov r0, pc puts pc+8 into r0.
- */
-static int
-__attribute__((noinline))
-find_offset( void )
+#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+static void busy_wait(int n)
 {
-    uintptr_t pc;
-    asm __volatile__ (
-        "mov %0, %%pc"
-        : "=&r"(pc)
-    );
-
-    return pc - 8 - (uintptr_t) find_offset;
+    int i,j;
+    static volatile int k = 0;
+    for (i = 0; i < n; i++)
+        for (j = 0; j < 100000; j++)
+            k++;
 }
+
+static void blink(int n)
+{
+    while (1)
+    {
+        #if defined(CARD_LED_ADDRESS) && defined(LEDON) && defined(LEDOFF)
+        *(volatile int*) (CARD_LED_ADDRESS) = (LEDON);
+		busy_wait(n);
+		*(volatile int*)(CARD_LED_ADDRESS) = (LEDOFF);
+		busy_wait(n);
+		#endif
+    }
+}
+
+static void fail()
+{
+    blink(50);
+}
+
+static int compute_signature(int* start, int num)
+{
+    int c = 0;
+    int* p;
+    for (p = start; p < start + num; p++)
+    {
+        c += *p;
+    }
+    return c;
+}
+
+#endif
 
 void
 __attribute__((noreturn))
 cstart( void )
 {
-#if 0
-    set_i_tcm( 0x40000006 );
-    set_control_reg( read_control_reg() | 0x10000 );
+    #ifdef CONFIG_5D3
+    int s = compute_signature((int*)0xFF0C0000, 0x10000);
+    if (s != (int)0x2e2f65f5)
+        fail();
+    #endif
+    
+    #ifdef CONFIG_EOSM
+    int s = compute_signature((int*)0xFF0C0000, 0x10000);
+    if (s != (int)0x6393A881)
+        fail();
+    #endif
 
-    // Install the memory regions
-    setup_memory_region( 0, 0x0000003F );
-    setup_memory_region( 1, 0x0000003D );
-    setup_memory_region( 2, 0xE0000039 );
-    setup_memory_region( 3, 0xC0000039 );
-    setup_memory_region( 4, 0xFF80002D );
-    setup_memory_region( 5, 0x00000039 );
-    setup_memory_region( 6, 0xF780002D );
-    setup_memory_region( 7, 0x00000000 );
-
-    set_d_cache_regions( 0x70 );
-    set_i_cache_regions( 0x70 );
-    set_d_buffer_regions( 0x70 );
-    set_d_rw_regions( 0x3FFF );
-    set_i_rw_regions( 0x3FFF );
-    set_control_reg( read_control_reg() | 0xC000107D );
-
-    select_normal_vectors();
-#endif
-
-    // Copy the copy-and-restart blob somewhere
-    // there is a bug in that we are 0x120 bytes off from
-    // where we should be, so we must offset the blob start.
-    ssize_t offset = find_offset();
+    #if defined(CONFIG_7D)
+    int s = compute_signature((int*)0xF8010000, 0x10000);
+    if (s != (int)0x50163E93)
+        fail();
+    #endif
+    
+    #if defined(CONFIG_7D_MASTER)
+    int s = compute_signature((int*)0xF8010000, 0x10000);
+    if (s != (int)0x640BF4D1)
+        fail();
+    #endif
+    
+    #ifdef CONFIG_6D
+    int s = compute_signature((int*)0xFF0C0000, 0x10000);
+    if (s != (int)0x6D677512)
+        fail();
+    #endif
+    
+    /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */
+	#if defined(CONFIG_40D)
+        *(volatile int*) (LEDBLUE) = (LEDON);
+        *(volatile int*) (LEDRED)  = (LEDON);
+	#elif defined(CARD_LED_ADDRESS) && defined(LEDON) // A more portable way, hopefully
+        *(volatile int*) (CARD_LED_ADDRESS) = (LEDON);
+	#endif
+	#if defined(CONFIG_7D)
+		*(volatile int*)0xC0A00024 = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
+	#endif
 
     blob_memcpy(
         (void*) RESTARTSTART,
-        &blob_start + offset,
-        &blob_end + offset
+        &blob_start,
+        &blob_end
     );
     clean_d_cache();
     flush_caches();
 
-    // Jump into the newly relocated code
-    void __attribute__((noreturn))(*copy_and_restart)(int)
-        = (void*) RESTARTSTART;
-
-    void __attribute__((noreturn))(*firmware_start)(void)
-        = (void*) ROMBASEADDR;
-
-    if( 1 )
-        copy_and_restart(offset);
-    else
-        firmware_start();
-
+    /* Jump into the newly relocated code
+       Q: Why target/compiler-specific attribute long_call?
+       A: If in any case the base address passed to linker (-Ttext 0x40800000) doesnt fit because we 
+          e.g. run at the cached address 0x00800000, we wont risk jumping into nirvana here.
+          This will not help when the offset is oddly misplaced, like the 0x120 fir offset. Why? 
+          Because the code above (blob_memcpy) already made totally wrong assumptions about memory addresses.
+     */
+    void __attribute__((long_call)) (*copy_and_restart)() = (void*) RESTARTSTART;
+    
+    copy_and_restart();
+    
     // Unreachable
     while(1)
         ;

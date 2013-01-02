@@ -35,9 +35,11 @@
 NSTUB( ROMBASEADDR, firmware_entry )       //0xff010000
 
 NSTUB(0xFF1E8B94, AcquireRecursiveLock)           // might be good (dumps=1, score=14)
-NSTUB(0xFF07096C, AllocateMemory)                 // might be good (dumps=1, score=1.7e+02)
+NSTUB(0xFF07096C, _AllocateMemory)                 // might be good (dumps=1, score=1.7e+02)
+NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
 NSTUB(0xFF31CAD8, CreateDialogBox)                // might be good (dumps=1, score=74)
 NSTUB(0xFF073A7C, CreateRecursiveLock)            // might be good (dumps=1, score=5.6)
+NSTUB(0xFF06C914, DryosDebugMsg)                       // might be good (dumps=1, score=1.1e+03)
 NSTUB(0xFF06C914, DebugMsg)                       // might be good (dumps=1, score=1.1e+03)
 NSTUB(0xFF31C270, DeleteDialogBox)                // might be good (dumps=1, score=47)
 NSTUB(0xFF1D48C8, _EngDrvOut)                      // might be good (dumps=1, score=61)
@@ -52,13 +54,16 @@ NSTUB(0xFF1D91C0, FIO_Open)                       // might be good (dumps=1, sco
 NSTUB(0xFF1D93D0, FIO_ReadFile)                   // might be good (dumps=1, score=87)
 NSTUB(0xFF1D9328, FIO_RemoveFile)                 // might be good (dumps=1, score=53)
 NSTUB(0xFF1D9570, FIO_WriteFile)                  // might be good (dumps=1, score=65)
+NSTUB(0xFF1D9C94, FIO_RenameFile)
 NSTUB(0xFF070CFC, FreeMemory)                     // might be good (dumps=1, score=1.6e+02)
 NSTUB(0xFF020DFC, GUI_Control)                    // might be good (dumps=1, score=26)
 NSTUB(0xFF223218, GUI_GetFirmVersion)             // might be good (dumps=1, score=11)
 NSTUB(0xFF510C1C, GetCFnData)                     // might be good (dumps=1, score=19)
 NSTUB(0xFF070710, GetMemoryInformation)           // might be good (dumps=1, score=6.4)
 NSTUB(0xFF3714A4, HideUnaviFeedBack_maybe)        // might be good (dumps=1, score=1.2)
+NSTUB(0xFF3712C8, HideBottomInfoDisp_maybe) // look for StartBottomInfoDispTimer
 NSTUB(0x1C06C, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+NSTUB(0xff2279C0, ChangeColorPalette )
 NSTUB(0xff375f6c, LiveViewApp_handler)
 NSTUB(0xff3765f4, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF377C44, LiveViewApp_handler_end)        // might be good (dumps=1, score=9.3)
@@ -125,6 +130,7 @@ NSTUB(0xFF0197D8, init_task)                      // might be good (dumps=1, sco
 NSTUB(0x736b4, lv_path_struct) // first arg of SelectPathDriveMode
 NSTUB(0xFF018D34, malloc)                         // might be good (dumps=1, score=11)
 NSTUB(0xFF530890, memcpy)                         // might be good (dumps=1, score=1.5e+02)
+NSTUB(0xFF073EB0, dma_memcpy)                     // Look for [HPC ERROR] Nothing DMA ch now!
 NSTUB(0xFF1E885C, msg_queue_receive)              // might be good (dumps=1, score=24)
 NSTUB(0xff1e8a48, msg_queue_post)
 NSTUB(0xFF06FA40, msleep)                         // might be good (dumps=1, score=1.1e+02)
@@ -160,7 +166,7 @@ NSTUB(0xFF06FAF4, task_create)                    // might be good (dumps=1, sco
 NSTUB( 0x193C, task_dispatch_hook )
 NSTUB(0xFF07C970, task_trampoline)                // might be good (dumps=1, score=0.5)
 NSTUB(0xFF2E0164, vram_get_number)                // might be good (dumps=1, score=12)
-//NSTUB(       0x0, vram_get_pos_and_size)          // no match
+NSTUB(0xFF1DAB90, vram_get_pos_and_size)
 NSTUB( 0x76268, vram_info )             // in vram_get_number
 NSTUB(0xFF1EBFE0, vsnprintf)                      // might be good (dumps=1, score=9.5)
 
@@ -178,3 +184,30 @@ NSTUB(0xFF34E544, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xff07f448, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 
 NSTUB(0xff0a3434, SetGUIRequestMode)
+
+NSTUB(0xff074b1c, AllocateMemoryResource) // m_pfAllocMemoryCBR
+NSTUB(0xff074b68, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
+NSTUB(0xff074c80, FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xff072114, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff071b5c, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature
+
+NSTUB(0xFF069E9C, PowerAudioOutput)
+NSTUB(0xff055678, StartASIFDMADAC)
+NSTUB(0xFF0554C4, StartASIFDMAADC)
+NSTUB(0xff055c00, SetNextASIFADCBuffer)
+NSTUB(0xff055cb8, SetNextASIFDACBuffer)
+NSTUB(0xff05574c, StopASIFDMADAC)
+NSTUB(0xff069f88, SetSamplingRate )
+NSTUB(0xff069d88, SetAudioVolumeOut)
+NSTUB(0xff055c00, SetNextASIFADCBuffer)
+NSTUB(0xff055cb8, SetNextASIFDACBuffer)
+NSTUB(0xff38f290, PlayMain_handler)
+NSTUB(0xff48b9d4, PlayMovieGuideApp_handler)
+
+
+NSTUB(0xFF1E8630, register_interrupt)
+NSTUB(0xFF1CACFC, MREQ_ISR)
+NSTUB(0xFF1CAD8C, SIO3_ISR)
+
+NSTUB(0xFF10DC10, GetJpegBufForLV)  // Actually FA_GetJpegBufForLV check ROM FA_ routines to find it
+NSTUB(0xFF10DC1C, GetJpegSizeForLV) // Actually FA_GetJpegSizeForLV (see above)

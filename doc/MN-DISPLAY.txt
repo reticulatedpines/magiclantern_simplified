@@ -1,0 +1,138 @@
+
+Display
+~~~~~~~
+
+.. figure:: 07.display.png
+    :align: center
+    :width: 5cm
+
+Options for display (most of them are for LiveView).
+
+.. _contrast:
+
+LV contrast
+```````````
+
+Adjusts the contrast in LiveView. It does not affect recording. This helps when focusing with very flat picture styles.
+
+Choices: *Normal* (no effect), *High*, *Very high*, *Low*, *Very low*, *Zero*.
+
+.. _saturation:
+
+LV saturation
+`````````````
+
+Adjusts the saturation in LiveView. It does not affect recording. This helps you focus without being distracted by color.
+
+Choices: *Normal* (no effect), *High*, *Very high*, *Zero (grayscale)*.
+
+.. _night vision:
+.. _display gain:
+
+LV display gain
+```````````````
+
+{{ nightdemo.jpg?200}}
+
+Photo mode only: this feature increases the brightness in LiveView, making it usable in very dark scenes (where Canon's LiveView would be pitch black). Combine this with FPS override for better low-light performance.
+
+Range: 0 ... +7 EV.
+
+For movie mode, use ML digital ISOs for a similar effect.
+
+Color scheme
+````````````
+
+This affects the colors and brightness for on-screen information (including LiveView overlays, Canon menus and ML menus).
+
+Choices: *Default*, *Dark*, *Bright Gray*, *Dark Gray*, *Dark Red*, *Dark Green*. 
+
+Tip: dark themes may reduce the eye strain during night shooting.
+
+.. _Clean LiveView display:
+
+Clear overlays
+``````````````
+ 
+Clear bitmap overlays from LiveView display.
+ 
+* **HalfShutter**: LiveView overlays are cleared when you hold the shutter button pressed halfway for one second. You can also use the ``*`` button or the ``DOF preview`` button.
+  
+  Tip: assign autofocus to ``*`` button (from Custom Functions, set ``Shutter/AE lock button`` = ``AE lock/AF``).
+  
+* **WhenIdle**: In this mode, all the overlays are erased from the screen (100% clean display) when the camera is idle (i.e. a few seconds after last button press).
+
+* **Always**: In this mode, all the overlays are erased. Menus will work normally.
+  
+  Tip: this feature may be useful with [[External Recorders]], since it removes the focus box and other graphics from the display.
+
+Focus box (LV)
+``````````````
+
+With this setting you can choose to show the Focus box in LiveView or hide it when not needed.
+
+Force HDMI-VGA
+``````````````
+
+This option will force a low-resolution mode on HDMI displays (720x480), which avoids blank screen when you start/stop recording.
+
+Screen layout settings...
+`````````````````````````
+
+Screen orientation, positioning fine tuning, adjustments for external monitors...
+
+Screen Layout
+"""""""""""""
+
+Choose screen layout (position of ML top and bottom bars), for different cameras or for external monitors.
+  
+Top/bottom layouts:
+  
+* **Inside 3:2**: default layout for 3:2-screen cameras (550D and newer).
+* **Inside 16:10**: for 16:10 HDMI monitors.
+* **Inside 16:9**: for 16:9 HDMI monitors.
+* **4:3 movie**: for 5D Mark II, 500D and 50D in movie mode.
+  
+Bottom-only layouts:
+
+* **Under 3:2**: useful for 4:3-screen cameras (500D, 50D, 5D Mark 2) in photo mode.
+* **Under 16:9**: suitable for low-resolution external monitors and for 4:3-screen cameras in movie mode.
+
+
+Image position
+""""""""""""""
+
+This may make the image better visible from different angles (especially on cameras without flip-out screen).
+
+
+UpsideDown mode
+"""""""""""""""
+
+{{ up_down.jpg?200}}
+
+This mode is useful if you want to mount your camera upside-down.
+
+
+Auto Mirroring
+""""""""""""""
+
+For cameras with flip-out LCD, this options prevents mirroring the display when you open it at 180 degrees.
+
+Display: Normal/Reverse/Mirror
+""""""""""""""""""""""""""""""
+
+For cameras with flip-out LCD, you may select a different flipping/mirroring option.
+
+Level Indicator (60D)
+`````````````````````
+
+Shows if the picture levels with the horizon. Can be used while recording.
+
+Kill Canon GUI
+``````````````
+
+For 50D only: disable Canon graphics elements to avoid conflicts with ML graphics in LiveView.
+ 
+* **Idle/Menus**: only enable Canon graphics when some transparent menu from LiveView is active.
+* **Idle/Menus+Keys**: only enable Canon graphics when you press some keys or navigate the transparent menus from LiveView.
+

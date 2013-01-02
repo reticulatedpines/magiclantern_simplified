@@ -1,0 +1,264 @@
+Shoot
+~~~~~
+
+.. figure:: 05.shoot.png
+    :align: center
+    :width: 5cm
+
+Functions for stills shooting (some of them work for movies, too).
+
+.. _exposure bracketing:
+.. _HDR:
+.. _exposure fusion:
+
+HDR Bracketing
+``````````````
+
+Exposure bracketing for HDR images and timelapses.
+
+{{:hdr-national-museum-of-scotland.jpg?nolink|}}{{:hdr-stgiles-cathedral.jpg?nolink|}}{{:hdr-karlskirche.jpg?nolink|}}
+    
+* In ``M`` mode, this function does shutter and/or ISO bracketing. In the other modes it does exposure compensation bracketing.
+
+* To start bracketing, **take only the first picture** and ML will continue the sequence.
+
+* To preview HDR images in camera, set `SET+MainDial`_: ExposureFusion from `Prefs`_ menu, Image review settings, 
+  then go to playback mode, hold ``SET`` and turn the main dial (wheel).
+  
+#* For each HDR picture set, Magic Lantern may also write a bash script for stacking the exposures
+#  with `enfuse <http://wiki.panotools.org/Enfuse>`_ (version 4.x), with optional alignment (align_image_stack). More info: `Exposure Fusion: What is it? How does it Compare to HDR? How Do I Do It? <http://www.digital-photography-school.com/exposure-fusion-what-is-it-how-does-it-compare-to-hdr-how-do-i-do-it>`_.
+
+.. _intervalometer:
+
+Intervalometer
+``````````````
+
+{{vimeo>18853423?250x140 }}{{:Stars-Intervalometer.jpg?nolink }}{{vimeo>19854305?250x140}}
+
+Take pictures or movies at fixed intervals.
+
+You can stop the intervalometer by rotating the mode dial, by pressing ``MENU`` or ``PLAY``, or by turning off the camera.
+    
+Settings (in submenu):
+
+* Duration between two shots.
+* Start delay (up to 8 hours).
+* Stop after X pictures.
+* In movie mode only: duration of a movie clip.
+
+Turning on Intervalometer displays a calculation for how long the time lapse will shoot for, how many frames it will take and the playback time, based on your image quality setting, free space and video frame rate selected in Canon menus.
+
+Example: 1h33m,  563 shots, 24fps => 00m23s
+
+Tips:
+  
+* To avoid flicker, shoot in **manual** mode, use **manual white balance**, **avoid short exposure** times and **use a manual lens** (if you use an EF lens, lock the aperture and **unscrew** it).
+* To make a timelapse without increasing shutter count, do not use the intervalometer; instead, set `FPS override`_ to a very low value (for example, 3fps) and start recording.
+* When using the intervalometer in LiveView with "noisy" mode, your shutter will wear twice as fast than outside LiveView.
+* If the intervalometer can't be stopped (it may happen in ``crazy`` mode), turn the camera off or open the card door.
+
+Power Saving:
+  
+* When not in LiveView, press ``DISP`` or ``INFO`` to turn the display off.
+* In LiveView, ML will turn the display and the sensor off during idle times if you enable this option from ``Powersave`` menu.
+* While the intervalometer is running, the card led will blink once per second to let you know it's alive and kicking.
+
+.. _bulb-ramping:
+.. _bulb ramping:
+
+Bulb/Focus Ramping
+``````````````````
+
+{{ vimeo>29923391?250x140}}
+
+Bulb Ramping allows the capture of a timelapse that gradually changes
+exposure, compensating for the transition from day to night.
+
+Options:
+
+* Auto exposure ramping: this option will adjust shutter and ISO automatically, by looking at image brightness of previous shots.
+* Manual exposure ramping: this option will adjust shutter and ISO to follow a fixed exposure ramp (a fixed amount of EV change per shot). Can be used as standalone or combined with auto ramping.
+* Manual focus ramping: this lets you adjust focus gradually while shooting the timelapse. It requires a lens with autofocus and it can only work in LiveView.
+
+Settings for auto ramping:
+
+* Mode: sunset / sunrise / auto. In sunset mode, the exposure will always increase. In sunrise mode, the exposure will always decrease. This idea `was suggested by Tom Lowe on RedUser.net forum <http://bit.ly/lowe-ratchet>`_.
+* Maximum ramping speed: this parameter is used for computing the optimal smoothness factor. A lower value will reduce flicker, but if the value is twice as low as the real rate of brightness change, ML will lose the ability to ramp correctly. For example, if you set a maximum ramping speed of 0.1 EV / shot, and the scene requires a ramping of 0.2 EV / shot, ML will start flickering heavily.
+
+**Quick start guide for auto ramping**:
+  
+**1.** Take a picture of your scene. ML will use it as an example of: "I want my timelapse to be exposed like this picture".
+
+**2.** Enable Bulb Ramping and Intervalometer.
+
+**3.** Leave the camera still while ML runs a calibration step:
+  
+- Make sure you have a static and well-lit scene (any static scene which does not require long exposure should be fine).
+- After calibration, you should get a nice S-curve on the screen.
+    
+**4.** Now you will have to say what tone range to meter for (i.e. highlights, midtones...). Follow the wizard:
+  
+- Use arrow keys to select your reference picture (which you just took).
+- Use the main dial to select the tone range to meter for. You can't perfectly match two images just by varying one parameter (exposure), so you have to choose what's important for you in this picture.
+- For lowest flicker, meter for midtones (choose the 50th percentile, i.e. median, because it's a robust estimation, unlike simple averaging). Leave some headroom for highlights (underexpose a bit).
+- If highlights are important, meter for them (choose 80th percentile for example). You will have to shoot RAW and remove flicker when you develop the RAW files.
+- The algorithm works best when brightness is close to 50% (try not to choose extreme values for it).
+- When you are ready to start, press ``SET``.
+    
+**5.** Sit back and relax :)
+  
+Limits:
+  
+* ISO is chosen between 100 and maximum auto ISO value from Canon menu.
+* Shutter speed is chosen between 1/8000 (lower limit) and the delay between two shots minus two seconds (upper limit). Example: for 10-second intervals, shutter speed will be between 1/8000 and 8 seconds.
+* Aperture is fixed (you can change it manually).
+ 
+Tips: 
+  
+* Don't adjust ISO and shutter before the timelapse, they are fully automatic.
+* Use a `ND filter <http://amzn.to/ml-nd-filter>`_ to reduce flicker during daylight.
+* Reduce flicker in post. We recommend VirtualDub with MSU Deflicker plugin (free, works with Windows and Wine). See also `Timelapse workflow using free software tutorial <http://vimeo.com/groups/magiclantern/videos/19854305>`_.
+
+Technical notes:
+    
+* Exposure is metered using a condition like this (for example): *70% of pixels should be below 50% brightness*.
+* Exposure for every shot is computed from previous shots, using a feedback controller algorithm with a smoothing factor.
+* ISO is chosen using the 180 degree rule, so the resulting shutter speed stays between 90 and 270 degrees (that is, between 1/4 and 3/4 of the delay between two shots).
+* Only full-stop ISOs are used (you are supposed to shoot RAW).
+* Shutter speed can be adjusted with a resolution of 10ms.
+* Frames with fast shutter speeds (less than 1 second in Rebel cameras, less 0.1 seconds in 60D) are taken in Manual mode. You will get flicker.
+* It can go from 1/8000s @ ISO 100 (daylight) to several minutes of exposure time @ ISO 6400 (complete darkness).
+* Exposure algorithm is a feedback controller designed with pole placement - the closed loop response will have two real poles placed at the smoothing factor value. Smoothing factor is computed in such a way that, when scene ramping speed matches the speed selected in menu, ramp is followed at exactly 1 EV behind it.
+* If the lighting changes suddenly a few stops between two shots (for example, you change the ND filters or the aperture), the algorithm should recover completely after 2 or 3 shots. A sudden exposure change is considered when the exposure difference is greater than 2 stops.
+
+Logging:
+
+* When you use bulb ramping, Magic Lantern will save a log file with the exposure parameters, metered values and so on. Please send this file to developers.
+* These log files can be used to see how well the ramping went and to fine-tune the algorithm.
+  
+.. _bulb timer:
+
+Bulb Timer
+``````````
+
+[[http://www.flickr.com/photos/74588953@N00/6082369585/in/pool-1676739@N21|{{ BulbTimer-Intervalometer-60x60s-M31-Brent.jpg?200}}]]
+[[http://www.flickr.com/photos/ajaykrishnan/5900337137|{{ LongExp.jpg?200}}]]
+
+Very long exposures with Bulb mode and ML timer. This feature is useful for night shots and astrophotography.
+  
+Bulb timer is started by holding the shutter pressed halfway for one second, or by remote triggers / intervalometer.
+  
+Tip: you can cancel the exposure earlier by half-pressing the shutter button.
+
+.. _remote triggers:
+.. _LCD face sensor:
+.. _LCDsensor Remote:
+.. _LCD Remote:
+
+LCDsensor Remote
+````````````````
+
+Start/stop remote shutter release mode with the LCD sensor. 
+  
+* ⨂ **Near**: To take a picture, put your hand near the LCD sensor.
+* ⨀ **Away**: Picture is taken when you get your hand away from the sensor. You may combine this setting with `Mirror Lockup`_.
+* 〰 **Wave**: Picture is taken after you wave your hand 3 times near the sensor. You can leave it on without interfering (too much) with normal shooting.
+
+This feature is useful for avoiding camera shake.
+  
+In Movie mode, the ``Wave`` 〰 setting is able to start and stop recording movies. The other modes can only start recording (because it's too easy to stop recording by mistake).
+
+While recording, the ``Near`` and ``Away`` modes can trigger the `rack focus`_ operation.
+  
+.. _audio trigger:
+.. _audio RemoteShot:
+
+Audio RemoteShot
+````````````````
+
+Start/stop remote audio trigger. To take a picture (or start recording a movie), make some loud noise, for example, clap your hands or pop a balloon.
+  
+Tip: with the audio trigger you can sync a video *recorded without sound* with an *external audio track* `(see this topic) <http://groups.google.com/group/ml-devel/browse_thread/thread/14522b5d65a43cbf/e472d79ab8c4e57b?show_docid=e472d79ab8c4e57b>`_
+
+Be careful: this may trigger the shutter from the sounds made by camera (like focus beep or noise from operating the buttons).
+
+
+Motion Detect
+`````````````
+
+[[http://johnnyionix.blogspot.com/2011/05/usando-motion-detect-magic-lantern-para.html|{{ MotionDetection-Bird.jpg?200}}]]
+[[http://groups.google.com/group/ml-devel/browse_thread/thread/850497aa7e732a68|{{ MotionDetection-Lightning-6-4-2011-3.jpg?200}}]]
+
+Motion detection in LiveView.
+
+Trigger modes:
+    
+* **Exposure change**: it only reacts to brightness changes. Detects large moving subjects which cause significant change in exposure.
+* **Frame difference**: it computes the difference between last two frames A and B (luma channel only); this detects smaller movements which do not change exposure.
+   
+Detection time is somewhere between 200 and 300 ms according to `DataGhost's speed test <http://dataghost.com/chdk/md_meter.html>`_; it's faster with silent pictures.
+
+.. _silent pictures:
+.. _Silent Picture:
+
+Silent Picture
+``````````````
+
+{{ vimeo>18835420?250x140}}
+
+This feature is reserved to very advanced users. It can take pictures in LiveView mode without moving the mirror. When enabled, it saves uncompressed YUV422 frames from the LiveView image buffer when you press the shutter halfway.
+  
+* Make sure you don't have autofocus assigned to half-shutter press (put it on ``*`` or turn it off)
+  
+Modes:
+  
+* **Simple**: low-resolution mode where the LiveView image buffer is simply saved on the card. Image resolution is usually around 1 or 2 MPix, and depends on the current mode (zoom or not, recording or not, and movie resolution).
+* **Burst**: similar to Simple, but images are saved continuously as long as you keep the shutter pressed halfway.
+* **Hi-Res**: emulates high-resolution by taking a matrix of small silent pics, in zoom ``x5`` mode. You need to have the camera on a tripod and the subject should be static (a picture is taken in a few seconds). Could be useful for `focus stacking`_ or for timelapse without increasing shutter count.
+  
+Silent picture setting is applied to `intervalometer`_ and `remote triggers`_. It will also go to LiveView when you press the shutter half-way in regular photo mode. Therefore, you should only enable this setting when you actually use it.
+  
+Images are saved in ``DCIM/1xxCANON/`` after the following rules:
+  
+* If intervalometer is ``OFF``, silent pics are named after last picture/movie taken without this function (e.g. ``12340001.422``). You are limited to 10000 silent pictures for each "noisy" picture.
+* If intervalometer is ``ON``, silent pics have names like ``12345678.422``. Tip: use ``File Numbering -> Manual Reset`` from Canon menu to increase folder number (to sort them easier).
+  
+To convert a 422 image to JPEG on the PC, use one of the following programs:
+  
+* `422-jpg.py <https://bitbucket.org/hudson/magic-lantern/src/tip/422-jpg.py>`_ (command-line tool, runs on all platforms, you need to install Python, PIL and numpy).
+* `422toimage <http://groups.google.com/group/ml-devel/browse_thread/thread/ae65535fc3e860fc>`_ (Windows only, `source code available <https://bitbucket.org/mindogas/422toimage/>`_).
+* `YUV422 Convertor <http://www.diazonline.be/yuv422/>`_ (Windows only, closed source).
+
+.. _mirror lockup:
+.. _MLU:
+
+Mirror Lockup
+`````````````
+  
+Mirror lockup. See Canon user guide for details.
+  
+``Timer+Remote`` will auto-enable MLU under one of the following conditions (and disable it otherwise):
+    
+* self-timer mode is on (either 2 second or 10 second, but not continuous)
+* `LCDsensor Remote`_ is in ``Away`` mode.
+
+
+.. _flash exposure compensation:
+.. _Flash AEcomp:
+
+Flash tweaks...
+```````````````
+
+A few tweaks for flash users:
+
+* **Flash expo compensation** (-10..+3 EV). Tip: you may use -10EV to trigger an external flash without putting light on the scene coming from the onboard flash.
+* **Flash / No flash**: use this when you are not sure whether to use flash or not. Odd pictures (by file number) will be taken with flash, even pictures without flash.
+* **3rd party flash in LV**: a trick for enabling non-Canon flashes in LiveView on Rebel cameras. This trick disables LiveView temporarily on half-shutter press, therefore you should **DISABLE this option when you don't use it!!!**
+
+EyeFi Trick (visible only with an EyeFi card inserted)
+``````````````````````````````````````````````````````
+
+This feature lets you transfer RAW files with a non-pro EyeFi card. You can rename those files from CR2 to AVI, so the EyeFi card will send you raw picture to your PC as a movie file. Once transfered, just rename them back to CR2 on your PC.
+
+To rename the files back on camera, choose ``Rename AVI to CR2``.
+

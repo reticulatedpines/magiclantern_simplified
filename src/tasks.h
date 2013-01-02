@@ -37,28 +37,31 @@ struct task
 {
         uint32_t                off_0x00;       // always 0?
         uint32_t                off_0x04;       // stack maybe?
-        uint32_t                off_0x08;       // flags?
+        uint32_t                run_prio;       // flags?
         void *                  entry;          // off 0x0c
         uint32_t                arg;            // off_0x10;
-        uint32_t                off_0x14;
+        uint32_t                waitObjId;
         uint32_t                off_0x18;
-        uint32_t                off_0x1c;
-        uint32_t                off_0x20;
+        uint32_t                stackStartAddr;
+        uint32_t                stackSize;
         char *                  name;           // off_0x24;
         uint32_t                off_0x28;
         uint32_t                off_0x2c;
-        uint32_t                off_0x30;
+        uint32_t                self;
         uint32_t                off_0x34;
         uint32_t                off_0x38;
         uint32_t                off_0x3c;
-        uint32_t                off_0x40;
+        uint32_t                taskId;
         uint32_t                off_0x44;
         uint8_t                 off_0x48;
-        uint8_t                 off_0x49;
+        uint8_t                 currentState;
         uint8_t                 off_0x4a;
-        uint8_t                 exited;         // off_0x4b;
+        uint8_t                 yieldRequest;
+        uint8_t                 off_0x4c;
+        uint8_t                 sleepReason;
+        uint8_t                 off_0x4e;
+        uint8_t                 off_0x4f;
         struct context *        context;        // off 0x4C
-        uint32_t                pad_1[12];
 };
 
 

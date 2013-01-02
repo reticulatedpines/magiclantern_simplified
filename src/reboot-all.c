@@ -29,10 +29,11 @@
 #undef RESTARTSTART
 #define RESTARTSTART_550 0xC80100
 #define RESTARTSTART_60  0x5f000
-#define RESTARTSTART_600 0x82000
+#define RESTARTSTART_600 0xC80100
 #define RESTARTSTART_50  0x4b000
 #define RESTARTSTART_500 0x4d000
 #define RESTARTSTART_5D2 0x4E000
+#define RESTARTSTART_1100 0xC80100
 
 #define SIG_LEN 0x10000
 
@@ -44,6 +45,7 @@
 #define SIG_50D_109  0x4673ef59 // from FF010000
 #define SIG_500D_111 0x44f49aef // from FF010000
 #define SIG_5D2_212  0xae78b938 // from FF010000
+#define SIG_1100_105 0x46de7624 // from FF010000
 
 asm(
 ".text\n"
@@ -112,6 +114,8 @@ extern uint8_t blob_start_500;
 extern uint8_t blob_end_500;
 extern uint8_t blob_start_5d2;
 extern uint8_t blob_end_5d2;
+extern uint8_t blob_start_1100;
+extern uint8_t blob_end_1100;
 void* blob_start = 0;
 void* blob_end = 0;
 void* RESTARTSTART = 0;
@@ -126,34 +130,46 @@ static int guess_firmware_version()
             blob_start = &blob_start_550;
             blob_end = &blob_end_550;
             RESTARTSTART = (void*)RESTARTSTART_550;
+            *(int*)0xC0220134 = 0x46;  // SD card LED on
             return 1;
         case SIG_60D_111:
             blob_start = &blob_start_60;
             blob_end = &blob_end_60;
             RESTARTSTART = (void*)RESTARTSTART_60;
+            *(int*)0xC0220134 = 0x46;  // SD card LED on
             return 1;
         case SIG_600D_101:
         case SIG_600D_102: // firmwares are identical
             blob_start = &blob_start_600;
             blob_end = &blob_end_600;
             RESTARTSTART = (void*)RESTARTSTART_600;
+            *(int*)0xC0220134 = 0x46;  // SD card LED on
             return 1;
         case SIG_50D_109:
             blob_start = &blob_start_50;
             blob_end = &blob_end_50;
             RESTARTSTART = (void*)RESTARTSTART_50;
             ROMSTART = (void *)0xFF810000;
+            *(int*)0xC02200BC = 0x46;  // CF card LED on
             return 1;
         case SIG_500D_111:
             blob_start = &blob_start_500;
             blob_end = &blob_end_500;
             RESTARTSTART = (void*)RESTARTSTART_500;
+            *(int*)0xC0220134 = 0x46;  // SD card LED on
             return 1;
         case SIG_5D2_212:
             blob_start = &blob_start_5d2;
             blob_end = &blob_end_5d2;
             RESTARTSTART = (void*)RESTARTSTART_5D2;
             ROMSTART = (void *)0xFF810000;
+            *(int*)0xC02200BC = 0x46;  // CF card LED on
+            return 1;
+        case SIG_1100_105:
+            blob_start = &blob_start_1100;
+            blob_end = &blob_end_1100;
+            RESTARTSTART = (void*)RESTARTSTART_1100;
+            *(int*)0xC0220134 = 0x46;  // SD card LED on
             return 1;
         default:
             fail();
@@ -206,6 +222,13 @@ asm(
     ".align 12\n"
     "blob_end_5d2:"
     ".globl blob_end_5d2\n"
+    
+    ".globl blob_start_1100\n"
+    "blob_start_1100:\n"
+    ".incbin \"../1100D.105/magiclantern.bin\"\n" // 
+    ".align 12\n"
+    "blob_end_1100:"
+    ".globl blob_end_1100\n"
 );
 
 

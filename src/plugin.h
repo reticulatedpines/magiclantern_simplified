@@ -36,7 +36,6 @@ struct extern_function {
 };
 
 #ifdef PLUGIN_CLIENT
-typedef unsigned gui_event_t;
 #include <stdarg.h>
 #include "all_headers.h"
 #ifdef INIT_FUNC

@@ -1,0 +1,70 @@
+
+Debug
+~~~~~
+
+.. figure:: 09.debug.png
+    :align: center
+    :width: 5cm
+
+Functions for troubleshooting, development, and possibly unstable features.
+
+Screenshot - 10s
+`````````````````
+
+Print screen after 10 seconds. This option saves a BMP file for the overlays and a 422 file (silent picture) for the LiveView image. The BMP does not contain transparency data. You can combine the two files in GIMP or other image editing programs.
+
+The card LED will blink every second, until the screenshot is taken.
+
+Don't click me!
+```````````````
+
+Don't click it :)
+
+Stability tests...
+``````````````````
+
+This option runs various tests to make sure Magic Lantern is stable and will not crash. You can use it to test your particular configuration.
+  
+If it crashes, `report an issue <http://bitbucket.org/hudson/magic-lantern/issues>`_.
+
+Show tasks...
+`````````````
+
+Displays the tasks started by Canon and Magic Lantern.
+
+Save CPU usage log
+``````````````````
+
+Saves a log with the CPU usage for all tasks.
+
+Free Memory
+```````````
+
+Displays the amount of available RAM.
+
+
+.. _shutter count:
+
+Shutter Count
+`````````````
+
+Displays the number of shutter actuations (number of pictures taken plus number of liveview actuations).
+
+.. _CMOS temperature:
+
+CMOS temperature
+````````````````
+
+Displays the internal CMOS temperature, in raw units.
+
+Ambient light (5D Mark II)
+``````````````````````````
+
+Displays the value from ambient light sensor (under LCD display), expressed in EV steps. The scale is arbitrary (not calibrated in any way).
+
+Battery level (60D and 5D Mark II)
+``````````````````````````````````
+
+Displays battery percentage, estimated time remaining and battery discharging rate.
+  
+For accurate readings, wait until the percentage indicator decreases by at least 2% since powering on.

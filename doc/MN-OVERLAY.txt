@@ -1,0 +1,198 @@
+Overlay
+~~~~~~~
+
+.. figure:: 03.overlay.png
+    :align: center
+    :width: 5cm
+
+Graphics overlays for LiveView or image review mode: histograms, zebras, focus peaking...
+
+.. _Global Draw:
+
+Global Draw
+```````````
+
+Choose when to enable Magic Lantern overlay graphics: (zebra, cropmarks, histograms, audio meters, ML shooting info...):
+
+* in **LiveView** only;
+* in **QuickReview** (photo mode outside LiveView) only;
+* **Both modes** (default);
+* **Disabled**.
+
+If you use `display presets`_, press Q on this item to switch the presets while you are in ML menu.
+
+.. _zebras:
+
+Zebras
+``````
+
+.. figure:: Zebras.jpg
+    :align: center
+    :height: 5cm
+
+Enable/disable zebra stripes, which indicate overexposed or underexposed areas.
+  
+Color spaces:
+    
+* **Luma**: zebras are computed from Y channel only.
+* **RGB**: check overexposure for each RGB channel. Clipped channels are displayed in the opposite color (i.e. clipped red shown as cyan, underexposed as white and so on).
+  
+You may adjust thresholds for underexposure and overexposure, or you can disable zebras while recording.
+  
+Notes: 
+
+* using zebras in image review mode will disable Canon highlight warning temporarily. To re-enable it, press PLAY twice.
+* when using the Technicolor CineStyle picture style, luma will have values between 16 and 255; therefore, you will have to set the underexposure threshold to 16 or greater.
+
+.. _focus peaking:
+
+Focus Peak
+``````````
+  
+{{ vimeo>18782586?250x140|Focus Peaking demo}}
+
+Focus assist function. High-contrast lines will be marked by blinking dots showing which part of the image is in focus.
+
+Parameters:
+  
+* **Filter bias**: adjust the balance between high-contrast edges or fine texture details.
+* **Display type**: choose the method for displaying focus markers. Blinking dots are the fastest, alpha blending looks best but it's a bit slow. This setting is only used in LiveView.
+* **Threshold**: how many pixels are considered in focus (percentage).
+* **Color**: either fixed color, or a color coding according to focus intensity (warmer colors = better focus).
+* **Grayscale img**: if enabled, LiveView image will displayed as grayscale (but still recorded as color).
+  
+#To see how it works, `check this article from Luminous Landscape <http://www.luminous-landscape.com/forum/index.php?topic=56246.0>`_.
+
+.. _magic zoom:
+.. _zoom while recording:
+
+Magic Zoom
+``````````
+
+{{ vimeo>29053985?250x140|Magic Zoom demo}}
+
+Displays a zoom box for focus assist. Can be used while recording.
+  
+Trigger modes (not all modes are available on all cameras):
+  
+* **HalfShutter**: triggered when you press the shutter button halfway.
+* **Focus Ring**: triggered by turning the focus ring.
+* **Zoom.REC**: triggered by pressing ``Zoom In`` button while recording. If your camera has a LCD sensor, you may also cover it and press ``Zoom In``.
+* **FocusR+HalfS**: triggered by turning the focus ring, or by pressing shutter halfway.
+* **Focus+ZREC**: triggered by turning the focus ring, or by pressing ``Zoom In`` while recording.
+* **Zoom In (+)**: triggered by ``Zoom In`` button (overrides Canon's default zoom modes). To bypass magic zoom, press both zoom buttons at the same time or cover the LCD sensor.
+* **Always On**: no trigger key needed. You can use both Canon's 5x/10x zoom and Magic Zoom.
+
+When ML believes you have achieved perfect focus, Magic Zoom will display a focus confirmation (customizable):
+
+* **Green Bars** 
+* **Split Screen**: when the image is out of focus, the zoom box looks like a split focusing screen from old film cameras. 
+* **Split Screen with ZeroCross**: will reverse the split direction whenever you achieve perfect focus.
+
+Other parameters: size, position, magnification.
+  
+Notes:
+  
+* `Zebras`_, `focus peaking`_ and `false color`_ are disabled automatically when the zoom overlay is active.
+* Focus triggering **only** works with lenses that report [[Focus distance]], or when you use `follow focus`_ / `rack focus`_.
+* In some modes, half-pressing the shutter may temporarily hide the zoom overlay.
+  
+Original implementation:  `Magic Circles by AJ <http://www.youtube.com/watch?v=-nW25AtYjAk>`_.
+
+.. _Cropmark:
+
+Cropmarks
+`````````
+ 
+Cropmarks or custom grids for framing and composition.
+
+.. figure:: Cropmarks550D.png
+    :align: center
+    :width: 12cm
+  
+Notes:
+    
+* If you use custom cropmarks, place them in ``ML/CROPMKS`` folder on your SD card and give them short 8.3 names. You can place at most 9 cropmarks on the card.
+* Get more cropmarks `from the ML cropmark repository <http://www.sawomedia.de/magiclantern/cropmarks/>`_ or draw your own (see [[Cropmarks]]).
+
+{{ vimeo>25182804?250x140|Cropmarks Tutorial}}
+
+.. _ghost image:
+
+Ghost image
+```````````
+
+Shows a transparent overlay which can be created from any image in Play mode.
+  
+Usage:
+  
+* To select the image, go to Play mode and press the ``LiveView`` button.
+* Move the ghost image in LiveView with arrow keys; center or hide it with ``SET`` or joystick press.
+
+Defishing
+`````````
+
+Preview the rectified (defished) image from the `Samyang 8mm fisheye lens <http://amzn.to/ml-samyang-8mm>`_, using rectilinear or Panini projection.
+  
+**This feature works best in photo mode** (outside LiveView).
+
+.. _spotmeter:
+
+Spotmeter
+`````````
+
+Measure brightness from a small spot in the frame.
+  
+Possible measurement units:
+  
+* **Percent** (0..100%)
+* Raw 8-bit levels (**0..255**)
+* **IRE -1..101** (formula used by AJ, which maps 0-255 luma levels to approx. -1..101 IRE)
+* **IRE 0..108** (formula proposed by Piers, which maps 16-235 luma levels to 7.5-100 IRE)
+* **RGB** (displays `HTML-like color codes <http://www.w3schools.com/html/html_colors.asp>`_)
+
+
+.. _false color:
+
+False color
+```````````
+
+This is a tool for evaluating the exposure. It shows different luma (Y) levels using a color map.
+You may select one of the following color maps:
+
+.. figure:: falsecolor.png
+    :align: center
+    :width: 13cm
+
+Tips:
+  
+* you may configure a `display preset`_ with False Color and toggle it with a single button press.
+* you may also use false colors to highlight 50% and 70% brightness levels, or to reveal color banding, or to check for uniform green screen lighting.
+
+.. _histogram:
+.. _waveform:
+
+Histogram and Waveform
+``````````````````````
+
+{{ vimeo>33179488?250x140|Using The Video Histogram To Keep Detail in the Highlights}}
+
+These exposure tools will show the distribution of image brightness levels.
+  
+.. figure:: Histogram-and-waveform.png
+    :align: center
+    :height: 2cm
+
+To learn how to read these graphs, see `Understanding Histograms <http://www.luminous-landscape.com/tutorials/understanding-series/understanding-histograms.shtml>`_ and `Final Cut Waveform Monitor <http://www.youtube.com/watch?v=JXMvFk146R0>`_.
+
+Vectorscope
+```````````
+
+This tool shows the color distribution with an U-V plot. Useful for color grading.
+
+To learn how to read it, see `Introducing Color Scopes: The Vectorscope <http://www.kdenlive.org/users/granjow/introducing-color-scopes-vectorscope>`_.
+
+.. figure:: vectorscope.png
+    :align: center
+    :height: 3cm
+

@@ -32,8 +32,6 @@ void display_shooting_info() // called from debug task
 		else    bmp_printf(fnt, 320, 450, "  ");
 	}
 
-	iso_refresh_display();
-
 	bg = bmp_getpixel(15, 430);
 	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 
@@ -112,4 +110,9 @@ void RefreshBatteryLevel_1Hz()
 		battery_seconds_same_level_tmp = 0;
 	}
 	old_battery_level = battery_level;
+}
+
+void* AllocateMemory(size_t size) // this won't throw ERR70
+{
+	return (void*) AllocateMemory_do(*(int*)0x2F80, size);
 }

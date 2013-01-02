@@ -39,12 +39,13 @@ static int handle_buttons(struct event * event)
 	if (!ml_started) return 1;
 	
 	if (handle_common_events_by_feature(event) == 0) return 0;
-
+#ifdef FEATURE_LV_FOCUS_SNAP
 	if (lv && event->param == BGMT_PRESS_SET && !gui_menu_shown())
 	{
 		center_lv_afframe();
 		return 0;
 	}
+#endif
 
 	return 1;
 }

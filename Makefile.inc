@@ -1,49 +1,13 @@
-#generic makefile
+# Generic makefile
+# Include default and user-customized options where needed
+# If you want to customize them copy Makefile.user.default to Makefile.user keeping only the options that you want to customize
+include $(TOP_DIR)/Makefile.user.default
+-include $(TOP_DIR)/Makefile.user
 
-# for yagarto, use ARM_ABI=none-eabi
-ARM_ABI=elf
-
-ARM_PATH=~/arm-toolchain462
-ARM_BINPATH=$(ARM_PATH)/bin
-GCC_VERSION=4.6.2
-CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
-OBJCOPY=$(ARM_BINPATH)/arm-$(ARM_ABI)-objcopy
-AR=$(ARM_BINPATH)/arm-$(ARM_ABI)-ar
-RANLIB=$(ARM_BINPATH)/arm-$(ARM_ABI)-ranlib
-READELF=$(ARM_BINPATH)/arm-$(ARM_ABI)-readelf
-ARM_LIBC_A = $(ARM_PATH)/arm-$(ARM_ABI)/lib/libc.a
-LD=$(CC)
-HOST_CC=gcc
-HOST_CFLAGS=-g -O3 -W -Wall
-
-# Naming convention for Magic Lantern builds:
-# General rules:
-# - Always specify the camera and its firmware version number in the build name (e.g. 550d.fw109)
-# - For non-release builds, specify the build date and author's (nick)name.
-# - For experimental builds, add a short keyword indicating the particular feature tested.
-
-# Examples for experimental builds:
-# magiclantern-2010dec07.550d.fw108.cropmarks.a1ex.zip 
-# magiclantern-2010nov23.550d.fw108.selectable-audio.piers.zip 
-
-# Example for pre-release builds:
-# magiclantern-2010dec17.550d.fw109.PRERELEASE.alex.zip
-
-# Release builds:
-# magiclantern-0.2.0.rc1.550d.fw109.zip
-#~ VERSION=0.2.0.rc1.550d.fw109
-BUILDVER=$(shell whoami)
-VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION).$(BUILDVER)
-
-CONFIG_PYMITE		= n
-CONFIG_RELOC		= n
-CONFIG_TIMECODE		= n
-CONFIG_PTP 			= n
-CONFIG_PTP_CHDK 	= n
-CONFIG_PTP_ML 		= n
-CONFIG_PLUGINS 		= y
-CONFIG_CONSOLE		= y
-CONFIG_DEBUGMSG 	= 0
+ifeq ($(CONFIG_CCACHE), y)
+    CC := $(CCACHE) $(CC)
+    HOST_CC := $(CCACHE) $(CC)
+endif	
 
 UNAME:=$(shell uname)
 
@@ -73,17 +37,25 @@ PYMITE_CFLAGS		= \
 #
 all: autoexec.bin
 
+menuindexentries.h:
+	cd $(DOC_DIR); $(PYTHON) menuindex.py
+
+menuindex.o: menuindexentries.h
+
 install: autoexec.bin
 	cp $^ $(CF_CARD)
 
 	mkdir $(CF_CARD)/ML || echo "no problem"
+	mkdir $(CF_CARD)/ML/settings || echo "no problem"
+	mkdir $(CF_CARD)/ML/data || echo "no problem"
+	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/data/
 	mkdir $(CF_CARD)/ML/cropmks || echo "no problem"
 	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
 	mkdir $(CF_CARD)/ML/scripts || echo "no problem"
 	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/ML/scripts/
 	mkdir $(CF_CARD)/ML/plugins || echo "no problem"
 	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/ML/plugins/
-	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/
+	cp $(VRAM_DIR)/*.lut $(CF_CARD)/ML/data/
 
 	$(UMOUNT) $(CF_CARD)
 
@@ -94,47 +66,61 @@ ptpinstall: autoexec.bin
 	diff autoexec.bin autoexec.test
 
 prepare_zip:
-	mkdir ML || echo "ok"
-	cp $(SRC_DIR)/zip.txt .
-	cp $(TOP_DIR)/README ML/.
-	cp $(DOC_DIR)/INSTALL.pdf ML/.
-	cp $(DOC_DIR)/UserGuide.pdf ML/.
-	mkdir ML/cropmks || echo "ok"
-	cp $(CROP_DIR)/*.bmp ML/cropmks/
-	mkdir ML/scripts || echo "ok"
-	cp $(SCRIPT_DIR)/*.lua ML/scripts/
-	mkdir ML/plugins || echo "ok"
-	cp $(PLUGINS_DIR)/*/*.bin ML/plugins/
-	mkdir ML/doc || echo "ok"
-	cp $(DOC_DIR)/cam/* ML/doc/
+	rm -r zip || echo "ok"
+	mkdir zip
+	mkdir zip/ML || echo "ok"
+	cp $(SRC_DIR)/zip.txt zip
+	cp $(TOP_DIR)/README zip/ML/
+	cp $(DOC_DIR)/INSTALL.pdf zip/
+	cp $(DOC_DIR)/UserGuide.pdf zip/
+	mkdir zip/ML/logs || echo "ok"
+	mkdir zip/ML/settings || echo "ok"
+	mkdir zip/ML/data || echo "ok"
+	cp $(SRC_DIR)/FONTS.DAT zip/ML/data
+	cp $(VRAM_DIR)/*.lut zip/ML/data
+	mkdir zip/ML/cropmks || echo "ok"
+	cp $(CROP_DIR)/*.bmp zip/ML/cropmks/
+	mkdir zip/ML/scripts || echo "ok"
+	cp $(SCRIPT_DIR)/*.lua zip/ML/scripts/
+	mkdir zip/ML/plugins || echo "ok"
+	cp $(PLUGINS_DIR)/*/*.bin zip/ML/plugins/
+	mkdir zip/ML/doc || echo "ok"
+	cp $(DOC_DIR)/cam/* zip/ML/doc/
+	cp $(SRC_DIR)/logo.bmp zip/ML/docs
 	make x
-#	cp ../../installer/550D.109/*.fir .
-#	cp ../../installer/60D.110/*.fir .
-#	cp ../../installer/600D.101/*.fir .
-#	cp ../../installer/50D.108/*.fir .
-#	cp ../../installer/500D.111/*.fir .
-	cp ../../vram/rectilin.lut ML/.
-	cp $(SRC_DIR)/FONTS.DAT ML/.
-	cp $(SRC_DIR)/logo.bmp ML/.
+	cp ../../installer/550D.109/*.fir zip || echo "no FIR"
+	cp ../../installer/60D.111/*.fir zip || echo "no FIR"
+	cp ../../installer/600D.102/*.fir zip || echo "no FIR"
+	cp ../../installer/50D.109/*.fir zip || echo "no FIR" 
+	cp ../../installer/500D.111/*.fir zip || echo "no FIR"
+	cp ../../installer/5D2.212/*.fir zip || echo "no FIR"
+	cp ../../installer/1100D.105/*.fir zip || echo "no FIR"
+	cp ../../installer/EOSM.100/*.fir zip || echo "no FIR"
+	cp ../../installer/650D.101/*.fir zip || echo "no FIR"
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
-	zip.txt \
-	ML/README \
-	ML/INSTALL.pdf \
-	ML/UserGuide.pdf \
-	ML/cropmks/* \
-	ML/scripts/* \
-	ML/plugins/* \
-	ML/doc/* \
-	ML/FONTS.DAT \
-	ML/rectilin.lut \
-	ML/logo.bmp \
-#	*.fir \
+	zip/zip.txt \
+	zip/ML/README \
+	zip/INSTALL.pdf \
+	zip/UserGuide.pdf \
 
 	-rm $@
-	chmod -x autoexec.bin
-	zip -z $@ < $^ autoexec.bin
+	cp autoexec.bin zip
+	chmod -x zip/autoexec.bin
+	cd zip; zip -z ../$@ < \
+		zip.txt \
+		ML/README \
+		INSTALL.pdf \
+		UserGuide.pdf \
+		ML/cropmks/* \
+		ML/doc/* \
+		ML/data/* \
+		*.fir \
+		autoexec.bin \
+
+		#~ ML/scripts/* \
+		#~ ML/plugins/* \
 
 CFLAGS=\
 	$(FLAGS) \
@@ -147,14 +133,28 @@ CFLAGS=\
 	-Wno-unused-function \
 	-Wno-missing-field-initializers \
 	-Wno-format \
+	-Wdouble-promotion \
 	-std=gnu99 \
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
-	-mlong-calls 
+
+CFLAGS += $(CFLAG_USER)
 
 ifeq ($(CONFIG_PYMITE),y)
 CFLAGS += $(PYMITE_CFLAGS)
+endif
+
+ifeq ($(CONFIG_PTP),y)
+CFLAGS += -DCONFIG_PTP
+endif
+
+ifeq ($(DCONFIG_GDB),y)
+CFLAGS += -DCONFIG_GDB
+endif
+
+ifeq ($(DCONFIG_GDBSTUB),y)
+CFLAGS += -DCONFIG_GDB -DCONFIG_GDBSTUB
 endif
 
 NOT_USED_FLAGS=\
@@ -166,32 +166,15 @@ AFLAGS=\
 	$(FLAGS) \
 
 
-%.s: %.c
-	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
-%.o: $(SRC_DIR)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
-%.o: $(PLATFORM_DIR)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
-%.i: %.c
-	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
-%: %.c
-	$(call build,LD,$(CC) $(CFLAGS) -o $@ $<)
-%.o: %.S
-	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
-%.bin: %
-	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
-
-
-zip: prepare_zip magiclantern-$(VERSION).zip
 
 FLAGS=\
-	-Wp,-MMD,$(dir $@).$(notdir $@).d \
+	-Wp,-MMD,$(patsubst %.o,%.d,$(dir $@)$(notdir $@)) \
 	-Wp,-MT,$@ \
 	-nostdlib \
 	-fomit-frame-pointer \
 	-fno-strict-aliasing \
 	-DCONFIG_MAGICLANTERN=1 \
-	-DCONFIG_$(MODEL)=1 \
+	-DCONFIG_$(subst .,_,$(MODEL))=1 \
 	-DRESTARTSTART=$(RESTARTSTART) \
 	-DROMBASEADDR=$(ROMBASEADDR) \
 	-DVERSION=\"$(VERSION)\" \
@@ -225,6 +208,10 @@ reboot.o: $(SRC_DIR)/reboot.c magiclantern.bin
 magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
 	$(call build,CPP,$(CPP) $(CFLAGS) $< | grep -v '^#' > $@)
 
+ifneq ($(CONFIG_NO_PTP),y)
+
+ML_OBJS-$(CONFIG_GDB) += \
+	gdb.o \
 
 ML_OBJS-$(CONFIG_PTP) += \
 	ptp.o \
@@ -234,6 +221,8 @@ ML_OBJS-$(CONFIG_PTP_CHDK) += \
 
 ML_OBJS-$(CONFIG_PTP_ML) += \
 	ptp-ml.o \
+
+endif
 
 NO=\
 	hotplug.o \
@@ -352,11 +341,21 @@ autoexec: reboot.o
 		-nostdlib \
 		-march=armv5te \
 		-e _start \
-		-Ttext 0x800000 \
-		$^ \
+		-Ttext $(AUTOEXEC_BASE) \
+		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
 	); \
 	$(STAT_CMD) autoexec.bin; \
 	$(READELF) -l magiclantern | grep -C 2 MemSiz
+
+autoexec-fir: reboot.o
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-nostdlib \
+		-march=armv5te \
+		-e _start \
+		-Ttext $(FIR_BASE) \
+		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
+	);
 
 %-stubs.S: %.map
 	perl -ne > $@ < $< '\
@@ -469,7 +468,7 @@ magiclantern-5d.fir: autoexec.bin
 
 magiclantern.fir: autoexec.bin
 	@if [ -f $(BUILDER_DIR)/build_fir.py ]; then \
-		python $(BUILDER_DIR)/build_fir.py -r $^ $@ ; \
+		$(PYTHON) $(BUILDER_DIR)/build_fir.py -r $^ $@ ; \
 	else \
 		echo "\nNotice: $(BUILDER_DIR)/build_fir.py not found; will not build magiclantern.fir. It's okay."; \
 		[ -f magiclantern.fir ] && echo "Leaving magiclantern.fir unchanged.";\
@@ -500,7 +499,7 @@ dissect_fw: dissect_fw.c
 
 
 #
-# Embedded Python scripting
+# Embedded $(PYTHON) scripting
 #
 SCRIPTS=\
 	main.py \
@@ -536,12 +535,12 @@ build = \
 	$2
 
 docs:
-	cd $(DOC_DIR) && python mkdoc.py
-	cd $(DOC_DIR) && python mkdoc-cam.py
+	cd $(DOC_DIR) && $(PYTHON) mkdoc.py
+	cd $(DOC_DIR) && $(PYTHON) mkdoc-cam.py
 
 docq:
-	cd $(DOC_DIR) && python mkdoc.py
-	cd $(DOC_DIR) && python mkdoc-cam.py quick
+	cd $(DOC_DIR) && $(PYTHON) mkdoc.py
+	cd $(DOC_DIR) && $(PYTHON) mkdoc-cam.py quick
 
 installdoc:
 	mkdir $(CF_CARD)/ML/doc || echo "no problem"
@@ -550,7 +549,7 @@ installdoc:
 clean:
 	$(call build,CLEAN,$(RM) -f \
 		*.o   \
-		.*.d \
+		*.d \
 		.*.a \
 		$(BIN_FILES) \
 		magiclantern.lds \
@@ -560,7 +559,30 @@ clean:
 		make_bootable.sh \
 		422-jpg.py \
 		README \
-		cropmks/* \
+		data/cropmks/* \
 		scripts/* \
 		doc/* \
-		$(SRC_DIR)/*.o)
+		$(SRC_DIR)/*.o \
+		)
+	$(call build,CLEAN,$(RM) -rf zip)
+
+COBJS := $(filter %.o, $(ML_OBJS-y))
+DEPS  := $(COBJS:.o=.d)
+-include $(DEPS)
+
+%.s: %.c
+	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
+%.o: $(SRC_DIR)/%.c
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.o: $(PLATFORM_DIR)/%.c
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.i: %.c
+	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
+%: %.c
+	$(call build,LD,$(CC) $(CFLAGS) -o $@ $<)
+%.o: %.S
+	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
+%.bin: %
+	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
+
+zip: prepare_zip magiclantern-$(VERSION).zip

@@ -49,6 +49,30 @@ ________________________________________________________________________________
 
 */
 
+void update_vram_params();
+
+// cached LUTs for BM2LV-like macros
+
+int bm2lv_x_cache[BMP_W_PLUS - BMP_W_MINUS];
+int bm2n_x_cache [BMP_W_PLUS - BMP_W_MINUS];
+int bm2hd_r_cache[BMP_H_PLUS - BMP_H_MINUS];
+int y_times_BMPPITCH_cache[BMP_H_PLUS - BMP_H_MINUS];
+
+void vram_update_luts()
+{
+    for (int x = BMP_W_MINUS; x < BMP_W_PLUS; x++) 
+    {
+        bm2lv_x_cache[x - BMP_W_MINUS] = BM2LV_Xu(x);
+        bm2n_x_cache[x - BMP_W_MINUS] = BM2N_Xu(x);
+    }
+
+    for (int y = BMP_H_MINUS; y < BMP_H_PLUS; y++) 
+    {
+        bm2hd_r_cache[y - BMP_H_MINUS] = BM2HD_Ru(y);
+        y_times_BMPPITCH_cache[y - BMP_H_MINUS] = y * BMPPITCH;
+    }
+}
+
 struct vram_info vram_lv = {
     .pitch = 720 * 2,
     .width = 720,
@@ -91,10 +115,10 @@ struct bmp_ov_loc_size os = {
     .y_ex = 720,
 };
 
-int lv_ratio_num = 3;
-int lv_ratio_den = 2;
-int hd_ratio_num = 3;
-int hd_ratio_den = 2;
+//~ int lv_ratio_num = 3;
+//~ int lv_ratio_den = 2;
+//~ int hd_ratio_num = 3;
+//~ int hd_ratio_den = 2;
 
 int increment = 4;
 
@@ -103,6 +127,32 @@ void vram_params_set_dirty()
 {
     vram_params_dirty = 1;
     bmp_mute_flag_reset();
+    afframe_set_dirty();
+}
+
+static uint32_t hd_size = 0;
+
+void vram_params_update_if_dirty()
+{
+    #ifdef REG_EDMAC_WRITE_LV_ADDR
+    // EDMAC sizes may update after prop handlers, so check if their values changed
+    // if so, recompute all VRAM params
+    hd_size = shamem_read(REG_EDMAC_WRITE_HD_ADDR + 8);
+    static uint32_t prev_hd_size = 0;
+    if (prev_hd_size != hd_size) vram_params_dirty = 1;
+    prev_hd_size = hd_size;
+    #endif
+    
+    if (vram_params_dirty)
+    {
+        BMP_LOCK( 
+            if (vram_params_dirty)
+            {
+                update_vram_params(); 
+                vram_params_dirty = 0;
+            }
+        )
+    }
 }
 
 int* vram_params[] = { 
@@ -112,7 +162,7 @@ int* vram_params[] = {
     &vram_lv.width, &vram_lv.height, 
     &bm2lv.tx, &bm2lv.ty, &bm2lv.sx, &bm2lv.sy,
     &vram_hd.width, &vram_hd.height, 
-    &hd_ratio_num, &hd_ratio_den ,
+    //~ &hd_ratio_num, &hd_ratio_den ,
     &lv2hd.tx, &lv2hd.ty, &lv2hd.sx, &lv2hd.sy,
 };
 char vram_param_names[][12] = {
@@ -124,7 +174,7 @@ char vram_param_names[][12] = {
     "bm2lv.tx  ", "bm2lv.ty  ",
     "bm2lv.sx  ", "bm2lv.sy  ",
     "hd.width  ", "hd.height ",
-    "ratio_num ", "ratio_den ",
+    //~ "ratio_num ", "ratio_den ",
     "lv2hd.tx* ", "lv2hd.ty* ",
     "lv2hd.sx* ", "lv2hd.sy* ",
 };
@@ -151,23 +201,23 @@ void update_vram_params()
     #if CONFIG_DEBUGMSG
     if (is_menu_active("VRAM")) return;
     #endif
-    msleep(50); // just to make sure all prop handlers finished after mode change
-
+    //~ msleep(100); // just to make sure all prop handlers finished after mode change
+    
     if (!ext_monitor_hdmi) hdmi_code = 0; // 5D doesn't revert it, maybe other cameras too
 
     // force a redraw when you connect the external monitor
     static int prev_hdmi_code = 0;
-    static int prev_ext_monitor_rca = 0;
-    if (prev_hdmi_code != hdmi_code || prev_ext_monitor_rca != ext_monitor_rca) redraw();
+    static int prev_EXT_MONITOR_RCA = 0;
+    if (prev_hdmi_code != hdmi_code || prev_EXT_MONITOR_RCA != EXT_MONITOR_RCA) redraw();
     prev_hdmi_code = hdmi_code;
-    prev_ext_monitor_rca = ext_monitor_rca;
+    prev_EXT_MONITOR_RCA = EXT_MONITOR_RCA;
     
     // LV crop area (black bars)
-    os.x0   = hdmi_code == 5 ?  75 - 120 : (hdmi_code == 2 ? 40 : ext_monitor_rca ? 32 :    0);
-    os.y0   = hdmi_code == 5 ?   0 - 30  : (hdmi_code == 2 ? 24 : ext_monitor_rca ? 28 :    0);
-    os.x_ex = hdmi_code == 5 ? 810 : (hdmi_code == 2 || ext_monitor_rca) ? 640 : 720;
-    os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || ext_monitor_rca) ? 388 : 480;
-#if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5D2)
+    os.x0   = hdmi_code == 5 ?  75 - 120 : (hdmi_code == 2 ? 40 : EXT_MONITOR_RCA ? (pal ? 40 : 40) :    0);
+    os.y0   = hdmi_code == 5 ?   0 - 30  : (hdmi_code == 2 ? 24 : EXT_MONITOR_RCA ? (pal ? 29 : 25) :    0);
+    os.x_ex = hdmi_code == 5 ? 810 : (hdmi_code == 2 || EXT_MONITOR_RCA) ? 640 : 720;
+    os.y_ex = hdmi_code == 5 ? 540 : (hdmi_code == 2 || EXT_MONITOR_RCA) ? 388 : 480;
+#if defined(CONFIG_4_3_SCREEN)
     if (!EXT_MONITOR_CONNECTED)
     {
         if (PLAY_MODE || QR_MODE)
@@ -195,62 +245,99 @@ void update_vram_params()
 
     // LV buffer (used for display)
     // these buffer sizes include any black bars
-#ifdef CONFIG_1100D
-    vram_lv.width  = 720;
-    vram_lv.height = 240;
+
+#if defined(CONFIG_5DC)
+    vram_lv.width = 540;
+    vram_lv.height = 426;
+    vram_lv.pitch = vram_lv.width * 2;
+    os.x0 = 0; os.y0 = 26;
+    os.x_ex = 720;
+    os.y_ex = 480-52;
+    os.x_max = os.x0 + os.x_ex;
+    os.y_max = os.y0 + os.y_ex;
+    os.off_169 = 0;
+    os.off_1610 = 0;
+#elif defined(CONFIG_40D)
+    //~ vram_lv.width = 720; // we only know the HD buffer for now... let's try to pretend it can be used as LV :)
+    //~ vram_lv.height = 480;
+    // we only know the HD buffer for now... let's try to pretend it can be used as LV :)
+    vram_lv.width = 768; // real width is 1024 in yuv411, but ML code assumes yuv422
+    vram_lv.height = 680;
+    vram_lv.pitch = vram_lv.width * 2;    
+    os.x0 = 0;
+    //~ os.y0 = 0;
+    os.y0 = (PLAY_MODE || QR_MODE)? 48 : 0; 
+    os.x_ex = 720;
+    //~ os.y_ex = 480;
+    os.y_ex = 480 - os.y0;    
+    os.x_max = os.x0 + os.x_ex;
+    os.y_max = os.y0 + os.y_ex;
+    os.off_169 = 0;
+    os.off_1610 = 0;     
+    //~ os.off_169 = (os.y_ex - os.y_ex * 4/3 * 9/16) / 2;
+    //~ os.off_1610 = (os.y_ex - os.y_ex * 4/3 * 10/16) / 2;
+       
 #else
-    vram_lv.width  = hdmi_code == 5 ? (is_movie_mode() && video_mode_resolution > 0 && video_mode_crop ? 960 : 1920) : ext_monitor_rca ? 540 : 720;
-    vram_lv.height = hdmi_code == 5 ? (is_movie_mode() && video_mode_fps > 30                          ? 540 : 1080) : ext_monitor_rca ? (pal ? 572 : 480) : 480;
+    #ifdef CONFIG_1100D
+        vram_lv.width  = 720;
+        vram_lv.height = 240;
+    #else
+        vram_lv.width  = hdmi_code == 5 ? (is_movie_mode() && video_mode_resolution > 0 && video_mode_crop ? 960 : 1920) : EXT_MONITOR_RCA ? 540 : 720;
+        vram_lv.height = hdmi_code == 5 ? (is_movie_mode() && video_mode_fps > 30                          ? 540 : 1080) : EXT_MONITOR_RCA ? (pal ? 572 : 480) : 480;
+    #endif
+    vram_lv.pitch = vram_lv.width * 2;
 #endif
 
 
+#ifdef CONFIG_5DC
+    bm2lv.sx = 1024 * vram_lv.width / 720;
+    bm2lv.sy = 1024 * vram_lv.height / (480-52);
+    bm2lv.tx = 0;
+    bm2lv.ty = -26;
+#elif CONFIG_40D
+    bm2lv.sx = 1024 * vram_lv.width / 720;
+    bm2lv.sy = 1024 * vram_lv.height / 480;
+    //~ bm2lv.sy = 1024 * vram_lv.height / (480-48);    
+    bm2lv.tx = 0;
+    bm2lv.ty = 0;
+    //~ bm2lv.ty = (PLAY_MODE || QR_MODE)? -48 : 0;     
+#else
     // bmp to lv transformation
     // LCD: (0,0) -> (0,0)
     // HDMI: (-120,-30) -> (0,0) and scaling factor is 2
-    bm2lv.tx = hdmi_code == 5 ?  240 : ext_monitor_rca ? 4 : 0;
-    bm2lv.ty = hdmi_code == 5 ?   60 : 0;
-    bm2lv.sx = hdmi_code == 5 ? 2048 : ext_monitor_rca ? 768 : 1024;
+    bm2lv.tx = hdmi_code == 5 ?  240 : EXT_MONITOR_RCA ? 4 : 0;
+    bm2lv.ty = hdmi_code == 5 ? (video_mode_resolution>0 ? 30 : 60) : 0;
+    bm2lv.sx = hdmi_code == 5 ? 2048 : EXT_MONITOR_RCA ? 768 : 1024;
     bm2lv.sy = 1024 * vram_lv.height / (hdmi_code==5 ? 540 : 480); // no black bars at top or bottom
+#endif
     
-    lv_ratio_num = hdmi_code == 5 ? 16 : 3;
-    lv_ratio_den = hdmi_code == 5 ?  9 : 2;
+    //~ lv_ratio_num = hdmi_code == 5 ? 16 : 3;
+    //~ lv_ratio_den = hdmi_code == 5 ?  9 : 2;
 
     // HD buffer (used for recording)
-    hd_ratio_num = recording ? (video_mode_resolution < 2 ? 16 : 4) : 3;
-    hd_ratio_den = recording ? (video_mode_resolution < 2 ?  9 : 3) : 2;
+    //~ hd_ratio_num = recording ? (video_mode_resolution < 2 ? 16 : 4) : 3;
+    //~ hd_ratio_den = recording ? (video_mode_resolution < 2 ?  9 : 3) : 2;
 
-#ifdef CONFIG_5D2
-    vram_hd.width  = lv_dispsize > 1 ? 1120 : recording ? 1872 : 1024;
-    vram_hd.height = lv_dispsize > 1 ?  746 : recording ? 1080 : 680;
+#if defined(CONFIG_40D)
+    vram_hd.width = vram_lv.width;
+    vram_hd.height = vram_lv.height;
+    vram_hd.pitch = vram_lv.pitch;
+    //~ vram_hd.width = 1024;
+    //~ vram_hd.height = 680;
+    //~ vram_hd.pitch = vram_hd.width * 2;
+#elif defined(CONFIG_5DC)
+    vram_hd.width = 1872;
+    vram_hd.height = 1664;
+    vram_hd.pitch = vram_lv.pitch;
+#else
+    vram_hd.pitch = hd_size & 0xFFFF;
+    vram_hd.width = vram_hd.pitch / 2;
+    vram_hd.height = ((hd_size >> 16) & 0xFFFF)
+        #if !defined(CONFIG_5D3) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D) && !defined(CONFIG_6D)
+        + 1
+        #endif
+        ;
 #endif
-#ifdef CONFIG_50D
-    vram_hd.width  = lv_dispsize > 1 ? 944 : recording ? 1560 : 1024;
-    vram_hd.height = lv_dispsize > 1 ? 632 : recording ?  884 : 680;
-#endif
-#ifdef CONFIG_500D
-    vram_hd.width  = lv_dispsize > 1 ?  944 : !is_movie_mode() ?  928 : recording ? (video_mode_resolution == 0 ? 1576 : video_mode_resolution == 1 ? 1576 : video_mode_resolution == 2 ? 720 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1576 : video_mode_resolution == 1 ? 928 : video_mode_resolution == 2 ? 928 : 0);
-    vram_hd.height = lv_dispsize > 1 ?  632 : !is_movie_mode() ?  616 : recording ? (video_mode_resolution == 0 ? 1048 : video_mode_resolution == 1 ?  632 : video_mode_resolution == 2 ? 480 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1048 : video_mode_resolution == 1 ? 616 : video_mode_resolution == 2 ? 616 : 0);
-#endif
-#if defined(CONFIG_550D) || defined(CONFIG_60D)
-    vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : recording ? (video_mode_resolution == 0 ? 1720 : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? 640 : 0) : /*not recording*/ (video_mode_resolution == 0 ? 1056 : video_mode_resolution == 1 ? 1024 : video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
-    vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : recording ? (video_mode_resolution == 0 ?  974 : video_mode_resolution == 1 ?  580 : video_mode_resolution == 2 ? 480 : 0) : /*not recording*/ (video_mode_resolution == 0 ?  704 : video_mode_resolution == 1 ?  680 : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
-#endif
-#ifdef CONFIG_600D
-    // When USB is connected, resolution drops to 1056x756, however it goes back to 1680x945 when a recording is started
-    vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : (video_mode_resolution == 0 ? (video_mode_crop ? 1728 : ((recording==0 && logical_connect) ? 1056 : 1680)) : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? 640 : 0);
-    vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (video_mode_crop ?  972 :  ((recording==0 && logical_connect) ? 756 : 945)) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? 480 : 0);
-#endif
-#ifdef CONFIG_1100D // not tested, just copied from 600D
-    vram_hd.width  = lv_dispsize > 1 ? 1024 : !is_movie_mode() ? 1056 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ? 1728 : 1680) : video_mode_resolution == 1 ? 1280 : video_mode_resolution == 2 ? (video_mode_crop? 640:1024) : 0);
-    vram_hd.height = lv_dispsize > 1 ?  680 : !is_movie_mode() ?  704 : (video_mode_resolution == 0 ? (digital_zoom_ratio >= 300 ?  972 :  945) : video_mode_resolution == 1 ? 560  : video_mode_resolution == 2 ? (video_mode_crop? 480: 680) : 0);
-#endif
-#ifdef CONFIG_5D3
-    vram_hd.width  = lv_dispsize > 1 ? 1152 : 1904;
-    vram_hd.height = lv_dispsize > 1 ?  768 : 1270;
-#endif
-
-    vram_lv.pitch = vram_lv.width * 2; 
-    vram_hd.pitch = vram_hd.width * 2;
 
     int off_43 = (os.x_ex - os.x_ex * 8/9) / 2;
 
@@ -258,17 +345,21 @@ void update_vram_params()
     #if defined(CONFIG_600D)
     int bar_x = is_movie_mode() && video_mode_resolution >= 2 ? off_43 : 0;
     int bar_y = is_movie_mode() && video_mode_resolution <= 1 ? os.off_169 : 0;
+    #elif defined(CONFIG_5D3) || defined(CONFIG_1100D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+    int bar_x = 0;
+    int bar_y = is_movie_mode() && video_mode_resolution == 1 ? os.off_169 : 0;
+    off_43+=0; // bypass warning
+    #elif defined(CONFIG_500D) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+    int bar_x = 0;
+    int bar_y = 0;
+    off_43+=0; // bypass warning
     #else
-        #if defined(CONFIG_500D) || defined(CONFIG_5D3)
-        int bar_x = 0;
-        int bar_y = 0;
-        off_43+=0; // bypass warning
-        #else
-        int bar_x = recording && video_mode_resolution >= 2 ? off_43 : 0;
-        int bar_y = recording && video_mode_resolution <= 1 ? os.off_169 : 0;
-        #endif
+    int bar_x = recording && video_mode_resolution >= 2 ? off_43 : 0;
+    int bar_y = recording && video_mode_resolution <= 1 ? os.off_169 : 0;
     #endif
-        
+
+    vram_update_luts();
+
     lv2hd.sx = 1024 * vram_hd.width / BM2LV_DX(os.x_ex - bar_x * 2);
     lv2hd.sy = 1024 * vram_hd.height / BM2LV_DY(os.y_ex - bar_y * 2);
     
@@ -278,6 +369,7 @@ void update_vram_params()
     lv2hd.tx = -LV2HD_DX(BM2LV_X(os.x0 + bar_x));
     lv2hd.ty = -LV2HD_DY(BM2LV_Y(os.y0 + bar_y));
 
+//~ #ifndef CONFIG_5DC
     if (!lv) // HD buffer not active, use LV instead
     {
         lv2hd.sx = lv2hd.sy = 1024;
@@ -286,12 +378,13 @@ void update_vram_params()
         vram_hd.width = vram_lv.width;
         vram_hd.height = vram_lv.height;
     }
+//~ #endif
 
-    //~ update_vram_params_calc();
+    vram_update_luts();
 }
 
 
-void trans_test()
+/*void trans_test()
 {
     for (int i = 0; i < 1000; i += 10)
     {
@@ -307,7 +400,7 @@ void trans_test()
         );
         msleep(300);
     }
-}
+}*/
 
 /*
 int* lut_bm2lv_x = 0;
@@ -349,101 +442,92 @@ void lut_init()
 
 void* get_lcd_422_buf()
 {
-    switch (YUV422_LV_BUFFER_DMA_ADDR)
+    #if defined(CONFIG_1100D) 
+    return (void*)CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR); // Good enough
+    #else
+    switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
     {
         case YUV422_LV_BUFFER_1:
-            return (void*)YUV422_LV_BUFFER_1;
+            return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
         case YUV422_LV_BUFFER_2:
-            return (void*)YUV422_LV_BUFFER_2;
+            return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
         case YUV422_LV_BUFFER_3:
-            return (void*)YUV422_LV_BUFFER_3;
+            return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
     }
-    return (void*)YUV422_LV_BUFFER_1; // fall back to default
+    return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
+    #endif
 }
 
 static int fastrefresh_direction = 0;
 
 void guess_fastrefresh_direction() {
     static unsigned old_pos = YUV422_LV_BUFFER_1;
-    if (old_pos == YUV422_LV_BUFFER_DMA_ADDR) return;
-    if (old_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_2) fastrefresh_direction = 1;
-    if (old_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_3) fastrefresh_direction = 0;
-    old_pos = YUV422_LV_BUFFER_DMA_ADDR;
+    if (old_pos == YUV422_LV_BUFFER_DISPLAY_ADDR) return;
+    if (old_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_2) fastrefresh_direction = 1;
+    if (old_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_3) fastrefresh_direction = 0;
+    old_pos = YUV422_LV_BUFFER_DISPLAY_ADDR;
 }
 
 
 void* get_fastrefresh_422_buf()
 {
+    #ifdef CONFIG_1100D
+    return (void*)CACHEABLE(shamem_read(REG_EDMAC_WRITE_LV_ADDR)); // EDMAC holds the soon-to-be-displayed region
+    #else
     if (fastrefresh_direction) {
-        switch (YUV422_LV_BUFFER_DMA_ADDR)
+        switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
         {
             case YUV422_LV_BUFFER_1:
-                return (void*)YUV422_LV_BUFFER_2;
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
             case YUV422_LV_BUFFER_2:
-                return (void*)YUV422_LV_BUFFER_3;
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
             case YUV422_LV_BUFFER_3:
-                return (void*)YUV422_LV_BUFFER_1;
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
         }
-        return (void*)YUV422_LV_BUFFER_1; // fall back to default
+        return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
     } else {
-        switch (YUV422_LV_BUFFER_DMA_ADDR)
+        switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
         {
             case YUV422_LV_BUFFER_1:
-                return (void*)YUV422_LV_BUFFER_3;
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
             case YUV422_LV_BUFFER_2:
-                return (void*)YUV422_LV_BUFFER_1;
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
             case YUV422_LV_BUFFER_3:
-                return (void*)YUV422_LV_BUFFER_2;
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
         }
-        return (void*)YUV422_LV_BUFFER_1; // fall back to default
+        return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
 
     }
+    #endif
 }
 
-
-// YUV422_HD_BUFFER_DMA_ADDR returns many possible values, but usually cycles between last two
-// This function returns the value which was used just before the current one
-// That buffer is not updated by DMA (and should contain a silent picture without horizontal cut)
-void* get_422_hd_idle_buf()
+// Unfortunately this doesn't work on every 1100D model yet :(
+void* get_fastrefresh_422_other_buf()
 {
-    
-#ifdef CONFIG_550D
-    if (is_movie_mode() && !recording && video_mode_resolution > 0) // 720p exception
-        return (void*)YUV422_HD_BUFFER_1;
-#endif
-
-// single-buffered HD buffer
-#ifndef CONFIG_60D
-    int hd = YUV422_HD_BUFFER_DMA_ADDR;
-    int failsafe = YUV422_HD_BUFFER_1;
-
-    #ifdef CONFIG_50D // odd horizontal misalignment
-    hd -= 28;
-    failsafe -= 28;
-    #endif
-
-    return (void *) (IS_HD_BUFFER(hd) ? hd : failsafe);
-
-#else // double-buffered HD buffer (might work better for silent pics)
-
-    static int idle_buf = 0;
-    static int current_buf = 0;
-    
-    if (!idle_buf) idle_buf = current_buf = YUV422_HD_BUFFER_DMA_ADDR;
-
-    int hd = YUV422_HD_BUFFER_DMA_ADDR;
-    //~ bmp_printf(FONT_LARGE, 50, 200, "%x %x %x", hd, current_buf, IS_HD_BUFFER(hd));
-    if (IS_HD_BUFFER(hd))
-    {
-        if (hd != current_buf)
+    if (!fastrefresh_direction) {
+        switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
         {
-            idle_buf = current_buf;
-            current_buf = hd;
+            case YUV422_LV_BUFFER_1:
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
+            case YUV422_LV_BUFFER_2:
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
+            case YUV422_LV_BUFFER_3:
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
         }
+        return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
+    } else {
+        switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
+        {
+            case YUV422_LV_BUFFER_1:
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
+            case YUV422_LV_BUFFER_2:
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
+            case YUV422_LV_BUFFER_3:
+                return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
+        }
+        return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
+
     }
-    
-    return (void*)idle_buf;
-#endif
 }
 
 #ifdef CONFIG_500D
@@ -453,14 +537,25 @@ int first_video_clip = 1;
 
 struct vram_info * get_yuv422_vram()
 {
-    if (vram_params_dirty)
+    vram_params_update_if_dirty();
+    
+    if (digic_zoom_overlay_enabled()) // compute histograms and such on full-screen image
     {
-        BMP_LOCK( 
-            if (vram_params_dirty) 
-                update_vram_params(); 
-            vram_params_dirty = 0;
-        )
+        vram_lv.vram = (void*)CACHEABLE(YUV422_LV_BUFFER_1);
+        return &vram_lv;
     }
+
+    #ifdef CONFIG_DISPLAY_FILTERS
+    int d = display_filter_enabled();
+    if (d)
+    {
+        uint32_t* src_buf;
+        uint32_t* dst_buf;
+        display_filter_get_buffers(&src_buf, &dst_buf);
+        vram_lv.vram = (void*)(d == 1 ? dst_buf : src_buf);
+        return &vram_lv;
+    }
+    #endif
 
     #ifdef CONFIG_500D // workaround for issue 1108 - zebras flicker on first clip
     
@@ -468,31 +563,29 @@ struct vram_info * get_yuv422_vram()
     
     if (first_video_clip)
     {
-        vram_lv.vram = get_lcd_422_buf();
+        vram_lv.vram = CACHEABLE(get_lcd_422_buf());
         return &vram_lv;
     }
     #endif
 
     extern int lv_paused;
     if (gui_state == GUISTATE_PLAYMENU || lv_paused || QR_MODE)
-        vram_lv.vram = get_lcd_422_buf();
+        vram_lv.vram = CACHEABLE(get_lcd_422_buf());
     else
-        vram_lv.vram = get_fastrefresh_422_buf();
+        vram_lv.vram = CACHEABLE(get_fastrefresh_422_buf());
     return &vram_lv;
 }
 
 struct vram_info * get_yuv422_hd_vram()
 {
-    if (vram_params_dirty)
-    {
-        BMP_LOCK( update_vram_params(); )
-        vram_params_dirty = 0;
-    }
+    vram_params_update_if_dirty();
 
+//~ #ifndef CONFIG_5DC
     if (!lv) // play/quickreview, HD buffer not active => use LV instead
         return get_yuv422_vram();
+//~ #endif
 
-    vram_hd.vram = get_422_hd_idle_buf();
+    vram_hd.vram = CACHEABLE(YUV422_HD_BUFFER_DMA_ADDR);
     return &vram_hd;
 }
 
@@ -550,6 +643,11 @@ PROP_HANDLER(PROP_VIDEO_MODE)
     vram_params_set_dirty();
 }
 
+PROP_HANDLER(PROP_LV_MOVIE_SELECT)
+{
+    vram_params_set_dirty();
+}
+
 static void
 vram_print(
     void *          priv,
@@ -559,12 +657,9 @@ vram_print(
 )
 {
     unsigned        menu_font = selected ? FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK) : MENU_FONT;
-    unsigned        font = FONT(FONT_MED, FONT_FG(menu_font), FONT_BG(menu_font));
 
-    y = y * 2/3 + 20;
-    if (y > 400) { y = y - 400 + 50; x = 360; }
     bmp_printf(
-        font,
+        menu_font,
         x, y,
         "%s = %d",
         vram_param_names[(int)priv], MEM(vram_params[(int)priv])
@@ -575,14 +670,13 @@ vram_print(
 static void vram_toggle(void* priv, int delta)
 {
     MEM(vram_params[(int)priv]) += priv ? delta : SGN(delta);
-    menu_show_only_selected();
     crop_set_dirty(1);
     //~ update_vram_params_calc();
 }
 
-static void vram_toggle_fwd(void* priv) { vram_toggle(priv,  increment); }
-static void vram_toggle_rev(void* priv) { vram_toggle(priv, -increment); }
-static void vram_toggle_delta(void* priv)  { menu_quinternary_toggle(&increment, 1); }
+static void vram_toggle_fwd(void* priv, int unused) { vram_toggle(priv,  increment); }
+static void vram_toggle_rev(void* priv, int unused) { vram_toggle(priv, -increment); }
+//~ static void vram_toggle_delta(void* priv)  { menu_quinternary_toggle(&increment, 1); }
 
 #define VRAM_MENU_ENTRY(x)  { \
         .priv = (void *) x, \
@@ -610,8 +704,8 @@ static struct menu_entry vram_menus[] = {
     VRAM_MENU_ENTRY(14)
     VRAM_MENU_ENTRY(15)
     VRAM_MENU_ENTRY(16)
-    VRAM_MENU_ENTRY(17)
-    VRAM_MENU_ENTRY(18)
+    //~ VRAM_MENU_ENTRY(17)
+    //~ VRAM_MENU_ENTRY(18)
     //~ VRAM_MENU_ENTRY(19)
     //~ VRAM_MENU_ENTRY(20)
 };

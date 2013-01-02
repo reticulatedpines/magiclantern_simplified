@@ -74,14 +74,25 @@ struct menu_entry
                 int                     y,
                 int                     selected
         );
-        int8_t essential;
+        //~ int8_t essential;
+        int8_t hidden;
         int8_t icon_type;
         int8_t edit_mode;
         const char * help;
-        const char * name; // for now it's used only for context help; will be used for display too.
+        const char * name; // used for context help and sometimes for display
         struct menu_entry * children;
         uint32_t id; // unique ID
+    // not required for entry item, but makes it easier to declare in existing menu structures
+        int16_t submenu_width; 
+        int16_t submenu_height;
+        int16_t pos;
+        int16_t childnum;
+        int16_t childnummax; 
 };
+
+#define MENU_ENTRY_NOT_HIDDEN 0
+#define MENU_ENTRY_HIDDEN 1
+#define MENU_ENTRY_NEVER_HIDE -1
 
 #define EM_FEW_VALUES 0
 #define EM_MANY_VALUES 1
@@ -109,7 +120,9 @@ struct menu_entry
 #define UNIT_ISO 5
 #define UNIT_HEX 6
 
+
 // these can be combined with OR
+/*
 #define FOR_MOVIE 1
 #define FOR_PHOTO 2 // LV + non-LV
 #define FOR_LIVEVIEW 4 // photo and movie
@@ -117,8 +130,9 @@ struct menu_entry
 #define FOR_PLAYBACK 16 // photo and movie
 #define FOR_EXT_MONITOR 32 // HDMI or SD
 #define FOR_SUBMENU 64
-
-#define IS_ESSENTIAL(menu) ( \
+*/
+/*
+#define IS_VISIBLE(menu) ( \
         (menu->essential & FOR_MOVIE && is_movie_mode() && lv) || \
         (menu->essential & FOR_PHOTO && !is_movie_mode() && !PLAY_MODE) || \
         (menu->essential & FOR_LIVEVIEW && lv) || \
@@ -126,7 +140,9 @@ struct menu_entry
         (menu->essential & FOR_PLAYBACK && PLAY_MODE) || \
         (menu->essential & FOR_EXT_MONITOR && EXT_MONITOR_CONNECTED) || \
         (menu->essential & FOR_SUBMENU && submenu_mode) || \
-0)
+0) */
+
+#define IS_VISIBLE(menu) (menu->hidden != MENU_ENTRY_HIDDEN)
 
 struct menu
 {
@@ -137,6 +153,12 @@ struct menu
         int                     selected;
         int icon;
         uint32_t id; // unique ID
+        int16_t submenu_width;
+        int16_t submenu_height;
+        int16_t pos;
+        int16_t childnum;
+        int16_t childnummax;
+        int16_t delnum;
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)
@@ -194,13 +216,23 @@ extern void menu_stop(void);
 #define MNI_SUBMENU 11
 #define MNI_BOOL(x) ((x) ? MNI_ON : MNI_OFF)
 #define MNI_BOOL_AUTO(x) ((x) == 1 ? MNI_ON : (x) == 0 ? MNI_OFF : MNI_AUTO)
-#define MNI_BOOL_GDR(x) ((x) ? ( get_global_draw() ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) "GlobalDraw is OFF."
-#define MNI_BOOL_GDR_EXPSIM(x) ((x) ? ( get_global_draw() && (lv_luma_is_accurate() || !lv) ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t)( !get_global_draw() ? "GlobalDraw is OFF." : expsim == 0 ? "ExpSim is OFF." : "Display Gain is active." )
+
+#define _ZEBRAS_IN_LIVEVIEW (get_global_draw_setting() & 1)
+#define GDR_WARNING_MSG ((lv && lv_disp_mode && _ZEBRAS_IN_LIVEVIEW) ? "Press " INFO_BTN_NAME " (outside ML menu) to turn Canon displays off." : get_global_draw_setting() ? "GlobalDraw is disabled, check your settings." : "GlobalDraw is OFF.")
+
+#define MNI_BOOL_GDR(x) ((x) ? ( get_global_draw() ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) GDR_WARNING_MSG
+#define MNI_BOOL_GDR_EXPSIM(x) ((x) ? ( get_global_draw() && (lv_luma_is_accurate() || !lv) ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t)( !get_global_draw() ? GDR_WARNING_MSG : expsim == 0 ? "ExpSim is OFF." : "Display Gain is active." )
 #define MNI_BOOL_LV(x) ((x) ? ( lv ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) "This option only works in LiveView." 
 
 #define MENU_EOL_PRIV (void*)-1
 #define MENU_EOL { .priv = MENU_EOL_PRIV }
 #define MENU_IS_EOL(entry) ((intptr_t)(entry)->priv == -1)
+
+#ifdef CONFIG_VXWORKS
+#define MENU_WARNING_COLOR COLOR_RED
+#else
+#define MENU_WARNING_COLOR 254
+#endif
 
 
 #endif

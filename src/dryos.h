@@ -30,17 +30,22 @@
 #ifndef _dryos_h_
 #define _dryos_h_
 
+#include "config-defines.h"
 #include "arm-mcr.h"
 #include "dialog.h"
+#ifndef PLUGIN_CLIENT
 #include "gui.h"
+#endif
+#include "gui-common.h"
 #include "vram.h"
 #include "state-object.h"
 #include "camera.h"
 #include "tasks.h"
 #include "debug.h"
 #include "audio.h"
+#ifndef PLUGIN_CLIENT
 #include "consts.h"
-#include "mvr.h"
+#endif
 #include <stdarg.h>
 #include "plugin.h"
 
@@ -423,6 +428,8 @@ extern void SetCFnData(int group, int number, int value);
 
 void ml_assert_handler(char* msg, char* file, int line, const char* func);
 
+unsigned int rand (void);
+
 #define ASSERT(x) { if (!(x)) { ml_assert_handler(#x, __FILE__, __LINE__, __func__); }}
 //~ #define ASSERT(x) {}
 
@@ -435,14 +442,14 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func);
 // mod like in math... x mod n is from 0 to n-1
 #define mod(x,m) ((((int)x) % ((int)m) + ((int)m)) % ((int)m))
 
-#define STR_APPEND(orig,fmt,...) snprintf(orig + strlen(orig), sizeof(orig) - strlen(orig), fmt, ## __VA_ARGS__);
+#define STR_APPEND(orig,fmt,...) snprintf(orig + strlen(orig), sizeof(orig) - strlen(orig) - 1, fmt, ## __VA_ARGS__);
 
 #define MEMX(x) ( \
-        ((((int)(x)) & 0xF0000000) == 0xC0000000) ? shamem_read(x) : \
-        ((((int)(x)) & 0xF0000000) == 0xE0000000) ? (int)0xDEADBEAF : \
-        ((((int)(x)) & 0xF0000000) == 0x70000000) ? (int)0xDEADBEAF : \
-        ((((int)(x)) & 0xF0000000) == 0x80000000) ? (int)0xDEADBEAF : \
-        *(int*)(x) \
+        ((((uint32_t)(x)) & 0xF0000000UL) == 0xC0000000UL) ? (uint32_t)shamem_read(x) : \
+        ((((uint32_t)(x)) & 0xF0000000UL) == 0xE0000000UL) ? (uint32_t)0xDEADBEAF : \
+        ((((uint32_t)(x)) & 0xF0000000UL) == 0x70000000UL) ? (uint32_t)0xDEADBEAF : \
+        ((((uint32_t)(x)) & 0xF0000000UL) == 0x80000000UL) ? (uint32_t)0xDEADBEAF : \
+        *(volatile uint32_t *)(x) \
 )
 
 // export functions to plugins
@@ -461,6 +468,7 @@ OS_FUNCTION( 0x0100006, int,	FIO_GetFileSize, const char * filename, unsigned * 
 OS_FUNCTION( 0x0100007, struct fio_dirent *,	FIO_FindFirstEx, const char * dirname, struct fio_file * file);
 OS_FUNCTION( 0x0100008, int,	FIO_FindNextEx, struct fio_dirent * dirent, struct fio_file * file);
 OS_FUNCTION( 0x0100009, void,	FIO_CleanupAfterFindNext_maybe, struct fio_dirent * dirent);
+OS_FUNCTION( 0x010000a,	FILE*,	FIO_CreateFileEx, const char* name );
 
 // stdio
 OS_FUNCTION( 0x0200001,	size_t,	strlen, const char* str );
@@ -506,5 +514,31 @@ OS_FUNCTION( 0x0300001,	int,	abs, int number );
 // get OS constants
 OS_FUNCTION( 0x0400001,	const char*,	get_card_drive, void );
 
+
+uint32_t RegisterRPCHandler (uint32_t rpc_id, uint32_t (*handler) (uint8_t *, uint32_t));
+uint32_t RequestRPC (uint32_t id, uint32_t data, uint32_t length, uint32_t unk2);
+
+
 extern int _dummy_variable;
+
+const char* get_dcim_dir();
+
+// for optimization
+#define unlikely(exp) __builtin_expect(exp,0)
+#define likely(exp) __builtin_expect(exp,1)
+
+// fixed point formatting for printf's
+
+// to be used with "%s%d.%d" - for values with one decimal place
+#define FMT_FIXEDPOINT1(x)  (x) < 0 ? "-" :                 "", ABS(x)/10, ABS(x)%10
+#define FMT_FIXEDPOINT1S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/10, ABS(x)%10
+
+// to be used with "%s%d.%02d" - for values with two decimal places
+#define FMT_FIXEDPOINT2(x)  (x) < 0 ? "-" :                 "", ABS(x)/100, ABS(x)%100
+#define FMT_FIXEDPOINT2S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/100, ABS(x)%100
+
+// to be used with "%s%d.%03d" - for values with three decimal places
+#define FMT_FIXEDPOINT3(x)  (x) < 0 ? "-" :                 "", ABS(x)/1000, ABS(x)%1000
+#define FMT_FIXEDPOINT3S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/1000, ABS(x)%1000
+
 #endif

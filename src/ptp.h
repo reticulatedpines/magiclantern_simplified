@@ -113,7 +113,7 @@ struct ptp_context
 
 /** DryOS function to register a USB PTP handler.
 */
-extern void
+extern uint32_t
 ptp_register_handler(
 		uint32_t                id,
 		int                     (*handler)(
@@ -180,3 +180,6 @@ static int ptp_handler_##ID( \
 
 int send_ptp_data(struct ptp_context *data, const char *buf, int size);
 int recv_ptp_data(struct ptp_context *data, char *buf, int size);
+
+uint32_t ptp_register_all_handlers();
+

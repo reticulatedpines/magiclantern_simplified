@@ -2,8 +2,10 @@
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
-
-MODEL=550D.60D.600D.50D.500D.5D2
+ 
+empty:=
+space:= $(empty) $(empty)
+MODEL=$(subst $(space),.,$(SUPPORTED_MODELS))
 
 include  $(TOP_DIR)/Makefile.inc
 

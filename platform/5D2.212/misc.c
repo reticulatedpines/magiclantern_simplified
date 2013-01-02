@@ -7,6 +7,13 @@
 #include <consts.h>
 #include <lens.h>
 
+// some dummy stubs
+int new_LiveViewApp_handler = 0xff123456;
+int lcd_release_running = 0;
+void lcd_release_step() {};
+int get_lcd_sensor_shortcuts() { return 0; }
+void display_lcd_remote_icon(int x0, int y0) {}
+
 void display_shooting_info() // called from debug task
 {
 	if (lv) return;
@@ -97,5 +104,3 @@ void RefreshBatteryLevel_1Hz()
 	old_battery_level = battery_level;
 }
 
-// dummy stub
-int new_LiveViewApp_handler = 0xff123456;

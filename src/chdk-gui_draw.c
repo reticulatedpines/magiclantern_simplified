@@ -8,19 +8,12 @@
 #define coord int
 #define color uint8_t
 
-
-void draw_pixel(coord x, coord y, color cl) {
-   bmp_putpixel(x, y, cl);
-}
-
-color draw_get_pixel(coord x, coord y) {
-    return bmp_getpixel(x, y);
-}
-
 //-------------------------------------------------------------------
 #define swap(v1, v2)   {v1^=v2; v2^=v1; v1^=v2;}
 //-------------------------------------------------------------------
 void draw_line(coord x1, coord y1, coord x2, coord y2, color cl) {
+     uint8_t* bvram = bmp_vram();
+    
      unsigned char steep = abs(y2 - y1) > abs(x2 - x1);
      if (steep) {
          swap(x1, y1);
@@ -37,8 +30,8 @@ void draw_line(coord x1, coord y1, coord x2, coord y2, color cl) {
      int ystep = (y1 < y2)?1:-1;
      int x;
      for (x=x1; x<=x2; ++x) {
-         if (steep) draw_pixel(y, x, cl);
-         else draw_pixel(x, y, cl);
+         if (steep) bmp_putpixel_fast(bvram, y, x, cl);
+         else bmp_putpixel_fast(bvram, x, y, cl);
          error += deltay;
          if ((error<<1) >= deltax) {
              y += ystep;
@@ -49,19 +42,21 @@ void draw_line(coord x1, coord y1, coord x2, coord y2, color cl) {
 
 //-------------------------------------------------------------------
 void draw_circle(coord x, coord y, const unsigned int r, color cl) {
+    uint8_t* bvram = bmp_vram();
+
     int dx = 0;
     int dy = r;
     int p=(3-(r<<1));
 
     do {
-        draw_pixel((x+dx),(y+dy),cl);
-        draw_pixel((x+dy),(y+dx),cl);
-        draw_pixel((x+dy),(y-dx),cl);
-        draw_pixel((x+dx),(y-dy),cl);
-        draw_pixel((x-dx),(y-dy),cl);
-        draw_pixel((x-dy),(y-dx),cl);
-        draw_pixel((x-dy),(y+dx),cl);
-        draw_pixel((x-dx),(y+dy),cl);
+        bmp_putpixel_fast(bvram,(x+dx),(y+dy),cl);
+        bmp_putpixel_fast(bvram,(x+dy),(y+dx),cl);
+        bmp_putpixel_fast(bvram,(x+dy),(y-dx),cl);
+        bmp_putpixel_fast(bvram,(x+dx),(y-dy),cl);
+        bmp_putpixel_fast(bvram,(x-dx),(y-dy),cl);
+        bmp_putpixel_fast(bvram,(x-dy),(y-dx),cl);
+        bmp_putpixel_fast(bvram,(x-dy),(y+dx),cl);
+        bmp_putpixel_fast(bvram,(x-dx),(y+dy),cl);
 
         ++dx;
 
@@ -73,6 +68,8 @@ void draw_circle(coord x, coord y, const unsigned int r, color cl) {
         }
     } while (dx<=dy);
 }
+
+#ifdef CONFIG_ELECTRONIC_LEVEL // only used for level indicator
 
 #include "cordic-16bit.h"
 
@@ -95,7 +92,7 @@ void cordic_ex(int theta, int* s, int* c, int n)
 }
 
 // slow like a snail, but at least it works :)
-void draw_pie(int x, int y, int r, int ang_start, int ang_end, color cl)
+/*void draw_pie(int x, int y, int r, int ang_start, int ang_end, color cl)
 {
     float a;
     for (a = ang_start*10; a < ang_end*10; a++)
@@ -104,7 +101,7 @@ void draw_pie(int x, int y, int r, int ang_start, int ang_end, color cl)
         cordic_ex(a * MUL / 573, &s, &c, 16);
         draw_line(x, y, x + r * c / MUL, y + r * s / MUL, cl);
     }
-}
+}*/
 
 void draw_angled_line(int x, int y, int r, int ang, color cl)
 {
@@ -112,4 +109,4 @@ void draw_angled_line(int x, int y, int r, int ang, color cl)
    cordic_ex(ang * MUL / 573, &s, &c, 16);
    draw_line(x, y, x + r * c / MUL, y + r * s / MUL, cl);
 }
-
+#endif
