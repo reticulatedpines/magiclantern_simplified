@@ -4814,7 +4814,6 @@ static struct menu_entry shoot_menus[] = {
                 .max = 3,
                 .help = "ML can write enfuse scripts or a file list (for focus stacking too).",
                 .choices = (const char *[]) {"OFF", "Enfuse", "Align+Enfuse", "File List"},
-                .icon_type = IT_DICE_OFF,
             },
             MENU_EOL
         },
