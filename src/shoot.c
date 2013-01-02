@@ -119,7 +119,7 @@ CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 16);
 static CONFIG_INT("hdr.delay", hdr_delay, 1);
 static CONFIG_INT("hdr.seq", hdr_sequence, 1);
 static CONFIG_INT("hdr.iso", hdr_iso, 0);
-static CONFIG_INT("hdr.scripts", hdr_scripts, 2);
+static CONFIG_INT("hdr.scripts", hdr_scripts, 2); //1 enfure, 2 align+enfuse, 3 only list images
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
@@ -1944,7 +1944,7 @@ iso_display( void * priv, int x, int y, int selected )
 
             bmp_printf(
                 FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
-                720 - font_large.width * 6, 390,
+                720 - font_large.width * 6, 380,
                 "Bv%s%d.%d",
                 FMT_FIXEDPOINT1(Bv)
             );
@@ -4834,9 +4834,9 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Post scripts",
                 .priv       = &hdr_scripts,
-                .max = 2,
-                .help = "ML can write enfuse scripts (also used for focus stacking).",
-                .choices = (const char *[]) {"OFF", "Enfuse", "Align+Enfuse"},
+                .max = 3,
+                .help = "ML can write enfuse scripts or list files (for focus stacking too).",
+                .choices = (const char *[]) {"OFF", "Enfuse", "Align+Enfuse", "File List"},
             },
             MENU_EOL
         },
@@ -5843,6 +5843,24 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
         my_fprintf(f, "\n");
         my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG %s_AIS_%04d*\n", focus_stack ? "--contrast-window-size=9 --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0, focus_stack ? "FST" : "HDR", f0);
         my_fprintf(f, "rm %s_AIS_%04d*\n", focus_stack ? "FST" : "HDR", f0);
+        FIO_CloseFile(f);
+    }
+    
+    if (hdr_scripts == 3)
+    {
+        FILE * f = INVALID_PTR;
+        char name[100];
+        snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0);
+        f = FIO_CreateFileEx(name);
+        if ( f == INVALID_PTR )
+        {
+            bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
+            return;
+        }
+        for(int i = 0; i < steps; i++ )
+        {
+            my_fprintf(f, " IMG_%04d.JPG", mod(f0 + i, 10000));
+        }
         FIO_CloseFile(f);
     }
 }
