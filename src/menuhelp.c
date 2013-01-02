@@ -127,11 +127,11 @@ void menu_help_show_page(int page)
 		{
 			bmp_draw_scaled_ex(doc, 0, 0, 720, 480, 0);
 
-#ifdef CONVERT_BMH_TO_VRM	
-			save_vram(rpath);
-#endif			
-
+            extern int _bmp_draw_should_stop;
+			if (!_bmp_draw_should_stop) save_vram(rpath);
+#ifdef CONFIG_500D
 			msleep(200); // no idea if it helps on 500D, but who knows (at least feels better on the UI)
+#endif			
 			FreeMemory(doc);
 		}
 		else
