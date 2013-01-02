@@ -270,10 +270,10 @@ _draw_char(
 
 void
 bmp_puts(
-    unsigned        fontspec,
-    int *        x,
-    int *        y,
-    const char *        s
+        uint32_t fontspec,
+        int *x,
+        int *y,
+        const char *s
 )
 {
 
@@ -376,10 +376,10 @@ bmp_puts_w(
 // thread safe
 void
 bmp_printf(
-           unsigned        fontspec,
-           int        x,
-           int        y,
-           const char *        fmt,
+           uint32_t fontspec,
+           int x,
+           int y,
+           const char *fmt,
            ...
            )
 {
@@ -480,11 +480,11 @@ con_printf(
 
 void
 bmp_hexdump(
-    unsigned        fontspec,
-    unsigned        x,
-    unsigned        y,
-    const void *        buf,
-    unsigned            len
+    uint32_t fontspec,
+    uint32_t x,
+    uint32_t y,
+    const void *buf,
+    uint32_t len
 )
 {
     if( len == 0 )
@@ -493,7 +493,7 @@ bmp_hexdump(
     // Round up
     len = (len + 15) & ~15;
 
-    const uint32_t *    d = (uint32_t*) buf;
+    const uint32_t *d = (uint32_t*) buf;
 
     do {
         bmp_printf(
@@ -505,7 +505,7 @@ bmp_hexdump(
             #else
             "%08x: %08x %08x %08x %08x %08x %08x %08x %08x : %04x",
             #endif
-            (unsigned) d,
+            (uint32_t) d,
             len >  0 ? MEMX(d+0) : 0,
             len >  4 ? MEMX(d+1) : 0,
             len >  8 ? MEMX(d+2) : 0,
