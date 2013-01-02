@@ -948,6 +948,8 @@ void play_lv_key_step()
 
     // wait for user request to settle
     int prev = play_rate_flag;
+    int pure_play_photo_mode = is_pure_play_photo_mode();
+    int pure_play_photo_or_movie_mode = is_pure_play_photo_or_movie_mode();
     if (prev) while(1)
     {
         for (int i = 0; i < 5; i++)
@@ -970,8 +972,14 @@ void play_lv_key_step()
 
         // for photos, we need to go down 2 steps
         // for movies, we only need 1 step
-        if (is_pure_play_photo_mode())
+        if (pure_play_photo_mode) {
+            NotifyBox(500,"PURE PLAY");
             fake_simple_button(BGMT_PRESS_DOWN);
+        } else {
+            NotifyBox(500,"STOP PLAY");
+
+        }
+        NotifyBox(500,"%08x",  get_current_dialog_handler());
 
         #ifdef BGMT_UNPRESS_UDLR
         fake_simple_button(BGMT_UNPRESS_UDLR);
@@ -990,7 +998,7 @@ void play_lv_key_step()
         msleep(500);
         for (int i = 0; i < 50; i++)
         {
-            if (is_pure_play_photo_or_movie_mode())
+            if (pure_play_photo_or_movie_mode)
                 break; // rating done :)
             msleep(100);
         }

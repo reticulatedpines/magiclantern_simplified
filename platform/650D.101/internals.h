@@ -93,13 +93,16 @@
 #define CONFIG_RESTORE_AFTER_FORMAT
 
 /** We don't know how to use DMA_MEMCPY (yet) **/
-//~ #define CONFIG_DMA_MEMCPY
+#define CONFIG_DMA_MEMCPY
 
 /** We should warn the user if movie exposure is Auto, otherwise he may report it as a bug **/
 #define CONFIG_MOVIE_AE_WARNING
 
-/** No photo mode outside LiveView **/
-//~ #define CONFIG_PHOTO_MODE_INFO_DISPLAY
+/** We can display some extra info in photo mode (not LiveView) **/
+#define CONFIG_PHOTO_MODE_INFO_DISPLAY
+
+/** FIO_RenameFile works **/
+#define CONFIG_FIO_RENAMEFILE_WORKS
 
 /** No additional_version stub on this DryOS version **/
 #define CONFIG_NO_ADDITIONAL_VERSION
