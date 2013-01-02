@@ -35,6 +35,65 @@ void display_shooting_info() // called from debug task
 {
 	if (lv) return;
     
+    uint32_t fnt;
+	int bg;
+
+	if (lens_info.wb_mode == WB_KELVIN)
+	{
+        //------------ ICON KELVIN BLACK -------------
+        int icon_x = 196; // x position height icon
+        int icon_y = 226; // y position width icon
+        
+        BMP_LOCK (
+                  double_buffering_start(icon_y, 48);
+                  
+                  for (int i = 0; i < 9; i++) // | vertical K line
+                  {
+                      bg = COLOR_FG_NONLV;
+                      
+                      bmp_fill(bg,26+icon_x,4+icon_y,9,38); // | vertical K line
+                      for (int i = 0; i < 9; i++) // / first diagonal in K
+                      {
+                          draw_line(39 + icon_x + i, 4 + icon_y, 30 + icon_x + i, 22 + icon_y, bg);
+                      }
+                      for (int i = 0; i < 9; i++) // \ second diagonal in K
+                      {
+                          draw_line(30 + icon_x + i, 23 + icon_y, 39 + icon_x + i, 41 + icon_y, bg);
+                      }
+                      
+                      for (int r = 5; r < 9; r++) // o
+                      {
+                          draw_circle(11 + icon_x, 11 + icon_y, r, bg); // small circle
+                          draw_circle(10 + icon_x, 11 + icon_y, r, bg); // small circle
+                      }
+                      
+                  }
+                  double_buffering_end(icon_y, 48);
+                  )
+        bg = bmp_getpixel(icon_x, icon_y + 46);
+        fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
+        bmp_printf(fnt, icon_x, icon_y + 46, "%5d", lens_info.kelvin);
+        //------------ ICON KELVIN ------------------
+        
+	}
+    
+	if (lens_info.wbs_gm || lens_info.wbs_ba)
+	{
+		bg = bmp_getpixel(WBS_BA_POS_X, WBS_BA_POS_Y);
+		fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
+        
+		int ba = lens_info.wbs_ba;
+		if (ba) bmp_printf(fnt, WBS_BA_POS_X, WBS_BA_POS_Y, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
+		else    bmp_printf(fnt, WBS_BA_POS_X, WBS_BA_POS_Y, "  ");
+        
+		bg = bmp_getpixel(WBS_GM_POS_X, WBS_GM_POS_Y);
+		fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
+        
+		int gm = lens_info.wbs_gm;
+		if (gm) bmp_printf(fnt, WBS_GM_POS_X, WBS_GM_POS_Y, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
+		else    bmp_printf(fnt, WBS_GM_POS_X, WBS_GM_POS_Y, "  ");
+	}
+
 #include <../src/photoinfo.h>
     
 	iso_refresh_display();
