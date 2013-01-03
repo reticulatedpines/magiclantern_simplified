@@ -267,7 +267,7 @@ static void entry_draw_icon(
         {
             const char* first_choice = entry->choices[0];
             if (streq(first_choice, "OFF") || streq(first_choice, "Hide"))
-                entry->icon_type = IT_BOOL;
+                entry->icon_type = entry->max == 1 ? IT_BOOL : IT_DICE_OFF;
             else if (streq(first_choice, "ON"))
                 entry->icon_type = IT_BOOL_NEG;
             else if (streq(first_choice, "Small"))
