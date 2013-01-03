@@ -854,6 +854,14 @@ void set_lv_zoom(int zoom)
     prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
 }
 
+int get_mlu_delay(int raw)
+{
+    return 
+        raw == 6 ? 750 : 
+        raw >= 7 ? (raw - 6) * 1000 : 
+                   raw * 100;
+}
+
 #ifdef FEATURE_MLU_HANDHELD
 void mlu_take_pic()
 {
@@ -877,7 +885,7 @@ void mlu_shake_task()
     #endif
 
     //~ beep();
-    msleep(mlu_handheld_delay == 6 ? 750 : mlu_handheld_delay == 7 ? 1000 : mlu_handheld_delay * 100);
+    msleep(get_mlu_delay(mlu_handheld_delay));
     SW1(0,0); SW2(0,0);
     mlu_take_pic();
     mlu_shake_running = 0;
@@ -5171,7 +5179,7 @@ static struct menu_entry shoot_menus[] = {
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
-                .name = "MLU mode      ",
+                .name = "MLU mode        ",
                 .priv = &mlu_mode,
                 .select = mlu_toggle_mode,
                 #ifdef FEATURE_MLU_HANDHELD
@@ -5185,7 +5193,7 @@ static struct menu_entry shoot_menus[] = {
             },
             #ifdef FEATURE_MLU_HANDHELD
             {
-                .name = "Handheld Delay",
+                .name = "Handheld Delay  ",
                 .priv = &mlu_handheld_delay, 
                 .min = 1,
                 .max = 7,
@@ -5194,7 +5202,7 @@ static struct menu_entry shoot_menus[] = {
                 .help = "Delay between mirror and shutter movement."
             },
             {
-                .name = "Handheld Shutt",
+                .name = "Handheld Shutter",
                 .priv = &mlu_handheld_shutter, 
                 .max = 1,
                 .icon_type = IT_DICE,
@@ -5216,10 +5224,11 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name   = "Normal MLU Delay",
                 .priv   = &lens_mlu_delay,
-                .select = shoot_exponential_toggle, 
                 .min    = 1,
-                .max    = 1000,
-                .help = "100ms steps to wait after mirror lock up for vibr. to settle.",
+                .max    = 11,
+                .icon_type = IT_PERCENT,
+                .choices = (const char *[]) {"0", "0.1s", "0.2s", "0.3s", "0.4s", "0.5s", "0.75s", "1s", "2s", "3s", "4s", "5s"},
+                .help = "MLU delay used with intervalometer, bracketing etc.",
             }, 
             MENU_EOL
         },
@@ -5346,7 +5355,8 @@ struct menu_entry tweak_menus_shoot[] = {
                 .name = "Zoom with old button  ",
                 .priv = &zoom_trick,
                 .max = 1,
-                .help = "Use the old Zoom In button, as in 5D2. Double-click in LV."
+                .help = "Use the old Zoom In button, as in 5D2. Double-click in LV.",
+                .choices = (const char *[]) {"OFF", "ON"},
             },
             #endif
             MENU_EOL
