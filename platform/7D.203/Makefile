@@ -71,7 +71,6 @@ ML_OBJS-y = \
 	ptp-chdk.o \
 	ptpbuf.o \
 	exmem.o \
-	lightsensor.o \
 	vsync-lite.o \
 
 #include generic rules and definitions
