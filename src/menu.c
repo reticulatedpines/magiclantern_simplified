@@ -2292,7 +2292,7 @@ handle_ml_menu_keys(struct event * event)
 //~ #ifdef BGMT_JOY_CENTER
     //~ case BGMT_JOY_CENTER:
 //~ #endif
-#ifdef CONFIG_5D2
+#if defined(CONFIG_5D2) || defined(CONFIG_7D)
     case BGMT_PICSTYLE:
 #endif
 #ifdef CONFIG_50D
