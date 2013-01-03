@@ -23,6 +23,14 @@
 #define RECNOTIFY_BEEP (rec_notify == 3)
 #endif
 
+#ifdef FEATURE_REC_NOTIFY_BEEP
+    #ifndef CONFIG_BEEP
+    #error This requires CONFIG_BEEP
+    #endif
+#else
+    #define RECNOTIFY_BEEP 0
+#endif
+
 #endif
 
 #ifdef FEATURE_MOVIE_REC_KEY
@@ -651,14 +659,12 @@ void rec_notify_continuous(int called_from_menu)
 
 void rec_notify_trigger(int rec)
 {
-#if !defined(CONFIG_5D3)
     if (RECNOTIFY_BEEP)
     {
         extern int ml_started;
         if (rec != 2 && ml_started) { unsafe_beep(); }
         if (!rec) { msleep(200); unsafe_beep(); }
     }
-#endif
 
     if (RECNOTIFY_LED)
     {
@@ -1088,11 +1094,11 @@ static struct menu_entry mov_menus[] = {
         .name = "REC/STBY notify", 
         .priv = &rec_notify, 
         .display = rec_notify_print, 
-        #if defined(CONFIG_BLUE_LED) && defined(CONFIG_BEEP)
+        #if defined(CONFIG_BLUE_LED) && defined(FEATURE_REC_NOTIFY_BEEP)
         .max = 4,
-        #elif defined(CONFIG_BLUE_LED) && !defined(CONFIG_BEEP)
+        #elif defined(CONFIG_BLUE_LED) && !defined(FEATURE_REC_NOTIFY_BEEP)
         .max = 3,
-        #elif !defined(CONFIG_BLUE_LED) && defined(CONFIG_BEEP)
+        #elif !defined(CONFIG_BLUE_LED) && defined(FEATURE_REC_NOTIFY_BEEP)
         .max = 3,
         #else
         .max = 2,
