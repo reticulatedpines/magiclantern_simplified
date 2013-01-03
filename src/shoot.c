@@ -6318,8 +6318,6 @@ static void press_rec_button()
 {
 #if defined(CONFIG_50D) || defined(CONFIG_5D2)
     fake_simple_button(BGMT_PRESS_SET);
-#elif defined(CONFIG_7D)
-    fake_simple_button(BGMT_REC);
 #else
     fake_simple_button(BGMT_LV);
 #endif

@@ -3177,11 +3177,7 @@ static void transparent_overlay_offset_clear(void* priv, int delta)
 
 int handle_transparent_overlay(struct event * event)
 {
-#if defined(CONFIG_7D)
-    if (transparent_overlay && event->param == BGMT_PRESS_RAW_JPEG && PLAY_OR_QR_MODE)
-#else
     if (transparent_overlay && event->param == BGMT_LV && PLAY_OR_QR_MODE)
-#endif    
     {
         schedule_transparent_overlay();
         return 0;
@@ -3601,11 +3597,7 @@ struct menu_entry zebra_menus[] = {
         .priv = &transparent_overlay, 
         .display = transparent_overlay_display, 
         .select = menu_binary_toggle,
-#if defined(CONFIG_7D)        
-        .help = "Overlay image in LV. In PLAY mode, press RAW/JPEG btn.",
-#else
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
-#endif
         //.essential = FOR_PLAYBACK,
     },
     #endif
