@@ -7451,13 +7451,6 @@ shoot_task( void* unused )
             msleep(20);
             while (SECONDS_REMAINING > 0 && !ml_shutdown_requested)
             {
-                #ifdef FEATURE_BULB_RAMPING
-                if (bulb_ramping_enabled)
-                {
-                    bulb_ramping_init();
-                }
-                #endif
-
                 int dt = timer_values[interval_timer_index];
                 msleep(dt < 5 ? 20 : 300);
 
@@ -7507,6 +7500,13 @@ shoot_task( void* unused )
                     idle_force_powersave_in_1s();
                     display_turned_off = 1; // ... but only once per picture (don't be too aggressive)
                 }
+
+                #ifdef FEATURE_BULB_RAMPING
+                if (bulb_ramping_enabled)
+                {
+                    bulb_ramping_init();
+                }
+                #endif
             }
 
             if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after))
