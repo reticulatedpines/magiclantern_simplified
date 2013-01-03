@@ -271,6 +271,10 @@ void set_expsim( int x )
 static void
 expsim_toggle( void * priv, int delta)
 {
+    #ifdef CONFIG_7D
+    if (is_movie_mode()) return;
+    #endif
+
     #if !defined(CONFIG_5D2) && !defined(CONFIG_50D)
     int max_expsim = is_movie_mode() ? 2 : 1;
     #else
@@ -302,15 +306,20 @@ expsim_toggle( void * priv, int delta)
 static void
 expsim_display( void * priv, int x, int y, int selected )
 {
+    int e = expsim;
+    #ifdef CONFIG_7D
+    if (is_movie_mode()) e = 2;
+    #endif
+    
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "LV Display  : %s",
-        expsim == 0 ? "Photo, no ExpSim" :
-        expsim == 1 ? "Photo, ExpSim" :
-        /*expsim == 2 ?*/ "Movie" 
+        e == 0 ? "Photo, no ExpSim" :
+        e == 1 ? "Photo, ExpSim" :
+        /*e == 2 ?*/ "Movie" 
     );
-    if (CONTROL_BV && expsim<2) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
+    if (CONTROL_BV && e<2) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
     //~ else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
 }
 #endif

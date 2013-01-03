@@ -5497,7 +5497,7 @@ static void default_movie_cropmarks()
     if (!get_global_draw()) return;
     if (!is_movie_mode()) return;
     if (PLAY_MODE) return;
-    #ifndef CONFIG_50D
+    #ifdef CONFIG_5D2
     if (expsim != 2) return;
     #endif
     int i,j;
