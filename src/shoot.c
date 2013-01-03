@@ -198,8 +198,7 @@ static CONFIG_INT("bulb.ramping.manual.focus", bramp_manual_speed_focus_steps_pe
 
 
 #define BRAMP_FEEDBACK_LOOP     (bramp_auto_exposure == 1) // smooth exposure changes
-#define BRAMP_DEAD_BEAT         (bramp_auto_exposure == 2) // fully correct the exposure difference right away
-#define BRAMP_LRT_HOLY_GRAIL    (bramp_auto_exposure == 3) // only apply integer EV correction
+#define BRAMP_LRT_HOLY_GRAIL    (bramp_auto_exposure == 2) // only apply integer EV correction
 #define BRAMP_LRT_HOLY_GRAIL_STOPS 1
 
 
@@ -546,8 +545,7 @@ static void bramp_ramp_algo_print( void * priv, int x, int y, int selected )
         "Auto ExpoRamp: %s",
         bramp_auto_exposure == 0 ? "OFF" :
         bramp_auto_exposure == 1 ? "Smooth ramping" :
-        bramp_auto_exposure == 2 ? "Coarse ramping" :
-        bramp_auto_exposure == 3 ? "LRT Holy Grail 1EV" : "err"
+        bramp_auto_exposure == 2 ? "LRT Holy Grail 1EV" : "err"
     );
     bmp_printf(
         FONT_MED,
@@ -555,8 +553,7 @@ static void bramp_ramp_algo_print( void * priv, int x, int y, int selected )
         "%s",
         bramp_auto_exposure == 0 ? "Choose the algorithm for automatic bulb ramping.          " :
         bramp_auto_exposure == 1 ? "Feedback loop. Works best with expos longer than 1 second." :
-        bramp_auto_exposure == 2 ? "Fast ramps, but flickers. Shoot RAW and deflicker in post." :
-        bramp_auto_exposure == 3 ? "Expo is adjusted in 1EV integer steps. vimeo.com/26083323 " : "err"
+        bramp_auto_exposure == 2 ? "Expo is adjusted in 1EV integer steps. vimeo.com/26083323 " : "err"
     );
 }
 
@@ -620,8 +617,8 @@ static void bulb_ramping_print( void * priv, int x, int y, int selected )
         if (bramp_auto_exposure)
         {
             STR_APPEND(msg, 
-                bramp_auto_exposure == 1 ? "Smooth" : 
-                bramp_auto_exposure == 2 ? "Coarse" : "LRT"
+                bramp_auto_exposure == 1 ? "Smooth" :
+                bramp_auto_exposure == 2 ? "LRT" : "err"
             );
         }
         if (evx1000)
@@ -4351,21 +4348,6 @@ static void compute_exposure_for_next_shot()
                 );
             msleep(500);
         }
-        else if (BRAMP_DEAD_BEAT)
-        {
-            float u = COERCE((float)e_x100 / 111.0f, -3.0f, 3.0f);
-            bulb_shutter_valuef *= powf(2, u); // apply 90% of correction, but not more than 3 EV, to keep things stable
-
-            int corr_x100 = (int) roundf(u * 100.0f);
-            my_fprintf(bramp_log_file, "DB: e=%4d u=%4d ", e_x100, corr_x100);
-
-            NotifyBox(2000, "Exposure difference: %s%d.%02d EV \n"
-                            "Exposure correction: %s%d.%02d EV ",
-                            FMT_FIXEDPOINT2S(e_x100),
-                            FMT_FIXEDPOINT2S(corr_x100)
-                );
-            msleep(500);
-        }
         else if (BRAMP_FEEDBACK_LOOP)
         {
             // a difference of more than 2 EV will be fully corrected right away
@@ -4964,7 +4946,7 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Auto ExpoRamp\b",
                 .priv       = &bramp_auto_exposure,
                 .display = bramp_ramp_algo_print,
-                .max = 3,
+                .max = 2,
                 .icon_type = IT_DICE_OFF,
             },
             /*{
