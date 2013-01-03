@@ -5356,7 +5356,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .priv = &zoom_trick,
                 .max = 1,
                 .help = "Use the old Zoom In button, as in 5D2. Double-click in LV.",
-                .choices = (const char *[]) {"OFF", "ON"},
+                .choices = (const char *[]) {"OFF", "ON (!)"},
             },
             #endif
             MENU_EOL

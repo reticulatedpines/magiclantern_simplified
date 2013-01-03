@@ -28,6 +28,7 @@
     #error This requires CONFIG_BEEP
     #endif
 #else
+    #undef RECNOTIFY_BEEP
     #define RECNOTIFY_BEEP 0
 #endif
 
