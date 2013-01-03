@@ -1655,6 +1655,36 @@ void bmp_make_semitransparent()
     }
 }
 
+void save_vram(const char * filename)
+{
+    uint8_t* b = (uint8_t *)bmp_vram();
+    ASSERT(b);
+    if (!b) return;
+	
+	FILE * file = FIO_CreateFile( filename );
+	if( file == INVALID_PTR )
+		return;
+	else	
+    {
+	FIO_WriteFile(file, b, BMP_VRAM_SIZE);
+
+	FIO_CloseFile( file );
+	}
+}
+
+int load_vram(const char * filename)
+{
+    uint8_t* b = (uint8_t *)bmp_vram();
+    ASSERT(b);
+    if (!b) return -1;
+	
+    unsigned size;
+    if( FIO_GetFileSize( filename, &size ) != 0 )
+        return -1; 
+	return read_file(filename, b, size);
+}
+
+
 void * bmp_lock = 0;
 
 void bmp_init(void* unused)

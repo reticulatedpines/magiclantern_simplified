@@ -4831,6 +4831,7 @@ static struct menu_entry shoot_menus[] = {
                 .max = 2,
                 .help = "First adjust ISO instead of Tv. Range: 100 .. max AutoISO.",
                 .choices = (const char *[]) {"OFF", "Full", "Half"},
+                .icon_type = IT_DICE_OFF,
             },
             {
                 .name = "Post scripts",
@@ -4920,6 +4921,7 @@ static struct menu_entry shoot_menus[] = {
                 .max = 5,
                 .choices = (const char *[]) {"OFF", "Sunset", "Sunrise", "Auto", "LRT Holy Grail 1EV", "LRT Holy Grail 2EV"},
                 .help = "Auto exposure ramping (Tv+ISO) for day<->night timelapse.",
+                .icon_type = IT_DICE_OFF,
             },
             /*{
                 .name = "Smooth Factor\b",
@@ -5301,6 +5303,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .name = "Zoom on HalfShutter   ",
                 .priv = &zoom_halfshutter,
                 .max = 2,
+                .icon_type = IT_DICE_OFF,
                 .choices = (const char *[]) {"OFF", "MF", "AF+MF"},
                 .help = "Enable zoom when you hold the shutter halfway pressed."
             },
@@ -5308,6 +5311,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .name = "Zoom with Focus Ring  ",
                 .priv = &zoom_focus_ring,
                 .max = 2,
+                .icon_type = IT_DICE_OFF,
                 .choices = (const char *[]) {"OFF", "MF", "AF+MF"},
                 .help = "Zoom when you turn the focus ring (only some Canon lenses)."
             },
@@ -5635,6 +5639,7 @@ static struct menu_entry expo_menus[] = {
                 .help = "Change current picture style.",
                 //~ .show_liveview = 1,
                 .edit_mode = EM_MANY_VALUES_LV,
+                .icon_type = IT_DICE_OFF,
             },
             {
                 .name = "Sharpness",
@@ -5749,7 +5754,7 @@ static struct menu_entry expo_menus[] = {
                 .name = "Tv  -> ",
                 .priv    = &expo_lock_tv,
                 .max = 2,
-                .icon_type = IT_BOOL,
+                .icon_type = IT_DICE_OFF,
                 .choices = (const char *[]) {"OFF", "Av,ISO", "ISO,Av"},
                 .help = "When you change Tv, ML adjusts Av and ISO to keep exposure.",
             },
@@ -5757,7 +5762,7 @@ static struct menu_entry expo_menus[] = {
                 .name = "Av  -> ",
                 .priv    = &expo_lock_av,
                 .max = 2,
-                .icon_type = IT_BOOL,
+                .icon_type = IT_DICE_OFF,
                 .choices = (const char *[]) {"OFF", "Tv,ISO", "ISO,Tv"},
                 .help = "When you change Av, ML adjusts Tv and ISO to keep exposure.",
             },
@@ -5765,7 +5770,7 @@ static struct menu_entry expo_menus[] = {
                 .name = "ISO -> ",
                 .priv    = &expo_lock_iso,
                 .max = 2,
-                .icon_type = IT_BOOL,
+                .icon_type = IT_DICE_OFF,
                 .choices = (const char *[]) {"OFF", "Tv,Av", "Av,Tv"},
                 .help = "When you change ISO, ML adjusts Tv and Av to keep exposure.",
             },
@@ -6904,6 +6909,10 @@ shoot_task( void* unused )
         
         /* when we received a message, redraw immediately */
         if (k%5 == 0 || !err) misc_shooting_info();
+
+#if defined(CONFIG_7D) && defined(CONFIG_PHOTO_MODE_INFO_DISPLAY)        
+        else if (GetBatteryLevel()<10 && !lv && display_idle()) RedrawBatteryIcon(); // Necessary for flicker free battery icon
+#endif
         
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);

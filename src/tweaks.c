@@ -2296,7 +2296,7 @@ static struct menu_entry key_menus[] = {
                 .name = "Snap points\b\b",
                 .priv = &focus_box_lv_jump,
                 .max = 4,
-                .icon_type = IT_BOOL,
+                .icon_type = IT_DICE_OFF,
                 .choices = (const char *[]) {"Center (OFF)", "Center/Top/Right", "Center/T/R/B/L", "Center/TL/TR/BR/BL", "Center + 8 pts"},
                 .help = "Snap the focus box to preset points (press CENTER key)",
             },
@@ -2371,7 +2371,7 @@ static struct menu_entry key_menus[] = {
                 .name = "Header left",
                 .priv       = &header_left_info,
                 .max = 5,
-                .icon_type = IT_DICE,
+                .icon_type = IT_DICE_OFF,
                 .display = header_left_display,
                 .help = "What info do you want to display at the top left corner",
             },
@@ -2379,7 +2379,7 @@ static struct menu_entry key_menus[] = {
                 .name = "Header right",
                 .priv       = &header_right_info,
                 .max = 5,
-                .icon_type = IT_DICE,
+                .icon_type = IT_DICE_OFF,
                 .display = header_right_display,
                 .help = "What info do you want to display at the top right corner",
             },
@@ -2387,7 +2387,7 @@ static struct menu_entry key_menus[] = {
                 .name = "Footer left",
                 .priv       = &footer_left_info,
                 .max = 5,
-                .icon_type = IT_DICE,
+                .icon_type = IT_DICE_OFF,
                 .display = footer_left_display,
                 .help = "What info do you want to display at the bottom left corner",
             },
@@ -2395,7 +2395,7 @@ static struct menu_entry key_menus[] = {
                 .name = "Footer right",
                 .priv       = &footer_right_info,
                 .max = 5,
-                .icon_type = IT_DICE,
+                .icon_type = IT_DICE_OFF,
                 .display = footer_right_display,
                 .help = "What info do you want to display at the bottom right corner",
             },
@@ -2474,7 +2474,7 @@ static struct menu_entry tweak_menus[] = {
                 .name = "Mode warning   ",
                 .priv = &warn_mode,
                 .max = 4,
-                .icon_type = IT_DICE,
+                .icon_type = IT_DICE_OFF,
                 .choices = (const char *[]) {"OFF", "other than P", "other than Tv", "other than Av", "other than M"},
                 .help = "Warn if you turn the mode dial to some other position.",
             },
@@ -3931,7 +3931,7 @@ struct menu_entry play_menus[] = {
                 .display = quickzoom_display,
                 .help = "Faster zoom in Play mode, for pixel peeping :)",
                 //.essential = FOR_PHOTO,
-                .icon_type = IT_BOOL,
+                .icon_type = IT_DICE_OFF,
             },
             #endif
             #ifdef FEATURE_KEN_ROCKWELL_ZOOM_5D3
@@ -3959,13 +3959,14 @@ struct menu_entry play_menus[] = {
                 #if defined(FEATURE_LV_BUTTON_PROTECT) && defined(FEATURE_LV_BUTTON_RATE)
                 .max = 2,
                 .help = "You may use the LiveView button to Protect or Rate images.",
+                .icon_type = IT_DICE_OFF,
                 #elif defined(FEATURE_LV_BUTTON_PROTECT)
                 .max = 1,
                 .help = "You may use the LiveView button to Protect images quickly.",
+                .icon_type = IT_BOOL,
                 #else
                 #error Hudson, we have a problem!
                 #endif
-                .icon_type = IT_BOOL,
             },
         #endif
             #ifdef FEATURE_QUICK_ERASE
