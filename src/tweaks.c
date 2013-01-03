@@ -2987,7 +2987,7 @@ void brightness_saturation_reset()
 
 #ifdef FEATURE_COLOR_SCHEME
 
-void alter_bitmap_palette_entry(int color, int base_color, int scale_factor)
+void alter_bitmap_palette_entry(int color, int base_color, int luma_scale_factor, int chroma_scale_factor)
 {
 #ifndef CONFIG_VXWORKS
     extern int LCD_Palette[];
@@ -2997,9 +2997,9 @@ void alter_bitmap_palette_entry(int color, int base_color, int scale_factor)
     int8_t  orig_u = (orig_palette_entry >>  8) & 0xFF;
     int8_t  orig_v = (orig_palette_entry >>  0) & 0xFF;
 
-    int y = (int)orig_y * scale_factor / 256;
-    int u = (int)orig_u * scale_factor / 256;
-    int v = (int)orig_v * scale_factor / 256;
+    int y = COERCE((int)orig_y * luma_scale_factor / 256, 0, 255);
+    int u = COERCE((int)orig_u * chroma_scale_factor / 256, -127, 127);
+    int v = COERCE((int)orig_v * chroma_scale_factor / 256, -127, 127);
 
     int new_palette_entry =
         ((opacity & 0xFF) << 24) |
@@ -3059,12 +3059,12 @@ void grayscale_menus_step()
     {
         // make the warning text blinking, so beginners will notice it...
         int t = *(uint32_t*)0xC0242014;
-        alter_bitmap_palette_entry(MENU_WARNING_COLOR, COLOR_RED, ABS((t >> 11) - 256));
+        alter_bitmap_palette_entry(MENU_WARNING_COLOR, COLOR_RED, 512 - ABS((t >> 11) - 256), ABS((t >> 11) - 256));
         warning_color_dirty = 1;
     }
     else if (warning_color_dirty)
     {
-        alter_bitmap_palette_entry(MENU_WARNING_COLOR, MENU_WARNING_COLOR, 256);
+        alter_bitmap_palette_entry(MENU_WARNING_COLOR, MENU_WARNING_COLOR, 256, 256);
         warning_color_dirty = 0;
     }
 #endif
