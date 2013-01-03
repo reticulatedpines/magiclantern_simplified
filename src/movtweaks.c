@@ -406,8 +406,8 @@ void movtweak_step()
 
     #ifdef FEATURE_MOVIE_RESTART
         static int recording_prev = 0;
-        #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-        if (recording == 0 && recording_prev && !movie_was_stopped_by_set)
+        #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
+        if (recording == 0 && recording_prev && !movie_was_stopped_by_set) // see also gui.c
         #else
         if (recording == 0 && recording_prev && wait_for_lv_err_msg(0))
         #endif
