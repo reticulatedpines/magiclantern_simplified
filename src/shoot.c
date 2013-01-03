@@ -3391,6 +3391,26 @@ void ensure_bulb_mode()
 #endif
 }
 
+// returns old drive mode if changed, -1 if nothing changed
+int set_drive_single()
+{
+    if (drive_mode != DRIVE_SINGLE
+        #ifdef DRIVE_SILENT
+        && drive_mode != DRIVE_SILENT
+        #endif
+        )
+    {
+        int orig_mode = drive_mode;
+        #ifdef DRIVE_SILENT
+        lens_set_drivemode(DRIVE_SILENT);
+        #else
+        lens_set_drivemode(DRIVE_SINGLE);
+        #endif
+        return orig_mode;
+    }
+    return -1;
+}
+
 // goes to Bulb mode and takes a pic with the specified duration (ms)
 void
 bulb_take_pic(int duration)
@@ -3406,8 +3426,7 @@ bulb_take_pic(int duration)
     
     msleep(100);
     
-    int d0 = drive_mode;
-    lens_set_drivemode(DRIVE_SINGLE);
+    int d0 = set_drive_single();
     //~ NotifyBox(3000, "BulbStart (%d)", duration); msleep(1000);
     mlu_lock_mirror_if_needed();
     
@@ -3465,7 +3484,7 @@ bulb_take_pic(int duration)
     
     lens_wait_readytotakepic(64);
     restore_af_button_assignment();
-    lens_set_drivemode(d0);
+    if (d0 >= 0) lens_set_drivemode(d0);
     prop_request_change( PROP_SHUTTER, &s0r, 4 );
     prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
     set_shooting_mode(m0r);
@@ -6410,18 +6429,14 @@ void hdr_shot(int skip0, int wait)
     if (HDR_ENABLED)
     {
         //~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8); msleep(1000);
-        int drive_mode_bak = 0;
         lens_wait_readytotakepic(64);
-        if (drive_mode != DRIVE_SINGLE) 
-        {
-            drive_mode_bak = drive_mode;
-            lens_set_drivemode(DRIVE_SINGLE);
-        }
+
+        int drive_mode_bak = set_drive_single();
 
         hdr_take_pics(hdr_steps, hdr_stepsize, skip0);
 
         lens_wait_readytotakepic(64);
-        if (drive_mode_bak) lens_set_drivemode(drive_mode_bak);
+        if (drive_mode_bak >= 0) lens_set_drivemode(drive_mode_bak);
     }
     else // regular pic (not HDR)
 #endif
