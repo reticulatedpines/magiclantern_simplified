@@ -129,9 +129,6 @@ void menu_help_show_page(int page)
 
             extern int _bmp_draw_should_stop;
 			if (!_bmp_draw_should_stop) save_vram(rpath);
-#ifdef CONFIG_500D
-			msleep(200); // no idea if it helps on 500D, but who knows (at least feels better on the UI)
-#endif			
 			FreeMemory(doc);
 		}
 		else
