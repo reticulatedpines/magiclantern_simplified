@@ -647,9 +647,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
       is_lowgain_iso(lens_info.iso) ? COLOR_GREEN2 : COLOR_RED,
       bg);
       
-      extern int hdrv_enabled;
-
-        if (hdrv_enabled && is_movie_mode())
+        if (hdr_video_enabled())
         {
             int iso_low, iso_high;
             hdr_get_iso_range(&iso_low, &iso_high);
