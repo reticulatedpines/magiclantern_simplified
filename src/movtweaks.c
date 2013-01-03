@@ -149,23 +149,6 @@ static void movie_cliplen_display(
 #endif
 
 #ifdef FEATURE_MOVIE_REC_KEY
-static void
-movie_rec_key_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Movie REC key : %s ",
-        movie_rec_key == 1 ? "HalfShutter" :
-        movie_rec_key == 2 ? "Long HalfSh. (1s)" :
-        "Default"
-    );
-}
 
 void movie_rec_halfshutter_step()
 {
@@ -252,25 +235,6 @@ CONFIG_INT( "enable-liveview",  enable_liveview,
     1
     #endif
 );
-
-#ifdef FEATURE_FORCE_LIVEVIEW
-static void
-enable_liveview_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Force LiveView: %s",
-        enable_liveview == 1 ? "Start & CPU lenses" : enable_liveview == 2 ? "Always" : "OFF"
-    );
-    menu_draw_icon(x, y, enable_liveview == 1 ? MNI_AUTO : enable_liveview == 2 ? MNI_ON : MNI_OFF, 0);
-}
-#endif
 
 void force_liveview()
 {
@@ -1149,9 +1113,9 @@ static struct menu_entry mov_menus[] = {
     {
         .name = "Movie REC key",
         .priv = &movie_rec_key, 
-        .display = movie_rec_key_print,
         .max = 2,
-        .icon_type = IT_BOOL,
+        .icon_type = IT_DICE_OFF,
+        .choices = (const char *[]) {"OFF", "HalfShutter", "Long HalfSh. (1s)"},
         .help = "Change the button used for recording. Hint: wired remote.",
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
@@ -1171,8 +1135,9 @@ static struct menu_entry mov_menus[] = {
     {
         .name = "Force LiveView",
         .priv = &enable_liveview,
-        .display    = enable_liveview_print,
-        .select     = menu_ternary_toggle,
+        .max = 2,
+        .choices = (const char *[]) {"OFF", "Start & CPU lenses", "Always"},
+        .icon_type = IT_DICE_OFF,
         .help = "Always use LiveView (with manual lens or after lens swap).",
     },
     #endif

@@ -854,8 +854,8 @@ void dice_icon(int x, int y, int current, int nmax)
     switch (nmax)
     {
         case 2:
-            dot(x - 6, y + 6, C(0)+2);
-            dot(x + 6, y - 6, C(1)+2);
+            dot(x - 5, y + 5, C(0)+1);
+            dot(x + 5, y - 5, C(1)+1);
             break;
         case 3:
             dot(x    , y - 7, C(0));
@@ -922,14 +922,14 @@ void dice_icon(int x, int y, int current, int nmax)
 
 void dice_off_icon(int x, int y, int current, int nmax)
 {
-    #define C(i) (current == (i) ? COLOR_GREEN1 : COLOR_GRAY50), (current == (i) ? 6 : 4)
+    #define C(i) (current == (i) ? COLOR_GREEN1 : current ? COLOR_GRAY50 : COLOR_GRAY40), (current == (i) ? 6 : 4)
     //~ x -= 40;
     //~ x += 16; y += 16;
     switch (nmax-1)
     {
         case 2:
-            dot(x - 6, y + 6, C(1)+2);
-            dot(x + 6, y - 6, C(2)+2);
+            dot(x - 5, y + 5, C(1)+1);
+            dot(x + 5, y - 5, C(2)+1);
             break;
         case 3:
             dot(x    , y - 7, C(1));
