@@ -25,8 +25,8 @@
 /** This camera has a 4:3 screen, 720x480 **/
 #define CONFIG_4_3_SCREEN
 
-/** We have a DirectPrint blue LED **/
-#define CONFIG_BLUE_LED
+/** We don't have a DirectPrint blue LED **/
+// #define CONFIG_BLUE_LED
 
 /** There is no LCD sensor that turns the display off **/
 //~ #define CONFIG_LCD_SENSOR
