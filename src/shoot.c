@@ -5860,7 +5860,7 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
         f = FIO_CreateFileEx(name);
         if ( f == INVALID_PTR )
         {
-            bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
+            bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileEx: error for %s", name );
             return;
         }
         my_fprintf(f, "#!/usr/bin/env bash\n");
@@ -5882,7 +5882,7 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
         f = FIO_CreateFileEx(name);
         if ( f == INVALID_PTR )
         {
-            bmp_printf( FONT_LARGE, 30, 30, "FCreate: Err %s", name );
+            bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileEx: error for %s", name );
             return;
         }
         my_fprintf(f, "#!/usr/bin/env bash\n");
