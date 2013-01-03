@@ -190,14 +190,18 @@ int get_silent_pic() { return silent_pic_enabled; } // silent pic will disable t
 
 static CONFIG_INT("bulb.ramping", bulb_ramping_enabled, 0);
 static CONFIG_INT("bulb.ramping.auto", bramp_auto_exposure, 1);
-static CONFIG_INT("bulb.ramping.auto.speed", bramp_auto_ramp_speed, 100); // max 0.1 EV/shot
+//~ static CONFIG_INT("bulb.ramping.auto.speed", bramp_auto_ramp_speed, 100); // max 0.1 EV/shot
 //~ static CONFIG_INT("bulb.ramping.smooth", bramp_auto_smooth, 50);
 static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 50);
 static CONFIG_INT("bulb.ramping.manual.expo", bramp_manual_speed_evx1000_per_shot, 1000);
 static CONFIG_INT("bulb.ramping.manual.focus", bramp_manual_speed_focus_steps_per_shot, 1000);
-//~ static CONFIG_INT("bulb.lrt.holy.grail", bramp_lrt_holy_grail_stops, 0);
-#define LRT_HOLY_GRAIL (bramp_auto_exposure > 3)
-#define LRT_HOLY_GRAIL_STOPS (bramp_auto_exposure - 3)
+
+
+#define BRAMP_FEEDBACK_LOOP     (bramp_auto_exposure == 1) // smooth exposure changes
+#define BRAMP_DEAD_BEAT         (bramp_auto_exposure == 2) // fully correct the exposure difference right away
+#define BRAMP_LRT_HOLY_GRAIL    (bramp_auto_exposure == 3) // only apply integer EV correction
+#define BRAMP_LRT_HOLY_GRAIL_STOPS 1
+
 
 #define BULB_EXPOSURE_CONTROL_ACTIVE (intervalometer_running && bulb_ramping_enabled && (bramp_auto_exposure || bramp_manual_speed_evx1000_per_shot!=1000))
 static int intervalometer_running = 0;
@@ -533,37 +537,30 @@ static int get_smooth_factor_from_max_ev_speed(int speed_x1000)
     int fi = (int)roundf(f * 100);
     return COERCE(fi, 1, 99);
 }
-static void bramp_auto_ramp_speed_print( void * priv, int x, int y, int selected )
-{
-    int max_ev_x1000 = bramp_auto_ramp_speed;
-    int f = get_smooth_factor_from_max_ev_speed(max_ev_x1000);
 
-    if (bramp_auto_exposure && !LRT_HOLY_GRAIL)
-    {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "MAX RampSpeed: %d.%03d EV/shot",
-            ABS(max_ev_x1000) / 1000,
-            ABS(max_ev_x1000) % 1000
-        );
-        if (selected)
-            bmp_printf(FONT_MED, x + font_large.width * 24, y - font_med.height, 
-                "f=0.%02d", 
-                f
-            );
-        menu_draw_icon(x, y, MNI_PERCENT, log_length(max_ev_x1000) * 100 / log_length(1000));
-    }
-    else
-    {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "MAX RampSpeed: N/A"
-        );
-        menu_draw_icon(x, y, MNI_OFF, 0);
-    }
+static void bramp_ramp_algo_print( void * priv, int x, int y, int selected )
+{
+    bmp_printf(
+        MENU_FONT,
+        x, y,
+        "Auto ExpoRamp: %s",
+        bramp_auto_exposure == 0 ? "OFF" :
+        bramp_auto_exposure == 1 ? "Smooth ramping" :
+        bramp_auto_exposure == 2 ? "Coarse ramping" :
+        bramp_auto_exposure == 3 ? "LRT Holy Grail 1EV" : "err"
+    );
+    bmp_printf(
+        FONT_MED,
+        10, 453,
+        "%s",
+        bramp_auto_exposure == 0 ? "Choose the algorithm for automatic bulb ramping.          " :
+        bramp_auto_exposure == 1 ? "Feedback loop. Works best with expos longer than 1 second." :
+        bramp_auto_exposure == 2 ? "Fast ramps, but flickers. Shoot RAW and deflicker in post." :
+        bramp_auto_exposure == 3 ? "Expo is adjusted in 1EV integer steps. vimeo.com/26083323 " : "err"
+    );
 }
+
+
 static void manual_expo_ramp_print( void * priv, int x, int y, int selected )
 {
     int evx1000 = (int)bramp_manual_speed_evx1000_per_shot - 1000;
@@ -623,10 +620,8 @@ static void bulb_ramping_print( void * priv, int x, int y, int selected )
         if (bramp_auto_exposure)
         {
             STR_APPEND(msg, 
-                bramp_auto_exposure == 1 ? "Sunset" : 
-                bramp_auto_exposure == 2 ? "Sunrise" : 
-                bramp_auto_exposure == 3 ? "Auto" :
-                bramp_auto_exposure == 4 ? "LRT 1EV" : "LRT 2EV"
+                bramp_auto_exposure == 1 ? "Smooth" : 
+                bramp_auto_exposure == 2 ? "Coarse" : "LRT"
             );
         }
         if (evx1000)
@@ -666,19 +661,6 @@ static void bramp_manual_evx1000_toggle(void* priv, int delta)
     bramp_manual_speed_evx1000_per_shot = ev_values[i] + 1000;
 }
 
-static void bramp_auto_ramp_speed_toggle(void* priv, int delta)
-{
-    int value = (int)bramp_auto_ramp_speed;
-    int i = 0;
-    for (i = 0; i < COUNT(ev_values); i++)
-        if (ev_values[i] >= value) break;
-    
-    do {
-        i = mod(i + delta, COUNT(ev_values));
-    } while (ev_values[i] <= 0);
-        
-    bramp_auto_ramp_speed = ev_values[i];
-}
 #endif
 
 #ifdef FEATURE_AUDIO_REMOTE_SHOT
@@ -3892,8 +3874,8 @@ static void bramp_plot_holy_grail_hysteresis(int luma_ref)
 {
     luma_ref = COERCE(luma_ref, 0, 255);
     int ev = bramp_luma_to_ev_x100(luma_ref);
-    int ev1 = ev - LRT_HOLY_GRAIL_STOPS * 100;
-    int ev2 = ev + LRT_HOLY_GRAIL_STOPS * 100;
+    int ev1 = ev - BRAMP_LRT_HOLY_GRAIL_STOPS * 100;
+    int ev2 = ev + BRAMP_LRT_HOLY_GRAIL_STOPS * 100;
     int x1 = 350 + ev1 * 20 / 100;
     int x2 = 350 + ev2 * 20 / 100;
     int y1 = 240 - (-128)/2;
@@ -4348,85 +4330,127 @@ static void compute_exposure_for_next_shot()
         int e_x100 = COERCE(r_x100 - y_x100, -mev-500, -mev+500);
         // positive e => picture should be brightened
 
-        // a difference of more than 2 EV will be fully corrected right away
-        int expo_diff_too_big = 
-            (e_x100 > 200 && bulb_shutter_valuef < shutter_max) ||
-            (e_x100 < -200 && bulb_shutter_valuef > shutter_min);
-        int should_apply_full_correction_immediately = (expo_diff_too_big || bramp_prev_shot_was_bad) && !LRT_HOLY_GRAIL;
-        bramp_prev_shot_was_bad = expo_diff_too_big;
-
         my_fprintf(bramp_log_file, "y=%4d r=%4d e=%4d => ", y_x100, r_x100, e_x100);
 
-        if (should_apply_full_correction_immediately)
+        if (BRAMP_LRT_HOLY_GRAIL)
         {
-            // big change in brightness - request a new picture without waiting, and apply full correction
-            // most probably, user changed ND filters or moved the camera
-            
-            NotifyBox(1000, "Exposure difference: %s%d.%02d EV ", FMT_FIXEDPOINT2S(e_x100));
-            msleep(500);
-
-            float cor = COERCE((float)e_x100 / 111.0f, -3.0f, 3.0f);
-            bulb_shutter_valuef *= powf(2, cor); // apply 90% of correction, but not more than 3 EV, to keep things stable
-            
-            // use high iso to adjust faster, then go back at low iso
-            for (int i = 0; i < 5; i++)
-                bulb_ramping_adjust_iso_180_rule_without_changing_exposure(expo_diff_too_big ? 1 : timer_values[interval_timer_index]);
-                
-            bulb_shutter_valuef = COERCE(bulb_shutter_valuef, shutter_min, shutter_max);
-
-            // set Canon shutter speed close to bulb one (just for display)
-            lens_set_rawshutter(shutterf_to_raw(bulb_shutter_valuef));
-
-            my_fprintf(bramp_log_file, "harsh: cor=%d shutter=%6dms iso=%4d\n", (int)roundf(cor * 100.0f), BULB_SHUTTER_VALUE_MS, lens_info.iso);
-
-            // force next shot to be taken quicker
-            intervalometer_next_shot_time = seconds_clock;
-            return;
-        }
-        else // small change in brightness - apply only a small amount of correction to keep things smooth
-        {    // see comments above for the feedback loop design
-            bramp_ev_reference_x1000 += manual_evx1000;
-
-            float u = 0;
-            int fi = get_smooth_factor_from_max_ev_speed(bramp_auto_ramp_speed);
-            float f = (float)fi / 100.0f;
-            float e = (float)e_x100 / 100.0f;
-
-            if (LRT_HOLY_GRAIL)
-            {
-                // only apply an integer amount of correction
-                int step_x100 = LRT_HOLY_GRAIL_STOPS * 100;
-                int c = (ABS(e_x100) / step_x100) * LRT_HOLY_GRAIL_STOPS;
-                if (e_x100 < 0) c = -c;
-                u = c;
-            }
-            else
-            {
-                if (bramp_auto_exposure == 1) // sunset - only increase exposure
-                    e = MAX(e, 0);
-
-                if (bramp_auto_exposure == 2) // sunrise - only decrease exposure
-                    e = MIN(e, 0);
-                
-                float b = f*f - 2*f + 1;
-                float a = f*f;
-                u = b*e + a*bramp_u1;
-                bramp_u1 = u;
-            }
-            
+            // only apply an integer amount of correction
+            int step_x100 = BRAMP_LRT_HOLY_GRAIL_STOPS * 100;
+            int c = (ABS(e_x100) / step_x100) * BRAMP_LRT_HOLY_GRAIL_STOPS;
+            if (e_x100 < 0) c = -c;
+            float u = c;
             bulb_shutter_valuef *= powf(2, u);
 
-            // display some info
             int corr_x100 = (int) roundf(u * 100.0f);
+            my_fprintf(bramp_log_file, "LRT: e=%4d u=%4d ", e_x100, corr_x100);
+
             NotifyBox(2000, "Exposure difference: %s%d.%02d EV \n"
                             "Exposure correction: %s%d.%02d EV ",
                             FMT_FIXEDPOINT2S(e_x100),
                             FMT_FIXEDPOINT2S(corr_x100)
-                );  
-
-            my_fprintf(bramp_log_file, "soft: f=%2d e=%4d u=%4d ", fi, (int)roundf(e*100), corr_x100);
-
+                );
             msleep(500);
+        }
+        else if (BRAMP_DEAD_BEAT)
+        {
+            float u = COERCE((float)e_x100 / 111.0f, -3.0f, 3.0f);
+            bulb_shutter_valuef *= powf(2, u); // apply 90% of correction, but not more than 3 EV, to keep things stable
+
+            int corr_x100 = (int) roundf(u * 100.0f);
+            my_fprintf(bramp_log_file, "DB: e=%4d u=%4d ", e_x100, corr_x100);
+
+            NotifyBox(2000, "Exposure difference: %s%d.%02d EV \n"
+                            "Exposure correction: %s%d.%02d EV ",
+                            FMT_FIXEDPOINT2S(e_x100),
+                            FMT_FIXEDPOINT2S(corr_x100)
+                );
+            msleep(500);
+        }
+        else if (BRAMP_FEEDBACK_LOOP)
+        {
+            // a difference of more than 2 EV will be fully corrected right away
+            int expo_diff_too_big = 
+                (e_x100 > 200 && bulb_shutter_valuef < shutter_max) ||
+                (e_x100 < -200 && bulb_shutter_valuef > shutter_min);
+            int should_apply_full_correction_immediately = (expo_diff_too_big || bramp_prev_shot_was_bad) && !BRAMP_LRT_HOLY_GRAIL;
+            bramp_prev_shot_was_bad = expo_diff_too_big;
+
+            if (should_apply_full_correction_immediately)
+            {
+                // big change in brightness - request a new picture without waiting, and apply full correction
+                // most probably, user changed ND filters or moved the camera
+                
+                NotifyBox(1000, "Exposure difference: %s%d.%02d EV ", FMT_FIXEDPOINT2S(e_x100));
+                msleep(500);
+
+                float cor = COERCE((float)e_x100 / 111.0f, -3.0f, 3.0f);
+                bulb_shutter_valuef *= powf(2, cor); // apply 90% of correction, but not more than 3 EV, to keep things stable
+                
+                // use high iso to adjust faster, then go back at low iso
+                for (int i = 0; i < 5; i++)
+                    bulb_ramping_adjust_iso_180_rule_without_changing_exposure(expo_diff_too_big ? 1 : timer_values[interval_timer_index]);
+                    
+                bulb_shutter_valuef = COERCE(bulb_shutter_valuef, shutter_min, shutter_max);
+
+                // set Canon shutter speed close to bulb one (just for display)
+                lens_set_rawshutter(shutterf_to_raw(bulb_shutter_valuef));
+
+                my_fprintf(bramp_log_file, "harsh: cor=%d shutter=%6dms iso=%4d\n", (int)roundf(cor * 100.0f), BULB_SHUTTER_VALUE_MS, lens_info.iso);
+
+                // force next shot to be taken quicker
+                intervalometer_next_shot_time = seconds_clock;
+                return;
+            }
+            else // small change in brightness - apply only a small amount of correction to keep things smooth
+            {    // see comments above for the feedback loop design
+                bramp_ev_reference_x1000 += manual_evx1000;
+
+                float u = 0;
+
+                // auto adjust the smooth factor based on exposure difference over last few frames
+                // big expo difference => more aggressive correction
+                // small expo difference => calm down, less flicker
+                
+                static int expo_diff = 0;
+                expo_diff = (e_x100 * e_x100 / 100 + expo_diff * 9) / 10;
+                
+                // don't change the smooth factor too fast
+                // let it become aggressive quickly (fast response to sudden ramps) 
+                // but don't let it calm down too fast, to get some time for settling
+                static int expo_diff_filtered = 0;
+                if (expo_diff > expo_diff_filtered)
+                     expo_diff_filtered = MIN(expo_diff, expo_diff_filtered + 50);
+                else if (expo_diff < expo_diff_filtered - 10)
+                     expo_diff_filtered = MAX(expo_diff + 10, expo_diff_filtered - 5);
+                
+                // try to follow the ramps at around 0.5 EV behind
+                int fi = get_smooth_factor_from_max_ev_speed(expo_diff_filtered * 2);
+                
+                // plug this adaptive smooth factor into our feedback loop
+                // here we have a small trick for reducing the side effects of changing the smooth factor while running
+                float f = (float)fi / 100.0f;
+                float e = (float)e_x100 / 100.0f;
+
+                float b = f*f - 2*f + 1;
+                float a = f*f;
+                
+                u = b*e + bramp_u1;
+                bramp_u1 = a*u;
+               
+                bulb_shutter_valuef *= powf(2, u);
+
+                // display some info
+                int corr_x100 = (int) roundf(u * 100.0f);
+                NotifyBox(2000, "Exposure difference: %s%d.%02d EV \n"
+                                "Exposure correction: %s%d.%02d EV ",
+                                FMT_FIXEDPOINT2S(e_x100),
+                                FMT_FIXEDPOINT2S(corr_x100)
+                    );  
+
+                my_fprintf(bramp_log_file, "soft: f=%2d e=%4d u=%4d ", fi, (int)roundf(e*100), corr_x100);
+
+                msleep(500);
+            }
         }
     }
 
@@ -4437,13 +4461,15 @@ static void compute_exposure_for_next_shot()
     if (BULB_EXPOSURE_CONTROL_ACTIVE)
     {
         // adjust ISO if needed, and check shutter speed limits
-        bulb_ramping_adjust_iso_180_rule_without_changing_exposure(timer_values[interval_timer_index]);
+        for (int i = 0; i < 5; i++)
+            bulb_ramping_adjust_iso_180_rule_without_changing_exposure(timer_values[interval_timer_index]);
         bulb_shutter_valuef = COERCE(bulb_shutter_valuef, shutter_min, shutter_max);
         
         // set Canon shutter speed close to bulb one (just for display)
         lens_set_rawshutter(shutterf_to_raw(bulb_shutter_valuef));
 
-        my_fprintf(bramp_log_file, "shutter=%6dms iso=%4d\n", BULB_SHUTTER_VALUE_MS, lens_info.iso);
+        int shutter = (int)roundf(bulb_shutter_valuef * 100000.0f);
+        my_fprintf(bramp_log_file, "shutter=%3d.%05ds iso=%4d\n", shutter/100000, shutter%100000, lens_info.iso);
     }
         
     if (mf_steps && !is_manual_focus())
@@ -4493,7 +4519,7 @@ static void bulb_ramping_showinfo()
         bramp_plot_luma_ev_point(bramp_measured_level, COLOR_RED);
         bramp_plot_luma_ev_point(bramp_reference_level, COLOR_BLUE);
         
-        if (LRT_HOLY_GRAIL)
+        if (BRAMP_LRT_HOLY_GRAIL)
             bramp_plot_holy_grail_hysteresis(bramp_reference_level);
     }
 }
@@ -4937,9 +4963,8 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Auto ExpoRamp\b",
                 .priv       = &bramp_auto_exposure,
-                .max = 5,
-                .choices = (const char *[]) {"OFF", "Sunset", "Sunrise", "Auto", "LRT Holy Grail 1EV", "LRT Holy Grail 2EV"},
-                .help = "Auto exposure ramping (Tv+ISO) for day<->night timelapse.",
+                .display = bramp_ramp_algo_print,
+                .max = 3,
                 .icon_type = IT_DICE_OFF,
             },
             /*{
@@ -4951,7 +4976,7 @@ static struct menu_entry shoot_menus[] = {
                 .display = bramp_auto_smooth_print,
                 .help = "For auto ramping. Higher = less flicker, slower ramping."
             },*/
-            {
+            /*{
                 .name = "MAX RampSpeed",
                 .priv       = &bramp_auto_ramp_speed,
                 .max = 1000,
@@ -4959,7 +4984,7 @@ static struct menu_entry shoot_menus[] = {
                 .select = bramp_auto_ramp_speed_toggle,
                 .display = bramp_auto_ramp_speed_print,
                 .help = "For auto ramp. Lower: less flicker. Too low: 2EV exp jumps.",
-            },
+            },*/
             /*
             {
                 .name = "LRT Holy Grail   ",
@@ -6040,7 +6065,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
 
 #ifdef CONFIG_BULB
         // then choose the best option (bulb for long exposures, regular for short exposures)
-        if (msc >= 10000 || (BULB_EXPOSURE_CONTROL_ACTIVE && msc > BULB_MIN_EXPOSURE && !LRT_HOLY_GRAIL))
+        if (msc >= 10000 || (BULB_EXPOSURE_CONTROL_ACTIVE && msc > BULB_MIN_EXPOSURE && !BRAMP_LRT_HOLY_GRAIL))
         {
             bulb_take_pic(msc);
             #ifdef FEATURE_BULB_RAMPING
