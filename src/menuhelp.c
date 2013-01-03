@@ -42,9 +42,9 @@ draw_beta_warning()
     if (page_number_active) draw_page_number(1);
 
 //    bmp_printf(FONT_LARGE, 360 - font_large.width * 6, 50, "Magic Lantern");
-	char ml[13];
-	snprintf(ml, sizeof(ml), "Magic Lantern");
-	bfnt_puts(ml, 242, 53, COLOR_FG_NONLV, COLOR_BG);
+    char ml[13];
+    snprintf(ml, sizeof(ml), "Magic Lantern");
+    bfnt_puts(ml, 242, 53, COLOR_FG_NONLV, COLOR_BG);
 
        
     bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
@@ -115,36 +115,36 @@ void menu_help_show_page(int page)
     snprintf(rpath, sizeof(rpath), CARD_DRIVE "ML/doc/page-%03d.vrm", page);
     if (load_vram(rpath)==-1)
     {
-		snprintf(path, sizeof(path), CARD_DRIVE "ML/doc/page-%03d.bmh", page);
-		doc = bmp_load(path, 1);
-		if (!doc)
-		{
-			snprintf(path, sizeof(path), CARD_DRIVE "ML/doc/page-%03d.bmp", page);
-			doc = bmp_load(path, 1);
-		}
+        snprintf(path, sizeof(path), CARD_DRIVE "ML/doc/page-%03d.bmh", page);
+        doc = bmp_load(path, 1);
+        if (!doc)
+        {
+            snprintf(path, sizeof(path), CARD_DRIVE "ML/doc/page-%03d.bmp", page);
+            doc = bmp_load(path, 1);
+        }
 
-		if (doc)
-		{
-			bmp_draw_scaled_ex(doc, 0, 0, 720, 480, 0);
+        if (doc)
+        {
+            bmp_draw_scaled_ex(doc, 0, 0, 720, 480, 0);
 
             extern int _bmp_draw_should_stop;
-			if (!_bmp_draw_should_stop) save_vram(rpath);
-			FreeMemory(doc);
-		}
-		else
-		{
-			clrscr();
-			bmp_printf(FONT_MED, 0, 0, "Could not load help page %s.", path);
-		}
-	}
-	if (page_number_active==1) draw_page_number(page);
+            if (!_bmp_draw_should_stop) save_vram(rpath);
+            FreeMemory(doc);
+        }
+        else
+        {
+            clrscr();
+            bmp_printf(FONT_MED, 0, 0, "Could not load help page %s.", path);
+        }
+    }
+    if (page_number_active==1) draw_page_number(page);
 }
 
 void draw_page_number(int page)
 {
-	char pg[3];
-	snprintf(pg, sizeof(pg), "%3d", page);
-	bfnt_puts(pg, 650+(page<10 ? 14 : page<100 ? 4 : 0) , 2, COLOR_FG_NONLV, COLOR_BG);
+    char pg[3];
+    snprintf(pg, sizeof(pg), "%3d", page);
+    bfnt_puts(pg, 650+(page<10 ? 14 : page<100 ? 4 : 0) , 2, COLOR_FG_NONLV, COLOR_BG);
 
 }
 

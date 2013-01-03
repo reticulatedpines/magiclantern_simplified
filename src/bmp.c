@@ -1491,7 +1491,7 @@ int bfnt_draw_char_half(int c, int px, int py, int fg, int bg, int g1, int g2)
 
 int bfnt_puts(char* s, int x, int y, int fg, int bg)
 {
-	int ox=x;
+    int ox=x;
     while (*s)
     {
         x += bfnt_draw_char(*s, x, y, fg, bg);
@@ -1660,16 +1660,16 @@ void save_vram(const char * filename)
     uint8_t* b = (uint8_t *)bmp_vram();
     ASSERT(b);
     if (!b) return;
-	
-	FILE * file = FIO_CreateFile( filename );
-	if( file == INVALID_PTR )
-		return;
-	else	
+    
+    FILE * file = FIO_CreateFile( filename );
+    if( file == INVALID_PTR )
+        return;
+    else    
     {
-	FIO_WriteFile(file, b, BMP_VRAM_SIZE);
+    FIO_WriteFile(file, b, BMP_VRAM_SIZE);
 
-	FIO_CloseFile( file );
-	}
+    FIO_CloseFile( file );
+    }
 }
 
 int load_vram(const char * filename)
@@ -1677,11 +1677,11 @@ int load_vram(const char * filename)
     uint8_t* b = (uint8_t *)bmp_vram();
     ASSERT(b);
     if (!b) return -1;
-	
+    
     unsigned size;
     if( FIO_GetFileSize( filename, &size ) != 0 )
         return -1; 
-	return read_file(filename, b, size);
+    return read_file(filename, b, size);
 }
 
 
