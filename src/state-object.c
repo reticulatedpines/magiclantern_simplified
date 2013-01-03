@@ -13,7 +13,8 @@
 #ifdef CONFIG_STATE_OBJECT_HOOKS
 
 #ifdef CONFIG_7D
-#include "cache_hacks.h"
+//#include "cache_hacks.h"
+#define LV_STATE (*(struct state_object **)0x4458)
 #endif
 
 #ifdef CONFIG_550D
@@ -63,10 +64,6 @@
 
 #ifdef CONFIG_EOSM
 #define EVF_STATE (*(struct state_object **)0x40944)
-#endif
-
-#ifdef CONFIG_5D3
-#define EVF_STATE (*(struct state_object**)0x2600C)
 #endif
 
 #ifdef CONFIG_6D
@@ -192,7 +189,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
     if (self == LV_STATE && input==4 && old_state==4) // AJ_ResetPSave_n_WB_n_LVREC_MVR_EV_EXPOSURESTARTED => perfect sync for digic on 5D2 :)
-    #elif defined(CONFIG_550D)
+    #elif defined(CONFIG_550D) || defined(CONFIG_7D)
     if (self == LV_STATE && input==5 && old_state == 5) // SYNC_GetEngineResource => perfect sync for digic :)
     #elif defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt => perfect sync for digic :)
