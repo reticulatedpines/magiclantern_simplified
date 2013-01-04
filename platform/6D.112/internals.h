@@ -50,7 +50,7 @@
 //~ #define CONFIG_VARIANGLE_DISPLAY
 
 /** Battery does not report exact percentage (I doubt) **/
-//#define CONFIG_BATTERY_INFO
+#define CONFIG_BATTERY_INFO
 
 /** We can do bulb exposures (well, I hope) **/
 #define CONFIG_BULB
