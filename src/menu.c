@@ -586,23 +586,19 @@ void menu_fixup_pic(struct menu_entry * new_entry, int count)
         
         if(main_ptr->choices)
         {
-            char *choices = main_ptr->choices;
-            
-            for(int pos = 0; pos < main_ptr->max; pos++)
+            for(int pos = 0; pos <= main_ptr->max; pos++)
             {
-                choices[pos] = PIC_RESOLVE(choices[pos]);
+                main_ptr->choices[pos] = PIC_RESOLVE(main_ptr->choices[pos]);
             }
         }   
         
         if(main_ptr->children)
         {
-            struct menu_entry *submenu = main_ptr->children;
             int entries = 0;
             
-            while(submenu->priv != MENU_EOL_PRIV)
+            while(main_ptr->children[entries].priv != MENU_EOL_PRIV)
             {
                 entries++;
-                submenu++;
             }
             
             menu_fixup_pic(main_ptr->children, entries);
