@@ -12,14 +12,12 @@
 #endif
 #include <version.h>
 
-/* NOTE: this 2 #define be put in consts.h of each camera supporting that and maybe adjusted */
-#if !defined(CONFIG_600D) || !defined(CONFIG_7D)
-    // Audio remote shot position info photo mode
-    #define AUDIO_REM_SHOT_POS_X 20
-    #define AUDIO_REM_SHOT_POS_Y 40
+#ifndef AUDIO_REM_SHOT_POS_X
+#define AUDIO_REM_SHOT_POS_X 20
 #endif
-/* NOTE: this should be put in consts.h of each camera supporting that and maybe adjusted */
-
+#ifndef AUDIO_REM_SHOT_POS_Y
+#define AUDIO_REM_SHOT_POS_Y 40
+#endif
 
 static void double_buffering_start(int ytop, int height)
 {
