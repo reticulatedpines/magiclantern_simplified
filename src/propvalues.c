@@ -163,14 +163,14 @@ int auto_iso_range = 0x4868; // no auto ISO in Canon menus; considering it fixed
 volatile PROP_INT(PROP_AUTO_ISO_RANGE, auto_iso_range);
 #endif
 
-char artist_name[63]="                                                               ";
+char artist_name[64]="                                                               ";
 PROP_HANDLER( PROP_ARTIST_STRING )
 {
     if( len > sizeof(artist_name) ) len = sizeof(artist_name);
     memcpy( artist_name, buf, len );
 }
 
-char copyright_info[63]="                                                               ";
+char copyright_info[64]="                                                               ";
 PROP_HANDLER( PROP_COPYRIGHT_STRING )
 {
     if( len > sizeof(copyright_info) ) len = sizeof(copyright_info);
