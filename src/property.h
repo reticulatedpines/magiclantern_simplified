@@ -117,7 +117,9 @@
 #define PROP_SHUTTER_ALSO       0x8000002c
 #define PROP_APERTURE           0x80000006
 #define PROP_ISO                        0x80000007
+#ifndef CONFIG_NO_AUTO_ISO
 #define PROP_AUTO_ISO_RANGE     0x8000003b // len=2, LSB is max iso, MSB is min iso (ignored?)
+#endif
 #define PROP_AE                         0x80000008 // signed 8-bit value
 #define PROP_UILOCK                     0x8000000b // maybe?
 #define PROP_ISO_AUTO           0x8000002E // computed by AUTO ISO if PROP_ISO is 0; otherwise, equal to PROP_ISO; in movie mode, is 0 unless you half-press shutter
