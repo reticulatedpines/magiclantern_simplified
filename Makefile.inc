@@ -580,7 +580,9 @@ DEPS  := $(COBJS:.o=.d)
 	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
 %: %.c
 	$(call build,LD,$(CC) $(CFLAGS) -o $@ $<)
-%.o: %.S
+%.o: $(SRC_DIR)/%.S
+	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
+%.o: $(PLATFORM_DIR)/%.S
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 %.bin: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)

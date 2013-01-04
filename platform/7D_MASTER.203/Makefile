@@ -11,6 +11,9 @@ ML_VERSION=unified1
 
 CONFIG_NO_PTP=y
 
+# compile position independent (experimental, not working yet)
+CONFIG_PIC=n
+
 #used in CFLAGS
 PLATFORM_INC=.
 
@@ -21,7 +24,7 @@ PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 # menu.o and debug.o must come before the modules
 ML_OBJS-y = \
 	magiclantern.lds \
-	$(SRC_DIR)/entry.o \
+	entry.o \
 	master_boot.o \
 	stubs.o \
 	gdb.o \
@@ -32,14 +35,19 @@ ML_OBJS-y = \
 #TOP_DIR defined in upper Makefile
 include ../../Makefile.inc
 
-#FLAGS += -fPIC -DPOSITION_INDEPENDENT
-
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR     = 0xFF810000
-RESTARTSTART    = 0xC80100
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120
+
+ifeq ($(CONFIG_PIC), y)
+FLAGS += -fPIC -DPOSITION_INDEPENDENT
+RESTARTSTART = 0xE0000000
+else
+RESTARTSTART = 0xC80100
+endif
+
 
 all: autoexec.bin
