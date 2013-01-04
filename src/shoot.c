@@ -537,27 +537,6 @@ static int get_smooth_factor_from_max_ev_speed(int speed_x1000)
     return COERCE(fi, 1, 99);
 }
 
-static void bramp_ramp_algo_print( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "Auto ExpoRamp: %s",
-        bramp_auto_exposure == 0 ? "OFF" :
-        bramp_auto_exposure == 1 ? "Smooth ramping" :
-        bramp_auto_exposure == 2 ? "LRT Holy Grail 1EV" : "err"
-    );
-    bmp_printf(
-        FONT_MED,
-        10, 453,
-        "%s",
-        bramp_auto_exposure == 0 ? "Choose the algorithm for automatic bulb ramping.          " :
-        bramp_auto_exposure == 1 ? "Feedback loop. Works best with expos longer than 1 second." :
-        bramp_auto_exposure == 2 ? "Expo is adjusted in 1EV integer steps. vimeo.com/26083323 " : "err"
-    );
-}
-
-
 static void manual_expo_ramp_print( void * priv, int x, int y, int selected )
 {
     int evx1000 = (int)bramp_manual_speed_evx1000_per_shot - 1000;
@@ -4957,9 +4936,12 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Auto ExpoRamp\b",
                 .priv       = &bramp_auto_exposure,
-                .display = bramp_ramp_algo_print,
                 .max = 2,
                 .icon_type = IT_DICE_OFF,
+                .choices = (const char *[]) {"OFF", "Smooth ramping", "LRT Holy Grail 1EV"},
+                .help = "Choose the algorithm for automatic bulb ramping.\n"
+                        "Feedback loop. Works best with expos longer than 1 second.\n"
+                        "Expo is adjusted in 1EV integer steps. vimeo.com/26083323",
             },
             /*{
                 .name = "Smooth Factor\b",
@@ -5188,12 +5170,13 @@ static struct menu_entry shoot_menus[] = {
                 .select = mlu_toggle_mode,
                 #ifdef FEATURE_MLU_HANDHELD
                 .max = 2,
-                .help = "Always ON (press twice), Self-timer, Handheld (press once).",
                 #else
                 .max = 1,
-                .help = "Always ON (press shutter twice) or Self-timer (press once).",
                 #endif
                 .choices = (const char *[]) {"Always ON", "Self-Timer", "Handheld"},
+                .help = "Always ON: just the Canon mode, press shutter twice.\n"
+                        "Self-Timer: MLU setting will be linked to Canon self-timer.\n"
+                        "Handheld: trick to reduce camera shake. Press shutter once.",
             },
             #ifdef FEATURE_MLU_HANDHELD
             {

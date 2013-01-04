@@ -1071,6 +1071,45 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
     #endif
 }
 
+// if the help text contains more lines (separated by '\n'), display the line indicated by "priv" field
+// if *priv is too high, display the first line
+
+
+static char* menu_help_get_line(char* help, void* priv)
+{
+    char * p = strchr(help, '\n');
+    if (!p) return help; // help text contains a single line, no more fuss
+
+    // help text contains more than one line, choose the i'th one
+    static char buf[70];
+    int i = 0;
+    if (priv) i = *(int*)priv;
+    if (i < 0) i = 0;
+    
+    char* start = help;
+    char* end = p;
+    
+    while (i > 0) // we need to skip some lines
+    {
+        if (*end == 0) // too many lines skipped? fall back to first line
+        {
+            start = help;
+            end = p;
+            break;
+        }
+        
+        // there are more lines, skip to next one
+        start = end + 1;
+        end = strchr(start+1, '\n');
+        if (!end) end = help + strlen(help);
+        i--;
+    }
+    
+    // return the substring from "start" to "end"
+    int len = MIN(sizeof(buf) - 1, end - start);
+    snprintf(buf, len, "%s", start);
+    return buf;
+}
 
 static void
 menu_display(
@@ -1116,7 +1155,7 @@ menu_display(
                 bmp_printf(
                     FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
                      10,  MENU_HELP_Y_POS, 
-                    menu->help
+                    menu_help_get_line(menu->help, menu->priv)
                 );
             }
 
