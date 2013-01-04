@@ -163,7 +163,7 @@ int handle_common_events_by_feature(struct event * event)
     // common to most cameras
     // there may be exceptions
 
-#ifdef FEATURE_CONFIG_SAVE
+#ifdef FEATURE_POWERSAVE_LIVEVIEW
     // these are required for correct shutdown from powersave mode
     if (event->param == GMT_GUICMD_START_AS_CHECK || 
         event->param == GMT_GUICMD_OPEN_SLOT_COVER || 
@@ -173,9 +173,7 @@ int handle_common_events_by_feature(struct event * event)
         config_save_at_shutdown();
         return 1;
     }
-#endif
 
-#ifdef FEATURE_POWERSAVE_LIVEVIEW
     if (LV_PAUSED && event->param != GMT_OLC_INFO_CHANGED) 
     { 
         int ans = (ml_shutdown_requested || pre_shutdown_requested || sensor_cleaning);
