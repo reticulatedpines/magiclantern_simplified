@@ -10,7 +10,6 @@ UPDATE_NAME=7D_203.fir
 ML_VERSION=unified1 
 
 CONFIG_NO_PTP=y
-CFLAGS += -DCONFIG_AUTOBACKUP_ROM
 
 #used in CFLAGS
 PLATFORM_INC=.
@@ -32,6 +31,8 @@ ML_OBJS-y = \
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
 include ../../Makefile.inc
+
+#FLAGS += -fPIC -DPOSITION_INDEPENDENT
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss

@@ -28,4 +28,53 @@
 .org 0
 .globl _start
 _start:
+
+#if defined(POSITION_INDEPENDENT)
+    /* get the load offset */
+    SUB  R6, PC, #0x08
+    /* build our pseudo base to detect if ML code is referenced */
+    MOV  R4, #0xE0
+    MOV  R5, R4, LSL#24
+    /* calculate absolute GOT address and size */
+    ADR  R2, _got_start_addr
+    ADR  R3, _got_end_addr
+    SUB  R3, R3, R2
+    SUB  R2, R2, R5
+    ADD  R2, R2, R6
+    
+    /* now we have:
+        R2 GOT address
+        R3 GOT size
+        R4 pseudo base LSR#24
+        R5 pseudo base
+        R6 load offset
+    */
+    
+_got_fix:
+    /* no more entries? */
+    CMP R3, #0
+	BEQ _continue_start
+    
+    /* decrease index register and get GOT entry */
+    SUB R3, R3, #0x04
+    LDR R0, [R2, R3]
+    
+    /* is it in ML memory? */
+    MOV R1, R0, LSR#24
+    CMP R1, R4
+    BNE _got_fix
+    
+    /* yes, fixup by removing pseudo base and adding real base */
+    SUB R0, R0, R5
+    ADD R0, R0, R6
+    STR R0, [R2, R3]
+    B   _got_fix    
+    
+_got_start_addr:
+    .word _got_start
+_got_end_addr:
+    .word _got_end
+_continue_start:
+#endif
+
 	B	copy_and_restart
