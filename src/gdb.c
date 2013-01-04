@@ -77,10 +77,12 @@ void (*orig_post_isr_hook) (uint32_t) = 0;
 #endif
 
 
+extern uint32_t gdb_undef_stack;
+void gdb_undef_handler(void);
+
+#if defined(CONFIG_GDBSTUB)
 void gdb_task_stall(void);
 void gdb_task_resume(void);
-void gdb_undef_handler(void);
-extern uint32_t gdb_undef_stack;
 
 asm(
     ".globl gdb_task_stall\n"
@@ -100,7 +102,10 @@ asm(
     "gdb_task_stall_lockup:\n"
     "B       gdb_task_stall_lockup\n"
     
+);
+#endif
     
+asm(
     ".globl gdb_undef_handler\n"
     "gdb_undef_handler:\n"
 
@@ -169,7 +174,6 @@ asm(
     "gdb_undef_stack:\n"
     ".word 0x00000000\n"
 );
-
 
 uint32_t gdb_strlen(char *str)
 {
@@ -640,6 +644,7 @@ breakpoint_t * gdb_add_bkpt(uint32_t address, uint32_t flags)
 */
 void gdb_exception_handler(uint32_t *ctx)
 {
+#if defined(CONFIG_GDBSTUB)
     /* was this the "resume" breakpoint in stall function? */
     if(ctx[15] == ((uint32_t)&gdb_task_resume))
     {
@@ -698,6 +703,7 @@ void gdb_exception_handler(uint32_t *ctx)
         /* this task should run now again at the position where it stopped. hopefully. */
     }
     else
+#endif
     {
         breakpoint_t *bkpt = gdb_find_bkpt(ctx[15]);
 
@@ -736,6 +742,7 @@ void gdb_exception_handler(uint32_t *ctx)
                 gdb_arm_bkpt(link);
             }
         }
+#if defined(CONFIG_GDBSTUB)
         else
         {
             gdb_exceptions_handled += 0x0001;
@@ -779,6 +786,7 @@ void gdb_exception_handler(uint32_t *ctx)
             ctx[13] = (uint32_t)&(bkpt->tempStack[GDB_STALL_STACK_SIZE]);
             ctx[15] = (uint32_t)&gdb_task_stall;
         }
+#endif
     }
 }
 
