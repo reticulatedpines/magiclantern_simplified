@@ -303,7 +303,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_disp_preset_key(event) == 0) return 0;
     #endif
     
-    #ifdef FEATURE_QUICK_ZOOM
+    #if defined(FEATURE_QUICK_ZOOM) || defined(FEATURE_REMEMBER_LAST_ZOOM_POS_5D3)
     if (handle_fast_zoom_in_play_mode(event) == 0) return 0;
     #endif
     

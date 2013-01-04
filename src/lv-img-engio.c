@@ -611,6 +611,7 @@ static struct menu_entry lv_img_menu[] = {
                 .max = 2,
                 .choices = (const char *[]) {"OFF", "Weak", "Strong"},
                 .help = "Cartoonish look obtained by emphasizing the edges.",
+                .icon_type = IT_DICE_OFF,
             },
 #if !(defined(CONFIG_600D) || defined(CONFIG_1100D))
             {

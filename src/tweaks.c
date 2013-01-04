@@ -271,6 +271,10 @@ void set_expsim( int x )
 static void
 expsim_toggle( void * priv, int delta)
 {
+    #ifdef CONFIG_7D
+    if (is_movie_mode()) return;
+    #endif
+
     #if !defined(CONFIG_5D2) && !defined(CONFIG_50D)
     int max_expsim = is_movie_mode() ? 2 : 1;
     #else
@@ -302,15 +306,20 @@ expsim_toggle( void * priv, int delta)
 static void
 expsim_display( void * priv, int x, int y, int selected )
 {
+    int e = expsim;
+    #ifdef CONFIG_7D
+    if (is_movie_mode()) e = 2;
+    #endif
+    
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "LV Display  : %s",
-        expsim == 0 ? "Photo, no ExpSim" :
-        expsim == 1 ? "Photo, ExpSim" :
-        /*expsim == 2 ?*/ "Movie" 
+        e == 0 ? "Photo, no ExpSim" :
+        e == 1 ? "Photo, ExpSim" :
+        /*e == 2 ?*/ "Movie" 
     );
-    if (CONTROL_BV && expsim<2) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
+    if (CONTROL_BV && e<2) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
     //~ else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
 }
 #endif
@@ -1195,7 +1204,7 @@ int handle_fast_zoom_box(struct event * event)
     return 1;
 }
 
-#ifdef FEATURE_QUICK_ZOOM
+#if defined(FEATURE_QUICK_ZOOM) || defined(FEATURE_REMEMBER_LAST_ZOOM_POS_5D3)
 
 static int quickzoom_pressed = 0;
 static int quickzoom_unpressed = 0;
@@ -1323,7 +1332,7 @@ tweak_task( void* unused)
         
         movtweak_step();
 
-        #if defined(CONFIG_5D3) && !defined(CONFIG_5D3_MINIMAL) // not reliable
+        #ifdef FEATURE_ZOOM_TRICK_5D3 // not reliable
         zoom_trick_step();
         #endif
 
@@ -2028,47 +2037,47 @@ void display_shortcut_key_hints_lv()
         bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "    ");
         bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "    ");
         bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), x0 - font_med.width*3, y0       - font_med.height/2,"      ");
-
+        
         if (!should_draw_zoom_overlay())
             crop_set_dirty(20);
     }
-
+    
     if (mode == 1)
     {
-        #ifdef FEATURE_ANALOG_GAIN
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-RecVol");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "RecVol+");
-        #endif
-        #ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "OutVol+");
-        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-OutVol");
-        #endif
-        #ifdef FEATURE_INPUT_SOURCE
+#ifdef FEATURE_ANALOG_GAIN
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Rec");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "Rec+");
+#endif
+#ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Out+");
+        bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Out");
+#endif
+#ifdef FEATURE_INPUT_SOURCE
         if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "Input");
-        #endif
+#endif
     }
     else if (mode == 2)
     {
-        #ifdef FEATURE_EXPO_ISO
+#ifdef FEATURE_EXPO_ISO
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-ISO");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, "ISO+");
-        #endif
-        #ifdef FEATURE_WHITE_BALANCE
+#endif
+#ifdef FEATURE_WHITE_BALANCE
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, "Kel+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Kel");
         if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3,       y0 - font_med.height/2, "PushWB");
-        #endif
+#endif
     }
     else if (mode == 3)
     {
-        #ifdef FEATURE_EXPO_SHUTTER
+#ifdef FEATURE_EXPO_SHUTTER
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - 150 - font_med.width*2, y0 - font_med.height/2, "-Tv ");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 + 150 - font_med.width*2, y0 - font_med.height/2, " Tv+");
-        #endif
-        #ifdef FEATURE_EXPO_APERTURE
+#endif
+#ifdef FEATURE_EXPO_APERTURE
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 - 100 - font_med.height/2, " Av+");
         bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*2, y0 + 100 - font_med.height/2, "-Av ");
-        #endif
+#endif
         if (arrow_keys_use_set && !recording) bmp_printf(SHADOW_FONT(FONT_MED), x0 - font_med.width*3, y0       - font_med.height/2, "180deg");
     }
     else if (mode == 4)
@@ -2081,15 +2090,15 @@ void display_shortcut_key_hints_lv()
     }
     else if (mode == 10)
     {
-        #ifdef FEATURE_FOLLOW_FOCUS
-            const int xf = x0;
-            const int yf = y0;
-            const int xs = 150;
-            bmp_printf(SHADOW_FONT(FONT_MED), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? " +FF" : " -FF");
-            bmp_printf(SHADOW_FONT(FONT_MED), xf + xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
-            bmp_printf(SHADOW_FONT(FONT_MED), xf - font_med.width*2, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
-            bmp_printf(SHADOW_FONT(FONT_MED), xf - font_med.width*2, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
-        #endif
+#ifdef FEATURE_FOLLOW_FOCUS
+        const int xf = x0;
+        const int yf = y0;
+        const int xs = 150;
+        bmp_printf(SHADOW_FONT(FONT_MED), xf - xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? " +FF" : " -FF");
+        bmp_printf(SHADOW_FONT(FONT_MED), xf + xs - font_med.width*2, yf - font_med.height/2, get_follow_focus_dir_h() > 0 ? "FF- " : "FF+ ");
+        bmp_printf(SHADOW_FONT(FONT_MED), xf - font_med.width*2, yf - 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF++" : "FF--");
+        bmp_printf(SHADOW_FONT(FONT_MED), xf - font_med.width*2, yf + 100 - font_med.height/2, get_follow_focus_dir_v() > 0 ? "FF--" : "FF++");
+#endif
     }
 
     old_mode = mode;
@@ -2108,6 +2117,8 @@ CONFIG_INT("zoom.trick", zoom_trick, 0);
 
 static int countdown_for_unknown_button = 0;
 static int timestamp_for_unknown_button = 0;
+static int numclicks_for_unknown_button = 0;
+
 void zoom_trick_step()
 {
     if (!zoom_trick) return;
@@ -2126,15 +2137,19 @@ void zoom_trick_step()
     if (lv && !liveview_display_idle())
     {
         timestamp_for_unknown_button = 0;
+        numclicks_for_unknown_button = 0;
         return;
     }
 
     if (!timestamp_for_unknown_button) return;
     
-    if (current_timestamp - timestamp_for_unknown_button >= 300)
+    if ((lv && current_timestamp - timestamp_for_unknown_button >= 300 && numclicks_for_unknown_button == 2) ||
+        //~ (PLAY_MODE && is_pure_play_photo_mode() && current_timestamp - timestamp_for_unknown_button >= 100) ||
+        (PLAY_OR_QR_MODE && current_timestamp - timestamp_for_unknown_button >= 100))
     {
         fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
         timestamp_for_unknown_button = 0;
+        numclicks_for_unknown_button = 0;
     }
 }
 
@@ -2151,13 +2166,19 @@ int handle_zoom_trick_event(struct event * event)
     {
         if (!countdown_for_unknown_button)
         {
-            timestamp_for_unknown_button = get_ms_clock_value();
+            int t = get_ms_clock_value();
+            if (t - timestamp_for_unknown_button > 500)
+                numclicks_for_unknown_button = 0;
+            
+            timestamp_for_unknown_button = t;
+            numclicks_for_unknown_button++;
         }
     }
     else
     {
         timestamp_for_unknown_button = 0;
         countdown_for_unknown_button = 2;
+        numclicks_for_unknown_button = 0;
     }
     return 1;
 }
@@ -2284,7 +2305,7 @@ static struct menu_entry key_menus[] = {
                 .name = "Snap points\b\b",
                 .priv = &focus_box_lv_jump,
                 .max = 4,
-                .icon_type = IT_BOOL,
+                .icon_type = IT_DICE_OFF,
                 .choices = (const char *[]) {"Center (OFF)", "Center/Top/Right", "Center/T/R/B/L", "Center/TL/TR/BR/BL", "Center + 8 pts"},
                 .help = "Snap the focus box to preset points (press CENTER key)",
             },
@@ -2359,7 +2380,7 @@ static struct menu_entry key_menus[] = {
                 .name = "Header left",
                 .priv       = &header_left_info,
                 .max = 5,
-                .icon_type = IT_DICE,
+                .icon_type = IT_DICE_OFF,
                 .display = header_left_display,
                 .help = "What info do you want to display at the top left corner",
             },
@@ -2367,7 +2388,7 @@ static struct menu_entry key_menus[] = {
                 .name = "Header right",
                 .priv       = &header_right_info,
                 .max = 5,
-                .icon_type = IT_DICE,
+                .icon_type = IT_DICE_OFF,
                 .display = header_right_display,
                 .help = "What info do you want to display at the top right corner",
             },
@@ -2375,7 +2396,7 @@ static struct menu_entry key_menus[] = {
                 .name = "Footer left",
                 .priv       = &footer_left_info,
                 .max = 5,
-                .icon_type = IT_DICE,
+                .icon_type = IT_DICE_OFF,
                 .display = footer_left_display,
                 .help = "What info do you want to display at the bottom left corner",
             },
@@ -2383,7 +2404,7 @@ static struct menu_entry key_menus[] = {
                 .name = "Footer right",
                 .priv       = &footer_right_info,
                 .max = 5,
-                .icon_type = IT_DICE,
+                .icon_type = IT_DICE_OFF,
                 .display = footer_right_display,
                 .help = "What info do you want to display at the bottom right corner",
             },
@@ -2462,7 +2483,7 @@ static struct menu_entry tweak_menus[] = {
                 .name = "Mode warning   ",
                 .priv = &warn_mode,
                 .max = 4,
-                .icon_type = IT_DICE,
+                .icon_type = IT_DICE_OFF,
                 .choices = (const char *[]) {"OFF", "other than P", "other than Tv", "other than Av", "other than M"},
                 .help = "Warn if you turn the mode dial to some other position.",
             },
@@ -2966,7 +2987,7 @@ void brightness_saturation_reset()
 
 #ifdef FEATURE_COLOR_SCHEME
 
-void alter_bitmap_palette_entry(int color, int base_color, int scale_factor)
+void alter_bitmap_palette_entry(int color, int base_color, int luma_scale_factor, int chroma_scale_factor)
 {
 #ifndef CONFIG_VXWORKS
     extern int LCD_Palette[];
@@ -2976,9 +2997,9 @@ void alter_bitmap_palette_entry(int color, int base_color, int scale_factor)
     int8_t  orig_u = (orig_palette_entry >>  8) & 0xFF;
     int8_t  orig_v = (orig_palette_entry >>  0) & 0xFF;
 
-    int y = (int)orig_y * scale_factor / 256;
-    int u = (int)orig_u * scale_factor / 256;
-    int v = (int)orig_v * scale_factor / 256;
+    int y = COERCE((int)orig_y * luma_scale_factor / 256, 0, 255);
+    int u = COERCE((int)orig_u * chroma_scale_factor / 256, -127, 127);
+    int v = COERCE((int)orig_v * chroma_scale_factor / 256, -127, 127);
 
     int new_palette_entry =
         ((opacity & 0xFF) << 24) |
@@ -3038,12 +3059,12 @@ void grayscale_menus_step()
     {
         // make the warning text blinking, so beginners will notice it...
         int t = *(uint32_t*)0xC0242014;
-        alter_bitmap_palette_entry(MENU_WARNING_COLOR, COLOR_RED, ABS((t >> 11) - 256));
+        alter_bitmap_palette_entry(MENU_WARNING_COLOR, COLOR_RED, 512 - ABS((t >> 11) - 256), ABS((t >> 11) - 256));
         warning_color_dirty = 1;
     }
     else if (warning_color_dirty)
     {
-        alter_bitmap_palette_entry(MENU_WARNING_COLOR, MENU_WARNING_COLOR, 256);
+        alter_bitmap_palette_entry(MENU_WARNING_COLOR, MENU_WARNING_COLOR, 256, 256);
         warning_color_dirty = 0;
     }
 #endif
@@ -3919,7 +3940,7 @@ struct menu_entry play_menus[] = {
                 .display = quickzoom_display,
                 .help = "Faster zoom in Play mode, for pixel peeping :)",
                 //.essential = FOR_PHOTO,
-                .icon_type = IT_BOOL,
+                .icon_type = IT_DICE_OFF,
             },
             #endif
             #ifdef FEATURE_KEN_ROCKWELL_ZOOM_5D3
@@ -3947,13 +3968,14 @@ struct menu_entry play_menus[] = {
                 #if defined(FEATURE_LV_BUTTON_PROTECT) && defined(FEATURE_LV_BUTTON_RATE)
                 .max = 2,
                 .help = "You may use the LiveView button to Protect or Rate images.",
+                .icon_type = IT_DICE_OFF,
                 #elif defined(FEATURE_LV_BUTTON_PROTECT)
                 .max = 1,
                 .help = "You may use the LiveView button to Protect images quickly.",
+                .icon_type = IT_BOOL,
                 #else
                 #error Hudson, we have a problem!
                 #endif
-                .icon_type = IT_BOOL,
             },
         #endif
             #ifdef FEATURE_QUICK_ERASE

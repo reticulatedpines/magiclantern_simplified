@@ -2200,8 +2200,6 @@ void screenshot_start(void* priv, int delta)
 }
 */
 
-void toggle_draw_event( void * priv, int unused);
-
 #ifdef CONFIG_DEBUGMSG
 static void
 spy_print(
@@ -2214,9 +2212,8 @@ spy_print(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Spy %s/%s/%s (s/p/q)",
+        "Spy %s/%s (s/q)",
         draw_prop ? "PROP" : "prop",
-        get_draw_event() ? "EVT" : "evt", 
         mem_spy ? "MEM" : "mem"
     );
     menu_draw_icon(x, y, MNI_BOOL(draw_prop || get_draw_event() || mem_spy), 0);
@@ -2429,6 +2426,8 @@ extern void peaking_benchmark();
 
 extern int show_cpu_usage_flag;
 
+int draw_event = 0;
+
 struct menu_entry debug_menus[] = {
 #ifdef CONFIG_HEXDUMP
     { 
@@ -2511,7 +2510,6 @@ struct menu_entry debug_menus[] = {
     {
         .name = "Spy prop/evt/mem",
         .select        = draw_prop_select,
-        .select_reverse = toggle_draw_event,
         .select_Q = mem_spy_select,
         .display    = spy_print,
         .help = "Spy properties / events / memory addresses which change."
@@ -2547,7 +2545,7 @@ struct menu_entry debug_menus[] = {
         .name        = "LV dumping",
         .priv = 0x60D8, 
         .max = 6,
-        .icon_type = IT_DICE,
+        .icon_type = IT_DICE_OFF,
         .help = "Silent picture mode: simple, burst, continuous or high-resolution.",
         .choices = (const char *[]) {"Disabled", "A:/.JPEG", "B:/.JPEG", "A:/.422", "B:/.422", "A:/.JPEG/.422", "B:/.JPEG/.422"},
     },
@@ -2737,6 +2735,14 @@ struct menu_entry debug_menus[] = {
         .max = 3,
         .choices = (const char *[]) {"OFF", "Percentage", "Busy tasks (ABS)", "Busy tasks (REL)"},
         .help = "Display total CPU usage (percentage).",
+    },
+#endif
+#ifdef FEATURE_SHOW_GUI_EVENTS
+    {
+        .name = "Show GUI evts",
+        .priv = &draw_event,
+        .max = 1,
+        .help = "Display GUI events (button codes).",
     },
 #endif
 #ifdef FEATURE_GUIMODE_TEST
@@ -3513,26 +3519,20 @@ void config_menu_init()
 
 void spy_event(struct event * event)
 {
-    if (get_draw_event())
+    if (draw_event)
     {
         static int kev = 0;
+        static int y = 250;
         kev++;
-        bmp_printf(FONT_MED, 0, 400, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
+        bmp_printf(FONT_MED, 0, y, "Ev%d: p=%8x *o=%8x/%8x/%8x a=%8x\n                                                           ", 
             kev,
-            event->type, 
             event->param, 
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
             event->arg);
-       /* console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\n", 
-            kev,
-            event->type, 
-            event->param, 
-            event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj)) : 0,
-            event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 4)) : 0,
-            event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 8)) : 0,
-            event->arg);*/
+        y += font_med.height;
+        if (y > 350) y = 250;
     }
 }
 

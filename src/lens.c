@@ -34,7 +34,7 @@
 // for movie logging
 char* mvr_logfile_buffer = 0;
 /* delay to be waited after mirror is locked */
-uint32_t lens_mlu_delay = 10;
+CONFIG_INT("mlu.lens.delay", lens_mlu_delay, 7);
 
 void update_stuff();
 
@@ -647,9 +647,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
       is_lowgain_iso(lens_info.iso) ? COLOR_GREEN2 : COLOR_RED,
       bg);
       
-      extern int hdrv_enabled;
-
-        if (hdrv_enabled && is_movie_mode())
+        if (hdr_video_enabled())
         {
             int iso_low, iso_high;
             hdr_get_iso_range(&iso_low, &iso_high);
@@ -1114,7 +1112,7 @@ void mlu_lock_mirror_if_needed() // called by lens_take_picture
             #else
             call("Release");
             #endif
-            msleep(lens_mlu_delay * 100);
+            msleep(get_mlu_delay(lens_mlu_delay));
         }
     }
     //~ NotifyBox(1000, "MLU locked");
