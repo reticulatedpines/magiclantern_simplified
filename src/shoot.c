@@ -3522,7 +3522,7 @@ bulb_display_submenu( void * priv, int x, int y, int selected )
 #ifdef FEATURE_MLU
 void mlu_selftimer_update()
 {
-    if (MLU_SELF_TIMER && !lv)
+    if (MLU_SELF_TIMER)
     {
         int mlu_auto_value = (drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE) ? 1 : 0;
         int mlu_current_value = get_mlu();
@@ -3539,7 +3539,10 @@ mlu_update()
     if (mlu_mode == 0)
         set_mlu(mlu_auto ? 1 : 0);
     else if (mlu_mode == 1)
-        mlu_selftimer_update();
+    {
+        if (mlu_auto) mlu_selftimer_update();
+        else set_mlu(0);
+    }
     else
         set_mlu(0);
 }
