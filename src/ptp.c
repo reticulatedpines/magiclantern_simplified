@@ -60,12 +60,12 @@ uint32_t ptp_register_all_handlers()
 
 	for( ; handler < _ptp_handlers_end ; handler++ )
 	{
-		//DebugMsg("[ML] PTP_INIT reg: id=0x%08X h=0x%08X p=0x%08X", handler->id, handler->handler, handler->priv);		
-		ret |= ptp_register_handler(
-				handler->id,
-				handler->handler,
-				handler->priv
-				);
+		//DebugMsg("[ML] PTP_INIT reg: id=0x%08X h=0x%08X p=0x%08X", handler->id, handler->handler, handler->priv);	
+        ret |= ptp_register_handler(
+                handler->id,
+                PIC_RESOLVE(handler->handler),
+                PIC_RESOLVE(handler->priv)
+                );
 	}
 
 	return ret;

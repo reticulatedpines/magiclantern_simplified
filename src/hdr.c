@@ -12,9 +12,18 @@
 #include "config.h"
 
 
-CONFIG_INT("hdrv.en", hdrv_enabled, 0);
+static CONFIG_INT("hdrv.en", hdrv_enabled, 0);
 static CONFIG_INT("hdrv.iso.a", hdr_iso_a, 72);
 static CONFIG_INT("hdrv.iso.b", hdr_iso_b, 101);
+
+int hdr_video_enabled()
+{
+    #ifdef FEATURE_HDR_VIDEO
+    return hdrv_enabled && is_movie_mode();
+    #else
+    return 0;
+    #endif
+}
 
 int is_hdr_valid_iso(int iso)
 {
@@ -63,9 +72,6 @@ void hdr_step()
         
     if (recording)
     {
-        #ifdef MOVREC_STATE // sync by Canon frame number
-        frame = MVR_FRAME_NUMBER;
-        #endif
         odd_frame = frame % 2;
     }
     else
@@ -92,13 +98,6 @@ void hdr_kill_flicker()
     static int odd_frame = 0;
     static int frame;
     frame++;
-        
-    if (recording)
-    {
-        #ifdef MOVREC_STATE // sync by Canon frame number
-        frame = MVR_FRAME_NUMBER;
-        #endif
-    }
 
     odd_frame = (get_seconds_clock() / 4) % 2;
  

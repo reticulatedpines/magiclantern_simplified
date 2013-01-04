@@ -41,9 +41,8 @@
 #define BGMT_UNPRESS_RAW_JPEG 0x10
 
 #define BGMT_PICSTYLE 0x14
-#define BGMT_LV 0x16
+#define BGMT_LV 0x18
 #define BGMT_Q 0x17
-#define BGMT_REC 0x18
 
 
 #define BGMT_UNPRESS_UDLR 0x22

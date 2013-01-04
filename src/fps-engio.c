@@ -52,7 +52,6 @@
 
 void SafeEngDrvOut(int reg, int val)
 {
-    info_led_blink(1,50,50);
     if (!lv) return;
     if (!DISPLAY_IS_ON && !recording) return;
     if (lens_info.job_state) return;

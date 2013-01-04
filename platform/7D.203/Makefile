@@ -9,7 +9,8 @@ MODEL=7D
 UPDATE_NAME=7D_203.fir
 ML_VERSION=unified1 
 
-CFLAGS += -DCONFIG_AUTOBACKUP_ROM
+# compile position independent (experimental, not working completely yet)
+CONFIG_PIC=n
 
 #used in CFLAGS
 PLATFORM_INC=.
@@ -21,7 +22,7 @@ PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 # menu.o and debug.o must come before the modules
 ML_OBJS-y = \
 	magiclantern.lds \
-	$(SRC_DIR)/entry.o \
+	entry.o \
 	boot-hack.o \
 	stubs.o \
 	version.o \
@@ -71,7 +72,6 @@ ML_OBJS-y = \
 	ptp-chdk.o \
 	ptpbuf.o \
 	exmem.o \
-	lightsensor.o \
 	vsync-lite.o \
 
 #include generic rules and definitions

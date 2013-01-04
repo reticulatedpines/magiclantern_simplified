@@ -50,7 +50,7 @@
 //~ #define CONFIG_VARIANGLE_DISPLAY
 
 /** Battery does not report exact percentage (I doubt) **/
-//#define CONFIG_BATTERY_INFO
+#define CONFIG_BATTERY_INFO
 
 /** We can do bulb exposures (well, I hope) **/
 #define CONFIG_BULB
@@ -102,3 +102,6 @@
 
 /** No additional_version stub on this DryOS version **/
 #define CONFIG_NO_ADDITIONAL_VERSION
+
+/** Perfect sync using EVF_STATE **/
+#define CONFIG_EVF_STATE_SYNC

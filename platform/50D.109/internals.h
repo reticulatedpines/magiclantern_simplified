@@ -100,3 +100,6 @@
 
 /** Canon drawing code has to be disabled in LiveView, otherwise it will erase all ML graphics **/
 #define CONFIG_KILL_FLICKER
+
+/** No auto ISO in Canon menus **/
+#define CONFIG_NO_AUTO_ISO

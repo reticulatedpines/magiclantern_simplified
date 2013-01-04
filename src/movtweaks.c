@@ -23,6 +23,15 @@
 #define RECNOTIFY_BEEP (rec_notify == 3)
 #endif
 
+#ifdef FEATURE_REC_NOTIFY_BEEP
+    #ifndef CONFIG_BEEP
+    #error This requires CONFIG_BEEP
+    #endif
+#else
+    #undef RECNOTIFY_BEEP
+    #define RECNOTIFY_BEEP 0
+#endif
+
 #endif
 
 #ifdef FEATURE_MOVIE_REC_KEY
@@ -149,23 +158,6 @@ static void movie_cliplen_display(
 #endif
 
 #ifdef FEATURE_MOVIE_REC_KEY
-static void
-movie_rec_key_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Movie REC key : %s ",
-        movie_rec_key == 1 ? "HalfShutter" :
-        movie_rec_key == 2 ? "Long HalfShutter (1s)" :
-        "Default"
-    );
-}
 
 void movie_rec_halfshutter_step()
 {
@@ -252,25 +244,6 @@ CONFIG_INT( "enable-liveview",  enable_liveview,
     1
     #endif
 );
-
-#ifdef FEATURE_FORCE_LIVEVIEW
-static void
-enable_liveview_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Force LiveView: %s",
-        enable_liveview == 1 ? "Start & CPU lenses" : enable_liveview == 2 ? "Always" : "OFF"
-    );
-    menu_draw_icon(x, y, enable_liveview == 1 ? MNI_AUTO : enable_liveview == 2 ? MNI_ON : MNI_OFF, 0);
-}
-#endif
 
 void force_liveview()
 {
@@ -406,8 +379,8 @@ void movtweak_step()
 
     #ifdef FEATURE_MOVIE_RESTART
         static int recording_prev = 0;
-        #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-        if (recording == 0 && recording_prev && !movie_was_stopped_by_set)
+        #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
+        if (recording == 0 && recording_prev && !movie_was_stopped_by_set) // see also gui.c
         #else
         if (recording == 0 && recording_prev && wait_for_lv_err_msg(0))
         #endif
@@ -687,14 +660,12 @@ void rec_notify_continuous(int called_from_menu)
 
 void rec_notify_trigger(int rec)
 {
-#if !defined(CONFIG_5D3)
     if (RECNOTIFY_BEEP)
     {
         extern int ml_started;
         if (rec != 2 && ml_started) { unsafe_beep(); }
         if (!rec) { msleep(200); unsafe_beep(); }
     }
-#endif
 
     if (RECNOTIFY_LED)
     {
@@ -1124,16 +1095,16 @@ static struct menu_entry mov_menus[] = {
         .name = "REC/STBY notify", 
         .priv = &rec_notify, 
         .display = rec_notify_print, 
-        #if defined(CONFIG_BLUE_LED) && defined(CONFIG_BEEP)
+        #if defined(CONFIG_BLUE_LED) && defined(FEATURE_REC_NOTIFY_BEEP)
         .max = 4,
-        #elif defined(CONFIG_BLUE_LED) && !defined(CONFIG_BEEP)
+        #elif defined(CONFIG_BLUE_LED) && !defined(FEATURE_REC_NOTIFY_BEEP)
         .max = 3,
-        #elif !defined(CONFIG_BLUE_LED) && defined(CONFIG_BEEP)
+        #elif !defined(CONFIG_BLUE_LED) && defined(FEATURE_REC_NOTIFY_BEEP)
         .max = 3,
         #else
         .max = 2,
         #endif
-        .icon_type = IT_BOOL,
+        .icon_type = IT_DICE_OFF,
         .help = "Custom REC/STANDBY notifications, visual or audible",
     },
     #endif
@@ -1149,9 +1120,9 @@ static struct menu_entry mov_menus[] = {
     {
         .name = "Movie REC key",
         .priv = &movie_rec_key, 
-        .display = movie_rec_key_print,
         .max = 2,
-        .icon_type = IT_BOOL,
+        .icon_type = IT_DICE_OFF,
+        .choices = (const char *[]) {"OFF", "HalfShutter", "Long HalfSh. (1s)"},
         .help = "Change the button used for recording. Hint: wired remote.",
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
@@ -1171,8 +1142,9 @@ static struct menu_entry mov_menus[] = {
     {
         .name = "Force LiveView",
         .priv = &enable_liveview,
-        .display    = enable_liveview_print,
-        .select     = menu_ternary_toggle,
+        .max = 2,
+        .choices = (const char *[]) {"OFF", "Start & CPU lenses", "Always"},
+        .icon_type = IT_DICE_OFF,
         .help = "Always use LiveView (with manual lens or after lens swap).",
     },
     #endif

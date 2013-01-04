@@ -29,7 +29,11 @@
 
 SECTIONS
 {
+#if defined(POSITION_INDEPENDENT)
+	. = 0xE0000000;
+#else
 	. = RESTARTSTART;
+#endif
 	.text : {
 		_text_start = .;
 		*(.text)
@@ -44,6 +48,12 @@ SECTIONS
 	_data_start = .;
 
 	.data : {
+#if defined(POSITION_INDEPENDENT)
+        . = ALIGN(8);
+        _got_start = .;
+        *(.got);
+        _got_end = .;
+#endif
 		/* List of DryOS tasks to be over-ridden */
 		. = ALIGN(8);
 		_task_overrides_start = .;

@@ -106,3 +106,6 @@
 /** Touchscreen support **/
 // Needs more hacking, I'll fix it once i get the EOSM - nanomad
 //~ #define CONFIG_TOUCHSCREEN
+
+/** Perfect sync using EVF_STATE **/
+#define CONFIG_EVF_STATE_SYNC

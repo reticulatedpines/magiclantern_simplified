@@ -67,8 +67,8 @@
 #define GMT_FUNCTABLE 0xff51193c
 #define GMT_IDLEHANDLER_TASK (*(int*)0x17084) // dec create_idleHandler_task
 
- #define SENSOR_RES_X 4752
- #define SENSOR_RES_Y 3168
+ #define SENSOR_RES_X 5184
+ #define SENSOR_RES_Y 3456
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x93D4) == 0xF))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x93D4) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x93D4) = *(arg2)
