@@ -3572,9 +3572,9 @@ mlu_display( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Mirror Lockup   : %s",
-        MLU_SELF_TIMER ? "Self-timer only"
+        MLU_SELF_TIMER ? (get_mlu() ? "Self-timer (ON)" : "Self-timer (OFF)")
         : MLU_HANDHELD ? (mlu_handheld_shutter ? "HandH, 1/2-1/125" : "Handheld")
-        : get_mlu() ? "ON, CableRelease" : "OFF"
+        : get_mlu() ? "ON" : "OFF"
     );
     if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Mirror Lockup does not work in LiveView");
     else menu_draw_icon(x, y, mlu_auto ? MNI_AUTO : MNI_BOOL(get_mlu()), 0);
@@ -5184,14 +5184,22 @@ static struct menu_entry shoot_menus[] = {
                 .select = mlu_toggle_mode,
                 #ifdef FEATURE_MLU_HANDHELD
                 .max = 2,
-                .help = "Cable Rel (press twice), Self-timer, Handheld (press once).",
+                .help = "Always ON (press twice), Self-timer, Handheld (press once).",
                 #else
                 .max = 1,
-                .help = "Cable Release (press twice), or Self-timer (press once).",
+                .help = "Always ON (press shutter twice) or Self-timer (press once).",
                 #endif
-                .choices = (const char *[]) {"Cable Release", "Self-Timer", "Handheld"},
+                .choices = (const char *[]) {"Always ON", "Self-Timer", "Handheld"},
             },
             #ifdef FEATURE_MLU_HANDHELD
+            {
+                .name = "Handheld Shutter",
+                .priv = &mlu_handheld_shutter, 
+                .max = 1,
+                .icon_type = IT_DICE,
+                .choices = (const char *[]) {"All values", "1/2...1/125"},
+                .help = "At what shutter speeds you want to use handheld MLU."
+            },
             {
                 .name = "Handheld Delay  ",
                 .priv = &mlu_handheld_delay, 
@@ -5200,14 +5208,6 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type = IT_PERCENT,
                 .choices = (const char *[]) {"0", "0.1s", "0.2s", "0.3s", "0.4s", "0.5s", "0.75s", "1s"},
                 .help = "Delay between mirror and shutter movement."
-            },
-            {
-                .name = "Handheld Shutter",
-                .priv = &mlu_handheld_shutter, 
-                .max = 1,
-                .icon_type = IT_DICE,
-                .choices = (const char *[]) {"All values", "1/2...1/125"},
-                .help = "At what shutter speeds you want to use handheld MLU."
             },
             #endif
             #ifdef FEATURE_MLU_HANDHELD_DEBUG
