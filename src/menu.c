@@ -1119,10 +1119,10 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
 // if *priv is too high, display the first line
 
 
-static char* menu_help_get_line(char* help, void* priv)
+static char* menu_help_get_line(const char* help, void* priv)
 {
     char * p = strchr(help, '\n');
-    if (!p) return help; // help text contains a single line, no more fuss
+    if (!p) return (char*) help; // help text contains a single line, no more fuss
 
     // help text contains more than one line, choose the i'th one
     static char buf[70];
@@ -1130,14 +1130,14 @@ static char* menu_help_get_line(char* help, void* priv)
     if (priv) i = *(int*)priv;
     if (i < 0) i = 0;
     
-    char* start = help;
+    char* start = (char*) help;
     char* end = p;
     
     while (i > 0) // we need to skip some lines
     {
         if (*end == 0) // too many lines skipped? fall back to first line
         {
-            start = help;
+            start = (char*) help;
             end = p;
             break;
         }
@@ -1145,12 +1145,12 @@ static char* menu_help_get_line(char* help, void* priv)
         // there are more lines, skip to next one
         start = end + 1;
         end = strchr(start+1, '\n');
-        if (!end) end = help + strlen(help);
+        if (!end) end = (char*) help + strlen(help);
         i--;
     }
     
     // return the substring from "start" to "end"
-    int len = MIN(sizeof(buf) - 1, end - start);
+    int len = MIN((int)sizeof(buf) - 1, end - start);
     snprintf(buf, len, "%s", start);
     return buf;
 }
