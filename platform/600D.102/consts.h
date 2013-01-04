@@ -148,9 +148,6 @@
 #define HTP_STATUS_POS_X 500
 #define HTP_STATUS_POS_Y 233
 
-// for header footer info
-#define DISPLAY_HEADER_FOOTER_INFO
-
 #define MLU_STATUS_POS_X 316
 #define MLU_STATUS_POS_Y 310
 
@@ -159,6 +156,10 @@
 
 #define WBS_GM_POS_X 365
 #define WBS_GM_POS_Y 230
+
+// Audio remote shot position info photo mode
+#define AUDIO_REM_SHOT_POS_X 200
+#define AUDIO_REM_SHOT_POS_Y 386
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)

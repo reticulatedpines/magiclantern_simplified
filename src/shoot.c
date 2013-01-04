@@ -7591,14 +7591,10 @@ shoot_task( void* unused )
     
                 if (countdown == 0)
                 {
-#if defined(CONFIG_7D)
-                    bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, (lv ? COLOR_BG : bmp_getpixel(28, 3))), (lv ? 2 : 28),  (lv ? 30 : 3), "Audio release ON (%2d / %2d)", current_pulse_level, audio_release_level);
-#elif defined(CONFIG_600D)
-                    bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, (lv ? COLOR_BG : bmp_getpixel(198, 386))), (lv ? 2 : 200),  (lv ? 30 : 386), "Audio release ON (%2d / %2d)", current_pulse_level, audio_release_level);
-#else
-                    bmp_printf(FONT_MED, 20,  (lv ? 40 : 3), "Audio release ON (%d / %d)   ", current_pulse_level, audio_release_level);
-#endif
-                    if (current_pulse_level > (int)audio_release_level) 
+
+                    bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, (lv ? COLOR_BG : bmp_getpixel(AUDIO_REM_SHOT_POS_X-2, AUDIO_REM_SHOT_POS_Y))), (lv ? 2 : AUDIO_REM_SHOT_POS_X),  (lv ? 30 : AUDIO_REM_SHOT_POS_Y), "Audio release ON (%2d / %2d)", current_pulse_level, audio_release_level);
+
+                    if (current_pulse_level > (int)audio_release_level)
                     {
                         remote_shot(1);
                         msleep(100);
