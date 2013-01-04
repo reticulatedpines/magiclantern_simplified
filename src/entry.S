@@ -27,17 +27,24 @@
 .text
 .org 0
 .globl _start
+.globl _ml_base_address
 _start:
 
 #if defined(POSITION_INDEPENDENT)
     /* get the load offset */
     SUB  R6, PC, #0x08
-    /* build our pseudo base to detect if ML code is referenced */
+    ADR  R0, _ml_base_address
+    STR  R6, [R0]
+    
+    /* build our pseudo base 0xE0000000 to detect if ML code is referenced */
     MOV  R4, #0xE0
     MOV  R5, R4, LSL#24
+    
     /* calculate absolute GOT address and size */
     ADR  R2, _got_start_addr
+    LDR  R2, [R2]
     ADR  R3, _got_end_addr
+    LDR  R3, [R3]
     SUB  R3, R3, R2
     SUB  R2, R2, R5
     ADD  R2, R2, R6
@@ -74,6 +81,8 @@ _got_start_addr:
     .word _got_start
 _got_end_addr:
     .word _got_end
+_ml_base_address:
+    .word 0x0
 _continue_start:
 #endif
 

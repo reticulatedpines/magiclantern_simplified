@@ -90,7 +90,9 @@ asm(
 
     "gdb_task_stall_loop:\n"
     "MOV     R0, #0x64\n"
+#if !defined(POSITION_INDEPENDENT)
     "BL      msleep\n"
+#endif
     "LDR     R0, [R7, #0x00]\n"
     "CMP     R0, #0x01\n"
     "BNE     gdb_task_stall_loop\n"

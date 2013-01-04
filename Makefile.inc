@@ -139,6 +139,14 @@ CFLAGS=\
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
 
+NOT_USED_FLAGS=\
+	-march=armv5te \
+	-mthumb-interwork \
+	-msoft-float \
+
+AFLAGS=\
+	$(FLAGS) \
+
 CFLAGS += $(CFLAG_USER)
 
 ifeq ($(CONFIG_PYMITE),y)
@@ -149,22 +157,18 @@ ifeq ($(CONFIG_PTP),y)
 CFLAGS += -DCONFIG_PTP
 endif
 
-ifeq ($(DCONFIG_GDB),y)
+ifeq ($(CONFIG_GDB),y)
 CFLAGS += -DCONFIG_GDB
 endif
 
-ifeq ($(DCONFIG_GDBSTUB),y)
+ifeq ($(CONFIG_GDBSTUB),y)
 CFLAGS += -DCONFIG_GDB -DCONFIG_GDBSTUB
 endif
 
-NOT_USED_FLAGS=\
-	-march=armv5te \
-	-mthumb-interwork \
-	-msoft-float \
-
-AFLAGS=\
-	$(FLAGS) \
-
+ifeq ($(CONFIG_PIC), y)
+CFLAGS += -fPIC -DPOSITION_INDEPENDENT
+AFLAGS += -fPIC -DPOSITION_INDEPENDENT
+endif
 
 
 FLAGS=\
@@ -277,7 +281,7 @@ magiclantern: $(ML_OBJS-y) libstdio.a
 		$^ \
 		-lm \
 		-lgcc \
-    -Xlinker -Map=location.map \
+        -Xlinker -Map=location.map \
 	)
 
 

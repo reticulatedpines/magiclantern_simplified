@@ -29,7 +29,11 @@
 
 SECTIONS
 {
+#if defined(POSITION_INDEPENDENT)
+	. = 0xE0000000;
+#else
 	. = RESTARTSTART;
+#endif
 	.text : {
 		_text_start = .;
 		*(.text)

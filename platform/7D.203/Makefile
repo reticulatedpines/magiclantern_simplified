@@ -9,7 +9,8 @@ MODEL=7D
 UPDATE_NAME=7D_203.fir
 ML_VERSION=unified1 
 
-CFLAGS += -DCONFIG_AUTOBACKUP_ROM
+# compile position independent (experimental, not working completely yet)
+CONFIG_PIC=n
 
 #used in CFLAGS
 PLATFORM_INC=.

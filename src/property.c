@@ -61,6 +61,7 @@ global_property_handler(
             /* execute handler, if any */
             if(handler->handler != NULL)
             {
+                handler->handler = PIC_RESOLVE(handler->handler);
                 current_prop_handler = property;
                 handler->handler(property, priv, buf, len);
                 current_prop_handler = 0;

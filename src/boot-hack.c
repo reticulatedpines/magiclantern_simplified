@@ -233,7 +233,7 @@ my_task_dispatch_hook(
         );
 #endif
 
-        task->entry = mapping->replacement;
+        task->entry = PIC_RESOLVE(mapping->replacement);
         break;
     }
 }
@@ -276,13 +276,12 @@ call_init_funcs( void * priv )
     {
         DebugMsg( DM_MAGIC, 3,
             "Calling init_func %s (%x)",
-            init_func->name,
-            (unsigned) init_func->entry
+            PIC_RESOLVE(init_func->name),
+            (uint32_t) PIC_RESOLVE(init_func->entry)
         );
-        thunk entry = (thunk) init_func->entry;
+        thunk entry = (thunk) PIC_RESOLVE(init_func->entry);
         entry();
     }
-
 }
 
 
@@ -475,11 +474,11 @@ void my_big_init_task()
         #endif
         {
             task_create(
-                task->name,
+                PIC_RESOLVE(task->name),
                 task->priority,
                 task->stack_size,
-                task->entry,
-                task->arg
+                PIC_RESOLVE(task->entry),
+                PIC_RESOLVE(task->arg)
             );
             ml_tasks++;
         }

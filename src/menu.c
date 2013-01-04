@@ -572,6 +572,11 @@ menu_add(
     int         count
 )
 {
+#if defined(POSITION_INDEPENDENT)
+    /* not working yet */
+    return;
+#endif
+
 #if 1
     // There is nothing to display. Sounds crazy (but might result from ifdef's)
     if ( count == 0 )

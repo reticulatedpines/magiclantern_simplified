@@ -452,6 +452,13 @@ unsigned int rand (void);
         *(volatile uint32_t *)(x) \
 )
 
+#if defined(POSITION_INDEPENDENT)
+extern uint32_t _ml_base_address;
+#define PIC_RESOLVE(x) ( ((uint32_t) (x) >> 24 == 0xE0)?((uint32_t) (x) - 0xE0000000 + _ml_base_address):(x) )
+#else
+#define PIC_RESOLVE(x) (x)
+#endif
+
 // export functions to plugins
 // main DryOs commands
 OS_FUNCTION( 0x0000001,	void,	msleep, int amount );
