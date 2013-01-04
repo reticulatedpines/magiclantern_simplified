@@ -178,14 +178,10 @@ int handle_common_events_by_feature(struct event * event)
 #ifdef FEATURE_POWERSAVE_LIVEVIEW
     if (LV_PAUSED && event->param != GMT_OLC_INFO_CHANGED) 
     { 
-        int ans =  (ml_shutdown_requested || pre_shutdown_requested || sensor_cleaning || PLAY_MODE || MENU_MODE);
-
-        //~ run_in_separate_task(ResumeLiveView, 0);
-        //~ return 0;
-        //~ int ans = ResumeLiveView();
+        int ans = (ml_shutdown_requested || pre_shutdown_requested || sensor_cleaning);
         idle_wakeup_reset_counters(event->param);
         if (handle_disp_preset_key(event) == 0) return 0;
-        return !ans;  // if LiveView was resumed, don't do anything else (just wakeup)
+        return ans;  // if LiveView was resumed, don't do anything else (just wakeup)
     }
 #endif
 
