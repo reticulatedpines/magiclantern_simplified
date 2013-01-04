@@ -166,6 +166,10 @@ config_auto_parse(
 
     for( ; var < _config_vars_end ; var++ )
     {
+#if defined(POSITION_INDEPENDENT)
+        var->name = PIC_RESOLVE(var->name);
+        var->value = PIC_RESOLVE(var->value);
+#endif
         if( !streq( var->name, cfg->name ) )
             continue;
 

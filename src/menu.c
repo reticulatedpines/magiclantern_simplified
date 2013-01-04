@@ -565,6 +565,55 @@ are_there_any_visible_menus()
 }
 
 
+#if defined(POSITION_INDEPENDENT)
+/* when compiling position independent, we have to fix all link-time addresses to load-time addresses */
+void menu_fixup_pic(struct menu_entry * new_entry, int count)
+{
+    struct menu_entry * main_ptr = new_entry;
+    struct menu_entry * sub_ptr;
+    
+    while(count)
+    {
+        main_ptr->select = PIC_RESOLVE(main_ptr->select);
+        main_ptr->select_reverse = PIC_RESOLVE(main_ptr->select_reverse);
+        main_ptr->select_Q = PIC_RESOLVE(main_ptr->select_Q);
+        main_ptr->display = PIC_RESOLVE(main_ptr->display);
+        main_ptr->help = PIC_RESOLVE(main_ptr->help);
+        main_ptr->name = PIC_RESOLVE(main_ptr->name);
+        main_ptr->priv = PIC_RESOLVE(main_ptr->priv);
+        main_ptr->children = PIC_RESOLVE(main_ptr->children);
+        main_ptr->choices = PIC_RESOLVE(main_ptr->choices);
+        
+        if(main_ptr->choices)
+        {
+            char *choices = main_ptr->choices;
+            
+            for(int pos = 0; pos < main_ptr->max; pos++)
+            {
+                choices[pos] = PIC_RESOLVE(choices[pos]);
+            }
+        }   
+        
+        if(main_ptr->children)
+        {
+            struct menu_entry *submenu = main_ptr->children;
+            int entries = 0;
+            
+            while(submenu->priv != MENU_EOL_PRIV)
+            {
+                entries++;
+                submenu++;
+            }
+            
+            menu_fixup_pic(main_ptr->children, entries);
+        }
+        
+        main_ptr++;
+        count--;
+    }
+}
+#endif
+
 void
 menu_add(
     const char *        name,
@@ -573,8 +622,7 @@ menu_add(
 )
 {
 #if defined(POSITION_INDEPENDENT)
-    /* not working yet */
-    return;
+    menu_fixup_pic(new_entry, count);
 #endif
 
 #if 1
@@ -600,9 +648,9 @@ menu_add(
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
         new_entry->selected = 1;
-         menu->pos           = 1;
-         menu->childnum      = 1; 
-         menu->childnummax   = 1;
+        menu->pos           = 1;
+        menu->childnum      = 1; 
+        menu->childnummax   = 1;
         //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry++;
         count--;

@@ -61,7 +61,6 @@ global_property_handler(
             /* execute handler, if any */
             if(handler->handler != NULL)
             {
-                handler->handler = PIC_RESOLVE(handler->handler);
                 current_prop_handler = property;
                 handler->handler(property, priv, buf, len);
                 current_prop_handler = 0;
@@ -82,6 +81,9 @@ prop_init( void* unused )
 
     for( ; handler < _prop_handlers_end ; handler++ )
     {
+#if defined(POSITION_INDEPENDENT)
+        handler->handler = PIC_RESOLVE(handler->handler);
+#endif
         int duplicate = 0;
         for (int i = 0; i < actual_num_properties; i++)
         {

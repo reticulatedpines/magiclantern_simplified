@@ -217,10 +217,13 @@ my_task_dispatch_hook(
     // Search the task_mappings array for a matching entry point
     extern struct task_mapping _task_overrides_start[];
     extern struct task_mapping _task_overrides_end[];
-    const struct task_mapping * mapping = _task_overrides_start;
+    struct task_mapping * mapping = _task_overrides_start;
 
     for( ; mapping < _task_overrides_end ; mapping++ )
     {
+#if defined(POSITION_INDEPENDENT)
+        mapping->replacement = PIC_RESOLVE(mapping->replacement);
+#endif
         thunk original_entry = mapping->orig;
         if( original_entry != entry )
             continue;
@@ -233,7 +236,7 @@ my_task_dispatch_hook(
         );
 #endif
 
-        task->entry = PIC_RESOLVE(mapping->replacement);
+        task->entry = mapping->replacement;
         break;
     }
 }
@@ -274,12 +277,16 @@ call_init_funcs( void * priv )
 
     for( ; init_func < _init_funcs_end ; init_func++ )
     {
+#if defined(POSITION_INDEPENDENT)
+        init_func->entry = PIC_RESOLVE(init_func->entry);
+        init_func->name = PIC_RESOLVE(init_func->name);
+#endif
         DebugMsg( DM_MAGIC, 3,
             "Calling init_func %s (%x)",
-            PIC_RESOLVE(init_func->name),
-            (uint32_t) PIC_RESOLVE(init_func->entry)
+            init_func->name,
+            (uint32_t) init_func->entry
         );
-        thunk entry = (thunk) PIC_RESOLVE(init_func->entry);
+        thunk entry = (thunk) init_func->entry;
         entry();
     }
 }
@@ -430,6 +437,11 @@ void my_big_init_task()
     int ml_tasks = 0;
     for( ; task < _tasks_end ; task++ )
     {
+#if defined(POSITION_INDEPENDENT)
+        task->name = PIC_RESOLVE(task->name);
+        task->entry = PIC_RESOLVE(task->entry);
+        task->arg = PIC_RESOLVE(task->arg);
+#endif
         //~ DebugMsg( DM_MAGIC, 3,
             //~ "Creating task %s(%d) pri=%02x flags=%08x",
             //~ task->name,
@@ -474,11 +486,11 @@ void my_big_init_task()
         #endif
         {
             task_create(
-                PIC_RESOLVE(task->name),
+                task->name,
                 task->priority,
                 task->stack_size,
-                PIC_RESOLVE(task->entry),
-                PIC_RESOLVE(task->arg)
+                task->entry,
+                task->arg
             );
             ml_tasks++;
         }
