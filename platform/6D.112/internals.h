@@ -102,3 +102,6 @@
 
 /** No additional_version stub on this DryOS version **/
 #define CONFIG_NO_ADDITIONAL_VERSION
+
+/** Perfect sync using EVF_STATE **/
+#define CONFIG_EVF_STATE_SYNC
