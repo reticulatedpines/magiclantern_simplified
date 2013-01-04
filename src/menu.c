@@ -135,8 +135,6 @@ void menu_disable_lv_transparent_mode()
 int menu_active_but_hidden() { return gui_menu_shown() && ( menu_lv_transparent_mode ); }
 int menu_active_and_not_hidden() { return gui_menu_shown() && !( menu_lv_transparent_mode && hist_countdown < 2 ); }
 
-int draw_event = 0;
-
 static void
 draw_version( void )
 {
@@ -2026,10 +2024,6 @@ menu_redraw_full()
     if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, MENU_REDRAW_FULL);
 }
 
-/*void menu_inject_redraw_event()
-{
-    menu_redraw();
-}*/
 
 static struct menu * get_selected_menu()
 {
@@ -2413,14 +2407,6 @@ gui_menu_shown( void )
 {
     return menu_shown;
 }
-
-int get_draw_event() { return draw_event; }
-
-void toggle_draw_event( void * priv )
-{
-    draw_event = !draw_event;
-}
-
 
 void
 open_canon_menu()
