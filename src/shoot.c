@@ -3577,6 +3577,7 @@ mlu_display( void * priv, int x, int y, int selected )
         "Mirror Lockup   : %s",
         MLU_SELF_TIMER ? (get_mlu() ? "Self-timer (ON)" : "Self-timer (OFF)")
         : MLU_HANDHELD ? (mlu_handheld_shutter ? "HandH, 1/2-1/125" : "Handheld")
+        : MLU_ALWAYS_ON ? "Always ON"
         : get_mlu() ? "ON" : "OFF"
     );
     if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Mirror Lockup does not work in LiveView");
