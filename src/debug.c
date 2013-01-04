@@ -2741,7 +2741,8 @@ struct menu_entry debug_menus[] = {
     {
         .name = "Show GUI evts",
         .priv = &draw_event,
-        .max = 1,
+        .max = 2,
+        .choices = (const char *[]) {"OFF", "ON", "ON + delay 300ms"},
         .help = "Display GUI events (button codes).",
     },
 #endif
@@ -3533,6 +3534,7 @@ void spy_event(struct event * event)
             event->arg);
         y += font_med.height;
         if (y > 350) y = 250;
+        if (draw_event == 2) msleep(300);
     }
 }
 
