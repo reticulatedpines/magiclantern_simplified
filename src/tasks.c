@@ -264,6 +264,8 @@ void tasks_print(void* priv, int x0, int y0, int selected)
 
 void ml_shutdown()
 {
+    check_pre_shutdown_flag();
+
     ml_shutdown_requested = 1;
     
     info_led_on();

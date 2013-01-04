@@ -4878,11 +4878,10 @@ int ResumeLiveView()
             int iter = 10; while (!lv && iter--) msleep(100);
             iter = 10; while (!DISPLAY_IS_ON && iter--) msleep(100);
         )
-        set_lv_zoom(lv_zoom_before_pause);
+        while (sensor_cleaning) msleep(100);
+        if (lv) set_lv_zoom(lv_zoom_before_pause);
         msleep(100);
-        ASSERT(LV_NON_PAUSED);
         ans = 1;
-        //~ ASSERT(DISPLAY_IS_ON);
     }
     lv_paused = 0;
     info_led_off();

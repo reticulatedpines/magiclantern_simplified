@@ -154,8 +154,19 @@ static int pre_shutdown_requested = 0; // used for preventing wakeup from paused
 
 void reset_pre_shutdown_flag_step() // called every second
 {
-    if (pre_shutdown_requested)
+    if (pre_shutdown_requested && !sensor_cleaning)
         pre_shutdown_requested--;
+}
+
+void check_pre_shutdown_flag() // called from ml_shutdown
+{
+    if (LV_PAUSED && !pre_shutdown_requested)
+    {
+        // if this happens, camera will probably not shutdown normally from "LV paused" state
+        NotifyBox(10000, "Double-check GMT_GUICMD consts");
+        info_led_blink(50,50,50);
+        // can't call ASSERT from here
+    }
 }
 
 int handle_common_events_by_feature(struct event * event)
@@ -164,7 +175,7 @@ int handle_common_events_by_feature(struct event * event)
     // there may be exceptions
 
 #ifdef FEATURE_POWERSAVE_LIVEVIEW
-    // these are required for correct shutdown from powersave mode
+    // these are required for correct shutdown from "LV paused" state
     if (event->param == GMT_GUICMD_START_AS_CHECK || 
         event->param == GMT_GUICMD_OPEN_SLOT_COVER || 
         event->param == GMT_GUICMD_LOCK_OFF)
