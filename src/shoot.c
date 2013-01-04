@@ -4798,7 +4798,7 @@ static struct menu_entry shoot_menus[] = {
         .priv = &hdr_enabled,
         .display    = hdr_display,
         .select     = menu_binary_toggle,
-        .help = "Advanced bracketing (exposure, flash). Press shutter once.",
+        .help = "Advanced bracketing (expo, flash, DOF). Press shutter once.",
         //.essential = FOR_PHOTO,
         .submenu_width = 710,
         .children =  (struct menu_entry[]) {
@@ -4808,7 +4808,9 @@ static struct menu_entry shoot_menus[] = {
                 .max = 2,
                 .icon_type = IT_DICE,
                 .choices = (const char *[]) {"Exposure (Tv,Ae)", "Exposure (Flash)", "DOF (Aperture)"},
-                .help = "Choose what variable(s) to bracket.",
+                .help = "Expo bracket. M: changes shutter. Others: changes AEcomp.\n"
+                        "Flash bracket: change flash exposure compensation.\n"
+                        "DOF bracket: keep exposure constant, change Av/Tv ratio.",
             },
             {
                 .name = "Frames",
@@ -4855,7 +4857,7 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Post scripts",
                 .priv       = &hdr_scripts,
                 .max = 3,
-                .help = "ML can write enfuse scripts or a file list (for focus stacking too).",
+                .help = "Enfuse scripts or just a file list (for focus stack too).",
                 .choices = (const char *[]) {"OFF", "Enfuse", "Align+Enfuse", "File List"},
             },
             MENU_EOL
@@ -5061,14 +5063,16 @@ static struct menu_entry shoot_menus[] = {
                 .max = 2,
                 .choices = (const char *[]) {"Expo. change", "Frame diff.", "Steady hands"},
                 .icon_type = IT_DICE,
-                .help = "Exposure change, subject movement, or lack of motion.",
+                .help = "EXP: reacts to exposure changes (large movements).\n"
+                        "DIF: detects smaller movements that do not change exposure.\n"
+                        "STDY: take pic if there's little or no motion (cam steady).",
             },
             {
                 .name = "Trigger level",
                 .priv = &motion_detect_level, 
                 .min = 1,   
                 .max = 30,
-                .help = "Picture is taken when frame difference is above threshold.",
+                .help = "Higher values = more sensitive to motion.",
             },
             {
                 .name = "Detect Size",
