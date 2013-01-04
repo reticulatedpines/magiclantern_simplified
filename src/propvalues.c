@@ -91,22 +91,17 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 volatile int video_mode_crop = 0;
 volatile int video_mode_fps = 0;
 volatile int video_mode_resolution = 0; // 0 if full hd, 1 if 720p, 2 if 480p
-#ifndef CONFIG_500D
 PROP_HANDLER(PROP_VIDEO_MODE)
 {
-    video_mode_crop = buf[0];
-    video_mode_fps = buf[2];
-    video_mode_resolution = buf[1];
-}
-#endif
-
-#ifdef CONFIG_500D
-PROP_HANDLER(PROP_VIDEO_MODE)
-{
+    #ifdef CONFIG_500D
     video_mode_resolution = buf[0];
     video_mode_fps = buf[1];
+    #else
+    video_mode_crop = buf[0];
+    video_mode_resolution = buf[1];
+    video_mode_fps = buf[2];
+    #endif
 }
-#endif
 
 PROP_HANDLER( PROP_LV_ACTION )
 {
