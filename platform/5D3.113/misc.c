@@ -66,7 +66,7 @@ void display_shooting_info() // called from debug task
     uint32_t fnt;
     int bg;
     int col_bg = bmp_getpixel(1,1);;
-    int col_field = bmp_getpixel(615,455);;
+    int col_field = bmp_getpixel(690,30);
 
 #ifdef DISPLAY_HEADER_FOOTER_INFO
     extern int header_left_info;
@@ -141,7 +141,7 @@ void display_shooting_info() // called from debug task
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
         fnt = FONT(FONT_MED, COLOR_YELLOW, col_field);
-		bmp_printf(fnt, 160, 280, "%5d", lens_info.kelvin);
+		bmp_printf(fnt, 160, 278, "%5d", lens_info.kelvin);
 	}
 
 	if (lens_info.wbs_gm || lens_info.wbs_ba)
@@ -161,7 +161,7 @@ void display_shooting_info() // called from debug task
 
     RedrawBatteryIcon();
 
-	bmp_printf(fnt, 395, 307, get_mlu() ? "MLU" : "   ");
+	bmp_printf(fnt, 395, 305, get_mlu() ? "MLU" : "   ");
 
 	display_lcd_remote_icon(555, 460);
 	display_trap_focus_info();
@@ -169,6 +169,11 @@ void display_shooting_info() // called from debug task
 
 void RedrawBatteryIcon()
 {
+    int col_field = bmp_getpixel(615,455);
+    uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, col_field);
+    bmp_printf(fnt, 235, 415, "%d%% ", GetBatteryLevel());
+
+/*
     int batlev = bat_info.level;
     int col_field = bmp_getpixel(615,455);
     uint32_t fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, col_field);
@@ -215,6 +220,7 @@ void RedrawBatteryIcon()
 	bmp_fill((bat_info.performance<3 ? COLOR_GRAY50 : COLOR_GREEN2),x,y,w,w);
 	bmp_fill((bat_info.performance<2 ? COLOR_GRAY50 : COLOR_GREEN2),x,y+4+w,w,w);
 	bmp_fill((bat_info.performance<1 ? COLOR_GRAY50 : COLOR_GREEN2),x,y+8+2*w,w,w);
+*/
 }
 
 int GetBatteryLevel()
