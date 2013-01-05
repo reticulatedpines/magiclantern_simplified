@@ -1601,7 +1601,7 @@ implicit_submenu_display()
     menu_display(
         menu,
          40,
-         45,
+         50,
          1
     );
 }
