@@ -140,7 +140,7 @@
 #define DISPLAY_CLOCK_POS_X 34
 #define DISPLAY_CLOCK_POS_Y 250
 
-    #define MENU_DISP_ISO_POS_X 500
+#define MENU_DISP_ISO_POS_X 500
 #define MENU_DISP_ISO_POS_Y 37
 
 // for displaying battery
