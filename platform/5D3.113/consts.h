@@ -118,6 +118,15 @@
 #define MENU_DISP_ISO_POS_X 500
 #define MENU_DISP_ISO_POS_Y 27
 
+// for displaying battery
+#define DISPLAY_BATTERY_POS_X 150
+#define DISPLAY_BATTERY_POS_Y 395
+#define DISPLAY_BATTERY_LEVEL_1 60 //%
+#define DISPLAY_BATTERY_LEVEL_2 20 //%
+
+// for header footer info
+#define DISPLAY_HEADER_FOOTER_INFO
+
 // for HDR status
 #define HDR_STATUS_POS_X 140
 #define HDR_STATUS_POS_Y 460

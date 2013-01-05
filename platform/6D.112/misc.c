@@ -7,11 +7,6 @@
 #include <consts.h>
 #include <lens.h>
 
-#define DISPLAY_BATTERY_POS_X 149
-#define DISPLAY_BATTERY_POS_Y 410
-#define DISPLAY_BATTERY_LEVEL_1 60
-#define DISPLAY_BATTERY_LEVEL_2 20
-
 struct battery_info {
 	int num_of_batt; // 1 if battery is in the body, ? if grip attached
 	int level;       // 0-100%
@@ -67,7 +62,6 @@ void display_shooting_info() // called from debug task
 {
 	if (lv) return;
 	int bg = bmp_getpixel(1,1);
-//	uint32_t fnt = SHADOW_FONT(FONT_MED);
 	uint32_t fnt = FONT(FONT_MED,COLOR_YELLOW,bg);
 
 	if (lens_info.wb_mode == WB_KELVIN)

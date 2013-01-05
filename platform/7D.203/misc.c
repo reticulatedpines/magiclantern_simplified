@@ -68,13 +68,10 @@ void display_shooting_info() // called from debug task
 
     uint32_t fnt;
     int bg;
-    int col_bg;
-    int col_field;
+    int col_bg = bmp_getpixel(1,1);;
+    int col_field = bmp_getpixel(615,455);;
 
-    col_bg = bmp_getpixel(1,1);
-    col_field = bmp_getpixel(615,455);
-
-    if (bat_info.act_hist == 0) 
+    if (bat_info.act_hist == 0) // it should to put somewhere in the start, not necessary to run every time 
         for (int i=0;i<MIN(bat_info.num_of_hist,6);i++) 
             if (bat_hist[i].serial == bat_info.serial) bat_info.act_hist = i+1;
     
