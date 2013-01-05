@@ -371,6 +371,9 @@ void my_big_init_task()
 {
 #if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
   uint32_t len;
+  #ifdef CONFIG_5D3
+  find_ml_card();
+  #endif
   load_fonts();
 #endif
 
@@ -385,17 +388,22 @@ void my_big_init_task()
     }
 #endif
 #ifdef CONFIG_DUMPER_BOOTFLAG
-    msleep(500);
-    call("EnableBootDisk");
+    msleep(5000);
+    SetGUIRequestMode(1);
+    msleep(2000);
     bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk");
+    call("EnableBootDisk");
     msleep(500);
-    FILE* f = FIO_CreateFile(CARD_DRIVE "k301_101.dat");
-    if (f) {
+    FILE* f = FIO_CreateFileEx(CARD_DRIVE "ROM.DAT");
+    if (f != INVALID_PTR) {
         len=FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
         FIO_CloseFile(f);
-        bmp_printf(FONT_LARGE, 50, 250, "Oops!");    
+        bmp_printf(FONT_LARGE, 50, 250, ":)");    
     }
+    else
+        bmp_printf(FONT_LARGE, 50, 250, "Oops!");    
     info_led_blink(1, 500, 500);
+    return;
 #endif
     
     call("DisablePowerSave");
