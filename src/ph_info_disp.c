@@ -12,11 +12,9 @@
 #endif
 #include <version.h>
 
-#ifndef AUDIO_REM_SHOT_POS_X
-#define AUDIO_REM_SHOT_POS_X 20
-#endif
-#ifndef AUDIO_REM_SHOT_POS_Y
-#define AUDIO_REM_SHOT_POS_Y 40
+#if  !defined(AUDIO_REM_SHOT_POS_X) && !defined(AUDIO_REM_SHOT_POS_Y)
+    #define AUDIO_REM_SHOT_POS_X 20
+    #define AUDIO_REM_SHOT_POS_Y 40
 #endif
 
 static void double_buffering_start(int ytop, int height)
@@ -59,28 +57,22 @@ void display_shooting_info() // called from debug task
                   {
                       bg = COLOR_FG_NONLV;
                       
-                      bmp_fill(bg,26+icon_x,4+icon_y,9,38); // | vertical K line
+                      bmp_fill(bg,16+icon_x,4+icon_y,9,38); // | vertical K line
                       for (int i = 0; i < 9; i++) // / first diagonal in K
                       {
-                          draw_line(39 + icon_x + i, 4 + icon_y, 30 + icon_x + i, 22 + icon_y, bg);
+                          draw_line(29 + icon_x + i, 4 + icon_y, 20 + icon_x + i, 22 + icon_y, bg);
                       }
                       for (int i = 0; i < 9; i++) // \ second diagonal in K
                       {
-                          draw_line(30 + icon_x + i, 23 + icon_y, 39 + icon_x + i, 41 + icon_y, bg);
-                      }
-                      
-                      for (int r = 5; r < 9; r++) // o
-                      {
-                          draw_circle(11 + icon_x, 11 + icon_y, r, bg); // small circle
-                          draw_circle(10 + icon_x, 11 + icon_y, r, bg); // small circle
+                          draw_line(20 + icon_x + i, 23 + icon_y, 29 + icon_x + i, 41 + icon_y, bg);
                       }
                       
                   }
                   double_buffering_end(icon_y, 48);
                   )
-        bg = bmp_getpixel(icon_x, icon_y + 46);
+        bg = bmp_getpixel(icon_x-12, icon_y + 46);
         fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
-        bmp_printf(fnt, icon_x, icon_y + 46, "%5d", lens_info.kelvin);
+        bmp_printf(fnt, icon_x-10, icon_y + 46, "%5d", lens_info.kelvin);
         //------------ ICON KELVIN ------------------
         
 	}

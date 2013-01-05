@@ -499,6 +499,13 @@ void free_space_show_photomode()
     int x = time_indic_x + 2 * font_med.width;
     int y =  452;
 #endif
+    bmp_printf(
+               FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
+               x, y,
+               "%d.%dGB",
+               fsg,
+               fsgf
+               );
 }
 
 void time_indicator_show()

@@ -3264,15 +3264,9 @@ void hdr_display_status(int fnt)
                 ((hdr_stepsize/4) % 2) ? ".5" : "");
         }
     #else
-
-    #if !defined(HTP_STATUS_POS_X) && !defined(HTP_STATUS_POS_Y)
-        define HTP_STATUS_POS_X HDR_STATUS_POS_X
-        define HTP_STATUS_POS_Y HDR_STATUS_POS_Y
-    #endif
-        int bg = bmp_getpixel(HTP_STATUS_POS_X,HTP_STATUS_POS_Y);
         
-        bg = bmp_getpixel(HDR_STATUS_POS_X-30,HDR_STATUS_POS_Y);
-        //fnt = FONT(FONT_LARGE, COLOR_YELLOW, bg);
+        int bg = bmp_getpixel(HDR_STATUS_POS_X-30,HDR_STATUS_POS_Y);
+        fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
         bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y,
             "HDR %Xx%d%sEV",
             hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
@@ -3283,6 +3277,11 @@ void hdr_display_status(int fnt)
     #endif
     #endif
 #ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
+    #if !defined(HTP_STATUS_POS_X) && !defined(HTP_STATUS_POS_Y)
+        #define HTP_STATUS_POS_X HDR_STATUS_POS_X
+        #define HTP_STATUS_POS_Y HDR_STATUS_POS_Y
+    #endif
+
     if (get_htp())
     {
         int bg = bmp_getpixel(HTP_STATUS_POS_X,HTP_STATUS_POS_Y);
