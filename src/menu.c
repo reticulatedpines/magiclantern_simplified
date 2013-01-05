@@ -1519,36 +1519,59 @@ menus_display(
     }
     
     int icon_spacing = (720 - 150) / num_tabs;
+    
+    int bgs = COLOR_BLACK;
+    int bgu = COLOR_GRAY40;
+    int fgu = COLOR_GRAY50;
+    int fgs = COLOR_WHITE;
 
-    bmp_fill(COLOR_BLACK, orig_x, y, 720, 42);
-    bmp_fill(COLOR_GRAY45, orig_x, y+42, 720, 1);
+    bmp_fill(bgu, orig_x, y, 720, 42);
+    bmp_fill(fgu, orig_x, y+42, 720, 1);
     for( ; menu ; menu = menu->next )
     {
         if (!menu_has_visible_items(menu->children) && !menu->selected)
             continue; // empty menu
         if (IS_SUBMENU(menu))
             continue;
-        int color_selected = advanced_hidden_edit_mode ? COLOR_DARK_RED : COLOR_BLUE;
-        int fg = menu->selected ? COLOR_WHITE : 50;
-        int bg = menu->selected ? color_selected : COLOR_BLACK;
-        /*unsigned fontspec = FONT(
-            menu->selected ? FONT_LARGE : FONT_MED,
-            fg,
-            bg
-        );*/
+        int fg = menu->selected ? fgs : fgu;
+        int bg = menu->selected ? bgs : bgu;
         
         if (!menu_lv_transparent_mode)
         {
-            bmp_fill(bg, x, y, icon_spacing, 40);
+            if (menu->selected)
+                bmp_fill(bg, x, y+2, icon_spacing, 38);
 
             int icon_char = menu->icon ? menu->icon : menu->name[0];
             int icon_width = bfnt_char_get_width(icon_char);
             int x_ico = (x & ~3) + (icon_spacing - icon_width) / 2;
-            bfnt_draw_char(icon_char, x_ico, y, fg, bg);
+            bfnt_draw_char(icon_char, x_ico, y + 2, fg, bg);
 
             if (menu->selected)
             {
                 bfnt_puts(menu->name, 5, y, fg, bg);
+                int x1 = (x & ~3);
+                int x2 = ((x1 + icon_spacing) & ~3) - 1;
+
+                draw_line(x1, y+42-4, x1, y+5, fgu);
+                draw_line(x2, y+42-4, x2, y+5, fgu);
+                draw_line(x1+4, y+1, x2-4, y+1, fgu);
+                draw_line(x1-1, y+40, x2+1, y+40, bgs);
+                draw_line(x1-2, y+41, x2+2, y+41, bgs);
+                draw_line(x1-3, y+42, x2+3, y+42, bgs);
+
+                draw_line(x1-4, y+42, x1, y+42-4, fgu);
+                draw_line(x2+4, y+42, x2, y+42-4, fgu);
+
+                draw_line(x1, y+5, x1+4, y+1, fgu);
+                draw_line(x2, y+5, x2-4, y+1, fgu);
+                
+                draw_line(x1, y+2, x1, y+4, bgu);
+                draw_line(x1+1, y+2, x1+1, y+3, bgu);
+                draw_line(x1+2, y+2, x1+2, y+2, bgu);
+
+                draw_line(x2, y+2, x2, y+4, bgu);
+                draw_line(x2-1, y+2, x2-1, y+3, bgu);
+                draw_line(x2-2, y+2, x2-2, y+2, bgu);
             }
             x += icon_spacing;
         }
@@ -1560,7 +1583,7 @@ menus_display(
             menu_display(
                 menu,
                 orig_x + 40,
-                y + 45, 
+                y + 50, 
                 0
             );
             
