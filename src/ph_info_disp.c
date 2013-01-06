@@ -78,6 +78,8 @@ void display_shooting_info() // called from debug task
         
 	}
 #endif
+    
+#if defined(WBS_BA_POS_X) && defined(WBS_BA_POS_Y)
 	if (lens_info.wbs_gm || lens_info.wbs_ba)
 	{
 		bg = bmp_getpixel(WBS_BA_POS_X, WBS_BA_POS_Y);
@@ -100,6 +102,7 @@ void display_shooting_info() // called from debug task
     
     col_bg = bmp_getpixel(10,1);
     col_field = bmp_getpixel(615,375);
+#endif
     
 #ifdef DISPLAY_HEADER_FOOTER_INFO
     extern int header_left_info;
