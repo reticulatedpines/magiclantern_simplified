@@ -139,9 +139,11 @@
 #define MENU_DISP_INFO_POS_X 0
 #define MENU_DISP_INFO_POS_Y 395
 
+// position for ML ISO disp outside LV
 #define MENU_DISP_ISO_POS_X 527
 #define MENU_DISP_ISO_POS_Y 45
 
+//position for ML MAX ISO
 #define MAX_ISO_POS_X 590
 #define MAX_ISO_POS_Y 28
 
@@ -167,13 +169,13 @@
 #define AUDIO_REM_SHOT_POS_X 200
 #define AUDIO_REM_SHOT_POS_Y 386
 
-// In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
-// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
-#define GUIMODE_ML_MENU (recording ? 0 : lv ? 68 : 2)
-
 // position for displaying clock outside LV
 #define DISPLAY_CLOCK_POS_X 440
 #define DISPLAY_CLOCK_POS_Y 410
+
+// position for displaying card size remain outside LV
+#define DISPLAY_GB_POS_X 305
+#define DISPLAY_GB_POS_Y 410
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 65
@@ -181,6 +183,9 @@
 #define DISPLAY_TRAP_FOCUS_MSG       "TRAP FOCUS"
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
+// In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
+// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
+#define GUIMODE_ML_MENU (recording ? 0 : lv ? 68 : 2)
 
 #define NUM_PICSTYLES 10
 #define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
