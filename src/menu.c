@@ -1550,7 +1550,7 @@ menus_display(
             {
                 bfnt_puts(menu->name, 5, y, fg, bg);
                 int x1 = (x & ~3);
-                int x2 = ((x1 + icon_spacing) & ~3) - 1;
+                int x2 = ((x1 + icon_spacing) & ~3);
 
                 draw_line(x1, y+42-4, x1, y+5, fgu);
                 draw_line(x2, y+42-4, x2, y+5, fgu);
