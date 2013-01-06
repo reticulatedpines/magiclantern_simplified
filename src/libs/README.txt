@@ -14,5 +14,4 @@ We compiled two versions of the library:
  
 Both versions are supplied to make sure that Magic Lantern behaves the same no matter if compiled with or without -fPIC.
 
- 
-
+Position Independent Code (PIC) allows Magic Lantern to run properly regardless of its base address.
