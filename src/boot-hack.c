@@ -115,7 +115,7 @@ copy_and_restart( )
      * create_init_task
      */
     // Reserve memory after the BSS for our application
-    #if !defined(CONFIG_ALLOCATE_MEMORY_POOL) // Some cameras load ML into the AllocateMemory pool (like 5500D/600D/1100D)
+    #if !defined(CONFIG_ALLOCATE_MEMORY_POOL) // Some cameras load ML into the AllocateMemory pool (like 5500D/1100D)
     INSTR( HIJACK_INSTR_BSS_END ) = (uintptr_t) _bss_end;
     #endif
 
