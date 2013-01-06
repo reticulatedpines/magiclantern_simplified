@@ -17,6 +17,7 @@
     #define AUDIO_REM_SHOT_POS_Y 40
 #endif
 
+#if defined(DISPLAY_KELVIN_POS_X) && defined(DISPLAY_KELVIN_POS_Y)
 static void double_buffering_start(int ytop, int height)
 {
     // use double buffering to avoid flicker
@@ -35,7 +36,7 @@ static void double_buffering_end(int ytop, int height)
     memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
     bzero32(bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
 }
-
+#endif
 
 void display_shooting_info() // called from debug task
 {
@@ -44,9 +45,82 @@ void display_shooting_info() // called from debug task
     uint32_t fnt;
 	int bg;
     
+    int col_bg = bmp_getpixel(10,1);
+    int col_field = bmp_getpixel(615,375);
+    
+#if defined(MAX_ISO_POS_X) && defined(MAX_ISO_POS_Y)
+	bg = bmp_getpixel(MAX_ISO_POS_X, MAX_ISO_POS_Y);
+	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
+    
+	if (lens_info.raw_iso == 0) // ISO: MAX AUTO
+ 	{
+        int maxiso=(auto_iso_range %  0xFF) - (auto_iso_range >> 8);
+        bmp_printf(fnt, MAX_ISO_POS_X, MAX_ISO_POS_Y, "MAX:%d",raw2iso(maxiso) );
+	}
+#endif
+    
+#if defined(ISO_RANGE_POS_X) && defined(ISO_RANGE_POS_Y)
+    if (lens_info.raw_iso == 0) // ISO: AUTO
+    {
+        fnt = FONT(FONT_MED, COLOR_YELLOW, col_field);
+        bmp_printf(fnt, ISO_RANGE_POS_X, 105, "[%d-%d]", MAX((get_htp() ? 200 : 100), raw2iso(auto_iso_range >> 8)), raw2iso((auto_iso_range & 0xFF)));
+    }
+#endif
+    
+#if defined(WB_KELVIN_POS_X) && defined(WB_KELVIN_POS_Y)
+    if (lens_info.wb_mode == WB_KELVIN)
+    {
+        fnt = FONT(FONT_MED, COLOR_YELLOW, col_field);
+        bmp_printf(fnt, WB_KELVIN_POS_X, WB_KELVIN_POS_Y, "%5d", lens_info.kelvin);
+    }
+#endif
+    
+#if defined(CONFIG_5D3)
+    if (lens_info.wbs_gm || lens_info.wbs_ba)
+    {
+        int ba = lens_info.wbs_ba;
+        fnt = FONT(FONT_LARGE, COLOR_YELLOW, col_field);
+        int x = 268;
+        if (ba) bmp_printf(fnt, x + 2 * font_med.width, 280, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
+        else    bmp_printf(fnt, x + 2 * font_med.width, 280, "  ");
+        
+        int gm = lens_info.wbs_gm;
+        if (gm) bmp_printf(fnt, x, 280, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
+        else    bmp_printf(fnt, x, 280, "  ");
+    }
+    display_lcd_remote_icon(555, 460);
+#endif
+    
+#if defined(CONFIG_7D)
+    if (lens_info.raw_iso == 0) // ISO: AUTO
+    {
+        bmp_fill(bmp_getpixel(1,1),455,110,120,2);
+    }
+    if (lens_info.wb_mode == WB_KELVIN)
+    {
+        bmp_fill(bmp_getpixel(1,1),377,294,100,3);
+    }
+#endif
+    
+#if defined(CONFIG_7D)
+    if (lens_info.wbs_gm || lens_info.wbs_ba)
+    {
+        fnt = FONT(FONT_LARGE, COLOR_YELLOW, col_field);
+        bmp_fill(col_field,166,424,94,28);
+        
+        int ba = lens_info.wbs_ba;
+        if (ba) bmp_printf(fnt, 177 + 2 * font_large.width, 426, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
+        else    bmp_printf(fnt, 177 + 2 * font_large.width, 426, "  ");
+        
+        int gm = lens_info.wbs_gm;
+        if (gm) bmp_printf(fnt, 177, 426, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
+        else    bmp_printf(fnt, 177, 426, "  ");
+    }
+#endif
+    
+#if defined(DISPLAY_KELVIN_POS_X) && defined(DISPLAY_KELVIN_POS_Y)
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
-#if defined(DISPLAY_KELVIN_POS_X) && defined(DISPLAY_KELVIN_POS_Y)
         //------------ ICON KELVIN BLACK -------------
         int icon_x = DISPLAY_KELVIN_POS_X; // x position height icon
         int icon_y = DISPLAY_KELVIN_POS_Y; // y position width icon
@@ -204,17 +278,6 @@ void display_shooting_info() // called from debug task
         snprintf(msg, sizeof(msg), "[%4d%]", avail_shot);
         bfnt_puts(msg, 560 , 402, COLOR_FG_NONLV, col_field);
     }
-#endif
-    
-#if defined(MAX_ISO_POS_X) && defined(MAX_ISO_POS_Y)
-	bg = bmp_getpixel(MAX_ISO_POS_X, MAX_ISO_POS_Y);
-	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
-    
-	if (lens_info.raw_iso == 0) // ISO: MAX AUTO
- 	{
-        int maxiso=(auto_iso_range %  0xFF) - (auto_iso_range >> 8);
-        bmp_printf(fnt, MAX_ISO_POS_X, MAX_ISO_POS_Y, "MAX:%d",raw2iso(maxiso) );
-	}
 #endif
     
 	iso_refresh_display();
