@@ -199,15 +199,6 @@ void display_shooting_info() // called from debug task
                                 header_left_info==5 ? build_version:
                                 "")
                    );
-    if (footer_left_info>0)
-        bmp_printf(fnt, 28, 459, (
-                                  footer_left_info==1 ? artist_name:
-                                  footer_left_info==2 ? copyright_info:
-                                  footer_left_info==3 ? adate:
-                                  footer_left_info==4 ? lens_info.name:
-                                  footer_left_info==5 ? build_version:
-                                  "")
-                   );
     if (header_right_info>0)
     {
         snprintf(info, sizeof(info), "%s", (
@@ -219,6 +210,18 @@ void display_shooting_info() // called from debug task
                                             ""));
         bmp_printf(fnt, 693-strlen(info) * font_med.width, 2, info);
     }
+    
+    col_bg = bmp_getpixel(27,459);
+    fnt = FONT(FONT_MED, COLOR_FG_NONLV, col_bg);
+    if (footer_left_info>0)
+        bmp_printf(fnt, 28, 459, (
+                                  footer_left_info==1 ? artist_name:
+                                  footer_left_info==2 ? copyright_info:
+                                  footer_left_info==3 ? adate:
+                                  footer_left_info==4 ? lens_info.name:
+                                  footer_left_info==5 ? build_version:
+                                  "")
+                   );
     
     if (footer_right_info>0)
     {
