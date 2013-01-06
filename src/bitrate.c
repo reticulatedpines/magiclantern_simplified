@@ -492,7 +492,9 @@ void free_space_show_photomode()
 	snprintf(msg, sizeof(msg), "%d.%d", fsg, fsgf);
 	int w = bfnt_puts(msg, x, y, COLOR_CYAN, bmp_getpixel(x,y));
 	bmp_printf(FONT(SHADOW_FONT(FONT_MED), COLOR_CYAN, bmp_getpixel(x,y)), x+w+4, y+18, "GB" );
-#elif defined DISPLAY_CLOCK_POS_X
+#else
+
+#if defined DISPLAY_CLOCK_POS_X
     int x = DISPLAY_CLOCK_POS_X - 135;
     int y = DISPLAY_CLOCK_POS_Y;
 #else
@@ -506,6 +508,7 @@ void free_space_show_photomode()
                fsg,
                fsgf
                );
+#endif
 }
 
 void time_indicator_show()
