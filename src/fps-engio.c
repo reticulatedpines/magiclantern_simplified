@@ -46,9 +46,9 @@
 
 #define PACK(lo, hi) ((lo) & 0x0000FFFF) | (((hi) & 0x0000FFFF) << 16)
 
-#define FPS_REGISTER_A_VALUE shamem_read(FPS_REGISTER_A)
-#define FPS_REGISTER_A_DEFAULT_VALUE shamem_read(FPS_REGISTER_A+4)
-#define FPS_REGISTER_B_VALUE shamem_read(FPS_REGISTER_B)
+#define FPS_REGISTER_A_VALUE ((int) shamem_read(FPS_REGISTER_A))
+#define FPS_REGISTER_A_DEFAULT_VALUE ((int) shamem_read(FPS_REGISTER_A+4))
+#define FPS_REGISTER_B_VALUE ((int) shamem_read(FPS_REGISTER_B))
 
 void SafeEngDrvOut(int reg, int val)
 {

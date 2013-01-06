@@ -1622,7 +1622,7 @@ static void dbg_memspy_init() // initial state of the analyzed memory
     for (i = 0; i < mem_spy_len; i++)
     {
         uint32_t addr = dbg_memspy_get_addr(i);
-        dbg_memmirror[i] = MEMX(addr);
+        dbg_memmirror[i] = (int) MEMX(addr);
         dbg_memchanges[i] = 0;
         crc += dbg_memmirror[i];
         //~ bmp_printf(FONT_MED, 10,10, "memspy: %8x => %8x ", addr, dbg_memmirror[i]);
@@ -1655,7 +1655,7 @@ static void dbg_memspy_update()
 #endif
         uint32_t addr = dbg_memspy_get_addr(i);
         int oldval = dbg_memmirror[i];
-        int newval = MEMX(addr);
+        int newval = (int) MEMX(addr);
         if (oldval != newval)
         {
             //~ bmp_printf(FONT_MED, 10,460, "memspy: %8x: %8x => %8x", addr, oldval, newval);
@@ -2201,6 +2201,8 @@ void screenshot_start(void* priv, int delta)
 }
 */
 
+int draw_event = 0;
+
 #ifdef CONFIG_DEBUGMSG
 static void
 spy_print(
@@ -2217,7 +2219,7 @@ spy_print(
         draw_prop ? "PROP" : "prop",
         mem_spy ? "MEM" : "mem"
     );
-    menu_draw_icon(x, y, MNI_BOOL(draw_prop || get_draw_event() || mem_spy), 0);
+    menu_draw_icon(x, y, MNI_BOOL(draw_prop || draw_event || mem_spy), 0);
 }
 #endif
 
@@ -2427,7 +2429,6 @@ extern void peaking_benchmark();
 
 extern int show_cpu_usage_flag;
 
-int draw_event = 0;
 
 struct menu_entry debug_menus[] = {
 #ifdef CONFIG_HEXDUMP
