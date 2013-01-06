@@ -142,7 +142,7 @@ void menu_help_show_page(int page)
 
 void draw_page_number(int page)
 {
-    char pg[4];
+    char pg[3];
     snprintf(pg, sizeof(pg), "%3d", page);
     bfnt_puts(pg, 650+(page<10 ? 14 : page<100 ? 4 : 0) , 2, COLOR_FG_NONLV, COLOR_BG);
 
