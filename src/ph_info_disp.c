@@ -146,7 +146,7 @@ void display_shooting_info() // called from debug task
                   )
         bg = bmp_getpixel(icon_x-12, icon_y + 46);
         fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
-        bmp_printf(fnt, icon_x-10, icon_y + 46, "%5d", lens_info.kelvin);
+        bmp_printf(fnt, icon_x, icon_y + 46, "%5d", lens_info.kelvin);
         //------------ ICON KELVIN ------------------
         
 	}
