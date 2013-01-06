@@ -3264,7 +3264,10 @@ void hdr_display_status(int fnt)
                 ((hdr_stepsize/4) % 2) ? ".5" : "");
         }
     #else
-        bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y, 
+        
+        int bg = bmp_getpixel(HDR_STATUS_POS_X-30,HDR_STATUS_POS_Y);
+        fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
+        bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y,
             "HDR %Xx%d%sEV",
             hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
             hdr_stepsize / 8,
@@ -3273,6 +3276,20 @@ void hdr_display_status(int fnt)
     }
     #endif
     #endif
+#ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
+    #if !defined(HTP_STATUS_POS_X) && !defined(HTP_STATUS_POS_Y)
+        #define HTP_STATUS_POS_X HDR_STATUS_POS_X
+        #define HTP_STATUS_POS_Y HDR_STATUS_POS_Y
+    #endif
+
+    if (get_htp())
+    {
+        int bg = bmp_getpixel(HTP_STATUS_POS_X,HTP_STATUS_POS_Y);
+        bmp_fill(bg,HTP_STATUS_POS_X,HTP_STATUS_POS_Y,60,46); // HIDE ALO ICON
+        bmp_printf(FONT(FONT_LARGE, COLOR_FG_NONLV, bg), HTP_STATUS_POS_X, HTP_STATUS_POS_Y, "HTP");
+        bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, bg), HTP_STATUS_POS_X+40, HTP_STATUS_POS_Y+30, "ON");
+    }
+#endif
 }
 
 #ifdef FEATURE_HDR_BRACKETING
@@ -7654,12 +7671,10 @@ shoot_task( void* unused )
     
                 if (countdown == 0)
                 {
-#if defined(CONFIG_7D)
-                    bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, (lv ? COLOR_BG : bmp_getpixel(28, 3))), (lv ? 2 : 28),  (lv ? 30 : 3), "Audio release ON (%2d / %2d)", current_pulse_level, audio_release_level);
-#else
-                    bmp_printf(FONT_MED, 20,  (lv ? 40 : 3), "Audio release ON (%d / %d)   ", current_pulse_level, audio_release_level);
-#endif
-                    if (current_pulse_level > (int)audio_release_level) 
+
+                    bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, (lv ? COLOR_BG : bmp_getpixel(AUDIO_REM_SHOT_POS_X-2, AUDIO_REM_SHOT_POS_Y))), (lv ? 2 : AUDIO_REM_SHOT_POS_X),  (lv ? 30 : AUDIO_REM_SHOT_POS_Y), "Audio release ON (%2d / %2d)", current_pulse_level, audio_release_level);
+
+                    if (current_pulse_level > (int)audio_release_level)
                     {
                         remote_shot(1);
                         msleep(100);

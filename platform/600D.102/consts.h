@@ -69,29 +69,29 @@
 #define YUV422_HD_BUFFER_5 0x50000080
 #define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
- #define YUV422_HD_PITCH_IDLE 2112
- #define YUV422_HD_HEIGHT_IDLE 704
+#define YUV422_HD_PITCH_IDLE 2112
+#define YUV422_HD_HEIGHT_IDLE 704
 
- #define YUV422_HD_PITCH_ZOOM 2048
- #define YUV422_HD_HEIGHT_ZOOM 680
+#define YUV422_HD_PITCH_ZOOM 2048
+#define YUV422_HD_HEIGHT_ZOOM 680
 
- #define YUV422_HD_PITCH_REC_FULLHD 3440
- #define YUV422_HD_HEIGHT_REC_FULLHD 974
+#define YUV422_HD_PITCH_REC_FULLHD 3440
+#define YUV422_HD_HEIGHT_REC_FULLHD 974
 
 // guess
- #define YUV422_HD_PITCH_REC_720P 2560
- #define YUV422_HD_HEIGHT_REC_720P 580
+#define YUV422_HD_PITCH_REC_720P 2560
+#define YUV422_HD_HEIGHT_REC_720P 580
 
- #define YUV422_HD_PITCH_REC_480P 1280
- #define YUV422_HD_HEIGHT_REC_480P 480
+#define YUV422_HD_PITCH_REC_480P 1280
+#define YUV422_HD_HEIGHT_REC_480P 480
 
-#define FOCUS_CONFIRMATION (*(int*)0x479C) 
+#define FOCUS_CONFIRMATION (*(int*)0x479C)
 #define HALFSHUTTER_PRESSED (*(int*)0x1bdc) // same as 60D
 //~ #define AF_BUTTON_PRESSED_LV 0
 
 //~ #define DISPLAY_SENSOR (*(int*)0x2dec)
 //~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)
- #define DISPLAY_SENSOR_POWERED (*(int*)0x3138)
+#define DISPLAY_SENSOR_POWERED (*(int*)0x3138)
 
 // for gui_main_task
 #define GMT_NFUNCS 7
@@ -101,9 +101,9 @@
 #define SENSOR_RES_X 5202
 #define SENSOR_RES_Y 3465
 
- #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
+#define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
- #define AJ_LCD_Palette 0x2CDB0
+#define AJ_LCD_Palette 0x2CDB0
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5B28) == 0xF) || ((*(int8_t*)0xC84C) != 0x17))
 #define LV_BOTTOM_BAR_STATE (*(uint8_t*)0x7DF7) // in JudgeBottomInfoDispTimerState, if bottom bar state is 2, Judge returns 0; ML will make it 0 to hide bottom bar
@@ -149,15 +149,33 @@
 #define MENU_DISP_ISO_POS_X 527
 #define MENU_DISP_ISO_POS_Y 45
 
-#define HDR_STATUS_POS_X 190
-#define HDR_STATUS_POS_Y 450
+// for ML hdr display
+#define HDR_STATUS_POS_X 560
+#define HDR_STATUS_POS_Y 100
+
+//fpr HTP mode on display
+#define HTP_STATUS_POS_X 500
+#define HTP_STATUS_POS_Y 233
+
+#define MLU_STATUS_POS_X 316
+#define MLU_STATUS_POS_Y 310
+
+#define WBS_BA_POS_X 365
+#define WBS_BA_POS_Y 260
+
+#define WBS_GM_POS_X 365
+#define WBS_GM_POS_Y 230
+
+// Audio remote shot position info photo mode
+#define AUDIO_REM_SHOT_POS_X 200
+#define AUDIO_REM_SHOT_POS_Y 386
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
 #define GUIMODE_ML_MENU (recording ? 0 : lv ? 68 : 2)
 
 // position for displaying clock outside LV
-#define DISPLAY_CLOCK_POS_X 400
+#define DISPLAY_CLOCK_POS_X 440
 #define DISPLAY_CLOCK_POS_Y 410
 
 // for displaying TRAP FOCUS msg outside LV
@@ -176,7 +194,7 @@
 #define MOVIE_MODE_REMAP_Y_STR "CA"
 
 #define FLASH_MAX_EV 3
-#define FLASH_MIN_EV -10
+#define FLASH_MIN_EV -5
 #define FASTEST_SHUTTER_SPEED_RAW 152
 #define MAX_AE_EV 5
 
@@ -244,5 +262,3 @@
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x172c8
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
-
-#define FASTEST_SHUTTER_SPEED_RAW 152

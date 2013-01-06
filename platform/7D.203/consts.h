@@ -160,8 +160,11 @@
 #define HDR_STATUS_POS_X 634
 #define HDR_STATUS_POS_Y 29
 
-    // for displaying TRAP FOCUS msg outside LV
-    
+// Audio remote shot position info photo mode
+#define AUDIO_REM_SHOT_POS_X 28
+#define AUDIO_REM_SHOT_POS_Y 3
+
+// for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUSMSG_POS_X 277
 #define DISPLAY_TRAP_FOCUSMSG_POS_Y 308
 

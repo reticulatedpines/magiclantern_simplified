@@ -37,6 +37,7 @@ ML_OBJS-y = \
 	propvalues.o \
 	gui.o \
 	gui-common.o \
+	ph_info_disp.o \
 	misc.o \
 	picstyle.o \
 	cfn.o \
