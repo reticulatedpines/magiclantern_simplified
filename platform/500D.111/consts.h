@@ -121,15 +121,43 @@
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(6, something)
 #define GUIMODE_ML_MENU (recording ? 0 : lv ? 43 : 2)
 
-// position for displaying clock outside LV
-#define DISPLAY_CLOCK_POS_X 200
-#define DISPLAY_CLOCK_POS_Y 410
-
+// position for ML ISO disp outside LV
 #define MENU_DISP_ISO_POS_X 470
 #define MENU_DISP_ISO_POS_Y 40
 
-#define HDR_STATUS_POS_X 380
-#define HDR_STATUS_POS_Y 450
+//position for ML MAX ISO
+//#define MAX_ISO_POS_X 590
+//#define MAX_ISO_POS_Y 28
+
+// for ML hdr display
+#define HDR_STATUS_POS_X 560 //was 380
+#define HDR_STATUS_POS_Y 100 //was 450
+
+//for HTP mode on display
+//#define HTP_STATUS_POS_X 500
+//#define HTP_STATUS_POS_Y 233
+
+//for Mirror Lock Up enabled on display
+//#define MLU_STATUS_POS_X 316
+//#define MLU_STATUS_POS_Y 310
+
+//#define WBS_BA_POS_X 365
+//#define WBS_BA_POS_Y 260
+
+//#define WBS_GM_POS_X 365
+//#define WBS_GM_POS_Y 230
+
+// Audio remote shot position info photo mode
+#define AUDIO_REM_SHOT_POS_X 200
+#define AUDIO_REM_SHOT_POS_Y 386
+
+// position for displaying clock outside LV
+#define DISPLAY_CLOCK_POS_X 41
+#define DISPLAY_CLOCK_POS_Y 259
+
+// position for displaying card size remain outside LV
+#define DISPLAY_GB_POS_X 32
+#define DISPLAY_GB_POS_Y 144
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 401
