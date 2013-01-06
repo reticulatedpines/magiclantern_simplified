@@ -268,7 +268,7 @@ static int calc_fps_x1000(int timerA, int timerB)
     return f / timerB;
 }
 
-static int get_current_tg_freq()
+int get_current_tg_freq()
 {
     int timerA = (FPS_REGISTER_A_VALUE & 0xFFFF) + 1;
     if (timerA == 1) return 0;
