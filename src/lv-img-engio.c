@@ -216,7 +216,7 @@ void autodetect_default_white_level()
 {
     if (!lv) return;
     
-    int current_shad_gain = MEMX(SHAD_GAIN);
+    int current_shad_gain = (int) MEMX(SHAD_GAIN);
     if (current_shad_gain == shad_gain_last_written) return; // in the register there's the value we wrote => not good for computing what Canon uses as default setting
 
     default_white_level = current_shad_gain;
@@ -433,7 +433,7 @@ void digic_dump()
     
     for (uint32_t reg = 0xc0f00000; reg < 0xC0f40000; reg+=4)
     {
-        int value = shamem_read(reg);
+        int value = (int) shamem_read(reg);
         if (value && value != -1)
         {
             bmp_printf(FONT_LARGE, 50, 50, "%8x: %8x", reg, value);

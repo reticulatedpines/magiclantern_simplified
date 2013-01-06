@@ -118,6 +118,15 @@
 #define MENU_DISP_ISO_POS_X 500
 #define MENU_DISP_ISO_POS_Y 27
 
+// for displaying battery
+#define DISPLAY_BATTERY_POS_X 150
+#define DISPLAY_BATTERY_POS_Y 395
+#define DISPLAY_BATTERY_LEVEL_1 60 //%
+#define DISPLAY_BATTERY_LEVEL_2 20 //%
+
+// for header footer info
+#define DISPLAY_HEADER_FOOTER_INFO
+
 // for HDR status
 #define HDR_STATUS_POS_X 140
 #define HDR_STATUS_POS_Y 460
@@ -192,6 +201,7 @@
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
 #define VIDEO_PARAMETERS_SRC_3 MEM(0x25FF0) //for mark iii
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0))
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xc)) // for sure now
 #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xd))
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xe))

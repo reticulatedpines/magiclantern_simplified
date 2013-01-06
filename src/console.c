@@ -135,7 +135,7 @@ int console_printf(const char* fmt, ...) // don't DebugMsg from here!
     char buf[256];
     va_list         ap;
     va_start( ap, fmt );
-    int len = vsnprintf( buf, 256, fmt, ap );
+    int len = vsnprintf( buf, 255, fmt, ap );
     va_end( ap );
     console_puts(buf);
 	return len;
@@ -144,7 +144,7 @@ int console_printf(const char* fmt, ...) // don't DebugMsg from here!
 int console_vprintf(const char* fmt, va_list ap) // don't DebugMsg from here!
 {
     char buf[256];
-    int len = vsnprintf( buf, 256, fmt, ap );
+    int len = vsnprintf( buf, 255, fmt, ap );
     console_puts(buf);
 	return len;
 }

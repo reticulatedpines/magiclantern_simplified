@@ -42,7 +42,7 @@ void my_DebugMsg(int class, int level, char* fmt, ...)
     // char* msg = buf+len;
 
     va_start( ap, fmt );
-    len += vsnprintf( buf+len, BUF_SIZE-len, fmt, ap );
+    len += vsnprintf( buf+len, BUF_SIZE-len-1, fmt, ap );
     va_end( ap );
 
     len += snprintf( buf+len, BUF_SIZE-len, "\n" );

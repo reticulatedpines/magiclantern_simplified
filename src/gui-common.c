@@ -154,8 +154,19 @@ static int pre_shutdown_requested = 0; // used for preventing wakeup from paused
 
 void reset_pre_shutdown_flag_step() // called every second
 {
-    if (pre_shutdown_requested)
+    if (pre_shutdown_requested && !sensor_cleaning)
         pre_shutdown_requested--;
+}
+
+void check_pre_shutdown_flag() // called from ml_shutdown
+{
+    if (LV_PAUSED && !pre_shutdown_requested)
+    {
+        // if this happens, camera will probably not shutdown normally from "LV paused" state
+        NotifyBox(10000, "Double-check GMT_GUICMD consts");
+        info_led_blink(50,50,50);
+        // can't call ASSERT from here
+    }
 }
 
 int handle_common_events_by_feature(struct event * event)
@@ -163,8 +174,8 @@ int handle_common_events_by_feature(struct event * event)
     // common to most cameras
     // there may be exceptions
 
-#ifdef FEATURE_CONFIG_SAVE
-    // these are required for correct shutdown from powersave mode
+#ifdef FEATURE_POWERSAVE_LIVEVIEW
+    // these are required for correct shutdown from "LV paused" state
     if (event->param == GMT_GUICMD_START_AS_CHECK || 
         event->param == GMT_GUICMD_OPEN_SLOT_COVER || 
         event->param == GMT_GUICMD_LOCK_OFF)
@@ -173,19 +184,13 @@ int handle_common_events_by_feature(struct event * event)
         config_save_at_shutdown();
         return 1;
     }
-#endif
 
-#ifdef FEATURE_POWERSAVE_LIVEVIEW
     if (LV_PAUSED && event->param != GMT_OLC_INFO_CHANGED) 
     { 
-        int ans =  (ml_shutdown_requested || pre_shutdown_requested || sensor_cleaning || PLAY_MODE || MENU_MODE);
-
-        //~ run_in_separate_task(ResumeLiveView, 0);
-        //~ return 0;
-        //~ int ans = ResumeLiveView();
+        int ans = (ml_shutdown_requested || pre_shutdown_requested || sensor_cleaning);
         idle_wakeup_reset_counters(event->param);
         if (handle_disp_preset_key(event) == 0) return 0;
-        return !ans;  // if LiveView was resumed, don't do anything else (just wakeup)
+        return ans;  // if LiveView was resumed, don't do anything else (just wakeup)
     }
 #endif
 

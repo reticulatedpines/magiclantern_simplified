@@ -46,7 +46,7 @@ void NotifyBox(int timeout, char* fmt, ...)
     static char notify_box_msg[100];
     va_list ap;
     va_start( ap, fmt );
-    vsnprintf( notify_box_msg, sizeof(notify_box_msg), fmt, ap );
+    vsnprintf( notify_box_msg, sizeof(notify_box_msg)-1, fmt, ap );
     va_end( ap );
     big_bmp_printf(FONT_LARGE, 0, 0, "%s", notify_box_msg);
 }

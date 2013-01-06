@@ -41,10 +41,8 @@ _start:
     MOV  R5, R4, LSL#24
     
     /* calculate absolute GOT address and size */
-    ADR  R2, _got_start_addr
-    LDR  R2, [R2]
-    ADR  R3, _got_end_addr
-    LDR  R3, [R3]
+    LDR  R2, _got_start_addr
+    LDR  R3, _got_end_addr
     SUB  R3, R3, R2
     SUB  R2, R2, R5
     ADD  R2, R2, R6

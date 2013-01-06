@@ -103,15 +103,12 @@ PROP_HANDLER(PROP_VIDEO_MODE)
     #endif
 }
 
+#ifdef CONFIG_LIVEVIEW
 PROP_HANDLER( PROP_LV_ACTION )
 {
-#ifdef CONFIG_5DC
-    //~ make sure ML never thinks LV is open, because 5dc doesn't have LV.
-    lv = 0;
-#else
     lv = !buf[0];
-#endif
 }
+#endif
 
 volatile PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code);
 volatile PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);

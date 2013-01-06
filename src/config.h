@@ -92,8 +92,24 @@ __config_##VAR = \
 }
 
 #define CONFIG_INT( NAME, VAR, VALUE ) \
-        _CONFIG_VAR( NAME, 0, unsigned, VAR, VALUE )
+        _CONFIG_VAR( NAME, 0, unsigned int, VAR, VALUE )
 
+
+#define _CONFIG_ARRAY_ELEMENT( NAME, TYPE_ENUM, VAR, INDEX, VALUE ) \
+struct config_var \
+__attribute__((section(".config_vars"))) \
+__config_##VAR##INDEX = \
+{ \
+        .name           = NAME, \
+        .type           = TYPE_ENUM, \
+        .value          = &(VAR[INDEX]), \
+}
+
+#define CONFIG_ARRAY_ELEMENT( NAME, VAR, INDEX, VALUE ) \
+        _CONFIG_ARRAY_ELEMENT( NAME, 0, VAR, INDEX, VALUE )
+        
+        
+        
 /* doesn'tworkstation
 
 #define CONFIG_STR( NAME, VAR, VALUE ) \

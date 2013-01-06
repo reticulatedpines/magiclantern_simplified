@@ -8,6 +8,10 @@ FW_VERSION=113
 MODEL=5D3
 ML_VERSION=unified1 
 
+
+# compile position independent (experimental)
+CONFIG_PIC=n
+
 #used in CFLAGS
 PLATFORM_INC=.
 

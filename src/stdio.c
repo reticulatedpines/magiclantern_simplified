@@ -25,7 +25,7 @@ my_fprintf(
     char* buf = alloc_dma_memory(256);
 
     va_start( ap, fmt );
-    int len = vsnprintf( buf, 256, fmt, ap );
+    int len = vsnprintf( buf, 255, fmt, ap );
     va_end( ap );
 
     FIO_WriteFile( file, buf, len );
@@ -43,9 +43,22 @@ snprintf(
 )
 {
     va_list         ap;
+    
+    // Docs say:
+    
+    // http://linux.die.net/man/3/snprintf
+    // The functions snprintf() and vsnprintf() write at most size bytes (including the terminating null byte ('\0')) to str.
+    
+    // http://pubs.opengroup.org/onlinepubs/9699919799/functions/snprintf.html
+    // The snprintf() function shall be equivalent to sprintf(), with the addition of the n argument 
+    // which states the size of the buffer referred to by s. If n is zero, nothing shall be written 
+    // and s may be a null pointer. Otherwise, output bytes beyond the n-1st shall be discarded instead 
+    // of being written to the array, and a null byte is written at the end of the bytes actually written into the array.
+    
+    // Canon vsnprintf will write max_len + 1 bytes, so we need to pass max_len - 1.
 
     va_start( ap, fmt );
-    int len = vsnprintf( buf, max_len, fmt, ap );
+    int len = vsnprintf( buf, max_len - 1, fmt, ap );
     va_end( ap );
     return len;
 }
@@ -328,6 +341,7 @@ char* strpbrk(const char* s1, const char* s2)
     return NULL;
 }
 
+/*
 #define MAX_VSNPRINTF_SIZE 4096
 
 int sprintf(char* str, const char* fmt, ...)
@@ -336,10 +350,11 @@ int sprintf(char* str, const char* fmt, ...)
     va_list            ap;
 
     va_start( ap, fmt );
-    num = vsnprintf( str, MAX_VSNPRINTF_SIZE, fmt, ap );
+    num = vsnprintf( str, MAX_VSNPRINTF_SIZE-1, fmt, ap );
     va_end( ap );
     return num;
 }
+*/
 
 int memcmp(const void* s1, const void* s2,size_t n)
 {

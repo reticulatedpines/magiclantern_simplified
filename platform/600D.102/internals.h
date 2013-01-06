@@ -109,3 +109,6 @@
 
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
+
+/** This camera loads ML into the AllocateMemory pool **/
+//#define CONFIG_ALLOCATE_MEMORY_POOL

@@ -565,6 +565,51 @@ are_there_any_visible_menus()
 }
 
 
+#if defined(POSITION_INDEPENDENT)
+/* when compiling position independent, we have to fix all link-time addresses to load-time addresses */
+void menu_fixup_pic(struct menu_entry * new_entry, int count)
+{
+    struct menu_entry * main_ptr = new_entry;
+    struct menu_entry * sub_ptr;
+    
+    while(count)
+    {
+        main_ptr->select = PIC_RESOLVE(main_ptr->select);
+        main_ptr->select_reverse = PIC_RESOLVE(main_ptr->select_reverse);
+        main_ptr->select_Q = PIC_RESOLVE(main_ptr->select_Q);
+        main_ptr->display = PIC_RESOLVE(main_ptr->display);
+        main_ptr->help = PIC_RESOLVE(main_ptr->help);
+        main_ptr->name = PIC_RESOLVE(main_ptr->name);
+        main_ptr->priv = PIC_RESOLVE(main_ptr->priv);
+        main_ptr->children = PIC_RESOLVE(main_ptr->children);
+        main_ptr->choices = PIC_RESOLVE(main_ptr->choices);
+        
+        if(main_ptr->choices)
+        {
+            for(int pos = 0; pos <= main_ptr->max; pos++)
+            {
+                main_ptr->choices[pos] = PIC_RESOLVE(main_ptr->choices[pos]);
+            }
+        }   
+        
+        if(main_ptr->children)
+        {
+            int entries = 0;
+            
+            while(main_ptr->children[entries].priv != MENU_EOL_PRIV)
+            {
+                entries++;
+            }
+            
+            menu_fixup_pic(main_ptr->children, entries);
+        }
+        
+        main_ptr++;
+        count--;
+    }
+}
+#endif
+
 void
 menu_add(
     const char *        name,
@@ -573,8 +618,7 @@ menu_add(
 )
 {
 #if defined(POSITION_INDEPENDENT)
-    /* not working yet */
-    return;
+    menu_fixup_pic(new_entry, count);
 #endif
 
 #if 1
@@ -600,9 +644,9 @@ menu_add(
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
         new_entry->selected = 1;
-         menu->pos           = 1;
-         menu->childnum      = 1; 
-         menu->childnummax   = 1;
+        menu->pos           = 1;
+        menu->childnum      = 1; 
+        menu->childnummax   = 1;
         //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry++;
         count--;
@@ -1075,10 +1119,10 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
 // if *priv is too high, display the first line
 
 
-static char* menu_help_get_line(char* help, void* priv)
+static char* menu_help_get_line(const char* help, void* priv)
 {
     char * p = strchr(help, '\n');
-    if (!p) return help; // help text contains a single line, no more fuss
+    if (!p) return (char*) help; // help text contains a single line, no more fuss
 
     // help text contains more than one line, choose the i'th one
     static char buf[70];
@@ -1086,14 +1130,14 @@ static char* menu_help_get_line(char* help, void* priv)
     if (priv) i = *(int*)priv;
     if (i < 0) i = 0;
     
-    char* start = help;
+    char* start = (char*) help;
     char* end = p;
     
     while (i > 0) // we need to skip some lines
     {
         if (*end == 0) // too many lines skipped? fall back to first line
         {
-            start = help;
+            start = (char*) help;
             end = p;
             break;
         }
@@ -1101,12 +1145,12 @@ static char* menu_help_get_line(char* help, void* priv)
         // there are more lines, skip to next one
         start = end + 1;
         end = strchr(start+1, '\n');
-        if (!end) end = help + strlen(help);
+        if (!end) end = (char*) help + strlen(help);
         i--;
     }
     
     // return the substring from "start" to "end"
-    int len = MIN(sizeof(buf) - 1, end - start);
+    int len = MIN((int)sizeof(buf) - 1, end - start);
     snprintf(buf, len, "%s", start);
     return buf;
 }
@@ -1475,36 +1519,59 @@ menus_display(
     }
     
     int icon_spacing = (720 - 150) / num_tabs;
+    
+    int bgs = COLOR_BLACK;
+    int bgu = COLOR_GRAY40;
+    int fgu = COLOR_GRAY50;
+    int fgs = COLOR_WHITE;
 
-    bmp_fill(COLOR_BLACK, orig_x, y, 720, 42);
-    bmp_fill(COLOR_GRAY45, orig_x, y+42, 720, 1);
+    bmp_fill(bgu, orig_x, y, 720, 42);
+    bmp_fill(fgu, orig_x, y+42, 720, 1);
     for( ; menu ; menu = menu->next )
     {
         if (!menu_has_visible_items(menu->children) && !menu->selected)
             continue; // empty menu
         if (IS_SUBMENU(menu))
             continue;
-        int color_selected = advanced_hidden_edit_mode ? COLOR_DARK_RED : COLOR_BLUE;
-        int fg = menu->selected ? COLOR_WHITE : 50;
-        int bg = menu->selected ? color_selected : COLOR_BLACK;
-        /*unsigned fontspec = FONT(
-            menu->selected ? FONT_LARGE : FONT_MED,
-            fg,
-            bg
-        );*/
+        int fg = menu->selected ? fgs : fgu;
+        int bg = menu->selected ? bgs : bgu;
         
         if (!menu_lv_transparent_mode)
         {
-            bmp_fill(bg, x, y, icon_spacing, 40);
+            if (menu->selected)
+                bmp_fill(bg, x, y+2, icon_spacing, 38);
 
             int icon_char = menu->icon ? menu->icon : menu->name[0];
             int icon_width = bfnt_char_get_width(icon_char);
             int x_ico = (x & ~3) + (icon_spacing - icon_width) / 2;
-            bfnt_draw_char(icon_char, x_ico, y, fg, bg);
+            bfnt_draw_char(icon_char, x_ico, y + 2, fg, bg);
 
             if (menu->selected)
             {
                 bfnt_puts(menu->name, 5, y, fg, bg);
+                int x1 = (x & ~3);
+                int x2 = ((x1 + icon_spacing) & ~3);
+
+                draw_line(x1, y+42-4, x1, y+5, fgu);
+                draw_line(x2, y+42-4, x2, y+5, fgu);
+                draw_line(x1+4, y+1, x2-4, y+1, fgu);
+                draw_line(x1-1, y+40, x2+1, y+40, bgs);
+                draw_line(x1-2, y+41, x2+2, y+41, bgs);
+                draw_line(x1-3, y+42, x2+3, y+42, bgs);
+
+                draw_line(x1-4, y+42, x1, y+42-4, fgu);
+                draw_line(x2+4, y+42, x2, y+42-4, fgu);
+
+                draw_line(x1, y+5, x1+4, y+1, fgu);
+                draw_line(x2, y+5, x2-4, y+1, fgu);
+                
+                draw_line(x1, y+2, x1, y+4, bgu);
+                draw_line(x1+1, y+2, x1+1, y+3, bgu);
+                draw_line(x1+2, y+2, x1+2, y+2, bgu);
+
+                draw_line(x2, y+2, x2, y+4, bgu);
+                draw_line(x2-1, y+2, x2-1, y+3, bgu);
+                draw_line(x2-2, y+2, x2-2, y+2, bgu);
             }
             x += icon_spacing;
         }
@@ -1516,7 +1583,7 @@ menus_display(
             menu_display(
                 menu,
                 orig_x + 40,
-                y + 45, 
+                y + 50, 
                 0
             );
             
@@ -1534,7 +1601,7 @@ implicit_submenu_display()
     menu_display(
         menu,
          40,
-         45,
+         50,
          1
     );
 }

@@ -4057,6 +4057,8 @@ PROP_HANDLER(PROP_GUI_STATE)
     extern int _bmp_draw_should_stop;
     _bmp_draw_should_stop = 1; // abort drawing any slow cropmarks
 
+    lv_paused = 0;
+    
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
     if (ZEBRAS_IN_QUICKREVIEW && buf[0] == GUISTATE_QR)
     {
@@ -4851,7 +4853,6 @@ void PauseLiveView() // this should not include "display off" command
             msleep(100);
             clrscr();
             lv_paused = 1;
-            lv = 1;
         )
         ASSERT(LV_PAUSED);
     }
@@ -4861,6 +4862,7 @@ void PauseLiveView() // this should not include "display off" command
 // returns 1 if it did wakeup
 int ResumeLiveView()
 {
+    info_led_on();
 #if defined(CONFIG_LIVEVIEW) && defined(FEATURE_POWERSAVE_LIVEVIEW)
     if (ml_shutdown_requested) return 0;
     if (sensor_cleaning) return 0;
@@ -4869,21 +4871,20 @@ int ResumeLiveView()
     int ans = 0;
     if (LV_PAUSED)
     {
-        lv = 0;
         int x = 0;
         //~ while (get_halfshutter_pressed()) msleep(MIN_MSLEEP);
         BMP_LOCK(
             prop_request_change(PROP_LV_ACTION, &x, 4);
-            while (!lv) msleep(100);
-            while (!DISPLAY_IS_ON) msleep(100);
+            int iter = 10; while (!lv && iter--) msleep(100);
+            iter = 10; while (!DISPLAY_IS_ON && iter--) msleep(100);
         )
-        set_lv_zoom(lv_zoom_before_pause);
+        while (sensor_cleaning) msleep(100);
+        if (lv) set_lv_zoom(lv_zoom_before_pause);
         msleep(100);
-        ASSERT(LV_NON_PAUSED);
         ans = 1;
-        //~ ASSERT(DISPLAY_IS_ON);
     }
     lv_paused = 0;
+    info_led_off();
     return ans;
 #endif
 }
@@ -5022,7 +5023,7 @@ clearscreen_loop:
             if ((get_seconds_clock() - get_last_time_active()) > 30)
                 info_led_blink(1, 10, 10);
 
-        if (!lv) continue;
+        if (!lv && !lv_paused) continue;
 
         // especially for 50D
         #ifdef CONFIG_KILL_FLICKER
@@ -5112,8 +5113,19 @@ clearscreen_loop:
         if (idle_display_turn_off_after)
         {
             idle_action_do(&idle_countdown_display_off, &idle_countdown_display_off_prev, idle_display_off, idle_display_on);
+
+            // show a warning that display is going to be turned off (and clear it if some button is pressed)
+            static int warning_dirty = 0;
             if (idle_countdown_display_off == 30)
+            {
                 idle_display_off_show_warning();
+                warning_dirty = 1;
+            }
+            else if (warning_dirty && idle_countdown_display_off > 30)
+            {
+                NotifyBoxHide();
+                warning_dirty = 0;
+            }
         }
 
         if (idle_display_global_draw_off_after)
