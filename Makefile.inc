@@ -149,9 +149,8 @@ AFLAGS=\
     
 LFLAGS=
 
-# default libraries are arm-elf with full optimization -O3
-LIB_TYPE = 
-#arm-elf-O3
+# default libraries are arm-${ARM_ABI} with full optimization -O3
+LIB_TYPE = arm-${ARM_ABI}-O3
 
 CFLAGS += $(CFLAG_USER)
 LFLAGS += $(LFLAG_USER)
@@ -177,7 +176,7 @@ ifeq ($(CONFIG_PIC), y)
 CFLAGS += -fPIC -DPOSITION_INDEPENDENT
 AFLAGS += -fPIC -DPOSITION_INDEPENDENT
 LFLAGS += -fPIC
-LIB_TYPE = arm-elf-O3-fPIC
+LIB_TYPE = arm-{ARM_ABI}-O3-fPIC
 endif
 
 
