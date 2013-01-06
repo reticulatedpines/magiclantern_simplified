@@ -569,7 +569,7 @@ clean:
 	$(call build,CLEAN,$(RM) -f \
 		*.o   \
 		*.d \
-		.*.a \
+		*.a \
 		$(BIN_FILES) \
 		magiclantern.lds \
 		*.bmp \
