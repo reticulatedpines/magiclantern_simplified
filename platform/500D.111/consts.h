@@ -125,7 +125,7 @@
 #define MENU_DISP_ISO_POS_X 470
 #define MENU_DISP_ISO_POS_Y 40
 
-//position for ML MAX ISO
+//position for ML MAX ISO  not present on 500D
 //#define MAX_ISO_POS_X 590
 //#define MAX_ISO_POS_Y 28
 
@@ -134,8 +134,8 @@
 #define HDR_STATUS_POS_Y 100 //was 450
 
 //for HTP mode on display
-//#define HTP_STATUS_POS_X 500
-//#define HTP_STATUS_POS_Y 233
+#define HTP_STATUS_POS_X 410
+#define HTP_STATUS_POS_Y 220
 
 //for Mirror Lock Up enabled on display
 //#define MLU_STATUS_POS_X 316
