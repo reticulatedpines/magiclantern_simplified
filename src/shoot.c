@@ -3266,7 +3266,7 @@ void hdr_display_status(int fnt)
     #else
         
         int bg = bmp_getpixel(HDR_STATUS_POS_X-30,HDR_STATUS_POS_Y);
-        fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
+        //fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
         bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y,
             "HDR %Xx%d%sEV",
             hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
