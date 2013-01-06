@@ -150,7 +150,8 @@ AFLAGS=\
 LFLAGS=
 
 # default libraries are arm-elf with full optimization -O3
-LIB_TYPE = arm-elf-O3
+LIB_TYPE = 
+#arm-elf-O3
 
 CFLAGS += $(CFLAG_USER)
 LFLAGS += $(LFLAG_USER)
