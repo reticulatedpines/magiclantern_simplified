@@ -59,6 +59,7 @@ PROP_HANDLER(PROP_BATTERY_HISTORY) // also in memory address 7AFC0 length 76 byt
     }
 }
 
+#if 0
 void display_shooting_info() // called from debug task
 {
 	if (lv) return;
@@ -133,7 +134,7 @@ void display_shooting_info() // called from debug task
 #endif
 
     if (lens_info.raw_iso == 0) // ISO: AUTO
-     {
+    {
         fnt = FONT(FONT_MED, COLOR_YELLOW, col_field);
         bmp_printf(fnt, 545, 105, "[%d-%d]", MAX((get_htp() ? 200 : 100), raw2iso(auto_iso_range >> 8)), raw2iso((auto_iso_range & 0xFF)));
     }
@@ -166,6 +167,7 @@ void display_shooting_info() // called from debug task
 	display_lcd_remote_icon(555, 460);
 	display_trap_focus_info();
 }
+#endif
 
 void RedrawBatteryIcon()
 {

@@ -160,6 +160,13 @@
 #define HDR_STATUS_POS_X 634
 #define HDR_STATUS_POS_Y 29
 
+// for the yellow ISO range [a-b]
+#define ISO_RANGE_POS_X 455
+#define ISO_RANGE_POS_Y 92
+
+#define WB_KELVIN_POS_X 393
+#define WB_KELVIN_POS_Y 276
+
 // Audio remote shot position info photo mode
 #define AUDIO_REM_SHOT_POS_X 28
 #define AUDIO_REM_SHOT_POS_Y 3

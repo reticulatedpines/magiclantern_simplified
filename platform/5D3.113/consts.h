@@ -118,6 +118,21 @@
 #define MENU_DISP_ISO_POS_X 500
 #define MENU_DISP_ISO_POS_Y 27
 
+    //for HTP mode on display
+    #define HTP_STATUS_POS_X 500
+    #define HTP_STATUS_POS_Y 233
+
+//for Mirror Lock Up enabled on display
+#define MLU_STATUS_POS_X 395
+#define MLU_STATUS_POS_Y 305
+
+// for the yellow ISO range [a-b]
+#define ISO_RANGE_POS_X 545
+#define ISO_RANGE_POS_Y 105
+
+#define WB_KELVIN_POS_X 160
+#define WB_KELVIN_POS_Y 278
+
 // for displaying battery
 #define DISPLAY_BATTERY_POS_X 150
 #define DISPLAY_BATTERY_POS_Y 395
