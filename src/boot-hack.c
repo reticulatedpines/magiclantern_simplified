@@ -115,7 +115,7 @@ copy_and_restart( )
      * create_init_task
      */
     // Reserve memory after the BSS for our application
-    #if !defined(CONFIG_550D) && !defined(CONFIG_600D) && !defined(CONFIG_1100D) // 550D/600D/1100D load ML in the AllocateMemory pool
+    #if !defined(CONFIG_ALLOCATE_MEMORY_POOL) // Some cameras load ML into the AllocateMemory pool (like 5500D/600D/1100D)
     INSTR( HIJACK_INSTR_BSS_END ) = (uintptr_t) _bss_end;
     #endif
 
@@ -570,165 +570,20 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func)
     request_crash_log(2);
 }
 
+#ifdef CONFIG_ALLOCATE_MEMORY_POOL
 
-#ifdef CONFIG_550D
-int init_task_patched_for_550D(int a, int b, int c, int d)
-{
-    // We shrink the AllocateMemory (system memory) pool in order to make space for ML binary
-    // ff018d1c: init_task:
-    // ff018d90: b CreateTaskMain
-    //
-    // ff011c94 CreateTaskMain:
-    // ff011cb4: mov r1, #13631488  ; 0xd00000  <-- end address
-    // ff011cb8: mov r0, #3997696   ; 0x3d0000  <-- start address
-    // ff011cbc: bl  allocatememory_init_pool
-
-    // So... we need to patch CreateTaskMain, which is called by init_task.
-    //
-    // First we use Trammell's reloc.c code to relocate init_task and CreateTaskMain...
-
-    #define init_task_start 0xff018d1c
-    #define init_task_end   0xff018ef4
-    #define init_task_len   (init_task_end - init_task_start)
-
-    #define CreateTaskMain_start 0xff011c94
-    #define CreateTaskMain_end   0xff011f50
-    #define CreateTaskMain_len   (CreateTaskMain_end - CreateTaskMain_start)
-    
-    static char init_task_reloc_buf[init_task_len+64];
-    static char CreateTaskMain_reloc_buf[CreateTaskMain_len+64];
-    
-    int (*new_init_task)(int,int,int,int) = (void*)reloc(
-        0,      // we have physical memory
-        0,      // with no virtual offset
-        init_task_start,
-        init_task_end,
-        init_task_reloc_buf
-    );
-
-    int (*new_CreateTaskMain)(void) = (void*)reloc(
-        0,      // we have physical memory
-        0,      // with no virtual offset
-        CreateTaskMain_start,
-        CreateTaskMain_end,
-        CreateTaskMain_reloc_buf
-    );
-    
-    const uintptr_t init_task_offset = (intptr_t)new_init_task - (intptr_t)init_task_reloc_buf - (intptr_t)init_task_start;
-    const uintptr_t CreateTaskMain_offset = (intptr_t)new_CreateTaskMain - (intptr_t)CreateTaskMain_reloc_buf - (intptr_t)CreateTaskMain_start;
-
-    // Done relocating, now we can patch things.
-
-    //~ uint32_t* addr_AllocMem_start   = (void*)(CreateTaskMain_reloc_buf + 0xff011cb8 + CreateTaskMain_offset);
-    uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + 0xff011cb4 + CreateTaskMain_offset);
-    uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + 0xff011cbc + CreateTaskMain_offset);
-
-    // change end limit to 0xc800000 => reserve 500K for ML
-    // thanks to ARMada by g3gg0 for the black magic :)
-    *addr_AllocMem_end = 0xE3A01732;
-
-    // relocating CreateTaskMain does some nasty things, so, right after patching,
-    // we jump back to ROM version; at least, what's before patching seems to be relocated properly
-    *addr_BL_AllocMem_init = B_INSTR(addr_BL_AllocMem_init, 0xff011cbc);
-    
-    uint32_t* addr_B_CreateTaskMain = (void*)init_task_reloc_buf + 0xff018d90 + init_task_offset;
-    *addr_B_CreateTaskMain = B_INSTR(addr_B_CreateTaskMain, new_CreateTaskMain);
-    
-    
-    /* FIO_RemoveFile("B:/dump.hex");
-    FILE* f = FIO_CreateFile("B:/dump.hex");
-    FIO_WriteFile(f, UNCACHEABLE(new_CreateTaskMain), CreateTaskMain_len);
-    FIO_CloseFile(f);
-    
-    NotifyBox(10000, "%x ", new_CreateTaskMain); */
-    
-    // Well... let's cross the fingers and call the relocated stuff
-    return new_init_task(a,b,c,d);
-
-}
+#ifndef ITASK_LEN
+#define ITASK_LEN   (ROM_ITASK_END - ROM_ITASK_START)
 #endif
 
-#ifdef CONFIG_600D
-int init_task_patched_for_600D(int a, int b, int c, int d)
-{
-    // We shrink the AllocateMemory (system memory) pool in order to make space for ML binary
-    // ff0197fc: init_task:
-    // ff019870: b CreateTaskMain
-    //
-    // ff0123c4 CreateTaskMain:
-    // ff0123e4: mov r1, #13631488  ; 0xd00000  <-- end address
-    // ff0123e8: mov r0, #3997696   ; 0x3d0000  <-- start address
-    // ff0123ec: bl  allocatememory_init_pool
-
-    // So... we need to patch CreateTaskMain, which is called by init_task.
-    //
-    // First we use Trammell's reloc.c code to relocate init_task and CreateTaskMain...
-
-    #define init_task_start 0xff0197fc
-    #define init_task_end   0xFF0199D4
-    #define init_task_len   (init_task_end - init_task_start)
-
-    #define CreateTaskMain_start 0xFF0123C4
-    #define CreateTaskMain_end   0xFF0126B8
-    #define CreateTaskMain_len   (CreateTaskMain_end - CreateTaskMain_start)
-    
-    static char init_task_reloc_buf[init_task_len+64];
-    static char CreateTaskMain_reloc_buf[CreateTaskMain_len+64];
-    
-    int (*new_init_task)(int,int,int,int) = (void*)reloc(
-        0,      // we have physical memory
-        0,      // with no virtual offset
-        init_task_start,
-        init_task_end,
-        init_task_reloc_buf
-    );
-
-    int (*new_CreateTaskMain)(void) = (void*)reloc(
-        0,      // we have physical memory
-        0,      // with no virtual offset
-        CreateTaskMain_start,
-        CreateTaskMain_end,
-        CreateTaskMain_reloc_buf
-    );
-    
-    const uintptr_t init_task_offset = (intptr_t)new_init_task - (intptr_t)init_task_reloc_buf - (intptr_t)init_task_start;
-    const uintptr_t CreateTaskMain_offset = (intptr_t)new_CreateTaskMain - (intptr_t)CreateTaskMain_reloc_buf - (intptr_t)CreateTaskMain_start;
-
-    // Done relocating, now we can patch things.
-
-    uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + 0xff0123e4 + CreateTaskMain_offset);
-    uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + 0xff0123ec + CreateTaskMain_offset);
-
-    // change end limit to 0xc800000 => reserve 500K for ML
-    // thanks to ARMada by g3gg0 for the black magic :)
-    *addr_AllocMem_end = 0xE3A01732;
-
-    // relocating CreateTaskMain does some nasty things, so, right after patching,
-    // we jump back to ROM version; at least, what's before patching seems to be relocated properly
-    *addr_BL_AllocMem_init = B_INSTR(addr_BL_AllocMem_init, 0xff0123ec);
-    
-    uint32_t* addr_B_CreateTaskMain = (void*)init_task_reloc_buf + 0xff019870 + init_task_offset;
-    *addr_B_CreateTaskMain = B_INSTR(addr_B_CreateTaskMain, new_CreateTaskMain);
-    
-    
-    /* FIO_RemoveFile("B:/dump.hex");
-    FILE* f = FIO_CreateFile("B:/dump.hex");
-    FIO_WriteFile(f, UNCACHEABLE(new_CreateTaskMain), CreateTaskMain_len);
-    FIO_CloseFile(f);
-    
-    NotifyBox(10000, "%x ", new_CreateTaskMain); */
-    
-    // Well... let's cross the fingers and call the relocated stuff
-    return new_init_task(a,b,c,d);
-
-}
+#ifndef CREATETASK_MAIN_LEN
+#define CREATETASK_MAIN_LEN (ROM_CREATETASK_MAIN_END - ROM_CREATETASK_MAIN_START)
 #endif
 
-
-#ifdef CONFIG_1100D
-int init_task_patched_for_1100D(int a, int b, int c, int d)
+int init_task_patched(int a, int b, int c, int d)
 {
     // We shrink the AllocateMemory (system memory) pool in order to make space for ML binary
+    // Example for the 1100D firmware
     // ff0197d8: init_task:
     // ff01984c: b CreateTaskMain
     //
@@ -741,50 +596,42 @@ int init_task_patched_for_1100D(int a, int b, int c, int d)
     //
     // First we use Trammell's reloc.c code to relocate init_task and CreateTaskMain...
 
-    #define init_task_start 0xff0197d8
-    #define init_task_end   0xff0199b0
-    #define init_task_len   (init_task_end - init_task_start)
-
-    #define CreateTaskMain_start 0xFF0123C4
-    #define CreateTaskMain_end   0xFF0126B4
-    #define CreateTaskMain_len   (CreateTaskMain_end - CreateTaskMain_start)
-    
-    static char init_task_reloc_buf[init_task_len+64];
-    static char CreateTaskMain_reloc_buf[CreateTaskMain_len+64];
+    static char init_task_reloc_buf[ITASK_LEN+64];
+    static char CreateTaskMain_reloc_buf[CREATETASK_MAIN_LEN+64];
     
     int (*new_init_task)(int,int,int,int) = (void*)reloc(
         0,      // we have physical memory
         0,      // with no virtual offset
-        init_task_start,
-        init_task_end,
+        ROM_ITASK_START,
+        ROM_ITASK_END,
         init_task_reloc_buf
     );
 
     int (*new_CreateTaskMain)(void) = (void*)reloc(
         0,      // we have physical memory
         0,      // with no virtual offset
-        CreateTaskMain_start,
-        CreateTaskMain_end,
+        ROM_CREATETASK_MAIN_START,
+        ROM_CREATETASK_MAIN_END,
         CreateTaskMain_reloc_buf
     );
     
-    const uintptr_t init_task_offset = (intptr_t)new_init_task - (intptr_t)init_task_reloc_buf - (intptr_t)init_task_start;
-    const uintptr_t CreateTaskMain_offset = (intptr_t)new_CreateTaskMain - (intptr_t)CreateTaskMain_reloc_buf - (intptr_t)CreateTaskMain_start;
+    const uintptr_t init_task_offset = (intptr_t)new_init_task - (intptr_t)init_task_reloc_buf - (intptr_t)ROM_ITASK_START;
+    const uintptr_t CreateTaskMain_offset = (intptr_t)new_CreateTaskMain - (intptr_t)CreateTaskMain_reloc_buf - (intptr_t)ROM_CREATETASK_MAIN_START;
 
     // Done relocating, now we can patch things.
 
-    uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + 0xff0123e4 + CreateTaskMain_offset);
-    uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + 0xff0123ec + CreateTaskMain_offset);
+    uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_END + CreateTaskMain_offset);
+    uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
 
     // change end limit to 0xc800000 => reserve 500K for ML
     // thanks to ARMada by g3gg0 for the black magic :)
-    *addr_AllocMem_end = 0xE3A01732;
+    *addr_AllocMem_end = MOV_R1_0xC800000_INSTR;
 
     // relocating CreateTaskMain does some nasty things, so, right after patching,
     // we jump back to ROM version; at least, what's before patching seems to be relocated properly
-    *addr_BL_AllocMem_init = B_INSTR(addr_BL_AllocMem_init, 0xff0123ec);
+    *addr_BL_AllocMem_init = B_INSTR(addr_BL_AllocMem_init, ROM_ALLOCMEM_INIT);
     
-    uint32_t* addr_B_CreateTaskMain = (void*)init_task_reloc_buf + 0xff01984c + init_task_offset;
+    uint32_t* addr_B_CreateTaskMain = (void*)init_task_reloc_buf + ROM_B_CREATETASK_MAIN + init_task_offset;
     *addr_B_CreateTaskMain = B_INSTR(addr_B_CreateTaskMain, new_CreateTaskMain);
     
     
@@ -799,7 +646,7 @@ int init_task_patched_for_1100D(int a, int b, int c, int d)
     return new_init_task(a,b,c,d);
 
 }
-#endif
+#endif // CONFIG_ALLOCATE_MEMORY_POOL
 
 // flag set to 1 when gui_main_task started to process messages from queue
 int gui_init_done = 0;
@@ -844,16 +691,12 @@ my_init_task(int a, int b, int c, int d)
     //cache_unlock();
 #else
     // Call their init task
-    #ifdef CONFIG_550D
-    int ans = init_task_patched_for_550D(a,b,c,d);
-    #elif defined(CONFIG_600D)
-    int ans = init_task_patched_for_600D(a,b,c,d);
-    #elif defined(CONFIG_1100D)
-    int ans = init_task_patched_for_1100D(a,b,c,d);
+    #ifdef CONFIG_ALLOCATE_MEMORY_POOL
+    int ans = init_task_patched(a,b,c,d);
     #else
     int ans = init_task(a,b,c,d);
-    #endif
-#endif
+    #endif // CONFIG_ALLOCATE_MEMORY_POOL
+#endif // HIJACK_CACHE_HOOK
 
 #ifdef ARMLIB_OVERFLOWING_BUFFER
     // Restore the overwritten value, if any
@@ -863,13 +706,11 @@ my_init_task(int a, int b, int c, int d)
     }
 #endif
 
-#ifdef CONFIG_CRASH_LOG
-#ifdef DRYOS_ASSERT_HANDLER
+#if defined(CONFIG_CRASH_LOG) && defined(DRYOS_ASSERT_HANDLER)
     // decompile TH_assert to find out the location
     old_assert_handler = (void*)MEM(DRYOS_ASSERT_HANDLER);
     *(void**)(DRYOS_ASSERT_HANDLER) = (void*)my_assert_handler;
-#endif
-#endif
+#endif // (CONFIG_CRASH_LOG) && (DRYOS_ASSERT_HANDLER)
     
 #ifndef CONFIG_EARLY_PORT
     // Overwrite the PTPCOM message
@@ -885,7 +726,7 @@ my_init_task(int a, int b, int c, int d)
         build_date,
         build_user
     );
-#endif
+#endif // !CONFIG_EARLY_PORT
 
 #if !defined(CONFIG_NO_ADDITIONAL_VERSION)
     // Re-write the version string.
@@ -960,5 +801,5 @@ void display_lcd_remote_icon(int x0, int y0) {}
 int new_LiveViewApp_handler = 0xff123456;
 void bootflag_write_bootblock(){};
 int handle_af_patterns(struct event * event) { return 1; }
-
 #endif
+

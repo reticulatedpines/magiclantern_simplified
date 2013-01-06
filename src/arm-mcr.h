@@ -179,12 +179,19 @@ sei( uint32_t old_irq )
 
 /**
  * Some common instructions.
+ * Thanks to ARMada by g3gg0 for some of the black magic :)
  */
 #define RET_INSTR    0xe12fff1e    // bx lr
 #define FAR_CALL_INSTR    0xe51ff004    // ldr pc, [pc,#-4]
 #define LOOP_INSTR    0xeafffffe    // 1: b 1b
 #define NOP_INSTR    0xe1a00000    // mov r0, r0
 #define MOV_R0_0_INSTR 0xe3a00000
+#define MOV_R1_0xC800000_INSTR 0xe3a01732 // mov r1, 0xc800000. 
+
+#define MOV_RD_IMM_INSTR(rd,imm)\
+    ( 0xE3A00000 \
+    | (rd << 15) \
+    )
 
 #define BL_INSTR(pc,dest) \
     ( 0xEB000000 \
