@@ -752,8 +752,10 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(snprintf(b, sizeof(b), "Defishing"), == 9);
         TEST_TRY_FUNC_CHECK(strcmp(a, b), > 0);
 
-        // vsnprintf
-        // variable arguments, not sure how to test
+        // vsnprintf (called by snprintf)
+        char buf[4];
+        TEST_TRY_FUNC_CHECK(snprintf(buf, 3, "%d", 1234), == 2);
+        TEST_TRY_FUNC_CHECK_STR(buf, "12");
 
         // memcpy, memset, bzero32
         char foo[] __attribute__((aligned(32))) = "qwertyuiop";
