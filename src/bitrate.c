@@ -492,12 +492,14 @@ void free_space_show_photomode()
 	snprintf(msg, sizeof(msg), "%d.%d", fsg, fsgf);
 	int w = bfnt_puts(msg, x, y, COLOR_CYAN, bmp_getpixel(x,y));
 	bmp_printf(FONT(SHADOW_FONT(FONT_MED), COLOR_CYAN, bmp_getpixel(x,y)), x+w+4, y+18, "GB" );
-#elif !defined(DISPLAY_GB_POS_X) && !defined(DISPLAY_GB_POS_Y)
-    int x = time_indic_x + 2 * font_med.width;
-    int y =  452;
 #else
+
+#if defined(DISPLAY_GB_POS_X) && defined(DISPLAY_GB_POS_Y)
     int x = DISPLAY_GB_POS_X;
     int y = DISPLAY_GB_POS_Y;
+#else
+    int x = time_indic_x + 2 * font_med.width;
+    int y =  452;
 #endif
     bmp_printf(
                FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
