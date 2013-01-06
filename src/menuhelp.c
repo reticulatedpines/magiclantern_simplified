@@ -35,6 +35,14 @@ extern int menu_help_active;
 int current_page = 1;
 extern int help_pages;
 
+void draw_page_number(int page)
+{
+    char pg[3];
+    snprintf(pg, sizeof(pg), "%3d", page);
+    bfnt_puts(pg, 650+(page<10 ? 14 : page<100 ? 4 : 0) , 2, COLOR_FG_NONLV, COLOR_BG);
+
+}
+
 void 
 draw_beta_warning()
 {
@@ -138,14 +146,6 @@ void menu_help_show_page(int page)
         }
     }
     if (page_number_active==1) draw_page_number(page);
-}
-
-void draw_page_number(int page)
-{
-    char pg[3];
-    snprintf(pg, sizeof(pg), "%3d", page);
-    bfnt_puts(pg, 650+(page<10 ? 14 : page<100 ? 4 : 0) , 2, COLOR_FG_NONLV, COLOR_BG);
-
 }
 
 void menu_help_redraw()
