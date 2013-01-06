@@ -73,6 +73,7 @@ ML_OBJS-y = \
 	ptpbuf.o \
 	exmem.o \
 	vsync-lite.o \
+	ph_info_disp.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
