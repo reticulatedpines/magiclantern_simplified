@@ -202,14 +202,17 @@ void display_shooting_info() // called from debug task
     }
 #endif
     
-	bg = bmp_getpixel(590, 28);
+#if defined(MAX_ISO_POS_X) && defined(MAX_ISO_POS_Y)
+	bg = bmp_getpixel(MAX_ISO_POS_X, MAX_ISO_POS_Y);
 	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
     
 	if (lens_info.raw_iso == 0) // ISO: MAX AUTO
  	{
         int maxiso=(auto_iso_range %  0xFF) - (auto_iso_range >> 8);
-        bmp_printf(fnt, 590, 28, "MAX:%d",raw2iso(maxiso) );
+        bmp_printf(fnt, MAX_ISO_POS_X, MAX_ISO_POS_Y, "MAX:%d",raw2iso(maxiso) );
 	}
+#endif
+    
 	iso_refresh_display();
     
 	bg = bmp_getpixel(HDR_STATUS_POS_X, HDR_STATUS_POS_Y);
