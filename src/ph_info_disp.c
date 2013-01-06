@@ -44,10 +44,9 @@ void display_shooting_info() // called from debug task
     
     uint32_t fnt;
 	int bg;
-    
     int col_bg = bmp_getpixel(10,1);
     int col_field = bmp_getpixel(615,375);
-    
+
 #if defined(MAX_ISO_POS_X) && defined(MAX_ISO_POS_Y)
 	bg = bmp_getpixel(MAX_ISO_POS_X, MAX_ISO_POS_Y);
 	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
@@ -58,7 +57,7 @@ void display_shooting_info() // called from debug task
         bmp_printf(fnt, MAX_ISO_POS_X, MAX_ISO_POS_Y, "MAX:%d",raw2iso(maxiso) );
 	}
 #endif
-    
+
 #if defined(ISO_RANGE_POS_X) && defined(ISO_RANGE_POS_Y)
     if (lens_info.raw_iso == 0) // ISO: AUTO
     {
@@ -66,7 +65,7 @@ void display_shooting_info() // called from debug task
         bmp_printf(fnt, ISO_RANGE_POS_X, 105, "[%d-%d]", MAX((get_htp() ? 200 : 100), raw2iso(auto_iso_range >> 8)), raw2iso((auto_iso_range & 0xFF)));
     }
 #endif
-    
+
 #if defined(WB_KELVIN_POS_X) && defined(WB_KELVIN_POS_Y)
     if (lens_info.wb_mode == WB_KELVIN)
     {
@@ -74,7 +73,7 @@ void display_shooting_info() // called from debug task
         bmp_printf(fnt, WB_KELVIN_POS_X, WB_KELVIN_POS_Y, "%5d", lens_info.kelvin);
     }
 #endif
-    
+
 #if defined(CONFIG_5D3)
     if (lens_info.wbs_gm || lens_info.wbs_ba)
     {
@@ -107,11 +106,11 @@ void display_shooting_info() // called from debug task
     {
         fnt = FONT(FONT_LARGE, COLOR_YELLOW, col_field);
         bmp_fill(col_field,166,424,94,28);
-        
+
         int ba = lens_info.wbs_ba;
         if (ba) bmp_printf(fnt, 177 + 2 * font_large.width, 426, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
         else    bmp_printf(fnt, 177 + 2 * font_large.width, 426, "  ");
-        
+
         int gm = lens_info.wbs_gm;
         if (gm) bmp_printf(fnt, 177, 426, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
         else    bmp_printf(fnt, 177, 426, "  ");
@@ -171,7 +170,7 @@ void display_shooting_info() // called from debug task
 		else    bmp_printf(fnt, WBS_GM_POS_X, WBS_GM_POS_Y, "  ");
 	}
 #endif
-    
+
 #ifdef DISPLAY_HEADER_FOOTER_INFO
     extern int header_left_info;
     extern int header_right_info;
@@ -179,10 +178,7 @@ void display_shooting_info() // called from debug task
     extern int footer_right_info;
     char adate[16];
     char info[72];
-    
-    //bmp_fill(col_bg,28,3,694,20);
-    //bmp_fill(col_bg,28,459,694,20);
-    
+        
     if (header_left_info==3 || header_right_info==3 || footer_left_info==3 || footer_right_info==3)
     {
         struct tm now;
@@ -250,11 +246,6 @@ void display_shooting_info() // called from debug task
         bmp_printf(fntl, 632, 185, "%3d", 1 << flash_info.group_c_output);
         bmp_fill(bmp_getpixel(1,1),486,212,212,6);
     }
-    //~ bmp_printf(fnt, 400, 450, "Flash:%s",
-    //~ strobo_firing == 0 ? " ON" :
-    //~ strobo_firing == 1 ? "OFF" : "Auto"
-    //~ strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
-    //~ );
 #endif
     
     if (avail_shot>9999) // we can write 5 digits if necessary
@@ -299,7 +290,7 @@ void display_clock()
 {
 #ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
     int bg = bmp_getpixel(15, 430);
-    
+
     struct tm now;
     LoadCalendarFromRTC( &now );
     if (!lv)
@@ -316,7 +307,7 @@ void display_clock()
         bmp_printf(fnt, DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y, "%02d:%02d", now.tm_hour, now.tm_min);
 #endif
     }
-    
+
     static int prev_min = 0;
     if (prev_min != now.tm_min) redraw();
     prev_min = now.tm_min;
