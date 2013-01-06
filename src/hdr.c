@@ -20,7 +20,7 @@ static uint8_t hdrv_extended_iso[CONFIG_HDR_EXTENDED_STEPS];
 static uint32_t hdrv_extended_step_edit = 1;
 
 static CONFIG_INT("hdrv.ext.en", hdrv_extended_mode, 0);
-static CONFIG_INT("hdrv.ext.steps", hdrv_extended_steps, 0);
+static CONFIG_INT("hdrv.ext.steps", hdrv_extended_steps, 2);
 CONFIG_ARRAY_ELEMENT("hdrv.ext.shutter.0", hdrv_extended_shutter, 0, 0);
 CONFIG_ARRAY_ELEMENT("hdrv.ext.shutter.1", hdrv_extended_shutter, 1, 0);
 CONFIG_ARRAY_ELEMENT("hdrv.ext.shutter.2", hdrv_extended_shutter, 2, 0);
