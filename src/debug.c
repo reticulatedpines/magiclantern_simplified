@@ -1724,7 +1724,7 @@ void display_clock()
     if (!lv)
     {
 #ifdef CONFIG_7D
-        char msg[5];
+        char msg[6];
         snprintf(msg, sizeof(msg), "%02d:%02d", now.tm_hour, now.tm_min);
         bg = bmp_getpixel(DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y);
         int w = bfnt_puts(msg, DISPLAY_CLOCK_POS_X , DISPLAY_CLOCK_POS_Y, COLOR_CYAN, bg);
