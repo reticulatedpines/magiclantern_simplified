@@ -63,7 +63,7 @@ int is_hdr_valid_iso(int iso)
 
 
 #ifdef FEATURE_HDR_EXTENDED
-static int hdrv_shutter_table[] = { 0, 24, 25, 30, 40, 50, 60, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1500, 2000, 3000, 4000, 6000, 8000 };
+static int hdrv_shutter_table[] = { 0, 24, 25, 30, 40, 50, 60, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1500, 2000, 3000, 4000, 6000, 8000, 12500, 25000};
 
 static void hdrv_extended_shutter_display( void * priv, int x, int y, int selected )
 {
@@ -232,7 +232,7 @@ void hdr_step()
         
         if(shutter_value)
         {
-            FRAME_SHUTTER_TIMER = get_current_tg_freq() / (hdrv_shutter_table[shutter_value] * 1000);
+            FRAME_SHUTTER_TIMER = MAX(2, get_current_tg_freq() / (hdrv_shutter_table[shutter_value] * 1000));
         }
         
         if(iso_value)
@@ -300,21 +300,35 @@ hdr_print(
 {
     if (hdrv_enabled)
     {
-        int iso_low, iso_high;
-        hdr_get_iso_range(&iso_low, &iso_high);
+        #ifdef FEATURE_HDR_EXTENDED
+        if(hdrv_extended_mode)
+        {
+            bmp_printf(
+                selected ? MENU_FONT_SEL : MENU_FONT,
+                x, y,
+                "HDR video     : ON (Extended)"
+            );
+        }
+        else
+        #endif
+        {
+            int iso_low, iso_high;
+            hdr_get_iso_range(&iso_low, &iso_high);
 
-        int ev_x10 = (iso_high - iso_low) * 10/8;
+            int ev_x10 = (iso_high - iso_low) * 10/8;
+            
+            iso_low = raw2iso(get_effective_hdr_iso_for_display(iso_low));
+            iso_high = raw2iso(get_effective_hdr_iso_for_display(iso_high));
+
+            bmp_printf(
+                selected ? MENU_FONT_SEL : MENU_FONT,
+                x, y,
+                "HDR video     : ISO %d/%d,%d.%dEV",
+                iso_low, iso_high, 
+                ev_x10/10, ev_x10%10
+            );
+        }
         
-        iso_low = raw2iso(get_effective_hdr_iso_for_display(iso_low));
-        iso_high = raw2iso(get_effective_hdr_iso_for_display(iso_high));
-
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "HDR video     : ISO %d/%d,%d.%dEV",
-            iso_low, iso_high, 
-            ev_x10/10, ev_x10%10
-        );
         if (!lens_info.raw_iso)
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Doesn't work with auto ISO.");
     }
