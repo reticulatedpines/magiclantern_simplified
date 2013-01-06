@@ -296,7 +296,7 @@ void NotifyBox(int timeout, char* fmt, ...)
     take_semaphore(notify_box_sem, 0);
     va_list ap;
     va_start( ap, fmt );
-    vsnprintf( notify_box_msg, sizeof(notify_box_msg), fmt, ap );
+    vsnprintf( notify_box_msg, sizeof(notify_box_msg)-1, fmt, ap );
     va_end( ap );
 
     notify_box_timeout = MAX(timeout, 100);
