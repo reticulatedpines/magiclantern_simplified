@@ -46,9 +46,10 @@ void display_shooting_info() // called from debug task
     
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
+#if defined(DISPLAY_KELVIN_POS_X) && defined(DISPLAY_KELVIN_POS_Y)
         //------------ ICON KELVIN BLACK -------------
-        int icon_x = 196; // x position height icon
-        int icon_y = 226; // y position width icon
+        int icon_x = DISPLAY_KELVIN_POS_X; // x position height icon
+        int icon_y = DISPLAY_KELVIN_POS_Y; // y position width icon
         
         BMP_LOCK (
                   double_buffering_start(icon_y, 48);
@@ -76,7 +77,7 @@ void display_shooting_info() // called from debug task
         //------------ ICON KELVIN ------------------
         
 	}
-    
+#endif
 	if (lens_info.wbs_gm || lens_info.wbs_ba)
 	{
 		bg = bmp_getpixel(WBS_BA_POS_X, WBS_BA_POS_Y);

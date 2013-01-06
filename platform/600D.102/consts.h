@@ -173,6 +173,10 @@
 #define DISPLAY_CLOCK_POS_X 440
 #define DISPLAY_CLOCK_POS_Y 410
 
+// position for displaying K icon in photo info display
+#define DISPLAY_KELVIN_POS_X 196
+#define DISPLAY_KELVIN_POS_Y 226
+
 // position for displaying card size remain outside LV
 #define DISPLAY_GB_POS_X 305
 #define DISPLAY_GB_POS_Y 410
