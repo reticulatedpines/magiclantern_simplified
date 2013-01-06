@@ -140,14 +140,18 @@
 #define MENU_DISP_ISO_POS_X 527
 #define MENU_DISP_ISO_POS_Y 45
 
+#define MAX_ISO_POS_X 590
+#define MAX_ISO_POS_Y 28
+
 // for ML hdr display
 #define HDR_STATUS_POS_X 560
 #define HDR_STATUS_POS_Y 100
 
-//fpr HTP mode on display
+//for HTP mode on display
 #define HTP_STATUS_POS_X 500
 #define HTP_STATUS_POS_Y 233
 
+//for Mirror Lock Up enabled on display
 #define MLU_STATUS_POS_X 316
 #define MLU_STATUS_POS_Y 310
 
