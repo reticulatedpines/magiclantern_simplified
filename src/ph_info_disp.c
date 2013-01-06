@@ -170,12 +170,6 @@ void display_shooting_info() // called from debug task
 		if (gm) bmp_printf(fnt, WBS_GM_POS_X, WBS_GM_POS_Y, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
 		else    bmp_printf(fnt, WBS_GM_POS_X, WBS_GM_POS_Y, "  ");
 	}
-    
-	int col_bg;
-	int col_field;
-    
-    col_bg = bmp_getpixel(10,1);
-    col_field = bmp_getpixel(615,375);
 #endif
     
 #ifdef DISPLAY_HEADER_FOOTER_INFO
@@ -183,8 +177,8 @@ void display_shooting_info() // called from debug task
     extern int header_right_info;
     extern int footer_left_info;
     extern int footer_right_info;
-    char adate[11];
-    char info[63];
+    char adate[16];
+    char info[72];
     
     //bmp_fill(col_bg,28,3,694,20);
     //bmp_fill(col_bg,28,459,694,20);
@@ -265,7 +259,7 @@ void display_shooting_info() // called from debug task
     
     if (avail_shot>9999) // we can write 5 digits if necessary
     {
-    bmp_fill(col_field,540,384,152,72); // clear the "[9999]"
+        bmp_fill(col_field,540,384,152,72); // clear the "[9999]"
         char msg[7];
         snprintf(msg, sizeof(msg), "[%5d%]", avail_shot);
         bfnt_puts(msg, 550 , 402, COLOR_FG_NONLV, col_field);
@@ -280,6 +274,7 @@ void display_shooting_info() // called from debug task
     }
 #endif
     
+#if !defined(CONFIG_7D)
 	iso_refresh_display();
     
 	bg = bmp_getpixel(HDR_STATUS_POS_X, HDR_STATUS_POS_Y);
@@ -289,7 +284,41 @@ void display_shooting_info() // called from debug task
 	bg = bmp_getpixel(MLU_STATUS_POS_X, MLU_STATUS_POS_Y);
 	fnt = FONT(FONT_SMALL, COLOR_FG_NONLV, bg);
 	bmp_printf(fnt, MLU_STATUS_POS_X, MLU_STATUS_POS_Y, get_mlu() ? "MLU" : "   ");
+#else
+    RedrawBatteryIcon();
     
+    bg = bmp_getpixel(MLU_STATUS_POS_X, MLU_STATUS_POS_Y);
+    bmp_printf(FONT(FONT_MED, COLOR_YELLOW, bg), MLU_STATUS_POS_X, MLU_STATUS_POS_Y, get_mlu() ? "MLU" : "   ");
+#endif
 	//~ display_lcd_remote_info();
 	display_trap_focus_info();
+}
+
+/* called from misc_shooting_info() in shoot.c */
+void display_clock()
+{
+#ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
+    int bg = bmp_getpixel(15, 430);
+    
+    struct tm now;
+    LoadCalendarFromRTC( &now );
+    if (!lv)
+    {
+#ifdef CONFIG_7D
+        char msg[6];
+        snprintf(msg, sizeof(msg), "%02d:%02d", now.tm_hour, now.tm_min);
+        bg = bmp_getpixel(DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y);
+        int w = bfnt_puts(msg, DISPLAY_CLOCK_POS_X , DISPLAY_CLOCK_POS_Y, COLOR_CYAN, bg);
+       	bmp_printf(FONT(FONT_MED, COLOR_CYAN, bg), DISPLAY_CLOCK_POS_X+w+2, DISPLAY_CLOCK_POS_Y+18, "%02d", now.tm_sec);
+#else
+        bg = bmp_getpixel( DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y );
+        uint32_t fnt = FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bg);
+        bmp_printf(fnt, DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y, "%02d:%02d", now.tm_hour, now.tm_min);
+#endif
+    }
+    
+    static int prev_min = 0;
+    if (prev_min != now.tm_min) redraw();
+    prev_min = now.tm_min;
+#endif
 }
