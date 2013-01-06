@@ -48,6 +48,11 @@ void ensure_play_or_qr_mode_after_shot();
 static void bulb_ramping_showinfo();
 int bulb_ramp_calibration_running = 0;
 
+#if  !defined(AUDIO_REM_SHOT_POS_X) && !defined(AUDIO_REM_SHOT_POS_Y)
+    #define AUDIO_REM_SHOT_POS_X 20
+    #define AUDIO_REM_SHOT_POS_Y 40
+#endif
+
 int display_idle()
 {
     extern thunk ShootOlcApp_handler;
