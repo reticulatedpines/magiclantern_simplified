@@ -46,6 +46,18 @@ void display_shooting_info() // called from debug task
 	int bg;
     int col_bg = bmp_getpixel(10,1);
     int col_field = bmp_getpixel(615,375);
+    
+#if defined(CONFIG_7D)
+    /* clearing some zones, revise and make generic or remove */
+    if (lens_info.raw_iso == 0)
+    {
+        bmp_fill(bmp_getpixel(1,1),455,110,120,2);
+    }
+    if (lens_info.wb_mode == WB_KELVIN)
+    {
+        bmp_fill(bmp_getpixel(1,1),377,294,100,3);
+    }
+#endif
 
 #if defined(MAX_ISO_POS_X) && defined(MAX_ISO_POS_Y)
 	bg = bmp_getpixel(MAX_ISO_POS_X, MAX_ISO_POS_Y);
@@ -74,49 +86,6 @@ void display_shooting_info() // called from debug task
     }
 #endif
 
-#if defined(WBS_LARGE_POS_X) && defined(WBS_LARGE_POS_Y)
-    if (lens_info.wbs_gm || lens_info.wbs_ba)
-    {
-        int ba = lens_info.wbs_ba;
-        fnt = FONT(FONT_LARGE, COLOR_YELLOW, col_field);
-        
-        if (ba) bmp_printf(fnt, WBS_LARGE_POS_X + 2 * font_large.width, WBS_LARGE_POS_Y, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
-        else    bmp_printf(fnt, WBS_LARGE_POS_X + 2 * font_large.width, WBS_LARGE_POS_Y, "  ");
-        
-        int gm = lens_info.wbs_gm;
-        if (gm) bmp_printf(fnt, WBS_LARGE_POS_X, WBS_LARGE_POS_Y, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
-        else    bmp_printf(fnt, WBS_LARGE_POS_X, WBS_LARGE_POS_Y, "  ");
-    }
-    display_lcd_remote_icon(555, 460);
-#endif
-    
-#if defined(CONFIG_7Dxx)
-    if (lens_info.wbs_gm || lens_info.wbs_ba)
-    {
-        bmp_fill(col_field,166,424,94,28);
-        int x = 177;
-        int ba = lens_info.wbs_ba;
-        if (ba) bmp_printf(fnt, x + 2 * font_large.width, 426, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
-        else    bmp_printf(fnt, x + 2 * font_large.width, 426, "  ");
-
-        int gm = lens_info.wbs_gm;
-        if (gm) bmp_printf(fnt, x, 426, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
-        else    bmp_printf(fnt, 177, 426, "  ");
-    }
-#endif
-
-#if defined(CONFIG_7D)
-    if (lens_info.raw_iso == 0) // ISO: AUTO
-    {
-        bmp_fill(bmp_getpixel(1,1),455,110,120,2);
-    }
-    if (lens_info.wb_mode == WB_KELVIN)
-    {
-        bmp_fill(bmp_getpixel(1,1),377,294,100,3);
-    }
-#endif
-    
-    
 #if defined(DISPLAY_KELVIN_POS_X) && defined(DISPLAY_KELVIN_POS_Y)
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
@@ -151,24 +120,26 @@ void display_shooting_info() // called from debug task
         
 	}
 #endif
-    
-#if defined(WBS_BA_POS_X) && defined(WBS_BA_POS_Y)
-	if (lens_info.wbs_gm || lens_info.wbs_ba)
-	{
-		bg = bmp_getpixel(WBS_BA_POS_X, WBS_BA_POS_Y);
-		fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
+
+#if defined(WBS_POS_X) && defined(WBS_POS_Y)
+    #ifndef WBS_FONT
+    #define WBS_FONT FONT_MED
+    #endif
+
+    if (lens_info.wbs_gm || lens_info.wbs_ba)
+    {
+        int ba = lens_info.wbs_ba;
+        int gm = lens_info.wbs_gm;
+        int wbs_font_width = fontspec_font(WBS_FONT)->width;
+        fnt = FONT(WBS_FONT, COLOR_YELLOW, col_field);
         
-		int ba = lens_info.wbs_ba;
-		if (ba) bmp_printf(fnt, WBS_BA_POS_X, WBS_BA_POS_Y, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
-		else    bmp_printf(fnt, WBS_BA_POS_X, WBS_BA_POS_Y, "  ");
+        if (ba) bmp_printf(fnt, WBS_POS_X + 2 * wbs_font_width, WBS_POS_Y, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
+        else    bmp_printf(fnt, WBS_POS_X + 2 * wbs_font_width, WBS_POS_Y, "  ");
         
-		bg = bmp_getpixel(WBS_GM_POS_X, WBS_GM_POS_Y);
-		fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
-        
-		int gm = lens_info.wbs_gm;
-		if (gm) bmp_printf(fnt, WBS_GM_POS_X, WBS_GM_POS_Y, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
-		else    bmp_printf(fnt, WBS_GM_POS_X, WBS_GM_POS_Y, "  ");
-	}
+        if (gm) bmp_printf(fnt, WBS_POS_X, WBS_POS_Y, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
+        else    bmp_printf(fnt, WBS_POS_X, WBS_POS_Y, "  ");
+    }
+    display_lcd_remote_icon(555, 460);
 #endif
 
 #ifdef DISPLAY_HEADER_FOOTER_INFO
@@ -278,7 +249,9 @@ void display_shooting_info() // called from debug task
 	//fnt = FONT(FONT_SMALL, COLOR_FG_NONLV, bg);
 	//bmp_printf(fnt, MLU_STATUS_POS_X, MLU_STATUS_POS_Y, get_mlu() ? "MLU" : "   ");
     bmp_printf(FONT(FONT_MED, COLOR_YELLOW, bg), MLU_STATUS_POS_X, MLU_STATUS_POS_Y, get_mlu() ? "MLU" : "   ");
-#if defined(CONFIG_7D)
+
+/* change this model specific define to FEATURE_BATTERY_ICON ? */
+#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_7D)
     RedrawBatteryIcon();
 #endif
 

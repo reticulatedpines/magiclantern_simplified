@@ -171,11 +171,6 @@ void display_shooting_info() // called from debug task
 
 void RedrawBatteryIcon()
 {
-    int col_field = bmp_getpixel(615,455);
-    uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, col_field);
-    bmp_printf(fnt, 235, 415, "%d%% ", GetBatteryLevel());
-
-/*
     int batlev = bat_info.level;
     int col_field = bmp_getpixel(615,455);
     uint32_t fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, col_field);
@@ -218,11 +213,10 @@ void RedrawBatteryIcon()
     bmp_printf(fnt, DISPLAY_BATTERY_POS_X+10, DISPLAY_BATTERY_POS_Y+35, "%3d%%", batlev);
 	if (bat_info.act_hist>0) 
 		bmp_printf(FONT(FONT_LARGE, COLOR_YELLOW, col_field), DISPLAY_BATTERY_POS_X+84, DISPLAY_BATTERY_POS_Y+1, "%d", bat_info.act_hist);
-	int x = DISPLAY_BATTERY_POS_X-15; int y = DISPLAY_BATTERY_POS_Y-16; int w = 12;
+	int x = DISPLAY_BATTERY_POS_X-15; int y = DISPLAY_BATTERY_POS_Y; int w = 12;
 	bmp_fill((bat_info.performance<3 ? COLOR_GRAY50 : COLOR_GREEN2),x,y,w,w);
 	bmp_fill((bat_info.performance<2 ? COLOR_GRAY50 : COLOR_GREEN2),x,y+4+w,w,w);
 	bmp_fill((bat_info.performance<1 ? COLOR_GRAY50 : COLOR_GREEN2),x,y+8+2*w,w,w);
-*/
 }
 
 int GetBatteryLevel()

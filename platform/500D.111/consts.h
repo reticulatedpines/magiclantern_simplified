@@ -141,8 +141,8 @@
 #define MLU_STATUS_POS_X 670
 #define MLU_STATUS_POS_Y 316
 
-//#define WBS_BA_POS_X 365
-//#define WBS_BA_POS_Y 260
+//#define WBS_POS_X 365
+//#define WBS_POS_Y 260
 
 //#define WBS_GM_POS_X 365
 //#define WBS_GM_POS_Y 230
