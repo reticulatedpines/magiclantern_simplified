@@ -79,6 +79,7 @@ void (*orig_post_isr_hook) (uint32_t) = 0;
 
 extern uint32_t gdb_undef_stack;
 void gdb_undef_handler(void);
+void gdb_word2hexword(char *s, uint32_t val);
 
 #if defined(CONFIG_GDBSTUB)
 void gdb_task_stall(void);
