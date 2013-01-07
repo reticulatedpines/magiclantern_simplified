@@ -570,6 +570,7 @@ clean:
 		*.o   \
 		*.d \
 		*.a \
+        *.map \
 		$(BIN_FILES) \
 		magiclantern.lds \
 		*.bmp \
