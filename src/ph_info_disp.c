@@ -62,7 +62,7 @@ void display_shooting_info() // called from debug task
     if (lens_info.raw_iso == 0) // ISO: AUTO
     {
         fnt = FONT(FONT_MED, COLOR_YELLOW, col_field);
-        bmp_printf(fnt, ISO_RANGE_POS_X, 105, "[%d-%d]", MAX((get_htp() ? 200 : 100), raw2iso(auto_iso_range >> 8)), raw2iso((auto_iso_range & 0xFF)));
+        bmp_printf(fnt, ISO_RANGE_POS_X, ISO_RANGE_POS_Y, "[%d-%d]", MAX((get_htp() ? 200 : 100), raw2iso(auto_iso_range >> 8)), raw2iso((auto_iso_range & 0xFF)));
     }
 #endif
 
@@ -268,7 +268,6 @@ void display_shooting_info() // called from debug task
     }
 #endif
     
-#if !defined(CONFIG_7D)
 	iso_refresh_display();
     
 	bg = bmp_getpixel(HDR_STATUS_POS_X, HDR_STATUS_POS_Y);
@@ -276,14 +275,13 @@ void display_shooting_info() // called from debug task
 	hdr_display_status(fnt);
     
 	bg = bmp_getpixel(MLU_STATUS_POS_X, MLU_STATUS_POS_Y);
-	fnt = FONT(FONT_SMALL, COLOR_FG_NONLV, bg);
-	bmp_printf(fnt, MLU_STATUS_POS_X, MLU_STATUS_POS_Y, get_mlu() ? "MLU" : "   ");
-#else
-    RedrawBatteryIcon();
-    
-    bg = bmp_getpixel(MLU_STATUS_POS_X, MLU_STATUS_POS_Y);
+	//fnt = FONT(FONT_SMALL, COLOR_FG_NONLV, bg);
+	//bmp_printf(fnt, MLU_STATUS_POS_X, MLU_STATUS_POS_Y, get_mlu() ? "MLU" : "   ");
     bmp_printf(FONT(FONT_MED, COLOR_YELLOW, bg), MLU_STATUS_POS_X, MLU_STATUS_POS_Y, get_mlu() ? "MLU" : "   ");
+#if defined(CONFIG_7D)
+    RedrawBatteryIcon();
 #endif
+
 	//~ display_lcd_remote_info();
 	display_trap_focus_info();
 }
