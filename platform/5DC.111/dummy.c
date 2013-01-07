@@ -62,6 +62,7 @@ void hdr_mvr_log(){};
 int hdrv_enabled = 0;
 void hdr_get_iso_range(){};
 void fps_show(){};
+int hdr_video_enabled(){return 0;};
 
 void input_toggle(){};
 void out_volume_up(){};

@@ -89,6 +89,8 @@
 #define LVAE_DISP_GAIN 0
 #define MVR_FRAME_NUMBER 0
 
+#define FRAME_ISO _dummy_variable
+
 #define CONTROL_BV_ISO _dummy_variable
 #define CONTROL_BV_TV _dummy_variable
 #define CONTROL_BV_AV _dummy_variable

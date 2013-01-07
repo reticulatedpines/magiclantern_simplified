@@ -21,7 +21,7 @@ PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
 ML_OBJS-y = \
 	magiclantern.lds \
-	entry.o \
+	local_entry.o \
 	init.o \
 	stubs.o \
 	dummy.o \
