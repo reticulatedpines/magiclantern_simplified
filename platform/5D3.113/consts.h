@@ -133,6 +133,10 @@
 #define WB_KELVIN_POS_X 160
 #define WB_KELVIN_POS_Y 278
 
+// large white balance shift values M2B1 in yellow
+#define WBS_LARGE_POS_X 250
+#define WBS_LARGE_POS_Y 263
+
 // for displaying battery
 #define DISPLAY_BATTERY_POS_X 150
 #define DISPLAY_BATTERY_POS_Y 395

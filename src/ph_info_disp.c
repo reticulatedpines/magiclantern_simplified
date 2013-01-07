@@ -74,22 +74,37 @@ void display_shooting_info() // called from debug task
     }
 #endif
 
-#if defined(CONFIG_5D3)
+#if defined(WBS_LARGE_POS_X) && defined(WBS_LARGE_POS_Y)
     if (lens_info.wbs_gm || lens_info.wbs_ba)
     {
         int ba = lens_info.wbs_ba;
         fnt = FONT(FONT_LARGE, COLOR_YELLOW, col_field);
-        int x = 268;
-        if (ba) bmp_printf(fnt, x + 2 * font_med.width, 280, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
-        else    bmp_printf(fnt, x + 2 * font_med.width, 280, "  ");
+        
+        if (ba) bmp_printf(fnt, WBS_LARGE_POS_X + 2 * font_large.width, WBS_LARGE_POS_Y, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
+        else    bmp_printf(fnt, WBS_LARGE_POS_X + 2 * font_large.width, WBS_LARGE_POS_Y, "  ");
         
         int gm = lens_info.wbs_gm;
-        if (gm) bmp_printf(fnt, x, 280, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
-        else    bmp_printf(fnt, x, 280, "  ");
+        if (gm) bmp_printf(fnt, WBS_LARGE_POS_X, WBS_LARGE_POS_Y, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
+        else    bmp_printf(fnt, WBS_LARGE_POS_X, WBS_LARGE_POS_Y, "  ");
     }
     display_lcd_remote_icon(555, 460);
 #endif
     
+#if defined(CONFIG_7Dxx)
+    if (lens_info.wbs_gm || lens_info.wbs_ba)
+    {
+        bmp_fill(col_field,166,424,94,28);
+        int x = 177;
+        int ba = lens_info.wbs_ba;
+        if (ba) bmp_printf(fnt, x + 2 * font_large.width, 426, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
+        else    bmp_printf(fnt, x + 2 * font_large.width, 426, "  ");
+
+        int gm = lens_info.wbs_gm;
+        if (gm) bmp_printf(fnt, x, 426, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
+        else    bmp_printf(fnt, 177, 426, "  ");
+    }
+#endif
+
 #if defined(CONFIG_7D)
     if (lens_info.raw_iso == 0) // ISO: AUTO
     {
@@ -101,21 +116,6 @@ void display_shooting_info() // called from debug task
     }
 #endif
     
-#if defined(CONFIG_7D)
-    if (lens_info.wbs_gm || lens_info.wbs_ba)
-    {
-        fnt = FONT(FONT_LARGE, COLOR_YELLOW, col_field);
-        bmp_fill(col_field,166,424,94,28);
-
-        int ba = lens_info.wbs_ba;
-        if (ba) bmp_printf(fnt, 177 + 2 * font_large.width, 426, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
-        else    bmp_printf(fnt, 177 + 2 * font_large.width, 426, "  ");
-
-        int gm = lens_info.wbs_gm;
-        if (gm) bmp_printf(fnt, 177, 426, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
-        else    bmp_printf(fnt, 177, 426, "  ");
-    }
-#endif
     
 #if defined(DISPLAY_KELVIN_POS_X) && defined(DISPLAY_KELVIN_POS_Y)
 	if (lens_info.wb_mode == WB_KELVIN)

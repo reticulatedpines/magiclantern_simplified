@@ -167,6 +167,10 @@
 #define WB_KELVIN_POS_X 393
 #define WB_KELVIN_POS_Y 276
 
+// large M2B1 values in yellow
+#define WBS_LARGE_POS_X 177
+#define WBS_LARGE_POS_Y 426
+
 // Audio remote shot position info photo mode
 #define AUDIO_REM_SHOT_POS_X 28
 #define AUDIO_REM_SHOT_POS_Y 3
