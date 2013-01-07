@@ -42,11 +42,8 @@ draw_beta_warning()
     if (page_number_active) draw_page_number(1);
 
 //    bmp_printf(FONT_LARGE, 360 - font_large.width * 6, 50, "Magic Lantern");
-    char ml[13];
-    snprintf(ml, sizeof(ml), "Magic Lantern");
-    bfnt_puts(ml, 242, 53, COLOR_FG_NONLV, COLOR_BG);
+    bfnt_puts("Magic Lantern", 242, 53, COLOR_FG_NONLV, COLOR_BG);
 
-       
     bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
 
     bmp_printf(FONT_MED, 50, 200, "   Please report all bugs at www.magiclantern.fm.   ");
