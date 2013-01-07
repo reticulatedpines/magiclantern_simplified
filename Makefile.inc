@@ -38,7 +38,11 @@ PYMITE_CFLAGS		= \
 all: autoexec.bin
 
 menuindexentries.h:
-	cd $(DOC_DIR); $(PYTHON) menuindex.py
+	$(call build,"MENU IDX", if [ -f $(DOC_DIR)/menuindex.txt ]; then \
+		cd $(DOC_DIR); $(PYTHON) menuindex.py; \
+	else \
+		echo "No menuindex.txt not running \"$(PYTHON) menuindex.py\""; \
+	fi)
 
 menuindex.o: menuindexentries.h
 
@@ -565,7 +569,7 @@ clean:
 	$(call build,CLEAN,$(RM) -f \
 		*.o   \
 		*.d \
-		.*.a \
+		*.a \
 		$(BIN_FILES) \
 		magiclantern.lds \
 		*.bmp \
