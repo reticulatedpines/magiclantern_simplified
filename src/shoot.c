@@ -3301,11 +3301,8 @@ void hdr_display_status(int fnt)
     #endif
     #endif
 #ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
-    #if !defined(HTP_STATUS_POS_X) && !defined(HTP_STATUS_POS_Y)
-        #define HTP_STATUS_POS_X HDR_STATUS_POS_X
-        #define HTP_STATUS_POS_Y HDR_STATUS_POS_Y
-    #endif
 
+#if defined(HTP_STATUS_POS_X) && defined(HTP_STATUS_POS_Y)
     if (get_htp())
     {
                   int bg = bmp_getpixel(HTP_STATUS_POS_X-1,HTP_STATUS_POS_Y);
@@ -3372,6 +3369,8 @@ void hdr_display_status(int fnt)
         //bmp_printf(FONT(FONT_LARGE, COLOR_FG_NONLV, bg), HTP_STATUS_POS_X, HTP_STATUS_POS_Y, "HTP");
         //bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, bg), HTP_STATUS_POS_X+40, HTP_STATUS_POS_Y+30, "ON");
     }
+#endif
+
 #endif
 }
 
