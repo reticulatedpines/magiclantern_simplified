@@ -592,17 +592,17 @@ DEPS  := $(COBJS:.o=.d)
 
 %.s: %.c
 	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
-%.o: $(SRC_DIR)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.o: $(PLATFORM_DIR)/%.c
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.o: $(SRC_DIR)/%.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.i: %.c
 	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
 %: %.c
 	$(call build,LD,$(CC) $(CFLAGS) -o $@ $<)
-%.o: $(SRC_DIR)/%.S
-	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 %.o: $(PLATFORM_DIR)/%.S
+	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
+%.o: $(SRC_DIR)/%.S
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 %.bin: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
