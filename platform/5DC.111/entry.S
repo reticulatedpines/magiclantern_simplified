@@ -26,20 +26,21 @@ _start:
 		MOV R1, #0x46
 		MOV R0, #0x220000
 		ADD R0, R0, #0xC0000000
-
 		STR R1, [R0,#0xA0]
 		STR R1, [R0,#0xF0]
 
-        B  copy_and_restart
+		B  copy_and_restart
 
 
 
 init_code_run:
-TEQ     R0, #2
+	MOV R0, #2
+	TEQ     R0, #2
 
 loc_800088:
+
         MOV     R1, #0x78
-        MCR     p15, 0, R1,c1,c0, 0
+        //MCR     p15, 0, R1,c1,c0, 0 // too late for this call - hanging
         MOV     R1, #0
         MCR     p15, 0, R1,c7,c10, 4
         MCR     p15, 0, R1,c7,c7, 0
@@ -52,6 +53,8 @@ loc_800088:
         BIC     R1, R1, #0x3F
         ORR     R1, R1, #0xD3
         MSR     CPSR_cf, R1
+
+
         LDR     R2, =0xC0200000
         MOV     R1, #0xFFFFFFFF
         STR     R1, [R2,#0x10C]
@@ -119,7 +122,10 @@ my_usrInit:
 		BL	sub_FF810E84             // sysStart
 		MOV	R0, #1
 		MOV	R1, #2
-		BL	sub_FFB45FCC            // cacheLibInit
+
+
+		//BL	sub_FFB45FCC            // cacheLibInit
+		BL	my_cacheLibInit
 		BL	sub_FFB35004            // excVecInit
 		BL	sub_FF810764            // sysHwInit
 		BL	sub_FF810A64
@@ -174,7 +180,7 @@ my_usrRoot:
 		LDR	R0, [R11,#-0x10]
 		LDR	R1, [R11,#-0x14]
 		BL	sub_FFB4C0DC        // memPartLibInit
-		BL	sub_FF810B60
+		//BL	sub_FF810B60 // MMU_Config !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! for some reason it halts here...
 		BL	sub_FF810A38
 		BL	sub_FF810F58
 		BL	sub_FF810F3C
@@ -282,6 +288,7 @@ loc_FF8111C0:
 		BL	sub_FFB18B40    // CreateTask
                             // BL  DisablePowerSave
         //BL  Create5dplusInit // AF
+		BL old_init // AF
 		MOV	R3, R0
 		ANDS	R0, R3,	#1
 		BEQ	loc_FF8111F8
@@ -302,12 +309,249 @@ loc_FF8111F8:
 		LDR	R0, =aK213
 		BL	create_task_cmd_shell
 
-loc_FF81121C:	
+loc_FF81121C:
 		ADD	SP, SP,	#0x2C
-		LDMFD	SP!, {R4,R5,PC}		
-		
-		
-.align 2	
+		LDMFD	SP!, {R4,R5,PC}
+
+
+my_cacheLibInit:
+		STMFD   SP!, {R11,LR}
+		SUB     SP, SP, #8
+		LDR     R11, =0x10404
+		LDR     R11, [R11]
+		CMP     R11, #0
+		MOVEQ   R11, #0xFFFFFFFF
+		BEQ     loc_FFB45FF4
+
+		//MOV     LR, PC
+		//MOV     PC, R11
+		BL my_cache_init_sub_1
+
+		MOV     R11, R0
+
+	loc_FFB45FF4:
+		ADD     SP, SP, #8
+		MOV     R0, R11
+		LDMFD   SP!, {R11,PC}
+
+
+my_cache_init_sub_1:
+		STMFD   SP!, {R7-R11,LR}
+		LDR     R8, =0x103E8
+		MOV     R9, R0
+		MOV     R10, R1
+		LDR     R3, [R8,#0xC]
+		CMP     R3, #0
+		BNE     loc_FFB34A3C
+
+		LDR     R7, =0x103F8
+		MOV     R3, #0x20
+		TST     R9, #4
+		STR     R3, [R7]
+		LDR     R11, =0x116A0
+		LDR     R3, =sub_FFB34EF4
+		STR     R3, [R11]
+		LDR     R12, =sub_FFB34E54
+		STR     R12, [R11,#4]
+		MOV     R0, #0
+		STR     R0, [R11,#8]
+		STR     R0, [R11,#0xC]
+		LDR     R12, =sub_FFB34BDC
+		STR     R12, [R11,#0x10]
+		LDR     R3, =sub_FFB34B20
+		STR     R3, [R11,#0x14]
+		LDR     R12, =sub_FFB34A70
+		STR     R12, [R11,#0x18]
+		LDR     R3, =sub_FFB34C4C
+		STR     R3, [R11,#0x1C]
+		LDR     R12, =sub_FFB40430
+		STR     R12, [R11,#0x20]
+		LDR     R3, =sub_FFB34D40
+		STR     R3, [R11,#0x24]
+		LDR     R12, =sub_FFB34CA8
+		STR     R12, [R11,#0x28]
+		BNE     loc_FFB34964
+
+		TST     R1, #4
+		BNE     loc_FFB34964
+
+		TST     R9, #8
+		BNE     loc_FFB34964
+
+		TST     R1, #8
+		BNE     loc_FFB34964
+
+		TST     R9, #0x10
+		BNE     loc_FFB34964
+
+		TST     R1, #0x10
+		BNE     loc_FFB34964
+
+		TST     R9, #0x20
+		BNE     loc_FFB34964
+
+		TST     R1, #0x20
+		BNE     loc_FFB34964
+
+		TST     R9, #0x40
+		BNE     loc_FFB34964
+
+		TST     R1, #0x40
+		BNE     loc_FFB34964
+
+		TST     R9, #0x80
+		BNE     loc_FFB34964
+
+		TST     R1, #0x80
+
+		loc_FFB34964:
+
+		MOVNE   R0, #0xFFFFFFFF
+		BNE     locret_FFB34A40
+
+		TST     R1, #1
+		MOVNE   R0, #0xFFFFFFFF
+		BNE     locret_FFB34A40
+
+		BL      sub_FFB4043C
+
+		MOV     R12, R0,LSR#18
+		MOV     R9, R0
+		ANDS    R0, R12, #0xF
+		BNE     loc_FFB349A4
+
+		MOV     R10, #0
+		STR     R10, [R8]
+		LDR     R3, =0x103E4
+		STR     R10, [R3]
+		MOV     R0, #0xFFFFFFFF
+		B       locret_FFB34A40
+
+
+
+
+		loc_FFB349A4:
+		MOV     R12, R9,LSR#12
+		MOV     R3, #2
+		AND     R11, R12, #3
+		ADD     R12, R0, #8
+		ADD     R1, R0, #2
+		MOV     R3, R3,LSL R12
+		MOV     R12, R11,LSL#4
+		STR     R3, [R8]
+		STR     R12, [R7]
+		MOV     R2, #2
+		MOV     R0, R2,LSL R1
+		MOV     R1, R11
+		BL      sub_FFB408C8
+
+		MOV     R12, #0xFFFFFFE0
+		LDR     R3, =0x103E4
+		ADD     R0, R12, R0,LSL#5
+		MOV     R12, R9,LSR#6
+		STR     R0, [R3]
+		ANDS    R7, R12, #0xF
+		MOVEQ   R12, #0
+		STREQ   R12, [R8,#4]
+		MOVEQ   R0, #0xFFFFFFFF
+		BEQ     locret_FFB34A40
+
+		MOV     R12, #2
+		ADD     R3, R7, #8
+		MOV     R12, R12,LSL R3
+		STR     R12, [R8,#4]
+
+
+		//BL      sub_FFB402FC
+
+
+		LDR     R1, =0x103E4
+		LDR     R2, =0x10400
+		LDR     R1, [R1]
+		LDR     R2, [R2]
+		MRS     R3, CPSR
+		ORR     R2, R3, R2
+		MSR     CPSR_cf, R2
+
+
+		loc_FFB40318:
+		MOV     R2, #0xC0000000
+
+
+		loc_FFB4031C:
+		ORR     R0, R2, R1
+		MCR     p15, 0, R0,c7,c14, 2
+		SUBS    R2, R2, #0x40000000
+		BCS     loc_FFB4031C
+
+		SUBS    R1, R1, #0x20
+		BCS     loc_FFB40318
+
+		MOV     R0, #0
+		MCR     p15, 0, R0,c7,c10, 4
+		MRC     p15, 0, R2,c1,c0, 0
+		BIC     R2, R2, #4
+		//MCR     p15, 0, R2,c1,c0, 0 // unhalt
+		MSR     CPSR_cf, R3
+
+
+
+
+
+
+		//BL      sub_FFB40404
+
+
+		MRS     R3, CPSR
+		ORR     R2, R3, #0xC0
+		MSR     CPSR_cf, R2
+		MRC     p15, 0, R2,c1,c0, 0
+		BIC     R2, R2, #0x1000
+		//MCR     p15, 0, R2,c1,c0, 0 // unhalt
+		MOV     R0, #0
+		//MCR     p15, 0, R0,c7,c5, 0 // cache clear
+		NOP
+		MSR     CPSR_cf, R3
+
+
+
+
+
+
+
+
+		LDR     R3, =0x1110C
+		STR     R10, [R3]
+		MOV     R10, #0
+		LDR     R3, =0x11110
+		STR     R10, [R3]
+		LDR     R12, =0x11114
+		STR     R10, [R12]
+		MOV     R3, #1
+		STR     R3, [R8,#0xC]
+
+
+		loc_FFB34A3C:
+		MOV     R0, #0
+
+
+		locret_FFB34A40:
+
+		LDMFD   SP!, {R7-R11,PC}
+
+
+
+
+
+
+
+
+
+
+
+
+
+.align 2
 
 
 

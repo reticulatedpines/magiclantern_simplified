@@ -17,9 +17,11 @@ PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 # magiclantern.lds script MUST be first
 # entry.o MUST be second
 # menu.o and debug.o must come before the modules
+#	$(SRC_DIR)/entry.o \
+
 ML_OBJS-y = \
 	magiclantern.lds \
-	$(SRC_DIR)/entry.o \
+	entry.o \
 	init.o \
 	stubs.o \
 	dummy.o \
