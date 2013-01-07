@@ -13,6 +13,9 @@ PLATFORM_INC=.
 
 PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
+# compile position independent (experimental)
+CONFIG_PIC=n
+
 # magiclantern.lds script MUST be first
 # entry.o MUST be second
 # menu.o and debug.o must come before the modules
@@ -37,6 +40,7 @@ ML_OBJS-y = \
 	propvalues.o \
 	gui.o \
 	gui-common.o \
+	ph_info_disp.o \
 	misc.o \
 	picstyle.o \
 	cfn.o \

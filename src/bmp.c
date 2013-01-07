@@ -392,7 +392,7 @@ bmp_printf(
     char bmp_printf_buf[128];
     
     va_start( ap, fmt );
-    vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf), fmt, ap );
+    vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf)-1, fmt, ap );
     va_end( ap );
     
     bmp_puts( fontspec, &x, &y, bmp_printf_buf );
@@ -414,7 +414,7 @@ big_bmp_printf(
              static char bmp_printf_buf[1024];
              
              va_start( ap, fmt );
-             vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf), fmt, ap );
+             vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf)-1, fmt, ap );
              va_end( ap );
              
              bmp_puts( fontspec, &x, &y, bmp_printf_buf );
@@ -435,7 +435,7 @@ con_printf(
     static int        y = 32;
 
     va_start( ap, fmt );
-    vsnprintf( buf, sizeof(buf), fmt, ap );
+    vsnprintf( buf, sizeof(buf)-1, fmt, ap );
     va_end( ap );
 
     const uint32_t        pitch = BMPPITCH;

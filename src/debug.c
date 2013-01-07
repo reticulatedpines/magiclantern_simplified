@@ -752,8 +752,10 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(snprintf(b, sizeof(b), "Defishing"), == 9);
         TEST_TRY_FUNC_CHECK(strcmp(a, b), > 0);
 
-        // vsnprintf
-        // variable arguments, not sure how to test
+        // vsnprintf (called by snprintf)
+        char buf[4];
+        TEST_TRY_FUNC_CHECK(snprintf(buf, 3, "%d", 1234), == 2);
+        TEST_TRY_FUNC_CHECK_STR(buf, "12");
 
         // memcpy, memset, bzero32
         char foo[] __attribute__((aligned(32))) = "qwertyuiop";
@@ -1622,7 +1624,7 @@ static void dbg_memspy_init() // initial state of the analyzed memory
     for (i = 0; i < mem_spy_len; i++)
     {
         uint32_t addr = dbg_memspy_get_addr(i);
-        dbg_memmirror[i] = MEMX(addr);
+        dbg_memmirror[i] = (int) MEMX(addr);
         dbg_memchanges[i] = 0;
         crc += dbg_memmirror[i];
         //~ bmp_printf(FONT_MED, 10,10, "memspy: %8x => %8x ", addr, dbg_memmirror[i]);
@@ -1655,7 +1657,7 @@ static void dbg_memspy_update()
 #endif
         uint32_t addr = dbg_memspy_get_addr(i);
         int oldval = dbg_memmirror[i];
-        int newval = MEMX(addr);
+        int newval = (int) MEMX(addr);
         if (oldval != newval)
         {
             //~ bmp_printf(FONT_MED, 10,460, "memspy: %8x: %8x => %8x", addr, oldval, newval);
@@ -1712,6 +1714,7 @@ static void dbg_memspy_update()
 }
 #endif
 
+/* called from misc_shooting_info() in shoot.c */
 void display_clock()
 {
 #ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
@@ -1722,12 +1725,13 @@ void display_clock()
     if (!lv)
     {
 #ifdef CONFIG_7D
-        char msg[5];
+        char msg[6];
         snprintf(msg, sizeof(msg), "%02d:%02d", now.tm_hour, now.tm_min);
         bg = bmp_getpixel(DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y);
         int w = bfnt_puts(msg, DISPLAY_CLOCK_POS_X , DISPLAY_CLOCK_POS_Y, COLOR_CYAN, bg);
        	bmp_printf(FONT(FONT_MED, COLOR_CYAN, bg), DISPLAY_CLOCK_POS_X+w+2, DISPLAY_CLOCK_POS_Y+18, "%02d", now.tm_sec);
 #else
+        bg = bmp_getpixel( DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y );
         uint32_t fnt = FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bg);
         bmp_printf(fnt, DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y, "%02d:%02d", now.tm_hour, now.tm_min);
 #endif
@@ -2200,6 +2204,8 @@ void screenshot_start(void* priv, int delta)
 }
 */
 
+int draw_event = 0;
+
 #ifdef CONFIG_DEBUGMSG
 static void
 spy_print(
@@ -2216,7 +2222,7 @@ spy_print(
         draw_prop ? "PROP" : "prop",
         mem_spy ? "MEM" : "mem"
     );
-    menu_draw_icon(x, y, MNI_BOOL(draw_prop || get_draw_event() || mem_spy), 0);
+    menu_draw_icon(x, y, MNI_BOOL(draw_prop || draw_event || mem_spy), 0);
 }
 #endif
 
@@ -2426,7 +2432,6 @@ extern void peaking_benchmark();
 
 extern int show_cpu_usage_flag;
 
-int draw_event = 0;
 
 struct menu_entry debug_menus[] = {
 #ifdef CONFIG_HEXDUMP

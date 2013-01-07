@@ -80,7 +80,7 @@ void NotifyBox(int timeout, char* fmt, ...)
     
     va_list ap;
     va_start( ap, fmt );
-    vsnprintf( notify_box_msg_tmp, sizeof(notify_box_msg_tmp), fmt, ap );
+    vsnprintf( notify_box_msg_tmp, sizeof(notify_box_msg_tmp)-1, fmt, ap );
     va_end( ap );
     
     if (notify_box_timeout && streq(notify_box_msg_tmp, notify_box_msg)) 

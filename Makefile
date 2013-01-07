@@ -147,6 +147,7 @@ clean:
 	cd $(PLATFORM_PATH)/50D.109/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/500D.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/5D2.212/; $(MAKE) clean
+	cd $(PLATFORM_PATH)/5D3.113/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/5DC.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/1100D.105/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/40D.111/; $(MAKE) clean

@@ -62,162 +62,17 @@ PROP_HANDLER(PROP_BATTERY_HISTORY) // also in memory address 7AFC0 length 76 byt
     }
 }
 
-void display_shooting_info() // called from debug task
+int GetBatteryLevel()
 {
-    if (lv) return;
-
-    uint32_t fnt;
-    int bg;
-    int col_bg;
-    int col_field;
-
-    col_bg = bmp_getpixel(1,1);
-    col_field = bmp_getpixel(615,455);
-
-    if (bat_info.act_hist == 0) 
-        for (int i=0;i<MIN(bat_info.num_of_hist,6);i++) 
-            if (bat_hist[i].serial == bat_info.serial) bat_info.act_hist = i+1;
-    
-#ifdef DISPLAY_HEADER_FOOTER_INFO
-    extern int header_left_info;
-    extern int header_right_info;
-    extern int footer_left_info;
-    extern int footer_right_info;
-    char adate[11];
-    char info[63];
-
-//    bmp_fill(col_bg,28,3,694,21);
-//    bmp_fill(col_bg,28,459,694,21);
-
-    if (header_left_info==3 || header_right_info==3 || footer_left_info==3 || footer_right_info==3) 
-    {
-        struct tm now;
-        LoadCalendarFromRTC( &now );
-// need to find the date format settings and use it here
-//        snprintf(adate, sizeof(adate), "%02d.%02d.%4d", (now.tm_mon+1),now.tm_mday,(now.tm_year+1900));
-//        snprintf(adate, sizeof(adate), "%02d.%02d.%4d", now.tm_mday,(now.tm_mon+1),(now.tm_year+1900));
-        snprintf(adate, sizeof(adate), "%4d.%02d.%02d", (now.tm_year+1900),(now.tm_mon+1),now.tm_mday);
-    }
-    
-    fnt = FONT(FONT_MED, COLOR_FG_NONLV, col_bg); 
-    if (header_left_info>0) 
-        bmp_printf(fnt, 28, 3, (
-            header_left_info==1 ? artist_name:
-            header_left_info==2 ? copyright_info:
-            header_left_info==3 ? adate:
-            header_left_info==4 ? lens_info.name:
-            header_left_info==5 ? build_version: 
-            "")
-        );
-    if (footer_left_info>0) 
-        bmp_printf(fnt, 28, 459, ( 
-            footer_left_info==1 ? artist_name:
-            footer_left_info==2 ? copyright_info:
-            footer_left_info==3 ? adate:
-            footer_left_info==4 ? lens_info.name:
-            footer_left_info==5 ? build_version: 
-            "") 
-    );
-    if (header_right_info>0) 
-    {
-        snprintf(info, sizeof(info), "%s", (
-            header_right_info==1 ? artist_name:
-            header_right_info==2 ? copyright_info:
-            header_right_info==3 ? adate:
-            header_right_info==4 ? lens_info.name:
-            header_right_info==5 ? build_version: 
-            ""));
-        bmp_printf(fnt, 693-strlen(info) * font_med.width, 3, info);
-    }
-    
-    if (footer_right_info>0) {
-        snprintf(info, sizeof(info), "%s", (
-            footer_right_info==1 ? artist_name:
-            footer_right_info==2 ? copyright_info:
-            footer_right_info==3 ? adate:
-            footer_right_info==4 ? lens_info.name:
-            footer_right_info==5 ? build_version: 
-            ""));
-        bmp_printf(fnt, 693-strlen(info) * font_med.width, 459, info);
-    }
-#endif
-
-#ifdef STROBO_READY_AND_WE_CAN_USE_IT
-    if (flash_info.mode==STROBO_FLASH_MODE_MANUAL)
-    {
-        uint32_t fntl = FONT(FONT_LARGE, COLOR_YELLOW, col_field);
-        fnt = FONT(FONT_SMALL, COLOR_CYAN, col_field);
-        bmp_printf(fnt, 488, 188, "A");
-        bmp_printf(fntl, 498, 185, "%3d", 1 << flash_info.group_a_output);
-        bmp_printf(fnt, 556, 188, "B");
-        bmp_printf(fntl, 564, 185, "%3d", 1 << flash_info.group_b_output );
-        bmp_printf(fnt, 624, 188, "C");
-        bmp_printf(fntl, 632, 185, "%3d", 1 << flash_info.group_c_output);
-        bmp_fill(bmp_getpixel(1,1),486,212,212,6);
-    }
-    //~ bmp_printf(fnt, 400, 450, "Flash:%s",
-        //~ strobo_firing == 0 ? " ON" :
-        //~ strobo_firing == 1 ? "OFF" : "Auto"
-        //~ strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
-        //~ );
-#endif
-    
-    
-    if (lens_info.raw_iso == 0) // ISO: AUTO
-     {
-        fnt = FONT(FONT_MED, COLOR_YELLOW, col_field);
-        bmp_printf(fnt, 455, 92, "[%d-%d]", MAX((get_htp() ? 200 : 100), raw2iso(auto_iso_range >> 8)), raw2iso((auto_iso_range & 0xFF)));
-        bmp_fill(bmp_getpixel(1,1),455,110,120,2);
-    }
-
-    if (lens_info.wb_mode == WB_KELVIN)
-    {
-        fnt = FONT(FONT_MED, COLOR_YELLOW, col_field);
-        bmp_printf(fnt, 393, 276, "%5d", lens_info.kelvin);
-        bmp_fill(bmp_getpixel(1,1),377,294,100,3);
-    }
-
-    if (lens_info.wbs_gm || lens_info.wbs_ba)
-    {
-        fnt = FONT(FONT_LARGE, COLOR_YELLOW, col_field);
-        bmp_fill(col_field,166,424,94,28);
-
-        int ba = lens_info.wbs_ba;
-        if (ba) bmp_printf(fnt, 177 + 2 * font_large.width, 426, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
-        else    bmp_printf(fnt, 177 + 2 * font_large.width, 426, "  ");
-
-        int gm = lens_info.wbs_gm;
-        if (gm) bmp_printf(fnt, 177, 426, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
-        else    bmp_printf(fnt, 177, 426, "  ");
-    }
-
-    //iso_refresh_display(); //what is it for ??? (sometimes it writes the same iso value plus a smaller ISO icon)
-
-    hdr_display_status(fnt);
-
-    RedrawBatteryIcon();
-
-    bg = bmp_getpixel(MLU_STATUS_POS_X, MLU_STATUS_POS_Y);
-    bmp_printf(FONT(FONT_MED, COLOR_YELLOW, bg), MLU_STATUS_POS_X, MLU_STATUS_POS_Y, get_mlu() ? "MLU" : "   ");
-
-    if (avail_shot>999) // it is a Canon bug (only 3 digits), it can display on the other info screen four digit number
-    {                   // but we can write 5 digits if necessary
-        bmp_fill(col_field,540,384,152,72); // clear the "[999]" 
-        char msg[8];
-        if (avail_shot>9999) 
-        {
-            snprintf(msg, sizeof(msg), "[%5d%]", avail_shot);
-            bfnt_puts(msg, 550 , 402, COLOR_FG_NONLV, col_field);
-        } 
-        else 
-        {
-            snprintf(msg, sizeof(msg), "[%4d%]", avail_shot);
-            bfnt_puts(msg, 560 , 402, COLOR_FG_NONLV, col_field);
-        }
-    }
-
-    //~ display_lcd_remote_info();
-    display_trap_focus_info();
+    return bat_info.level;
+}
+int GetBatteryTimeRemaining()
+{
+    return battery_seconds_same_level_ok * bat_info.level;
+}
+int GetBatteryDrainRate() // percents per hour
+{
+    return 3600 / battery_seconds_same_level_ok;
 }
 
 void RedrawBatteryIcon()
@@ -227,6 +82,11 @@ void RedrawBatteryIcon()
     uint32_t fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, col_field);
 
     int bg = bmp_getpixel(DISPLAY_BATTERY_POS_X+5,DISPLAY_BATTERY_POS_Y+30);
+    
+    if (bat_info.act_hist == 0) // it should to put somewhere in the start, not necessary to run every time 
+        for (int i=0;i<MIN(bat_info.num_of_hist,6);i++) 
+            if (bat_hist[i].serial == bat_info.serial) bat_info.act_hist = i+1;
+            
     if (bg==COLOR_WHITE) // If battery level<10 the Canon icon is flashing. In the empty state we don't redraw our battery icon but the rest 
     {
         uint batcol,batfil;
@@ -268,19 +128,6 @@ void RedrawBatteryIcon()
 	bmp_fill((bat_info.performance<3 ? COLOR_GRAY50 : COLOR_GREEN2),x,y,w,w);
 	bmp_fill((bat_info.performance<2 ? COLOR_GRAY50 : COLOR_GREEN2),x,y+4+w,w,w);
 	bmp_fill((bat_info.performance<1 ? COLOR_GRAY50 : COLOR_GREEN2),x,y+8+2*w,w,w);
-}
-
-int GetBatteryLevel()
-{
-    return bat_info.level;
-}
-int GetBatteryTimeRemaining()
-{
-    return battery_seconds_same_level_ok * bat_info.level;
-}
-int GetBatteryDrainRate() // percents per hour
-{
-    return 3600 / battery_seconds_same_level_ok;
 }
 
 // called every second

@@ -48,6 +48,11 @@ void ensure_play_or_qr_mode_after_shot();
 static void bulb_ramping_showinfo();
 int bulb_ramp_calibration_running = 0;
 
+#if  !defined(AUDIO_REM_SHOT_POS_X) && !defined(AUDIO_REM_SHOT_POS_Y)
+    #define AUDIO_REM_SHOT_POS_X 20
+    #define AUDIO_REM_SHOT_POS_Y 40
+#endif
+
 int display_idle()
 {
     extern thunk ShootOlcApp_handler;
@@ -683,6 +688,27 @@ motion_detect_display( void * priv, int x, int y, int selected )
 #endif
 
 int get_trap_focus() { return trap_focus; }
+
+#if defined(CONFIG_PHOTO_MODE_INFO_DISPLAY)
+static void double_buffering_start(int ytop, int height)
+{
+    // use double buffering to avoid flicker
+    bmp_vram(); // make sure parameters are up to date
+    ytop = MIN(ytop, BMP_H_PLUS - height);
+    memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), height * BMPPITCH);
+    bmp_draw_to_idle(1);
+}
+
+static void double_buffering_end(int ytop, int height)
+{
+    // done drawing, copy image to main BMP buffer
+    bmp_draw_to_idle(0);
+    bmp_vram(); // make sure parameters are up to date
+    ytop = MIN(ytop, BMP_H_PLUS - height);
+    memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
+    bzero32(bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
+}
+#endif
 
 #ifdef FEATURE_FLASH_TWEAKS
 void set_flash_firing(int mode)
@@ -3264,7 +3290,8 @@ void hdr_display_status(int fnt)
                 ((hdr_stepsize/4) % 2) ? ".5" : "");
         }
     #else
-        bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y, 
+        
+        bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y,
             "HDR %Xx%d%sEV",
             hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
             hdr_stepsize / 8,
@@ -3273,10 +3300,82 @@ void hdr_display_status(int fnt)
     }
     #endif
     #endif
+#ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
+
+#if defined(HTP_STATUS_POS_X) && defined(HTP_STATUS_POS_Y)
+    if (get_htp())
+    {
+                  int bg = bmp_getpixel(HTP_STATUS_POS_X-1,HTP_STATUS_POS_Y);
+                  int icon_x = HTP_STATUS_POS_X;
+                  int icon_y = HTP_STATUS_POS_Y;
+                  
+        BMP_LOCK (
+                  double_buffering_start(icon_y, 48);
+
+                  //------------ ICON HTP D+ ------------------
+                                   
+                  //bmp_fill(bg,HTP_STATUS_POS_X,HTP_STATUS_POS_Y,60,46);
+                  for (int i = 0; i < 46; i++) // HIDE ALO ICON
+                  {
+                      draw_line(icon_x , icon_y + i, 60 + icon_x, icon_y + i, bg);
+                  }
+        
+                  // first line with curve
+                  draw_line(icon_x + 4, icon_y, 55 + icon_x, icon_y, COLOR_FG_NONLV);
+                  draw_line(icon_x + 2, 1 + icon_y, 57 + icon_x, icon_y + 1, COLOR_FG_NONLV);
+                  draw_line(icon_x + 1, 2 + icon_y, 58 + icon_x, icon_y + 2, COLOR_FG_NONLV);
+                  draw_line(icon_x + 1, 3 + icon_y, 58 + icon_x, icon_y + 3, COLOR_FG_NONLV);
+                  
+                  // lateral bars
+                  for (int i = 4; i < 42; i++) // | vertical 5px bars |
+                  {
+                      draw_line(icon_x , icon_y + i, 5 + icon_x, icon_y + i, COLOR_FG_NONLV);
+                      draw_line( 55 + icon_x , icon_y + i, 59 + icon_x, icon_y + i, COLOR_FG_NONLV);
+                  }
+                  
+                  ///last line with curve
+                  draw_line(icon_x + 1, 42 + icon_y, 58 + icon_x, icon_y + 42, COLOR_FG_NONLV);
+                  draw_line(icon_x + 1, 43 + icon_y, 58 + icon_x, icon_y + 43, COLOR_FG_NONLV);
+                  draw_line(icon_x + 2, 44 + icon_y, 57 + icon_x, icon_y + 44, COLOR_FG_NONLV);
+                  draw_line(icon_x + 4, 45 + icon_y, 55 + icon_x, icon_y + 45, COLOR_FG_NONLV);
+                  
+                  // D circle
+                  for (int r = 0; r < 6; r++)
+                  {
+                      draw_circle(18 + icon_x, 23 + icon_y, 10 + r, COLOR_FG_NONLV); // small circle
+                      //draw_circle(29 + icon_x, 22 + icon_y, 12 + r, bg); // small circle
+                      draw_circle(17 + icon_x, 23 + icon_y, 10 + r, COLOR_FG_NONLV); // small circle
+                      //draw_circle(29 + icon_x, 21 + icon_y, 12 + r, bg); // small circle
+                  }
+                  
+                  // D | bar
+                  bmp_fill(bg,6+icon_x,5+icon_y,10,36);
+                  bmp_fill(COLOR_FG_NONLV,8+icon_x,8+icon_y,8,31);
+                  
+                  // Plus +
+                  bmp_fill(COLOR_FG_NONLV,37+icon_x,24+icon_y,16,6); // +, -
+                  
+                  for (int i = 0; i < 5; i++) // +, |
+                  {
+                      int l = 0;
+                      bg = bmp_getpixel(icon_x - 1, icon_y +l );
+                      draw_line(42 + icon_x + i, 18 + icon_y, 42 + icon_x + i, 35 + icon_y, COLOR_FG_NONLV);
+                      l++;
+                  }
+                  
+                  double_buffering_end(icon_y, 48);
+                  )
+        //------------ ICON ICON HTP D+ ------------------
+        //bmp_printf(FONT(FONT_LARGE, COLOR_FG_NONLV, bg), HTP_STATUS_POS_X, HTP_STATUS_POS_Y, "HTP");
+        //bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, bg), HTP_STATUS_POS_X+40, HTP_STATUS_POS_Y+30, "ON");
+    }
+#endif
+
+#endif
 }
 
 #ifdef FEATURE_HDR_BRACKETING
-static void 
+static void
 hdr_display( void * priv, int x, int y, int selected )
 {
     if (!hdr_enabled)
@@ -3296,7 +3395,7 @@ hdr_display( void * priv, int x, int y, int selected )
             hdr_type == 0 ? "" : hdr_type == 1 ? "F," : "DOF,",
             hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
             hdr_stepsize / 8,
-            ((hdr_stepsize/4) % 2) ? ".5" : "", 
+            ((hdr_stepsize/4) % 2) ? ".5" : "",
             hdr_sequence == 0 ? "0--" : hdr_sequence == 1 ? "0-+" : "0++",
             hdr_delay ? ",2s" : "",
             hdr_iso == 1 ? ",ISO" : hdr_iso == 2 ? ",iso" : ""
@@ -7654,12 +7753,10 @@ shoot_task( void* unused )
     
                 if (countdown == 0)
                 {
-#if defined(CONFIG_7D)
-                    bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, (lv ? COLOR_BG : bmp_getpixel(28, 3))), (lv ? 2 : 28),  (lv ? 30 : 3), "Audio release ON (%2d / %2d)", current_pulse_level, audio_release_level);
-#else
-                    bmp_printf(FONT_MED, 20,  (lv ? 40 : 3), "Audio release ON (%d / %d)   ", current_pulse_level, audio_release_level);
-#endif
-                    if (current_pulse_level > (int)audio_release_level) 
+
+                    bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, (lv ? COLOR_BG : bmp_getpixel(AUDIO_REM_SHOT_POS_X-2, AUDIO_REM_SHOT_POS_Y))), (lv ? 2 : AUDIO_REM_SHOT_POS_X),  (lv ? 30 : AUDIO_REM_SHOT_POS_Y), "Audio release ON (%2d / %2d)", current_pulse_level, audio_release_level);
+
+                    if (current_pulse_level > (int)audio_release_level)
                     {
                         remote_shot(1);
                         msleep(100);

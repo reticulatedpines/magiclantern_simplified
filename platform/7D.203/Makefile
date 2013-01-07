@@ -9,8 +9,8 @@ MODEL=7D
 UPDATE_NAME=7D_203.fir
 ML_VERSION=unified1 
 
-# compile position independent (experimental, not working completely yet)
-CONFIG_PIC=n
+# compile position independent (experimental)
+CONFIG_PIC=y
 
 #used in CFLAGS
 PLATFORM_INC=.
@@ -73,6 +73,7 @@ ML_OBJS-y = \
 	ptpbuf.o \
 	exmem.o \
 	vsync-lite.o \
+	ph_info_disp.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
@@ -82,7 +83,7 @@ include ../../Makefile.inc
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR     = 0xF8010000
-RESTARTSTART    = 0xC80100
+RESTARTSTART    = 0x00C80100
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120
 

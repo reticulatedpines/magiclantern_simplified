@@ -2739,7 +2739,7 @@ void preview_contrast_n_saturation_step()
     
     int saturation_register = 0xC0F140c4;
 #ifndef CONFIG_5DC
-    int current_saturation = shamem_read(saturation_register) & 0xFF;
+    int current_saturation = (int) shamem_read(saturation_register) & 0xFF;
 #endif
 
     static int saturation_values[] = {0,0x80,0xC0,0xFF};
@@ -2778,7 +2778,7 @@ void preview_contrast_n_saturation_step()
 #ifdef FEATURE_LV_BRIGHTNESS_CONTRAST
 
     int brightness_contrast_register = 0xC0F141B8;
-    int current_contrast = shamem_read(brightness_contrast_register);
+    int current_contrast = (int) shamem_read(brightness_contrast_register);
 
     // -------- xxxxxxxx -------- -------- brightness (offset): 8bit signed 
     // -------- -------- -------- xxxxxxxx contrast (gain factor): 8bit unsigned, 0x80 = 1.0
@@ -2828,7 +2828,7 @@ static void uniwb_correction_step()
     // uniwb screen correction
     int display_wb_register = 0xC0F14174;
     int desired_wb = 0;
-    int current_wb = shamem_read(display_wb_register);
+    int current_wb = (int) shamem_read(display_wb_register);
     if (uniwb_correction && uniwb_is_active() && preview_saturation && !focus_peaking_grayscale_running())
     {
         int w = (uniwb_correction << 4) & 0xFF;
@@ -2851,7 +2851,7 @@ static void uniwb_correction_step()
 void preview_show_contrast_curve()
 {
     int brightness_contrast_register = 0xC0F141B8;
-    int value = shamem_read(brightness_contrast_register);
+    int value = (int) shamem_read(brightness_contrast_register);
     int contrast = value & 0xFF;
     int brightness = (int8_t)(value >> 16);
     
@@ -3122,7 +3122,7 @@ void lcd_adjust_position_step()
     static int check_position = -1;
     
     int position_register = 0xC0F14164;
-    int current_position = shamem_read(position_register);
+    int current_position = (int) shamem_read(position_register);
     if (factory_position == -1) check_position = factory_position = current_position;
     int desired_position = factory_position - lcd_adjust_position * 9 * 2;
 

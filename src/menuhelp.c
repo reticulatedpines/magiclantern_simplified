@@ -30,10 +30,20 @@
 #include "lens.h"
 #include "font.h"
 #include "menu.h"
+#include "menuhelp.h"
 
 extern int menu_help_active;
 int current_page = 1;
 extern int help_pages;
+void draw_page_number(int page);
+
+void draw_page_number(int page)
+{
+    char pg[4];
+    snprintf(pg, sizeof(pg), "%3d", page);
+    bfnt_puts(pg, 650+(page<10 ? 14 : page<100 ? 4 : 0) , 2, COLOR_FG_NONLV, COLOR_BG);
+
+}
 
 void 
 draw_beta_warning()
@@ -42,11 +52,8 @@ draw_beta_warning()
     if (page_number_active) draw_page_number(1);
 
 //    bmp_printf(FONT_LARGE, 360 - font_large.width * 6, 50, "Magic Lantern");
-    char ml[13];
-    snprintf(ml, sizeof(ml), "Magic Lantern");
-    bfnt_puts(ml, 242, 53, COLOR_FG_NONLV, COLOR_BG);
+    bfnt_puts("Magic Lantern", 242, 53, COLOR_FG_NONLV, COLOR_BG);
 
-       
     bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
 
     bmp_printf(FONT_MED, 50, 200, "   Please report all bugs at www.magiclantern.fm.   ");
@@ -138,14 +145,6 @@ void menu_help_show_page(int page)
         }
     }
     if (page_number_active==1) draw_page_number(page);
-}
-
-void draw_page_number(int page)
-{
-    char pg[3];
-    snprintf(pg, sizeof(pg), "%3d", page);
-    bfnt_puts(pg, 650+(page<10 ? 14 : page<100 ? 4 : 0) , 2, COLOR_FG_NONLV, COLOR_BG);
-
 }
 
 void menu_help_redraw()

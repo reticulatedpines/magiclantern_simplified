@@ -8,6 +8,10 @@ FW_VERSION=113
 MODEL=5D3
 ML_VERSION=unified1 
 
+
+# compile position independent (experimental)
+CONFIG_PIC=n
+
 #used in CFLAGS
 PLATFORM_INC=.
 
@@ -62,6 +66,7 @@ ML_OBJS-y = \
 	beep.o \
 	audio-ak.o \
 	vsync-lite.o \
+	ph_info_disp.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

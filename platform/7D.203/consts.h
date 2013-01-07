@@ -140,7 +140,7 @@
 #define DISPLAY_CLOCK_POS_X 34
 #define DISPLAY_CLOCK_POS_Y 250
 
-    #define MENU_DISP_ISO_POS_X 500
+#define MENU_DISP_ISO_POS_X 500
 #define MENU_DISP_ISO_POS_Y 37
 
 // for displaying battery
@@ -160,8 +160,23 @@
 #define HDR_STATUS_POS_X 634
 #define HDR_STATUS_POS_Y 29
 
-    // for displaying TRAP FOCUS msg outside LV
-    
+// for the yellow ISO range [a-b]
+#define ISO_RANGE_POS_X 455
+#define ISO_RANGE_POS_Y 92
+
+#define WB_KELVIN_POS_X 393
+#define WB_KELVIN_POS_Y 276
+
+// white balance shift values M2B1 in yellow
+#define WBS_POS_X 177
+#define WBS_POS_Y 426
+#define WBS_FONT FONT_LARGE
+
+// Audio remote shot position info photo mode
+#define AUDIO_REM_SHOT_POS_X 28
+#define AUDIO_REM_SHOT_POS_Y 3
+
+// for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUSMSG_POS_X 277
 #define DISPLAY_TRAP_FOCUSMSG_POS_Y 308
 

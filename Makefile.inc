@@ -38,7 +38,11 @@ PYMITE_CFLAGS		= \
 all: autoexec.bin
 
 menuindexentries.h:
-	cd $(DOC_DIR); $(PYTHON) menuindex.py
+	$(call build,"MENU IDX", if [ -f $(DOC_DIR)/menuindex.txt ]; then \
+		cd $(DOC_DIR); $(PYTHON) menuindex.py; \
+	else \
+		echo "No menuindex.txt not running \"$(PYTHON) menuindex.py\""; \
+	fi)
 
 menuindex.o: menuindexentries.h
 
@@ -146,8 +150,15 @@ NOT_USED_FLAGS=\
 
 AFLAGS=\
 	$(FLAGS) \
+    
+LFLAGS=
+
+# default libraries are arm-${ARM_ABI} with full optimization -O3
+LIB_TYPE = arm-${ARM_ABI}-O3
 
 CFLAGS += $(CFLAG_USER)
+LFLAGS += $(LFLAG_USER)
+AFLAGS += $(AFLAG_USER)
 
 ifeq ($(CONFIG_PYMITE),y)
 CFLAGS += $(PYMITE_CFLAGS)
@@ -168,6 +179,8 @@ endif
 ifeq ($(CONFIG_PIC), y)
 CFLAGS += -fPIC -DPOSITION_INDEPENDENT
 AFLAGS += -fPIC -DPOSITION_INDEPENDENT
+LFLAGS += -fPIC
+LIB_TYPE = arm-${ARM_ABI}-O3-fPIC
 endif
 
 
@@ -274,6 +287,8 @@ magiclantern: $(ML_OBJS-y) libstdio.a
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-N \
+		$(LFLAGS) \
+		-L../../src/libs/$(LIB_TYPE) \
 		-nostdlib \
 		-mthumb-interwork \
 		-march=armv5te \
@@ -554,7 +569,8 @@ clean:
 	$(call build,CLEAN,$(RM) -f \
 		*.o   \
 		*.d \
-		.*.a \
+		*.a \
+        *.map \
 		$(BIN_FILES) \
 		magiclantern.lds \
 		*.bmp \

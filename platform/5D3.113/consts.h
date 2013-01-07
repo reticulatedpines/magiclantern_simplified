@@ -118,6 +118,35 @@
 #define MENU_DISP_ISO_POS_X 500
 #define MENU_DISP_ISO_POS_Y 27
 
+    //for HTP mode on display
+    #define HTP_STATUS_POS_X 500
+    #define HTP_STATUS_POS_Y 233
+
+//for Mirror Lock Up enabled on display
+#define MLU_STATUS_POS_X 395
+#define MLU_STATUS_POS_Y 305
+
+// for the yellow ISO range [a-b]
+#define ISO_RANGE_POS_X 545
+#define ISO_RANGE_POS_Y 105
+
+#define WB_KELVIN_POS_X 160
+#define WB_KELVIN_POS_Y 278
+
+// white balance shift values M2B1 in yellow
+#define WBS_POS_X 250
+#define WBS_POS_Y 263
+#define WBS_FONT FONT_LARGE
+
+// for displaying battery
+#define DISPLAY_BATTERY_POS_X 150
+#define DISPLAY_BATTERY_POS_Y 410
+#define DISPLAY_BATTERY_LEVEL_1 60 //%
+#define DISPLAY_BATTERY_LEVEL_2 20 //%
+
+// for header footer info
+#define DISPLAY_HEADER_FOOTER_INFO
+
 // for HDR status
 #define HDR_STATUS_POS_X 140
 #define HDR_STATUS_POS_Y 460
@@ -192,6 +221,7 @@
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
 #define VIDEO_PARAMETERS_SRC_3 MEM(0x25FF0) //for mark iii
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0))
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xc)) // for sure now
 #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xd))
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xe))
