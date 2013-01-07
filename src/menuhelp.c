@@ -30,10 +30,12 @@
 #include "lens.h"
 #include "font.h"
 #include "menu.h"
+#include "menuhelp.h"
 
 extern int menu_help_active;
 int current_page = 1;
 extern int help_pages;
+void draw_page_number(int page);
 
 void 
 draw_beta_warning()
