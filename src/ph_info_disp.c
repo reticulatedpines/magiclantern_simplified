@@ -17,7 +17,7 @@
     #define AUDIO_REM_SHOT_POS_Y 40
 #endif
 
-
+#if defined(DISPLAY_KELVIN_POS_X) && defined(DISPLAY_KELVIN_POS_Y)
 static void double_buffering_start(int ytop, int height)
 {
     // use double buffering to avoid flicker
@@ -36,6 +36,7 @@ static void double_buffering_end(int ytop, int height)
     memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
     bzero32(bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
 }
+#endif
 
 void display_shooting_info() // called from debug task
 {
@@ -46,6 +47,17 @@ void display_shooting_info() // called from debug task
     int col_bg = bmp_getpixel(10,1);
     int col_field = bmp_getpixel(615,375);
 
+#if defined(MAX_ISO_POS_X) && defined(MAX_ISO_POS_Y)
+	bg = bmp_getpixel(MAX_ISO_POS_X, MAX_ISO_POS_Y);
+	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
+    
+	if (lens_info.raw_iso == 0) // ISO: MAX AUTO
+ 	{
+        int maxiso=(auto_iso_range %  0xFF) - (auto_iso_range >> 8);
+        bmp_printf(fnt, MAX_ISO_POS_X, MAX_ISO_POS_Y, "MAX:%d",raw2iso(maxiso) );
+	}
+#endif
+
 #if defined(ISO_RANGE_POS_X) && defined(ISO_RANGE_POS_Y)
     if (lens_info.raw_iso == 0) // ISO: AUTO
     {
@@ -55,29 +67,29 @@ void display_shooting_info() // called from debug task
 #endif
 
 #if defined(WB_KELVIN_POS_X) && defined(WB_KELVIN_POS_Y)
-	if (lens_info.wb_mode == WB_KELVIN)
-	{
+    if (lens_info.wb_mode == WB_KELVIN)
+    {
         fnt = FONT(FONT_MED, COLOR_YELLOW, col_field);
-		bmp_printf(fnt, WB_KELVIN_POS_X, WB_KELVIN_POS_Y, "%5d", lens_info.kelvin);
-	}
+        bmp_printf(fnt, WB_KELVIN_POS_X, WB_KELVIN_POS_Y, "%5d", lens_info.kelvin);
+    }
 #endif
 
 #if defined(CONFIG_5D3)
-	if (lens_info.wbs_gm || lens_info.wbs_ba)
-	{
-		int ba = lens_info.wbs_ba;
-	    fnt = FONT(FONT_LARGE, COLOR_YELLOW, col_field);
-		int x = 268;
-		if (ba) bmp_printf(fnt, x + 2 * font_med.width, 280, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
-		else    bmp_printf(fnt, x + 2 * font_med.width, 280, "  ");
-
-		int gm = lens_info.wbs_gm;
-		if (gm) bmp_printf(fnt, x, 280, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
-		else    bmp_printf(fnt, x, 280, "  ");
-	}
-	display_lcd_remote_icon(555, 460);
+    if (lens_info.wbs_gm || lens_info.wbs_ba)
+    {
+        int ba = lens_info.wbs_ba;
+        fnt = FONT(FONT_LARGE, COLOR_YELLOW, col_field);
+        int x = 268;
+        if (ba) bmp_printf(fnt, x + 2 * font_med.width, 280, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
+        else    bmp_printf(fnt, x + 2 * font_med.width, 280, "  ");
+        
+        int gm = lens_info.wbs_gm;
+        if (gm) bmp_printf(fnt, x, 280, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
+        else    bmp_printf(fnt, x, 280, "  ");
+    }
+    display_lcd_remote_icon(555, 460);
 #endif
-
+    
 #if defined(CONFIG_7D)
     if (lens_info.raw_iso == 0) // ISO: AUTO
     {
@@ -88,7 +100,7 @@ void display_shooting_info() // called from debug task
         bmp_fill(bmp_getpixel(1,1),377,294,100,3);
     }
 #endif
-
+    
 #if defined(CONFIG_7D)
     if (lens_info.wbs_gm || lens_info.wbs_ba)
     {
@@ -104,13 +116,13 @@ void display_shooting_info() // called from debug task
         else    bmp_printf(fnt, 177, 426, "  ");
     }
 #endif
-
-#if defined(FOR_WHICH_MODELS)
+    
+#if defined(DISPLAY_KELVIN_POS_X) && defined(DISPLAY_KELVIN_POS_Y)
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
         //------------ ICON KELVIN BLACK -------------
-        int icon_x = 196; // x position height icon
-        int icon_y = 226; // y position width icon
+        int icon_x = DISPLAY_KELVIN_POS_X; // x position height icon
+        int icon_y = DISPLAY_KELVIN_POS_Y; // y position width icon
         
         BMP_LOCK (
                   double_buffering_start(icon_y, 48);
@@ -134,13 +146,13 @@ void display_shooting_info() // called from debug task
                   )
         bg = bmp_getpixel(icon_x-12, icon_y + 46);
         fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
-        bmp_printf(fnt, icon_x-10, icon_y + 46, "%5d", lens_info.kelvin);
+        bmp_printf(fnt, icon_x, icon_y + 46, "%5d", lens_info.kelvin);
         //------------ ICON KELVIN ------------------
         
 	}
 #endif
     
-#if defined(WBS_BA_POS_X) && defined(WBS_BA_POS_Y)    
+#if defined(WBS_BA_POS_X) && defined(WBS_BA_POS_Y)
 	if (lens_info.wbs_gm || lens_info.wbs_ba)
 	{
 		bg = bmp_getpixel(WBS_BA_POS_X, WBS_BA_POS_Y);
@@ -166,7 +178,7 @@ void display_shooting_info() // called from debug task
     extern int footer_right_info;
     char adate[16];
     char info[72];
-    
+        
     if (header_left_info==3 || header_right_info==3 || footer_left_info==3 || footer_right_info==3)
     {
         struct tm now;
@@ -187,15 +199,6 @@ void display_shooting_info() // called from debug task
                                 header_left_info==5 ? build_version:
                                 "")
                    );
-    if (footer_left_info>0)
-        bmp_printf(fnt, 28, 459, (
-                                  footer_left_info==1 ? artist_name:
-                                  footer_left_info==2 ? copyright_info:
-                                  footer_left_info==3 ? adate:
-                                  footer_left_info==4 ? lens_info.name:
-                                  footer_left_info==5 ? build_version:
-                                  "")
-                   );
     if (header_right_info>0)
     {
         snprintf(info, sizeof(info), "%s", (
@@ -207,6 +210,18 @@ void display_shooting_info() // called from debug task
                                             ""));
         bmp_printf(fnt, 693-strlen(info) * font_med.width, 2, info);
     }
+    
+    col_bg = bmp_getpixel(27,459);
+    fnt = FONT(FONT_MED, COLOR_FG_NONLV, col_bg);
+    if (footer_left_info>0)
+        bmp_printf(fnt, 28, 459, (
+                                  footer_left_info==1 ? artist_name:
+                                  footer_left_info==2 ? copyright_info:
+                                  footer_left_info==3 ? adate:
+                                  footer_left_info==4 ? lens_info.name:
+                                  footer_left_info==5 ? build_version:
+                                  "")
+                   );
     
     if (footer_right_info>0)
     {
@@ -253,17 +268,6 @@ void display_shooting_info() // called from debug task
     }
 #endif
     
-#if defined(MAX_ISO_POS_X) && defined(MAX_ISO_POS_Y)
-	bg = bmp_getpixel(MAX_ISO_POS_X, MAX_ISO_POS_Y);
-	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
-    
-	if (lens_info.raw_iso == 0) // ISO: MAX AUTO
- 	{
-        int maxiso=(auto_iso_range %  0xFF) - (auto_iso_range >> 8);
-        bmp_printf(fnt, MAX_ISO_POS_X, MAX_ISO_POS_Y, "MAX:%d",raw2iso(maxiso) );
-	}
-#endif
-
 #if !defined(CONFIG_7D)
 	iso_refresh_display();
     

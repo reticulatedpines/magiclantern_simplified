@@ -138,8 +138,8 @@
 #define HTP_STATUS_POS_Y 220
 
 //for Mirror Lock Up enabled on display
-//#define MLU_STATUS_POS_X 316
-//#define MLU_STATUS_POS_Y 310
+#define MLU_STATUS_POS_X 670
+#define MLU_STATUS_POS_Y 316
 
 //#define WBS_BA_POS_X 365
 //#define WBS_BA_POS_Y 260
@@ -154,6 +154,10 @@
 // position for displaying clock outside LV
 #define DISPLAY_CLOCK_POS_X 41
 #define DISPLAY_CLOCK_POS_Y 259
+
+// position for displaying K icon in photo info display
+#define DISPLAY_KELVIN_POS_X 487
+#define DISPLAY_KELVIN_POS_Y 580
 
 // position for displaying card size remain outside LV
 #define DISPLAY_GB_POS_X 32
