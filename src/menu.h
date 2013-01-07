@@ -45,6 +45,7 @@ void menu_show_only_selected();
 int get_menu_advanced_mode();
 
 extern int submenu_mode;
+extern int page_number_active;
 
 struct menu_entry
 {
@@ -112,6 +113,7 @@ struct menu_entry
 #define IT_DISABLE_SOME_FEATURE_NEG 10
 #define IT_REPLACE_SOME_FEATURE 11
 #define IT_SUBMENU 12
+#define IT_DICE_OFF 13
 
 #define UNIT_1_8_EV 1
 #define UNIT_x10 2
@@ -214,6 +216,7 @@ extern void menu_stop(void);
 #define MNI_NEUTRAL 9
 #define MNI_DISABLE 10
 #define MNI_SUBMENU 11
+#define MNI_DICE_OFF 12
 #define MNI_BOOL(x) ((x) ? MNI_ON : MNI_OFF)
 #define MNI_BOOL_AUTO(x) ((x) == 1 ? MNI_ON : (x) == 0 ? MNI_OFF : MNI_AUTO)
 

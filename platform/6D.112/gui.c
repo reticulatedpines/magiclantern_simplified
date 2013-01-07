@@ -29,6 +29,10 @@
 
 struct semaphore * gui_sem;
 
+#ifdef CONFIG_GUI_DEBUG
+int event_ctr = 0;
+#endif
+
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
@@ -62,19 +66,33 @@ struct gui_main_struct {
 
 extern struct gui_main_struct gui_main_struct;
 
-static void my_gui_main_task()
+void my_gui_main_task()
 {
 	struct event * event = NULL;
 	int index = 0;
 	void* funcs[GMT_NFUNCS];
 	memcpy(funcs, (void*)GMT_FUNCTABLE, 4*GMT_NFUNCS);
 	gui_init_end();
+
 	while(1)
 	{
 		msg_queue_receive(gui_main_struct.msg_queue, &event, 0);
 		gui_main_struct.counter--;
 		if (event == NULL) continue;
 		index = event->type;
+
+        /** Don't forget to enable CONFIG_CONSOLE from 'Makefile.user.default' for this to work!! */
+    #ifdef CONFIG_GUI_DEBUG
+        if (event->type == 0
+            && event->param != 0x69
+            && event->param != 0x11
+            && event->param != 0xf
+            && event->param != 0x54
+            )   //~ block some common events
+        {
+            console_printf("[%d] event->param: 0x%x\n", event_ctr++, event->param);
+        }
+    #endif
 		
 		if (!magic_is_off())
 		{

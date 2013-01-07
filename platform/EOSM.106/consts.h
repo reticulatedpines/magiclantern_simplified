@@ -32,7 +32,7 @@
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04108 // SDRAM address of HD buffer (aka YUV)
 
-#define EVF_STATEOBJ *(struct state_object**)0x40944)
+#define EVF_STATEOBJ (*(struct state_object**)0x40944)
 #define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR)) // first line from DMA is dummy
 
 
@@ -184,7 +184,8 @@
 #define MALLOC_STRUCT 0x66d08
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
-    //~ #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
+//~ needs fixed to prevent half shutter making canon overlays visible.
+    #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x5D800) != 0x17) // dec CancelUnaviFeedBackTimer
 
 
 /******************************************************************************************************************

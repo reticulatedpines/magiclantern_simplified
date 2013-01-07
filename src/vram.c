@@ -333,7 +333,7 @@ void update_vram_params()
     vram_hd.pitch = hd_size & 0xFFFF;
     vram_hd.width = vram_hd.pitch / 2;
     vram_hd.height = ((hd_size >> 16) & 0xFFFF)
-        #if !defined(CONFIG_5D3) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D)
+        #if !defined(CONFIG_5D3) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D) && !defined(CONFIG_6D)
         + 1
         #endif
         ;
@@ -345,11 +345,11 @@ void update_vram_params()
     #if defined(CONFIG_600D)
     int bar_x = is_movie_mode() && video_mode_resolution >= 2 ? off_43 : 0;
     int bar_y = is_movie_mode() && video_mode_resolution <= 1 ? os.off_169 : 0;
-    #elif defined(CONFIG_5D3) || defined(CONFIG_1100D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+    #elif defined(CONFIG_5D3) || defined(CONFIG_1100D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
     int bar_x = 0;
     int bar_y = is_movie_mode() && video_mode_resolution == 1 ? os.off_169 : 0;
     off_43+=0; // bypass warning
-    #elif defined(CONFIG_500D) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+    #elif defined(CONFIG_500D) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
     int bar_x = 0;
     int bar_y = 0;
     off_43+=0; // bypass warning
@@ -674,8 +674,8 @@ static void vram_toggle(void* priv, int delta)
     //~ update_vram_params_calc();
 }
 
-static void vram_toggle_fwd(void* priv) { vram_toggle(priv,  increment); }
-static void vram_toggle_rev(void* priv) { vram_toggle(priv, -increment); }
+static void vram_toggle_fwd(void* priv, int unused) { vram_toggle(priv,  increment); }
+static void vram_toggle_rev(void* priv, int unused) { vram_toggle(priv, -increment); }
 //~ static void vram_toggle_delta(void* priv)  { menu_quinternary_toggle(&increment, 1); }
 
 #define VRAM_MENU_ENTRY(x)  { \

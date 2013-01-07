@@ -2,7 +2,7 @@
  * Entry points into the firmware image.
  *
  * These are the functions that we can call from our tasks
- * in the Canon 1.0.6 firmware for the EOS M.
+ * in the Canon 1.1.2 firmware for the 6D.
  *
  *  This is a straight copy from the 5d3, EOS M stubs need found/verified still.
  *
@@ -72,7 +72,7 @@ NSTUB(0xFF18DFD4, SetGUIRequestMode)
     NSTUB(0xff136f5c, _audio_ic_read)
     NSTUB(0xff136ea4, _audio_ic_write) // str:Reg_0x_02X_Data_04x
 NSTUB(0xFF9D0308, audio_thresholds)
-    NSTUB(   0x468b8, additional_version)
+//NSTUB(   0x77DC8, additional_version)
 
 
 NSTUB(0xFFCFD620 - RAM_OFFSET, alloc_dma_memory)
@@ -124,7 +124,7 @@ NSTUB(   0x74ACC, task_dispatch_hook )
 NSTUB(0xFFCD1F34 - RAM_OFFSET, task_trampoline)
 NSTUB(0xFFCFB678 - RAM_OFFSET, vsnprintf)
 NSTUB(   0xB99DC, vram_info)
-    NSTUB(0xFF6FB53C, LiveViewShutterApp_handler)
+NSTUB(0xFF713760, LiveViewShutterApp_handler)
 
 NSTUB(0xFF52C7FC, LiveViewApp_handler)
 //    NSTUB(0xff4b09e4, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
@@ -161,7 +161,7 @@ NSTUB(0xFFCD02BC - RAM_OFFSET, msg_queue_create)
 NSTUB(0xFF10ACAC, PD_RemoteRelease) //~ string: "COM_RemoteRelease:%lx, %lx"
 
 	// for task information
-NSTUB(0x75F0C, task_max)
+NSTUB(0x75F08, task_max)
 NSTUB(0xFFD0EF90 - RAM_OFFSET, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xFFCD4DC8 - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 
@@ -180,7 +180,7 @@ NSTUB(0xFFCE3178 - RAM_OFFSET, ENCODE_StartEncodeJpeg)  //~ called from RAM in 6
 NSTUB(0xFF14A410, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xFF14A45C, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xFF14A574, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xFFCCED1C - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xFFCCF2D0 - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
 NSTUB(0xFFCCECA8 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 
 NSTUB(0xFFCD0808 - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)

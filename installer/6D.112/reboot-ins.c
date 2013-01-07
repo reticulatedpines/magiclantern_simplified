@@ -26,185 +26,151 @@
 
 #include "arm-mcr.h"
 
-
-/*****************************************************************************
- *  This is temporarly changed, later we will replace the code here with the
- *  real installer code. For now we can use this to dump memory and enable
- *  the bootflag.
- *****************************************************************************/
+#define SIG_LEN 0x10000
+#define FIRMWARE_SIGNATURE 0x6D677512 // from FF0C0000
 
 asm(
     ".text\n"
     ".globl _start\n"
     "_start:\n"
-    
-    /* if used in a .fir file, there is a 0x120 byte address offset.
-     so cut the first 0x120 bytes off autoexec.bin before embedding into .fir
-     */
-    "B       skip_fir_header\n"
-    ".space 0x11C\n"
-    "skip_fir_header:\n"
-    
+    "	b 1f\n"
+    ".ascii \"gaonisoy\"\n"		// 0x124, 128
+    "1:\n"
     "MRS     R0, CPSR\n"
-    "BIC     R0, R0, #0x3F\n"   // Clear I,F,T
-    "ORR     R0, R0, #0xD3\n"   // Set I,T, M=10011 == supervisor
+    "BIC     R0, R0, #0x3F\n"	// Clear I,F,T
+    "ORR     R0, R0, #0xD3\n"	// Set I,T, M=10011 == supervisor
     "MSR     CPSR, R0\n"
-    "B       cstart\n"
+    "	ldr sp, =0x1900\n"	// 0x130
+    "	mov fp, #0\n"
+    "	b cstart\n"
     );
 
-//~ #define START_ADDR 0xFFFE0000
-#define START_ADDR 0xFF000000
-#define END_ADDR 0xFFFF0000
-#define MEM(x) (*(uint32_t*)(x))
-#define STMFD 0xe92d0000
 
-uint32_t searchmem(uint32_t asm_sig)
+static void busy_wait(int n)
 {
-    uint32_t i;
-    for( i=START_ADDR; i<END_ADDR; i+=4 ) //~ range in memory to search in.
-    {
-        if( *(uint32_t*)i == asm_sig )
-        {
-            return i;
-        }
-    }
-    return 0;
+	int i,j;
+	static volatile int k = 0;
+	for (i = 0; i < n; i++)
+		for (j = 0; j < 100000; j++)
+			k++;
 }
 
-uint32_t locatestart(uint32_t sig_addr)
+static void blink(int n)
 {
-    uint32_t i;
-    for( i=sig_addr; i>START_ADDR; i-=4 ) //~ search backwards in memory
-    {
-        if( ((*(uint32_t*)i) & 0xFFFF0000) == (STMFD & 0xFFFF0000))
-        {
-            return i;
-        }
-    }
-    return 0;
+	while (1)
+	{
+		*(int*)0xC02200BC |= 2;  // card LED on
+		busy_wait(n);
+		*(int*)0xC02200BC &= ~2;  // card LED off
+		busy_wait(n);
+	}
 }
 
-// Don't use strcmp since we don't have it
-int
-streq( const char * a, const char * b )
+static void fail()
 {
-    while( *a && *b )
-        if( *a++ != *b++ )
-            return 0;
-    return *a == *b;
+	blink(50);
 }
 
-uint32_t ror(uint32_t word, uint32_t count)
+static int compute_signature(int* start, int num)
 {
-    return word >> count | word << (32 - count);
+	int c = 0;
+	int* p;
+	for (p = start; p < start + num; p++)
+	{
+		c += *p;
+	}
+	return c;
 }
 
-uint32_t decode_immediate_shifter_operand(uint32_t insn)
+
+/** Include the relocatable shim code */
+extern uint8_t blob_start;
+extern uint8_t blob_end;
+
+asm(
+	".text\n"
+	".align 12\n" // 2^12 == 4096 bytes
+	".globl blob_start\n"
+	"blob_start:\n"
+	".incbin \"magiclantern.bin\"\n" //
+	".align 12\n"
+	"blob_end:\n"
+	".globl blob_end\n"
+    );
+
+
+/** Determine the in-memory offset of the code.
+ * If we are autobooting, there is no offset (code is loaded at
+ * 0x800000).  If we are loaded via a firmware file then there
+ * is a 0x120 byte header infront of our code.
+ *
+ * Note that mov r0, pc puts pc+8 into r0.
+ */
+static int
+__attribute__((noinline))
+find_offset( void )
 {
-    uint32_t inmed_8 = insn & 0xFF;
-    uint32_t rotate_imm = (insn & 0xF00) >> 7;
-    return ror(inmed_8, rotate_imm);
-}
-
-uint32_t find_func_from_string(char* string, int Rd, int max_start_offset, uint32_t* ref_addr, uint32_t* str_addr)
-{
-    uint32_t i;
-    for( i=START_ADDR; i<END_ADDR; i+=4 ) //~ range in memory to search in.
-    {
-        uint32_t insn = *(uint32_t*)i;
-        if( (insn & 0xFFFFF000) == (0xe28f0000 | (Rd << 12)) ) // add Rd, pc, #offset
-        {
-            // let's check if it refers to our string
-            int offset = decode_immediate_shifter_operand(insn);
-            int pc = i;
-            int dest = pc + offset + 8;
-            if (streq((char*)dest, string))
-            {
-                //~ bmp_printf(FONT_MED, 0, 0, "%x %x %d %s...", i, insn, offset, dest);
-                uint32_t func_start = locatestart(i);
-                if (func_start && (i - func_start < max_start_offset)) // bingo, start of function is not too far from the string reference
-                {
-                    *ref_addr = i;
-                    *str_addr = dest;
-                    return func_start;
-                }
-            }
-        }
-    }
-    return 0; // fsck :(
-}
-
-uint32_t find_next_BL(uint32_t start, int max)
-{
-    for (uint32_t addr = start ; addr < start + max; addr += 4)
-        if ((MEM(addr) & 0xFF000000) == 0xEB000000)
-            return addr;
-    return 0;
-}
-
-#include "cache_hacks.h"
-
-#define ASSERT(x) if (!(x)) while(1);
-
-void guess_things(uint32_t* hijacked_DebugMsg, uint32_t* save_file, uint32_t* B_str_addr)
-{
+	uintptr_t pc;
+	asm __volatile__ (
+                      "mov %0, %%pc"
+                      : "=&r"(pc)
+                      );
     
-    uint32_t str_ref_addr;
-    uint32_t str_addr;
-    
-    //~ uint32_t format = find_func_from_string("StartMnCardFormatBeginAp", 2, 32, &str_ref_addr, &str_addr);
-    uint32_t format = find_func_from_string("StartPlayMain", 2, 32, &str_ref_addr, &str_addr);
-    ASSERT(format);
-    
-    uint32_t dbm = find_next_BL(str_ref_addr, 32);
-    ASSERT(dbm);
-    
-    uint32_t sf = find_func_from_string("B:/%s", 1, 32, &str_ref_addr, &str_addr);
-    ASSERT(sf);
-    
-    // 60D values
-    //~ *hijacked_DebugMsg = 0xff428714;
-    //~ *save_file = 0xff25b53c;
-    //~ *B_str_addr = 0xff25b66c;
-    
-    *hijacked_DebugMsg = dbm;
-    //*save_file = sf;
-    *save_file = 0xFF1464C4;    //~ call EnableBootDisk function instead
-    *B_str_addr = str_addr;
+	return pc - 8 - (uintptr_t) find_offset;
 }
 
 void
 __attribute__((noreturn))
 cstart( void )
 {
+	// check firmware version
+	if (compute_signature(ROMBASEADDR, SIG_LEN) != FIRMWARE_SIGNATURE)
+        fail();
     
-    uint32_t hijacked_DebugMsg, save_file, B_str_addr;
-    guess_things(&hijacked_DebugMsg, &save_file, &B_str_addr);
+	// there is a bug in that we are 0x120 bytes off from
+	// where we should be, so we must offset the blob start.
+	ssize_t offset = find_offset();
     
-    clean_d_cache();
-    flush_caches();
-    cache_lock();
+	// Set the flag if this was an autoboot load
+	int autoboot_loaded = (offset == 0);
     
-    // try to turn this into B:/As (optional, might work without it)
-    if (MEM(B_str_addr) == 0x252f3a42)
-        cache_fake(B_str_addr, 0x412f3a42, TYPE_DCACHE);
+	if (!autoboot_loaded) // running from FIR
+	{
+		// write bootflag strings to SD card
+		// this can only be called from a "reboot" (updater) context,
+		// not from normal DryOS
+		
+		// doesn'tworkstation..
+		//~ int (*write_bootflags_to_card)(int) = 0xffff5170;
+		//~ int not_ok = write_bootflags_to_card(0);
+		
+		//~ if (not_ok)
+        //~ fail();
+	}
     
-    // instead of the hijacked DebugMsg, try to dump 16MB from 0xFF000000
-    cache_fake(hijacked_DebugMsg - 12, 0xE3A00000, TYPE_ICACHE); // mov r0, 0
-    cache_fake(hijacked_DebugMsg -  8, 0xE3A014FF, TYPE_ICACHE); // mov r1, 0xFF000000
-    cache_fake(hijacked_DebugMsg -  4, 0xE3A02401, TYPE_ICACHE); // mov r2, 0x1000000
-    cache_fake(hijacked_DebugMsg, BL_INSTR(hijacked_DebugMsg, save_file), TYPE_ICACHE);
+	// Copy the copy-and-restart blob somewhere
     
-    // jump to gaonisoy
-    for (uint32_t start = 0xFF000000; start < 0xFFFFFFF0; start += 4)
-    {
-        if (MEM(start+4) == 0x6e6f6167 && MEM(start+8) == 0x796f7369) // gaonisoy
-        {
-            void(*firmware_start)(void) = (void*)start;
-            firmware_start();
-        }
-    }
+	blob_memcpy(
+                (void*) RESTARTSTART,
+                &blob_start + offset,
+                &blob_end + offset
+                );
+	clean_d_cache();
+	flush_caches();
     
-    // unreachable
-    while(1);
+	// Jump into the newly relocated code
+	void __attribute__((noreturn))(*copy_and_restart)(int)
+    = (void*) RESTARTSTART;
+    
+	void __attribute__((noreturn))(*firmware_start)(void)
+    = (void*) ROMBASEADDR;
+    
+	if( 1 )
+		copy_and_restart(offset);
+	else
+		firmware_start();
+    
+	// Unreachable
+	while(1)
+		;
 }

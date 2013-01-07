@@ -268,14 +268,9 @@ void WAV_RecordSmall(char* filename, int duration, int show_progress)
     info_led_on();
     audio_recording = 1;
     audio_recording_start_time = get_seconds_clock();
+
     SetSamplingRate(48000, 1);
     MEM(0xC092011C) = 4; // SetASIFADCModeSingleINT16
-    
-#if defined(CONFIG_7D)
-    /* experimental for 7D now, has to be made generic */
-    void SoundDevActiveIn (uint32_t);
-    SoundDevActiveIn(0);
-#endif
 
     StartASIFDMAADC(buf, N, 0, 0, asif_rec_stop_cbr, N);
     while (audio_recording) 
@@ -394,7 +389,6 @@ static void asif_rec_continue_cbr()
 {
     if (file == INVALID_PTR) return;
 
-
     void* buf = wav_buf[wav_ibuf];
     add_write_q(buf);
 
@@ -404,13 +398,6 @@ static void asif_rec_continue_cbr()
         file = INVALID_PTR;
         audio_recording = 0;
         info_led_off();
-        
-#if defined(CONFIG_7D)
-        /* experimental for 7D now, has to be made generic */
-        void SoundDevActiveIn (uint32_t);
-        SoundDevActiveIn(0);
-#endif
-
         return;
     }
     SetNextASIFADCBuffer(buf, WAV_BUF_SIZE);
@@ -431,23 +418,30 @@ void WAV_Record(char* filename, int show_progress)
     
     audio_recording = 1;
     audio_recording_start_time = get_seconds_clock();
+
     SetSamplingRate(48000, 1);
     MEM(0xC092011C) = 4; // SetASIFADCModeSingleINT16
 
-
+    wav_ibuf = 0;        
+    
 #if defined(CONFIG_7D)
     /* experimental for 7D now, has to be made generic */
     void SoundDevActiveIn (uint32_t);
     SoundDevActiveIn(0);
 #endif
 
-    wav_ibuf = 0;
     StartASIFDMAADC(buf1, WAV_BUF_SIZE, buf2, WAV_BUF_SIZE, asif_rec_continue_cbr, 0);
     while (audio_recording) 
     {
         msleep(100);
         if (show_progress) record_show_progress();
     }
+#if defined(CONFIG_7D)
+    /* experimental for 7D now, has to be made generic */
+    void SoundDevShutDownIn();
+    SoundDevShutDownIn();
+#endif
+    
     info_led_off();
 }
 

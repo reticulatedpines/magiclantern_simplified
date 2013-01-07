@@ -11,21 +11,29 @@ static int last_time_active = 0;
 int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
 int get_last_time_active() { return last_time_active; }
 
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
 // disable Canon bottom bar
 static uint32_t orig_DebugMsg_instr = 0;
 static void hacked_DebugMsg(int class, int level, char* fmt, ...)
 {
     if (class == 131 && level == 1)
+    #if defined(CONFIG_5D3)
         MEM(0x3334C) = 0; // LvApp_struct.off_0x60 /*0x3334C*/ = ret_str:JudgeBottomInfoDispTimerState_FF4B0970
-
+    #elif defined(CONFIG_6D)
+        MEM(0x841C0) = 0;
+    #elif defined(CONFIG_EOSM)
+        MEM(0x5D88C) = 0;
+    #endif
+    
+#ifdef CONFIG_5D3
     extern int rec_led_off;
     if ((class == 34 || class == 35) && level == 1 && rec_led_off && recording) // cfWriteBlk, sdWriteBlk
         *(uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
-    
+#endif
     return;
 }
 #endif
+
 
 int handle_other_events(struct event * event)
 {
@@ -38,7 +46,7 @@ int handle_other_events(struct event * event)
         if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
         {
             // install a modified handler which does not activate bottom bar display timer
-            reloc_liveviewapp_install(); 
+            reloc_liveviewapp_install();
             
             if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
 
@@ -63,7 +71,7 @@ int handle_other_events(struct event * event)
             lens_display_set_dirty();
         }
     }
-#elif defined(CONFIG_5D3)
+#elif defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
     if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
     {
         if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
@@ -146,8 +154,19 @@ static int pre_shutdown_requested = 0; // used for preventing wakeup from paused
 
 void reset_pre_shutdown_flag_step() // called every second
 {
-    if (pre_shutdown_requested)
+    if (pre_shutdown_requested && !sensor_cleaning)
         pre_shutdown_requested--;
+}
+
+void check_pre_shutdown_flag() // called from ml_shutdown
+{
+    if (LV_PAUSED && !pre_shutdown_requested)
+    {
+        // if this happens, camera will probably not shutdown normally from "LV paused" state
+        NotifyBox(10000, "Double-check GMT_GUICMD consts");
+        info_led_blink(50,50,50);
+        // can't call ASSERT from here
+    }
 }
 
 int handle_common_events_by_feature(struct event * event)
@@ -155,8 +174,8 @@ int handle_common_events_by_feature(struct event * event)
     // common to most cameras
     // there may be exceptions
 
-#ifdef FEATURE_CONFIG_SAVE
-    // these are required for correct shutdown from powersave mode
+#ifdef FEATURE_POWERSAVE_LIVEVIEW
+    // these are required for correct shutdown from "LV paused" state
     if (event->param == GMT_GUICMD_START_AS_CHECK || 
         event->param == GMT_GUICMD_OPEN_SLOT_COVER || 
         event->param == GMT_GUICMD_LOCK_OFF)
@@ -165,19 +184,13 @@ int handle_common_events_by_feature(struct event * event)
         config_save_at_shutdown();
         return 1;
     }
-#endif
 
-#ifdef FEATURE_POWERSAVE_LIVEVIEW
     if (LV_PAUSED && event->param != GMT_OLC_INFO_CHANGED) 
     { 
-        int ans =  (ml_shutdown_requested || pre_shutdown_requested || sensor_cleaning || PLAY_MODE || MENU_MODE);
-
-        //~ run_in_separate_task(ResumeLiveView, 0);
-        //~ return 0;
-        //~ int ans = ResumeLiveView();
+        int ans = (ml_shutdown_requested || pre_shutdown_requested || sensor_cleaning);
         idle_wakeup_reset_counters(event->param);
         if (handle_disp_preset_key(event) == 0) return 0;
-        return !ans;  // if LiveView was resumed, don't do anything else (just wakeup)
+        return ans;  // if LiveView was resumed, don't do anything else (just wakeup)
     }
 #endif
 
@@ -258,7 +271,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_zoom_x5_x10(event) == 0) return 0;
     #endif
     
-    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
+    #if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_6D)
     if (handle_quick_access_menu_items(event) == 0) return 0;
     #endif
     
@@ -295,7 +308,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_disp_preset_key(event) == 0) return 0;
     #endif
     
-    #ifdef FEATURE_QUICK_ZOOM
+    #if defined(FEATURE_QUICK_ZOOM) || defined(FEATURE_REMEMBER_LAST_ZOOM_POS_5D3)
     if (handle_fast_zoom_in_play_mode(event) == 0) return 0;
     #endif
     

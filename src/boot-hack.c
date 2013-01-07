@@ -34,7 +34,7 @@
 #include "property.h"
 #include "consts.h"
 #include "tskmon.h"
-#ifdef HIJACK_CACHE_HACK
+#if defined(HIJACK_CACHE_HACK) || defined(CONFIG_6D)
 #include "cache_hacks.h"
 #endif
 
@@ -67,6 +67,14 @@ zero_bss( void )
     while( bss < _bss_end )
         *(bss++) = 0;
 }
+
+#if defined(CONFIG_6D)
+void hijack_6d_guitask()
+{
+    void my_gui_main_task();
+    task_create("GuiMainTask", 0x17, 0x2000, my_gui_main_task, 0);
+}
+#endif
 
 
 /** Copy firmware to RAM, patch it and restart it */
@@ -121,6 +129,13 @@ copy_and_restart( )
     // Make sure that our self-modifying code clears the cache
     clean_d_cache();
     flush_caches();
+    
+    //~ temporary, this is the only way I could manage to hijack the GUI task. just hacking data cache
+    //~ didn't work..
+#ifdef CONFIG_6D
+    cache_lock();
+    cache_fake(0xFF0DF6DC, BL_INSTR(0xFF0DF6DC, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
+#endif
 
     // We enter after the signature, avoiding the
     // relocation jump that is at the head of the data
@@ -143,8 +158,9 @@ copy_and_restart( )
     * install our own handlers.
     */
 
-#ifndef CONFIG_EARLY_PORT
-#ifndef CONFIG_HELLO_WORLD
+    //~ Canon changed their task starting method in the 6D so our old hook method doesn't work.
+#ifndef CONFIG_6D
+#if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD)
     // Install our task creation hooks
     task_dispatch_hook = my_task_dispatch_hook;
     tskmon_init();
@@ -201,10 +217,13 @@ my_task_dispatch_hook(
     // Search the task_mappings array for a matching entry point
     extern struct task_mapping _task_overrides_start[];
     extern struct task_mapping _task_overrides_end[];
-    const struct task_mapping * mapping = _task_overrides_start;
+    struct task_mapping * mapping = _task_overrides_start;
 
     for( ; mapping < _task_overrides_end ; mapping++ )
     {
+#if defined(POSITION_INDEPENDENT)
+        mapping->replacement = PIC_RESOLVE(mapping->replacement);
+#endif
         thunk original_entry = mapping->orig;
         if( original_entry != entry )
             continue;
@@ -258,15 +277,18 @@ call_init_funcs( void * priv )
 
     for( ; init_func < _init_funcs_end ; init_func++ )
     {
+#if defined(POSITION_INDEPENDENT)
+        init_func->entry = PIC_RESOLVE(init_func->entry);
+        init_func->name = PIC_RESOLVE(init_func->name);
+#endif
         DebugMsg( DM_MAGIC, 3,
             "Calling init_func %s (%x)",
             init_func->name,
-            (unsigned) init_func->entry
+            (uint32_t) init_func->entry
         );
         thunk entry = (thunk) init_func->entry;
         entry();
     }
-
 }
 
 
@@ -347,14 +369,13 @@ static int compute_signature(int* start, int num)
 // From here we can do file I/O and maybe other complex stuff
 void my_big_init_task()
 {
-    load_fonts();
-    
 #if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
   uint32_t len;
+  load_fonts();
 #endif
 
 #ifdef CONFIG_HELLO_WORLD
-    len = compute_signature(0xff0c0000, 0x10000);
+    len = compute_signature(ROMBASEADDR, 0x10000);
     while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
@@ -416,6 +437,11 @@ void my_big_init_task()
     int ml_tasks = 0;
     for( ; task < _tasks_end ; task++ )
     {
+#if defined(POSITION_INDEPENDENT)
+        task->name = PIC_RESOLVE(task->name);
+        task->entry = PIC_RESOLVE(task->entry);
+        task->arg = PIC_RESOLVE(task->arg);
+#endif
         //~ DebugMsg( DM_MAGIC, 3,
             //~ "Creating task %s(%d) pri=%02x flags=%08x",
             //~ task->name,
@@ -853,6 +879,7 @@ my_init_task(int a, int b, int c, int d)
     );
 #endif
 
+#if !defined(CONFIG_NO_ADDITIONAL_VERSION)
     // Re-write the version string.
     // Don't use strcpy() so that this can be done
     // before strcpy() or memcpy() are located.
@@ -871,6 +898,7 @@ my_init_task(int a, int b, int c, int d)
     additional_version[11] = build_version[7];
     additional_version[12] = build_version[8];
     additional_version[13] = '\0';
+#endif
 
 #ifndef CONFIG_EARLY_PORT
 
@@ -895,6 +923,7 @@ my_init_task(int a, int b, int c, int d)
             msleep(100);
         }
         bfnt_puts("Magic OFF", 0, 0, COLOR_WHITE, COLOR_BLACK);
+    #if !defined(CONFIG_NO_ADDITIONAL_VERSION)
         extern char additional_version[];
         additional_version[0] = '-';
         additional_version[1] = 'm';
@@ -904,6 +933,7 @@ my_init_task(int a, int b, int c, int d)
         additional_version[5] = 'f';
         additional_version[6] = 'f';
         additional_version[7] = '\0';
+    #endif
         return ans;
     }
 

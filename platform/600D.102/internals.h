@@ -100,3 +100,6 @@
 
 /** FIO_RenameFile works **/
 #define CONFIG_FIO_RENAMEFILE_WORKS
+
+/** Perfect sync using EVF_STATE **/
+#define CONFIG_EVF_STATE_SYNC

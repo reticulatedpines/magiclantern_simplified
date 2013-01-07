@@ -78,6 +78,7 @@ static int menu_hidden_dirty = 0;
 static int menu_zebras_mirror_dirty = 0; // to clear zebras from mirror (avoids display artifacts if, for example, you enable false colors in menu, then you disable them, and preview LV)
 static char* warning_msg = 0;
 int menu_help_active = 0;
+int page_number_active = 0;
 int submenu_mode = 0;
 int g_submenu_width = 0;
 static int menu_id_increment = 1;
@@ -133,8 +134,6 @@ void menu_disable_lv_transparent_mode()
 }
 int menu_active_but_hidden() { return gui_menu_shown() && ( menu_lv_transparent_mode ); }
 int menu_active_and_not_hidden() { return gui_menu_shown() && !( menu_lv_transparent_mode && hist_countdown < 2 ); }
-
-int draw_event = 0;
 
 static void
 draw_version( void )
@@ -266,7 +265,7 @@ static void entry_draw_icon(
         {
             const char* first_choice = entry->choices[0];
             if (streq(first_choice, "OFF") || streq(first_choice, "Hide"))
-                entry->icon_type = IT_BOOL;
+                entry->icon_type = entry->max == 1 ? IT_BOOL : IT_DICE_OFF;
             else if (streq(first_choice, "ON"))
                 entry->icon_type = IT_BOOL_NEG;
             else if (streq(first_choice, "Small"))
@@ -306,6 +305,10 @@ static void entry_draw_icon(
 
         case IT_DICE:
             menu_draw_icon(x, y, MNI_DICE, MEM(entry->priv) | ((entry->max+1) << 16));
+            break;
+        
+        case IT_DICE_OFF:
+            menu_draw_icon(x, y, MNI_DICE_OFF, MEM(entry->priv) | ((entry->max+1) << 16));
             break;
         
         case IT_PERCENT:
@@ -562,6 +565,51 @@ are_there_any_visible_menus()
 }
 
 
+#if defined(POSITION_INDEPENDENT)
+/* when compiling position independent, we have to fix all link-time addresses to load-time addresses */
+void menu_fixup_pic(struct menu_entry * new_entry, int count)
+{
+    struct menu_entry * main_ptr = new_entry;
+    struct menu_entry * sub_ptr;
+    
+    while(count)
+    {
+        main_ptr->select = PIC_RESOLVE(main_ptr->select);
+        main_ptr->select_reverse = PIC_RESOLVE(main_ptr->select_reverse);
+        main_ptr->select_Q = PIC_RESOLVE(main_ptr->select_Q);
+        main_ptr->display = PIC_RESOLVE(main_ptr->display);
+        main_ptr->help = PIC_RESOLVE(main_ptr->help);
+        main_ptr->name = PIC_RESOLVE(main_ptr->name);
+        main_ptr->priv = PIC_RESOLVE(main_ptr->priv);
+        main_ptr->children = PIC_RESOLVE(main_ptr->children);
+        main_ptr->choices = PIC_RESOLVE(main_ptr->choices);
+        
+        if(main_ptr->choices)
+        {
+            for(int pos = 0; pos <= main_ptr->max; pos++)
+            {
+                main_ptr->choices[pos] = PIC_RESOLVE(main_ptr->choices[pos]);
+            }
+        }   
+        
+        if(main_ptr->children)
+        {
+            int entries = 0;
+            
+            while(main_ptr->children[entries].priv != MENU_EOL_PRIV)
+            {
+                entries++;
+            }
+            
+            menu_fixup_pic(main_ptr->children, entries);
+        }
+        
+        main_ptr++;
+        count--;
+    }
+}
+#endif
+
 void
 menu_add(
     const char *        name,
@@ -569,6 +617,10 @@ menu_add(
     int         count
 )
 {
+#if defined(POSITION_INDEPENDENT)
+    menu_fixup_pic(new_entry, count);
+#endif
+
 #if 1
     // There is nothing to display. Sounds crazy (but might result from ifdef's)
     if ( count == 0 )
@@ -592,9 +644,9 @@ menu_add(
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
         new_entry->selected = 1;
-         menu->pos           = 1;
-         menu->childnum      = 1; 
-         menu->childnummax   = 1;
+        menu->pos           = 1;
+        menu->childnum      = 1; 
+        menu->childnummax   = 1;
         //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry++;
         count--;
@@ -849,8 +901,8 @@ void dice_icon(int x, int y, int current, int nmax)
     switch (nmax)
     {
         case 2:
-            dot(x - 6, y + 6, C(0)+2);
-            dot(x + 6, y - 6, C(1)+2);
+            dot(x - 5, y + 5, C(0)+1);
+            dot(x + 5, y - 5, C(1)+1);
             break;
         case 3:
             dot(x    , y - 7, C(0));
@@ -906,7 +958,81 @@ void dice_icon(int x, int y, int current, int nmax)
             dot(x + 10, y     , C(5));
             dot(x - 10, y + 10, C(6));
             dot(x     , y + 10, C(7));
-            dot(x + 10, y + 10, C(10));
+            dot(x + 10, y + 10, C(8));
+            break;
+        default:
+            size_icon(x, y, current, nmax);
+            break;
+    }
+    #undef C
+}
+
+void dice_off_icon(int x, int y, int current, int nmax)
+{
+    #define C(i) (current == (i) ? COLOR_GREEN1 : current ? COLOR_GRAY50 : COLOR_GRAY40), (current == (i) ? 6 : 4)
+    //~ x -= 40;
+    //~ x += 16; y += 16;
+    switch (nmax-1)
+    {
+        case 2:
+            dot(x - 5, y + 5, C(1)+1);
+            dot(x + 5, y - 5, C(2)+1);
+            break;
+        case 3:
+            dot(x    , y - 7, C(1));
+            dot(x - 7, y + 3, C(2));
+            dot(x + 7, y + 3, C(3));
+            break;
+        case 4:
+            dot(x - 6, y - 6, C(1));
+            dot(x + 6, y - 6, C(2));
+            dot(x - 6, y + 6, C(3));
+            dot(x + 6, y + 6, C(4));
+            break;
+        case 5:
+            dot(x,     y,     C(1));
+            dot(x - 8, y - 8, C(2));
+            dot(x + 8, y - 8, C(3));
+            dot(x + 8, y + 8, C(4));
+            dot(x - 8, y + 8, C(5));
+            break;
+        case 6:
+            dot(x - 10, y - 8, C(1));
+            dot(x     , y - 8, C(2));
+            dot(x + 10, y - 8, C(3));
+            dot(x - 10, y + 8, C(4));
+            dot(x     , y + 8, C(5));
+            dot(x + 10, y + 8, C(6));
+            break;
+        case 7:
+            dot(x - 10, y - 10, C(1));
+            dot(x     , y - 10, C(2));
+            dot(x + 10, y - 10, C(3));
+            dot(x - 10, y + 10, C(4));
+            dot(x     , y + 10, C(5));
+            dot(x + 10, y + 10, C(6));
+            dot(x     , y     , C(7));
+            break;
+        case 8:
+            dot(x - 10, y - 10, C(1));
+            dot(x     , y - 10, C(2));
+            dot(x + 10, y - 10, C(3));
+            dot(x - 10, y + 10, C(4));
+            dot(x     , y + 10, C(5));
+            dot(x + 10, y + 10, C(6));
+            dot(x -  5, y     , C(7));
+            dot(x +  5, y     , C(8));
+            break;
+        case 9:
+            dot(x - 10, y - 10, C(1));
+            dot(x     , y - 10, C(2));
+            dot(x + 10, y - 10, C(3));
+            dot(x - 10, y     , C(4));
+            dot(x     , y     , C(5));
+            dot(x + 10, y     , C(6));
+            dot(x - 10, y + 10, C(7));
+            dot(x     , y + 10, C(8));
+            dot(x + 10, y + 10, C(9));
             break;
         default:
             size_icon(x, y, current, nmax);
@@ -981,6 +1107,7 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
         case MNI_PERCENT: percent(x, y, arg); return;
         case MNI_ACTION: playicon(x, y); return;
         case MNI_DICE: dice_icon(x, y, arg & 0xFFFF, arg >> 16); return;
+        case MNI_DICE_OFF: dice_off_icon(x, y, arg & 0xFFFF, arg >> 16); return;
         case MNI_SIZE: size_icon(x, y, arg & 0xFFFF, arg >> 16); return;
         case MNI_NAMED_COLOR: color_icon(x, y, (char *)arg); return;
         case MNI_SUBMENU: submenu_only_icon(x, y, arg); return;
@@ -988,6 +1115,45 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
     #endif
 }
 
+// if the help text contains more lines (separated by '\n'), display the line indicated by "priv" field
+// if *priv is too high, display the first line
+
+
+static char* menu_help_get_line(const char* help, void* priv)
+{
+    char * p = strchr(help, '\n');
+    if (!p) return (char*) help; // help text contains a single line, no more fuss
+
+    // help text contains more than one line, choose the i'th one
+    static char buf[70];
+    int i = 0;
+    if (priv) i = *(int*)priv;
+    if (i < 0) i = 0;
+    
+    char* start = (char*) help;
+    char* end = p;
+    
+    while (i > 0) // we need to skip some lines
+    {
+        if (*end == 0) // too many lines skipped? fall back to first line
+        {
+            start = (char*) help;
+            end = p;
+            break;
+        }
+        
+        // there are more lines, skip to next one
+        start = end + 1;
+        end = strchr(start+1, '\n');
+        if (!end) end = (char*) help + strlen(help);
+        i--;
+    }
+    
+    // return the substring from "start" to "end"
+    int len = MIN((int)sizeof(buf) - 1, end - start);
+    snprintf(buf, len, "%s", start);
+    return buf;
+}
 
 static void
 menu_display(
@@ -1033,7 +1199,7 @@ menu_display(
                 bmp_printf(
                     FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
                      10,  MENU_HELP_Y_POS, 
-                    menu->help
+                    menu_help_get_line(menu->help, menu->priv)
                 );
             }
 
@@ -1333,22 +1499,29 @@ menus_display(
     int         y
 )
 {
-    int         x = orig_x;
+    int         x = orig_x + 150;
 
     take_semaphore( menu_sem, 0 );
 
     extern int override_zoom_buttons; // from focus.c
     override_zoom_buttons = 0; // will override them only if rack focus items are selected
 
-    //~ if (!menu_lv_transparent_mode)
-        //~ bmp_printf(
-            //~ FONT(FONT_MED, 55, COLOR_BLACK), // gray
-            //~  10,  430, 
-                //~ MENU_NAV_HELP_STRING
-        //~ );
+    // how many tabs should we display? we should know in order to adjust the spacing between them
+    // keep the conditions in sync with the next loop
+    int num_tabs = 0;
+    for(struct menu * tmp_menu = menu ; tmp_menu ; tmp_menu = tmp_menu->next )
+    {
+        if (!menu_has_visible_items(tmp_menu->children) && !tmp_menu->selected)
+            continue; // empty menu
+        if (IS_SUBMENU(tmp_menu))
+            continue;
+        num_tabs++;
+    }
+    
+    int icon_spacing = (720 - 150) / num_tabs;
 
-    bmp_fill(COLOR_GRAY40, orig_x, y, 720, 42);
-    bmp_fill(COLOR_GRAY70, orig_x, y+42, 720, 1);
+    bmp_fill(COLOR_BLACK, orig_x, y, 720, 42);
+    bmp_fill(COLOR_GRAY45, orig_x, y+42, 720, 1);
     for( ; menu ; menu = menu->next )
     {
         if (!menu_has_visible_items(menu->children) && !menu->selected)
@@ -1356,39 +1529,28 @@ menus_display(
         if (IS_SUBMENU(menu))
             continue;
         int color_selected = advanced_hidden_edit_mode ? COLOR_DARK_RED : COLOR_BLUE;
-        int fg = menu->selected ? COLOR_WHITE : 70;
-        int bg = menu->selected ? color_selected : 40;
-        unsigned fontspec = FONT(
+        int fg = menu->selected ? COLOR_WHITE : 50;
+        int bg = menu->selected ? color_selected : COLOR_BLACK;
+        /*unsigned fontspec = FONT(
             menu->selected ? FONT_LARGE : FONT_MED,
             fg,
             bg
-        );
+        );*/
         
         if (!menu_lv_transparent_mode)
         {
-            int w = fontspec_font( fontspec )->width * 6;
-            //int h = fontspec_font( fontspec )->height;
-            int icon_w = 0;
-            if (menu->icon)
+            bmp_fill(bg, x, y, icon_spacing, 40);
+
+            int icon_char = menu->icon ? menu->icon : menu->name[0];
+            int icon_width = bfnt_char_get_width(icon_char);
+            int x_ico = (x & ~3) + (icon_spacing - icon_width) / 2;
+            bfnt_draw_char(icon_char, x_ico, y, fg, bg);
+
+            if (menu->selected)
             {
-                bmp_fill(bg, x+1, y, 200, 40);
-                if (menu->icon == ICON_ML_PLAY) icon_w = playicon_square(x,y,fg);
-                else icon_w = bfnt_draw_char(menu->icon, x, y, fg, bg);
+                bfnt_puts(menu->name, 5, y, fg, bg);
             }
-            if (!menu->icon || menu->selected)
-            {
-                bfnt_puts(menu->name, x + icon_w, y, fg, bg);
-                //~ bmp_printf( fontspec, x + icon_w + 5, y + (40 - h)/2, "%6s", menu->name );
-                x += w;
-            }
-            x += 62;
-            #ifdef CONFIG_5DC
-            x += 50;
-            #endif
-            //~ if (menu->selected)
-            //~ {
-                //~ bmp_printf( FONT(FONT_LARGE,fg,40), orig_x + 700 - font_large.width * strlen(menu->name), y + 4, menu->name );
-            //~ }
+            x += icon_spacing;
         }
 
         if( menu->selected )
@@ -1950,10 +2112,6 @@ menu_redraw_full()
     if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, MENU_REDRAW_FULL);
 }
 
-/*void menu_inject_redraw_event()
-{
-    menu_redraw();
-}*/
 
 static struct menu * get_selected_menu()
 {
@@ -2166,7 +2324,12 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_JOY_CENTER:
 #endif
     case BGMT_PRESS_SET:
-        if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
+            if (menu_help_active) { 
+			page_number_active = 1-page_number_active;
+			menu_help_redraw();
+//			menu_help_active = 0; /* menu_damage = 1; */ 
+			break; 
+		}
         else
         {
             menu_entry_select( menu, 3 ); // "SET" select
@@ -2192,7 +2355,13 @@ handle_ml_menu_keys(struct event * event)
         //~ menu_damage = 1;
         //~ menu_hidden_should_display_help = 0;
         break;
-
+#ifdef CONFIG_TOUCHSCREEN
+    case TOUCH_1_FINGER:
+    case TOUCH_2_FINGER:
+    case UNTOUCH_1_FINGER:
+    case UNTOUCH_2_FINGER:
+        return handle_ml_menu_touch(event);
+#endif
 #ifdef BGMT_RATE
     case BGMT_RATE:
 #endif
@@ -2205,7 +2374,7 @@ handle_ml_menu_keys(struct event * event)
 //~ #ifdef BGMT_JOY_CENTER
     //~ case BGMT_JOY_CENTER:
 //~ #endif
-#ifdef CONFIG_5D2
+#if defined(CONFIG_5D2) || defined(CONFIG_7D)
     case BGMT_PICSTYLE:
 #endif
 #ifdef CONFIG_50D
@@ -2249,8 +2418,24 @@ handle_ml_menu_keys(struct event * event)
     return 0;
 }
 
-
-
+#ifdef CONFIG_TOUCHSCREEN
+int handle_ml_menu_touch(struct event * event)
+{
+    int button_code = event->param;
+    switch (button_code) {
+        case TOUCH_1_FINGER:
+            fake_simple_button(BGMT_Q);
+            return 0;
+        case TOUCH_2_FINGER:
+        case UNTOUCH_1_FINGER:
+        case UNTOUCH_2_FINGER:
+            return 0;
+        default:
+            return 1;
+    }
+    return 1;
+}
+#endif
 
 
 void
@@ -2261,48 +2446,17 @@ menu_init( void )
     gui_sem = create_named_semaphore( "gui", 0 );
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
     menu_find_by_name( "Audio", ICON_MIC);
-#endif
     menu_find_by_name( "Expo", ICON_AE);
     menu_find_by_name( "Overlay", ICON_LV);
-#if defined(CONFIG_500D)
-    menu_find_by_name( "Movie", ICON_FILM );
-#endif
-#ifndef CONFIG_5DC
     menu_find_by_name( "Movie", ICON_VIDEOCAM );
-#endif
     menu_find_by_name( "Shoot", ICON_PHOTOCAM );
-    //~ menu_find_by_name( "Brack" );
     menu_find_by_name( "Focus", ICON_SHARPNESS );
-    //~ menu_find_by_name( "LUA" );
-    //menu_find_by_name( "Games" );
-#ifndef CONFIG_5DC
     menu_find_by_name( "Display", ICON_MONITOR );
-#endif
     menu_find_by_name( "Prefs", ICON_SMILE );
-    //~ menu_find_by_name( "Play", ICON_ML_PLAY );
-    //~ menu_find_by_name( "Power", ICON_P_SQUARE );
     menu_find_by_name( "Debug", ICON_HEAD_WITH_RAYS );
-    //~ menu_find_by_name( "Config" );
-    //~ menu_find_by_name( "Config", ICON_CF );
     menu_find_by_name( "Help", ICON_i );
-    //~ menu_find_by_name( "Boot" );
 
-/*
-    bmp_printf( FONT_LARGE, 0, 40, "Yes, use this battery" );
-    gui_control( ELECTRONIC_SUB_DIAL_RIGHT, 1, 0 );
-    msleep( 2000 );
-    gui_control( PRESS_SET_BUTTON, 1, 0 );
-    msleep( 2000 );
-
-    // Try to defeat the battery message
-    //GUI_SetErrBattery( 1 );
-    //msleep( 100 );
-    //StopErrBatteryApp();
-
-    msleep( 1000 );
-*/
 }
 
 /*
@@ -2341,14 +2495,6 @@ gui_menu_shown( void )
 {
     return menu_shown;
 }
-
-int get_draw_event() { return draw_event; }
-
-void toggle_draw_event( void * priv )
-{
-    draw_event = !draw_event;
-}
-
 
 void
 open_canon_menu()

@@ -26,8 +26,13 @@
 #include "dryos.h"
 #include "bmp.h"
 #include <property.h>
+#include "consts.h"
 
 struct semaphore * gui_sem;
+
+#ifdef CONFIG_GUI_DEBUG
+int event_ctr = 0;
+#endif
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
@@ -38,6 +43,7 @@ static int handle_buttons(struct event * event)
 	if (handle_common_events_startup(event) == 0) return 0;
 	extern int ml_started;
 	if (!ml_started) return 1;
+
     if (handle_common_events_by_feature(event) == 0) return 0;
 
 	return 1;
@@ -68,18 +74,31 @@ static void my_gui_main_task()
 	void* funcs[GMT_NFUNCS];
 	memcpy(funcs, (void*)GMT_FUNCTABLE, 4*GMT_NFUNCS);
 	gui_init_end();
+
 	while(1)
 	{
 		msg_queue_receive(gui_main_struct.msg_queue, &event, 0);
 		gui_main_struct.counter--;
 		if (event == NULL) continue;
 		index = event->type;
-		
+    
+    #ifdef CONFIG_GUI_DEBUG
+        if (event->type == 0
+            && event->param != 0x69
+            && event->param != 0x11
+            && event->param != 0xf
+            && event->param != 0x54
+            )   //~ block some common events
+        {
+            console_printf("[%d] event->param: 0x%x\n", event_ctr++, event->param);
+        }
+    #endif
+
 		if (!magic_is_off())
 		{
 			if (event->type == 0)
 			{
-				if (handle_buttons(event) == 0) // ML button/event handler
+        	    if (handle_buttons(event) == 0) // ML button/event handler
 					continue;
 			}
 			else

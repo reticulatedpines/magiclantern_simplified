@@ -38,6 +38,7 @@
     //~ #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x5678
 
     #define BGMT_LV 0x1E
+    //~ #define BGMT_Q 0xDEADBEEF0
 #define BGMT_Q TOUCH_1_FINGER
     //~ #define BGMT_Q_ALT 0x67
 
@@ -88,6 +89,7 @@
 
     #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_LIGHT // what button to use for zebras in Play mode
 
+//~ not implemented yet
 #define GMT_LOCAL_DIALOG_REFRESH_LV 0x36 // event type = 2, gui code = 0x100000C6 in EOS-M
 
 #endif

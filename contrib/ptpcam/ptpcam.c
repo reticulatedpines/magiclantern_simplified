@@ -136,6 +136,7 @@ typedef struct
 typedef struct
 {
     uint32_t magic;
+    uint32_t commit;
     uint32_t buffer_count;
     uint32_t buffer_size;
     uint32_t current_buffer;
@@ -3084,6 +3085,12 @@ int chdk(int busn, int devn, short force)
                         }
                     }
                     free(fetchable);
+                }
+                /* set commit field */
+                if (!ptp_chdk_set_memory_long(start + 4, 1,&params,&params.deviceinfo) )
+                {
+                    printf("error writing memory\n");
+                    error = 1;
                 }
                 if(idle)
                 {

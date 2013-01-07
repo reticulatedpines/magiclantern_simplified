@@ -3,8 +3,8 @@
  */
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
-/** The 5D3 port is young, so we don't enable these for now. **/
-//~ #define CONFIG_PROP_REQUEST_CHANGE
+/** The 5D3 port is young, but... let's give it a try! **/
+#define CONFIG_PROP_REQUEST_CHANGE
 
 /** 
  * State object hooks are pieces of code that run in Canon tasks (state objects). See state-object.c . 
@@ -98,3 +98,6 @@
 
 /** We can display some extra info in photo mode (not LiveView) **/
 #define CONFIG_PHOTO_MODE_INFO_DISPLAY
+
+/** Perfect sync using EVF_STATE **/
+#define CONFIG_EVF_STATE_SYNC

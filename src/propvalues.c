@@ -66,7 +66,7 @@ bool is_movie_mode()
             && expsim == 2  // movie enabled, but photo display is considered photo mode
             #endif
         ;
-    #elif defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+    #elif defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
     return lv_movie_select == LVMS_ENABLE_MOVIE;
     #else
     return shooting_mode == SHOOTMODE_MOVIE;
@@ -91,32 +91,24 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 volatile int video_mode_crop = 0;
 volatile int video_mode_fps = 0;
 volatile int video_mode_resolution = 0; // 0 if full hd, 1 if 720p, 2 if 480p
-#ifndef CONFIG_500D
 PROP_HANDLER(PROP_VIDEO_MODE)
 {
-    video_mode_crop = buf[0];
-    video_mode_fps = buf[2];
-    video_mode_resolution = buf[1];
-}
-#endif
-
-#ifdef CONFIG_500D
-PROP_HANDLER(PROP_VIDEO_MODE)
-{
+    #ifdef CONFIG_500D
     video_mode_resolution = buf[0];
     video_mode_fps = buf[1];
+    #else
+    video_mode_crop = buf[0];
+    video_mode_resolution = buf[1];
+    video_mode_fps = buf[2];
+    #endif
 }
-#endif
 
+#ifdef CONFIG_LIVEVIEW
 PROP_HANDLER( PROP_LV_ACTION )
 {
-#ifdef CONFIG_5DC
-    //~ make sure ML never thinks LV is open, because 5dc doesn't have LV.
-    lv = 0;
-#else
     lv = !buf[0];
-#endif
 }
+#endif
 
 volatile PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code);
 volatile PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
@@ -145,7 +137,7 @@ int lv_disp_mode;
 
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3) || defined(CONFIG_1100D) || defined(CONFIG_50D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3) || defined(CONFIG_1100D) || defined(CONFIG_50D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
     lv_disp_mode = (uint8_t)buf[1];
     #else
     lv_disp_mode = (uint8_t)buf[0];
@@ -157,8 +149,22 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
 
 }
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
+#if defined(CONFIG_NO_AUTO_ISO)
 int auto_iso_range = 0x4868; // no auto ISO in Canon menus; considering it fixed 100-1600.
 #else
 volatile PROP_INT(PROP_AUTO_ISO_RANGE, auto_iso_range);
 #endif
+
+char artist_name[64]="                                                               ";
+PROP_HANDLER( PROP_ARTIST_STRING )
+{
+    if( len > sizeof(artist_name) ) len = sizeof(artist_name);
+    memcpy( artist_name, buf, len );
+}
+
+char copyright_info[64]="                                                               ";
+PROP_HANDLER( PROP_COPYRIGHT_STRING )
+{
+    if( len > sizeof(copyright_info) ) len = sizeof(copyright_info);
+    memcpy( copyright_info, buf, len );
+}

@@ -236,14 +236,16 @@ audio_configure( int force )
     return;
 #endif
 
+#if defined(CONFIG_AUDIO_CONTROLS) && !defined(CONFIG_500D)
     // redirect wav playing to headphones if they are connected
     int loopback0 = beep_playing ? 0 : loopback;
+#endif
     
-    int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
 
     audio_set_meterlabel();
     
 #ifdef CONFIG_AUDIO_CONTROLS
+    int pm3[] = { 0x00, 0x05, 0x07, 0x11 }; //should this be in a header file?
 
     if( !force )
         {
@@ -760,10 +762,11 @@ TASK_OVERRIDE( sounddev_task, my_sounddev_task );
 
 static void volume_display()
 {
-    int mgain_db = mgain_index2gain(mgain);
     #ifdef FEATURE_DIGITAL_GAIN
+    int mgain_db = mgain_index2gain(mgain);
     NotifyBox(2000, "Volume: %d + (%d,%d) dB", mgain_db, dgain_l, dgain_r);
     #elif defined(FEATURE_ANALOG_GAIN)
+    int mgain_db = mgain_index2gain(mgain);
     NotifyBox(2000, "Volume: %d dB", mgain_db);
     #endif
 }
@@ -814,12 +817,14 @@ void out_volume_up()
 {
     int* p = (int*) &lovl;
     *p = COERCE(*p + 1, 0, 3);
+    audio_configure( 1 );
     out_volume_display();
 }
 void out_volume_down()
 {
     int* p = (int*) &lovl;
     *p = COERCE(*p - 1, 0, 3);
+    audio_configure( 1 );
     out_volume_display();
 }
 

@@ -548,6 +548,7 @@ int my_init_task(int a, int b, int c, int d)
              build_user
              );
     
+#if !defined(CONFIG_NO_ADDITIONAL_VERSION)
     // Re-write the version string.
     // Don't use strcpy() so that this can be done
     // before strcpy() or memcpy() are located.
@@ -556,6 +557,7 @@ int my_init_task(int a, int b, int c, int d)
     additional_version[1] = 'm';
     additional_version[2] = 'l';
     additional_version[3] = '\0';
+#endif
     
     msleep(1000);
     call("DisablePowerSave");
@@ -657,7 +659,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf){};
 int display_filter_enabled;
 
 //~ doesn't use _AllocateMemory()
-#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_550D) && !defined(CONFIG_5D2) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D)
+#if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_550D) && !defined(CONFIG_5D2) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D) && !defined(CONFIG_6D)
 void *AllocateMemory(size_t size){return 0;}
 #endif
 

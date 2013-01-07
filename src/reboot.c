@@ -63,7 +63,7 @@ asm(
     ".globl blob_end\n"
 );
 
-#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
 static void busy_wait(int n)
 {
     int i,j;
@@ -125,12 +125,19 @@ cstart( void )
     if (s != (int)0x50163E93)
         fail();
     #endif
+    
     #if defined(CONFIG_7D_MASTER)
     int s = compute_signature((int*)0xF8010000, 0x10000);
     if (s != (int)0x640BF4D1)
         fail();
     #endif
-
+    
+    #ifdef CONFIG_6D
+    int s = compute_signature((int*)0xFF0C0000, 0x10000);
+    if (s != (int)0x6D677512)
+        fail();
+    #endif
+    
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */
 	#if defined(CONFIG_40D) || defined(CONFIG_5DC)
         *(volatile int*) (LEDBLUE) = (LEDON);

@@ -215,72 +215,64 @@ inline void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color
 
 static inline struct font *
 fontspec_font(
-        unsigned                fontspec
+    uint32_t fontspec
 )
 {
-        switch( fontspec & FONT_MASK )
-        {
+    switch( fontspec & FONT_MASK )
+    {
         default:
         case FONT_SMALL:        return &font_small;
         case FONT_MED:          return &font_med;
         case FONT_LARGE:        return &font_large;
-        //~ case FONT_HUGE:             return &font_huge;
-        }
+    //~ case FONT_HUGE:             return &font_huge;
+    }
 }
 
 
-static inline unsigned
-fontspec_fg(
-        unsigned                fontspec
-)
+static inline uint32_t
+fontspec_fg(uint32_t fontspec)
 {
-        return (fontspec >> 0) & 0xFF;
+    return (fontspec >> 0) & 0xFF;
 }
 
-static inline unsigned
-fontspec_bg(
-        unsigned                fontspec
-)
+static inline uint32_t
+fontspec_bg(uint32_t fontspec)
 {
-        return (fontspec >> 8) & 0xFF;
+    return (fontspec >> 8) & 0xFF;
 }
 
-
-
-static inline unsigned
-fontspec_height(
-        unsigned                fontspec
-)
+static inline uint32_t
+fontspec_height(uint32_t fontspec)
 {
-        return fontspec_font(fontspec)->height;
+    return fontspec_font(fontspec)->height;
 }
 
-OS_FUNCTION( 0x0500001,	void,	bmp_printf, unsigned fontspec, int x, int y, const char* fmt, ... );
+OS_FUNCTION( 0x0500001,	void,	bmp_printf, uint32_t fontspec, int x, int y, const char* fmt, ... );
 OS_FUNCTION( 0x0500002, size_t,	read_file, const char * filename, void * buf, size_t size);
 
 extern void
 con_printf(
-        unsigned                fontspec,
-        const char *            fmt,
+        uint32_t fontspec,
+        const char *fmt,
         ...
 ) __attribute__((format(printf,2,3)));
 
 extern void
 bmp_hexdump(
-        unsigned                fontspec,
-        unsigned                x,
-        unsigned                y,
-        const void *            buf,
-        unsigned                     len
+    uint32_t fontspec,
+    uint32_t x,
+    uint32_t y,
+    const void *buf,
+    uint32_t len
 );
 
 
 extern void
 bmp_puts(
-        unsigned                fontspec,
-        int *              x,
-        int *              y,
-        const char *            s
+        uint32_t fontspec,
+        int *x,
+        int *y,
+        const char *s
 );
 
 /** Fill the screen with a bitmap palette */
@@ -293,11 +285,11 @@ bmp_draw_palette( void );
  */
 extern void
 bmp_fill(
-        uint8_t                 color,
-        int                x,
-        int                y,
-        int                w,
-        int                h
+        uint8_t color,
+        int x,
+        int y,
+        int w,
+        int h
 );
 
 
@@ -421,7 +413,6 @@ extern void *ReleaseRecursiveLock(void *lock);
 //~ #define BMP_LOCK(x) { bmp_ctr++; bmp_printf(FONT_SMALL, 50, 150, "BMP_LOCK try %s:%d  ", __func__, __LINE__); AcquireRecursiveLock(bmp_lock, 500); bmp_printf(FONT_SMALL, 50, 150, "                          "); bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 1 %s:%d  ", __func__, __LINE__); x; bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 0 releasing...                    "); ReleaseRecursiveLock(bmp_lock); bmp_printf(FONT_SMALL, 50, 75, "BMP_LOCK 0 %s:%d ", __func__, __LINE__); bmp_ctr--;}
 //~ #define GMT_LOCK(x) { bmp_ctr++; bmp_printf(FONT_SMALL, 50, 200, "GMT_LOCK try %s:%d  ", __func__, __LINE__); AcquireRecursiveLock(gmt_lock, 500); bmp_printf(FONT_SMALL, 50, 200, "                          "); bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 1 %s:%d  ", __func__, __LINE__); x; bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 0 releasing...                    "); ReleaseRecursiveLock(gmt_lock); bmp_printf(FONT_SMALL, 50, 100, "GMT_LOCK 0 %s:%d ", __func__, __LINE__); bmp_ctr--;}
 
-#endif
 
 void bmp_flip(uint8_t* dst, uint8_t* src, int voffset);
 void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);
@@ -490,7 +481,12 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);
 #define ICON_FLASH_A 0xa29aee
 #define ICON_FLASH_B 0xa59aee
 
-#define ICON_ML_PLAY -1
+#ifdef CONFIG_500D
+#undef ICON_VIDEOCAM
+#define ICON_VIDEOCAM ICON_FILM
+#endif
+
+//~ #define ICON_ML_PLAY -1
 #define ICON_ML_SUBMENU -100
 
 /** 5dc has to use some different icons than dryos cameras */
@@ -507,3 +503,5 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);
 #define ICON_SMILE 0x949aee
 #define ICON_LV 0x989aee
 #endif
+
+#endif //#ifndef _bmp_h_

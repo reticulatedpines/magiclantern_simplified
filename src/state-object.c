@@ -13,7 +13,8 @@
 #ifdef CONFIG_STATE_OBJECT_HOOKS
 
 #ifdef CONFIG_7D
-#include "cache_hacks.h"
+//#include "cache_hacks.h"
+#define LV_STATE (*(struct state_object **)0x4458)
 #endif
 
 #ifdef CONFIG_550D
@@ -65,6 +66,19 @@
 #define EVF_STATE (*(struct state_object **)0x40944)
 #endif
 
+#ifdef CONFIG_6D
+#define DISPLAY_STATE DISPLAY_STATEOBJ
+#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 22
+#define EVF_STATE (*(struct state_object**)0x76D18)
+#endif
+
+#ifdef CONFIG_650D
+#define DISPLAY_STATE DISPLAY_STATEOBJ
+    #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
+#define EVF_STATE (*(struct state_object **)0x25B00)
+#define MOVREC_STATE (*(struct state_object **)0x27704)
+#endif
+
 #ifdef CONFIG_1100D
 #define DISPLAY_STATE DISPLAY_STATEOBJ
 #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
@@ -96,7 +110,8 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 
 static void vsync_func() // called once per frame.. in theory :)
 {
-    #if !defined(CONFIG_60D) && !defined(CONFIG_600D) && !defined(CONFIG_1100D) && !defined(CONFIG_5D3) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D) // for those cameras, it's called from a different spot of the evf state object
+    #if !defined(CONFIG_EVF_STATE_SYNC)
+    // for those cameras, it's called from a different spot of the evf state object
     hdr_step();
     #endif
     
@@ -175,16 +190,16 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
     if (self == LV_STATE && input==4 && old_state==4) // AJ_ResetPSave_n_WB_n_LVREC_MVR_EV_EXPOSURESTARTED => perfect sync for digic on 5D2 :)
-    #elif defined(CONFIG_550D)
+    #elif defined(CONFIG_550D) || defined(CONFIG_7D)
     if (self == LV_STATE && input==5 && old_state == 5) // SYNC_GetEngineResource => perfect sync for digic :)
-    #elif defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_EOSM)
+    #elif defined(CONFIG_EVF_STATE_SYNC)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt => perfect sync for digic :)
     #else
     if (0)
     #endif
         vsync_func();
 
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_EOSM) // exception for overriding ISO
+    #if defined(CONFIG_EVF_STATE_SYNC) // exception for overriding ISO
     if (self == EVF_STATE && input == 4 && old_state == 5) // evfSetParamInterrupt
         hdr_step();
     #endif

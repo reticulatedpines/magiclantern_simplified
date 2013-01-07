@@ -25,8 +25,8 @@
 /** This camera has a 4:3 screen, 720x480 **/
 #define CONFIG_4_3_SCREEN
 
-/** We have a DirectPrint blue LED **/
-#define CONFIG_BLUE_LED
+/** We don't have a DirectPrint blue LED **/
+// #define CONFIG_BLUE_LED
 
 /** There is no LCD sensor that turns the display off **/
 //~ #define CONFIG_LCD_SENSOR
@@ -96,3 +96,7 @@
 
 /** We can display some extra info in photo mode (not LiveView) **/
 #define CONFIG_PHOTO_MODE_INFO_DISPLAY
+
+/* we can use virtual keyboard here */
+//#define CONFIG_VKBD_IMPLEMENTED
+

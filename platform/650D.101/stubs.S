@@ -64,13 +64,14 @@ NSTUB(0xFF341CE4, FIO_CreateFile) // from Indy
 NSTUB(0xFF341FD8, FIO_WriteFile) // from Indy
 NSTUB(0xFF342088, FIO_CloseFile) // from Indy
 NSTUB(0xFF343080, FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
-NSTUB(0xFF1D9E5C, FIO_CreateDirectory)
+NSTUB(0xFF3428E4, FIO_CreateDirectory)
 NSTUB(0xFF342EAC, FIO_FindFirstEx)  
 NSTUB(0xFF342FA0, FIO_FindNextEx)
 NSTUB(0xFF342204, FIO_GetFileSize)
 NSTUB(0xFF341C28, FIO_Open)
 NSTUB(0xFF341E38, FIO_ReadFile)
 NSTUB(0xFF341D90, FIO_RemoveFile)
+NSTUB(0xFF34271C, FIO_RenameFile)
 
 NSTUB(0xFFA540EC - RAM_OFFSET, FreeMemory)
 NSTUB(0xFF0D6E88, GUI_ChangeMode)
@@ -87,7 +88,7 @@ NSTUB(0xFF1A953C, SetGUIRequestMode)
 /* find */
     NSTUB(0xff136f5c, _audio_ic_read)
     NSTUB(0xff136ea4, _audio_ic_write) // str:Reg_0x_02X_Data_04x
-NSTUB(   0x26C34, additional_version) // not sure
+//NSTUB(   0x26C34, additional_version) // not working
 /*--------------*/
 
 NSTUB(0xFFA634E4 - RAM_OFFSET, alloc_dma_memory)
@@ -147,7 +148,8 @@ NSTUB(0xFF527C14, LiveViewApp_handler)
 NSTUB(0xFF528ABC, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF529DC0, LiveViewApp_handler_end) // start of next function
 
-NSTUB(0xFF3B5D4C, PlayMain_handler)
+//NSTUB(0xFF3B5D4C, PlayMain_handler)
+NSTUB(0xFF6F916C, PlayMain_handler)
 NSTUB(0xFF54209C, PlayMovieGuideApp_handler)
 NSTUB(0xFF511384, ErrCardForLVApp_handler) // not sure
 NSTUB(0xFF512250, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
@@ -217,3 +219,5 @@ NSTUB(0xFF2A4840, ptpPropSetUILock)
 NSTUB(0xFF330408, touch_cbr_canon)
 
 NSTUB(0xFF5A55FC, lvae_setdispgain)
+NSTUB(0xFF66F328, GetCFnData)
+NSTUB(0xFF66F540, SetCFnData)

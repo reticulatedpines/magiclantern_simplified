@@ -1,9 +1,9 @@
 #ifndef _propvalues_h_
 #define _propvalues_h_
 
-extern int lv; // former lv_drawn(); TRUE when LiveView is active.
+extern int lv; // TRUE when LiveView is active
 extern int lv_paused; // only valid if lv is true
-#define LV_PAUSED (lv && lv_paused)
+#define LV_PAUSED (lv_paused)
 #define LV_NON_PAUSED (lv && !lv_paused)
 
 extern int lv_dispsize; // 1 / 5 / A
@@ -44,6 +44,8 @@ extern int sensor_cleaning;
 extern int burst_count;
 extern int battery_level_bars;
 extern int sound_recording_mode; // 1 = disable?
+extern char artist_name[64];
+extern char copyright_info[64];
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi || _ext_monitor_rca)
 #define EXT_MONITOR_RCA (_ext_monitor_rca && !ext_monitor_hdmi)

@@ -27,9 +27,7 @@ struct menu_entry help_menus[] = {
     },
     {
         .select = menu_nav_help_open,
-        #if defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_650D)
-        .name = "Press Q    : Bring up submenu...",
-        #elif defined(CONFIG_500D)
+        #if defined(CONFIG_500D)
         .name = "LiveView(Q): Bring up submenu...",
         #elif defined(CONFIG_50D)
         .name = "Press FUNC : Bring up submenu...",
@@ -37,12 +35,10 @@ struct menu_entry help_menus[] = {
         .name = "Pict.Style : Bring up submenu...",
         #elif defined(CONFIG_5DC) || defined(CONFIG_40D)
         .name = "Press JUMP : Bring up submenu...",
-        #elif defined(CONFIG_EOSM) || defined(CONFIG_650D)
+        #elif defined(CONFIG_EOSM)
         .name = "1-fingr Tap: Bring up submenu...",
-        #elif defined(CONFIG_6D)
-        .name = "Press Zoom : Bring up submenu...",
         #else
-        error
+        .name = "Press Q    : Bring up submenu...",
         #endif
         //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {

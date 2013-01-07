@@ -176,7 +176,7 @@ void digic_iso_or_gain_toggle(int* priv, int delta)
     do {
         i = mod(i + delta, COUNT(digic_iso_presets));
     } while ((!mv && digic_iso_presets[i] < 1024)
-    #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+    #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
     || (mv && digic_iso_presets[i] > 2048) // high display gains not working
     || (!mv && digic_iso_presets[i] > 65536) // +7EV not working
     #endif
@@ -232,7 +232,7 @@ int get_new_white_level(int movie_gain, int* boost_stops)
     while (1)
     {
         result = default_white_level * COERCE(movie_gain, 0, 65536) / 1024;
-        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
         break;
         #endif
         if (result > 8192 && *boost_stops < 7) 
@@ -531,7 +531,7 @@ void digic_iso_step()
             int new_gain = get_new_white_level(total_movie_gain, &boost_stops);
             EngDrvOut(SHAD_GAIN, new_gain);
             shad_gain_last_written = new_gain;
-            #if !defined(CONFIG_5D3) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D)
+            #if !defined(CONFIG_5D3) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D) && !defined(CONFIG_6D)
             EngDrvOut(ISO_PUSH_REGISTER, boost_stops << 8);
             #endif
         }
@@ -543,7 +543,7 @@ void digic_iso_step()
             EngDrvOut(SHAD_PRESETUP, presetup);
         }
 
-        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
         if (LVAE_DISP_GAIN) call("lvae_setdispgain", 0); // reset display gain
         #endif
 
@@ -556,7 +556,7 @@ void digic_iso_step()
         int total_photo_gain = digic_iso_gain_photo * digic_iso_gain_photo_for_bv / 1024;
 
         if (total_photo_gain == 0) total_photo_gain = 1024;
-    #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+    #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
         int g = total_photo_gain == 1024 ? 0 : COERCE(total_photo_gain, 0, 65534);
         if (LVAE_DISP_GAIN != g) 
         {
@@ -611,6 +611,7 @@ static struct menu_entry lv_img_menu[] = {
                 .max = 2,
                 .choices = (const char *[]) {"OFF", "Weak", "Strong"},
                 .help = "Cartoonish look obtained by emphasizing the edges.",
+                .icon_type = IT_DICE_OFF,
             },
 #if !(defined(CONFIG_600D) || defined(CONFIG_1100D))
             {

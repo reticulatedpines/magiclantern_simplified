@@ -117,7 +117,7 @@ void take_screenshot( int also_lv )
 int draw_prop = 0;
 
 static void
-draw_prop_select( void * priv )
+draw_prop_select( void * priv , int unused )
 {
     draw_prop = !draw_prop;
 }
@@ -226,7 +226,7 @@ static int vmax(int* x, int n)
     return m;
 }
 
-static void dump_rom_task(void* priv)
+static void dump_rom_task(void* priv, int unused)
 {
     msleep(200);
     FILE * f = NULL;
@@ -252,7 +252,7 @@ static void dump_rom_task(void* priv)
     dump_big_seg(4, CARD_DRIVE "ML/LOGS/RAM4.BIN");
 }
 
-static void dump_rom(void* priv)
+static void dump_rom(void* priv, int unused)
 {
     gui_stop_menu();
     task_create("dump_task", 0x1e, 0, dump_rom_task, 0);
@@ -1583,7 +1583,7 @@ static int dbg_memspy_get_addr(int i)
 }
 
 static void
-mem_spy_select( void * priv )
+mem_spy_select( void * priv, int unused)
 {
     mem_spy = !mem_spy;
 }
@@ -1721,8 +1721,16 @@ void display_clock()
     LoadCalendarFromRTC( &now );
     if (!lv)
     {
+#ifdef CONFIG_7D
+        char msg[5];
+        snprintf(msg, sizeof(msg), "%02d:%02d", now.tm_hour, now.tm_min);
+        bg = bmp_getpixel(DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y);
+        int w = bfnt_puts(msg, DISPLAY_CLOCK_POS_X , DISPLAY_CLOCK_POS_Y, COLOR_CYAN, bg);
+       	bmp_printf(FONT(FONT_MED, COLOR_CYAN, bg), DISPLAY_CLOCK_POS_X+w+2, DISPLAY_CLOCK_POS_Y+18, "%02d", now.tm_sec);
+#else
         uint32_t fnt = FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bg);
         bmp_printf(fnt, DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y, "%02d:%02d", now.tm_hour, now.tm_min);
+#endif
     }
 
     static int prev_min = 0;
@@ -2192,8 +2200,6 @@ void screenshot_start(void* priv, int delta)
 }
 */
 
-void toggle_draw_event( void * priv );
-
 #ifdef CONFIG_DEBUGMSG
 static void
 spy_print(
@@ -2206,9 +2212,8 @@ spy_print(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "Spy %s/%s/%s (s/p/q)",
+        "Spy %s/%s (s/q)",
         draw_prop ? "PROP" : "prop",
-        get_draw_event() ? "EVT" : "evt", 
         mem_spy ? "MEM" : "mem"
     );
     menu_draw_icon(x, y, MNI_BOOL(draw_prop || get_draw_event() || mem_spy), 0);
@@ -2400,9 +2405,9 @@ void prop_dump()
     redraw();
 }
 
-static void prop_toggle_i(void* priv) {prop_i = prop_i < 5 ? prop_i + 1 : prop_i == 5 ? 0xE : prop_i == 0xE ? 0x80 : 0; }
-static void prop_toggle_j(void* priv) {prop_j = mod(prop_j + 1, 0x10); }
-static void prop_toggle_k(void* priv) {prop_k = mod(prop_k + 1, 0x51); }
+static void prop_toggle_i(void* priv, int unused) {prop_i = prop_i < 5 ? prop_i + 1 : prop_i == 5 ? 0xE : prop_i == 0xE ? 0x80 : 0; }
+static void prop_toggle_j(void* priv, int unused) {prop_j = mod(prop_j + 1, 0x10); }
+static void prop_toggle_k(void* priv, int unused) {prop_k = mod(prop_k + 1, 0x51); }
 #endif
 
 #ifdef CONFIG_KILL_FLICKER
@@ -2420,6 +2425,8 @@ extern int tasks_show_flags;
 extern void peaking_benchmark();
 
 extern int show_cpu_usage_flag;
+
+int draw_event = 0;
 
 struct menu_entry debug_menus[] = {
 #ifdef CONFIG_HEXDUMP
@@ -2497,13 +2504,12 @@ struct menu_entry debug_menus[] = {
 #if CONFIG_DEBUGMSG
     {
         .name = "Draw palette",
-        .select        = (void(*)(void*))bmp_draw_palette,
+        .select        = (void(*)(void*,int))bmp_draw_palette,
         .help = "Display a test pattern to see the color palette."
     },
     {
         .name = "Spy prop/evt/mem",
         .select        = draw_prop_select,
-        .select_reverse = toggle_draw_event,
         .select_Q = mem_spy_select,
         .display    = spy_print,
         .help = "Spy properties / events / memory addresses which change."
@@ -2539,7 +2545,7 @@ struct menu_entry debug_menus[] = {
         .name        = "LV dumping",
         .priv = 0x60D8, 
         .max = 6,
-        .icon_type = IT_DICE,
+        .icon_type = IT_DICE_OFF,
         .help = "Silent picture mode: simple, burst, continuous or high-resolution.",
         .choices = (const char *[]) {"Disabled", "A:/.JPEG", "B:/.JPEG", "A:/.422", "B:/.422", "A:/.JPEG/.422", "B:/.JPEG/.422"},
     },
@@ -2731,6 +2737,15 @@ struct menu_entry debug_menus[] = {
         .help = "Display total CPU usage (percentage).",
     },
 #endif
+#ifdef FEATURE_SHOW_GUI_EVENTS
+    {
+        .name = "Show GUI evts",
+        .priv = &draw_event,
+        .max = 2,
+        .choices = (const char *[]) {"OFF", "ON", "ON + delay 300ms"},
+        .help = "Display GUI events (button codes).",
+    },
+#endif
 #ifdef FEATURE_GUIMODE_TEST
     {
         .name = "Test GUI modes (DANGEROUS!!!)",
@@ -2885,7 +2900,7 @@ static void dbg_draw_props(int changed)
     int i; 
     for (i = 0; i < dbg_propn; i++)
     {
-        unsigned x =  80;
+    	int x =  80;
         unsigned property = dbg_props[i];
         unsigned len = dbg_props_len[i];
 #ifdef CONFIG_VXWORKS
@@ -2893,7 +2908,7 @@ static void dbg_draw_props(int changed)
         unsigned y =  15 + i * font_med.height;
 #else
         uint32_t fnt = FONT_SMALL;
-        unsigned y =  15 + i * font_small.height;
+        int y =  15 + i * font_small.height;
 #endif
         if (i == changed) fnt = FONT(fnt, 5, COLOR_BG);
         char msg[100];
@@ -2972,7 +2987,7 @@ debug_property_handler(
     dbg_draw_props(dbg_propn);
 
 ack:
-    return _prop_cleanup( debug_token, property );
+    return (void*)_prop_cleanup( debug_token, property );
 }
 
 #endif
@@ -3184,22 +3199,21 @@ void HijackFormatDialogBox()
     struct dialog * dialog = current->priv;
     if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
 
-#ifdef CONFIG_50D
-#define FORMAT_BTN "[FUNC]"
-#define STR_LOC 6
+#if defined(CONFIG_50D)
+    #define FORMAT_BTN "[FUNC]"
+    #define STR_LOC 6
+#elif defined(CONFIG_500D)
+    #define FORMAT_BTN "[LV]"
+    #define STR_LOC 12      //~ by the others' pattern, should this be 10 not 12?
+#elif defined(CONFIG_5D2)
+    #define FORMAT_BTN "[PicSty]"
+    #define STR_LOC 6
+#elif defined(CONFIG_EOSM)
+    #define FORMAT_BTN "[1-F. Tap]"
+    #define STR_LOC 4
 #else
- #ifdef CONFIG_500D
-  #define FORMAT_BTN "[LV]"
-  #define STR_LOC 12
- #else
-  #ifdef CONFIG_5D2
-   #define FORMAT_BTN "[PicSty]"
-   #define STR_LOC 6
-  #else
-   #define FORMAT_BTN "[Q]"
-   #define STR_LOC 11
-  #endif
- #endif
+    #define FORMAT_BTN "[Q]"
+    #define STR_LOC 11
 #endif
 
     if (keep_ml_after_format)
@@ -3367,6 +3381,10 @@ void CopyMLFilesToRAM_BeforeFormat()
 {
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
     TmpMem_AddFile(CARD_DRIVE "MAGIC.FIR");
+#ifdef FEATURE_CUSTOM_ICON
+    TmpMem_AddFile(CARD_DRIVE "autorun.inf");
+    TmpMem_AddFile(CARD_DRIVE "ML23icon.ico");
+#endif
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0);
@@ -3377,6 +3395,31 @@ void CopyMLFilesToRAM_BeforeFormat()
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/LOGS/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0);
     TmpMem_UpdateSizeDisplay(0);
+}
+
+// check if autoexec.bin is present on the card
+int check_autoexec()
+{
+    FILE * f = FIO_Open(CARD_DRIVE "AUTOEXEC.BIN", 0);
+    if (f != (void*) -1)
+    {
+        FIO_CloseFile(f);
+        return 1;
+    }
+    return 0;
+}
+
+    
+// check if magic.fir is present on the card
+int check_fir()
+{
+    FILE * f = FIO_Open(CARD_DRIVE "MAGIC.FIR", 0);
+    if (f != (void*) -1)
+    {
+        FIO_CloseFile(f);
+        return 1;
+    }
+    return 0;
 }
 
 void CopyMLFilesBack_AfterFormat()
@@ -3404,25 +3447,16 @@ void CopyMLFilesBack_AfterFormat()
         }
     }
     
-    HijackCurrentDialogBox(STR_LOC, "Writing bootflags...");
-    bootflag_write_bootblock();
+    /* make sure we don't enable bootflag when there is no autoexec.bin (anymore) */
+    if(check_autoexec())
+    {
+        HijackCurrentDialogBox(STR_LOC, "Writing bootflags...");
+        bootflag_write_bootblock();
+    }
 
     HijackCurrentDialogBox(STR_LOC, "Magic Lantern restored :)");
     msleep(1000);
     HijackCurrentDialogBox(STR_LOC, "Format");
-    //~ NotifyBox(2000, "Magic Lantern restored :)   ");
-}
-
-// check if autoexec.bin is present on the card
-int check_autoexec()
-{
-    FILE * f = FIO_Open(CARD_DRIVE "AUTOEXEC.BIN", 0);
-    if (f != (void*) -1)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
 }
 
 void HijackFormatDialogBox_main()
@@ -3432,7 +3466,7 @@ void HijackFormatDialogBox_main()
     // at this point, Format dialog box is active
 
     // make sure we have something to restore :)
-    if (!check_autoexec()) return;
+    if (!check_autoexec() && !check_fir()) return;
 
     if (!TmpMem_Init()) return;
     
@@ -3486,26 +3520,21 @@ void config_menu_init()
 
 void spy_event(struct event * event)
 {
-    if (get_draw_event())
+    if (draw_event)
     {
         static int kev = 0;
+        static int y = 250;
         kev++;
-        bmp_printf(FONT_MED, 0, 400, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
+        bmp_printf(FONT_MED, 0, y, "Ev%d: p=%8x *o=%8x/%8x/%8x a=%8x\n                                                           ", 
             kev,
-            event->type, 
             event->param, 
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
             event->arg);
-       /* console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\n", 
-            kev,
-            event->type, 
-            event->param, 
-            event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj)) : 0,
-            event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 4)) : 0,
-            event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 8)) : 0,
-            event->arg);*/
+        y += font_med.height;
+        if (y > 350) y = 250;
+        if (draw_event == 2) msleep(300);
     }
 }
 

@@ -92,6 +92,7 @@
     #define FEATURE_MOVIE_RESTART
     #define FEATURE_MOVIE_AUTOSTOP_RECORDING
     #define FEATURE_REC_NOTIFY
+    //~ #define FEATURE_REC_NOTIFY_BEEP // this may interfere with sound recording, so only enable it where we know it works
     #define FEATURE_MOVIE_REC_KEY
     #define FEATURE_FORCE_LIVEVIEW
     #define FEATURE_SHUTTER_LOCK
@@ -235,6 +236,7 @@
     
     #define FEATURE_SHOW_TASKS
     #define FEATURE_SHOW_CPU_USAGE
+    #define FEATURE_SHOW_GUI_EVENTS
     
     #define FEATURE_SHOW_IMAGE_BUFFERS_INFO
     #define FEATURE_SHOW_FREE_MEMORY
@@ -244,3 +246,5 @@
     #define FEATURE_SNAP_SIM
 
     //~ #define FEATURE_GUIMODE_TEST // dangerous
+
+#define FEATURE_CUSTOM_ICON // save/restore autorun.inf and ML23icon.ico with ML when formatting

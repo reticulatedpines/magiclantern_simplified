@@ -42,7 +42,17 @@ NSTUB(0xFF07AF84, RequestRPC)
 NSTUB(0xFF07A704, BulkOutIPCTransfer)
 NSTUB(0xFF07A7D4, BulkInIPCTransfer)
 
+
+NSTUB(0xFF06494C, SoundDevStopIn)
+NSTUB(0xFF064A1C, SoundDevStopOut)
+
+NSTUB(0xFF064304, SoundDevShutDownIn)
+NSTUB(0xFF064034, SoundDevLock)
+NSTUB(0xFF0650BC, SetWindCutMode)
+NSTUB(0xFF064D80, SamplingParamInRate)
+NSTUB(0xFF064FF8, SetVolumeInVolume)
 NSTUB(0xFF0640EC, SoundDevActiveIn)
+
 NSTUB(0xFF202814, LightMeasure_n_Callback_r0)
 
 

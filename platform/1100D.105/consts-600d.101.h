@@ -56,7 +56,7 @@
 #define MOV_REC_STATEOBJ (*(void**)0x5B34)
 #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
 
-#define AE_VALUE (*(int8_t*)0x7E14)
+//#define AE_VALUE (*(int8_t*)0x7E14)
 #define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
 // position for displaying shutter count and other info

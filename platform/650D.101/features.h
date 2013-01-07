@@ -1,10 +1,10 @@
-// First try to print Hello World
+#include "all_features.h"
 
-//#define CONFIG_HELLO_WORLD
+#define FEATURE_LV_3RD_PARTY_FLASH
+#define FEATURE_EYEFI_TRICKS
 
-// Then, start with a tiny feature set
-#undef CONFIG_AUTOBACKUP_ROM
-#define FEATURE_GLOBAL_DRAW
-#define FEATURE_ZEBRA
-#define FEATURE_HISTOGRAM
-#define FEATURE_INTERVALOMETER
+#undef FEATURE_VOICE_TAGS
+#undef FEATURE_AUDIO_REMOTE_SHOT
+#undef FEATURE_AUDIO_METERS
+#undef FEATURE_AUTO_BURST_PICQ // maybe not working on 650D
+#undef FEATURE_OVERLAYS_IN_PLAYBACK_MODE // no DISP button

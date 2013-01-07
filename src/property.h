@@ -104,7 +104,7 @@
 #ifdef CONFIG_60D
     #define DRIVE_HISPEED_CONTINUOUS 4
     #define DRIVE_CONTINUOUS 5
-#elif defined(CONFIG_5D3)
+#elif defined(CONFIG_5D3) || defined(CONFIG_6D)
     #define DRIVE_HISPEED_CONTINUOUS 4
     #define DRIVE_CONTINUOUS 5
     #define DRIVE_SILENT 19
@@ -117,7 +117,9 @@
 #define PROP_SHUTTER_ALSO       0x8000002c
 #define PROP_APERTURE           0x80000006
 #define PROP_ISO                        0x80000007
+#ifndef CONFIG_NO_AUTO_ISO
 #define PROP_AUTO_ISO_RANGE     0x8000003b // len=2, LSB is max iso, MSB is min iso (ignored?)
+#endif
 #define PROP_AE                         0x80000008 // signed 8-bit value
 #define PROP_UILOCK                     0x8000000b // maybe?
 #define PROP_ISO_AUTO           0x8000002E // computed by AUTO ISO if PROP_ISO is 0; otherwise, equal to PROP_ISO; in movie mode, is 0 unless you half-press shutter
@@ -257,7 +259,11 @@
 #define PROP_PC_FLAVOR2_PARAM             0x4010003
 #define PROP_PC_FLAVOR3_PARAM             0x4010005
 
+#ifdef CONFIG_7D
+#define PROP_ALO 0x02050012
+#else
 #define PROP_ALO 0x8000003D
+#endif
 #define ALO_STD 0
 #define ALO_LOW 1
 #define ALO_HIGH 2
@@ -269,6 +275,11 @@
 #define PROP_MLU 0x80000047
 #endif
 
+#ifdef CONFIG_6D
+#define PROP_HTP 0x8000004a
+#define PROP_MULTIPLE_EXPOSURE 0x0202000c
+#define PROP_MLU 0x80000047
+#endif
 /** Job progress
  * 0xB == capture end?
  * 0xA == start face catch pass?
