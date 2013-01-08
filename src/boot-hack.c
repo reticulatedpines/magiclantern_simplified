@@ -389,7 +389,7 @@ void my_big_init_task()
 #endif
 #ifdef CONFIG_DUMPER_BOOTFLAG
     msleep(5000);
-    SetGUIRequestMode(1);
+    SetGUIRequestMode(2);
     msleep(2000);
     bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk");
     call("EnableBootDisk");
