@@ -25,14 +25,14 @@ info_elem_t info_config[64] =
 #if defined(CONFIG_7D)
     /* print ISO range */
     { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2 }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
-    
-    /* entry 2, WB strings referenced as anchor */
+
+    /* entry 2 and 3, WB strings */
     { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2 }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
-    { .string = { { INFO_TYPE_STRING, { 0, 0, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 2 }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X + 40, WBS_POS_Y, 2 }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
     
     /* entry 4, battery_icon referenced as anchor */
     { .battery_icon = { { INFO_TYPE_BATTERY_ICON, { DISPLAY_BATTERY_POS_X, DISPLAY_BATTERY_POS_Y, 2 }}, DISPLAY_BATTERY_LEVEL_2, DISPLAY_BATTERY_LEVEL_1 } },
-    { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { -14, 0, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, 0, 12, 12 } },
+    { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { -14, 0, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, /* 0=vert,1=horizontal */ 0, /* x size */ 12, /* y size */ 12 } },
     { .string = { { INFO_TYPE_STRING, { 0, 2, 2, INFO_ANCHOR_HCENTER | INFO_ANCHOR_BOTTOM, 4, INFO_ANCHOR_HCENTER | INFO_ANCHOR_TOP }}, INFO_STRING_BATTERY_PCT, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
     { .string = { { INFO_TYPE_STRING, { 0, 0, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 4 }}, INFO_STRING_BATTERY_ID, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
 
@@ -43,6 +43,7 @@ info_elem_t info_config[64] =
     { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2 }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
     
     /* entry 10, pictures */
+    { .fill = { { INFO_TYPE_FILL, { 540, 390, 1, 0, 0, 0, 150, 60 }}, INFO_COL_FIELD } },
     { .string = { { INFO_TYPE_STRING, { 550, 402, 2 }}, INFO_STRING_PICTURES_4, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
 #endif
 
@@ -299,7 +300,7 @@ uint32_t info_measure_string(char *string, uint32_t font_type, int32_t *width, i
         case INFO_FONT_CANON:
             font = 0;
             *width = bfnt_puts(string, 1000, 1000, COLOR_CYAN, 0);
-            *height = 50;
+            *height = 40;
             break;
         /* error */
         default:
@@ -385,17 +386,17 @@ uint32_t info_get_absolute(info_elem_t *config, info_elem_t *element)
 uint32_t info_print_string(info_elem_t *config, info_elem_string_t *element, uint32_t run_type)
 {
     char str[BUF_SIZE];
-
-    if(info_get_string(str, BUF_SIZE, element->string_type))
-    {
-        element->hdr.pos.shown = 0;
-        return 1;
-    }
     
     /* get absolute position of this element */
     info_get_absolute(config, (info_elem_t *)element);
     int pos_x = element->hdr.pos.abs_x;
     int pos_y = element->hdr.pos.abs_y;
+
+    if(info_get_string(str, BUF_SIZE, element->string_type))
+    {
+        element->hdr.pos.shown = 0;
+        return 1;
+    }    
 
     /* update the width/height */
     info_measure_string(str, element->font_type, &element->hdr.pos.w, &element->hdr.pos.h);
@@ -468,7 +469,10 @@ uint32_t info_print_string(info_elem_t *config, info_elem_string_t *element, uin
 
 uint32_t info_print_fill(info_elem_t *config, info_elem_fill_t *element, uint32_t run_type)
 {
-    bmp_fill(element->color, element->hdr.pos.x, element->hdr.pos.y, element->hdr.pos.w, element->hdr.pos.h);
+    /* get absolute position of this element */
+    info_get_absolute(config, (info_elem_t *)element);
+
+    bmp_fill(element->color, element->hdr.pos.abs_x, element->hdr.pos.abs_y, element->hdr.pos.w, element->hdr.pos.h);
     return 0;
 }
 
@@ -608,7 +612,7 @@ uint32_t info_print_element(info_elem_t *config, info_elem_t *element, uint32_t 
 
 uint32_t info_print_config(info_elem_t *config)
 {
-    uint32_t pos = 0;
+    uint32_t pos = 1;
     int32_t z = 0;
 
     while(config[pos].type != INFO_TYPE_END)
@@ -618,7 +622,7 @@ uint32_t info_print_config(info_elem_t *config)
         pos++;
     }
     
-    pos = 0;
+    pos = 1;
     while(config[pos].type != INFO_TYPE_END)
     { 
         /* but let check if the element should get shown. this updates above flag and ensures that lower layers are only drawn if the referenced is shown */
@@ -629,7 +633,7 @@ uint32_t info_print_config(info_elem_t *config)
     z = info_get_next_z(config, 0);
     while(z != INFO_Z_END)
     {
-        pos = 0;
+        pos = 1;
         while(config[pos].type != INFO_TYPE_END)
         {
             if(z == config[pos].hdr.pos.z)

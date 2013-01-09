@@ -31,10 +31,10 @@ typedef struct
     uint32_t anchor_flags;
     uint32_t anchor;
     uint32_t anchor_flags_self;
-    int32_t abs_x;
-    int32_t abs_y;
     int32_t w;
     int32_t h;
+    int32_t abs_x;
+    int32_t abs_y;
     uint32_t shown;
 } info_elem_pos_t;
 
