@@ -26,15 +26,24 @@ info_elem_t info_config[64] =
     /* print ISO range */
     { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2 }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
     
-    /* entry 2, referenced as anchor */
+    /* entry 2, WB strings referenced as anchor */
     { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2 }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
     { .string = { { INFO_TYPE_STRING, { 0, 0, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 2 }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
     
-    /* entry 4, referenced as anchor */
+    /* entry 4, battery_icon referenced as anchor */
     { .battery_icon = { { INFO_TYPE_BATTERY_ICON, { DISPLAY_BATTERY_POS_X, DISPLAY_BATTERY_POS_Y, 2 }}, DISPLAY_BATTERY_LEVEL_2, DISPLAY_BATTERY_LEVEL_1 } },
     { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { -14, 0, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, 0, 12, 12 } },
     { .string = { { INFO_TYPE_STRING, { 0, 2, 2, INFO_ANCHOR_HCENTER | INFO_ANCHOR_BOTTOM, 4, INFO_ANCHOR_HCENTER | INFO_ANCHOR_TOP }}, INFO_STRING_BATTERY_PCT, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
     { .string = { { INFO_TYPE_STRING, { 0, 0, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 4 }}, INFO_STRING_BATTERY_ID, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
+
+    /* entry 8, MLU string */
+    { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2 }}, INFO_STRING_MLU, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    
+    /* entry 9, kelvin */
+    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2 }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
+    
+    /* entry 10, pictures */
+    { .string = { { INFO_TYPE_STRING, { 550, 402, 2 }}, INFO_STRING_PICTURES_4, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
 #endif
 
     { .type = INFO_TYPE_END },
@@ -237,6 +246,31 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         case INFO_STRING_CARD_MODEL_B:
             snprintf(buffer, maxsize, "(card info)");
             break;
+            
+        case INFO_STRING_PICTURES_3:
+        {
+            snprintf(buffer, maxsize, "[%3d%]", avail_shot);
+            break;
+        }
+        case INFO_STRING_PICTURES_4:
+        {
+            snprintf(buffer, maxsize, "[%4d%]", avail_shot);
+            break;
+        }
+        case INFO_STRING_PICTURES_5:
+        {
+            snprintf(buffer, maxsize, "[%5d%]", avail_shot);
+            break;
+        }
+        case INFO_STRING_MLU:
+        {
+            if (get_mlu() == 0)
+            {
+                return 1;
+            }
+            snprintf(buffer, maxsize, "MLU");
+            break;
+        }
         /* error */
         default:
             return 1;
@@ -247,21 +281,35 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
 
 uint32_t info_measure_string(char *string, uint32_t font_type, int32_t *width, int32_t *height)
 {
+    uint32_t font = 0;
     switch(font_type)
     {
         case INFO_FONT_SMALL:
+        case INFO_FONT_SMALL_SHADOW:
+            font = FONT_SMALL;
+            break;
         case INFO_FONT_MEDIUM:
+        case INFO_FONT_MEDIUM_SHADOW:
+            font = FONT_MED;
+            break;
         case INFO_FONT_LARGE:
-            *width = fontspec_font(WBS_FONT)->width * strlen(string);
-            *height = fontspec_font(WBS_FONT)->height;
+        case INFO_FONT_LARGE_SHADOW:
+            font = FONT_LARGE;
             break;
         case INFO_FONT_CANON:
+            font = 0;
             *width = bfnt_puts(string, 1000, 1000, COLOR_CYAN, 0);
-            *height = 0;
+            *height = 50;
             break;
         /* error */
         default:
             return 1;
+    }
+    
+    if(font)
+    {
+        *width = fontspec_font(font)->width * strlen(string);
+        *height = fontspec_font(font)->height;
     }
 
     return 0;
@@ -392,6 +440,18 @@ uint32_t info_print_string(info_elem_t *config, info_elem_string_t *element, uin
                 break;
             case INFO_FONT_LARGE:
                 fnt = FONT(FONT_LARGE, fgcolor, bgcolor);
+                bmp_printf(fnt, pos_x, pos_y, str);
+                break;
+            case INFO_FONT_SMALL_SHADOW:
+                fnt = SHADOW_FONT(FONT(FONT_SMALL, fgcolor, bgcolor));
+                bmp_printf(fnt, pos_x, pos_y, str);
+                break;
+            case INFO_FONT_MEDIUM_SHADOW:
+                fnt = SHADOW_FONT(FONT(FONT_MED, fgcolor, bgcolor));
+                bmp_printf(fnt, pos_x, pos_y, str);
+                break;
+            case INFO_FONT_LARGE_SHADOW:
+                fnt = SHADOW_FONT(FONT(FONT_LARGE, fgcolor, bgcolor));
                 bmp_printf(fnt, pos_x, pos_y, str);
                 break;
             case INFO_FONT_CANON:

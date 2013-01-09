@@ -90,11 +90,18 @@ typedef struct
 #define INFO_STRING_CARD_MODEL_B    33
 #define INFO_STRING_BATTERY_PCT     34
 #define INFO_STRING_BATTERY_ID      35
+#define INFO_STRING_PICTURES_3      36
+#define INFO_STRING_PICTURES_4      37
+#define INFO_STRING_PICTURES_5      38
+#define INFO_STRING_MLU             39
 
-#define INFO_FONT_SMALL  0
-#define INFO_FONT_MEDIUM 1
-#define INFO_FONT_LARGE  2
-#define INFO_FONT_CANON  3
+#define INFO_FONT_SMALL         0
+#define INFO_FONT_MEDIUM        1
+#define INFO_FONT_LARGE         2
+#define INFO_FONT_SMALL_SHADOW  3
+#define INFO_FONT_MEDIUM_SHADOW 4
+#define INFO_FONT_LARGE_SHADOW  5
+#define INFO_FONT_CANON         6
 
 #define INFO_COL_BG    0xFFFFFFFE
 #define INFO_COL_FIELD 0xFFFFFFFD
