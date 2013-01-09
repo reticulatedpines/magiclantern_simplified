@@ -162,7 +162,7 @@
 
 // for the yellow ISO range [a-b]
 #define ISO_RANGE_POS_X 455
-#define ISO_RANGE_POS_Y 92
+#define ISO_RANGE_POS_Y 90
 
 #define WB_KELVIN_POS_X 393
 #define WB_KELVIN_POS_Y 276
