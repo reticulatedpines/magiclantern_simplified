@@ -71,6 +71,14 @@ int GetBatteryLevel()
 {
 	return battery_level;
 }
+int GetBatteryPerformance()
+{
+    return 0;
+}
+int GetBatteryHist()
+{
+    return 0;
+}
 int GetBatteryTimeRemaining()
 {
 	return battery_seconds_same_level_ok * battery_level;

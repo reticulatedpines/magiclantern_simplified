@@ -223,6 +223,14 @@ int GetBatteryLevel()
 {
     return bat_info.level;
 }
+int GetBatteryPerformance()
+{
+    return bat_info.performance;
+}
+int GetBatteryHist()
+{
+    return bat_info.act_hist;
+}
 int GetBatteryTimeRemaining()
 {
 	return battery_seconds_same_level_ok * bat_info.level;

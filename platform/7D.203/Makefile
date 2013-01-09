@@ -10,7 +10,7 @@ UPDATE_NAME=7D_203.fir
 ML_VERSION=unified1 
 
 # compile position independent (experimental)
-CONFIG_PIC=y
+CONFIG_PIC=n
 
 #used in CFLAGS
 PLATFORM_INC=.
@@ -26,6 +26,7 @@ ML_OBJS-y = \
 	boot-hack.o \
 	stubs.o \
 	version.o \
+	flexinfo.o \
 	ml_rpc.o \
 	bmp.o \
 	font-dyn.o \

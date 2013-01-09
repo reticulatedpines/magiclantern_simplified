@@ -41,11 +41,26 @@ static void double_buffering_end(int ytop, int height)
 void display_shooting_info() // called from debug task
 {
 	if (lv) return;
-    
     uint32_t fnt;
 	int bg;
     int col_bg = bmp_getpixel(10,1);
     int col_field = bmp_getpixel(615,375);
+    
+#if defined(CONFIG_7D)    
+    info_print_screen(); 
+    iso_refresh_display();
+
+    bg = bmp_getpixel(HDR_STATUS_POS_X, HDR_STATUS_POS_Y);
+    fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
+    hdr_display_status(fnt);
+
+    bg = bmp_getpixel(MLU_STATUS_POS_X, MLU_STATUS_POS_Y);
+    bmp_printf(FONT(FONT_MED, COLOR_YELLOW, bg), MLU_STATUS_POS_X, MLU_STATUS_POS_Y, get_mlu() ? "MLU" : "   ");
+
+    display_trap_focus_info();   
+    return;
+#endif
+
     
 #if defined(CONFIG_7D)
     /* clearing some zones, revise and make generic or remove */
