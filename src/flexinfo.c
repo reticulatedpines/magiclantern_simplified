@@ -9,6 +9,9 @@
 #include <version.h>
 #include <flexinfo.h>
 
+// the menu is not so useful for end users, but makes it easy to tweak item positions for developers
+#undef FLEXINFO_DEVELOPER_MENU
+
 #define BUF_SIZE 128
 
 // those are not camera-specific LP-E6
@@ -718,6 +721,8 @@ uint32_t info_print_screen()
     return info_print_config(info_config);
 }
 
+#ifdef FLEXINFO_DEVELOPER_MENU
+
 void info_menu_item_select(void* priv, int delta)
 {
     uint32_t count = 0;
@@ -1057,3 +1062,4 @@ static void info_edit_task()
 TASK_CREATE( "info_edit_task", info_edit_task, 0, 0x16, 0x1000 );
 INIT_FUNC("info.init", info_init);
 
+#endif
