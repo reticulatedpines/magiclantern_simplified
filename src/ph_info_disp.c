@@ -56,7 +56,7 @@ void display_shooting_info() // called from debug task
     
 	if (lens_info.raw_iso == 0) // ISO: MAX AUTO
  	{
-        int maxiso=(auto_iso_range %  0xFF) - (auto_iso_range >> 8);
+        int maxiso = auto_iso_range & 0xFF;
         bmp_printf(fnt, MAX_ISO_POS_X, MAX_ISO_POS_Y, "MAX:%d",raw2iso(maxiso) );
 	}
 #endif
