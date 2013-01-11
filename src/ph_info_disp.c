@@ -17,27 +17,6 @@
     #define AUDIO_REM_SHOT_POS_Y 40
 #endif
 
-#if defined(DISPLAY_KELVIN_POS_X) && defined(DISPLAY_KELVIN_POS_Y)
-static void double_buffering_start(int ytop, int height)
-{
-    // use double buffering to avoid flicker
-    bmp_vram(); // make sure parameters are up to date
-    ytop = MIN(ytop, BMP_H_PLUS - height);
-    memcpy(bmp_vram_idle() + BM(0,ytop), bmp_vram_real() + BM(0,ytop), height * BMPPITCH);
-    bmp_draw_to_idle(1);
-}
-
-static void double_buffering_end(int ytop, int height)
-{
-    // done drawing, copy image to main BMP buffer
-    bmp_draw_to_idle(0);
-    bmp_vram(); // make sure parameters are up to date
-    ytop = MIN(ytop, BMP_H_PLUS - height);
-    memcpy(bmp_vram_real() + BM(0,ytop), bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
-    bzero32(bmp_vram_idle() + BM(0,ytop), height * BMPPITCH);
-}
-#endif
-
 void display_shooting_info() // called from debug task
 {
 	if (lv) return;
@@ -108,26 +87,21 @@ void display_shooting_info() // called from debug task
         int icon_x = DISPLAY_KELVIN_POS_X; // x position height icon
         int icon_y = DISPLAY_KELVIN_POS_Y; // y position width icon
         
-        BMP_LOCK (
-                  double_buffering_start(icon_y, 48);
-                  
-                  for (int i = 0; i < 9; i++) // | vertical K line
-                  {
-                      bg = COLOR_FG_NONLV;
-                      
-                      bmp_fill(bg,16+icon_x,4+icon_y,9,38); // | vertical K line
-                      for (int i = 0; i < 9; i++) // / first diagonal in K
-                      {
-                          draw_line(29 + icon_x + i, 4 + icon_y, 20 + icon_x + i, 22 + icon_y, bg);
-                      }
-                      for (int i = 0; i < 9; i++) // \ second diagonal in K
-                      {
-                          draw_line(20 + icon_x + i, 23 + icon_y, 29 + icon_x + i, 41 + icon_y, bg);
-                      }
-                      
-                  }
-                  double_buffering_end(icon_y, 48);
-                  )
+          for (int i = 0; i < 9; i++) // | vertical K line
+          {
+              bg = COLOR_FG_NONLV;
+              
+              bmp_fill(bg,16+icon_x,4+icon_y,9,38); // | vertical K line
+              for (int i = 0; i < 9; i++) // / first diagonal in K
+              {
+                  draw_line(29 + icon_x + i, 4 + icon_y, 20 + icon_x + i, 22 + icon_y, bg);
+              }
+              for (int i = 0; i < 9; i++) // \ second diagonal in K
+              {
+                  draw_line(20 + icon_x + i, 23 + icon_y, 29 + icon_x + i, 41 + icon_y, bg);
+              }
+              
+          }
         bg = bmp_getpixel(icon_x-12, icon_y + 46);
         fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
         bmp_printf(fnt, icon_x, icon_y + 46, "%5d", lens_info.kelvin);
@@ -265,8 +239,7 @@ void display_shooting_info() // called from debug task
 	//bmp_printf(fnt, MLU_STATUS_POS_X, MLU_STATUS_POS_Y, get_mlu() ? "MLU" : "   ");
     bmp_printf(FONT(FONT_MED, COLOR_YELLOW, bg), MLU_STATUS_POS_X, MLU_STATUS_POS_Y, get_mlu() ? "MLU" : "   ");
 
-/* change this model specific define to FEATURE_BATTERY_ICON ? */
-#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_7D)
+#ifdef CONFIG_BATTERY_INFO
     RedrawBatteryIcon();
 #endif
 
