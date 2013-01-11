@@ -33,6 +33,7 @@ typedef struct
     uint32_t anchor_flags_self;
     int32_t w;
     int32_t h;
+    uint32_t user_disable;
     int32_t abs_x;
     int32_t abs_y;
     uint32_t shown;

@@ -9,8 +9,10 @@
 #include <version.h>
 #include <flexinfo.h>
 
-// the menu is not so useful for end users, but makes it easy to tweak item positions for developers
-#undef FLEXINFO_DEVELOPER_MENU
+/* the menu is not so useful for end users, but makes it easy to tweak item positions for developers.
+   actually only developer build ML from source, so keep it enabled until its in a more mature state and the next release is coming.
+*/
+#define FLEXINFO_DEVELOPER_MENU
 
 #define BUF_SIZE 128
 
@@ -309,7 +311,7 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         case INFO_STRING_CARD_MAKER_B:
         case INFO_STRING_CARD_MODEL_A:
         case INFO_STRING_CARD_MODEL_B:
-            snprintf(buffer, maxsize, "(card info)");
+            snprintf(buffer, maxsize, "(n/a)");
             break;
             
         case INFO_STRING_PICTURES:
@@ -327,8 +329,8 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             break;
         }
         case INFO_STRING_HDR:
+#ifdef FEATURE_HDR_BRACKETING
         {
-            #ifdef FEATURE_HDR_BRACKETING
             extern int hdr_enabled, hdr_steps, hdr_stepsize;
             if (!hdr_enabled)
             {
@@ -340,8 +342,13 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
                 hdr_stepsize / 8,
                 ((hdr_stepsize/4) % 2) ? ".5" : "");
             break;
-            #endif
         }
+#else
+        {
+            snprintf(buffer, maxsize, "(n/a)");
+            break;
+        }
+#endif
         /* error */
         default:
             return 1;
@@ -557,7 +564,6 @@ uint32_t info_print_icon(info_elem_t *config, info_elem_icon_t *element, uint32_
 
 uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *element, uint32_t run_type)
 {
-#ifdef CONFIG_BATTERY_INFO
     /* get absolute position of this element */
     info_get_absolute(config, (info_elem_t *)element);
 
@@ -577,6 +583,7 @@ uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *
         element->hdr.pos.h = 3 * height + 4;
     }
     
+#ifdef CONFIG_BATTERY_INFO
     if(run_type == INFO_PRINT)
     {
         int perf = GetBatteryPerformance();
@@ -593,6 +600,9 @@ uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *
             bmp_fill((perf<1 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y+4+2*height,width,height);
         }
     }
+#else
+    /* feature n/a, paint it red */
+    bmp_fill(COLOR_RED, element->hdr.pos.abs_x, element->hdr.pos.abs_y, element->hdr.pos.w, element->hdr.pos.h);
 #endif
     return 0;
 }
@@ -606,6 +616,8 @@ uint32_t info_print_battery_icon(info_elem_t *config, info_elem_battery_icon_t *
     element->hdr.pos.h = 32;
 
 #if 0 // fights with Canon icon; do not draw, but keep it for positioning the other elements
+
+#ifdef CONFIG_BATTERY_INFO
     int batlev = GetBatteryLevel();
     int col_field = bmp_getpixel(615,455);
     
@@ -647,6 +659,11 @@ uint32_t info_print_battery_icon(info_elem_t *config, info_elem_battery_icon_t *
         batfil = batlev*56/100;
         bmp_fill(batcol,pos_x+18+56-batfil,pos_y+8,batfil,16);
     }
+#else
+    /* feature n/a, paint it red */
+    bmp_fill(COLOR_RED, element->hdr.pos.abs_x, element->hdr.pos.abs_y, element->hdr.pos.w, element->hdr.pos.h);
+#endif
+
 #endif
     return 0;
 }
