@@ -33,9 +33,6 @@ void display_shooting_info() // called from debug task
     fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
     hdr_display_status(fnt);
 
-    bg = bmp_getpixel(MLU_STATUS_POS_X, MLU_STATUS_POS_Y);
-    bmp_printf(FONT(FONT_MED, COLOR_YELLOW, bg), MLU_STATUS_POS_X, MLU_STATUS_POS_Y, get_mlu() ? "MLU" : "   ");
-
     display_trap_focus_info();   
     return;
 #endif
