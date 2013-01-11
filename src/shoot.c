@@ -3273,12 +3273,6 @@ void hdr_display_status(int fnt)
             bg = bmp_getpixel(HDR_STATUS_POS_X,HDR_STATUS_POS_Y);
             fnt = FONT(FONT_LARGE, COLOR_YELLOW, bg);
             
-            if (get_htp())
-            {
-                bmp_fill(bg,HDR_STATUS_POS_X-2,HDR_STATUS_POS_Y,63,76);
-                bmp_printf(FONT(FONT_MED, COLOR_YELLOW, bg), 474, 25, "HTP on");
-            }
-            
             bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y, "HDR");
             bmp_printf(FONT(FONT_LARGE, COLOR_FG_NONLV, bg), HDR_STATUS_POS_X+10 , HDR_STATUS_POS_Y+27,
                 "%Xx",
@@ -3300,78 +3294,6 @@ void hdr_display_status(int fnt)
     }
     #endif
     #endif
-#ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
-
-#if defined(HTP_STATUS_POS_X) && defined(HTP_STATUS_POS_Y)
-    if (get_htp())
-    {
-                  int bg = bmp_getpixel(HTP_STATUS_POS_X-1,HTP_STATUS_POS_Y);
-                  int icon_x = HTP_STATUS_POS_X;
-                  int icon_y = HTP_STATUS_POS_Y;
-                  
-        BMP_LOCK (
-                  double_buffering_start(icon_y, 48);
-
-                  //------------ ICON HTP D+ ------------------
-                                   
-                  //bmp_fill(bg,HTP_STATUS_POS_X,HTP_STATUS_POS_Y,60,46);
-                  for (int i = 0; i < 46; i++) // HIDE ALO ICON
-                  {
-                      draw_line(icon_x , icon_y + i, 60 + icon_x, icon_y + i, bg);
-                  }
-        
-                  // first line with curve
-                  draw_line(icon_x + 4, icon_y, 55 + icon_x, icon_y, COLOR_FG_NONLV);
-                  draw_line(icon_x + 2, 1 + icon_y, 57 + icon_x, icon_y + 1, COLOR_FG_NONLV);
-                  draw_line(icon_x + 1, 2 + icon_y, 58 + icon_x, icon_y + 2, COLOR_FG_NONLV);
-                  draw_line(icon_x + 1, 3 + icon_y, 58 + icon_x, icon_y + 3, COLOR_FG_NONLV);
-                  
-                  // lateral bars
-                  for (int i = 4; i < 42; i++) // | vertical 5px bars |
-                  {
-                      draw_line(icon_x , icon_y + i, 5 + icon_x, icon_y + i, COLOR_FG_NONLV);
-                      draw_line( 55 + icon_x , icon_y + i, 59 + icon_x, icon_y + i, COLOR_FG_NONLV);
-                  }
-                  
-                  ///last line with curve
-                  draw_line(icon_x + 1, 42 + icon_y, 58 + icon_x, icon_y + 42, COLOR_FG_NONLV);
-                  draw_line(icon_x + 1, 43 + icon_y, 58 + icon_x, icon_y + 43, COLOR_FG_NONLV);
-                  draw_line(icon_x + 2, 44 + icon_y, 57 + icon_x, icon_y + 44, COLOR_FG_NONLV);
-                  draw_line(icon_x + 4, 45 + icon_y, 55 + icon_x, icon_y + 45, COLOR_FG_NONLV);
-                  
-                  // D circle
-                  for (int r = 0; r < 6; r++)
-                  {
-                      draw_circle(18 + icon_x, 23 + icon_y, 10 + r, COLOR_FG_NONLV); // small circle
-                      //draw_circle(29 + icon_x, 22 + icon_y, 12 + r, bg); // small circle
-                      draw_circle(17 + icon_x, 23 + icon_y, 10 + r, COLOR_FG_NONLV); // small circle
-                      //draw_circle(29 + icon_x, 21 + icon_y, 12 + r, bg); // small circle
-                  }
-                  
-                  // D | bar
-                  bmp_fill(bg,6+icon_x,5+icon_y,10,36);
-                  bmp_fill(COLOR_FG_NONLV,8+icon_x,8+icon_y,8,31);
-                  
-                  // Plus +
-                  bmp_fill(COLOR_FG_NONLV,37+icon_x,24+icon_y,16,6); // +, -
-                  
-                  for (int i = 0; i < 5; i++) // +, |
-                  {
-                      int l = 0;
-                      bg = bmp_getpixel(icon_x - 1, icon_y +l );
-                      draw_line(42 + icon_x + i, 18 + icon_y, 42 + icon_x + i, 35 + icon_y, COLOR_FG_NONLV);
-                      l++;
-                  }
-                  
-                  double_buffering_end(icon_y, 48);
-                  )
-        //------------ ICON ICON HTP D+ ------------------
-        //bmp_printf(FONT(FONT_LARGE, COLOR_FG_NONLV, bg), HTP_STATUS_POS_X, HTP_STATUS_POS_Y, "HTP");
-        //bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, bg), HTP_STATUS_POS_X+40, HTP_STATUS_POS_Y+30, "ON");
-    }
-#endif
-
-#endif
 }
 
 #ifdef FEATURE_HDR_BRACKETING
