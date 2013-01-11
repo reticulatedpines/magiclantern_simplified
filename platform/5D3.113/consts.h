@@ -139,10 +139,8 @@
 #define WBS_FONT FONT_LARGE
 
 // for displaying battery
-#define DISPLAY_BATTERY_POS_X 150
+#define DISPLAY_BATTERY_POS_X 146
 #define DISPLAY_BATTERY_POS_Y 410
-#define DISPLAY_BATTERY_LEVEL_1 60 //%
-#define DISPLAY_BATTERY_LEVEL_2 20 //%
 
 // for header footer info
 #define DISPLAY_HEADER_FOOTER_INFO

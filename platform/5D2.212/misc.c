@@ -21,7 +21,7 @@ void display_shooting_info() // called from debug task
 	int bg = COLOR_BLACK;
 	uint32_t fnt = SHADOW_FONT(FONT_MED);
 
-	bmp_printf(fnt, 215, 385, "%d%% ", GetBatteryLevel());
+	RedrawBatteryIcon();
 
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
@@ -47,68 +47,5 @@ void display_shooting_info() // called from debug task
 
 	display_lcd_remote_icon(555, 460);
 	display_trap_focus_info();
-}
-
-
-int battery_level = 0;
-CONFIG_INT("battery.drain.rate.rev", battery_seconds_same_level_ok, 0);
-int battery_seconds_same_level_tmp = 0;
-int battery_level_transitions = 0;
-
-PROP_HANDLER(PROP_BATTERY_REPORT)
-{
-	battery_level = buf[1] & 0xff;
-}
-int GetBatteryLevel()
-{
-	return battery_level;
-}
-int GetBatteryPerformance()
-{
-    return 0;
-}
-int GetBatteryHist()
-{
-    return 0;
-}
-int GetBatteryTimeRemaining()
-{
-	return battery_seconds_same_level_ok * battery_level;
-}
-int GetBatteryDrainRate() // percents per hour
-{
-	return 3600 / battery_seconds_same_level_ok;
-}
-
-// called every second
-void RefreshBatteryLevel_1Hz()
-{
-	static int k = 0;
-	k++;
-	
-	if (k % 10 == 0 &&
-		lens_info.job_state == 0) // who knows what race conditions are here... I smell one :)
-	{
-		int x = 31;
-		prop_request_change(PROP_BATTERY_REPORT, &x, 1); // see PROP_Request PROP_BATTERY_REPORT
-	}
-	
-	msleep(50);
-	
-	// check how many seconds battery indicator was at the same percentage
-	// this is a rough indication of how fast the battery is draining
-	static int old_battery_level = -1;
-	if (battery_level == old_battery_level)
-	{
-		battery_seconds_same_level_tmp++;
-	}
-	else
-	{
-		battery_level_transitions++;
-		if (battery_level_transitions >= 2)
-			battery_seconds_same_level_ok = battery_seconds_same_level_tmp;
-		battery_seconds_same_level_tmp = 0;
-	}
-	old_battery_level = battery_level;
 }
 

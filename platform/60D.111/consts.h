@@ -174,6 +174,10 @@
 #define HDR_STATUS_POS_X 190
 #define HDR_STATUS_POS_Y 450
 
+// for displaying battery
+#define DISPLAY_BATTERY_POS_X 198
+#define DISPLAY_BATTERY_POS_Y 410
+
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 35
 #define DISPLAY_TRAP_FOCUS_POS_Y 365

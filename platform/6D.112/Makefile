@@ -62,6 +62,7 @@ ML_OBJS-y = \
 	beep.o \
 	audio-ak.o \
 	vsync-lite.o \
+	battery.o \
 	dm-spy.o \
 
 #include generic rules and definitions

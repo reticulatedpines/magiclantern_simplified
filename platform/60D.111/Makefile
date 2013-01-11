@@ -67,6 +67,7 @@ ML_OBJS-y = \
 	tskmon.o \
 	beep.o \
 	vsync-lite.o \
+	battery.o \
 
 #include generic rules and definitions
 

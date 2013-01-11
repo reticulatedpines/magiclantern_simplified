@@ -75,6 +75,7 @@ ML_OBJS-y = \
 	exmem.o \
 	vsync-lite.o \
 	ph_info_disp.o \
+	battery.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

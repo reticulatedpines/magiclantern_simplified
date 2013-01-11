@@ -146,8 +146,6 @@
 // for displaying battery
 #define DISPLAY_BATTERY_POS_X 300
 #define DISPLAY_BATTERY_POS_Y 390
-#define DISPLAY_BATTERY_LEVEL_1 60 //%
-#define DISPLAY_BATTERY_LEVEL_2 20 //%
 
 // for header footer info
 #define DISPLAY_HEADER_FOOTER_INFO
