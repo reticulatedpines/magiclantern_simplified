@@ -36,9 +36,9 @@ info_elem_t info_config[64] =
     
     /* entry 4, battery_icon referenced as anchor */
     { .battery_icon = { { INFO_TYPE_BATTERY_ICON, { DISPLAY_BATTERY_POS_X, DISPLAY_BATTERY_POS_Y, 2 }}, DISPLAY_BATTERY_LEVEL_2, DISPLAY_BATTERY_LEVEL_1 } },
-    { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { 100, 15, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, /* 0=vert,1=horizontal */ 0, /* x size */ 8, /* y size */ 8 } },
-    { .string = { { INFO_TYPE_STRING, { 56, 48, 2, INFO_ANCHOR_HCENTER | INFO_ANCHOR_BOTTOM, 4, INFO_ANCHOR_HCENTER | INFO_ANCHOR_TOP }}, INFO_STRING_BATTERY_PCT, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
-    { .string = { { INFO_TYPE_STRING, { -20, 15, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 4 }}, INFO_STRING_BATTERY_ID, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
+    { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { 100, 2, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, /* 0=vert,1=horizontal */ 0, /* x size */ 8, /* y size */ 8 } },
+    { .string = { { INFO_TYPE_STRING, { 56, 35, 2, INFO_ANCHOR_HCENTER | INFO_ANCHOR_BOTTOM, 4, INFO_ANCHOR_HCENTER | INFO_ANCHOR_TOP }}, INFO_STRING_BATTERY_PCT, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { -20, 2, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 4 }}, INFO_STRING_BATTERY_ID, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
 
     /* entry 8, MLU string */
     { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2 }}, INFO_STRING_MLU, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
@@ -50,6 +50,28 @@ info_elem_t info_config[64] =
     { .fill = { { INFO_TYPE_FILL, { 540, 390, 1, 0, 0, 0, 150, 60 }}, INFO_COL_FIELD } },
     { .string = { { INFO_TYPE_STRING, { 550, 402, 2 }}, INFO_STRING_PICTURES_4, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
 #endif
+
+#if defined(CONFIG_5D3)
+    /* print ISO range */
+    { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2 }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+
+    /* entry 2 and 3, WB strings */
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2 }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X + 40, WBS_POS_Y, 2 }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
+    
+    /* entry 4, battery_icon referenced as anchor */
+    { .battery_icon = { { INFO_TYPE_BATTERY_ICON, { DISPLAY_BATTERY_POS_X, DISPLAY_BATTERY_POS_Y, 2 }}, DISPLAY_BATTERY_LEVEL_2, DISPLAY_BATTERY_LEVEL_1 } },
+    { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { 86, 2, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, /* 0=vert,1=horizontal */ 0, /* x size */ 8, /* y size */ 8 } },
+    { .string = { { INFO_TYPE_STRING, { 56, 35, 2, INFO_ANCHOR_HCENTER | INFO_ANCHOR_BOTTOM, 4, INFO_ANCHOR_HCENTER | INFO_ANCHOR_TOP }}, INFO_STRING_BATTERY_PCT, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { 100, 2, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 4 }}, INFO_STRING_BATTERY_ID, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_LARGE } },
+
+    /* entry 8, MLU string */
+    { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2 }}, INFO_STRING_MLU, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    
+    /* entry 9, kelvin */
+    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2 }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
+#endif
+
 
     { .type = INFO_TYPE_END },
 };
@@ -531,12 +553,13 @@ uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *
 
 uint32_t info_print_battery_icon(info_elem_t *config, info_elem_battery_icon_t *element, uint32_t run_type)
 {
+    /* get absolute position of this element */
+    info_get_absolute(config, (info_elem_t *)element);
+
 #if 0 // fights with Canon icon; do not draw, but keep it for positioning the other elements
     int batlev = GetBatteryLevel();
     int col_field = bmp_getpixel(615,455);
     
-    /* get absolute position of this element */
-    info_get_absolute(config, (info_elem_t *)element);
     int pos_x = element->hdr.pos.abs_x;
     int pos_y = element->hdr.pos.abs_y;
 

@@ -25,7 +25,7 @@ void display_shooting_info() // called from debug task
     int col_bg = bmp_getpixel(10,1);
     int col_field = bmp_getpixel(615,375);
     
-#if defined(CONFIG_7D)    
+#if defined(CONFIG_7D) || defined(CONFIG_5D3)
     info_print_screen(); 
     iso_refresh_display();
 
