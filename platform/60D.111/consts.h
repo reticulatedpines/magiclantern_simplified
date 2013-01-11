@@ -171,12 +171,28 @@
 #define MENU_DISP_ISO_POS_Y 27
 
 // for HDR status
-#define HDR_STATUS_POS_X 190
-#define HDR_STATUS_POS_Y 450
+#define HDR_STATUS_POS_X 40
+#define HDR_STATUS_POS_Y 460
 
 // for displaying battery
 #define DISPLAY_BATTERY_POS_X 198
 #define DISPLAY_BATTERY_POS_Y 410
+
+// for the yellow ISO range [a-b]
+#define ISO_RANGE_POS_X 545
+#define ISO_RANGE_POS_Y 105
+
+// for kelvin WB
+#define WB_KELVIN_POS_X 360
+#define WB_KELVIN_POS_Y 279
+
+// white balance shift values M2B1 in yellow
+#define WBS_POS_X 320
+#define WBS_POS_Y 450
+
+//for Mirror Lock Up enabled on display
+#define MLU_STATUS_POS_X 538
+#define MLU_STATUS_POS_Y 133
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 35

@@ -68,6 +68,9 @@ ML_OBJS-y = \
 	beep.o \
 	vsync-lite.o \
 	battery.o \
+	battery.o \
+	ph_info_disp.o \
+	flexinfo.o \
 
 #include generic rules and definitions
 
