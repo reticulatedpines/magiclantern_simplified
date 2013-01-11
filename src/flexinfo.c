@@ -291,6 +291,13 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             snprintf(buffer, maxsize, "%d", GetBatteryHist());
             break;
         }
+#else
+        case INFO_STRING_BATTERY_PCT:
+        case INFO_STRING_BATTERY_ID:
+        {
+            snprintf(buffer, maxsize, "(n/a)");
+            break;
+        }
 #endif
         case INFO_STRING_CARD_LABEL_A:
         case INFO_STRING_CARD_LABEL_B:
