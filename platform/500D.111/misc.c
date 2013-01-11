@@ -36,8 +36,6 @@ void display_shooting_info() // called from debug task
 	bg = bmp_getpixel(15, 430);
 	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	
-	hdr_display_status(fnt);
-
 	bmp_printf(fnt, 40, 460, get_mlu() ? "MLU" : "   ");
 
 	display_lcd_remote_icon(480, 0);

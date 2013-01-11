@@ -3255,47 +3255,6 @@ void zoom_auto_exposure_step()
 
 #endif // FEATURE_LV_ZOOM_SETTINGS
 
-void hdr_display_status(int fnt)
-{
-    #ifdef FEATURE_HDR_BRACKETING
-    #ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
-    if (HDR_ENABLED)
-    {
-    #ifdef CONFIG_7D
-        /* in CA mode this field is used */
-        if(shooting_mode != SHOOTMODE_CA)
-        {
-            int bg = bmp_getpixel(1,1);
-            bmp_draw_rect(bg,617,24,5,86);
-            bmp_draw_rect(bg,618,25,3,84);
-            bmp_draw_rect(bg,619,26,1,82);
-            draw_line(623,25,623,109,bmp_getpixel(600,24));
-            bg = bmp_getpixel(HDR_STATUS_POS_X,HDR_STATUS_POS_Y);
-            fnt = FONT(FONT_LARGE, COLOR_YELLOW, bg);
-            
-            bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y, "HDR");
-            bmp_printf(FONT(FONT_LARGE, COLOR_FG_NONLV, bg), HDR_STATUS_POS_X+10 , HDR_STATUS_POS_Y+27,
-                "%Xx",
-                hdr_steps == 1 ? 10 : hdr_steps); // trick: when steps=1 (auto) it will display A :)
-            bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, bg), HDR_STATUS_POS_X-2 , HDR_STATUS_POS_Y+57,
-                "%s%d%sEV",
-                ((hdr_stepsize/4) % 2) ? "" : " ",
-                hdr_stepsize / 8,
-                ((hdr_stepsize/4) % 2) ? ".5" : "");
-        }
-    #else
-        
-        bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y,
-            "HDR %Xx%d%sEV",
-            hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
-            hdr_stepsize / 8,
-            ((hdr_stepsize/4) % 2) ? ".5" : "");
-    #endif
-    }
-    #endif
-    #endif
-}
-
 #ifdef FEATURE_HDR_BRACKETING
 static void
 hdr_display( void * priv, int x, int y, int selected )
@@ -6953,10 +6912,6 @@ shoot_task( void* unused )
         
         /* when we received a message, redraw immediately */
         if (k%5 == 0 || !err) misc_shooting_info();
-
-#if defined(CONFIG_7D) && defined(CONFIG_PHOTO_MODE_INFO_DISPLAY)        
-        else if (GetBatteryLevel()<10 && !lv && display_idle()) RedrawBatteryIcon(); // Necessary for flicker free battery icon
-#endif
         
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);

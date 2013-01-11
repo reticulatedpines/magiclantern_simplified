@@ -62,59 +62,6 @@ PROP_HANDLER(PROP_BATTERY_HISTORY) // also in memory address 7AFC0 length 76 byt
     }
 }
 
-// obsolete? should be replaced with flexinfo?
-void RedrawBatteryIcon()
-{
-    int batlev = bat_info.level;
-    int col_field = bmp_getpixel(615,455);
-    uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, col_field);
-
-    int bg = bmp_getpixel(155,425);
-    #if 0 // fights with Canon icon
-    if (bg==COLOR_WHITE) // If battery level<10 the Canon icon is flashing. In the empty state we don't redraw our battery icon but the rest 
-    {
-        uint batcol,batfil;
-        bmp_fill(col_field,DISPLAY_BATTERY_POS_X-4,DISPLAY_BATTERY_POS_Y+14,96,32); // clear the Canon battery icon
-        
-        if (batlev <= DISPLAY_BATTERY_LEVEL_2)
-        {
-            batcol = COLOR_RED;
-        }
-        else
-        {
-            batcol = COLOR_WHITE;
-        }
-        
-        bmp_fill(batcol,DISPLAY_BATTERY_POS_X+10,DISPLAY_BATTERY_POS_Y,72,32); // draw the new battery icon
-        bmp_fill(batcol,DISPLAY_BATTERY_POS_X,DISPLAY_BATTERY_POS_Y+8,12,16);
-        bmp_fill(col_field,DISPLAY_BATTERY_POS_X+14,DISPLAY_BATTERY_POS_Y+4,64,24);
-        
-        if (batlev <= DISPLAY_BATTERY_LEVEL_2)
-        {
-            batcol = COLOR_RED;
-        }
-        else if (batlev <= DISPLAY_BATTERY_LEVEL_1)
-        {
-            batcol = COLOR_YELLOW;
-        }
-        else
-        {
-            batcol = COLOR_GREEN2;
-        }
-        
-        batfil = batlev*56/100;
-        bmp_fill(batcol,DISPLAY_BATTERY_POS_X+18+56-batfil,DISPLAY_BATTERY_POS_Y+8,batfil,16);
-    }
-    #endif
-    bmp_printf(fnt, DISPLAY_BATTERY_POS_X+15, DISPLAY_BATTERY_POS_Y+33, "%3d%%", batlev);
-    if (bat_info.act_hist>0) 
-        bmp_printf(FONT(FONT_LARGE, COLOR_YELLOW, col_field), DISPLAY_BATTERY_POS_X+96, DISPLAY_BATTERY_POS_Y+1, "%d", bat_info.act_hist);
-    int x = DISPLAY_BATTERY_POS_X+88; int y = DISPLAY_BATTERY_POS_Y+2; int w = 8;
-    bmp_fill((bat_info.performance<3 ? COLOR_GRAY50 : COLOR_GREEN2),x,y,w,w);
-    bmp_fill((bat_info.performance<2 ? COLOR_GRAY50 : COLOR_GREEN2),x,y+2+w,w,w);
-    bmp_fill((bat_info.performance<1 ? COLOR_GRAY50 : COLOR_GREEN2),x,y+4+2*w,w,w);
-}
-
 int GetBatteryLevel()
 {
     return bat_info.level;

@@ -35,9 +35,6 @@ void display_shooting_info() // called from debug task
 	bg = bmp_getpixel(15, 430);
 	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 
-	hdr_display_status(fnt);
-
-	RedrawBatteryIcon();
 	//~ bmp_printf(fnt, 290, 415, "%d%% ", GetBatteryLevel());
 
 	//~ bmp_printf(fnt, 400, 450, "Flash:%s", 

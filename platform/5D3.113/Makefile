@@ -26,6 +26,7 @@ ML_OBJS-y = \
 	boot-hack.o \
 	stubs.o \
 	version.o \
+	flexinfo.o \
 	exmem.o \
 	bmp.o \
 	fio-5d3.o \

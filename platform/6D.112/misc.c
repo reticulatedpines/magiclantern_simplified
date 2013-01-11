@@ -28,10 +28,6 @@ void display_shooting_info() // called from debug task
 		if (gm) bmp_printf(fnt, x, 280, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
 		else    bmp_printf(fnt, x, 280, "  ");
 	}
-	
-	hdr_display_status(fnt);
-
-    RedrawBatteryIcon();
     
 	bmp_printf(fnt, 374, 307, get_mlu() ? "MLU" : "   ");
 

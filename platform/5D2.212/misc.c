@@ -21,8 +21,6 @@ void display_shooting_info() // called from debug task
 	int bg = COLOR_BLACK;
 	uint32_t fnt = SHADOW_FONT(FONT_MED);
 
-	RedrawBatteryIcon();
-
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
 		bmp_printf(fnt, 490, 275, "%5dK", lens_info.kelvin);
@@ -40,8 +38,6 @@ void display_shooting_info() // called from debug task
 		if (gm) bmp_printf(fnt, 350, 460, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
 		else    bmp_printf(fnt, 350, 460, "  ");
 	}
-
-	hdr_display_status(fnt);
 
 	bmp_printf(fnt, 40, 460, get_mlu() ? "MLU" : "   ");
 
