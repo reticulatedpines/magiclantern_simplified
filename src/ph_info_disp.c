@@ -207,7 +207,8 @@ void display_shooting_info() // called from debug task
         bmp_fill(bmp_getpixel(1,1),486,212,212,6);
     }
 #endif
-    
+
+#if 0 // not portable, no idea for which camera they were written
     if (avail_shot>9999) // we can write 5 digits if necessary
     {
         bmp_fill(col_field,540,384,152,72); // clear the "[9999]"
@@ -223,6 +224,7 @@ void display_shooting_info() // called from debug task
         snprintf(msg, sizeof(msg), "[%4d%]", avail_shot);
         bfnt_puts(msg, 560 , 402, COLOR_FG_NONLV, col_field);
     }
+#endif
 #endif
     
 	iso_refresh_display();
