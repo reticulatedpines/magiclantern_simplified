@@ -529,7 +529,7 @@ uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *
     else
     {
         element->hdr.pos.w = width;
-        element->hdr.pos.h = 3 * height + 8;
+        element->hdr.pos.h = 3 * height + 4;
     }
     
     if(run_type == INFO_PRINT)
@@ -556,15 +556,15 @@ uint32_t info_print_battery_icon(info_elem_t *config, info_elem_battery_icon_t *
     /* get absolute position of this element */
     info_get_absolute(config, (info_elem_t *)element);
 
+    element->hdr.pos.w = 96;
+    element->hdr.pos.h = 32;
+
 #if 0 // fights with Canon icon; do not draw, but keep it for positioning the other elements
     int batlev = GetBatteryLevel();
     int col_field = bmp_getpixel(615,455);
     
     int pos_x = element->hdr.pos.abs_x;
     int pos_y = element->hdr.pos.abs_y;
-
-    element->hdr.pos.w = 96;
-    element->hdr.pos.h = 32;
     
     if(run_type == INFO_PRINT)
     {
