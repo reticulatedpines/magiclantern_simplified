@@ -11,6 +11,10 @@
 
 #define BUF_SIZE 128
 
+// those are not camera-specific LP-E6
+#define DISPLAY_BATTERY_LEVEL_1 60 //%
+#define DISPLAY_BATTERY_LEVEL_2 20 //%
+
 /* 
    this is the definition of the info screen elements.
    it can either be made switchable for photo and LV setting or put in an array.
@@ -32,9 +36,9 @@ info_elem_t info_config[64] =
     
     /* entry 4, battery_icon referenced as anchor */
     { .battery_icon = { { INFO_TYPE_BATTERY_ICON, { DISPLAY_BATTERY_POS_X, DISPLAY_BATTERY_POS_Y, 2 }}, DISPLAY_BATTERY_LEVEL_2, DISPLAY_BATTERY_LEVEL_1 } },
-    { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { -14, 0, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, /* 0=vert,1=horizontal */ 0, /* x size */ 12, /* y size */ 12 } },
-    { .string = { { INFO_TYPE_STRING, { 0, 2, 2, INFO_ANCHOR_HCENTER | INFO_ANCHOR_BOTTOM, 4, INFO_ANCHOR_HCENTER | INFO_ANCHOR_TOP }}, INFO_STRING_BATTERY_PCT, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
-    { .string = { { INFO_TYPE_STRING, { 0, 0, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 4 }}, INFO_STRING_BATTERY_ID, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
+    { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { 100, 15, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, /* 0=vert,1=horizontal */ 1, /* x size */ 8, /* y size */ 8 } },
+    { .string = { { INFO_TYPE_STRING, { 56, 48, 2, INFO_ANCHOR_HCENTER | INFO_ANCHOR_BOTTOM, 4, INFO_ANCHOR_HCENTER | INFO_ANCHOR_TOP }}, INFO_STRING_BATTERY_PCT, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { -20, 15, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 4 }}, INFO_STRING_BATTERY_ID, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
 
     /* entry 8, MLU string */
     { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2 }}, INFO_STRING_MLU, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
@@ -298,10 +302,14 @@ uint32_t info_measure_string(char *string, uint32_t font_type, int32_t *width, i
             font = FONT_LARGE;
             break;
         case INFO_FONT_CANON:
+        {
             font = 0;
-            *width = bfnt_puts(string, 1000, 1000, COLOR_CYAN, 0);
+            *width = 0;
+            for (char* c = string; *c; c++)
+                *width += bfnt_char_get_width(*c);
             *height = 40;
             break;
+        }
         /* error */
         default:
             return 1;
@@ -504,17 +512,18 @@ uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *
     
     if(run_type == INFO_PRINT)
     {
+        int perf = GetBatteryPerformance();
         if(element->horizontal)
         {
-            bmp_fill((GetBatteryPerformance()<1 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y,width,height);
-            bmp_fill((GetBatteryPerformance()<2 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x+4+width,pos_y,width,height);
-            bmp_fill((GetBatteryPerformance()<3 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x+8+2*width,pos_y,width,height);
+            bmp_fill((perf<1 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y,width,height);
+            bmp_fill((perf<2 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x+4+width,pos_y,width,height);
+            bmp_fill((perf<3 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x+8+2*width,pos_y,width,height);
         }
         else
         {
-            bmp_fill((GetBatteryPerformance()<1 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y,width,height);
-            bmp_fill((GetBatteryPerformance()<2 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y+4+height,width,height);
-            bmp_fill((GetBatteryPerformance()<3 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y+8+2*height,width,height);
+            bmp_fill((perf<3 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y,width,height);
+            bmp_fill((perf<2 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y+2+height,width,height);
+            bmp_fill((perf<1 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y+4+2*height,width,height);
         }
     }
     return 0;
@@ -522,6 +531,7 @@ uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *
 
 uint32_t info_print_battery_icon(info_elem_t *config, info_elem_battery_icon_t *element, uint32_t run_type)
 {
+#if 0 // fights with Canon icon; do not draw, but keep it for positioning the other elements
     int batlev = GetBatteryLevel();
     int col_field = bmp_getpixel(615,455);
     
@@ -568,6 +578,7 @@ uint32_t info_print_battery_icon(info_elem_t *config, info_elem_battery_icon_t *
         batfil = batlev*56/100;
         bmp_fill(batcol,pos_x+18+56-batfil,pos_y+8,batfil,16);
     }
+#endif
     return 0;
 }
 
