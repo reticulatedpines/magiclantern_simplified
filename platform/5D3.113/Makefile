@@ -26,7 +26,6 @@ ML_OBJS-y = \
 	boot-hack.o \
 	stubs.o \
 	version.o \
-	flexinfo.o \
 	exmem.o \
 	bmp.o \
 	fio-5d3.o \
@@ -67,8 +66,9 @@ ML_OBJS-y = \
 	beep.o \
 	audio-ak.o \
 	vsync-lite.o \
-	ph_info_disp.o \
 	battery.o \
+	ph_info_disp.o \
+	flexinfo.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

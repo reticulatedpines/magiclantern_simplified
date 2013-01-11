@@ -253,6 +253,7 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             snprintf(buffer, maxsize, "%s", build_version);
             break;
         }
+#ifdef CONFIG_BATTERY_INFO
         case INFO_STRING_BATTERY_PCT:
         {
             snprintf(buffer, maxsize, "%d%%%%", GetBatteryLevel());
@@ -267,6 +268,7 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             snprintf(buffer, maxsize, "%d", GetBatteryHist());
             break;
         }
+#endif
         case INFO_STRING_CARD_LABEL_A:
         case INFO_STRING_CARD_LABEL_B:
         case INFO_STRING_CARD_SPACE_A:
@@ -535,6 +537,7 @@ uint32_t info_print_icon(info_elem_t *config, info_elem_icon_t *element, uint32_
 
 uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *element, uint32_t run_type)
 {
+#ifdef CONFIG_BATTERY_INFO
     /* get absolute position of this element */
     info_get_absolute(config, (info_elem_t *)element);
 
@@ -570,6 +573,7 @@ uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *
             bmp_fill((perf<1 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y+4+2*height,width,height);
         }
     }
+#endif
     return 0;
 }
 

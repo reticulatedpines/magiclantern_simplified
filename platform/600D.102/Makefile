@@ -40,7 +40,6 @@ ML_OBJS-y = \
 	propvalues.o \
 	gui.o \
 	gui-common.o \
-	ph_info_disp.o \
 	misc.o \
 	picstyle.o \
 	cfn.o \
@@ -69,6 +68,8 @@ ML_OBJS-y = \
 	tskmon.o \
 	beep.o \
 	vsync-lite.o \
+	ph_info_disp.o \
+	flexinfo.o \
 
 #include generic rules and definitions
 
