@@ -51,7 +51,7 @@ info_elem_t info_config[64] =
     
     /* entry 10, pictures */
     { .fill = { { INFO_TYPE_FILL, { 540, 390, 1, 0, 0, 0, 150, 60 }}, INFO_COL_FIELD } },
-    { .string = { { INFO_TYPE_STRING, { 550, 402, 2 }}, INFO_STRING_PICTURES_4, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
+    { .string = { { INFO_TYPE_STRING, { 550, 402, 2 }}, INFO_STRING_PICTURES, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
 #endif
 
 #if defined(CONFIG_5D3)
@@ -282,19 +282,9 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             snprintf(buffer, maxsize, "(card info)");
             break;
             
-        case INFO_STRING_PICTURES_3:
+        case INFO_STRING_PICTURES:
         {
-            snprintf(buffer, maxsize, "[%3d%]", avail_shot);
-            break;
-        }
-        case INFO_STRING_PICTURES_4:
-        {
-            snprintf(buffer, maxsize, "[%4d%]", avail_shot);
-            break;
-        }
-        case INFO_STRING_PICTURES_5:
-        {
-            snprintf(buffer, maxsize, "[%5d%]", avail_shot);
+            snprintf(buffer, maxsize, "[%d]", avail_shot);
             break;
         }
         case INFO_STRING_MLU:
