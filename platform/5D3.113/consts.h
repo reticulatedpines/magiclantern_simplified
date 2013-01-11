@@ -134,9 +134,9 @@
 #define WB_KELVIN_POS_Y 278
 
 // white balance shift values M2B1 in yellow
-#define WBS_POS_X 250
-#define WBS_POS_Y 263
-#define WBS_FONT FONT_LARGE
+#define WBS_POS_X 265
+#define WBS_POS_Y 278
+//~ #define WBS_FONT FONT_MED // not used?
 
 // for displaying battery
 #define DISPLAY_BATTERY_POS_X 146
