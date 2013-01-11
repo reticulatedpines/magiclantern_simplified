@@ -29,10 +29,6 @@ void display_shooting_info() // called from debug task
     info_print_screen(); 
     iso_refresh_display();
 
-    bg = bmp_getpixel(HDR_STATUS_POS_X, HDR_STATUS_POS_Y);
-    fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
-    hdr_display_status(fnt);
-
     display_trap_focus_info();   
     return;
 #endif
@@ -228,10 +224,6 @@ void display_shooting_info() // called from debug task
 #endif
     
 	iso_refresh_display();
-    
-	bg = bmp_getpixel(HDR_STATUS_POS_X, HDR_STATUS_POS_Y);
-	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
-	hdr_display_status(fnt);
     
 	bg = bmp_getpixel(MLU_STATUS_POS_X, MLU_STATUS_POS_Y);
 	//fnt = FONT(FONT_SMALL, COLOR_FG_NONLV, bg);

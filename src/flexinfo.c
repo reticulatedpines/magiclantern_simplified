@@ -73,6 +73,9 @@ info_elem_t info_config[64] =
     
     /* entry 9, kelvin */
     { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2 }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
+
+    /* entry 10, HDR bracketing status */
+    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2 }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
 #endif
 
 
@@ -300,6 +303,22 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             }
             snprintf(buffer, maxsize, "MLU");
             break;
+        }
+        case INFO_STRING_HDR:
+        {
+            #ifdef FEATURE_HDR_BRACKETING
+            extern int hdr_enabled, hdr_steps, hdr_stepsize;
+            if (!hdr_enabled)
+            {
+                return 1;
+            }
+            snprintf(buffer, maxsize,
+                "HDR %Xx%d%sEV",
+                hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
+                hdr_stepsize / 8,
+                ((hdr_stepsize/4) % 2) ? ".5" : "");
+            break;
+            #endif
         }
         /* error */
         default:
