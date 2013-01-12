@@ -64,6 +64,10 @@ install: autoexec.bin
 
 	$(UMOUNT) $(CF_CARD)
 
+copy-autoexec: autoexec.bin
+	cp autoexec.bin $(CF_CARD)
+	$(UMOUNT) $(CF_CARD)
+
 ptpinstall: autoexec.bin
 	gvfs-mount -s gphoto2
 	sleep 2

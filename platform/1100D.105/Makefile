@@ -92,8 +92,3 @@ FIR_BASE        = 0x40800120
 FIRMWARE_ID_1100D	= 0x80000288
 
 all: autoexec.bin
-
-copy-bin: all
-	cp autoexec.bin $(CF_CARD)
-	sync
-	$(UMOUNT) $(CF_CARD)
