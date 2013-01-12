@@ -841,7 +841,7 @@ uint8_t* read_entire_file(const char * filename, int* buf_size)
 
     DEBUG("File '%s' size %d bytes", filename, size);
 
-    uint8_t * buf = alloc_dma_memory( size );
+    uint8_t * buf = alloc_dma_memory( size + 1);
     if( !buf )
     {
         DebugMsg( DM_MAGIC, 3, "%s: alloc_dma_memory failed", filename );
@@ -852,6 +852,8 @@ uint8_t* read_entire_file(const char * filename, int* buf_size)
         goto read_fail;
 
     *buf_size = size;
+    
+    buf[size] = 0; // null-terminate text files
 
     return buf;
 
