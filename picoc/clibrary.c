@@ -649,15 +649,15 @@ struct LibraryFunction CLibrary[] =
     { LibCeil,          "float ceil(float);" },
     { LibFloor,         "float floor(float);" },
 #endif
-    { LibMalloc,        "void *malloc(int);" },
 #ifndef NO_CALLOC
     { LibCalloc,        "void *calloc(int,int);" },
 #endif
 #ifndef NO_REALLOC
     { LibRealloc,       "void *realloc(void *,int);" },
 #endif
-    { LibFree,          "void free(void *);" },
 #ifndef NO_STRING_FUNCTIONS
+    { LibMalloc,        "void *malloc(int);" },
+    { LibFree,          "void free(void *);" },
     { LibStrcpy,        "void strcpy(char *,char *);" },
     { LibStrncpy,       "void strncpy(char *,char *,int);" },
     { LibStrcmp,        "int strcmp(char *,char *);" },

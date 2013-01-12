@@ -57,6 +57,7 @@ install: autoexec.bin
 	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
 	mkdir $(CF_CARD)/ML/scripts || echo "no problem"
 	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/ML/scripts/
+	cp $(SCRIPT_DIR)/*.c $(CF_CARD)/ML/scripts/
 	mkdir $(CF_CARD)/ML/plugins || echo "no problem"
 	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/ML/plugins/
 	cp $(VRAM_DIR)/*.lut $(CF_CARD)/ML/data/
@@ -186,6 +187,10 @@ endif
 
 ifeq ($(CONFIG_PICOC),y)
 CFLAGS += -DCONFIG_PICOC
+endif
+
+ifeq ($(CONFIG_CONSOLE),y)
+CFLAGS += -DCONFIG_CONSOLE
 endif
 
 
@@ -610,6 +615,7 @@ clean:
 		scripts/* \
 		doc/* \
 		$(SRC_DIR)/*.o \
+		$(PICOC_PATH)/*.o \
 		)
 	$(call build,CLEAN,$(RM) -rf zip)
 

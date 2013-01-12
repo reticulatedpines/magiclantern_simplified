@@ -1,8 +1,13 @@
 #include "interpreter.h"
 
+void LibMsleep(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    msleep(Param[0]->Val->Integer);
+}
+
 void LibTakePic(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    call("Release");
+    lens_take_picture(64,0);
 }
 
 void LibHello(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -12,6 +17,8 @@ void LibHello(struct ParseState *Parser, struct Value *ReturnValue, struct Value
 /* list of all library functions and their prototypes */
 struct LibraryFunction PlatformLibrary[] =
 {
+    {LibMsleep, "void msleep(int delay);"},
+    {LibTakePic, "void shoot();"},
     {LibTakePic, "void takepic();"},
     {LibHello, "void hello();"},
     { NULL,         NULL }

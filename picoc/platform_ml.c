@@ -24,7 +24,7 @@ int PlatformGetCharacter()
 void PlatformPutc(unsigned char OutCh, union OutputStreamInfo *Stream)
 {
     int c = OutCh;
-    //~ console_puts(&c);
+    console_puts(&c);
 }
 
 /* read a file into memory */
@@ -32,15 +32,24 @@ char *PlatformReadFile(const char *FileName)
 {
     int size;
     char* f = read_entire_file(FileName, &size);
+    if (!f) console_printf("Error loading '%s'\n", FileName);
     return f;
 }
 
 /* read and scan a file for definitions */
-void PlatformScanFile(const char *FileName)
+void PicocPlatformScanFile(const char *FileName)
 {
     char *SourceStr = PlatformReadFile(FileName);
-    //~ console_puts(SourceStr);
+    if (!SourceStr) return;
+
+    console_printf("%s:\n"
+                   "==============================\n", 
+                   FileName);
+    console_puts(SourceStr);
+    console_puts(  "==============================\n");
+
     PicocParse(FileName, SourceStr, strlen(SourceStr), TRUE, FALSE, TRUE);
+
     free_dma_memory(SourceStr);
 }
 

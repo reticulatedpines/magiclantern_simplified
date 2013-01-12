@@ -18,8 +18,8 @@ void PicocInitialise(int StackSize)
 #endif
     LibraryInit();
 #ifdef BUILTIN_MINI_STDLIB
-    //LibraryAdd(&GlobalTable, "c library", &CLibrary[0]);
-    //CLibraryInit();
+    LibraryAdd(&GlobalTable, "c library", &CLibrary[0]);
+    CLibraryInit();
 #endif
     PlatformLibraryInit();
 }
