@@ -36,7 +36,7 @@
 #define BUILTIN_MINI_STDLIB
 #define USE_MALLOC_STACK
 #define NO_STRING_FUNCTIONS
-#define NO_HASH_INCLUDE
+//~ #define NO_HASH_INCLUDE // includes are required to run the built-in tests
 
 #ifndef NO_FP
     #define PICOC_LIBRARY // sin, cos, pow

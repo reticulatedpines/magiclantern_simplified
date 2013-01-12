@@ -485,6 +485,11 @@ int get_global_draw() // menu setting, or off if
     
     if (PLAY_MODE) return 1; // exception, always draw stuff in play mode
     
+    #ifdef CONFIG_CONSOLE
+    extern int console_visible;
+    if (console_visible) return 0;
+    #endif
+    
     if (lv && ZEBRAS_IN_LIVEVIEW)
     {
         return 
@@ -2518,6 +2523,7 @@ crop_display_submenu( void * priv, int x, int y, int selected )
     bmp_fill(0, xc, yc, w, h);
     BMP_LOCK( bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0); )
     bmp_draw_rect(COLOR_WHITE, xc, yc, w, h);
+    menu_draw_icon(x, y, MNI_DICE, (num_cropmarks<<16) + index);
 }
 #endif
 
@@ -3568,7 +3574,6 @@ struct menu_entry zebra_menus[] = {
                 .priv = &crop_index, 
                 .select = crop_toggle,
                 .display    = crop_display_submenu,
-                .icon_type = IT_ALWAYS_ON,
                 .help = "You can draw your own cropmarks in Paint.",
             },
             {

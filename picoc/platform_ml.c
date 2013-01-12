@@ -46,8 +46,8 @@ void PicocPlatformScanFile(const char *FileName)
                    "==============================\n", 
                    FileName);
     console_puts(SourceStr);
-    console_puts(  "==============================\n");
-
+    console_puts(  "==============================\n\n");
+    msleep(500);
     PicocParse(FileName, SourceStr, strlen(SourceStr), TRUE, FALSE, TRUE);
 
     free_dma_memory(SourceStr);
@@ -62,5 +62,4 @@ void PlatformExit(int RetVal)
     //~ PicocExitValue = RetVal;
     //~ longjmp(PicocExitBuf, 1);
 }
-
 
