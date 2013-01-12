@@ -2537,12 +2537,12 @@ open_canon_menu()
 // pump a few redraws quickly, to mask Canon's back menu
 void menu_redraw_flood()
 {
-    if (!lv) msleep(200);
+    if (!lv) msleep(100);
     else if (EXT_MONITOR_CONNECTED) msleep(300);
     for (int i = 0; i < 5; i++)
     {
         if (redraw_flood_stop) break;
-        if (!CURRENT_DIALOG_MAYBE) break;
+        if (!menu_shown) break;
         canon_gui_enable_front_buffer(0);
         menu_redraw_full();
         msleep(20);
