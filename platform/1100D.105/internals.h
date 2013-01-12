@@ -95,8 +95,8 @@
 /** We should't warn the user if movie exposure is Auto **/
 //~ #define CONFIG_MOVIE_AE_WARNING
 
-/** We can't display extra info in photo mode (not LiveView) - missing constants **/
-//~ #define CONFIG_PHOTO_MODE_INFO_DISPLAY
+/** We can display extra info in photo mode (not LiveView) **/
+#define CONFIG_PHOTO_MODE_INFO_DISPLAY
 
 /** FIO_RenameFile works **/
 #define CONFIG_FIO_RENAMEFILE_WORKS

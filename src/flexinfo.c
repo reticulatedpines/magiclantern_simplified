@@ -104,6 +104,21 @@ info_elem_t info_config[64] =
     { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2 }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
 #endif
 
+#if defined(CONFIG_1100D)
+    /* print ISO range */
+    { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2 }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+
+    /* entry 2 and 3, WB strings */
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2 }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y + 22, 2 }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+ 
+    /* entry 4, kelvin */
+    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2 }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
+
+    /* entry 5, HDR bracketing status */
+    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2 }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+#endif
+
     { .type = INFO_TYPE_END },
 };
 

@@ -7,7 +7,7 @@
 #include <consts.h>
 #include <lens.h>
 
-void display_shooting_info() // called from debug task
+void DISABLED_display_shooting_info() // called from debug task
 {
 	if (lv) return;
 	
@@ -67,4 +67,4 @@ void* AllocateMemory(size_t size) // this won't throw ERR70
 	return (void*) AllocateMemory_do(*(int*)0x2B48, size);
 }
 
-int new_LiveViewApp_handler = 0xff123456;
+//int new_LiveViewApp_handler = 0xff123456;

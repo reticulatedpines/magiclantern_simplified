@@ -59,24 +59,6 @@
 //#define AE_VALUE (*(int8_t*)0x7E14)
 #define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
-// position for displaying shutter count and other info
-#define MENU_DISP_INFO_POS_X 0
-#define MENU_DISP_INFO_POS_Y 395
-
-#define MENU_DISP_ISO_POS_X 590
-#define MENU_DISP_ISO_POS_Y 26
-
-// position for displaying clock outside LV
-#define DISPLAY_CLOCK_POS_X 400
-#define DISPLAY_CLOCK_POS_Y 410
-
-// for displaying TRAP FOCUS msg outside LV
-#define DISPLAY_TRAP_FOCUS_POS_X 65
-#define DISPLAY_TRAP_FOCUS_POS_Y 360
-#define DISPLAY_TRAP_FOCUS_MSG       "TRAP FOCUS"
-#define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
-
-
 // these are wrong (just for compiling)
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0x10
 #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x11
