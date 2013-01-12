@@ -297,7 +297,8 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         case INFO_STRING_BATTERY_PCT:
         case INFO_STRING_BATTERY_ID:
         {
-            snprintf(buffer, maxsize, "(n/a)");
+            /* feature not enabled/available */
+            return 1;
             break;
         }
 #endif
@@ -345,7 +346,8 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         }
 #else
         {
-            snprintf(buffer, maxsize, "(n/a)");
+            /* feature not enabled/available */
+            return 1;
             break;
         }
 #endif
