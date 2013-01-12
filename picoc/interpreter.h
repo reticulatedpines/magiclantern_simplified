@@ -3,6 +3,8 @@
 
 #include "platform.h"
 
+#define NO_CALLOC
+#define BUILTIN_MINI_STDLIB
 
 /* handy definitions */
 #ifndef TRUE

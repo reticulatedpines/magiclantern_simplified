@@ -576,6 +576,10 @@ void guimode_test()
 
 void run_test()
 {
+    #ifdef CONFIG_PICOC
+    msleep(3000);
+    picoc_test();
+    #endif
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)

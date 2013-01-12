@@ -142,6 +142,7 @@ CFLAGS=\
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
+	-I$(PICOC_PATH) \
 
 NOT_USED_FLAGS=\
 	-march=armv5te \
@@ -181,6 +182,10 @@ CFLAGS += -fPIC -DPOSITION_INDEPENDENT
 AFLAGS += -fPIC -DPOSITION_INDEPENDENT
 LFLAGS += -fPIC
 LIB_TYPE = arm-${ARM_ABI}-O3-fPIC
+endif
+
+ifeq ($(CONFIG_PICOC),y)
+CFLAGS += -DCONFIG_PICOC
 endif
 
 
@@ -270,12 +275,34 @@ ML_OBJS-$(CONFIG_TIMECODE) += \
 ML_OBJS-$(CONFIG_CONSOLE) += \
 	console.o \
 
+ML_OBJS-$(CONFIG_PICOC)	+= \
+	$(PICOC_PATH)/clibrary.o \
+	$(PICOC_PATH)/expression.o \
+	$(PICOC_PATH)/heap.o \
+	$(PICOC_PATH)/include.o \
+	$(PICOC_PATH)/lex.o \
+	$(PICOC_PATH)/parse.o \
+	$(PICOC_PATH)/platform.o \
+	$(PICOC_PATH)/table.o \
+	$(PICOC_PATH)/type.o \
+	$(PICOC_PATH)/variable.o \
+	$(PICOC_PATH)/library_ml.o \
+	$(PICOC_PATH)/platform_ml.o \
+	picoc.o \
+
 # Extract the stdio files that we need
 STDIO_OBJ = \
 	lib_a-setjmp.o \
 	lib_a-strcmp.o \
 	lib_a-strlen.o \
 	lib_a-strncmp.o \
+
+ifeq ($(CONFIG_PICOC),y)
+STDIO_OBJ += \
+	lib_a-strncpy.o \
+	lib_a-ctype_.o \
+
+endif
 
 $(STDIO_OBJ): $(ARM_LIBC_A)
 	$(call build,AR,$(AR) x $? $(STDIO_OBJ))
