@@ -351,6 +351,11 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             break;
         }
 #endif
+        /* empty string */
+        case INFO_STRING_NONE:
+        {
+            break;
+        }
         /* error */
         default:
             return 1;
