@@ -428,7 +428,7 @@ extern void SetCFnData(int group, int number, int value);
 
 void ml_assert_handler(char* msg, char* file, int line, const char* func);
 
-unsigned int rand (void);
+int rand (void);
 
 #define ASSERT(x) { if (!(x)) { ml_assert_handler(#x, __FILE__, __LINE__, __func__); }}
 //~ #define ASSERT(x) {}
