@@ -360,7 +360,6 @@ bmp_puts_w(
             (*y) += font->height;
             (*x) = initial_x;
             i = 0;
-            if (lv) msleep(1);
             if (c == '\n') continue;
         }
 

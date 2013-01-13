@@ -38,6 +38,7 @@ void console_show()
 void console_hide()
 {
     console_visible = 0;
+    msleep(100);
     redraw();
 
     #ifdef CONSOLE_DEBUG
