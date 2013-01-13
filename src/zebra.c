@@ -378,7 +378,7 @@ int focus_peaking_as_display_filter()
 
 static CONFIG_INT( "hist.draw", hist_draw,  1 );
 static CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
-static CONFIG_INT( "hist.warn", hist_warn,  5 );
+static CONFIG_INT( "hist.warn", hist_warn,  1 );
 static CONFIG_INT( "hist.log",  hist_log,   1 );
 static CONFIG_INT( "waveform.draw", waveform_draw,
 #ifdef CONFIG_4_3_SCREEN
@@ -971,8 +971,6 @@ static void hist_dot(int x, int y, int fg_color, int bg_color, int radius, int l
 
 static int hist_dot_radius(int over, int hist_total_px)
 {
-    if (hist_warn <= 4) return 7; // fixed radius for these modes
-    
     // overexposures stronger than 1% are displayed at max radius (10)
     int p = 100 * over / hist_total_px;
     if (p > 1) return 10;
@@ -985,8 +983,7 @@ static int hist_dot_radius(int over, int hist_total_px)
 
 static int hist_dot_label(int over, int hist_total_px)
 {
-    int p = 100 * over / hist_total_px;
-    return hist_warn <= 4 ? 0 : p;
+    return 100 * over / hist_total_px;
 }
 
 /** Draw the histogram image into the bitmap framebuffer.
@@ -1048,12 +1045,7 @@ hist_draw_image(
         
         if (hist_warn && i == HIST_WIDTH - 1)
         {
-            unsigned int thr = hist_total_px / (
-                hist_warn == 1 ? 100000 : // 0.001%
-                hist_warn == 2 ? 10000  : // 0.01%
-                hist_warn == 3 ? 1000   : // 0.1%
-                hist_warn == 4 ? 100    : // 1%
-                                 100000); // start at 0.0001 with a tiny dot
+            unsigned int thr = hist_total_px / 100000; // start at 0.0001 with a tiny dot
             thr = MAX(thr, 1);
             int yw = y_origin + 12 + (hist_log ? hist_height - 24 : 0);
             int bg = (hist_log ? COLOR_WHITE : COLOR_BLACK);
@@ -2542,23 +2534,6 @@ hist_print( void * priv, int x, int y, int selected )
     );
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(hist_draw));
 }
-
-static void
-hist_warn_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Clip warning  : %s",
-        hist_warn == 0 ? "OFF" :
-        hist_warn == 1 ? "0.001% px" :
-        hist_warn == 2 ? "0.01% px" :
-        hist_warn == 3 ? "0.1% px" : 
-        hist_warn == 4 ? "1% px" :
-                         "Gradual"
-    );
-    menu_draw_icon(x, y, MNI_BOOL(hist_warn), 0);
-}
 #endif
 
 #ifdef FEATURE_WAVEFORM
@@ -3685,8 +3660,7 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Clip warning",
                 .priv = &hist_warn, 
-                .max = 5,
-                .display = hist_warn_display,
+                .max = 1,
                 .help = "Display warning dots when one color channel is clipped.",
             },
             MENU_EOL
