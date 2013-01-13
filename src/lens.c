@@ -1411,12 +1411,12 @@ mvr_create_logfile(
     int sr_x1000 = get_current_shutter_reciprocal_x1000();
 
     MVR_LOG_APPEND (
-        "ISO            : %d\n"
+        "ISO            : %d%s\n"
         "Shutter        : 1/%d.%03ds\n"
         "Aperture       : f/%d.%d\n"
         "Focal length   : %d mm\n"
         "Focus distance : %d mm\n",
-        lens_info.iso,
+        lens_info.iso, get_htp() ? " D+" : "",
         sr_x1000/1000, sr_x1000%1000,
         lens_info.aperture / 10, lens_info.aperture % 10,
         lens_info.focal_len,
