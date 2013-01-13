@@ -106,3 +106,9 @@
 
 /** This camera loads ML into the AllocateMemory pool **/
 #define CONFIG_ALLOCATE_MEMORY_POOL
+
+/** FPS override: we can change both timer A and B */
+//~ #define CONFIG_FPS_TIMER_A_ONLY
+
+/** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
+#define CONFIG_FPS_AGGRESSIVE_UPDATE

@@ -159,7 +159,7 @@ static void fps_read_current_timer_values();
 
 #define FPS_TIMER_A_MAX 0x2000
 
-#if defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+#ifdef CONFIG_FPS_TIMER_A_ONLY
     #define FPS_TIMER_B_MAX fps_timer_b_orig
 #else
     #define FPS_TIMER_B_MAX (0x4000-1)
@@ -1129,7 +1129,7 @@ static struct menu_entry fps_menu[] = {
                 .help = "FPS value for recording. Video will play back at Canon FPS.",
             },
 //~ we only modify FPS_REGISTER_A, so no optimizations possible.
-#if !defined(CONFIG_EOSM) && defined(CONFIG_650D) && !defined(CONFIG_6D)
+#ifndef CONFIG_FPS_TIMER_A_ONLY
             {
                 .name = "Optimize for\b",
                 .priv       = &fps_criteria,
@@ -1325,7 +1325,7 @@ static void fps_task()
         else
         #endif
         {
-            #if defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+            #ifdef CONFIG_FPS_AGGRESSIVE_UPDATE
             msleep(fps_override && recording ? 10 : 100);
             #else
             msleep(100);
@@ -1387,7 +1387,7 @@ static void fps_task()
                 float ff = default_fps * ks + f * (1-ks);
                 int fr = (int)roundf(ff);
                 fps_setup_timerA(fr);
-#if !defined(CONFIG_EOSM) && !defined(CONFIG_650D) && !defined(CONFIG_6D)
+#ifndef CONFIG_FPS_TIMER_A_ONLY
                 fps_setup_timerB(fr);
 #endif
                 fps_read_current_timer_values();
@@ -1426,7 +1426,7 @@ static void fps_task()
         
         //~ info_led_on();
         fps_setup_timerA(f);
-#if !defined(CONFIG_EOSM) && !defined(CONFIG_650D) && !defined(CONFIG_6D)
+#ifndef CONFIG_FPS_TIMER_A_ONLY
         fps_setup_timerB(f);
 #endif
         //~ info_led_off();

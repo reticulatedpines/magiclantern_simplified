@@ -109,3 +109,10 @@
 
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
+
+/** FPS override: we can only change timer A */
+#define CONFIG_FPS_TIMER_A_ONLY
+
+/** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
+#define CONFIG_FPS_AGGRESSIVE_UPDATE
+

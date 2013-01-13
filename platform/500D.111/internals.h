@@ -100,3 +100,9 @@
 
 /** No auto ISO in Canon menus **/
 #define CONFIG_NO_AUTO_ISO
+
+/** FPS override: we can change both timer A and B */
+//~ #define CONFIG_FPS_TIMER_A_ONLY
+
+/** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
+#define CONFIG_FPS_AGGRESSIVE_UPDATE
