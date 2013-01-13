@@ -14,6 +14,10 @@
 */
 #define FLEXINFO_DEVELOPER_MENU
 
+#ifdef CONFIG_60D
+#undef FLEXINFO_DEVELOPER_MENU // squeeze a few K of RAM
+#endif
+
 #define BUF_SIZE 128
 
 // those are not camera-specific LP-E6
