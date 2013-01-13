@@ -115,6 +115,7 @@ CONFIG_INT("movie.cliplen", movie_cliplen,0);
 CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
 CONFIG_INT("movie.rec-key", movie_rec_key, 0);
 CONFIG_INT("movie.rec-key-action", movie_rec_key_action, 0);
+CONFIG_INT("movie.rec-key-action", movie_rec_key_long, 0);
 
 #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
 
@@ -166,7 +167,7 @@ void movie_rec_halfshutter_step()
 
     if (HALFSHUTTER_PRESSED)
     {
-        if (movie_rec_key == 2)
+        if (movie_rec_key_long)
         {
             // need to keep halfshutter pressed for one second
             for (int i = 0; i < 10; i++)
@@ -1120,19 +1121,27 @@ static struct menu_entry mov_menus[] = {
     {
         .name = "Movie REC key",
         .priv = &movie_rec_key, 
-        .max = 2,
-        .icon_type = IT_DICE_OFF,
-        .choices = (const char *[]) {"OFF", "HalfShutter", "Long HalfSh. (1s)"},
-        .help = "Change the button used for recording. Hint: wired remote.",
+        .max = 1,
+        .icon_type = IT_BOOL,
+        .choices = (const char *[]) {"OFF", "HalfShutter"},
+        .help = "Start recording by pressing shutter halfway. Wired remote.",
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Allowed actions",
+                .name = "Require long press",
+                .priv = &movie_rec_key_long,
+                .max = 1,
+                .icon_type = IT_BOOL,
+                .choices = (const char *[]) {"OFF", "ON (1s)"},
+                .help = "If ON, you have to hold half-shutter pressed for 1 second.",
+            },
+            {
+                .name = "Allowed actions   ",
                 .priv = &movie_rec_key_action,
                 .max = 2,
-                .icon_type = IT_BOOL,
-                .choices = (const char *[]) {"START/STOP", "START", "STOP"},
-                .help = "How fast the exposure transitions should be.",
+                .icon_type = IT_DICE,
+                .choices = (const char *[]) {"Start/Stop", "Start only", "Stop only"},
+                .help = "Select actions for half-shutter.",
             },
             MENU_EOL
         },
