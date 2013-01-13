@@ -139,7 +139,6 @@ CFLAGS=\
 	-Wno-missing-field-initializers \
 	-Wno-format \
 	-Wdouble-promotion \
-	-mpoke-function-name \
 	-std=gnu99 \
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \
@@ -236,7 +235,7 @@ reboot.o: $(SRC_DIR)/reboot.c magiclantern.bin
 magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
 	$(call build,CPP,$(CPP) $(CFLAGS) $< | grep -v '^#' > $@)
 
-ifneq ($(CONFIG_NO_PTP),y)
+ifneq ($(CONFIG_NO_EXTRA_OBJS),y)
 
 ML_OBJS-$(CONFIG_GDB) += \
 	gdb.o \
@@ -249,17 +248,6 @@ ML_OBJS-$(CONFIG_PTP_CHDK) += \
 
 ML_OBJS-$(CONFIG_PTP_ML) += \
 	ptp-ml.o \
-
-endif
-
-NO=\
-	hotplug.o \
-	bootflags.o \
-	aj_port.o \
-	aj_lib_port.o \
-	font-huge.o \
-	bracket.o \
-	spotmeter.o \
 
 ML_OBJS-$(CONFIG_PYMITE) += \
 	script.o \
@@ -277,21 +265,10 @@ ML_OBJS-$(CONFIG_RELOC) += \
 
 ML_OBJS-$(CONFIG_TIMECODE) += \
 	timecode.o \
-    
-ifneq ($(CONFIG_NO_CONSOLE),y)
+
 ML_OBJS-$(CONFIG_CONSOLE) += \
-	console.o
-endif
+	console.o \
 
-# Extract the stdio files that we need
-STDIO_OBJ = \
-	lib_a-setjmp.o \
-	lib_a-strcmp.o \
-	lib_a-strlen.o \
-	lib_a-strncmp.o \
-
-# allow picoc to get explicitely disabled like for 7D_MASTER even if user enabled it
-ifneq ($(CONFIG_NO_PICOC),y)
 ML_OBJS-$(CONFIG_PICOC)	+= \
 	$(PICOC_PATH)/clibrary.o \
 	$(PICOC_PATH)/expression.o \
@@ -307,7 +284,18 @@ ML_OBJS-$(CONFIG_PICOC)	+= \
 	$(PICOC_PATH)/platform_ml.o \
 	picoc.o \
 
+endif
+
+# Extract the stdio files that we need
+STDIO_OBJ = \
+	lib_a-setjmp.o \
+	lib_a-strcmp.o \
+	lib_a-strlen.o \
+	lib_a-strncmp.o \
+
+ifneq ($(CONFIG_NO_EXTRA_OBJS),y)
 ifeq ($(CONFIG_PICOC),y)
+
 STDIO_OBJ += \
 	lib_a-strncpy.o \
 	lib_a-ctype_.o \
@@ -622,6 +610,7 @@ clean:
 		doc/* \
 		$(SRC_DIR)/*.o \
 		$(PICOC_PATH)/*.o \
+		$(PICOC_PATH)/*.d \
 		)
 	$(call build,CLEAN,$(RM) -rf zip)
 
