@@ -31,7 +31,7 @@
    -> ToDo: for now there is only 7D photo screen, add others too
             do we put raw X/Y positions here or keep them im consts.h?
  */
-info_elem_t info_config[64] =
+info_elem_t info_config[] =
 {
     { .config = { { INFO_TYPE_CONFIG } } },
 
@@ -1062,7 +1062,7 @@ static struct menu_entry info_menus[] = {
                 .name = "Select item",
                 .priv = info_config,
                 .min = 0,
-                .max = 64,
+                .max = COUNT(info_config),
                 .select = info_menu_item_select,
                 .display = info_menu_item_display,
                 .help = "Select a specific element for editing.",

@@ -97,8 +97,9 @@ uint8_t * bmp_vram(void)
     return bmp_buf;
 }
 
-
+#ifndef CONFIG_60D
 #define USE_LUT
+#endif
 
 static void
 _draw_char(

@@ -45,6 +45,11 @@ void my_bzero( uint8_t * base, uint32_t size );
 
 /** This just goes into the bss */
 #define RELOCSIZE 0x3000 // look in HIJACK macros for the highest address, and subtract ROMBASEADDR
+
+#ifdef CONFIG_60D
+#define RELOCSIZE 0x1200 // squeeze some RAM
+#endif
+
 static uint8_t _reloc[ RELOCSIZE ];
 #define RELOCADDR ((uintptr_t) _reloc)
 

@@ -1328,7 +1328,7 @@ static inline int zebra_color_word_row(int c, int y)
 static int* dirty_pixels = 0;
 static int dirty_pixels_num = 0;
 //~ static unsigned int* bm_hd_r_cache = 0;
-static unsigned int bm_hd_x_cache[BMP_W_PLUS - BMP_W_MINUS];
+static uint16_t bm_hd_x_cache[BMP_W_PLUS - BMP_W_MINUS];
 static int bm_hd_bm2lv_sx = 0;
 static int bm_hd_lv2hd_sx = 0;
 
@@ -5859,7 +5859,7 @@ void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
     int i,j;
     
     // only used for menu => 720x480
-    static int js_cache[720];
+    static int16_t js_cache[720];
     
     for (j = 0; j < 720; j++)
         js_cache[j] = (j - x0) * denx / 128 + x0;
