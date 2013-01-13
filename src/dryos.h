@@ -426,6 +426,8 @@ extern void SetCFnData(int group, int number, int value);
 #ifndef CONFIG_CONSOLE
     #define console_printf(fmt,...) { }
     #define console_puts(fmt,...) { }
+    #define console_show() { }
+    #define console_hide() { }
 #endif
 
 
