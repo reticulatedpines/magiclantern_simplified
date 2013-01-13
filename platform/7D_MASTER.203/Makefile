@@ -9,7 +9,9 @@ MODEL=7D_MASTER
 UPDATE_NAME=7D_203.fir
 ML_VERSION=unified1 
 
+CONFIG_NO_CONSOLE=y
 CONFIG_NO_PTP=y
+CONFIG_NO_PICOC=y
 
 # compile position independent (experimental, not working completely yet)
 CONFIG_PIC=n

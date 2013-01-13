@@ -139,6 +139,7 @@ CFLAGS=\
 	-Wno-missing-field-initializers \
 	-Wno-format \
 	-Wdouble-promotion \
+	-mpoke-function-name \
 	-std=gnu99 \
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \
@@ -276,10 +277,21 @@ ML_OBJS-$(CONFIG_RELOC) += \
 
 ML_OBJS-$(CONFIG_TIMECODE) += \
 	timecode.o \
-
+    
+ifneq ($(CONFIG_NO_CONSOLE),y)
 ML_OBJS-$(CONFIG_CONSOLE) += \
-	console.o \
+	console.o
+endif
 
+# Extract the stdio files that we need
+STDIO_OBJ = \
+	lib_a-setjmp.o \
+	lib_a-strcmp.o \
+	lib_a-strlen.o \
+	lib_a-strncmp.o \
+
+# allow picoc to get explicitely disabled like for 7D_MASTER even if user enabled it
+ifneq ($(CONFIG_NO_PICOC),y)
 ML_OBJS-$(CONFIG_PICOC)	+= \
 	$(PICOC_PATH)/clibrary.o \
 	$(PICOC_PATH)/expression.o \
@@ -295,18 +307,12 @@ ML_OBJS-$(CONFIG_PICOC)	+= \
 	$(PICOC_PATH)/platform_ml.o \
 	picoc.o \
 
-# Extract the stdio files that we need
-STDIO_OBJ = \
-	lib_a-setjmp.o \
-	lib_a-strcmp.o \
-	lib_a-strlen.o \
-	lib_a-strncmp.o \
-
 ifeq ($(CONFIG_PICOC),y)
 STDIO_OBJ += \
 	lib_a-strncpy.o \
 	lib_a-ctype_.o \
 
+endif
 endif
 
 $(STDIO_OBJ): $(ARM_LIBC_A)
