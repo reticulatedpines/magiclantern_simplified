@@ -816,7 +816,9 @@ static void fps_change_value(void* priv, int delta)
 
 static void fps_enable_disable(void* priv, int delta)
 {
+    #ifdef FEATURE_FPS_OVERRIDE
     fps_override = !fps_override;
+    #endif
     if (fps_override) fps_needs_updating = 1;
 }
 
