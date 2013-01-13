@@ -485,8 +485,9 @@ OS_FUNCTION( 0x0100009, void,	FIO_CleanupAfterFindNext_maybe, struct fio_dirent 
 OS_FUNCTION( 0x010000a,	FILE*,	FIO_CreateFileEx, const char* name );
 
 // stdio
+int vsnprintf(char* str, size_t n, const char* fmt, va_list ap ); // non-standard; don't export it
+
 OS_FUNCTION( 0x0200001,	size_t,	strlen, const char* str );
-OS_FUNCTION( 0x0200002,	int,	vsnprintf, char* str, size_t n, const char* fmt, va_list ap );
 OS_FUNCTION( 0x0200003,	int,	snprintf, char* str, size_t n, const char* fmt, ... );
 OS_FUNCTION( 0x0200004,	int,	strcmp, const char* s1, const char* s2 );
 OS_FUNCTION( 0x0200005,	long,	strtol, const char * str, char ** endptr, int base );
@@ -505,7 +506,6 @@ OS_FUNCTION( 0x0200010, void,	free_dma_memory, const void * ptr);
 OS_FUNCTION( 0x0200011, char*,	strstr, const char* str1, const char* str2);
 OS_FUNCTION( 0x0200012, char*,	strpbrk, const char* str1, const char* str2);
 OS_FUNCTION( 0x0200013, char*,	strchr, const char* str, int c);
-OS_FUNCTION( 0x0200014, int,	sprintf, char * str, const char * fmt, ...);
 OS_FUNCTION( 0x0200015, int,	memcmp, const void* s1, const void* s2,size_t n);
 OS_FUNCTION( 0x0200016, void *,	memchr, const void *s, int c, size_t n);
 OS_FUNCTION( 0x0200017, size_t,	strspn, const char *s1, const char *s2);
