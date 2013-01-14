@@ -493,7 +493,7 @@ bmp_hexdump(
     // Round up
     len = (len + 15) & ~15;
 
-    const uint32_t *d = (uint32_t*) buf;
+    uint32_t d = (uint32_t) buf;
 
     do {
         bmp_printf(

@@ -3646,3 +3646,185 @@ void EngDrvOut(int reg, int value)
     if (!DISPLAY_IS_ON) return; // these are normally used with display on; otherwise, they may lock-up the camera
     _EngDrvOut(reg, value);
 }
+
+/* snprintf(buf,max_len,"%30s : %08x <8 groups of 4 bits 1/0>",header,data,data)*/
+static uint32_t dump_data(char* buf, uint32_t max_len, char* header, uint32_t data) {
+        if (!buf || !header) return 0;
+#define SPACE10 "          "
+        //Note: %30s does not work
+        uint32_t len1 = snprintf(buf, max_len, SPACE10 SPACE10 SPACE10 " : %08X ", data);
+        for (uint32_t i = 0; i <= len1 && header[i]; i++) buf[i] = header[i];
+        buf += len1;
+        uint32_t len2 = snprintf(buf,max_len-len1,"XXXX,XXXX XXXX,XXXX XXXX,XXXX XXXX,XXXX\n");
+    for (int i = MIN(39-1,len2); i >= 0; i--) {
+        *(buf+i) = ((data & 0x1) != 0) ? '1' : '0';
+        data >>= 1;
+        if (((i)%5) == 0) i--;
+    }
+    return len1 + len2;
+}
+
+/* Dumps PSRs and coprocessor 15 to buf*/
+static uint32_t dump_cache(char* buf, uint32_t max_len) {
+        if (!buf) return 0;
+    uint32_t old_int;
+        uint32_t data;
+    asm __volatile__ (
+            "MRS %0, CPSR\n"
+            "ORR r1, %0, #0xC0\n" // set I flag to disable IRQ
+            "MSR CPSR_c, r1\n"
+            : "=r"(data) : : "r1"
+        );
+    old_int = data & 0xC0; // keep just the I flag
+        uint32_t len = 0;
+        // 20000013 - Supervisor mode. Thumb mode.
+    len += dump_data(buf+len, max_len-len, "CPSR", data);
+    asm __volatile__ ("MRS %0, SPSR" : "=r"(data));
+    // 00000093 - Supervisor mode. Thumb mode. IRQ disabled.
+    len += dump_data(buf+len, max_len-len, "SPSR", data);
+
+#define dump_MRC(op1, cIdx, cIdx2, op2, name) \
+                {asm volatile ("MRC p15, "#op1", %0, c"#cIdx", c"#cIdx2", "#op2 : "=r"(data)); \
+                len += dump_data(buf+len, max_len-len, #op1":c"#cIdx",c"#cIdx2":"#op2" "name, data);}
+
+        // Cache = I/D Cache
+        // TCM = Tightly Coupled Memory (small on-board memory)
+        // BIST = Built In Self Test
+        // Write Buffer != Cache.
+        // Values are read from a 550D
+/* General */
+        // 41059461 - ARM946. Rev 1. 5TE architecture.
+        dump_MRC(0,0,0,0, "ID");
+        // 0F112112 - Cache type: 4 way set associative. 8KB I/D Cache. 8 words / line
+        dump_MRC(0,0,0,1, "Cache Type");
+        // 000C00C0 - I/D TCM preset. 4KB each.
+        dump_MRC(0,0,0,2, "TCM Size");
+        // 0005107D - I/D TCM Enabled. I/D TCM Load mode Disabled.
+        // Load mode: At the same address: Reads from underlying memory. Writes to TCM.
+        // [15] Thumb state entry enabled from data loaded in to bit 0 of PC register.
+        // [14] Pseudo random cache replacement used.
+        // [13] Base address for exception vectors @ 0x00000000
+        // [12] ICache enable
+        // [7]  Little endian
+        // [2]  DCache enable
+        // [0]  Protection unit enabled
+        dump_MRC(0,1,0,0, "Control");
+
+/* Cache */
+        // 00000070 - I/D Cachable bit set for areas 4,5,6
+        dump_MRC(0,2,0,0, "DCache Cfg");
+        dump_MRC(0,2,0,1, "ICache Cfg");
+
+        // 00000070 - Write buffer enabled for areas 4,5,6
+        dump_MRC(0,3,0,0, "Wr Buf Ctl");
+        // Write Buffer is a 16 entry buffer (addr + [data chunks])
+        // Write back: (Cachable + Write Bufferable)
+        // Self modifying code in enabled areas should flush the write buffer
+        // Writes mark the cacheline as dirty but do not clean it
+        // Cleans use the write buffer
+        // Linefills cause the buffer to drain
+
+        // Write only. Read = 00000000
+        dump_MRC(0,7,5,0, "IC  Flush");
+        dump_MRC(0,7,5,1, "IC1 Flush");
+        dump_MRC(0,7,13,1,"IC Preftch");
+        dump_MRC(0,7,6,0, "DC  Flush");
+        dump_MRC(0,7,6,1, "DC1 Flush");
+        dump_MRC(0,7,10,1,"DC  Clean");
+        dump_MRC(0,7,14,1,"DC1 C/F");
+        dump_MRC(0,7,10,2,"DC1 Clean");
+        dump_MRC(0,7,14,2,"DC1 C/F");
+        dump_MRC(0,7,10,4,"Drain");
+        dump_MRC(0,7,0,4, "Sleep");
+        dump_MRC(0,15,8,2,"SleepOld");
+
+        dump_MRC(0,9,0,0, "DC Lock"); // 00000000 - Unused
+        dump_MRC(0,9,0,1, "IC Lock"); // 00000000 - Unused
+
+        // 00000000 - I/D cache streaming and linefill enabled
+        dump_MRC(0,15,0,0,"Test State");
+
+        // [31:30] Segment. [29:5] Zeros+Idx. [4:2] Word. [1:0] Zeros.
+        dump_MRC(3,15,0,0,"C Dbg Idx");
+        // [31:5] Tag+Idx. [4] Valid. [3:2] Dirty. [1:0] Set.
+        dump_MRC(3,15,1,0,"I TAG");
+        dump_MRC(3,15,2,0,"D TAG");
+        dump_MRC(3,15,3,0,"I Cache");
+        dump_MRC(3,15,4,0,"D Cache");
+
+/* TCM - Tightly Coupled Memory */
+        // 40000006 - D TCM located at 40000000 with a size of 4KB (no aliasing)
+        dump_MRC(0,9,1,0, "DTCM");
+        // 40000000 - I TCM located at 00000000 with a size of 4KB (no aliasing)
+        dump_MRC(0,9,1,1, "ITCM");
+
+/* Protection unit */
+        // I/D (Privileged + User) Read/Write Access for areas 0 to 6.
+        // No access for area 7.
+        // Protection check failure results in branch to Data Abort or Prefetch Abort.
+        dump_MRC(0,5,0,0, "AccPerm D");  // 00003FFF
+        dump_MRC(0,5,0,1, "AccPerm I");  // 00003FFF
+        dump_MRC(0,5,0,2, "AccPerm Dx"); // 03333333
+        dump_MRC(0,5,0,3, "AccPerm Ix"); // 03333333
+
+/* Memory Areas */
+        // Definition of areas 0 to 7. Base address, Size.
+        // Areas can overlap. Area 7 has the highest priority. Area 0 lowest.
+        dump_MRC(0,6,0,0, "Area 0"); // 0000003F - 00000000 - 4GB
+        dump_MRC(0,6,1,0, "Area 1"); // 0000003D - 00000000 - 2GB
+        dump_MRC(0,6,2,0, "Area 2"); // E0000039 - E0000000 - 512MB
+        dump_MRC(0,6,3,0, "Area 3"); // C0000039 - C0000000 - 512MB
+        dump_MRC(0,6,4,0, "Area 4"); // FF00002F - FF000000 - 16MB
+        dump_MRC(0,6,5,0, "Area 5"); // 00000039 - 00000000 - 512MB
+        dump_MRC(0,6,6,0, "Area 6"); // F780002D - F7800000 - 8MB
+        dump_MRC(0,6,7,0, "Area 7"); // 00000000 - Disabled
+
+/*BIST - Built In Self Test */
+        // 00100010 - BIST complete. (Invalid) size of 0.
+        dump_MRC(0,15,0,1,"TAG B Ctl");
+        // 00000000 - No BIST. (Invalid) size of 0.
+        dump_MRC(1,15,1,1,"TCM B Ctl");
+        // 00000000 - Cache RAM(CRM). No BIST. (Invalid) size of 0.
+        dump_MRC(2,15,1,1,"CRM B Ctl");
+        // (R)ead and (W)rite to control BIST operation.
+        // Operation depends on BIST Pause. 0 or 1.
+        // Address register:
+        //   R0+1: Fail addr. W0: Start addr. W1: peek/poke addr.
+        // General register:
+        //   R0: Fail data. R1: Peek data. W0: Seed data. W1: Poke data.
+        dump_MRC(0,15,0,2,"ITAG B Add"); // 00000000
+        dump_MRC(0,15,0,3,"ITAG B Gen"); // 00000000
+        dump_MRC(0,15,0,6,"DTAG B Add"); // 00000000
+        dump_MRC(0,15,0,7,"DTAG B Gen"); // 00000000
+        dump_MRC(1,15,0,2,"ITCM B Add"); // 00000000
+        dump_MRC(1,15,0,3,"ITCM B Gen"); // 00000000
+        dump_MRC(1,15,0,6,"DTCM B Add"); // 00000000
+        dump_MRC(1,15,0,7,"DTCM B Gen"); // 00000000
+        dump_MRC(2,15,0,2,"ICRM B Add"); // 00000000
+        dump_MRC(2,15,0,3,"ICRM B Gen"); // 00000000
+        dump_MRC(2,15,0,6,"DCRM B Add"); // 00000000
+        dump_MRC(2,15,0,7,"DCRM B Gen"); // 00000000
+
+/* Misc */
+        // 00000000 - Process ID - Unused
+        dump_MRC(0,13,0,1,"PID");
+        dump_MRC(0,13,1,1,"PID Old"); // alias
+
+        // 00000000 - nFIQ and nIRQ are not masked by a hardware trace.
+        dump_MRC(1,15,1,0,"Trace Ctrl");
+
+/* Debug communication channel - coprocessor 14*/
+/*#undef dump_MR
+#define dump_MRC(cIdx, name) \
+                {asm volatile ("MRC p14, 0, %0, c"#cIdx", c0" : "=r"(data)); \
+                len += dump_data(buf+len, max_len-len, "c"#cIdx" "name, data);}
+        // These cause a lock on my 550D
+        dump_MRC(0,"Dbg C Status");
+        dump_MRC(1,"Dbg C Read");
+        dump_MRC(2,"Dbg C Write"); // write only...
+        dump_MRC(3,"Dbg Status"); // bit 4 = debug from Thumb ? */
+
+#undef dump_MRC
+    sei(old_int);
+        return len;
+}
