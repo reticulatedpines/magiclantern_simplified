@@ -2216,20 +2216,43 @@ int draw_event = 0;
 #ifdef CONFIG_DEBUGMSG
 static void
 spy_print(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+          void *            priv,
+          int            x,
+          int            y,
+          int            selected
+          )
 {
     bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Spy %s/%s (s/q)",
-        draw_prop ? "PROP" : "prop",
-        mem_spy ? "MEM" : "mem"
-    );
+               selected ? MENU_FONT_SEL : MENU_FONT,
+               x, y,
+               "Spy %s/%s (s/q)",
+               draw_prop ? "PROP" : "prop",
+               mem_spy ? "MEM" : "mem"
+               );
     menu_draw_icon(x, y, MNI_BOOL(draw_prop || draw_event || mem_spy), 0);
+}
+
+static void
+lvbuf_display(
+              void *            priv,
+              int            x,
+              int            y,
+              int            selected
+              )
+{
+    bmp_printf(
+               selected ? MENU_FONT_SEL : MENU_FONT,
+               x, y,
+               "Dump Live View Buffers"
+               );
+}
+
+static void lvbuf_select()
+{
+    if (lv)
+        call("lv_vram_dump");
+    else
+        NotifyBox(3000, "Only Works In Live View!!!");
 }
 #endif
 
@@ -2827,10 +2850,16 @@ struct menu_entry debug_menus[] = {
     {
         .name = "PROP display",
         .display = prop_display,
-        .select = prop_toggle_k, 
+        .select = prop_toggle_k,
         .select_reverse = prop_toggle_j,
         .select_Q = prop_toggle_i,
         .help = "Raw property display (read-only)",
+    },
+    {
+        .name = "Dump LV Buffers",
+        .display = lvbuf_display,
+        .select = lvbuf_select,
+        .help = "Dumps 3 .422 files to card containing LV bufs in filename.",
     },
 #endif
 #ifdef FEATURE_SNAP_SIM
