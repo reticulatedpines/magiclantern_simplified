@@ -556,4 +556,65 @@ const char* get_dcim_dir();
 #define FMT_FIXEDPOINT3(x)  (x) < 0 ? "-" :                 "", ABS(x)/1000, ABS(x)%1000
 #define FMT_FIXEDPOINT3S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/1000, ABS(x)%1000
 
+
+
+
+
+/*********************************************************************
+ *
+ *  Controller struct, present in Digic5 cameras like the 5d3 and 6D.
+ *
+ *  Seems to be highly related to VRAM buffers, probably necessary
+ *  to understand this before we explore resizing / creating our
+ *  own buffers.
+ *
+ *********************************************************************/
+
+/*  Controllers created in 6D.112:
+ *
+ *       Name                   Address           Struct Size       Pointer
+ *  --------------------------------------------------------------------------
+ *      ENCODE_CON              0x1F9D4             0x1420          0x7742C
+ *      SsDevelopStage          0x20980             0x10            0x77458
+ *      VramStage               0x21838             0x80            0x7747C
+ *      AEWB_Controller         0x24EA4             0x1CC           unknown  <-- idk, it just returns the pointer caller (but, has no caller)
+ *      AF_Controller           0x321C8             0x18C           unknown
+ *      VRAM_CON                0x3AC74             0xC8            unknown
+ *      BUF_CON                 0x3BED0             0x1C            unknown
+ *      SSDEV_CON               0x411D8             0x220           unknown
+ *      VRAM_CON                0x42048             0x2B0           unknown
+ *      Color_Controller        0xFF24E3B8          0xC80           unkonwn
+ *      FLICK_CON               0xFF35AB00          0x10            unknown
+ *      REMOTE_CON              0xFF362F3C          0x2754          0x7A994
+ *      AFAE_Controller         0xFF4267E8          0xF0            unknown
+ *      ObInteg_Controller      0xFF426B48          0x6C            unknown
+ *      SceneJudge_Controller   0xFF4324F0          0xC             unknown
+ *
+ */
+
+struct Controller
+{
+    const char *                    name;                   //~ off_0x00    Name of controller.
+    int                             taskclass_ptr;          //~ off_0x04    Pointer to taskclass struct.
+    int                             stateobj_ptr;           //~ off_0x08    Pointer to state object, if no stateobj this is set to 1.
+    int                             off_0x0c;               //~ unknown
+    int                             jobqueue_ptr;           //~ off_0x10    Pointer to JobQueue.
+};
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
