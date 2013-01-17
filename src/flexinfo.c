@@ -37,90 +37,90 @@ info_elem_t info_config[] =
 
 #if defined(CONFIG_7D)
     /* print ISO range */
-    { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2 }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2, .name = "ISO Range" }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
 
     /* entry 2 and 3, WB strings */
-    { .string = { { INFO_TYPE_STRING, { WBS_POS_X - 10, WBS_POS_Y, 2 }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
-    { .string = { { INFO_TYPE_STRING, { WBS_POS_X + 60, WBS_POS_Y, 2 }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X - 10, WBS_POS_Y, 2, .name = "WB GM" }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X + 60, WBS_POS_Y, 2, .name = "WB BA" }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
     
     /* entry 4, battery_icon referenced as anchor */
-    { .battery_icon = { { INFO_TYPE_BATTERY_ICON, { DISPLAY_BATTERY_POS_X, DISPLAY_BATTERY_POS_Y, 2 }}, DISPLAY_BATTERY_LEVEL_2, DISPLAY_BATTERY_LEVEL_1 } },
+    { .battery_icon = { { INFO_TYPE_BATTERY_ICON, { DISPLAY_BATTERY_POS_X, DISPLAY_BATTERY_POS_Y, 2, .name = "Battery Icon" }}, DISPLAY_BATTERY_LEVEL_2, DISPLAY_BATTERY_LEVEL_1 } },
     { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { 100, 2, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, /* 0=vert,1=horizontal */ 0, /* x size */ 8, /* y size */ 8 } },
     { .string = { { INFO_TYPE_STRING, { 8, 3, 2, INFO_ANCHOR_HCENTER | INFO_ANCHOR_BOTTOM, 4, INFO_ANCHOR_HCENTER | INFO_ANCHOR_TOP }}, INFO_STRING_BATTERY_PCT, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
     { .string = { { INFO_TYPE_STRING, { -20, 2, 2, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, INFO_STRING_BATTERY_ID, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
 
     /* entry 8, MLU string */
-    { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2 }}, INFO_STRING_MLU, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2, .name = "MLU" }}, INFO_STRING_MLU, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
     
     /* entry 9, kelvin */
-    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2 }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
+    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2, .name = "Kelvin" }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
     
     /* entry 10, pictures */
-    { .fill = { { INFO_TYPE_FILL, { 540, 390, 1, 0, 0, 0, 150, 60 }}, INFO_COL_FIELD } },
-    { .string = { { INFO_TYPE_STRING, { 550, 402, 2 }}, INFO_STRING_PICTURES, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
+    { .fill = { { INFO_TYPE_FILL, { 540, 390, 1, 0, 0, 0, 150, 60, .name = "Pics (clear)" }}, INFO_COL_FIELD } },
+    { .string = { { INFO_TYPE_STRING, { 550, 402, 2, .name = "Pics" }}, INFO_STRING_PICTURES, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
 #endif
 
 #if defined(CONFIG_5D3)
     /* print ISO range */
-    { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2 }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2, .name = "ISO Range" }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
 
     /* entry 2 and 3, WB strings */
-    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2 }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
-    { .string = { { INFO_TYPE_STRING, { WBS_POS_X + 24, WBS_POS_Y, 2 }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2, .name = "WB GM" }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X + 24, WBS_POS_Y, 2, .name = "WB BA" }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
     
     /* entry 4, battery_icon referenced as anchor */
-    { .battery_icon = { { INFO_TYPE_BATTERY_ICON, { DISPLAY_BATTERY_POS_X, DISPLAY_BATTERY_POS_Y, 2 }}, DISPLAY_BATTERY_LEVEL_2, DISPLAY_BATTERY_LEVEL_1 } },
+    { .battery_icon = { { INFO_TYPE_BATTERY_ICON, { DISPLAY_BATTERY_POS_X, DISPLAY_BATTERY_POS_Y, 2, .name = "Battery Icon" }}, DISPLAY_BATTERY_LEVEL_2, DISPLAY_BATTERY_LEVEL_1 } },
     { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { 86, 2, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, /* 0=vert,1=horizontal */ 0, /* x size */ 8, /* y size */ 8 } },
     { .string = { { INFO_TYPE_STRING, { 8, 0, 2, INFO_ANCHOR_HCENTER | INFO_ANCHOR_BOTTOM, 4, INFO_ANCHOR_HCENTER | INFO_ANCHOR_TOP }}, INFO_STRING_BATTERY_PCT, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
     { .string = { { INFO_TYPE_STRING, { 4, 2, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 4 }}, INFO_STRING_BATTERY_ID, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_LARGE } },
 
     /* entry 8, MLU string */
-    { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2 }}, INFO_STRING_MLU, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2, .name = "MLU" }}, INFO_STRING_MLU, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
     
     /* entry 9, kelvin */
-    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2 }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
+    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2, .name = "Kelvin" }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
 
     /* entry 10, HDR bracketing status */
-    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2 }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2 .name = "HDR" }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
 #endif
 
 #if defined(CONFIG_60D)
     /* print ISO range */
-    { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2 }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2, .name = "ISO Range" }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
 
     /* entry 2 and 3, WB strings */
-    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2 }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
-    { .string = { { INFO_TYPE_STRING, { WBS_POS_X + 24, WBS_POS_Y, 2 }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2, .name = "WB GM" }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X + 24, WBS_POS_Y, 2, .name = "WB BA" }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
     
     /* entry 4, battery_icon referenced as anchor */
-    { .battery_icon = { { INFO_TYPE_BATTERY_ICON, { DISPLAY_BATTERY_POS_X, DISPLAY_BATTERY_POS_Y, 2 }}, DISPLAY_BATTERY_LEVEL_2, DISPLAY_BATTERY_LEVEL_1 } },
+    { .battery_icon = { { INFO_TYPE_BATTERY_ICON, { DISPLAY_BATTERY_POS_X, DISPLAY_BATTERY_POS_Y, 2, .name = "Battery Icon" }}, DISPLAY_BATTERY_LEVEL_2, DISPLAY_BATTERY_LEVEL_1 } },
     { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { 86, 2, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, /* 0=vert,1=horizontal */ 0, /* x size */ 8, /* y size */ 8 } },
     { .string = { { INFO_TYPE_STRING, { 8, 0, 2, INFO_ANCHOR_HCENTER | INFO_ANCHOR_BOTTOM, 4, INFO_ANCHOR_HCENTER | INFO_ANCHOR_TOP }}, INFO_STRING_BATTERY_PCT, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
     { .string = { { INFO_TYPE_STRING, { 4, 2, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 4 }}, INFO_STRING_BATTERY_ID, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_LARGE } },
 
     /* entry 8, MLU string */
-    { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2 }}, INFO_STRING_MLU, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2, .name = "MLU" }}, INFO_STRING_MLU, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
     
     /* entry 9, kelvin */
-    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2 }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
+    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2, .name = "Kelvin" }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
 
     /* entry 10, HDR bracketing status */
-    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2 }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2 .name = "HDR" }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
 #endif
 
 #if defined(CONFIG_1100D)
     /* print ISO range */
-    { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2 }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2, .name = "ISO Range" }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
 
     /* entry 2 and 3, WB strings */
-    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2 }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
-    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y + 22, 2 }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2, .name = "WB GM" }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y + 22, 2, .name = "WB BA" }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
  
     /* entry 4, kelvin */
-    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2 }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
+    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2, .name = "Kelvin" }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
 
     /* entry 5, HDR bracketing status */
-    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2 }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2, .name = "HDR" }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
 #endif
 
     { .type = INFO_TYPE_END },
@@ -430,62 +430,68 @@ uint32_t info_get_absolute(info_elem_t *config, info_elem_t *element)
     element->hdr.pos.abs_y = element->hdr.pos.y;
 
     /* if the element is relatively positioned to some other element, we have to look it up */
-
-    /* determine position from referenced element identified by 'anchor' and update pos_x, pos_y (they contain the offset) */
-    info_elem_t *anchor = &(config[element->hdr.pos.anchor]);
-
-    switch(element->hdr.pos.anchor_flags & INFO_ANCHOR_H_MASK)
+    if(element->hdr.pos.anchor != 0)
     {
-        case INFO_ANCHOR_LEFT:
-            element->hdr.pos.abs_x += anchor->hdr.pos.x;
-            break;
-        case INFO_ANCHOR_HCENTER:
-            element->hdr.pos.abs_x += anchor->hdr.pos.x + anchor->hdr.pos.w / 2;
-            break;
-        case INFO_ANCHOR_RIGHT:
-            element->hdr.pos.abs_x += anchor->hdr.pos.x + anchor->hdr.pos.w;
-            break;
-    }
+        /* determine position from referenced element identified by 'anchor' and update pos_x, pos_y (they contain the offset) */
+        info_elem_t *anchor = &(config[element->hdr.pos.anchor]);
+        
+        if(!element->hdr.pos.shown)
+        {
+            anchor->hdr.pos.shown = 0;
+        }
 
-    switch(element->hdr.pos.anchor_flags & INFO_ANCHOR_V_MASK)
-    {
-        case INFO_ANCHOR_TOP:
-            element->hdr.pos.abs_y += anchor->hdr.pos.y;
-            break;
-        case INFO_ANCHOR_VCENTER:
-            element->hdr.pos.abs_y += anchor->hdr.pos.y + anchor->hdr.pos.h / 2;
-            break;
-        case INFO_ANCHOR_BOTTOM:
-            element->hdr.pos.abs_y += anchor->hdr.pos.y + anchor->hdr.pos.h;
-            break;
-    }
+        switch(element->hdr.pos.anchor_flags & INFO_ANCHOR_H_MASK)
+        {
+            case INFO_ANCHOR_LEFT:
+                element->hdr.pos.abs_x += anchor->hdr.pos.x;
+                break;
+            case INFO_ANCHOR_HCENTER:
+                element->hdr.pos.abs_x += anchor->hdr.pos.x + anchor->hdr.pos.w / 2;
+                break;
+            case INFO_ANCHOR_RIGHT:
+                element->hdr.pos.abs_x += anchor->hdr.pos.x + anchor->hdr.pos.w;
+                break;
+        }
 
-    switch(element->hdr.pos.anchor_flags_self & INFO_ANCHOR_H_MASK)
-    {
-        case INFO_ANCHOR_LEFT:
-            element->hdr.pos.abs_x += 0;
-            break;
-        case INFO_ANCHOR_HCENTER:
-            element->hdr.pos.abs_x += -element->hdr.pos.w / 2;
-            break;
-        case INFO_ANCHOR_RIGHT:
-            element->hdr.pos.abs_x += -element->hdr.pos.w;
-            break;
-    }
+        switch(element->hdr.pos.anchor_flags & INFO_ANCHOR_V_MASK)
+        {
+            case INFO_ANCHOR_TOP:
+                element->hdr.pos.abs_y += anchor->hdr.pos.y;
+                break;
+            case INFO_ANCHOR_VCENTER:
+                element->hdr.pos.abs_y += anchor->hdr.pos.y + anchor->hdr.pos.h / 2;
+                break;
+            case INFO_ANCHOR_BOTTOM:
+                element->hdr.pos.abs_y += anchor->hdr.pos.y + anchor->hdr.pos.h;
+                break;
+        }
 
-    switch(element->hdr.pos.anchor_flags_self & INFO_ANCHOR_V_MASK)
-    {
-        case INFO_ANCHOR_TOP:
-            element->hdr.pos.abs_y += 0;
-            break;
-        case INFO_ANCHOR_VCENTER:
-            element->hdr.pos.abs_y += -element->hdr.pos.h / 2;
-            break;
-        case INFO_ANCHOR_BOTTOM:
-            element->hdr.pos.abs_y += -element->hdr.pos.h;
-            break;
+        switch(element->hdr.pos.anchor_flags_self & INFO_ANCHOR_H_MASK)
+        {
+            case INFO_ANCHOR_LEFT:
+                element->hdr.pos.abs_x += 0;
+                break;
+            case INFO_ANCHOR_HCENTER:
+                element->hdr.pos.abs_x += -element->hdr.pos.w / 2;
+                break;
+            case INFO_ANCHOR_RIGHT:
+                element->hdr.pos.abs_x += -element->hdr.pos.w;
+                break;
+        }
+
+        switch(element->hdr.pos.anchor_flags_self & INFO_ANCHOR_V_MASK)
+        {
+            case INFO_ANCHOR_TOP:
+                element->hdr.pos.abs_y += 0;
+                break;
+            case INFO_ANCHOR_VCENTER:
+                element->hdr.pos.abs_y += -element->hdr.pos.h / 2;
+                break;
+            case INFO_ANCHOR_BOTTOM:
+                element->hdr.pos.abs_y += -element->hdr.pos.h;
+                break;
+        }
     }
-    
     return 0;
 }
 
@@ -496,14 +502,21 @@ uint32_t info_print_string(info_elem_t *config, info_elem_string_t *element, uin
     
     /* get absolute position of this element */
     info_get_absolute(config, (info_elem_t *)element);
+    
     int pos_x = element->hdr.pos.abs_x;
     int pos_y = element->hdr.pos.abs_y;
 
+    /* nothing to show? mark as not shown */
     if(info_get_string(str, BUF_SIZE, element->string_type))
     {
         element->hdr.pos.shown = 0;
+    }
+
+    /* anchor not shown or nothing to print */
+    if(!element->hdr.pos.shown)
+    {
         return 1;
-    }    
+    }
 
     /* update the width/height */
     info_measure_string(str, element->font_type, &element->hdr.pos.w, &element->hdr.pos.h);
@@ -578,6 +591,12 @@ uint32_t info_print_fill(info_elem_t *config, info_elem_fill_t *element, uint32_
 {
     /* get absolute position of this element */
     info_get_absolute(config, (info_elem_t *)element);
+    
+    /* anchor not shown or nothing to print */
+    if(!element->hdr.pos.shown)
+    {
+        return 1;
+    }
 
     bmp_fill(element->color, element->hdr.pos.abs_x, element->hdr.pos.abs_y, element->hdr.pos.w, element->hdr.pos.h);
     return 0;
@@ -585,6 +604,15 @@ uint32_t info_print_fill(info_elem_t *config, info_elem_fill_t *element, uint32_
 
 uint32_t info_print_icon(info_elem_t *config, info_elem_icon_t *element, uint32_t run_type)
 {
+    /* get absolute position of this element */
+    info_get_absolute(config, (info_elem_t *)element);
+    
+    /* anchor not shown or nothing to print */
+    if(!element->hdr.pos.shown)
+    {
+        return 1;
+    }
+    
     return 0;
 }
 
@@ -592,6 +620,12 @@ uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *
 {
     /* get absolute position of this element */
     info_get_absolute(config, (info_elem_t *)element);
+    
+    /* anchor not shown or nothing to print */
+    if(!element->hdr.pos.shown)
+    {
+        return 1;
+    }
 
     int pos_x = element->hdr.pos.abs_x;
     int pos_y = element->hdr.pos.abs_y;
@@ -637,6 +671,12 @@ uint32_t info_print_battery_icon(info_elem_t *config, info_elem_battery_icon_t *
 {
     /* get absolute position of this element */
     info_get_absolute(config, (info_elem_t *)element);
+    
+    /* anchor not shown or nothing to print */
+    if(!element->hdr.pos.shown)
+    {
+        return 1;
+    }
 
     element->hdr.pos.w = 96;
     element->hdr.pos.h = 32;
@@ -733,6 +773,60 @@ uint32_t info_print_element(info_elem_t *config, info_elem_t *element, uint32_t 
     return 1;
 }
 
+uint32_t info_checksum_element(info_elem_t *config)
+{
+    uint32_t checksum = 0x234AE10A;
+    
+    for(int y_pos = 0; y_pos < config->hdr.pos.h; y_pos++)
+    {
+        for(int x_pos = 0; x_pos < config->hdr.pos.w; x_pos++)
+        {
+            uint32_t value = bmp_getpixel(config->hdr.pos.abs_x + x_pos, config->hdr.pos.abs_x + y_pos);
+            checksum ^= value;
+            checksum += value;
+            checksum = (checksum >> 31) | (checksum << 1);
+        }
+    }
+    
+    return checksum;
+}
+
+uint32_t info_update_element_checksum(info_elem_t *config)
+{
+    config->hdr.pos.checksum = info_checksum_element(config);
+    return 0;
+}
+
+uint32_t info_update_checkums(info_elem_t *config)
+{
+    uint32_t pos = 1;
+    
+    while(config[pos].type != INFO_TYPE_END)
+    { 
+        info_checksum_element(&(config[pos]));
+        pos++;
+    }
+    
+    return 0;
+}
+
+uint32_t info_checkums_valid(info_elem_t *config)
+{
+    uint32_t ret = 1;
+    uint32_t pos = 1;
+    
+    while(config[pos].type != INFO_TYPE_END)
+    { 
+        if(info_checksum_element(&(config[pos])) != config[pos].hdr.pos.checksum)
+        {
+            ret = 0;
+        }
+        pos++;
+    }
+    
+    return ret;
+}
+
 uint32_t info_print_config(info_elem_t *config)
 {
     uint32_t pos = 1;
@@ -740,15 +834,15 @@ uint32_t info_print_config(info_elem_t *config)
 
     while(config[pos].type != INFO_TYPE_END)
     {
-        /* by default nothing is shown, so reset all shown flags */
-        config[pos].hdr.pos.shown = 0;
+        /* by default all are set as shown */
+        config[pos].hdr.pos.shown = 1;
         pos++;
     }
     
     pos = 1;
     while(config[pos].type != INFO_TYPE_END)
     { 
-        /* but let check if the element should get shown. this updates above flag and ensures that lower layers are only drawn if the referenced is shown */
+        /* but check if the elements are invisible. this updates above flag and ensures that elements are only drawn if the anchor (that must come first) is shown */
         info_print_element(config, &(config[pos]), INFO_PRERUN);
         pos++;
     }
@@ -763,6 +857,13 @@ uint32_t info_print_config(info_elem_t *config)
             {
                 info_print_element(config, &(config[pos]), INFO_PRINT);
                 
+                /* if it was shown, update redraw counter */
+                if(config[pos].hdr.pos.shown)
+                {
+                    config[pos].hdr.pos.redraws++;
+                }
+                
+                /* paint border around item and some label when the item was selected */
                 if(config[0].config.show_boundaries || config[0].config.selected_item == pos || config[0].config.anchor_target == pos)
                 {
                     int color = COLOR_RED;
@@ -791,6 +892,34 @@ uint32_t info_print_config(info_elem_t *config)
                     {
                         bmp_fill(color,config[pos].hdr.pos.abs_x,config[pos].hdr.pos.abs_y,8,8);
                     }
+                    
+                    /* now put the title bar */
+                    char buf[32];
+                    int offset = 0;
+                    int font_height = fontspec_font(FONT_SMALL)->height;
+                    
+                    /* position properly when the item is at some border */
+                    if(font_height > config[pos].hdr.pos.abs_y)
+                    {
+                        offset = config[pos].hdr.pos.h;
+                    }
+                    else
+                    {
+                        offset = -font_height;
+                    }
+                    
+                    /* any name to print? */
+                    if(strlen(config[pos].hdr.pos.name) > 0)
+                    {
+                        snprintf(buf, sizeof(buf), "%s: %d draws", config[pos].hdr.pos.name, config[pos].hdr.pos.redraws);
+                    }
+                    else
+                    {
+                        snprintf(buf, sizeof(buf), "%d draws", config[pos].hdr.pos.redraws);
+                    }
+                    
+                    int fnt = FONT(FONT_SMALL, COLOR_WHITE, color);
+                    bmp_printf(fnt, COERCE(config[pos].hdr.pos.abs_x, 0, 720), COERCE(config[pos].hdr.pos.abs_y + offset, 0, 480), buf);
                 }
             }
             pos++;
@@ -806,6 +935,7 @@ uint32_t info_print_screen()
 {
     return info_print_config(info_config);
 }
+
 
 #ifdef FLEXINFO_DEVELOPER_MENU
 
@@ -1133,7 +1263,7 @@ static void info_edit_task()
 {
     TASK_LOOP
     {
-        if (info_config[0].config.selected_item || info_config[0].config.show_boundaries)
+        if (gui_menu_shown() && (info_config[0].config.selected_item || info_config[0].config.show_boundaries))
         {
             info_print_config(info_config);
             msleep(50);
