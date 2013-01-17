@@ -81,7 +81,7 @@ info_elem_t info_config[] =
     { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2, .name = "Kelvin" }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
 
     /* entry 10, HDR bracketing status */
-    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2 .name = "HDR" }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2, .name = "HDR" }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
 #endif
 
 #if defined(CONFIG_60D)
@@ -911,15 +911,10 @@ uint32_t info_print_config(info_elem_t *config)
                     /* any name to print? */
                     if(strlen(config[pos].hdr.pos.name) > 0)
                     {
-                        snprintf(buf, sizeof(buf), "%s: %d draws", config[pos].hdr.pos.name, config[pos].hdr.pos.redraws);
+                        snprintf(buf, sizeof(buf), "%s", config[pos].hdr.pos.name);
+                        int fnt = FONT(FONT_SMALL, COLOR_WHITE, color);
+                        bmp_printf(fnt, COERCE(config[pos].hdr.pos.abs_x, 0, 720), COERCE(config[pos].hdr.pos.abs_y + offset, 0, 480), buf);
                     }
-                    else
-                    {
-                        snprintf(buf, sizeof(buf), "%d draws", config[pos].hdr.pos.redraws);
-                    }
-                    
-                    int fnt = FONT(FONT_SMALL, COLOR_WHITE, color);
-                    bmp_printf(fnt, COERCE(config[pos].hdr.pos.abs_x, 0, 720), COERCE(config[pos].hdr.pos.abs_y + offset, 0, 480), buf);
                 }
             }
             pos++;
@@ -977,7 +972,7 @@ void info_menu_item_display(void *priv, int x, int y, int selected)
     }
     else
     {
-        bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT, x, y, menu_line);
+        bmp_printf(MENU_FONT, x, y, menu_line);
     }
 }
 
@@ -1034,7 +1029,7 @@ void info_menu_item_posx_display(void *priv, int x, int y, int selected)
     }
     else
     {
-        bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT, x, y, menu_line);
+        bmp_printf(MENU_FONT, x, y, menu_line);
     }
 }
 
@@ -1058,7 +1053,7 @@ void info_menu_item_posy_display(void *priv, int x, int y, int selected)
     }
     else
     {
-        bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT, x, y, menu_line);
+        bmp_printf(MENU_FONT, x, y, menu_line);
     }
 }
 
@@ -1082,7 +1077,7 @@ void info_menu_item_posz_display(void *priv, int x, int y, int selected)
     }
     else
     {
-        bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT, x, y, menu_line);
+        bmp_printf(MENU_FONT, x, y, menu_line);
     }
     
 }
@@ -1130,7 +1125,7 @@ void info_menu_item_anchor_display(void *priv, int x, int y, int selected)
     }
     else
     {
-        bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT, x, y, menu_line);
+        bmp_printf(MENU_FONT, x, y, menu_line);
     }
 }
 
@@ -1172,7 +1167,7 @@ void info_menu_item_anchor_item_display(void *priv, int x, int y, int selected)
     }
     else
     {
-        bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT, x, y, menu_line);
+        bmp_printf(MENU_FONT, x, y, menu_line);
     }
 }
 
@@ -1217,7 +1212,7 @@ void info_menu_item_anchor_self_display(void *priv, int x, int y, int selected)
     }
     else
     {
-        bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT, x, y, menu_line);
+        bmp_printf(MENU_FONT, x, y, menu_line);
     }
     
 }
@@ -1236,7 +1231,7 @@ void info_menu_reset_display(void *priv, int x, int y, int selected)
     {
         uint32_t font_type = FONT_MED;
         uint32_t menu_x = 12;
-        uint32_t menu_y = 12;
+        uint32_t menu_y = 14;
         uint32_t width = fontspec_font(font_type)->width * strlen(info_current_menu);
         uint32_t height = fontspec_font(font_type)->height;
 
@@ -1250,7 +1245,7 @@ void info_menu_reset_display(void *priv, int x, int y, int selected)
         
         /* title */
         int fnt = FONT(FONT_SMALL, COLOR_BLACK, COLOR_WHITE);
-        bmp_printf(fnt, menu_x, menu_y - fontspec_font(FONT_SMALL)->height, "Current Menu:");
+        bmp_printf(fnt, menu_x, menu_y - fontspec_font(FONT_SMALL)->height - 2, "Current Menu:");
 
         fnt = FONT(font_type, COLOR_WHITE, COLOR_GREEN1);
         bmp_printf(fnt, menu_x, menu_y, info_current_menu);
@@ -1260,7 +1255,7 @@ void info_menu_reset_display(void *priv, int x, int y, int selected)
     }
     else
     {
-        bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT, x, y, "Reset setup");
+        bmp_printf(MENU_FONT, x, y, "Reset setup");
     }
 }
 
@@ -1280,7 +1275,7 @@ static struct menu_entry info_menus[] = {
                 .name = "Selected item",
                 .priv = info_config,
                 .min = 0,
-                .max = COUNT(info_config),
+                .max = COUNT(info_config) - 1,
                 .select = info_menu_item_select,
                 .display = info_menu_item_display,
                 .help = "Select a specific element for editing.",
