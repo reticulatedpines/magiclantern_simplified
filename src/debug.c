@@ -2250,9 +2250,15 @@ lvbuf_display(
 static void lvbuf_select()
 {
     if (lv)
+    {
         call("lv_vram_dump");
+        call("lv_ssdev_dump");
+        //~ call("lv_yuv_dump");
+        //~ call("lv_raw_dump2");
+        //~ call("lv_faceyuv_dump");
+    }
     else
-        NotifyBox(3000, "Only Works In Live View!!!");
+        NotifyBox(5000, "Only Works In Live View!!!");
 }
 #endif
 
@@ -2859,7 +2865,7 @@ struct menu_entry debug_menus[] = {
         .name = "Dump LV Buffers",
         .display = lvbuf_display,
         .select = lvbuf_select,
-        .help = "Dumps 3 .422 files to card containing LV bufs in filename.",
+        .help = "Dump .422 files containing LV/HD buf addrs in filenames.",
     },
 #endif
 #ifdef FEATURE_SNAP_SIM
