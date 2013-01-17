@@ -939,7 +939,6 @@ uint32_t info_print_screen()
 
 #ifdef FLEXINFO_DEVELOPER_MENU
 
-char menu_line[64];
 char info_current_menu[64];
 
 void info_menu_item_select(void* priv, int delta)
@@ -960,6 +959,7 @@ void info_menu_item_select(void* priv, int delta)
 
 void info_menu_item_display(void *priv, int x, int y, int selected)
 {
+    char menu_line[64];
     info_elem_t *config = (info_elem_t *)priv;
     
     if(config[0].config.selected_item)
@@ -973,7 +973,7 @@ void info_menu_item_display(void *priv, int x, int y, int selected)
     
     if(selected && config[0].config.selected_item)
     {
-        strncpy(info_current_menu, menu_line, sizeof(info_current_menu));
+        strcpy(info_current_menu, menu_line);
     }
     else
     {
@@ -1016,6 +1016,7 @@ void info_menu_item_posz_select(void* priv, int delta)
 
 void info_menu_item_posx_display(void *priv, int x, int y, int selected)
 {
+    char menu_line[64];
     info_elem_t *config = (info_elem_t *)priv;
     
     if(config[0].config.selected_item)
@@ -1029,7 +1030,7 @@ void info_menu_item_posx_display(void *priv, int x, int y, int selected)
     
     if(selected && config[0].config.selected_item)
     {
-        strncpy(info_current_menu, menu_line, sizeof(info_current_menu));
+        strcpy(info_current_menu, menu_line);
     }
     else
     {
@@ -1039,6 +1040,7 @@ void info_menu_item_posx_display(void *priv, int x, int y, int selected)
 
 void info_menu_item_posy_display(void *priv, int x, int y, int selected)
 {
+    char menu_line[64];
     info_elem_t *config = (info_elem_t *)priv;
     
     if(config[0].config.selected_item)
@@ -1052,7 +1054,7 @@ void info_menu_item_posy_display(void *priv, int x, int y, int selected)
     
     if(selected && config[0].config.selected_item)
     {
-        strncpy(info_current_menu, menu_line, sizeof(info_current_menu));
+        strcpy(info_current_menu, menu_line);
     }
     else
     {
@@ -1062,6 +1064,7 @@ void info_menu_item_posy_display(void *priv, int x, int y, int selected)
 
 void info_menu_item_posz_display(void *priv, int x, int y, int selected)
 {
+    char menu_line[64];
     info_elem_t *config = (info_elem_t *)priv;
     
     if(config[0].config.selected_item)
@@ -1075,7 +1078,7 @@ void info_menu_item_posz_display(void *priv, int x, int y, int selected)
     
     if(selected && config[0].config.selected_item)
     {
-        strncpy(info_current_menu, menu_line, sizeof(info_current_menu));
+        strcpy(info_current_menu, menu_line);
     }
     else
     {
@@ -1100,6 +1103,7 @@ void info_menu_item_anchor_select(void* priv, int delta)
 
 void info_menu_item_anchor_display(void *priv, int x, int y, int selected)
 {
+    char menu_line[64];
     info_elem_t *config = (info_elem_t *)priv;
     const char *text[] = {
         "Absolute",
@@ -1122,7 +1126,7 @@ void info_menu_item_anchor_display(void *priv, int x, int y, int selected)
     
     if(selected && config[0].config.selected_item)
     {
-        strncpy(info_current_menu, menu_line, sizeof(info_current_menu));
+        strcpy(info_current_menu, menu_line);
     }
     else
     {
@@ -1149,6 +1153,7 @@ void info_menu_item_anchor_item_select(void* priv, int delta)
 
 void info_menu_item_anchor_item_display(void *priv, int x, int y, int selected)
 {
+    char menu_line[64];
     info_elem_t *config = (info_elem_t *)priv;
     info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
     
@@ -1163,7 +1168,7 @@ void info_menu_item_anchor_item_display(void *priv, int x, int y, int selected)
     
     if(selected && config[0].config.selected_item)
     {
-        strncpy(info_current_menu, menu_line, sizeof(info_current_menu));
+        strcpy(info_current_menu, menu_line);
     }
     else
     {
@@ -1185,6 +1190,7 @@ void info_menu_item_anchor_self_select(void* priv, int delta)
 
 void info_menu_item_anchor_self_display(void *priv, int x, int y, int selected)
 {
+    char menu_line[64];
     info_elem_t *config = (info_elem_t *)priv;
     const char *text[] = {
         "Absolute",
@@ -1207,7 +1213,7 @@ void info_menu_item_anchor_self_display(void *priv, int x, int y, int selected)
     
     if(selected && config[0].config.selected_item)
     {
-        strncpy(info_current_menu, menu_line, sizeof(info_current_menu));
+        strcpy(info_current_menu, menu_line);
     }
     else
     {
