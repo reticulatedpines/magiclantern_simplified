@@ -13,7 +13,7 @@ int console_printf(const char* fmt, ...); // how to replace the normal printf?
 #define printf console_printf
 
 #define CONSOLE_W 58
-#define CONSOLE_H 15
+#define CONSOLE_H 22
 #define CONSOLE_FONT FONT_MED
 
 // buffer is circular and filled with spaces
@@ -39,7 +39,7 @@ void console_hide()
 {
     console_visible = 0;
     msleep(100);
-    redraw();
+    canon_gui_enable_front_buffer(1);
 
     #ifdef CONSOLE_DEBUG
     FIO_CloseFile(console_log_file);
@@ -192,6 +192,8 @@ void console_draw()
         console_puts_buffer[i] = found_cursor ? ' ' : console_buffer[cbpos];
     }
     console_puts_buffer[BUFSIZE] = 0;
+    
+    canon_gui_disable_front_buffer();
     int xa = (x0 & ~3) - 1;
     int ya = (y0-1);
     int w = fontspec_font(CONSOLE_FONT)->width * CONSOLE_W + 2;
