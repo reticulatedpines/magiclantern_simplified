@@ -5195,7 +5195,7 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name   = "Normal MLU Delay",
                 .priv   = &lens_mlu_delay,
-                .min    = 1,
+                .min    = 5,
                 .max    = 11,
                 .icon_type = IT_PERCENT,
                 .choices = (const char *[]) {"0", "0.1s", "0.2s", "0.3s", "0.4s", "0.5s", "0.75s", "1s", "2s", "3s", "4s", "5s"},
@@ -6444,8 +6444,8 @@ void hdr_shot(int skip0, int wait)
 int remote_shot_flag = 0;
 void schedule_remote_shot() { remote_shot_flag = 1; }
 
-static int mlu_lock_flag = 0;
-void schedule_mlu_lock() { mlu_lock_flag = 1; }
+//~ static int mlu_lock_flag = 0;
+//~ void schedule_mlu_lock() { mlu_lock_flag = 1; }
 
 static int movie_start_flag = 0;
 void schedule_movie_start() { movie_start_flag = 1; }
@@ -6692,6 +6692,7 @@ PROP_HANDLER(PROP_DRIVE)
 
 static void mlu_step()
 {
+    if (lv) return;
 
 #ifdef FEATURE_MLU_DIRECT_PRINT_SHORTCUT
     int mlu = get_mlu();
@@ -6943,13 +6944,13 @@ shoot_task( void* unused )
             remote_shot(1);
             remote_shot_flag = 0;
         }
-        #ifdef CONFIG_MLU
-        if (mlu_lock_flag)
-        {
-            mlu_lock_mirror_if_needed();
-            mlu_lock_flag = 0;
-        }
-        #endif
+        //~ #ifdef CONFIG_MLU
+        //~ if (mlu_lock_flag)
+        //~ {
+            //~ mlu_lock_mirror_if_needed();
+            //~ mlu_lock_flag = 0;
+        //~ }
+        //~ #endif
         #ifdef CONFIG_MOVIE
         if (movie_start_flag)
         {
