@@ -978,6 +978,29 @@ void smooth_iso_step()
             altered_iso -= 8;
             gf *= 2;
         }
+        
+        #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
+        // if ISO should go under 100, try a faster shutter speed
+                
+        int current_shutter = FRAME_SHUTTER_TIMER;
+        int altered_shutter = current_shutter;
+        while (G_ADJ < 861)
+        {
+            altered_shutter = MAX(2, altered_shutter / 2);
+            gf *= 2;
+        }
+        if (altered_shutter != current_shutter)
+        {
+            FRAME_SHUTTER_TIMER = altered_shutter;
+        }
+
+        // fix imperfect sync
+        static int prev_altered_shutter = 0;
+        if (prev_altered_shutter && prev_altered_shutter != altered_shutter)
+            gf = gf * altered_shutter / prev_altered_shutter;
+        prev_altered_shutter = altered_shutter;
+
+        #endif
 
         if (altered_iso != current_iso)
         {
