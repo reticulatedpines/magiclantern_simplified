@@ -506,24 +506,24 @@ bmp_hexdump(
             "%08x: %08x %08x %08x %08x %08x %08x %08x %08x : %04x",
             #endif
             (uint32_t) d,
-            len >  0 ? MEMX(d+0) : 0,
-            len >  4 ? MEMX(d+1) : 0,
-            len >  8 ? MEMX(d+2) : 0,
-            len > 12 ? MEMX(d+3) : 0,
+            len >  0 ? MEMX(d+0x00) : 0,
+            len >  4 ? MEMX(d+0x04) : 0,
+            len >  8 ? MEMX(d+0x08) : 0,
+            len > 12 ? MEMX(d+0x0C) : 0,
             #ifndef CONFIG_VXWORKS
-            len > 16 ? MEMX(d+4) : 0,
-            len > 20 ? MEMX(d+5) : 0,
-            len > 24 ? MEMX(d+6) : 0,
-            len > 28 ? MEMX(d+7) : 0,
+            len > 16 ? MEMX(d+0x10) : 0,
+            len > 20 ? MEMX(d+0x14) : 0,
+            len > 24 ? MEMX(d+0x18) : 0,
+            len > 28 ? MEMX(d+0x1C) : 0,
             #endif
             (void*)d - (void*)buf
         );
         y += fontspec_height( fontspec );
         #ifdef CONFIG_VXWORKS
-        d += 4;
+        d += 16;
         len -= 16;
         #else
-        d += 8;
+        d += 32;
         len -= 32;
         #endif
     } while(len > 0);
