@@ -107,7 +107,25 @@ info_elem_t info_config[] =
     /* entry 10, HDR bracketing status */
     { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2 }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
 #endif
-
+    
+#if defined(CONFIG_600D)
+    /* entry 1, max AUTO ISO */
+    { .string = { { INFO_TYPE_STRING, { MAX_ISO_POS_X, MAX_ISO_POS_Y, 2 }}, INFO_STRING_ISO_MAX, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    
+    /* entry 2 and 3, WB strings */
+    { .string = { { INFO_TYPE_STRING, { WBS_GM_POS_X, WBS_GM_POS_Y, 2 }}, INFO_STRING_WBS_GM, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2 }}, INFO_STRING_WBS_BA, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+      
+    /* entry 4, MLU string */
+    { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2 }}, INFO_STRING_MLU, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_SMALL } },
+    
+    /* entry 5, kelvin */
+    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2 }}, INFO_STRING_KELVIN, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
+    
+    /* entry 6, HDR bracketing status */
+    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2 }}, INFO_STRING_HDR, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+#endif
+    
 #if defined(CONFIG_1100D)
     /* print ISO range */
     { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2 }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
