@@ -27,27 +27,6 @@ uint32_t bitrate_gop_size = 12;
 #endif
 
 static void
-bitrate_cache_hacks_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Video hacks   : %s", 
-               bitrate_cache_hacks ? "ON" : "OFF"
-               );
-
-#if defined(CONFIG_7D)
-    if(!ml_rpc_available())
-    {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Master DIGiC hacks not available in this release.");
-    }
-    else
-#endif
-    {
-        menu_draw_icon(x, y, MNI_ON, 0);
-    }
-}
-
-static void
 bitrate_flushing_rate_display( void * priv, int x, int y, int selected )
 {
     bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
@@ -132,6 +111,8 @@ video_hack_task( void* unused )
                     ml_rpc_send(ML_RPC_CACHE_HACK, CACHE_HACK_GOP_SIZE_MASTER, 0xE3A01000 | (bitrate_gop_size & 0xFF), TYPE_ICACHE, 2);
 #endif
                     /* make sure canon sound is disabled */
+                    // todo: enable it back, as in fps-engio.c
+                    // this code won't work on 5D2 and 50D
                     int mode  = 1;
                     prop_request_change(PROP_MOVIE_SOUND_RECORD, &mode, 4);
                     NotifyBox(2000,"Canon sound disabled");
@@ -167,16 +148,10 @@ video_hack_task( void* unused )
 static struct menu_entry video_hack_menus[] = {
     {
         .name = "Video Hacks",
-        .help = "Change video recording characteristics. Be careful!",
-        .select = menu_open_submenu,
+        .priv = &bitrate_cache_hacks,
+        .max  = 1,
+        .help = "Experimental hacks: flush rate, GOP size. Be careful!",
         .children =  (struct menu_entry[]) {
-            {
-                .name = "Enable",
-                .priv = &bitrate_cache_hacks,
-                .display = bitrate_cache_hacks_display,
-                .max  = 1,
-                .help = "Enable experimental hacks through cache hacks."
-            },
             {
                 .name = "Flush rate",
                 .priv = &bitrate_flushing_rate,

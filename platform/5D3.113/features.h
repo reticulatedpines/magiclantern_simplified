@@ -17,4 +17,4 @@
 //~ #define FEATURE_REMEMBER_LAST_ZOOM_POS_5D3 // too many conflicts with other features
 #undef FEATURE_IMAGE_POSITION
 
-#define FEATURE_VIDEO_HACKS
+//~ #define FEATURE_VIDEO_HACKS
