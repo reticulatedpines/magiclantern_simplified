@@ -3769,7 +3769,7 @@ static int bramp_set_display_gain_and_measure_luma(int gain)
         flip_zoom();
         msleep(1000);
     }
-    msleep(500);
+    msleep(1000);
     return bramp_measure_luma(0);
 }
 
@@ -4022,7 +4022,7 @@ void bulb_ramping_init()
                 gain0 < 150 ? "too bright" : 
                 "not static"
             ); 
-            
+            msleep(500);
             goto calib_start;
         }
         
@@ -7502,10 +7502,7 @@ shoot_task( void* unused )
                 }
 
                 #ifdef FEATURE_BULB_RAMPING
-                if (bulb_ramping_enabled)
-                {
-                    bulb_ramping_init();
-                }
+                if (bulb_ramping_enabled) bulb_ramping_init();
                 #endif
             }
 
@@ -7571,6 +7568,7 @@ shoot_task( void* unused )
             #ifdef FEATURE_BULB_RAMPING
             if (bulb_ramping_enabled)
             {
+                bulb_ramping_init(); // just in case
                 compute_exposure_for_next_shot();
             }
             #endif
