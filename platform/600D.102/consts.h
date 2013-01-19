@@ -269,3 +269,7 @@
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x172c8
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+
+// for bulb ramping calibration: delay between two exposure readings (increase it if brightness updates slowly)
+// if not defined, default is 500
+#define BRAMP_CALIBRATION_DELAY 1000

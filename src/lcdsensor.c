@@ -51,7 +51,7 @@ lcd_release_display( void * priv, int x, int y, int selected )
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "LCDsensor Remote: %s",
-        v == 1 ? "Near" : v == 2 ? (get_mlu() ? "Away/MLU" : "Away") : v == 3 ? "Wave" : "OFF"
+        v == 1 ? "Near" : v == 2 ? "Away" : v == 3 ? "Wave" : "OFF"
     );
     if (v) display_lcd_remote_icon(x-25, y+5);
     menu_draw_icon(x, y, v ? MNI_NONE : MNI_OFF, 0);
@@ -93,11 +93,6 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
     {
         if (gui_menu_shown()) return;
         if (lcd_release_running == 1 && off) return;
-        if (lcd_release_running == 2 && on )
-        {
-            if (get_mlu()) schedule_mlu_lock();
-            return;
-        }
         if (lcd_release_running == 3) { wave_count++; wave_count_countdown = 50; }
         if (lcd_release_running == 3 && wave_count < 5) return;
 
