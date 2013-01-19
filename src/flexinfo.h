@@ -34,9 +34,12 @@ typedef struct
     int32_t w;
     int32_t h;
     uint32_t user_disable;
+    char name[16];
     int32_t abs_x;
     int32_t abs_y;
     uint32_t shown;
+    uint32_t checksum;
+    uint32_t redraws;
 } info_elem_pos_t;
 
 

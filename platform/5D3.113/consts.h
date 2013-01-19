@@ -11,6 +11,11 @@
 #define HIJACK_INSTR_MY_ITASK 0xff0c1cc4
 #define HIJACK_TASK_ADDR 0x23E14
 
+/* these are used in bitrate.c for video bitrate hacks */
+#define CACHE_HACK_FLUSH_RATE_SLAVE  0xFF0EA4D0
+#define CACHE_HACK_GOP_SIZE_SLAVE    0xFF2175E4
+
+
 // no idea if it's overflowing, need to check experimentally 
 //~ #define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3
 

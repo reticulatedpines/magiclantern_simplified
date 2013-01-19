@@ -28,6 +28,7 @@ ML_OBJS-y = \
 	version.o \
 	ml_rpc.o \
 	bmp.o \
+	video_hacks.o \
 	font-dyn.o \
 	config.o \
 	menu.o \

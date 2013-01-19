@@ -205,7 +205,7 @@
 #define MALLOC_STRUCT 0x4b428
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
-    //~ #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
+#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x41868+0x10) != 0x17) // dec CancelUnaviFeedBackTimer
 
 #define DISPLAY_ORIENTATION MEM(0x23C10+0xB8) // read-only; string: UpdateReverseTFT.
 

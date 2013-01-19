@@ -185,10 +185,11 @@ static void run_script(const char *script)
     beep();
     script_running = 0;
     
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < 1000; i++)
     {
         msleep(100);
         if (gui_menu_shown()) break;
+        if (get_halfshutter_pressed()) break;
     }
     console_hide();
 }

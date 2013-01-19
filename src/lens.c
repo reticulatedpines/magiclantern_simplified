@@ -1089,22 +1089,25 @@ void lens_wait_readytotakepic(int wait)
 }
 
 int mirror_locked = 0;
-void mlu_lock_mirror_if_needed() // called by lens_take_picture
+int mlu_lock_mirror_if_needed() // called by lens_take_picture; returns 0 if success, 1 if camera took a picture instead of locking mirror
 {
     #ifdef CONFIG_5DC
     if (get_mlu()) set_mlu(0); // can't trigger shutter with MLU active, so just turn it off
-    return;
+    return 0;
     #endif
-    
+
     //~ NotifyBox(1000, "MLU locking");
     if (get_mlu() && !lv)
     {
         if (!mirror_locked)
         {
             mirror_locked = 1;
+            
+            int fn = file_number;
+            
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
             SW1(1,50);
-            SW2(1,500);
+            SW2(1,250);
             SW2(0,50);
             SW1(0,50);
             #elif defined(CONFIG_40D)
@@ -1112,10 +1115,16 @@ void mlu_lock_mirror_if_needed() // called by lens_take_picture
             #else
             call("Release");
             #endif
-            msleep(get_mlu_delay(lens_mlu_delay));
+            
+            msleep(500);
+            if (file_number != fn) // Heh... camera took a picture instead. Cool.
+                return 1;
+            
+            msleep(MAX(0, get_mlu_delay(lens_mlu_delay) - 500));
         }
     }
     //~ NotifyBox(1000, "MLU locked");
+    return 0;
 }
 
 #define AF_BUTTON_NOT_MODIFIED 100
@@ -1186,7 +1195,11 @@ lens_take_picture(
     //~ take_semaphore(lens_sem, 0);
     lens_wait_readytotakepic(64);
     
-    mlu_lock_mirror_if_needed();
+    // in some cases, the MLU setting is ignored; if ML can't detect this properly, this call will actually take a picture
+    // if it happens (e.g. with LV active, but camera in QR mode), that's it, we won't try taking another one
+    // side effects should be minimal
+    int took_pic = mlu_lock_mirror_if_needed();
+    if (took_pic) goto end;
 
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (get_mlu())
@@ -1225,7 +1238,8 @@ lens_take_picture(
     SW1(1,50);
     SW1(0,50);
     #endif
-    
+
+end:
     if( !wait )
     {
         //~ give_semaphore(lens_sem);
@@ -1253,7 +1267,6 @@ lens_take_pictures(
     if (!allow_af) assign_af_button_to_star_button();
 
     lens_wait_readytotakepic(64);    
-    mlu_lock_mirror_if_needed();
     
     /* take picture(s) */
     SW2(1,duration);

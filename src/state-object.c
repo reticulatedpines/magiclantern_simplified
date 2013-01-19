@@ -140,8 +140,8 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 
 // sync ML overlay tools (especially Magic Zoom) with LiveView
 // this is tricky...
-#ifdef CONFIG_5D3
-    if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
+#if defined(CONFIG_5D3) || defined(CONFIG_6D)
+    if (self == DISPLAY_STATE && (input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER))
         lv_vsync_signal();
 #elif defined(CONFIG_5D2)
     if (self == LV_STATE)//&& old_state == 4)

@@ -179,3 +179,7 @@
 #define DISPLAY_TRAP_FOCUS_POS_Y 358
 #define DISPLAY_TRAP_FOCUS_MSG       "TRAP FOCUS"
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
+
+// for bulb ramping calibration: delay between two exposure readings (increase it if brightness updates slowly)
+// if not defined, default is 500
+#define BRAMP_CALIBRATION_DELAY 1000

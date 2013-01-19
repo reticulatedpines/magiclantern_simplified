@@ -62,7 +62,9 @@
 #define GMT_GUICMD_START_AS_CHECK 95
 #define GMT_GUICMD_OPEN_SLOT_COVER 91
 #define GMT_GUICMD_LOCK_OFF 89
-
+    
+    //~ not implemented yet
+    #define GMT_LOCAL_DIALOG_REFRESH_LV 0x36 // event type = 2, gui code = 0x100000C6 in EOS-M
     #define BGMT_FLASH_MOVIE (0)
     #define BGMT_PRESS_FLASH_MOVIE (0)
     #define BGMT_UNPRESS_FLASH_MOVIE (0)
