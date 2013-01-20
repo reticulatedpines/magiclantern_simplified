@@ -3377,6 +3377,13 @@ bulb_take_pic(int duration)
         
         // for 550D and other cameras that may keep the display on during bulb exposures -> always turn it off
         if (DISPLAY_IS_ON && s==1) fake_simple_button(BGMT_INFO);
+
+        // tell how many minutes the exposure will take
+        if (s == 2)
+        {
+            int d = duration / 1000;
+            if (d/60) { beep_times(d/60); msleep(500); }
+        }
         
         // turn off the LED - no light pollution, please :)
         // but blink it quickly every 10 seconds to have some feedback
