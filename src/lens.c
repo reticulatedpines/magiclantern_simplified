@@ -1072,18 +1072,13 @@ static PROP_INT(PROP_ICU_UILOCK, uilock);
 void lens_wait_readytotakepic(int wait)
 {
     int i;
-    for (i = 0; i < wait * 10; i++)
+    for (i = 0; i < wait * 20; i++)
     {
         if (ml_shutdown_requested) return;
         if (sensor_cleaning) { msleep(50); continue; }
-        //~ if (lens_info.job_state <= 0xA && burst_count > 0 && !is_movie_mode()) break;
-        //~ if (lens_info.job_state <= 0xA && burst_count > 0 && is_movie_mode()) break;
-        if (lens_info.job_state <= 0xA && burst_count > 0 && ((uilock & 0xFF) == 0)) break;
-        msleep(20);
-        if (!recording)
-        {
-            if ((lens_info.job_state <= 0xA) || (uilock & 0xFF)) info_led_on();
-        }
+        if (job_state_ready_to_take_pic() && burst_count > 0 && ((uilock & 0xFF) == 0)) break;
+        msleep(50);
+        if (!recording) info_led_on();
     }
     if (!recording) info_led_off();
 }
@@ -1137,7 +1132,7 @@ void assign_af_button_to_halfshutter()
     if (is_manual_focus()) return;
     if (orig_af_button_assignment == AF_BTN_HALFSHUTTER) return;
     //~ take_semaphore(lens_sem, 0);
-    while (lens_info.job_state >= 0xa) msleep(20);
+    lens_wait_readytotakepic(64);
     if (ml_shutdown_requested) return;
     if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) orig_af_button_assignment = cfn_get_af_button_assignment();
     cfn_set_af_button(AF_BTN_HALFSHUTTER);
@@ -1151,7 +1146,7 @@ void assign_af_button_to_star_button()
     if (is_manual_focus()) return;
     if (orig_af_button_assignment == AF_BTN_STAR) return;
     //~ take_semaphore(lens_sem, 0);
-    while (lens_info.job_state >= 0xa) msleep(20);
+    lens_wait_readytotakepic(64);
     if (ml_shutdown_requested) return;
     if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) orig_af_button_assignment = cfn_get_af_button_assignment();
     cfn_set_af_button(AF_BTN_STAR);
@@ -1165,7 +1160,7 @@ void restore_af_button_assignment()
     
     if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) return;
     //~ take_semaphore(lens_sem, 0);
-    while (lens_info.job_state >= 0xa) msleep(20);
+    lens_wait_readytotakepic(64);
     cfn_set_af_button(orig_af_button_assignment);
     msleep(100);
     if (cfn_get_af_button_assignment() == (int)orig_af_button_assignment)
@@ -1232,7 +1227,7 @@ lens_take_picture(
      * There is a workaround: Just wait until shooting is possible again and then trigger SW1 for a short time.
      * Then the camera will shut down clean.
      */
-    lens_wait_readytotakepic(130000);
+    lens_wait_readytotakepic(64);
     SW1(1,50);
     SW1(0,50);
     SW1(1,50);
@@ -1278,7 +1273,7 @@ lens_take_pictures(
      * There is a workaround: Just wait until shooting is possible again and then trigger SW1 for a short time.
      * Then the camera will shut down clean.
      */
-    lens_wait_readytotakepic(130000);
+    lens_wait_readytotakepic(64);
     SW1(1,50);
     SW1(0,50);
     #endif
@@ -1941,12 +1936,51 @@ PROP_HANDLER( PROP_LV_LENS )
 }
 #endif
 
+/**
+ * This tells whether the camera is ready to take a picture (or not)
+ * 5D2: the sequence is: 0 11 10 8 0
+ *      that means: 0 = idle, 11 = very busy (exposing), 10 = exposed, but processing (can take the next picture), 8 = done processing, just saving to card
+ *      also, when job state is 11, we can't change camera settings, but when it's 10, we can
+ * 5D3: the sequence is: 0 0x16 0x14 0x10 0
+ * other cameras may have different values
+ * 
+ * => hypothesis: the general sequence is:
+ * 
+ *   0 max something_smaller something_even_smaller and so on
+ * 
+ *   so, we only want to avoid the situation when job_state == max_job_state
+ * 
+ */
+
+static int max_job_state = 0;
+
+int job_state_ready_to_take_pic()
+{
+    if (max_job_state == 0) return 1;
+    return (int)lens_info.job_state < max_job_state;
+}
+
 PROP_HANDLER( PROP_LAST_JOB_STATE )
 {
     const uint32_t state = *(uint32_t*) buf;
     lens_info.job_state = state;
-    DEBUG("job state: %d", state);
-    mirror_locked = 0;
+    
+    if (max_job_state == 0 && state != 0)
+        max_job_state = state;
+    
+    ASSERT((int)state <= max_job_state);
+    
+    if (max_job_state && (int)state == max_job_state)
+    {
+        mirror_locked = 0;
+        hdr_flag_picture_was_taken();
+    }
+
+    #ifdef CONFIG_JOB_STATE_DEBUG
+    static char jmsg[100] = "";
+    STR_APPEND(jmsg, "%d ", state);
+    bmp_printf(FONT_MED,0,0, jmsg);
+    #endif
 }
 
 static int fae_ack = 12345;

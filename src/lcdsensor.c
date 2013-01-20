@@ -64,7 +64,7 @@ int lcd_ff_dir = 1;
 PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 {
     if (!DISPLAY_SENSOR_POWERED) return; // false alarm
-    if (lens_info.job_state >= 10) return; // false alarm
+    if (!job_state_ready_to_take_pic()) return; // false alarm
     if (get_halfshutter_pressed()) return; // user taking a normal picture
     
     static int prev = 0;

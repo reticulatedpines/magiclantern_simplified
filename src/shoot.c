@@ -3386,14 +3386,14 @@ bulb_take_pic(int duration)
         if (s % 60 == 1) { msleep(200); _card_led_on(); msleep(10); _card_led_off(); if (s/60) beep_times(s/60); }
         
         // exposure was canceled earlier by user
-        if (lens_info.job_state < 10) 
+        if (job_state_ready_to_take_pic()) 
         {
             beep();
             break;
         }
     }
     
-    while (get_ms_clock_value() < t_end && lens_info.job_state >= 10)
+    while (get_ms_clock_value() < t_end && !job_state_ready_to_take_pic())
         msleep(MIN_MSLEEP);
     
     //~ NotifyBox(3000, "BulbEnd");
@@ -5773,9 +5773,9 @@ int picture_was_taken_flag = 0;
 
 #if defined(FEATURE_HDR_BRACKETING) || defined(FEATURE_FOCUS_STACKING)
 // for firing HDR shots - avoids random misfire due to low polling frequency
-PROP_HANDLER(PROP_LAST_JOB_STATE)
+void hdr_flag_picture_was_taken()
 {
-    if (buf[0] > 10) picture_was_taken_flag = 1;
+    picture_was_taken_flag = 1;
 }
 
 void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
@@ -6080,8 +6080,8 @@ static int hdr_check_cancel(int init)
 void ensure_play_or_qr_mode_after_shot()
 {
     msleep(300);
-    while (lens_info.job_state > 8) msleep(100);
-    msleep(300);
+    while (!job_state_ready_to_take_pic()) msleep(100);
+    msleep(500);
     #define QR_OR_PLAY (DISPLAY_IS_ON && (QR_MODE || PLAY_MODE))
     for (int i = 0; i < 20; i++)
     {
@@ -6094,7 +6094,7 @@ void ensure_play_or_qr_mode_after_shot()
     
     if (!QR_OR_PLAY) // image review disabled?
     {
-        while (lens_info.job_state > 8) msleep(100);
+        while (!job_state_ready_to_take_pic()) msleep(100);
         fake_simple_button(BGMT_PLAY);
         for (int i = 0; i < 50; i++)
         {
@@ -6306,7 +6306,7 @@ void movie_start()
 {
 #ifdef CONFIG_MOVIE
     while (get_halfshutter_pressed()) msleep(100);
-    if (lens_info.job_state >= 10) return; 
+    if (!job_state_ready_to_take_pic()) return; 
 
     ensure_movie_mode();
     
@@ -6943,13 +6943,18 @@ shoot_task( void* unused )
         #if defined(FEATURE_HDR_BRACKETING) || defined(FEATURE_FOCUS_STACKING)
         // avoid camera shake for HDR shots => force self timer
         static int drive_mode_bk = -1;
-        if (((HDR_ENABLED && hdr_delay) || is_focus_stack_enabled()) && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
+        if (((HDR_ENABLED && hdr_delay) || is_focus_stack_enabled()) && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
         {
-            drive_mode_bk = drive_mode;
-            #ifndef CONFIG_5DC
-            lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
-            #endif
-            info_led_on();
+            priority_feature_enabled = 1;
+            if (get_halfshutter_pressed())
+            {
+                drive_mode_bk = drive_mode;
+                #ifndef CONFIG_5DC
+                lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
+                #endif
+                info_led_on();
+                msleep(100);
+            }
         }
         
         // restore drive mode if it was changed
@@ -6959,6 +6964,7 @@ shoot_task( void* unused )
             lens_set_drivemode(drive_mode_bk);
             drive_mode_bk = -1;
             info_led_off();
+            msleep(100);
         }
         #endif
     
@@ -6979,9 +6985,9 @@ shoot_task( void* unused )
                 for (int i = 0; i < 10; i++)
                 {
                     msleep(100);
-                    if (!get_halfshutter_pressed() || lens_info.job_state >= 10) break;
+                    if (!get_halfshutter_pressed() || !job_state_ready_to_take_pic()) break;
                 }
-                if (!get_halfshutter_pressed() || lens_info.job_state >= 10) { info_led_off(); continue; }
+                if (!get_halfshutter_pressed() || !job_state_ready_to_take_pic()) { info_led_off(); continue; }
                 
                 beep();
                 info_led_blink(1,50,50); // short blink so you know bulb timer was triggered
@@ -6998,7 +7004,7 @@ shoot_task( void* unused )
                 NotifyBox(2000, "[2s] Bulb timer: %s", format_time_hours_minutes_seconds(d));
                 info_led_on();
                 wait_till_next_second();
-                if (get_halfshutter_pressed() || !display_idle() || m0 != shooting_mode || lens_info.job_state >= 10) 
+                if (get_halfshutter_pressed() || !display_idle() || m0 != shooting_mode || !job_state_ready_to_take_pic()) 
                 {
                     NotifyBox(2000, "Bulb timer canceled.");
                     info_led_off();
@@ -7007,7 +7013,7 @@ shoot_task( void* unused )
                 NotifyBox(2000, "[1s] Bulb timer: %s", format_time_hours_minutes_seconds(d));
                 info_led_on();
                 wait_till_next_second();
-                if (get_halfshutter_pressed() || !display_idle() || m0 != shooting_mode || lens_info.job_state >= 10) 
+                if (get_halfshutter_pressed() || !display_idle() || m0 != shooting_mode || !job_state_ready_to_take_pic()) 
                 {
                     NotifyBox(2000, "Bulb timer canceled.");
                     info_led_off();

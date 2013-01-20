@@ -505,7 +505,7 @@ int get_global_draw() // menu setting, or off if
             #ifdef CONFIG_5D3
             !(hdmi_code==5 && video_mode_resolution>0) && // unusual VRAM parameters
             #endif
-            lens_info.job_state <= 10;
+            job_state_ready_to_take_pic();
     }
     
     if (!lv && ZEBRAS_IN_QUICKREVIEW)
@@ -4499,7 +4499,7 @@ int liveview_display_idle()
             #ifdef CURRENT_DIALOG_MAYBE_2
             CURRENT_DIALOG_MAYBE_2 <= 3 &&
             #endif
-            lens_info.job_state < 10 &&
+            job_state_ready_to_take_pic() &&
             !mirror_down )
         );
 }
