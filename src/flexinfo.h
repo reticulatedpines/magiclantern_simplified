@@ -132,7 +132,6 @@ typedef struct
     info_elem_header_t hdr;
     uint32_t show_boundaries;
     uint32_t selected_item;
-    uint32_t anchor_target;
 } info_elem_config_t;
 
 typedef struct

@@ -441,8 +441,48 @@ uint32_t info_measure_string(char *string, uint32_t font_type, int32_t *width, i
     return 0;
 }
 
+uint32_t info_get_anchor_offset(info_elem_t *element, uint32_t flags, int32_t *offset_x, int32_t *offset_y)
+{
+    switch(flags & INFO_ANCHOR_H_MASK)
+    {
+        case INFO_ANCHOR_LEFT:
+            *offset_x = 0;
+            break;
+        case INFO_ANCHOR_HCENTER:
+            *offset_x = element->hdr.pos.w / 2;
+            break;
+        case INFO_ANCHOR_RIGHT:
+            *offset_x = element->hdr.pos.w;
+            break;
+        default:
+            *offset_x = 0;
+            break;
+    }
+
+    switch(flags & INFO_ANCHOR_V_MASK)
+    {
+        case INFO_ANCHOR_TOP:
+            *offset_y = 0;
+            break;
+        case INFO_ANCHOR_VCENTER:
+            *offset_y = element->hdr.pos.h / 2;
+            break;
+        case INFO_ANCHOR_BOTTOM:
+            *offset_y = element->hdr.pos.h;
+            break;
+        default:
+            *offset_y = 0;
+            break;
+    }
+
+    return 0;
+}
+
 uint32_t info_get_absolute(info_elem_t *config, info_elem_t *element)
 {
+    int32_t offset_x = 0;
+    int32_t offset_y = 0;
+    
     /* in case of absolute positioning, this is the absolute pos else it is the offset from the anchor */
     element->hdr.pos.abs_x = element->hdr.pos.x;
     element->hdr.pos.abs_y = element->hdr.pos.y;
@@ -457,62 +497,36 @@ uint32_t info_get_absolute(info_elem_t *config, info_elem_t *element)
         {
             element->hdr.pos.shown = 0;
         }
-
-        switch(element->hdr.pos.anchor_flags & INFO_ANCHOR_H_MASK)
+        
+        /* calculate anchor offset from top left of anchor item */
+        info_get_anchor_offset(anchor, element->hdr.pos.anchor_flags, &offset_x, &offset_y);
+        
+        /* if any coordinate was specified to be relative (anchored), update it */
+        if(element->hdr.pos.anchor_flags & INFO_ANCHOR_H_MASK)
         {
-            case INFO_ANCHOR_LEFT:
-                element->hdr.pos.abs_x += anchor->hdr.pos.x;
-                break;
-            case INFO_ANCHOR_HCENTER:
-                element->hdr.pos.abs_x += anchor->hdr.pos.x + anchor->hdr.pos.w / 2;
-                break;
-            case INFO_ANCHOR_RIGHT:
-                element->hdr.pos.abs_x += anchor->hdr.pos.x + anchor->hdr.pos.w;
-                break;
+            element->hdr.pos.abs_x += anchor->hdr.pos.abs_x + offset_x;
         }
-
-        switch(element->hdr.pos.anchor_flags & INFO_ANCHOR_V_MASK)
+        if(element->hdr.pos.anchor_flags & INFO_ANCHOR_V_MASK)
         {
-            case INFO_ANCHOR_TOP:
-                element->hdr.pos.abs_y += anchor->hdr.pos.y;
-                break;
-            case INFO_ANCHOR_VCENTER:
-                element->hdr.pos.abs_y += anchor->hdr.pos.y + anchor->hdr.pos.h / 2;
-                break;
-            case INFO_ANCHOR_BOTTOM:
-                element->hdr.pos.abs_y += anchor->hdr.pos.y + anchor->hdr.pos.h;
-                break;
-        }
-
-        switch(element->hdr.pos.anchor_flags_self & INFO_ANCHOR_H_MASK)
-        {
-            case INFO_ANCHOR_LEFT:
-                element->hdr.pos.abs_x += 0;
-                break;
-            case INFO_ANCHOR_HCENTER:
-                element->hdr.pos.abs_x += -element->hdr.pos.w / 2;
-                break;
-            case INFO_ANCHOR_RIGHT:
-                element->hdr.pos.abs_x += -element->hdr.pos.w;
-                break;
-        }
-
-        switch(element->hdr.pos.anchor_flags_self & INFO_ANCHOR_V_MASK)
-        {
-            case INFO_ANCHOR_TOP:
-                element->hdr.pos.abs_y += 0;
-                break;
-            case INFO_ANCHOR_VCENTER:
-                element->hdr.pos.abs_y += -element->hdr.pos.h / 2;
-                break;
-            case INFO_ANCHOR_BOTTOM:
-                element->hdr.pos.abs_y += -element->hdr.pos.h;
-                break;
+            element->hdr.pos.abs_y += anchor->hdr.pos.abs_y + offset_y;
         }
     }
+
+    /* translate position by own anchor offset */
+    info_get_anchor_offset(element, element->hdr.pos.anchor_flags_self, &offset_x, &offset_y);
+    
+    /* if any coordinate was specified to be relative (anchored), update it */
+    if(element->hdr.pos.anchor_flags_self & INFO_ANCHOR_H_MASK)
+    {
+        element->hdr.pos.abs_x -= offset_x;
+    }
+    if(element->hdr.pos.anchor_flags_self & INFO_ANCHOR_V_MASK)
+    {
+        element->hdr.pos.abs_y -= offset_y;
+    }
+    
     return 0;
 }
-
     
 uint32_t info_print_string(info_elem_t *config, info_elem_string_t *element, uint32_t run_type)
 {
@@ -687,17 +701,17 @@ uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *
 
 uint32_t info_print_battery_icon(info_elem_t *config, info_elem_battery_icon_t *element, uint32_t run_type)
 {
+    element->hdr.pos.w = 96;
+    element->hdr.pos.h = 32;
+    
     /* get absolute position of this element */
     info_get_absolute(config, (info_elem_t *)element);
-    
+
     /* anchor not shown or nothing to print */
     if(!element->hdr.pos.shown)
     {
         return 1;
     }
-
-    element->hdr.pos.w = 96;
-    element->hdr.pos.h = 32;
 
 #if 0 // fights with Canon icon; do not draw, but keep it for positioning the other elements
 
@@ -882,16 +896,18 @@ uint32_t info_print_config(info_elem_t *config)
                 }
                 
                 /* paint border around item and some label when the item was selected */
-                if(config[0].config.show_boundaries || config[0].config.selected_item == pos || config[0].config.anchor_target == pos)
+                uint32_t selected_item = config[0].config.selected_item;
+                
+                if(config[0].config.show_boundaries || selected_item == pos || config[selected_item].hdr.pos.anchor == pos)
                 {
                     int color = COLOR_RED;
                     
                     /* the currently selected item is drawn green and the anchor target is drawn blue */
-                    if(config[0].config.selected_item == pos)
+                    if(selected_item == pos)
                     {
                         color = COLOR_GREEN1;
                     }
-                    else if(config[0].config.anchor_target == pos)
+                    else if(config[selected_item].hdr.pos.anchor == pos)
                     {
                         color = COLOR_BLUE;
                     }
@@ -909,6 +925,21 @@ uint32_t info_print_config(info_elem_t *config)
                     else
                     {
                         bmp_fill(color,config[pos].hdr.pos.abs_x,config[pos].hdr.pos.abs_y,8,8);
+                    }
+                    
+                    if(selected_item == pos)
+                    {
+                        /* draw anchor line */
+                        info_elem_t *anchor = &(config[config[pos].hdr.pos.anchor]);
+                        int32_t anchor_offset_x = 0;
+                        int32_t anchor_offset_y = 0;
+                        int32_t element_offset_x = 0;
+                        int32_t element_offset_y = 0;
+                        
+                        info_get_anchor_offset(anchor, config[pos].hdr.pos.anchor_flags, &anchor_offset_x, &anchor_offset_y);
+                        info_get_anchor_offset(&(config[pos]), config[pos].hdr.pos.anchor_flags_self, &element_offset_x, &element_offset_y);
+                        
+                        draw_line(anchor->hdr.pos.abs_x + anchor_offset_x, anchor->hdr.pos.abs_y + anchor_offset_y, config[pos].hdr.pos.abs_x + element_offset_x, config[pos].hdr.pos.abs_y + element_offset_y, COLOR_WHITE);
                     }
                     
                     /* now put the title bar */
@@ -1345,6 +1376,15 @@ static struct menu_entry info_menus[] = {
                 .select = info_menu_item_anchor_select,
                 .display = info_menu_item_anchor_display,
                 .help = "Select anchor type.",
+            },
+            {
+                .name = "Anchor own",
+                .priv = info_config,
+                .min = 0,
+                .max = 9,
+                .select = info_menu_item_anchor_self_select,
+                .display = info_menu_item_anchor_self_display,
+                .help = "Select own anchor type.",
             },
             {
                 .name = "Anchor item",
