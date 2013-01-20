@@ -41,7 +41,7 @@
 #define FASTEST_SHUTTER_SPEED_RAW 160
 #define MAX_AE_EV 2
 
-#define BULB_MIN_EXPOSURE 100
+#define BULB_MIN_EXPOSURE 500
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xffa85b50

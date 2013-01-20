@@ -3295,7 +3295,7 @@ void ensure_bulb_mode()
 {
 #ifdef CONFIG_BULB
 
-    lens_wait_readytotakepic(64);
+    while (lens_info.job_state) msleep(100);
 
     #ifdef CONFIG_SEPARATE_BULB_MODE
         int a = lens_info.raw_aperture;
@@ -3309,6 +3309,10 @@ void ensure_bulb_mode()
         prop_request_change( PROP_SHUTTER, &shutter, 4 );
         prop_request_change( PROP_SHUTTER_ALSO, &shutter, 4 );
     #endif
+    
+    SetGUIRequestMode(0);
+    while (!display_idle()) msleep(100);
+    
 #endif
 }
 
@@ -3342,8 +3346,6 @@ bulb_take_pic(int duration)
     int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
     int m0r = shooting_mode;
 
-    SetGUIRequestMode(0);
-    
     ensure_bulb_mode();
     
     assign_af_button_to_star_button();
@@ -3357,12 +3359,11 @@ bulb_take_pic(int duration)
     // with this, clock_task will update the millisecond timer as fast as it can
     bulb_exposure_running_accurate_clock_needed = 1;
     
-    SW1(1,100);
-    msleep(200);
+    SW1(1,300);
     
     int t_start = get_ms_clock_value();
     int t_end = t_start + duration;
-    SW2(1,100);
+    SW2(1,300);
     
     //~ msleep(duration);
     //int d = duration/1000;

@@ -218,7 +218,7 @@
 #define DIALOG_MnCardFormatBegin   (0x3031c+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x35290+4) // similar
 
-#define BULB_MIN_EXPOSURE 100
+#define BULB_MIN_EXPOSURE 500
 
 // HCanonGothic
 #define BFNT_CHAR_CODES    0xff7b1fb8 // space character, 0x20
