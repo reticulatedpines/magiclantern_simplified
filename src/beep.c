@@ -565,7 +565,7 @@ void unsafe_beep()
 
 void beep_times(int times)
 {
-    times = COERCE(times, 1, 10);
+    times = COERCE(times, 1, 100);
     
     if (!beep_enabled || recording)
     {
@@ -658,14 +658,26 @@ static void beep_task()
         }
         else if (beep_type > 0) // N beeps
         {
-            int N = beep_type;
-            generate_beep_tone(beep_buf, 5000);
-            for (int i = 0; i < N; i++)
+            int times = beep_type;
+            int N = 10000;
+            int16_t* long_buf = AllocateMemory(N*2);
+            if (!long_buf) continue;
+            generate_beep_tone(long_buf, N);
+            
+            for (int i = 0; i < times/10; i++)
             {
-                play_beep(beep_buf, 3000);
+                play_beep(long_buf, 10000);
+                while (beep_playing) msleep(100);
+                msleep(500);
+            }
+            for (int i = 0; i < times%10; i++)
+            {
+                play_beep(long_buf, 3000);
                 while (beep_playing) msleep(20);
                 msleep(120);
             }
+            
+            FreeMemory(long_buf);
         }
         msleep(100);
         audio_configure(1);
