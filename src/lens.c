@@ -1090,14 +1090,18 @@ int mlu_lock_mirror_if_needed() // called by lens_take_picture; returns 0 if suc
     if (get_mlu()) set_mlu(0); // can't trigger shutter with MLU active, so just turn it off
     return 0;
     #endif
+    
+    if (get_mlu())
+    {
+        SetGUIRequestMode(0);
+        while (display_idle()) msleep(50); msleep(500);
+    }
 
     //~ NotifyBox(1000, "MLU locking");
     if (get_mlu() && !lv)
     {
         if (!mirror_locked)
         {
-            mirror_locked = 1;
-            
             int fn = file_number;
             
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
@@ -1114,6 +1118,11 @@ int mlu_lock_mirror_if_needed() // called by lens_take_picture; returns 0 if suc
             msleep(500);
             if (file_number != fn) // Heh... camera took a picture instead. Cool.
                 return 1;
+
+            if (lv) // we have somehow got into LiveView, where MLU does nothing... so, no need to wait
+                return 0;
+
+            mirror_locked = 1;
             
             msleep(MAX(0, get_mlu_delay(lens_mlu_delay) - 500));
         }
