@@ -8,5 +8,3 @@
 #undef FEATURE_AUDIO_METERS
 #undef FEATURE_AUTO_BURST_PICQ // maybe not working on 650D
 #undef FEATURE_OVERLAYS_IN_PLAYBACK_MODE // no DISP button
-
-#undef FEATURE_MOVIE_RESTART // legal uncertainity (the only purpose would be bypassing the 30-minute EU limit)

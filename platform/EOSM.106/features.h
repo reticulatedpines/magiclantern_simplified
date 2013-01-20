@@ -27,5 +27,3 @@
 #undef FEATURE_LV_FOCUS_BOX_AUTOHIDE
 #undef FEATURE_ARROW_SHORTCUTS
 #undef FEATURE_STICKY_DOF
-
-#undef FEATURE_MOVIE_RESTART // legal uncertainity (the only purpose would be bypassing the 30-minute EU limit)
