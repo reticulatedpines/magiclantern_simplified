@@ -815,8 +815,12 @@ static int zoom_was_triggered_by_halfshutter = 0;
 
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
-    ASSERT(buf[0] == 1 || buf[0] == 5 || buf[0] == 10);
-    
+#if defined(CONFIG_6D) 
+ASSERT(buf[0] == 1 || buf[0]==129 || buf[0] == 5 || buf[0] == 10);
+   
+#else
+   ASSERT(buf[0] == 1 || buf[0] == 5 || buf[0] == 10);
+#endif    
     zoom_sharpen_step();
     zoom_auto_exposure_step();
     
@@ -1975,7 +1979,7 @@ analog_iso_toggle( void * priv, int sign )
     int r = lens_info.raw_iso;
     int a, d;
     split_iso(r, &a, &d);
-    a = COERCE(a + sign * 8, 72, 112);
+    a = COERCE(a + sign * 8, MIN_ISO, MAX_ANALOG_ISO);
     lens_set_rawiso(a + d);
 }
 
@@ -1985,7 +1989,7 @@ digital_iso_toggle( void * priv, int sign )
     int r = lens_info.raw_iso;
     int a, d;
     split_iso(r, &a, &d);
-    d = COERCE(d + sign, -3, (a == 112 ? 16 : 4));
+    d = COERCE(d + sign, -3, (a == MAX_ANALOG_ISO ? 16 : 4));
     while (d > 8 && d < 16) d += sign;
     lens_set_rawiso(a + d);
 }
@@ -1994,7 +1998,7 @@ void
 fullstop_iso_toggle( void * priv, int sign )
 {
     int min_iso = MIN_ISO; // iso 100 or 200D+
-    int max_iso = 120; // iso 6400
+    int max_iso = MAX_ISO; // max ISO
     int r = lens_info.raw_iso;
     if (!r) r = sign > 0 ? min_iso-8 : max_iso+8;
     int rounded = ((r+3)/8) * 8;

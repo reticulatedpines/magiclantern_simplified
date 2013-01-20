@@ -112,7 +112,7 @@ static void hdrv_extended_iso_toggle(void* priv, int delta)
     uint8_t pos = hdrv_extended_step_edit - 1;
     do
     {
-        iso_table[pos] = mod(iso_table[pos] - 72 + delta, 120 - 72 + 1) + 72;
+        iso_table[pos] = mod(iso_table[pos] - 72 + delta, MAX_ISO_BV - 72 + 1) + 72;
     }
     while (!is_hdr_valid_iso(raw2iso(iso_table[pos])));
 }
@@ -183,7 +183,7 @@ static void hdr_iso_toggle(void* priv, int delta)
     int* v = (int*)priv;
     do
     {
-        *v = mod(*v - 72 + delta, 120 - 72 + 1) + 72;
+        *v = mod(*v - MIN_ISO + delta, MAX_ANALOG_ISO - MIN_ISO + 1) + MIN_ISO;
     }
     while (!is_hdr_valid_iso(raw2iso(*v)));
 }
@@ -430,7 +430,7 @@ struct menu_entry hdr_menu[] = {
                 .name = "ISO A",
                 .priv = &hdr_iso_a,
                 .min = 72,
-                .max = 120,
+                .max = MAX_ANALOG_ISO,
                 .select = hdr_iso_toggle,
                 .display = hdr_iso_display,
                 .unit = UNIT_ISO,
@@ -440,7 +440,7 @@ struct menu_entry hdr_menu[] = {
                 .name = "ISO B",
                 .priv = &hdr_iso_b,
                 .min = 72,
-                .max = 120,
+                .max = MAX_ANALOG_ISO,
                 .select = hdr_iso_toggle,
                 .display = hdr_iso_display,
                 .unit = UNIT_ISO,
@@ -471,7 +471,7 @@ struct menu_entry hdr_menu[] = {
                 .name = "Ext. ISO",
                 .priv = hdrv_extended_iso,
                 .min = 72,
-                .max = 120,
+                .max = MAX_ISO_BV,
                 .select = hdrv_extended_iso_toggle,
                 .display = hdrv_extended_iso_display,
                 .unit = UNIT_ISO,
@@ -481,7 +481,7 @@ struct menu_entry hdr_menu[] = {
                 .name = "Ext. Shutter",
                 .priv = hdrv_extended_shutter,
                 .min = 1,
-                .max = 120,
+                .max = MAX_ISO_BV,
                 .select = hdrv_extended_shutter_toggle,
                 .display = hdrv_extended_shutter_display,
                 .help = "Edit Shutter settings.",

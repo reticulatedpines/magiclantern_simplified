@@ -442,7 +442,7 @@ void lut_init()
 
 void* get_lcd_422_buf()
 {
-    #if defined(CONFIG_1100D) 
+    #if defined(CONFIG_1100D) || defined(CONFIG_6D)
     return (void*)CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR); // Good enough
     #else
     switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
@@ -471,7 +471,7 @@ void guess_fastrefresh_direction() {
 
 void* get_fastrefresh_422_buf()
 {
-    #ifdef CONFIG_1100D
+    #if defined(CONFIG_1100D) || defined(CONFIG_6D)
     return (void*)CACHEABLE(shamem_read(REG_EDMAC_WRITE_LV_ADDR)); // EDMAC holds the soon-to-be-displayed region
     #else
     if (fastrefresh_direction) {

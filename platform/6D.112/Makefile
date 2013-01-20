@@ -29,7 +29,7 @@ ML_OBJS-y = \
 	menu.o \
 	debug.o \
 	stdio.o \
-	bitrate.o \
+	bitrate-6d.o \
 	tweaks.o \
 	lens.o \
 	property.o \
@@ -64,6 +64,11 @@ ML_OBJS-y = \
 	vsync-lite.o \
 	battery.o \
 	dm-spy.o \
+
+#	video_hacks.o \
+#	flexinfo.o \
+
+#	af_patterns.o \ // dangerous
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

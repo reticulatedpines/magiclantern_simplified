@@ -5,12 +5,12 @@ extern struct mvr_struct * mvr_struct;
 extern struct state_object * mvr_state;
 
 // tab size: 4
-
+//0x7AE8C
 struct mvr_config
 {
 	int16_t         qscale_related_1;		// 0x00, 67bc
 	uint16_t        debug_flag;             // 0x02, 67be   1 = write debugmsg's
-	uint16_t        qscale_mode;            // 0x04, 67c0   1 = QScale, 0 = CBR
+	uint16_t        qscale_mode;            // 0x04, 67c0   1 = QScale, 0 = CBR 7AE90
 	uint16_t		db_filter_a;			// 0x06, 67c2
 	uint16_t		db_filter_b;            // 0x08, 67c4
 	int16_t 		def_q_scale;            // 0x0a, 67c6
@@ -19,18 +19,18 @@ struct mvr_config
 	uint16_t 		x67cc;                  // 0x10, 67cc
 	int16_t 		qscale_limit_L;			// 0x12, 67ce
 	int16_t         qscale_limit_H;         // 0x14, 67d0
-	uint16_t		time_const;				// 0x16, 67d2
-	uint32_t		fullhd_30fps_opt_size_I;// 0x18, 67d4
+	uint16_t		time_const;				// 0x16, 67d2 //Qscale? 7AEA2
+	uint32_t		fullhd_30fps_opt_size_I;// 0x18, 67d4 Right Same Function Sets All 3
 	uint32_t		fullhd_30fps_opt_size_P;// 0x1c, 67d8
 	uint32_t		D1_30fps;				// 0x20, 67dc
 	uint32_t		D2_30fps;				// 0x24, 67e0
 	uint32_t		x67e4;					// 0x28, 67e4
-	uint32_t		fullhd_25fps_opt_size_I;// 0x2c, 67e8
+	uint32_t		fullhd_25fps_opt_size_I;// 0x2c, 67e8 Right
 	uint32_t		fullhd_25fps_opt_size_P;// 0x30, 67ec
 	uint32_t		fullhd_25fps_D1;		// 0x34, 67f0
 	uint32_t		fullhd_25fps_D2;		// 0x38, 67f4
 	uint32_t		x67f8;					// 0x3c, 67f8
-	uint32_t		fullhd_24fps_opt_size_I;// 0x40, 67fc
+	uint32_t		fullhd_24fps_opt_size_I;// 0x40, 67fc Right
 	uint32_t		fullhd_24fps_opt_size_P;// 0x44, 6800
 	uint32_t		fullhd_24fps_D1;		// 0x48, 6804
 	uint32_t		fullhd_24fps_D2;		// 0x4c, 6808
@@ -75,9 +75,9 @@ struct mvr_config
 	uint32_t		x68a4;                  // 0xe8, 68a4
 	uint32_t		x68a8;                  // 0xec, 68a8
 	uint32_t		x68ac;                  // 0xf0, 68ac
-	uint32_t		actual_qscale_maybe3;   // 0xf4, 68b0
+	uint32_t		actual_qscale_maybe;   // 0xf4, 68b0
 	uint32_t		actual_qscale_maybe2;   // 0xf8, 68b4
-	uint32_t		actual_qscale_maybe;    // 0xfc, 68b8
+	uint32_t		actual_qscale_maybe1;    // 0xfc, 68b8
 	uint32_t		IOptSize;               // 0x100, 68bc
 	uint32_t		POptSize;               // 0x104, 68c0
 	uint32_t		IOptSize2;              // 0x108, 68c4

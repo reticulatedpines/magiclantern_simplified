@@ -62,7 +62,7 @@
 //~ #define CONFIG_AUDIO_CONTROLS
 
 /** No zoom button **/
-#define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
+//~ #define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
 /** Well, I hope so **/
@@ -74,13 +74,13 @@
 
 /** We can override ISO on a per-frame basis, by changing FRAME_ISO (e.g. for HDR video or gradual exposure) **/
 /** Well, I hope so **/
-//-#define CONFIG_FRAME_ISO_OVERRIDE
+#define CONFIG_FRAME_ISO_OVERRIDE
 
 /** But we can't override the digital ISO component via FRAME_ISO **/
-#define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
+//#define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
 
-/** We can't change ExpSim from ML (at least not yet) **/
-//~ #define CONFIG_EXPSIM
+/** ExpSim works, changes in the canon menu too. **/
+ #define CONFIG_EXPSIM
 
 /** We can;t playback sounds via ASIF DMA (yet) **/
 //~ #define CONFIG_BEEP
@@ -92,7 +92,7 @@
 #define CONFIG_RESTORE_AFTER_FORMAT
 
 /** We don't know how to use DMA_MEMCPY (yet) **/
-//~ #define CONFIG_DMA_MEMCPY
+#define CONFIG_DMA_MEMCPY
 
 /** We shouldn't warn the user if movie exposure is Auto **/
 //~ #define CONFIG_MOVIE_AE_WARNING

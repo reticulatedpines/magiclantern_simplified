@@ -1,4 +1,4 @@
-// misc functions specific to 60D/109
+// misc functions specific to 6D
 
 #include <dryos.h>
 #include <property.h>
@@ -12,7 +12,6 @@ void display_shooting_info() // called from debug task
 	if (lv) return;
 	int bg = bmp_getpixel(1,1);
 	uint32_t fnt = FONT(FONT_MED,COLOR_YELLOW,bg);
-
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
 		bmp_printf(fnt, 188, 280, "%5d", lens_info.kelvin);
@@ -41,3 +40,4 @@ int lcd_release_running = 0;
 void lcd_release_step() {};
 int get_lcd_sensor_shortcuts() { return 0; }
 void display_lcd_remote_icon(int x0, int y0) {}
+
