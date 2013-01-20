@@ -3341,6 +3341,9 @@ bulb_take_pic(int duration)
     duration = MAX(duration, BULB_MIN_EXPOSURE) + BULB_EXPOSURE_CORRECTION;
     int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
     int m0r = shooting_mode;
+
+    SetGUIRequestMode(0);
+    
     ensure_bulb_mode();
     
     assign_af_button_to_star_button();
