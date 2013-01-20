@@ -98,6 +98,7 @@ typedef struct
 #define INFO_STRING_MLU             37
 #define INFO_STRING_HDR             38
 #define INFO_STRING_NONE            -1
+#define INFO_STRING_CAM_DATE        39
 
 #define INFO_FONT_SMALL         0
 #define INFO_FONT_MEDIUM        1

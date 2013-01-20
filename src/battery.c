@@ -37,17 +37,19 @@ CONFIG_INT("battery.drain.rate.rev", battery_seconds_same_level_ok, 0);
 int battery_seconds_same_level_tmp = 0;
 int battery_level_transitions = 0;
 
-PROP_HANDLER(PROP_BATTERY_REPORT) // also in memory address 7AF60 length 96 bytes
+PROP_HANDLER(PROP_BATTERY_REPORT) // also in memory address 7D.203: 7AF60, length 96 bytes
 {
     bat_info.level = buf[1] & 0xff;
     bat_info.performance = (buf[1] >> 8) & 0xff;
     bat_info.serial = (buf[5] & 0xff000000) + SWAP_ENDIAN(buf[6] << 8);
     bat_info.num_of_batt = buf[0];
     bat_info.expo = (buf[2] >> 8) & 0xffff; //expo taken with the battery 
+    for (int i=0;i<MIN(bat_info.num_of_hist,6);i++) 
+       if (bat_hist[i].serial == bat_info.serial) bat_info.act_hist = i+1;
     // from buf[2] >> 24 : battery name (byte 11-...) LP-E6 or ???
 }
 
-PROP_HANDLER(PROP_BATTERY_HISTORY) // also in memory address 7AFC0 length 76 bytes
+PROP_HANDLER(PROP_BATTERY_HISTORY) // also in memory address 7D.203: 7AFC0, length 76 bytes
 {
     bat_info.num_of_hist = buf[0];
     bat_info.act_hist = 0;
@@ -72,7 +74,7 @@ int GetBatteryPerformance()
 }
 int GetBatteryHist()
 {
-    return bat_info.act_hist;
+   return bat_info.act_hist;
 }
 int GetBatteryTimeRemaining()
 {
