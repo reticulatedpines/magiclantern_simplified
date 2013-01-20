@@ -6734,6 +6734,18 @@ void md_take_pics() // for motion detection
 }
 #endif
 
+struct msg_queue * shoot_task_mqueue = NULL;
+
+/* cause an immediate redraw of the shooting task infos. not used yet, but can be triggered by model-specific code */
+void shoot_task_redraw()
+{
+    if(shoot_task_mqueue)
+    {
+        msg_queue_post(shoot_task_mqueue, 1);
+    }
+}
+
+
 static void misc_shooting_info()
 {
     display_shortcut_key_hints_lv();
@@ -6815,7 +6827,10 @@ shoot_task( void* unused )
 {
     /* this is used to determine if a feature is active that requires high task rate */
     int priority_feature_enabled = 0;
-    
+
+    /* creating a message queue primarily for interrupting sleep to repaint immediately */
+    shoot_task_mqueue = (void*)msg_queue_create("shoot_task_mqueue", 1);
+
     #ifdef CONFIG_LIVEVIEW
     if (!lv)
     {   // center AF frame at startup in photo mode
@@ -6838,6 +6853,7 @@ shoot_task( void* unused )
     int loops_abort = 0;*/
     TASK_LOOP
     {
+        int msg;
         int delay = 50;
         
         /* specify the maximum wait time */
@@ -6849,10 +6865,13 @@ shoot_task( void* unused )
         {
             delay = MIN_MSLEEP;
         }
-        msleep(delay);
+        int err = msg_queue_receive(shoot_task_mqueue, (struct event**)&msg, delay);        
 
         priority_feature_enabled = 0;
-        
+
+        /* when we received a message, redraw immediately */
+        if (k%5 == 0 || !err) misc_shooting_info();
+
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);
         #endif
