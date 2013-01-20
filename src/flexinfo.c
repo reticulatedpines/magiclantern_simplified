@@ -453,9 +453,9 @@ uint32_t info_get_absolute(info_elem_t *config, info_elem_t *element)
         /* determine position from referenced element identified by 'anchor' and update pos_x, pos_y (they contain the offset) */
         info_elem_t *anchor = &(config[element->hdr.pos.anchor]);
         
-        if(!element->hdr.pos.shown)
+        if(!anchor->hdr.pos.shown)
         {
-            anchor->hdr.pos.shown = 0;
+            element->hdr.pos.shown = 0;
         }
 
         switch(element->hdr.pos.anchor_flags & INFO_ANCHOR_H_MASK)
@@ -912,9 +912,11 @@ uint32_t info_print_config(info_elem_t *config)
                     }
                     
                     /* now put the title bar */
-                    char buf[32];
+                    char label[64];
                     int offset = 0;
                     int font_height = fontspec_font(FONT_SMALL)->height;
+                    
+                    strcpy(label, "");
                     
                     /* position properly when the item is at some border */
                     if(font_height > config[pos].hdr.pos.abs_y)
@@ -929,10 +931,20 @@ uint32_t info_print_config(info_elem_t *config)
                     /* any name to print? */
                     if(strlen(config[pos].hdr.pos.name) > 0)
                     {
-                        snprintf(buf, sizeof(buf), "%s", config[pos].hdr.pos.name);
-                        int fnt = FONT(FONT_SMALL, COLOR_WHITE, color);
-                        bmp_printf(fnt, COERCE(config[pos].hdr.pos.abs_x, 0, 720), COERCE(config[pos].hdr.pos.abs_y + offset, 0, 480), buf);
+                        char buf[32];
+                        snprintf(buf, sizeof(buf), "%s ", config[pos].hdr.pos.name);
+                        strcpy(&label[strlen(label)], buf);
                     }
+                    
+                    if(config[0].config.show_boundaries)
+                    {
+                        char buf[32];
+                        snprintf(buf, sizeof(buf), "%d draws ", config[pos].hdr.pos.redraws);
+                        strcpy(&label[strlen(label)], buf);
+                    }
+                    
+                    int fnt = FONT(FONT_SMALL, COLOR_WHITE, color);
+                    bmp_printf(fnt, COERCE(config[pos].hdr.pos.abs_x, 0, 720), COERCE(config[pos].hdr.pos.abs_y + offset, 0, 480), label);
                 }
             }
             pos++;
