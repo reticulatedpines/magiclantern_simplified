@@ -13,7 +13,7 @@
 
 /* these are used in bitrate.c for video bitrate hacks */
 #define CACHE_HACK_FLUSH_RATE_SLAVE  0xFF0EA4D0
-#define CACHE_HACK_GOP_SIZE_SLAVE    0xFF2175E4
+#define CACHE_HACK_GOP_SIZE_SLAVE    0xFF217624
 
 
 // no idea if it's overflowing, need to check experimentally 
