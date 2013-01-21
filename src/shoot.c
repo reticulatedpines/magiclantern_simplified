@@ -3544,7 +3544,18 @@ mlu_display( void * priv, int x, int y, int selected )
         : get_mlu() ? "ON" : "OFF"
     );
     if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Mirror Lockup does not work in LiveView");
-    else if (MLU_HANDHELD && (HDR_ENABLED || trap_focus || is_bulb_mode() || intervalometer_running || motion_detect || audio_release_running || is_focus_stack_enabled()))
+    else if (MLU_HANDHELD && 
+        (
+            HDR_ENABLED || 
+            trap_focus || 
+            is_bulb_mode() || 
+            intervalometer_running || 
+            motion_detect || 
+            #ifdef FEATURE_AUDIO_REMOTE_SHOT
+            audio_release_running || 
+            #endif
+            is_focus_stack_enabled())
+        )
     {
         static char msg[60];
         snprintf(msg, sizeof(msg), "Handhedld MLU does not work with %s.",
@@ -3553,7 +3564,9 @@ mlu_display( void * priv, int x, int y, int selected )
             is_bulb_mode() ? "bulb shots" :
             intervalometer_running ? "intervalometer" :
             motion_detect ? "motion detection" :
+            #ifdef FEATURE_AUDIO_REMOTE_SHOT
             audio_release_running ? "audio remote" :
+            #endif
             is_focus_stack_enabled() ? "focus stacking" : "?!"
         );
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) msg);
