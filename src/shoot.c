@@ -4560,6 +4560,8 @@ expo_lock_display( void * priv, int x, int y, int selected )
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This feature only works in M mode.");
         if (!lens_info.raw_iso)
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This feature requires manual ISO.");
+        if (HDR_ENABLED)
+            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This feature does not work with HDR bracketing.");
     }
 }
 
