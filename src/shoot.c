@@ -883,6 +883,11 @@ int handle_mlu_handheld(struct event * event)
 {
     if (MLU_HANDHELD && !lv)
     {
+        extern int ml_taking_pic;
+        if (ml_taking_pic) return 1; // do not use this feature for pictures initiated by ML code
+        if (HDR_ENABLED) return 1; // may interfere with HDR bracketing
+        if (trap_focus) return 1; // may not play nice with trap focus
+
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug && event->param == GMT_OLC_INFO_CHANGED)
         {
@@ -3345,6 +3350,12 @@ void
 bulb_take_pic(int duration)
 {
 #ifdef CONFIG_BULB
+
+    extern int ml_taking_pic;
+    if (ml_taking_pic) return;
+    ml_taking_pic = 1;
+
+
     //~ NotifyBox(2000,  "Bulb: %d ", duration); msleep(2000);
     duration = MAX(duration, BULB_MIN_EXPOSURE) + BULB_EXPOSURE_CORRECTION;
     int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
@@ -3425,6 +3436,8 @@ bulb_take_pic(int duration)
     prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
     set_shooting_mode(m0r);
     msleep(200);
+    
+    ml_taking_pic = 0;
 #endif
 }
 
@@ -3530,6 +3543,8 @@ mlu_display( void * priv, int x, int y, int selected )
         : get_mlu() ? "ON" : "OFF"
     );
     if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Mirror Lockup does not work in LiveView");
+    else if (MLU_HANDHELD && trap_focus) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Handhedld MLU does not work with trap focus.");
+    else if (MLU_HANDHELD && HDR_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Handhedld MLU does not work with HDR bracketing.");
     else menu_draw_icon(x, y, mlu_auto ? MNI_AUTO : MNI_BOOL(get_mlu()), 0);
 }
 #endif // FEATURE_MLU
@@ -4604,6 +4619,7 @@ static void expo_lock_step()
     if (shooting_mode != SHOOTMODE_M) return;
     if (!lens_info.raw_iso) return;
     if (ISO_ADJUSTMENT_ACTIVE) return;
+    if (HDR_ENABLED) return;
     
     if (expo_lock_value == 12345)
         expo_lock_value = expo_lock_get_current_value();

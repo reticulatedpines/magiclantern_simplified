@@ -1094,7 +1094,10 @@ int mlu_lock_mirror_if_needed() // called by lens_take_picture; returns 0 if suc
     if (get_mlu())
     {
         SetGUIRequestMode(0);
-        while (display_idle()) msleep(50); msleep(500);
+        int iter = 20;
+        while (iter-- && display_idle())
+            msleep(50); 
+        msleep(500);
     }
 
     //~ NotifyBox(1000, "MLU locking");
@@ -1189,12 +1192,17 @@ void restore_af_button_assignment_at_shutdown()
     }
 }
 
+int ml_taking_pic = 0;
+
 int
 lens_take_picture(
     int wait, 
     int allow_af
 )
 {
+    if (ml_taking_pic) return;
+    ml_taking_pic = 1;
+    
     if (!allow_af) assign_af_button_to_star_button();
     //~ take_semaphore(lens_sem, 0);
     lens_wait_readytotakepic(64);
@@ -1248,6 +1256,7 @@ end:
     {
         //~ give_semaphore(lens_sem);
         if (!allow_af) restore_af_button_assignment();
+        ml_taking_pic = 0;
         return 0;
     }
     else
@@ -1256,6 +1265,7 @@ end:
         lens_wait_readytotakepic(wait);
         //~ give_semaphore(lens_sem);
         if (!allow_af) restore_af_button_assignment();
+        ml_taking_pic = 0;
         return lens_info.job_state;
     }
 }
