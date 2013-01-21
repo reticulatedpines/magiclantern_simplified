@@ -1386,7 +1386,7 @@ menu_display(
                 bmp_printf(
                     FONT(FONT_MED, MENU_WARNING_COLOR, COLOR_BLACK),
                      10,  MENU_HELP_Y_POS, 
-                        "Press MENU to hide items. Press MENU to show them again.   "
+                        "Press SET to hide items that you don't use. MENU: go back. "
                 );
             }
 
@@ -1499,7 +1499,7 @@ menus_display(
     int         y
 )
 {
-    int         x = orig_x + 150;
+    int         x = orig_x + 130;
 
     take_semaphore( menu_sem, 0 );
 
@@ -1518,7 +1518,7 @@ menus_display(
         num_tabs++;
     }
     
-    int icon_spacing = (720 - 150) / num_tabs;
+    int icon_spacing = (720 - 130) / num_tabs;
     
     int bgs = COLOR_BLACK;
     int bgu = COLOR_GRAY40;
@@ -2267,17 +2267,10 @@ handle_ml_menu_keys(struct event * event)
     switch( button_code )
     {
     case BGMT_MENU:
-/*        if (submenu_mode) submenu_mode = 0;
-        else advanced_hidden_edit_mode = !advanced_hidden_edit_mode;
-        menu_lv_transparent_mode = 0;
-        menu_help_active = 0;
-*/
         if (!menu_lv_transparent_mode && submenu_mode != 2)
         {
-            if (!advanced_hidden_edit_mode) advanced_hidden_edit_mode = 2;
-            else menu_entry_showhide_toggle(menu);
+            advanced_hidden_edit_mode = !advanced_hidden_edit_mode;
             menu_needs_full_redraw = 1;
-            //~ menu_hidden_should_display_help = 1;
         }
         
         break;
@@ -2347,12 +2340,16 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_JOY_CENTER:
 #endif
     case BGMT_PRESS_SET:
-            if (menu_help_active) { 
+        if (menu_help_active) { 
 			page_number_active = 1-page_number_active;
 			menu_help_redraw();
 //			menu_help_active = 0; /* menu_damage = 1; */ 
 			break; 
 		}
+        else if (advanced_hidden_edit_mode)
+        {
+            menu_entry_showhide_toggle(menu);
+        }
         else
         {
             menu_entry_select( menu, 3 ); // "SET" select
