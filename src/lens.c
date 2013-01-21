@@ -1200,7 +1200,7 @@ lens_take_picture(
     int allow_af
 )
 {
-    if (ml_taking_pic) return;
+    if (ml_taking_pic) return -1;
     ml_taking_pic = 1;
     
     if (!allow_af) assign_af_button_to_star_button();
