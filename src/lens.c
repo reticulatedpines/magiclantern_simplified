@@ -1095,7 +1095,7 @@ int mlu_lock_mirror_if_needed() // called by lens_take_picture; returns 0 if suc
     {
         SetGUIRequestMode(0);
         int iter = 20;
-        while (iter-- && display_idle())
+        while (iter-- && !display_idle())
             msleep(50); 
         msleep(500);
     }
