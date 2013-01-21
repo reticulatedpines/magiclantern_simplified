@@ -4796,7 +4796,7 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
     //~ bmp_printf(FONT_MED, 100, 200, "%d->%d ", *prev_countdown, c);
     if (*prev_countdown && !c)
     {
-        info_led_blink(1, 50, 50);
+        //~ info_led_blink(1, 50, 50);
         //~ bmp_printf(FONT_MED, 100, 200, "action  "); msleep(500);
         action_on();
         //~ msleep(500);
@@ -4804,7 +4804,7 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
     }
     else if (!*prev_countdown && c)
     {
-        info_led_blink(1, 50, 50);
+        //~ info_led_blink(1, 50, 50);
         //~ bmp_printf(FONT_MED, 100, 200, "unaction"); msleep(500);
         action_off();
         //~ msleep(500);
@@ -4886,7 +4886,7 @@ static void idle_display_off()
     extern int motion_detect;
     if (!(motion_detect || recording)) PauseLiveView();
     display_off();
-    msleep(100);
+    msleep(300);
     idle_countdown_display_off = 0;
     ASSERT(!(recording && LV_PAUSED));
     ASSERT(!DISPLAY_IS_ON);
@@ -4897,12 +4897,6 @@ static void idle_display_on()
     ResumeLiveView();
     display_on();
     redraw();
-    #if 0
-    if(is_movie_mode() && !recording && start_recording_on_resume && resumed_due_to_halfshutter) {
-    	schedule_movie_start();
-        resumed_due_to_halfshutter = 0;
-    }
-    #endif
     //~ ASSERT(DISPLAY_IS_ON); // it will take a short time until display will turn on
 }
 
