@@ -887,6 +887,7 @@ int handle_mlu_handheld(struct event * event)
         if (ml_taking_pic) return 1; // do not use this feature for pictures initiated by ML code
         if (HDR_ENABLED) return 1; // may interfere with HDR bracketing
         if (trap_focus) return 1; // may not play nice with trap focus
+        if (is_bulb_mode()) return 1; // not good in bulb mode
 
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug && event->param == GMT_OLC_INFO_CHANGED)
@@ -3543,8 +3544,20 @@ mlu_display( void * priv, int x, int y, int selected )
         : get_mlu() ? "ON" : "OFF"
     );
     if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Mirror Lockup does not work in LiveView");
-    else if (MLU_HANDHELD && trap_focus) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Handhedld MLU does not work with trap focus.");
-    else if (MLU_HANDHELD && HDR_ENABLED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Handhedld MLU does not work with HDR bracketing.");
+    else if (MLU_HANDHELD && (HDR_ENABLED || trap_focus || is_bulb_mode() || intervalometer_running || motion_detect || audio_release_running || is_focus_stack_enabled()))
+    {
+        static char msg[60];
+        snprintf(msg, sizeof(msg), "Handhedld MLU does not work with %s.",
+            HDR_ENABLED ? "HDR bracketing" :
+            trap_focus ? "trap focus" :
+            is_bulb_mode() ? "bulb shots" :
+            intervalometer_running ? "intervalometer" :
+            motion_detect ? "motion detection" :
+            audio_release_running ? "audio remote" :
+            is_focus_stack_enabled() ? "focus stacking" : "?!"
+        );
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) msg);
+    }
     else menu_draw_icon(x, y, mlu_auto ? MNI_AUTO : MNI_BOOL(get_mlu()), 0);
 }
 #endif // FEATURE_MLU
