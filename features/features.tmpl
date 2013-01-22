@@ -14,7 +14,7 @@
 %for mn in menus:
     %if MN_COUNT.get(mn,0) != 0:
         <thead>
-            <tr><th>${mn}</th></tr>
+            <tr><th colspan="${len(cams)+1}">${mn}</th></tr>
             <tr>
                 <th></th>
                 %for camera in cams: 
