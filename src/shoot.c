@@ -1271,7 +1271,6 @@ void playback_compare_images_task(int dir)
         dir = 1;
     }
     
-    NotifyBox(1000,  "Compare 1");    
     void* aux_buf = (void*)YUV422_HD_BUFFER_2;
     void* current_buf;
     int w = get_yuv422_vram()->width;
@@ -1279,17 +1278,12 @@ void playback_compare_images_task(int dir)
     int buf_size = w * h * 2;
     current_buf = get_yuv422_vram()->vram;
     yuv_halfcopy(aux_buf, current_buf, w, h, 1);
-    NotifyBox(1000,  "Compare 2");    
     next_image_in_play_mode(dir);
-    NotifyBox(1000,  "Compare 2a");    
     current_buf = get_yuv422_vram()->vram;
-    NotifyBox(1000,  "Compare 2b");    
     yuv_halfcopy(aux_buf, current_buf, w, h, 0);
-    NotifyBox(1000,  "Compare 3");    
     current_buf = get_yuv422_vram()->vram;
     memcpy(current_buf, aux_buf, buf_size);
     give_semaphore(set_maindial_sem);
-    NotifyBox(1000,  "Compare 4");    
 }
 
 void playback_compare_images(int dir)
