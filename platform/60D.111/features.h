@@ -3,6 +3,7 @@
 #define FEATURE_SWAP_MENU_ERASE
 #define FEATURE_EYEFI_TRICKS
 #define FEATURE_REC_NOTIFY_BEEP
+#define FEATURE_SILENT_PIC_HIRES
 
 // the 60D has very little RAM; disable some debug things
 
