@@ -358,7 +358,7 @@ static void draw_meters(void)
         {
                 draw_meter( x0, y0 + 0, 10, &audio_levels[0], left_label);
                 draw_ticks( x0, y0 + 10, 3 );
-#if !defined(FEATURE_MONO_MIC)
+#if !defined(CONFIG_MONO_MIC)
                 draw_meter( x0, y0 + 12, 10, &audio_levels[1], right_label);
 #endif
         }
@@ -366,7 +366,7 @@ static void draw_meters(void)
         {
                 draw_meter( x0, y0 + 0, 7, &audio_levels[0], left_label);
                 draw_ticks( x0, y0 + 7, 2 );
-#if !defined(FEATURE_MONO_MIC)
+#if !defined(CONFIG_MONO_MIC)
                 draw_meter( x0, y0 + 8, 7, &audio_levels[1], right_label);
 #endif
         }

@@ -112,3 +112,6 @@
 
 /** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
 #define CONFIG_FPS_AGGRESSIVE_UPDATE
+
+/** This camera has a mono microphone input, so we should display only one audio meter **/
+#define CONFIG_MONO_MIC
