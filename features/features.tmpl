@@ -25,9 +25,9 @@
                 <td><a href="//wiki.magiclantern.fm/features/${f[8:]}">${f[8:]}</a></td>
                 %for c in cams:
                     %if FD.get((c,f))==True:
-                        <td><button class="btn btn-success disabled"><i class="icon-white icon-ok"></i></button></td>
+                        <td>&#x2713;</td>
                     %else:
-                        <td><button class="btn btn-warning disabled"><i class="icon-white icon-remove"></i></button></td>
+                        <td></td>
                     %endif
                 %endfor 
             </tr>
