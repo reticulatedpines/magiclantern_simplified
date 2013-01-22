@@ -17,8 +17,12 @@
             <tr><th colspan="${len(cams)+1}">${mn}</th></tr>
             <tr>
                 <th></th>
-                %for camera in cams: 
-                    <th>${shortnames[camera]}</th>
+                %for camera in cams:
+                    %if shortnames[camera] in porting_threads:
+                        <th><a href="${porting_threads[shortnames[camera]]}">${shortnames[camera]}</a></th>
+                    %else:
+                        <th><a href="http://www.magiclantern.fm/forum/index.php#c3">${shortnames[camera]}</a></th>
+                    %endif
                 %endfor
             </tr>
         </thead>
