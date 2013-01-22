@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap-combined.min.css" rel="stylesheet">
+<link href="https://raw.github.com/farinspace/jquery.tableScroll/master/jquery.tablescroll.css" rel="stylesheet">
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
+<script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js"></script>
+<script src="https://raw.github.com/farinspace/jquery.tableScroll/master/jquery.tablescroll.js"></script>
+<title> Feature comparison matrix </title>
+</head>
+<body>
+<div class="container">
+<table id="matrixTable" class="table table-hover">
+    <thead>
+        <tr>
+            <th></th>
+            %for camera in cams: 
+                <th>${shortnames[camera]}</th>
+            %endfor
+        </tr>
+    </thead>
+    <tbody>
+        %for f in AF:
+            <tr>
+                <td>${f[8:38]}</td>
+                %for c in cams:
+                    %if FD.get((c,f))==True:
+                        <td>*</td>
+                    %else:
+                        <td></td>
+                    %endif
+                %endfor 
+            </tr>
+        %endfor
+    </tbody>
+</table>
+</div>
+<script type="text/javascript">
+jQuery(document).ready(function($)
+{
+	$('#matrixTable').tableScroll({height:500});
+});
+</script>
+</body>
+</html>
