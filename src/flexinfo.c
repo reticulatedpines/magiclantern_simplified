@@ -144,6 +144,536 @@ info_elem_t info_config[] =
     { .type = INFO_TYPE_END },
 };
 
+char *info_strncpy(char *dst, char *src, uint32_t length)
+{
+    uint32_t pos = 0;
+    
+    while(pos < length)
+    {
+        dst[pos] = src[pos];
+        if(!src[pos])
+        {
+            return dst;
+        }
+        pos++;
+    }
+    dst[pos] = 0;
+    
+    return dst;
+}
+
+uint32_t info_xml_get_element(char *config, uint32_t *start_pos, char *buf, uint32_t buf_length)
+{
+    uint32_t start = 0;
+    uint32_t end = 0;
+    uint32_t pos = *start_pos;
+    char escape_quot = 0;
+    
+    /* skip any whitespace */
+    while(config[pos] && (config[pos] == ' ' || config[pos] == '\t' || config[pos] == '\r' || config[pos] == '\n'))
+    {
+        pos++;
+    }
+    
+    /* reached the end or no starting tag found? */
+    if(!config[pos] || config[pos] != '<')
+    {
+        strcpy(buf, "");
+        return 1;
+    }
+    
+    /* well, then this is our next tag */
+    pos++;
+    start = pos;
+    
+    while(config[pos] && (config[pos] != '>' || escape_quot))
+    {
+        /* ignore any tags within quotation marks, waiting for an closed quot mark of the same type */
+        if(config[pos] == '"' || config[pos] == '\'')
+        {
+            /* nothing escaped yet? */
+            if(!escape_quot)
+            {
+                /* set our current quotation mark type */
+                escape_quot = config[pos];
+            }
+            else if(escape_quot == config[pos])
+            {
+                /* same quotation mark hit again, unset it */
+                escape_quot = 0;
+            }
+        }
+        
+        /* blank out any whitespace with a real space - as long it is not in a string */
+        if(!escape_quot && (config[pos] == '\t' || config[pos] == '\r' || config[pos] == '\n'))
+        {
+            config[pos] = ' ';
+        }
+        pos++;
+    }
+
+    /* reached the end or no end tag found? */
+    if(!config[pos] || config[pos] != '>')
+    {
+        strcpy(buf, "");
+        return 1;
+    }
+    
+    /* well, then this is our end */
+    end = pos - 1;
+    *start_pos = pos + 1;
+    
+    /* empty tags are quite useless and not well-formed */
+    if(end < start || (end - start + 1) >= buf_length )
+    {
+        strcpy(buf, "");
+        return 1;
+    }
+    
+    /* copy text */
+    strncpy(buf, &(config[start]), end - start + 1);
+    buf[end - start + 1] = '\0';
+    
+    
+    return 0;
+}
+
+uint32_t info_xml_get_attribute_token(char *attribute_str, char *buf, uint32_t buf_length)
+{
+    uint32_t start = 0;
+    uint32_t end = 0;
+    uint32_t pos = 0;
+    char escape_quot = 0;
+    
+    /* skip any character until next whitespace */
+    while(attribute_str[pos] && attribute_str[pos] == ' ')
+    {
+        pos++;
+    }
+    
+    /* reached the end or tag end found? */
+    if(!attribute_str[pos] || attribute_str[pos] == '/')
+    {
+        strcpy(buf, "");
+        return 1;
+    }
+    
+    start = pos;
+    
+    while(attribute_str[pos] && ((attribute_str[pos] != ' ' && attribute_str[pos] != '/' && attribute_str[pos] != '=') || escape_quot ))
+    {
+        /* ignore any tags within quotation marks, waiting for an closed quot mark of the same type */
+        if(attribute_str[pos] == '"' || attribute_str[pos] == '\'')
+        {
+            /* nothing escaped yet? */
+            if(!escape_quot)
+            {
+                /* set our current quotation mark type */
+                escape_quot = attribute_str[pos];
+            }
+            else if(escape_quot == attribute_str[pos])
+            {
+                /* same quotation mark hit again, unset it */
+                escape_quot = 0;
+            }
+        }
+            
+        pos++;
+    }
+
+    pos--;    
+    end = pos;
+
+    if(end < pos || (end - start + 1) >= buf_length )
+    {
+        strcpy(buf, "");
+        return 1;
+    }
+    
+    /* copy text */
+    strncpy(buf, &(attribute_str[start]), end - start + 1);
+    buf[end - start + 1] = '\0';
+
+    return 0;
+}
+
+/* 
+ * gets element_str = "xml_token name1=value1 name2 = value2/"
+ * and returns value for given attribute name
+ */
+uint32_t info_xml_get_attribute(char *element_str, char *attribute, char *buf, uint32_t buf_length)
+{
+    uint32_t pos = 0;
+
+    /* skip any character until next whitespace to skip tag name */
+    while(element_str[pos] && element_str[pos] != ' ')
+    {
+        pos++;
+    }
+    
+    pos++;
+    
+    /* reached the end or tag end found? */
+    if(!element_str[pos] || element_str[pos] == '/')
+    {
+        strcpy(buf, "");
+        return 1;
+    }
+        
+    /* do this until the end was reached */
+    while(1)
+    {
+        char attribute_token[32];
+        char value_token[32];
+        
+        /* skip until next non-whitespace */
+        while(element_str[pos] && element_str[pos] == ' ')
+        {
+            pos++;
+        }
+        
+        /* reached the end or tag end found? */
+        if(!element_str[pos] || element_str[pos] == '/')
+        {
+            strcpy(buf, "");
+            return 1;
+        }
+        
+        if(info_xml_get_attribute_token(&(element_str[pos]), attribute_token, sizeof(attribute_token)))
+        {
+            strcpy(buf, "");
+            return 1;
+        }
+
+        pos += strlen(attribute_token);
+        
+        /* skip " = " between attribute and value */
+        while(element_str[pos] && (element_str[pos] == ' ' || element_str[pos] == '='))
+        {
+            pos++;
+        }
+        
+        /* reached the end? */
+        if(!element_str[pos])
+        {
+            strcpy(buf, "");
+            return 1;
+        }
+        
+        /* now get the value of this attribute */
+        if(info_xml_get_attribute_token(&(element_str[pos]), value_token, sizeof(value_token)))
+        {
+            strcpy(buf, "");
+            return 1;
+        }
+
+        /* if this was the token we looked for, return content */
+        if(!strcmp(attribute, attribute_token))
+        {
+            info_strncpy(buf, value_token, buf_length);
+            return 0;
+        }
+        
+        pos += strlen(value_token);
+    }
+ 
+    return 1;
+}
+
+uint32_t info_xml_parse_pos(info_elem_t *config, char *config_str)
+{
+    char buf[32];
+    
+    /* all element have x/y etc */
+    if(!info_xml_get_attribute(config_str, "x", buf, sizeof(buf)))
+    {
+        config->hdr.pos.x = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "y", buf, sizeof(buf)))
+    {
+        config->hdr.pos.y = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "z", buf, sizeof(buf)))
+    {
+        config->hdr.pos.z = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "anchor_flags", buf, sizeof(buf)))
+    {
+        config->hdr.pos.anchor_flags = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "anchor", buf, sizeof(buf)))
+    {
+        config->hdr.pos.anchor = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "anchor_flags_self", buf, sizeof(buf)))
+    {
+        config->hdr.pos.anchor_flags_self = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "user_disable", buf, sizeof(buf)))
+    {
+        config->hdr.pos.user_disable = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "name", buf, sizeof(buf)))
+    {
+        info_strncpy(config->hdr.pos.name, buf, sizeof(config->hdr.pos.name));
+    }
+    
+    return 0;
+}
+
+
+uint32_t info_xml_parse_string(info_elem_t *config, char *config_str)
+{
+    char buf[32];
+    
+    uint32_t ret = info_xml_parse_pos(config, config_str);
+    
+    if(ret)
+    {
+        return ret;
+    }
+    
+    if(!info_xml_get_attribute(config_str, "string_type", buf, sizeof(buf)))
+    {
+        config->string.string_type = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "fgcolor", buf, sizeof(buf)))
+    {
+        config->string.fgcolor = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "bgcolor", buf, sizeof(buf)))
+    {
+        config->string.bgcolor = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "font_type", buf, sizeof(buf)))
+    {
+        config->string.font_type = atoi(buf);
+    }
+    
+    return 0;
+}
+
+uint32_t info_xml_parse_fill(info_elem_t *config, char *config_str)
+{
+    char buf[32];
+    
+    uint32_t ret = info_xml_parse_pos(config, config_str);
+    
+    if(ret)
+    {
+        return ret;
+    }
+    
+    if(!info_xml_get_attribute(config_str, "color", buf, sizeof(buf)))
+    {
+        config->fill.color = atoi(buf);
+    }
+    
+    return 0;
+}
+
+uint32_t info_xml_parse_battery_icon(info_elem_t *config, char *config_str)
+{
+    char buf[32];
+    
+    uint32_t ret = info_xml_parse_pos(config, config_str);
+    
+    if(ret)
+    {
+        return ret;
+    }
+    
+    if(!info_xml_get_attribute(config_str, "pct_red", buf, sizeof(buf)))
+    {
+        config->battery_icon.pct_red = atoi(buf);
+    }
+    
+    if(!info_xml_get_attribute(config_str, "pct_yellow", buf, sizeof(buf)))
+    {
+        config->battery_icon.pct_yellow = atoi(buf);
+    }
+    
+    
+    return 0;
+}
+
+uint32_t info_xml_parse_battery_perf(info_elem_t *config, char *config_str)
+{
+    char buf[32];
+    
+    uint32_t ret = info_xml_parse_pos(config, config_str);
+    
+    if(ret)
+    {
+        return ret;
+    }
+    
+    if(!info_xml_get_attribute(config_str, "horizontal", buf, sizeof(buf)))
+    {
+        config->battery_perf.horizontal = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "width", buf, sizeof(buf)))
+    {
+        config->battery_perf.width = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "height", buf, sizeof(buf)))
+    {
+        config->battery_perf.height = atoi(buf);
+    }
+    
+    return 0;
+}
+
+uint32_t info_xml_parse_icon(info_elem_t *config, char *config_str)
+{
+    char buf[32];
+    
+    uint32_t ret = info_xml_parse_pos(config, config_str);
+    
+    if(ret)
+    {
+        return ret;
+    }
+    
+    if(!info_xml_get_attribute(config_str, "fgcolor", buf, sizeof(buf)))
+    {
+        config->icon.fgcolor = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "bgcolor", buf, sizeof(buf)))
+    {
+        config->icon.bgcolor = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "filename", buf, sizeof(buf)))
+    {
+        info_strncpy(config->icon.filename, buf, sizeof(config->icon.filename));
+    }
+    
+    return 0;
+}
+
+uint32_t info_load_config(char *filename)
+{
+	uint32_t allocated_elements = 32;
+    uint32_t size = 0;
+    uint32_t done = 0;
+    uint32_t config_string_pos = 0;
+    uint32_t config_element_pos = 0;
+    char xml_element[128];
+    char attr_buf[128];
+
+    if( FIO_GetFileSize( filename, &size ) != 0 )
+    {
+        return 1;
+	}
+
+	char *xml_config = alloc_dma_memory(size + 1);
+    xml_config[size] = '\0';
+	if (!xml_config)
+	{
+        return 1;
+	}
+
+	if ((unsigned)read_file(filename, xml_config, size)!=size)
+	{
+        free_dma_memory(xml_config);
+        return 1;
+	}
+    
+    /* read first xml token */
+    if(info_xml_get_element(xml_config, &config_string_pos, xml_element, sizeof(xml_element)))
+    {
+        free_dma_memory(xml_config);
+        return 1;
+    }
+    
+    /* should be a flexinfo */
+    if(strncmp(xml_element, "flexinfo", 8))
+    {
+        free_dma_memory(xml_config);
+        return 1;
+    }
+    
+    /* attribute tells how many elements are allocated */
+    if(!info_xml_get_attribute(xml_element, "allocated_elements", attr_buf, sizeof(attr_buf)))
+    {
+        allocated_elements = atoi(attr_buf);
+    }
+    
+    
+    /* allocate the new config */
+    info_elem_t *new_config = (info_elem_t *)alloc_dma_memory(allocated_elements*sizeof(info_elem_t));
+    memset(new_config, 0, allocated_elements*sizeof(info_elem_t));
+    
+    /* first is config header */
+    new_config[config_element_pos].type = INFO_TYPE_CONFIG;
+    
+    /* config/root element has one configurable attribute. but may be omitted */
+    if(!info_xml_get_attribute(xml_element, "name", attr_buf, sizeof(attr_buf)))
+    {
+        info_strncpy(new_config[config_element_pos].config.name, attr_buf, sizeof(new_config[config_element_pos].config.name));
+    }
+    
+    config_element_pos++;
+    
+    do
+    {
+        uint32_t ret = 0;
+        info_elem_t *element = &(new_config[config_element_pos]);
+
+        /* read next element */
+        if(info_xml_get_element(xml_config, &config_string_pos, xml_element, sizeof(xml_element)))
+        {
+            free_dma_memory(new_config);
+            free_dma_memory(xml_config);
+            return 1;
+        }
+        
+        if(!strncmp(xml_element, "string", 6))
+        {
+            ret = info_xml_parse_string(element, xml_element);
+        }
+        if(!strncmp(xml_element, "fill", 4))
+        {
+            ret = info_xml_parse_fill(element, xml_element);
+        }
+        if(!strncmp(xml_element, "battery_icon", 12))
+        {
+            ret = info_xml_parse_battery_icon(element, xml_element);
+        }
+        if(!strncmp(xml_element, "battery_perf", 12))
+        {
+            ret = info_xml_parse_battery_perf(element, xml_element);
+        }
+        if(!strncmp(xml_element, "icon", 4))
+        {
+            ret = info_xml_parse_icon(element, xml_element);
+        }
+        if(!strncmp(xml_element, "/flexinfo", 9))
+        {
+            element->type = INFO_TYPE_END;
+            done = 1;
+        }
+        
+        config_element_pos++;
+        if(ret || allocated_elements < config_element_pos)
+        {
+            free_dma_memory(new_config);
+            free_dma_memory(xml_config);
+            return ret;
+        }
+        
+    } while (!done);
+
+    free_dma_memory(xml_config);    
+    free_dma_memory(new_config);    
+    memcpy(info_config, new_config, config_element_pos * sizeof(info_elem_t));
+    return 0;
+}
+
+
+/* ********************************************************************************** */
+
+
 uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
 {
     strcpy(buffer, "");
@@ -867,7 +1397,7 @@ uint32_t info_print_config(info_elem_t *config)
     while(config[pos].type != INFO_TYPE_END)
     {
         /* by default all are set as shown */
-        config[pos].hdr.pos.shown = 1;
+        config[pos].hdr.pos.shown = !config[pos].hdr.pos.user_disable;
         pos++;
     }
     
@@ -1244,6 +1774,47 @@ void info_menu_item_anchor_self_select(void* priv, int delta)
     }
 }
 
+
+void info_menu_item_hide_select(void* priv, int delta)
+{
+    info_elem_t *config = (info_elem_t *)priv;
+    info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
+    
+    item->hdr.pos.user_disable = !item->hdr.pos.user_disable;
+}
+
+void info_menu_item_hide_display(void *priv, int x, int y, int selected)
+{
+    char menu_line[64];
+    info_elem_t *config = (info_elem_t *)priv;
+    info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
+    
+    if(config[0].config.selected_item)
+    {
+        if(item->hdr.pos.user_disable)
+        {
+            snprintf(menu_line, sizeof(menu_line), "Show Item");
+        }
+        else
+        {
+            snprintf(menu_line, sizeof(menu_line), "Hide Item");
+        }
+    }
+    else
+    {
+        snprintf(menu_line, sizeof(menu_line), "Anchor item: (none)");
+    }
+    
+    if(selected && config[0].config.selected_item)
+    {
+        strcpy(info_current_menu, menu_line);
+    }
+    else
+    {
+        bmp_printf(MENU_FONT, x, y, menu_line);
+    }
+}
+
 void info_menu_item_anchor_self_display(void *priv, int x, int y, int selected)
 {
     char menu_line[64];
@@ -1342,6 +1913,14 @@ static struct menu_entry info_menus[] = {
                 .help = "Select a specific element for editing.",
             },
             {
+                .name = "Hide Item",
+                .priv = info_config,
+                .max = 1,
+                .select = info_menu_item_hide_select,
+                .display = info_menu_item_hide_display,
+                .help = "Show or hide the item.",
+            },
+            {
                 .name = "Pos X",
                 .priv = info_config,
                 .min = 0,
@@ -1409,6 +1988,7 @@ static struct menu_entry info_menus[] = {
 static void info_init()
 {
     menu_add( "Prefs", info_menus, COUNT(info_menus) );
+    info_load_config(CARD_DRIVE"ML/SETTINGS/FLEXINFO.XML");
 }
 
 static void info_edit_task()
