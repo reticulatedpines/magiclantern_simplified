@@ -109,30 +109,65 @@
     #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0
     #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0
 
-// position for displaying shutter count and other info 
-#define MENU_DISP_INFO_POS_X 0 
-#define MENU_DISP_INFO_POS_Y 395 
- 
-#define MENU_DISP_ISO_POS_X 527 
-#define MENU_DISP_ISO_POS_Y 45 
- 
-#define HDR_STATUS_POS_X 190 
-#define HDR_STATUS_POS_Y 450 
+// position for displaying shutter count and other info
+#define MENU_DISP_INFO_POS_X 0
+#define MENU_DISP_INFO_POS_Y 395
 
-// In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
-// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
-#define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 88...98 ?!
+// position for ML ISO disp outside LV
+#define MENU_DISP_ISO_POS_X 527
+#define MENU_DISP_ISO_POS_Y 45
+
+//position for ML MAX ISO
+#define MAX_ISO_POS_X 590
+#define MAX_ISO_POS_Y 28
+
+// for ML hdr display
+#define HDR_STATUS_POS_X 562
+#define HDR_STATUS_POS_Y 100
+
+//for HTP mode on display
+#define HTP_STATUS_POS_X 500
+#define HTP_STATUS_POS_Y 233
+
+//for Mirror Lock Up enabled on display
+#define MLU_STATUS_POS_X 316
+#define MLU_STATUS_POS_Y 310
+
+#define WBS_GM_POS_X 365
+#define WBS_GM_POS_Y 230
+
+#define WBS_POS_X 365
+#define WBS_POS_Y 260
+
+// Audio remote shot position info photo mode
+#define AUDIO_REM_SHOT_POS_X 200
+#define AUDIO_REM_SHOT_POS_Y 386
 
 // position for displaying clock outside LV
-#define DISPLAY_CLOCK_POS_X 400
+#define DISPLAY_CLOCK_POS_X 440
 #define DISPLAY_CLOCK_POS_Y 410
 
+// position for displaying K icon in photo info display
+#define WB_K_ICON_POS_X 192
+#define WB_K_ICON_POS_Y 226
+
+// position for displaying K values in photo info display
+#define WB_KELVIN_POS_X 192
+#define WB_KELVIN_POS_Y 260
+
+// position for displaying card size remain outside LV
+#define DISPLAY_GB_POS_X 305
+#define DISPLAY_GB_POS_Y 410
+
 // for displaying TRAP FOCUS msg outside LV
-#define DISPLAY_TRAP_FOCUS_POS_X 50
+#define DISPLAY_TRAP_FOCUS_POS_X 65
 #define DISPLAY_TRAP_FOCUS_POS_Y 360
 #define DISPLAY_TRAP_FOCUS_MSG       "TRAP FOCUS"
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
+// In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
+// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
+#define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 88...98 ?!
 #define NUM_PICSTYLES 10
 #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
@@ -199,7 +234,6 @@
 #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))
 #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
-
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x4b428
