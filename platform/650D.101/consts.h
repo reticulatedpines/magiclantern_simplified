@@ -37,7 +37,7 @@
 
 // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
 // stateobj_disp[1]
-#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x3EAB0+0x11c))
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x23C10+0x11c))
 
 
 #define EVF_STATEOBJ (*(struct state_object**)0x25B00)
