@@ -25,7 +25,7 @@ cams = []
 
 for c in os.listdir("../platform"):
     if os.path.isdir(os.path.join("../platform", c)):
-        if "_" not in c and "all" not in c and "7D" not in c:
+        if "_" not in c and "all" not in c and "MASTER" not in c:
             cams.append(c)
 
 cams = sorted(cams)
