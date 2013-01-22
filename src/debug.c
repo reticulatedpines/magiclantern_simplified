@@ -3442,10 +3442,6 @@ void CopyMLFilesToRAM_BeforeFormat()
 {
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
     TmpMem_AddFile(CARD_DRIVE "MAGIC.FIR");
-#ifdef FEATURE_CUSTOM_ICON
-    TmpMem_AddFile(CARD_DRIVE "autorun.inf");
-    TmpMem_AddFile(CARD_DRIVE "ML23icon.ico");
-#endif
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0);
