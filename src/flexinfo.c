@@ -231,9 +231,8 @@ uint32_t info_xml_get_element(char *config, uint32_t *start_pos, char *buf, uint
     }
     
     /* copy text */
-    strncpy(buf, &(config[start]), end - start + 1);
+    info_strncpy(buf, &(config[start]), end - start + 1);
     buf[end - start + 1] = '\0';
-    
     
     return 0;
 }
@@ -291,7 +290,7 @@ uint32_t info_xml_get_attribute_token(char *attribute_str, char *buf, uint32_t b
     }
     
     /* copy text */
-    strncpy(buf, &(attribute_str[start]), end - start + 1);
+    info_strncpy(buf, &(attribute_str[start]), end - start + 1);
     buf[end - start + 1] = '\0';
 
     return 0;
