@@ -76,6 +76,4 @@
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xe
     #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xf
 
-    #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PRESS_DISP // what button to use for zebras in Play mode
-
 #endif
