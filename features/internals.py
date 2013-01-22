@@ -21,7 +21,7 @@ AF = []
 N = {}
 
 for c in cams:
-    cmd = "cpp -I../platform/%s -I../src ../src/config-defines.h -dM | grep FEATURE" % c
+    cmd = "cpp -I../platform/%s -I../src ../src/config-defines.h -dM | grep CONFIG_" % c
     F = run(cmd)
     for f in F.split('\n'):
         f = f.replace("#define", "").strip()
