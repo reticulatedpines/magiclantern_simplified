@@ -68,7 +68,31 @@ shortnames = {}
 for c in cams:
     shortnames[c]=cam_shortname(c)
 
-data = {'FD':FD, 'AF':AF, 'cams':cams, 'shortnames':shortnames}
+
+# let's see in which menu we have these features
+menus = []
+current_menu = "Other"
+MN_DICT = {}
+MN_COUNT = {}
+af = open("../src/all_features.h").read()
+for l in af.split("\n"):
+    m = re.match("/\*\* ([a-zA-Z]+) menu \*\*/", l)
+    if m:
+        current_menu = m.groups()[0]
+        menus.append(current_menu)
+        continue
+    m = re.search("FEATURE_([A-Z0-9_]+)", l)
+    if m:
+        f = m.groups()[0]
+        MN_DICT[f] = current_menu
+
+for f in AF:
+    mn = MN_DICT.get(f[8:], "Other")
+    MN_COUNT[mn] = MN_COUNT.get(mn,0) + 1
+
+menus.append("Other")
+
+data = {'FD':FD, 'AF':AF, 'cams':cams, 'shortnames':shortnames, 'menus':menus, 'MN_COUNT': MN_COUNT, 'MN_DICT': MN_DICT}
 mytemplate = Template(filename='features.tmpl')
 print mytemplate.render(**data)
 

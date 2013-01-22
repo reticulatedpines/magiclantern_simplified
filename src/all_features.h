@@ -86,6 +86,7 @@
 /** Movie menu **/
     #define FEATURE_NITRATE
     //~ #define FEATURE_NITRATE_WAV_RECORD // not user-proof at all
+    //~ #define FEATURE_VIDEO_HACKS // for experts only
 
     #define FEATURE_REC_INDICATOR
     #define FEATURE_MOVIE_LOGGING
@@ -107,6 +108,7 @@
     
 #ifdef CONFIG_FRAME_ISO_OVERRIDE
     #define FEATURE_HDR_VIDEO
+    //~ #define FEATURE_HDR_EXTENDED // for experts only
 #endif
 
     #define FEATURE_IMAGE_EFFECTS

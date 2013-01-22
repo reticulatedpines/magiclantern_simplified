@@ -11,28 +11,35 @@
 </head>
 <body style="margin:10px">
 <table id="matrixTable" class="table table-hover">
-    <thead>
-        <tr>
-            <th></th>
-            %for camera in cams: 
-                <th>${shortnames[camera]}</th>
-            %endfor
-        </tr>
-    </thead>
-    <tbody>
-        %for f in AF:
+%for mn in menus:
+    %if MN_COUNT.get(mn,0) != 0:
+        <thead>
+            <tr><th>${mn}</th></tr>
             <tr>
-                <td><a href="//wiki.magiclantern.fm/features/${f[8:]}">${f[8:]}</a></td>
-                %for c in cams:
-                    %if FD.get((c,f))==True:
-                        <td>&#x2713;</td>
-                    %else:
-                        <td></td>
-                    %endif
-                %endfor 
+                <th></th>
+                %for camera in cams: 
+                    <th>${shortnames[camera]}</th>
+                %endfor
             </tr>
-        %endfor
-    </tbody>
+        </thead>
+        <tbody>
+            %for f in AF:
+                %if MN_DICT.get(f[8:], "Other") == mn:
+                <tr>
+                    <td><a href="http://wiki.magiclantern.fm/features/${f[8:]}">${f[8:]}</a></td>
+                    %for c in cams:
+                        %if FD.get((c,f))==True:
+                            <td>&#x2713;</td>
+                        %else:
+                            <td></td>
+                        %endif
+                    %endfor 
+                </tr>
+                %endif
+            %endfor
+        </tbody>
+    % endif
+%endfor
 </table>
 <script type="text/javascript">
 jQuery(document).ready(function($)

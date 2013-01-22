@@ -37,19 +37,55 @@ def cam_shortname(c):
     c = c.split(".")[0]
     return c.center(5)
 
-print "%30s" % "",
-for c in cams:
-    print "%5s" % cam_shortname(c),
-print ""
+# let's see in which menu we have these features
+menus = []
+current_menu = "Other"
+MN_DICT = {}
+MN_COUNT = {}
+af = open("../src/all_features.h").read()
+for l in af.split("\n"):
+    m = re.match("/\*\* ([a-zA-Z]+) menu \*\*/", l)
+    if m:
+        current_menu = m.groups()[0]
+        menus.append(current_menu)
+        continue
+    m = re.search("FEATURE_([A-Z0-9_]+)", l)
+    if m:
+        f = m.groups()[0]
+        MN_DICT[f] = current_menu
 
 for f in AF:
-    print "%30s" % f[:30],
-    for c in cams:
-        if FD.get((c,f)):
-            print "  *  ",
-        else:
-            print "     ",
+    mn = MN_DICT.get(f[8:], "Other")
+    MN_COUNT[mn] = MN_COUNT.get(mn,0) + 1
+
+menus.append("Other")
+
+
+for mn in menus:
+    if MN_COUNT.get(mn,0) == 0:
+        continue
     print ""
+    print mn
+    print ""
+    print "%30s" % "",
+    for c in cams:
+        print "%5s" % cam_shortname(c),
+    print ""
+
+    for f in AF:
+        if MN_DICT.get(f[8:], "Other") != mn:
+            continue
+        print "%30s" % f[:30],
+        for c in cams:
+            if FD.get((c,f)):
+                print "  *  ",
+            else:
+                print "     ",
+        print ""
+
+print ""
+print "Total"
+print ""
 
 print "%30s" % "",
 for c in cams:
