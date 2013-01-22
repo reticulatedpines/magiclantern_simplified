@@ -9,8 +9,7 @@
 <script src="https://raw.github.com/farinspace/jquery.tableScroll/master/jquery.tablescroll.js"></script>
 <title> Feature comparison matrix </title>
 </head>
-<body>
-<div class="container">
+<body style="margin:10px">
 <table id="matrixTable" class="table table-hover">
     <thead>
         <tr>
@@ -23,23 +22,22 @@
     <tbody>
         %for f in AF:
             <tr>
-                <td>${f[8:38]}</td>
+                <td><a href="//wiki.magiclantern.fm/features/${f[8:]}">${f[8:]}</a></td>
                 %for c in cams:
                     %if FD.get((c,f))==True:
-                        <td>*</td>
+                        <td><button class="btn btn-success disabled"><i class="icon-white icon-ok"></i></button></td>
                     %else:
-                        <td></td>
+                        <td><button class="btn btn-warning disabled"><i class="icon-white icon-remove"></i></button></td>
                     %endif
                 %endfor 
             </tr>
         %endfor
     </tbody>
 </table>
-</div>
 <script type="text/javascript">
 jQuery(document).ready(function($)
 {
-	$('#matrixTable').tableScroll({height:500});
+	//$('#matrixTable').tableScroll({height:500});
 });
 </script>
 </body>
