@@ -117,7 +117,7 @@
 #define PROP_SHUTTER_ALSO       0x8000002c
 #define PROP_APERTURE           0x80000006
 #define PROP_ISO                        0x80000007
-#ifndef CONFIG_NO_AUTO_ISO
+#ifndef CONFIG_NO_AUTO_ISO_LIMITS
 #define PROP_AUTO_ISO_RANGE     0x8000003b // len=2, LSB is max iso, MSB is min iso (ignored?)
 #endif
 #define PROP_AE                         0x80000008 // signed 8-bit value

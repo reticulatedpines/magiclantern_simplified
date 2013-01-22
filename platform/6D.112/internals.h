@@ -26,7 +26,7 @@
 #define CONFIG_3_2_SCREEN
 
 /** We only have a single LED **/
-#define CONFIG_BLUE_LED
+//~ #define CONFIG_BLUE_LED
 
 /** There is no LCD sensor that turns the display off **/
 //~ #define CONFIG_LCD_SENSOR
