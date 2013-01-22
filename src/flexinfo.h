@@ -1,5 +1,9 @@
 
 
+
+#define FLEXINFO_DEFAULT_FILENAME CARD_DRIVE"ML/SETTINGS/FLEXINFO.XML"
+
+    
 /* these are binary coded (combineable) flags to either set ABSOLUTE or like (LEFT|CENTER)
    examples:
 

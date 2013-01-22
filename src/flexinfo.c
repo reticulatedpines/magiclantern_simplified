@@ -387,6 +387,13 @@ uint32_t info_xml_get_attribute(char *element_str, char *attribute, char *buf, u
         /* if this was the token we looked for, return content */
         if(!strcmp(attribute, attribute_token))
         {
+            /* trim quotes */
+            if(value_token[0] == '"')
+            {
+                uint32_t len = strlen(value_token);
+                info_strncpy(value_token, &(value_token[1]), len - 2);
+            }
+            
             info_strncpy(buf, value_token, buf_length);
             return 0;
         }
@@ -413,6 +420,14 @@ uint32_t info_xml_parse_pos(info_elem_t *config, char *config_str)
     if(!info_xml_get_attribute(config_str, "z", buf, sizeof(buf)))
     {
         config->hdr.pos.z = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "w", buf, sizeof(buf)))
+    {
+        config->hdr.pos.w = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "h", buf, sizeof(buf)))
+    {
+        config->hdr.pos.h = atoi(buf);
     }
     if(!info_xml_get_attribute(config_str, "anchor_flags", buf, sizeof(buf)))
     {
@@ -450,6 +465,8 @@ uint32_t info_xml_parse_string(info_elem_t *config, char *config_str)
         return ret;
     }
     
+    config->type = INFO_TYPE_STRING;
+    
     if(!info_xml_get_attribute(config_str, "string_type", buf, sizeof(buf)))
     {
         config->string.string_type = atoi(buf);
@@ -481,6 +498,8 @@ uint32_t info_xml_parse_fill(info_elem_t *config, char *config_str)
         return ret;
     }
     
+    config->type = INFO_TYPE_FILL;
+    
     if(!info_xml_get_attribute(config_str, "color", buf, sizeof(buf)))
     {
         config->fill.color = atoi(buf);
@@ -499,6 +518,8 @@ uint32_t info_xml_parse_battery_icon(info_elem_t *config, char *config_str)
     {
         return ret;
     }
+    
+    config->type = INFO_TYPE_BATTERY_ICON;
     
     if(!info_xml_get_attribute(config_str, "pct_red", buf, sizeof(buf)))
     {
@@ -524,6 +545,8 @@ uint32_t info_xml_parse_battery_perf(info_elem_t *config, char *config_str)
     {
         return ret;
     }
+    
+    config->type = INFO_TYPE_BATTERY_PERF;
     
     if(!info_xml_get_attribute(config_str, "horizontal", buf, sizeof(buf)))
     {
@@ -552,6 +575,8 @@ uint32_t info_xml_parse_icon(info_elem_t *config, char *config_str)
         return ret;
     }
     
+    config->type = INFO_TYPE_ICON;
+    
     if(!info_xml_get_attribute(config_str, "fgcolor", buf, sizeof(buf)))
     {
         config->icon.fgcolor = atoi(buf);
@@ -575,8 +600,8 @@ uint32_t info_load_config(char *filename)
     uint32_t done = 0;
     uint32_t config_string_pos = 0;
     uint32_t config_element_pos = 0;
-    char xml_element[128];
-    char attr_buf[128];
+    char xml_element[256];
+    char attr_buf[64];
 
     if( FIO_GetFileSize( filename, &size ) != 0 )
     {
@@ -611,11 +636,10 @@ uint32_t info_load_config(char *filename)
     }
     
     /* attribute tells how many elements are allocated */
-    if(!info_xml_get_attribute(xml_element, "allocated_elements", attr_buf, sizeof(attr_buf)))
+    if(!info_xml_get_attribute(xml_element, "elements", attr_buf, sizeof(attr_buf)))
     {
-        allocated_elements = atoi(attr_buf);
+        allocated_elements = atoi(attr_buf) + 3;
     }
-    
     
     /* allocate the new config */
     info_elem_t *new_config = (info_elem_t *)alloc_dma_memory(allocated_elements*sizeof(info_elem_t));
@@ -634,7 +658,7 @@ uint32_t info_load_config(char *filename)
     
     do
     {
-        uint32_t ret = 0;
+        uint32_t ret = 1;
         info_elem_t *element = &(new_config[config_element_pos]);
 
         /* read next element */
@@ -669,6 +693,7 @@ uint32_t info_load_config(char *filename)
         {
             element->type = INFO_TYPE_END;
             done = 1;
+            ret = 0;
         }
         
         config_element_pos++;
@@ -687,6 +712,161 @@ uint32_t info_load_config(char *filename)
     return 0;
 }
 
+uint32_t info_save_config(info_elem_t *config, char *file)
+{
+    uint32_t pos = 1;
+    uint32_t elements = 0;
+    
+    while(config[elements].type != INFO_TYPE_END)
+    {
+        elements++;
+    }
+        
+    FILE* f = FIO_CreateFileEx(file);
+    if(!f)
+    {
+        return 1;
+    }
+    
+    my_fprintf(f, "<flexinfo elements=%d>\n", elements - 1);
+    
+    while(config[pos].type != INFO_TYPE_END)
+    {
+        my_fprintf(f, "    ");
+        switch(config[pos].type)
+        {
+            case INFO_TYPE_STRING:
+                my_fprintf(f, "<string ");
+                break;
+            case INFO_TYPE_BATTERY_ICON:
+                my_fprintf(f, "<battery_icon ");
+                break;
+            case INFO_TYPE_BATTERY_PERF:
+                my_fprintf(f, "<battery_perf ");
+                break;
+            case INFO_TYPE_FILL:
+                my_fprintf(f, "<fill ");
+                break;
+            case INFO_TYPE_ICON:
+                my_fprintf(f, "<icon ");
+                break;
+        }
+        
+        /* dump position field data */
+        my_fprintf(f, "name=\"%s\" ", config[pos].hdr.pos.name);
+        if(config[pos].hdr.pos.x)
+        {
+            my_fprintf(f, "x=%d ", config[pos].hdr.pos.x);
+        }
+        if(config[pos].hdr.pos.y)
+        {
+            my_fprintf(f, "y=%d ", config[pos].hdr.pos.y);
+        }
+        if(config[pos].hdr.pos.z)
+        {
+            my_fprintf(f, "z=%d ", config[pos].hdr.pos.z);
+        }
+        if(config[pos].hdr.pos.w)
+        {
+            my_fprintf(f, "w=%d ", config[pos].hdr.pos.w);
+        }
+        if(config[pos].hdr.pos.h)
+        {
+            my_fprintf(f, "h=%d ", config[pos].hdr.pos.h);
+        }
+        if(config[pos].hdr.pos.anchor_flags)
+        {
+            my_fprintf(f, "anchor_flags=%d ", config[pos].hdr.pos.anchor_flags);
+        }
+        if(config[pos].hdr.pos.anchor)
+        {
+            my_fprintf(f, "anchor=%d ", config[pos].hdr.pos.anchor);
+        }
+        if(config[pos].hdr.pos.anchor_flags_self)
+        {
+            my_fprintf(f, "anchor_flags_self=%d ", config[pos].hdr.pos.anchor_flags_self);
+        }
+        if(config[pos].hdr.pos.user_disable)
+        {
+            my_fprintf(f, "user_disable=%d ", config[pos].hdr.pos.user_disable);
+        }
+        
+        switch(config[pos].type)
+        {
+            case INFO_TYPE_STRING:
+                if(config[pos].string.string_type)
+                {
+                    my_fprintf(f, "string_type=%d ", config[pos].string.string_type);
+                }
+                if(config[pos].string.fgcolor)
+                {
+                    my_fprintf(f, "fgcolor=%d ", config[pos].string.fgcolor);
+                }
+                if(config[pos].string.bgcolor)
+                {
+                    my_fprintf(f, "bgcolor=%d ", config[pos].string.bgcolor);
+                }
+                if(config[pos].string.font_type)
+                {
+                    my_fprintf(f, "font_type=%d ", config[pos].string.font_type);
+                }
+                break;
+                
+            case INFO_TYPE_BATTERY_ICON:
+                if(config[pos].battery_icon.pct_red)
+                {
+                    my_fprintf(f, "pct_red=%d ", config[pos].battery_icon.pct_red);
+                }
+                if(config[pos].battery_icon.pct_yellow)
+                {
+                    my_fprintf(f, "pct_yellow=%d ", config[pos].battery_icon.pct_yellow);
+                }
+                break;
+                
+            case INFO_TYPE_BATTERY_PERF:
+                if(config[pos].battery_perf.horizontal)
+                {
+                    my_fprintf(f, "horizontal=%d ", config[pos].battery_perf.horizontal);
+                }
+                if(config[pos].battery_perf.width)
+                {
+                    my_fprintf(f, "width=%d ", config[pos].battery_perf.width);
+                }
+                if(config[pos].battery_perf.height)
+                {
+                    my_fprintf(f, "height=%d ", config[pos].battery_perf.height);
+                }
+                break;
+                
+            case INFO_TYPE_FILL:
+                if(config[pos].fill.color)
+                {
+                    my_fprintf(f, "color=%d ", config[pos].fill.color);
+                }
+                break;
+                
+            case INFO_TYPE_ICON:
+                my_fprintf(f, "filename=\"%s\"", config[pos].icon.filename);
+                if(config[pos].icon.fgcolor)
+                {
+                    my_fprintf(f, "fgcolor=%d ", config[pos].icon.fgcolor);
+                }
+                if(config[pos].icon.bgcolor)
+                {
+                    my_fprintf(f, "bgcolor=%d ", config[pos].icon.bgcolor);
+                }
+                break;
+            break;
+        }
+        my_fprintf(f, "/>\n");
+        pos++;
+    }
+    
+    my_fprintf(f, "</flexinfo>\n");
+    FIO_CloseFile(f);
+    
+    return 0;
+}
 
 /* ********************************************************************************** */
 
@@ -1865,10 +2045,21 @@ void info_menu_item_anchor_self_display(void *priv, int x, int y, int selected)
     }
     
 }
+void info_menu_save_select(void* priv, int delta)
+{
+    info_save_config(info_config, FLEXINFO_DEFAULT_FILENAME);
+}
+
+void info_menu_save_display(void *priv, int x, int y, int selected)
+{
+    bmp_printf(MENU_FONT, x, y, "Save config");
+}
+
 
 void info_menu_reset_select(void* priv, int delta)
 {
-    /* ToDo */
+    info_load_config(FLEXINFO_DEFAULT_FILENAME);
+    info_print_config(info_config);
 }
 
 void info_menu_reset_display(void *priv, int x, int y, int selected)
@@ -1990,6 +2181,13 @@ static struct menu_entry info_menus[] = {
                 .help = "Select Anchor item.",
             },
             {
+                .name = "Save config",
+                .priv = info_config,
+                .select = info_menu_save_select,
+                .display = info_menu_save_display,
+                .help = "Save menu settings",
+            },
+            {
                 /* this item is the last and thus overwrites the whole screen when editing */
                 .name = "Reset setup",
                 .priv = info_config,
@@ -2005,7 +2203,7 @@ static struct menu_entry info_menus[] = {
 static void info_init()
 {
     menu_add( "Prefs", info_menus, COUNT(info_menus) );
-    info_load_config(CARD_DRIVE"ML/SETTINGS/FLEXINFO.XML");
+    info_load_config(FLEXINFO_DEFAULT_FILENAME);
 }
 
 static void info_edit_task()
