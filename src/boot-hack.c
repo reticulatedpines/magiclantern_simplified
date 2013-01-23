@@ -90,6 +90,12 @@ copy_and_restart( )
     // Clear bss
     zero_bss();
 
+    //~ fix up end of allocate memory pool in 6D
+#ifdef CONFIG_6D
+    cache_lock();
+    cache_fake(HIJACK_ALLOC_MEM_POOL_END, 0xCBC000, TYPE_DCACHE);
+#endif
+    
 #ifdef HIJACK_CACHE_HACK
     /* make sure we have the first segment locked in d/i cache for patching */    
     cache_lock();
@@ -121,7 +127,7 @@ copy_and_restart( )
      * create_init_task
      */
     // Reserve memory after the BSS for our application
-    #if !defined(CONFIG_ALLOCATE_MEMORY_POOL) // Some cameras load ML into the AllocateMemory pool (like 5500D/1100D)
+    #if !defined(CONFIG_ALLOCATE_MEMORY_POOL) && !defined(CONFIG_6D) // Some cameras load ML into the AllocateMemory pool (like 5500D/1100D)
     INSTR( HIJACK_INSTR_BSS_END ) = (uintptr_t) _bss_end;
     #endif
 
