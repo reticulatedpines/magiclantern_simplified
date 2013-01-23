@@ -97,3 +97,6 @@
 
 /** We can't display extra info in photo mode (not LiveView) **/
 //~ #define CONFIG_PHOTO_MODE_INFO_DISPLAY
+
+/** We can't use TSKMON because it uses DryOS hooks **/
+#undef CONFIG_TSKMON

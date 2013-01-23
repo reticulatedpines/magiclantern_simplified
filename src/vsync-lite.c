@@ -10,8 +10,25 @@ struct msg_queue * vsync_msg_queue = 0;
 
 int mz_buf = 0;
 
+//~ uncompressed video testing
+#ifdef CONFIG_6D
+extern FILE * movfile;
+extern int record_uncomp;
+void framewrite_task()
+{
+    FIO_WriteFile(movfile, (void*)YUV422_HD_BUFFER_DMA_ADDR, 0x428AC0);
+}
+#endif
+
+
 void lv_vsync_signal()
 {
+#ifdef CONFIG_6D
+    //~ do the frame writing on a separate task, don't slow down live view!
+    if (record_uncomp)
+        task_create("uncomp_frame_writer", 0x1a, 0x1000, framewrite_task, 0);
+#endif
+    
     msg_queue_post(vsync_msg_queue, 1);
 }
 

@@ -48,14 +48,7 @@ void mvrSetDefQScale(int16_t *);  // when recording, only change qscale by 1 at 
 
 
 #if defined(CONFIG_7D)
-#include "cache_hacks.h"
-#include "ml_rpc.h"
-
 #define ADDR_mvrConfig       0x8A14
-
-uint32_t bitrate_cache_hacks = 0;
-uint32_t bitrate_flushing_rate = 4;
-uint32_t bitrate_gop_size = 12;
 
 uint8_t *bulk_transfer_buf = NULL;
 uint32_t BulkOutIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t, uint32_t, uint32_t), uint32_t cb_parm);
@@ -90,70 +83,6 @@ void bitrate_write_mvr_config()
     }
 }
 
-static void
-bitrate_cache_hacks_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Video hacks   : %s", 
-               bitrate_cache_hacks ? "ON" : "OFF"
-               );
-
-    if(!ml_rpc_available())
-    {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Master DIGiC hacks not available in this release.");
-    }
-    else
-    {
-        menu_draw_icon(x, y, MNI_ON, 0);
-    }
-}
-
-static void
-bitrate_flushing_rate_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Flush every   : %d frames", 
-               bitrate_flushing_rate
-               );
-
-    if(!ml_rpc_available())
-    {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Master DIGiC hacks not available in this release.");
-    }
-    else if(!bitrate_cache_hacks)
-    {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Video hacks disabled.");
-    }
-    else
-    {
-        menu_draw_icon(x, y, MNI_ON, 0);
-    }
-}
-
-static void
-bitrate_gop_size_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "GOP size      : %d frames", 
-               bitrate_gop_size
-               );
-
-    if(!ml_rpc_available())
-    {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Master DIGiC hacks not available in this release.");
-    }
-    else if(!bitrate_cache_hacks)
-    {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Video hacks disabled.");
-    }
-    else
-    {
-        menu_draw_icon(x, y, MNI_ON, 0);
-    }
-}
 #endif
 
 static struct mvr_config mvr_config_copy;
@@ -377,7 +306,7 @@ bitrate_factor_toggle(void* priv, int delta)
 {
     if (recording) return;
  
-#if defined(CONFIG_7D)
+#if defined(FEATURE_VIDEO_HACKS)
     bitrate_factor = mod(bitrate_factor + delta - 1, 200) + 1;
 #else
     bitrate_factor = mod(bitrate_factor + delta - 1, 30) + 1;
@@ -699,7 +628,6 @@ void movie_indicators_show()
 
 
 #ifdef FEATURE_NITRATE
-
 static struct menu_entry mov_menus[] = {
     {
         .name = "Bit Rate",
@@ -707,7 +635,6 @@ static struct menu_entry mov_menus[] = {
         .display    = bitrate_print,
         .select     = bitrate_toggle,
         .help = "Change H.264 bitrate. Be careful, recording may stop!",
-        //.essential = 1,
         .edit_mode = EM_MANY_VALUES,
         .children =  (struct menu_entry[]) {
             {
@@ -738,38 +665,13 @@ static struct menu_entry mov_menus[] = {
                 .max = 1,
                 .help = "A = average, B = instant bitrate, Q = instant QScale."
             },
-#if defined(CONFIG_7D)
-            {
-                .name = "Video hacks",
-                .priv = &bitrate_cache_hacks,
-                .display = bitrate_cache_hacks_display,
-                .max  = 1,
-                .help = "Enable experimental hacks through cache hacks."
-            },
-            {
-                .name = "Flush rate",
-                .priv = &bitrate_flushing_rate,
-                .display    = bitrate_flushing_rate_display,
-                .min  = 2,
-                .max  = 50,
-                .help = "Flush movie buffer every n frames."
-            },
-            {
-                .name = "GOP size",
-                .priv = &bitrate_gop_size,
-                .display    = bitrate_gop_size_display,
-                .min  = 1,
-                .max  = 100,
-                .help = "Set GOP size to n frames."
-            },
-#endif
             {
                 .name = "BuffWarnLevel",
                 .select     = buffer_warning_level_toggle,
                 .display    = buffer_warning_level_display,
                 .help = "ML will pause CPU-intensive graphics if buffer gets full."
             },
-  #ifdef FEATURE_NITRATE_WAV_RECORD
+#ifdef FEATURE_NITRATE_WAV_RECORD
             {
                 .name = "Sound Record",
                 .priv = &cfg_hibr_wav_record,
@@ -778,11 +680,11 @@ static struct menu_entry mov_menus[] = {
                 .choices = (const char *[]) {"Normal", "Separate WAV"},
                 .help = "You may get higher bitrates if you record sound separately.",
             },
-  #endif
+#endif
             MENU_EOL
         },
     },
-    #ifdef FEATURE_REC_INDICATOR
+#ifdef FEATURE_REC_INDICATOR
     {
         .name = "Time Indicator",
         .priv       = &time_indicator,
@@ -792,7 +694,7 @@ static struct menu_entry mov_menus[] = {
         //.essential = 1,
         //~ .edit_mode = EM_MANY_VALUES,
     },
-    #endif
+#endif
 };
 
 void bitrate_init()
@@ -805,52 +707,10 @@ INIT_FUNC(__FILE__, bitrate_init);
 static void
 bitrate_task( void* unused )
 {
-#if defined(CONFIG_7D)
-    int old_bitrate_cache_hacks = 0;
-    int old_bitrate_gop_size = 0;
-    int old_bitrate_flushing_rate = 0;
-#endif
-
     cbr_init();
     
     TASK_LOOP
     {
-#if defined(CONFIG_7D)
-        if(ml_rpc_available())
-        {
-            /* anything changed? */
-            if(bitrate_cache_hacks != old_bitrate_cache_hacks || bitrate_flushing_rate != old_bitrate_flushing_rate || bitrate_gop_size != old_bitrate_gop_size)
-            {
-                if(bitrate_cache_hacks)
-                {
-                    /* patch flushing rate */
-                    cache_fake(CACHE_HACK_FLUSH_RATE_SLAVE, 0xE3A00000 | (bitrate_flushing_rate & 0xFF), TYPE_ICACHE);
-                    ml_rpc_send(ML_RPC_CACHE_HACK, CACHE_HACK_FLUSH_RATE_MASTER, 0xE3A01000 | (bitrate_flushing_rate & 0xFF), TYPE_ICACHE, 2);
-                    
-                    /* set GOP size */
-                    ml_rpc_send(ML_RPC_CACHE_HACK, CACHE_HACK_GOP_SIZE_MASTER, 0xE3A01000 | (bitrate_gop_size & 0xFF), TYPE_ICACHE, 2);
-                    
-                    /* make sure canon sound is disabled */
-                    int mode  = 1;
-                    prop_request_change(PROP_MOVIE_SOUND_RECORD, &mode, 4);
-                    NotifyBox(2000,"Canon sound disabled");
-                }
-                else
-                {
-                    /* undo flushing rate */
-                    cache_fake(CACHE_HACK_FLUSH_RATE_SLAVE, MEM(CACHE_HACK_FLUSH_RATE_SLAVE), TYPE_ICACHE);
-                    ml_rpc_send(ML_RPC_CACHE_HACK_DEL, CACHE_HACK_FLUSH_RATE_MASTER, TYPE_ICACHE, 0, 2);
-                    
-                    /* undo GOP size */
-                    ml_rpc_send(ML_RPC_CACHE_HACK_DEL, CACHE_HACK_GOP_SIZE_MASTER, TYPE_ICACHE, 0, 2);
-                }
-                
-                old_bitrate_cache_hacks = bitrate_cache_hacks;
-                old_bitrate_gop_size = bitrate_gop_size;
-                old_bitrate_flushing_rate = bitrate_flushing_rate;
-            }
-        }
-#endif       
 
         if (recording)
         {

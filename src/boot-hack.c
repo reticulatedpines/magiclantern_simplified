@@ -45,6 +45,12 @@ void my_bzero( uint8_t * base, uint32_t size );
 
 /** This just goes into the bss */
 #define RELOCSIZE 0x3000 // look in HIJACK macros for the highest address, and subtract ROMBASEADDR
+
+#ifdef CONFIG_60D
+#undef RELOCSIZE
+#define RELOCSIZE 0x1200 // squeeze some RAM
+#endif
+
 static uint8_t _reloc[ RELOCSIZE ];
 #define RELOCADDR ((uintptr_t) _reloc)
 
@@ -163,7 +169,9 @@ copy_and_restart( )
 #if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD)
     // Install our task creation hooks
     task_dispatch_hook = my_task_dispatch_hook;
+    #ifdef CONFIG_TSKMON
     tskmon_init();
+    #endif
 #endif
 #endif
 
@@ -203,7 +211,9 @@ my_task_dispatch_hook(
     if( !context )
         return;
     
+    #ifdef CONFIG_TSKMON
     tskmon_task_dispatch();
+    #endif
 
     // Do nothing unless a new task is starting via the trampoile
     if( (*context)->pc != (uint32_t) task_trampoline )
@@ -389,7 +399,7 @@ void my_big_init_task()
 #endif
 #ifdef CONFIG_DUMPER_BOOTFLAG
     msleep(5000);
-    SetGUIRequestMode(1);
+    SetGUIRequestMode(2);
     msleep(2000);
     bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk");
     call("EnableBootDisk");
@@ -679,7 +689,9 @@ my_init_task(int a, int b, int c, int d)
 #ifdef HIJACK_CACHE_HACK
     /* as we do not return in the middle of te init task as in the hijack-through-copy method, we have to install the hook here */
     task_dispatch_hook = my_task_dispatch_hook;
+    #ifdef CONFIG_TSKMON
     tskmon_init();
+    #endif
     
     /* now patch init task and continue execution */
     cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, HIJACK_CACHE_HACK_BSS_END_INSTR, TYPE_ICACHE);

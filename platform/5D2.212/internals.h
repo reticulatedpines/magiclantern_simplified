@@ -98,5 +98,5 @@
 /** We can display some extra info in photo mode (not LiveView) **/
 #define CONFIG_PHOTO_MODE_INFO_DISPLAY
 
-/** No auto ISO in Canon menus **/
-#define CONFIG_NO_AUTO_ISO
+/** No auto ISO limits in Canon menus **/
+#define CONFIG_NO_AUTO_ISO_LIMITS

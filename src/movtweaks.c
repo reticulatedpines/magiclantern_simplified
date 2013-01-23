@@ -106,7 +106,7 @@ void set_shooting_mode(int m)
     
     ml_changing_shooting_mode = 1;
     prop_request_change(PROP_SHOOTING_MODE, &m, 4);
-    msleep(200);
+    msleep(500);
     ml_changing_shooting_mode = 0;
 }
 
@@ -115,6 +115,7 @@ CONFIG_INT("movie.cliplen", movie_cliplen,0);
 CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
 CONFIG_INT("movie.rec-key", movie_rec_key, 0);
 CONFIG_INT("movie.rec-key-action", movie_rec_key_action, 0);
+CONFIG_INT("movie.rec-key-action", movie_rec_key_long, 0);
 
 #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
 
@@ -166,7 +167,7 @@ void movie_rec_halfshutter_step()
 
     if (HALFSHUTTER_PRESSED)
     {
-        if (movie_rec_key == 2)
+        if (movie_rec_key_long)
         {
             // need to keep halfshutter pressed for one second
             for (int i = 0; i < 10; i++)
@@ -977,6 +978,39 @@ void smooth_iso_step()
             altered_iso -= 8;
             gf *= 2;
         }
+        
+        #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
+        // if ISO should go under 100, try a faster shutter speed
+                
+        int current_shutter = FRAME_SHUTTER_TIMER;
+        int altered_shutter = current_shutter;
+
+        while (G_ADJ < 861)
+        {
+            altered_shutter = MAX(2, altered_shutter / 2);
+            gf *= 2;
+        }
+
+        if (altered_shutter != current_shutter)
+        {
+            FRAME_SHUTTER_TIMER = altered_shutter;
+        }
+        
+        // fix imperfect sync
+        // only do this when shutter speed is overriden by ML, not by user
+        static int prev_shutter = 0;
+        static int prev_altered_shutter = 0;
+        if (prev_shutter && prev_altered_shutter && 
+            prev_altered_shutter != altered_shutter && 
+            prev_shutter == current_shutter
+            )
+        {
+            gf = gf * altered_shutter / prev_altered_shutter;
+        }
+        prev_altered_shutter = altered_shutter;
+        prev_shutter = current_shutter;
+        
+        #endif
 
         if (altered_iso != current_iso)
         {
@@ -1120,19 +1154,27 @@ static struct menu_entry mov_menus[] = {
     {
         .name = "Movie REC key",
         .priv = &movie_rec_key, 
-        .max = 2,
-        .icon_type = IT_DICE_OFF,
-        .choices = (const char *[]) {"OFF", "HalfShutter", "Long HalfSh. (1s)"},
-        .help = "Change the button used for recording. Hint: wired remote.",
+        .max = 1,
+        .icon_type = IT_BOOL,
+        .choices = (const char *[]) {"OFF", "HalfShutter"},
+        .help = "Start recording by pressing shutter halfway. Wired remote.",
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Allowed actions",
+                .name = "Require long press",
+                .priv = &movie_rec_key_long,
+                .max = 1,
+                .icon_type = IT_BOOL,
+                .choices = (const char *[]) {"OFF", "ON (1s)"},
+                .help = "If ON, you have to hold half-shutter pressed for 1 second.",
+            },
+            {
+                .name = "Allowed actions   ",
                 .priv = &movie_rec_key_action,
                 .max = 2,
-                .icon_type = IT_BOOL,
-                .choices = (const char *[]) {"START/STOP", "START", "STOP"},
-                .help = "How fast the exposure transitions should be.",
+                .icon_type = IT_DICE,
+                .choices = (const char *[]) {"Start/Stop", "Start only", "Stop only"},
+                .help = "Select actions for half-shutter.",
             },
             MENU_EOL
         },

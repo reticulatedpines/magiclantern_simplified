@@ -149,7 +149,7 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
 
 }
 
-#if defined(CONFIG_NO_AUTO_ISO)
+#if defined(CONFIG_NO_AUTO_ISO_LIMITS)
 int auto_iso_range = 0x4868; // no auto ISO in Canon menus; considering it fixed 100-1600.
 #else
 volatile PROP_INT(PROP_AUTO_ISO_RANGE, auto_iso_range);

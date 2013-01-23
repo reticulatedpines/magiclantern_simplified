@@ -95,8 +95,8 @@
 /** We should't warn the user if movie exposure is Auto **/
 //~ #define CONFIG_MOVIE_AE_WARNING
 
-/** We can't display extra info in photo mode (not LiveView) - missing constants **/
-//~ #define CONFIG_PHOTO_MODE_INFO_DISPLAY
+/** We can display extra info in photo mode (not LiveView) **/
+#define CONFIG_PHOTO_MODE_INFO_DISPLAY
 
 /** FIO_RenameFile works **/
 #define CONFIG_FIO_RENAMEFILE_WORKS
@@ -106,3 +106,12 @@
 
 /** This camera loads ML into the AllocateMemory pool **/
 #define CONFIG_ALLOCATE_MEMORY_POOL
+
+/** FPS override: we can change both timer A and B */
+//~ #define CONFIG_FPS_TIMER_A_ONLY
+
+/** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
+#define CONFIG_FPS_AGGRESSIVE_UPDATE
+
+/** This camera has a mono microphone input, so we should display only one audio meter **/
+#define CONFIG_MONO_MIC

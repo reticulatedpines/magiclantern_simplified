@@ -7,11 +7,13 @@
 #include "property.h"
 #include "config.h"
 
+#undef CONSOLE_DEBUG // logs things to file etc
+
 int console_printf(const char* fmt, ...); // how to replace the normal printf?
 #define printf console_printf
 
-#define CONSOLE_W 55
-#define CONSOLE_H 15
+#define CONSOLE_W 58
+#define CONSOLE_H 22
 #define CONSOLE_FONT FONT_MED
 
 // buffer is circular and filled with spaces
@@ -22,20 +24,27 @@ char* console_puts_buffer = 0; // "normal" copy of the circular buffer
 
 int console_buffer_index = 0;
 
-CONFIG_INT("debug.console.visible",console_visible,0);
+int console_visible = 0;
 
+#ifdef CONSOLE_DEBUG
 FILE* console_log_file = 0;
+#endif
+
 void console_show()
 {
-	console_visible = 1;
+    console_visible = 1;
+    redraw();
 }
 void console_hide()
 {
     console_visible = 0;
-    msleep(500);
-    clrscr();
+    msleep(100);
+    canon_gui_enable_front_buffer(1);
+
+    #ifdef CONSOLE_DEBUG
     FIO_CloseFile(console_log_file);
     console_log_file = 0;
+    #endif
 }
 
 static void
@@ -45,6 +54,7 @@ console_toggle( void * priv, int delta )
     else console_show();
 }
 
+#ifdef CONSOLE_DEBUG
 static void
 console_test( void * priv )
 {
@@ -73,6 +83,7 @@ static struct menu_entry script_menu[] = {
 		.max		= 1,
     },
 };
+#endif
 
 void console_clear()
 {
@@ -89,6 +100,7 @@ void console_init()
 
     console_clear();
 
+    #ifdef CONSOLE_DEBUG
     menu_add( "Debug", script_menu, COUNT(script_menu) );
 
 	msleep(500);
@@ -96,14 +108,17 @@ void console_init()
 	if (!console_log_file) {
 	    console_log_file = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/console.log");
 	}
+    #endif
 }
 
 void console_puts(const char* str) // don't DebugMsg from here!
 {
     #define NEW_CHAR(c) console_buffer[mod(console_buffer_index++, BUFSIZE)] = (c)
 
+    #ifdef CONSOLE_DEBUG
     if (console_log_file)
         my_fprintf( console_log_file, "%s", str );
+    #endif
 
     if (!console_buffer) return;
     const char* c = str;
@@ -177,7 +192,14 @@ void console_draw()
         console_puts_buffer[i] = found_cursor ? ' ' : console_buffer[cbpos];
     }
     console_puts_buffer[BUFSIZE] = 0;
-    bmp_puts_w(FONT(CONSOLE_FONT,COLOR_WHITE,COLOR_BG_DARK), &x0, &y0, CONSOLE_W, console_puts_buffer);
+    
+    canon_gui_disable_front_buffer();
+    int xa = (x0 & ~3) - 1;
+    int ya = (y0-1);
+    int w = fontspec_font(CONSOLE_FONT)->width * CONSOLE_W + 2;
+    int h = fontspec_font(CONSOLE_FONT)->height * CONSOLE_H + 2;
+    bmp_draw_rect(COLOR_GRAY60, xa, ya, w, h);
+    bmp_puts_w(FONT(CONSOLE_FONT,COLOR_WHITE,lv ? COLOR_BG : COLOR_GRAY40), &x0, &y0, CONSOLE_W, console_puts_buffer);
 }
 
 

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap-combined.min.css" rel="stylesheet">
+<link href="https://raw.github.com/farinspace/jquery.tableScroll/master/jquery.tablescroll.css" rel="stylesheet">
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
+<script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js"></script>
+<script src="https://raw.github.com/farinspace/jquery.tableScroll/master/jquery.tablescroll.js"></script>
+<title> Feature comparison matrix </title>
+</head>
+<body style="margin:10px">
+<table id="matrixTable" class="table table-hover">
+%for mn in menus:
+    %if MN_COUNT.get(mn,0) != 0:
+        <thead>
+            <tr><th colspan="${len(cams)+1}">${mn}</th></tr>
+            <tr>
+                <th></th>
+                %for camera in cams:
+                    %if shortnames[camera] in porting_threads:
+                        <th><a href="${porting_threads[shortnames[camera]]}">${shortnames[camera]}</a></th>
+                    %else:
+                        <th><a href="http://www.magiclantern.fm/forum/index.php#c3">${shortnames[camera]}</a></th>
+                    %endif
+                %endfor
+            </tr>
+        </thead>
+        <tbody>
+            %for f in AF:
+                %if MN_DICT.get(f[8:], "Other") == mn:
+                <tr>
+                    <td><a href="http://wiki.magiclantern.fm/features/${f[8:]}">${f[8:]}</a></td>
+                    %for c in cams:
+                        %if FD.get((c,f))==True:
+                            <td>&#x2713;</td>
+                        %else:
+                            <td></td>
+                        %endif
+                    %endfor 
+                </tr>
+                %endif
+            %endfor
+        </tbody>
+    % endif
+%endfor
+</table>
+<script type="text/javascript">
+jQuery(document).ready(function($)
+{
+	//$('#matrixTable').tableScroll({height:500});
+});
+</script>
+</body>
+</html>

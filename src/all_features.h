@@ -39,7 +39,6 @@
     #define FEATURE_BEEP
     #define FEATURE_WAV_RECORDING
     #define FEATURE_VOICE_TAGS
-    //~ #define FEATURE_MONO_MIC // 1100D and 500D only
 
 /** Expo menu **/
 
@@ -49,7 +48,7 @@
     #define FEATURE_EXPO_ISO_DIGIC
     #define FEATURE_EXPO_SHUTTER
     #define FEATURE_EXPO_APERTURE
-    #define FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY
+    //~ #define FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY // only for rebels, not for high-end bodies
     //~ #define FEATURE_INTERMEDIATE_ISO_INTERCEPT_SCROLLWHEEL // 550D trick
 
     #define FEATURE_PICSTYLE
@@ -86,11 +85,12 @@
 /** Movie menu **/
     #define FEATURE_NITRATE
     //~ #define FEATURE_NITRATE_WAV_RECORD // not user-proof at all
+    //~ #define FEATURE_VIDEO_HACKS // for experts only
 
     #define FEATURE_REC_INDICATOR
     #define FEATURE_MOVIE_LOGGING
     #define FEATURE_MOVIE_RESTART
-    #define FEATURE_MOVIE_AUTOSTOP_RECORDING
+    //~ #define FEATURE_MOVIE_AUTOSTOP_RECORDING // will be moved to scripts
     #define FEATURE_REC_NOTIFY
     //~ #define FEATURE_REC_NOTIFY_BEEP // this may interfere with sound recording, so only enable it where we know it works
     #define FEATURE_MOVIE_REC_KEY
@@ -107,6 +107,7 @@
     
 #ifdef CONFIG_FRAME_ISO_OVERRIDE
     #define FEATURE_HDR_VIDEO
+    //~ #define FEATURE_HDR_EXTENDED // for experts only
 #endif
 
     #define FEATURE_IMAGE_EFFECTS
@@ -120,7 +121,7 @@
 
     #define FEATURE_HDR_BRACKETING
     #define FEATURE_INTERVALOMETER
-    #define FEATURE_INTERVALOMETER_MOVIE
+    //~ #define FEATURE_INTERVALOMETER_MOVIE // will be moved to scripts
     #define FEATURE_BULB_RAMPING
     #define FEATURE_BULB_TIMER
 #ifdef CONFIG_LCD_SENSOR
@@ -246,5 +247,3 @@
     #define FEATURE_SNAP_SIM
 
     //~ #define FEATURE_GUIMODE_TEST // dangerous
-
-#define FEATURE_CUSTOM_ICON // save/restore autorun.inf and ML23icon.ico with ML when formatting

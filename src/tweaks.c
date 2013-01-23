@@ -3215,7 +3215,7 @@ anamorphic_preview_display(
 
 // for focus peaking (exception, since it doesn't operate on squeezed LV buffer, but on unsqeezed HD one
 // so... we'll try to squeeze the bitmap coords for output
-static int anamorphic_bmp_y_lut[480];
+static int16_t anamorphic_bmp_y_lut[480];
 int anamorphic_squeeze_bmp_y(int y)
 {
     if (likely(!anamorphic_preview)) return y;

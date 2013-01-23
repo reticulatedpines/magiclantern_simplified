@@ -71,7 +71,7 @@ void volume_up(){};
 void volume_down(){};
 
 void _EngDrvOut(int addr, int value) { MEM(addr) = value; }
-int shamem_read(int addr) { return 0; }
+uint32_t shamem_read(uint32_t * addr) { return 0; }
 void _engio_write() {}
 
 int gain_to_ev_scaled() { return 0; }

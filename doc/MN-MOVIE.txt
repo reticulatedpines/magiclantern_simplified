@@ -162,7 +162,7 @@ This feature allows you to shoot a high dynamic range video by alternating ISO e
 
 Possible postprocessing workflows:
 
-* Interframe script: `user-friendly version <https://bitbucket.org/a1ex/magic-lantern/downloads/HDR-workflow-051.zip>`_ and `bare-bone version <https://bitbucket.org/hudson/magic-lantern/src/tip/hdr>`_;
+* Interframe script: `user-friendly version <https://bitbucket.org/a1ex/magic-lantern/downloads/HDR-workflow-051.zip>`_ and `bare-bone version <https://bitbucket.org/hudson/magic-lantern/src/tip/contrib/hdr-video-tools?at=unified>`_;
 * `GingerHDR <http://www.gingerhdr.com/>`_ (plugin for Adobe After Effects and Premiere)
 * `Magic Lantern HDR Compose generator for FCP X <http://alex4d.wordpress.com/2012/01/03/ml-u-hdr-compose-fcpx-plug-in/>`_
 * `HDR Glogger Web Service <http://hdr.glogger.mobi/upload_hdr.php>`_

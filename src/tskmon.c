@@ -1,9 +1,9 @@
-
 #include "dryos.h"
 #include "bmp.h"
 #include "tskmon.h"
 #include "tasks.h"
 
+#ifdef CONFIG_TSKMON
 
 struct task *tskmon_last_task = NULL;
 uint32_t tskmon_last_timer_val = 0;
@@ -204,4 +204,4 @@ void tskmon_init()
     tskmon_total_runtime = 0;
 }
 
-
+#endif

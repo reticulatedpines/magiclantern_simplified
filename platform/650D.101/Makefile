@@ -13,6 +13,9 @@ PLATFORM_INC=.
 
 PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
+# compile position independent (experimental)
+CONFIG_PIC=n
+
 # magiclantern.lds script MUST be first
 # entry.o MUST be second
 # menu.o and debug.o must come before the modules
@@ -63,11 +66,12 @@ ML_OBJS-y = \
 	beep.o \
 	audio-ak.o \
 	vsync-lite.o \
+	ph_info_disp.o \
+	flexinfo.o \
 	dm-spy.o \
 
 #include generic rules and definitions
-#TOP_DIR defined in upper Makefile
-include ../../Makefile.inc
+include  $(TOP_DIR)/Makefile.inc
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss

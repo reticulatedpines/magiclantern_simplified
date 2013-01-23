@@ -50,12 +50,16 @@ return "?";
 }
 
 #ifndef CONFIG_VXWORKS
+#ifdef CONFIG_TSKMON
 taskload_t tskmon_task_loads[TSKMON_MAX_TASKS];
 int show_cpu_usage_flag = 0;
 int task_load_update_request = 0;
+#endif
 
 void task_update_loads() // called every second from clock_task
 {
+#ifdef CONFIG_TSKMON
+    #ifdef FEATURE_SHOW_CPU_USAGE
     if (show_cpu_usage_flag)
     {
         static int k = 0; k++;
@@ -98,15 +102,20 @@ void task_update_loads() // called every second from clock_task
             prev_y = y;
         }
     }
+    #endif
     
+    #ifdef FEATURE_SHOW_TASKS
     if (task_load_update_request) // for menu
     {
         tskmon_update_loads(tskmon_task_loads);
         task_load_update_request = 0;
     }
+    #endif
+#endif
 }
 #endif
 
+#ifdef FEATURE_SHOW_TASKS
 int tasks_show_flags = 0;
 void tasks_print(void* priv, int x0, int y0, int selected)
 {
@@ -213,6 +222,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
             
             my_memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
 
+            #ifdef CONFIG_TSKMON
             /* print stack/cpu usage details */
             if(tasks_show_flags & 2)
             {
@@ -246,6 +256,12 @@ void tasks_print(void* priv, int x0, int y0, int selected)
                 "%02d %s: p=%2x w=%2x m=%2d%% %d\n", 
                 task_id, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
             }
+            #else
+                int mem_percent = task_attr.used * 100 / task_attr.size;
+                bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, task_id >= 99 ? COLOR_RED : COLOR_WHITE, 38)), x, y, 
+                "%02d %s: p=%2x w=%2x m=%2d%% %d\n", 
+                task_id, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
+            #endif
 
             #if defined(CONFIG_5D3) || defined(CONFIG_60D) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
             y += font_small.height - ((tasks_show_flags & 1) ? 2 : 0); // too many tasks - they don't fit on the screen :)
@@ -261,6 +277,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
     }
 #endif
 }
+#endif
 
 void ml_shutdown()
 {

@@ -57,10 +57,15 @@ install: autoexec.bin
 	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
 	mkdir $(CF_CARD)/ML/scripts || echo "no problem"
 	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/ML/scripts/
+	cp $(SCRIPT_DIR)/*.c $(CF_CARD)/ML/scripts/
 	mkdir $(CF_CARD)/ML/plugins || echo "no problem"
 	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/ML/plugins/
 	cp $(VRAM_DIR)/*.lut $(CF_CARD)/ML/data/
 
+	$(UMOUNT) $(CF_CARD)
+
+copy-autoexec: autoexec.bin
+	cp autoexec.bin $(CF_CARD)
 	$(UMOUNT) $(CF_CARD)
 
 ptpinstall: autoexec.bin
@@ -142,6 +147,7 @@ CFLAGS=\
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
+	-I$(PICOC_PATH) \
 
 NOT_USED_FLAGS=\
 	-march=armv5te \
@@ -181,6 +187,14 @@ CFLAGS += -fPIC -DPOSITION_INDEPENDENT
 AFLAGS += -fPIC -DPOSITION_INDEPENDENT
 LFLAGS += -fPIC
 LIB_TYPE = arm-${ARM_ABI}-O3-fPIC
+endif
+
+ifeq ($(CONFIG_PICOC),y)
+CFLAGS += -DCONFIG_PICOC
+endif
+
+ifeq ($(CONFIG_CONSOLE),y)
+CFLAGS += -DCONFIG_CONSOLE
 endif
 
 
@@ -225,7 +239,7 @@ reboot.o: $(SRC_DIR)/reboot.c magiclantern.bin
 magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
 	$(call build,CPP,$(CPP) $(CFLAGS) $< | grep -v '^#' > $@)
 
-ifneq ($(CONFIG_NO_PTP),y)
+ifneq ($(CONFIG_NO_EXTRA_OBJS),y)
 
 ML_OBJS-$(CONFIG_GDB) += \
 	gdb.o \
@@ -238,17 +252,6 @@ ML_OBJS-$(CONFIG_PTP_CHDK) += \
 
 ML_OBJS-$(CONFIG_PTP_ML) += \
 	ptp-ml.o \
-
-endif
-
-NO=\
-	hotplug.o \
-	bootflags.o \
-	aj_port.o \
-	aj_lib_port.o \
-	font-huge.o \
-	bracket.o \
-	spotmeter.o \
 
 ML_OBJS-$(CONFIG_PYMITE) += \
 	script.o \
@@ -270,12 +273,39 @@ ML_OBJS-$(CONFIG_TIMECODE) += \
 ML_OBJS-$(CONFIG_CONSOLE) += \
 	console.o \
 
+ML_OBJS-$(CONFIG_PICOC)	+= \
+	$(PICOC_PATH)/clibrary.o \
+	$(PICOC_PATH)/expression.o \
+	$(PICOC_PATH)/heap.o \
+	$(PICOC_PATH)/include.o \
+	$(PICOC_PATH)/lex.o \
+	$(PICOC_PATH)/parse.o \
+	$(PICOC_PATH)/platform.o \
+	$(PICOC_PATH)/table.o \
+	$(PICOC_PATH)/type.o \
+	$(PICOC_PATH)/variable.o \
+	$(PICOC_PATH)/library_ml.o \
+	$(PICOC_PATH)/platform_ml.o \
+	picoc.o \
+
+endif
+
 # Extract the stdio files that we need
 STDIO_OBJ = \
 	lib_a-setjmp.o \
 	lib_a-strcmp.o \
 	lib_a-strlen.o \
 	lib_a-strncmp.o \
+
+ifneq ($(CONFIG_NO_EXTRA_OBJS),y)
+ifeq ($(CONFIG_PICOC),y)
+
+STDIO_OBJ += \
+	lib_a-strncpy.o \
+	lib_a-ctype_.o \
+
+endif
+endif
 
 $(STDIO_OBJ): $(ARM_LIBC_A)
 	$(call build,AR,$(AR) x $? $(STDIO_OBJ))
@@ -583,6 +613,8 @@ clean:
 		scripts/* \
 		doc/* \
 		$(SRC_DIR)/*.o \
+		$(PICOC_PATH)/*.o \
+		$(PICOC_PATH)/*.d \
 		)
 	$(call build,CLEAN,$(RM) -rf zip)
 
@@ -592,17 +624,17 @@ DEPS  := $(COBJS:.o=.d)
 
 %.s: %.c
 	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
-%.o: $(SRC_DIR)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.o: $(PLATFORM_DIR)/%.c
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.o: $(SRC_DIR)/%.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.i: %.c
 	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
 %: %.c
 	$(call build,LD,$(CC) $(CFLAGS) -o $@ $<)
-%.o: $(SRC_DIR)/%.S
-	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 %.o: $(PLATFORM_DIR)/%.S
+	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
+%.o: $(SRC_DIR)/%.S
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 %.bin: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)

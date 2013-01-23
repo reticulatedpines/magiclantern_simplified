@@ -148,7 +148,7 @@
 #define MAX_ISO_POS_Y 28
 
 // for ML hdr display
-#define HDR_STATUS_POS_X 560
+#define HDR_STATUS_POS_X 562
 #define HDR_STATUS_POS_Y 100
 
 //for HTP mode on display
@@ -159,11 +159,11 @@
 #define MLU_STATUS_POS_X 316
 #define MLU_STATUS_POS_Y 310
 
-#define WBS_POS_X 365
-#define WBS_POS_Y 260
-
 #define WBS_GM_POS_X 365
 #define WBS_GM_POS_Y 230
+
+#define WBS_POS_X 365
+#define WBS_POS_Y 260
 
 // Audio remote shot position info photo mode
 #define AUDIO_REM_SHOT_POS_X 200
@@ -174,8 +174,12 @@
 #define DISPLAY_CLOCK_POS_Y 410
 
 // position for displaying K icon in photo info display
-#define DISPLAY_KELVIN_POS_X 196
-#define DISPLAY_KELVIN_POS_Y 226
+#define WB_K_ICON_POS_X 192
+#define WB_K_ICON_POS_Y 226
+
+// position for displaying K values in photo info display
+#define WB_KELVIN_POS_X 192
+#define WB_KELVIN_POS_Y 260
 
 // position for displaying card size remain outside LV
 #define DISPLAY_GB_POS_X 305
@@ -269,3 +273,7 @@
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x172c8
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+
+// for bulb ramping calibration: delay between two exposure readings (increase it if brightness updates slowly)
+// if not defined, default is 500
+#define BRAMP_CALIBRATION_DELAY 1000

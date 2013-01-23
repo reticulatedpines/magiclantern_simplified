@@ -161,7 +161,7 @@ LCDsensor Remote
 Start/stop remote shutter release mode with the LCD sensor. 
   
 * ⨂ **Near**: To take a picture, put your hand near the LCD sensor.
-* ⨀ **Away**: Picture is taken when you get your hand away from the sensor. You may combine this setting with `Mirror Lockup`_.
+* ⨀ **Away**: Picture is taken when you get your hand away from the sensor.
 * 〰 **Wave**: Picture is taken after you wave your hand 3 times near the sensor. You can leave it on without interfering (too much) with normal shooting.
 
 This feature is useful for avoiding camera shake.
@@ -234,13 +234,10 @@ To convert a 422 image to JPEG on the PC, use one of the following programs:
 
 Mirror Lockup
 `````````````
-  
-Mirror lockup. See Canon user guide for details.
-  
-``Timer+Remote`` will auto-enable MLU under one of the following conditions (and disable it otherwise):
-    
-* self-timer mode is on (either 2 second or 10 second, but not continuous)
-* `LCDsensor Remote`_ is in ``Away`` mode.
+
+* ``Always ON``: will enable Mirror Lockup (MLU) just as from Canon menu.
+* ``Self-Timer``: will only enable MLU when drive mode is set to Self-timer (and disable it otherwise).
+* ``Handheld``: will add a small delay between mirror and shutter release, as described `here <http://www.stockholmviews.com/mup/mirror-up.html>`_. This can reduce camera shake for hand-held shots at moderate shutter speeds.
 
 
 .. _flash exposure compensation:

@@ -62,6 +62,7 @@ CONFIG_PLUGINS      = n
 CONFIG_CONSOLE      = n
 CONFIG_DEBUGMSG     = 0
 CONFIG_CCACHE       = n
+CONFIG_PICOC        = n
 
 # You can customize CFLAG here
 #CFLAG_USER = -march=armv5te -mcpu=arm946e-s -O2 -DCONFIG_RELEASE_BUILD \

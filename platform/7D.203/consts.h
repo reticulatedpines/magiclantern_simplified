@@ -1,7 +1,7 @@
 #define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC022D06C // http://magiclantern.wikia.com/wiki/Led_addresses
-#define LEDON 0x138800
-#define LEDOFF 0x838C00
+#define LEDON 0x138000
+#define LEDOFF 0x38400
 
 #define HIJACK_CACHE_HACK
 
@@ -145,9 +145,7 @@
 
 // for displaying battery
 #define DISPLAY_BATTERY_POS_X 300
-#define DISPLAY_BATTERY_POS_Y 390
-#define DISPLAY_BATTERY_LEVEL_1 60 //%
-#define DISPLAY_BATTERY_LEVEL_2 20 //%
+#define DISPLAY_BATTERY_POS_Y 403
 
 // for header footer info
 #define DISPLAY_HEADER_FOOTER_INFO
@@ -162,15 +160,15 @@
 
 // for the yellow ISO range [a-b]
 #define ISO_RANGE_POS_X 455
-#define ISO_RANGE_POS_Y 92
+#define ISO_RANGE_POS_Y 90
 
 #define WB_KELVIN_POS_X 393
 #define WB_KELVIN_POS_Y 276
 
 // white balance shift values M2B1 in yellow
 #define WBS_POS_X 177
-#define WBS_POS_Y 426
-#define WBS_FONT FONT_LARGE
+#define WBS_POS_Y 438
+//~ #define WBS_FONT FONT_MED // not used?
 
 // Audio remote shot position info photo mode
 #define AUDIO_REM_SHOT_POS_X 28
@@ -201,7 +199,7 @@
 #define DIALOG_MnCardFormatBegin (0x213AC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x22C68) // similar
 
-#define BULB_MIN_EXPOSURE 200
+#define BULB_MIN_EXPOSURE 500
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xffd369d8

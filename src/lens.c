@@ -1072,39 +1072,44 @@ static PROP_INT(PROP_ICU_UILOCK, uilock);
 void lens_wait_readytotakepic(int wait)
 {
     int i;
-    for (i = 0; i < wait * 10; i++)
+    for (i = 0; i < wait * 20; i++)
     {
         if (ml_shutdown_requested) return;
         if (sensor_cleaning) { msleep(50); continue; }
-        //~ if (lens_info.job_state <= 0xA && burst_count > 0 && !is_movie_mode()) break;
-        //~ if (lens_info.job_state <= 0xA && burst_count > 0 && is_movie_mode()) break;
-        if (lens_info.job_state <= 0xA && burst_count > 0 && ((uilock & 0xFF) == 0)) break;
-        msleep(20);
-        if (!recording)
-        {
-            if ((lens_info.job_state <= 0xA) || (uilock & 0xFF)) info_led_on();
-        }
+        if (job_state_ready_to_take_pic() && burst_count > 0 && ((uilock & 0xFF) == 0)) break;
+        msleep(50);
+        if (!recording) info_led_on();
     }
     if (!recording) info_led_off();
 }
 
 int mirror_locked = 0;
-void mlu_lock_mirror_if_needed() // called by lens_take_picture
+int mlu_lock_mirror_if_needed() // called by lens_take_picture; returns 0 if success, 1 if camera took a picture instead of locking mirror
 {
     #ifdef CONFIG_5DC
     if (get_mlu()) set_mlu(0); // can't trigger shutter with MLU active, so just turn it off
-    return;
+    return 0;
     #endif
     
+    if (get_mlu())
+    {
+        SetGUIRequestMode(0);
+        int iter = 20;
+        while (iter-- && !display_idle())
+            msleep(50); 
+        msleep(500);
+    }
+
     //~ NotifyBox(1000, "MLU locking");
     if (get_mlu() && !lv)
     {
         if (!mirror_locked)
         {
-            mirror_locked = 1;
+            int fn = file_number;
+            
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
             SW1(1,50);
-            SW2(1,500);
+            SW2(1,250);
             SW2(0,50);
             SW1(0,50);
             #elif defined(CONFIG_40D)
@@ -1112,10 +1117,21 @@ void mlu_lock_mirror_if_needed() // called by lens_take_picture
             #else
             call("Release");
             #endif
-            msleep(get_mlu_delay(lens_mlu_delay));
+            
+            msleep(500);
+            if (file_number != fn) // Heh... camera took a picture instead. Cool.
+                return 1;
+
+            if (lv) // we have somehow got into LiveView, where MLU does nothing... so, no need to wait
+                return 0;
+
+            mirror_locked = 1;
+            
+            msleep(MAX(0, get_mlu_delay(lens_mlu_delay) - 500));
         }
     }
     //~ NotifyBox(1000, "MLU locked");
+    return 0;
 }
 
 #define AF_BUTTON_NOT_MODIFIED 100
@@ -1128,7 +1144,7 @@ void assign_af_button_to_halfshutter()
     if (is_manual_focus()) return;
     if (orig_af_button_assignment == AF_BTN_HALFSHUTTER) return;
     //~ take_semaphore(lens_sem, 0);
-    while (lens_info.job_state >= 0xa) msleep(20);
+    lens_wait_readytotakepic(64);
     if (ml_shutdown_requested) return;
     if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) orig_af_button_assignment = cfn_get_af_button_assignment();
     cfn_set_af_button(AF_BTN_HALFSHUTTER);
@@ -1142,7 +1158,7 @@ void assign_af_button_to_star_button()
     if (is_manual_focus()) return;
     if (orig_af_button_assignment == AF_BTN_STAR) return;
     //~ take_semaphore(lens_sem, 0);
-    while (lens_info.job_state >= 0xa) msleep(20);
+    lens_wait_readytotakepic(64);
     if (ml_shutdown_requested) return;
     if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) orig_af_button_assignment = cfn_get_af_button_assignment();
     cfn_set_af_button(AF_BTN_STAR);
@@ -1156,7 +1172,7 @@ void restore_af_button_assignment()
     
     if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) return;
     //~ take_semaphore(lens_sem, 0);
-    while (lens_info.job_state >= 0xa) msleep(20);
+    lens_wait_readytotakepic(64);
     cfn_set_af_button(orig_af_button_assignment);
     msleep(100);
     if (cfn_get_af_button_assignment() == (int)orig_af_button_assignment)
@@ -1176,17 +1192,26 @@ void restore_af_button_assignment_at_shutdown()
     }
 }
 
+int ml_taking_pic = 0;
+
 int
 lens_take_picture(
     int wait, 
     int allow_af
 )
 {
+    if (ml_taking_pic) return -1;
+    ml_taking_pic = 1;
+    
     if (!allow_af) assign_af_button_to_star_button();
     //~ take_semaphore(lens_sem, 0);
     lens_wait_readytotakepic(64);
     
-    mlu_lock_mirror_if_needed();
+    // in some cases, the MLU setting is ignored; if ML can't detect this properly, this call will actually take a picture
+    // if it happens (e.g. with LV active, but camera in QR mode), that's it, we won't try taking another one
+    // side effects should be minimal
+    int took_pic = mlu_lock_mirror_if_needed();
+    if (took_pic) goto end;
 
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (get_mlu())
@@ -1219,17 +1244,19 @@ lens_take_picture(
      * There is a workaround: Just wait until shooting is possible again and then trigger SW1 for a short time.
      * Then the camera will shut down clean.
      */
-    lens_wait_readytotakepic(130000);
+    lens_wait_readytotakepic(64);
     SW1(1,50);
     SW1(0,50);
     SW1(1,50);
     SW1(0,50);
     #endif
-    
+
+end:
     if( !wait )
     {
         //~ give_semaphore(lens_sem);
         if (!allow_af) restore_af_button_assignment();
+        ml_taking_pic = 0;
         return 0;
     }
     else
@@ -1238,6 +1265,7 @@ lens_take_picture(
         lens_wait_readytotakepic(wait);
         //~ give_semaphore(lens_sem);
         if (!allow_af) restore_af_button_assignment();
+        ml_taking_pic = 0;
         return lens_info.job_state;
     }
 }
@@ -1253,7 +1281,6 @@ lens_take_pictures(
     if (!allow_af) assign_af_button_to_star_button();
 
     lens_wait_readytotakepic(64);    
-    mlu_lock_mirror_if_needed();
     
     /* take picture(s) */
     SW2(1,duration);
@@ -1265,7 +1292,7 @@ lens_take_pictures(
      * There is a workaround: Just wait until shooting is possible again and then trigger SW1 for a short time.
      * Then the camera will shut down clean.
      */
-    lens_wait_readytotakepic(130000);
+    lens_wait_readytotakepic(64);
     SW1(1,50);
     SW1(0,50);
     #endif
@@ -1411,12 +1438,12 @@ mvr_create_logfile(
     int sr_x1000 = get_current_shutter_reciprocal_x1000();
 
     MVR_LOG_APPEND (
-        "ISO            : %d\n"
+        "ISO            : %d%s\n"
         "Shutter        : 1/%d.%03ds\n"
         "Aperture       : f/%d.%d\n"
         "Focal length   : %d mm\n"
         "Focus distance : %d mm\n",
-        lens_info.iso,
+        lens_info.iso, get_htp() ? " D+" : "",
         sr_x1000/1000, sr_x1000%1000,
         lens_info.aperture / 10, lens_info.aperture % 10,
         lens_info.focal_len,
@@ -1928,12 +1955,51 @@ PROP_HANDLER( PROP_LV_LENS )
 }
 #endif
 
+/**
+ * This tells whether the camera is ready to take a picture (or not)
+ * 5D2: the sequence is: 0 11 10 8 0
+ *      that means: 0 = idle, 11 = very busy (exposing), 10 = exposed, but processing (can take the next picture), 8 = done processing, just saving to card
+ *      also, when job state is 11, we can't change camera settings, but when it's 10, we can
+ * 5D3: the sequence is: 0 0x16 0x14 0x10 0
+ * other cameras may have different values
+ * 
+ * => hypothesis: the general sequence is:
+ * 
+ *   0 max something_smaller something_even_smaller and so on
+ * 
+ *   so, we only want to avoid the situation when job_state == max_job_state
+ * 
+ */
+
+static int max_job_state = 0;
+
+int job_state_ready_to_take_pic()
+{
+    if (max_job_state == 0) return 1;
+    return (int)lens_info.job_state < max_job_state;
+}
+
 PROP_HANDLER( PROP_LAST_JOB_STATE )
 {
     const uint32_t state = *(uint32_t*) buf;
     lens_info.job_state = state;
-    DEBUG("job state: %d", state);
-    mirror_locked = 0;
+    
+    if (max_job_state == 0 && state != 0)
+        max_job_state = state;
+    
+    ASSERT((int)state <= max_job_state);
+    
+    if (max_job_state && (int)state == max_job_state)
+    {
+        mirror_locked = 0;
+        hdr_flag_picture_was_taken();
+    }
+
+    #ifdef CONFIG_JOB_STATE_DEBUG
+    static char jmsg[100] = "";
+    STR_APPEND(jmsg, "%d ", state);
+    bmp_printf(FONT_MED,0,0, jmsg);
+    #endif
 }
 
 static int fae_ack = 12345;

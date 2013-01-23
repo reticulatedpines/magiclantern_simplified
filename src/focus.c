@@ -1224,7 +1224,7 @@ static struct menu_entry trap_focus_menu[] = {
         .max = 2,
         .display    = trap_focus_display,
         .help = "Takes a picture when the subject comes in focus. MF only.",
-        .icon_type = IT_BOOL,
+        .icon_type = IT_DICE_OFF,
         
         .children =  (struct menu_entry[]) {
             {

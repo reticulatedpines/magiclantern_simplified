@@ -83,7 +83,7 @@
 //~ #define CONFIG_EXPSIM
 
 /** We can;t playback sounds via ASIF DMA (yet) **/
-//~ #define CONFIG_BEEP
+#define CONFIG_BEEP
 
 /** This camera has no trouble saving Kelvin and/or WBShift in movie mode **/
 //~ #define CONFIG_WB_WORKAROUND
@@ -109,3 +109,10 @@
 
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
+
+/** FPS override: we can only change timer A */
+#define CONFIG_FPS_TIMER_A_ONLY
+
+/** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
+#define CONFIG_FPS_AGGRESSIVE_UPDATE
+

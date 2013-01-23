@@ -112,7 +112,7 @@ static int yuv2rgb_BU[256];
 
 static void precompute_yuv2rgb()
 {
-#ifdef CONFIG_5D3 // REC 709
+#if defined(CONFIG_5D3) || defined(CONFIG_6D)// REC 709
     /*
     *R = *Y + 1608 * V / 1024;
     *G = *Y -  191 * U / 1024 - 478 * V / 1024;
@@ -378,7 +378,7 @@ int focus_peaking_as_display_filter()
 
 static CONFIG_INT( "hist.draw", hist_draw,  1 );
 static CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
-static CONFIG_INT( "hist.warn", hist_warn,  5 );
+static CONFIG_INT( "hist.warn", hist_warn,  1 );
 static CONFIG_INT( "hist.log",  hist_log,   1 );
 static CONFIG_INT( "waveform.draw", waveform_draw,
 #ifdef CONFIG_4_3_SCREEN
@@ -485,6 +485,11 @@ int get_global_draw() // menu setting, or off if
     
     if (PLAY_MODE) return 1; // exception, always draw stuff in play mode
     
+    #ifdef CONFIG_CONSOLE
+    extern int console_visible;
+    if (console_visible) return 0;
+    #endif
+    
     if (lv && ZEBRAS_IN_LIVEVIEW)
     {
         return 
@@ -500,7 +505,7 @@ int get_global_draw() // menu setting, or off if
             #ifdef CONFIG_5D3
             !(hdmi_code==5 && video_mode_resolution>0) && // unusual VRAM parameters
             #endif
-            lens_info.job_state <= 10;
+            job_state_ready_to_take_pic();
     }
     
     if (!lv && ZEBRAS_IN_QUICKREVIEW)
@@ -966,8 +971,6 @@ static void hist_dot(int x, int y, int fg_color, int bg_color, int radius, int l
 
 static int hist_dot_radius(int over, int hist_total_px)
 {
-    if (hist_warn <= 4) return 7; // fixed radius for these modes
-    
     // overexposures stronger than 1% are displayed at max radius (10)
     int p = 100 * over / hist_total_px;
     if (p > 1) return 10;
@@ -980,8 +983,7 @@ static int hist_dot_radius(int over, int hist_total_px)
 
 static int hist_dot_label(int over, int hist_total_px)
 {
-    int p = 100 * over / hist_total_px;
-    return hist_warn <= 4 ? 0 : p;
+    return 100 * over / hist_total_px;
 }
 
 /** Draw the histogram image into the bitmap framebuffer.
@@ -1043,12 +1045,7 @@ hist_draw_image(
         
         if (hist_warn && i == HIST_WIDTH - 1)
         {
-            unsigned int thr = hist_total_px / (
-                hist_warn == 1 ? 100000 : // 0.001%
-                hist_warn == 2 ? 10000  : // 0.01%
-                hist_warn == 3 ? 1000   : // 0.1%
-                hist_warn == 4 ? 100    : // 1%
-                                 100000); // start at 0.0001 with a tiny dot
+            unsigned int thr = hist_total_px / 100000; // start at 0.0001 with a tiny dot
             thr = MAX(thr, 1);
             int yw = y_origin + 12 + (hist_log ? hist_height - 24 : 0);
             int bg = (hist_log ? COLOR_WHITE : COLOR_BLACK);
@@ -1331,7 +1328,7 @@ static inline int zebra_color_word_row(int c, int y)
 static int* dirty_pixels = 0;
 static int dirty_pixels_num = 0;
 //~ static unsigned int* bm_hd_r_cache = 0;
-static unsigned int bm_hd_x_cache[BMP_W_PLUS - BMP_W_MINUS];
+static uint16_t bm_hd_x_cache[BMP_W_PLUS - BMP_W_MINUS];
 static int bm_hd_bm2lv_sx = 0;
 static int bm_hd_lv2hd_sx = 0;
 
@@ -2518,6 +2515,7 @@ crop_display_submenu( void * priv, int x, int y, int selected )
     bmp_fill(0, xc, yc, w, h);
     BMP_LOCK( bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0); )
     bmp_draw_rect(COLOR_WHITE, xc, yc, w, h);
+    menu_draw_icon(x, y, MNI_DICE, (num_cropmarks<<16) + index);
 }
 #endif
 
@@ -2535,23 +2533,6 @@ hist_print( void * priv, int x, int y, int selected )
         hist_draw && hist_warn ? ",clip warn" : ""
     );
     menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(hist_draw));
-}
-
-static void
-hist_warn_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Clip warning  : %s",
-        hist_warn == 0 ? "OFF" :
-        hist_warn == 1 ? "0.001% px" :
-        hist_warn == 2 ? "0.01% px" :
-        hist_warn == 3 ? "0.1% px" : 
-        hist_warn == 4 ? "1% px" :
-                         "Gradual"
-    );
-    menu_draw_icon(x, y, MNI_BOOL(hist_warn), 0);
 }
 #endif
 
@@ -3568,7 +3549,6 @@ struct menu_entry zebra_menus[] = {
                 .priv = &crop_index, 
                 .select = crop_toggle,
                 .display    = crop_display_submenu,
-                .icon_type = IT_ALWAYS_ON,
                 .help = "You can draw your own cropmarks in Paint.",
             },
             {
@@ -3680,8 +3660,7 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Clip warning",
                 .priv = &hist_warn, 
-                .max = 5,
-                .display = hist_warn_display,
+                .max = 1,
                 .help = "Display warning dots when one color channel is clipped.",
             },
             MENU_EOL
@@ -4149,7 +4128,7 @@ int handle_zoom_overlay(struct event * event)
 
     // zoom in when recording => enable Magic Zoom 
     if (get_zoom_overlay_trigger_mode() && recording == 2 && MVR_FRAME_NUMBER > 10 && event->param == 
-        #ifdef CONFIG_5D3
+        #if defined(CONFIG_5D3) || defined(CONFIG_6D)
         BGMT_PRESS_ZOOMIN_MAYBE
         #else
         BGMT_UNPRESS_ZOOMIN_MAYBE
@@ -4494,7 +4473,7 @@ int liveview_display_idle()
     struct dialog * dialog = current->priv;
     extern thunk LiveViewApp_handler;
     extern uintptr_t new_LiveViewApp_handler;
-    #ifdef CONFIG_5D3
+    #if defined(CONFIG_5D3) || defined(CONFIG_6D)
     extern thunk LiveViewLevelApp_handler;
     #endif
     #if defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
@@ -4508,7 +4487,7 @@ int liveview_display_idle()
         ( gui_menu_shown() || // force LiveView when menu is active, but hidden
             ( gui_state == GUISTATE_IDLE && 
               (dialog->handler == (dialog_handler_t) &LiveViewApp_handler || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler
-                  #ifdef CONFIG_5D3
+                  #if defined(CONFIG_5D3) || defined(CONFIG_6D)
                   || dialog->handler == (dialog_handler_t) &LiveViewLevelApp_handler
                   #endif
                //~ for this, check value of get_current_dialog_handler()
@@ -4520,7 +4499,7 @@ int liveview_display_idle()
             #ifdef CURRENT_DIALOG_MAYBE_2
             CURRENT_DIALOG_MAYBE_2 <= 3 &&
             #endif
-            lens_info.job_state < 10 &&
+            job_state_ready_to_take_pic() &&
             !mirror_down )
         );
 }
@@ -4817,7 +4796,7 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
     //~ bmp_printf(FONT_MED, 100, 200, "%d->%d ", *prev_countdown, c);
     if (*prev_countdown && !c)
     {
-        info_led_blink(1, 50, 50);
+        //~ info_led_blink(1, 50, 50);
         //~ bmp_printf(FONT_MED, 100, 200, "action  "); msleep(500);
         action_on();
         //~ msleep(500);
@@ -4825,7 +4804,7 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
     }
     else if (!*prev_countdown && c)
     {
-        info_led_blink(1, 50, 50);
+        //~ info_led_blink(1, 50, 50);
         //~ bmp_printf(FONT_MED, 100, 200, "unaction"); msleep(500);
         action_off();
         //~ msleep(500);
@@ -4907,7 +4886,7 @@ static void idle_display_off()
     extern int motion_detect;
     if (!(motion_detect || recording)) PauseLiveView();
     display_off();
-    msleep(100);
+    msleep(300);
     idle_countdown_display_off = 0;
     ASSERT(!(recording && LV_PAUSED));
     ASSERT(!DISPLAY_IS_ON);
@@ -4918,12 +4897,6 @@ static void idle_display_on()
     ResumeLiveView();
     display_on();
     redraw();
-    #if 0
-    if(is_movie_mode() && !recording && start_recording_on_resume && resumed_due_to_halfshutter) {
-    	schedule_movie_start();
-        resumed_due_to_halfshutter = 0;
-    }
-    #endif
     //~ ASSERT(DISPLAY_IS_ON); // it will take a short time until display will turn on
 }
 
@@ -5880,7 +5853,7 @@ void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
     int i,j;
     
     // only used for menu => 720x480
-    static int js_cache[720];
+    static int16_t js_cache[720];
     
     for (j = 0; j < 720; j++)
         js_cache[j] = (j - x0) * denx / 128 + x0;
@@ -6003,6 +5976,9 @@ void play_422(char* filename)
     else if (size == 1904 * 1274 * 2) { w = 1904; h = 1274; } 
     else if (size == 1620 * 1080 * 2) { w = 1620; h = 1080; } 
     else if (size == 1280 *  720 * 2) { w = 1280; h =  720; } 
+	else if (size == 1808 * 1206 * 2) { w = 1808; h = 1206; } // 6D
+	else if (size == 1680 *  952 * 2) { w = 1680; h =  952; } // 600D
+	else if (size == 1728 *  972 * 2) { w = 1728; h =  972; } // 600D Crop
     else
     {
         bmp_printf(FONT_LARGE, 0, 50, "Cannot preview this picture.");

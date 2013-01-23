@@ -11,6 +11,11 @@
 #define HIJACK_INSTR_MY_ITASK 0xff0c1cc4
 #define HIJACK_TASK_ADDR 0x23E14
 
+/* these are used in bitrate.c for video bitrate hacks */
+#define CACHE_HACK_FLUSH_RATE_SLAVE  0xFF0EA4D0
+#define CACHE_HACK_GOP_SIZE_SLAVE    0xFF217624
+
+
 // no idea if it's overflowing, need to check experimentally 
 //~ #define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3
 
@@ -134,15 +139,13 @@
 #define WB_KELVIN_POS_Y 278
 
 // white balance shift values M2B1 in yellow
-#define WBS_POS_X 250
-#define WBS_POS_Y 263
-#define WBS_FONT FONT_LARGE
+#define WBS_POS_X 265
+#define WBS_POS_Y 278
+//~ #define WBS_FONT FONT_MED // not used?
 
 // for displaying battery
-#define DISPLAY_BATTERY_POS_X 150
+#define DISPLAY_BATTERY_POS_X 146
 #define DISPLAY_BATTERY_POS_Y 410
-#define DISPLAY_BATTERY_LEVEL_1 60 //%
-#define DISPLAY_BATTERY_LEVEL_2 20 //%
 
 // for header footer info
 #define DISPLAY_HEADER_FOOTER_INFO
@@ -173,7 +176,7 @@
 #define DIALOG_MnCardFormatBegin (0x363BC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x39B98) // similar
 
-#define BULB_MIN_EXPOSURE 100
+#define BULB_MIN_EXPOSURE 500
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xf7363764

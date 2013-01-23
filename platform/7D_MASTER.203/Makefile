@@ -9,7 +9,7 @@ MODEL=7D_MASTER
 UPDATE_NAME=7D_203.fir
 ML_VERSION=unified1 
 
-CONFIG_NO_PTP=y
+CONFIG_NO_EXTRA_OBJS=y
 
 # compile position independent (experimental, not working completely yet)
 CONFIG_PIC=n
