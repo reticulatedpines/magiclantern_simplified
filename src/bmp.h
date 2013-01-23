@@ -486,7 +486,18 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset);
 #define ICON_VIDEOCAM ICON_FILM
 #endif
 
-//~ #define ICON_ML_PLAY -1
+#define ICON_ML_AUDIO -1
+#define ICON_ML_EXPO -2
+#define ICON_ML_OVERLAY -3
+#define ICON_ML_MOVIE -4
+#define ICON_ML_SHOOT -5
+#define ICON_ML_FOCUS -6
+#define ICON_ML_DISPLAY -7
+#define ICON_ML_PREFS -8
+#define ICON_ML_DEBUG -9
+#define ICON_ML_INFO -10
+#define ICON_ML_MYMENU -11
+
 #define ICON_ML_SUBMENU -100
 
 /** 5dc has to use some different icons than dryos cameras */

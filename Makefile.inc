@@ -241,6 +241,9 @@ magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
 
 ifneq ($(CONFIG_NO_EXTRA_OBJS),y)
 
+ML_OBJS-y += \
+	ico.o \
+
 ML_OBJS-$(CONFIG_GDB) += \
 	gdb.o \
 

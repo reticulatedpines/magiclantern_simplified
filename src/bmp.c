@@ -1325,6 +1325,13 @@ int bfnt_ok()
 // are all char codes in ascending order, for binary search?
 uint8_t* bfnt_find_char(int code)
 {
+    if (code < 0) // that's a ML icon
+    {
+        code = -code-1;
+        if (code > 10) return 0;
+        extern canon_font_body_t menu_icons_body;
+        return (uint8_t*) &menu_icons_body.bitmaps[code];
+    }
     int n = (BFNT_BITMAP_OFFSET - BFNT_CHAR_CODES) / 4;
     int* codes = (int*) BFNT_CHAR_CODES;
     int* off = (int*) BFNT_BITMAP_OFFSET;
