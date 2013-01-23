@@ -139,19 +139,19 @@ void cache_hacks_helper_set_our_control_register(void)
 
 	asm volatile (
 			//"MOV	R1, #0x78			\n" // OFW was setting bit 3:6 only (reserved)
-			"MOV	R1, #0				\n" // we set few bits more
+			"MOV	R0, #0				\n" // we set few bits more
 			//"MRC	p15, 0, R1,c1,c0, 0	\n"
 
-			"ORR	R1, R1, #0x01		\n" // MPU - we need it, otherwise it will disable the caches
-			"ORR	R1, R1, #0x04		\n" // D Cache - w/o this the data is slow
-			"ORR	R1, R1, #0x08		\n" // reserved - OFW requested
-			"ORR	R1, R1, #0x10		\n" // reserved - OFW requested
-			"ORR	R1, R1, #0x20		\n" // reserved - OFW requested
-			"ORR	R1, R1, #0x40		\n" // reserved - OFW requested
-			"ORR	R1, R1, #0x1000		\n" // I Cache - we wont have cache hacks w/o this
-			"ORR	R1, R1, #0x10000	\n" // D TCM - these would be set by the OFW later
-			"ORR	R1, R1, #0x40000	\n" // I TCM - these would be set by the OFW later
-			"MCR	p15, 0, R1,c1,c0, 0	\n"
+			"ORR	R0, R0, #0x01		\n" // MPU - we need it, otherwise it will disable the caches
+			"ORR	R0, R0, #0x04		\n" // D Cache - w/o this the data is slow
+			"ORR	R0, R0, #0x08		\n" // reserved - OFW requested
+			"ORR	R0, R0, #0x10		\n" // reserved - OFW requested
+			"ORR	R0, R0, #0x20		\n" // reserved - OFW requested
+			"ORR	R0, R0, #0x40		\n" // reserved - OFW requested
+			"ORR	R0, R0, #0x1000		\n" // I Cache - we wont have cache hacks w/o this
+			"ORR	R0, R0, #0x10000	\n" // D TCM - these would be set by the OFW later
+			"ORR	R0, R0, #0x40000	\n" // I TCM - these would be set by the OFW later
+			"MCR	p15, 0, R0,c1,c0, 0	\n"
 	);
 }
 
@@ -175,10 +175,62 @@ unsigned int cache_hacks_helper_orr_0x11000(unsigned int arg)
 	return arg | 0x11000;
 }
 
-static inline void disable_cache_clearing()
+void ml_init_task()
 {/*{{{*/
+	LEDBLUE = LEDON;
+	_card_led_on();
+	msleep(200);
+	hijack_gui_main_task();
+	bmp_vram_idle_ptr = (int)malloc(360*240);
+	ml_big_init_task();
+	LEDBLUE = LEDOFF;
+	_card_led_off();
+	//~ hijack_event_dispatches();
+}/*}}}*/
+
+void ml_hijack_create_task_cmd_shell(const char * name)
+{/*{{{*/
+	blink(20);
+
+	// call original create_task_cmd_shell to start taskCmdShell
+	create_task_cmd_shell(name);
+
+	// create ml_init_task to start ML
+	task_create("ml_init_task", 0x1f, 0x2000, ml_init_task, 0);
+}/*}}}*/
+
+void dump_with_buffer(int addr, int len, char* filename);
+
+void old_init()
+{/*{{{*/
+	//start_debug_mode();
+	//dump_with_buffer(0x0, 0x800000, "A:/0x0.RAM");
+	task_create("ml_init_task", 0x1f, 0x2000, ml_init_task, 0);
+}/*}}}*/
+
+void copy_and_restart()
+{/*{{{*/
+	//blink(1);
+
+	zero_bss();
+#ifndef CACHE_BOOT
+	init_code_run(); // old boot method
+	// unreachable after the init call
+#endif
+
+	/* lock down caches */
+	cache_lock();
+
 	/* this is a evil hack to disable cache clearing all on way to ML tasks */
 	// 0xAF: these are all locations of cache clear I've found
+
+	cache_fake(0xFF81005C, BL_INSTR(0xFF81005C, &cache_hacks_helper_set_our_control_register), TYPE_ICACHE);
+	cache_fake(0xFF810408, BL_INSTR(0xFF810408, &cache_hacks_helper_set_our_control_register), TYPE_ICACHE);
+	//cache_fake(0xFF81005C, NOP_INSTR, TYPE_ICACHE);
+	//cache_fake(0xFF810408, NOP_INSTR, TYPE_ICACHE);
+
+
+
 
 	// add flags to enable the I/D Caches (where they are disabled)
 #if 1
@@ -256,42 +308,11 @@ static inline void disable_cache_clearing()
 	//cache_fake(0xFFB403FC, 0xE1A00000, TYPE_ICACHE);
 	/*}}}*/
 
-}/*}}}*/
 
-void ml_init_task()
-{/*{{{*/
-	LEDBLUE = LEDON;
-	_card_led_on();
-	msleep(200);
-	hijack_gui_main_task();
-	bmp_vram_idle_ptr = (int)malloc(360*240);
-	ml_big_init_task();
-	LEDBLUE = LEDOFF;
-	_card_led_off();
-	//~ hijack_event_dispatches();
-}/*}}}*/
 
-void ml_hijack_create_task_cmd_shell(const char * name)
-{/*{{{*/
-	blink(20);
 
-	// call original create_task_cmd_shell to start taskCmdShell
-	create_task_cmd_shell(name);
 
-	// create ml_init_task to start ML
-	task_create("ml_init_task", 0x1f, 0x2000, ml_init_task, 0);
-}/*}}}*/
 
-void dump_with_buffer(int addr, int len, char* filename);
-void old_init()
-{/*{{{*/
-	//start_debug_mode();
-	dump_with_buffer(0x0, 0x800000, "A:/0x0.RAM");
-	task_create("ml_init_task", 0x1f, 0x2000, ml_init_task, 0);
-}/*}}}*/
-
-static inline void configure_cache_replaces()
-{/*{{{*/
 	/* reserve 512 KB or RAM for ML (original: MOV R1, 0xa00000; modified: MOV R1, 0x980000) */
 	cache_fake(0xFF8110BC, 0xE3A01726, TYPE_ICACHE);
 
@@ -303,44 +324,25 @@ static inline void configure_cache_replaces()
 	/* sub_FFBA12E0 - 0xFFBA12E4 : BL sub_FFB9D4E4 */
 	//cache_fake(0xFFBA12E4, BL_INSTR(0xFFBA12E4, &ml_hijack_ptp_register_handlers), TYPE_ICACHE); // OK
 #endif
-}/*}}}*/
-
-void copy_and_restart()
-{/*{{{*/
-	//blink(1);
-
-	zero_bss();
-	init_code_run(); // old boot method
-
-	/* lock down caches */
-	cache_lock();
-
-	disable_cache_clearing();
-
-	configure_cache_replaces();
 
 
-	cache_fake(0xFFA2FBC4, 0xE3A00001, TYPE_ICACHE); // ret_zero
+
+
+
+	// TEST CACHE HACK
+	cache_fake(0xFFA2FBC4, 0xE3A00001, TYPE_ICACHE); // ret_zero, we now return 1 instead
 //#define TEST_CACHE_HACKS 0xFF8104A8 // replace one NOP with the test
-#define TEST_CACHE_HACKS 0xFFB34A18 // this is after the clear cache calls
+//#define TEST_CACHE_HACKS 0xFFB34A18 // this is after the clear cache calls
 //#define TEST_CACHE_HACKS 0xFFB40404 // first instruction in clear_I_cache
+#define TEST_CACHE_HACKS 0xFFB535E8 // AF:XXX: find what's happening in this task stuff
 	cache_fake(0xFFB34A14, NOP_INSTR, TYPE_ICACHE); // NOP the clear_I_cache() call
 	cache_fake(TEST_CACHE_HACKS, BL_INSTR(TEST_CACHE_HACKS, &test_cache_hacks), TYPE_ICACHE);
 
-	//init_code_run(); // old boot method
 
-	cache_fake(0xFF81005C, BL_INSTR(0xFF81005C, &cache_hacks_helper_set_our_control_register), TYPE_ICACHE);
-	cache_fake(0xFF810408, BL_INSTR(0xFF810408, &cache_hacks_helper_set_our_control_register), TYPE_ICACHE);
-	//cache_fake(0xFF81005C, NOP_INSTR, TYPE_ICACHE);
-	//cache_fake(0xFF810408, NOP_INSTR, TYPE_ICACHE);
 
 	cache_fake(0xFFB36618, NOP_INSTR, TYPE_ICACHE); // TODO: dangerous part of change_control_register(),   investigate further
 	cache_fake(0xFFB36648, NOP_INSTR, TYPE_ICACHE); // TODO: dangerous part of change_control_register_2(), investigate further
 	cache_fake(0xFFB40638, NOP_INSTR, TYPE_ICACHE); // TODO: dangerous part of change_control_register_3(), investigate further
-
-	//cache_fake(0xFF81005C, BL_INSTR(0xFF81005C, &test_cache_hacks), TYPE_ICACHE); // test
-	//cache_fake(0xFF81005C, LOOP_INSTR, TYPE_ICACHE); // test
-	//cache_fake(0xFF81005C, NOP_INSTR, TYPE_ICACHE); // test
 
 
 	/* now start the original firmware (OFW) */
