@@ -64,6 +64,7 @@ ML_OBJS-y = \
 	vsync-lite.o \
 	battery.o \
 	dm-spy.o \
+	evf-hacks.o \
 
 #	video_hacks.o \
 #	flexinfo.o \

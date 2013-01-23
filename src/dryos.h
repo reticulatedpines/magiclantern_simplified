@@ -566,7 +566,7 @@ const char* get_dcim_dir();
  *
  *  Seems to be highly related to VRAM buffers, probably necessary
  *  to understand this before we explore resizing / creating our
- *  own buffers.
+ *  own buffers. EVF_STRUCT is at 0x76D18 in the 6D.112 firmware.
  *
  *********************************************************************/
 
@@ -580,7 +580,7 @@ const char* get_dcim_dir();
  *      AEWB_Controller         0x24EA4             0x1CC           unknown  <-- idk, it just returns the pointer caller (but, has no caller)
  *      AF_Controller           0x321C8             0x18C           unknown
  *      VRAM_CON                0x3AC74             0xC8            unknown
- *      BUF_CON                 0x3BED0             0x1C            unknown
+ *      BUF_CON                 0x3BED0             0x1C            EVF_STRUCT->off_0x14
  *      SSDEV_CON               0x411D8             0x220           unknown
  *      VRAM_CON                0x42048             0x2B0           unknown
  *      Color_Controller        0xFF24E3B8          0xC80           unkonwn
