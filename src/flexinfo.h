@@ -62,47 +62,48 @@ typedef struct
     info_elem_pos_t pos;
 } info_elem_header_t;
 
-/* known strings to display */
-#define INFO_STRING_ISO             1
-#define INFO_STRING_ISO_MIN         2
-#define INFO_STRING_ISO_MAX         3
-#define INFO_STRING_ISO_MINMAX      4
-#define INFO_STRING_KELVIN          5
-#define INFO_STRING_WBS_BA          6
-#define INFO_STRING_WBS_GM          7
-#define INFO_STRING_DATE_DDMMYYYY   8
-#define INFO_STRING_DATE_YYYYMMDD   9
-#define INFO_STRING_DATE_MM         10
-#define INFO_STRING_DATE_DD         11
-#define INFO_STRING_DATE_YY         12
-#define INFO_STRING_DATE_YYYY       13
-#define INFO_STRING_TIME            14
-#define INFO_STRING_TIME_HH12       15
-#define INFO_STRING_TIME_HH24       16
-#define INFO_STRING_TIME_MM         17
-#define INFO_STRING_TIME_SS         18
-#define INFO_STRING_TIME_AMPM       19
-#define INFO_STRING_ARTIST          20
-#define INFO_STRING_COPYRIGHT       21
-#define INFO_STRING_LENS            22
-#define INFO_STRING_BUILD           23
-#define INFO_STRING_CARD_LABEL_A    24
-#define INFO_STRING_CARD_LABEL_B    25
-#define INFO_STRING_CARD_SPACE_A    26
-#define INFO_STRING_CARD_SPACE_B    27
-#define INFO_STRING_CARD_FILES_A    28
-#define INFO_STRING_CARD_FILES_B    29
-#define INFO_STRING_CARD_MAKER_A    30
-#define INFO_STRING_CARD_MAKER_B    31
-#define INFO_STRING_CARD_MODEL_A    32
-#define INFO_STRING_CARD_MODEL_B    33
-#define INFO_STRING_BATTERY_PCT     34
-#define INFO_STRING_BATTERY_ID      35
-#define INFO_STRING_PICTURES        36
-#define INFO_STRING_MLU             37
-#define INFO_STRING_HDR             38
-#define INFO_STRING_NONE            -1
-#define INFO_STRING_CAM_DATE        39
+/* known strings to display - must not be changed as soon XML saving is really used */
+#define INFO_STRING_NONE                 -1
+#define INFO_STRING_ISO                  1
+#define INFO_STRING_ISO_MIN              2
+#define INFO_STRING_ISO_MAX              3
+#define INFO_STRING_ISO_MINMAX           4
+#define INFO_STRING_KELVIN               5
+#define INFO_STRING_WBS_BA               6
+#define INFO_STRING_WBS_GM               7
+#define INFO_STRING_DATE_DDMMYYYY        8
+#define INFO_STRING_DATE_YYYYMMDD        9
+#define INFO_STRING_DATE_MM              10
+#define INFO_STRING_DATE_DD              11
+#define INFO_STRING_DATE_YY              12
+#define INFO_STRING_DATE_YYYY            13
+#define INFO_STRING_TIME                 14
+#define INFO_STRING_TIME_HH12            15
+#define INFO_STRING_TIME_HH24            16
+#define INFO_STRING_TIME_MM              17
+#define INFO_STRING_TIME_SS              18
+#define INFO_STRING_TIME_AMPM            19
+#define INFO_STRING_ARTIST               20
+#define INFO_STRING_COPYRIGHT            21
+#define INFO_STRING_LENS                 22
+#define INFO_STRING_BUILD                23
+#define INFO_STRING_CARD_LABEL_A         24
+#define INFO_STRING_CARD_LABEL_B         25
+#define INFO_STRING_CARD_SPACE_A         26
+#define INFO_STRING_CARD_SPACE_B         27
+#define INFO_STRING_CARD_FILES_A         28
+#define INFO_STRING_CARD_FILES_B         29
+#define INFO_STRING_CARD_MAKER_A         30
+#define INFO_STRING_CARD_MAKER_B         31
+#define INFO_STRING_CARD_MODEL_A         32
+#define INFO_STRING_CARD_MODEL_B         33
+#define INFO_STRING_BATTERY_PCT          34
+#define INFO_STRING_BATTERY_ID           35
+#define INFO_STRING_PICTURES_AVAIL_AUTO  36
+#define INFO_STRING_PICTURES_AVAIL       37
+#define INFO_STRING_MLU                  38
+#define INFO_STRING_HDR                  39
+#define INFO_STRING_CAM_DATE             40
 
 #define INFO_FONT_SMALL         0
 #define INFO_FONT_MEDIUM        1
@@ -136,6 +137,7 @@ typedef struct
     info_elem_header_t hdr;
     uint32_t show_boundaries;
     uint32_t selected_item;
+    uint32_t fast_redraw;
     char name[16];
 } info_elem_config_t;
 

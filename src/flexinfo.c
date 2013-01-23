@@ -24,77 +24,10 @@
 #define DISPLAY_BATTERY_LEVEL_1 60 //%
 #define DISPLAY_BATTERY_LEVEL_2 20 //%
 
-void trim(char* String)
-{
-    int dest;
-    int src=0;
-    int len = strlen(String);
-    if (len == 0) return;
 
-    // Advance src to the first non-whitespace character.
-    while(isspace(String[src])) src++;
-
-    // Copy the string to the "front" of the buffer
-    for(dest=0; src<len; dest++, src++) 
-    {
-        String[dest] = String[src];
-    }
-
-    // Working backwards, set all trailing spaces to NULL.
-    for(dest=len-1; isspace(String[dest]); --dest)
-    {
-        String[dest] = '\0';
-    }
-}
-
-char* GetCardMaker(char drv) 
-{
-    if (drv=='A') 
-#ifdef CARD_A_MAKER
-        return  (char*)CARD_A_MAKER;
-#else
-        return NULL;
-#endif
-   else 
-#ifdef CARD_B_MAKER
-        return  (char*)CARD_B_MAKER;
-#else
-        return NULL;
-#endif
-}
-
-char* GetCardModel(char drv) 
-{   
-    if (drv=='A') 
-#ifdef CARD_A_MODEL
-        return (char*)CARD_A_MODEL;
-#else
-        return NULL;
-#endif
-   else 
-#ifdef CARD_B_MODEL
-        return (char*)CARD_B_MODEL;
-#else
-        return NULL;
-#endif
-}
-
-char* GetCardLabel(char drv) 
-{   
-    if (drv=='A') 
-#ifdef CARD_A_LABEL
-        return (char*)CARD_A_LABEL;
-#else
-        return NULL;
-#endif
-   else 
-#ifdef CARD_B_LABEL
-        return (char*)CARD_B_LABEL;
-#else
-        return NULL;
-#endif
-}
-
+/* updated every redraw */
+int32_t info_bg_color = 0;
+int32_t info_field_color = 0;
 
 /* 
    this is the definition of the info screen elements.
@@ -128,16 +61,15 @@ info_elem_t info_config[] =
     { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2, .name = "Kelvin" }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
     
     /* entry 10, pictures */
-    { .fill = { { INFO_TYPE_FILL, { 540, 390, 1, 0, 0, 0, 150, 60, .name = "Pics (clear)" }}, INFO_COL_FIELD } },
-    { .string = { { INFO_TYPE_STRING, { 550, 402, 2, .name = "Pics" }}, INFO_STRING_PICTURES, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
-     
-    // header 
+    { .fill = { { INFO_TYPE_FILL, { 540, 390, 1, 0, 0, 0, 150, 60, .name = "Pics (clear)" }}, .color = INFO_COL_FIELD } },
+    { .string = { { INFO_TYPE_STRING, { 0, 0, 2, .name = "Pics", .anchor = 10, .anchor_flags = INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER, .anchor_flags_self = INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER }}, INFO_STRING_PICTURES_AVAIL, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
+
+    /* entry 12, header */
     { .string = { { INFO_TYPE_STRING, { 28, 3, 2, .name = "Date" }}, INFO_STRING_CAM_DATE, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
-    // how can I align the string to the right (or center)? 
-    //{ .string = { { INFO_TYPE_STRING, { 693, 3, 2, .name = "Build" }}, INFO_STRING_BUILD, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
-    // footer 
+    { .string = { { INFO_TYPE_STRING, { 710, 3, 2, .name = "Build", .anchor_flags_self = INFO_ANCHOR_RIGHT }}, INFO_STRING_BUILD, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    /* entry 14, footer */
     { .string = { { INFO_TYPE_STRING, { 28, 459, 2, .name = "Card label" }}, INFO_STRING_CARD_LABEL_A, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
-    //{ .string = { { INFO_TYPE_STRING, { 693, 459, 2, .name = "Copyright" }}, INFO_STRING_COPYRIGHT, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { 693, 459, 2, .name = "Copyright", .anchor_flags_self = INFO_ANCHOR_RIGHT }}, INFO_STRING_COPYRIGHT, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
 #endif
 
 #if defined(CONFIG_5D3)
@@ -950,6 +882,93 @@ uint32_t info_save_config(info_elem_t *config, char *file)
 
 /* ********************************************************************************** */
 
+void info_trim_string(char* string)
+{
+    int dest = 0;
+    int src = 0;
+    int len = strlen(string);
+ 
+    /* nothing to do */
+    if (len == 0)
+    {
+        return;
+    }
+ 
+    /* Advance src to the first non-whitespace character */
+    while(isspace(string[src]))
+    {
+        src++;
+    }
+ 
+    /* Copy the string to the "front" of the buffer including NUL */
+    for(dest = 0; src < len + 1; dest++, src++)
+    {
+        string[dest] = string[src];
+    }
+ 
+    /* omit NUL byte */
+    dest = strlen(string) - 1;
+ 
+    /* Working backwards, set all trailing spaces to NUL */
+    while(dest >= 0 && isspace(string[dest]))
+    {
+        string[dest] = '\0';
+        dest--;
+    }
+}
+
+
+char *info_get_cardmaker(char drv) 
+{
+    if (drv == 'A') 
+#ifdef CARD_A_MAKER
+        return (char*)CARD_A_MAKER;
+#else
+        return NULL;
+#endif
+   else 
+#ifdef CARD_B_MAKER
+        return (char*)CARD_B_MAKER;
+#else
+        return NULL;
+#endif
+}
+
+char *info_get_cardmodel(char drv) 
+{   
+    if (drv == 'A') 
+#ifdef CARD_A_MODEL
+        return (char*)CARD_A_MODEL;
+#else
+        return NULL;
+#endif
+   else 
+#ifdef CARD_B_MODEL
+        return (char*)CARD_B_MODEL;
+#else
+        return NULL;
+#endif
+}
+
+char *info_get_cardlabel(char drv) 
+{   
+    if (drv == 'A') 
+#ifdef CARD_A_LABEL
+        return (char*)CARD_A_LABEL;
+#else
+        return NULL;
+#endif
+   else 
+#ifdef CARD_B_LABEL
+        return (char*)CARD_B_LABEL;
+#else
+        return NULL;
+#endif
+}
+
+
+/* ********************************************************************************** */
+
 
 uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
 {
@@ -1117,13 +1136,13 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         case INFO_STRING_ARTIST:
         {
             snprintf(buffer, maxsize, "%s", artist_name);
-            trim(buffer);
+            info_trim_string(buffer);
             break;
         }
         case INFO_STRING_COPYRIGHT:
         {
             snprintf(buffer, maxsize, "%s", copyright_info);
-            trim(buffer);
+            info_trim_string(buffer);
             break;
         }
         case INFO_STRING_LENS:
@@ -1161,31 +1180,35 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         }
 #endif
         case INFO_STRING_CARD_LABEL_A:
-            snprintf(buffer, 11, "%s", GetCardLabel('A'));
-            buffer[12]='\0';
-            trim(buffer);
+            snprintf(buffer, maxsize, "%s", info_get_cardlabel('A'));
+            info_trim_string(buffer);
             break;
+            
         case INFO_STRING_CARD_LABEL_B:
-            snprintf(buffer, 11, "%s", GetCardLabel('B'));
-            buffer[12]='\0';
-            trim(buffer);
+            snprintf(buffer, maxsize, "%s", info_get_cardlabel('B'));
+            info_trim_string(buffer);
             break;
+            
         case INFO_STRING_CARD_MAKER_A:
-            snprintf(buffer, maxsize, "%s", GetCardMaker('A'));
-            trim(buffer);
+            snprintf(buffer, maxsize, "%s", info_get_cardmaker('A'));
+            info_trim_string(buffer);
             break;
+            
         case INFO_STRING_CARD_MAKER_B:
-            snprintf(buffer, maxsize, "%s", GetCardMaker('B'));
-            trim(buffer);
+            snprintf(buffer, maxsize, "%s", info_get_cardmaker('B'));
+            info_trim_string(buffer);
             break;
+            
         case INFO_STRING_CARD_MODEL_A:
-            snprintf(buffer, maxsize, "%s", GetCardModel('A'));
-            trim(buffer);
+            snprintf(buffer, maxsize, "%s", info_get_cardmodel('A'));
+            info_trim_string(buffer);
             break;
+            
         case INFO_STRING_CARD_MODEL_B:
-            snprintf(buffer, maxsize, "%s", GetCardModel('B'));
-            trim(buffer);
+            snprintf(buffer, maxsize, "%s", info_get_cardmodel('B'));
+            info_trim_string(buffer);
             break;
+            
         case INFO_STRING_CARD_SPACE_A:
         case INFO_STRING_CARD_SPACE_B:
         case INFO_STRING_CARD_FILES_A:
@@ -1193,18 +1216,32 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             snprintf(buffer, maxsize, "(n/a)");
             break;
             
-        case INFO_STRING_PICTURES:
+        case INFO_STRING_PICTURES_AVAIL_AUTO:
         {
-            if (avail_shot>9999) // we can write 5 digits if necessary
+            if (avail_shot>99999)
+                snprintf(buffer, maxsize, "[99999]");
+            else if (avail_shot>9999)
                 snprintf(buffer, maxsize, "[%5d]", avail_shot);
-#ifdef AVAIL_SHOT_WORKAROUND
             else if (avail_shot>999)
                 snprintf(buffer, maxsize, "[%4d]", avail_shot);
-#endif
             else
                 return 1;            
             break;
+        }          
+        
+        case INFO_STRING_PICTURES_AVAIL:
+        {
+            if (avail_shot>99999)
+                snprintf(buffer, maxsize, "[99999]");
+            else if (avail_shot>9999)
+                snprintf(buffer, maxsize, "[%5d]", avail_shot);
+            else if (avail_shot>999)
+                snprintf(buffer, maxsize, "[%4d]", avail_shot);
+            else
+                snprintf(buffer, maxsize, "[%3d]", avail_shot);           
+            break;
         }
+        
         case INFO_STRING_MLU:
         {
             if (get_mlu() == 0)
@@ -1375,6 +1412,20 @@ uint32_t info_get_absolute(info_elem_t *config, info_elem_t *element)
     
     return 0;
 }
+
+int32_t info_resolve_color(int32_t color)
+{
+    if(color == INFO_COL_BG)
+    {
+        color = info_bg_color;
+    }
+    if(color == INFO_COL_FIELD)
+    {
+        color = info_field_color;
+    }
+    
+    return color;
+}
     
 uint32_t info_print_string(info_elem_t *config, info_elem_string_t *element, uint32_t run_type)
 {
@@ -1402,30 +1453,14 @@ uint32_t info_print_string(info_elem_t *config, info_elem_string_t *element, uin
     info_measure_string(str, element->font_type, &element->hdr.pos.w, &element->hdr.pos.h);
 
     /* ToDo: make defineable */
-    int col_bg = bmp_getpixel(10,1);
-    int col_field = bmp_getpixel(615,375);
     uint32_t fgcolor = element->fgcolor;
     uint32_t bgcolor = element->bgcolor;
     uint32_t fnt;
 
-    /* look up special colors. ToDo: optimize */
-    if(bgcolor == INFO_COL_BG)
-    {
-        bgcolor = col_bg;
-    }
-    if(bgcolor == INFO_COL_FIELD)
-    {
-        bgcolor = col_field;
-    }
-    if(fgcolor == INFO_COL_BG)
-    {
-        fgcolor = col_bg;
-    }
-    if(fgcolor == INFO_COL_FIELD)
-    {
-        fgcolor = col_field;
-    }
-
+    /* look up special colors */
+    bgcolor = info_resolve_color(bgcolor);
+    fgcolor = info_resolve_color(fgcolor);
+    
     /* print string if this was not just a pre-pass run */
     if(run_type == INFO_PRINT)
     {
@@ -1478,7 +1513,10 @@ uint32_t info_print_fill(info_elem_t *config, info_elem_fill_t *element, uint32_
         return 1;
     }
 
-    bmp_fill(element->color, element->hdr.pos.abs_x, element->hdr.pos.abs_y, element->hdr.pos.w, element->hdr.pos.h);
+    /* look up special colors */
+    int32_t color = info_resolve_color(element->color);
+    
+    bmp_fill(color, element->hdr.pos.abs_x, element->hdr.pos.abs_y, element->hdr.pos.w, element->hdr.pos.h);
     return 0;
 }
 
@@ -1492,6 +1530,9 @@ uint32_t info_print_icon(info_elem_t *config, info_elem_icon_t *element, uint32_
     {
         return 1;
     }
+    
+    int32_t bgcolor = info_resolve_color(element->bgcolor);
+    int32_t fgcolor = info_resolve_color(element->fgcolor);
     
     return 0;
 }
@@ -1565,7 +1606,7 @@ uint32_t info_print_battery_icon(info_elem_t *config, info_elem_battery_icon_t *
 
 #ifdef CONFIG_BATTERY_INFO
     int batlev = GetBatteryLevel();
-    int col_field = bmp_getpixel(615,455);
+    int info_field_color = bmp_getpixel(615,455);
     
     int pos_x = element->hdr.pos.abs_x;
     int pos_y = element->hdr.pos.abs_y;
@@ -1574,7 +1615,7 @@ uint32_t info_print_battery_icon(info_elem_t *config, info_elem_battery_icon_t *
     {
         uint batcol = 0;
         uint batfil = 0;
-        bmp_fill(col_field,pos_x-4,pos_y+14,96,32); // clear the Canon battery icon
+        bmp_fill(info_field_color,pos_x-4,pos_y+14,96,32); // clear the Canon battery icon
         
         if (batlev <= (int)element->pct_red)
         {
@@ -1587,7 +1628,7 @@ uint32_t info_print_battery_icon(info_elem_t *config, info_elem_battery_icon_t *
         
         bmp_fill(batcol,pos_x+10,pos_y,72,32); // draw the new battery icon
         bmp_fill(batcol,pos_x,pos_y+8,12,16);
-        bmp_fill(col_field,pos_x+14,pos_y+4,64,24);
+        bmp_fill(info_field_color,pos_x+14,pos_y+4,64,24);
         
         if (batlev <= (int)element->pct_red)
         {
@@ -1711,6 +1752,13 @@ uint32_t info_print_config(info_elem_t *config)
 {
     uint32_t pos = 1;
     int32_t z = 0;
+    
+    /* read colors again if we redraw over canon gui */
+    if(!gui_menu_shown())
+    {
+        info_bg_color = bmp_getpixel(10,1);
+        info_field_color = bmp_getpixel(615,375);    
+    }
 
     while(config[pos].type != INFO_TYPE_END)
     {
@@ -1855,7 +1903,7 @@ void info_menu_item_select(void* priv, int delta)
         count++;
     }
     
-    if((delta < 0 && config[0].config.selected_item > 0) || (delta > 0 && config[0].config.selected_item < count))
+    if((delta < 0 && config[0].config.selected_item > 0) || (delta > 0 && config[0].config.selected_item < (count - 1)))
     {
         config[0].config.selected_item += delta;
     }
@@ -2191,28 +2239,63 @@ void info_menu_reset_display(void *priv, int x, int y, int selected)
     if(config[0].config.selected_item && strlen(info_current_menu) > 0)
     {
         uint32_t font_type = FONT_MED;
-        uint32_t menu_x = 12;
-        uint32_t menu_y = 14;
+        uint32_t menu_x = 30;
+        uint32_t menu_y = 30;
         uint32_t width = fontspec_font(font_type)->width * strlen(info_current_menu);
         uint32_t height = fontspec_font(font_type)->height;
+        
+        /* ensure that the menu isnt displayed directly over the item currently being selected */
+        info_elem_t *selected_item = &(config[config[0].config.selected_item]);
+        static int32_t ani_offset = 0;
+        
+        /* some neat animation to move menu text without confusing user */
+        if(selected_item->hdr.pos.abs_y < 100 || selected_item->hdr.pos.abs_x < 100)
+        {
+            if(ani_offset < 160)
+            {
+                ani_offset += ((160 - ani_offset) ) / 2;
+                config[0].config.fast_redraw = 1;
+            }
+            else
+            {
+                config[0].config.fast_redraw = 0;
+            }
+        }
+        else
+        {
+            if(ani_offset > 0)
+            {
+                ani_offset -= (ani_offset) / 2;
+                config[0].config.fast_redraw = 1;
+            }
+            else
+            {
+                config[0].config.fast_redraw = 0;
+            }
+        }
 
+        menu_y += ani_offset;
+        menu_x += ani_offset;
+        
         /* draw dummy icon and clear screen */
         menu_draw_icon(x, y, -1, 0);
         bmp_fill(COLOR_GRAY40, 0, 0, 720, 480);
         
-        /* border */
+        /* then print the elements */
+        info_print_config(config);
+        
+        /* and now overwrite with border and menu item */
+        bmp_fill(COLOR_GRAY40, menu_x-8, menu_y - fontspec_font(FONT_SMALL)->height - 10, width+16, height+16);
         bmp_fill(COLOR_BLACK, menu_x-2, menu_y-2, width+4, height+4);
         bmp_draw_rect(COLOR_WHITE, menu_x-2, menu_y-2, width+4, height+4);
         
         /* title */
         int fnt = FONT(FONT_SMALL, COLOR_BLACK, COLOR_WHITE);
-        bmp_printf(fnt, menu_x, menu_y - fontspec_font(FONT_SMALL)->height - 2, "Current Menu:");
+        bmp_printf(fnt, menu_x, menu_y - fontspec_font(FONT_SMALL)->height - 2, "Editing: '%s'", selected_item->hdr.pos.name);
 
         fnt = FONT(font_type, COLOR_WHITE, COLOR_GREEN1);
         bmp_printf(fnt, menu_x, menu_y, info_current_menu);
         strcpy(info_current_menu, "");
-
-        info_print_config(config);
     }
     else
     {
@@ -2331,10 +2414,10 @@ static void info_edit_task()
 {
     TASK_LOOP
     {
-        if (gui_menu_shown() && (info_config[0].config.selected_item || info_config[0].config.show_boundaries))
+        if (gui_menu_shown() && info_config[0].config.fast_redraw && (info_config[0].config.selected_item || info_config[0].config.show_boundaries))
         {
-            info_print_config(info_config);
-            msleep(50);
+            menu_redraw_full();
+            msleep(20);
         }
         else
         {
