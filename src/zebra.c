@@ -328,6 +328,8 @@ int should_draw_zoom_overlay()
     if (display_broken_for_mz()) return 0;
     #endif
     
+    if (zoom_overlay_size == 3 && video_mode_crop && is_movie_mode()) return 0;
+    
     if (zoom_overlay_trigger_mode == 4) return true;
 
     #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
@@ -2691,6 +2693,8 @@ zoom_overlay_display(
     else if (is_movie_mode() && video_mode_fps > 30)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work well in current video mode");
     #endif
+    else if (is_movie_mode() && video_mode_crop && zoom_overlay_size == 3)
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Full-screen Magic Zoom does not work in crop mode");
     else if (zoom_overlay_trigger_mode && !get_zoom_overlay_trigger_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom is not available in this mode");
     else
