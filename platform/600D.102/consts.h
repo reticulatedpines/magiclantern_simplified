@@ -277,3 +277,7 @@
 // for bulb ramping calibration: delay between two exposure readings (increase it if brightness updates slowly)
 // if not defined, default is 500
 #define BRAMP_CALIBRATION_DELAY 1000
+
+// measured by SDX
+// http://www.magiclantern.fm/forum/index.php?topic=4324.msg24231#msg24231
+#define EFIC_CELSIUS (efic_temp / 2 - 58)

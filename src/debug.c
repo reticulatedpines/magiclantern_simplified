@@ -2355,7 +2355,7 @@ static void efictemp_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-#ifdef CONFIG_550D
+#ifdef EFIC_CELSIUS
         "CMOS Temperat: %d deg C",
         EFIC_CELSIUS
 #else

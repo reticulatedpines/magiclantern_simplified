@@ -54,10 +54,6 @@ extern struct bmp_ov_loc_size os;
 
 bool is_movie_mode();
 
-// measured by Андрей Басов
-// http://groups.google.com/group/ml-devel/browse_thread/thread/725ae6f424dd2917
-#define EFIC_CELSIUS (efic_temp * 3/2 - 202)
-
 #ifndef _beep_c_
 extern int beep_enabled;
 #endif
