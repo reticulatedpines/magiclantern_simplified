@@ -3,6 +3,14 @@
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
 
+#define CARD_A_MAKER 0x68C8B
+#define CARD_A_MODEL 0x68CBF
+#define CARD_A_LABEL 0x26E000
+//need to find
+//#define CARD_B_MAKER 0x  
+//#define CARD_B_MODEL 0x
+//#define CARD_B_LABEL 0x
+
 // thanks Indy
 #define HIJACK_INSTR_BL_CSTART  0xff0c0d7c
 #define HIJACK_INSTR_BSS_END 0xff0c1cb8

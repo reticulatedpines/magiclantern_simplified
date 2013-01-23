@@ -32,6 +32,7 @@ volatile PROP_INT(PROP_BURST_COUNT, burst_count);
 volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
 //~ int battery_level_bars = 0;
 PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
+volatile PROP_INT(PROP_DATE_FORMAT, date_format);
 
 #ifndef CONFIG_5D2
 volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);

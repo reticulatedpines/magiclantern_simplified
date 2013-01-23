@@ -24,6 +24,78 @@
 #define DISPLAY_BATTERY_LEVEL_1 60 //%
 #define DISPLAY_BATTERY_LEVEL_2 20 //%
 
+void trim(char* String)
+{
+    int dest;
+    int src=0;
+    int len = strlen(String);
+    if (len == 0) return;
+
+    // Advance src to the first non-whitespace character.
+    while(isspace(String[src])) src++;
+
+    // Copy the string to the "front" of the buffer
+    for(dest=0; src<len; dest++, src++) 
+    {
+        String[dest] = String[src];
+    }
+
+    // Working backwards, set all trailing spaces to NULL.
+    for(dest=len-1; isspace(String[dest]); --dest)
+    {
+        String[dest] = '\0';
+    }
+}
+
+char* GetCardMaker(char drv) 
+{
+    if (drv=='A') 
+#ifdef CARD_A_MAKER
+        return  (char*)CARD_A_MAKER;
+#else
+        return NULL;
+#endif
+   else 
+#ifdef CARD_B_MAKER
+        return  (char*)CARD_B_MAKER;
+#else
+        return NULL;
+#endif
+}
+
+char* GetCardModel(char drv) 
+{   
+    if (drv=='A') 
+#ifdef CARD_A_MODEL
+        return (char*)CARD_A_MODEL;
+#else
+        return NULL;
+#endif
+   else 
+#ifdef CARD_B_MODEL
+        return (char*)CARD_B_MODEL;
+#else
+        return NULL;
+#endif
+}
+
+char* GetCardLabel(char drv) 
+{   
+    if (drv=='A') 
+#ifdef CARD_A_LABEL
+        return (char*)CARD_A_LABEL;
+#else
+        return NULL;
+#endif
+   else 
+#ifdef CARD_B_LABEL
+        return (char*)CARD_B_LABEL;
+#else
+        return NULL;
+#endif
+}
+
+
 /* 
    this is the definition of the info screen elements.
    it can either be made switchable for photo and LV setting or put in an array.
@@ -58,6 +130,14 @@ info_elem_t info_config[] =
     /* entry 10, pictures */
     { .fill = { { INFO_TYPE_FILL, { 540, 390, 1, 0, 0, 0, 150, 60, .name = "Pics (clear)" }}, INFO_COL_FIELD } },
     { .string = { { INFO_TYPE_STRING, { 550, 402, 2, .name = "Pics" }}, INFO_STRING_PICTURES, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
+     
+    // header 
+    { .string = { { INFO_TYPE_STRING, { 28, 3, 2, .name = "Date" }}, INFO_STRING_CAM_DATE, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    // how can I align the string to the right (or center)? 
+    //{ .string = { { INFO_TYPE_STRING, { 693, 3, 2, .name = "Build" }}, INFO_STRING_BUILD, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    // footer 
+    { .string = { { INFO_TYPE_STRING, { 28, 459, 2, .name = "Card label" }}, INFO_STRING_CARD_LABEL_A, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    //{ .string = { { INFO_TYPE_STRING, { 693, 459, 2, .name = "Copyright" }}, INFO_STRING_COPYRIGHT, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
 #endif
 
 #if defined(CONFIG_5D3)
@@ -949,7 +1029,19 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         {
             struct tm now;
             LoadCalendarFromRTC(&now);
-            snprintf(buffer, maxsize, "%2d.%2d.%4d", (now.tm_mon+1),now.tm_mday,(now.tm_year+1900));
+            snprintf(buffer, maxsize, "%4d.%2d.%2d", (now.tm_year+1900),(now.tm_mon+1),now.tm_mday);
+            break;
+        }
+        case INFO_STRING_CAM_DATE:
+        {
+            struct tm now;
+            LoadCalendarFromRTC(&now);
+            if (date_format == DATE_FORMAT_YYYY_MM_DD)
+              snprintf(buffer, maxsize, "%4d.%02d.%02d", (now.tm_year+1900),(now.tm_mon+1),now.tm_mday);
+            else if (date_format == DATE_FORMAT_MM_DD_YYYY)  
+              snprintf(buffer, maxsize, "%02d.%02d.%4d", (now.tm_mon+1),now.tm_mday,(now.tm_year+1900));
+            else  
+              snprintf(buffer, maxsize, "%02d.%02d.%4d", now.tm_mday,(now.tm_mon+1),(now.tm_year+1900));
             break;
         }
         case INFO_STRING_DATE_MM:
@@ -1025,11 +1117,13 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         case INFO_STRING_ARTIST:
         {
             snprintf(buffer, maxsize, "%s", artist_name);
+            trim(buffer);
             break;
         }
         case INFO_STRING_COPYRIGHT:
         {
             snprintf(buffer, maxsize, "%s", copyright_info);
+            trim(buffer);
             break;
         }
         case INFO_STRING_LENS:
@@ -1067,21 +1161,48 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         }
 #endif
         case INFO_STRING_CARD_LABEL_A:
+            snprintf(buffer, 11, "%s", GetCardLabel('A'));
+            buffer[12]='\0';
+            trim(buffer);
+            break;
         case INFO_STRING_CARD_LABEL_B:
+            snprintf(buffer, 11, "%s", GetCardLabel('B'));
+            buffer[12]='\0';
+            trim(buffer);
+            break;
+        case INFO_STRING_CARD_MAKER_A:
+            snprintf(buffer, maxsize, "%s", GetCardMaker('A'));
+            trim(buffer);
+            break;
+        case INFO_STRING_CARD_MAKER_B:
+            snprintf(buffer, maxsize, "%s", GetCardMaker('B'));
+            trim(buffer);
+            break;
+        case INFO_STRING_CARD_MODEL_A:
+            snprintf(buffer, maxsize, "%s", GetCardModel('A'));
+            trim(buffer);
+            break;
+        case INFO_STRING_CARD_MODEL_B:
+            snprintf(buffer, maxsize, "%s", GetCardModel('B'));
+            trim(buffer);
+            break;
         case INFO_STRING_CARD_SPACE_A:
         case INFO_STRING_CARD_SPACE_B:
         case INFO_STRING_CARD_FILES_A:
         case INFO_STRING_CARD_FILES_B:
-        case INFO_STRING_CARD_MAKER_A:
-        case INFO_STRING_CARD_MAKER_B:
-        case INFO_STRING_CARD_MODEL_A:
-        case INFO_STRING_CARD_MODEL_B:
             snprintf(buffer, maxsize, "(n/a)");
             break;
             
         case INFO_STRING_PICTURES:
         {
-            snprintf(buffer, maxsize, "[%d]", avail_shot);
+            if (avail_shot>9999) // we can write 5 digits if necessary
+                snprintf(buffer, maxsize, "[%5d]", avail_shot);
+#ifdef AVAIL_SHOT_WORKAROUND
+            else if (avail_shot>999)
+                snprintf(buffer, maxsize, "[%4d]", avail_shot);
+#endif
+            else
+                return 1;            
             break;
         }
         case INFO_STRING_MLU:
