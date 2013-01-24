@@ -591,14 +591,7 @@ int record_uncomp = 0;
 
 void run_test()
 {
-#ifdef CONFIG_6D
-    msleep(3000);
-    movfile = FIO_CreateFileEx("B:/movtest.422");
-    record_uncomp = 1;  //~ signals to lv_vsync_signal() that it should start writing frames to the  card.
-    msleep(10000);  //~ record for 10 seconds before closing file.
-    record_uncomp = 0;
-    FIO_CloseFile(movfile);
-#endif
+    call("dumpf");
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)

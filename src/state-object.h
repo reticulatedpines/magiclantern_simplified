@@ -28,22 +28,8 @@
 #include "arm-mcr.h"
 
 
-/** Manager struct in DryOS */
-struct Manager_DryOS    //~ size=0x84
-{
-    const char *                    name;                   //~ off_0x00    ie: Evf, PropMgr, etc.
-    
-    struct TaskClass *              taskclass_ptr;          //~ off_0x08
-    struct state_object  *          stateobj_ptr;           //~ off_0x0c
-    int                             off_0x10;               //~ off_0x10    arg0 to CreateManager function.
-    int                             off_0x14;               //~ off_0x14    arg1 to CreateManager function.
-    int                             off_0x18;               //~ off_0x18    initialized to *(0x3E568), not known.
-    
-    //~ rest of offsets unknown at this time.
-};
 
-
-/*** For VxWorks / 5dc ONLY! NOT tested for DryOS yet. ***/
+#ifdef CONFIG_VXWORKS
 //~ Calls CreateTaskClass from canon startup task.
 //~ Ex: PropMgr, GenMgr, FileMgr
 struct Manager      //~ size=0x30
@@ -110,7 +96,29 @@ struct JobQueue     //~ size=0x14
     int                             off_0x0C;               //~ unknown
     int                             off_0x10;               //~ unknown
 };
+#else
 
+//~ Structures for DryOS, derived from research on VxWorks.
+
+struct Manager
+{
+    const char *                    name;                   //~ off_0x00    name of manager. ie: Evf
+    int                             off_0x04;               //~ off_0x04    unknown
+    struct TaskClass *              taskclass_ptr;          //~ off_0x08    pointer to taskclass struct
+    const struct state_object *     stateobj_ptr;           //~ off_0x0C    pointer to stateobject struct
+};
+
+struct TaskClass    //~ size=0x18
+{
+    const char *                    identifier;             //~ off_0x00    "TaskClass"
+    const char *                    name;                   //~ off_0x04    task class name. ie: PropMgr
+    int                             off_0x08;               //~ unknown     initialized to 1 in CreateTaskClass
+    const struct task *             task_struct_ptr;        //~ off_0x0c    ret_CreateTask (ptr to task struct) called from CreateTaskClass
+    const struct msg_queue *        msg_queue_ptr_maybe;    //~ off_0x10    some kind of message queue pointer (very low level functions at work)
+    void *                          eventdispatch_func_ptr; //~ off_0x14    event dispatch pointer. ie: propmgrEventDispatch
+};
+
+#endif
 
 /** State objects.
  *
