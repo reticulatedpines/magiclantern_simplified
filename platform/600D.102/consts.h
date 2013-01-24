@@ -280,4 +280,5 @@
 
 // measured by SDX
 // http://www.magiclantern.fm/forum/index.php?topic=4324.msg24231#msg24231
-#define EFIC_CELSIUS (efic_temp / 2 - 58)
+// not sure, exiftool says x-128
+//~ #define EFIC_CELSIUS (efic_temp / 2 - 58)

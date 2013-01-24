@@ -267,4 +267,5 @@
 
 // measured by Андрей Басов
 // http://groups.google.com/group/ml-devel/browse_thread/thread/725ae6f424dd2917
-#define EFIC_CELSIUS (efic_temp * 3/2 - 202)
+// not sure, exiftool says x-128
+//~ #define EFIC_CELSIUS (efic_temp * 3/2 - 202)
