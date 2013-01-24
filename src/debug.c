@@ -2348,8 +2348,8 @@ static void efictemp_display(
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "CMOS Temperat: %d deg C",
-        (int)efic_temp - 128
+        "Internal Temp: %d deg C",
+        EFIC_CELSIUS
     );
     menu_draw_icon(x, y, MNI_ON, 0);
 }
@@ -2828,9 +2828,9 @@ struct menu_entry debug_menus[] = {
 #endif
 #ifdef FEATURE_SHOW_CMOS_TEMPERATURE
     {
-        .name = "CMOS temperature",
+        .name = "Internal Temperature",
         .display = efictemp_display,
-        .help = "Sensor temperature, in degrees Celsius.",
+        .help = "EFIC chip temperature (somewhere on the mainboard).",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
 #endif

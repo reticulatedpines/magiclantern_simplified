@@ -59,4 +59,6 @@ bool is_movie_mode();
 extern int beep_enabled;
 #endif
 
+#define EFIC_CELSIUS ((int)efic_temp - 128)
+
 #endif
