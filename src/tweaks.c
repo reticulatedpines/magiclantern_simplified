@@ -2248,17 +2248,21 @@ void warn_action(int code)
 static void warn_step()
 {
     warn_code = 0;
-    if (warn_mode == 1 && shooting_mode != SHOOTMODE_P)
-        warn_code |= 1;
 
-    if (warn_mode == 2 && shooting_mode != SHOOTMODE_TV)
-        warn_code |= 1;
+    if (shooting_mode != SHOOTMODE_MOVIE)
+    {
+        if (warn_mode == 1 && shooting_mode != SHOOTMODE_P)
+            warn_code |= 1;
 
-    if (warn_mode == 3 && shooting_mode != SHOOTMODE_AV)
-        warn_code |= 1;
+        if (warn_mode == 2 && shooting_mode != SHOOTMODE_TV)
+            warn_code |= 1;
 
-    if (warn_mode == 4 && shooting_mode != SHOOTMODE_M)
-        warn_code |= 1;
+        if (warn_mode == 3 && shooting_mode != SHOOTMODE_AV)
+            warn_code |= 1;
+
+        if (warn_mode == 4 && shooting_mode != SHOOTMODE_M)
+            warn_code |= 1;
+    }
 
     int raw = pic_quality & 0x60000;
     if (warn_picq && !raw)
