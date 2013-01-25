@@ -40,6 +40,24 @@
 
 #ifndef NO_FP
     #define PICOC_LIBRARY // sin, cos, pow
+    typedef double binary64;
+    #define double float
+    #define sin sinf
+    #define cos cosf
+    #define tan tanf
+    #define asin asinf
+    #define acos acosf
+    #define atan atanf
+    #define sqrt sqrtf
+    #define pow powf
+    #define exp expf
+    #undef log2
+    #define log2 log2f
+    #define log logf
+    #define log10 log10f
+    #define round roundf
+    #define floor floorf
+    #define ceil ceilf
 #endif
 
 #define assert(x)

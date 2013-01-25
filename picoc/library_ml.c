@@ -2,7 +2,7 @@
 
 void LibSleep(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    int ms = (int)roundf(Param[0]->Val->FP * 1000.0);
+    int ms = (int)roundf(Param[0]->Val->FP * 1000.0f);
     msleep(ms);
 }
 
@@ -19,7 +19,7 @@ void LibTakePic(struct ParseState *Parser, struct Value *ReturnValue, struct Val
 
 void LibBulbPic(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    int ms = (int)roundf(Param[0]->Val->FP * 1000.0);
+    int ms = (int)roundf(Param[0]->Val->FP * 1000.0f);
     bulb_take_pic(ms);
 }
 
@@ -141,29 +141,29 @@ void LibGetTime(struct ParseState *Parser, struct Value *ReturnValue, struct Val
 
 void LibGetTv(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = APEX_TV(lens_info.raw_shutter) / 8.0;
+    ReturnValue->Val->FP = APEX_TV(lens_info.raw_shutter) / 8.0f;
 }
 void LibGetAv(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = APEX_AV(lens_info.raw_aperture) / 8.0;
+    ReturnValue->Val->FP = APEX_AV(lens_info.raw_aperture) / 8.0f;
 }
 void LibGetSv(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = APEX_SV(lens_info.raw_iso) / 8.0;
+    ReturnValue->Val->FP = APEX_SV(lens_info.raw_iso) / 8.0f;
 }
 void LibSetTv(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    int tv = (int)roundf(Param[0]->Val->FP * 8.0);
+    int tv = (int)roundf(Param[0]->Val->FP * 8.0f);
     lens_set_rawshutter(-APEX_TV(-tv));
 }
 void LibSetAv(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    int av = (int)roundf(Param[0]->Val->FP * 8.0);
+    int av = (int)roundf(Param[0]->Val->FP * 8.0f);
     lens_set_rawaperture(-APEX_AV(-av));
 }
 void LibSetSv(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    int sv = (int)roundf(Param[0]->Val->FP * 8.0);
+    int sv = (int)roundf(Param[0]->Val->FP * 8.0f);
     lens_set_rawiso(-APEX_SV(-sv));
 }
 
@@ -173,7 +173,7 @@ void LibGetShutter(struct ParseState *Parser, struct Value *ReturnValue, struct 
 }
 void LibGetAperture(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = lens_info.aperture / 10.0;
+    ReturnValue->Val->FP = lens_info.aperture / 10.0f;
 }
 void LibGetISO(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
@@ -185,7 +185,7 @@ void LibSetShutter(struct ParseState *Parser, struct Value *ReturnValue, struct 
 }
 void LibSetAperture(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    int val = (int)roundf(Param[0]->Val->FP * 10.0);
+    int val = (int)roundf(Param[0]->Val->FP * 10.0f);
     lens_set_aperture(val);
 }
 void LibSetISO(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -220,21 +220,21 @@ void LibSetRawISO(struct ParseState *Parser, struct Value *ReturnValue, struct V
 
 void LibGetAE(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = lens_info.ae / 8.0;
+    ReturnValue->Val->FP = lens_info.ae / 8.0f;
 }
 void LibSetAE(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    int ae = (int)roundf(Param[0]->Val->FP * 8.0);
+    int ae = (int)roundf(Param[0]->Val->FP * 8.0f);
     lens_set_ae(ae);
 }
 
 void LibGetFlashAE(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = lens_info.flash_ae / 8.0;
+    ReturnValue->Val->FP = lens_info.flash_ae / 8.0f;
 }
 void LibSetFlashAE(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    int ae = (int)roundf(Param[0]->Val->FP * 8.0);
+    int ae = (int)roundf(Param[0]->Val->FP * 8.0f);
     lens_set_flash_ae(ae);
 }
 

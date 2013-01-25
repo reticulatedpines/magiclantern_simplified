@@ -201,7 +201,7 @@ void PlatformVPrintf(const char *Format, va_list Args)
             case 'c': PrintCh(va_arg(Args, int), CStdOut); break;
             case 't': PrintType(va_arg(Args, struct ValueType *), CStdOut); break;
 #ifndef NO_FP
-            case 'f': PrintFP(va_arg(Args, double), CStdOut); break;
+            case 'f': PrintFP(va_arg(Args, binary64), CStdOut); break;
 #endif
             case '%': PrintCh('%', CStdOut); break;
             case '\0': FPos--; break;

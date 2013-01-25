@@ -199,19 +199,19 @@ void PrintFP(double Num, struct OutputStream *Stream)
         Num = -Num;    
     }
     
-    if (Num >= 1e7)
+    if (Num >= 1e7f)
         Exponent = log10(Num);
-    else if (Num <= 1e-7 && Num != 0.0)
-        Exponent = log10(Num) - 0.999999999;
+    else if (Num <= 1e-7f && Num != 0.0f)
+        Exponent = log10(Num) - 0.999999999f;
     
-    Num /= pow(10.0, Exponent);    
+    Num /= pow(10.0f, Exponent);    
     PrintInt((long)Num, 0, FALSE, FALSE, Stream);
     PrintCh('.', Stream);
     Num = (Num - (long)Num) * 10;
-    if (abs(Num) >= 1e-7)
+    if (abs(Num) >= 1e-7f)
     {
-        for (MaxDecimal = 6; MaxDecimal > 0 && abs(Num) >= 1e-7; Num = (Num - (long)(Num + 1e-7)) * 10, MaxDecimal--)
-            PrintCh('0' + (long)(Num + 1e-7), Stream);
+        for (MaxDecimal = 6; MaxDecimal > 0 && abs(Num) >= 1e-7; Num = (Num - (long)(Num + 1e-7f)) * 10, MaxDecimal--)
+            PrintCh('0' + (long)(Num + 1e-7f), Stream);
     }
     else
         PrintCh('0', Stream);
@@ -448,7 +448,7 @@ void LibSqrt(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 
 void LibRound(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = floor(Param[0]->Val->FP + 0.5);   /* XXX - fix for soft float */
+    ReturnValue->Val->FP = floor(Param[0]->Val->FP + 0.5f);   /* XXX - fix for soft float */
 }
 
 void LibCeil(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -637,11 +637,11 @@ struct LibraryFunction CLibrary[] =
     { LibAsin,          "float asin(float);" },
     { LibAcos,          "float acos(float);" },
     { LibAtan,          "float atan(float);" },
-    { LibSinh,          "float sinh(float);" },
+    /*{ LibSinh,          "float sinh(float);" },
     { LibCosh,          "float cosh(float);" },
-    { LibTanh,          "float tanh(float);" },
+    { LibTanh,          "float tanh(float);" },*/
     { LibExp,           "float exp(float);" },
-    { LibFabs,          "float fabs(float);" },
+    { LibFabs,          "float abs(float);" },
     { LibLog,           "float log(float);" },
     { LibLog10,         "float log10(float);" },
     { LibPow,           "float pow(float,float);" },
