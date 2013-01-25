@@ -3,47 +3,47 @@ printf("Let's fake some buttons :)\n");
 // click means "press and release"
 // press means "press and hold" (you need to call unpress too)
 
-msleep(2000);
+sleep(2);
 
 console_hide();
 
 click(MENU);
-msleep(1000);
+sleep(1);
 
 click(LEFT);
-msleep(1000);
+sleep(1);
 
 click(RIGHT);
-msleep(1000);
+sleep(1);
 
 // notice the difference between press and click
 press(RIGHT);
-msleep(1000);
+sleep(1);
 unpress(RIGHT);
-msleep(1000);
+sleep(1);
 
 click(MENU);
-msleep(1000);
+sleep(1);
 
 click(PLAY);
-msleep(1000);
+sleep(1);
 
 click(ZOOM_IN);
-msleep(1000);
+sleep(1);
 
 click(PLAY);
-msleep(1000);
+sleep(1);
 
 click(PLAY);
-msleep(1000);
+sleep(1);
 
 press(SHOOT_HALF);
 press(SHOOT_FULL);
-msleep(1000);
+sleep(1);
 unpress(SHOOT_FULL);
 unpress(SHOOT_HALF);
 
-msleep(2000);
+sleep(2);
 console_show();
 printf("That's all, folks!\n");
 
