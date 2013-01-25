@@ -91,6 +91,7 @@ prepare_zip:
 	cp $(CROP_DIR)/*.bmp zip/ML/cropmks/
 	mkdir zip/ML/scripts || echo "ok"
 	cp $(SCRIPT_DIR)/*.lua zip/ML/scripts/
+	cp $(SCRIPT_DIR)/*.c zip/ML/scripts/
 	mkdir zip/ML/plugins || echo "ok"
 	cp $(PLUGINS_DIR)/*/*.bin zip/ML/plugins/
 	mkdir zip/ML/doc || echo "ok"
@@ -125,6 +126,7 @@ magiclantern-$(VERSION).zip: \
 		ML/cropmks/* \
 		ML/doc/* \
 		ML/data/* \
+		ML/scripts/*.c \
 		*.fir \
 		autoexec.bin \
 
