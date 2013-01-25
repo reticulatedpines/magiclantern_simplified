@@ -3414,6 +3414,9 @@ void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
         if (file.name[0] == '.' || file.name[0] == '_') continue;
         if (cropmarks_flag && !is_valid_cropmark_filename(file.name)) continue;
 
+        int n = strlen(file.name);
+        if ((n > 4) && (streq(file.name + n - 4, ".VRM") || streq(file.name + n - 4, ".vrm"))) continue;
+
         char fn[30];
         snprintf(fn, sizeof(fn), "%s%s", dir, file.name);
         TmpMem_AddFile(fn);
