@@ -1,4 +1,3 @@
-
 #include <dryos.h>
 #include <property.h>
 #include <menu.h>
@@ -13,9 +12,11 @@
    actually only developer build ML from source, so keep it enabled until its in a more mature state and the next release is coming.
 */
 #define FLEXINFO_DEVELOPER_MENU
+#define FLEXINFO_XML_CONFIG
 
 #ifdef CONFIG_60D
 #undef FLEXINFO_DEVELOPER_MENU // squeeze a few K of RAM
+#undef FLEXINFO_XML_CONFIG
 #endif
 
 #define BUF_SIZE 128
@@ -173,6 +174,8 @@ info_elem_t info_config[] =
 
     { .type = INFO_TYPE_END },
 };
+
+#ifdef FLEXINFO_XML_CONFIG
 
 char *info_strncpy(char *dst, char *src, uint32_t length)
 {
@@ -881,6 +884,7 @@ uint32_t info_save_config(info_elem_t *config, char *file)
 }
 
 /* ********************************************************************************** */
+#endif // FLEXINFO_XML_CONFIG
 
 void info_trim_string(char* string)
 {
@@ -1694,6 +1698,7 @@ uint32_t info_print_element(info_elem_t *config, info_elem_t *element, uint32_t 
     return 1;
 }
 
+#ifdef FLEXINFO_DEVELOPER_MENU
 uint32_t info_checksum_element(info_elem_t *config)
 {
     uint32_t checksum = 0x234AE10A;
@@ -1747,6 +1752,7 @@ uint32_t info_checkums_valid(info_elem_t *config)
     
     return ret;
 }
+#endif
 
 uint32_t info_print_config(info_elem_t *config)
 {
@@ -1785,6 +1791,7 @@ uint32_t info_print_config(info_elem_t *config)
             {
                 info_print_element(config, &(config[pos]), INFO_PRINT);
                 
+                #ifdef FLEXINFO_DEVELOPER_MENU
                 /* if it was shown, update redraw counter */
                 if(config[pos].hdr.pos.shown)
                 {
@@ -1873,6 +1880,7 @@ uint32_t info_print_config(info_elem_t *config)
                     int fnt = FONT(FONT_SMALL, COLOR_WHITE, color);
                     bmp_printf(fnt, COERCE(config[pos].hdr.pos.abs_x, 0, 720), COERCE(config[pos].hdr.pos.abs_y + offset, 0, 480), label);
                 }
+                #endif // FLEXINFO_DEVELOPER_MENU
             }
             pos++;
         }
@@ -2214,6 +2222,7 @@ void info_menu_item_anchor_self_display(void *priv, int x, int y, int selected)
     }
     
 }
+#ifdef FLEXINFO_XML_CONFIG
 void info_menu_save_select(void* priv, int delta)
 {
     info_save_config(info_config, FLEXINFO_DEFAULT_FILENAME);
@@ -2224,12 +2233,12 @@ void info_menu_save_display(void *priv, int x, int y, int selected)
     bmp_printf(MENU_FONT, x, y, "Save config");
 }
 
-
 void info_menu_reset_select(void* priv, int delta)
 {
     info_load_config(FLEXINFO_DEFAULT_FILENAME);
     info_print_config(info_config);
 }
+#endif
 
 void info_menu_reset_display(void *priv, int x, int y, int selected)
 {
@@ -2384,6 +2393,7 @@ static struct menu_entry info_menus[] = {
                 .display = info_menu_item_anchor_item_display,
                 .help = "Select Anchor item.",
             },
+            #ifdef FLEXINFO_XML_CONFIG
             {
                 .name = "Save config",
                 .priv = info_config,
@@ -2399,6 +2409,7 @@ static struct menu_entry info_menus[] = {
                 .display = info_menu_reset_display,
                 .help = "Reset menu settings",
             },
+            #endif
             MENU_EOL,
         }
     }
@@ -2407,7 +2418,9 @@ static struct menu_entry info_menus[] = {
 static void info_init()
 {
     menu_add( "Prefs", info_menus, COUNT(info_menus) );
+    #ifdef FLEXINFO_XML_CONFIG
     info_load_config(FLEXINFO_DEFAULT_FILENAME);
+    #endif
 }
 
 static void info_edit_task()
@@ -2429,4 +2442,4 @@ static void info_edit_task()
 TASK_CREATE( "info_edit_task", info_edit_task, 0, 0x16, 0x1000 );
 INIT_FUNC("info.init", info_init);
 
-#endif
+#endif // FLEXINFO_DEVELOPER_MENU
