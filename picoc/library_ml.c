@@ -57,9 +57,11 @@ void LibUnpress(struct ParseState *Parser, struct Value *ReturnValue, struct Val
         case BGMT_PRESS_ZOOMIN_MAYBE:
             unpress = BGMT_UNPRESS_ZOOMIN_MAYBE;
             break;
+        #ifdef BGMT_PRESS_ZOOMOUT_MAYBE
         case BGMT_PRESS_ZOOMOUT_MAYBE:
             unpress = BGMT_UNPRESS_ZOOMOUT_MAYBE;
             break;
+        #endif
         
         #ifdef BGMT_UNPRESS_UDLR
         case BGMT_PRESS_LEFT:
@@ -419,7 +421,12 @@ void PlatformLibraryInit()
         #endif
     static int LV = BGMT_LV;
     static int ZOOM_IN = BGMT_PRESS_ZOOMIN_MAYBE;
-    static int ZOOM_OUT = BGMT_PRESS_ZOOMOUT_MAYBE;
+    static int ZOOM_OUT = 
+        #ifdef BGMT_PRESS_ZOOMOUT_MAYBE
+            BGMT_PRESS_ZOOMOUT_MAYBE;
+        #else
+            0;
+        #endif
     static int SHOOT_HALF = BGMT_PRESS_HALFSHUTTER;
     static int SHOOT_FULL = BGMT_PRESS_FULLSHUTTER;
     
