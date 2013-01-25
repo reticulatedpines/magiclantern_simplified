@@ -78,7 +78,6 @@ static int menu_hidden_dirty = 0;
 static int menu_zebras_mirror_dirty = 0; // to clear zebras from mirror (avoids display artifacts if, for example, you enable false colors in menu, then you disable them, and preview LV)
 static char* warning_msg = 0;
 int menu_help_active = 0;
-int page_number_active = 0;
 int submenu_mode = 0;
 int g_submenu_width = 0;
 static int menu_id_increment = 1;
@@ -2341,7 +2340,6 @@ handle_ml_menu_keys(struct event * event)
 #endif
     case BGMT_PRESS_SET:
         if (menu_help_active) { 
-			page_number_active = 1-page_number_active;
 			menu_help_redraw();
 //			menu_help_active = 0; /* menu_damage = 1; */ 
 			break; 
