@@ -131,6 +131,85 @@ void LibGetTime(struct ParseState *Parser, struct Value *ReturnValue, struct Val
     ReturnValue->Val->Pointer = &t;
 }
 
+void LibGetTv(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = APEX_TV(lens_info.raw_shutter) / 8.0;
+}
+void LibGetAv(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = APEX_AV(lens_info.raw_aperture) / 8.0;
+}
+void LibGetSv(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = APEX_SV(lens_info.raw_iso) / 8.0;
+}
+void LibSetTv(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int tv = (int)roundf(Param[0]->Val->FP * 8.0);
+    lens_set_rawshutter(-APEX_TV(-tv));
+}
+void LibSetAv(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int av = (int)roundf(Param[0]->Val->FP * 8.0);
+    lens_set_rawaperture(-APEX_AV(-av));
+}
+void LibSetSv(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int sv = (int)roundf(Param[0]->Val->FP * 8.0);
+    lens_set_rawiso(-APEX_SV(-sv));
+}
+
+void LibGetShutter(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = raw2shutterf(lens_info.raw_shutter);
+}
+void LibGetAperture(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = lens_info.aperture / 10.0;
+}
+void LibGetISO(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = lens_info.iso;
+}
+void LibSetShutter(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    lens_set_rawshutter(shutterf_to_raw(Param[0]->Val->FP));
+}
+void LibSetAperture(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int val = (int)roundf(Param[0]->Val->FP * 10.0);
+    lens_set_aperture(val);
+}
+void LibSetISO(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    lens_set_iso(Param[0]->Val->Integer);
+}
+
+void LibGetRawShutter(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = lens_info.raw_shutter;
+}
+void LibGetRawAperture(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = lens_info.raw_aperture;
+}
+void LibGetRawISO(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = lens_info.raw_iso;
+}
+void LibSetRawShutter(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    lens_set_rawshutter(Param[0]->Val->Integer);
+}
+void LibSetRawAperture(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    lens_set_rawaperture(Param[0]->Val->Integer);
+}
+void LibSetRawISO(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    lens_set_rawiso(Param[0]->Val->Integer);
+}
+
 /* list of all library functions and their prototypes */
 struct LibraryFunction PlatformLibrary[] =
 {
@@ -160,7 +239,6 @@ struct LibraryFunction PlatformLibrary[] =
 
     /** Exposure settings */
     // APEX units
-#if 0 // not yet implemented
     {LibGetTv,        "float get_tv();"                 },
     {LibGetAv,        "float get_av();"                 },
     {LibGetSv,        "float get_sv();"                 },
@@ -184,6 +262,7 @@ struct LibraryFunction PlatformLibrary[] =
     {LibSetRawShutter,  "void set_rawshutter(int raw);" },
     {LibSetRawAperture, "void set_rawaperture(int raw);"},
     
+#if 0 // not yet implemented
     /** Exposure compensation (in EV) */
     {LibGetAE,          "float get_ae();"               },
     {LibGetFlashAE,     "float get_flash_ae();"         },
