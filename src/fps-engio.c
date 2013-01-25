@@ -880,7 +880,7 @@ static void fps_timer_print(
     else if (t_max <= t_min)
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"Internal error - please report an issue.");
     else
-        menu_draw_icon(x, y, MNI_PERCENT, sqrt(t - t_min) * 100  / sqrt(t_max - t_min));
+        menu_draw_icon(x, y, MNI_PERCENT, sqrtf(t - t_min) * 100  / sqrtf(t_max - t_min));
 }
 
 static void tg_freq_print(

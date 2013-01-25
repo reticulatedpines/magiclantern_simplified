@@ -555,7 +555,7 @@ void hold_your_horses(int showlogo)
  * Custom assert handler - intercept ERR70 and try to save a crash log.
  * Crash log should contain Canon error message.
  */
-static char assert_msg[1000] = "";
+static char assert_msg[256] = "";
 int (*old_assert_handler)(char*,char*,int,int) = 0;
 const char* get_assert_msg() { return assert_msg; }
 
