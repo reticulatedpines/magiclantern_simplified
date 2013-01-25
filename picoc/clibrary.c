@@ -241,6 +241,7 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
         if (*FPos == '%')
         {
             FPos++;
+            FieldWidth = 0;
             if (*FPos == '-')
             {
                 /* a leading '-' means left justify */
