@@ -178,16 +178,18 @@ static void run_script(const char *script)
     msleep(500);
     extern int PicocExitBuf[];
     PicocInitialise(PICOC_HEAP_SIZE);
-    PicocExitValue = 0;
-    setjmp(PicocExitBuf); // in case of error, code will jump back here
-    if (PicocExitValue)
+    
+    if (!setjmp(PicocExitBuf))
     {
-        console_puts(  "=============  :(  ===========\n\n");
-        msleep(1000);
+        // parse and run our script
+        PicocPlatformScanFile(get_current_script_path());
+        console_puts(    "=============  :)  ===========\n\n");
     }
     else
     {
-        PicocPlatformScanFile(get_current_script_path());
+        // something went wrong
+        console_printf(  "========== Exit %d :( =========\n\n", PicocExitValue);
+        msleep(1000);
     }
     PicocCleanup();
     beep();
