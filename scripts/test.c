@@ -31,6 +31,34 @@ click(MENU);
 sleep(1);
 console_show();
 
+/* Exposure settings test (read/write) */
+printf("ISO %d 1/%f f/%f\n", get_iso(), 1/get_shutter(), get_aperture());
+printf("Sv%f Tv%f Av%f\n", get_sv(), get_tv(), get_av());
+printf("Raw ISO %d shutter %d aperture %d\n \n", get_rawiso(), get_rawshutter(), get_rawaperture());
+sleep(2);
+
+printf("setting ISO 200 1/2000 f/2.8...\n");
+set_iso(200);
+set_shutter(1./2000);
+set_aperture(2.8);
+printf(" => got ISO %d 1/%f f/%f\n\n", get_iso(), 1/get_shutter(), get_aperture());
+sleep(2);
+
+printf("setting ISO 400 1/128 f/11 (APEX)...\n");
+set_tv(7);
+set_sv(7);
+set_av(7);
+printf(" => got ISO %d 1/%f f/%f\n\n", get_iso(), 1/get_shutter(), get_aperture());
+sleep(2);
+
+printf("setting ISO 200 1/32 f/8 (raw units)...\n");
+set_rawiso(80);
+set_rawshutter(96);
+set_rawaperture(56);
+printf(" => got ISO %d 1/%f f/%f\n\n", get_iso(), 1/get_shutter(), get_aperture());
+sleep(2);
+
+
 /* Movie recording test */
 sleep(1);
 printf("Recording... ");
