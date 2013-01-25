@@ -22,7 +22,7 @@
 /* host platform includes */
 
 // uses some extra 32k of RAM
-#define NO_FP
+//~ #define NO_FP
 
 #include <stdlib.h>
 #include <string.h>
