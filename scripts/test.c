@@ -2,7 +2,7 @@ printf("PicoC testing...\n");
 
 /* Some basic functions */
 beep();
-msleep(2000);
+sleep(2);
 
 printf("LiveView:%d Recording:%d\n", lv, recording);
 
@@ -21,36 +21,36 @@ for (unsigned a = 0xFF010000; a < 0xFF010010; a+=4)
     printf("%x: %x\n", a, *(int*)a);
 
 /* Key press test */
-msleep(2000);
+sleep(2);
 console_hide();
 click(MENU);
-msleep(1000);
+sleep(1);
 click(RIGHT);
-msleep(1000);
+sleep(1);
 click(MENU);
-msleep(1000);
+sleep(1);
 console_show();
 
 /* Movie recording test */
-msleep(1000);
+sleep(1);
 printf("Recording... ");
 movie_start();
-msleep(3000);
+sleep(3);
 movie_end();
 printf("done.\n");
-msleep(1000);
+sleep(1);
 
 /* Picture taking test */
 int n = 2;
 for (int i = 0; i < n; i++)
 {
     printf("Taking pic %d of %d...\n", i+1, n);
-    msleep(1000);
+    sleep(1);
     takepic();
 }
 
 printf("Taking bulb picture...\n");
-msleep(1000);
-bulbpic(2500);
+sleep(1);
+bulbpic(2.5);
 
 printf("Done :)\n");

@@ -1,9 +1,16 @@
 #include "interpreter.h"
 
+void LibSleep(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int ms = (int)roundf(Param[0]->Val->FP * 1000.0);
+    msleep(ms);
+}
+
+/* better try to use SI units
 void LibMsleep(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     msleep(Param[0]->Val->Integer);
-}
+}*/
 
 void LibTakePic(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
@@ -12,7 +19,8 @@ void LibTakePic(struct ParseState *Parser, struct Value *ReturnValue, struct Val
 
 void LibBulbPic(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    bulb_take_pic(Param[0]->Val->Integer);
+    int ms = (int)roundf(Param[0]->Val->FP * 1000.0);
+    bulb_take_pic(ms);
 }
 
 void LibPress(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -214,7 +222,7 @@ void LibSetRawISO(struct ParseState *Parser, struct Value *ReturnValue, struct V
 struct LibraryFunction PlatformLibrary[] =
 {
     /** General-purpose functions */
-    {LibMsleep,         "void msleep(int delay);"       },  // sleep X milliseconds
+    {LibSleep,          "void sleep(float delay);"        },  // sleep X seconds
     {LibBeep,           "void beep();"                  },  // short beep sound
     {LibConsoleShow,    "void console_show();"          },  // show the script console
     {LibConsoleHide,    "void console_hide();"          },  // hide the script console
