@@ -303,6 +303,7 @@ void TypeParseEnum(struct ParseState *Parser, struct ValueType **Typ)
     struct Value InitValue;
     enum LexToken Token;
     struct ValueType *EnumType;
+    (void)EnumType;
     int EnumValue = 0;
     char *EnumIdentifier;
     

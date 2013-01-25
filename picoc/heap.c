@@ -156,7 +156,7 @@ void *HeapAllocMem(int Size)
     assert(Size > 0);
     
     /* make sure we have enough space for an AllocNode */
-    if (AllocSize < sizeof(struct AllocNode))
+    if (AllocSize < (int) sizeof(struct AllocNode))
         AllocSize = sizeof(struct AllocNode);
     
     Bucket = AllocSize >> 2;
@@ -175,14 +175,14 @@ void *HeapAllocMem(int Size)
     else if (FreeListBig != NULL)
     { 
         /* grab the first item from the "big" freelist we can fit in */
-        for (FreeNode = &FreeListBig; *FreeNode != NULL && (*FreeNode)->Size < AllocSize; FreeNode = &(*FreeNode)->NextFree)
+        for (FreeNode = &FreeListBig; *FreeNode != NULL && (int)(*FreeNode)->Size < AllocSize; FreeNode = &(*FreeNode)->NextFree)
         {}
         
         if (*FreeNode != NULL)
         {
             assert((unsigned long)*FreeNode >= (unsigned long)&HeapMemory[0] && (unsigned char *)*FreeNode - &HeapMemory[0] < HEAP_SIZE);
             assert((*FreeNode)->Size < HEAP_SIZE && (*FreeNode)->Size > 0);
-            if ((*FreeNode)->Size < AllocSize + SPLIT_MEM_THRESHOLD)
+            if ((int)(*FreeNode)->Size < AllocSize + SPLIT_MEM_THRESHOLD)
             { 
                 /* close in size - reduce fragmentation by not splitting */
 #ifdef DEBUG_HEAP

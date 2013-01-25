@@ -101,7 +101,7 @@ void LexInit()
 {
     int Count;
     
-    for (Count = 0; Count < sizeof(ReservedWords) / sizeof(struct ReservedWord); Count++)
+    for (Count = 0; Count < (int)(sizeof(ReservedWords) / sizeof(struct ReservedWord)); Count++)
         ReservedWords[Count].SharedWord = TableStrRegister(ReservedWords[Count].Word);
 }
 
@@ -116,7 +116,7 @@ enum LexToken LexCheckReservedWord(const char *Word)
 {
     int Count;
     
-    for (Count = 0; Count < sizeof(ReservedWords) / sizeof(struct ReservedWord); Count++)
+    for (Count = 0; Count < (int)(sizeof(ReservedWords) / sizeof(struct ReservedWord)); Count++)
     {
         if (Word == ReservedWords[Count].SharedWord)
             return ReservedWords[Count].Token;

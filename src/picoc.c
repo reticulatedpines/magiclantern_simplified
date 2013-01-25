@@ -62,7 +62,7 @@ static void
 script_select_display( void * priv, int x, int y, int selected )
 {
     find_scripts();
-    script_selected = COERCE(script_selected, 0, script_cnt - 1);
+    script_selected = COERCE((int)script_selected, 0, script_cnt - 1);
 
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,

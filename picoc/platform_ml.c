@@ -31,7 +31,7 @@ void PlatformPutc(unsigned char OutCh, union OutputStreamInfo *Stream)
 char *PlatformReadFile(const char *FileName)
 {
     int size;
-    char* f = read_entire_file(FileName, &size);
+    char* f = (char*)read_entire_file(FileName, &size);
     if (!f) console_printf("Error loading '%s'\n", FileName);
     return f;
 }
@@ -58,9 +58,13 @@ void PicocPlatformScanFile(const char *FileName)
 jmp_buf PicocExitBuf;
 
 /* exit the program */
-void PlatformExit(int RetVal)
+void __attribute__((noreturn)) PlatformExit(int RetVal)
 {
     PicocExitValue = RetVal;
     longjmp(PicocExitBuf, 1);
 }
 
+void abort()
+{
+    PlatformExit(-1);
+}

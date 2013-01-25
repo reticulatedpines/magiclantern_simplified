@@ -118,7 +118,7 @@ void PrintSourceTextErrorLine(const char *FileName, const char *SourceText, int 
     else
     {
         /* assume we're in interactive mode - try to make the arrow match up with the input text */
-        for (CCount = 0; CCount < CharacterPos + strlen(INTERACTIVE_PROMPT_STATEMENT); CCount++)
+        for (CCount = 0; CCount < CharacterPos + (int)strlen(INTERACTIVE_PROMPT_STATEMENT); CCount++)
             PrintCh(' ', CStdOut);
     }
     PlatformPrintf("^\n%s:%d: ", FileName, Line, CharacterPos);
@@ -233,9 +233,4 @@ char *PlatformMakeTempName(char *TempNameBuffer)
     }
 
     return TableStrRegister(TempNameBuffer);
-}
-
-void abort()
-{
-    PlatformExit(-1);
 }
