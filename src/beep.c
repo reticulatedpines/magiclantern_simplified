@@ -1,6 +1,7 @@
 #include "dryos.h"
 #include "menu.h"
 #include "bmp.h"
+#include "math.h"
 #include "config.h"
 #define _beep_c_
 #include "property.h"
@@ -27,8 +28,6 @@ CONFIG_INT("beep.wavetype", beep_wavetype, 0); // square, sine, white noise
 static int beep_freq_values[] = {55, 110, 220, 262, 294, 330, 349, 392, 440, 494, 880, 1000, 1760, 2000, 3520, 5000, 12000};
 
 void generate_beep_tone(int16_t* buf, int N);
-
-static int16_t beep_buf[5000];
 
 static void asif_stopped_cbr()
 {
@@ -619,48 +618,48 @@ static void beep_task()
         {
             info_led_on();
             int N = 48000*5;
-            int16_t* long_buf = AllocateMemory(N*2);
-            if (!long_buf) { N = 48000; long_buf = AllocateMemory(N*2); } // not enough RAM, try a shorter tone
-            if (!long_buf)
-            {
-                generate_beep_tone(beep_buf, 5000);  // really low RAM, do a really short tone
-                play_beep(beep_buf, 5000);
-                continue;
-            }
-            generate_beep_tone(long_buf, N);
-            play_beep(long_buf, N);
+            int16_t* beep_buf = AllocateMemory(N*2);
+            if (!beep_buf) { N = 48000; beep_buf = AllocateMemory(N*2); } // not enough RAM, try a shorter tone
+            if (!beep_buf) { N = 10000; beep_buf = AllocateMemory(N*2); } // even shorter
+            if (!beep_buf) continue; // give up
+            generate_beep_tone(beep_buf, N);
+            play_beep(beep_buf, N);
             while (beep_playing) msleep(100);
-            FreeMemory(long_buf);
+            FreeMemory(beep_buf);
             info_led_off();
         }
         else if (beep_type == BEEP_SHORT)
         {
+            int N = 5000;
+            int16_t* beep_buf = AllocateMemory(N*2);
+            if (!beep_buf) continue; // give up
             generate_beep_tone(beep_buf, 5000);
             play_beep(beep_buf, 5000);
             while (beep_playing) msleep(20);
+            FreeMemory(beep_buf);
         }
         else if (beep_type > 0) // N beeps
         {
             int times = beep_type;
             int N = 10000;
-            int16_t* long_buf = AllocateMemory(N*2);
-            if (!long_buf) continue;
-            generate_beep_tone(long_buf, N);
+            int16_t* beep_buf = AllocateMemory(N*2);
+            if (!beep_buf) continue;
+            generate_beep_tone(beep_buf, N);
             
             for (int i = 0; i < times/10; i++)
             {
-                play_beep(long_buf, 10000);
+                play_beep(beep_buf, 10000);
                 while (beep_playing) msleep(100);
                 msleep(500);
             }
             for (int i = 0; i < times%10; i++)
             {
-                play_beep(long_buf, 3000);
+                play_beep(beep_buf, 3000);
                 while (beep_playing) msleep(20);
                 msleep(120);
             }
             
-            FreeMemory(long_buf);
+            FreeMemory(beep_buf);
         }
         msleep(100);
         audio_configure(1);
