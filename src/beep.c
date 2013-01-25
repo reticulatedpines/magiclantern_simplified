@@ -2,7 +2,6 @@
 #include "menu.h"
 #include "bmp.h"
 #include "config.h"
-#include "cordic-16bit.h"
 #define _beep_c_
 #include "property.h"
 
@@ -476,24 +475,6 @@ record_display(
 
 #endif
 
-static void cordic_ex(int theta, int* s, int* c, int n)
-{
-    theta = mod(theta + 2*half_pi, 4*half_pi) - 2*half_pi; // range: -pi...pi
-    if (theta < -half_pi || theta > half_pi)
-    {
-        if (theta < 0)
-            cordic(theta + 2*half_pi, s, c, n);
-        else
-            cordic(theta - 2*half_pi, s, c, n);
-        *s = -(*s);
-        *c = -(*c);
-    }
-    else
-    {
-        cordic(theta, s, c, n);
-    }
-}
-
  void generate_beep_tone(int16_t* buf, int N)
 {
     int beep_freq = beep_freq_values[beep_freq_idx];
@@ -515,8 +496,10 @@ static void cordic_ex(int theta, int* s, int* c, int n)
             case 1: // sine
             {
                 int t = (int)(factor * i);
-                int s, c;
-                cordic_ex(t % twopi, &s, &c, 16);
+                int ang = t % twopi;
+                #define MUL 16384
+                int s = sinf((float)ang / MUL) * MUL;
+
                 buf[i] = COERCE(s*2, -32767, 32767);
                 break;
             }

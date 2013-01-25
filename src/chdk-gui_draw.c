@@ -71,42 +71,12 @@ void draw_circle(coord x, coord y, const unsigned int r, color cl) {
 
 #ifdef CONFIG_ELECTRONIC_LEVEL // only used for level indicator
 
-#include "cordic-16bit.h"
-
-void cordic_ex(int theta, int* s, int* c, int n)
-{
-    theta = mod(theta + 2*half_pi, 4*half_pi) - 2*half_pi; // range: -pi...pi
-    if (theta < -half_pi || theta > half_pi)
-    {
-        if (theta < 0)
-            cordic(theta + 2*half_pi, s, c, n);
-        else
-            cordic(theta - 2*half_pi, s, c, n);
-        *s = -(*s);
-        *c = -(*c);
-    }
-    else
-    {
-        cordic(theta, s, c, n);
-    }
-}
-
-// slow like a snail, but at least it works :)
-/*void draw_pie(int x, int y, int r, int ang_start, int ang_end, color cl)
-{
-    float a;
-    for (a = ang_start*10; a < ang_end*10; a++)
-    {
-        int s, c;
-        cordic_ex(a * MUL / 573, &s, &c, 16);
-        draw_line(x, y, x + r * c / MUL, y + r * s / MUL, cl);
-    }
-}*/
-
 void draw_angled_line(int x, int y, int r, int ang, color cl)
 {
-   int s, c;
-   cordic_ex(ang * MUL / 573, &s, &c, 16);
+   #define MUL 16384
+   #define PI_1800 0.00174532925
+   int s = sinf(ang * PI_1800) * MUL;
+   int c = cosf(ang * PI_1800) * MUL;
    draw_line(x, y, x + r * c / MUL, y + r * s / MUL, cl);
 }
 #endif
