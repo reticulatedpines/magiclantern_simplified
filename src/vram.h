@@ -108,7 +108,7 @@ extern struct vram_info vram_lv;
 #define BM2LV_Xu(x) ((x) * bm2lv.sx / 1024 + bm2lv.tx)
 #define BM2LV_Y(y) ((y) * bm2lv.sy / 1024 + bm2lv.ty)
 
-extern int bm2lv_x_cache[];
+extern int16_t bm2lv_x_cache[];
 #define BM2LV_X(x) bm2lv_x_cache[x - BMP_W_MINUS]
 
 #define LV2BM_X(x) ((x) * 1024 / bm2lv.sx - bm2lv.tx * 1024 / bm2lv.sx)
@@ -166,7 +166,7 @@ extern int bm2lv_x_cache[];
 #define BM2HD_Ru(y) (BM2HD_Y(y) * vram_hd.pitch)
 #define HD2BM_R(y) (HD2BM_Y(y) * BMPPITCH     )
 
-extern int bm2hd_r_cache[];
+extern int16_t bm2hd_r_cache[];
 #define BM2HD_R(y) bm2hd_r_cache[y - BMP_H_MINUS]
 
 extern int y_times_BMPPITCH_cache[];
@@ -191,7 +191,7 @@ extern int y_times_BMPPITCH_cache[];
 #define HD2N_X(x) BM2N_X(HD2BM_X(x))
 #define HD2N_Y(y) BM2N_Y(HD2BM_Y(y))
 
-extern int bm2n_x_cache[];
+extern int16_t bm2n_x_cache[];
 #define BM2N_X(x) bm2n_x_cache[x - BMP_W_MINUS]
 
 #define N2BM_X(xn) ((xn) * os.x_ex / 720 + os.x0)
