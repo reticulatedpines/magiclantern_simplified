@@ -64,7 +64,7 @@ int lcd_ff_dir = 1;
 PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 {
     if (!DISPLAY_SENSOR_POWERED) return; // false alarm
-    if (!job_state_ready_to_take_pic()) return; // false alarm
+    if (lens_info.job_state) return; // false alarm
     if (get_halfshutter_pressed()) return; // user taking a normal picture
     
     static int prev = 0;
@@ -93,6 +93,7 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
     {
         if (gui_menu_shown()) return;
         if (lcd_release_running == 1 && off) return;
+        if (lcd_release_running == 2 && on) return;
         if (lcd_release_running == 3) { wave_count++; wave_count_countdown = 50; }
         if (lcd_release_running == 3 && wave_count < 5) return;
 
@@ -115,10 +116,17 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 void lcd_release_step() // to be called from shoot_task
 {
     extern int lcd_sensor_wakeup;
-    if ((lcd_release_running || lcd_sensor_shortcuts || lcd_sensor_wakeup || get_follow_focus_mode()==1) && lv && !DISPLAY_SENSOR_POWERED && lens_info.job_state == 0) // force sensor on
+    int lcd_sensor_needeed_in_liveview = (lcd_release_running || lcd_sensor_shortcuts || lcd_sensor_wakeup || get_follow_focus_mode()==1);
+    int lcd_sensor_needeed_in_photomode = (lcd_release_running);
+    int lcd_sensor_needed = (lcd_sensor_needeed_in_liveview && lv) || (lcd_sensor_needeed_in_photomode && !lv && !DISPLAY_IS_ON && display_idle());
+    int lcd_sensor_start_preconditions = !DISPLAY_SENSOR_POWERED && lens_info.job_state == 0;
+    if (lcd_sensor_needed && lcd_sensor_start_preconditions) // force sensor on
     {
-        fake_simple_button(MLEV_LCD_SENSOR_START); // look at this***
-        msleep(500);
+        int timestamp = get_seconds_clock();
+        static int last_try = 0;
+        if (timestamp != last_try)
+            fake_simple_button(MLEV_LCD_SENSOR_START); // only try once per second
+        last_try = timestamp;
     }
 
     if (wave_count_countdown)

@@ -1089,7 +1089,10 @@ int mlu_lock_mirror_if_needed() // called by lens_take_picture; returns 0 if suc
     return 0;
     #endif
     
-    if (get_mlu())
+    if (drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || drive_mode == DRIVE_SELFTIMER_CONTINUOUS)
+        return 0;
+    
+    if (get_mlu() && CURRENT_DIALOG_MAYBE)
     {
         SetGUIRequestMode(0);
         int iter = 20;
@@ -1260,6 +1263,10 @@ end:
     else
     {
         msleep(200);
+
+        if (drive_mode == DRIVE_SELFTIMER_2SEC) msleep(2000);
+        if (drive_mode == DRIVE_SELFTIMER_REMOTE || drive_mode == DRIVE_SELFTIMER_CONTINUOUS) msleep(10000);
+
         lens_wait_readytotakepic(wait);
         //~ give_semaphore(lens_sem);
         if (!allow_af) restore_af_button_assignment();

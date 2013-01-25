@@ -6807,6 +6807,8 @@ void shoot_task_redraw()
 
 static void misc_shooting_info()
 {
+    if (!DISPLAY_IS_ON) return;
+    
     display_shortcut_key_hints_lv();
 
     if (get_global_draw())
@@ -6934,6 +6936,9 @@ shoot_task( void* unused )
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);
         #endif
+        
+        if (lcd_release_running)
+            priority_feature_enabled = 1;
 
         #ifdef FEATURE_WHITE_BALANCE
         if (kelvin_auto_flag)
