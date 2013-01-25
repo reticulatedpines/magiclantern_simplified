@@ -5232,6 +5232,7 @@ void lens_display_set_dirty()
         menu_set_dirty(); 
 }
 
+#if 0
 void draw_cropmark_area()
 {
     get_yuv422_vram();
@@ -5243,6 +5244,7 @@ void draw_cropmark_area()
     draw_line(HD2BM_X(0), HD2BM_Y(0), HD2BM_X(vram_hd.width), HD2BM_Y(vram_hd.height), COLOR_RED);
     draw_line(HD2BM_X(0), HD2BM_Y(vram_hd.height), HD2BM_X(vram_hd.width), HD2BM_Y(0), COLOR_RED);
 }
+#endif
 
 /*
 void show_apsc_crop_factor()
@@ -5760,7 +5762,7 @@ INIT_FUNC(__FILE__, zebra_init);
 
 static void make_overlay()
 {
-    draw_cropmark_area();
+    //~ draw_cropmark_area();
     msleep(1000);
     //~ bvram_mirror_init();
     clrscr();

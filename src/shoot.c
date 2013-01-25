@@ -5830,12 +5830,13 @@ static struct menu_entry expo_menus[] = {
 
 int picture_was_taken_flag = 0;
 
-#if defined(FEATURE_HDR_BRACKETING) || defined(FEATURE_FOCUS_STACKING)
-// for firing HDR shots - avoids random misfire due to low polling frequency
 void hdr_flag_picture_was_taken()
 {
     picture_was_taken_flag = 1;
 }
+
+#if defined(FEATURE_HDR_BRACKETING) || defined(FEATURE_FOCUS_STACKING)
+// for firing HDR shots - avoids random misfire due to low polling frequency
 
 void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
 {
