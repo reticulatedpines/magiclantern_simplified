@@ -218,6 +218,68 @@ void LibSetRawISO(struct ParseState *Parser, struct Value *ReturnValue, struct V
     lens_set_rawiso(Param[0]->Val->Integer);
 }
 
+void LibGetAE(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = lens_info.ae / 8.0;
+}
+void LibSetAE(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int ae = (int)roundf(Param[0]->Val->FP * 8.0);
+    lens_set_ae(ae);
+}
+
+void LibGetFlashAE(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = lens_info.flash_ae / 8.0;
+}
+void LibSetFlashAE(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int ae = (int)roundf(Param[0]->Val->FP * 8.0);
+    lens_set_flash_ae(ae);
+}
+
+void LibGetKelvin(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = lens_info.kelvin;
+}
+void LibSetKelvin(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    lens_set_kelvin(Param[0]->Val->Integer);
+}
+void LibGetGreen(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = lens_info.wbs_gm;
+}
+void LibSetGreen(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    lens_set_wbs_gm(Param[0]->Val->Integer);
+}
+
+
+
+void LibDisplayOn(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    display_on();
+}
+void LibDisplayOff(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    display_off();
+}
+void LibDisplayIsOn(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = DISPLAY_IS_ON;
+}
+void LibLVPause(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    PauseLiveView();
+    display_off();
+}
+void LibLVResume(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ResumeLiveView();
+}
+
+
 /* list of all library functions and their prototypes */
 struct LibraryFunction PlatformLibrary[] =
 {
@@ -270,7 +332,6 @@ struct LibraryFunction PlatformLibrary[] =
     {LibSetRawShutter,  "void set_rawshutter(int raw);" },
     {LibSetRawAperture, "void set_rawaperture(int raw);"},
     
-#if 0 // not yet implemented
     /** Exposure compensation (in EV) */
     {LibGetAE,          "float get_ae();"               },
     {LibGetFlashAE,     "float get_flash_ae();"         },
@@ -280,17 +341,22 @@ struct LibraryFunction PlatformLibrary[] =
     /** White balance */
     {LibGetKelvin,      "int get_kelvin();"             },
     {LibGetGreen,       "int get_green();"              },
-    {LibSetKelvin,      "void set_kelvin();"            },
-    {LibSetGreen,       "void set_green();"             },
+    {LibSetKelvin,      "void set_kelvin(int k);"       }, // from 1500 to 15000
+    {LibSetGreen,       "void set_green(int gm);"       }, // green-magenta shift, from -9 to 9
 
+#if 0 // not yet implemented
     /** MLU, HTP, misc settings */
     {LibGetMLU,         "int get_mlu();"                },
     {LibGetHTP,         "int get_htp();"                },
+    {LibGetALO,         "int get_alo();"                },
+    {LibSetMLU,         "void set_mlu(int mlu);"        },
+    {LibSetHTP,         "void set_htp(int htp);"        },
+    {LibSetALO,         "void set_alo(int alo);"        },
 
     /** Interaction with menus */
-    { LibMenuOpen,       "void menu_open();"            },  // open ML menu
-    { LibMenuSelect,     "void menu_select(char* tab, char* entry);"}, // select a menu tab and entry (e.g. Overlay, Focus Peak)
-    { LibMenuClose,      "void menu_close();"           },  // close ML menu
+    { LibMenuOpen,       "void menu_open();"            },              // open ML menu
+    { LibMenuSelect,     "void menu_select(char* tab, char* entry);"},  // select a menu tab and entry (e.g. Overlay, Focus Peak)
+    { LibMenuClose,      "void menu_close();"           },              // close ML menu
     
     /** Image analysis */
     { LibGetPixelYUV,    "void get_pixel_yuv(int x, int y, int* Y, int* U, int* V);" },          // get the YUV components of a pixel from LiveView (720x480)
@@ -302,7 +368,8 @@ struct LibraryFunction PlatformLibrary[] =
     /** Audio stuff */
     { LibAudioGetLevel,  "int audio_get_level(int channel, int type);" }, // channel: 0/1; type: INSTANT, AVG, PEAK, PEAK_FAST
     { LibAudioLevelToDB, "int audio_level_to_db(int level)"            }, // conversion from 16-bit signed to dB
-    
+#endif
+
     /** Powersaving */
     { LibDisplayOn,     "void display_on();"           },
     { LibDisplayOff,    "void display_off();"          },
@@ -310,7 +377,6 @@ struct LibraryFunction PlatformLibrary[] =
 
     { LibLVPause,       "void lv_pause();"             }, // pause LiveView without dropping the mirror
     { LibLVResume,      "void lv_resume();"            },
-#endif
     { NULL,         NULL }
 };
 

@@ -58,6 +58,48 @@ set_rawaperture(56);
 printf(" => got ISO %d 1/%f f/%f\n\n", get_iso(), 1/get_shutter(), get_aperture());
 sleep(2);
 
+/* AE tests */
+printf("AE: %d; flash AE: %d\n", get_ae(), get_flash_ae());
+set_ae(1);
+set_flash_ae(-2);
+
+/* Let's go into LiveView */
+if (!lv) { click(LV); sleep(1); }
+
+/* Kelvin tests */
+printf("White balance: %d K, %d G/M\n", get_kelvin(), get_green());
+set_green(0);
+printf("Kelvin from 2000 to 10000...\n");
+sleep(1);
+console_hide();
+sleep(2);
+for (int k = 2000; k < 10000; k += 50)
+{
+    set_kelvin(k);
+    sleep(0.01);
+}
+sleep(1);
+console_show();
+
+
+/* Powersave tests */
+printf("Display off... ");
+sleep(1);
+display_off();
+sleep(2);
+display_on();
+sleep(2);
+printf("and back on.\n");
+
+sleep(1);
+
+printf("LiveView paused... ");
+sleep(1);
+lv_pause();
+sleep(2);
+lv_resume();
+sleep(2);
+printf("and resumed.\n");
 
 /* Movie recording test */
 sleep(1);
