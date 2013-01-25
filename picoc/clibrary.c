@@ -223,11 +223,13 @@ void PrintFP(double Num, struct OutputStream *Stream)
     int decimals_printed = 0;
     for (int i = 0; i < PRECISION || mag > 0.05f; i++)
     {
-        int digit = (i<PRECISION && mag) ? (int)(Num/mag + 0.01f) : 0;
+        int digit = (i<PRECISION && mag) ? (int)(Num/mag + 0.000001f) : 0;
         if (digit || mag > 0.5f)
         {
             // for zeros after the decimal point: print them only if a nonzero digit follows (so it won't print trailing zeros)
             while (zeros) { PrintCh('0', Stream); zeros--;}
+            if (digit > 9) digit = 9;
+            if (digit < 0) digit = 0;
             PrintCh('0' + digit, Stream);
             if (mag < 0.5f) decimals_printed = 1;
         }
