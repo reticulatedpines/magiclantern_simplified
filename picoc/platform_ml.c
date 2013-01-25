@@ -49,17 +49,19 @@ void PicocPlatformScanFile(const char *FileName)
     console_puts(  "==============================\n\n");
     msleep(500);
     PicocParse(FileName, SourceStr, strlen(SourceStr), TRUE, FALSE, TRUE);
+    console_puts(  "=============  :)  ===========\n\n");
 
     free_dma_memory(SourceStr);
 }
 
 /* mark where to end the program for platforms which require this */
-//~ jmp_buf PicocExitBuf;
+#include "setjmp.h"
+jmp_buf PicocExitBuf;
 
 /* exit the program */
 void PlatformExit(int RetVal)
 {
-    //~ PicocExitValue = RetVal;
-    //~ longjmp(PicocExitBuf, 1);
+    PicocExitValue = RetVal;
+    longjmp(PicocExitBuf, 1);
 }
 
