@@ -277,18 +277,18 @@ ML_OBJS-$(CONFIG_CONSOLE) += \
 	console.o \
 
 ML_OBJS-$(CONFIG_PICOC)	+= \
-	$(PICOC_PATH)/clibrary.o \
-	$(PICOC_PATH)/expression.o \
-	$(PICOC_PATH)/heap.o \
-	$(PICOC_PATH)/include.o \
-	$(PICOC_PATH)/lex.o \
-	$(PICOC_PATH)/parse.o \
-	$(PICOC_PATH)/platform.o \
-	$(PICOC_PATH)/table.o \
-	$(PICOC_PATH)/type.o \
-	$(PICOC_PATH)/variable.o \
-	$(PICOC_PATH)/library_ml.o \
-	$(PICOC_PATH)/platform_ml.o \
+	clibrary.o \
+	expression.o \
+	heap.o \
+	include.o \
+	lex.o \
+	parse.o \
+	platform.o \
+	table.o \
+	type.o \
+	variable.o \
+	library_ml.o \
+	platform_ml.o \
 	picoc.o \
 
 endif
@@ -616,8 +616,6 @@ clean:
 		scripts/* \
 		doc/* \
 		$(SRC_DIR)/*.o \
-		$(PICOC_PATH)/*.o \
-		$(PICOC_PATH)/*.d \
 		)
 	$(call build,CLEAN,$(RM) -rf zip)
 
@@ -630,6 +628,8 @@ DEPS  := $(COBJS:.o=.d)
 %.o: $(PLATFORM_DIR)/%.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.o: $(SRC_DIR)/%.c
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.o: $(PICOC_PATH)/%.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.i: %.c
 	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
