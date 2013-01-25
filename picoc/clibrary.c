@@ -187,40 +187,65 @@ void PrintInt(long Num, int FieldWidth, int ZeroPad, int LeftJustify, struct Out
 }
 
 #ifndef NO_FP
+
 /* print a double to a stream without using printf/sprintf */
+
 void PrintFP(double Num, struct OutputStream *Stream)
 {
-    int Exponent = 0;
-    int MaxDecimal;
-    
+    #define PRECISION 6
+
+    if (Num == NAN)
+    {
+        PrintStr("NaN", Stream);
+        return;
+    }
+
     if (Num < 0)
     {
         PrintCh('-', Stream);
-        Num = -Num;    
+        Num = -Num;
     }
     
-    if (Num >= 1e7f)
-        Exponent = log10(Num);
-    else if (Num <= 1e-7f && Num != 0.0f)
-        Exponent = log10(Num) - 0.999999999f;
+    // find the order of magnitude (mag <= Num < mag*10; e.g. for 31.4, mag is 10)
+    float mag = 1;
+    while (mag <= Num/10) mag *= 10.0f;
+    while (mag > Num) mag /= 10.0f;
+
+    // round the number to 6 significant digits
+    #define PRECISION 6
+    Num = (((int)roundf(Num/mag * 100000.0f)) / 100000.0f) * mag;
     
-    Num /= pow(10.0f, Exponent);    
-    PrintInt((long)Num, 0, FALSE, FALSE, Stream);
-    PrintCh('.', Stream);
-    Num = (Num - (long)Num) * 10;
-    if (abs(Num) >= 1e-7f)
+    // for numbers smaller than 1, start printing from 0.00etc
+    if (mag < 0.5f)
+        mag = 1;
+
+    int zeros = 0;
+    int decimals_printed = 0;
+    for (int i = 0; i < PRECISION || mag > 0.05f; i++)
     {
-        for (MaxDecimal = 6; MaxDecimal > 0 && abs(Num) >= 1e-7; Num = (Num - (long)(Num + 1e-7f)) * 10, MaxDecimal--)
-            PrintCh('0' + (long)(Num + 1e-7f), Stream);
-    }
-    else
-        PrintCh('0', Stream);
+        int digit = (i<PRECISION && mag) ? (int)(Num/mag + 0.01f) : 0;
+        if (digit || mag > 0.5f)
+        {
+            // for zeros after the decimal point: print them only if a nonzero digit follows (so it won't print trailing zeros)
+            while (zeros) { PrintCh('0', Stream); zeros--;}
+            PrintCh('0' + digit, Stream);
+            if (mag < 0.5f) decimals_printed = 1;
+        }
+        else zeros++; // don't print these zeros now; will print them later, if a nonzero digit is found
+
+        // print the decimal dot
+        if (0.9f < mag && mag < 1.1f )  PrintCh('.', Stream);
         
-    if (Exponent != 0)
-    {
-        PrintCh('e', Stream);
-        PrintInt(Exponent, 0, FALSE, FALSE, Stream);
+        // go to next digit
+        Num -= mag * digit;
+        mag /= 10.0f;
+        
+        // for numbers like 0.00000000abc, print as many zeros as needed (and don't consider them significant digits)
+        if (Num && digit == 0 && i == 0) i--;
     }
+    
+    // make sure we have at least one digit printed after the dot
+    if (!decimals_printed) PrintCh('0', Stream);
 }
 #endif
 

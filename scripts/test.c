@@ -15,6 +15,7 @@ printf("Date: %02d/%02d/%02d\n", t->year, t->month, t->day);
 float pi = 3.14;
 float twopi = 2 * pi;
 printf("2*pi = %f\n", twopi);
+printf("some float values: %f %f %f %f %f %f %f %f %f %f %f %f \n", 0.0000001, 0.001, 0.123, 10000, 200000, 300000000, 5433546.45262432, 5.450267432, 0, 42, 555555.5555555, 1.0/0.0 );
 
 /* Dumping memory */
 for (unsigned a = 0xFF010000; a < 0xFF010010; a+=4)
@@ -124,3 +125,4 @@ sleep(1);
 bulbpic(2.5);
 
 printf("Done :)\n");
+
