@@ -656,7 +656,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
             case TokenSlash:
             {                
                 if (TopFP) ResultFP = BottomFP / TopFP;
-                else ProgramFail(Parser, "division by zero");
+                else ResultFP = NAN;
                 break;
             }
             default:                        ProgramFail(Parser, "invalid operation"); break;

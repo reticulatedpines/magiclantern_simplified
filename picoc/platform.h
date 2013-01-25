@@ -58,6 +58,8 @@
     #define round roundf
     #define floor floorf
     #define ceil ceilf
+    #undef NAN
+    #define NAN 0xFFFFFFFF
 #endif
 
 #define assert(x)
