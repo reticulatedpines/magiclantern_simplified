@@ -125,8 +125,12 @@ void console_puts(const char* str) // don't DebugMsg from here!
     while (*c)
     {
         if (*c == '\n')
+        {
+            if (mod(console_buffer_index, CONSOLE_W) == 0)
+                NEW_CHAR(' ');
             while (mod(console_buffer_index, CONSOLE_W) != 0)
                 NEW_CHAR(' ');
+        }
         else if (*c == '\t')
         {
             NEW_CHAR(' ');

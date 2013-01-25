@@ -195,6 +195,7 @@ static void run_script(const char *script)
     beep();
     script_running = 0;
     
+    console_show();
     for (int i = 0; i < 1000; i++)
     {
         msleep(100);

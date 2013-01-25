@@ -234,3 +234,8 @@ char *PlatformMakeTempName(char *TempNameBuffer)
 
     return TableStrRegister(TempNameBuffer);
 }
+
+void abort()
+{
+    PlatformExit(-1);
+}

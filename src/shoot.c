@@ -2136,7 +2136,7 @@ static void
 aperture_display( void * priv, int x, int y, int selected )
 {
     int a = lens_info.aperture;
-    int av = APEX_AV(lens_info.raw_aperture);
+    int av = APEX_AV(lens_info.raw_aperture) * 10/8;
     if (!a || !lens_info.name[0]) // for unchipped lenses, always display zero
         a = av = 0;
     bmp_printf(
