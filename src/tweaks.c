@@ -3535,9 +3535,9 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
     // EDMAC may not point exactly to the LV buffer (e.g. it may skip the 16:9 bars or whatever)
     // so we'll try to choose some buffer that's close enough to the EDMAC address
     int c = (int) current;
-    int b1 = CACHEABLE(YUV422_LV_BUFFER_1);
-    int b2 = CACHEABLE(YUV422_LV_BUFFER_2);
-    int b3 = CACHEABLE(YUV422_LV_BUFFER_3);
+    int b1 = (int)CACHEABLE(YUV422_LV_BUFFER_1);
+    int b2 = (int)CACHEABLE(YUV422_LV_BUFFER_2);
+    int b3 = (int)CACHEABLE(YUV422_LV_BUFFER_3);
     if (ABS(c - b1) < 200000) current = (void*)b1;
     else if (ABS(c - b2) < 200000) current = (void*)b2;
     else if (ABS(c - b3) < 200000) current = (void*)b3;

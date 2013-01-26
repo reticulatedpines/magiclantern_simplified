@@ -4,6 +4,7 @@
 
 #include "dryos.h"
 #include "bmp.h"
+#include "math.h"
 
 #define coord int
 #define color uint8_t

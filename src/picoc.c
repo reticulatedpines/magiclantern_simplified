@@ -22,7 +22,7 @@ static char script_preview[1000] = "";
 static char script_list[MAX_SCRIPT_NUM][FILENAME_SIZE];
 static char script_titles[MAX_SCRIPT_NUM][SCRIPT_TITLE_SIZE];
 
-static CONFIG_INT("script.selected", script_selected, 0);
+static int script_selected = 0;
 static int script_cnt = 0;
 
 static char* get_script_path(int script_index)
