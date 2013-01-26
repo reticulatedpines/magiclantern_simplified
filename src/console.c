@@ -224,7 +224,7 @@ static void console_draw()
     int ya = (y0-1);
     int w = fontspec_font(CONSOLE_FONT)->width * CONSOLE_W + 2;
     int h = fontspec_font(CONSOLE_FONT)->height * CONSOLE_H + 2;
-    int fnt = FONT(CONSOLE_FONT,COLOR_WHITE,lv ? COLOR_BG_DARK : COLOR_ALMOST_BLACK);
+    int fnt = FONT(CONSOLE_FONT,COLOR_WHITE, (lv || PLAY_OR_QR_MODE) ? COLOR_BG_DARK : COLOR_ALMOST_BLACK);
     bmp_draw_rect(COLOR_GRAY60, xa, ya, w, h);
     bmp_puts_w(fnt, &x0, &y0, CONSOLE_W, console_puts_buffer);
 }
