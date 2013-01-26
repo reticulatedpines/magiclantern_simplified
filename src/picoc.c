@@ -12,7 +12,6 @@ static int script_state = 0;
 
 static int script_preview_flag = 0;
 static char script_preview[1000] = "";
-static int script_preview_dirty = 1;
 
 /* script functions */
 #define MAX_SCRIPT_NUM 9
@@ -62,6 +61,7 @@ static void find_scripts(void)
     FIO_CleanupAfterFindNext_maybe(dirent);
 }
 
+/*
 static void
 script_select_display( void * priv, int x, int y, int selected )
 {
@@ -76,6 +76,7 @@ script_select_display( void * priv, int x, int y, int selected )
     );
     menu_draw_icon(x, y, MNI_DICE, (script_cnt<<16) + script_selected);
 }
+*/
 
 static void
 script_run_display( void * priv, int x, int y, int selected )
@@ -143,8 +144,10 @@ script_print( void * priv, int x, int y, int selected )
         script_preview_flag = 0;
         return;
     }
+    
+    static int prev_script = -1;
 
-    if (script_preview_dirty)
+    if (prev_script != script_selected)
     {
         int size;
         char* p = get_current_script_path();
@@ -158,8 +161,8 @@ script_print( void * priv, int x, int y, int selected )
         {
             snprintf(script_preview, sizeof(script_preview), "Could not read '%s'", p);
         }
-        script_preview_dirty = 0;
     }
+    prev_script = script_selected;
 
     bmp_fill(40, 0, 0, 720, 430);
     int fnt = FONT(FONT_MED, COLOR_WHITE, 40);
@@ -167,11 +170,10 @@ script_print( void * priv, int x, int y, int selected )
     menu_draw_icon(x, y, -1, 0);
 }
 
-static void script_select(void* priv, int delta)
+/*static void script_select(void* priv, int delta)
 {
     script_selected = mod(script_selected + delta, script_cnt);
-    script_preview_dirty = 1;
-}
+}*/
 
 static void run_script(const char *script)
 {
@@ -265,7 +267,23 @@ int handle_picoc_keys(struct event * event)
 
 extern void menu_open_submenu();
 
+static void
+script_display( void * priv, int x, int y, int selected )
+{
+    int script_displayed = (int) priv;
+    if (selected) script_selected = script_displayed;
+
+    bmp_printf(
+        selected ? MENU_FONT_SEL : MENU_FONT,
+        x, y,
+        "%s",
+        script_list[script_displayed]
+    );
+    menu_draw_icon(x, y, MNI_SUBMENU, selected);
+}
+
 static struct menu_entry picoc_menu[] = {
+    /*
     {
         .name = "PicoC scripts...",
         .select = menu_open_submenu,
@@ -295,11 +313,48 @@ static struct menu_entry picoc_menu[] = {
             MENU_EOL,
         }
     },
+    */
+
+#define SCRIPT_ENTRY(i) \
+        { \
+            .name = script_list[i], \
+            .priv = (void*)i, \
+            .select = menu_open_submenu, \
+            .display = script_display, \
+            .children =  (struct menu_entry[]) { \
+                { \
+                    .name = "Show script", \
+                    .priv = &script_preview_flag, \
+                    .max = 1, \
+                    .icon_type = IT_ACTION, \
+                    .display    = script_print, \
+                    .help = "Display the contents of the selected script.", \
+                }, \
+                { \
+                    .name = "Run script", \
+                    .display    = script_run_display, \
+                    .select        = script_run_fun, \
+                    .help = "Execute the selected script.", \
+                }, \
+                MENU_EOL, \
+            }, \
+        },
+    
+    SCRIPT_ENTRY(0)
+    SCRIPT_ENTRY(1)
+    SCRIPT_ENTRY(2)
+    SCRIPT_ENTRY(3)
+    SCRIPT_ENTRY(4)
+    SCRIPT_ENTRY(5)
+    SCRIPT_ENTRY(6)
+    SCRIPT_ENTRY(7)
+    SCRIPT_ENTRY(8)
 };
 
 static void picoc_init()
 {
-    menu_add("Debug", picoc_menu, COUNT(picoc_menu));
+    find_scripts();
+    menu_add("Scripts", picoc_menu, MIN(script_cnt, COUNT(picoc_menu)));
 }
 
 INIT_FUNC(__FILE__, picoc_init);

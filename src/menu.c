@@ -2472,6 +2472,7 @@ menu_init( void )
     menu_find_by_name( "Focus",     ICON_ML_FOCUS );
     menu_find_by_name( "Display",   ICON_ML_DISPLAY );
     menu_find_by_name( "Prefs",     ICON_ML_PREFS );
+    menu_find_by_name( "Scripts",   ICON_CYL );
     menu_find_by_name( "Debug",     ICON_ML_DEBUG );
     menu_find_by_name( "Help",      ICON_ML_INFO );
 
