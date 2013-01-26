@@ -57,9 +57,11 @@ typedef struct
 } __attribute__((packed))
 canon_font_t;
 
+#define NUM_ML_ICONS 12
+
 typedef struct {
-	uint32_t charmap[11];
-	uint32_t offsets[11];
+	uint32_t charmap[NUM_ML_ICONS];
+	uint32_t offsets[NUM_ML_ICONS];
 	struct {
 		uint16_t width;
 		uint16_t height;
@@ -67,7 +69,7 @@ typedef struct {
 		uint16_t xoff;
 		uint16_t yoff;
 		uint8_t bitmap[170];
-	} bitmaps[11];
+	} bitmaps[NUM_ML_ICONS];
 } canon_font_body_t;
 
 extern struct font font_small;

@@ -1328,7 +1328,7 @@ uint8_t* bfnt_find_char(int code)
     if (code < 0) // that's a ML icon
     {
         code = -code-1;
-        if (code > 10) return 0;
+        if (code > NUM_ML_ICONS-1) return 0;
         extern canon_font_body_t menu_icons_body;
         return (uint8_t*) &menu_icons_body.bitmaps[code];
     }

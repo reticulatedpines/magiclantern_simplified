@@ -22,6 +22,7 @@ icons = [
     'debug.png', 
     'info.png', 
     'mymenu.png', 
+    'script.png', 
 ]
 
 tmp = open("ico.in", "w")
