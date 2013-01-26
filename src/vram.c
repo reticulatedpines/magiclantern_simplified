@@ -53,9 +53,9 @@ void update_vram_params();
 
 // cached LUTs for BM2LV-like macros
 
-int16_t bm2lv_x_cache[BMP_W_PLUS - BMP_W_MINUS];
-int16_t bm2n_x_cache [BMP_W_PLUS - BMP_W_MINUS];
-int16_t bm2hd_r_cache[BMP_H_PLUS - BMP_H_MINUS];
+int bm2lv_x_cache[BMP_W_PLUS - BMP_W_MINUS];
+int bm2n_x_cache [BMP_W_PLUS - BMP_W_MINUS];
+int bm2hd_r_cache[BMP_H_PLUS - BMP_H_MINUS];
 int y_times_BMPPITCH_cache[BMP_H_PLUS - BMP_H_MINUS];
 
 void vram_update_luts()
