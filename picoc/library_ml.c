@@ -286,7 +286,7 @@ void LibLVResume(struct ParseState *Parser, struct Value *ReturnValue, struct Va
 struct LibraryFunction PlatformLibrary[] =
 {
     /** General-purpose functions */
-    {LibSleep,          "void sleep(float delay);"        },  // sleep X seconds
+    {LibSleep,          "void sleep(float seconds);"    },  // sleep X seconds
     {LibBeep,           "void beep();"                  },  // short beep sound
     {LibConsoleShow,    "void console_show();"          },  // show the script console
     {LibConsoleHide,    "void console_hide();"          },  // hide the script console
@@ -296,7 +296,7 @@ struct LibraryFunction PlatformLibrary[] =
 
     /** Picture taking */
     {LibTakePic,        "void takepic();"               },  // take a picture
-    {LibBulbPic,        "void bulbpic(int ms);"         },  // take a picture in bulb mode
+    {LibBulbPic,        "void bulbpic(float seconds);"  },  // take a picture in bulb mode
     
     /** Video recording */
     {LibMovieStart,     "void movie_start();"           },  // start recording
