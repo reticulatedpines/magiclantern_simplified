@@ -16,7 +16,7 @@ static char script_preview[1000] = "";
 /* script functions */
 #define MAX_SCRIPT_NUM 9
 #define FILENAME_SIZE 15
-#define SCRIPT_TITLE_SIZE 23
+#define SCRIPT_TITLE_SIZE 25
 #define PICOC_HEAP_SIZE (30*1024)
 
 static char script_list[MAX_SCRIPT_NUM][FILENAME_SIZE];
@@ -323,12 +323,13 @@ script_display( void * priv, int x, int y, int selected )
     
 
     bmp_printf(
-        FONT(MENU_FONT, COLOR_GRAY50, COLOR_BLACK),
-        x + font_large.width * 11, y,
+        SHADOW_FONT(FONT(MENU_FONT, COLOR_GRAY50, COLOR_ALMOST_BLACK)),
+        720 - font_large.width * strlen(script_titles[script_displayed]), y,
         "%s",
         script_titles[script_displayed]
     );
     
+    /*
     if (selected)
     {
         // display the first 59 characters from the script as help text
@@ -341,7 +342,7 @@ script_display( void * priv, int x, int y, int selected )
             if (*c == '\n') { *c = ' '; }
         bmp_printf(FONT_MED, 10, 453, "%s", help);
     }
-    
+    */
 
     menu_draw_icon(x, y, MNI_SUBMENU, selected);
 }
