@@ -14,7 +14,7 @@ static int script_preview_flag = 0;
 static char script_preview[1000] = "";
 
 /* script functions */
-#define MAX_SCRIPT_NUM 9
+#define MAX_SCRIPT_NUM 11
 #define FILENAME_SIZE 15
 #define SCRIPT_TITLE_SIZE 25
 #define PICOC_HEAP_SIZE (30*1024)
@@ -414,6 +414,8 @@ static struct menu_entry picoc_menu[] = {
     SCRIPT_ENTRY(6)
     SCRIPT_ENTRY(7)
     SCRIPT_ENTRY(8)
+    SCRIPT_ENTRY(9)
+    SCRIPT_ENTRY(10)
 };
 
 static void picoc_init()
