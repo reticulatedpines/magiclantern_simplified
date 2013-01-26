@@ -296,7 +296,7 @@ bmp_fill(
 /** Some selected colors */
 
 #define COLOR_EMPTY             0x00 // total transparent
-#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_5DC)
+#ifdef CONFIG_4_3_SCREEN
 #define COLOR_BG                0x03 // transparent black
 #else
 #define COLOR_BG                0x14 // transparent gray

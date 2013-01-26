@@ -68,6 +68,7 @@ set_flash_ae(-2);
 if (!lv) { click(LV); sleep(1); }
 
 /* Kelvin tests */
+int kelvin_0 = get_kelvin();
 printf("White balance: %d K, %d G/M\n", get_kelvin(), get_green());
 set_green(0);
 printf("Kelvin from 2000 to 10000...\n");
@@ -80,6 +81,7 @@ for (int k = 2000; k < 10000; k += 50)
     sleep(0.01);
 }
 sleep(1);
+set_kelvin(kelvin_0);
 console_show();
 
 

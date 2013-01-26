@@ -5,7 +5,11 @@
 
 #include "picoc.h"
 
-static int script_running = 0;
+static int script_state = 0;
+#define SCRIPT_RUNNING 1
+#define SCRIPT_JUST_FINISHED -1
+#define SCRIPT_IDLE 0
+
 static int script_preview_flag = 0;
 static char script_preview[1000] = "";
 static int script_preview_dirty = 1;
@@ -85,10 +89,10 @@ script_run_display( void * priv, int x, int y, int selected )
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        script_running ? "Script running..." : "Run script"
+        script_state ? "Script running..." : "Run script"
     );
     
-    if (script_running) menu_draw_icon(x, y, MNI_WARNING, 0);
+    if (script_state) menu_draw_icon(x, y, MNI_WARNING, 0);
 }
 
 static char* get_current_script_path()
@@ -171,10 +175,14 @@ static void script_select(void* priv, int delta)
 
 static void run_script(const char *script)
 {
-    script_running = 1;
+    script_state = SCRIPT_RUNNING;
 
     msleep(1000);
+    
     console_show();
+    console_set_help_text("SET: show/hide");
+    console_set_status_text("Running script...");
+    
     msleep(500);
     extern int PicocExitBuf[];
     PicocInitialise(PICOC_HEAP_SIZE);
@@ -193,8 +201,9 @@ static void run_script(const char *script)
     }
     PicocCleanup();
     beep();
-    script_running = 0;
-    
+    script_state = SCRIPT_JUST_FINISHED;
+    console_set_status_text("Script finished. ");
+
     console_show();
     for (int i = 0; i < 1000; i++)
     {
@@ -203,16 +212,56 @@ static void run_script(const char *script)
         if (get_halfshutter_pressed()) break;
     }
     console_hide();
+    script_state = SCRIPT_IDLE;
+    console_set_status_text("");
 }
 
 static void script_run_fun(void* priv, int delta)
 {
-    if (script_running) return;
+    if (script_state) return;
     gui_stop_menu();
     task_create("run_script", 0x1c, 0x4000, run_script, 0);
 }
 
 /* end script functions */
+
+/**
+ * SET: show/hide console (while running, or 10 seconds after finished)
+ * 
+ */
+int handle_picoc_keys(struct event * event)
+{
+    if (IS_FAKE(event)) return 1; // only process real buttons, not emulated presses
+    
+    extern int console_visible;
+
+    if (script_state != SCRIPT_IDLE) // toggle show/hide
+    {
+        if (event->param == BGMT_PRESS_SET)
+        {
+            console_toggle();
+            return 0;
+        }   
+    }
+    if (script_state == SCRIPT_JUST_FINISHED) // after script finished, hide the console on first key press
+    {
+        if (event->param == BGMT_UNPRESS_SET)
+        {
+            return 0;
+        }   
+        if (console_visible && 
+            event->param != GMT_OLC_INFO_CHANGED &&
+            #ifdef GMT_GUICMD_PRESS_BUTTON_SOMETHING
+            event->param != GMT_GUICMD_PRESS_BUTTON_SOMETHING &&
+            #endif
+           1)
+        {
+            console_hide();
+            return 1;
+        }
+    }
+    return 1;
+}
 
 extern void menu_open_submenu();
 

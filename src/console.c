@@ -13,22 +13,23 @@ int console_printf(const char* fmt, ...); // how to replace the normal printf?
 #define printf console_printf
 
 #define CONSOLE_W 58
-#define CONSOLE_H 22
+#define CONSOLE_H 21
 #define CONSOLE_FONT FONT_MED
 
 // buffer is circular and filled with spaces
 #define BUFSIZE (CONSOLE_H * CONSOLE_W)
-char* console_buffer = 0;
-
-char* console_puts_buffer = 0; // "normal" copy of the circular buffer
-
-int console_buffer_index = 0;
+static char* console_buffer = 0;
+static char* console_puts_buffer = 0; // "normal" copy of the circular buffer
+static int console_buffer_index = 0;
 
 int console_visible = 0;
 
 #ifdef CONSOLE_DEBUG
-FILE* console_log_file = 0;
+static FILE* console_log_file = 0;
 #endif
+
+static char console_help_text[40];
+static char console_status_text[40];
 
 void console_show()
 {
@@ -47,8 +48,23 @@ void console_hide()
     #endif
 }
 
+void console_toggle()
+{
+    if (console_visible) console_hide();
+    else console_show();
+}
+
+void console_set_help_text(char* msg)
+{
+    snprintf(console_help_text, sizeof(console_help_text), "%s", msg);
+}
+
+void console_set_status_text(char* msg)
+{
+    snprintf(console_status_text, sizeof(console_status_text), "%s", msg);
+}
 static void
-console_toggle( void * priv, int delta )
+console_toggle_menu( void * priv, int delta )
 {
     if (console_visible) console_hide();
     else console_show();
@@ -78,7 +94,7 @@ static struct menu_entry script_menu[] = {
     {
         .priv		= &console_visible,
         .display    = console_print,
-        .select     = console_toggle,
+        .select     = console_toggle_menu,
 		.min		= 0,
 		.max		= 1,
     },
@@ -93,7 +109,7 @@ void console_clear()
         console_buffer[i] = ' ';
 }
 
-void console_init()
+static void console_init()
 {
     console_buffer = AllocateMemory(BUFSIZE+32);
     console_puts_buffer = AllocateMemory(BUFSIZE+32);
@@ -160,7 +176,7 @@ int console_printf(const char* fmt, ...) // don't DebugMsg from here!
 	return len;
 }
 
-int console_vprintf(const char* fmt, va_list ap) // don't DebugMsg from here!
+static int console_vprintf(const char* fmt, va_list ap) // don't DebugMsg from here!
 {
     char buf[256];
     int len = vsnprintf( buf, 255, fmt, ap );
@@ -168,8 +184,14 @@ int console_vprintf(const char* fmt, va_list ap) // don't DebugMsg from here!
 	return len;
 }
 
+static void console_show_status()
+{
+    int fnt = FONT(CONSOLE_FONT,COLOR_GRAY60, COLOR_BLACK);
+    bmp_printf(fnt, 0, 480 - font_med.height + 2, console_status_text);
+    if (console_visible) bmp_printf(fnt, 720 - font_med.width * strlen(console_help_text), 480 - font_med.height + 2, console_help_text);
+}
 
-void console_draw()
+static void console_draw()
 {
     if (!console_buffer) return;
     if (!console_puts_buffer) return;
@@ -202,8 +224,9 @@ void console_draw()
     int ya = (y0-1);
     int w = fontspec_font(CONSOLE_FONT)->width * CONSOLE_W + 2;
     int h = fontspec_font(CONSOLE_FONT)->height * CONSOLE_H + 2;
+    int fnt = FONT(CONSOLE_FONT,COLOR_WHITE,lv ? COLOR_BG_DARK : COLOR_ALMOST_BLACK);
     bmp_draw_rect(COLOR_GRAY60, xa, ya, w, h);
-    bmp_puts_w(FONT(CONSOLE_FONT,COLOR_WHITE,lv ? COLOR_BG : COLOR_GRAY40), &x0, &y0, CONSOLE_W, console_puts_buffer);
+    bmp_puts_w(fnt, &x0, &y0, CONSOLE_W, console_puts_buffer);
 }
 
 
@@ -217,6 +240,12 @@ console_task( void* unused )
         {
             console_draw();
         }
+
+        if (!gui_menu_shown() && strlen(console_status_text))
+        {
+            console_show_status();
+        }
+
         msleep(200);
     }
 }
