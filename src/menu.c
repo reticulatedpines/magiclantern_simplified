@@ -1149,7 +1149,7 @@ static char* menu_help_get_line(const char* help, void* priv)
     }
     
     // return the substring from "start" to "end"
-    int len = MIN((int)sizeof(buf) - 1, end - start);
+    int len = MIN((int)sizeof(buf), end - start + 1);
     snprintf(buf, len, "%s", start);
     return buf;
 }
