@@ -358,7 +358,8 @@ int nondigic_zoom_overlay_enabled()
 
 static CONFIG_INT( "focus.peaking", focus_peaking, 0);
 //~ static CONFIG_INT( "focus.peaking.method", focus_peaking_method, 1);
-static CONFIG_INT( "focus.peaking.filter.edges", focus_peaking_filter_edges, 1); // prefer texture details rather than strong edges
+static CONFIG_INT( "focus.peaking.filter.edges", focus_peaking_filter_edges, 0); // prefer texture details rather than strong edges
+static CONFIG_INT( "focus.peaking.lowlight", focus_peaking_lores, 1); // use a low-res image buffer for better results in low light
 static CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 5); // 1%
 static CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,cc2
 CONFIG_INT( "focus.peaking.grayscale", focus_peaking_grayscale, 0); // R,G,B,C,M,Y,cc1,cc2
@@ -1333,6 +1334,7 @@ static int dirty_pixels_num = 0;
 static uint16_t bm_hd_x_cache[BMP_W_PLUS - BMP_W_MINUS];
 static int bm_hd_bm2lv_sx = 0;
 static int bm_hd_lv2hd_sx = 0;
+static uint32_t old_peak_lores = 0;
 
 void zebra_update_lut()
 {
@@ -1348,6 +1350,11 @@ void zebra_update_lut()
         bm_hd_lv2hd_sx = lv2hd.sx;
         rebuild = 1;
     }
+    if (unlikely(focus_peaking_lores != old_peak_lores))
+    {
+        old_peak_lores = focus_peaking_lores;
+        rebuild = 1;
+    }
     
     if(unlikely(rebuild))
     {
@@ -1356,7 +1363,7 @@ void zebra_update_lut()
 
         for (int x = xStart; x < xEnd; x += 1)
         {
-            bm_hd_x_cache[x - BMP_W_MINUS] = (BM2HD_X(x) * 2) + 1;
+            bm_hd_x_cache[x - BMP_W_MINUS] = ((focus_peaking_lores ? BM2LV_X(x) : BM2HD_X(x)) * 2) + 1;
         }        
     }
 }
@@ -1613,7 +1620,7 @@ static inline int peak_d2xy_sharpen(uint8_t* p8)
     return COERCE(orig + diff*4, 0, 255);
 }
 
-static inline int peak_d2xy(uint8_t* p8)
+static inline int peak_d2xy(const uint8_t* p8)
 {
     // approximate second derivative with a Laplacian kernel:
     //     -1
@@ -1663,6 +1670,8 @@ static inline int peak_d2xy_hd(const uint8_t* p8)
     return e;
 }
 
+#ifdef FEATURE_FOCUS_PEAK_DISP_FILTER
+
 //~ static inline int peak_blend_solid(uint32_t* s, int e, int thr) { return 0x4C7F4CD5; }
 //~ static inline int peak_blend_raw(uint32_t* s, int e) { return (e << 8) | (e << 24); }
 static inline int peak_blend_alpha(uint32_t* s, int e)
@@ -1690,7 +1699,6 @@ static inline int peak_blend_alpha(uint32_t* s, int e)
     return UYVY_PACK(u,y,v,y);
 }
 
-#ifdef FEATURE_FOCUS_PEAK_DISP_FILTER
 static int peak_scaling[256];
 
 void peak_disp_filter()
@@ -1728,7 +1736,7 @@ void peak_disp_filter()
     
     int n_over = 0;
     int n_total = 720 * (os.y_max - os.y0) / 2;
-
+    
     #define PEAK_LOOP for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
     // generic loop:
     //~ for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
@@ -1949,7 +1957,7 @@ draw_zebra_and_focus( int Z, int F )
         }
         dirty_pixels_num = 0;
         
-        struct vram_info *hd_vram = get_yuv422_hd_vram();
+        struct vram_info *hd_vram = focus_peaking_lores ? get_yuv422_vram() : get_yuv422_hd_vram();
         uint32_t hdvram = (uint32_t)hd_vram->vram;
         
         int off = get_y_skip_offset_for_overlays();
@@ -1963,40 +1971,57 @@ draw_zebra_and_focus( int Z, int F )
         
         zebra_update_lut();
 
+        /** simple Laplacian filter
+         *     -1
+         *  -1  4 -1
+         *     -1
+         * 
+         * Big endian:
+         *  uyvy uyvy uyvy
+         *  uyvy uYvy uyvy
+         *  uyvy uyvy uyvy
+         */
+
         int n_total = 0;
         if (lv) // fast, realtime
         {
             n_total = ((yEnd - yStart) * (xEnd - xStart)) / 4;
             for(int y = yStart; y < yEnd; y += 2)
             {
-                uint32_t hd_row = hdvram + BM2HD_R(y);
+                uint32_t hd_row = hdvram + (focus_peaking_lores ? BM2LV_R(y) : BM2HD_R(y));
                 
-                for (int x = xStart; x < xEnd; x += 2)
+                if (focus_peaking_lores) // use LV buffer
                 {
-                    p8 = (uint8_t *)(hd_row + bm_hd_x_cache[x - BMP_W_MINUS]);
-                    
-                    /** simple Laplacian filter
-                     *     -1
-                     *  -1  4 -1
-                     *     -1
-                     * 
-                     * Big endian:
-                     *  uyvy uyvy uyvy
-                     *  uyvy uYvy uyvy
-                     *  uyvy uyvy uyvy
-                     */
-                     
-                    int e = peak_d2xy_hd(p8);
-                    
-                    /* executed for 1% of pixels */
-                    if (unlikely(e >= thr))
+                    for (int x = xStart; x < xEnd; x += 2)
                     {
-                        n_over++;
-
-                        if (unlikely(dirty_pixels_num >= MAX_DIRTY_PIXELS)) // threshold too low, abort
-                            break;
-
-                        focus_found_pixel(x, y, e, thr, bvram);
+                        p8 = (uint8_t *)(hd_row + bm_hd_x_cache[x - BMP_W_MINUS]); // this was adjusted to hold LV offsets instead of HD
+                         
+                        int e = peak_d2xy(p8);
+                        
+                        /* executed for 1% of pixels */
+                        if (unlikely(e >= thr))
+                        {
+                            n_over++;
+                            if (unlikely(dirty_pixels_num >= MAX_DIRTY_PIXELS)) break; // threshold too low, abort
+                            focus_found_pixel(x, y, e, thr, bvram);
+                        }
+                    }
+                }
+                else // hi-res, use HD buffer
+                {
+                    for (int x = xStart; x < xEnd; x += 2)
+                    {
+                        p8 = (uint8_t *)(hd_row + bm_hd_x_cache[x - BMP_W_MINUS]);
+                         
+                        int e = peak_d2xy_hd(p8);
+                        
+                        /* executed for 1% of pixels */
+                        if (unlikely(e >= thr))
+                        {
+                            n_over++;
+                            if (unlikely(dirty_pixels_num >= MAX_DIRTY_PIXELS)) break; // threshold too low, abort
+                            focus_found_pixel(x, y, e, thr, bvram);
+                        }
                     }
                 }
             }
@@ -2041,7 +2066,7 @@ draw_zebra_and_focus( int Z, int F )
         }
 
         thr_increment = COERCE(thr_increment, -5, 5);
-        int thr_min = 10;
+        int thr_min = 15;
         thr = COERCE(thr, thr_min, 255);
 
 
@@ -3409,8 +3434,16 @@ struct menu_entry zebra_menus[] = {
                 .priv = &focus_peaking_filter_edges,
                 .max = 2,
                 .choices = (const char *[]) {"Strong edges", "Balanced", "Fine details"},
-                .help = "Balance fine texture details vs strong high-contrast edges.",
+                .help = "Highlights strong edges. Works best in low light.\n"
+                        "Tries to highlight both strong edges and fine details.\n"
+                        "Highlights fine details (texture). Requires lots of light.\n",
                 .icon_type = IT_DICE
+            },
+            {
+                .name = "Low-res buffer",
+                .priv = &focus_peaking_lores,
+                .max = 1,
+                .help = "Use a low-res image to get better results in low light.",
             },
             /*
             {
