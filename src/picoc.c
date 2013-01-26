@@ -342,7 +342,7 @@ script_display( void * priv, int x, int y, int selected )
     
 
     bmp_printf(
-        SHADOW_FONT(FONT(MENU_FONT, COLOR_GRAY50, COLOR_ALMOST_BLACK)),
+        FONT(MENU_FONT, 55, COLOR_BLACK),
         720 - font_large.width * strlen(script_titles[script_displayed]), y,
         "%s",
         script_titles[script_displayed]

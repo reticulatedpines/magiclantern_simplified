@@ -36,7 +36,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define MENU_FONT       SHADOW_FONT(FONT(FONT_LARGE,COLOR_WHITE,COLOR_ALMOST_BLACK))
+#define MENU_FONT       FONT(FONT_LARGE,COLOR_WHITE,COLOR_BLACK)
 #define MENU_FONT_SEL   MENU_FONT
 
 int get_menu_font_sel();
