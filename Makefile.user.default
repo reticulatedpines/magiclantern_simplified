@@ -16,6 +16,10 @@ AR=$(ARM_BINPATH)/arm-$(ARM_ABI)-ar
 RANLIB=$(ARM_BINPATH)/arm-$(ARM_ABI)-ranlib
 READELF=$(ARM_BINPATH)/arm-$(ARM_ABI)-readelf
 ARM_LIBC_A = $(ARM_PATH)/arm-$(ARM_ABI)/lib/libc.a
+
+# For cygwin users: windows version of yagarto AR is only acceptable relative path or C:\ style absolute path. So you may set relative path from platform/model dir (It means you need +2 "../").
+# ARM_LIBC_A = ../../../../../yagarto-20121222/arm-none-eabi/lib/libc.a
+
 HOST_CFLAGS=-g -O3 -W -Wall
 PYTHON=python2
 ifeq ($(OS),Windows_NT)
