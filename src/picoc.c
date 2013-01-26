@@ -15,12 +15,57 @@ static char script_preview[1000] = "";
 
 /* script functions */
 #define MAX_SCRIPT_NUM 9
-#define LINE_BUF_SIZE 15
+#define FILENAME_SIZE 15
+#define SCRIPT_TITLE_SIZE 23
 #define PICOC_HEAP_SIZE (30*1024)
 
-static char script_list[MAX_SCRIPT_NUM][LINE_BUF_SIZE];
+static char script_list[MAX_SCRIPT_NUM][FILENAME_SIZE];
+static char script_titles[MAX_SCRIPT_NUM][SCRIPT_TITLE_SIZE];
+
 static CONFIG_INT("script.selected", script_selected, 0);
 static int script_cnt = 0;
+
+static char* get_script_path(int script_index)
+{
+    static char path[50];
+    snprintf(path, sizeof(path), CARD_DRIVE"ML/SCRIPTS/%s", script_list[script_index]);
+    return path;
+}
+
+static void guess_script_title_from_first_line(char* filename, char* output, int maxsize)
+{
+    char* dst = output;
+    
+    char buf[32];
+    int r = read_file(filename, buf, sizeof(buf));
+    if (r <= 0)
+    {
+        snprintf(dst, maxsize, "Error");
+        return;
+    }
+    
+    char* src = buf;
+    while (isspace(*src) || *src == '/' || *src == '*') // skip comments
+        src++;
+
+    snprintf(dst, maxsize, "%s", src);
+    
+    // trim at first newline
+    for (char* c = dst; *c; c++)
+        if (*c == '\n') { *c = 0; break; }
+    
+    // skip comment chars at the end of line
+    char* last = dst + strlen(dst) - 1;
+    while (isspace(*last) || *last == '/' || *last == '*')
+        last--;
+    last++;
+    if (last > dst)
+        *last = 0;
+}
+static void script_parse_header(int script_index)
+{
+    guess_script_title_from_first_line(get_script_path(script_index), script_titles[script_index], SCRIPT_TITLE_SIZE);
+}
 
 /* modify from is_valid_cropmark_filename */
 static int is_valid_script_filename(char* filename)
@@ -49,7 +94,7 @@ static void find_scripts(void)
     do {
         if ((file.mode & 0x20) && is_valid_script_filename(file.name)) {
             
-            snprintf(script_list[script_cnt++], LINE_BUF_SIZE, "%s", file.name);
+            snprintf(script_list[script_cnt++], FILENAME_SIZE, "%s", file.name);
 
             if (script_cnt >= MAX_SCRIPT_NUM)
             {
@@ -59,6 +104,9 @@ static void find_scripts(void)
         }
     } while( FIO_FindNextEx( dirent, &file ) == 0);
     FIO_CleanupAfterFindNext_maybe(dirent);
+    
+    for (int i = 0; i < script_cnt; i++)
+        script_parse_header(i);
 }
 
 /*
@@ -94,13 +142,6 @@ script_run_display( void * priv, int x, int y, int selected )
     );
     
     if (script_state) menu_draw_icon(x, y, MNI_WARNING, 0);
-}
-
-static char* get_current_script_path()
-{
-    static char path[50];
-    snprintf(path, sizeof(path), CARD_DRIVE"ML/SCRIPTS/%s", script_list[script_selected]);
-    return path;
 }
 
 static void script_copy_window(char* dst, int bufsize, char* src, int line0, int col0, int maxlines, int maxcols)
@@ -150,7 +191,7 @@ script_print( void * priv, int x, int y, int selected )
     if (prev_script != script_selected)
     {
         int size;
-        char* p = get_current_script_path();
+        char* p = get_script_path(script_selected);
         char* f = (char*)read_entire_file(p, &size);
         if (f)
         {
@@ -192,7 +233,7 @@ static void run_script(const char *script)
     if (!setjmp(PicocExitBuf))
     {
         // parse and run our script
-        PicocPlatformScanFile(get_current_script_path());
+        PicocPlatformScanFile(get_script_path(script_selected));
         console_puts(    "=============  :)  ===========\n\n");
     }
     else
@@ -274,11 +315,34 @@ script_display( void * priv, int x, int y, int selected )
     if (selected) script_selected = script_displayed;
 
     bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
+        MENU_FONT,
         x, y,
         "%s",
         script_list[script_displayed]
     );
+    
+
+    bmp_printf(
+        FONT(MENU_FONT, COLOR_GRAY50, COLOR_BLACK),
+        x + font_large.width * 11, y,
+        "%s",
+        script_titles[script_displayed]
+    );
+    
+    if (selected)
+    {
+        // display the first 59 characters from the script as help text
+        static char help[59];
+        static int prev_selected = -1;
+        if (prev_selected != script_selected)
+            read_file(get_script_path(script_selected), help, sizeof(help));
+        prev_selected = script_selected;
+        for (char* c = help; *c; c++)
+            if (*c == '\n') { *c = ' '; }
+        bmp_printf(FONT_MED, 10, 453, "%s", help);
+    }
+    
+
     menu_draw_icon(x, y, MNI_SUBMENU, selected);
 }
 
