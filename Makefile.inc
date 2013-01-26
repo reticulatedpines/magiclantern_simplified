@@ -292,6 +292,7 @@ ML_OBJS-$(CONFIG_PICOC)	+= \
 	library_ml.o \
 	platform_ml.o \
 	picoc.o \
+	chdk-gui_script.o \
 
 endif
 
@@ -308,6 +309,7 @@ ifeq ($(CONFIG_PICOC),y)
 STDIO_OBJ += \
 	lib_a-strncpy.o \
 	lib_a-ctype_.o \
+	lib_a-strrchr.o \
 
 endif
 endif

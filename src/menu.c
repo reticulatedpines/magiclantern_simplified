@@ -684,7 +684,10 @@ menu_add(
             struct menu_entry * child = entry->children;
             while (!MENU_IS_EOL(child)) { count++; child++; }
             struct menu * submenu = menu_find_by_name( entry->name, ICON_ML_SUBMENU);
-            menu_add(entry->name, entry->children, count);
+            // only one submenu can have a given name
+            // if more submenus have the same name, the submenu is reused, don't create it again
+            if (!submenu->children)
+                menu_add(entry->name, entry->children, count);
             submenu->submenu_width = entry->submenu_width;
             submenu->submenu_height = entry->submenu_height;
         }
@@ -1093,7 +1096,8 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
     if (icon_drawn) return;
     icon_drawn = type;
     x -= 40;
-    if (type != MNI_NONE) bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background; don't call this for LCD remote icons
+    if (type != MNI_NONE && type != MNI_STOP_DRAWING) 
+        bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background; don't call this for LCD remote icons
     warning_msg = 0;
     switch(type)
     {
@@ -1222,6 +1226,10 @@ menu_display(
                 if (menu->hidden && menu->hidden != MENU_ENTRY_NEVER_HIDE)
                     dim_hidden_menu(x, y, menu->selected);
             }
+            
+            // menu->display asked to draw the entire screen by itself? stop drawing right now
+            if (icon_drawn == MNI_STOP_DRAWING)
+                return;
             
             // this should be after menu->display, in order to allow it to override the icon
             if (menu->selected || (!menu_lv_transparent_mode && !only_selected))
@@ -1433,7 +1441,7 @@ show_hidden_items(struct menu * menu, int force_clear)
         struct menu_entry * entry = menu->children;
         while( entry )
         {
-            if (!IS_VISIBLE(entry))
+            if (!IS_VISIBLE(entry) && entry->name)
             {
                 if (hidden_count) { STR_APPEND(hidden_msg, ", "); }
                 int len = strlen(hidden_msg);

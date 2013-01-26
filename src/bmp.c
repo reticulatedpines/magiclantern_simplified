@@ -692,12 +692,7 @@ read_file(
         return -1;
     unsigned rc = FIO_ReadFile( file, buf, size );
     FIO_CloseFile( file );
-
-    if( rc == size )
-        return size;
-
-    DebugMsg( DM_MAGIC, 3, "%s: size=%d rc=%d", filename, size, rc );
-    return -1;
+    return rc;
 }
 
 

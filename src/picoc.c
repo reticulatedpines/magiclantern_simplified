@@ -17,7 +17,7 @@ static char script_preview[1000] = "";
 #define MAX_SCRIPT_NUM 11
 #define FILENAME_SIZE 15
 #define SCRIPT_TITLE_SIZE 25
-#define PICOC_HEAP_SIZE (30*1024)
+#define PICOC_HEAP_SIZE (128*1024)
 
 static char script_list[MAX_SCRIPT_NUM][FILENAME_SIZE];
 static char script_titles[MAX_SCRIPT_NUM][SCRIPT_TITLE_SIZE];
@@ -32,19 +32,8 @@ static char* get_script_path(int script_index)
     return path;
 }
 
-static void guess_script_title_from_first_line(char* filename, char* output, int maxsize)
+static void guess_script_title_from_first_line(char* src, char* dst, int maxsize)
 {
-    char* dst = output;
-    
-    char buf[32];
-    int r = read_file(filename, buf, sizeof(buf));
-    if (r <= 0)
-    {
-        snprintf(dst, maxsize, "Error");
-        return;
-    }
-    
-    char* src = buf;
     while (isspace(*src) || *src == '/' || *src == '*') // skip comments
         src++;
 
@@ -64,7 +53,31 @@ static void guess_script_title_from_first_line(char* filename, char* output, int
 }
 static void script_parse_header(int script_index)
 {
-    guess_script_title_from_first_line(get_script_path(script_index), script_titles[script_index], SCRIPT_TITLE_SIZE);
+    script_selected = script_index; // side effect (!)
+
+    // clear params submenu (hide all unused stuff)
+    script_reset_params();
+
+    // try to read the script 
+    static char _buf[1025];
+    char* buf = UNCACHEABLE(_buf);
+    char* fn = get_script_path(script_selected);
+    int r = read_file(fn, buf, sizeof(_buf)-1);
+    if (r < 0)
+    {
+        snprintf(script_titles[script_index], SCRIPT_TITLE_SIZE, "Error");
+        return;
+    }
+    buf[r+1] = 0;
+    
+    // get some default title
+    guess_script_title_from_first_line(buf, script_titles[script_index], SCRIPT_TITLE_SIZE);
+    
+    // parse CHDK script header
+    script_scan(fn, buf);
+    
+    // update submenu
+    script_update_menu();
 }
 
 /* modify from is_valid_cropmark_filename */
@@ -129,12 +142,6 @@ script_select_display( void * priv, int x, int y, int selected )
 static void
 script_run_display( void * priv, int x, int y, int selected )
 {
-    if (script_preview_flag)
-    {
-        menu_draw_icon(x, y, -1, 0);
-        return;
-    }
-
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
@@ -208,7 +215,7 @@ script_print( void * priv, int x, int y, int selected )
     bmp_fill(40, 0, 0, 720, 430);
     int fnt = FONT(FONT_MED, COLOR_WHITE, 40);
     big_bmp_printf(fnt, 10, 10, "%s", script_preview);
-    menu_draw_icon(x, y, -1, 0);
+    menu_draw_icon(x, y, MNI_STOP_DRAWING, 0);
 }
 
 /*static void script_select(void* priv, int delta)
@@ -306,7 +313,19 @@ int handle_picoc_keys(struct event * event)
     return 1;
 }
 
-extern void menu_open_submenu();
+void script_open_submenu()
+{
+    // update the submenu structure on the fly
+    static int prev_selected = -1;
+    if (prev_selected != script_selected)
+    {
+        script_parse_header(script_selected);
+    }
+    prev_selected = script_selected;
+    
+    // now we can display it :)
+    menu_open_submenu();
+}
 
 static void
 script_display( void * priv, int x, int y, int selected )
@@ -328,24 +347,49 @@ script_display( void * priv, int x, int y, int selected )
         "%s",
         script_titles[script_displayed]
     );
-    
-    /*
-    if (selected)
-    {
-        // display the first 59 characters from the script as help text
-        static char help[59];
-        static int prev_selected = -1;
-        if (prev_selected != script_selected)
-            read_file(get_script_path(script_selected), help, sizeof(help));
-        prev_selected = script_selected;
-        for (char* c = help; *c; c++)
-            if (*c == '\n') { *c = ' '; }
-        bmp_printf(FONT_MED, 10, 453, "%s", help);
-    }
-    */
-
     menu_draw_icon(x, y, MNI_SUBMENU, selected);
 }
+
+static struct menu_entry picoc_submenu[] = {
+        {
+            .name = "Show script",
+            .priv = &script_preview_flag,
+            .max = 1,
+            .icon_type = IT_ACTION,
+            .display    = script_print,
+            .help = "Display the contents of the selected script.",
+        },
+        {
+            .name = "Run script",
+            .display    = script_run_display,
+            .select        = script_run_fun,
+            .help = "Execute the selected script.",
+        },
+        {
+            .help = "Script parameter #1",
+        },
+        {
+            .help = "Script parameter #2",
+        },
+        {
+            .help = "Script parameter #3",
+        },
+        {
+            .help = "Script parameter #4",
+        },
+        {
+            .help = "Script parameter #5",
+        },
+        {
+            .help = "Script parameter #6",
+        },
+        {
+            .help = "Script parameter #7",
+        },
+        MENU_EOL
+};
+
+#define MAX_PARAMS (COUNT(picoc_submenu) - 3)
 
 static struct menu_entry picoc_menu[] = {
     /*
@@ -382,27 +426,14 @@ static struct menu_entry picoc_menu[] = {
 
 #define SCRIPT_ENTRY(i) \
         { \
-            .name = script_list[i], \
+            .name = "Selected script", \
             .priv = (void*)i, \
-            .select = menu_open_submenu, \
+            .select = script_open_submenu, \
+            .select_Q = script_open_submenu, \
             .display = script_display, \
-            .children =  (struct menu_entry[]) { \
-                { \
-                    .name = "Show script", \
-                    .priv = &script_preview_flag, \
-                    .max = 1, \
-                    .icon_type = IT_ACTION, \
-                    .display    = script_print, \
-                    .help = "Display the contents of the selected script.", \
-                }, \
-                { \
-                    .name = "Run script", \
-                    .display    = script_run_display, \
-                    .select        = script_run_fun, \
-                    .help = "Execute the selected script.", \
-                }, \
-                MENU_EOL, \
-            }, \
+            .submenu_width = 700, \
+            .children = picoc_submenu, \
+            .help = "Run small C-like scripts. http://code.google.com/p/picoc/", \
         },
     
     SCRIPT_ENTRY(0)
@@ -417,6 +448,42 @@ static struct menu_entry picoc_menu[] = {
     SCRIPT_ENTRY(9)
     SCRIPT_ENTRY(10)
 };
+
+void script_setup_param(
+    int param_index,  // 0-5
+    char* param_name, // e.g. "Number of shots"
+    int* param_value, // pointer to param value (priv)
+    int min_value, 
+    int max_value
+    )
+{
+    if (param_index >= MAX_PARAMS) return;
+    struct menu_entry * entry = &(picoc_menu[script_selected].children[2 + param_index]);
+    entry->name = param_name;
+    entry->priv = param_value;
+    entry->min = min_value;
+    entry->max = max_value;
+    entry->hidden = 0;
+}
+
+void script_reset_params()
+{
+    for (int i = 0; i < MAX_PARAMS; i++)
+    {
+        struct menu_entry * entry = &(picoc_menu[script_selected].children[2 + i]);
+        entry->name = 0;
+        entry->priv = 0;
+        entry->min = 0;
+        entry->max = 0;
+        entry->icon_type = 0;
+        entry->hidden = 1;
+    }
+}
+
+void script_setup_title(char* script_title)
+{
+    snprintf(script_titles[script_selected], SCRIPT_TITLE_SIZE, "%s", script_title);
+}
 
 static void picoc_init()
 {

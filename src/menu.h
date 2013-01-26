@@ -220,6 +220,8 @@ extern void menu_stop(void);
 #define MNI_BOOL(x) ((x) ? MNI_ON : MNI_OFF)
 #define MNI_BOOL_AUTO(x) ((x) == 1 ? MNI_ON : (x) == 0 ? MNI_OFF : MNI_AUTO)
 
+#define MNI_STOP_DRAWING -100
+
 #define _ZEBRAS_IN_LIVEVIEW (get_global_draw_setting() & 1)
 #define GDR_WARNING_MSG ((lv && lv_disp_mode && _ZEBRAS_IN_LIVEVIEW) ? "Press " INFO_BTN_NAME " (outside ML menu) to turn Canon displays off." : get_global_draw_setting() ? "GlobalDraw is disabled, check your settings." : "GlobalDraw is OFF.")
 
