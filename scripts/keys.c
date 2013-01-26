@@ -1,3 +1,5 @@
+/** Key emulation demo */
+
 printf("Let's fake some buttons :)\n");
 
 // click means "press and release"

@@ -1,3 +1,5 @@
+/** Hello, World! */
+
 printf("Hello from PicoC!\n");
 
 sleep(2);

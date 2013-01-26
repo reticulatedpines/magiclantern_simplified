@@ -1,3 +1,5 @@
+/** PicoC testing script */
+
 printf("PicoC testing...\n");
 
 /* Some basic functions */

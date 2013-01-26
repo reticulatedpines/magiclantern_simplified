@@ -1,4 +1,4 @@
-// Custom bracketing sequence
+// Custom bracket sequence
 // ISO 3200 1/10 f1.8
 // ISO 100 1/10 f8
 // ISO 100 1" f8
