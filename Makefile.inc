@@ -138,13 +138,16 @@ CFLAGS=\
 	-Os \
 	-Wall \
 	-W \
-	-mstructure-size-boundary=32 \
 	-Wno-unused-parameter \
 	-Wno-implicit-function-declaration \
 	-Wno-unused-function \
 	-Wno-missing-field-initializers \
 	-Wno-format \
 	-Wdouble-promotion \
+	-ffast-math \
+	-fno-trapping-math \
+	-fsingle-precision-constant \
+	-fshort-double \
 	-std=gnu99 \
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \
