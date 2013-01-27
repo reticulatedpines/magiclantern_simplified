@@ -284,6 +284,7 @@ static void script_run_fun(void* priv, int delta)
 int handle_picoc_keys(struct event * event)
 {
     if (IS_FAKE(event)) return 1; // only process real buttons, not emulated presses
+    if (gui_menu_shown()) return 1;
     
     extern int console_visible;
 
@@ -315,41 +316,62 @@ int handle_picoc_keys(struct event * event)
     return 1;
 }
 
-void script_open_submenu()
+void script_open_submenu(void* priv, int delta)
 {
-    // update the submenu structure on the fly
-    static int prev_selected = -1;
-    if (prev_selected != script_selected)
+    if (script_state == SCRIPT_IDLE)
     {
-        script_parse_header(script_selected);
-    }
-    prev_selected = script_selected;
+        // update the submenu structure on the fly
+        static int prev_selected = -1;
+        if (prev_selected != script_selected)
+        {
+            script_parse_header(script_selected);
+        }
+        prev_selected = script_selected;
     
-    // now we can display it :)
-    menu_open_submenu();
+        // now we can display it :)
+        menu_open_submenu();
+    }
+    else if (script_selected == (int)priv)
+    {
+        // display only the submenu for the running script, but not the others
+        menu_open_submenu();
+    }
 }
 
 static void
 script_display( void * priv, int x, int y, int selected )
 {
     int script_displayed = (int) priv;
-    if (selected) script_selected = script_displayed;
+    
+    if (selected && script_state == SCRIPT_IDLE) 
+        script_selected = script_displayed; // change selected script as we scroll thru menu (if not running, of course)
 
+    int displayed_script_is_idle = (script_state == SCRIPT_IDLE) || (script_selected != script_displayed);
+    
     bmp_printf(
         MENU_FONT,
         x, y,
-        "%s",
-        script_list[script_displayed]
+        "%s%s",
+        script_list[script_displayed],
+        displayed_script_is_idle ? "" :
+        script_state == SCRIPT_RUNNING ? " (running)" :
+        script_state == SCRIPT_JUST_FINISHED ? " (finished)" : "err"
     );
     
-
-    bmp_printf(
-        FONT(MENU_FONT, 55, COLOR_BLACK),
-        720 - font_large.width * strlen(script_titles[script_displayed]), y,
-        "%s",
-        script_titles[script_displayed]
-    );
-    menu_draw_icon(x, y, MNI_SUBMENU, selected);
+    if (displayed_script_is_idle)
+    {
+        bmp_printf(
+            FONT(MENU_FONT, 55, COLOR_BLACK),
+            720 - font_large.width * strlen(script_titles[script_displayed]), y,
+            "%s",
+            script_titles[script_displayed]
+        );
+        menu_draw_icon(x, y, MNI_SUBMENU, selected && script_displayed == script_selected);
+    }
+    else
+    {
+        menu_draw_icon(x, y, MNI_ON, 0);
+    }
 }
 
 static struct menu_entry picoc_submenu[] = {
