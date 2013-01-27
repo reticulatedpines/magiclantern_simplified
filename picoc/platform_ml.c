@@ -42,7 +42,7 @@ void PicocPlatformScanFile(const char *FileName)
     char *SourceStr = PlatformReadFile(FileName);
     if (!SourceStr) return;
 
-    console_printf("%s:\n");
+    console_printf("%s:\n", FileName);
     script_define_param_variables();
     console_puts(  "==============================\n");
     
