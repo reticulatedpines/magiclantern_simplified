@@ -326,11 +326,7 @@ int get_current_tg_freq()
 #define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0))
 #endif
 
-#if defined(CONFIG_EOSM) || defined(CONFIG_6D)
-#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
-#endif
-
-#ifdef CONFIG_650D
+#if defined(CONFIG_EOSM) || defined(CONFIG_6D) || defined(CONFIG_650D)
 #define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
 #endif
 
