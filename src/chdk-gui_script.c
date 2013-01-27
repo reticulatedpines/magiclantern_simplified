@@ -340,8 +340,8 @@ void script_define_param_variables()
         if (!p) continue;
         p--;
         //int* v = &conf_script_vars[p];
-        short _varname = 'a' + p;
-        short* varname = &_varname;
+        int _varname = 'a' + p;
+        char* varname = (char*)&_varname;
         extern struct ValueType IntType;
         VariableDefinePlatformVar(NULL, varname, &IntType, (union AnyValue *)&conf_script_vars[p], FALSE);
         console_printf("   Param %s = %d; // %s\n", varname, conf_script_vars[p], script_params[p]);
