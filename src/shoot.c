@@ -7485,7 +7485,7 @@ shoot_task( void* unused )
                     continue;
                 }
                 
-                static char msg[50];
+                static char msg[60];
                 snprintf(msg, sizeof(msg),
                                 " Intervalometer:%4d \n"
                                 " Pictures taken:%4d ", 
