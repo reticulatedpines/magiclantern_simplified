@@ -542,6 +542,9 @@ const char* get_dcim_dir();
 #define unlikely(exp) __builtin_expect(exp,0)
 #define likely(exp) __builtin_expect(exp,1)
 
+#define FAST __attribute__((optimize("-O3")))
+#define SMALL __attribute__((optimize("-Os")))
+
 // fixed point formatting for printf's
 
 // to be used with "%s%d.%d" - for values with one decimal place

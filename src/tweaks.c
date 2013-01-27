@@ -3254,7 +3254,7 @@ void yuvcpy_dark(uint32_t* dst, uint32_t* src, size_t n, int parity)
     }
 }
 
-static void anamorphic_squeeze()
+static void FAST anamorphic_squeeze()
 {
     if (!anamorphic_preview) return;
     if (!get_global_draw()) return;
@@ -3346,7 +3346,7 @@ static uint32_t get_yuv_pixel(uint32_t* buf, int pixoff)
     return (chroma | (luma << 8) | (luma << 24));
 }
 
-void defish_draw_lv_color()
+void FAST defish_draw_lv_color()
 {
     if (!get_global_draw()) return;
     if (!lv) return;

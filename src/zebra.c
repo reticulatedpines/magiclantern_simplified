@@ -1620,7 +1620,7 @@ static inline int peak_d2xy_sharpen(uint8_t* p8)
     return COERCE(orig + diff*4, 0, 255);
 }
 
-static inline int peak_d2xy(const uint8_t* p8)
+static inline int FAST peak_d2xy(const uint8_t* p8)
 {
     // approximate second derivative with a Laplacian kernel:
     //     -1
@@ -1645,7 +1645,7 @@ static inline int peak_d2xy(const uint8_t* p8)
     return e;
 }
 
-static inline int peak_d2xy_hd(const uint8_t* p8)
+static inline int FAST peak_d2xy_hd(const uint8_t* p8)
 {
     // approximate second derivative with a Laplacian kernel:
     //     -1
@@ -1701,7 +1701,7 @@ static inline int peak_blend_alpha(uint32_t* s, int e)
 
 static int peak_scaling[256];
 
-void peak_disp_filter()
+void FAST peak_disp_filter()
 {
     uint32_t* src_buf;
     uint32_t* dst_buf;
@@ -1848,7 +1848,7 @@ void peak_disp_filter()
 }
 #endif
 
-static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
+static void FAST focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvram)
 {    
     int color = get_focus_color(thr, e);
     //~ int color = COLOR_RED;
@@ -1903,7 +1903,7 @@ static void focus_found_pixel_playback(int x, int y, int e, int thr, uint8_t * c
 #endif
 
 // returns how the focus peaking threshold changed
-static int
+static int FAST
 draw_zebra_and_focus( int Z, int F )
 {
     if (unlikely(!get_global_draw())) return 0;
@@ -6036,10 +6036,12 @@ void play_422(char* filename)
 
 void peaking_benchmark()
 {
+    int lv0 = lv;
     msleep(1000);
     fake_simple_button(BGMT_PLAY);
     msleep(2000);
     int a = get_seconds_clock();
+    lv = 1; // lie, to force using the liveview algorithm which is relevant for benchmarking
     for (int i = 0; i < 1000; i++)
     {
         draw_zebra_and_focus(0,1);
@@ -6047,4 +6049,5 @@ void peaking_benchmark()
     int b = get_seconds_clock();
     NotifyBox(10000, "%d seconds => %d fps", b-a, 1000 / (b-a));
     beep();
+    lv = lv0;
 }

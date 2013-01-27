@@ -101,7 +101,7 @@ uint8_t * bmp_vram(void)
 #define USE_LUT
 #endif
 
-static void
+static void FAST
 _draw_char(
     unsigned    fontspec,
     uint8_t *    bmp_vram_row,
