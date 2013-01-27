@@ -2245,11 +2245,13 @@ handle_ml_menu_keys(struct event * event)
             event->param == BGMT_WHEEL_LEFT ||
             event->param == BGMT_WHEEL_RIGHT
            )
+        #ifndef CONFIG_RELEASE_BUILD  //gives compiling errors on 5DC
         {
             beta_set_warned();
             menu_redraw();
         }
-        if (event->param != BGMT_PRESS_HALFSHUTTER) 
+        #endif
+        if (event->param != BGMT_PRESS_HALFSHUTTER)
             return 0;
     }
     
