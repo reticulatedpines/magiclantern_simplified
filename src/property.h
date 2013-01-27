@@ -237,6 +237,16 @@
 #define PROP_WBS_BA 0x80000011 // idem
 
 #define PROP_CUSTOM_WB 0x2020000 // len=52, contains multipliers at 0x20 [B?], 0x24 [G], 0x26 [R?] as int16, 1024=1
+#define PROP_METERING_MODE      0x80000002
+#define SPOT_METER 1
+#define EVAL_METER 3
+#define PARTIAL_METER 4
+#define CENTERW_METER 5
+
+#define AF_MODE      0x80000004
+#define ONE_SHOT 0
+#define AI_FOCUS 202
+#define AI_SERVO 101
 
 #define PROP_LAST_JOB_ID     0x02050001 // maybe?
 

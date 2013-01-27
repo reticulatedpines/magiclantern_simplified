@@ -33,7 +33,9 @@ void display_shooting_info() // called from debug task
     
     display_trap_focus_info();
 
-#if 0
+#ifdef DISPLAY_HEADER_FOOTER_INFO
+    int col_bg = bmp_getpixel(20,10);
+    int fnt;
     extern int header_left_info;
     extern int header_right_info;
     extern int footer_left_info;
@@ -99,6 +101,7 @@ void display_shooting_info() // called from debug task
 #endif
     
 #ifdef STROBO_READY_AND_WE_CAN_USE_IT
+    int col_field = bmp_getpixel(20,10);
     if (flash_info.mode==STROBO_FLASH_MODE_MANUAL)
     {
         uint32_t fntl = FONT(FONT_LARGE, COLOR_YELLOW, col_field);
@@ -109,7 +112,7 @@ void display_shooting_info() // called from debug task
         bmp_printf(fntl, 564, 185, "%3d", 1 << flash_info.group_b_output );
         bmp_printf(fnt, 624, 188, "C");
         bmp_printf(fntl, 632, 185, "%3d", 1 << flash_info.group_c_output);
-        bmp_fill(bmp_getpixel(1,1),486,212,212,6);
+        bmp_fill(col_bg,486,212,212,6);
     }
 #endif
 
