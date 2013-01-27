@@ -137,7 +137,7 @@ int handle_common_events_startup(struct event * event)
         if (event->param == BGMT_MENU) return 0; // otherwise would interfere with swap menu-erase
         #endif
         
-        #if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
+        #if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_650D)
         if (event->param == BGMT_LV) return 0; // discard REC button if it's pressed too early
         #endif
         
