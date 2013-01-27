@@ -128,7 +128,7 @@ static CONFIG_INT("hdr.scripts", hdr_scripts, 2); //1 enfuse, 2 align+enfuse, 3 
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
-static CONFIG_INT( "interval.stop_after", interval_stop_after, 0 );
+static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
 static CONFIG_INT( "interval.use_autofocus", interval_use_autofocus, 0 );
 //~ static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
 
