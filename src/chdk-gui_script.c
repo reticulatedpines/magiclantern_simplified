@@ -19,8 +19,8 @@
 #define MENU_MAX_UNSIGNED(arg)  ((unsigned short)((arg>>16) & 0xFFFF))
 
 const char *script_source_str = NULL;       // ptr to content of script
-static char cfg_name[100] = "\0";           // buffer to make cfg files name (paramsetnum, param_names)
-static char cfg_param_name[100] = "\0";     // buffer to make cfg param files name (params, state_before_tmprun)
+//static char cfg_name[100] = "\0";           // buffer to make cfg files name (paramsetnum, param_names)
+//static char cfg_param_name[100] = "\0";     // buffer to make cfg param files name (params, state_before_tmprun)
 
 // ================ SCRIPT PARAMETERS ==========
 char script_title[25];                                      // Title of current script
@@ -60,7 +60,7 @@ const char* skip_eol(const char *p)         { p = skip_toeol(p); if (*p == '\r')
 static void process_title(const char *title)
 {
     register const char *ptr = title;
-    register int i=0;
+    register size_t i=0;
 
     ptr = skip_whitespace(ptr);
     while (i<(sizeof(script_title)-1) && ptr[i] && ptr[i]!='\r' && ptr[i]!='\n')
@@ -83,7 +83,7 @@ static void process_title(const char *title)
 static int check_param(const char *param)
 {
     register const char *ptr = param;
-    register int n=0, i=0, l;
+    register unsigned int n=0, /*i=0,*/ l;
 
     ptr = skip_whitespace(ptr);
     if (ptr[0] && (ptr[0]>='a' && ptr[0]<='a'+SCRIPT_NUM_PARAMS) && (ptr[1]==' ' || ptr[1]=='\t'))
@@ -112,7 +112,7 @@ static int check_param(const char *param)
 static int process_param(const char *param)
 {
     register const char *ptr = param;
-    register int n=0, i=0, l;
+    register int n=0, /*i=0,*/ l;
 
     ptr = skip_whitespace(ptr);
     if (ptr[0] && (ptr[0]>='a' && ptr[0]<='a'+SCRIPT_NUM_PARAMS) && (ptr[1]==' ' || ptr[1]=='\t'))
@@ -333,15 +333,15 @@ void script_update_menu()
 // call this right before running the script
 void script_define_param_variables()
 {
-    int j = 0;
-    for (int i = 0; i < SCRIPT_NUM_PARAMS; i++)
+    //int j = 0;
+    for (unsigned int i = 0; i < SCRIPT_NUM_PARAMS; i++)
     {
-        int p = script_param_order[i];
+        short p = script_param_order[i];
         if (!p) continue;
         p--;
-        int* v = &conf_script_vars[p];
-        int _varname = 'a' + p;
-        char* varname = &_varname;
+        //int* v = &conf_script_vars[p];
+        short _varname = 'a' + p;
+        short* varname = &_varname;
         extern struct ValueType IntType;
         VariableDefinePlatformVar(NULL, varname, &IntType, (union AnyValue *)&conf_script_vars[p], FALSE);
         console_printf("   Param %s = %d; // %s\n", varname, conf_script_vars[p], script_params[p]);

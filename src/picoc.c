@@ -25,6 +25,8 @@ static char script_titles[MAX_SCRIPT_NUM][SCRIPT_TITLE_SIZE];
 static int script_selected = 0;
 static int script_cnt = 0;
 
+void script_reset_params();
+
 static char* get_script_path(int script_index)
 {
     static char path[50];
