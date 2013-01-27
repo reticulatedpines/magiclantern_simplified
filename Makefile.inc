@@ -192,6 +192,9 @@ LIB_TYPE = arm-${ARM_ABI}-O3-fPIC
 endif
 
 ifeq ($(CONFIG_PICOC),y)
+ifneq ($(CONFIG_CONSOLE),y)
+$(error CONFIG_PICOC requires CONFIG_CONSOLE = y, please enable it)
+endif
 CFLAGS += -DCONFIG_PICOC
 endif
 
