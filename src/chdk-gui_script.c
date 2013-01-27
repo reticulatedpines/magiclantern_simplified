@@ -123,6 +123,7 @@ static int process_param(const char *param)
         if (l > MAX_PARAM_NAME_LEN)
             l = MAX_PARAM_NAME_LEN;
         strncpy(script_params[n],ptr,l);
+        script_params[n][l] = 0;
         n++;
     }
     return n; // n=1 if '@param a' was processed, n=2 for 'b' ... n=26 for 'z'. n=0 if failed.
