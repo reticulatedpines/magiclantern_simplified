@@ -113,15 +113,15 @@ static CONFIG_INT("fps.preset", fps_criteria, 0);
 #define FPS_SOUND_DISABLE 1
 static CONFIG_INT("fps.wav.record", fps_wav_record, 0);
 
+#ifdef FEATURE_FPS_RAMPING
 static CONFIG_INT("fps.ramp", fps_ramp, 0);
-#ifndef FEATURE_FPS_RAMPING
-#define fps_ramp 0
-#endif
-
 static CONFIG_INT("fps.ramp.duration", fps_ramp_duration, 3);
 static CONFIG_INT("fps.ramp.expo", fps_ramp_expo, 0);
 static int fps_ramp_timings[] = {1, 2, 5, 15, 30, 60, 120, 300, 600, 1200, 1800};
 static int fps_ramp_up = 0;
+#else
+#define fps_ramp 0
+#endif
 
 #ifdef FEATURE_FPS_WAV_RECORD
     #ifndef FEATURE_FPS_OVERRIDE
@@ -1454,6 +1454,7 @@ int handle_fps_events(struct event * event)
 {
     if (!fps_override) return 1;
     
+    #ifdef FEATURE_FPS_RAMPING
     if (fps_ramp && event->param == BGMT_INFO)
     {
         fps_ramp_up = !fps_ramp_up;
@@ -1462,6 +1463,7 @@ int handle_fps_events(struct event * event)
         #endif
         return 0;
     }
+    #endif
     
     if (event->param == BGMT_PLAY)
     {
@@ -1493,7 +1495,11 @@ int handle_fps_events(struct event * event)
 
 void fps_ramp_iso_step()
 {
-#ifdef CONFIG_FRAME_ISO_OVERRIDE
+#ifdef FEATURE_FPS_RAMPING
+    #ifndef CONFIG_FRAME_ISO_OVERRIDE
+    #error This requires CONFIG_FRAME_ISO_OVERRIDE.
+    #endif
+    
     if (!lv) return;
     if (!is_movie_mode()) return;
     
@@ -1538,7 +1544,6 @@ void fps_ramp_iso_step()
     dirty = 1;
 #endif
 }
-
 
 #ifdef NEW_FPS_METHOD
 
