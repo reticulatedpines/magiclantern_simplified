@@ -2519,7 +2519,7 @@ gui_stop_menu( )
 }
 
 
-int
+int FAST
 gui_menu_shown( void )
 {
     return menu_shown;

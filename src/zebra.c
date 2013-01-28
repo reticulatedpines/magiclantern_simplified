@@ -85,11 +85,21 @@ void toggle_disp_mode_menu(void *priv, int delta);
 
 // in movie mode: skip the 16:9 bar when computing overlays
 // in photo mode: compute the overlays on full-screen image
-int get_y_skip_offset_for_overlays()
+int FAST get_y_skip_offset_for_overlays()
 {
-    if (lv) return is_movie_mode() ? os.off_169 : 0;
-    if (is_pure_play_photo_mode()) return 0;
-    return os.off_169;
+    // in playback mode, and skip 16:9 bars for movies, but cover the entire area for photos
+    if (!lv) return is_pure_play_movie_mode() ? os.off_169 : 0;
+
+    // in liveview, try not to overlap top and bottom bars
+    int off = 0;
+    if (lv && is_movie_mode()) off = os.off_169;
+    int t = get_ml_topbar_pos();
+    int b = get_ml_bottombar_pos();
+    int mid = os.y0 + os.y_ex/2;
+    if (t < mid && t + 25 > os.y0 + off) off = t + 25 - os.x0;
+    if (t > mid) b = MIN(b, t);
+    if (b < os.y_max - off) off = os.y_max - b;
+    return off;
 }
 
 

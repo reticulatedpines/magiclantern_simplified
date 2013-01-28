@@ -59,7 +59,7 @@ PROP_HANDLER(PROP_DOF_PREVIEW_MAYBE) // len=2
 volatile int lv = 0;
 volatile int lv_paused = 0; // not a property, but related
 
-bool is_movie_mode()
+bool FAST is_movie_mode()
 {
     #if defined(CONFIG_50D) || defined(CONFIG_5D2)
     return lv && lv_movie_select == LVMS_ENABLE_MOVIE

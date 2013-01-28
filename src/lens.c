@@ -386,21 +386,8 @@ static void ml_bar_clear(int ytop, int height)
     }
 }
 
-void draw_ml_bottombar(int double_buffering, int clear)
+int FAST get_ml_bottombar_pos()
 {
-    //~ beep();
-    if (!should_draw_bottom_bar()) return;
-    
-    struct lens_info *    info = &lens_info;
-
-    //~ int bg = TOPBAR_BGCOLOR;
-    int bg = COLOR_BLACK;
-    if (is_movie_mode() || gui_menu_shown()) bg = COLOR_BLACK;
-    //~ unsigned font    = FONT(FONT_MED, COLOR_WHITE, bg);
-    //~ unsigned font_err    = FONT( FONT_MED, COLOR_RED, bg);
-    //~ unsigned Font    = FONT(FONT_LARGE, COLOR_WHITE, bg);
-    //~ unsigned height    = fontspec_height( font );
-    
     unsigned bottom = 480;
     int screen_layout = get_screen_layout();
     
@@ -413,19 +400,26 @@ void draw_ml_bottombar(int double_buffering, int clear)
     if (gui_menu_shown())
         bottom = 480 + (hdmi_code == 5 ? 40 : 0); // force it at the bottom of menu
 
-    //~ bottom -= 10;
+    return bottom - 35;
+}
+void draw_ml_bottombar(int double_buffering, int clear)
+{
+    //~ beep();
+    if (!should_draw_bottom_bar()) return;
+    
+    struct lens_info *    info = &lens_info;
 
-    //~ if (screen_layout == SCREENLAYOUT_16_9)
-        //~ bg = bmp_getpixel(os.x0 + 123, bottom-36);
-    //unsigned x = 420;
-    //~ unsigned y = 480 - height - 10;
-    //~ if (ext_monitor_hdmi) y += recording ? -100 : 200;
+    int bg = COLOR_BLACK;
+    if (is_movie_mode() || gui_menu_shown()) bg = COLOR_BLACK;
+    
+    int bar_height = 35;
+    int ytop = get_ml_bottombar_pos();
+    int bottom = ytop + bar_height;
+
 
     unsigned int x_origin = MAX(os.x0 + os.x_ex/2 - 360 + 50, 0);
     unsigned int y_origin = bottom - 30;
     unsigned text_font = SHADOW_FONT(FONT(FONT_LARGE, COLOR_WHITE, bg));
-	int bar_height = 35;
-    int ytop = bottom - bar_height;
 
     // start drawing to mirror buffer to avoid flicker
     if (double_buffering)
@@ -869,42 +863,40 @@ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
     }
 }*/
 
-void draw_ml_topbar(int double_buffering, int clear)
+int FAST get_ml_topbar_pos()
 {
-    if (!get_global_draw()) return;
-    
-    //~ int bg = TOPBAR_BGCOLOR;
-    //~ if (gui_menu_shown()) bg = COLOR_BLACK;
-    unsigned font    = FONT(SHADOW_FONT(FONT_MED), COLOR_WHITE, COLOR_BLACK);
-    //~ unsigned font_err    = FONT( f, COLOR_RED, bg);
-    //~ unsigned Font    = FONT(FONT_LARGE, COLOR_WHITE, bg);
-    //~ unsigned height    = fontspec_height( font );
-    
-    int x = 80;
-    int y = 0;
-
     int screen_layout = get_screen_layout();
 
-    if (screen_layout >= 3 && !should_draw_bottom_bar())
-        return; // top bar drawn at bottom, may interfere with canon info
-
-
+    int y = 0;
     if (gui_menu_shown())
     {
-        x = MAX(os.x0 + os.x_ex/2 - 360, 0);
-        //~ y = MAX(os.y0 + os.y_ex/2 - 240, os.y0);
         y = (hdmi_code == 5 ? 40 : 0); // force it at the top of menu
     }
     else
     {
-        x = MAX(os.x0 + os.x_ex/2 - 360, 0);
         if (screen_layout == SCREENLAYOUT_3_2_or_4_3) y = os.y0; // just above the 16:9 frame
         else if (screen_layout == SCREENLAYOUT_16_9) y = os.y0 + os.off_169; // meters just below 16:9 border
         else if (screen_layout == SCREENLAYOUT_16_10) y = os.y0 + os.off_1610; // meters just below 16:9 border
         else if (screen_layout == SCREENLAYOUT_UNDER_3_2) y = MIN(os.y_max, 480 - 54);
         else if (screen_layout == SCREENLAYOUT_UNDER_16_9) y = MIN(os.y_max - os.off_169, 480 - 54);
     }
+    return y;
+}
+
+void draw_ml_topbar(int double_buffering, int clear)
+{
+    if (!get_global_draw()) return;
     
+    unsigned font    = FONT(SHADOW_FONT(FONT_MED), COLOR_WHITE, COLOR_BLACK);
+    
+    int x = MAX(os.x0 + os.x_ex/2 - 360, 0);
+    int y = get_ml_topbar_pos();
+
+    int screen_layout = get_screen_layout();
+    if (screen_layout >= 3 && !should_draw_bottom_bar())
+        return; // top bar drawn at bottom, may interfere with canon info
+
+    // fixme: draw them right from the first try
     extern int time_indic_x, time_indic_y; // for bitrate indicators
     if (time_indic_x != os.x_max - 160 || time_indic_y != (int)y) redraw();
     time_indic_x = os.x_max - 160;
