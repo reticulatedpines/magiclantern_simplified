@@ -2025,8 +2025,8 @@ draw_zebra_and_focus( int Z, int F )
         int n_total = 0;
         if (lv) // fast, realtime
         {
-            n_total = ((yEnd - yStart) * (xEnd - xStart)) / 4;
-            for(int y = yStart; y < yEnd; y += 2)
+            n_total = ((yEnd - yStart) * (xEnd - xStart)) / 6;
+            for(int y = yStart; y < yEnd; y += 3)
             {
                 uint32_t hd_row = hdvram + (focus_peaking_lores ? BM2LV_R(y) : BM2HD_R(y));
                 
