@@ -35,6 +35,7 @@
 
 
 #define DIGIC_ZEBRA_REGISTER 0xC0F140cc
+#define FAST_ZEBRA_GRID_COLOR 4 // invisible diagonal grid for zebras; must be unused and only from 0-15
 
 // those colors will not be considered for histogram (so they should be very unlikely to appear in real situations)
 #define MZ_WHITE 0xFA12FA34 
@@ -240,7 +241,7 @@ static CONFIG_INT( "global.draw",   global_draw, 3 );
 #define ZEBRAS_IN_QUICKREVIEW (global_draw > 1)
 #define ZEBRAS_IN_LIVEVIEW (global_draw & 1)
 
-static CONFIG_INT( "zebra.draw",    zebra_draw, 0 );
+static CONFIG_INT( "zebra.draw",    zebra_draw, 1 );
 static CONFIG_INT( "zebra.colorspace",    zebra_colorspace,   2 );// luma/rgb/lumafast
 static CONFIG_INT( "zebra.thr.hi",    zebra_level_hi, 99 );
 static CONFIG_INT( "zebra.thr.lo",    zebra_level_lo, 0 );
@@ -1329,6 +1330,7 @@ static inline int zebra_color_word_row(int c, int y)
 #ifdef FEATURE_FOCUS_PEAK
 
 static int* dirty_pixels = 0;
+static uint32_t* dirty_pixel_values = 0;
 static int dirty_pixels_num = 0;
 //~ static unsigned int* bm_hd_r_cache = 0;
 static uint16_t bm_hd_x_cache[BMP_W_PLUS - BMP_W_MINUS];
@@ -1392,32 +1394,17 @@ void draw_zebras( int Z )
 
         // fast zebras
         #ifdef FEATURE_ZEBRA_FAST
+        /*
+            C0F140cc configurable "zebra" (actually solid color)
+            -------- -------- -------- --------
+                                       ******** threshold
+                                  ****          bmp palette entry (0-F)
+                              ****              zebra color (0-F)
+                            *                   type (1=under,0=over)
+                     *******                    blinking flags maybe (0=no blink)
+         */
         if (zebra_colorspace == 2 && (lv || only_one)) // if both under and over are enabled, fall back to regular zebras in play mode
         {
-            #ifdef CONFIG_4_3_SCREEN
-            // try not to display fast zebras on bottom bar, under the image
-            // int screen_layout = get_screen_layout();
-            if (lv && hdmi_code != 5)
-            {
-                uint8_t* bu = UNCACHEABLE(bvram);
-                uint8_t* bmu = UNCACHEABLE(bvram_mirror);
-                if (bu[BM(0,479)] != COLOR_BLACK || bmu[BM(0,479)] != (COLOR_BLACK | 0x80))
-                {
-                    for (int i = os.y_max; i < 480; i++)
-                    {
-                        for (int j = 0; j < 720; j++)
-                        {
-                            if (bu[BM(j,i)] == 0)
-                            {
-                                bu[BM(j,i)] = COLOR_BLACK;   // prevent under zebras
-                                bmu[BM(j,i)] = COLOR_BLACK | 0x80; // consider it part of cropmarks
-                            }
-                        }
-                    }
-                }
-            }
-            #endif
-
             zebra_digic_dirty = 1;
             
             // if both zebras are enabled, alternate them (can't display both at the same time)
@@ -1429,10 +1416,46 @@ void draw_zebras( int Z )
             int un = (zebra_level_lo  >   0 && (zebra_level_hi  > 100 || parity == 1));
             
             if (ov)
-                EngDrvOut(DIGIC_ZEBRA_REGISTER, 0xC000 + zlh);
+                EngDrvOut(DIGIC_ZEBRA_REGISTER, 0x08000 | (FAST_ZEBRA_GRID_COLOR<<8) | zlh);
             else if (un)
-                EngDrvOut(DIGIC_ZEBRA_REGISTER, 0x1d000 + zll);
+                EngDrvOut(DIGIC_ZEBRA_REGISTER, 0x1B000 | (FAST_ZEBRA_GRID_COLOR<<8) | zll);
+
+            // make invisible diagonal strips onto which the zebras will be displayed
+            // only refresh this once per second
             
+            static int last_s = 0;
+            int s = get_seconds_clock();
+            if (s == last_s) return;
+            last_s = s;
+            
+            alter_bitmap_palette_entry(FAST_ZEBRA_GRID_COLOR, 0, 256, 256);
+            int off = get_y_skip_offset_for_overlays();
+            for(int y = os.y0 + off; y < os.y_max - off; y++)
+            {
+                #define color_zeb           zebra_color_word_row(FAST_ZEBRA_GRID_COLOR,  y)
+
+                uint32_t * const b_row = (uint32_t*)( bvram        + BM_R(y)       );  // 4 pixels
+                uint32_t * const m_row = (uint32_t*)( bvram_mirror + BM_R(y)       );  // 4 pixels
+                
+                uint32_t* bp;  // through bmp vram
+                uint32_t* mp;  // through mirror
+
+                for (int x = os.x0; x < os.x_max; x += 4)
+                {
+                    bp = b_row + x/4;
+                    mp = m_row + x/4;
+                    #define BP (*bp)
+                    #define MP (*mp)
+                    if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
+                    if ((MP & 0x80808080)) continue;
+                    
+                    BP = MP = color_zeb;
+                        
+                    #undef MP
+                    #undef BP
+                }
+            }
+
             return;
         }
         else 
@@ -1874,13 +1897,14 @@ static void FAST focus_found_pixel(int x, int y, int e, int thr, uint8_t * const
     if (pixel2 != 0 && pixel2 != mirror2)
         return;
 
-    b_row[x/2] = b_row[x/2 + BMPPITCH/2] = 
-    m_row[x/2] = m_row[x/2 + BMPPITCH/2] = color;
-    
     if (dirty_pixels_num < MAX_DIRTY_PIXELS)
     {
+        dirty_pixel_values[dirty_pixels_num] = (uint32_t)b_row[x/2] + ((uint32_t)b_row[x/2 + BMPPITCH/2] << 16);
         dirty_pixels[dirty_pixels_num++] = (void*)&b_row[x/2] - (void*)bvram;
     }
+
+    b_row[x/2] = b_row[x/2 + BMPPITCH/2] = 
+    m_row[x/2] = m_row[x/2 + BMPPITCH/2] = color;
 }
 
 static void focus_found_pixel_playback(int x, int y, int e, int thr, uint8_t * const bvram)
@@ -1940,6 +1964,8 @@ draw_zebra_and_focus( int Z, int F )
         // clear previously written pixels
         if (unlikely(!dirty_pixels)) dirty_pixels = SmallAlloc(MAX_DIRTY_PIXELS * sizeof(int));
         if (unlikely(!dirty_pixels)) return -1;
+        if (unlikely(!dirty_pixel_values)) dirty_pixel_values = SmallAlloc(MAX_DIRTY_PIXELS * sizeof(int));
+        if (unlikely(!dirty_pixel_values)) return -1;
         int i;
         for (i = 0; i < dirty_pixels_num; i++)
         {
@@ -1949,7 +1975,10 @@ draw_zebra_and_focus( int Z, int F )
             #define M2 *(uint16_t*)(bvram_mirror + dirty_pixels[i] + BMPPITCH)
 
             if (likely((B1 == 0 || B1 == M1)) && likely((B2 == 0 || B2 == M2)))
-                B1 = B2 = M1 = M2 = 0;
+            {
+                B1 = M1 = dirty_pixel_values[i] & 0xFFFF;
+                B2 = M2 = dirty_pixel_values[i] >> 16;
+            }
             #undef B1
             #undef B2
             #undef M1
@@ -5310,6 +5339,7 @@ static void digic_zebra_cleanup()
 {
     if (!DISPLAY_IS_ON) return;
     EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); 
+    alter_bitmap_palette_entry(FAST_ZEBRA_GRID_COLOR, FAST_ZEBRA_GRID_COLOR, 256, 256);
     zebra_digic_dirty = 0;
 }
 #endif
