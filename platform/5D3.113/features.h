@@ -11,6 +11,7 @@
 #undef FEATURE_SHUTTER_LOCK // Canon has a dedicated button for it
 #undef FEATURE_FLASH_TWEAKS // no built-in flash
 
+#define FEATURE_ISR_HOOKS
 #define FEATURE_KEN_ROCKWELL_ZOOM_5D3
 #define FEATURE_ZOOM_TRICK_5D3 // not reliable
 //~ #define FEATURE_REMEMBER_LAST_ZOOM_POS_5D3 // too many conflicts with other features

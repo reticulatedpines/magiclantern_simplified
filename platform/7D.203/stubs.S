@@ -34,8 +34,11 @@
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
-NSTUB( 0x67C, next_task_ctx )
-NSTUB( 0x680, current_task_ctx )
+NSTUB(0x193C, pre_isr_hook)
+NSTUB(0x1940, post_isr_hook)
+
+NSTUB(0x67C, next_task_ctx)
+NSTUB(0x680, current_task_ctx)
 
 NSTUB(0xFF07AED4, RegisterRPCHandler)
 NSTUB(0xFF07AF84, RequestRPC)

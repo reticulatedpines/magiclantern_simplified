@@ -16,6 +16,11 @@ uint32_t tskmon_task_stack_check[TSKMON_MAX_TASKS];
 uint32_t tskmon_idle_task_id = 0;
 uint32_t tskmon_powermgr_task_id = 0;
 
+#ifdef FEATURE_ISR_HOOKS
+uint32_t tskmon_isr_nesting = 0;
+uint32_t tskmon_isr_task_active_time = 0;
+#endif
+
 uint32_t tskmon_get_timer_reg()
 {
     return *(uint32_t*)0xC0242014;
@@ -189,6 +194,38 @@ void tskmon_task_dispatch()
 #endif
 }
 
+#ifdef FEATURE_ISR_HOOKS
+
+void tskmon_pre_isr()
+{
+    tskmon_isr_nesting++;
+    
+    /* just in case that interrupts are nesting */
+    if(tskmon_isr_nesting == 1)
+    {
+        tskmon_update_timers();
+        tskmon_isr_task_active_time = tskmon_active_time;
+        tskmon_active_time = 0;
+    }
+}
+
+void tskmon_post_isr()
+{
+    tskmon_isr_nesting--;
+    
+    /* just in case that interrupts are nesting */
+    if(tskmon_isr_nesting == 0)
+    {
+        /* calculate runtime since las timer rading */
+        tskmon_update_timers();
+        /* apply to interrupt entry */
+        tskmon_task_runtimes[TSKMON_MAX_TASKS-1] += tskmon_active_time;
+        /* restore task runtime */
+        tskmon_active_time = tskmon_isr_task_active_time;
+    }
+}
+#endif
+
 void tskmon_init()
 {
     for(int pos = 0; pos < TSKMON_MAX_TASKS; pos++)
@@ -202,6 +239,14 @@ void tskmon_init()
     tskmon_last_timer_val = 0;
     tskmon_active_time = 0;
     tskmon_total_runtime = 0;
+    
+#ifdef FEATURE_ISR_HOOKS
+    extern void (*pre_isr_hook)();
+    extern void (*post_isr_hook)();
+    
+    pre_isr_hook = &tskmon_pre_isr;
+    post_isr_hook = &tskmon_post_isr;
+#endif
 }
 
 #endif

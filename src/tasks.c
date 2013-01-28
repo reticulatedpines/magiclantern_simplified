@@ -83,12 +83,21 @@ void task_update_loads() // called every second from clock_task
                 int cpu_percent = show_cpu_usage_flag == 2 ? tskmon_task_loads[i].absolute : tskmon_task_loads[i].relative;
                 if (cpu_percent)
                 {
-                    char* name = get_task_name_from_id(i);
-                    if (streq(name, "PowerMgr"))
-                        continue;
+                    char* name = "";
+                    
+                    if(i < TSKMON_MAX_TASKS-1)
+                    {
+                        name = get_task_name_from_id(i);
+                        if (streq(name, "PowerMgr"))
+                            continue;
+                    }
+                    else
+                    {
+                        name = "Interrupts";
+                    }
                     char short_name[] = "           \0";
                     my_memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
-                    int c = cpu_percent > 800 ? COLOR_RED : cpu_percent > 300 ? COLOR_YELLOW : cpu_percent > 100 ? COLOR_CYAN : COLOR_WHITE;
+                    int c = cpu_percent > 800 ? COLOR_RED : cpu_percent > 300 ? COLOR_YELLOW : cpu_percent > 100 ? COLOR_CYAN : (i == TSKMON_MAX_TASKS-1) ? COLOR_ORANGE : COLOR_WHITE;
                     bmp_printf(FONT(FONT_SMALL, c, COLOR_BLACK), x, y, 
                     "%s: %2d.%1d%%", 
                     short_name, cpu_percent/10, cpu_percent%10);

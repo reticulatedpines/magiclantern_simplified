@@ -9,3 +9,4 @@
 #undef FEATURE_SHUTTER_LOCK // Canon has it
 
 #define FEATURE_VIDEO_HACKS
+#define FEATURE_ISR_HOOKS
