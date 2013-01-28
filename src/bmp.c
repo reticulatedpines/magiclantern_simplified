@@ -760,7 +760,7 @@ bmp_load(
     // and release the uncacheable space.
 
     if (compression==bmp->compression) {
-        uint8_t * fast_buf = AllocateMemory( size + 32);
+        uint8_t * fast_buf = BmpAlloc( size + 32);
         if( !fast_buf )
             goto fail_buf_copy;
         memcpy(fast_buf, buf, size);
@@ -788,7 +788,7 @@ bmp_load(
             size_needed += 2; //0000 EOL
         }
         size_needed += 2; //0001 EOF
-        fast_buf = AllocateMemory( size_needed );
+        fast_buf = BmpAlloc( size_needed );
         if( !fast_buf ) goto fail_buf_copy;
         memcpy(fast_buf, buf, sizeof(struct bmp_file_t));
         gpos = fast_buf + sizeof(struct bmp_file_t);

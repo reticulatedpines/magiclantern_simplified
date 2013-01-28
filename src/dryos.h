@@ -413,6 +413,12 @@ extern void free( void * buf );
 #define SmallFree FreeMemory
 #endif
 
+// used for cropmarks or other bitmaps; can be overriden in internals.h (e.g. 1100D)
+#ifndef BmpAlloc
+#define BmpAlloc AllocateMemory
+#define BmpFree FreeMemory
+#endif
+
 
 extern void * realloc( void * buf, size_t newlen );
 
