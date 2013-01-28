@@ -74,7 +74,7 @@
 
 #ifdef CONFIG_650D
 #define DISPLAY_STATE DISPLAY_STATEOBJ
-    #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
+#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 24
 #define EVF_STATE (*(struct state_object **)0x25B00)
 #define MOVREC_STATE (*(struct state_object **)0x27704)
 #endif
@@ -140,7 +140,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 
 // sync ML overlay tools (especially Magic Zoom) with LiveView
 // this is tricky...
-#if defined(CONFIG_5D3) || defined(CONFIG_6D)
+#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_650D)
     if (self == DISPLAY_STATE && (input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER))
         lv_vsync_signal();
 #elif defined(CONFIG_5D2)
