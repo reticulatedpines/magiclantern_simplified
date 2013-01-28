@@ -357,7 +357,7 @@ static void add_write_q(void *buf){
         memcpy(tmpq->buf + offset,buf,WAV_BUF_SIZE);
         tmpq->multiplex++;
     }else{
-        newq = AllocateMemory(sizeof(WRITE_Q));
+        newq = SmallAlloc(sizeof(WRITE_Q));
         memset(newq,0,sizeof(WRITE_Q));
         newq->buf = alloc_dma_memory(WAV_BUF_SIZE*QBUF_SIZE);
         memcpy(newq->buf ,buf,WAV_BUF_SIZE);
@@ -376,7 +376,7 @@ static void write_q_dump(){
         FIO_WriteFile(file, UNCACHEABLE(tmpq->buf), WAV_BUF_SIZE * tmpq->multiplex);
         free_dma_memory(tmpq->buf);
         prevq->next = tmpq->next;
-        FreeMemory(tmpq);
+        SmallFree(tmpq);
         tmpq = prevq;
     }
 }
@@ -618,31 +618,31 @@ static void beep_task()
         {
             info_led_on();
             int N = 48000*5;
-            int16_t* beep_buf = AllocateMemory(N*2);
-            if (!beep_buf) { N = 48000; beep_buf = AllocateMemory(N*2); } // not enough RAM, try a shorter tone
-            if (!beep_buf) { N = 10000; beep_buf = AllocateMemory(N*2); } // even shorter
+            int16_t* beep_buf = SmallAlloc(N*2);
+            if (!beep_buf) { N = 48000; beep_buf = SmallAlloc(N*2); } // not enough RAM, try a shorter tone
+            if (!beep_buf) { N = 10000; beep_buf = SmallAlloc(N*2); } // even shorter
             if (!beep_buf) continue; // give up
             generate_beep_tone(beep_buf, N);
             play_beep(beep_buf, N);
             while (beep_playing) msleep(100);
-            FreeMemory(beep_buf);
+            SmallFree(beep_buf);
             info_led_off();
         }
         else if (beep_type == BEEP_SHORT)
         {
             int N = 5000;
-            int16_t* beep_buf = AllocateMemory(N*2);
+            int16_t* beep_buf = SmallAlloc(N*2);
             if (!beep_buf) continue; // give up
             generate_beep_tone(beep_buf, 5000);
             play_beep(beep_buf, 5000);
             while (beep_playing) msleep(20);
-            FreeMemory(beep_buf);
+            SmallFree(beep_buf);
         }
         else if (beep_type > 0) // N beeps
         {
             int times = beep_type;
             int N = 10000;
-            int16_t* beep_buf = AllocateMemory(N*2);
+            int16_t* beep_buf = SmallAlloc(N*2);
             if (!beep_buf) continue;
             generate_beep_tone(beep_buf, N);
             
@@ -659,7 +659,7 @@ static void beep_task()
                 msleep(120);
             }
             
-            FreeMemory(beep_buf);
+            SmallFree(beep_buf);
         }
         msleep(100);
         audio_configure(1);
@@ -1027,7 +1027,7 @@ static void beep_init()
     wav_buf[0] = alloc_dma_memory(WAV_BUF_SIZE);
     wav_buf[1] = alloc_dma_memory(WAV_BUF_SIZE);
     
-    rootq = AllocateMemory(sizeof(WRITE_Q));
+    rootq = SmallAlloc(sizeof(WRITE_Q));
     memset(rootq,0,sizeof(WRITE_Q));
     rootq->multiplex=100;
 #endif

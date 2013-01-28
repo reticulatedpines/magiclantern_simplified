@@ -500,7 +500,7 @@ menu_find_by_name(
     }
 
     // Not found; create it
-    struct menu * new_menu = AllocateMemory( sizeof(*new_menu) );
+    struct menu * new_menu = SmallAlloc( sizeof(*new_menu) );
     if( !new_menu )
     {
         give_semaphore( menu_sem );

@@ -111,8 +111,8 @@ void console_clear()
 
 static void console_init()
 {
-    console_buffer = AllocateMemory(BUFSIZE+32);
-    console_puts_buffer = AllocateMemory(BUFSIZE+32);
+    console_buffer = SmallAlloc(BUFSIZE+32);
+    console_puts_buffer = SmallAlloc(BUFSIZE+32);
 
     console_clear();
 

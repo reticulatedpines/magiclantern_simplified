@@ -617,7 +617,7 @@ vectorscope_init()
 {
     if(vectorscope == NULL)
     {
-        vectorscope = AllocateMemory(VECTORSCOPE_WIDTH_MAX * VECTORSCOPE_HEIGHT_MAX * sizeof(uint8_t));
+        vectorscope = SmallAlloc(VECTORSCOPE_WIDTH_MAX * VECTORSCOPE_HEIGHT_MAX * sizeof(uint8_t));
         vectorscope_clear();
     }
 }
@@ -1231,7 +1231,7 @@ static void waveform_init()
 {
 #ifdef FEATURE_WAVEFORM
     if (!waveform)
-        waveform = AllocateMemory(WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
+        waveform = SmallAlloc(WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
     bzero32(waveform, WAVEFORM_WIDTH * WAVEFORM_HEIGHT);
 #endif
 }
@@ -1938,7 +1938,7 @@ draw_zebra_and_focus( int Z, int F )
     if (F && focus_peaking)
     {
         // clear previously written pixels
-        if (unlikely(!dirty_pixels)) dirty_pixels = AllocateMemory(MAX_DIRTY_PIXELS * sizeof(int));
+        if (unlikely(!dirty_pixels)) dirty_pixels = SmallAlloc(MAX_DIRTY_PIXELS * sizeof(int));
         if (unlikely(!dirty_pixels)) return -1;
         int i;
         for (i = 0; i < dirty_pixels_num; i++)

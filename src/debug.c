@@ -1628,9 +1628,9 @@ static void dbg_memspy_init() // initial state of the analyzed memory
     bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
     //~ msleep(2000);
     //mem_spy_len is number of int32's
-    if (!dbg_memmirror) dbg_memmirror = AllocateMemory(mem_spy_len*4 + 100); // local copy of mem area analyzed
+    if (!dbg_memmirror) dbg_memmirror = SmallAlloc(mem_spy_len*4 + 100); // local copy of mem area analyzed
     if (!dbg_memmirror) return;
-    if (!dbg_memchanges) dbg_memchanges = AllocateMemory(mem_spy_len*4 + 100); // local copy of mem area analyzed
+    if (!dbg_memchanges) dbg_memchanges = SmallAlloc(mem_spy_len*4 + 100); // local copy of mem area analyzed
     if (!dbg_memchanges) return;
     int i;
     //~ bmp_printf(FONT_MED, 10,10, "memspy alloc");
@@ -3053,7 +3053,7 @@ debug_init( void )
     draw_prop = 0;
 
 #if CONFIG_DEBUGMSG
-    if (!property_list) property_list = AllocateMemory(num_properties * sizeof(unsigned));
+    if (!property_list) property_list = SmallAlloc(num_properties * sizeof(unsigned));
     if (!property_list) return;
     unsigned i, j, k;
     unsigned actual_num_properties = 0;
@@ -3323,7 +3323,7 @@ int TmpMem_Init()
     ASSERT(!tmp_files);
     static int retries = 0; 
     tmp_file_index = 0;
-    if (!tmp_files) tmp_files = AllocateMemory(200 * sizeof(struct tmp_file));
+    if (!tmp_files) tmp_files = SmallAlloc(200 * sizeof(struct tmp_file));
     if (!tmp_files) 
     { 
         retries++;

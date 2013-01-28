@@ -405,6 +405,15 @@ SIZE_CHECK_STRUCT( dryos_meminfo, 0xC );
 extern void * malloc( size_t len );
 extern void free( void * buf );
 
+#ifdef CONFIG_ALLOCATE_MEMORY_POOL // ML is placed in the AllocateMemory buffer, so we have a bit of free space in the malloc one
+#define SmallAlloc malloc
+#define SmallFree free
+#else
+#define SmallAlloc AllocateMemory
+#define SmallFree FreeMemory
+#endif
+
+
 extern void * realloc( void * buf, size_t newlen );
 
 /** Set if the firmware was loaded via AUTOEXEC.BIN */

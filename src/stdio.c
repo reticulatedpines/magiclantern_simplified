@@ -256,7 +256,7 @@ realloc(
     // If buf is NULL, this is a normal malloc()
     if (!buf)
     {
-        void * rc = AllocateMemory( new_size );
+        void * rc = SmallAlloc( new_size );
         struct dryos_meminfo * mem = rc;
         mem--;
         DebugMsg( DM_MAGIC, 3,
@@ -275,7 +275,7 @@ realloc(
     if( new_size == 0 )
     {
         if( buf )
-            FreeMemory(buf);
+            SmallFree(buf);
         return NULL;
     }
 
@@ -292,7 +292,7 @@ realloc(
         return buf;
 
     // Allocate a new buffer and copy the old data into it
-    void * new_buf = AllocateMemory( new_size );
+    void * new_buf = SmallAlloc( new_size );
     if (!new_buf)
         return NULL;
 

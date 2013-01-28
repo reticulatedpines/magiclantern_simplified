@@ -143,7 +143,7 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 					size += 8 + strlen(m->name);
 				}
 				m = menu_get_root();
-				data = AllocateMemory(size);
+				data = SmallAlloc(size);
 				if (!data) {
 					msg.id = PTP_RC_GeneralError;
 					break;
@@ -163,7 +163,7 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 				if ( !send_ptp_data(context, data, size ) ) {
 					msg.id = PTP_RC_GeneralError;
 				}
-				FreeMemory(data);
+				SmallFree(data);
 			}
 			break;
 		case PTP_ML_GetMenuStructs:
@@ -184,7 +184,7 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 					size += menu_data_size(m2);
 				}
 				m2 = m;
-				data = AllocateMemory(size);
+				data = SmallAlloc(size);
 				if (!data) {
 					msg.id = PTP_RC_GeneralError;
 					break;
@@ -197,7 +197,7 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 				if ( !send_ptp_data(context, data, size ) ) {
 					msg.id = PTP_RC_GeneralError;
 				}
-				FreeMemory(data);
+				SmallFree(data);
 			}
 			break;
 		case PTP_ML_GetMenuStruct:
@@ -213,7 +213,7 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 					break;
 				}
 				size = menu_data_size(m);
-				data = AllocateMemory(size);
+				data = SmallAlloc(size);
 				if (!data) {
 					msg.id = PTP_RC_GeneralError;
 					break;
@@ -223,7 +223,7 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 				if ( !send_ptp_data(context, data, size ) ) {
 					msg.id = PTP_RC_GeneralError;
 				}
-				FreeMemory(data);
+				SmallFree(data);
 			}
 			break;
 
