@@ -5783,10 +5783,10 @@ static void livev_playback_toggle()
     }
     else
     {
-        if (zebra_digic_dirty) digic_zebra_cleanup();
         #ifdef CONFIG_4_3_SCREEN
         clrscr(); // old cameras don't refresh the entire screen
         #endif
+        if (zebra_digic_dirty) digic_zebra_cleanup();
         redraw();
     }
 }
