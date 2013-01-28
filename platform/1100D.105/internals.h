@@ -117,5 +117,5 @@
 #define CONFIG_MONO_MIC
 
 /** 1100D has very little RAM; use the malloc/free pool for bitmaps too (and only load small bitmaps) */
-#define BmpAlloc malloc
-#define BmpFree free
+#define CONFIG_USE_MALLOC_FOR_SMALL_THINGS
+#define CONFIG_USE_MALLOC_FOR_BMP

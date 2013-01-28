@@ -405,7 +405,7 @@ SIZE_CHECK_STRUCT( dryos_meminfo, 0xC );
 extern void * malloc( size_t len );
 extern void free( void * buf );
 
-#ifdef CONFIG_ALLOCATE_MEMORY_POOL // ML is placed in the AllocateMemory buffer, so we have a bit of free space in the malloc one
+#ifdef CONFIG_USE_MALLOC_FOR_SMALL_THINGS
 #define SmallAlloc malloc
 #define SmallFree free
 #else
@@ -413,8 +413,10 @@ extern void free( void * buf );
 #define SmallFree FreeMemory
 #endif
 
-// used for cropmarks or other bitmaps; can be overriden in internals.h (e.g. 1100D)
-#ifndef BmpAlloc
+#ifdef CONFIG_USE_MALLOC_FOR_BMP
+#define BmpAlloc malloc
+#define BmpFree free
+#else
 #define BmpAlloc AllocateMemory
 #define BmpFree FreeMemory
 #endif

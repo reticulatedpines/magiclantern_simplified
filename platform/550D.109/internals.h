@@ -100,3 +100,6 @@
 
 /** This camera loads ML into the AllocateMemory pool **/
 #define CONFIG_ALLOCATE_MEMORY_POOL
+
+/** The malloc pool has some free space, let's use it for small things */
+#define CONFIG_USE_MALLOC_FOR_SMALL_THINGS
