@@ -797,6 +797,9 @@ follow_focus_print(
     {
         if (is_manual_focus()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Follow focus requires autofocus enabled.");
         if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Follow focus only works in LiveView.");
+        #ifndef CONFIG_NO_HALFSHUTTER_AF_IN_LIVEVIEW
+        if (cfn_get_af_button_assignment() == AF_BTN_HALFSHUTTER) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
+        #endif
     }
     menu_draw_icon(x, y, MNI_BOOL_LV(follow_focus));
 }
@@ -1192,7 +1195,7 @@ trap_focus_display( void * priv, int x, int y, int selected )
         if (lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "On your camera, trap focus doesn't work in LiveView.");
         #endif
         if (lv && is_movie_mode()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Trap focus does not work in movie mode.");
-        if (t == 2 && cfn_get_af_button_assignment()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Assign AF button to half-shutter from CFn!");
+        if (t == 2 && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Assign AF button to half-shutter from CFn!");
     }
 }
 

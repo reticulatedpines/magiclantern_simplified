@@ -109,3 +109,6 @@
 
 /** This camera has a mono microphone input, so we should display only one audio meter **/
 #define CONFIG_MONO_MIC
+
+/** You can't AF by pressing shutter halfway in LiveView */
+#define CONFIG_NO_HALFSHUTTER_AF_IN_LIVEVIEW

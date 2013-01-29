@@ -100,3 +100,6 @@
 
 /** No auto ISO limits in Canon menus **/
 #define CONFIG_NO_AUTO_ISO_LIMITS
+
+/** You can't AF by pressing shutter halfway in LiveView */
+#define CONFIG_NO_HALFSHUTTER_AF_IN_LIVEVIEW
