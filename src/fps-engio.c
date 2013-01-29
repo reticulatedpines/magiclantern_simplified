@@ -1495,10 +1495,7 @@ int handle_fps_events(struct event * event)
 
 void fps_ramp_iso_step()
 {
-#ifdef FEATURE_FPS_RAMPING
-    #ifndef CONFIG_FRAME_ISO_OVERRIDE
-    #error This requires CONFIG_FRAME_ISO_OVERRIDE.
-    #endif
+#ifdef CONFIG_FRAME_ISO_OVERRIDE
     
     if (!lv) return;
     if (!is_movie_mode()) return;
