@@ -2145,7 +2145,7 @@ LENS_GET_FROM_OTHER_PICSTYLE(saturation)
 LENS_GET_FROM_OTHER_PICSTYLE(color_tone)
 
 LENS_SET_IN_PICSTYLE(contrast, -4, 4)
-LENS_SET_IN_PICSTYLE(sharpness, -1, 7)
+LENS_SET_IN_PICSTYLE(sharpness, 0, 7)
 LENS_SET_IN_PICSTYLE(saturation, -4, 4)
 LENS_SET_IN_PICSTYLE(color_tone, -4, 4)
 
