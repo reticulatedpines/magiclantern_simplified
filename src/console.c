@@ -176,7 +176,8 @@ int console_printf(const char* fmt, ...) // don't DebugMsg from here!
 	return len;
 }
 
-static int console_vprintf(const char* fmt, va_list ap) // don't DebugMsg from here!
+// used from Lua
+int console_vprintf(const char* fmt, va_list ap) // don't DebugMsg from here!
 {
     char buf[256];
     int len = vsnprintf( buf, 255, fmt, ap );
