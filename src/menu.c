@@ -38,6 +38,8 @@
 #define MENU_HELP_Y_POS 453
 #define MENU_WARNING_Y_POS (menu_lv_transparent_mode ? 425 : 453)
 
+#define MENU_BG_COLOR_HEADER_FOOTER COLOR_GRAY40
+
 //for vscroll
 #define MENU_LEN_DEFAULT 11
 #define MENU_LEN_AUDIO 10 // at len=11, audio meters would overwrite menu entries on 600D
@@ -1214,12 +1216,12 @@ menu_display(
             if (menu->selected && menu->help)
             {
                 bmp_printf(
-                    FONT(FONT_MED, 0xC, COLOR_BLACK), // red
+                    FONT(FONT_MED, 0xC, MENU_BG_COLOR_HEADER_FOOTER), // red
                      10,  MENU_HELP_Y_POS, 
                         "                                                           "
                 );
                 bmp_printf(
-                    FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 
+                    FONT(FONT_MED, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER), 
                      10,  MENU_HELP_Y_POS, 
                     menu_help_get_line(menu->help, menu->priv)
                 );
@@ -1346,7 +1348,7 @@ menu_display(
                     #else
                     if (CURRENT_DIALOG_MAYBE) // we can use scrollwheel
                     #endif
-                        bfnt_draw_char(ICON_MAINDIAL, 680, 415, COLOR_CYAN, COLOR_BLACK);
+                        bfnt_draw_char(ICON_MAINDIAL, 680, 415, COLOR_CYAN, MENU_BG_COLOR_HEADER_FOOTER);
                     else
                         leftright_sign(690, 415);
                 }
@@ -1371,7 +1373,7 @@ menu_display(
 
                 
                 bmp_printf(
-                    FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 
+                    FONT(FONT_MED, COLOR_CYAN, MENU_BG_COLOR_HEADER_FOOTER), 
                      10,  MENU_KEYHELP_Y_POS, 
                     msg
                 );
@@ -1379,7 +1381,7 @@ menu_display(
             #if !defined(CONFIG_5DC) && !defined(CONFIG_EOSM)
                 if (!submenu_mode && !menu_lv_transparent_mode) // we can use scrollwheel for navigation
                 {
-                    bfnt_draw_char(ICON_MAINDIAL, 680, 415, COLOR_GRAY50, COLOR_BLACK);
+                    bfnt_draw_char(ICON_MAINDIAL, 680, 415, COLOR_GRAY50, MENU_BG_COLOR_HEADER_FOOTER);
                     if (!CURRENT_DIALOG_MAYBE) // wait, we CAN'T use it... 
                                                // and you need to be careful because you will change shooting settings while recording!
                     {
@@ -1394,13 +1396,13 @@ menu_display(
             if (menu->selected && warning_msg)
             {
                 bmp_printf(
-                    FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK),
+                    FONT(FONT_MED, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER),
                      10,  MENU_WARNING_Y_POS, 
                         "                                                            "
                 );
 
                 bmp_printf(
-                    FONT(FONT_MED, MENU_WARNING_COLOR, COLOR_BLACK),
+                    FONT(FONT_MED, MENU_WARNING_COLOR, MENU_BG_COLOR_HEADER_FOOTER),
                      10,  MENU_WARNING_Y_POS, 
                         warning_msg
                 );
@@ -1410,7 +1412,7 @@ menu_display(
             if (advanced_hidden_edit_mode)
             {
                 bmp_printf(
-                    FONT(FONT_MED, MENU_WARNING_COLOR, COLOR_BLACK),
+                    FONT(FONT_MED, MENU_WARNING_COLOR, MENU_BG_COLOR_HEADER_FOOTER),
                      10,  MENU_HELP_Y_POS, 
                         "Press SET to hide items that you don't use. MENU: go back. "
                 );
@@ -1474,26 +1476,26 @@ show_hidden_items(struct menu * menu, int force_clear)
         }
         STR_APPEND(hidden_msg, advanced_hidden_edit_mode ? "." : " (press MENU).");
         
-        if (strlen(hidden_msg) > 59)
+        if (strlen(hidden_msg) > 55)
         {
-            hidden_msg[58] = hidden_msg[57] = hidden_msg[56] = '.';
-            hidden_msg[59] = '\0';
+            hidden_msg[54] = hidden_msg[53] = hidden_msg[52] = '.';
+            hidden_msg[55] = '\0';
         }
 
-        int hidden_pos_y = MENU_KEYHELP_Y_POS - font_med.height - 5;
+        int hidden_pos_y = MENU_KEYHELP_Y_POS;
         if (is_menu_active("Help")) hidden_pos_y -= font_med.height;
         if (hidden_count || force_clear)
         {
             bmp_printf(
-                FONT(FONT_MED, COLOR_GRAY45, COLOR_BLACK), 
+                FONT(FONT_MED, COLOR_GRAY45, MENU_BG_COLOR_HEADER_FOOTER), 
                  10,  hidden_pos_y, 
-                "                                                            "
+                "                                                       "
             );
         }
         if (hidden_count)
         {
             bmp_printf(
-                FONT(FONT_MED, advanced_hidden_edit_mode ? MENU_WARNING_COLOR : COLOR_ORANGE , COLOR_BLACK), 
+                FONT(FONT_MED, advanced_hidden_edit_mode ? MENU_WARNING_COLOR : COLOR_ORANGE , MENU_BG_COLOR_HEADER_FOOTER), 
                  10, hidden_pos_y, 
                  hidden_msg
             );
@@ -1512,9 +1514,9 @@ show_vscroll(struct menu* parent){
     int menu_len = get_menu_len(parent);
     
     if(max > menu_len){
-        bmp_draw_rect(COLOR_GRAY70, 715, 42, 4, 350);
-        int16_t posx = 42 + (300 * (pos-1) / (max-1));
-        bmp_fill(COLOR_GRAY70, 717, posx, 4, 50);
+        bmp_draw_rect(COLOR_GRAY50, 718, 43, 1, 375);
+        int16_t posx = 43 + (325 * (pos-1) / (max-1));
+        bmp_fill(COLOR_WHITE, 717, posx, 4, 50);
     }
 }
 
@@ -1547,12 +1549,14 @@ menus_display(
     int icon_spacing = (720 - 130) / num_tabs;
     
     int bgs = COLOR_BLACK;
-    int bgu = COLOR_GRAY40;
+    int bgu = MENU_BG_COLOR_HEADER_FOOTER;
     int fgu = COLOR_GRAY50;
     int fgs = COLOR_WHITE;
 
     bmp_fill(bgu, orig_x, y, 720, 42);
     bmp_fill(fgu, orig_x, y+42, 720, 1);
+    bmp_fill(fgu, orig_x, 480-61, 720, 1);
+    bmp_fill(bgu, orig_x, 480-60, 720, 60);
     for( ; menu ; menu = menu->next )
     {
         if (!menu_has_visible_items(menu->children) && !menu->selected)
@@ -1604,16 +1608,15 @@ menus_display(
 
         if( menu->selected )
         {
-            show_hidden_items(menu, 0);
-
             menu_display(
                 menu,
                 orig_x + 40,
-                y + 50, 
+                y + 55, 
                 0
             );
             
             show_vscroll(menu);
+            show_hidden_items(menu, 0);
         }
     }
     give_semaphore( menu_sem );
@@ -1627,7 +1630,7 @@ implicit_submenu_display()
     menu_display(
         menu,
          40,
-         50,
+         55,
          1
     );
 }
@@ -1648,7 +1651,7 @@ submenu_display(struct menu * submenu)
     
     if (!menu_lv_transparent_mode)
     {
-        bmp_fill(COLOR_GRAY40,  bx,  by, 720-2*bx+4, 50);
+        bmp_fill(MENU_BG_COLOR_HEADER_FOOTER,  bx,  by, 720-2*bx+4, 50);
         bmp_fill(COLOR_BLACK,  bx,  by + 50, 720-2*bx+4, h-50);
         bmp_draw_rect(COLOR_GRAY70,  bx,  by, 720-2*bx, 50);
         bmp_draw_rect(COLOR_WHITE,  bx,  by, 720-2*bx, h);
@@ -1656,7 +1659,7 @@ submenu_display(struct menu * submenu)
     }
 
     show_hidden_items(submenu, 1);
-    menu_display(submenu,  bx + 50,  by + 50 + 20, 0);
+    menu_display(submenu,  bx + 50,  by + 50 + 25, 0);
 }
 
 static void
@@ -2029,7 +2032,7 @@ menu_redraw_do()
 
                 if (submenu_mode)
                 {
-                    if (!menu_lv_transparent_mode && !quick_redraw) bmp_dim();
+                    if (!menu_lv_transparent_mode && !quick_redraw) bmp_dim(0, 480-62);
                     struct menu * submenu = get_current_submenu();
                     if (submenu) submenu_display(submenu);
                     else implicit_submenu_display();
@@ -2931,7 +2934,7 @@ menu_help_go_to_selected_entry(
 
 static void menu_show_version(void)
 {
-    big_bmp_printf(FONT_MED,  10,  410,
+    big_bmp_printf(FONT(FONT_MED, COLOR_GRAY60, MENU_BG_COLOR_HEADER_FOOTER),  10,  420,
         "Magic Lantern version : %s\n"
         "Mercurial changeset   : %s\n"
         "Built on %s by %s.",
@@ -2941,27 +2944,6 @@ static void menu_show_version(void)
         build_user);
 }
 
-void
-menu_title_hack_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    unsigned fontspec = FONT(
-        FONT_MED,
-        selected ? COLOR_WHITE : 60,
-        selected ? 13 : COLOR_BLACK
-    );
-
-    menu_draw_icon(x, y, -1, 0);
-    bmp_printf(
-        fontspec,
-        x - 35, y + 10,
-        (char*)priv
-    );
-}
 
 // this should work on most cameras
 int handle_ml_menu_erase(struct event * event)

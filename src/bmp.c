@@ -1623,7 +1623,7 @@ static void bmp_dim_line(void* dest, size_t n, int even)
 }
 
 // this is only used in menu, so only cover the 720x480 part
-void bmp_dim()
+void bmp_dim(int y1, int y2)
 {
     uint32_t* b = (uint32_t *)bmp_vram();
     ASSERT(b);
@@ -1631,12 +1631,12 @@ void bmp_dim()
     int i;
     //int j;
 #ifdef CONFIG_VXWORKS
-    for (i = 0; i < 480; i+=2)
+    for (i = y1; i < y2; i+=2)
     {
         bmp_dim_line(&b[BM(0,i)/4], 360, (i/2)%2);
     }
 #else
-    for (i = 0; i < 480; i ++)
+    for (i = y1; i < y2; i ++)
     {
         bmp_dim_line(&b[BM(0,i)/4], 720, i%2);
     }
