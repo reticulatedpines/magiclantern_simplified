@@ -844,7 +844,7 @@ void submenu_only_icon(int x, int y, int value)
     bmp_draw_rect(color, x + 15, y + 22, 10, 1);
 }
 
-void selection_bar(int x0, int y0)
+void FAST selection_bar(int x0, int y0)
 {
     if (menu_lv_transparent_mode) return; // only one menu, no need to highlight, and this routine conflicts with RGB zebras
 
@@ -859,12 +859,31 @@ void selection_bar(int x0, int y0)
     c = D2V(c);
     black = D2V(black);
     #endif
+    #define P(x,y) B[BM(x,y)]
     for (int y = y0; y < y0 + 31; y++)
     {
         for (int x = x0-5; x < w; x++)
         {
-            if (B[BM(x,y)] == black)
-                B[BM(x,y)] = c;
+            if (P(x,y) == black)
+                P(x,y) = c;
+        }
+    }
+    // use a shadow for better readability, especially for gray text
+    for (int y = y0; y < y0 + 31; y++)
+    {
+        for (int x = x0-5; x < w; x++)
+        {
+            if (P(x,y) != c && P(x,y) != black)
+            {
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    for (int dy = -1; dy <= 1; dy++)
+                    {
+                        if (P(x+dx,y+dy) == c)
+                            P(x+dx,y+dy) = black;
+                    }
+                }
+            }
         }
     }
 }
