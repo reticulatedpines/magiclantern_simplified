@@ -92,7 +92,7 @@ int FAST get_y_skip_offset_for_overlays()
 
     // in liveview, try not to overlap top and bottom bars
     int off = 0;
-    if (lv && is_movie_mode()) off = os.off_169;
+    if (lv && is_movie_mode() && video_mode_resolution <= 1) off = os.off_169;
     int t = get_ml_topbar_pos();
     int b = get_ml_bottombar_pos();
     int mid = os.y0 + os.y_ex/2;
@@ -404,6 +404,7 @@ static CONFIG_INT( "waveform.draw", waveform_draw,
 static CONFIG_INT( "waveform.size", waveform_size,  0 );
 static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_ALMOST_BLACK ); // solid black
 
+int histogram_or_small_waveform_enabled() { return (hist_draw || (waveform_draw && !waveform_size)) && expsim; }
 
 static CONFIG_INT( "vectorscope.draw", vectorscope_draw, 0);
 
@@ -4072,7 +4073,7 @@ static int cropmark_cache_get_signature()
     get_yuv422_vram(); // update VRAM params if needed
     int sig = 
         crop_index * 13579 + crop_enabled * 14567 +
-        os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0);
+        os.x0*811 + os.y0*467 + os.x_ex*571 + os.y_ex*487 + (is_movie_mode() ? 113 : 0) + video_mode_resolution * 8765;
     return sig;
 }
 static void cropmark_cache_update_signature()
@@ -5532,6 +5533,7 @@ static void black_bars()
 {
     if (!get_global_draw()) return;
     if (!is_movie_mode()) return;
+    if (video_mode_resolution > 1) return; // these are only for 16:9
     int i,j;
     uint8_t * const bvram = bmp_vram();
     get_yuv422_vram();
@@ -5553,11 +5555,9 @@ static void black_bars()
 static void default_movie_cropmarks()
 {
     if (!get_global_draw()) return;
+    if (!lv) return;
     if (!is_movie_mode()) return;
-    if (PLAY_MODE) return;
-    #ifdef CONFIG_5D2
-    if (expsim != 2) return;
-    #endif
+    if (video_mode_resolution > 1) return; // these are only for 16:9
     int i,j;
     uint8_t * const bvram_mirror = get_bvram_mirror();
     get_yuv422_vram();

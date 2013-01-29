@@ -483,7 +483,19 @@ hdmi_force_display(
 CONFIG_INT("screen_layout.lcd", screen_layout_lcd, SCREENLAYOUT_3_2_or_4_3);
 CONFIG_INT("screen_layout.ext", screen_layout_ext, SCREENLAYOUT_16_10);
 unsigned* get_screen_layout_ptr() { return EXT_MONITOR_CONNECTED ? &screen_layout_ext : &screen_layout_lcd; }
-int get_screen_layout() { return (int) *get_screen_layout_ptr(); }
+int get_screen_layout() 
+{
+    int s = (int) *get_screen_layout_ptr();
+    if (s == SCREENLAYOUT_4_3)
+    {
+        // the 4:3 layout is not suitable for 640x480, or when histograms are turned off
+        // use the bottom 3:2 in those cases
+        if (is_movie_mode() && video_mode_resolution > 1) return SCREENLAYOUT_UNDER_3_2;
+        if (!histogram_or_small_waveform_enabled()) return SCREENLAYOUT_UNDER_3_2; 
+        return s;
+    }
+    return s;
+}
 
 #ifdef FEATURE_SCREEN_LAYOUT
 
@@ -495,17 +507,17 @@ screen_layout_display(
         int                     selected
 )
 {
-    int screen_layout = get_screen_layout();
+    int screen_layout = *get_screen_layout_ptr();
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Screen layout  : %s", 
-        screen_layout == SCREENLAYOUT_3_2 ?        "3:2, top/bottom"    :
-        screen_layout == SCREENLAYOUT_4_3 ?        "4:3 Movie, t/b" :
-        screen_layout == SCREENLAYOUT_16_10 ?      "16:10 HDMI,t/b"    :
-        screen_layout == SCREENLAYOUT_16_9 ?       "16:9  HDMI,t/b"    :
-        screen_layout == SCREENLAYOUT_UNDER_3_2 ?  "Under 3:2, bottom" :
-        screen_layout == SCREENLAYOUT_UNDER_16_9 ? "Under 16:9,bottom" :
+        screen_layout == SCREENLAYOUT_3_2 ?        "3:2 display,t/b"  :
+        screen_layout == SCREENLAYOUT_4_3 ?        "4:3 display,auto" :
+        screen_layout == SCREENLAYOUT_16_10 ?      "16:10 HDMI,t/b"   :
+        screen_layout == SCREENLAYOUT_16_9 ?       "16:9  HDMI,t/b"   :
+        screen_layout == SCREENLAYOUT_UNDER_3_2 ?  "Bottom,under 3:2" :
+        screen_layout == SCREENLAYOUT_UNDER_16_9 ? "Bottom,under16:9" :
          "err"
     );
     menu_draw_icon(x, y, MNI_DICE, screen_layout + (5<<16));

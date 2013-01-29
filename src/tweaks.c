@@ -3827,7 +3827,7 @@ static struct menu_entry display_menus[] = {
     {
         .name = "Advanced settings...",
         .select         = menu_open_submenu,
-        .submenu_width = 700,
+        .submenu_width = 710,
         .help = "Screen orientation, position fine-tuning...",
         .children =  (struct menu_entry[]) {
             #ifdef CONFIG_KILL_FLICKER
