@@ -35,8 +35,8 @@
 #define DOUBLE_BUFFERING 1
 
 //~ #define MENU_KEYHELP_Y_POS (menu_lv_transparent_mode ? 425 : 430)
-#define MENU_HELP_Y_POS 425
-#define MENU_WARNING_Y_POS (menu_lv_transparent_mode ? 425 : 453)
+#define MENU_HELP_Y_POS 435
+#define MENU_HELP_Y_POS_2 458
 
 #define MENU_BG_COLOR_HEADER_FOOTER COLOR_GRAY40
 
@@ -1284,6 +1284,16 @@ static char* menu_help_get_line(const char* help, void* priv)
     return buf;
 }
 
+static void menu_clean_footer()
+{
+    int h = 50;
+    if (is_menu_active("Help")) h += 10;
+    int bgu = MENU_BG_COLOR_HEADER_FOOTER;
+    int fgu = COLOR_GRAY50;
+    bmp_fill(fgu, 0, 480-h-1, 720, 1);
+    bmp_fill(bgu, 0, 480-h, 720, h);
+}
+
 static void
 menu_display(
     struct menu * parentmenu,
@@ -1311,25 +1321,33 @@ menu_display(
     }
     //<== vscroll
 
+    if (!menu_lv_transparent_mode)
+        menu_clean_footer();
+
     int menu_entry_num = 0;
     while( menu )
     {
 
         if (advanced_hidden_edit_mode || IS_VISIBLE(menu))
         {
+
             // display help (should be first; if there are too many items in menu, the main text should overwrite the help, not viceversa)
-            if (menu->selected && menu->help)
+            if (menu->selected && menu->help && !menu_lv_transparent_mode)
             {
-                bmp_printf(
-                    FONT(FONT_MED, 0xC, MENU_BG_COLOR_HEADER_FOOTER), // red
-                     10,  MENU_HELP_Y_POS, 
-                        "                                                           "
-                );
                 bmp_printf(
                     FONT(FONT_MED, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER), 
                      10,  MENU_HELP_Y_POS, 
-                    menu_help_get_line(menu->help, menu->priv)
+                    menu->help
                 );
+
+                if (menu->help2)
+                {
+                    bmp_printf(
+                        FONT(FONT_MED, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER), 
+                         10,  MENU_HELP_Y_POS_2, 
+                        menu_help_get_line(menu->help2, menu->priv)
+                    );
+                }
             }
 
             // display icon (only the first icon is drawn)
@@ -1363,7 +1381,7 @@ menu_display(
                 entry_draw_icon(menu, x, y);
             }
 
-            // display key help
+            // display key hints
             if (menu->selected && !is_menu_active("Help") && (menu->priv || menu->select))
             {
                 if (submenu_mode == 1)
@@ -1395,15 +1413,10 @@ menu_display(
             // if there's a warning message set, display it
             if (menu->selected && warning_msg)
             {
-                bmp_printf(
-                    FONT(FONT_MED, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER),
-                     10,  MENU_WARNING_Y_POS, 
-                        "                                                            "
-                );
 
                 bmp_printf(
                     FONT(FONT_MED, MENU_WARNING_COLOR, MENU_BG_COLOR_HEADER_FOOTER),
-                     10,  MENU_WARNING_Y_POS, 
+                     10,  MENU_HELP_Y_POS_2, 
                         warning_msg
                 );
             }
@@ -1482,20 +1495,13 @@ show_hidden_items(struct menu * menu, int force_clear)
             hidden_msg[55] = '\0';
         }
 
-        int hidden_pos_y = MENU_WARNING_Y_POS;
+        int hidden_pos_y = 410;
         if (is_menu_active("Help")) hidden_pos_y -= font_med.height;
-        if (hidden_count || force_clear)
-        {
-            bmp_printf(
-                FONT(FONT_MED, COLOR_GRAY45, MENU_BG_COLOR_HEADER_FOOTER), 
-                 10,  hidden_pos_y, 
-                "                                                       "
-            );
-        }
         if (hidden_count)
         {
+            bmp_fill(0, 0, hidden_pos_y, 720, 19);
             bmp_printf(
-                FONT(FONT_MED, advanced_hidden_edit_mode ? MENU_WARNING_COLOR : COLOR_ORANGE , MENU_BG_COLOR_HEADER_FOOTER), 
+                SHADOW_FONT(FONT(FONT_MED, advanced_hidden_edit_mode ? MENU_WARNING_COLOR : COLOR_ORANGE , MENU_BG_COLOR_HEADER_FOOTER)), 
                  10, hidden_pos_y, 
                  hidden_msg
             );
@@ -1514,8 +1520,8 @@ show_vscroll(struct menu* parent){
     int menu_len = get_menu_len(parent);
     
     if(max > menu_len){
-        bmp_draw_rect(COLOR_GRAY50, 718, 43, 1, 375);
-        int16_t posx = 43 + (325 * (pos-1) / (max-1));
+        bmp_draw_rect(COLOR_GRAY50, 718, 43, 1, 385);
+        int16_t posx = 43 + (335 * (pos-1) / (max-1));
         bmp_fill(COLOR_WHITE, 717, posx, 4, 50);
     }
 }
@@ -1555,8 +1561,6 @@ menus_display(
 
     bmp_fill(bgu, orig_x, y, 720, 42);
     bmp_fill(fgu, orig_x, y+42, 720, 1);
-    bmp_fill(fgu, orig_x, 480-61, 720, 1);
-    bmp_fill(bgu, orig_x, 480-60, 720, 60);
     for( ; menu ; menu = menu->next )
     {
         if (!menu_has_visible_items(menu->children) && !menu->selected)
@@ -1665,8 +1669,8 @@ submenu_display(struct menu * submenu)
         Q_BTN_NAME
     );
 
-    show_hidden_items(submenu, 1);
     menu_display(submenu,  bx + 50,  by + 50 + 25, 0);
+    show_hidden_items(submenu, 1);
 }
 
 static void
@@ -2039,7 +2043,7 @@ menu_redraw_do()
 
                 if (submenu_mode)
                 {
-                    if (!menu_lv_transparent_mode && !quick_redraw) bmp_dim(0, 480-62);
+                    if (!menu_lv_transparent_mode && !quick_redraw) bmp_dim(0, 480-52);
                     struct menu * submenu = get_current_submenu();
                     if (submenu) submenu_display(submenu);
                     else implicit_submenu_display();

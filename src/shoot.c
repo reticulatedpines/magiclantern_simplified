@@ -4826,9 +4826,10 @@ static struct menu_entry shoot_menus[] = {
                 .max = 2,
                 .icon_type = IT_DICE,
                 .choices = (const char *[]) {"Exposure (Tv,Ae)", "Exposure (Flash)", "DOF (Aperture)"},
-                .help = "Expo bracket. M: changes shutter. Others: changes AEcomp.\n"
-                        "Flash bracket: change flash exposure compensation.\n"
-                        "DOF bracket: keep exposure constant, change Av/Tv ratio.",
+                .help  = "Choose the variables to bracket:",
+                .help2 = "Expo bracket. M: changes shutter. Others: changes AEcomp.\n"
+                         "Flash bracket: change flash exposure compensation.\n"
+                         "DOF bracket: keep exposure constant, change Av/Tv ratio.",
             },
             {
                 .name = "Frames",
@@ -4950,7 +4951,8 @@ static struct menu_entry shoot_menus[] = {
                 .max = 2,
                 .icon_type = IT_DICE_OFF,
                 .choices = (const char *[]) {"OFF", "Smooth ramping", "LRT Holy Grail 1EV"},
-                .help = "Choose the algorithm for automatic bulb ramping.\n"
+                .help = "Choose the algorithm for automatic bulb ramping.",
+                .help2 = " \n"
                         "Feedback loop. Works best with expos longer than 1 second.\n"
                         "Expo is adjusted in 1EV integer steps. vimeo.com/26083323",
             },
@@ -5072,9 +5074,10 @@ static struct menu_entry shoot_menus[] = {
                 .max = 2,
                 .choices = (const char *[]) {"Expo. change", "Frame diff.", "Steady hands"},
                 .icon_type = IT_DICE,
-                .help = "EXP: reacts to exposure changes (large movements).\n"
-                        "DIF: detects smaller movements that do not change exposure.\n"
-                        "STDY: take pic if there's little or no motion (cam steady).",
+                .help  = "Choose when the picture should be taken:",
+                .help2 = "EXP: reacts to exposure changes (large movements).\n"
+                         "DIF: detects smaller movements that do not change exposure.\n"
+                         "STDY: take pic if there's little or no motion (cam steady).",
             },
             {
                 .name = "Trigger level",
