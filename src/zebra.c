@@ -2637,7 +2637,7 @@ global_draw_display( void * priv, int x, int y, int selected )
     if (disp_profiles_0)
     {
         bmp_printf(FONT(FONT_LARGE, selected ? COLOR_WHITE : 55, COLOR_BLACK), x + 560, y, "DISP %d", get_disp_mode());
-        if (selected) bmp_printf(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 720 - font_med.width * strlen(Q_BTN_NAME), y + font_large.height, Q_BTN_NAME);
+        if (selected) bmp_printf(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 715 - font_med.width * strlen(Q_BTN_NAME), y + font_large.height, Q_BTN_NAME);
     }
 
     #ifdef CONFIG_5D3

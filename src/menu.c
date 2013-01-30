@@ -34,8 +34,8 @@
 
 #define DOUBLE_BUFFERING 1
 
-#define MENU_KEYHELP_Y_POS (menu_lv_transparent_mode ? 425 : 430)
-#define MENU_HELP_Y_POS 453
+//~ #define MENU_KEYHELP_Y_POS (menu_lv_transparent_mode ? 425 : 430)
+#define MENU_HELP_Y_POS 425
 #define MENU_WARNING_Y_POS (menu_lv_transparent_mode ? 425 : 453)
 
 #define MENU_BG_COLOR_HEADER_FOOTER COLOR_GRAY40
@@ -810,20 +810,123 @@ static int playicon_square(int x, int y, int color)
     return 40;
 }
 
-void submenu_icon(int x, int y)
+/* not reliable
+
+// checks whether (x,y,w,h) covers some text
+// returns 1 if it does not
+static int check_free(int x0, int y0, int w, int h)
 {
-    //~ int color = COLOR_WHITE;
+    uint8_t* B = bmp_vram();
+    
+    #define P(x,y) B[BM(x,y)]
+    
+    int c0 = P(x0,y0);
+    for (int y = y0; y < y0 + h; y++)
+    {
+        for (int x = x0; x < x0 + w; x++)
+        {
+            if (P(x,y) != c0 && P(x,y) != COLOR_BLACK)
+                return 0;
+        }
+    }
+    #undef P
+    return 1;
+}
+
+// try to find a place to display the submenu key hint
+static int find_free(int* x0, int* y0, int w, int h)
+{
+    if (check_free(*x0, *y0, w, h)) return 0;
+    if (check_free(*x0, *y0-25, w, h)) { *y0 -= 25; return 1; }
+    return -1;
+}
+
+// helper to hide key hints if they overlap menu texts
+static int key_hint_check_overlap(int x, int y, int w, int h)
+{
+    int ok = check_free(x, y, w, h); // alright! (but don't return right away; update the timers)
+    
+    // maybe we can't display it without overwriting, so we'll erase it after a while
+    static int prev_y = 0;
+    static int prev_clk = 0;
+    int clk = get_ms_clock_value();
+    if (prev_y != y)
+        prev_clk = clk;
+    prev_y = y;
+    
+    if (ok) return 1; // alright!
+
+    if (prev_y == y && clk > prev_clk + 700)
+    {
+        return 0; // do not display
+    }
+    return 1; // display (temporarily)
+}
+*/
+
+// key hints are only displayed temporarily, because they may overlap normal ML texts
+static int key_hint_check_display_timeout(int x, int y, int w, int h, int timeout)
+{
+    static int prev_y = 0;
+    static int prev_clk = 0;
+    int clk = get_ms_clock_value();
+    if (prev_y != y)
+        prev_clk = clk;
+    prev_y = y;
+
+    if (prev_y == y && clk > prev_clk + timeout)
+    {
+        return 0; // do not display
+    }
+    return 1; // display (temporarily)
+}
+
+// draw submenu dots (for non-selected items)
+static void submenu_marker(int x, int y, int selected)
+{
+    if (selected) return;
+    if (submenu_mode) return;
+    int fnt = SHADOW_FONT(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK));
+    y += 6;
+    bmp_printf(fnt, 685, y+6, "...");
+}
+
+static void submenu_key_hint(int x, int y)
+{
+    if (submenu_mode) return;
+
+    int fnt = SHADOW_FONT(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK));
+    y += 6;
+
+    int w = font_med.width * strlen(Q_BTN_NAME);
+    int h = font_med.height;
+    x = 715 - w;
+
+    if (!key_hint_check_display_timeout(x, y, w, h, 1000))
+    {
+        submenu_marker(x, y-6, 0); // print this one instead, it's smaller
+        return;
+    }
+
+    bmp_fill(COLOR_BLUE, x - 4, y - 4, w + 8, h + 8);
+    bmp_printf(fnt, x, y, Q_BTN_NAME);
+}
+
+static void edit_key_hint(int x, int y)
+{
+    y -= 5;
     x -= 40;
-    bmp_draw_rect(45, x+2, y+5, 32-3, 32-10+1);
-    draw_line(x+20, y+28, x+30, y+28, COLOR_WHITE);
-    for (int i = -2; i <= 2; i++)
-    draw_line(x+26, y+28+i, x+30, y+28, COLOR_WHITE);
-    //~ for (int r = 0; r < 2; r++)
-    //~ {
-        //~ draw_circle(x + 30, y + 28, r, color);
-        //~ draw_circle(x + 23, y + 28, r, color);
-        //~ draw_circle(x + 16, y + 28, r, color);
-    //~ }
+    int w = 40;
+    int h = 30;
+
+    if (!key_hint_check_display_timeout(x, y, w, h, 1000))
+        return; // do not display, it overlaps
+
+    bmp_fill(COLOR_LIGHTBLUE, x - 10, y+5, w + 20, h);
+    if (CURRENT_DIALOG_MAYBE)
+        bfnt_draw_char(ICON_MAINDIAL, x, y, COLOR_CYAN, COLOR_BLUE);
+    else
+        leftright_sign(x + 20, y + 5);
 }
 
 void submenu_only_icon(int x, int y, int value)
@@ -888,6 +991,7 @@ void FAST selection_bar(int x0, int y0)
             }
         }
     }
+    #undef P
 }
 
 void dim_hidden_menu(int x0, int y0, int selected)
@@ -1259,137 +1363,32 @@ menu_display(
             }
 
             // display key help
-            if (menu->selected && !is_menu_active("Help") && (menu->priv || menu->select) && y + font_large.height <  430)
+            if (menu->selected && !is_menu_active("Help") && (menu->priv || menu->select))
             {
-                char msg[100] = "";
-
-                // this should follow exactly the same logic as in menu_entry_select
-                // todo: remove duplicate code
-                
-                
-                // exception for action and submenu items
-                if (icon_drawn == MNI_ACTION && !submenu_mode)
+                if (submenu_mode == 1)
                 {
-                    STR_APPEND(msg, "SET: run action         ");
+                    if (IS_SUBMENU(parentmenu) && icon_drawn != MNI_ACTION)
+                        edit_key_hint(360 + g_submenu_width/2 - 10, y);
                 }
-                else if (menu->select == menu_open_submenu)
+                else if (menu_lv_transparent_mode || only_selected)
                 {
-                    STR_APPEND(msg, "SET: open submenu       ");
-                }
-                // exception end
-                
-                else if (submenu_mode == 2)
-                {
-                    STR_APPEND(msg, "SET: toggle edit mode   ");
-                }
-                else if (menu_lv_transparent_mode)
-                {
-                    STR_APPEND(msg, "SET: toggle LiveView    ");
-                }
-                else if (menu->edit_mode == EM_FEW_VALUES) // SET increments
-                {
-                    STR_APPEND(msg, "SET: change value       ");
-                }
-                else if (menu->edit_mode == EM_MANY_VALUES)
-                {
-                    STR_APPEND(msg, "SET: toggle edit mode   ");
-                }
-                else if (menu->edit_mode == EM_MANY_VALUES_LV)
-                {
-                    if (lv)
-                    {
-                        STR_APPEND(msg, "SET: toggle LiveView    ");
-                    }
-                    else if (submenu_mode != 1)
-                    {
-                        STR_APPEND(msg, "SET: toggle edit mode   ");
-                    }
-                    else // increment
-                    {
-                        STR_APPEND(msg, "SET: change value       ");
-                    }
+                    if (icon_drawn != MNI_ACTION)
+                        edit_key_hint(710, y);
                 }
 
-
-                if (submenu_mode || menu_lv_transparent_mode || only_selected)
-                {
-                    STR_APPEND(msg, "      ");
-                    #ifdef CONFIG_EOSM
-                    if (!CURRENT_DIALOG_MAYBE)
-                    #else
-                    if (CURRENT_DIALOG_MAYBE) // GUIMode nonzero => wheel events working
-                    #endif
-                    {
-                        #ifdef CONFIG_EOSM
-                        STR_APPEND(msg, "Left/Right: ");
-                        #else
-                        STR_APPEND(msg, "L/R/Wheel : ");
-                        #endif
-                    }
-                    else
-                    {
-                        #ifdef CONFIG_5DC
-                        STR_APPEND(msg, "Main Dial: ");
-                        #else
-                        STR_APPEND(msg, "Left/Right: ");
-                        #endif
-                    }
-                    if (icon_drawn == MNI_ACTION)
-                    {
-                        STR_APPEND(msg, "run action  ");
-                    }
-                    else
-                    {
-                        STR_APPEND(msg, "change value");
-                    }
-
-                    #ifdef CONFIG_EOSM
-                    if (!CURRENT_DIALOG_MAYBE)
-                    #else
-                    if (CURRENT_DIALOG_MAYBE) // we can use scrollwheel
-                    #endif
-                        bfnt_draw_char(ICON_MAINDIAL, 680, 415, COLOR_CYAN, MENU_BG_COLOR_HEADER_FOOTER);
-                    else
-                        leftright_sign(690, 415);
-                }
                 else if (menu->children && !submenu_mode && !menu_lv_transparent_mode)
                 {
-                    char *button = Q_BTN_NAME;
-                    
-#if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D) // Q not working while recording, use INFO instead
-                    if (recording)
-                    {
-                        button = "[INFO]";
-                    }
-#endif
-                    
-                    int nspaces = 16 - strlen(button);
-                    for (int i = 0; i < nspaces; i++) { STR_APPEND(msg, " "); }
-                    
-                    STR_APPEND(msg, "%s: open submenu ", button);
+                    submenu_key_hint(x, y);
                 }
                 
-                //~ while (strlen(msg) < 60) { STR_APPEND(msg, " "); }
-
-                
-                bmp_printf(
-                    FONT(FONT_MED, COLOR_CYAN, MENU_BG_COLOR_HEADER_FOOTER), 
-                     10,  MENU_KEYHELP_Y_POS, 
-                    msg
-                );
-                
-            #if !defined(CONFIG_5DC) && !defined(CONFIG_EOSM)
-                if (!submenu_mode && !menu_lv_transparent_mode) // we can use scrollwheel for navigation
+                if (!submenu_mode && !menu_lv_transparent_mode && !CURRENT_DIALOG_MAYBE)
                 {
-                    bfnt_draw_char(ICON_MAINDIAL, 680, 415, COLOR_GRAY50, MENU_BG_COLOR_HEADER_FOOTER);
-                    if (!CURRENT_DIALOG_MAYBE) // wait, we CAN'T use it... 
-                                               // and you need to be careful because you will change shooting settings while recording!
-                    {
-                        draw_line(720, 430, 680, 445, COLOR_WHITE);
-                        draw_line(720, 431, 680, 446, COLOR_WHITE);
-                    }
+                    // we can't use the scrollwheel
+                    // and you need to be careful because you will change shooting settings while recording!
+                    bfnt_draw_char(ICON_MAINDIAL, 680, 415, MENU_WARNING_COLOR, MENU_BG_COLOR_HEADER_FOOTER);
+                    draw_line(720, 430, 680, 445, MENU_WARNING_COLOR);
+                    draw_line(720, 431, 680, 446, MENU_WARNING_COLOR);
                 }
-            #endif
             }
 
             // if there's a warning message set, display it
@@ -1420,7 +1419,7 @@ menu_display(
 
             // display submenu marker if this item has a submenu
             if (menu->children && !menu_lv_transparent_mode)
-                submenu_icon(x, y);
+                submenu_marker(x, y, menu->selected);
             
             // display selection bar
             if (menu->selected)
@@ -1482,7 +1481,7 @@ show_hidden_items(struct menu * menu, int force_clear)
             hidden_msg[55] = '\0';
         }
 
-        int hidden_pos_y = MENU_KEYHELP_Y_POS;
+        int hidden_pos_y = MENU_WARNING_Y_POS;
         if (is_menu_active("Help")) hidden_pos_y -= font_med.height;
         if (hidden_count || force_clear)
         {
@@ -1657,6 +1656,13 @@ submenu_display(struct menu * submenu)
         bmp_draw_rect(COLOR_WHITE,  bx,  by, 720-2*bx, h);
         bfnt_puts(submenu->name,  bx + 15,  by + 5, COLOR_WHITE, 40);
     }
+    
+    bmp_printf(
+        FONT(FONT_MED, COLOR_CYAN, MENU_BG_COLOR_HEADER_FOOTER), 
+        bx + w - 10 - font_med.width * strlen(Q_BTN_NAME), 
+        by + 15, 
+        Q_BTN_NAME
+    );
 
     show_hidden_items(submenu, 1);
     menu_display(submenu,  bx + 50,  by + 50 + 25, 0);
