@@ -407,8 +407,18 @@ void my_big_init_task()
     msleep(5000);
     SetGUIRequestMode(2);
     msleep(2000);
+
+    if (CURRENT_DIALOG_MAYBE != 2)
+    {
+        bmp_printf(FONT_LARGE, 50, 200, "Hudson, we have a problem!");
+        return;
+    }
+
+    // do try to enable bootflag in LiveView, or during sensor cleaning (it will fail while writing to ROM)
+    // no check is done here, other than a large delay and doing this while in Canon menu
     bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk");
     call("EnableBootDisk");
+    
     msleep(500);
     FILE* f = FIO_CreateFileEx(CARD_DRIVE "ROM.DAT");
     if (f != INVALID_PTR) {
