@@ -430,6 +430,7 @@ submenu_print(
     entry_draw_icon(entry, x, y);
 }
 
+/*
 static struct menu_entry*
 menu_find_by_id_entry(
     struct menu_entry* root,
@@ -475,7 +476,7 @@ menu_find_by_id(
 
     return NULL;
 }
-
+*/
 
 
 static struct menu *
@@ -641,7 +642,7 @@ menu_add(
     {
         // First one -- insert it as the selected item
         head = menu->children   = new_entry;
-        if (new_entry->id == 0) new_entry->id = menu_id_increment++;
+        //~ if (new_entry->id == 0) new_entry->id = menu_id_increment++;
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
         new_entry->selected = 1;
@@ -659,7 +660,7 @@ menu_add(
 
     for (int i = 0; i < count; i++)
     {
-        if (new_entry->id == 0) new_entry->id = menu_id_increment++;
+        //~ if (new_entry->id == 0) new_entry->id = menu_id_increment++;
 
         if(IS_VISIBLE(new_entry)) menu->childnum++;
         menu->childnummax++;

@@ -82,13 +82,16 @@ struct menu_entry
         const char * help;
         const char * name; // used for context help and sometimes for display
         struct menu_entry * children;
-        uint32_t id; // unique ID
-    // not required for entry item, but makes it easier to declare in existing menu structures
+        //~ uint32_t id; // unique ID (not supported; menus are identified by strings)
+    
+        // not required for entry item, but makes it easier to declare in existing menu structures
         int16_t submenu_width; 
         int16_t submenu_height;
-        int16_t pos;
-        int16_t childnum;
-        int16_t childnummax; 
+        
+        // for vscroll
+        int8_t pos;
+        int8_t childnum;
+        int8_t childnummax; 
 };
 
 #define MENU_ENTRY_NOT_HIDDEN 0
