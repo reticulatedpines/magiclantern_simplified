@@ -463,6 +463,8 @@ int rand (void);
       typeof ((a)+(b)) _b = (b); \
      _a < _b ? _a : _b; })
 
+#define MIN_DUMB(a,b) ((a) < (b) ? (a) : (b))
+
 #define MAX(a,b) \
    ({ typeof ((a)+(b)) _a = (a); \
        typeof ((a)+(b)) _b = (b); \
