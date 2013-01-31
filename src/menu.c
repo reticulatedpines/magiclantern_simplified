@@ -883,13 +883,11 @@ static int key_hint_check_display_timeout(int x, int y, int w, int h, int timeou
 }
 
 // draw submenu dots (for non-selected items)
-static void submenu_marker(int x, int y, int selected)
+static void submenu_marker(int x, int y)
 {
-    if (selected) return;
     if (submenu_mode) return;
     int fnt = SHADOW_FONT(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK));
-    y += 6;
-    bmp_printf(fnt, 685, y+6, "...");
+    bmp_printf(fnt, 685, y+14, "...");
 }
 
 static void submenu_key_hint(int x, int y)
@@ -905,7 +903,7 @@ static void submenu_key_hint(int x, int y)
 
     if (!key_hint_check_display_timeout(x, y, w, h, 1000))
     {
-        submenu_marker(x, y-6, 0); // print this one instead, it's smaller
+        submenu_marker(x, y-6); // print this one instead, it's smaller
         return;
     }
 
@@ -1397,7 +1395,8 @@ menu_display(
 
                 else if (menu->children && !submenu_mode && !menu_lv_transparent_mode)
                 {
-                    submenu_key_hint(x, y);
+                    if (icon_drawn != MNI_SUBMENU)
+                        submenu_key_hint(x, y);
                 }
                 
                 if (!submenu_mode && !menu_lv_transparent_mode && !CURRENT_DIALOG_MAYBE)
@@ -1433,7 +1432,8 @@ menu_display(
 
             // display submenu marker if this item has a submenu
             if (menu->children && !menu_lv_transparent_mode)
-                submenu_marker(x, y, menu->selected);
+                if (!menu->selected || icon_drawn == MNI_SUBMENU)
+                    submenu_marker(x, y);
             
             // display selection bar
             if (menu->selected)
