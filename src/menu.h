@@ -80,7 +80,6 @@ struct menu_entry
         int8_t icon_type;
         int8_t edit_mode;
         const char * help;
-        const char * help2;
         const char * name; // used for context help and sometimes for display
         struct menu_entry * children;
         //~ uint32_t id; // unique ID (not supported; menus are identified by strings)
