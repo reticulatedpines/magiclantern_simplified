@@ -2420,7 +2420,7 @@ handle_ml_menu_keys(struct event * event)
 
     case BGMT_PLAY:
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
-        menu_entry_select( menu, 1 ); // reverse select
+        submenu_mode = (!submenu_mode) * 2;
         menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
         //~ menu_hidden_should_display_help = 0;
