@@ -17,4 +17,7 @@
 //~ #define FEATURE_REMEMBER_LAST_ZOOM_POS_5D3 // too many conflicts with other features
 #undef FEATURE_IMAGE_POSITION
 
+
+#undef FEATURE_LV_ZOOM_AUTO_EXPOSURE // seems to cause black pictures
+
 //~ #define FEATURE_VIDEO_HACKS

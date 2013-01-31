@@ -3133,6 +3133,7 @@ zoom_sharpen_display( void * priv, int x, int y, int selected )
 // called from some prop_handlers (shoot.c and zebra.c)
 void zoom_sharpen_step()
 {
+#ifdef FEATURE_LV_ZOOM_SHARP_CONTRAST
     if (!zoom_sharpen) return;
 
     static int co = 100;
@@ -3161,6 +3162,7 @@ void zoom_sharpen_step()
             co = sa = sh = 100;
         }
     }
+#endif
 }
 
 #ifdef CONFIG_EXPSIM
@@ -3181,7 +3183,7 @@ void restore_expsim_task(int es)
 // to be called from the same places as zoom_sharpen_step
 void zoom_auto_exposure_step()
 {
-#ifdef CONFIG_EXPSIM
+#ifdef FEATURE_LV_ZOOM_AUTO_EXPOSURE
     if (!zoom_auto_exposure) return;
 
     static int es = -1;
@@ -5322,7 +5324,10 @@ struct menu_entry tweak_menus_shoot[] = {
                 .help = "Disable x10 zoom in LiveView.",
                 .icon_type = IT_DISABLE_SOME_FEATURE,
             },
-            #ifdef CONFIG_EXPSIM
+            #ifdef FEATURE_LV_ZOOM_AUTO_EXPOSURE
+                #ifndef CONFIG_EXPSIM
+                #error This requires CONFIG_EXPSIM.
+                #endif
             {
                 .name = "Auto exposure on Zoom ",
                 .priv = &zoom_auto_exposure,
@@ -5331,12 +5336,14 @@ struct menu_entry tweak_menus_shoot[] = {
                 .help = "Auto adjusts exposure, so you can focus manually wide open."
             },
             #endif
+            #ifdef FEATURE_LV_ZOOM_SHARP_CONTRAST
             {
                 .name = "Increase SharpContrast",
                 .priv = &zoom_sharpen,
                 .max = 1,
                 .help = "Increase sharpness and contrast when you zoom in LiveView."
             },
+            #endif
             {
                 .name = "Zoom on HalfShutter   ",
                 .priv = &zoom_halfshutter,

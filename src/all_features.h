@@ -201,6 +201,10 @@
     #define FEATURE_QUICK_ERASE
     
     #define FEATURE_LV_ZOOM_SETTINGS
+    #define FEATURE_LV_ZOOM_SHARP_CONTRAST
+    #ifdef CONFIG_EXPSIM
+    #define FEATURE_LV_ZOOM_AUTO_EXPOSURE
+    #endif
     //~ #define FEATURE_ZOOM_TRICK_5D3 // not reliable
     
     #define FEATURE_LV_FOCUS_BOX_FAST
