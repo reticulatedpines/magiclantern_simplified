@@ -865,17 +865,19 @@ static int key_hint_check_overlap(int x, int y, int w, int h)
 }
 */
 
-// key hints are only displayed temporarily, because they may overlap normal ML texts
-static int key_hint_check_display_timeout(int x, int y, int w, int h, int timeout)
+static int key_hint_check_display_timeout(int x, int y, int w, int h, int keytype, int timeout)
 {
-    static int prev_y = 0;
+    
+    // whenever the selected item or the key hint changes, re-display the hint
+    static int prev_sig = 0;
     static int prev_clk = 0;
     int clk = get_ms_clock_value();
-    if (prev_y != y)
+    int sig = y + keytype * 12345;
+    if (prev_sig != sig)
         prev_clk = clk;
-    prev_y = y;
+    prev_sig = sig;
 
-    if (prev_y == y && clk > prev_clk + timeout)
+    if (prev_sig == sig && clk > prev_clk + timeout)
     {
         return 0; // do not display
     }
@@ -895,37 +897,44 @@ static void submenu_key_hint(int x, int y)
     if (submenu_mode) return;
 
     int fnt = SHADOW_FONT(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK));
-    y += 6;
 
     int w = font_med.width * strlen(Q_BTN_NAME);
     int h = font_med.height;
-    x = 715 - w;
+    x = 720 - w;
 
-    if (!key_hint_check_display_timeout(x, y, w, h, 1000))
+    if (!key_hint_check_display_timeout(x, y, w, h, 2, 1000))
     {
-        submenu_marker(x, y-6); // print this one instead, it's smaller
+        submenu_marker(x, y); // print this one instead, it's smaller
         return;
     }
 
+    y += 6;
     bmp_fill(COLOR_BLUE, x - 4, y - 4, w + 8, h + 8);
     bmp_printf(fnt, x, y, Q_BTN_NAME);
 }
 
 static void edit_key_hint(int x, int y)
 {
-    y -= 5;
     x -= 40;
     int w = 40;
     int h = 30;
 
-    if (!key_hint_check_display_timeout(x, y, w, h, 1000))
-        return; // do not display, it overlaps
+    if (!key_hint_check_display_timeout(x, y, w, h, 1, 1000))
+        return; // do not display
 
-    bmp_fill(COLOR_LIGHTBLUE, x - 10, y+5, w + 20, h);
+    bmp_fill(COLOR_LIGHTBLUE, x - 10, y, w + 20, h);
+
+    y -= 5;
     if (CURRENT_DIALOG_MAYBE)
         bfnt_draw_char(ICON_MAINDIAL, x, y, COLOR_CYAN, COLOR_BLUE);
     else
         leftright_sign(x + 20, y + 5);
+}
+
+// just for keeping timeouts updated
+static void dummy_hint(int x, int y)
+{
+    key_hint_check_display_timeout(x, y, 0, 0, 0, 1000);
 }
 
 void submenu_only_icon(int x, int y, int value)
@@ -1380,32 +1389,32 @@ menu_display(
             }
 
             // display key hints
-            if (menu->selected && !is_menu_active("Help") && (menu->priv || menu->select))
+            if (menu->selected && (menu->priv || menu->select))
             {
                 if (submenu_mode == 1)
                 {
                     if (IS_SUBMENU(parentmenu) && icon_drawn != MNI_ACTION)
                         edit_key_hint(360 + g_submenu_width/2 - 10, y);
                 }
-                else if (menu_lv_transparent_mode || only_selected)
+                else if (submenu_mode == 2 || menu_lv_transparent_mode)
                 {
                     if (icon_drawn != MNI_ACTION)
                         edit_key_hint(710, y);
                 }
-
                 else if (menu->children && !submenu_mode && !menu_lv_transparent_mode)
                 {
                     if (icon_drawn != MNI_SUBMENU)
                         submenu_key_hint(x, y);
                 }
+                else dummy_hint(x, y);
                 
-                if (!submenu_mode && !menu_lv_transparent_mode && !CURRENT_DIALOG_MAYBE)
+                if (!CURRENT_DIALOG_MAYBE)
                 {
                     // we can't use the scrollwheel
                     // and you need to be careful because you will change shooting settings while recording!
-                    bfnt_draw_char(ICON_MAINDIAL, 680, 415, MENU_WARNING_COLOR, MENU_BG_COLOR_HEADER_FOOTER);
-                    draw_line(720, 430, 680, 445, MENU_WARNING_COLOR);
-                    draw_line(720, 431, 680, 446, MENU_WARNING_COLOR);
+                    bfnt_draw_char(ICON_MAINDIAL, 680, 5, MENU_WARNING_COLOR, MENU_BG_COLOR_HEADER_FOOTER);
+                    draw_line(720, 15, 680, 37, MENU_WARNING_COLOR);
+                    draw_line(720, 16, 680, 38, MENU_WARNING_COLOR);
                 }
             }
 
@@ -1552,7 +1561,7 @@ menus_display(
         num_tabs++;
     }
     
-    int icon_spacing = (720 - 130) / num_tabs;
+    int icon_spacing = (720 - 130 - 40) / num_tabs;
     
     int bgs = COLOR_BLACK;
     int bgu = MENU_BG_COLOR_HEADER_FOOTER;
