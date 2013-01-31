@@ -5143,7 +5143,7 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Hi-Res", 
                 .priv = &silent_pic_highres,
                 .display = &silent_pic_display_highres,
-                .max = MIN_DUMB(COUNT(silent_pic_sweep_modes_l),COUNT(silent_pic_sweep_modes_c))-1,
+                .max = COUNT(silent_pic_sweep_modes_l)-1,
                 .icon_type = IT_SIZE,
                 .help = "For hi-res matrix mode: select number of subpictures."
             },
