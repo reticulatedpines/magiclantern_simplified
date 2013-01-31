@@ -13,3 +13,5 @@
 #undef FEATURE_AUDIO_REMOTE_SHOT
 #undef FEATURE_NITRATE_WAV_RECORD
 #undef FEATURE_FPS_WAV_RECORD
+
+#undef FEATURE_UPSIDE_DOWN // not working, http://www.magiclantern.fm/forum/index.php?topic=4430
