@@ -34,6 +34,9 @@
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
+NSTUB(0x23D08, pre_isr_hook)
+NSTUB(0x23D0C, post_isr_hook)
+
 #define RAM_OFFSET 0xFF9DEF48 // some functions are copied to RAM at around ff0c009c; they have to be called from RAM...
 
 NSTUB(0xff9f3900 - RAM_OFFSET, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
@@ -103,7 +106,7 @@ NSTUB(0xff9f35c8 - RAM_OFFSET, msg_queue_receive)
 NSTUB(0xff9e79a4 - RAM_OFFSET, msleep)
 NSTUB(0xff123c88, _prop_cleanup)
 NSTUB(0xff123bbc, prop_deliver)
-//NSTUB(0xff123de4, prop_get_value) // unsafe?
+NSTUB(0xff123de4, prop_get_value) // unsafe?
 NSTUB(0xff12340c, prop_register_slave)
 NSTUB(0xff123600, _prop_request_change)
 NSTUB(0xff3f4f54, ptp_register_handler)
