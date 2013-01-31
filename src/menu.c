@@ -2565,7 +2565,6 @@ void piggyback_canon_menu()
     if (gui_state == GUISTATE_MENUDISP) return;
     NotifyBoxHide();
     int new_gui_mode = GUIMODE_ML_MENU;
-    new_gui_mode = 0;
     if (new_gui_mode) { redraw_flood_stop = 0; task_create("menu_redraw_flood", 0x1c, 0, menu_redraw_flood, 0); }
     if (new_gui_mode != CURRENT_DIALOG_MAYBE) 
     { 
