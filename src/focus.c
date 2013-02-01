@@ -435,7 +435,7 @@ rack_focus_print(
     bmp_printf(
         MENU_FONT,
         x, y,
-        "Rack focus %s",
+        "Rack Focus %s",
         lcd_release_running && lcd_release_running < 3 && recording ? "(also w. LCD sensor)" : ""
     );
     menu_draw_icon(x, y, MNI_ACTION, 0);
@@ -1291,18 +1291,7 @@ static struct menu_entry focus_menu[] = {
         .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
     },
     {
-        .name = "Rack Delay     ",
-        .priv    = &focus_rack_delay,
-        .max = 20,
-        .edit_mode = EM_MANY_VALUES,
-        .icon_type = IT_PERCENT,
-        .help = "Number of seconds before starting rack focus.",
-        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
-        .works_best_in = DEP_MOVIE_MODE,
-    },
-    {
         .name = "Rack Focus",
-        .priv       = "Rack focus",
         .display    = rack_focus_print,
         .select     = rack_focus_start_delayed,
         //~ .select_Q   = rack_focus_start_now,
@@ -1315,7 +1304,7 @@ static struct menu_entry focus_menu[] = {
     #endif
     #ifdef FEATURE_FOCUS_STACKING
     {
-        .name = "Focus stacking...",
+        .name = "Focus Stacking...",
         .select = menu_open_submenu,
         .select_reverse     = focus_stack_trigger_from_menu,
         .help = "Takes pictures at different focus points.",
@@ -1372,9 +1361,9 @@ static struct menu_entry focus_menu[] = {
     #endif
     #if defined(FEATURE_FOLLOW_FOCUS) || defined(FEATURE_RACK_FOCUS) || defined(FEATURE_FOCUS_STACKING)
     {
-        .name = "Focus step settings...",
+        .name = "Focus Settings...",
         .select     = menu_open_submenu,
-        .help = "Low-level focus settings, for rack/stack/follow focus.",
+        .help = "Tuning parameters and prefs for rack/stack/follow focus.",
         .depends_on = DEP_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
@@ -1395,6 +1384,14 @@ static struct menu_entry focus_menu[] = {
                 .priv = &lens_focus_waitflag,
                 .max = 1,
                 .help = "Wait for 'focus done' signal before sending next command.",
+            },
+            {
+                .name = "Rack Delay",
+                .priv    = &focus_rack_delay,
+                .max = 20,
+                .edit_mode = EM_MANY_VALUES,
+                .icon_type = IT_PERCENT,
+                .help = "Number of seconds before starting rack focus.",
             },
             MENU_EOL
         },
