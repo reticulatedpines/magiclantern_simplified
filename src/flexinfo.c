@@ -25,10 +25,16 @@
 #define DISPLAY_BATTERY_LEVEL_1 60 //%
 #define DISPLAY_BATTERY_LEVEL_2 20 //%
 
-
+/* e.g. 5D3 has different free space calculation, decide it by property availability, maybe there are others too */
+#define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
+#ifdef PROP_CLUSTER_SIZE
 PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
 PROP_INT(PROP_FREE_SPACE, free_space_raw);
-#define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
+#else
+extern int cluster_size;
+extern int free_space_raw;
+#endif
+
 
 /* updated every redraw */
 int32_t info_bg_color = 0;
