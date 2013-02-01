@@ -1150,6 +1150,12 @@ static struct menu_entry mov_menus[] = {
         #else
         .max = 2,
         #endif
+        .choices = (const char *[]) {"OFF", "Red Crossout", "REC/STBY",
+                #ifdef CONFIG_BLUE_LED
+                "Blue LED",
+                #endif
+                "Beeps (start/stop)"
+            },
         .icon_type = IT_DICE_OFF,
         .help = "Custom REC/STANDBY notifications, visual or audible",
     },
@@ -1255,8 +1261,11 @@ static struct menu_entry mov_menus[] = {
 struct menu_entry expo_override_menus[] = {
     {
         .name = "Exp.Override",
+        .priv = &bv_auto,
         .select     = bv_toggle,
         .display    = bv_display,
+        .max = 2,
+        .choices    = (const char *[]) {"OFF", "ON", "Auto (only when needed)"},
         .help = "Low-level manual exposure controls (bypasses Canon limits)",
     },
 };

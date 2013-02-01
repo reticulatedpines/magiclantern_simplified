@@ -580,7 +580,6 @@ static struct menu_entry lv_img_menu[] = {
     #ifdef FEATURE_IMAGE_EFFECTS
     {
         .name = "Image Effects...",
-        .max = 1,
         .select = menu_open_submenu,
         .help = "Experimental image filters found by digging into DIGIC.",
         .children =  (struct menu_entry[]) {

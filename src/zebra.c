@@ -3151,26 +3151,6 @@ static void spotmeter_step()
 
 #endif
 
-#ifdef FEATURE_LV_DISPLAY_PRESETS
-
-static void
-disp_profiles_0_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "LV display presets  : %d%s", 
-        disp_profiles_0 + 1,
-        disp_profiles_0 ? " (ON)" : " (OFF)"
-    );
-}
-#endif
-
 #ifdef FEATURE_GHOST_IMAGE
 static void
 transparent_overlay_display(
@@ -3398,6 +3378,8 @@ struct menu_entry zebra_menus[] = {
         .select_Q   = toggle_disp_mode_menu,
         .display    = global_draw_display,
         .icon_type = IT_BOOL,
+        .edit_mode = EM_MANY_VALUES,
+        .choices = (const char *[]) {"OFF", "LiveView", "QuickReview", "ON, all modes"},
         .help = "Enable/disable ML overlay graphics (zebra, cropmarks...)",
         //.essential = FOR_LIVEVIEW,
     },
@@ -3406,8 +3388,8 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Zebras",
         .priv       = &zebra_draw,
-        .select     = menu_binary_toggle,
         .display    = zebra_draw_display,
+        .max = 1,
         .help = "Zebra stripes: show overexposed or underexposed areas.",
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
         .children =  (struct menu_entry[]) {
@@ -3465,7 +3447,7 @@ struct menu_entry zebra_menus[] = {
         .name = "Focus Peak",
         .priv           = &focus_peaking,
         .display        = focus_peaking_display,
-        .select         = menu_binary_toggle,
+        .max = 1,
         .help = "Show which parts of the image are in focus.",
         .submenu_width = 650,
         //.essential = FOR_LIVEVIEW,
@@ -3616,7 +3598,7 @@ struct menu_entry zebra_menus[] = {
         .name = "Cropmarks",
         .priv = &crop_enabled,
         .display    = crop_display,
-        .select     = menu_binary_toggle,
+        .max = 1,
         .help = "Cropmarks or custom grids for framing.",
         //.essential = FOR_LIVEVIEW,
         .submenu_width = 650,
@@ -3654,7 +3636,7 @@ struct menu_entry zebra_menus[] = {
         .name = "Ghost image",
         .priv = &transparent_overlay, 
         .display = transparent_overlay_display, 
-        .select = menu_binary_toggle,
+        .max = 1,
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
         //.essential = FOR_PLAYBACK,
     },
@@ -3663,7 +3645,7 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Spotmeter",
         .priv           = &spotmeter_draw,
-        .select         = menu_binary_toggle,
+        .max = 1,
         .display        = spotmeter_menu_display,
         .help = "Exposure aid: display brightness from a small spot.",
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
@@ -3693,7 +3675,7 @@ struct menu_entry zebra_menus[] = {
         .name = "False color",
         .priv       = &falsecolor_draw,
         .display    = falsecolor_display,
-        .select     = menu_binary_toggle,
+        .max = 1,
         .submenu_height = 160,
         .help = "Exposure aid: each brightness level is color-coded.",
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
@@ -3905,8 +3887,9 @@ struct menu_entry livev_cfg_menus[] = {
     {
         .name = "LV Display Presets",
         .priv       = &disp_profiles_0,
-        .select     = menu_quaternary_toggle,
-        .display    = disp_profiles_0_display,
+        .max        = 3,
+        .choices    = (const char *[]) {"1 (OFF)", "2", "3", "4"},
+        .icon_type  = IT_BOOL,
         .help = "Num. of LV display presets. Switch with " INFO_BTN_NAME " or from LiveV.",
     },
 };

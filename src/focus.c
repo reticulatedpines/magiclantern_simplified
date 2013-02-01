@@ -1226,6 +1226,7 @@ static struct menu_entry trap_focus_menu[] = {
         .priv       = &trap_focus,
         .max = 2,
         .display    = trap_focus_display,
+        .choices = (const char *[]) {"OFF", "Hold AF button", "Continuous"},
         .help = "Takes a picture when the subject comes in focus. MF only.",
         .icon_type = IT_DICE_OFF,
         
@@ -1250,8 +1251,7 @@ static struct menu_entry focus_menu[] = {
         .name = "Follow Focus",
         .priv = &follow_focus,
         .display    = follow_focus_print,
-        .select     = menu_binary_toggle,
-
+        .max = 1,
         .help = "Focus with arrow keys. MENU while REC = save focus point.",
 
         .children =  (struct menu_entry[]) {
@@ -1306,6 +1306,7 @@ static struct menu_entry focus_menu[] = {
         .name = "Rack Delay     ",
         .priv    = &focus_rack_delay,
         .max = 20,
+        .edit_mode = EM_MANY_VALUES,
         .icon_type = IT_PERCENT,
         .help = "Number of seconds before starting rack focus."
     },

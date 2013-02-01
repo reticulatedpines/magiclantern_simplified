@@ -2678,6 +2678,7 @@ struct menu_entry expo_tweak_menus[] = {
         .select = expsim_toggle,
         .display = expsim_display,
         .max = 2,
+        .choices = (const char *[]) {"Photo, no ExpSim", "Photo, ExpSim", "Movie"},
         .icon_type = IT_DICE,
         .help = "Photo / Photo ExpSim / Movie. ExpSim: show proper exposure.",
     },
@@ -3690,6 +3691,7 @@ static struct menu_entry display_menus[] = {
                 .help = "For LiveView preview only. Does not affect recording.",
                 .display = preview_brightness_display,
                 .edit_mode = EM_MANY_VALUES_LV,
+                .choices = (const char *[]) {"Normal", "High", "Very high"},
             },
             {
                 .name = "LV contrast",
@@ -3698,6 +3700,7 @@ static struct menu_entry display_menus[] = {
                 .display = preview_contrast_display,
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
+                .choices = (const char *[]) {"Zero", "Very low", "Low", "Normal", "High", "Very high", "Auto"},
             },
             #endif
             #ifdef FEATURE_LV_SATURATION
@@ -3708,6 +3711,7 @@ static struct menu_entry display_menus[] = {
                 .display = preview_saturation_display,
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
+                .choices = (const char *[]) {"0 (Grayscale)", "Normal", "High", "Very high"},
                 .submenu_width = 650,
                 .children =  (struct menu_entry[]) {
                     {
@@ -3744,7 +3748,7 @@ static struct menu_entry display_menus[] = {
         .name = "Clear overlays",
         .priv           = &clearscreen_enabled,
         .display        = clearscreen_display,
-        .select         = menu_binary_toggle,
+        .max            = 1,
         .help = "Clear bitmap overlays from LiveView display.",
         .children =  (struct menu_entry[]) {
             {
@@ -3779,7 +3783,7 @@ static struct menu_entry display_menus[] = {
         .name = "Defishing",
         .priv = &defish_preview, 
         .display = defish_preview_display, 
-        .select = menu_binary_toggle,
+        .max            = 1,
         .help = "Preview straightened images from fisheye lenses. LV+PLAY.",
         .children =  (struct menu_entry[]) {
             {
