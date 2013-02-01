@@ -572,6 +572,14 @@ static struct menu_entry audio_menus[] = {
         .select         = audio_mgain_toggle,
         .select_reverse = audio_mgain_toggle_reverse,
         .display        = audio_mgain_display,
+        #ifdef CONFIG_500D
+        // should match gains[]
+        .max = 9,
+        .choices = (const char *[]) {" 0 dB", " 3 dB", " 6 dB", "10 dB", "17 dB", "20 dB", "23 dB", "26 dB", "29 dB", "32 dB"},
+        #else
+        .max = 7,
+        .choices = (const char *[]) {" 0 dB", "10 dB", "17 dB", "20 dB", "23 dB", "26 dB", "29 dB", "32 dB"},
+        #endif
         .help = "Gain applied to both inputs in analog domain (preferred).",
         //.essential = FOR_MOVIE,
         .edit_mode = EM_MANY_VALUES,
@@ -590,7 +598,7 @@ static struct menu_entry audio_menus[] = {
                 .select_reverse = audio_dgain_toggle_reverse,
                 .display        = audio_dgain_display,
                 .help = "Digital gain (LEFT). Any nonzero value reduces quality.",
-                .edit_mode = EM_MANY_VALUES,
+                //~ .edit_mode = EM_MANY_VALUES,
             },
             {
                 .name = "Right Digital Gain",
@@ -599,7 +607,7 @@ static struct menu_entry audio_menus[] = {
                 .select_reverse = audio_dgain_toggle_reverse,
                 .display        = audio_dgain_display,
                 .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
-                .edit_mode = EM_MANY_VALUES,
+                //~ .edit_mode = EM_MANY_VALUES,
             },
             #ifdef FEATURE_AGC_TOGGLE
             {
@@ -623,6 +631,8 @@ static struct menu_entry audio_menus[] = {
         .select         = audio_input_toggle,
         .select_reverse         = audio_input_toggle_reverse,
         .display        = audio_input_display,
+        .max = 4,
+        .choices = (const char *[]) {"Internal mic", "L:int R:ext", "External stereo", "L:int R:balanced", "Auto"},
         .help = "Audio input: internal / external / both / balanced / auto.",
         //.essential = FOR_MOVIE,
         //~ .edit_mode = EM_MANY_VALUES,
@@ -636,6 +646,7 @@ static struct menu_entry audio_menus[] = {
         .display           = audio_filters_display,
         .help = "High pass filter for wind noise reduction.",
         .select            = audio_binary_toggle,
+        .max = 1,
         //~ .icon_type = IT_DISABLE_SOME_FEATURE,
         //.essential = FOR_MOVIE,
     },
@@ -655,6 +666,7 @@ static struct menu_entry audio_menus[] = {
         .priv           = &mic_power,
         .select         = audio_binary_toggle,
         .display        = audio_micpower_display,
+        .max = 1,
         .help = "Needed for int. and some other mics, but lowers impedance.",
         //.essential = FOR_MOVIE,
     },
@@ -669,6 +681,8 @@ static struct menu_entry audio_menus[] = {
         .select         = audio_3bit_toggle,
         .select_reverse = audio_3bit_toggle_reverse,
         .display        = audio_lovl_display,
+        .max = 3,
+        .choices = (const char *[]) {"0 dB", "2 dB", "4 dB", "6 dB"},
         .help = "Output volume for audio monitoring (headphones only).",
         //~ .edit_mode = EM_MANY_VALUES,
     },
@@ -678,6 +692,7 @@ static struct menu_entry audio_menus[] = {
         .priv = &audio_monitoring,
         .select         = audio_monitoring_toggle,
         .display        = audio_monitoring_display,
+        .max = 1,
         .help = "Monitoring via A-V jack. Disable if you use a SD display.",
         //.essential = FOR_MOVIE,
     },
@@ -689,6 +704,7 @@ static struct menu_entry audio_menus[] = {
         .priv           = &cfg_draw_meters,
         .select         = menu_binary_toggle,
         .display        = audio_meter_display,
+        .max = 1,
 #ifndef CONFIG_AUDIO_CONTROLS
         .help = "While recording only. -40...0 dB, yellow -12 dB, red -3 dB.",
 #else

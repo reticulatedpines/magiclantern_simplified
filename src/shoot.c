@@ -5672,8 +5672,16 @@ static struct menu_entry expo_menus[] = {
         .name = "PictureStyle",
         .display    = picstyle_display,
         .select     = picstyle_toggle,
+        .priv = &lens_info.picstyle,
         .help = "Change current picture style.",
         .edit_mode = EM_MANY_VALUES_LV,
+        .choices = (const char *[]) {"", 
+                #if NUM_PICSTYLES == 10 // 600D, 5D3...
+                "Auto",
+                #endif
+                "Standard", "Portrait", "Landscape", "Neutral", "Faithful", "Monochrome", "UserDef1", "UserDef2", "UserDef3" },
+        .min = 1,
+        .max = NUM_PICSTYLES,
         //~ .show_liveview = 1,
         //~ //.essential = FOR_PHOTO | FOR_MOVIE,
         .children =  (struct menu_entry[]) {

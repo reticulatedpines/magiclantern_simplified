@@ -521,20 +521,6 @@ void measure_bitrate() // called once / second
     measured_bitrate = (ABS(bytes_delta) / 1024) * 8 / 1024;
 }
 
-static void
-time_indicator_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Time Indicator: %s",
-        time_indicator == 1 ? "Elapsed" :
-        time_indicator == 2 ? "Remain.Card" :
-        time_indicator == 3 ? "Remain.4GB" : "OFF"
-    );
-    menu_draw_icon(x, y, MNI_BOOL_GDR(time_indicator));
-}
-
 /*static void
 bitrate_indicator_display( void * priv, int x, int y, int selected )
 {
@@ -688,11 +674,9 @@ static struct menu_entry mov_menus[] = {
     {
         .name = "Time Indicator",
         .priv       = &time_indicator,
-        .select     = menu_quaternary_toggle,
-        .display    = time_indicator_display,
         .help = "Time indicator while recording.",
-        //.essential = 1,
-        //~ .edit_mode = EM_MANY_VALUES,
+        .max = 3,
+        .choices = (const char *[]) {"OFF", "Elapsed", "Remain.Card", "Remain.4GB"}
     },
 #endif
 };

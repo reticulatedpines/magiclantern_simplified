@@ -920,9 +920,9 @@ audio_alc_display( void * priv, int x, int y, int selected )
 static const char* get_audio_input_string()
 {
     return 
-        (input_choice == 0 ? "internal mic" : 
+        (input_choice == 0 ? "Internal mic" : 
          (input_choice == 1 ? "L:int R:ext" :
-          (input_choice == 2 ? "external stereo" : 
+          (input_choice == 2 ? "External stereo" : 
            (input_choice == 3 ? "L:int R:balanced" : 
             (input_choice == 4 ? (mic_inserted ? "Auto int/EXT " : "Auto INT/ext") : 
              "error")))));
