@@ -131,7 +131,7 @@ static void menu_load_hidden_items();
 extern int gui_state;
 void menu_enable_lv_transparent_mode()
 {
-    menu_lv_transparent_mode = 1;
+    if (lv) menu_lv_transparent_mode = 1;
     menu_damage = 1;
 }
 void menu_disable_lv_transparent_mode()
