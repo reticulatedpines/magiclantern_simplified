@@ -3554,9 +3554,9 @@ mlu_display( void * priv, int x, int y, int selected )
             intervalometer_running || 
             motion_detect || 
             #ifdef FEATURE_AUDIO_REMOTE_SHOT
-            audio_release_running || 
+            audio_release_running
             #endif
-            is_focus_stack_enabled())
+            )
         )
     {
         static char msg[60];
@@ -3569,7 +3569,7 @@ mlu_display( void * priv, int x, int y, int selected )
             #ifdef FEATURE_AUDIO_REMOTE_SHOT
             audio_release_running ? "audio remote" :
             #endif
-            is_focus_stack_enabled() ? "focus stacking" : "?!"
+            "?!"
         );
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) msg);
     }
@@ -7020,10 +7020,10 @@ shoot_task( void* unused )
         }
         #endif
 
-        #if defined(FEATURE_HDR_BRACKETING) || defined(FEATURE_FOCUS_STACKING)
+        #if defined(FEATURE_HDR_BRACKETING)
         // avoid camera shake for HDR shots => force self timer
         static int drive_mode_bk = -1;
-        if (((HDR_ENABLED && hdr_delay) || is_focus_stack_enabled()) && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
+        if ((HDR_ENABLED && hdr_delay) && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
         {
             priority_feature_enabled = 1;
             if (get_halfshutter_pressed())
@@ -7114,14 +7114,6 @@ shoot_task( void* unused )
                 {
                     lens_wait_readytotakepic(64);
                     hdr_shot(1,1); // skip the middle exposure, which was just taken
-                    lens_wait_readytotakepic(64); 
-                }
-                #endif
-                #ifdef FEATURE_FOCUS_STACKING
-                if (is_focus_stack_enabled())
-                {
-                    lens_wait_readytotakepic(64);
-                    focus_stack_run(1); // skip first exposure, we already took it
                     lens_wait_readytotakepic(64); 
                 }
                 #endif
@@ -7462,9 +7454,6 @@ shoot_task( void* unused )
         {
             if (silent_pic_countdown) // half-shutter was pressed while in playback mode, for example
                 continue;
-            #ifdef FEATURE_FOCUS_STACKING
-            if (is_focus_stack_enabled()) focus_stack_run(0); else // shoot all frames
-            #endif
             if (!HDR_ENABLED) silent_pic_take(1);
             else 
             {

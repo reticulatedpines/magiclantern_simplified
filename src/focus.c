@@ -41,14 +41,21 @@ int LensFocus2(int num_steps, int step_size)
 }
 
 
-CONFIG_INT( "focus.stack", focus_stack_enabled, 0);
+static int focus_stack_enabled = 0;
+//~ CONFIG_INT( "focus.stack", focus_stack_enabled, 0);
 CONFIG_INT( "focus.step",   focus_stack_steps_per_picture, 5 );
+
+#ifdef FEATURE_FOCUS_BRACKET
 //~ CONFIG_INT( "focus.count",  focus_stack_count, 5 );
 CONFIG_INT( "focus.bracket.front",  focus_bracket_front, 0 );
 CONFIG_INT( "focus.bracket.behind",  focus_bracket_behind, 0 );
 CONFIG_INT( "focus.bracket.dir",  focus_bracket_dir, 0 );
-#define FOCUS_STACK_COUNT (ABS(focus_task_delta) / focus_stack_steps_per_picture + 1)
 #define FOCUS_BRACKET_COUNT (focus_bracket_front + focus_bracket_behind +1)
+#else
+#define FOCUS_BRACKET_COUNT 0
+#endif
+
+#define FOCUS_STACK_COUNT (ABS(focus_task_delta) / focus_stack_steps_per_picture + 1)
 
 CONFIG_INT( "focus.follow", follow_focus, 0 );
 CONFIG_INT( "focus.follow.mode", follow_focus_mode, 0 ); // 0=arrows, 1=LCD sensor
@@ -314,15 +321,19 @@ int is_focus_stack_enabled() { return focus_stack_enabled && (focus_task_delta |
 #ifdef FEATURE_FOCUS_STACKING
 void focus_stack_run(int skip_frame)
 {
-    int focus_bracket_sign = -1;
 
     if (FOCUS_STACK_COUNT > 1) {
         focus_stack( FOCUS_STACK_COUNT, SGN(-focus_task_delta) * focus_stack_steps_per_picture, skip_frame, 0, false);
-    } else {
+    }
+    #ifdef FEATURE_FOCUS_BRACKET
+    else 
+    {
+        int focus_bracket_sign = -1;
         if (skip_frame) skip_frame = focus_bracket_front+1; // skip original picture instead of first
         if (focus_bracket_dir == 1) focus_bracket_sign = 1; // reverse movement direction
         if (focus_bracket_dir != 2) focus_stack( FOCUS_BRACKET_COUNT, focus_bracket_sign*focus_stack_steps_per_picture, skip_frame,focus_bracket_front, true);
     }
+    #endif
 }
 
 void focus_stack_trigger_from_menu_work()
@@ -559,7 +570,7 @@ focus_delay_toggle( void* priv, int sign)
 }
 
 static void
-focus_stack_print(
+focus_stack_step_print(
     void *          priv,
     int         x,
     int         y,
@@ -569,30 +580,14 @@ focus_stack_print(
     bmp_printf(
         MENU_FONT,
         x, y,
-        "Stack focus    : %s, %d%ssteps/pic",
-        focus_stack_enabled ? "SNAP" : "PLAY",
-        focus_stack_steps_per_picture,
-        focus_stack_steps_per_picture >= 10 ? "" : " "
+        "Steps/Pic : %d (%d pics)",
+        focus_stack_steps_per_picture, 
+        focus_task_delta ? FOCUS_STACK_COUNT : 0
     );
     
-    if ((!focus_task_delta) && ((focus_bracket_dir == 2) || (!(FOCUS_BRACKET_COUNT-1))))
+    if (!focus_task_delta)
     {
-        if (selected) bmp_printf(
-            FONT_MED,
-            x + font_large.width * 17, y - font_med.height,
-            "(no stack or bracket set)"
-        );
-        menu_draw_icon(x, y, MNI_OFF, 0);
-    } else {
-        if (selected) bmp_printf(
-            FONT_MED,
-            x + font_large.width * 17, y - font_med.height,
-            "(%s has %d pictures)",
-            focus_task_delta ? "stack" : "bracket",
-            focus_task_delta ? FOCUS_STACK_COUNT : FOCUS_BRACKET_COUNT
-        );
-        if (!focus_stack_enabled)
-            menu_draw_icon(x, y, MNI_ACTION, 0);
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus points not configured (adjust focus end point).");
     }
 }
 
@@ -1323,20 +1318,25 @@ static struct menu_entry focus_menu[] = {
     #endif
     #ifdef FEATURE_FOCUS_STACKING
     {
-        .name = "Stack/Bracket focus",
-        .priv = &focus_stack_enabled,
-        .display    = focus_stack_print,
-        .select = menu_binary_toggle,
+        .name = "Focus stacking...",
+        .select = menu_open_submenu,
         .select_reverse     = focus_stack_trigger_from_menu,
-        .help = "Focus bracketing, increases DOF while keeping bokeh.",
+        .help = "Takes pictures at different focus points.",
         .children =  (struct menu_entry[]) {
+            {
+                .name = "Run focus stack",
+                .select = focus_stack_trigger_from_menu,
+                .help = "Run the focus stacking sequence.",
+            },
             {
                 .name = "Steps/Pic",
                 .priv = &focus_stack_steps_per_picture, 
+                .display = focus_stack_step_print,
                 .min = 1,
                 .max = 10,
                 .help = "Number of focus steps between two pictures.",
             },
+            #ifdef FEATURE_FOCUS_BRACKET
             {
                 .name = "Trigger mode",
                 .priv = &focus_stack_enabled, 
@@ -1367,6 +1367,7 @@ static struct menu_entry focus_menu[] = {
                 .choices = (const char *[]) {"normal", "reverse","disable"},
                 .help = "Start in front or behind focus (varies among lenses)",
             },
+            #endif
             MENU_EOL
         },
     },
