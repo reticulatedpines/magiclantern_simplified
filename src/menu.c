@@ -40,6 +40,10 @@
 
 #define MENU_BG_COLOR_HEADER_FOOTER COLOR_GRAY40
 
+extern int bmp_color_scheme;
+#define MENU_BAR_COLOR (bmp_color_scheme ? COLOR_LIGHTBLUE : COLOR_BLUE)
+
+
 //for vscroll
 #define MENU_LEN_DEFAULT 11
 #define MENU_LEN_AUDIO 10 // at len=11, audio meters would overwrite menu entries on 600D
@@ -847,34 +851,26 @@ void submenu_only_icon(int x, int y, int value)
     bmp_draw_rect(color, x + 15, y + 22, 10, 1);
 }
 
-void FAST selection_bar(int x0, int y0)
+void FAST selection_bar_backend(int c, int black, int x0, int y0, int w, int h)
 {
-    if (menu_lv_transparent_mode) return; // only one menu, no need to highlight, and this routine conflicts with RGB zebras
-
-    int w = submenu_mode == 1 ? x0 + g_submenu_width - 50 : 720;
-    
-    extern int bmp_color_scheme;
-    
     uint8_t* B = bmp_vram();
-    int c = advanced_hidden_edit_mode ? COLOR_DARK_RED : submenu_mode || bmp_color_scheme ? COLOR_LIGHTBLUE : COLOR_BLUE;
-    int black = COLOR_BLACK;
     #ifdef CONFIG_VXWORKS
     c = D2V(c);
     black = D2V(black);
     #endif
     #define P(x,y) B[BM(x,y)]
-    for (int y = y0; y < y0 + 31; y++)
+    for (int y = y0; y < y0 + h; y++)
     {
-        for (int x = x0-5; x < w; x++)
+        for (int x = x0; x < x0 + w; x++)
         {
             if (P(x,y) == black)
                 P(x,y) = c;
         }
     }
     // use a shadow for better readability, especially for gray text
-    for (int y = y0; y < y0 + 31; y++)
+    for (int y = y0; y < y0 + h; y++)
     {
-        for (int x = x0-5; x < w; x++)
+        for (int x = x0; x < x0 + w; x++)
         {
             if (P(x,y) != c && P(x,y) != black)
             {
@@ -889,6 +885,24 @@ void FAST selection_bar(int x0, int y0)
             }
         }
     }
+}
+
+void selection_bar(int x0, int y0)
+{
+    if (menu_lv_transparent_mode) return; // only one menu, no need to highlight, and this routine conflicts with RGB zebras
+    
+    x0 -= 5;
+    
+    if (submenu_mode == 2)
+    {
+        //~ selection_bar_backend(COLOR_GRAY45, COLOR_BLACK, x0, y0, 320-x0, 31);
+        selection_bar_backend(MENU_BAR_COLOR, COLOR_BLACK, 320, y0, 720-300, 31);
+        return;
+    }
+    
+    int w = submenu_mode == 1 ? g_submenu_width - 50 : 720 - x0;
+    int c = advanced_hidden_edit_mode ? COLOR_DARK_RED : MENU_BAR_COLOR;
+    selection_bar_backend(c, COLOR_BLACK, x0, y0, w, 31);
 }
 
 void dim_hidden_menu(int x0, int y0, int selected)
@@ -1180,6 +1194,60 @@ static char* menu_help_get_line(const char* help, void* priv)
     return buf;
 }
 
+static char* pickbox_string(struct menu_entry * entry, int i)
+{
+    if (entry->choices) return (char*) entry->choices[i];
+    if (entry->min == 0 && entry->max == 1) return i ? "ON" : "OFF";
+
+    // not configured; just use some reasonable defaults
+    static char msg[20];
+    snprintf(msg, sizeof(msg), "%d", i);
+    return msg;
+}
+static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
+{
+    int lo = entry->min;
+    int hi = entry->max;
+    int sel = *(int*)entry->priv;
+    int fnt = FONT(FONT_LARGE, COLOR_WHITE, COLOR_GRAY40);
+    
+    // don't draw too many items in the pickbox
+    if (hi - lo > 10)
+    {
+        lo = MAX(lo, sel - (sel < hi ? 9 : 10));
+        hi = MIN(hi, lo + 10);
+    }
+    
+    // compute the width of the pickbox (what's the longest string?)
+    int w = 200;
+    for (int i = lo; i <= hi; i++)
+    {
+        w = MAX(w, font_large.width * strlen(pickbox_string(entry, i)));
+    }
+
+    // we don't know the exact X position yet, so just use a hardcoded default
+    x0 = 350;
+
+    // don't draw the pickbox out of the screen
+    if (x0 + w > 700)
+        x0 = 700 - w;
+
+    int h = 31 * (hi-lo+1);
+    if (y0 + h > 400)
+        y0 = 400 - h;
+
+    // draw the pickbox
+    bmp_fill(COLOR_GRAY40, x0-8, y0-8, w+16, h+16);
+    for (int i = lo; i <= hi; i++)
+    {
+        int y = y0 + (i-lo) * 31;
+        bmp_printf(fnt, x0, y, pickbox_string(entry, i));
+        if (i == sel)
+            selection_bar_backend(MENU_BAR_COLOR, COLOR_GRAY40, x0-8, y, w+16, 31);
+    }
+    bmp_draw_rect(COLOR_GRAY60, x0-8, y0-8, w+16, h+16);
+}
+
 static void
 menu_display(
     struct menu * parentmenu,
@@ -1401,7 +1469,14 @@ menu_display(
             
             // display selection bar
             if (menu->selected)
-                selection_bar(x, y);
+            {
+                // use a pickbox if possible
+                if (submenu_mode == 2 && menu->min != menu->max && menu->priv)
+                    pickbox_draw(menu, x, y);
+                else
+                    selection_bar(x, y);
+            
+            }
 
             // move down for next item
             y += font_large.height;
@@ -1718,15 +1793,18 @@ menu_entry_select(
     {
         if (submenu_mode == 2) submenu_mode = 0;
         else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
+        
+        else if ((entry->max > 1 && entry->choices && !submenu_mode)  // we can use pickbox for these items, use it by default
+                 || entry->edit_mode == EM_MANY_VALUES
+                )
+        {
+            submenu_mode = (!submenu_mode)*2;
+            menu_lv_transparent_mode = 0;
+        }
         else if (entry->edit_mode == EM_FEW_VALUES) // SET increments
         {
             if( entry->select ) entry->select( entry->priv, 1);
             else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
-        }
-        else if (entry->edit_mode == EM_MANY_VALUES)
-        {
-            submenu_mode = (!submenu_mode)*2;
-            menu_lv_transparent_mode = 0;
         }
         else if (entry->edit_mode == EM_MANY_VALUES_LV)
         {
@@ -2309,10 +2387,10 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_UP:
         if (menu_help_active) { menu_help_prev_page(); break; }
 
-        if (submenu_mode == 2) menu_entry_select( menu, 1 );
-        else menu_entry_move( menu, -1 );
-         
-        if (menu_lv_transparent_mode) menu_needs_full_redraw = 1;
+        if (submenu_mode == 2 || menu_lv_transparent_mode)
+            menu_entry_select( menu, 1 );
+        else
+            menu_entry_move( menu, -1 );
 
         break;
 
@@ -2320,10 +2398,10 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_DOWN:
         if (menu_help_active) { menu_help_next_page(); break; }
         
-        if (submenu_mode == 2) menu_entry_select( menu, 0 );
-        else menu_entry_move( menu, 1 );
-        
-        if (menu_lv_transparent_mode) menu_needs_full_redraw = 1;
+        if (submenu_mode == 2 || menu_lv_transparent_mode)
+            menu_entry_select( menu, 0 );
+        else
+            menu_entry_move( menu, 1 );
 
         break;
 
