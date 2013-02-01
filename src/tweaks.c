@@ -2293,6 +2293,7 @@ static struct menu_entry key_menus[] = {
         .select = menu_open_submenu,
         .submenu_width = 700,
         .help = "Tweaks for LiveView focus box: move faster, snap to points.",
+        .depends_on = DEP_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             #ifdef FEATURE_LV_FOCUS_BOX_FAST
             {
@@ -2335,6 +2336,7 @@ static struct menu_entry key_menus[] = {
         .select = menu_open_submenu,
         .submenu_width = 500,
         .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
+        .depends_on = DEP_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             #ifdef CONFIG_AUDIO_CONTROLS
             {
@@ -3933,6 +3935,7 @@ struct menu_entry play_menus[] = {
         .select = menu_open_submenu,
         .submenu_width = 715,
         .help = "Options for PLAY (image review) mode.",
+        .depends_on = DEP_PHOTO_MODE,
         .children =  (struct menu_entry[]) {
             #ifdef FEATURE_SET_MAINDIAL
             {

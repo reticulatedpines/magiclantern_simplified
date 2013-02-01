@@ -1236,7 +1236,8 @@ static struct menu_entry focus_menu[] = {
         .priv = &follow_focus,
         .display    = follow_focus_print,
         .max = 1,
-        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS | DEP_CFN_AF_BACK_BUTTON,
+        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
+        .works_best_in = DEP_CFN_AF_BACK_BUTTON,
         .help = "Focus with arrow keys. MENU while REC = save focus point.",
 
         .children =  (struct menu_entry[]) {
@@ -1297,6 +1298,7 @@ static struct menu_entry focus_menu[] = {
         .icon_type = IT_PERCENT,
         .help = "Number of seconds before starting rack focus.",
         .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
+        .works_best_in = DEP_MOVIE_MODE,
     },
     {
         .name = "Rack Focus",
@@ -1308,6 +1310,7 @@ static struct menu_entry focus_menu[] = {
         .help = "Press SET for rack focus, or PLAY to also start recording.",
         .icon_type = IT_ACTION,
         .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
+        .works_best_in = DEP_MOVIE_MODE,
     },
     #endif
     #ifdef FEATURE_FOCUS_STACKING

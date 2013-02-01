@@ -5292,6 +5292,7 @@ struct menu_entry tweak_menus_shoot[] = {
         .submenu_width = 650,
         .icon_type = IT_SUBMENU,
         .help = "Disable x5 or x10, boost contrast/sharpness...",
+        .depends_on = DEP_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Zoom x5",

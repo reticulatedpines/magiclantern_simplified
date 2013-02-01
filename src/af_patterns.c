@@ -372,7 +372,7 @@ static struct menu_entry afp_focus_menu[] = {
         .select = menu_open_submenu,
         .help = "Custom AF patterns (photo mode only). Ported from 400plus.",
         .submenu_height = 280,
-        .depends_on = DEP_PHOTO_MODE | DEP_CHIPPED_LENS,
+        .depends_on = DEP_PHOTO_MODE | DEP_CHIPPED_LENS | DEP_NOT_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Center selection",

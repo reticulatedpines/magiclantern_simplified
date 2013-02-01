@@ -3824,6 +3824,7 @@ struct menu_entry powersave_menus[] = {
     .select = menu_open_submenu,
     .submenu_width = 715,
     .help = "Options for reducing power consumption during idle times.",
+    .depends_on = DEP_LIVEVIEW,
     .children =  (struct menu_entry[]) {
         {
             .name = "Enable power saving",
@@ -3894,6 +3895,7 @@ struct menu_entry livev_cfg_menus[] = {
         .choices    = (const char *[]) {"1 (OFF)", "2", "3", "4"},
         .icon_type  = IT_BOOL,
         .help = "Num. of LV display presets. Switch with " INFO_BTN_NAME " or from LiveV.",
+        .depends_on = DEP_LIVEVIEW,
     },
 };
 #endif
