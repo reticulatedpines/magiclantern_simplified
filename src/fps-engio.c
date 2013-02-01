@@ -670,7 +670,7 @@ desired_fps_print(
 )
 {
     int desired_fps = fps_values_x1000[fps_override_index] / 10;
-    int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
+    int default_fps = lv ? calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig) : 0;
     if (desired_fps % 100)
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
