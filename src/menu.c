@@ -1285,6 +1285,12 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
         );
 }
 
+static void submenu_key_hint(int x, int y, int bg)
+{
+    bmp_fill(bg, x+10, y, 30, 30);
+    bfnt_draw_char(ICON_ML_SUBMENU_KEY, x, y-5, COLOR_CYAN, COLOR_BLACK);
+}
+
 static void menu_clean_footer()
 {
     int h = 50;
@@ -1478,6 +1484,11 @@ menu_display(
             // display key hints
             if (menu->selected && (menu->priv || menu->select))
             {
+                if (menu->children && !submenu_mode && !menu_lv_transparent_mode)
+                {
+                    if (icon_drawn != MNI_SUBMENU)
+                        submenu_key_hint(720-35, y, MENU_BAR_COLOR);
+                }
                 /*
                 if (submenu_mode == 1)
                 {
@@ -1488,11 +1499,6 @@ menu_display(
                 {
                     if (icon_drawn != MNI_ACTION)
                         edit_key_hint(710, y);
-                }
-                else if (menu->children && !submenu_mode && !menu_lv_transparent_mode)
-                {
-                    if (icon_drawn != MNI_SUBMENU)
-                        submenu_key_hint(x, y);
                 }
                 else dummy_hint(x, y);
                 */
@@ -1773,6 +1779,7 @@ submenu_display(struct menu * submenu)
         bfnt_puts(submenu->name,  bx + 15,  by + 5, COLOR_WHITE, 40);
     }
 
+    submenu_key_hint(720-bx-45, by+10, MENU_BG_COLOR_HEADER_FOOTER);
     menu_display(submenu,  bx + 50,  by + 50 + 25, 0);
     show_hidden_items(submenu, 1);
 }
