@@ -1891,7 +1891,7 @@ iso_display( void * priv, int x, int y, int selected )
                 int Sv = APEX_SV(lens_info.iso_equiv_raw) * 10/8;
                 bmp_printf(
                     FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
-                    720 - font_large.width * 6, y,
+                    720 - font_large.width * 7, y,
                     "Sv%s%d.%d",
                     FMT_FIXEDPOINT1(Sv)
                 );
@@ -1921,8 +1921,8 @@ iso_display( void * priv, int x, int y, int selected )
             Bv = Bv * 10/8;
 
             bmp_printf(
-                FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
-                720 - font_large.width * 6, 380,
+                SHADOW_FONT(FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK)),
+                720 - font_large.width * 7, y + font_large.height*3,
                 "Bv%s%d.%d",
                 FMT_FIXEDPOINT1(Bv)
             );
@@ -2098,7 +2098,7 @@ shutter_display( void * priv, int x, int y, int selected )
         int Tv = APEX_TV(lens_info.raw_shutter) * 10/8;
         if (lens_info.raw_shutter) bmp_printf(
             FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
-            720 - font_large.width * 6, y,
+            720 - font_large.width * 7, y,
             "Tv%s%d.%d",
             FMT_FIXEDPOINT1(Tv)
         );
@@ -2153,7 +2153,7 @@ aperture_display( void * priv, int x, int y, int selected )
     {
         if (a) bmp_printf(
             FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
-            720 - font_large.width * 6, y,
+            720 - font_large.width * 7, y,
             "Av%s%d.%d",
             FMT_FIXEDPOINT1(av)
         );
@@ -2737,13 +2737,13 @@ picstyle_display( void * priv, int x, int y, int selected )
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
-        "PictureStyle: %s%s(%d,%d,%d,%d)",
-        get_picstyle_name(get_prop_picstyle_from_index(i)),
-        picstyle_before_rec ? "*" : " ",
-        lens_get_from_other_picstyle_sharpness(i),
-        lens_get_from_other_picstyle_contrast(i),
-        ABS(lens_get_from_other_picstyle_saturation(i)) < 10 ? lens_get_from_other_picstyle_saturation(i) : 0,
-        ABS(lens_get_from_other_picstyle_color_tone(i)) < 10 ? lens_get_from_other_picstyle_color_tone(i) : 0
+        "PictureStyle: %s",
+        get_picstyle_name(get_prop_picstyle_from_index(i))
+        //~ picstyle_before_rec ? "*" : " ",
+        //~ lens_get_from_other_picstyle_sharpness(i),
+        //~ lens_get_from_other_picstyle_contrast(i),
+        //~ ABS(lens_get_from_other_picstyle_saturation(i)) < 10 ? lens_get_from_other_picstyle_saturation(i) : 0,
+        //~ ABS(lens_get_from_other_picstyle_color_tone(i)) < 10 ? lens_get_from_other_picstyle_color_tone(i) : 0
     );
     menu_draw_icon(x, y, MNI_ON, 0);
 }
