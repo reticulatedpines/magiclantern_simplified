@@ -413,14 +413,8 @@ void free_space_show_photomode()
     int fsgr = free_space_32k - (fsg << 15);
     int fsgf = (fsgr * 10) >> 15;
     
-#if defined(CONFIG_7D)    
-    int x = 32+(fsg < 10 ? 24 : fsg < 100 ? 12 : 0);
-    int y = 123;
-    
-	char msg[7];
-	snprintf(msg, sizeof(msg), "%d.%d", fsg, fsgf);
-	int w = bfnt_puts(msg, x, y, COLOR_CYAN, bmp_getpixel(x,y));
-	bmp_printf(FONT(SHADOW_FONT(FONT_MED), COLOR_CYAN, bmp_getpixel(x,y)), x+w+4, y+18, "GB" );
+#if defined(CONFIG_7D)
+    /* moved to flexinfo */
 #else
 
     #if defined(DISPLAY_GB_POS_X) && defined(DISPLAY_GB_POS_Y)
