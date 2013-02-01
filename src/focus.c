@@ -788,15 +788,6 @@ follow_focus_print(
         bmp_printf(FONT_MED, x + 580, y+5, follow_focus_reverse_h ? "- +" : "+ -");
         bmp_printf(FONT_MED, x + 580 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
     }
-    if (follow_focus)
-    {
-        if (is_manual_focus()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Follow focus requires autofocus enabled.");
-        if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Follow focus only works in LiveView.");
-        #ifndef CONFIG_NO_HALFSHUTTER_AF_IN_LIVEVIEW
-        if (cfn_get_af_button_assignment() == AF_BTN_HALFSHUTTER) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
-        #endif
-    }
-    menu_draw_icon(x, y, MNI_BOOL_LV(follow_focus));
 }
 
 #ifdef FEATURE_MOVIE_AF
@@ -1183,13 +1174,7 @@ trap_focus_display( void * priv, int x, int y, int selected )
     );
     if (t)
     {
-        if (is_movie_mode()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Trap focus only works in photo mode.");
-        if (!is_manual_focus()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Trap focus only works with manual focus.");
         if (!lv && !lens_info.name[0]) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Trap focus outside LiveView requires a chipped lens");
-        #ifndef CONFIG_LV_FOCUS_INFO
-        if (lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "On your camera, trap focus doesn't work in LiveView.");
-        #endif
-        if (lv && is_movie_mode()) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Trap focus does not work in movie mode.");
         if (t == 2 && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Assign AF button to half-shutter from CFn!");
     }
 }
@@ -1224,7 +1209,11 @@ static struct menu_entry trap_focus_menu[] = {
         .choices = (const char *[]) {"OFF", "Hold AF button", "Continuous"},
         .help = "Takes a picture when the subject comes in focus. MF only.",
         .icon_type = IT_DICE_OFF,
-        
+        .depends_on = DEP_PHOTO_MODE | DEP_MANUAL_FOCUS
+            #ifndef CONFIG_LV_FOCUS_INFO
+            | DEP_NOT_LIVEVIEW
+            #endif
+            ,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Shooting duration",
@@ -1247,6 +1236,7 @@ static struct menu_entry focus_menu[] = {
         .priv = &follow_focus,
         .display    = follow_focus_print,
         .max = 1,
+        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS | DEP_CFN_AF_BACK_BUTTON,
         .help = "Focus with arrow keys. MENU while REC = save focus point.",
 
         .children =  (struct menu_entry[]) {
@@ -1287,6 +1277,7 @@ static struct menu_entry focus_menu[] = {
         .select_reverse = movie_af_noisefilter_bump,
         .select_Q = movie_af_aggressiveness_bump,
         .help = "Custom AF algorithm in movie mode. Not very efficient."
+        .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE | DEP_AUTOFOCUS,
     },
     #endif
 
@@ -1295,7 +1286,8 @@ static struct menu_entry focus_menu[] = {
         .name = "Focus End Point",
         .display    = focus_show_a,
         .select     = focus_reset_a,
-        .help = "SET: fix here rack end point. ZoomIn+L/R: start point."
+        .help = "SET: fix here rack end point. ZoomIn+L/R: start point.",
+        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
     },
     {
         .name = "Rack Delay     ",
@@ -1303,7 +1295,8 @@ static struct menu_entry focus_menu[] = {
         .max = 20,
         .edit_mode = EM_MANY_VALUES,
         .icon_type = IT_PERCENT,
-        .help = "Number of seconds before starting rack focus."
+        .help = "Number of seconds before starting rack focus.",
+        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
     },
     {
         .name = "Rack Focus",
@@ -1314,6 +1307,7 @@ static struct menu_entry focus_menu[] = {
         .select_reverse = rack_focus_start_auto_record,
         .help = "Press SET for rack focus, or PLAY to also start recording.",
         .icon_type = IT_ACTION,
+        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
     },
     #endif
     #ifdef FEATURE_FOCUS_STACKING
@@ -1322,6 +1316,7 @@ static struct menu_entry focus_menu[] = {
         .select = menu_open_submenu,
         .select_reverse     = focus_stack_trigger_from_menu,
         .help = "Takes pictures at different focus points.",
+        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS | DEP_PHOTO_MODE,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Run focus stack",
@@ -1377,6 +1372,7 @@ static struct menu_entry focus_menu[] = {
         .name = "Focus step settings...",
         .select     = menu_open_submenu,
         .help = "Low-level focus settings, for rack/stack/follow focus.",
+        .depends_on = DEP_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Step Size",

@@ -106,8 +106,6 @@ digic_iso_print(
             GA/10, GA%10
         );
     }
-    if (G && !lv)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in LiveView.");
     menu_draw_icon(x, y, MNI_BOOL(G), 0);
 }
 
@@ -131,8 +129,6 @@ display_gain_print(
         GA/10, GA%10
     );
 
-    if (G && is_movie_mode())
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only for photo mode. For movie mode, use ML digital ISO.");
     menu_draw_icon(x, y, MNI_BOOL(G), 0);
 }
 
@@ -151,8 +147,6 @@ digic_black_print(
         digic_black_level > 100 ? "+" : "",
         digic_black_level-100
     );
-    if (digic_black_level != 100 && !is_movie_mode()) 
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in Movie mode.");
     menu_draw_icon(x, y, MNI_BOOL(digic_black_level-100), 0);
 }
 
@@ -582,6 +576,7 @@ static struct menu_entry lv_img_menu[] = {
         .name = "Image Effects...",
         .select = menu_open_submenu,
         .help = "Experimental image filters found by digging into DIGIC.",
+        .depends_on = DEP_MOVIE_MODE,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Desaturate",

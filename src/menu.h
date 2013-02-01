@@ -38,6 +38,7 @@
 
 #define MENU_FONT       FONT(FONT_LARGE,COLOR_WHITE,COLOR_BLACK)
 #define MENU_FONT_SEL   MENU_FONT
+#define MENU_FONT_GRAY  FONT(FONT_LARGE,50,COLOR_BLACK)
 
 int get_menu_font_sel();
 int gui_menu_shown();
@@ -93,7 +94,12 @@ struct menu_entry
         int8_t pos;
         int8_t childnum;
         int8_t childnummax; 
+
+        int16_t depends_on;     // hard requirement, won't work otherwise
+        int16_t works_best_in;  // soft requirement, it will work, but not as well
 };
+
+#define IS_VISIBLE(menu) (menu->hidden != MENU_ENTRY_HIDDEN)
 
 #define MENU_ENTRY_NOT_HIDDEN 0
 #define MENU_ENTRY_HIDDEN 1
@@ -126,29 +132,20 @@ struct menu_entry
 #define UNIT_ISO 5
 #define UNIT_HEX 6
 
-
-// these can be combined with OR
-/*
-#define FOR_MOVIE 1
-#define FOR_PHOTO 2 // LV + non-LV
-#define FOR_LIVEVIEW 4 // photo and movie
-#define FOR_PHOTO_NON_LIVEVIEW 8 // photo only, non_liveview
-#define FOR_PLAYBACK 16 // photo and movie
-#define FOR_EXT_MONITOR 32 // HDMI or SD
-#define FOR_SUBMENU 64
-*/
-/*
-#define IS_VISIBLE(menu) ( \
-        (menu->essential & FOR_MOVIE && is_movie_mode() && lv) || \
-        (menu->essential & FOR_PHOTO && !is_movie_mode() && !PLAY_MODE) || \
-        (menu->essential & FOR_LIVEVIEW && lv) || \
-        (menu->essential & FOR_PHOTO_NON_LIVEVIEW && !lv && !PLAY_MODE) || \
-        (menu->essential & FOR_PLAYBACK && PLAY_MODE) || \
-        (menu->essential & FOR_EXT_MONITOR && EXT_MONITOR_CONNECTED) || \
-        (menu->essential & FOR_SUBMENU && submenu_mode) || \
-0) */
-
-#define IS_VISIBLE(menu) (menu->hidden != MENU_ENTRY_HIDDEN)
+#define DEP_GLOBAL_DRAW (1<<0)
+#define DEP_LIVEVIEW (1<<1)
+#define DEP_NOT_LIVEVIEW (1<<2)
+#define DEP_MOVIE_MODE (1<<3)
+#define DEP_PHOTO_MODE (1<<4)
+#define DEP_AUTOFOCUS (1<<5)
+#define DEP_MANUAL_FOCUS (1<<6)
+#define DEP_CFN_AF_HALFSHUTTER (1<<7)
+#define DEP_CFN_AF_BACK_BUTTON (1<<8)
+#define DEP_EXPSIM (1<<9)
+#define DEP_NOT_EXPSIM (1<<10)
+#define DEP_CHIPPED_LENS (1<<11)
+#define DEP_M_MODE (1<<12)
+#define DEP_MANUAL_ISO (1<<13)
 
 struct menu
 {
@@ -228,9 +225,10 @@ extern void menu_stop(void);
 
 #define _ZEBRAS_IN_LIVEVIEW (get_global_draw_setting() & 1)
 #define GDR_WARNING_MSG ((lv && lv_disp_mode && _ZEBRAS_IN_LIVEVIEW) ? "Press " INFO_BTN_NAME " (outside ML menu) to turn Canon displays off." : get_global_draw_setting() ? "GlobalDraw is disabled, check your settings." : "GlobalDraw is OFF.")
+#define EXPSIM_WARNING_MSG (expsim == 0 ? "ExpSim is OFF." : "Display Gain is active.") // no other causes.. yet
 
 #define MNI_BOOL_GDR(x) ((x) ? ( get_global_draw() ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) GDR_WARNING_MSG
-#define MNI_BOOL_GDR_EXPSIM(x) ((x) ? ( get_global_draw() && (lv_luma_is_accurate() || !lv) ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t)( !get_global_draw() ? GDR_WARNING_MSG : expsim == 0 ? "ExpSim is OFF." : "Display Gain is active." )
+#define MNI_BOOL_GDR_EXPSIM(x) ((x) ? ( get_global_draw() && (lv_luma_is_accurate() || !lv) ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t)( !get_global_draw() ? GDR_WARNING_MSG : EXPSIM_WARNING_MSG )
 #define MNI_BOOL_LV(x) ((x) ? ( lv ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) "This option only works in LiveView." 
 
 #define MENU_EOL_PRIV (void*)-1

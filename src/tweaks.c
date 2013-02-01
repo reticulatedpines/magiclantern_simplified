@@ -2681,6 +2681,7 @@ struct menu_entry expo_tweak_menus[] = {
         .choices = (const char *[]) {"Photo, no ExpSim", "Photo, ExpSim", "Movie"},
         .icon_type = IT_DICE,
         .help = "Photo / Photo ExpSim / Movie. ExpSim: show proper exposure.",
+        .depends_on = DEP_LIVEVIEW,
     },
 };
 #endif
@@ -3692,6 +3693,7 @@ static struct menu_entry display_menus[] = {
                 .display = preview_brightness_display,
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"Normal", "High", "Very high"},
+                .depends_on = DEP_LIVEVIEW,
             },
             {
                 .name = "LV contrast",
@@ -3701,6 +3703,7 @@ static struct menu_entry display_menus[] = {
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"Zero", "Very low", "Low", "Normal", "High", "Very high", "Auto"},
+                .depends_on = DEP_LIVEVIEW,
             },
             #endif
             #ifdef FEATURE_LV_SATURATION
@@ -3712,6 +3715,7 @@ static struct menu_entry display_menus[] = {
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"0 (Grayscale)", "Normal", "High", "Very high"},
+                .depends_on = DEP_LIVEVIEW,
                 .submenu_width = 650,
                 .children =  (struct menu_entry[]) {
                     {
@@ -3731,6 +3735,7 @@ static struct menu_entry display_menus[] = {
                 .select = display_gain_toggle,
                 .help = "Boost LiveView display gain, for night vision (photo mode).",
                 .edit_mode = EM_MANY_VALUES_LV,
+                .depends_on = DEP_LIVEVIEW | DEP_PHOTO_MODE,
             },
             #endif
             #ifdef FEATURE_COLOR_SCHEME
@@ -3750,6 +3755,7 @@ static struct menu_entry display_menus[] = {
         .display        = clearscreen_display,
         .max            = 1,
         .help = "Clear bitmap overlays from LiveView display.",
+        .depends_on = DEP_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Mode",
@@ -3773,6 +3779,7 @@ static struct menu_entry display_menus[] = {
         .priv     = &display_shake,
         .max = 1,
         .help = "Emphasizes camera shake on LiveView display.",
+        .depends_on = DEP_LIVEVIEW,
     },
     #endif
     #ifdef FEATURE_DEFISHING_PREVIEW
@@ -3814,6 +3821,7 @@ static struct menu_entry display_menus[] = {
         .max = 1,
         .submenu_width = 700,
         .help = "Stretches LiveView image vertically, for anamorphic lenses.",
+        .depends_on = DEP_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Stretch Ratio",
@@ -3849,8 +3857,7 @@ static struct menu_entry display_menus[] = {
                     .display = screen_layout_display, 
                     .select = screen_layout_toggle,
                     .help = "Position of top/bottom bars, useful for external displays.",
-                    //.essential = FOR_EXT_MONITOR,
-                    //~ .edit_mode = EM_MANY_VALUES,
+                    .depends_on = DEP_LIVEVIEW,
                 },
             #endif
             #ifdef FEATURE_IMAGE_POSITION

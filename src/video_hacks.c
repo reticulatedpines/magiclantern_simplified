@@ -151,6 +151,7 @@ static struct menu_entry video_hack_menus[] = {
         .priv = &bitrate_cache_hacks,
         .max  = 1,
         .help = "Experimental hacks: flush rate, GOP size. Be careful!",
+        .depends_on = DEP_MOVIE_MODE,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Flush rate",

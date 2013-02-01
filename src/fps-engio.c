@@ -639,10 +639,6 @@ fps_print(
         "FPS override  : %s",
         fps_override ? msg : "OFF"
     );
-    
-    if(fps_override && !lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "FPS override only works in LiveView.");
-
-    menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
 }
 
 static void
@@ -1095,7 +1091,7 @@ static struct menu_entry fps_menu[] = {
         .select = fps_enable_disable,
         .display = fps_print,
         .help = "Changes FPS. Also disables sound and alters shutter speeds.",
-        //.essential = FOR_MOVIE,
+        .depends_on = DEP_LIVEVIEW,
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
             {
@@ -1198,7 +1194,7 @@ static struct menu_entry fps_menu[] = {
         .priv = &fps_ramp,
         .max = 1,
         .help = "Press REC/" INFO_BTN_NAME " to start ramping. FPS override should be ON.",
-        //.essential = FOR_MOVIE,
+        .depends_on = DEP_MOVIE_MODE,
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
             /*

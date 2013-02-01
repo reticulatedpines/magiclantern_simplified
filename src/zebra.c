@@ -2425,7 +2425,7 @@ zebra_draw_display( void * priv, int x, int y, int selected )
         "%s", 
         msg
     );
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(z));
+    //~ menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(z));
 }
 
 static void
@@ -2489,7 +2489,7 @@ falsecolor_display( void * priv, int x, int y, int selected )
     );
     if (falsecolor_draw)
         falsecolor_palette_preview(x, y);
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(falsecolor_draw));
+    //~ menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(falsecolor_draw));
 }
 
 static void
@@ -2532,7 +2532,7 @@ focus_peaking_display( void * priv, int x, int y, int selected )
             x, y,
             "Focus Peak  : OFF"
         );
-    menu_draw_icon(x, y, MNI_BOOL_GDR(f));
+    //~ menu_draw_icon(x, y, MNI_BOOL_GDR(f));
 }
 
 static void focus_peaking_adjust_thr(void* priv, int delta)
@@ -2559,7 +2559,7 @@ crop_display( void * priv, int x, int y, int selected )
     );
     if (crop_enabled && cropmark_movieonly && !is_movie_mode())
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Cropmarks are only displayed in movie mode");
-    menu_draw_icon(x, y, MNI_BOOL_GDR(crop_enabled));
+    //~ menu_draw_icon(x, y, MNI_BOOL_GDR(crop_enabled));
 }
 
 static void
@@ -2600,7 +2600,7 @@ hist_print( void * priv, int x, int y, int selected )
         hist_draw == 0 ? "" : hist_log ? ",Log" : ",Lin",
         hist_draw && hist_warn ? ",clip warn" : ""
     );
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(hist_draw));
+    //~ menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(hist_draw));
 }
 #endif
 
@@ -2617,7 +2617,7 @@ waveform_print( void * priv, int x, int y, int selected )
         waveform_size == 1 ? "Large" : 
         waveform_size == 2 ? "FullScreen" : "err"
     );
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(waveform_draw));
+    //~ menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(waveform_draw));
 }
 #endif
 
@@ -2663,7 +2663,7 @@ vectorscope_display( void * priv, int x, int y, int selected )
         "Vectorscope : %s",
         *(unsigned*) priv ? "ON " : "OFF"
     );
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(*(unsigned*) priv));
+    //~ menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(*(unsigned*) priv));
 }
 #endif
 
@@ -2763,8 +2763,8 @@ zoom_overlay_display(
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Full-screen Magic Zoom does not work in crop mode");
     else if (zoom_overlay_trigger_mode && !get_zoom_overlay_trigger_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom is not available in this mode");
-    else
-        menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_trigger_mode));
+    //~ else
+        //~ menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_trigger_mode));
 }
 #endif
 
@@ -2792,7 +2792,7 @@ spotmeter_menu_display(
         /*spotmeter_formula == 6*/"HSV",
         spotmeter_draw && spotmeter_position ? ", AFbox" : ""
     );
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
+    //~ menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
 }
 #endif
 
@@ -3175,7 +3175,7 @@ transparent_overlay_display(
             "Ghost Image : %s", 
             transparent_overlay ? "ON" : "OFF"
         );
-    menu_draw_icon(x, y, MNI_BOOL_GDR(transparent_overlay));
+    //~ menu_draw_icon(x, y, MNI_BOOL_GDR(transparent_overlay));
     transparent_overlay_hidden = 0;
 }
 
@@ -3360,7 +3360,7 @@ electronic_level_display(
         "Level Indicator: %s",
         electronic_level ? "ON" : "OFF"
     );
-    menu_draw_icon(x, y, MNI_BOOL_GDR(electronic_level));
+    //~ menu_draw_icon(x, y, MNI_BOOL_GDR(electronic_level));
 }
 
 #endif
@@ -3391,7 +3391,7 @@ struct menu_entry zebra_menus[] = {
         .display    = zebra_draw_display,
         .max = 1,
         .help = "Zebra stripes: show overexposed or underexposed areas.",
-        //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+        .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Color space",
@@ -3450,7 +3450,7 @@ struct menu_entry zebra_menus[] = {
         .max = 1,
         .help = "Show which parts of the image are in focus.",
         .submenu_width = 650,
-        //.essential = FOR_LIVEVIEW,
+        .depends_on = DEP_GLOBAL_DRAW,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Filter bias", 
@@ -3529,7 +3529,7 @@ struct menu_entry zebra_menus[] = {
         .max = 1,
         .help = "Zoom box for checking focus. Can be used while recording.",
         .submenu_width = 650,
-        //.essential = FOR_LIVEVIEW,
+        .depends_on = DEP_GLOBAL_DRAW | DEP_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Trigger mode",
@@ -3601,7 +3601,7 @@ struct menu_entry zebra_menus[] = {
         .display    = crop_display,
         .max = 1,
         .help = "Cropmarks or custom grids for framing.",
-        //.essential = FOR_LIVEVIEW,
+        .depends_on = DEP_GLOBAL_DRAW,
         .submenu_width = 650,
         .submenu_height = 270,
         .children =  (struct menu_entry[]) {
@@ -3639,7 +3639,7 @@ struct menu_entry zebra_menus[] = {
         .display = transparent_overlay_display, 
         .max = 1,
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
-        //.essential = FOR_PLAYBACK,
+        .depends_on = DEP_GLOBAL_DRAW | DEP_LIVEVIEW,
     },
     #endif
     #ifdef FEATURE_SPOTMETER
@@ -3649,7 +3649,7 @@ struct menu_entry zebra_menus[] = {
         .max = 1,
         .display        = spotmeter_menu_display,
         .help = "Exposure aid: display brightness from a small spot.",
-        //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+        .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Unit",
@@ -3679,7 +3679,7 @@ struct menu_entry zebra_menus[] = {
         .max = 1,
         .submenu_height = 160,
         .help = "Exposure aid: each brightness level is color-coded.",
-        //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+        .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Palette",
@@ -3700,7 +3700,7 @@ struct menu_entry zebra_menus[] = {
         .max = 1,
         .display = hist_print,
         .help = "Exposure aid: shows the distribution of brightness levels.",
-        //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
+        .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Color space",
@@ -3735,6 +3735,7 @@ struct menu_entry zebra_menus[] = {
         .display = waveform_print,
         .max = 1,
         .help = "Exposure aid: useful for checking overall brightness.",
+        .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Size",
@@ -3756,7 +3757,7 @@ struct menu_entry zebra_menus[] = {
         .priv       = &vectorscope_draw,
         .max = 1,
         .help = "Shows color distribution as U-V plot. For grading & WB.",
-        //.essential = FOR_LIVEVIEW,
+        .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
     },
     #endif
 };
@@ -3770,6 +3771,7 @@ struct menu_entry level_indic_menus[] = {
         .select = menu_binary_toggle, 
         .display = electronic_level_display,
         .help = "Electronic level indicator in 0.5 degree steps.",
+        .depends_on = DEP_GLOBAL_DRAW,
     },
     #endif
     #endif

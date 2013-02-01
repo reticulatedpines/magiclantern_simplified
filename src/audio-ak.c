@@ -581,7 +581,7 @@ static struct menu_entry audio_menus[] = {
         .choices = (const char *[]) {" 0 dB", "10 dB", "17 dB", "20 dB", "23 dB", "26 dB", "29 dB", "32 dB"},
         #endif
         .help = "Gain applied to both inputs in analog domain (preferred).",
-        //.essential = FOR_MOVIE,
+        .works_best_in = DEP_MOVIE_MODE,
         .edit_mode = EM_MANY_VALUES,
     },
     #endif
@@ -590,6 +590,7 @@ static struct menu_entry audio_menus[] = {
         .name = "Digital Gain...", 
         .select = menu_open_submenu, 
         .help = "Digital gain (not recommended, use only for headphones!)",
+        .works_best_in = DEP_MOVIE_MODE,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Left Digital Gain ",
@@ -634,8 +635,7 @@ static struct menu_entry audio_menus[] = {
         .max = 4,
         .choices = (const char *[]) {"Internal mic", "L:int R:ext", "External stereo", "L:int R:balanced", "Auto int/ext"},
         .help = "Audio input: internal / external / both / balanced / auto.",
-        //.essential = FOR_MOVIE,
-        //~ .edit_mode = EM_MANY_VALUES,
+        .works_best_in = DEP_MOVIE_MODE,
     },
     #endif
 
@@ -647,8 +647,7 @@ static struct menu_entry audio_menus[] = {
         .help = "High pass filter for wind noise reduction.",
         .select            = audio_binary_toggle,
         .max = 1,
-        //~ .icon_type = IT_DISABLE_SOME_FEATURE,
-        //.essential = FOR_MOVIE,
+        .works_best_in = DEP_MOVIE_MODE,
     },
     #endif
     
@@ -668,7 +667,7 @@ static struct menu_entry audio_menus[] = {
         .display        = audio_micpower_display,
         .max = 1,
         .help = "Needed for int. and some other mics, but lowers impedance.",
-        //.essential = FOR_MOVIE,
+        .works_best_in = DEP_MOVIE_MODE,
     },
     #endif
 
@@ -684,7 +683,7 @@ static struct menu_entry audio_menus[] = {
         .max = 3,
         .choices = (const char *[]) {"0 dB", "2 dB", "4 dB", "6 dB"},
         .help = "Output volume for audio monitoring (headphones only).",
-        //~ .edit_mode = EM_MANY_VALUES,
+        .depends_on = DEP_MOVIE_MODE,
     },
     #endif
     {
@@ -694,7 +693,7 @@ static struct menu_entry audio_menus[] = {
         .display        = audio_monitoring_display,
         .max = 1,
         .help = "Monitoring via A-V jack. Disable if you use a SD display.",
-        //.essential = FOR_MOVIE,
+        .depends_on = DEP_MOVIE_MODE,
     },
     #endif
 
@@ -710,7 +709,7 @@ static struct menu_entry audio_menus[] = {
 #else
         .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
 #endif
-        //.essential = FOR_MOVIE,
+        .depends_on = DEP_GLOBAL_DRAW | DEP_MOVIE_MODE,
     },
     #endif
 };

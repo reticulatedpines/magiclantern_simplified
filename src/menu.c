@@ -906,6 +906,24 @@ void selection_bar(int x0, int y0)
     selection_bar_backend(c, COLOR_BLACK, x0, y0, w, 31);
 }
 
+void FAST replace_color(int old, int new, int x0, int y0, int w, int h)
+{
+    uint8_t* B = bmp_vram();
+    #ifdef CONFIG_VXWORKS
+    old = D2V(old);
+    new = D2V(new);
+    #endif
+    #define P(x,y) B[BM(x,y)]
+    for (int y = y0; y < y0 + h; y++)
+    {
+        for (int x = x0; x < x0 + w; x++)
+        {
+            if (P(x,y) == old)
+                P(x,y) = new;
+        }
+    }
+}
+
 void dim_hidden_menu(int x0, int y0, int selected)
 {
     int w = submenu_mode == 1 ? x0 + g_submenu_width - 50 : 720;
@@ -1277,6 +1295,92 @@ static void menu_clean_footer()
     bmp_fill(bgu, 0, 480-h, 720, h);
 }
 
+static char* check_default_warnings(struct menu_entry * entry)
+{
+    static char warning[60];
+    warning[0] = 0;
+    
+    // default warnings
+         if ((entry->depends_on & DEP_GLOBAL_DRAW) && !get_global_draw())
+        snprintf(warning, sizeof(warning), GDR_WARNING_MSG);
+    else if ((entry->depends_on & DEP_LIVEVIEW) && !lv)
+        snprintf(warning, sizeof(warning), "This feature only works in LiveView.");
+    else if ((entry->depends_on & DEP_NOT_LIVEVIEW) && lv)
+        snprintf(warning, sizeof(warning), "This feature does not work in LiveView.");
+    else if ((entry->depends_on & DEP_MOVIE_MODE) && !is_movie_mode())
+        snprintf(warning, sizeof(warning), "This feature only works in movie mode.");
+    else if ((entry->depends_on & DEP_PHOTO_MODE) && is_movie_mode())
+        snprintf(warning, sizeof(warning), "This feature only works in photo mode.");
+    else if ((entry->depends_on & DEP_AUTOFOCUS) && is_manual_focus())
+        snprintf(warning, sizeof(warning), "This feature requires autofocus.");
+    else if ((entry->depends_on & DEP_MANUAL_FOCUS) && !is_manual_focus())
+        snprintf(warning, sizeof(warning), "This feature requires manual focus.");
+    else if ((entry->depends_on & DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER)
+        snprintf(warning, sizeof(warning), "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
+    else if ((entry->depends_on & DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR)
+        snprintf(warning, sizeof(warning), "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
+    else if ((entry->depends_on & DEP_EXPSIM) && !lv_luma_is_accurate())
+        snprintf(warning, sizeof(warning), EXPSIM_WARNING_MSG);
+    else if ((entry->depends_on & DEP_NOT_EXPSIM) && lv_luma_is_accurate())
+        snprintf(warning, sizeof(warning), "This feature requires ExpSim disabled.");
+    else if ((entry->depends_on & DEP_MANUAL_FOCUS) && !is_manual_focus())
+        snprintf(warning, sizeof(warning), "This feature requires manual focus.");
+    else if ((entry->depends_on & DEP_CHIPPED_LENS) && !lens_info.name[0])
+        snprintf(warning, sizeof(warning), "This feature requires a chipped (electronic) lens.");
+    else if ((entry->depends_on & DEP_M_MODE) && shooting_mode != SHOOTMODE_M)
+        snprintf(warning, sizeof(warning), "This feature requires Manual (M) mode.");
+    else if ((entry->depends_on && DEP_MANUAL_ISO) && !lens_info.raw_iso)
+        snprintf(warning, sizeof(warning), "This feature requires manual ISO.");
+    
+    if (warning[0]) 
+        return warning;
+    
+    if (entry->selected) // check recommendations
+    {
+             if ((entry->works_best_in & DEP_GLOBAL_DRAW) && !get_global_draw())
+            snprintf(warning, sizeof(warning), "This feature works best with GlobalDraw enabled.");
+        else if ((entry->works_best_in & DEP_LIVEVIEW) && !lv)
+            snprintf(warning, sizeof(warning), "This feature works best in LiveView.");
+        else if ((entry->works_best_in & DEP_NOT_LIVEVIEW) && lv)
+            snprintf(warning, sizeof(warning), "This feature works best outside LiveView.");
+        else if ((entry->works_best_in & DEP_MOVIE_MODE) && !is_movie_mode())
+            snprintf(warning, sizeof(warning), "This feature works best in movie mode.");
+        else if ((entry->works_best_in & DEP_PHOTO_MODE) && is_movie_mode())
+            snprintf(warning, sizeof(warning), "This feature works best in photo mode.");
+        else if ((entry->works_best_in & DEP_AUTOFOCUS) && is_manual_focus())
+            snprintf(warning, sizeof(warning), "This feature works best with autofocus enabled.");
+        else if ((entry->works_best_in & DEP_MANUAL_FOCUS) && !is_manual_focus())
+            snprintf(warning, sizeof(warning), "This feature works best with manual focus.");
+        else if ((entry->works_best_in & DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER)
+            snprintf(warning, sizeof(warning), "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
+        else if ((entry->works_best_in & DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR)
+            snprintf(warning, sizeof(warning), "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
+        else if ((entry->depends_on & DEP_EXPSIM) && !lv_luma_is_accurate())
+            snprintf(warning, sizeof(warning), "This feature works best with ExpSim enabled.");
+        else if ((entry->depends_on & DEP_NOT_EXPSIM) && lv_luma_is_accurate())
+            snprintf(warning, sizeof(warning), "This feature works best with ExpSim disabled.");
+        else if ((entry->works_best_in & DEP_CHIPPED_LENS) && !lens_info.name[0])
+            snprintf(warning, sizeof(warning), "This feature works best with a chipped (electronic) lens.");
+        else if ((entry->works_best_in & DEP_M_MODE) && shooting_mode != SHOOTMODE_M)
+            snprintf(warning, sizeof(warning), "This feature works best in Manual (M) mode.");
+        else if ((entry->depends_on && DEP_MANUAL_ISO) && !lens_info.raw_iso)
+            snprintf(warning, sizeof(warning), "This feature works best with manual ISO.");
+
+        // and display as notice, if any
+        if (warning[0])
+        {
+            bmp_printf(
+                FONT(FONT_MED, COLOR_GRAY60, MENU_BG_COLOR_HEADER_FOOTER),
+                 10,  MENU_WARNING_Y_POS, 
+                    warning
+            );
+        }
+    }
+
+    
+    return 0;
+}
+
 static void
 menu_display(
     struct menu * parentmenu,
@@ -1335,6 +1439,13 @@ menu_display(
 
             // display icon (only the first icon is drawn)
             icon_drawn = 0;
+
+            // first check if the feature requires something
+            char* default_warn = check_default_warnings(menu);
+            int truth_value = (menu->priv && *(int*)menu->priv ? 1 : 0);
+            if (default_warn && truth_value)
+                menu_draw_icon(x, y, MNI_WARNING, (intptr_t)default_warn);
+
             if ((!menu_lv_transparent_mode && !only_selected) || menu->selected)
             {
                 if (quick_redraw && menu->selected) // selected menu was not erased, so there may be leftovers on the screen
@@ -1395,12 +1506,20 @@ menu_display(
                     draw_line(720, 406, 680, 428, MENU_WARNING_COLOR);
                 }
             }
+
+            // dim the line if the dependencies are not met
+            if (default_warn)
+                replace_color(COLOR_WHITE, COLOR_GRAY50, x-10, y, g_submenu_width-50, 31);
+            
+            // if there is a default warning, display it even if the item is off
+            if (!warning_msg)
+                warning_msg = default_warn;
+            
             // if there's a warning message set, display it
             if (menu->selected && warning_msg)
             {
-
                 bmp_printf(
-                    FONT(FONT_MED, MENU_WARNING_COLOR, MENU_BG_COLOR_HEADER_FOOTER),
+                    FONT(FONT_MED, truth_value ? MENU_WARNING_COLOR : COLOR_ORANGE, MENU_BG_COLOR_HEADER_FOOTER),
                      10,  MENU_WARNING_Y_POS, 
                         warning_msg
                 );

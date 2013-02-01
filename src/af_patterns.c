@@ -309,27 +309,6 @@ void play_zoom_center_on_selected_af_point()
 #endif
 }
 
-static void
-afp_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Focus Patterns : %s",
-        af_patterns ? "ON" : "OFF"
-    );
-    if (af_patterns)
-    {
-        if (lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus patterns won't work in LiveView");
-        if (!lens_info.name[0]) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus patterns require a chipped lens");
-    }
-}
-
 void afp_horiz_toggle(void* priv, int delta)
 {
     if (delta > 0) afp_right(); else afp_left();
@@ -393,6 +372,7 @@ static struct menu_entry afp_focus_menu[] = {
         .select = menu_open_submenu,
         .help = "Custom AF patterns (photo mode only). Ported from 400plus.",
         .submenu_height = 280,
+        .depends_on = DEP_PHOTO_MODE | DEP_CHIPPED_LENS,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Center selection",

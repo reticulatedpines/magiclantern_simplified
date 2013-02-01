@@ -2961,21 +2961,6 @@ htp_display( void * priv, int x, int y, int selected )
 #endif
 
 #ifdef FEATURE_LV_ZOOM_SETTINGS
-static void 
-zoom_auto_exposure_print( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Auto exposure on Zoom : %s",
-        zoom_auto_exposure ? "ON" : "OFF"
-    );
-    #ifndef CONFIG_5D2
-    if (zoom_auto_exposure && is_movie_mode())
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in photo mode.");
-    #endif
-}
-
 static void zoom_x5_x10_toggle(void* priv, int delta)
 {
     *(int*)priv = ! *(int*)priv;
@@ -3545,8 +3530,7 @@ mlu_display( void * priv, int x, int y, int selected )
         : MLU_ALWAYS_ON ? "Always ON"
         : get_mlu() ? "ON" : "OFF"
     );
-    if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Mirror Lockup does not work in LiveView");
-    else if (MLU_HANDHELD && 
+    if (MLU_HANDHELD && 
         (
             HDR_ENABLED || 
             trap_focus || 
@@ -4558,10 +4542,6 @@ expo_lock_display( void * priv, int x, int y, int selected )
             expo_lock_iso ? "ISO," : "",
             FMT_FIXEDPOINT1(v)
         );
-        if (shooting_mode != SHOOTMODE_M)
-            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This feature only works in M mode.");
-        if (!lens_info.raw_iso)
-            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This feature requires manual ISO.");
         if (HDR_ENABLED)
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This feature does not work with HDR bracketing.");
     }
@@ -4819,7 +4799,7 @@ static struct menu_entry shoot_menus[] = {
         .display    = hdr_display,
         .select     = menu_binary_toggle,
         .help = "Advanced bracketing (expo, flash, DOF). Press shutter once.",
-        //.essential = FOR_PHOTO,
+        .works_best_in = DEP_PHOTO_MODE,
         .submenu_width = 710,
         .children =  (struct menu_entry[]) {
             {
@@ -4892,9 +4872,9 @@ static struct menu_entry shoot_menus[] = {
         .priv       = &intervalometer_running,
         .select     = menu_binary_toggle,
         .display    = intervalometer_display,
-        .help = "Take pictures or movies at fixed intervals (for timelapse).",
+        .help = "Take pictures at fixed intervals (for timelapse).",
         .submenu_width = 650,
-        //.essential = FOR_PHOTO,
+        .works_best_in = DEP_PHOTO_MODE,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Take a pic every",
@@ -4926,6 +4906,7 @@ static struct menu_entry shoot_menus[] = {
                 .choices = (const char *[]) {"NO", "YES"},
                 .help = "Whether the camera should auto-focus at each shot.",
                 .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
+                .depends_on = DEP_AUTOFOCUS,
             },
             #endif
             MENU_EOL
@@ -4946,6 +4927,7 @@ static struct menu_entry shoot_menus[] = {
         .max = 1,
         .submenu_width = 710,
         .help = "Exposure / focus ramping for advanced timelapse sequences.",
+        .depends_on = DEP_PHOTO_MODE,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Auto ExpoRamp\b",
@@ -5002,6 +4984,7 @@ static struct menu_entry shoot_menus[] = {
                 .min = 1000-100,
                 .display = manual_focus_ramp_print,
                 .help = "Manual focus ramping, in steps per shot. LiveView only.",
+                .depends_on = DEP_AUTOFOCUS,
             },
             MENU_EOL,
         }
@@ -5014,7 +4997,7 @@ static struct menu_entry shoot_menus[] = {
         .display = bulb_display, 
         .select = menu_binary_toggle, 
         .help = "For very long exposures. Hold shutter half-pressed for 1s.",
-        //.essential = FOR_PHOTO,
+        .depends_on = DEP_PHOTO_MODE,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Bulb exposure",
@@ -5067,7 +5050,7 @@ static struct menu_entry shoot_menus[] = {
         .select     = menu_binary_toggle,
         .display    = motion_detect_display,
         .help = "Take a picture when subject is moving or exposure changes.",
-        //.essential = FOR_PHOTO,
+        .works_best_in = DEP_LIVEVIEW | DEP_PHOTO_MODE,
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
             {
@@ -5123,6 +5106,7 @@ static struct menu_entry shoot_menus[] = {
         .priv = &silent_pic_enabled,
         .select = menu_binary_toggle,
         .display = silent_pic_display,
+        .depends_on = DEP_LIVEVIEW,
         .help = "Take pics in LiveView without moving the shutter mechanism.",
         .children =  (struct menu_entry[]) {
             {
@@ -5173,6 +5157,7 @@ static struct menu_entry shoot_menus[] = {
         .priv = &mlu_auto,
         .display = mlu_display, 
         .select = mlu_toggle,
+        .depends_on = DEP_PHOTO_MODE | DEP_NOT_LIVEVIEW,
         #ifdef FEATURE_MLU_HANDHELD
         .help = "MLU tricks: hand-held or self-timer modes.",
         #elif defined(CONFIG_5DC)
@@ -5262,6 +5247,7 @@ static struct menu_entry flash_menus[] = {
         .name = "Flash tweaks...",
         .select     = menu_open_submenu,
         .help = "Flash exposure compensation, 3rd party flash in LiveView...",
+        .depends_on = DEP_PHOTO_MODE,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Flash expo comp.",
@@ -5333,8 +5319,10 @@ struct menu_entry tweak_menus_shoot[] = {
                 .name = "Auto exposure on Zoom ",
                 .priv = &zoom_auto_exposure,
                 .max = 1,
-                .display = zoom_auto_exposure_print,
-                .help = "Auto adjusts exposure, so you can focus manually wide open."
+                .help = "Auto adjusts exposure, so you can focus manually wide open.",
+                #ifndef CONFIG_5D2
+                .depends_on = DEP_PHOTO_MODE,
+                #endif
             },
             #endif
             #ifdef FEATURE_LV_ZOOM_SHARP_CONTRAST
@@ -5515,6 +5503,7 @@ static struct menu_entry expo_menus[] = {
                 .max = 200,
                 .display = digic_black_print,
                 .edit_mode = EM_MANY_VALUES_LV,
+                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
                 .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
             },
             #endif
@@ -5599,6 +5588,7 @@ static struct menu_entry expo_menus[] = {
                 .select = digic_iso_toggle,
                 .help = "Movie: use negative gain. Photo: use it for night vision.",
                 .edit_mode = EM_MANY_VALUES_LV,
+                .depends_on = DEP_LIVEVIEW,
             },
             #endif
             #ifdef FEATURE_EXPO_ISO_HTP
@@ -5666,9 +5656,8 @@ static struct menu_entry expo_menus[] = {
         .display    = aperture_display,
         .select     = aperture_toggle,
         .help = "Adjust aperture. Also displays APEX aperture (Av) in stops.",
-        //.essential = FOR_PHOTO | FOR_MOVIE,
+        .depends_on = DEP_CHIPPED_LENS,
         .edit_mode = EM_MANY_VALUES_LV,
-        //~ .show_liveview = 1,
     },
     #endif
     #ifdef FEATURE_PICSTYLE
@@ -5746,7 +5735,7 @@ static struct menu_entry expo_menus[] = {
         .select     = picstyle_rec_toggle,
         .help = "You can use a different picture style when recording.",
         .submenu_height = 160,
-        //~ //.essential = FOR_MOVIE,
+        .depends_on = DEP_MOVIE_MODE,
         .children =  (struct menu_entry[]) {
             {
                 .name = "REC-PicStyle",
@@ -5767,6 +5756,7 @@ static struct menu_entry expo_menus[] = {
         .choices = (const char *[]) {"OFF", "ON (Tv/Av only)"},
         .help = "Experimental auto ISO algorithms.",
         .submenu_width = 700,
+        .depends_on = DEP_PHOTO_MODE,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Shutter for Av mode ",
@@ -5806,6 +5796,7 @@ static struct menu_entry expo_menus[] = {
         .max = 1,
         .display = expo_lock_display,
         .help = "In M mode, adjust Tv/Av/ISO without changing exposure.",
+        .depends_on = DEP_M_MODE | DEP_MANUAL_ISO,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Tv  -> ",
@@ -5842,6 +5833,7 @@ static struct menu_entry expo_menus[] = {
         .max = 2,
         .choices = (const char *[]) {"OFF", "Press SET", "Press " INFO_BTN_NAME},
         .help = "Quickly toggle between two expo presets (ISO,Tv,Av,Kelvin).",
+        .works_best_in = DEP_M_MODE,
     },
     #endif
 };

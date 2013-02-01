@@ -569,25 +569,6 @@ static void movie_expo_lock_toggle()
     movie_expo_lock = !movie_expo_lock;
     call("lv_ae", !movie_expo_lock);
 }
-static void movie_expo_lock_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    if (!is_movie_mode())
-    {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Only works in LiveView, with movie recording enabled.");
-        movie_expo_lock = 0;
-    }
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Exposure Lock : %s",
-        movie_expo_lock ? "ON" : "OFF"
-    );
-}
 #endif
 
 #ifdef CONFIG_BLUE_LED
@@ -1098,6 +1079,7 @@ static struct menu_entry mov_menus[] = {
         .select_Q   = lv_movie_size_toggle,
         .display    = lv_movie_print,
         .help       = "Enable movie recording on 50D :) ",
+        .depends_on = DEP_LIVEVIEW,
     },
     #endif
     #ifdef FEATURE_MOVIE_RECORDING_50D_SHUTTER_HACK
@@ -1107,6 +1089,7 @@ static struct menu_entry mov_menus[] = {
         .display = shutter_btn_rec_print, 
         .select = menu_ternary_toggle,
         .help = "Block it while REC (avoids ERR99) or hold it (enables IS).",
+        .depends_on = DEP_MOVIE_MODE,
     },
     #endif
     #ifdef FEATURE_MOVIE_RESTART
@@ -1116,6 +1099,7 @@ static struct menu_entry mov_menus[] = {
         .display    = movie_restart_print,
         .select     = menu_binary_toggle,
         .help = "Auto-restart movie recording, if it happens to stop.",
+        .depends_on = DEP_MOVIE_MODE,
     },
     #endif
     #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
@@ -1125,6 +1109,7 @@ static struct menu_entry mov_menus[] = {
         .display = movie_cliplen_display,
         .select  = movie_cliplen_toggle,
         .help = "Auto-stop the movie after a set amount of minutes.",
+        .depends_on = DEP_MOVIE_MODE,
     },
     #endif
     #if 0
@@ -1158,6 +1143,7 @@ static struct menu_entry mov_menus[] = {
             },
         .icon_type = IT_DICE_OFF,
         .help = "Custom REC/STANDBY notifications, visual or audible",
+        .depends_on = DEP_MOVIE_MODE,
     },
     #endif
     #ifdef CONFIG_5D3
@@ -1166,6 +1152,7 @@ static struct menu_entry mov_menus[] = {
         .priv = &rec_led_off,
         .max = 1,
         .help = "Make the red LED light less distracting while recording.",
+        .depends_on = DEP_MOVIE_MODE,
     },
     #endif
     #ifdef FEATURE_MOVIE_REC_KEY
@@ -1177,6 +1164,7 @@ static struct menu_entry mov_menus[] = {
         .choices = (const char *[]) {"OFF", "HalfShutter"},
         .help = "Start recording by pressing shutter halfway. Wired remote.",
         .submenu_width = 700,
+        .depends_on = DEP_MOVIE_MODE,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Require long press",
@@ -1206,6 +1194,7 @@ static struct menu_entry mov_menus[] = {
         .choices = (const char *[]) {"OFF", "Start & CPU lenses", "Always"},
         .icon_type = IT_DICE_OFF,
         .help = "Always use LiveView (with manual lens or after lens swap).",
+        .depends_on = DEP_MOVIE_MODE,
     },
     #endif
     #ifdef FEATURE_LVAE_EXPO_LOCK
@@ -1214,16 +1203,18 @@ static struct menu_entry mov_menus[] = {
         .priv       = &movie_expo_lock,
         .select     = movie_expo_lock_toggle,
         .display    = movie_expo_lock_print,
+        .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
         .help       = "Lock the exposure in movie mode.",
+        .depends_on = DEP_MOVIE_MODE,
     },
     #endif
     #ifdef FEATURE_SHUTTER_LOCK
     {
         .name = "Shutter Lock",
         .priv = &shutter_lock,
-        .display = shutter_lock_print, 
-        .select = menu_binary_toggle,
+        .max = 1,
         .help = "Lock shutter value in movie mode (change from Expo only).",
+        .depends_on = DEP_MOVIE_MODE,
     },
     #endif
     #ifdef FEATURE_GRADUAL_EXPOSURE
@@ -1233,6 +1224,7 @@ static struct menu_entry mov_menus[] = {
         .max = 1,
         .help = "Use smooth exposure transitions, by compensating with ISO.",
         .submenu_width = 700,
+        .depends_on = DEP_MOVIE_MODE | DEP_MANUAL_ISO,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Ramping speed",
@@ -1253,7 +1245,8 @@ static struct menu_entry mov_menus[] = {
         .priv = &start_recording_on_resume,
         .max = 1,
         .help = "Auto-record if camera wakes up due to halfshutter press."
-    },
+        .depends_on = DEP_MOVIE_MODE,
+  },
     #endif
 };
 
@@ -1267,6 +1260,7 @@ struct menu_entry expo_override_menus[] = {
         .max = 2,
         .choices    = (const char *[]) {"OFF", "ON", "Auto (only when needed)"},
         .help = "Low-level manual exposure controls (bypasses Canon limits)",
+        .depends_on = DEP_LIVEVIEW,
     },
 };
 #endif

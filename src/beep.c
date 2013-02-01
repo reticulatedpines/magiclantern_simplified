@@ -995,6 +995,7 @@ static struct menu_entry beep_menus[] = {
                 .priv = &voice_tags, 
                 .max = 1,
                 .help = "After you take a picture, press SET to add a voice tag.",
+                .works_best_in = DEP_PHOTO_MODE,
             },
             #endif
             MENU_EOL,

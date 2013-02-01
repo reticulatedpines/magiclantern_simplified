@@ -163,11 +163,6 @@ void hdrv_extended_iso_display(void *priv, int x, int y, int selected)
     {
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This entry is unused. Increase step count.");
     }
-    
-    if (!lens_info.raw_iso)
-    {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Doesn't work with auto ISO.");
-    }
 }
 #endif
 
@@ -328,9 +323,6 @@ hdr_print(
                 ev_x10/10, ev_x10%10
             );
         }
-        
-        if (!lens_info.raw_iso)
-            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Doesn't work with auto ISO.");
     }
     else
     {
@@ -413,8 +405,6 @@ void hdr_iso_display(
             raw2iso(effective_iso)
         );
     }
-    if (!lens_info.raw_iso)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Doesn't work with auto ISO.");
 }
 
 struct menu_entry hdr_menu[] = {
@@ -425,6 +415,7 @@ struct menu_entry hdr_menu[] = {
         .max = 1,
         .display = hdr_print,
         .help = "Alternates ISO between frames. Flickers while recording.",
+        .depends_on = DEP_MOVIE_MODE | DEP_MANUAL_ISO,
         .children =  (struct menu_entry[]) {
             {
                 .name = "ISO A",
