@@ -1231,11 +1231,11 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     // don't draw the pickbox out of the screen
     int h = 31 * (hi-lo+1);
     
-    const char * submenu_hint_msg = Q_BTN_NAME ": advanced...";
+    #define SUBMENU_HINT_SUFFIX ": advanced..."
     if (entry->children)
     {
         h += 20; // has submenu, display a hint here
-        w = MAX(w, font_med.width * strlen(submenu_hint_msg));
+        w = MAX(w, font_med.width * (strlen(Q_BTN_NAME) + strlen(SUBMENU_HINT_SUFFIX)));
     }
     
     if (y0 + h > 400)
@@ -1261,7 +1261,8 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
         bmp_printf(
             SHADOW_FONT(FONT(FONT_MED, COLOR_CYAN, COLOR_GRAY40)), 
             x0, y0 + (hi-lo+1) * 31 + 5, 
-            submenu_hint_msg
+            "%s" SUBMENU_HINT_SUFFIX,
+            Q_BTN_NAME
         );
 }
 
