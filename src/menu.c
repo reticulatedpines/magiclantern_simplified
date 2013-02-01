@@ -819,7 +819,7 @@ void submenu_icon(int x, int y)
 {
     //~ int color = COLOR_WHITE;
     x -= 40;
-    bmp_draw_rect(45, x+2, y+5, 32-3, 32-10+1);
+    //~ bmp_draw_rect(45, x+2, y+5, 32-3, 32-10+1);
     draw_line(x+20, y+28, x+30, y+28, COLOR_WHITE);
     for (int i = -2; i <= 2; i++)
     draw_line(x+26, y+28+i, x+30, y+28, COLOR_WHITE);
@@ -1229,12 +1229,22 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     x0 = 350;
 
     // don't draw the pickbox out of the screen
-    if (x0 + w > 700)
-        x0 = 700 - w;
-
     int h = 31 * (hi-lo+1);
+    
+    const char * submenu_hint_msg = Q_BTN_NAME ": advanced...";
+    if (entry->children)
+    {
+        h += 20; // has submenu, display a hint here
+        w = MAX(w, font_med.width * strlen(submenu_hint_msg));
+    }
+    
     if (y0 + h > 400)
         y0 = 400 - h;
+
+    if (x0 + w > 700)
+        x0 = 700 - w;
+    
+    x0 &= ~3;
 
     // draw the pickbox
     bmp_fill(COLOR_GRAY40, x0-8, y0-8, w+16, h+16);
@@ -1246,6 +1256,13 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
             selection_bar_backend(MENU_BAR_COLOR, COLOR_GRAY40, x0-8, y, w+16, 31);
     }
     bmp_draw_rect(COLOR_GRAY60, x0-8, y0-8, w+16, h+16);
+    
+    if (entry->children)
+        bmp_printf(
+            SHADOW_FONT(FONT(FONT_MED, COLOR_CYAN, COLOR_GRAY40)), 
+            x0, y0 + (hi-lo+1) * 31 + 5, 
+            submenu_hint_msg
+        );
 }
 
 static void
@@ -1787,15 +1804,17 @@ menu_entry_select(
     else if (mode == 2) // Q
     {
         if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
-        else { submenu_mode = !submenu_mode; menu_lv_transparent_mode = 0; }
+        else { submenu_mode = submenu_mode == 1 ? 0 : 1; menu_lv_transparent_mode = 0; }
     }
     else if (mode == 3) // SET
     {
         if (submenu_mode == 2) submenu_mode = 0;
         else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
         
-        else if ((entry->max > 1 && entry->choices && !submenu_mode)  // we can use pickbox for these items, use it by default
-                 || entry->edit_mode == EM_MANY_VALUES
+        else if (
+                    entry->edit_mode == EM_MANY_VALUES ||
+                    (entry->edit_mode == EM_FEW_VALUES && entry->max > 1 && entry->choices && !submenu_mode)
+                    // we can use pickbox for these items, use it by default
                 )
         {
             submenu_mode = (!submenu_mode)*2;
@@ -2022,8 +2041,7 @@ menu_redraw_do()
         else
         {
             if (!lv) menu_lv_transparent_mode = 0;
-            //~ if (menu_lv_transparent_mode) quick_redraw = false;
-            //~ if (MENU_MODE || lv) clrscr();
+            if (menu_lv_transparent_mode && submenu_mode == 2) submenu_mode = 0;
 
             //~ menu_damage = 0;
             BMP_LOCK (
