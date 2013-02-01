@@ -2308,19 +2308,23 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_PRESS_UP:
     case BGMT_WHEEL_UP:
         if (menu_help_active) { menu_help_prev_page(); break; }
-        menu_entry_move( menu, -1 );
-         if (submenu_mode == 2 || menu_lv_transparent_mode) menu_needs_full_redraw = 1;
-        //~ if (!submenu_mode) menu_lv_transparent_mode = 0;
-        //~ menu_hidden_should_display_help = 0;
+
+        if (submenu_mode == 2) menu_entry_select( menu, 1 );
+        else menu_entry_move( menu, -1 );
+         
+        if (menu_lv_transparent_mode) menu_needs_full_redraw = 1;
+
         break;
 
     case BGMT_PRESS_DOWN:
     case BGMT_WHEEL_DOWN:
         if (menu_help_active) { menu_help_next_page(); break; }
-        menu_entry_move( menu, 1 );
-         if (submenu_mode == 2 || menu_lv_transparent_mode) menu_needs_full_redraw = 1;
-        //~ if (!submenu_mode) menu_lv_transparent_mode = 0;
-        //~ menu_hidden_should_display_help = 0;
+        
+        if (submenu_mode == 2) menu_entry_select( menu, 0 );
+        else menu_entry_move( menu, 1 );
+        
+        if (menu_lv_transparent_mode) menu_needs_full_redraw = 1;
+
         break;
 
     case BGMT_PRESS_RIGHT:
