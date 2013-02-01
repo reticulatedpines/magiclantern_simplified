@@ -5689,7 +5689,8 @@ void update_disp_mode_params_from_bits()
 int get_disp_mode() { return disp_mode; }
 
 void toggle_disp_mode_menu(void *priv, int delta) {
-	toggle_disp_mode();
+    if (!disp_profiles_0) menu_toggle_submenu();
+    else toggle_disp_mode();
 }
 
 int toggle_disp_mode()

@@ -1805,37 +1805,14 @@ menu_entry_select(
     else if (mode == 2) // Q
     {
         if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
-        else { submenu_mode = submenu_mode == 1 ? 0 : 1; menu_lv_transparent_mode = 0; }
+        else { submenu_mode = !submenu_mode; menu_lv_transparent_mode = 0; }
     }
     else if (mode == 3) // SET
     {
         if (submenu_mode == 2) submenu_mode = 0;
         else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
-        
-        else if (
-                    entry->edit_mode == EM_MANY_VALUES ||
-                    (entry->edit_mode == EM_FEW_VALUES && entry->max > 1 && entry->choices && !submenu_mode)
-                    // we can use pickbox for these items, use it by default
-                )
-        {
-            submenu_mode = (!submenu_mode)*2;
-            menu_lv_transparent_mode = 0;
-        }
-        else if (entry->edit_mode == EM_FEW_VALUES) // SET increments
-        {
-            if( entry->select ) entry->select( entry->priv, 1);
-            else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
-        }
-        else if (entry->edit_mode == EM_MANY_VALUES_LV)
-        {
-            if (lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
-            else if (submenu_mode != 1) submenu_mode = (!submenu_mode)*2;
-            else // increment
-            {
-                if( entry->select ) entry->select( entry->priv, 1);
-                else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
-            }
-        }
+        else if( entry->select ) entry->select( entry->priv, 1);
+        else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
     }
     else // increment
     {
@@ -2478,7 +2455,7 @@ handle_ml_menu_keys(struct event * event)
 
     case BGMT_PLAY:
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
-        submenu_mode = (!submenu_mode) * 2;
+        menu_entry_select( menu, 1 ); // decrement
         menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
         //~ menu_hidden_should_display_help = 0;
@@ -3061,6 +3038,11 @@ void menu_open_submenu(struct menu_entry * entry)
 void menu_close_submenu()
 {
     submenu_mode = 0;
+}
+
+void menu_toggle_submenu()
+{
+    submenu_mode = !submenu_mode;
 }
 
 int handle_quick_access_menu_items(struct event * event)
