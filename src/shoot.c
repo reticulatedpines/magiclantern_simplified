@@ -1912,7 +1912,7 @@ iso_display( void * priv, int x, int y, int selected )
             );
         }
 
-        if (lens_info.raw_aperture && lens_info.raw_shutter && !menu_active_but_hidden())
+        if (lens_info.name[0] && lens_info.raw_aperture && lens_info.raw_shutter && !menu_active_but_hidden())
         {
             int Av = APEX_AV(lens_info.raw_aperture);
             int Tv = APEX_TV(lens_info.raw_shutter);
