@@ -1228,7 +1228,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     int lo = entry->min;
     int hi = entry->max;
     int sel = *(int*)entry->priv;
-    int fnt = FONT(FONT_LARGE, COLOR_WHITE, COLOR_GRAY40);
+    int fnt = FONT(FONT_LARGE, COLOR_GRAY70, COLOR_GRAY40);
     
     // don't draw too many items in the pickbox
     if (hi - lo > 10)
