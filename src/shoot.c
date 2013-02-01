@@ -3541,9 +3541,9 @@ mlu_display( void * priv, int x, int y, int selected )
             intervalometer_running || 
             motion_detect || 
             #ifdef FEATURE_AUDIO_REMOTE_SHOT
-            audio_release_running
+            audio_release_running ||
             #endif
-            )
+            0)
         )
     {
         static char msg[60];
