@@ -25,6 +25,16 @@
 #define DISPLAY_BATTERY_LEVEL_1 60 //%
 #define DISPLAY_BATTERY_LEVEL_2 20 //%
 
+/* e.g. 5D3 has different free space calculation, decide it by property availability, maybe there are others too */
+#define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
+#ifdef PROP_CLUSTER_SIZE
+PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
+PROP_INT(PROP_FREE_SPACE, free_space_raw);
+#else
+extern int cluster_size;
+extern int free_space_raw;
+#endif
+
 
 /* updated every redraw */
 int32_t info_bg_color = 0;
@@ -65,12 +75,22 @@ info_elem_t info_config[] =
     { .fill = { { INFO_TYPE_FILL, { 540, 390, 1, 0, 0, 0, 150, 60, .name = "Pics (clear)" }}, .color = INFO_COL_FIELD } },
     { .string = { { INFO_TYPE_STRING, { 0, 0, 2, .name = "Pics", .anchor = 10, .anchor_flags = INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER, .anchor_flags_self = INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER }}, INFO_STRING_PICTURES_AVAIL, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
 
-    /* entry 12, header */
-    { .string = { { INFO_TYPE_STRING, { 28, 3, 2, .name = "Date" }}, INFO_STRING_CAM_DATE, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
-    { .string = { { INFO_TYPE_STRING, { 710, 3, 2, .name = "Build", .anchor_flags_self = INFO_ANCHOR_RIGHT }}, INFO_STRING_BUILD, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
-    /* entry 14, footer */
-    { .string = { { INFO_TYPE_STRING, { 28, 459, 2, .name = "Card label" }}, INFO_STRING_CARD_LABEL_A, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
-    { .string = { { INFO_TYPE_STRING, { 693, 459, 2, .name = "Copyright", .anchor_flags_self = INFO_ANCHOR_RIGHT }}, INFO_STRING_COPYRIGHT, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    /* entry 12, header (optional) */
+    { .string = { { INFO_TYPE_STRING, { 28, 3, 2, .name = "Date", .user_disable = 1 }}, INFO_STRING_CAM_DATE, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { 710, 3, 2, .name = "Build", .user_disable = 1, .anchor_flags_self = INFO_ANCHOR_RIGHT }}, INFO_STRING_BUILD, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    /* entry 14, footer (optional) */
+    { .string = { { INFO_TYPE_STRING, { 28, 459, 2, .name = "Card label", .user_disable = 1 }}, INFO_STRING_CARD_LABEL_A, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { 693, 459, 2, .name = "Copyright", .user_disable = 1, .anchor_flags_self = INFO_ANCHOR_RIGHT }}, INFO_STRING_COPYRIGHT, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    
+    /* entry 16, free space */
+    { .text = { { INFO_TYPE_TEXT, { 144, 162, 2, .anchor_flags_self = (INFO_ANCHOR_RIGHT | INFO_ANCHOR_BOTTOM), .name = "GB" }}, "GB", COLOR_CYAN, INFO_COL_PEEK_REL(0,0), INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { 0, 2, 2, INFO_ANCHOR_LEFT | INFO_ANCHOR_BOTTOM, 16, INFO_ANCHOR_RIGHT | INFO_ANCHOR_BOTTOM, .name = "Space" }}, INFO_STRING_FREE_GB_2, COLOR_CYAN, INFO_COL_PEEK_REL(0,0), INFO_FONT_CANON } },
+
+    /* entry 18, clock */
+    { .string = { { INFO_TYPE_STRING, { 35, 250, 2, .name = "Hrs" }}, INFO_STRING_TIME_HH24, COLOR_CYAN, INFO_COL_PEEK_REL(0,0), INFO_FONT_CANON } },
+    { .text = { { INFO_TYPE_TEXT, { 0, 0, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 18, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .name = ":" }}, ":", COLOR_CYAN, INFO_COL_PEEK_REL(0,0), INFO_FONT_CANON } },
+    { .string = { { INFO_TYPE_STRING, { 0, 0, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 19, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, .name = "Min" }}, INFO_STRING_TIME_MM, COLOR_CYAN, INFO_COL_PEEK_REL(0,0), INFO_FONT_CANON } },
+    { .string = { { INFO_TYPE_STRING, { 0, -2, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_BOTTOM, 20, INFO_ANCHOR_LEFT | INFO_ANCHOR_BOTTOM, .name = "Sec" }}, INFO_STRING_TIME_SS, COLOR_CYAN, INFO_COL_PEEK_REL(0,0), INFO_FONT_MEDIUM } },
 #endif
 
 #if defined(CONFIG_5D3)
@@ -502,6 +522,39 @@ uint32_t info_xml_parse_string(info_elem_t *config, char *config_str)
     return 0;
 }
 
+uint32_t info_xml_parse_text(info_elem_t *config, char *config_str)
+{
+    char buf[32];
+    
+    uint32_t ret = info_xml_parse_pos(config, config_str);
+    
+    if(ret)
+    {
+        return ret;
+    }
+    
+    config->type = INFO_TYPE_TEXT;
+    
+    if(!info_xml_get_attribute(config_str, "text", buf, sizeof(buf)))
+    {
+        info_strncpy(config->text.text, buf, sizeof(config->text.text));
+    }
+    if(!info_xml_get_attribute(config_str, "fgcolor", buf, sizeof(buf)))
+    {
+        config->text.fgcolor = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "bgcolor", buf, sizeof(buf)))
+    {
+        config->text.bgcolor = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "font_type", buf, sizeof(buf)))
+    {
+        config->text.font_type = atoi(buf);
+    }
+    
+    return 0;
+}
+
 uint32_t info_xml_parse_fill(info_elem_t *config, char *config_str)
 {
     char buf[32];
@@ -688,6 +741,10 @@ uint32_t info_load_config(char *filename)
         {
             ret = info_xml_parse_string(element, xml_element);
         }
+        if(!strncmp(xml_element, "text", 6))
+        {
+            ret = info_xml_parse_text(element, xml_element);
+        }
         if(!strncmp(xml_element, "fill", 4))
         {
             ret = info_xml_parse_fill(element, xml_element);
@@ -752,6 +809,9 @@ uint32_t info_save_config(info_elem_t *config, char *file)
         {
             case INFO_TYPE_STRING:
                 my_fprintf(f, "<string ");
+                break;
+            case INFO_TYPE_TEXT:
+                my_fprintf(f, "<text ");
                 break;
             case INFO_TYPE_BATTERY_ICON:
                 my_fprintf(f, "<battery_icon ");
@@ -824,6 +884,22 @@ uint32_t info_save_config(info_elem_t *config, char *file)
                 if(config[pos].string.font_type)
                 {
                     my_fprintf(f, "font_type=%d ", config[pos].string.font_type);
+                }
+                break;
+                
+            case INFO_TYPE_TEXT:
+                my_fprintf(f, "text=\"%s\" ", config[pos].text.text);
+                if(config[pos].text.fgcolor)
+                {
+                    my_fprintf(f, "fgcolor=%d ", config[pos].text.fgcolor);
+                }
+                if(config[pos].text.bgcolor)
+                {
+                    my_fprintf(f, "bgcolor=%d ", config[pos].text.bgcolor);
+                }
+                if(config[pos].text.font_type)
+                {
+                    my_fprintf(f, "font_type=%d ", config[pos].text.font_type);
                 }
                 break;
                 
@@ -1277,6 +1353,31 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             break;
         }
 #endif
+        case INFO_STRING_FREE_GB:
+        {
+            int fsg = free_space_32k >> 15;
+            snprintf(buffer, maxsize, "%d", fsg);
+            break;
+        }
+        case INFO_STRING_FREE_GB_1:
+        {
+            int fsg = free_space_32k >> 15;
+            int fsgr = free_space_32k - (fsg << 15);
+            int fsgf = (fsgr * 10) >> 15;
+
+            snprintf(buffer, maxsize, "%d.%d", fsg, fsgf / 10);
+            break;
+        }
+        case INFO_STRING_FREE_GB_2:
+        {
+            int fsg = free_space_32k >> 15;
+            int fsgr = free_space_32k - (fsg << 15);
+            int fsgf = (fsgr * 10) >> 15;
+
+            snprintf(buffer, maxsize, "%d.%d", fsg, fsgf);
+            break;
+        }
+
         /* empty string */
         case INFO_STRING_NONE:
         {
@@ -1417,15 +1518,24 @@ uint32_t info_get_absolute(info_elem_t *config, info_elem_t *element)
     return 0;
 }
 
-int32_t info_resolve_color(int32_t color)
+int32_t info_resolve_color(int32_t color, int32_t x, int32_t y)
 {
-    if(color == INFO_COL_BG)
+    switch((uint32_t)color >> 24)
     {
-        color = info_bg_color;
-    }
-    if(color == INFO_COL_FIELD)
-    {
-        color = info_field_color;
+        case 0xFF:
+            color = info_bg_color;
+            break;
+        case 0xFE:
+            color = info_field_color;
+            break;
+        case 0xFD:
+            color = bmp_getpixel((color>>12) & 0xFFF,color & 0xFFF);
+            break;
+        case 0xFC:
+            color = bmp_getpixel(x + ((color>>12) & 0xFFF), y + (color & 0xFFF));
+            break;
+        default:
+            break;
     }
     
     return color;
@@ -1462,8 +1572,8 @@ uint32_t info_print_string(info_elem_t *config, info_elem_string_t *element, uin
     uint32_t fnt;
 
     /* look up special colors */
-    bgcolor = info_resolve_color(bgcolor);
-    fgcolor = info_resolve_color(fgcolor);
+    bgcolor = info_resolve_color(bgcolor, pos_x, pos_y);
+    fgcolor = info_resolve_color(fgcolor, pos_x, pos_y);
     
     /* print string if this was not just a pre-pass run */
     if(run_type == INFO_PRINT)
@@ -1506,6 +1616,73 @@ uint32_t info_print_string(info_elem_t *config, info_elem_string_t *element, uin
     return 0;
 }
 
+uint32_t info_print_text(info_elem_t *config, info_elem_text_t *element, uint32_t run_type)
+{
+    /* get absolute position of this element */
+    info_get_absolute(config, (info_elem_t *)element);
+    
+    int pos_x = element->hdr.pos.abs_x;
+    int pos_y = element->hdr.pos.abs_y;
+
+    /* anchor not shown or nothing to print */
+    if(!element->hdr.pos.shown)
+    {
+        return 1;
+    }
+
+    /* update the width/height */
+    info_measure_string(element->text, element->font_type, &element->hdr.pos.w, &element->hdr.pos.h);
+
+    /* ToDo: make defineable */
+    uint32_t fgcolor = element->fgcolor;
+    uint32_t bgcolor = element->bgcolor;
+    uint32_t fnt;
+
+    /* look up special colors */
+    bgcolor = info_resolve_color(bgcolor, pos_x, pos_y);
+    fgcolor = info_resolve_color(fgcolor, pos_x, pos_y);
+    
+    /* print string if this was not just a pre-pass run */
+    if(run_type == INFO_PRINT)
+    {
+        switch(element->font_type)
+        {
+            case INFO_FONT_SMALL:
+                fnt = FONT(FONT_SMALL, fgcolor, bgcolor);
+                bmp_printf(fnt, pos_x, pos_y, element->text);
+                break;
+            case INFO_FONT_MEDIUM:
+                fnt = FONT(FONT_MED, fgcolor, bgcolor);
+                bmp_printf(fnt, pos_x, pos_y, element->text);
+                break;
+            case INFO_FONT_LARGE:
+                fnt = FONT(FONT_LARGE, fgcolor, bgcolor);
+                bmp_printf(fnt, pos_x, pos_y, element->text);
+                break;
+            case INFO_FONT_SMALL_SHADOW:
+                fnt = SHADOW_FONT(FONT(FONT_SMALL, fgcolor, bgcolor));
+                bmp_printf(fnt, pos_x, pos_y, element->text);
+                break;
+            case INFO_FONT_MEDIUM_SHADOW:
+                fnt = SHADOW_FONT(FONT(FONT_MED, fgcolor, bgcolor));
+                bmp_printf(fnt, pos_x, pos_y, element->text);
+                break;
+            case INFO_FONT_LARGE_SHADOW:
+                fnt = SHADOW_FONT(FONT(FONT_LARGE, fgcolor, bgcolor));
+                bmp_printf(fnt, pos_x, pos_y, element->text);
+                break;
+            case INFO_FONT_CANON:
+                bfnt_puts(element->text, pos_x, pos_y, fgcolor, bgcolor);
+                break;
+            /* error */
+            default:
+                return 1;
+        }
+    }
+
+    return 0;
+}
+
 uint32_t info_print_fill(info_elem_t *config, info_elem_fill_t *element, uint32_t run_type)
 {
     /* get absolute position of this element */
@@ -1518,7 +1695,7 @@ uint32_t info_print_fill(info_elem_t *config, info_elem_fill_t *element, uint32_
     }
 
     /* look up special colors */
-    int32_t color = info_resolve_color(element->color);
+    int32_t color = info_resolve_color(element->color, element->hdr.pos.abs_x, element->hdr.pos.abs_y);
     
     bmp_fill(color, element->hdr.pos.abs_x, element->hdr.pos.abs_y, element->hdr.pos.w, element->hdr.pos.h);
     return 0;
@@ -1535,8 +1712,8 @@ uint32_t info_print_icon(info_elem_t *config, info_elem_icon_t *element, uint32_
         return 1;
     }
     
-    int32_t bgcolor = info_resolve_color(element->bgcolor);
-    int32_t fgcolor = info_resolve_color(element->fgcolor);
+    int32_t bgcolor = info_resolve_color(element->bgcolor, element->hdr.pos.abs_x, element->hdr.pos.abs_y);
+    int32_t fgcolor = info_resolve_color(element->fgcolor, element->hdr.pos.abs_x, element->hdr.pos.abs_y);
     
     return 0;
 }
@@ -1685,6 +1862,8 @@ uint32_t info_print_element(info_elem_t *config, info_elem_t *element, uint32_t 
     {
         case INFO_TYPE_STRING:
             return info_print_string(config, (info_elem_string_t *)element, run_type);
+        case INFO_TYPE_TEXT:
+            return info_print_text(config, (info_elem_text_t *)element, run_type);
         case INFO_TYPE_BATTERY_ICON:
             return info_print_battery_icon(config, (info_elem_battery_icon_t *)element, run_type);
         case INFO_TYPE_BATTERY_PERF:
@@ -2233,12 +2412,24 @@ void info_menu_save_display(void *priv, int x, int y, int selected)
     bmp_printf(MENU_FONT, x, y, "Save config");
 }
 
-void info_menu_reset_select(void* priv, int delta)
+void info_menu_delete_select(void* priv, int delta)
 {
-    info_load_config(FLEXINFO_DEFAULT_FILENAME);
-    info_print_config(info_config);
+    FIO_RemoveFile(FLEXINFO_DEFAULT_FILENAME);
+}
+
+void info_menu_delete_display(void *priv, int x, int y, int selected)
+{
+    bmp_printf(MENU_FONT, x, y, "Delete config");
 }
 #endif
+
+void info_menu_reset_select(void* priv, int delta)
+{
+#ifdef FLEXINFO_XML_CONFIG
+    info_load_config(FLEXINFO_DEFAULT_FILENAME);
+#endif
+    info_print_config(info_config);
+}
 
 void info_menu_reset_display(void *priv, int x, int y, int selected)
 {
@@ -2393,13 +2584,21 @@ static struct menu_entry info_menus[] = {
                 .display = info_menu_item_anchor_item_display,
                 .help = "Select Anchor item.",
             },
-            #ifdef FLEXINFO_XML_CONFIG
+#ifdef FLEXINFO_XML_CONFIG
             {
                 .name = "Save config",
                 .priv = info_config,
                 .select = info_menu_save_select,
                 .display = info_menu_save_display,
                 .help = "Save menu settings",
+            },
+#endif
+            {
+                .name = "Delete config",
+                .priv = info_config,
+                .select = info_menu_delete_select,
+                .display = info_menu_delete_display,
+                .help = "Delete menu settings. Reboot to take effect.",
             },
             {
                 /* this item is the last and thus overwrites the whole screen when editing */
@@ -2409,7 +2608,6 @@ static struct menu_entry info_menus[] = {
                 .display = info_menu_reset_display,
                 .help = "Reset menu settings",
             },
-            #endif
             MENU_EOL,
         }
     }

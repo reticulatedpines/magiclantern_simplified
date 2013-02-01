@@ -53,7 +53,7 @@ char* menu_data_fill(char* dptr, struct menu_entry * m2) {
 	flags |= (m2->edit_mode&0xF) << PTP_ML_SUBMENU_EDIT_MODE_SHIFT;
 	flags |= (m2->icon_type&0xF) << PTP_ML_SUBMENU_ICON_TYPE_SHIFT;
 	flags |= (m2->unit&0xF) << PTP_ML_SUBMENU_UNIT_SHIFT;
-	fill_uint32(dptr, m2->id);     dptr+=4;
+	/*fill_uint32(dptr, m2->id);*/     dptr+=4;
 	fill_uint32(dptr, m2->min);    dptr+=4;
 	fill_uint32(dptr, m2->max);    dptr+=4;
 	fill_uint32(dptr, flags);      dptr+=8; //4 bytes reserved for later use
@@ -173,7 +173,7 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 				int size = 0;
 				msg.param_count = 0;
 
-				m = menu_find_by_id(param2);
+				/* ToDo: replacement    m = menu_find_by_id(param2); */
 				if (!m) {
 					msg.id = PTP_RC_GeneralError;
 					break;
@@ -207,7 +207,7 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 				int size = 0;
 				msg.param_count = 0;
 
-				m = menu_find_by_id(param2);
+				/* ToDo: replacement    m = menu_find_by_id(param2); */
 				if (!m) {
 					msg.id = PTP_RC_GeneralError;
 					break;
@@ -230,7 +230,8 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 		case PTP_ML_SetMenu:
 			{
 				struct menu_entry *entry;
-				entry = menu_find_by_id(param2);
+				/* ToDo: replacement    entry = menu_find_by_id(param2); */
+                
 				msg.param_count = 0;
 				if (!entry) {
 					msg.id = PTP_RC_GeneralError;

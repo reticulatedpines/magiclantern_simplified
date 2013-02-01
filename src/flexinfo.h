@@ -47,14 +47,14 @@ typedef struct
 } info_elem_pos_t;
 
 
-#define INFO_TYPE_CONFIG 0
-#define INFO_TYPE_END    1
-#define INFO_TYPE_STRING 2
-#define INFO_TYPE_FILL   3
-#define INFO_TYPE_ICON   4
-
+#define INFO_TYPE_CONFIG         0
+#define INFO_TYPE_END            1
+#define INFO_TYPE_STRING         2
+#define INFO_TYPE_FILL           3
+#define INFO_TYPE_ICON           4
 #define INFO_TYPE_BATTERY_ICON   5
 #define INFO_TYPE_BATTERY_PERF   6
+#define INFO_TYPE_TEXT           7
 
 typedef struct
 {
@@ -104,6 +104,9 @@ typedef struct
 #define INFO_STRING_MLU                  38
 #define INFO_STRING_HDR                  39
 #define INFO_STRING_CAM_DATE             40
+#define INFO_STRING_FREE_GB              41
+#define INFO_STRING_FREE_GB_1            42
+#define INFO_STRING_FREE_GB_2            43
 
 #define INFO_FONT_SMALL         0
 #define INFO_FONT_MEDIUM        1
@@ -113,8 +116,10 @@ typedef struct
 #define INFO_FONT_LARGE_SHADOW  5
 #define INFO_FONT_CANON         6
 
-#define INFO_COL_BG    0xFFFFFFFE
-#define INFO_COL_FIELD 0xFFFFFFFD
+#define INFO_COL_BG            (0xFF000000)
+#define INFO_COL_FIELD         (0xFE000000)
+#define INFO_COL_PEEK_ABS(x,y) (0xFD000000 | (((x) & 0xFFF) << 12) | ((y) & 0xFFF))
+#define INFO_COL_PEEK_REL(x,y) (0xFC000000 | (((x) & 0xFFF) << 12) | ((y) & 0xFFF))
 
 
 typedef struct
@@ -125,6 +130,15 @@ typedef struct
     uint32_t bgcolor;
     uint32_t font_type;
 } info_elem_string_t;
+
+typedef struct
+{
+    info_elem_header_t hdr;
+    char text[32];
+    uint32_t fgcolor;
+    uint32_t bgcolor;
+    uint32_t font_type;
+} info_elem_text_t;
 
 typedef struct
 {
@@ -171,6 +185,7 @@ typedef union
     info_elem_header_t hdr;
     info_elem_config_t config;
     info_elem_string_t string;
+    info_elem_text_t text;
     info_elem_battery_icon_t battery_icon;
     info_elem_battery_perf_t battery_perf;
     info_elem_fill_t fill;
