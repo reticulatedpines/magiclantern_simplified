@@ -3457,9 +3457,10 @@ struct menu_entry zebra_menus[] = {
                 .priv = &focus_peaking_filter_edges,
                 .max = 2,
                 .choices = (const char *[]) {"Strong edges", "Balanced", "Fine details"},
-                .help = "Highlights strong edges. Works best in low light.\n"
-                        "Tries to highlight both strong edges and fine details.\n"
-                        "Highlights fine details (texture). Requires lots of light.\n",
+                .help  = "Fine-tune the focus detection algorithm:",
+                .help2 = "Strong edges: looks for edges, works best in low light.\n"
+                         "Balanced: tries to cover both strong edges and fine details.\n"
+                         "Fine details: looks for microcontrast. Needs lots of light.\n",
                 .icon_type = IT_DICE
             },
             {
