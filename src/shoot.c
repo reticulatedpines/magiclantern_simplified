@@ -164,12 +164,11 @@ static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
        CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
 static CONFIG_INT( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT( "bulb.duration.index", bulb_duration_index, 5);
-static CONFIG_INT( "mlu.auto", mlu_auto, 0);
-static CONFIG_INT( "mlu.mode", mlu_mode, 1);
+static CONFIG_INT( "mlu.mode", mlu_mode, 0);
 
-#define MLU_ALWAYS_ON (mlu_auto && mlu_mode == 0)
-#define MLU_SELF_TIMER (mlu_auto && mlu_mode == 1)
-#define MLU_HANDHELD (mlu_auto && mlu_mode == 2)
+#define MLU_ALWAYS_ON (mlu_mode == 1)
+#define MLU_SELF_TIMER (mlu_mode == 2)
+#define MLU_HANDHELD (mlu_mode == 3)
 int mlu_handled_debug = 0;
 
 #ifndef CONFIG_5DC
@@ -3501,13 +3500,10 @@ void mlu_selftimer_update()
 static void
 mlu_update()
 {
-    if (mlu_mode == 0)
-        set_mlu(mlu_auto ? 1 : 0);
-    else if (mlu_mode == 1)
-    {
-        if (mlu_auto) mlu_selftimer_update();
-        else set_mlu(0);
-    }
+    if (mlu_mode == 1)
+        set_mlu(1);
+    else if (mlu_mode == 2)
+        mlu_selftimer_update();
     else
         set_mlu(0);
 }
@@ -3516,20 +3512,11 @@ static void
 mlu_toggle_mode( void * priv, int delta )
 {
     #ifdef FEATURE_MLU_HANDHELD
-    mlu_mode = mod(mlu_mode + delta, 3);
+    mlu_mode = mod(mlu_mode + delta, 4);
     #else
-    mlu_mode = !mlu_mode;
+    mlu_mode = mod(mlu_mode + delta, 3);
     #endif
     mlu_update();
-}
-
-static void
-mlu_toggle( void * priv, int delta )
-{
-    #ifndef CONFIG_1100D
-    mlu_auto = !mlu_auto;
-    mlu_update();
-    #endif
 }
 
 static void
@@ -3573,7 +3560,7 @@ mlu_display( void * priv, int x, int y, int selected )
         );
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) msg);
     }
-    else menu_draw_icon(x, y, mlu_auto ? MNI_AUTO : MNI_BOOL(get_mlu()), 0);
+    else menu_draw_icon(x, y, mlu_mode ? MNI_AUTO : MNI_BOOL(get_mlu()), 0);
 }
 #endif // FEATURE_MLU
 
@@ -5167,32 +5154,24 @@ static struct menu_entry shoot_menus[] = {
         // 5DC can't do handheld MLU
         // 5D3 can do, but doesn't need it (it has silent mode with little or no vibration)
         .name = "Mirror Lockup",
-        .priv = &mlu_auto,
+        .priv = &mlu_mode,
         .display = mlu_display, 
-        .select = mlu_toggle,
+        .select = mlu_toggle_mode,
+        .choices = (const char *[]) {"OFF", "Always ON", "Self-Timer", "Handheld"},
+
         #ifdef FEATURE_MLU_HANDHELD
-        .help = "MLU tricks: hand-held or self-timer modes.",
-        #elif defined(CONFIG_5DC)
-        .help = "You can toggle MLU w. DirectPrint or link it to self-timer.",
+        .max = 3,
         #else
-        .help = "You can link MLU with self-timer (handy).",
+        .max = 2,
         #endif
+
+        .help = "Mirror lock-up tricks.\n"
+                "Always ON: just the Canon mode, press shutter twice.\n"
+                "Self-Timer: MLU setting will be linked to Canon self-timer.\n"
+                "Handheld: trick to reduce camera shake. Press shutter once.",
+                
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
-            {
-                .name = "MLU mode        ",
-                .priv = &mlu_mode,
-                .select = mlu_toggle_mode,
-                #ifdef FEATURE_MLU_HANDHELD
-                .max = 2,
-                #else
-                .max = 1,
-                #endif
-                .choices = (const char *[]) {"Always ON", "Self-Timer", "Handheld"},
-                .help = "Always ON: just the Canon mode, press shutter twice.\n"
-                        "Self-Timer: MLU setting will be linked to Canon self-timer.\n"
-                        "Handheld: trick to reduce camera shake. Press shutter once.",
-            },
             #ifdef FEATURE_MLU_HANDHELD
             {
                 .name = "Handheld Shutter",
@@ -6688,7 +6667,7 @@ void wait_till_next_second()
     }
 }
 
-#ifdef FEATURE_MLU_DIRECT_PRINT_SHORTCUT
+#ifdef FEATURE_MLU_DIRECT_PRINT_SHORTCUT_broken
 // use direct print button to toggle MLU and display its status
 int handle_mlu_toggle(struct event * event)
 {
@@ -6726,7 +6705,7 @@ static void mlu_step()
 {
     if (lv) return;
 
-#ifdef FEATURE_MLU_DIRECT_PRINT_SHORTCUT
+#ifdef FEATURE_MLU_DIRECT_PRINT_SHORTCUT_broken
     int mlu = get_mlu();
     static int prev_mlu = 0;
     if (mlu) info_led_on();
