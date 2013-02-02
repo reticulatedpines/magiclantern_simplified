@@ -244,6 +244,7 @@ static CONFIG_INT("disp.mode.x", disp_mode_x, 1);
        CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
 static CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
 static CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
+static CONFIG_INT( "transparent.overlay.autoupd", transparent_overlay_auto_update, 0);
 int transparent_overlay_hidden = 0;
 
 static CONFIG_INT( "global.draw",   global_draw, 3 );
@@ -3640,6 +3641,15 @@ struct menu_entry zebra_menus[] = {
         .max = 1,
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
         .depends_on = DEP_GLOBAL_DRAW | DEP_LIVEVIEW,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Auto-update",
+                .priv = &transparent_overlay_auto_update, 
+                .max = 1,
+                .help = "Update the overlay whenever you take a picture.",
+            },
+            MENU_EOL
+        }
     },
     #endif
     #ifdef FEATURE_SPOTMETER
@@ -4111,6 +4121,13 @@ PROP_HANDLER(PROP_GUI_STATE)
         #ifdef CONFIG_600D
         if (BTN_ZEBRAS_FOR_PLAYBACK == BGMT_PRESS_DISP) fake_simple_button(BGMT_UNPRESS_DISP);
         #endif
+    }
+#endif
+
+#ifdef FEATURE_GHOST_IMAGE
+    if (transparent_overlay && transparent_overlay_auto_update && buf[0] == GUISTATE_QR)
+    {
+        fake_simple_button(BGMT_LV); // update ghost image
     }
 #endif
 }
