@@ -859,9 +859,9 @@ void size_icon(int x, int y, int current, int nmax)
     dot(x, y, COLOR_GREEN1, COERCE(current * (nmax > 2 ? 9 : 7) / (nmax-1) + 3, 1, 12));
 }
 
-void dice_icon(int x, int y, int current, int nmax)
+void dice_icon(int x, int y, int current, int nmax, int color_on, int color_off)
 {
-    #define C(i) (current == (i) ? COLOR_GREEN1 : COLOR_GRAY50), (current == (i) ? 6 : 4)
+    #define C(i) (current == (i) ? color_on : color_off), (current == (i) ? 6 : 4)
     //~ x -= 40;
     //~ x += 16; y += 16;
     switch (nmax)
@@ -925,80 +925,6 @@ void dice_icon(int x, int y, int current, int nmax)
             dot(x - 10, y + 10, C(6));
             dot(x     , y + 10, C(7));
             dot(x + 10, y + 10, C(8));
-            break;
-        default:
-            size_icon(x, y, current, nmax);
-            break;
-    }
-    #undef C
-}
-
-void dice_off_icon(int x, int y, int current, int nmax)
-{
-    #define C(i) (current == (i) ? COLOR_GREEN1 : current ? COLOR_GRAY50 : COLOR_GRAY40), (current == (i) ? 6 : 4)
-    //~ x -= 40;
-    //~ x += 16; y += 16;
-    switch (nmax-1)
-    {
-        case 2:
-            dot(x - 5, y + 5, C(1)+1);
-            dot(x + 5, y - 5, C(2)+1);
-            break;
-        case 3:
-            dot(x    , y - 7, C(1));
-            dot(x - 7, y + 3, C(2));
-            dot(x + 7, y + 3, C(3));
-            break;
-        case 4:
-            dot(x - 6, y - 6, C(1));
-            dot(x + 6, y - 6, C(2));
-            dot(x - 6, y + 6, C(3));
-            dot(x + 6, y + 6, C(4));
-            break;
-        case 5:
-            dot(x,     y,     C(1));
-            dot(x - 8, y - 8, C(2));
-            dot(x + 8, y - 8, C(3));
-            dot(x + 8, y + 8, C(4));
-            dot(x - 8, y + 8, C(5));
-            break;
-        case 6:
-            dot(x - 10, y - 8, C(1));
-            dot(x     , y - 8, C(2));
-            dot(x + 10, y - 8, C(3));
-            dot(x - 10, y + 8, C(4));
-            dot(x     , y + 8, C(5));
-            dot(x + 10, y + 8, C(6));
-            break;
-        case 7:
-            dot(x - 10, y - 10, C(1));
-            dot(x     , y - 10, C(2));
-            dot(x + 10, y - 10, C(3));
-            dot(x - 10, y + 10, C(4));
-            dot(x     , y + 10, C(5));
-            dot(x + 10, y + 10, C(6));
-            dot(x     , y     , C(7));
-            break;
-        case 8:
-            dot(x - 10, y - 10, C(1));
-            dot(x     , y - 10, C(2));
-            dot(x + 10, y - 10, C(3));
-            dot(x - 10, y + 10, C(4));
-            dot(x     , y + 10, C(5));
-            dot(x + 10, y + 10, C(6));
-            dot(x -  5, y     , C(7));
-            dot(x +  5, y     , C(8));
-            break;
-        case 9:
-            dot(x - 10, y - 10, C(1));
-            dot(x     , y - 10, C(2));
-            dot(x + 10, y - 10, C(3));
-            dot(x - 10, y     , C(4));
-            dot(x     , y     , C(5));
-            dot(x + 10, y     , C(6));
-            dot(x - 10, y + 10, C(7));
-            dot(x     , y + 10, C(8));
-            dot(x + 10, y + 10, C(9));
             break;
         default:
             size_icon(x, y, current, nmax);
@@ -1178,8 +1104,15 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
         case MNI_AUTO: maru(x, y, COLOR_LIGHTBLUE); return;
         case MNI_PERCENT: percent(x, y, arg); return;
         case MNI_ACTION: playicon(x, y); return;
-        case MNI_DICE: dice_icon(x, y, arg & 0xFFFF, arg >> 16); return;
-        case MNI_DICE_OFF: dice_off_icon(x, y, arg & 0xFFFF, arg >> 16); return;
+        case MNI_DICE: dice_icon(x, y, arg & 0xFFFF, arg >> 16, COLOR_GREEN1, COLOR_GRAY50); return;
+        case MNI_DICE_OFF:
+        {
+            int i = arg & 0xFFFF;
+            int N = arg >> 16;
+            if (i == 0) dice_icon(x, y, i-1, N-1, COLOR_GRAY40, COLOR_GRAY40);
+            else dice_icon(x, y, i-1, N-1, COLOR_GREEN1, COLOR_GRAY50);
+            return;
+        }
         case MNI_SIZE: size_icon(x, y, arg & 0xFFFF, arg >> 16); return;
         case MNI_NAMED_COLOR: color_icon(x, y, (char *)arg); return;
         case MNI_SUBMENU: submenu_only_icon(x, y, arg); return;
