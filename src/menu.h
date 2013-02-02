@@ -80,11 +80,11 @@ struct menu_entry
                 int                     selected
         );
 
-        unsigned selected : 1;
-        unsigned unit : 4;
-        unsigned hidden : 1;
-        unsigned icon_type : 4;
-        unsigned edit_mode : 1; // not currently used (to be cleaned up)
+        unsigned selected   : 1;
+        unsigned unit       : 4;
+        unsigned hidden     : 1;
+        unsigned icon_type  : 4;
+        unsigned edit_mode  : 1; // not currently used (to be cleaned up)
         
         const char * help;
         const char * help2;
@@ -117,7 +117,6 @@ struct menu_entry
 
 #define MENU_ENTRY_NOT_HIDDEN 0
 #define MENU_ENTRY_HIDDEN 1
-#define MENU_ENTRY_NEVER_HIDE -1
 
 /*
 #define EM_FEW_VALUES 0
@@ -197,15 +196,6 @@ menu_print(
         int                     y,
         int                     selected
 );
-
-extern struct menu * menu_get_root(void);
-extern struct menu_entry * menu_find_by_id(uint32_t id);
-
-// temporary definitions for compatibility
-#define menu_ternary_toggle_reverse menu_ternary_toggle
-#define menu_quaternary_toggle_reverse menu_quaternary_toggle
-#define menu_quinternary_toggle_reverse menu_quinternary_toggle
-
 
 extern void
 menu_select(

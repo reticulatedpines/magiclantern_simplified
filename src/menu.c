@@ -1403,7 +1403,7 @@ menu_display(
                 else
                     submenu_print(menu, x, y);
                 
-                if (menu->hidden && menu->hidden != MENU_ENTRY_NEVER_HIDE)
+                if (menu->hidden)
                     dim_hidden_menu(x, y, menu->selected);
             }
             
@@ -1767,17 +1767,14 @@ menu_entry_showhide_toggle(
     }
     give_semaphore( menu_sem );
 
-    if (entry->hidden != MENU_ENTRY_NEVER_HIDE)
-    {
-        entry->hidden = entry->hidden ? MENU_ENTRY_NOT_HIDDEN : MENU_ENTRY_HIDDEN;
-        if(entry->hidden == MENU_ENTRY_HIDDEN){
-            menu->childnum--;
-        }else{
-            menu->childnum++;
-        }
-        menu_make_sure_selection_is_valid();
-        menu_hidden_dirty = 1;
+    entry->hidden = entry->hidden ? MENU_ENTRY_NOT_HIDDEN : MENU_ENTRY_HIDDEN;
+    if(entry->hidden == MENU_ENTRY_HIDDEN){
+        menu->childnum--;
+    }else{
+        menu->childnum++;
     }
+    menu_make_sure_selection_is_valid();
+    menu_hidden_dirty = 1;
 }
 
 static void
