@@ -723,3 +723,5 @@ void ui_lock(int x)
     prop_request_change(PROP_ICU_UILOCK, &x, 4);
     msleep(200);
 }
+
+void draw_line(){}
