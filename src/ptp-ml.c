@@ -43,7 +43,7 @@ char* menu_data_fill(char* dptr, struct menu_entry * m2) {
 	uint32_t flags = 0;
 	int i;
 	if (m2->select) flags |= PTP_ML_SUBMENU_HAS_SELECT;
-	if (m2->select_reverse) flags |= PTP_ML_SUBMENU_HAS_SELECT_REVERSE;
+	//if (m2->select_reverse) flags |= PTP_ML_SUBMENU_HAS_SELECT_REVERSE;
 	if (m2->select_Q) flags |= PTP_ML_SUBMENU_HAS_SELECT_Q;
 	if (IS_VISIBLE(m2)) flags |= PTP_ML_SUBMENU_IS_ESSENTIAL; // probably needs fixing somewhere else too
 	if (m2->choices) flags |= PTP_ML_SUBMENU_HAS_CHOICE;
@@ -240,8 +240,9 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 
 				if(param3 == 1) // decrement
 				{
-					if( entry->select_reverse ) entry->select_reverse( entry->priv, -1 );
-					else if (entry->select) entry->select( entry->priv, -1);
+					//if( entry->select_reverse ) entry->select_reverse( entry->priv, -1 );
+					//else 
+                    if (entry->select) entry->select( entry->priv, -1);
 					else menu_numeric_toggle(entry->priv, -1, entry->min, entry->max);
 				}
 				else if (param3 == 2) // Q
