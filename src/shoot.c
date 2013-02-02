@@ -2734,17 +2734,27 @@ static void
 picstyle_display( void * priv, int x, int y, int selected )
 {
     int i = picstyle_rec && recording ? picstyle_before_rec : (int)lens_info.picstyle;
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "PictureStyle: %s",
-        get_picstyle_name(get_prop_picstyle_from_index(i))
-        //~ picstyle_before_rec ? "*" : " ",
-        //~ lens_get_from_other_picstyle_sharpness(i),
-        //~ lens_get_from_other_picstyle_contrast(i),
-        //~ ABS(lens_get_from_other_picstyle_saturation(i)) < 10 ? lens_get_from_other_picstyle_saturation(i) : 0,
-        //~ ABS(lens_get_from_other_picstyle_color_tone(i)) < 10 ? lens_get_from_other_picstyle_color_tone(i) : 0
-    );
+    
+    // line too long; I would like to show both Bv and picstyle params, but we can't fit both
+    if (selected)
+        bmp_printf(
+            MENU_FONT,
+            x, y,
+            "PictureStyle: %s%s(%d,%d,%d,%d)",
+            get_picstyle_name(get_prop_picstyle_from_index(i)),
+            picstyle_before_rec ? "*" : " ",
+            lens_get_from_other_picstyle_sharpness(i),
+            lens_get_from_other_picstyle_contrast(i),
+            ABS(lens_get_from_other_picstyle_saturation(i)) < 10 ? lens_get_from_other_picstyle_saturation(i) : 0,
+            ABS(lens_get_from_other_picstyle_color_tone(i)) < 10 ? lens_get_from_other_picstyle_color_tone(i) : 0
+        );
+    else
+        bmp_printf(
+            MENU_FONT,
+            x, y,
+            "PictureStyle: %s",
+            get_picstyle_name(get_prop_picstyle_from_index(i))
+        );
     menu_draw_icon(x, y, MNI_ON, 0);
 }
 
