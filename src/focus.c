@@ -480,17 +480,22 @@ rack_focus_start_now( void * priv, int delta )
 }
 
 static void
-rack_focus_start_delayed( void * priv, int delta )
+rack_focus_start_auto_record( void * priv, int delta )
 {
-    focus_rack_auto_record = 0;
+    focus_rack_auto_record = 1;
     focus_rack_enable_delay = 1;
     focus_toggle(priv);
 }
 
 static void
-rack_focus_start_auto_record( void * priv, int delta )
+rack_focus_start_delayed( void * priv, int delta )
 {
-    focus_rack_auto_record = 1;
+    if (delta < 0)
+    {
+        rack_focus_start_auto_record(priv, delta);
+        return;
+    }
+    focus_rack_auto_record = 0;
     focus_rack_enable_delay = 1;
     focus_toggle(priv);
 }
@@ -1295,7 +1300,7 @@ static struct menu_entry focus_menu[] = {
         .display    = rack_focus_print,
         .select     = rack_focus_start_delayed,
         //~ .select_Q   = rack_focus_start_now,
-        .select_reverse = rack_focus_start_auto_record,
+        //~ .select_reverse = rack_focus_start_auto_record,
         .help = "Press SET for rack focus, or PLAY to also start recording.",
         .icon_type = IT_ACTION,
         .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
@@ -1306,7 +1311,6 @@ static struct menu_entry focus_menu[] = {
     {
         .name = "Focus Stacking...",
         .select = menu_open_submenu,
-        .select_reverse     = focus_stack_trigger_from_menu,
         .help = "Takes pictures at different focus points.",
         .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS | DEP_PHOTO_MODE,
         .children =  (struct menu_entry[]) {

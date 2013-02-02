@@ -410,31 +410,17 @@ static void check_sound_recording_warning(int x, int y){
 static void
 audio_lovl_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 1, 0, 49);
+    menu_numeric_toggle(priv, delta, 0, 49);
     audio_ic_set_lineout_vol();
 }
-
-static void
-audio_lovl_toggle_reverse( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, -1, 0, 49);
-    audio_ic_set_lineout_vol();
-}
-
 
 static void
 audio_dgain_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 1, 0, 15);
+    menu_numeric_toggle(priv, delta, 0, 15);
     audio_ic_set_RecLRbalance();
 }
 
-static void
-audio_dgain_toggle_reverse( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, -1, 0, 15);
-    audio_ic_set_RecLRbalance();
-}
 
 static int
 get_dgain_val(int isL){
@@ -516,15 +502,8 @@ audio_alc_toggle( void * priv, int delta )
 static void
 audio_input_toggle( void * priv, int delta )
 {
-    menu_quinternary_toggle(priv, 1);
-    if(*(unsigned*)priv == 3) *(unsigned*)priv = 4; //tamporaly disabled Ext:balanced. We can't find it.
-    audio_ic_set_input(OP_STANDALONE);
-}
-static void
-audio_input_toggle_reverse( void * priv, int delta )
-{
-    menu_quinternary_toggle_reverse(priv, -1);
-    if(*(unsigned*)priv == 3) *(unsigned*)priv = 2; //tamporaly disabled Ext:balanced. We can't find it.
+    menu_quinternary_toggle(priv, delta);
+    if(*(unsigned*)priv == 3) *(unsigned*)priv += delta; //tamporaly disabled Ext:balanced. We can't find it.
     audio_ic_set_input(OP_STANDALONE);
 }
 
@@ -560,12 +539,7 @@ static void analog_gain_display( void * priv, int x, int y, int selected )
 }
 static void analog_gain_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 1, 0, 7);
-    audio_ic_set_analog_gain();
-}
-static void analog_gain_toggle_reverse( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, -1, 0, 7);
+    menu_numeric_toggle(priv, delta, 0, 7);
     audio_ic_set_analog_gain();
 }
 
@@ -584,25 +558,16 @@ static void analog_boost_display( void * priv, int x, int y, int selected )
 }
 static void analog_boost_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 1, 0, 6);
-    audio_ic_set_micboost();
-}
-static void analog_boost_toggle_reverse( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, -1, 0, 6);
+    menu_numeric_toggle(priv, delta, 0, 6);
     audio_ic_set_micboost();
 }
 
 static void audio_effect_mode_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 1, 0, 5);
+    menu_numeric_toggle(priv, delta, 0, 5);
     audio_ic_set_effect_mode();
 }
-static void audio_effect_mode_toggle_reverse( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, -1, 0, 5);
-    audio_ic_set_effect_mode();
-}
+
 static void audio_effect_mode_display( void * priv, int x, int y, int selected )
 {
     char effectmode[6][18] = {"Notch Filter ",
@@ -659,15 +624,10 @@ static void audio_filter_hpf2_display( void * priv, int x, int y, int selected )
 
 static void audio_hpf2config_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 1, 0, 7);
+    menu_numeric_toggle(priv, delta, 0, 7);
     audio_ic_set_filters(OP_STANDALONE);
 }
 
-static void audio_hpf2config_toggle_reverse( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, -1, 0, 7);
-    audio_ic_set_filters(OP_STANDALONE);
-}
 static char *get_hpf2config_str(){
     return (cfg_filter_hpf2config == 0 ? "80Hz" :
             (cfg_filter_hpf2config == 1 ? "100Hz" :
@@ -703,14 +663,7 @@ audio_filters_toggle_reverse( void * priv, int delta )
 static void
 audio_recdgain_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, -2, 0, 126); 
-    audio_ic_set_recdgain();
-}
-
-static void
-audio_recdgain_toggle_reverse( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, 2, 0, 126);
+    menu_numeric_toggle(priv, -2*delta, 0, 126); 
     audio_ic_set_recdgain();
 }
 
@@ -749,7 +702,6 @@ static struct menu_entry audio_menus[] = {
         .name        = "Override audio settings",
         .priv           = &cfg_override_audio,
         .select         = override_audio_toggle,
-        .select_reverse = override_audio_toggle,
         .display        = override_audio_display,
         .help = "Override audio setting by ML",
     },
@@ -757,7 +709,6 @@ static struct menu_entry audio_menus[] = {
         .name        = "Analog gain",
         .priv           = &cfg_analog_gain,
         .select         = analog_gain_toggle,
-        .select_reverse = analog_gain_toggle_reverse,
         .display        = analog_gain_display,
         .help = "Analog gain (-12 +35 mic vol)",
     },
@@ -765,7 +716,6 @@ static struct menu_entry audio_menus[] = {
         .name        = "Mic Boost",
         .priv           = &cfg_analog_boost,
         .select         = analog_boost_toggle,
-        .select_reverse = analog_boost_toggle_reverse,
         .display        = analog_boost_display,
         .help = "TEST: Analog mic +5dB boost only",
     },
@@ -778,7 +728,6 @@ static struct menu_entry audio_menus[] = {
                 .name = "Sound Effect Mode",
                 .priv           = &cfg_effect_mode,
                 .select         = audio_effect_mode_toggle,
-                .select_reverse = audio_effect_mode_toggle_reverse,
                 .display        = audio_effect_mode_display,
                 .help = "Choose mode :Notch,EQ,Notch/EQ,Enhance [12],Loudness.",
                 .hidden         = MENU_ENTRY_HIDDEN,
@@ -787,7 +736,6 @@ static struct menu_entry audio_menus[] = {
                 .name = "Record Digital Volume ",
                 .priv           = &cfg_recdgain,
                 .select         = audio_recdgain_toggle,
-                .select_reverse = audio_recdgain_toggle_reverse,
                 .display        = audio_recdgain_display,
                 .help = "Record Digital Volume. ",
                 .edit_mode = EM_MANY_VALUES,
@@ -796,7 +744,6 @@ static struct menu_entry audio_menus[] = {
                 .name = "Left Digital Gain ",
                 .priv           = &dgain_l,
                 .select         = audio_dgain_toggle,
-                .select_reverse = audio_dgain_toggle_reverse,
                 .display        = audio_dgain_display,
                 .help = "Digital gain (LEFT). Any nonzero value reduces quality.",
                 .edit_mode = EM_MANY_VALUES,
@@ -805,7 +752,6 @@ static struct menu_entry audio_menus[] = {
                 .name = "Right Digital Gain",
                 .priv           = &dgain_r,
                 .select         = audio_dgain_toggle,
-                .select_reverse = audio_dgain_toggle_reverse,
                 .display        = audio_dgain_display,
                 .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
                 .edit_mode = EM_MANY_VALUES,
@@ -826,7 +772,6 @@ static struct menu_entry audio_menus[] = {
         .name = "Input source",
         .priv           = &input_choice,
         .select         = audio_input_toggle,
-        .select_reverse         = audio_input_toggle_reverse,
         .display        = audio_input_display,
         .help = "Audio input: internal / external / both / balanced / auto.",
         //.essential = FOR_MOVIE,
@@ -847,7 +792,6 @@ static struct menu_entry audio_menus[] = {
                 .name = "DC filter",
                 .priv              = &cfg_filter_dc,
                 .select            = audio_filter_dc_toggle,
-                .select_reverse    = audio_filter_dc_toggle,
                 .display           = audio_filter_dc_display,
                 .help = "first-order high pass filter for DC cut",
             },
@@ -855,7 +799,6 @@ static struct menu_entry audio_menus[] = {
                 .name = "High Pass filter",
                 .priv              = &cfg_filter_hpf2,
                 .select            = audio_filter_hpf2_toggle,
-                .select_reverse    = audio_filter_hpf2_toggle,
                 .display           = audio_filter_hpf2_display,
                 .help = "second-order high pass filter for noise cut",
             },
@@ -863,7 +806,6 @@ static struct menu_entry audio_menus[] = {
                 .name = "High Pass Filter2 config",
                 .priv           = &cfg_filter_hpf2config,
                 .select         = audio_hpf2config_toggle,
-                .select_reverse = audio_hpf2config_toggle_reverse,
                 .display        = audio_hpf2config_display,
                 .help = "Set the cut off frequency for noise reduction",
             },
@@ -886,7 +828,6 @@ static struct menu_entry audio_menus[] = {
         .name = "Output volume",
         .priv           = &lovl,
         .select         = audio_lovl_toggle,
-        .select_reverse = audio_lovl_toggle_reverse,
         .display        = audio_lovl_display,
         .help = "Output volume for audio monitoring (headphones only).",
         //~ .edit_mode = EM_MANY_VALUES,
@@ -917,13 +858,13 @@ static void volume_display()
 
 void volume_up()
 {
-    analog_gain_toggle(&cfg_analog_gain,0);
+    analog_gain_toggle(&cfg_analog_gain,1);
     volume_display();
 }
 
 void volume_down()
 {
-    analog_gain_toggle_reverse(&cfg_analog_gain,0);
+    analog_gain_toggle(&cfg_analog_gain,-1);
     volume_display();
 }
 
@@ -933,12 +874,12 @@ static void out_volume_display()
 }
 void out_volume_up()
 {
-    audio_lovl_toggle(&lovl,0);
+    audio_lovl_toggle(&lovl,1);
     out_volume_display();
 }
 void out_volume_down()
 {
-    audio_lovl_toggle_reverse(&lovl,0);
+    audio_lovl_toggle(&lovl,-1);
     out_volume_display();
 }
 

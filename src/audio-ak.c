@@ -390,15 +390,7 @@ static void
 audio_3bit_toggle( void * priv, int delta )
 {
     unsigned * ptr = priv;
-    *ptr = (*ptr + 0x1) & 0x3;
-    audio_configure( 1 );
-}
-
-static void
-audio_3bit_toggle_reverse( void * priv, int delta )
-{
-    unsigned * ptr = priv;
-    *ptr = (*ptr - 0x1) & 0x3;
+    *ptr = (*ptr + delta) & 0x3;
     audio_configure( 1 );
 }
 
@@ -416,21 +408,9 @@ audio_mgain_toggle( void * priv, int delta )
 {
     unsigned * ptr = priv;
 #ifdef CONFIG_500D
-    *ptr = mod((*ptr + 0x1), 10);
+    *ptr = mod((*ptr + delta), 10);
 #else
-    *ptr = (*ptr + 0x1) & 0x7;
-#endif
-    audio_configure( 1 );
-}
-
-static void
-audio_mgain_toggle_reverse( void * priv, int delta )
-{
-    unsigned * ptr = priv;
-#ifdef CONFIG_500D
-    *ptr = mod((*ptr - 0x1), 10);
-#else
-    *ptr = (*ptr - 0x1) & 0x7;
+    *ptr = (*ptr + delta) & 0x7;
 #endif
     audio_configure( 1 );
 }
@@ -457,18 +437,7 @@ audio_mgain_display( void * priv, int x, int y, int selected )
 #endif
 
 #ifdef FEATURE_DIGITAL_GAIN
-static void
-audio_dgain_toggle( void * priv, int delta )
-{
-    unsigned dgain = *(unsigned*) priv;
-    dgain += 6;
-    if( dgain > 40 )
-        dgain = 0;
-    *(unsigned*) priv = dgain;
-    audio_configure( 1 );
-}
-
-static void
+static inline void
 audio_dgain_toggle_reverse( void * priv, int delta )
 {
     unsigned dgain = *(unsigned*) priv;
@@ -477,6 +446,21 @@ audio_dgain_toggle_reverse( void * priv, int delta )
     } else {
         dgain -= 6;
     }
+    *(unsigned*) priv = dgain;
+    audio_configure( 1 );
+}
+static void
+audio_dgain_toggle( void * priv, int delta )
+{
+    if (delta < 0) // will the compiler optimize it? :)
+    {
+        audio_dgain_toggle_reverse( priv, delta );
+        return;
+    }
+    unsigned dgain = *(unsigned*) priv;
+    dgain += 6;
+    if( dgain > 40 )
+        dgain = 0;
     *(unsigned*) priv = dgain;
     audio_configure( 1 );
 }
@@ -524,13 +508,7 @@ audio_lovl_display( void * priv, int x, int y, int selected )
 static void
 audio_input_toggle( void * priv, int delta )
 {
-    menu_quinternary_toggle(priv, 1);
-    audio_configure( 1 );
-}
-static void
-audio_input_toggle_reverse( void * priv, int delta )
-{
-    menu_quinternary_toggle_reverse(priv, -1);
+    menu_quinternary_toggle(priv, delta);
     audio_configure( 1 );
 }
 #endif
@@ -570,7 +548,6 @@ static struct menu_entry audio_menus[] = {
         .name = "Analog Gain",
         .priv           = &mgain,
         .select         = audio_mgain_toggle,
-        .select_reverse = audio_mgain_toggle_reverse,
         .display        = audio_mgain_display,
         #ifdef CONFIG_500D
         // should match gains[]
@@ -596,19 +573,15 @@ static struct menu_entry audio_menus[] = {
                 .name = "Left Digital Gain ",
                 .priv           = &dgain_l,
                 .select         = audio_dgain_toggle,
-                .select_reverse = audio_dgain_toggle_reverse,
                 .display        = audio_dgain_display,
                 .help = "Digital gain (LEFT). Any nonzero value reduces quality.",
-                //~ .edit_mode = EM_MANY_VALUES,
             },
             {
                 .name = "Right Digital Gain",
                 .priv           = &dgain_r,
                 .select         = audio_dgain_toggle,
-                .select_reverse = audio_dgain_toggle_reverse,
                 .display        = audio_dgain_display,
                 .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
-                //~ .edit_mode = EM_MANY_VALUES,
             },
             #ifdef FEATURE_AGC_TOGGLE
             {
@@ -630,7 +603,6 @@ static struct menu_entry audio_menus[] = {
         .name = "Input source",
         .priv           = &input_choice,
         .select         = audio_input_toggle,
-        .select_reverse         = audio_input_toggle_reverse,
         .display        = audio_input_display,
         .max = 4,
         .choices = (const char *[]) {"Internal mic", "L:int R:ext", "External stereo", "L:int R:balanced", "Auto int/ext"},
@@ -678,7 +650,6 @@ static struct menu_entry audio_menus[] = {
         .name = "Output volume",
         .priv           = &lovl,
         .select         = audio_3bit_toggle,
-        .select_reverse = audio_3bit_toggle_reverse,
         .display        = audio_lovl_display,
         .max = 3,
         .choices = (const char *[]) {"0 dB", "2 dB", "4 dB", "6 dB"},
@@ -791,14 +762,14 @@ void volume_up()
 {
     int mgain_db = mgain_index2gain(mgain);
     if (mgain_db < 32)
-        audio_mgain_toggle(&mgain, 0);
+        audio_mgain_toggle(&mgain, 1);
     #ifdef FEATURE_DIGITAL_GAIN
     else
         {
             if( MAX(dgain_l, dgain_r) + 6 <= 40 )
                 {
-                    audio_dgain_toggle(&dgain_l, 0);
-                    audio_dgain_toggle(&dgain_r, 0);
+                    audio_dgain_toggle(&dgain_l, 1);
+                    audio_dgain_toggle(&dgain_r, 1);
                 }
         }
     #endif
@@ -812,13 +783,13 @@ void volume_down()
     #ifdef FEATURE_DIGITAL_GAIN
     if( MIN(dgain_l, dgain_r) > 0 )
         {
-            audio_dgain_toggle_reverse(&dgain_l, 0);
-            audio_dgain_toggle_reverse(&dgain_r, 0);
+            audio_dgain_toggle(&dgain_l, -1);
+            audio_dgain_toggle(&dgain_r, -1);
         }
     else 
     #endif
     if (mgain_db > 0)
-        audio_mgain_toggle_reverse(&mgain, 0);
+        audio_mgain_toggle(&mgain, -1);
     volume_display();
 }
 #endif

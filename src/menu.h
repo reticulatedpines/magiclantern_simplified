@@ -52,20 +52,23 @@ struct menu_entry
 {
         struct menu_entry *     next;
         struct menu_entry *     prev;
-        uint8_t                 selected;
+        struct menu_entry * children;
         void *                  priv;
-        int min;
-        int max;
-        int8_t unit;
+        
+        int16_t min;
+        int16_t max;
+        
         const char** choices;
         void                    (*select)(
                 void *                  priv,
                 int                             delta
         );
+        /*
         void                    (*select_reverse)(
                 void *                  priv,
                 int                             delta
         );
+        */
         void                    (*select_Q)(
                 void *                  priv,
                 int                             delta
@@ -76,14 +79,16 @@ struct menu_entry
                 int                     y,
                 int                     selected
         );
-        //~ int8_t essential;
-        int8_t hidden;
-        int8_t icon_type;
-        int8_t edit_mode; // not currently used (to be cleaned up)
+
+        unsigned selected : 1;
+        unsigned unit : 4;
+        unsigned hidden : 1;
+        unsigned icon_type : 4;
+        unsigned edit_mode : 1; // not currently used (to be cleaned up)
+        
         const char * help;
         const char * help2;
         const char * name; // used for context help and sometimes for display
-        struct menu_entry * children;
         //~ uint32_t id; // unique ID (not supported; menus are identified by strings)
     
         // not required for entry item, but makes it easier to declare in existing menu structures
@@ -114,9 +119,14 @@ struct menu_entry
 #define MENU_ENTRY_HIDDEN 1
 #define MENU_ENTRY_NEVER_HIDE -1
 
+/*
 #define EM_FEW_VALUES 0
 #define EM_MANY_VALUES 1
 #define EM_MANY_VALUES_LV 2
+*/
+#define EM_FEW_VALUES 0
+#define EM_MANY_VALUES 0
+#define EM_MANY_VALUES_LV 0
 
 
 #define IT_AUTO 0

@@ -586,7 +586,7 @@ void menu_fixup_pic(struct menu_entry * new_entry, int count)
     while(count)
     {
         main_ptr->select = PIC_RESOLVE(main_ptr->select);
-        main_ptr->select_reverse = PIC_RESOLVE(main_ptr->select_reverse);
+        //~ main_ptr->select_reverse = PIC_RESOLVE(main_ptr->select_reverse);
         main_ptr->select_Q = PIC_RESOLVE(main_ptr->select_Q);
         main_ptr->display = PIC_RESOLVE(main_ptr->display);
         main_ptr->help = PIC_RESOLVE(main_ptr->help);
@@ -1854,8 +1854,9 @@ menu_entry_select(
 
     if(mode == 1) // decrement
     {
-        if( entry->select_reverse ) entry->select_reverse( entry->priv, -1 );
-        else if (entry->select) entry->select( entry->priv, -1);
+        //~ if( entry->select_reverse ) entry->select_reverse( entry->priv, -1 );
+        //~ else 
+        if (entry->select) entry->select( entry->priv, -1);
         else menu_numeric_toggle(entry->priv, -1, entry->min, entry->max);
     }
     else if (mode == 2) // Q
