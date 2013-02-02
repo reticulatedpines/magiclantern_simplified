@@ -3587,7 +3587,7 @@ static struct menu_entry display_menus[] = {
                 .max = 5,
                 .choices = (const char *[]) {"Default", "Dark", "Bright Gray", "Dark Gray", "Dark Red", "Dark Green"},
                 .help = "Color scheme for bitmap overlays (ML menus, Canon menus...)",
-                .icon_type = IT_NAMED_COLOR,
+                .icon_type = IT_DICE_OFF,
             },
             #endif
     #ifdef FEATURE_CLEAR_OVERLAYS

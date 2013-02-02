@@ -1292,19 +1292,19 @@ static char* check_default_warnings(struct menu_entry * entry)
             snprintf(warning, sizeof(warning), "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
         else if ((entry->works_best_in & DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR)
             snprintf(warning, sizeof(warning), "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
-        else if ((entry->depends_on & DEP_EXPSIM) && !lv_luma_is_accurate())
+        else if ((entry->works_best_in & DEP_EXPSIM) && !lv_luma_is_accurate())
             snprintf(warning, sizeof(warning), "This feature works best with ExpSim enabled.");
-        else if ((entry->depends_on & DEP_NOT_EXPSIM) && lv_luma_is_accurate())
+        else if ((entry->works_best_in & DEP_NOT_EXPSIM) && lv_luma_is_accurate())
             snprintf(warning, sizeof(warning), "This feature works best with ExpSim disabled.");
         else if ((entry->works_best_in & DEP_CHIPPED_LENS) && !lens_info.name[0])
             snprintf(warning, sizeof(warning), "This feature works best with a chipped (electronic) lens.");
         else if ((entry->works_best_in & DEP_M_MODE) && shooting_mode != SHOOTMODE_M)
             snprintf(warning, sizeof(warning), "This feature works best in Manual (M) mode.");
-        else if ((entry->depends_on & DEP_MANUAL_ISO) && !lens_info.raw_iso)
+        else if ((entry->works_best_in & DEP_MANUAL_ISO) && !lens_info.raw_iso)
             snprintf(warning, sizeof(warning), "This feature works best with manual ISO.");
-        else if ((entry->depends_on & DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
+        else if ((entry->works_best_in & DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
             snprintf(warning, sizeof(warning), "This feature works best with sound recording enabled.");
-        else if ((entry->depends_on & DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
+        else if ((entry->works_best_in & DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
             snprintf(warning, sizeof(warning), "This feature works best with sound recording disabled.");
 
         // and display as notice, if any
@@ -1457,25 +1457,28 @@ menu_display(
             #endif
             
             #ifdef CONFIG_MENU_DIM_HACKS
-            // hack to erase the colon (todo: refactor the display functions)
-            if (parentmenu->split_pos && menu->select != menu_open_submenu && (!only_selected || menu->selected))
+            // hack to dim the value field when it's off
+            if (icon_drawn == MNI_OFF || (icon_drawn == MNI_DICE_OFF && !TRUTH_VALUE(menu)))
             {
-                int cx = x + parentmenu->split_pos * font_large.width;
-                bmp_printf(FONT_LARGE, cx, y, " ");
-                if (menu->priv && !TRUTH_VALUE(menu))
+                truth_value = 0;
+                if (parentmenu->split_pos)
+                {
+                    int cx = x + (parentmenu->split_pos + 1) * font_large.width;
                     replace_color(COLOR_WHITE, COLOR_GRAY50, cx, y, 720-cx, 31);
+                }
             }
+            else truth_value = 1;
             #endif
 
+            // if there is a default warning, display it even if the item is off
+            if (!warning_msg)
+                warning_msg = default_warn;
+            
             #ifdef CONFIG_MENU_DIM_HACKS
             // dim the line if the dependencies are not met
             if (default_warn)
                 replace_color(COLOR_WHITE, COLOR_GRAY50, x-10, y, g_submenu_width-SUBMENU_OFFSET, 31);
             #endif
-            
-            // if there is a default warning, display it even if the item is off
-            if (!warning_msg)
-                warning_msg = default_warn;
             
             // if there's a warning message set, display it
             if (menu->selected && warning_msg)
