@@ -31,6 +31,9 @@
 #include "font.h"
 #include "menu.h"
 
+//~ #define CONFIG_MENU_ICONS
+#define CONFIG_MENU_DIM_HACKS
+
 
 #define DOUBLE_BUFFERING 1
 
@@ -44,7 +47,13 @@
 extern int bmp_color_scheme;
 #define MENU_BAR_COLOR (bmp_color_scheme ? COLOR_LIGHTBLUE : COLOR_BLUE)
 
-
+#ifdef CONFIG_MENU_ICONS
+#define SUBMENU_OFFSET 50
+#define MENU_OFFSET 40
+#else
+#define SUBMENU_OFFSET 30
+#define MENU_OFFSET 20
+#endif
 
 //for vscroll
 #define MENU_LEN_DEFAULT 11
@@ -530,6 +539,7 @@ menu_find_by_name(
     new_menu->pos       = 1;
     new_menu->childnum  = 1;
     new_menu->childnummax = 1;
+    new_menu->split_pos = 0;
     // menu points to the last entry or NULL if there are none
     if( menu )
     {
@@ -733,6 +743,23 @@ menu_add(
 #endif
 }
 
+void dot(int x, int y, int color, int radius)
+{
+    int r;
+    for (r = 0; r < radius; r++)
+    {
+        draw_circle(x + 16, y + 16, r, color);
+        draw_circle(x + 17, y + 16, r, color);
+    }
+}
+
+#ifdef CONFIG_MENU_ICONS
+
+void maru(int x, int y, int color)
+{
+    dot(x, y, color, 10);
+}
+
 static void batsu(int x, int y, int c)
 {
     int i;
@@ -755,22 +782,6 @@ static void crossout(int x, int y, int color)
         draw_circle(x + 1, y, r, color);
         draw_line(x + 5 + i, y - 5, x - 5 + i, y + 5, color);
     }
-}
-
-void dot(int x, int y, int color, int radius)
-{
-    int r;
-    for (r = 0; r < radius; r++)
-    {
-        draw_circle(x + 16, y + 16, r, color);
-        draw_circle(x + 17, y + 16, r, color);
-    }
-}
-
-
-void maru(int x, int y, int color)
-{
-    dot(x, y, color, 10);
 }
 
 static void percent(int x, int y, int value)
@@ -807,19 +818,6 @@ static void leftright_sign(int x, int y)
     }
 }
 
-static int playicon_square(int x, int y, int color)
-{
-    bmp_draw_rect(color,x+1,y+4,38,32);
-    bmp_draw_rect(color,x+2,y+5,36,30);
-    int i;
-    for (i = 12; i < 40-12; i++)
-    {
-        draw_line(x + 10, y + i, x + 30, y + 20, color);
-        draw_line(x + 10, y + i, x + 30, y + 20, color);
-    }
-    return 40;
-}
-
 void submenu_icon(int x, int y)
 {
     //~ int color = COLOR_WHITE;
@@ -854,99 +852,6 @@ void submenu_only_icon(int x, int y, int value)
     bmp_draw_rect(color, x + 15, y + 10, 10, 1);
     bmp_draw_rect(color, x + 15, y + 16, 10, 1);
     bmp_draw_rect(color, x + 15, y + 22, 10, 1);
-}
-
-void FAST selection_bar_backend(int c, int black, int x0, int y0, int w, int h)
-{
-    uint8_t* B = bmp_vram();
-    #ifdef CONFIG_VXWORKS
-    c = D2V(c);
-    black = D2V(black);
-    #endif
-    #define P(x,y) B[BM(x,y)]
-    for (int y = y0; y < y0 + h; y++)
-    {
-        for (int x = x0; x < x0 + w; x++)
-        {
-            if (P(x,y) == black)
-                P(x,y) = c;
-        }
-    }
-    // use a shadow for better readability, especially for gray text
-    for (int y = y0; y < y0 + h; y++)
-    {
-        for (int x = x0; x < x0 + w; x++)
-        {
-            if (P(x,y) != c && P(x,y) != black)
-            {
-                for (int dx = -1; dx <= 1; dx++)
-                {
-                    for (int dy = -1; dy <= 1; dy++)
-                    {
-                        if (P(x+dx,y+dy) == c)
-                            P(x+dx,y+dy) = black;
-                    }
-                }
-            }
-        }
-    }
-}
-
-void selection_bar(int x0, int y0)
-{
-    if (menu_lv_transparent_mode) return; // only one menu, no need to highlight, and this routine conflicts with RGB zebras
-    
-    x0 -= 5;
-    
-    if (submenu_mode == 2)
-    {
-        //~ selection_bar_backend(COLOR_GRAY45, COLOR_BLACK, x0, y0, 320-x0, 31);
-        selection_bar_backend(MENU_BAR_COLOR, COLOR_BLACK, 320, y0, 720-300, 31);
-        return;
-    }
-    
-    int w = submenu_mode == 1 ? g_submenu_width - 50 : 720 - x0;
-    int c = advanced_hidden_edit_mode ? COLOR_DARK_RED : MENU_BAR_COLOR;
-    selection_bar_backend(c, COLOR_BLACK, x0, y0, w, 31);
-}
-
-void FAST replace_color(int old, int new, int x0, int y0, int w, int h)
-{
-    uint8_t* B = bmp_vram();
-    #ifdef CONFIG_VXWORKS
-    old = D2V(old);
-    new = D2V(new);
-    #endif
-    #define P(x,y) B[BM(x,y)]
-    for (int y = y0; y < y0 + h; y++)
-    {
-        for (int x = x0; x < x0 + w; x++)
-        {
-            if (P(x,y) == old)
-                P(x,y) = new;
-        }
-    }
-}
-
-void dim_hidden_menu(int x0, int y0, int selected)
-{
-    int w = submenu_mode == 1 ? x0 + g_submenu_width - 50 : 720;
-    
-    uint8_t* B = bmp_vram();
-    int new_color = selected ? COLOR_ALMOST_BLACK : COLOR_GRAY50;
-    int black = COLOR_BLACK;
-    #ifdef CONFIG_VXWORKS
-    new_color = D2V(selected ? COLOR_BG : COLOR_GRAY50);
-    black = D2V(black);
-    #endif
-    for (int y = y0; y < y0 + 31; y++)
-    {
-        for (int x = x0-5; x < w; x++)
-        {
-            if (B[BM(x,y)] != black)
-                B[BM(x,y)] = new_color;
-        }
-    }
 }
 
 void size_icon(int x, int y, int current, int nmax)
@@ -1142,6 +1047,104 @@ void color_icon(int x, int y, const char* color)
     }
 }
 
+#endif // CONFIG_MENU_ICONS
+
+void FAST selection_bar_backend(int c, int black, int x0, int y0, int w, int h)
+{
+    uint8_t* B = bmp_vram();
+    #ifdef CONFIG_VXWORKS
+    c = D2V(c);
+    black = D2V(black);
+    #endif
+    #define P(x,y) B[BM(x,y)]
+    for (int y = y0; y < y0 + h; y++)
+    {
+        for (int x = x0; x < x0 + w; x++)
+        {
+            if (P(x,y) == black)
+                P(x,y) = c;
+        }
+    }
+    // use a shadow for better readability, especially for gray text
+    for (int y = y0; y < y0 + h; y++)
+    {
+        for (int x = x0; x < x0 + w; x++)
+        {
+            if (P(x,y) != c && P(x,y) != black)
+            {
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    for (int dy = -1; dy <= 1; dy++)
+                    {
+                        if (P(x+dx,y+dy) == c)
+                            P(x+dx,y+dy) = black;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void selection_bar(int x0, int y0)
+{
+    if (menu_lv_transparent_mode) return; // only one menu, no need to highlight, and this routine conflicts with RGB zebras
+    
+    x0 -= 5;
+    
+    if (submenu_mode == 2)
+    {
+        //~ selection_bar_backend(COLOR_GRAY45, COLOR_BLACK, x0, y0, 320-x0, 31);
+        int cx = MENU_OFFSET + (get_selected_menu()->split_pos + 1) * font_large.width;
+        selection_bar_backend(MENU_BAR_COLOR, COLOR_BLACK, cx, y0, 720-cx, 31);
+        return;
+    }
+    
+    int w = submenu_mode == 1 ? g_submenu_width - SUBMENU_OFFSET : 720 - x0;
+    int c = advanced_hidden_edit_mode ? COLOR_DARK_RED : MENU_BAR_COLOR;
+    selection_bar_backend(c, COLOR_BLACK, x0, y0, w, 31);
+}
+
+#ifdef CONFIG_MENU_DIM_HACKS
+void FAST replace_color(int old, int new, int x0, int y0, int w, int h)
+{
+    uint8_t* B = bmp_vram();
+    #ifdef CONFIG_VXWORKS
+    old = D2V(old);
+    new = D2V(new);
+    #endif
+    #define P(x,y) B[BM(x,y)]
+    for (int y = y0; y < y0 + h; y++)
+    {
+        for (int x = x0; x < x0 + w; x++)
+        {
+            if (P(x,y) == old)
+                P(x,y) = new;
+        }
+    }
+}
+#endif
+
+void dim_hidden_menu(int x0, int y0, int selected)
+{
+    int w = submenu_mode == 1 ? x0 + g_submenu_width - 50 : 720;
+    
+    uint8_t* B = bmp_vram();
+    int new_color = selected ? COLOR_ALMOST_BLACK : COLOR_GRAY50;
+    int black = COLOR_BLACK;
+    #ifdef CONFIG_VXWORKS
+    new_color = D2V(selected ? COLOR_BG : COLOR_GRAY50);
+    black = D2V(black);
+    #endif
+    for (int y = y0; y < y0 + 31; y++)
+    {
+        for (int x = x0-5; x < w; x++)
+        {
+            if (B[BM(x,y)] != black)
+                B[BM(x,y)] = new_color;
+        }
+    }
+}
+
 // By default, icon type is MNI_BOOL(TRUTH_VALUE(entry))
 // To override, call menu_draw_icon from the display functions
 
@@ -1151,20 +1154,27 @@ void color_icon(int x, int y, const char* color)
 int icon_drawn = 0;
 void menu_draw_icon(int x, int y, int type, intptr_t arg)
 {
-    #if !CONFIG_DEBUGMSG
     if (icon_drawn) return;
+    
     icon_drawn = type;
+    warning_msg = 0;
+    
+    if (type == MNI_WARNING)
+        warning_msg = (char *) arg;
+
+#ifdef CONFIG_MENU_ICONS
+
     x -= 40;
     if (type != MNI_NONE && type != MNI_STOP_DRAWING) 
         bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background; don't call this for LCD remote icons
-    warning_msg = 0;
+
     switch(type)
     {
         case MNI_OFF: maru(x, y, COLOR_GRAY40); return;
         case MNI_ON: maru(x, y, COLOR_GREEN1); return;
         case MNI_DISABLE: batsu(x, y, COLOR_RED); return;
         case MNI_NEUTRAL: maru(x, y, COLOR_GRAY60); return;
-        case MNI_WARNING: maru(x, y, COLOR_RED); warning_msg = (char *) arg; return;
+        case MNI_WARNING: maru(x, y, COLOR_RED); return;
         case MNI_AUTO: maru(x, y, COLOR_LIGHTBLUE); return;
         case MNI_PERCENT: percent(x, y, arg); return;
         case MNI_ACTION: playicon(x, y); return;
@@ -1174,7 +1184,7 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
         case MNI_NAMED_COLOR: color_icon(x, y, (char *)arg); return;
         case MNI_SUBMENU: submenu_only_icon(x, y, arg); return;
     }
-    #endif
+#endif
 }
 
 // if the help text contains more lines (separated by '\n'), display the line indicated by "priv" field
@@ -1219,7 +1229,7 @@ static char* menu_help_get_line(const char* help, void* priv)
 
 static char* pickbox_string(struct menu_entry * entry, int i)
 {
-    if (entry->choices) return (char*) entry->choices[i];
+    if (entry->choices) return (char*) entry->choices[i - entry->min];
     if (entry->min == 0 && entry->max == 1) return i ? "ON" : "OFF";
 
     // not configured; just use some reasonable defaults
@@ -1247,9 +1257,6 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     {
         w = MAX(w, font_large.width * strlen(pickbox_string(entry, i)));
     }
-
-    // we don't know the exact X position yet, so just use a hardcoded default
-    x0 = 350;
 
     // don't draw the pickbox out of the screen
     int h = 31 * (hi-lo+1);
@@ -1293,6 +1300,14 @@ static void submenu_key_hint(int x, int y, int bg)
 {
     bmp_fill(bg, x+10, y, 30, 30);
     bfnt_draw_char(ICON_ML_SUBMENU_KEY, x, y-5, COLOR_CYAN, COLOR_BLACK);
+}
+
+// draw submenu dots (for non-selected items)
+static void submenu_marker(int x, int y)
+{
+    if (submenu_mode) return;
+    int fnt = SHADOW_FONT(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK));
+    bmp_printf(fnt, 685, y+14, "...");
 }
 
 static void menu_clean_footer()
@@ -1449,6 +1464,7 @@ menu_display(
 
             // display icon (only the first icon is drawn)
             icon_drawn = 0;
+            warning_msg = 0;
 
             // first check if the feature requires something
             char* default_warn = check_default_warnings(menu);
@@ -1517,9 +1533,29 @@ menu_display(
                 }
             }
 
+            #ifndef CONFIG_MENU_ICONS
+            // display submenu marker if this item has a submenu
+            if (menu->children && !menu_lv_transparent_mode)
+                if (!menu->selected && icon_drawn != MNI_SUBMENU)
+                    submenu_marker(x, y);
+            #endif
+            
+            #ifdef CONFIG_MENU_DIM_HACKS
+            // hack to erase the colon (todo: refactor the display functions)
+            if (parentmenu->split_pos && menu->select != menu_open_submenu && (!only_selected || menu->selected))
+            {
+                int cx = x + parentmenu->split_pos * font_large.width;
+                bmp_printf(FONT_LARGE, cx, y, " ");
+                if (menu->priv && !TRUTH_VALUE(menu))
+                    replace_color(COLOR_WHITE, COLOR_GRAY50, cx, y, 720-cx, 31);
+            }
+            #endif
+
+            #ifdef CONFIG_MENU_DIM_HACKS
             // dim the line if the dependencies are not met
             if (default_warn)
-                replace_color(COLOR_WHITE, COLOR_GRAY50, x-10, y, g_submenu_width-50, 31);
+                replace_color(COLOR_WHITE, COLOR_GRAY50, x-10, y, g_submenu_width-SUBMENU_OFFSET, 31);
+            #endif
             
             // if there is a default warning, display it even if the item is off
             if (!warning_msg)
@@ -1545,16 +1581,21 @@ menu_display(
                 );
             }
 
+            #ifdef CONFIG_MENU_ICONS
             // display submenu marker if this item has a submenu
             if (menu->children && !menu_lv_transparent_mode)
                 submenu_icon(x, y);
+            #endif
             
             // display selection bar
             if (menu->selected)
             {
                 // use a pickbox if possible
                 if (submenu_mode == 2 && menu->min != menu->max && menu->priv)
-                    pickbox_draw(menu, x, y);
+                {
+                    int px = x + (parentmenu->split_pos + 2) * font_large.width;
+                    pickbox_draw(menu, px, y);
+                }
                 else
                     selection_bar(x, y);
             
@@ -1735,7 +1776,7 @@ menus_display(
         {
             menu_display(
                 menu,
-                orig_x + 40,
+                orig_x + MENU_OFFSET,
                 y + 55, 
                 0
             );
@@ -1754,7 +1795,7 @@ implicit_submenu_display()
     struct menu * menu = get_selected_menu();
     menu_display(
         menu,
-         40,
+        MENU_OFFSET,
          55,
          1
     );
@@ -1784,7 +1825,8 @@ submenu_display(struct menu * submenu)
     }
 
     submenu_key_hint(720-bx-45, by+10, MENU_BG_COLOR_HEADER_FOOTER);
-    menu_display(submenu,  bx + 50,  by + 50 + 25, 0);
+
+    menu_display(submenu,  bx + SUBMENU_OFFSET,  by + 50 + 25, 0);
     show_hidden_items(submenu, 1);
 }
 
@@ -2608,17 +2650,17 @@ menu_init( void )
     gui_sem = create_named_semaphore( "gui", 0 );
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
-    menu_find_by_name( "Audio",     ICON_ML_AUDIO);
-    menu_find_by_name( "Expo",      ICON_ML_EXPO);
-    menu_find_by_name( "Overlay",   ICON_ML_OVERLAY);
-    menu_find_by_name( "Movie",     ICON_ML_MOVIE );
-    menu_find_by_name( "Shoot",     ICON_ML_SHOOT );
-    menu_find_by_name( "Focus",     ICON_ML_FOCUS );
-    menu_find_by_name( "Display",   ICON_ML_DISPLAY );
-    menu_find_by_name( "Prefs",     ICON_ML_PREFS );
-    menu_find_by_name( "Scripts",   ICON_ML_SCRIPT );
-    menu_find_by_name( "Debug",     ICON_ML_DEBUG );
-    menu_find_by_name( "Help",      ICON_ML_INFO );
+    menu_find_by_name( "Audio",     ICON_ML_AUDIO   )->split_pos = 14;
+    menu_find_by_name( "Expo",      ICON_ML_EXPO    )->split_pos = 12;
+    menu_find_by_name( "Overlay",   ICON_ML_OVERLAY )->split_pos = 12;
+    menu_find_by_name( "Movie",     ICON_ML_MOVIE   )->split_pos = 14;
+    menu_find_by_name( "Shoot",     ICON_ML_SHOOT   )->split_pos = 16;
+    menu_find_by_name( "Focus",     ICON_ML_FOCUS   )->split_pos = 15;
+    menu_find_by_name( "Display",   ICON_ML_DISPLAY )->split_pos = 15;
+    menu_find_by_name( "Prefs",     ICON_ML_PREFS   )->split_pos = 18;
+    menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  )->split_pos = 0;
+    menu_find_by_name( "Debug",     ICON_ML_DEBUG   )->split_pos = 13;
+    menu_find_by_name( "Help",      ICON_ML_INFO    )->split_pos = 11;
 
 }
 

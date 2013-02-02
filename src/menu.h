@@ -181,6 +181,7 @@ struct menu
         int16_t childnum;
         int16_t childnummax;
         int16_t delnum;
+        int split_pos; // the limit between name and value columns
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)
