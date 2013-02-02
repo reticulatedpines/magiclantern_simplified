@@ -532,7 +532,6 @@ focus_delay_sub_display(
         "Step Delay    : %dms",
         (1 << lens_focus_delay) * 10
     );
-    menu_draw_icon(x, y, MNI_PERCENT, lens_focus_delay * 100 / 9);
 }
 
 
@@ -1347,7 +1346,6 @@ static struct menu_entry focus_menu[] = {
                 .min = 1,
                 .max = 3,
                 .help = "Step size for focus commands (same units as in EOS Utility)",
-                //.essential = FOR_LIVEVIEW,
             },
             {
                 .name = "Step Delay",
@@ -1356,7 +1354,7 @@ static struct menu_entry focus_menu[] = {
                 .display    = focus_delay_sub_display,
                 .help = "Delay between two successive focus commands.",
             },
-            {         //"Focus StepDelay"
+            {
                 .name = "Step Wait",
                 .priv = &lens_focus_waitflag,
                 .max = 1,
@@ -1366,7 +1364,6 @@ static struct menu_entry focus_menu[] = {
                 .name = "Rack Delay",
                 .priv    = &focus_rack_delay,
                 .max = 20,
-                .edit_mode = EM_MANY_VALUES,
                 .icon_type = IT_PERCENT,
                 .help = "Number of seconds before starting rack focus.",
             },
