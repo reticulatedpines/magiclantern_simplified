@@ -2042,7 +2042,7 @@ static struct menu_entry lens_menus[] = {
     {
         .name = "Movie Logging",
         .priv = &movie_log,
-        .select = menu_binary_toggle,
+        .max = 1,
         .display = movielog_display,
         .help = "Save metadata for each movie, e.g. MVI_1234.LOG",
         .depends_on = DEP_MOVIE_MODE,

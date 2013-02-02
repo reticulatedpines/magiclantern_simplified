@@ -1101,7 +1101,7 @@ static struct menu_entry mov_menus[] = {
         .name = "Movie Restart",
         .priv = &movie_restart,
         .display    = movie_restart_print,
-        .select     = menu_binary_toggle,
+        .max        = 1,
         .help = "Auto-restart movie recording, if it happens to stop.",
         .depends_on = DEP_MOVIE_MODE,
     },
