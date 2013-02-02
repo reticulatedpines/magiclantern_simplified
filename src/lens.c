@@ -83,12 +83,12 @@ calc_dof(
 )
 {
     #ifdef CONFIG_FULLFRAME
-    const uint32_t        coc = 29; // 1/1000 mm
+    const uint64_t        coc = 29; // 1/1000 mm
     #else
-    const uint32_t        coc = 19; // 1/1000 mm
+    const uint64_t        coc = 19; // 1/1000 mm
     #endif
-    const uint32_t        fd = info->focus_dist * 10; // into mm
-    const uint32_t        fl = info->focal_len; // already in mm
+    const uint64_t        fd = info->focus_dist * 10; // into mm
+    const uint64_t        fl = info->focal_len; // already in mm
 
     // If we have no aperture value then we can't compute any of this
     // Not all lenses report the focus distance
@@ -100,11 +100,11 @@ calc_dof(
         return;
     }
 
-    const uint32_t        fl2 = fl * fl;
+    const uint64_t        fl2 = fl * fl;
 
     // The aperture is scaled by 10 and the CoC by 1000,
     // so scale the focal len, too.  This results in a mm measurement
-    const unsigned H = ((1000 * fl2) / (info->aperture  * coc)) * 10;
+    const uint64_t H = ((1000 * fl2) / (info->aperture  * coc)) * 10;
     info->hyperfocal = H;
 
     // If we do not have the focus distance, then we can not compute
@@ -118,12 +118,12 @@ calc_dof(
 
     // fd is in mm, H is in mm, but the product of H * fd can
     // exceed 2^32, so we scale it back down before processing
-    info->dof_near = ((H * (fd/10)) / ( H + fd )) * 10; // in mm
+    info->dof_near = (H * fd) / ( H + fd ); // in mm
     if( fd >= H )
         info->dof_far = 1000 * 1000; // infinity
     else
     {
-        info->dof_far = ((((H/10) * (fd/10))) / ( H - fd )) * 100; // in mm
+        info->dof_far = (H * fd) / ( H - fd ); // in mm
     }
 }
 
