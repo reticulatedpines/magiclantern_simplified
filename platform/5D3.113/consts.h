@@ -25,7 +25,7 @@
 
 
 // no idea if it's overflowing, need to check experimentally 
-//~ #define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3
+#define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3
 
 #define DRYOS_ASSERT_HANDLER 0x23DF4 // dec TH_assert or assert_0
 
