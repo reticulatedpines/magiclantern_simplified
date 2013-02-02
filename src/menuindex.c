@@ -50,12 +50,12 @@ struct menu_entry help_menus[] = {
     },
     {
         .select = menu_nav_help_open,
-        .name = "SET/PLAY   : Change values",
+        .name = "SET/PLAY   : Toggle up/down (+/-)",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .select = menu_nav_help_open,
-        .name = "Zoom In    : Preview LiveView",
+        .name = "Zoom In    : Edit values (wheel)",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
