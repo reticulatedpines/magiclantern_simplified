@@ -1348,7 +1348,7 @@ static int dirty_pixels_num = 0;
 static uint16_t bm_hd_x_cache[BMP_W_PLUS - BMP_W_MINUS];
 static int bm_hd_bm2lv_sx = 0;
 static int bm_hd_lv2hd_sx = 0;
-static uint32_t old_peak_lores = 0;
+static int old_peak_lores = 0;
 
 void zebra_update_lut()
 {
@@ -3538,10 +3538,10 @@ struct menu_entry zebra_menus[] = {
                 .min = 1,
                 .max = 4,
                 #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
-                .choices = (const char *[]) {"OFF", "HalfShutter", "Focus Ring", "FocusR+HalfS", "Always On"},
+                .choices = (const char *[]) {"HalfShutter", "Focus Ring", "FocusR+HalfS", "Always On"},
                 .help = "Trigger Magic Zoom by focus ring or half-shutter.",
                 #else
-                .choices = (const char *[]) {"OFF", "Zoom.REC", "Focus+ZREC", "ZoomIn (+)", "Always On"},
+                .choices = (const char *[]) {"Zoom.REC", "Focus+ZREC", "ZoomIn (+)", "Always On"},
                 .help = "Zoom when recording / trigger from focus ring / Zoom button",
                 #endif
             },

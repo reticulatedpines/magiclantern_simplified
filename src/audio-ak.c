@@ -552,7 +552,7 @@ void audio_filters_display( void * priv, int x, int y, int selected )
 static void
 audio_micpower_display( void * priv, int x, int y, int selected )
 {
-    unsigned int mic_pow = get_mic_power(get_input_source());
+    int mic_pow = get_mic_power(get_input_source());
     bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,

@@ -92,6 +92,9 @@ __config_##VAR = \
 }
 
 #define CONFIG_INT( NAME, VAR, VALUE ) \
+        _CONFIG_VAR( NAME, 0, int, VAR, VALUE )
+
+#define CONFIG_UNSIGNED( NAME, VAR, VALUE ) \
         _CONFIG_VAR( NAME, 0, unsigned int, VAR, VALUE )
 
 

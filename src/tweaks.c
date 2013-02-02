@@ -684,31 +684,6 @@ quickzoom_display(
 
 CONFIG_INT("play.set.wheel", play_set_wheel_action, 4);
 
-#ifdef FEATURE_SET_MAINDIAL
-
-static void
-play_set_wheel_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "SET+MainDial: %s", 
-        play_set_wheel_action == 0 ? "422 Preview" :
-        play_set_wheel_action == 1 ? "Exposure Fusion" : 
-        play_set_wheel_action == 2 ? "Compare Images" : 
-        play_set_wheel_action == 3 ? "Timelapse Play" : 
-        play_set_wheel_action == 4 ? "Exposure Adjust" : 
-        "err"
-    );
-}
-
-#endif
-
 CONFIG_INT("quick.delete", quick_delete, 0);
 
 int timelapse_playback = 0;
@@ -2688,10 +2663,17 @@ struct menu_entry expo_tweak_menus[] = {
 };
 #endif
 
-CONFIG_INT("preview.brightness", preview_brightness, 0);
-CONFIG_INT("preview.contrast", preview_contrast, 3);
-CONFIG_INT("preview.saturation", preview_saturation, 1);
-CONFIG_INT("preview.sat.wb", preview_saturation_boost_wb, 0);
+CONFIG_INT("lv.brightness", preview_brightness, 0);         // range: 0-2
+CONFIG_INT("lv.contrast", preview_contrast, 0);             // range: -3:3
+CONFIG_INT("lv.saturation", preview_saturation, 1);         // range: -1:2
+CONFIG_INT("lv.sat.wb", preview_saturation_boost_wb, 0);
+#define PREVIEW_BRIGHTNESS_INDEX preview_brightness
+#define PREVIEW_CONTRAST_INDEX (preview_contrast + 3)
+#define PREVIEW_SATURATION_INDEX (preview_saturation + 1)
+
+#define PREVIEW_SATURATION_GRAYSCALE (preview_saturation == -1)
+#define PREVIEW_CONTRAST_AUTO (preview_contrast == 3)
+
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
 CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
 
@@ -2751,7 +2733,7 @@ void preview_contrast_n_saturation_step()
 #endif
 
     static int saturation_values[] = {0,0x80,0xC0,0xFF};
-    int desired_saturation = saturation_values[preview_saturation];
+    int desired_saturation = saturation_values[PREVIEW_SATURATION_INDEX];
     
     if (focus_peaking_grayscale_running())
         desired_saturation = 0;
@@ -2800,7 +2782,7 @@ void preview_contrast_n_saturation_step()
 
     int desired_contrast = 0x80;
     
-    if (preview_contrast== 6) // auto contrast
+    if (PREVIEW_CONTRAST_AUTO) // auto contrast
     {
         // normal brightness => normal contrast
         // high brightness => low contrast
@@ -2811,9 +2793,9 @@ void preview_contrast_n_saturation_step()
     }
     else // manual contrast
     {
-             if (preview_brightness == 0) desired_contrast = contrast_values_at_brigthness_0[preview_contrast];
-        else if (preview_brightness == 1) desired_contrast = contrast_values_at_brigthness_1[preview_contrast];
-        else if (preview_brightness == 2) desired_contrast = contrast_values_at_brigthness_2[preview_contrast];
+             if (preview_brightness == 0) desired_contrast = contrast_values_at_brigthness_0[PREVIEW_CONTRAST_INDEX];
+        else if (preview_brightness == 1) desired_contrast = contrast_values_at_brigthness_1[PREVIEW_CONTRAST_INDEX];
+        else if (preview_brightness == 2) desired_contrast = contrast_values_at_brigthness_2[PREVIEW_CONTRAST_INDEX];
     }
     
     if (gui_menu_shown() && !menu_active_but_hidden())
@@ -2837,7 +2819,7 @@ static void uniwb_correction_step()
     int display_wb_register = 0xC0F14174;
     int desired_wb = 0;
     int current_wb = (int) shamem_read(display_wb_register);
-    if (uniwb_correction && uniwb_is_active() && preview_saturation && !focus_peaking_grayscale_running())
+    if (uniwb_correction && uniwb_is_active() && !PREVIEW_SATURATION_GRAYSCALE && !focus_peaking_grayscale_running())
     {
         int w = (uniwb_correction << 4) & 0xFF;
         w = (w << 8) | w;
@@ -2893,9 +2875,9 @@ void preview_saturation_display(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "LV saturation  : %s",
-        preview_saturation == 0 ? "0 (Grayscale)" :
-        preview_saturation == 1 ? "Normal" :
-        preview_saturation == 2 ? "High" :
+        preview_saturation == -1 ? "0 (Grayscale)" :
+        preview_saturation == 0 ? "Normal" :
+        preview_saturation == 1 ? "High" :
                                   "Very high"
     );
 
@@ -2905,10 +2887,6 @@ void preview_saturation_display(
     
     if (preview_saturation_boost_wb)
         menu_draw_icon(x, y, MNI_AUTO, 0);
-
-    if (preview_saturation == 0) menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) "Luma");
-    else if (preview_saturation == 1) menu_draw_icon(x, y, MNI_OFF, 0);
-    else menu_draw_icon(x, y, MNI_ON, 0);
 }
 #endif
 
@@ -2924,12 +2902,12 @@ void preview_contrast_display(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "LV contrast    : %s",
-        preview_contrast == 0 ? "Zero" :
-        preview_contrast == 1 ? "Very low" :
-        preview_contrast == 2 ? "Low" :
-        preview_contrast == 3 ? "Normal" :
-        preview_contrast == 4 ? "High" :
-        preview_contrast == 5 ? "Very high" : 
+        preview_contrast == -3 ? "Zero" :
+        preview_contrast == -2 ? "Very low" :
+        preview_contrast == -1 ? "Low" :
+        preview_contrast == 0 ? "Normal" :
+        preview_contrast == 1 ? "High" :
+        preview_contrast == 2 ? "Very high" : 
         (
             preview_brightness == 0 ? "Auto (normal)" :
             preview_brightness == 1 ? "Auto (low)" :
@@ -2937,10 +2915,8 @@ void preview_contrast_display(
         )
     );
 
-    if (preview_contrast != 3 && EXT_MONITOR_CONNECTED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Does not work on external monitors.");
-    if (preview_contrast == 3) menu_draw_icon(x, y, MNI_OFF, 0);
-    else if (preview_contrast == 6) menu_draw_icon(x, y, MNI_AUTO, 0);
-    else menu_draw_icon(x, y, MNI_ON, 0);
+    if (preview_contrast && EXT_MONITOR_CONNECTED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Does not work on external monitors.");
+    if (PREVIEW_CONTRAST_AUTO) menu_draw_icon(x, y, MNI_AUTO, 0);
     
     if (menu_active_but_hidden()) preview_show_contrast_curve();
 }
@@ -2962,8 +2938,6 @@ void preview_brightness_display(
     );
 
     if (preview_brightness && EXT_MONITOR_CONNECTED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Does not work on external monitors.");
-    if (preview_brightness == 0) menu_draw_icon(x, y, MNI_OFF, 0);
-    else menu_draw_icon(x, y, MNI_ON, 0);
     
     if (menu_active_but_hidden()) preview_show_contrast_curve();
 }
@@ -2972,19 +2946,19 @@ void preview_brightness_display(
 #ifdef FEATURE_ARROW_SHORTCUTS
 void adjust_saturation_level(int delta)
 {
-    preview_saturation = COERCE((int)preview_saturation + delta, 0, 3);
+    preview_saturation = COERCE((int)preview_saturation + delta, -1, 3);
     NotifyBox(2000, 
         "LCD Saturation  : %s",
-        preview_saturation == 0 ? "0 (Grayscale)" :
-        preview_saturation == 1 ? "Normal" :
-        preview_saturation == 2 ? "High" :
+        preview_saturation == -1 ? "0 (Grayscale)" :
+        preview_saturation == 0 ? "Normal" :
+        preview_saturation == 1 ? "High" :
                                   "Very high"
     );
 }
 
 void brightness_saturation_reset()
 {
-    preview_saturation = 1;
+    preview_saturation = 0;
     set_backlight_level(5);
     set_display_gain_equiv(0);
     NotifyBox(2000, "LCD Saturation: Normal\n"
@@ -3696,28 +3670,33 @@ static struct menu_entry display_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"Normal", "High", "Very high"},
                 .depends_on = DEP_LIVEVIEW,
+                .icon_type = IT_BOOL,
             },
             {
                 .name = "LV contrast",
                 .priv     = &preview_contrast,
-                .max = 6,
+                .min = -3,
+                .max = 3,
                 .display = preview_contrast_display,
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"Zero", "Very low", "Low", "Normal", "High", "Very high", "Auto"},
                 .depends_on = DEP_LIVEVIEW,
+                .icon_type = IT_BOOL,
             },
             #endif
             #ifdef FEATURE_LV_SATURATION
             {
                 .name = "LV saturation",
                 .priv     = &preview_saturation,
-                .max = 3,
+                .min = -1,
+                .max = 2,
                 .display = preview_saturation_display,
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"0 (Grayscale)", "Normal", "High", "Very high"},
                 .depends_on = DEP_LIVEVIEW,
+                .icon_type = IT_BOOL,
                 .submenu_width = 650,
                 .children =  (struct menu_entry[]) {
                     {
@@ -3762,7 +3741,6 @@ static struct menu_entry display_menus[] = {
             {
                 .name = "Mode",
                 .priv = &clearscreen_mode, 
-                .min = 0,
                 .max = 3,
                 .choices = (const char *[]) {"HalfShutter", "WhenIdle", "Always", "Recording"},
                 .icon_type = IT_DICE,
@@ -3939,10 +3917,10 @@ struct menu_entry play_menus[] = {
         .children =  (struct menu_entry[]) {
             #ifdef FEATURE_SET_MAINDIAL
             {
-                .name = "SET+MainDial",
+                .name = "SET+MainDial\b\b",
                 .priv = &play_set_wheel_action, 
                 .max = 4,
-                .display = play_set_wheel_display,
+                .choices = (const char *[]) {"422 Preview", "Exposure Fusion", "Compare Images", "Timelapse Play", "Exposure Adjust"},
                 .help = "What to do when you press SET and turn the scrollwheel.",
                 .icon_type = IT_DICE,
             },
@@ -4039,28 +4017,27 @@ void preview_saturation_display_5dc(
         selected ? MENU_FONT_SEL : MENU_FONT,
         x, y,
         "Saturation  : %s",
-        preview_saturation == 0 ? "0 (Grayscale)" :
-        preview_saturation == 1 ? "Normal" :
-        preview_saturation == 2 ? "High" :
+        preview_saturation == -1 ? "0 (Grayscale)" :
+        preview_saturation == 0 ? "Normal" :
+        preview_saturation == 1 ? "High" :
                                   "Very high"
     );
 
     extern int focus_peaking_grayscale;
     if (focus_peaking_grayscale && is_focus_peaking_enabled())
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus peaking with grayscale preview is enabled.");
-
-    if (preview_saturation == 0) menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) "Luma");
-    else if (preview_saturation == 1) menu_draw_icon(x, y, MNI_OFF, 0);
-    else menu_draw_icon(x, y, MNI_ON, 0);
 }
 
 static struct menu_entry play_menus[] = {
         {
             .name = "Saturation",
             .priv     = &preview_saturation,
-            .max = 3,
+            .min = -1,
+            .max = 2,
             .display = preview_saturation_display_5dc,
+            .choices = (const char *[]) {"0 (Grayscale)", "Normal", "High", "Very high"},
             .help = "For preview only - adjust display saturation.",
+            .icon_type = IT_BOOL,
         },
         {
             .name = "Image Review Mode",
@@ -4096,7 +4073,7 @@ static struct menu_entry play_menus[] = {
             .priv = &play_set_wheel_action, 
             .min = 3,
             .max = 4,
-            .display = play_set_wheel_display,
+            .choices = (const char *[]) {"Timelapse Play", "Exposure Adjust"},
             .help = "What to do when you press SET and turn the scrollwheel.",
             //.essential = FOR_PHOTO,
             .icon_type = IT_BOOL,

@@ -271,7 +271,7 @@ void force_liveview()
 }
 
 CONFIG_INT("shutter.lock", shutter_lock, 0);
-CONFIG_INT("shutter.lock.value", shutter_lock_value, 0);
+CONFIG_UNSIGNED("shutter.lock.value", shutter_lock_value, 0);
 
 #ifdef FEATURE_SHUTTER_LOCK
 static void
@@ -486,7 +486,7 @@ hdmi_force_display(
 
 CONFIG_INT("screen_layout.lcd", screen_layout_lcd, SCREENLAYOUT_3_2_or_4_3);
 CONFIG_INT("screen_layout.ext", screen_layout_ext, SCREENLAYOUT_16_10);
-unsigned* get_screen_layout_ptr() { return EXT_MONITOR_CONNECTED ? &screen_layout_ext : &screen_layout_lcd; }
+int* get_screen_layout_ptr() { return EXT_MONITOR_CONNECTED ? &screen_layout_ext : &screen_layout_lcd; }
 int get_screen_layout() 
 {
     int s = (int) *get_screen_layout_ptr();
@@ -770,7 +770,7 @@ void bv_enable()
     {
         bv_tv = CONTROL_BV_TV = lens_info.raw_shutter && ABS(lens_info.raw_shutter - bv_tv) > 4 ? lens_info.raw_shutter : bv_tv;
         bv_av = CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : bv_av;
-        bv_iso = CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso - (unsigned)(get_htp() ? 8 : 0) : bv_iso;
+        bv_iso = CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso - (get_htp() ? 8 : 0) : bv_iso;
     }
     
     CONTROL_BV_ZERO = 0;
@@ -1236,7 +1236,7 @@ static struct menu_entry mov_menus[] = {
                 .min = 1,
                 .max = 7,
                 .icon_type = IT_PERCENT,
-                .choices = (const char *[]) {"err", "1EV / 8 frames", "1EV / 16 frames", "1EV / 32 frames", "1EV / 64 frames", "1EV / 128 frames", "1EV / 256 frames", "1EV / 512 frames"},
+                .choices = (const char *[]) {"1EV / 8 frames", "1EV / 16 frames", "1EV / 32 frames", "1EV / 64 frames", "1EV / 128 frames", "1EV / 256 frames", "1EV / 512 frames"},
                 .help = "How fast the exposure transitions should be.",
             },
             MENU_EOL

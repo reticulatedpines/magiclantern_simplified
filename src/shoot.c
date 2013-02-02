@@ -197,8 +197,8 @@ static CONFIG_INT("bulb.ramping.auto", bramp_auto_exposure, 1);
 //~ static CONFIG_INT("bulb.ramping.auto.speed", bramp_auto_ramp_speed, 100); // max 0.1 EV/shot
 //~ static CONFIG_INT("bulb.ramping.smooth", bramp_auto_smooth, 50);
 static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 50);
-static CONFIG_INT("bulb.ramping.manual.expo", bramp_manual_speed_evx1000_per_shot, 1000);
-static CONFIG_INT("bulb.ramping.manual.focus", bramp_manual_speed_focus_steps_per_shot, 1000);
+static CONFIG_INT("bulb.ramping.man.expo", bramp_manual_speed_evx1000_per_shot, 0);
+static CONFIG_INT("bulb.ramping.man.focus", bramp_manual_speed_focus_steps_per_shot, 0);
 
 
 #define BRAMP_FEEDBACK_LOOP     (bramp_auto_exposure == 1) // smooth exposure changes
@@ -519,7 +519,7 @@ static int get_smooth_factor_from_max_ev_speed(int speed_x1000)
 
 static void manual_expo_ramp_print( void * priv, int x, int y, int selected )
 {
-    int evx1000 = (int)bramp_manual_speed_evx1000_per_shot - 1000;
+    int evx1000 = bramp_manual_speed_evx1000_per_shot;
     if (!evx1000)
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
@@ -538,7 +538,7 @@ static void manual_expo_ramp_print( void * priv, int x, int y, int selected )
 
 static void manual_focus_ramp_print( void * priv, int x, int y, int selected )
 {
-    int steps = (int)bramp_manual_speed_focus_steps_per_shot - 1000;
+    int steps = bramp_manual_speed_focus_steps_per_shot;
     if (!steps)
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
@@ -560,8 +560,8 @@ static void manual_focus_ramp_print( void * priv, int x, int y, int selected )
 
 static void bulb_ramping_print( void * priv, int x, int y, int selected )
 {
-    int evx1000 = (int)bramp_manual_speed_evx1000_per_shot - 1000;
-    int steps = (int)bramp_manual_speed_focus_steps_per_shot - 1000;
+    int evx1000 = bramp_manual_speed_evx1000_per_shot;
+    int steps = bramp_manual_speed_focus_steps_per_shot;
 
     static char msg[100];
     snprintf(msg, sizeof(msg), "TimelapseRamping: ");
@@ -609,12 +609,12 @@ static int ev_values[] = {-1000, -750, -500, -200, -100, -50, -20, -10, -5, -2, 
 
 static void bramp_manual_evx1000_toggle(void* priv, int delta)
 {
-    int value = (int)bramp_manual_speed_evx1000_per_shot - 1000;
+    int value = (int)bramp_manual_speed_evx1000_per_shot;
     int i = 0;
     for (i = 0; i < COUNT(ev_values); i++)
         if (ev_values[i] >= value) break;
     i = mod(i + delta, COUNT(ev_values));
-    bramp_manual_speed_evx1000_per_shot = ev_values[i] + 1000;
+    bramp_manual_speed_evx1000_per_shot = ev_values[i];
 }
 
 #endif
@@ -4251,8 +4251,8 @@ static void compute_exposure_for_next_shot()
     }
     prev_file_number = file_number;
     
-    int mf_steps = (int)bramp_manual_speed_focus_steps_per_shot - 1000;
-    int manual_evx1000 = (int)bramp_manual_speed_evx1000_per_shot - 1000;
+    int mf_steps = bramp_manual_speed_focus_steps_per_shot;
+    int manual_evx1000 = bramp_manual_speed_evx1000_per_shot;
 
     // don't go slower than intervalometer, and reserve 2 seconds just in case
     float shutter_max = (float)MAX(2, timer_values[interval_timer_index] - 2);
@@ -4828,7 +4828,8 @@ static struct menu_entry shoot_menus[] = {
                 .priv       = &hdr_steps,
                 .min = 1,
                 .max = 9,
-                .choices = (const char *[]) {"err", "Autodetect", "2", "3", "4", "5", "6", "7", "8", "9"},
+                .icon_type = IT_PERCENT,
+                .choices = (const char *[]) {"Autodetect", "2", "3", "4", "5", "6", "7", "8", "9"},
                 .help = "Number of bracketed shots. Can be computed automatically.",
             },
             {
@@ -4973,7 +4974,6 @@ static struct menu_entry shoot_menus[] = {
                 .name = "LRT Holy Grail   ",
                 .priv       = &bramp_lrt_holy_grail_stops,
                 .max = 3,
-                .min = 0,
                 .choices = (const char *[]) {"OFF", "1 EV", "2 EV", "3 EV"},
                 .icon_type = IT_BOOL,
                 .help = "LRTimelapse Holy Grail: change exposure in big steps only.",
@@ -4981,8 +4981,8 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Manual Expo. Ramp",
                 .priv       = &bramp_manual_speed_evx1000_per_shot,
-                .max = 1000+1000,
-                .min = 1000-1000,
+                .max = 1000,
+                .min = -1000,
                 .select = bramp_manual_evx1000_toggle,
                 .display = manual_expo_ramp_print,
                 .help = "Manual exposure ramping (Tv+ISO), in EV per shot.",
@@ -4990,8 +4990,8 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Manual Focus Ramp",
                 .priv       = &bramp_manual_speed_focus_steps_per_shot,
-                .max = 1000+100,
-                .min = 1000-100,
+                .max = 100,
+                .min = -100,
                 .display = manual_focus_ramp_print,
                 .help = "Manual focus ramping, in steps per shot. LiveView only.",
                 .depends_on = DEP_AUTOFOCUS,
@@ -5207,7 +5207,7 @@ static struct menu_entry shoot_menus[] = {
                 .min = 1,
                 .max = 7,
                 .icon_type = IT_PERCENT,
-                .choices = (const char *[]) {"0", "0.1s", "0.2s", "0.3s", "0.4s", "0.5s", "0.75s", "1s"},
+                .choices = (const char *[]) {"0.1s", "0.2s", "0.3s", "0.4s", "0.5s", "0.75s", "1s"},
                 .help = "Delay between mirror and shutter movement."
             },
             #endif
@@ -5510,8 +5510,8 @@ static struct menu_entry expo_menus[] = {
             {
                 .name = "Black Level", 
                 .priv = &digic_black_level,
-                .min = 0,
-                .max = 200,
+                .min = -100,
+                .max = 100,
                 .display = digic_black_print,
                 .edit_mode = EM_MANY_VALUES_LV,
                 .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
@@ -5679,7 +5679,7 @@ static struct menu_entry expo_menus[] = {
         .priv = &lens_info.picstyle,
         .help = "Change current picture style.",
         .edit_mode = EM_MANY_VALUES_LV,
-        .choices = (const char *[]) {"", 
+        .choices = (const char *[]) {
                 #if NUM_PICSTYLES == 10 // 600D, 5D3...
                 "Auto",
                 #endif
@@ -5772,7 +5772,6 @@ static struct menu_entry expo_menus[] = {
             {
                 .name = "Shutter for Av mode ",
                 .priv = &ml_auto_iso_av_shutter,
-                .min = 0,
                 .max = 7,
                 .icon_type = IT_PERCENT,
                 .choices = (const char *[]) {"1/15", "1/30", "1/60", "1/125", "1/250", "1/500", "1/1000", "1/2000"},
@@ -5781,7 +5780,6 @@ static struct menu_entry expo_menus[] = {
             {
                 .name = "Aperture for Tv mode",
                 .priv = &ml_auto_iso_tv_aperture,
-                .min = 0,
                 .max = 8,
                 .icon_type = IT_PERCENT,
                 .choices = (const char *[]) {"f/1.4", "f/2.0", "f/2.8", "f/4.0", "f/5.6", "f/8", "f/11", "f/16", "f/22"},

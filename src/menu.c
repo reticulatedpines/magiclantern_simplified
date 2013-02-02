@@ -45,6 +45,7 @@ extern int bmp_color_scheme;
 #define MENU_BAR_COLOR (bmp_color_scheme ? COLOR_LIGHTBLUE : COLOR_BLUE)
 
 
+
 //for vscroll
 #define MENU_LEN_DEFAULT 11
 #define MENU_LEN_AUDIO 10 // at len=11, audio meters would overwrite menu entries on 600D
@@ -174,7 +175,7 @@ draw_version( void )
 int beta_should_warn() { return 0; }
 #else
 CONFIG_INT("beta.warn", beta_warn, 0);
-static unsigned get_beta_timestamp()
+static int get_beta_timestamp()
 {
     struct tm now;
     LoadCalendarFromRTC(&now);
@@ -182,7 +183,7 @@ static unsigned get_beta_timestamp()
 }
 int beta_should_warn()
 {
-    unsigned t = get_beta_timestamp();
+    int t = get_beta_timestamp();
     return beta_warn != t;
 }
 
@@ -269,7 +270,7 @@ static void entry_draw_icon(
         }
         else if(entry->choices)
         {
-            const char* first_choice = entry->choices[0];
+            const char* first_choice = entry->choices[entry->min];
             if (streq(first_choice, "OFF") || streq(first_choice, "Hide"))
                 entry->icon_type = entry->max == 1 ? IT_BOOL : IT_DICE_OFF;
             else if (streq(first_choice, "ON"))
@@ -290,11 +291,11 @@ static void entry_draw_icon(
     switch (entry->icon_type)
     {
         case IT_BOOL:
-            menu_draw_icon(x, y, MNI_BOOL(MEM(entry->priv)), 0);
+            menu_draw_icon(x, y, MNI_BOOL(TRUTH_VALUE(entry)), 0);
             break;
 
         case IT_BOOL_NEG:
-            menu_draw_icon(x, y, MNI_BOOL(!MEM(entry->priv)), 0);
+            menu_draw_icon(x, y, MNI_BOOL(!TRUTH_VALUE(entry)), 0);
             break;
 
         case IT_ACTION:
@@ -306,47 +307,50 @@ static void entry_draw_icon(
             break;
             
         case IT_SIZE:
-            menu_draw_icon(x, y, MNI_SIZE, MEM(entry->priv) | ((entry->max+1) << 16));
+            menu_draw_icon(x, y, MNI_SIZE, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16));
             break;
 
         case IT_DICE:
-            menu_draw_icon(x, y, MNI_DICE, MEM(entry->priv) | ((entry->max+1) << 16));
+            menu_draw_icon(x, y, MNI_DICE, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16));
             break;
         
         case IT_DICE_OFF:
-            menu_draw_icon(x, y, MNI_DICE_OFF, MEM(entry->priv) | ((entry->max+1) << 16));
+            menu_draw_icon(x, y, MNI_DICE_OFF, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16));
             break;
         
         case IT_PERCENT:
-            menu_draw_icon(x, y, MNI_PERCENT, (MEM(entry->priv) - entry->min) * 100 / (entry->max - entry->min));
+            menu_draw_icon(x, y, MNI_PERCENT, SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1));
             break;
 
         case IT_NAMED_COLOR:
-            menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) entry->choices[MEM(entry->priv)]);
+            menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) entry->choices[SELECTED_INDEX(entry)]);
             break;
         
         case IT_DISABLE_SOME_FEATURE:
-            menu_draw_icon(x, y, MEM(entry->priv) ? MNI_DISABLE : MNI_NEUTRAL, 0);
+            menu_draw_icon(x, y, TRUTH_VALUE(entry) ? MNI_DISABLE : MNI_NEUTRAL, 0);
             break;
 
         case IT_DISABLE_SOME_FEATURE_NEG:
-            menu_draw_icon(x, y, MEM(entry->priv) ? MNI_NEUTRAL : MNI_DISABLE, 0);
+            menu_draw_icon(x, y, TRUTH_VALUE(entry) ? MNI_NEUTRAL : MNI_DISABLE, 0);
             break;
 
         case IT_REPLACE_SOME_FEATURE:
-            menu_draw_icon(x, y, MEM(entry->priv) ? MNI_ON : MNI_NEUTRAL, 0);
+            menu_draw_icon(x, y, TRUTH_VALUE(entry) ? MNI_ON : MNI_NEUTRAL, 0);
             break;
         
         case IT_SUBMENU:
         {
             int value = 0;
-            if (entry->priv) value = MEM(entry->priv); // if priv field is present, use it as boolean value
+            if (entry->priv) // if it has a priv field, use it as truth value for the entire group
+            {
+                value = TRUTH_VALUE(entry);
+            }
             else 
             {   // otherwise, look in the children submenus; if one is true, then submenu icon is drawn as "true"
                 struct menu_entry * e = entry->children;
                 for( ; e ; e = e->next )
                 {
-                    if( e->priv && MEM(e->priv))
+                    if (TRUTH_VALUE(e))
                     {
                         value = 1;
                         break;
@@ -375,13 +379,13 @@ submenu_print(
         int l = strlen(entry->name);
         for (int i = 0; i < 14 - l; i++)
             STR_APPEND(msg, " ");
-        if (entry->choices && MEM(entry->priv) <= entry->max)
+        if (entry->choices && SELECTED_INDEX(entry) >= 0 && SELECTED_INDEX(entry) < NUM_CHOICES(entry))
         {
-            STR_APPEND(msg, ": %s", entry->choices[MEM(entry->priv)]);
+            STR_APPEND(msg, ": %s", entry->choices[SELECTED_INDEX(entry)]);
         }
         else if (entry->min == 0 && entry->max == 1)
         {
-            STR_APPEND(msg, ": %s", MEM(entry->priv) ? "ON" : "OFF");
+            STR_APPEND(msg, ": %s", TRUTH_VALUE(entry) ? "ON" : "OFF");
         }
         else
         {
@@ -391,7 +395,7 @@ submenu_print(
                 case UNIT_x10:
                 case UNIT_PERCENT_x10:
                 {
-                    int v = MEM(entry->priv);
+                    int v = TRUTH_VALUE(entry);
                     int den = entry->unit == UNIT_1_8_EV ? 8 : 10;
                     STR_APPEND(msg, ": %s%d", v < 0 ? "-" : "", ABS(v)/den);
                     int r = (ABS(v)%den)*10/den;
@@ -1138,7 +1142,7 @@ void color_icon(int x, int y, const char* color)
     }
 }
 
-// By default, icon type is MNI_BOOL(*(int*)priv)
+// By default, icon type is MNI_BOOL(TRUTH_VALUE(entry))
 // To override, call menu_draw_icon from the display functions
 
 // Icon is only drawn once for each menu item, even if this is called multiple times
@@ -1227,7 +1231,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
 {
     int lo = entry->min;
     int hi = entry->max;
-    int sel = *(int*)entry->priv;
+    int sel = SELECTED_INDEX(entry) + lo;
     int fnt = FONT(FONT_LARGE, COLOR_GRAY70, COLOR_GRAY40);
     
     // don't draw too many items in the pickbox
@@ -1448,7 +1452,7 @@ menu_display(
 
             // first check if the feature requires something
             char* default_warn = check_default_warnings(menu);
-            int truth_value = (menu->priv && *(int*)menu->priv ? 1 : 0);
+            int truth_value = TRUTH_VALUE(menu);
             if (default_warn && truth_value)
                 menu_draw_icon(x, y, MNI_WARNING, (intptr_t)default_warn);
 

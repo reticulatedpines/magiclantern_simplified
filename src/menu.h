@@ -79,7 +79,7 @@ struct menu_entry
         //~ int8_t essential;
         int8_t hidden;
         int8_t icon_type;
-        int8_t edit_mode;
+        int8_t edit_mode; // not currently used (to be cleaned up)
         const char * help;
         const char * help2;
         const char * name; // used for context help and sometimes for display
@@ -99,7 +99,16 @@ struct menu_entry
         int16_t works_best_in;  // soft requirement, it will work, but not as well
 };
 
-#define IS_VISIBLE(menu) (menu->hidden != MENU_ENTRY_HIDDEN)
+#define IS_VISIBLE(entry) ((entry)->hidden != MENU_ENTRY_HIDDEN)
+
+// whether the feature is enabled or disabled
+#define TRUTH_VALUE(entry) ((entry)->priv ? *(int*)(entry)->priv : 0)
+
+// index into choices[] array
+#define SELECTED_INDEX(entry) (TRUTH_VALUE(entry) - (entry)->min)
+
+// how many choices we have (index runs from 0 to N-1)
+#define NUM_CHOICES(entry) ((entry)->max - (entry)->min + 1)
 
 #define MENU_ENTRY_NOT_HIDDEN 0
 #define MENU_ENTRY_HIDDEN 1

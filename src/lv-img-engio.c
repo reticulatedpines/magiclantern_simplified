@@ -31,7 +31,7 @@
 
 CONFIG_INT("digic.iso.gain.movie", digic_iso_gain_movie, 1024); // units: like with the old display gain
 CONFIG_INT("digic.iso.gain.photo", digic_iso_gain_photo, 1024);
-CONFIG_INT("digic.black", digic_black_level, 100);
+CONFIG_INT("digic.black.level", digic_black_level, 0);
 int digic_iso_gain_movie_for_gradual_expo = 1024; // additional gain that won't appear in ML menus, but can be changed from code (to be "added" to digic_iso_gain_movie)
 int digic_iso_gain_photo_for_bv = 1024;
 
@@ -144,10 +144,9 @@ digic_black_print(
         MENU_FONT,
         x, y,
         "Black Level : %s%d",
-        digic_black_level > 100 ? "+" : "",
-        digic_black_level-100
+        digic_black_level > 0 ? "+" : "",
+        digic_black_level
     );
-    menu_draw_icon(x, y, MNI_BOOL(digic_black_level-100), 0);
 }
 
 static int digic_iso_presets[] = {256, 362, 512, 609, 664, 724, 790, 861, 939, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072};
@@ -531,10 +530,10 @@ void digic_iso_step()
             #endif
         }
 
-        if (digic_black_level != 100)
+        if (digic_black_level)
         {
             int presetup = MEMX(SHAD_PRESETUP);
-            presetup = ((presetup + 100) & 0xFF00) + ((int)digic_black_level-100);
+            presetup = ((presetup + 100) & 0xFF00) + ((int)digic_black_level);
             EngDrvOut(SHAD_PRESETUP, presetup);
         }
 
