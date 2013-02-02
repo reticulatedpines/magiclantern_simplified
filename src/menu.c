@@ -1464,7 +1464,7 @@ menu_display(
                 if (parentmenu->split_pos)
                 {
                     int cx = x + (parentmenu->split_pos + 1) * font_large.width;
-                    replace_color(COLOR_WHITE, COLOR_GRAY50, cx, y, 720-cx, 31);
+                    replace_color(COLOR_WHITE, menu->selected ? COLOR_GRAY60 : COLOR_GRAY50, cx, y, 720-cx, 31);
                 }
             }
             else truth_value = 1;
@@ -1477,7 +1477,7 @@ menu_display(
             #ifdef CONFIG_MENU_DIM_HACKS
             // dim the line if the dependencies are not met
             if (default_warn)
-                replace_color(COLOR_WHITE, COLOR_GRAY50, x-10, y, g_submenu_width-SUBMENU_OFFSET, 31);
+                replace_color(COLOR_WHITE, menu->selected ? COLOR_GRAY60 : COLOR_GRAY50, x-10, y, g_submenu_width-SUBMENU_OFFSET, 31);
             #endif
             
             // if there's a warning message set, display it
