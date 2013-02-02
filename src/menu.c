@@ -1259,8 +1259,15 @@ static char* check_default_warnings(struct menu_entry * entry)
         snprintf(warning, sizeof(warning), "This feature requires a chipped (electronic) lens.");
     else if ((entry->depends_on & DEP_M_MODE) && shooting_mode != SHOOTMODE_M)
         snprintf(warning, sizeof(warning), "This feature requires Manual (M) mode.");
-    else if ((entry->depends_on && DEP_MANUAL_ISO) && !lens_info.raw_iso)
+    else if ((entry->depends_on & DEP_MANUAL_ISO) && !lens_info.raw_iso)
         snprintf(warning, sizeof(warning), "This feature requires manual ISO.");
+    else if ((entry->depends_on & DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
+        snprintf(warning, sizeof(warning), (was_sound_recording_disabled_by_fps_override() && !fps_should_record_wav()) ? 
+            "Sound recording was disabled by FPS override." :
+            "Sound recording is disabled. Enable it from Canon menu."
+        );
+    else if ((entry->depends_on & DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
+        snprintf(warning, sizeof(warning), "Disable sound recording from Canon menu!");
     
     if (warning[0]) 
         return warning;
@@ -1293,8 +1300,12 @@ static char* check_default_warnings(struct menu_entry * entry)
             snprintf(warning, sizeof(warning), "This feature works best with a chipped (electronic) lens.");
         else if ((entry->works_best_in & DEP_M_MODE) && shooting_mode != SHOOTMODE_M)
             snprintf(warning, sizeof(warning), "This feature works best in Manual (M) mode.");
-        else if ((entry->depends_on && DEP_MANUAL_ISO) && !lens_info.raw_iso)
+        else if ((entry->depends_on & DEP_MANUAL_ISO) && !lens_info.raw_iso)
             snprintf(warning, sizeof(warning), "This feature works best with manual ISO.");
+        else if ((entry->depends_on & DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
+            snprintf(warning, sizeof(warning), "This feature works best with sound recording enabled.");
+        else if ((entry->depends_on & DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
+            snprintf(warning, sizeof(warning), "This feature works best with sound recording disabled.");
 
         // and display as notice, if any
         if (warning[0])

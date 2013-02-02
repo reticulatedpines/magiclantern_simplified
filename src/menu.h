@@ -166,6 +166,10 @@ struct menu_entry
 #define DEP_M_MODE (1<<12)
 #define DEP_MANUAL_ISO (1<<13)
 
+#define DEP_SOUND_RECORDING (1<<14)
+#define DEP_NOT_SOUND_RECORDING (1<<15)
+#define SOUND_RECORDING_ENABLED (sound_recording_mode != 1)
+
 struct menu
 {
         struct menu *           next;

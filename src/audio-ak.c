@@ -372,20 +372,6 @@ audio_gain_to_cmd(
 }
 
 
-static void check_sound_recording_warning(int x, int y)
-{
-    if (!SOUND_RECORDING_ENABLED) 
-        {
-            if (was_sound_recording_disabled_by_fps_override())
-                {
-                    if (!fps_should_record_wav())
-                        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording was disabled by FPS override.");
-                }
-            else
-                menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
-        }
-}
-
 static void
 audio_3bit_toggle( void * priv, int delta )
 {
@@ -431,7 +417,6 @@ audio_mgain_display( void * priv, int x, int y, int selected )
                "Analog Gain   : %d dB",
                mgain_index2gain(gain_index)
                );
-    check_sound_recording_warning(x, y);
     menu_draw_icon(x, y, MNI_PERCENT, mgain_index2gain(gain_index) * 100 / 32);
 }
 #endif
@@ -478,7 +463,6 @@ audio_dgain_display( void * priv, int x, int y, int selected )
                priv == &dgain_l ? "Left " : "Right",
                val
                );
-    check_sound_recording_warning(x, y);
     if (!alc_enable){
         menu_draw_icon(x, y, MNI_PERCENT, val * 100 / 36);
     }else{
@@ -498,7 +482,6 @@ audio_lovl_display( void * priv, int x, int y, int selected )
                "Output volume : %d dB",
                2 * *(unsigned*) priv
                );
-    check_sound_recording_warning(x, y);
     if (audio_monitoring) menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
     else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Headphone monitoring is disabled");
 }
@@ -522,7 +505,6 @@ void audio_filters_display( void * priv, int x, int y, int selected )
                "Wind Filter   : %s",
                enable_filters ? "ON" : "OFF"
                );
-    check_sound_recording_warning(x, y);
 }
 #endif
 
@@ -537,7 +519,6 @@ audio_micpower_display( void * priv, int x, int y, int selected )
                "Mic Power     : %s",
                mic_pow ? "ON (Low Z)" : "OFF (High Z)"
                );
-    check_sound_recording_warning(x, y);
     if (mic_pow != mic_power) menu_draw_icon(x,y, MNI_WARNING, (intptr_t) "Mic power is required by internal mic.");
 }
 #endif
@@ -558,7 +539,7 @@ static struct menu_entry audio_menus[] = {
         .choices = (const char *[]) {" 0 dB", "10 dB", "17 dB", "20 dB", "23 dB", "26 dB", "29 dB", "32 dB"},
         #endif
         .help = "Gain applied to both inputs in analog domain (preferred).",
-        .works_best_in = DEP_MOVIE_MODE,
+        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
         .edit_mode = EM_MANY_VALUES,
     },
     #endif
@@ -567,7 +548,7 @@ static struct menu_entry audio_menus[] = {
         .name = "Digital Gain...", 
         .select = menu_open_submenu, 
         .help = "Digital gain (not recommended, use only for headphones!)",
-        .works_best_in = DEP_MOVIE_MODE,
+        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Left Digital Gain ",
@@ -607,7 +588,7 @@ static struct menu_entry audio_menus[] = {
         .max = 4,
         .choices = (const char *[]) {"Internal mic", "L:int R:ext", "External stereo", "L:int R:balanced", "Auto int/ext"},
         .help = "Audio input: internal / external / both / balanced / auto.",
-        .works_best_in = DEP_MOVIE_MODE,
+        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
     },
     #endif
 
@@ -619,7 +600,7 @@ static struct menu_entry audio_menus[] = {
         .help = "High pass filter for wind noise reduction.",
         .select            = audio_binary_toggle,
         .max = 1,
-        .works_best_in = DEP_MOVIE_MODE,
+        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
     },
     #endif
     
@@ -639,7 +620,7 @@ static struct menu_entry audio_menus[] = {
         .display        = audio_micpower_display,
         .max = 1,
         .help = "Needed for int. and some other mics, but lowers impedance.",
-        .works_best_in = DEP_MOVIE_MODE,
+        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
     },
     #endif
 
@@ -654,17 +635,16 @@ static struct menu_entry audio_menus[] = {
         .max = 3,
         .choices = (const char *[]) {"0 dB", "2 dB", "4 dB", "6 dB"},
         .help = "Output volume for audio monitoring (headphones only).",
-        .depends_on = DEP_MOVIE_MODE,
+        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
     },
     #endif
     {
-        .name = "Headphone Monitoring",
+        .name = "Headphone Mon.",
         .priv = &audio_monitoring,
-        .select         = audio_monitoring_toggle,
-        .display        = audio_monitoring_display,
+        .select = audio_monitoring_toggle,
         .max = 1,
         .help = "Monitoring via A-V jack. Disable if you use a SD display.",
-        .depends_on = DEP_MOVIE_MODE,
+        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
     },
     #endif
 
@@ -672,14 +652,13 @@ static struct menu_entry audio_menus[] = {
     {
         .name = "Audio Meters",
         .priv           = &cfg_draw_meters,
-        .display        = audio_meter_display,
         .max = 1,
 #ifndef CONFIG_AUDIO_CONTROLS
         .help = "While recording only. -40...0 dB, yellow -12 dB, red -3 dB.",
 #else
         .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
 #endif
-        .depends_on = DEP_GLOBAL_DRAW | DEP_MOVIE_MODE,
+        .depends_on = DEP_GLOBAL_DRAW | DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
     },
     #endif
 };

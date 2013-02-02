@@ -394,19 +394,6 @@ audio_configure( int force )
 
 }
 
-static void check_sound_recording_warning(int x, int y){
-    if (!SOUND_RECORDING_ENABLED){
-        if(!cfg_override_audio){
-            if (was_sound_recording_disabled_by_fps_override()){
-                if (!fps_should_record_wav())
-                    menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording was disabled by FPS override.");
-            }else{
-                menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
-            }
-        }
-    }
-}
-
 static void
 audio_lovl_toggle( void * priv, int delta )
 {
@@ -455,7 +442,6 @@ audio_dgain_display( void * priv, int x, int y, int selected )
                priv == &dgain_l ? "Left " : "Right",
                dgainval
                );
-    check_sound_recording_warning(x, y);
     if (!alc_enable){
         menu_draw_icon(x, y, MNI_PERCENT, val * 50 / 8);
     }else{
@@ -486,7 +472,6 @@ audio_lovl_display( void * priv, int x, int y, int selected )
                "Output volume : %d dB",
                get_lovl_val()
                );
-    check_sound_recording_warning(x, y);
     if (audio_monitoring){
         menu_draw_icon(x, y, MNI_PERCENT, (100 * *(unsigned*) priv) / 38);
     }else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Headphone monitoring is disabled");
@@ -515,7 +500,6 @@ static void override_audio_display( void * priv, int x, int y, int selected )
                "Override Setting : %s", 
                (cfg_override_audio ? "ON" : "OFF")
                );
-    check_sound_recording_warning(x, y);
 }
 static void override_audio_toggle( void * priv, int delta )
 {
@@ -545,7 +529,7 @@ static void analog_gain_toggle( void * priv, int delta )
 
 static void analog_boost_display( void * priv, int x, int y, int selected )
 {
-    char dbval[7][4] = {"OFF","+5","+10","+15","+20","+25","+30"};
+    char dbval[7][4] = {"0","+5","+10","+15","+20","+25","+30"};
     
     bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
@@ -688,7 +672,6 @@ audio_recdgain_display( void * priv, int x, int y, int selected )
                "Rec Digital gain : %d dB",
                get_cfg_recdgain()
                );
-    check_sound_recording_warning(x, y);
     if (!alc_enable){
         menu_draw_icon(x, y, MNI_PERCENT, 100 -((*(unsigned*) priv * 100/126)));
     }else{
@@ -703,6 +686,7 @@ static struct menu_entry audio_menus[] = {
         .priv           = &cfg_override_audio,
         .select         = override_audio_toggle,
         .display        = override_audio_display,
+        .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
         .help = "Override audio setting by ML",
     },
     {
@@ -710,6 +694,7 @@ static struct menu_entry audio_menus[] = {
         .priv           = &cfg_analog_gain,
         .select         = analog_gain_toggle,
         .display        = analog_gain_display,
+        .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
         .help = "Analog gain (-12 +35 mic vol)",
     },
     {
@@ -717,12 +702,14 @@ static struct menu_entry audio_menus[] = {
         .priv           = &cfg_analog_boost,
         .select         = analog_boost_toggle,
         .display        = analog_boost_display,
+        .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
         .help = "TEST: Analog mic +5dB boost only",
     },
     {
         .name = "Digital Gain...", 
         .select = menu_open_submenu, 
         .help = "Digital Volume and R-L gain",
+        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Sound Effect Mode",
@@ -774,8 +761,7 @@ static struct menu_entry audio_menus[] = {
         .select         = audio_input_toggle,
         .display        = audio_input_display,
         .help = "Audio input: internal / external / both / balanced / auto.",
-        //.essential = FOR_MOVIE,
-        //~ .edit_mode = EM_MANY_VALUES,
+        .depends_on        = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
     },
     /*{
       .priv              = &windcut_mode,
@@ -786,6 +772,7 @@ static struct menu_entry audio_menus[] = {
         .name = "Wind Filter",
         .help = "High pass filter for wind noise reduction. ML26121A.pdf p77",
         .select            =  menu_open_submenu,
+        .depends_on        = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
             {
@@ -830,23 +817,21 @@ static struct menu_entry audio_menus[] = {
         .select         = audio_lovl_toggle,
         .display        = audio_lovl_display,
         .help = "Output volume for audio monitoring (headphones only).",
-        //~ .edit_mode = EM_MANY_VALUES,
+        .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
     },
     {
-        .name = "Headphone Monitoring",
+        .name = "Headphone Mon.",
         .priv = &audio_monitoring,
         .select         = audio_monitoring_toggle,
-        .display        = audio_monitoring_display,
         .help = "Monitoring via A-V jack. Disable if you use a SD display.",
-        //.essential = FOR_MOVIE,
+        .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
     },
     {
         .name = "Audio Meters",
         .priv           = &cfg_draw_meters,
         .max            = 1,
-        .display        = audio_meter_display,
         .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
-        //.essential = FOR_MOVIE,
+        .depends_on     = DEP_GLOBAL_DRAW | DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
     },
 };
 

@@ -17,7 +17,6 @@ static void audio_menus_init();
 #ifdef FEATURE_HEADPHONE_MONITORING
 static void audio_monitoring_update();
 #endif
-static void check_sound_recording_warning(int x, int y);
 static void audio_input_toggle( void * priv, int delta );
 
 #ifdef CONFIG_600D
@@ -869,21 +868,6 @@ audio_set_meterlabel(){
 
 }
 
-static void
-audio_meter_display( void * priv, int x, int y, int selected )
-{
-    unsigned v = *(unsigned*) priv;
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Audio Meters  : %s",
-               v ? "ON" : "OFF"
-               );
-    check_sound_recording_warning(x, y);
-    menu_draw_icon(x, y, MNI_BOOL_GDR(v));
-}
-
-
 #if 0
 static void
 audio_o2gain_display( void * priv, int x, int y, int selected )
@@ -914,7 +898,6 @@ audio_alc_display( void * priv, int x, int y, int selected )
                "AGC                : %s",
                alc_enable ? "ON " : "OFF"
                );
-    check_sound_recording_warning(x, y);
 }
 
 static const char* get_audio_input_string()
@@ -937,21 +920,7 @@ audio_input_display( void * priv, int x, int y, int selected )
                "Input Source  : %s", 
                get_audio_input_string()
                );
-    check_sound_recording_warning(x, y);
     menu_draw_icon(x, y, input_choice == 4 ? MNI_AUTO : MNI_ON, 0);
-}
-
-
-static void
-audio_monitoring_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Headphone Mon.: %s",
-               audio_monitoring ? "ON" : "OFF"
-               );
-    check_sound_recording_warning(x, y);
 }
 
 
