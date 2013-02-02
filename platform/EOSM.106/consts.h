@@ -16,8 +16,8 @@
 #define HIJACK_INSTR_MY_ITASK 0xff0c1cc8
 #define HIJACK_TASK_ADDR 0x3E2D8
 
-    // no idea if it's overflowing, need to check experimentally 
-    //~ #define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3
+// no idea if it's overflowing, need to check experimentally 
+#define ARMLIB_OVERFLOWING_BUFFER 0x66114 // in AJ_armlib_setup_related3
 
 #define DRYOS_ASSERT_HANDLER 0x3E2B8 // dec TH_assert or assert_0
 
