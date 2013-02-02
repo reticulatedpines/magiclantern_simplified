@@ -502,7 +502,7 @@ audio_alc_toggle( void * priv, int delta )
 static void
 audio_input_toggle( void * priv, int delta )
 {
-    menu_quinternary_toggle(priv, delta);
+    menu_numeric_toggle(priv, delta, 0, 4);
     if(*(unsigned*)priv == 3) *(unsigned*)priv += delta; //tamporaly disabled Ext:balanced. We can't find it.
     audio_ic_set_input(OP_STANDALONE);
 }
@@ -843,7 +843,7 @@ static struct menu_entry audio_menus[] = {
     {
         .name = "Audio Meters",
         .priv           = &cfg_draw_meters,
-        .select         = menu_binary_toggle,
+        .max            = 1,
         .display        = audio_meter_display,
         .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
         //.essential = FOR_MOVIE,

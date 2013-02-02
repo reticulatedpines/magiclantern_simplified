@@ -501,29 +501,6 @@ rack_focus_start_delayed( void * priv, int delta )
 }
 
 static void
-focus_stepsize_toggle(void* priv, int delta)
-{
-    lens_focus_stepsize = mod(lens_focus_stepsize - 1 + delta, 3) + 1;
-}
-
-static void
-focus_rack_speed_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "Step Size     : %d",
-        lens_focus_stepsize
-    );
-    menu_draw_icon(x, y, MNI_PERCENT, lens_focus_stepsize * 100 / 3);
-}
-
-static void
 focus_delay_display(
     void *          priv,
     int         x,
@@ -567,12 +544,6 @@ focus_stack_count_increment( void * priv )
     if (focus_stack_count == 256) focus_stack_count = 5;
     if (focus_stack_count > 200) focus_stack_count = 2;
 }*/
-
-static void
-focus_delay_toggle( void* priv, int sign)
-{
-    lens_focus_delay = mod(lens_focus_delay + sign, 7);
-}
 
 static void
 focus_stack_step_print(
@@ -1372,15 +1343,17 @@ static struct menu_entry focus_menu[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Step Size",
-                .display    = focus_rack_speed_display,
-                .select     = focus_stepsize_toggle,
+                .priv = &lens_focus_stepsize,
+                .min = 1,
+                .max = 3,
                 .help = "Step size for focus commands (same units as in EOS Utility)",
                 //.essential = FOR_LIVEVIEW,
             },
             {
                 .name = "Step Delay",
+                .priv = &lens_focus_delay,
+                .max = 6,
                 .display    = focus_delay_sub_display,
-                .select     = focus_delay_toggle,
                 .help = "Delay between two successive focus commands.",
             },
             {         //"Focus StepDelay"

@@ -194,10 +194,6 @@ menu_print(
         int                     selected
 );
 
-extern void menu_binary_toggle( void * priv, int unused );
-extern void menu_ternary_toggle(void* priv, int delta);
-extern void menu_quaternary_toggle(void* priv, int delta);
-extern void menu_quinternary_toggle(void* priv, int delta);
 extern struct menu * menu_get_root(void);
 extern struct menu_entry * menu_find_by_id(uint32_t id);
 

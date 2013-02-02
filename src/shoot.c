@@ -4807,9 +4807,9 @@ static struct menu_entry shoot_menus[] = {
         .name = "Advanced Bracketing",
         .priv = &hdr_enabled,
         .display    = hdr_display,
-        .select     = menu_binary_toggle,
+        .max  = 1,
         .help = "Advanced bracketing (expo, flash, DOF). Press shutter once.",
-        .works_best_in = DEP_PHOTO_MODE,
+        .works_best_in = DEP_PHOTO_MODE | DEP_M_MODE | DEP_MANUAL_ISO,
         .submenu_width = 710,
         .children =  (struct menu_entry[]) {
             {
@@ -4881,7 +4881,7 @@ static struct menu_entry shoot_menus[] = {
     {
         .name = "Intervalometer",
         .priv       = &intervalometer_running,
-        .select     = menu_binary_toggle,
+        .max        = 1,
         .display    = intervalometer_display,
         .help = "Take pictures at fixed intervals (for timelapse).",
         .submenu_width = 650,
@@ -5005,7 +5005,7 @@ static struct menu_entry shoot_menus[] = {
         .name = "Bulb Timer",
         .priv = &bulb_timer,
         .display = bulb_display, 
-        .select = menu_binary_toggle, 
+        .max  = 1,
         .help = "For very long exposures. Hold shutter half-pressed for 1s.",
         .depends_on = DEP_PHOTO_MODE,
         .children =  (struct menu_entry[]) {
@@ -5022,7 +5022,7 @@ static struct menu_entry shoot_menus[] = {
     {
         .name = "LCDsensor Remote",
         .priv       = &lcd_release_running,
-        .select     = menu_quaternary_toggle, 
+        .max        = 3, 
         .display    = lcd_release_display,
          #if defined(CONFIG_5D2)
         .help = "Use the ambient light sensor as a simple remote (no shake).",
@@ -5037,7 +5037,7 @@ static struct menu_entry shoot_menus[] = {
     {
         .name = "Audio RemoteShot",
         .priv       = &audio_release_running,
-        .select     = menu_binary_toggle,
+        .max        = 1,
         .display    = audio_release_display,
         .help = "Clap your hands or pop a balloon to take a picture.",
         //.essential = FOR_PHOTO,
@@ -5057,7 +5057,7 @@ static struct menu_entry shoot_menus[] = {
     {
         .name = "Motion Detect",
         .priv       = &motion_detect,
-        .select     = menu_binary_toggle,
+        .max        = 1,
         .display    = motion_detect_display,
         .help = "Take a picture when subject is moving or exposure changes.",
         .works_best_in = DEP_LIVEVIEW | DEP_PHOTO_MODE,
@@ -5114,7 +5114,7 @@ static struct menu_entry shoot_menus[] = {
     {
         .name = "Silent Picture",
         .priv = &silent_pic_enabled,
-        .select = menu_binary_toggle,
+        .max  = 1,
         .display = silent_pic_display,
         .depends_on = DEP_LIVEVIEW,
         .help = "Take pics in LiveView without moving the shutter mechanism.",

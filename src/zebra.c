@@ -3779,7 +3779,7 @@ struct menu_entry level_indic_menus[] = {
     {
         .name = "Level Indicator", 
         .priv = &electronic_level, 
-        .select = menu_binary_toggle, 
+        .max  = 1, 
         .display = electronic_level_display,
         .help = "Electronic level indicator in 0.5 degree steps.",
         .depends_on = DEP_GLOBAL_DRAW,

@@ -191,24 +191,6 @@ void movie_rec_halfshutter_step()
 }
 #endif
 
-#ifdef FEATURE_MOVIE_RESTART
-static void
-movie_restart_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Movie Restart : %s ",
-        movie_restart ? "ON " : "OFF"
-    );
-}
-#endif
-
 #if 0 // unstable
 void do_movie_mode_remap()
 {
@@ -315,24 +297,6 @@ void shutter_lock_step()
 #ifdef FEATURE_MOVIE_RECORDING_50D_SHUTTER_HACK
 
 CONFIG_INT("shutter.btn.rec", shutter_btn_rec, 1);
-
-static void
-shutter_btn_rec_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Shutter Button: %s",
-        shutter_btn_rec == 0 ? "Leave unchanged" :
-        shutter_btn_rec == 1 ? "Block during REC" :
-        shutter_btn_rec == 2 ? "Hold during REC (IS)" : "err"
-    );
-}
 
 void shutter_btn_rec_do(int rec)
 {
@@ -465,25 +429,6 @@ void movtweak_step()
         #endif
 }
 
-#ifdef FEATURE_FORCE_HDMI_VGA
-
-void
-hdmi_force_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Force HDMI-VGA : %s", 
-        hdmi_force_vga ? "ON" : "OFF"
-    );
-}
-#endif
-
 CONFIG_INT("screen_layout.lcd", screen_layout_lcd, SCREENLAYOUT_3_2_or_4_3);
 CONFIG_INT("screen_layout.ext", screen_layout_ext, SCREENLAYOUT_16_10);
 int* get_screen_layout_ptr() { return EXT_MONITOR_CONNECTED ? &screen_layout_ext : &screen_layout_lcd; }
@@ -527,7 +472,7 @@ screen_layout_display(
     menu_draw_icon(x, y, MNI_DICE, screen_layout + (5<<16));
 }
 
-void screen_layout_toggle(void* priv, int delta) { menu_quinternary_toggle(get_screen_layout_ptr(), delta); }
+void screen_layout_toggle(void* priv, int delta) { menu_numeric_toggle(get_screen_layout_ptr(), delta, 0, 4); }
 #endif
 
 #ifdef FEATURE_MOVIE_RECORDING_50D
@@ -587,24 +532,6 @@ CONFIG_INT("rec.led.off", rec_led_off, 0);
 #endif
 
 #ifdef FEATURE_REC_NOTIFY
-static void rec_notify_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "REC/STBY notif: %s",
-        rec_notify == 0 ? "OFF" :
-        rec_notify == 1 ? "Red Crossout" :
-        rec_notify == 2 ? "REC/STBY" :
-        RECNOTIFY_BEEP  ? "Beeps (start/stop)" : 
-        RECNOTIFY_LED   ? "Blue LED" : "err"
-    );
-}
 
 void rec_notify_continuous(int called_from_menu)
 {
@@ -799,7 +726,7 @@ end:
 
 void bv_toggle(void* priv, int delta)
 {
-    menu_ternary_toggle(&bv_auto, delta);
+    menu_numeric_toggle(&bv_auto, delta, 0, 2);
     if (bv_auto) bv_auto_update();
     else bv_disable();
 }
@@ -1090,8 +1017,8 @@ static struct menu_entry mov_menus[] = {
     {
         .name = "Shutter Button",
         .priv = &shutter_btn_rec,
-        .display = shutter_btn_rec_print, 
-        .select = menu_ternary_toggle,
+        .max  = 2,
+        .choices = (const char *[]) {"Leave unchanged", "Block during REC", "Hold during REC (IS)"},
         .help = "Block it while REC (avoids ERR99) or hold it (enables IS).",
         .depends_on = DEP_MOVIE_MODE,
     },
@@ -1100,7 +1027,6 @@ static struct menu_entry mov_menus[] = {
     {
         .name = "Movie Restart",
         .priv = &movie_restart,
-        .display    = movie_restart_print,
         .max        = 1,
         .help = "Auto-restart movie recording, if it happens to stop.",
         .depends_on = DEP_MOVIE_MODE,
@@ -1127,9 +1053,8 @@ static struct menu_entry mov_menus[] = {
     #endif
     #ifdef FEATURE_REC_NOTIFY
     {
-        .name = "REC/STBY notify", 
+        .name = "REC/STBY notif", 
         .priv = &rec_notify, 
-        .display = rec_notify_print, 
         #if defined(CONFIG_BLUE_LED) && defined(FEATURE_REC_NOTIFY_BEEP)
         .max = 4,
         #elif defined(CONFIG_BLUE_LED) && !defined(FEATURE_REC_NOTIFY_BEEP)

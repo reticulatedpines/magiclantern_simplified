@@ -2024,26 +2024,12 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
     //~ bv_auto_update();
 }
 
-#ifdef FEATURE_MOVIE_LOGGING
-static void 
-movielog_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Movie Logging : %s",
-        movie_log ? "ON" : "OFF"
-    );
-}
-#endif
-
 static struct menu_entry lens_menus[] = {
     #ifdef FEATURE_MOVIE_LOGGING
     {
         .name = "Movie Logging",
         .priv = &movie_log,
         .max = 1,
-        .display = movielog_display,
         .help = "Save metadata for each movie, e.g. MVI_1234.LOG",
         .depends_on = DEP_MOVIE_MODE,
     },
@@ -2065,7 +2051,7 @@ static struct menu_entry tweak_menus[] = {
     {
         .name = "Crop Factor Display",
         .priv = &crop_info,
-        .select = menu_binary_toggle,
+        .max  = 1,
         .display = cropinfo_display,
         .help = "Display the 35mm equiv. focal length including crop factor."
     }

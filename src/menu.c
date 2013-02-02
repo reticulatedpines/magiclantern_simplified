@@ -210,34 +210,6 @@ struct menu * menu_get_root() {
   return menus;
 }
 
-void
-menu_binary_toggle(
-    void *          priv,
-    int unused
-)
-{
-    unsigned * val = priv;
-    *val = !*val;
-}
-
-void menu_ternary_toggle(void* priv, int delta)
-{
-    unsigned * val = priv;
-    *val = mod(*val + delta, 3);
-}
-
-void menu_quaternary_toggle(void* priv, int delta)
-{
-    unsigned * val = priv;
-    *val = mod(*val + delta, 4);
-}
-
-void menu_quinternary_toggle(void* priv, int delta)
-{
-    unsigned * val = priv;
-    *val = mod(*val + delta, 5);
-}
-
 void menu_numeric_toggle(int* val, int delta, int min, int max)
 {
     *val = mod(*val - min + delta, max - min + 1) + min;

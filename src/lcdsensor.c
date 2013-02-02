@@ -187,24 +187,3 @@ void display_lcd_remote_icon(int x0, int y0)
     //~ if (prev_lr != lcd_release_running) bmp_fill(bg, x0 - 20, y0, 40, 20);
     //~ prev_lr = lcd_release_running;
 }
-
-
-// sensor shortcuts
-//**********************************************************************
-
-void
-lcd_sensor_shortcuts_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "LCD Sensor Shortcuts: %s", 
-        lcd_sensor_shortcuts == 1 ? "ON" : 
-        lcd_sensor_shortcuts == 2 ? "Movie" : "OFF"
-    );
-}

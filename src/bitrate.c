@@ -324,7 +324,7 @@ static void
 bitrate_toggle_mode(void* priv, int delta)
 {
     if (recording) return;
-    menu_ternary_toggle(priv, delta);
+    menu_numeric_toggle(priv, delta, 0, 2);
 }
 
 static void 
@@ -528,24 +528,6 @@ bitrate_indicator_display( void * priv, int x, int y, int selected )
 }*/
 
 CONFIG_INT("buffer.warning.level", buffer_warning_level, 70);
-static void
-buffer_warning_level_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "BuffWarnLevel : %d%%",
-        buffer_warning_level
-    );
-    menu_draw_icon(x, y, MNI_PERCENT, buffer_warning_level);
-}
-
-static void buffer_warning_level_toggle(void* priv, int step)
-{
-    buffer_warning_level += step;
-    if (buffer_warning_level > 100) buffer_warning_level = 30;
-    if (buffer_warning_level < 30) buffer_warning_level = 100;
-}
 
 int warning = 0;
 int is_mvr_buffer_almost_full() 
@@ -648,8 +630,10 @@ static struct menu_entry mov_menus[] = {
             },
             {
                 .name = "BuffWarnLevel",
-                .select     = buffer_warning_level_toggle,
-                .display    = buffer_warning_level_display,
+                .priv = &buffer_warning_level,
+                .min = 30,
+                .max = 100,
+                .unit = UNIT_PERCENT,
                 .help = "ML will pause CPU-intensive graphics if buffer gets full."
             },
 #ifdef FEATURE_NITRATE_WAV_RECORD

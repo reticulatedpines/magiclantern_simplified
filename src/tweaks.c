@@ -398,21 +398,6 @@ PROP_HANDLER(PROP_BURST_COUNT)
     }
 }
 
-static void
-auto_burst_pic_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Auto BurstPicQuality: %s", 
-        auto_burst_pic_quality ? "ON" : "OFF"
-    );
-}
 #endif
 
 void lcd_sensor_shortcuts_print( void * priv, int x, int y, int selected);
@@ -657,31 +642,6 @@ footer_right_display(
 
 #endif
 
-#ifdef FEATURE_QUICK_ZOOM
-
-static void
-quickzoom_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Quick Zoom  : %s", 
-        quickzoom == 0 ? "OFF" :
-        quickzoom == 1 ? "ON (fast zoom)" :
-        quickzoom == 2 ? "SinglePress -> 100%" :
-        quickzoom == 3 ? "Full zoom on AF pt." :
-        quickzoom == 4 ? "Full Z on last pos." :
-                         "err"
-    );
-}
-
-#endif
-
 CONFIG_INT("play.set.wheel", play_set_wheel_action, 4);
 
 CONFIG_INT("quick.delete", quick_delete, 0);
@@ -902,25 +862,6 @@ int handle_set_wheel_play(struct event * event)
 #endif
 
 CONFIG_INT("play.lv.button", play_lv_action, 0);
-
-#if defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE)
-static void
-play_lv_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "LV button   : %s", 
-        play_lv_action == 0 ? "Default" :
-        play_lv_action == 1 ? "Protect Image" : "Rate Image"
-    );
-}
-#endif
 
 #ifdef FEATURE_LV_BUTTON_RATE
 
@@ -1541,41 +1482,10 @@ PROP_HANDLER(PROP_GUI_STATE)
 #endif
 }
 
-static void
-qrplay_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Image Review: %s", 
-        quick_review_allow_zoom == 0 ? "QuickReview default" :
-        quick_review_allow_zoom == 1 ? "CanonMnu:Hold->PLAY" : "ZoomIn->Play"
-    );
-}
 #endif
 
 #ifdef FEATURE_SWAP_MENU_ERASE
 CONFIG_INT("swap.menu", swap_menu, 0);
-static void
-swap_menu_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Swap MENU <-> ERASE : %s", 
-        swap_menu ? "ON" : "OFF"
-    );
-}
 
 int handle_swap_menu_erase(struct event * event)
 {
@@ -1598,21 +1508,6 @@ int handle_swap_menu_erase(struct event * event)
 
 #ifdef FEATURE_AUTO_MIRRORING_HACK
 extern unsigned display_dont_mirror;
-static void
-display_dont_mirror_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Auto Mirroring : %s", 
-        display_dont_mirror ? "Don't allow": "Allow"
-    );
-}
 #endif
 
 #ifdef CONFIG_VARIANGLE_DISPLAY
@@ -1631,23 +1526,6 @@ void display_orientation_toggle(void* priv, int dir)
 
 
 CONFIG_INT("digital.zoom.shortcut", digital_zoom_shortcut, 1);
-
-#ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT_600D
-void digital_zoom_shortcut_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "DigitalZoom Shortcut: %s",
-        digital_zoom_shortcut ? "1x, 3x" : "3x...10x"
-    );
-}
-#endif
 
 CONFIG_INT("arrows.mode", arrow_keys_mode, 0);
 CONFIG_INT("arrows.set", arrow_keys_use_set, 1);
@@ -2406,8 +2284,8 @@ static struct menu_entry key_menus[] = {
             {
                 .name = "LCD Sensor Shortcuts",
                 .priv       = &lcd_sensor_shortcuts,
-                .select     = menu_ternary_toggle,
-                .display    = lcd_sensor_shortcuts_print,
+                .max        = 2,
+                .choices = (const char *[]) {"OFF", "ON", "Movie"},
                 .help = "Use the LCD face sensor as an extra key in ML.",
             },
             #endif
@@ -2431,8 +2309,7 @@ static struct menu_entry key_menus[] = {
             {
                 .name = "Swap MENU <--> ERASE",
                 .priv = &swap_menu,
-                .display    = swap_menu_display,
-                .select     = menu_binary_toggle,
+                .max  = 1,
                 .help = "Swaps MENU and ERASE buttons."
             },
             #endif
@@ -2440,8 +2317,8 @@ static struct menu_entry key_menus[] = {
             {
                 .name = "DigitalZoom Shortcut",
                 .priv = &digital_zoom_shortcut,
-                .display = digital_zoom_shortcut_display, 
-                .select = menu_binary_toggle,
+                .max  = 1,
+                .choices = (const char *[]) {"1x, 3x", "3x...10x"},
                 .help = "Movie: DISP + Zoom In toggles between 1x and 3x modes."
             },
             #endif
@@ -2490,8 +2367,7 @@ static struct menu_entry tweak_menus[] = {
     {
         .name = "Auto BurstPicQuality",
         .priv = &auto_burst_pic_quality, 
-        .select = menu_binary_toggle, 
-        .display = auto_burst_pic_display,
+        .max  = 1,
         .help = "Temporarily reduce picture quality in burst mode.",
     },
     #endif
@@ -2499,7 +2375,7 @@ static struct menu_entry tweak_menus[] = {
     {
         .name = "LV Auto ISO (M mode)",
         .priv = &lv_metering,
-        .select = menu_quinternary_toggle, 
+        .max = 4,
         .display = lv_metering_print,
         .help = "Experimental LV metering (Auto ISO). Too slow for real use."
     },
@@ -2541,21 +2417,6 @@ static struct menu_entry eyefi_menus[] = {
 #ifdef FEATURE_UPSIDE_DOWN
 
 extern int menu_upside_down;
-static void menu_upside_down_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "UpsideDown mode: %s",
-        menu_upside_down ? "ON" : "OFF"
-    );
-}
-
 
 // reverse arrow keys
 int handle_upside_down(struct event * event)
@@ -3826,7 +3687,7 @@ static struct menu_entry display_menus[] = {
                 {
                     .name       = "Kill Canon GUI",
                     .priv       = &kill_canon_gui_mode,
-                    .select     = menu_ternary_toggle,
+                    .max        = 2,
                     .display    = kill_canon_gui_print,
                     .help = "Workarounds for disabling Canon graphics elements."
                 },
@@ -3854,8 +3715,7 @@ static struct menu_entry display_menus[] = {
                 {
                     .name = "UpsideDown mode",
                     .priv = &menu_upside_down,
-                    .display = menu_upside_down_print,
-                    .select = menu_binary_toggle,
+                    .max = 1,
                     .help = "Displays overlay graphics upside-down and flips arrow keys.",
                 },
             #endif
@@ -3873,18 +3733,17 @@ static struct menu_entry display_menus[] = {
                 {
                     .name = "Auto Mirroring",
                     .priv = &display_dont_mirror,
-                    .display = display_dont_mirror_display, 
-                    .select = menu_binary_toggle,
+                    .max  = 1,
+                    .choices = (const char *[]) {"Don't allow", "Allow"},
                     .help = "Prevents display mirroring, which may reverse ML texts.",
                     .icon_type = IT_DISABLE_SOME_FEATURE,
                 },
             #endif
             #ifdef FEATURE_FORCE_HDMI_VGA
                 {
-                    .name = "Force HDMI-VGA",
+                    .name = "Force HDMI-VGA ",
                     .priv = &hdmi_force_vga, 
-                    .display = hdmi_force_display, 
-                    .select = menu_binary_toggle,
+                    .max  = 1,
                     .help = "Force low resolution (720x480) on HDMI displays.",
                 },
             #endif
@@ -3927,24 +3786,20 @@ struct menu_entry play_menus[] = {
             #endif
             #ifdef FEATURE_IMAGE_REVIEW_PLAY
             {
-                .name = "Image Review Mode",
+                .name = "Image Review\b\b",
                 .priv = &quick_review_allow_zoom, 
                 .max = 1,
-                .display = qrplay_display,
+                .choices = (const char *[]) {"QuickReview default", "CanonMnu:Hold->PLAY"},
                 .help = "When you set \"ImageReview: Hold\", it will go to Play mode.",
                 .icon_type = IT_BOOL,
             },
             #endif
             #ifdef FEATURE_QUICK_ZOOM
             {
-                .name = "Zoom in PLAY mode",
+                .name = "Quick Zoom\b\b",
                 .priv = &quickzoom, 
-                #if defined(CONFIG_5DC) 
-                .max = 2, // don't know how to move the image around
-                #else
                 .max = 4,
-                #endif
-                .display = quickzoom_display,
+                .choices = (const char *[]) {"OFF", "ON (fast zoom)", "SinglePress -> 100%%", "Full zoom on AF pt.", "Full Z on last pos."},
                 .help = "Faster zoom in Play mode, for pixel peeping :)",
                 //.essential = FOR_PHOTO,
                 .icon_type = IT_DICE_OFF,
@@ -3969,9 +3824,10 @@ struct menu_entry play_menus[] = {
             #endif
             #if defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE)
             {
-                .name = "LV button",
+                .name = "LV button\b\b",
                 .priv = &play_lv_action, 
-                .display = play_lv_display,
+                .choices = (const char *[]) {"Default", "Protect Image", "Rate Image"},
+
                 #if defined(FEATURE_LV_BUTTON_PROTECT) && defined(FEATURE_LV_BUTTON_RATE)
                 .max = 2,
                 .help = "You may use the LiveView button to Protect or Rate images.",
@@ -4040,24 +3896,19 @@ static struct menu_entry play_menus[] = {
             .icon_type = IT_BOOL,
         },
         {
-            .name = "Image Review Mode",
+            .name = "Image Review\b\b",
             .priv = &quick_review_allow_zoom, 
             .max = 1,
             .display = qrplay_display,
-            //~ .help = "Go to play mode to enable zooming and maybe other keys.",
+            .choices = (const char *[]) {"QuickReview default", "CanonMnu:Hold->PLAY"},
             .help = "When you set \"ImageReview: Hold\", it will go to Play mode.",
-            //.essential = FOR_PHOTO,
             .icon_type = IT_BOOL,
         },
         {
-            .name = "Zoom in PLAY mode",
+            .name = "Quick Zoom\b\b",
             .priv = &quickzoom, 
-            #ifdef CONFIG_5DC
             .max = 2, // don't know how to move the image around
-            #else
-            .max = 4,
-            #endif
-            .display = quickzoom_display,
+            .choices = (const char *[]) {"OFF", "ON (fast zoom)"},
             .help = "Faster zoom in Play mode, for pixel peeping :)",
             //.essential = FOR_PHOTO,
             .icon_type = IT_BOOL,

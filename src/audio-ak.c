@@ -508,7 +508,7 @@ audio_lovl_display( void * priv, int x, int y, int selected )
 static void
 audio_input_toggle( void * priv, int delta )
 {
-    menu_quinternary_toggle(priv, delta);
+    menu_numeric_toggle(priv, delta, 0, 4);
     audio_configure( 1 );
 }
 #endif
@@ -672,7 +672,6 @@ static struct menu_entry audio_menus[] = {
     {
         .name = "Audio Meters",
         .priv           = &cfg_draw_meters,
-        .select         = menu_binary_toggle,
         .display        = audio_meter_display,
         .max = 1,
 #ifndef CONFIG_AUDIO_CONTROLS

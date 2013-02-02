@@ -206,21 +206,6 @@ delete_config( void * priv, int delta )
     if (config_autosave) config_autosave_toggle(0, 0);
 }
 
-static void
-config_autosave_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Config AutoSave  : %s", 
-        config_autosave ? "ON" : "OFF"
-    );
-}
 #endif
 
 #if CONFIG_DEBUGMSG
@@ -2884,7 +2869,7 @@ static struct menu_entry cfg_menus[] = {
         {
             .name = "Config AutoSave",
             .priv = &config_autosave,
-            .display    = config_autosave_display,
+            .max  = 1,
             .select        = config_autosave_toggle,
             .help = "If enabled, ML settings are saved automatically at shutdown."
         },
