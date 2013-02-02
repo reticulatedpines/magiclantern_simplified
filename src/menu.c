@@ -31,7 +31,7 @@
 #include "font.h"
 #include "menu.h"
 
-//~ #define CONFIG_MENU_ICONS
+#define CONFIG_MENU_ICONS
 #define CONFIG_MENU_DIM_HACKS
 
 
