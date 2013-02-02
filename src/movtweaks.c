@@ -111,11 +111,15 @@ void set_shooting_mode(int m)
 }
 
 CONFIG_INT("movie.restart", movie_restart,0);
+
+#ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
 CONFIG_INT("movie.cliplen", movie_cliplen,0);
-CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
+#endif
+
+//~ CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
 CONFIG_INT("movie.rec-key", movie_rec_key, 0);
 CONFIG_INT("movie.rec-key-action", movie_rec_key_action, 0);
-CONFIG_INT("movie.rec-key-action", movie_rec_key_long, 0);
+CONFIG_INT("movie.rec-key-long", movie_rec_key_long, 0);
 
 #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
 
