@@ -443,32 +443,19 @@ void WAV_Record(char* filename, int show_progress)
     info_led_off();
 }
 
-static void
-record_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(record_display)
 {
     if (audio_recording)
     {
         int s = get_seconds_clock() - audio_recording_start_time;
-        bmp_printf(
-            MENU_FONT,
-            x, y,
-            "Recording... %02d:%02d", s/60, s%60
-        );
-        menu_draw_icon(x, y, MNI_WARNING, 0);
+        MENU_SET_NAME("Recording...");
+        MENU_SET_VALUE("%02d:%02d", s/60, s%60);
+        MENU_SET_ICON(MNI_NAMED_COLOR, (intptr_t)"Red");
     }
     else
     {
-        bmp_printf(
-            MENU_FONT,
-            x, y,
-            "Record new audio clip"
-        );
-        menu_draw_icon(x, y, MNI_ACTION, 0);
+        MENU_SET_NAME("Record new audio clip");
+        MENU_SET_ICON(MNI_ACTION, 0);
     }
 }
 
@@ -744,22 +731,14 @@ void find_next_wav(void* priv, int dir)
     }
 }
 
-static void
-filename_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(filename_display)
 {
     // display only the filename, without the path
     char* fn = current_wav_filename + strlen(current_wav_filename) - 1;
     while (fn > current_wav_filename && *fn != '/') fn--; if (*fn == '/') fn++;
     
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "File name     : %s", fn
+    MENU_SET_VALUE(
+        fn
     );
 }
 
@@ -944,14 +923,14 @@ static struct menu_entry beep_menus[] = {
             },
             {
                 .name = "Play test tone",
-                //~ .display = play_test_tone_print,
+                //~ .update = play_test_tone_print,
                 .icon_type = IT_ACTION,
                 .select = play_test_tone,
                 .help = "Play a 5-second test tone with current settings.",
             },
             {
                 .name = "Test beep sound",
-                //~ .display = play_test_tone_print,
+                //~ .update = play_test_tone_print,
                 .icon_type = IT_ACTION,
                 .select = unsafe_beep,
                 .help = "Play a short beep which will be used for ML events.",
@@ -969,13 +948,13 @@ static struct menu_entry beep_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Record",
-                .display = record_display,
+                .update = record_display,
                 .select = record_start,
                 .help = "Press SET to start or stop recording.",
             },
             {
                 .name = "File name",
-                .display = filename_display,
+                .update = filename_display,
                 .select = find_next_wav,
                 .help = "Select a file name for playback.",
             },

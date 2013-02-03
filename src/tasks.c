@@ -10,6 +10,7 @@
 #include "property.h"
 #include "bmp.h"
 #include "tskmon.h"
+#include "menu.h"
 
 struct task_attr_str {
   unsigned int entry;
@@ -126,13 +127,17 @@ void task_update_loads() // called every second from clock_task
 
 #ifdef FEATURE_SHOW_TASKS
 int tasks_show_flags = 0;
-void tasks_print(void* priv, int x0, int y0, int selected)
+
+MENU_UPDATE_FUNC(tasks_print)
 {
+    int x0 = info->x;
+    int y0 = info->y;
+    info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+    
 #if defined(CONFIG_VXWORKS)
 
     if (selected) 
     {
-        menu_draw_icon(x0, y0, -1, 0);
         bmp_fill(40, 0, 0, 720, 430);
     }
 
@@ -176,9 +181,8 @@ void tasks_print(void* priv, int x0, int y0, int selected)
 
     task_load_update_request = 1; // will update at next second clock tick
 
-    if (selected) 
+    if (entry->selected) 
     {
-        menu_draw_icon(x0, y0, -1, 0);
         bmp_fill(38, 0, 0, 720, 430);
     }
 

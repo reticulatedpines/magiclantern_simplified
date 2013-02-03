@@ -141,16 +141,14 @@ script_select_display( void * priv, int x, int y, int selected )
 }
 */
 
-static void
-script_run_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(script_run_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
+    MENU_SET_NAME(
         script_state ? "Script running..." : "Run script"
     );
     
-    if (script_state) menu_draw_icon(x, y, MNI_WARNING, 0);
+    if (script_state)
+        MENU_SET_ICON(MNI_NAMED_COLOR, (intptr_t) "Red");
 }
 
 static void script_copy_window(char* dst, int bufsize, char* src, int line0, int col0, int maxlines, int maxcols)
@@ -181,16 +179,12 @@ static void script_copy_window(char* dst, int bufsize, char* src, int line0, int
     *d = 0;
 }
 
-static void
-script_print( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(script_print)
 {
-    if (!script_preview_flag || !selected)
+    if (!script_preview_flag || !entry->selected)
     {
-        bmp_printf(
-            MENU_FONT,
-            x, y,
-            "Show script"
-        );
+        MENU_SET_NAME("Show script");
+        MENU_SET_VALUE("");
         script_preview_flag = 0;
         return;
     }
@@ -217,7 +211,8 @@ script_print( void * priv, int x, int y, int selected )
     bmp_fill(40, 0, 0, 720, 430);
     int fnt = FONT(FONT_MED, COLOR_WHITE, 40);
     big_bmp_printf(fnt, 10, 10, "%s", script_preview);
-    menu_draw_icon(x, y, MNI_STOP_DRAWING, 0);
+
+    info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
 }
 
 /*static void script_select(void* priv, int delta)
@@ -338,21 +333,20 @@ void script_open_submenu(void* priv, int delta)
     }
 }
 
-static void
-script_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(script_display)
 {
-    int script_displayed = (int) priv;
+    int script_displayed = (int) entry->priv;
     
-    if (selected && script_state == SCRIPT_IDLE) 
+    if (entry->selected && script_state == SCRIPT_IDLE) 
         script_selected = script_displayed; // change selected script as we scroll thru menu (if not running, of course)
 
     int displayed_script_is_idle = (script_state == SCRIPT_IDLE) || (script_selected != script_displayed);
     
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "%s%s",
-        script_list[script_displayed],
+    MENU_SET_NAME(
+        script_list[script_displayed]
+    );
+
+    MENU_SET_VALUE(
         displayed_script_is_idle ? "" :
         script_state == SCRIPT_RUNNING ? " (running)" :
         script_state == SCRIPT_JUST_FINISHED ? " (finished)" : "err"
@@ -360,17 +354,16 @@ script_display( void * priv, int x, int y, int selected )
     
     if (displayed_script_is_idle)
     {
-        bmp_printf(
-            FONT(MENU_FONT, 55, COLOR_BLACK),
-            720 - font_large.width * strlen(script_titles[script_displayed]), y,
-            "%s",
+        MENU_SET_VALUE(
             script_titles[script_displayed]
         );
-        menu_draw_icon(x, y, MNI_SUBMENU, selected && script_displayed == script_selected);
+        MENU_SET_ICON(MNI_SUBMENU, entry->selected && script_displayed == script_selected);
+        MENU_SET_ENABLED(0);
     }
     else
     {
-        menu_draw_icon(x, y, MNI_ON, 0);
+        MENU_SET_ICON(MNI_ON, 0);
+        MENU_SET_ENABLED(1);
     }
 }
 
@@ -380,12 +373,12 @@ static struct menu_entry picoc_submenu[] = {
             .priv = &script_preview_flag,
             .max = 1,
             .icon_type = IT_ACTION,
-            .display    = script_print,
+            .update    = script_print,
             .help = "Display the contents of the selected script.",
         },
         {
             .name = "Run script",
-            .display    = script_run_display,
+            .update    = script_run_display,
             .select        = script_run_fun,
             .help = "Execute the selected script.",
         },
@@ -425,7 +418,7 @@ static struct menu_entry picoc_menu[] = {
             {
                 .name = "Select script",
                 .priv = &script_selected,
-                .display    = script_select_display,
+                .update    = script_select_display,
                 .select        = script_select,
                 .help = "Place your scripts under ML/SCRIPTS directory.",
             },
@@ -434,12 +427,12 @@ static struct menu_entry picoc_menu[] = {
                 .priv = &script_preview_flag,
                 .max = 1,
                 .icon_type = IT_ACTION,
-                .display    = script_print,
+                .update    = script_print,
                 .help = "Display the contents of the selected script.",
             },
             {
                 .name = "Run script",
-                .display    = script_run_display,
+                .update    = script_run_display,
                 .select        = script_run_fun,
                 .help = "Execute the selected script.",
             },
@@ -454,7 +447,7 @@ static struct menu_entry picoc_menu[] = {
             .priv = (void*)i, \
             .select = script_open_submenu, \
             .select_Q = script_open_submenu, \
-            .display = script_display, \
+            .update = script_display, \
             .submenu_width = 700, \
             .children = picoc_submenu, \
             .help = "Run small C-like scripts. http://code.google.com/p/picoc/", \

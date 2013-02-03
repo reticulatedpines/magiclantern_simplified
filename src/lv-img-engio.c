@@ -101,27 +101,20 @@ MENU_UPDATE_FUNC(digic_iso_print)
     MENU_SET_ENABLED(G);
 }
 
-void
-display_gain_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+MENU_UPDATE_FUNC(display_gain_print)
 {
     int G = gain_to_ev_scaled(digic_iso_gain_photo, 8) - 80;
     G = G * 10/8;
     int GA = abs(G);
 
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "LV display gain: %s%d.%d EV",
+    MENU_SET_VALUE(
+        "%s%d.%d EV",
         G > 0 ? "+" : G < 0 ? "-" : "",
         GA/10, GA%10
     );
 
-    menu_draw_icon(x, y, MNI_BOOL(G), 0);
+    MENU_SET_ICON(MNI_BOOL(G), 0);
+    MENU_SET_ENABLED(G);
 }
 
 MENU_UPDATE_FUNC(digic_black_print)

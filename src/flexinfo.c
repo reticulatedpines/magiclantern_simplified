@@ -11,8 +11,10 @@
 /* the menu is not so useful for end users, but makes it easy to tweak item positions for developers.
    actually only developer build ML from source, so keep it enabled until its in a more mature state and the next release is coming.
 */
-#define FLEXINFO_DEVELOPER_MENU
-#define FLEXINFO_XML_CONFIG
+
+// broken by menu change
+//~ #define FLEXINFO_DEVELOPER_MENU
+//~ #define FLEXINFO_XML_CONFIG
 
 #ifdef CONFIG_60D
 #undef FLEXINFO_DEVELOPER_MENU // squeeze a few K of RAM

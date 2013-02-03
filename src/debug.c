@@ -2251,17 +2251,10 @@ static void lvbuf_select()
 #endif
 
 #ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
-static void image_buf_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC(image_buf_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Image Buffers: %dx%d, %dx%d",
+    MENU_SET_VALUE(
+        "%dx%d, %dx%d",
         vram_lv.width, vram_lv.height, 
         vram_hd.width, vram_hd.height
     );
@@ -2269,70 +2262,47 @@ static void image_buf_display(
 #endif
 
 #ifdef FEATURE_SHOW_FREE_MEMORY
-static void meminfo_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC(meminfo_display)
 {
     int M = GetFreeMemForAllocateMemory();
     int m = MALLOC_FREE_MEMORY;
     
 #ifdef CONFIG_5DC
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Free Memory  : %dK",
+    MENU_SET_VALUE(
+        "%dK",
         M/1024
     );
-    menu_draw_icon(x, y, M > 1024*1024 ? MNI_ON : MNI_WARNING, 0);
+    if (M < 1024*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
 #else
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Free Memory  : %dK + %dK",
+    MENU_SET_VALUE(
+        "%dK + %dK",
         m/1024, M/1024
     );
-    menu_draw_icon(x, y, M > 1024*1024 && m > 128 * 1024 ? MNI_ON : MNI_WARNING, 0);
+    if (M < 1024*1024 || m < 128 * 1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
 #endif
 }
 #endif
 
 #ifdef FEATURE_SHOW_SHUTTER_COUNT
-static void shuttercount_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC(shuttercount_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Shutter Count:%3dK = %d+%d",
+    MENU_SET_VALUE(
+        "%3dK = %d+%d",
         (shutter_count_plus_lv_actuations + 500) / 1000,
         shutter_count, shutter_count_plus_lv_actuations - shutter_count
     );
-    menu_draw_icon(x, y, shutter_count_plus_lv_actuations > 50000 ? MNI_WARNING : MNI_ON, 0);
+    if (shutter_count_plus_lv_actuations > 50000)
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Too many shutter actuations.");
 }
 #endif
 
 #ifdef FEATURE_SHOW_CMOS_TEMPERATURE
-static void efictemp_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC(efictemp_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Internal Temp: %d deg C",
+    MENU_SET_VALUE(
+        "%d deg C",
         EFIC_CELSIUS
     );
-    menu_draw_icon(x, y, MNI_ON, 0);
 }
 #endif
 
@@ -2444,8 +2414,8 @@ void menu_kill_flicker()
 #endif
 
 extern void menu_open_submenu();
-extern void tasks_print(void* priv, int x0, int y0, int selected);
-extern void batt_display(void* priv, int x0, int y0, int selected);
+extern MENU_UPDATE_FUNC(tasks_print);
+extern MENU_UPDATE_FUNC(batt_display);
 extern int tasks_show_flags;
 extern void peaking_benchmark();
 
@@ -2738,7 +2708,7 @@ struct menu_entry debug_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Task list",
-                .display = tasks_print,
+                .update = tasks_print,
                 .priv = &tasks_show_flags,
                 .min = 0,
                 .max = 3,
@@ -2781,7 +2751,7 @@ struct menu_entry debug_menus[] = {
 #ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
     {
         .name = "Image buffers",
-        .display = image_buf_display,
+        .update = image_buf_display,
         .icon_type = IT_ALWAYS_ON,
         .help = "Display the image buffer sizes (LiveView and Craw).",
         //.essential = 0,
@@ -2790,7 +2760,8 @@ struct menu_entry debug_menus[] = {
 #ifdef FEATURE_SHOW_FREE_MEMORY
     {
         .name = "Free Memory",
-        .display = meminfo_display,
+        .update = meminfo_display,
+        .icon_type = IT_ALWAYS_ON,
 #ifdef CONFIG_5DC
         .help = "Free memory, shared between ML and Canon firmware.",
 #else
@@ -2802,15 +2773,17 @@ struct menu_entry debug_menus[] = {
 #ifdef FEATURE_SHOW_SHUTTER_COUNT
     {
         .name = "Shutter Count",
-        .display = shuttercount_display,
+        .update = shuttercount_display,
+        .icon_type = IT_ALWAYS_ON,
         .help = "Number of pics taken + number of LiveView actuations",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
 #endif
 #ifdef FEATURE_SHOW_CMOS_TEMPERATURE
     {
-        .name = "Internal Temperature",
-        .display = efictemp_display,
+        .name = "Internal Temp",
+        .update = efictemp_display,
+        .icon_type = IT_ALWAYS_ON,
         .help = "EFIC chip temperature (somewhere on the mainboard).",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
@@ -2825,8 +2798,8 @@ struct menu_entry debug_menus[] = {
     #endif
 #ifdef CONFIG_BATTERY_INFO
     {
-        .name = "Battery remaining",
-        .display = batt_display,
+        .name = "Battery level",
+        .update = batt_display,
         .help = "Battery remaining. Wait for 2%% discharge before reading.",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },

@@ -303,24 +303,13 @@ expsim_toggle( void * priv, int delta)
     #endif
 }
 
-static void
-expsim_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(expsim_display)
 {
     int e = expsim;
-    #ifdef CONFIG_7D
     if (is_movie_mode()) e = 2;
-    #endif
     
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "LV Display  : %s",
-        e == 0 ? "Photo, no ExpSim" :
-        e == 1 ? "Photo, ExpSim" :
-        /*e == 2 ?*/ "Movie" 
-    );
-    if (CONTROL_BV && e<2) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Exposure override is active.");
-    //~ else if (!lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
+    if (CONTROL_BV && e<2)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Exposure override is active.");
 }
 #endif
 
@@ -552,18 +541,9 @@ CONFIG_INT("info.header_right", header_right_info, 0);
 CONFIG_INT("info.footer_left", footer_left_info, 0);
 CONFIG_INT("info.foorer_right", footer_right_info, 0);
 
-static void
-header_left_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
+static MENU_UPDATE_FUNC(header_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Header left : %s",
+    MENU_SET_VALUE(
         header_left_info == 0 ? "Off" :
         header_left_info == 1 ? "Author's name" :
         header_left_info == 2 ? "Copyright" :
@@ -573,73 +553,6 @@ header_left_display(
         "err"
     );
 }
-
-static void
-header_right_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Header right: %s",
-        header_right_info == 0 ? "Off" :
-        header_right_info == 1 ? "Author's name" :
-        header_right_info == 2 ? "Copyright" :
-        header_right_info == 3 ? "Date" :
-        header_right_info == 4 ? "Lens name" :
-        header_right_info == 5 ? "ML version" :
-        "err"
-    );
-}
-
-static void
-footer_left_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Footer left : %s",
-        footer_left_info == 0 ? "Off" :
-        footer_left_info == 1 ? "Author's name" :
-        footer_left_info == 2 ? "Copyright" :
-        footer_left_info == 3 ? "Date" :
-        footer_left_info == 4 ? "Lens name" :
-        footer_left_info == 5 ? "ML version" :
-        "err"
-    );
-}
-
-static void
-footer_right_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Footer right: %s",
-        footer_right_info == 0 ? "Off" :
-        footer_right_info == 1 ? "Author's name" :
-        footer_right_info == 2 ? "Copyright" :
-        footer_right_info == 3 ? "Date" :
-        footer_right_info == 4 ? "Lens name" :
-        footer_right_info == 5 ? "ML version" :
-        "err"
-    );
-}
-
 #endif
 
 CONFIG_INT("play.set.wheel", play_set_wheel_action, 4);
@@ -1551,15 +1464,13 @@ void arrow_key_set_toggle(void* priv, int delta)
     arrow_keys_use_set = !arrow_keys_use_set;
 }
 
-void arrow_key_set_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(arrow_key_set_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Use SET button: %s",
+    MENU_SET_VALUE(
         arrow_keys_use_set ? "ON" : "OFF"
     );
-    menu_draw_icon(x, y, MNI_BOOL(arrow_keys_use_set), 0);
+    MENU_SET_ICON(MNI_BOOL(arrow_keys_use_set), 0);
+    MENU_SET_ENABLED(arrow_keys_use_set);
 }
 
 
@@ -2127,15 +2038,10 @@ static void warn_step()
     warn_action(warn_code);
 }
 
-static void warn_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(warn_display)
 {
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "Warnings for bad settings..."
-    );
     if (warn_code)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) get_warn_msg(", "));
+        MENU_SET_WARNING(MENU_WARN_ADVICE, get_warn_msg(", "));
 }
 #endif
 
@@ -2150,7 +2056,7 @@ static struct menu_entry key_menus[] = {
         .children =  (struct menu_entry[]) {
             #ifdef FEATURE_LV_FOCUS_BOX_FAST
             {
-                .name = "Speed\b\b", 
+                .name = "Speed", 
                 .priv = &focus_box_lv_speed,
                 .max = 1,
                 .icon_type = IT_BOOL,
@@ -2160,7 +2066,7 @@ static struct menu_entry key_menus[] = {
             #endif
             #ifdef FEATURE_LV_FOCUS_BOX_SNAP
             {
-                .name = "Snap points\b\b",
+                .name = "Snap points",
                 .priv = &focus_box_lv_jump,
                 .max = 4,
                 .icon_type = IT_DICE_OFF,
@@ -2170,7 +2076,7 @@ static struct menu_entry key_menus[] = {
             #endif
             #ifdef FEATURE_LV_FOCUS_BOX_AUTOHIDE
             {
-                .name = "Display\b\b",
+                .name = "Display",
                 .priv = &af_frame_autohide, 
                 .max = 1,
                 .choices = (const char *[]) {"Show", "Auto-Hide"},
@@ -2220,7 +2126,7 @@ static struct menu_entry key_menus[] = {
             {
                 .name = "Use SET button",
                 .select = arrow_key_set_toggle, // use a function => this item will not be considered for submenu color
-                .display = arrow_key_set_display,
+                .update = arrow_key_set_display,
                 .help = "Enables functions for SET when you use arrow shortcuts.",
             },
             MENU_EOL,
@@ -2240,7 +2146,7 @@ static struct menu_entry key_menus[] = {
                 .priv       = &header_left_info,
                 .max = 5,
                 .icon_type = IT_DICE_OFF,
-                .display = header_left_display,
+                .update = header_display,
                 .help = "What info do you want to display at the top left corner",
             },
             {
@@ -2248,7 +2154,7 @@ static struct menu_entry key_menus[] = {
                 .priv       = &header_right_info,
                 .max = 5,
                 .icon_type = IT_DICE_OFF,
-                .display = header_right_display,
+                .update = header_display,
                 .help = "What info do you want to display at the top right corner",
             },
             {
@@ -2256,7 +2162,7 @@ static struct menu_entry key_menus[] = {
                 .priv       = &footer_left_info,
                 .max = 5,
                 .icon_type = IT_DICE_OFF,
-                .display = footer_left_display,
+                .update = header_display,
                 .help = "What info do you want to display at the bottom left corner",
             },
             {
@@ -2264,7 +2170,7 @@ static struct menu_entry key_menus[] = {
                 .priv       = &footer_right_info,
                 .max = 5,
                 .icon_type = IT_DICE_OFF,
-                .display = footer_right_display,
+                .update = header_display,
                 .help = "What info do you want to display at the bottom right corner",
             },
             MENU_EOL
@@ -2333,7 +2239,7 @@ static struct menu_entry tweak_menus[] = {
     {
         .name = "Warnings for bad settings...",
         .select     = menu_open_submenu,
-        .display = warn_display,
+        .update = warn_display,
         .help = "Warn if some of your settings are changed by mistake.",
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
@@ -2376,7 +2282,7 @@ static struct menu_entry tweak_menus[] = {
         .name = "LV Auto ISO (M mode)",
         .priv = &lv_metering,
         .max = 4,
-        .display = lv_metering_print,
+        .update = lv_metering_print,
         .help = "Experimental LV metering (Auto ISO). Too slow for real use."
     },
     #endif
@@ -2514,7 +2420,7 @@ struct menu_entry expo_tweak_menus[] = {
         .name = "LV Display",
         .priv = &expsim,
         .select = expsim_toggle,
-        .display = expsim_display,
+        .update = expsim_display,
         .max = 2,
         .choices = (const char *[]) {"Photo, no ExpSim", "Photo, ExpSim", "Movie"},
         .icon_type = IT_DICE,
@@ -2725,82 +2631,39 @@ void preview_show_contrast_curve()
 #endif
 
 #ifdef FEATURE_LV_SATURATION
-void preview_saturation_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(preview_saturation_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "LV saturation  : %s",
-        preview_saturation == -1 ? "0 (Grayscale)" :
-        preview_saturation == 0 ? "Normal" :
-        preview_saturation == 1 ? "High" :
-                                  "Very high"
-    );
-
     extern int focus_peaking_grayscale;
     if (focus_peaking_grayscale && is_focus_peaking_enabled())
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus peaking with grayscale preview is enabled.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Focus peaking with grayscale preview is enabled.");
     
     if (preview_saturation_boost_wb)
-        menu_draw_icon(x, y, MNI_AUTO, 0);
+        MENU_SET_ICON(MNI_AUTO, 0);
 }
 #endif
 
 #ifdef FEATURE_LV_BRIGHTNESS_CONTRAST
-void preview_contrast_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(preview_contrast_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "LV contrast    : %s",
-        preview_contrast == -3 ? "Zero" :
-        preview_contrast == -2 ? "Very low" :
-        preview_contrast == -1 ? "Low" :
-        preview_contrast == 0 ? "Normal" :
-        preview_contrast == 1 ? "High" :
-        preview_contrast == 2 ? "Very high" : 
-        (
+    if (preview_contrast == 3) MENU_SET_VALUE(
             preview_brightness == 0 ? "Auto (normal)" :
             preview_brightness == 1 ? "Auto (low)" :
             preview_brightness == 2 ? "Auto (very low)" : "err"
-        )
     );
 
-    if (preview_contrast && EXT_MONITOR_CONNECTED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Does not work on external monitors.");
-    if (PREVIEW_CONTRAST_AUTO) menu_draw_icon(x, y, MNI_AUTO, 0);
+    if (EXT_MONITOR_CONNECTED) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Does not work on external monitors.");
+    if (PREVIEW_CONTRAST_AUTO) MENU_SET_ICON(MNI_AUTO, 0);
     
     if (menu_active_but_hidden()) preview_show_contrast_curve();
 }
 
-void preview_brightness_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(preview_brightness_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "LV brightness  : %s",
-        preview_brightness == 0 ? "Normal" :
-        preview_brightness == 1 ? "High" :
-                                  "Very high"
-    );
-
-    if (preview_brightness && EXT_MONITOR_CONNECTED) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Does not work on external monitors.");
+    if (EXT_MONITOR_CONNECTED)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Does not work on external monitors.");
     
-    if (menu_active_but_hidden()) preview_show_contrast_curve();
+    if (menu_active_but_hidden())
+        preview_show_contrast_curve();
 }
 #endif
 
@@ -3022,37 +2885,20 @@ CONFIG_INT("anamorphic.ratio.idx", anamorphic_ratio_idx, 0);
 static int anamorphic_ratio_num[10] = {2, 5, 3, 4, 5, 4, 3, 2, 3, 1};
 static int anamorphic_ratio_den[10] = {1, 3, 2, 3, 4, 5, 4, 3, 5, 2};
 
-static void
-anamorphic_preview_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(anamorphic_preview_display)
 {
     if (anamorphic_preview)
     {
         int num = anamorphic_ratio_num[anamorphic_ratio_idx];
         int den = anamorphic_ratio_den[anamorphic_ratio_idx];
-        bmp_printf(
-            MENU_FONT,
-            x, y,
-            "Anamorphic     : ON, %d:%d",
+        MENU_SET_VALUE(
+            "ON, %d:%d",
             num, den
         );
     }
-    else
-    {
-        bmp_printf(
-            MENU_FONT,
-            x, y,
-            "Anamorphic     : OFF"
-        );
-    }
-    
-    if (defish_preview && anamorphic_preview)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Too much for this lil' cam... both defishing and anamorphic");
-    menu_draw_icon(x, y, MNI_BOOL_GDR(anamorphic_preview));
+
+    if (defish_preview)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Too much for this lil' cam... both defishing and anamorphic");
 }
 
 
@@ -3126,21 +2972,11 @@ static void FAST anamorphic_squeeze()
 #endif
 
 #ifdef FEATURE_DEFISHING_PREVIEW
-static void
-defish_preview_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(defish_preview_display)
 {
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "Defishing      : %s",
-        defish_preview ? (defish_projection ? "Panini" : "Rectilinear") : "OFF"
+    if (defish_preview) MENU_SET_VALUE(
+        defish_projection ? "Panini" : "Rectilinear"
     );
-    menu_draw_icon(x, y, MNI_BOOL_GDR(defish_preview));
 }
 
 //~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "ML/SETTINGS/recti.lut");
@@ -3489,36 +3325,16 @@ void display_filter_step(int k)
 
 #ifdef CONFIG_KILL_FLICKER
 CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 1);
-
-static void kill_canon_gui_print(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Kill Canon GUI : %s",
-        kill_canon_gui_mode == 0 ? "OFF" :
-        //~ kill_canon_gui_mode == 1 ? "BottomBar" :
-        kill_canon_gui_mode == 1 ? "Idle/Menus" :
-        kill_canon_gui_mode == 2 ? "Idle/Menus+Keys" :
-         "err"
-    );
-    menu_draw_icon(x, y, MNI_BOOL_GDR(kill_canon_gui_mode));
-}
 #endif
 
 extern int clearscreen_enabled;
 extern int clearscreen_mode;
-extern void clearscreen_display( void * priv, int x, int y, int selected);
-extern void screen_layout_display( void * priv, int x, int y, int selected);
+extern MENU_UPDATE_FUNC(clearscreen_display);
+extern MENU_UPDATE_FUNC(screen_layout_display);
 extern void screen_layout_toggle(void* priv, int delta);
 extern int hdmi_force_vga;
-extern void hdmi_force_display( void * priv, int x, int y, int selected);
-extern void display_gain_print( void * priv, int x, int y, int selected);
+extern MENU_UPDATE_FUNC(hdmi_force_display);
+extern MENU_UPDATE_FUNC(display_gain_print);
 
 static struct menu_entry display_menus[] = {
             #ifdef FEATURE_LV_BRIGHTNESS_CONTRAST
@@ -3527,7 +3343,7 @@ static struct menu_entry display_menus[] = {
                 .priv = &preview_brightness, 
                 .max = 2,
                 .help = "For LiveView preview only. Does not affect recording.",
-                .display = preview_brightness_display,
+                .update = preview_brightness_display,
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"Normal", "High", "Very high"},
                 .depends_on = DEP_LIVEVIEW,
@@ -3538,7 +3354,7 @@ static struct menu_entry display_menus[] = {
                 .priv     = &preview_contrast,
                 .min = -3,
                 .max = 3,
-                .display = preview_contrast_display,
+                .update = preview_contrast_display,
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"Zero", "Very low", "Low", "Normal", "High", "Very high", "Auto"},
@@ -3552,7 +3368,7 @@ static struct menu_entry display_menus[] = {
                 .priv     = &preview_saturation,
                 .min = -1,
                 .max = 2,
-                .display = preview_saturation_display,
+                .update = preview_saturation_display,
                 .help = "For LiveView preview only. Does not affect recording.",
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"0 (Grayscale)", "Normal", "High", "Very high"},
@@ -3573,7 +3389,7 @@ static struct menu_entry display_menus[] = {
             #ifdef FEATURE_LV_DISPLAY_GAIN
             {
                 .name = "LV display gain",
-                .display = display_gain_print,
+                .update = display_gain_print,
                 .select = display_gain_toggle,
                 .help = "Boost LiveView display gain, for night vision (photo mode).",
                 .edit_mode = EM_MANY_VALUES_LV,
@@ -3594,7 +3410,7 @@ static struct menu_entry display_menus[] = {
     {
         .name = "Clear overlays",
         .priv           = &clearscreen_enabled,
-        .display        = clearscreen_display,
+        .update        = clearscreen_display,
         .max            = 1,
         .help = "Clear bitmap overlays from LiveView display.",
         .depends_on = DEP_LIVEVIEW,
@@ -3630,8 +3446,9 @@ static struct menu_entry display_menus[] = {
     {
         .name = "Defishing",
         .priv = &defish_preview, 
-        .display = defish_preview_display, 
+        .update = defish_preview_display, 
         .max            = 1,
+        .depends_on = DEP_GLOBAL_DRAW,
         .help = "Preview straightened images from fisheye lenses. LV+PLAY.",
         .children =  (struct menu_entry[]) {
             {
@@ -3658,11 +3475,11 @@ static struct menu_entry display_menus[] = {
     {
         .name = "Anamorphic",
         .priv     = &anamorphic_preview,
-        .display = anamorphic_preview_display, 
+        .update = anamorphic_preview_display, 
         .max = 1,
         .submenu_width = 700,
         .help = "Stretches LiveView image vertically, for anamorphic lenses.",
-        .depends_on = DEP_LIVEVIEW,
+        .depends_on = DEP_LIVEVIEW | DEP_GLOBAL_DRAW,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Stretch Ratio",
@@ -3688,14 +3505,15 @@ static struct menu_entry display_menus[] = {
                     .name       = "Kill Canon GUI",
                     .priv       = &kill_canon_gui_mode,
                     .max        = 2,
-                    .display    = kill_canon_gui_print,
+                    .choices    = CHOICES("OFF", "Idle/Menus", "Idle/Menus+Keys"),
+                    .depends_on = DEP_GLOBAL_DRAW,
                     .help = "Workarounds for disabling Canon graphics elements."
                 },
             #endif
             #ifdef FEATURE_SCREEN_LAYOUT
                 {
                     .name = "Screen Layout",
-                    .display = screen_layout_display, 
+                    .update = screen_layout_display, 
                     .select = screen_layout_toggle,
                     .help = "Position of top/bottom bars, useful for external displays.",
                     .depends_on = DEP_LIVEVIEW,
@@ -3776,7 +3594,7 @@ struct menu_entry play_menus[] = {
         .children =  (struct menu_entry[]) {
             #ifdef FEATURE_SET_MAINDIAL
             {
-                .name = "SET+MainDial\b\b",
+                .name = "SET+MainDial",
                 .priv = &play_set_wheel_action, 
                 .max = 4,
                 .choices = (const char *[]) {"422 Preview", "Exposure Fusion", "Compare Images", "Timelapse Play", "Exposure Adjust"},
@@ -3786,7 +3604,7 @@ struct menu_entry play_menus[] = {
             #endif
             #ifdef FEATURE_IMAGE_REVIEW_PLAY
             {
-                .name = "Image Review\b\b",
+                .name = "Image Review",
                 .priv = &quick_review_allow_zoom, 
                 .max = 1,
                 .choices = (const char *[]) {"QuickReview default", "CanonMnu:Hold->PLAY"},
@@ -3796,7 +3614,7 @@ struct menu_entry play_menus[] = {
             #endif
             #ifdef FEATURE_QUICK_ZOOM
             {
-                .name = "Quick Zoom\b\b",
+                .name = "Quick Zoom",
                 .priv = &quickzoom, 
                 .max = 4,
                 .choices = (const char *[]) {"OFF", "ON (fast zoom)", "SinglePress -> 100%%", "Full zoom on AF pt.", "Full Z on last pos."},
@@ -3807,7 +3625,7 @@ struct menu_entry play_menus[] = {
             #endif
             #ifdef FEATURE_KEN_ROCKWELL_ZOOM_5D3
             {
-                .name = "QRZoom->Play\b\b",
+                .name = "QRZoom->Play",
                 .priv = &ken_rockwell_zoom, 
                 .max = 1,
                 .help = "When you press Zoom in QR mode, it goes to PLAY mode.",
@@ -3824,7 +3642,7 @@ struct menu_entry play_menus[] = {
             #endif
             #if defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE)
             {
-                .name = "LV button\b\b",
+                .name = "LV button",
                 .priv = &play_lv_action, 
                 .choices = (const char *[]) {"Default", "Protect Image", "Rate Image"},
 
@@ -3843,7 +3661,7 @@ struct menu_entry play_menus[] = {
         #endif
             #ifdef FEATURE_QUICK_ERASE
             {
-                .name = "Quick Erase\b\b",
+                .name = "Quick Erase",
                 .priv = &quick_delete, 
                 .max = 1,
                 #ifdef CONFIG_50D // no unpress SET, use the 5Dc method
@@ -3862,26 +3680,11 @@ struct menu_entry play_menus[] = {
 
 #else // CONFIG_5DC (todo: cleanup this mess)
 
-void preview_saturation_display_5dc(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(preview_saturation_display_5dc)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Saturation  : %s",
-        preview_saturation == -1 ? "0 (Grayscale)" :
-        preview_saturation == 0 ? "Normal" :
-        preview_saturation == 1 ? "High" :
-                                  "Very high"
-    );
-
     extern int focus_peaking_grayscale;
     if (focus_peaking_grayscale && is_focus_peaking_enabled())
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus peaking with grayscale preview is enabled.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Focus peaking with grayscale preview is enabled.");
 }
 
 static struct menu_entry play_menus[] = {
@@ -3890,22 +3693,21 @@ static struct menu_entry play_menus[] = {
             .priv     = &preview_saturation,
             .min = -1,
             .max = 2,
-            .display = preview_saturation_display_5dc,
+            .update = preview_saturation_display_5dc,
             .choices = (const char *[]) {"0 (Grayscale)", "Normal", "High", "Very high"},
             .help = "For preview only - adjust display saturation.",
             .icon_type = IT_BOOL,
         },
         {
-            .name = "Image Review\b\b",
+            .name = "Image Review",
             .priv = &quick_review_allow_zoom, 
             .max = 1,
-            .display = qrplay_display,
             .choices = (const char *[]) {"QuickReview default", "CanonMnu:Hold->PLAY"},
             .help = "When you set \"ImageReview: Hold\", it will go to Play mode.",
             .icon_type = IT_BOOL,
         },
         {
-            .name = "Quick Zoom\b\b",
+            .name = "Quick Zoom",
             .priv = &quickzoom, 
             .max = 2, // don't know how to move the image around
             .choices = (const char *[]) {"OFF", "ON (fast zoom)"},
@@ -3914,7 +3716,7 @@ static struct menu_entry play_menus[] = {
             .icon_type = IT_BOOL,
         },
         {
-            .name = "Quick Erase\b\b",
+            .name = "Quick Erase",
             .priv = &quick_delete, 
             .max = 1,
             .help = "Delete files quickly with fewer keystrokes (be careful!!!)",

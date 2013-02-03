@@ -887,19 +887,6 @@ audio_o2gain_display( void * priv, int x, int y, int selected )
 #endif
 
 
-static void
-audio_alc_display( void * priv, int x, int y, int selected )
-{
-    unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
-    bmp_printf(
-               FONT(fnt, alc_enable ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
-               x, y,
-               //23456789012
-               "AGC                : %s",
-               alc_enable ? "ON " : "OFF"
-               );
-}
-
 static const char* get_audio_input_string()
 {
     return 
@@ -909,18 +896,6 @@ static const char* get_audio_input_string()
            (input_choice == 3 ? "L:int R:balanced" : 
             (input_choice == 4 ? (mic_inserted ? "Auto int/EXT " : "Auto INT/ext") : 
              "error")))));
-}
-
-static void
-audio_input_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Input Source  : %s", 
-               get_audio_input_string()
-               );
-    menu_draw_icon(x, y, input_choice == 4 ? MNI_AUTO : MNI_ON, 0);
 }
 
 

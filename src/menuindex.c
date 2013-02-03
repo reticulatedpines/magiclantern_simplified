@@ -67,7 +67,6 @@ struct menu_entry help_menus[] = {
         .name = "Key shortcuts",
         .priv = "Key shortcuts",
         .select = menu_help_go_to_label,
-        .display = menu_print,
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
@@ -83,7 +82,6 @@ struct menu_entry help_menus[] = {
         .name = "About Magic Lantern",
         .priv = "About Magic Lantern",
         .select = menu_help_go_to_label,
-        .display = menu_print,
     },
 };
 

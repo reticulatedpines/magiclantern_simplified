@@ -2596,19 +2596,10 @@ static MENU_UPDATE_FUNC(global_draw_display)
 #endif
 
 #ifdef FEATURE_CLEAR_OVERLAYS
-void
-clearscreen_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+MENU_UPDATE_FUNC(clearscreen_display)
 {
     int mode = clearscreen;
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Clear overlays : %s",
+    MENU_SET_VALUE(
         mode == 0 ? "OFF" : 
         mode == 1 ? "HalfShutter/DofP" : 
         mode == 2 ? "WhenIdle" :

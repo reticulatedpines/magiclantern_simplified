@@ -46,7 +46,7 @@ void display_lcd_remote_icon(int x0, int y0);
 MENU_UPDATE_FUNC(lcd_release_display)
 {
     int v = CURRENT_VALUE;
-    if (v) display_lcd_remote_icon(x-25, y+5);
+    if (v) display_lcd_remote_icon(info->x-25, info->y+5);
     MENU_SET_ICON(v ? MNI_NONE : MNI_OFF, 0);
 }
 

@@ -26,7 +26,7 @@ endif
 all: $(SUPPORTED_MODELS)
 	$(MAKE) -C $(PLATFORM_PATH)/all clean
 	$(MAKE) -C $(PLATFORM_PATH)/all x
-	$(MAKE) -C $(PLUGINS_DIR)
+	#~ $(MAKE) -C $(PLUGINS_DIR)
 
 60D:
 	$(MAKE) -C $(PLATFORM_PATH)/60D.111

@@ -333,16 +333,8 @@ void draw_af_point(int x, int y, int r, int color)
     }
 }
 
-static void
-pattern_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(pattern_display)
 {
-//    int t = (*(int*)priv);
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "Vertical selection"
-    );
-
     int cx = 500;
     int cy = 350;
     int w = 232;
@@ -387,7 +379,7 @@ static struct menu_entry afp_focus_menu[] = {
             {
                 .name = "Vertical selection",
                 .select = afp_vert_toggle,
-                .display = pattern_display,
+                .update = pattern_display,
                 .help = "Select a vertical AF pattern with LEFT and RIGHT keys.",
             },
             {

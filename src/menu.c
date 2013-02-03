@@ -34,7 +34,6 @@
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
 
-
 #define DOUBLE_BUFFERING 1
 
 //~ #define MENU_KEYHELP_Y_POS (menu_lv_transparent_mode ? 425 : 430)
@@ -59,6 +58,8 @@ extern int bmp_color_scheme;
 #define MENU_LEN_DEFAULT 11
 #define MENU_LEN_AUDIO 10 // at len=11, audio meters would overwrite menu entries on 600D
 //~ #define MENU_LEN_FOCUS 8
+
+#define MNI_WARNING 3 //private
 
 int get_menu_len(struct menu * menu)
 {
@@ -131,6 +132,7 @@ static void menu_make_sure_selection_is_valid();
 static void menu_save_hidden_items();
 static void menu_load_hidden_items();
 static int guess_submenu_enabled(struct menu_entry * entry);
+static void menu_draw_icon(int x, int y, int type, intptr_t arg); // private
 
 extern int gui_state;
 void menu_enable_lv_transparent_mode()
@@ -997,7 +999,7 @@ void dim_hidden_menu(int x0, int y0, int selected)
 // Only the first call is executed
 
 int icon_drawn = 0;
-void menu_draw_icon(int x, int y, int type, intptr_t arg)
+static void menu_draw_icon(int x, int y, int type, intptr_t arg)
 {
     if (icon_drawn) return;
     

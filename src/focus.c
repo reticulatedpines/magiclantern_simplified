@@ -385,24 +385,18 @@ focus_dir_display(
     menu_draw_icon(x, y, MNI_ON, 0);
 }*/
 
-static void
-focus_show_a( 
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-) {
-    if (selected) override_zoom_buttons = 1;
-    bmp_printf(
-        !selected ? MENU_FONT : should_override_zoom_buttons() ? FONT(FONT_LARGE,COLOR_WHITE,0x12) : MENU_FONT_SEL,
-        x, y,
-        "Focus End Point:%s%d%s",
+static MENU_UPDATE_FUNC(focus_show_a)
+{
+    if (entry->selected) override_zoom_buttons = 1;
+    
+    MENU_SET_VALUE(
+        "%s%d%s",
         focus_task_delta > 0 ? "+" : 
         focus_task_delta < 0 ? "-" : " ",
         ABS(focus_task_delta),
-        focus_task_delta ? "steps from here" : " (here)"
+        focus_task_delta ? "steps from here" : "(here)"
     );
-    menu_draw_icon(x, y, MNI_BOOL(focus_task_delta), 0);
+    MENU_SET_ICON(MNI_BOOL(focus_task_delta), 0);
 }
 
 /*static void
@@ -424,21 +418,11 @@ focus_show_b(
     menu_draw_icon(x, y, MNI_BOOL(focus_task_delta), 0);
 }*/
 
-static void
-rack_focus_print( 
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-) {
+static MENU_UPDATE_FUNC(rack_focus_print)
+{
     extern int lcd_release_running;
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "Rack Focus %s",
-        lcd_release_running && lcd_release_running < 3 && recording ? "(also w. LCD sensor)" : ""
-    );
-    menu_draw_icon(x, y, MNI_ACTION, 0);
+    if (lcd_release_running && lcd_release_running < 3 && recording)
+        MENU_APPEND_VALUE(" (also w. LCD sensor)");
 }
 
 
@@ -518,18 +502,10 @@ focus_delay_display(
     menu_draw_icon(x, y, MNI_PERCENT, lens_focus_delay * 100 / 9);
 }
 
-static void
-focus_delay_sub_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(focus_delay_sub_display)
 {
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "Step Delay    : %dms",
+    MENU_SET_VALUE(
+        "%dms",
         (1 << lens_focus_delay) * 10
     );
 }
@@ -544,25 +520,17 @@ focus_stack_count_increment( void * priv )
     if (focus_stack_count > 200) focus_stack_count = 2;
 }*/
 
-static void
-focus_stack_step_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(focus_stack_step_print)
 {
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "Steps/Pic : %d (%d pics)",
+    MENU_SET_VALUE(
+        "%d (%d pics)",
         focus_stack_steps_per_picture, 
         focus_task_delta ? FOCUS_STACK_COUNT : 0
     );
     
     if (!focus_task_delta)
     {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Focus points not configured (adjust focus end point).");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Focus points not configured (adjust focus end point).");
     }
 }
 
@@ -743,23 +711,15 @@ follow_focus_toggle_dir_v( void * priv )
     follow_focus_reverse_v = !follow_focus_reverse_v;
 }*/
 
-static void
-follow_focus_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(follow_focus_print)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Follow Focus   : %s",
-        follow_focus == 0 ? "OFF" :
+    if (follow_focus) MENU_SET_VALUE(
         get_follow_focus_mode() == 0 ? "Arrows" : "LCD sensor"
     );
     if (follow_focus == 1)
     {
+        int x = info->x;
+        int y = info->y;
         bmp_printf(FONT_MED, x + 580, y+5, follow_focus_reverse_h ? "- +" : "+ -");
         bmp_printf(FONT_MED, x + 580 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
     }
@@ -1137,21 +1097,13 @@ focus_misc_task(void* unused)
 TASK_CREATE( "focus_misc_task", focus_misc_task, 0, 0x1e, 0x1000 );
 
 #ifdef FEATURE_TRAP_FOCUS
-static void 
-trap_focus_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(trap_focus_display)
 {
-    int t = (*(int*)priv);
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Trap Focus     : %s",
-        t == 1 ? "Hold AF button" : t == 2 ? "Continuous" : "OFF"
-    );
-    if (t)
-    {
-        if (!lv && !lens_info.name[0]) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Trap focus outside LiveView requires a chipped lens");
-        if (t == 2 && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Assign AF button to half-shutter from CFn!");
-    }
+    int t = CURRENT_VALUE;
+    if (!lv && !lens_info.name[0])
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Trap focus outside LiveView requires a chipped lens");
+    if (t == 2 && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Assign AF button to half-shutter from CFn!");
 }
 
 
@@ -1180,7 +1132,7 @@ static struct menu_entry trap_focus_menu[] = {
         .name = "Trap Focus",
         .priv       = &trap_focus,
         .max = 2,
-        .display    = trap_focus_display,
+        .update    = trap_focus_display,
         .choices = (const char *[]) {"OFF", "Hold AF button", "Continuous"},
         .help = "Takes a picture when the subject comes in focus. MF only.",
         .icon_type = IT_DICE_OFF,
@@ -1209,7 +1161,7 @@ static struct menu_entry focus_menu[] = {
     {
         .name = "Follow Focus",
         .priv = &follow_focus,
-        .display    = follow_focus_print,
+        .update    = follow_focus_print,
         .max = 1,
         .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
         .works_best_in = DEP_CFN_AF_BACK_BUTTON,
@@ -1248,7 +1200,7 @@ static struct menu_entry focus_menu[] = {
     {
         .name = "Movie AF",
         .priv = &movie_af,
-        .display    = movie_af_print,
+        .update    = movie_af_print,
         .select     = menu_quaternary_toggle,
         .select_reverse = movie_af_noisefilter_bump,
         .select_Q = movie_af_aggressiveness_bump,
@@ -1260,19 +1212,17 @@ static struct menu_entry focus_menu[] = {
     #ifdef FEATURE_RACK_FOCUS
     {
         .name = "Focus End Point",
-        .display    = focus_show_a,
+        .update    = focus_show_a,
         .select     = focus_reset_a,
         .help = "SET: fix here rack end point. ZoomIn+L/R: start point.",
         .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
     },
     {
         .name = "Rack Focus",
-        .display    = rack_focus_print,
+        .update    = rack_focus_print,
         .select     = rack_focus_start_delayed,
-        //~ .select_Q   = rack_focus_start_now,
-        //~ .select_reverse = rack_focus_start_auto_record,
-        .help = "Press SET for rack focus, or PLAY to also start recording.",
         .icon_type = IT_ACTION,
+        .help = "Press SET for rack focus, or PLAY to also start recording.",
         .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
         .works_best_in = DEP_MOVIE_MODE,
     },
@@ -1292,7 +1242,7 @@ static struct menu_entry focus_menu[] = {
             {
                 .name = "Steps/Pic",
                 .priv = &focus_stack_steps_per_picture, 
-                .display = focus_stack_step_print,
+                .update = focus_stack_step_print,
                 .min = 1,
                 .max = 10,
                 .help = "Number of focus steps between two pictures.",
@@ -1351,7 +1301,7 @@ static struct menu_entry focus_menu[] = {
                 .name = "Step Delay",
                 .priv = &lens_focus_delay,
                 .max = 6,
-                .display    = focus_delay_sub_display,
+                .update    = focus_delay_sub_display,
                 .help = "Delay between two successive focus commands.",
             },
             {

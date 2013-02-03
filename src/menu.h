@@ -63,7 +63,7 @@ struct menu_display_info
     // etc
 };
 
-#define MENU_MAX_NAME_LEN 25
+#define MENU_MAX_NAME_LEN 30
 #define MENU_MAX_VALUE_LEN 25
 #define MENU_MAX_HELP_LEN 60
 #define MENU_MAX_WARNING_LEN 60
@@ -132,14 +132,6 @@ struct menu_entry
         menu_select_func select;
         menu_select_func select_Q;
         menu_update_func update;
-
-        //legacy
-        void (*display)(
-                void * priv,
-                int    x,
-                int    y,
-                int    selected
-        );
 
         unsigned selected   : 1;
         unsigned unit       : 4;
@@ -273,8 +265,7 @@ extern void run_in_separate_task(void (*priv)(void), int delta);
 
 
 OS_FUNCTION( 0x0700001,	void,	menu_add, const char * name, struct menu_entry * new_entry, int count );
-OS_FUNCTION( 0x0700002, void,	menu_draw_icon, int x, int y, int type, intptr_t arg); // deprecated
-//~ static void menu_draw_icon(int x, int y, int type, intptr_t arg);
+//~ OS_FUNCTION( 0x0700002, void,	menu_draw_icon, int x, int y, int type, intptr_t arg); // deprecated
 
 
 extern void
@@ -286,7 +277,7 @@ extern void menu_stop(void);
 #define MNI_OFF -2
 #define MNI_ON 1
 #define MNI_AUTO 2
-#define MNI_WARNING 3 // deprecated
+//~ #define MNI_WARNING 3 // deprecated, private only
 #define MNI_PERCENT 4
 #define MNI_ACTION 5
 #define MNI_DICE 6
@@ -306,9 +297,9 @@ extern void menu_stop(void);
 #define EXPSIM_WARNING_MSG (expsim == 0 ? "ExpSim is OFF." : "Display Gain is active.") // no other causes.. yet
 
 // deprecated
-#define MNI_BOOL_GDR(x) ((x) ? ( get_global_draw() ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) GDR_WARNING_MSG
-#define MNI_BOOL_GDR_EXPSIM(x) ((x) ? ( get_global_draw() && (lv_luma_is_accurate() || !lv) ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t)( !get_global_draw() ? GDR_WARNING_MSG : EXPSIM_WARNING_MSG )
-#define MNI_BOOL_LV(x) ((x) ? ( lv ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) "This option only works in LiveView." 
+//~ #define MNI_BOOL_GDR(x) ((x) ? ( get_global_draw() ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) GDR_WARNING_MSG
+//~ #define MNI_BOOL_GDR_EXPSIM(x) ((x) ? ( get_global_draw() && (lv_luma_is_accurate() || !lv) ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t)( !get_global_draw() ? GDR_WARNING_MSG : EXPSIM_WARNING_MSG )
+//~ #define MNI_BOOL_LV(x) ((x) ? ( lv ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) "This option only works in LiveView." 
 
 #define MENU_EOL_PRIV (void*)-1
 #define MENU_EOL { .priv = MENU_EOL_PRIV }

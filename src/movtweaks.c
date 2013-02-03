@@ -430,19 +430,10 @@ int get_screen_layout()
 
 #ifdef FEATURE_SCREEN_LAYOUT
 
-void
-screen_layout_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
+MENU_UPDATE_FUNC(screen_layout_display)
 {
     int screen_layout = *get_screen_layout_ptr();
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Screen layout  : %s", 
+    MENU_SET_VALUE(
         screen_layout == SCREENLAYOUT_3_2 ?        "3:2 display,t/b"  :
         screen_layout == SCREENLAYOUT_4_3 ?        "4:3 display,auto" :
         screen_layout == SCREENLAYOUT_16_10 ?      "16:10 HDMI,t/b"   :
@@ -451,7 +442,7 @@ screen_layout_display(
         screen_layout == SCREENLAYOUT_UNDER_16_9 ? "Bottom,under16:9" :
          "err"
     );
-    menu_draw_icon(x, y, MNI_DICE, screen_layout + (5<<16));
+    MENU_SET_ICON(MNI_DICE, screen_layout + (5<<16));
 }
 
 void screen_layout_toggle(void* priv, int delta) { menu_numeric_toggle(get_screen_layout_ptr(), delta, 0, 4); }

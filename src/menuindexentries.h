@@ -4,43 +4,25 @@
 
     {
         .name = "Important notes",
-        .priv = "Important notes",
         .select = menu_help_go_to_label,
-        .display = menu_print,
-        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .name = "Known issues",
-        .priv = "Known issues",
         .select = menu_help_go_to_label,
-        .display = menu_print,
-        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .name = "Common terms",
-        .priv = "Common terms",
         .select = menu_help_go_to_label,
-        .display = menu_print,
-        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .name = "Liveview screen layout",
-        .priv = "Liveview screen layout",
         .select = menu_help_go_to_label,
-        .display = menu_print,
-        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .name = "Key shortcuts",
-        .priv = "Key shortcuts",
         .select = menu_help_go_to_label,
-        .display = menu_print,
-        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .name = "Magic Lantern menu",
-        .priv = "Magic Lantern menu",
         .select = menu_help_go_to_label,
-        .display = menu_print,
-        //.essential = FOR_MOVIE | FOR_PHOTO,
     },

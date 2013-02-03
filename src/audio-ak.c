@@ -401,24 +401,6 @@ audio_mgain_toggle( void * priv, int delta )
     audio_configure( 1 );
 }
 
-static void
-audio_mgain_display( void * priv, int x, int y, int selected )
-{
-    unsigned gain_index = *(unsigned*) priv;
-#ifdef CONFIG_500D
-    gain_index = COERCE(gain_index, 0, 10);
-#else
-    gain_index &= 0x7;
-#endif
-    
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Analog Gain   : %d dB",
-               mgain_index2gain(gain_index)
-               );
-    menu_draw_icon(x, y, MNI_PERCENT, mgain_index2gain(gain_index) * 100 / 32);
-}
 #endif
 
 #ifdef FEATURE_DIGITAL_GAIN
@@ -450,40 +432,20 @@ audio_dgain_toggle( void * priv, int delta )
     audio_configure( 1 );
 }
 
-static void
-audio_dgain_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(audio_dgain_display)
 {
-    unsigned val = *(unsigned*) priv;
-    unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
-    bmp_printf(
-               FONT(fnt, val ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
-               x, y,
-               // 23456789012
-               "%s Digital Gain : %d dB",
-               priv == &dgain_l ? "Left " : "Right",
-               val
-               );
-    if (!alc_enable){
-        menu_draw_icon(x, y, MNI_PERCENT, val * 100 / 36);
-    }else{
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "AGC is enabled");
-    }
+    unsigned val = CURRENT_VALUE;
+    MENU_SET_VALUE("%d dB", val);
+    if (alc_enable)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "AGC is enabled.");
 }
 #endif
 
 #ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
-static void
-audio_lovl_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(audio_lovl_display)
 {
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               //23456789012
-               "Output volume : %d dB",
-               2 * *(unsigned*) priv
-               );
-    if (audio_monitoring) menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
-    else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Headphone monitoring is disabled");
+    if (!audio_monitoring)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Headphone monitoring is disabled");
 }
 #endif
 
@@ -496,30 +458,15 @@ audio_input_toggle( void * priv, int delta )
 }
 #endif
 
-#ifdef FEATURE_WIND_FILTER
-void audio_filters_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Wind Filter   : %s",
-               enable_filters ? "ON" : "OFF"
-               );
-}
-#endif
-
 #ifdef FEATURE_MIC_POWER
-static void
-audio_micpower_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(audio_micpower_display)
 {
     int mic_pow = get_mic_power(get_input_source());
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Mic Power     : %s",
-               mic_pow ? "ON (Low Z)" : "OFF (High Z)"
-               );
-    if (mic_pow != mic_power) menu_draw_icon(x,y, MNI_WARNING, (intptr_t) "Mic power is required by internal mic.");
+    MENU_SET_VALUE(
+        mic_power ? "ON (Low Z)" : "OFF (High Z)"
+    );
+    if (mic_pow != mic_power)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Mic power is required by internal mic.");
 }
 #endif
 
@@ -529,7 +476,7 @@ static struct menu_entry audio_menus[] = {
         .name = "Analog Gain",
         .priv           = &mgain,
         .select         = audio_mgain_toggle,
-        .display        = audio_mgain_display,
+        .icon_type = IT_PERCENT,
         #ifdef CONFIG_500D
         // should match gains[]
         .max = 9,
@@ -553,15 +500,19 @@ static struct menu_entry audio_menus[] = {
             {
                 .name = "Left Digital Gain ",
                 .priv           = &dgain_l,
+                .max            = 5,
+                .icon_type      = IT_PERCENT,
                 .select         = audio_dgain_toggle,
-                .display        = audio_dgain_display,
+                .update         = audio_dgain_display,
                 .help = "Digital gain (LEFT). Any nonzero value reduces quality.",
             },
             {
                 .name = "Right Digital Gain",
                 .priv           = &dgain_r,
+                .max            = 5,
+                .icon_type      = IT_PERCENT,
                 .select         = audio_dgain_toggle,
-                .display        = audio_dgain_display,
+                .update         = audio_dgain_display,
                 .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
             },
             #ifdef FEATURE_AGC_TOGGLE
@@ -569,10 +520,8 @@ static struct menu_entry audio_menus[] = {
                 .name = "AGC",
                 .priv           = &alc_enable,
                 .select         = audio_binary_toggle,
-                .display        = audio_alc_display,
+                .max            = 1,
                 .help = "Automatic Gain Control - turn it off :)",
-                //~ .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
-                //.essential = FOR_MOVIE, // nobody needs to toggle this, but newbies want to see "AGC:OFF", manual controls are not enough...
             },
             #endif
             MENU_EOL,
@@ -584,8 +533,8 @@ static struct menu_entry audio_menus[] = {
         .name = "Input source",
         .priv           = &input_choice,
         .select         = audio_input_toggle,
-        .display        = audio_input_display,
-        .max = 4,
+        .icon_type      = IT_ALWAYS_ON,
+        .max            = 4,
         .choices = (const char *[]) {"Internal mic", "L:int R:ext", "External stereo", "L:int R:balanced", "Auto int/ext"},
         .help = "Audio input: internal / external / both / balanced / auto.",
         .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
@@ -596,7 +545,6 @@ static struct menu_entry audio_menus[] = {
     {
         .name = "Wind Filter",
         .priv              = &enable_filters,
-        .display           = audio_filters_display,
         .help = "High pass filter for wind noise reduction.",
         .select            = audio_binary_toggle,
         .max = 1,
@@ -606,9 +554,8 @@ static struct menu_entry audio_menus[] = {
     
     #ifdef CONFIG_AUDIO_REG_LOG
     {
-        .priv           = "Close register log",
+        .name           = "Close register log",
         .select         = audio_reg_close,
-        .display        = menu_print,
     },
     #endif
 
@@ -617,7 +564,7 @@ static struct menu_entry audio_menus[] = {
         .name = "Mic Power",
         .priv           = &mic_power,
         .select         = audio_binary_toggle,
-        .display        = audio_micpower_display,
+        .update         = audio_micpower_display,
         .max = 1,
         .help = "Needed for int. and some other mics, but lowers impedance.",
         .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
@@ -631,7 +578,7 @@ static struct menu_entry audio_menus[] = {
         .name = "Output volume",
         .priv           = &lovl,
         .select         = audio_3bit_toggle,
-        .display        = audio_lovl_display,
+        .update         = audio_lovl_display,
         .max = 3,
         .choices = (const char *[]) {"0 dB", "2 dB", "4 dB", "6 dB"},
         .help = "Output volume for audio monitoring (headphones only).",

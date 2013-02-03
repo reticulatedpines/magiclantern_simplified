@@ -2037,23 +2037,15 @@ static struct menu_entry lens_menus[] = {
 };
 
 #ifndef CONFIG_FULLFRAME
-static void cropinfo_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Crop Factor Display : %s",
-        crop_info ? "ON,35mm eq." : "OFF"
-    );
-    menu_draw_icon(x, y, MNI_BOOL_LV(crop_info));
-}
+
 static struct menu_entry tweak_menus[] = {
     {
         .name = "Crop Factor Display",
         .priv = &crop_info,
         .max  = 1,
-        .display = cropinfo_display,
-        .help = "Display the 35mm equiv. focal length including crop factor."
+        .choices = CHOICES("ON,35mm eq.", "OFF"),
+        .help = "Display the 35mm equiv. focal length including crop factor.",
+        .depends_on = DEP_LIVEVIEW | DEP_CHIPPED_LENS,
     }
 };
 #endif

@@ -4590,7 +4590,7 @@ int handle_expo_preset(struct event * event)
 #endif // FEATURE_EXPO_PRESET
 
 // in lcdsensor.c
-extern menu_update_func lcd_release_display;
+extern MENU_UPDATE_FUNC(lcd_release_display);
 
 static struct menu_entry shoot_menus[] = {
     #ifdef FEATURE_HDR_BRACKETING
