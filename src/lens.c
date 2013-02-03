@@ -2002,7 +2002,7 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
 static int fae_ack = 12345;
 PROP_HANDLER(PROP_STROBO_AECOMP)
 {
-    lens_info.flash_ae = buf[0];
+    lens_info.flash_ae = (int8_t) buf[0];
     fae_ack = (int8_t) buf[0];
 }
 

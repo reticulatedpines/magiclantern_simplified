@@ -51,10 +51,10 @@ struct menu_display_info
     char* value;
     char* help;
     char* warning;
-    int truth_value;
+    int enabled;
     int icon;
     int icon_arg;
-    enum {MENU_WARN_NONE, MENU_WARN_ADVICE, MENU_WARN_NOT_WORKING} 
+    enum {MENU_WARN_NONE, MENU_WARN_INFO, MENU_WARN_ADVICE, MENU_WARN_NOT_WORKING} 
         warning_level;
     enum {CUSTOM_DRAW_DISABLE, CUSTOM_DRAW_THIS_ENTRY, CUSTOM_DRAW_THIS_MENU} 
         custom_drawing;
@@ -68,23 +68,24 @@ struct menu_display_info
 
 #define MENU_SET_NAME(fmt, ...)         snprintf(info->name,    MENU_MAX_NAME_LEN,      fmt,    ## __VA_ARGS__)
 #define MENU_SET_VALUE(fmt, ...)        snprintf(info->value,   MENU_MAX_VALUE_LEN,     fmt,    ## __VA_ARGS__)
+#define MENU_APPEND_VALUE(fmt, ...)     snprintf(info->value + strlen(info->value),   MENU_MAX_VALUE_LEN - strlen(info->value),     fmt,    ## __VA_ARGS__)
 
 /* when the item is not selected, the help and warning overrides will not be parsed */
 /* warning level is still considered, for graying out menu items */
 
-#define MENU_SET_HELP(fmt, ...) { \
+#define MENU_SET_HELP(fmt, ...) ({ \
                                     if (entry->selected) \
                                         snprintf(info->help,    MENU_MAX_HELP_LEN,      fmt,    ## __VA_ARGS__) \
-                                }
+                                })
 
-#define MENU_SET_WARNING(level, fmt, ...) { \
+#define MENU_SET_WARNING(level, fmt, ...) ({ \
                                     info->warning_level = (level); \
                                     if (entry->selected) \
                                         snprintf(info->warning, MENU_MAX_WARNING_LEN,   fmt,    ## __VA_ARGS__); \
-                                }
+                                })
 
-#define MENU_SET_TRUTH_VALUE(val)   info->truth_value = val // whether the feature is ON or OFF
-#define MENU_SET_ICON(ico, arg)     { info->icon = (ico); info->icon_arg = (arg); }
+#define MENU_SET_ENABLED(val)   info->enabled = (val) // whether the feature is ON or OFF
+#define MENU_SET_ICON(ico, arg)  ({ info->icon = (ico); info->icon_arg = (arg); })
 
 struct menu_entry;
 struct menu_display_info;
@@ -170,6 +171,7 @@ struct menu_entry
 
 // how many choices we have (index runs from 0 to N-1)
 #define NUM_CHOICES(entry) ((entry)->max - (entry)->min + 1)
+#define CHOICES(...) (const char *[]) { __VA_ARGS__ }
 
 #define MENU_ENTRY_NOT_HIDDEN 0
 #define MENU_ENTRY_HIDDEN 1
@@ -205,6 +207,9 @@ struct menu_entry
 #define UNIT_PERCENT_x10 4
 #define UNIT_ISO 5
 #define UNIT_HEX 6
+
+#define DEPENDS_ON(foo) (entry->depends_on & (foo))
+#define WORKS_BEST_IN(foo) (entry->works_best_in & (foo))
 
 #define DEP_GLOBAL_DRAW (1<<0)
 #define DEP_LIVEVIEW (1<<1)
@@ -264,7 +269,8 @@ extern void run_in_separate_task(void (*priv)(void), int delta);
 
 
 OS_FUNCTION( 0x0700001,	void,	menu_add, const char * name, struct menu_entry * new_entry, int count );
-OS_FUNCTION( 0x0700002, void,	menu_draw_icon, int x, int y, int type, intptr_t arg);
+OS_FUNCTION( 0x0700002, void,	menu_draw_icon, int x, int y, int type, intptr_t arg); // deprecated
+//~ static void menu_draw_icon(int x, int y, int type, intptr_t arg);
 
 
 extern void
@@ -276,7 +282,7 @@ extern void menu_stop(void);
 #define MNI_OFF -2
 #define MNI_ON 1
 #define MNI_AUTO 2
-#define MNI_WARNING 3
+#define MNI_WARNING 3 // deprecated
 #define MNI_PERCENT 4
 #define MNI_ACTION 5
 #define MNI_DICE 6
@@ -295,6 +301,7 @@ extern void menu_stop(void);
 #define GDR_WARNING_MSG ((lv && lv_disp_mode && _ZEBRAS_IN_LIVEVIEW) ? "Press " INFO_BTN_NAME " (outside ML menu) to turn Canon displays off." : get_global_draw_setting() ? "GlobalDraw is disabled, check your settings." : "GlobalDraw is OFF.")
 #define EXPSIM_WARNING_MSG (expsim == 0 ? "ExpSim is OFF." : "Display Gain is active.") // no other causes.. yet
 
+// deprecated
 #define MNI_BOOL_GDR(x) ((x) ? ( get_global_draw() ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) GDR_WARNING_MSG
 #define MNI_BOOL_GDR_EXPSIM(x) ((x) ? ( get_global_draw() && (lv_luma_is_accurate() || !lv) ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t)( !get_global_draw() ? GDR_WARNING_MSG : EXPSIM_WARNING_MSG )
 #define MNI_BOOL_LV(x) ((x) ? ( lv ? MNI_ON : MNI_WARNING ) : MNI_OFF), (intptr_t) "This option only works in LiveView." 

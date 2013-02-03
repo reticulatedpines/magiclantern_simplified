@@ -93,7 +93,6 @@ static int config_dirty = 0;
 static int menu_hidden_dirty = 0;
 //~ static int menu_hidden_should_display_help = 0;
 static int menu_zebras_mirror_dirty = 0; // to clear zebras from mirror (avoids display artifacts if, for example, you enable false colors in menu, then you disable them, and preview LV)
-static char* warning_msg = 0;
 int menu_help_active = 0;
 int submenu_mode = 0;
 int g_submenu_width = 0;
@@ -121,12 +120,6 @@ void menu_set_dirty() { menu_damage = 1; }
 
 int is_menu_help_active() { return gui_menu_shown() && menu_help_active; }
 
-//~ int get_menu_font_sel() 
-//~ {
-    //~ if (recording) return FONT(FONT_LARGE,COLOR_WHITE,12); // dark red
-    //~ else return FONT(FONT_LARGE,COLOR_WHITE,13);
-//~ }
-
 void select_menu_by_name(char* name, char* entry_name);
 static void select_menu_by_icon(int icon);
 static void menu_help_go_to_selected_entry(struct menu * menu);
@@ -137,6 +130,7 @@ static struct menu * get_selected_menu();
 static void menu_make_sure_selection_is_valid();
 static void menu_save_hidden_items();
 static void menu_load_hidden_items();
+static int guess_submenu_enabled(struct menu_entry * entry);
 
 extern int gui_state;
 void menu_enable_lv_transparent_mode()
@@ -265,13 +259,33 @@ static void entry_guess_icon_type(struct menu_entry * entry)
     }
 }
 
-static int entry_guess_truth_value(struct menu_entry * entry)
+static int entry_guess_enabled(struct menu_entry * entry)
 {
     if (entry->icon_type == IT_BOOL || entry->icon_type == IT_DICE_OFF)
-        return MEM(entry->priv);
+        return MENU_INT(entry);
     else if (entry->icon_type == IT_BOOL_NEG)
-        return !MEM(entry->priv);
+        return !MENU_INT(entry);
+    else if (entry->icon_type == IT_SUBMENU)
+        return guess_submenu_enabled(entry);
     else return 1;
+}
+
+static int guess_submenu_enabled(struct menu_entry * entry)
+{
+    if (entry->priv) // if it has a priv field, use it as truth value for the entire group
+    {
+        return MENU_INT(entry);
+    }
+    else 
+    {   // otherwise, look in the children submenus; if one is true, then submenu icon is drawn as "true"
+        struct menu_entry * e = entry->children;
+        for( ; e ; e = e->next )
+        {
+            if (MENU_INT(e))
+                return 1;
+        }
+        return 0;
+    }
 }
 
 static void entry_draw_icon(
@@ -334,24 +348,7 @@ static void entry_draw_icon(
         
         case IT_SUBMENU:
         {
-            int value = 0;
-            if (entry->priv) // if it has a priv field, use it as truth value for the entire group
-            {
-                value = MENU_INT(entry);
-            }
-            else 
-            {   // otherwise, look in the children submenus; if one is true, then submenu icon is drawn as "true"
-                struct menu_entry * e = entry->children;
-                for( ; e ; e = e->next )
-                {
-                    if (MENU_INT(e))
-                    {
-                        value = 1;
-                        break;
-                    }
-                }
-
-            }
+            int value = guess_submenu_enabled(entry);
             menu_draw_icon(x, y, MNI_SUBMENU, value);
             break;
         }
@@ -450,7 +447,7 @@ menu_find_by_name(
     new_menu->pos       = 1;
     new_menu->childnum  = 1;
     new_menu->childnummax = 1;
-    new_menu->split_pos = 16;
+    new_menu->split_pos = -12;
     // menu points to the last entry or NULL if there are none
     if( menu )
     {
@@ -542,6 +539,17 @@ void menu_fixup_pic(struct menu_entry * new_entry, int count)
 }
 #endif
 
+static void menu_update_split_pos(struct menu * menu, struct menu_entry * entry)
+{
+    // auto adjust width so that all things can be printed nicely
+    // only "negative" numbers are auto-adjusted (if you override the width, you do so with a positive value)
+    if (entry->name && menu->split_pos < 0)
+    {
+        menu->split_pos = -MAX(-menu->split_pos, strlen(entry->name) + 2);
+        if (-menu->split_pos > 25) menu->split_pos = -25;
+    }
+}
+
 void
 menu_add(
     const char *        name,
@@ -580,6 +588,7 @@ menu_add(
         menu->childnum      = 1; 
         menu->childnummax   = 1;
         //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
+        menu_update_split_pos(menu, new_entry);
         new_entry++;
         count--;
     }
@@ -601,6 +610,7 @@ menu_add(
         new_entry->prev     = head;
         head->next      = new_entry;
         head            = new_entry;
+        menu_update_split_pos(menu, new_entry);
         new_entry++;
     }
     give_semaphore( menu_sem );
@@ -745,10 +755,8 @@ void submenu_icon(int x, int y)
     //~ }
 }
 
-void submenu_only_icon(int x, int y, int value)
+void submenu_only_icon(int x, int y, int color)
 {
-    //~ bmp_draw_rect(50, x+2, y+5, 32-3, 32-10);
-    int color = value ? COLOR_GREEN1 : COLOR_GRAY45;
     for (int r = 0; r < 3; r++)
     {
         draw_circle(x + 8, y + 10, r, color);
@@ -759,7 +767,7 @@ void submenu_only_icon(int x, int y, int value)
         draw_circle(x + 9, y + 22, r, color);
     }
     
-    color = value ? COLOR_WHITE : COLOR_GRAY45;
+    if (color == COLOR_GREEN1) color = COLOR_WHITE;
     bmp_draw_rect(color, x + 15, y + 10, 10, 1);
     bmp_draw_rect(color, x + 15, y + 16, 10, 1);
     bmp_draw_rect(color, x + 15, y + 22, 10, 1);
@@ -931,7 +939,7 @@ void selection_bar(int x0, int y0)
     if (submenu_mode == 2)
     {
         //~ selection_bar_backend(COLOR_GRAY45, COLOR_BLACK, x0, y0, 320-x0, 31);
-        int cx = MENU_OFFSET + get_selected_menu()->split_pos * font_large.width;
+        int cx = MENU_OFFSET + ABS(get_selected_menu()->split_pos) * font_large.width;
         selection_bar_backend(MENU_BAR_COLOR, COLOR_BLACK, cx, y0, 720-cx, 31);
         return;
     }
@@ -994,10 +1002,6 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
     if (icon_drawn) return;
     
     icon_drawn = type;
-    warning_msg = 0;
-    
-    if (type == MNI_WARNING)
-        warning_msg = (char *) arg;
 
 #ifdef CONFIG_MENU_ICONS
 
@@ -1011,7 +1015,7 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
         case MNI_ON: maru(x, y, COLOR_GREEN1); return;
         case MNI_DISABLE: batsu(x, y, COLOR_RED); return;
         case MNI_NEUTRAL: maru(x, y, COLOR_GRAY60); return;
-        case MNI_WARNING: maru(x, y, COLOR_RED); return;
+        case MNI_WARNING: maru(x, y, COLOR_ORANGE); return;
         case MNI_AUTO: maru(x, y, COLOR_LIGHTBLUE); return;
         case MNI_PERCENT: percent(x, y, arg); return;
         case MNI_ACTION: playicon(x, y); return;
@@ -1026,7 +1030,7 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
         }
         case MNI_SIZE: size_icon(x, y, arg & 0xFFFF, arg >> 16); return;
         case MNI_NAMED_COLOR: color_icon(x, y, (char *)arg); return;
-        case MNI_SUBMENU: submenu_only_icon(x, y, arg); return;
+        case MNI_SUBMENU: submenu_only_icon(x, y, arg ? COLOR_GREEN1 : COLOR_GRAY45); return;
     }
 #endif
 }
@@ -1169,42 +1173,42 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
     warning[0] = 0;
     
     // default warnings
-         if ((entry->depends_on & DEP_GLOBAL_DRAW) && !get_global_draw())
+         if (DEPENDS_ON(DEP_GLOBAL_DRAW) && !get_global_draw())
         snprintf(warning, MENU_MAX_WARNING_LEN, GDR_WARNING_MSG);
-    else if ((entry->depends_on & DEP_LIVEVIEW) && !lv)
+    else if (DEPENDS_ON(DEP_LIVEVIEW) && !lv)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature only works in LiveView.");
-    else if ((entry->depends_on & DEP_NOT_LIVEVIEW) && lv)
+    else if (DEPENDS_ON(DEP_NOT_LIVEVIEW) && lv)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature does not work in LiveView.");
-    else if ((entry->depends_on & DEP_MOVIE_MODE) && !is_movie_mode())
+    else if (DEPENDS_ON(DEP_MOVIE_MODE) && !is_movie_mode())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature only works in movie mode.");
-    else if ((entry->depends_on & DEP_PHOTO_MODE) && is_movie_mode())
+    else if (DEPENDS_ON(DEP_PHOTO_MODE) && is_movie_mode())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature only works in photo mode.");
-    else if ((entry->depends_on & DEP_AUTOFOCUS) && is_manual_focus())
+    else if (DEPENDS_ON(DEP_AUTOFOCUS) && is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires autofocus.");
-    else if ((entry->depends_on & DEP_MANUAL_FOCUS) && !is_manual_focus())
+    else if (DEPENDS_ON(DEP_MANUAL_FOCUS) && !is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual focus.");
-    else if ((entry->depends_on & DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER)
+    else if (DEPENDS_ON(DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER)
         snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
-    else if ((entry->depends_on & DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR)
+    else if (DEPENDS_ON(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR)
         snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
-    else if ((entry->depends_on & DEP_EXPSIM) && !lv_luma_is_accurate())
+    else if (DEPENDS_ON(DEP_EXPSIM) && !lv_luma_is_accurate())
         snprintf(warning, MENU_MAX_WARNING_LEN, EXPSIM_WARNING_MSG);
-    else if ((entry->depends_on & DEP_NOT_EXPSIM) && lv_luma_is_accurate())
+    else if (DEPENDS_ON(DEP_NOT_EXPSIM) && lv_luma_is_accurate())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires ExpSim disabled.");
-    else if ((entry->depends_on & DEP_MANUAL_FOCUS) && !is_manual_focus())
+    else if (DEPENDS_ON(DEP_MANUAL_FOCUS) && !is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual focus.");
-    else if ((entry->depends_on & DEP_CHIPPED_LENS) && !lens_info.name[0])
+    else if (DEPENDS_ON(DEP_CHIPPED_LENS) && !lens_info.name[0])
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires a chipped (electronic) lens.");
-    else if ((entry->depends_on & DEP_M_MODE) && shooting_mode != SHOOTMODE_M)
+    else if (DEPENDS_ON(DEP_M_MODE) && shooting_mode != SHOOTMODE_M)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires Manual (M) mode.");
-    else if ((entry->depends_on & DEP_MANUAL_ISO) && !lens_info.raw_iso)
+    else if (DEPENDS_ON(DEP_MANUAL_ISO) && !lens_info.raw_iso)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual ISO.");
-    else if ((entry->depends_on & DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
+    else if (DEPENDS_ON(DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
         snprintf(warning, MENU_MAX_WARNING_LEN, (was_sound_recording_disabled_by_fps_override() && !fps_should_record_wav()) ? 
             "Sound recording was disabled by FPS override." :
             "Sound recording is disabled. Enable it from Canon menu."
         );
-    else if ((entry->depends_on & DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
+    else if (DEPENDS_ON(DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
         snprintf(warning, MENU_MAX_WARNING_LEN, "Disable sound recording from Canon menu!");
     
     if (warning[0]) 
@@ -1212,37 +1216,37 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
     
     if (entry->selected) // check recommendations
     {
-             if ((entry->works_best_in & DEP_GLOBAL_DRAW) && !get_global_draw())
+             if (WORKS_BEST_IN(DEP_GLOBAL_DRAW) && !get_global_draw())
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with GlobalDraw enabled.");
-        else if ((entry->works_best_in & DEP_LIVEVIEW) && !lv)
+        else if (WORKS_BEST_IN(DEP_LIVEVIEW) && !lv)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best in LiveView.");
-        else if ((entry->works_best_in & DEP_NOT_LIVEVIEW) && lv)
+        else if (WORKS_BEST_IN(DEP_NOT_LIVEVIEW) && lv)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best outside LiveView.");
-        else if ((entry->works_best_in & DEP_MOVIE_MODE) && !is_movie_mode())
+        else if (WORKS_BEST_IN(DEP_MOVIE_MODE) && !is_movie_mode())
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best in movie mode.");
-        else if ((entry->works_best_in & DEP_PHOTO_MODE) && is_movie_mode())
+        else if (WORKS_BEST_IN(DEP_PHOTO_MODE) && is_movie_mode())
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best in photo mode.");
-        else if ((entry->works_best_in & DEP_AUTOFOCUS) && is_manual_focus())
+        else if (WORKS_BEST_IN(DEP_AUTOFOCUS) && is_manual_focus())
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with autofocus enabled.");
-        else if ((entry->works_best_in & DEP_MANUAL_FOCUS) && !is_manual_focus())
+        else if (WORKS_BEST_IN(DEP_MANUAL_FOCUS) && !is_manual_focus())
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with manual focus.");
-        else if ((entry->works_best_in & DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER)
+        else if (WORKS_BEST_IN(DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER)
             snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
-        else if ((entry->works_best_in & DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR)
+        else if (WORKS_BEST_IN(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR)
             snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
-        else if ((entry->works_best_in & DEP_EXPSIM) && !lv_luma_is_accurate())
+        else if (WORKS_BEST_IN(DEP_EXPSIM) && !lv_luma_is_accurate())
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with ExpSim enabled.");
-        else if ((entry->works_best_in & DEP_NOT_EXPSIM) && lv_luma_is_accurate())
+        else if (WORKS_BEST_IN(DEP_NOT_EXPSIM) && lv_luma_is_accurate())
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with ExpSim disabled.");
-        else if ((entry->works_best_in & DEP_CHIPPED_LENS) && !lens_info.name[0])
+        else if (WORKS_BEST_IN(DEP_CHIPPED_LENS) && !lens_info.name[0])
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with a chipped (electronic) lens.");
-        else if ((entry->works_best_in & DEP_M_MODE) && shooting_mode != SHOOTMODE_M)
+        else if (WORKS_BEST_IN(DEP_M_MODE) && shooting_mode != SHOOTMODE_M)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best in Manual (M) mode.");
-        else if ((entry->works_best_in & DEP_MANUAL_ISO) && !lens_info.raw_iso)
+        else if (WORKS_BEST_IN(DEP_MANUAL_ISO) && !lens_info.raw_iso)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with manual ISO.");
-        else if ((entry->works_best_in & DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
+        else if (WORKS_BEST_IN(DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording enabled.");
-        else if ((entry->works_best_in & DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
+        else if (WORKS_BEST_IN(DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording disabled.");
         
         return MENU_WARN_ADVICE;
@@ -1272,12 +1276,12 @@ entry_default_display_info(
     info->help = help;
     info->warning = warning;
     info->custom_drawing = 0;
-    info->warning_level = 0;
     info->icon = 0;
     info->icon_arg = 0;
 
     entry_guess_icon_type(entry);
-    info->truth_value = entry_guess_truth_value(entry);
+    info->enabled = entry_guess_enabled(entry);
+    info->warning_level = check_default_warnings(entry, warning);
     
     snprintf(name, sizeof(name), "%s", entry->name);
 
@@ -1346,7 +1350,7 @@ entry_print(
 )
 {
     int fnt = MENU_FONT;
-    
+
     if (info->warning_level == MENU_WARN_NOT_WORKING) 
         fnt = MENU_FONT_GRAY;
     
@@ -1355,24 +1359,21 @@ entry_print(
         x, y,
         info->name
     );
+    
+    // debug
+    if (0)
+        bmp_printf(FONT_SMALL, x, y, "name(%s)(%d) value(%s)(%d)", info->name, strlen(info->name), info->value, strlen(info->value));
 
-    if (info->truth_value == 0) 
+    if (info->enabled == 0) 
         fnt = MENU_FONT_GRAY;
+    
+    w = MAX(w, strlen(info->name)+1);
 
     bmp_printf(
         fnt,
         x + font_large.width * w, y,
         info->value
     );
-
-    if (info->warning_level == MENU_WARN_ADVICE) 
-    {
-        bmp_printf(
-            MENU_FONT_GRAY,
-            x + 650, y,
-            "[!]"
-        );
-    }
 
     // display help
     if (entry->selected && entry->help && !menu_lv_transparent_mode)
@@ -1402,6 +1403,19 @@ entry_print(
                 info->warning
         );
     }
+
+    // warning icon, if any
+    if (info->warning_level == MENU_WARN_NOT_WORKING && info->enabled)
+    {
+        if (entry->icon_type == IT_SUBMENU)
+            submenu_only_icon(x-40, y, COLOR_ORANGE);
+        else
+            menu_draw_icon(x, y, MNI_WARNING, 0);
+        return;
+    }
+
+    if (!info->enabled && entry->icon_type == IT_PERCENT)
+        menu_draw_icon(x, y, MNI_OFF, 0);
     
     if (info->icon) menu_draw_icon(x, y, info->icon, info->icon_arg);
     entry_draw_icon(entry, x, y);
@@ -1449,7 +1463,6 @@ menu_display(
 
             // display icon (only the first icon is drawn)
             icon_drawn = 0;
-            warning_msg = 0;
 
             if ((!menu_lv_transparent_mode && !only_selected) || menu->selected)
             {
@@ -1458,29 +1471,16 @@ menu_display(
                 
                 if (menu->update)
                     menu->update(menu, &info);
+
+                // menu->update asked to draw the entire screen by itself? stop drawing right now
+                if (info.custom_drawing == CUSTOM_DRAW_THIS_MENU)
+                    return;
                 
-                if (menu->display)
-                    menu->display(
-                        menu->priv,
-                        x,
-                        y,
-                        menu->selected
-                    );
-                else
-                    entry_print(x, y, parentmenu->split_pos, menu, &info);
+                if (info.custom_drawing == CUSTOM_DRAW_DISABLE)
+                    entry_print(x, y, ABS(parentmenu->split_pos), menu, &info);
                 
                 if (menu->hidden)
                     dim_hidden_menu(x, y, menu->selected);
-            }
-            
-            // menu->display asked to draw the entire screen by itself? stop drawing right now
-            if (icon_drawn == MNI_STOP_DRAWING)
-                return;
-            
-            // this should be after menu->display, in order to allow it to override the icon
-            if (menu->selected || (!menu_lv_transparent_mode && !only_selected))
-            {
-                entry_draw_icon(menu, x, y);
             }
 
             // display key hints
@@ -1544,7 +1544,7 @@ menu_display(
                 // use a pickbox if possible
                 if (submenu_mode == 2 && menu->min != menu->max && menu->priv)
                 {
-                    int px = x + parentmenu->split_pos * font_large.width;
+                    int px = x + ABS(parentmenu->split_pos) * font_large.width;
                     pickbox_draw(menu, px, y);
                 }
                 else
@@ -2599,16 +2599,16 @@ menu_init( void )
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
     menu_find_by_name( "Audio",     ICON_ML_AUDIO   )->split_pos = 16;
-    menu_find_by_name( "Expo",      ICON_ML_EXPO    )->split_pos = 14;
-    menu_find_by_name( "Overlay",   ICON_ML_OVERLAY )->split_pos = 14;
+    menu_find_by_name( "Expo",      ICON_ML_EXPO    );
+    menu_find_by_name( "Overlay",   ICON_ML_OVERLAY );
     menu_find_by_name( "Movie",     ICON_ML_MOVIE   )->split_pos = 16;
-    menu_find_by_name( "Shoot",     ICON_ML_SHOOT   )->split_pos = 18;
-    menu_find_by_name( "Focus",     ICON_ML_FOCUS   )->split_pos = 17;
-    menu_find_by_name( "Display",   ICON_ML_DISPLAY )->split_pos = 17;
-    menu_find_by_name( "Prefs",     ICON_ML_PREFS   )->split_pos = 20;
-    menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  )->split_pos = 12;
+    menu_find_by_name( "Shoot",     ICON_ML_SHOOT   );
+    menu_find_by_name( "Focus",     ICON_ML_FOCUS   );
+    menu_find_by_name( "Display",   ICON_ML_DISPLAY );
+    menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
+    menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );
     menu_find_by_name( "Debug",     ICON_ML_DEBUG   )->split_pos = 15;
-    menu_find_by_name( "Help",      ICON_ML_INFO    )->split_pos = 13;
+    menu_find_by_name( "Help",      ICON_ML_INFO    );
 
 }
 

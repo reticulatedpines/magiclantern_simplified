@@ -43,18 +43,11 @@ CONFIG_INT( "lcd.release", lcd_release_running, 0);
 
 void display_lcd_remote_icon(int x0, int y0);
 
-void 
-lcd_release_display( void * priv, int x, int y, int selected )
+MENU_UPDATE_FUNC(lcd_release_display)
 {
-    int v = (*(int*)priv);
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "LCDsensor Remote: %s",
-        v == 1 ? "Near" : v == 2 ? "Away" : v == 3 ? "Wave" : "OFF"
-    );
+    int v = CURRENT_VALUE;
     if (v) display_lcd_remote_icon(x-25, y+5);
-    menu_draw_icon(x, y, v ? MNI_NONE : MNI_OFF, 0);
+    MENU_SET_ICON(v ? MNI_NONE : MNI_OFF, 0);
 }
 
 extern int remote_shot_flag; // from shoot.c

@@ -69,13 +69,7 @@ int gain_to_ev_scaled(int gain, int scale)
     return (int) roundf(log2f(gain) * ((float)scale));
 }
 
-void
-digic_iso_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+MENU_UPDATE_FUNC(digic_iso_print)
 {
     int G = 0;
     if (is_movie_mode())
@@ -84,10 +78,9 @@ digic_iso_print(
         G = G * 10/8;
         int GA = abs(G);
         
-        bmp_printf(
-            MENU_FONT,
-            x, y,
-            "ML digital ISO   : %s%d.%d EV",
+        MENU_SET_NAME("ML digital ISO");
+        MENU_SET_VALUE(
+            "%s%d.%d EV",
             G > 0 ? "+" : G < 0 ? "-" : "",
             GA/10, GA%10
         );
@@ -98,15 +91,14 @@ digic_iso_print(
         G = G * 10/8;
         int GA = abs(G);
 
-        bmp_printf(
-            MENU_FONT,
-            x, y,
-            "Display Gain     : %s%d.%d EV",
+        MENU_SET_NAME("Display Gain");
+        MENU_SET_VALUE(
+            "%s%d.%d EV",
             G > 0 ? "+" : G < 0 ? "-" : "",
             GA/10, GA%10
         );
     }
-    menu_draw_icon(x, y, MNI_BOOL(G), 0);
+    MENU_SET_ENABLED(G);
 }
 
 void
@@ -132,18 +124,10 @@ display_gain_print(
     menu_draw_icon(x, y, MNI_BOOL(G), 0);
 }
 
-void
-digic_black_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+MENU_UPDATE_FUNC(digic_black_print)
 {
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "Black Level : %s%d",
+    MENU_SET_VALUE(
+        "%s%d",
         digic_black_level > 0 ? "+" : "",
         digic_black_level
     );
