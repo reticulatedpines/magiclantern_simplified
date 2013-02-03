@@ -395,59 +395,45 @@ static void timelapse_calc_display(void* priv, int x, int y, int selected)
     );
 }
 
-static void
-interval_timer_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(interval_timer_display)
 {
-    int d = timer_values[*(int*)priv];
+    int d = timer_values[CURRENT_VALUE];
     if (!d)
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Take pics like crazy"
-        );
+    {
+        MENU_SET_NAME("Take pics...");
+        MENU_SET_VALUE("like crazy");
+    }
     else
     {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Take a pic every: %s",
+        MENU_SET_VALUE(
             format_time_hours_minutes_seconds(d)
         );
     }
-    
-    menu_draw_icon(x, y, MNI_PERCENT, (*(int*)priv) * 100 / COUNT(timer_values));
+    MENU_SET_ICON(MNI_PERCENT, CURRENT_VALUE * 100 / COUNT(timer_values));
 }
 
-static void
-interval_start_after_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(interval_start_after_display)
 {
-    int d = timer_values[*(int*)priv];
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Start after     : %s",
+    int d = timer_values[CURRENT_VALUE];
+    MENU_SET_VALUE(
         format_time_hours_minutes_seconds(d)
     );
 
-    menu_draw_icon(x, y, MNI_PERCENT, (*(int*)priv) * 100 / COUNT(timer_values));
+    MENU_SET_ICON(MNI_PERCENT, CURRENT_VALUE * 100 / COUNT(timer_values));
 }
 
-static void
-interval_stop_after_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(interval_stop_after_display)
 {
-    int d = (*(int*)priv);
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        d ? "Stop after      : %d shots" 
-          : "Stop after      : %s",
+    int d = CURRENT_VALUE;
+    MENU_SET_VALUE(
+        d ? "%d shots"
+          : "%s",
         d ? d : (intptr_t) "Disabled"
     );
-    if (!d) menu_draw_icon(x, y, MNI_OFF, 0);
+    MENU_SET_ICON(MNI_OFF, 0);
 }
 
-static void
-interval_timer_toggle( void * priv, int delta )
+static MENU_SELECT_FUNC(interval_timer_toggle)
 {
     int * ptr = priv;
 
@@ -457,8 +443,7 @@ interval_timer_toggle( void * priv, int delta )
         *ptr = mod(*ptr + delta, COUNT(timer_values));
 }
 
-static void
-shoot_exponential_toggle( void * priv, int delta )
+static MENU_SELECT_FUNC(shoot_exponential_toggle)
 {
     int *ptr = priv;
     int val = *ptr;
@@ -481,29 +466,21 @@ shoot_exponential_toggle( void * priv, int delta )
     *ptr = val;    
 }
 
-static void 
-intervalometer_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(intervalometer_display)
 {
-    int p = *(int*)priv;
+    int p = CURRENT_VALUE;
     if (p)
     {
         int d = timer_values[interval_timer_index];
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Intervalometer  : ON, %s%s",
+        MENU_SET_VALUE("ON, %s%s",
             format_time_hours_minutes_seconds(d),
             bulb_ramping_enabled ? ", BRamp" : ""
         );
-        if (selected) timelapse_calc_display(&interval_timer_index, 10, 370, selected);
+        if (entry->selected) timelapse_calc_display(&interval_timer_index, 10, 370, entry->selected);
     }
     else
     {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Intervalometer  : OFF"
-        );
+        MENU_SET_VALUE("OFF");
     }
 }
 #endif
@@ -517,54 +494,38 @@ static int get_smooth_factor_from_max_ev_speed(int speed_x1000)
     return COERCE(fi, 1, 99);
 }
 
-static void manual_expo_ramp_print( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(manual_expo_ramp_print)
 {
     int evx1000 = bramp_manual_speed_evx1000_per_shot;
     if (!evx1000)
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Man. ExpoRamp: OFF"
-    );
+        MENU_SET_VALUE("OFF");
     else
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Man. ExpoRamp: %s%d.%03d EV/shot",
-        FMT_FIXEDPOINT3S(evx1000)
-    );
-    menu_draw_icon(x, y, MNI_BOOL(evx1000), 0);
+        MENU_SET_VALUE(
+            "%s%d.%03d EV/shot",
+            FMT_FIXEDPOINT3S(evx1000)
+        );
 }
 
-static void manual_focus_ramp_print( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(manual_focus_ramp_print)
 {
     int steps = bramp_manual_speed_focus_steps_per_shot;
     if (!steps)
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Man.FocusRamp: OFF"
-    );
+        MENU_SET_VALUE("OFF");
     else
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Man.FocusRamp: %s%d steps/shot",
-        steps > 0 ? "+" : "",
-        steps
-    );
-    if (steps && is_manual_focus())
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This feature requires autofocus enabled.");
-    menu_draw_icon(x, y, MNI_BOOL(steps), 0);
+        MENU_SET_VALUE(
+            "%s%d steps/shot",
+            steps > 0 ? "+" : "",
+            steps
+        );
 }
 
-static void bulb_ramping_print( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(bulb_ramping_print)
 {
     int evx1000 = bramp_manual_speed_evx1000_per_shot;
     int steps = bramp_manual_speed_focus_steps_per_shot;
 
     static char msg[100];
-    snprintf(msg, sizeof(msg), "TimelapseRamping: ");
+    msg[0] = 0;
 
     // try to write this as compact as possible, there's very little space in the menu
     if (!bulb_ramping_enabled)
@@ -594,15 +555,13 @@ static void bulb_ramping_print( void * priv, int x, int y, int selected )
             STR_APPEND(msg, "%s%dFS", steps > 0 ? "+" : "", steps);
         }
     }
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "%s",
-        msg
-    );
-    if (bulb_ramping_enabled && !bramp_auto_exposure && !evx1000 && !steps)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Nothing enabled from the submenu.");
-    menu_draw_icon(x, y, MNI_BOOL(bulb_ramping_enabled), 0);
+    
+    MENU_SET_VALUE(msg);
+
+    if (!bramp_auto_exposure && !evx1000 && !steps)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Nothing enabled from the submenu.");
+    }
 }
 
 static int ev_values[] = {-1000, -750, -500, -200, -100, -50, -20, -10, -5, -2, -1, 0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 750, 1000};
@@ -3238,23 +3197,15 @@ void zoom_auto_exposure_step()
 #endif // FEATURE_LV_ZOOM_SETTINGS
 
 #ifdef FEATURE_HDR_BRACKETING
-static void
-hdr_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(hdr_display)
 {
     if (!hdr_enabled)
     {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Adv.Bracketing  : OFF"
-        );
+        MENU_SET_VALUE("OFF");
     }
     else
     {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Adv.Bracketing  : %s%Xx%d%sEV,%s%s%s",
+        MENU_SET_VALUE("%s%Xx%d%sEV,%s%s%s",
             hdr_type == 0 ? "" : hdr_type == 1 ? "F," : "DOF,",
             hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
             hdr_stepsize / 8,
@@ -3263,17 +3214,16 @@ hdr_display( void * priv, int x, int y, int selected )
             hdr_delay ? ",2s" : "",
             hdr_iso == 1 ? ",ISO" : hdr_iso == 2 ? ",iso" : ""
         );
-        
-        if (aeb_setting)
-        {
-            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Turn off Canon bracketing (AEB)!");
-        }
+    }
+
+    if (aeb_setting)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Turn off Canon bracketing (AEB)!");
     }
 }
 
 // 0,4,8,12,16, 24, 32, 40
-static void
-hdr_stepsize_toggle( void * priv, int delta )
+static MENU_SELECT_FUNC(hdr_stepsize_toggle)
 {
     int h = hdr_stepsize;
     delta *= (h+delta < 16 ? 4 : 8);
@@ -4804,9 +4754,9 @@ void lcd_release_display( void * priv, int x, int y, int selected );
 static struct menu_entry shoot_menus[] = {
     #ifdef FEATURE_HDR_BRACKETING
     {
-        .name = "Advanced Bracketing",
+        .name = "Advanced Bracket",
         .priv = &hdr_enabled,
-        .display    = hdr_display,
+        .update  = hdr_display,
         .max  = 1,
         .help = "Advanced bracketing (expo, flash, DOF). Press shutter once.",
         .works_best_in = DEP_PHOTO_MODE | DEP_M_MODE | DEP_MANUAL_ISO,
@@ -4882,7 +4832,7 @@ static struct menu_entry shoot_menus[] = {
         .name = "Intervalometer",
         .priv       = &intervalometer_running,
         .max        = 1,
-        .display    = intervalometer_display,
+        .update     = intervalometer_display,
         .help = "Take pictures at fixed intervals (for timelapse).",
         .submenu_width = 650,
         .works_best_in = DEP_PHOTO_MODE,
@@ -4890,14 +4840,14 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Take a pic every",
                 .priv       = &interval_timer_index,
-                .display    = interval_timer_display,
+                .update     = interval_timer_display,
                 .select     = interval_timer_toggle,
                 .help = "Duration between two shots.",
             },
             {
                 .name = "Start after",
                 .priv       = &interval_start_timer_index,
-                .display    = interval_start_after_display,
+                .update     = interval_start_after_display,
                 .select     = interval_timer_toggle,
                 .help = "Start the intervalometer after X seconds / minutes / hours.",
             },
@@ -4905,7 +4855,7 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Stop after",
                 .priv       = &interval_stop_after,
                 .max = 5000, // 5000 shots
-                .display    = interval_stop_after_display,
+                .update     = interval_stop_after_display,
                 .select     = shoot_exponential_toggle,
                 .help = "Stop the intervalometer after taking X shots.",
             },
@@ -4932,10 +4882,10 @@ static struct menu_entry shoot_menus[] = {
         #error This requires FEATURE_HISTOGRAM.
         #endif
     {
-        .name = "Timelapse Ramping",
+        .name = "Bulb Ramping", // will move focus ramping to scripts
         .priv       = &bulb_ramping_enabled,
-        .display = bulb_ramping_print,
-        .max = 1,
+        .update     = bulb_ramping_print,
+        .max        = 1,
         .submenu_width = 710,
         .help = "Exposure / focus ramping for advanced timelapse sequences.",
         .depends_on = DEP_PHOTO_MODE,
@@ -4979,20 +4929,20 @@ static struct menu_entry shoot_menus[] = {
                 .help = "LRTimelapse Holy Grail: change exposure in big steps only.",
             },*/
             {
-                .name = "Manual Expo. Ramp",
+                .name = "Man.ExpoRamp",
                 .priv       = &bramp_manual_speed_evx1000_per_shot,
                 .max = 1000,
                 .min = -1000,
                 .select = bramp_manual_evx1000_toggle,
-                .display = manual_expo_ramp_print,
+                .update = manual_expo_ramp_print,
                 .help = "Manual exposure ramping (Tv+ISO), in EV per shot.",
             },
             {
-                .name = "Manual Focus Ramp",
+                .name = "Man.FocusRamp",
                 .priv       = &bramp_manual_speed_focus_steps_per_shot,
                 .max = 100,
                 .min = -100,
-                .display = manual_focus_ramp_print,
+                .update = manual_focus_ramp_print,
                 .help = "Manual focus ramping, in steps per shot. LiveView only.",
                 .depends_on = DEP_AUTOFOCUS,
             },

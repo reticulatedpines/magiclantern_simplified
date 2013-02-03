@@ -36,17 +36,81 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define MENU_FONT       FONT(FONT_LARGE,COLOR_WHITE,COLOR_BLACK)
-#define MENU_FONT_SEL   MENU_FONT
-#define MENU_FONT_GRAY  FONT(FONT_LARGE,50,COLOR_BLACK)
+#define MENU_FONT           FONT(FONT_LARGE,COLOR_WHITE,COLOR_BLACK)
+#define MENU_FONT_SEL       MENU_FONT
+#define MENU_FONT_GRAY      FONT(FONT_LARGE, entry->selected ? 60 : 50, COLOR_BLACK)
 
 int get_menu_font_sel();
 int gui_menu_shown();
 void menu_show_only_selected();
 int get_menu_advanced_mode();
 
-extern int submenu_mode;
-extern int page_number_active;
+struct menu_display_info
+{
+    char* name;
+    char* value;
+    char* help;
+    char* warning;
+    int truth_value;
+    int icon;
+    int icon_arg;
+    enum {MENU_WARN_NONE, MENU_WARN_ADVICE, MENU_WARN_NOT_WORKING} 
+        warning_level;
+    enum {CUSTOM_DRAW_DISABLE, CUSTOM_DRAW_THIS_ENTRY, CUSTOM_DRAW_THIS_MENU} 
+        custom_drawing;
+    // etc
+};
+
+#define MENU_MAX_NAME_LEN 25
+#define MENU_MAX_VALUE_LEN 18
+#define MENU_MAX_HELP_LEN 60
+#define MENU_MAX_WARNING_LEN 60
+
+#define MENU_SET_NAME(fmt, ...)         snprintf(info->name,    MENU_MAX_NAME_LEN,      fmt,    ## __VA_ARGS__)
+#define MENU_SET_VALUE(fmt, ...)        snprintf(info->value,   MENU_MAX_VALUE_LEN,     fmt,    ## __VA_ARGS__)
+
+/* when the item is not selected, the help and warning overrides will not be parsed */
+/* warning level is still considered, for graying out menu items */
+
+#define MENU_SET_HELP(fmt, ...) { \
+                                    if (entry->selected) \
+                                        snprintf(info->help,    MENU_MAX_HELP_LEN,      fmt,    ## __VA_ARGS__) \
+                                }
+
+#define MENU_SET_WARNING(level, fmt, ...) { \
+                                    info->warning_level = (level); \
+                                    if (entry->selected) \
+                                        snprintf(info->warning, MENU_MAX_WARNING_LEN,   fmt,    ## __VA_ARGS__); \
+                                }
+
+#define MENU_SET_TRUTH_VALUE(val)   info->truth_value = val // whether the feature is ON or OFF
+#define MENU_SET_ICON(ico, arg)     { info->icon = (ico); info->icon_arg = (arg); }
+
+struct menu_entry;
+struct menu_display_info;
+
+typedef void (*menu_select_func)(
+                void * priv,
+                int    delta
+        );
+
+typedef void (*menu_update_func)(                    // called before displaying
+                struct menu_entry *         entry,   // menu item to be displayed
+                struct menu_display_info *  info     // runtime display info
+        );
+
+#define MENU_SELECT_FUNC(func) \
+    void func ( \
+                void * priv, \
+                int    delta \
+    )
+
+#define MENU_UPDATE_FUNC(func) \
+    void func ( \
+                struct menu_entry *         entry, \
+                struct menu_display_info *  info \
+    )
+
 
 struct menu_entry
 {
@@ -59,25 +123,17 @@ struct menu_entry
         int16_t max;
         
         const char** choices;
-        void                    (*select)(
-                void *                  priv,
-                int                             delta
-        );
-        /*
-        void                    (*select_reverse)(
-                void *                  priv,
-                int                             delta
-        );
-        */
-        void                    (*select_Q)(
-                void *                  priv,
-                int                             delta
-        );
-        void                    (*display)(
-                void *                  priv,
-                int                     x,
-                int                     y,
-                int                     selected
+
+        menu_select_func select;
+        menu_select_func select_Q;
+        menu_update_func update;
+
+        //legacy
+        void (*display)(
+                void * priv,
+                int    x,
+                int    y,
+                int    selected
         );
 
         unsigned selected   : 1;
@@ -106,11 +162,11 @@ struct menu_entry
 
 #define IS_VISIBLE(entry) ((entry)->hidden != MENU_ENTRY_HIDDEN)
 
-// whether the feature is enabled or disabled
-#define TRUTH_VALUE(entry) ((entry)->priv ? *(int*)(entry)->priv : 0)
+#define MENU_INT(entry) ((entry)->priv ? *(int*)(entry)->priv : 0)
+#define CURRENT_VALUE (MENU_INT(entry))
 
 // index into choices[] array
-#define SELECTED_INDEX(entry) (TRUTH_VALUE(entry) - (entry)->min)
+#define SELECTED_INDEX(entry) (MENU_INT(entry) - (entry)->min)
 
 // how many choices we have (index runs from 0 to N-1)
 #define NUM_CHOICES(entry) ((entry)->max - (entry)->min + 1)
@@ -201,6 +257,8 @@ extern void
 menu_select(
         struct menu_entry *     entry
 );
+
+void menu_numeric_toggle(int* val, int delta, int min, int max);
 
 extern void run_in_separate_task(void (*priv)(void), int delta);
 
