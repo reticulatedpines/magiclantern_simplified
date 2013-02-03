@@ -1514,6 +1514,27 @@ void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
     }
 }*/
 
+void
+bfnt_printf(
+           int x,
+           int y,
+           int fg,
+           int bg,
+           const char *fmt,
+           ...
+           )
+{
+    va_list            ap;
+    
+    char bfnt_printf_buf[128];
+    
+    va_start( ap, fmt );
+    vsnprintf( bfnt_printf_buf, sizeof(bfnt_printf_buf)-1, fmt, ap );
+    va_end( ap );
+    
+    bfnt_puts(bfnt_printf_buf, x, y, fg, bg);
+}
+
 #if 1
 void
 bfnt_test()
