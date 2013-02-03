@@ -1,3 +1,4 @@
+
 #include <dryos.h>
 #include <property.h>
 #include <menu.h>
@@ -12,9 +13,8 @@
    actually only developer build ML from source, so keep it enabled until its in a more mature state and the next release is coming.
 */
 
-// broken by menu change
-//~ #define FLEXINFO_DEVELOPER_MENU
-//~ #define FLEXINFO_XML_CONFIG
+#define FLEXINFO_DEVELOPER_MENU
+#define FLEXINFO_XML_CONFIG
 
 #ifdef CONFIG_60D
 #undef FLEXINFO_DEVELOPER_MENU // squeeze a few K of RAM
@@ -2083,7 +2083,68 @@ uint32_t info_print_screen()
 
 char info_current_menu[64];
 
-void info_menu_item_select(void* priv, int delta)
+void info_menu_draw_editscreen(info_elem_t *config)
+{
+    uint32_t font_type = FONT_MED;
+    uint32_t menu_x = 30;
+    uint32_t menu_y = 30;
+    uint32_t width = fontspec_font(font_type)->width * strlen(info_current_menu);
+    uint32_t height = fontspec_font(font_type)->height;
+    
+    /* ensure that the menu isnt displayed directly over the item currently being selected */
+    info_elem_t *selected_item = &(config[config[0].config.selected_item]);
+    static int32_t ani_offset = 0;
+    
+    /* some neat animation to move menu text without confusing user */
+    if(selected_item->hdr.pos.abs_y < 100 || selected_item->hdr.pos.abs_x < 100)
+    {
+        if(ani_offset < 160)
+        {
+            ani_offset += ((160 - ani_offset) ) / 2;
+            config[0].config.fast_redraw = 1;
+        }
+        else
+        {
+            config[0].config.fast_redraw = 0;
+        }
+    }
+    else
+    {
+        if(ani_offset > 0)
+        {
+            ani_offset -= (ani_offset) / 2;
+            config[0].config.fast_redraw = 1;
+        }
+        else
+        {
+            config[0].config.fast_redraw = 0;
+        }
+    }
+
+    menu_y += ani_offset;
+    menu_x += ani_offset;
+    
+    /* clear screen */
+    bmp_fill(COLOR_GRAY40, 0, 0, 720, 480);
+    
+    /* then print the elements */
+    info_print_config(config);
+    
+    /* and now overwrite with border and menu item */
+    bmp_fill(COLOR_GRAY40, menu_x-8, menu_y - fontspec_font(FONT_SMALL)->height - 10, width+16, height+16);
+    bmp_fill(COLOR_BLACK, menu_x-2, menu_y-2, width+4, height+4);
+    bmp_draw_rect(COLOR_WHITE, menu_x-2, menu_y-2, width+4, height+4);
+    
+    /* title */
+    int fnt = FONT(FONT_SMALL, COLOR_BLACK, COLOR_WHITE);
+    bmp_printf(fnt, menu_x, menu_y - fontspec_font(FONT_SMALL)->height - 2, "Editing: '%s'", selected_item->hdr.pos.name);
+
+    fnt = FONT(font_type, COLOR_WHITE, COLOR_GREEN1);
+    bmp_printf(fnt, menu_x, menu_y, info_current_menu);
+    strcpy(info_current_menu, "");
+}
+
+MENU_SELECT_FUNC(info_menu_item_select)
 {
     uint32_t count = 0;
     info_elem_t *config = (info_elem_t *)priv;
@@ -2099,31 +2160,28 @@ void info_menu_item_select(void* priv, int delta)
     }
 }
 
-void info_menu_item_display(void *priv, int x, int y, int selected)
+MENU_UPDATE_FUNC(info_menu_item_display)
 {
-    char menu_line[64];
-    info_elem_t *config = (info_elem_t *)priv;
+    info_elem_t *config = (info_elem_t *)entry->priv;
     
     if(config[0].config.selected_item)
     {
-        snprintf(menu_line, sizeof(menu_line), "Selected item: #%d", config[0].config.selected_item);
+        MENU_SET_VALUE("#%d", config[0].config.selected_item);
     }
     else
     {
-        snprintf(menu_line, sizeof(menu_line), "Selected item: (none)");
+        MENU_SET_VALUE("(none)");
     }
     
-    if(selected && config[0].config.selected_item)
+    if(entry->selected && config[0].config.selected_item)
     {
-        strcpy(info_current_menu, menu_line);
-    }
-    else
-    {
-        bmp_printf(MENU_FONT, x, y, menu_line);
+        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
+        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+        info_menu_draw_editscreen(config);
     }
 }
 
-void info_menu_item_posx_select(void* priv, int delta)
+MENU_SELECT_FUNC(info_menu_item_posx_select)
 {
     info_elem_t *config = (info_elem_t *)priv;
     info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
@@ -2134,7 +2192,7 @@ void info_menu_item_posx_select(void* priv, int delta)
     }
 }
 
-void info_menu_item_posy_select(void* priv, int delta)
+MENU_SELECT_FUNC(info_menu_item_posy_select)
 {
     info_elem_t *config = (info_elem_t *)priv;
     info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
@@ -2145,7 +2203,7 @@ void info_menu_item_posy_select(void* priv, int delta)
     }
 }
 
-void info_menu_item_posz_select(void* priv, int delta)
+MENU_SELECT_FUNC(info_menu_item_posz_select)
 {
     info_elem_t *config = (info_elem_t *)priv;
     info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
@@ -2156,83 +2214,72 @@ void info_menu_item_posz_select(void* priv, int delta)
     }
 }
 
-void info_menu_item_posx_display(void *priv, int x, int y, int selected)
+MENU_UPDATE_FUNC(info_menu_item_posx_display)
 {
-    char menu_line[64];
-    info_elem_t *config = (info_elem_t *)priv;
+    info_elem_t *config = (info_elem_t *)entry->priv;
     
     if(config[0].config.selected_item)
     {
-        snprintf(menu_line, sizeof(menu_line), "X-Position: #%d", config[config[0].config.selected_item].hdr.pos.x);
+        MENU_SET_VALUE("#%d", config[config[0].config.selected_item].hdr.pos.x);
     }
     else
     {
-        snprintf(menu_line, sizeof(menu_line), "X-Position: (none)");
+        MENU_SET_VALUE("(none)");
     }
     
-    if(selected && config[0].config.selected_item)
+    if(entry->selected && config[0].config.selected_item)
     {
-        strcpy(info_current_menu, menu_line);
-    }
-    else
-    {
-        bmp_printf(MENU_FONT, x, y, menu_line);
+        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
+        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+        info_menu_draw_editscreen(config);
     }
 }
 
-void info_menu_item_posy_display(void *priv, int x, int y, int selected)
+MENU_UPDATE_FUNC(info_menu_item_posy_display)
 {
-    char menu_line[64];
-    info_elem_t *config = (info_elem_t *)priv;
+    info_elem_t *config = (info_elem_t *)entry->priv;
     
     if(config[0].config.selected_item)
     {
-        snprintf(menu_line, sizeof(menu_line), "Y-Position: #%d", config[config[0].config.selected_item].hdr.pos.y);
+        MENU_SET_VALUE("#%d", config[config[0].config.selected_item].hdr.pos.y);
     }
     else
     {
-        snprintf(menu_line, sizeof(menu_line), "Y-Position: (none)");
+        MENU_SET_VALUE("(none)");
     }
     
-    if(selected && config[0].config.selected_item)
+    if(entry->selected && config[0].config.selected_item)
     {
-        strcpy(info_current_menu, menu_line);
-    }
-    else
-    {
-        bmp_printf(MENU_FONT, x, y, menu_line);
+        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
+        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+        info_menu_draw_editscreen(config);
     }
 }
 
-void info_menu_item_posz_display(void *priv, int x, int y, int selected)
+MENU_UPDATE_FUNC(info_menu_item_posz_display)
 {
     char menu_line[64];
-    info_elem_t *config = (info_elem_t *)priv;
+    info_elem_t *config = (info_elem_t *)entry->priv;
     
     if(config[0].config.selected_item)
     {
-        snprintf(menu_line, sizeof(menu_line), "Z-Position: #%d", config[config[0].config.selected_item].hdr.pos.z);
+        MENU_SET_VALUE("#%d", config[config[0].config.selected_item].hdr.pos.z);
+        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
     }
     else
     {
-        snprintf(menu_line, sizeof(menu_line), "Z-Position: (none)");
+        MENU_SET_VALUE("(none)");
     }
     
-    if(selected && config[0].config.selected_item)
+    if(entry->selected && config[0].config.selected_item)
     {
-        strcpy(info_current_menu, menu_line);
+        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
+        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+        info_menu_draw_editscreen(config);
     }
-    else
-    {
-        bmp_printf(MENU_FONT, x, y, menu_line);
-    }
-    
 }
 
-
-
-
-void info_menu_item_anchor_select(void* priv, int delta)
+MENU_SELECT_FUNC(info_menu_item_anchor_select)
 {
     info_elem_t *config = (info_elem_t *)priv;
     info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
@@ -2243,10 +2290,9 @@ void info_menu_item_anchor_select(void* priv, int delta)
     }
 }
 
-void info_menu_item_anchor_display(void *priv, int x, int y, int selected)
+MENU_UPDATE_FUNC(info_menu_item_anchor_display)
 {
-    char menu_line[64];
-    info_elem_t *config = (info_elem_t *)priv;
+    info_elem_t *config = (info_elem_t *)entry->priv;
     const char *text[] = {
         "Absolute",
         "Left", "H-Center", "Right",
@@ -2259,24 +2305,22 @@ void info_menu_item_anchor_display(void *priv, int x, int y, int selected)
 
     if(config[0].config.selected_item)
     {
-        snprintf(menu_line, sizeof(menu_line), "Anchored: %s", text[config[config[0].config.selected_item].hdr.pos.anchor_flags]);
+        MENU_SET_VALUE("%s", text[config[config[0].config.selected_item].hdr.pos.anchor_flags]);
     }
     else
     {
-        snprintf(menu_line, sizeof(menu_line), "Anchored: (none)");
+        MENU_SET_VALUE("(none)");
     }
     
-    if(selected && config[0].config.selected_item)
+    if(entry->selected && config[0].config.selected_item)
     {
-        strcpy(info_current_menu, menu_line);
-    }
-    else
-    {
-        bmp_printf(MENU_FONT, x, y, menu_line);
+        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
+        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+        info_menu_draw_editscreen(config);
     }
 }
 
-void info_menu_item_anchor_item_select(void* priv, int delta)
+MENU_SELECT_FUNC(info_menu_item_anchor_item_select)
 {
     uint32_t count = 0;
     info_elem_t *config = (info_elem_t *)priv;
@@ -2293,33 +2337,31 @@ void info_menu_item_anchor_item_select(void* priv, int delta)
     }
 }
 
-void info_menu_item_anchor_item_display(void *priv, int x, int y, int selected)
+MENU_UPDATE_FUNC(info_menu_item_anchor_item_display)
 {
     char menu_line[64];
-    info_elem_t *config = (info_elem_t *)priv;
+    info_elem_t *config = (info_elem_t *)entry->priv;
     info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
     
     if(config[0].config.selected_item)
     {
-        snprintf(menu_line, sizeof(menu_line), "Anchor item: #%d", item->hdr.pos.anchor);
+        MENU_SET_VALUE("#%d", item->hdr.pos.anchor);
     }
     else
     {
-        snprintf(menu_line, sizeof(menu_line), "Anchor item: (none)");
+        MENU_SET_VALUE("(none)");
     }
     
-    if(selected && config[0].config.selected_item)
+    if(entry->selected && config[0].config.selected_item)
     {
-        strcpy(info_current_menu, menu_line);
-    }
-    else
-    {
-        bmp_printf(MENU_FONT, x, y, menu_line);
+        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
+        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+        info_menu_draw_editscreen(config);
     }
 }
 
 
-void info_menu_item_anchor_self_select(void* priv, int delta)
+MENU_SELECT_FUNC(info_menu_item_anchor_self_select)
 {
     info_elem_t *config = (info_elem_t *)priv;
     info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
@@ -2331,7 +2373,7 @@ void info_menu_item_anchor_self_select(void* priv, int delta)
 }
 
 
-void info_menu_item_hide_select(void* priv, int delta)
+MENU_SELECT_FUNC(info_menu_item_hide_select)
 {
     info_elem_t *config = (info_elem_t *)priv;
     info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
@@ -2339,42 +2381,38 @@ void info_menu_item_hide_select(void* priv, int delta)
     item->hdr.pos.user_disable = !item->hdr.pos.user_disable;
 }
 
-void info_menu_item_hide_display(void *priv, int x, int y, int selected)
+MENU_UPDATE_FUNC(info_menu_item_hide_display)
 {
-    char menu_line[64];
-    info_elem_t *config = (info_elem_t *)priv;
+    info_elem_t *config = (info_elem_t *)entry->priv;
     info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
     
     if(config[0].config.selected_item)
     {
         if(item->hdr.pos.user_disable)
         {
-            snprintf(menu_line, sizeof(menu_line), "Show Item");
+            MENU_SET_VALUE("Show Item");
         }
         else
         {
-            snprintf(menu_line, sizeof(menu_line), "Hide Item");
+            MENU_SET_VALUE("Hide Item");
         }
     }
     else
     {
-        snprintf(menu_line, sizeof(menu_line), "Anchor item: (none)");
+        MENU_SET_VALUE("(none)");
     }
     
-    if(selected && config[0].config.selected_item)
+    if(entry->selected && config[0].config.selected_item)
     {
-        strcpy(info_current_menu, menu_line);
-    }
-    else
-    {
-        bmp_printf(MENU_FONT, x, y, menu_line);
+        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
+        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+        info_menu_draw_editscreen(config);
     }
 }
 
-void info_menu_item_anchor_self_display(void *priv, int x, int y, int selected)
+MENU_UPDATE_FUNC(info_menu_item_anchor_self_display)
 {
-    char menu_line[64];
-    info_elem_t *config = (info_elem_t *)priv;
+    info_elem_t *config = (info_elem_t *)entry->priv;
     const char *text[] = {
         "Absolute",
         "Left", "H-Center", "Right",
@@ -2387,123 +2425,39 @@ void info_menu_item_anchor_self_display(void *priv, int x, int y, int selected)
 
     if(config[0].config.selected_item)
     {
-        snprintf(menu_line, sizeof(menu_line), "Own anchor: %s", text[config[config[0].config.selected_item].hdr.pos.anchor_flags_self]);
+        MENU_SET_VALUE("%s", text[config[config[0].config.selected_item].hdr.pos.anchor_flags_self]);
     }
     else
     {
-        snprintf(menu_line, sizeof(menu_line), "Own anchor: (none)");
+        MENU_SET_VALUE("(none)");
     }
     
-    if(selected && config[0].config.selected_item)
+    if(entry->selected && config[0].config.selected_item)
     {
-        strcpy(info_current_menu, menu_line);
-    }
-    else
-    {
-        bmp_printf(MENU_FONT, x, y, menu_line);
+        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
+        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+        info_menu_draw_editscreen(config);
     }
     
 }
 #ifdef FLEXINFO_XML_CONFIG
-void info_menu_save_select(void* priv, int delta)
+MENU_SELECT_FUNC(info_menu_save_select)
 {
     info_save_config(info_config, FLEXINFO_DEFAULT_FILENAME);
 }
 
-void info_menu_save_display(void *priv, int x, int y, int selected)
-{
-    bmp_printf(MENU_FONT, x, y, "Save config");
-}
-
-void info_menu_delete_select(void* priv, int delta)
+MENU_SELECT_FUNC(info_menu_delete_select)
 {
     FIO_RemoveFile(FLEXINFO_DEFAULT_FILENAME);
 }
-
-void info_menu_delete_display(void *priv, int x, int y, int selected)
-{
-    bmp_printf(MENU_FONT, x, y, "Delete config");
-}
 #endif
 
-void info_menu_reset_select(void* priv, int delta)
+MENU_SELECT_FUNC(info_menu_reset_select)
 {
 #ifdef FLEXINFO_XML_CONFIG
     info_load_config(FLEXINFO_DEFAULT_FILENAME);
 #endif
     info_print_config(info_config);
-}
-
-void info_menu_reset_display(void *priv, int x, int y, int selected)
-{
-    info_elem_t *config = (info_elem_t *)priv;
-    
-    /* last item in menu draws the edit screen */
-    if(config[0].config.selected_item && strlen(info_current_menu) > 0)
-    {
-        uint32_t font_type = FONT_MED;
-        uint32_t menu_x = 30;
-        uint32_t menu_y = 30;
-        uint32_t width = fontspec_font(font_type)->width * strlen(info_current_menu);
-        uint32_t height = fontspec_font(font_type)->height;
-        
-        /* ensure that the menu isnt displayed directly over the item currently being selected */
-        info_elem_t *selected_item = &(config[config[0].config.selected_item]);
-        static int32_t ani_offset = 0;
-        
-        /* some neat animation to move menu text without confusing user */
-        if(selected_item->hdr.pos.abs_y < 100 || selected_item->hdr.pos.abs_x < 100)
-        {
-            if(ani_offset < 160)
-            {
-                ani_offset += ((160 - ani_offset) ) / 2;
-                config[0].config.fast_redraw = 1;
-            }
-            else
-            {
-                config[0].config.fast_redraw = 0;
-            }
-        }
-        else
-        {
-            if(ani_offset > 0)
-            {
-                ani_offset -= (ani_offset) / 2;
-                config[0].config.fast_redraw = 1;
-            }
-            else
-            {
-                config[0].config.fast_redraw = 0;
-            }
-        }
-
-        menu_y += ani_offset;
-        menu_x += ani_offset;
-        
-        /* draw dummy icon and clear screen */
-        menu_draw_icon(x, y, -1, 0);
-        bmp_fill(COLOR_GRAY40, 0, 0, 720, 480);
-        
-        /* then print the elements */
-        info_print_config(config);
-        
-        /* and now overwrite with border and menu item */
-        bmp_fill(COLOR_GRAY40, menu_x-8, menu_y - fontspec_font(FONT_SMALL)->height - 10, width+16, height+16);
-        bmp_fill(COLOR_BLACK, menu_x-2, menu_y-2, width+4, height+4);
-        bmp_draw_rect(COLOR_WHITE, menu_x-2, menu_y-2, width+4, height+4);
-        
-        /* title */
-        int fnt = FONT(FONT_SMALL, COLOR_BLACK, COLOR_WHITE);
-        bmp_printf(fnt, menu_x, menu_y - fontspec_font(FONT_SMALL)->height - 2, "Editing: '%s'", selected_item->hdr.pos.name);
-
-        fnt = FONT(font_type, COLOR_WHITE, COLOR_GREEN1);
-        bmp_printf(fnt, menu_x, menu_y, info_current_menu);
-        strcpy(info_current_menu, "");
-    }
-    else
-    {
-        bmp_printf(MENU_FONT, x, y, "Reset setup");
-    }
 }
 
 static struct menu_entry info_menus[] = {
@@ -2524,7 +2478,7 @@ static struct menu_entry info_menus[] = {
                 .min = 0,
                 .max = COUNT(info_config) - 1,
                 .select = info_menu_item_select,
-                .display = info_menu_item_display,
+                .update = info_menu_item_display,
                 .help = "Select a specific element for editing.",
             },
             {
@@ -2532,7 +2486,7 @@ static struct menu_entry info_menus[] = {
                 .priv = info_config,
                 .max = 1,
                 .select = info_menu_item_hide_select,
-                .display = info_menu_item_hide_display,
+                .update = info_menu_item_hide_display,
                 .help = "Show or hide the item.",
             },
             {
@@ -2541,7 +2495,7 @@ static struct menu_entry info_menus[] = {
                 .min = 0,
                 .max = 720,
                 .select = info_menu_item_posx_select,
-                .display = info_menu_item_posx_display,
+                .update = info_menu_item_posx_display,
                 .help = "Move item in its X position.",
             },
             {
@@ -2550,7 +2504,7 @@ static struct menu_entry info_menus[] = {
                 .min = 0,
                 .max = 480,
                 .select = info_menu_item_posy_select,
-                .display = info_menu_item_posy_display,
+                .update = info_menu_item_posy_display,
                 .help = "Move item in its Y position.",
             },
             {
@@ -2559,7 +2513,7 @@ static struct menu_entry info_menus[] = {
                 .min = 0,
                 .max = 32,
                 .select = info_menu_item_posz_select,
-                .display = info_menu_item_posz_display,
+                .update = info_menu_item_posz_display,
                 .help = "Move item in its Z position.",
             },
             {
@@ -2568,7 +2522,7 @@ static struct menu_entry info_menus[] = {
                 .min = 0,
                 .max = 9,
                 .select = info_menu_item_anchor_select,
-                .display = info_menu_item_anchor_display,
+                .update = info_menu_item_anchor_display,
                 .help = "Select anchor type.",
             },
             {
@@ -2577,14 +2531,14 @@ static struct menu_entry info_menus[] = {
                 .min = 0,
                 .max = 9,
                 .select = info_menu_item_anchor_self_select,
-                .display = info_menu_item_anchor_self_display,
+                .update = info_menu_item_anchor_self_display,
                 .help = "Select own anchor type.",
             },
             {
                 .name = "Anchor item",
                 .priv = info_config,
                 .select = info_menu_item_anchor_item_select,
-                .display = info_menu_item_anchor_item_display,
+                .update = info_menu_item_anchor_item_display,
                 .help = "Select Anchor item.",
             },
 #ifdef FLEXINFO_XML_CONFIG
@@ -2592,7 +2546,6 @@ static struct menu_entry info_menus[] = {
                 .name = "Save config",
                 .priv = info_config,
                 .select = info_menu_save_select,
-                .display = info_menu_save_display,
                 .help = "Save menu settings",
             },
 #endif
@@ -2600,7 +2553,6 @@ static struct menu_entry info_menus[] = {
                 .name = "Delete config",
                 .priv = info_config,
                 .select = info_menu_delete_select,
-                .display = info_menu_delete_display,
                 .help = "Delete menu settings. Reboot to take effect.",
             },
             {
@@ -2608,7 +2560,6 @@ static struct menu_entry info_menus[] = {
                 .name = "Reset setup",
                 .priv = info_config,
                 .select = info_menu_reset_select,
-                .display = info_menu_reset_display,
                 .help = "Reset menu settings",
             },
             MENU_EOL,
