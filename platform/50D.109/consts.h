@@ -212,6 +212,7 @@
 
 #define LV_STRUCT_PTR 0x1D74
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
+#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5c)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x1F1C8

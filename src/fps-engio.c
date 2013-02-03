@@ -287,49 +287,6 @@ int get_current_tg_freq()
 
 #define TG_FREQ_FPS get_current_tg_freq()
 
-#ifdef CONFIG_550D
-#define LV_STRUCT_PTR 0x1d14
-#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x64)
-#endif
-
-#ifdef CONFIG_600D
-#define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
-#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC))
-#endif
-
-#ifdef CONFIG_60D
-#define VIDEO_PARAMETERS_SRC_3 0x4FDA8
-#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC))
-#endif
-
-#ifdef CONFIG_1100D
-#define VIDEO_PARAMETERS_SRC_3 0x70C0C
-#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC)) // not sure
-#endif
-
-#ifdef CONFIG_500D
-#define LV_STRUCT_PTR 0x1d78
-#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
-#endif
-
-#ifdef CONFIG_50D
-#define LV_STRUCT_PTR 0x1D74
-#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5c)
-#endif
-
-#ifdef CONFIG_5D2
-#define LV_STRUCT_PTR 0x1D78
-#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)
-#endif
-
-#ifdef CONFIG_5D3
-#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0))
-#endif
-
-#if defined(CONFIG_EOSM) || defined(CONFIG_6D) || defined(CONFIG_650D)
-#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
-#endif
-
 #define FPS_x1000_TO_TIMER(fps_x1000) (((fps_x1000)!=0)?(TG_FREQ_FPS/(fps_x1000)):0)
 #define TIMER_TO_FPS_x1000(t) (((t)!=0)?(TG_FREQ_FPS/(t)):0)
 
