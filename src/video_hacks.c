@@ -26,55 +26,37 @@ uint32_t bitrate_gop_size = 12;
 #include "ml_rpc.h"
 #endif
 
-static void
-bitrate_flushing_rate_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(bitrate_flushing_rate_update)
 {
-    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Flush every   : %d frames", 
-               bitrate_flushing_rate
-               );
+    MENU_SET_VALUE("%d frames", bitrate_flushing_rate );
 
 #if defined(CONFIG_7D)
     if(!ml_rpc_available())
     {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Master DIGiC hacks not available in this release.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Master DIGiC hacks not available in this release.");
     }
     else 
 #endif
     if(!bitrate_cache_hacks)
     {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Video hacks disabled.");
-    }
-    else
-    {
-        menu_draw_icon(x, y, MNI_ON, 0);
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Video hacks disabled.");
     }
 }
 
-static void
-bitrate_gop_size_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(bitrate_gop_size_update)
 {
-    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "GOP size      : %d frames", 
-               bitrate_gop_size
-               );
+    MENU_SET_VALUE("%d frames", bitrate_gop_size);
 
 #if defined(CONFIG_7D)
     if(!ml_rpc_available())
     {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Master DIGiC hacks not available in this release.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Master DIGiC hacks not available in this release.");
     }
     else
 #endif
     if(!bitrate_cache_hacks)
     {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Video hacks disabled.");
-    }
-    else
-    {
-        menu_draw_icon(x, y, MNI_ON, 0);
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Video hacks disabled.");
     }
 }
 
@@ -156,7 +138,7 @@ static struct menu_entry video_hack_menus[] = {
             {
                 .name = "Flush rate",
                 .priv = &bitrate_flushing_rate,
-                .display    = bitrate_flushing_rate_display,
+                .update = bitrate_flushing_rate_update,
                 .min  = 2,
                 .max  = 50,
                 .help = "Flush movie buffer every n frames."
@@ -164,7 +146,7 @@ static struct menu_entry video_hack_menus[] = {
             {
                 .name = "GOP size",
                 .priv = &bitrate_gop_size,
-                .display    = bitrate_gop_size_display,
+                .update = bitrate_gop_size_update,
                 .min  = 1,
                 .max  = 100,
                 .help = "Set GOP size to n frames."
