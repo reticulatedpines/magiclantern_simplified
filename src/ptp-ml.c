@@ -49,7 +49,7 @@ char* menu_data_fill(char* dptr, struct menu_entry * m2) {
 	if (m2->choices) flags |= PTP_ML_SUBMENU_HAS_CHOICE;
 	if (m2->children) flags |= PTP_ML_SUBMENU_HAS_SUBMENU;
 	if (m2->selected) flags |= PTP_ML_SUBMENU_IS_SELECTED;
-	if (m2->display) flags |= PTP_ML_SUBMENU_HAS_DISPLAY;
+	//if (m2->display) flags |= PTP_ML_SUBMENU_HAS_DISPLAY;
 	flags |= (m2->edit_mode&0xF) << PTP_ML_SUBMENU_EDIT_MODE_SHIFT;
 	flags |= (m2->icon_type&0xF) << PTP_ML_SUBMENU_ICON_TYPE_SHIFT;
 	flags |= (m2->unit&0xF) << PTP_ML_SUBMENU_UNIT_SHIFT;
