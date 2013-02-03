@@ -98,7 +98,7 @@
     #define DLG_FOCUS_MODE 0x123456
 
 /* these don't exist in the M */
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0
+#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x24)
 #define DLG_MOVIE_PRESS_LV_TO_RESUME 0
 /*--------------*/
 

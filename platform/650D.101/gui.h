@@ -54,9 +54,7 @@
 
 #define GMT_GUICMD_PRESS_BUTTON_SOMETHING 0x52 // unhandled buttons?
 
-    //~ #define BGMT_LIGHT 0x20 // the little button for top screen backlight
-
-    #define GMT_OLC_INFO_CHANGED 105 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
+#define GMT_OLC_INFO_CHANGED 0x67 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 
 // needed for correct shutdown from powersave modes
 #define GMT_GUICMD_START_AS_CHECK 95
