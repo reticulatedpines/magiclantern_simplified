@@ -2375,24 +2375,16 @@ crop_toggle( void* priv, int sign )
 #endif
 
 #ifdef FEATURE_ZEBRA
-static void
-zebra_draw_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(zebra_draw_display)
 {
-    unsigned z = *(unsigned*) priv;
+    unsigned z = CURRENT_VALUE;
     
     int over_disabled = (zebra_level_hi > 100);
     int under_disabled = (zebra_level_lo == 0);
     
-    char msg[50];
-    snprintf(msg, sizeof(msg), "Zebras      : ");
-    
-    if (!z)
+    if (z)
     {
-        STR_APPEND(msg, "OFF");
-    }
-    else
-    {
-        STR_APPEND(msg,
+        MENU_SET_VALUE(
             "%s, ",
             zebra_colorspace == 0 ? "Luma" :
             zebra_colorspace == 1 ? "RGB" : "LumaFast"
@@ -2400,58 +2392,40 @@ zebra_draw_display( void * priv, int x, int y, int selected )
     
         if (over_disabled)
         {
-            STR_APPEND(msg, 
+            MENU_APPEND_VALUE(
                 "under %d%%",
                 zebra_level_lo
             );
         }
         else if (under_disabled)
         {
-            STR_APPEND(msg, 
+            MENU_APPEND_VALUE(
                 "over %d%%",
                 zebra_level_hi
             );
         }
         else
         {
-            STR_APPEND(msg, 
+            MENU_APPEND_VALUE(
                 "%d..%d%%",
                 zebra_level_lo, zebra_level_hi
             );
         }
     }
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "%s", 
-        msg
-    );
-    //~ menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(z));
 }
 
-static void
-zebra_level_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(zebra_level_display)
 {
-    unsigned level = *(unsigned*) priv;
+    int level = CURRENT_VALUE;
     if (level == 0 || level > 100)
     {
-            bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "%s : Disabled",
-            priv == &zebra_level_lo ? "Underexposure" : 
-                                      "Overexposure "
-        );
-        menu_draw_icon(x, y, MNI_DISABLE, 0);
+        MENU_SET_VALUE("Disabled");
+        MENU_SET_ICON(MNI_DISABLE, 0);
     }
     else
     {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "%s : %d%% (%d)",
-            priv == &zebra_level_lo ? "Underexposure" : 
-                                      "Overexposure ",
+        MENU_SET_VALUE(
+            "%d%% (%d)",
             level, 0, 
             (level * 255 + 50) / 100
         );
@@ -2479,43 +2453,33 @@ static void falsecolor_palette_preview(int x, int y)
     }
 }
 
-static void
-falsecolor_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(falsecolor_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "False Color : %s",
-        falsecolor_draw ? falsecolor_palette_name() : "OFF"
-    );
     if (falsecolor_draw)
-        falsecolor_palette_preview(x, y);
-    //~ menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(falsecolor_draw));
+    {
+        MENU_SET_VALUE(
+            falsecolor_palette_name()
+        );
+        falsecolor_palette_preview(info->x, info->y);
+    }
 }
 
-static void
-falsecolor_display_palette( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(falsecolor_display_palette)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Palette : %s",
+    MENU_SET_VALUE(
         falsecolor_palette_name()
     );
-    falsecolor_palette_preview(x - 420, y + font_large.height + 10);
+    falsecolor_palette_preview(info->x - 420, info->y + font_large.height + 10);
 }
 #endif
 
 #ifdef FEATURE_FOCUS_PEAK
-static void
-focus_peaking_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(focus_peaking_display)
 {
-    unsigned f = *(unsigned*) priv;
+    unsigned f = CURRENT_VALUE;
     if (f)
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Focus Peak  : ON,%d.%d,%s%s",
+        MENU_SET_VALUE(
+            "ON,%d.%d,%s%s",
             focus_peaking_pthr / 10, focus_peaking_pthr % 10, 
             focus_peaking_color == 0 ? "R" :
             focus_peaking_color == 1 ? "G" :
@@ -2527,13 +2491,6 @@ focus_peaking_display( void * priv, int x, int y, int selected )
             focus_peaking_color == 7 ? "local" : "err",
             focus_peaking_grayscale ? ",Gray" : ""
         );
-    else
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Focus Peak  : OFF"
-        );
-    //~ menu_draw_icon(x, y, MNI_BOOL_GDR(f));
 }
 
 static void focus_peaking_adjust_thr(void* priv, int delta)
@@ -2546,125 +2503,95 @@ static void focus_peaking_adjust_thr(void* priv, int delta)
 
 #ifdef FEATURE_CROPMARKS
 
-static void
-crop_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(crop_display)
 {
-    //~ extern int retry_count;
     int index = crop_index;
     index = COERCE(index, 0, num_cropmarks-1);
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Cropmarks   : %s",
-         crop_enabled ? (num_cropmarks ? cropmark_names[index] : "N/A") : "OFF"
+    if (crop_enabled) MENU_SET_VALUE(
+         num_cropmarks ? cropmark_names[index] : "N/A"
     );
-    if (crop_enabled && cropmark_movieonly && !is_movie_mode())
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Cropmarks are only displayed in movie mode");
-    //~ menu_draw_icon(x, y, MNI_BOOL_GDR(crop_enabled));
+    if (cropmark_movieonly && !is_movie_mode())
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Cropmarks are configured only for movie mode");
 }
 
-static void
-crop_display_submenu( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(crop_display_submenu)
 {
-    //~ extern int retry_count;
     int index = crop_index;
     index = COERCE(index, 0, num_cropmarks-1);
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Bitmap (%d/%d)  : %s",
-         index+1, num_cropmarks,
+    MENU_SET_NAME(
+        "Bitmap (%d/%d)",
+         index+1, num_cropmarks
+    );
+    MENU_SET_VALUE(
+        "%s",
          num_cropmarks ? cropmark_names[index] : "N/A"
     );
     int h = 150;
     int w = h * 720 / 480;
-    int xc = x + 315;
-    int yc = y + font_large.height * 3 + 10;
+    int xc = info->x + 315;
+    int yc = info->y + font_large.height * 3 + 10;
     BMP_LOCK( reload_cropmark(); )
     bmp_fill(0, xc, yc, w, h);
     BMP_LOCK( bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0); )
     bmp_draw_rect(COLOR_WHITE, xc, yc, w, h);
-    menu_draw_icon(x, y, MNI_DICE, (num_cropmarks<<16) + index);
+    
+    MENU_SET_ICON(MNI_DICE, (num_cropmarks<<16) + index);
 }
 #endif
 
 #ifdef FEATURE_HISTOGRAM
 
-static void
-hist_print( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(hist_print)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Histogram   : %s%s%s",
-        hist_draw == 0 ? "OFF" : hist_colorspace == 0 ? "Luma" : "RGB",
-        hist_draw == 0 ? "" : hist_log ? ",Log" : ",Lin",
-        hist_draw && hist_warn ? ",clip warn" : ""
-    );
-    //~ menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(hist_draw));
+    if (hist_draw)
+        MENU_SET_VALUE(
+            "%s%s%s",
+            hist_colorspace == 0 ? "Luma" : "RGB",
+            hist_log ? ",Log" : ",Lin",
+            hist_warn ? ",clip warn" : ""
+        );
 }
 #endif
 
 #ifdef FEATURE_WAVEFORM
-static void
-waveform_print( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(waveform_print)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Waveform    : %s",
-        waveform_draw == 0 ? "OFF" : 
-        waveform_size == 0 ? "Small" : 
-        waveform_size == 1 ? "Large" : 
-        waveform_size == 2 ? "FullScreen" : "err"
-    );
-    //~ menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(waveform_draw));
+    if (waveform_draw)
+        MENU_SET_VALUE(
+            waveform_size == 0 ? "Small" : 
+            waveform_size == 1 ? "Large" : 
+                                 "FullScreen"
+        );
 }
 #endif
 
 #ifdef FEATURE_GLOBAL_DRAW
-static void
-global_draw_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(global_draw_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Global Draw : %s",
-        global_draw == 0 ? "OFF" :
-        global_draw == 1 ? "LiveView" :
-        global_draw == 2 ? "QuickReview" :
-        global_draw == 3 ? "ON, all modes" : ""
-    );
+    /*
     if (disp_profiles_0)
     {
         bmp_printf(FONT(FONT_LARGE, selected ? COLOR_WHITE : 55, COLOR_BLACK), x + 560, y, "DISP %d", get_disp_mode());
         if (selected) bmp_printf(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 720 - font_med.width * strlen(Q_BTN_NAME), y + font_large.height, Q_BTN_NAME);
     }
+    */
 
     #ifdef CONFIG_5D3
     if (hdmi_code==5 && video_mode_resolution>0) // unusual VRAM parameters
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"Not compatible with HDMI 50p/60p.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDMI 50p/60p.");
     #endif
     if (lv && lv_disp_mode && ZEBRAS_IN_LIVEVIEW)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"Press " INFO_BTN_NAME " (outside ML menu) to turn Canon displays off.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Press " INFO_BTN_NAME " (outside ML menu) to turn Canon displays off.");
     if (global_draw && lv && !ZEBRAS_IN_LIVEVIEW)
-        menu_draw_icon(x, y, MNI_WARNING, 0);
+    {
+        MENU_SET_ENABLED(0);
+        MENU_SET_ICON(MNI_NEUTRAL,0);
+    }
     if (global_draw && !lv && !ZEBRAS_IN_QUICKREVIEW)
-        menu_draw_icon(x, y, MNI_WARNING, 0);
-}
-#endif
-
-#ifdef FEATURE_VECTORSCOPE
-static void
-vectorscope_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Vectorscope : %s",
-        *(unsigned*) priv ? "ON " : "OFF"
-    );
-    //~ menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(*(unsigned*) priv));
+    {
+        MENU_SET_ENABLED(0);
+        MENU_SET_ICON(MNI_NEUTRAL,0);
+    }
 }
 #endif
 
@@ -2691,27 +2618,10 @@ clearscreen_display(
 #endif
 
 #ifdef FEATURE_MAGIC_ZOOM
-static void
-zoom_overlay_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(zoom_overlay_display)
 {
-    if (!zoom_overlay_enabled)
-    {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Magic Zoom  : OFF");
-        return;
-    }
-
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Magic Zoom  : %s%s%s%s%s",
+    if (zoom_overlay_enabled) MENU_SET_VALUE(
+        "%s%s%s%s%s",
         zoom_overlay_trigger_mode == 0 ? "err" :
 #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
         zoom_overlay_trigger_mode == 1 ? "HalfS," :
@@ -2749,51 +2659,39 @@ zoom_overlay_display(
     );
 
     if (EXT_MONITOR_RCA)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work with SD monitors");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work with SD monitors");
     else if (hdmi_code == 5)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work in HDMI 1080i.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work in HDMI 1080i.");
     #ifdef CONFIG_5D2
     if (display_broken_for_mz())
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "After using defish/anamorph, go outside LiveView and back.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "After using defish/anamorph, go outside LiveView and back.");
     #endif
     #ifndef CONFIG_5D3
     else if (is_movie_mode() && video_mode_fps > 30)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom does not work well in current video mode");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work well in current video mode");
     #endif
     else if (is_movie_mode() && video_mode_crop && zoom_overlay_size == 3)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Full-screen Magic Zoom does not work in crop mode");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Full-screen Magic Zoom does not work in crop mode");
     else if (zoom_overlay_trigger_mode && !get_zoom_overlay_trigger_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Magic Zoom is not available in this mode");
-    //~ else
-        //~ menu_draw_icon(x, y, MNI_BOOL_GDR(zoom_overlay_trigger_mode));
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom is not available in this mode");
 }
 #endif
 
 #ifdef FEATURE_SPOTMETER
-static void
-spotmeter_menu_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(spotmeter_menu_display)
 {
-
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Spotmeter   : %s%s",
-        spotmeter_draw == 0    ? "OFF" : 
-        spotmeter_formula == 0 ? "Percent" :
-        spotmeter_formula == 1 ? "0..255" :
-        spotmeter_formula == 2 ? "IRE -1..101" :
-        spotmeter_formula == 3 ? "IRE 0..108" :
-        spotmeter_formula == 4 ? "RGB" :
-        spotmeter_formula == 5 ? "HSL" :
-        /*spotmeter_formula == 6*/"HSV",
-        spotmeter_draw && spotmeter_position ? ", AFbox" : ""
-    );
-    //~ menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
+    if (spotmeter_draw)
+        MENU_SET_VALUE(
+            "%s%s",
+            
+            spotmeter_formula == 0 ? "Percent" :
+            spotmeter_formula == 1 ? "0..255" :
+            spotmeter_formula == 2 ? "IRE -1..101" :
+            spotmeter_formula == 3 ? "IRE 0..108" :
+            spotmeter_formula == 4 ? "RGB" : "",
+            
+            spotmeter_draw && spotmeter_position ? ", AFbox" : ""
+        );
 }
 #endif
 
@@ -3153,30 +3051,14 @@ static void spotmeter_step()
 #endif
 
 #ifdef FEATURE_GHOST_IMAGE
-static void
-transparent_overlay_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(transparent_overlay_display)
 {
     if (transparent_overlay && (transparent_overlay_offx || transparent_overlay_offy))
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Ghost Image : ON, dx=%d, dy=%d", 
+        MENU_SET_VALUE(
+            "ON, dx=%d, dy=%d", 
             transparent_overlay_offx, 
             transparent_overlay_offy
         );
-    else
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Ghost Image : %s", 
-            transparent_overlay ? "ON" : "OFF"
-        );
-    //~ menu_draw_icon(x, y, MNI_BOOL_GDR(transparent_overlay));
     transparent_overlay_hidden = 0;
 }
 
@@ -3264,63 +3146,25 @@ static char* idle_time_format(int t)
 
 static PROP_INT(PROP_LCD_BRIGHTNESS_MODE, lcd_brightness_mode);
 
-static void
-idle_display_dim_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(idle_display_dim_print)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Dim display        : %s",
-        idle_time_format(*(int*)priv)
+    MENU_SET_VALUE(
+        idle_time_format(CURRENT_VALUE)
     );
 
     #ifdef CONFIG_AUTO_BRIGHTNESS
-    if (*(int*)priv)
+    int backlight_mode = lcd_brightness_mode;
+    if (backlight_mode == 0) // can't restore brightness properly in auto mode
     {
-        int backlight_mode = lcd_brightness_mode;
-        if (backlight_mode == 0) // can't restore brightness properly in auto mode
-        {
-            menu_draw_icon(x,y, MNI_WARNING, (intptr_t) "LCD brightness is auto in Canon menu. It won't work.");
-            return;
-        }
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "LCD brightness is auto in Canon menu. It won't work.");
     }
     #endif
 }
 
-static void
-idle_display_turn_off_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(idle_display_feature_print)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Turn off LCD and LV: %s",
-        idle_time_format(*(int*)priv)
-    );
-}
-
-static void
-idle_display_global_draw_off_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Turn off GlobalDraw: %s",
-        idle_time_format(*(int*)priv)
+    MENU_SET_VALUE(
+        idle_time_format(CURRENT_VALUE)
     );
 }
 
@@ -3345,27 +3189,6 @@ static void idle_timeout_toggle(void* priv, int sign)
 
 CONFIG_INT("electronic.level", electronic_level, 0);
 
-#ifdef FEATURE_LEVEL_INDICATOR
-
-static void
-electronic_level_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Level Indicator: %s",
-        electronic_level ? "ON" : "OFF"
-    );
-    //~ menu_draw_icon(x, y, MNI_BOOL_GDR(electronic_level));
-}
-
-#endif
-
 struct menu_entry zebra_menus[] = {
     #ifdef FEATURE_GLOBAL_DRAW
     {
@@ -3377,7 +3200,7 @@ struct menu_entry zebra_menus[] = {
         .max = 1,
         #endif
         .select_Q   = toggle_disp_mode_menu,
-        .display    = global_draw_display,
+        .update    = global_draw_display,
         .icon_type = IT_BOOL,
         .edit_mode = EM_MANY_VALUES,
         .choices = (const char *[]) {"OFF", "LiveView", "QuickReview", "ON, all modes"},
@@ -3389,7 +3212,7 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Zebras",
         .priv       = &zebra_draw,
-        .display    = zebra_draw_display,
+        .update     = zebra_draw_display,
         .max = 1,
         .help = "Zebra stripes: show overexposed or underexposed areas.",
         .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
@@ -3411,7 +3234,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zebra_level_lo, 
                 .min = 0,
                 .max = 20,
-                .display = zebra_level_display,
+                .update = zebra_level_display,
                 .help = "Underexposure threshold.",
             },
             {
@@ -3419,7 +3242,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zebra_level_hi,
                 .min = 70,
                 .max = 101,
-                .display = zebra_level_display,
+                .update = zebra_level_display,
                 .help = "Overexposure threshold.",
             },
             #ifdef CONFIG_MOVIE
@@ -3447,7 +3270,7 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Focus Peak",
         .priv           = &focus_peaking,
-        .display        = focus_peaking_display,
+        .update         = focus_peaking_display,
         .max = 1,
         .help = "Show which parts of the image are in focus.",
         .submenu_width = 650,
@@ -3525,7 +3348,7 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Magic Zoom",
         .priv = &zoom_overlay_enabled,
-        .display = zoom_overlay_display,
+        .update = zoom_overlay_display,
         .min = 0,
         .max = 1,
         .help = "Zoom box for checking focus. Can be used while recording.",
@@ -3599,18 +3422,18 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Cropmarks",
         .priv = &crop_enabled,
-        .display    = crop_display,
+        .update    = crop_display,
         .max = 1,
         .help = "Cropmarks or custom grids for framing.",
         .depends_on = DEP_GLOBAL_DRAW,
-        .submenu_width = 650,
+        .submenu_width = 710,
         .submenu_height = 270,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Bitmap",
                 .priv = &crop_index, 
                 .select = crop_toggle,
-                .display    = crop_display_submenu,
+                .update    = crop_display_submenu,
                 .help = "You can draw your own cropmarks in Paint.",
             },
             {
@@ -3637,7 +3460,7 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Ghost image",
         .priv = &transparent_overlay, 
-        .display = transparent_overlay_display, 
+        .update = transparent_overlay_display, 
         .max = 1,
         .help = "Overlay any image in LiveView. In PLAY mode, press LV btn.",
         .depends_on = DEP_GLOBAL_DRAW,
@@ -3658,7 +3481,7 @@ struct menu_entry zebra_menus[] = {
         .name = "Spotmeter",
         .priv           = &spotmeter_draw,
         .max = 1,
-        .display        = spotmeter_menu_display,
+        .update        = spotmeter_menu_display,
         .help = "Exposure aid: display brightness from a small spot.",
         .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
         .children =  (struct menu_entry[]) {
@@ -3686,7 +3509,7 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "False color",
         .priv       = &falsecolor_draw,
-        .display    = falsecolor_display,
+        .update     = falsecolor_display,
         .max = 1,
         .submenu_height = 160,
         .help = "Exposure aid: each brightness level is color-coded.",
@@ -3697,7 +3520,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &falsecolor_palette, 
                 .max = COUNT(false_colour)-1,
                 .icon_type = IT_DICE,
-                .display = falsecolor_display_palette,
+                .update = falsecolor_display_palette,
                 .help = "False color palettes for exposure, banding, green screen...",
             },
             MENU_EOL
@@ -3709,7 +3532,7 @@ struct menu_entry zebra_menus[] = {
         .name = "Histogram",
         .priv       = &hist_draw,
         .max = 1,
-        .display = hist_print,
+        .update = hist_print,
         .help = "Exposure aid: shows the distribution of brightness levels.",
         .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
         .children =  (struct menu_entry[]) {
@@ -3743,7 +3566,7 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Waveform",
         .priv       = &waveform_draw,
-        .display = waveform_print,
+        .update = waveform_print,
         .max = 1,
         .help = "Exposure aid: useful for checking overall brightness.",
         .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
@@ -3764,7 +3587,6 @@ struct menu_entry zebra_menus[] = {
     #ifdef FEATURE_VECTORSCOPE
     {
         .name = "Vectorscope",
-        .display = vectorscope_display,
         .priv       = &vectorscope_draw,
         .max = 1,
         .help = "Shows color distribution as U-V plot. For grading & WB.",
@@ -3780,7 +3602,6 @@ struct menu_entry level_indic_menus[] = {
         .name = "Level Indicator", 
         .priv = &electronic_level, 
         .max  = 1, 
-        .display = electronic_level_display,
         .help = "Electronic level indicator in 0.5 degree steps.",
         .depends_on = DEP_GLOBAL_DRAW,
     },
@@ -3799,25 +3620,17 @@ struct menu_entry livev_dbg_menus[] = {
 };
 
 #ifdef CONFIG_BATTERY_INFO
-void batt_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+MENU_UPDATE_FUNC(batt_display)
 {
     int l = GetBatteryLevel();
     int r = GetBatteryTimeRemaining();
     int d = GetBatteryDrainRate();
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Battery level: %d%%, %dh%02dm, %d%%/h",
+    MENU_SET_VALUE(
+        "%d%%, %dh%02dm, %d%%/h",
         l, 0, 
         r / 3600, (r % 3600) / 60,
         d, 0
     );
-    menu_draw_icon(x, y, MNI_ON, 0);
 }
 #endif
 
@@ -3862,23 +3675,21 @@ struct menu_entry powersave_menus[] = {
         {
             .name = "Dim display",
             .priv           = &idle_display_dim_after,
-            .display        = idle_display_dim_print,
+            .update         = idle_display_dim_print,
             .select         = idle_timeout_toggle,
             .help = "Dim LCD display in LiveView when idle, to save power.",
-            //~ .edit_mode = EM_MANY_VALUES,
         },
         {
             .name = "Turn off LCD",
             .priv           = &idle_display_turn_off_after,
-            .display        = idle_display_turn_off_print,
+            .update         = idle_display_feature_print,
             .select         = idle_timeout_toggle,
             .help = "Turn off display and pause LiveView when idle and not REC.",
-            //~ .edit_mode = EM_MANY_VALUES,
         },
         {
             .name = "Turn off GlobalDraw",
             .priv           = &idle_display_global_draw_off_after,
-            .display        = idle_display_global_draw_off_print,
+            .update         = idle_display_feature_print,
             .select         = idle_timeout_toggle,
             .help = "Turn off GlobalDraw when idle, to save some CPU cycles.",
             //~ .edit_mode = EM_MANY_VALUES,
@@ -3886,7 +3697,8 @@ struct menu_entry powersave_menus[] = {
         #ifdef CONFIG_BATTERY_INFO
         {
             .name = "Battery remaining",
-            .display = batt_display,
+            .update  = batt_display,
+            .icon_type = IT_ALWAYS_ON,
             .help = "Battery remaining. Wait for 2%% discharge before reading.",
             //~ //.essential = FOR_MOVIE | FOR_PHOTO,
         },

@@ -58,11 +58,13 @@ struct menu_display_info
         warning_level;
     enum {CUSTOM_DRAW_DISABLE, CUSTOM_DRAW_THIS_ENTRY, CUSTOM_DRAW_THIS_MENU} 
         custom_drawing;
+    int x;
+    int y; // for custom drawing
     // etc
 };
 
 #define MENU_MAX_NAME_LEN 25
-#define MENU_MAX_VALUE_LEN 18
+#define MENU_MAX_VALUE_LEN 25
 #define MENU_MAX_HELP_LEN 60
 #define MENU_MAX_WARNING_LEN 60
 
@@ -78,10 +80,12 @@ struct menu_display_info
                                         snprintf(info->help,    MENU_MAX_HELP_LEN,      fmt,    ## __VA_ARGS__) \
                                 })
 
+// only show the highest-level warning
 #define MENU_SET_WARNING(level, fmt, ...) ({ \
-                                    info->warning_level = (level); \
-                                    if (entry->selected) \
-                                        snprintf(info->warning, MENU_MAX_WARNING_LEN,   fmt,    ## __VA_ARGS__); \
+                                    if ((level) > info->warning_level) { \
+                                        info->warning_level = (level); \
+                                        if (entry->selected) { snprintf(info->warning, MENU_MAX_WARNING_LEN,   fmt,    ## __VA_ARGS__); } \
+                                    } \
                                 })
 
 #define MENU_SET_ENABLED(val)   info->enabled = (val) // whether the feature is ON or OFF

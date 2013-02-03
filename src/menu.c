@@ -1249,7 +1249,8 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
         else if (WORKS_BEST_IN(DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording disabled.");
         
-        return MENU_WARN_ADVICE;
+        if (warning[0]) 
+            return MENU_WARN_ADVICE;
     }
     
     return MENU_WARN_NONE;
@@ -1372,6 +1373,7 @@ entry_print(
     bmp_printf(
         fnt,
         x + font_large.width * w, y,
+        "%s",
         info->value
     );
 
@@ -1460,6 +1462,8 @@ menu_display(
         {
             static struct menu_display_info info;
             entry_default_display_info(menu, &info);
+            info.x = x;
+            info.y = y;
 
             // display icon (only the first icon is drawn)
             icon_drawn = 0;

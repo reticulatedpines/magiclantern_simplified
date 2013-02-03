@@ -143,22 +143,13 @@ static void movie_cliplen_toggle(void* priv, int sign)
     *(int*)priv = movie_cliplen_values[i];
 }
 
-static void movie_cliplen_display(
-    void *      priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(movie_cliplen_display)
 {
-    int val = (*(int*)priv);
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        val == 0 ? "Stop recording: OFF" :
-                   "Stop recording: after %d min",
+    int val = CURRENT_VALUE;
+    if (val) MENU_SET_VALUE(
+        "after %d min",
         val
     );
-    menu_draw_icon(x, y, MNI_BOOL(val), 0);
 }
 #endif
 
@@ -204,18 +195,9 @@ void do_movie_mode_remap()
     }
 }
 
-static void
-mode_remap_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(mode_remap_print)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "MovieModeRemap: %s",
+    MENU_SET_VALUE(
         movie_mode_remap == 1 ? MOVIE_MODE_REMAP_X_STR : movie_mode_remap == 2 ? MOVIE_MODE_REMAP_Y_STR : "OFF"
     );
 }
@@ -477,23 +459,14 @@ void screen_layout_toggle(void* priv, int delta) { menu_numeric_toggle(get_scree
 
 #ifdef FEATURE_MOVIE_RECORDING_50D
 
-static void
-lv_movie_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(lv_movie_print)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Movie Record  : %s",
+    MENU_SET_VALUE(
         lv_movie_select != 2 ? "Disabled" :
         video_mode_resolution == 0 ? "1920x1080, 30fps" : 
         video_mode_resolution == 2 ? "640x480, 30fps" : "Invalid"
     );
-    menu_draw_icon(x, y, MNI_BOOL(lv_movie_select == 2), 0);
+    MENU_SET_ENABLED(lv_movie_select == 2);
 }
 
 void lv_movie_toggle(void* priv, int delta)
@@ -641,17 +614,9 @@ struct semaphore * bv_sem = 0;
 
 CONFIG_INT("bv.auto", bv_auto, 0);
 
-static void bv_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(bv_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Exp.Override: %s", 
+    MENU_SET_VALUE(
         bv_auto == 2 && CONTROL_BV ? "Auto (ON)" :
         bv_auto == 2 && !CONTROL_BV ? "Auto (OFF)" :
         bv_auto == 1 ? "ON" : "OFF"
@@ -660,15 +625,14 @@ static void bv_display(
     extern int bulb_ramp_calibration_running; 
     extern int zoom_auto_exposure;
 
-    if (bv_auto && !lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This option works only in LiveView");
     if (bv_auto == 1 && !CONTROL_BV) 
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) (
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING,
             (zoom_auto_exposure && lv_dispsize > 1) ? "Temporarily disabled (auto exposure on zoom)." :
             (bulb_ramp_calibration_running) ? "Temporarily disabled (bulb ramping calibration)." :
             LVAE_DISP_GAIN ? "Temporarily disabled (display gain active)." :
             "Temporarily disabled."
-        ));
-    menu_draw_icon(x, y, MNI_BOOL_AUTO(bv_auto), 0);
+        );
+    MENU_SET_ICON(MNI_BOOL_AUTO(bv_auto), 0);
 }
 
 CONFIG_INT("bv.iso", bv_iso, 88);
@@ -1008,7 +972,7 @@ static struct menu_entry mov_menus[] = {
         .priv       = &lv_movie_select,
         .select     = lv_movie_toggle,
         .select_Q   = lv_movie_size_toggle,
-        .display    = lv_movie_print,
+        .update     = lv_movie_print,
         .help       = "Enable movie recording on 50D :) ",
         .depends_on = DEP_LIVEVIEW,
     },
@@ -1036,7 +1000,7 @@ static struct menu_entry mov_menus[] = {
     {
         .name    = "Stop recording",
         .priv    = &movie_cliplen,
-        .display = movie_cliplen_display,
+        .update  = movie_cliplen_display,
         .select  = movie_cliplen_toggle,
         .help = "Auto-stop the movie after a set amount of minutes.",
         .depends_on = DEP_MOVIE_MODE,
@@ -1046,14 +1010,14 @@ static struct menu_entry mov_menus[] = {
     {
         .name = "MovieModeRemap",
         .priv = &movie_mode_remap,
-        .display    = mode_remap_print,
+        .update    = mode_remap_print,
         .select     = menu_ternary_toggle,
         .help = "Remap movie mode to A-DEP, CA or C. Shortcut key: ISO+LV.",
     },
     #endif
     #ifdef FEATURE_REC_NOTIFY
     {
-        .name = "REC/STBY notif", 
+        .name = "REC/STBY notify", 
         .priv = &rec_notify, 
         #if defined(CONFIG_BLUE_LED) && defined(FEATURE_REC_NOTIFY_BEEP)
         .max = 4,
@@ -1131,10 +1095,8 @@ static struct menu_entry mov_menus[] = {
         .name       = "Exposure Lock",
         .priv       = &movie_expo_lock,
         .select     = movie_expo_lock_toggle,
-        .display    = movie_expo_lock_print,
         .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
         .help       = "Lock the exposure in movie mode.",
-        .depends_on = DEP_MOVIE_MODE,
     },
     #endif
     #ifdef FEATURE_SHUTTER_LOCK
@@ -1185,7 +1147,7 @@ struct menu_entry expo_override_menus[] = {
         .name = "Exp.Override",
         .priv = &bv_auto,
         .select     = bv_toggle,
-        .display    = bv_display,
+        .update     = bv_display,
         .max = 2,
         .choices    = (const char *[]) {"OFF", "ON", "Auto (only when needed)"},
         .help = "Low-level manual exposure controls (bypasses Canon limits)",

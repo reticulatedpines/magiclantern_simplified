@@ -13,12 +13,14 @@
 #include "mvr.h"
 
 //----------------begin qscale-----------------
-CONFIG_INT( "h264.qscale.plus16", qscale_plus16, 16-8 );
+CONFIG_INT( "h264.qscale", qscale_neg, 8 );
 CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
 CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
 CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
 CONFIG_INT( "bitrate.indicator", bitrate_indicator, 0);
 CONFIG_INT( "hibr.wav.record", cfg_hibr_wav_record, 0);
+
+#define qscale (-qscale_neg)
 
 #ifdef FEATURE_NITRATE_WAV_RECORD
 int hibr_should_record_wav() { return cfg_hibr_wav_record; }
@@ -36,8 +38,6 @@ static int time_indic_font  = FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
 int measured_bitrate = 0; // mbps
 //~ int free_space_32k = 0;
 int movie_bytes_written_32k = 0;
-
-#define qscale (((int)qscale_plus16) - 16)
 
 int bitrate_dirty = 0;
 
@@ -228,33 +228,41 @@ void bitrate_set()
     bitrate_dirty = 1;
 }
 
-static void
-bitrate_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(bitrate_print)
 {
-    int fnt = selected ? MENU_FONT_SEL : MENU_FONT;
-
     if (bitrate_mode == 0)
     {
-        bmp_printf( fnt, x, y, "Bit Rate      : FW default%s", bitrate_dirty ? "(reboot)" : "");
-        menu_draw_icon(x, y, bitrate_dirty ? MNI_WARNING : MNI_OFF, 0);
+        MENU_SET_VALUE("FW default%s", bitrate_dirty ? "(reboot)" : "");
+        MENU_SET_ENABLED(0);
+        if (bitrate_dirty)
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Restart your camera.");
     }
     else if (bitrate_mode == 1)
     {
-        if (bitrate_factor > 10) fnt = FONT(fnt, bitrate_factor > 14 ? COLOR_RED : COLOR_YELLOW, FONT_BG(fnt));
-        if (bitrate_factor < 7) fnt = FONT(fnt, bitrate_factor < 4 ? COLOR_RED : COLOR_YELLOW, FONT_BG(fnt));
-        bmp_printf( fnt, x, y, "Bit Rate (CBR): %s%d.%dx%s", bitrate_factor>10 ? "up to " : "", bitrate_factor/10, bitrate_factor%10, bitrate_dirty || bitrate_factor != 10 ? "" : " (FW default)");
-        menu_draw_icon(x, y, bitrate_dirty || bitrate_factor != 10 ? MNI_PERCENT : MNI_OFF, bitrate_factor * 100 / 30);
+        MENU_SET_NAME("Bit Rate (CBR)");
+        MENU_SET_VALUE("%s%d.%dx%s", bitrate_factor>10 ? "up to " : "", bitrate_factor/10, bitrate_factor%10, bitrate_dirty || bitrate_factor != 10 ? "" : " (FW default)");
+        if (bitrate_dirty || bitrate_factor != 10)
+            MENU_SET_ICON(MNI_PERCENT, bitrate_factor * 100 / 30);
+        else
+        {
+            MENU_SET_ICON(MNI_OFF, 0);
+            MENU_SET_ENABLED(0);
+        }
+        
+        if (bitrate_factor > 14 && SOUND_RECORDING_ENABLED)
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "Be careful, high bitrates and sound recording don't mix.");
+        else if (bitrate_factor > 10) 
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "Be careful, recording may stop.");
+        else if (bitrate_factor < 7) 
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "Be careful, image quality may be bad.");
     }
     else if (bitrate_mode == 2)
     {
-        fnt = FONT(fnt, COLOR_RED, FONT_BG(fnt));
-        bmp_printf( fnt, x, y, "Bit Rate (VBR): QScale %d", qscale);
-        menu_draw_icon(x, y, MNI_PERCENT, -(qscale-16) * 100 / 32);
+        MENU_SET_NAME("Bit Rate (VBR)");
+        MENU_SET_VALUE("QScale %d", qscale);
+        MENU_SET_ICON(MNI_PERCENT, -(qscale-16) * 100 / 32);
+        MENU_SET_ENABLED(0);
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Be careful, bitrate is not constant, recording may stop.");
     }
 }
 
@@ -274,30 +282,18 @@ void bitrate_mvr_log(char* mvr_logfile_buffer)
     }
 }
 
-static void
-cbr_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(cbr_display)
 {
-    bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "CBR factor    : %d.%dx", bitrate_factor/10, bitrate_factor%10);
-    if (bitrate_mode == 1) menu_draw_icon(x, y, MNI_PERCENT, bitrate_factor * 100 / 30);
-    else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "CBR mode inactive => CBR setting not used.");
+    MENU_SET_VALUE("%d.%dx", bitrate_factor/10, bitrate_factor%10);
+    if (bitrate_mode != 1) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "CBR mode inactive => CBR setting not used.");
+    else MENU_SET_WARNING(MENU_WARN_ADVICE, "This is only an upper limit for the bitrate.");
 }
 
-static void
-qscale_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(qscale_display)
 {
-    bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "QScale factor : %d", qscale);
-    if (bitrate_mode == 2) menu_draw_icon(x, y, MNI_PERCENT, -(qscale-16) * 100 / 32);
-    else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "VBR mode inactive => QScale setting not used.");
+    MENU_SET_VALUE("%d", qscale);
+    if (bitrate_mode != 2) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "VBR mode inactive => QScale setting not used.");
+    else MENU_SET_WARNING(MENU_WARN_ADVICE, "Bitrate may vary a lot (several orders of magnitude!)");
 }
 
 
@@ -317,7 +313,7 @@ static void
 bitrate_qscale_toggle(void* priv, int delta)
 {
     if (recording) return;
-    qscale_plus16 = mod(qscale_plus16 - delta, 33);
+    menu_numeric_toggle(&qscale_neg, delta, -16, 16);
 }
 
 static void 
@@ -594,7 +590,7 @@ static struct menu_entry mov_menus[] = {
     {
         .name = "Bit Rate",
         .priv = &bitrate_mode,
-        .display    = bitrate_print,
+        .update     = bitrate_print,
         .select     = bitrate_toggle,
         .help = "Change H.264 bitrate. Be careful, recording may stop!",
         .edit_mode = EM_MANY_VALUES,
@@ -612,14 +608,20 @@ static struct menu_entry mov_menus[] = {
                 .name = "CBR factor",
                 .priv = &bitrate_factor,
                 .select = bitrate_factor_toggle,
-                .display = cbr_display,
+                .update = cbr_display,
+                .min = 1,
+                .max = 30,
+                .icon_type = IT_PERCENT, 
                 .help = "1.0x = Canon default, 0.4x = 30minutes, 1.4x = fast card."
             },
             {
                 .name = "QScale",
-                .priv = &qscale_plus16,
+                .priv = &qscale_neg,
                 .select = bitrate_qscale_toggle,
-                .display = qscale_display,
+                .update = qscale_display,
+                .min = -16,
+                .max = 16,
+                .icon_type = IT_PERCENT,
                 .help = "Quality factor (-16 = best quality). Try not to use it!"
             },
             {

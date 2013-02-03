@@ -618,75 +618,41 @@ int fps_get_current_x1000()
     return fps_x1000;
 }
 
-static void
-fps_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(fps_print)
 {
-    int current_fps = fps_get_current_x1000();
-    
-    char msg[30];
-    snprintf(msg, sizeof(msg), "%d.%03d", 
-        current_fps/1000, current_fps%1000
+    if (fps_override)
+    {
+        int current_fps = fps_get_current_x1000();
+        MENU_SET_VALUE("%d.%03d", 
+            current_fps/1000, current_fps%1000
         );
-    
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "FPS override  : %s",
-        fps_override ? msg : "OFF"
-    );
+    }
 }
 
-static void
-fps_current_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(fps_current_print)
 {
     int current_fps = fps_get_current_x1000();
     
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Actual FPS   : %d.%03d",
+    MENU_SET_VALUE(
+        "%d.%03d",
         current_fps/1000, current_fps%1000
     );
-    
-    menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
 }
 
-static void
-desired_fps_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(desired_fps_print)
 {
     int desired_fps = fps_values_x1000[fps_override_index] / 10;
     int default_fps = lv ? calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig) : 0;
     if (desired_fps % 100)
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Desired FPS  : %d.%02d (from %d)",
+        MENU_SET_VALUE(
+            "%d.%02d (from %d)",
             desired_fps/100, desired_fps%100, (default_fps+500)/1000
         );
     else
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Desired FPS  : %d (from %d)",
+        MENU_SET_VALUE(
+            "%d (from %d)",
             desired_fps/100, (default_fps+500)/1000
         );
-    
-    menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
 }
 
 #ifdef NEW_FPS_METHOD
@@ -814,12 +780,7 @@ static void fps_enable_disable(void* priv, int delta)
     if (fps_override) fps_needs_updating = 1;
 }
 
-void shutter_range_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(shutter_range_print)
 {
     // EA = (E0 + (1/Fb - 1/F0)) * Ta / Ta0
     // see get_current_shutter_reciprocal_x1000 for details
@@ -828,24 +789,16 @@ void shutter_range_print(
     int shutter_r_0_hi_x1000 = 4000*1000;
     int tv_low = get_shutter_reciprocal_x1000(shutter_r_0_lo_x1000, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
     int tv_high = get_shutter_reciprocal_x1000(shutter_r_0_hi_x1000, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Shutter range: 1/%d..1/%d",
+    MENU_SET_VALUE(
+        "1/%d..1/%d",
         (tv_low+500)/1000, (tv_high+500)/1000
     );
-    menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
 }
 
 
-static void fps_timer_print(
-    void *      priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(fps_timer_print)
 {
-    int A = (priv == &desired_fps_timer_a_offset);
+    int A = (entry->priv == &desired_fps_timer_a_offset);
     int t = A ? fps_timer_a : fps_timer_b;
     int t0 = A ? fps_timer_a_orig : fps_timer_b_orig; 
     if (t0 == 0) t0 = 1;
@@ -856,39 +809,30 @@ static void fps_timer_print(
     char dec[10] = "";
     if (!finetune_delta && ABS(delta) >= 100) 
         snprintf(dec, sizeof(dec), ".%02d", ((t * 100 / t0) % 100));
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "FPS timer %s  : %d (%s%d%s)",
-        A ? "A" : "B",
+    MENU_SET_NAME(
+        "FPS timer %s",
+        A ? "A" : "B"
+    );
+    MENU_SET_VALUE(
+        "%d (%s%d%s)",
         t, 
         finetune_delta > 0 ? "FT+" : finetune_delta < 0 ? "FT" : ABS(delta) >= 100 ? "x" : delta >= 0 ? "+" : "", 
         finetune_delta ? finetune_delta : ABS(delta) >= 100 ? t / t0 : delta, 
         dec
     );
-
-    if (!fps_override)
-        menu_draw_icon(x, y, MNI_OFF, 0);
-    else if (t_max <= t_min)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t)"Internal error - please report an issue.");
+    
+    if (t_max <= t_min)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Internal error - please report to ML devs.");
     else
-        menu_draw_icon(x, y, MNI_PERCENT, sqrtf(t - t_min) * 100  / sqrtf(t_max - t_min));
+        MENU_SET_ICON(MNI_PERCENT, sqrtf(t - t_min) * 100  / sqrtf(t_max - t_min));
 }
 
-static void tg_freq_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(tg_freq_print)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Main clock   : %d.%02d MHz",
+    MENU_SET_VALUE(
+        "%d.%02d MHz",
         TG_FREQ_BASE / 1000000, (TG_FREQ_BASE % 1000000) / 10000
     );
-    menu_draw_icon(x, y, MNI_BOOL(fps_override), 0);
 }
 
 static void fps_timer_fine_tune_a(void* priv, int delta)
@@ -1083,13 +1027,20 @@ static void fps_criteria_change(void* priv, int delta)
     if (fps_override) fps_needs_updating = 1;
 }
 
+static MENU_UPDATE_FUNC(fps_wav_record_print)
+{
+    MENU_SET_ENABLED(1);
+    MENU_SET_ICON(CURRENT_VALUE ? MNI_ON : MNI_DISABLE, 0);
+}
+
 static struct menu_entry fps_menu[] = {
     #ifdef FEATURE_FPS_OVERRIDE
     {
         .name = "FPS override", 
         .priv = &fps_override,
         .select = fps_enable_disable,
-        .display = fps_print,
+        .update = fps_print,
+        .max = 1,
         .help = "Changes FPS. Also disables sound and alters shutter speeds.",
         .depends_on = DEP_LIVEVIEW,
         .submenu_width = 650,
@@ -1097,10 +1048,11 @@ static struct menu_entry fps_menu[] = {
             {
                 .name = "Desired FPS", 
                 .priv    = &fps_override_index,
-                .display = desired_fps_print,
+                .update = desired_fps_print,
                 .min = 0,
                 .max = COUNT(fps_values_x1000) - 1,
                 .select = fps_change_value,
+                .icon_type = IT_ALWAYS_ON,
                 .help = "FPS value for recording. Video will play back at Canon FPS.",
             },
 //~ we only modify FPS_REGISTER_A, so no optimizations possible.
@@ -1125,59 +1077,44 @@ static struct menu_entry fps_menu[] = {
 #endif
             {
                 .name = "Shutter range",
-                .display = shutter_range_print,
-                //~ .select = fps_timer_a_big_change,
+                .update = shutter_range_print,
                 .select = fps_timer_fine_tune_a_big,
+                .icon_type = IT_ALWAYS_ON,
                 .help = "Shutter speed range with current settings. Adjusts timer A.",
             },
             {
                 .name = "FPS timer A",
-                .display = fps_timer_print,
+                .update = fps_timer_print,
                 .priv = &desired_fps_timer_a_offset,
                 .select = fps_timer_fine_tune_a,
                 .help = "High values = lower FPS, more jello effect, faster shutter.",
             },
             {
                 .name = "FPS timer B",
-                .display = fps_timer_print,
+                .update = fps_timer_print,
                 .priv = &desired_fps_timer_b_offset,
                 .select = fps_timer_fine_tune_b,
                 .help = "High values = lower FPS, shutter speed converges to 1/fps.",
             },
-            /*{
-                .name = "Timer B mode\b",
-                .priv = &fps_timer_b_method,
-                .max = 1,
-                .select = fps_bool_toggle,
-                .choices = (const char *[]) {"DIGIC reg", "Patched table"},
-                .help = "Method for changing timer B. ",
-            },*/
             {
-                .name = "TG frequency",
-                .display = tg_freq_print,
+                .name = "Main Clock",
+                .update = tg_freq_print,
+                .icon_type = IT_ALWAYS_ON,
                 .help = "Timing generator freq. (READ-ONLY). FPS = F/timerA/timerB.",
             },
             {
                 .name = "Actual FPS",
-                .display = fps_current_print,
+                .update = fps_current_print,
+                .icon_type = IT_ALWAYS_ON,
                 .help = "Exact FPS (computed). For fine tuning, change timer values.",
             },
-            /*{
-                .name = "Sound Record\b",
-                .priv = &FPS_SOUND_DISABLE,
-                .select = fps_sound_toggle,
-                .max = 1,
-                .choices = (const char *[]) {"Leave it on", "Auto-Disable"},
-                .icon_type = IT_DISABLE_SOME_FEATURE,
-                .help = "Sound usually goes out of sync and may stop recording.",
-            },*/
             #ifdef FEATURE_FPS_WAV_RECORD
             {
                 .name = "Sound Record\b",
                 .priv = &fps_wav_record,
                 .max = 1,
+                .update = fps_wav_record_print,
                 .choices = (const char *[]) {"Disabled", "Separate WAV"},
-                .icon_type = IT_BOOL,
                 .help = "Sound goes out of sync, so it has to be recorded separately.",
             },
             #endif
