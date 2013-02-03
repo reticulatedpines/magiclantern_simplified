@@ -1,13 +1,14 @@
 
-
+#ifndef _flexinfo_h_
+#define _flexinfo_h_
 
 #define FLEXINFO_DEFAULT_FILENAME CARD_DRIVE"ML/SETTINGS/FLEXINFO.XML"
 
-    
+
 /* these are binary coded (combineable) flags to either set ABSOLUTE or like (LEFT|CENTER)
    examples:
 
-    INFO_ANCHOR_ABSOLUTE: the element has absolute coordinates but only is printed when the anchor element is shown    
+    INFO_ANCHOR_ABSOLUTE: the element has absolute coordinates but only is printed when the anchor element is shown
     (INFO_ANCHOR_LEFT | INFO_ANCHOR_BOTTOM): element is printed x/y pixels from the anchor elements lower left corner
  */
 #define INFO_ANCHOR_ABSOLUTE 0
@@ -26,6 +27,10 @@
 
 #define INFO_PRINT  0
 #define INFO_PRERUN 1
+ 
+#define INFO_NAME_LENGTH      16
+#define INFO_TEXT_LENGTH      32
+#define INFO_FILENAME_LENGTH  32
 
 typedef struct
 {
@@ -38,7 +43,7 @@ typedef struct
     int32_t w;
     int32_t h;
     uint32_t user_disable;
-    char name[16];
+    char name[INFO_NAME_LENGTH];
     int32_t abs_x;
     int32_t abs_y;
     uint32_t shown;
@@ -118,6 +123,7 @@ typedef struct
 
 #define INFO_COL_BG            (0xFF000000)
 #define INFO_COL_FIELD         (0xFE000000)
+#define INFO_COL_PEEK          (0xFC000000) /* peek at actual position */
 #define INFO_COL_PEEK_ABS(x,y) (0xFD000000 | (((x) & 0xFFF) << 12) | ((y) & 0xFFF))
 #define INFO_COL_PEEK_REL(x,y) (0xFC000000 | (((x) & 0xFFF) << 12) | ((y) & 0xFFF))
 
@@ -134,7 +140,7 @@ typedef struct
 typedef struct
 {
     info_elem_header_t hdr;
-    char text[32];
+    char text[INFO_TEXT_LENGTH];
     uint32_t fgcolor;
     uint32_t bgcolor;
     uint32_t font_type;
@@ -152,7 +158,7 @@ typedef struct
     uint32_t show_boundaries;
     uint32_t selected_item;
     uint32_t fast_redraw;
-    char name[16];
+    char name[INFO_NAME_LENGTH];
 } info_elem_config_t;
 
 typedef struct
@@ -175,7 +181,7 @@ typedef struct
     info_elem_header_t hdr;
     uint32_t fgcolor;
     uint32_t bgcolor;
-    char filename[32];
+    char filename[INFO_FILENAME_LENGTH];
     uint8_t *icon_data;
 } info_elem_icon_t;
 
@@ -192,5 +198,4 @@ typedef union
     info_elem_icon_t icon;
 } info_elem_t;
 
-
-
+#endif
