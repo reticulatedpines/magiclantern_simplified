@@ -1714,8 +1714,8 @@ uint32_t info_print_icon(info_elem_t *config, info_elem_icon_t *element, uint32_
         return 1;
     }
     
-    int32_t bgcolor = info_resolve_color(element->bgcolor, element->hdr.pos.abs_x, element->hdr.pos.abs_y);
-    int32_t fgcolor = info_resolve_color(element->fgcolor, element->hdr.pos.abs_x, element->hdr.pos.abs_y);
+    //int32_t bgcolor = info_resolve_color(element->bgcolor, element->hdr.pos.abs_x, element->hdr.pos.abs_y);
+    //int32_t fgcolor = info_resolve_color(element->fgcolor, element->hdr.pos.abs_x, element->hdr.pos.abs_y);
     
     return 0;
 }
@@ -1731,8 +1731,6 @@ uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *
         return 1;
     }
 
-    int pos_x = element->hdr.pos.abs_x;
-    int pos_y = element->hdr.pos.abs_y;
     int width = element->width;
     int height = element->height;    
 
@@ -1748,6 +1746,9 @@ uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *
     }
     
 #ifdef CONFIG_BATTERY_INFO
+    int pos_x = element->hdr.pos.abs_x;
+    int pos_y = element->hdr.pos.abs_y;
+
     if(run_type == INFO_PRINT)
     {
         int perf = GetBatteryPerformance();

@@ -130,8 +130,7 @@ int tasks_show_flags = 0;
 
 MENU_UPDATE_FUNC(tasks_print)
 {
-    int x0 = info->x;
-    int y0 = info->y;
+
     info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
     
 #if defined(CONFIG_VXWORKS)
