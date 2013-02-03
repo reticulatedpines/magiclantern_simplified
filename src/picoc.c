@@ -348,8 +348,8 @@ static MENU_UPDATE_FUNC(script_display)
 
     MENU_SET_VALUE(
         displayed_script_is_idle ? "" :
-        script_state == SCRIPT_RUNNING ? " (running)" :
-        script_state == SCRIPT_JUST_FINISHED ? " (finished)" : "err"
+        script_state == SCRIPT_RUNNING ? "(running)" :
+        script_state == SCRIPT_JUST_FINISHED ? "(finished)" : "err"
     );
     
     if (displayed_script_is_idle)

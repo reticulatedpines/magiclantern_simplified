@@ -545,7 +545,7 @@ static void menu_update_split_pos(struct menu * menu, struct menu_entry * entry)
 {
     // auto adjust width so that all things can be printed nicely
     // only "negative" numbers are auto-adjusted (if you override the width, you do so with a positive value)
-    if (entry->name && menu->split_pos < 0)
+    if (entry->name && menu->split_pos < 0 && entry->priv)
     {
         menu->split_pos = -MAX(-menu->split_pos, strlen(entry->name) + 2);
         if (-menu->split_pos > 25) menu->split_pos = -25;
@@ -1421,6 +1421,9 @@ entry_print(
     if (!info->enabled && entry->icon_type == IT_PERCENT)
         menu_draw_icon(x, y, MNI_OFF, 0);
     
+    if (entry->icon_type == IT_BOOL)
+        menu_draw_icon(x, y, info->enabled ? MNI_ON : MNI_OFF, 0);
+    
     if (info->icon) menu_draw_icon(x, y, info->icon, info->icon_arg);
     entry_draw_icon(entry, x, y);
 }
@@ -1618,7 +1621,7 @@ show_hidden_items(struct menu * menu, int force_clear)
         if (is_menu_active("Help")) hidden_pos_y -= font_med.height;
         if (hidden_count)
         {
-            bmp_fill(0, 0, hidden_pos_y, 720, 19);
+            bmp_fill(COLOR_BLACK, 0, hidden_pos_y, 720, 19);
             bmp_printf(
                 SHADOW_FONT(FONT(FONT_MED, advanced_hidden_edit_mode ? MENU_WARNING_COLOR : COLOR_ORANGE , MENU_BG_COLOR_HEADER_FOOTER)), 
                  10, hidden_pos_y, 
@@ -2605,14 +2608,14 @@ menu_init( void )
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
     menu_find_by_name( "Audio",     ICON_ML_AUDIO   )->split_pos = 16;
-    menu_find_by_name( "Expo",      ICON_ML_EXPO    );
+    menu_find_by_name( "Expo",      ICON_ML_EXPO    )->split_pos = 14;
     menu_find_by_name( "Overlay",   ICON_ML_OVERLAY );
     menu_find_by_name( "Movie",     ICON_ML_MOVIE   )->split_pos = 16;
     menu_find_by_name( "Shoot",     ICON_ML_SHOOT   );
-    menu_find_by_name( "Focus",     ICON_ML_FOCUS   );
-    menu_find_by_name( "Display",   ICON_ML_DISPLAY );
+    menu_find_by_name( "Focus",     ICON_ML_FOCUS   )->split_pos = 17;
+    menu_find_by_name( "Display",   ICON_ML_DISPLAY )->split_pos = 17;
     menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
-    menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );
+    menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  )->split_pos = 10;
     menu_find_by_name( "Debug",     ICON_ML_DEBUG   )->split_pos = 15;
     menu_find_by_name( "Help",      ICON_ML_INFO    );
 

@@ -2663,7 +2663,7 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
     #endif
     else if (is_movie_mode() && video_mode_crop && zoom_overlay_size == 3)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Full-screen Magic Zoom does not work in crop mode");
-    else if (zoom_overlay_trigger_mode && !get_zoom_overlay_trigger_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
+    else if (zoom_overlay_enabled && zoom_overlay_trigger_mode && !get_zoom_overlay_trigger_mode() && get_global_draw()) // MZ enabled, but for some reason it doesn't work in current mode
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom is not available in this mode");
 }
 #endif
@@ -3687,7 +3687,7 @@ struct menu_entry powersave_menus[] = {
         },
         #ifdef CONFIG_BATTERY_INFO
         {
-            .name = "Battery remaining",
+            .name = "Battery level",
             .update  = batt_display,
             .icon_type = IT_ALWAYS_ON,
             .help = "Battery remaining. Wait for 2%% discharge before reading.",

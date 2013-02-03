@@ -438,6 +438,7 @@ static MENU_UPDATE_FUNC(audio_dgain_display)
     MENU_SET_VALUE("%d dB", val);
     if (alc_enable)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "AGC is enabled.");
+    MENU_SET_ENABLED(val);
 }
 #endif
 
@@ -480,10 +481,10 @@ static struct menu_entry audio_menus[] = {
         #ifdef CONFIG_500D
         // should match gains[]
         .max = 9,
-        .choices = (const char *[]) {" 0 dB", " 3 dB", " 6 dB", "10 dB", "17 dB", "20 dB", "23 dB", "26 dB", "29 dB", "32 dB"},
+        .choices = (const char *[]) {"0 dB", "3 dB", "6 dB", "10 dB", "17 dB", "20 dB", "23 dB", "26 dB", "29 dB", "32 dB"},
         #else
         .max = 7,
-        .choices = (const char *[]) {" 0 dB", "10 dB", "17 dB", "20 dB", "23 dB", "26 dB", "29 dB", "32 dB"},
+        .choices = (const char *[]) {"0 dB", "10 dB", "17 dB", "20 dB", "23 dB", "26 dB", "29 dB", "32 dB"},
         #endif
         .help = "Gain applied to both inputs in analog domain (preferred).",
         .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
@@ -500,7 +501,7 @@ static struct menu_entry audio_menus[] = {
             {
                 .name = "Left Digital Gain ",
                 .priv           = &dgain_l,
-                .max            = 5,
+                .max            = 36,
                 .icon_type      = IT_PERCENT,
                 .select         = audio_dgain_toggle,
                 .update         = audio_dgain_display,
@@ -509,7 +510,7 @@ static struct menu_entry audio_menus[] = {
             {
                 .name = "Right Digital Gain",
                 .priv           = &dgain_r,
-                .max            = 5,
+                .max            = 36,
                 .icon_type      = IT_PERCENT,
                 .select         = audio_dgain_toggle,
                 .update         = audio_dgain_display,
@@ -580,6 +581,7 @@ static struct menu_entry audio_menus[] = {
         .select         = audio_3bit_toggle,
         .update         = audio_lovl_display,
         .max = 3,
+        .icon_type      = IT_PERCENT,
         .choices = (const char *[]) {"0 dB", "2 dB", "4 dB", "6 dB"},
         .help = "Output volume for audio monitoring (headphones only).",
         .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,

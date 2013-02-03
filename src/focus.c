@@ -392,11 +392,12 @@ static MENU_UPDATE_FUNC(focus_show_a)
     MENU_SET_VALUE(
         "%s%d%s",
         focus_task_delta > 0 ? "+" : 
-        focus_task_delta < 0 ? "-" : " ",
+        focus_task_delta < 0 ? "-" : "",
         ABS(focus_task_delta),
-        focus_task_delta ? "steps from here" : "(here)"
+        focus_task_delta ? "steps from here" : " (here)"
     );
     MENU_SET_ICON(MNI_BOOL(focus_task_delta), 0);
+    MENU_SET_ENABLED(focus_task_delta);
 }
 
 /*static void
@@ -423,6 +424,7 @@ static MENU_UPDATE_FUNC(rack_focus_print)
     extern int lcd_release_running;
     if (lcd_release_running && lcd_release_running < 3 && recording)
         MENU_APPEND_VALUE(" (also w. LCD sensor)");
+    MENU_SET_ENABLED(0);
 }
 
 

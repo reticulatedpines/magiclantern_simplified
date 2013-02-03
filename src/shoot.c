@@ -563,6 +563,11 @@ static MENU_UPDATE_FUNC(bulb_ramping_print)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Nothing enabled from the submenu.");
     }
+
+    if (!intervalometer_running)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You also need to enable the intervalometer.");
+    }
 }
 
 static int ev_values[] = {-1000, -750, -500, -200, -100, -50, -20, -10, -5, -2, -1, 0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 750, 1000};
@@ -5344,7 +5349,7 @@ static struct menu_entry expo_menus[] = {
 
         .children =  (struct menu_entry[]) {
             {
-                .name = "Equivalent ISO   ",
+                .name = "Equivalent ISO",
                 .help = "ISO equivalent (analog + digital components).",
                 .priv = &lens_info.iso_equiv_raw,
                 .unit = UNIT_ISO,
@@ -5352,7 +5357,7 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "Canon analog ISO ",
+                .name = "Canon analog ISO",
                 .help = "Analog ISO component (ISO at which the sensor is driven).",
                 .priv = &lens_info.iso_analog_raw,
                 .unit = UNIT_ISO,
@@ -5375,19 +5380,21 @@ static struct menu_entry expo_menus[] = {
                 .help = "Movie: use negative gain. Photo: use it for night vision.",
                 .edit_mode = EM_MANY_VALUES_LV,
                 .depends_on = DEP_LIVEVIEW,
+                .icon_type = IT_BOOL,
             },
             #endif
             #ifdef FEATURE_EXPO_ISO_HTP
             {
-                .name = "Highlight Tone Priority",
+                .name = "Highlight Tone P.",
                 .select = (void (*)(void *,int))htp_toggle,
                 .update = htp_display,
+                .icon_type = IT_BOOL,
                 .help = "Highlight Tone Priority. Use with negative ML digital ISO.",
             },
             #endif
             #ifdef FEATURE_EXPO_ISO_DIGIC
             {
-                .name = "ISO Selection    ",
+                .name = "ISO Selection",
                 .priv = &iso_selection,
                 .max = 1,
                 .help = "What ISOs should be available from main menu and shortcuts.",
@@ -5415,7 +5422,7 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             {
-                .name = "A-ISO smoothness ",
+                .name = "A-ISO smoothness",
                 .priv = &lvae_iso_speed,
                 .min = 3,
                 .max = 30,

@@ -2287,7 +2287,7 @@ static MENU_UPDATE_FUNC(meminfo_display)
 static MENU_UPDATE_FUNC(shuttercount_display)
 {
     MENU_SET_VALUE(
-        "%3dK = %d+%d",
+        "%dK = %d+%d",
         (shutter_count_plus_lv_actuations + 500) / 1000,
         shutter_count, shutter_count_plus_lv_actuations - shutter_count
     );
@@ -2801,7 +2801,7 @@ struct menu_entry debug_menus[] = {
         .name = "Battery level",
         .update = batt_display,
         .help = "Battery remaining. Wait for 2%% discharge before reading.",
-        //.essential = FOR_MOVIE | FOR_PHOTO,
+        .icon_type = IT_ALWAYS_ON,
     },
 #endif
 #if CONFIG_DEBUGMSG
