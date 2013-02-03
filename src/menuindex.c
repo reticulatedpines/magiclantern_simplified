@@ -12,67 +12,64 @@ static void menu_nav_help_open(void* priv, int delta)
     menu_help_go_to_label("Magic Lantern menu", 0);
 }
 
+static MENU_UPDATE_FUNC(user_guide_display)
+{
+    MENU_SET_VALUE("");
+}
 
 struct menu_entry help_menus[] = {
-    /*{
-        .name = "Press MENU : Easy/Advanced mode",
-        .display = menu_easy_advanced_display,
-        //.essential = FOR_MOVIE | FOR_PHOTO,
-    },*/
     {
         .select = menu_nav_help_open,
-        .name = "Press " INFO_BTN_NAME
-                          " : Bring up Help menu",
-        //.essential = FOR_MOVIE | FOR_PHOTO,
+        .name = "Press " INFO_BTN_NAME,
+        .choices = CHOICES("Bring up Help menu"),
     },
     {
         .select = menu_nav_help_open,
         #if defined(CONFIG_500D)
-        .name = "LiveView(Q): Bring up submenu...",
+        .name = "LiveView(Q)",
         #elif defined(CONFIG_50D)
-        .name = "Press FUNC : Bring up submenu...",
+        .name = "Press FUNC",
         #elif defined(CONFIG_5D2)
-        .name = "Pict.Style : Bring up submenu...",
+        .name = "Pict.Style",
         #elif defined(CONFIG_5DC) || defined(CONFIG_40D)
-        .name = "Press JUMP : Bring up submenu...",
+        .name = "Press JUMP",
         #elif defined(CONFIG_EOSM)
-        .name = "1-fingr Tap: Bring up submenu...",
+        .name = "1-fingr Tap",
         #else
-        .name = "Press Q    : Bring up submenu...",
+        .name = "Press Q",
         #endif
-        //.essential = FOR_MOVIE | FOR_PHOTO,
+        
+        .choices = CHOICES("Bring up submenu..."),
+        
         .children =  (struct menu_entry[]) {
             {
                 .name = "... like this :)",
             },
             MENU_EOL,
-        }
+        },
     },
     {
         .select = menu_nav_help_open,
-        .name = "SET/PLAY   : Toggle up/down (+/-)",
-        //.essential = FOR_MOVIE | FOR_PHOTO,
+        .name = "SET/PLAY",
+        .choices = CHOICES("Toggle up/down (+/-)"),
     },
     {
         .select = menu_nav_help_open,
-        .name = "Zoom In    : Edit values (wheel)",
-        //.essential = FOR_MOVIE | FOR_PHOTO,
+        .name = "Zoom In",
+        .choices = CHOICES("Edit values (wheel)"),
     },
     {
         .select = menu_nav_help_open,
-        .name = "Press MENU : Show/hide items",
-        //.essential = FOR_MOVIE | FOR_PHOTO,
+        .name = "Press MENU",
+        .choices = CHOICES("Show/hide items"),
     },
     {
         .name = "Key shortcuts",
-        .priv = "Key shortcuts",
         .select = menu_help_go_to_label,
-        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .name = "Complete user guide",
         .select = menu_open_submenu,
-        //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             #include "menuindexentries.h"
             MENU_EOL
@@ -80,7 +77,6 @@ struct menu_entry help_menus[] = {
     },
     {
         .name = "About Magic Lantern",
-        .priv = "About Magic Lantern",
         .select = menu_help_go_to_label,
     },
 };

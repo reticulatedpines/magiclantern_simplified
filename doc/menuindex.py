@@ -55,8 +55,10 @@ for l in f[1:]:
         print >> o, "%03d %s" % (page, item)
         print >> menu, """    {
         .name = "%s",
+        .priv = "%s",
         .select = menu_help_go_to_label,
-    },""" % item
+        .update = user_guide_display,
+    },""" % (item, item)
 
     if type == "end":
         lastpage = page - 1

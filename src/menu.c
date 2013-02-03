@@ -1288,13 +1288,14 @@ entry_default_display_info(
     
     snprintf(name, sizeof(name), "%s", entry->name);
 
-    if (entry->priv && entry->select != (void(*)(void*,int))run_in_separate_task)
+    if (entry->choices && SELECTED_INDEX(entry) >= 0 && SELECTED_INDEX(entry) < NUM_CHOICES(entry))
     {
-        if (entry->choices && SELECTED_INDEX(entry) >= 0 && SELECTED_INDEX(entry) < NUM_CHOICES(entry))
-        {
-            STR_APPEND(value, "%s", entry->choices[SELECTED_INDEX(entry)]);
-        }
-        else if (entry->min == 0 && entry->max == 1)
+        STR_APPEND(value, "%s", entry->choices[SELECTED_INDEX(entry)]);
+    }
+
+    else if (entry->priv && entry->select != (void(*)(void*,int))run_in_separate_task)
+    {
+        if (entry->min == 0 && entry->max == 1)
         {
             STR_APPEND(value, MENU_INT(entry) ? "ON" : "OFF");
         }
@@ -2482,11 +2483,11 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_JOY_CENTER:
 #endif
     case BGMT_PRESS_SET:
-        if (menu_help_active) { 
-			menu_help_redraw();
-//			menu_help_active = 0; /* menu_damage = 1; */ 
-			break; 
-		}
+        if (menu_help_active) // pel, don't touch this!
+        { 
+            menu_help_active = 0;
+            break; 
+        }
         else if (advanced_hidden_edit_mode)
         {
             menu_entry_showhide_toggle(menu);
@@ -2617,7 +2618,7 @@ menu_init( void )
     menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
     menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  )->split_pos = 10;
     menu_find_by_name( "Debug",     ICON_ML_DEBUG   )->split_pos = 15;
-    menu_find_by_name( "Help",      ICON_ML_INFO    );
+    menu_find_by_name( "Help",      ICON_ML_INFO    )->split_pos = 13;
 
 }
 
