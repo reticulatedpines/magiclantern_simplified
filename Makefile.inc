@@ -92,8 +92,8 @@ prepare_zip:
 	mkdir zip/ML/scripts || echo "ok"
 	cp $(SCRIPT_DIR)/*.lua zip/ML/scripts/
 	cp $(SCRIPT_DIR)/*.c zip/ML/scripts/
-	mkdir zip/ML/plugins || echo "ok"
-	cp $(PLUGINS_DIR)/*/*.bin zip/ML/plugins/
+	#mkdir zip/ML/plugins || echo "ok"
+	#cp $(PLUGINS_DIR)/*/*.bin zip/ML/plugins/
 	mkdir zip/ML/doc || echo "ok"
 	cp $(DOC_DIR)/cam/* zip/ML/doc/
 	cp $(SRC_DIR)/logo.bmp zip/ML/docs
