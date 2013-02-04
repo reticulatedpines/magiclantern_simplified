@@ -932,6 +932,7 @@ void FAST selection_bar_backend(int c, int black, int x0, int y0, int w, int h)
     }
 }
 
+/*
 void selection_bar(int x0, int y0)
 {
     if (menu_lv_transparent_mode) return; // only one menu, no need to highlight, and this routine conflicts with RGB zebras
@@ -942,14 +943,31 @@ void selection_bar(int x0, int y0)
     {
         //~ selection_bar_backend(COLOR_GRAY45, COLOR_BLACK, x0, y0, 320-x0, 31);
         int cx = MENU_OFFSET + ABS(get_selected_menu()->split_pos) * font_large.width;
+        selection_bar_backend(COLOR_GRAY50, COLOR_BLACK, x0, y0, cx-x0, 31);
         selection_bar_backend(MENU_BAR_COLOR, COLOR_BLACK, cx, y0, 720-cx, 31);
-        return;
     }
-    
-    int w = submenu_mode == 1 ? g_submenu_width - SUBMENU_OFFSET : 720 - x0;
-    int c = advanced_hidden_edit_mode ? COLOR_DARK_RED : MENU_BAR_COLOR;
-    selection_bar_backend(c, COLOR_BLACK, x0, y0, w, 31);
+    else if (submenu_mode == 1)
+    {
+        int w = g_submenu_width - SUBMENU_OFFSET;
+        int c = advanced_hidden_edit_mode ? COLOR_DARK_RED : MENU_BAR_COLOR;
+
+        if (sub)
+        {
+            int cx = 200;
+            bmp_printf(FONT_LARGE, 50, 50, "%d", sub->split_pos);
+            //~ int cx = SUBMENU_OFFSET + ABS(sub->split_pos) * font_large.width;
+            selection_bar_backend(COLOR_GRAY50, COLOR_BLACK, x0, y0, cx, 31);
+            selection_bar_backend(c, COLOR_BLACK, x0+cx, y0, w-cx, 31);
+        }
+    }
+    else
+    {
+        int w = 720 - x0;
+        int c = advanced_hidden_edit_mode ? COLOR_DARK_RED : MENU_BAR_COLOR;
+        selection_bar_backend(c, COLOR_BLACK, x0, y0, w, 31);
+    }
 }
+*/
 
 #ifdef CONFIG_MENU_DIM_HACKS
 void FAST replace_color(int old, int new, int x0, int y0, int w, int h)
@@ -1092,7 +1110,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     int lo = entry->min;
     int hi = entry->max;
     int sel = SELECTED_INDEX(entry) + lo;
-    int fnt = FONT(FONT_LARGE, COLOR_GRAY70, COLOR_GRAY40);
+    int fnt = FONT(FONT_LARGE, COLOR_GRAY70, COLOR_GRAY45);
     
     // don't draw too many items in the pickbox
     if (hi - lo > 10)
@@ -1111,12 +1129,12 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     // don't draw the pickbox out of the screen
     int h = 31 * (hi-lo+1);
     
-    #define SUBMENU_HINT_SUFFIX ": advanced..."
+    /*#define SUBMENU_HINT_SUFFIX ": advanced..."
     if (entry->children)
     {
         h += 20; // has submenu, display a hint here
         w = MAX(w, font_med.width * (strlen(Q_BTN_NAME) + strlen(SUBMENU_HINT_SUFFIX)));
-    }
+    }*/
     
     if (y0 + h > 400)
         y0 = 400 - h;
@@ -1126,24 +1144,26 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     
     x0 &= ~3;
 
+    w = 720-x0+16; // extend it till the right edge
+
     // draw the pickbox
-    bmp_fill(COLOR_GRAY40, x0-8, y0-8, w+16, h+16);
+    bmp_fill(COLOR_GRAY45, x0-16, y0, w, h);
     for (int i = lo; i <= hi; i++)
     {
         int y = y0 + (i-lo) * 31;
         bmp_printf(fnt, x0, y, pickbox_string(entry, i));
         if (i == sel)
-            selection_bar_backend(MENU_BAR_COLOR, COLOR_GRAY40, x0-8, y, w+16, 31);
+            selection_bar_backend(MENU_BAR_COLOR, COLOR_GRAY45, x0-16, y, w, 31);
     }
-    bmp_draw_rect(COLOR_GRAY60, x0-8, y0-8, w+16, h+16);
     
+    /*
     if (entry->children)
         bmp_printf(
-            SHADOW_FONT(FONT(FONT_MED, COLOR_CYAN, COLOR_GRAY40)), 
+            SHADOW_FONT(FONT(FONT_MED, COLOR_CYAN, COLOR_GRAY45)), 
             x0, y0 + (hi-lo+1) * 31 + 5, 
             "%s" SUBMENU_HINT_SUFFIX,
             Q_BTN_NAME
-        );
+        );*/
 }
 
 static void submenu_key_hint(int x, int y, int bg)
@@ -1379,7 +1399,23 @@ entry_print(
         "%s",
         info->value
     );
-
+    
+    // selection bar
+    if (entry->selected)
+    {
+        if (submenu_mode)
+        {
+            int xc = x + font_large.width * w - 10;
+            if (!info->value[0]) xc = x; // no value field? draw the full bar
+            selection_bar_backend(COLOR_GRAY45, COLOR_BLACK, x, y, xc-x, 31);
+            selection_bar_backend(MENU_BAR_COLOR, COLOR_BLACK, xc, y, x+g_submenu_width-xc-SUBMENU_OFFSET, 31);
+        }
+        else
+        {
+            selection_bar_backend(MENU_BAR_COLOR, COLOR_BLACK, x, y, 720-x, 31);
+        }
+    }
+    
     // display help
     if (entry->selected && entry->help && !menu_lv_transparent_mode)
     {
@@ -1557,8 +1593,8 @@ menu_display(
                     int px = x + ABS(parentmenu->split_pos) * font_large.width;
                     pickbox_draw(menu, px, y);
                 }
-                else
-                    selection_bar(x, y);
+                //~ else
+                    //~ selection_bar(x, y);
             
             }
 
@@ -2140,7 +2176,7 @@ menu_redraw_do()
 
                 if (submenu_mode)
                 {
-                    if (!menu_lv_transparent_mode && !quick_redraw) bmp_dim(0, 480-52);
+                    //~ if (!menu_lv_transparent_mode && !quick_redraw) bmp_dim(0, 480-52);
                     struct menu * submenu = get_current_submenu();
                     if (submenu) submenu_display(submenu);
                     else implicit_submenu_display();
