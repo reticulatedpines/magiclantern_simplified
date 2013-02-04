@@ -5600,11 +5600,12 @@ static struct menu_entry expo_menus[] = {
     #endif
     #ifdef FEATURE_EXPO_LOCK
     {
-        .name = "Expo.Lock",
-        .priv = &expo_lock,
-        .max = 1,
-        .update  = expo_lock_display,
-        .help = "In M mode, adjust Tv/Av/ISO without changing exposure.",
+        .name       = "Expo.Lock",
+        .priv       = &expo_lock,
+        .max        = 1,
+        .update     = expo_lock_display,
+        .help       = "In M mode, adjust Tv/Av/ISO without changing exposure.",
+        .help2      = "It may change the way you use M mode. Maybe I'm just crazy.",
         .depends_on = DEP_M_MODE | DEP_MANUAL_ISO,
         .children =  (struct menu_entry[]) {
             {

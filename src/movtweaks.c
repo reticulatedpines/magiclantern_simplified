@@ -1095,7 +1095,8 @@ static struct menu_entry mov_menus[] = {
         .name = "Shutter Lock",
         .priv = &shutter_lock,
         .max = 1,
-        .help = "Lock shutter value in movie mode (change from Expo only).",
+        .help   = "Lock shutter value in movie mode (change from Expo only).",
+        .help2  = "Tip: it prevents you from changing it by mistake.",
         .depends_on = DEP_MOVIE_MODE,
     },
     #endif
@@ -1104,7 +1105,8 @@ static struct menu_entry mov_menus[] = {
         .name = "Gradual Expo.",
         .priv = &smooth_iso,
         .max = 1,
-        .help = "Use smooth exposure transitions, by compensating with ISO.",
+        .help   = "Use smooth exposure transitions, by compensating with ISO.",
+        .help2  = "=> adjust ISO, exposure and aperture without large jumps.",
         .submenu_width = 700,
         .depends_on = DEP_MOVIE_MODE | DEP_MANUAL_ISO,
         .children =  (struct menu_entry[]) {
@@ -1141,7 +1143,8 @@ struct menu_entry expo_override_menus[] = {
         .update     = bv_display,
         .max = 2,
         .choices    = (const char *[]) {"OFF", "ON", "Auto (only when needed)"},
-        .help = "Low-level manual exposure controls (bypasses Canon limits)",
+        .help       = "Low-level manual exposure controls (bypasses Canon limits).",
+        .help2      = "Useful for long exposures, manual lenses, manual video ctl.",
         .depends_on = DEP_LIVEVIEW,
     },
 };
