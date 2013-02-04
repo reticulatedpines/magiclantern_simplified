@@ -2668,7 +2668,7 @@ static MENU_UPDATE_FUNC(picstyle_rec_sub_display)
 {
     MENU_SET_VALUE(
         "%s\n"
-        "              (%d,%d,%d,%d)",
+        "(%d,%d,%d,%d)",
         get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec_sub)),
         lens_get_from_other_picstyle_sharpness(picstyle_rec_sub),
         lens_get_from_other_picstyle_contrast(picstyle_rec_sub),
@@ -5474,6 +5474,7 @@ static struct menu_entry expo_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "PictureStyle",
+                .priv = 1,
                 .update     = picstyle_display_submenu,
                 .select     = picstyle_toggle,
                 .help = "Change current picture style.",
