@@ -1197,14 +1197,14 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
     // default warnings
          if (DEPENDS_ON(DEP_GLOBAL_DRAW) && !get_global_draw())
         snprintf(warning, MENU_MAX_WARNING_LEN, GDR_WARNING_MSG);
-    else if (DEPENDS_ON(DEP_LIVEVIEW) && !lv)
-        snprintf(warning, MENU_MAX_WARNING_LEN, "This feature only works in LiveView.");
-    else if (DEPENDS_ON(DEP_NOT_LIVEVIEW) && lv)
-        snprintf(warning, MENU_MAX_WARNING_LEN, "This feature does not work in LiveView.");
     else if (DEPENDS_ON(DEP_MOVIE_MODE) && !is_movie_mode())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature only works in movie mode.");
     else if (DEPENDS_ON(DEP_PHOTO_MODE) && is_movie_mode())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature only works in photo mode.");
+    else if (DEPENDS_ON(DEP_LIVEVIEW) && !lv)
+        snprintf(warning, MENU_MAX_WARNING_LEN, "This feature only works in LiveView.");
+    else if (DEPENDS_ON(DEP_NOT_LIVEVIEW) && lv)
+        snprintf(warning, MENU_MAX_WARNING_LEN, "This feature does not work in LiveView.");
     else if (DEPENDS_ON(DEP_AUTOFOCUS) && is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires autofocus.");
     else if (DEPENDS_ON(DEP_MANUAL_FOCUS) && !is_manual_focus())
@@ -1240,14 +1240,14 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
     {
              if (WORKS_BEST_IN(DEP_GLOBAL_DRAW) && !get_global_draw())
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with GlobalDraw enabled.");
-        else if (WORKS_BEST_IN(DEP_LIVEVIEW) && !lv)
-            snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best in LiveView.");
-        else if (WORKS_BEST_IN(DEP_NOT_LIVEVIEW) && lv)
-            snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best outside LiveView.");
         else if (WORKS_BEST_IN(DEP_MOVIE_MODE) && !is_movie_mode())
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best in movie mode.");
         else if (WORKS_BEST_IN(DEP_PHOTO_MODE) && is_movie_mode())
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best in photo mode.");
+        else if (WORKS_BEST_IN(DEP_LIVEVIEW) && !lv)
+            snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best in LiveView.");
+        else if (WORKS_BEST_IN(DEP_NOT_LIVEVIEW) && lv)
+            snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best outside LiveView.");
         else if (WORKS_BEST_IN(DEP_AUTOFOCUS) && is_manual_focus())
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with autofocus enabled.");
         else if (WORKS_BEST_IN(DEP_MANUAL_FOCUS) && !is_manual_focus())
