@@ -48,6 +48,19 @@ struct menu_entry help_menus[] = {
             MENU_EOL,
         },
     },
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    {
+        .name = "LongJoystick",
+        .choices = CHOICES("Submenu one-handed..."),
+        
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "... like this :)",
+            },
+            MENU_EOL,
+        },
+    },
+    #endif
     {
         .select = menu_nav_help_open,
         .name = "SET/PLAY",

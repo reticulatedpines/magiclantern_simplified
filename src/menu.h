@@ -161,7 +161,8 @@ struct menu_entry
         int16_t works_best_in;  // soft requirement, it will work, but not as well
 };
 
-#define IS_VISIBLE(entry) ((entry)->hidden != MENU_ENTRY_HIDDEN)
+#define HAS_HIDDEN_FLAG(entry) ((entry)->hidden == MENU_ENTRY_HIDDEN)
+#define IS_VISIBLE(entry) (!HAS_HIDDEN_FLAG(entry) || customize_mode)
 
 #define MENU_INT(entry) ((entry)->priv ? *(int*)(entry)->priv : 0)
 #define CURRENT_VALUE (MENU_INT(entry))

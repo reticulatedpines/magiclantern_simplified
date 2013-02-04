@@ -515,15 +515,16 @@ menu_find_by_name(
 }
 
 static int
-menu_has_visible_items(struct menu_entry *  menu)
+menu_has_visible_items(struct menu * menu)
 {
-    while( menu )
+    struct menu_entry * entry = menu->children;
+    while( entry )
     {
-        if (customize_mode || IS_VISIBLE(menu))
+        if (IS_VISIBLE(entry))
         {
             return 1;
         }
-        menu = menu->next;
+        entry = entry->next;
     }
     return 0;
 }
@@ -534,7 +535,7 @@ are_there_any_visible_menus()
     struct menu * menu = menus;
     while( menu )
     {
-        if (customize_mode || (!IS_SUBMENU(menu) && menu_has_visible_items(menu->children)))
+        if (!IS_SUBMENU(menu) && menu_has_visible_items(menu))
         {
             return 1;
         }
@@ -651,7 +652,7 @@ menu_add(
     {
         //~ if (new_entry->id == 0) new_entry->id = menu_id_increment++;
 
-        if(IS_VISIBLE(new_entry)) menu->childnum++;
+        if(!HAS_HIDDEN_FLAG(new_entry)) menu->childnum++;
         menu->childnummax++;
 
         new_entry->selected = 0;
@@ -1410,7 +1411,7 @@ entry_print(
     if (customize_mode)
     {
         // reserve space for icons
-        if (!is_customize_selected(0) && !is_menu_active(MY_MENU_NAME))
+        if (entry != &customize_menu[0] && !is_menu_active(MY_MENU_NAME))
             xc = x_end - 70;
         else
             xc = x_end;
@@ -1651,12 +1652,8 @@ menu_display(
     menu->delnum = delnum;
     
     for(int i=0;i<delnum;i++){
-        if(customize_mode){
-            entry = entry->next;
-        }else{                
-            while(!IS_VISIBLE(entry)) entry = entry->next;
-            entry = entry->next;
-        }
+        while(!IS_VISIBLE(entry)) entry = entry->next;
+        entry = entry->next;
     }
     //<== vscroll
 
@@ -1666,7 +1663,7 @@ menu_display(
     int menu_entry_num = 0;
     while( entry )
     {
-        if (customize_mode || IS_VISIBLE(entry))
+        if (IS_VISIBLE(entry))
         {
             // display current entry
             int ok = menu_entry_process(menu, entry, x, y, only_selected);
@@ -1703,7 +1700,7 @@ show_hidden_items(struct menu * menu, int force_clear)
         struct menu_entry * entry = menu->children;
         while( entry )
         {
-            if (!IS_VISIBLE(entry) && entry->name)
+            if (HAS_HIDDEN_FLAG(entry) && entry->name)
             {
                 if (hidden_count) { STR_APPEND(hidden_msg, ", "); }
                 int len = strlen(hidden_msg);
@@ -1773,7 +1770,7 @@ menus_display(
     int num_tabs = 0;
     for(struct menu * tmp_menu = menu ; tmp_menu ; tmp_menu = tmp_menu->next )
     {
-        if (!menu_has_visible_items(tmp_menu->children) && !tmp_menu->selected)
+        if (!menu_has_visible_items(tmp_menu) && !tmp_menu->selected)
             continue; // empty menu
         if (IS_SUBMENU(tmp_menu))
             continue;
@@ -1791,7 +1788,7 @@ menus_display(
     bmp_fill(fgu, orig_x, y+42, 720, 1);
     for( ; menu ; menu = menu->next )
     {
-        if (!menu_has_visible_items(menu->children) && !menu->selected)
+        if (!menu_has_visible_items(menu) && !menu->selected)
             continue; // empty menu
         if (IS_SUBMENU(menu))
             continue;
@@ -1874,7 +1871,7 @@ submenu_display(struct menu * submenu)
 
     int count = 0;
     struct menu_entry * child = submenu->children;
-    while (child) { if (customize_mode || IS_VISIBLE(child)) count++; child = child->next; }
+    while (child) { if (IS_VISIBLE(child)) count++; child = child->next; }
     int h = submenu->submenu_height ? submenu->submenu_height : (int)MIN((count + 3) * font_large.height, 400);
     int w = submenu->submenu_width  ? submenu->submenu_width : 600;
     g_submenu_width = w;
@@ -1962,7 +1959,7 @@ menu_entry_select(
     if( !entry ) return;
     
     // don't perform actions on empty items (can happen on empty submenus)
-    if (!IS_VISIBLE(entry) && !customize_mode)
+    if (!IS_VISIBLE(entry))
     {
         submenu_mode = 0;
         menu_lv_transparent_mode = 0;
@@ -2042,7 +2039,7 @@ menu_move(
     if (IS_SUBMENU(menu))
         menu_move(menu, direction); // always skip submenus
 
-    else if (!menu_has_visible_items(menu->children) && are_there_any_visible_menus())
+    else if (!menu_has_visible_items(menu) && are_there_any_visible_menus())
         menu_move(menu, direction); // this menu is hidden, skip it (try again)
             // would fail if no menus are displayed, so we double check before trying
 }
@@ -2060,7 +2057,7 @@ menu_entry_move(
 
     take_semaphore( menu_sem, 0 );
     
-    if (!menu_has_visible_items(menu->children))
+    if (!menu_has_visible_items(menu))
     {
         give_semaphore( menu_sem );
         return;
@@ -2071,9 +2068,7 @@ menu_entry_move(
     int selectedpos= 0;
     for( ; entry ; entry = entry->next )
     {
-        if(customize_mode) selectedpos++;
-        else if(IS_VISIBLE(entry)) selectedpos++;
-
+        if(IS_VISIBLE(entry)) selectedpos++;
         if( entry->selected ) break;
     }
 
@@ -2115,7 +2110,7 @@ menu_entry_move(
     entry->selected = 1;
     give_semaphore( menu_sem );
     
-    if (!customize_mode && !IS_VISIBLE(entry) && menu_has_visible_items(menu->children))
+    if (!IS_VISIBLE(entry) && menu_has_visible_items(menu))
         menu_entry_move(menu, direction); // try again, skip hidden items
         // warning: would block if the menu is empty
 }
@@ -2125,8 +2120,6 @@ menu_entry_move(
 // If the menu or the selection is empty, move back and forth to restore a valid selection
 static void menu_make_sure_selection_is_valid()
 {
-    if (customize_mode) return; // all menus displayed
-    
     struct menu * menu = get_selected_menu();
     if (submenu_mode)
     {
@@ -2136,7 +2129,7 @@ static void menu_make_sure_selection_is_valid()
     }
  
     // current menu has any valid items in current mode?
-    if (!menu_has_visible_items(menu->children))
+    if (!menu_has_visible_items(menu))
     {
         if (submenu_mode == 1) return; // empty submenu
         menu_move(menu, -1); menu = get_selected_menu();
@@ -2860,7 +2853,12 @@ void close_canon_menu()
 static void menu_open() 
 { 
     if (menu_shown) return;
-    
+
+    // always start in my menu, if configured
+    struct menu * my_menu = menu_find_by_name(MY_MENU_NAME, 0);
+    if (menu_has_visible_items(my_menu))
+        select_menu_by_icon(ICON_ML_MYMENU);
+
 #ifdef CONFIG_5DC
     //~ forces the 5dc screen to turn on for ML menu.
     if (!DISPLAY_IS_ON) fake_simple_button(BGMT_MENU);
@@ -2927,6 +2925,7 @@ menu_task( void* unused )
     menu_load_starred_items();
     select_menu_by_icon(menu_first_by_icon);
     menu_make_sure_selection_is_valid();
+    
     TASK_LOOP
     {
         int menu_or_shortcut_menu_shown = (menu_shown || arrow_keys_shortcuts_active());
@@ -3286,7 +3285,7 @@ static void menu_save_flag(char* filename, int flag_to_save)
         for(i = 0 ; entry ; entry = entry->next, i++ )
         {
             if (
-                    (flag_to_save == FLAG_HIDDEN &&!IS_VISIBLE(entry)) ||
+                    (flag_to_save == FLAG_HIDDEN && HAS_HIDDEN_FLAG(entry)) ||
                     (flag_to_save == FLAG_STARRED && entry->starred)
                )
             {
