@@ -193,6 +193,7 @@ save_config( void * priv, int delta )
     update_disp_mode_bits_from_params();
     config_save_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" ); 
     config_menu_save_hidden_items();
+    config_menu_save_starred_items();
     give_semaphore(config_save_sem);
 #endif
 }
@@ -203,6 +204,7 @@ delete_config( void * priv, int delta )
 {
     FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
     FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/HIDDEN.CFG" );
+    FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/MYMENU.CFG" );
     if (config_autosave) config_autosave_toggle(0, 0);
 }
 

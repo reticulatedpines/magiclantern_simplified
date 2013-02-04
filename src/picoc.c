@@ -341,10 +341,6 @@ static MENU_UPDATE_FUNC(script_display)
         script_selected = script_displayed; // change selected script as we scroll thru menu (if not running, of course)
 
     int displayed_script_is_idle = (script_state == SCRIPT_IDLE) || (script_selected != script_displayed);
-    
-    MENU_SET_NAME(
-        script_list[script_displayed]
-    );
 
     MENU_SET_VALUE(
         displayed_script_is_idle ? "" :
@@ -443,7 +439,7 @@ static struct menu_entry picoc_menu[] = {
 
 #define SCRIPT_ENTRY(i) \
         { \
-            .name = "Selected script", \
+            .name = script_list[i], \
             .priv = (void*)i, \
             .select = script_open_submenu, \
             .select_Q = script_open_submenu, \

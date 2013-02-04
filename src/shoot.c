@@ -2667,9 +2667,10 @@ static MENU_UPDATE_FUNC(picstyle_rec_display)
 static MENU_UPDATE_FUNC(picstyle_rec_sub_display)
 {
     MENU_SET_VALUE(
-        "%s\n"
+        get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec_sub))
+    );
+    bmp_printf(FONT_LARGE, MENU_VALUE_POS_X, info->y + font_large.height,
         "(%d,%d,%d,%d)",
-        get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec_sub)),
         lens_get_from_other_picstyle_sharpness(picstyle_rec_sub),
         lens_get_from_other_picstyle_contrast(picstyle_rec_sub),
         ABS(lens_get_from_other_picstyle_saturation(picstyle_rec_sub)) < 10 ? lens_get_from_other_picstyle_saturation(picstyle_rec_sub) : 0,
@@ -5482,7 +5483,7 @@ static struct menu_entry expo_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "PictureStyle",
-                .priv = 1,
+                .priv = (void*)1,
                 .update     = picstyle_display_submenu,
                 .select     = picstyle_toggle,
                 .help = "Change current picture style.",
