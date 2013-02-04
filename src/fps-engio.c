@@ -990,6 +990,16 @@ static MENU_UPDATE_FUNC(fps_wav_record_print)
     MENU_SET_ICON(CURRENT_VALUE ? MNI_ON : MNI_DISABLE, 0);
 }
 
+static MENU_UPDATE_FUNC(fps_ramp_update)
+{
+    if (!fps_override) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "FPS override should be enabled.");
+}
+static MENU_UPDATE_FUNC(fps_ramp_expo_update)
+{
+    extern int smooth_iso;
+    if (smooth_iso) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You need to disable gradual exposure.");
+}
+
 static struct menu_entry fps_menu[] = {
     #ifdef FEATURE_FPS_OVERRIDE
     {
@@ -999,6 +1009,7 @@ static struct menu_entry fps_menu[] = {
         .update = fps_print,
         .max = 1,
         .help = "Changes FPS. Also disables sound and alters shutter speeds.",
+        .help = "Tip: in photo mode, it makes LiveView usable in darkness.",
         .depends_on = DEP_LIVEVIEW,
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
@@ -1087,7 +1098,9 @@ static struct menu_entry fps_menu[] = {
         .name = "FPS ramping", 
         .priv = &fps_ramp,
         .max = 1,
-        .help = "Press REC/" INFO_BTN_NAME " to start ramping. FPS override should be ON.",
+        .update = fps_ramp_update,
+        .help = "Ramp between overridden FPS and default FPS. Undercrank only.",
+        .help2 = "To start ramping, press " INFO_BTN_NAME " or just start recording.",
         .depends_on = DEP_MOVIE_MODE,
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
@@ -1111,7 +1124,9 @@ static struct menu_entry fps_menu[] = {
                 .name = "Constant expo",
                 .priv = &fps_ramp_expo,
                 .max = 1,
-                .help = "Keep constant exposure via ISO. DISABLE gradual exposure!",
+                .update = fps_ramp_expo_update,
+                .help = "Keep constant exposure by tweaking ISO. Pink highlights.",
+                .depends_on = DEP_MANUAL_ISO,
             },
             #endif
             MENU_EOL,
@@ -1389,6 +1404,7 @@ void fps_ramp_iso_step()
     
     if (!lv) return;
     if (!is_movie_mode()) return;
+    if (!lens_info.raw_iso) return; // no auto iso
     
     static int dirty = 0;
     if (!fps_ramp || !fps_ramp_expo)

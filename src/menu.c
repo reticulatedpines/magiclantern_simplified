@@ -1438,8 +1438,9 @@ entry_print(
     // if there's a warning message set, display it
     if (entry->selected && info->warning[0])
     {
+        bmp_fill(MENU_BG_COLOR_HEADER_FOOTER, 10, MENU_WARNING_Y_POS, 720, font_med.height);
         bmp_printf(
-            FONT(FONT_MED, COLOR_YELLOW, COLOR_GRAY40),
+            FONT(FONT_MED, COLOR_YELLOW, MENU_BG_COLOR_HEADER_FOOTER),
              10,  MENU_WARNING_Y_POS, 
                 info->warning
         );
