@@ -444,6 +444,7 @@ static struct menu_entry picoc_menu[] = {
             .select = script_open_submenu, \
             .select_Q = script_open_submenu, \
             .update = script_display, \
+            .icon_type = IT_SUBMENU, \
             .submenu_width = 700, \
             .children = picoc_submenu, \
             .help = "Run small C-like scripts. http://code.google.com/p/picoc/", \

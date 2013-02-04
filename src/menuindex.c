@@ -68,13 +68,13 @@ struct menu_entry help_menus[] = {
     },
     {
         .select = menu_nav_help_open,
-        .name = "Zoom In",
+        .name = "Press MENU",
         .choices = CHOICES("Edit values (wheel)"),
     },
     {
         .select = menu_nav_help_open,
-        .name = "Press MENU",
-        .choices = CHOICES("Show/hide items"),
+        .name = "Zoom In",
+        .choices = CHOICES("Edit in LiveView"),
     },
     {
         .name = "Key shortcuts",
