@@ -581,10 +581,13 @@ void bsod()
     msleep(rand() % 20000 + 2000);
     
     do {
+        gui_stop_menu();
         SetGUIRequestMode(1);
         msleep(1000);
     } while (CURRENT_DIALOG_MAYBE != 1);
     
+    canon_gui_disable_front_buffer();
+    ui_lock(UILOCK_EVERYTHING);
     bmp_fill(COLOR_BLUE, 0, 0, 720, 480);
     int fnt = SHADOW_FONT(FONT_MED);
     int h = font_med.height;
