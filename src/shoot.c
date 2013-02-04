@@ -363,13 +363,13 @@ static int bin_search(int lo, int hi, CritFunc crit)
 
 static int get_exposure_time_ms()
 {
-    if (is_bulb_mode()) return BULB_SHUTTER_VALUE_MS;
+    if (is_bulb_mode_or_bulb_ramping()) return BULB_SHUTTER_VALUE_MS;
     else return raw2shutter_ms(lens_info.raw_shutter);
 }
 
 int get_exposure_time_raw()
 {
-    if (is_bulb_mode()) return shutterf_to_raw(bulb_shutter_valuef);
+    if (is_bulb_mode_or_bulb_ramping()) return shutterf_to_raw(bulb_shutter_valuef);
     return lens_info.raw_shutter;
 }
 
@@ -3105,12 +3105,20 @@ static MENU_SELECT_FUNC(hdr_stepsize_toggle)
 int is_bulb_mode()
 {
 #ifdef CONFIG_BULB
-    //~ bmp_printf(FONT_LARGE, 0, 0, "%d %d %d %d ", bulb_ramping_enabled, intervalometer_running, shooting_mode, lens_info.raw_shutter);
-    if (BULB_EXPOSURE_CONTROL_ACTIVE) return 1; // this will force bulb mode when needed
     if (shooting_mode == SHOOTMODE_BULB) return 1;
     if (shooting_mode != SHOOTMODE_M) return 0;
     if (lens_info.raw_shutter != 0xC) return 0;
     return 1;
+#else
+    return 0;
+#endif
+}
+
+int is_bulb_mode_or_bulb_ramping()
+{
+#ifdef CONFIG_BULB
+    if (BULB_EXPOSURE_CONTROL_ACTIVE) return 1; // this will force bulb mode when needed
+    return is_bulb_mode();
 #else
     return 0;
 #endif
@@ -3277,7 +3285,7 @@ static MENU_UPDATE_FUNC(bulb_display)
     if (!bulb_timer) MENU_SET_ICON(MNI_OFF, 0);
     else MENU_SET_ICON(MNI_PERCENT, bulb_duration_index * 100 / COUNT(timer_values));
     
-    if (!is_bulb_mode()) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Bulb timer only works in BULB mode");
+    if (!is_bulb_mode_or_bulb_ramping()) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Bulb timer only works in BULB mode");
     
     if (entry->selected && is_bulb_mode() && intervalometer_running) timelapse_calc_display(&interval_timer_index, 10, 370, entry->selected);
 }
@@ -5748,7 +5756,7 @@ static void take_a_pic(int allow_af)
     #endif
     {
         //~ beep();
-        if (is_bulb_mode()) bulb_take_pic(BULB_SHUTTER_VALUE_MS);
+        if (is_bulb_mode_or_bulb_ramping()) bulb_take_pic(BULB_SHUTTER_VALUE_MS);
         else lens_take_picture(64, allow_af);
     }
     lens_wait_readytotakepic(64);
@@ -5808,7 +5816,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
     //~ NotifyBox(2000, "hdr_shutter_release: %d", ev_x8); msleep(2000);
     lens_wait_readytotakepic(64);
 
-    int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode());
+    int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode_or_bulb_ramping());
     int dont_change_exposure = ev_x8 == 0 && !HDR_ENABLED && !BULB_EXPOSURE_CONTROL_ACTIVE;
 
     if (dont_change_exposure)
