@@ -138,6 +138,7 @@ struct menu_entry
         unsigned hidden     : 1;
         unsigned icon_type  : 4;
         unsigned edit_mode  : 1; // not currently used (to be cleaned up)
+        unsigned starred    : 1; // present in "my menu"
         
         const char * help;
         const char * help2;

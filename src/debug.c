@@ -3541,6 +3541,7 @@ void config_menu_init()
     #endif
     
     crop_factor_menu_init();
+    customize_menu_init();
     menu_add( "Debug", debug_menus, COUNT(debug_menus) );
     
     #ifdef CONFIG_5D3

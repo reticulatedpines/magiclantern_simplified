@@ -94,9 +94,13 @@ static int config_dirty = 0;
 static int menu_hidden_dirty = 0;
 //~ static int menu_hidden_should_display_help = 0;
 static int menu_zebras_mirror_dirty = 0; // to clear zebras from mirror (avoids display artifacts if, for example, you enable false colors in menu, then you disable them, and preview LV)
-int menu_help_active = 0;
-int submenu_mode = 0;
-int g_submenu_width = 0;
+
+int menu_help_active = 0; // also used in menuhelp.c
+
+static int submenu_mode = 0;
+static int customize_mode = 0;
+
+static int g_submenu_width = 0;
 static int menu_id_increment = 1;
 static int redraw_flood_stop = 0;
 
@@ -115,7 +119,6 @@ int is_submenu_mode_active() { return gui_menu_shown() && submenu_mode; }
 //~ static CONFIG_INT("menu.transparent", semitransparent, 0);
 
 static CONFIG_INT("menu.first", menu_first_by_icon, ICON_i);
-int advanced_hidden_edit_mode = 0;
 
 void menu_set_dirty() { menu_damage = 1; }
 
@@ -199,7 +202,20 @@ void beta_set_warned()
 }
 #endif
 
-//~ struct dialog * menu_dialog = 0;
+static struct menu_entry customize_menu[] = {
+    {
+        .name = "Customize menus",
+        .priv = &customize_mode,
+        .max = 1,
+    }
+};
+
+void customize_menu_init()
+{
+    menu_add("Prefs", customize_menu, COUNT(customize_menu));
+}
+
+
 static struct menu * menus;
 
 struct menu * menu_get_root() {
@@ -211,22 +227,6 @@ void menu_numeric_toggle(int* val, int delta, int min, int max)
     *val = mod(*val - min + delta, max - min + 1) + min;
 }
 
-void
-menu_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "%s",
-        (const char*) priv
-    );
-    menu_draw_icon(x, y, MNI_ACTION, 0);
-}
 
 static void entry_guess_icon_type(struct menu_entry * entry)
 {
@@ -471,7 +471,7 @@ menu_has_visible_items(struct menu_entry *  menu)
 {
     while( menu )
     {
-        if (advanced_hidden_edit_mode || IS_VISIBLE(menu))
+        if (customize_mode || IS_VISIBLE(menu))
         {
             return 1;
         }
@@ -486,7 +486,7 @@ are_there_any_visible_menus()
     struct menu * menu = menus;
     while( menu )
     {
-        if (advanced_hidden_edit_mode || (!IS_SUBMENU(menu) && menu_has_visible_items(menu->children)))
+        if (customize_mode || (!IS_SUBMENU(menu) && menu_has_visible_items(menu->children)))
         {
             return 1;
         }
@@ -949,7 +949,7 @@ void selection_bar(int x0, int y0)
     else if (submenu_mode == 1)
     {
         int w = g_submenu_width - SUBMENU_OFFSET;
-        int c = advanced_hidden_edit_mode ? COLOR_DARK_RED : MENU_BAR_COLOR;
+        int c = customize_mode ? COLOR_DARK_RED : MENU_BAR_COLOR;
 
         if (sub)
         {
@@ -963,7 +963,7 @@ void selection_bar(int x0, int y0)
     else
     {
         int w = 720 - x0;
-        int c = advanced_hidden_edit_mode ? COLOR_DARK_RED : MENU_BAR_COLOR;
+        int c = customize_mode ? COLOR_DARK_RED : MENU_BAR_COLOR;
         selection_bar_backend(c, COLOR_BLACK, x0, y0, w, 31);
     }
 }
@@ -989,26 +989,6 @@ void FAST replace_color(int old, int new, int x0, int y0, int w, int h)
 }
 #endif
 
-void dim_hidden_menu(int x0, int y0, int selected)
-{
-    int w = submenu_mode == 1 ? x0 + g_submenu_width - 50 : 720;
-    
-    uint8_t* B = bmp_vram();
-    int new_color = selected ? COLOR_ALMOST_BLACK : COLOR_GRAY50;
-    int black = COLOR_BLACK;
-    #ifdef CONFIG_VXWORKS
-    new_color = D2V(selected ? COLOR_BG : COLOR_GRAY50);
-    black = D2V(black);
-    #endif
-    for (int y = y0; y < y0 + 31; y++)
-    {
-        for (int x = x0-5; x < w; x++)
-        {
-            if (B[BM(x,y)] != black)
-                B[BM(x,y)] = new_color;
-        }
-    }
-}
 
 // By default, icon type is MNI_BOOL(MENU_INT(entry))
 // To override, call menu_draw_icon from the display functions
@@ -1136,8 +1116,8 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
         w = MAX(w, font_med.width * (strlen(Q_BTN_NAME) + strlen(SUBMENU_HINT_SUFFIX)));
     }*/
     
-    if (y0 + h > 400)
-        y0 = 400 - h;
+    if (y0 + h > 420)
+        y0 = 420 - h;
 
     if (x0 + w > 700)
         x0 = 700 - w;
@@ -1153,7 +1133,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
         int y = y0 + (i-lo) * 31;
         bmp_printf(fnt, x0, y, pickbox_string(entry, i));
         if (i == sel)
-            selection_bar_backend(MENU_BAR_COLOR, COLOR_GRAY45, x0-16, y, w, 31);
+            selection_bar_backend(MENU_BAR_COLOR, COLOR_GRAY45, x0-16, y, w, 32);
     }
     
     /*
@@ -1414,6 +1394,24 @@ entry_print(
         {
             selection_bar_backend(MENU_BAR_COLOR, COLOR_BLACK, x, y, 720-x, 31);
         }
+        
+        // use a pickbox if possible
+        if (submenu_mode == 2 && entry->min != entry->max && entry->priv)
+        {
+            int px = x + font_large.width * w;
+            pickbox_draw(entry, px, y);
+        }
+    }
+    
+    // star marker
+    if (entry->starred)
+    {
+        bfnt_draw_char(ICON_ML_MYMENU, x+g_submenu_width-100, y-4, COLOR_GREEN2, COLOR_BLACK);
+    }
+    
+    if (entry->hidden)
+    {
+        batsu(x+g_submenu_width-70, y+2, COLOR_RED);
     }
     
     // display help
@@ -1453,43 +1451,123 @@ entry_print(
             submenu_only_icon(x-40, y, COLOR_ORANGE);
         else
             menu_draw_icon(x, y, MNI_WARNING, 0);
-        return;
+    }
+    else // no warning, draw normal icons
+    {
+        if (!info->enabled && entry->icon_type == IT_PERCENT)
+            menu_draw_icon(x, y, MNI_OFF, 0);
+        
+        if (entry->icon_type == IT_BOOL)
+            menu_draw_icon(x, y, info->enabled ? MNI_ON : MNI_OFF, 0);
+        
+        if (info->icon) menu_draw_icon(x, y, info->icon, info->icon_arg);
+        entry_draw_icon(entry, x, y);
     }
 
-    if (!info->enabled && entry->icon_type == IT_PERCENT)
-        menu_draw_icon(x, y, MNI_OFF, 0);
-    
-    if (entry->icon_type == IT_BOOL)
-        menu_draw_icon(x, y, info->enabled ? MNI_ON : MNI_OFF, 0);
-    
-    if (info->icon) menu_draw_icon(x, y, info->icon, info->icon_arg);
-    entry_draw_icon(entry, x, y);
+    // submenu hints
+
+    #ifdef CONFIG_MENU_ICONS
+    // display submenu marker if this item has a submenu
+    if (entry->children && !menu_lv_transparent_mode)
+        submenu_icon(x, y);
+    #endif
+
+    // and also a Q sign for selected item
+    if (entry->selected && (entry->priv || entry->select) && !customize_mode)
+    {
+        if (entry->children && !submenu_mode && !menu_lv_transparent_mode)
+        {
+            if (icon_drawn != MNI_SUBMENU)
+                submenu_key_hint(720-35, y, MENU_BAR_COLOR);
+        }
+    }
 }
 
-
 static void
-menu_display(
-    struct menu * parentmenu,
+menu_post_display()
+{
+
+    if (!CURRENT_DIALOG_MAYBE)
+    {
+        // we can't use the scrollwheel
+        // and you need to be careful because you will change shooting settings while recording!
+        bfnt_draw_char(ICON_MAINDIAL, 680, 395, MENU_WARNING_COLOR, MENU_BG_COLOR_HEADER_FOOTER);
+        draw_line(720, 405, 680, 427, MENU_WARNING_COLOR);
+        draw_line(720, 406, 680, 428, MENU_WARNING_COLOR);
+    }
+
+    // display help about how to customize the menu
+    if (customize_mode)
+    {
+        bmp_printf(
+            FONT(FONT_MED, MENU_WARNING_COLOR, MENU_BG_COLOR_HEADER_FOOTER),
+             10,  MENU_HELP_Y_POS, 
+                "Press SET to hide items, press LV to add to My Menu. "
+        );
+    }
+}
+
+static int
+menu_entry_process(
+    struct menu * menu,
+    struct menu_entry * entry,
     int         x,
     int         y, 
     int only_selected
 )
 {
-    struct menu_entry *menu = parentmenu->children;
-    //hide upper menu for vscroll
-    int menu_len = get_menu_len(parentmenu); 
+    // fill in default text, warning checks etc 
+    static struct menu_display_info info;
+    entry_default_display_info(entry, &info);
+    info.x = x;
+    info.y = y;
 
-    int delnum = parentmenu->delnum; // how many menu entries to skip
-    delnum = MAX(delnum, parentmenu->pos - menu_len);
-    delnum = MIN(delnum, parentmenu->pos - 1);
-    parentmenu->delnum = delnum;
+    // display icon (only the first icon is drawn)
+    icon_drawn = 0;
+
+    if ((!menu_lv_transparent_mode && !only_selected) || entry->selected)
+    {
+        if (quick_redraw && entry->selected) // selected menu was not erased, so there may be leftovers on the screen
+            bmp_fill(menu_lv_transparent_mode ? 0 : COLOR_BLACK, x, y, g_submenu_width-50, font_large.height);
+        
+        // should we override some things?
+        if (entry->update)
+            entry->update(entry, &info);
+
+        // menu->update asked to draw the entire screen by itself? stop drawing right now
+        if (info.custom_drawing == CUSTOM_DRAW_THIS_MENU)
+            return 0;
+        
+        // print the menu on the screen
+        if (info.custom_drawing == CUSTOM_DRAW_DISABLE)
+            entry_print(x, y, ABS(menu->split_pos), entry, &info);
+    }
+    return 1;
+}
+
+static void
+menu_display(
+    struct menu * menu,
+    int         x,
+    int         y, 
+    int only_selected
+)
+{
+    struct menu_entry * entry = menu->children;
+    //hide upper menu for vscroll
+    int menu_len = get_menu_len(menu); 
+
+    int delnum = menu->delnum; // how many menu entries to skip
+    delnum = MAX(delnum, menu->pos - menu_len);
+    delnum = MIN(delnum, menu->pos - 1);
+    menu->delnum = delnum;
     
     for(int i=0;i<delnum;i++){
-        if(advanced_hidden_edit_mode){
-            menu = menu->next;
+        if(customize_mode){
+            entry = entry->next;
         }else{                
-            while(!IS_VISIBLE(menu)) menu = menu->next;
-            menu = menu->next;
+            while(!IS_VISIBLE(entry)) entry = entry->next;
+            entry = entry->next;
         }
     }
     //<== vscroll
@@ -1498,128 +1576,30 @@ menu_display(
         menu_clean_footer();
 
     int menu_entry_num = 0;
-    while( menu )
+    while( entry )
     {
-
-        if (advanced_hidden_edit_mode || IS_VISIBLE(menu))
+        if (customize_mode || IS_VISIBLE(entry))
         {
-            static struct menu_display_info info;
-            entry_default_display_info(menu, &info);
-            info.x = x;
-            info.y = y;
-
-            // display icon (only the first icon is drawn)
-            icon_drawn = 0;
-
-            if ((!menu_lv_transparent_mode && !only_selected) || menu->selected)
-            {
-                if (quick_redraw && menu->selected) // selected menu was not erased, so there may be leftovers on the screen
-                    bmp_fill(menu_lv_transparent_mode ? 0 : COLOR_BLACK, x, y, g_submenu_width-50, font_large.height);
-                
-                if (menu->update)
-                    menu->update(menu, &info);
-
-                // menu->update asked to draw the entire screen by itself? stop drawing right now
-                if (info.custom_drawing == CUSTOM_DRAW_THIS_MENU)
-                    return;
-                
-                if (info.custom_drawing == CUSTOM_DRAW_DISABLE)
-                    entry_print(x, y, ABS(parentmenu->split_pos), menu, &info);
-                
-                if (menu->hidden)
-                    dim_hidden_menu(x, y, menu->selected);
-            }
-
-            // display key hints
-            if (menu->selected && (menu->priv || menu->select))
-            {
-                if (menu->children && !submenu_mode && !menu_lv_transparent_mode)
-                {
-                    if (icon_drawn != MNI_SUBMENU)
-                        submenu_key_hint(720-35, y, MENU_BAR_COLOR);
-                }
-                /*
-                if (submenu_mode == 1)
-                {
-                    if (IS_SUBMENU(parentmenu) && icon_drawn != MNI_ACTION)
-                        edit_key_hint(360 + g_submenu_width/2 - 10, y);
-                }
-                else if (submenu_mode == 2 || menu_lv_transparent_mode)
-                {
-                    if (icon_drawn != MNI_ACTION)
-                        edit_key_hint(710, y);
-                }
-                else dummy_hint(x, y);
-                */
-                
-                if (!CURRENT_DIALOG_MAYBE)
-                {
-                    // we can't use the scrollwheel
-                    // and you need to be careful because you will change shooting settings while recording!
-                    bfnt_draw_char(ICON_MAINDIAL, 680, 395, MENU_WARNING_COLOR, MENU_BG_COLOR_HEADER_FOOTER);
-                    draw_line(720, 405, 680, 427, MENU_WARNING_COLOR);
-                    draw_line(720, 406, 680, 428, MENU_WARNING_COLOR);
-                }
-            }
-
-            #ifndef CONFIG_MENU_ICONS
-            // display submenu marker if this item has a submenu
-            if (menu->children && !menu_lv_transparent_mode)
-                if (!menu->selected && icon_drawn != MNI_SUBMENU)
-                    submenu_marker(x, y);
-            #endif
-
-            // if you have hidden some menus, display help about how to bring them back
-            if (advanced_hidden_edit_mode)
-            {
-                bmp_printf(
-                    FONT(FONT_MED, MENU_WARNING_COLOR, MENU_BG_COLOR_HEADER_FOOTER),
-                     10,  MENU_HELP_Y_POS, 
-                        "Press SET to hide items that you don't use. MENU: go back. "
-                );
-            }
-
-            #ifdef CONFIG_MENU_ICONS
-            // display submenu marker if this item has a submenu
-            if (menu->children && !menu_lv_transparent_mode)
-                submenu_icon(x, y);
-            #endif
+            // display current entry
+            int ok = menu_entry_process(menu, entry, x, y, only_selected);
             
-            // display selection bar
-            if (menu->selected)
-            {
-                // use a pickbox if possible
-                if (submenu_mode == 2 && menu->min != menu->max && menu->priv)
-                {
-                    int px = x + ABS(parentmenu->split_pos) * font_large.width;
-                    pickbox_draw(menu, px, y);
-                }
-                //~ else
-                    //~ selection_bar(x, y);
+            // entry asked for custom draw? stop here
+            if (!ok) break;
             
-            }
-
             // move down for next item
             y += font_large.height;
-            
-            // stop before attempting to display things outside the screen
-            if ((unsigned)y > 480 - font_large.height 
-                //~ #if CONFIG_DEBUGMSG
-                && !is_menu_active("VRAM")
-                //~ #endif
-            ) 
-                return;
+
+            //hide buttom menu for vscroll
+            menu_entry_num++;
+            if(menu_entry_num >= menu_len) break;
+            //<== vscroll
         }
-                                         
-        //hide buttom menu for vscroll
-        if(advanced_hidden_edit_mode) menu_entry_num++;
-        else                          if(IS_VISIBLE(menu)) menu_entry_num++;
 
-        if(menu_entry_num >= menu_len) break;
-        //<== vscroll
-
-        menu = menu->next;
+        entry = entry->next;
     }
+
+    // all menus displayed, now some extra stuff
+    menu_post_display();
 }
 
 static void
@@ -1647,7 +1627,7 @@ show_hidden_items(struct menu * menu, int force_clear)
             }
             entry = entry->next;
         }
-        STR_APPEND(hidden_msg, advanced_hidden_edit_mode ? "." : " (press MENU).");
+        STR_APPEND(hidden_msg, customize_mode ? "." : " (press MENU).");
         
         if (strlen(hidden_msg) > 55)
         {
@@ -1661,7 +1641,7 @@ show_hidden_items(struct menu * menu, int force_clear)
         {
             bmp_fill(COLOR_BLACK, 0, hidden_pos_y, 720, 19);
             bmp_printf(
-                SHADOW_FONT(FONT(FONT_MED, advanced_hidden_edit_mode ? MENU_WARNING_COLOR : COLOR_ORANGE , MENU_BG_COLOR_HEADER_FOOTER)), 
+                SHADOW_FONT(FONT(FONT_MED, customize_mode ? MENU_WARNING_COLOR : COLOR_ORANGE , MENU_BG_COLOR_HEADER_FOOTER)), 
                  10, hidden_pos_y, 
                  hidden_msg
             );
@@ -1674,7 +1654,7 @@ show_vscroll(struct menu* parent){
     int16_t pos = parent->pos; // from 1 to max
     int16_t max;
 
-    if(advanced_hidden_edit_mode) max = parent->childnummax;
+    if(customize_mode) max = parent->childnummax;
     else                          max = parent->childnum;
 
     int menu_len = get_menu_len(parent);
@@ -1806,7 +1786,7 @@ submenu_display(struct menu * submenu)
 
     int count = 0;
     struct menu_entry * child = submenu->children;
-    while (child) { if (advanced_hidden_edit_mode || IS_VISIBLE(child)) count++; child = child->next; }
+    while (child) { if (customize_mode || IS_VISIBLE(child)) count++; child = child->next; }
     int h = submenu->submenu_height ? submenu->submenu_height : (int)MIN((count + 3) * font_large.height, 400);
     int w = submenu->submenu_width  ? submenu->submenu_width : 600;
     g_submenu_width = w;
@@ -1857,6 +1837,27 @@ menu_entry_showhide_toggle(
 }
 
 static void
+menu_entry_star_toggle(
+    struct menu *   menu
+)
+{
+    if( !menu )
+        return;
+
+    take_semaphore( menu_sem, 0 );
+    struct menu_entry * entry = menu->children;
+
+    for( ; entry ; entry = entry->next )
+    {
+        if( entry->selected )
+            break;
+    }
+    give_semaphore( menu_sem );
+
+    entry->starred = !entry->starred;
+}
+
+static void
 menu_entry_select(
     struct menu *   menu,
     int mode // 0 = increment, 1 = decrement, 2 = Q, 3 = SET
@@ -1882,7 +1883,7 @@ menu_entry_select(
         //~ menu_show_only_selected();
     
     // don't perform actions on empty items (can happen on empty submenus)
-    if (!IS_VISIBLE(entry) && !advanced_hidden_edit_mode)
+    if (!IS_VISIBLE(entry) && !customize_mode)
     {
         submenu_mode = 0;
         menu_lv_transparent_mode = 0;
@@ -1991,7 +1992,7 @@ menu_entry_move(
     int selectedpos= 0;
     for( ; entry ; entry = entry->next )
     {
-        if(advanced_hidden_edit_mode) selectedpos++;
+        if(customize_mode) selectedpos++;
         else                          if(IS_VISIBLE(entry)) selectedpos++;
 
         if( entry->selected ) break;
@@ -2035,7 +2036,7 @@ menu_entry_move(
     entry->selected = 1;
     give_semaphore( menu_sem );
     
-    if (!advanced_hidden_edit_mode && !IS_VISIBLE(entry) && menu_has_visible_items(menu->children))
+    if (!customize_mode && !IS_VISIBLE(entry) && menu_has_visible_items(menu->children))
         menu_entry_move(menu, direction); // try again, skip hidden items
         // warning: would block if the menu is empty
 }
@@ -2045,7 +2046,7 @@ menu_entry_move(
 // If the menu or the selection is empty, move back and forth to restore a valid selection
 static void menu_make_sure_selection_is_valid()
 {
-    if (advanced_hidden_edit_mode) return; // all menus displayed
+    if (customize_mode) return; // all menus displayed
     
     struct menu * menu = get_selected_menu();
     if (submenu_mode)
@@ -2442,13 +2443,12 @@ handle_ml_menu_keys(struct event * event)
     
     switch( button_code )
     {
+    case BGMT_LV:
+        menu_entry_star_toggle(menu);
+        break;
+    
     case BGMT_MENU:
-        if (!menu_lv_transparent_mode && submenu_mode != 2)
-        {
-            advanced_hidden_edit_mode = !advanced_hidden_edit_mode;
-            menu_needs_full_redraw = 1;
-        }
-        
+        submenu_mode = (!submenu_mode)*2;
         break;
     
     #ifdef BGMT_PRESS_UP_LEFT
@@ -2525,7 +2525,7 @@ handle_ml_menu_keys(struct event * event)
             menu_help_active = 0;
             break; 
         }
-        else if (advanced_hidden_edit_mode)
+        else if (customize_mode)
         {
             menu_entry_showhide_toggle(menu);
         }
@@ -2656,6 +2656,7 @@ menu_init( void )
     menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  )->split_pos = 10;
     menu_find_by_name( "Debug",     ICON_ML_DEBUG   )->split_pos = 15;
     menu_find_by_name( "Help",      ICON_ML_INFO    )->split_pos = 13;
+    menu_find_by_name( "My Menu",   ICON_ML_MYMENU  );
 
 }
 
@@ -2797,7 +2798,7 @@ static void menu_close()
     if (!menu_shown) return;
     menu_shown = false;
 
-    advanced_hidden_edit_mode = 0;
+    customize_mode = 0;
     update_disp_mode_bits_from_params();
 
     lens_focus_stop();
