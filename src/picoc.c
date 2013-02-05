@@ -399,6 +399,12 @@ static struct menu_entry picoc_submenu[] = {
         {
             .help = "Script parameter #7",
         },
+        {
+            .help = "Script parameter #8",
+        },
+        {
+            .help = "Script parameter #9",
+        },
         MENU_EOL
 };
 
