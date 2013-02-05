@@ -105,6 +105,10 @@ SECTIONS
 
 	_data.end = .;
 
+    __exidx_start = .;
+    .ARM.exidx   : { *(.ARM.exidx*) }
+    __exidx_end = .;
+
 	/* BSS segment to be zeroed */
 	. = ALIGN(64);
 	_bss_start = .;
