@@ -15,12 +15,7 @@ int card_select = 1;
 
 CONFIG_INT("card.test", card_test_enabled, 1);
 
-static void card_info_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+MENU_UPDATE_FUNC(card_info_display)
 {
     //~ int pcmcia  = *(uint8_t*)0x68c88;
     //~ int ide     = *(uint8_t*)0x68c89;
@@ -29,30 +24,14 @@ static void card_info_display(
     char* model = (char*)0x68cAA;
     int cf_present = is_dir("A:/");
 
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "CF: %s %s", 
-        cf_present ? make : "N/A", model
-    );
-    menu_draw_icon(x, y, cf_present ? MNI_ON : MNI_OFF, 0);
+    MENU_SET_VALUE("%s %s", cf_present ? make : "N/A", model);
+    //menu_draw_icon(x, y, cf_present ? MNI_ON : MNI_OFF, 0);
 }
 
-static void
-card_test_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+MENU_UPDATE_FUNC(card_test_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Card test at startup : %s", 
-        card_test_enabled ? "ON" : "OFF"
-    );
-    menu_draw_icon(x, y, card_test_enabled ? MNI_ON : MNI_WARNING, (intptr_t) "Your choice. Just don't blame ML if you get corrupted files.");
+    MENU_SET_VALUE("Card test at startup : %s", card_test_enabled ? "ON" : "OFF" );
+    //menu_draw_icon(x, y, card_test_enabled ? MNI_ON : MNI_WARNING, (intptr_t) "Your choice. Just don't blame ML if you get corrupted files.");
 }
 
 void card_test(int type)
@@ -302,13 +281,13 @@ INIT_FUNC("fio", find_ml_card);
 struct menu_entry card_menus[] = {
     {
         .name = "CF card", 
-        .display = &card_info_display,
+        .update = &card_info_display,
         .help = "CF card info: make and model."
     },
     {
         .name = "Card test at startup", 
         .priv = &card_test_enabled,
-        .display = &card_test_display,
+        .update = &card_test_display,
         .max = 1,
         .help = "File write test. Disable ONLY after testing ALL your cards!"
     },
