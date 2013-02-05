@@ -51,6 +51,7 @@ struct menu_display_info
     char* value;
     char* help;
     char* warning;
+    char* rinfo; // displayed on the right side
     int enabled;
     int icon;
     int icon_arg;
@@ -70,10 +71,14 @@ struct menu_display_info
 #define MENU_MAX_VALUE_LEN 25
 #define MENU_MAX_HELP_LEN 60
 #define MENU_MAX_WARNING_LEN 60
+#define MENU_MAX_RINFO_LEN 30
 
-#define MENU_SET_NAME(fmt, ...)         snprintf(info->name,    MENU_MAX_NAME_LEN,      fmt,    ## __VA_ARGS__)
-#define MENU_SET_VALUE(fmt, ...)        snprintf(info->value,   MENU_MAX_VALUE_LEN,     fmt,    ## __VA_ARGS__)
-#define MENU_APPEND_VALUE(fmt, ...)     snprintf(info->value + strlen(info->value),   MENU_MAX_VALUE_LEN - strlen(info->value),     fmt,    ## __VA_ARGS__)
+#define MENU_SET_NAME(fmt, ...)     snprintf(info->name,    MENU_MAX_NAME_LEN,    fmt,    ## __VA_ARGS__)
+#define MENU_SET_VALUE(fmt, ...)    snprintf(info->value,   MENU_MAX_VALUE_LEN,   fmt,    ## __VA_ARGS__)
+#define MENU_SET_RINFO(fmt, ...)    snprintf(info->rinfo,   MENU_MAX_RINFO_LEN,   fmt,    ## __VA_ARGS__)
+
+#define MENU_APPEND_VALUE(fmt, ...)   snprintf(info->value + strlen(info->value),   MENU_MAX_VALUE_LEN - strlen(info->value),     fmt,    ## __VA_ARGS__)
+#define MENU_APPEND_RINFO(fmt, ...)   snprintf(info->rinfo + strlen(info->rinfo),   MENU_MAX_RINFO_LEN - strlen(info->rinfo),     fmt,    ## __VA_ARGS__)
 
 /* when the item is not selected, the help and warning overrides will not be parsed */
 /* warning level is still considered, for graying out menu items */
@@ -239,7 +244,6 @@ struct menu
         struct menu_entry *     children;
         int                     selected;
         int icon;
-        uint32_t id; // unique ID
         int16_t submenu_width;
         int16_t submenu_height;
         int16_t pos;

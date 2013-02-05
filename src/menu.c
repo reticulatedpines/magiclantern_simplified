@@ -112,7 +112,6 @@ static int is_customize_selected();
 
 //~ static int g_submenu_width = 0;
 #define g_submenu_width 720
-static int menu_id_increment = 1;
 static int redraw_flood_stop = 0;
 
 static int quick_redraw = 0; // don't redraw the full menu, because user is navigating quickly
@@ -471,6 +470,7 @@ menu_find_by_name(
     {
         if( streq( menu->name, name ) )
         {
+            if (icon && !menu->icon) menu->icon = icon;
             give_semaphore( menu_sem );
             return menu;
         }
@@ -488,7 +488,6 @@ menu_find_by_name(
         return NULL;
     }
 
-    new_menu->id        = menu_id_increment++;
     new_menu->name      = name;
     new_menu->icon      = icon;
     new_menu->prev      = menu;
@@ -680,9 +679,7 @@ menu_add(
             struct menu_entry * child = entry->children;
             while (!MENU_IS_EOL(child)) { count++; child++; }
             struct menu * submenu = menu_find_by_name( entry->name, ICON_ML_SUBMENU);
-            // only one submenu can have a given name
-            // if more submenus have the same name, the submenu is reused, don't create it again
-            if (!submenu->children)
+            if (submenu->children != entry->children) // submenu is reused, do not add it twice
                 menu_add(entry->name, entry->children, count);
             submenu->submenu_width = entry->submenu_width;
             submenu->submenu_height = entry->submenu_height;
@@ -1282,16 +1279,19 @@ entry_default_display_info(
     static char value[MENU_MAX_VALUE_LEN];
     static char help[MENU_MAX_HELP_LEN];
     static char warning[MENU_MAX_WARNING_LEN];
+    static char rinfo[MENU_MAX_RINFO_LEN];
 
     name[0] = 0;
     value[0] = 0;
     help[0] = 0;
     warning[0] = 0;
+    rinfo[0] = 0;
     
     info->name = name;
     info->value = value;
     info->help = help;
     info->warning = warning;
+    info->rinfo = rinfo;
     info->custom_drawing = 0;
     info->icon = 0;
     info->icon_arg = 0;
@@ -1389,21 +1389,40 @@ entry_print(
     
     // value string too big? move it to the left
     int end = w + strlen(info->value);
-    int wmax = (g_submenu_width - 40) / font_large.width;
+    int wmax = (720 - x) / font_large.width;
 
-    // also make sure there's room for the Q symbol
-    if (entry->children && !submenu_mode && !menu_lv_transparent_mode && (entry->priv || entry->select))
+    // right-justified info field?
+    int rlen = strlen(info->rinfo);
+    int rinfo_x = 720 - font_large.width * (rlen + 1);
+    if (rlen) wmax -= rlen + 2;
+    
+    // no right info? then make sure there's room for the Q symbol
+    else if (entry->children && !submenu_mode && !menu_lv_transparent_mode && (entry->priv || entry->select))
+    {
         wmax--;
-
+    }
+    
     if (end > wmax)
         w -= (end - wmax);
 
+    // print value field
     bmp_printf(
         fnt,
         x + font_large.width * w, y,
         "%s",
         info->value
     );
+
+    // print right-justified info, if any
+    if (info->rinfo[0])
+    {
+        bmp_printf(
+            MENU_FONT_GRAY,
+            rinfo_x, y,
+            "%s",
+            info->rinfo
+        );
+    }
 
     // selection bar params
     // bar end
@@ -2555,7 +2574,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_UP:
         if (menu_help_active) { menu_help_prev_page(); break; }
 
-        if (submenu_mode == 2 || menu_lv_transparent_mode)
+        if (submenu_mode == 2 && !menu_lv_transparent_mode)
             menu_entry_select( menu, 1 );
         else
             menu_entry_move( menu, -1 );
@@ -2566,7 +2585,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_DOWN:
         if (menu_help_active) { menu_help_next_page(); break; }
         
-        if (submenu_mode == 2 || menu_lv_transparent_mode)
+        if (submenu_mode == 2 && !menu_lv_transparent_mode)
             menu_entry_select( menu, 0 );
         else
             menu_entry_move( menu, 1 );
