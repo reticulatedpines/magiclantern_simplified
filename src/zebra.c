@@ -5558,7 +5558,7 @@ int handle_disp_preset_key(struct event * event)
         if (!disp_profiles_0)
             return handle_powersave_key(event);
 
-        if (!lv) return 1;
+        if (!lv && !LV_PAUSED) return 1;
         if (IS_FAKE(event)) return 1;
         if (gui_menu_shown()) return 1;
         
@@ -5567,7 +5567,7 @@ int handle_disp_preset_key(struct event * event)
             if (disp_mode == disp_profiles_0 && !idle_is_powersave_active())
                 return handle_powersave_key(event);
             else
-                toggle_disp_mode();
+                toggle_disp_mode(); // and wake up from powersave
         }
         else
         {
