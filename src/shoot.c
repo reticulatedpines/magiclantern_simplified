@@ -2480,7 +2480,6 @@ static MENU_UPDATE_FUNC(color_tone_display)
     MENU_SET_ENABLED(ok);
 }
 
-static CONFIG_INT("picstyle.rec.sub", picstyle_rec_sub, 1);
 static CONFIG_INT("picstyle.rec", picstyle_rec, 0);
 static int picstyle_before_rec = 0; // if you use a custom picstyle during REC, the old one will be saved here
 
@@ -2569,12 +2568,21 @@ static MENU_UPDATE_FUNC(picstyle_display)
     int i = picstyle_rec && recording ? picstyle_before_rec : (int)lens_info.picstyle;
     
     MENU_SET_VALUE(
-        "%s%s",
-        get_picstyle_name(get_prop_picstyle_from_index(i)),
-        picstyle_before_rec ? "*" : ""
+        get_picstyle_name(get_prop_picstyle_from_index(i))
     );
 
-    MENU_SET_RINFO(
+    
+    if (picstyle_rec && is_movie_mode())
+    {
+        MENU_SET_VALUE(
+            get_picstyle_shortname(get_prop_picstyle_from_index(i))
+        );
+        MENU_SET_RINFO(
+            "REC:%s",
+            get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec))
+        );
+    }
+    else MENU_SET_RINFO(
             "%d,%d,%d,%d",
             lens_get_from_other_picstyle_sharpness(i),
             lens_get_from_other_picstyle_contrast(i),
@@ -2589,9 +2597,8 @@ static MENU_UPDATE_FUNC(picstyle_display_submenu)
 {
     int p = get_prop_picstyle_from_index(lens_info.picstyle);
     MENU_SET_VALUE(
-        "%s%s",
-        get_picstyle_name(p),
-        picstyle_before_rec ? " (REC)" : ""
+        "%s",
+        get_picstyle_name(p)
     );
     MENU_SET_ENABLED(1);
 }
@@ -2611,57 +2618,31 @@ picstyle_toggle(void* priv, int sign )
 
 #ifdef FEATURE_REC_PICSTYLE
 
-static MENU_UPDATE_FUNC(picstyle_rec_display)
+static MENU_UPDATE_FUNC(picstyle_rec_sub_display)
 {
     if (!picstyle_rec)
     {
-        MENU_SET_VALUE(
-            "Don't change"
-        );
+        MENU_SET_VALUE("OFF");
+        return;
     }
-    else
-    {
-        MENU_SET_VALUE(
-            get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec))
-        );
-        MENU_SET_RINFO(
-            "%d,%d,%d,%d",
-            lens_get_from_other_picstyle_sharpness(picstyle_rec),
-            lens_get_from_other_picstyle_contrast(picstyle_rec),
-            ABS(lens_get_from_other_picstyle_saturation(picstyle_rec)) < 10 ? lens_get_from_other_picstyle_saturation(picstyle_rec) : 0,
-            ABS(lens_get_from_other_picstyle_color_tone(picstyle_rec)) < 10 ? lens_get_from_other_picstyle_color_tone(picstyle_rec) : 0
-        );
-    }
-}
-
-static MENU_UPDATE_FUNC(picstyle_rec_sub_display)
-{
+    
     MENU_SET_VALUE(
-        get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec_sub))
+        get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec))
     );
     MENU_SET_RINFO(
         "%d,%d,%d,%d",
-        lens_get_from_other_picstyle_sharpness(picstyle_rec_sub),
-        lens_get_from_other_picstyle_contrast(picstyle_rec_sub),
-        ABS(lens_get_from_other_picstyle_saturation(picstyle_rec_sub)) < 10 ? lens_get_from_other_picstyle_saturation(picstyle_rec_sub) : 0,
-        ABS(lens_get_from_other_picstyle_color_tone(picstyle_rec_sub)) < 10 ? lens_get_from_other_picstyle_color_tone(picstyle_rec_sub) : 0
+        lens_get_from_other_picstyle_sharpness(picstyle_rec),
+        lens_get_from_other_picstyle_contrast(picstyle_rec),
+        ABS(lens_get_from_other_picstyle_saturation(picstyle_rec)) < 10 ? lens_get_from_other_picstyle_saturation(picstyle_rec) : 0,
+        ABS(lens_get_from_other_picstyle_color_tone(picstyle_rec)) < 10 ? lens_get_from_other_picstyle_color_tone(picstyle_rec) : 0
     );
-}
-
-static void
-picstyle_rec_toggle( void * priv, int delta )
-{
-    if (recording) return;
-    if (picstyle_rec) picstyle_rec = 0;
-    else picstyle_rec = picstyle_rec_sub;
 }
 
 static void
 picstyle_rec_sub_toggle( void * priv, int delta )
 {
     if (recording) return;
-    picstyle_rec_sub = mod(picstyle_rec_sub + delta - 1, NUM_PICSTYLES) + 1;
-    if (picstyle_rec) picstyle_rec = picstyle_rec_sub;
+    picstyle_rec = mod(picstyle_rec+ delta, NUM_PICSTYLES+1);
 }
 
 static void rec_picstyle_change(int rec)
@@ -5504,31 +5485,18 @@ static struct menu_entry expo_menus[] = {
                 .help = "Adjust color tone in current picture style.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
-            MENU_EOL
-        },
-    },
-    #endif
     #ifdef FEATURE_REC_PICSTYLE
-        #ifndef FEATURE_PICSTYLE
-        #error This requires FEATURE_PICSTYLE.
-        #endif
-    
-    {
-        .priv = &picstyle_rec,
-        .name = "REC PicStyle",
-        .update     = picstyle_rec_display,
-        .select     = picstyle_rec_toggle,
-        .help = "You can use a different picture style when recording.",
-        .submenu_height = 160,
-        .depends_on = DEP_MOVIE_MODE,
-        .children =  (struct menu_entry[]) {
             {
                 .name = "REC-PicStyle",
+                .priv = &picstyle_rec,
+                .max  = NUM_PICSTYLES,
+                .icon_type = IT_BOOL,
                 .update     = picstyle_rec_sub_display,
                 .select     = picstyle_rec_sub_toggle,
-                .help = "Select the picture style for recording.",
-                //~ .show_liveview = 1,
+                .help = "You can use a different picture style when recording.",
+                .depends_on = DEP_MOVIE_MODE,
             },
+    #endif
             MENU_EOL
         },
     },
