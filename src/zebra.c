@@ -2526,9 +2526,9 @@ static MENU_UPDATE_FUNC(crop_display_submenu)
         "%s",
          num_cropmarks ? cropmark_names[index] : "N/A"
     );
-    int h = 150;
+    int h = 250;
     int w = h * 720 / 480;
-    int xc = info->x + 315;
+    int xc = 360 - w/2;
     int yc = info->y + font_large.height * 3 + 10;
     BMP_LOCK( reload_cropmark(); )
     bmp_fill(0, xc, yc, w, h);
