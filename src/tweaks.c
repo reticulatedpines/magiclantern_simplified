@@ -1959,10 +1959,10 @@ char* get_warn_msg(char* separator)
 {
     static char msg[200];
     msg[0] = '\0';
-    if (warn_code & 1 && warn_mode==1) { STR_APPEND(msg, "Mode is not P%s", separator); }
-    if (warn_code & 1 && warn_mode==2) { STR_APPEND(msg, "Mode is not Tv%s", separator); }
-    if (warn_code & 1 && warn_mode==3) { STR_APPEND(msg, "Mode is not Av%s", separator); }
-    if (warn_code & 1 && warn_mode==4) { STR_APPEND(msg, "Mode is not M%s", separator); }
+    if (warn_code & 1 && warn_mode==1) { STR_APPEND(msg, "Mode is not M%s", separator); }
+    if (warn_code & 1 && warn_mode==2) { STR_APPEND(msg, "Mode is not Av%s", separator); }
+    if (warn_code & 1 && warn_mode==3) { STR_APPEND(msg, "Mode is not Tv%s", separator); }
+    if (warn_code & 1 && warn_mode==4) { STR_APPEND(msg, "Mode is not P%s", separator); }
     if (warn_code & 2) { STR_APPEND(msg, "Pic quality is not RAW%s", separator); } 
     if (warn_code & 4) { STR_APPEND(msg, "ALO is enabled%s", separator); } 
     return msg;
@@ -2015,16 +2015,16 @@ static void warn_step()
 
     if (shooting_mode != SHOOTMODE_MOVIE)
     {
-        if (warn_mode == 1 && shooting_mode != SHOOTMODE_P)
+        if (warn_mode == 1 && shooting_mode != SHOOTMODE_M)
             warn_code |= 1;
 
-        if (warn_mode == 2 && shooting_mode != SHOOTMODE_TV)
+        if (warn_mode == 2 && shooting_mode != SHOOTMODE_AV)
             warn_code |= 1;
 
-        if (warn_mode == 3 && shooting_mode != SHOOTMODE_AV)
+        if (warn_mode == 3 && shooting_mode != SHOOTMODE_TV)
             warn_code |= 1;
 
-        if (warn_mode == 4 && shooting_mode != SHOOTMODE_M)
+        if (warn_mode == 4 && shooting_mode != SHOOTMODE_P)
             warn_code |= 1;
     }
 
@@ -2248,7 +2248,7 @@ static struct menu_entry tweak_menus[] = {
                 .priv = &warn_mode,
                 .max = 4,
                 .icon_type = IT_DICE_OFF,
-                .choices = (const char *[]) {"OFF", "other than P", "other than Tv", "other than Av", "other than M"},
+                .choices = (const char *[]) {"OFF", "other than M", "other than Av", "other than Tv", "other than P"},
                 .help = "Warn if you turn the mode dial to some other position.",
             },
             {
