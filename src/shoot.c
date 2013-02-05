@@ -206,7 +206,7 @@ static CONFIG_INT("bulb.ramping.man.focus", bramp_manual_speed_focus_steps_per_s
 #define BRAMP_LRT_HOLY_GRAIL_STOPS 1
 
 
-#define BULB_EXPOSURE_CONTROL_ACTIVE (intervalometer_running && bulb_ramping_enabled && (bramp_auto_exposure || bramp_manual_speed_evx1000_per_shot!=1000))
+#define BULB_EXPOSURE_CONTROL_ACTIVE (intervalometer_running && bulb_ramping_enabled && (bramp_auto_exposure || bramp_manual_speed_evx1000_per_shot))
 static int intervalometer_running = 0;
 int is_intervalometer_running() { return intervalometer_running; }
 int motion_detect = 0; //int motion_detect_level = 8;
@@ -431,7 +431,7 @@ static MENU_UPDATE_FUNC(interval_stop_after_display)
           : "%s",
         d ? d : (intptr_t) "Disabled"
     );
-    MENU_SET_ICON(MNI_OFF, 0);
+    MENU_SET_ENABLED(d);
 }
 
 static MENU_SELECT_FUNC(interval_timer_toggle)
@@ -499,7 +499,10 @@ static MENU_UPDATE_FUNC(manual_expo_ramp_print)
 {
     int evx1000 = bramp_manual_speed_evx1000_per_shot;
     if (!evx1000)
+    {
         MENU_SET_VALUE("OFF");
+        MENU_SET_ENABLED(0);
+    }
     else
         MENU_SET_VALUE(
             "%s%d.%03d EV/shot",
@@ -511,7 +514,10 @@ static MENU_UPDATE_FUNC(manual_focus_ramp_print)
 {
     int steps = bramp_manual_speed_focus_steps_per_shot;
     if (!steps)
+    {
         MENU_SET_VALUE("OFF");
+        MENU_SET_ENABLED(0);
+    }
     else
         MENU_SET_VALUE(
             "%s%d steps/shot",
@@ -1917,7 +1923,7 @@ iso_toggle( void * priv, int sign )
         extern int bv_auto;
         if (lens_info.raw_iso && priv != (void*)-1)
         if ((lens_info.raw_iso <= MIN_ISO               && sign < 0) ||
-            (lens_info.raw_iso >= (bv_auto ? MAX_ISO_BV : 120) && sign > 0))
+            (lens_info.raw_iso >= (bv_auto ? MAX_ISO_BV : MAX_ISO) && sign > 0))
         {
             if (lens_set_rawiso(0)) // ISO auto
                 return;
@@ -4245,7 +4251,7 @@ static void compute_exposure_for_next_shot()
 static void bulb_ramping_showinfo()
 {
     int s = BULB_SHUTTER_VALUE_MS;
-    //~ int manual_evx1000 = (int)bramp_manual_speed_evx1000_per_shot - 1000;
+    //~ int manual_evx1000 = (int)bramp_manual_speed_evx1000_per_shot;
     //~ int rate_x1000 = bramp_light_changing_rate_evx1000 + manual_evx1000;
 
     bmp_printf(FONT_MED, 50, 350, 
@@ -4613,7 +4619,7 @@ static struct menu_entry shoot_menus[] = {
                 .name = "Sequence",
                 .priv       = &hdr_sequence,
                 .max = 2,
-                .help = "Bracketing sequence order / type.",
+                .help = "Bracketing sequence order / type. Zero is always first.",
                 .icon_type = IT_DICE,
                 .choices = CHOICES("0 - --", "0 - + -- ++", "0 + ++"),
             },
@@ -4622,7 +4628,8 @@ static struct menu_entry shoot_menus[] = {
                 .name = "2-second delay",
                 .priv       = &hdr_delay,
                 .max = 1,
-                .help = "Delay before starting the exposure.",
+                .help  = "Delay before starting the exposure.",
+                .help2 = "Only used if you start bracketing by pressing the shutter.",
                 .choices = CHOICES("OFF", "Auto"),
             },
             #endif
@@ -4630,7 +4637,10 @@ static struct menu_entry shoot_menus[] = {
                 .name = "ISO shifting",
                 .priv       = &hdr_iso,
                 .max = 2,
-                .help = "First adjust ISO instead of Tv. Range: 100 .. max AutoISO.",
+                .help =  "Also use ISO as bracket variable. Range: 100 - max AutoISO.",
+                .help2 = " \n"
+                         "Full: try ISO bracket first. If out of range, use main var.\n"
+                         "Half: Bracket with both ISO (50%) and main variable (50%).\n",
                 .choices = CHOICES("OFF", "Full", "Half"),
                 .icon_type = IT_DICE_OFF,
             },
@@ -4680,12 +4690,12 @@ static struct menu_entry shoot_menus[] = {
             },
             #ifdef FEATURE_INTERVALOMETER_AF
             {
-                .name = "Use Autofocus", 
+                .name = "Use autofocus", 
                 .priv = &interval_use_autofocus,
                 .max = 1,
                 .choices = CHOICES("NO", "YES"),
                 .help = "Whether the camera should auto-focus at each shot.",
-                .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
+                .icon_type = IT_BOOL,
                 .depends_on = DEP_AUTOFOCUS,
             },
             #endif
@@ -4721,7 +4731,7 @@ static struct menu_entry shoot_menus[] = {
                         "Expo is adjusted in 1EV integer steps. vimeo.com/26083323",
             },
             {
-                .name = "Man.ExpoRamp",
+                .name = "Manual ExpoRamp",
                 .priv       = &bramp_manual_speed_evx1000_per_shot,
                 .max = 1000,
                 .min = -1000,
@@ -4730,13 +4740,15 @@ static struct menu_entry shoot_menus[] = {
                 .help = "Manual exposure ramping (Tv+ISO), in EV per shot.",
             },
             {
-                .name = "Man.FocusRamp",
+                .name = "Manual FocusRamp",
                 .priv       = &bramp_manual_speed_focus_steps_per_shot,
                 .max = 100,
                 .min = -100,
                 .update = manual_focus_ramp_print,
-                .help = "Manual focus ramping, in steps per shot. LiveView only.",
+                .help  = "Manual focus ramping, in steps per shot. LiveView only.",
+                .help2 = "Tip: enable powersaving features from Prefs menu.",
                 .depends_on = DEP_AUTOFOCUS,
+                .works_best_in = DEP_LIVEVIEW,
             },
             MENU_EOL,
         }
@@ -4748,11 +4760,12 @@ static struct menu_entry shoot_menus[] = {
         .priv = &bulb_timer,
         .update = bulb_display, 
         .max  = 1,
-        .help = "For very long exposures. Hold shutter half-pressed for 1s.",
+        .help  = "For very long exposures (several minutes).",
+        .help2 = "To trigger, hold shutter pressed halfway for 1 second.",
         .depends_on = DEP_PHOTO_MODE,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Bulb exposure",
+                .name = "Exposure duration",
                 .select = bulb_toggle,
                 .update = bulb_display_submenu,
             },
@@ -4854,7 +4867,8 @@ static struct menu_entry shoot_menus[] = {
         .max  = 1,
         .update = silent_pic_display,
         .depends_on = DEP_LIVEVIEW,
-        .help = "Take pics in LiveView without moving the shutter mechanism.",
+        .help  = "Take pics in LiveView without moving the shutter mechanism.",
+        .help2 = "Do not try this if you are afraid of computers!",
         .children =  (struct menu_entry[]) {
             {
                 .name = "Mode",
@@ -5015,7 +5029,7 @@ static struct menu_entry flash_menus[] = {
                 .priv = &flash_and_no_flash,
                 .max = 1,
                 .depends_on = DEP_PHOTO_MODE,
-                .help = "Take odd pictures with flash, even pictures without flash."
+                .help = "Take odd pictures with flash, even pictures without flash.",
             },
             #ifdef FEATURE_LV_3RD_PARTY_FLASH
             {
@@ -5023,7 +5037,8 @@ static struct menu_entry flash_menus[] = {
                 .priv = &lv_3rd_party_flash,
                 .max = 1,
                 .depends_on = DEP_LIVEVIEW | DEP_PHOTO_MODE,
-                .help = "A trick to allow 3rd party flashes to fire in LiveView."
+                .help  = "A trick to allow 3rd party flashes to fire in LiveView.",
+                .help2 = "!!! DISABLE THIS OPTION WHEN YOU ARE NOT USING IT !!!  ",
             },
             #endif
             MENU_EOL,

@@ -2830,7 +2830,7 @@ void lcd_adjust_position_step()
     int position_register = 0xC0F14164;
     int current_position = (int) shamem_read(position_register);
     if (factory_position == -1) check_position = factory_position = current_position;
-    int desired_position = factory_position - lcd_adjust_position * 9 * 2;
+    int desired_position = factory_position - lcd_adjust_position * 16;
 
     if (current_position != desired_position)
     {
@@ -3524,8 +3524,9 @@ static struct menu_entry display_menus[] = {
                 {
                     .name = "Image position",
                     .priv = &lcd_adjust_position,
+                    .min = -2,
                     .max = 2,
-                    .choices = (const char *[]) {"Normal", "Lowered", "Lowered even more"},
+                    .choices = (const char *[]) {"+16px", "+8px", "Normal", "-8px", "-16px"},
                     .icon_type = IT_BOOL,
                     .help = "May make the image easier to see from difficult angles.",
                 },

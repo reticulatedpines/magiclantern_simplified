@@ -677,7 +677,13 @@ menu_add(
         {
             int count = 0;
             struct menu_entry * child = entry->children;
-            while (!MENU_IS_EOL(child)) { count++; child++; }
+            while (!MENU_IS_EOL(child)) 
+            { 
+                child->depends_on |= entry->depends_on; // inherit dependencies
+                child->works_best_in |= entry->works_best_in;
+                count++; 
+                child++;
+            }
             struct menu * submenu = menu_find_by_name( entry->name, ICON_ML_SUBMENU);
             if (submenu->children != entry->children) // submenu is reused, do not add it twice
                 menu_add(entry->name, entry->children, count);
@@ -1477,6 +1483,7 @@ entry_print(
         bmp_printf(
             FONT(FONT_MED, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER), 
              10,  MENU_HELP_Y_POS, 
+            "%s",
             entry->help
         );
 
@@ -1485,7 +1492,8 @@ entry_print(
             bmp_printf(
                 FONT(FONT_MED, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER), 
                  10,  MENU_HELP_Y_POS_2, 
-                menu_help_get_line(entry->help2, entry->priv)
+                 "%s",
+                 menu_help_get_line(entry->help2, entry->priv)
             );
         }
     }
