@@ -2568,13 +2568,11 @@ static MENU_UPDATE_FUNC(waveform_print)
 #ifdef FEATURE_GLOBAL_DRAW
 static MENU_UPDATE_FUNC(global_draw_display)
 {
-    /*
     if (disp_profiles_0)
     {
-        bmp_printf(FONT(FONT_LARGE, selected ? COLOR_WHITE : 55, COLOR_BLACK), x + 560, y, "DISP %d", get_disp_mode());
-        if (selected) bmp_printf(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 720 - font_med.width * strlen(Q_BTN_NAME), y + font_large.height, Q_BTN_NAME);
+        MENU_SET_RINFO("DISP %d", get_disp_mode());
+        if (entry->selected) bmp_printf(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 700 - font_med.width * strlen(Q_BTN_NAME), info->y + font_large.height, Q_BTN_NAME);
     }
-    */
 
     #ifdef CONFIG_5D3
     if (hdmi_code==5 && video_mode_resolution>0) // unusual VRAM parameters
@@ -3435,7 +3433,7 @@ struct menu_entry zebra_menus[] = {
                 .help = "Cropmarks are mostly used in movie mode.",
             },
             {
-                .name = "Show in PLAY mode ",
+                .name = "Show in PLAY mode",
                 .priv = &cropmarks_play, 
                 .max = 1,
                 .help = "You may also have cropmarks in Playback mode.",
@@ -3650,14 +3648,14 @@ struct menu_entry powersave_menus[] = {
         },
         #ifdef CONFIG_LCD_SENSOR
         {
-            .name = "Use LCD sensor     ",
+            .name = "Use LCD sensor",
             .priv           = &lcd_sensor_wakeup,
             .max = 1,
             .help = "With the LCD sensor you may wakeup or force powersave mode."
         },
         #endif
         {
-            .name = "Use shortcut key   ",
+            .name = "Use shortcut key",
             .priv           = &idle_shortcut_key,
             .max = 1,
             .choices = (const char *[]) {"OFF", INFO_BTN_NAME},

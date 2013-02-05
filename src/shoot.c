@@ -1800,18 +1800,14 @@ static MENU_UPDATE_FUNC(iso_display)
                 "%d", raw2iso(lens_info.iso_equiv_raw)
             );
 
-/*
             if (!menu_active_but_hidden())
             {
                 int Sv = APEX_SV(lens_info.iso_equiv_raw) * 10/8;
-                bmp_printf(
-                    FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
-                    720 - font_large.width * 7, y,
+                MENU_SET_RINFO(
                     "Sv%s%d.%d",
                     FMT_FIXEDPOINT1(Sv)
                 );
             }
-*/
 
         }
         else
@@ -1825,25 +1821,6 @@ static MENU_UPDATE_FUNC(iso_display)
                 FMT_FIXEDPOINT1S(dg)
             );
         }
-
-        if (lens_info.name[0] && lens_info.raw_aperture && lens_info.raw_shutter && !menu_active_but_hidden())
-        {
-            int Av = APEX_AV(lens_info.raw_aperture);
-            int Tv = APEX_TV(lens_info.raw_shutter);
-            int Sv = APEX_SV(lens_info.iso_equiv_raw);
-            int Bv = Av + Tv - Sv;
-            Bv = Bv * 10/8;
-
-/*
-            bmp_printf(
-                SHADOW_FONT(FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK)),
-                720 - font_large.width * 7, y + font_large.height*3,
-                "Bv%s%d.%d",
-                FMT_FIXEDPOINT1(Bv)
-            );
-*/
-        }
-
     }
 
     if (lens_info.iso)
@@ -2009,15 +1986,12 @@ static MENU_UPDATE_FUNC(shutter_display)
 
     if (!menu_active_but_hidden())
     {
-        /*
+        
         int Tv = APEX_TV(lens_info.raw_shutter) * 10/8;
-        if (lens_info.raw_shutter) bmp_printf(
-            FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
-            720 - font_large.width * 7, y,
+        if (lens_info.raw_shutter) MENU_SET_RINFO(
             "Tv%s%d.%d",
             FMT_FIXEDPOINT1(Tv)
         );
-        */
     }
 
     if (lens_info.raw_shutter)
@@ -2066,14 +2040,10 @@ static MENU_UPDATE_FUNC(aperture_display)
 
     if (!menu_active_but_hidden())
     {
-        /*
-        if (a) bmp_printf(
-            FONT(FONT_LARGE, COLOR_GRAY60, COLOR_BLACK),
-            720 - font_large.width * 7, y,
+        if (a) MENU_SET_RINFO(
             "Av%s%d.%d",
             FMT_FIXEDPOINT1(av)
         );
-        */
     }
     if (!lens_info.aperture)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture.");
@@ -2179,14 +2149,14 @@ static MENU_UPDATE_FUNC(kelvin_wbs_display)
 
     if (lens_info.wbs_gm)
     {
-        MENU_APPEND_VALUE(
+        MENU_APPEND_RINFO(
             " %s%d",
             lens_info.wbs_gm > 0 ? "G" : "M", ABS(lens_info.wbs_gm)
         );
     }
     if (lens_info.wbs_ba)
     {
-        MENU_APPEND_VALUE(
+        MENU_APPEND_RINFO(
             " %s%d",
             lens_info.wbs_ba > 0 ? "A" : "B", ABS(lens_info.wbs_ba)
         );
@@ -2571,7 +2541,7 @@ const char* get_picstyle_name(int raw_picstyle)
         raw_picstyle == 0x83 ? "Landscape" :
         raw_picstyle == 0x84 ? "Neutral" :
         raw_picstyle == 0x85 ? "Faithful" :
-        raw_picstyle == 0x86 ? "Monochrom" :
+        raw_picstyle == 0x86 ? "Monochrome" :
         raw_picstyle == 0x87 ? "Auto" :
         raw_picstyle == 0x21 ? (picstyle_of_user1 < 0x80 ? user_picstyle_name_1 : "UserDef1") :
         raw_picstyle == 0x22 ? (picstyle_of_user2 < 0x80 ? user_picstyle_name_2 : "UserDef2") :
@@ -2598,20 +2568,18 @@ static MENU_UPDATE_FUNC(picstyle_display)
 {
     int i = picstyle_rec && recording ? picstyle_before_rec : (int)lens_info.picstyle;
     
-    // line too long; I would like to show both Bv and picstyle params, but we can't fit both
-    if (entry->selected)
-        MENU_SET_VALUE(
-            "%s%s(%d,%d,%d,%d)",
-            get_picstyle_name(get_prop_picstyle_from_index(i)),
-            picstyle_before_rec ? "*" : " ",
+    MENU_SET_VALUE(
+        "%s%s",
+        get_picstyle_name(get_prop_picstyle_from_index(i)),
+        picstyle_before_rec ? "*" : ""
+    );
+
+    MENU_SET_RINFO(
+            "%d,%d,%d,%d",
             lens_get_from_other_picstyle_sharpness(i),
             lens_get_from_other_picstyle_contrast(i),
             ABS(lens_get_from_other_picstyle_saturation(i)) < 10 ? lens_get_from_other_picstyle_saturation(i) : 0,
             ABS(lens_get_from_other_picstyle_color_tone(i)) < 10 ? lens_get_from_other_picstyle_color_tone(i) : 0
-        );
-    else
-        MENU_SET_VALUE(
-            get_picstyle_name(get_prop_picstyle_from_index(i))
         );
     
     MENU_SET_ENABLED(1);
@@ -2654,8 +2622,10 @@ static MENU_UPDATE_FUNC(picstyle_rec_display)
     else
     {
         MENU_SET_VALUE(
-            "%s (%d,%d,%d,%d)",
-            get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec)),
+            get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec))
+        );
+        MENU_SET_RINFO(
+            "%d,%d,%d,%d",
             lens_get_from_other_picstyle_sharpness(picstyle_rec),
             lens_get_from_other_picstyle_contrast(picstyle_rec),
             ABS(lens_get_from_other_picstyle_saturation(picstyle_rec)) < 10 ? lens_get_from_other_picstyle_saturation(picstyle_rec) : 0,
@@ -2669,8 +2639,8 @@ static MENU_UPDATE_FUNC(picstyle_rec_sub_display)
     MENU_SET_VALUE(
         get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec_sub))
     );
-    bmp_printf(FONT_LARGE, MENU_VALUE_POS_X, info->y + font_large.height,
-        "(%d,%d,%d,%d)",
+    MENU_SET_RINFO(
+        "%d,%d,%d,%d",
         lens_get_from_other_picstyle_sharpness(picstyle_rec_sub),
         lens_get_from_other_picstyle_contrast(picstyle_rec_sub),
         ABS(lens_get_from_other_picstyle_saturation(picstyle_rec_sub)) < 10 ? lens_get_from_other_picstyle_saturation(picstyle_rec_sub) : 0,
@@ -4348,13 +4318,26 @@ static MENU_UPDATE_FUNC(expo_lock_display)
 {
     if (expo_lock)
     {
-        int v = expo_lock_value * 10/8;
         MENU_SET_VALUE(
-            "%s%s%s %s%d.%d EV",
+            "%s%s%s",
             expo_lock_tv ? "Tv," : "",
             expo_lock_av ? "Av," : "",
-            expo_lock_iso ? "ISO," : "",
-            FMT_FIXEDPOINT1(v)
+            expo_lock_iso ? "ISO," : ""
+        );
+        info->value[strlen(info->value)-1] = 0; // trim last comma
+    }
+
+    if (lens_info.name[0] && lens_info.raw_aperture && lens_info.raw_shutter && !menu_active_but_hidden())
+    {
+        int Av = APEX_AV(lens_info.raw_aperture);
+        int Tv = APEX_TV(lens_info.raw_shutter);
+        int Sv = APEX_SV(lens_info.iso_equiv_raw);
+        int Bv = Av + Tv - Sv;
+        Bv = Bv * 10/8;
+
+        MENU_SET_RINFO(
+            "Bv%s%d.%d",
+            FMT_FIXEDPOINT1(Bv)
         );
     }
 
@@ -4716,7 +4699,7 @@ static struct menu_entry shoot_menus[] = {
             },
             #ifdef FEATURE_INTERVALOMETER_AF
             {
-                .name = "Use Autofocus   ", 
+                .name = "Use Autofocus", 
                 .priv = &interval_use_autofocus,
                 .max = 1,
                 .choices = CHOICES("NO", "YES"),
@@ -4952,7 +4935,7 @@ static struct menu_entry shoot_menus[] = {
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
-                .name = "MLU mode        ",
+                .name = "MLU mode",
                 .priv = &mlu_mode,
                 .select = mlu_toggle_mode,
                 #ifdef FEATURE_MLU_HANDHELD
@@ -4976,7 +4959,7 @@ static struct menu_entry shoot_menus[] = {
                 .help = "At what shutter speeds you want to use handheld MLU."
             },
             {
-                .name = "Handheld Delay  ",
+                .name = "Handheld Delay",
                 .priv = &mlu_handheld_delay, 
                 .min = 1,
                 .max = 7,
@@ -5055,7 +5038,7 @@ static struct menu_entry flash_menus[] = {
             },
             #ifdef FEATURE_LV_3RD_PARTY_FLASH
             {
-                .name = "3rd p. flash LV ",
+                .name = "3rd p. flash LV",
                 .priv = &lv_3rd_party_flash,
                 .max = 1,
                 .depends_on = DEP_LIVEVIEW | DEP_PHOTO_MODE,
@@ -5105,7 +5088,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 #error This requires CONFIG_EXPSIM.
                 #endif
             {
-                .name = "Auto exposure on Zoom ",
+                .name = "Auto exposure on Zoom",
                 .priv = &zoom_auto_exposure,
                 .max = 1,
                 .help = "Auto adjusts exposure, so you can focus manually wide open.",
@@ -5123,7 +5106,7 @@ struct menu_entry tweak_menus_shoot[] = {
             },
             #endif
             {
-                .name = "Zoom on HalfShutter   ",
+                .name = "Zoom on HalfShutter",
                 .priv = &zoom_halfshutter,
                 .max = 2,
                 .icon_type = IT_DICE_OFF,
@@ -5131,7 +5114,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .help = "Enable zoom when you hold the shutter halfway pressed."
             },
             {
-                .name = "Zoom with Focus Ring  ",
+                .name = "Zoom with Focus Ring",
                 .priv = &zoom_focus_ring,
                 .max = 2,
                 .icon_type = IT_DICE_OFF,
@@ -5140,7 +5123,7 @@ struct menu_entry tweak_menus_shoot[] = {
             },
             #ifdef FEATURE_ZOOM_TRICK_5D3
             {
-                .name = "Zoom with old button  ",
+                .name = "Zoom with old button",
                 .priv = &zoom_trick,
                 .max = 1,
                 .help = "Use the old Zoom In button, as in 5D2. Double-click in LV.",
@@ -5241,7 +5224,8 @@ static struct menu_entry expo_menus[] = {
         .name = "WhiteBalance",
         .update    = kelvin_wbs_display,
         .select     = kelvin_toggle,
-        .help = "Adjust Kelvin white balance and GM/BA WBShift.",
+        .help  = "Adjust Kelvin white balance and GM/BA WBShift.",
+        .help2 = "Advanced: WBShift, RGB multipliers, UniWB, Push-button WB...",
         .edit_mode = EM_MANY_VALUES_LV,
         .children =  (struct menu_entry[]) {
             {
@@ -5295,18 +5279,6 @@ static struct menu_entry expo_menus[] = {
                 .help = "BLUE channel multiplier, for custom white balance.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
-            #ifdef FEATURE_EXPO_ISO_DIGIC
-            {
-                .name = "Black Level", 
-                .priv = &digic_black_level,
-                .min = -100,
-                .max = 100,
-                .update = digic_black_print,
-                .edit_mode = EM_MANY_VALUES_LV,
-                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
-                .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
-            },
-            #endif
             /*{
                 .name = "UniWB\b\b",
                 .priv = &uniwb_mode,
@@ -5352,7 +5324,8 @@ static struct menu_entry expo_menus[] = {
         .name = "ISO",
         .update    = iso_display,
         .select     = iso_toggle,
-        .help = "Adjust and fine-tune ISO. Displays APEX Sv and Bv values.",
+        .help  = "Adjust and fine-tune ISO. Also displays APEX Sv value.",
+        .help2 = "Advanced: digital ISO tweaks, HTP, ISO 50, ISO 800.000...",
         .edit_mode = EM_MANY_VALUES_LV,
         .submenu_width = 650,
 
@@ -5571,7 +5544,7 @@ static struct menu_entry expo_menus[] = {
         .depends_on = DEP_PHOTO_MODE,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Shutter for Av mode ",
+                .name = "Shutter for Av mode",
                 .priv = &ml_auto_iso_av_shutter,
                 .max = 7,
                 .icon_type = IT_PERCENT,
@@ -5588,7 +5561,7 @@ static struct menu_entry expo_menus[] = {
             },
             /*
             {
-                .name = "A-ISO smoothness ",
+                .name = "A-ISO smoothness",
                 .priv = &lvae_iso_speed,
                 .min = 3,
                 .max = 30,

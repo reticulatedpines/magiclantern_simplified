@@ -350,7 +350,7 @@ static MENU_UPDATE_FUNC(script_display)
     
     if (displayed_script_is_idle)
     {
-        MENU_SET_VALUE(
+        MENU_SET_RINFO(
             script_titles[script_displayed]
         );
         MENU_SET_ICON(MNI_SUBMENU, entry->selected && script_displayed == script_selected);

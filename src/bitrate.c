@@ -651,6 +651,9 @@ static struct menu_entry mov_menus[] = {
             MENU_EOL
         },
     },
+};
+
+static struct menu_entry mov_tweak_menus[] = {
 #ifdef FEATURE_REC_INDICATOR
     {
         .name = "Time Indicator",
@@ -666,6 +669,7 @@ static struct menu_entry mov_menus[] = {
 void bitrate_init()
 {
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
+    menu_add( "Movie Tweaks...", mov_tweak_menus, COUNT(mov_tweak_menus) );
 }
 
 INIT_FUNC(__FILE__, bitrate_init);

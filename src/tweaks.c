@@ -2197,7 +2197,7 @@ static struct menu_entry key_menus[] = {
             #endif
             #ifdef FEATURE_STICKY_DOF
             {
-                .name = "Sticky DOF Preview  ", 
+                .name = "Sticky DOF Preview", 
                 .priv = &dofpreview_sticky, 
                 .max = 1,
                 .help = "Makes the DOF preview button sticky (press to toggle).",
@@ -2205,7 +2205,7 @@ static struct menu_entry key_menus[] = {
             #endif
             #ifdef FEATURE_STICKY_HALFSHUTTER
             {
-                .name       = "Sticky HalfShutter  ",
+                .name       = "Sticky HalfShutter",
                 .priv = &halfshutter_sticky,
                 .max = 1,
                 .help = "Makes the half-shutter button sticky (press to toggle).",
@@ -2244,7 +2244,7 @@ static struct menu_entry tweak_menus[] = {
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Mode warning   ",
+                .name = "Mode warning",
                 .priv = &warn_mode,
                 .max = 4,
                 .icon_type = IT_DICE_OFF,
@@ -2259,7 +2259,7 @@ static struct menu_entry tweak_menus[] = {
                 .help = "Warn if you change the picture quality to something else.",
             },
             {
-                .name = "ALO warning    ",
+                .name = "ALO warning",
                 .priv = &warn_alo,
                 .max = 1,
                 .choices = (const char *[]) {"OFF", "other than OFF"},
@@ -3339,7 +3339,7 @@ extern MENU_UPDATE_FUNC(display_gain_print);
 static struct menu_entry display_menus[] = {
             #ifdef FEATURE_LV_BRIGHTNESS_CONTRAST
             {
-                .name = "LV brightness  ", 
+                .name = "LV brightness", 
                 .priv = &preview_brightness, 
                 .max = 2,
                 .help = "For LiveView preview only. Does not affect recording.",
@@ -3399,7 +3399,7 @@ static struct menu_entry display_menus[] = {
             #endif
             #ifdef FEATURE_COLOR_SCHEME
             {
-                .name = "Color scheme   ",
+                .name = "Color scheme",
                 .priv     = &bmp_color_scheme,
                 .max = 5,
                 .choices = (const char *[]) {"Default", "Dark", "Bright Gray", "Dark Gray", "Dark Red", "Dark Green"},
@@ -3433,7 +3433,7 @@ static struct menu_entry display_menus[] = {
         #define This requires CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY.
         #endif
     {
-        .name = "Display Shake  ",
+        .name = "Display Shake",
         .priv     = &display_shake,
         .max = 1,
         .help = "Emphasizes camera shake on LiveView display.",
@@ -3522,7 +3522,7 @@ static struct menu_entry display_menus[] = {
             #endif
             #ifdef FEATURE_IMAGE_POSITION
                 {
-                    .name = "Image position ",
+                    .name = "Image position",
                     .priv = &lcd_adjust_position,
                     .max = 2,
                     .choices = (const char *[]) {"Normal", "Lowered", "Lowered even more"},
@@ -3540,7 +3540,7 @@ static struct menu_entry display_menus[] = {
             #endif
             #ifdef FEATURE_IMAGE_ORIENTATION
                 {
-                    .name = "Orientation    ",
+                    .name = "Orientation",
                     .priv = &DISPLAY_ORIENTATION,
                     .select     = display_orientation_toggle,
                     .max = 2,
@@ -3560,7 +3560,7 @@ static struct menu_entry display_menus[] = {
             #endif
             #ifdef FEATURE_FORCE_HDMI_VGA
                 {
-                    .name = "Force HDMI-VGA ",
+                    .name = "Force HDMI-VGA",
                     .priv = &hdmi_force_vga, 
                     .max  = 1,
                     .help = "Force low resolution (720x480) on HDMI displays.",
@@ -3568,7 +3568,7 @@ static struct menu_entry display_menus[] = {
             #endif
             #ifdef FEATURE_UNIWB_CORRECTION
                 {
-                    .name = "UniWB correct  ",
+                    .name = "UniWB correct",
                     .priv = &uniwb_correction,
                     .max = 10,
                     .choices = (const char *[]) {"OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},

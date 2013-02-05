@@ -178,6 +178,7 @@ static CONFIG_INT("digic.swap-uv", swap_uv, 0);
 static CONFIG_INT("digic.cartoon", cartoon, 0);
 static CONFIG_INT("digic.oilpaint", oilpaint, 0);
 static CONFIG_INT("digic.sharp", sharp, 0);
+static CONFIG_INT("digic.zerosharp", zerosharp, 0);
 //~ static CONFIG_INT("digic.fringing", fringing, 0);
 
 int default_white_level = 4096;
@@ -455,11 +456,6 @@ void image_effects_step()
 
     if (!is_movie_mode()) return;
 
-    // sharpness trick: at -1, cancel it completely
-    // todo: move it somewhere in the menus
-    //~ if (lens_get_sharpness() < 0)
-        //~ EngDrvOut(0xc0f2116c, 0x0);
-
     static int prev_swap_uv = 0;
     if (desaturate) EngDrvOut(0xc0f0f070, 0x01000100);
     if (negative)   EngDrvOut(0xc0f0f000, 0xb1);
@@ -472,6 +468,7 @@ void image_effects_step()
     }
     if (oilpaint)   EngDrvOut(0xc0f2135c, -1);
     if (sharp)      EngDrvOut(0xc0f0f280, -1);
+    if (zerosharp)  EngDrvOut(0xc0f2116c, 0x0); // sharpness trick: at -1, cancel it completely
 
     prev_swap_uv = swap_uv;
     
@@ -550,7 +547,51 @@ void menu_open_submenu();
 static struct menu_entry lv_img_menu[] = {
     #ifdef FEATURE_IMAGE_EFFECTS
     {
-        .name = "Image Effects...",
+        .name = "Image Fine-tuning...",
+        .select = menu_open_submenu,
+        .help = "Subtle image enhancements via DIGIC register tweaks.",
+        .depends_on = DEP_MOVIE_MODE,
+        .children =  (struct menu_entry[]) {
+            #ifdef FEATURE_EXPO_ISO_DIGIC
+            {
+                .name = "Black Level", 
+                .priv = &digic_black_level,
+                .min = -100,
+                .max = 100,
+                .update = digic_black_print,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
+                .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
+            },
+            #endif
+            {
+                .name = "Absolute Zero Sharpness", 
+                .priv = &zerosharp, 
+                .max = 1,
+                .help = "Disable sharpening completely (below Canon's zero level).",
+                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
+            },
+#if !(defined(CONFIG_600D) || defined(CONFIG_1100D))
+            {
+                .name = "Edge Emphasis", 
+                .priv = &sharp, 
+                .max = 1,
+                .help = "Darken sharp edges in bright areas.",
+                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
+            },
+            {
+                .name = "Noise Reduction", 
+                .priv = &oilpaint, 
+                .max = 1,
+                .help = "Some sort of movie noise reduction, or smearing.",
+                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
+            },
+#endif
+            MENU_EOL
+        }
+    },
+    {
+        .name = "Creative Effects...",
         .select = menu_open_submenu,
         .help = "Experimental image filters found by digging into DIGIC.",
         .depends_on = DEP_MOVIE_MODE,
@@ -561,6 +602,7 @@ static struct menu_entry lv_img_menu[] = {
                 .min = 0,
                 .max = 1,
                 .help = "Grayscale recording. Use WB or pic styles for fine tuning.",
+                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
             },
             {
                 .name = "Negative",
@@ -568,6 +610,7 @@ static struct menu_entry lv_img_menu[] = {
                 .min = 0,
                 .max = 1,
                 .help = "Negative image. Inverts all colors :)",
+                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
             },
             {
                 .name = "Swap U-V",
@@ -575,36 +618,18 @@ static struct menu_entry lv_img_menu[] = {
                 .min = 0,
                 .max = 1,
                 .help = "Swaps U and V channels (red <--> blue).",
+                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
             },
             {
-                .name = "Cartoon look",
+                .name = "Cartoon Look",
                 .priv       = &cartoon,
                 .min = 0,
                 .max = 2,
                 .choices = (const char *[]) {"OFF", "Weak", "Strong"},
                 .help = "Cartoonish look obtained by emphasizing the edges.",
                 .icon_type = IT_DICE_OFF,
+                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
             },
-#if !(defined(CONFIG_600D) || defined(CONFIG_1100D))
-            {
-                .name = "Oil painting", 
-                .priv = &oilpaint, 
-                .max = 1,
-                .help = "Some sort of movie noise reduction"
-            },
-            {
-                .name = "High sharpness", 
-                .priv = &sharp, 
-                .max = 1,
-            },
-#endif
-            /*{
-                .name = "Purple Fringe",
-                .priv       = &fringing,
-                .min = 0,
-                .max = 1,
-                .help = "Something that looks like purple fringing :)",
-            },*/
             MENU_EOL
         }
     }

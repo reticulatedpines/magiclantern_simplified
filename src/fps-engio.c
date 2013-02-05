@@ -994,10 +994,15 @@ static MENU_UPDATE_FUNC(fps_ramp_update)
 {
     if (!fps_override) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "FPS override should be enabled.");
 }
+static MENU_UPDATE_FUNC(fps_ramp_duration_update)
+{
+    if (!fps_ramp) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "FPS ramping disabled.");
+}
 static MENU_UPDATE_FUNC(fps_ramp_expo_update)
 {
     extern int smooth_iso;
-    if (smooth_iso) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You need to disable gradual exposure.");
+    if (!fps_ramp) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "FPS ramping disabled.");
+    else if (smooth_iso) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You need to disable gradual exposure.");
 }
 
 static struct menu_entry fps_menu[] = {
@@ -1086,36 +1091,25 @@ static struct menu_entry fps_menu[] = {
                 .help = "Sound goes out of sync, so it has to be recorded separately.",
             },
             #endif
-            MENU_EOL
-        },
-    },
-    #endif
-    #ifdef FEATURE_FPS_RAMPING
-        #ifndef FEATURE_FPS_OVERRIDE
-        #error This requires FEATURE_FPS_OVERRIDE.
-        #endif
-    {
-        .name = "FPS ramping", 
-        .priv = &fps_ramp,
-        .max = 1,
-        .update = fps_ramp_update,
-        .help = "Ramp between overridden FPS and default FPS. Undercrank only.",
-        .help2 = "To start ramping, press " INFO_BTN_NAME " or just start recording.",
-        .depends_on = DEP_MOVIE_MODE,
-        .submenu_width = 650,
-        .children =  (struct menu_entry[]) {
-            /*
+
+
+
+            #ifdef FEATURE_FPS_RAMPING
             {
-                .name = "FPS A", 
+                .name = "FPS ramping", 
+                .priv = &fps_ramp,
+                .max = 1,
+                .update = fps_ramp_update,
+                .help = "Ramp between overridden FPS and default FPS. Undercrank only.",
+                .help2 = "To start ramping, press " INFO_BTN_NAME " or just start recording.",
+                .depends_on = DEP_MOVIE_MODE,
             },
-            {
-                .name = "FPS B", 
-            },*/
-            
+
             {
                 .name = "Ramp duration",
                 .priv = &fps_ramp_duration,
                 .max = 10,
+                .update = fps_ramp_duration_update,
                 .choices = (const char *[]) {"1s", "2s", "5s", "15s", "30s", "1min", "2min", "5min", "10min", "20min", "30min"},
                 .help = "Duration of FPS ramping (in real-time, not in playback).",
             },
@@ -1129,7 +1123,12 @@ static struct menu_entry fps_menu[] = {
                 .depends_on = DEP_MANUAL_ISO,
             },
             #endif
-            MENU_EOL,
+
+            #endif
+
+
+
+            MENU_EOL
         },
     },
     #endif

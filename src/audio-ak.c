@@ -499,7 +499,7 @@ static struct menu_entry audio_menus[] = {
         .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Left Digital Gain ",
+                .name = "Left Digital Gain",
                 .priv           = &dgain_l,
                 .max            = 36,
                 .icon_type      = IT_PERCENT,
