@@ -17,29 +17,39 @@ static MENU_UPDATE_FUNC(user_guide_display)
     MENU_SET_VALUE("");
 }
 
+static MENU_UPDATE_FUNC(menu_edit_lv_print)
+{
+    bmp_printf(FONT_LARGE, info->x, info->y, "   / ZoomIn");
+    bfnt_draw_char(ICON_LV, info->x, info->y-4);
+}
+
 struct menu_entry help_menus[] = {
     {
         .select = menu_nav_help_open,
         .name = "Press " INFO_BTN_NAME,
-        .choices = CHOICES("Bring up Help menu"),
+        .choices = CHOICES("Context help"),
     },
     {
         .select = menu_nav_help_open,
         #if defined(CONFIG_500D)
-        .name = "LiveView(Q)",
+        .name = "LiveView",
+        .choices = CHOICES("Open submenu (Q)..."),
         #elif defined(CONFIG_50D)
         .name = "Press FUNC",
+        .choices = CHOICES("Open submenu (Q)..."),
         #elif defined(CONFIG_5D2)
         .name = "Pict.Style",
+        .choices = CHOICES("Open submenu (Q)..."),
         #elif defined(CONFIG_5DC) || defined(CONFIG_40D)
         .name = "Press JUMP",
+        .choices = CHOICES("Open submenu (Q)..."),
         #elif defined(CONFIG_EOSM)
-        .name = "1-fingr Tap",
+        .name = "1-finger Tap",
+        .choices = CHOICES("Open submenu (Q)..."),
         #else
         .name = "Press Q",
+        .choices = CHOICES("Open submenu..."),
         #endif
-        
-        .choices = CHOICES("Bring up submenu..."),
         
         .children =  (struct menu_entry[]) {
             {
@@ -65,16 +75,15 @@ struct menu_entry help_menus[] = {
     {
         .select = menu_nav_help_open,
         .name = "SET/PLAY",
-        .choices = CHOICES("Toggle up/down (+/-)"),
+        .choices = CHOICES("Edit values"),
     },
     {
         .select = menu_nav_help_open,
-        .name = "Press MENU",
-        .choices = CHOICES("Edit values (wheel)"),
-    },
-    {
-        .select = menu_nav_help_open,
+        #ifdef CONFIG_500D
         .name = "Zoom In",
+        #else
+        .update = menu_edit_lv_print,
+        #endif
         .choices = CHOICES("Edit in LiveView"),
     },
     {

@@ -220,7 +220,7 @@ void beta_set_warned()
 
 static struct menu_entry customize_menu[] = {
     {
-        .name = "Customize menus",
+        .name = "Customize Menus",
         .priv = &customize_mode,
         .max = 2,
         .choices = CHOICES("OFF", "MyMenu items", "Hide items"),
@@ -1156,8 +1156,8 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
         w = MAX(w, font_med.width * (strlen(Q_BTN_NAME) + strlen(SUBMENU_HINT_SUFFIX)));
     }*/
     
-    if (y0 + h > 420)
-        y0 = 420 - h;
+    if (y0 + h > 410)
+        y0 = 410 - h;
 
     if (x0 + w > 700)
         x0 = 700 - w;
@@ -1775,12 +1775,12 @@ show_hidden_items(struct menu * menu, int force_clear)
             }
             entry = entry->next;
         }
-        STR_APPEND(hidden_msg, CUSTOMIZE_MODE_HIDING ? "." : " (press MENU).");
+        STR_APPEND(hidden_msg, CUSTOMIZE_MODE_HIDING ? "." : " (Prefs->Customize).");
         
-        if (strlen(hidden_msg) > 55)
+        if (strlen(hidden_msg) > 60)
         {
-            hidden_msg[54] = hidden_msg[53] = hidden_msg[52] = '.';
-            hidden_msg[55] = '\0';
+            hidden_msg[59] = hidden_msg[58] = hidden_msg[57] = '.';
+            hidden_msg[60] = '\0';
         }
 
         int hidden_pos_y = 410;
@@ -2603,7 +2603,8 @@ handle_ml_menu_keys(struct event * event)
     {
     case BGMT_MENU:
     {
-        submenu_mode = (!submenu_mode)*2;
+        submenu_mode = 0;
+        menu_lv_transparent_mode = 0;
         break;
     }
     
@@ -2620,7 +2621,12 @@ handle_ml_menu_keys(struct event * event)
         redraw_flood_stop = 1;
         give_semaphore(gui_sem);
         return 1;
-        
+    
+    #ifndef CONFIG_500D // LV is Q
+    case BGMT_LV:
+        if (!lv) return 1;
+        // else fallthru
+    #endif
     case BGMT_PRESS_ZOOMIN_MAYBE:
         if (lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
         else submenu_mode = (!submenu_mode)*2;
