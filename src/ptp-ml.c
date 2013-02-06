@@ -45,7 +45,7 @@ char* menu_data_fill(char* dptr, struct menu_entry * m2) {
 	if (m2->select) flags |= PTP_ML_SUBMENU_HAS_SELECT;
 	//if (m2->select_reverse) flags |= PTP_ML_SUBMENU_HAS_SELECT_REVERSE;
 	if (m2->select_Q) flags |= PTP_ML_SUBMENU_HAS_SELECT_Q;
-	if (IS_VISIBLE(m2)) flags |= PTP_ML_SUBMENU_IS_ESSENTIAL; // probably needs fixing somewhere else too
+	if (!HAS_HIDDEN_FLAG(m2)) flags |= PTP_ML_SUBMENU_IS_ESSENTIAL; // probably needs fixing somewhere else too
 	if (m2->choices) flags |= PTP_ML_SUBMENU_HAS_CHOICE;
 	if (m2->children) flags |= PTP_ML_SUBMENU_HAS_SUBMENU;
 	if (m2->selected) flags |= PTP_ML_SUBMENU_IS_SELECTED;
@@ -152,7 +152,7 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 				dptr = data;
 				for ( ; m ; m = m->next ) {
 					uint32_t strl = strlen(m->name);
-					fill_uint32(dptr, m->id);
+					//fill_uint32(dptr, m->id);
 					dptr+=4;
 					fill_uint32(dptr, strl);
 					dptr+=4;
