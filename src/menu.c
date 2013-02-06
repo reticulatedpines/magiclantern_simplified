@@ -1958,9 +1958,10 @@ submenu_display(struct menu * submenu)
     int count = 0;
     struct menu_entry * child = submenu->children;
     while (child) { if (IS_VISIBLE(child)) count++; child = child->next; }
-    int h = submenu->submenu_height ? submenu->submenu_height : count * (int)font_large.height + 40 + 50;
-    if (count > 5) h -= font_large.height;
-    if (h > 420) h = 420;
+    int h = submenu->submenu_height ? submenu->submenu_height : 
+        (int) MIN(420, count * font_large.height + 40 + 50 - (count > 7 ? 30 : 0));
+                       /* body + titlebar + padding - smaller padding for large submenus */
+        
     int w = submenu->submenu_width  ? submenu->submenu_width : 600;
     g_submenu_width = w;
     int bx = (720 - w)/2;
@@ -1992,7 +1993,8 @@ submenu_display(struct menu * submenu)
             draw_line(xl, yl, xl+i, yl+7, COLOR_CYAN);
     }
 
-    menu_display(submenu,  bx + SUBMENU_OFFSET,  by + 40 + (count > 5 ? 10 : 25), 0);
+                                                   /* titlebar + padding difference for large submenus */
+    menu_display(submenu,  bx + SUBMENU_OFFSET,  by + 40 + (count > 7 ? 10 : 25), 0);
     show_hidden_items(submenu, 1);
 }
 
