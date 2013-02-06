@@ -61,11 +61,9 @@ struct menu_display_info
         custom_drawing;
     int x;
     int y; // for custom drawing
+    int x_val;
     // etc
 };
-
-// for custom drawing: position of value field
-#define MENU_VALUE_POS_X (info->x + font_large.width * (strlen(entry->name) + 1))
 
 #define MENU_MAX_NAME_LEN 30
 #define MENU_MAX_VALUE_LEN 25

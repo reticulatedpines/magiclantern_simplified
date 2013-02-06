@@ -2635,7 +2635,8 @@ static MENU_UPDATE_FUNC(picstyle_rec_sub_display)
     MENU_SET_VALUE(
         get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec))
     );
-    MENU_SET_RINFO(
+    //~ MENU_SET_RINFO(
+    bmp_printf(MENU_FONT_GRAY, info->x_val, info->y + font_large.height,
         "%d,%d,%d,%d",
         lens_get_from_other_picstyle_sharpness(picstyle_rec),
         lens_get_from_other_picstyle_contrast(picstyle_rec),
@@ -5447,6 +5448,8 @@ static struct menu_entry expo_menus[] = {
                 "Standard", "Portrait", "Landscape", "Neutral", "Faithful", "Monochrome", "UserDef1", "UserDef2", "UserDef3" },
         .min = 1,
         .max = NUM_PICSTYLES,
+        .submenu_width = 550,
+        .submenu_height = 300,
         //~ .show_liveview = 1,
         //~ //.essential = FOR_PHOTO | FOR_MOVIE,
         .children =  (struct menu_entry[]) {

@@ -32,7 +32,7 @@
 #include "menu.h"
 
 #define CONFIG_MENU_ICONS
-//~ #define CONFIG_MENU_DIM_HACKS
+#define CONFIG_MENU_DIM_HACKS
 
 #define DOUBLE_BUFFERING 1
 
@@ -113,8 +113,8 @@ static int is_customize_selected();
 #define CUSTOMIZE_MODE_MYMENU (customize_mode == 1)
 #define CUSTOMIZE_MODE_HIDING (customize_mode == 2)
 
-//~ static int g_submenu_width = 0;
-#define g_submenu_width 720
+static int g_submenu_width = 0;
+//~ #define g_submenu_width 720
 static int redraw_flood_stop = 0;
 
 static int quick_redraw = 0; // don't redraw the full menu, because user is navigating quickly
@@ -1007,6 +1007,26 @@ void FAST replace_color(int old, int new, int x0, int y0, int w, int h)
         }
     }
 }
+void FAST dim_screen(int fg, int bg, int x0, int y0, int w, int h)
+{
+    uint8_t* B = bmp_vram();
+    #ifdef CONFIG_VXWORKS
+    bg = D2V(bg);
+    fg = D2V(fg);
+    #endif
+    #define P(x,y) B[BM(x,y)]
+    for (int y = y0; y < y0 + h; y++)
+    {
+        for (int x = x0; x < x0 + w; x++)
+        {
+            if (P(x,y) != bg)
+            {
+                if (P(x,y) >= COLOR_ALMOST_BLACK && P(x,y) < fg) continue;
+                P(x,y) = fg;
+            }
+        }
+    }
+}
 #endif
 
 
@@ -1373,7 +1393,8 @@ entry_print(
     int y,
     int w,
     struct menu_entry * entry,
-    struct menu_display_info * info
+    struct menu_display_info * info,
+    int in_submenu
 )
 {
     int fnt = MENU_FONT;
@@ -1386,27 +1407,30 @@ entry_print(
         x, y,
         info->name
     );
-    
+
     // debug
     if (0)
         bmp_printf(FONT_SMALL, x, y, "name(%s)(%d) value(%s)(%d)", info->name, strlen(info->name), info->value, strlen(info->value));
 
     if (info->enabled == 0) 
         fnt = MENU_FONT_GRAY;
+
+    // far right end
+    int x_end = in_submenu ? x + g_submenu_width - SUBMENU_OFFSET : 720;
     
     w = MAX(w, strlen(info->name)+1);
     
     // value string too big? move it to the left
     int end = w + strlen(info->value);
-    int wmax = (720 - x) / font_large.width;
+    int wmax = (x_end - x) / font_large.width;
 
     // right-justified info field?
     int rlen = strlen(info->rinfo);
-    int rinfo_x = 720 - font_large.width * (rlen + 1);
+    int rinfo_x = x_end - font_large.width * (rlen + 1);
     if (rlen) wmax -= rlen + 2;
     
     // no right info? then make sure there's room for the Q symbol
-    else if (entry->children && !submenu_mode && !menu_lv_transparent_mode && (entry->priv || entry->select))
+    else if (entry->children && !in_submenu && !menu_lv_transparent_mode && (entry->priv || entry->select))
     {
         wmax--;
     }
@@ -1434,12 +1458,10 @@ entry_print(
     }
 
     // selection bar params
-    // bar end
-    int x_end = submenu_mode==1 ? x + g_submenu_width - SUBMENU_OFFSET : 720;
 
     // bar middle
     int xc = x - 5;
-    if (submenu_mode && info->value[0])
+    if ((in_submenu || submenu_mode==2) && info->value[0])
         xc = x + font_large.width * w - 15;
     
     // customization markers
@@ -1592,6 +1614,7 @@ menu_entry_process(
     entry_default_display_info(entry, &info);
     info.x = x;
     info.y = y;
+    info.x_val = x + font_large.width * ABS(menu->split_pos);
 
     // display icon (only the first icon is drawn)
     icon_drawn = 0;
@@ -1599,7 +1622,7 @@ menu_entry_process(
     if ((!menu_lv_transparent_mode && !only_selected) || entry->selected)
     {
         if (quick_redraw) // menu was not erased, so there may be leftovers on the screen
-            bmp_fill(menu_lv_transparent_mode ? 0 : COLOR_BLACK, 0, y, 720, font_large.height);
+            bmp_fill(menu_lv_transparent_mode ? 0 : COLOR_BLACK, x-8, y, g_submenu_width-x+8, font_large.height);
         
         // should we override some things?
         if (entry->update)
@@ -1611,7 +1634,7 @@ menu_entry_process(
         
         // print the menu on the screen
         if (info.custom_drawing == CUSTOM_DRAW_DISABLE)
-            entry_print(x, y, ABS(menu->split_pos), entry, &info);
+            entry_print(x, y, ABS(menu->split_pos), entry, &info, IS_SUBMENU(menu));
     }
     return 1;
 }
@@ -1799,6 +1822,7 @@ menus_display(
 )
 {
     int         x = orig_x + 150;
+    g_submenu_width = 720;
 
     struct menu * submenu = 0;
     if (submenu_mode == 1)
@@ -1840,7 +1864,7 @@ menus_display(
         int fg = menu->selected ? fgs : fgu;
         int bg = menu->selected ? bgs : bgu;
         
-        if (!menu_lv_transparent_mode && !submenu)
+        if (!menu_lv_transparent_mode)
         {
             if (menu->selected)
                 bmp_fill(bg, x, y+2, icon_spacing, 38);
@@ -1880,7 +1904,10 @@ menus_display(
             x += icon_spacing;
         }
 
-        if( menu->selected && !submenu)
+        int skip_this = 0; 
+        if (submenu && quick_redraw) skip_this = 1;
+        
+        if( menu->selected && !skip_this)
         {
             menu_display(
                 menu,
@@ -1896,6 +1923,7 @@ menus_display(
     
     if (submenu)
     {
+        dim_screen(43, COLOR_BLACK, 0, 45, 720, 480-45-50);
         submenu_display(submenu);
     }
     
@@ -1920,18 +1948,33 @@ submenu_display(struct menu * submenu)
 {
     if (!submenu) return;
 
-    int bx = 0;
-    int by = 0;
+    int count = 0;
+    struct menu_entry * child = submenu->children;
+    while (child) { if (IS_VISIBLE(child)) count++; child = child->next; }
+    int h = submenu->submenu_height ? submenu->submenu_height : (int)MIN((count + 3) * font_large.height, 420);
+    int w = submenu->submenu_width  ? submenu->submenu_width : 600;
+    g_submenu_width = w;
+    int bx = (720 - w)/2;
+    int by = (480 - h)/2 - 30;
     
     // submenu header
     if (!menu_lv_transparent_mode)
     {
-        bfnt_printf(bx + 5,  by, COLOR_WHITE, 40, "%s - %s", get_selected_menu()->name, submenu->name);
+        bmp_fill(MENU_BG_COLOR_HEADER_FOOTER,  bx,  by, 720-2*bx+4, 40);
+        bmp_fill(COLOR_BLACK,  bx,  by + 40, 720-2*bx+4, h-40);
+        //~ bmp_draw_rect(COLOR_GRAY70,  bx,  by, 720-2*bx, 40);
+        draw_line(bx, by+40, bx+w, by+40, 39);
+        draw_line(bx, by+41, bx+w, by+41, 39);
+        draw_line(bx, by+42, bx+w, by+42, 38);
+        draw_line(bx, by+43, bx+w, by+43, 38);
+        bmp_draw_rect(COLOR_GRAY60,  bx,  by, 720-2*bx, h);
+        bfnt_puts(submenu->name,  bx + 15,  by+2, COLOR_WHITE, 40);
+        //~ bfnt_printf(bx + 5,  by, COLOR_WHITE, 40, "%s - %s", get_selected_menu()->name, submenu->name);
 
         submenu_key_hint(720-bx-45, by+5, MENU_BG_COLOR_HEADER_FOOTER);
 
-        int xl = 720-50;
-        int yl = 15;
+        int xl = 720-bx-50;
+        int yl = by+15;
         draw_line(xl, yl+2, xl, yl+20, COLOR_CYAN);
         draw_line(xl+1, yl+2, xl+1, yl+20, COLOR_CYAN);
         draw_line(xl, yl+20, xl+40, yl+20, COLOR_CYAN);
@@ -1940,7 +1983,7 @@ submenu_display(struct menu * submenu)
             draw_line(xl, yl, xl+i, yl+7, COLOR_CYAN);
     }
 
-    menu_display(submenu,  bx + SUBMENU_OFFSET,  by + 50 + 15, 0);
+    menu_display(submenu,  bx + SUBMENU_OFFSET,  by + 40 + 25 - (h > 400 ? 10 : 0), 0);
     show_hidden_items(submenu, 1);
 }
 

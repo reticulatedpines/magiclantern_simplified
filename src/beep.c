@@ -886,7 +886,6 @@ static struct menu_entry beep_menus[] = {
         .name = "Beep and test tones...",
         .select = menu_open_submenu,
         .help = "Configure ML beeps and play test tones (440Hz, 1kHz...)",
-        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Enable Beeps",
@@ -944,7 +943,6 @@ static struct menu_entry beep_menus[] = {
         .name = "Sound recorder...",
         .select = menu_open_submenu,
         .help = "Record short audio clips, add voice tags to pictures...",
-        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Record",
