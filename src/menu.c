@@ -1402,6 +1402,9 @@ entry_print(
     if (info->warning_level == MENU_WARN_NOT_WORKING) 
         fnt = MENU_FONT_GRAY;
     
+    if (submenu_mode==1 && !in_submenu)
+        fnt = MENU_FONT_GRAY;
+    
     bmp_printf(
         fnt,
         x, y,

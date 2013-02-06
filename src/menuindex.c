@@ -19,6 +19,7 @@ static MENU_UPDATE_FUNC(user_guide_display)
 
 static MENU_UPDATE_FUNC(menu_edit_lv_print)
 {
+    MENU_SET_NAME("");
     bmp_printf(FONT_LARGE, info->x, info->y, "   / ZoomIn");
     bfnt_draw_char(ICON_LV, info->x, info->y-4, COLOR_WHITE, COLOR_BLACK);
 }
@@ -82,6 +83,7 @@ struct menu_entry help_menus[] = {
         #ifdef CONFIG_500D
         .name = "Zoom In",
         #else
+        .name = "LiveView/ZoomIn",
         .update = menu_edit_lv_print,
         #endif
         .choices = CHOICES("Edit in LiveView"),
