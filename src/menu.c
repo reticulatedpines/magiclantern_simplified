@@ -1958,7 +1958,7 @@ submenu_display(struct menu * submenu)
     int count = 0;
     struct menu_entry * child = submenu->children;
     while (child) { if (IS_VISIBLE(child)) count++; child = child->next; }
-    int h = submenu->submenu_height ? submenu->submenu_height : count * font_large.height + 40 + 50;
+    int h = submenu->submenu_height ? submenu->submenu_height : count * (int)font_large.height + 40 + 50;
     if (count > 5) h -= font_large.height;
     if (h > 420) h = 420;
     int w = submenu->submenu_width  ? submenu->submenu_width : 600;

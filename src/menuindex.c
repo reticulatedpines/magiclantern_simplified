@@ -20,8 +20,10 @@ static MENU_UPDATE_FUNC(user_guide_display)
 static MENU_UPDATE_FUNC(menu_edit_lv_print)
 {
     MENU_SET_NAME("");
-    bmp_printf(FONT_LARGE, info->x, info->y, "   / ZoomIn");
-    bfnt_draw_char(ICON_LV, info->x, info->y-4, COLOR_WHITE, COLOR_BLACK);
+    bmp_printf(FONT_LARGE, info->x, info->y, "  /ZoomIn");
+    // draw a LiveView icon (like the display one, but erase the lines)
+    bfnt_draw_char(ICON_ML_DISPLAY, info->x, info->y-4, COLOR_WHITE, COLOR_BLACK);
+    bmp_fill(COLOR_BLACK, info->x + 10, info->y + 10, 21, 15);
 }
 
 struct menu_entry help_menus[] = {
