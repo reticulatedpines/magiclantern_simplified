@@ -3246,7 +3246,7 @@ void HijackFormatDialogBox()
     #define FORMAT_BTN "[PicSty]"
     #define STR_LOC 6
 #elif defined(CONFIG_EOSM)
-    #define FORMAT_BTN "[1-F. Tap]"
+    #define FORMAT_BTN "[Tap Screen]"
     #define STR_LOC 4
 #else
     #define FORMAT_BTN "[Q]"
@@ -3254,9 +3254,9 @@ void HijackFormatDialogBox()
 #endif
 
     if (keep_ml_after_format)
-        dialog_set_property_str(dialog, 4, "Format card, keep Magic Lantern " FORMAT_BTN);
+        dialog_set_property_str(dialog, 4, "Format card, keep ML " FORMAT_BTN);
     else
-        dialog_set_property_str(dialog, 4, "Format card, remove Magic Lantern " FORMAT_BTN);
+        dialog_set_property_str(dialog, 4, "Format card, remove ML " FORMAT_BTN);
     dialog_redraw(dialog);
 }
 
