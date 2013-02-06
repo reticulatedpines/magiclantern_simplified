@@ -1112,6 +1112,7 @@ static struct menu_entry fps_menu[] = {
                 .update = fps_ramp_duration_update,
                 .choices = (const char *[]) {"1s", "2s", "5s", "15s", "30s", "1min", "2min", "5min", "10min", "20min", "30min"},
                 .help = "Duration of FPS ramping (in real-time, not in playback).",
+                .depends_on = DEP_MOVIE_MODE,
             },
             #ifdef CONFIG_FRAME_ISO_OVERRIDE
             {
@@ -1120,7 +1121,7 @@ static struct menu_entry fps_menu[] = {
                 .max = 1,
                 .update = fps_ramp_expo_update,
                 .help = "Keep constant exposure by tweaking ISO. Pink highlights.",
-                .depends_on = DEP_MANUAL_ISO,
+                .depends_on = DEP_MANUAL_ISO | DEP_MOVIE_MODE,
             },
             #endif
 

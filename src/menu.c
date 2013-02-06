@@ -1926,7 +1926,7 @@ menus_display(
     {
         //~ dim_screen(43, COLOR_BLACK, 0, 45, 720, 480-45-50);
         if (!quick_redraw && !menu_lv_transparent_mode)
-            bmp_dim(45, 480-45-50);
+            bmp_dim(45, 480-50);
         
         submenu_display(submenu);
     }

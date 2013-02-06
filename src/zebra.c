@@ -2526,9 +2526,10 @@ static MENU_UPDATE_FUNC(crop_display_submenu)
         "%s",
          num_cropmarks ? cropmark_names[index] : "N/A"
     );
-    int h = 180;
+    int h = 170;
     int w = h * 720 / 480;
-    int xc = 360 - w/2;
+    //~ int xc = 360 - w/2;
+    int xc = 400;
     int yc = info->y + font_large.height * 3 + 10;
     BMP_LOCK( reload_cropmark(); )
     bmp_fill(0, xc, yc, w, h);
@@ -3416,7 +3417,7 @@ struct menu_entry zebra_menus[] = {
         .help = "Cropmarks or custom grids for framing.",
         .depends_on = DEP_GLOBAL_DRAW,
         .submenu_width = 710,
-        .submenu_height = 350,
+        .submenu_height = 250,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Bitmap",
