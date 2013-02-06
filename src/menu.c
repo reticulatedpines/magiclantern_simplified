@@ -32,7 +32,7 @@
 #include "menu.h"
 
 #define CONFIG_MENU_ICONS
-#define CONFIG_MENU_DIM_HACKS
+//~ #define CONFIG_MENU_DIM_HACKS
 
 #define DOUBLE_BUFFERING 1
 
@@ -1923,7 +1923,8 @@ menus_display(
     
     if (submenu)
     {
-        dim_screen(43, COLOR_BLACK, 0, 45, 720, 480-45-50);
+        //~ dim_screen(43, COLOR_BLACK, 0, 45, 720, 480-45-50);
+        if (!quick_redraw) bmp_dim(45, 480-45-50);
         submenu_display(submenu);
     }
     
@@ -2075,6 +2076,11 @@ menu_entry_select(
         if (submenu_mode == 2) submenu_mode = 0;
         else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
         else if (SHOULD_HAVE_PICKBOX(entry) && submenu_mode!=1) submenu_mode = !submenu_mode * 2;
+        else if (entry->edit_mode == EM_MANY_VALUES_LV)
+        {
+            if (lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
+            else submenu_mode = !submenu_mode * 2;
+        }
         else if( entry->select ) entry->select( entry->priv, 1);
         else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
     }

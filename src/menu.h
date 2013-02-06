@@ -143,7 +143,7 @@ struct menu_entry
         unsigned unit       : 4;
         unsigned hidden     : 1;
         unsigned icon_type  : 4;
-        unsigned edit_mode  : 1; // not currently used (to be cleaned up)
+        unsigned edit_mode  : 2;
         unsigned starred    : 1; // present in "my menu"
         
         const char * help;
@@ -180,14 +180,13 @@ struct menu_entry
 #define MENU_ENTRY_NOT_HIDDEN 0
 #define MENU_ENTRY_HIDDEN 1
 
-/*
 #define EM_FEW_VALUES 0
 #define EM_MANY_VALUES 1
 #define EM_MANY_VALUES_LV 2
-*/
-#define EM_FEW_VALUES 0
+
+/*#define EM_FEW_VALUES 0
 #define EM_MANY_VALUES 0
-#define EM_MANY_VALUES_LV 0
+#define EM_MANY_VALUES_LV 0*/
 
 
 #define IT_AUTO 0
