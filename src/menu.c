@@ -1905,7 +1905,8 @@ menus_display(
         }
 
         int skip_this = 0; 
-        if (submenu && quick_redraw) skip_this = 1;
+        if (submenu && (quick_redraw || menu_lv_transparent_mode))
+            skip_this = 1;
         
         if( menu->selected && !skip_this)
         {
@@ -1924,7 +1925,9 @@ menus_display(
     if (submenu)
     {
         //~ dim_screen(43, COLOR_BLACK, 0, 45, 720, 480-45-50);
-        if (!quick_redraw) bmp_dim(45, 480-45-50);
+        if (!quick_redraw && !menu_lv_transparent_mode)
+            bmp_dim(45, 480-45-50);
+        
         submenu_display(submenu);
     }
     
@@ -2076,11 +2079,8 @@ menu_entry_select(
         if (submenu_mode == 2) submenu_mode = 0;
         else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
         else if (SHOULD_HAVE_PICKBOX(entry) && submenu_mode!=1) submenu_mode = !submenu_mode * 2;
-        else if (entry->edit_mode == EM_MANY_VALUES_LV)
-        {
-            if (lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
-            else submenu_mode = !submenu_mode * 2;
-        }
+        else if (entry->edit_mode == EM_MANY_VALUES_LV && lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
+        else if (entry->edit_mode == EM_MANY_VALUES_LV && !lv && submenu_mode != 1) submenu_mode = !submenu_mode * 2;
         else if( entry->select ) entry->select( entry->priv, 1);
         else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
     }
@@ -2636,7 +2636,10 @@ handle_ml_menu_keys(struct event * event)
         if (submenu_mode == 2 && !menu_lv_transparent_mode)
             menu_entry_select( menu, 1 );
         else
+        {
             menu_entry_move( menu, -1 );
+            if (menu_lv_transparent_mode) menu_needs_full_redraw = 1;
+        }
 
         break;
 
@@ -2647,7 +2650,10 @@ handle_ml_menu_keys(struct event * event)
         if (submenu_mode == 2 && !menu_lv_transparent_mode)
             menu_entry_select( menu, 0 );
         else
+        {
             menu_entry_move( menu, 1 );
+            if (menu_lv_transparent_mode) menu_needs_full_redraw = 1;
+        }
 
         break;
 
