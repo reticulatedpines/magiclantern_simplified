@@ -2875,7 +2875,8 @@ CONFIG_INT("defish.preview", defish_preview, 0);
 #endif
 
 CONFIG_INT("anamorphic.preview", anamorphic_preview, 0);
-CONFIG_INT("anamorphic.ratio.idx", anamorphic_ratio_idx, 0);
+//~ CONFIG_INT("anamorphic.ratio.idx", anamorphic_ratio_idx, 0);
+#define anamorphic_ratio_idx (anamorphic_preview-1)
 
 #ifndef FEATURE_ANAMORPHIC_PREVIEW
 #define anamorphic_preview 0
@@ -2888,16 +2889,6 @@ static int anamorphic_ratio_den[10] = {1, 3, 2, 3, 4, 5, 4, 3, 5, 2};
 
 static MENU_UPDATE_FUNC(anamorphic_preview_display)
 {
-    if (anamorphic_preview)
-    {
-        int num = anamorphic_ratio_num[anamorphic_ratio_idx];
-        int den = anamorphic_ratio_den[anamorphic_ratio_idx];
-        MENU_SET_VALUE(
-            "ON, %d:%d",
-            num, den
-        );
-    }
-
     if (defish_preview)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Too much for this lil' cam... both defishing and anamorphic");
 }
@@ -3328,9 +3319,8 @@ void display_filter_step(int k)
 CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 1);
 #endif
 
-extern int clearscreen_enabled;
-extern int clearscreen_mode;
-extern MENU_UPDATE_FUNC(clearscreen_display);
+extern int clearscreen;
+//~ extern int clearscreen_mode;
 extern MENU_UPDATE_FUNC(screen_layout_display);
 extern void screen_layout_toggle(void* priv, int delta);
 extern int hdmi_force_vga;
@@ -3411,22 +3401,23 @@ static struct menu_entry display_menus[] = {
     #ifdef FEATURE_CLEAR_OVERLAYS
     {
         .name = "Clear overlays",
-        .priv           = &clearscreen_enabled,
-        .update        = clearscreen_display,
-        .max            = 1,
+        .priv           = &clearscreen,
+        .max            = 4,
+        .choices = (const char *[]) {"OFF", "HalfShutter", "WhenIdle", "Always", "Recording"},
+        .icon_type = IT_DICE_OFF,
         .help = "Clear bitmap overlays from LiveView display.",
         .depends_on = DEP_LIVEVIEW,
+        /*
         .children =  (struct menu_entry[]) {
             {
                 .name = "Mode",
                 .priv = &clearscreen_mode, 
                 .max = 3,
-                .choices = (const char *[]) {"HalfShutter", "WhenIdle", "Always", "Recording"},
-                .icon_type = IT_DICE,
                 .help = "Clear screen when you hold shutter halfway or when idle.",
             },
             MENU_EOL
         },
+        */
     },
     #endif
     #ifdef FEATURE_DISPLAY_SHAKE
@@ -3476,21 +3467,24 @@ static struct menu_entry display_menus[] = {
         .name = "Anamorphic",
         .priv     = &anamorphic_preview,
         .update = anamorphic_preview_display, 
-        .max = 1,
-        .submenu_width = 700,
+        .max = 10,
+        .choices = (const char *[]) {"OFF", "2:1", "5:3 (1.66)", "3:2 (1.5)", "4:3 (1.33)", "5:4 (1.25)", "4:5 (1/1.25)", "3:4 (1/1.33)", "2:3 (1/1.5)", "3:5 (1/1.66)", "1:2"},
+        
         .help = "Stretches LiveView image vertically, for anamorphic lenses.",
         .depends_on = DEP_LIVEVIEW | DEP_GLOBAL_DRAW,
+
+        /*
+        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Stretch Ratio",
                 .priv = &anamorphic_ratio_idx, 
                 .max = 9,
-                .choices = (const char *[]) {"2:1", "5:3 (1.66)", "3:2 (1.5)", "4:3 (1.33)", "5:4 (1.25)", "4:5 (1/1.25)", "3:4 (1/1.33)", "2:3 (1/1.5)", "3:5 (1/1.66)", "1:2"},
                 .icon_type = IT_ALWAYS_ON,
                 .help = "Aspect ratio used for anamorphic preview correction.",
             },
             MENU_EOL
-        },
+        },*/
     },
     #endif
     #if defined(CONFIG_KILL_FLICKER) || defined(FEATURE_SCREEN_LAYOUT) || defined(FEATURE_IMAGE_POSITION) || defined(FEATURE_UPSIDE_DOWN) || defined(FEATURE_IMAGE_ORIENTATION) || defined(FEATURE_AUTO_MIRRORING_HACK) || defined(FEATURE_FORCE_HDMI_VGA) || defined(FEATURE_UNIWB_CORRECTION)

@@ -417,12 +417,12 @@ uint32_t vectorscope_height = 256;
 #define VECTORSCOPE_HEIGHT_MAX 256
 
 
-       CONFIG_INT( "clear.preview", clearscreen_enabled, 0);
+       CONFIG_INT( "clear.preview", clearscreen, 0);
 static CONFIG_INT( "clear.preview.delay", clearscreen_delay, 1000); // ms
-       CONFIG_INT( "clear.preview.mode", clearscreen_mode, 0); // 2 is always
+       //~ CONFIG_INT( "clear.preview.mode", clearscreen_mode, 0); // 2 is always
 
 // keep old program logic
-#define clearscreen (clearscreen_enabled ? clearscreen_mode+1 : 0)
+//~ #define clearscreen (clearscreen_enabled ? clearscreen_mode+1 : 0)
 
 static CONFIG_INT( "spotmeter.size",        spotmeter_size, 5 );
 static CONFIG_INT( "spotmeter.draw",        spotmeter_draw, 1 );
@@ -2591,19 +2591,6 @@ static MENU_UPDATE_FUNC(global_draw_display)
         MENU_SET_ENABLED(0);
         MENU_SET_ICON(MNI_NEUTRAL,0);
     }
-}
-#endif
-
-#ifdef FEATURE_CLEAR_OVERLAYS
-MENU_UPDATE_FUNC(clearscreen_display)
-{
-    int mode = clearscreen;
-    MENU_SET_VALUE(
-        mode == 0 ? "OFF" : 
-        mode == 1 ? "HalfShutter/DofP" : 
-        mode == 2 ? "WhenIdle" :
-        mode == 3 ? "Always" : "Recording"
-    );
 }
 #endif
 
