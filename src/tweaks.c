@@ -2865,7 +2865,8 @@ void display_shake_step()
 #endif
 
 CONFIG_INT("defish.preview", defish_preview, 0);
-static CONFIG_INT("defish.projection", defish_projection, 0);
+#define defish_projection (defish_preview==1 ? 0 : 1)
+//~ static CONFIG_INT("defish.projection", defish_projection, 0);
 //~ static CONFIG_INT("defish.hd", DEFISH_HD, 1);
 #define DEFISH_HD 1
 
@@ -3448,9 +3449,11 @@ static struct menu_entry display_menus[] = {
         .name = "Defishing",
         .priv = &defish_preview, 
         .update = defish_preview_display, 
-        .max            = 1,
+        .max    = 2,
         .depends_on = DEP_GLOBAL_DRAW,
+        .choices = (const char *[]) {"OFF", "Rectilinear", "Panini"},
         .help = "Preview straightened images from fisheye lenses. LV+PLAY.",
+        /*
         .children =  (struct menu_entry[]) {
             {
                 .name = "Projection",
@@ -3460,13 +3463,9 @@ static struct menu_entry display_menus[] = {
                 .icon_type = IT_DICE,
                 .help = "Projection used for defishing (Rectilinear or Panini).",
             },
-            /*{
-                .name = "Use HD buffer", 
-                .priv = &DEFISH_HD, 
-                .max = 1,
-            },*/
             MENU_EOL
         }
+        */
     },
     #endif
     #ifdef FEATURE_ANAMORPHIC_PREVIEW
