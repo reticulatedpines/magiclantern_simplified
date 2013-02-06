@@ -56,6 +56,9 @@ extern int bmp_color_scheme;
 
 #define MY_MENU_NAME "MyMenu"
 
+#define CAN_HAVE_PICKBOX(entry) ((entry)->min != (entry)->max && (entry)->priv)
+#define SHOULD_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min + 1 && (entry)->priv)
+
 //for vscroll
 #define MENU_LEN_DEFAULT 11
 #define MENU_LEN_AUDIO 10 // at len=11, audio meters would overwrite menu entries on 600D
@@ -1470,7 +1473,7 @@ entry_print(
         selection_bar_backend(color_right, COLOR_BLACK, xc, y, x_end-xc, 31);
         
         // use a pickbox if possible
-        if (submenu_mode == 2 && entry->min != entry->max && entry->priv)
+        if (submenu_mode == 2 && CAN_HAVE_PICKBOX(entry))
         {
             int px = x + font_large.width * w;
             pickbox_draw(entry, px, y);
@@ -2016,8 +2019,6 @@ menu_entry_select(
 
     if(mode == 1) // decrement
     {
-        //~ if( entry->select_reverse ) entry->select_reverse( entry->priv, -1 );
-        //~ else 
         if (entry->select) entry->select( entry->priv, -1);
         else menu_numeric_toggle(entry->priv, -1, entry->min, entry->max);
     }
@@ -2030,6 +2031,7 @@ menu_entry_select(
     {
         if (submenu_mode == 2) submenu_mode = 0;
         else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
+        else if (SHOULD_HAVE_PICKBOX(entry) && submenu_mode!=1) submenu_mode = !submenu_mode * 2;
         else if( entry->select ) entry->select( entry->priv, 1);
         else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
     }
