@@ -68,7 +68,7 @@ extern int bmp_color_scheme;
 
 int get_menu_len(struct menu * menu)
 {
-    if (menu->icon == ICON_MIC) // that's the Audio menu
+    if (menu->icon == ICON_ML_AUDIO) // that's the Audio menu
         return MENU_LEN_AUDIO;
     return MENU_LEN_DEFAULT;
 }

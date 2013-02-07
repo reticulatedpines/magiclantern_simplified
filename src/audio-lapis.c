@@ -576,6 +576,7 @@ static struct menu_entry audio_menus[] = {
     {
         .name        = "Override audio settings",
         .priv           = &cfg_override_audio,
+        .max            = 1,
         .select         = override_audio_toggle,
         .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
         .help = "Override audio setting by ML",
@@ -610,6 +611,8 @@ static struct menu_entry audio_menus[] = {
                 .name = "Record Effect Mode",
                 .priv           = &cfg_effect_mode,
                 .select         = audio_effect_mode_toggle,
+                .max            = 5,
+                .icon_type      = IT_DICE,
                 .choices        = CHOICES("Notch Filter", "EQ", "Notch EQ", "Enhnc REC", "Enhnc RECPLAY", "Loud"),
                 .help           = "Choose mode :Notch,EQ,Notch/EQ,Enhance [12],Loudness.",
                 .hidden         = MENU_ENTRY_HIDDEN,
@@ -617,6 +620,8 @@ static struct menu_entry audio_menus[] = {
             {
                 .name = "Record Digital Volume ",
                 .priv           = &cfg_recdgain,
+                .max            = 126,
+                .icon_type      = IT_PERCENT,
                 .select         = audio_recdgain_toggle,
                 .help = "Record Digital Volume. ",
                 .edit_mode = EM_MANY_VALUES,
@@ -624,6 +629,8 @@ static struct menu_entry audio_menus[] = {
             {
                 .name = "Left Digital Gain ",
                 .priv           = &dgain_l,
+                .max            = 15,
+                .icon_type      = IT_PERCENT,
                 .select         = audio_dgain_toggle,
                 .update         = audio_dgain_display,
                 .help = "Digital gain (LEFT). Any nonzero value reduces quality.",
@@ -632,6 +639,8 @@ static struct menu_entry audio_menus[] = {
             {
                 .name = "Right Digital Gain",
                 .priv           = &dgain_r,
+                .max            = 15,
+                .icon_type      = IT_PERCENT,
                 .select         = audio_dgain_toggle,
                 .update         = audio_dgain_display,
                 .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
@@ -655,6 +664,7 @@ static struct menu_entry audio_menus[] = {
         .select         = audio_input_toggle,
         .max            = 4,
         .icon_type      = IT_ALWAYS_ON,
+        .choices = (const char *[]) {"Internal mic", "L:int R:ext", "External stereo", "Balanced (N/A)", "Auto int/ext"},
         .help = "Audio input: internal / external / both / balanced / auto.",
         .depends_on        = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
     },
@@ -717,6 +727,7 @@ static struct menu_entry audio_menus[] = {
     {
         .name = "Headphone Mon.",
         .priv = &audio_monitoring,
+        .max  = 1,
         .select         = audio_monitoring_toggle,
         .help = "Monitoring via A-V jack. Disable if you use a SD display.",
         .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
