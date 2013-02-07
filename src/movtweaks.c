@@ -983,6 +983,7 @@ static struct menu_entry mov_menus[] = {
         .select = menu_open_submenu,
         .help = "Movie Restart, Movie Logging, REC/Standby Notify...",
         .depends_on = DEP_MOVIE_MODE,
+        .submenu_width = 710,
         .children =  (struct menu_entry[]) {
                 #ifdef FEATURE_MOVIE_RESTART
                 {

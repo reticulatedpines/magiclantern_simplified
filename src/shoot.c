@@ -5353,7 +5353,7 @@ static struct menu_entry expo_menus[] = {
             },
             #ifdef FEATURE_EXPO_ISO_DIGIC
             {
-                .name = "ML digital ISO",
+                .name = "ML ISO/Gain",
                 .update = digic_iso_print,
                 .select = digic_iso_toggle,
                 .help = "Movie: use negative gain. Photo: use it for night vision.",

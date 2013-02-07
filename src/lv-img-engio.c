@@ -11,7 +11,7 @@
 #include "config.h"
 #include "math.h"
 
-#define EngDrvOut(reg, value) *(int*)(reg) = value
+//~ #define EngDrvOutLV(reg, value) *(int*)(reg) = value
 
 //~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
 
@@ -69,35 +69,19 @@ int gain_to_ev_scaled(int gain, int scale)
     return (int) roundf(log2f(gain) * ((float)scale));
 }
 
-MENU_UPDATE_FUNC(digic_iso_print)
+
+MENU_UPDATE_FUNC(digic_iso_print_movie)
 {
     int G = 0;
-    if (is_movie_mode())
-    {
-        G = gain_to_ev_scaled(digic_iso_gain_movie, 8) - 80;
-        G = G * 10/8;
-        int GA = abs(G);
-        
-        MENU_SET_NAME("ML digital ISO");
-        MENU_SET_VALUE(
-            "%s%d.%d EV",
-            G > 0 ? "+" : G < 0 ? "-" : "",
-            GA/10, GA%10
-        );
-    }
-    else
-    {
-        G = gain_to_ev_scaled(digic_iso_gain_photo, 8) - 80;
-        G = G * 10/8;
-        int GA = abs(G);
-
-        MENU_SET_NAME("Display Gain");
-        MENU_SET_VALUE(
-            "%s%d.%d EV",
-            G > 0 ? "+" : G < 0 ? "-" : "",
-            GA/10, GA%10
-        );
-    }
+    G = gain_to_ev_scaled(digic_iso_gain_movie, 8) - 80;
+    G = G * 10/8;
+    int GA = abs(G);
+    
+    MENU_SET_VALUE(
+        "%s%d.%d EV",
+        G > 0 ? "+" : G < 0 ? "-" : "",
+        GA/10, GA%10
+    );
     MENU_SET_ENABLED(G);
 }
 
@@ -115,6 +99,20 @@ MENU_UPDATE_FUNC(display_gain_print)
 
     MENU_SET_ICON(MNI_BOOL(G), 0);
     MENU_SET_ENABLED(G);
+}
+
+MENU_UPDATE_FUNC(digic_iso_print)
+{
+    if (is_movie_mode())
+    {
+        MENU_SET_NAME("ML digital ISO");
+        digic_iso_print_movie(entry, info);
+    }
+    else
+    {
+        MENU_SET_NAME("LV Display Gain");
+        display_gain_print(entry, info);
+    }
 }
 
 MENU_UPDATE_FUNC(digic_black_print)
@@ -156,18 +154,22 @@ void digic_iso_or_gain_toggle(int* priv, int delta)
     *priv = digic_iso_presets[i];
 }
 
-void digic_iso_toggle(int* priv, int delta)
+void digic_iso_toggle(void* priv, int delta)
 {
-    if (is_movie_mode()) priv = (int*)&digic_iso_gain_movie;
-    else priv = (int*)&digic_iso_gain_photo;
-    
+    if (is_movie_mode()) priv = &digic_iso_gain_movie;
+    else priv = &digic_iso_gain_photo;
     digic_iso_or_gain_toggle(priv, delta);
 }
 
-void display_gain_toggle(int* priv, int delta)
+void display_gain_toggle(void* priv, int delta)
 {
-    priv = (int*)&digic_iso_gain_photo;
-    
+    priv = &digic_iso_gain_photo;
+    digic_iso_or_gain_toggle(priv, delta);
+}
+
+void digic_iso_toggle_movie(void* priv, int delta)
+{
+    priv = &digic_iso_gain_movie;
     digic_iso_or_gain_toggle(priv, delta);
 }
 
@@ -338,12 +340,12 @@ void digic_poke_step()
             _EngDrvOut(0xC0F06000, 1); // apply the change
             //~ fps_set_main_timer(digic_value);
 
-            //~ EngDrvOut(0xc0f04a08, 0x6000080);
+            //~ EngDrvOutLV(0xc0f04a08, 0x6000080);
             
             //~ int lvw = MEMX(0xc0f04308);
             //~ int hdw = MEMX(0xc0f04208);
-            //~ EngDrvOut(0xc0f04308, hdw);
-            //~ EngDrvOut(0xc0f04208, lvw);
+            //~ EngDrvOutLV(0xc0f04308, hdw);
+            //~ EngDrvOutLV(0xc0f04208, lvw);
         }
         else
         {
@@ -369,19 +371,10 @@ void digic_random_register(void* priv, int delta)
     digic_register_off = rand() & 0xFC;
 }
 
-static void
-digic_value_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(digic_value_print)
 {
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "Value[%08x]: %x", digic_register, digic_value
-    );
+    MENU_SET_NAME("Value[%08x]", digic_register);
+    MENU_SET_VALUE("%x", digic_value);
 }
 
 
@@ -450,25 +443,25 @@ void image_effects_step()
     extern int bulb_ramp_calibration_running;
     if (bulb_ramp_calibration_running)
     {
-        EngDrvOut(0xc0f0f070, 0x01000100);
+        EngDrvOutLV(0xc0f0f070, 0x01000100);
         return;
     }
 
     if (!is_movie_mode()) return;
 
     static int prev_swap_uv = 0;
-    if (desaturate) EngDrvOut(0xc0f0f070, 0x01000100);
-    if (negative)   EngDrvOut(0xc0f0f000, 0xb1);
-    if (swap_uv)    EngDrvOut(0xc0f0de2c, 0x10); else if (prev_swap_uv) EngDrvOut(0xc0f0de2c, 0);
+    if (desaturate) EngDrvOutLV(0xc0f0f070, 0x01000100);
+    if (negative)   EngDrvOutLV(0xc0f0f000, 0xb1);
+    if (swap_uv)    EngDrvOutLV(0xc0f0de2c, 0x10); else if (prev_swap_uv) EngDrvOutLV(0xc0f0de2c, 0);
     if (cartoon)    
     {
-        if (cartoon >= 1) EngDrvOut(0xc0f23164, -1);
-        if (cartoon >= 2) EngDrvOut(0xc0f0f29c, 0xffff); // also c0f2194c?
-        EngDrvOut(0xc0f2116c, 0xffff0000); // boost picturestyle sharpness to max
+        if (cartoon >= 1) EngDrvOutLV(0xc0f23164, -1);
+        if (cartoon >= 2) EngDrvOutLV(0xc0f0f29c, 0xffff); // also c0f2194c?
+        EngDrvOutLV(0xc0f2116c, 0xffff0000); // boost picturestyle sharpness to max
     }
-    if (oilpaint)   EngDrvOut(0xc0f2135c, -1);
-    if (sharp)      EngDrvOut(0xc0f0f280, -1);
-    if (zerosharp)  EngDrvOut(0xc0f2116c, 0x0); // sharpness trick: at -1, cancel it completely
+    if (oilpaint)   EngDrvOutLV(0xc0f2135c, -1);
+    if (sharp)      EngDrvOutLV(0xc0f0f280, -1);
+    if (zerosharp)  EngDrvOutLV(0xc0f2116c, 0x0); // sharpness trick: at -1, cancel it completely
 
     prev_swap_uv = swap_uv;
     
@@ -498,10 +491,10 @@ void digic_iso_step()
             autodetect_default_white_level();
             int boost_stops = 0;
             int new_gain = get_new_white_level(total_movie_gain, &boost_stops);
-            EngDrvOut(SHAD_GAIN, new_gain);
+            EngDrvOutLV(SHAD_GAIN, new_gain);
             shad_gain_last_written = new_gain;
             #if !defined(CONFIG_5D3) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D) && !defined(CONFIG_6D)
-            EngDrvOut(ISO_PUSH_REGISTER, boost_stops << 8);
+            EngDrvOutLV(ISO_PUSH_REGISTER, boost_stops << 8);
             #endif
         }
 
@@ -509,7 +502,7 @@ void digic_iso_step()
         {
             int presetup = MEMX(SHAD_PRESETUP);
             presetup = ((presetup + 100) & 0xFF00) + ((int)digic_black_level);
-            EngDrvOut(SHAD_PRESETUP, presetup);
+            EngDrvOutLV(SHAD_PRESETUP, presetup);
         }
 
         #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
@@ -535,7 +528,7 @@ void digic_iso_step()
         if (total_photo_gain > 1024 && !LVAE_DISP_GAIN)
         {
             int boost_stops = COERCE((int)log2f(total_photo_gain / 1024), 0, 7);
-            EngDrvOut(ISO_PUSH_REGISTER, boost_stops << 8);
+            EngDrvOutLV(ISO_PUSH_REGISTER, boost_stops << 8);
         }
     #endif
     }
@@ -545,25 +538,15 @@ void digic_iso_step()
 void menu_open_submenu();
 
 static struct menu_entry lv_img_menu[] = {
-    #ifdef FEATURE_IMAGE_EFFECTS
+    #if defined(FEATURE_IMAGE_EFFECTS) || defined(FEATURE_EXPO_ISO_DIGIC)
     {
         .name = "Image Fine-tuning...",
         .select = menu_open_submenu,
         .help = "Subtle image enhancements via DIGIC register tweaks.",
         .depends_on = DEP_MOVIE_MODE,
+        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
-            #ifdef FEATURE_EXPO_ISO_DIGIC
-            {
-                .name = "Black Level", 
-                .priv = &digic_black_level,
-                .min = -100,
-                .max = 100,
-                .update = digic_black_print,
-                .edit_mode = EM_MANY_VALUES_LV,
-                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
-                .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
-            },
-            #endif
+            #ifdef FEATURE_IMAGE_EFFECTS
             {
                 .name = "Absolute Zero Sharpness", 
                 .priv = &zerosharp, 
@@ -571,7 +554,7 @@ static struct menu_entry lv_img_menu[] = {
                 .help = "Disable sharpening completely (below Canon's zero level).",
                 .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
             },
-#if !(defined(CONFIG_600D) || defined(CONFIG_1100D))
+            #if !(defined(CONFIG_600D) || defined(CONFIG_1100D))
             {
                 .name = "Edge Emphasis", 
                 .priv = &sharp, 
@@ -586,10 +569,37 @@ static struct menu_entry lv_img_menu[] = {
                 .help = "Some sort of movie noise reduction, or smearing.",
                 .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
             },
-#endif
-            MENU_EOL
+            #endif
+            #endif
+
+            #ifdef FEATURE_EXPO_ISO_DIGIC
+            {
+                .name = "ML digital ISO",
+                .update = digic_iso_print_movie,
+                .select = digic_iso_toggle_movie,
+                .help = "ISO tweaks. Negative gain has better highlight roll-off.",
+                .edit_mode = EM_MANY_VALUES_LV,
+                .depends_on = DEP_LIVEVIEW,
+                .icon_type = IT_BOOL,
+            },
+            {
+                .name = "Black Level", 
+                .priv = &digic_black_level,
+                .min = -100,
+                .max = 100,
+                .update = digic_black_print,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
+                .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
+            },
+            #endif
+            
+            MENU_EOL,
         }
     },
+    #endif
+
+    #ifdef FEATURE_IMAGE_EFFECTS
     {
         .name = "Creative Effects...",
         .select = menu_open_submenu,
@@ -674,7 +684,7 @@ static struct menu_entry dbg_menu[] = {
             {
                 .name = "Value          ",
                 .priv = &digic_value,
-                .display = digic_value_print,
+                .update = digic_value_print,
                 .select = digic_value_toggle,
                 .help = "Current value of selected register. Change w. HalfShutter.",
             },

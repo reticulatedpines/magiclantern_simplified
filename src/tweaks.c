@@ -2492,16 +2492,15 @@ void preview_contrast_n_saturation_step()
         desired_saturation = altered_saturation;
     }
 
-#ifndef CONFIG_5DC
-    if (current_saturation != desired_saturation)
-#endif
-    {
-        EngDrvOut(saturation_register, desired_saturation | (desired_saturation<<8));
-    }
 #ifdef CONFIG_5DC
+    EngDrvOut(saturation_register, desired_saturation | (desired_saturation<<8));
     return; // contrast not working, freezes the camera
+#else
+    if (current_saturation != desired_saturation)
+    {
+        EngDrvOutLV(saturation_register, desired_saturation | (desired_saturation<<8));
+    }
 #endif
-
 
 #endif
 #ifdef FEATURE_LV_BRIGHTNESS_CONTRAST
@@ -2542,7 +2541,7 @@ void preview_contrast_n_saturation_step()
 
     if (current_contrast != desired_contrast)
     {
-        EngDrvOut(brightness_contrast_register, desired_contrast);
+        EngDrvOutLV(brightness_contrast_register, desired_contrast);
     }
 #endif
 }
@@ -2571,7 +2570,7 @@ static void uniwb_correction_step()
     }
     if (current_wb != desired_wb)
     {
-        EngDrvOut(display_wb_register, desired_wb);
+        EngDrvOut(display_wb_register, desired_wb); // both LV+PLAY
     }
 }
 #endif

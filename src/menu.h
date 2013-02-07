@@ -130,8 +130,8 @@ struct menu_entry
         struct menu_entry * children;
         void *                  priv;
         
-        int16_t min;
-        int16_t max;
+        int min;
+        int max;
         
         const char** choices;
 

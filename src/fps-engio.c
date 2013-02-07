@@ -50,7 +50,7 @@
 #define FPS_REGISTER_A_DEFAULT_VALUE ((int) shamem_read(FPS_REGISTER_A+4))
 #define FPS_REGISTER_B_VALUE ((int) shamem_read(FPS_REGISTER_B))
 
-void SafeEngDrvOut(int reg, int val)
+void EngDrvOutLV(int reg, int val)
 {
     if (!lv) return;
     if (!DISPLAY_IS_ON && !recording) return;
@@ -528,7 +528,7 @@ static void fps_setup_timerB(int fps_x1000)
         // output the value to register
         timerB -= 1;
         written_value_b = PACK(timerB, fps_reg_b_orig);
-        SafeEngDrvOut(FPS_REGISTER_B, written_value_b);
+        EngDrvOutLV(FPS_REGISTER_B, written_value_b);
         fps_needs_updating = 0;
     #ifdef NEW_FPS_METHOD
     }
@@ -548,20 +548,20 @@ static void fps_setup_timerB(int fps_x1000)
         fps_read_default_timer_values();
         if (defA_before_patching == fps_reg_a_orig && defB_before_patching == fps_reg_b_orig)
         {
-            SafeEngDrvOut(FPS_REGISTER_A, written_value_a);
+            EngDrvOutLV(FPS_REGISTER_A, written_value_a);
             fps_needs_updating = 0;
         }
         else // something went wrong, will fix at next iteration
         {
             //~ beep();
         }
-        //~ SafeEngDrvOut(FPS_REGISTER_B, written_value_b);
+        //~ EngDrvOutLV(FPS_REGISTER_B, written_value_b);
         msleep(500);
     }
     #endif
 
     // apply changes
-    SafeEngDrvOut(0xC0F06000, 1);
+    EngDrvOutLV(0xC0F06000, 1);
 
     // take care of sound settings to prevent recording from stopping
     update_sound_recording();
@@ -701,9 +701,9 @@ static void fps_register_reset()
     {
         written_value_a = 0;
         written_value_b = 0;
-        SafeEngDrvOut(FPS_REGISTER_A, fps_reg_a_orig);
-        SafeEngDrvOut(FPS_REGISTER_B, fps_reg_b_orig);
-        SafeEngDrvOut(0xC0F06000, 1);
+        EngDrvOutLV(FPS_REGISTER_A, fps_reg_a_orig);
+        EngDrvOutLV(FPS_REGISTER_B, fps_reg_b_orig);
+        EngDrvOutLV(0xC0F06000, 1);
     }
 }
 
@@ -973,7 +973,7 @@ void fps_setup_timerA(int fps_x1000)
     int val_a = PACK(timerA-1, fps_timer_a_orig-1);
     written_value_a = val_a;
 
-    SafeEngDrvOut(FPS_REGISTER_A, val_a);
+    EngDrvOutLV(FPS_REGISTER_A, val_a);
 }
 
 static void fps_criteria_change(void* priv, int delta)
@@ -1525,7 +1525,7 @@ static void fps_patch_timerB(int timer_value)
 
     fps_unpatch_table(0);
     fps_read_default_timer_values();
-    SafeEngDrvOut(FPS_REGISTER_A, fps_reg_a_orig);
+    EngDrvOutLV(FPS_REGISTER_A, fps_reg_a_orig);
 
     flip_zoom_twostage(1);
     
