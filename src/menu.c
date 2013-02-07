@@ -2085,9 +2085,10 @@ menu_entry_select(
     {
         if (submenu_mode == 2) submenu_mode = 0;
         else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
-        else if (SHOULD_HAVE_PICKBOX(entry) && submenu_mode!=1) submenu_mode = !submenu_mode * 2;
+        else if (entry->edit_mode == EM_MANY_VALUES && submenu_mode != 1) submenu_mode = !submenu_mode * 2;
         else if (entry->edit_mode == EM_MANY_VALUES_LV && lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
         else if (entry->edit_mode == EM_MANY_VALUES_LV && !lv && submenu_mode != 1) submenu_mode = !submenu_mode * 2;
+        else if (SHOULD_HAVE_PICKBOX(entry) && submenu_mode!=1) submenu_mode = !submenu_mode * 2;
         else if( entry->select ) entry->select( entry->priv, 1);
         else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
     }
@@ -2612,6 +2613,7 @@ handle_ml_menu_keys(struct event * event)
     {
         submenu_mode = 0;
         menu_lv_transparent_mode = 0;
+        menu_help_active = 0;
         break;
     }
     
