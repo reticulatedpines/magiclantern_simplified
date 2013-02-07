@@ -12,10 +12,10 @@
 ///#define HIJACK_CACHE_HACK Not working Yet
 #define FEATURE_SILENT_PIC_HIRES
 //#define FEATURE_SILENT_PIC_JPG Does not work that way anymore.
-#define FEATURE_HDR_EXTENDED // needs FRAME_SHUTTER_TIMER... will look
+//~ #define FEATURE_HDR_EXTENDED // needs FRAME_SHUTTER_TIMER... will look
 #define FEATURE_VIDEO_HACKS
 
-#define CONFIG_HEXDUMP
+//~ #define CONFIG_HEXDUMP
 #define CONFIG_BEEP
 //#define CONFIG_AUDIO_CONTROLS
 #define FEATURE_HEADPHONE_MONITORING
