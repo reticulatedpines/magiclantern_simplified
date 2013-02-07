@@ -938,16 +938,13 @@ enable_recording(
         {
         case 0:
             // Movie recording stopped;  (fallthrough)
-#ifdef CONFIG_600D
-            audio_configure(1);
-#endif
-            break;
         case 2:
             // Movie recording started
-            give_semaphore( gain.sem );
-#ifdef CONFIG_600D
+            #ifdef CONFIG_600D
             audio_configure(1);
-#endif
+            #else
+            give_semaphore( gain.sem );
+            #endif
             break;
         case 1:
             // Movie recording about to start? : 600D do not override audio here. Recording start/stop will call case2 and case 2 together. So twice audio_configre() need more cpu/mem overhead. will stop recording.because buffer will full.
