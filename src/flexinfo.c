@@ -42,6 +42,38 @@ extern int free_space_raw;
 int32_t info_bg_color = 0;
 int32_t info_field_color = 0;
 
+uint32_t info_screen_required = 0;
+
+uint32_t info_movestate = 0;
+uint32_t info_edit_mode = 0;
+
+#define FLEXINFO_MOVE_UP    1
+#define FLEXINFO_MOVE_DOWN  2
+#define FLEXINFO_MOVE_LEFT  4
+#define FLEXINFO_MOVE_RIGHT 8
+
+#define FLEXINFO_EDIT_KEYPRESS 0
+#define FLEXINFO_EDIT_CYCLIC   1
+
+
+
+void info_edit_none(uint32_t action, uint32_t parameter);
+void info_edit_move(uint32_t action, uint32_t parameter);
+void info_edit_hide(uint32_t action, uint32_t parameter);
+void info_edit_anchoring(uint32_t action, uint32_t parameter);
+void info_edit_parameters(uint32_t action, uint32_t parameter);
+
+void (*info_edit_handlers[])(uint32_t, uint32_t) = 
+{
+    &info_edit_none,
+    &info_edit_move,
+    &info_edit_hide,
+    &info_edit_anchoring,
+    &info_edit_parameters,
+};
+
+extern int menu_redraw_blocked;
+
 /*
     this is the definition of the info screen elements.
     it can either be made switchable for photo and LV setting or put in an array.
@@ -1934,6 +1966,11 @@ uint32_t info_print_config(info_elem_t *config)
 {
     uint32_t pos = 1;
     int32_t z = 0;
+    
+    if(info_screen_required && !info_edit_mode)
+    {
+        memcpy(get_bvram_mirror(), bmp_vram_idle(), 960*480);
+    }
 
     /* read colors again if we redraw over canon gui */
     if(!gui_menu_shown())
@@ -1977,7 +2014,7 @@ uint32_t info_print_config(info_elem_t *config)
                 /* paint border around item and some label when the item was selected */
                 uint32_t selected_item = config[0].config.selected_item;
 
-                if(config[0].config.show_boundaries || selected_item == pos || config[selected_item].hdr.pos.anchor == pos)
+                if(config[0].config.show_boundaries || (info_edit_mode && (selected_item == pos || config[selected_item].hdr.pos.anchor == pos)))
                 {
                     int color = COLOR_RED;
 
@@ -2074,14 +2111,15 @@ uint32_t info_print_screen()
 #ifdef FLEXINFO_DEVELOPER_MENU
 
 char info_current_menu[64];
+char info_current_desc[64];
 
 void info_menu_draw_editscreen(info_elem_t *config)
 {
     uint32_t font_type = FONT_MED;
     uint32_t menu_x = 30;
     uint32_t menu_y = 30;
-    uint32_t width = fontspec_font(font_type)->width * strlen(info_current_menu);
-    uint32_t height = fontspec_font(font_type)->height;
+    uint32_t width = MAX(fontspec_font(font_type)->width * (strlen(info_current_menu) + 5), fontspec_font(FONT_SMALL)->width * strlen(info_current_desc));
+    uint32_t height = fontspec_font(font_type)->height + fontspec_font(FONT_SMALL)->height;
 
     /* ensure that the menu isnt displayed directly over the item currently being selected */
     info_elem_t *selected_item = &(config[config[0].config.selected_item]);
@@ -2092,7 +2130,7 @@ void info_menu_draw_editscreen(info_elem_t *config)
     {
         if(ani_offset < 160)
         {
-            ani_offset += ((160 - ani_offset) ) / 2;
+            ani_offset += ((160 - ani_offset) ) / 3;
             config[0].config.fast_redraw = 1;
         }
         else
@@ -2104,7 +2142,7 @@ void info_menu_draw_editscreen(info_elem_t *config)
     {
         if(ani_offset > 0)
         {
-            ani_offset -= (ani_offset) / 2;
+            ani_offset -= (ani_offset) / 3;
             config[0].config.fast_redraw = 1;
         }
         else
@@ -2115,177 +2153,159 @@ void info_menu_draw_editscreen(info_elem_t *config)
 
     menu_y += ani_offset;
     menu_x += ani_offset;
+    
+    BMP_LOCK
+    (
+        bmp_draw_to_idle(1);
+        
+        if(info_screen_required)
+        {
+            memcpy(bmp_vram_idle(), get_bvram_mirror(), 960*480);
+        }
+        else
+        {
+            /* clear screen */
+            bmp_fill(COLOR_GRAY40, 0, 0, 720, 480);
+        }
 
-    /* clear screen */
-    bmp_fill(COLOR_GRAY40, 0, 0, 720, 480);
+        /* then print the elements */
+        info_print_config(config);
 
-    /* then print the elements */
-    info_print_config(config);
+        /* and now overwrite with border and menu item */
+        bmp_fill(COLOR_GRAY40, menu_x-8, menu_y - fontspec_font(FONT_SMALL)->height - 10, width+16, height+16);
+        bmp_fill(COLOR_BLACK, menu_x-4, menu_y-2, width+8, height+4);
+        bmp_draw_rect(COLOR_WHITE, menu_x-4, menu_y-2, width+8, height+4);
 
-    /* and now overwrite with border and menu item */
-    bmp_fill(COLOR_GRAY40, menu_x-8, menu_y - fontspec_font(FONT_SMALL)->height - 10, width+16, height+16);
-    bmp_fill(COLOR_BLACK, menu_x-2, menu_y-2, width+4, height+4);
-    bmp_draw_rect(COLOR_WHITE, menu_x-2, menu_y-2, width+4, height+4);
+        /* title */
+        int fnt = FONT(FONT_SMALL, COLOR_BLACK, COLOR_WHITE);
+        if(config[0].config.selected_item)
+        {
+            bmp_printf(fnt, menu_x, menu_y - fontspec_font(FONT_SMALL)->height - 2, "Editing: '%s'", selected_item->hdr.pos.name);
+        }
+        else
+        {
+            bmp_printf(fnt, menu_x, menu_y - fontspec_font(FONT_SMALL)->height - 2, "Editing: use WHEEL to select item");
+        }
 
-    /* title */
-    int fnt = FONT(FONT_SMALL, COLOR_BLACK, COLOR_WHITE);
-    bmp_printf(fnt, menu_x, menu_y - fontspec_font(FONT_SMALL)->height - 2, "Editing: '%s'", selected_item->hdr.pos.name);
-
-    fnt = FONT(font_type, COLOR_WHITE, COLOR_GREEN1);
-    bmp_printf(fnt, menu_x, menu_y, info_current_menu);
-    strcpy(info_current_menu, "");
+        fnt = FONT(font_type, COLOR_WHITE, COLOR_GREEN1);
+        bmp_printf(fnt, menu_x, menu_y, "[Q] %s", info_current_menu);
+        fnt = FONT(FONT_SMALL, COLOR_GRAY40, COLOR_GREEN1);
+        bmp_printf(fnt, menu_x, menu_y + fontspec_font(font_type)->height, info_current_desc);
+        
+        bmp_draw_to_idle(0);
+        bmp_idle_copy(1,0);
+    )
 }
 
-MENU_SELECT_FUNC(info_menu_item_select)
+void info_edit_none(uint32_t action, uint32_t parameter)
 {
-    uint32_t count = 0;
-    info_elem_t *config = (info_elem_t *)priv;
-
-    while(config[count].type != INFO_TYPE_END)
-    {
-        count++;
-    }
-
-    if((delta < 0 && config[0].config.selected_item > 0) || (delta > 0 && config[0].config.selected_item < (count - 1)))
-    {
-        config[0].config.selected_item += delta;
-    }
+    snprintf(info_current_menu, sizeof(info_current_menu), "");
+    snprintf(info_current_desc, sizeof(info_current_desc), "");
 }
 
-MENU_UPDATE_FUNC(info_menu_item_display)
+void info_edit_move(uint32_t action, uint32_t parameter)
 {
-    info_elem_t *config = (info_elem_t *)entry->priv;
+    info_elem_t *item = &info_config[info_config[0].config.selected_item];
+    uint32_t keydelay = 0;
 
-    if(config[0].config.selected_item)
+    snprintf(info_current_menu, sizeof(info_current_menu), "Move object");
+    snprintf(info_current_desc, sizeof(info_current_desc), "CURSOR: move, WHEEL: select item");
+    
+    switch(action)
     {
-        MENU_SET_VALUE("#%d", config[0].config.selected_item);
+        case FLEXINFO_EDIT_KEYPRESS:
+        {
+            break;
+        }
+        case FLEXINFO_EDIT_CYCLIC:
+        {
+            if(keydelay == 0 || keydelay > 15)
+            {
+                if(info_movestate & FLEXINFO_MOVE_UP)
+                {
+                    if(item->hdr.pos.y > -480)
+                    {
+                        item->hdr.pos.y--;
+                    }
+                }
+                if(info_movestate & FLEXINFO_MOVE_DOWN)
+                {
+                    if(item->hdr.pos.y < 480)
+                    {
+                        item->hdr.pos.y++;
+                    }
+                }
+                if(info_movestate & FLEXINFO_MOVE_LEFT)
+                {
+                    if(item->hdr.pos.x > -720)
+                    {
+                        item->hdr.pos.x--;
+                    }
+                }
+                if(info_movestate & FLEXINFO_MOVE_RIGHT)
+                {
+                    if(item->hdr.pos.x < 720)
+                    {
+                        item->hdr.pos.x++;
+                    }
+                }
+            }
+            break;
+        }
+    }
+    
+    if(!info_movestate)
+    {
+        keydelay = 0;
     }
     else
     {
-        MENU_SET_VALUE("(none)");
-    }
-
-    if(entry->selected && config[0].config.selected_item)
-    {
-        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
-        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-        info_menu_draw_editscreen(config);
+        keydelay++;
     }
 }
 
-MENU_SELECT_FUNC(info_menu_item_posx_select)
+void info_edit_hide(uint32_t action, uint32_t parameter)
 {
-    info_elem_t *config = (info_elem_t *)priv;
-    info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
-
-    if((delta < 0 && item->hdr.pos.x > -50) || (delta > 0 && item->hdr.pos.x < 720))
+    info_elem_t *item = &info_config[info_config[0].config.selected_item];
+    
+    snprintf(info_current_menu, sizeof(info_current_menu), "Visibility: %s", (item->hdr.pos.user_disable)?"Hidden":"Shown");
+    snprintf(info_current_desc, sizeof(info_current_desc), "SET: toggle, WHEEL: select item");
+    
+    switch(action)
     {
-        item->hdr.pos.x += delta;
+        case FLEXINFO_EDIT_KEYPRESS:
+        {
+            /* handle keys for this mode */
+            switch(parameter)
+            {
+                case BGMT_PRESS_SET:
+                case BGMT_JOY_CENTER:
+                    item->hdr.pos.user_disable = !item->hdr.pos.user_disable;
+                    break;
+                case BGMT_PRESS_LEFT:
+                    item->hdr.pos.user_disable = 0;
+                    break;
+                case BGMT_PRESS_RIGHT:
+                    item->hdr.pos.user_disable = 1;
+                    break;
+            }
+            break;
+        }
+        
+        case FLEXINFO_EDIT_CYCLIC:
+        {
+            break;
+        }
     }
 }
 
-MENU_SELECT_FUNC(info_menu_item_posy_select)
+void info_edit_anchoring(uint32_t action, uint32_t parameter)
 {
-    info_elem_t *config = (info_elem_t *)priv;
-    info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
-
-    if((delta < 0 && item->hdr.pos.y > -50) || (delta > 0 && item->hdr.pos.y < 480))
-    {
-        item->hdr.pos.y += delta;
-    }
-}
-
-MENU_SELECT_FUNC(info_menu_item_posz_select)
-{
-    info_elem_t *config = (info_elem_t *)priv;
-    info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
-
-    if((delta < 0 && item->hdr.pos.z > 0) || (delta > 0 && item->hdr.pos.z < 32))
-    {
-        item->hdr.pos.z += delta;
-    }
-}
-
-MENU_UPDATE_FUNC(info_menu_item_posx_display)
-{
-    info_elem_t *config = (info_elem_t *)entry->priv;
-
-    if(config[0].config.selected_item)
-    {
-        MENU_SET_VALUE("#%d", config[config[0].config.selected_item].hdr.pos.x);
-    }
-    else
-    {
-        MENU_SET_VALUE("(none)");
-    }
-
-    if(entry->selected && config[0].config.selected_item)
-    {
-        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
-        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-        info_menu_draw_editscreen(config);
-    }
-}
-
-MENU_UPDATE_FUNC(info_menu_item_posy_display)
-{
-    info_elem_t *config = (info_elem_t *)entry->priv;
-
-    if(config[0].config.selected_item)
-    {
-        MENU_SET_VALUE("#%d", config[config[0].config.selected_item].hdr.pos.y);
-    }
-    else
-    {
-        MENU_SET_VALUE("(none)");
-    }
-
-    if(entry->selected && config[0].config.selected_item)
-    {
-        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
-        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-        info_menu_draw_editscreen(config);
-    }
-}
-
-MENU_UPDATE_FUNC(info_menu_item_posz_display)
-{
-    char menu_line[64];
-    info_elem_t *config = (info_elem_t *)entry->priv;
-
-    if(config[0].config.selected_item)
-    {
-        MENU_SET_VALUE("#%d", config[config[0].config.selected_item].hdr.pos.z);
-        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-    }
-    else
-    {
-        MENU_SET_VALUE("(none)");
-    }
-
-    if(entry->selected && config[0].config.selected_item)
-    {
-        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
-        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-        info_menu_draw_editscreen(config);
-    }
-}
-
-MENU_SELECT_FUNC(info_menu_item_anchor_select)
-{
-    info_elem_t *config = (info_elem_t *)priv;
-    info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
-
-    if((delta < 0 && item->hdr.pos.anchor_flags > 0) || (delta > 0 && item->hdr.pos.anchor_flags < 15))
-    {
-        item->hdr.pos.anchor_flags += delta;
-    }
-}
-
-MENU_UPDATE_FUNC(info_menu_item_anchor_display)
-{
-    info_elem_t *config = (info_elem_t *)entry->priv;
-    const char *text[] = {
+    char anchor_name[32];
+    static uint32_t anchor_mode = 0;
+    info_elem_t *item = &info_config[info_config[0].config.selected_item];
+    uint32_t *flags = NULL;
+    const char *anchor_text[] = {
         "Absolute",
         "Left", "H-Center", "Right",
         "Top",
@@ -2294,141 +2314,396 @@ MENU_UPDATE_FUNC(info_menu_item_anchor_display)
         "Left-Center", "Center", "Right-Center",
         "Bottom",
         "Bottom-Left", "Bottom-Center", "Bottom-Right"};
-
-    if(config[0].config.selected_item)
+    
+    if(item->hdr.pos.anchor)
     {
-        MENU_SET_VALUE("%s", text[config[config[0].config.selected_item].hdr.pos.anchor_flags]);
+        snprintf(anchor_name, sizeof(anchor_name), "#%d's", item->hdr.pos.anchor);
     }
     else
     {
-        MENU_SET_VALUE("(none)");
+        snprintf(anchor_name, sizeof(anchor_name), "(none)");
     }
-
-    if(entry->selected && config[0].config.selected_item)
+    
+    switch(anchor_mode)
     {
-        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
-        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-        info_menu_draw_editscreen(config);
+        case 0:
+            flags = &item->hdr.pos.anchor_flags_self;
+            snprintf(info_current_menu, sizeof(info_current_menu), "own <%s> on item  %s   %s  ", anchor_text[item->hdr.pos.anchor_flags_self & 0x0f], anchor_name, anchor_text[item->hdr.pos.anchor_flags & 0x0f]);
+            snprintf(info_current_desc, sizeof(info_current_desc), "WHEEL: select, CURSOR: item anchor point, SET: own anchor");
+            break;
+            
+        case 1:
+            snprintf(info_current_menu, sizeof(info_current_menu), "own  %s  on item <%s>  %s  ", anchor_text[item->hdr.pos.anchor_flags_self & 0x0f], anchor_name, anchor_text[item->hdr.pos.anchor_flags & 0x0f]);
+            snprintf(info_current_desc, sizeof(info_current_desc), "WHEEL: select, CURSOR: select anchor item, SET: item anchor");
+            break;
+            
+        case 2:
+            flags = &item->hdr.pos.anchor_flags;
+            snprintf(info_current_menu, sizeof(info_current_menu), "own  %s  on item  %s  <%s> ", anchor_text[item->hdr.pos.anchor_flags_self & 0x0f], anchor_name, anchor_text[item->hdr.pos.anchor_flags & 0x0f]);
+            snprintf(info_current_desc, sizeof(info_current_desc), "WHEEL: select, CURSOR: own anchor point, SET: item selection");
+            break;
     }
-}
-
-MENU_SELECT_FUNC(info_menu_item_anchor_item_select)
-{
-    uint32_t count = 0;
-    info_elem_t *config = (info_elem_t *)priv;
-    info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
-
-    while(config[count].type != INFO_TYPE_END)
+    
+    switch(action)
     {
-        count++;
-    }
-
-    if((delta < 0 && item->hdr.pos.anchor > 0) || (delta > 0 && item->hdr.pos.anchor < count))
-    {
-        item->hdr.pos.anchor += delta;
-    }
-}
-
-MENU_UPDATE_FUNC(info_menu_item_anchor_item_display)
-{
-    char menu_line[64];
-    info_elem_t *config = (info_elem_t *)entry->priv;
-    info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
-
-    if(config[0].config.selected_item)
-    {
-        MENU_SET_VALUE("#%d", item->hdr.pos.anchor);
-    }
-    else
-    {
-        MENU_SET_VALUE("(none)");
-    }
-
-    if(entry->selected && config[0].config.selected_item)
-    {
-        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
-        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-        info_menu_draw_editscreen(config);
-    }
-}
-
-MENU_SELECT_FUNC(info_menu_item_anchor_self_select)
-{
-    info_elem_t *config = (info_elem_t *)priv;
-    info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
-
-    if((delta < 0 && item->hdr.pos.anchor_flags_self > 0) || (delta > 0 && item->hdr.pos.anchor_flags_self < 15))
-    {
-        item->hdr.pos.anchor_flags_self += delta;
-    }
-}
-
-MENU_SELECT_FUNC(info_menu_item_hide_select)
-{
-    info_elem_t *config = (info_elem_t *)priv;
-    info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
-
-    item->hdr.pos.user_disable = !item->hdr.pos.user_disable;
-}
-
-MENU_UPDATE_FUNC(info_menu_item_hide_display)
-{
-    info_elem_t *config = (info_elem_t *)entry->priv;
-    info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
-
-    if(config[0].config.selected_item)
-    {
-        if(item->hdr.pos.user_disable)
+        case FLEXINFO_EDIT_KEYPRESS:
         {
-            MENU_SET_VALUE("Show Item");
-        }
-        else
-        {
-            MENU_SET_VALUE("Hide Item");
-        }
-    }
-    else
-    {
-        MENU_SET_VALUE("(none)");
-    }
+            /* handle keys for this mode */
+            switch(parameter)
+            {
+                case BGMT_PRESS_SET:
+                case BGMT_JOY_CENTER:
+                    anchor_mode = (anchor_mode + 1) % 3;
+                    break;
+                    
+                case BGMT_PRESS_LEFT:
+                    if(anchor_mode == 1)
+                    {
+                        if(item->hdr.pos.anchor > 0)
+                        {
+                            item->hdr.pos.anchor--;
+                        }
+                    }
+                    else
+                    {
+                        switch(*flags & INFO_ANCHOR_H_MASK)
+                        {
+                            case INFO_ANCHOR_LEFT:
+                                if((*flags & INFO_ANCHOR_V_MASK) == INFO_ANCHOR_TOP)
+                                {
+                                    *flags = 0;
+                                }
+                                break;
+                            case INFO_ANCHOR_HCENTER:
+                                *flags &= ~INFO_ANCHOR_H_MASK;
+                                *flags |= INFO_ANCHOR_LEFT;
+                                break;
+                            case INFO_ANCHOR_RIGHT:
+                                *flags &= ~INFO_ANCHOR_H_MASK;
+                                *flags |= INFO_ANCHOR_HCENTER;
+                                break;
+                            default:
+                                *flags &= ~INFO_ANCHOR_H_MASK;
+                                *flags |= INFO_ANCHOR_LEFT;
+                                break;
+                        }
+                    }
+                    break;
+                    
+                case BGMT_PRESS_RIGHT:
+                    if(anchor_mode == 1)
+                    {
+                        uint32_t count = 0;
 
-    if(entry->selected && config[0].config.selected_item)
-    {
-        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
-        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-        info_menu_draw_editscreen(config);
+                        while(info_config[count].type != INFO_TYPE_END)
+                        {
+                            count++;
+                        }
+                        if(item->hdr.pos.anchor < count)
+                        {
+                            item->hdr.pos.anchor++;
+                        }
+                    }
+                    else
+                    {
+                        switch(*flags & INFO_ANCHOR_H_MASK)
+                        {
+                            case INFO_ANCHOR_LEFT:
+                                *flags &= ~INFO_ANCHOR_H_MASK;
+                                *flags |= INFO_ANCHOR_HCENTER;
+                                break;
+                            case INFO_ANCHOR_HCENTER:
+                                *flags &= ~INFO_ANCHOR_H_MASK;
+                                *flags |= INFO_ANCHOR_RIGHT;
+                                break;
+                            case INFO_ANCHOR_RIGHT:
+                                *flags &= ~INFO_ANCHOR_H_MASK;
+                                *flags |= INFO_ANCHOR_RIGHT;
+                                break;
+                            default:
+                                *flags &= ~INFO_ANCHOR_H_MASK;
+                                *flags |= INFO_ANCHOR_RIGHT;
+                                break;
+                        }
+                    }
+                    break;
+                    
+                case BGMT_PRESS_UP:
+                    if(anchor_mode == 1)
+                    {
+                        item->hdr.pos.anchor = 0;
+                    }
+                    else
+                    {
+                        switch(*flags & INFO_ANCHOR_V_MASK)
+                        {
+                            case INFO_ANCHOR_TOP:
+                                *flags &= ~INFO_ANCHOR_V_MASK;
+                                *flags |= INFO_ANCHOR_TOP;
+                                break;
+                            case INFO_ANCHOR_VCENTER:
+                                *flags &= ~INFO_ANCHOR_V_MASK;
+                                *flags |= INFO_ANCHOR_TOP;
+                                break;
+                            case INFO_ANCHOR_BOTTOM:
+                                *flags &= ~INFO_ANCHOR_V_MASK;
+                                *flags |= INFO_ANCHOR_VCENTER;
+                                break;
+                            default:
+                                *flags &= ~INFO_ANCHOR_V_MASK;
+                                *flags |= INFO_ANCHOR_TOP;
+                                break;
+                        }
+                    }
+                    break;
+                    
+                case BGMT_PRESS_DOWN:
+                    if(anchor_mode == 1)
+                    {
+                        uint32_t count = 0;
+
+                        while(info_config[count].type != INFO_TYPE_END)
+                        {
+                            count++;
+                        }
+                        item->hdr.pos.anchor = count;
+                    }
+                    else
+                    {
+                        switch(*flags & INFO_ANCHOR_V_MASK)
+                        {
+                            case INFO_ANCHOR_TOP:
+                                *flags &= ~INFO_ANCHOR_V_MASK;
+                                *flags |= INFO_ANCHOR_VCENTER;
+                                break;
+                            case INFO_ANCHOR_VCENTER:
+                                *flags &= ~INFO_ANCHOR_V_MASK;
+                                *flags |= INFO_ANCHOR_BOTTOM;
+                                break;
+                            case INFO_ANCHOR_BOTTOM:
+                                *flags &= ~INFO_ANCHOR_V_MASK;
+                                *flags |= INFO_ANCHOR_BOTTOM;
+                                break;
+                            default:
+                                *flags &= ~INFO_ANCHOR_V_MASK;
+                                *flags |= INFO_ANCHOR_BOTTOM;
+                                break;
+                        }
+                    }
+                    break;
+            }
+            break;
+        }
+        
+        case FLEXINFO_EDIT_CYCLIC:
+        {
+            break;
+        }
     }
 }
 
-MENU_UPDATE_FUNC(info_menu_item_anchor_self_display)
+info_string_map_t info_string_map[] = 
 {
-    info_elem_t *config = (info_elem_t *)entry->priv;
-    const char *text[] = {
-        "Absolute",
-        "Left", "H-Center", "Right",
-        "Top",
-        "Top-Left", "Top-Center", "Top-Right",
-        "V-Center",
-        "Left-Center", "Center", "Right-Center",
-        "Bottom",
-        "Bottom-Left", "Bottom-Center", "Bottom-Right" };
+    { INFO_STRING_NONE               , "NONE"                },
+    { INFO_STRING_ISO                , "ISO"                 },
+    { INFO_STRING_ISO_MIN            , "ISO_MIN"             },
+    { INFO_STRING_ISO_MAX            , "ISO_MAX"             },
+    { INFO_STRING_ISO_MINMAX         , "ISO_MINMAX"          },
+    { INFO_STRING_KELVIN             , "KELVIN"              },
+    { INFO_STRING_WBS_BA             , "WBS_BA"              },
+    { INFO_STRING_WBS_GM             , "WBS_GM"              },
+    { INFO_STRING_DATE_DDMMYYYY      , "DATE_DDMMYYYY"       },
+    { INFO_STRING_DATE_YYYYMMDD      , "DATE_YYYYMMDD"       },
+    { INFO_STRING_DATE_MM            , "DATE_MM"             },
+    { INFO_STRING_DATE_DD            , "DATE_DD"             },
+    { INFO_STRING_DATE_YY            , "DATE_YY"             },
+    { INFO_STRING_DATE_YYYY          , "DATE_YYYY"           },
+    { INFO_STRING_TIME               , "TIME"                },
+    { INFO_STRING_TIME_HH12          , "TIME_HH12"           },
+    { INFO_STRING_TIME_HH24          , "TIME_HH24"           },
+    { INFO_STRING_TIME_MM            , "TIME_MM"             },
+    { INFO_STRING_TIME_SS            , "TIME_SS"             },
+    { INFO_STRING_TIME_AMPM          , "TIME_AMPM"           },
+    { INFO_STRING_ARTIST             , "ARTIST"              },
+    { INFO_STRING_COPYRIGHT          , "COPYRIGHT"           },
+    { INFO_STRING_LENS               , "LENS"                },
+    { INFO_STRING_BUILD              , "BUILD"               },
+    { INFO_STRING_CARD_LABEL_A       , "CARD_LABEL_A"        },
+    { INFO_STRING_CARD_LABEL_B       , "CARD_LABEL_B"        },
+    { INFO_STRING_CARD_SPACE_A       , "CARD_SPACE_A"        },
+    { INFO_STRING_CARD_SPACE_B       , "CARD_SPACE_B"        },
+    { INFO_STRING_CARD_FILES_A       , "CARD_FILES_A"        },
+    { INFO_STRING_CARD_FILES_B       , "CARD_FILES_B"        },
+    { INFO_STRING_CARD_MAKER_A       , "CARD_MAKER_A"        },
+    { INFO_STRING_CARD_MAKER_B       , "CARD_MAKER_B"        },
+    { INFO_STRING_CARD_MODEL_A       , "CARD_MODEL_A"        },
+    { INFO_STRING_CARD_MODEL_B       , "CARD_MODEL_B"        },
+    { INFO_STRING_BATTERY_PCT        , "BATTERY_PCT"         },
+    { INFO_STRING_BATTERY_ID         , "BATTERY_ID"          },
+    { INFO_STRING_PICTURES_AVAIL_AUTO, "PICTURES_AVAIL_AUTO" },
+    { INFO_STRING_PICTURES_AVAIL     , "PICTURES_AVAIL"      },
+    { INFO_STRING_MLU                , "MLU"                 },
+    { INFO_STRING_HDR                , "HDR"                 },
+    { INFO_STRING_CAM_DATE           , "CAM_DATE"            },
+    { INFO_STRING_FREE_GB            , "FREE_GB"             },
+    { INFO_STRING_FREE_GB_1          , "FREE_GB_1"           },
+    { INFO_STRING_FREE_GB_2          , "FREE_GB_2"           }
+};
 
-    if(config[0].config.selected_item)
+void info_edit_parameters(uint32_t action, uint32_t parameter)
+{
+    info_elem_t *item = &info_config[info_config[0].config.selected_item];
+    
+    switch(item->type)
     {
-        MENU_SET_VALUE("%s", text[config[config[0].config.selected_item].hdr.pos.anchor_flags_self]);
+        case INFO_TYPE_STRING:
+        {
+            uint32_t string_index = 0;
+            
+            while(info_string_map[string_index].type != item->string.string_type && string_index < (sizeof(info_string_map) / sizeof(info_string_map[0])))
+            {
+                string_index++;
+            }
+            
+            snprintf(info_current_menu, sizeof(info_current_menu), "String: %d (%s)", item->string.string_type, info_string_map[string_index].name);
+            snprintf(info_current_desc, sizeof(info_current_desc), "WHEEL: select item, CURSOR: select string");
+            switch(action)
+            {
+                case FLEXINFO_EDIT_KEYPRESS:
+                {
+                    switch(parameter)
+                    {
+                        case BGMT_PRESS_LEFT:
+                            if(item->string.string_type > 0)
+                            {
+                                item->string.string_type--;
+                            }
+                            break;
+                            
+                        case BGMT_PRESS_RIGHT:
+                            if(item->string.string_type < 43)
+                            {
+                                item->string.string_type++;
+                            }
+                            break;
+                    }
+                    break;
+                }
+            }
+            break;
+        }
+            
+        case INFO_TYPE_TEXT:
+            snprintf(info_current_menu, sizeof(info_current_menu), "Text: <%s>", item->text.text);
+            snprintf(info_current_desc, sizeof(info_current_desc), "WHEEL: select item, (not editable)");
+            break;
+            
+        case INFO_TYPE_BATTERY_ICON:
+            snprintf(info_current_menu, sizeof(info_current_menu), "Battery Icon");
+            snprintf(info_current_desc, sizeof(info_current_desc), "WHEEL: select item, (not editable)");
+            break;
+        case INFO_TYPE_BATTERY_PERF:
+            snprintf(info_current_menu, sizeof(info_current_menu), "Battery Perf");
+            snprintf(info_current_desc, sizeof(info_current_desc), "WHEEL: select item, (not editable)");
+            break;
+        case INFO_TYPE_FILL:
+            snprintf(info_current_menu, sizeof(info_current_menu), "Fill");
+            snprintf(info_current_desc, sizeof(info_current_desc), "WHEEL: select item, (not editable)");
+            break;
+        case INFO_TYPE_ICON:
+            snprintf(info_current_menu, sizeof(info_current_menu), "Icon");
+            snprintf(info_current_desc, sizeof(info_current_desc), "WHEEL: select item, (not editable)");
+            break;
     }
-    else
-    {
-        MENU_SET_VALUE("(none)");
-    }
+}
 
-    if(entry->selected && config[0].config.selected_item)
-    {
-        snprintf(info_current_menu, sizeof(info_current_menu), "%s : %s", info->name, info->value);
-        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-        info_menu_draw_editscreen(config);
-    }
+int handle_flexinfo_keys(struct event * event)
+{
+    if (IS_FAKE(event)) return 1; // only process real buttons, not emulated presses
+    if (!info_edit_mode) return 1; // only process real buttons, not emulated presses
 
+    switch(event->param)
+    {
+        /* these are the press-and-hold buttons which are evaluated in cyclic task */
+        case BGMT_PRESS_UP:
+            info_movestate |= FLEXINFO_MOVE_UP;
+            break;
+        case BGMT_PRESS_DOWN:
+            info_movestate |= FLEXINFO_MOVE_DOWN;
+            break;
+        case BGMT_PRESS_LEFT:
+            info_movestate |= FLEXINFO_MOVE_LEFT;
+            break;
+        case BGMT_PRESS_RIGHT:
+            info_movestate |= FLEXINFO_MOVE_RIGHT;
+            break;
+        case BGMT_PRESS_UP_LEFT:
+            info_movestate |= FLEXINFO_MOVE_UP | FLEXINFO_MOVE_LEFT;
+            break;
+        case BGMT_PRESS_UP_RIGHT:
+            info_movestate |= FLEXINFO_MOVE_UP | FLEXINFO_MOVE_RIGHT;
+            break;
+        case BGMT_PRESS_DOWN_LEFT:
+            info_movestate |= FLEXINFO_MOVE_DOWN | FLEXINFO_MOVE_LEFT;
+            break;
+        case BGMT_PRESS_DOWN_RIGHT:
+            info_movestate |= FLEXINFO_MOVE_DOWN | FLEXINFO_MOVE_RIGHT;
+            break;
+        case BGMT_UNPRESS_UDLR:
+            info_movestate = 0;
+            break;
+            
+        /* these are always evaluated */
+        case BGMT_PRESS_FULLSHUTTER:
+        case BGMT_PRESS_HALFSHUTTER:
+        case BGMT_MENU:
+            info_edit_mode = 0;
+            break;
+            
+        case BGMT_Q:
+            info_edit_mode = (info_edit_mode + 1) % (sizeof(info_edit_handlers) / sizeof(info_edit_handlers[0]));
+            if(info_edit_mode == 0)
+            {
+                info_edit_mode = 1;
+            }
+            break;
+            
+        case BGMT_WHEEL_UP:
+        case BGMT_WHEEL_LEFT:
+        {
+            if(info_config[0].config.selected_item > 1)
+            {
+                info_config[0].config.selected_item--;
+            }
+            break;
+        }
+            
+        case BGMT_WHEEL_DOWN:
+        case BGMT_WHEEL_RIGHT:
+        {
+            uint32_t count = 0;
+
+            while(info_config[count].type != INFO_TYPE_END)
+            {
+                count++;
+            }
+
+            if(info_config[0].config.selected_item < (count - 1))
+            {
+                info_config[0].config.selected_item++;
+            }
+            break;
+        }
+    }
+    
+    info_edit_handlers[info_edit_mode](FLEXINFO_EDIT_KEYPRESS, event->param);
+    
+    /* if we are not active anymore, pass this event through */
+    if(!info_edit_mode)
+    {
+        return 1;
+    }
+    return 0;
 }
 
 #ifdef FLEXINFO_XML_CONFIG
@@ -2464,73 +2739,18 @@ static struct menu_entry info_menus[] = {
                 .help = "Enable boundary display for all elements.",
             },
             {
-                .name = "Selected item",
-                .priv = info_config,
+                .name = "Use canon screen for edit",
+                .priv = &info_screen_required,
                 .min = 0,
-                .max = COUNT(info_config) - 1,
-                .select = info_menu_item_select,
-                .update = info_menu_item_display,
-                .help = "Select a specific element for editing.",
-            },
-            {
-                .name = "Hide Item",
-                .priv = info_config,
                 .max = 1,
-                .select = info_menu_item_hide_select,
-                .update = info_menu_item_hide_display,
-                .help = "Show or hide the item.",
+                .help = "Screen will be captured when you leave this menu.",
             },
             {
-                .name = "Pos X",
-                .priv = info_config,
+                .name = "Edit mode",
+                .priv = &info_edit_mode,
                 .min = 0,
-                .max = 720,
-                .select = info_menu_item_posx_select,
-                .update = info_menu_item_posx_display,
-                .help = "Move item in its X position.",
-            },
-            {
-                .name = "Pos Y",
-                .priv = info_config,
-                .min = 0,
-                .max = 480,
-                .select = info_menu_item_posy_select,
-                .update = info_menu_item_posy_display,
-                .help = "Move item in its Y position.",
-            },
-            {
-                .name = "Pos Z",
-                .priv = info_config,
-                .min = 0,
-                .max = 32,
-                .select = info_menu_item_posz_select,
-                .update = info_menu_item_posz_display,
-                .help = "Move item in its Z position.",
-            },
-            {
-                .name = "Anchor type",
-                .priv = info_config,
-                .min = 0,
-                .max = 9,
-                .select = info_menu_item_anchor_select,
-                .update = info_menu_item_anchor_display,
-                .help = "Select anchor type.",
-            },
-            {
-                .name = "Anchor own",
-                .priv = info_config,
-                .min = 0,
-                .max = 9,
-                .select = info_menu_item_anchor_self_select,
-                .update = info_menu_item_anchor_self_display,
-                .help = "Select own anchor type.",
-            },
-            {
-                .name = "Anchor item",
-                .priv = info_config,
-                .select = info_menu_item_anchor_item_select,
-                .update = info_menu_item_anchor_item_display,
-                .help = "Select Anchor item.",
+                .max = 1,
+                .help = "Enter editing screen.",
             },
 #ifdef FLEXINFO_XML_CONFIG
             {
@@ -2569,13 +2789,26 @@ static void info_edit_task()
 {
     TASK_LOOP
     {
-        if (gui_menu_shown() && info_config[0].config.fast_redraw && (info_config[0].config.selected_item || info_config[0].config.show_boundaries))
+        if ((gui_menu_shown() && info_edit_mode) || info_config[0].config.show_boundaries)
         {
-            menu_redraw_full();
+            /* if we are editing, move object and block ML menu redraws */
+            if(info_edit_mode)
+            {
+                menu_redraw_blocked = 1;
+                info_edit_handlers[info_edit_mode](FLEXINFO_EDIT_CYCLIC, 0);
+            }
+            
+            /* in any case redraw */
+            info_menu_draw_editscreen(info_config);
             msleep(20);
         }
         else
         {
+            /* no edit mode etc active, reset all variables */
+            info_edit_mode = 0;
+            menu_redraw_blocked = 0;
+            info_movestate = 0;
+            
             msleep(500);
         }
     }

@@ -104,6 +104,7 @@ static int menu_starred_dirty = 0;
 static int menu_zebras_mirror_dirty = 0; // to clear zebras from mirror (avoids display artifacts if, for example, you enable false colors in menu, then you disable them, and preview LV)
 
 int menu_help_active = 0; // also used in menuhelp.c
+int menu_redraw_blocked = 0; // also used in flexinfo
 
 static int submenu_mode = 0;
 static int customize_mode = 0;
@@ -2437,7 +2438,11 @@ menu_redraw_task()
         {
             redraw_in_progress = 1;
             quick_redraw = (msg == MENU_REDRAW_QUICK);
-            menu_redraw_do();
+            
+            if (!menu_redraw_blocked)
+            {
+                menu_redraw_do();
+            }
             msleep(20);
             redraw_in_progress = 0;
         }

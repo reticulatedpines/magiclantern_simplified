@@ -34,6 +34,12 @@
 
 typedef struct
 {
+    int32_t type;
+    char name[32];
+} info_string_map_t;
+
+typedef struct
+{
     int32_t x;
     int32_t y;
     int32_t z;
@@ -67,8 +73,9 @@ typedef struct
     info_elem_pos_t pos;
 } info_elem_header_t;
 
+
 /* known strings to display - must not be changed as soon XML saving is really used */
-#define INFO_STRING_NONE                 -1
+#define INFO_STRING_NONE                 0
 #define INFO_STRING_ISO                  1
 #define INFO_STRING_ISO_MIN              2
 #define INFO_STRING_ISO_MAX              3
