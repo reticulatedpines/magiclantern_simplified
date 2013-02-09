@@ -235,7 +235,7 @@ static void
 console_task( void* unused )
 {
     console_init();
-    while(1)
+    TASK_LOOP
     {
         if (console_visible && !gui_menu_shown())
         {
