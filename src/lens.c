@@ -2043,7 +2043,7 @@ static struct menu_entry tweak_menus[] = {
         .name = "Crop Factor Display",
         .priv = &crop_info,
         .max  = 1,
-        .choices = CHOICES("ON,35mm eq.", "OFF"),
+        .choices = CHOICES("OFF", "ON,35mm eq."),
         .help = "Display the 35mm equiv. focal length including crop factor.",
         .depends_on = DEP_LIVEVIEW | DEP_CHIPPED_LENS,
     }
