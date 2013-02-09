@@ -173,6 +173,9 @@ void check_pre_shutdown_flag() // called from ml_shutdown
     }
 }
 
+int null_event_handler(struct event * event) { return 1; }
+int handle_flexinfo_keys(struct event * event) __attribute__((weak,alias("null_event_handler")));
+
 int handle_common_events_by_feature(struct event * event)
 {
     // common to most cameras

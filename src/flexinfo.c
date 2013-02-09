@@ -37,10 +37,11 @@ extern int cluster_size;
 extern int free_space_raw;
 #endif
 
-
 /* updated every redraw */
 int32_t info_bg_color = 0;
 int32_t info_field_color = 0;
+
+#ifdef FLEXINFO_DEVELOPER_MENU
 
 uint32_t info_screen_required = 0;
 
@@ -54,7 +55,6 @@ uint32_t info_edit_mode = 0;
 
 #define FLEXINFO_EDIT_KEYPRESS 0
 #define FLEXINFO_EDIT_CYCLIC   1
-
 
 
 void info_edit_none(uint32_t action, uint32_t parameter);
@@ -73,6 +73,8 @@ void (*info_edit_handlers[])(uint32_t, uint32_t) =
 };
 
 extern int menu_redraw_blocked;
+
+#endif
 
 /*
     this is the definition of the info screen elements.
@@ -1967,10 +1969,12 @@ uint32_t info_print_config(info_elem_t *config)
     uint32_t pos = 1;
     int32_t z = 0;
     
+    #ifdef FLEXINFO_DEVELOPER_MENU
     if(info_screen_required && !info_edit_mode)
     {
         memcpy(get_bvram_mirror(), bmp_vram_idle(), 960*480);
     }
+    #endif
 
     /* read colors again if we redraw over canon gui */
     if(!gui_menu_shown())
@@ -2279,7 +2283,9 @@ void info_edit_hide(uint32_t action, uint32_t parameter)
             switch(parameter)
             {
                 case BGMT_PRESS_SET:
+                #ifdef BGMT_JOY_CENTER
                 case BGMT_JOY_CENTER:
+                #endif
                     item->hdr.pos.user_disable = !item->hdr.pos.user_disable;
                     break;
                 case BGMT_PRESS_LEFT:
@@ -2352,7 +2358,9 @@ void info_edit_anchoring(uint32_t action, uint32_t parameter)
             switch(parameter)
             {
                 case BGMT_PRESS_SET:
+                #ifdef BGMT_JOY_CENTER
                 case BGMT_JOY_CENTER:
+                #endif
                     anchor_mode = (anchor_mode + 1) % 3;
                     break;
                     
@@ -2637,6 +2645,7 @@ int handle_flexinfo_keys(struct event * event)
         case BGMT_PRESS_RIGHT:
             info_movestate |= FLEXINFO_MOVE_RIGHT;
             break;
+        #ifdef BGMT_PRESS_UP_LEFT
         case BGMT_PRESS_UP_LEFT:
             info_movestate |= FLEXINFO_MOVE_UP | FLEXINFO_MOVE_LEFT;
             break;
@@ -2649,7 +2658,16 @@ int handle_flexinfo_keys(struct event * event)
         case BGMT_PRESS_DOWN_RIGHT:
             info_movestate |= FLEXINFO_MOVE_DOWN | FLEXINFO_MOVE_RIGHT;
             break;
+        #endif
+
+        #ifdef BGMT_UNPRESS_UDLR
         case BGMT_UNPRESS_UDLR:
+        #else
+        case BGMT_UNPRESS_LEFT:
+        case BGMT_UNPRESS_RIGHT:
+        case BGMT_UNPRESS_UP:
+        case BGMT_UNPRESS_DOWN:
+        #endif
             info_movestate = 0;
             break;
             
