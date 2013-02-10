@@ -1595,7 +1595,7 @@ entry_print(
         if (entry->children && !submenu_mode && !menu_lv_transparent_mode)
         {
             if (icon_drawn != MNI_SUBMENU)
-                submenu_key_hint(720-35, y, MENU_BAR_COLOR);
+                submenu_key_hint(720-35, y, junkie_mode ? COLOR_BLACK : MENU_BAR_COLOR);
         }
     }
 }
@@ -1809,6 +1809,7 @@ static char* junkie_get_shortname(struct menu_display_info * info, int maxlen)
             int skip = 0;
             if (startswith(info->name, "Movie")) skip = 5;
             else if (startswith(info->name, "Magic")) skip = 5;
+            else if (startswith(info->name, "Focus")) skip = 5;
             else if (startswith(info->name, "Expo")) skip = 4;
             else if (startswith(info->name, "Advanced")) skip = 8;
             else if (startswith(info->name, "LV")) skip = 2;
@@ -3016,6 +3017,7 @@ handle_ml_menu_keys(struct event * event)
         else
         {
             junkie_mode = !junkie_mode;
+            menu_needs_full_redraw = 1;
         }
         break;
     }
