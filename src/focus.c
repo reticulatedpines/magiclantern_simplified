@@ -248,11 +248,10 @@ focus_stack(
             (!is_bracket && skip_frame && (i == 0)) ||              // first frame in SNAP-stack
             (is_bracket && (skip_frame == 1) && (i == 0)) ||        // first frame in SNAP-bracket
             (is_bracket && (skip_frame == count) && (i == count-1)) // last frame in SNAP-bracket
-        )) {
-            assign_af_button_to_star_button();
+        )) 
+        {
             hdr_shot(0,1);
             msleep(300);
-            restore_af_button_assignment();
         }
        
         if( count-1 == i )
@@ -1110,7 +1109,7 @@ static MENU_UPDATE_FUNC(trap_focus_display)
 
 
 extern int trap_focus;
-extern int trap_focus_shoot_duration;
+//~ extern int trap_focus_shoot_numpics;
 
 void trap_focus_toggle_from_af_dlg()
 {
@@ -1143,16 +1142,17 @@ static struct menu_entry trap_focus_menu[] = {
             | DEP_NOT_LIVEVIEW
             #endif
             ,
-        .children =  (struct menu_entry[]) {
+/*        .children =  (struct menu_entry[]) {
             {
-                .name = "Shooting duration",
-                .priv = &trap_focus_shoot_duration, 
-                .min = 0,
-                .max = 60,
-                .help = "How many seconds the shutter should be pressed.",
+                .name = "Number of pics",
+                .priv = &trap_focus_shoot_numpics, 
+                .min = 1,
+                .max = 10,
+                .icon_type = IT_PERCENT,
+                .help = "How many pictures to take when the subject comes in focus.",
             },
             MENU_EOL
-        }
+        }*/
     },
 #endif
 };

@@ -1227,7 +1227,7 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
     else if (DEPENDS_ON(DEP_NOT_LIVEVIEW) && lv)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature does not work in LiveView.");
     else if (DEPENDS_ON(DEP_AUTOFOCUS) && is_manual_focus())
-        snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires autofocus.");
+        snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires autofocus enabled.");
     else if (DEPENDS_ON(DEP_MANUAL_FOCUS) && !is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual focus.");
     else if (DEPENDS_ON(DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER)

@@ -1187,16 +1187,33 @@ void restore_af_button_assignment_at_shutdown()
 
 int ml_taking_pic = 0;
 
+int lens_setup_af(int should_af)
+{
+    if (!is_manual_focus())
+    {
+        if (should_af == AF_ON) assign_af_button_to_halfshutter();
+        else if (should_af == AF_OFF) assign_af_button_to_star_button();
+        else return 0;
+        
+        return 1;
+    }
+    return 0;
+}
+void lens_cleanup_af()
+{
+    restore_af_button_assignment();
+}
+
 int
 lens_take_picture(
     int wait, 
-    int allow_af
+    int should_af
 )
 {
     if (ml_taking_pic) return -1;
     ml_taking_pic = 1;
-    
-    if (!allow_af) assign_af_button_to_star_button();
+
+    if (should_af) lens_setup_af(should_af);
     //~ take_semaphore(lens_sem, 0);
     lens_wait_readytotakepic(64);
     
@@ -1248,7 +1265,7 @@ end:
     if( !wait )
     {
         //~ give_semaphore(lens_sem);
-        if (!allow_af) restore_af_button_assignment();
+        if (should_af) lens_cleanup_af();
         ml_taking_pic = 0;
         return 0;
     }
@@ -1261,49 +1278,8 @@ end:
 
         lens_wait_readytotakepic(wait);
         //~ give_semaphore(lens_sem);
-        if (!allow_af) restore_af_button_assignment();
+        if (should_af) lens_cleanup_af();
         ml_taking_pic = 0;
-        return lens_info.job_state;
-    }
-}
-
-/* this function tries to press the shutter given duration */
-int
-lens_take_pictures(
-    int wait,
-    int allow_af,
-    int duration 
-)
-{
-    if (!allow_af) assign_af_button_to_star_button();
-
-    lens_wait_readytotakepic(64);    
-    
-    /* take picture(s) */
-    SW2(1,duration);
-    SW2(0,50);
-    
-    #if defined(CONFIG_7D)
-    /* on EOS 7D the code to trigger SW1/SW2 is buggy that the metering somehow locks up.
-     * This causes the camera not to shut down when the card door is opened.
-     * There is a workaround: Just wait until shooting is possible again and then trigger SW1 for a short time.
-     * Then the camera will shut down clean.
-     */
-    lens_wait_readytotakepic(64);
-    SW1(1,50);
-    SW1(0,50);
-    #endif
-    
-    if( !wait )
-    {
-        if (!allow_af) restore_af_button_assignment();
-        return 0;
-    }
-    else
-    {
-        msleep(200);
-        lens_wait_readytotakepic(wait);
-        if (!allow_af) restore_af_button_assignment();
         return lens_info.job_state;
     }
 }

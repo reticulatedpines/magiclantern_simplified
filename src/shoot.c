@@ -33,6 +33,10 @@
 #include "gui.h"
 #include "math.h"
 
+static CONFIG_INT( "shoot.num", pics_to_take_at_once, 0);
+static CONFIG_INT( "shoot.af",  shoot_use_af, 0 );
+static int snap_sim = 0;
+
 void move_lv_afframe(int dx, int dy);
 void movie_start();
 void movie_end();
@@ -44,6 +48,7 @@ void wait_till_next_second();
 void zoom_sharpen_step();
 void zoom_auto_exposure_step();
 void ensure_play_or_qr_mode_after_shot();
+void take_fast_pictures( int number );
 
 static void bulb_ramping_showinfo();
 int bulb_ramp_calibration_running = 0;
@@ -129,7 +134,6 @@ static CONFIG_INT("hdr.scripts", hdr_scripts, 2); //1 enfuse, 2 align+enfuse, 3 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
 static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
-static CONFIG_INT( "interval.use_autofocus", interval_use_autofocus, 0 );
 //~ static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
 
 static int intervalometer_pictures_taken = 0;
@@ -144,7 +148,7 @@ static uint32_t trap_focus_continuous_state = 0;
 static uint32_t trap_focus_msg = 0;
 
 CONFIG_INT( "focus.trap", trap_focus, 0);
-CONFIG_INT( "focus.trap.duration", trap_focus_shoot_duration, 0);
+//~ CONFIG_INT( "focus.trap.numpics", trap_focus_shoot_numpics, 1);
 static CONFIG_INT( "audio.release-level", audio_release_level, 10);
 static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 static CONFIG_INT( "lv_3rd_party_flash", lv_3rd_party_flash, 0);
@@ -188,7 +192,6 @@ static CONFIG_INT( "motion.delay", motion_detect_delay, 0);
 static CONFIG_INT( "motion.trigger", motion_detect_trigger, 0);
 static CONFIG_INT( "motion.dsize", motion_detect_size, 1);
 static CONFIG_INT( "motion.position", motion_detect_position, 0);
-static CONFIG_INT( "motion.shoottime", motion_detect_shootnum, 1);
 
 int get_silent_pic() { return silent_pic_enabled; } // silent pic will disable trap focus
 
@@ -3047,6 +3050,7 @@ static MENU_UPDATE_FUNC(hdr_display)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Turn off Canon bracketing (AEB)!");
     }
+    
 }
 
 // 0,4,8,12,16, 24, 32, 40
@@ -3146,7 +3150,7 @@ bulb_take_pic(int duration)
 
     ensure_bulb_mode();
     
-    assign_af_button_to_star_button();
+    lens_setup_af(AF_OFF);
     
     msleep(100);
     
@@ -3213,7 +3217,7 @@ bulb_take_pic(int duration)
     bulb_exposure_running_accurate_clock_needed = 0;
     
     lens_wait_readytotakepic(64);
-    restore_af_button_assignment();
+    lens_cleanup_af();
     if (d0 >= 0) lens_set_drivemode(d0);
     prop_request_change( PROP_SHUTTER, &s0r, 4 );
     prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
@@ -4574,6 +4578,27 @@ int handle_expo_preset(struct event * event)
 }
 #endif // FEATURE_EXPO_PRESET
 
+static MENU_UPDATE_FUNC(pics_at_once_update)
+{
+    if (!pics_to_take_at_once)
+    {
+        MENU_SET_ICON(MNI_OFF,0);
+        MENU_SET_ENABLED(0);
+    }
+    if (HDR_ENABLED)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "No burst bracketing series, please.");
+    }
+}
+
+static MENU_UPDATE_FUNC(use_af_update)
+{
+    if (HDR_ENABLED)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Autofocus and bracketing don't mix.");
+    }
+}
+
 // in lcdsensor.c
 extern MENU_UPDATE_FUNC(lcd_release_display);
 
@@ -4689,17 +4714,6 @@ static struct menu_entry shoot_menus[] = {
                 .select     = shoot_exponential_toggle,
                 .help = "Stop the intervalometer after taking X shots.",
             },
-            #ifdef FEATURE_INTERVALOMETER_AF
-            {
-                .name = "Use autofocus", 
-                .priv = &interval_use_autofocus,
-                .max = 1,
-                .choices = CHOICES("NO", "YES"),
-                .help = "Whether the camera should auto-focus at each shot.",
-                .icon_type = IT_BOOL,
-                .depends_on = DEP_AUTOFOCUS,
-            },
-            #endif
             MENU_EOL
         },
     },
@@ -4838,14 +4852,6 @@ static struct menu_entry shoot_menus[] = {
                 .max = 2,
                 .choices = CHOICES("Small", "Medium", "Large"),
                 .help = "Size of the area on which motion shall be detected.",
-            },
-            {
-                .name = "Num. of pics",
-                .priv = &motion_detect_shootnum,
-                .max = 10,
-                .min = 1,
-                .icon_type = IT_PERCENT,
-                .help = "How many pictures to take for every detected motion.",
             },
             {
                 .name = "Delay",
@@ -4994,18 +5000,17 @@ static struct menu_entry shoot_menus[] = {
         .update = picq_display, 
         .select = picq_toggle, 
         .help = "Experimental SRAW/MRAW mode. You may get corrupted files."
-    }
+    },
     #endif
-};
 
-#ifdef FEATURE_LV_3RD_PARTY_FLASH
-    #ifndef FEATURE_FLASH_TWEAKS
-    #error This requires FEATURE_FLASH_TWEAKS.
-    #endif 
-#endif
 
-#ifdef FEATURE_FLASH_TWEAKS
-static struct menu_entry flash_menus[] = {
+    #ifdef FEATURE_LV_3RD_PARTY_FLASH
+        #ifndef FEATURE_FLASH_TWEAKS
+        #error This requires FEATURE_FLASH_TWEAKS.
+        #endif 
+    #endif
+
+    #ifdef FEATURE_FLASH_TWEAKS
     {
         .name = "Flash tweaks...",
         .select     = menu_open_submenu,
@@ -5044,9 +5049,51 @@ static struct menu_entry flash_menus[] = {
             #endif
             MENU_EOL,
         },
+    },
+    #endif
+    
+    {
+        .name = "Shoot Preferences...",
+        .select     = menu_open_submenu,
+        .help = "Autofocus, number of pics to take at once...",
+        .depends_on = DEP_PHOTO_MODE,
+        .submenu_width = 710,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Pics at once",
+                .priv = &pics_to_take_at_once,
+                .max = 4,
+                .choices = CHOICES("1 (OFF)", "2", "3", "4", "5"),
+                .update = pics_at_once_update,
+                .icon_type = IT_PERCENT,
+                .help = "How many pictures to take at once (for each trigger event).",
+                .help2 = "For intervalometer, motion detect, trap focus, audio remote.",
+            },
+            {
+                .name = "Use Autofocus", 
+                .priv = &shoot_use_af,
+                .update = use_af_update,
+                .max = 1,
+                .help  = "For intervalometer, audio remote shot and motion detect.",
+                .help2 = "Be careful, won't take pics if it can't autofocus.",
+                .icon_type = IT_BOOL,
+                .depends_on = DEP_AUTOFOCUS,
+                .works_best_in = DEP_NOT_LIVEVIEW,
+            },
+            #ifdef FEATURE_SNAP_SIM
+            {
+                .name = "Snap Simulation",
+                .priv = &snap_sim, 
+                .max = 1,
+                .icon_type = IT_BOOL,
+                .choices = (const char *[]) {"OFF", "Blink & Beep"},
+                .help = "You can take virtual (fake) pictures just for testing.",
+            },
+            #endif
+            MENU_EOL,
+        },
     }
 };
-#endif
 
 #ifdef FEATURE_ZOOM_TRICK_5D3
 extern int zoom_trick;
@@ -5622,7 +5669,7 @@ void hdr_flag_picture_was_taken()
 void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
 {
     #ifdef FEATURE_SNAP_SIM
-    if (get_snap_sim()) return; // no script for virtual shots
+    if (snap_sim) return; // no script for virtual shots
     #endif
     if (steps <= 1) return;
     
@@ -5693,10 +5740,9 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
 #endif // HDR/FST
 
 // normal pic, silent pic, bulb pic...
-static void take_a_pic(int allow_af)
+static void take_a_pic(int should_af)
 {
     #ifdef FEATURE_SNAP_SIM
-    int snap_sim = get_snap_sim();
     if (snap_sim) {
         beep();
         _card_led_on();
@@ -5704,6 +5750,7 @@ static void take_a_pic(int allow_af)
         msleep(250);
         display_on();
         _card_led_off();
+        msleep(100);
         return;
     }
     #endif
@@ -5718,7 +5765,7 @@ static void take_a_pic(int allow_af)
     {
         //~ beep();
         if (is_bulb_mode_or_bulb_ramping()) bulb_take_pic(BULB_SHUTTER_VALUE_MS);
-        else lens_take_picture(64, allow_af);
+        else lens_take_picture(64, should_af);
     }
     lens_wait_readytotakepic(64);
 }
@@ -5771,7 +5818,7 @@ void hdr_iso_shift_restore()
 // .. and restores settings back
 
 // Return value: 1 if OK, 0 if it couldn't set some parameter (but it will still take the shot)
-static int hdr_shutter_release(int ev_x8, int allow_af)
+static int hdr_shutter_release(int ev_x8)
 {
     int ans = 1;
     //~ NotifyBox(2000, "hdr_shutter_release: %d", ev_x8); msleep(2000);
@@ -5782,7 +5829,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
 
     if (dont_change_exposure)
     {
-        take_a_pic(allow_af);
+        take_a_pic(AF_DONT_CHANGE);
         return 1;
     }
     
@@ -5795,7 +5842,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             ev_x8 = hdr_iso_shift(ev_x8);
             int fae0 = lens_info.flash_ae;
             ans = hdr_set_flash_ae(fae0 + ev_x8);
-            take_a_pic(allow_af);
+            take_a_pic(AF_DONT_CHANGE);
             hdr_set_flash_ae(fae0);
             hdr_iso_shift_restore();
             return ans;
@@ -5815,7 +5862,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
         hdr_iso_shift(ev_x8); // don't change the EV value
         int ae0 = lens_get_ae();
         ans = MIN(ans, hdr_set_ae(ae0 + ev_x8));
-        take_a_pic(allow_af);
+        take_a_pic(AF_DONT_CHANGE);
         hdr_set_ae(ae0);
         hdr_iso_shift_restore();
     }
@@ -5856,7 +5903,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
             if (expsim == 2) { set_expsim(1); msleep(300); } // can't set shutter slower than 1/30 in movie mode
             #endif
             ans = MIN(ans, hdr_set_rawshutter(rc));
-            take_a_pic(allow_af);
+            take_a_pic(AF_DONT_CHANGE);
             
             bulb_ramping_enabled = b;
             
@@ -5977,9 +6024,9 @@ void hdr_check_for_under_or_over_exposure(int* under, int* over)
     msleep(500);
 }
 
-static int hdr_shutter_release_then_check_for_under_or_over_exposure(int ev_x8, int allow_af, int* under, int* over)
+static int hdr_shutter_release_then_check_for_under_or_over_exposure(int ev_x8, int* under, int* over)
 {
-    int ans = hdr_shutter_release(ev_x8, allow_af);
+    int ans = hdr_shutter_release(ev_x8);
     hdr_check_for_under_or_over_exposure(under, over);
     return ans;
 }
@@ -5995,8 +6042,7 @@ static void hdr_auto_take_pics(int step_size, int skip0)
     }
     
     // make sure it won't autofocus
-    // change it only once per HDR sequence to avoid slowdown
-    assign_af_button_to_star_button();
+    lens_setup_af(AF_OFF);
     // be careful: don't return without restoring the setting back!
     
     hdr_check_cancel(1);
@@ -6006,7 +6052,7 @@ static void hdr_auto_take_pics(int step_size, int skip0)
     int under, over;
     
     // first exposure is always at 0 EV (and might be skipped)
-    if (!skip0) hdr_shutter_release_then_check_for_under_or_over_exposure(0, 1, &under, &over);
+    if (!skip0) hdr_shutter_release_then_check_for_under_or_over_exposure(0, &under, &over);
     else hdr_check_for_under_or_over_exposure(&under, &over);
     if (!under) UNDER = 0; if (!over) OVER = 0;
     if (hdr_check_cancel(0)) goto end;
@@ -6020,7 +6066,7 @@ static void hdr_auto_take_pics(int step_size, int skip0)
             {
                 if (OVER)
                 {
-                    int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(-step_size * i, 1, &under, &over);
+                    int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(-step_size * i, &under, &over);
                     if (!under) UNDER = 0; if (!over) OVER = 0;
                     if (!ok) OVER = 0; // Canon limit reached, don't continue this sequence
                     steps++;
@@ -6029,7 +6075,7 @@ static void hdr_auto_take_pics(int step_size, int skip0)
                 
                 if (UNDER)
                 {
-                    int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(step_size * i, 1, &under, &over);
+                    int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(step_size * i, &under, &over);
                     if (!under) UNDER = 0; if (!over) OVER = 0;
                     if (!ok) UNDER = 0; // Canon limit reached, don't continue this sequence
                     steps++;
@@ -6044,7 +6090,7 @@ static void hdr_auto_take_pics(int step_size, int skip0)
             {
                 if (OVER)
                 {
-                    int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(-step_size * i, 1, &under, &over);
+                    int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(-step_size * i, &under, &over);
                     if (!under) UNDER = 0; if (!over) OVER = 0;
                     if (!ok) OVER = 0;
                     steps++;
@@ -6059,7 +6105,7 @@ static void hdr_auto_take_pics(int step_size, int skip0)
             {
                 if (UNDER)
                 {
-                    int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(step_size * i, 1, &under, &over);
+                    int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(step_size * i, &under, &over);
                     if (!under) UNDER = 0; if (!over) OVER = 0;
                     if (!ok) UNDER = 0;
                     steps++;
@@ -6073,7 +6119,7 @@ static void hdr_auto_take_pics(int step_size, int skip0)
     hdr_create_script(steps, skip0, 0, file_number - steps + 1);
 
 end:
-    restore_af_button_assignment();
+    lens_cleanup_af();
 }
 
 // skip0: don't take the middle exposure
@@ -6089,14 +6135,13 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
     int i;
     
     // make sure it won't autofocus
-    // change it only once per HDR sequence to avoid slowdown
-    assign_af_button_to_star_button();
+    lens_setup_af(AF_OFF);
     // be careful: don't return without restoring the setting back!
     
     hdr_check_cancel(1);
     
     // first exposure is always at 0 EV (and might be skipped)
-    if (!skip0) hdr_shutter_release(0, 1);
+    if (!skip0) hdr_shutter_release(0);
     if (hdr_check_cancel(0)) goto end;
     
     switch (hdr_sequence)
@@ -6105,12 +6150,12 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
         {
             for( i = 1; i <= steps/2; i ++  )
             {
-                hdr_shutter_release(-step_size * i, 1);
+                hdr_shutter_release(-step_size * i);
                 if (hdr_check_cancel(0)) goto end;
 
                 if (steps % 2 == 0 && i == steps/2) break;
                 
-                hdr_shutter_release(step_size * i, 1);
+                hdr_shutter_release(step_size * i);
                 if (hdr_check_cancel(0)) goto end;
             }
             break;
@@ -6120,7 +6165,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
         {
             for( i = 1; i < steps; i ++  )
             {
-                hdr_shutter_release(step_size * i * (hdr_sequence == 2 ? 1 : -1), 1);
+                hdr_shutter_release(step_size * i * (hdr_sequence == 2 ? 1 : -1));
                 if (hdr_check_cancel(0)) goto end;
             }
             break;
@@ -6130,7 +6175,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
     hdr_create_script(steps, skip0, 0, file_number - steps + 1);
 
 end:
-    restore_af_button_assignment();
+    lens_cleanup_af();
 }
 #endif
 
@@ -6210,7 +6255,8 @@ void movie_end()
 }
 
 // take one picture or a HDR / focus stack sequence
-// to be used with the intervalometer
+// to be used with the intervalometer, focus stack, etc
+// AF is disabled (don't enable it here, it will only introduce weird bugs)
 void hdr_shot(int skip0, int wait)
 {
     NotifyBoxHide();
@@ -6230,12 +6276,9 @@ void hdr_shot(int skip0, int wait)
     else // regular pic (not HDR)
 #endif
     {
-        int should_af = 1;
-        if(intervalometer_running && !interval_use_autofocus)
-        {
-            should_af = 0;
-        }
-        hdr_shutter_release(0, should_af); //Enable AF on intervalometer if the user wishes so, allow it otherwise
+        lens_setup_af(AF_OFF);
+        hdr_shutter_release(0);
+        lens_cleanup_af();
     }
 
     lens_wait_readytotakepic(64);
@@ -6286,9 +6329,13 @@ void remote_shot(int wait)
     {
         movie_start();
     }
-    else
+    else if (HDR_ENABLED)
     {
         hdr_shot(0, wait);
+    }
+    else
+    {
+        take_fast_pictures(pics_to_take_at_once+1);
     }
     if (!wait) return;
     
@@ -6301,6 +6348,7 @@ void remote_shot(int wait)
 
     picture_was_taken_flag = 0;
 }
+
 
 static void display_expsim_status()
 {
@@ -6522,31 +6570,41 @@ int is_continuous_drive()
         );
 }
 
-void take_fast_pictures( int number ) {
+void take_fast_pictures( int number ) 
+{
     // take fast pictures
-    if (
-        number > 1 
-        &&
-        is_continuous_drive()
-        &&
-        (!silent_pic_enabled && !is_bulb_mode())
-       )
+    if ( number > 1 && is_continuous_drive() && !is_bulb_mode() && !snap_sim)
     {
+        lens_setup_af(shoot_use_af ? AF_ON : AF_OFF);
+        
         // continuous mode - simply hold shutter pressed 
         int f0 = file_number;
         SW1(1,100);
         SW2(1,100);
-        while (file_number < f0+number && get_halfshutter_pressed()) {
+        while (mod(f0 + number - file_number + 10, 10000) > 10 && get_halfshutter_pressed()) {
             msleep(10);
         }
         SW2(0,100);
         SW1(0,100);
+
+        #if defined(CONFIG_7D)
+        /* on EOS 7D the code to trigger SW1/SW2 is buggy that the metering somehow locks up.
+         * This causes the camera not to shut down when the card door is opened.
+         * There is a workaround: Just wait until shooting is possible again and then trigger SW1 for a short time.
+         * Then the camera will shut down clean.
+         */
+        lens_wait_readytotakepic(64);
+        SW1(1,50);
+        SW1(0,50);
+        #endif
+
+        lens_cleanup_af();
     }
     else
     {
         for (int i = 0; i < number; i++)
         {
-            take_a_pic(0);
+            take_a_pic(shoot_use_af ? AF_ON : AF_OFF);
         }
     }
 }
@@ -6562,7 +6620,7 @@ void md_take_pics() // for motion detection
             if (!mdx) return;
         }
     }
-    take_fast_pictures( motion_detect_shootnum );
+    take_fast_pictures( pics_to_take_at_once+1 );
     
     // wait until liveview comes back
     lens_wait_readytotakepic(64);
@@ -7010,7 +7068,7 @@ shoot_task( void* unused )
                 
             case 3:
                 /* re-enable after pic was taken */
-                trap_focus_continuous_state = 2;
+                trap_focus_continuous_state = 1;
                 priority_feature_enabled = 1;
                 SW1(1,50);
                 break;        
@@ -7043,14 +7101,7 @@ shoot_task( void* unused )
             }
             if ((!lv && FOCUS_CONFIRMATION) || get_lv_focus_confirmation())
             {
-                if(trap_focus_shoot_duration)
-                {
-                    lens_take_pictures(64,0, trap_focus_shoot_duration*1000);
-                }
-                else
-                {
-                    lens_take_picture(64,0);
-                }
+                take_fast_pictures(pics_to_take_at_once+1);
 
                 /* continuous shooting active? */
                 if (trap_focus_continuous_state)
@@ -7319,34 +7370,20 @@ shoot_task( void* unused )
             mlu_step(); // who knows who has the idea of changing drive mode with intervalometer active :)
             #endif
             
-            if (dt <= 1) // crazy mode or 1 second - needs to be fast
+            if (dt == 0) // crazy mode - needs to be fast
             {
-                if ( dt == 0 &&
-                    is_continuous_drive()
-                    &&
-                    (!silent_pic_enabled && !is_bulb_mode())
-                    #ifdef CONFIG_VXWORKS
-                    && 0 // SW1/2 not working
-                    #endif
-                   )
-                {
-                    // continuous mode - simply hold shutter pressed 
-                    SW1(1,100);
-                    SW2(1,100);
-                    while (intervalometer_running && get_halfshutter_pressed() && !ml_shutdown_requested) msleep(100);
-                    beep();
-                    intervalometer_stop();
-                    SW2(0,100);
-                    SW1(0,100);
-                }
-                else
-                {
-                    take_a_pic(0);
-                }
+                int num = interval_stop_after ? interval_stop_after : 100000;
+                take_fast_pictures(num);
+                intervalometer_pictures_taken += num - 1;
+            }
+            else if (HDR_ENABLED)
+            {
+                hdr_shot(0, 1);
             }
             else
             {
-                hdr_shot(0, 1);
+                // count this as 1 picture
+                take_fast_pictures(pics_to_take_at_once+1);
             }
             intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);
             intervalometer_pictures_taken++;
@@ -7362,10 +7399,10 @@ shoot_task( void* unused )
             #ifndef CONFIG_VXWORKS
             if (lv && silent_pic_enabled) // half-press shutter to disable power management
             {
-                assign_af_button_to_halfshutter();
+                lens_setup_af(AF_OFF);
                 SW1(1,10);
                 SW1(0,50);
-                restore_af_button_assignment();
+                lens_cleanup_af();
                 msleep(300);
             }
             #endif
@@ -7450,10 +7487,6 @@ void shoot_init()
 
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
-
-    #ifdef FEATURE_FLASH_TWEAKS
-    menu_add( "Shoot", flash_menus, COUNT(flash_menus) );
-    #endif
     
     //~ menu_add( "Tweaks", vid_menus, COUNT(vid_menus) );
 
