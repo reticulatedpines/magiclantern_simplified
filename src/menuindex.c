@@ -91,6 +91,11 @@ struct menu_entry help_menus[] = {
         .choices = CHOICES("Edit in LiveView"),
     },
     {
+        .select = menu_nav_help_open,
+        .name = "Press MENU",
+        .choices = CHOICES("Junkie mode"),
+    },
+    {
         .name = "Key shortcuts",
         .select = menu_help_go_to_label,
     },
