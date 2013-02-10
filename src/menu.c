@@ -1791,7 +1791,6 @@ static char* junkie_get_shortname(struct menu_display_info * info, int maxlen)
 {
     static char msg[50];
     char name[100];
-    int N = strlen(info->name);
     if (maxlen > 49) maxlen = 49;
 
     int print_value = 0;
@@ -1843,7 +1842,9 @@ static char* junkie_get_shortname(struct menu_display_info * info, int maxlen)
             snprintf(name, sizeof(name), "%s", info->value + skip);
         }
     }
-        
+
+    int N = strlen(name);
+
     int i,j;
     for (i = 0, j = 0; i < maxlen && j < N; j++)
     {
