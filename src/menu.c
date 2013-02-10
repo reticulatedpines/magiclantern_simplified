@@ -536,10 +536,15 @@ menu_has_visible_items(struct menu * menu)
     struct menu_entry * entry = menu->children;
     while( entry )
     {
+        if (entry == &customize_menu[0]) // hide the Customize menu if everything else from Prefs is also hidden
+            goto next;
+
         if (IS_VISIBLE(entry))
         {
             return 1;
         }
+        
+        next:
         entry = entry->next;
     }
     return 0;
