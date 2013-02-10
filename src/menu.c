@@ -1887,7 +1887,7 @@ entry_print_junkie(
     {
         if (info->enabled)
         {
-            bg = COLOR_ORANGE;
+            bg = COLOR_GRAY50;
             fg = COLOR_BLACK;
         }
         else
@@ -1912,8 +1912,9 @@ entry_print_junkie(
         
         // brighten the selection
         if (bg == COLOR_GREEN1) bg = COLOR_GREEN2;
-        else if (bg == COLOR_ORANGE) bg = COLOR_PINK; // modified to look like bright orange
+        //~ else if (bg == COLOR_ORANGE) bg = COLOR_PINK; // modified to look like bright orange
         else if (bg == COLOR_GRAY40) bg = COLOR_GRAY45;
+        else if (bg == COLOR_GRAY50) bg = COLOR_GRAY60;
 
         if (fg == COLOR_GRAY60) fg = COLOR_WHITE;
         else if (fg == COLOR_GRAY45) fg = 55;
@@ -2112,7 +2113,10 @@ menu_display_junkie(
             
             // entry asked for custom draw? stop here
             if (!ok) break;
-            
+
+            //~ if (entry->warning_level == MENU_WARN_NOT_WORKING)
+                //~ continue;
+
             // move down for next item
             int dh = space_left / num;
             y += dh;
@@ -2789,9 +2793,9 @@ menu_redraw_do()
 
     // adjust some colors for better contrast
     alter_bitmap_palette_entry(COLOR_GREEN1, COLOR_GREEN1, 160, 256);
-    alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);
-    alter_bitmap_palette_entry(COLOR_PINK,   COLOR_ORANGE, 256, 256);
     alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 384, 256);
+    //~ alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);
+    //~ alter_bitmap_palette_entry(COLOR_PINK,   COLOR_ORANGE, 256, 256);
 
     #ifdef CONFIG_VXWORKS
     set_ml_palette();
