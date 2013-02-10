@@ -49,6 +49,8 @@ struct menu_display_info
 {
     char* name;
     char* value;
+    char* short_name;
+    char* short_value;
     char* help;
     char* warning;
     char* rinfo; // displayed on the right side
@@ -67,16 +69,20 @@ struct menu_display_info
 
 #define MENU_MAX_NAME_LEN 30
 #define MENU_MAX_VALUE_LEN 25
+#define MENU_MAX_SHORT_NAME_LEN 6
+#define MENU_MAX_SHORT_VALUE_LEN 6
 #define MENU_MAX_HELP_LEN 60
 #define MENU_MAX_WARNING_LEN 60
 #define MENU_MAX_RINFO_LEN 30
 
-#define MENU_SET_NAME(fmt, ...)     snprintf(info->name,    MENU_MAX_NAME_LEN,    fmt,    ## __VA_ARGS__)
-#define MENU_SET_VALUE(fmt, ...)    snprintf(info->value,   MENU_MAX_VALUE_LEN,   fmt,    ## __VA_ARGS__)
-#define MENU_SET_RINFO(fmt, ...)    snprintf(info->rinfo,   MENU_MAX_RINFO_LEN,   fmt,    ## __VA_ARGS__)
+#define MENU_SET_NAME(fmt, ...)        snprintf(info->name,        MENU_MAX_NAME_LEN,        fmt, ## __VA_ARGS__)
+#define MENU_SET_VALUE(fmt, ...)       snprintf(info->value,       MENU_MAX_VALUE_LEN,       fmt, ## __VA_ARGS__)
+#define MENU_SET_SHORT_NAME(fmt, ...)  snprintf(info->short_name,  MENU_MAX_SHORT_NAME_LEN,  fmt, ## __VA_ARGS__)
+#define MENU_SET_SHORT_VALUE(fmt, ...) snprintf(info->short_value, MENU_MAX_SHORT_VALUE_LEN, fmt, ## __VA_ARGS__)
+#define MENU_SET_RINFO(fmt, ...)       snprintf(info->rinfo,       MENU_MAX_RINFO_LEN,       fmt, ## __VA_ARGS__)
 
-#define MENU_APPEND_VALUE(fmt, ...)   snprintf(info->value + strlen(info->value),   MENU_MAX_VALUE_LEN - strlen(info->value),     fmt,    ## __VA_ARGS__)
-#define MENU_APPEND_RINFO(fmt, ...)   snprintf(info->rinfo + strlen(info->rinfo),   MENU_MAX_RINFO_LEN - strlen(info->rinfo),     fmt,    ## __VA_ARGS__)
+#define MENU_APPEND_VALUE(fmt, ...)    snprintf(info->value + strlen(info->value),   MENU_MAX_VALUE_LEN - strlen(info->value),     fmt,    ## __VA_ARGS__)
+#define MENU_APPEND_RINFO(fmt, ...)    snprintf(info->rinfo + strlen(info->rinfo),   MENU_MAX_RINFO_LEN - strlen(info->rinfo),     fmt,    ## __VA_ARGS__)
 
 /* when the item is not selected, the help and warning overrides will not be parsed */
 /* warning level is still considered, for graying out menu items */
@@ -149,6 +155,7 @@ struct menu_entry
         const char * help;
         const char * help2;
         const char * name; // used for context help and sometimes for display
+        const char * short_name; // used for junkie mode
         //~ uint32_t id; // unique ID (not supported; menus are identified by strings)
     
         // not required for entry item, but makes it easier to declare in existing menu structures

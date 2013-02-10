@@ -1317,19 +1317,25 @@ entry_default_display_info(
     )
 {
     static char name[MENU_MAX_NAME_LEN];
+    static char short_name[MENU_MAX_SHORT_NAME_LEN];
     static char value[MENU_MAX_VALUE_LEN];
+    static char short_value[MENU_MAX_SHORT_VALUE_LEN];
     static char help[MENU_MAX_HELP_LEN];
     static char warning[MENU_MAX_WARNING_LEN];
     static char rinfo[MENU_MAX_RINFO_LEN];
 
     name[0] = 0;
+    short_name[0] = 0;
     value[0] = 0;
+    short_value[0] = 0;
     help[0] = 0;
     warning[0] = 0;
     rinfo[0] = 0;
     
     info->name = name;
+    info->short_name = short_name;
     info->value = value;
+    info->short_value = short_value;
     info->help = help;
     info->warning = warning;
     info->rinfo = rinfo;
@@ -1342,6 +1348,12 @@ entry_default_display_info(
     info->warning_level = check_default_warnings(entry, warning);
     
     snprintf(name, sizeof(name), "%s", entry->name);
+    
+    /* for junkie mode, short_name will get copied, short_value is empty by default */
+    if(entry->short_name && strlen(entry->short_name))
+    {
+        snprintf(short_name, sizeof(short_name), "%s", entry->short_name);
+    }
 
     if (entry->choices && SELECTED_INDEX(entry) >= 0 && SELECTED_INDEX(entry) < NUM_CHOICES(entry))
     {
@@ -1787,33 +1799,48 @@ static char* junkie_get_shortname(struct menu_display_info * info, int maxlen)
     if (streq(info->value, "ON") || streq(info->value, "Default") || startswith(info->value, "OFF") || streq(info->value, "Normal") || !info->value[0])
     {
         // ON/OFF is obvious by color; print just the name
-        // skip some common words
-        int skip = 0;
-        if (startswith(info->name, "Movie")) skip = 5;
-        else if (startswith(info->name, "Magic")) skip = 5;
-        else if (startswith(info->name, "Expo")) skip = 4;
-        else if (startswith(info->name, "Advanced")) skip = 8;
-        else if (startswith(info->name, "LV")) skip = 2;
-        else if (startswith(info->name, "ML")) skip = 2;
-        
-        // keep the first letter from the skipped word
-        char abbr[4] = "";
-        if (skip > 2)
+        if(strlen(info->short_name))
         {
-            abbr[0] = info->name[0];
-            abbr[1] = 0;
+            strncpy(name, info->short_name, sizeof(name));
         }
-        snprintf(name, sizeof(name), "%s%s", abbr, info->name + skip);
+        else
+        {
+            // skip some common words
+            int skip = 0;
+            if (startswith(info->name, "Movie")) skip = 5;
+            else if (startswith(info->name, "Magic")) skip = 5;
+            else if (startswith(info->name, "Expo")) skip = 4;
+            else if (startswith(info->name, "Advanced")) skip = 8;
+            else if (startswith(info->name, "LV")) skip = 2;
+            else if (startswith(info->name, "ML")) skip = 2;
+            
+            // keep the first letter from the skipped word
+            char abbr[4] = "";
+            if (skip > 2)
+            {
+                abbr[0] = info->name[0];
+                abbr[1] = 0;
+            }
+            snprintf(name, sizeof(name), "%s%s", abbr, info->name + skip);
+        }
     }
     else // print value only
     {
         print_value = 1;
-        int skip = 0;
-        if (startswith(info->value, "ON,")) skip = 3;
-        if (startswith(info->value, "Press")) skip = 5;
-        if (startswith(info->value, "up to ")) skip = 6;
-        if (startswith(info->value, "Photo,")) skip = 6;
-        snprintf(name, sizeof(name), "%s", info->value + skip);
+        
+        if(strlen(info->short_value))
+        {
+            strncpy(name, info->short_value, sizeof(name));
+        }
+        else
+        {
+            int skip = 0;
+            if (startswith(info->value, "ON,")) skip = 3;
+            if (startswith(info->value, "Press")) skip = 5;
+            if (startswith(info->value, "up to ")) skip = 6;
+            if (startswith(info->value, "Photo,")) skip = 6;
+            snprintf(name, sizeof(name), "%s", info->value + skip);
+        }
     }
         
     int i,j;
@@ -2168,7 +2195,7 @@ menus_display(
     struct menu * submenu = 0;
     if (submenu_mode == 1)
         submenu = get_current_submenu();
-    
+
     if (junkie_mode) junkie_sync_selection();
 
     take_semaphore( menu_sem, 0 );
@@ -2469,7 +2496,7 @@ menu_move(
 
     if( !menu )
         return;
-
+    
     take_semaphore( menu_sem, 0 );
 
     // Deselect the current one
