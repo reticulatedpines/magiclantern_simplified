@@ -55,7 +55,8 @@ int audio_meters_are_drawn()
          )
         ||
         (
-         gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
+         0
+         //~ gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
          );
 #else
     return 0;

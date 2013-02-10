@@ -535,7 +535,7 @@ bmp_hexdump(
  */
 
 /* will allow 1-pixel resolution in X and also enables BMP_FILL_HALFALIGN which is 2-pixel resolution */
-//#define BMP_FILL_BYTEALIGN
+#define BMP_FILL_BYTEALIGN
 
 /** Fill a section of bitmap memory with solid color
  * Only has a four-pixel resolution in X.
