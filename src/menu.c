@@ -1416,6 +1416,13 @@ entry_default_display_info(
     }
 }
 
+static int get_customize_color()
+{
+    if (CUSTOMIZE_MODE_HIDING) return junkie_mode ? COLOR_ORANGE : COLOR_RED;
+    else if (CUSTOMIZE_MODE_MYMENU) return COLOR_GREEN1;
+    return 0;
+}
+
 static void
 entry_print(
     int x,
@@ -1500,7 +1507,7 @@ entry_print(
     if (customize_mode)
     {
         // reserve space for icons
-        if (entry != &customize_menu[0] && !is_menu_active(MY_MENU_NAME) && !in_submenu)
+        if (entry != &customize_menu[0] && !(is_menu_active(MY_MENU_NAME) && !in_submenu))
             xc = x_end - 70;
         else
             xc = x_end;
@@ -1510,8 +1517,8 @@ entry_print(
             bfnt_draw_char(ICON_ML_MYMENU, xc, y-4, COLOR_GREEN1, COLOR_BLACK);
         
         // hidden marker
-        if (entry->hidden)
-            batsu(xc+37, y+2, COLOR_RED);
+        if (HAS_CURRENT_HIDDEN_FLAG(entry))
+            batsu(xc+37, y+2, junkie_mode ? COLOR_ORANGE : COLOR_RED);
     }
 
     // selection bar
@@ -1520,9 +1527,7 @@ entry_print(
         int color_left = COLOR_GRAY45;
         int color_right = MENU_BAR_COLOR;
         if (junkie_mode && !in_submenu) color_left = color_right = COLOR_BLACK;
-        if (CUSTOMIZE_MODE_HIDING) color_left = COLOR_RED;
-        else if (CUSTOMIZE_MODE_MYMENU) color_left = COLOR_GREEN1;
-        if (customize_mode) color_right = COLOR_GRAY45;
+        if (customize_mode) { color_left = get_customize_color(); color_right = COLOR_GRAY40; }
 
         selection_bar_backend(color_left, COLOR_BLACK, x-5, y, xc-x+5, 31);
         selection_bar_backend(color_right, COLOR_BLACK, xc, y, x_end-xc, 31);
@@ -1622,7 +1627,7 @@ menu_post_display()
     if (customize_mode)
     {
         bmp_printf(
-            FONT(FONT_MED, CUSTOMIZE_MODE_HIDING ? COLOR_RED : COLOR_GREEN1, MENU_BG_COLOR_HEADER_FOOTER),
+            FONT(FONT_MED, get_customize_color(), MENU_BG_COLOR_HEADER_FOOTER),
              10,  MENU_HELP_Y_POS_2, 
                 CUSTOMIZE_MODE_HIDING ? "Press SET to show/hide items you don't use.                 " :
                 CUSTOMIZE_MODE_MYMENU ? "Press SET to choose your favorite items for MyMenu.         " : ""
@@ -1983,7 +1988,7 @@ entry_print_junkie(
         
         // hidden marker
         if (entry->jhidden)
-            bmp_printf(SHADOW_FONT(FONT(FONT_LARGE, COLOR_RED, COLOR_BLACK)), x+w-20, y, "x");
+            bmp_printf(SHADOW_FONT(FONT(FONT_LARGE, COLOR_ORANGE, COLOR_BLACK)), x+w-20, y, "x");
     }
 }
 
@@ -2246,6 +2251,8 @@ menus_display(
     int bgu = MENU_BG_COLOR_HEADER_FOOTER;
     int fgu = COLOR_GRAY50;
     int fgs = COLOR_WHITE;
+
+    if (customize_mode) fgs = get_customize_color();
 
     bmp_fill(bgu, orig_x, y, 720, 42);
     bmp_fill(fgu, orig_x, y+42, 720, 1);

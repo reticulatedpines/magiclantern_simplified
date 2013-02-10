@@ -174,10 +174,13 @@ struct menu_entry
 
 #define HAS_HIDDEN_FLAG(entry) ((entry)->hidden)
 #define HAS_JHIDDEN_FLAG(entry) ((entry)->jhidden)
-#define IS_VISIBLE(entry) ( \
-    (!junkie_mode && !HAS_HIDDEN_FLAG(entry)) || \
-    (junkie_mode && !HAS_JHIDDEN_FLAG(entry)) || \
-    customize_mode) 
+
+#define HAS_CURRENT_HIDDEN_FLAG(entry) ( \
+    (!junkie_mode && HAS_HIDDEN_FLAG(entry)) || \
+    (junkie_mode && HAS_JHIDDEN_FLAG(entry)) )
+
+#define IS_VISIBLE(entry) ( !HAS_CURRENT_HIDDEN_FLAG(entry) || customize_mode)
+
 
 #define MENU_INT(entry) ((entry)->priv ? *(int*)(entry)->priv : 0)
 #define CURRENT_VALUE (MENU_INT(entry))
