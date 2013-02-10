@@ -2402,9 +2402,9 @@ struct menu_entry expo_tweak_menus[] = {
 };
 #endif
 
-CONFIG_INT("lv.brightness", preview_brightness, 0);         // range: 0-2
-CONFIG_INT("lv.contrast", preview_contrast, 0);             // range: -3:3
-CONFIG_INT("lv.saturation", preview_saturation, 1);         // range: -1:2
+CONFIG_INT("lv.bri", preview_brightness, 0);         // range: 0-2
+CONFIG_INT("lv.con", preview_contrast,   0);         // range: -3:3
+CONFIG_INT("lv.sat", preview_saturation, 0);         // range: -1:2
 CONFIG_INT("lv.sat.wb", preview_saturation_boost_wb, 0);
 #define PREVIEW_BRIGHTNESS_INDEX preview_brightness
 #define PREVIEW_CONTRAST_INDEX (preview_contrast + 3)
