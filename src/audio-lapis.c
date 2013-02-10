@@ -615,7 +615,6 @@ static struct menu_entry audio_menus[] = {
                 .icon_type      = IT_DICE,
                 .choices        = CHOICES("Notch Filter", "EQ", "Notch EQ", "Enhnc REC", "Enhnc RECPLAY", "Loud"),
                 .help           = "Choose mode :Notch,EQ,Notch/EQ,Enhance [12],Loudness.",
-                .hidden         = MENU_ENTRY_HIDDEN,
             },
             {
                 .name = "Record Digital Volume ",
