@@ -295,10 +295,10 @@ int handle_common_events_by_feature(struct event * event)
         || event->param == BGMT_Q_ALT
         #endif
     ))
+    #elif defined(BGMT_FUNC)
+    if (MENU_MODE && event->param == BGMT_FUNC)
     #elif defined(BGMT_PICSTYLE)
     if (MENU_MODE && event->param == BGMT_PICSTYLE)
-    #elif BGMT_FUNC
-    if (MENU_MODE && event->param == BGMT_FUNC)
     #else
     if (0)
     #endif
