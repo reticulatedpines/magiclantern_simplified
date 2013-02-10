@@ -1814,7 +1814,7 @@ static char* junkie_get_shortname(struct menu_display_info * info, int maxlen)
         // ON/OFF is obvious by color; print just the name
         if(strlen(info->short_name))
         {
-            strncpy(name, info->short_name, sizeof(name));
+            snprintf(name, sizeof(name), "%s", info->short_name);
         }
         else
         {
@@ -1844,7 +1844,7 @@ static char* junkie_get_shortname(struct menu_display_info * info, int maxlen)
         
         if(strlen(info->short_value))
         {
-            strncpy(name, info->short_value, sizeof(name));
+            snprintf(name, sizeof(name), "%s", info->short_value);
         }
         else
         {
