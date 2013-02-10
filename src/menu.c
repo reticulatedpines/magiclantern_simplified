@@ -1913,8 +1913,8 @@ entry_print_junkie(
         // brighten the selection
         if (bg == COLOR_GREEN1) bg = COLOR_GREEN2;
         //~ else if (bg == COLOR_ORANGE) bg = COLOR_PINK; // modified to look like bright orange
-        else if (bg == COLOR_GRAY40) bg = COLOR_GRAY45;
-        else if (bg == COLOR_GRAY50) bg = COLOR_GRAY60;
+        else if (bg == COLOR_GRAY40) bg = 42;
+        else if (bg == COLOR_GRAY50) bg = 55;
 
         if (fg == COLOR_GRAY60) fg = COLOR_WHITE;
         else if (fg == COLOR_GRAY45) fg = 55;
@@ -2793,7 +2793,7 @@ menu_redraw_do()
 
     // adjust some colors for better contrast
     alter_bitmap_palette_entry(COLOR_GREEN1, COLOR_GREEN1, 160, 256);
-    alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 384, 256);
+    alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 300, 256);
     //~ alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);
     //~ alter_bitmap_palette_entry(COLOR_PINK,   COLOR_ORANGE, 256, 256);
 
