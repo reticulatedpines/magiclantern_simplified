@@ -2730,6 +2730,7 @@ void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shif
 
 void grayscale_menus_step()
 {
+    /*
 #ifndef CONFIG_VXWORKS
     static int warning_color_dirty = 0;
     if (gui_menu_shown())
@@ -2745,7 +2746,8 @@ void grayscale_menus_step()
         warning_color_dirty = 0;
     }
 #endif
-
+    */
+    
     // problem: grayscale registers are not overwritten by Canon when palette is changed
     // so we don't know when to refresh it
     // => need to use pure guesswork

@@ -323,6 +323,7 @@ bmp_fill(
 #define COLOR_GREEN1 6
 #define COLOR_GREEN2 7
 #define COLOR_ORANGE 19
+#define COLOR_PINK 17
 #define COLOR_DARK_RED 0xC
 #define COLOR_GRAY40 40
 #define COLOR_GRAY45 45

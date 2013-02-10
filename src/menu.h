@@ -318,11 +318,11 @@ extern void menu_stop(void);
 #define MENU_EOL { .priv = MENU_EOL_PRIV }
 #define MENU_IS_EOL(entry) ((intptr_t)(entry)->priv == -1)
 
-#ifdef CONFIG_VXWORKS
+//~ #ifdef CONFIG_VXWORKS
 #define MENU_WARNING_COLOR COLOR_RED
-#else
-#define MENU_WARNING_COLOR 254
-#endif
+//~ #else
+//~ #define MENU_WARNING_COLOR 254
+//~ #endif
 
 
 #endif

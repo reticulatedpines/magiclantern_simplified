@@ -1904,6 +1904,7 @@ entry_print_junkie(
     
     w -= 2;
     x += 1;
+    h -= 1;
 
     if (sel) // display the full selected entry normally
     {
@@ -1911,16 +1912,19 @@ entry_print_junkie(
         
         // brighten the selection
         if (bg == COLOR_GREEN1) bg = COLOR_GREEN2;
+        else if (bg == COLOR_ORANGE) bg = COLOR_PINK; // modified to look like bright orange
         else if (bg == COLOR_GRAY40) bg = COLOR_GRAY45;
 
         if (fg == COLOR_GRAY60) fg = COLOR_WHITE;
         else if (fg == COLOR_GRAY45) fg = 55;
-        else if (fg == COLOR_BLACK) fg = COLOR_WHITE;
     }
     
     int maxlen = (w - 8) / font_med.width;
 
-    int fnt = SHADOW_FONT(FONT(FONT_MED, fg, bg));
+    int sh = bg;
+    if (bg == COLOR_GRAY40 || bg == COLOR_GRAY45) sh = COLOR_BLACK;
+
+    int fnt = SHADOW_FONT(FONT(FONT_MED, fg, sh));
     
     bmp_fill(bg, x+2, y+2, w-4+1, h-4+1);
     //~ bmp_draw_rect(bg, x+2, y+2, w-4, h-4);
@@ -1929,7 +1933,7 @@ entry_print_junkie(
     
     bmp_printf(
         fnt,
-        x + (w - font_med.width * strlen(shortname)) / 2, 
+        x + (w - font_med.width * strlen(shortname)) / 2 + 2, 
         y + (h - font_med.height) / 2,
         shortname
     );
@@ -1940,20 +1944,22 @@ entry_print_junkie(
     int selc = sel ? COLOR_WHITE : menu_selected ? COLOR_BLUE : entry->selected ? COLOR_BLACK : COLOR_BLACK;
     bmp_draw_rect(selc, x, y, w, h);
     bmp_draw_rect(selc, x+1, y+1, w-2, h-2);
+    bmp_draw_rect(selc, x+2, y+2, w-4, h-4);
+    draw_line(x, y+h+1, x+w, y+h+1, selc);
     
     // round corners
-    bmp_putpixel(x+2, y+2, selc);
-    bmp_putpixel(x+2, y+3, selc);
-    bmp_putpixel(x+3, y+2, selc);
-    bmp_putpixel(x+w-2, y+2, selc);
-    bmp_putpixel(x+w-2, y+3, selc);
-    bmp_putpixel(x+w-3, y+2, selc);
-    bmp_putpixel(x+2, y+h-2, selc);
-    bmp_putpixel(x+2, y+h-3, selc);
-    bmp_putpixel(x+3, y+h-2, selc);
-    bmp_putpixel(x+w-2, y+h-2, selc);
-    bmp_putpixel(x+w-2, y+h-3, selc);
-    bmp_putpixel(x+w-3, y+h-2, selc);
+    bmp_putpixel(x+3, y+3, selc);
+    bmp_putpixel(x+3, y+4, selc);
+    bmp_putpixel(x+4, y+3, selc);
+    bmp_putpixel(x+w-3, y+3, selc);
+    bmp_putpixel(x+w-3, y+4, selc);
+    bmp_putpixel(x+w-4, y+3, selc);
+    bmp_putpixel(x+3, y+h-3, selc);
+    bmp_putpixel(x+3, y+h-4, selc);
+    bmp_putpixel(x+4, y+h-3, selc);
+    bmp_putpixel(x+w-3, y+h-3, selc);
+    bmp_putpixel(x+w-3, y+h-4, selc);
+    bmp_putpixel(x+w-4, y+h-3, selc);
 
     // customization markers
     if (customize_mode)
@@ -2780,6 +2786,12 @@ menu_redraw_do()
         }
     
     bmp_on();
+
+    // adjust some colors for better contrast
+    alter_bitmap_palette_entry(COLOR_GREEN1, COLOR_GREEN1, 160, 256);
+    alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);
+    alter_bitmap_palette_entry(COLOR_PINK,   COLOR_ORANGE, 256, 256);
+    alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 384, 256);
 
     #ifdef CONFIG_VXWORKS
     set_ml_palette();
