@@ -247,6 +247,12 @@ fontspec_height(uint32_t fontspec)
     return fontspec_font(fontspec)->height;
 }
 
+static inline uint32_t
+fontspec_width(uint32_t fontspec)
+{
+    return fontspec_font(fontspec)->width;
+}
+
 OS_FUNCTION( 0x0500001,	void,	bmp_printf, uint32_t fontspec, int x, int y, const char* fmt, ... );
 OS_FUNCTION( 0x0500002, size_t,	read_file, const char * filename, void * buf, size_t size);
 

@@ -1928,14 +1928,17 @@ entry_print_junkie(
         if (fg == COLOR_GRAY60) fg = COLOR_WHITE;
         else if (fg == COLOR_GRAY45) fg = 55;
     }
-    
-    int maxlen = (w - 8) / font_med.width;
 
     int sh = bg;
-    if (bg == COLOR_GRAY40 || bg == COLOR_GRAY45) sh = COLOR_BLACK;
+    if (bg == COLOR_GRAY40 || bg == 42) sh = COLOR_BLACK;
 
     int fnt = SHADOW_FONT(FONT(FONT_MED, fg, sh));
-    
+
+    if (h > 30 && w > 130) // we can use large font when we have 5 or fewer tabs
+        fnt = SHADOW_FONT(FONT(FONT_LARGE, fg, sh));
+
+    int maxlen = (w - 8) / fontspec_width(fnt);
+
     bmp_fill(bg, x+2, y+2, w-4+1, h-4+1);
     //~ bmp_draw_rect(bg, x+2, y+2, w-4, h-4);
 
@@ -1943,8 +1946,8 @@ entry_print_junkie(
     
     bmp_printf(
         fnt,
-        x + (w - font_med.width * strlen(shortname)) / 2 + 2, 
-        y + (h - font_med.height) / 2,
+        x + (w - fontspec_width(fnt) * strlen(shortname)) / 2 + 2, 
+        y + (h - fontspec_height(fnt)) / 2,
         shortname
     );
 
