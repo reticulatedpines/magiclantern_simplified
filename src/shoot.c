@@ -3248,7 +3248,7 @@ static MENU_UPDATE_FUNC(bulb_display)
     if (!bulb_timer) MENU_SET_ICON(MNI_OFF, 0);
     else MENU_SET_ICON(MNI_PERCENT, bulb_duration_index * 100 / COUNT(timer_values));
     
-    if (!is_bulb_mode_or_bulb_ramping()) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Bulb timer only works in BULB mode");
+    if (!is_bulb_mode()) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Bulb timer only works in BULB mode");
     
     if (entry->selected && is_bulb_mode() && intervalometer_running) timelapse_calc_display(&interval_timer_index, 10, 370, entry->selected);
 }
@@ -4987,7 +4987,7 @@ static struct menu_entry shoot_menus[] = {
                 .min    = 5,
                 .max    = 11,
                 .icon_type = IT_PERCENT,
-                .choices = CHOICES("0", "0.1s", "0.2s", "0.3s", "0.4s", "0.5s", "0.75s", "1s", "2s", "3s", "4s", "5s"),
+                .choices = CHOICES("0.5s", "0.75s", "1s", "2s", "3s", "4s", "5s"),
                 .help = "MLU delay used with intervalometer, bracketing etc.",
             }, 
             MENU_EOL
@@ -7189,17 +7189,17 @@ shoot_task( void* unused )
                     prev_d[0] = d;
                     
                     int dmax = 0;
-                    for (int i = 0; i < 5; i++)
+                    for (int i = 0; i < 30; i++)
                     {
                         dmax = MAX(dmax, prev_d[i]);
                     }
-                    int steady = (dmax <= (int)motion_detect_level);
+                    int steady = (dmax <= motion_detect_level);
 
                     for (int i = 1; i < 30; i++)
                     {
                         int d = MIN(prev_d[i], 30);
-                        bmp_draw_rect(COLOR_RED, 60 - i*2, 100 - d, 1, d);
-                        bmp_draw_rect(steady ? COLOR_GREEN1 : i < 5 ? COLOR_LIGHTBLUE : COLOR_BLACK, 60 - i*2, 100 - 30, 1, 30 - d);
+                        bmp_draw_rect(d <= motion_detect_level ? COLOR_CYAN : COLOR_RED, 60 - i*2, 100 - d, 1, d);
+                        bmp_draw_rect(steady ? COLOR_GREEN1 : COLOR_BLACK, 60 - i*2, 100 - 30, 1, 30 - d);
                     }
 
                     bmp_printf(FONT_MED, 0, 20, "Motion level: %d   ", dmax);
