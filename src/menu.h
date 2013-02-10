@@ -146,11 +146,12 @@ struct menu_entry
         menu_update_func update;
 
         unsigned selected   : 1;
+        unsigned starred    : 1; // present in "my menu"
+        unsigned hidden     : 1; // hidden from main menu
+        unsigned jhidden    : 1; // hidden from junkie menu
         unsigned unit       : 4;
-        unsigned hidden     : 1;
         unsigned icon_type  : 4;
         unsigned edit_mode  : 2;
-        unsigned starred    : 1; // present in "my menu"
         
         const char * help;
         const char * help2;
@@ -171,8 +172,12 @@ struct menu_entry
         int16_t works_best_in;  // soft requirement, it will work, but not as well
 };
 
-#define HAS_HIDDEN_FLAG(entry) ((entry)->hidden == MENU_ENTRY_HIDDEN)
-#define IS_VISIBLE(entry) (!HAS_HIDDEN_FLAG(entry) || customize_mode)
+#define HAS_HIDDEN_FLAG(entry) ((entry)->hidden)
+#define HAS_JHIDDEN_FLAG(entry) ((entry)->jhidden)
+#define IS_VISIBLE(entry) ( \
+    (!junkie_mode && !HAS_HIDDEN_FLAG(entry)) || \
+    (junkie_mode && !HAS_JHIDDEN_FLAG(entry)) || \
+    customize_mode) 
 
 #define MENU_INT(entry) ((entry)->priv ? *(int*)(entry)->priv : 0)
 #define CURRENT_VALUE (MENU_INT(entry))
@@ -183,9 +188,6 @@ struct menu_entry
 // how many choices we have (index runs from 0 to N-1)
 #define NUM_CHOICES(entry) ((entry)->max - (entry)->min + 1)
 #define CHOICES(...) (const char *[]) { __VA_ARGS__ }
-
-#define MENU_ENTRY_NOT_HIDDEN 0
-#define MENU_ENTRY_HIDDEN 1
 
 #define EM_FEW_VALUES 0
 #define EM_MANY_VALUES 1

@@ -97,8 +97,7 @@ static int menu_shown = false;
 static int menu_lv_transparent_mode; // for ISO, kelvin...
 static int config_dirty = 0;
 
-static int menu_hidden_dirty = 0;
-static int menu_starred_dirty = 0;
+static int menu_flags_dirty = 0;
 
 //~ static int menu_hidden_should_display_help = 0;
 static int menu_zebras_mirror_dirty = 0; // to clear zebras from mirror (avoids display artifacts if, for example, you enable false colors in menu, then you disable them, and preview LV)
@@ -147,8 +146,7 @@ static void menu_show_version(void);
 static struct menu * get_current_submenu();
 static struct menu * get_selected_menu();
 static void menu_make_sure_selection_is_valid();
-static void menu_load_hidden_items();
-static void menu_load_starred_items();
+static void config_menu_load_flags();
 static int guess_submenu_enabled(struct menu_entry * entry);
 static void menu_draw_icon(int x, int y, int type, intptr_t arg); // private
 static struct menu_entry * entry_find_by_name(const char* name, const char* entry_name);
@@ -240,6 +238,7 @@ static int is_customize_selected(struct menu * menu) // argument is optional, ju
 #define MY_MENU_ENTRY \
         { \
             .hidden = 1, \
+            .jhidden = 1, \
         },
 
 static MENU_UPDATE_FUNC(menu_placeholder_unused_update)
@@ -504,6 +503,7 @@ menu_find_by_name(
     new_menu->childnum  = 1;
     new_menu->childnummax = 1;
     new_menu->split_pos = -12;
+    new_menu->delnum    = 0;
     // menu points to the last entry or NULL if there are none
     if( menu )
     {
@@ -1703,6 +1703,7 @@ my_menu_update()
                 my_entry->prev = prev;
                 my_entry->selected = selected;
                 my_entry->hidden = 0;
+                my_entry->jhidden = 0;
                 my_entry->starred = 0;
                 
                 // update split position
@@ -1715,6 +1716,7 @@ my_menu_update()
     {
         struct menu_entry * my_entry = &(my_menu_placeholders[i]);
         my_entry->hidden = 1;
+        my_entry->jhidden = 1;
         my_entry->name = 0;
         my_entry->priv = 0;
         my_entry->select = 0;
@@ -1742,6 +1744,8 @@ menu_display(
     delnum = MIN(delnum, menu->pos - 1);
     menu->delnum = delnum;
     
+    //~ NotifyBox(1000, "%d %d ", delnum, menu->pos);
+
     for(int i=0;i<delnum;i++){
         while(!IS_VISIBLE(entry)) entry = entry->next;
         entry = entry->next;
@@ -1942,7 +1946,7 @@ entry_print_junkie(
     // selection bar params
     
     // selection bar
-    int selc = sel ? COLOR_WHITE : menu_selected ? COLOR_BLUE : entry->selected ? COLOR_BLACK : COLOR_BLACK;
+    int selc = sel ? COLOR_WHITE : COLOR_BLACK; //menu_selected ? COLOR_BLUE : entry->selected ? COLOR_BLACK : COLOR_BLACK;
     bmp_draw_rect(selc, x, y, w, h);
     bmp_draw_rect(selc, x+1, y+1, w-2, h-2);
     bmp_draw_rect(selc, x+2, y+2, w-4, h-4);
@@ -1967,11 +1971,11 @@ entry_print_junkie(
     {
         // star marker
         if (entry->starred)
-            bmp_printf(SHADOW_FONT(FONT(FONT_MED, COLOR_GREEN1, COLOR_BLACK)), x+5, y, "*");
+            bmp_printf(SHADOW_FONT(FONT(FONT_LARGE, COLOR_GREEN2, COLOR_BLACK)), x+5, y, "*");
         
         // hidden marker
-        if (entry->hidden)
-            bmp_printf(SHADOW_FONT(FONT(FONT_MED, COLOR_RED, COLOR_BLACK)), x+w-12, y, "x");
+        if (entry->jhidden)
+            bmp_printf(SHADOW_FONT(FONT(FONT_LARGE, COLOR_RED, COLOR_BLACK)), x+w-20, y, "x");
     }
 }
 
@@ -2256,6 +2260,7 @@ menus_display(
             int icon_width = bfnt_char_get_width(icon_char);
             int x_ico = (x & ~3) + (icon_spacing - icon_width) / 2;
             bfnt_draw_char(icon_char, x_ico, y + 2, fg, bg);
+            //~ bmp_printf(FONT_MED, x_ico, 40, "%d ", menu->delnum);
 
             if (menu->selected)
             {
@@ -2401,18 +2406,28 @@ menu_entry_showhide_toggle(
 {
     if( !menu )
         return;
+    
+    if (streq(menu->name, MY_MENU_NAME)) return; // special menu
 
     struct menu_entry * entry = get_selected_entry(menu);
     if (!entry) return;
 
-    entry->hidden = entry->hidden ? MENU_ENTRY_NOT_HIDDEN : MENU_ENTRY_HIDDEN;
-    if(entry->hidden == MENU_ENTRY_HIDDEN){
-        menu->childnum--;
-    }else{
-        menu->childnum++;
+    if (junkie_mode)
+    {
+        entry->jhidden = !entry->jhidden;
+    }
+    else
+    {
+        entry->hidden = !entry->hidden;
+        if(entry->hidden){
+            menu->childnum--;
+        }else{
+            menu->childnum++;
+        }
     }
     menu_make_sure_selection_is_valid();
-    menu_hidden_dirty = 1;
+    menu_flags_dirty = 1;
+    my_menu_update();
 }
 
 static void
@@ -2436,7 +2451,7 @@ menu_entry_star_toggle(
     }
 
     entry->starred = !entry->starred;
-    menu_starred_dirty = 1;
+    menu_flags_dirty = 1;
     int ok = my_menu_update();
     if (!ok)
     {
@@ -3377,10 +3392,12 @@ static void menu_open()
 { 
     if (menu_shown) return;
 
+/* not ergonomic
     // always start in my menu, if configured
     struct menu * my_menu = menu_find_by_name(MY_MENU_NAME, 0);
     if (menu_has_visible_items(my_menu))
         select_menu_by_icon(ICON_ML_MYMENU);
+*/
 
 #ifdef CONFIG_5DC
     //~ forces the 5dc screen to turn on for ML menu.
@@ -3444,8 +3461,7 @@ menu_task( void* unused )
     
     int initial_mode = 0; // shooting mode when menu was opened (if changed, menu should close)
     
-    menu_load_hidden_items();
-    menu_load_starred_items();
+    config_menu_load_flags();
     select_menu_by_icon(menu_first_by_icon);
     menu_make_sure_selection_is_valid();
     
@@ -3467,12 +3483,11 @@ menu_task( void* unused )
             if( !menu_shown )
             {
                 extern int config_autosave;
-                if (config_autosave && (config_dirty || menu_hidden_dirty || menu_starred_dirty) && !recording && !ml_shutdown_requested)
+                if (config_autosave && (config_dirty || menu_flags_dirty) && !recording && !ml_shutdown_requested)
                 {
                     save_config(0);
                     config_dirty = 0;
-                    menu_hidden_dirty = 0;
-                    menu_starred_dirty = 0;
+                    menu_flags_dirty = 0;
                 }
                 
                 continue;
@@ -3661,6 +3676,15 @@ static void hide_menu_by_name(char* name, char* entry_name)
     }
 }
 
+static void jhide_menu_by_name(char* name, char* entry_name)
+{
+    struct menu * menu = menu_find_by_name(name, 0);
+    struct menu_entry * entry = entry_find_by_name(name, entry_name);
+    if (menu && entry)
+    {
+        entry->jhidden = 1;
+    }
+}
 static void star_menu_by_name(char* name, char* entry_name)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
@@ -3790,10 +3814,22 @@ int handle_quick_access_menu_items(struct event * event)
     return 1;
 }
 
-#define FLAG_HIDDEN 0
-#define FLAG_STARRED 1
+static int menu_get_flags(struct menu_entry * entry)
+{
+    return entry->starred + entry->hidden*2 + entry->jhidden*4;
+}
 
-static void menu_save_flag(char* filename, int flag_to_save)
+static void menu_set_flags(char* menu_name, char* entry_name, int flags)
+{
+    if (flags & 1)
+        star_menu_by_name(menu_name, entry_name);
+    if (flags & 2)
+        hide_menu_by_name(menu_name, entry_name);
+    if (flags & 4)
+        jhide_menu_by_name(menu_name, entry_name);
+}
+
+static void menu_save_flags(char* filename)
 {
     #define MAX_SIZE 10240
     char* msg = alloc_dma_memory(MAX_SIZE);
@@ -3802,17 +3838,20 @@ static void menu_save_flag(char* filename, int flag_to_save)
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
+        if (streq(menu->name, MY_MENU_NAME)) continue;
+        
         struct menu_entry * entry = menu->children;
         
         int i;
         for(i = 0 ; entry ; entry = entry->next, i++ )
         {
-            if (
-                    (flag_to_save == FLAG_HIDDEN && HAS_HIDDEN_FLAG(entry)) ||
-                    (flag_to_save == FLAG_STARRED && entry->starred)
-               )
+            if (!entry->name) continue;
+            if (!entry->name[0]) continue;
+
+            int flags = menu_get_flags(entry);
+            if (flags)
             {
-                snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1, "%s\\%s\n", menu->name, entry->name);
+                snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1, "%d %s\\%s\n", flags, menu->name, entry->name);
             }
         }
     }
@@ -3827,7 +3866,7 @@ static void menu_save_flag(char* filename, int flag_to_save)
 
 }
 
-static void menu_load_flag(char* filename, int flag_to_load)
+static void menu_load_flags(char* filename)
 {
     int size = 0;
     char* buf = (char*)read_entire_file(filename , &size);
@@ -3845,14 +3884,12 @@ static void menu_load_flag(char* filename, int flag_to_load)
             {
                 buf[i] = 0;
                 buf[sep] = 0;
-                char* menu_name = &buf[prev+1];
+                char* menu_name = &buf[prev+3];
                 char* entry_name = &buf[sep+1];
+                int flags = buf[prev+1] - '0';
                 //~ NotifyBox(2000, "%s -> %s", menu_name, entry_name); msleep(2000);
                 
-                if (flag_to_load == FLAG_HIDDEN)
-                    hide_menu_by_name(menu_name, entry_name);
-                else
-                    star_menu_by_name(menu_name, entry_name);
+                menu_set_flags(menu_name, entry_name, flags);
             }
             prev = i;
         }
@@ -3860,27 +3897,19 @@ static void menu_load_flag(char* filename, int flag_to_load)
     free_dma_memory(buf);
 }
 
-void config_menu_save_hidden_items()
-{
-    if (!menu_hidden_dirty) return;
-    menu_save_flag(CARD_DRIVE "ML/SETTINGS/HIDDEN.CFG", FLAG_HIDDEN);
-}
 
-static void menu_load_hidden_items()
+static void config_menu_load_flags()
 {
-    menu_load_flag(CARD_DRIVE "ML/SETTINGS/HIDDEN.CFG", FLAG_HIDDEN);
-}
-
-void config_menu_save_starred_items()
-{
-    if (!menu_starred_dirty) return;
-    menu_save_flag(CARD_DRIVE "ML/SETTINGS/MYMENU.CFG", FLAG_STARRED);
-}
-static void menu_load_starred_items()
-{
-    menu_load_flag(CARD_DRIVE "ML/SETTINGS/MYMENU.CFG", FLAG_STARRED);
+    menu_load_flags(CARD_DRIVE "ML/SETTINGS/MENU.CFG");
     my_menu_update();
 }
+
+void config_menu_save_flags()
+{
+    if (!menu_flags_dirty) return;
+    menu_save_flags(CARD_DRIVE "ML/SETTINGS/MENU.CFG");
+}
+
 
 /*void menu_save_all_items_dbg()
 {
