@@ -379,17 +379,17 @@ int get_exposure_time_raw()
 static PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
 #ifdef FEATURE_INTERVALOMETER
-static void timelapse_calc_display(void* priv, int x, int y, int selected)
+static MENU_UPDATE_FUNC(timelapse_calc_display)
 {
-    int d = timer_values[*(int*)priv];
+    int d = timer_values[interval_timer_index];
+    d = MAX(d, get_exposure_time_ms()/1000);
     int total_shots = interval_stop_after ? (int)MIN((int)interval_stop_after, (int)avail_shot) : (int)avail_shot;
     int total_time_s = d * total_shots;
     int total_time_m = total_time_s / 60;
     int fps = video_mode_fps;
     if (!fps) fps = pal ? 25 : 30;
-    bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK), 
-        x, y,
-        "%dh%02dm, %dshots, %dfps => %02dm%02ds", 
+    MENU_SET_WARNING(MENU_WARN_INFO, 
+        "Timelapse: %dh%02dm, %d shots, %d fps => %02dm%02ds.", 
         total_time_m / 60, 
         total_time_m % 60, 
         total_shots, fps, 
@@ -414,6 +414,8 @@ static MENU_UPDATE_FUNC(interval_timer_display)
     }
     MENU_SET_ICON(MNI_PERCENT, CURRENT_VALUE * 100 / COUNT(timer_values));
     MENU_SET_ENABLED(1);
+    
+    timelapse_calc_display(entry, info);
 }
 
 static MENU_UPDATE_FUNC(interval_start_after_display)
@@ -435,6 +437,9 @@ static MENU_UPDATE_FUNC(interval_stop_after_display)
         d ? d : (intptr_t) "Disabled"
     );
     MENU_SET_ENABLED(d);
+    if (d > avail_shot)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not enough space for %d shots (only for %d).", d, avail_shot);
+    timelapse_calc_display(entry, info);
 }
 
 static MENU_SELECT_FUNC(interval_timer_toggle)
@@ -480,12 +485,26 @@ static MENU_UPDATE_FUNC(intervalometer_display)
             format_time_hours_minutes_seconds(d),
             bulb_ramping_enabled ? ", BRamp" : ""
         );
-        if (entry->selected) timelapse_calc_display(&interval_timer_index, 10, 370, entry->selected);
     }
     else
     {
         MENU_SET_VALUE("OFF");
     }
+
+    if (shooting_mode != SHOOTMODE_M && !is_bulb_mode())
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Use M mode to avoid exposure flicker.");
+    else if (lens_info.raw_aperture != lens_info.raw_aperture_min)
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Shoot wide-open or unscrew lens to avoid aperture flicker.");
+    else if (get_exposure_time_ms() < 10)
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Use slow shutter speeds to avoid shutter flicker.");
+    else if (lens_info.wb_mode == 0)
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Use manual white balance to avoid WB flicker.");
+    else if (shoot_use_af && !is_manual_focus())
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Disable autofocus.");
+    else if (lens_info.IS && lens_info.IS != 8)
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Disable image stabilization.");
+
+    if (entry->selected) timelapse_calc_display(entry, info);
 }
 #endif
 
@@ -3250,7 +3269,7 @@ static MENU_UPDATE_FUNC(bulb_display)
     
     if (!is_bulb_mode()) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Bulb timer only works in BULB mode");
     
-    if (entry->selected && is_bulb_mode() && intervalometer_running) timelapse_calc_display(&interval_timer_index, 10, 370, entry->selected);
+    if (entry->selected && intervalometer_running) timelapse_calc_display(entry, info);
 }
 
 static MENU_UPDATE_FUNC(bulb_display_submenu)
@@ -5346,7 +5365,8 @@ static struct menu_entry expo_menus[] = {
             {
                 .name = "Auto adjust Kelvin + G/M",
                 .select = kelvin_n_gm_auto,
-                .help = "LiveView: adjust Kelvin and G-M once (Push-button WB)."
+                .help = "LiveView: adjust Kelvin and G-M once (Push-button WB).",
+                .depends_on = DEP_LIVEVIEW,
             },
             MENU_EOL
         },
