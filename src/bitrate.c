@@ -259,9 +259,9 @@ static MENU_UPDATE_FUNC(bitrate_print)
     else if (bitrate_mode == 2)
     {
         MENU_SET_NAME("Bit Rate (VBR)");
-        MENU_SET_VALUE("QScale %d", qscale);
+        MENU_SET_VALUE("QScale %s%d", qscale > 0 ? "+" : "", qscale);
         MENU_SET_ICON(MNI_PERCENT, -(qscale-16) * 100 / 32);
-        MENU_SET_ENABLED(0);
+        MENU_SET_ENABLED(1);
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Be careful, bitrate is not constant, recording may stop.");
     }
 }

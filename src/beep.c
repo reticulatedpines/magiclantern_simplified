@@ -880,11 +880,17 @@ PROP_HANDLER( PROP_MVR_REC_START )
 }
 #endif
 
+MENU_UPDATE_FUNC(beep_update)
+{
+    MENU_SET_ENABLED(beep_enabled);
+}
+
 static struct menu_entry beep_menus[] = {
     #ifdef FEATURE_BEEP
     {
         .name = "Beep and test tones...",
         .select = menu_open_submenu,
+        .update = beep_update,
         .help = "Configure ML beeps and play test tones (440Hz, 1kHz...)",
         .children =  (struct menu_entry[]) {
             {
@@ -945,16 +951,16 @@ static struct menu_entry beep_menus[] = {
         .help = "Record short audio clips, add voice tags to pictures...",
         .children =  (struct menu_entry[]) {
             {
-                .name = "Record",
-                .update = record_display,
-                .select = record_start,
-                .help = "Press SET to start or stop recording.",
-            },
-            {
                 .name = "File name",
                 .update = filename_display,
                 .select = find_next_wav,
                 .help = "Select a file name for playback.",
+            },
+            {
+                .name = "Record",
+                .update = record_display,
+                .select = record_start,
+                .help = "Press SET to start or stop recording.",
             },
             {
                 .name = "Playback selected file",
@@ -966,17 +972,17 @@ static struct menu_entry beep_menus[] = {
                 .select = delete_file,
                 .help = "Be careful :)",
             },
-            #ifdef FEATURE_VOICE_TAGS
-            {
-                .name = "Voice tags", 
-                .priv = &voice_tags, 
-                .max = 1,
-                .help = "After you take a picture, press SET to add a voice tag.",
-                .works_best_in = DEP_PHOTO_MODE,
-            },
-            #endif
             MENU_EOL,
         }
+    },
+    #endif
+    #ifdef FEATURE_VOICE_TAGS
+    {
+        .name = "Voice Tags", 
+        .priv = &voice_tags, 
+        .max = 1,
+        .help = "After you take a picture, press SET to add a voice tag.",
+        .works_best_in = DEP_PHOTO_MODE,
     },
     #endif
 };

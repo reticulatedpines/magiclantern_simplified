@@ -312,6 +312,10 @@ static MENU_UPDATE_FUNC(hdr_print)
                 iso_low, iso_high, 
                 ev_x10/10, ev_x10%10
             );
+            MENU_SET_SHORT_VALUE(
+                "%d/%d",
+                iso_low, iso_high
+            );
         }
     }
 }

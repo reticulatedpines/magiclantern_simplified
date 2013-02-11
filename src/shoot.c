@@ -616,9 +616,10 @@ static void bramp_manual_evx1000_toggle(void* priv, int delta)
 static MENU_UPDATE_FUNC(audio_release_display)
 {
     if (audio_release_running)
-        MENU_SET_VALUE("ON, level=%d",
-        audio_release_level
-    );
+    {
+        MENU_SET_VALUE("ON, level=%d", audio_release_level);
+        MENU_SET_SHORT_VALUE("%d", audio_release_level);
+    }
 }
 #endif
 
@@ -627,11 +628,18 @@ static MENU_UPDATE_FUNC(audio_release_display)
 static MENU_UPDATE_FUNC(motion_detect_display)
 {
     if (motion_detect) 
+    {
         MENU_SET_VALUE(
             "%s, level=%d",
             motion_detect_trigger == 0 ? "EXP" : motion_detect_trigger == 1 ? "DIF" : "STDY",
             motion_detect_level
         );
+        MENU_SET_SHORT_VALUE(
+            "%s,%d",
+            motion_detect_trigger == 0 ? "EXP" : motion_detect_trigger == 1 ? "DIF" : "STDY",
+            motion_detect_level
+        );
+    }
     
     if (motion_detect_trigger == 2) 
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Press shutter halfway and be careful (tricky feature).");
@@ -1855,6 +1863,8 @@ static MENU_UPDATE_FUNC(iso_display)
         MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_iso - codes_iso[1]) * 100 / (codes_iso[COUNT(codes_iso)-1] - codes_iso[1]));
     else 
         MENU_SET_ICON(MNI_AUTO, 0);
+    
+    MENU_SET_SHORT_NAME(" "); // obvious from value
 }
 #endif
 
@@ -2026,6 +2036,8 @@ static MENU_UPDATE_FUNC(shutter_display)
         MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_shutter - codes_shutter[1]) * 100 / (codes_shutter[COUNT(codes_shutter)-1] - codes_shutter[1]));
     else 
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Shutter speed is automatic - cannot adjust manually.");
+
+    MENU_SET_SHORT_NAME(" "); // obvious from value
 }
 
 void
@@ -2077,6 +2089,8 @@ static MENU_UPDATE_FUNC(aperture_display)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture.");
     else
         MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_aperture - codes_aperture[1]) * 100 / (codes_shutter[COUNT(codes_aperture)-1] - codes_aperture[1]));
+
+    MENU_SET_SHORT_NAME(" "); // obvious from value
 }
 
 void
@@ -2189,6 +2203,9 @@ static MENU_UPDATE_FUNC(kelvin_wbs_display)
             lens_info.wbs_ba > 0 ? "A" : "B", ABS(lens_info.wbs_ba)
         );
     }
+
+    MENU_SET_SHORT_NAME(" "); // obvious from value
+    MENU_SET_SHORT_VALUE("%s%s", info->value, info->rinfo); // squeeze both on the same field
 }
 
 static int kelvin_auto_flag = 0;

@@ -464,11 +464,14 @@ audio_input_toggle( void * priv, int delta )
 static MENU_UPDATE_FUNC(audio_micpower_display)
 {
     int mic_pow = get_mic_power(get_input_source());
-    MENU_SET_VALUE(
-        mic_power ? "ON (Low Z)" : "OFF (High Z)"
+    MENU_SET_RINFO(
+        mic_pow ? "Low Z" : "High Z"
     );
     if (mic_pow != mic_power)
+    {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Mic power is required by internal mic.");
+        if (mic_pow){ MENU_SET_ENABLED(1); MENU_SET_VALUE("ON (can't disable)"); }
+    }
 }
 #endif
 
@@ -577,13 +580,13 @@ static struct menu_entry audio_menus[] = {
     #ifdef FEATURE_HEADPHONE_MONITORING
     #ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
     {
-        .name = "Output volume",
+        .name = "Output Volume",
         .priv           = &lovl,
         .select         = audio_3bit_toggle,
         .update         = audio_lovl_display,
         .max = 3,
         .icon_type      = IT_PERCENT,
-        .choices = (const char *[]) {"0 dB", "2 dB", "4 dB", "6 dB"},
+        .choices = (const char *[]) {"0 dB", "2 dB (digital)", "4 dB (digital)", "6 dB (digital)"},
         .help = "Output volume for audio monitoring (headphones only).",
         .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
     },

@@ -1893,7 +1893,6 @@ static char* junkie_get_shortvalue(struct menu_display_info * info, int maxlen)
     {
         char c = tmp[j];
         if (c == ' ') continue;
-        if (c == ':') continue;
         if (c == '(') break;
         svalue[i] = c;
         i++;
@@ -2053,9 +2052,9 @@ menu_entry_process_junkie(
     // fill in default text, warning checks etc 
     static struct menu_display_info info;
     entry_default_display_info(entry, &info);
-    info.x = x;
-    info.y = y;
-    info.x_val = x;
+    info.x = 0;
+    info.y = 0;
+    info.x_val = 0;
 
     // display icon (only the first icon is drawn)
     icon_drawn = 0;
