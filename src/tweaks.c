@@ -2106,51 +2106,6 @@ static struct menu_entry key_menus[] = {
     },
     #endif
 
-	#ifdef DISPLAY_HEADER_FOOTER_INFO
-	{
-        .name       = "Info screen settings...",
-        .select = menu_open_submenu,
-        .submenu_width = 620,
-        .help = "Choose infos to display.",
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Header left",
-                .priv       = &header_left_info,
-                .max = 5,
-                .icon_type = IT_DICE_OFF,
-                .update = header_display,
-                .help = "What info do you want to display at the top left corner",
-            },
-            {
-                .name = "Header right",
-                .priv       = &header_right_info,
-                .max = 5,
-                .icon_type = IT_DICE_OFF,
-                .update = header_display,
-                .help = "What info do you want to display at the top right corner",
-            },
-            {
-                .name = "Footer left",
-                .priv       = &footer_left_info,
-                .max = 5,
-                .icon_type = IT_DICE_OFF,
-                .update = header_display,
-                .help = "What info do you want to display at the bottom left corner",
-            },
-            {
-                .name = "Footer right",
-                .priv       = &footer_right_info,
-                .max = 5,
-                .icon_type = IT_DICE_OFF,
-                .update = header_display,
-                .help = "What info do you want to display at the bottom right corner",
-            },
-            MENU_EOL
-		},
-		
-	},
-	#endif
-
     #if defined(CONFIG_LCD_SENSOR) || defined(FEATURE_STICKY_DOF) || defined(FEATURE_STICKY_HALFSHUTTER) || defined(FEATURE_SWAP_MENU_ERASE) || defined(FEATURE_DIGITAL_ZOOM_SHORTCUT_600D)
     {
         .name       = "Misc key settings...",

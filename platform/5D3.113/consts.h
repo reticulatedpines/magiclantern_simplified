@@ -155,9 +155,6 @@
 #define DISPLAY_BATTERY_POS_X 146
 #define DISPLAY_BATTERY_POS_Y 410
 
-// for header footer info
-#define DISPLAY_HEADER_FOOTER_INFO
-
 // for HDR status
 #define HDR_STATUS_POS_X 140
 #define HDR_STATUS_POS_Y 460
