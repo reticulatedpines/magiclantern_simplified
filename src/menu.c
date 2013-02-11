@@ -1808,84 +1808,125 @@ static int startswith(char* str, char* prefix)
     return 1;
 }
 
+static inline int islovowel(char c)
+{
+    if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u')
+        return 1;
+    return 0;
+}
 static char* junkie_get_shortname(struct menu_display_info * info, int maxlen)
 {
-    static char msg[50];
-    char name[100];
-    if (maxlen > 49) maxlen = 49;
+    static char tmp[30];
+    static char sname[20];
+    if (maxlen > 19) maxlen = 19;
 
-    int print_value = 0;
-    // print name or value?
-    if (streq(info->value, "ON") || streq(info->value, "Default") || startswith(info->value, "OFF") || streq(info->value, "Normal") || !info->value[0])
+    if (info->short_name[0])
     {
-        // ON/OFF is obvious by color; print just the name
-        if(strlen(info->short_name))
-        {
-            snprintf(name, sizeof(name), "%s", info->short_name);
-        }
-        else
-        {
-            // skip some common words
-            int skip = 0;
-            if (startswith(info->name, "Movie")) skip = 5;
-            else if (startswith(info->name, "Magic")) skip = 5;
-            else if (startswith(info->name, "Focus")) skip = 5;
-            else if (startswith(info->name, "Expo")) skip = 4;
-            else if (startswith(info->name, "Advanced")) skip = 8;
-            else if (startswith(info->name, "LV")) skip = 2;
-            else if (startswith(info->name, "ML")) skip = 2;
-            
-            // keep the first letter from the skipped word
-            char abbr[4] = "";
-            if (skip > 2)
-            {
-                abbr[0] = info->name[0];
-                abbr[1] = 0;
-            }
-            snprintf(name, sizeof(name), "%s%s", abbr, info->name + skip);
-        }
+        snprintf(tmp, sizeof(tmp), "%s", info->short_name);
     }
-    else // print value only
+    else
     {
-        print_value = 1;
+        // skip some common words
+        int skip = 0;
+        if (startswith(info->name, "Movie")) skip = 5;
+        else if (startswith(info->name, "Magic")) skip = 5;
+        else if (startswith(info->name, "Focus")) skip = 5;
+        else if (startswith(info->name, "Expo")) skip = 4;
+        else if (startswith(info->name, "Advanced")) skip = 8;
+        else if (startswith(info->name, "LV Display")) skip = 10;
+        else if (startswith(info->name, "LV")) skip = 2;
+        else if (startswith(info->name, "ML")) skip = 2;
         
-        if(strlen(info->short_value))
+        // keep the first letter from the skipped word
+        char abbr[4] = "";
+        if (skip > 2)
         {
-            snprintf(name, sizeof(name), "%s", info->short_value);
+            abbr[0] = info->name[0];
+            abbr[1] = 0;
         }
-        else
-        {
-            int skip = 0;
-            if (startswith(info->value, "ON,")) skip = 3;
-            if (startswith(info->value, "Press")) skip = 5;
-            if (startswith(info->value, "up to ")) skip = 6;
-            if (startswith(info->value, "Photo,")) skip = 6;
-            snprintf(name, sizeof(name), "%s", info->value + skip);
-        }
+        snprintf(tmp, sizeof(tmp), "%s%s", abbr, info->name + skip);
     }
 
-    int N = strlen(name);
+    int N = strlen(tmp);
 
     int i,j;
     for (i = 0, j = 0; i < maxlen && j < N; j++)
     {
-        char c = name[j];
-        if (!print_value)
-        {
-            if (c == ' ') { name[j+1] = toupper(name[j+1]); continue; }
-            if (c == '.') continue;
-        }
-        else
-        {
-            if (c == ' ') continue;
-            if (c == '(') break;
-        }
-        msg[i] = c;
+        char c = tmp[j];
+        if (c == ' ') { tmp[j+1] = toupper(tmp[j+1]); continue; }
+        if (c == '.') continue;
+        if (c == '(') break;
+        if (maxlen < 5 && islower(c)) continue;
+        sname[i] = c;
         i++;
     }
-    msg[i] = 0;
+    sname[i] = 0;
     
-    return msg;
+    return sname;
+}
+
+static char* junkie_get_shortvalue(struct menu_display_info * info, int maxlen)
+{
+    static char tmp[30];
+    static char svalue[20];
+    if (maxlen > 19) maxlen = 19;
+
+    if (info->short_value[0])
+    {
+        snprintf(tmp, sizeof(tmp), "%s", info->short_value);
+    }
+    else
+    {
+        // skip some common words
+        int skip = 0;
+        if (startswith(info->value, "ON,")) skip = 3;
+        if (startswith(info->value, "Press")) skip = 5;
+        if (startswith(info->value, "up to ")) skip = 6;
+        if (startswith(info->value, "Photo,")) skip = 6;
+        snprintf(tmp, sizeof(tmp), "%s", info->value + skip);
+    }
+
+    int N = strlen(tmp);
+
+    int i,j;
+    for (i = 0, j = 0; i < maxlen && j < N; j++)
+    {
+        char c = tmp[j];
+        if (c == ' ') continue;
+        if (c == ':') continue;
+        if (c == '(') break;
+        svalue[i] = c;
+        i++;
+    }
+    svalue[i] = 0;
+    
+    return svalue;
+}
+
+static char* junkie_get_shorttext(struct menu_display_info * info, int maxlen)
+{
+    // print name or value?
+    if (streq(info->value, "ON") || streq(info->value, "Default") || startswith(info->value, "OFF") || streq(info->value, "Normal") || (!info->value[0] && !info->short_value[0]))
+    {
+        // ON/OFF is obvious by color; print just the name
+        return junkie_get_shortname(info, maxlen);
+    }
+    else // print value only
+    {
+        char* svalue = junkie_get_shortvalue(info, maxlen);
+        int len = strlen(svalue);
+        if (maxlen - len >= 4) // still plenty of space? try to print part of name too
+        {
+            static char nv[30];
+            char* sname = junkie_get_shortname(info, maxlen - len - 1);
+            if (strlen(sname) > 1)
+            {
+                snprintf(nv, sizeof(nv), "%s %s", sname, svalue);
+                return nv;
+            }
+        }
+        return svalue;
+    }
 }
 
 static void
@@ -1954,13 +1995,13 @@ entry_print_junkie(
     bmp_fill(bg, x+2, y+2, w-4+1, h-4+1);
     //~ bmp_draw_rect(bg, x+2, y+2, w-4, h-4);
 
-    char* shortname = junkie_get_shortname(info, maxlen);
+    char* shorttext = junkie_get_shorttext(info, maxlen);
     
     bmp_printf(
         fnt,
-        x + (w - fontspec_width(fnt) * strlen(shortname)) / 2 + 2, 
+        x + (w - fontspec_width(fnt) * strlen(shorttext)) / 2 + 2, 
         y + (h - fontspec_height(fnt)) / 2,
-        shortname
+        shorttext
     );
 
     // selection bar params
