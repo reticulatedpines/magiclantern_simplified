@@ -2986,7 +2986,13 @@ static uint32_t get_yuv_pixel(uint32_t* buf, int pixoff)
     return (chroma | (luma << 8) | (luma << 24));
 }
 
-void FAST defish_draw_lv_color()
+static void FAST defish_draw_lv_color_loop(uint32_t* src_buf, uint32_t* dst_buf, int* ind)
+{
+    for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
+        dst_buf[i] = src_buf[ind[i]];
+}
+
+void defish_draw_lv_color()
 {
     if (!get_global_draw()) return;
     if (!lv) return;
@@ -3078,8 +3084,7 @@ void FAST defish_draw_lv_color()
         info_led_off();
     }
     
-    for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
-        dst_buf[i] = src_buf[ind[i]];
+    defish_draw_lv_color_loop(src_buf, dst_buf, ind);
 }
 
 void defish_draw_play()
