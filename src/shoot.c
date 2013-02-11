@@ -2855,7 +2855,7 @@ static void zoom_lv_face_step()
         }
     }*/
     
-    if ((zoom_halfshutter == 1 && is_manual_focus()) || (zoom_halfshutter == 2))
+    if (zoom_halfshutter && is_manual_focus())
     {
         int hs = get_halfshutter_pressed();
         if (hs && lv_dispsize == 1)
@@ -2887,7 +2887,7 @@ void zoom_focus_ring_trigger() // called from prop handler
     if (lv_dispsize > 1) return;
     if (gui_menu_shown()) return;
     if (!DISPLAY_IS_ON) return;
-    int zfr = ((zoom_focus_ring == 1 && is_manual_focus()) || (zoom_focus_ring == 2));
+    int zfr = (zoom_focus_ring == 1 && is_manual_focus());
     if (!zfr) return;
     zoom_focus_ring_flag = 1;
 }
@@ -2897,7 +2897,7 @@ void zoom_focus_ring_engage() // called from shoot_task
     if (lv_dispsize > 1) return;
     if (gui_menu_shown()) return;
     if (!DISPLAY_IS_ON) return;
-    int zfr = ((zoom_focus_ring == 1 && is_manual_focus()) || (zoom_focus_ring == 2));
+    int zfr = (zoom_focus_ring && is_manual_focus());
     if (!zfr) return;
     zoom_focus_ring_disable_time = ms100_clock + 5000;
     int zoom = zoom_disable_x10 ? 5 : 10;
@@ -2905,7 +2905,7 @@ void zoom_focus_ring_engage() // called from shoot_task
 }
 static void zoom_focus_ring_step()
 {
-    int zfr = ((zoom_focus_ring == 1 && is_manual_focus()) || (zoom_focus_ring == 2));
+    int zfr = (zoom_focus_ring && is_manual_focus());
     if (!zfr) return;
     if (recording) return;
     if (!DISPLAY_IS_ON) return;
@@ -5190,18 +5190,16 @@ struct menu_entry tweak_menus_shoot[] = {
             {
                 .name = "Zoom on HalfShutter",
                 .priv = &zoom_halfshutter,
-                .max = 2,
-                .icon_type = IT_DICE_OFF,
-                .choices = CHOICES("OFF", "MF", "AF+MF"),
-                .help = "Enable zoom when you hold the shutter halfway pressed."
+                .max = 1,
+                .help = "Enable zoom when you hold the shutter halfway pressed.",
+                .depends_on = DEP_MANUAL_FOCUS,
             },
             {
                 .name = "Zoom with Focus Ring",
                 .priv = &zoom_focus_ring,
-                .max = 2,
-                .icon_type = IT_DICE_OFF,
-                .choices = CHOICES("OFF", "MF", "AF+MF"),
-                .help = "Zoom when you turn the focus ring (only some Canon lenses)."
+                .max = 1,
+                .help = "Zoom when you turn the focus ring (only some Canon lenses).",
+                .depends_on = DEP_MANUAL_FOCUS,
             },
             #ifdef FEATURE_ZOOM_TRICK_5D3
             {
