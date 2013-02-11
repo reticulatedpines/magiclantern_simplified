@@ -121,7 +121,6 @@
 
     #define FEATURE_HDR_BRACKETING
     #define FEATURE_INTERVALOMETER
-    #define FEATURE_INTERVALOMETER_AF
     //~ #define FEATURE_INTERVALOMETER_MOVIE // will be moved to scripts
     #define FEATURE_BULB_RAMPING
     #define FEATURE_BULB_TIMER
