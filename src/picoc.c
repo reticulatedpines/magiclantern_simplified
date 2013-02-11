@@ -483,7 +483,7 @@ void script_setup_param(
     entry->priv = param_value;
     entry->min = min_value;
     entry->max = max_value;
-    entry->hidden = 0;
+    entry->shidden = 0;
 }
 
 void script_reset_params()
@@ -496,7 +496,6 @@ void script_reset_params()
         entry->min = 0;
         entry->max = 0;
         entry->icon_type = 0;
-        entry->hidden = 1;
         entry->shidden = 1;
     }
 }
