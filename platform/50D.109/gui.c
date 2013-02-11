@@ -42,7 +42,7 @@ void joypress_task()
 		{
 			if (!joy_center_action_disabled && gui_menu_shown() && joy_center_press_count && joy_center_press_count <= 20) // short press, ML menu active
 			{
-				if (is_submenu_mode_active())
+				if (is_submenu_or_edit_mode_active())
 				{
 					fake_simple_button(BGMT_FUNC); // close submenu
 				}

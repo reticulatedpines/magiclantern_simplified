@@ -3260,7 +3260,6 @@ static MENU_UPDATE_FUNC(bulb_display_submenu)
     MENU_SET_VALUE(
         format_time_hours_minutes_seconds(d)
     );
-    MENU_SET_ICON(MNI_PERCENT, (intptr_t)( bulb_duration_index * 100 / COUNT(timer_values)));
 }
 #endif
 
@@ -4781,6 +4780,9 @@ static struct menu_entry shoot_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Exposure duration",
+                .priv = &bulb_duration_index,
+                .max = COUNT(timer_values)-1,
+                .icon_type = IT_PERCENT,
                 .select = bulb_toggle,
                 .update = bulb_display_submenu,
             },

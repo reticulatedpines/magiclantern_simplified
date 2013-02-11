@@ -56,8 +56,11 @@ extern int bmp_color_scheme;
 
 #define MY_MENU_NAME "MyMenu"
 
-#define CAN_HAVE_PICKBOX(entry) ((entry)->min != (entry)->max && (entry)->priv)
-#define SHOULD_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min + 1 && (entry)->priv)
+#define CAN_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min && (entry)->max - (entry)->min < 25 && (entry)->priv)
+#define SHOULD_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min + 1 && (entry)->max - (entry)->min < 10 && (entry)->priv)
+#define IS_BOOL(entry) ((entry)->max - (entry)->min == 1 && (entry)->priv)
+#define IS_ACTION(entry) ((entry)->icon_type == IT_ACTION || (entry)->icon_type == IT_SUBMENU)
+#define SHOULD_USE_EDIT_MODE(entry) (!IS_BOOL(entry) && !IS_ACTION(entry))
 
 //for vscroll
 #define MENU_LEN_DEFAULT 11
@@ -106,7 +109,11 @@ int menu_help_active = 0; // also used in menuhelp.c
 int menu_redraw_blocked = 0; // also used in flexinfo
 
 static int submenu_mode = 0;
+static int edit_mode = 0;
 static int customize_mode = 0;
+
+#define SUBMENU_OR_EDIT (submenu_mode || edit_mode)
+
 static CONFIG_INT("menu.junkie", junkie_mode, 0);
 
 static int is_customize_selected();
@@ -128,7 +135,7 @@ static int hist_countdown = 3; // histogram is slow, so draw it less often
 void menu_close_post_delete_dialog_box();
 void menu_close_gmt();
 
-int is_submenu_mode_active() { return gui_menu_shown() && submenu_mode; }
+int is_submenu_or_edit_mode_active() { return gui_menu_shown() && SUBMENU_OR_EDIT; }
 
 //~ static CONFIG_INT("menu.transparent", semitransparent, 0);
 
@@ -1147,7 +1154,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     int lo = entry->min;
     int hi = entry->max;
     int sel = SELECTED_INDEX(entry) + lo;
-    int fnt = FONT(FONT_LARGE, COLOR_GRAY70, COLOR_GRAY45);
+    int fnt = SHADOW_FONT(FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK));
     
     // don't draw too many items in the pickbox
     if (hi - lo > 10)
@@ -1188,9 +1195,9 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     for (int i = lo; i <= hi; i++)
     {
         int y = y0 + (i-lo) * 31;
-        bmp_printf(fnt, x0, y, pickbox_string(entry, i));
         if (i == sel)
             selection_bar_backend(MENU_BAR_COLOR, COLOR_GRAY45, x0-16, y, w, 32);
+        bmp_printf(fnt, x0, y, pickbox_string(entry, i));
     }
     
     /*
@@ -1212,7 +1219,7 @@ static void submenu_key_hint(int x, int y, int bg)
 // draw submenu dots (for non-selected items)
 static void submenu_marker(int x, int y)
 {
-    if (submenu_mode) return;
+    if (SUBMENU_OR_EDIT) return;
     int fnt = SHADOW_FONT(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK));
     bmp_printf(fnt, 685, y+14, "...");
 }
@@ -1438,7 +1445,7 @@ entry_print(
     if (info->warning_level == MENU_WARN_NOT_WORKING) 
         fnt = MENU_FONT_GRAY;
     
-    if (submenu_mode==1 && !in_submenu)
+    if (submenu_mode && !in_submenu)
         fnt = MENU_FONT_GRAY;
     
     bmp_printf(
@@ -1500,7 +1507,7 @@ entry_print(
 
     // bar middle
     int xc = x - 5;
-    if ((in_submenu || submenu_mode==2) && info->value[0])
+    if ((in_submenu || edit_mode) && info->value[0])
         xc = x + font_large.width * w - 15;
     
     // customization markers
@@ -1533,7 +1540,7 @@ entry_print(
         selection_bar_backend(color_right, COLOR_BLACK, xc, y, x_end-xc, 31);
         
         // use a pickbox if possible
-        if (submenu_mode == 2 && CAN_HAVE_PICKBOX(entry))
+        if (edit_mode && CAN_HAVE_PICKBOX(entry))
         {
             int px = x + font_large.width * w;
             pickbox_draw(entry, px, y);
@@ -1602,7 +1609,7 @@ entry_print(
     // and also a Q sign for selected item
     if (entry->selected && (entry->priv || entry->select) && !customize_mode)
     {
-        if (entry->children && !submenu_mode && !menu_lv_transparent_mode)
+        if (entry->children && !SUBMENU_OR_EDIT && !menu_lv_transparent_mode)
         {
             if (icon_drawn != MNI_SUBMENU)
                 submenu_key_hint(720-35, y, junkie_mode ? COLOR_BLACK : MENU_BAR_COLOR);
@@ -2222,7 +2229,7 @@ menus_display(
     g_submenu_width = 720;
 
     struct menu * submenu = 0;
-    if (submenu_mode == 1)
+    if (submenu_mode)
         submenu = get_current_submenu();
 
     if (junkie_mode) junkie_sync_selection();
@@ -2311,10 +2318,10 @@ menus_display(
         }
 
         int skip_this = 0; 
-        if (submenu && (quick_redraw || menu_lv_transparent_mode))
+        if (submenu && (quick_redraw || menu_lv_transparent_mode || edit_mode))
             skip_this = 1;
         
-        if (junkie_mode && submenu_mode!=2 && !menu_lv_transparent_mode)
+        if (junkie_mode && !edit_mode && !menu_lv_transparent_mode)
         {
             menu_display_junkie(
                 menu,
@@ -2329,7 +2336,7 @@ menus_display(
                 menu,
                 orig_x + MENU_OFFSET,
                 y + 55, 
-                submenu_mode == 2 ? 1 : 0
+                edit_mode ? 1 : 0
             );
             
             show_vscroll(menu);
@@ -2344,7 +2351,7 @@ menus_display(
     if (submenu)
     {
         //~ dim_screen(43, COLOR_BLACK, 0, 45, 720, 480-45-50);
-        if (!quick_redraw && !menu_lv_transparent_mode)
+        if (!quick_redraw && !menu_lv_transparent_mode && !edit_mode)
             bmp_dim(45, 480-50);
         
         submenu_display(submenu);
@@ -2384,7 +2391,7 @@ submenu_display(struct menu * submenu)
     int by = (480 - h)/2 - 30;
     
     // submenu header
-    if (!menu_lv_transparent_mode)
+    if (!menu_lv_transparent_mode && !edit_mode)
     {
         bmp_fill(MENU_BG_COLOR_HEADER_FOOTER,  bx,  by, 720-2*bx+4, 40);
         bmp_fill(COLOR_BLACK,  bx,  by + 40, 720-2*bx+4, h-40);
@@ -2410,7 +2417,7 @@ submenu_display(struct menu * submenu)
     }
 
                                                    /* titlebar + padding difference for large submenus */
-    menu_display(submenu,  bx + SUBMENU_OFFSET,  by + 40 + (count > 7 ? 10 : 25), 0);
+    menu_display(submenu,  bx + SUBMENU_OFFSET,  by + 40 + (count > 7 ? 10 : 25), edit_mode ? 1 : 0);
     show_hidden_items(submenu, 1);
 }
 
@@ -2492,7 +2499,7 @@ menu_entry_select(
     // don't perform actions on empty items (can happen on empty submenus)
     if (!IS_VISIBLE(entry))
     {
-        submenu_mode = 0;
+        submenu_mode = edit_mode = 0;
         menu_lv_transparent_mode = 0;
         return;
     }
@@ -2505,16 +2512,17 @@ menu_entry_select(
     else if (mode == 2) // Q
     {
         if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
-        else { submenu_mode = !submenu_mode; menu_lv_transparent_mode = 0; }
+        else if (edit_mode) edit_mode = 0;
+        else menu_toggle_submenu();
     }
     else if (mode == 3) // SET
     {
-        if (submenu_mode == 2) submenu_mode = 0;
+        if (edit_mode) edit_mode = 0;
         else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
-        else if (entry->edit_mode == EM_MANY_VALUES && submenu_mode != 1) submenu_mode = !submenu_mode * 2;
+        else if (entry->edit_mode == EM_MANY_VALUES) edit_mode = !edit_mode;
         else if (entry->edit_mode == EM_MANY_VALUES_LV && lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
-        else if (entry->edit_mode == EM_MANY_VALUES_LV && !lv && submenu_mode != 1) submenu_mode = !submenu_mode * 2;
-        else if (SHOULD_HAVE_PICKBOX(entry) && submenu_mode!=1) submenu_mode = !submenu_mode * 2;
+        else if (entry->edit_mode == EM_MANY_VALUES_LV && !lv) edit_mode = !edit_mode;
+        else if (SHOULD_USE_EDIT_MODE(entry)) edit_mode = !edit_mode;
         else if( entry->select ) entry->select( entry->priv, 1);
         else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
     }
@@ -2670,7 +2678,7 @@ static void menu_make_sure_selection_is_valid()
     // current menu has any valid items in current mode?
     if (!menu_has_visible_items(menu))
     {
-        if (submenu_mode == 1) return; // empty submenu
+        if (submenu_mode) return; // empty submenu
         menu_move(menu, -1); menu = get_selected_menu();
         menu_move(menu, 1); menu = get_selected_menu();
     }
@@ -2724,7 +2732,7 @@ menu_redraw_do()
         else
         {
             if (!lv) menu_lv_transparent_mode = 0;
-            if (menu_lv_transparent_mode && submenu_mode == 2) submenu_mode = 0;
+            if (menu_lv_transparent_mode && edit_mode) edit_mode = 0;
 
             //~ menu_damage = 0;
             BMP_LOCK (
@@ -2769,7 +2777,7 @@ menu_redraw_do()
                 
                 menus_display( menus, 0, 0 ); 
 
-                if (!menu_lv_transparent_mode && !submenu_mode && !junkie_mode)
+                if (!menu_lv_transparent_mode && !SUBMENU_OR_EDIT && !junkie_mode)
                 {
                     if (is_menu_active("Help")) menu_show_version();
                     if (is_menu_active("Focus")) display_lens_hyperfocal();
@@ -2937,16 +2945,15 @@ static struct menu_entry * get_selected_entry(struct menu * menu)  // argument i
 
 static struct menu * get_current_submenu()
 {
-    if (submenu_mode == 2) return 0;
-    
     struct menu_entry * entry = get_selected_entry(0);
     if (!entry) return 0;
 
     if (entry->children)
         return menu_find_by_name(entry->name, 0);
 
-    // no submenu
-    submenu_mode = 2;
+    // no submenu, fall back to edit mode
+    submenu_mode = 0;
+    edit_mode = 1;
     return 0;
 }
 
@@ -3055,16 +3062,16 @@ handle_ml_menu_keys(struct event * event)
     {
     case BGMT_MENU:
     {
-        if (submenu_mode || menu_lv_transparent_mode || menu_help_active)
+        if (SUBMENU_OR_EDIT || menu_lv_transparent_mode || menu_help_active)
         {
             submenu_mode = 0;
+            edit_mode = 0;
             menu_lv_transparent_mode = 0;
             menu_help_active = 0;
         }
         else
         {
             junkie_mode = !junkie_mode;
-            menu_needs_full_redraw = 1;
         }
         break;
     }
@@ -3090,17 +3097,16 @@ handle_ml_menu_keys(struct event * event)
     #endif
     case BGMT_PRESS_ZOOMIN_MAYBE:
         if (lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
-        else submenu_mode = (!submenu_mode)*2;
+        else edit_mode = !edit_mode;
         menu_damage = 1;
         menu_help_active = 0;
-        menu_needs_full_redraw = 1;
         break;
 
     case BGMT_PRESS_UP:
     case BGMT_WHEEL_UP:
         if (menu_help_active) { menu_help_prev_page(); break; }
 
-        if (submenu_mode == 2 && !menu_lv_transparent_mode)
+        if (edit_mode && !menu_lv_transparent_mode)
             menu_entry_select( menu, 1 );
         else
         {
@@ -3114,7 +3120,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_DOWN:
         if (menu_help_active) { menu_help_next_page(); break; }
         
-        if (submenu_mode == 2 && !menu_lv_transparent_mode)
+        if (edit_mode && !menu_lv_transparent_mode)
             menu_entry_select( menu, 0 );
         else
         {
@@ -3128,7 +3134,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_RIGHT:
         menu_damage = 1;
         if (menu_help_active) { menu_help_next_page(); break; }
-        if (submenu_mode || menu_lv_transparent_mode) menu_entry_select( menu, 0 );
+        if (SUBMENU_OR_EDIT || menu_lv_transparent_mode) menu_entry_select( menu, 0 );
         else { menu_move( menu, 1 ); menu_lv_transparent_mode = 0; menu_needs_full_redraw = 1; }
         //~ menu_hidden_should_display_help = 0;
         break;
@@ -3137,7 +3143,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_WHEEL_LEFT:
         menu_damage = 1;
         if (menu_help_active) { menu_help_prev_page(); break; }
-        if (submenu_mode || menu_lv_transparent_mode) menu_entry_select( menu, 1 );
+        if (SUBMENU_OR_EDIT || menu_lv_transparent_mode) menu_entry_select( menu, 1 );
         else { menu_move( menu, -1 ); menu_lv_transparent_mode = 0;  menu_needs_full_redraw = 1; }
         //~ menu_hidden_should_display_help = 0;
         break;
@@ -3239,9 +3245,10 @@ handle_ml_menu_keys(struct event * event)
     // Reset the timeout
     
     // if submenu mode was changed, force a full redraw
-    static int prev_submenu_mode = 0;
-    if (submenu_mode != prev_submenu_mode) menu_needs_full_redraw = 1;
-    prev_submenu_mode = submenu_mode;
+    static int prev_menu_mode = 0;
+    int menu_mode = submenu_mode | edit_mode*2 | menu_lv_transparent_mode*4 | customize_mode*8 | junkie_mode*16;
+    if (menu_mode != prev_menu_mode) menu_needs_full_redraw = 1;
+    prev_menu_mode = menu_mode;
     
     if (menu_needs_full_redraw) menu_redraw_full();
     else menu_redraw();
@@ -3422,6 +3429,8 @@ static void menu_open()
     
     menu_lv_transparent_mode = 0;
     submenu_mode = 0;
+    edit_mode = 0;
+    customize_mode = 0;
     menu_help_active = 0;
     keyrepeat = 0;
     menu_shown = 1;
@@ -3786,16 +3795,22 @@ void menu_stop()
 void menu_open_submenu(struct menu_entry * entry)
 {
     submenu_mode = 1;
+    edit_mode = 0;
+    menu_lv_transparent_mode = 0;
 }
 
 void menu_close_submenu()
 {
     submenu_mode = 0;
+    edit_mode = 0;
+    menu_lv_transparent_mode = 0;
 }
 
 void menu_toggle_submenu()
 {
     submenu_mode = !submenu_mode;
+    edit_mode = 0;
+    menu_lv_transparent_mode = 0;
 }
 
 int handle_quick_access_menu_items(struct event * event)
