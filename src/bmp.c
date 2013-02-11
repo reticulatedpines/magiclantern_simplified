@@ -975,16 +975,37 @@ void bmp_putpixel(int x, int y, uint8_t color)
     
     bmp_putpixel_fast(bvram, x, y, color);
 }
-
 void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 {
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
-    
     draw_line(x0,   y0,   x0+w,   y0, color);
     draw_line(x0+w, y0,   x0+w, y0+h, color);
     draw_line(x0+w, y0+h,   x0, y0+h, color);
     draw_line(x0,   y0,     x0, y0+h, color);
+}
+
+void bmp_draw_rect_chamfer(uint8_t color, int x0, int y0, int w, int h, int a, int thick_corners)
+{
+    uint8_t * const bvram = bmp_vram();
+    if (!bvram) return;
+
+    draw_line(x0+a,   y0,     x0+w-a, y0,     color);
+    draw_line(x0+w-a, y0,     x0+w,   y0+a,   color);
+    draw_line(x0+w,   y0+a,   x0+w,   y0+h-a, color);
+    draw_line(x0+w,   y0+h-a, x0+w-a, y0+h,   color);
+    draw_line(x0+w-a, y0+h,   x0+a,   y0+h,   color);
+    draw_line(x0+a,   y0+h,   x0,     y0+h-a, color);
+    draw_line(x0,     y0+h-a, x0,     y0+a,   color);
+    draw_line(x0,     y0+a,   x0+a,   y0,     color);
+
+    if (thick_corners) // double the chamfer lines, useful for thicker rectangles
+    {
+        draw_line(x0+w-a, y0+1,   x0+w-1, y0+a,   color);
+        draw_line(x0+w-1, y0+h-a, x0+w-a, y0+h-1, color);
+        draw_line(x0+a,   y0+h-1, x0+1,   y0+h-a, color);
+        draw_line(x0+1,   y0+a,   x0+a,   y0+1,   color);
+    }
 }
 
 int _bmp_draw_should_stop = 0;

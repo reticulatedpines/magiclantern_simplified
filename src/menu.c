@@ -1194,8 +1194,6 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     if (x0 + w > 700)
         x0 = 700 - w;
     
-    x0 &= ~3;
-
     w = 720-x0+16; // extend it till the right edge
 
     // draw the pickbox
@@ -2017,12 +2015,14 @@ entry_print_junkie(
     
     // selection bar
     int selc = sel ? COLOR_WHITE : COLOR_BLACK; //menu_selected ? COLOR_BLUE : entry->selected ? COLOR_BLACK : COLOR_BLACK;
-    bmp_draw_rect(selc, x, y, w, h);
-    bmp_draw_rect(selc, x+1, y+1, w-2, h-2);
-    bmp_draw_rect(selc, x+2, y+2, w-4, h-4);
-    draw_line(x, y+h+1, x+w, y+h+1, selc);
+    bmp_draw_rect_chamfer(selc, x, y, w, h, 3, 0);
+    bmp_draw_rect_chamfer(selc, x+1, y+1, w-2, h-2, 2, 1);
+    bmp_draw_rect_chamfer(selc, x+2, y+2, w-4, h-4, 2, 1);
+    bmp_draw_rect_chamfer(COLOR_BLACK, x+3, y+3, w-6, h-6, 2, 1);
+    //~ draw_line(x, y+h+1, x+w, y+h+1, selc);
     
     // round corners
+    /*
     bmp_putpixel(x+3, y+3, selc);
     bmp_putpixel(x+3, y+4, selc);
     bmp_putpixel(x+4, y+3, selc);
@@ -2035,6 +2035,7 @@ entry_print_junkie(
     bmp_putpixel(x+w-3, y+h-3, selc);
     bmp_putpixel(x+w-3, y+h-4, selc);
     bmp_putpixel(x+w-4, y+h-3, selc);
+    */
 
     // customization markers
     if (customize_mode)
@@ -2301,8 +2302,8 @@ menus_display(
         num_tabs++;
     }
     
-    int x = orig_x + junkie_mode ? 0 : 150;
-    int icon_spacing = junkie_mode ? 720 / num_tabs : (720 - 150) / num_tabs;
+    int x = orig_x + junkie_mode ? 1 : 150;
+    int icon_spacing = junkie_mode ? 718 / num_tabs : (720 - 150) / num_tabs;
     
     int bgs = COLOR_BLACK;
     int bgu = MENU_BG_COLOR_HEADER_FOOTER;
@@ -2330,7 +2331,7 @@ menus_display(
 
             int icon_char = menu->icon ? menu->icon : menu->name[0];
             int icon_width = bfnt_char_get_width(icon_char);
-            int x_ico = (x & ~3) + (icon_spacing - icon_width) / 2;
+            int x_ico = x + (icon_spacing - icon_width) / 2;
             bfnt_draw_char(icon_char, x_ico, y + 2, fg, bg);
             //~ bmp_printf(FONT_MED, x_ico, 40, "%d ", menu->delnum);
 
@@ -2340,8 +2341,8 @@ menus_display(
                 //~ else
                 if (!junkie_mode)
                     bfnt_puts(menu->name, 5, y, fg, bg);
-                int x1 = (x & ~3);
-                int x2 = ((x1 + icon_spacing) & ~3);
+                int x1 = x;
+                int x2 = x1 + icon_spacing;
 
                 draw_line(x1, y+42-4, x1, y+5, fgu);
                 draw_line(x2, y+42-4, x2, y+5, fgu);
