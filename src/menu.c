@@ -535,7 +535,7 @@ menu_has_visible_items(struct menu * menu)
         if (
             streq(menu->name, "Debug") ||
             streq(menu->name, "Help") ||
-            streq(menu->name, "Scripts") ||
+            //~ streq(menu->name, "Scripts") ||
            0)
             return 0;
     }
