@@ -55,6 +55,7 @@ extern int bmp_color_scheme;
 #endif
 
 #define MY_MENU_NAME "MyMenu"
+static struct menu * my_menu;
 
 #define CAN_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min && (entry)->max - (entry)->min < 25 && (entry)->priv)
 #define SHOULD_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min + 1 && (entry)->max - (entry)->min < 10 && (entry)->priv)
@@ -118,8 +119,8 @@ static CONFIG_INT("menu.junkie", junkie_mode, 0);
 
 static int is_customize_selected();
 
-#define CUSTOMIZE_MODE_MYMENU (customize_mode == 1)
-#define CUSTOMIZE_MODE_HIDING (customize_mode == 2)
+//~ #define CUSTOMIZE_MODE_MYMENU (customize_mode == 1)
+//~ #define CUSTOMIZE_MODE_HIDING (customize_mode == 2)
 
 static int g_submenu_width = 0;
 //~ #define g_submenu_width 720
@@ -229,8 +230,8 @@ static struct menu_entry customize_menu[] = {
     {
         .name = "Customize Menus",
         .priv = &customize_mode,
-        .max = 2,
-        .choices = CHOICES("OFF", "MyMenu items", "Hide items"),
+        .max = 1,
+        //~ .choices = CHOICES("OFF", "MyMenu items", "Hide items"),
     }
 };
 
@@ -540,11 +541,9 @@ menu_has_visible_items(struct menu * menu)
             return 0;
     }
 
-    if (junkie_mode == 2) // also hide My Menu, since everything else is displayed
+    if (junkie_mode == 2 && !customize_mode) // also hide My Menu, since everything else is displayed
     {
-        if (
-            streq(menu->name, MY_MENU_NAME) ||
-           0)
+        if (menu == my_menu)
             return 0;
     }
     
@@ -1431,9 +1430,19 @@ entry_default_display_info(
 
 static int get_customize_color()
 {
-    if (CUSTOMIZE_MODE_HIDING) return junkie_mode ? COLOR_ORANGE : COLOR_RED;
-    else if (CUSTOMIZE_MODE_MYMENU) return COLOR_GREEN1;
+    if (customize_mode) return COLOR_GREEN1;
     return 0;
+}
+
+static void display_customize_marker(struct menu_entry * entry, int x, int y)
+{
+    // star marker
+    if (entry->starred)
+        bfnt_draw_char(ICON_ML_MYMENU, x, y-4, COLOR_GREEN1, COLOR_BLACK);
+    
+    // hidden marker
+    else if (HAS_CURRENT_HIDDEN_FLAG(entry))
+        batsu(x+4, y, junkie_mode ? COLOR_ORANGE : COLOR_RED);
 }
 
 static void
@@ -1521,17 +1530,11 @@ entry_print(
     {
         // reserve space for icons
         if (entry != &customize_menu[0] && !(is_menu_active(MY_MENU_NAME) && !in_submenu))
-            xc = x_end - 70;
+            xc = x_end - 40;
         else
             xc = x_end;
-
-        // star marker
-        if (entry->starred)
-            bfnt_draw_char(ICON_ML_MYMENU, xc, y-4, COLOR_GREEN1, COLOR_BLACK);
         
-        // hidden marker
-        if (HAS_CURRENT_HIDDEN_FLAG(entry))
-            batsu(xc+37, y+2, junkie_mode ? COLOR_ORANGE : COLOR_RED);
+        display_customize_marker(entry, xc + 2, y);
     }
 
     // selection bar
@@ -1641,9 +1644,10 @@ menu_post_display()
     {
         bmp_printf(
             FONT(FONT_MED, get_customize_color(), MENU_BG_COLOR_HEADER_FOOTER),
-             10,  MENU_HELP_Y_POS_2, 
-                CUSTOMIZE_MODE_HIDING ? "Press SET to show/hide items you don't use.                 " :
-                CUSTOMIZE_MODE_MYMENU ? "Press SET to choose your favorite items for MyMenu.         " : ""
+             5,  MENU_HELP_Y_POS_2, 
+                //~ CUSTOMIZE_MODE_HIDING ? "Press SET to show/hide items you don't use.                 " :
+                //~ CUSTOMIZE_MODE_MYMENU ? "Press SET to choose your favorite items for MyMenu.         " : ""
+                "Press SET to choose MyMenu items or hide what you don't use."
         );
     }
 }
@@ -1691,10 +1695,8 @@ menu_entry_process(
 }
 
 static int
-my_menu_update()
+my_menu_rebuild()
 {
-    struct menu * my_menu = menu_find_by_name(MY_MENU_NAME, 0);
-
     my_menu->split_pos = -12;
 
     int i = 0;
@@ -1967,7 +1969,7 @@ entry_print_junkie(
     }
     else if (info->enabled)
     {
-        bg = COLOR_GREEN1;
+        bg = customize_mode ? COLOR_GRAY60 : COLOR_GREEN1;
         fg = COLOR_BLACK;
     }
     
@@ -2040,13 +2042,7 @@ entry_print_junkie(
     // customization markers
     if (customize_mode)
     {
-        // star marker
-        if (entry->starred)
-            bmp_printf(SHADOW_FONT(FONT(FONT_LARGE, COLOR_GREEN2, COLOR_BLACK)), x+5, y, "*");
-        
-        // hidden marker
-        if (entry->jhidden)
-            bmp_printf(SHADOW_FONT(FONT(FONT_LARGE, COLOR_ORANGE, COLOR_BLACK)), x+w-20, y, "x");
+        display_customize_marker(entry, x + w - 35, y);
     }
 }
 
@@ -2231,7 +2227,7 @@ show_hidden_items(struct menu * menu, int force_clear)
             }
             entry = entry->next;
         }
-        STR_APPEND(hidden_msg, CUSTOMIZE_MODE_HIDING ? "." : " (Prefs->Customize).");
+        STR_APPEND(hidden_msg, customize_mode ? "." : " (Prefs->Customize).");
         
         if (strlen(hidden_msg) > 60)
         {
@@ -2245,7 +2241,7 @@ show_hidden_items(struct menu * menu, int force_clear)
         {
             bmp_fill(COLOR_BLACK, 0, hidden_pos_y, 720, 19);
             bmp_printf(
-                SHADOW_FONT(FONT(FONT_MED, CUSTOMIZE_MODE_HIDING ? MENU_WARNING_COLOR : COLOR_ORANGE , MENU_BG_COLOR_HEADER_FOOTER)), 
+                SHADOW_FONT(FONT(FONT_MED, customize_mode ? MENU_WARNING_COLOR : COLOR_ORANGE , MENU_BG_COLOR_HEADER_FOOTER)), 
                  10, hidden_pos_y, 
                  hidden_msg
             );
@@ -2474,16 +2470,12 @@ submenu_display(struct menu * submenu)
 
 static void
 menu_entry_showhide_toggle(
-    struct menu *   menu
+    struct menu * menu,
+    struct menu_entry * entry
 )
 {
-    if( !menu )
+    if( !entry )
         return;
-    
-    if (streq(menu->name, MY_MENU_NAME)) return; // special menu
-
-    struct menu_entry * entry = get_selected_entry(menu);
-    if (!entry) return;
 
     if (junkie_mode)
     {
@@ -2498,41 +2490,71 @@ menu_entry_showhide_toggle(
             menu->childnum++;
         }
     }
-    menu_make_sure_selection_is_valid();
-    menu_flags_dirty = 1;
-    my_menu_update();
 }
 
 static void
 menu_entry_star_toggle(
+    struct menu_entry * entry
+)
+{
+    if( !entry )
+        return;
+
+    entry->starred = !entry->starred;
+    menu_flags_dirty = 1;
+    int ok = my_menu_rebuild();
+    if (!ok)
+    {
+        beep();
+        NotifyBox(2000, "Too many favorites");
+        entry->starred = 0;
+        my_menu_rebuild();
+    }
+}
+
+// normal -> starred -> hidden
+static void
+menu_entry_customize_toggle(
     struct menu *   menu
 )
 {
-    if( !menu )
-        return;
-
     struct menu_entry * entry = get_selected_entry(menu);
     if (!entry) return;
 
-    if (streq(menu->name, MY_MENU_NAME))
+    if (menu == my_menu) // special case
     {
         // lookup the corresponding entry in normal menus, and toggle that one instead
         char* name = (char*) entry->name;   // trick so we don't find the same menu
         entry->name = 0;                    // (this menu will be rebuilt anyway, so... no big deal)
         entry = entry_find_by_name(0, name);
         if (!entry) { beep(); return; }
+        if (!entry->starred) return;
+        menu_entry_star_toggle(entry);
+        return;
     }
 
-    entry->starred = !entry->starred;
-    menu_flags_dirty = 1;
-    int ok = my_menu_update();
-    if (!ok)
+    if (entry->starred && HAS_CURRENT_HIDDEN_FLAG(entry)) // both flags active, abnormal
     {
-        beep();
-        NotifyBox(2000, "Too many favorites");
-        entry->starred = 0;
-        my_menu_update();
+        menu_entry_showhide_toggle(menu, entry); // keep the star flag
     }
+    
+    if (!entry->starred && !HAS_CURRENT_HIDDEN_FLAG(entry)) // normal -> starred
+    {
+        menu_entry_star_toggle(entry);
+    }
+    else if (entry->starred && !HAS_CURRENT_HIDDEN_FLAG(entry)) // starred -> hidden
+    {
+        menu_entry_star_toggle(entry);
+        menu_entry_showhide_toggle(menu, entry);
+    }
+    else if (!entry->starred && HAS_CURRENT_HIDDEN_FLAG(entry)) // hidden -> normal
+    {
+        menu_entry_showhide_toggle(menu, entry);
+    }
+
+    menu_flags_dirty = 1;
+    my_menu_rebuild();
+    menu_make_sure_selection_is_valid();
 }
 
 static void
@@ -3218,13 +3240,9 @@ handle_ml_menu_keys(struct event * event)
             menu_help_active = 0;
             break; 
         }
-        else if (CUSTOMIZE_MODE_HIDING && !is_customize_selected(menu))
+        else if (customize_mode && !is_customize_selected(menu))
         {
-            menu_entry_showhide_toggle(menu);
-        }
-        else if (CUSTOMIZE_MODE_MYMENU && !is_customize_selected(menu))
-        {
-            menu_entry_star_toggle(menu);
+            menu_entry_customize_toggle(menu);
         }
         else
         {
@@ -3354,7 +3372,7 @@ menu_init( void )
     menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  )->split_pos = 10;
     menu_find_by_name( "Debug",     ICON_ML_DEBUG   )->split_pos = 15;
     menu_find_by_name( "Help",      ICON_ML_INFO    )->split_pos = 13;
-    menu_find_by_name( MY_MENU_NAME,ICON_ML_MYMENU  );
+    my_menu = menu_find_by_name( MY_MENU_NAME,ICON_ML_MYMENU  );
 
 }
 
@@ -3926,7 +3944,7 @@ static void menu_save_flags(char* filename)
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
-        if (streq(menu->name, MY_MENU_NAME)) continue;
+        if (menu == my_menu) continue;
         
         struct menu_entry * entry = menu->children;
         
@@ -3989,7 +4007,7 @@ static void menu_load_flags(char* filename)
 static void config_menu_load_flags()
 {
     menu_load_flags(CARD_DRIVE "ML/SETTINGS/MENU.CFG");
-    my_menu_update();
+    my_menu_rebuild();
 }
 
 void config_menu_save_flags()
