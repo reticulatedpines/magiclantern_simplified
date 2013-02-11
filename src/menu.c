@@ -539,6 +539,14 @@ menu_has_visible_items(struct menu * menu)
            0)
             return 0;
     }
+
+    if (junkie_mode == 2) // also hide My Menu, since everything else is displayed
+    {
+        if (
+            streq(menu->name, MY_MENU_NAME) ||
+           0)
+            return 0;
+    }
     
     struct menu_entry * entry = menu->children;
     while( entry )
@@ -1719,6 +1727,7 @@ my_menu_update()
                 my_entry->next = next;
                 my_entry->prev = prev;
                 my_entry->selected = selected;
+                my_entry->shidden = 0;
                 my_entry->hidden = 0;
                 my_entry->jhidden = 0;
                 my_entry->starred = 0;
@@ -1732,6 +1741,7 @@ my_menu_update()
     for ( ; i < COUNT(my_menu_placeholders); i++)
     {
         struct menu_entry * my_entry = &(my_menu_placeholders[i]);
+        my_entry->shidden = 1;
         my_entry->hidden = 1;
         my_entry->jhidden = 1;
         my_entry->name = 0;
@@ -3111,7 +3121,14 @@ handle_ml_menu_keys(struct event * event)
         }
         else
         {
-            junkie_mode = !junkie_mode;
+            // double click will go to "extra junkie" mode (nothing hidden)
+            static int last_t = 0;
+            int t = get_ms_clock_value();
+            if (t > last_t && t < last_t + 300)
+                junkie_mode = !junkie_mode*2;
+            else
+                junkie_mode = !junkie_mode;
+            last_t = t;
         }
         break;
     }

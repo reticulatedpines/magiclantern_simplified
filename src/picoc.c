@@ -497,6 +497,7 @@ void script_reset_params()
         entry->max = 0;
         entry->icon_type = 0;
         entry->hidden = 1;
+        entry->shidden = 1;
     }
 }
 

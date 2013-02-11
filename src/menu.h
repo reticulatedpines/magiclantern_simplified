@@ -149,9 +149,10 @@ struct menu_entry
         unsigned starred    : 1; // present in "my menu"
         unsigned hidden     : 1; // hidden from main menu
         unsigned jhidden    : 1; // hidden from junkie menu
+        unsigned shidden    : 1; // special hide, not toggleable by user
+        unsigned edit_mode  : 2;
         unsigned unit       : 4;
         unsigned icon_type  : 4;
-        unsigned edit_mode  : 2;
         
         const char * help;
         const char * help2;
@@ -174,12 +175,13 @@ struct menu_entry
 
 #define HAS_HIDDEN_FLAG(entry) ((entry)->hidden)
 #define HAS_JHIDDEN_FLAG(entry) ((entry)->jhidden)
+#define HAS_SHIDDEN_FLAG(entry) ((entry)->shidden)
 
 #define HAS_CURRENT_HIDDEN_FLAG(entry) ( \
     (!junkie_mode && HAS_HIDDEN_FLAG(entry)) || \
     (junkie_mode && HAS_JHIDDEN_FLAG(entry)) )
 
-#define IS_VISIBLE(entry) ( !HAS_CURRENT_HIDDEN_FLAG(entry) || customize_mode)
+#define IS_VISIBLE(entry) (( !HAS_CURRENT_HIDDEN_FLAG(entry) || customize_mode || junkie_mode==2) && !HAS_SHIDDEN_FLAG(entry))
 
 
 #define MENU_INT(entry) ((entry)->priv ? *(int*)(entry)->priv : 0)
