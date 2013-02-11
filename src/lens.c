@@ -808,10 +808,10 @@ void draw_ml_bottombar(int double_buffering, int clear)
         bmp_draw_rect(COLOR_BLACK, xr-3, y_origin-1, 17, 31);
         //~ bmp_draw_rect(COLOR_BLACK, xr, y_origin+2, 11, 29);
         bmp_draw_rect(COLOR_BLACK, xr+1, y_origin + 24 - bat, 9, bat+2);
-        bmp_fill(col, xr+4, y_origin-3, 8, 3);
+        bmp_fill(col, xr+2, y_origin-3, 8, 3);
         bmp_draw_rect(col, xr-2, y_origin, 15, 29);
         bmp_draw_rect(col, xr-1, y_origin + 1, 13, 27);
-        bmp_fill(col, xr+4, y_origin + 26 - bat, 8, bat);
+        bmp_fill(col, xr+2, y_origin + 26 - bat, 8, bat);
 
     //~ if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
     //~ if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
