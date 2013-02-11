@@ -280,7 +280,7 @@ audio_ic_on(){
 
 static void
 audio_ic_set_lineout_vol(){
-    int vol = lovl + 0x0E;
+    int vol = MIN(lovl*2, 11) + 0x0E + 38; // lovl=0 => default to 0 dB; max 11 dB
     audio_ic_write(ML_HP_AMP_VOL | vol);
 
     //This can be more boost headphone monitoring volume.Need good menu interface
@@ -397,7 +397,7 @@ audio_configure( int force )
 static void
 audio_lovl_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, delta, 0, 49);
+    menu_numeric_toggle(priv, delta, 0, 6);
     audio_ic_set_lineout_vol();
 }
 
@@ -437,26 +437,8 @@ static MENU_UPDATE_FUNC(audio_dgain_display)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "AGC is enabled.");
 }
 
-static int
-get_lovl_val(){
-    if(lovl == 0){
-        return -100;
-    }else if(lovl == 38){
-        return 0;
-    }else if(lovl < 38){
-        return -(38 - lovl);
-    }else if(lovl > 38){
-        return (lovl - 38);
-    }
-    return 0;
-}
-
 static MENU_UPDATE_FUNC(audio_lovl_display)
 {
-    MENU_SET_VALUE(
-        "%d dB",
-        get_lovl_val()
-    );
     if (!audio_monitoring)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Headphone monitoring is disabled");
 }
@@ -717,9 +699,10 @@ static struct menu_entry audio_menus[] = {
         .name = "Output volume",
         .priv           = &lovl,
         .select         = audio_lovl_toggle,
-        .max            = 49,
+        .max            = 6,
         .icon_type      = IT_PERCENT,
         .update         = audio_lovl_display,
+        .choices        = CHOICES("0 dB","+2 dB","+4 dB","+6 dB","+8 dB","+10 dB","+11 dB"),
         .help = "Output volume for audio monitoring (headphones only).",
         .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
     },
@@ -760,7 +743,7 @@ void volume_down()
 
 static void out_volume_display()
 {
-    NotifyBox(2000, "Out Volume: %d dB", get_lovl_val());
+    NotifyBox(2000, "Out Volume: %d dB", MIN(lovl*2, 11));
 }
 void out_volume_up()
 {
