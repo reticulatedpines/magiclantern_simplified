@@ -63,6 +63,10 @@ static struct menu * my_menu;
 #define IS_ACTION(entry) ((entry)->icon_type == IT_ACTION || (entry)->icon_type == IT_SUBMENU)
 #define SHOULD_USE_EDIT_MODE(entry) (!IS_BOOL(entry) && !IS_ACTION(entry))
 
+#define HAS_SINGLE_ITEM_SUBMENU(entry) ((entry)->children && !(entry)->children[0].next && !(entry)->children[0].prev)
+#define IS_SINGLE_ITEM_SUBMENU_ENTRY(entry) (!(entry)->next && !(entry)->prev)
+
+
 //for vscroll
 #define MENU_LEN_DEFAULT 11
 #define MENU_LEN_AUDIO 10 // at len=11, audio meters would overwrite menu entries on 600D
@@ -1196,7 +1200,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     }
     
     // compute the width of the pickbox (what's the longest string?)
-    int w = 200;
+    int w = 100;
     for (int i = lo; i <= hi; i++)
     {
         w = MAX(w, font_large.width * strlen(pickbox_string(entry, i)));
@@ -2452,12 +2456,21 @@ submenu_display(struct menu * submenu)
                        /* body + titlebar + padding - smaller padding for large submenus */
         
     int w = submenu->submenu_width  ? submenu->submenu_width : 600;
+
+    // submenu promoted to pickbox? show submenu title in the corner
+    if (IS_SINGLE_ITEM_SUBMENU_ENTRY(submenu->children))
+        w = 720;
+    
     g_submenu_width = w;
     int bx = (720 - w)/2;
     int by = (480 - h)/2 - 30;
     
     // submenu header
-    if (!menu_lv_transparent_mode && !edit_mode)
+    if (IS_SINGLE_ITEM_SUBMENU_ENTRY(submenu->children) && edit_mode) // promoted submenu
+    {
+        bfnt_puts(submenu->name,  bx + 15,  by+2, COLOR_GRAY60, 40);
+    }
+    else if (!menu_lv_transparent_mode && !edit_mode)
     {
         bmp_fill(MENU_BG_COLOR_HEADER_FOOTER,  bx,  by, 720-2*bx+4, 40);
         bmp_fill(COLOR_BLACK,  bx,  by + 40, 720-2*bx+4, h-40);
@@ -2483,7 +2496,6 @@ submenu_display(struct menu * submenu)
             draw_line(xl, yl, xl+i, yl+7, COLOR_CYAN);
         */
     }
-
                                                    /* titlebar + padding difference for large submenus */
     menu_display(submenu,  bx + SUBMENU_OFFSET,  by + 40 + (count > 7 ? 10 : 25), edit_mode ? 1 : 0);
     show_hidden_items(submenu, 1);
@@ -2608,12 +2620,17 @@ menu_entry_select(
     else if (mode == 2) // Q
     {
         if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
-        else if (edit_mode) edit_mode = 0;
+        else if (edit_mode) { edit_mode = 0; submenu_mode = 0; }
         else menu_toggle_submenu();
+
+         // submenu with a single entry? promote it as pickbox
+        if (submenu_mode && HAS_SINGLE_ITEM_SUBMENU(entry))
+            edit_mode = 1;
     }
     else if (mode == 3) // SET
     {
-        if (edit_mode) edit_mode = 0;
+        if (submenu_mode && edit_mode && IS_SINGLE_ITEM_SUBMENU_ENTRY(entry)) edit_mode = submenu_mode = 0;
+        else if (edit_mode) edit_mode = 0;
         else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
         else if (entry->edit_mode == EM_MANY_VALUES) edit_mode = !edit_mode;
         else if (entry->edit_mode == EM_MANY_VALUES_LV && lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;

@@ -4957,6 +4957,7 @@ static struct menu_entry shoot_menus[] = {
         .priv = &mlu_auto,
         .update = mlu_display, 
         .select = mlu_toggle,
+        .max = 1,
         .depends_on = DEP_PHOTO_MODE | DEP_NOT_LIVEVIEW,
         #ifdef FEATURE_MLU_HANDHELD
         .help = "MLU tricks: hand-held or self-timer modes.",
