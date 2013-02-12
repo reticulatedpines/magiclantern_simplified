@@ -1430,7 +1430,7 @@ entry_default_display_info(
 
 static int get_customize_color()
 {
-    if (customize_mode) return COLOR_GREEN1;
+    if (customize_mode) return COLOR_PINK; // modified to dark orange
     return 0;
 }
 
@@ -1524,18 +1524,6 @@ entry_print(
     int xc = x - 5;
     if ((in_submenu || edit_mode) && info->value[0])
         xc = x + font_large.width * w - 15;
-    
-    // customization markers
-    if (customize_mode)
-    {
-        // reserve space for icons
-        if (entry != &customize_menu[0] && !(is_menu_active(MY_MENU_NAME) && !in_submenu))
-            xc = x_end - 40;
-        else
-            xc = x_end;
-        
-        display_customize_marker(entry, xc + 2, y);
-    }
 
     // selection bar
     if (entry->selected)
@@ -1543,7 +1531,7 @@ entry_print(
         int color_left = COLOR_GRAY45;
         int color_right = MENU_BAR_COLOR;
         if (junkie_mode && !in_submenu) color_left = color_right = COLOR_BLACK;
-        if (customize_mode) { color_left = get_customize_color(); color_right = COLOR_GRAY40; }
+        if (customize_mode) { color_left = color_right = get_customize_color(); }
 
         selection_bar_backend(color_left, COLOR_BLACK, x-5, y, xc-x+5, 31);
         selection_bar_backend(color_right, COLOR_BLACK, xc, y, x_end-xc, 31);
@@ -1586,6 +1574,13 @@ entry_print(
              10,  MENU_WARNING_Y_POS, 
                 info->warning
         );
+    }
+
+    // customization markers
+    if (customize_mode)
+    {
+        display_customize_marker(entry, x - 44, y);
+        return; // do not display icons
     }
 
     // warning icon, if any
@@ -2492,24 +2487,25 @@ menu_entry_showhide_toggle(
     }
 }
 
-static void
+// this can fail if there are too many starred items (1=success, 0=fail)
+static int
 menu_entry_star_toggle(
     struct menu_entry * entry
 )
 {
     if( !entry )
-        return;
+        return 0;
 
     entry->starred = !entry->starred;
     menu_flags_dirty = 1;
     int ok = my_menu_rebuild();
     if (!ok)
     {
-        beep();
-        NotifyBox(2000, "Too many favorites");
         entry->starred = 0;
         my_menu_rebuild();
+        return 0;
     }
+    return 1;
 }
 
 // normal -> starred -> hidden
@@ -2529,7 +2525,7 @@ menu_entry_customize_toggle(
         entry = entry_find_by_name(0, name);
         if (!entry) { beep(); return; }
         if (!entry->starred) return;
-        menu_entry_star_toggle(entry);
+        menu_entry_star_toggle(entry); // should not fail
         return;
     }
 
@@ -2540,11 +2536,12 @@ menu_entry_customize_toggle(
     
     if (!entry->starred && !HAS_CURRENT_HIDDEN_FLAG(entry)) // normal -> starred
     {
-        menu_entry_star_toggle(entry);
+        int ok = menu_entry_star_toggle(entry);
+        if (!ok) menu_entry_showhide_toggle(menu, entry); // too many starred items? just hide
     }
     else if (entry->starred && !HAS_CURRENT_HIDDEN_FLAG(entry)) // starred -> hidden
     {
-        menu_entry_star_toggle(entry);
+        menu_entry_star_toggle(entry); // should not fail
         menu_entry_showhide_toggle(menu, entry);
     }
     else if (!entry->starred && HAS_CURRENT_HIDDEN_FLAG(entry)) // hidden -> normal
@@ -2906,7 +2903,7 @@ menu_redraw_do()
     alter_bitmap_palette_entry(COLOR_GREEN1, COLOR_GREEN1, 160, 256);
     alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 300, 256);
     //~ alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);
-    //~ alter_bitmap_palette_entry(COLOR_PINK,   COLOR_ORANGE, 256, 256);
+    alter_bitmap_palette_entry(COLOR_PINK,   COLOR_ORANGE, 160, 160);
 
     #ifdef CONFIG_VXWORKS
     set_ml_palette();
