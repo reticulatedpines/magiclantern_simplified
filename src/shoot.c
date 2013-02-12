@@ -5307,6 +5307,7 @@ static struct menu_entry expo_menus[] = {
         .help  = "Adjust Kelvin white balance and GM/BA WBShift.",
         .help2 = "Advanced: WBShift, RGB multipliers, UniWB, Push-button WB...",
         .edit_mode = EM_MANY_VALUES_LV,
+        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "WhiteBalance",
@@ -5595,6 +5596,13 @@ static struct menu_entry expo_menus[] = {
                 .icon_type = IT_BOOL,
                 .update     = picstyle_rec_sub_display,
                 .select     = picstyle_rec_sub_toggle,
+
+                .choices = (const char *[]) {"OFF",
+                #if NUM_PICSTYLES == 10 // 600D, 5D3...
+                "Auto",
+                #endif
+                "Standard", "Portrait", "Landscape", "Neutral", "Faithful", "Monochrome", "UserDef1", "UserDef2", "UserDef3" },
+                
                 .help = "You can use a different picture style when recording.",
                 .depends_on = DEP_MOVIE_MODE,
             },
