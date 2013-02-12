@@ -1169,8 +1169,8 @@ static struct menu_entry focus_menu[] = {
         .works_best_in = DEP_CFN_AF_BACK_BUTTON,
         .help = "Focus with arrow keys. MENU while REC = save focus point.",
 
+        #ifdef CONFIG_LCD_SENSOR
         .children =  (struct menu_entry[]) {
-            #ifdef CONFIG_LCD_SENSOR
             {
                 .name = "Focus using",
                 .priv = &follow_focus_mode, 
@@ -1178,23 +1178,9 @@ static struct menu_entry focus_menu[] = {
                 .choices = (const char *[]) {"Arrow keys", "LCD sensor"},
                 .help = "You can focus with arrow keys or with the LCD sensor",
             },
-            #endif
-            {
-                .name = "Left/Right dir",
-                .priv = &follow_focus_reverse_h, 
-                .max = 1,
-                .choices = (const char *[]) {"+ / -", "- / +"},
-                .help = "Focus direction for Left and Right keys",
-            },
-            {
-                .name = "Up/Down dir",
-                .priv = &follow_focus_reverse_v, 
-                .max = 1,
-                .choices = (const char *[]) {"+ / -", "- / +"},
-                .help = "Focus direction for Up and Down keys",
-            },
             MENU_EOL
         },
+        #endif
     },
     #endif
     
@@ -1311,6 +1297,20 @@ static struct menu_entry focus_menu[] = {
                 .priv = &lens_focus_waitflag,
                 .max = 1,
                 .help = "Wait for 'focus done' signal before sending next command.",
+            },
+            {
+                .name = "Left/Right dir",
+                .priv = &follow_focus_reverse_h, 
+                .max = 1,
+                .choices = (const char *[]) {"+ / -", "- / +"},
+                .help = "Focus direction for Left and Right keys.",
+            },
+            {
+                .name = "Up/Down dir",
+                .priv = &follow_focus_reverse_v, 
+                .max = 1,
+                .choices = (const char *[]) {"+ / -", "- / +"},
+                .help = "Focus direction for Up and Down keys.",
             },
             {
                 .name = "Rack Delay",
