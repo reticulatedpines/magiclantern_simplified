@@ -101,9 +101,6 @@
 /** Show 4 char if camera support only 3 in photo mode (not LiveView) **/
 //~#define AVAIL_SHOT_WORKAROUND // not needed on 600D
 
-/** Header/footer selectable info**/
-#define DISPLAY_HEADER_FOOTER_INFO
-
 /** FIO_RenameFile works **/
 #define CONFIG_FIO_RENAMEFILE_WORKS
 

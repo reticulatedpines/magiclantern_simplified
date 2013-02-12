@@ -152,9 +152,6 @@
 #define DISPLAY_BATTERY_POS_X 300
 #define DISPLAY_BATTERY_POS_Y 403
 
-// for header footer info
-#define DISPLAY_HEADER_FOOTER_INFO
-
 // for MLU status
 #define MLU_STATUS_POS_X 550
 #define MLU_STATUS_POS_Y 303
