@@ -129,7 +129,7 @@ CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 16);
 static CONFIG_INT("hdr.delay", hdr_delay, 1);
 static CONFIG_INT("hdr.seq", hdr_sequence, 1);
 static CONFIG_INT("hdr.iso", hdr_iso, 0);
-static CONFIG_INT("hdr.scripts", hdr_scripts, 2); //1 enfuse, 2 align+enfuse, 3 only list images
+static CONFIG_INT("hdr.scripts", hdr_scripts, 0); //1 enfuse, 2 align+enfuse, 3 only list images
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
@@ -4705,13 +4705,6 @@ static struct menu_entry shoot_menus[] = {
                 .choices = CHOICES("OFF", "Full", "Half"),
                 .icon_type = IT_DICE_OFF,
             },
-            {
-                .name = "Post scripts",
-                .priv       = &hdr_scripts,
-                .max = 3,
-                .help = "Enfuse scripts or just a file list (for focus stack too).",
-                .choices = CHOICES("OFF", "Enfuse", "Align+Enfuse", "File List"),
-            },
             MENU_EOL
         },
     },
@@ -5117,6 +5110,13 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type = IT_BOOL,
                 .depends_on = DEP_AUTOFOCUS,
                 .works_best_in = DEP_NOT_LIVEVIEW,
+            },
+            {
+                .name = "Post scripts",
+                .priv       = &hdr_scripts,
+                .max = 3,
+                .help = "Post-processing scripts for bracketing and focus stacking.",
+                .choices = CHOICES("OFF", "Enfuse", "Align+Enfuse", "File List"),
             },
             #ifdef FEATURE_SNAP_SIM
             {
