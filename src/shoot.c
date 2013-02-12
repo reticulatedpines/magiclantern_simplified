@@ -5091,7 +5091,7 @@ static struct menu_entry shoot_menus[] = {
     #endif
     
     {
-        .name = "Shoot Preferences...",
+        .name = "Shoot Preferences",
         .select     = menu_open_submenu,
         .help = "Autofocus, number of pics to take at once...",
         .depends_on = DEP_PHOTO_MODE,
@@ -5140,7 +5140,7 @@ extern int zoom_trick;
 struct menu_entry tweak_menus_shoot[] = {
     #ifdef FEATURE_LV_ZOOM_SETTINGS
     {
-        .name = "LiveView zoom settings...",
+        .name = "LiveView zoom tweaks",
         .select = menu_open_submenu,
         .submenu_width = 650,
         .icon_type = IT_SUBMENU,

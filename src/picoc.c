@@ -16,7 +16,7 @@ static char script_preview[1000] = "";
 /* script functions */
 #define MAX_SCRIPT_NUM 11
 #define FILENAME_SIZE 15
-#define SCRIPT_TITLE_SIZE 25
+#define SCRIPT_TITLE_SIZE 22
 #define PICOC_HEAP_SIZE (128*1024)
 
 static char script_list[MAX_SCRIPT_NUM][FILENAME_SIZE];

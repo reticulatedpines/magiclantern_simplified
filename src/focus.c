@@ -1231,7 +1231,7 @@ static struct menu_entry focus_menu[] = {
     #endif
     #ifdef FEATURE_FOCUS_STACKING
     {
-        .name = "Focus Stacking...",
+        .name = "Focus Stacking",
         .select = menu_open_submenu,
         .help = "Takes pictures at different focus points.",
         .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS | DEP_PHOTO_MODE,
@@ -1287,7 +1287,7 @@ static struct menu_entry focus_menu[] = {
     #endif
     #if defined(FEATURE_FOLLOW_FOCUS) || defined(FEATURE_RACK_FOCUS) || defined(FEATURE_FOCUS_STACKING)
     {
-        .name = "Focus Settings...",
+        .name = "Focus Settings",
         .select     = menu_open_submenu,
         .help = "Tuning parameters and prefs for rack/stack/follow focus.",
         .depends_on = DEP_LIVEVIEW,

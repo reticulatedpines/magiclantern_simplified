@@ -584,7 +584,7 @@ static struct menu_entry audio_menus[] = {
         .help = "TEST: Analog mic +5dB boost only",
     },
     {
-        .name = "Digital Gain...", 
+        .name = "Digital Gain", 
         .select = menu_open_submenu, 
         .help = "Digital Volume and R-L gain",
         .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,

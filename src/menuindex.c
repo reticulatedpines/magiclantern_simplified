@@ -36,22 +36,22 @@ struct menu_entry help_menus[] = {
         .select = menu_nav_help_open,
         #if defined(CONFIG_500D)
         .name = "LiveView",
-        .choices = CHOICES("Open submenu (Q)..."),
+        .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_50D)
         .name = "Press FUNC",
-        .choices = CHOICES("Open submenu (Q)..."),
+        .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_5D2)
         .name = "Pict.Style",
-        .choices = CHOICES("Open submenu (Q)..."),
+        .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_5DC) || defined(CONFIG_40D)
         .name = "Press JUMP",
-        .choices = CHOICES("Open submenu (Q)..."),
+        .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_EOSM)
         .name = "1-finger Tap",
-        .choices = CHOICES("Open submenu (Q)..."),
+        .choices = CHOICES("Open submenu (Q)"),
         #else
         .name = "Press Q",
-        .choices = CHOICES("Open submenu..."),
+        .choices = CHOICES("Open submenu"),
         #endif
         
         .children =  (struct menu_entry[]) {
@@ -65,7 +65,7 @@ struct menu_entry help_menus[] = {
     {
         .name = "LongJoystick",
         .select = menu_nav_help_open,
-        .choices = CHOICES("Submenu one-handed.."),
+        .choices = CHOICES("Submenu one-handed"),
         
         .children =  (struct menu_entry[]) {
             {

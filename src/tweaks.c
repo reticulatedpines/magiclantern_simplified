@@ -2020,7 +2020,7 @@ static MENU_UPDATE_FUNC(warn_display)
 static struct menu_entry key_menus[] = {
     #if defined(FEATURE_LV_FOCUS_BOX_FAST) || defined(FEATURE_LV_FOCUS_BOX_SNAP) || defined(FEATURE_LV_FOCUS_BOX_AUTOHIDE)
     {
-        .name = "Focus box settings...", 
+        .name = "Focus box settings", 
         .select = menu_open_submenu,
         .submenu_width = 700,
         .help = "Tweaks for LiveView focus box: move faster, snap to points.",
@@ -2063,7 +2063,7 @@ static struct menu_entry key_menus[] = {
     #endif
     #ifdef FEATURE_ARROW_SHORTCUTS
     {
-        .name       = "Arrow/SET shortcuts...",
+        .name       = "Arrow/SET shortcuts",
         .select = menu_open_submenu,
         .submenu_width = 500,
         .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
@@ -2108,7 +2108,7 @@ static struct menu_entry key_menus[] = {
 
     #if defined(CONFIG_LCD_SENSOR) || defined(FEATURE_STICKY_DOF) || defined(FEATURE_STICKY_HALFSHUTTER) || defined(FEATURE_SWAP_MENU_ERASE) || defined(FEATURE_DIGITAL_ZOOM_SHORTCUT_600D)
     {
-        .name       = "Misc key settings...",
+        .name       = "Misc key settings",
         .select = menu_open_submenu,
         .submenu_width = 656,
         .help = "Misc options related to shortcut keys.",
@@ -2164,7 +2164,7 @@ static struct menu_entry key_menus[] = {
 static struct menu_entry tweak_menus[] = {
     #ifdef FEATURE_WARNINGS_FOR_BAD_SETTINGS
     {
-        .name = "Warnings for bad settings...",
+        .name = "Warning for bad settings",
         .select     = menu_open_submenu,
         .update = warn_display,
         .help = "Warn if some of your settings are changed by mistake.",
@@ -3423,7 +3423,7 @@ static struct menu_entry display_menus[] = {
     #endif
     #if defined(CONFIG_KILL_FLICKER) || defined(FEATURE_SCREEN_LAYOUT) || defined(FEATURE_IMAGE_POSITION) || defined(FEATURE_UPSIDE_DOWN) || defined(FEATURE_IMAGE_ORIENTATION) || defined(FEATURE_AUTO_MIRRORING_HACK) || defined(FEATURE_FORCE_HDMI_VGA) || defined(FEATURE_UNIWB_CORRECTION)
     {
-        .name = "Advanced settings...",
+        .name = "Advanced settings",
         .select         = menu_open_submenu,
         .submenu_width = 710,
         .help = "Screen orientation, position fine-tuning...",
@@ -3515,7 +3515,7 @@ static struct menu_entry display_menus[] = {
 struct menu_entry play_menus[] = {
     #if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_IMAGE_REVIEW_PLAY) || defined(FEATURE_QUICK_ZOOM) || defined(FEATURE_KEN_ROCKWELL_ZOOM_5D3) || defined(FEATURE_REMEMBER_LAST_ZOOM_POS_5D3) || defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE) || defined(FEATURE_QUICK_ERASE)
     {
-        .name = "Image review settings...",
+        .name = "Image review settings",
         .select = menu_open_submenu,
         .submenu_width = 715,
         .help = "Options for PLAY (image review) mode.",

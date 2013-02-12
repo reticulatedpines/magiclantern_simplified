@@ -3628,7 +3628,7 @@ CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup_unused, 1);
 struct menu_entry powersave_menus[] = {
 #ifdef FEATURE_POWERSAVE_LIVEVIEW
 {
-    .name = "Powersave in LiveView...",
+    .name = "Powersave in LiveView",
     .select = menu_open_submenu,
     .submenu_width = 715,
     .help = "Options for reducing power consumption during idle times.",

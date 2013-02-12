@@ -240,7 +240,7 @@ static MENU_UPDATE_FUNC(bitrate_print)
     else if (bitrate_mode == 1)
     {
         MENU_SET_NAME("Bit Rate (CBR)");
-        MENU_SET_VALUE("%s%d.%dx%s", bitrate_factor>10 ? "up to " : "", bitrate_factor/10, bitrate_factor%10, bitrate_dirty || bitrate_factor != 10 ? "" : " (FW default)");
+        MENU_SET_VALUE("%s%d.%dx%s", bitrate_factor>10 ? "up to " : "", bitrate_factor/10, bitrate_factor%10, bitrate_dirty || bitrate_factor != 10 ? "" : " (default)");
         if (bitrate_dirty || bitrate_factor != 10)
             MENU_SET_ICON(MNI_PERCENT, bitrate_factor * 100 / 30);
         else
@@ -669,7 +669,7 @@ static struct menu_entry mov_tweak_menus[] = {
 void bitrate_init()
 {
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
-    menu_add( "Movie Tweaks...", mov_tweak_menus, COUNT(mov_tweak_menus) );
+    menu_add( "Movie Tweaks", mov_tweak_menus, COUNT(mov_tweak_menus) );
 }
 
 INIT_FUNC(__FILE__, bitrate_init);

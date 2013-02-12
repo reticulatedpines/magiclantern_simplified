@@ -979,7 +979,7 @@ static struct menu_entry mov_menus[] = {
     },
     #endif
     {
-        .name = "Movie Tweaks...",
+        .name = "Movie Tweaks",
         .select = menu_open_submenu,
         .help = "Movie Restart, Movie Logging, REC/Standby Notify...",
         .depends_on = DEP_MOVIE_MODE,
@@ -1093,7 +1093,7 @@ static struct menu_entry mov_menus[] = {
 
     #ifdef FEATURE_MOVIE_REC_KEY
     {
-        .name = "Movie REC key",
+        .name = "REC key",
         .priv = &movie_rec_key, 
         .max = 1,
         .icon_type = IT_BOOL,

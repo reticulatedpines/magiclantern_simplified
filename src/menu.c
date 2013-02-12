@@ -629,7 +629,7 @@ static void menu_update_split_pos(struct menu * menu, struct menu_entry * entry)
 {
     // auto adjust width so that all things can be printed nicely
     // only "negative" numbers are auto-adjusted (if you override the width, you do so with a positive value)
-    if (entry->name && menu->split_pos < 0 && entry->priv)
+    if (entry->name && menu->split_pos < 0)// && entry->priv)
     {
         menu->split_pos = -MAX(-menu->split_pos, strlen(entry->name) + 2);
         if (-menu->split_pos > 25) menu->split_pos = -25;
@@ -868,6 +868,7 @@ void size_icon(int x, int y, int current, int nmax)
     dot(x, y, COLOR_GREEN1, COERCE(current * (nmax > 2 ? 9 : 7) / (nmax-1) + 3, 1, 12));
 }
 
+/*
 void dice_icon(int x, int y, int current, int nmax, int color_on, int color_off)
 {
     #define C(i) (current == (i) ? color_on : color_off), (current == (i) ? 6 : 4)
@@ -941,6 +942,7 @@ void dice_icon(int x, int y, int current, int nmax, int color_on, int color_off)
     }
     #undef C
 }
+*/
 
 void color_icon(int x, int y, const char* color)
 {
@@ -1085,18 +1087,22 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg)
         case MNI_OFF: maru(x, y, COLOR_GRAY40); return;
         case MNI_ON: maru(x, y, COLOR_GREEN1); return;
         case MNI_DISABLE: batsu(x, y, COLOR_RED); return;
-        case MNI_NEUTRAL: maru(x, y, COLOR_GRAY60); return;
-        case MNI_WARNING: maru(x, y, COLOR_ORANGE); return;
+        case MNI_NEUTRAL: maru(x, y, COLOR_GRAY50); return;
+        case MNI_WARNING: maru(x, y, COLOR_GRAY60); return;
         case MNI_AUTO: maru(x, y, COLOR_LIGHTBLUE); return;
         case MNI_PERCENT: percent(x, y, arg); return;
         case MNI_ACTION: playicon(x, y); return;
-        case MNI_DICE: dice_icon(x, y, arg & 0xFFFF, arg >> 16, COLOR_GREEN1, COLOR_GRAY50); return;
+        case MNI_DICE: // dice_icon(x, y, arg & 0xFFFF, arg >> 16, COLOR_GREEN1, COLOR_GRAY50); return;
+            maru(x, y, COLOR_GREEN1); return;
         case MNI_DICE_OFF:
         {
             int i = arg & 0xFFFF;
             int N = arg >> 16;
-            if (i == 0) dice_icon(x, y, i-1, N-1, COLOR_GRAY40, COLOR_GRAY40);
-            else dice_icon(x, y, i-1, N-1, COLOR_GREEN1, COLOR_GRAY50);
+
+            maru(x, y, i ? COLOR_GREEN1 : COLOR_GRAY40); return;
+            
+            //~ if (i == 0) dice_icon(x, y, i-1, N-1, COLOR_GRAY40, COLOR_GRAY40);
+            //~ else dice_icon(x, y, i-1, N-1, COLOR_GREEN1, COLOR_GRAY50);
             return;
         }
         case MNI_SIZE: size_icon(x, y, arg & 0xFFFF, arg >> 16); return;
@@ -1215,10 +1221,10 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
         );*/
 }
 
-static void submenu_key_hint(int x, int y, int bg)
+static void submenu_key_hint(int x, int y, int fg, int bg, int chr)
 {
-    bmp_fill(bg, x+12, y, 30, 30);
-    bfnt_draw_char(ICON_ML_SUBMENU_KEY, x, y-5, COLOR_CYAN, COLOR_BLACK);
+    bmp_fill(bg, x+12, y, 25, 31);
+    bfnt_draw_char(chr, x, y-5, fg, COLOR_BLACK);
 }
 
 // draw submenu dots (for non-selected items)
@@ -1498,11 +1504,13 @@ entry_print(
     
     if (end > wmax)
         w -= (end - wmax);
+    
+    int xval = x + font_large.width * w;
 
     // print value field
     bmp_printf(
         fnt,
-        x + font_large.width * w, y,
+        xval, y,
         "%s",
         info->value
     );
@@ -1516,6 +1524,28 @@ entry_print(
             "%s",
             info->rinfo
         );
+    }
+
+
+    // Forward sign for submenus that open with SET
+    if (entry->icon_type == IT_SUBMENU)
+    {
+        submenu_key_hint(
+            xval-12, y, 
+            info->warning_level == MENU_WARN_NOT_WORKING ? MENU_FONT_GRAY : COLOR_GRAY60, 
+            COLOR_BLACK, 
+            ICON_ML_FORWARD
+        );
+    }
+
+    // Q sign for selected item, if submenu opens with Q
+    // Discrete placeholder for non-selected item
+    else if (entry->children && !SUBMENU_OR_EDIT)
+    {
+        if (entry->selected)
+            submenu_key_hint(720-35, y, COLOR_WHITE, COLOR_BLACK, ICON_ML_Q_FORWARD);
+        else
+            submenu_key_hint(720-30, y, COLOR_GRAY40, COLOR_BLACK, ICON_ML_FORWARD);
     }
 
     // selection bar params
@@ -1587,7 +1617,9 @@ entry_print(
     if (info->warning_level == MENU_WARN_NOT_WORKING && info->enabled)
     {
         if (entry->icon_type == IT_SUBMENU)
-            submenu_only_icon(x-40, y, COLOR_ORANGE);
+        {
+            submenu_only_icon(x-40, y, COLOR_GRAY60);
+        }
         else
             menu_draw_icon(x, y, MNI_WARNING, 0);
     }
@@ -1604,20 +1636,6 @@ entry_print(
             menu_draw_icon(x, y, info->enabled ? MNI_ON : MNI_OFF, 0);
         
         entry_draw_icon(entry, x, y);
-    }
-
-    // display submenu marker if this item has a submenu
-    if (entry->children && !menu_lv_transparent_mode)
-        submenu_icon(x, y);
-
-    // and also a Q sign for selected item
-    if (entry->selected && (entry->priv || entry->select) && !customize_mode)
-    {
-        if (entry->children && !SUBMENU_OR_EDIT && !menu_lv_transparent_mode)
-        {
-            if (icon_drawn != MNI_SUBMENU)
-                submenu_key_hint(720-35, y, junkie_mode ? COLOR_BLACK : MENU_BAR_COLOR);
-        }
     }
 }
 
@@ -2446,8 +2464,9 @@ submenu_display(struct menu * submenu)
         bfnt_puts(submenu->name,  bx + 15,  by+2, COLOR_WHITE, 40);
         //~ bfnt_printf(bx + 5,  by, COLOR_WHITE, 40, "%s - %s", get_selected_menu()->name, submenu->name);
 
-        submenu_key_hint(720-bx-45, by+5, MENU_BG_COLOR_HEADER_FOOTER);
+        submenu_key_hint(720-bx-45, by+5, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER, ICON_ML_Q_BACK);
 
+        /*
         int xl = 720-bx-50;
         int yl = by+15;
         draw_line(xl, yl+2, xl, yl+20, COLOR_CYAN);
@@ -2456,6 +2475,7 @@ submenu_display(struct menu * submenu)
         draw_line(xl+1, yl+21, xl+40, yl+21, COLOR_CYAN);
         for (int i = -5; i <= 5; i++)
             draw_line(xl, yl, xl+i, yl+7, COLOR_CYAN);
+        */
     }
 
                                                    /* titlebar + padding difference for large submenus */
@@ -2899,11 +2919,14 @@ menu_redraw_do()
     
     bmp_on();
 
-    // adjust some colors for better contrast
-    alter_bitmap_palette_entry(COLOR_GREEN1, COLOR_GREEN1, 160, 256);
-    alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 300, 256);
-    //~ alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);
-    alter_bitmap_palette_entry(COLOR_PINK,   COLOR_ORANGE, 160, 160);
+    if (!bmp_color_scheme)
+    {
+        // adjust some colors for better contrast
+        alter_bitmap_palette_entry(COLOR_GREEN1, COLOR_GREEN1, 160, 256);
+        alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 300, 256);
+        //~ alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);
+        alter_bitmap_palette_entry(COLOR_PINK,   COLOR_ORANGE, 160, 160);
+    }
 
     #ifdef CONFIG_VXWORKS
     set_ml_palette();
@@ -3358,10 +3381,10 @@ menu_init( void )
     gui_sem = create_named_semaphore( "gui", 0 );
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
-    menu_find_by_name( "Audio",     ICON_ML_AUDIO   )->split_pos = 16;
+    menu_find_by_name( "Audio",     ICON_ML_AUDIO   )->split_pos = 17;
     menu_find_by_name( "Expo",      ICON_ML_EXPO    )->split_pos = 14;
     menu_find_by_name( "Overlay",   ICON_ML_OVERLAY );
-    menu_find_by_name( "Movie",     ICON_ML_MOVIE   )->split_pos = 16;
+    menu_find_by_name( "Movie",     ICON_ML_MOVIE   )->split_pos = 17;
     menu_find_by_name( "Shoot",     ICON_ML_SHOOT   );
     menu_find_by_name( "Focus",     ICON_ML_FOCUS   )->split_pos = 17;
     menu_find_by_name( "Display",   ICON_ML_DISPLAY )->split_pos = 17;
@@ -3881,7 +3904,8 @@ void menu_close_submenu()
 
 void menu_toggle_submenu()
 {
-    submenu_mode = !submenu_mode;
+    if (!edit_mode || submenu_mode)
+        submenu_mode = !submenu_mode;
     edit_mode = 0;
     menu_lv_transparent_mode = 0;
 }
