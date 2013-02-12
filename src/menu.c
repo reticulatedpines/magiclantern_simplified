@@ -2387,9 +2387,11 @@ menus_display(
             x += icon_spacing;
         }
 
-        int skip_this = 0; 
-        if (submenu && (quick_redraw || menu_lv_transparent_mode || edit_mode))
-            skip_this = 1;
+        //~ int skip_this = 0; 
+        //~ if (submenu)// && (quick_redraw || menu_lv_transparent_mode || edit_mode))
+            //~ skip_this = 1;
+        
+        if (submenu) continue;
         
         if (junkie_mode && !edit_mode && !menu_lv_transparent_mode)
         {
@@ -2400,7 +2402,7 @@ menus_display(
                 icon_spacing
             );
         }
-        else if( menu->selected && !skip_this)
+        else if( menu->selected)
         {
             menu_display(
                 menu,
@@ -2421,8 +2423,8 @@ menus_display(
     if (submenu)
     {
         //~ dim_screen(43, COLOR_BLACK, 0, 45, 720, 480-45-50);
-        if (!quick_redraw && !menu_lv_transparent_mode && !edit_mode)
-            bmp_dim(45, 480-50);
+        //~ if (!quick_redraw && !menu_lv_transparent_mode && !edit_mode)
+            //~ bmp_dim(45, 480-50);
         
         submenu_display(submenu);
     }
@@ -2452,7 +2454,7 @@ submenu_display(struct menu * submenu)
     struct menu_entry * child = submenu->children;
     while (child) { if (IS_VISIBLE(child)) count++; child = child->next; }
     int h = submenu->submenu_height ? submenu->submenu_height : 
-        (int) MIN(420, count * font_large.height + 40 + 50 - (count > 7 ? 30 : 0));
+        (int) MIN(408, count * font_large.height + 40 + 50 - (count > 7 ? 30 : 0));
                        /* body + titlebar + padding - smaller padding for large submenus */
         
     int w = submenu->submenu_width  ? submenu->submenu_width : 600;
@@ -2461,9 +2463,12 @@ submenu_display(struct menu * submenu)
     if (IS_SINGLE_ITEM_SUBMENU_ENTRY(submenu->children))
         w = 720;
     
+    w = MIN(w, 720-30);
+    
     g_submenu_width = w;
     int bx = (720 - w)/2;
-    int by = (480 - h)/2 - 30;
+    int by = (480 - h)/2 - 40;
+    by = MAX(by, 10);
     
     // submenu header
     if (IS_SINGLE_ITEM_SUBMENU_ENTRY(submenu->children) && edit_mode) // promoted submenu
@@ -2472,29 +2477,29 @@ submenu_display(struct menu * submenu)
     }
     else if (!menu_lv_transparent_mode && !edit_mode)
     {
-        bmp_fill(MENU_BG_COLOR_HEADER_FOOTER,  bx,  by, 720-2*bx+4, 40);
-        bmp_fill(COLOR_BLACK,  bx,  by + 40, 720-2*bx+4, h-40);
-        //~ bmp_draw_rect(COLOR_GRAY70,  bx,  by, 720-2*bx, 40);
-        draw_line(bx, by+40, bx+w, by+40, 39);
-        draw_line(bx, by+41, bx+w, by+41, 39);
-        draw_line(bx, by+42, bx+w, by+42, 38);
-        draw_line(bx, by+43, bx+w, by+43, 38);
-        bmp_draw_rect(COLOR_GRAY60,  bx,  by, 720-2*bx, h);
+        w = 720-2*bx;
+        bmp_fill(MENU_BG_COLOR_HEADER_FOOTER,  bx,  by, w, 40);
+        bmp_fill(COLOR_BLACK,  bx,  by + 40, w, h-40);
         bfnt_puts(submenu->name,  bx + 15,  by+2, COLOR_WHITE, 40);
-        //~ bfnt_printf(bx + 5,  by, COLOR_WHITE, 40, "%s - %s", get_selected_menu()->name, submenu->name);
+
+        for (int i = 0; i < 15; i++)
+            bmp_draw_rect(COLOR_GRAY45,  bx-i,  by-i, w+i*2, h+i*2);
+
+/* gradient experiments
+        for (int i = 0; i < 3; i++)
+            bmp_draw_rect(38 + i,  bx-i,  by-i, w+i*2, h+i*2);
+        
+        for (int i = 3; i < 7; i++)
+            bmp_draw_rect(42,  bx-i,  by-i, w+i*2, h+i*2);
+
+        for (int i = 7; i < 10; i++)
+            bmp_draw_rect(48-i,  bx-i,  by-i, w+i*2, h+i*2);
+
+        for (int i = 10; i < 15; i++)
+            bmp_draw_rect(COLOR_BLACK,  bx-i,  by-i, w+i*2, h+i*2);
+*/            
 
         submenu_key_hint(720-bx-45, by+5, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER, ICON_ML_Q_BACK);
-
-        /*
-        int xl = 720-bx-50;
-        int yl = by+15;
-        draw_line(xl, yl+2, xl, yl+20, COLOR_CYAN);
-        draw_line(xl+1, yl+2, xl+1, yl+20, COLOR_CYAN);
-        draw_line(xl, yl+20, xl+40, yl+20, COLOR_CYAN);
-        draw_line(xl+1, yl+21, xl+40, yl+21, COLOR_CYAN);
-        for (int i = -5; i <= 5; i++)
-            draw_line(xl, yl, xl+i, yl+7, COLOR_CYAN);
-        */
     }
                                                    /* titlebar + padding difference for large submenus */
     menu_display(submenu,  bx + SUBMENU_OFFSET,  by + 40 + (count > 7 ? 10 : 25), edit_mode ? 1 : 0);
@@ -2882,7 +2887,7 @@ menu_redraw_do()
                 else
                 {
                     if (!quick_redraw)
-                        bmp_fill(COLOR_BLACK, 0, 0, 720, 480 );
+                        bmp_fill(COLOR_BLACK, 0, 40, 720, 400 );
                 }
                 prev_z = z;
 

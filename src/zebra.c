@@ -3495,13 +3495,13 @@ struct menu_entry zebra_menus[] = {
         .priv       = &falsecolor_draw,
         .update     = falsecolor_display,
         .max = 1,
-        .submenu_width = 650,
+        .submenu_width = 700,
         .submenu_height = 160,
         .help = "Exposure aid: each brightness level is color-coded.",
         .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Palette",
+                .name = "Palette      ",
                 .priv = &falsecolor_palette, 
                 .max = COUNT(false_colour)-1,
                 .icon_type = IT_DICE,

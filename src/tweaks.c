@@ -2065,7 +2065,7 @@ static struct menu_entry key_menus[] = {
     {
         .name       = "Arrow/SET shortcuts",
         .select = menu_open_submenu,
-        .submenu_width = 500,
+        .submenu_width = 650,
         .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .depends_on = DEP_LIVEVIEW,
         .children =  (struct menu_entry[]) {
@@ -2084,13 +2084,13 @@ static struct menu_entry key_menus[] = {
                 .help = "LEFT/RIGHT: ISO. UP/DN: Kelvin white balance. SET: PushWB.",
             },
             {
-                .name = "Shutter/Apert.",
+                .name = "Shutter/Aperture",
                 .priv       = &arrow_keys_shutter_aperture,
                 .max = 1,
                 .help = "LEFT/RIGHT: Shutter. UP/DN: Aperture.  SET: 180d shutter.",
             },
             {
-                .name = "LCD Bright/Sat",
+                .name = "LCD Brightness/Saturation",
                 .priv       = &arrow_keys_bright_sat,
                 .max = 1,
                 .help = "LEFT/RIGHT: LCD bright. UP/DN: LCD saturation. SET: reset.",
