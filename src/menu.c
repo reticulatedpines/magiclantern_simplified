@@ -57,7 +57,7 @@ extern int bmp_color_scheme;
 #define MY_MENU_NAME "MyMenu"
 static struct menu * my_menu;
 
-#define CAN_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min && (entry)->max - (entry)->min < 25 && (entry)->priv)
+#define CAN_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min && (entry)->max - (entry)->min < 15 && (entry)->priv)
 #define SHOULD_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min + 1 && (entry)->max - (entry)->min < 10 && (entry)->priv)
 #define IS_BOOL(entry) ((entry)->max - (entry)->min == 1 && (entry)->priv)
 #define IS_ACTION(entry) ((entry)->icon_type == IT_ACTION || (entry)->icon_type == IT_SUBMENU)
@@ -67,8 +67,6 @@ static struct menu * my_menu;
 #define MENU_LEN_DEFAULT 11
 #define MENU_LEN_AUDIO 10 // at len=11, audio meters would overwrite menu entries on 600D
 //~ #define MENU_LEN_FOCUS 8
-
-#define MNI_WARNING 3 //private
 
 int get_menu_len(struct menu * menu)
 {
@@ -156,7 +154,7 @@ static struct menu * get_selected_menu();
 static void menu_make_sure_selection_is_valid();
 static void config_menu_load_flags();
 static int guess_submenu_enabled(struct menu_entry * entry);
-static void menu_draw_icon(int x, int y, int type, intptr_t arg); // private
+static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn); // private
 static struct menu_entry * entry_find_by_name(const char* name, const char* entry_name);
 static struct menu_entry * get_selected_entry(struct menu * menu);
 static void submenu_display(struct menu * submenu);
@@ -354,7 +352,9 @@ static int guess_submenu_enabled(struct menu_entry * entry)
 static void entry_draw_icon(
     struct menu_entry * entry,
     int         x,
-    int         y
+    int         y,
+    int         enabled,
+    int         warn
 )
 {
     entry_guess_icon_type(entry);
@@ -362,57 +362,63 @@ static void entry_draw_icon(
     switch (entry->icon_type)
     {
         case IT_BOOL:
-            menu_draw_icon(x, y, MNI_BOOL(MENU_INT(entry)), 0);
+            menu_draw_icon(x, y, MNI_BOOL(enabled), 0, warn);
             break;
 
         case IT_BOOL_NEG:
-            menu_draw_icon(x, y, MNI_BOOL(!MENU_INT(entry)), 0);
+            menu_draw_icon(x, y, MNI_BOOL(!enabled), 0, warn);
             break;
 
         case IT_ACTION:
-            menu_draw_icon(x, y, MNI_ACTION, 0);
+            menu_draw_icon(x, y, MNI_ACTION, 0, warn);
             break;
 
         case IT_ALWAYS_ON:
-            menu_draw_icon(x, y, MNI_ON, 0);
+            menu_draw_icon(x, y, MNI_ON, 0, warn);
             break;
             
         case IT_SIZE:
-            menu_draw_icon(x, y, MNI_SIZE, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16));
+            if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
+            else menu_draw_icon(x, y, MNI_SIZE, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16), warn);
             break;
 
         case IT_DICE:
-            menu_draw_icon(x, y, MNI_DICE, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16));
+            if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
+            else menu_draw_icon(x, y, MNI_DICE, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16), warn);
             break;
         
         case IT_DICE_OFF:
-            menu_draw_icon(x, y, MNI_DICE_OFF, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16));
+            if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
+            else menu_draw_icon(x, y, MNI_DICE_OFF, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16), warn);
             break;
         
         case IT_PERCENT:
-            menu_draw_icon(x, y, MNI_PERCENT, SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1));
+            if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
+            else menu_draw_icon(x, y, MNI_PERCENT, SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1), warn);
             break;
 
         case IT_NAMED_COLOR:
-            menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) entry->choices[SELECTED_INDEX(entry)]);
+            if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
+            else menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) entry->choices[SELECTED_INDEX(entry)], warn);
             break;
         
         case IT_DISABLE_SOME_FEATURE:
-            menu_draw_icon(x, y, MENU_INT(entry) ? MNI_DISABLE : MNI_NEUTRAL, 0);
+            menu_draw_icon(x, y, MENU_INT(entry) ? MNI_DISABLE : MNI_NEUTRAL, 0, warn);
             break;
 
         case IT_DISABLE_SOME_FEATURE_NEG:
-            menu_draw_icon(x, y, MENU_INT(entry) ? MNI_NEUTRAL : MNI_DISABLE, 0);
+            menu_draw_icon(x, y, MENU_INT(entry) ? MNI_NEUTRAL : MNI_DISABLE, 0, warn);
             break;
 
         case IT_REPLACE_SOME_FEATURE:
-            menu_draw_icon(x, y, MENU_INT(entry) ? MNI_ON : MNI_NEUTRAL, 0);
+            menu_draw_icon(x, y, MENU_INT(entry) ? MNI_ON : MNI_NEUTRAL, 0, warn);
             break;
         
         case IT_SUBMENU:
         {
             int value = guess_submenu_enabled(entry);
-            menu_draw_icon(x, y, MNI_SUBMENU, value);
+            if (!enabled) value = 0;
+            menu_draw_icon(x, y, MNI_SUBMENU, value, warn);
             break;
         }
     }
@@ -795,24 +801,24 @@ static void crossout(int x, int y, int color)
     }
 }
 
-static void percent(int x, int y, int value)
+static void percent(int x, int y, int value, int fg, int bg)
 {
     int i;
     y -= 2;
     value = value * 28 / 100;
     for (i = 0; i < 28; i++)
         draw_line(x + 2 + i, y + 25, x + 2 + i, y + 25 - i/3 - 5,
-            i <= value ? 9 : 60
+            i <= value ? fg : bg
         );
 }
 
-static void playicon(int x, int y)
+static void playicon(int x, int y, int color)
 {
     int i;
     for (i = 5; i < 32-5; i++)
     {
-        draw_line(x + 7, y + i, x + 25, y + 16, COLOR_YELLOW);
-        draw_line(x + 7, y + i, x + 25, y + 16, COLOR_YELLOW);
+        draw_line(x + 7, y + i, x + 25, y + 16, color);
+        draw_line(x + 7, y + i, x + 25, y + 16, color);
     }
 }
 
@@ -863,9 +869,9 @@ void submenu_only_icon(int x, int y, int color)
     bmp_draw_rect(color, x + 15, y + 22, 10, 1);
 }
 
-void size_icon(int x, int y, int current, int nmax)
+void size_icon(int x, int y, int current, int nmax, int color)
 {
-    dot(x, y, COLOR_GREEN1, COERCE(current * (nmax > 2 ? 9 : 7) / (nmax-1) + 3, 1, 12));
+    dot(x, y, color, COERCE(current * (nmax > 2 ? 9 : 7) / (nmax-1) + 3, 1, 12));
 }
 
 /*
@@ -1070,7 +1076,7 @@ void FAST dim_screen(int fg, int bg, int x0, int y0, int w, int h)
 // Only the first call is executed
 
 int icon_drawn = 0;
-static void menu_draw_icon(int x, int y, int type, intptr_t arg)
+static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
 {
     if (icon_drawn) return;
     
@@ -1079,35 +1085,44 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg)
 #ifdef CONFIG_MENU_ICONS
 
     x -= 40;
-    //~ if (type != MNI_NONE && type != MNI_STOP_DRAWING) 
-        //~ bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background; don't call this for LCD remote icons
+    
+    int color_on = warn ? COLOR_GRAY45 : COLOR_GREEN1;
+    int color_off = COLOR_GRAY40;
+    int color_dis = warn ? COLOR_GRAY45 : COLOR_RED;
+    int color_slider_fg = warn ? COLOR_GRAY50 : COLOR_LIGHTBLUE;
+    int color_slider_bg = warn ? 43 : COLOR_GRAY60;
+    int color_action = warn ? COLOR_GRAY45 : COLOR_YELLOW;
 
     switch(type)
     {
-        case MNI_OFF: maru(x, y, COLOR_GRAY40); return;
-        case MNI_ON: maru(x, y, COLOR_GREEN1); return;
-        case MNI_DISABLE: batsu(x, y, COLOR_RED); return;
+        case MNI_OFF: maru(x, y, color_off); return;
+        case MNI_ON: maru(x, y, color_on); return;
+        case MNI_DISABLE: batsu(x, y, color_dis); return;
         case MNI_NEUTRAL: maru(x, y, COLOR_GRAY50); return;
-        case MNI_WARNING: maru(x, y, COLOR_GRAY60); return;
-        case MNI_AUTO: maru(x, y, COLOR_LIGHTBLUE); return;
-        case MNI_PERCENT: percent(x, y, arg); return;
-        case MNI_ACTION: playicon(x, y); return;
+        case MNI_AUTO: maru(x, y, color_slider_fg); return;
+        case MNI_PERCENT: percent(x, y, arg, color_slider_fg, color_slider_bg); return;
+        case MNI_ACTION: playicon(x, y, color_action); return;
         case MNI_DICE: // dice_icon(x, y, arg & 0xFFFF, arg >> 16, COLOR_GREEN1, COLOR_GRAY50); return;
-            maru(x, y, COLOR_GREEN1); return;
+            maru(x, y, color_on); return;
         case MNI_DICE_OFF:
         {
             int i = arg & 0xFFFF;
-            int N = arg >> 16;
+            //~ int N = arg >> 16;
 
-            maru(x, y, i ? COLOR_GREEN1 : COLOR_GRAY40); return;
+            maru(x, y, i ? color_on : color_off); return;
             
             //~ if (i == 0) dice_icon(x, y, i-1, N-1, COLOR_GRAY40, COLOR_GRAY40);
             //~ else dice_icon(x, y, i-1, N-1, COLOR_GREEN1, COLOR_GRAY50);
             return;
         }
-        case MNI_SIZE: size_icon(x, y, arg & 0xFFFF, arg >> 16); return;
-        case MNI_NAMED_COLOR: color_icon(x, y, (char *)arg); return;
-        case MNI_SUBMENU: submenu_only_icon(x, y, arg ? COLOR_GREEN1 : COLOR_GRAY45); return;
+        case MNI_SIZE: size_icon(x, y, arg & 0xFFFF, arg >> 16, color_on); return;
+        case MNI_NAMED_COLOR:
+        {
+            if (warn) maru(x, y, color_on);
+            else color_icon(x, y, (char *)arg); 
+            return;
+        }
+        case MNI_SUBMENU: submenu_only_icon(x, y, arg ? color_on : color_off); return;
     }
 #endif
 }
@@ -1614,29 +1629,16 @@ entry_print(
     }
 
     // warning icon, if any
-    if (info->warning_level == MENU_WARN_NOT_WORKING && info->enabled)
-    {
-        if (entry->icon_type == IT_SUBMENU)
-        {
-            submenu_only_icon(x-40, y, COLOR_GRAY60);
-        }
-        else
-            menu_draw_icon(x, y, MNI_WARNING, 0);
-    }
-    else // no warning, draw normal icons
-    {
-        // overriden icon has the highest priority
-        if (info->icon)
-            menu_draw_icon(x, y, info->icon, info->icon_arg);
-        
-        if (!info->enabled && entry->icon_type == IT_PERCENT)
-            menu_draw_icon(x, y, MNI_OFF, 0);
-        
-        if (entry->icon_type == IT_BOOL)
-            menu_draw_icon(x, y, info->enabled ? MNI_ON : MNI_OFF, 0);
-        
-        entry_draw_icon(entry, x, y);
-    }
+    int warn = (info->warning_level == MENU_WARN_NOT_WORKING);
+
+    // overriden icon has the highest priority
+    if (info->icon)
+        menu_draw_icon(x, y, info->icon, info->icon_arg, warn);
+    
+    if (entry->icon_type == IT_BOOL)
+        menu_draw_icon(x, y, info->enabled ? MNI_ON : MNI_OFF, 0, warn);
+    
+    entry_draw_icon(entry, x, y, info->enabled, warn);
 }
 
 static void
