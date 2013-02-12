@@ -57,7 +57,7 @@ typedef struct
 } __attribute__((packed))
 canon_font_t;
 
-#define NUM_ML_ICONS 13
+#define NUM_ML_ICONS 15
 
 typedef struct {
 	uint32_t charmap[NUM_ML_ICONS];

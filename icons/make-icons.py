@@ -23,7 +23,9 @@ icons = [
     'info.png', 
     'mymenu.png', 
     'script.png', 
-    'Q.png',
+    'Q-forward.png',
+    'Q-back.png',
+    'forward.png',
 ]
 
 # On low-res screens, the audio and focus icons are aliasing
@@ -40,7 +42,9 @@ icons_lowres = [
     'info.png', 
     'mymenu.png', 
     'script.png', 
-    'Q.png',
+    'Q-forward.png',
+    'Q-back.png',
+    'forward.png',
 ]
 
 def process(icons, outfile):
