@@ -2090,7 +2090,7 @@ static struct menu_entry key_menus[] = {
                 .help = "LEFT/RIGHT: Shutter. UP/DN: Aperture.  SET: 180d shutter.",
             },
             {
-                .name = "LCD Brightness/Saturation",
+                .name = "LCD Bright/Saturation",
                 .priv       = &arrow_keys_bright_sat,
                 .max = 1,
                 .help = "LEFT/RIGHT: LCD bright. UP/DN: LCD saturation. SET: reset.",
@@ -2151,7 +2151,7 @@ static struct menu_entry key_menus[] = {
                 .name = "DigitalZoom Shortcut",
                 .priv = &digital_zoom_shortcut,
                 .max  = 1,
-                .choices = (const char *[]) {"1x, 3x", "3x...10x"},
+                .choices = (const char *[]) {"3x...10x", "1x, 3x"},
                 .help = "Movie: DISP + Zoom In toggles between 1x and 3x modes."
             },
             #endif
