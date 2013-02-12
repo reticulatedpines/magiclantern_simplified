@@ -47,10 +47,10 @@
 #define BGMT_PRESS_DOWN 0x2a       //~ unpress = 0x2d
 #define BGMT_UNPRESS_DOWN 0x2b
 
-    #define BGMT_PRESS_HALFSHUTTER 0x50
-    #define BGMT_UNPRESS_HALFSHUTTER 0x51
-    #define BGMT_PRESS_FULLSHUTTER 0x52
-    #define BGMT_UNPRESS_FULLSHUTTER 0x53
+#define BGMT_PRESS_HALFSHUTTER 0x4e
+#define BGMT_UNPRESS_HALFSHUTTER 0x4f
+
+    #define BGMT_PRESS_FULLSHUTTER 0xdeadbeef
 
 #define GMT_GUICMD_PRESS_BUTTON_SOMETHING 0x52 // unhandled buttons?
 
@@ -69,9 +69,9 @@
     #define FLASH_BTN_MOVIE_MODE (get_disp_pressed() && lv)
 
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0x10
-    #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x11
+#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x11
 
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xe
-    #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xf
+#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xf
 
 #endif
