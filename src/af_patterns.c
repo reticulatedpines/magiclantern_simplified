@@ -360,7 +360,7 @@ static MENU_UPDATE_FUNC(pattern_display)
 static struct menu_entry afp_focus_menu[] = {
 #if !defined(CONFIG_5DC) && !defined(CONFIG_5D3) && !defined(CONFIG_7D)
     {
-        .name = "Focus Patterns...",
+        .name = "Focus Patterns",
         .select = menu_open_submenu,
         .help = "Custom AF patterns (photo mode only). Ported from 400plus.",
         .submenu_height = 280,

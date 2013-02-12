@@ -1294,12 +1294,15 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         }
 #endif
         case INFO_STRING_CARD_LABEL_A:
-            snprintf(buffer, maxsize, "%s", info_get_cardlabel('A'));
+            // card label is not a null terminated string and the length of it is fix 11 chars
+            memcpy(buffer, info_get_cardlabel('A'), 11);
+            buffer[11]=NULL;
             info_trim_string(buffer);
             break;
 
         case INFO_STRING_CARD_LABEL_B:
-            snprintf(buffer, maxsize, "%s", info_get_cardlabel('B'));
+            memcpy(buffer, info_get_cardlabel('B'), 11);
+            buffer[11]=NULL;
             info_trim_string(buffer);
             break;
 

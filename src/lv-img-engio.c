@@ -540,7 +540,7 @@ void menu_open_submenu();
 static struct menu_entry lv_img_menu[] = {
     #if defined(FEATURE_IMAGE_EFFECTS) || defined(FEATURE_EXPO_ISO_DIGIC)
     {
-        .name = "Image Fine-tuning...",
+        .name = "Image Finetuning",
         .select = menu_open_submenu,
         .help = "Subtle image enhancements via DIGIC register tweaks.",
         .depends_on = DEP_MOVIE_MODE,
@@ -601,7 +601,7 @@ static struct menu_entry lv_img_menu[] = {
 
     #ifdef FEATURE_IMAGE_EFFECTS
     {
-        .name = "Creative Effects...",
+        .name = "Creative Effects",
         .select = menu_open_submenu,
         .help = "Experimental image filters found by digging into DIGIC.",
         .depends_on = DEP_MOVIE_MODE,

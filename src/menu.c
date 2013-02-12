@@ -57,18 +57,20 @@ extern int bmp_color_scheme;
 #define MY_MENU_NAME "MyMenu"
 static struct menu * my_menu;
 
-#define CAN_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min && (entry)->max - (entry)->min < 25 && (entry)->priv)
+#define CAN_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min && (entry)->max - (entry)->min < 15 && (entry)->priv)
 #define SHOULD_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min + 1 && (entry)->max - (entry)->min < 10 && (entry)->priv)
 #define IS_BOOL(entry) ((entry)->max - (entry)->min == 1 && (entry)->priv)
 #define IS_ACTION(entry) ((entry)->icon_type == IT_ACTION || (entry)->icon_type == IT_SUBMENU)
 #define SHOULD_USE_EDIT_MODE(entry) (!IS_BOOL(entry) && !IS_ACTION(entry))
 
+#define HAS_SINGLE_ITEM_SUBMENU(entry) ((entry)->children && !(entry)->children[0].next && !(entry)->children[0].prev)
+#define IS_SINGLE_ITEM_SUBMENU_ENTRY(entry) (!(entry)->next && !(entry)->prev)
+
+
 //for vscroll
 #define MENU_LEN_DEFAULT 11
 #define MENU_LEN_AUDIO 10 // at len=11, audio meters would overwrite menu entries on 600D
 //~ #define MENU_LEN_FOCUS 8
-
-#define MNI_WARNING 3 //private
 
 int get_menu_len(struct menu * menu)
 {
@@ -156,7 +158,7 @@ static struct menu * get_selected_menu();
 static void menu_make_sure_selection_is_valid();
 static void config_menu_load_flags();
 static int guess_submenu_enabled(struct menu_entry * entry);
-static void menu_draw_icon(int x, int y, int type, intptr_t arg); // private
+static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn); // private
 static struct menu_entry * entry_find_by_name(const char* name, const char* entry_name);
 static struct menu_entry * get_selected_entry(struct menu * menu);
 static void submenu_display(struct menu * submenu);
@@ -342,11 +344,15 @@ static int guess_submenu_enabled(struct menu_entry * entry)
     else 
     {   // otherwise, look in the children submenus; if one is true, then submenu icon is drawn as "true"
         struct menu_entry * e = entry->children;
+        
+        while (e->prev) e = e->prev;
+
         for( ; e ; e = e->next )
         {
             if (MENU_INT(e))
                 return 1;
         }
+
         return 0;
     }
 }
@@ -354,7 +360,9 @@ static int guess_submenu_enabled(struct menu_entry * entry)
 static void entry_draw_icon(
     struct menu_entry * entry,
     int         x,
-    int         y
+    int         y,
+    int         enabled,
+    int         warn
 )
 {
     entry_guess_icon_type(entry);
@@ -362,57 +370,63 @@ static void entry_draw_icon(
     switch (entry->icon_type)
     {
         case IT_BOOL:
-            menu_draw_icon(x, y, MNI_BOOL(MENU_INT(entry)), 0);
+            menu_draw_icon(x, y, MNI_BOOL(enabled), 0, warn);
             break;
 
         case IT_BOOL_NEG:
-            menu_draw_icon(x, y, MNI_BOOL(!MENU_INT(entry)), 0);
+            menu_draw_icon(x, y, MNI_BOOL(!enabled), 0, warn);
             break;
 
         case IT_ACTION:
-            menu_draw_icon(x, y, MNI_ACTION, 0);
+            menu_draw_icon(x, y, MNI_ACTION, 0, warn);
             break;
 
         case IT_ALWAYS_ON:
-            menu_draw_icon(x, y, MNI_ON, 0);
+            menu_draw_icon(x, y, MNI_ON, 0, warn);
             break;
             
         case IT_SIZE:
-            menu_draw_icon(x, y, MNI_SIZE, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16));
+            if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
+            else menu_draw_icon(x, y, MNI_SIZE, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16), warn);
             break;
 
         case IT_DICE:
-            menu_draw_icon(x, y, MNI_DICE, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16));
+            if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
+            else menu_draw_icon(x, y, MNI_DICE, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16), warn);
             break;
         
         case IT_DICE_OFF:
-            menu_draw_icon(x, y, MNI_DICE_OFF, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16));
+            if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
+            else menu_draw_icon(x, y, MNI_DICE_OFF, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16), warn);
             break;
         
         case IT_PERCENT:
-            menu_draw_icon(x, y, MNI_PERCENT, SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1));
+            if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
+            else menu_draw_icon(x, y, MNI_PERCENT, SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1), warn);
             break;
 
         case IT_NAMED_COLOR:
-            menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) entry->choices[SELECTED_INDEX(entry)]);
+            if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
+            else menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) entry->choices[SELECTED_INDEX(entry)], warn);
             break;
         
         case IT_DISABLE_SOME_FEATURE:
-            menu_draw_icon(x, y, MENU_INT(entry) ? MNI_DISABLE : MNI_NEUTRAL, 0);
+            menu_draw_icon(x, y, MENU_INT(entry) ? MNI_DISABLE : MNI_NEUTRAL, 0, warn);
             break;
 
         case IT_DISABLE_SOME_FEATURE_NEG:
-            menu_draw_icon(x, y, MENU_INT(entry) ? MNI_NEUTRAL : MNI_DISABLE, 0);
+            menu_draw_icon(x, y, MENU_INT(entry) ? MNI_NEUTRAL : MNI_DISABLE, 0, warn);
             break;
 
         case IT_REPLACE_SOME_FEATURE:
-            menu_draw_icon(x, y, MENU_INT(entry) ? MNI_ON : MNI_NEUTRAL, 0);
+            menu_draw_icon(x, y, MENU_INT(entry) ? MNI_ON : MNI_NEUTRAL, 0, warn);
             break;
         
         case IT_SUBMENU:
         {
             int value = guess_submenu_enabled(entry);
-            menu_draw_icon(x, y, MNI_SUBMENU, value);
+            if (!enabled) value = 0;
+            menu_draw_icon(x, y, MNI_SUBMENU, value, warn);
             break;
         }
     }
@@ -629,7 +643,7 @@ static void menu_update_split_pos(struct menu * menu, struct menu_entry * entry)
 {
     // auto adjust width so that all things can be printed nicely
     // only "negative" numbers are auto-adjusted (if you override the width, you do so with a positive value)
-    if (entry->name && menu->split_pos < 0 && entry->priv)
+    if (entry->name && menu->split_pos < 0)// && entry->priv)
     {
         menu->split_pos = -MAX(-menu->split_pos, strlen(entry->name) + 2);
         if (-menu->split_pos > 25) menu->split_pos = -25;
@@ -795,24 +809,24 @@ static void crossout(int x, int y, int color)
     }
 }
 
-static void percent(int x, int y, int value)
+static void percent(int x, int y, int value, int fg, int bg)
 {
     int i;
     y -= 2;
     value = value * 28 / 100;
     for (i = 0; i < 28; i++)
         draw_line(x + 2 + i, y + 25, x + 2 + i, y + 25 - i/3 - 5,
-            i <= value ? 9 : 60
+            i <= value ? fg : bg
         );
 }
 
-static void playicon(int x, int y)
+static void playicon(int x, int y, int color)
 {
     int i;
     for (i = 5; i < 32-5; i++)
     {
-        draw_line(x + 7, y + i, x + 25, y + 16, COLOR_YELLOW);
-        draw_line(x + 7, y + i, x + 25, y + 16, COLOR_YELLOW);
+        draw_line(x + 7, y + i, x + 25, y + 16, color);
+        draw_line(x + 7, y + i, x + 25, y + 16, color);
     }
 }
 
@@ -863,11 +877,12 @@ void submenu_only_icon(int x, int y, int color)
     bmp_draw_rect(color, x + 15, y + 22, 10, 1);
 }
 
-void size_icon(int x, int y, int current, int nmax)
+void size_icon(int x, int y, int current, int nmax, int color)
 {
-    dot(x, y, COLOR_GREEN1, COERCE(current * (nmax > 2 ? 9 : 7) / (nmax-1) + 3, 1, 12));
+    dot(x, y, color, COERCE(current * (nmax > 2 ? 9 : 7) / (nmax-1) + 3, 1, 12));
 }
 
+/*
 void dice_icon(int x, int y, int current, int nmax, int color_on, int color_off)
 {
     #define C(i) (current == (i) ? color_on : color_off), (current == (i) ? 6 : 4)
@@ -941,6 +956,7 @@ void dice_icon(int x, int y, int current, int nmax, int color_on, int color_off)
     }
     #undef C
 }
+*/
 
 void color_icon(int x, int y, const char* color)
 {
@@ -1068,7 +1084,7 @@ void FAST dim_screen(int fg, int bg, int x0, int y0, int w, int h)
 // Only the first call is executed
 
 int icon_drawn = 0;
-static void menu_draw_icon(int x, int y, int type, intptr_t arg)
+static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
 {
     if (icon_drawn) return;
     
@@ -1077,31 +1093,44 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg)
 #ifdef CONFIG_MENU_ICONS
 
     x -= 40;
-    //~ if (type != MNI_NONE && type != MNI_STOP_DRAWING) 
-        //~ bmp_printf(FONT_LARGE, x, y, "  "); // cleanup background; don't call this for LCD remote icons
+    
+    int color_on = warn ? COLOR_GRAY45 : COLOR_GREEN1;
+    int color_off = COLOR_GRAY40;
+    int color_dis = warn ? COLOR_GRAY45 : COLOR_RED;
+    int color_slider_fg = warn ? COLOR_GRAY50 : COLOR_LIGHTBLUE;
+    int color_slider_bg = warn ? 43 : COLOR_GRAY60;
+    int color_action = warn ? COLOR_GRAY45 : COLOR_YELLOW;
 
     switch(type)
     {
-        case MNI_OFF: maru(x, y, COLOR_GRAY40); return;
-        case MNI_ON: maru(x, y, COLOR_GREEN1); return;
-        case MNI_DISABLE: batsu(x, y, COLOR_RED); return;
-        case MNI_NEUTRAL: maru(x, y, COLOR_GRAY60); return;
-        case MNI_WARNING: maru(x, y, COLOR_ORANGE); return;
-        case MNI_AUTO: maru(x, y, COLOR_LIGHTBLUE); return;
-        case MNI_PERCENT: percent(x, y, arg); return;
-        case MNI_ACTION: playicon(x, y); return;
-        case MNI_DICE: dice_icon(x, y, arg & 0xFFFF, arg >> 16, COLOR_GREEN1, COLOR_GRAY50); return;
+        case MNI_OFF: maru(x, y, color_off); return;
+        case MNI_ON: maru(x, y, color_on); return;
+        case MNI_DISABLE: batsu(x, y, color_dis); return;
+        case MNI_NEUTRAL: maru(x, y, COLOR_GRAY50); return;
+        case MNI_AUTO: maru(x, y, color_slider_fg); return;
+        case MNI_PERCENT: percent(x, y, arg, color_slider_fg, color_slider_bg); return;
+        case MNI_ACTION: playicon(x, y, color_action); return;
+        case MNI_DICE: // dice_icon(x, y, arg & 0xFFFF, arg >> 16, COLOR_GREEN1, COLOR_GRAY50); return;
+            maru(x, y, color_on); return;
         case MNI_DICE_OFF:
         {
             int i = arg & 0xFFFF;
-            int N = arg >> 16;
-            if (i == 0) dice_icon(x, y, i-1, N-1, COLOR_GRAY40, COLOR_GRAY40);
-            else dice_icon(x, y, i-1, N-1, COLOR_GREEN1, COLOR_GRAY50);
+            //~ int N = arg >> 16;
+
+            maru(x, y, i ? color_on : color_off); return;
+            
+            //~ if (i == 0) dice_icon(x, y, i-1, N-1, COLOR_GRAY40, COLOR_GRAY40);
+            //~ else dice_icon(x, y, i-1, N-1, COLOR_GREEN1, COLOR_GRAY50);
             return;
         }
-        case MNI_SIZE: size_icon(x, y, arg & 0xFFFF, arg >> 16); return;
-        case MNI_NAMED_COLOR: color_icon(x, y, (char *)arg); return;
-        case MNI_SUBMENU: submenu_only_icon(x, y, arg ? COLOR_GREEN1 : COLOR_GRAY45); return;
+        case MNI_SIZE: size_icon(x, y, arg & 0xFFFF, arg >> 16, color_on); return;
+        case MNI_NAMED_COLOR:
+        {
+            if (warn) maru(x, y, color_on);
+            else color_icon(x, y, (char *)arg); 
+            return;
+        }
+        case MNI_SUBMENU: submenu_only_icon(x, y, arg ? color_on : color_off); return;
     }
 #endif
 }
@@ -1171,7 +1200,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     }
     
     // compute the width of the pickbox (what's the longest string?)
-    int w = 200;
+    int w = 100;
     for (int i = lo; i <= hi; i++)
     {
         w = MAX(w, font_large.width * strlen(pickbox_string(entry, i)));
@@ -1215,10 +1244,10 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
         );*/
 }
 
-static void submenu_key_hint(int x, int y, int bg)
+static void submenu_key_hint(int x, int y, int fg, int bg, int chr)
 {
-    bmp_fill(bg, x+12, y, 30, 30);
-    bfnt_draw_char(ICON_ML_SUBMENU_KEY, x, y-5, COLOR_CYAN, COLOR_BLACK);
+    bmp_fill(bg, x+12, y, 25, 31);
+    bfnt_draw_char(chr, x, y-5, fg, COLOR_BLACK);
 }
 
 // draw submenu dots (for non-selected items)
@@ -1430,7 +1459,7 @@ entry_default_display_info(
 
 static int get_customize_color()
 {
-    if (customize_mode) return COLOR_GREEN1;
+    if (customize_mode) return COLOR_PINK; // modified to dark orange
     return 0;
 }
 
@@ -1498,11 +1527,13 @@ entry_print(
     
     if (end > wmax)
         w -= (end - wmax);
+    
+    int xval = x + font_large.width * w;
 
     // print value field
     bmp_printf(
         fnt,
-        x + font_large.width * w, y,
+        xval, y,
         "%s",
         info->value
     );
@@ -1518,24 +1549,34 @@ entry_print(
         );
     }
 
+
+    // Forward sign for submenus that open with SET
+    if (entry->icon_type == IT_SUBMENU)
+    {
+        submenu_key_hint(
+            xval-12, y, 
+            info->warning_level == MENU_WARN_NOT_WORKING ? MENU_FONT_GRAY : COLOR_GRAY60, 
+            COLOR_BLACK, 
+            ICON_ML_FORWARD
+        );
+    }
+
+    // Q sign for selected item, if submenu opens with Q
+    // Discrete placeholder for non-selected item
+    else if (entry->children && !SUBMENU_OR_EDIT)
+    {
+        if (entry->selected)
+            submenu_key_hint(720-35, y, COLOR_WHITE, COLOR_BLACK, ICON_ML_Q_FORWARD);
+        else
+            submenu_key_hint(720-30, y, COLOR_GRAY40, COLOR_BLACK, ICON_ML_FORWARD);
+    }
+
     // selection bar params
 
     // bar middle
     int xc = x - 5;
     if ((in_submenu || edit_mode) && info->value[0])
         xc = x + font_large.width * w - 15;
-    
-    // customization markers
-    if (customize_mode)
-    {
-        // reserve space for icons
-        if (entry != &customize_menu[0] && !(is_menu_active(MY_MENU_NAME) && !in_submenu))
-            xc = x_end - 40;
-        else
-            xc = x_end;
-        
-        display_customize_marker(entry, xc + 2, y);
-    }
 
     // selection bar
     if (entry->selected)
@@ -1543,7 +1584,7 @@ entry_print(
         int color_left = COLOR_GRAY45;
         int color_right = MENU_BAR_COLOR;
         if (junkie_mode && !in_submenu) color_left = color_right = COLOR_BLACK;
-        if (customize_mode) { color_left = get_customize_color(); color_right = COLOR_GRAY40; }
+        if (customize_mode) { color_left = color_right = get_customize_color(); }
 
         selection_bar_backend(color_left, COLOR_BLACK, x-5, y, xc-x+5, 31);
         selection_bar_backend(color_right, COLOR_BLACK, xc, y, x_end-xc, 31);
@@ -1588,42 +1629,24 @@ entry_print(
         );
     }
 
+    // customization markers
+    if (customize_mode)
+    {
+        display_customize_marker(entry, x - 44, y);
+        return; // do not display icons
+    }
+
     // warning icon, if any
-    if (info->warning_level == MENU_WARN_NOT_WORKING && info->enabled)
-    {
-        if (entry->icon_type == IT_SUBMENU)
-            submenu_only_icon(x-40, y, COLOR_ORANGE);
-        else
-            menu_draw_icon(x, y, MNI_WARNING, 0);
-    }
-    else // no warning, draw normal icons
-    {
-        // overriden icon has the highest priority
-        if (info->icon)
-            menu_draw_icon(x, y, info->icon, info->icon_arg);
-        
-        if (!info->enabled && entry->icon_type == IT_PERCENT)
-            menu_draw_icon(x, y, MNI_OFF, 0);
-        
-        if (entry->icon_type == IT_BOOL)
-            menu_draw_icon(x, y, info->enabled ? MNI_ON : MNI_OFF, 0);
-        
-        entry_draw_icon(entry, x, y);
-    }
+    int warn = (info->warning_level == MENU_WARN_NOT_WORKING);
 
-    // display submenu marker if this item has a submenu
-    if (entry->children && !menu_lv_transparent_mode)
-        submenu_icon(x, y);
-
-    // and also a Q sign for selected item
-    if (entry->selected && (entry->priv || entry->select) && !customize_mode)
-    {
-        if (entry->children && !SUBMENU_OR_EDIT && !menu_lv_transparent_mode)
-        {
-            if (icon_drawn != MNI_SUBMENU)
-                submenu_key_hint(720-35, y, junkie_mode ? COLOR_BLACK : MENU_BAR_COLOR);
-        }
-    }
+    // overriden icon has the highest priority
+    if (info->icon)
+        menu_draw_icon(x, y, info->icon, info->icon_arg, warn);
+    
+    if (entry->icon_type == IT_BOOL)
+        menu_draw_icon(x, y, info->enabled ? MNI_ON : MNI_OFF, 0, warn);
+    
+    entry_draw_icon(entry, x, y, info->enabled, warn);
 }
 
 static void
@@ -2364,9 +2387,11 @@ menus_display(
             x += icon_spacing;
         }
 
-        int skip_this = 0; 
-        if (submenu && (quick_redraw || menu_lv_transparent_mode || edit_mode))
-            skip_this = 1;
+        //~ int skip_this = 0; 
+        //~ if (submenu)// && (quick_redraw || menu_lv_transparent_mode || edit_mode))
+            //~ skip_this = 1;
+        
+        if (submenu) continue;
         
         if (junkie_mode && !edit_mode && !menu_lv_transparent_mode)
         {
@@ -2377,7 +2402,7 @@ menus_display(
                 icon_spacing
             );
         }
-        else if( menu->selected && !skip_this)
+        else if( menu->selected)
         {
             menu_display(
                 menu,
@@ -2398,8 +2423,8 @@ menus_display(
     if (submenu)
     {
         //~ dim_screen(43, COLOR_BLACK, 0, 45, 720, 480-45-50);
-        if (!quick_redraw && !menu_lv_transparent_mode && !edit_mode)
-            bmp_dim(45, 480-50);
+        //~ if (!quick_redraw && !menu_lv_transparent_mode && !edit_mode)
+            //~ bmp_dim(45, 480-50);
         
         submenu_display(submenu);
     }
@@ -2429,40 +2454,53 @@ submenu_display(struct menu * submenu)
     struct menu_entry * child = submenu->children;
     while (child) { if (IS_VISIBLE(child)) count++; child = child->next; }
     int h = submenu->submenu_height ? submenu->submenu_height : 
-        (int) MIN(420, count * font_large.height + 40 + 50 - (count > 7 ? 30 : 0));
+        (int) MIN(408, count * font_large.height + 40 + 50 - (count > 7 ? 30 : 0));
                        /* body + titlebar + padding - smaller padding for large submenus */
         
     int w = submenu->submenu_width  ? submenu->submenu_width : 600;
+
+    // submenu promoted to pickbox? show submenu title in the corner
+    if (IS_SINGLE_ITEM_SUBMENU_ENTRY(submenu->children))
+        w = 720;
+    
+    w = MIN(w, 720-30);
+    
     g_submenu_width = w;
     int bx = (720 - w)/2;
-    int by = (480 - h)/2 - 30;
+    int by = (480 - h)/2 - 40;
+    by = MAX(by, 10);
     
     // submenu header
-    if (!menu_lv_transparent_mode && !edit_mode)
+    if (IS_SINGLE_ITEM_SUBMENU_ENTRY(submenu->children) && edit_mode) // promoted submenu
     {
-        bmp_fill(MENU_BG_COLOR_HEADER_FOOTER,  bx,  by, 720-2*bx+4, 40);
-        bmp_fill(COLOR_BLACK,  bx,  by + 40, 720-2*bx+4, h-40);
-        //~ bmp_draw_rect(COLOR_GRAY70,  bx,  by, 720-2*bx, 40);
-        draw_line(bx, by+40, bx+w, by+40, 39);
-        draw_line(bx, by+41, bx+w, by+41, 39);
-        draw_line(bx, by+42, bx+w, by+42, 38);
-        draw_line(bx, by+43, bx+w, by+43, 38);
-        bmp_draw_rect(COLOR_GRAY60,  bx,  by, 720-2*bx, h);
-        bfnt_puts(submenu->name,  bx + 15,  by+2, COLOR_WHITE, 40);
-        //~ bfnt_printf(bx + 5,  by, COLOR_WHITE, 40, "%s - %s", get_selected_menu()->name, submenu->name);
-
-        submenu_key_hint(720-bx-45, by+5, MENU_BG_COLOR_HEADER_FOOTER);
-
-        int xl = 720-bx-50;
-        int yl = by+15;
-        draw_line(xl, yl+2, xl, yl+20, COLOR_CYAN);
-        draw_line(xl+1, yl+2, xl+1, yl+20, COLOR_CYAN);
-        draw_line(xl, yl+20, xl+40, yl+20, COLOR_CYAN);
-        draw_line(xl+1, yl+21, xl+40, yl+21, COLOR_CYAN);
-        for (int i = -5; i <= 5; i++)
-            draw_line(xl, yl, xl+i, yl+7, COLOR_CYAN);
+        bfnt_puts(submenu->name,  bx + 15,  by+2, COLOR_GRAY60, 40);
     }
+    else if (!menu_lv_transparent_mode && !edit_mode)
+    {
+        w = 720-2*bx;
+        bmp_fill(MENU_BG_COLOR_HEADER_FOOTER,  bx,  by, w, 40);
+        bmp_fill(COLOR_BLACK,  bx,  by + 40, w, h-40);
+        bfnt_puts(submenu->name,  bx + 15,  by+2, COLOR_WHITE, 40);
 
+        for (int i = 0; i < 15; i++)
+            bmp_draw_rect(COLOR_GRAY45,  bx-i,  by-i, w+i*2, h+i*2);
+
+/* gradient experiments
+        for (int i = 0; i < 3; i++)
+            bmp_draw_rect(38 + i,  bx-i,  by-i, w+i*2, h+i*2);
+        
+        for (int i = 3; i < 7; i++)
+            bmp_draw_rect(42,  bx-i,  by-i, w+i*2, h+i*2);
+
+        for (int i = 7; i < 10; i++)
+            bmp_draw_rect(48-i,  bx-i,  by-i, w+i*2, h+i*2);
+
+        for (int i = 10; i < 15; i++)
+            bmp_draw_rect(COLOR_BLACK,  bx-i,  by-i, w+i*2, h+i*2);
+*/            
+
+        submenu_key_hint(720-bx-45, by+5, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER, ICON_ML_Q_BACK);
+    }
                                                    /* titlebar + padding difference for large submenus */
     menu_display(submenu,  bx + SUBMENU_OFFSET,  by + 40 + (count > 7 ? 10 : 25), edit_mode ? 1 : 0);
     show_hidden_items(submenu, 1);
@@ -2492,24 +2530,25 @@ menu_entry_showhide_toggle(
     }
 }
 
-static void
+// this can fail if there are too many starred items (1=success, 0=fail)
+static int
 menu_entry_star_toggle(
     struct menu_entry * entry
 )
 {
     if( !entry )
-        return;
+        return 0;
 
     entry->starred = !entry->starred;
     menu_flags_dirty = 1;
     int ok = my_menu_rebuild();
     if (!ok)
     {
-        beep();
-        NotifyBox(2000, "Too many favorites");
         entry->starred = 0;
         my_menu_rebuild();
+        return 0;
     }
+    return 1;
 }
 
 // normal -> starred -> hidden
@@ -2529,7 +2568,7 @@ menu_entry_customize_toggle(
         entry = entry_find_by_name(0, name);
         if (!entry) { beep(); return; }
         if (!entry->starred) return;
-        menu_entry_star_toggle(entry);
+        menu_entry_star_toggle(entry); // should not fail
         return;
     }
 
@@ -2540,11 +2579,12 @@ menu_entry_customize_toggle(
     
     if (!entry->starred && !HAS_CURRENT_HIDDEN_FLAG(entry)) // normal -> starred
     {
-        menu_entry_star_toggle(entry);
+        int ok = menu_entry_star_toggle(entry);
+        if (!ok) menu_entry_showhide_toggle(menu, entry); // too many starred items? just hide
     }
     else if (entry->starred && !HAS_CURRENT_HIDDEN_FLAG(entry)) // starred -> hidden
     {
-        menu_entry_star_toggle(entry);
+        menu_entry_star_toggle(entry); // should not fail
         menu_entry_showhide_toggle(menu, entry);
     }
     else if (!entry->starred && HAS_CURRENT_HIDDEN_FLAG(entry)) // hidden -> normal
@@ -2585,12 +2625,17 @@ menu_entry_select(
     else if (mode == 2) // Q
     {
         if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
-        else if (edit_mode) edit_mode = 0;
+        else if (edit_mode) { edit_mode = 0; submenu_mode = 0; }
         else menu_toggle_submenu();
+
+         // submenu with a single entry? promote it as pickbox
+        if (submenu_mode && HAS_SINGLE_ITEM_SUBMENU(entry))
+            edit_mode = 1;
     }
     else if (mode == 3) // SET
     {
-        if (edit_mode) edit_mode = 0;
+        if (submenu_mode && edit_mode && IS_SINGLE_ITEM_SUBMENU_ENTRY(entry)) edit_mode = submenu_mode = 0;
+        else if (edit_mode) edit_mode = 0;
         else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
         else if (entry->edit_mode == EM_MANY_VALUES) edit_mode = !edit_mode;
         else if (entry->edit_mode == EM_MANY_VALUES_LV && lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
@@ -2842,7 +2887,7 @@ menu_redraw_do()
                 else
                 {
                     if (!quick_redraw)
-                        bmp_fill(COLOR_BLACK, 0, 0, 720, 480 );
+                        bmp_fill(COLOR_BLACK, 0, 40, 720, 400 );
                 }
                 prev_z = z;
 
@@ -2902,11 +2947,14 @@ menu_redraw_do()
     
     bmp_on();
 
-    // adjust some colors for better contrast
-    alter_bitmap_palette_entry(COLOR_GREEN1, COLOR_GREEN1, 160, 256);
-    alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 300, 256);
-    //~ alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);
-    //~ alter_bitmap_palette_entry(COLOR_PINK,   COLOR_ORANGE, 256, 256);
+    if (!bmp_color_scheme)
+    {
+        // adjust some colors for better contrast
+        alter_bitmap_palette_entry(COLOR_GREEN1, COLOR_GREEN1, 160, 256);
+        alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 300, 256);
+        //~ alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);
+        alter_bitmap_palette_entry(COLOR_PINK,   COLOR_ORANGE, 160, 160);
+    }
 
     #ifdef CONFIG_VXWORKS
     set_ml_palette();
@@ -3361,10 +3409,10 @@ menu_init( void )
     gui_sem = create_named_semaphore( "gui", 0 );
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
-    menu_find_by_name( "Audio",     ICON_ML_AUDIO   )->split_pos = 16;
+    menu_find_by_name( "Audio",     ICON_ML_AUDIO   )->split_pos = 17;
     menu_find_by_name( "Expo",      ICON_ML_EXPO    )->split_pos = 14;
     menu_find_by_name( "Overlay",   ICON_ML_OVERLAY );
-    menu_find_by_name( "Movie",     ICON_ML_MOVIE   )->split_pos = 16;
+    menu_find_by_name( "Movie",     ICON_ML_MOVIE   )->split_pos = 17;
     menu_find_by_name( "Shoot",     ICON_ML_SHOOT   );
     menu_find_by_name( "Focus",     ICON_ML_FOCUS   )->split_pos = 17;
     menu_find_by_name( "Display",   ICON_ML_DISPLAY )->split_pos = 17;
@@ -3884,7 +3932,8 @@ void menu_close_submenu()
 
 void menu_toggle_submenu()
 {
-    submenu_mode = !submenu_mode;
+    if (!edit_mode || submenu_mode)
+        submenu_mode = !submenu_mode;
     edit_mode = 0;
     menu_lv_transparent_mode = 0;
 }

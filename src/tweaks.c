@@ -2020,7 +2020,7 @@ static MENU_UPDATE_FUNC(warn_display)
 static struct menu_entry key_menus[] = {
     #if defined(FEATURE_LV_FOCUS_BOX_FAST) || defined(FEATURE_LV_FOCUS_BOX_SNAP) || defined(FEATURE_LV_FOCUS_BOX_AUTOHIDE)
     {
-        .name = "Focus box settings...", 
+        .name = "Focus box settings", 
         .select = menu_open_submenu,
         .submenu_width = 700,
         .help = "Tweaks for LiveView focus box: move faster, snap to points.",
@@ -2063,9 +2063,9 @@ static struct menu_entry key_menus[] = {
     #endif
     #ifdef FEATURE_ARROW_SHORTCUTS
     {
-        .name       = "Arrow/SET shortcuts...",
+        .name       = "Arrow/SET shortcuts",
         .select = menu_open_submenu,
-        .submenu_width = 500,
+        .submenu_width = 650,
         .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
         .depends_on = DEP_LIVEVIEW,
         .children =  (struct menu_entry[]) {
@@ -2084,13 +2084,13 @@ static struct menu_entry key_menus[] = {
                 .help = "LEFT/RIGHT: ISO. UP/DN: Kelvin white balance. SET: PushWB.",
             },
             {
-                .name = "Shutter/Apert.",
+                .name = "Shutter/Aperture",
                 .priv       = &arrow_keys_shutter_aperture,
                 .max = 1,
                 .help = "LEFT/RIGHT: Shutter. UP/DN: Aperture.  SET: 180d shutter.",
             },
             {
-                .name = "LCD Bright/Sat",
+                .name = "LCD Brightness/Saturation",
                 .priv       = &arrow_keys_bright_sat,
                 .max = 1,
                 .help = "LEFT/RIGHT: LCD bright. UP/DN: LCD saturation. SET: reset.",
@@ -2108,7 +2108,7 @@ static struct menu_entry key_menus[] = {
 
     #if defined(CONFIG_LCD_SENSOR) || defined(FEATURE_STICKY_DOF) || defined(FEATURE_STICKY_HALFSHUTTER) || defined(FEATURE_SWAP_MENU_ERASE) || defined(FEATURE_DIGITAL_ZOOM_SHORTCUT_600D)
     {
-        .name       = "Misc key settings...",
+        .name       = "Misc key settings",
         .select = menu_open_submenu,
         .submenu_width = 656,
         .help = "Misc options related to shortcut keys.",
@@ -2164,7 +2164,7 @@ static struct menu_entry key_menus[] = {
 static struct menu_entry tweak_menus[] = {
     #ifdef FEATURE_WARNINGS_FOR_BAD_SETTINGS
     {
-        .name = "Warnings for bad settings...",
+        .name = "Warning for bad settings",
         .select     = menu_open_submenu,
         .update = warn_display,
         .help = "Warn if some of your settings are changed by mistake.",
@@ -2793,8 +2793,8 @@ void display_shake_step()
 #endif
 
 CONFIG_INT("defish.preview", defish_preview, 0);
-#define defish_projection (defish_preview==1 ? 0 : 1)
-//~ static CONFIG_INT("defish.projection", defish_projection, 0);
+//~ #define defish_projection (defish_preview==1 ? 0 : 1)
+static CONFIG_INT("defish.projection", defish_projection, 0);
 //~ static CONFIG_INT("defish.hd", DEFISH_HD, 1);
 #define DEFISH_HD 1
 
@@ -2803,8 +2803,8 @@ CONFIG_INT("defish.preview", defish_preview, 0);
 #endif
 
 CONFIG_INT("anamorphic.preview", anamorphic_preview, 0);
-//~ CONFIG_INT("anamorphic.ratio.idx", anamorphic_ratio_idx, 0);
-#define anamorphic_ratio_idx (anamorphic_preview-1)
+CONFIG_INT("anamorphic.ratio.idx", anamorphic_ratio_idx, 0);
+//~ #define anamorphic_ratio_idx (anamorphic_preview-1)
 
 #ifndef FEATURE_ANAMORPHIC_PREVIEW
 #define anamorphic_preview 0
@@ -2817,6 +2817,15 @@ static int anamorphic_ratio_den[10] = {4, 3, 2, 3, 1};
 
 static MENU_UPDATE_FUNC(anamorphic_preview_display)
 {
+    if (anamorphic_preview)
+    {
+        int num = anamorphic_ratio_num[anamorphic_ratio_idx];
+        int den = anamorphic_ratio_den[anamorphic_ratio_idx];
+        MENU_SET_VALUE(
+            "%d:%d",
+            num, den
+        );
+    }
     if (defish_preview)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Too much for this lil' cam... both defishing and anamorphic");
 }
@@ -3373,11 +3382,11 @@ static struct menu_entry display_menus[] = {
         .name = "Defishing",
         .priv = &defish_preview, 
         .update = defish_preview_display, 
-        .max    = 2,
+        .max    = 1,
         .depends_on = DEP_GLOBAL_DRAW,
-        .choices = (const char *[]) {"OFF", "Rectilinear", "Panini"},
+        //~ .choices = (const char *[]) {"OFF", "Rectilinear", "Panini"},
         .help = "Preview straightened images from fisheye lenses. LV+PLAY.",
-        /*
+        
         .children =  (struct menu_entry[]) {
             {
                 .name = "Projection",
@@ -3389,7 +3398,7 @@ static struct menu_entry display_menus[] = {
             },
             MENU_EOL
         }
-        */
+        
     },
     #endif
     #ifdef FEATURE_ANAMORPHIC_PREVIEW
@@ -3400,30 +3409,26 @@ static struct menu_entry display_menus[] = {
         .name = "Anamorphic",
         .priv     = &anamorphic_preview,
         .update = anamorphic_preview_display, 
-        .max = 5,
-        .icon_type = IT_DICE_OFF,
-        .choices = (const char *[]) {"OFF", "5:4 (1.25)", "4:3 (1.33)", "3:2 (1.5)", "5:3 (1.66)", "2:1"},
-        
+        .max = 1,
         .help = "Stretches LiveView image vertically, for anamorphic lenses.",
         .depends_on = DEP_LIVEVIEW | DEP_GLOBAL_DRAW,
 
-        /*
-        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Stretch Ratio",
                 .priv = &anamorphic_ratio_idx, 
-                .max = 9,
+                .max = 4,
+                .choices = (const char *[]) {"5:4 (1.25)", "4:3 (1.33)", "3:2 (1.5)", "5:3 (1.66)", "2:1"},
                 .icon_type = IT_ALWAYS_ON,
                 .help = "Aspect ratio used for anamorphic preview correction.",
             },
             MENU_EOL
-        },*/
+        },
     },
     #endif
     #if defined(CONFIG_KILL_FLICKER) || defined(FEATURE_SCREEN_LAYOUT) || defined(FEATURE_IMAGE_POSITION) || defined(FEATURE_UPSIDE_DOWN) || defined(FEATURE_IMAGE_ORIENTATION) || defined(FEATURE_AUTO_MIRRORING_HACK) || defined(FEATURE_FORCE_HDMI_VGA) || defined(FEATURE_UNIWB_CORRECTION)
     {
-        .name = "Advanced settings...",
+        .name = "Advanced settings",
         .select         = menu_open_submenu,
         .submenu_width = 710,
         .help = "Screen orientation, position fine-tuning...",
@@ -3515,7 +3520,7 @@ static struct menu_entry display_menus[] = {
 struct menu_entry play_menus[] = {
     #if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_IMAGE_REVIEW_PLAY) || defined(FEATURE_QUICK_ZOOM) || defined(FEATURE_KEN_ROCKWELL_ZOOM_5D3) || defined(FEATURE_REMEMBER_LAST_ZOOM_POS_5D3) || defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE) || defined(FEATURE_QUICK_ERASE)
     {
-        .name = "Image review settings...",
+        .name = "Image review settings",
         .select = menu_open_submenu,
         .submenu_width = 715,
         .help = "Options for PLAY (image review) mode.",

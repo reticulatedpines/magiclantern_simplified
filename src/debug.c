@@ -2602,7 +2602,7 @@ struct menu_entry debug_menus[] = {
 #endif
 #ifdef CONFIG_STRESS_TEST
     {
-        .name        = "Stability tests...",
+        .name        = "Burn-in tests",
         .select        = menu_open_submenu,
         .help = "Tests to make sure Magic Lantern is stable and won't crash.",
         .submenu_width = 650,
@@ -2692,7 +2692,7 @@ struct menu_entry debug_menus[] = {
 #endif
 #ifdef CONFIG_BENCHMARKS
     {
-        .name        = "Benchmarks...",
+        .name        = "Benchmarks",
         .select        = menu_open_submenu,
         .help = "Check how fast is your camera. Card, CPU, graphics...",
         .submenu_width = 650,
@@ -2718,7 +2718,7 @@ struct menu_entry debug_menus[] = {
 #endif
 #ifdef FEATURE_SHOW_TASKS
     {
-        .name = "Show tasks...",
+        .name = "Show tasks",
         .select = menu_open_submenu,
         .help = "Displays the tasks started by Canon and Magic Lantern.",
         .children =  (struct menu_entry[]) {
@@ -2841,7 +2841,7 @@ struct menu_entry debug_menus[] = {
 #ifdef CONFIG_CONFIG_FILE
 static struct menu_entry cfg_menus[] = {
 {
-    .name = "Config file...",
+    .name = "Config file",
     .select = menu_open_submenu,
     .help = "Config auto save, manual save, restore defaults...",
     .children =  (struct menu_entry[]) {
@@ -3521,6 +3521,8 @@ void config_menu_init()
     extern struct menu_entry card_menus[];
     menu_add( "Debug", card_menus, 2 );
     #endif
+
+    movie_tweak_menu_init();
 }
 
 void spy_event(struct event * event)

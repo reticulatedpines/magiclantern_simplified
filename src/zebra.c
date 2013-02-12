@@ -3495,15 +3495,17 @@ struct menu_entry zebra_menus[] = {
         .priv       = &falsecolor_draw,
         .update     = falsecolor_display,
         .max = 1,
+        .submenu_width = 700,
         .submenu_height = 160,
         .help = "Exposure aid: each brightness level is color-coded.",
         .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Palette",
+                .name = "Palette      ",
                 .priv = &falsecolor_palette, 
                 .max = COUNT(false_colour)-1,
                 .icon_type = IT_DICE,
+                .choices = CHOICES("Marshall", "SmallHD", "50-55%", "67-72%", "Banding detection", "GreenScreen"),
                 .update = falsecolor_display_palette,
                 .help = "False color palettes for exposure, banding, green screen...",
             },
@@ -3628,7 +3630,7 @@ CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup_unused, 1);
 struct menu_entry powersave_menus[] = {
 #ifdef FEATURE_POWERSAVE_LIVEVIEW
 {
-    .name = "Powersave in LiveView...",
+    .name = "Powersave in LiveView",
     .select = menu_open_submenu,
     .submenu_width = 715,
     .help = "Options for reducing power consumption during idle times.",

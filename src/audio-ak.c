@@ -470,7 +470,7 @@ static MENU_UPDATE_FUNC(audio_micpower_display)
     if (mic_pow != mic_power)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Mic power is required by internal mic.");
-        if (mic_pow){ MENU_SET_ENABLED(1); MENU_SET_VALUE("ON (can't disable)"); }
+        if (mic_pow){ MENU_SET_ENABLED(1); MENU_SET_VALUE("ON (!)"); }
     }
 }
 #endif
@@ -497,7 +497,7 @@ static struct menu_entry audio_menus[] = {
     #endif
     #ifdef FEATURE_DIGITAL_GAIN
     {
-        .name = "Digital Gain...", 
+        .name = "Digital Gain", 
         .select = menu_open_submenu, 
         .help = "Digital gain (not recommended, use only for headphones!)",
         .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,

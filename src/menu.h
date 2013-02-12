@@ -312,7 +312,6 @@ extern void menu_stop(void);
 #define MNI_OFF -2
 #define MNI_ON 1
 #define MNI_AUTO 2
-//~ #define MNI_WARNING 3 // deprecated, private only
 #define MNI_PERCENT 4
 #define MNI_ACTION 5
 #define MNI_DICE 6

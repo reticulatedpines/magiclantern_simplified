@@ -129,7 +129,7 @@ CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 16);
 static CONFIG_INT("hdr.delay", hdr_delay, 1);
 static CONFIG_INT("hdr.seq", hdr_sequence, 1);
 static CONFIG_INT("hdr.iso", hdr_iso, 0);
-static CONFIG_INT("hdr.scripts", hdr_scripts, 2); //1 enfuse, 2 align+enfuse, 3 only list images
+static CONFIG_INT("hdr.scripts", hdr_scripts, 0); //1 enfuse, 2 align+enfuse, 3 only list images
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
@@ -4705,13 +4705,6 @@ static struct menu_entry shoot_menus[] = {
                 .choices = CHOICES("OFF", "Full", "Half"),
                 .icon_type = IT_DICE_OFF,
             },
-            {
-                .name = "Post scripts",
-                .priv       = &hdr_scripts,
-                .max = 3,
-                .help = "Enfuse scripts or just a file list (for focus stack too).",
-                .choices = CHOICES("OFF", "Enfuse", "Align+Enfuse", "File List"),
-            },
             MENU_EOL
         },
     },
@@ -4964,6 +4957,7 @@ static struct menu_entry shoot_menus[] = {
         .priv = &mlu_auto,
         .update = mlu_display, 
         .select = mlu_toggle,
+        .max = 1,
         .depends_on = DEP_PHOTO_MODE | DEP_NOT_LIVEVIEW,
         #ifdef FEATURE_MLU_HANDHELD
         .help = "MLU tricks: hand-held or self-timer modes.",
@@ -5091,7 +5085,7 @@ static struct menu_entry shoot_menus[] = {
     #endif
     
     {
-        .name = "Shoot Preferences...",
+        .name = "Shoot Preferences",
         .select     = menu_open_submenu,
         .help = "Autofocus, number of pics to take at once...",
         .depends_on = DEP_PHOTO_MODE,
@@ -5118,6 +5112,13 @@ static struct menu_entry shoot_menus[] = {
                 .depends_on = DEP_AUTOFOCUS,
                 .works_best_in = DEP_NOT_LIVEVIEW,
             },
+            {
+                .name = "Post scripts",
+                .priv       = &hdr_scripts,
+                .max = 3,
+                .help = "Post-processing scripts for bracketing and focus stacking.",
+                .choices = CHOICES("OFF", "Enfuse", "Align+Enfuse", "File List"),
+            },
             #ifdef FEATURE_SNAP_SIM
             {
                 .name = "Snap Simulation",
@@ -5140,7 +5141,7 @@ extern int zoom_trick;
 struct menu_entry tweak_menus_shoot[] = {
     #ifdef FEATURE_LV_ZOOM_SETTINGS
     {
-        .name = "LiveView zoom settings...",
+        .name = "LiveView zoom tweaks",
         .select = menu_open_submenu,
         .submenu_width = 650,
         .icon_type = IT_SUBMENU,
@@ -5307,6 +5308,7 @@ static struct menu_entry expo_menus[] = {
         .help  = "Adjust Kelvin white balance and GM/BA WBShift.",
         .help2 = "Advanced: WBShift, RGB multipliers, UniWB, Push-button WB...",
         .edit_mode = EM_MANY_VALUES_LV,
+        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "WhiteBalance",
@@ -5595,6 +5597,13 @@ static struct menu_entry expo_menus[] = {
                 .icon_type = IT_BOOL,
                 .update     = picstyle_rec_sub_display,
                 .select     = picstyle_rec_sub_toggle,
+
+                .choices = (const char *[]) {"OFF",
+                #if NUM_PICSTYLES == 10 // 600D, 5D3...
+                "Auto",
+                #endif
+                "Standard", "Portrait", "Landscape", "Neutral", "Faithful", "Monochrome", "UserDef1", "UserDef2", "UserDef3" },
+                
                 .help = "You can use a different picture style when recording.",
                 .depends_on = DEP_MOVIE_MODE,
             },

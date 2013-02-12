@@ -888,7 +888,7 @@ MENU_UPDATE_FUNC(beep_update)
 static struct menu_entry beep_menus[] = {
     #ifdef FEATURE_BEEP
     {
-        .name = "Beep and test tones...",
+        .name = "Beep, test tones",
         .select = menu_open_submenu,
         .update = beep_update,
         .help = "Configure ML beeps and play test tones (440Hz, 1kHz...)",
@@ -946,7 +946,7 @@ static struct menu_entry beep_menus[] = {
     #endif
     #ifdef FEATURE_WAV_RECORDING
     {
-        .name = "Sound recorder...",
+        .name = "Sound recorder",
         .select = menu_open_submenu,
         .help = "Record short audio clips, add voice tags to pictures...",
         .children =  (struct menu_entry[]) {
