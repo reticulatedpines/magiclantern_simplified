@@ -3521,6 +3521,8 @@ void config_menu_init()
     extern struct menu_entry card_menus[];
     menu_add( "Debug", card_menus, 2 );
     #endif
+
+    movie_tweak_menu_init();
 }
 
 void spy_event(struct event * event)

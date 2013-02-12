@@ -978,118 +978,6 @@ static struct menu_entry mov_menus[] = {
         .depends_on = DEP_MOVIE_MODE,
     },
     #endif
-    {
-        .name = "Movie Tweaks",
-        .select = menu_open_submenu,
-        .help = "Movie Restart, Movie Logging, REC/Standby Notify...",
-        .depends_on = DEP_MOVIE_MODE,
-        .submenu_width = 710,
-        .children =  (struct menu_entry[]) {
-                #ifdef FEATURE_MOVIE_RESTART
-                {
-                    .name = "Movie Restart",
-                    .priv = &movie_restart,
-                    .max        = 1,
-                    .help = "Auto-restart movie recording, if it happens to stop.",
-                    .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
-                #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-                {
-                    .name    = "Stop recording",
-                    .priv    = &movie_cliplen,
-                    .update  = movie_cliplen_display,
-                    .select  = movie_cliplen_toggle,
-                    .help = "Auto-stop the movie after a set amount of minutes.",
-                    .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
-                #if 0
-                {
-                    .name = "MovieModeRemap",
-                    .priv = &movie_mode_remap,
-                    .update    = mode_remap_print,
-                    .select     = menu_ternary_toggle,
-                    .help = "Remap movie mode to A-DEP, CA or C. Shortcut key: ISO+LV.",
-                },
-                #endif
-                #ifdef FEATURE_REC_NOTIFY
-                {
-                    .name = "REC/STBY notify", 
-                    .priv = &rec_notify, 
-                    #if defined(CONFIG_BLUE_LED) && defined(FEATURE_REC_NOTIFY_BEEP)
-                    .max = 4,
-                    #elif defined(CONFIG_BLUE_LED) && !defined(FEATURE_REC_NOTIFY_BEEP)
-                    .max = 3,
-                    #elif !defined(CONFIG_BLUE_LED) && defined(FEATURE_REC_NOTIFY_BEEP)
-                    .max = 3,
-                    #else
-                    .max = 2,
-                    #endif
-                    .choices = (const char *[]) {"OFF", "Red Crossout", "REC/STBY",
-                            #ifdef CONFIG_BLUE_LED
-                            "Blue LED",
-                            #endif
-                            "Beeps (start/stop)"
-                        },
-                    .icon_type = IT_DICE_OFF,
-                    .help = "Custom REC/STANDBY notifications, visual or audible",
-                    .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
-                #ifdef CONFIG_5D3
-                {
-                    .name = "Dim REC LED",
-                    .priv = &rec_led_off,
-                    .max = 1,
-                    .help = "Make the red LED light less distracting while recording.",
-                    .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
-                #ifdef FEATURE_FORCE_LIVEVIEW
-                {
-                    .name = "Force LiveView",
-                    .priv = &enable_liveview,
-                    .max = 2,
-                    .choices = CHOICES("OFF", "Start & CPU lenses", "Always"),
-                    .icon_type = IT_DICE_OFF,
-                    .help = "Always use LiveView (with manual lens or after lens swap).",
-                    .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
-                #ifdef FEATURE_LVAE_EXPO_LOCK
-                {
-                    .name       = "Exposure Lock",
-                    .priv       = &movie_expo_lock,
-                    .select     = movie_expo_lock_toggle,
-                    .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
-                    .help       = "Lock the exposure in movie mode.",
-                },
-                #endif
-                #ifdef FEATURE_SHUTTER_LOCK
-                {
-                    .name = "Shutter Lock",
-                    .priv = &shutter_lock,
-                    .max = 1,
-                    .help   = "Lock shutter value in movie mode (change from Expo only).",
-                    .help2  = "Tip: it prevents you from changing it by mistake.",
-                    .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
-
-                #if 0
-                {
-                    .name = "REC on resume",
-                    .priv = &start_recording_on_resume,
-                    .max = 1,
-                    .help = "Auto-record if camera wakes up due to halfshutter press."
-                    .depends_on = DEP_MOVIE_MODE,
-              },
-                #endif
-
-                MENU_EOL
-        }
-    },
 
     #ifdef FEATURE_MOVIE_REC_KEY
     {
@@ -1147,6 +1035,121 @@ static struct menu_entry mov_menus[] = {
     #endif
 };
 
+static struct menu_entry movie_tweaks_menus[] = {
+    {
+        .name = "Movie Tweaks",
+        .select = menu_open_submenu,
+        .help = "Movie Restart, Movie Logging, REC/Standby Notify...",
+        .depends_on = DEP_MOVIE_MODE,
+        .submenu_width = 710,
+        .children =  (struct menu_entry[]) {
+                #ifdef FEATURE_MOVIE_RESTART
+                {
+                    .name = "Movie Restart",
+                    .priv = &movie_restart,
+                    .max        = 1,
+                    .help = "Auto-restart movie recording, if it happens to stop.",
+                    .depends_on = DEP_MOVIE_MODE,
+                },
+                #endif
+                #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
+                {
+                    .name    = "Stop recording",
+                    .priv    = &movie_cliplen,
+                    .update  = movie_cliplen_display,
+                    .select  = movie_cliplen_toggle,
+                    .help = "Auto-stop the movie after a set amount of minutes.",
+                    .depends_on = DEP_MOVIE_MODE,
+                },
+                #endif
+                #if 0
+                {
+                    .name = "MovieModeRemap",
+                    .priv = &movie_mode_remap,
+                    .update    = mode_remap_print,
+                    .select     = menu_ternary_toggle,
+                    .help = "Remap movie mode to A-DEP, CA or C. Shortcut key: ISO+LV.",
+                },
+                #endif
+                #ifdef FEATURE_REC_NOTIFY
+                {
+                    .name = "REC/STBY notify", 
+                    .priv = &rec_notify, 
+                    #if defined(CONFIG_BLUE_LED) && defined(FEATURE_REC_NOTIFY_BEEP)
+                    .max = 4,
+                    #elif defined(CONFIG_BLUE_LED) && !defined(FEATURE_REC_NOTIFY_BEEP)
+                    .max = 3,
+                    #elif !defined(CONFIG_BLUE_LED) && defined(FEATURE_REC_NOTIFY_BEEP)
+                    .max = 3,
+                    #else
+                    .max = 2,
+                    #endif
+                    .choices = (const char *[]) {"OFF", "Red Crossout", "REC/STBY",
+                            #ifdef CONFIG_BLUE_LED
+                            "Blue LED",
+                            #endif
+                            "Beep, start/stop"
+                        },
+                    .icon_type = IT_DICE_OFF,
+                    .help = "Custom REC/STANDBY notifications, visual or audible",
+                    .depends_on = DEP_MOVIE_MODE,
+                },
+                #endif
+                #ifdef CONFIG_5D3
+                {
+                    .name = "Dim REC LED",
+                    .priv = &rec_led_off,
+                    .max = 1,
+                    .help = "Make the red LED light less distracting while recording.",
+                    .depends_on = DEP_MOVIE_MODE,
+                },
+                #endif
+                #ifdef FEATURE_FORCE_LIVEVIEW
+                {
+                    .name = "Force LiveView",
+                    .priv = &enable_liveview,
+                    .max = 2,
+                    .choices = CHOICES("OFF", "Start & CPUlens", "Always"),
+                    .icon_type = IT_DICE_OFF,
+                    .help = "Always use LiveView (with manual lens or after lens swap).",
+                    .depends_on = DEP_MOVIE_MODE,
+                },
+                #endif
+                #ifdef FEATURE_LVAE_EXPO_LOCK
+                {
+                    .name       = "Exposure Lock",
+                    .priv       = &movie_expo_lock,
+                    .select     = movie_expo_lock_toggle,
+                    .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
+                    .help       = "Lock the exposure in movie mode.",
+                },
+                #endif
+                #ifdef FEATURE_SHUTTER_LOCK
+                {
+                    .name = "Shutter Lock",
+                    .priv = &shutter_lock,
+                    .max = 1,
+                    .help   = "Lock shutter value in movie mode (change from Expo only).",
+                    .help2  = "Tip: it prevents you from changing it by mistake.",
+                    .depends_on = DEP_MOVIE_MODE,
+                },
+                #endif
+
+                #if 0
+                {
+                    .name = "REC on resume",
+                    .priv = &start_recording_on_resume,
+                    .max = 1,
+                    .help = "Auto-record if camera wakes up due to halfshutter press."
+                    .depends_on = DEP_MOVIE_MODE,
+              },
+                #endif
+
+                MENU_EOL
+        }
+    },
+};
+
 #ifdef FEATURE_EXPO_OVERRIDE
 struct menu_entry expo_override_menus[] = {
     {
@@ -1163,6 +1166,10 @@ struct menu_entry expo_override_menus[] = {
 };
 #endif
 
+void movie_tweak_menu_init()
+{
+    menu_add( "Movie", movie_tweaks_menus, COUNT(movie_tweaks_menus) );
+}
 void movtweak_init()
 {
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );

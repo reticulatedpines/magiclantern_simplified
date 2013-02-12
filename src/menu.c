@@ -340,11 +340,15 @@ static int guess_submenu_enabled(struct menu_entry * entry)
     else 
     {   // otherwise, look in the children submenus; if one is true, then submenu icon is drawn as "true"
         struct menu_entry * e = entry->children;
+        
+        while (e->prev) e = e->prev;
+
         for( ; e ; e = e->next )
         {
             if (MENU_INT(e))
                 return 1;
         }
+
         return 0;
     }
 }
