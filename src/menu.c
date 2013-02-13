@@ -1540,6 +1540,10 @@ entry_print(
     int x_end = in_submenu ? x + g_submenu_width - SUBMENU_OFFSET : 717;
     
     w = MAX(w, strlen(info->name)+1);
+
+    // both submenu marker and value? make sure they don't overlap
+    if (entry->icon_type == IT_SUBMENU && info->value[0])
+        w += 2;
     
     // value string too big? move it to the left
     int end = w + strlen(info->value);
@@ -1582,10 +1586,10 @@ entry_print(
 
 
     // Forward sign for submenus that open with SET
-    if (entry->icon_type == IT_SUBMENU && !info->value[0])
+    if (entry->icon_type == IT_SUBMENU )
     {
         submenu_key_hint(
-            xval-12, y, 
+            xval-12 - (info->value[0] ? font_large.width*2 : 0), y, 
             info->warning_level == MENU_WARN_NOT_WORKING ? MENU_FONT_GRAY : COLOR_GRAY60, 
             COLOR_BLACK, 
             ICON_ML_FORWARD
