@@ -10,6 +10,8 @@ static int script_state = 0;
 #define SCRIPT_JUST_FINISHED -1
 #define SCRIPT_IDLE 0
 
+int script_stop_requested = 0; // also visible in picoc/parse.c
+
 static int script_preview_flag = 0;
 static char script_preview[1000] = "";
 
@@ -141,14 +143,27 @@ script_select_display( void * priv, int x, int y, int selected )
 }
 */
 
+static char* get_script_status_msg()
+{
+    return 
+        script_state == SCRIPT_IDLE ? "idle" :
+        script_state == SCRIPT_RUNNING ? (script_stop_requested ? "stopping" : "running") :
+        script_state == SCRIPT_JUST_FINISHED ? "finished" : "err";
+}
+
 static MENU_UPDATE_FUNC(script_run_display)
 {
-    MENU_SET_NAME(
-        script_state ? "Script running..." : "Run script"
-    );
-    
     if (script_state)
+    {
+        MENU_SET_NAME(
+            "Script %s...", get_script_status_msg()
+        );
         MENU_SET_ICON(MNI_NAMED_COLOR, (intptr_t) "Red");
+    }
+    else 
+    {
+        MENU_SET_NAME("Run script");
+    }
 }
 
 static void script_copy_window(char* dst, int bufsize, char* src, int line0, int col0, int maxlines, int maxcols)
@@ -244,15 +259,18 @@ static void run_script(const char *script)
     {
         // something went wrong
         console_printf(  "========== Exit %d :( =========\n\n", PicocExitValue);
-        msleep(1000);
+        msleep(500);
+        gui_stop_menu();
+        msleep(500);
+        console_show();
     }
     PicocCleanup();
     beep();
     script_state = SCRIPT_JUST_FINISHED;
     console_set_status_text("Script finished. ");
-
     console_show();
-    for (int i = 0; i < 1000; i++)
+    msleep(1000);
+    for (int i = 0; i < 100; i++)
     {
         msleep(100);
         if (gui_menu_shown()) break;
@@ -265,9 +283,16 @@ static void run_script(const char *script)
 
 static void script_run_fun(void* priv, int delta)
 {
-    if (script_state) return;
-    gui_stop_menu();
-    task_create("run_script", 0x1c, 0x4000, run_script, 0);
+    if (script_state) 
+    { 
+        script_stop_requested = 1;
+    }
+    else
+    {
+        script_stop_requested = 0;
+        gui_stop_menu();
+        task_create("run_script", 0x1c, 0x4000, run_script, 0);
+    }
 }
 
 /* end script functions */
@@ -342,11 +367,6 @@ static MENU_UPDATE_FUNC(script_display)
 
     int displayed_script_is_idle = (script_state == SCRIPT_IDLE) || (script_selected != script_displayed);
 
-    MENU_SET_VALUE(
-        displayed_script_is_idle ? "" :
-        script_state == SCRIPT_RUNNING ? "(running)" :
-        script_state == SCRIPT_JUST_FINISHED ? "(finished)" : "err"
-    );
     
     if (displayed_script_is_idle)
     {
@@ -355,11 +375,13 @@ static MENU_UPDATE_FUNC(script_display)
         );
         MENU_SET_ICON(MNI_SUBMENU, entry->selected && script_displayed == script_selected);
         MENU_SET_ENABLED(0);
+        MENU_SET_VALUE("");
     }
     else
     {
         MENU_SET_ICON(MNI_ON, 0);
         MENU_SET_ENABLED(1);
+        MENU_SET_VALUE("(%s)", get_script_status_msg());
     }
 }
 
