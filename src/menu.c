@@ -47,8 +47,8 @@ extern int bmp_color_scheme;
 #define MENU_BAR_COLOR (bmp_color_scheme ? COLOR_LIGHTBLUE : COLOR_BLUE)
 
 #ifdef CONFIG_MENU_ICONS
-#define SUBMENU_OFFSET 50
-#define MENU_OFFSET 40
+#define SUBMENU_OFFSET 48
+#define MENU_OFFSET 38
 #else
 #define SUBMENU_OFFSET 30
 #define MENU_OFFSET 20
@@ -878,7 +878,7 @@ static void leftright_sign(int x, int y)
 void submenu_icon(int x, int y)
 {
     //~ int color = COLOR_WHITE;
-    x -= 40;
+    x -= MENU_OFFSET;
     //~ bmp_draw_rect(45, x+2, y+5, 32-3, 32-10+1);
     draw_line(x+20, y+28, x+30, y+28, COLOR_WHITE);
     for (int i = -2; i <= 2; i++)
@@ -1124,11 +1124,11 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
 
 #ifdef CONFIG_MENU_ICONS
 
-    x -= 40;
+    x -= MENU_OFFSET;
     
-    int color_on = warn ? COLOR_GRAY45 : COLOR_GREEN1;
+    int color_on = warn ? COLOR_DARK_GREEN1_MOD : COLOR_GREEN1;
     int color_off = COLOR_GRAY40;
-    int color_dis = warn ? COLOR_GRAY45 : COLOR_RED;
+    int color_dis = warn ? COLOR_GRAY50 : COLOR_RED;
     int color_slider_fg = warn ? COLOR_GRAY50 : COLOR_LIGHTBLUE;
     int color_slider_bg = warn ? 43 : COLOR_GRAY60;
     int color_action = warn ? COLOR_GRAY45 : COLOR_YELLOW;
@@ -1490,7 +1490,7 @@ entry_default_display_info(
 
 static int get_customize_color()
 {
-    if (customize_mode) return COLOR_PINK; // modified to dark orange
+    if (customize_mode) return COLOR_DARK_ORANGE_MOD;
     return 0;
 }
 
@@ -1537,7 +1537,7 @@ entry_print(
         fnt = MENU_FONT_GRAY;
 
     // far right end
-    int x_end = in_submenu ? x + g_submenu_width - SUBMENU_OFFSET : 720;
+    int x_end = in_submenu ? x + g_submenu_width - SUBMENU_OFFSET : 717;
     
     w = MAX(w, strlen(info->name)+1);
     
@@ -1582,7 +1582,7 @@ entry_print(
 
 
     // Forward sign for submenus that open with SET
-    if (entry->icon_type == IT_SUBMENU)
+    if (entry->icon_type == IT_SUBMENU && !info->value[0])
     {
         submenu_key_hint(
             xval-12, y, 
@@ -1597,9 +1597,9 @@ entry_print(
     else if (entry->children && !SUBMENU_OR_EDIT)
     {
         if (entry->selected)
-            submenu_key_hint(720-35, y, COLOR_WHITE, COLOR_BLACK, ICON_ML_Q_FORWARD);
+            submenu_key_hint(720-38, y, COLOR_WHITE, COLOR_BLACK, ICON_ML_Q_FORWARD);
         else
-            submenu_key_hint(720-30, y, COLOR_GRAY40, COLOR_BLACK, ICON_ML_FORWARD);
+            submenu_key_hint(720-34, y, COLOR_GRAY40, COLOR_BLACK, ICON_ML_FORWARD);
     }
 
     // selection bar params
@@ -1632,7 +1632,7 @@ entry_print(
     if (entry->selected && !menu_lv_transparent_mode)
     {
         if (entry->help) bmp_printf(
-            FONT(FONT_MED, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER), 
+            FONT(FONT_MED, COLOR_GRAY70, MENU_BG_COLOR_HEADER_FOOTER), 
              10,  MENU_HELP_Y_POS, 
             "%s",
             entry->help
@@ -1660,7 +1660,7 @@ entry_print(
         }
 
         bmp_printf(
-            FONT(FONT_MED, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER), 
+            FONT(FONT_MED, COLOR_GRAY70, MENU_BG_COLOR_HEADER_FOOTER), 
              10,  MENU_HELP_Y_POS_2, 
              "%s",
              help2
@@ -2023,20 +2023,20 @@ entry_print_junkie(
 {
     int sel = menu_selected && entry->selected;
 
-    int fg = COLOR_GRAY60;
-    int bg = COLOR_GRAY40;
+    int fg = 65;
+    int bg = 45;
 
     if (info->warning_level == MENU_WARN_NOT_WORKING) 
     {
         if (info->enabled)
         {
-            bg = COLOR_GRAY50;
+            bg = COLOR_DARK_GREEN1_MOD;
             fg = COLOR_BLACK;
         }
         else
         {
-            fg = COLOR_GRAY45;
-            bg = COLOR_GRAY40;
+            bg = 42;
+            fg = COLOR_BLACK;
         }
     }
     else if (info->enabled)
@@ -2051,25 +2051,21 @@ entry_print_junkie(
 
     if (sel) // display the full selected entry normally
     {
-        entry_print(40, 395, 10, entry, info, 0);
+        entry_print(MENU_OFFSET, 390, 10, entry, info, 0);
         
         // brighten the selection
         if (bg == COLOR_GREEN1) bg = COLOR_GREEN2;
-        //~ else if (bg == COLOR_ORANGE) bg = COLOR_PINK; // modified to look like bright orange
-        else if (bg == COLOR_GRAY40) bg = 42;
-        else if (bg == COLOR_GRAY50) bg = 55;
+        else if (bg == COLOR_DARK_GREEN1_MOD) bg = COLOR_DARK_GREEN2_MOD;
+        else if (bg == 42) bg = 47;
+        else if (bg == 45) bg = 50;
 
-        if (fg == COLOR_GRAY60) fg = COLOR_WHITE;
-        else if (fg == COLOR_GRAY45) fg = 55;
+        if (fg == 65) fg = COLOR_WHITE;
     }
 
-    int sh = bg;
-    if (bg == COLOR_GRAY40 || bg == 42) sh = COLOR_BLACK;
-
-    int fnt = SHADOW_FONT(FONT(FONT_MED, fg, sh));
+    int fnt = FONT(FONT_MED, fg, bg);
 
     if (h > 30 && w > 130) // we can use large font when we have 5 or fewer tabs
-        fnt = SHADOW_FONT(FONT(FONT_LARGE, fg, sh));
+        fnt = FONT(FONT_LARGE, fg, bg);
 
     int maxlen = (w - 8) / fontspec_width(fnt);
 
@@ -3024,10 +3020,11 @@ menu_redraw_do()
     if (!bmp_color_scheme)
     {
         // adjust some colors for better contrast
-        alter_bitmap_palette_entry(COLOR_GREEN1, COLOR_GREEN1, 160, 256);
+        alter_bitmap_palette_entry(COLOR_DARK_GREEN1_MOD, COLOR_GREEN1, 80, 80);
+        alter_bitmap_palette_entry(COLOR_DARK_GREEN2_MOD, COLOR_GREEN1, 128, 128);
         alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 300, 256);
         //~ alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);
-        alter_bitmap_palette_entry(COLOR_PINK,   COLOR_ORANGE, 160, 160);
+        alter_bitmap_palette_entry(COLOR_DARK_ORANGE_MOD,   COLOR_ORANGE, 160, 160);
     }
 
     #ifdef CONFIG_VXWORKS

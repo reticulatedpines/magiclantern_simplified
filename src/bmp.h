@@ -337,6 +337,10 @@ bmp_fill(
 #define COLOR_GRAY60 60
 #define COLOR_GRAY70 70
 
+#define COLOR_DARK_GREEN1_MOD 20
+#define COLOR_DARK_GREEN2_MOD 21
+#define COLOR_DARK_ORANGE_MOD 22
+
 static inline uint32_t
 color_word(
         uint8_t                 color
