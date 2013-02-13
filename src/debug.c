@@ -3504,6 +3504,8 @@ void HijackFormatDialogBox_main()
 
 void config_menu_init()
 {
+    menu_prefs_init();
+
     #ifdef CONFIG_CONFIG_FILE
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
     #endif

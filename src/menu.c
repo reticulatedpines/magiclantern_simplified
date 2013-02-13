@@ -118,6 +118,8 @@ static int customize_mode = 0;
 #define SUBMENU_OR_EDIT (submenu_mode || edit_mode)
 
 static CONFIG_INT("menu.junkie", junkie_mode, 0);
+static CONFIG_INT("menu.set", set_action, 2);
+static CONFIG_INT("menu.start.my", start_in_my_menu, 0);
 
 static int is_customize_selected();
 
@@ -272,12 +274,42 @@ static struct menu_entry my_menu_placeholders[] = {
     MY_MENU_ENTRY
 };
 
+static struct menu_entry menu_prefs[] = {
+    {
+        .name = "Menu Preferences",
+        .select     = menu_open_submenu,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Start in MyMenu",
+                .priv = &start_in_my_menu,
+                .max = 1,
+                .help  = "Go to My Menu every time you open ML menu.",
+            },
+            {
+                .name = "SET action",
+                .priv = &set_action,
+                .max = 2,
+                .choices = (const char *[]) {"Pickbox", "Toggle", "Auto"},
+                .help  = "Choose the behavior of SET key in ML menu:",
+                .help2 = "Pickbox: SET shows a list of choices, select and confirm.\n"
+                         "Toggle: SET will toggle ON/OFF or increment current value.\n"
+                         "Auto: SET toggles ON/OFF items, pickbox for 3+ choices.",
+            },
+            MENU_EOL,
+        },
+    }
+};
+
 void customize_menu_init()
 {
     menu_add("Prefs", customize_menu, COUNT(customize_menu));
     menu_add(MY_MENU_NAME, my_menu_placeholders, COUNT(my_menu_placeholders));
 }
 
+void menu_prefs_init()
+{
+    menu_add("Prefs", menu_prefs, COUNT(menu_prefs));
+}
 
 static struct menu * menus;
 
@@ -2661,15 +2693,28 @@ menu_entry_select(
     }
     else if (mode == 3) // SET
     {
-        if (submenu_mode && edit_mode && IS_SINGLE_ITEM_SUBMENU_ENTRY(entry)) edit_mode = submenu_mode = 0;
-        else if (edit_mode) edit_mode = 0;
-        else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
-        else if (entry->edit_mode == EM_MANY_VALUES) edit_mode = !edit_mode;
-        else if (entry->edit_mode == EM_MANY_VALUES_LV && lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
-        else if (entry->edit_mode == EM_MANY_VALUES_LV && !lv) edit_mode = !edit_mode;
-        else if (SHOULD_USE_EDIT_MODE(entry)) edit_mode = !edit_mode;
-        else if( entry->select ) entry->select( entry->priv, 1);
-        else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
+        if (set_action == 0) // pickbox
+        {
+            if( entry->select ) entry->select( entry->priv, 1);
+            else edit_mode = !edit_mode;
+        }
+        else if (set_action == 1) // toggle
+        {
+            if( entry->select ) entry->select( entry->priv, 1);
+            else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
+        }
+        else
+        {
+            if (submenu_mode && edit_mode && IS_SINGLE_ITEM_SUBMENU_ENTRY(entry)) edit_mode = submenu_mode = 0;
+            else if (edit_mode) edit_mode = 0;
+            else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
+            else if (entry->edit_mode == EM_MANY_VALUES) edit_mode = !edit_mode;
+            else if (entry->edit_mode == EM_MANY_VALUES_LV && lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
+            else if (entry->edit_mode == EM_MANY_VALUES_LV && !lv) edit_mode = !edit_mode;
+            else if (SHOULD_USE_EDIT_MODE(entry)) edit_mode = !edit_mode;
+            else if( entry->select ) entry->select( entry->priv, 1);
+            else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
+        }
     }
     else // increment
     {
@@ -3565,12 +3610,14 @@ static void menu_open()
 { 
     if (menu_shown) return;
 
-/* not ergonomic
-    // always start in my menu, if configured
-    struct menu * my_menu = menu_find_by_name(MY_MENU_NAME, 0);
-    if (menu_has_visible_items(my_menu))
-        select_menu_by_icon(ICON_ML_MYMENU);
-*/
+    
+    // start in my menu, if configured
+    if (start_in_my_menu)
+    {
+        struct menu * my_menu = menu_find_by_name(MY_MENU_NAME, 0);
+        if (menu_has_visible_items(my_menu))
+            select_menu_by_icon(ICON_ML_MYMENU);
+    }
 
 #ifdef CONFIG_5DC
     //~ forces the 5dc screen to turn on for ML menu.
