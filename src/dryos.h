@@ -491,7 +491,7 @@ int rand (void);
       int _m = (m); \
      (_x % _m + _m) % _m; })
 
-#define STR_APPEND(orig,fmt,...) snprintf(orig + strlen(orig), sizeof(orig) - strlen(orig) - 1, fmt, ## __VA_ARGS__);
+#define STR_APPEND(orig,fmt,...) ({ int _len = strlen(orig); snprintf(orig + _len, sizeof(orig) - _len, fmt, ## __VA_ARGS__); });
 
 #define MEMX(x) ( \
         ((((uint32_t)(x)) & 0xF0000000UL) == 0xC0000000UL) ? (uint32_t)shamem_read(x) : \
