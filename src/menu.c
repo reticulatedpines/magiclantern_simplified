@@ -1135,19 +1135,18 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
 #endif
 }
 
-// if the help text contains more lines (separated by '\n'), display the line indicated by "priv" field
-// if *priv is too high, display the first line
+// if the help text contains more lines (separated by '\n'), display the i'th line
+// if line number is too high, display the first line
 
 
-static char* menu_help_get_line(const char* help, void* priv)
+static char* menu_help_get_line(const char* help, int line)
 {
     char * p = strchr(help, '\n');
     if (!p) return (char*) help; // help text contains a single line, no more fuss
 
     // help text contains more than one line, choose the i'th one
     static char buf[70];
-    int i = 0;
-    if (priv) i = *(int*)priv;
+    int i = line;
     if (i < 0) i = 0;
     
     char* start = (char*) help;
@@ -1598,24 +1597,42 @@ entry_print(
     }
 
     // display help
-    if (entry->selected && entry->help && !menu_lv_transparent_mode)
+    if (entry->selected && !menu_lv_transparent_mode)
     {
-        bmp_printf(
+        if (entry->help) bmp_printf(
             FONT(FONT_MED, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER), 
              10,  MENU_HELP_Y_POS, 
             "%s",
             entry->help
         );
 
+        char* help2 = info->help;
         if (entry->help2)
         {
-            bmp_printf(
-                FONT(FONT_MED, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER), 
-                 10,  MENU_HELP_Y_POS_2, 
-                 "%s",
-                 menu_help_get_line(entry->help2, entry->priv)
-            );
+            help2 = menu_help_get_line(entry->help2, SELECTED_INDEX(entry));
         }
+        
+        if (!entry->help2 || strlen(help2) < 2) // default help just list the choices
+        {
+            int num = NUM_CHOICES(entry);
+            if (num > 2 && num < 10)
+            {
+                help2[0] = 0;
+                for (int i = entry->min; i <= entry->max; i++)
+                {
+                    int len = strlen(help2);
+                    if (len > 58) break;
+                    snprintf(help2 + len, MENU_MAX_HELP_LEN - len, "%s%s", pickbox_string(entry, i), i < entry->max ? " / " : ".");
+                }
+            }
+        }
+
+        bmp_printf(
+            FONT(FONT_MED, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER), 
+             10,  MENU_HELP_Y_POS_2, 
+             "%s",
+             help2
+        );
     }
 
     // if there's a warning message set, display it
