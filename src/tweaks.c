@@ -2351,7 +2351,7 @@ struct menu_entry expo_tweak_menus[] = {
         .max = 2,
         .choices = (const char *[]) {"Photo, no ExpSim", "Photo, ExpSim", "Movie"},
         .icon_type = IT_DICE,
-        .help = "Photo / Photo ExpSim / Movie. ExpSim: show proper exposure.",
+        .help = "Exposure simulation (LiveView display type).",
         .depends_on = DEP_LIVEVIEW,
     },
 };
