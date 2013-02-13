@@ -2695,12 +2695,14 @@ menu_entry_select(
     {
         if (set_action == 0) // pickbox
         {
-            if( entry->select ) entry->select( entry->priv, 1);
+            if (entry->icon_type != IT_SUBMENU) edit_mode = !edit_mode;
+            else if( entry->select ) entry->select( entry->priv, 1);
             else edit_mode = !edit_mode;
         }
         else if (set_action == 1) // toggle
         {
-            if( entry->select ) entry->select( entry->priv, 1);
+            if (edit_mode) edit_mode = 0;
+            else if( entry->select ) entry->select( entry->priv, 1);
             else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
         }
         else
