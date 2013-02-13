@@ -1207,7 +1207,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     }
 
     // don't draw the pickbox out of the screen
-    int h = 31 * (hi-lo+1);
+    int h = 32 * (hi-lo+1);
     
     /*#define SUBMENU_HINT_SUFFIX ": advanced..."
     if (entry->children)
@@ -1228,7 +1228,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     bmp_fill(COLOR_GRAY45, x0-16, y0, w, h+1);
     for (int i = lo; i <= hi; i++)
     {
-        int y = y0 + (i-lo) * 31;
+        int y = y0 + (i-lo) * 32;
         if (i == sel)
             selection_bar_backend(MENU_BAR_COLOR, COLOR_GRAY45, x0-16, y, w, 32);
         bmp_printf(fnt, x0, y, pickbox_string(entry, i));
@@ -1238,7 +1238,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     if (entry->children)
         bmp_printf(
             SHADOW_FONT(FONT(FONT_MED, COLOR_CYAN, COLOR_GRAY45)), 
-            x0, y0 + (hi-lo+1) * 31 + 5, 
+            x0, y0 + (hi-lo+1) * 32 + 5, 
             "%s" SUBMENU_HINT_SUFFIX,
             Q_BTN_NAME
         );*/
@@ -2445,6 +2445,11 @@ implicit_submenu_display()
     );
 }
 
+int submenu_default_height(int count)
+{
+    return MIN(408, count * font_large.height + 40 + 50 - (count > 7 ? 30 : 0));
+    /* body + titlebar + padding - smaller padding for large submenus */
+}
 static void
 submenu_display(struct menu * submenu)
 {
@@ -2453,36 +2458,41 @@ submenu_display(struct menu * submenu)
     int count = 0;
     struct menu_entry * child = submenu->children;
     while (child) { if (IS_VISIBLE(child)) count++; child = child->next; }
-    int h = submenu->submenu_height ? submenu->submenu_height : 
-        (int) MIN(408, count * font_large.height + 40 + 50 - (count > 7 ? 30 : 0));
-                       /* body + titlebar + padding - smaller padding for large submenus */
+    int h = submenu->submenu_height ? submenu->submenu_height : submenu_default_height(count);
         
     int w = submenu->submenu_width  ? submenu->submenu_width : 600;
 
-    // submenu promoted to pickbox? show submenu title in the corner
+    // submenu promoted to pickbox? expand the pickbox by default
     if (IS_SINGLE_ITEM_SUBMENU_ENTRY(submenu->children))
+    {
         w = 720;
+        int num_choices = submenu->children[0].max - submenu->children[0].min;
+        if (CAN_HAVE_PICKBOX(submenu->children))
+        {
+            h = MAX(h, submenu_default_height(num_choices)+7);
+        }
+    }
     
-    w = MIN(w, 720-30);
+    w = MIN(w, 720-10);
     
     g_submenu_width = w;
     int bx = (720 - w)/2;
-    int by = (480 - h)/2 - 40;
+    int by = (480 - h)/2 - 30;
     by = MAX(by, 10);
     
     // submenu header
-    if (IS_SINGLE_ITEM_SUBMENU_ENTRY(submenu->children) && edit_mode) // promoted submenu
-    {
-        bfnt_puts(submenu->name,  bx + 15,  by+2, COLOR_GRAY60, 40);
-    }
-    else if (!menu_lv_transparent_mode && !edit_mode)
+    if (
+            (IS_SINGLE_ITEM_SUBMENU_ENTRY(submenu->children) && edit_mode) // promoted submenu
+                ||
+            (!menu_lv_transparent_mode && !edit_mode)
+        )
     {
         w = 720-2*bx;
         bmp_fill(MENU_BG_COLOR_HEADER_FOOTER,  bx,  by, w, 40);
         bmp_fill(COLOR_BLACK,  bx,  by + 40, w, h-40);
         bfnt_puts(submenu->name,  bx + 15,  by+2, COLOR_WHITE, 40);
 
-        for (int i = 0; i < 15; i++)
+        for (int i = 0; i < 5; i++)
             bmp_draw_rect(COLOR_GRAY45,  bx-i,  by-i, w+i*2, h+i*2);
 
 /* gradient experiments
