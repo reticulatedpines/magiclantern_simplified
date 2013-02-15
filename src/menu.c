@@ -1232,7 +1232,7 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
     int color_off = COLOR_GRAY40;
     int color_dis = warn ? COLOR_GRAY50 : COLOR_RED;
     int color_slider_fg = warn ? COLOR_DARK_BLUE_MOD : COLOR_LIGHTBLUE;
-    int color_slider_bg = warn ? 43 : COLOR_DARK_BLUE_MOD;
+    int color_slider_bg = warn ? 42 : 45;
     int color_action = warn ? COLOR_GRAY45 : COLOR_YELLOW;
 
     switch(type)
