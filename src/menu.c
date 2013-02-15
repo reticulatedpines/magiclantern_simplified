@@ -893,10 +893,10 @@ static void clockmeter_pm(int x, int y, uint32_t arg, int fg, int bg)
 static void playicon(int x, int y, int color)
 {
     int i;
-    for (i = 5; i < 32-5; i++)
+    for (i = 7; i < 32-7; i++)
     {
-        draw_line(x + 7, y + i, x + 25, y + 16, color);
-        draw_line(x + 7, y + i, x + 25, y + 16, color);
+        draw_line(x + 9, y + i, x + 23, y + 16, color);
+        draw_line(x + 9, y + i, x + 23, y + 16, color);
     }
 }
 
@@ -1041,11 +1041,7 @@ void pizza_slice(int x, int y, int current, int nmax, int fg, int bg)
 static void slider_box(int x, int y, int w, int h, int c)
 {
     bmp_draw_rect_chamfer(c, x, y, w, h, 1, 0);
-    
-    // buggy bmp_fill? fill with lines instead
-    for (int i = 1; i <= w-1; i++)
-        draw_line(x+i, y, x+i, y+h, c);
-
+    bmp_fill(c, x+1, y+1, w-1, h-1);
 }
 static void hslider(int x, int y, int current, int nmax, int fg, int bg)
 {
@@ -1083,10 +1079,10 @@ static void vslider(int x, int y, int current, int nmax, int fg, int bg)
     for (int i = 0; i < nmax; i++)
     {
         int yc = y + i*w;
-        slider_box(x+SO, yc, SH, MAX(3, w-2), bg);
+        slider_box(x+SO, yc, SH, MAX(3, w-3), bg);
     }
     int yc = y + COERCE(current, 0, nmax-1) * w; 
-    slider_box(x+SO, yc, SH, MAX(3, w-2), fg);
+    slider_box(x+SO, yc, SH, MAX(3, w-3), fg);
     
 #undef SW
 #undef SH
@@ -1415,7 +1411,7 @@ static void menu_clean_footer()
     if (is_menu_active("Help")) h += 10;
     int bgu = MENU_BG_COLOR_HEADER_FOOTER;
     int fgu = COLOR_GRAY50;
-    bmp_fill(fgu, 0, 480-h-1, 720, 1);
+    bmp_fill(fgu, 0, 480-h-2, 720, 2);
     bmp_fill(bgu, 0, 480-h, 720, h);
 }
 
@@ -2495,8 +2491,8 @@ menus_display(
         num_tabs++;
     }
     
-    int x = orig_x + junkie_mode ? 1 : 150;
-    int icon_spacing = junkie_mode ? 718 / num_tabs : (720 - 150) / num_tabs;
+    int x = orig_x + junkie_mode ? 2 : 150;
+    int icon_spacing = junkie_mode ? 716 / num_tabs : (720 - 150) / num_tabs;
     
     int bgs = COLOR_BLACK;
     int bgu = MENU_BG_COLOR_HEADER_FOOTER;
@@ -2506,7 +2502,7 @@ menus_display(
     if (customize_mode) fgs = get_customize_color();
 
     bmp_fill(bgu, orig_x, y, 720, 42);
-    bmp_fill(fgu, orig_x, y+42, 720, 1);
+    bmp_fill(fgu, orig_x, y+42, 720, 2);
     
     for( ; menu ; menu = menu->next )
     {
@@ -2520,7 +2516,7 @@ menus_display(
         if (!menu_lv_transparent_mode)
         {
             if (menu->selected)
-                bmp_fill(bg, x, y+2, icon_spacing, 38);
+                bmp_fill(bg, x-1, y+2, icon_spacing+3, 38);
 
             int icon_char = menu->icon ? menu->icon : menu->name[0];
             int icon_width = bfnt_char_get_width(icon_char);
@@ -2534,29 +2530,37 @@ menus_display(
                 //~ else
                 if (!junkie_mode)
                     bfnt_puts(menu->name, 5, y, fg, bg);
-                int x1 = x;
-                int x2 = x1 + icon_spacing;
+                int x1 = x - 1;
+                int x2 = x1 + icon_spacing + 2;
 
                 draw_line(x1, y+42-4, x1, y+5, fgu);
                 draw_line(x2, y+42-4, x2, y+5, fgu);
+                draw_line(x1-1, y+42-4, x1-1, y+5, fgu);
+                draw_line(x2+1, y+42-4, x2+1, y+5, fgu);
+
                 draw_line(x1+4, y+1, x2-4, y+1, fgu);
+                draw_line(x1+4, y, x2-4, y, fgu);
+
                 draw_line(x1-1, y+40, x2+1, y+40, bgs);
                 draw_line(x1-2, y+41, x2+2, y+41, bgs);
                 draw_line(x1-3, y+42, x2+3, y+42, bgs);
+                draw_line(x1-4, y+43, x2+4, y+43, bgs);
 
                 draw_line(x1-4, y+42, x1, y+42-4, fgu);
                 draw_line(x2+4, y+42, x2, y+42-4, fgu);
+                draw_line(x1-4, y+41, x1, y+41-4, fgu);
+                draw_line(x2+4, y+41, x2, y+41-4, fgu);
 
                 draw_line(x1, y+5, x1+4, y+1, fgu);
                 draw_line(x2, y+5, x2-4, y+1, fgu);
+                draw_line(x1, y+4, x1+4, y, fgu);
+                draw_line(x2, y+4, x2-4, y, fgu);
                 
-                draw_line(x1, y+2, x1, y+4, bgu);
-                draw_line(x1+1, y+2, x1+1, y+3, bgu);
-                draw_line(x1+2, y+2, x1+2, y+2, bgu);
+                draw_line(x1, y+2, x1, y+3, bgu);
+                draw_line(x1+1, y+2, x1+1, y+2, bgu);
 
-                draw_line(x2, y+2, x2, y+4, bgu);
-                draw_line(x2-1, y+2, x2-1, y+3, bgu);
-                draw_line(x2-2, y+2, x2-2, y+2, bgu);
+                draw_line(x2, y+2, x2, y+3, bgu);
+                draw_line(x2-1, y+2, x2-1, y+2, bgu);
             }
             x += icon_spacing;
         }
