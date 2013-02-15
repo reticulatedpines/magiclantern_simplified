@@ -1289,6 +1289,7 @@ static struct menu_entry focus_menu[] = {
                 .name = "Step Delay",
                 .priv = &lens_focus_delay,
                 .max = 6,
+                .icon_type = IT_PERCENT,
                 .update    = focus_delay_sub_display,
                 .help = "Delay between two successive focus commands.",
             },
@@ -1316,7 +1317,7 @@ static struct menu_entry focus_menu[] = {
                 .name = "Rack Delay",
                 .priv    = &focus_rack_delay,
                 .max = 20,
-                .icon_type = IT_PERCENT,
+                .icon_type = IT_PERCENT_OFF,
                 .help = "Number of seconds before starting rack focus.",
             },
             MENU_EOL

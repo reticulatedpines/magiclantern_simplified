@@ -437,6 +437,7 @@ static MENU_UPDATE_FUNC(interval_stop_after_display)
         d ? d : (intptr_t) "Disabled"
     );
     MENU_SET_ENABLED(d);
+    if (!d) MENU_SET_ICON(MNI_OFF, 0);
     if (d > avail_shot)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not enough space for %d shots (only for %d).", d, avail_shot);
     timelapse_calc_display(entry, info);
@@ -4633,7 +4634,6 @@ static MENU_UPDATE_FUNC(pics_at_once_update)
 {
     if (!pics_to_take_at_once)
     {
-        MENU_SET_ICON(MNI_OFF,0);
         MENU_SET_ENABLED(0);
     }
     if (HDR_ENABLED)
@@ -4905,8 +4905,8 @@ static struct menu_entry shoot_menus[] = {
                 .priv = &motion_detect_delay,
                 .max  = 10,
                 .min  = 0,
-                .icon_type = IT_PERCENT,
-                .choices = CHOICES("0", "0.1s", "0.2s", "0.3s", "0.4s", "0.5s", "0.6s", "0.7s", "0.8s", "0.9s", "1s"),
+                .icon_type = IT_PERCENT_OFF,
+                .choices = CHOICES("OFF", "0.1s", "0.2s", "0.3s", "0.4s", "0.5s", "0.6s", "0.7s", "0.8s", "0.9s", "1s"),
                 .help = "Delay between the detected motion and the picture taken.",
             },
 			MENU_EOL
@@ -5113,7 +5113,7 @@ static struct menu_entry shoot_menus[] = {
                 .max = 4,
                 .choices = CHOICES("1 (OFF)", "2", "3", "4", "5"),
                 .update = pics_at_once_update,
-                .icon_type = IT_PERCENT,
+                .icon_type = IT_PERCENT_OFF,
                 .help = "How many pictures to take at once (for each trigger event).",
                 .help2 = "For intervalometer, motion detect, trap focus, audio remote.",
             },
@@ -5339,7 +5339,7 @@ static struct menu_entry expo_menus[] = {
                 .select = wbs_gm_toggle,
                 .min = -9,
                 .max = 9,
-                .icon_type = IT_PERCENT,
+                .icon_type = IT_PERCENT_OFF,
                 .help = "Green-Magenta white balance shift, for fluorescent lights.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
@@ -5349,7 +5349,7 @@ static struct menu_entry expo_menus[] = {
                 .select = wbs_ba_toggle, 
                 .min = -9,
                 .max = 9,
-                .icon_type = IT_PERCENT,
+                .icon_type = IT_PERCENT_OFF,
                 .help = "Blue-Amber WBShift; 1 unit = 5 mireks on Kelvin axis.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },

@@ -602,6 +602,7 @@ static struct menu_entry mov_menus[] = {
                 .name = "Mode",
                 .priv = &bitrate_mode,
                 .max = 2,
+                .icon_type = IT_DICE_OFF,
                 .select = bitrate_toggle_mode,
                 .choices = (const char *[]) {"FW default", "CBR", "VBR (QScale)"},
                 .help = "Firmware default / CBR (recommended) / VBR (very risky)"
