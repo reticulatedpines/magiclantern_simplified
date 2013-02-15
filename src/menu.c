@@ -349,7 +349,7 @@ static void entry_guess_icon_type(struct menu_entry * entry)
         }
         else if (entry->min != entry->max)
         {
-            entry->icon_type = entry->max == 1 && entry->min == 0 ? IT_BOOL : IT_PERCENT;
+            entry->icon_type = entry->max == 1 && entry->min == 0 ? IT_BOOL : IT_PERCENT_OFF;
         }
         else
             entry->icon_type = IT_BOOL;
@@ -358,7 +358,7 @@ static void entry_guess_icon_type(struct menu_entry * entry)
 
 static int entry_guess_enabled(struct menu_entry * entry)
 {
-    if (entry->icon_type == IT_BOOL || entry->icon_type == IT_DICE_OFF)
+    if (entry->icon_type == IT_BOOL || entry->icon_type == IT_DICE_OFF || entry->icon_type == IT_PERCENT_OFF)
         return MENU_INT(entry);
     else if (entry->icon_type == IT_BOOL_NEG)
         return !MENU_INT(entry);
@@ -414,7 +414,7 @@ static void entry_draw_icon(
             break;
 
         case IT_ALWAYS_ON:
-            menu_draw_icon(x, y, MNI_ON, 0, warn);
+            menu_draw_icon(x, y, MNI_AUTO, 0, warn);
             break;
             
         case IT_SIZE:
@@ -432,9 +432,12 @@ static void entry_draw_icon(
             else menu_draw_icon(x, y, MNI_DICE_OFF, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16), warn);
             break;
         
+        case IT_PERCENT_OFF:
+            if (!enabled) menu_draw_icon(x, y, MNI_PERCENT_OFF, SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1), warn);
+            // fallthru
         case IT_PERCENT:
-            if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
-            else menu_draw_icon(x, y, MNI_PERCENT, SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1), warn);
+            //~ if (entry->min < 0) menu_draw_icon(x, y, MNI_PERCENT_PM, (CURRENT_VALUE & 0xFF) | ((entry->min & 0xFF) << 8) | ((entry->max & 0xFF) << 16), warn);
+            menu_draw_icon(x, y, MNI_PERCENT, SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1), warn);
             break;
 
         case IT_NAMED_COLOR:
@@ -802,12 +805,7 @@ menu_add(
 
 void dot(int x, int y, int color, int radius)
 {
-    int r;
-    for (r = 0; r < radius; r++)
-    {
-        draw_circle(x + 16, y + 16, r, color);
-        draw_circle(x + 17, y + 16, r, color);
-    }
+    fill_circle(x+16, y+16, radius, color);
 }
 
 #ifdef CONFIG_MENU_ICONS
@@ -851,6 +849,46 @@ static void percent(int x, int y, int value, int fg, int bg)
             i <= value ? fg : bg
         );
 }
+
+static void clockmeter(int x, int y, int value, int fg, int bg)
+{
+    fill_circle(x+16, y+16, 10, bg);
+    for (int a = 0; a <= value * 3600 / 100; a+=10)
+        draw_angled_line(x+16, y+16, 10, a-900, fg);
+    draw_circle(x+16, y+16, 10, fg);
+}
+
+static void clockmeter_half(int x, int y, int value, int fg, int bg)
+{
+    int thr = value * 1800 / 100;
+    for (int a = 1800; a >=0 ; a-=5)
+        draw_angled_line(x+16, y+21, 12, a-1800, a <= thr ? fg : bg);
+}
+
+/*
+static void clockmeter_pm(int x, int y, uint32_t arg, int fg, int bg)
+{
+    int value = (int8_t)(arg & 0xFF);
+    int min = (int8_t)((arg>>8) & 0xFF);
+    int max = (int8_t)((arg>>16) & 0xFF);
+    
+    int M = MAX(ABS(min), ABS(max));
+    
+    int thr = value * 1800 / M;
+    for (int a = 0; a <= 1800; a+=5)
+    {
+        int v = a * M / 1800;
+        if (v > max) break;
+        draw_angled_line(x+16, y+21, 12, a-1800, a <= thr ? fg : bg);
+    }
+    for (int a = 0; a >= -1800; a-=5)
+    {
+        int v = a * M / 1800;
+        if (v < min) break;
+        draw_angled_line(x+16, y+21, 12, a-1800, a >= thr ? fg : bg);
+    }
+}
+*/
 
 static void playicon(int x, int y, int color)
 {
@@ -914,7 +952,7 @@ void size_icon(int x, int y, int current, int nmax, int color)
     dot(x, y, color, COERCE(current * (nmax > 2 ? 9 : 7) / (nmax-1) + 3, 1, 12));
 }
 
-/*
+
 void dice_icon(int x, int y, int current, int nmax, int color_on, int color_off)
 {
     #define C(i) (current == (i) ? color_on : color_off), (current == (i) ? 6 : 4)
@@ -983,12 +1021,22 @@ void dice_icon(int x, int y, int current, int nmax, int color_on, int color_off)
             dot(x + 10, y + 10, C(8));
             break;
         default:
-            size_icon(x, y, current, nmax);
+            size_icon(x, y, current, nmax, color_on);
             break;
     }
     #undef C
 }
-*/
+
+void pizza_slice(int x, int y, int current, int nmax, int fg, int bg)
+{
+    dot(x, y, bg, 10);
+    int a0 = current * 3600 / nmax;
+    int w = 3600 / nmax;
+    for (int a = a0-w/2; a < a0+w/2; a += 10)
+    {
+        draw_angled_line(x+16, y+16, 10, a-900, fg);
+    }
+}
 
 void color_icon(int x, int y, const char* color)
 {
@@ -1129,8 +1177,8 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
     int color_on = warn ? COLOR_DARK_GREEN1_MOD : COLOR_GREEN1;
     int color_off = COLOR_GRAY40;
     int color_dis = warn ? COLOR_GRAY50 : COLOR_RED;
-    int color_slider_fg = warn ? COLOR_GRAY50 : COLOR_LIGHTBLUE;
-    int color_slider_bg = warn ? 43 : COLOR_GRAY60;
+    int color_slider_fg = warn ? COLOR_DARK_BLUE_MOD : COLOR_LIGHTBLUE;
+    int color_slider_bg = warn ? 43 : COLOR_DARK_BLUE_MOD;
     int color_action = warn ? COLOR_GRAY45 : COLOR_YELLOW;
 
     switch(type)
@@ -1139,20 +1187,27 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
         case MNI_ON: maru(x, y, color_on); return;
         case MNI_DISABLE: batsu(x, y, color_dis); return;
         case MNI_NEUTRAL: maru(x, y, COLOR_GRAY50); return;
-        case MNI_AUTO: maru(x, y, color_slider_fg); return;
-        case MNI_PERCENT: percent(x, y, arg, color_slider_fg, color_slider_bg); return;
+        case MNI_AUTO: maru(x, y, COLOR_BLUE); return;
+        case MNI_PERCENT: clockmeter_half(x, y, arg, color_slider_fg, color_slider_bg); return;
+        case MNI_PERCENT_OFF: clockmeter_half(x, y, arg, color_off+3, color_off); return;
+        //~ case MNI_PERCENT_PM: clockmeter_pm(x, y, arg, color_slider_fg, color_slider_bg); return;
         case MNI_ACTION: playicon(x, y, color_action); return;
-        case MNI_DICE: // dice_icon(x, y, arg & 0xFFFF, arg >> 16, COLOR_GREEN1, COLOR_GRAY50); return;
-            maru(x, y, color_on); return;
+        case MNI_DICE: //dice_icon(x, y, arg & 0xFFFF, arg >> 16, COLOR_GREEN1, COLOR_GRAY50); return;
+            //~ maru(x, y, color_on); return;
+            pizza_slice(x, y, arg & 0xFFFF, arg >> 16, color_slider_fg, color_slider_bg); return;
+
         case MNI_DICE_OFF:
         {
             int i = arg & 0xFFFF;
-            //~ int N = arg >> 16;
+            int N = arg >> 16;
 
-            maru(x, y, i ? color_on : color_off); return;
+            //~ maru(x, y, i ? color_on : color_off); return;
             
             //~ if (i == 0) dice_icon(x, y, i-1, N-1, COLOR_GRAY40, COLOR_GRAY40);
             //~ else dice_icon(x, y, i-1, N-1, COLOR_GREEN1, COLOR_GRAY50);
+            if (i == 0) maru(x, y, color_off);
+            else pizza_slice(x, y, i-1, N-1, color_slider_fg, color_slider_bg); return;
+
             return;
         }
         case MNI_SIZE: size_icon(x, y, arg & 0xFFFF, arg >> 16, color_on); return;
@@ -1322,10 +1377,10 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
         snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
     else if (DEPENDS_ON(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR)
         snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
-    else if (DEPENDS_ON(DEP_EXPSIM) && !lv_luma_is_accurate())
+    else if (DEPENDS_ON(DEP_EXPSIM) && lv && !lv_luma_is_accurate())
         snprintf(warning, MENU_MAX_WARNING_LEN, EXPSIM_WARNING_MSG);
-    else if (DEPENDS_ON(DEP_NOT_EXPSIM) && lv_luma_is_accurate())
-        snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires ExpSim disabled.");
+    //~ else if (DEPENDS_ON(DEP_NOT_EXPSIM) && lv && lv_luma_is_accurate())
+        //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires ExpSim disabled.");
     else if (DEPENDS_ON(DEP_MANUAL_FOCUS) && !is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual focus.");
     else if (DEPENDS_ON(DEP_CHIPPED_LENS) && !lens_info.name[0])
@@ -1365,20 +1420,20 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
             snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
         else if (WORKS_BEST_IN(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() != AF_BTN_STAR)
             snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
-        else if (WORKS_BEST_IN(DEP_EXPSIM) && !lv_luma_is_accurate())
-            snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with ExpSim enabled.");
-        else if (WORKS_BEST_IN(DEP_NOT_EXPSIM) && lv_luma_is_accurate())
-            snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with ExpSim disabled.");
-        else if (WORKS_BEST_IN(DEP_CHIPPED_LENS) && !lens_info.name[0])
-            snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with a chipped (electronic) lens.");
+        //~ else if (WORKS_BEST_IN(DEP_EXPSIM) && lv && !lv_luma_is_accurate())
+            //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with ExpSim enabled.");
+        //~ else if (WORKS_BEST_IN(DEP_NOT_EXPSIM) && lv && lv_luma_is_accurate())
+            //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with ExpSim disabled.");
+        //~ else if (WORKS_BEST_IN(DEP_CHIPPED_LENS) && !lens_info.name[0])
+            //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with a chipped (electronic) lens.");
         else if (WORKS_BEST_IN(DEP_M_MODE) && shooting_mode != SHOOTMODE_M)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best in Manual (M) mode.");
         else if (WORKS_BEST_IN(DEP_MANUAL_ISO) && !lens_info.raw_iso)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with manual ISO.");
-        else if (WORKS_BEST_IN(DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
-            snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording enabled.");
-        else if (WORKS_BEST_IN(DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
-            snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording disabled.");
+        //~ else if (WORKS_BEST_IN(DEP_SOUND_RECORDING) && !SOUND_RECORDING_ENABLED)
+            //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording enabled.");
+        //~ else if (WORKS_BEST_IN(DEP_NOT_SOUND_RECORDING) && SOUND_RECORDING_ENABLED)
+            //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording disabled.");
         
         if (warning[0]) 
             return MENU_WARN_ADVICE;
@@ -1515,6 +1570,8 @@ entry_print(
     int in_submenu
 )
 {
+    int w0 = w;
+    
     int fnt = MENU_FONT;
 
     if (info->warning_level == MENU_WARN_NOT_WORKING) 
@@ -1627,7 +1684,7 @@ entry_print(
         // use a pickbox if possible
         if (edit_mode && CAN_HAVE_PICKBOX(entry))
         {
-            int px = x + font_large.width * w;
+            int px = x + font_large.width * w0;
             pickbox_draw(entry, px, y);
         }
     }
@@ -2034,7 +2091,7 @@ entry_print_junkie(
     {
         if (info->enabled)
         {
-            bg = COLOR_DARK_GREEN1_MOD;
+            bg = IS_BOOL(entry) ? COLOR_DARK_GREEN1_MOD : COLOR_DARK_BLUE_MOD;
             fg = COLOR_BLACK;
         }
         else
@@ -2045,8 +2102,9 @@ entry_print_junkie(
     }
     else if (info->enabled)
     {
-        bg = customize_mode ? COLOR_GRAY60 : COLOR_GREEN1;
+        bg = IS_BOOL(entry) ? COLOR_GREEN1 : COLOR_LIGHTBLUE;
         fg = COLOR_BLACK;
+        if (customize_mode) bg = COLOR_GRAY60;
     }
     
     w -= 2;
@@ -2060,6 +2118,8 @@ entry_print_junkie(
         // brighten the selection
         if (bg == COLOR_GREEN1) bg = COLOR_GREEN2;
         else if (bg == COLOR_DARK_GREEN1_MOD) bg = COLOR_DARK_GREEN2_MOD;
+        else if (bg == COLOR_DARK_BLUE_MOD) bg = COLOR_BLUE;
+        else if (bg == COLOR_LIGHTBLUE) bg = COLOR_CYAN;
         else if (bg == 42) bg = 47;
         else if (bg == 45) bg = 50;
 
@@ -3029,6 +3089,7 @@ menu_redraw_do()
         alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 300, 256);
         //~ alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);
         alter_bitmap_palette_entry(COLOR_DARK_ORANGE_MOD,   COLOR_ORANGE, 160, 160);
+        alter_bitmap_palette_entry(COLOR_DARK_BLUE_MOD,   COLOR_BLUE, 128, 128);
     }
 
     #ifdef CONFIG_VXWORKS

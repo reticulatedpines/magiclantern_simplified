@@ -232,6 +232,7 @@ struct menu_entry
 #define IT_REPLACE_SOME_FEATURE 11
 #define IT_SUBMENU 12
 #define IT_DICE_OFF 13
+#define IT_PERCENT_OFF 14
 
 #define UNIT_1_8_EV 1
 #define UNIT_x10 2
@@ -312,7 +313,8 @@ extern void menu_stop(void);
 #define MNI_OFF -2
 #define MNI_ON 1
 #define MNI_AUTO 2
-#define MNI_PERCENT 4
+#define MNI_PERCENT 3
+#define MNI_PERCENT_OFF 4
 #define MNI_ACTION 5
 #define MNI_DICE 6
 #define MNI_SIZE 7

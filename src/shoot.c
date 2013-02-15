@@ -1999,7 +1999,8 @@ static MENU_UPDATE_FUNC(shutter_display)
     if (is_movie_mode())
     {
         int s = get_current_shutter_reciprocal_x1000() + 50;
-        int deg = 360 * fps_get_current_x1000() / s;
+        int deg = 3600 * fps_get_current_x1000() / s;
+        deg = (deg + 5) / 10;
         MENU_SET_VALUE(
             "1/%d.%d, %d ",
             s/1000, (s%1000)/100,
@@ -2088,7 +2089,7 @@ static MENU_UPDATE_FUNC(aperture_display)
     if (!lens_info.aperture)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture.");
     else
-        MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_aperture - codes_aperture[1]) * 100 / (codes_shutter[COUNT(codes_aperture)-1] - codes_aperture[1]));
+        MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_aperture - lens_info.raw_aperture_min) * 100 / (lens_info.raw_aperture_max - lens_info.raw_aperture_min));
 
     MENU_SET_SHORT_NAME(" "); // obvious from value
 }
@@ -2249,6 +2250,11 @@ static MENU_UPDATE_FUNC(wb_custom_gain_display)
     
     if (lens_info.wb_mode != WB_CUSTOM)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Custom white balance is not active => not used.");
+    
+    int ll = log_length(125);
+    int lh = log_length(8000);
+    int l = log_length(raw_value);
+    MENU_SET_ICON(MNI_PERCENT, (l-lh) * 100 / (ll-lh));
 }
 
 static void
@@ -2410,6 +2416,8 @@ static MENU_UPDATE_FUNC(wbs_gm_display)
         ABS(gm)
     );
     MENU_SET_ENABLED(gm);
+    if (gm) MENU_SET_ICON(MNI_PERCENT, (-gm+9) * 100 / 18);
+    else MENU_SET_ICON(MNI_PERCENT_OFF, 50);
 }
 
 static void
@@ -2431,6 +2439,8 @@ static MENU_UPDATE_FUNC(wbs_ba_display)
         ABS(ba)
     );
     MENU_SET_ENABLED(ba);
+    if (ba) MENU_SET_ICON(MNI_PERCENT, (ba+9) * 100 / 18);
+    else MENU_SET_ICON(MNI_PERCENT_OFF, 50);
 }
 
 static void
@@ -2458,27 +2468,31 @@ contrast_toggle( void * priv, int sign )
 
 static MENU_UPDATE_FUNC(contrast_display)
 {
+    int s = lens_get_contrast();
     MENU_SET_VALUE(
         "%d",
-        lens_get_contrast()
+        s
     );
+    MENU_SET_ICON(MNI_PERCENT, (s+4) * 100 / 8);
 }
 
 static void
 sharpness_toggle( void * priv, int sign )
 {
     int c = lens_get_sharpness();
-    if (c < -1 || c > 7) return;
+    if (c < 0 || c > 7) return;
     int newc = mod(c + sign + 1, 9) - 1;
     lens_set_sharpness(newc);
 }
 
 static MENU_UPDATE_FUNC(sharpness_display)
 {
+    int s = lens_get_sharpness();
     MENU_SET_VALUE(
         "%d ",
-        lens_get_sharpness()
+        s
     );
+    MENU_SET_ICON(MNI_PERCENT, s * 100 / 7);
 }
 
 static void
@@ -2501,6 +2515,7 @@ static MENU_UPDATE_FUNC(saturation_display)
         s
     );
     MENU_SET_ENABLED(ok);
+    MENU_SET_ICON(MNI_PERCENT, (s+4) * 100 / 8);
 }
 
 static void
@@ -2523,6 +2538,7 @@ static MENU_UPDATE_FUNC(color_tone_display)
         s
     );
     MENU_SET_ENABLED(ok);
+    MENU_SET_ICON(MNI_PERCENT, (s+4) * 100 / 8);
 }
 
 static CONFIG_INT("picstyle.rec", picstyle_rec, 0);
@@ -5526,7 +5542,7 @@ static struct menu_entry expo_menus[] = {
         .priv = &lens_info.picstyle,
         .help = "Change current picture style.",
         .edit_mode = EM_MANY_VALUES_LV,
-        .icon_type = IT_ALWAYS_ON,
+        .icon_type = IT_DICE,
         .choices = (const char *[]) {
                 #if NUM_PICSTYLES == 10 // 600D, 5D3...
                 "Auto",
@@ -5541,21 +5557,25 @@ static struct menu_entry expo_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "PictureStyle",
-                .priv = (void*)1,
+                .priv = &lens_info.picstyle,
+                .min = 1,
+                .max = NUM_PICSTYLES,
+                .choices = (const char *[]) {
+                        #if NUM_PICSTYLES == 10 // 600D, 5D3...
+                        "Auto",
+                        #endif
+                        "Standard", "Portrait", "Landscape", "Neutral", "Faithful", "Monochrome", "UserDef1", "UserDef2", "UserDef3" },
                 .update     = picstyle_display_submenu,
                 .select     = picstyle_toggle,
                 .help = "Change current picture style.",
                 //~ .show_liveview = 1,
                 .edit_mode = EM_MANY_VALUES_LV,
-                .icon_type = IT_DICE_OFF,
+                .icon_type = IT_DICE,
             },
             {
                 .name = "Sharpness",
                 .update     = sharpness_display,
                 .select     = sharpness_toggle,
-                .min        = 0,
-                .max        = 7,
-                .icon_type  = IT_PERCENT,
                 .help = "Adjust sharpness in current picture style.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
@@ -5563,9 +5583,6 @@ static struct menu_entry expo_menus[] = {
                 .name = "Contrast",
                 .update     = contrast_display,
                 .select     = contrast_toggle,
-                .min        = -4,
-                .max        = 4,
-                .icon_type  = IT_PERCENT,
                 .help = "Adjust contrast in current picture style.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
@@ -5573,9 +5590,6 @@ static struct menu_entry expo_menus[] = {
                 .name = "Saturation",
                 .update     = saturation_display,
                 .select     = saturation_toggle,
-                .min        = -4,
-                .max        = 4,
-                .icon_type  = IT_PERCENT,
                 .help = "Adjust saturation in current picture style.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
@@ -5583,9 +5597,6 @@ static struct menu_entry expo_menus[] = {
                 .name = "Color Tone",
                 .update     = color_tone_display,
                 .select     = color_tone_toggle,
-                .min        = -4,
-                .max        = 4,
-                .icon_type  = IT_PERCENT,
                 .help = "Adjust color tone in current picture style.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },

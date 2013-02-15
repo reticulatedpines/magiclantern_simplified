@@ -70,7 +70,28 @@ void draw_circle(coord x, coord y, const unsigned int r, color cl) {
     } while (dx<=dy);
 }
 
-#ifdef CONFIG_ELECTRONIC_LEVEL // only used for level indicator
+void fill_circle(coord x, coord y, const unsigned int r, color cl) {
+
+    int dx = 0;
+    int dy = r;
+    int p=(3-(r<<1));
+
+    do {
+        draw_line(x+dx, y+dy, x+dx, y-dy, cl);
+        draw_line(x-dx, y+dy, x-dx, y-dy, cl);
+        draw_line(x+dy, y+dx, x+dy, y-dx, cl);
+        draw_line(x-dy, y+dx, x-dy, y-dx, cl);
+
+        ++dx;
+
+        if (p<0) 
+            p += ((dx<<2)+6);
+        else {
+            --dy;
+            p += (((dx-dy)<<2)+10);
+        }
+    } while (dx<=dy);
+}
 
 void draw_angled_line(int x, int y, int r, int ang, color cl)
 {
@@ -80,4 +101,3 @@ void draw_angled_line(int x, int y, int r, int ang, color cl)
    int c = cosf(ang * PI_1800) * MUL;
    draw_line(x, y, x + r * c / MUL, y + r * s / MUL, cl);
 }
-#endif

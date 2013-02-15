@@ -3301,6 +3301,7 @@ struct menu_entry zebra_menus[] = {
                 .name = "Threshold", 
                 .priv = &focus_peaking_pthr,
                 .select = focus_peaking_adjust_thr,
+                .max    = 50,
                 .help = "How many pixels are considered in focus (percentage).",
                 .unit = UNIT_PERCENT_x10
             },
@@ -3617,6 +3618,7 @@ MENU_UPDATE_FUNC(batt_display)
         r / 3600, (r % 3600) / 60,
         d, 0
     );
+    MENU_SET_ICON(MNI_PERCENT, l);
 }
 #endif
 
@@ -3684,7 +3686,7 @@ struct menu_entry powersave_menus[] = {
         {
             .name = "Battery level",
             .update  = batt_display,
-            .icon_type = IT_ALWAYS_ON,
+            .icon_type = IT_PERCENT,
             .help = "Battery remaining. Wait for 2%% discharge before reading.",
             //~ //.essential = FOR_MOVIE | FOR_PHOTO,
         },

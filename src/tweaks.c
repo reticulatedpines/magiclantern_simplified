@@ -3282,7 +3282,7 @@ static struct menu_entry display_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"Normal", "High", "Very high"},
                 .depends_on = DEP_LIVEVIEW,
-                .icon_type = IT_BOOL,
+                .icon_type = IT_PERCENT_OFF,
             },
             {
                 .name = "LV contrast",
@@ -3294,7 +3294,7 @@ static struct menu_entry display_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"Zero", "Very low", "Low", "Normal", "High", "Very high", "Auto"},
                 .depends_on = DEP_LIVEVIEW,
-                .icon_type = IT_BOOL,
+                .icon_type = IT_PERCENT_OFF,
             },
             #endif
             #ifdef FEATURE_LV_SATURATION
@@ -3313,7 +3313,7 @@ static struct menu_entry display_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"Grayscale", "Normal", "High", "Very high", "Boost on WB adjust"},
                 .depends_on = DEP_LIVEVIEW,
-                .icon_type = IT_BOOL,
+                .icon_type = IT_PERCENT_OFF,
                 /*
                 .submenu_width = 650,
                 .children =  (struct menu_entry[]) {
@@ -3427,7 +3427,6 @@ static struct menu_entry display_menus[] = {
                 .priv = &anamorphic_ratio_idx, 
                 .max = 4,
                 .choices = (const char *[]) {"5:4 (1.25)", "4:3 (1.33)", "3:2 (1.5)", "5:3 (1.66)", "2:1"},
-                .icon_type = IT_ALWAYS_ON,
                 .help = "Aspect ratio used for anamorphic preview correction.",
             },
             MENU_EOL
@@ -3467,7 +3466,7 @@ static struct menu_entry display_menus[] = {
                     .min = -2,
                     .max = 2,
                     .choices = (const char *[]) {"+16px", "+8px", "Normal", "-8px", "-16px"},
-                    .icon_type = IT_BOOL,
+                    .icon_type = IT_PERCENT_OFF,
                     .help = "May make the image easier to see from difficult angles.",
                 },
             #endif
@@ -3515,7 +3514,7 @@ static struct menu_entry display_menus[] = {
                     .choices = (const char *[]) {"OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},
                     .help = "Removes the green color cast when you use UniWB.",
                     .edit_mode = EM_MANY_VALUES_LV,
-                    .icon_type = IT_BOOL,
+                    .icon_type = IT_PERCENT_OFF,
                 },
             #endif
             MENU_EOL

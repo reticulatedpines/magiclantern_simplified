@@ -1025,7 +1025,7 @@ static struct menu_entry fps_menu[] = {
                 .min = 0,
                 .max = COUNT(fps_values_x1000) - 1,
                 .select = fps_change_value,
-                .icon_type = IT_ALWAYS_ON,
+                .icon_type = IT_PERCENT,
                 .help = "FPS value for recording. Video will play back at Canon FPS.",
             },
 //~ we only modify FPS_REGISTER_A, so no optimizations possible.
@@ -1111,6 +1111,7 @@ static struct menu_entry fps_menu[] = {
                 .max = 10,
                 .update = fps_ramp_duration_update,
                 .choices = (const char *[]) {"1s", "2s", "5s", "15s", "30s", "1min", "2min", "5min", "10min", "20min", "30min"},
+                .icon_type = IT_PERCENT,
                 .help = "Duration of FPS ramping (in real-time, not in playback).",
                 .depends_on = DEP_MOVIE_MODE,
             },

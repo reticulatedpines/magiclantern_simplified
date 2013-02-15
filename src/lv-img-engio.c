@@ -92,12 +92,12 @@ MENU_UPDATE_FUNC(display_gain_print)
     int GA = abs(G);
 
     MENU_SET_VALUE(
-        "%s%d.%d EV",
+        "%s%d EV",
         G > 0 ? "+" : G < 0 ? "-" : "",
-        GA/10, GA%10
+        GA/10
     );
 
-    MENU_SET_ICON(MNI_BOOL(G), 0);
+    MENU_SET_ICON(G ? MNI_PERCENT : MNI_PERCENT_OFF, GA * 100 / 60);
     MENU_SET_ENABLED(G);
 }
 
