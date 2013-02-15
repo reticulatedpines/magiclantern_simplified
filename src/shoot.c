@@ -3297,8 +3297,8 @@ static MENU_UPDATE_FUNC(bulb_display)
     MENU_SET_VALUE(
         bulb_timer ? format_time_hours_minutes_seconds(d) : "OFF"
     );
-    if (!bulb_timer) MENU_SET_ICON(MNI_OFF, 0);
-    else MENU_SET_ICON(MNI_PERCENT, bulb_duration_index * 100 / COUNT(timer_values));
+    //~ if (!bulb_timer) MENU_SET_ICON(MNI_OFF, 0);
+    //~ else MENU_SET_ICON(MNI_PERCENT, bulb_duration_index * 100 / COUNT(timer_values));
     
     if (!is_bulb_mode()) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Bulb timer only works in BULB mode");
     
@@ -5073,7 +5073,7 @@ static struct menu_entry shoot_menus[] = {
                 .update    = flash_ae_display,
                 .select     = flash_ae_toggle,
                 .help = "Flash exposure compensation, from -10EV to +3EV.",
-                .icon_type = IT_PERCENT,
+                .icon_type = IT_PERCENT_OFF,
                 .edit_mode = EM_MANY_VALUES,
                 .depends_on = DEP_PHOTO_MODE,
             },

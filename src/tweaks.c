@@ -3465,7 +3465,7 @@ static struct menu_entry display_menus[] = {
                     .priv = &lcd_adjust_position,
                     .min = -2,
                     .max = 2,
-                    .choices = (const char *[]) {"+16px", "+8px", "Normal", "-8px", "-16px"},
+                    .choices = (const char *[]) {"-16px", "-8px", "Normal", "+8px", "+16px"},
                     .icon_type = IT_PERCENT_OFF,
                     .help = "May make the image easier to see from difficult angles.",
                 },
