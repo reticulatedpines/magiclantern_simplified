@@ -69,7 +69,7 @@ void EngDrvOutLV(int reg, int val)
     {
         ml_rpc_send(ML_RPC_ENGIO_WRITE, 0x8704, val, 0, 0);
     }
-    if(reg == 0xC0F0601)
+    if(reg == 0xC0F06014)
     {
         ml_rpc_send(ML_RPC_ENGIO_WRITE, 0x8774, val, 0, 0);
     }
