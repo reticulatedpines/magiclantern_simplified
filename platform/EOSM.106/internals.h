@@ -80,7 +80,7 @@
 #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
 
 /** We can't change ExpSim from ML (at least not yet) **/
-//~ #define CONFIG_EXPSIM
+#define CONFIG_EXPSIM
 
 /** We can;t playback sounds via ASIF DMA (yet) **/
 #define CONFIG_BEEP
