@@ -423,13 +423,13 @@ static void entry_draw_icon(
             break;
 
         case IT_DICE:
-            if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
+            if (!enabled) menu_draw_icon(x, y, MNI_DICE_OFF, 0 | (NUM_CHOICES(entry) << 16), warn);
             else menu_draw_icon(x, y, MNI_DICE, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16), warn);
             break;
         
         case IT_DICE_OFF:
-            if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
-            else menu_draw_icon(x, y, MNI_DICE_OFF, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16), warn);
+            if (!enabled) menu_draw_icon(x, y, MNI_DICE_OFF, 0 | (NUM_CHOICES(entry) << 16), warn);
+            menu_draw_icon(x, y, MNI_DICE_OFF, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16), warn);
             break;
         
         case IT_PERCENT_OFF:
@@ -1038,6 +1038,64 @@ void pizza_slice(int x, int y, int current, int nmax, int fg, int bg)
     }
 }
 
+static void slider_box(int x, int y, int w, int h, int c)
+{
+    bmp_draw_rect_chamfer(c, x, y, w, h, 1, 0);
+    
+    // buggy bmp_fill? fill with lines instead
+    for (int i = 1; i <= w-1; i++)
+        draw_line(x+i, y, x+i, y+h, c);
+
+}
+static void hslider(int x, int y, int current, int nmax, int fg, int bg)
+{
+#define SW 30
+#define SH 15
+#define SO ((30-SH)/2)
+
+    int w = MIN(SW / nmax, 10);
+    int W = w * nmax;
+    x += (SW-W)/2;
+    
+    for (int i = 0; i < nmax; i++)
+    {
+        int xc = x + i*w;
+        slider_box(xc, y+SO, MAX(3, w-2), SH, bg);
+    }
+    int xc = x + current * w; 
+    slider_box(xc, y+SO, MAX(3, w-2), SH, fg);
+
+#undef SW
+#undef SH
+#undef SO
+}
+
+static void vslider(int x, int y, int current, int nmax, int fg, int bg)
+{
+#define SW 26
+#define SH 15
+#define SO ((30-SH)/2)
+
+    int w = MIN(SW / nmax, 10);
+    int W = w * nmax;
+    y += (32-W)/2;
+    
+    for (int i = 0; i < nmax; i++)
+    {
+        int yc = y + i*w;
+        slider_box(x+SO, yc, SH, MAX(3, w-2), bg);
+    }
+    int yc = y + COERCE(current, 0, nmax-1) * w; 
+    slider_box(x+SO, yc, SH, MAX(3, w-2), fg);
+    
+#undef SW
+#undef SH
+#undef SO
+}
+
+#define slider vslider
+
+
 void color_icon(int x, int y, const char* color)
 {
     if (streq(color, "Red"))
@@ -1194,7 +1252,7 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
         case MNI_ACTION: playicon(x, y, color_action); return;
         case MNI_DICE: //dice_icon(x, y, arg & 0xFFFF, arg >> 16, COLOR_GREEN1, COLOR_GRAY50); return;
             //~ maru(x, y, color_on); return;
-            pizza_slice(x, y, arg & 0xFFFF, arg >> 16, color_slider_fg, color_slider_bg); return;
+            slider(x, y, arg & 0xFFFF, arg >> 16, color_slider_fg, color_slider_bg); return;
 
         case MNI_DICE_OFF:
         {
@@ -1205,8 +1263,9 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
             
             //~ if (i == 0) dice_icon(x, y, i-1, N-1, COLOR_GRAY40, COLOR_GRAY40);
             //~ else dice_icon(x, y, i-1, N-1, COLOR_GREEN1, COLOR_GRAY50);
-            if (i == 0) maru(x, y, color_off);
-            else pizza_slice(x, y, i-1, N-1, color_slider_fg, color_slider_bg); return;
+            if (i == 0) //maru(x, y, color_off);
+                slider(x, y, i-1, N-1, color_off, color_off);
+            else slider(x, y, i-1, N-1, color_slider_fg, color_slider_bg); return;
 
             return;
         }
@@ -3095,7 +3154,7 @@ menu_redraw_do()
         alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 300, 256);
         //~ alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);
         alter_bitmap_palette_entry(COLOR_DARK_ORANGE_MOD,   COLOR_ORANGE, 160, 160);
-        alter_bitmap_palette_entry(COLOR_DARK_BLUE_MOD,   COLOR_BLUE, 128, 128);
+        alter_bitmap_palette_entry(COLOR_DARK_BLUE_MOD,   COLOR_BLUE, 140, 140);
     }
 
     #ifdef CONFIG_VXWORKS
