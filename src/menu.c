@@ -1210,7 +1210,13 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
 
             return;
         }
-        case MNI_SIZE: size_icon(x, y, arg & 0xFFFF, arg >> 16, color_on); return;
+        case MNI_SIZE: //size_icon(x, y, arg & 0xFFFF, arg >> 16, color_slider_fg); return;
+        {
+            int i = arg & 0xFFFF;
+            int N = arg >> 16;
+            clockmeter_half(x, y, i*100/(N-1), color_slider_fg, color_slider_bg);
+            return;
+        }
         case MNI_NAMED_COLOR:
         {
             if (warn) maru(x, y, color_on);
