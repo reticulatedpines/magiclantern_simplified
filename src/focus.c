@@ -503,15 +503,6 @@ focus_delay_display(
     menu_draw_icon(x, y, MNI_PERCENT, lens_focus_delay * 100 / 9);
 }
 
-static MENU_UPDATE_FUNC(focus_delay_sub_display)
-{
-    MENU_SET_VALUE(
-        "%dms",
-        (1 << lens_focus_delay) * 10
-    );
-}
-
-
 /*
 static void
 focus_stack_count_increment( void * priv )
@@ -1290,7 +1281,7 @@ static struct menu_entry focus_menu[] = {
                 .priv = &lens_focus_delay,
                 .max = 6,
                 .icon_type = IT_PERCENT,
-                .update    = focus_delay_sub_display,
+                .choices = CHOICES("10ms", "20ms", "40ms", "80ms", "160ms", "320ms", "640ms"),
                 .help = "Delay between two successive focus commands.",
             },
             {

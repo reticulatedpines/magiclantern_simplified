@@ -527,10 +527,14 @@ static MENU_UPDATE_FUNC(manual_expo_ramp_print)
         MENU_SET_ENABLED(0);
     }
     else
+    {
         MENU_SET_VALUE(
             "%s%d.%03d EV/shot",
             FMT_FIXEDPOINT3S(evx1000)
         );
+        int max = log_length(1000);
+        MENU_SET_ICON(MNI_PERCENT_ALLOW_OFF, 50 + log_length(ABS(evx1000)) * 50 / max * SGN(evx1000));
+    }
 }
 
 static MENU_UPDATE_FUNC(manual_focus_ramp_print)
@@ -542,11 +546,15 @@ static MENU_UPDATE_FUNC(manual_focus_ramp_print)
         MENU_SET_ENABLED(0);
     }
     else
+    {
         MENU_SET_VALUE(
             "%s%d steps/shot",
             steps > 0 ? "+" : "",
             steps
         );
+        int max = log_length(100);
+        MENU_SET_ICON(MNI_PERCENT_ALLOW_OFF, 50 + log_length(ABS(steps)) * 50 / max * SGN(steps));
+    }
 }
 
 static MENU_UPDATE_FUNC(bulb_ramping_print)
@@ -2088,7 +2096,10 @@ static MENU_UPDATE_FUNC(aperture_display)
         );
     }
     if (!lens_info.aperture)
+    {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture.");
+        MENU_SET_ICON(MNI_PERCENT_OFF, 0);
+    }
     else
         MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_aperture - lens_info.raw_aperture_min) * 100 / (lens_info.raw_aperture_max - lens_info.raw_aperture_min));
 
@@ -2417,7 +2428,7 @@ static MENU_UPDATE_FUNC(wbs_gm_display)
         ABS(gm)
     );
     MENU_SET_ENABLED(gm);
-    if (gm) MENU_SET_ICON(MNI_PERCENT, (-gm+9) * 100 / 18);
+    if (gm) MENU_SET_ICON(MNI_PERCENT_ALLOW_OFF, (-gm+9) * 100 / 18);
     else MENU_SET_ICON(MNI_PERCENT_OFF, 50);
 }
 
@@ -2440,7 +2451,7 @@ static MENU_UPDATE_FUNC(wbs_ba_display)
         ABS(ba)
     );
     MENU_SET_ENABLED(ba);
-    if (ba) MENU_SET_ICON(MNI_PERCENT, (ba+9) * 100 / 18);
+    if (ba) MENU_SET_ICON(MNI_PERCENT_ALLOW_OFF, (ba+9) * 100 / 18);
     else MENU_SET_ICON(MNI_PERCENT_OFF, 50);
 }
 
@@ -2516,7 +2527,8 @@ static MENU_UPDATE_FUNC(saturation_display)
         s
     );
     MENU_SET_ENABLED(ok);
-    MENU_SET_ICON(MNI_PERCENT, (s+4) * 100 / 8);
+    if (ok) MENU_SET_ICON(MNI_PERCENT, (s+4) * 100 / 8);
+    else MENU_SET_ICON(MNI_OFF, 0);
 }
 
 static void
@@ -2539,7 +2551,8 @@ static MENU_UPDATE_FUNC(color_tone_display)
         s
     );
     MENU_SET_ENABLED(ok);
-    MENU_SET_ICON(MNI_PERCENT, (s+4) * 100 / 8);
+    if (ok) MENU_SET_ICON(MNI_PERCENT, (s+4) * 100 / 8);
+    else MENU_SET_ICON(MNI_OFF, 0);
 }
 
 static CONFIG_INT("picstyle.rec", picstyle_rec, 0);
@@ -4690,6 +4703,7 @@ static struct menu_entry shoot_menus[] = {
                 .select     = hdr_stepsize_toggle,
                 .max = 40,
                 .unit = UNIT_1_8_EV,
+                .icon_type = IT_PERCENT,
                 .help = "Exposure difference between two frames.",
             },
             {
@@ -4779,7 +4793,7 @@ static struct menu_entry shoot_menus[] = {
         .depends_on = DEP_PHOTO_MODE,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Auto ExpoRamp\b",
+                .name = "Auto ExpoRamp",
                 .priv       = &bramp_auto_exposure,
                 .max = 2,
                 .icon_type = IT_DICE_OFF,
@@ -5378,7 +5392,7 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
             },
             /*{
-                .name = "UniWB\b\b",
+                .name = "UniWB",
                 .priv = &uniwb_mode,
                 .max = 3,
                 .choices = CHOICES("OFF", "Always ON", "on HalfShutter", "not HalfShutter"),
@@ -5520,6 +5534,7 @@ static struct menu_entry expo_menus[] = {
         .name = "Shutter",
         .update     = shutter_display,
         .select     = shutter_toggle,
+        .icon_type  = IT_PERCENT_OFF,
         .help = "Fine-tune shutter value. Displays APEX Tv or degrees equiv.",
         .edit_mode = EM_MANY_VALUES_LV,
     },
@@ -5529,6 +5544,7 @@ static struct menu_entry expo_menus[] = {
         .name = "Aperture",
         .update     = aperture_display,
         .select     = aperture_toggle,
+        .icon_type  = IT_PERCENT_OFF,
         .help = "Adjust aperture. Also displays APEX aperture (Av) in stops.",
         .depends_on = DEP_CHIPPED_LENS,
         .edit_mode = EM_MANY_VALUES_LV,
@@ -5605,7 +5621,7 @@ static struct menu_entry expo_menus[] = {
                 .name = "REC-PicStyle",
                 .priv = &picstyle_rec,
                 .max  = NUM_PICSTYLES,
-                .icon_type = IT_BOOL,
+                .icon_type = IT_DICE_OFF,
                 .update     = picstyle_rec_sub_display,
                 .select     = picstyle_rec_sub_toggle,
 
@@ -5625,7 +5641,7 @@ static struct menu_entry expo_menus[] = {
     #endif
     #ifdef FEATURE_ML_AUTO_ISO
     {
-        .name = "ML Auto ISO\b\b",
+        .name = "ML Auto ISO",
         .priv = &ml_auto_iso, 
         .max = 1,
         .update = ml_auto_iso_display,

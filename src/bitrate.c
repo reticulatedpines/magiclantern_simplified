@@ -240,10 +240,10 @@ static MENU_UPDATE_FUNC(bitrate_print)
     else if (bitrate_mode == 1)
     {
         MENU_SET_NAME("Bit Rate (CBR)");
-        MENU_SET_VALUE("%s%d.%dx%s", bitrate_factor>10 ? "up to " : "", bitrate_factor/10, bitrate_factor%10, bitrate_dirty || bitrate_factor != 10 ? "" : " (default)");
-        if (bitrate_dirty || bitrate_factor != 10)
+        MENU_SET_VALUE("%s%d.%dx%s", bitrate_factor>10 ? "up to " : "", bitrate_factor/10, bitrate_factor%10, bitrate_factor != 10 ? "" : " (default)");
+        if (bitrate_factor != 10)
         {
-            MENU_SET_ICON(MNI_PERCENT, bitrate_factor * 100 / 30);
+            MENU_SET_ICON(MNI_PERCENT_ALLOW_OFF, bitrate_factor * 100 / 30);
         }
         else
         {

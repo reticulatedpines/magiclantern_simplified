@@ -2427,7 +2427,8 @@ static MENU_UPDATE_FUNC(zebra_level_display)
     if (level == 0 || level > 100)
     {
         MENU_SET_VALUE("Disabled");
-        MENU_SET_ICON(MNI_DISABLE, 0);
+        MENU_SET_ICON(MNI_OFF, 0);
+        MENU_SET_ENABLED(0);
     }
     else
     {
@@ -3210,7 +3211,7 @@ struct menu_entry zebra_menus[] = {
                 .max = 1,
                 #endif
                 .choices = (const char *[]) {"Luma", "RGB", "Luma Fast"},
-                .icon_type = IT_NAMED_COLOR,
+                .icon_type = IT_DICE,
                 .help = "Luma: red/blue. RGB: color is reverse of clipped channel.",
             },
             {
@@ -3218,6 +3219,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zebra_level_lo, 
                 .min = 0,
                 .max = 20,
+                .icon_type = IT_PERCENT_OFF,
                 .update = zebra_level_display,
                 .help = "Underexposure threshold.",
             },
@@ -3226,6 +3228,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zebra_level_hi,
                 .min = 70,
                 .max = 101,
+                .icon_type = IT_PERCENT_OFF,
                 .update = zebra_level_display,
                 .help = "Overexposure threshold.",
             },
@@ -3272,9 +3275,11 @@ struct menu_entry zebra_menus[] = {
                 .icon_type = IT_DICE
             },
             {
-                .name = "Low-res buffer",
+                .name = "Image buffer",
                 .priv = &focus_peaking_lores,
                 .max = 1,
+                .icon_type = IT_DICE,
+                .choices = CHOICES("High-res", "Low-res"),
                 .help = "Use a low-res image to get better results in low light.",
             },
             /*
@@ -3302,8 +3307,9 @@ struct menu_entry zebra_menus[] = {
                 .priv = &focus_peaking_pthr,
                 .select = focus_peaking_adjust_thr,
                 .max    = 50,
+                .icon_type = IT_PERCENT,
+                .unit = UNIT_PERCENT_x10,
                 .help = "How many pixels are considered in focus (percentage).",
-                .unit = UNIT_PERCENT_x10
             },
             {
                 .name = "Color", 
@@ -3311,10 +3317,10 @@ struct menu_entry zebra_menus[] = {
                 .max = 7,
                 .choices = (const char *[]) {"Red", "Green", "Blue", "Cyan", "Magenta", "Yellow", "Global Focus", "Local Focus"},
                 .help = "Focus peaking color (fixed or color coding).",
-                .icon_type = IT_NAMED_COLOR,
+                .icon_type = IT_DICE,
             },
             {
-                .name = "Grayscale img.", 
+                .name = "Grayscale image", 
                 .priv = &focus_peaking_grayscale,
                 .max = 1,
                 .help = "Display LiveView image in grayscale.",
@@ -3528,7 +3534,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &hist_colorspace, 
                 .max = 1,
                 .choices = (const char *[]) {"Luma", "RGB"},
-                .icon_type = IT_NAMED_COLOR,
+                .icon_type = IT_DICE,
                 .help = "Color space for histogram: Luma channel (YUV) / RGB.",
             },
             {

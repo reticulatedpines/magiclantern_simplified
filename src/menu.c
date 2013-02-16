@@ -349,7 +349,8 @@ static void entry_guess_icon_type(struct menu_entry * entry)
         }
         else if (entry->min != entry->max)
         {
-            entry->icon_type = entry->max == 1 && entry->min == 0 ? IT_BOOL : IT_PERCENT_OFF;
+            entry->icon_type = entry->max == 1 && entry->min == 0 ? IT_BOOL :
+                entry->max * entry->min <= 0 ? IT_PERCENT_OFF : IT_PERCENT;
         }
         else
             entry->icon_type = IT_BOOL;
@@ -434,7 +435,8 @@ static void entry_draw_icon(
         
         case IT_PERCENT_OFF:
             if (!enabled) menu_draw_icon(x, y, MNI_PERCENT_OFF, SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1), warn);
-            // fallthru
+            menu_draw_icon(x, y, MNI_PERCENT_ALLOW_OFF, SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1), warn);
+            break;
         case IT_PERCENT:
             //~ if (entry->min < 0) menu_draw_icon(x, y, MNI_PERCENT_PM, (CURRENT_VALUE & 0xFF) | ((entry->min & 0xFF) << 8) | ((entry->max & 0xFF) << 16), warn);
             menu_draw_icon(x, y, MNI_PERCENT, SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1), warn);
@@ -1068,21 +1070,31 @@ static void hslider(int x, int y, int current, int nmax, int fg, int bg)
 
 static void vslider(int x, int y, int current, int nmax, int fg, int bg)
 {
-#define SW 26
-#define SH 15
+#define SW 22
+#define SH 16
 #define SO ((30-SH)/2)
 
-    int w = MIN(SW / nmax, 10);
-    int W = w * nmax;
-    y += (32-W)/2;
-    
-    for (int i = 0; i < nmax; i++)
+    if (nmax > 3)
     {
-        int yc = y + i*w;
-        slider_box(x+SO, yc, SH, MAX(3, w-3), bg);
+        y += (32-SW)/2;
+        slider_box(x+SO, y, SH, SW, bg);
+        int w = 8;
+        int yc = y + COERCE(current, 0, nmax-1) * (SW-w) / (nmax-1);
+        slider_box(x+SO, yc, SH, w, fg);
     }
-    int yc = y + COERCE(current, 0, nmax-1) * w; 
-    slider_box(x+SO, yc, SH, MAX(3, w-3), fg);
+    else
+    {
+        int w = MIN(SW / nmax, 10);
+        int W = w * nmax;
+        y += (32-W)/2;
+        for (int i = 0; i < nmax; i++)
+        {
+            int yc = y + i*w;
+            slider_box(x+SO, yc, SH, w-3, bg);
+        }
+        int yc = y + COERCE(current, 0, nmax-1) * w; 
+        slider_box(x+SO, yc, SH, w-3, fg);
+    }
     
 #undef SW
 #undef SH
@@ -1233,6 +1245,7 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
     int color_dis = warn ? COLOR_GRAY50 : COLOR_RED;
     int color_slider_fg = warn ? COLOR_DARK_BLUE_MOD : COLOR_LIGHTBLUE;
     int color_slider_bg = warn ? 42 : 45;
+    int color_slider_off_fg = warn ? COLOR_DARK_GREEN2_MOD : COLOR_GREEN2;
     int color_action = warn ? COLOR_GRAY45 : COLOR_YELLOW;
 
     switch(type)
@@ -1243,7 +1256,8 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
         case MNI_NEUTRAL: maru(x, y, COLOR_GRAY50); return;
         case MNI_AUTO: maru(x, y, COLOR_BLUE); return;
         case MNI_PERCENT: clockmeter_half(x, y, arg, color_slider_fg, color_slider_bg); return;
-        case MNI_PERCENT_OFF: clockmeter_half(x, y, arg, color_off+3, color_off); return;
+        case MNI_PERCENT_ALLOW_OFF: clockmeter_half(x, y, arg, color_slider_off_fg, color_slider_bg); return;
+        case MNI_PERCENT_OFF: clockmeter_half(x, y, arg, color_off+1, color_off); return;
         //~ case MNI_PERCENT_PM: clockmeter_pm(x, y, arg, color_slider_fg, color_slider_bg); return;
         case MNI_ACTION: playicon(x, y, color_action); return;
         case MNI_DICE: //dice_icon(x, y, arg & 0xFFFF, arg >> 16, COLOR_GREEN1, COLOR_GRAY50); return;
@@ -1261,7 +1275,7 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
             //~ else dice_icon(x, y, i-1, N-1, COLOR_GREEN1, COLOR_GRAY50);
             if (i == 0) //maru(x, y, color_off);
                 slider(x, y, i-1, N-1, color_off, color_off);
-            else slider(x, y, i-1, N-1, color_slider_fg, color_slider_bg); return;
+            else slider(x, y, i-1, N-1, color_slider_off_fg, color_slider_bg); return;
 
             return;
         }
@@ -1585,7 +1599,7 @@ entry_default_display_info(
                 }
                 case UNIT_ISO:
                 {
-                    if (!MEM(entry->priv)) { STR_APPEND(value, ": Auto"); }
+                    if (!MEM(entry->priv)) { STR_APPEND(value, "Auto"); }
                     else { STR_APPEND(value, "%d", raw2iso(MEM(entry->priv))); }
                     break;
                 }
@@ -1670,7 +1684,7 @@ entry_print(
     // right-justified info field?
     int rlen = strlen(info->rinfo);
     int rinfo_x = x_end - font_large.width * (rlen + 1);
-    if (rlen) wmax -= rlen + 2;
+    if (rlen) wmax -= rlen + 1;
     
     // no right info? then make sure there's room for the Q symbol
     else if (entry->children && !in_submenu && !menu_lv_transparent_mode && (entry->priv || entry->select))
@@ -3153,7 +3167,7 @@ menu_redraw_do()
     if (!bmp_color_scheme)
     {
         // adjust some colors for better contrast
-        alter_bitmap_palette_entry(COLOR_DARK_GREEN1_MOD, COLOR_GREEN1, 80, 80);
+        alter_bitmap_palette_entry(COLOR_DARK_GREEN1_MOD, COLOR_GREEN1, 90, 90);
         alter_bitmap_palette_entry(COLOR_DARK_GREEN2_MOD, COLOR_GREEN1, 128, 128);
         alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 300, 256);
         //~ alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);

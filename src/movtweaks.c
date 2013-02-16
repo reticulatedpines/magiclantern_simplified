@@ -623,7 +623,6 @@ static MENU_UPDATE_FUNC(bv_display)
             LVAE_DISP_GAIN ? "Temporarily disabled (display gain active)." :
             "Temporarily disabled."
         );
-    MENU_SET_ICON(MNI_BOOL_AUTO(bv_auto), 0);
 }
 
 CONFIG_INT("bv.iso", bv_iso, 88);
@@ -1158,6 +1157,7 @@ struct menu_entry expo_override_menus[] = {
         .select     = bv_toggle,
         .update     = bv_display,
         .max = 2,
+        .icon_type  = IT_DICE_OFF,
         .choices    = (const char *[]) {"OFF", "ON", "Auto (only when needed)"},
         .help       = "Low-level manual exposure controls (bypasses Canon limits).",
         .help2      = "Useful for long exposures, manual lenses, manual video ctl.",
