@@ -5287,7 +5287,7 @@ livev_hipriority_task( void* unused )
         #ifdef FEATURE_SPOTMETER
         // update spotmeter every second, not more often than that
         static int spotmeter_aux = 0;
-        if (spotmeter_draw && should_update_loop_progress(1000, &spotmeter_aux))
+        if (spotmeter_draw && should_run_polling_action(1000, &spotmeter_aux))
             BMP_LOCK( if (lv) spotmeter_step(); )
         #endif
 

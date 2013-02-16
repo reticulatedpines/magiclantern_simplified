@@ -115,11 +115,9 @@ void lcd_release_step() // to be called from shoot_task
     int lcd_sensor_start_preconditions = !DISPLAY_SENSOR_POWERED && lens_info.job_state == 0;
     if (lcd_sensor_needed && lcd_sensor_start_preconditions) // force sensor on
     {
-        int timestamp = get_seconds_clock();
-        static int last_try = 0;
-        if (timestamp != last_try)
+        static int aux = 0;
+        if (should_run_polling_action(1000, &aux))
             fake_simple_button(MLEV_LCD_SENSOR_START); // only try once per second
-        last_try = timestamp;
     }
 
     if (wave_count_countdown)

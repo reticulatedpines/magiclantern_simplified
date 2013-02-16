@@ -1945,14 +1945,12 @@ void warn_action(int code)
     // blink LED every second
     if (code)
     {
-        static int prev_clk = 0;
-        int clk = get_seconds_clock();
-        if (clk != prev_clk)
+        static int aux = 0;
+        if (should_run_polling_action(1000, &aux))
         {
             static int k = 0; k++;
             if (k%2) info_led_on(); else info_led_off();
         }
-        prev_clk = clk;
     }
     
     // when warning condition changes, beep

@@ -251,7 +251,7 @@ static volatile int ms100_clock = 0;
 int get_ms_clock_value() { return ms100_clock; }
 
 /**
- * useful for loop progress updates that shouldn't be done too often
+ * useful for things that shouldn't be done more often than X ms
  * 
  * for example:
 
@@ -259,7 +259,7 @@ int get_ms_clock_value() { return ms100_clock; }
    for (int i = 0; i < 1000; i++)
    {
        process(i);
-       if (should_update_loop_progress(i, &aux)) 
+       if (should_run_polling_action(500, &aux)) 
            NotifyBox(1000, "Progress: %d/%d ", i, 1000);
    }
 
@@ -270,14 +270,12 @@ int get_ms_clock_value() { return ms100_clock; }
        do_one_iteration();
        
        static int aux = 0;
-       if (should_update_loop_progress(i, &aux)) 
+       if (should_run_polling_action(500, &aux)) 
            NotifyBox(1000, "some progress update");
    }
 
-
- *
  */
-int should_update_loop_progress(int period_ms, int* last_updated_time)
+int should_run_polling_action(int period_ms, int* last_updated_time)
 {
     if (ms100_clock >= (*last_updated_time) + period_ms)
     {
@@ -7100,7 +7098,7 @@ shoot_task( void* unused )
                 {
                     if(cfn_get_af_button_assignment()!=0)
                     {
-                        if(should_update_loop_progress(250, &trap_focus_display_time) && !gui_menu_shown())
+                        if(should_run_polling_action(250, &trap_focus_display_time) && !gui_menu_shown())
                         {
                             trap_focus_msg = TRAP_ERR_CFN;
                         }
@@ -7112,7 +7110,7 @@ shoot_task( void* unused )
                     }
                     else
                     {
-                        if(should_update_loop_progress(250, &trap_focus_display_time) && !gui_menu_shown())
+                        if(should_run_polling_action(250, &trap_focus_display_time) && !gui_menu_shown())
                         {
                             trap_focus_msg = TRAP_IDLE;
                         }
@@ -7144,7 +7142,7 @@ shoot_task( void* unused )
                 }
                 else
                 {
-                    if(should_update_loop_progress(250, &trap_focus_display_time))
+                    if(should_run_polling_action(250, &trap_focus_display_time))
                     {
                         trap_focus_msg = TRAP_ACTIVE;
                     }

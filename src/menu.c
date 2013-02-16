@@ -31,7 +31,7 @@
 #include "font.h"
 #include "menu.h"
 
-//~ #define CONFIG_MENU_ICONS
+#define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
 #undef SUBMENU_DEBUG_JUNKIE
 
@@ -172,6 +172,8 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn); // p
 static struct menu_entry * entry_find_by_name(const char* name, const char* entry_name);
 static struct menu_entry * get_selected_entry(struct menu * menu);
 static void submenu_display(struct menu * submenu);
+static void start_redraw_flood();
+void menu_toggle_submenu();
 
 extern int gui_state;
 void menu_enable_lv_transparent_mode()
@@ -1633,8 +1635,8 @@ static void display_customize_marker(struct menu_entry * entry, int x, int y)
         bfnt_draw_char(ICON_ML_MYMENU, x, y-4, COLOR_GREEN1, COLOR_BLACK);
     
     // hidden marker
-    //~ else if (HAS_CURRENT_HIDDEN_FLAG(entry))
-        //~ batsu(x+4, y, junkie_mode ? COLOR_ORANGE : COLOR_RED);
+    else if (HAS_CURRENT_HIDDEN_FLAG(entry))
+        batsu(x+4, y, junkie_mode ? COLOR_ORANGE : COLOR_RED);
 }
 
 static void
@@ -3061,11 +3063,18 @@ CONFIG_INT("menu.upside.down", menu_upside_down, 0);
 static void 
 menu_redraw_do()
 {
-    //~ in EOS M, force dialog change when canon dialog times out. Not sure how else to do this at the moment.
-#ifdef CONFIG_EOSM
-        if (!CURRENT_DIALOG_MAYBE)
-            SetGUIRequestMode(GUIMODE_ML_MENU);
-#endif
+        // force dialog change when canon dialog times out (EOSM, 6D etc)
+        // don't try more often than once per second
+        if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU && redraw_flood_stop)
+        {
+            static int aux = 0;
+            if (should_run_polling_action(1000, &aux))
+            {
+                bmp_off();
+                start_redraw_flood();
+                SetGUIRequestMode(GUIMODE_ML_MENU);
+            }
+        }
 
         menu_damage = 0;
         //~ g_submenu_width = 720;
@@ -3726,6 +3735,13 @@ void menu_redraw_flood()
         menu_redraw_full();
         msleep(20);
     }
+    redraw_flood_stop = 1;
+}
+
+static void start_redraw_flood()
+{
+    redraw_flood_stop = 0; 
+    task_create("menu_redraw_flood", 0x1c, 0, menu_redraw_flood, 0);
 }
 
 void piggyback_canon_menu()
@@ -3739,7 +3755,7 @@ void piggyback_canon_menu()
     if (gui_state == GUISTATE_MENUDISP) return;
     NotifyBoxHide();
     int new_gui_mode = GUIMODE_ML_MENU;
-    if (new_gui_mode) { redraw_flood_stop = 0; task_create("menu_redraw_flood", 0x1c, 0, menu_redraw_flood, 0); }
+    if (new_gui_mode) start_redraw_flood();
     if (new_gui_mode != CURRENT_DIALOG_MAYBE) 
     { 
         if (lv) bmp_off(); // mask out the underlying Canon menu :)
