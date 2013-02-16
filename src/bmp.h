@@ -340,7 +340,8 @@ bmp_fill(
 #define COLOR_DARK_GREEN1_MOD 21
 #define COLOR_DARK_GREEN2_MOD 22
 #define COLOR_DARK_ORANGE_MOD 23
-#define COLOR_DARK_BLUE_MOD 24
+#define COLOR_DARK_CYAN1_MOD 24
+#define COLOR_DARK_CYAN2_MOD 25
 
 static inline uint32_t
 color_word(

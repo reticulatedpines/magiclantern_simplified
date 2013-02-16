@@ -712,8 +712,11 @@ static MENU_UPDATE_FUNC(follow_focus_print)
     {
         int x = info->x;
         int y = info->y;
-        bmp_printf(FONT_MED, x + 580, y+5, follow_focus_reverse_h ? "- +" : "+ -");
-        bmp_printf(FONT_MED, x + 580 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
+        if (x)
+        {
+            bmp_printf(FONT_MED, x + 580, y+5, follow_focus_reverse_h ? "- +" : "+ -");
+            bmp_printf(FONT_MED, x + 580 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
+        }
     }
 }
 
@@ -1193,6 +1196,7 @@ static struct menu_entry focus_menu[] = {
         .name = "Focus End Point",
         .update    = focus_show_a,
         .select     = focus_reset_a,
+        .icon_type = IT_BOOL,
         .help = "SET: fix here rack end point. ZoomIn+L/R: start point.",
         .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
     },

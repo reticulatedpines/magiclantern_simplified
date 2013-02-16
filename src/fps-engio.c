@@ -1060,6 +1060,7 @@ static struct menu_entry fps_menu[] = {
                 .update = fps_timer_print,
                 .priv = &desired_fps_timer_a_offset,
                 .select = fps_timer_fine_tune_a,
+                .icon_type = IT_PERCENT,
                 .help = "High values = lower FPS, more jello effect, faster shutter.",
             },
             {
@@ -1067,6 +1068,7 @@ static struct menu_entry fps_menu[] = {
                 .update = fps_timer_print,
                 .priv = &desired_fps_timer_b_offset,
                 .select = fps_timer_fine_tune_b,
+                .icon_type = IT_PERCENT,
                 .help = "High values = lower FPS, shutter speed converges to 1/fps.",
             },
             {

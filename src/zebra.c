@@ -2477,7 +2477,7 @@ static MENU_UPDATE_FUNC(falsecolor_display_palette)
     MENU_SET_VALUE(
         falsecolor_palette_name()
     );
-    falsecolor_palette_preview(info->x - 420, info->y + font_large.height + 10);
+    if (info->x) falsecolor_palette_preview(info->x - 420, info->y + font_large.height + 10);
 }
 #endif
 
@@ -2534,15 +2534,19 @@ static MENU_UPDATE_FUNC(crop_display_submenu)
         "%s",
          num_cropmarks ? cropmark_names[index] : "N/A"
     );
-    int h = 170;
-    int w = h * 720 / 480;
-    //~ int xc = 360 - w/2;
-    int xc = 400;
-    int yc = info->y + font_large.height * 3 + 10;
-    BMP_LOCK( reload_cropmark(); )
-    bmp_fill(0, xc, yc, w, h);
-    BMP_LOCK( bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0); )
-    bmp_draw_rect(COLOR_WHITE, xc, yc, w, h);
+
+    if (info->x)
+    {
+        int h = 170;
+        int w = h * 720 / 480;
+        //~ int xc = 360 - w/2;
+        int xc = 400;
+        int yc = info->y + font_large.height * 3 + 10;
+        BMP_LOCK( reload_cropmark(); )
+        bmp_fill(0, xc, yc, w, h);
+        BMP_LOCK( bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0); )
+        bmp_draw_rect(COLOR_WHITE, xc, yc, w, h);
+    }
     
     MENU_SET_ICON(MNI_DICE, (num_cropmarks<<16) + index);
 }
@@ -3425,6 +3429,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &crop_index, 
                 .select = crop_toggle,
                 .update    = crop_display_submenu,
+                .icon_type = IT_DICE,
                 .help = "You can draw your own cropmarks in Paint.",
             },
             {

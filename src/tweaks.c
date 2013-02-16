@@ -3332,6 +3332,7 @@ static struct menu_entry display_menus[] = {
                 .name = "LV display gain",
                 .update = display_gain_print,
                 .select = display_gain_toggle,
+                .icon_type = IT_PERCENT_OFF,
                 .help   = "Makes LiveView usable in complete darkness (photo mode).",
                 .help2  = "Tip: if it gets really dark, also enable FPS override.",
                 .edit_mode = EM_MANY_VALUES_LV,

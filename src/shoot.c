@@ -2043,7 +2043,10 @@ static MENU_UPDATE_FUNC(shutter_display)
     }
 
     if (lens_info.raw_shutter)
+    {
         MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_shutter - codes_shutter[1]) * 100 / (codes_shutter[COUNT(codes_shutter)-1] - codes_shutter[1]));
+        MENU_SET_ENABLED(1);
+    }
     else 
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Shutter speed is automatic - cannot adjust manually.");
 
@@ -2101,7 +2104,10 @@ static MENU_UPDATE_FUNC(aperture_display)
         MENU_SET_ICON(MNI_PERCENT_OFF, 0);
     }
     else
+    {
         MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_aperture - lens_info.raw_aperture_min) * 100 / (lens_info.raw_aperture_max - lens_info.raw_aperture_min));
+        MENU_SET_ENABLED(1);
+    }
 
     MENU_SET_SHORT_NAME(" "); // obvious from value
 }
@@ -2705,7 +2711,7 @@ static MENU_UPDATE_FUNC(picstyle_rec_sub_display)
         get_picstyle_name(get_prop_picstyle_from_index(picstyle_rec))
     );
     //~ MENU_SET_RINFO(
-    bmp_printf(MENU_FONT_GRAY, info->x_val, info->y + font_large.height,
+    if (info->x) bmp_printf(MENU_FONT_GRAY, info->x_val, info->y + font_large.height,
         "%d,%d,%d,%d",
         lens_get_from_other_picstyle_sharpness(picstyle_rec),
         lens_get_from_other_picstyle_contrast(picstyle_rec),
@@ -4755,6 +4761,7 @@ static struct menu_entry shoot_menus[] = {
                 .priv       = &interval_timer_index,
                 .update     = interval_timer_display,
                 .select     = interval_timer_toggle,
+                .icon_type  = IT_PERCENT,
                 .help = "Duration between two shots.",
             },
             {
@@ -4762,6 +4769,7 @@ static struct menu_entry shoot_menus[] = {
                 .priv       = &interval_start_timer_index,
                 .update     = interval_start_after_display,
                 .select     = interval_timer_toggle,
+                .icon_type  = IT_PERCENT,
                 .help = "Start the intervalometer after X seconds / minutes / hours.",
             },
             {
@@ -4770,6 +4778,7 @@ static struct menu_entry shoot_menus[] = {
                 .max = 5000, // 5000 shots
                 .update     = interval_stop_after_display,
                 .select     = shoot_exponential_toggle,
+                .icon_type  = IT_PERCENT_OFF,
                 .help = "Stop the intervalometer after taking X shots.",
             },
             MENU_EOL
@@ -5372,6 +5381,7 @@ static struct menu_entry expo_menus[] = {
                 .priv = (void *)(1),
                 .update = wb_custom_gain_display,
                 .select = wb_custom_gain_toggle,
+                .icon_type = IT_PERCENT,
                 .help = "RED channel multiplier, for custom white balance.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
@@ -5380,6 +5390,7 @@ static struct menu_entry expo_menus[] = {
                 .priv = (void *)(2),
                 .update = wb_custom_gain_display,
                 .select = wb_custom_gain_toggle,
+                .icon_type = IT_PERCENT,
                 .help = "GREEN channel multiplier, for custom white balance.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
@@ -5388,6 +5399,7 @@ static struct menu_entry expo_menus[] = {
                 .priv = (void *)(3),
                 .update = wb_custom_gain_display,
                 .select = wb_custom_gain_toggle,
+                .icon_type = IT_PERCENT,
                 .help = "BLUE channel multiplier, for custom white balance.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
@@ -5534,7 +5546,7 @@ static struct menu_entry expo_menus[] = {
         .name = "Shutter",
         .update     = shutter_display,
         .select     = shutter_toggle,
-        .icon_type  = IT_PERCENT_OFF,
+        .icon_type  = IT_PERCENT,
         .help = "Fine-tune shutter value. Displays APEX Tv or degrees equiv.",
         .edit_mode = EM_MANY_VALUES_LV,
     },
@@ -5544,7 +5556,7 @@ static struct menu_entry expo_menus[] = {
         .name = "Aperture",
         .update     = aperture_display,
         .select     = aperture_toggle,
-        .icon_type  = IT_PERCENT_OFF,
+        .icon_type  = IT_PERCENT,
         .help = "Adjust aperture. Also displays APEX aperture (Av) in stops.",
         .depends_on = DEP_CHIPPED_LENS,
         .edit_mode = EM_MANY_VALUES_LV,

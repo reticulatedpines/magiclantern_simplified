@@ -33,6 +33,7 @@
 
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
+#undef SUBMENU_DEBUG_JUNKIE
 
 #define DOUBLE_BUFFERING 1
 
@@ -66,6 +67,13 @@ static struct menu * my_menu;
 #define HAS_SINGLE_ITEM_SUBMENU(entry) ((entry)->children && !(entry)->children[0].next && !(entry)->children[0].prev)
 #define IS_SINGLE_ITEM_SUBMENU_ENTRY(entry) (!(entry)->next && !(entry)->prev)
 
+#define CAN_BE_TURNED_OFF(entry) (\
+    (IS_BOOL(entry) && entry->icon_type != IT_DICE) || \
+     entry->icon_type == IT_PERCENT_OFF || \
+     entry->icon_type == IT_DICE_OFF || \
+     entry->icon_type == IT_BOOL || \
+     entry->icon_type == IT_SUBMENU ||\
+0)
 
 //for vscroll
 #define MENU_LEN_DEFAULT 11
@@ -589,12 +597,6 @@ menu_has_visible_items(struct menu * menu)
             streq(menu->name, "Help") ||
             //~ streq(menu->name, "Scripts") ||
            0)
-            return 0;
-    }
-
-    if (junkie_mode == 2 && !customize_mode) // also hide My Menu, since everything else is displayed
-    {
-        if (menu == my_menu)
             return 0;
     }
     
@@ -1243,7 +1245,7 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
     int color_on = warn ? COLOR_DARK_GREEN1_MOD : COLOR_GREEN1;
     int color_off = COLOR_GRAY40;
     int color_dis = warn ? COLOR_GRAY50 : COLOR_RED;
-    int color_slider_fg = warn ? COLOR_DARK_BLUE_MOD : COLOR_LIGHTBLUE;
+    int color_slider_fg = warn ? COLOR_DARK_CYAN1_MOD : COLOR_CYAN;
     int color_slider_bg = warn ? 42 : 45;
     int color_slider_off_fg = warn ? COLOR_DARK_GREEN2_MOD : COLOR_GREEN2;
     int color_action = warn ? COLOR_GRAY45 : COLOR_YELLOW;
@@ -2166,18 +2168,18 @@ entry_print_junkie(
     {
         if (info->enabled)
         {
-            bg = IS_BOOL(entry) ? COLOR_DARK_GREEN1_MOD : COLOR_DARK_BLUE_MOD;
+            bg = CAN_BE_TURNED_OFF(entry) ? COLOR_DARK_GREEN1_MOD : COLOR_DARK_CYAN1_MOD;
             fg = COLOR_BLACK;
         }
         else
         {
-            bg = 42;
+            bg = 45;
             fg = COLOR_BLACK;
         }
     }
     else if (info->enabled)
     {
-        bg = IS_BOOL(entry) ? COLOR_GREEN1 : COLOR_LIGHTBLUE;
+        bg = CAN_BE_TURNED_OFF(entry) ? COLOR_GREEN1 : COLOR_DARK_CYAN2_MOD;
         fg = COLOR_BLACK;
         if (customize_mode) bg = COLOR_GRAY60;
     }
@@ -2193,9 +2195,8 @@ entry_print_junkie(
         // brighten the selection
         if (bg == COLOR_GREEN1) bg = COLOR_GREEN2;
         else if (bg == COLOR_DARK_GREEN1_MOD) bg = COLOR_DARK_GREEN2_MOD;
-        else if (bg == COLOR_DARK_BLUE_MOD) bg = COLOR_BLUE;
-        else if (bg == COLOR_LIGHTBLUE) bg = COLOR_CYAN;
-        else if (bg == 42) bg = 47;
+        else if (bg == COLOR_DARK_CYAN1_MOD) bg = COLOR_DARK_CYAN2_MOD;
+        else if (bg == COLOR_DARK_CYAN2_MOD) bg = COLOR_CYAN;
         else if (bg == 45) bg = 50;
 
         if (fg == 65) fg = COLOR_WHITE;
@@ -2217,7 +2218,7 @@ entry_print_junkie(
         fnt,
         x + (w - fontspec_width(fnt) * strlen(shorttext)) / 2 + 2, 
         y + (h - fontspec_height(fnt)) / 2,
-        shorttext
+        "%s", shorttext
     );
 
     // selection bar params
@@ -2487,6 +2488,16 @@ menus_display(
         submenu = get_current_submenu();
 
     if (junkie_mode) junkie_sync_selection();
+    
+    #ifdef SUBMENU_DEBUG_JUNKIE
+    struct menu * junkie_sub = 0;
+    if (junkie_mode == 2)
+    {
+        struct menu_entry * entry = get_selected_entry(0);
+        if (entry && entry->children)
+            junkie_sub = menu_find_by_name(entry->name, 0);
+    }
+    #endif
 
     take_semaphore( menu_sem, 0 );
 
@@ -2587,8 +2598,14 @@ menus_display(
         
         if (junkie_mode && !edit_mode && !menu_lv_transparent_mode)
         {
+            struct menu * mn = menu;
+            
+            #ifdef SUBMENU_DEBUG_JUNKIE
+            if (junkie_sub && mn == my_menu) mn = junkie_sub;
+            #endif
+            
             menu_display_junkie(
-                menu,
+                mn,
                 x - icon_spacing,
                 y + 55,
                 icon_spacing
@@ -3168,11 +3185,12 @@ menu_redraw_do()
     {
         // adjust some colors for better contrast
         alter_bitmap_palette_entry(COLOR_DARK_GREEN1_MOD, COLOR_GREEN1, 90, 90);
-        alter_bitmap_palette_entry(COLOR_DARK_GREEN2_MOD, COLOR_GREEN1, 128, 128);
+        alter_bitmap_palette_entry(COLOR_DARK_GREEN2_MOD, COLOR_GREEN1, 150, 150);
         alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 300, 256);
         //~ alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);
         alter_bitmap_palette_entry(COLOR_DARK_ORANGE_MOD,   COLOR_ORANGE, 160, 160);
-        alter_bitmap_palette_entry(COLOR_DARK_BLUE_MOD,   COLOR_BLUE, 140, 140);
+        alter_bitmap_palette_entry(COLOR_DARK_CYAN1_MOD,   COLOR_CYAN, 60, 60);
+        alter_bitmap_palette_entry(COLOR_DARK_CYAN2_MOD,   COLOR_CYAN, 128, 128);
     }
 
     #ifdef CONFIG_VXWORKS

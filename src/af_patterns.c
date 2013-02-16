@@ -335,6 +335,8 @@ void draw_af_point(int x, int y, int r, int color)
 
 static MENU_UPDATE_FUNC(pattern_display)
 {
+    if (!info->x) return;
+    
     int cx = 500;
     int cy = 350;
     int w = 232;

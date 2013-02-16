@@ -289,6 +289,7 @@ static MENU_UPDATE_FUNC(cbr_display)
     MENU_SET_VALUE("%d.%dx", bitrate_factor/10, bitrate_factor%10);
     if (bitrate_mode != 1) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "CBR mode inactive => CBR setting not used.");
     else MENU_SET_WARNING(MENU_WARN_ADVICE, "This is only an upper limit for the bitrate.");
+    if (bitrate_factor == 10) { MENU_SET_ICON(MNI_PERCENT_OFF, 33); MENU_SET_ENABLED(0); }
 }
 
 static MENU_UPDATE_FUNC(qscale_display)
@@ -594,6 +595,7 @@ static struct menu_entry mov_menus[] = {
         .priv = &bitrate_mode,
         .update     = bitrate_print,
         .select     = bitrate_toggle,
+        .icon_type  = IT_PERCENT_OFF,
         .help = "Change H.264 bitrate. Be careful, recording may stop!",
         .edit_mode = EM_MANY_VALUES,
         .depends_on = DEP_MOVIE_MODE,
@@ -614,7 +616,7 @@ static struct menu_entry mov_menus[] = {
                 .update = cbr_display,
                 .min = 1,
                 .max = 30,
-                .icon_type = IT_PERCENT, 
+                .icon_type = IT_PERCENT_OFF, 
                 .help = "1.0x = Canon default, 0.4x = 30minutes, 1.4x = fast card."
             },
             {
