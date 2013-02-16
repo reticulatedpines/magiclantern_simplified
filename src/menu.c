@@ -390,7 +390,7 @@ static int guess_submenu_enabled(struct menu_entry * entry)
 
         for( ; e ; e = e->next )
         {
-            if (MENU_INT(e))
+            if (MENU_INT(e) && CAN_BE_TURNED_OFF(e))
                 return 1;
         }
 
@@ -3184,8 +3184,8 @@ menu_redraw_do()
     if (!bmp_color_scheme)
     {
         // adjust some colors for better contrast
-        alter_bitmap_palette_entry(COLOR_DARK_GREEN1_MOD, COLOR_GREEN1, 90, 90);
-        alter_bitmap_palette_entry(COLOR_DARK_GREEN2_MOD, COLOR_GREEN1, 150, 150);
+        alter_bitmap_palette_entry(COLOR_DARK_GREEN1_MOD, COLOR_GREEN1, 100, 100);
+        alter_bitmap_palette_entry(COLOR_DARK_GREEN2_MOD, COLOR_GREEN1, 200, 200);
         alter_bitmap_palette_entry(COLOR_GREEN2, COLOR_GREEN2, 300, 256);
         //~ alter_bitmap_palette_entry(COLOR_ORANGE, COLOR_ORANGE, 160, 160);
         alter_bitmap_palette_entry(COLOR_DARK_ORANGE_MOD,   COLOR_ORANGE, 160, 160);

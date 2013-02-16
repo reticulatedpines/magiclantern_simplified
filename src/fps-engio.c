@@ -1031,7 +1031,7 @@ static struct menu_entry fps_menu[] = {
 //~ we only modify FPS_REGISTER_A, so no optimizations possible.
 #ifndef CONFIG_FPS_TIMER_A_ONLY
             {
-                .name = "Optimize for\b",
+                .name = "Optimize for",
                 .priv       = &fps_criteria,
                 .choices = (const char *[]) {
                     "Low light", 
@@ -1085,7 +1085,7 @@ static struct menu_entry fps_menu[] = {
             },
             #ifdef FEATURE_FPS_WAV_RECORD
             {
-                .name = "Sound Record\b",
+                .name = "Sound Record",
                 .priv = &fps_wav_record,
                 .max = 1,
                 .update = fps_wav_record_print,
