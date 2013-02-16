@@ -1887,7 +1887,7 @@ menu_entry_process(
     if ((!menu_lv_transparent_mode && !only_selected) || entry->selected)
     {
         if (quick_redraw) // menu was not erased, so there may be leftovers on the screen
-            bmp_fill(menu_lv_transparent_mode ? 0 : COLOR_BLACK, x-8, y, g_submenu_width-x+8, font_large.height);
+            bmp_fill(menu_lv_transparent_mode ? 0 : COLOR_BLACK, x-MENU_OFFSET, y, g_submenu_width-x+MENU_OFFSET, font_large.height);
         
         // should we override some things?
         if (entry->update)
