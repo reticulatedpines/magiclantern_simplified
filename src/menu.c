@@ -31,7 +31,7 @@
 #include "font.h"
 #include "menu.h"
 
-#define CONFIG_MENU_ICONS
+//~ #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
 #undef SUBMENU_DEBUG_JUNKIE
 
@@ -1633,8 +1633,8 @@ static void display_customize_marker(struct menu_entry * entry, int x, int y)
         bfnt_draw_char(ICON_ML_MYMENU, x, y-4, COLOR_GREEN1, COLOR_BLACK);
     
     // hidden marker
-    else if (HAS_CURRENT_HIDDEN_FLAG(entry))
-        batsu(x+4, y, junkie_mode ? COLOR_ORANGE : COLOR_RED);
+    //~ else if (HAS_CURRENT_HIDDEN_FLAG(entry))
+        //~ batsu(x+4, y, junkie_mode ? COLOR_ORANGE : COLOR_RED);
 }
 
 static void
@@ -2545,7 +2545,7 @@ menus_display(
 
             int icon_char = menu->icon ? menu->icon : menu->name[0];
             int icon_width = bfnt_char_get_width(icon_char);
-            int x_ico = x + (icon_spacing - icon_width) / 2;
+            int x_ico = x + (icon_spacing - icon_width) / 2 + 1;
             bfnt_draw_char(icon_char, x_ico, y + 2, fg, bg);
             //~ bmp_printf(FONT_MED, x_ico, 40, "%d ", menu->delnum);
 
