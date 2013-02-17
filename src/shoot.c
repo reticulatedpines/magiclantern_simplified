@@ -5081,7 +5081,7 @@ static struct menu_entry shoot_menus[] = {
 
     #ifdef FEATURE_FLASH_TWEAKS
     {
-        .name = "Flash tweaks...",
+        .name = "Flash Tweaks",
         .select     = menu_open_submenu,
         .help = "Flash exposure compensation, 3rd party flash in LiveView...",
         .depends_on = DEP_PHOTO_MODE,
