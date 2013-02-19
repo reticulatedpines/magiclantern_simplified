@@ -41,7 +41,7 @@ int ae_mode_movie = 1;
 #endif
 
 volatile int shooting_mode;
-PROP_HANDLER(PROP_SHOOTING_MODE)
+PROP_HANDLER(PROP_SHOOTING_MODE_2)
 {
     shooting_mode = buf[0];
 
