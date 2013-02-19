@@ -702,8 +702,38 @@ static const int16_t silent_pic_sweep_modes_c[] = {1, 2, 3, 3, 4, 4, 5, 5};
 #define SILENTPIC_NL COERCE(silent_pic_sweep_modes_l[COERCE(silent_pic_highres,0,COUNT(silent_pic_sweep_modes_l)-1)], 0, 5)
 #define SILENTPIC_NC COERCE(silent_pic_sweep_modes_c[COERCE(silent_pic_highres,0,COUNT(silent_pic_sweep_modes_c)-1)], 0, 5)
 
+#ifdef FEATURE_SILENT_PIC_HIRES
+static int silent_pic_hires_check() // should match the warnings below
+{
+    if (
+            (is_movie_mode() && video_mode_crop) ||
+            ((SILENTPIC_NL > 4 || SILENTPIC_NC > 4) && !is_manual_focus()) ||
+        0)
+            return 0;
+    return 1;
+}
+static MENU_UPDATE_FUNC(silent_pic_check_highres_warnings)
+{
+    if (silent_pic_mode != 3)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Hi-res mode disabled.");
+    else if (is_movie_mode() && video_mode_crop)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Hi-res silent pictures won't work in crop mode.");
+    else if ((SILENTPIC_NL > 4 || SILENTPIC_NC > 4) && !is_manual_focus())
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Matrices higher than 4x4 require manual focus."); 
+    else if (!is_movie_mode())
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Hi-res works best in movie mode (not photo mode).");
+    else
+        MENU_SET_WARNING(MENU_WARN_INFO, "Resolution: %dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
+}
+#endif
+
 static MENU_UPDATE_FUNC(silent_pic_display)
 {
+    #ifdef FEATURE_SILENT_PIC_HIRES
+    if (silent_pic_mode == 3)
+        silent_pic_check_highres_warnings(entry, info); // show warnings, if any
+    #endif
+    
     if (!silent_pic_enabled)
         return;
     
@@ -727,18 +757,9 @@ static MENU_UPDATE_FUNC(silent_pic_display)
                 SILENTPIC_NL,
                 SILENTPIC_NC
             );
-            MENU_SET_WARNING(MENU_WARN_INFO, "Resolution: %dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
-            break;        
+            break;
     }
 }
-
-#ifdef FEATURE_SILENT_PIC_HIRES
-static MENU_UPDATE_FUNC(silent_pic_display_highres)
-{
-    if (silent_pic_mode != 3)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Hi-res mode disabled.");
-}
-#endif
 
 #endif //#ifdef FEATURE_SILENT_PIC
 
@@ -1716,24 +1737,7 @@ silent_pic_take_sweep(int interactive)
 #ifdef CONFIG_LIVEVIEW
     if (recording) return;
     if (!lv) return;
-    if (SILENTPIC_NL > 4 || SILENTPIC_NC > 4)
-    {
-        if ((af_mode & 0xF) != 3 )
-        {
-            NotifyBox(2000, "Matrices higher than 4x4\n"
-                            "require manual focus.   "); 
-            msleep(2000);
-            return; 
-        }
-    }
-
-    if ((is_movie_mode() && video_mode_crop))
-    {
-        NotifyBox(2000, "Hi-res silent pictures  \n"
-                        "won't work in crop mode.");
-        msleep(2000);
-        return; 
-    }
+    if (!silent_pic_hires_check()) return;
 
     bmp_printf(FONT_MED, 100, 100, "Psst! Preparing for high-res pic   ");
     while (get_halfshutter_pressed()) msleep(100);
@@ -4962,10 +4966,10 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Hi-Res", 
                 .priv = &silent_pic_highres,
-                .update = silent_pic_display_highres,
+                .update = silent_pic_check_highres_warnings,
                 .max = COUNT(silent_pic_sweep_modes_l)-1,
                 .choices = CHOICES("2x1", "2x2", "2x3", "3x3", "3x4", "4x4", "4x5", "5x5"),
-                .icon_type = IT_BOOL,
+                .icon_type = IT_DICE,
                 .help = "For hi-res matrix mode: select number of subpictures."
             },
             #endif
