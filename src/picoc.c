@@ -534,3 +534,8 @@ static void picoc_init()
 }
 
 INIT_FUNC(__FILE__, picoc_init);
+
+// ARM-Thumb wrappers for PicoC
+void* script_malloc(int size) { return SmallAlloc(size); }
+void script_free(void* ptr) { SmallFree(ptr); }
+void script_free_dma(void* ptr) { free_dma_memory(ptr); }

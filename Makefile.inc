@@ -153,6 +153,7 @@ CFLAGS=\
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
 	-I$(PICOC_PATH) \
+	-mthumb-interwork \
 
 NOT_USED_FLAGS=\
 	-march=armv5te \
@@ -640,7 +641,7 @@ DEPS  := $(COBJS:.o=.d)
 %.o: $(SRC_DIR)/%.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.o: $(PICOC_PATH)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+	$(call build,CC,$(CC) $(CFLAGS) -c -mthumb -o $@ $<)
 %.i: %.c
 	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
 %: %.c
