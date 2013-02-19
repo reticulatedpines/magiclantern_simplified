@@ -1771,8 +1771,10 @@ entry_print(
     // display help
     if (entry->selected && !menu_lv_transparent_mode)
     {
+        int help_color = COLOR_GRAY70;
+        
         if (entry->help) bmp_printf(
-            FONT(FONT_MED, COLOR_GRAY70, MENU_BG_COLOR_HEADER_FOOTER), 
+            FONT(FONT_MED, help_color, MENU_BG_COLOR_HEADER_FOOTER), 
              10,  MENU_HELP_Y_POS, 
             "%s",
             entry->help
@@ -1796,11 +1798,12 @@ entry_print(
                     if (len > 58) break;
                     snprintf(help2 + len, MENU_MAX_HELP_LEN - len, "%s%s", pickbox_string(entry, i), i < entry->max ? " / " : ".");
                 }
+                help_color = COLOR_GRAY50;
             }
         }
 
         bmp_printf(
-            FONT(FONT_MED, COLOR_GRAY70, MENU_BG_COLOR_HEADER_FOOTER), 
+            FONT(FONT_MED, help_color, MENU_BG_COLOR_HEADER_FOOTER), 
              10,  MENU_HELP_Y_POS_2, 
              "%s",
              help2
@@ -1810,9 +1813,14 @@ entry_print(
     // if there's a warning message set, display it
     if (entry->selected && info->warning[0])
     {
+        int warn_color = 
+            info->warning_level == MENU_WARN_INFO ? COLOR_GRAY70 : 
+            info->warning_level == MENU_WARN_ADVICE ? COLOR_YELLOW : 
+            info->warning_level == MENU_WARN_NOT_WORKING ? COLOR_ORANGE : COLOR_WHITE;
+        
         bmp_fill(MENU_BG_COLOR_HEADER_FOOTER, 10, MENU_WARNING_Y_POS, 720, font_med.height);
         bmp_printf(
-            FONT(FONT_MED, COLOR_YELLOW, MENU_BG_COLOR_HEADER_FOOTER),
+            FONT(FONT_MED, warn_color, MENU_BG_COLOR_HEADER_FOOTER),
              10,  MENU_WARNING_Y_POS, 
                 info->warning
         );
