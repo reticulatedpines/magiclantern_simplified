@@ -102,8 +102,6 @@ void set_shooting_mode(int m)
 {
     if (shooting_mode == m) return;
     
-    if (m == SHOOTMODE_MOVIE && lv) { fake_simple_button(BGMT_LV); msleep(300); } // don't switch to movie mode from photo liveview (unstable on 60D)
-    
     ml_changing_shooting_mode = 1;
     prop_request_change(PROP_SHOOTING_MODE, &m, 4);
     msleep(500);

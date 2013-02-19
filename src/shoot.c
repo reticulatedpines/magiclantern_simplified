@@ -1525,18 +1525,16 @@ void ensure_movie_mode()
     if (!is_movie_mode())
     {
         #ifdef CONFIG_50D
-        if (!lv) force_liveview();
         GUI_SetLvMode(2);
         GUI_SetMovieSize_b(1);
+        #elif defined(CONFIG_5D2)
+        GUI_SetLvMode(2);
         #else
-            #ifdef CONFIG_5D2
-                GUI_SetLvMode(2);
-            #else
-                #ifdef CONFIG_500D
-                if (shooting_mode == SHOOTMODE_ADEP) set_shooting_mode(SHOOTMODE_CA);
-                #endif
-                set_shooting_mode(SHOOTMODE_MOVIE);
-            #endif
+        while (!is_movie_mode())
+        {
+            NotifyBox(2000, "Please switch to Movie mode.");
+            msleep(500);
+        }
         #endif
         msleep(500); 
     }

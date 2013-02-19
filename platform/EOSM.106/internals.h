@@ -116,3 +116,5 @@
 /** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
 #define CONFIG_FPS_AGGRESSIVE_UPDATE
 
+/** We can record movies in regular photo modes - M, P, Tv, Av... */
+#define CONFIG_NO_DEDICATED_MOVIE_MODE

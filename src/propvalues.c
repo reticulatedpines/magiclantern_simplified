@@ -34,10 +34,10 @@ volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
 PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
 volatile PROP_INT(PROP_DATE_FORMAT, date_format);
 
-#ifndef CONFIG_5D2
-volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
-#else
+#ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
 int ae_mode_movie = 1;
+#else
+volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
 #endif
 
 volatile int shooting_mode;
@@ -45,7 +45,7 @@ PROP_HANDLER(PROP_SHOOTING_MODE_2)
 {
     shooting_mode = buf[0];
 
-    #ifdef CONFIG_5D2
+    #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
     ae_mode_movie = shooting_mode == SHOOTMODE_M;
     #endif
 }
@@ -61,14 +61,12 @@ volatile int lv_paused = 0; // not a property, but related
 
 bool FAST is_movie_mode()
 {
-    #if defined(CONFIG_50D) || defined(CONFIG_5D2)
+    #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
     return lv && lv_movie_select == LVMS_ENABLE_MOVIE
-            #if !defined(CONFIG_50D)
+            #ifdef CONFIG_5D2
             && expsim == 2  // movie enabled, but photo display is considered photo mode
             #endif
         ;
-    #elif defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
-    return lv_movie_select == LVMS_ENABLE_MOVIE;
     #else
     return shooting_mode == SHOOTMODE_MOVIE;
     #endif
