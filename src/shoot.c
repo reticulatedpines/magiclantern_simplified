@@ -195,8 +195,8 @@ static CONFIG_INT( "motion.position", motion_detect_position, 0);
 
 int get_silent_pic() { return silent_pic_enabled; } // silent pic will disable trap focus
 
-static CONFIG_INT("bulb.ramping", bulb_ramping_enabled, 0);
-static CONFIG_INT("bulb.ramping.auto", bramp_auto_exposure, 1);
+//~ static CONFIG_INT("bulb.ramping", bulb_ramping_enabled, 0);
+static CONFIG_INT("bulb.ramping.mode", bramp_auto_exposure, 0);
 //~ static CONFIG_INT("bulb.ramping.auto.speed", bramp_auto_ramp_speed, 100); // max 0.1 EV/shot
 //~ static CONFIG_INT("bulb.ramping.smooth", bramp_auto_smooth, 50);
 static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 50);
@@ -209,7 +209,8 @@ static CONFIG_INT("bulb.ramping.man.focus", bramp_manual_speed_focus_steps_per_s
 #define BRAMP_LRT_HOLY_GRAIL_STOPS 1
 
 
-#define BULB_EXPOSURE_CONTROL_ACTIVE (intervalometer_running && bulb_ramping_enabled && (bramp_auto_exposure || bramp_manual_speed_evx1000_per_shot))
+#define BULB_EXPOSURE_CONTROL_ACTIVE (intervalometer_running && (bramp_auto_exposure || bramp_manual_speed_evx1000_per_shot))
+
 static int intervalometer_running = 0;
 int is_intervalometer_running() { return intervalometer_running; }
 int motion_detect = 0; //int motion_detect_level = 8;
@@ -482,7 +483,7 @@ static MENU_UPDATE_FUNC(intervalometer_display)
         int d = timer_values[interval_timer_index];
         MENU_SET_VALUE("ON, %s%s",
             format_time_hours_minutes_seconds(d),
-            bulb_ramping_enabled ? ", BRamp" : ""
+            BULB_EXPOSURE_CONTROL_ACTIVE ? ", BRamp" : ""
         );
     }
     else
@@ -555,6 +556,7 @@ static MENU_UPDATE_FUNC(manual_focus_ramp_print)
     }
 }
 
+/*
 static MENU_UPDATE_FUNC(bulb_ramping_print)
 {
     int evx1000 = bramp_manual_speed_evx1000_per_shot;
@@ -604,6 +606,7 @@ static MENU_UPDATE_FUNC(bulb_ramping_print)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You also need to enable the intervalometer.");
     }
 }
+*/
 
 static int ev_values[] = {-1000, -750, -500, -200, -100, -50, -20, -10, -5, -2, -1, 0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 750, 1000};
 
@@ -3314,14 +3317,18 @@ static MENU_UPDATE_FUNC(bulb_display)
 {
     int d = BULB_SHUTTER_VALUE_S;
     if (!bulb_duration_index) d = 0;
-    MENU_SET_VALUE(
-        bulb_timer ? format_time_hours_minutes_seconds(d) : "OFF"
-    );
-    //~ if (!bulb_timer) MENU_SET_ICON(MNI_OFF, 0);
-    //~ else MENU_SET_ICON(MNI_PERCENT, bulb_duration_index * 100 / COUNT(timer_values));
+
+    if (bulb_timer)
+        MENU_SET_VALUE(
+            format_time_hours_minutes_seconds(d)
+        );
+    else if (is_bulb_mode() && intervalometer_running) // even if it's not enabled, it will be used for intervalometer
+        MENU_SET_VALUE(
+            "OFF (%s)",
+            format_time_hours_minutes_seconds(d)
+        );
     
     if (!is_bulb_mode()) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Bulb timer only works in BULB mode");
-    
     if (entry->selected && intervalometer_running) timelapse_calc_display(entry, info);
 }
 
@@ -4753,7 +4760,7 @@ static struct menu_entry shoot_menus[] = {
         .max        = 1,
         .update     = intervalometer_display,
         .help = "Take pictures at fixed intervals (for timelapse).",
-        .submenu_width = 650,
+        .submenu_width = 700,
         .works_best_in = DEP_PHOTO_MODE,
         .children =  (struct menu_entry[]) {
             {
@@ -4781,26 +4788,12 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type  = IT_PERCENT_OFF,
                 .help = "Stop the intervalometer after taking X shots.",
             },
-            MENU_EOL
-        },
-    },
-    #endif
-    #ifdef FEATURE_BULB_RAMPING
-        #ifndef FEATURE_INTERVALOMETER
-        #error This requires FEATURE_INTERVALOMETER.
-        #endif
-        #ifndef FEATURE_HISTOGRAM
-        #error This requires FEATURE_HISTOGRAM.
-        #endif
-    {
-        .name = "Bulb Ramping", // will move focus ramping to scripts
-        .priv       = &bulb_ramping_enabled,
-        .update     = bulb_ramping_print,
-        .max        = 1,
-        .submenu_width = 710,
-        .help = "Exposure / focus ramping for advanced timelapse sequences.",
-        .depends_on = DEP_PHOTO_MODE,
-        .children =  (struct menu_entry[]) {
+
+            #ifdef FEATURE_BULB_RAMPING
+                #ifndef FEATURE_HISTOGRAM
+                #error This requires FEATURE_HISTOGRAM.
+                #endif
+
             {
                 .name = "Auto ExpoRamp",
                 .priv       = &bramp_auto_exposure,
@@ -4832,10 +4825,28 @@ static struct menu_entry shoot_menus[] = {
                 .depends_on = DEP_AUTOFOCUS,
                 .works_best_in = DEP_LIVEVIEW,
             },
+            
+            #endif
+            
+            MENU_EOL
+        },
+    },
+    #endif
+    /*
+    {
+        .name = "Bulb Ramping", // will move focus ramping to scripts
+        .priv       = &bulb_ramping_enabled,
+        .update     = bulb_ramping_print,
+        .max        = 1,
+        .submenu_width = 710,
+        .help = "Exposure / focus ramping for advanced timelapse sequences.",
+        .depends_on = DEP_PHOTO_MODE,
+        .children =  (struct menu_entry[]) {
+
             MENU_EOL,
         }
     },
-    #endif
+    */
     #ifdef FEATURE_BULB_TIMER
     {
         .name = "Bulb Timer",
@@ -5825,7 +5836,7 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
 #endif // HDR/FST
 
 // normal pic, silent pic, bulb pic...
-static void take_a_pic(int should_af)
+static void take_a_pic(int should_af, int allow_bulb)
 {
     #ifdef FEATURE_SNAP_SIM
     if (snap_sim) {
@@ -5849,7 +5860,7 @@ static void take_a_pic(int should_af)
     #endif
     {
         //~ beep();
-        if (is_bulb_mode_or_bulb_ramping()) bulb_take_pic(BULB_SHUTTER_VALUE_MS);
+        if (allow_bulb && is_bulb_mode_or_bulb_ramping()) bulb_take_pic(BULB_SHUTTER_VALUE_MS);
         else lens_take_picture(64, should_af);
     }
     lens_wait_readytotakepic(64);
@@ -5914,7 +5925,7 @@ static int hdr_shutter_release(int ev_x8)
 
     if (dont_change_exposure)
     {
-        take_a_pic(AF_DONT_CHANGE);
+        take_a_pic(AF_DONT_CHANGE, 1);
         return 1;
     }
     
@@ -5927,7 +5938,7 @@ static int hdr_shutter_release(int ev_x8)
             ev_x8 = hdr_iso_shift(ev_x8);
             int fae0 = lens_info.flash_ae;
             ans = hdr_set_flash_ae(fae0 + ev_x8);
-            take_a_pic(AF_DONT_CHANGE);
+            take_a_pic(AF_DONT_CHANGE, 0);
             hdr_set_flash_ae(fae0);
             hdr_iso_shift_restore();
             return ans;
@@ -5947,7 +5958,7 @@ static int hdr_shutter_release(int ev_x8)
         hdr_iso_shift(ev_x8); // don't change the EV value
         int ae0 = lens_get_ae();
         ans = MIN(ans, hdr_set_ae(ae0 + ev_x8));
-        take_a_pic(AF_DONT_CHANGE);
+        take_a_pic(AF_DONT_CHANGE, 0);
         hdr_set_ae(ae0);
         hdr_iso_shift_restore();
     }
@@ -5981,16 +5992,11 @@ static int hdr_shutter_release(int ev_x8)
         else
 #endif
         {
-            int b = bulb_ramping_enabled;
-            bulb_ramping_enabled = 0; // to force a pic in manual mode
-
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
             if (expsim == 2) { set_expsim(1); msleep(300); } // can't set shutter slower than 1/30 in movie mode
             #endif
             ans = MIN(ans, hdr_set_rawshutter(rc));
-            take_a_pic(AF_DONT_CHANGE);
-            
-            bulb_ramping_enabled = b;
+            take_a_pic(AF_DONT_CHANGE, 0);
             
             #ifdef FEATURE_BULB_RAMPING
             if (BULB_EXPOSURE_CONTROL_ACTIVE)
@@ -6689,7 +6695,7 @@ void take_fast_pictures( int number )
     {
         for (int i = 0; i < number; i++)
         {
-            take_a_pic(shoot_use_af ? AF_ON : AF_OFF);
+            take_a_pic(shoot_use_af ? AF_ON : AF_OFF, 1);
         }
     }
 }
@@ -7434,7 +7440,7 @@ shoot_task( void* unused )
                 }
 
                 #ifdef FEATURE_BULB_RAMPING
-                if (bulb_ramping_enabled) bulb_ramping_init();
+                if (BULB_EXPOSURE_CONTROL_ACTIVE) bulb_ramping_init();
                 #endif
             }
 
@@ -7478,7 +7484,7 @@ shoot_task( void* unused )
             intervalometer_pictures_taken++;
 
             #ifdef FEATURE_BULB_RAMPING
-            if (bulb_ramping_enabled)
+            if (BULB_EXPOSURE_CONTROL_ACTIVE)
             {
                 bulb_ramping_init(); // just in case
                 compute_exposure_for_next_shot();
