@@ -7388,8 +7388,12 @@ shoot_task( void* unused )
                 
                 if (gui_menu_shown() || get_halfshutter_pressed())
                 {
-                    intervalometer_next_shot_time++;
                     wait_till_next_second();
+
+                    if (intervalometer_pictures_taken == 0)
+                        intervalometer_next_shot_time = seconds_clock + MAX(timer_values[interval_start_timer_index], 1);
+                    else
+                        intervalometer_next_shot_time++;
                     continue;
                 }
                 
