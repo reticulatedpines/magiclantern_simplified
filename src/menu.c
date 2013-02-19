@@ -1822,7 +1822,8 @@ entry_print(
             }
         }
 
-        bmp_printf(
+        // only show the second help line if there are no audio meters
+        if (!audio_meters_are_drawn()) bmp_printf(
             FONT(FONT_MED, help_color, MENU_BG_COLOR_HEADER_FOOTER), 
              10,  MENU_HELP_Y_POS_2, 
              "%s",
@@ -1838,10 +1839,12 @@ entry_print(
             info->warning_level == MENU_WARN_ADVICE ? COLOR_YELLOW : 
             info->warning_level == MENU_WARN_NOT_WORKING ? COLOR_ORANGE : COLOR_WHITE;
         
-        bmp_fill(MENU_BG_COLOR_HEADER_FOOTER, 10, MENU_WARNING_Y_POS, 720, font_med.height);
+        int warn_y = audio_meters_are_drawn() ? MENU_HELP_Y_POS : MENU_WARNING_Y_POS;
+        
+        bmp_fill(MENU_BG_COLOR_HEADER_FOOTER, 10, warn_y, 720, font_med.height);
         bmp_printf(
             FONT(FONT_MED, warn_color, MENU_BG_COLOR_HEADER_FOOTER),
-             10,  MENU_WARNING_Y_POS, 
+             10, warn_y, 
                 info->warning
         );
     }

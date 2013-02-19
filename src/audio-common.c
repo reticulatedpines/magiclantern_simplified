@@ -287,10 +287,10 @@ static void draw_meters(void)
         
     if (gui_menu_shown())
         {
-            x0 = MAX(os.x0 + os.x_ex/2 - 360, 0);
-            y0 = MAX(os.y0 + os.y_ex/2 - 240, 0);
-            y0 += 380;
-            x0 += 10;
+            x0 = 10;
+            y0 = 457;
+            if (menu_active_but_hidden()) y0 = 10;
+            small = 0;
         }
     else
         {

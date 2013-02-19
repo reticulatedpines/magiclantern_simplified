@@ -55,8 +55,7 @@ int audio_meters_are_drawn()
          )
         ||
         (
-         0
-         //~ gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
+         gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
          );
 #else
     return 0;
@@ -209,15 +208,17 @@ int get_mic_power(int input_source)
 #ifdef FEATURE_HEADPHONE_MONITORING
 static void audio_monitoring_update()
 {
+    int am = is_movie_mode() ? audio_monitoring : 0;
+    
     // kill video connect/disconnect event... or not
-    *(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = audio_monitoring ? 2 : 0;
+    *(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = am ? 2 : 0;
         
-    if (audio_monitoring && rca_monitor)
-        {
-            audio_monitoring_force_display(0);
-            msleep(1000);
-            audio_monitoring_display_headphones_connected_or_not();
-        }
+    if (am && rca_monitor)
+    {
+        audio_monitoring_force_display(0);
+        msleep(1000);
+        audio_monitoring_display_headphones_connected_or_not();
+    }
 }
 #endif
 
@@ -467,7 +468,8 @@ static MENU_UPDATE_FUNC(audio_micpower_display)
     MENU_SET_RINFO(
         mic_pow ? "Low Z" : "High Z"
     );
-    if (mic_pow != mic_power)
+    
+    if (get_input_source() < 2)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Mic power is required by internal mic.");
         if (mic_pow){ MENU_SET_ENABLED(1); MENU_SET_VALUE("ON (!)"); }
@@ -491,7 +493,7 @@ static struct menu_entry audio_menus[] = {
         .choices = (const char *[]) {"0 dB", "10 dB", "17 dB", "20 dB", "23 dB", "26 dB", "29 dB", "32 dB"},
         #endif
         .help = "Gain applied to both inputs in analog domain (preferred).",
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on = DEP_SOUND_RECORDING,
         .edit_mode = EM_MANY_VALUES,
     },
     #endif
@@ -500,7 +502,7 @@ static struct menu_entry audio_menus[] = {
         .name = "Digital Gain", 
         .select = menu_open_submenu, 
         .help = "Digital gain (not recommended, use only for headphones!)",
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on = DEP_SOUND_RECORDING,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Left Digital Gain",
@@ -542,7 +544,7 @@ static struct menu_entry audio_menus[] = {
         .max            = 4,
         .choices = (const char *[]) {"Internal mic", "L:int R:ext", "External stereo", "L:int R:balanced", "Auto int/ext"},
         .help = "Audio input: internal / external / both / balanced / auto.",
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on = DEP_SOUND_RECORDING,
     },
     #endif
 
@@ -553,7 +555,7 @@ static struct menu_entry audio_menus[] = {
         .help = "High pass filter for wind noise reduction.",
         .select            = audio_binary_toggle,
         .max = 1,
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on = DEP_SOUND_RECORDING,
     },
     #endif
     
@@ -572,7 +574,7 @@ static struct menu_entry audio_menus[] = {
         .update         = audio_micpower_display,
         .max = 1,
         .help = "Needed for int. and some other mics, but lowers impedance.",
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on = DEP_SOUND_RECORDING,
     },
     #endif
 
@@ -611,7 +613,7 @@ static struct menu_entry audio_menus[] = {
 #else
         .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
 #endif
-        .depends_on = DEP_GLOBAL_DRAW | DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on = DEP_GLOBAL_DRAW | DEP_SOUND_RECORDING,
     },
     #endif
 };
