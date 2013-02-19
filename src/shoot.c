@@ -755,8 +755,7 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             break;
             
         case 3:
-            MENU_SET_NAME("Silent Pic HiRes" );
-            MENU_SET_VALUE("%dx%d",
+            MENU_SET_VALUE("HiRes, %dx%d",
                 SILENTPIC_NL,
                 SILENTPIC_NC
             );
