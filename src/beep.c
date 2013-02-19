@@ -450,7 +450,7 @@ static MENU_UPDATE_FUNC(record_display)
         int s = get_seconds_clock() - audio_recording_start_time;
         MENU_SET_NAME("Recording...");
         MENU_SET_VALUE("%02d:%02d", s/60, s%60);
-        MENU_SET_ICON(MNI_NAMED_COLOR, (intptr_t)"Red");
+        MENU_SET_ICON(MNI_RECORD, 0);
     }
     else
     {

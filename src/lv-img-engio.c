@@ -183,10 +183,10 @@ static CONFIG_INT("digic.sharp", sharp, 0);
 static CONFIG_INT("digic.zerosharp", zerosharp, 0);
 //~ static CONFIG_INT("digic.fringing", fringing, 0);
 
-int default_white_level = 4096;
+static int default_white_level = 4096;
 static int shad_gain_last_written = 0;
 
-void autodetect_default_white_level()
+static void autodetect_default_white_level()
 {
     if (!lv) return;
     
@@ -199,7 +199,7 @@ void autodetect_default_white_level()
 // get digic ISO level for movie mode
 // use SHAD_GAIN as much as possible (range: 0-8191)
 // if out of range, return a number of integer stops for boosting the ISO via ISO_PUSH_REGISTER and use SHAD_GAIN for the remainder
-int get_new_white_level(int movie_gain, int* boost_stops)
+static int get_new_white_level(int movie_gain, int* boost_stops)
 {
     int result = default_white_level;
     *boost_stops = 0;

@@ -4853,7 +4853,7 @@ static void idle_kill_flicker()
         {
             black_bars_16x9();
             if (recording)
-                maru(os.x_max - 28, os.y0 + 12, COLOR_RED);
+                dot(os.x_max - 28, os.y0 + 12, COLOR_RED, 10);
         }
     }
 }

@@ -229,7 +229,7 @@ focus_stack(
     int focus_moved_total = 0;
 
     if (pre_focus) {
-        NotifyBox(1000, "Pre-focussing %d steps...", ABS(num_steps*pre_focus) );
+        NotifyBox(1000, "Pre-focusing %d steps...", ABS(num_steps*pre_focus) );
         focus_stack_ensure_preconditions();
         if (LensFocus(-num_steps*pre_focus) == 0) { beep(); return; }
         focus_moved_total -= (num_steps*pre_focus);

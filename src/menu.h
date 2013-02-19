@@ -173,31 +173,6 @@ struct menu_entry
         int16_t works_best_in;  // soft requirement, it will work, but not as well
 };
 
-#define HAS_HIDDEN_FLAG(entry) ((entry)->hidden)
-#define HAS_JHIDDEN_FLAG(entry) ((entry)->jhidden)
-#define HAS_SHIDDEN_FLAG(entry) ((entry)->shidden) // this is *never* displayed
-#define HAS_STARRED_FLAG(entry) ((entry)->starred) // in junkie mode, this is only displayed in MyMenu (implicit hiding from main menus)
-
-#define HAS_CURRENT_HIDDEN_FLAG(entry) ( \
-    (!junkie_mode && HAS_HIDDEN_FLAG(entry)) || \
-    (junkie_mode && HAS_JHIDDEN_FLAG(entry)) )
-
-// junkie mode, entry present in my menu, hide it from normal menu
-#define IMPLICIT_MY_MENU_HIDING(entry) \
-    (junkie_mode && HAS_STARRED_FLAG(entry))
-
-#define IS_VISIBLE(entry) ( \
-       ( \
-            !(HAS_CURRENT_HIDDEN_FLAG(entry) || IMPLICIT_MY_MENU_HIDING(entry)) || \
-            customize_mode || \
-            junkie_mode==2 \
-       ) \
-       && \
-       ( \
-            !HAS_SHIDDEN_FLAG(entry) \
-       ) \
-    )
-
 
 #define MENU_INT(entry) ((entry)->priv ? *(int*)(entry)->priv : 0)
 #define CURRENT_VALUE (MENU_INT(entry))
@@ -225,7 +200,7 @@ struct menu_entry
 #define IT_PERCENT 4
 #define IT_ALWAYS_ON 5
 #define IT_ACTION 6
-#define IT_NAMED_COLOR 7
+//~ #define IT_NAMED_COLOR 7
 #define IT_BOOL_NEG 8
 #define IT_DISABLE_SOME_FEATURE 9
 #define IT_DISABLE_SOME_FEATURE_NEG 10
@@ -318,7 +293,8 @@ extern void menu_stop(void);
 #define MNI_ACTION 5
 #define MNI_DICE 6
 #define MNI_SIZE 7
-#define MNI_NAMED_COLOR 8
+//~ #define MNI_NAMED_COLOR 8
+#define MNI_RECORD 8
 #define MNI_NEUTRAL 9
 #define MNI_DISABLE 10
 #define MNI_SUBMENU 11

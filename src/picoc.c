@@ -158,7 +158,7 @@ static MENU_UPDATE_FUNC(script_run_display)
         MENU_SET_NAME(
             "Script %s...", get_script_status_msg()
         );
-        MENU_SET_ICON(MNI_NAMED_COLOR, (intptr_t) "Red");
+        MENU_SET_ICON(MNI_RECORD, 0);
     }
     else 
     {

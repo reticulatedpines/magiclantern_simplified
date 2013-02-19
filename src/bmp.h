@@ -97,7 +97,6 @@ inline uint8_t* bmp_vram_idle()
 }
 
 inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf) { return bmp_buf; }
-#define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
 
 #define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = ((x) % 2) ? ((*(char*)(p) & 0x0F) | (D2V(color) << 4)) : ((*(char*)(p) & 0xF0) | (D2V(color) & 0x0F))    
 
@@ -114,49 +113,15 @@ inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf) { return bmp_buf; }
 #define BMP_HDMI_OFFSET ((-BMP_H_MINUS)*BMPPITCH + (-BMP_W_MINUS))
 
 // BMP_VRAM_START and BMP_VRAM_START are not generic - they only work on BMP buffer addresses returned by Canon firmware
-
-inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf)
-{
-    // 5D3: LCD: 00dc3100 / HDMI: 00d3c008
-    // 500D: LCD: 003638100 / HDMI: 003631008
-    // 550D/60D/5D2: LCD: ***87100 / HDMI: ***80008
-    
-    // 5D2 SD: 7108 / 74c8
-    
-    if (((uintptr_t)bmp_buf & 0xFFF) == 0x100) // 720x480 crop - alter it to point to full 960x540 buffer
-        return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET);
-
-    if (((uintptr_t)bmp_buf & 0xFFF) == 0x008) // HDMI 960x540 => return it as is
-        return bmp_buf;
-
-    if (((uintptr_t)bmp_buf & 0xFFF) == 0x108) // SD mode 1
-        return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 8);
-
-    if (((uintptr_t)bmp_buf & 0xFFF) == 0x4c8) // SD mode 1
-        return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 0x3c8);
-        
-    // something else - new camera? return it unchanged (failsafe)
-    ASSERT(0);
-    return bmp_buf;
-}
+uint8_t* BMP_VRAM_START(uint8_t* bmp_buf);
 
 #define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
 
 /** Returns a pointer to the real BMP vram */
-inline uint8_t* bmp_vram_real()
-{
-    return (uint8_t *)((uintptr_t)BMP_VRAM_START(bmp_vram_raw()) + BMP_HDMI_OFFSET);
-}
+uint8_t* bmp_vram_real();
 
 /** Returns a pointer to idle BMP vram */
-inline uint8_t* bmp_vram_idle()
-{
-#ifdef CONFIG_1100D
-	return (uint8_t *)((((uintptr_t)bmp_vram_real() + 0x80000) ^ 0x80000) - 0x80000);
-#else
-    return (uint8_t *)((uintptr_t)bmp_vram_real() ^ 0x80000);
-#endif
-}
+uint8_t* bmp_vram_idle();
 #endif
 
 
@@ -164,34 +129,7 @@ inline uint8_t* bmp_vram_idle()
 #define BMP_TOTAL_HEIGHT (BMP_H_PLUS - BMP_H_MINUS)
 
 
-inline void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color)
-{
-    #ifdef CONFIG_VXWORKS
-    char* p = (char*)&bvram[(x)/2 + (y)/2 * BMPPITCH]; 
-    SET_4BIT_PIXEL(p, x, color);
-    #else
-    bvram[x + y * BMPPITCH] = color;
-    #endif
-
-     #ifdef CONFIG_500D // err70?!
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-     #endif
-}
+void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 
 
 /** Font specifiers include the font, the fg color and bg color */
