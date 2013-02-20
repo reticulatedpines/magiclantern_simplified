@@ -533,6 +533,15 @@ static MENU_UPDATE_FUNC(manual_expo_ramp_print)
         );
         int max = log_length(1000);
         MENU_SET_ICON(MNI_PERCENT_ALLOW_OFF, 50 + log_length(ABS(evx1000)) * 50 / max * SGN(evx1000));
+        
+        int n = 1000 / evx1000;
+        int d = timer_values[interval_timer_index];
+        int total_time_s = d * n;
+        int total_time_m = total_time_s / 60;
+        MENU_SET_WARNING(MENU_WARN_INFO, 
+            "Exposure will change by 1EV after %d shots, %02dh%02dm.", 
+            n, total_time_m / 60, total_time_m % 60
+        );
     }
 }
 
