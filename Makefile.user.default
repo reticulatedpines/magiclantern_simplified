@@ -8,9 +8,9 @@ SUPPORTED_MODELS:=60D 550D 600D 50D 500D 5D2 1100D
 # for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM_ABI=elf
 CCACHE=ccache
 ARM_ABI=elf
-ARM_PATH=~/arm-toolchain
+ARM_PATH=~/arm-toolchain462
 ARM_BINPATH=$(ARM_PATH)/bin
-GCC_VERSION=4.4.2
+GCC_VERSION=4.6.2
 OBJCOPY=$(ARM_BINPATH)/arm-$(ARM_ABI)-objcopy
 AR=$(ARM_BINPATH)/arm-$(ARM_ABI)-ar
 RANLIB=$(ARM_BINPATH)/arm-$(ARM_ABI)-ranlib
