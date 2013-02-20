@@ -4678,6 +4678,8 @@ static MENU_UPDATE_FUNC(use_af_update)
 // in lcdsensor.c
 extern MENU_UPDATE_FUNC(lcd_release_display);
 
+extern int voice_tags; // beep.c
+
 static struct menu_entry shoot_menus[] = {
     #ifdef FEATURE_HDR_BRACKETING
     {
@@ -5084,6 +5086,16 @@ static struct menu_entry shoot_menus[] = {
     },
     #endif
 
+    #ifdef FEATURE_VOICE_TAGS
+    {
+        .name = "Voice Tags", 
+        .priv = &voice_tags, 
+        .max = 1,
+        .help = "After you take a picture, press SET to add a voice tag.",
+        .help2 = "For playback, go to Audio -> Sound Recorder.",
+        .works_best_in = DEP_PHOTO_MODE,
+    },
+    #endif
 
     #ifdef FEATURE_LV_3RD_PARTY_FLASH
         #ifndef FEATURE_FLASH_TWEAKS

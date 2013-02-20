@@ -65,12 +65,10 @@ static void audio_monitoring_update()
 {
     if (cfg_override_audio == 0) return;
     
-    int am = is_movie_mode() ? audio_monitoring : 0;
-
     // kill video connect/disconnect event... or not
-    *(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = am ? 2 : 0;
+    *(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = audio_monitoring ? 2 : 0;
         
-    if (am && rca_monitor)
+    if (audio_monitoring && rca_monitor)
         {
             audio_monitoring_force_display(0);
             msleep(1000);
@@ -699,7 +697,15 @@ static struct menu_entry audio_menus[] = {
       .update   = audio_loopback_display,
       },*/
     {
-        .name = "Output volume",
+        .name = "Headphone Mon.",
+        .priv = &audio_monitoring,
+        .max  = 1,
+        .select         = audio_monitoring_toggle,
+        .help = "Monitoring via A-V jack. Disable if you use a SD display.",
+        .depends_on     = DEP_SOUND_RECORDING,
+    },
+    {
+        .name = "Headphone Volume",
         .priv           = &lovl,
         .select         = audio_lovl_toggle,
         .max            = 6,
@@ -707,16 +713,9 @@ static struct menu_entry audio_menus[] = {
         .update         = audio_lovl_display,
         .choices        = CHOICES("0 dB","+2 dB","+4 dB","+6 dB","+8 dB","+10 dB","+11 dB"),
         .help = "Output volume for audio monitoring (headphones only).",
-        .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on     = DEP_SOUND_RECORDING,
     },
-    {
-        .name = "Headphone Mon.",
-        .priv = &audio_monitoring,
-        .max  = 1,
-        .select         = audio_monitoring_toggle,
-        .help = "Monitoring via A-V jack. Disable if you use a SD display.",
-        .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
-    },
+/* any reason to turn these off?
     {
         .name = "Audio Meters",
         .priv           = &cfg_draw_meters,
@@ -724,6 +723,7 @@ static struct menu_entry audio_menus[] = {
         .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
         .depends_on     = DEP_GLOBAL_DRAW | DEP_SOUND_RECORDING,
     },
+    */
 };
 
 static void volume_display()

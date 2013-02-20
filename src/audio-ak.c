@@ -208,12 +208,10 @@ int get_mic_power(int input_source)
 #ifdef FEATURE_HEADPHONE_MONITORING
 static void audio_monitoring_update()
 {
-    int am = is_movie_mode() ? audio_monitoring : 0;
-    
     // kill video connect/disconnect event... or not
-    *(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = am ? 2 : 0;
+    *(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = audio_monitoring ? 2 : 0;
         
-    if (am && rca_monitor)
+    if (audio_monitoring && rca_monitor)
     {
         audio_monitoring_force_display(0);
         msleep(1000);
@@ -471,8 +469,7 @@ static MENU_UPDATE_FUNC(audio_micpower_display)
     
     if (get_input_source() < 2)
     {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Mic power is required by internal mic.");
-        if (mic_pow){ MENU_SET_ENABLED(1); MENU_SET_VALUE("ON (!)"); }
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Mic power is required by internal mic, can't turn off.");
     }
 }
 #endif
@@ -578,31 +575,7 @@ static struct menu_entry audio_menus[] = {
     },
     #endif
 
-
-    #ifdef FEATURE_HEADPHONE_MONITORING
-    #ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
-    {
-        .name = "Output Volume",
-        .priv           = &lovl,
-        .select         = audio_3bit_toggle,
-        .update         = audio_lovl_display,
-        .max = 3,
-        .icon_type      = IT_PERCENT_OFF,
-        .choices = (const char *[]) {"0 dB", "2 dB (digital)", "4 dB (digital)", "6 dB (digital)"},
-        .help = "Output volume for audio monitoring (headphones only).",
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
-    },
-    #endif
-    {
-        .name = "Headphone Mon.",
-        .priv = &audio_monitoring,
-        .select = audio_monitoring_toggle,
-        .max = 1,
-        .help = "Monitoring via A-V jack. Disable if you use a SD display.",
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
-    },
-    #endif
-
+/* any reason to turn these off?
     #ifdef FEATURE_AUDIO_METERS
     {
         .name = "Audio Meters",
@@ -615,6 +588,31 @@ static struct menu_entry audio_menus[] = {
 #endif
         .depends_on = DEP_GLOBAL_DRAW | DEP_SOUND_RECORDING,
     },
+    #endif
+*/
+
+    #ifdef FEATURE_HEADPHONE_MONITORING
+    {
+        .name = "Headphone Mon.",
+        .priv = &audio_monitoring,
+        .select = audio_monitoring_toggle,
+        .max = 1,
+        .help = "Monitoring via A-V jack. Disable if you use a SD display.",
+        .depends_on = DEP_SOUND_RECORDING,
+    },
+    #ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
+    {
+        .name = "Headphone Volume",
+        .priv           = &lovl,
+        .select         = audio_3bit_toggle,
+        .update         = audio_lovl_display,
+        .max = 3,
+        .icon_type      = IT_PERCENT_OFF,
+        .choices = (const char *[]) {"0 dB", "2 dB (digital)", "4 dB (digital)", "6 dB (digital)"},
+        .help = "Output volume for audio monitoring (headphones only).",
+        .depends_on = DEP_SOUND_RECORDING,
+    },
+    #endif
     #endif
 };
 
