@@ -3306,7 +3306,7 @@ int TmpMem_Init()
         );
         beep();
         msleep(2000);
-        FreeMemory(tmp_files); tmp_files = 0;
+        SmallFree(tmp_files); tmp_files = 0;
         return 0; 
     }
     
@@ -3318,7 +3318,7 @@ int TmpMem_Init()
 
 void TmpMem_Done()
 {
-    FreeMemory(tmp_files); tmp_files = 0;
+    SmallFree(tmp_files); tmp_files = 0;
     shoot_free(tmp_buffer); tmp_buffer = 0;
 }
 
