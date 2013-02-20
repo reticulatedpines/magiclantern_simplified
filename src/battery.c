@@ -33,7 +33,7 @@ struct battery_history {
 struct battery_history bat_hist[6];
 struct battery_info bat_info;
 
-CONFIG_INT("battery.drain.rate.rev", battery_seconds_same_level_ok, 0);
+CONFIG_INT("battery.drain.rate.rev", battery_seconds_same_level_ok, 108); // initial estimation: 3 hours battery life
 int battery_seconds_same_level_tmp = 0;
 int battery_level_transitions = 0;
 
@@ -110,7 +110,12 @@ void RefreshBatteryLevel_1Hz()
     else
     {
         battery_level_transitions++;
-        if (battery_level_transitions >= 2)
+        
+        // first transition is at startup
+        // second transition will overestimate the battery drain rate
+        // subsequent transitions are OK
+        
+        if (battery_level_transitions > 2)
             battery_seconds_same_level_ok = battery_seconds_same_level_tmp;
         battery_seconds_same_level_tmp = 0;
     }
