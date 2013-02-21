@@ -62,10 +62,10 @@ static void afp_show_in_viewfinder() // this function may be called from multipl
 {
 BMP_LOCK( // reuse this for locking
     info_led_on();
-    assign_af_button_to_halfshutter(); // this has semaphores
+    lens_setup_af(AF_ON); // this has semaphores
     SW1(1,200);
     SW1(0,50);
-    restore_af_button_assignment();
+    lens_cleanup_af();
     info_led_off();
 )
 }
