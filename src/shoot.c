@@ -2545,7 +2545,7 @@ static MENU_UPDATE_FUNC(saturation_display)
     );
     MENU_SET_ENABLED(ok);
     if (ok) MENU_SET_ICON(MNI_PERCENT, (s+4) * 100 / 8);
-    else MENU_SET_ICON(MNI_OFF, 0);
+    else { MENU_SET_ICON(MNI_OFF, 0); MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "N/A"); }
 }
 
 static void
@@ -2569,7 +2569,7 @@ static MENU_UPDATE_FUNC(color_tone_display)
     );
     MENU_SET_ENABLED(ok);
     if (ok) MENU_SET_ICON(MNI_PERCENT, (s+4) * 100 / 8);
-    else MENU_SET_ICON(MNI_OFF, 0);
+    else { MENU_SET_ICON(MNI_OFF, 0); MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "N/A"); }
 }
 
 static CONFIG_INT("picstyle.rec", picstyle_rec, 0);
