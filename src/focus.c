@@ -1091,6 +1091,119 @@ focus_misc_task(void* unused)
 
 TASK_CREATE( "focus_misc_task", focus_misc_task, 0, 0x1e, 0x1000 );
 
+#ifdef FEATURE_AFMA_TUNING
+void afma_print_status(int8_t* status, int current)
+{
+    for (int i = -20; i <= 20; i++)
+    {
+        int x = 350 + i*16;
+        int h = MAX(2, status[i+20] * 20 / 4);
+        bmp_fill(COLOR_BLACK, x, 0, 14, 20-h);
+        bmp_fill(COLOR_WHITE, x, 20-h, 14, h);
+    }
+    int xc = 350 + current*16;
+    bmp_fill(COLOR_RED, xc, 0, 14, 20);
+}
+
+void afma_auto_tune()
+{
+    int afma0 = get_afma(-1);
+    
+    msleep(1000);
+    
+    if (lv) { fake_simple_button(BGMT_LV); msleep(1000); }
+    
+    for (int i = 0; i < 5; i++)
+    {
+        if (!DISPLAY_IS_ON || !display_idle())
+        {
+            fake_simple_button(BGMT_INFO);
+            msleep(500);
+        }
+    }
+
+    if (lv) { NotifyBox(5000, "Turn off LiveView and try again."); beep(); return; }
+    if (!DISPLAY_IS_ON || !display_idle()) { NotifyBox(5000, "Press " INFO_BTN_NAME " and try again."); beep(); return; }
+    if (!is_manual_focus()) { NotifyBox(5000, "Switch to MF and try again."); beep(); return; }
+    if (!lens_info.name[0]) { NotifyBox(5000, "Attach a chipped lens and try again."); beep(); return; }
+    NotifyBox(5000, "You should have perfect focus.");
+    msleep(2000);
+    NotifyBox(5000, "Leave the camera still...");
+    msleep(2000);
+    NotifyBoxHide();
+    msleep(100);
+    
+    int8_t status[41];
+    for (int i = -20; i <= 20; i++) status[i+20] = 0;
+    afma_print_status(status, 0);
+    msleep(1000);
+    
+    set_afma(-20,-1);
+    assign_af_button_to_halfshutter();
+    msleep(100);
+
+    SW1(1,100);
+
+    for (int k = 0; k < 2; k++)
+    {
+        for (int i = -20; i <= 20; i++)
+        {
+            set_afma(i,-1);
+            int fc = 0;
+            for (int j = 0; j < 20; j++)
+            {
+                msleep(10);
+                if (FOCUS_CONFIRMATION) fc = 1;
+            }
+            status[i+20] += fc;
+            afma_print_status(status, i);
+        }
+        for (int i = 20; i >= -20; i--)
+        {
+            set_afma(i,-1);
+            int fc = 0;
+            for (int j = 0; j < 20; j++)
+            {
+                msleep(10);
+                if (FOCUS_CONFIRMATION) fc = 1;
+            }
+            status[i+20] += fc;
+            afma_print_status(status, i);
+        }
+    }
+    SW1(0,100);
+    
+    beep();
+
+    restore_af_button_assignment();
+
+    int s = 0;
+    int w = 0;
+    for (int i = -20; i <= 20; i++)
+    {
+        s += (status[i+20] * i);
+        w += status[i+20];
+    }
+    if (w < 10)
+    {
+        NotifyBox(5000, "Not enough data :(");
+        set_afma(afma0,-1);
+    }
+    else if (w > 120)
+    {
+        NotifyBox(5000, "Too much data :(");
+        set_afma(afma0,-1);
+    }
+    else
+    {
+        int afma = s / w;
+        NotifyBox(10000, "New AFMA: %d", afma);
+        set_afma(afma,-1);
+        afma_print_status(status, afma);
+    }
+}
+#endif
+
 #ifdef FEATURE_TRAP_FOCUS
 static MENU_UPDATE_FUNC(trap_focus_display)
 {
@@ -1322,6 +1435,18 @@ static struct menu_entry focus_menu[] = {
 };
 
 
+#ifdef FEATURE_AFMA_TUNING
+static struct menu_entry afma_menu[] = {
+    {
+        .name = "AFMA tuning",
+        .priv = afma_auto_tune,
+        .select = (void (*)(void*,int))run_in_separate_task,
+        .depends_on = DEP_MANUAL_FOCUS | DEP_CHIPPED_LENS,
+        .help  = "Auto calibrate AF microadjustment ( youtu.be/7zE50jCUPhM )",
+        .help2 = "1. focus manually in LV on some test target. 2. run this.",
+    },
+};
+#endif
 
 
 static void
@@ -1340,6 +1465,9 @@ focus_init( void* unused )
     afp_menu_init();
     #endif
     
+    #ifdef FEATURE_AFMA_TUNING
+    menu_add( "Focus", afma_menu, COUNT(afma_menu));
+    #endif
 }
 
 INIT_FUNC( __FILE__, focus_init );
