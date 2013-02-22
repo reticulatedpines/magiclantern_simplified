@@ -1937,6 +1937,29 @@ menu_entry_process(
     return 1;
 }
 
+static void
+my_menu_add_entry(struct menu_entry * entry, int i)
+{
+    struct menu_entry * my_entry = &(my_menu_placeholders[i]);
+    
+    // copy most things from old menu structure to this one
+    // except for some essential things :P
+    void* next = my_entry->next;
+    void* prev = my_entry->prev;
+    int selected = my_entry->selected;
+    my_memcpy(my_entry, entry, sizeof(struct menu_entry));
+    my_entry->next = next;
+    my_entry->prev = prev;
+    my_entry->selected = selected;
+    my_entry->shidden = 0;
+    my_entry->hidden = 0;
+    my_entry->jhidden = 0;
+    my_entry->starred = 0;
+    
+    // update split position
+    menu_update_split_pos(my_menu, my_entry);
+}
+
 static int
 my_menu_rebuild()
 {
@@ -1948,6 +1971,9 @@ my_menu_rebuild()
     {
         if (menu == my_menu)
             continue;
+        
+        if (IS_SUBMENU(menu))
+            continue;
 
         struct menu_entry * entry = menu->children;
         
@@ -1958,25 +1984,30 @@ my_menu_rebuild()
                 if (i >= COUNT(my_menu_placeholders)) // too many starred items
                     return 0; // whoops
                 
-                struct menu_entry * my_entry = &(my_menu_placeholders[i]);
+                my_menu_add_entry(entry, i);
                 i++;
-                
-                // copy most things from old menu structure to this one
-                // except for some essential things :P
-                void* next = my_entry->next;
-                void* prev = my_entry->prev;
-                int selected = my_entry->selected;
-                my_memcpy(my_entry, entry, sizeof(struct menu_entry));
-                my_entry->next = next;
-                my_entry->prev = prev;
-                my_entry->selected = selected;
-                my_entry->shidden = 0;
-                my_entry->hidden = 0;
-                my_entry->jhidden = 0;
-                my_entry->starred = 0;
-                
-                // update split position
-                menu_update_split_pos(my_menu, my_entry);
+            }
+            
+            // any submenu?
+            if (entry->children)
+            {
+                struct menu * submenu = menu_find_by_name(entry->name, ICON_ML_SUBMENU);
+                if (submenu)
+                {
+                    struct menu_entry * e = submenu->children;
+                    
+                    for(; e ; e = e->next)
+                    {
+                        if (e->starred)
+                        {
+                            if (i >= COUNT(my_menu_placeholders)) // too many starred items
+                                return 0; // whoops
+                            
+                            my_menu_add_entry(e, i);
+                            i++;
+                        }
+                    }
+                }
             }
         }
     }
