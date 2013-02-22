@@ -155,6 +155,8 @@ void vram_params_update_if_dirty()
     }
 }
 
+#if CONFIG_DEBUGMSG
+
 int* vram_params[] = { 
     &increment,
     //~ &vram_bm.width, &vram_bm.height, 
@@ -178,6 +180,8 @@ char vram_param_names[][12] = {
     "lv2hd.tx* ", "lv2hd.ty* ",
     "lv2hd.sx* ", "lv2hd.sy* ",
 };
+
+#endif
 
 int digital_zoom_ratio = 0;
 int logical_connect=0;
@@ -648,6 +652,8 @@ PROP_HANDLER(PROP_LV_MOVIE_SELECT)
     vram_params_set_dirty();
 }
 
+#if CONFIG_DEBUGMSG
+
 static void
 vram_print(
     void *          priv,
@@ -685,7 +691,6 @@ static void vram_toggle_rev(void* priv, int unused) { vram_toggle(priv, -increme
         .select_reverse = vram_toggle_rev, \
     }, \
 
-#if CONFIG_DEBUGMSG
 static struct menu_entry vram_menus[] = {
     VRAM_MENU_ENTRY(0)
     VRAM_MENU_ENTRY(1)

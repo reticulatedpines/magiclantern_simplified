@@ -2427,7 +2427,8 @@ static MENU_UPDATE_FUNC(zebra_level_display)
     if (level == 0 || level > 100)
     {
         MENU_SET_VALUE("Disabled");
-        MENU_SET_ICON(MNI_DISABLE, 0);
+        MENU_SET_ICON(MNI_OFF, 0);
+        MENU_SET_ENABLED(0);
     }
     else
     {
@@ -2476,7 +2477,7 @@ static MENU_UPDATE_FUNC(falsecolor_display_palette)
     MENU_SET_VALUE(
         falsecolor_palette_name()
     );
-    falsecolor_palette_preview(info->x - 420, info->y + font_large.height + 10);
+    if (info->x) falsecolor_palette_preview(info->x - 420, info->y + font_large.height + 10);
 }
 #endif
 
@@ -2533,15 +2534,19 @@ static MENU_UPDATE_FUNC(crop_display_submenu)
         "%s",
          num_cropmarks ? cropmark_names[index] : "N/A"
     );
-    int h = 170;
-    int w = h * 720 / 480;
-    //~ int xc = 360 - w/2;
-    int xc = 400;
-    int yc = info->y + font_large.height * 3 + 10;
-    BMP_LOCK( reload_cropmark(); )
-    bmp_fill(0, xc, yc, w, h);
-    BMP_LOCK( bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0); )
-    bmp_draw_rect(COLOR_WHITE, xc, yc, w, h);
+
+    if (info->x)
+    {
+        int h = 170;
+        int w = h * 720 / 480;
+        //~ int xc = 360 - w/2;
+        int xc = 400;
+        int yc = info->y + font_large.height * 3 + 10;
+        BMP_LOCK( reload_cropmark(); )
+        bmp_fill(0, xc, yc, w, h);
+        BMP_LOCK( bmp_draw_scaled_ex(cropmarks, xc, yc, w, h, 0); )
+        bmp_draw_rect(COLOR_WHITE, xc, yc, w, h);
+    }
     
     MENU_SET_ICON(MNI_DICE, (num_cropmarks<<16) + index);
 }
@@ -3210,7 +3215,7 @@ struct menu_entry zebra_menus[] = {
                 .max = 1,
                 #endif
                 .choices = (const char *[]) {"Luma", "RGB", "Luma Fast"},
-                .icon_type = IT_NAMED_COLOR,
+                .icon_type = IT_DICE,
                 .help = "Luma: red/blue. RGB: color is reverse of clipped channel.",
             },
             {
@@ -3218,6 +3223,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zebra_level_lo, 
                 .min = 0,
                 .max = 20,
+                .icon_type = IT_PERCENT_OFF,
                 .update = zebra_level_display,
                 .help = "Underexposure threshold.",
             },
@@ -3226,6 +3232,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zebra_level_hi,
                 .min = 70,
                 .max = 101,
+                .icon_type = IT_PERCENT_OFF,
                 .update = zebra_level_display,
                 .help = "Overexposure threshold.",
             },
@@ -3272,9 +3279,11 @@ struct menu_entry zebra_menus[] = {
                 .icon_type = IT_DICE
             },
             {
-                .name = "Low-res buffer",
+                .name = "Image buffer",
                 .priv = &focus_peaking_lores,
                 .max = 1,
+                .icon_type = IT_DICE,
+                .choices = CHOICES("High-res", "Low-res"),
                 .help = "Use a low-res image to get better results in low light.",
             },
             /*
@@ -3301,8 +3310,10 @@ struct menu_entry zebra_menus[] = {
                 .name = "Threshold", 
                 .priv = &focus_peaking_pthr,
                 .select = focus_peaking_adjust_thr,
+                .max    = 50,
+                .icon_type = IT_PERCENT,
+                .unit = UNIT_PERCENT_x10,
                 .help = "How many pixels are considered in focus (percentage).",
-                .unit = UNIT_PERCENT_x10
             },
             {
                 .name = "Color", 
@@ -3310,10 +3321,10 @@ struct menu_entry zebra_menus[] = {
                 .max = 7,
                 .choices = (const char *[]) {"Red", "Green", "Blue", "Cyan", "Magenta", "Yellow", "Global Focus", "Local Focus"},
                 .help = "Focus peaking color (fixed or color coding).",
-                .icon_type = IT_NAMED_COLOR,
+                .icon_type = IT_DICE,
             },
             {
-                .name = "Grayscale img.", 
+                .name = "Grayscale image", 
                 .priv = &focus_peaking_grayscale,
                 .max = 1,
                 .help = "Display LiveView image in grayscale.",
@@ -3418,6 +3429,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &crop_index, 
                 .select = crop_toggle,
                 .update    = crop_display_submenu,
+                .icon_type = IT_DICE,
                 .help = "You can draw your own cropmarks in Paint.",
             },
             {
@@ -3527,7 +3539,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &hist_colorspace, 
                 .max = 1,
                 .choices = (const char *[]) {"Luma", "RGB"},
-                .icon_type = IT_NAMED_COLOR,
+                .icon_type = IT_DICE,
                 .help = "Color space for histogram: Luma channel (YUV) / RGB.",
             },
             {
@@ -3617,6 +3629,7 @@ MENU_UPDATE_FUNC(batt_display)
         r / 3600, (r % 3600) / 60,
         d, 0
     );
+    MENU_SET_ICON(MNI_PERCENT, l);
 }
 #endif
 
@@ -3682,10 +3695,10 @@ struct menu_entry powersave_menus[] = {
         },
         #ifdef CONFIG_BATTERY_INFO
         {
-            .name = "Battery level",
+            .name = "Battery Level",
             .update  = batt_display,
-            .icon_type = IT_ALWAYS_ON,
-            .help = "Battery remaining. Wait for 2%% discharge before reading.",
+            .icon_type = IT_PERCENT,
+            .help = "Battery remaining. Wait for 2% discharge before reading.",
             //~ //.essential = FOR_MOVIE | FOR_PHOTO,
         },
         #endif
@@ -4840,7 +4853,7 @@ static void idle_kill_flicker()
         {
             black_bars_16x9();
             if (recording)
-                maru(os.x_max - 28, os.y0 + 12, COLOR_RED);
+                dot(os.x_max - 28, os.y0 + 12, COLOR_RED, 10);
         }
     }
 }
@@ -5274,7 +5287,7 @@ livev_hipriority_task( void* unused )
         #ifdef FEATURE_SPOTMETER
         // update spotmeter every second, not more often than that
         static int spotmeter_aux = 0;
-        if (spotmeter_draw && should_update_loop_progress(1000, &spotmeter_aux))
+        if (spotmeter_draw && should_run_polling_action(1000, &spotmeter_aux))
             BMP_LOCK( if (lv) spotmeter_step(); )
         #endif
 

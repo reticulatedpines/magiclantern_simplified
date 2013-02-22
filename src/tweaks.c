@@ -1945,14 +1945,12 @@ void warn_action(int code)
     // blink LED every second
     if (code)
     {
-        static int prev_clk = 0;
-        int clk = get_seconds_clock();
-        if (clk != prev_clk)
+        static int aux = 0;
+        if (should_run_polling_action(1000, &aux))
         {
             static int k = 0; k++;
             if (k%2) info_led_on(); else info_led_off();
         }
-        prev_clk = clk;
     }
     
     // when warning condition changes, beep
@@ -2090,7 +2088,7 @@ static struct menu_entry key_menus[] = {
                 .help = "LEFT/RIGHT: Shutter. UP/DN: Aperture.  SET: 180d shutter.",
             },
             {
-                .name = "LCD Brightness/Saturation",
+                .name = "LCD Bright/Saturation",
                 .priv       = &arrow_keys_bright_sat,
                 .max = 1,
                 .help = "LEFT/RIGHT: LCD bright. UP/DN: LCD saturation. SET: reset.",
@@ -2151,7 +2149,7 @@ static struct menu_entry key_menus[] = {
                 .name = "DigitalZoom Shortcut",
                 .priv = &digital_zoom_shortcut,
                 .max  = 1,
-                .choices = (const char *[]) {"1x, 3x", "3x...10x"},
+                .choices = (const char *[]) {"3x...10x", "1x, 3x"},
                 .help = "Movie: DISP + Zoom In toggles between 1x and 3x modes."
             },
             #endif
@@ -2351,7 +2349,7 @@ struct menu_entry expo_tweak_menus[] = {
         .max = 2,
         .choices = (const char *[]) {"Photo, no ExpSim", "Photo, ExpSim", "Movie"},
         .icon_type = IT_DICE,
-        .help = "Photo / Photo ExpSim / Movie. ExpSim: show proper exposure.",
+        .help = "Exposure simulation (LiveView display type).",
         .depends_on = DEP_LIVEVIEW,
     },
 };
@@ -2360,10 +2358,16 @@ struct menu_entry expo_tweak_menus[] = {
 CONFIG_INT("lv.bri", preview_brightness, 0);         // range: 0-2
 CONFIG_INT("lv.con", preview_contrast,   0);         // range: -3:3
 CONFIG_INT("lv.sat", preview_saturation, 0);         // range: -1:2
-CONFIG_INT("lv.sat.wb", preview_saturation_boost_wb, 0);
+//~ CONFIG_INT("lv.sat.wb", preview_saturation_boost_wb, 0);
+
 #define PREVIEW_BRIGHTNESS_INDEX preview_brightness
 #define PREVIEW_CONTRAST_INDEX (preview_contrast + 3)
-#define PREVIEW_SATURATION_INDEX (preview_saturation + 1)
+
+#define PREVIEW_SATURATION_INDEX_RAW (preview_saturation + 1)
+
+// when adjusting WB, you can see color casts easier if saturation is increased
+#define PREVIEW_SATURATION_BOOST_WB (preview_saturation == 3)
+#define PREVIEW_SATURATION_INDEX (PREVIEW_SATURATION_BOOST_WB ? (is_adjusting_wb() ? 3 : 1) : PREVIEW_SATURATION_INDEX_RAW)
 
 #define PREVIEW_SATURATION_GRAYSCALE (preview_saturation == -1)
 #define PREVIEW_CONTRAST_AUTO (preview_contrast == 3)
@@ -2431,10 +2435,6 @@ void preview_contrast_n_saturation_step()
     
     if (focus_peaking_grayscale_running())
         desired_saturation = 0;
-
-    // when adjusting WB, you can see color casts easier if saturation is increased
-    if (preview_saturation_boost_wb && is_adjusting_wb())
-        desired_saturation = 0xFF;
 
     if (joke_mode)
     {
@@ -2563,7 +2563,7 @@ static MENU_UPDATE_FUNC(preview_saturation_display)
     if (focus_peaking_grayscale && is_focus_peaking_enabled())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Focus peaking with grayscale preview is enabled.");
     
-    if (preview_saturation_boost_wb)
+    if (PREVIEW_SATURATION_BOOST_WB)
         MENU_SET_ICON(MNI_AUTO, 0);
 }
 #endif
@@ -3280,7 +3280,7 @@ static struct menu_entry display_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"Normal", "High", "Very high"},
                 .depends_on = DEP_LIVEVIEW,
-                .icon_type = IT_BOOL,
+                .icon_type = IT_PERCENT_OFF,
             },
             {
                 .name = "LV contrast",
@@ -3292,7 +3292,7 @@ static struct menu_entry display_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
                 .choices = (const char *[]) {"Zero", "Very low", "Low", "Normal", "High", "Very high", "Auto"},
                 .depends_on = DEP_LIVEVIEW,
-                .icon_type = IT_BOOL,
+                .icon_type = IT_PERCENT_OFF,
             },
             #endif
             #ifdef FEATURE_LV_SATURATION
@@ -3300,13 +3300,19 @@ static struct menu_entry display_menus[] = {
                 .name = "LV saturation",
                 .priv     = &preview_saturation,
                 .min = -1,
-                .max = 2,
+                .max = 3,
                 .update = preview_saturation_display,
                 .help = "For LiveView preview only. Does not affect recording.",
+                .help2 = " \n"
+                         " \n"
+                         " \n"
+                         " \n"
+                         "Boost on WB: increase saturation when you are adjusting WB.",
                 .edit_mode = EM_MANY_VALUES_LV,
-                .choices = (const char *[]) {"0 (Grayscale)", "Normal", "High", "Very high"},
+                .choices = (const char *[]) {"Grayscale", "Normal", "High", "Very high", "Boost on WB adjust"},
                 .depends_on = DEP_LIVEVIEW,
-                .icon_type = IT_BOOL,
+                .icon_type = IT_PERCENT_OFF,
+                /*
                 .submenu_width = 650,
                 .children =  (struct menu_entry[]) {
                     {
@@ -3316,7 +3322,7 @@ static struct menu_entry display_menus[] = {
                         .help = "Increase LiveView saturation when adjusting white balance.",
                     },
                     MENU_EOL
-                }
+                }*/
             },
             #endif
             #ifdef FEATURE_LV_DISPLAY_GAIN
@@ -3324,6 +3330,7 @@ static struct menu_entry display_menus[] = {
                 .name = "LV display gain",
                 .update = display_gain_print,
                 .select = display_gain_toggle,
+                .icon_type = IT_PERCENT_OFF,
                 .help   = "Makes LiveView usable in complete darkness (photo mode).",
                 .help2  = "Tip: if it gets really dark, also enable FPS override.",
                 .edit_mode = EM_MANY_VALUES_LV,
@@ -3419,7 +3426,6 @@ static struct menu_entry display_menus[] = {
                 .priv = &anamorphic_ratio_idx, 
                 .max = 4,
                 .choices = (const char *[]) {"5:4 (1.25)", "4:3 (1.33)", "3:2 (1.5)", "5:3 (1.66)", "2:1"},
-                .icon_type = IT_ALWAYS_ON,
                 .help = "Aspect ratio used for anamorphic preview correction.",
             },
             MENU_EOL
@@ -3458,8 +3464,8 @@ static struct menu_entry display_menus[] = {
                     .priv = &lcd_adjust_position,
                     .min = -2,
                     .max = 2,
-                    .choices = (const char *[]) {"+16px", "+8px", "Normal", "-8px", "-16px"},
-                    .icon_type = IT_BOOL,
+                    .choices = (const char *[]) {"-16px", "-8px", "Normal", "+8px", "+16px"},
+                    .icon_type = IT_PERCENT_OFF,
                     .help = "May make the image easier to see from difficult angles.",
                 },
             #endif
@@ -3507,7 +3513,7 @@ static struct menu_entry display_menus[] = {
                     .choices = (const char *[]) {"OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},
                     .help = "Removes the green color cast when you use UniWB.",
                     .edit_mode = EM_MANY_VALUES_LV,
-                    .icon_type = IT_BOOL,
+                    .icon_type = IT_PERCENT_OFF,
                 },
             #endif
             MENU_EOL

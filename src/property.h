@@ -195,6 +195,7 @@
 #define UILOCK_POWER_SW   0x41000020
 
 #define PROP_SHOOTING_MODE  0x80000000 // During mode switch, it takes other values.
+#define PROP_SHOOTING_MODE_2  0x80000001 // for custom modes
 #define SHOOTMODE_P 0
 #define SHOOTMODE_TV 1
 #define SHOOTMODE_AV 2

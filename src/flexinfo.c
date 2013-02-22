@@ -2675,7 +2675,6 @@ int handle_flexinfo_keys(struct event * event)
             break;
             
         /* these are always evaluated */
-        case BGMT_PRESS_FULLSHUTTER:
         case BGMT_PRESS_HALFSHUTTER:
         case BGMT_MENU:
             info_edit_mode = 0;

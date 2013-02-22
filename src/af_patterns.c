@@ -46,10 +46,10 @@ static type_PATTERN_MAP_ITEM pattern_map[] = {
         END_OF_LIST
 };
 
-int afp_transformer (int pattern, type_DIRECTION direction);
+static int afp_transformer (int pattern, type_DIRECTION direction);
 
-int afp[2];
-int afp_len = 0;
+static int afp[2];
+static int afp_len = 0;
 PROP_HANDLER(PROP_AFPOINT)
 {
     afp[0] = buf[0];
@@ -58,19 +58,19 @@ PROP_HANDLER(PROP_AFPOINT)
 }
 #define af_point afp[0]
 
-void afp_show_in_viewfinder() // this function may be called from multiple tasks
+static void afp_show_in_viewfinder() // this function may be called from multiple tasks
 {
 BMP_LOCK( // reuse this for locking
     info_led_on();
-    assign_af_button_to_halfshutter(); // this has semaphores
+    lens_setup_af(AF_ON); // this has semaphores
     SW1(1,200);
     SW1(0,50);
-    restore_af_button_assignment();
+    lens_cleanup_af();
     info_led_off();
 )
 }
 
-void set_af_point(int afpoint)
+static void set_af_point(int afpoint)
 {
     if (!afp_len) return;
     if (!gui_menu_shown() && beep_enabled) Beep();
@@ -82,27 +82,27 @@ void set_af_point(int afpoint)
 
 int afpoint_for_key_guess = 0;
 
-void afp_center () {
+static void afp_center () {
     set_af_point(afp_transformer(af_point, DIRECTION_CENTER));
 }
 
-void afp_top () {
+static void afp_top () {
     set_af_point(afp_transformer(af_point, DIRECTION_UP));
 }
 
-void afp_bottom () {
+static void afp_bottom () {
     set_af_point(afp_transformer(af_point, DIRECTION_DOWN));
 }
 
-void afp_left () {
+static void afp_left () {
     set_af_point(afp_transformer(af_point, DIRECTION_LEFT));
 }
 
-void afp_right () {
+static void afp_right () {
     set_af_point(afp_transformer(af_point, DIRECTION_RIGHT));
 }
 
-int afp_transformer (int pattern, type_DIRECTION direction) {
+static int afp_transformer (int pattern, type_DIRECTION direction) {
     type_PATTERN_MAP_ITEM *item;
 
     // Loop over all items in the pattern map
@@ -309,22 +309,22 @@ void play_zoom_center_on_selected_af_point()
 #endif
 }
 
-void afp_horiz_toggle(void* priv, int delta)
+static void afp_horiz_toggle(void* priv, int delta)
 {
     if (delta > 0) afp_right(); else afp_left();
 }
 
-void afp_vert_toggle(void* priv, int delta)
+static void afp_vert_toggle(void* priv, int delta)
 {
     if (delta > 0) afp_top(); else afp_bottom();
 }
 
-void afp_center_toggle(void* priv, int delta)
+static void afp_center_toggle(void* priv, int delta)
 {
     afp_center();
 }
 
-void draw_af_point(int x, int y, int r, int color)
+static void draw_af_point(int x, int y, int r, int color)
 {
     for (int dr = -1; dr <= 1; dr++)
     {
@@ -335,6 +335,8 @@ void draw_af_point(int x, int y, int r, int color)
 
 static MENU_UPDATE_FUNC(pattern_display)
 {
+    if (!info->x) return;
+    
     int cx = 500;
     int cy = 350;
     int w = 232;

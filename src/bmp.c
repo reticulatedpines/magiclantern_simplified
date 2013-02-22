@@ -32,8 +32,69 @@
 
 //~ int bmp_enabled = 1;
 
+#ifdef CONFIG_VXWORKS
+    
+    // inline functions in bmp.h
+    
+#else // DryOS
+
+    // BMP_VRAM_START and BMP_VRAM_START are not generic - they only work on BMP buffer addresses returned by Canon firmware
+    uint8_t* BMP_VRAM_START(uint8_t* bmp_buf)
+    {
+        // 5D3: LCD: 00dc3100 / HDMI: 00d3c008
+        // 500D: LCD: 003638100 / HDMI: 003631008
+        // 550D/60D/5D2: LCD: ***87100 / HDMI: ***80008
+        
+        // 5D2 SD: 7108 / 74c8
+        
+        if (((uintptr_t)bmp_buf & 0xFFF) == 0x100) // 720x480 crop - alter it to point to full 960x540 buffer
+            return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET);
+
+        if (((uintptr_t)bmp_buf & 0xFFF) == 0x008) // HDMI 960x540 => return it as is
+            return bmp_buf;
+
+        if (((uintptr_t)bmp_buf & 0xFFF) == 0x108) // SD mode 1
+            return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 8);
+
+        if (((uintptr_t)bmp_buf & 0xFFF) == 0x4c8) // SD mode 1
+            return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 0x3c8);
+            
+        // something else - new camera? return it unchanged (failsafe)
+        ASSERT(0);
+        return bmp_buf;
+    }
+
+    uint8_t* bmp_vram_real()
+    {
+        return (uint8_t *)((uintptr_t)BMP_VRAM_START(bmp_vram_raw()) + BMP_HDMI_OFFSET);
+    }
+
+    /** Returns a pointer to idle BMP vram */
+    uint8_t* bmp_vram_idle()
+    {
+    #ifdef CONFIG_1100D
+        return (uint8_t *)((((uintptr_t)bmp_vram_real() + 0x80000) ^ 0x80000) - 0x80000);
+    #else
+        return (uint8_t *)((uintptr_t)bmp_vram_real() ^ 0x80000);
+    #endif
+    }
+#endif
+
 static int bmp_idle_flag = 0;
+
 void bmp_draw_to_idle(int value) { bmp_idle_flag = value; }
+
+/** Returns a pointer to currently selected BMP vram (real or mirror) */
+uint8_t * bmp_vram(void)
+{
+    #ifdef CONFIG_VXWORKS
+    set_ml_palette_if_dirty();
+    #endif
+    uint8_t * bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
+    
+    if (PLAY_MODE) return UNCACHEABLE(bmp_buf);
+    return bmp_buf;
+}
 
 // 0 = copy BMP to idle
 // 1 = copy idle to BMP
@@ -79,23 +140,35 @@ void bmp_idle_copy(int direction, int fullsize)
     }
 }
 
-/*
-void bmp_idle_clear()
-{
-    bzero32(BMP_VRAM_START(bmp_vram_idle()), BMP_VRAM_SIZE);
-}*/
-
-/** Returns a pointer to currently selected BMP vram (real or mirror) */
-uint8_t * bmp_vram(void)
+inline void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color)
 {
     #ifdef CONFIG_VXWORKS
-    set_ml_palette_if_dirty();
+    char* p = (char*)&bvram[(x)/2 + (y)/2 * BMPPITCH]; 
+    SET_4BIT_PIXEL(p, x, color);
+    #else
+    bvram[x + y * BMPPITCH] = color;
     #endif
-    uint8_t * bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
-    
-    if (PLAY_MODE) return UNCACHEABLE(bmp_buf);
-    return bmp_buf;
+
+     #ifdef CONFIG_500D // err70?!
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+     #endif
 }
+
 
 #ifndef CONFIG_60D
 #define USE_LUT
@@ -476,7 +549,7 @@ con_printf(
 }
 #endif
 
-#if 1
+#ifdef CONFIG_HEXDUMP
 
 void
 bmp_hexdump(
@@ -648,6 +721,7 @@ bmp_fill(
     }
 }
 
+#if 0
 /** Draw a picture of the BMP color palette. */
 void
 bmp_draw_palette( void )
@@ -676,6 +750,7 @@ bmp_draw_palette( void )
     written = 1;
     msleep(2000);
 }
+#endif
 
 int retry_count = 0;
 
@@ -1556,7 +1631,7 @@ bfnt_printf(
     bfnt_puts(bfnt_printf_buf, x, y, fg, bg);
 }
 
-#if 1
+#if 0
 void
 bfnt_test()
 {
@@ -1638,6 +1713,7 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset)
     }
 }
 
+#if 0
 static void bmp_dim_line(void* dest, size_t n, int even)
 {
     ASSERT(dest);
@@ -1729,6 +1805,7 @@ int load_vram(const char * filename)
         return -1; 
     return read_file(filename, b, size);
 }
+#endif
 
 
 void * bmp_lock = 0;

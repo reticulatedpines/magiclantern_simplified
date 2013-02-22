@@ -69,7 +69,7 @@ void EngDrvOutLV(int reg, int val)
     {
         ml_rpc_send(ML_RPC_ENGIO_WRITE, 0x8704, val, 0, 0);
     }
-    if(reg == 0xC0F0601)
+    if(reg == 0xC0F06014)
     {
         ml_rpc_send(ML_RPC_ENGIO_WRITE, 0x8774, val, 0, 0);
     }
@@ -1025,13 +1025,13 @@ static struct menu_entry fps_menu[] = {
                 .min = 0,
                 .max = COUNT(fps_values_x1000) - 1,
                 .select = fps_change_value,
-                .icon_type = IT_ALWAYS_ON,
+                .icon_type = IT_PERCENT,
                 .help = "FPS value for recording. Video will play back at Canon FPS.",
             },
 //~ we only modify FPS_REGISTER_A, so no optimizations possible.
 #ifndef CONFIG_FPS_TIMER_A_ONLY
             {
-                .name = "Optimize for\b",
+                .name = "Optimize for",
                 .priv       = &fps_criteria,
                 .choices = (const char *[]) {
                     "Low light", 
@@ -1060,6 +1060,7 @@ static struct menu_entry fps_menu[] = {
                 .update = fps_timer_print,
                 .priv = &desired_fps_timer_a_offset,
                 .select = fps_timer_fine_tune_a,
+                .icon_type = IT_PERCENT,
                 .help = "High values = lower FPS, more jello effect, faster shutter.",
             },
             {
@@ -1067,6 +1068,7 @@ static struct menu_entry fps_menu[] = {
                 .update = fps_timer_print,
                 .priv = &desired_fps_timer_b_offset,
                 .select = fps_timer_fine_tune_b,
+                .icon_type = IT_PERCENT,
                 .help = "High values = lower FPS, shutter speed converges to 1/fps.",
             },
             {
@@ -1083,7 +1085,7 @@ static struct menu_entry fps_menu[] = {
             },
             #ifdef FEATURE_FPS_WAV_RECORD
             {
-                .name = "Sound Record\b",
+                .name = "Sound Record",
                 .priv = &fps_wav_record,
                 .max = 1,
                 .update = fps_wav_record_print,
@@ -1111,6 +1113,7 @@ static struct menu_entry fps_menu[] = {
                 .max = 10,
                 .update = fps_ramp_duration_update,
                 .choices = (const char *[]) {"1s", "2s", "5s", "15s", "30s", "1min", "2min", "5min", "10min", "20min", "30min"},
+                .icon_type = IT_PERCENT,
                 .help = "Duration of FPS ramping (in real-time, not in playback).",
                 .depends_on = DEP_MOVIE_MODE,
             },

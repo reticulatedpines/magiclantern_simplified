@@ -55,8 +55,7 @@ int audio_meters_are_drawn()
          )
         ||
         (
-         0
-         //~ gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
+         gui_menu_shown() && is_menu_active("Audio") && cfg_draw_meters
          );
 #else
     return 0;
@@ -213,11 +212,11 @@ static void audio_monitoring_update()
     *(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = audio_monitoring ? 2 : 0;
         
     if (audio_monitoring && rca_monitor)
-        {
-            audio_monitoring_force_display(0);
-            msleep(1000);
-            audio_monitoring_display_headphones_connected_or_not();
-        }
+    {
+        audio_monitoring_force_display(0);
+        msleep(1000);
+        audio_monitoring_display_headphones_connected_or_not();
+    }
 }
 #endif
 
@@ -467,10 +466,10 @@ static MENU_UPDATE_FUNC(audio_micpower_display)
     MENU_SET_RINFO(
         mic_pow ? "Low Z" : "High Z"
     );
-    if (mic_pow != mic_power)
+    
+    if (get_input_source() < 2)
     {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Mic power is required by internal mic.");
-        if (mic_pow){ MENU_SET_ENABLED(1); MENU_SET_VALUE("ON (!)"); }
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Mic power is required by internal mic, can't turn off.");
     }
 }
 #endif
@@ -481,7 +480,7 @@ static struct menu_entry audio_menus[] = {
         .name = "Analog Gain",
         .priv           = &mgain,
         .select         = audio_mgain_toggle,
-        .icon_type = IT_PERCENT,
+        .icon_type = IT_PERCENT_OFF,
         #ifdef CONFIG_500D
         // should match gains[]
         .max = 9,
@@ -491,7 +490,7 @@ static struct menu_entry audio_menus[] = {
         .choices = (const char *[]) {"0 dB", "10 dB", "17 dB", "20 dB", "23 dB", "26 dB", "29 dB", "32 dB"},
         #endif
         .help = "Gain applied to both inputs in analog domain (preferred).",
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on = DEP_SOUND_RECORDING,
         .edit_mode = EM_MANY_VALUES,
     },
     #endif
@@ -500,13 +499,13 @@ static struct menu_entry audio_menus[] = {
         .name = "Digital Gain", 
         .select = menu_open_submenu, 
         .help = "Digital gain (not recommended, use only for headphones!)",
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on = DEP_SOUND_RECORDING,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Left Digital Gain",
                 .priv           = &dgain_l,
                 .max            = 36,
-                .icon_type      = IT_PERCENT,
+                .icon_type      = IT_PERCENT_OFF,
                 .select         = audio_dgain_toggle,
                 .update         = audio_dgain_display,
                 .help = "Digital gain (LEFT). Any nonzero value reduces quality.",
@@ -515,7 +514,7 @@ static struct menu_entry audio_menus[] = {
                 .name = "Right Digital Gain",
                 .priv           = &dgain_r,
                 .max            = 36,
-                .icon_type      = IT_PERCENT,
+                .icon_type      = IT_PERCENT_OFF,
                 .select         = audio_dgain_toggle,
                 .update         = audio_dgain_display,
                 .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
@@ -538,11 +537,11 @@ static struct menu_entry audio_menus[] = {
         .name = "Input source",
         .priv           = &input_choice,
         .select         = audio_input_toggle,
-        .icon_type      = IT_ALWAYS_ON,
+        .icon_type      = IT_DICE,
         .max            = 4,
         .choices = (const char *[]) {"Internal mic", "L:int R:ext", "External stereo", "L:int R:balanced", "Auto int/ext"},
         .help = "Audio input: internal / external / both / balanced / auto.",
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on = DEP_SOUND_RECORDING,
     },
     #endif
 
@@ -553,7 +552,7 @@ static struct menu_entry audio_menus[] = {
         .help = "High pass filter for wind noise reduction.",
         .select            = audio_binary_toggle,
         .max = 1,
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on = DEP_SOUND_RECORDING,
     },
     #endif
     
@@ -572,35 +571,11 @@ static struct menu_entry audio_menus[] = {
         .update         = audio_micpower_display,
         .max = 1,
         .help = "Needed for int. and some other mics, but lowers impedance.",
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on = DEP_SOUND_RECORDING,
     },
     #endif
 
-
-    #ifdef FEATURE_HEADPHONE_MONITORING
-    #ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
-    {
-        .name = "Output Volume",
-        .priv           = &lovl,
-        .select         = audio_3bit_toggle,
-        .update         = audio_lovl_display,
-        .max = 3,
-        .icon_type      = IT_PERCENT,
-        .choices = (const char *[]) {"0 dB", "2 dB (digital)", "4 dB (digital)", "6 dB (digital)"},
-        .help = "Output volume for audio monitoring (headphones only).",
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
-    },
-    #endif
-    {
-        .name = "Headphone Mon.",
-        .priv = &audio_monitoring,
-        .select = audio_monitoring_toggle,
-        .max = 1,
-        .help = "Monitoring via A-V jack. Disable if you use a SD display.",
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
-    },
-    #endif
-
+/* any reason to turn these off?
     #ifdef FEATURE_AUDIO_METERS
     {
         .name = "Audio Meters",
@@ -611,8 +586,33 @@ static struct menu_entry audio_menus[] = {
 #else
         .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
 #endif
-        .depends_on = DEP_GLOBAL_DRAW | DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on = DEP_GLOBAL_DRAW | DEP_SOUND_RECORDING,
     },
+    #endif
+*/
+
+    #ifdef FEATURE_HEADPHONE_MONITORING
+    {
+        .name = "Headphone Mon.",
+        .priv = &audio_monitoring,
+        .select = audio_monitoring_toggle,
+        .max = 1,
+        .help = "Monitoring via A-V jack. Disable if you use a SD display.",
+        .depends_on = DEP_SOUND_RECORDING,
+    },
+    #ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
+    {
+        .name = "Headphone Volume",
+        .priv           = &lovl,
+        .select         = audio_3bit_toggle,
+        .update         = audio_lovl_display,
+        .max = 3,
+        .icon_type      = IT_PERCENT_OFF,
+        .choices = (const char *[]) {"0 dB", "2 dB (digital)", "4 dB (digital)", "6 dB (digital)"},
+        .help = "Output volume for audio monitoring (headphones only).",
+        .depends_on = DEP_SOUND_RECORDING,
+    },
+    #endif
     #endif
 };
 

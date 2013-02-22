@@ -484,6 +484,10 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
     struct ParseState PreState;
     enum LexToken Token;
     
+    extern int script_stop_requested;
+    if (script_stop_requested)
+        ProgramFail(Parser, "User pressed CTRL-C.");
+
     ParserCopy(&PreState, Parser);
     Token = LexGetToken(Parser, &LexerValue, TRUE);
     

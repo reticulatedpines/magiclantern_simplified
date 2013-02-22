@@ -64,6 +64,7 @@ int audio_meters_are_drawn()
 static void audio_monitoring_update()
 {
     if (cfg_override_audio == 0) return;
+    
     // kill video connect/disconnect event... or not
     *(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = audio_monitoring ? 2 : 0;
         
@@ -560,7 +561,7 @@ static struct menu_entry audio_menus[] = {
         .priv           = &cfg_override_audio,
         .max            = 1,
         .select         = override_audio_toggle,
-        .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on     = DEP_SOUND_RECORDING,
         .help = "Override audio setting by ML",
     },
     {
@@ -570,7 +571,7 @@ static struct menu_entry audio_menus[] = {
         .max            = 7,
         .icon_type      = IT_PERCENT,
         .choices        = CHOICES("-12 dB", "-3 dB", "0 dB", "+6 dB", "+15 dB", "+24 dB", "+33 dB", "+35 dB"),
-        .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on     = DEP_SOUND_RECORDING,
         .help = "Analog gain (-12 +35 mic vol)",
     },
     {
@@ -580,14 +581,14 @@ static struct menu_entry audio_menus[] = {
         .max            = 6,
         .icon_type      = IT_PERCENT,
         .choices        = CHOICES("0 dB","+5 dB","+10 dB","+15 dB","+20 dB","+25 dB","+30 dB"),
-        .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on     = DEP_SOUND_RECORDING,
         .help = "TEST: Analog mic +5dB boost only",
     },
     {
         .name = "Digital Gain", 
         .select = menu_open_submenu, 
         .help = "Digital Volume and R-L gain",
-        .depends_on = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on = DEP_SOUND_RECORDING,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Record Effect Mode",
@@ -647,13 +648,13 @@ static struct menu_entry audio_menus[] = {
         .icon_type      = IT_ALWAYS_ON,
         .choices = (const char *[]) {"Internal mic", "L:int R:ext", "External stereo", "Balanced (N/A)", "Auto int/ext"},
         .help = "Audio input: internal / external / both / balanced / auto.",
-        .depends_on        = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on        = DEP_SOUND_RECORDING,
     },
     {
         .name = "Wind Filter",
         .help = "High pass filter for wind noise reduction. ML26121A.pdf p77",
         .select            =  menu_open_submenu,
-        .depends_on        = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on        = DEP_SOUND_RECORDING,
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
             {
@@ -696,7 +697,15 @@ static struct menu_entry audio_menus[] = {
       .update   = audio_loopback_display,
       },*/
     {
-        .name = "Output volume",
+        .name = "Headphone Mon.",
+        .priv = &audio_monitoring,
+        .max  = 1,
+        .select         = audio_monitoring_toggle,
+        .help = "Monitoring via A-V jack. Disable if you use a SD display.",
+        .depends_on     = DEP_SOUND_RECORDING,
+    },
+    {
+        .name = "Headphone Volume",
         .priv           = &lovl,
         .select         = audio_lovl_toggle,
         .max            = 6,
@@ -704,23 +713,17 @@ static struct menu_entry audio_menus[] = {
         .update         = audio_lovl_display,
         .choices        = CHOICES("0 dB","+2 dB","+4 dB","+6 dB","+8 dB","+10 dB","+11 dB"),
         .help = "Output volume for audio monitoring (headphones only).",
-        .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on     = DEP_SOUND_RECORDING,
     },
-    {
-        .name = "Headphone Mon.",
-        .priv = &audio_monitoring,
-        .max  = 1,
-        .select         = audio_monitoring_toggle,
-        .help = "Monitoring via A-V jack. Disable if you use a SD display.",
-        .depends_on     = DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
-    },
+/* any reason to turn these off?
     {
         .name = "Audio Meters",
         .priv           = &cfg_draw_meters,
         .max            = 1,
         .help = "Bar peak decay, -40...0 dB, yellow at -12 dB, red at -3 dB.",
-        .depends_on     = DEP_GLOBAL_DRAW | DEP_MOVIE_MODE | DEP_SOUND_RECORDING,
+        .depends_on     = DEP_GLOBAL_DRAW | DEP_SOUND_RECORDING,
     },
+    */
 };
 
 static void volume_display()

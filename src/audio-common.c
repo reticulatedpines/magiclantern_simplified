@@ -53,7 +53,8 @@ int loopback = 1;
 //CONFIG_INT( "audio.input-source",     input_source,           0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced
 CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
 CONFIG_INT( "audio.filters",    enable_filters,        1 ); //disable the HPF, LPF and pre-emphasis filters
-CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
+//~ CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
+#define cfg_draw_meters 1
 #ifdef CONFIG_500D
 CONFIG_INT("audio.monitoring", audio_monitoring, 0);
 #else
@@ -287,10 +288,10 @@ static void draw_meters(void)
         
     if (gui_menu_shown())
         {
-            x0 = MAX(os.x0 + os.x_ex/2 - 360, 0);
-            y0 = MAX(os.y0 + os.y_ex/2 - 240, 0);
-            y0 += 380;
-            x0 += 10;
+            x0 = 10;
+            y0 = 457;
+            if (menu_active_but_hidden()) y0 = 10;
+            small = 0;
         }
     else
         {

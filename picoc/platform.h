@@ -63,10 +63,10 @@
 #endif
 
 #define assert(x)
-#define malloc SmallAlloc
+#define malloc script_malloc
 #define NO_CALLOC
 #define NO_REALLOC
-#define free SmallFree
+#define free script_free
 #define memcpy my_memcpy
 #undef BIG_ENDIAN
 #define PicocPlatformSetExitPoint()

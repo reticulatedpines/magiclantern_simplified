@@ -80,7 +80,7 @@
 #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
 
 /** We can't change ExpSim from ML (at least not yet) **/
-//~ #define CONFIG_EXPSIM
+#define CONFIG_EXPSIM
 
 /** We can;t playback sounds via ASIF DMA (yet) **/
 #define CONFIG_BEEP
@@ -116,3 +116,5 @@
 /** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
 #define CONFIG_FPS_AGGRESSIVE_UPDATE
 
+/** We can record movies in regular photo modes - M, P, Tv, Av... */
+#define CONFIG_NO_DEDICATED_MOVIE_MODE

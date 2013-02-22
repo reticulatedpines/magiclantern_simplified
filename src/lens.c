@@ -1134,7 +1134,6 @@ int orig_af_button_assignment = AF_BUTTON_NOT_MODIFIED;
 void assign_af_button_to_halfshutter()
 {
     if (ml_shutdown_requested) return;
-    if (is_manual_focus()) return;
     if (orig_af_button_assignment == AF_BTN_HALFSHUTTER) return;
     //~ take_semaphore(lens_sem, 0);
     lens_wait_readytotakepic(64);
@@ -1148,7 +1147,6 @@ void assign_af_button_to_halfshutter()
 void assign_af_button_to_star_button()
 {
     if (ml_shutdown_requested) return;
-    if (is_manual_focus()) return;
     if (orig_af_button_assignment == AF_BTN_STAR) return;
     //~ take_semaphore(lens_sem, 0);
     lens_wait_readytotakepic(64);

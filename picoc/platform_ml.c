@@ -49,7 +49,7 @@ void PicocPlatformScanFile(const char *FileName)
     msleep(500);
     PicocParse(FileName, SourceStr, strlen(SourceStr), TRUE, FALSE, TRUE);
 
-    free_dma_memory(SourceStr);
+    script_free_dma(SourceStr);
 }
 
 /* mark where to end the program for platforms which require this */

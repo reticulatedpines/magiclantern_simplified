@@ -450,7 +450,7 @@ static MENU_UPDATE_FUNC(record_display)
         int s = get_seconds_clock() - audio_recording_start_time;
         MENU_SET_NAME("Recording...");
         MENU_SET_VALUE("%02d:%02d", s/60, s%60);
-        MENU_SET_ICON(MNI_NAMED_COLOR, (intptr_t)"Red");
+        MENU_SET_ICON(MNI_RECORD, 0);
     }
     else
     {
@@ -843,7 +843,7 @@ static void delete_file(void* priv, int delta)
 }
 #endif
 
-static CONFIG_INT("voice.tags", voice_tags, 0);
+CONFIG_INT("voice.tags", voice_tags, 0); // also seen in shoot.c
 
 #ifdef FEATURE_VOICE_TAGS
     #ifndef FEATURE_WAV_RECORDING
@@ -887,10 +887,21 @@ MENU_UPDATE_FUNC(beep_update)
 
 static struct menu_entry beep_menus[] = {
     #ifdef FEATURE_BEEP
+        #if !defined(CONFIG_7D)
+            {
+                .name = "Speaker Volume",
+                .priv       = &beep_volume,
+                .min = 1,
+                .max = 5,
+                .icon_type = IT_PERCENT,
+                .help = "Volume for ML beeps and WAV playback (1-5).",
+            },
+        #endif
     {
         .name = "Beep, test tones",
         .select = menu_open_submenu,
         .update = beep_update,
+        .submenu_width = 680,
         .help = "Configure ML beeps and play test tones (440Hz, 1kHz...)",
         .children =  (struct menu_entry[]) {
             {
@@ -899,17 +910,6 @@ static struct menu_entry beep_menus[] = {
                 .max = 1,
                 .help = "Enable beep signal for misc events in ML.",
             },
-#if !defined(CONFIG_7D)
-            {
-                .name = "Beep Volume",
-                .priv       = &beep_volume,
-                .min = 1,
-                .max = 5,
-                .icon_type = IT_PERCENT,
-                //~ .select = beep_volume_toggle,
-                .help = "Volume for ML beep and test tones (1-5).",
-            },
-#endif
             {
                 .name = "Tone Waveform", 
                 .priv = &beep_wavetype,
@@ -946,9 +946,9 @@ static struct menu_entry beep_menus[] = {
     #endif
     #ifdef FEATURE_WAV_RECORDING
     {
-        .name = "Sound recorder",
+        .name = "Sound Recorder",
         .select = menu_open_submenu,
-        .help = "Record short audio clips, add voice tags to pictures...",
+        .help = "Record and playback short audio clips (WAV).",
         .children =  (struct menu_entry[]) {
             {
                 .name = "File name",
@@ -976,16 +976,8 @@ static struct menu_entry beep_menus[] = {
         }
     },
     #endif
-    #ifdef FEATURE_VOICE_TAGS
-    {
-        .name = "Voice Tags", 
-        .priv = &voice_tags, 
-        .max = 1,
-        .help = "After you take a picture, press SET to add a voice tag.",
-        .works_best_in = DEP_PHOTO_MODE,
-    },
-    #endif
 };
+
 
 #if 0 // wtf is that?! start recording at startup?!
 #ifdef CONFIG_600D
