@@ -34,7 +34,7 @@ int measured_bitrate = 0; // mbps
 int movie_bytes_written_32k = 0;
 int set =0;
 
-int video_mode[5];
+int video_mode[6];
 PROP_HANDLER(PROP_VIDEO_MODE)
 {
 	memcpy(video_mode, buf, 24);
