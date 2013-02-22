@@ -21,3 +21,5 @@
 #undef FEATURE_LV_ZOOM_AUTO_EXPOSURE // seems to cause black pictures
 
 //~ #define FEATURE_VIDEO_HACKS
+
+#define FEATURE_AFMA_TUNING
