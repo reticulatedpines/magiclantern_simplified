@@ -5,6 +5,9 @@ printf("Let's fake some buttons :)\n");
 // click means "press and release"
 // press means "press and hold" (you need to call unpress too)
 
+printf("Press any key to start.\n");
+get_key();
+
 sleep(2);
 
 console_hide();
@@ -47,6 +50,9 @@ unpress(SHOOT_HALF);
 
 sleep(2);
 console_show();
+    
+do {
+    printf("Press SET to continue.\n");
+} while (get_key() != SET);
+
 printf("That's all, folks!\n");
-
-

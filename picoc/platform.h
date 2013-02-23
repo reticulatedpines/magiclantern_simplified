@@ -62,6 +62,8 @@
     #define NAN 0xFFFFFFFF
 #endif
 
+void* script_malloc(int size);
+
 #define assert(x)
 #define malloc script_malloc
 #define NO_CALLOC

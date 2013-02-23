@@ -47,6 +47,9 @@ if (a) // misc tests
     click(MENU);
     sleep(1);
     console_show();
+    
+    printf("Press any key to continue.\n");
+    get_key();
 }
 
 if (b) // expo tests
@@ -102,6 +105,9 @@ if (b) // expo tests
     sleep(1);
     set_kelvin(kelvin_0);
     console_show();
+    
+    printf("Press any key to continue.\n");
+    get_key();
 }
 
 if (c) // powersave tests
@@ -127,6 +133,10 @@ if (c) // powersave tests
     lv_resume();
     sleep(2);
     printf("and resumed.\n");
+
+    console_show();
+    printf("Press any key to continue.\n");
+    get_key();
 }
 
 if (d) // movie test
@@ -139,6 +149,10 @@ if (d) // movie test
     movie_end();
     printf("done.\n");
     sleep(1);
+
+    console_show();
+    printf("Press any key to continue.\n");
+    get_key();
 }
 
 if (e) // photo tests
@@ -155,6 +169,10 @@ if (e) // photo tests
     printf("Taking bulb picture...\n");
     sleep(1);
     bulbpic(2.5);
+
+    console_show();
+    printf("Press any key to continue.\n");
+    get_key();
 }
 
 printf("Done :)\n");

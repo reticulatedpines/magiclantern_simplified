@@ -304,7 +304,13 @@ static void script_run_fun(void* priv, int delta)
 int handle_picoc_keys(struct event * event)
 {
     if (IS_FAKE(event)) return 1; // only process real buttons, not emulated presses
+
     if (gui_menu_shown()) return 1;
+    
+    if (script_state == SCRIPT_RUNNING)
+    {
+        if (handle_picoc_lib_keys(event)==0) return 0;
+    }
     
     extern int console_visible;
 
@@ -539,3 +545,5 @@ INIT_FUNC(__FILE__, picoc_init);
 void* script_malloc(int size) { return SmallAlloc(size); }
 void script_free(void* ptr) { SmallFree(ptr); }
 void script_free_dma(void* ptr) { free_dma_memory(ptr); }
+void script_msleep(int ms) { msleep(ms); }
+void script_LoadCalendarFromRTC(struct tm * tm) { LoadCalendarFromRTC(tm); };
