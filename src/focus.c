@@ -1092,14 +1092,19 @@ focus_misc_task(void* unused)
 TASK_CREATE( "focus_misc_task", focus_misc_task, 0, 0x1e, 0x1000 );
 
 #ifdef FEATURE_AFMA_TUNING
-void afma_print_status(int8_t* status, int current)
+void afma_print_status(int8_t* score, int current)
 {
+    int max = 4;
+    for (int i = -20; i <= 20; i++)
+        max = MAX(max, score[i+20]);
+    
     for (int i = -20; i <= 20; i++)
     {
         int x = 350 + i*16;
-        int h = MAX(2, status[i+20] * 20 / 4);
+        int s = score[i+20];
+        int h = MAX(2, s * 20 / max);
         bmp_fill(COLOR_BLACK, x, 0, 14, 20-h);
-        bmp_fill(COLOR_WHITE, x, 20-h, 14, h);
+        bmp_fill(s ? COLOR_WHITE : COLOR_GRAY50, x, 20-h, 14, h);
     }
     int xc = 350 + current*16;
     bmp_fill(COLOR_RED, xc, 0, 14, 20);
@@ -1133,9 +1138,9 @@ void afma_auto_tune()
     NotifyBoxHide();
     msleep(100);
     
-    int8_t status[41];
-    for (int i = -20; i <= 20; i++) status[i+20] = 0;
-    afma_print_status(status, 0);
+    int8_t score[41];
+    for (int i = -20; i <= 20; i++) score[i+20] = 0;
+    afma_print_status(score, 0);
     msleep(1000);
     
     set_afma(-20,-1);
@@ -1146,29 +1151,41 @@ void afma_auto_tune()
 
     for (int k = 0; k < 2; k++)
     {
-        for (int i = -20; i <= 20; i++)
+        for (int c = 0; c <= 80; c++) // -20 ... 20 and back to -20
         {
-            set_afma(i,-1);
+            int i = (c <= 40) ? c-20 : 60-c;
+            set_afma(i, -1);
+            msleep(100);
+            
+            // check for focus confirmation
             int fc = 0;
             for (int j = 0; j < 20; j++)
             {
                 msleep(10);
                 if (FOCUS_CONFIRMATION) fc = 1;
             }
-            status[i+20] += fc;
-            afma_print_status(status, i);
-        }
-        for (int i = 20; i >= -20; i--)
-        {
-            set_afma(i,-1);
-            int fc = 0;
-            for (int j = 0; j < 20; j++)
+            
+            // weak or strong confirmation? use a higher score if strong
+            if (fc)
             {
-                msleep(10);
-                if (FOCUS_CONFIRMATION) fc = 1;
+                msleep(500);
+                for (int j = 0; j < 20; j++)
+                {
+                    msleep(10);
+                    if (FOCUS_CONFIRMATION) fc = 3;
+                }
             }
-            status[i+20] += fc;
-            afma_print_status(status, i);
+            
+            score[i+20] += fc;
+            afma_print_status(score, i);
+            
+            if (!HALFSHUTTER_PRESSED)
+            {
+                beep();
+                set_afma(afma0);
+                NotifyBox(2000, "Canceled by user.");
+                return;
+            }
         }
     }
     SW1(0,100);
@@ -1181,17 +1198,14 @@ void afma_auto_tune()
     int w = 0;
     for (int i = -20; i <= 20; i++)
     {
-        s += (status[i+20] * i);
-        w += status[i+20];
+        // values confirmed multiple times, and/or strongly confirmed, are weighted a lot more
+        int wi = score[i+20] * score[i+20] * score[i+20] * score[i+20];
+        s += (wi * i);
+        w += wi;
     }
     if (w < 10)
     {
         NotifyBox(5000, "Not enough data :(");
-        set_afma(afma0,-1);
-    }
-    else if (w > 120)
-    {
-        NotifyBox(5000, "Too much data :(");
         set_afma(afma0,-1);
     }
     else
@@ -1199,7 +1213,9 @@ void afma_auto_tune()
         int afma = s / w;
         NotifyBox(10000, "New AFMA: %d", afma);
         set_afma(afma,-1);
-        afma_print_status(status, afma);
+        msleep(300);
+        afma_print_status(score, afma);
+        //~ call("dispcheck"); // screenshot
     }
 }
 #endif
@@ -1438,7 +1454,7 @@ static struct menu_entry focus_menu[] = {
 #ifdef FEATURE_AFMA_TUNING
 static struct menu_entry afma_menu[] = {
     {
-        .name = "AFMA tuning",
+        .name = "DotTune AFMA",
         .priv = afma_auto_tune,
         .select = (void (*)(void*,int))run_in_separate_task,
         .depends_on = DEP_MANUAL_FOCUS | DEP_CHIPPED_LENS,
