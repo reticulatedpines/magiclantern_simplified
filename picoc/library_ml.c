@@ -391,6 +391,24 @@ static void LibGetFocusConfirm(struct ParseState *Parser, struct Value *ReturnVa
     ReturnValue->Val->Integer = FOCUS_CONFIRMATION;
 }
 
+static void LibGetAFMA(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    #ifdef CONFIG_AFMA
+    ReturnValue->Val->Integer = get_afma(Param[0]->Val->Integer);
+    #else
+    console_printf("get_afma: not available\n");
+    #endif
+}
+
+static void LibSetAFMA(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    #ifdef CONFIG_AFMA
+    set_afma(Param[0]->Val->Integer, Param[1]->Val->Integer);
+    #else
+    console_printf("set_afma: not available\n");
+    #endif
+}
+
 static void LibDisplayOn(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     display_on();
@@ -489,10 +507,8 @@ struct LibraryFunction PlatformLibrary[] =
     {LibFocusSetup,     "void focus_setup(int stepsize, int delay, int wait);" }, // see Focus -> Focus step settings
     {LibGetFocusConfirm, "int get_focus_confirm();"          }, // return AF confirmation state (outside LiveView, with shutter halfway pressed)
 
-    #ifdef CONFIG_AFMA
-    //~ {LibGetAFMA,        "int get_afma(int mode);"            }, // get AF microadjust value
-    //~ {LibSetAFMA,        "int set_afma(int value, int mode);" }, // set AF microadjust value
-    #endif
+    {LibGetAFMA,        "int get_afma(int mode);"            }, // get AF microadjust value
+    {LibSetAFMA,        "void set_afma(int value, int mode);" }, // set AF microadjust value
     
     // struct dof { int focal_len; int focus_dist; int dof; int far; int near; int hyperfocal; }
     //~ {LibGetDofInfo,     "struct dof * get_dofinfo();"   },

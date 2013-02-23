@@ -195,6 +195,9 @@ if (f) // focus tests
 
     printf("Done.\n");
     console_show();
+    
+    printf("AFMA: %d\n", get_afma(-1));
+    
     printf("Press any key to continue.\n");
     get_key();
 }
