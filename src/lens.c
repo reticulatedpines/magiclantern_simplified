@@ -1535,8 +1535,8 @@ RAWVAL_FUNC(iso)
 RAWVAL_FUNC(shutter)
 RAWVAL_FUNC(aperture)
 
-#define RAW2VALUE(param,rawvalue) values_##param[raw2index_##param(rawvalue)]
-#define VALUE2RAW(param,value) val2raw_##param(value)
+#define RAW2VALUE(param,rawvalue) ((int)values_##param[raw2index_##param(rawvalue)])
+#define VALUE2RAW(param,value) ((int)val2raw_##param(value))
 
 void lensinfo_set_iso(int raw)
 {
