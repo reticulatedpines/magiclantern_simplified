@@ -12,6 +12,8 @@
 @range e 0 1
 @param f Focus tests
 @range f 0 1
+@param g Menu interaction tests
+@range g 0 1
 */
 
 printf("PicoC testing...\n");
@@ -36,7 +38,7 @@ if (a) // misc tests
     printf("some float values: %f %f %f %f %f %f %f %f %f %f %f %f \n", 0.0000001, 0.001, 0.123, 10000, 200000, 300000000, 5433546.45262432, 5.450267432, 0, 42, 555555.5555555, 1.0/0.0 );
     
     /* LED blinking */
-    printf("LED blinking...");
+    printf("LED blinking...\n");
     for (int k = 0; k < 5; k++)
     {
         set_led(1,1);
@@ -48,10 +50,11 @@ if (a) // misc tests
     /* Dumping memory */
     for (unsigned addr = 0xFF010000; addr < 0xFF010010; addr += 4)
         printf("%x: %x\n", addr, *(int*)addr);
-
+    
     /* Key press test */
     sleep(2);
     console_hide();
+    notify_box(3, "Walking through Canon menu...");
     click(MENU);
     sleep(1);
     click(RIGHT);
@@ -225,5 +228,33 @@ if (f) // focus tests
     get_key();
 }
 
+if (g)
+{
+    /* ML menu test */
+    menu_set("Shoot", "Advanced Bracket", 1);
+    menu_set("Expo", "ISO", 320);
+    menu_set_str("Expo", "PictureStyle", "Faithful");
+    
+    printf("Bracketing   : %d\n", menu_get("Shoot", "Advanced Bracket"));
+    printf("Expo.Lock    : %s\n", menu_get_str("Expo", "Expo.Lock"));
+    printf("ISO          : %s\n", menu_get_str("Expo", "ISO"));
+    printf("PictureStyle : %s\n", menu_get_str("Expo", "PictureStyle"));
+    
+    sleep(2);
+
+    menu_open();
+    menu_select("Shoot", "Intervalometer");
+    sleep(2);
+    menu_select("Expo", "ISO");
+    sleep(2);
+    menu_select("Focus", "Follow Focus");
+    sleep(2);
+    menu_close();
+
+    menu_set("Shoot", "Advanced Bracket", 0);
+
+    printf("Press any key to continue.\n");
+    get_key();
+}
 printf("Done :)\n");
 

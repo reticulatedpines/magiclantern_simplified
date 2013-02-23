@@ -3767,6 +3767,12 @@ gui_stop_menu( )
         give_semaphore(gui_sem);
 }
 
+void
+gui_open_menu( )
+{
+    if (!gui_menu_shown())
+        give_semaphore(gui_sem);
+}
 
 int FAST
 gui_menu_shown( void )
@@ -4419,3 +4425,77 @@ void config_menu_save_flags()
     
     NotifyBox(5000, "Menu items: %d unnamed.", unnamed);
 }*/
+
+int menu_get_value_from_script(char* name, char* entry_name)
+{
+    struct menu_entry * entry = entry_find_by_name(name, entry_name);
+    if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    
+    return CURRENT_VALUE;
+}
+
+char* menu_get_str_value_from_script(char* name, char* entry_name)
+{
+    struct menu_entry * entry = entry_find_by_name(name, entry_name);
+    if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+
+    // this won't work with ML menu on (race condition)
+    static struct menu_display_info info;
+    entry_default_display_info(entry, &info);
+    if (entry->update) entry->update(entry, &info);
+    return info.value;
+}
+
+int menu_set_str_value_from_script(char* name, char* entry_name, char* value, int value_int)
+{
+    struct menu_entry * entry = entry_find_by_name(name, entry_name);
+    if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    
+    for (int i = 0; i < 500; i++) // keep cycling until we get the desired value
+    {
+        char* current = menu_get_str_value_from_script(name, entry_name);
+        if (streq(current, value))
+            return 1; // success!
+
+        if (startswith(current, value) && !isdigit(current[strlen(value)]))
+            return 1; // accept 3500 instead of 3500K, or ON instead of ON,blahblah, but not 160 instead of 1600
+        
+        if (entry->priv && CURRENT_VALUE == value_int)
+            return 1; // also success!
+        
+        if (i > 50 && i % 10 == 0) // it's getting fishy, maybe it's good to show some progress
+            console_printf("menu_set_str('%s', '%s', '%s'): trying %s (%d)...\n", name, entry_name, value, current, CURRENT_VALUE);
+        
+        if (entry->select) entry->select( entry->priv, 1);
+        else if (entry->priv) menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
+        else break;
+        
+        msleep(10);
+    }
+    console_printf("Could not set value '%s' for menu %s -> %s\n", value, name, entry_name);
+    return 0; // boo :(
+}
+
+int menu_set_value_from_script(char* name, char* entry_name, int value)
+{
+    struct menu_entry * entry = entry_find_by_name(name, entry_name);
+    if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    
+    if( entry->select ) // special item, we need some heuristics
+    {
+        // we'll just cycle until either the displayed value or priv field looks alright
+        char value_str[10];
+        snprintf(value_str, sizeof(value_str), "%d", value);
+        return menu_set_str_value_from_script(name, entry_name, value_str, value);
+    }
+    else if (entry->priv) // numeric item, just set it
+    {
+        *(int*)(entry->priv) = value;
+        return 1; // success!
+    }
+    else // unknown
+    {
+        console_printf("Cannot set value for %s -> %s\n", name, entry->name);
+        return 0; // boo :(
+    }
+}

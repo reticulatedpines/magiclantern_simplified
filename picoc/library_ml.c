@@ -449,6 +449,85 @@ static void LibSetLed(struct ParseState *Parser, struct Value *ReturnValue, stru
     }
 }
 
+static void LibNotifyBox(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int ms = (int)roundf(Param[0]->Val->FP * 1000.0f);
+    char msg[512];
+
+    struct OutputStream StrStream;
+    
+    extern void SPutc(unsigned char Ch, union OutputStreamInfo *Stream);
+    StrStream.Putch = &SPutc;
+    StrStream.i.Str.Parser = Parser;
+    StrStream.i.Str.WritePos = msg;
+    
+    // there doesn't seem to be any bounds checking :(
+
+    GenericPrintf(Parser, ReturnValue, Param+1, NumArgs-1, &StrStream);
+    PrintCh(0, &StrStream);
+
+    NotifyBox(ms, msg);
+}
+
+static void LibMenuOpen(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    gui_open_menu();
+}
+
+static void LibMenuClose(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    gui_stop_menu();
+}
+
+static void LibMenuSelect(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    char* tab = Param[0]->Val->Pointer;
+    char* entry = Param[1]->Val->Pointer;
+    select_menu_by_name(tab, entry);
+}
+
+static void LibMenuGet(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    char* tab = Param[0]->Val->Pointer;
+    char* entry = Param[1]->Val->Pointer;
+    ReturnValue->Val->Integer = menu_get_value_from_script(tab, entry);
+}
+
+static void LibMenuGetStr(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    char* tab = Param[0]->Val->Pointer;
+    char* entry = Param[1]->Val->Pointer;
+    
+    if (gui_menu_shown())
+    {
+        console_printf("menu_get_str: close ML menu first\n");
+        ReturnValue->Val->Pointer = "(err)";
+    }
+    ReturnValue->Val->Pointer = menu_get_str_value_from_script(tab, entry);
+}
+
+static void LibMenuSet(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    char* tab = Param[0]->Val->Pointer;
+    char* entry = Param[1]->Val->Pointer;
+    int value = Param[2]->Val->Pointer;
+    ReturnValue->Val->Integer = menu_set_value_from_script(tab, entry, value);
+}
+
+static void LibMenuSetStr(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    char* tab = Param[0]->Val->Pointer;
+    char* entry = Param[1]->Val->Pointer;
+    char* value = Param[2]->Val->Pointer;
+    
+    if (gui_menu_shown())
+    {
+        console_printf("menu_set_str: close ML menu first\n");
+        ReturnValue->Val->Integer = 0;
+    }
+    ReturnValue->Val->Integer = menu_set_str_value_from_script(tab, entry, value, 0xdeadbeaf);
+}
+
 static void LibDisplayOn(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     display_on();
@@ -566,7 +645,7 @@ struct LibraryFunction PlatformLibrary[] =
     
     /** Text output */
     //~ {LibBmpPrintf,      "void bmp_printf(int fnt, int x, int y, char* fmt, ...);"                   },
-    //~ {LibNotifyBox,      "void notify_box(float duration, char* fmt, ...);"                          },
+    {LibNotifyBox,      "void notify_box(float duration, char* fmt, ...);"                          },
     
     /** Graphics */
     //~ {LibClrScr,         "void clrscr();"                                                            },  // clear screen
@@ -579,6 +658,15 @@ struct LibraryFunction PlatformLibrary[] =
     //~ {LibDrawRect,       "void draw_rect(int x, int y, int w, int h, int color);"                    },
     //~ {LibFillRect,       "void fill_rect(int x, int y, int w, int h, int color);"                    },
 
+    /** Interaction with menus */
+    { LibMenuOpen,       "void menu_open();"                                     }, // open ML menu
+    { LibMenuClose,      "void menu_close();"                                    }, // close ML menu
+    { LibMenuSelect,     "void menu_select(char* tab, char* entry);"             }, // select a menu tab and entry (e.g. Overlay, Focus Peak)
+    { LibMenuGet,        "int menu_get(char* tab, char* entry);"                 }, // return the raw (integer) value from a menu entry
+    { LibMenuSet,        "int menu_set(char* tab, char* entry, int value);"      }, // set a menu entry to some arbitrary value; 1 = success, 0 = failure
+    { LibMenuGetStr,     "char* menu_get_str(char* tab, char* entry);"           }, // return the displayed (string) value from a menu entry
+    { LibMenuSetStr,     "int menu_set_str(char* tab, char* entry, char* value);"}, // set a menu entry to some arbitrary string value (cycles until it gets it); 1 = success, 0 = failure
+
 #if 0 // not yet implemented
     /** MLU, HTP, misc settings */
     {LibGetMLU,         "int get_mlu();"                },
@@ -587,11 +675,6 @@ struct LibraryFunction PlatformLibrary[] =
     {LibSetMLU,         "void set_mlu(int mlu);"        },
     {LibSetHTP,         "void set_htp(int htp);"        },
     {LibSetALO,         "void set_alo(int alo);"        },
-
-    /** Interaction with menus */
-    { LibMenuOpen,       "void menu_open();"            },              // open ML menu
-    { LibMenuSelect,     "void menu_select(char* tab, char* entry);"},  // select a menu tab and entry (e.g. Overlay, Focus Peak)
-    { LibMenuClose,      "void menu_close();"           },              // close ML menu
     
     /** Image analysis */
     { LibGetLVBuf,       "struct vram_info * get_lv_buffer();" }        // get LiveView image buffer
