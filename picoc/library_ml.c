@@ -409,6 +409,20 @@ static void LibSetAFMA(struct ParseState *Parser, struct Value *ReturnValue, str
     #endif
 }
 
+struct _dof { char* lens_name; int focal_len; int focus_dist; int dof; int far; int near; int hyperfocal; };
+static void LibGetDofInfo(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    static struct _dof d;
+    d.lens_name = lens_info.name;
+    d.focal_len = lens_info.focal_len;
+    d.focus_dist = lens_info.focus_dist;
+    d.far = lens_info.dof_far;
+    d.near = lens_info.dof_near;
+    d.dof = d.far - d.near;
+    d.hyperfocal = lens_info.hyperfocal;
+    ReturnValue->Val->Pointer = &d;
+}
+
 static void LibDisplayOn(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     display_on();
@@ -510,8 +524,8 @@ struct LibraryFunction PlatformLibrary[] =
     {LibGetAFMA,        "int get_afma(int mode);"            }, // get AF microadjust value
     {LibSetAFMA,        "void set_afma(int value, int mode);" }, // set AF microadjust value
     
-    // struct dof { int focal_len; int focus_dist; int dof; int far; int near; int hyperfocal; }
-    //~ {LibGetDofInfo,     "struct dof * get_dofinfo();"   },
+    // struct dof { char* lens_name; int focal_len; int focus_dist; int dof; int far; int near; int hyperfocal; }
+    {LibGetDofInfo,     "struct dof * get_dof();"   },
     
     /** Low-level I/O */
     //~ {LibMicOut,          "void mic_out(int value);"                                  }, // digital output via microphone jack, by toggling mic power
@@ -577,19 +591,22 @@ struct LibraryFunction PlatformLibrary[] =
     { NULL,         NULL }
 };
 
-void PlatformLibraryInit()
+static void add_structure(const char* IntrinsicName, const char* StructDefinition)
 {
-
     struct ParseState Parser;
     char *Identifier;
     struct ValueType *ParsedType;
     void *Tokens;
-    const char *IntrinsicName = TableStrRegister("time lib");
-    const char *StructDefinition = "struct tm { int hour; int minute; int second; int year; int month; int day; }";
     Tokens = LexAnalyse(IntrinsicName, StructDefinition, strlen(StructDefinition), NULL);
     LexInitParser(&Parser, StructDefinition, Tokens, IntrinsicName, TRUE);
     TypeParse(&Parser, &ParsedType, &Identifier, NULL);
     HeapFreeMem(Tokens);
+}
+
+void PlatformLibraryInit()
+{
+    add_structure("tm struct",  "struct tm { int hour; int minute; int second; int year; int month; int day; }");
+    add_structure("dof struct", "struct dof { char* lens_name; int focal_len; int focus_dist; int dof; int far; int near; int hyperfocal; }");
 
     LibraryAdd(&GlobalTable, "platform library", &PlatformLibrary[0]);
 

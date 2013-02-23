@@ -184,7 +184,22 @@ if (f) // focus tests
 
     /* We need LiveView */
     if (!lv) { click(LV); sleep(1); }
+
+    struct dof * D = get_dof();
+    printf("Lens name      : %s\n",    D->lens_name);
+    printf("Aperture       : f/%f\n",  get_aperture());
+    printf("Focal length   : %d mm\n", D->focal_len);
+    printf("Focus distance : %d mm\n", D->focus_dist);
+    printf("DOF near       : %d mm\n", D->near);
+    printf("DOF far        : %d mm\n", D->far);
+    printf("Hyperfocal     : %d mm\n", D->hyperfocal);
+
+    printf("\n");
     
+    printf("AFMA           : %d\n", get_afma(-1));
+
+    printf("\n");
+        
     focus_setup(3, 200, 1); // step size 3, delay 200ms, wait
     
     printf("5 steps forward...\n");
@@ -195,9 +210,7 @@ if (f) // focus tests
 
     printf("Done.\n");
     console_show();
-    
-    printf("AFMA: %d\n", get_afma(-1));
-    
+
     printf("Press any key to continue.\n");
     get_key();
 }
