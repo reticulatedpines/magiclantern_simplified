@@ -25,13 +25,7 @@ MENU_UPDATE_FUNC(card_info_display)
     int cf_present = is_dir("A:/");
 
     MENU_SET_VALUE("%s %s", cf_present ? make : "N/A", model);
-    //menu_draw_icon(x, y, cf_present ? MNI_ON : MNI_OFF, 0);
-}
-
-MENU_UPDATE_FUNC(card_test_display)
-{
-    MENU_SET_VALUE("Card test at startup : %s", card_test_enabled ? "ON" : "OFF" );
-    //menu_draw_icon(x, y, card_test_enabled ? MNI_ON : MNI_WARNING, (intptr_t) "Your choice. Just don't blame ML if you get corrupted files.");
+    MENU_SET_ICON(cf_present ? MNI_ON : MNI_OFF, 0);
 }
 
 void card_test(int type)
@@ -287,7 +281,6 @@ struct menu_entry card_menus[] = {
     {
         .name = "Card test at startup", 
         .priv = &card_test_enabled,
-        .update = &card_test_display,
         .max = 1,
         .help = "File write test. Disable ONLY after testing ALL your cards!"
     },
