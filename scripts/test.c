@@ -10,6 +10,8 @@
 @range d 0 1
 @param e Picture taking tests
 @range e 0 1
+@param f Focus tests
+@range f 0 1
 */
 
 printf("PicoC testing...\n");
@@ -170,6 +172,28 @@ if (e) // photo tests
     sleep(1);
     bulbpic(2.5);
 
+    console_show();
+    printf("Press any key to continue.\n");
+    get_key();
+}
+
+
+if (f) // focus tests
+{
+    /* Lens focusing test */
+
+    /* We need LiveView */
+    if (!lv) { click(LV); sleep(1); }
+    
+    focus_setup(3, 200, 1); // step size 3, delay 200ms, wait
+    
+    printf("5 steps forward...\n");
+    focus(5);
+
+    printf("and 5 steps backward...\n");
+    focus(-5);
+
+    printf("Done.\n");
     console_show();
     printf("Press any key to continue.\n");
     get_key();

@@ -24,7 +24,7 @@ int should_override_zoom_buttons()
 }
 
 CONFIG_INT( "focus.stepsize", lens_focus_stepsize, 2 );
-CONFIG_INT( "focus.delay", lens_focus_delay, 1 );
+CONFIG_INT( "focus.delay.ms", lens_focus_delay, 10 );
 CONFIG_INT( "focus.wait", lens_focus_waitflag, 1 );
 CONFIG_INT( "focus.rack.delay", focus_rack_delay, 2);
 
@@ -32,14 +32,20 @@ CONFIG_INT( "focus.rack.delay", focus_rack_delay, 2);
 // all focus commands from this module are done with the configured step size and delay
 int LensFocus(int num_steps)
 {
-    return lens_focus(num_steps, lens_focus_stepsize, lens_focus_waitflag, (1<<lens_focus_delay) * 10);
+    return lens_focus(num_steps, lens_focus_stepsize, lens_focus_waitflag, lens_focus_delay);
 }
 
 int LensFocus2(int num_steps, int step_size)
 {
-    return lens_focus(num_steps, step_size, lens_focus_waitflag, (1<<lens_focus_delay) * 10);
+    return lens_focus(num_steps, step_size, lens_focus_waitflag, lens_focus_delay);
 }
 
+void LensFocusSetup(int stepsize, int stepdelay, int wait)
+{
+    lens_focus_stepsize = COERCE(stepsize, 1, 3);
+    lens_focus_waitflag = wait;
+    lens_focus_delay = stepdelay;
+}
 
 static int focus_stack_enabled = 0;
 //~ CONFIG_INT( "focus.stack", focus_stack_enabled, 0);
@@ -485,24 +491,6 @@ rack_focus_start_delayed( void * priv, int delta )
     focus_toggle(priv);
 }
 
-static void
-focus_delay_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "Focus StepDelay: %s%dms",
-        lens_focus_waitflag ? "Wait + " : "",
-        (1 << lens_focus_delay) * 10
-    );
-    menu_draw_icon(x, y, MNI_PERCENT, lens_focus_delay * 100 / 9);
-}
-
 /*
 static void
 focus_stack_count_increment( void * priv )
@@ -718,6 +706,26 @@ static MENU_UPDATE_FUNC(follow_focus_print)
             bmp_printf(FONT_MED, x + 580 + font_med.width, y-4, follow_focus_reverse_v ? "-\n+" : "+\n-");
         }
     }
+}
+
+static MENU_SELECT_FUNC(focus_delay_toggle)
+{
+    if (delta > 0)
+    {
+        lens_focus_delay = ((lens_focus_delay/10) * 2) * 10;
+        if (lens_focus_delay > 640) lens_focus_delay = 10;
+    }
+    else
+    {
+        lens_focus_delay = ((lens_focus_delay/10) / 2) * 10;
+        if (lens_focus_delay < 10) lens_focus_delay = 640;
+    }
+}
+
+static MENU_UPDATE_FUNC(focus_delay_update)
+{
+    MENU_SET_VALUE("%dms", lens_focus_delay);
+    MENU_SET_ICON(MNI_PERCENT, (log_length(lens_focus_delay) - log_length(10)) * 100 / (log_length(640) - log_length(10)));
 }
 
 #ifdef FEATURE_MOVIE_AF
@@ -1467,9 +1475,12 @@ static struct menu_entry focus_menu[] = {
             {
                 .name = "Step Delay",
                 .priv = &lens_focus_delay,
-                .max = 6,
+                .select = focus_delay_toggle,
+                .update = focus_delay_update,
+                .min = 10,
+                .max = 640,
                 .icon_type = IT_PERCENT,
-                .choices = CHOICES("10ms", "20ms", "40ms", "80ms", "160ms", "320ms", "640ms"),
+                //~ .choices = CHOICES("10ms", "20ms", "40ms", "80ms", "160ms", "320ms", "640ms"),
                 .help = "Delay between two successive focus commands.",
             },
             {

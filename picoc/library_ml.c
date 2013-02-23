@@ -28,7 +28,11 @@ static void LibCls(struct ParseState *Parser, struct Value *ReturnValue, struct 
 
 static void LibScreenshot(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
+    #ifdef FEATURE_SCREENSHOT
     take_screenshot(1);
+    #else
+    console_printf("screenshot: not available\n");
+    #endif
 }
 
 struct _tm { int hour; int minute; int second; int year; int month; int day; };
@@ -372,7 +376,20 @@ static void LibSetGreen(struct ParseState *Parser, struct Value *ReturnValue, st
     lens_set_wbs_gm(Param[0]->Val->Integer);
 }
 
+static void LibFocus(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    LensFocus(Param[0]->Val->Integer);
+}
 
+static void LibFocusSetup(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    LensFocusSetup(Param[0]->Val->Integer, Param[1]->Val->Integer, Param[2]->Val->Integer);
+}
+
+static void LibGetFocusConfirm(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = FOCUS_CONFIRMATION;
+}
 
 static void LibDisplayOn(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
@@ -468,9 +485,9 @@ struct LibraryFunction PlatformLibrary[] =
     {LibSetGreen,       "void set_green(int gm);"       }, // green-magenta shift, from -9 to 9
 
     /** Focus */
-    //~ {LibFocus,          "void focus(int steps);"             }, // move the focus ring by X steps
-    //~ {LibFocusSetup,     "void focus_setup(int stepsize, int delay, int wait);" }, // see Focus -> Focus step settings
-    //~ {LibGetFocusConfirm, "int get_focus_confirm();"          }, // return AF confirmation state (outside LiveView, with shutter halfway pressed)
+    {LibFocus,          "void focus(int steps);"             }, // move the focus ring by X steps
+    {LibFocusSetup,     "void focus_setup(int stepsize, int delay, int wait);" }, // see Focus -> Focus step settings
+    {LibGetFocusConfirm, "int get_focus_confirm();"          }, // return AF confirmation state (outside LiveView, with shutter halfway pressed)
 
     #ifdef CONFIG_AFMA
     //~ {LibGetAFMA,        "int get_afma(int mode);"            }, // get AF microadjust value
