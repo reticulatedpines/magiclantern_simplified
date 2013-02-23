@@ -3656,6 +3656,9 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_FUNC:
     //~ case BGMT_LV:
 #endif
+#ifdef CONFIG_500D
+    case BGMT_LV:
+#endif
 #ifdef CONFIG_5DC
     case BGMT_JUMP:
     case BGMT_PRESS_DIRECT_PRINT:
