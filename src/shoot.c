@@ -3953,11 +3953,7 @@ void bulb_ramping_init()
         lens_set_rawiso(iso0);
         lens_set_rawshutter(s0);
 
-        #ifdef CONFIG_500D
-            fake_simple_button(BGMT_Q);
-        #else
-            fake_simple_button(BGMT_LV);
-        #endif
+        fake_simple_button(BGMT_LV);
         msleep(1000);
 
         // save calibration results in config file
