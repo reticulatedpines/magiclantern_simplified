@@ -24,38 +24,51 @@ static int8_t afma_buf[0xF];
 #define AFMA_PER_LENS   afma_buf[0xC]
 #define AFMA_ALL_LENSES afma_buf[0xE]
 
+#ifdef CONFIG_AFMA_EXTENDED
+#define AFMA_MAX 100
+#else
+#define AFMA_MAX 20
+#endif
+
+int get_afma_max() { return AFMA_MAX; }
+int get_afma_mode() { return AFMA_MODE; }
+
 PROP_HANDLER(PROP_AFMA_CFN)
 {
     ASSERT(len == sizeof(afma_buf));
     my_memcpy(afma_buf, buf, sizeof(afma_buf));
 }
 
-int get_afma(int per_lens)
+int get_afma(int mode)
 {
-    if (per_lens == -1) per_lens = (AFMA_MODE == 2 ? 1 : 0);
+    if (mode == AFMA_MODE_AUTODETECT) mode = AFMA_MODE;
     
-    if (per_lens)
+    if (mode == AFMA_MODE_PER_LENS)
         return AFMA_PER_LENS;
-    else
+
+    else if (mode == AFMA_MODE_ALL_LENSES)
         return AFMA_ALL_LENSES;
+
+    return 0;
 }
 
-void set_afma(int value, int per_lens)
+void set_afma(int value, int mode)
 {
     if (ml_shutdown_requested) return;
 
-    if (per_lens == -1) per_lens = (AFMA_MODE == 2 ? 1 : 0);
-    
-    value = COERCE(value, -20, 20);
-    if (per_lens)
-    {
+    value = COERCE(value, -AFMA_MAX, AFMA_MAX);
+
+    if (mode == AFMA_MODE_AUTODETECT) mode = AFMA_MODE;
+    if (mode == AFMA_MODE_DISABLED) mode = AFMA_MODE_ALL_LENSES;
+
+    if (mode == AFMA_MODE_PER_LENS)
         AFMA_PER_LENS = value;
-        AFMA_MODE = 2;
-    }
-    else
-    {
+    
+    else if (mode == AFMA_MODE_ALL_LENSES)
         AFMA_ALL_LENSES = value;
-        AFMA_MODE = 1;
-    }
+    
+    else return; // bad arguments
+
+    AFMA_MODE = mode;
     prop_request_change(PROP_AFMA_CFN, afma_buf, sizeof(afma_buf));
 }

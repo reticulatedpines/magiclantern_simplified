@@ -601,6 +601,14 @@ const char* get_dcim_dir();
 #define FMT_FIXEDPOINT3S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/1000, ABS(x)%1000
 
 
+/** AF microadjustment **/
+int get_afma(int mode);
+void set_afma(int value, int mode);
+#define AFMA_MODE_AUTODETECT -1
+#define AFMA_MODE_DISABLED 0
+#define AFMA_MODE_ALL_LENSES 1
+#define AFMA_MODE_PER_LENS 2
+
 
 
 

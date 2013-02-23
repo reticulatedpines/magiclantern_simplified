@@ -67,7 +67,7 @@ struct menu_display_info
     // etc
 };
 
-#define MENU_MAX_NAME_LEN 30
+#define MENU_MAX_NAME_LEN 35
 #define MENU_MAX_VALUE_LEN 25
 #define MENU_MAX_SHORT_NAME_LEN 15
 #define MENU_MAX_SHORT_VALUE_LEN 15

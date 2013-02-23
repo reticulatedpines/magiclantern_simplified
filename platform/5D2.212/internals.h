@@ -106,3 +106,10 @@
 
 /** We can record movies in regular photo modes - M, P, Tv, Av... */
 #define CONFIG_NO_DEDICATED_MOVIE_MODE
+
+/** We can adjust AFMA (AF microadjustment) */
+#define CONFIG_AFMA
+
+/** The camera accepts extended AFMA values (default range: -20...20; extended: -100...100) */
+/** This can be dangerous, as the values are outside Canon limits */
+#define CONFIG_AFMA_EXTENDED

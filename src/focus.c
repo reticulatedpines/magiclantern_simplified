@@ -1092,15 +1092,19 @@ focus_misc_task(void* unused)
 TASK_CREATE( "focus_misc_task", focus_misc_task, 0, 0x1e, 0x1000 );
 
 #ifdef FEATURE_AFMA_TUNING
-void afma_print_status(int8_t* score, int current)
+static void afma_print_status(int8_t* score, int range_expand_factor)
 {
     int max = 4;
     for (int i = -20; i <= 20; i++)
         max = MAX(max, score[i+20]);
     
     bmp_fill(COLOR_GRAY45, 0, 0, 720, 20);
-    bmp_printf(SHADOW_FONT(FONT_SMALL), 3, 4, "-20");
-    bmp_printf(SHADOW_FONT(FONT_SMALL), 695, 4, "+20");
+
+    char msg[5];
+    snprintf(msg, sizeof(msg), "-%d", 20 * range_expand_factor);
+    bmp_printf(SHADOW_FONT(FONT_SMALL), 3, 4, msg);
+    snprintf(msg, sizeof(msg), "+%d", 20 * range_expand_factor);
+    bmp_printf(SHADOW_FONT(FONT_SMALL), 695, 4, msg);
     
     for (int i = -20; i <= 20; i++)
     {
@@ -1111,18 +1115,21 @@ void afma_print_status(int8_t* score, int current)
         bmp_fill(COLOR_BLACK, x, 2, 14, 16-h);
         bmp_fill(COLOR_WHITE, x, 2 + 16-h, 14, h);
     }
-    int xc = 353 + current*16;
+    
+    int afma = get_afma(AFMA_MODE_AUTODETECT);
+    int xc = 353 + COERCE(afma / range_expand_factor, -20, 20) * 16;
     bmp_fill(COLOR_RED, xc, 2, 14, 16);
-    char msg[4];
-    snprintf(msg, sizeof(msg), "%d", current);
+    snprintf(msg, sizeof(msg), "%d", afma);
     bmp_printf(SHADOW_FONT(FONT_SMALL), xc + 8 - strlen(msg)*font_small.width/2, 4, msg);
 }
 
-void afma_auto_tune()
+static void afma_auto_tune(int range_expand_factor)
 {
-    int afma0 = get_afma(-1);
+    int afma0 = get_afma(AFMA_MODE_AUTODETECT);
     
     msleep(1000);
+
+    if (is_movie_mode()) { NotifyBox(5000, "Switch to photo mode and try again."); beep(); return; };
     
     if (lv) { fake_simple_button(BGMT_LV); msleep(1000); }
     
@@ -1148,10 +1155,10 @@ void afma_auto_tune()
     
     int8_t score[41];
     for (int i = -20; i <= 20; i++) score[i+20] = 0;
-    afma_print_status(score, afma0);
+    afma_print_status(score, range_expand_factor);
     msleep(1000);
     
-    set_afma(-20,-1);
+    set_afma(-20 * range_expand_factor, AFMA_MODE_AUTODETECT);
     assign_af_button_to_halfshutter();
     msleep(100);
 
@@ -1162,7 +1169,7 @@ void afma_auto_tune()
         for (int c = 0; c <= 80; c++) // -20 ... 20 and back to -20
         {
             int i = (c <= 40) ? c-20 : 60-c;
-            set_afma(i, -1);
+            set_afma(i * range_expand_factor, AFMA_MODE_AUTODETECT);
             msleep(100);
             
             // check for focus confirmation
@@ -1185,12 +1192,12 @@ void afma_auto_tune()
             }
             
             score[i+20] += fc;
-            afma_print_status(score, i);
+            afma_print_status(score, range_expand_factor);
             
             if (!HALFSHUTTER_PRESSED)
             {
                 beep();
-                set_afma(afma0);
+                set_afma(afma0, AFMA_MODE_AUTODETECT);
                 NotifyBox(2000, "Canceled by user.");
                 return;
             }
@@ -1208,24 +1215,64 @@ void afma_auto_tune()
     {
         // values confirmed multiple times, and/or strongly confirmed, are weighted a lot more
         int wi = score[i+20] * score[i+20] * score[i+20] * score[i+20];
-        s += (wi * i);
+        s += (wi * i * range_expand_factor);
         w += wi;
     }
     if (w < 10)
     {
         NotifyBox(5000, "Not enough data :(");
-        set_afma(afma0,-1);
+        set_afma(afma0, AFMA_MODE_AUTODETECT);
     }
     else
     {
         int afma = s / w;
         NotifyBox(10000, "New AFMA: %d", afma);
-        set_afma(afma,-1);
+        set_afma(afma, AFMA_MODE_AUTODETECT);
         msleep(300);
-        afma_print_status(score, afma);
+        afma_print_status(score, range_expand_factor);
         //~ call("dispcheck"); // screenshot
     }
 }
+
+static void afma_auto_tune_std() { afma_auto_tune(1); }   // -20...20
+static void afma_auto_tune_ext() { afma_auto_tune(2); }   // -40...40
+static void afma_auto_tune_ultra() { afma_auto_tune(5); } // -100...100
+
+static MENU_UPDATE_FUNC(afma_display)
+{
+    int afma = get_afma(AFMA_MODE_AUTODETECT);
+    int max = get_afma_max();
+    int mode = get_afma_mode();
+    if (mode)
+    {
+        MENU_SET_VALUE(
+            "%s%d", 
+            afma > 0 ? "+" : "", afma
+        );
+        MENU_SET_RINFO(
+            mode == AFMA_MODE_ALL_LENSES ? "(all lenses)" : 
+            mode == AFMA_MODE_PER_LENS ? "(this lens)" : "(err)"
+        );
+
+        MENU_SET_ICON(MNI_PERCENT, 50 + afma * 50 / max);
+    }
+    else
+    {
+        MENU_SET_VALUE("Disabled");
+        MENU_SET_ICON(MNI_OFF, 0);
+        MENU_SET_ENABLED(0);
+    }
+}
+
+static MENU_SELECT_FUNC(afma_toggle)
+{
+    int afma = get_afma(AFMA_MODE_AUTODETECT);
+    int max = get_afma_max();
+    menu_numeric_toggle(&afma, delta, -max, max);
+    set_afma(afma, AFMA_MODE_AUTODETECT);
+    msleep(50); // needed on 5D3; don't ask me why
+}
+
 #endif
 
 #ifdef FEATURE_TRAP_FOCUS
@@ -1463,11 +1510,51 @@ static struct menu_entry focus_menu[] = {
 static struct menu_entry afma_menu[] = {
     {
         .name = "DotTune AFMA",
-        .priv = afma_auto_tune,
-        .select = (void (*)(void*,int))run_in_separate_task,
-        .depends_on = DEP_MANUAL_FOCUS | DEP_CHIPPED_LENS,
+        .select = menu_open_submenu,
         .help  = "Auto calibrate AF microadjustment ( youtu.be/7zE50jCUPhM )",
-        .help2 = "1. focus manually in LV on some test target. 2. run this.",
+        .help2 = "Before running, focus manually on a test target in LiveView.",
+        .depends_on = DEP_CHIPPED_LENS | DEP_PHOTO_MODE,
+        .submenu_width = 700,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Scan default range  (-20...+20)",
+                .priv = afma_auto_tune_std,
+                .select = (void (*)(void*,int))run_in_separate_task,
+                .help  = "Step 1: achieve critical focus in LiveView with 10x zoom.",
+                .help2 = "Step 2: run this and leave the camera still for ~2 minutes.",
+                .depends_on = DEP_MANUAL_FOCUS,
+            },
+            #ifdef CONFIG_AFMA_EXTENDED
+            {
+                .name = "Scan extended range (-40...+40)",
+                .priv = afma_auto_tune_ext,
+                .select = (void (*)(void*,int))run_in_separate_task,
+                .help  = "This uses AFMA values normally not available in Canon menu.",
+                .help2 = "Dangerous. Run this only if the normal range fails.",
+                .depends_on = DEP_MANUAL_FOCUS,
+            },
+            {
+                .name = "Scan extended range (-100..+100)",
+                .priv = afma_auto_tune_ultra,
+                .select = (void (*)(void*,int))run_in_separate_task,
+                .help  = "This uses AFMA values normally not available in Canon menu.",
+                .help2 = "Dangerous. Run this only if you have severe focus problems.",
+                .depends_on = DEP_MANUAL_FOCUS,
+            },
+            #endif
+            {
+                .name = "AF microadjust",
+                .update = afma_display,
+                .select = afma_toggle,
+                #ifdef CONFIG_AFMA_EXTENDED
+                .help  = "Adjust AFMA value manually. Range: -100...+100.",
+                #else
+                .help  = "Adjust AFMA value manually. Range: -20...+20.",
+                #endif
+                .edit_mode = EM_MANY_VALUES,
+            },
+            MENU_EOL
+        },
     },
 };
 #endif
