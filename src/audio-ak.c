@@ -753,3 +753,15 @@ static void audio_menus_init()
 
 
 INIT_FUNC("audio.init", audio_menus_init);
+
+
+// for PicoC
+#ifdef FEATURE_MIC_POWER
+void mic_out(int val)
+{
+    audio_ic_write( AUDIO_IC_SIG1
+                    | 0x10
+                    | ( val ? 0x4 : 0x0 )
+                    );
+}
+#endif

@@ -423,6 +423,32 @@ static void LibGetDofInfo(struct ParseState *Parser, struct Value *ReturnValue, 
     ReturnValue->Val->Pointer = &d;
 }
 
+static void LibMicOut(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    #ifdef FEATURE_MIC_POWER
+    mic_out(Param[0]->Val->Integer);
+    // todo: will also work on 600D, http://www.magiclantern.fm/forum/index.php?topic=4577.msg26886#msg26886
+    #else
+    console_printf("mic_out: not available\n");
+    #endif
+}
+
+static void LibSetLed(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int led = Param[0]->Val->Integer;
+    int val = Param[1]->Val->Integer;
+    if (led)
+    {
+        if (val) info_led_on();
+        else info_led_off();
+    }
+    else
+    {
+        if (val) _card_led_on();
+        else _card_led_off();
+    }
+}
+
 static void LibDisplayOn(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     display_on();
@@ -528,8 +554,8 @@ struct LibraryFunction PlatformLibrary[] =
     {LibGetDofInfo,     "struct dof * get_dof();"   },
     
     /** Low-level I/O */
-    //~ {LibMicOut,          "void mic_out(int value);"                                  }, // digital output via microphone jack, by toggling mic power
-    //~ {LibSetLed,          "void set_led(int led);"                                    }, // set LED state; 1 = card LED, 2 = blue LED
+    {LibMicOut,          "void mic_out(int value);"                                  }, // digital output via microphone jack, by toggling mic power
+    {LibSetLed,          "void set_led(int led, int value);"                         }, // set LED state; 1 = card LED, 2 = blue LED
 
     //~ {LibMicPrintf,       "void mic_printf(int baud, char* fmt, ...);"                }, // UART via microphone jack
     //~ {LibWavPrintf,       "void wav_printf(int baud, char* fmt, ...);"                }, // UART via audio out (WAV)

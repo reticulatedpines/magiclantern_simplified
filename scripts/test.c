@@ -34,6 +34,16 @@ if (a) // misc tests
     float twopi = 2 * pi;
     printf("2*pi = %f\n", twopi);
     printf("some float values: %f %f %f %f %f %f %f %f %f %f %f %f \n", 0.0000001, 0.001, 0.123, 10000, 200000, 300000000, 5433546.45262432, 5.450267432, 0, 42, 555555.5555555, 1.0/0.0 );
+    
+    /* LED blinking */
+    printf("LED blinking...");
+    for (int k = 0; k < 5; k++)
+    {
+        set_led(1,1);
+        sleep(0.2);
+        set_led(1,0);
+        sleep(0.2);
+    }
 
     /* Dumping memory */
     for (unsigned addr = 0xFF010000; addr < 0xFF010010; addr += 4)
