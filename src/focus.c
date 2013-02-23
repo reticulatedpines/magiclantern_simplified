@@ -1098,16 +1098,24 @@ void afma_print_status(int8_t* score, int current)
     for (int i = -20; i <= 20; i++)
         max = MAX(max, score[i+20]);
     
+    bmp_fill(COLOR_GRAY45, 0, 0, 720, 20);
+    bmp_printf(SHADOW_FONT(FONT_SMALL), 3, 4, "-20");
+    bmp_printf(SHADOW_FONT(FONT_SMALL), 695, 4, "+20");
+    
     for (int i = -20; i <= 20; i++)
     {
-        int x = 350 + i*16;
+        int x = 353 + i*16;
         int s = score[i+20];
-        int h = MAX(2, s * 20 / max);
-        bmp_fill(COLOR_BLACK, x, 0, 14, 20-h);
-        bmp_fill(s ? COLOR_WHITE : COLOR_GRAY50, x, 20-h, 14, h);
+        int h = s * 16 / max;
+        if (s) h = MAX(h, 2);
+        bmp_fill(COLOR_BLACK, x, 2, 14, 16-h);
+        bmp_fill(COLOR_WHITE, x, 2 + 16-h, 14, h);
     }
-    int xc = 350 + current*16;
-    bmp_fill(COLOR_RED, xc, 0, 14, 20);
+    int xc = 353 + current*16;
+    bmp_fill(COLOR_RED, xc, 2, 14, 16);
+    char msg[4];
+    snprintf(msg, sizeof(msg), "%d", current);
+    bmp_printf(SHADOW_FONT(FONT_SMALL), xc + 8 - strlen(msg)*font_small.width/2, 4, msg);
 }
 
 void afma_auto_tune()
@@ -1140,7 +1148,7 @@ void afma_auto_tune()
     
     int8_t score[41];
     for (int i = -20; i <= 20; i++) score[i+20] = 0;
-    afma_print_status(score, 0);
+    afma_print_status(score, afma0);
     msleep(1000);
     
     set_afma(-20,-1);
