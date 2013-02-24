@@ -503,14 +503,14 @@ static void LibMenuGetStr(struct ParseState *Parser, struct Value *ReturnValue, 
         console_printf("menu_get_str: close ML menu first\n");
         ReturnValue->Val->Pointer = "(err)";
     }
-    ReturnValue->Val->Pointer = (int*) menu_get_str_value_from_script(tab, entry);
+    ReturnValue->Val->Pointer = (char*) menu_get_str_value_from_script(tab, entry);
 }
 
 static void LibMenuSet(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     char* tab = Param[0]->Val->Pointer;
     char* entry = Param[1]->Val->Pointer;
-    int value = (int) Param[2]->Val->Pointer;
+    int value = Param[2]->Val->Integer;
     ReturnValue->Val->Integer = menu_set_value_from_script(tab, entry, value);
 }
 
