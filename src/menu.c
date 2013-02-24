@@ -4438,7 +4438,7 @@ end:
 
 #ifdef CONFIG_PICOC
 
-int menu_get_value_from_script(char* name, char* entry_name)
+int menu_get_value_from_script(const char* name, const char* entry_name)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
     if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
@@ -4446,7 +4446,7 @@ int menu_get_value_from_script(char* name, char* entry_name)
     return CURRENT_VALUE;
 }
 
-char* menu_get_str_value_from_script(char* name, char* entry_name)
+char* menu_get_str_value_from_script(const char* name, const char* entry_name)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
     if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
@@ -4458,7 +4458,7 @@ char* menu_get_str_value_from_script(char* name, char* entry_name)
     return info.value;
 }
 
-int menu_set_str_value_from_script(char* name, char* entry_name, char* value, int value_int)
+int menu_set_str_value_from_script(const char* name, const char* entry_name, char* value, int value_int)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
     if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
@@ -4516,7 +4516,7 @@ ok:
     return 1; // :)
 }
 
-int menu_set_value_from_script(char* name, char* entry_name, int value)
+int menu_set_value_from_script(const char* name, const char* entry_name, int value)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
     if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }

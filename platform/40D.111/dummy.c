@@ -1,7 +1,7 @@
 // some dummy stubs
 #include "dryos.h"
 
-uint32_t shamem_read(uint32_t * addr) { return 0; } // or maybe return MEM(addr)
+uint32_t shamem_read(uint32_t addr) { return 0; } // or maybe return MEM(addr)
 void _EngDrvOut(int addr, int value) { MEM(addr) = value; }
 
 int lcd_release_running = 0;

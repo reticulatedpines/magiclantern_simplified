@@ -500,7 +500,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
             {
                 FILE *f;
                 int tmp,t,r;
-                unsigned s;
+                uint32_t s;
 
                 bmp_printf(FONT_LARGE, 0, 0, "DL request");
 

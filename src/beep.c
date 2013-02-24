@@ -179,7 +179,7 @@ void WAV_Play(char* filename)
     if (!buf1) return;
     if (!buf2) return;
 
-    unsigned size;
+    uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 ) return;
 
     if( file != INVALID_PTR ) return;
@@ -783,7 +783,7 @@ static char* wav_get_new_filename()
     for ( ; wav_number < 10000; wav_number++)
     {
         snprintf(imgname, sizeof(imgname), "%s/SND_%04d.WAV", get_dcim_dir(), wav_number);
-        unsigned size;
+        uint32_t size;
         if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
         if (size == 0) break;
     }

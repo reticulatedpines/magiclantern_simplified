@@ -31,6 +31,10 @@ static void uniwb_correction_step();
 static void warn_step();
 extern void display_gain_toggle(void* priv, int delta);
 
+#ifdef FEATURE_ZOOM_TRICK_5D3 // not reliable
+void zoom_trick_step();
+#endif
+
 CONFIG_INT("dof.preview.sticky", dofpreview_sticky, 0);
 
 #ifdef FEATURE_STICKY_DOF

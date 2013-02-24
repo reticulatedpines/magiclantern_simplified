@@ -779,7 +779,7 @@ bmp_load(
 )
 {
     DebugMsg( DM_MAGIC, 3, "bmp_load(%s)", filename);
-    unsigned size;
+    uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 )
         goto getfilesize_fail;
 
@@ -905,7 +905,7 @@ getfilesize_fail:
 uint8_t* read_entire_file(const char * filename, int* buf_size)
 {
     *buf_size = 0;
-    unsigned size;
+    uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 )
         goto getfilesize_fail;
 
@@ -1800,7 +1800,7 @@ int load_vram(const char * filename)
     ASSERT(b);
     if (!b) return -1;
     
-    unsigned size;
+    uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 )
         return -1; 
     return read_file(filename, b, size);

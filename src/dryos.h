@@ -520,7 +520,7 @@ OS_FUNCTION( 0x0100003,	int,	FIO_WriteFile, FILE* stream, const void* ptr, size_
 OS_FUNCTION( 0x0100004,	void,	FIO_CloseFile, FILE* stream );
 OS_FUNCTION( 0x0100005,	FILE*,	FIO_CreateFile, const char* name );
 /** Returns for 0 success */
-OS_FUNCTION( 0x0100006, int,	FIO_GetFileSize, const char * filename, unsigned * size);
+OS_FUNCTION( 0x0100006, int,	FIO_GetFileSize, const char * filename, uint32_t * size);
 OS_FUNCTION( 0x0100007, struct fio_dirent *,	FIO_FindFirstEx, const char * dirname, struct fio_file * file);
 OS_FUNCTION( 0x0100008, int,	FIO_FindNextEx, struct fio_dirent * dirent, struct fio_file * file);
 OS_FUNCTION( 0x0100009, void,	FIO_CleanupAfterFindNext_maybe, struct fio_dirent * dirent);
@@ -572,7 +572,7 @@ OS_FUNCTION( 0x0400001,	const char*,	get_card_drive, void );
 
 
 uint32_t RegisterRPCHandler (uint32_t rpc_id, uint32_t (*handler) (uint8_t *, uint32_t));
-uint32_t RequestRPC (uint32_t id, uint32_t data, uint32_t length, uint32_t unk2);
+uint32_t RequestRPC (uint32_t id, void* data, uint32_t length, uint32_t unk2);
 
 
 extern int _dummy_variable;

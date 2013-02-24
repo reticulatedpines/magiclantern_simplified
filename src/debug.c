@@ -45,6 +45,7 @@ void display_off();
 void EngDrvOut(int reg, int value);
 unsigned GetFileSize(char* filename);
 
+void ui_lock(int what);
 
 void fake_halfshutter_step();
 
@@ -982,7 +983,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
         TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
         TEST_TRY_VOID(FIO_CloseFile(f));
-        unsigned int size;
+        uint32_t size;
         TEST_TRY_FUNC_CHECK(FIO_GetFileSize(CARD_DRIVE"test.dat", &size), == 0);
         TEST_TRY_FUNC_CHECK(size, == 0x20000);
         TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(0x20000), != (int)INVALID_PTR);
@@ -2092,7 +2093,7 @@ void save_crash_log()
     for (log_number = 0; log_number < 100; log_number++)
     {
         snprintf(log_filename, sizeof(log_filename), crash_log_requested == 1 ? CARD_DRIVE "CRASH%02d.LOG" : CARD_DRIVE "ASSERT%02d.LOG", log_number);
-        unsigned size;
+        uint32_t size;
         if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
         if (size == 0) break;
     }
@@ -2586,7 +2587,7 @@ struct menu_entry debug_menus[] = {
 #if defined(CONFIG_7D)
     {
         .name        = "LV dumping",
-        .priv = 0x60D8, 
+        .priv = (int*) 0x60D8, 
         .max = 6,
         .icon_type = IT_DICE_OFF,
         .help = "Silent picture mode: simple, burst, continuous or high-resolution.",
@@ -3217,7 +3218,7 @@ PROP_HANDLER(PROP_ISO)
 
 unsigned GetFileSize(char* filename)
 {
-    unsigned size;
+    uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 )
         return 0xFFFFFFFF;
     return size;

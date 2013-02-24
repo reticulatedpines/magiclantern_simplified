@@ -34,7 +34,7 @@
 
 typedef struct
 {
-    int32_t type;
+    uint32_t type;
     char name[32];
 } info_string_map_t;
 

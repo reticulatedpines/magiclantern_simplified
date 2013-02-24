@@ -5843,7 +5843,7 @@ void play_422(char* filename)
     //~ return;
     clrscr();
     
-    unsigned size;
+    uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 ) return;
     uint32_t * buf = (uint32_t*)YUV422_HD_BUFFER_2;
     struct vram_info * vram = get_yuv422_vram();

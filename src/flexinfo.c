@@ -1296,13 +1296,13 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         case INFO_STRING_CARD_LABEL_A:
             // card label is not a null terminated string and the length of it is fix 11 chars
             memcpy(buffer, info_get_cardlabel('A'), 11);
-            buffer[11]=NULL;
+            buffer[11]='\0';
             info_trim_string(buffer);
             break;
 
         case INFO_STRING_CARD_LABEL_B:
             memcpy(buffer, info_get_cardlabel('B'), 11);
-            buffer[11]=NULL;
+            buffer[11]='\0';
             info_trim_string(buffer);
             break;
 
@@ -1975,7 +1975,7 @@ uint32_t info_print_config(info_elem_t *config)
     #ifdef FLEXINFO_DEVELOPER_MENU
     if(info_screen_required && !info_edit_mode)
     {
-        memcpy(get_bvram_mirror(), bmp_vram_idle(), 960*480);
+        memcpy((void*)get_bvram_mirror(), bmp_vram_idle(), 960*480);
     }
     #endif
 
@@ -2167,7 +2167,7 @@ void info_menu_draw_editscreen(info_elem_t *config)
         
         if(info_screen_required)
         {
-            memcpy(bmp_vram_idle(), get_bvram_mirror(), 960*480);
+            memcpy(bmp_vram_idle(), (void*) get_bvram_mirror(), 960*480);
         }
         else
         {

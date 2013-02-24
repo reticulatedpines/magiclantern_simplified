@@ -1118,7 +1118,7 @@ static char* silent_pic_get_name()
         for ( ; silent_number < 100000000; silent_number++)
         {
             snprintf(imgname, sizeof(imgname), "%s/%08d.%s", get_dcim_dir(), silent_number, extension);
-            unsigned size;
+            uint32_t size;
             if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
             if (size == 0) break;
         }
@@ -1128,7 +1128,7 @@ static char* silent_pic_get_name()
         for ( ; silent_number < 10000; silent_number++)
         {
             snprintf(imgname, sizeof(imgname), "%s/%04d%04d.%s", get_dcim_dir(), file_number, silent_number, extension);
-            unsigned size;
+            uint32_t size;
             if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
             if (size == 0) break;
         }
@@ -1727,7 +1727,7 @@ silent_pic_take_lv_dbg()
     for (silent_number = 0 ; silent_number < 1000; silent_number++) // may be slow after many pics
     {
         snprintf(imgname, sizeof(imgname), CARD_DRIVE "VRAM%d.422", silent_number); // should be in root, because Canon's "dispcheck" saves screenshots there too
-        unsigned size;
+        uint32_t size;
         if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
         if (size == 0) break;
     }
@@ -3787,7 +3787,7 @@ void bulb_ramping_init()
     for (int i = 0; i < 100; i++)
     {
         snprintf(fn, sizeof(fn), CARD_DRIVE "ML/LOGS/BRAMP%02d.LOG", i);
-        unsigned size;
+        uint32_t size;
         if( FIO_GetFileSize( fn, &size ) != 0 ) break;
         if (size == 0) break;
     }

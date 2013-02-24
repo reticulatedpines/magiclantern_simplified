@@ -239,7 +239,7 @@ FILE* FIO_CreateFile(const char* filename )
 }
 
 //~ int _FIO_GetFileSize(const char * filename, unsigned * size);
-int FIO_GetFileSize(const char * filename, unsigned * size)
+int FIO_GetFileSize(const char * filename, uint32_t * size)
 {
     char new_filename[100];
     guess_drive_letter(new_filename, filename, 100);

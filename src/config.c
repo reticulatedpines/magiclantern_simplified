@@ -302,7 +302,7 @@ int config_autosave = 1;
 
 static int config_flag_file_setting_load(char* file)
 {
-    unsigned size;
+    uint32_t size;
     return ( FIO_GetFileSize( file, &size ) == 0 );
 }
 

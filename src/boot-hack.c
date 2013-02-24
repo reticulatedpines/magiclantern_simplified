@@ -329,7 +329,7 @@ int magic_is_off()
 void backup_region(char *file, uint32_t base, uint32_t length)
 {
     FILE *handle = NULL;
-    unsigned int size = 0;
+    uint32_t size = 0;
     uint32_t pos = 0;
     
     /* already backed up that region? */
