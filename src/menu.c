@@ -4429,6 +4429,8 @@ void config_menu_save_flags()
     NotifyBox(5000, "Menu items: %d unnamed.", unnamed);
 }*/
 
+#ifdef CONFIG_PICOC
+
 int menu_get_value_from_script(char* name, char* entry_name)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
@@ -4454,26 +4456,46 @@ int menu_set_str_value_from_script(char* name, char* entry_name, char* value, in
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
     if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
     
-    for (int i = 0; i < 500; i++) // keep cycling until we get the desired value
+    // if it doesn't seem to cycle, cancel earlier
+    char first[MENU_MAX_VALUE_LEN];
+    char last[MENU_MAX_VALUE_LEN];
+    snprintf(first, sizeof(first), "%s", menu_get_str_value_from_script(name, entry_name));
+    snprintf(last, sizeof(last), "%s", menu_get_str_value_from_script(name, entry_name));
+    
+    for (int i = 0; i < 500; i++) // keep cycling until we get the desired value (or until it repeats the same value)
     {
+        if (gui_menu_shown()) break; // won't work with menu open
+
         char* current = menu_get_str_value_from_script(name, entry_name);
         if (streq(current, value))
-            return 1; // success!
+            return 1; // success!!
 
         if (startswith(current, value) && !isdigit(current[strlen(value)]))
             return 1; // accept 3500 instead of 3500K, or ON instead of ON,blahblah, but not 160 instead of 1600
         
         if (entry->priv && CURRENT_VALUE == value_int)
             return 1; // also success!
+
+        if (i > 0 && streq(current, last)) // value not changing? stop here
+        {
+            console_printf("Value not changing: %s.\n", current);
+            break;
+        }
         
+        if (i > 0 && streq(current, first)) // back to first value? stop here
+            break;
+        
+        // for debugging, print this always
         if (i > 50 && i % 10 == 0) // it's getting fishy, maybe it's good to show some progress
-            console_printf("menu_set_str('%s', '%s', '%s'): trying %s (%d)...\n", name, entry_name, value, current, CURRENT_VALUE);
+            console_printf("menu_set_str('%s', '%s', '%s'): trying %s (%d), was %s...\n", name, entry_name, value, current, CURRENT_VALUE, last);
+
+        snprintf(last, sizeof(last), "%s", current);
         
         if (entry->select) entry->select( entry->priv, 1);
         else if (entry->priv) menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
         else break;
         
-        msleep(10);
+        msleep(20); // we may need to wait for property handlers to update
     }
     console_printf("Could not set value '%s' for menu %s -> %s\n", value, name, entry_name);
     return 0; // boo :(
@@ -4502,3 +4524,5 @@ int menu_set_value_from_script(char* name, char* entry_name, int value)
         return 0; // boo :(
     }
 }
+
+#endif

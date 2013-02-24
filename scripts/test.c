@@ -235,6 +235,10 @@ if (g)
     menu_set("Expo", "ISO", 320);
     menu_set_str("Expo", "PictureStyle", "Faithful");
     
+    // for debugging
+    //~ menu_set("Expo", "WhiteBalance", 3500);             // would take many iterations, but works
+    //~ menu_set_str("Debug", "Don't click me!", "foo");    // should try only once and fail gracefully
+    
     printf("Bracketing   : %d\n", menu_get("Shoot", "Advanced Bracket"));
     printf("Expo.Lock    : %s\n", menu_get_str("Expo", "Expo.Lock"));
     printf("ISO          : %s\n", menu_get_str("Expo", "ISO"));
