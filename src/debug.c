@@ -1611,6 +1611,8 @@ static void bmp_fill_test_task()
     }
 }
 
+extern void menu_self_test();
+
 #endif // CONFIG_STRESS_TEST
 
 void ui_lock(int x)
@@ -2647,6 +2649,12 @@ struct menu_entry debug_menus[] = {
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = stub_test_task,
                 .help = "Tests Canon functions called by ML. SET=once, PLAY=100x."
+            },
+            {
+                .name = "Menu integrity test",
+                .select = (void(*)(void*,int))run_in_separate_task,
+                .priv = menu_self_test,
+                .help = "Internal menu tests: duplicates, wrap around etc.",
             },
             #if defined(CONFIG_7D)
             {

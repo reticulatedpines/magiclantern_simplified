@@ -187,6 +187,7 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
 static struct menu_entry * get_selected_entry(struct menu * menu);
 static void submenu_display(struct menu * submenu);
 static void start_redraw_flood();
+static struct menu * menu_find_by_name(const char * name,  int icon);
 void menu_toggle_submenu();
 
 extern int gui_state;
@@ -327,6 +328,9 @@ static struct menu_entry menu_prefs[] = {
 void customize_menu_init()
 {
     menu_add("Prefs", customize_menu, COUNT(customize_menu));
+
+    // this is added at the end, after all the others
+    my_menu = menu_find_by_name( MY_MENU_NAME,ICON_ML_MYMENU  );
     menu_add(MY_MENU_NAME, my_menu_placeholders, COUNT(my_menu_placeholders));
 }
 
@@ -3736,8 +3740,6 @@ menu_init( void )
     menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  )->split_pos = 11;
     menu_find_by_name( "Debug",     ICON_ML_DEBUG   )->split_pos = 15;
     menu_find_by_name( "Help",      ICON_ML_INFO    )->split_pos = 13;
-    my_menu = menu_find_by_name( MY_MENU_NAME,ICON_ML_MYMENU  );
-
 }
 
 /*
@@ -4474,8 +4476,6 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
     
     for (int i = 0; i < 500; i++) // keep cycling until we get the desired value (or until it repeats the same value)
     {
-        if (gui_menu_shown()) break; // won't work with menu open
-
         char* current = menu_get_str_value_from_script(name, entry_name);
         if (streq(current, value))
             goto ok; // success!!
@@ -4637,6 +4637,122 @@ void menu_save_current_config_as_picoc_preset(char* filename)
 end:
     free_dma_memory(cfg);
     give_semaphore(menu_sem);
+}
+
+#endif
+
+
+#ifdef CONFIG_STRESS_TEST
+
+static void menu_duplicate_test()
+{
+    struct menu * menu = menus;
+    for( ; menu ; menu = menu->next )
+    {
+        if (menu == my_menu) continue;
+        
+        struct menu_entry * entry = menu->children;
+        for( ; entry ; entry = entry->next )
+        {
+            if (!entry->name) continue;
+            if (entry->shidden) continue;
+            
+            struct menu_entry * e = entry_find_by_name(0, entry->name);
+            
+            if (e != entry)
+            {
+                console_printf("Duplicate: %s->%s\n", menu->name, entry->name);
+            }
+        }
+    }
+}
+
+// for menu entries with custom toggle: check if it wraps around in both directions
+static int entry_check_wrap(const char* name, const char* entry_name, int dir)
+{
+    struct menu_entry * entry = entry_find_by_name(name, entry_name);
+    ASSERT(entry);
+    ASSERT(entry->select);
+
+    // we will need exclusive access to menu_display_info
+    take_semaphore(menu_sem, 0);
+    
+    // if it doesn't seem to cycle, cancel earlier
+    char first[MENU_MAX_VALUE_LEN];
+    char last[MENU_MAX_VALUE_LEN];
+    snprintf(first, sizeof(first), "%s", menu_get_str_value_from_script(name, entry_name));
+    snprintf(last, sizeof(last), "%s", menu_get_str_value_from_script(name, entry_name));
+    
+    if (entry->icon_type == IT_ACTION)
+        goto ok; // don't check actions
+    
+    if (strlen(first)==0)
+        goto ok; // no value field, skip it
+    
+    for (int i = 0; i < 500; i++) // cycle until it returns to initial value
+    {
+        bmp_printf(FONT_MED, 0, 0, "%s->%s: %s (%s)                  ", name, entry_name, last, dir > 0 ? "+" : "-");
+
+        // next value
+        entry->select( entry->priv, dir);
+        msleep(20); // we may need to wait for property handlers to update
+
+        char* current = menu_get_str_value_from_script(name, entry_name);
+        
+        if (streq(current, last)) // value not changing? not good
+        {
+            console_printf("Value not changing: %s, %s -> %s (%s).\n", current, name, entry_name, dir > 0 ? "+" : "-");
+            goto err;
+        }
+        
+        if (streq(current, first)) // back to first value? success!
+            goto ok;
+
+        snprintf(last, sizeof(last), "%s", current);
+    }
+    console_printf("'Infinite' range: %s -> %s (%s)\n", name, entry_name, dir > 0 ? "+" : "-");
+
+err:
+    give_semaphore(menu_sem);
+    return 0; // boo :(
+
+ok:
+    give_semaphore(menu_sem);
+    return 1; // :)
+}
+
+void menu_check_wrap()
+{
+    int ok = 0;
+    int bad = 0;
+    struct menu * menu = menus;
+    for( ; menu ; menu = menu->next )
+    {
+        struct menu_entry * entry = menu->children;
+        for( ; entry ; entry = entry->next )
+        {
+            if (entry->shidden) continue;
+            if (!entry->select) continue;
+            
+            int r = entry_check_wrap(menu->name, entry->name, 1);
+            if (r) ok++; else bad++;
+
+            r = entry_check_wrap(menu->name, entry->name, -1);
+            if (r) ok++; else bad++;
+            
+            msleep(100);
+        }
+    }
+    console_printf("Wrap test: %d OK, %d bad\n", ok, bad);
+}
+
+void menu_self_test()
+{
+    msleep(2000);
+    console_show();
+    menu_duplicate_test();
+    console_printf("\n");
+    menu_check_wrap();
 }
 
 #endif
