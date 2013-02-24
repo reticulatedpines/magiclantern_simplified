@@ -103,3 +103,10 @@
 
 /** No auto ISO limits in Canon menus **/
 #define CONFIG_NO_AUTO_ISO_LIMITS
+
+/** We can adjust AFMA (AF microadjustment) */
+#define CONFIG_AFMA
+
+/** The camera accepts extended AFMA values (default range: -20...20; extended: -100...100) */
+/** This can be dangerous, as the values are outside Canon limits */
+#define CONFIG_AFMA_EXTENDED
