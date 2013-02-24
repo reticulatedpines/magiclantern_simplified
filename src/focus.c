@@ -1106,7 +1106,7 @@ static void afma_print_status(int8_t* score, int range_expand_factor)
     for (int i = -20; i <= 20; i++)
         max = MAX(max, score[i+20]);
     
-    bmp_fill(COLOR_GRAY45, 0, 0, 720, 20);
+    bmp_fill(45, 0, 0, 720, 20);
 
     char msg[5];
     snprintf(msg, sizeof(msg), "-%d", 20 * range_expand_factor);

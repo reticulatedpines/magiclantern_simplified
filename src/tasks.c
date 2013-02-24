@@ -262,7 +262,7 @@ MENU_UPDATE_FUNC(tasks_print)
                 
                 if(stack_free == 0)
                 {
-                    color = COLOR_GRAY50;
+                    color = 50;
                 }
                 
                 bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, color, 38)), x, y, 

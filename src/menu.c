@@ -42,10 +42,10 @@
 #define MENU_HELP_Y_POS_2 458
 #define MENU_WARNING_Y_POS (menu_lv_transparent_mode ? 425 : 458)
 
-#define MENU_BG_COLOR_HEADER_FOOTER COLOR_GRAY40
+#define MENU_BG_COLOR_HEADER_FOOTER 40
 
 extern int bmp_color_scheme;
-#define MENU_BAR_COLOR (bmp_color_scheme ? COLOR_LIGHTBLUE : COLOR_BLUE)
+#define MENU_BAR_COLOR (bmp_color_scheme ? COLOR_LIGHT_BLUE : COLOR_BLUE)
 
 #ifdef CONFIG_MENU_ICONS
 #define SUBMENU_OFFSET 48
@@ -282,7 +282,7 @@ static MENU_UPDATE_FUNC(menu_placeholder_unused_update)
 {
     info->custom_drawing = CUSTOM_DRAW_THIS_ENTRY; // do not draw it at all
     if (entry->selected && !junkie_mode)
-        bmp_printf(FONT(FONT_LARGE, COLOR_GRAY45, COLOR_BLACK), 250, info->y, "(empty)");
+        bmp_printf(FONT(FONT_LARGE, 45, COLOR_BLACK), 250, info->y, "(empty)");
 }
 
 static struct menu_entry my_menu_placeholders[] = {
@@ -1135,7 +1135,7 @@ void color_icon(int x, int y, const char* color)
     else if (streq(color, "Green"))
         maru(x, y, COLOR_GREEN2);
     else if (streq(color, "Blue"))
-        maru(x, y, COLOR_LIGHTBLUE);
+        maru(x, y, COLOR_LIGHT_BLUE);
     else if (streq(color, "Cyan"))
         maru(x, y, COLOR_CYAN);
     else if (streq(color, "Magenta"))
@@ -1149,17 +1149,17 @@ void color_icon(int x, int y, const char* color)
     else if (streq(color, "Black"))
         maru(x, y, COLOR_WHITE);
     else if (streq(color, "Luma") || streq(color, "Luma Fast"))
-        maru(x, y, COLOR_GRAY60);
+        maru(x, y, 60);
     else if (streq(color, "RGB"))
     {
         dot(x,     y - 7, COLOR_RED, 5);
         dot(x - 7, y + 3, COLOR_GREEN2, 5);
-        dot(x + 7, y + 3, COLOR_LIGHTBLUE, 5);
+        dot(x + 7, y + 3, COLOR_LIGHT_BLUE, 5);
     }
     else if (streq(color, "ON"))
         maru(x, y, COLOR_GREEN1);
     else if (streq(color, "OFF"))
-        maru(x, y, COLOR_GRAY40);
+        maru(x, y, 40);
     else
     {
         dot(x,     y - 7, COLOR_CYAN, 5);
@@ -1266,26 +1266,26 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
     x -= MENU_OFFSET;
     
     int color_on = warn ? COLOR_DARK_GREEN1_MOD : COLOR_GREEN1;
-    int color_off = COLOR_GRAY40;
-    int color_dis = warn ? COLOR_GRAY50 : COLOR_RED;
+    int color_off = 40;
+    int color_dis = warn ? 50 : COLOR_RED;
     int color_slider_fg = warn ? COLOR_DARK_CYAN2_MOD : COLOR_CYAN;
     int color_slider_bg = warn ? 42 : 45;
     int color_slider_off_fg = warn ? COLOR_DARK_GREEN2_MOD : COLOR_GREEN2;
-    int color_action = warn ? COLOR_GRAY45 : COLOR_YELLOW;
+    int color_action = warn ? 45 : COLOR_YELLOW;
 
     switch(type)
     {
         case MNI_OFF: maru(x, y, color_off); return;
         case MNI_ON: maru(x, y, color_on); return;
         case MNI_DISABLE: batsu(x, y, color_dis); return;
-        case MNI_NEUTRAL: maru(x, y, COLOR_GRAY50); return;
+        case MNI_NEUTRAL: maru(x, y, 50); return;
         case MNI_AUTO: maru(x, y, COLOR_BLUE); return;
         case MNI_PERCENT: clockmeter_half(x, y, arg, color_slider_fg, color_slider_bg); return;
         case MNI_PERCENT_ALLOW_OFF: clockmeter_half(x, y, arg, color_slider_off_fg, color_slider_bg); return;
         case MNI_PERCENT_OFF: clockmeter_half(x, y, arg, color_off+1, color_off); return;
         //~ case MNI_PERCENT_PM: clockmeter_pm(x, y, arg, color_slider_fg, color_slider_bg); return;
         case MNI_ACTION: playicon(x, y, color_action); return;
-        case MNI_DICE: //dice_icon(x, y, arg & 0xFFFF, arg >> 16, COLOR_GREEN1, COLOR_GRAY50); return;
+        case MNI_DICE: //dice_icon(x, y, arg & 0xFFFF, arg >> 16, COLOR_GREEN1, 50); return;
             //~ maru(x, y, color_on); return;
             slider(x, y, arg & 0xFFFF, arg >> 16, color_slider_fg, color_slider_bg); return;
 
@@ -1296,8 +1296,8 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
 
             //~ maru(x, y, i ? color_on : color_off); return;
             
-            //~ if (i == 0) dice_icon(x, y, i-1, N-1, COLOR_GRAY40, COLOR_GRAY40);
-            //~ else dice_icon(x, y, i-1, N-1, COLOR_GREEN1, COLOR_GRAY50);
+            //~ if (i == 0) dice_icon(x, y, i-1, N-1, 40, 40);
+            //~ else dice_icon(x, y, i-1, N-1, COLOR_GREEN1, 50);
             if (i == 0) //maru(x, y, color_off);
                 slider(x, y, i-1, N-1, color_off, color_off);
             else slider(x, y, i-1, N-1, color_slider_off_fg, color_slider_bg); return;
@@ -1415,19 +1415,19 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     w = 720-x0+16; // extend it till the right edge
 
     // draw the pickbox
-    bmp_fill(COLOR_GRAY45, x0-16, y0, w, h+1);
+    bmp_fill(45, x0-16, y0, w, h+1);
     for (int i = lo; i <= hi; i++)
     {
         int y = y0 + (i-lo) * 32;
         if (i == sel)
-            selection_bar_backend(MENU_BAR_COLOR, COLOR_GRAY45, x0-16, y, w, 32);
+            selection_bar_backend(MENU_BAR_COLOR, 45, x0-16, y, w, 32);
         bmp_printf(fnt, x0, y, pickbox_string(entry, i));
     }
     
     /*
     if (entry->children)
         bmp_printf(
-            SHADOW_FONT(FONT(FONT_MED, COLOR_CYAN, COLOR_GRAY45)), 
+            SHADOW_FONT(FONT(FONT_MED, COLOR_CYAN, 45)), 
             x0, y0 + (hi-lo+1) * 32 + 5, 
             "%s" SUBMENU_HINT_SUFFIX,
             Q_BTN_NAME
@@ -1453,7 +1453,7 @@ static void menu_clean_footer()
     int h = 50;
     if (is_menu_active("Help")) h += 10;
     int bgu = MENU_BG_COLOR_HEADER_FOOTER;
-    int fgu = COLOR_GRAY50;
+    int fgu = 50;
     bmp_fill(fgu, 0, 480-h-2, 720, 2);
     bmp_fill(bgu, 0, 480-h, 720, h);
 }
@@ -1750,7 +1750,7 @@ entry_print(
     {
         submenu_key_hint(
             xval-12 - (info->value[0] ? font_large.width*2 : 0), y, 
-            info->warning_level == MENU_WARN_NOT_WORKING ? MENU_FONT_GRAY : COLOR_GRAY60, 
+            info->warning_level == MENU_WARN_NOT_WORKING ? MENU_FONT_GRAY : 60, 
             COLOR_BLACK, 
             ICON_ML_FORWARD
         );
@@ -1763,7 +1763,7 @@ entry_print(
         if (entry->selected)
             submenu_key_hint(720-38, y, COLOR_WHITE, COLOR_BLACK, ICON_ML_Q_FORWARD);
         else
-            submenu_key_hint(720-34, y, COLOR_GRAY40, COLOR_BLACK, ICON_ML_FORWARD);
+            submenu_key_hint(720-34, y, 40, COLOR_BLACK, ICON_ML_FORWARD);
     }
 
     // selection bar params
@@ -1776,7 +1776,7 @@ entry_print(
     // selection bar
     if (entry->selected)
     {
-        int color_left = COLOR_GRAY45;
+        int color_left = 45;
         int color_right = MENU_BAR_COLOR;
         if (junkie_mode && !in_submenu) color_left = color_right = COLOR_BLACK;
         if (customize_mode) { color_left = color_right = get_customize_color(); }
@@ -1795,7 +1795,7 @@ entry_print(
     // display help
     if (entry->selected && !menu_lv_transparent_mode)
     {
-        int help_color = COLOR_GRAY70;
+        int help_color = 70;
         
         if (entry->help) bmp_printf(
             FONT(FONT_MED, help_color, MENU_BG_COLOR_HEADER_FOOTER), 
@@ -1822,7 +1822,7 @@ entry_print(
                     if (len > 58) break;
                     snprintf(help2 + len, MENU_MAX_HELP_LEN - len, "%s%s", pickbox_string(entry, i), i < entry->max ? " / " : ".");
                 }
-                help_color = COLOR_GRAY50;
+                help_color = 50;
             }
         }
 
@@ -1839,7 +1839,7 @@ entry_print(
     if (entry->selected && info->warning[0])
     {
         int warn_color = 
-            info->warning_level == MENU_WARN_INFO ? COLOR_GRAY70 : 
+            info->warning_level == MENU_WARN_INFO ? 70 : 
             info->warning_level == MENU_WARN_ADVICE ? COLOR_YELLOW : 
             info->warning_level == MENU_WARN_NOT_WORKING ? COLOR_ORANGE : COLOR_WHITE;
         
@@ -2249,7 +2249,7 @@ entry_print_junkie(
     {
         bg = can_be_turned_off(entry) ? COLOR_GREEN1 : COLOR_DARK_CYAN2_MOD;
         fg = COLOR_BLACK;
-        if (customize_mode) bg = COLOR_GRAY60;
+        if (customize_mode) bg = 60;
     }
     
     w -= 2;
@@ -2536,7 +2536,7 @@ show_vscroll(struct menu* parent){
     int menu_len = MENU_LEN;
     
     if(max > menu_len){
-        bmp_draw_rect(COLOR_GRAY50, 718, 43, 1, 385);
+        bmp_draw_rect(50, 718, 43, 1, 385);
         int16_t posx = 43 + (335 * (pos-1) / (max-1));
         bmp_fill(COLOR_WHITE, 717, posx, 4, 50);
     }
@@ -2589,7 +2589,7 @@ menus_display(
     
     int bgs = COLOR_BLACK;
     int bgu = MENU_BG_COLOR_HEADER_FOOTER;
-    int fgu = COLOR_GRAY50;
+    int fgu = 50;
     int fgs = COLOR_WHITE;
 
     if (customize_mode) fgs = get_customize_color();
@@ -2771,7 +2771,7 @@ submenu_display(struct menu * submenu)
         bfnt_puts(submenu->name,  bx + 15,  by+2, COLOR_WHITE, 40);
 
         for (int i = 0; i < 5; i++)
-            bmp_draw_rect(COLOR_GRAY45,  bx-i,  by-i, w+i*2, h+i*2);
+            bmp_draw_rect(45,  bx-i,  by-i, w+i*2, h+i*2);
 
 /* gradient experiments
         for (int i = 0; i < 3; i++)
@@ -4209,7 +4209,7 @@ menu_help_go_to_selected_entry(
 
 static void menu_show_version(void)
 {
-    big_bmp_printf(FONT(FONT_MED, COLOR_GRAY60, MENU_BG_COLOR_HEADER_FOOTER),  10,  420,
+    big_bmp_printf(FONT(FONT_MED, 60, MENU_BG_COLOR_HEADER_FOOTER),  10,  420,
         "Magic Lantern version : %s\n"
         "Mercurial changeset   : %s\n"
         "Built on %s by %s.",

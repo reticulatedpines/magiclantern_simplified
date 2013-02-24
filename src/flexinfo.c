@@ -1786,15 +1786,15 @@ uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *
         int perf = GetBatteryPerformance();
         if(element->horizontal)
         {
-            bmp_fill((perf<1 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y,width,height);
-            bmp_fill((perf<2 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x+4+width,pos_y,width,height);
-            bmp_fill((perf<3 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x+8+2*width,pos_y,width,height);
+            bmp_fill((perf<1 ? 50 : COLOR_GREEN2),pos_x,pos_y,width,height);
+            bmp_fill((perf<2 ? 50 : COLOR_GREEN2),pos_x+4+width,pos_y,width,height);
+            bmp_fill((perf<3 ? 50 : COLOR_GREEN2),pos_x+8+2*width,pos_y,width,height);
         }
         else
         {
-            bmp_fill((perf<3 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y,width,height);
-            bmp_fill((perf<2 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y+2+height,width,height);
-            bmp_fill((perf<1 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y+4+2*height,width,height);
+            bmp_fill((perf<3 ? 50 : COLOR_GREEN2),pos_x,pos_y,width,height);
+            bmp_fill((perf<2 ? 50 : COLOR_GREEN2),pos_x,pos_y+2+height,width,height);
+            bmp_fill((perf<1 ? 50 : COLOR_GREEN2),pos_x,pos_y+4+2*height,width,height);
         }
     }
 #else
@@ -2172,14 +2172,14 @@ void info_menu_draw_editscreen(info_elem_t *config)
         else
         {
             /* clear screen */
-            bmp_fill(COLOR_GRAY40, 0, 0, 720, 480);
+            bmp_fill(40, 0, 0, 720, 480);
         }
 
         /* then print the elements */
         info_print_config(config);
 
         /* and now overwrite with border and menu item */
-        bmp_fill(COLOR_GRAY40, menu_x-8, menu_y - fontspec_font(FONT_SMALL)->height - 10, width+16, height+16);
+        bmp_fill(40, menu_x-8, menu_y - fontspec_font(FONT_SMALL)->height - 10, width+16, height+16);
         bmp_fill(COLOR_BLACK, menu_x-4, menu_y-2, width+8, height+4);
         bmp_draw_rect(COLOR_WHITE, menu_x-4, menu_y-2, width+8, height+4);
 
@@ -2196,7 +2196,7 @@ void info_menu_draw_editscreen(info_elem_t *config)
 
         fnt = FONT(font_type, COLOR_WHITE, COLOR_GREEN1);
         bmp_printf(fnt, menu_x, menu_y, "[Q] %s", info_current_menu);
-        fnt = FONT(FONT_SMALL, COLOR_GRAY40, COLOR_GREEN1);
+        fnt = FONT(FONT_SMALL, 40, COLOR_GREEN1);
         bmp_printf(fnt, menu_x, menu_y + fontspec_font(font_type)->height, info_current_desc);
         
         bmp_draw_to_idle(0);

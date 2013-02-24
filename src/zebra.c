@@ -934,13 +934,13 @@ static int hist_rgb_color(int y, int sizeR, int sizeG, int sizeB)
             (y > sizeG ? 0 : 2) |
             (y > sizeB ? 0 : 4))
     {
-        case 0b000: return COLOR_ALMOST_BLACK; // almost black
+        case 0b000: return COLOR_ALMOST_BLACK;
         case 0b001: return COLOR_RED;
-        case 0b010: return 7; // green
-        case 0b100: return 9; // strident blue
+        case 0b010: return COLOR_GREEN2;
+        case 0b100: return COLOR_LIGHT_BLUE;
         case 0b011: return COLOR_YELLOW;
-        case 0b110: return 5; // cyan
-        case 0b101: return 14; // magenta
+        case 0b110: return COLOR_CYAN;
+        case 0b101: return COLOR_MAGENTA;
         case 0b111: return COLOR_WHITE;
     }
     return 0;
@@ -959,11 +959,11 @@ static int zebra_rgb_color(int underexposed, int clipR, int clipG, int clipB, in
     {
         case 0b000: return zebra_color_word_row(COLOR_BLACK, y);
         case 0b001: return zebra_color_word_row(COLOR_RED,1);
-        case 0b010: return zebra_color_word_row(7, 1); // green
-        case 0b100: return zebra_color_word_row(9, 1); // strident blue
+        case 0b010: return zebra_color_word_row(COLOR_GREEN2, 1);
+        case 0b100: return zebra_color_word_row(COLOR_LIGHT_BLUE, 1);
         case 0b011: return y&2 ? 0 : ZEBRA_COLOR_WORD_SOLID(COLOR_YELLOW);
-        case 0b110: return y&2 ? 0 : ZEBRA_COLOR_WORD_SOLID(5); // cyan
-        case 0b101: return y&2 ? 0 : ZEBRA_COLOR_WORD_SOLID(14); // magenta
+        case 0b110: return y&2 ? 0 : ZEBRA_COLOR_WORD_SOLID(COLOR_CYAN);
+        case 0b101: return y&2 ? 0 : ZEBRA_COLOR_WORD_SOLID(COLOR_MAGENTA);
         case 0b111: return 0;
     }
     return 0;
@@ -1077,9 +1077,9 @@ hist_draw_image(
                 unsigned int over_r = hist_r[i] + hist_r[i-1] + hist_r[i-2];
                 unsigned int over_g = hist_g[i] + hist_g[i-1] + hist_g[i-2];
                 unsigned int over_b = hist_b[i] + hist_b[i-1] + hist_b[i-2];
-                if (over_r > thr) hist_dot(x_origin + HIST_WIDTH/2 - 25, yw, COLOR_RED,       bg, hist_dot_radius(over_r, hist_total_px), hist_dot_label(over_r, hist_total_px));
-                if (over_g > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,    bg, hist_dot_radius(over_g, hist_total_px), hist_dot_label(over_g, hist_total_px));
-                if (over_b > thr) hist_dot(x_origin + HIST_WIDTH/2 + 25, yw, COLOR_LIGHTBLUE, bg, hist_dot_radius(over_b, hist_total_px), hist_dot_label(over_b, hist_total_px));
+                if (over_r > thr) hist_dot(x_origin + HIST_WIDTH/2 - 25, yw, COLOR_RED,        bg, hist_dot_radius(over_r, hist_total_px), hist_dot_label(over_r, hist_total_px));
+                if (over_g > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,     bg, hist_dot_radius(over_g, hist_total_px), hist_dot_label(over_g, hist_total_px));
+                if (over_b > thr) hist_dot(x_origin + HIST_WIDTH/2 + 25, yw, COLOR_LIGHT_BLUE, bg, hist_dot_radius(over_b, hist_total_px), hist_dot_label(over_b, hist_total_px));
             }
             else
             {

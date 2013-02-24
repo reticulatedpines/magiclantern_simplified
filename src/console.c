@@ -187,7 +187,7 @@ int console_vprintf(const char* fmt, va_list ap) // don't DebugMsg from here!
 
 static void console_show_status()
 {
-    int fnt = FONT(CONSOLE_FONT,COLOR_GRAY60, COLOR_BLACK);
+    int fnt = FONT(CONSOLE_FONT,60, COLOR_BLACK);
     bmp_printf(fnt, 0, 480 - font_med.height + 2, console_status_text);
     if (console_visible) bmp_printf(fnt, 720 - font_med.width * strlen(console_help_text), 480 - font_med.height + 2, console_help_text);
 }
@@ -226,7 +226,7 @@ static void console_draw()
     int w = fontspec_font(CONSOLE_FONT)->width * CONSOLE_W + 2;
     int h = fontspec_font(CONSOLE_FONT)->height * CONSOLE_H + 2;
     int fnt = FONT(CONSOLE_FONT,COLOR_WHITE, (lv || PLAY_OR_QR_MODE) ? COLOR_BG_DARK : COLOR_ALMOST_BLACK);
-    bmp_draw_rect(COLOR_GRAY60, xa, ya, w, h);
+    bmp_draw_rect(60, xa, ya, w, h);
     bmp_puts_w(fnt, &x0, &y0, CONSOLE_W, console_puts_buffer);
 }
 

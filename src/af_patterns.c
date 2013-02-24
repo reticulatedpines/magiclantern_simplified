@@ -347,16 +347,16 @@ static MENU_UPDATE_FUNC(pattern_display)
     bmp_fill(COLOR_BLACK, cx-w/2, cy-h/2, w, h);
     bmp_draw_rect(COLOR_WHITE, cx-w/2, cy-h/2, w, h);
 
-    draw_af_point(cx,      cy     , 7, af_point & AF_POINT_C ? COLOR_RED : COLOR_GRAY50);
-    draw_af_point(cx - dx, cy     ,  5, af_point & AF_POINT_L ? COLOR_RED : COLOR_GRAY50);
-    draw_af_point(cx + dx, cy     ,  5, af_point & AF_POINT_R ? COLOR_RED : COLOR_GRAY50);
-    draw_af_point(cx     , cy + dy,  5, af_point & AF_POINT_B ? COLOR_RED : COLOR_GRAY50);
-    draw_af_point(cx     , cy - dy,  5, af_point & AF_POINT_T ? COLOR_RED : COLOR_GRAY50);
+    draw_af_point(cx,      cy     , 7, af_point & AF_POINT_C ? COLOR_RED : 50);
+    draw_af_point(cx - dx, cy     ,  5, af_point & AF_POINT_L ? COLOR_RED : 50);
+    draw_af_point(cx + dx, cy     ,  5, af_point & AF_POINT_R ? COLOR_RED : 50);
+    draw_af_point(cx     , cy + dy,  5, af_point & AF_POINT_B ? COLOR_RED : 50);
+    draw_af_point(cx     , cy - dy,  5, af_point & AF_POINT_T ? COLOR_RED : 50);
 
-    draw_af_point(cx + dx/2, cy + dy/2,  5, af_point & AF_POINT_BR ? COLOR_RED : COLOR_GRAY50);
-    draw_af_point(cx - dx/2, cy - dy/2,  5, af_point & AF_POINT_TL ? COLOR_RED : COLOR_GRAY50);
-    draw_af_point(cx + dx/2, cy - dy/2,  5, af_point & AF_POINT_TR ? COLOR_RED : COLOR_GRAY50);
-    draw_af_point(cx - dx/2, cy + dy/2,  5, af_point & AF_POINT_BL ? COLOR_RED : COLOR_GRAY50);
+    draw_af_point(cx + dx/2, cy + dy/2,  5, af_point & AF_POINT_BR ? COLOR_RED : 50);
+    draw_af_point(cx - dx/2, cy - dy/2,  5, af_point & AF_POINT_TL ? COLOR_RED : 50);
+    draw_af_point(cx + dx/2, cy - dy/2,  5, af_point & AF_POINT_TR ? COLOR_RED : 50);
+    draw_af_point(cx - dx/2, cy + dy/2,  5, af_point & AF_POINT_BL ? COLOR_RED : 50);
 }
 
 static struct menu_entry afp_focus_menu[] = {

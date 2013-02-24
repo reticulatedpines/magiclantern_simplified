@@ -250,30 +250,30 @@ bmp_fill(
 /** Some selected colors */
 
 #define COLOR_EMPTY             0x00 // total transparent
+#define COLOR_WHITE             0x01 // Normal white
+#define COLOR_BLACK 2
 #ifdef CONFIG_4_3_SCREEN
 #define COLOR_BG                0x03 // transparent black
 #else
 #define COLOR_BG                0x14 // transparent gray
 #endif
 #define COLOR_BG_DARK           0x03 // transparent black
-#define COLOR_WHITE             0x01 // Normal white
-#define COLOR_BLUE              0x0B // normal blue
-#define COLOR_LIGHTBLUE 9
+
+#define COLOR_CYAN              0x05
+#define COLOR_GREEN1            0x06
+#define COLOR_GREEN2            0x07
 #define COLOR_RED               0x08 // normal red
+#define COLOR_LIGHT_BLUE        0x09
+#define COLOR_BLUE              0x0B // normal blue
+#define COLOR_DARK_RED          0x0C
+#define COLOR_MAGENTA           0x0E
 #define COLOR_YELLOW            0x0F // normal yellow
-#define COLOR_BLACK 2
-#define COLOR_ALMOST_BLACK 38
-#define COLOR_CYAN 5
-#define COLOR_GREEN1 6
-#define COLOR_GREEN2 7
-#define COLOR_ORANGE 19
-#define COLOR_PINK 17
-#define COLOR_DARK_RED 0xC
-#define COLOR_GRAY40 40
-#define COLOR_GRAY45 45
-#define COLOR_GRAY50 50
-#define COLOR_GRAY60 60
-#define COLOR_GRAY70 70
+#define COLOR_ORANGE            0x13
+
+#define COLOR_ALMOST_BLACK      0x26
+#define COLOR_ALMOST_WHITE      0x4F
+
+#define COLOR_GRAY(percent) (38 + percent * 41 / 100) // e.g. COLOR_GRAY(50) is 50% gray
 
 #define COLOR_DARK_GREEN1_MOD 21
 #define COLOR_DARK_GREEN2_MOD 22

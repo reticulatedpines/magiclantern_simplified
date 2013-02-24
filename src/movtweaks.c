@@ -933,8 +933,8 @@ void smooth_iso_step()
     static int prev_w = 0;
     if (w || w != prev_w)
     {
-        draw_line(x0, y0, x0 + w, y0, iso_acc > 0 ? COLOR_RED : COLOR_LIGHTBLUE);
-        draw_line(x0, y0 + 1, x0 + w, y0 + 1, iso_acc > 0 ? COLOR_RED : COLOR_LIGHTBLUE);
+        draw_line(x0, y0, x0 + w, y0, iso_acc > 0 ? COLOR_RED : COLOR_LIGHT_BLUE);
+        draw_line(x0, y0 + 1, x0 + w, y0 + 1, iso_acc > 0 ? COLOR_RED : COLOR_LIGHT_BLUE);
         if (prev_w != w)
         {
             draw_line(x0 + w, y0, x0 + prev_w, y0, COLOR_BLACK);
