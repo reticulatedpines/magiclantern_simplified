@@ -14,6 +14,8 @@
 @range f 0 1
 @param g Menu interaction tests
 @range g 0 1
+@param h Graphics tests
+@range h 0 1
 */
 
 printf("PicoC testing...\n");
@@ -260,5 +262,36 @@ if (g)
     printf("Press any key to continue.\n");
     get_key();
 }
+
+if (h)
+{
+    console_hide();
+    display_on();
+    
+    // disable GlobalDraw so it doesn't interfere with our graphics
+    int old_gdr = menu_get("Overlay", "Global Draw");
+    menu_set("Overlay", "Global Draw", 0);
+
+    // also, prevent Canon code from drawing on the screen
+    set_canon_gui(0);
+    
+    clrscr();
+    
+    fill_rect(50, 50, 720-100, 480-100, COLOR_GRAY(30));
+    draw_rect(50, 50, 720-100, 480-100, COLOR_YELLOW);
+    
+    bmp_printf(FONT_LARGE, 100, 100, "Hi there!");
+    bmp_printf(SHADOW_FONT(FONT_LARGE), 400, 100, "Hi there!");
+    bmp_printf(FONT(FONT_LARGE, COLOR_YELLOW, COLOR_BLACK), 300, 200, "Hi there!");
+    
+    bmp_printf(FONT_MED, 0, 0, "Press any key to continue.\n");
+    get_key();
+    
+    // restore things back to their original state
+    menu_set("Overlay", "Global Draw", old_gdr);
+    set_canon_gui(1);
+}
+
+
 printf("Done :)\n");
 

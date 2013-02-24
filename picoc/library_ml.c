@@ -1,5 +1,8 @@
 #include "interpreter.h"
 
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
 static void LibSleep(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     int ms = (int)roundf(Param[0]->Val->FP * 1000.0f);
@@ -469,6 +472,115 @@ static void LibNotifyBox(struct ParseState *Parser, struct Value *ReturnValue, s
     NotifyBox(ms, msg);
 }
 
+static void LibBmpPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int fnt = Param[0]->Val->Integer;
+    int x = Param[1]->Val->Integer;
+    int y = Param[2]->Val->Integer;
+    char msg[512];
+
+    struct OutputStream StrStream;
+    
+    extern void SPutc(unsigned char Ch, union OutputStreamInfo *Stream);
+    StrStream.Putch = &SPutc;
+    StrStream.i.Str.Parser = Parser;
+    StrStream.i.Str.WritePos = msg;
+    
+    // there doesn't seem to be any bounds checking :(
+
+    GenericPrintf(Parser, ReturnValue, Param+3, NumArgs-3, &StrStream);
+    PrintCh(0, &StrStream);
+
+    bmp_printf(fnt, x, y, "%s", msg);
+}
+
+static void LibClrScr(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    clrscr();
+}
+
+static void LibGetPixel(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int x = Param[0]->Val->Integer;
+    int y = Param[1]->Val->Integer;
+    ReturnValue->Val->Integer = bmp_getpixel(x, y);
+}
+
+static void LibPutPixel(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int x = Param[0]->Val->Integer;
+    int y = Param[1]->Val->Integer;
+    int color = Param[2]->Val->Integer;
+    bmp_putpixel(x, y, color);
+}
+
+static void LibDrawLine(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int x1 = Param[0]->Val->Integer;
+    int y1 = Param[1]->Val->Integer;
+    int x2 = Param[2]->Val->Integer;
+    int y2 = Param[3]->Val->Integer;
+    int color = Param[4]->Val->Integer;
+    draw_line(x1, y1, x2, y2, color);
+}
+
+static void LibDrawLinePolar(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int x = Param[0]->Val->Integer;
+    int y = Param[1]->Val->Integer;
+    int radius = Param[2]->Val->Integer;
+    int angle = (int)roundf(Param[3]->Val->FP * 10.0);
+    int color = Param[4]->Val->Integer;
+    draw_angled_line(x, y, radius, angle, color);
+}
+
+static void LibDrawCircle(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int x = Param[0]->Val->Integer;
+    int y = Param[1]->Val->Integer;
+    int radius = Param[2]->Val->Integer;
+    int color = Param[3]->Val->Integer;
+    draw_circle(x, y, radius, color);
+}
+
+static void LibFillCircle(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int x = Param[0]->Val->Integer;
+    int y = Param[1]->Val->Integer;
+    int radius = Param[2]->Val->Integer;
+    int color = Param[3]->Val->Integer;
+    draw_circle(x, y, radius, color);
+}
+
+static void LibDrawRect(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int x = Param[0]->Val->Integer;
+    int y = Param[1]->Val->Integer;
+    int w = Param[2]->Val->Integer;
+    int h = Param[3]->Val->Integer;
+    int color = Param[4]->Val->Integer;
+    bmp_draw_rect(color, x, y, w, h);
+}
+
+static void LibFillRect(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int x = Param[0]->Val->Integer;
+    int y = Param[1]->Val->Integer;
+    int w = Param[2]->Val->Integer;
+    int h = Param[3]->Val->Integer;
+    int color = Param[4]->Val->Integer;
+    bmp_fill(color, x, y, w, h);
+}
+
+static void LibSetCanonGUI(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int enabled = Param[0]->Val->Integer;
+    if (enabled)
+        canon_gui_enable_front_buffer(1);
+    else
+        canon_gui_disable_front_buffer();
+}
+
 static void LibMenuOpen(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     gui_open_menu();
@@ -644,19 +756,21 @@ struct LibraryFunction PlatformLibrary[] =
     //~ {LibMorseWavPrintf,  "void morse_wav_printf(float dit_duration, char* fmt, ...);"    }, // Morse via audio out (WAV)
     
     /** Text output */
-    //~ {LibBmpPrintf,      "void bmp_printf(int fnt, int x, int y, char* fmt, ...);"                   },
+    {LibBmpPrintf,      "void bmp_printf(int fnt, int x, int y, char* fmt, ...);"                   },
     {LibNotifyBox,      "void notify_box(float duration, char* fmt, ...);"                          },
     
     /** Graphics */
-    //~ {LibClrScr,         "void clrscr();"                                                            },  // clear screen
-    //~ {LibGetPixel,       "int get_pixel(int x, int y);"                                              },
-    //~ {LibGetPixel,       "void put_pixel(int x, int y, int color);"                                  },
-    //~ {LibDrawLine,       "void draw_line(int x1, int y1, int x2, int y2, int color);"                },
-    //~ {LibDrawLinePolar,  "void draw_line_polar(int x, int y, int radius, float angle, int color);"   },
-    //~ {LibDrawCircle,     "void draw_circle(int x, int y, int radius, int color);"                    },
-    //~ {LibFillCircle,     "void fill_circle(int x, int y, int radius, int color);"                    },
-    //~ {LibDrawRect,       "void draw_rect(int x, int y, int w, int h, int color);"                    },
-    //~ {LibFillRect,       "void fill_rect(int x, int y, int w, int h, int color);"                    },
+    {LibClrScr,         "void clrscr();"                                                            },  // clear screen
+    {LibGetPixel,       "int get_pixel(int x, int y);"                                              },
+    {LibPutPixel,       "void put_pixel(int x, int y, int color);"                                  },
+    {LibDrawLine,       "void draw_line(int x1, int y1, int x2, int y2, int color);"                },
+    {LibDrawLinePolar,  "void draw_line_polar(int x, int y, int radius, float angle, int color);"   },
+    {LibDrawCircle,     "void draw_circle(int x, int y, int radius, int color);"                    },
+    {LibFillCircle,     "void fill_circle(int x, int y, int radius, int color);"                    },
+    {LibDrawRect,       "void draw_rect(int x, int y, int w, int h, int color);"                    },
+    {LibFillRect,       "void fill_rect(int x, int y, int w, int h, int color);"                    },
+
+    {LibSetCanonGUI,    "void set_canon_gui(int enabled);"                                          },  // allow disabling Canon graphics
 
     /** Interaction with menus */
     { LibMenuOpen,       "void menu_open();"                                     }, // open ML menu
@@ -700,77 +814,88 @@ struct LibraryFunction PlatformLibrary[] =
     { NULL,         NULL }
 };
 
-static void add_structure(const char* IntrinsicName, const char* StructDefinition)
+static void lib_parse(const char* definition)
 {
-    struct ParseState Parser;
-    char *Identifier;
-    struct ValueType *ParsedType;
-    void *Tokens;
-    Tokens = LexAnalyse(IntrinsicName, StructDefinition, strlen(StructDefinition), NULL);
-    LexInitParser(&Parser, StructDefinition, Tokens, IntrinsicName, TRUE);
-    TypeParse(&Parser, &ParsedType, &Identifier, NULL);
-    HeapFreeMem(Tokens);
+    PicocParse("ml lib", definition, strlen(definition), TRUE, TRUE, FALSE);
 }
+
+#define READONLY_VAR(x) VariableDefinePlatformVar(NULL, #x, &IntType, (union AnyValue *)&x,      FALSE);
+
+#define CONST(var, value) lib_parse("#define " #var " " STR(value));
+#define CONST0(var)       lib_parse("#define " #var " " STR(var));
 
 void PlatformLibraryInit()
 {
-    add_structure("tm struct",  "struct tm { int hour; int minute; int second; int year; int month; int day; }");
-    add_structure("dof struct", "struct dof { char* lens_name; int focal_len; int focus_dist; int dof; int far; int near; int hyperfocal; }");
+    lib_parse("struct tm { int hour; int minute; int second; int year; int month; int day; };");
+    lib_parse("struct dof { char* lens_name; int focal_len; int focus_dist; int dof; int far; int near; int hyperfocal; };");
+    
 
     LibraryAdd(&GlobalTable, "platform library", &PlatformLibrary[0]);
 
-    static int LEFT = BGMT_PRESS_LEFT;
-    static int RIGHT = BGMT_PRESS_RIGHT;
-    static int UP = BGMT_PRESS_UP;
-    static int DOWN = BGMT_PRESS_DOWN;
+    /** Button codes **/
+    CONST(LEFT,         BGMT_PRESS_LEFT)
+    CONST(RIGHT,        BGMT_PRESS_RIGHT)
+    CONST(UP,           BGMT_PRESS_UP)
+    CONST(DOWN,         BGMT_PRESS_DOWN)
+    CONST(WHEEL_LEFT,   BGMT_WHEEL_LEFT)
+    CONST(WHEEL_RIGHT,  BGMT_WHEEL_RIGHT)
+    CONST(WHEEL_UP,     BGMT_WHEEL_UP)
+    CONST(WHEEL_DOWN,   BGMT_WHEEL_DOWN)
+    CONST(SET,          BGMT_SET)
+    CONST(MENU,         BGMT_MENU)
+    CONST(PLAY,         BGMT_PLAY)
+    CONST(ERASE,        BGMT_ERASE)
+    CONST(INFO,         BGMT_INFO)
+    CONST(LV,           BGMT_LV)
+    CONST(ZOOM_IN,      BGMT_PRESS_ZOOMIN_MAYBE)
+    CONST(SHOOT_HALF,   BGMT_PRESS_HALFSHUTTER)
+    CONST(SHOOT_FULL,   BGMT_PRESS_FULLSHUTTER)
 
-    static int WHEEL_UP = BGMT_WHEEL_UP;
-    static int WHEEL_DOWN = BGMT_WHEEL_DOWN;
-    static int WHEEL_LEFT = BGMT_WHEEL_LEFT;
-    static int WHEEL_RIGHT = BGMT_WHEEL_RIGHT;
+    #ifdef BGMT_Q
+    CONST(Q,            BGMT_Q)
+    #else
+    CONST(Q,            0)
+    #endif
 
-    static int SET = BGMT_PRESS_SET;
-    static int MENU = BGMT_MENU;
-    static int PLAY = BGMT_PLAY;
-    static int ERASE = BGMT_TRASH;
-    static int INFO = BGMT_INFO;
-    static int Q = 
-        #ifdef BGMT_Q
-            BGMT_Q;
-        #else
-            0;
-        #endif
-    static int LV = BGMT_LV;
-    static int ZOOM_IN = BGMT_PRESS_ZOOMIN_MAYBE;
-    static int ZOOM_OUT = 
-        #ifdef BGMT_PRESS_ZOOMOUT_MAYBE
-            BGMT_PRESS_ZOOMOUT_MAYBE;
-        #else
-            0;
-        #endif
-    static int SHOOT_HALF = BGMT_PRESS_HALFSHUTTER;
-    static int SHOOT_FULL = BGMT_PRESS_FULLSHUTTER;
+    #ifdef BGMT_PRESS_ZOOMOUT_MAYBE
+    CONST(ZOOM_OUT,     BGMT_PRESS_ZOOMOUT_MAYBE)
+    #else
+    CONST(ZOOM_OUT,     0)
+    #endif
     
-    #define READONLY_VAR(x) VariableDefinePlatformVar(NULL, #x, &IntType, (union AnyValue *)&x,      FALSE);
-    READONLY_VAR(LEFT)
-    READONLY_VAR(RIGHT)
-    READONLY_VAR(UP)
-    READONLY_VAR(DOWN)
-    READONLY_VAR(WHEEL_LEFT)
-    READONLY_VAR(WHEEL_RIGHT)
-    READONLY_VAR(WHEEL_UP)
-    READONLY_VAR(WHEEL_DOWN)
-    READONLY_VAR(SET)
-    READONLY_VAR(MENU)
-    READONLY_VAR(PLAY)
-    READONLY_VAR(ERASE)
-    READONLY_VAR(INFO)
-    READONLY_VAR(Q)
-    READONLY_VAR(LV)
-    READONLY_VAR(ZOOM_IN)
-    READONLY_VAR(ZOOM_OUT)
-    READONLY_VAR(SHOOT_HALF)
-    READONLY_VAR(SHOOT_FULL)
+    /** Color codes **/
+    CONST0(COLOR_EMPTY)
+    CONST0(COLOR_BLACK)
+    CONST0(COLOR_WHITE)
+    CONST0(COLOR_BG)
+
+    CONST0(COLOR_RED)
+    CONST0(COLOR_DARK_RED)
+    CONST0(COLOR_GREEN1)
+    CONST0(COLOR_GREEN2)
+    CONST0(COLOR_BLUE)
+    CONST0(COLOR_LIGHTBLUE)
+    CONST0(COLOR_CYAN)
+    CONST0(COLOR_MAGENTA)
+    CONST0(COLOR_YELLOW)
+    CONST0(COLOR_ORANGE)
+
+    CONST0(COLOR_ALMOST_BLACK) // 38
+    CONST0(COLOR_ALMOST_WHITE) // 79
+    lib_parse("#define COLOR_GRAY(percent) (38 + percent * 41 / 100)"); // COLOR_GRAY(50) is 50% gray
+
+    /** Font constants **/
+    CONST0(FONT_LARGE)
+    CONST0(FONT_MED)
+    CONST0(FONT_SMALL)
+    CONST0(FONT_MASK)
+    CONST0(SHADOW_MASK)
+    
+    lib_parse("#define FONT(font,fg,bg) (((font) & (FONT_MASK | SHADOW_MASK)) | ((bg) & 0xFF) << 8 | ((fg) & 0xFF) << 0)");
+    lib_parse("#define SHADOW_FONT(fnt) ((fnt) | SHADOW_MASK)");
+
+
+    /** common properties **/
 
     READONLY_VAR(lv)
     READONLY_VAR(recording)

@@ -47,7 +47,7 @@ void PicocPlatformScanFile(const char *FileName)
     console_puts(  "==============================\n");
     
     script_msleep(500);
-    PicocParse(FileName, SourceStr, strlen(SourceStr), TRUE, FALSE, TRUE);
+    PicocParse(FileName, SourceStr, strlen(SourceStr), TRUE, TRUE, FALSE);
 
     script_free_dma(SourceStr);
 }
