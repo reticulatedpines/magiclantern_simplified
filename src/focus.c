@@ -1541,7 +1541,7 @@ static struct menu_entry afma_menu[] = {
                 .priv = afma_auto_tune_ext,
                 .select = (void (*)(void*,int))run_in_separate_task,
                 .help  = "This uses AFMA values normally not available in Canon menu.",
-                .help2 = "Dangerous. Run this only if the normal range fails.",
+                .help2 = "Run if focus is confirmed at +/-20, or if normal scan fails.",
                 .depends_on = DEP_MANUAL_FOCUS,
             },
             {
@@ -1549,7 +1549,7 @@ static struct menu_entry afma_menu[] = {
                 .priv = afma_auto_tune_ultra,
                 .select = (void (*)(void*,int))run_in_separate_task,
                 .help  = "This uses AFMA values normally not available in Canon menu.",
-                .help2 = "Dangerous. Run this only if you have severe focus problems.",
+                .help2 = "Less accurate. Run only if you have severe focus problems.",
                 .depends_on = DEP_MANUAL_FOCUS,
             },
             #endif
