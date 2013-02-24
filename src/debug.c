@@ -197,14 +197,37 @@ save_config( void * priv, int delta )
 #endif
 }
 
-void
+static char last_preset_file[50] = "";
+static int last_save_timestamp = 0;
+
+static void
 save_config_as_picoc(void* priv, int delta)
 {
 #ifdef CONFIG_CONFIG_FILE
 #ifdef CONFIG_PICOC
-    menu_save_current_config_as_picoc_preset(CARD_DRIVE"ML/SCRIPTS/PRESET.C");
+
+    for (int i = 0; i < 100; i++)
+    {
+        snprintf(last_preset_file, sizeof(last_preset_file), CARD_DRIVE"ML/SCRIPTS/PRESET%02d.C", i);
+        if (GetFileSize(last_preset_file) == 0xFFFFFFFF) // this file does not exist
+        {
+            menu_save_current_config_as_picoc_preset(last_preset_file);
+            last_save_timestamp = get_ms_clock_value();
+            break;
+        }
+    }
 #endif
 #endif
+}
+
+static MENU_UPDATE_FUNC(save_config_as_picoc_update)
+{
+    int t = get_ms_clock_value();
+    if (t > last_save_timestamp && t < last_save_timestamp + 2000)
+    {
+        MENU_SET_NAME(last_preset_file);
+        MENU_SET_RINFO("OK");
+    }
 }
 
 #ifdef CONFIG_CONFIG_FILE
@@ -2865,13 +2888,15 @@ static struct menu_entry cfg_menus[] = {
         {
             .name = "Save config now",
             .select        = save_config,
-            .help = "Save ML settings to ML/MAGIC.CFG"
+            .help = "Save ML settings to ML/SETTINGS/MAGIC.CFG ."
         },
         #ifdef CONFIG_PICOC
         {
-            .name = "Save as PicoC script",
-            .priv = save_config_as_picoc,
-            .select = (void (*)(void*,int))run_in_separate_task,
+            .name = "Export as PicoC script",
+            .select = save_config_as_picoc,
+            .update = save_config_as_picoc_update,
+            .help =  "Export current menu settings to ML/SCRIPTS/PRESETnn.C.",
+            .help2 = "The preset will appear in Scripts menu. Edit/rename on PC.",
         },
         #endif
         {

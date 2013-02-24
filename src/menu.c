@@ -3733,7 +3733,7 @@ menu_init( void )
     menu_find_by_name( "Focus",     ICON_ML_FOCUS   )->split_pos = 17;
     menu_find_by_name( "Display",   ICON_ML_DISPLAY )->split_pos = 17;
     menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
-    menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  )->split_pos = 10;
+    menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  )->split_pos = 11;
     menu_find_by_name( "Debug",     ICON_ML_DEBUG   )->split_pos = 15;
     menu_find_by_name( "Help",      ICON_ML_INFO    )->split_pos = 13;
     my_menu = menu_find_by_name( MY_MENU_NAME,ICON_ML_MYMENU  );
@@ -4316,11 +4316,15 @@ static void menu_set_flags(char* menu_name, char* entry_name, int flags)
         jhide_menu_by_name(menu_name, entry_name);
 }
 
+#define CFG_APPEND(fmt, ...) ({ lastlen = snprintf(cfg + cfglen, CFG_SIZE - cfglen, fmt, ## __VA_ARGS__); cfglen += lastlen; })
+#define CFG_SIZE 32768
+
 static void menu_save_flags(char* filename)
 {
-    #define MAX_SIZE 32768
-    char* msg = alloc_dma_memory(MAX_SIZE);
-    msg[0] = '\0';
+    char* cfg = alloc_dma_memory(CFG_SIZE);
+    cfg[0] = '\0';
+    int cfglen = 0;
+    int lastlen = 0;
 
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
@@ -4338,7 +4342,7 @@ static void menu_save_flags(char* filename)
             int flags = menu_get_flags(entry);
             if (flags)
             {
-                snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1, "%d %s\\%s\n", flags, menu->name, entry->name);
+                CFG_APPEND("%d %s\\%s\n", flags, menu->name, entry->name);
             }
         }
     }
@@ -4347,12 +4351,12 @@ static void menu_save_flags(char* filename)
     if( file == INVALID_PTR )
         goto end;
     
-    FIO_WriteFile(file, msg, strlen(msg));
+    FIO_WriteFile(file, cfg, strlen(cfg));
 
     FIO_CloseFile( file );
 
 end:
-    free_dma_memory(msg);
+    free_dma_memory(cfg);
 }
 
 static void menu_load_flags(char* filename)
@@ -4402,9 +4406,8 @@ void config_menu_save_flags()
 
 /*void menu_save_all_items_dbg()
 {
-    #define MAX_SIZE 32768
-    char* msg = alloc_dma_memory(MAX_SIZE);
-    msg[0] = '\0';
+    char* cfg = alloc_dma_memory(CFG_SIZE);
+    cfg[0] = '\0';
 
     int unnamed = 0;
     struct menu * menu = menus;
@@ -4415,7 +4418,7 @@ void config_menu_save_flags()
         int i;
         for(i = 0 ; entry ; entry = entry->next, i++ )
         {
-            snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1, "%s\\%s\n", menu->name, entry->name);
+            CFG_APPEND("%s\\%s\n", menu->name, entry->name);
             if (strlen(entry->name) == 0 || strlen(menu->name) == 0) unnamed++;
         }
     }
@@ -4424,11 +4427,13 @@ void config_menu_save_flags()
     if( file == INVALID_PTR )
         return;
     
-    FIO_WriteFile(file, msg, strlen(msg));
+    FIO_WriteFile(file, cfg, strlen(cfg));
 
     FIO_CloseFile( file );
     
     NotifyBox(5000, "Menu items: %d unnamed.", unnamed);
+end:
+    free_dma_memory(cfg);
 }*/
 
 #ifdef CONFIG_PICOC
@@ -4457,6 +4462,9 @@ int menu_set_str_value_from_script(char* name, char* entry_name, char* value, in
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
     if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+
+    // we will need exclusive access to menu_display_info
+    take_semaphore(menu_sem, 0);
     
     // if it doesn't seem to cycle, cancel earlier
     char first[MENU_MAX_VALUE_LEN];
@@ -4470,13 +4478,13 @@ int menu_set_str_value_from_script(char* name, char* entry_name, char* value, in
 
         char* current = menu_get_str_value_from_script(name, entry_name);
         if (streq(current, value))
-            return 1; // success!!
+            goto ok; // success!!
 
         if (startswith(current, value) && !isdigit(current[strlen(value)]))
-            return 1; // accept 3500 instead of 3500K, or ON instead of ON,blahblah, but not 160 instead of 1600
+            goto ok; // accept 3500 instead of 3500K, or ON instead of ON,blahblah, but not 160 instead of 1600
         
         if (entry->priv && CURRENT_VALUE == value_int)
-            return 1; // also success!
+            goto ok; // also success!
 
         if (i > 0 && streq(current, last)) // value not changing? stop here
         {
@@ -4500,7 +4508,12 @@ int menu_set_str_value_from_script(char* name, char* entry_name, char* value, in
         msleep(20); // we may need to wait for property handlers to update
     }
     console_printf("Could not set value '%s' for menu %s -> %s\n", value, name, entry_name);
+    give_semaphore(menu_sem);
     return 0; // boo :(
+
+ok:
+    give_semaphore(menu_sem);
+    return 1; // :)
 }
 
 int menu_set_value_from_script(char* name, char* entry_name, int value)
@@ -4529,11 +4542,19 @@ int menu_set_value_from_script(char* name, char* entry_name, int value)
 
 void menu_save_current_config_as_picoc_preset(char* filename)
 {
-    #define MAX_SIZE 32768
-    char* msg = alloc_dma_memory(MAX_SIZE);
-    msg[0] = '\0';
+    // we will need exclusive access to menu_display_info
+    take_semaphore(menu_sem, 0);
+
+    char* cfg = alloc_dma_memory(CFG_SIZE);
+    cfg[0] = '\0';
+    int cfglen = 0;
+    int lastlen = 0;
     
-    snprintf(msg, MAX_SIZE, "// Configuration preset.\n// You need to edit it to match your needs.\n\n");
+    CFG_APPEND(
+        "/** Configuration preset. **/\n"
+        "/** Feel free to edit or rename it. **/\n"
+        "\n"
+    );
 
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
@@ -4544,12 +4565,14 @@ void menu_save_current_config_as_picoc_preset(char* filename)
         if (streq(menu->name, "Help")) continue;
         if (streq(menu->name, "MyMenu")) continue;
         if (streq(menu->name, "FlexInfo Settings")) continue;
-
+        
+        int header_printed = 0;
+        
         int i;
         for(i = 0 ; entry ; entry = entry->next, i++ )
         {
             // this will also update icon_type
-            char* value = menu_get_str_value_from_script(menu->name, entry->name);
+            char* value = menu_get_str_value_from_script((char*)menu->name, (char*)entry->name);
             
             if (strlen(value) == 0)
                 continue;
@@ -4557,27 +4580,63 @@ void menu_save_current_config_as_picoc_preset(char* filename)
             if (entry->icon_type == IT_ACTION)
                 continue;
             
+            // skip troublesome menus
+            if (streq(entry->name, "Battery Level")) continue;
+            
+            if (!header_printed)
+            {
+                CFG_APPEND("\n/** %s %s**/\n", menu->name, IS_SUBMENU(menu) ? "- submenu " : "");
+                header_printed = 1;
+            }
+            
             if (!entry->select && entry->priv)
-            {
-                snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1, "menu_set(\"%s\", \"%s\", %d);\n", menu->name, entry->name, CURRENT_VALUE);
-            }
+                CFG_APPEND("menu_set(\"%s\", \"%s\", %d);", menu->name, entry->name, CURRENT_VALUE);
             else
+                CFG_APPEND("menu_set_str(\"%s\", \"%s\", \"%s\");", menu->name, entry->name, value);
+            int len = lastlen;
+
+            if ((entry->priv && entry->min != entry->max) || (entry->choices)) // we'll have comments
             {
-                snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1, "menu_set_str(\"%s\", \"%s\", \"%s\");\n", menu->name, entry->name, value);
+                // pad with spaces and add "// "
+                for (i = 0; i < 60-len; i++)
+                    CFG_APPEND(" ");
+                CFG_APPEND("// ");
+            
+                if (entry->priv && entry->min != entry->max)
+                {
+                    if (IS_BOOL(entry))
+                        CFG_APPEND("%d or %d. ", entry->min, entry->max);
+                    else
+                        CFG_APPEND("%d...%d. ", entry->min, entry->max);
+                }
+
+                if (entry->choices)
+                {
+                    CFG_APPEND("Choices: ");
+                    for (int i = entry->min; i <= entry->max; i++)
+                    {
+                        CFG_APPEND("\"%s\"%s", pickbox_string(entry, i), i < entry->max ? ", " : ".");
+                    }
+                }
             }
+            
+            CFG_APPEND("\n");
         }
     }
+    
+    //~ ASSERT(cfglen == strlen(cfg)); // seems OK
     
     FILE * file = FIO_CreateFileEx(filename);
     if( file == INVALID_PTR )
         goto end;
     
-    FIO_WriteFile(file, msg, strlen(msg));
+    FIO_WriteFile(file, cfg, strlen(cfg));
 
     FIO_CloseFile( file );
 
 end:
-    free_dma_memory(msg);
+    free_dma_memory(cfg);
+    give_semaphore(menu_sem);
 }
 
 #endif

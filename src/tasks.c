@@ -130,6 +130,7 @@ int tasks_show_flags = 0;
 
 MENU_UPDATE_FUNC(tasks_print)
 {
+    if (!info->x) return;
 
     info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
     
