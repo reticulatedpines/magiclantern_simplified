@@ -179,7 +179,7 @@ dropbox: all
 HG_TEMPLATE=--template '{node|short} | {author|user}: {desc|strip|firstline} \n'
 HG_DATE=`date -d '$(1)' +'%Y-%m-%d %H:%M:%S'`
 HG_DATE_RANGE=--date "$(call HG_DATE, $(1)) to $(call HG_DATE, $(2))"
-HG_CHANGESET_BEFORE_DATE=$(shell hg log --limit 1 --date "<$(call HG_DATE, $(1) )" --template '{node|short} \n')
+HG_CHANGESET_BEFORE_DATE=$(shell hg log --date "<$(call HG_DATE, $(1) )" --template '{date|localdate}:{node|short} \n' | sort | tail -1 | cut -d: -f2 )
 
 DIFFSTAT_FILTER=python -c 'import sys; \
 	from textwrap import wrap; \
