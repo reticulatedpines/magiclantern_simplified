@@ -151,11 +151,11 @@ static void LibClick(struct ParseState *Parser, struct Value *ReturnValue, struc
     LibUnpress(Parser, ReturnValue, Param, NumArgs);
 }
 
-static volatile int key_pressed = 0;
+static volatile int key_pressed = -1;
 static volatile int waiting_for_key = 0;
 static void LibGetKey(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    while (!key_pressed)
+    while (key_pressed == -1)
     {
         waiting_for_key = 1;
         script_msleep(20);
@@ -163,7 +163,7 @@ static void LibGetKey(struct ParseState *Parser, struct Value *ReturnValue, stru
     waiting_for_key = 0;
     
     ReturnValue->Val->Integer = key_pressed;
-    key_pressed = 0;
+    key_pressed = -1;
 }
 
 int handle_picoc_lib_keys(struct event * event)
@@ -549,7 +549,7 @@ static void LibFillCircle(struct ParseState *Parser, struct Value *ReturnValue, 
     int y = Param[1]->Val->Integer;
     int radius = Param[2]->Val->Integer;
     int color = Param[3]->Val->Integer;
-    draw_circle(x, y, radius, color);
+    fill_circle(x, y, radius, color);
 }
 
 static void LibDrawRect(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -841,10 +841,10 @@ void PlatformLibraryInit()
     CONST(WHEEL_RIGHT,  BGMT_WHEEL_RIGHT)
     CONST(WHEEL_UP,     BGMT_WHEEL_UP)
     CONST(WHEEL_DOWN,   BGMT_WHEEL_DOWN)
-    CONST(SET,          BGMT_SET)
+    CONST(SET,          BGMT_PRESS_SET)
     CONST(MENU,         BGMT_MENU)
     CONST(PLAY,         BGMT_PLAY)
-    CONST(ERASE,        BGMT_ERASE)
+    CONST(ERASE,        BGMT_TRASH)
     CONST(INFO,         BGMT_INFO)
     CONST(LV,           BGMT_LV)
     CONST(ZOOM_IN,      BGMT_PRESS_ZOOMIN_MAYBE)
@@ -854,13 +854,13 @@ void PlatformLibraryInit()
     #ifdef BGMT_Q
     CONST(Q,            BGMT_Q)
     #else
-    CONST(Q,            0)
+    CONST(Q,            -1)
     #endif
 
     #ifdef BGMT_PRESS_ZOOMOUT_MAYBE
     CONST(ZOOM_OUT,     BGMT_PRESS_ZOOMOUT_MAYBE)
     #else
-    CONST(ZOOM_OUT,     0)
+    CONST(ZOOM_OUT,     -1)
     #endif
     
     /** Color codes **/
@@ -874,7 +874,7 @@ void PlatformLibraryInit()
     CONST0(COLOR_GREEN1)
     CONST0(COLOR_GREEN2)
     CONST0(COLOR_BLUE)
-    CONST0(COLOR_LIGHTBLUE)
+    CONST0(COLOR_LIGHT_BLUE)
     CONST0(COLOR_CYAN)
     CONST0(COLOR_MAGENTA)
     CONST0(COLOR_YELLOW)
@@ -882,7 +882,7 @@ void PlatformLibraryInit()
 
     CONST0(COLOR_ALMOST_BLACK) // 38
     CONST0(COLOR_ALMOST_WHITE) // 79
-    lib_parse("#define COLOR_GRAY(percent) (38 + percent * 41 / 100)"); // COLOR_GRAY(50) is 50% gray
+    lib_parse("#define COLOR_GRAY(percent) (38 + (percent) * 41 / 100)"); // COLOR_GRAY(50) is 50% gray
 
     /** Font constants **/
     CONST0(FONT_LARGE)
@@ -894,6 +894,11 @@ void PlatformLibraryInit()
     lib_parse("#define FONT(font,fg,bg) (((font) & (FONT_MASK | SHADOW_MASK)) | ((bg) & 0xFF) << 8 | ((fg) & 0xFF) << 0)");
     lib_parse("#define SHADOW_FONT(fnt) ((fnt) | SHADOW_MASK)");
 
+    /** Common operators **/
+    lib_parse("#define MIN(a,b) ((a) < (b) ? (a) : (b))");
+    lib_parse("#define MAX(a,b) ((a) > (b) ? (a) : (b))");
+    
+    CONST0(M_PI);
 
     /** common properties **/
 

@@ -273,7 +273,7 @@ bmp_fill(
 #define COLOR_ALMOST_BLACK      0x26
 #define COLOR_ALMOST_WHITE      0x4F
 
-#define COLOR_GRAY(percent) (38 + percent * 41 / 100) // e.g. COLOR_GRAY(50) is 50% gray
+#define COLOR_GRAY(percent) (38 + (percent) * 41 / 100) // e.g. COLOR_GRAY(50) is 50% gray
 
 #define COLOR_DARK_GREEN1_MOD 21
 #define COLOR_DARK_GREEN2_MOD 22
