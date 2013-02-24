@@ -4318,7 +4318,7 @@ static void menu_set_flags(char* menu_name, char* entry_name, int flags)
 
 static void menu_save_flags(char* filename)
 {
-    #define MAX_SIZE 10240
+    #define MAX_SIZE 32768
     char* msg = alloc_dma_memory(MAX_SIZE);
     msg[0] = '\0';
 
@@ -4345,12 +4345,14 @@ static void menu_save_flags(char* filename)
     
     FILE * file = FIO_CreateFileEx(filename);
     if( file == INVALID_PTR )
-        return;
+        goto end;
     
     FIO_WriteFile(file, msg, strlen(msg));
 
     FIO_CloseFile( file );
 
+end:
+    free_dma_memory(msg);
 }
 
 static void menu_load_flags(char* filename)
@@ -4400,7 +4402,7 @@ void config_menu_save_flags()
 
 /*void menu_save_all_items_dbg()
 {
-    #define MAX_SIZE 10240
+    #define MAX_SIZE 32768
     char* msg = alloc_dma_memory(MAX_SIZE);
     msg[0] = '\0';
 
@@ -4523,6 +4525,59 @@ int menu_set_value_from_script(char* name, char* entry_name, int value)
         console_printf("Cannot set value for %s -> %s\n", name, entry->name);
         return 0; // boo :(
     }
+}
+
+void menu_save_current_config_as_picoc_preset(char* filename)
+{
+    #define MAX_SIZE 32768
+    char* msg = alloc_dma_memory(MAX_SIZE);
+    msg[0] = '\0';
+    
+    snprintf(msg, MAX_SIZE, "// Configuration preset.\n// You need to edit it to match your needs.\n\n");
+
+    struct menu * menu = menus;
+    for( ; menu ; menu = menu->next )
+    {
+        struct menu_entry * entry = menu->children;
+        if (streq(menu->name, "Scripts")) continue;
+        if (streq(menu->name, "Debug")) continue;
+        if (streq(menu->name, "Help")) continue;
+        if (streq(menu->name, "MyMenu")) continue;
+        if (streq(menu->name, "FlexInfo Settings")) continue;
+
+        int i;
+        for(i = 0 ; entry ; entry = entry->next, i++ )
+        {
+            // this will also update icon_type
+            char* value = menu_get_str_value_from_script(menu->name, entry->name);
+            
+            if (strlen(value) == 0)
+                continue;
+            
+            if (entry->icon_type == IT_ACTION)
+                continue;
+            
+            if (!entry->select && entry->priv)
+            {
+                snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1, "menu_set(\"%s\", \"%s\", %d);\n", menu->name, entry->name, CURRENT_VALUE);
+            }
+            else
+            {
+                snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1, "menu_set_str(\"%s\", \"%s\", \"%s\");\n", menu->name, entry->name, value);
+            }
+        }
+    }
+    
+    FILE * file = FIO_CreateFileEx(filename);
+    if( file == INVALID_PTR )
+        goto end;
+    
+    FIO_WriteFile(file, msg, strlen(msg));
+
+    FIO_CloseFile( file );
+
+end:
+    free_dma_memory(msg);
 }
 
 #endif

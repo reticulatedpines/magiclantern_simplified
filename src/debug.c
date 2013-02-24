@@ -197,6 +197,16 @@ save_config( void * priv, int delta )
 #endif
 }
 
+void
+save_config_as_picoc(void* priv, int delta)
+{
+#ifdef CONFIG_CONFIG_FILE
+#ifdef CONFIG_PICOC
+    menu_save_current_config_as_picoc_preset(CARD_DRIVE"ML/SCRIPTS/PRESET.C");
+#endif
+#endif
+}
+
 #ifdef CONFIG_CONFIG_FILE
 static void
 delete_config( void * priv, int delta )
@@ -2857,6 +2867,13 @@ static struct menu_entry cfg_menus[] = {
             .select        = save_config,
             .help = "Save ML settings to ML/MAGIC.CFG"
         },
+        #ifdef CONFIG_PICOC
+        {
+            .name = "Save as PicoC script",
+            .priv = save_config_as_picoc,
+            .select = (void (*)(void*,int))run_in_separate_task,
+        },
+        #endif
         {
             .name = "Delete config file",
             .select        = delete_config,
