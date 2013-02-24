@@ -3207,7 +3207,7 @@ struct menu_entry zebra_menus[] = {
         .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Color space",
+                .name = "Color Space",
                 .priv = &zebra_colorspace, 
                 #ifdef FEATURE_ZEBRA_FAST
                 .max = 2,
@@ -3482,7 +3482,7 @@ struct menu_entry zebra_menus[] = {
         .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Unit",
+                .name = "Spotmeter Unit",
                 .priv = &spotmeter_formula, 
                 .max = 4,
                 .choices = (const char *[]) {"Percent", "0..255", "IRE -1..101", "IRE 0..108", "RGB (HTML)"},
@@ -3490,7 +3490,7 @@ struct menu_entry zebra_menus[] = {
                 .help = "Measurement unit for brightness level(s).",
             },
             {
-                .name = "Position",
+                .name = "Spot Position",
                 .priv = &spotmeter_position, 
                 .max = 1,
                 .choices = (const char *[]) {"Center", "Focus box"},
@@ -3570,7 +3570,7 @@ struct menu_entry zebra_menus[] = {
         .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Size",
+                .name = "Waveform Size",
                 .priv = &waveform_size, 
                 .max = 2,
                 .choices = (const char *[]) {"Small", "Large", "FullScreen"},

@@ -2775,23 +2775,21 @@ static struct menu_entry info_menus[] = {
 #ifdef FLEXINFO_XML_CONFIG
             {
                 .name = "Save config",
-                .priv = info_config,
                 .select = info_menu_save_select,
                 .help = "Save menu settings",
             },
 #endif
             {
                 .name = "Delete config",
-                .priv = info_config,
                 .select = info_menu_delete_select,
                 .help = "Delete menu settings. Reboot to take effect.",
             },
+            /* doesn't work
             {
                 .name = "Reset setup",
-                .priv = info_config,
                 .select = info_menu_reset_select,
                 .help = "Reset menu settings",
-            },
+            },*/
             MENU_EOL,
         }
     }

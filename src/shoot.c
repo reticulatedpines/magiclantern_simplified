@@ -5377,7 +5377,7 @@ static struct menu_entry expo_menus[] = {
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
-                .name = "WhiteBalance",
+                .name = "White Balance",
                 .update    = kelvin_display,
                 .select     = kelvin_toggle,
                 .help = "Adjust Kelvin white balance.",
@@ -5611,7 +5611,7 @@ static struct menu_entry expo_menus[] = {
         //~ //.essential = FOR_PHOTO | FOR_MOVIE,
         .children =  (struct menu_entry[]) {
             {
-                .name = "PictureStyle",
+                .name = "Picture Style",
                 .priv = &lens_info.picstyle,
                 .min = 1,
                 .max = NUM_PICSTYLES,
