@@ -1,5 +1,4 @@
 #include "interpreter.h"
-#include "cache_hacks.h"
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
@@ -747,15 +746,15 @@ static void LibLVResume(struct ParseState *Parser, struct Value *ReturnValue, st
 
 static void LibCacheLocked(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = cache_locked();
+    ReturnValue->Val->Integer = script_cache_locked();
 }
 static void LibCacheLock(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    cache_lock();
+    script_cache_lock();
 }
 static void LibCacheUnlock(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    cache_unlock();
+    script_cache_unlock();
 }
 static void LibCacheFake(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
@@ -763,7 +762,7 @@ static void LibCacheFake(struct ParseState *Parser, struct Value *ReturnValue, s
     uint32_t data = Param[1]->Val->Integer;
     uint32_t type = Param[2]->Val->Integer;
     
-    ReturnValue->Val->Integer = cache_fake(address, data, type);
+    ReturnValue->Val->Integer = script_cache_fake(address, data, type);
 }
 
 static void LibGetModel(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)

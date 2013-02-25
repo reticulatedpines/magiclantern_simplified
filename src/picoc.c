@@ -573,3 +573,9 @@ void script_free(void* ptr) { SmallFree(ptr); }
 void script_free_dma(void* ptr) { free_dma_memory(ptr); }
 void script_msleep(int ms) { msleep(ms); }
 void script_LoadCalendarFromRTC(struct tm * tm) { LoadCalendarFromRTC(tm); };
+
+#include "cache_hacks.h"
+int script_cache_locked() { return cache_locked(); }
+void script_cache_lock() { cache_lock(); }
+void script_cache_unlock() { cache_unlock(); }
+void script_cache_fake(uint32_t address, uint32_t data, uint32_t type) { cache_fake(address, data, type); }
