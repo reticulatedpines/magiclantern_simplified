@@ -537,6 +537,28 @@ void script_setup_title(char* script_title)
     snprintf(script_titles[script_selected], SCRIPT_TITLE_SIZE, "%s", script_title);
 }
 
+// Queue for PicoC key handling
+
+static volatile struct msg_queue * script_key_mq = 0;
+
+int script_key_dequeue()
+{
+    if (!script_key_mq) return -1;
+    
+    int msg;
+    int err = msg_queue_receive(script_key_mq, (struct event**)&msg, 10);
+    if (err) return -1;
+    return msg;
+}
+
+void script_key_enqueue(int key)
+{
+    if (!script_key_mq)
+        script_key_mq = (struct msg_queue *) msg_queue_create("script_key", 10);
+    
+    msg_queue_post(script_key_mq, key);
+}
+
 static void picoc_init()
 {
     find_scripts();

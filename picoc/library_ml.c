@@ -151,24 +151,71 @@ static void LibClick(struct ParseState *Parser, struct Value *ReturnValue, struc
     LibUnpress(Parser, ReturnValue, Param, NumArgs);
 }
 
+/**
+ * Key handling
+ * - blocking:      int key = get_key();      // waits for key to be pressed, then returns the key code
+ * - non-blocking:  int key = last_key();     // returns the last key code without waiting (or -1)
+ * 
+ * Keys are trapped when you call one of those, and also 1 second after. This lets you write loops like:
+ * 
+ * while(1)
+ * {
+ *     int key = get_key();
+ *     // process the key
+ * }
+ * 
+ * or
+ * 
+ * while(1)
+ * {
+ *     int key = last_key();
+ *     // process the key
+ * 
+ *     sleep(0.1);
+ * }
+ * 
+ */
 static volatile int key_pressed = -1;
-static volatile int waiting_for_key = 0;
+static volatile int waiting_for_key_last_request = 0; // will expire after 1 second, see above
+
+static void queue_cleanup()
+{
+    int t = get_ms_clock_value();
+    if (t > waiting_for_key_last_request + 700) // events from queue are too old, discard them
+    {
+        while (script_key_dequeue() != -1)
+            { /* send to /dev/null */ };
+    }
+}
+
 static void LibGetKey(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    while (key_pressed == -1)
+    queue_cleanup();
+    
+    int key_pressed;
+    while ((key_pressed = script_key_dequeue()) == -1)
     {
-        waiting_for_key = 1;
+        waiting_for_key_last_request = get_ms_clock_value();
         script_msleep(20);
     }
-    waiting_for_key = 0;
     
     ReturnValue->Val->Integer = key_pressed;
-    key_pressed = -1;
+}
+
+static void LibLastKey(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    queue_cleanup();
+
+    waiting_for_key_last_request = get_ms_clock_value();
+    ReturnValue->Val->Integer = script_key_dequeue();
 }
 
 int handle_picoc_lib_keys(struct event * event)
 {
-    if (!waiting_for_key)
+    if (get_ms_clock_value() > waiting_for_key_last_request + 1000)
+        waiting_for_key_last_request = 0;
+
+    if (!waiting_for_key_last_request)
         return 1;
     
     switch (event->param)
@@ -255,11 +302,11 @@ int handle_picoc_lib_keys(struct event * event)
     }
     
 key_can_block:
-    key_pressed = event->param;
+    script_key_enqueue(event->param);
     return 0;
 
 key_cannot_block:
-    key_pressed = event->param;
+    script_key_enqueue(event->param);
     return 1;
 }
 
@@ -695,6 +742,7 @@ struct LibraryFunction PlatformLibrary[] =
     
     /** Key input */
     {LibGetKey,         "int get_key();"                },  // waits until you press some key, then returns key code
+    {LibLastKey,        "int last_key();"               },  // returns last key pressed, without waiting
 
     /** Exposure settings */
     // APEX units
