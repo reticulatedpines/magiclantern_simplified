@@ -11,7 +11,7 @@
 * Enjoy!
 * 
 @param a Level
-@range a 0 2
+@range a 0 5
 */
 
 // http://www.sokobano.de/wiki/index.php?title=Sok_format
@@ -38,8 +38,47 @@ char* maze0[9] = {
     "########"
 };
 
+// Level 1 from http://sneezingtiger.com/sokoban/levels/minicosmosText.html
+char* maze1[8] = {
+    "  ##### ",
+    "###   # ",
+    "# $ # ##",
+    "# #  . #",
+    "#    # #",
+    "## #   #",
+    " #@  ###",
+    " #####  "
+};
+
+// Level 2 from http://sneezingtiger.com/sokoban/levels/minicosmosText.html
+char* maze2[8] = {
+    "  ##### ",
+    "###   # ",
+    "# $ # ##",
+    "# #  . #",
+    "#    # #",
+    "##$#.  #",
+    " #@  ###",
+    " #####  "
+};
+
+// Level 23 from http://sneezingtiger.com/sokoban/levels/minicosmosText.html
+
+char* maze3[9] = {
+    "      #### ",
+    "#######  # ",
+    "#        # ",
+    "#  $ #.# # ",
+    "#  $## # ##",
+    "###   @   #",
+    "  ###  #  #",
+    "    ##.  ##",
+    "     ##### "
+};
+
+
 // Level 1 from http://sneezingtiger.com/sokoban/levels/nabokosmosText.html
-char* maze1[7] = {
+char* maze4[7] = {
     " #####  ",
     " #   ## ",
     "## * .##",
@@ -50,7 +89,7 @@ char* maze1[7] = {
 };
 
 // Level 2 from http://sneezingtiger.com/sokoban/levels/nabokosmosText.html
-char* maze2[11] = {
+char* maze5[11] = {
     "  ####  ",
     "###  ###",
     "#   *$ #",
@@ -76,12 +115,30 @@ if (a == 0)
 else if (a == 1)
 {
     maze = maze1;
-    LINES = 7;
+    LINES = 8;
     COLUMNS = 8;
 }
 else if (a == 2)
 {
     maze = maze2;
+    LINES = 8;
+    COLUMNS = 8;
+}
+else if (a == 3)
+{
+    maze = maze3;
+    LINES = 9;
+    COLUMNS = 11;
+}
+else if (a == 4)
+{
+    maze = maze4;
+    LINES = 7;
+    COLUMNS = 8;
+}
+else if (a == 5)
+{
+    maze = maze5;
     LINES = 11;
     COLUMNS = 8;
 }
