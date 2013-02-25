@@ -77,6 +77,12 @@ static void LibBulbPic(struct ParseState *Parser, struct Value *ReturnValue, str
     bulb_take_pic(ms);
 }
 
+static void LibTakeFastPics(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int num = Param[0]->Val->Integer;
+    take_fast_pictures(nnum);
+}
+
 static void LibWaitPic(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     int f0 = file_number;
@@ -839,6 +845,7 @@ struct LibraryFunction PlatformLibrary[] =
     /** Picture taking **/
     {LibTakePic,        "void takepic();"               },  // take a picture
     {LibBulbPic,        "void bulbpic(float seconds);"  },  // take a picture in bulb mode
+    {LibTakeFastPics,   "void take_fast_pics(int number);" }  // take N pictures in burst mode
     
     {LibWaitPic,        "void wait_pic();"              },  // waits until you take a picture (e.g. for starting a custom bracket sequence)
     
