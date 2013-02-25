@@ -2277,7 +2277,7 @@ entry_print_junkie(
 
     int maxlen = (w - 8) / fontspec_width(fnt);
 
-    bmp_fill(bg, x+2, y+2, w-4+1, h-4+1);
+    bmp_fill(bg, x+2, y+2, w-4, h-4);
     //~ bmp_draw_rect(bg, x+2, y+2, w-4, h-4);
 
     char* shorttext = junkie_get_shorttext(info, maxlen);

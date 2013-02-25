@@ -1052,6 +1052,10 @@ void bmp_putpixel(int x, int y, uint8_t color)
 }
 void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 {
+    // this should match bmp_fill
+    w--;
+    h--;
+    
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
     draw_line(x0,   y0,   x0+w,   y0, color);
@@ -1062,6 +1066,10 @@ void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 
 void bmp_draw_rect_chamfer(uint8_t color, int x0, int y0, int w, int h, int a, int thick_corners)
 {
+    // this should match bmp_fill
+    w--;
+    h--;
+
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
 
