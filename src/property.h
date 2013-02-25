@@ -25,6 +25,9 @@
 #ifndef _property_h_
 #define _property_h_
 
+#define PROP_CAM_MODEL          0x00000002
+#define PROP_FIRMWARE_VER       0x02000001
+
 /** These are known */
 #define PROP_BURST_COUNT        0x80030006
 #define PROP_BAT_INFO           0x8003001d
