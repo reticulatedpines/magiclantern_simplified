@@ -476,6 +476,21 @@ static void LibGetFocusConfirm(struct ParseState *Parser, struct Value *ReturnVa
     ReturnValue->Val->Integer = FOCUS_CONFIRMATION;
 }
 
+static int af_dirty = 0;
+static void LibSetAF(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    af_dirty = 1;
+    lens_setup_af(Param[0]->Val->Integer);
+}
+
+static void LibResetAF(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    lens_cleanup_af();
+}
+
+// called when script finishes
+void script_cleanup_af() { if (af_dirty) lens_cleanup_af(); }
+
 static void LibGetAFMA(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     #ifdef CONFIG_AFMA
@@ -904,6 +919,9 @@ struct LibraryFunction PlatformLibrary[] =
     {LibFocus,          "void focus(int steps);"                }, // move the focus ring by X steps
     {LibFocusSetup,     "void focus_setup(int stepsize, int delay, int wait);" }, // see Focus -> Focus Settings menu
     {LibGetFocusConfirm, "int get_focus_confirm();"             }, // return AF confirmation state (outside LiveView, with shutter halfway pressed)
+    
+    {LibSetAF,          "void set_af(int af);"                  }, // enable or disable AF for half-shutter press
+    {LibResetAF,        "void reset_af(int af);"                }, // restore the original setting from Canon menu (CFn) (auto-called when script finishes)
 
     {LibGetAFMA,        "int get_afma(int mode);"               }, // get AF microadjust value
     {LibSetAFMA,        "void set_afma(int value, int mode);"   }, // set AF microadjust value

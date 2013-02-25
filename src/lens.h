@@ -256,7 +256,7 @@ void aperture_toggle( void* priv, int sign);
 #endif
 
 #define AF_ON 1
-#define AF_OFF -1
-#define AF_DONT_CHANGE 0
+#define AF_OFF 0
+#define AF_DONT_CHANGE -1
 
 #endif

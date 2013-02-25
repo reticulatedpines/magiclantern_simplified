@@ -265,6 +265,7 @@ static void run_script(const char *script)
         console_show();
     }
     PicocCleanup();
+    script_cleanup_af();
     beep();
     script_state = SCRIPT_JUST_FINISHED;
     console_set_status_text("Script finished. ");
