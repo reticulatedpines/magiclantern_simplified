@@ -124,6 +124,8 @@ static int fps_ramp_up = 0;
 #define fps_ramp 0
 #endif
 
+#define FPS_RAMP (fps_ramp && is_movie_mode())
+
 #ifdef FEATURE_FPS_WAV_RECORD
     #ifndef FEATURE_FPS_OVERRIDE
     #error This requires FEATURE_FPS_OVERRIDE.
@@ -940,7 +942,7 @@ void fps_setup_timerA(int fps_x1000)
     
     #ifdef NEW_FPS_METHOD
     // FPS ramping effect requires being able to change FPS on the fly
-    if (fps_ramp) 
+    if (FPS_RAMP) 
         fps_timer_b_method = 0;
     #endif
 
@@ -1209,7 +1211,7 @@ static void fps_task()
     {
      
         #ifdef FEATURE_FPS_RAMPING
-        if (fps_ramp) 
+        if (FPS_RAMP) 
         {
             msleep(20);
         }
@@ -1258,7 +1260,7 @@ static void fps_task()
         int f = fps_values_x1000[fps_override_index];
         
         #ifdef FEATURE_FPS_RAMPING
-        if (fps_ramp) // artistic effect - http://www.magiclantern.fm/forum/index.php?topic=2963.0
+        if (FPS_RAMP) // artistic effect - http://www.magiclantern.fm/forum/index.php?topic=2963.0
         {
             int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
 
@@ -1363,7 +1365,7 @@ int handle_fps_events(struct event * event)
     if (!fps_override) return 1;
     
     #ifdef FEATURE_FPS_RAMPING
-    if (fps_ramp && event->param == BGMT_INFO)
+    if (FPS_RAMP && event->param == BGMT_INFO)
     {
         fps_ramp_up = !fps_ramp_up;
         #ifdef FEATURE_EXPO_PRESET
