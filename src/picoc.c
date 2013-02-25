@@ -63,17 +63,17 @@ static void script_parse_header(int script_index)
     script_reset_params();
 
     // try to read the script 
-    static char _buf[1025];
-    char* buf = UNCACHEABLE(_buf);
+    static char _buf[1024+128];
+    char* buf = UNCACHEABLE(_buf)+64;
     char* fn = get_script_path(script_selected);
-    int r = read_file(fn, buf, sizeof(_buf)-1);
+    int r = read_file(fn, buf, 1024);
     if (r < 0)
     {
         snprintf(script_titles[script_index], SCRIPT_TITLE_SIZE, "Error");
         return;
     }
     buf[r+1] = 0;
-    
+
     // get some default title
     guess_script_title_from_first_line(buf, script_titles[script_index], SCRIPT_TITLE_SIZE);
     
@@ -553,14 +553,14 @@ int script_key_dequeue()
 
 void script_key_enqueue(int key)
 {
-    if (!script_key_mq)
-        script_key_mq = (struct msg_queue *) msg_queue_create("script_key", 10);
-    
+    if (!script_key_mq) return;
+
     msg_queue_post(script_key_mq, key);
 }
 
 static void picoc_init()
 {
+    script_key_mq = (struct msg_queue *) msg_queue_create("script_key", 10);
     find_scripts();
     menu_add("Scripts", picoc_menu, MIN(script_cnt, COUNT(picoc_menu)));
 }
