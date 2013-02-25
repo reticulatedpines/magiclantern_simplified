@@ -1236,7 +1236,7 @@ static void afma_auto_tune(int range_expand_factor)
     }
     if (w < 10)
     {
-        NotifyBox(5000, "Not enough data :(");
+        NotifyBox(5000, "OOF, check focus and contrast.");
         set_afma(afma0, AFMA_MODE_AUTODETECT);
     }
     else
@@ -1247,6 +1247,18 @@ static void afma_auto_tune(int range_expand_factor)
         msleep(300);
         afma_print_status(score, range_expand_factor);
         //~ call("dispcheck"); // screenshot
+        
+        if (score[0] > 5 || score[40] > 5) // focus confirmed for extreme values
+        {
+            msleep(3000);
+            beep();
+            if (range_expand_factor == 1)
+                NotifyBox(5000, "Try scanning from -40 to +40.");
+            else if (range_expand_factor == 2)
+                NotifyBox(5000, "Try scanning from -100 to +100.");
+            else
+                NotifyBox(5000, "Double-check the focus target.");
+        }
     }
 }
 
