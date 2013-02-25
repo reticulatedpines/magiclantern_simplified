@@ -10,10 +10,9 @@
 * 
 * Enjoy!
 * 
+@param a Level
+@range a 0 2
 */
-
-#define LINES 9
-#define COLUMNS 8
 
 // http://www.sokobano.de/wiki/index.php?title=Sok_format
 
@@ -26,7 +25,8 @@
 #define PLAYER_ON_TARGET '+'
 #define BOX_ON_TARGET '*'
 
-char* maze[LINES] = {
+// from Wikipedia
+char* maze0[9] = {
     "  ##### ",
     "###   # ",
     "#.@$  # ",
@@ -37,6 +37,54 @@ char* maze[LINES] = {
     "#   .  #",
     "########"
 };
+
+// Level 1 from http://sneezingtiger.com/sokoban/levels/nabokosmosText.html
+char* maze1[7] = {
+    " #####  ",
+    " #   ## ",
+    "## * .##",
+    "# $$*  #",
+    "#  * . #",
+    "## @ ###",
+    " #####  "
+};
+
+// Level 2 from http://sneezingtiger.com/sokoban/levels/nabokosmosText.html
+char* maze2[11] = {
+    "  ####  ",
+    "###  ###",
+    "#   *$ #",
+    "# #  # #",
+    "#   ** #",
+    "###  #@#",
+    "  # ** #",
+    "  #  # #",
+    "  # *. #",
+    "  #  ###",
+    "  ####  "
+};
+
+char** maze;
+int LINES;
+int COLUMNS;
+if (a == 0)
+{
+    maze = maze0;
+    LINES = 9;
+    COLUMNS = 8;
+}
+else if (a == 1)
+{
+    maze = maze1;
+    LINES = 7;
+    COLUMNS = 8;
+}
+else if (a == 2)
+{
+    maze = maze2;
+    LINES = 11;
+    COLUMNS = 8;
+}
 
 char targets[LINES][COLUMNS];
 
