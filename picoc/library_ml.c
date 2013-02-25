@@ -736,7 +736,7 @@ static void LibLVResume(struct ParseState *Parser, struct Value *ReturnValue, st
 /* list of all library functions and their prototypes */
 struct LibraryFunction PlatformLibrary[] =
 {
-    /** General-purpose functions */
+    /** General-purpose functions **/
     {LibSleep,          "void sleep(float seconds);"    },  // sleep X seconds
     {LibBeep,           "void beep();"                  },  // short beep sound
     {LibConsoleShow,    "void console_show();"          },  // show the script console
@@ -744,30 +744,78 @@ struct LibraryFunction PlatformLibrary[] =
     {LibCls,            "void cls();"                   },  // clear the script console
     {LibScreenshot,     "void screenshot();"            },  // take a screenshot (BMP+422)
 
-    /** Date/time */
-    // struct tm { int hour; int minute; int second; int year; int month; int day; }
+    /** Date/time **/
+    
+    /**
+     * struct tm 
+     * {
+     *      int hour; 
+     *      int minute; 
+     *      int second;
+     *      int year; 
+     *      int month; 
+     *      int day; 
+     * }
+     */
+    
     {LibGetTime,        "struct tm * get_time();"       },  // get current date/time
 
-    /** Picture taking */
+    /** Picture taking **/
     {LibTakePic,        "void takepic();"               },  // take a picture
     {LibBulbPic,        "void bulbpic(float seconds);"  },  // take a picture in bulb mode
     
-    /** Video recording */
+    /** Video recording **/
     {LibMovieStart,     "void movie_start();"           },  // start recording
     {LibMovieEnd,       "void movie_end();"             },  // stop recording
 
-    /** Button press emulation */
-    // LEFT, RIGHT, UP, DOWN, SET, MENU, PLAY, ERASE, Q, LV, INFO, ZOOM_IN, ZOOM_OUT
-    // SHOOT_FULL, SHOOT_HALF
+    /** Button press emulation **/
+    
+    /**
+     * Available button codes:
+     *      LEFT, RIGHT, UP, DOWN, SET, MENU, PLAY, ERASE, LV, INFO, ZOOM_IN
+     *      SHOOT_FULL, SHOOT_HALF
+     *      Q, ZOOM_OUT (if present on your camera)
+     */
+    
     {LibPress,          "void press(int button);"       },  // "press" a button
     {LibUnpress,        "void unpress(int button);"     },  // "unpress" a button
     {LibClick,          "void click(int button);"       },  // "press" and then "unpress" a button
     
-    /** Key input */
+    /** Key input **/
+
+    /**
+     * Two methods:
+     * - blocking:      int key = get_key();      // waits for key to be pressed, then returns the key code
+     * - non-blocking:  int key = last_key();     // returns the last key code without waiting (or -1)
+     * 
+     * Keys are trapped when you call one of those, and also 1 second after. This lets you write loops like:
+     * 
+     * while(1)
+     * {
+     *     int key = get_key();
+     * 
+     *     // process the key
+     *     if (key == SET) { ... }
+     * }
+     * 
+     * or
+     * 
+     * while(1)
+     * {
+     *     int key = last_key();
+     * 
+     *     // process the key
+     *     if (key == SET) { ... }
+     * 
+     *     sleep(0.1);
+     * }
+     */
+
     {LibGetKey,         "int get_key();"                },  // waits until you press some key, then returns key code
     {LibLastKey,        "int last_key();"               },  // returns last key pressed, without waiting
 
-    /** Exposure settings */
+    /** Exposure settings **/
+    
     // APEX units
     {LibGetTv,        "float get_tv();"                 },
     {LibGetAv,        "float get_av();"                 },
@@ -776,7 +824,7 @@ struct LibraryFunction PlatformLibrary[] =
     {LibSetAv,        "void set_av(float av);"          },
     {LibSetSv,        "void set_sv(float sv);"          },
 
-    // Conventional units (ISO 100, 1.0/4000, 2.8)
+    // Conventional units ( ISO 100, 1.0/4000, 2.8 )
     {LibGetISO,        "int get_iso();"                 },
     {LibGetShutter,    "float get_shutter();"           },
     {LibGetAperture,   "float get_aperture();"          },
@@ -792,50 +840,77 @@ struct LibraryFunction PlatformLibrary[] =
     {LibSetRawShutter,  "void set_rawshutter(int raw);" },
     {LibSetRawAperture, "void set_rawaperture(int raw);"},
     
-    /** Exposure compensation (in EV) */
+    /** Exposure compensation (in EV) **/
     {LibGetAE,          "float get_ae();"               },
     {LibSetAE,          "void set_ae(float ae);"        },
 
-    /** Flash functiions */
+    /** Flash functions **/
     {LibGetFlash,       "int get_flash();"              }, // 1=enabled, 0=disabled, 2=auto
     {LibSetFlash,       "int set_flash(int enabled);"   },
     {LibPopFlash,       "int pop_flash();"              }, // pop-up built-in flash
     {LibGetFlashAE,     "float get_flash_ae();"         },
-    {LibSetFlashAE,     "void set_flash_ae(float ae);"  },
+    {LibSetFlashAE,     "void set_flash_ae(float ae);"  }, // flash exposure compensation
 
-    /** White balance */
+    /** White balance **/
     {LibGetKelvin,      "int get_kelvin();"             },
     {LibGetGreen,       "int get_green();"              },
     {LibSetKelvin,      "void set_kelvin(int k);"       }, // from 1500 to 15000
     {LibSetGreen,       "void set_green(int gm);"       }, // green-magenta shift, from -9 to 9
 
-    /** Focus */
-    {LibFocus,          "void focus(int steps);"             }, // move the focus ring by X steps
-    {LibFocusSetup,     "void focus_setup(int stepsize, int delay, int wait);" }, // see Focus -> Focus step settings
-    {LibGetFocusConfirm, "int get_focus_confirm();"          }, // return AF confirmation state (outside LiveView, with shutter halfway pressed)
+    /** Focus **/
+    {LibFocus,          "void focus(int steps);"                }, // move the focus ring by X steps
+    {LibFocusSetup,     "void focus_setup(int stepsize, int delay, int wait);" }, // see Focus -> Focus Settings menu
+    {LibGetFocusConfirm, "int get_focus_confirm();"             }, // return AF confirmation state (outside LiveView, with shutter halfway pressed)
 
-    {LibGetAFMA,        "int get_afma(int mode);"            }, // get AF microadjust value
-    {LibSetAFMA,        "void set_afma(int value, int mode);" }, // set AF microadjust value
+    {LibGetAFMA,        "int get_afma(int mode);"               }, // get AF microadjust value
+    {LibSetAFMA,        "void set_afma(int value, int mode);"   }, // set AF microadjust value
     
-    // struct dof { char* lens_name; int focal_len; int focus_dist; int dof; int far; int near; int hyperfocal; }
+    /**
+     * struct dof 
+     * {
+     *      char* lens_name; 
+     *      int focal_len; 
+     *      int focus_dist; 
+     *      int dof; int far; 
+     *      int near; 
+     *      int hyperfocal; 
+     * }
+     */
+    
     {LibGetDofInfo,     "struct dof * get_dof();"   },
     
-    /** Low-level I/O */
+    /** Low-level I/O **/
     {LibMicOut,          "void mic_out(int value);"                                  }, // digital output via microphone jack, by toggling mic power
     {LibSetLed,          "void set_led(int led, int value);"                         }, // set LED state; 1 = card LED, 2 = blue LED
 
-    //~ {LibMicPrintf,       "void mic_printf(int baud, char* fmt, ...);"                }, // UART via microphone jack
-    //~ {LibWavPrintf,       "void wav_printf(int baud, char* fmt, ...);"                }, // UART via audio out (WAV)
-    //~ {LibLedPrintf,       "void led_printf(int baud, char* fmt, ...);"                }, // UART via card LED
+#if 0
+    {LibMicPrintf,       "void mic_printf(int baud, char* fmt, ...);"                }, // UART via microphone jack
+    {LibWavPrintf,       "void wav_printf(int baud, char* fmt, ...);"                }, // UART via audio out (WAV)
+    {LibLedPrintf,       "void led_printf(int baud, char* fmt, ...);"                }, // UART via card LED
     
-    //~ {LibMorseLedPrintf,  "void morse_led_printf(float dit_duration, char* fmt, ...);"    }, // Morse via card LED
-    //~ {LibMorseWavPrintf,  "void morse_wav_printf(float dit_duration, char* fmt, ...);"    }, // Morse via audio out (WAV)
+    {LibMorseLedPrintf,  "void morse_led_printf(float dit_duration, char* fmt, ...);"    }, // Morse via card LED
+    {LibMorseWavPrintf,  "void morse_wav_printf(float dit_duration, char* fmt, ...);"    }, // Morse via audio out (WAV)
+#endif
+
+    /** Graphics **/
+
+    /**
+    * Graphics constants:
+    * 
+    * Colors:
+    *     COLOR_EMPTY, COLOR_BLACK, COLOR_WHITE, COLOR_BG,
+    *     COLOR_RED, COLOR_DARK_RED, COLOR_GREEN1, COLOR_GREEN2, COLOR_BLUE, COLOR_LIGHT_BLUE,
+    *     COLOR_CYAN, COLOR_MAGENTA, COLOR_YELLOW, COLOR_ORANGE,
+    *     COLOR_ALMOST_BLACK, COLOR_ALMOST_WHITE,
+    *     COLOR_GRAY(percent)
+    *
+    * Fonts: 
+    *     FONT_LARGE, FONT_MED, FONT_SMALL
+    *     FONT(fnt, fg, bg)
+    *     SHADOW_FONT(fnt)
+    *     e.g. FONT(FONT_LARGE, COLOR_YELLOW, COLOR_BLACK) or SHADOW_FONT(FONT_MED)
+    */
     
-    /** Text output */
-    {LibBmpPrintf,      "void bmp_printf(int fnt, int x, int y, char* fmt, ...);"                   },
-    {LibNotifyBox,      "void notify_box(float duration, char* fmt, ...);"                          },
-    
-    /** Graphics */
     {LibClrScr,         "void clrscr();"                                                            },  // clear screen
     {LibGetPixel,       "int get_pixel(int x, int y);"                                              },
     {LibPutPixel,       "void put_pixel(int x, int y, int color);"                                  },
@@ -848,7 +923,11 @@ struct LibraryFunction PlatformLibrary[] =
 
     {LibSetCanonGUI,    "void set_canon_gui(int enabled);"                                          },  // allow disabling Canon graphics
 
-    /** Interaction with menus */
+    /** Text output **/
+    {LibBmpPrintf,      "void bmp_printf(int fnt, int x, int y, char* fmt, ...);"                   },
+    {LibNotifyBox,      "void notify_box(float duration, char* fmt, ...);"                          },
+
+    /** Interaction with menus **/
     { LibMenuOpen,       "void menu_open();"                                     }, // open ML menu
     { LibMenuClose,      "void menu_close();"                                    }, // close ML menu
     { LibMenuSelect,     "void menu_select(char* tab, char* entry);"             }, // select a menu tab and entry (e.g. Overlay, Focus Peak)
@@ -880,7 +959,7 @@ struct LibraryFunction PlatformLibrary[] =
     { LibAudioLevelToDB, "int audio_level_to_db(int level)"            }, // conversion from 16-bit signed to dB
 #endif
 
-    /** Powersaving */
+    /** Powersaving **/
     { LibDisplayOn,     "void display_on();"           },
     { LibDisplayOff,    "void display_off();"          },
     { LibDisplayIsOn,   "int display_is_on();"         },
@@ -908,7 +987,7 @@ void PlatformLibraryInit()
 
     LibraryAdd(&GlobalTable, "platform library", &PlatformLibrary[0]);
 
-    /** Button codes **/
+    /** Button codes */
     CONST(LEFT,         BGMT_PRESS_LEFT)
     CONST(RIGHT,        BGMT_PRESS_RIGHT)
     CONST(UP,           BGMT_PRESS_UP)
@@ -939,7 +1018,7 @@ void PlatformLibraryInit()
     CONST(ZOOM_OUT,     -1)
     #endif
     
-    /** Color codes **/
+    /** Color codes */
     CONST0(COLOR_EMPTY)
     CONST0(COLOR_BLACK)
     CONST0(COLOR_WHITE)
@@ -960,7 +1039,7 @@ void PlatformLibraryInit()
     CONST0(COLOR_ALMOST_WHITE) // 79
     lib_parse("#define COLOR_GRAY(percent) (38 + (percent) * 41 / 100)"); // COLOR_GRAY(50) is 50% gray
 
-    /** Font constants **/
+    /** Font constants */
     CONST0(FONT_LARGE)
     CONST0(FONT_MED)
     CONST0(FONT_SMALL)
@@ -970,13 +1049,13 @@ void PlatformLibraryInit()
     lib_parse("#define FONT(font,fg,bg) (((font) & (FONT_MASK | SHADOW_MASK)) | ((bg) & 0xFF) << 8 | ((fg) & 0xFF) << 0)");
     lib_parse("#define SHADOW_FONT(fnt) ((fnt) | SHADOW_MASK)");
 
-    /** Common operators **/
+    /** Common operators */
     lib_parse("#define MIN(a,b) ((a) < (b) ? (a) : (b))");
     lib_parse("#define MAX(a,b) ((a) > (b) ? (a) : (b))");
     
     CONST0(M_PI);
 
-    /** common properties **/
+    /** common properties */
 
     READONLY_VAR(lv)
     READONLY_VAR(recording)
