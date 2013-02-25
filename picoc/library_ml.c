@@ -176,32 +176,8 @@ static void LibClick(struct ParseState *Parser, struct Value *ReturnValue, struc
     LibUnpress(Parser, ReturnValue, Param, NumArgs);
 }
 
-/**
- * Key handling
- * - blocking:      int key = get_key();      // waits for key to be pressed, then returns the key code
- * - non-blocking:  int key = last_key();     // returns the last key code without waiting (or -1)
- * 
- * Keys are trapped when you call one of those, and also 1 second after. This lets you write loops like:
- * 
- * while(1)
- * {
- *     int key = get_key();
- *     // process the key
- * }
- * 
- * or
- * 
- * while(1)
- * {
- *     int key = last_key();
- *     // process the key
- * 
- *     sleep(0.1);
- * }
- * 
- */
 static volatile int key_pressed = -1;
-static volatile int waiting_for_key_last_request = 0; // will expire after 1 second, see above
+static volatile int waiting_for_key_last_request = 0; // will expire after 1 second
 
 static void queue_cleanup()
 {
