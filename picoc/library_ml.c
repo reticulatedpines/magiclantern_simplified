@@ -936,7 +936,6 @@ struct LibraryFunction PlatformLibrary[] =
 #endif
 
     /** Graphics **/
-
     /**
     * Graphics constants:
     * 
@@ -1010,15 +1009,15 @@ struct LibraryFunction PlatformLibrary[] =
     { LibLVPause,       "void lv_pause();"             }, // pause LiveView without dropping the mirror
     { LibLVResume,      "void lv_resume();"            },
     
-    /** cache hacking */
+    /** Cache hacking **/
     { LibCacheLocked,   "unsigned int cache_locked();" },
     { LibCacheLock,     "void cache_lock();"           },
     { LibCacheUnlock,   "void cache_unlock();"         },
-    { LibCacheFake,     "void cache_fake(unsigned int address, unsigned int data, unsigned int type);"           },
+    { LibCacheFake,     "void cache_fake(unsigned int address, unsigned int data, unsigned int type);" },
     
-    /** get camera details */
-    { LibGetModel,      "char *get_model();"           },
-    { LibGetFirmware,   "char *get_firmware();"        },
+    /** Camera info **/
+    { LibGetModel,      "char* get_model();"           },
+    { LibGetFirmware,   "char* get_firmware();"        },
     { NULL,         NULL }
 };
 

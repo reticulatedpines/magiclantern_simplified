@@ -239,13 +239,13 @@ static void run_script(const char *script)
 {
     script_state = SCRIPT_RUNNING;
 
-    msleep(1000);
+    msleep(300);
     
     console_show();
     console_set_help_text("SET: show/hide");
     console_set_status_text("Running script...");
     
-    msleep(500);
+    msleep(100);
     extern int PicocExitBuf[];
     PicocInitialise(PICOC_HEAP_SIZE);
     
@@ -253,12 +253,12 @@ static void run_script(const char *script)
     {
         // parse and run our script
         PicocPlatformScanFile(get_script_path(script_selected));
-        console_puts(    "=============  :)  ===========\n\n");
+        console_puts(    "Script finished.\n\n");
     }
     else
     {
         // something went wrong
-        console_printf(  "========== Exit %d :( =========\n\n", PicocExitValue);
+        console_printf(  "Script error: %d.\n\n", PicocExitValue);
         msleep(500);
         gui_stop_menu();
         msleep(500);
