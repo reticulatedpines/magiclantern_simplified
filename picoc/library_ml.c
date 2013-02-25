@@ -1,7 +1,20 @@
 #include "interpreter.h"
+#include "cache_hacks.h"
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
+
+char *camera_model[32];
+char *firmware_version[32];
+PROP_HANDLER(PROP_CAM_MODEL)
+{
+    snprintf(camera_model, sizeof(camera_model), (const char *)buf);
+}
+
+PROP_HANDLER(PROP_FIRMWARE_VER)
+{
+    snprintf(firmware_version, sizeof(firmware_version), (const char *)buf);
+}
 
 static void LibSleep(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
@@ -732,6 +745,37 @@ static void LibLVResume(struct ParseState *Parser, struct Value *ReturnValue, st
     ResumeLiveView();
 }
 
+static void LibCacheLocked(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = cache_locked();
+}
+static void LibCacheLock(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    cache_lock();
+}
+static void LibCacheUnlock(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    cache_unlock();
+}
+static void LibCacheFake(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    uint32_t address = Param[0]->Val->Integer;
+    uint32_t data = Param[1]->Val->Integer;
+    uint32_t type = Param[2]->Val->Integer;
+    
+    ReturnValue->Val->Integer = cache_fake(address, data, type);
+}
+
+static void LibGetModel(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Pointer = camera_model;
+}
+
+static void LibGetFirmware(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Pointer = firmware_version;
+}
+
 
 /* list of all library functions and their prototypes */
 struct LibraryFunction PlatformLibrary[] =
@@ -966,6 +1010,16 @@ struct LibraryFunction PlatformLibrary[] =
 
     { LibLVPause,       "void lv_pause();"             }, // pause LiveView without dropping the mirror
     { LibLVResume,      "void lv_resume();"            },
+    
+    /** cache hacking */
+    { LibCacheLocked,   "unsigned int cache_locked();" },
+    { LibCacheLock,     "void cache_lock();"           },
+    { LibCacheUnlock,   "void cache_unlock();"         },
+    { LibCacheFake,     "void cache_fake(unsigned int address, unsigned int data, unsigned int type);"           },
+    
+    /** get camera details */
+    { LibGetModel,      "char *get_model();"           },
+    { LibGetFirmware,   "char *get_firmware();"        },
     { NULL,         NULL }
 };
 
@@ -1055,6 +1109,10 @@ void PlatformLibraryInit()
     
     CONST0(M_PI);
 
+    /** cache hacking */
+    CONST0(TYPE_DCACHE);
+    CONST0(TYPE_ICACHE);
+    
     /** common properties */
 
     READONLY_VAR(lv)

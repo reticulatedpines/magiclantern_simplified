@@ -24,6 +24,8 @@ if (a) // misc tests
 {
     /* Some basic functions */
     beep();
+    printf("get_model()    '%s'\n", get_model());
+    printf("get_firmware() '%s'\n", get_firmware());
     sleep(2);
 
     printf("LiveView:%d Recording:%d\n", lv, recording);
