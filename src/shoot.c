@@ -691,7 +691,6 @@ static void double_buffering_end(int ytop, int height)
 }
 #endif
 
-#ifdef FEATURE_FLASH_TWEAKS
 void set_flash_firing(int mode)
 {
     lens_wait_readytotakepic(64);
@@ -699,6 +698,7 @@ void set_flash_firing(int mode)
     prop_request_change(PROP_STROBO_FIRING, &mode, 4);
 }
 
+#ifdef FEATURE_FLASH_TWEAKS
 static MENU_UPDATE_FUNC(flash_and_no_flash_display)
 {
     if (strobo_firing == 2)

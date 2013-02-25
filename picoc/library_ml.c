@@ -409,6 +409,29 @@ static void LibSetFlashAE(struct ParseState *Parser, struct Value *ReturnValue, 
     lens_set_flash_ae(ae);
 }
 
+// canon codes: 0=on, 1=off, 2=auto
+// ml: 0=off, 1=on, 2=auto
+int strobo_fix_logic(int mode)
+{
+    if (mode == 0) return 1;
+    else if (mode == 1) return 0;
+    return mode;
+}
+static void LibGetFlash(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = strobo_fix_logic(strobo_firing);
+}
+static void LibSetFlash(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    set_flash_firing(strobo_fix_logic(Param[0]->Val->Integer));
+}
+
+static void LibPopFlash(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int req = 1;
+    prop_request_change(PROP_POPUP_BUILTIN_FLASH, &req, 4);
+}
+
 static void LibGetKelvin(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->Integer = lens_info.kelvin;
@@ -771,8 +794,13 @@ struct LibraryFunction PlatformLibrary[] =
     
     /** Exposure compensation (in EV) */
     {LibGetAE,          "float get_ae();"               },
-    {LibGetFlashAE,     "float get_flash_ae();"         },
     {LibSetAE,          "void set_ae(float ae);"        },
+
+    /** Flash functiions */
+    {LibGetFlash,       "int get_flash();"              }, // 1=enabled, 0=disabled, 2=auto
+    {LibSetFlash,       "int set_flash(int enabled);"   },
+    {LibPopFlash,       "int pop_flash();"              }, // pop-up built-in flash
+    {LibGetFlashAE,     "float get_flash_ae();"         },
     {LibSetFlashAE,     "void set_flash_ae(float ae);"  },
 
     /** White balance */
