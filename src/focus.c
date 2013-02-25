@@ -1185,7 +1185,11 @@ static void afma_auto_tune(int range_expand_factor)
             for (int j = 0; j < 20; j++)
             {
                 msleep(10);
-                if (FOCUS_CONFIRMATION) fc = 1;
+                if (FOCUS_CONFIRMATION)
+                {
+                    fc = 1;
+                    break;
+                }
             }
             
             // weak or strong confirmation? use a higher score if strong
@@ -1195,7 +1199,11 @@ static void afma_auto_tune(int range_expand_factor)
                 for (int j = 0; j < 20; j++)
                 {
                     msleep(10);
-                    if (FOCUS_CONFIRMATION) fc = 3;
+                    if (FOCUS_CONFIRMATION)
+                    {
+                        fc = 3;
+                        break;
+                    }
                 }
             }
             
