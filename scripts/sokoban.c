@@ -15,24 +15,26 @@
 #define LINES 9
 #define COLUMNS 8
 
+// http://www.sokobano.de/wiki/index.php?title=Sok_format
+
 #define WALL '#'
 #define SPACE ' '
 #define PLAYER '@'
-#define BOX 'o'
+#define BOX '$'
 
-#define TARGET '*'
-#define PLAYER_ON_TARGET '&'
-#define BOX_ON_TARGET 'O'
+#define TARGET '.'
+#define PLAYER_ON_TARGET '+'
+#define BOX_ON_TARGET '*'
 
 char* maze[LINES] = {
     "  ##### ",
     "###   # ",
-    "#*@o  # ",
-    "### o*# ",
-    "#*##o # ",
-    "# # * # ",
-    "#o Ooo*#",
-    "#   *  #",
+    "#.@$  # ",
+    "### $.# ",
+    "#.##$ # ",
+    "# # . ##",
+    "#$ *$$.#",
+    "#   .  #",
     "########"
 };
 
@@ -76,10 +78,10 @@ void draw_box(int x, int y, int a, int on_target)
     draw_rect(x + pad, y + pad, a - pad*2, a - pad*2, COLOR_BLACK);
 
     draw_line(x + pad, y + pad, x + a - pad, y + a - pad, COLOR_BLACK);
-    draw_line(x + pad + 1, y + pad, x + a - pad + 1, y + a - pad, COLOR_BLACK);
+    draw_line(x + pad - 1, y + pad, x + a - pad - 1, y + a - pad, COLOR_BLACK);
     
     draw_line(x + pad, y + a - pad, x + a - pad, y + pad, COLOR_BLACK);
-    draw_line(x + pad + 1, y + a - pad, x + a - pad + 1, y + pad, COLOR_BLACK);
+    draw_line(x + pad - 1, y + a - pad, x + a - pad - 1, y + pad, COLOR_BLACK);
 }
 
 void draw_player(int x, int y, int a, int on_target)
