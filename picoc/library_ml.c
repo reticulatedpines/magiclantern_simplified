@@ -66,6 +66,11 @@ static void LibGetTime(struct ParseState *Parser, struct Value *ReturnValue, str
     ReturnValue->Val->Pointer = &t;
 }
 
+static void LibGetUptime(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = get_ms_clock_value() / 1000.0f;
+}
+
 static void LibTakePic(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     take_a_pic(AF_DONT_CHANGE, 0);
@@ -80,7 +85,7 @@ static void LibBulbPic(struct ParseState *Parser, struct Value *ReturnValue, str
 static void LibTakeFastPics(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     int num = Param[0]->Val->Integer;
-    take_fast_pictures(nnum);
+    take_fast_pictures(num);
 }
 
 static void LibWaitPic(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -817,11 +822,12 @@ struct LibraryFunction PlatformLibrary[] =
      */
     
     {LibGetTime,        "struct tm * get_time();"       },  // get current date/time
+    {LibGetUptime,      "float get_uptime();"           },  // get uptime, in seconds, 1ms resolution (from DIGIC clock)
 
     /** Picture taking **/
     {LibTakePic,        "void takepic();"               },  // take a picture
     {LibBulbPic,        "void bulbpic(float seconds);"  },  // take a picture in bulb mode
-    {LibTakeFastPics,   "void take_fast_pics(int number);" }  // take N pictures in burst mode
+    {LibTakeFastPics,   "void take_fast_pics(int number);" },  // take N pictures in burst mode
     
     {LibWaitPic,        "void wait_pic();"              },  // waits until you take a picture (e.g. for starting a custom bracket sequence)
     
