@@ -245,11 +245,15 @@ static const char* format_time_hours_minutes_seconds(int seconds)
     return msg;
 }
 
+static void seconds_clock_update();
+
 static volatile int seconds_clock = 0;
 int get_seconds_clock() { return seconds_clock; } 
 
 static volatile int ms100_clock = 0;
-int get_ms_clock_value() { return ms100_clock; }
+int get_ms_clock_value() { seconds_clock_update(); return ms100_clock; }
+
+int get_ms_clock_value_fast() { return ms100_clock; } // fast, but less accurate
 
 /**
  * useful for things that shouldn't be done more often than X ms
@@ -314,28 +318,38 @@ static void do_this_every_second() // called every second
     #endif
 }
 
-static int bulb_exposure_running_accurate_clock_needed = 0;
+static struct semaphore * seconds_clock_sem;
+// called every 200ms or on request
+static void
+seconds_clock_update()
+{
+    take_semaphore(seconds_clock_sem, 0);
+    
+    static int rollovers = 0;
+    static int prev_t = 0;
+    int t = *(volatile uint32_t*)0xC0242014;
+    // this timer rolls over every 1048576 ticks
+    // and 1000000 ticks = 1 second
+    // so 1 rollover is done every 1.05 seconds roughly
+    
+    if (t < prev_t)
+        rollovers++;
+    prev_t = t;
+    
+    // float s_clock_f = rollovers * 1048576.0 / 1000000.0 + t / 1048576.0;
+    // not very precise but... should be OK (1.11 seconds error in 24 hours)
+    ms100_clock = rollovers * 16777 / 16 + t * 1000 / 1048576;
+    seconds_clock = ms100_clock / 1000;
+    
+    give_semaphore(seconds_clock_sem);
+}
 
 static void
 seconds_clock_task( void* unused )
 {
-    int rollovers = 0;
     TASK_LOOP 
     {
-        static int prev_t = 0;
-        int t = *(uint32_t*)0xC0242014;
-        // this timer rolls over every 1048576 ticks
-        // and 1000000 ticks = 1 second
-        // so 1 rollover is done every 1.05 seconds roughly
-        
-        if (t < prev_t)
-            rollovers++;
-        prev_t = t;
-        
-        // float s_clock_f = rollovers * 1048576.0 / 1000000.0 + t / 1048576.0;
-        // not very precise but... should be OK (1.11 seconds error in 24 hours)
-        ms100_clock = rollovers * 16777 / 16 + t * 1000 / 1048576;
-        seconds_clock = ms100_clock / 1000;
+        seconds_clock_update();
         
         static int prev_s_clock = 0;
         if (prev_s_clock != seconds_clock)
@@ -344,7 +358,7 @@ seconds_clock_task( void* unused )
             prev_s_clock = seconds_clock;
         }
 
-        msleep(bulb_exposure_running_accurate_clock_needed ? MIN_MSLEEP : 100);
+        msleep(200);
     }
 }
 TASK_CREATE( "clock_task", seconds_clock_task, 0, 0x19, 0x2000 );
@@ -3241,9 +3255,6 @@ bulb_take_pic(int duration)
     //~ NotifyBox(3000, "BulbStart (%d)", duration); msleep(1000);
     mlu_lock_mirror_if_needed();
     
-    // with this, clock_task will update the millisecond timer as fast as it can
-    bulb_exposure_running_accurate_clock_needed = 1;
-    
     SW1(1,300);
     
     int t_start = get_ms_clock_value();
@@ -3296,8 +3307,6 @@ bulb_take_pic(int duration)
     
     SW2(0,0);
     SW1(0,0);
-    
-    bulb_exposure_running_accurate_clock_needed = 0;
     
     lens_wait_readytotakepic(64);
     lens_cleanup_af();
@@ -5852,7 +5861,7 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
 #endif // HDR/FST
 
 // normal pic, silent pic, bulb pic...
-static void take_a_pic(int should_af, int allow_bulb)
+void take_a_pic(int should_af, int allow_bulb)
 {
     #ifdef FEATURE_SNAP_SIM
     if (snap_sim) {
@@ -7595,6 +7604,7 @@ TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x2000 );
 void shoot_init()
 {
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
+    seconds_clock_sem = create_named_semaphore("seconds_clock_sem", 1);
 
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
