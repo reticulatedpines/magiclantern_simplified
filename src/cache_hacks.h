@@ -429,6 +429,18 @@ static void dcache_lock()
 }
 
 /* these are the "public" functions. please use only these if you are not sure what the others are for */
+
+static uint32_t cache_locked()
+{
+    uint32_t status = 0;
+    asm volatile ("\
+       /* get lockdown status */\
+       MRC p15, 0, %0, c9, c0, 1\r\n\
+       " : "=r"(status) : : "r0");
+    
+    return status;
+}
+
 static void cache_lock()
 {
     icache_lock();
