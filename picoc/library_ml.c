@@ -678,6 +678,17 @@ static void LibSetCanonGUI(struct ParseState *Parser, struct Value *ReturnValue,
         canon_gui_disable_front_buffer();
 }
 
+static void LibSetGuiMode(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int mode = Param[0]->Val->Integer;
+    SetGUIRequestMode(mode);
+}
+
+static void LibGetGuiMode(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = CURRENT_DIALOG_MAYBE;
+}
+
 static void LibMenuOpen(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     gui_open_menu();
@@ -981,13 +992,16 @@ struct LibraryFunction PlatformLibrary[] =
     {LibDrawRect,       "void draw_rect(int x, int y, int w, int h, int color);"                    },
     {LibFillRect,       "void fill_rect(int x, int y, int w, int h, int color);"                    },
 
-    {LibSetCanonGUI,    "void set_canon_gui(int enabled);"                                          },  // allow disabling Canon graphics
-
     /** Text output **/
     {LibBmpPrintf,      "void bmp_printf(int fnt, int x, int y, char* fmt, ...);"                   },
     {LibNotifyBox,      "void notify_box(float duration, char* fmt, ...);"                          },
 
-    /** Interaction with menus **/
+    /** Interaction with Canon GUI **/
+    {LibSetCanonGUI,    "void set_canon_gui(int enabled);"                          }, // allow disabling Canon graphics
+    {LibSetGuiMode,     "void set_gui_mode(int mode);"    }, // set Canon GUI mode (current dialog, 0=idle, 1=play, 2=menu, others camera-specific)
+    {LibGetGuiMode,     "int get_gui_mode();"    },
+
+    /** Interaction with ML menus **/
     { LibMenuOpen,       "void menu_open();"                                     }, // open ML menu
     { LibMenuClose,      "void menu_close();"                                    }, // close ML menu
     { LibMenuSelect,     "void menu_select(char* tab, char* entry);"             }, // select a menu tab and entry (e.g. Overlay, Focus Peak)
