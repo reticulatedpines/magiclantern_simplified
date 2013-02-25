@@ -68,13 +68,20 @@ static void LibGetTime(struct ParseState *Parser, struct Value *ReturnValue, str
 
 static void LibTakePic(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    lens_take_picture(64,0);
+    take_a_pic(AF_DONT_CHANGE, 0);
 }
 
 static void LibBulbPic(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     int ms = (int)roundf(Param[0]->Val->FP * 1000.0f);
     bulb_take_pic(ms);
+}
+
+static void LibWaitPic(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int f0 = file_number;
+    while (file_number == f0) msleep(20);
+    lens_wait_readytotakepic(64);
 }
 
 static void LibMovieStart(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -833,11 +840,13 @@ struct LibraryFunction PlatformLibrary[] =
     {LibTakePic,        "void takepic();"               },  // take a picture
     {LibBulbPic,        "void bulbpic(float seconds);"  },  // take a picture in bulb mode
     
+    {LibWaitPic,        "void wait_pic();"              },  // waits until you take a picture (e.g. for starting a custom bracket sequence)
+    
     /** Video recording **/
     {LibMovieStart,     "void movie_start();"           },  // start recording
     {LibMovieEnd,       "void movie_end();"             },  // stop recording
 
-    /** Button press emulation **/
+    /** Key press emulation **/
     
     /**
      * Available button codes:
