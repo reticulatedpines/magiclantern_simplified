@@ -113,10 +113,11 @@ static CONFIG_INT("fps.preset", fps_criteria, 0);
 #define FPS_SOUND_DISABLE 1
 static CONFIG_INT("fps.wav.record", fps_wav_record, 0);
 
+static CONFIG_INT("fps.const.expo", fps_const_expo, 0);
+
 #ifdef FEATURE_FPS_RAMPING
 static CONFIG_INT("fps.ramp", fps_ramp, 0);
 static CONFIG_INT("fps.ramp.duration", fps_ramp_duration, 3);
-static CONFIG_INT("fps.ramp.expo", fps_ramp_expo, 0);
 static int fps_ramp_timings[] = {1, 2, 5, 15, 30, 60, 120, 300, 600, 1200, 1800};
 static int fps_ramp_up = 0;
 #else
@@ -998,11 +999,10 @@ static MENU_UPDATE_FUNC(fps_ramp_duration_update)
 {
     if (!fps_ramp) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "FPS ramping disabled.");
 }
-static MENU_UPDATE_FUNC(fps_ramp_expo_update)
+static MENU_UPDATE_FUNC(fps_const_expo_update)
 {
     extern int smooth_iso;
-    if (!fps_ramp) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "FPS ramping disabled.");
-    else if (smooth_iso) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You need to disable gradual exposure.");
+    if (smooth_iso) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You need to disable gradual exposure.");
 }
 
 static struct menu_entry fps_menu[] = {
@@ -1048,6 +1048,18 @@ static struct menu_entry fps_menu[] = {
                 .help = "Optimization criteria - how to setup the two timers.",
             },
 #endif
+            #ifdef CONFIG_FRAME_ISO_OVERRIDE
+            {
+                .name = "Constant expo",
+                .priv = &fps_const_expo,
+                .max = 1,
+                .update = fps_const_expo_update,
+                .help  = "Keep the same exposure (brightness) as with default FPS.",
+                .help2 = "This works by lowering ISO => you may get pink highlights.",
+                .depends_on = DEP_MANUAL_ISO | DEP_MOVIE_MODE,
+            },
+            #endif
+
             {
                 .name = "Shutter range",
                 .update = shutter_range_print,
@@ -1095,7 +1107,6 @@ static struct menu_entry fps_menu[] = {
             #endif
 
 
-
             #ifdef FEATURE_FPS_RAMPING
             {
                 .name = "FPS ramping", 
@@ -1117,17 +1128,6 @@ static struct menu_entry fps_menu[] = {
                 .help = "Duration of FPS ramping (in real-time, not in playback).",
                 .depends_on = DEP_MOVIE_MODE,
             },
-            #ifdef CONFIG_FRAME_ISO_OVERRIDE
-            {
-                .name = "Constant expo",
-                .priv = &fps_ramp_expo,
-                .max = 1,
-                .update = fps_ramp_expo_update,
-                .help = "Keep constant exposure by tweaking ISO. Pink highlights.",
-                .depends_on = DEP_MANUAL_ISO | DEP_MOVIE_MODE,
-            },
-            #endif
-
             #endif
 
 
@@ -1401,7 +1401,7 @@ int handle_fps_events(struct event * event)
     return 1;
 }
 
-void fps_ramp_iso_step()
+void fps_expo_iso_step()
 {
 #ifdef CONFIG_FRAME_ISO_OVERRIDE
     
@@ -1410,7 +1410,7 @@ void fps_ramp_iso_step()
     if (!lens_info.raw_iso) return; // no auto iso
     
     static int dirty = 0;
-    if (!fps_ramp || !fps_ramp_expo)
+    if (!fps_const_expo)
     {
         if (dirty) set_movie_digital_iso_gain_for_gradual_expo(1024);
         return;

@@ -810,7 +810,7 @@ void smooth_iso_step()
     static int iso_acc = 0;
     if (!smooth_iso) 
     { 
-        fps_ramp_iso_step();
+        fps_expo_iso_step();
         iso_acc = 0; return; 
     }
     if (!is_movie_mode()) { iso_acc = 0; return; }
