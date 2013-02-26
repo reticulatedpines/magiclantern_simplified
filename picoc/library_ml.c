@@ -222,6 +222,9 @@ static void LibLastKey(struct ParseState *Parser, struct Value *ReturnValue, str
 
 int handle_picoc_lib_keys(struct event * event)
 {
+    if (IS_FAKE(event))
+        return 1; // so we can pass certain keys back to Canon code from script, e.g. if (key == ERASE) click(ERASE);
+    
     if (get_ms_clock_value() > waiting_for_key_last_request + 1000)
         waiting_for_key_last_request = 0;
 
@@ -261,6 +264,12 @@ int handle_picoc_lib_keys(struct event * event)
         case BGMT_WHEEL_RIGHT:
             console_printf("{WHEEL_RIGHT}\n");
             goto key_can_block;
+
+        #ifdef BGMT_JOY_CENTER
+        case BGMT_JOY_CENTER:
+            event->param = BGMT_PRESS_SET;
+            // fallthru
+        #endif
 
         case BGMT_PRESS_SET:
             console_printf("{SET}\n");
