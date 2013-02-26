@@ -184,6 +184,7 @@ void info_led_blink(int times, int delay_on, int delay_off)
 
 
 int config_ok = 0;
+static int config_deleted = 0;
 
 // this can be called from more tasks (gui, prop handler, menu), so it needs to be thread safe
 void
@@ -194,50 +195,104 @@ save_config( void * priv, int delta )
     update_disp_mode_bits_from_params();
     config_save_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" ); 
     config_menu_save_flags();
+    config_deleted = 0;
     give_semaphore(config_save_sem);
 #endif
 }
 
+#ifdef CONFIG_CONFIG_FILE
+#ifdef CONFIG_PICOC
 static char last_preset_file[50] = "";
-static int last_save_timestamp = 0;
+static int preset_just_saved = 0;
+static int preset_scripts_dirty = 0;
+
+static char*
+find_picoc_config_filename()
+{
+    for (int i = 0; i < 10; i++)
+    {
+        snprintf(last_preset_file, sizeof(last_preset_file), CARD_DRIVE"ML/SCRIPTS/PRESET%d.C", i);
+
+        if (GetFileSize(last_preset_file) == 0xFFFFFFFF) // this file does not exist
+            return last_preset_file;
+    }
+    return 0;
+}
+
+// if the user tries to save more presets at a time, 
+// he will fill the script directory with identical files
+// so.. let's calm him down :)
+static int preset_user_angry = 0;
 
 static void
 save_config_as_picoc(void* priv, int delta)
 {
-#ifdef CONFIG_CONFIG_FILE
-#ifdef CONFIG_PICOC
-
-    for (int i = 0; i < 100; i++)
+    if (preset_just_saved)
     {
-        snprintf(last_preset_file, sizeof(last_preset_file), CARD_DRIVE"ML/SCRIPTS/PRESET%02d.C", i);
-        if (GetFileSize(last_preset_file) == 0xFFFFFFFF) // this file does not exist
-        {
-            menu_save_current_config_as_picoc_preset(last_preset_file);
-            last_save_timestamp = get_ms_clock_value();
-            break;
-        }
+        preset_user_angry = 1;
+        return;
     }
-#endif
-#endif
+    
+    char* fn = find_picoc_config_filename();
+    if (fn)
+    {
+        menu_save_current_config_as_picoc_preset(fn);
+        preset_just_saved = 1;
+        preset_scripts_dirty = 1;
+    }
 }
 
 static MENU_UPDATE_FUNC(save_config_as_picoc_update)
 {
-    int t = get_ms_clock_value();
-    if (t > last_save_timestamp && t < last_save_timestamp + 2000)
+    static int last_displayed = 0;
+    int t = get_ms_clock_value_fast();
+    
+    if (preset_just_saved == 2 && t - last_displayed > 2000) // if this menu was not displayed for a while, we can save a new preset
     {
-        MENU_SET_NAME(last_preset_file);
-        MENU_SET_RINFO("OK");
+        preset_just_saved = 0;
+        preset_user_angry = 0;
+    }
+    
+    if (preset_scripts_dirty)
+    {
+        MENU_SET_RINFO("Restart");
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Restart camera so the new preset appears in Scripts menu.");
+    }
+    
+    if (preset_just_saved)
+    {
+        MENU_SET_NAME(last_preset_file + strlen(CARD_DRIVE"ML/SCRIPTS/"));
+        if (preset_user_angry)
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Change some settings before saving a new preset.");
+        last_displayed = t;
+        preset_just_saved = 2;
     }
 }
 
-#ifdef CONFIG_CONFIG_FILE
+#endif // picoc
+
+static MENU_UPDATE_FUNC(delete_config_update)
+{
+    if (config_deleted)
+    {
+        MENU_SET_RINFO("Restart");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Restart your camera to complete the process.");
+    }
+}
+static MENU_UPDATE_FUNC(save_config_update)
+{
+    if (config_deleted)
+    {
+        MENU_SET_RINFO("Undo");
+    }
+}
 static void
 delete_config( void * priv, int delta )
 {
     FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
     FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/MENU.CFG" );
     if (config_autosave) config_autosave_toggle(0, 0);
+    config_deleted = 1;
 }
 
 #endif
@@ -2885,6 +2940,7 @@ static struct menu_entry cfg_menus[] = {
 {
     .name = "Config file",
     .select = menu_open_submenu,
+    .submenu_width = 700,
     .help = "Config auto save, manual save, restore defaults...",
     .children =  (struct menu_entry[]) {
         {
@@ -2897,22 +2953,26 @@ static struct menu_entry cfg_menus[] = {
         {
             .name = "Save config now",
             .select        = save_config,
+            .update        = save_config_update,
             .help = "Save ML settings to ML/SETTINGS/MAGIC.CFG ."
         },
+        {
+            .name = "Restore ML defaults",
+            .select        = delete_config,
+            .update        = delete_config_update,
+            .help  = "This restore ML default settings, by deleting MAGIC.CFG.",
+        },
+
         #ifdef CONFIG_PICOC
         {
             .name = "Export as PicoC script",
             .select = save_config_as_picoc,
             .update = save_config_as_picoc_update,
-            .help =  "Export current menu settings to ML/SCRIPTS/PRESETnn.C.",
+            .help =  "Export current menu settings to ML/SCRIPTS/PRESETn.C.",
             .help2 = "The preset will appear in Scripts menu. Edit/rename on PC.",
         },
         #endif
-        {
-            .name = "Delete config file",
-            .select        = delete_config,
-            .help = "Use this to restore ML default settings. Restart needed."
-        },
+
         MENU_EOL,
     },
 },
