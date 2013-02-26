@@ -68,7 +68,7 @@ if (a) // misc tests
     console_show();
     
     printf("Press any key to continue.\n");
-    get_key();
+    wait_key();
 }
 
 if (b) // expo tests
@@ -126,7 +126,7 @@ if (b) // expo tests
     console_show();
     
     printf("Press any key to continue.\n");
-    get_key();
+    wait_key();
 }
 
 if (c) // powersave tests
@@ -155,7 +155,7 @@ if (c) // powersave tests
 
     console_show();
     printf("Press any key to continue.\n");
-    get_key();
+    wait_key();
 }
 
 if (d) // movie test
@@ -171,7 +171,7 @@ if (d) // movie test
 
     console_show();
     printf("Press any key to continue.\n");
-    get_key();
+    wait_key();
 }
 
 if (e) // photo tests
@@ -191,7 +191,7 @@ if (e) // photo tests
 
     console_show();
     printf("Press any key to continue.\n");
-    get_key();
+    wait_key();
 }
 
 
@@ -229,7 +229,7 @@ if (f) // focus tests
     console_show();
 
     printf("Press any key to continue.\n");
-    get_key();
+    wait_key();
 }
 
 if (g)
@@ -262,7 +262,7 @@ if (g)
     menu_set("Shoot", "Advanced Bracket", 0);
 
     printf("Press any key to continue.\n");
-    get_key();
+    wait_key();
 }
 
 if (h)
@@ -287,7 +287,7 @@ if (h)
     bmp_printf(FONT(FONT_LARGE, COLOR_YELLOW, COLOR_BLACK), 300, 200, "Hi there!");
     
     bmp_printf(FONT_MED, 0, 0, "Press any key to continue.\n");
-    get_key();
+    wait_key();
     
     // restore things back to their original state
     menu_set("Overlay", "Global Draw", old_gdr);

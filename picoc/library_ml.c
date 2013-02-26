@@ -194,7 +194,7 @@ static void queue_cleanup()
     }
 }
 
-static void LibGetKey(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+static void LibWaitKey(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     queue_cleanup();
     
@@ -852,14 +852,14 @@ struct LibraryFunction PlatformLibrary[] =
 
     /**
      * Two methods:
-     * - blocking:      int key = get_key();      // waits for key to be pressed, then returns the key code
+     * - blocking:      int key = wait_key();      // waits for key to be pressed, then returns the key code
      * - non-blocking:  int key = last_key();     // returns the last key code without waiting (or -1)
      * 
      * Keys are trapped when you call one of those, and also 1 second after. This lets you write loops like:
      * 
      * while(1)
      * {
-     *     int key = get_key();
+     *     int key = wait_key();
      * 
      *     // process the key
      *     if (key == SET) { ... }
@@ -878,7 +878,7 @@ struct LibraryFunction PlatformLibrary[] =
      * }
      */
 
-    {LibGetKey,         "int get_key();"                },  // waits until you press some key, then returns key code
+    {LibWaitKey,        "int wait_key();"               },  // waits until you press some key, then returns key code
     {LibLastKey,        "int last_key();"               },  // returns last key pressed, without waiting
 
     /** Exposure settings **/

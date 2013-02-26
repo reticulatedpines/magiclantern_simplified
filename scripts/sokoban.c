@@ -4,7 +4,7 @@
 * This is a playable demo for PicoC scripting.
 * 
 * It should help you understand:
-* - Basic key processing (get_key)
+* - Basic key processing (wait_key)
 * - Simple graphics (draw_rect, fill_rect, draw_circle, put_pixel etc)
 * - PicoC programming basics
 * 
@@ -360,7 +360,7 @@ void main()
     {
         draw_maze();
         // print_maze();
-        int key = get_key();
+        int key = wait_key();
         switch(key)
         {
             case LEFT:
