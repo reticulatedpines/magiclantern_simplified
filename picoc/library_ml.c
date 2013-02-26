@@ -864,6 +864,7 @@ struct LibraryFunction PlatformLibrary[] =
      *      LEFT, RIGHT, UP, DOWN, SET, MENU, PLAY, ERASE, LV, INFO, ZOOM_IN
      *      SHOOT_FULL, SHOOT_HALF
      *      Q, ZOOM_OUT (if present on your camera)
+     *      UNPRESS (for key input only)
      */
     
     {LibPress,          "void press(int button);"       },  // "press" a button
