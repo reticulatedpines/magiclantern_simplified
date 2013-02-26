@@ -3,8 +3,10 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
-char *camera_model[32];
-char *firmware_version[32];
+#define UNPRESS 10000 // generic unpress code
+
+static char camera_model[32];
+static char firmware_version[32];
 PROP_HANDLER(PROP_CAM_MODEL)
 {
     snprintf(camera_model, sizeof(camera_model), (const char *)buf);
@@ -136,9 +138,11 @@ static void LibUnpress(struct ParseState *Parser, struct Value *ReturnValue, str
         case BGMT_PRESS_SET:
             unpress = BGMT_UNPRESS_SET;
             break;
+        #ifdef BGMT_UNPRESS_ZOOMIN_MAYBE
         case BGMT_PRESS_ZOOMIN_MAYBE:
             unpress = BGMT_UNPRESS_ZOOMIN_MAYBE;
             break;
+        #endif
         #ifdef BGMT_PRESS_ZOOMOUT_MAYBE
         case BGMT_PRESS_ZOOMOUT_MAYBE:
             unpress = BGMT_UNPRESS_ZOOMOUT_MAYBE;
@@ -301,7 +305,25 @@ int handle_picoc_lib_keys(struct event * event)
         case BGMT_PRESS_HALFSHUTTER:
             console_printf("{SHOOT_HALF}\n");
             goto key_cannot_block;
-            
+        
+        case BGMT_UNPRESS_HALFSHUTTER:
+        case BGMT_UNPRESS_SET:
+        #ifdef BGMT_UNPRESS_UDLR
+        case BGMT_UNPRESS_UDLR:
+        #else
+        case BGMT_UNPRESS_LEFT:
+        case BGMT_UNPRESS_RIGHT:
+        case BGMT_UNPRESS_UP:
+        case BGMT_UNPRESS_DOWN:
+        #endif
+        #ifdef BGMT_UNPRESS_ZOOMIN_MAYBE
+        case BGMT_UNPRESS_ZOOMIN_MAYBE:
+        #endif
+            console_printf("{UNPRESS}\n");
+            script_key_enqueue(UNPRESS);
+            return 1;
+        
+        
         default:
             // unknown event, pass to canon code
             return 1;
@@ -1099,7 +1121,9 @@ void PlatformLibraryInit()
     #else
     CONST(ZOOM_OUT,     -1)
     #endif
-    
+
+    CONST0(UNPRESS)
+
     /** Color codes */
     CONST0(COLOR_EMPTY)
     CONST0(COLOR_BLACK)

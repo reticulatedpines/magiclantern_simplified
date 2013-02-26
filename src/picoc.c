@@ -540,7 +540,7 @@ void script_setup_title(char* script_title)
 
 // Queue for PicoC key handling
 
-static volatile struct msg_queue * script_key_mq = 0;
+static struct msg_queue * script_key_mq = 0;
 
 int script_key_dequeue()
 {
