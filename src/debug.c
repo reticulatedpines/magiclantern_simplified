@@ -3621,8 +3621,10 @@ int handle_buttons_being_held(struct event * event)
     if (event->param == BGMT_JOY_CENTER) joy_center_pressed = 1;
     if (event->param == BGMT_UNPRESS_UDLR) joy_center_pressed = 0;
     #endif
+    #ifdef BGMT_UNPRESS_ZOOMIN_MAYBE
     if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
     if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
+    #endif
     #ifdef BGMT_PRESS_ZOOMOUT_MAYBE
     if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
     if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }

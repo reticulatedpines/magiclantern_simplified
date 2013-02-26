@@ -23,7 +23,7 @@
 
 
 #define BGMT_PRESS_ZOOMIN_MAYBE 0x12
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0x13
+//~ #define BGMT_UNPRESS_ZOOMIN_MAYBE 0x13
 //~ #define BGMT_PRESS_ZOOMOUT_MAYBE 0x1234 // no zoom out button in play mode?!
 //~ #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x5678
 
