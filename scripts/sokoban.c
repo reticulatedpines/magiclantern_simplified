@@ -380,6 +380,7 @@ void main()
                 move(1, 0);
                 break;
             case SET:
+            case UNPRESS:
                 break;
             default:
                 printf("Exiting...\n");
