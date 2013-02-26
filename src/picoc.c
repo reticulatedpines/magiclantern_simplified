@@ -95,11 +95,6 @@ static int is_valid_script_filename(char* filename)
 
 static void find_scripts(void)
 {
-    // only try to run once
-    static int scripts_found = 0;
-    if (scripts_found) return;
-    scripts_found = 1;
-    
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( CARD_DRIVE "ML/SCRIPTS/", &file );
     if( IS_ERROR(dirent) )
@@ -125,23 +120,6 @@ static void find_scripts(void)
     for (int i = 0; i < script_cnt; i++)
         script_parse_header(i);
 }
-
-/*
-static void
-script_select_display( void * priv, int x, int y, int selected )
-{
-    find_scripts();
-    script_selected = COERCE((int)script_selected, 0, script_cnt - 1);
-
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Select script: %s",
-        script_list[script_selected]
-    );
-    menu_draw_icon(x, y, MNI_DICE, (script_cnt<<16) + script_selected);
-}
-*/
 
 static char* get_script_status_msg()
 {
@@ -354,14 +332,29 @@ void script_open_submenu(void* priv, int delta)
             script_parse_header(script_selected);
         }
         prev_selected = script_selected;
-    
+
+        if (delta < 0) // user pressed PLAY
+        {
+            script_run_fun(priv, delta);
+            return;
+        }
+   
         // now we can display it :)
         menu_open_submenu();
     }
-    else if (script_selected == (int)priv)
+    else
     {
-        // display only the submenu for the running script, but not the others
-        menu_open_submenu();
+        if (delta < 0) // user pressed PLAY
+        {
+            script_run_fun(priv, delta);
+            return;
+        }
+
+        if (script_selected == (int)priv)
+        {
+            // display only the submenu for the running script, but not the others
+            menu_open_submenu();
+        }
     }
 }
 
@@ -482,7 +475,8 @@ static struct menu_entry picoc_menu[] = {
             .icon_type = IT_SUBMENU, \
             .submenu_width = 700, \
             .children = picoc_submenu, \
-            .help = "Run small C-like scripts. http://code.google.com/p/picoc/", \
+            .help  = "Run small C-like scripts. http://code.google.com/p/picoc/", \
+            .help2 = "PLAY: quick start.", \
         },
     
     SCRIPT_ENTRY(0)
