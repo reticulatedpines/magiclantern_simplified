@@ -31,7 +31,7 @@
 
 // Set defaults
 CONFIG_INT( "audio.override_audio", cfg_override_audio,   0 );
-CONFIG_INT( "audio.analog_gain",    cfg_analog_gain,      2 );
+CONFIG_INT( "audio.analog_gain",    cfg_analog_gain,      0 );
 CONFIG_INT( "audio.analog_boost",   cfg_analog_boost,     0 ); //test
 CONFIG_INT( "audio.enable_dc",      cfg_filter_dc,        1 );
 CONFIG_INT( "audio.enable_hpf2",    cfg_filter_hpf2,      0 );
@@ -153,7 +153,7 @@ static void
 audio_ic_set_analog_gain(){
     if(cfg_override_audio == 0) return;
 
-	int volumes[] = { 0x00, 0x0c, 0x10, 0x18, 0x24, 0x30, 0x3c, 0x3f};
+	int volumes[] = { 0x10, 0x18, 0x24, 0x30, 0x3c, 0x3f};
     //mic in vol 0-7 0b1-0b111111
     audio_ic_write(ML_MIC_IN_VOL   | volumes[cfg_analog_gain]);   //override mic in volume
 }
@@ -568,11 +568,11 @@ static struct menu_entry audio_menus[] = {
         .name        = "Analog gain",
         .priv           = &cfg_analog_gain,
         .select         = analog_gain_toggle,
-        .max            = 7,
+        .max            = 5,
         .icon_type      = IT_PERCENT,
-        .choices        = CHOICES("-12 dB", "-3 dB", "0 dB", "+6 dB", "+15 dB", "+24 dB", "+33 dB", "+35 dB"),
+        .choices        = CHOICES("0 dB", "+6 dB", "+15 dB", "+24 dB", "+33 dB", "+35 dB"),
         .depends_on     = DEP_SOUND_RECORDING,
-        .help = "Analog gain (-12 +35 mic vol)",
+        .help = "Gain applied to both inputs in analog domain.",
     },
     {
         .name        = "Mic Boost",
@@ -582,7 +582,7 @@ static struct menu_entry audio_menus[] = {
         .icon_type      = IT_PERCENT,
         .choices        = CHOICES("0 dB","+5 dB","+10 dB","+15 dB","+20 dB","+25 dB","+30 dB"),
         .depends_on     = DEP_SOUND_RECORDING,
-        .help = "TEST: Analog mic +5dB boost only",
+        .help = "Analog mic boost.",
     },
     {
         .name = "Digital Gain", 
@@ -647,7 +647,7 @@ static struct menu_entry audio_menus[] = {
         .max            = 4,
         .icon_type      = IT_ALWAYS_ON,
         .choices = (const char *[]) {"Internal mic", "L:int R:ext", "External stereo", "Balanced (N/A)", "Auto int/ext"},
-        .help = "Audio input: internal / external / both / balanced / auto.",
+        .help = "Audio input: internal / external / both / auto.",
         .depends_on        = DEP_SOUND_RECORDING,
     },
     {
@@ -728,7 +728,7 @@ static struct menu_entry audio_menus[] = {
 
 static void volume_display()
 {
-    char dbval[14][4] = {"-12", " -3", "  0", " +6", "+15", "+24", "+33", "+35","+40","+45","+50","+55","+60","+65"};
+    char dbval[14][4] = {"  0", " +6", "+15", "+24", "+33", "+35"};
     NotifyBox(2000, "Volume: %s + (%d,%d) dB", dbval[cfg_analog_gain], get_dgain_val(1),get_dgain_val(0));
 }
 
