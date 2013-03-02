@@ -242,7 +242,7 @@ int handle_picoc_lib_keys(struct event * event)
 {
     if (IS_FAKE(event))
         return 1; // so we can pass certain keys back to Canon code from script, e.g. if (key == ERASE) click(ERASE);
-    
+
     if (get_ms_clock_value() > waiting_for_key_last_request + 1000)
     {
         waiting_for_key_last_request = 0;
@@ -251,6 +251,8 @@ int handle_picoc_lib_keys(struct event * event)
 
     if (!waiting_for_key_last_request)
         return 1;
+
+    if (handle_scrollwheel_fast_clicks(event)==0) return 0;
     
     switch (event->param)
     {

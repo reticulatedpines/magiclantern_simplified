@@ -173,6 +173,21 @@ void check_pre_shutdown_flag() // called from ml_shutdown
     }
 }
 
+// ML doesn't know how to handle multiple button clicks in the same event code, so we'll split them in individual events
+int handle_scrollwheel_fast_clicks(struct event * event)
+{
+    if (event->arg <= 1) return 1;
+    
+    if (event->param == BGMT_WHEEL_UP || event->param == BGMT_WHEEL_DOWN || event->param == BGMT_WHEEL_LEFT ||  event->param == BGMT_WHEEL_RIGHT)
+    {
+        for (int i = 0; i < event->arg; i++)
+            GUI_Control(event->param, 0, 1, 0);
+        return 0;
+    }
+    return 1;
+}
+
+
 int null_event_handler(struct event * event) { return 1; }
 int handle_flexinfo_keys(struct event * event) __attribute__((weak,alias("null_event_handler")));
 
