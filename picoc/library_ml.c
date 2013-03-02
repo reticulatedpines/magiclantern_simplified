@@ -29,6 +29,11 @@ static void LibBeep(struct ParseState *Parser, struct Value *ReturnValue, struct
     beep();
 }
 
+static void LibBeeps(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    beep_times(Param[0]->Val->Integer);
+}
+
 static void LibConsoleShow(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     console_show();
@@ -51,6 +56,11 @@ static void LibScreenshot(struct ParseState *Parser, struct Value *ReturnValue, 
     #else
     console_printf("screenshot: not available\n");
     #endif
+}
+
+static void LibRand(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = rand();
 }
 
 struct _tm { int hour; int minute; int second; int year; int month; int day; };
@@ -847,10 +857,12 @@ struct LibraryFunction PlatformLibrary[] =
     /** General-purpose functions **/
     {LibSleep,          "void sleep(float seconds);"    },  // sleep X seconds
     {LibBeep,           "void beep();"                  },  // short beep sound
+    {LibBeeps,          "void beeps(int num);"          },  // short consecutive beeps
     {LibConsoleShow,    "void console_show();"          },  // show the script console
     {LibConsoleHide,    "void console_hide();"          },  // hide the script console
     {LibCls,            "void cls();"                   },  // clear the script console
     {LibScreenshot,     "void screenshot();"            },  // take a screenshot (BMP+422)
+    {LibRand,           "unsigned int rand();"          },  // random numbers
 
     /** Date/time **/
     
@@ -1184,6 +1196,9 @@ void PlatformLibraryInit()
     /** Common operators */
     lib_parse("#define MIN(a,b) ((a) < (b) ? (a) : (b))");
     lib_parse("#define MAX(a,b) ((a) > (b) ? (a) : (b))");
+    lib_parse("#define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))");
+    lib_parse("#define ABS(a) ((a) < (0) ? -(a) : (a))");
+    lib_parse("#define SGN(a) ((a) > 0 ? 1 : (a) < 0 ? -1 : 0)");
     
     CONST0(M_PI);
 
