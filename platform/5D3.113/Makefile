@@ -57,7 +57,6 @@ ML_OBJS-y = \
 	dialog_test.o \
 	vram.o \
 	aj_port.o \
-	lv-img-engio.o \
 	fps-engio.o \
 	tasks.o \
 	tskmon.o \
