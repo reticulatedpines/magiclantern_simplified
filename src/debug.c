@@ -2705,12 +2705,14 @@ struct menu_entry debug_menus[] = {
                 .priv = stub_test_task,
                 .help = "Tests Canon functions called by ML. SET=once, PLAY=100x."
             },
+            #ifdef CONFIG_PICOC // the tests depend on some picoc functions
             {
                 .name = "Menu integrity test",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = menu_self_test,
                 .help = "Internal menu tests: duplicates, wrap around etc.",
             },
+            #endif
             #if defined(CONFIG_7D)
             {
                 .name = "RPC reliability test (infinite loop)",

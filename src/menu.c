@@ -4639,8 +4639,6 @@ end:
     give_semaphore(menu_sem);
 }
 
-#endif
-
 
 #ifdef CONFIG_STRESS_TEST
 
@@ -4755,4 +4753,5 @@ void menu_self_test()
     menu_check_wrap();
 }
 
+#endif
 #endif
