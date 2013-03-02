@@ -637,13 +637,18 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         double TopFP = (TopValue->Typ == &FPType) ? TopValue->Val->FP : (double)ExpressionCoerceInteger(TopValue);
         double BottomFP = (BottomValue->Typ == &FPType) ? BottomValue->Val->FP : (double)ExpressionCoerceInteger(BottomValue);
 
+/* If the destination is not float, we can't assign a floating value to it, we need to convert it to integer instead */
+#define ASSIGN_FP_OR_INT(value) \
+        if (IS_FP(BottomValue)) { ResultFP = ExpressionAssignFP(Parser, BottomValue, value); } \
+        else { ResultInt = ExpressionAssignInt(Parser, BottomValue, (long)(value), FALSE); ResultIsInt = TRUE; } \
+
         switch (Op)
         {
-            case TokenAssign:               ResultFP = ExpressionAssignFP(Parser, BottomValue, TopFP); break;
-            case TokenAddAssign:            ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP + TopFP); break;
-            case TokenSubtractAssign:       ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP - TopFP); break;
-            case TokenMultiplyAssign:       ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP * TopFP); break;
-            case TokenDivideAssign:         ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP / TopFP); break;
+            case TokenAssign:               ASSIGN_FP_OR_INT(TopFP); break;
+            case TokenAddAssign:            ASSIGN_FP_OR_INT(BottomFP + TopFP); break;
+            case TokenSubtractAssign:       ASSIGN_FP_OR_INT(BottomFP - TopFP); break;
+            case TokenMultiplyAssign:       ASSIGN_FP_OR_INT(BottomFP * TopFP); break;
+            case TokenDivideAssign:         ASSIGN_FP_OR_INT(BottomFP / TopFP); break;
             case TokenEqual:                ResultInt = BottomFP == TopFP; ResultIsInt = TRUE; break;
             case TokenNotEqual:             ResultInt = BottomFP != TopFP; ResultIsInt = TRUE; break;
             case TokenLessThan:             ResultInt = BottomFP < TopFP; ResultIsInt = TRUE; break;
