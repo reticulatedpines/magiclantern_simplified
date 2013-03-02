@@ -1,6 +1,6 @@
 #include "all_features.h"
 
-#define FEATURE_LV_3RD_PARTY_FLASH
+//~ #define FEATURE_LV_3RD_PARTY_FLASH // requires props
 #define FEATURE_EYEFI_TRICKS
 
 // Disable all audio stuff
