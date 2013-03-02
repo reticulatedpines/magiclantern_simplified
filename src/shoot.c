@@ -5470,12 +5470,6 @@ static struct menu_entry expo_menus[] = {
     },
     #endif
 
-    #ifdef FEATURE_EXPO_ISO_DIGIC
-        #ifndef FEATURE_EXPO_ISO
-        #error This requires FEATURE_EXPO_ISO.
-        #endif
-    #endif
-
     #ifdef FEATURE_EXPO_ISO_HTP
         #ifndef FEATURE_EXPO_ISO
         #error This requires FEATURE_EXPO_ISO.
