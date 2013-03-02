@@ -93,7 +93,7 @@
 #define CONFIG_RESTORE_AFTER_FORMAT
 
 /** We don't know how to use DMA_MEMCPY (yet) **/
-#define CONFIG_DMA_MEMCPY
+//~ #define CONFIG_DMA_MEMCPY
 
 /** We should warn the user if movie exposure is Auto, otherwise he may report it as a bug **/
 #define CONFIG_MOVIE_AE_WARNING
