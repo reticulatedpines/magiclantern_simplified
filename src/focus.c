@@ -1338,7 +1338,11 @@ static struct menu_entry trap_focus_menu[] = {
     {
         .name = "Trap Focus",
         .priv       = &trap_focus,
+        #ifdef CONFIG_PROP_REQUEST_CHANGE
         .max = 2,
+        #else
+        .max = 1,
+        #endif
         .update    = trap_focus_display,
         .choices = (const char *[]) {"OFF", "Hold AF button", "Continuous"},
         .help = "Takes a picture when the subject comes in focus. MF only.",

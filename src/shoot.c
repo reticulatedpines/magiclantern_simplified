@@ -5176,6 +5176,7 @@ static struct menu_entry shoot_menus[] = {
                 .help = "How many pictures to take at once (for each trigger event).",
                 .help2 = "For intervalometer, motion detect, trap focus, audio remote.",
             },
+            #ifdef CONFIG_PROP_REQUEST_CHANGE
             {
                 .name = "Use Autofocus", 
                 .priv = &shoot_use_af,
@@ -5187,6 +5188,7 @@ static struct menu_entry shoot_menus[] = {
                 .depends_on = DEP_AUTOFOCUS,
                 .works_best_in = DEP_NOT_LIVEVIEW,
             },
+            #endif
             {
                 .name = "Post scripts",
                 .priv       = &hdr_scripts,

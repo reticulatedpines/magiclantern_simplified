@@ -42,6 +42,7 @@
 
 /** Expo menu **/
 
+#ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_WHITE_BALANCE
     #define FEATURE_EXPO_ISO
     #define FEATURE_EXPO_ISO_HTP
@@ -63,6 +64,7 @@
 #endif
 
     #define FEATURE_EXPO_OVERRIDE
+#endif
 
 /** Overlay menu **/
 
@@ -95,7 +97,10 @@
     //~ #define FEATURE_REC_NOTIFY_BEEP // this may interfere with sound recording, so only enable it where we know it works
     #define FEATURE_MOVIE_REC_KEY
     #define FEATURE_FORCE_LIVEVIEW
+
+#ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_SHUTTER_LOCK
+#endif
 
 #ifdef CONFIG_FRAME_ISO_OVERRIDE
     #define FEATURE_GRADUAL_EXPOSURE
@@ -119,11 +124,17 @@
 
 /** Shoot menu **/
 
+#ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_HDR_BRACKETING
+#endif
     #define FEATURE_INTERVALOMETER
     //~ #define FEATURE_INTERVALOMETER_MOVIE // will be moved to scripts
+
+#ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_BULB_RAMPING
     #define FEATURE_BULB_TIMER
+#endif
+
 #ifdef CONFIG_LCD_SENSOR
     #define FEATURE_LCD_SENSOR_REMOTE
 #endif
@@ -133,8 +144,10 @@
     //~ #define FEATURE_SILENT_PIC_HIRES
     //~ #define FEATURE_SILENT_PIC_JPG // bleeding edge
 
+#ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_MLU
     #define FEATURE_MLU_HANDHELD
+
     //~ #define FEATURE_MLU_HANDHELD_DEBUG
     //~ #define FEATURE_MLU_DIRECT_PRINT_SHORTCUT // for 5Dc 
 
@@ -143,14 +156,20 @@
     
     // can do permanent damage, for research only!
     //~ #define FEATURE_PICQ_DANGEROUS
+#endif
+
+    #define FEATURE_SNAP_SIM
 
 /** Focus menu **/
     #define FEATURE_TRAP_FOCUS
+
+#ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_FOLLOW_FOCUS
     #define FEATURE_RACK_FOCUS
     #define FEATURE_FOCUS_STACKING
     #define FEATURE_AF_PATTERNS
     //~ #define FEATURE_MOVIE_AF // not reliable
+#endif
 
 /** Display menu **/
     #define FEATURE_LV_BRIGHTNESS_CONTRAST
@@ -165,7 +184,9 @@
 #endif
 
 #ifdef CONFIG_ELECTRONIC_LEVEL
+#ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_LEVEL_INDICATOR
+#endif
 #endif
 
     #define FEATURE_SCREEN_LAYOUT
@@ -173,8 +194,10 @@
     #define FEATURE_UPSIDE_DOWN
 
 #ifdef CONFIG_VARIANGLE_DISPLAY
+#ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_IMAGE_ORIENTATION   // for flip-out display only
     #define FEATURE_AUTO_MIRRORING_HACK
+#endif
 #endif
 
     #define FEATURE_FORCE_HDMI_VGA
@@ -199,6 +222,7 @@
 #endif
     #define FEATURE_QUICK_ERASE
     
+#ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_LV_ZOOM_SETTINGS
     #define FEATURE_LV_ZOOM_SHARP_CONTRAST
     #ifdef CONFIG_EXPSIM
@@ -214,13 +238,16 @@
     
     #define FEATURE_STICKY_DOF
     #define FEATURE_STICKY_HALFSHUTTER
-    //~ #define FEATURE_SWAP_MENU_ERASE // useful for 60D only
-    
     //~ #define FEATURE_AUTO_BURST_PICQ // rebels only
+
+#endif
+    //~ #define FEATURE_SWAP_MENU_ERASE // useful for 60D only
     
     #define FEATURE_WARNINGS_FOR_BAD_SETTINGS
     
+#ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_POWERSAVE_LIVEVIEW
+#endif
     
     #define FEATURE_LV_DISPLAY_PRESETS
     
@@ -247,7 +274,5 @@
     #define FEATURE_SHOW_FREE_MEMORY
     #define FEATURE_SHOW_SHUTTER_COUNT
     #define FEATURE_SHOW_CMOS_TEMPERATURE
-    
-    #define FEATURE_SNAP_SIM
 
     //~ #define FEATURE_GUIMODE_TEST // dangerous
