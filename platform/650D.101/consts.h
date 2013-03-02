@@ -144,7 +144,7 @@
 #define AUDIO_REM_SHOT_POS_Y 386
 
 // position for displaying clock outside LV
-#define DISPLAY_CLOCK_POS_X 440
+#define DISPLAY_CLOCK_POS_X 300
 #define DISPLAY_CLOCK_POS_Y 410
 
 // position for displaying K icon in photo info display
@@ -156,7 +156,7 @@
 #define WB_KELVIN_POS_Y 260
 
 // position for displaying card size remain outside LV
-#define DISPLAY_GB_POS_X 305
+#define DISPLAY_GB_POS_X (DISPLAY_CLOCK_POS_X - 135)
 #define DISPLAY_GB_POS_Y 410
 
 // for displaying TRAP FOCUS msg outside LV
