@@ -116,9 +116,9 @@ if (b) // expo tests
     sleep(1);
     console_hide();
     sleep(2);
-    for (int k = 2000; k < 10000; k += 50)
+    for (int K = 2000; K < 10000; K += 50)
     {
-        set_kelvin(k);
+        set_kelvin(K);
         sleep(0.01);
     }
     sleep(1);
@@ -228,6 +228,7 @@ if (f) // focus tests
     printf("Done.\n");
     console_show();
 
+    sleep(1);
     printf("Press any key to continue.\n");
     wait_key();
 }
@@ -286,6 +287,7 @@ if (h)
     bmp_printf(SHADOW_FONT(FONT_LARGE), 400, 100, "Hi there!");
     bmp_printf(FONT(FONT_LARGE, COLOR_YELLOW, COLOR_BLACK), 300, 200, "Hi there!");
     
+    sleep(1);
     bmp_printf(FONT_MED, 0, 0, "Press any key to continue.\n");
     wait_key();
     

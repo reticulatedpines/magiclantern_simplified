@@ -61,7 +61,7 @@ void console_set_help_text(char* msg)
 
 void console_set_status_text(char* msg)
 {
-    snprintf(console_status_text, sizeof(console_status_text), "%s     ", msg);
+    snprintf(console_status_text, sizeof(console_status_text), "%s%s", msg, strlen(msg) ? "    " : "");
 }
 static void
 console_toggle_menu( void * priv, int delta )
