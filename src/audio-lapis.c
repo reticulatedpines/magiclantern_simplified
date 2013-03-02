@@ -467,7 +467,7 @@ static void override_audio_toggle( void * priv, int delta )
 
 static void analog_gain_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, delta, 0, 7);
+    menu_numeric_toggle(priv, delta, 0, 5);
     audio_ic_set_analog_gain();
 }
 
