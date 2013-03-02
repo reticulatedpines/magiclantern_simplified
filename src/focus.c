@@ -1131,6 +1131,22 @@ static void afma_print_status(int8_t* score, int range_expand_factor)
     bmp_printf(SHADOW_FONT(FONT_SMALL), xc + 8 - strlen(msg)*font_small.width/2, 4, msg);
 }
 
+
+int wait_for_focus_confirmation_val(int maxTimeToWaitMs, int valToWaitFor)
+{
+    int timeWaitedMs = 0;
+    for ( ;; )
+    {
+        int fc = FOCUS_CONFIRMATION ? 1 : 0;
+        if (fc == valToWaitFor)
+            return 1; // detected value
+        if (timeWaitedMs >= maxTimeToWaitMs)
+            return 0; // timed-out before detecting value
+        msleep(10);
+        timeWaitedMs += 10;
+    }
+}
+
 static void afma_auto_tune(int range_expand_factor)
 {
     int afma0 = get_afma(AFMA_MODE_AUTODETECT);
@@ -1180,32 +1196,18 @@ static void afma_auto_tune(int range_expand_factor)
             set_afma(i * range_expand_factor, AFMA_MODE_AUTODETECT);
             msleep(100);
             
-            // check for focus confirmation
-            int fc = 0;
-            for (int j = 0; j < 20; j++)
-            {
-                msleep(10);
-                if (FOCUS_CONFIRMATION)
-                {
-                    fc = 1;
-                    break;
-                }
-            }
-            
-            // weak or strong confirmation? use a higher score if strong
+            int fc;
+            // initial focus must occur within 200ms
+            fc = wait_for_focus_confirmation_val(200, 1);
+           
             if (fc)
             {
-                msleep(500);
-                for (int j = 0; j < 20; j++)
-                {
-                    msleep(10);
-                    if (FOCUS_CONFIRMATION)
-                    {
-                        fc = 3;
-                        break;
-                    }
-                }
-            }
+                // weak or strong confirmation? use a higher score if strong
+                // focus must sustain for 500ms to be considered strong
+                if (!wait_for_focus_confirmation_val(500, 0))
+                    // focus sustained
+                    fc = 3;
+            }            
             
             score[i+20] += fc;
             afma_print_status(score, range_expand_factor);
