@@ -5189,6 +5189,7 @@ static struct menu_entry shoot_menus[] = {
                 .works_best_in = DEP_NOT_LIVEVIEW,
             },
             #endif
+            #if defined(FEATURE_HDR_BRACKETING) || defined(FEATURE_FOCUS_STACKING)
             {
                 .name = "Post scripts",
                 .priv       = &hdr_scripts,
@@ -5196,6 +5197,7 @@ static struct menu_entry shoot_menus[] = {
                 .help = "Post-processing scripts for bracketing and focus stacking.",
                 .choices = CHOICES("OFF", "Enfuse", "Align+Enfuse", "File List"),
             },
+            #endif
             #ifdef FEATURE_SNAP_SIM
             {
                 .name = "Snap Simulation",
@@ -6685,6 +6687,7 @@ int is_continuous_drive()
 void take_fast_pictures( int number ) 
 {
     // take fast pictures
+#ifdef CONFIG_PROP_REQUEST_CHANGE
     if ( number > 1 && is_continuous_drive() && !is_bulb_mode() && !snap_sim)
     {
         lens_setup_af(shoot_use_af ? AF_ON : AF_OFF);
@@ -6713,6 +6716,7 @@ void take_fast_pictures( int number )
         lens_cleanup_af();
     }
     else
+#endif
     {
         for (int i = 0; i < number; i++)
         {
