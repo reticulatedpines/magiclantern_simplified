@@ -196,6 +196,13 @@ void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
     *B = COERCE(Y + yuv2rgb_BU[U & 0xFF], 0, 255); \
 }
 
+void uyvy_split(uint32_t uyvy, int* Y, int* U, int* V)
+{
+    *Y = UYVY_GET_AVG_Y(uyvy);
+    *U = (int)(int8_t)UYVY_GET_U(uyvy);
+    *V = (int)(int8_t)UYVY_GET_V(uyvy);
+}
+
 int is_zoom_mode_so_no_zebras() 
 { 
     if (!lv) return 0;
@@ -2684,11 +2691,7 @@ static MENU_UPDATE_FUNC(spotmeter_menu_display)
 }
 #endif
 
-// for surface cleaning
-int spy_pre_xcb = -1;
-int spy_pre_ycb = -1;
-
-void get_spot_yuv_ex(int size_dxb, int dx, int dy, int* Y, int* U, int* V)
+void get_spot_yuv_ex(int size_dxb, int dx, int dy, int* Y, int* U, int* V, int draw, int erase)
 {
     struct vram_info *  vram = get_yuv422_vram();
 
@@ -2706,12 +2709,22 @@ void get_spot_yuv_ex(int size_dxb, int dx, int dy, int* Y, int* U, int* V)
     int ycl = BM2LV_Y(ycb);
     int dxl = BM2LV_DX(size_dxb);
 
-	// surface cleaning
-	if ( spy_pre_xcb != -1 && spy_pre_ycb != -1  && (spy_pre_xcb != xcb || spy_pre_ycb != ycb) ) {
-		bmp_draw_rect(0, spy_pre_xcb - size_dxb, spy_pre_ycb - size_dxb, 2*size_dxb, 2*size_dxb);
-	}
-
-    bmp_draw_rect(COLOR_WHITE, xcb - size_dxb, ycb - size_dxb, 2*size_dxb, 2*size_dxb);
+    if (erase)
+    {
+        // clean previous marker
+        static int spy_pre_xcb = -1;
+        static int spy_pre_ycb = -1;
+        if ( spy_pre_xcb != -1 && spy_pre_ycb != -1  && (spy_pre_xcb != xcb || spy_pre_ycb != ycb) ) {
+            bmp_draw_rect(0, spy_pre_xcb - size_dxb, spy_pre_ycb - size_dxb, 2*size_dxb, 2*size_dxb);
+        }
+        spy_pre_xcb = xcb;
+        spy_pre_ycb = ycb;
+    }
+    
+    if (draw)
+    {
+        bmp_draw_rect(COLOR_WHITE, xcb - size_dxb, ycb - size_dxb, 2*size_dxb, 2*size_dxb);
+    }
     
     unsigned sy = 0;
     int32_t su = 0, sv = 0; // Y is unsigned, U and V are signed
@@ -2733,14 +2746,11 @@ void get_spot_yuv_ex(int size_dxb, int dx, int dy, int* Y, int* U, int* V)
     *Y = sy;
     *U = su;
     *V = sv;
-
-	spy_pre_xcb = xcb;
-	spy_pre_ycb = ycb;
 }
 
 void get_spot_yuv(int dxb, int* Y, int* U, int* V)
 {
-    get_spot_yuv_ex(dxb, 0, 0, Y, U, V);
+    get_spot_yuv_ex(dxb, 0, 0, Y, U, V, 1, 0);
 }
 
 // for surface cleaning

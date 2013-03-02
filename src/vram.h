@@ -208,6 +208,12 @@ extern int y_times_BMPPITCH_cache[];
 #define N2LV(x,y) (N2LV_Y(y) * vram_lv.pitch + N2LV_X(x) * 2)
 #define N2HD(x,y) (N2HD_Y(y) * vram_hd.pitch + N2HD_X(x) * 2)
 
+#define BM2N_DX(x) (BM2N_X(x) - BM2N_X(0))
+#define BM2N_DY(y) (BM2N_Y(y) - BM2N_Y(0))
+
+#define N2BM_DX(x) (N2BM_X(x) - N2BM_X(0))
+#define N2BM_DY(y) (N2BM_Y(y) - N2BM_Y(0))
+
 // normalized coordinates with high resolution (0,0 ... 720*16,480*16)
 #define Nh2BMh_X(xn) ((xn) * os.x_ex / 720 + os.x0 * 16)
 #define Nh2BMh_Y(yn) ((yn) * os.y_ex / 480 + os.y0 * 16)

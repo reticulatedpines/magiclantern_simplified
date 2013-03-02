@@ -797,6 +797,83 @@ static void LibMenuSetStr(struct ParseState *Parser, struct Value *ReturnValue, 
     ReturnValue->Val->Integer = menu_set_str_value_from_script(tab, entry, value, 0xdeadbeaf);
 }
 
+static void LibGetLVBuf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Pointer = get_yuv422_vram();
+}
+
+static void LibGetHDBuf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Pointer = get_yuv422_hd_vram();
+}
+
+struct yuv { int Y; int U; int V; };
+struct rgb { int R; int G; int B; };
+
+static void LibGetPixelYUV(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int x = Param[0]->Val->Integer;
+    int y = Param[1]->Val->Integer;
+    
+    uint32_t* lv = (uint32_t*)(get_yuv422_vram()->vram);
+    uint32_t uyvy = lv[N2LV(x,y)/4];
+    static struct yuv yuv;
+    uyvy_split(uyvy, &yuv.Y, &yuv.U, &yuv.V);
+    ReturnValue->Val->Pointer = &yuv;
+}
+
+static void LibGetPixelRGB(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int x = Param[0]->Val->Integer;
+    int y = Param[1]->Val->Integer;
+    
+    uint32_t* lv = (uint32_t*)(get_yuv422_vram()->vram);
+    uint32_t uyvy = lv[N2LV(x,y)/4];
+    struct yuv yuv;
+    static struct rgb rgb;
+    uyvy_split(uyvy, &yuv.Y, &yuv.U, &yuv.V);
+    yuv2rgb(yuv.Y, yuv.U, yuv.V, &rgb.R, &rgb.G, &rgb.B);
+    ReturnValue->Val->Pointer = &rgb;
+}
+
+static void LibGetSpotYUV(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int x = Param[0]->Val->Integer;
+    int y = Param[1]->Val->Integer;
+    int s = Param[2]->Val->Integer;
+    
+    x = N2BM_X(x);
+    y = N2BM_Y(y);
+    s = N2BM_DX(s);
+    
+    int xc = os.x0 + os.x_ex/2;
+    int yc = os.y0 + os.y_ex/2;
+    
+    static struct yuv yuv;
+    get_spot_yuv_ex(s/2, x - xc, y - yc, &yuv.Y, &yuv.U, &yuv.V, 1, 0);
+    ReturnValue->Val->Pointer = &yuv;
+}
+
+static void LibGetSpotRGB(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int x = Param[0]->Val->Integer;
+    int y = Param[1]->Val->Integer;
+    int s = Param[2]->Val->Integer;
+    
+    x = N2BM_X(x);
+    y = N2BM_Y(y);
+    s = N2BM_DX(s);
+    
+    int xc = os.x0 + os.x_ex/2;
+    int yc = os.y0 + os.y_ex/2;
+    
+    struct yuv yuv;
+    static struct rgb rgb;
+    get_spot_yuv_ex(s/2, x - xc, y - yc, &yuv.Y, &yuv.U, &yuv.V, 1, 0);
+    yuv2rgb(yuv.Y, yuv.U, yuv.V, &rgb.R, &rgb.G, &rgb.B);
+    ReturnValue->Val->Pointer = &rgb;
+}
+
 static void LibDisplayOn(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     display_on();
@@ -1068,6 +1145,52 @@ struct LibraryFunction PlatformLibrary[] =
     { LibMenuGetStr,     "char* menu_get_str(char* tab, char* entry);"           }, // return the displayed (string) value from a menu entry
     { LibMenuSetStr,     "int menu_set_str(char* tab, char* entry, char* value);"}, // set a menu entry to some arbitrary string value (cycles until it gets it); 1 = success, 0 = failure
 
+    /** Image analysis */
+
+    /**
+     * 
+     * Don't expect too much; it's quite slow to operate at pixel level due to interpreter overhead.
+     * Consider using plain C for this task.
+     * 
+     * Functions that operate on larger data sets (e.g. spotmeter, histogram analysis) should be fast enough.
+     * 
+     * struct yuv
+     * {
+     *      int Y; // 0...255
+     *      int U; // -128...127
+     *      int V; // -128...127
+     * }
+     * 
+     * struct rgb
+     * {
+     *      int R; // 0...255
+     *      int G; // 0...255
+     *      int B; // 0...255
+     * }
+     */
+
+    // The following functions operate on normalized coordinates (720x480)
+    // This means they should work on external monitors without extra care, for example.
+    // Details: http://magiclantern.wikia.com/wiki/VRAM/Geometry
+    { LibGetPixelYUV,    "struct yuv * get_pixel_yuv(int x, int y);"            }, // get the YUV components of a pixel from LiveView buffer
+    { LibGetPixelRGB,    "struct rgb * get_pixel_rgb(int x, int y);"            }, // similar for RGB
+    { LibGetSpotYUV,     "struct yuv * get_spot_yuv(int x, int y, int size);"   }, // spotmeter: average pixels from a (small) box and return average YUV.
+    { LibGetSpotRGB,     "struct rgb * get_spot_rgb(int x, int y, int size);"   }, // similar for RGB
+
+    /**
+     * For low-level image processing
+     * 
+     * struct vram
+     * {
+     *      void* buffer;
+     *      int width;
+     *      int pitch;
+     *      int height;
+     * }
+     */
+    { LibGetLVBuf,       "struct vram * get_lv_vram();" },        // get LiveView image buffer
+    { LibGetHDBuf,       "struct vram * get_hd_vram();" },        // get LiveView recording buffer
+
 #if 0 // not yet implemented
     /** MLU, HTP, misc settings */
     {LibGetMLU,         "int get_mlu();"                },
@@ -1077,14 +1200,10 @@ struct LibraryFunction PlatformLibrary[] =
     {LibSetHTP,         "void set_htp(int htp);"        },
     {LibSetALO,         "void set_alo(int alo);"        },
     
-    /** Image analysis */
-    { LibGetLVBuf,       "struct vram_info * get_lv_buffer();" }        // get LiveView image buffer
-    { LibGetHDBuf,       "struct vram_info * get_hd_buffer();" }        // get LiveView recording buffer
-    { LibGetPixelYUV,    "void get_pixel_yuv(int x, int y, int* Y, int* U, int* V);" },          // get the YUV components of a pixel from LiveView (720x480)
-    { LibGetSpotYUV,     "void get_spot_yuv(int x, int y, int size, int* Y, int* U, int* V);" }, // spotmeter: average pixels from a (small) box and return average YUV
-    { LibYUV2RGB,        "void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B);"},          // convert from YUV to RGB
-    { LibRGB2YUV,        "void rgb2yuv(int R, int G, int B, int* Y, int* U, int* V);"},          // convert from RGB to YUV
-    { LibGetHistoRange,  "float get_histo_range(int from, int to);"},                            // percent of values between <from> and <to> in histogram data
+    { LibYUV2RGB,        "struct rgb * yuv2rgb(struct yuv * pixel);"            }, // convert from YUV to RGB
+    { LibRGB2YUV,        "struct yuv * rgb2yuv(struct rgb * pixel);"            }, // convert from YUV to RGB
+    { LibGetHistoRange,  "float get_histo_range(int from, int to);"             }, // percent of values between <from> and <to> in histogram data
+    { LibGetHistoPercentile, "int get_histo_percentile(int p);"                 }, // brightness value at percentile p. For median, use p=50. See http://en.wikipedia.org/wiki/Percentile .
     
     /** Audio stuff */
     { LibAudioGetLevel,  "int audio_get_level(int channel, int type);" }, // channel: 0/1; type: INSTANT, AVG, PEAK, PEAK_FAST
@@ -1125,6 +1244,9 @@ void PlatformLibraryInit()
 {
     lib_parse("struct tm { int hour; int minute; int second; int year; int month; int day; };");
     lib_parse("struct dof { char* lens_name; int focal_len; int focus_dist; int dof; int far; int near; int hyperfocal; };");
+    lib_parse("struct vram { void* buffer; int width; int pitch; int height; };");
+    lib_parse("struct yuv { int Y; int U; int V; };");
+    lib_parse("struct rgb { int R; int G; int B; };");
 
     LibraryAdd(&GlobalTable, "platform library", &PlatformLibrary[0]);
 

@@ -4094,7 +4094,7 @@ int measure_brightness_difference()
             int Y,U,V;
             int dx = (j-5) * 65;
             int dy = (i-5) * 40;
-            get_spot_yuv_ex(10, dx, dy, &Y, &U, &V);
+            get_spot_yuv_ex(10, dx, dy, &Y, &U, &V, 1, 0);
             brightness_samples_b[i][j] = Y;
             brightness_samples_delta[i][j] = bramp_luma_to_ev_x100(brightness_samples_b[i][j]) - bramp_luma_to_ev_x100(brightness_samples_a[i][j]);
             int xcb = os.x0 + os.x_ex/2 + dx;
@@ -7269,7 +7269,7 @@ shoot_task( void* unused )
                 static int old_ae_avg = 0;
                 int y,u,v;
                 //TODO: maybe get the spot yuv of the target box
-                get_spot_yuv_ex(detect_size, xcb-os.x_max/2, ycb-os.y_max/2, &y, &u, &v);
+                get_spot_yuv_ex(detect_size, xcb-os.x_max/2, ycb-os.y_max/2, &y, &u, &v, 1, 1);
                 aev = y / 2;
                 if (K > 40) bmp_printf(FONT_MED, 0, 20, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
                 if (K > 40 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
