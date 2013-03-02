@@ -56,12 +56,12 @@ void console_toggle()
 
 void console_set_help_text(char* msg)
 {
-    snprintf(console_help_text, sizeof(console_help_text), "%s", msg);
+    snprintf(console_help_text, sizeof(console_help_text), "     %s", msg);
 }
 
 void console_set_status_text(char* msg)
 {
-    snprintf(console_status_text, sizeof(console_status_text), "%s", msg);
+    snprintf(console_status_text, sizeof(console_status_text), "%s     ", msg);
 }
 static void
 console_toggle_menu( void * priv, int delta )
@@ -188,8 +188,8 @@ int console_vprintf(const char* fmt, va_list ap) // don't DebugMsg from here!
 static void console_show_status()
 {
     int fnt = FONT(CONSOLE_FONT,60, COLOR_BLACK);
-    bmp_printf(fnt, 0, 480 - font_med.height + 2, console_status_text);
-    if (console_visible) bmp_printf(fnt, 720 - font_med.width * strlen(console_help_text), 480 - font_med.height + 2, console_help_text);
+    bmp_printf(fnt, 0, 480 - font_med.height, console_status_text);
+    if (console_visible) bmp_printf(fnt, 720 - font_med.width * strlen(console_help_text), 480 - font_med.height, console_help_text);
 }
 
 static void console_draw()

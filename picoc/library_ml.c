@@ -3,7 +3,8 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
-#define UNPRESS 10000 // generic unpress code
+#define UNPRESS -10000 // generic unpress code
+#define NO_KEY -1
 
 static char camera_model[32];
 static char firmware_version[32];
@@ -110,6 +111,8 @@ static void LibMovieEnd(struct ParseState *Parser, struct Value *ReturnValue, st
 static void LibPress(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     int btn = Param[0]->Val->Integer;
+    if (btn < 0) return;
+    
     switch (btn)
     {
         case BGMT_PRESS_HALFSHUTTER:
@@ -119,13 +122,15 @@ static void LibPress(struct ParseState *Parser, struct Value *ReturnValue, struc
             SW2(1,50);
             return;
         default:
-            if (btn > 0) fake_simple_button(btn);
+            if (btn >= 0) fake_simple_button(btn);
     }
 }
 
 static void LibUnpress(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     int press = Param[0]->Val->Integer;
+    if (press < 0) return;
+
     int unpress = 0;
     switch (press)
     {
@@ -203,11 +208,13 @@ static void LibWaitKey(struct ParseState *Parser, struct Value *ReturnValue, str
     queue_cleanup();
     
     int key_pressed;
+    console_set_status_text("Waiting key press...");
     while ((key_pressed = script_key_dequeue()) == -1)
     {
         waiting_for_key_last_request = get_ms_clock_value();
         script_msleep(20);
     }
+    console_set_status_text("Script running...");
     
     ReturnValue->Val->Integer = key_pressed;
 }
@@ -216,6 +223,7 @@ static void LibLastKey(struct ParseState *Parser, struct Value *ReturnValue, str
 {
     queue_cleanup();
 
+    console_set_status_text("Script uses keys...");
     waiting_for_key_last_request = get_ms_clock_value();
     ReturnValue->Val->Integer = script_key_dequeue();
 }
@@ -226,7 +234,10 @@ int handle_picoc_lib_keys(struct event * event)
         return 1; // so we can pass certain keys back to Canon code from script, e.g. if (key == ERASE) click(ERASE);
     
     if (get_ms_clock_value() > waiting_for_key_last_request + 1000)
+    {
         waiting_for_key_last_request = 0;
+        console_set_status_text("Script running...");
+    }
 
     if (!waiting_for_key_last_request)
         return 1;
@@ -316,6 +327,10 @@ int handle_picoc_lib_keys(struct event * event)
             goto key_cannot_block;
         
         case BGMT_UNPRESS_HALFSHUTTER:
+            console_printf("{UNPRESS}\n");
+            script_key_enqueue(UNPRESS);
+            return 1;
+
         case BGMT_UNPRESS_SET:
         #ifdef BGMT_UNPRESS_UDLR
         case BGMT_UNPRESS_UDLR:
@@ -330,8 +345,7 @@ int handle_picoc_lib_keys(struct event * event)
         #endif
             console_printf("{UNPRESS}\n");
             script_key_enqueue(UNPRESS);
-            return 1;
-        
+            return 0;
         
         default:
             // unknown event, pass to canon code
@@ -1032,6 +1046,8 @@ struct LibraryFunction PlatformLibrary[] =
     {LibGetGuiMode,     "int get_gui_mode();"    },
 
     /** Interaction with ML menus **/
+    // Tip: to get a list with menus and possible values, go to Prefs -> Config File -> Export as PicoC script
+    // You can also use these functions to create custom presets.
     { LibMenuOpen,       "void menu_open();"                                     }, // open ML menu
     { LibMenuClose,      "void menu_close();"                                    }, // close ML menu
     { LibMenuSelect,     "void menu_select(char* tab, char* entry);"             }, // select a menu tab and entry (e.g. Overlay, Focus Peak)
@@ -1097,7 +1113,6 @@ void PlatformLibraryInit()
 {
     lib_parse("struct tm { int hour; int minute; int second; int year; int month; int day; };");
     lib_parse("struct dof { char* lens_name; int focal_len; int focus_dist; int dof; int far; int near; int hyperfocal; };");
-    
 
     LibraryAdd(&GlobalTable, "platform library", &PlatformLibrary[0]);
 
@@ -1133,6 +1148,7 @@ void PlatformLibraryInit()
     #endif
 
     CONST0(UNPRESS)
+    CONST0(NO_KEY)
 
     /** Color codes */
     CONST0(COLOR_EMPTY)
