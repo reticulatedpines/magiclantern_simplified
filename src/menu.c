@@ -761,7 +761,8 @@ menu_add(
     {
         //~ if (new_entry->id == 0) new_entry->id = menu_id_increment++;
 
-        if(!HAS_HIDDEN_FLAG(new_entry)) menu->childnum++;
+        if(!HAS_HIDDEN_FLAG(new_entry) && !HAS_SHIDDEN_FLAG(new_entry))
+            menu->childnum++;
         menu->childnummax++;
 
         new_entry->selected = 0;

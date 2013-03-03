@@ -1007,6 +1007,8 @@ static MENU_UPDATE_FUNC(fps_const_expo_update)
     if (smooth_iso) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You need to disable gradual exposure.");
 }
 
+static void fps_set_advanced_mode(void* priv, int delta);
+
 static struct menu_entry fps_menu[] = {
     #ifdef FEATURE_FPS_OVERRIDE
     {
@@ -1039,17 +1041,59 @@ static struct menu_entry fps_menu[] = {
                     "Low light", 
                     "Exact FPS", 
                     #ifdef NEW_FPS_METHOD
-                    "High FPS", 
+                    "High FPS",
+                    "High Jello",
                     #else
-                    "LowJello, 180d", 
+                    "Low Jello, 180d", 
+                    "Fast Tv, Jello",
                     #endif
-                    "High Jello"},
+                },
                 .icon_type = IT_DICE,
                 .max = 3,
                 .select = fps_criteria_change,
                 .help = "Optimization criteria - how to setup the two timers.",
             },
 #endif
+            {
+                .name = "Shutter range",
+                .update = shutter_range_print,
+                .select = fps_timer_fine_tune_a_big,
+                .icon_type = IT_ALWAYS_ON,
+                .help = "Shutter speed range with current settings. Adjusts timer A.",
+                .shidden = 1,
+            },
+            {
+                .name = "FPS timer A",
+                .update = fps_timer_print,
+                .priv = &desired_fps_timer_a_offset,
+                .select = fps_timer_fine_tune_a,
+                .icon_type = IT_PERCENT,
+                .help = "High values = lower FPS, more jello effect, faster shutter.",
+                .shidden = 1,
+            },
+            {
+                .name = "FPS timer B",
+                .update = fps_timer_print,
+                .priv = &desired_fps_timer_b_offset,
+                .select = fps_timer_fine_tune_b,
+                .icon_type = IT_PERCENT,
+                .help = "High values = lower FPS, shutter speed converges to 1/fps.",
+                .shidden = 1,
+            },
+            {
+                .name = "Main Clock",
+                .update = tg_freq_print,
+                .icon_type = IT_ALWAYS_ON,
+                .help = "Timing generator freq. (READ-ONLY). FPS = F/timerA/timerB.",
+                .shidden = 1,
+            },
+            {
+                .name = "Actual FPS",
+                .update = fps_current_print,
+                .icon_type = IT_ALWAYS_ON,
+                .help = "Exact FPS (computed). For fine tuning, change timer values.",
+            },
+
             #ifdef CONFIG_FRAME_ISO_OVERRIDE
             {
                 .name = "Constant expo",
@@ -1062,41 +1106,6 @@ static struct menu_entry fps_menu[] = {
             },
             #endif
 
-            {
-                .name = "Shutter range",
-                .update = shutter_range_print,
-                .select = fps_timer_fine_tune_a_big,
-                .icon_type = IT_ALWAYS_ON,
-                .help = "Shutter speed range with current settings. Adjusts timer A.",
-            },
-            {
-                .name = "FPS timer A",
-                .update = fps_timer_print,
-                .priv = &desired_fps_timer_a_offset,
-                .select = fps_timer_fine_tune_a,
-                .icon_type = IT_PERCENT,
-                .help = "High values = lower FPS, more jello effect, faster shutter.",
-            },
-            {
-                .name = "FPS timer B",
-                .update = fps_timer_print,
-                .priv = &desired_fps_timer_b_offset,
-                .select = fps_timer_fine_tune_b,
-                .icon_type = IT_PERCENT,
-                .help = "High values = lower FPS, shutter speed converges to 1/fps.",
-            },
-            {
-                .name = "Main Clock",
-                .update = tg_freq_print,
-                .icon_type = IT_ALWAYS_ON,
-                .help = "Timing generator freq. (READ-ONLY). FPS = F/timerA/timerB.",
-            },
-            {
-                .name = "Actual FPS",
-                .update = fps_current_print,
-                .icon_type = IT_ALWAYS_ON,
-                .help = "Exact FPS (computed). For fine tuning, change timer values.",
-            },
             #ifdef FEATURE_FPS_WAV_RECORD
             {
                 .name = "Sound Record",
@@ -1105,6 +1114,7 @@ static struct menu_entry fps_menu[] = {
                 .update = fps_wav_record_print,
                 .choices = (const char *[]) {"Disabled", "Separate WAV"},
                 .help = "Sound goes out of sync, so it has to be recorded separately.",
+                .shidden = 1,
             },
             #endif
 
@@ -1118,6 +1128,7 @@ static struct menu_entry fps_menu[] = {
                 .help = "Ramp between overridden FPS and default FPS. Undercrank only.",
                 .help2 = "To start ramping, press " INFO_BTN_NAME " or just start recording.",
                 .depends_on = DEP_MOVIE_MODE,
+                .shidden = 1,
             },
 
             {
@@ -1129,10 +1140,16 @@ static struct menu_entry fps_menu[] = {
                 .icon_type = IT_PERCENT,
                 .help = "Duration of FPS ramping (in real-time, not in playback).",
                 .depends_on = DEP_MOVIE_MODE,
+                .shidden = 1,
             },
             #endif
-
-
+            
+            {
+                .name = "Advanced...",
+                .select = fps_set_advanced_mode,
+                .icon_type = IT_ACTION,
+                .help = "Advanced FPS options. Not for the faint of heart.",
+            },
 
             MENU_EOL
         },
@@ -1140,6 +1157,16 @@ static struct menu_entry fps_menu[] = {
     #endif
 };
 
+static void fps_set_advanced_mode(void* priv, int delta)
+{
+    struct menu_entry * entry = &(fps_menu[0].children[0]);
+    while (entry->next)
+    {
+        entry->shidden = 0;
+        entry = entry->next;
+    }
+    entry->shidden = 1;
+}
 
 static void fps_init()
 {
@@ -1412,7 +1439,7 @@ void fps_expo_iso_step()
     if (!lens_info.raw_iso) return; // no auto iso
     
     static int dirty = 0;
-    if (!fps_const_expo)
+    if (!(fps_const_expo && fps_override))
     {
         if (dirty) set_movie_digital_iso_gain_for_gradual_expo(1024);
         return;
