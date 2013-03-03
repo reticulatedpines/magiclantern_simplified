@@ -64,6 +64,7 @@ ML_OBJS-y = \
 	battery.o \
 	dm-spy.o \
 	evf-hacks.o \
+	afma.o \
 
 #	video_hacks.o \
 #	flexinfo.o \
