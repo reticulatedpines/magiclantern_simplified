@@ -1845,6 +1845,7 @@ void split_iso(int raw_iso, unsigned int* analog_iso, int* digital_gain)
 {
     if (!raw_iso) { *analog_iso = 0; *digital_gain = 0; return; }
     int rounded = ((raw_iso+3)/8) * 8;
+    if (get_htp()) rounded -= 8;
     *analog_iso = COERCE(rounded, 72, MAX_ANALOG_ISO); // analog ISO range: 100-3200 (100-25600 on 5D3)
     *digital_gain = raw_iso - *analog_iso;
 }
