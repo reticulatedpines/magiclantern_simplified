@@ -3778,6 +3778,15 @@ void bramp_cleanup()
 void bulb_ramping_init()
 {
     if (bramp_init_done) return;
+
+    if (is_movie_mode())
+    {
+        NotifyBox(2000, "Please switch to photo mode.");
+        msleep(2000);
+        intervalometer_stop();
+        return;
+    }
+    
     if (BULB_EXPOSURE_CONTROL_ACTIVE) set_shooting_mode(SHOOTMODE_M);
     
     msleep(2000);
@@ -3911,8 +3920,8 @@ void bulb_ramping_init()
         if (ABS(Y-128) > 2) 
         {
             NotifyBox(1000, "Scene %s, retrying...", 
-                gain0 > 2450 ? "too dark" :
-                gain0 < 150 ? "too bright" : 
+                gain0 > 1900 ? "too dark" :
+                gain0 < 130 ? "too bright" : 
                 "not static"
             ); 
             msleep(500);
