@@ -23,3 +23,5 @@
 //~ #define FEATURE_VIDEO_HACKS
 
 #define FEATURE_AFMA_TUNING
+
+#undef FEATURE_VOICE_TAGS // no sound recorded
