@@ -100,8 +100,8 @@ static int customize_mode = 0;
 #define SUBMENU_OR_EDIT (submenu_mode || edit_mode)
 
 static CONFIG_INT("menu.junkie", junkie_mode, 0);
-static CONFIG_INT("menu.set", set_action, 2);
-static CONFIG_INT("menu.start.my", start_in_my_menu, 0);
+//~ static CONFIG_INT("menu.set", set_action, 2);
+//~ static CONFIG_INT("menu.start.my", start_in_my_menu, 0);
 
 static int is_customize_selected();
 
@@ -298,7 +298,7 @@ static struct menu_entry my_menu_placeholders[] = {
     MY_MENU_ENTRY
     MY_MENU_ENTRY
 };
-
+/*
 static struct menu_entry menu_prefs[] = {
     {
         .name = "Menu Preferences",
@@ -324,6 +324,7 @@ static struct menu_entry menu_prefs[] = {
         },
     }
 };
+*/
 
 void customize_menu_init()
 {
@@ -336,7 +337,7 @@ void customize_menu_init()
 
 void menu_prefs_init()
 {
-    menu_add("Prefs", menu_prefs, COUNT(menu_prefs));
+    //~ menu_add("Prefs", menu_prefs, COUNT(menu_prefs));
 }
 
 static struct menu * menus;
@@ -2941,6 +2942,7 @@ menu_entry_select(
     }
     else if (mode == 3) // SET
     {
+        /*
         if (set_action == 0) // pickbox
         {
             if (entry->icon_type != IT_SUBMENU) edit_mode = !edit_mode;
@@ -2953,7 +2955,7 @@ menu_entry_select(
             else if( entry->select ) entry->select( entry->priv, 1);
             else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
         }
-        else
+        else */
         {
             if (submenu_mode && edit_mode && IS_SINGLE_ITEM_SUBMENU_ENTRY(entry)) edit_mode = submenu_mode = 0;
             else if (edit_mode) edit_mode = 0;
@@ -3892,12 +3894,14 @@ static void menu_open()
 
     
     // start in my menu, if configured
+    /*
     if (start_in_my_menu)
     {
         struct menu * my_menu = menu_find_by_name(MY_MENU_NAME, 0);
         if (menu_has_visible_items(my_menu))
             select_menu_by_icon(ICON_ML_MYMENU);
     }
+    */
 
 #ifdef CONFIG_5DC
     //~ forces the 5dc screen to turn on for ML menu.
