@@ -11,7 +11,8 @@
 * Enjoy!
 * 
 @param a Level
-@range a 0 5
+@range a 1 6
+@default a 1
 */
 
 // http://www.sokobano.de/wiki/index.php?title=Sok_format
@@ -26,7 +27,7 @@
 #define BOX_ON_TARGET '*'
 
 // from Wikipedia
-char* maze0[9] = {
+char* maze1[9] = {
     "  ##### ",
     "###   # ",
     "#.@$  # ",
@@ -39,7 +40,7 @@ char* maze0[9] = {
 };
 
 // Level 1 from http://sneezingtiger.com/sokoban/levels/minicosmosText.html
-char* maze1[8] = {
+char* maze2[8] = {
     "  ##### ",
     "###   # ",
     "# $ # ##",
@@ -51,7 +52,7 @@ char* maze1[8] = {
 };
 
 // Level 2 from http://sneezingtiger.com/sokoban/levels/minicosmosText.html
-char* maze2[8] = {
+char* maze3[8] = {
     "  ##### ",
     "###   # ",
     "# $ # ##",
@@ -64,7 +65,7 @@ char* maze2[8] = {
 
 // Level 23 from http://sneezingtiger.com/sokoban/levels/minicosmosText.html
 
-char* maze3[9] = {
+char* maze4[9] = {
     "      #### ",
     "#######  # ",
     "#        # ",
@@ -78,7 +79,7 @@ char* maze3[9] = {
 
 
 // Level 1 from http://sneezingtiger.com/sokoban/levels/nabokosmosText.html
-char* maze4[7] = {
+char* maze5[7] = {
     " #####  ",
     " #   ## ",
     "## * .##",
@@ -89,7 +90,7 @@ char* maze4[7] = {
 };
 
 // Level 2 from http://sneezingtiger.com/sokoban/levels/nabokosmosText.html
-char* maze5[11] = {
+char* maze6[11] = {
     "  ####  ",
     "###  ###",
     "#   *$ #",
@@ -106,16 +107,10 @@ char* maze5[11] = {
 char** maze;
 int LINES;
 int COLUMNS;
-if (a == 0)
-{
-    maze = maze0;
-    LINES = 9;
-    COLUMNS = 8;
-}
-else if (a == 1)
+if (a == 1)
 {
     maze = maze1;
-    LINES = 8;
+    LINES = 9;
     COLUMNS = 8;
 }
 else if (a == 2)
@@ -127,18 +122,24 @@ else if (a == 2)
 else if (a == 3)
 {
     maze = maze3;
-    LINES = 9;
-    COLUMNS = 11;
+    LINES = 8;
+    COLUMNS = 8;
 }
 else if (a == 4)
 {
     maze = maze4;
-    LINES = 7;
-    COLUMNS = 8;
+    LINES = 9;
+    COLUMNS = 11;
 }
 else if (a == 5)
 {
     maze = maze5;
+    LINES = 7;
+    COLUMNS = 8;
+}
+else if (a == 6)
+{
+    maze = maze6;
     LINES = 11;
     COLUMNS = 8;
 }
