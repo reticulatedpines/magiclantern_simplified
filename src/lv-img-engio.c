@@ -29,8 +29,15 @@
 #define SHADOW_LIFT_REGISTER_7 0xc0f0f178
 #define SHADOW_LIFT_REGISTER_8 0xc0f0ecf8 // more like ISO control (clips whites)
 
-CONFIG_INT("digic.iso.gain.movie", digic_iso_gain_movie, 1024); // units: like with the old display gain
-CONFIG_INT("digic.iso.gain.photo", digic_iso_gain_photo, 1024);
+static CONFIG_INT("digic.iso.gain.movie", digic_iso_gain_movie, 0); // units: like with the old display gain
+static CONFIG_INT("digic.iso.gain.photo", digic_iso_gain_photo, 0);
+
+#define DIGIC_ISO_GAIN_MOVIE (digic_iso_gain_movie ? digic_iso_gain_movie : 1024)
+#define DIGIC_ISO_GAIN_PHOTO (digic_iso_gain_photo ? digic_iso_gain_photo : 1024)
+
+int get_digic_iso_gain_movie() { return DIGIC_ISO_GAIN_MOVIE; }
+int get_digic_iso_gain_photo() { return DIGIC_ISO_GAIN_PHOTO; }
+
 CONFIG_INT("digic.black.level", digic_black_level, 0);
 int digic_iso_gain_movie_for_gradual_expo = 1024; // additional gain that won't appear in ML menus, but can be changed from code (to be "added" to digic_iso_gain_movie)
 int digic_iso_gain_photo_for_bv = 1024;
@@ -44,14 +51,14 @@ int display_gain_menu_index = 0; // for menu
 // 1024 = 0 EV
 void set_display_gain_equiv(int gain)
 {
-    if (gain == 0) gain = 1024;
+    if (gain == 1024) gain = 0;
     if (is_movie_mode()) digic_iso_gain_movie = gain;
     else digic_iso_gain_photo = gain;
 }
 
 void set_movie_digital_iso_gain(int gain)
 {
-    if (gain == 0) gain = 1024;
+    if (gain == 1024) gain = 0;
     digic_iso_gain_movie = gain;
 }
 
@@ -75,7 +82,7 @@ int gain_to_ev_scaled(int gain, int scale)
 MENU_UPDATE_FUNC(digic_iso_print_movie)
 {
     int G = 0;
-    G = gain_to_ev_scaled(digic_iso_gain_movie, 8) - 80;
+    G = gain_to_ev_scaled(DIGIC_ISO_GAIN_MOVIE, 8) - 80;
     G = G * 10/8;
     int GA = abs(G);
     
@@ -85,16 +92,20 @@ MENU_UPDATE_FUNC(digic_iso_print_movie)
         GA/10, GA%10
     );
     MENU_SET_ENABLED(G);
+    
+    // ugly hack
+    entry->priv = &digic_iso_gain_movie;
 }
 
 MENU_UPDATE_FUNC(display_gain_print)
 {
-    int G = gain_to_ev_scaled(digic_iso_gain_photo, 8) - 80;
+    int G = gain_to_ev_scaled(DIGIC_ISO_GAIN_PHOTO, 8) - 80;
     G = G * 10/8;
     int GA = abs(G);
     display_gain_menu_index = GA/10;
 }
 
+/*
 MENU_UPDATE_FUNC(digic_iso_print)
 {
     if (is_movie_mode())
@@ -108,6 +119,7 @@ MENU_UPDATE_FUNC(digic_iso_print)
         display_gain_print(entry, info);
     }
 }
+*/
 
 MENU_UPDATE_FUNC(digic_black_print)
 {
@@ -132,6 +144,9 @@ static int digic_iso_presets[] = {256, 362, 512, 609, 664, 724, 790, 861, 939, 1
 void digic_iso_or_gain_toggle(int* priv, int delta)
 {
     int mv = (priv == (int*)&digic_iso_gain_movie);
+    
+    if (*priv == 0) *priv = 1024;
+    
     int i;
     for (i = 0; i < COUNT(digic_iso_presets); i++)
         if (digic_iso_presets[i] >= *priv) break;
@@ -146,6 +161,7 @@ void digic_iso_or_gain_toggle(int* priv, int delta)
     );
     
     *priv = digic_iso_presets[i];
+    if (*priv == 1024) *priv = 0;
 }
 
 void digic_iso_toggle(void* priv, int delta)
@@ -477,9 +493,8 @@ void digic_iso_step()
 #ifdef FEATURE_EXPO_ISO_DIGIC
     if (mv)
     {
-        if (digic_iso_gain_movie == 0) digic_iso_gain_movie = 1024;
         if (digic_iso_gain_movie_for_gradual_expo == 0) digic_iso_gain_movie_for_gradual_expo = 1024;
-        int total_movie_gain = digic_iso_gain_movie * digic_iso_gain_movie_for_gradual_expo / 1024;
+        int total_movie_gain = DIGIC_ISO_GAIN_MOVIE * digic_iso_gain_movie_for_gradual_expo / 1024;
         if (total_movie_gain != 1024)
         {
             autodetect_default_white_level();
@@ -509,7 +524,7 @@ void digic_iso_step()
     if (!mv) // photo mode - display gain, for preview only
     {
         if (digic_iso_gain_photo_for_bv == 0) digic_iso_gain_photo_for_bv = 1024;
-        int total_photo_gain = digic_iso_gain_photo * digic_iso_gain_photo_for_bv / 1024;
+        int total_photo_gain = DIGIC_ISO_GAIN_PHOTO * digic_iso_gain_photo_for_bv / 1024;
 
         if (total_photo_gain == 0) total_photo_gain = 1024;
     #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
@@ -540,6 +555,31 @@ static struct menu_entry lv_img_menu[] = {
         .depends_on = DEP_MOVIE_MODE,
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
+
+
+            #ifdef FEATURE_EXPO_ISO_DIGIC
+            {
+                .name = "ML Digital ISO",
+                .priv = &digic_iso_gain_movie,
+                .update = digic_iso_print_movie,
+                .select = digic_iso_toggle_movie,
+                .help = "ISO tweaks. Negative gain has better highlight roll-off.",
+                .edit_mode = EM_MANY_VALUES_LV,
+                .depends_on = DEP_MOVIE_MODE | DEP_MANUAL_ISO,
+                .icon_type = IT_DICE_OFF,
+            },
+            {
+                .name = "Black Level", 
+                .priv = &digic_black_level,
+                .min = -100,
+                .max = 100,
+                .update = digic_black_print,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
+                .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
+            },
+            #endif
+
             #ifdef FEATURE_IMAGE_EFFECTS
             {
                 .name = "Absolute Zero Sharpness", 
@@ -564,28 +604,6 @@ static struct menu_entry lv_img_menu[] = {
                 .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
             },
             #endif
-            #endif
-
-            #ifdef FEATURE_EXPO_ISO_DIGIC
-            {
-                .name = "ML digital ISO",
-                .update = digic_iso_print_movie,
-                .select = digic_iso_toggle_movie,
-                .help = "ISO tweaks. Negative gain has better highlight roll-off.",
-                .edit_mode = EM_MANY_VALUES_LV,
-                .depends_on = DEP_LIVEVIEW,
-                .icon_type = IT_BOOL,
-            },
-            {
-                .name = "Black Level", 
-                .priv = &digic_black_level,
-                .min = -100,
-                .max = 100,
-                .update = digic_black_print,
-                .edit_mode = EM_MANY_VALUES_LV,
-                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
-                .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
-            },
             #endif
             
             MENU_EOL,

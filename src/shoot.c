@@ -112,7 +112,7 @@ int uniwb_is_active()
         uniwb_is_active_check_lensinfo_only();
 }*/
 
-CONFIG_INT("iso_selection", iso_selection, 0);
+//~ CONFIG_INT("iso_selection", iso_selection, 0);
 
 CONFIG_INT("hdr.enabled", hdr_enabled, 0);
 
@@ -1885,8 +1885,11 @@ static MENU_UPDATE_FUNC(iso_display)
             int dg = lens_info.iso_equiv_raw - lens_info.raw_iso;
             dg = dg * 10/8;
             MENU_SET_VALUE(
-                "%d (%d,%s%d.%dEV)", 
-                raw2iso(lens_info.iso_equiv_raw),
+                "%d", 
+                raw2iso(lens_info.iso_equiv_raw)
+            );
+            MENU_SET_RINFO(
+                "%d,%s%d.%dEV", 
                 raw2iso(lens_info.raw_iso),
                 FMT_FIXEDPOINT1S(dg)
             );
@@ -1947,7 +1950,8 @@ int is_round_iso(int iso)
 }
 
 #ifdef FEATURE_EXPO_ISO
-void
+// fixme: these don't work well
+static void
 analog_iso_toggle( void * priv, int sign )
 {
     int r = lens_info.raw_iso;
@@ -1957,7 +1961,7 @@ analog_iso_toggle( void * priv, int sign )
     lens_set_rawiso(a + d);
 }
 
-void
+static void
 digital_iso_toggle( void * priv, int sign )
 {
     int r = lens_info.raw_iso;
@@ -1968,22 +1972,12 @@ digital_iso_toggle( void * priv, int sign )
     lens_set_rawiso(a + d);
 }
 
-void
-fullstop_iso_toggle( void * priv, int sign )
-{
-    int min_iso = MIN_ISO; // iso 100 or 200D+
-    int max_iso = MAX_ISO; // max ISO
-    int r = lens_info.raw_iso;
-    if (!r) r = sign > 0 ? min_iso-8 : max_iso+8;
-    int rounded = ((r+3)/8) * 8;
-    rounded = COERCE(rounded + sign * 8, min_iso, max_iso);
-    lens_set_rawiso(rounded);
-}
-
 
 void
 iso_toggle( void * priv, int sign )
 {
+    int (*iso_checker)(int) = is_round_iso;
+    
     if (is_movie_mode())
     {
         extern int bv_auto;
@@ -1995,13 +1989,9 @@ iso_toggle( void * priv, int sign )
                 return;
         }
 
-        if (iso_selection == 1) // constant DIGIC gain, full-stop analog
-        {
-            fullstop_iso_toggle(priv, sign);
-            return;
-        }
-
-        set_movie_digital_iso_gain(0); // disable DIGIC iso
+        int digic_gain = get_digic_iso_gain_movie();
+        if (digic_gain != 1024) // keep the DIGIC gain, toggle ISO in full-stops
+            iso_checker = is_native_iso;
     }
     
     int i = raw2index_iso(lens_info.raw_iso);
@@ -2012,7 +2002,7 @@ iso_toggle( void * priv, int sign )
         i = mod(i + sign, COUNT(codes_iso));
         
 
-        while (!is_round_iso(values_iso[i]))
+        while (!iso_checker(values_iso[i]))
             i = mod(i + sign, COUNT(codes_iso));
         
         if (priv == (void*)-1 && SGN(i - i0) != sign) // wrapped around
@@ -5370,8 +5360,8 @@ extern int lvae_iso_max;
 extern int lvae_iso_min;
 extern int lvae_iso_speed;
 
-extern MENU_UPDATE_FUNC(digic_iso_print);
-extern MENU_SELECT_FUNC(digic_iso_toggle);
+extern MENU_UPDATE_FUNC(digic_iso_print_movie);
+extern MENU_SELECT_FUNC(digic_iso_toggle_movie);
 
 extern int digic_black_level;
 extern MENU_UPDATE_FUNC(digic_black_print);
@@ -5486,6 +5476,7 @@ static struct menu_entry expo_menus[] = {
         .help  = "Adjust and fine-tune ISO. Also displays APEX Sv value.",
         .help2 = "Advanced: digital ISO tweaks, HTP, ISO 50, ISO 800.000...",
         .edit_mode = EM_MANY_VALUES_LV,
+        
         .submenu_width = 650,
 
         .children =  (struct menu_entry[]) {
@@ -5496,6 +5487,7 @@ static struct menu_entry expo_menus[] = {
                 .unit = UNIT_ISO,
                 .select     = iso_toggle,
                 .edit_mode = EM_MANY_VALUES_LV,
+                .icon_type = IT_DICE_OFF,
             },
             {
                 .name = "Canon analog ISO",
@@ -5504,6 +5496,8 @@ static struct menu_entry expo_menus[] = {
                 .unit = UNIT_ISO,
                 .select     = analog_iso_toggle,
                 .edit_mode = EM_MANY_VALUES_LV,
+                .depends_on = DEP_MANUAL_ISO,
+                .icon_type = IT_DICE_OFF,
             },
             {
                 .name = "Canon digital ISO",
@@ -5512,16 +5506,18 @@ static struct menu_entry expo_menus[] = {
                 .unit = UNIT_1_8_EV,
                 .select     = digital_iso_toggle,
                 .edit_mode = EM_MANY_VALUES_LV,
+                .depends_on = DEP_MANUAL_ISO,
+                .icon_type = IT_DICE_OFF,
             },
             #ifdef FEATURE_EXPO_ISO_DIGIC
             {
-                .name = "ML ISO/Gain",
-                .update = digic_iso_print,
-                .select = digic_iso_toggle,
-                .help = "Movie: use negative gain. Photo: use it for night vision.",
+                .name = "ML digital ISO",
+                .update = digic_iso_print_movie,
+                .select = digic_iso_toggle_movie,
+                .help = "ISO tweaks. Negative gain has better highlight roll-off.",
                 .edit_mode = EM_MANY_VALUES_LV,
-                .depends_on = DEP_LIVEVIEW,
-                .icon_type = IT_BOOL,
+                .depends_on = DEP_MOVIE_MODE | DEP_MANUAL_ISO,
+                .icon_type = IT_DICE_OFF,
             },
             #endif
             #ifdef FEATURE_EXPO_ISO_HTP
@@ -5533,6 +5529,7 @@ static struct menu_entry expo_menus[] = {
                 .help = "Highlight Tone Priority. Use with negative ML digital ISO.",
             },
             #endif
+            /*
             #ifdef FEATURE_EXPO_ISO_DIGIC
             {
                 .name = "ISO Selection",
@@ -5543,6 +5540,7 @@ static struct menu_entry expo_menus[] = {
                 .icon_type = IT_DICE,
             },
             #endif
+            */
             #if 0 // unstable
             {
                 .name = "Min Movie AutoISO",

@@ -1855,10 +1855,10 @@ void iso_components_update()
 
     lens_info.iso_equiv_raw = lens_info.raw_iso;
 
-    extern int digic_iso_gain_movie;
-    if (lens_info.iso_equiv_raw && digic_iso_gain_movie != 1024 && is_movie_mode())
+    int digic_gain = get_digic_iso_gain_movie();
+    if (lens_info.iso_equiv_raw && digic_gain != 1024 && is_movie_mode())
     {
-        lens_info.iso_equiv_raw = lens_info.iso_equiv_raw + (gain_to_ev_x8(digic_iso_gain_movie) - 80);
+        lens_info.iso_equiv_raw = lens_info.iso_equiv_raw + (gain_to_ev_x8(digic_gain) - 80);
     }
 }
 

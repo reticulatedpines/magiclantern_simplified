@@ -403,7 +403,7 @@ extern unsigned lcd_sensor_shortcuts;
 
 void show_display_gain_level()
 {
-    extern int digic_iso_gain_photo;
+    int digic_iso_gain_photo = get_digic_iso_gain_photo();
     int G = gain_to_ev_scaled(digic_iso_gain_photo, 1) - 10;
     NotifyBox(2000, "Display Gain : %d EV", G);
 }
@@ -412,7 +412,7 @@ void adjust_backlight_level(int delta)
     if (backlight_level < 1 || backlight_level > 7) return; // kore wa dame desu yo
     if (!DISPLAY_IS_ON) call("TurnOnDisplay");
     
-    extern int digic_iso_gain_photo;
+    int digic_iso_gain_photo = get_digic_iso_gain_photo();
     int G = gain_to_ev_scaled(digic_iso_gain_photo, 1) - 10;
     
     if (!is_movie_mode())

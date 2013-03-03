@@ -339,7 +339,7 @@ int get_effective_hdr_iso_for_display(int raw_iso)
 #endif
 
     // also apply digic iso, if any
-    extern int digic_iso_gain_movie;
+    int digic_iso_gain_movie = get_digic_iso_gain_movie();
     if (digic_iso_gain_movie != 1024)
     {
         actual_iso += (gain_to_ev_x8(digic_iso_gain_movie) - 80);

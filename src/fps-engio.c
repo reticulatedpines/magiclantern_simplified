@@ -1427,7 +1427,7 @@ void fps_expo_iso_step()
     int current_iso = FRAME_ISO & 0xFF;
     int altered_iso = current_iso;
     
-    extern int digic_iso_gain_movie;
+    int digic_iso_gain_movie = get_digic_iso_gain_movie();
     #define G_ADJ ((int)roundf(digic_iso_gain_movie ? gf * digic_iso_gain_movie / 1024 : gf))
     while (G_ADJ > 861*2 && altered_iso < MAX_ANALOG_ISO) 
     {

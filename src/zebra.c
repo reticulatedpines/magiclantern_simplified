@@ -216,7 +216,7 @@ int lv_luma_is_accurate()
 {
     if (is_movie_mode()) return 1;
     
-    extern int digic_iso_gain_photo;
+    int digic_iso_gain_photo = get_digic_iso_gain_photo();
     return expsim && digic_iso_gain_photo == 1024;
 }
 
