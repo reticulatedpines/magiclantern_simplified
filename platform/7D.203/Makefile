@@ -77,6 +77,7 @@ ML_OBJS-y = \
 	battery.o \
 	ph_info_disp.o \
 	flexinfo.o \
+	afma.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
