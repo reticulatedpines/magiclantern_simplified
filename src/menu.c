@@ -955,24 +955,6 @@ void submenu_icon(int x, int y)
 }
 */
 
-void submenu_only_icon(int x, int y, int color)
-{
-    for (int r = 0; r < 3; r++)
-    {
-        draw_circle(x + 8, y + 10, r, color);
-        draw_circle(x + 8, y + 16, r, color);
-        draw_circle(x + 8, y + 22, r, color);
-        draw_circle(x + 9, y + 10, r, color);
-        draw_circle(x + 9, y + 16, r, color);
-        draw_circle(x + 9, y + 22, r, color);
-    }
-    
-    if (color == COLOR_GREEN1) color = COLOR_WHITE;
-    bmp_draw_rect(color, x + 15, y + 10, 10, 1);
-    bmp_draw_rect(color, x + 15, y + 16, 10, 1);
-    bmp_draw_rect(color, x + 15, y + 22, 10, 1);
-}
-
 /*
 static void size_icon(int x, int y, int current, int nmax, int color)
 {
@@ -1064,6 +1046,7 @@ static void pizza_slice(int x, int y, int current, int nmax, int fg, int bg)
     }
 }*/
 
+/*
 static void slider_box(int x, int y, int w, int h, int c)
 {
     bmp_draw_rect_chamfer(c, x, y, w, h, 1, 0);
@@ -1126,6 +1109,42 @@ static void vslider(int x, int y, int current, int nmax, int fg, int bg)
 }
 
 #define slider vslider
+*/
+
+static void round_box(int x, int y, int current, int nmax, int fg, int bg)
+{
+    x += 8;
+    y += 8;
+    int w = 16;
+    int h = 16;
+    int c = fg;
+    bmp_draw_rect_chamfer(c, x-1, y-1, w+2, h+2, 2, 0);
+    bmp_draw_rect_chamfer(c, x, y, w, h, 1, 0);
+    bmp_fill(c, x+1, y+1, w-1, h-1);
+}
+#define slider round_box
+
+
+void submenu_only_icon(int x, int y, int color)
+{
+    round_box(x, y, 1, 1, color, color);
+    /*
+    for (int r = 0; r < 3; r++)
+    {
+        draw_circle(x + 8, y + 10, r, color);
+        draw_circle(x + 8, y + 16, r, color);
+        draw_circle(x + 8, y + 22, r, color);
+        draw_circle(x + 9, y + 10, r, color);
+        draw_circle(x + 9, y + 16, r, color);
+        draw_circle(x + 9, y + 22, r, color);
+    }
+    
+    if (color == COLOR_GREEN1) color = COLOR_WHITE;
+    bmp_draw_rect(color, x + 15, y + 10, 10, 1);
+    bmp_draw_rect(color, x + 15, y + 16, 10, 1);
+    bmp_draw_rect(color, x + 15, y + 22, 10, 1);
+    */
+}
 
 /*
 void color_icon(int x, int y, const char* color)
