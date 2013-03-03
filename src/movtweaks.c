@@ -428,22 +428,17 @@ int get_screen_layout()
 
 #ifdef FEATURE_SCREEN_LAYOUT
 
-MENU_UPDATE_FUNC(screen_layout_display)
+int screen_layout_menu_index;
+MENU_UPDATE_FUNC(screen_layout_update)
 {
-    int screen_layout = *get_screen_layout_ptr();
-    MENU_SET_VALUE(
-        screen_layout == SCREENLAYOUT_3_2 ?        "3:2 display,t/b"  :
-        screen_layout == SCREENLAYOUT_4_3 ?        "4:3 display,auto" :
-        screen_layout == SCREENLAYOUT_16_10 ?      "16:10 HDMI,t/b"   :
-        screen_layout == SCREENLAYOUT_16_9 ?       "16:9  HDMI,t/b"   :
-        screen_layout == SCREENLAYOUT_UNDER_3_2 ?  "Bottom,under 3:2" :
-        screen_layout == SCREENLAYOUT_UNDER_16_9 ? "Bottom,under16:9" :
-         "err"
-    );
-    MENU_SET_ICON(MNI_DICE, screen_layout + (5<<16));
+    screen_layout_menu_index = *get_screen_layout_ptr();
 }
 
-void screen_layout_toggle(void* priv, int delta) { menu_numeric_toggle(get_screen_layout_ptr(), delta, 0, 4); }
+void screen_layout_toggle(void* priv, int delta) 
+{ 
+    menu_numeric_toggle(get_screen_layout_ptr(), delta, 0, 4);
+    screen_layout_menu_index = *get_screen_layout_ptr();
+}
 #endif
 
 #ifdef FEATURE_MOVIE_RECORDING_50D

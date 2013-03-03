@@ -3270,7 +3270,8 @@ CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 1);
 
 extern int clearscreen;
 //~ extern int clearscreen_mode;
-extern MENU_UPDATE_FUNC(screen_layout_display);
+extern int screen_layout_menu_index;
+extern MENU_UPDATE_FUNC(screen_layout_update);
 extern void screen_layout_toggle(void* priv, int delta);
 extern int hdmi_force_vga;
 extern MENU_UPDATE_FUNC(hdmi_force_display);
@@ -3465,8 +3466,21 @@ static struct menu_entry display_menus[] = {
             #ifdef FEATURE_SCREEN_LAYOUT
                 {
                     .name = "Screen Layout",
-                    .update = screen_layout_display, 
+                    .priv = &screen_layout_menu_index,
+                    .max = 4,
+                    .update = screen_layout_update, 
                     .select = screen_layout_toggle,
+                    .choices = CHOICES(
+                        #ifdef CONFIG_4_3_SCREEN
+                        "4:3 display,auto",
+                        #else
+                        "3:2 display,t/b",
+                        #endif
+                        "16:10 HDMI,t/b",
+                        "16:9  HDMI,t/b",
+                        "Bottom,under 3:2",
+                        "Bottom,under16:9"
+                    ),
                     .help = "Position of top/bottom bars, useful for external displays.",
                     .depends_on = DEP_LIVEVIEW,
                 },
