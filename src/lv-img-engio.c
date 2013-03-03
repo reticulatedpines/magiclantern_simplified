@@ -35,6 +35,8 @@ CONFIG_INT("digic.black.level", digic_black_level, 0);
 int digic_iso_gain_movie_for_gradual_expo = 1024; // additional gain that won't appear in ML menus, but can be changed from code (to be "added" to digic_iso_gain_movie)
 int digic_iso_gain_photo_for_bv = 1024;
 
+int display_gain_menu_index = 0; // for menu
+
 //~ CONFIG_INT("digic.shadow.lift", digic_shadow_lift, 0);
 // that is: 1024 = 0 EV = disabled
 // 2048 = 1 EV etc
@@ -90,15 +92,7 @@ MENU_UPDATE_FUNC(display_gain_print)
     int G = gain_to_ev_scaled(digic_iso_gain_photo, 8) - 80;
     G = G * 10/8;
     int GA = abs(G);
-
-    MENU_SET_VALUE(
-        "%s%d EV",
-        G > 0 ? "+" : G < 0 ? "-" : "",
-        GA/10
-    );
-
-    MENU_SET_ICON(G ? MNI_PERCENT_ALLOW_OFF : MNI_PERCENT_OFF, GA * 100 / 60);
-    MENU_SET_ENABLED(G);
+    display_gain_menu_index = GA/10;
 }
 
 MENU_UPDATE_FUNC(digic_iso_print)
@@ -147,8 +141,8 @@ void digic_iso_or_gain_toggle(int* priv, int delta)
     } while ((!mv && digic_iso_presets[i] < 1024)
     #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
     || (mv && digic_iso_presets[i] > 2048) // high display gains not working
-    || (!mv && digic_iso_presets[i] > 65536) // +7EV not working
     #endif
+    || (!mv && digic_iso_presets[i] > 65536)
     );
     
     *priv = digic_iso_presets[i];

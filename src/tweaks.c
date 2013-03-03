@@ -3272,6 +3272,7 @@ extern void screen_layout_toggle(void* priv, int delta);
 extern int hdmi_force_vga;
 extern MENU_UPDATE_FUNC(hdmi_force_display);
 extern MENU_UPDATE_FUNC(display_gain_print);
+extern int display_gain_menu_index;
 
 static struct menu_entry display_menus[] = {
             #ifdef FEATURE_LV_BRIGHTNESS_CONTRAST
@@ -3332,8 +3333,11 @@ static struct menu_entry display_menus[] = {
             #ifdef FEATURE_LV_DISPLAY_GAIN
             {
                 .name = "LV display gain",
+                .priv = &display_gain_menu_index,
                 .update = display_gain_print,
                 .select = display_gain_toggle,
+                .max = 6,
+                .choices = CHOICES("OFF", "1 EV", "2 EV", "3 EV", "4 EV", "5 EV", "6 EV"),
                 .icon_type = IT_PERCENT_OFF,
                 .help   = "Makes LiveView usable in complete darkness (photo mode).",
                 .help2  = "Tip: if it gets really dark, also enable FPS override.",
