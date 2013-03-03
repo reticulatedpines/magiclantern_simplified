@@ -608,6 +608,8 @@ void set_afma(int value, int mode);
 #define AFMA_MODE_DISABLED 0
 #define AFMA_MODE_ALL_LENSES 1
 #define AFMA_MODE_PER_LENS 2
+#define AFMA_MODE_PER_LENS_WIDE 0x102
+#define AFMA_MODE_PER_LENS_TELE 0x202
 
 
 

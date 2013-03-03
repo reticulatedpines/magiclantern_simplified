@@ -1069,6 +1069,7 @@ struct LibraryFunction PlatformLibrary[] =
     {LibSetAF,          "void set_af(int af);"                  }, // enable or disable AF for half-shutter press
     {LibResetAF,        "void reset_af(int af);"                }, // restore the original setting from Canon menu (CFn) (auto-called when script finishes)
 
+    // AFMA modes: AFMA_MODE_AUTODETECT, AFMA_MODE_DISABLED, AFMA_MODE_ALL_LENSES, AFMA_MODE_PER_LENS, AFMA_MODE_PER_LENS_WIDE, AFMA_MODE_PER_LENS_TELE
     {LibGetAFMA,        "int get_afma(int mode);"               }, // get AF microadjust value
     {LibSetAFMA,        "void set_afma(int value, int mode);"   }, // set AF microadjust value
     
@@ -1147,7 +1148,7 @@ struct LibraryFunction PlatformLibrary[] =
     { LibMenuGetStr,     "char* menu_get_str(char* tab, char* entry);"           }, // return the displayed (string) value from a menu entry
     { LibMenuSetStr,     "int menu_set_str(char* tab, char* entry, char* value);"}, // set a menu entry to some arbitrary string value (cycles until it gets it); 1 = success, 0 = failure
 
-    /** Image analysis */
+    /** Image analysis **/
 
     /**
      * 
@@ -1329,6 +1330,13 @@ void PlatformLibraryInit()
     /** cache hacking */
     CONST0(TYPE_DCACHE);
     CONST0(TYPE_ICACHE);
+    
+    /** AFMA */
+    CONST0(AFMA_MODE_AUTODETECT);
+    CONST0(AFMA_MODE_DISABLED);
+    CONST0(AFMA_MODE_PER_LENS);
+    CONST0(AFMA_MODE_PER_LENS_WIDE);
+    CONST0(AFMA_MODE_PER_LENS_TELE);
     
     /** common properties */
 

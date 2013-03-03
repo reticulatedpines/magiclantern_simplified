@@ -114,3 +114,6 @@
 /** The camera accepts extended AFMA values (default range: -20...20; extended: -100...100) */
 /** This can be dangerous, as the values are outside Canon limits */
 #define CONFIG_AFMA_EXTENDED
+
+/** You can configure separate AFMA values for both wide and tele ends */
+#define CONFIG_AFMA_WIDE_TELE

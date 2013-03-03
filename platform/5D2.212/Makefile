@@ -65,6 +65,7 @@ ML_OBJS-y = \
 	beep.o \
 	vsync-lite.o \
 	battery.o \
+	afma.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

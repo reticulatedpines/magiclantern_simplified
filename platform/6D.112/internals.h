@@ -114,3 +114,6 @@
 
 /** We can record movies in regular photo modes - M, P, Tv, Av... */
 #define CONFIG_NO_DEDICATED_MOVIE_MODE
+
+/** You can configure separate AFMA values for both wide and tele ends */
+#define CONFIG_AFMA_WIDE_TELE
