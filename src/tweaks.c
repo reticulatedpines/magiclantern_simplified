@@ -2797,8 +2797,8 @@ void display_shake_step()
 #endif
 
 CONFIG_INT("defish.preview", defish_preview, 0);
-//~ #define defish_projection (defish_preview==1 ? 0 : 1)
-static CONFIG_INT("defish.projection", defish_projection, 0);
+#define defish_projection (defish_preview==1 ? 0 : 1)
+//~ static CONFIG_INT("defish.projection", defish_projection, 0);
 //~ static CONFIG_INT("defish.hd", DEFISH_HD, 1);
 #define DEFISH_HD 1
 
@@ -2807,8 +2807,8 @@ static CONFIG_INT("defish.projection", defish_projection, 0);
 #endif
 
 CONFIG_INT("anamorphic.preview", anamorphic_preview, 0);
-CONFIG_INT("anamorphic.ratio.idx", anamorphic_ratio_idx, 0);
-//~ #define anamorphic_ratio_idx (anamorphic_preview-1)
+//~ CONFIG_INT("anamorphic.ratio.idx", anamorphic_ratio_idx, 0);
+#define anamorphic_ratio_idx (anamorphic_preview-1)
 
 #ifndef FEATURE_ANAMORPHIC_PREVIEW
 #define anamorphic_preview 0
@@ -2821,6 +2821,7 @@ static int anamorphic_ratio_den[10] = {4, 3, 2, 3, 1};
 
 static MENU_UPDATE_FUNC(anamorphic_preview_display)
 {
+    /*
     if (anamorphic_preview)
     {
         int num = anamorphic_ratio_num[anamorphic_ratio_idx];
@@ -2830,6 +2831,7 @@ static MENU_UPDATE_FUNC(anamorphic_preview_display)
             num, den
         );
     }
+    */
     if (defish_preview)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Too much for this lil' cam... both defishing and anamorphic");
 }
@@ -2905,12 +2907,13 @@ static void FAST anamorphic_squeeze()
 #endif
 
 #ifdef FEATURE_DEFISHING_PREVIEW
-static MENU_UPDATE_FUNC(defish_preview_display)
+
+/*static MENU_UPDATE_FUNC(defish_preview_display)
 {
     if (defish_preview) MENU_SET_VALUE(
         defish_projection ? "Panini" : "Rectilinear"
     );
-}
+}*/
 
 //~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "ML/SETTINGS/recti.lut");
 #if defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_5DC) // fullframe
@@ -3396,12 +3399,12 @@ static struct menu_entry display_menus[] = {
     {
         .name = "Defishing",
         .priv = &defish_preview, 
-        .update = defish_preview_display, 
-        .max    = 1,
+        //~ .update = defish_preview_display, 
+        .max    = 2,
         .depends_on = DEP_GLOBAL_DRAW,
-        //~ .choices = (const char *[]) {"OFF", "Rectilinear", "Panini"},
+        .choices = (const char *[]) {"OFF", "Rectilinear", "Panini"},
         .help = "Preview straightened images from fisheye lenses. LV+PLAY.",
-        
+        /*
         .children =  (struct menu_entry[]) {
             {
                 .name = "Projection",
@@ -3413,6 +3416,7 @@ static struct menu_entry display_menus[] = {
             },
             MENU_EOL
         }
+        */
         
     },
     #endif
@@ -3424,10 +3428,11 @@ static struct menu_entry display_menus[] = {
         .name = "Anamorphic",
         .priv     = &anamorphic_preview,
         .update = anamorphic_preview_display, 
-        .max = 1,
+        .max = 5,
+        .choices = (const char *[]) {"OFF", "5:4 (1.25)", "4:3 (1.33)", "3:2 (1.5)", "5:3 (1.66)", "2:1"},
         .help = "Stretches LiveView image vertically, for anamorphic lenses.",
         .depends_on = DEP_LIVEVIEW | DEP_GLOBAL_DRAW,
-
+/*
         .children =  (struct menu_entry[]) {
             {
                 .name = "Stretch Ratio",
@@ -3437,7 +3442,7 @@ static struct menu_entry display_menus[] = {
                 .help = "Aspect ratio used for anamorphic preview correction.",
             },
             MENU_EOL
-        },
+        },*/
     },
     #endif
     #if defined(CONFIG_KILL_FLICKER) || defined(FEATURE_SCREEN_LAYOUT) || defined(FEATURE_IMAGE_POSITION) || defined(FEATURE_UPSIDE_DOWN) || defined(FEATURE_IMAGE_ORIENTATION) || defined(FEATURE_AUTO_MIRRORING_HACK) || defined(FEATURE_FORCE_HDMI_VGA) || defined(FEATURE_UNIWB_CORRECTION)
