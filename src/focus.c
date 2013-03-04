@@ -633,7 +633,6 @@ static MENU_SELECT_FUNC(focus_delay_toggle)
 static MENU_UPDATE_FUNC(focus_delay_update)
 {
     MENU_SET_VALUE("%dms", lens_focus_delay);
-    MENU_SET_ICON(MNI_PERCENT, (log_length(lens_focus_delay) - log_length(10)) * 100 / (log_length(640) - log_length(10)));
 }
 
 #ifdef FEATURE_MOVIE_AF
@@ -1216,7 +1215,7 @@ static struct menu_entry focus_menu[] = {
                 .update = focus_delay_update,
                 .min = 10,
                 .max = 640,
-                .icon_type = IT_PERCENT,
+                .icon_type = IT_PERCENT_LOG,
                 //~ .choices = CHOICES("10ms", "20ms", "40ms", "80ms", "160ms", "320ms", "640ms"),
                 .help = "Delay between two successive focus commands.",
             },

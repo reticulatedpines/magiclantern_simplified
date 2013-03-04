@@ -3251,7 +3251,6 @@ struct menu_entry zebra_menus[] = {
                 .max = 1,
                 .choices = (const char *[]) {"Hide", "Show"},
                 .help = "You can hide zebras when recording.",
-                .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
             },
             #endif
             MENU_EOL
@@ -3319,7 +3318,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &focus_peaking_pthr,
                 .select = focus_peaking_adjust_thr,
                 .max    = 50,
-                .icon_type = IT_PERCENT,
+                .icon_type = IT_PERCENT_LOG,
                 .unit = UNIT_PERCENT_x10,
                 .help = "How many pixels are considered in focus (percentage).",
             },
@@ -3684,6 +3683,8 @@ struct menu_entry powersave_menus[] = {
             .priv           = &idle_display_dim_after,
             .update         = idle_display_dim_print,
             .select         = idle_timeout_toggle,
+            .max            = 900,
+            .icon_type      = IT_PERCENT_LOG_OFF,
             .help = "Dim LCD display in LiveView when idle, to save power.",
         },
         {
@@ -3691,6 +3692,8 @@ struct menu_entry powersave_menus[] = {
             .priv           = &idle_display_turn_off_after,
             .update         = idle_display_feature_print,
             .select         = idle_timeout_toggle,
+            .max            = 900,
+            .icon_type      = IT_PERCENT_LOG_OFF,
             .help = "Turn off display and pause LiveView when idle and not REC.",
         },
         {
@@ -3698,6 +3701,8 @@ struct menu_entry powersave_menus[] = {
             .priv           = &idle_display_global_draw_off_after,
             .update         = idle_display_feature_print,
             .select         = idle_timeout_toggle,
+            .max            = 900,
+            .icon_type      = IT_PERCENT_LOG_OFF,
             .help = "Turn off GlobalDraw when idle, to save some CPU cycles.",
             //~ .edit_mode = EM_MANY_VALUES,
         },

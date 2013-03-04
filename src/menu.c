@@ -119,6 +119,7 @@ static int can_be_turned_off(struct menu_entry * entry)
     return 
     (IS_BOOL(entry) && entry->icon_type != IT_DICE) ||
      entry->icon_type == IT_PERCENT_OFF ||
+     entry->icon_type == IT_PERCENT_LOG_OFF ||
      entry->icon_type == IT_DICE_OFF ||
      entry->icon_type == IT_SUBMENU;
 }
@@ -387,7 +388,7 @@ static void entry_guess_icon_type(struct menu_entry * entry)
 
 static int entry_guess_enabled(struct menu_entry * entry)
 {
-    if (entry->icon_type == IT_BOOL || entry->icon_type == IT_DICE_OFF || entry->icon_type == IT_PERCENT_OFF)
+    if (entry->icon_type == IT_BOOL || entry->icon_type == IT_DICE_OFF || entry->icon_type == IT_PERCENT_OFF || entry->icon_type == IT_PERCENT_LOG_OFF)
         return MENU_INT(entry);
     else if (entry->icon_type == IT_BOOL_NEG)
         return !MENU_INT(entry);
@@ -443,10 +444,10 @@ static void entry_draw_icon(
             menu_draw_icon(x, y, MNI_AUTO, 0, warn);
             break;
             
-        case IT_SIZE:
-            if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
-            else menu_draw_icon(x, y, MNI_SIZE, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16), warn);
-            break;
+        //~ case IT_SIZE:
+            //~ if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
+            //~ else menu_draw_icon(x, y, MNI_SIZE, SELECTED_INDEX(entry) | (NUM_CHOICES(entry) << 16), warn);
+            //~ break;
 
         case IT_DICE:
             if (!enabled) menu_draw_icon(x, y, MNI_DICE_OFF, 0 | (NUM_CHOICES(entry) << 16), warn);
@@ -459,23 +460,41 @@ static void entry_draw_icon(
             break;
         
         case IT_PERCENT_OFF:
-            if (!enabled) menu_draw_icon(x, y, MNI_PERCENT_OFF, SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1), warn);
-            menu_draw_icon(x, y, MNI_PERCENT_ALLOW_OFF, SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1), warn);
+        {
+            int p = SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1);
+            if (!enabled) menu_draw_icon(x, y, MNI_PERCENT_OFF, p, warn);
+            menu_draw_icon(x, y, MNI_PERCENT_ALLOW_OFF, p, warn);
             break;
+        }
         case IT_PERCENT:
             //~ if (entry->min < 0) menu_draw_icon(x, y, MNI_PERCENT_PM, (CURRENT_VALUE & 0xFF) | ((entry->min & 0xFF) << 8) | ((entry->max & 0xFF) << 16), warn);
             menu_draw_icon(x, y, MNI_PERCENT, SELECTED_INDEX(entry) * 100 / (NUM_CHOICES(entry)-1), warn);
             break;
 
+        case IT_PERCENT_LOG_OFF:
+        {
+            int p = log_length(SELECTED_INDEX(entry) + 1) * 100 / log_length(NUM_CHOICES(entry));
+            if (!enabled) menu_draw_icon(x, y, MNI_PERCENT_OFF, p, warn);
+            menu_draw_icon(x, y, MNI_PERCENT_ALLOW_OFF, p, warn);
+            break;
+        }
+        case IT_PERCENT_LOG:
+        {
+            int p = log_length(SELECTED_INDEX(entry) + 1) * 100 / log_length(NUM_CHOICES(entry));
+            menu_draw_icon(x, y, MNI_PERCENT, p, warn);
+            break;
+        }
+
         //~ case IT_NAMED_COLOR:
             //~ if (!enabled) menu_draw_icon(x, y, MNI_OFF, 0, warn);
             //~ else menu_draw_icon(x, y, MNI_NAMED_COLOR, (intptr_t) entry->choices[SELECTED_INDEX(entry)], warn);
             //~ break;
-        
+
         case IT_DISABLE_SOME_FEATURE:
             menu_draw_icon(x, y, MENU_INT(entry) ? MNI_DISABLE : MNI_NEUTRAL, 0, warn);
             break;
 
+/*        
         case IT_DISABLE_SOME_FEATURE_NEG:
             menu_draw_icon(x, y, MENU_INT(entry) ? MNI_NEUTRAL : MNI_DISABLE, 0, warn);
             break;
@@ -483,7 +502,8 @@ static void entry_draw_icon(
         case IT_REPLACE_SOME_FEATURE:
             menu_draw_icon(x, y, MENU_INT(entry) ? MNI_ON : MNI_NEUTRAL, 0, warn);
             break;
-        
+*/
+
         case IT_SUBMENU:
         {
             int value = guess_submenu_enabled(entry);
@@ -1322,13 +1342,13 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
 
             return;
         }
-        case MNI_SIZE: //size_icon(x, y, arg & 0xFFFF, arg >> 16, color_slider_fg); return;
-        {
-            int i = arg & 0xFFFF;
-            int N = arg >> 16;
-            round_box_meter(x, y, i*100/(N-1), color_slider_fg, color_slider_bg);
-            return;
-        }
+        //~ case MNI_SIZE: //size_icon(x, y, arg & 0xFFFF, arg >> 16, color_slider_fg); return;
+        //~ {
+            //~ int i = arg & 0xFFFF;
+            //~ int N = arg >> 16;
+            //~ round_box_meter(x, y, i*100/(N-1), color_slider_fg, color_slider_bg);
+            //~ return;
+        //~ }
         //~ case MNI_NAMED_COLOR:
         //~ {
             //~ if (warn) maru(x, y, color_on);

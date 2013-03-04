@@ -450,7 +450,6 @@ static MENU_UPDATE_FUNC(interval_stop_after_display)
         d ? d : (intptr_t) "Disabled"
     );
     MENU_SET_ENABLED(d);
-    if (!d) MENU_SET_ICON(MNI_OFF, 0);
     if (d > avail_shot)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not enough space for %d shots (only for %d).", d, avail_shot);
     timelapse_calc_display(entry, info);
@@ -4805,7 +4804,7 @@ static struct menu_entry shoot_menus[] = {
                 .max = 5000, // 5000 shots
                 .update     = interval_stop_after_display,
                 .select     = shoot_exponential_toggle,
-                .icon_type  = IT_PERCENT_OFF,
+                .icon_type  = IT_PERCENT_LOG_OFF,
                 .help = "Stop the intervalometer after taking X shots.",
             },
 
