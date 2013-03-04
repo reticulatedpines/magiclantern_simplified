@@ -134,7 +134,9 @@ struct menu_entry
         struct menu_entry *     next;
         struct menu_entry *     prev;
         struct menu_entry * children;
-        void *                  priv;
+
+        const char * name;
+        void * priv;
         
         int min;
         int max;
@@ -156,19 +158,13 @@ struct menu_entry
         
         const char * help;
         const char * help2;
-        const char * name; // used for context help and sometimes for display
-        const char * short_name; // used for junkie mode
+        //~ const char * short_name; // used for junkie mode (well... never used)
         //~ uint32_t id; // unique ID (not supported; menus are identified by strings)
     
         // not required for entry item, but makes it easier to declare in existing menu structures
         int16_t submenu_width; 
         int16_t submenu_height;
         
-        // for vscroll
-        int8_t pos;
-        int8_t childnum;
-        int8_t childnummax; 
-
         int16_t depends_on;     // hard requirement, won't work otherwise
         int16_t works_best_in;  // soft requirement, it will work, but not as well
 };
@@ -248,10 +244,7 @@ struct menu
         int icon;
         int16_t submenu_width;
         int16_t submenu_height;
-        int16_t pos;
-        int16_t childnum;
-        int16_t childnummax;
-        int16_t delnum;
+        int16_t scroll_pos;
         int split_pos; // the limit between name and value columns
 };
 

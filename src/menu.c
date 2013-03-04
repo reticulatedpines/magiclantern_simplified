@@ -587,11 +587,8 @@ menu_find_by_name(
     new_menu->children  = NULL;
     new_menu->submenu_width = 0;
     new_menu->submenu_height = 0;
-    new_menu->pos       = 1;
-    new_menu->childnum  = 1;
-    new_menu->childnummax = 1;
     new_menu->split_pos = -12;
-    new_menu->delnum    = 0;
+    new_menu->scroll_pos = 0;
     // menu points to the last entry or NULL if there are none
     if( menu )
     {
@@ -744,10 +741,6 @@ menu_add(
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
         new_entry->selected = 1;
-        menu->pos           = 1;
-        menu->childnum      = 1; 
-        menu->childnummax   = 1;
-        //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         menu_update_split_pos(menu, new_entry);
         new_entry++;
         count--;
@@ -759,12 +752,6 @@ menu_add(
 
     for (int i = 0; i < count; i++)
     {
-        //~ if (new_entry->id == 0) new_entry->id = menu_id_increment++;
-
-        if(!HAS_HIDDEN_FLAG(new_entry) && !HAS_SHIDDEN_FLAG(new_entry))
-            menu->childnum++;
-        menu->childnummax++;
-
         new_entry->selected = 0;
         //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry->next     = head->next;
@@ -1607,10 +1594,10 @@ entry_default_display_info(
     snprintf(name, sizeof(name), "%s", entry->name);
     
     /* for junkie mode, short_name will get copied, short_value is empty by default */
-    if(entry->short_name && strlen(entry->short_name))
+    /*if(entry->short_name && strlen(entry->short_name))
     {
         snprintf(short_name, sizeof(short_name), "%s", entry->short_name);
-    }
+    }*/
 
     if (entry->choices && SELECTED_INDEX(entry) >= 0 && SELECTED_INDEX(entry) < NUM_CHOICES(entry))
     {
@@ -2053,6 +2040,25 @@ my_menu_rebuild()
     return 1; // success
 }
 
+static void get_scroll_info(struct menu * menu, int* selected_pos, int* num_items)
+{
+    struct menu_entry * entry = menu->children;
+
+    *num_items = 0;
+    *selected_pos = 0;
+    while( entry )
+    {
+        if (is_visible(entry))
+        {
+            (*num_items) ++;
+            if (entry->selected)
+                *selected_pos = *num_items;
+        }
+
+        entry = entry->next;
+    }
+}
+
 static void
 menu_display(
     struct menu * menu,
@@ -2062,17 +2068,19 @@ menu_display(
 )
 {
     struct menu_entry * entry = menu->children;
-    //hide upper menu for vscroll
-    int menu_len = MENU_LEN; 
-
-    int delnum = menu->delnum; // how many menu entries to skip
-    delnum = MAX(delnum, menu->pos - menu_len);
-    delnum = MIN(delnum, menu->pos - 1);
-    menu->delnum = delnum;
     
-    //~ NotifyBox(1000, "%d %d ", delnum, menu->pos);
+    //hide upper menu for vscroll
+    int menu_len = MENU_LEN;
+    int pos;
+    int num;
+    get_scroll_info(menu, &pos, &num);
 
-    for(int i=0;i<delnum;i++){
+    int scroll_pos = menu->scroll_pos; // how many menu entries to skip
+    scroll_pos = MAX(scroll_pos, pos - menu_len);
+    scroll_pos = MIN(scroll_pos, pos - 1);
+    menu->scroll_pos = scroll_pos;
+    
+    for(int i=0;i<scroll_pos;i++){
         while(!is_visible(entry)) entry = entry->next;
         entry = entry->next;
     }
@@ -2081,8 +2089,7 @@ menu_display(
     if (!menu_lv_transparent_mode)
         menu_clean_footer();
 
-    int menu_entry_num = 0;
-    while( entry )
+    for (int i = 0; i < menu_len && entry; )
     {
         if (is_visible(entry))
         {
@@ -2094,11 +2101,8 @@ menu_display(
             
             // move down for next item
             y += font_large.height;
-
-            //hide buttom menu for vscroll
-            menu_entry_num++;
-            if(menu_entry_num >= menu_len) break;
-            //<== vscroll
+            
+            i++;
         }
 
         entry = entry->next;
@@ -2547,12 +2551,10 @@ show_hidden_items(struct menu * menu, int force_clear)
 }
 
 static void
-show_vscroll(struct menu* parent){
-    int16_t pos = parent->pos; // from 1 to max
-    int16_t max;
-
-    if(customize_mode) max = parent->childnummax;
-    else max = parent->childnum;
+show_vscroll(struct menu * parent){
+    int pos;
+    int max;
+    get_scroll_info(parent, &pos, &max);
 
     int menu_len = MENU_LEN;
     
@@ -2636,7 +2638,6 @@ menus_display(
             int icon_width = bfnt_char_get_width(icon_char);
             int x_ico = x + (icon_spacing - icon_width) / 2 + 1;
             bfnt_draw_char(icon_char, x_ico, y + 2, fg, bg);
-            //~ bmp_printf(FONT_MED, x_ico, 40, "%d ", menu->delnum);
 
             if (menu->selected)
             {
@@ -2825,18 +2826,9 @@ menu_entry_showhide_toggle(
         return;
 
     if (junkie_mode)
-    {
         entry->jhidden = !entry->jhidden;
-    }
     else
-    {
         entry->hidden = !entry->hidden;
-        if(entry->hidden){
-            menu->childnum--;
-        }else{
-            menu->childnum++;
-        }
-    }
 }
 
 // this can fail if there are too many starred items (1=success, 0=fail)
@@ -3050,10 +3042,8 @@ menu_entry_move(
 
     struct menu_entry * entry = menu->children;
 
-    int selectedpos= 0;
     for( ; entry ; entry = entry->next )
     {
-        if(is_visible(entry)) selectedpos++;
         if( entry->selected ) break;
     }
 
@@ -3073,21 +3063,17 @@ menu_entry_move(
         // First and moving up?
         if( entry->prev ){
             entry = entry->prev;
-            menu->pos = selectedpos - 1;
         }else {
             // Go to the last one
             while( entry->next ) entry = entry->next;
-            menu->pos = menu->childnum;
         }
     } else {
         // Last and moving down?
         if( entry->next ){
             entry = entry->next;
-            menu->pos = selectedpos + 1;
         }else {
             // Go to the first one
             while( entry->prev ) entry = entry->prev;
-            menu->pos = 1;
         }
     }
 
@@ -4182,7 +4168,6 @@ static void hide_menu_by_name(char* name, char* entry_name)
     if (menu && entry)
     {
         entry->hidden = 1;
-        menu->childnum--;
     }
 }
 
