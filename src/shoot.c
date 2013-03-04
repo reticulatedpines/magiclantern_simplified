@@ -3146,8 +3146,8 @@ static MENU_SELECT_FUNC(hdr_stepsize_toggle)
     int h = hdr_stepsize;
     delta *= (h+delta < 16 ? 4 : 8);
     h += delta;
-    if (h > 40) h = 0;
-    if (h < 0) h = 40;
+    if (h > 40) h = 4;
+    if (h < 4) h = 40;
     hdr_stepsize = h;
 }
 #endif
@@ -4728,6 +4728,7 @@ static struct menu_entry shoot_menus[] = {
                 .name = "EV increment",
                 .priv       = &hdr_stepsize,
                 .select     = hdr_stepsize_toggle,
+                .min = 4,
                 .max = 40,
                 .unit = UNIT_1_8_EV,
                 .icon_type = IT_PERCENT,
@@ -6148,12 +6149,6 @@ static void hdr_auto_take_pics(int step_size, int skip0)
 {
     int i;
     
-    if (step_size == 0)
-    {
-        NotifyBox(3000, "AutoHDR: EV step must be nonzero");
-        return;
-    }
-    
     // make sure it won't autofocus
     lens_setup_af(AF_OFF);
     // be careful: don't return without restoring the setting back!
@@ -6173,7 +6168,6 @@ static void hdr_auto_take_pics(int step_size, int skip0)
     if (!under) UNDER = 0; if (!over) OVER = 0;
     if (hdr_check_cancel(0)) goto end;
     
-    int steps = 1;
     switch (hdr_sequence)
     {
         case 1: // 0 - + -- ++ 
@@ -6185,7 +6179,6 @@ static void hdr_auto_take_pics(int step_size, int skip0)
                     int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(-step_size * i, &under, &over);
                     if (!under) UNDER = 0; if (!over) OVER = 0;
                     if (!ok) OVER = 0; // Canon limit reached, don't continue this sequence
-                    steps++;
                     if (hdr_check_cancel(0)) goto end;
                 }
                 
@@ -6194,7 +6187,6 @@ static void hdr_auto_take_pics(int step_size, int skip0)
                     int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(step_size * i, &under, &over);
                     if (!under) UNDER = 0; if (!over) OVER = 0;
                     if (!ok) UNDER = 0; // Canon limit reached, don't continue this sequence
-                    steps++;
                     if (hdr_check_cancel(0)) goto end;
                 }
             }
@@ -6209,7 +6201,6 @@ static void hdr_auto_take_pics(int step_size, int skip0)
                     int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(-step_size * i, &under, &over);
                     if (!under) UNDER = 0; if (!over) OVER = 0;
                     if (!ok) OVER = 0;
-                    steps++;
                     if (hdr_check_cancel(0)) goto end;
                 }
             }
@@ -6224,7 +6215,6 @@ static void hdr_auto_take_pics(int step_size, int skip0)
                     int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(step_size * i, &under, &over);
                     if (!under) UNDER = 0; if (!over) OVER = 0;
                     if (!ok) UNDER = 0;
-                    steps++;
                     if (hdr_check_cancel(0)) goto end;
                 }
             }
