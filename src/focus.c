@@ -227,8 +227,10 @@ focus_stack(
     int is_bracket  // perform dumb bracketing if no range is set via follow focus
 )
 {
-    NotifyBox(1000, "Focus stack: %dx%d", count, ABS(num_steps) );
-    msleep(1000);
+    NotifyBox(10000, "Focus stack: %dx%d", count, ABS(num_steps) );
+    if (drive_mode == DRIVE_SELFTIMER_2SEC) msleep(2000);
+    else if (drive_mode == DRIVE_SELFTIMER_REMOTE) msleep(10000);
+    else msleep(1000);
     
     int f0 = hdr_script_get_first_file_number(skip_frame);
     fstack_zoom = lv_dispsize; // if we start the focus stack zoomed in, keep this zoom level throughout the operation
