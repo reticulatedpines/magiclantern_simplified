@@ -2040,23 +2040,35 @@ my_menu_rebuild()
     return 1; // success
 }
 
-static void get_scroll_info(struct menu * menu, int* selected_pos, int* num_items)
+static int get_menu_count(struct menu * menu)
 {
     struct menu_entry * entry = menu->children;
 
-    *num_items = 0;
-    *selected_pos = 0;
+    int n = 0;
+    while( entry )
+    {
+        if (is_visible(entry))
+            n ++;
+        entry = entry->next;
+    }
+    return n;
+}
+
+static int get_menu_selected_pos(struct menu * menu)
+{
+    struct menu_entry * entry = menu->children;
+    int n = 0;
     while( entry )
     {
         if (is_visible(entry))
         {
-            (*num_items) ++;
+            n ++;
             if (entry->selected)
-                *selected_pos = *num_items;
+                return n;
         }
-
         entry = entry->next;
     }
+    return 0;
 }
 
 static void
@@ -2071,9 +2083,7 @@ menu_display(
     
     //hide upper menu for vscroll
     int menu_len = MENU_LEN;
-    int pos;
-    int num;
-    get_scroll_info(menu, &pos, &num);
+    int pos = get_menu_selected_pos(menu);
 
     int scroll_pos = menu->scroll_pos; // how many menu entries to skip
     scroll_pos = MAX(scroll_pos, pos - menu_len);
@@ -2395,20 +2405,15 @@ menu_entry_move(
 
 static int junkie_get_selection_y(struct menu * menu, int* h)
 {
-    struct menu_entry * entry = menu->children;
-    int num = 0;
-    while( entry )
-    {
-        if (is_visible(entry)) num++;
-        entry = entry->next;
-    }
-    entry = menu->children;
+    int num = get_menu_count(menu);
     
     int space_left = 330;
     *h = space_left / num;
     
     int y = 0;
 
+    struct menu_entry * entry = menu->children;
+    
     while( entry )
     {
         if (is_visible(entry))
@@ -2458,21 +2463,15 @@ menu_display_junkie(
     int         w
 )
 {
-    struct menu_entry * entry = menu->children;
-
-    int num = 0;
-    while( entry )
-    {
-        if (is_visible(entry)) num++;
-        entry = entry->next;
-    }
-    entry = menu->children;
+    int num = get_menu_count(menu);
     
     int h = 330 / num;
     int space_left = 330;
 
     if (!menu_lv_transparent_mode && menu->selected)
         menu_clean_footer();
+
+    struct menu_entry * entry = menu->children;
 
     while( entry )
     {
@@ -2552,9 +2551,8 @@ show_hidden_items(struct menu * menu, int force_clear)
 
 static void
 show_vscroll(struct menu * parent){
-    int pos;
-    int max;
-    get_scroll_info(parent, &pos, &max);
+    int pos = get_menu_selected_pos(parent);
+    int max = get_menu_count(parent);
 
     int menu_len = MENU_LEN;
     
@@ -2755,9 +2753,7 @@ submenu_display(struct menu * submenu)
 {
     if (!submenu) return;
 
-    int count = 0;
-    struct menu_entry * child = submenu->children;
-    while (child) { if (is_visible(child)) count++; child = child->next; }
+    int count = get_menu_count(submenu);
     int h = submenu->submenu_height ? submenu->submenu_height : submenu_default_height(count);
         
     int w = submenu->submenu_width  ? submenu->submenu_width : 600;
