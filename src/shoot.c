@@ -5801,6 +5801,8 @@ int hdr_script_get_first_file_number(int skip0)
 // starting from file number f0 till the current file_number
 void hdr_create_script(int f0, int focus_stack)
 {
+    if (!hdr_scripts) return;
+    
     #ifdef FEATURE_SNAP_SIM
     if (snap_sim) return; // no script for virtual shots
     #endif
