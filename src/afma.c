@@ -321,12 +321,9 @@ static void afma_mode_sync()
         afma_mode = mode;
 
         #ifdef CONFIG_AFMA_WIDE_TELE
-        if (afma_mode == AFMA_MODE_PER_LENS) // wide/tele or both?
+        if (afma_mode == AFMA_MODE_PER_LENS)
         {
-            int w = get_afma(AFMA_MODE_PER_LENS_WIDE);
-            int t = get_afma(AFMA_MODE_PER_LENS_TELE);
-            if (w != t)
-                afma_mode = AFMA_MODE_PER_LENS_WIDE; // don't know focal length limits yet, so just choose wide
+            afma_mode = AFMA_MODE_PER_LENS_WIDE; // don't know focal length limits yet, so just choose wide
         }
         #endif
     }
@@ -387,7 +384,7 @@ static MENU_SELECT_FUNC(afma_toggle)
 static MENU_SELECT_FUNC(afma_mode_toggle)
 {
     #ifdef CONFIG_AFMA_WIDE_TELE
-    int afma_index_max = 4;
+    int afma_index_max = 3;
     #else
     int afma_index_max = 2;
     #endif
