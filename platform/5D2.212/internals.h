@@ -80,6 +80,9 @@
 /** We can change ExpSim from ML **/
 #define CONFIG_EXPSIM
 
+/** We can set ExpSim to Movie too (not just photo) **/
+#define CONFIG_EXPSIM_MOVIE
+
 /** We can playback sounds via ASIF DMA **/
 #define CONFIG_BEEP
 

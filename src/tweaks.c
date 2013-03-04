@@ -275,16 +275,13 @@ void set_expsim( int x )
 static void
 expsim_toggle( void * priv, int delta)
 {
-    #ifdef CONFIG_7D
+    #ifdef CONFIG_EXPSIM_MOVIE
+    int e = mod(expsim + delta, 3);
+    #else
     if (is_movie_mode()) return;
+    int e = !expsim;
     #endif
 
-    #if !defined(CONFIG_5D2) && !defined(CONFIG_50D)
-    int max_expsim = is_movie_mode() ? 2 : 1;
-    #else
-    int max_expsim = 2;
-    #endif
-    int e = mod(expsim + delta, max_expsim+1);
     set_expsim(e);
     
     #ifdef CONFIG_5D2
@@ -309,10 +306,14 @@ expsim_toggle( void * priv, int delta)
 
 static MENU_UPDATE_FUNC(expsim_display)
 {
-    int e = expsim;
-    if (is_movie_mode()) e = 2;
-    
-    if (CONTROL_BV && e<2)
+    if (is_movie_mode())
+    {
+        #ifndef CONFIG_EXPSIM_MOVIE
+        MENU_SET_VALUE("Movie");
+        MENU_SET_ICON(MNI_DICE, 0);
+        #endif
+    }
+    else if (CONTROL_BV)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Exposure override is active.");
 }
 #endif
@@ -2346,14 +2347,20 @@ void screenshot_start();
 #ifdef FEATURE_EXPSIM
 struct menu_entry expo_tweak_menus[] = {
     {
+        #ifdef CONFIG_EXPSIM_MOVIE
         .name = "LV Display",
-        .priv = &expsim,
-        .select = expsim_toggle,
-        .update = expsim_display,
         .max = 2,
         .choices = (const char *[]) {"Photo, no ExpSim", "Photo, ExpSim", "Movie"},
         .icon_type = IT_DICE,
         .help = "Exposure simulation (LiveView display type).",
+        #else
+        .name = "Exp.Sim",
+        .max = 1,
+        .help = "Exposure simulation.",
+        #endif
+        .priv = &expsim,
+        .select = expsim_toggle,
+        .update = expsim_display,
         .depends_on = DEP_LIVEVIEW,
     },
 };
