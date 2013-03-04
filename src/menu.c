@@ -1779,7 +1779,7 @@ entry_print(
 
     // Q sign for selected item, if submenu opens with Q
     // Discrete placeholder for non-selected item
-    else if (entry->children && !SUBMENU_OR_EDIT)
+    else if (entry->children && !SUBMENU_OR_EDIT && !menu_lv_transparent_mode)
     {
         if (entry->selected)
             submenu_key_hint(720-38, y, COLOR_WHITE, COLOR_BLACK, ICON_ML_Q_FORWARD);
@@ -2933,7 +2933,8 @@ menu_entry_select(
     }
     else if (mode == 2) // Q
     {
-        if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
+        if (menu_lv_transparent_mode || edit_mode) { menu_lv_transparent_mode = edit_mode = 0; }
+        else if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
         else if (edit_mode) { edit_mode = 0; submenu_mode = 0; }
         else menu_toggle_submenu();
 
@@ -3237,6 +3238,7 @@ menu_redraw_do()
                 {
                     draw_ml_topbar(0, 1);
                     draw_ml_bottombar(0, 1);
+                    bfnt_draw_char(ICON_ML_Q_BACK, 680, -5, COLOR_WHITE, COLOR_BLACK);
                 }
 
                 if (beta_should_warn()) draw_beta_warning();
