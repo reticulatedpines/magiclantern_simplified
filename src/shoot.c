@@ -5782,6 +5782,7 @@ static struct menu_entry expo_menus[] = {
 };
 
 
+// for firing HDR shots - avoids random misfire due to low polling frequency
 int picture_was_taken_flag = 0;
 
 void hdr_flag_picture_was_taken()
@@ -5790,26 +5791,35 @@ void hdr_flag_picture_was_taken()
 }
 
 #if defined(FEATURE_HDR_BRACKETING) || defined(FEATURE_FOCUS_STACKING)
-// for firing HDR shots - avoids random misfire due to low polling frequency
 
-void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
+int hdr_script_get_first_file_number(int skip0)
+{
+    return mod(file_number + 1 - (skip0 ? 1 : 0), 10000);
+}
+
+// create a post script for HDR bracketing or focus stacking,
+// starting from file number f0 till the current file_number
+void hdr_create_script(int f0, int focus_stack)
 {
     #ifdef FEATURE_SNAP_SIM
     if (snap_sim) return; // no script for virtual shots
     #endif
+    
+    int steps = mod(file_number - f0 + 1, 10000);
     if (steps <= 1) return;
+
+    char name[100];
+    snprintf(name, sizeof(name), "%s/%s_%04d.%s", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0, hdr_scripts == 3 ? "txt" : "sh");
+
+    FILE * f = FIO_CreateFileEx(name);
+    if ( f == INVALID_PTR )
+    {
+        bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileEx: error for %s", name );
+        return;
+    }
     
     if (hdr_scripts == 1)
     {
-        FILE * f = INVALID_PTR;
-        char name[100];
-        snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0);
-        f = FIO_CreateFileEx(name);
-        if ( f == INVALID_PTR )
-        {
-            bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileEx: error for %s", name );
-            return;
-        }
         my_fprintf(f, "#!/usr/bin/env bash\n");
         my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
         my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG ", focus_stack ? "--exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0);
@@ -5818,20 +5828,9 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
             my_fprintf(f, "IMG_%04d.JPG ", mod(f0 + i, 10000));
         }
         my_fprintf(f, "\n");
-        FIO_CloseFile(f);
     }
-   
-    if (hdr_scripts == 2)
+    else if (hdr_scripts == 2)
     {
-        FILE * f = INVALID_PTR;
-        char name[100];
-        snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0);
-        f = FIO_CreateFileEx(name);
-        if ( f == INVALID_PTR )
-        {
-            bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileEx: error for %s", name );
-            return;
-        }
         my_fprintf(f, "#!/usr/bin/env bash\n");
         my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
         my_fprintf(f, "align_image_stack -m -a %s_AIS_%04d", focus_stack ? "FST" : "HDR", f0);
@@ -5842,26 +5841,17 @@ void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
         my_fprintf(f, "\n");
         my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG %s_AIS_%04d*\n", focus_stack ? "--contrast-window-size=9 --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0, focus_stack ? "FST" : "HDR", f0);
         my_fprintf(f, "rm %s_AIS_%04d*\n", focus_stack ? "FST" : "HDR", f0);
-        FIO_CloseFile(f);
     }
-    
-    if (hdr_scripts == 3)
+    else if (hdr_scripts == 3)
     {
-        FILE * f = INVALID_PTR;
-        char name[100];
-        snprintf(name, sizeof(name), "%s/%s_%04d.sh", get_dcim_dir(), focus_stack ? "FST" : "HDR", f0);
-        f = FIO_CreateFileEx(name);
-        if ( f == INVALID_PTR )
-        {
-            bmp_printf( FONT_LARGE, 30, 30, "FIO_CreateFileEx: error for %s", name );
-            return;
-        }
         for(int i = 0; i < steps; i++ )
         {
             my_fprintf(f, " IMG_%04d.JPG", mod(f0 + i, 10000));
         }
-        FIO_CloseFile(f);
     }
+    
+    FIO_CloseFile(f);
+    NotifyBox(5000, "Saved %s\nIMG_%04d.JPG ... IMG_%04d.JPG", name + 17, f0, mod(f0 + steps - 1, 10000));
 }
 #endif // HDR/FST
 
@@ -6172,6 +6162,9 @@ static void hdr_auto_take_pics(int step_size, int skip0)
     int OVER = 1;
     int under, over;
     
+    // first frame for the bracketing script
+    int f0 = hdr_script_get_first_file_number(skip0);
+    
     // first exposure is always at 0 EV (and might be skipped)
     if (!skip0) hdr_shutter_release_then_check_for_under_or_over_exposure(0, &under, &over);
     else hdr_check_for_under_or_over_exposure(&under, &over);
@@ -6237,7 +6230,7 @@ static void hdr_auto_take_pics(int step_size, int skip0)
         }
     }
 
-    hdr_create_script(steps, skip0, 0, file_number - steps + 1);
+    hdr_create_script(f0, 0);
 
 end:
     lens_cleanup_af();
@@ -6252,7 +6245,6 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
         return;
     }
     //~ NotifyBox(2000, "hdr_take_pics: %d, %d, %d", steps, step_size, skip0); msleep(2000);
-    //~ NotifyBox(2000, "HDR script created"); msleep(2000);
     int i;
     
     // make sure it won't autofocus
@@ -6260,7 +6252,10 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
     // be careful: don't return without restoring the setting back!
     
     hdr_check_cancel(1);
-    
+
+    // first frame for the bracketing script
+    int f0 = hdr_script_get_first_file_number(skip0);
+
     // first exposure is always at 0 EV (and might be skipped)
     if (!skip0) hdr_shutter_release(0);
     if (hdr_check_cancel(0)) goto end;
@@ -6293,7 +6288,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
         }
     }
 
-    hdr_create_script(steps, skip0, 0, file_number - steps + 1);
+    hdr_create_script(f0, 0);
 
 end:
     lens_cleanup_af();
