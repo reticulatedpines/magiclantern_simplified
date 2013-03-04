@@ -1187,6 +1187,8 @@ int ml_taking_pic = 0;
 
 int lens_setup_af(int should_af)
 {
+    ASSERT(should_af != AF_DONT_CHANGE);
+    
     if (!is_manual_focus())
     {
         if (should_af == AF_ON) assign_af_button_to_halfshutter();
@@ -1211,7 +1213,7 @@ lens_take_picture(
     if (ml_taking_pic) return -1;
     ml_taking_pic = 1;
 
-    if (should_af) lens_setup_af(should_af);
+    if (should_af != AF_DONT_CHANGE) lens_setup_af(should_af);
     //~ take_semaphore(lens_sem, 0);
     lens_wait_readytotakepic(64);
     
@@ -1263,7 +1265,7 @@ end:
     if( !wait )
     {
         //~ give_semaphore(lens_sem);
-        if (should_af) lens_cleanup_af();
+        if (should_af != AF_DONT_CHANGE) lens_cleanup_af();
         ml_taking_pic = 0;
         return 0;
     }
@@ -1276,7 +1278,7 @@ end:
 
         lens_wait_readytotakepic(wait);
         //~ give_semaphore(lens_sem);
-        if (should_af) lens_cleanup_af();
+        if (should_af != AF_DONT_CHANGE) lens_cleanup_af();
         ml_taking_pic = 0;
         return lens_info.job_state;
     }
