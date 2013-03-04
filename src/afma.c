@@ -287,16 +287,24 @@ static void afma_auto_tune_ultra() { afma_auto_tune(5); } // -100...100
 // for toggling
 static int afma_mode_to_index(int mode)
 {
-    if (mode == AFMA_MODE_PER_LENS_WIDE) return 3;
-    else if (mode == AFMA_MODE_PER_LENS_TELE) return 4;
+#ifdef CONFIG_AFMA_WIDE_TELE
+    if (mode == AFMA_MODE_PER_LENS_WIDE) return 2;
+    else if (mode == AFMA_MODE_PER_LENS_TELE) return 3;
     else return mode;
+#else
+    return mode;
+#endif
 }
 
 static int afma_index_to_mode(int index)
 {
-    if (index == 3) return AFMA_MODE_PER_LENS_WIDE;
-    else if (index == 4) return AFMA_MODE_PER_LENS_TELE;
+#ifdef CONFIG_AFMA_WIDE_TELE
+    if (index == 2) return AFMA_MODE_PER_LENS_WIDE;
+    else if (index == 3) return AFMA_MODE_PER_LENS_TELE;
     else return index;
+#else
+    return index;
+#endif
 }
 
 // sync ML AFMA mode from Canon firmware
@@ -450,11 +458,20 @@ static struct menu_entry afma_menu[] = {
                 .select = afma_mode_toggle,
                 .min = 0,
                 #ifdef CONFIG_AFMA_WIDE_TELE
-                .max = 4,
+                .max = 3,
                 #else
                 .max = 2,
                 #endif
-                .choices = (const char *[]) {"Disabled", "All lenses", "This lens", "This lens, wide", "This lens, tele"},
+                .choices = CHOICES(
+                    "Disabled", 
+                    "All lenses",
+                    #ifdef CONFIG_AFMA_WIDE_TELE
+                    "This lens, wide/prime", 
+                    "This lens, tele"
+                    #else
+                    "This lens"
+                    #endif
+                ),
                 .help  = "Where to apply the AFMA adjustment.",
                 .icon_type = IT_DICE_OFF,
             },
