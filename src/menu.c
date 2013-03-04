@@ -2921,9 +2921,8 @@ menu_entry_select(
     }
     else if (mode == 2) // Q
     {
-        if (menu_lv_transparent_mode || edit_mode) { menu_lv_transparent_mode = edit_mode = 0; }
+        if (menu_lv_transparent_mode || edit_mode) { menu_lv_transparent_mode = edit_mode = submenu_mode = 0; }
         else if ( entry->select_Q ) entry->select_Q( entry->priv, 1);
-        else if (edit_mode) { edit_mode = 0; submenu_mode = 0; }
         else menu_toggle_submenu();
 
          // submenu with a single entry? promote it as pickbox
