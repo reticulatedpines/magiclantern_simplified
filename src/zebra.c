@@ -2434,7 +2434,7 @@ static MENU_UPDATE_FUNC(zebra_level_display)
     if (level == 0 || level > 100)
     {
         MENU_SET_VALUE("Disabled");
-        MENU_SET_ICON(MNI_OFF, 0);
+        MENU_SET_ICON(MNI_PERCENT_OFF, 0);
         MENU_SET_ENABLED(0);
     }
     else
@@ -2603,12 +2603,10 @@ static MENU_UPDATE_FUNC(global_draw_display)
     if (global_draw && lv && !ZEBRAS_IN_LIVEVIEW)
     {
         MENU_SET_ENABLED(0);
-        MENU_SET_ICON(MNI_NEUTRAL,0);
     }
     if (global_draw && !lv && !ZEBRAS_IN_QUICKREVIEW)
     {
         MENU_SET_ENABLED(0);
-        MENU_SET_ICON(MNI_NEUTRAL,0);
     }
 }
 #endif
@@ -3200,7 +3198,7 @@ struct menu_entry zebra_menus[] = {
         #endif
         .select_Q   = toggle_disp_mode_menu,
         .update    = global_draw_display,
-        .icon_type = IT_BOOL,
+        .icon_type = IT_DICE_OFF,
         .edit_mode = EM_MANY_VALUES,
         .choices = (const char *[]) {"OFF", "LiveView", "QuickReview", "ON, all modes"},
         .help = "Enable/disable ML overlay graphics (zebra, cropmarks...)",
@@ -3725,7 +3723,7 @@ struct menu_entry livev_cfg_menus[] = {
         .priv       = &disp_profiles_0,
         .max        = 3,
         .choices    = (const char *[]) {"OFF (1)", "2", "3", "4"},
-        .icon_type  = IT_BOOL,
+        .icon_type  = IT_DICE_OFF,
         .help = "Num. of LV display presets. Switch with " INFO_BTN_NAME " or from LiveV.",
         .depends_on = DEP_LIVEVIEW,
     },

@@ -1855,6 +1855,14 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 
 #ifdef FEATURE_EXPO_ISO
 
+static MENU_UPDATE_FUNC(iso_icon_update)
+{
+    if (lens_info.iso)
+        MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_iso - codes_iso[1]) * 100 / (codes_iso[COUNT(codes_iso)-1] - codes_iso[1]));
+    else 
+        MENU_SET_ICON(MNI_AUTO, 0);
+}
+
 static MENU_UPDATE_FUNC(iso_display)
 {
     MENU_SET_VALUE(
@@ -1895,11 +1903,8 @@ static MENU_UPDATE_FUNC(iso_display)
             );
         }
     }
-
-    if (lens_info.iso)
-        MENU_SET_ICON(MNI_PERCENT, (lens_info.raw_iso - codes_iso[1]) * 100 / (codes_iso[COUNT(codes_iso)-1] - codes_iso[1]));
-    else 
-        MENU_SET_ICON(MNI_AUTO, 0);
+    
+    iso_icon_update(entry, info);
     
     MENU_SET_SHORT_NAME(" "); // obvious from value
 }
@@ -2514,7 +2519,7 @@ sharpness_toggle( void * priv, int sign )
 {
     int c = lens_get_sharpness();
     if (c < 0 || c > 7) return;
-    int newc = mod(c + sign + 1, 9) - 1;
+    int newc = mod(c + sign, 8);
     lens_set_sharpness(newc);
 }
 
@@ -5497,7 +5502,7 @@ static struct menu_entry expo_menus[] = {
                 .unit = UNIT_ISO,
                 .select     = iso_toggle,
                 .edit_mode = EM_MANY_VALUES_LV,
-                .icon_type = IT_DICE_OFF,
+                .update = iso_icon_update,
             },
             {
                 .name = "Canon analog ISO",
@@ -5507,7 +5512,7 @@ static struct menu_entry expo_menus[] = {
                 .select     = analog_iso_toggle,
                 .edit_mode = EM_MANY_VALUES_LV,
                 .depends_on = DEP_MANUAL_ISO,
-                .icon_type = IT_DICE_OFF,
+                .update = iso_icon_update,
             },
             {
                 .name = "Canon digital ISO",

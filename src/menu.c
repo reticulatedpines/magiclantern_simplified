@@ -107,7 +107,7 @@ static int is_customize_selected();
 
 #define CAN_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min && (entry)->max - (entry)->min < 15 && (entry)->priv)
 #define SHOULD_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min + 1 && (entry)->max - (entry)->min < 10 && (entry)->priv)
-#define IS_BOOL(entry) ((entry)->max - (entry)->min == 1 && (entry)->priv)
+#define IS_BOOL(entry) (((entry)->max - (entry)->min == 1 && (entry)->priv) || (entry->icon_type == IT_BOOL))
 #define IS_ACTION(entry) ((entry)->icon_type == IT_ACTION || (entry)->icon_type == IT_SUBMENU)
 #define SHOULD_USE_EDIT_MODE(entry) (!IS_BOOL(entry) && !IS_ACTION(entry))
 
@@ -120,7 +120,6 @@ static int can_be_turned_off(struct menu_entry * entry)
     (IS_BOOL(entry) && entry->icon_type != IT_DICE) ||
      entry->icon_type == IT_PERCENT_OFF ||
      entry->icon_type == IT_DICE_OFF ||
-     entry->icon_type == IT_BOOL ||
      entry->icon_type == IT_SUBMENU;
 }
 
@@ -432,11 +431,8 @@ static void entry_draw_icon(
     switch (entry->icon_type)
     {
         case IT_BOOL:
-            menu_draw_icon(x, y, MNI_BOOL(enabled), 0, warn);
-            break;
-
         case IT_BOOL_NEG:
-            menu_draw_icon(x, y, MNI_BOOL(!enabled), 0, warn);
+            menu_draw_icon(x, y, MNI_BOOL(enabled), 0, warn);
             break;
 
         case IT_ACTION:
@@ -838,6 +834,7 @@ static void batsu(int x, int y, int c)
     }
 }
 
+/*
 static void crossout(int x, int y, int color)
 {
     x += 16;
@@ -877,6 +874,7 @@ static void clockmeter_half(int x, int y, int value, int fg, int bg)
     for (int a = 1800; a >=0 ; a-=5)
         draw_angled_line(x+16, y+21, 12, a-1800, a <= thr ? fg : bg);
 }
+*/
 
 /*
 static void clockmeter_pm(int x, int y, uint32_t arg, int fg, int bg)
@@ -1100,23 +1098,32 @@ static void vslider(int x, int y, int current, int nmax, int fg, int bg)
 #define slider vslider
 */
 
-static void round_box(int x, int y, int current, int nmax, int fg, int bg)
+static void round_box(int c, int x, int y, int w, int h)
 {
-    x += 8;
-    y += 8;
-    int w = 16;
-    int h = 16;
-    int c = fg;
     bmp_draw_rect_chamfer(c, x-1, y-1, w+2, h+2, 2, 0);
     bmp_draw_rect_chamfer(c, x, y, w, h, 1, 0);
-    bmp_fill(c, x+1, y+1, w-1, h-1);
+    if (w >= 4) bmp_fill(c, x+1, y+1, w-1, h-1);
 }
-#define slider round_box
 
+static void round_box_meter(int x, int y, int value, int fg, int bg)
+{
+    value = COERCE(value, 0, 100);
+    round_box(fg, x+8, y+8, 16, 16);
+    int X = x+9 + 12 * value / 100;
+    bmp_draw_rect(bg, X, y+10, 2, 12);
+}
+
+static void slider(int x, int y, int current, int nmax, int fg, int bg)
+{
+    if (nmax >= 2)
+        round_box_meter(x, y, current * 100 / (nmax-1), fg, bg);
+    else
+        round_box(fg, x+8, y+8, 16, 16);
+}
 
 void submenu_only_icon(int x, int y, int color)
 {
-    round_box(x, y, 1, 1, color, color);
+    round_box(color, x+8, y+8, 16, 16);
     /*
     for (int r = 0; r < 3; r++)
     {
@@ -1277,7 +1284,7 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
     int color_off = 40;
     int color_dis = warn ? 50 : COLOR_RED;
     int color_slider_fg = warn ? COLOR_DARK_CYAN1_MOD : COLOR_CYAN;
-    int color_slider_bg = warn ? 42 : 45;
+    int color_slider_bg = warn ? COLOR_BLACK : 45;
     int color_slider_off_fg = warn ? COLOR_DARK_GREEN1_MOD : COLOR_GREEN1;
     int color_action = warn ? 45 : COLOR_WHITE;
 
@@ -1287,15 +1294,18 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
         case MNI_ON: maru(x, y, color_on); return;
         case MNI_DISABLE: batsu(x, y, color_dis); return;
         case MNI_NEUTRAL: maru(x, y, 50); return;
-        case MNI_AUTO: maru(x, y, COLOR_BLUE); return;
-        case MNI_PERCENT: clockmeter_half(x, y, arg, color_slider_fg, color_slider_bg); return;
-        case MNI_PERCENT_ALLOW_OFF: clockmeter_half(x, y, arg, color_slider_off_fg, color_slider_bg); return;
-        case MNI_PERCENT_OFF: clockmeter_half(x, y, arg, color_off+1, color_off); return;
+        case MNI_AUTO: slider(x, y, 0, 0, color_slider_fg, color_slider_bg); return;
+        case MNI_PERCENT: round_box_meter(x, y, arg, color_slider_fg, color_slider_bg); return;
+        case MNI_PERCENT_ALLOW_OFF: round_box_meter(x, y, arg, color_slider_off_fg, color_slider_bg); return;
+        case MNI_PERCENT_OFF: round_box_meter(x, y, arg, color_off, color_off); return;
         //~ case MNI_PERCENT_PM: clockmeter_pm(x, y, arg, color_slider_fg, color_slider_bg); return;
         case MNI_ACTION: playicon(x, y, color_action); return;
-        case MNI_DICE: //dice_icon(x, y, arg & 0xFFFF, arg >> 16, COLOR_GREEN1, 50); return;
-            //~ maru(x, y, color_on); return;
-            slider(x, y, arg & 0xFFFF, arg >> 16, color_slider_fg, color_slider_bg); return;
+        case MNI_DICE:
+        {
+            int i = arg & 0xFFFF;
+            int N = arg >> 16;
+            slider(x, y, i, N, color_slider_fg, color_slider_bg); return;
+        }
 
         case MNI_DICE_OFF:
         {
@@ -1316,7 +1326,7 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
         {
             int i = arg & 0xFFFF;
             int N = arg >> 16;
-            clockmeter_half(x, y, i*100/(N-1), color_slider_fg, color_slider_bg);
+            round_box_meter(x, y, i*100/(N-1), color_slider_fg, color_slider_bg);
             return;
         }
         //~ case MNI_NAMED_COLOR:
