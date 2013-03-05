@@ -5184,7 +5184,14 @@ static struct menu_entry shoot_menus[] = {
                 .priv = &snap_sim, 
                 .max = 1,
                 .icon_type = IT_BOOL,
-                .choices = (const char *[]) {"OFF", "Blink & Beep"},
+                .choices = CHOICES(
+                    "OFF", 
+                    
+                    "Blink"
+                    #ifdef CONFIG_BEEP
+                    " & Beep"
+                    #endif
+                ),
                 .help = "You can take virtual (fake) pictures just for testing.",
             },
             #endif
