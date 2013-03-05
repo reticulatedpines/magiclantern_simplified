@@ -273,11 +273,12 @@ int FIO_CreateDirectory(const char * dirname)
 INIT_FUNC("fio", find_ml_card);
 
 struct menu_entry card_menus[] = {
+    /*
     {
         .name = "CF card", 
         .update = &card_info_display,
         .help = "CF card info: make and model."
-    },
+    },*/
     {
         .name = "Card test at startup", 
         .priv = &card_test_enabled,

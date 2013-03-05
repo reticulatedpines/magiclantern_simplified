@@ -3634,7 +3634,7 @@ void config_menu_init()
     
     #ifdef CONFIG_5D3
     extern struct menu_entry card_menus[];
-    menu_add( "Debug", card_menus, 2 );
+    menu_add( "Debug", card_menus, 1 );
     #endif
 
     movie_tweak_menu_init();
