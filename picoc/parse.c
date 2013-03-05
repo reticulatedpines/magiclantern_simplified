@@ -83,8 +83,8 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     ParserCopy(&ParamParser, Parser);
     ParamCount = ParseCountParams(Parser);
     if (ParamCount > PARAMETER_MAX)
-        ProgramFail(Parser, "too many parameters");
-    
+        ProgramFail(Parser, "too many parameters (%d allowed)", PARAMETER_MAX);    
+
     FuncValue = VariableAllocValueAndData(Parser, sizeof(struct FuncDef) + sizeof(struct ValueType *) * ParamCount + sizeof(const char *) * ParamCount, FALSE, NULL, TRUE);
     FuncValue->Typ = &FunctionType;
     FuncValue->Val->FuncDef.ReturnType = ReturnType;
@@ -740,12 +740,16 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
         case TokenReturn:
             if (Parser->Mode == RunModeRun)
             {
-                if (TopStackFrame->ReturnValue->Typ->Base != TypeVoid)
+                if (!TopStackFrame || TopStackFrame->ReturnValue->Typ->Base != TypeVoid)
                 {
                     if (!ExpressionParse(Parser, &CValue))
                         ProgramFail(Parser, "value required in return");
                     
-                    ExpressionAssign(Parser, TopStackFrame->ReturnValue, CValue, TRUE, NULL, 0, FALSE);
+                    if (!TopStackFrame) // return from top-level program?
+                        PlatformExit(ExpressionCoerceInteger(CValue));
+                    else
+                        ExpressionAssign(Parser, TopStackFrame->ReturnValue, CValue, TRUE, NULL, 0, FALSE);
+                    
                     VariableStackPop(Parser, CValue);
                 }
                 else
