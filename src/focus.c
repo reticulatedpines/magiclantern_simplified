@@ -173,6 +173,14 @@ display_lens_hyperfocal()
 
 static int fstack_zoom = 1;
 
+static int focus_stack_should_stop = 0;
+static int focus_stack_check_stop()
+{
+    if (gui_menu_shown()) focus_stack_should_stop = 1;
+    if (CURRENT_DIALOG_MAYBE == 2) focus_stack_should_stop = 1; // Canon menu open
+    return focus_stack_should_stop;
+}
+
 void focus_stack_ensure_preconditions()
 {
     while (lens_info.job_state) msleep(100);
@@ -180,7 +188,9 @@ void focus_stack_ensure_preconditions()
     {
         while (!lv)
         {
+            focus_stack_check_stop();
             get_out_of_play_mode(500);
+            focus_stack_check_stop();
             if (!lv) force_liveview();
             if (lv) break;
             NotifyBoxHide();
@@ -209,8 +219,6 @@ void focus_stack_ensure_preconditions()
         NotifyBox(2000, "Please enable autofocus");
         msleep(2000);
     }
-
-    if (drive_mode != DRIVE_SINGLE) lens_set_drivemode(DRIVE_SINGLE);
     
     msleep(300);
 
@@ -227,10 +235,20 @@ focus_stack(
     int is_bracket  // perform dumb bracketing if no range is set via follow focus
 )
 {
-    NotifyBox(10000, "Focus stack: %dx%d", count, ABS(num_steps) );
-    if (drive_mode == DRIVE_SELFTIMER_2SEC) msleep(2000);
-    else if (drive_mode == DRIVE_SELFTIMER_REMOTE) msleep(10000);
-    else msleep(1000);
+    focus_stack_should_stop = 0;
+    
+    int delay = 0;
+    if (drive_mode == DRIVE_SELFTIMER_2SEC) delay = 2;
+    else if (drive_mode == DRIVE_SELFTIMER_REMOTE) delay = 10;
+    
+    if (delay) wait_notify(delay, "Focus stack");
+    
+    if (focus_stack_check_stop()) return;
+
+    NotifyBox(1000, "Focus stack: %dx%d", count, ABS(num_steps) );
+    msleep(1000);
+    
+    int prev_drive_mode = set_drive_single();
     
     int f0 = hdr_script_get_first_file_number(skip_frame);
     fstack_zoom = lv_dispsize; // if we start the focus stack zoomed in, keep this zoom level throughout the operation
@@ -247,11 +265,14 @@ focus_stack(
     int i, real_steps;
     for( i=0 ; i < count ; i++ )
     {
-        if (gui_menu_shown()) break;
-
+        if (focus_stack_check_stop()) break;
+        
         NotifyBox(1000, "Focus stack: %d of %d", i+1, count );
-
+        
         focus_stack_ensure_preconditions();
+        if (focus_stack_check_stop()) break;
+
+        if (gui_menu_shown() || CURRENT_DIALOG_MAYBE == 2) break; // menu open? stop here
 
         if (!(
             (!is_bracket && skip_frame && (i == 0)) ||              // first frame in SNAP-stack
@@ -265,8 +286,9 @@ focus_stack(
        
         if( count-1 == i )
             break;
-        
+
         focus_stack_ensure_preconditions();
+        if (focus_stack_check_stop()) break;
 
         // skip orginal frame on SNAP-bracket (but dont double-focus if last frame)
         if (is_bracket && skip_frame && (skip_frame == i+2) && (skip_frame != count)) {
@@ -299,8 +321,10 @@ focus_stack(
         msleep(1000);
         hdr_create_script(f0, 1); 
     } else {
-        NotifyBox(2000, "Focus stack error :(");
+        NotifyBox(2000, "Focus stack not completed");
     }
+    
+    lens_set_drivemode(prev_drive_mode);
 }
 #endif
 
@@ -516,16 +540,21 @@ rack_focus(
     }
 }
 
+void wait_notify(int seconds, char* msg)
+{
+    wait_till_next_second();
+    for (int i = 0; i < seconds; i++)
+    {
+        NotifyBox(2000, "%s: %d...", msg, seconds - i);
+        wait_till_next_second();
+    }
+}
+
 static void rack_focus_wait()
 {
     if (focus_rack_delay && focus_rack_enable_delay)
     {
-        wait_till_next_second();
-        for (int i = 0; i < focus_rack_delay; i++)
-        {
-            NotifyBox(2000, "Rack Focus: %d...", focus_rack_delay - i);
-            wait_till_next_second();
-        }
+        wait_notify(focus_rack_delay, "Rack Focus");
     }
 }
 
@@ -1143,6 +1172,7 @@ static struct menu_entry focus_menu[] = {
                 .select = focus_stack_trigger_from_menu,
                 .update = focus_stack_update,
                 .help = "Run the focus stacking sequence.",
+                .help = "Tip: press MENU to interrupt the stacking sequence.",
             },
             {
                 .name = "Num. pics in front",
