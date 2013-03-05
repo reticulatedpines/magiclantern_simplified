@@ -465,29 +465,6 @@ static MENU_SELECT_FUNC(interval_timer_toggle)
         *ptr = mod(*ptr + delta, COUNT(timer_values));
 }
 
-static MENU_SELECT_FUNC(shoot_exponential_toggle)
-{
-    int *ptr = priv;
-    int val = *ptr;
-    
-    if(val + delta <= 20)
-    {
-        val += delta;
-    }
-    else if(val + delta <= 200)
-    {
-        val += 10 * delta;
-    }
-    else
-    {
-        val += 100 * delta;
-    }
-    
-    val = COERCE(val, 0, 5000);
-    
-    *ptr = val;    
-}
-
 static MENU_UPDATE_FUNC(intervalometer_display)
 {
     int p = CURRENT_VALUE;
@@ -4803,7 +4780,6 @@ static struct menu_entry shoot_menus[] = {
                 .priv       = &interval_stop_after,
                 .max = 5000, // 5000 shots
                 .update     = interval_stop_after_display,
-                .select     = shoot_exponential_toggle,
                 .icon_type  = IT_PERCENT_LOG_OFF,
                 .help = "Stop the intervalometer after taking X shots.",
             },

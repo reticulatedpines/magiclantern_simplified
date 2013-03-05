@@ -346,11 +346,66 @@ struct menu * menu_get_root() {
   return menus;
 }
 
-void menu_numeric_toggle(int* val, int delta, int min, int max)
+// ISO 3 R10": 10, 12, 15, 20, 25, 30, 40, 50, 60, 80, 100
+static int round_to_R10(int val)
 {
-    *val = mod(*val - min + delta, max - min + 1) + min;
+    if (val < 0)
+        return -round_to_R10(-val);
+    
+    int mag = 1;
+    while (val >= 30)
+    {
+        val /= 10;
+        mag *= 10;
+    }
+    
+    if (val <= 6)
+        {}
+    else if (val <= 8)
+        val = 8;
+    else if (val <= 11)
+        val = 10;
+    else if (val <= 13)
+        val = 12;
+    else if (val <= 17)
+        val = 15;
+    else if (val <= 22)
+        val = 20;
+    else if (val <= 27)
+        val = 25;
+    else
+        val = 30;
+    
+    return val * mag;
 }
 
+void menu_numeric_toggle_R10(int* val, int delta, int min, int max)
+{
+    int v = *val;
+
+    if (v >= max && delta > 0)
+        v = min;
+    else if (v <= min && delta < 0)
+        v = max;
+    else
+    {
+        int v0 = v;
+        // slow, but works (fast enough for numbers like 5000)
+        while (v0 == round_to_R10(v))
+            v += delta;
+        v = COERCE(round_to_R10(v), min, max);
+    }
+    
+    *val = v;
+}
+
+void menu_numeric_toggle(int* val, int delta, int min, int max)
+{
+    if (max - min > 20)
+        menu_numeric_toggle_R10(val, delta, min, max);
+    else
+        *val = mod(*val - min + delta, max - min + 1) + min;
+}
 
 static void entry_guess_icon_type(struct menu_entry * entry)
 {
@@ -379,7 +434,9 @@ static void entry_guess_icon_type(struct menu_entry * entry)
         else if (entry->min != entry->max)
         {
             entry->icon_type = entry->max == 1 && entry->min == 0 ? IT_BOOL :
-                entry->max * entry->min <= 0 ? IT_PERCENT_OFF : IT_PERCENT;
+                entry->max - entry->min > 10 ? 
+                    (entry->max * entry->min <= 0 ? IT_PERCENT_LOG_OFF : IT_PERCENT_LOG) :
+                    (entry->max * entry->min <= 0 ? IT_PERCENT_OFF : IT_PERCENT);
         }
         else
             entry->icon_type = IT_BOOL;
@@ -416,6 +473,24 @@ static int guess_submenu_enabled(struct menu_entry * entry)
         }
 
         return 0;
+    }
+}
+
+static int log_percent(struct menu_entry * entry)
+{
+    if (entry->min * entry->max < 0) // goes to both sizes? consider 50% in the middle
+    {
+        int v = MENU_INT(entry);
+        if (v == 0)
+            return 50;
+        else if (v > 0)
+            return 50 + log_length(v + 1) * 50 / log_length(entry->max + 1);
+        else
+            return 50 - log_length(-v + 1) * 50 / log_length(-entry->min + 1);
+    }
+    else
+    {
+        return log_length(SELECTED_INDEX(entry) + 1) * 100 / log_length(NUM_CHOICES(entry));
     }
 }
 
@@ -473,14 +548,14 @@ static void entry_draw_icon(
 
         case IT_PERCENT_LOG_OFF:
         {
-            int p = log_length(SELECTED_INDEX(entry) + 1) * 100 / log_length(NUM_CHOICES(entry));
+            int p = log_percent(entry);
             if (!enabled) menu_draw_icon(x, y, MNI_PERCENT_OFF, p, warn);
             menu_draw_icon(x, y, MNI_PERCENT_ALLOW_OFF, p, warn);
             break;
         }
         case IT_PERCENT_LOG:
         {
-            int p = log_length(SELECTED_INDEX(entry) + 1) * 100 / log_length(NUM_CHOICES(entry));
+            int p = log_percent(entry);
             menu_draw_icon(x, y, MNI_PERCENT, p, warn);
             break;
         }
