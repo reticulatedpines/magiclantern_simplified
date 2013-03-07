@@ -965,8 +965,9 @@ static struct menu_entry mov_menus[] = {
         .name = "Shutter Button",
         .priv = &shutter_btn_rec,
         .max  = 2,
-        .choices = CHOICES("Leave unchanged", "Block during REC", "Hold during REC (IS)"),
-        .help = "Block it while REC (avoids ERR99) or hold it (enables IS).",
+        .choices = CHOICES("Leave unchanged", "Block during REC", "Hold during REC"),
+        .help  = "Block shutter button while recording (avoids ERR99)",
+        .help2 = "or hold it pressed halfway (enables image stabilization).",
         .depends_on = DEP_MOVIE_MODE,
     },
     #endif
