@@ -23,7 +23,6 @@ namespace LensDumper
             public UInt16 Unknown5;
 
             public LensEntry[] LensEntries;
-            public LensData[] LensDatas;
         }
 
         public class LensEntry
@@ -32,6 +31,8 @@ namespace LensDumper
             public UInt16 Wide;
             public UInt16 ExtenderType;
             public UInt32 Offset;
+
+            public LensData LensData;
         }
 
         public class LensData
@@ -49,87 +50,24 @@ namespace LensDumper
 
         public class ProfileTypeA
         {
-            /* 0x14 bytes */
-            [XmlIgnore]
-            public byte[] HeaderData;
-
-            [XmlAttribute("header")]
-            public string HeaderData_
-            {
-                get
-                {
-                    StringBuilder str = new StringBuilder();
-                    if (HeaderData != null)
-                    {
-                        for (int pos = 0; pos < HeaderData.Length; pos++)
-                        {
-                            str.AppendFormat("{0:X2}", HeaderData[pos]);
-                        }
-                    }
-                    return str.ToString();
-                }
-                set
-                {
-                }
-            }
+            [XmlElement("UnknownHeaderData")]
+            public UInt16[] UnknownHeaderData;
 
             public ProfileTypeAData[] Data;
         }
 
         public class ProfileTypeB
         {
-            /* 0x14 bytes */
-            [XmlIgnore]
-            public byte[] HeaderData;
-
-            [XmlAttribute("header")]
-            public string HeaderData_
-            {
-                get
-                {
-                    StringBuilder str = new StringBuilder();
-                    if (HeaderData != null)
-                    {
-                        for (int pos = 0; pos < HeaderData.Length; pos++)
-                        {
-                            str.AppendFormat("{0:X2}", HeaderData[pos]);
-                        }
-                    }
-                    return str.ToString();
-                }
-                set
-                {
-                }
-            }
+            [XmlElement("UnknownHeaderData")]
+            public UInt16[] UnknownHeaderData;
 
             public ProfileTypeBData[] Data;
         }
 
         public class ProfileTypeC
         {
-            /* 0x14 bytes */
-            [XmlIgnore]
-            public byte[] HeaderData;
-
-            [XmlAttribute("header")]
-            public string HeaderData_
-            {
-                get
-                {
-                    StringBuilder str = new StringBuilder();
-                    if (HeaderData != null)
-                    {
-                        for (int pos = 0; pos < HeaderData.Length; pos++)
-                        {
-                            str.AppendFormat("{0:X2}", HeaderData[pos]);
-                        }
-                    }
-                    return str.ToString();
-                }
-                set
-                {
-                }
-            }
+            [XmlElement("UnknownHeaderData")]
+            public UInt16[] UnknownHeaderData;
 
             public ProfileTypeCData[] Data;
         }
@@ -222,12 +160,11 @@ namespace LensDumper
             offset += (ulong)data.LensEntriesReserved * 0x10;
 
             Log.WriteLine("  Parsing " + data.LensEntryCount + " lens datas");
-            data.LensDatas = new LensData[data.LensEntryCount];
             for (ulong entry = 0; entry < data.LensEntryCount; entry++)
             {
                 LensEntry lensEntry = data.LensEntries[entry];
 
-                data.LensDatas[entry] = ParseLensCorrection(buffer, offset + lensEntry.Offset);
+                data.LensEntries[entry].LensData = ParseLensCorrection(buffer, offset + lensEntry.Offset);
             }
 
             return data;
@@ -293,9 +230,12 @@ namespace LensDumper
             focalLengths[3] = GetUInt16(buffer, offset + 0x06);
             offset += 0x08;
 
-            data.HeaderData = new byte[0x14];
-            Array.Copy(buffer, (int)offset, data.HeaderData, 0, 0x14);
-            offset += 0x14;
+            data.UnknownHeaderData = new UInt16[0x0A];
+            for (int pos = 0; pos < 0x0A; pos++)
+            {
+                data.UnknownHeaderData[pos] = GetUInt16(buffer, offset);
+                offset += 0x02;
+            }
 
             data.Data = new ProfileTypeCData[4];
             for (int pos = 0; pos < 4; pos++)
@@ -321,9 +261,12 @@ namespace LensDumper
             focalLengths[3] = GetUInt16(buffer, offset + 0x06);
             offset += 0x08;
 
-            data.HeaderData = new byte[0x14];
-            Array.Copy(buffer, (int)offset, data.HeaderData, 0, 0x14);
-            offset += 0x14;
+            data.UnknownHeaderData = new UInt16[0x0A];
+            for (int pos = 0; pos < 0x0A; pos++)
+            {
+                data.UnknownHeaderData[pos] = GetUInt16(buffer, offset);
+                offset += 0x02;
+            }
 
             data.Data = new ProfileTypeBData[4];
             for (int pos = 0; pos < 4; pos++)
@@ -346,9 +289,12 @@ namespace LensDumper
             focalLengths[3] = GetUInt16(buffer, offset + 0x06);
             offset += 0x08;
 
-            data.HeaderData = new byte[0x14];
-            Array.Copy(buffer, (int)offset, data.HeaderData, 0, 0x14);
-            offset += 0x14;
+            data.UnknownHeaderData = new UInt16[0x0A];
+            for (int pos = 0; pos < 0x0A; pos++)
+            {
+                data.UnknownHeaderData[pos] = GetUInt16(buffer, offset);
+                offset += 0x02;
+            }
 
             data.Data = new ProfileTypeAData[4];
             for (int pos = 0; pos < 4; pos++)
