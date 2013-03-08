@@ -238,7 +238,7 @@ static void LibLastKey(struct ParseState *Parser, struct Value *ReturnValue, str
     ReturnValue->Val->Integer = script_key_dequeue();
 }
 
-int handle_picoc_lib_keys(struct event * event)
+EXTERN int handle_picoc_lib_keys(struct event * event)
 {
     if (IS_FAKE(event))
         return 1; // so we can pass certain keys back to Canon code from script, e.g. if (key == ERASE) click(ERASE);
@@ -540,7 +540,7 @@ static void LibResetAF(struct ParseState *Parser, struct Value *ReturnValue, str
 }
 
 // called when script finishes
-void script_cleanup_af() { if (af_dirty) lens_cleanup_af(); }
+EXTERN void script_cleanup_af() { if (af_dirty) lens_cleanup_af(); }
 
 static void LibGetAFMA(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {

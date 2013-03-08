@@ -2,10 +2,10 @@
 #include "interpreter.h"
 
 /* the value passed to exit() */
-int PicocExitValue = 0;
+EXTERN int PicocExitValue = 0;
 
 /* initialise everything */
-void PicocInitialise(int StackSize)
+EXTERN void PicocInitialise(int StackSize)
 {
     BasicIOInit();
     HeapInit(StackSize);
@@ -25,7 +25,7 @@ void PicocInitialise(int StackSize)
 }
 
 /* free memory */
-void PicocCleanup()
+EXTERN void PicocCleanup()
 {
     PlatformCleanup();
 #ifndef NO_HASH_INCLUDE

@@ -82,4 +82,6 @@ extern int ExitBuf[];
 #define E_X 0
 #define E_Y 50
 
+#define EXTERN __attribute__((externally_visible))
+
 #endif /* PLATFORM_H */

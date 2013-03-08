@@ -286,18 +286,7 @@ ML_OBJS-$(CONFIG_CONSOLE) += \
 	console.o \
 
 ML_OBJS-$(CONFIG_PICOC)	+= \
-	clibrary.o \
-	expression.o \
-	heap.o \
-	include.o \
-	lex.o \
-	parse.o \
-	platform.o \
-	table.o \
-	type.o \
-	variable.o \
-	library_ml.o \
-	platform_ml.o \
+	pico.o \
 	picoc.o \
 	chdk-gui_script.o \
 
@@ -641,7 +630,7 @@ DEPS  := $(COBJS:.o=.d)
 %.o: $(SRC_DIR)/%.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.o: $(PICOC_PATH)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -mthumb -o $@ $<)
+	$(call build,CC,$(CC) $(CFLAGS) -c -mthumb -fwhole-program -o $@ $<)
 %.i: %.c
 	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
 %: %.c

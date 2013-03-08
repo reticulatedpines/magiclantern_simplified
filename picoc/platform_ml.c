@@ -37,7 +37,7 @@ char *PlatformReadFile(const char *FileName)
 }
 
 /* read and scan a file for definitions */
-void PicocPlatformScanFile(const char *FileName)
+EXTERN void PicocPlatformScanFile(const char *FileName)
 {
     char *SourceStr = PlatformReadFile(FileName);
     if (!SourceStr) return;
@@ -54,7 +54,7 @@ void PicocPlatformScanFile(const char *FileName)
 
 /* mark where to end the program for platforms which require this */
 #include "setjmp.h"
-jmp_buf PicocExitBuf;
+EXTERN jmp_buf PicocExitBuf;
 
 /* exit the program */
 void __attribute__((noreturn)) PlatformExit(int RetVal)

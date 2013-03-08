@@ -248,7 +248,7 @@ void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LV
 }
 
 /* define a global variable shared with a platform global. Ident will be registered */
-void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct ValueType *Typ, union AnyValue *FromValue, int IsWritable)
+EXTERN void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct ValueType *Typ, union AnyValue *FromValue, int IsWritable)
 {
     struct Value *SomeValue = VariableAllocValueAndData(NULL, 0, IsWritable, NULL, TRUE);
     SomeValue->Typ = Typ;
