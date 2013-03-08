@@ -246,14 +246,15 @@ static void run_script(const char *script)
     
     // restore some settings to normal, if script changed them
     script_cleanup_af();
-    canon_gui_enable_front_buffer(0);
     bmp_draw_to_idle(0);
+    canon_gui_enable_front_buffer(0);
     
     beep();
     script_state = SCRIPT_JUST_FINISHED;
     console_set_status_text("Script finished. ");
-    console_show();
-    msleep(1000);
+    msleep(500);
+    redraw();
+    msleep(500);
     for (int i = 0; i < 100; i++)
     {
         msleep(100);
