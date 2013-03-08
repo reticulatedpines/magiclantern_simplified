@@ -185,7 +185,7 @@ int console_vprintf(const char* fmt, va_list ap) // don't DebugMsg from here!
 	return len;
 }
 
-static void console_show_status()
+void console_show_status()
 {
     int fnt = FONT(CONSOLE_FONT,60, COLOR_BLACK);
     bmp_printf(fnt, 0, 480 - font_med.height, console_status_text);

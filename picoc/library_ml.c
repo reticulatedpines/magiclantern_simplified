@@ -642,6 +642,34 @@ static void LibBmpPrintf(struct ParseState *Parser, struct Value *ReturnValue, s
     bmp_printf(fnt, x, y, "%s", msg);
 }
 
+static void LibBmpPrintfCenter(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int fnt = Param[0]->Val->Integer;
+    int x = Param[1]->Val->Integer;
+    int y = Param[2]->Val->Integer;
+    char msg[512];
+
+    struct OutputStream StrStream;
+    
+    extern void SPutc(unsigned char Ch, union OutputStreamInfo *Stream);
+    StrStream.Putch = &SPutc;
+    StrStream.i.Str.Parser = Parser;
+    StrStream.i.Str.WritePos = msg;
+    
+    // there doesn't seem to be any bounds checking :(
+
+    GenericPrintf(Parser, ReturnValue, Param+3, NumArgs-3, &StrStream);
+    PrintCh(0, &StrStream);
+
+    bmp_printf(
+        fnt, 
+        x - fontspec_font(fnt)->width * strlen(msg) / 2, 
+        y - fontspec_font(fnt)->height/2, 
+        "%s", 
+        msg
+    );
+}
+
 static void LibClrScr(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     clrscr();
@@ -718,6 +746,18 @@ static void LibFillRect(struct ParseState *Parser, struct Value *ReturnValue, st
     int h = Param[3]->Val->Integer;
     int color = Param[4]->Val->Integer;
     bmp_fill(color, x, y, w, h);
+}
+
+static void LibDoubleBufferStart(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    bmp_draw_to_idle(1);
+}
+
+static void LibDoubleBufferEnd(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    console_show_status();
+    bmp_draw_to_idle(0);
+    bmp_idle_copy(1,0);
 }
 
 static void LibSetCanonGUI(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -1127,9 +1167,13 @@ struct LibraryFunction PlatformLibrary[] =
     {LibFillCircle,     "void fill_circle(int x, int y, int radius, int color);"                    },
     {LibDrawRect,       "void draw_rect(int x, int y, int w, int h, int color);"                    },
     {LibFillRect,       "void fill_rect(int x, int y, int w, int h, int color);"                    },
+    
+    {LibDoubleBufferStart, "void double_buffering_start();"                                         }, // start double buffering, for flicker-free drawing
+    {LibDoubleBufferEnd,   "void double_buffering_end();"                                           }, // finish double buffering and update the screen
 
     /** Text output **/
     {LibBmpPrintf,      "void bmp_printf(int fnt, int x, int y, char* fmt, ...);"                   },
+    {LibBmpPrintfCenter,"void bmp_printf_center(int fnt, int x, int y, char* fmt, ...);"            },
     {LibNotifyBox,      "void notify_box(float duration, char* fmt, ...);"                          },
 
     /** Interaction with Canon GUI **/
