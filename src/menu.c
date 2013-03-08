@@ -389,7 +389,7 @@ void menu_numeric_toggle_R10(int* val, int delta, int min, int max)
         v = max;
     else
     {
-        int v0 = v;
+        int v0 = round_to_R10(v);
         // slow, but works (fast enough for numbers like 5000)
         while (v0 == round_to_R10(v))
             v += delta;
@@ -401,10 +401,21 @@ void menu_numeric_toggle_R10(int* val, int delta, int min, int max)
 
 void menu_numeric_toggle(int* val, int delta, int min, int max)
 {
-    if (max - min > 20)
+    static int prev_t = 0;
+    int t = get_ms_clock_value();
+    
+    if (max - min > 20 && t - prev_t < 100)
+    {
         menu_numeric_toggle_R10(val, delta, min, max);
+    }
     else
+    {
+        int M = ABS(*val);
+        while (M >= 100) M /= 10, delta *= 10;
         *val = mod(*val - min + delta, max - min + 1) + min;
+    }
+    
+    prev_t = t;
 }
 
 static void entry_guess_icon_type(struct menu_entry * entry)
