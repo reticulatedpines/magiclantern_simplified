@@ -87,7 +87,7 @@ void NotifyBox(int timeout, char* fmt, ...)
         goto end; // same message: do not redraw, just increase the timeout
 
     // new message
-    my_memcpy(notify_box_msg, notify_box_msg_tmp, sizeof(notify_box_msg));
+    memcpy(notify_box_msg, notify_box_msg_tmp, sizeof(notify_box_msg));
     notify_box_msg[sizeof(notify_box_msg)-1] = '\0';
     notify_box_timeout = MAX(timeout, 100);
     if (notify_box_timeout) notify_box_dirty = 1; // ask for a redraw, message changed

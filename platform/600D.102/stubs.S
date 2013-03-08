@@ -112,7 +112,6 @@ NSTUB( 0xff072280, AllocateMemory_do) // no err70, malloc structure at 0x3070
 // FF05FECC WinSys_FreeMemory
 
 NSTUB( 0x2E0C, dm_names )                // in DebugMsg, before the 1st loop target
-NSTUB( 0xff20f3e4, strcpy )
 NSTUB( 0xFF069AE0, LoadCalendarFromRTC )
 NSTUB( 0xff07e3f4, task_trampoline )
 
@@ -207,9 +206,6 @@ NSTUB( 0xFF33BFDC, NormalDisplay )
 NSTUB( 0xFF33BFAC, ReverseDisplay )
 //NSTUB( 0xff33a734, RedrawDisplay )
 
-
-NSTUB( 0xFF018C74, strlen )
-NSTUB( 0xFF082704, strcmp )     // used to cmp "akashimorino" 
 
 NSTUB( 0x6290, mvr_config )
 

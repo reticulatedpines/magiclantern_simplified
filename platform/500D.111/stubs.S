@@ -128,7 +128,6 @@ NSTUB( 0x1C28	 , main_ctrl_struct )
 NSTUB( 0x25670	 , main_ctrl_struct_2 )						
 NSTUB( 0xFF020828, main_ctrl_task )			
 NSTUB( 0xFF018F70, malloc ) // maybe it's better to use Allocate/Free?
-NSTUB( 0xFF3EBBC4, memcpy )
 NSTUB( 0xFF0696BC, msg_queue_post )						
 NSTUB( 0xFF0694D0, msg_queue_receive )						
 NSTUB( 0xFF069D74, msleep ) // called from EV_GETDONE_CACHE param 0x64
@@ -164,9 +163,6 @@ NSTUB( 0xFF2B0384, SetOutputTypeByPressInfoToStorage )
 NSTUB( 0x1F04	 , sounddev )                    // in sounddev_task
 NSTUB( 0xFF054B8C, sounddev_active_in )
 NSTUB( 0xFF0549E8, sounddev_task )
-NSTUB( 0xFF078374, strcmp )							
-NSTUB( 0xFF07835C, strcpy )
-NSTUB( 0xFF072914, strlen )							
 NSTUB( 0xFF0698D0, take_semaphore )
 NSTUB( 0xFF069E2C, task_create )
 NSTUB( 0x1934	 , task_dispatch_hook )	/** Task dispatch hook hasn't moved in several versions */

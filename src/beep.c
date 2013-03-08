@@ -260,7 +260,7 @@ void WAV_RecordSmall(char* filename, int duration, int show_progress)
 
     int16_t* buf = (int16_t*)(wav_buf + sizeof(wav_header));
     
-    my_memcpy(wav_buf, wav_header, sizeof(wav_header));
+    memcpy(wav_buf, wav_header, sizeof(wav_header));
     wav_set_size(wav_buf, N);
 
     info_led_on();

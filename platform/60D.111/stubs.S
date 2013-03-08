@@ -112,7 +112,6 @@ NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
 NSTUB( 0xFF06FCC4, FreeMemory )
  	
 NSTUB( 0x2D1C, dm_names )                // in DebugMsg, before the 1st loop target
-NSTUB( 0xFF1F04EC, strcpy )              // finsig was wrong
 NSTUB( 0xff067b68, LoadCalendarFromRTC )
 NSTUB( 0xff07b8ac, task_trampoline )
 
@@ -130,7 +129,6 @@ NSTUB( 0xFF306208, gui_task_create )
 NSTUB( 0xFF306328, gui_task_destroy )
 NSTUB( 0xFF3060B8, ctrlman_dispatch_event )
 
-NSTUB( 0xFF537F28, memcpy )
 NSTUB( 0xFF1DE354, alloc_dma_memory )
 NSTUB( 0xFF1DE388, free_dma_memory )
 
@@ -166,8 +164,6 @@ NSTUB( 0xFF53D848, gui_main_task_functbl )
 NSTUB( 0xFF1AE0F0, mvrFixQScale )
 NSTUB( 0xFF1ADBCC, mvrSetDefQScale )
 
-NSTUB( 0xFF018838, strlen )
-NSTUB( 0xFF07FBBC, strcmp ) // cmpString
 //NSTUB( 0xFF538000, AJ_memset_R0_addr_R1_Len_R2_byteVal ) // bzero32+4
 
 NSTUB( 0x5dd0, mvr_config )

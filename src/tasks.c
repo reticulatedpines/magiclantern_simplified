@@ -97,7 +97,7 @@ void task_update_loads() // called every second from clock_task
                         name = "Interrupts";
                     }
                     char short_name[] = "           \0";
-                    my_memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
+                    memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
                     int c = cpu_percent > 800 ? COLOR_RED : cpu_percent > 300 ? COLOR_YELLOW : cpu_percent > 100 ? COLOR_CYAN : (i == TSKMON_MAX_TASKS-1) ? COLOR_ORANGE : COLOR_WHITE;
                     bmp_printf(FONT(FONT_SMALL, c, COLOR_BLACK), x, y, 
                     "%s: %2d.%1d%%", 
@@ -154,7 +154,7 @@ MENU_UPDATE_FUNC(tasks_print)
         
         char* name = task_info[1]+1;
         char short_name[] = "             \0";
-        my_memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
+        memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
 
         // Canon tasks are named in uppercase (exception: idle); ML tasks are named in lowercase.
         int is_canon_task = (name[0]  < 'a' || name[0] > 'z' || name[1]  < 'a' || name[1] > 'z');
@@ -233,7 +233,7 @@ MENU_UPDATE_FUNC(tasks_print)
 
             char short_name[] = "                    \0";
             
-            my_memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
+            memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
 
             #ifdef CONFIG_TSKMON
             /* print stack/cpu usage details */

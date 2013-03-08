@@ -298,6 +298,9 @@ STDIO_OBJ = \
 	lib_a-strcmp.o \
 	lib_a-strlen.o \
 	lib_a-strncmp.o \
+	lib_a-strcpy.o \
+	lib_a-memcpy.o \
+	lib_a-memset.o \
 
 ifneq ($(CONFIG_NO_EXTRA_OBJS),y)
 ifeq ($(CONFIG_PICOC),y)

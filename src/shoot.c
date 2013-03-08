@@ -777,7 +777,7 @@ PROP_HANDLER( PROP_LV_AFFRAME ) {
     crop_set_dirty(10);
     afframe_set_dirty();
     
-    my_memcpy(afframe, buf, len);
+    memcpy(afframe, buf, len);
     afframe_ack = 1;
 }
 #else

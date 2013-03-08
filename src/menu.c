@@ -2064,7 +2064,7 @@ my_menu_add_entry(struct menu_entry * entry, int i)
     void* next = my_entry->next;
     void* prev = my_entry->prev;
     int selected = my_entry->selected;
-    my_memcpy(my_entry, entry, sizeof(struct menu_entry));
+    memcpy(my_entry, entry, sizeof(struct menu_entry));
     my_entry->next = next;
     my_entry->prev = prev;
     my_entry->selected = selected;

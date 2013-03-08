@@ -129,7 +129,6 @@ NSTUB( 0x1A8C, hotplug_usb_buf )          // after "USB Disconnect"
 NSTUB(0xFF0197D8, init_task)                      // might be good (dumps=1, score=10)
 NSTUB(0x736b4, lv_path_struct) // first arg of SelectPathDriveMode
 NSTUB(0xFF018D34, malloc)                         // might be good (dumps=1, score=11)
-NSTUB(0xFF530890, memcpy)                         // might be good (dumps=1, score=1.5e+02)
 NSTUB(0xFF073EB0, dma_memcpy)                     // Look for [HPC ERROR] Nothing DMA ch now!
 NSTUB(0xFF1E885C, msg_queue_receive)              // might be good (dumps=1, score=24)
 NSTUB(0xff1e8a48, msg_queue_post)
@@ -160,7 +159,6 @@ NSTUB(0xFF1D47B8, shamem_read)                    // might be good (dumps=1, sco
 NSTUB( 0x1E58, sounddev )                    // in sounddev_task
 NSTUB(0xff0579dc, sounddev_active_in)
 NSTUB(0xFF057570, sounddev_task)                  // might be good (dumps=1, score=8.2)
-NSTUB(0xFF201F08, strcpy)                         // might be good (dumps=1, score=1.3e+02)
 NSTUB(0xFF06F56C, take_semaphore)                 // might be good (dumps=1, score=1.5e+02)
 NSTUB(0xFF06FAF4, task_create)                    // might be good (dumps=1, score=23)
 NSTUB( 0x193C, task_dispatch_hook )

@@ -32,6 +32,10 @@
 	.global name; \
 	name = addr
 
+#define XSTUB(addr,name) \
+	.global STUB_##name; \
+	STUB_##name = addr
+
 NSTUB( ROMBASEADDR, firmware_entry )
 
 NSTUB(0x23D08, pre_isr_hook)
@@ -100,7 +104,6 @@ NSTUB(0xff1a4fc8, gui_massive_event_loop)         // no match
 NSTUB(   0x32244, gui_task_list)
 NSTUB(0xff0c520c, init_task)
 NSTUB(0xff0c80ec, malloc)
-NSTUB(0xff9fb2ac - RAM_OFFSET, memcpy)
 NSTUB(0xff9f37b4 - RAM_OFFSET, msg_queue_post)
 NSTUB(0xff9f35c8 - RAM_OFFSET, msg_queue_receive)
 NSTUB(0xff9e79a4 - RAM_OFFSET, msleep)
@@ -114,9 +117,6 @@ NSTUB(0xff13b630, register_func)
 NSTUB(0xff6b16ac, sdReadBlk)
 NSTUB(   0x399D4, sd_device)
 NSTUB(0xff0c10f4, sei_restore)
-//NSTUB(0xff1448c4, strcmp)
-NSTUB(0xff31b930, strcpy)
-NSTUB(0xff0c8008, strlen)
 NSTUB(0xff9e74c8 - RAM_OFFSET, take_semaphore)
 NSTUB(0xff9e7a58 - RAM_OFFSET, task_create)
 NSTUB(   0x23d00, task_dispatch_hook )

@@ -69,7 +69,6 @@ void* script_malloc(int size);
 #define NO_CALLOC
 #define NO_REALLOC
 #define free script_free
-#define memcpy my_memcpy
 #undef BIG_ENDIAN
 #define PicocPlatformSetExitPoint()
 

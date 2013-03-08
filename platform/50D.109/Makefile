@@ -44,7 +44,6 @@ ML_OBJS-y = \
 	zebra.o \
 	shoot.o \
 	chdk-gui_draw.o \
-	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
 	af_patterns.o \
