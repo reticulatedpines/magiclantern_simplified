@@ -2176,11 +2176,12 @@ static MENU_UPDATE_FUNC(kelvin_display)
     if (lens_info.wb_mode == WB_KELVIN)
     {
         MENU_SET_VALUE(
-            "%dK%s",
-            lens_info.kelvin,
-            lens_info.kelvin == wb_kelvin_ph ? "" : "*"
+            "%dK",
+            lens_info.kelvin
         );
         MENU_SET_ICON(MNI_PERCENT, (lens_info.kelvin - KELVIN_MIN) * 100 / (KELVIN_MAX - KELVIN_MIN));
+        if (lens_info.kelvin != wb_kelvin_ph)
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "Extended WB values are only applied to movies, not photos.");
     }
     else
     {
