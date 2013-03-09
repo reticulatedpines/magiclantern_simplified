@@ -369,7 +369,9 @@ void ParseFor(struct ParseState *Parser)
     struct ParseState PreIncrement;
     struct ParseState PreStatement;
     struct ParseState After;
-
+    
+    enum RunMode OldMode = Parser->Mode;
+    
     if (LexGetToken(Parser, NULL, TRUE) != TokenOpenBracket)
         ProgramFail(Parser, "'(' expected");
                         
@@ -395,7 +397,7 @@ void ParseFor(struct ParseState *Parser)
     if (ParseStatementMaybeRun(Parser, Condition, TRUE) != ParseResultOk)
         ProgramFail(Parser, "statement expected");
     
-    if (Parser->Mode == RunModeContinue)
+    if (Parser->Mode == RunModeContinue && OldMode == RunModeRun)
         Parser->Mode = RunModeRun;
         
     ParserCopyPos(&After, Parser);
@@ -421,7 +423,7 @@ void ParseFor(struct ParseState *Parser)
         }
     }
     
-    if (Parser->Mode == RunModeBreak)
+    if (Parser->Mode == RunModeBreak && OldMode == RunModeRun)
         Parser->Mode = RunModeRun;
         
     ParserCopyPos(Parser, &After);
