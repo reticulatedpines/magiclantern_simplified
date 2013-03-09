@@ -37,7 +37,7 @@ namespace LensDumper
 
         public class LensData
         {
-            public UInt16 Unknown1;
+            public UInt16 LensId;
             public UInt16 Unknown2;
             public UInt16 FocalLengthMin;
             public UInt16 FocalLengthMax;
@@ -174,7 +174,7 @@ namespace LensDumper
         {
             LensData data = new LensData();
 
-            data.Unknown1 = GetUInt16(buffer, offset + 0x00);
+            data.LensId = GetUInt16(buffer, offset + 0x00);
             data.Unknown2 = GetUInt16(buffer, offset + 0x02);
             data.FocalLengthMin = GetUInt16(buffer, offset + 0x04);
             data.FocalLengthMax = GetUInt16(buffer, offset + 0x06);
@@ -182,11 +182,11 @@ namespace LensDumper
 
             if (data.FocalLengthMax != data.FocalLengthMin)
             {
-                Log.WriteLine("    Parsing lens {0}-{1} mm (min focus {2} mm) lens data [{3}, {4}]", data.FocalLengthMin, data.FocalLengthMax, data.FocusDistMin, data.Unknown1, data.Unknown2);
+                Log.WriteLine("    Parsing lens {0}-{1} mm (min focus {2} mm) lens data [{3}, {4}]", data.FocalLengthMin, data.FocalLengthMax, data.FocusDistMin, data.LensId, data.Unknown2);
             }
             else
             {
-                Log.WriteLine("    Parsing lens {0} mm (min focus {2} mm) lens data [{3}, {4}]", data.FocalLengthMin, data.FocalLengthMax, data.FocusDistMin, data.Unknown1, data.Unknown2);
+                Log.WriteLine("    Parsing lens {0} mm (min focus {2} mm) lens data [{3}, {4}]", data.FocalLengthMin, data.FocalLengthMax, data.FocusDistMin, data.LensId, data.Unknown2);
             }
 
             /* this header */
