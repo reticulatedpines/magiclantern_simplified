@@ -28,6 +28,8 @@
 #define PROP_CAM_MODEL          0x00000002
 #define PROP_FIRMWARE_VER       0x02000001
 
+#define PROP_OPTICAL_CORRECT_PARAM 0x0B000000
+
 /** These are known */
 #define PROP_BURST_COUNT        0x80030006
 #define PROP_BAT_INFO           0x8003001d
