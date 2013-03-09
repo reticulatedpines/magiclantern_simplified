@@ -192,6 +192,7 @@ static CONFIG_INT("digic.oilpaint", oilpaint, 0);
 static CONFIG_INT("digic.sharp", sharp, 0);
 static CONFIG_INT("digic.zerosharp", zerosharp, 0);
 //~ static CONFIG_INT("digic.fringing", fringing, 0);
+static CONFIG_INT("digic.vignetting", vignetting_effect, 0);
 
 static int default_white_level = 4096;
 static int shad_gain_last_written = 0;
@@ -480,6 +481,25 @@ static void vignetting_correction()
 */
 }
 
+// maximize vignetting
+static void vignetting_effect_run()
+{
+    uint32_t index = 0;
+    for(index = 0; index < 0x100; index+=2)
+    {
+        *(volatile uint32_t*)(0xC0F08578) = index;
+        int t1 = 1024 - index * 1024 / VIGNETTING_MAX_INDEX;
+        int t2 = 1024 - (index+1) * 1024 / VIGNETTING_MAX_INDEX;
+        t1 = t1 * t1 / 1024;
+        t2 = t2 * t2 / 1024;
+        int lo = MAX(0, t1-1);
+        int hi = MAX(0, t2-1);
+        *(volatile uint32_t*)(0xC0F0857C) = (lo & 0x3FF) | ((hi & 0x3FF) << 10);
+    }
+    
+    *(volatile uint32_t*)(0xC0F08578) = 0x100;
+}
+
 void image_effects_step()
 {
     if (!DISPLAY_IS_ON && !recording) return;
@@ -508,15 +528,36 @@ void image_effects_step()
     if (swap_uv)    EngDrvOutLV(0xc0f0de2c, 0x10); else if (prev_swap_uv) EngDrvOutLV(0xc0f0de2c, 0);
     if (cartoon)    
     {
-        if (cartoon >= 1) EngDrvOutLV(0xc0f23164, -1);
-        if (cartoon >= 2) EngDrvOutLV(0xc0f0f29c, 0xffff); // also c0f2194c?
+        if (cartoon == 1) 
+        {
+            EngDrvOutLV(0xc0f23164, -1);
+        }
+        else if (cartoon == 2)
+        { 
+            EngDrvOutLV(0xc0f23164, -1);
+            EngDrvOutLV(0xc0f0f29c, 0xffff); // also c0f2194c?
+        }
+        else
+        {
+            EngDrvOutLV(0xc0f23164, -1);
+            for (uint32_t reg = 0xc0f0f100; reg <= 0xc0f0f160; reg += 4)
+                EngDrvOutLV(reg, 0);
+            EngDrvOutLV(0xc0f0f11c, 128);
+            EngDrvOutLV(0xc0f0f128, 128);
+            EngDrvOutLV(0xc0f0f134, 128);
+            EngDrvOutLV(0xc0f0f150, 128);
+            EngDrvOutLV(0xc0f0f160, 128);
+        }
         EngDrvOutLV(0xc0f2116c, 0xffff0000); // boost picturestyle sharpness to max
     }
     if (oilpaint)   EngDrvOutLV(0xc0f2135c, -1);
     if (sharp)      EngDrvOutLV(0xc0f0f280, -1);
     if (zerosharp)  EngDrvOutLV(0xc0f2116c, 0x0); // sharpness trick: at -1, cancel it completely
 
-    if (vignetting_correction_enable)
+    if (vignetting_effect)
+        vignetting_effect_run();
+    
+    else if (vignetting_correction_enable)
         vignetting_correction();
 
     prev_swap_uv = swap_uv;
@@ -670,6 +711,12 @@ static struct menu_entry lv_img_menu[] = {
         .depends_on = DEP_MOVIE_MODE,
         .children =  (struct menu_entry[]) {
             {
+                .name = "Vignetting",
+                .priv = &vignetting_effect,
+                .max = 1,
+                .help = "Image corners get darker, while center gets brighter.",
+            },
+            {
                 .name = "Desaturate",
                 .priv       = &desaturate,
                 .min = 0,
@@ -697,8 +744,8 @@ static struct menu_entry lv_img_menu[] = {
                 .name = "Cartoon Look",
                 .priv       = &cartoon,
                 .min = 0,
-                .max = 2,
-                .choices = (const char *[]) {"OFF", "Weak", "Strong"},
+                .max = 3,
+                .choices = (const char *[]) {"OFF", "Mode 1", "Mode 2", "Mode 3"},
                 .help = "Cartoonish look obtained by emphasizing the edges.",
                 .icon_type = IT_DICE_OFF,
                 .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
