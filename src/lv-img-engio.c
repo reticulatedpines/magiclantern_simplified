@@ -192,7 +192,7 @@ static CONFIG_INT("digic.oilpaint", oilpaint, 0);
 static CONFIG_INT("digic.sharp", sharp, 0);
 static CONFIG_INT("digic.zerosharp", zerosharp, 0);
 //~ static CONFIG_INT("digic.fringing", fringing, 0);
-static CONFIG_INT("digic.vignetting", vignetting_effect, 0);
+
 
 static int default_white_level = 4096;
 static int shad_gain_last_written = 0;
@@ -446,7 +446,10 @@ void digic_dump_h264()
 
 static uint32_t vignetting_data[0x100];
 
-static int vignetting_correction_enable = 0;
+static CONFIG_INT("digic.vignetting.corr", vignetting_correction_enable, 0);
+static CONFIG_INT("digic.vignetting.a", vignetting_correction_a, 10);
+static CONFIG_INT("digic.vignetting.b", vignetting_correction_b, 0);
+static CONFIG_INT("digic.vignetting.c", vignetting_correction_c, 0);
 
 // index from 0 to 0x100, value from 0 to 1023
 // indexes greater than VIGNETTING_MAX_INDEX fall outside the image area
@@ -459,8 +462,44 @@ static int vignetting_correction_get(int index)
     return vignetting_data[index & 0xFF];
 }
 
+static void vignetting_correction_set_coeffs(int a, int b, int c)
+{
+    uint32_t index = 0;
+    int min = 1023;
+    int max = -1023;
+    for(index = 0; index < 0x100; index++)
+    {
+        int t = COERCE(index * 1024 / VIGNETTING_MAX_INDEX, 0, 1024);
+        int ts = (1024 - t);
+        ts = ts * ts / 1024;
+        ts = 1024 - ts;
+        int t2 = t * t / 1024;
+        //~ int t4 = t2 * t2 / 1024;
+        int v = ts * a / 10 + t * b / 10 + t2 * c / 10;
+        min = MIN(min, v);
+        max = MAX(max, v);
+        vignetting_data[index] = v;
+    }
+    
+    // normalize data so it fits into 0...1023
+    int range = max - min;
+    for(index = 0; index < 0x100; index++)
+    {
+        vignetting_data[index] -= min;
+        if (range > 1023)
+            vignetting_data[index] = vignetting_data[index] * 1023 / range;
+    }
+}
+
 static void vignetting_correction()
 {
+    static int initialized = 0;
+    if (!initialized)
+    {
+        vignetting_correction_set_coeffs(vignetting_correction_a, vignetting_correction_b, vignetting_correction_c);
+        initialized = 1;
+    }
+    
     uint32_t index = 0;
     for(index = 0; index < 0x100; index+=2)
     {
@@ -514,16 +553,17 @@ static void vignetting_measure_luma(int samples)
         vignetting_luma[r] /= vignetting_luma_n[r];
 }
 
-static MENU_UPDATE_FUNC(vignetting_correction_update)
+static MENU_UPDATE_FUNC(vignetting_graphs_update)
 {
-    if (vignetting_effect)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Vignetting effect is enabled.");
-    
     if (entry->selected && info->x)
     {
-        int yb = menu_active_but_hidden() ? 430 : 455;
-        bmp_fill(COLOR_BLACK, 720-217, yb-128, 216, 128);
-        bmp_draw_rect(COLOR_WHITE, 720-216-2, yb-128, 218, 128);
+        vignetting_correction_set_coeffs(vignetting_correction_a, vignetting_correction_b, vignetting_correction_c);
+    
+        int yb = 400;
+        int xa = 720-218 - 70;
+        //~ int yb = menu_active_but_hidden() ? 430 : 455;
+        bmp_fill(COLOR_BLACK, xa, yb-128, 216, 128);
+        bmp_draw_rect(COLOR_WHITE, xa-1, yb-129, 218, 130);
 
         vignetting_measure_luma(10000);
 
@@ -532,31 +572,36 @@ static MENU_UPDATE_FUNC(vignetting_correction_update)
             int luma = vignetting_luma[r];
             int luma_min = vignetting_luma_min[r];
             int luma_max = vignetting_luma_max[r];
-            int x = 720-217 + r;
+            int x = xa + r;
             int y = yb - luma/2;
             draw_line(x, yb - luma_min/2, x, yb - luma_max/2, 45);
             bmp_putpixel(x, y, COLOR_WHITE);
         }
-    }
-}
 
-// maximize vignetting
-static void vignetting_effect_run()
-{
-    uint32_t index = 0;
-    for(index = 0; index < 0x100; index+=2)
-    {
-        *(volatile uint32_t*)(0xC0F08578) = index;
-        int t1 = 1024 - index * 1024 / VIGNETTING_MAX_INDEX;
-        int t2 = 1024 - (index+1) * 1024 / VIGNETTING_MAX_INDEX;
-        t1 = t1 * t1 / 1024;
-        t2 = t2 * t2 / 1024;
-        int lo = MAX(0, t1-1);
-        int hi = MAX(0, t2-1);
-        *(volatile uint32_t*)(0xC0F0857C) = (lo & 0x3FF) | ((hi & 0x3FF) << 10);
+        int xb = 70;
+
+        bmp_fill(COLOR_BLACK, xb, yb-128, 216, 128);
+        bmp_draw_rect(COLOR_WHITE, xb-1, yb-129, 218, 130);
+        int max = 0;
+        for (int i = 0; i < VIGNETTING_MAX_INDEX; i++)
+        {
+            int x = xb + sqrtf(i) * 216 / sqrtf(VIGNETTING_MAX_INDEX);
+            int y = yb - vignetting_data[i] / 8;
+            bmp_putpixel(x, y, COLOR_WHITE);
+            bmp_putpixel(x+1, y, COLOR_WHITE);
+            max = MAX(max, vignetting_data[i]);
+        }
+        
+        /* not sure if the units are really EV
+        int ev = xb + (max * 10 + 512) / 1024;
+        int ym = yb - max / 8;
+        bmp_printf(FONT_MED, 260, ym - font_med.height/2, "+%d.%d EV", ev/10, ev%10);
+        */
+        
     }
     
-    *(volatile uint32_t*)(0xC0F08578) = 0x100;
+    if (!vignetting_correction_enable)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Vignetting correction is disabled.");
 }
 
 void image_effects_step()
@@ -613,10 +658,7 @@ void image_effects_step()
     if (sharp)      EngDrvOutLV(0xc0f0f280, -1);
     if (zerosharp)  EngDrvOutLV(0xc0f2116c, 0x0); // sharpness trick: at -1, cancel it completely
 
-    if (vignetting_effect)
-        vignetting_effect_run();
-    
-    else if (vignetting_correction_enable)
+    if (vignetting_correction_enable)
         vignetting_correction();
 
     prev_swap_uv = swap_uv;
@@ -693,6 +735,48 @@ void digic_iso_step()
 void menu_open_submenu();
 
 static struct menu_entry lv_img_menu[] = {
+    #ifdef FEATURE_IMAGE_EFFECTS
+    {
+        .name = "Vignetting",
+        .max = 1,
+        .priv = &vignetting_correction_enable,
+        .help = "Vignetting correction or effects.",
+        .depends_on = DEP_MOVIE_MODE,
+        .submenu_width = 710,
+        .submenu_height = 250,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Mid-range correction     ",
+                .priv = &vignetting_correction_a,
+                .unit = UNIT_x10,
+                .min = -10,
+                .max = 10,
+                .update = vignetting_graphs_update,
+                .help = "Correction applied between central area and corners.",
+                .help2 = "Tip: set this to -1 for a nice vignette effect.",
+            },
+            {
+                .name = "Corner correction        ",
+                .priv = &vignetting_correction_b,
+                .min = -10,
+                .max = 10,
+                .unit = UNIT_x10,
+                .update = vignetting_graphs_update,
+                .help = "Correction with a stronger bias towards corners.",
+            },
+            {
+                .name = "Extreme corner correction",
+                .priv = &vignetting_correction_c,
+                .min = -10,
+                .max = 10,
+                .unit = UNIT_x10,
+                .update = vignetting_graphs_update,
+            },
+            MENU_EOL,
+        },
+    },
+    #endif
+
     #if defined(FEATURE_IMAGE_EFFECTS) || defined(FEATURE_EXPO_ISO_DIGIC)
     {
         .name = "Image Finetuning",
@@ -727,12 +811,6 @@ static struct menu_entry lv_img_menu[] = {
             #endif
 
             #ifdef FEATURE_IMAGE_EFFECTS
-            {
-                .name = "Vignetting Correction", 
-                .priv = &vignetting_correction_enable,
-                .max = 1,
-                .update = vignetting_correction_update,
-            },
             {
                 .name = "Absolute Zero Sharpness", 
                 .priv = &zerosharp, 
@@ -770,12 +848,6 @@ static struct menu_entry lv_img_menu[] = {
         .help = "Experimental image filters found by digging into DIGIC.",
         .depends_on = DEP_MOVIE_MODE,
         .children =  (struct menu_entry[]) {
-            {
-                .name = "Vignetting",
-                .priv = &vignetting_effect,
-                .max = 1,
-                .help = "Image corners get darker, while center gets brighter.",
-            },
             {
                 .name = "Desaturate",
                 .priv       = &desaturate,
