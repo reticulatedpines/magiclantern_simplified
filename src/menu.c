@@ -347,6 +347,7 @@ struct menu * menu_get_root() {
 }
 
 // ISO 3 R10": 10, 12, 15, 20, 25, 30, 40, 50, 60, 80, 100
+/*
 static int round_to_R10(int val)
 {
     if (val < 0)
@@ -377,9 +378,56 @@ static int round_to_R10(int val)
         val = 30;
     
     return val * mag;
+}*/
+
+// ISO 3 R20": 10, 11, 12, 14, 15, 18, 20, 22, 25, 28, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100
+static int round_to_R20(int val)
+{
+    if (val < 0)
+        return -round_to_R20(-val);
+    
+    int mag = 1;
+    while (val >= 60)
+    {
+        val /= 10;
+        mag *= 10;
+    }
+    
+    if (val <= 12)
+        {}
+    else if (val <= 14)
+        val = 14;
+    else if (val <= 16)
+        val = 15;
+    else if (val <= 19)
+        val = 18;
+    else if (val <= 21)
+        val = 20;
+    else if (val <= 23)
+        val = 22;
+    else if (val <= 26)
+        val = 25;
+    else if (val <= 29)
+        val = 28;
+    else if (val <= 32)
+        val = 30;
+    else if (val <= 37)
+        val = 35;
+    else if (val <= 42)
+        val = 40;
+    else if (val <= 47)
+        val = 45;
+    else if (val <= 52)
+        val = 50;
+    else if (val <= 57)
+        val = 55;
+    else
+        val = 60;
+    
+    return val * mag;
 }
 
-void menu_numeric_toggle_R10(int* val, int delta, int min, int max)
+void menu_numeric_toggle_R20(int* val, int delta, int min, int max)
 {
     int v = *val;
 
@@ -389,11 +437,47 @@ void menu_numeric_toggle_R10(int* val, int delta, int min, int max)
         v = max;
     else
     {
-        int v0 = round_to_R10(v);
+        int v0 = round_to_R20(v);
+        if (v0 != v && SGN(v0 - v) == SGN(delta)) // did we round in the correct direction? if so, stop here
+        {
+            *val = v0;
+            return;
+        }
         // slow, but works (fast enough for numbers like 5000)
-        while (v0 == round_to_R10(v))
+        while (v0 == round_to_R20(v))
             v += delta;
-        v = COERCE(round_to_R10(v), min, max);
+        v = COERCE(round_to_R20(v), min, max);
+    }
+    
+    *val = v;
+}
+
+void menu_numeric_toggle_long_range(int* val, int delta, int min, int max)
+{
+    int v = *val;
+
+    if (v >= max && delta > 0)
+        v = min;
+    else if (v <= min && delta < 0)
+        v = max;
+    else
+    {
+        int a = ABS(v + delta);
+        int M = 1;
+        if (a >= 20000) M = 1000;
+        else if (a >= 10000) M = 500;
+        else if (a >= 2000) M = 100;
+        else if (a >= 1000) M = 50;
+        else if (a >= 200) M = 10;
+        else if (a >= 100) M = 5;
+        
+        v += delta;
+        while (v % M)
+        {
+            if (v >= max) break;
+            if (v <= min) break;
+            v += delta;
+        }
     }
     
     *val = v;
@@ -401,17 +485,23 @@ void menu_numeric_toggle_R10(int* val, int delta, int min, int max)
 
 void menu_numeric_toggle(int* val, int delta, int min, int max)
 {
+    *val = mod(*val - min + delta, max - min + 1) + min;
+}
+
+void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
+{
     static int prev_t = 0;
     int t = get_ms_clock_value();
     
-    if (max - min > 20 && t - prev_t < 100)
+    if (max - min > 20)
     {
-        menu_numeric_toggle_R10(val, delta, min, max);
+        if (t - prev_t < 300)
+            menu_numeric_toggle_R20(val, delta, min, max);
+        else
+            menu_numeric_toggle_long_range(val, delta, min, max);
     }
     else
     {
-        int M = ABS(*val);
-        while (M >= 100) M /= 10, delta *= 10;
         *val = mod(*val - min + delta, max - min + 1) + min;
     }
     
@@ -3033,7 +3123,7 @@ menu_entry_select(
     if(mode == 1) // decrement
     {
         if (entry->select) entry->select( entry->priv, -1);
-        else menu_numeric_toggle(entry->priv, -1, entry->min, entry->max);
+        else menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max);
     }
     else if (mode == 2) // Q
     {
@@ -3058,7 +3148,7 @@ menu_entry_select(
         {
             if (edit_mode) edit_mode = 0;
             else if( entry->select ) entry->select( entry->priv, 1);
-            else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
+            else menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
         }
         else */
         {
@@ -3070,13 +3160,13 @@ menu_entry_select(
             else if (entry->edit_mode == EM_MANY_VALUES_LV && !lv) edit_mode = !edit_mode;
             else if (SHOULD_USE_EDIT_MODE(entry)) edit_mode = !edit_mode;
             else if( entry->select ) entry->select( entry->priv, 1);
-            else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
+            else menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
         }
     }
     else // increment
     {
         if( entry->select ) entry->select( entry->priv, 1);
-        else menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
+        else menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
     }
     
     config_dirty = 1;
@@ -4626,7 +4716,7 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
         snprintf(last, sizeof(last), "%s", current);
         
         if (entry->select) entry->select( entry->priv, 1);
-        else if (entry->priv) menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
+        else if (entry->priv) menu_numeric_toggle_long_range(entry->priv, 1, entry->min, entry->max);
         else break;
         
         msleep(20); // we may need to wait for property handlers to update
