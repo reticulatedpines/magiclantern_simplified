@@ -437,6 +437,49 @@ void digic_dump_h264()
 
 #endif // CONFIG_DIGIC_POKE
 
+#ifdef CONFIG_FULLFRAME
+#define VIGNETTING_MAX_INDEX 155
+#else
+#define VIGNETTING_MAX_INDEX 80 // not sure
+#endif
+
+static uint32_t vignetting_data[0x100];
+
+static int vignetting_correction_enable = 0;
+
+// index from 0 to 0x100, value from 0 to 1023
+// indexes greater than VIGNETTING_MAX_INDEX fall outside the image area
+static void vignetting_correction_set(int index, int value)
+{
+    vignetting_data[index & 0xFF] = value;
+}
+static int vignetting_correction_get(int index)
+{
+    return vignetting_data[index & 0xFF];
+}
+
+static void vignetting_correction()
+{
+    uint32_t index = 0;
+    for(index = 0; index < 0x100; index+=2)
+    {
+        *(volatile uint32_t*)(0xC0F08578) = index;
+        int lo = vignetting_data[index];
+        int hi = vignetting_data[index+1];
+        *(volatile uint32_t*)(0xC0F0857C) = (lo & 0x3FF) | ((hi & 0x3FF) << 10);
+    }
+    
+    *(volatile uint32_t*)(0xC0F08578) = 0x100;
+/*
+    uint8_t* lv = vram_lv.vram;
+    for (int i = 0; i < 720; i++)
+    {
+        int y = 350 - lv[BM2LV(i, os.y0 + os.y_ex/2) + 1];
+        bmp_putpixel(i, y, COLOR_WHITE);
+    }
+*/
+}
+
 void image_effects_step()
 {
     if (!DISPLAY_IS_ON && !recording) return;
@@ -472,6 +515,9 @@ void image_effects_step()
     if (oilpaint)   EngDrvOutLV(0xc0f2135c, -1);
     if (sharp)      EngDrvOutLV(0xc0f0f280, -1);
     if (zerosharp)  EngDrvOutLV(0xc0f2116c, 0x0); // sharpness trick: at -1, cancel it completely
+
+    if (vignetting_correction_enable)
+        vignetting_correction();
 
     prev_swap_uv = swap_uv;
     
@@ -581,6 +627,11 @@ static struct menu_entry lv_img_menu[] = {
             #endif
 
             #ifdef FEATURE_IMAGE_EFFECTS
+            {
+                .name = "Vignetting Correction", 
+                .priv = &vignetting_correction_enable,
+                .max = 1,
+            },
             {
                 .name = "Absolute Zero Sharpness", 
                 .priv = &zerosharp, 
@@ -731,6 +782,11 @@ static void lv_img_init()
 #ifdef CONFIG_DIGIC_POKE
     menu_add( "Debug", dbg_menu, COUNT(dbg_menu) );
 #endif
+
+    for (int i = 0; i < 0x100; i++)
+    {
+        vignetting_correction_set(i, MIN(i * 1023 / VIGNETTING_MAX_INDEX, 1023));
+    }
 }
 
 INIT_FUNC("lv_img", lv_img_init);
