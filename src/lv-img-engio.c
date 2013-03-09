@@ -804,6 +804,7 @@ static struct menu_entry lv_img_menu[] = {
                 .min = -100,
                 .max = 100,
                 .update = digic_black_print,
+                .icon_type = IT_PERCENT_OFF,
                 .edit_mode = EM_MANY_VALUES_LV,
                 .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
                 .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
