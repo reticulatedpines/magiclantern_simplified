@@ -59,14 +59,14 @@ char* menu_data_fill(char* dptr, struct menu_entry * m2) {
 	fill_uint32(dptr, flags);      dptr+=8; //4 bytes reserved for later use
 	if (m2->priv) fill_uint32(dptr, MEM(m2->priv)); else fill_uint32(dptr, -1);   dptr+=4;
 	fill_uint32(dptr, strl);       dptr+=4;
-	// memcpy doesn't work with unaligned data
-	my_memcpy(dptr, m2->name, strl);
+
+    memcpy(dptr, m2->name, strl);
 	dptr+=strl;
 	if (m2->choices) {
 		for (i=0;i<=m2->max;i++) {
 			strl = strlen(m2->choices[i]);
 			fill_uint32(dptr, strl);       dptr+=4;
-			my_memcpy(dptr, m2->choices[i], strl);
+			memcpy(dptr, m2->choices[i], strl);
 			dptr+=strl;
 		}
 	}
@@ -156,8 +156,7 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 					dptr+=4;
 					fill_uint32(dptr, strl);
 					dptr+=4;
-					// memcpy doesn't work with unaligned data
-					my_memcpy(dptr, m->name, strl);
+                    memcpy(dptr, m->name, strl);
 					dptr+=strl;
 				}
 				if ( !send_ptp_data(context, data, size ) ) {
