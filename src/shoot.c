@@ -3419,7 +3419,6 @@ static MENU_UPDATE_FUNC(mlu_display)
         );
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, msg);
     }
-    if (mlu_auto) MENU_SET_ICON(MNI_AUTO, 0);
 }
 #endif // FEATURE_MLU
 
