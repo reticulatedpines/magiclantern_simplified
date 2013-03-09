@@ -474,8 +474,8 @@ static void vignetting_correction_set_coeffs(int a, int b, int c)
         ts = ts * ts / 1024;
         ts = 1024 - ts;
         int t2 = t * t / 1024;
-        //~ int t4 = t2 * t2 / 1024;
-        int v = ts * a / 10 + t * b / 10 + t2 * c / 10;
+        int t4 = t2 * t2 / 1024;
+        int v = ts * a / 10 + t * b / 10 + t4 * c / 10;
         min = MIN(min, v);
         max = MAX(max, v);
         vignetting_data[index] = v;
