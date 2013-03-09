@@ -478,7 +478,7 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
         default:
             /* an arithmetic operator */
 #ifndef NO_FP
-            if (TopValue->Typ == &FPType)
+            if (TopValue->Typ == &FPType && (Op == TokenPlus || Op == TokenMinus))
             {
                 /* floating point prefix arithmetic */
                 double ResultFP = 0.0;
@@ -487,7 +487,7 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                 {
                     case TokenPlus:         ResultFP = TopValue->Val->FP; break;
                     case TokenMinus:        ResultFP = -TopValue->Val->FP; break;
-                    default:                ProgramFail(Parser, "invalid operation"); break;
+                    default:                break; // unreachable
                 }
                 
                 ExpressionPushFP(Parser, StackTop, ResultFP);
