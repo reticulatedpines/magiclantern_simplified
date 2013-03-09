@@ -471,14 +471,73 @@ static void vignetting_correction()
     }
     
     *(volatile uint32_t*)(0xC0F08578) = 0x100;
-/*
+}
+
+static int vignetting_luma[0x100];
+static uint16_t vignetting_luma_n[0x100];
+static uint8_t vignetting_luma_max[0x100];
+static uint8_t vignetting_luma_min[0x100];
+
+static void vignetting_measure_luma(int samples)
+{
     uint8_t* lv = vram_lv.vram;
-    for (int i = 0; i < 720; i++)
+    
+    for (int r = 0; r < 0x100; r++)
     {
-        int y = 350 - lv[BM2LV(i, os.y0 + os.y_ex/2) + 1];
-        bmp_putpixel(i, y, COLOR_WHITE);
+        vignetting_luma[r] = 0;
+        vignetting_luma_n[r] = 0;
+        vignetting_luma_max[r] = 0;
+        vignetting_luma_min[r] = 255;
     }
-*/
+
+    for (int i = 0; i < samples; i++)
+    {
+        int xc = os.x0 + os.x_ex/2;
+        int yc = os.y0 + os.y_ex/2;
+        int x = os.x0 + (rand() % os.x_ex);
+        int y = os.y0 + (rand() % os.y_ex);
+        
+        int ya = y;
+        #ifdef CONFIG_4_3_SCREEN
+        ya = ((y - yc) * 9/8) + yc;
+        #endif
+        int r = sqrtf((x - xc) * (x - xc) + (ya - yc) * (ya - yc)) / 2;
+        r = MIN(r, 216);
+        int luma = lv[BM2LV(x,y)+1];
+        vignetting_luma[r & 0xFF] += luma;
+        vignetting_luma_n[r & 0xFF]++;
+        vignetting_luma_min[r & 0xFF] = MIN(luma, vignetting_luma_min[r & 0xFF]);
+        vignetting_luma_max[r & 0xFF] = MAX(luma, vignetting_luma_max[r & 0xFF]);
+    }
+
+    for (int r = 0; r < 0x100; r++)
+        vignetting_luma[r] /= vignetting_luma_n[r];
+}
+
+static MENU_UPDATE_FUNC(vignetting_correction_update)
+{
+    if (vignetting_effect)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Vignetting effect is enabled.");
+    
+    if (entry->selected && info->x)
+    {
+        int yb = menu_active_but_hidden() ? 430 : 455;
+        bmp_fill(COLOR_BLACK, 720-217, yb-128, 216, 128);
+        bmp_draw_rect(COLOR_WHITE, 720-216-2, yb-128, 218, 128);
+
+        vignetting_measure_luma(10000);
+
+        for (int r = 0; r < 216; r++)
+        {
+            int luma = vignetting_luma[r];
+            int luma_min = vignetting_luma_min[r];
+            int luma_max = vignetting_luma_max[r];
+            int x = 720-217 + r;
+            int y = yb - luma/2;
+            draw_line(x, yb - luma_min/2, x, yb - luma_max/2, 45);
+            bmp_putpixel(x, y, COLOR_WHITE);
+        }
+    }
 }
 
 // maximize vignetting
@@ -672,6 +731,7 @@ static struct menu_entry lv_img_menu[] = {
                 .name = "Vignetting Correction", 
                 .priv = &vignetting_correction_enable,
                 .max = 1,
+                .update = vignetting_correction_update,
             },
             {
                 .name = "Absolute Zero Sharpness", 
