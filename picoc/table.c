@@ -98,6 +98,15 @@ int TableGet(struct Table *Tbl, const char *Key, struct Value **Val, const char 
     return TRUE;
 }
 
+/* pretend to remove an entry from the table, when the table is allocated on stack (well... just delete the key so it won't be found again) */
+void TableDeleteStack(struct Table *Tbl, const char *Key)
+{
+    int AddAt;
+    struct TableEntry *FoundEntry = TableSearch(Tbl, Key, &AddAt);
+    FoundEntry->p.v.Key = NULL;
+}
+
+
 /* remove an entry from the table */
 struct Value *TableDelete(struct Table *Tbl, const char *Key)
 {

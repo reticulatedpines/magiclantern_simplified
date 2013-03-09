@@ -370,6 +370,8 @@ void ParseFor(struct ParseState *Parser)
     struct ParseState PreStatement;
     struct ParseState After;
     
+    Parser->ScopeLevel++;
+
     enum RunMode OldMode = Parser->Mode;
     
     if (LexGetToken(Parser, NULL, TRUE) != TokenOpenBracket)
@@ -425,7 +427,10 @@ void ParseFor(struct ParseState *Parser)
     
     if (Parser->Mode == RunModeBreak && OldMode == RunModeRun)
         Parser->Mode = RunModeRun;
-        
+
+    VariableCleanupOutOfScope(Parser->ScopeLevel);
+    Parser->ScopeLevel--;
+
     ParserCopyPos(Parser, &After);
 }
 
@@ -435,6 +440,8 @@ enum RunMode ParseBlock(struct ParseState *Parser, int AbsorbOpenBrace, int Cond
     if (AbsorbOpenBrace && LexGetToken(Parser, NULL, TRUE) != TokenLeftBrace)
         ProgramFail(Parser, "'{' expected");
     
+    Parser->ScopeLevel++;
+
     if (Parser->Mode == RunModeSkip || !Condition)
     { 
         /* condition failed - skip this block instead */
@@ -453,7 +460,10 @@ enum RunMode ParseBlock(struct ParseState *Parser, int AbsorbOpenBrace, int Cond
     
     if (LexGetToken(Parser, NULL, TRUE) != TokenRightBrace)
         ProgramFail(Parser, "'}' expected");
-        
+
+    VariableCleanupOutOfScope(Parser->ScopeLevel);
+    Parser->ScopeLevel--;
+
     return Parser->Mode;
 }
 
@@ -843,6 +853,8 @@ void PicocParse(const char *FileName, const char *Source, int SourceLen, int Run
     
     /* do the parsing */
     LexInitParser(&Parser, Source, Tokens, FileName, RunIt);
+
+    Parser.ScopeLevel++;
 
     do {
         Ok = ParseStatement(&Parser, TRUE);

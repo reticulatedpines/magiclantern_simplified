@@ -97,6 +97,7 @@ struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize,
     NewValue->ValOnStack = !OnHeap;
     NewValue->IsLValue = IsLValue;
     NewValue->LValueFrom = LValueFrom;
+    NewValue->OutOfScope = 0;
     
     return NewValue;
 }
@@ -149,19 +150,72 @@ struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *
     return VariableAllocValueFromExistingData(Parser, FromValue->Typ, FromValue->Val, FromValue->IsLValue, FromValue->IsLValue ? FromValue : NULL);
 }
 
+ 
+void VariableCleanupOutOfScope(int ScopeLevel)
+{
+    struct TableEntry *Entry;
+    struct TableEntry *NextEntry;
+    int Count;
+    
+    struct Table * HashTable = (TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable;
+
+    for (Count = 0; Count < HashTable->Size; Count++)
+    {
+        for (Entry = HashTable->HashTable[Count]; Entry != NULL; Entry = NextEntry)
+        {
+            NextEntry = Entry->Next;
+            if (Entry->p.v.Val->ScopeLevel == ScopeLevel && Entry->p.v.Key)
+            {
+                //~ fprintf(stderr, ">>> deleting %s %d\n", Entry->p.v.Key, Entry->p.v.Val->ScopeLevel);
+                if (Entry->p.v.Val->ValOnHeap)
+                {
+                    struct Value * CValue = TableDelete(HashTable, Entry->p.v.Key);
+                    VariableFree(CValue);
+                }
+                else // it's on stack, so we can't delete it...
+                {
+                    Entry->p.v.Val->OutOfScope = TRUE;
+                }
+                //~ printf("%p %p %d %d\n", Entry->p.v.Val, (void *)((char *)pc->HeapStackTop - sizeof(struct Value) - TypeSizeValue(Entry->p.v.Val, FALSE)), Entry->p.v.Val->ValOnStack, Entry->p.v.Val->ValOnHeap);
+            }
+        }
+    }
+}
+
 /* define a variable. Ident must be registered */
 struct Value *VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue, struct ValueType *Typ, int MakeWritable)
 {
     struct Value *AssignValue;
-    
+
+    short int ScopeLevel = Parser ? Parser->ScopeLevel : -1;
+    //~ fprintf(stderr, "def %s %d\n", Ident, ScopeLevel);
+
     if (InitValue != NULL)
         AssignValue = VariableAllocValueAndCopy(Parser, InitValue, TopStackFrame == NULL);
     else
         AssignValue = VariableAllocValueFromType(Parser, Typ, MakeWritable, NULL, TopStackFrame == NULL);
     
     AssignValue->IsLValue = MakeWritable;
-        
-    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, AssignValue, Parser ? ((char *)Parser->FileName) : NULL, Parser ? Parser->Line : 0, Parser ? Parser->CharacterPos : 0))
+
+    AssignValue->ScopeLevel = ScopeLevel;
+    AssignValue->OutOfScope = 0;
+
+    struct Table * currentTable = (TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable;
+    
+    struct Value * ExistingValue;
+    
+    if (TableGet(currentTable, Ident, &ExistingValue, NULL, NULL, NULL))
+    {
+        if (ExistingValue->OutOfScope)
+        {
+            //~ fprintf(stderr, "reusing %s\n", Ident);
+            // not sure how to delete properly, so... 
+            // throw the old copy away and hope it's cleaned up at VariableStackFramePop
+            TableDeleteStack(currentTable, Ident);
+        }
+    }
+
+    if (!TableSet(currentTable, Ident, AssignValue, Parser ? ((char *)Parser->FileName) : NULL, Parser ? Parser->Line : 0, Parser ? Parser->CharacterPos : 0))
         ProgramFail(Parser, "'%s' is already defined", Ident);
     
     return AssignValue;
@@ -233,7 +287,10 @@ int VariableDefined(const char *Ident)
         if (!TableGet(&GlobalTable, Ident, &FoundValue, NULL, NULL, NULL))
             return FALSE;
     }
-
+    
+    if (FoundValue->OutOfScope)
+        return FALSE;
+    
     return TRUE;
 }
 

@@ -116,6 +116,7 @@ struct ParseState
     short int HashIfLevel;
     short int HashIfEvaluateToLevel;
     const char *SourceText;
+    short int ScopeLevel;       /* for keeping track of local variables (free them after they go out of scope) */
 };
 
 /* values */
@@ -208,6 +209,8 @@ struct Value
     char ValOnHeap;                 /* the AnyValue is on the heap (but this Value is on the stack) */
     char ValOnStack;                /* the AnyValue is on the stack along with this Value */
     char IsLValue;                  /* is modifiable and is allocated somewhere we can usefully modify it */
+    short int ScopeLevel;           /* to know when it goes out of scope */
+    char OutOfScope;
 };
 
 /* hash table data structure */
@@ -335,6 +338,7 @@ void TableInitTable(struct Table *Tbl, struct TableEntry **HashTable, int Size, 
 int TableSet(struct Table *Tbl, char *Key, struct Value *Val, const char *DeclFileName, int DeclLine, int DeclColumn);
 int TableGet(struct Table *Tbl, const char *Key, struct Value **Val, const char **DeclFileName, int *DeclLine, int *DeclColumn);
 struct Value *TableDelete(struct Table *Tbl, const char *Key);
+void TableDeleteStack(struct Table *Tbl, const char *Key);
 char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen);
 void TableStrFree();
 
@@ -417,6 +421,7 @@ void VariableStackFramePop(struct ParseState *Parser);
 struct Value *VariableStringLiteralGet(char *Ident);
 void VariableStringLiteralDefine(char *Ident, struct Value *Val);
 void *VariableDereferencePointer(struct ParseState *Parser, struct Value *PointerValue, struct Value **DerefVal, int *DerefOffset, struct ValueType **DerefType, int *DerefIsLValue);
+void VariableCleanupOutOfScope(int ScopeLevel);
 
 /* clibrary.c */
 void BasicIOInit();
