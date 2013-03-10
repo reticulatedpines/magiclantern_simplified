@@ -2310,7 +2310,7 @@ void bv_expsim_shift()
 {
     set_photo_digital_iso_gain_for_bv(1024);
     if (!lv) return;
-    if (!expsim) return;
+    if (!get_expsim()) return;
     if (!CONTROL_BV) return;
    
     if (!is_movie_mode())
@@ -2410,7 +2410,7 @@ int bv_auto_should_enable()
         #endif
         
         // exposure simulation in Bulb mode
-        if (is_bulb_mode() && expsim)
+        if (is_bulb_mode() && get_expsim())
             return 1;
     }
     else if (bv_auto == 1) // always enable (except for situations where it's known to cause problems)

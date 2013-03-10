@@ -248,6 +248,19 @@ static void MP4to422(void* priv, int delta)
 // ExpSim
 //**********************************************************************/
 
+int get_expsim()
+{
+    //bmp_printf(FONT_MED, 50, 50, "mov: %d expsim:%d lv_mov: %d", is_movie_mode(), expsim, lv_movie_select);
+    
+#if defined(CONFIG_7D)
+    /* 7D has expsim in video mode, but expsim is for photo mode only. so return 2 if in video mode */
+    if(is_movie_mode())
+    {
+        return 2;
+    }
+#endif
+    return expsim;
+}
 #ifdef CONFIG_EXPSIM
 
 void video_refresh()
@@ -256,10 +269,9 @@ void video_refresh()
     lens_display_set_dirty();
 }
 
-
 void set_expsim( int x )
 {
-    if (expsim != x)
+    if (get_expsim() != x)
     {
         prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
         
@@ -276,10 +288,10 @@ static void
 expsim_toggle( void * priv, int delta)
 {
     #ifdef CONFIG_EXPSIM_MOVIE
-    int e = mod(expsim + delta, 3);
+    int e = mod(get_expsim() + delta, 3);
     #else
     if (is_movie_mode()) return;
-    int e = !expsim;
+    int e = !get_expsim();
     #endif
 
     set_expsim(e);

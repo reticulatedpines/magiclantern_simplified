@@ -217,7 +217,7 @@ int lv_luma_is_accurate()
     if (is_movie_mode()) return 1;
     
     int digic_iso_gain_photo = get_digic_iso_gain_photo();
-    return expsim && digic_iso_gain_photo == 1024;
+    return get_expsim() && digic_iso_gain_photo == 1024;
 }
 
 int show_lv_fps = 0; // for debugging
@@ -412,7 +412,7 @@ static CONFIG_INT( "waveform.draw", waveform_draw,
 static CONFIG_INT( "waveform.size", waveform_size,  0 );
 static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_ALMOST_BLACK ); // solid black
 
-int histogram_or_small_waveform_enabled() { return (hist_draw || (waveform_draw && !waveform_size)) && expsim; }
+int histogram_or_small_waveform_enabled() { return (hist_draw || (waveform_draw && !waveform_size)) && get_expsim(); }
 
 static CONFIG_INT( "vectorscope.draw", vectorscope_draw, 0);
 

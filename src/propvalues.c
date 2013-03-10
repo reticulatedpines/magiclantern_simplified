@@ -64,7 +64,7 @@ bool FAST is_movie_mode()
     #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
     return lv && lv_movie_select == LVMS_ENABLE_MOVIE
             #ifdef CONFIG_5D2
-            && expsim == 2  // movie enabled, but photo display is considered photo mode
+            && get_expsim() == 2  // movie enabled, but photo display is considered photo mode
             #endif
         ;
     #else

@@ -712,7 +712,7 @@ void update_lvae_for_autoiso_n_displaygain()
 
     // Max Auto ISO limit
     // Action of this block: sets or clears fixed_iso_needed_by_max_auto_iso
-    if (is_movie_mode() && expsim==2 && lens_info.raw_iso == 0) // plain auto ISO
+    if (is_movie_mode() && get_expsim()==2 && lens_info.raw_iso == 0) // plain auto ISO
     {
         if (!fixed_iso_needed_by_max_auto_iso) // iso auto is alive and kicking
         {

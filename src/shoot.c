@@ -3031,7 +3031,7 @@ void restore_expsim_task(int es)
         lens_wait_readytotakepic(64);
         set_expsim(es);
         msleep(300);
-        if (expsim == es) return;
+        if (get_expsim() == es) return;
     }
     NotifyBox(5000, "Could not restore ExpSim :(");
     info_led_blink(5, 50, 50);
@@ -3057,7 +3057,7 @@ void zoom_auto_exposure_step()
             #ifdef CONFIG_5D2
             if (es == -1)
             {
-                es = expsim;
+                es = get_expsim();
                 set_expsim(0);
             }
             /* #else // unstable
@@ -3075,7 +3075,7 @@ void zoom_auto_exposure_step()
         {
             if (es == -1)
             {
-                es = expsim;
+                es = get_expsim();
                 set_expsim(0);
             }
         }
@@ -3170,7 +3170,7 @@ void ensure_bulb_mode()
     #ifdef CONFIG_SEPARATE_BULB_MODE
         int a = lens_info.raw_aperture;
         set_shooting_mode(SHOOTMODE_BULB);
-        if (expsim == 2) set_expsim(1);
+        if (get_expsim() == 2) set_expsim(1);
         lens_set_rawaperture(a);
     #else
         if (shooting_mode != SHOOTMODE_M)
@@ -3615,7 +3615,7 @@ static int bramp_measure_luma(int delay)
 {
     ASSERT(lv);
     ASSERT(lv_dispsize > 1);
-    ASSERT(expsim);
+    ASSERT(get_expsim());
     ASSERT(shooting_mode == SHOOTMODE_M);
     //~ ASSERT(LVAE_DISP_GAIN); // display gain can also be zero, no problem
     
@@ -3828,7 +3828,7 @@ void bulb_ramping_init()
 
         set_shooting_mode(SHOOTMODE_M);
         if (!lv) force_liveview();
-        int e0 = expsim;
+        int e0 = get_expsim();
         int iso0 = lens_info.raw_iso;
         int s0 = lens_info.raw_shutter;
         set_expsim(1);
@@ -5990,7 +5990,7 @@ static int hdr_shutter_release(int ev_x8)
 
         int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
         #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-        int expsim0 = expsim;
+        int expsim0 = get_expsim();
         #endif
         
         //~ NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
@@ -6008,7 +6008,7 @@ static int hdr_shutter_release(int ev_x8)
 #endif
         {
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-            if (expsim == 2) { set_expsim(1); msleep(300); } // can't set shutter slower than 1/30 in movie mode
+            if (get_expsim() == 2) { set_expsim(1); msleep(300); } // can't set shutter slower than 1/30 in movie mode
             #endif
             ans = MIN(ans, hdr_set_rawshutter(rc));
             take_a_pic(AF_DONT_CHANGE, 0);
@@ -6457,17 +6457,17 @@ static void display_expsim_status()
     static int prev_expsim = 0;
     int x = 610 + font_med.width;
     int y = os.y_max - os.off_169 - font_med.height - 5;
-    if (!expsim)
+    if (!get_expsim())
     {
         bmp_printf( FONT(FONT_MED, COLOR_WHITE, 0), x, y, " ExpSim " );
         draw_line(x-5 + font_med.width, y + font_med.height * 3/4, x + font_med.width * 7, y + font_med.height * 1/4, COLOR_WHITE);
     }
     else
     {
-        if (expsim != prev_expsim)// redraw();
+        if (get_expsim() != prev_expsim)// redraw();
             bmp_printf( FONT(FONT_MED, COLOR_WHITE, 0), x, y, "        " );
     }
-    prev_expsim = expsim;
+    prev_expsim = get_expsim();
 #endif
 }
 
