@@ -14,6 +14,7 @@ int card_select = 1;
 #define ML_CARD_LETTER (ml_card_select == 1 ? "A" : "B")
 
 CONFIG_INT("card.test", card_test_enabled, 1);
+CONFIG_INT("card.force_type", card_force_type, 0);
 
 MENU_UPDATE_FUNC(card_info_display)
 {
@@ -71,6 +72,19 @@ void card_tests()
     {
         card_test(0);
         card_test(1);
+    }
+    
+    /* on startup enforce selected card.
+       if that card type is not available, canon will ignore this change */
+    if (card_force_type)
+    {
+        uint32_t value = card_force_type;
+        
+        /* ensure valid property value (side effect safe) */
+        if(value == 1 || value == 2)
+        {
+            prop_request_change(PROP_CARD_SELECT, &value, 4);
+        }
     }
 }
 
@@ -270,8 +284,6 @@ int FIO_CreateDirectory(const char * dirname)
     return _FIO_CreateDirectory(new_dirname);
 }
 
-INIT_FUNC("fio", find_ml_card);
-
 struct menu_entry card_menus[] = {
     /*
     {
@@ -285,4 +297,22 @@ struct menu_entry card_menus[] = {
         .max = 1,
         .help = "File write test. Disable ONLY after testing ALL your cards!"
     },
+    {
+        .name = "Preferred card", 
+        .priv = &card_force_type,
+        .min = 0,
+        .max = 2,
+        .choices = CHOICES("Off", "CF", "SD"),
+        .help = "Ensure that on startup your preferred card is selected."
+    },
 };
+
+void fio_init()
+{
+    menu_add( "Prefs", card_menus, COUNT(card_menus) );
+    
+    find_ml_card();
+}
+
+
+INIT_FUNC("fio_init", fio_init);
