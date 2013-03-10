@@ -478,7 +478,7 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
         default:
             /* an arithmetic operator */
 #ifndef NO_FP
-            if (TopValue->Typ == &FPType && (Op == TokenPlus || Op == TokenMinus))
+            if (TopValue->Typ == &FPType)
             {
                 /* floating point prefix arithmetic */
                 double ResultFP = 0.0;
@@ -487,7 +487,10 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                 {
                     case TokenPlus:         ResultFP = TopValue->Val->FP; break;
                     case TokenMinus:        ResultFP = -TopValue->Val->FP; break;
-                    default:                break; // unreachable
+                    case TokenIncrement:    ResultFP = ExpressionAssignFP(Parser, TopValue, TopValue->Val->FP+1); break;
+                    case TokenDecrement:    ResultFP = ExpressionAssignFP(Parser, TopValue, TopValue->Val->FP-1); break;
+                    case TokenUnaryNot:     ResultFP = !TopValue->Val->FP; break;
+                    default:                ProgramFail(Parser, "invalid operation"); break;
                 }
                 
                 ExpressionPushFP(Parser, StackTop, ResultFP);
@@ -546,6 +549,23 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
 void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum LexToken Op, struct Value *TopValue)
 {
     debugf("ExpressionPostfixOperator()\n");
+#ifndef NO_FP
+    if (TopValue->Typ == &FPType)
+    {
+        /* floating point prefix arithmetic */
+        double ResultFP = 0.0;
+        
+        switch (Op)
+        {
+            case TokenIncrement:    ResultFP = ExpressionAssignFP(Parser, TopValue, TopValue->Val->FP+1); break;
+            case TokenDecrement:    ResultFP = ExpressionAssignFP(Parser, TopValue, TopValue->Val->FP-1); break;
+            default:                ProgramFail(Parser, "invalid operation"); break;
+        }
+        
+        ExpressionPushFP(Parser, StackTop, ResultFP);
+    }
+    else 
+#endif
     if (IS_NUMERIC_COERCIBLE(TopValue))
     {
         long ResultInt = 0;
