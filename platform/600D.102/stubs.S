@@ -129,7 +129,6 @@ NSTUB( 0xff31c594, gui_task_create )
 NSTUB( 0xff31c6b4, gui_task_destroy )
 NSTUB( 0xff31c444, ctrlman_dispatch_event )
 
-NSTUB( 0xFF5682F4, memcpy )
 NSTUB( 0xff230e48, prop_request_icu_auto_poweroff )           // "PROP_Request PROP_ICU_AUTO_POWEROFF(%d)"
 NSTUB( 0xff1fd2e4, alloc_dma_memory )
 NSTUB( 0xff1fd318, free_dma_memory )
