@@ -145,6 +145,17 @@ extern void sound_dev_task(void);
 #define O_ASYNC          020000
 /* @} */
 
+/**
+ * File mode attributes, for FindFirst/FindNext
+ */
+#define     ATTR_NORMAL     0x00          /* normal file */ 
+#define     ATTR_READONLY   0x01          /* file is readonly */ 
+#define     ATTR_HIDDEN     0x02          /* file is hidden */ 
+#define     ATTR_SYSTEM     0x04          /* file is a system file */ 
+#define     ATTR_VOLUME     0x08          /* entry is a volume label */ 
+#define     ATTR_DIRECTORY  0x10          /* entry is a directory name */ 
+#define     ATTR_ARCHIVE    0x20          /* file is new or modified */ 
+
 extern int open( const char * name, int flags, ... );
 extern int close( int fd );
 

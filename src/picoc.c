@@ -104,7 +104,8 @@ static void find_scripts(void)
     }
     script_cnt = 0;
     do {
-        if ((file.mode & 0x20) && is_valid_script_filename(file.name)) {
+        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
+        if (is_valid_script_filename(file.name)) {
             
             snprintf(script_list[script_cnt++], FILENAME_SIZE, "%s", file.name);
 

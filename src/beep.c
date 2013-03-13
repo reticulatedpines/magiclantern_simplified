@@ -671,7 +671,7 @@ static int find_wav(int * index, char* fn)
     }
 
     do {
-        if (file.mode & 0x10) continue; // is a directory
+        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
         int n = strlen(file.name);
         if ((n > 4) && (streq(file.name + n - 4, ".WAV")))
             N++;
@@ -697,7 +697,7 @@ static int find_wav(int * index, char* fn)
     int k = 0;
     int found = 0;
     do {
-        if (file.mode & 0x10) continue; // is a directory
+        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
         int n = strlen(file.name);
         if ((n > 4) && (streq(file.name + n - 4, ".WAV")))
         {

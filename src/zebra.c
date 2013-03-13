@@ -2338,6 +2338,7 @@ static void find_cropmarks()
     }
     int k = 0;
     do {
+        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
         if (is_valid_cropmark_filename(file.name))
         {
             if (k >= MAX_CROPMARKS)
