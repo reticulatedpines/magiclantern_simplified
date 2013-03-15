@@ -184,9 +184,7 @@ uint32_t ml_rpc_handler_vignetting(uint8_t *buffer, uint32_t length)
 
 uint32_t ml_rpc_send_vignetting(uint32_t *buffer)
 {
-    static uint32_t xfers = 0;
     RequestRPC(ML_RPC_ID_VIGNETTING, buffer, 0x100 * 4, 0, 0);
-    bmp_printf(SHADOW_FONT(FONT_SMALL), 10, 40, "xfer: %d ", xfers++);
 }
 #endif
 
