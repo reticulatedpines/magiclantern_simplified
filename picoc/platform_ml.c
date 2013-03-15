@@ -1,9 +1,15 @@
 #include "picoc.h"
 #include "interpreter.h"
 
+static char* SourceStr = NULL;
 /* deallocate any storage */
 void PlatformCleanup()
 {
+    if (SourceStr != NULL)
+    {
+        script_free_dma(SourceStr);
+        SourceStr = NULL;
+    }
 }
 
 /* get a line of interactive input */
@@ -39,7 +45,7 @@ char *PlatformReadFile(const char *FileName)
 /* read and scan a file for definitions */
 EXTERN void PicocPlatformScanFile(const char *FileName)
 {
-    char *SourceStr = PlatformReadFile(FileName);
+    SourceStr = PlatformReadFile(FileName);
     if (!SourceStr) return;
 
     console_printf("%s:\n", FileName);
@@ -48,8 +54,6 @@ EXTERN void PicocPlatformScanFile(const char *FileName)
     
     script_msleep(100);
     PicocParse(FileName, SourceStr, strlen(SourceStr), TRUE, TRUE, FALSE);
-
-    script_free_dma(SourceStr);
 }
 
 /* mark where to end the program for platforms which require this */
