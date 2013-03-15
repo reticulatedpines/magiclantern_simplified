@@ -254,11 +254,17 @@ config_save_file(
     
     FILE * file = FIO_CreateFileEx( filename );
     if( file == INVALID_PTR )
+    {
+        free_dma_memory(msg);
         return -1;
+    }
     
     FIO_WriteFile(file, msg, strlen(msg));
 
     FIO_CloseFile( file );
+    
+    free_dma_memory(msg);
+    
     return count;
 }
 
