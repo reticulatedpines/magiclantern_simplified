@@ -4,4 +4,6 @@
 
 #undef CONFIG_AUTOBACKUP_ROM // it will run on slave
 
+#define CONFIG_STATE_OBJECT_HOOKS
+
 // Not sure what we need here, I'll leave it up to g3gg0.

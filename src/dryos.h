@@ -583,7 +583,7 @@ OS_FUNCTION( 0x0400001,	const char*,	get_card_drive, void );
 
 
 uint32_t RegisterRPCHandler (uint32_t rpc_id, uint32_t (*handler) (uint8_t *, uint32_t));
-uint32_t RequestRPC (uint32_t id, void* data, uint32_t length, uint32_t unk2);
+uint32_t RequestRPC (uint32_t id, void* data, uint32_t length, uint32_t cb, uint32_t cb_parm);
 
 
 extern int _dummy_variable;

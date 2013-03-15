@@ -30,6 +30,7 @@ ML_OBJS-y = \
 	gdb.o \
 	ptpbuf.o \
 	ml_rpc.o \
+	state-object.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

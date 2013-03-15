@@ -489,6 +489,10 @@ static void vignetting_correction_set_coeffs(int a, int b, int c)
         if (range > 1023)
             vignetting_data[index] = vignetting_data[index] * 1023 / range;
     }
+    
+#if defined(CONFIG_7D)
+    ml_rpc_send_vignetting(vignetting_data);
+#endif
 }
 
 static void vignetting_correction()
@@ -616,6 +620,7 @@ void image_effects_step()
     
     #ifdef FEATURE_IMAGE_EFFECTS
     
+    #if !defined(CONFIG_7D)
     // bulb ramping calibration works best on grayscale image
     extern int bulb_ramp_calibration_running;
     if (bulb_ramp_calibration_running)
@@ -623,10 +628,10 @@ void image_effects_step()
         EngDrvOutLV(0xc0f0f070, 0x01000100);
         return;
     }
+    static int prev_swap_uv = 0;
 
     if (!is_movie_mode()) return;
 
-    static int prev_swap_uv = 0;
     if (desaturate) EngDrvOutLV(0xc0f0f070, 0x01000100);
     if (negative)   EngDrvOutLV(0xc0f0f000, 0xb1);
     if (swap_uv)    EngDrvOutLV(0xc0f0de2c, 0x10); else if (prev_swap_uv) EngDrvOutLV(0xc0f0de2c, 0);
@@ -658,10 +663,12 @@ void image_effects_step()
     if (sharp)      EngDrvOutLV(0xc0f0f280, -1);
     if (zerosharp)  EngDrvOutLV(0xc0f2116c, 0x0); // sharpness trick: at -1, cancel it completely
 
+    prev_swap_uv = swap_uv;
+    #endif
+
     if (vignetting_correction_enable)
         vignetting_correction();
 
-    prev_swap_uv = swap_uv;
     
     #endif
 }

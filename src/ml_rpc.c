@@ -1,5 +1,5 @@
 /** \file
- * Magic Lantern GUI main task.
+ * Magic Lantern RPC handler for dual-DIGiC cameras.
  *
  * Overrides the DryOS gui_main_task() to be able to re-map events.
  */
@@ -38,6 +38,11 @@ static uint32_t ret_parm1 = 0;
 static uint32_t ret_parm2 = 0;
 static uint32_t ret_parm3 = 0;
 
+static uint32_t ml_rpc_read_addr = 0;
+static uint32_t ml_rpc_read_remain = 0;
+static uint32_t ml_rpc_read_pos = 0;
+static uint32_t *ml_rpc_read_buf = 0;
+
 ml_rpc_request_t ml_rpc_buffer;
 
 void ml_rpc_verbose(uint32_t state)
@@ -64,10 +69,10 @@ uint32_t ml_rpc_send(uint32_t command, uint32_t parm1, uint32_t parm2, uint32_t 
     ml_rpc_buffer.wait = wait;
     
 #if defined(CONFIG_7D_MASTER)
-    RequestRPC(ML_RPC_ID_SLAVE, &ml_rpc_buffer, sizeof(ml_rpc_request_t), 0);    
+    RequestRPC(ML_RPC_ID_SLAVE, &ml_rpc_buffer, sizeof(ml_rpc_request_t), 0, 0);    
     ml_rpc_transferred = ML_RPC_OK;
 #else
-    RequestRPC(ML_RPC_ID_MASTER, &ml_rpc_buffer, sizeof(ml_rpc_request_t), 0);
+    RequestRPC(ML_RPC_ID_MASTER, &ml_rpc_buffer, sizeof(ml_rpc_request_t), 0, 0);
     
     /* now wait until we get some response */
     while(wait && (ml_rpc_transferred == 0))
@@ -93,10 +98,10 @@ uint32_t ml_rpc_send_recv(uint32_t command, uint32_t *parm1, uint32_t *parm2, ui
     ml_rpc_buffer.parm3 = *parm3;
     
 #if defined(CONFIG_7D_MASTER)
-    RequestRPC(ML_RPC_ID_SLAVE, &ml_rpc_buffer, sizeof(ml_rpc_request_t), 0);    
+    RequestRPC(ML_RPC_ID_SLAVE, &ml_rpc_buffer, sizeof(ml_rpc_request_t), 0, 0);    
     ml_rpc_transferred = ML_RPC_OK;
 #else
-    RequestRPC(ML_RPC_ID_MASTER, &ml_rpc_buffer, sizeof(ml_rpc_request_t), 0);
+    RequestRPC(ML_RPC_ID_MASTER, &ml_rpc_buffer, sizeof(ml_rpc_request_t), 0, 0);
     
     /* now wait until we get some response */
     while(wait && (ml_rpc_transferred == 0))
@@ -110,6 +115,36 @@ uint32_t ml_rpc_send_recv(uint32_t command, uint32_t *parm1, uint32_t *parm2, ui
 #endif
     
     return ml_rpc_transferred;
+}
+
+/* read from other digic (bad performance!!) */
+uint32_t ml_rpc_readmem(uint32_t address, uint32_t length, uint8_t *buffer)
+{
+    uint32_t wait = (length / 4) * 50;
+    
+    /* reset flag that signals transfer and contains result */
+    ml_rpc_transferred = 0;
+    
+    ml_rpc_read_remain = length;
+    ml_rpc_read_addr = address;
+    ml_rpc_read_buf = (uint32_t *)buffer;
+    ml_rpc_read_pos = 0;
+    
+    /* build buffer to send */
+    ml_rpc_buffer.message = ML_RPC_READ;
+    ml_rpc_buffer.parm1 = ml_rpc_read_addr;
+    ml_rpc_buffer.parm2 = ml_rpc_read_addr + 4;
+    
+    RequestRPC(ML_RPC_ID_MASTER, &ml_rpc_buffer, sizeof(ml_rpc_request_t), 0, 0);
+    
+    /* now wait until we get some response */
+    while(wait && ml_rpc_read_remain)
+    {
+        msleep(50);
+        wait--;
+    }
+    
+    return wait > 0;
 }
 
 uint32_t ml_rpc_available()
@@ -137,6 +172,25 @@ uint32_t ml_rpc_available()
     return ml_rpc_available_cached == 1;
 }
 
+#if defined(CONFIG_7D_MASTER)
+extern void vignetting_update_table(uint32_t *buffer);
+
+uint32_t ml_rpc_handler_vignetting(uint8_t *buffer, uint32_t length)
+{
+    vignetting_update_table((uint32_t *)buffer);
+}
+
+#else
+
+uint32_t ml_rpc_send_vignetting(uint32_t *buffer)
+{
+    static uint32_t xfers = 0;
+    RequestRPC(ML_RPC_ID_VIGNETTING, buffer, 0x100 * 4, 0, 0);
+    bmp_printf(SHADOW_FONT(FONT_SMALL), 10, 40, "xfer: %d ", xfers++);
+}
+#endif
+
+
 /* why some commands within a struct through one RPC command and not separate RPC handlers?
    in the early steps with RPC its better to use only one communication channel that is known to 
    work with one ID that is known to be free than using many RPC IDs that may cause collisions.
@@ -148,7 +202,7 @@ uint32_t ml_rpc_handler (uint8_t *buffer, uint32_t length)
     
     if(length != sizeof(ml_rpc_request_t))
     {
-        ml_rpc_send(ML_RPC_ERROR, buffer, length, 0, 0);
+        ml_rpc_send(ML_RPC_ERROR, (uint32_t)buffer, length, 0, 0);
     }
     else
     {
@@ -178,6 +232,10 @@ uint32_t ml_rpc_handler (uint8_t *buffer, uint32_t length)
                 
             case ML_RPC_PING:
                 ml_rpc_send(ML_RPC_PING_REPLY, req->parm1, req->parm2, req->parm3, 0);
+                break;
+                
+            case ML_RPC_READ:
+                ml_rpc_send(ML_RPC_READ_REPLY, MEM(req->parm1), MEM(req->parm2), 0, 0);
                 break;
                 
             case ML_RPC_CALL:
@@ -225,6 +283,28 @@ uint32_t ml_rpc_handler (uint8_t *buffer, uint32_t length)
                 ml_rpc_send(ML_RPC_PING_REPLY, req->parm1, req->parm3, req->parm3, 0);
                 break;
                 
+            case ML_RPC_READ_REPLY:
+                if(ml_rpc_read_buf)
+                {
+                    if(ml_rpc_read_remain)
+                    {
+                        ml_rpc_read_buf[ml_rpc_read_pos++] = req->parm1;
+                        ml_rpc_read_remain--;
+                        ml_rpc_read_addr += 4;
+                    }
+                    if(ml_rpc_read_remain)
+                    {
+                        ml_rpc_read_buf[ml_rpc_read_pos++] = req->parm2;
+                        ml_rpc_read_remain--;
+                        ml_rpc_read_addr += 4;
+                    }
+                }
+                if(ml_rpc_read_remain)
+                {
+                    ml_rpc_send(ML_RPC_READ, ml_rpc_read_addr, ml_rpc_read_addr + 4, 0, 0);
+                }
+                break;
+                
             case ML_RPC_PING_REPLY:
                 if(ml_rpc_verbosity)
                 {
@@ -246,6 +326,7 @@ void ml_rpc_init()
 {
 #if defined(CONFIG_7D_MASTER)
     RegisterRPCHandler(ML_RPC_ID_MASTER, &ml_rpc_handler);
+    RegisterRPCHandler(ML_RPC_ID_VIGNETTING, &ml_rpc_handler_vignetting);
 #else
     RegisterRPCHandler(ML_RPC_ID_SLAVE, &ml_rpc_handler);
 #endif

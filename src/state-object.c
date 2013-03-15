@@ -13,8 +13,11 @@
 #ifdef CONFIG_STATE_OBJECT_HOOKS
 
 #ifdef CONFIG_7D
-//#include "cache_hacks.h"
 #define LV_STATE (*(struct state_object **)0x4458)
+#endif
+
+#ifdef CONFIG_7D_MASTER
+#define LV_STATE (*(struct state_object **)0x2A8C)
 #endif
 
 #ifdef CONFIG_550D
@@ -108,8 +111,14 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 }
 */
 
-static void vsync_func() // called once per frame.. in theory :)
+static void vsync_func(uint32_t *ctx) // called once per frame.. in theory :)
 {
+#if defined(CONFIG_7D_MASTER)
+    /* ctx is LiveViewMgr */
+    vignetting_correction(ctx); 
+#elif defined(CONFIG_7D)
+    image_effects_step();
+#else
     #if !defined(CONFIG_EVF_STATE_SYNC)
     // for those cameras, it's called from a different spot of the evf state object
     hdr_step();
@@ -121,6 +130,7 @@ static void vsync_func() // called once per frame.. in theory :)
     #ifdef FEATURE_DISPLAY_SHAKE
     display_shake_step();
     #endif
+#endif
 }
 
 #ifdef CONFIG_550D
@@ -190,14 +200,18 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
     if (self == LV_STATE && input==4 && old_state==4) // AJ_ResetPSave_n_WB_n_LVREC_MVR_EV_EXPOSURESTARTED => perfect sync for digic on 5D2 :)
-    #elif defined(CONFIG_550D) || defined(CONFIG_7D)
+    #elif defined(CONFIG_550D)
     if (self == LV_STATE && input==5 && old_state == 5) // SYNC_GetEngineResource => perfect sync for digic :)
+    #elif defined(CONFIG_7D_MASTER) || defined(CONFIG_7D)
+    if (self == LV_STATE && input==3 && old_state == 3)
     #elif defined(CONFIG_EVF_STATE_SYNC)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt => perfect sync for digic :)
     #else
     if (0)
     #endif
-        vsync_func();
+    {
+        vsync_func(x);
+    }
 
     #if defined(CONFIG_EVF_STATE_SYNC) // exception for overriding ISO
     if (self == EVF_STATE && input == 4 && old_state == 5) // evfSetParamInterrupt
@@ -214,9 +228,9 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 
 static int stateobj_start_spy(struct state_object * stateobj)
 {
-  StateTransition = (void *)stateobj->StateTransition_maybe;
-  stateobj->StateTransition_maybe = (void *)stateobj_spy;
-  return 0; //not used currently
+    StateTransition = (void *)stateobj->StateTransition_maybe;
+    stateobj->StateTransition_maybe = (void *)PIC_RESOLVE(stateobj_spy);
+    return 0; //not used currently
 }
 
 static void state_init(void* unused)
@@ -225,6 +239,10 @@ static void state_init(void* unused)
         stateobj_start_spy(DISPLAY_STATE);
     #endif
     #ifdef LV_STATE
+        while(!LV_STATE)
+        {
+            msleep(50);
+        }
         stateobj_start_spy(LV_STATE);
     #endif
     //~ #ifdef MOVREC_STATE
@@ -238,11 +256,6 @@ static void state_init(void* unused)
         stateobj_start_spy(EMState);
     #endif
     
-    #ifdef CONFIG_7D
-        /* will work, but this is LV only - not recorded */
-        // cache_fake(0xFF10D2F4, BL_INSTR(0xFF10D2F4, &vsync_func), TYPE_ICACHE);
-    #endif
-
     #ifdef CONFIG_550D
     display_is_on_550D = (DISPLAY_STATEOBJ->current_state != 0);
     #endif
