@@ -111,14 +111,8 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 }
 */
 
-static void vsync_func(uint32_t *ctx) // called once per frame.. in theory :)
+static void vsync_func() // called once per frame.. in theory :)
 {
-#if defined(CONFIG_7D_MASTER)
-    /* ctx is LiveViewMgr */
-    vignetting_correction(ctx); 
-#elif defined(CONFIG_7D)
-    image_effects_step();
-#else
     #if !defined(CONFIG_EVF_STATE_SYNC)
     // for those cameras, it's called from a different spot of the evf state object
     hdr_step();
@@ -130,7 +124,6 @@ static void vsync_func(uint32_t *ctx) // called once per frame.. in theory :)
     #ifdef FEATURE_DISPLAY_SHAKE
     display_shake_step();
     #endif
-#endif
 }
 
 #ifdef CONFIG_550D
@@ -202,16 +195,21 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     if (self == LV_STATE && input==4 && old_state==4) // AJ_ResetPSave_n_WB_n_LVREC_MVR_EV_EXPOSURESTARTED => perfect sync for digic on 5D2 :)
     #elif defined(CONFIG_550D)
     if (self == LV_STATE && input==5 && old_state == 5) // SYNC_GetEngineResource => perfect sync for digic :)
-    #elif defined(CONFIG_7D_MASTER) || defined(CONFIG_7D)
-    if (self == LV_STATE && input==3 && old_state == 3)
     #elif defined(CONFIG_EVF_STATE_SYNC)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt => perfect sync for digic :)
     #else
     if (0)
     #endif
     {
-        vsync_func(x);
+        vsync_func();
     }
+    
+    #if defined(CONFIG_7D_MASTER) || defined(CONFIG_7D)
+    if (self == LV_STATE && input==3 && old_state == 3)
+    {
+        vignetting_correction_apply_lvmgr(x);
+    }
+    #endif
 
     #if defined(CONFIG_EVF_STATE_SYNC) // exception for overriding ISO
     if (self == EVF_STATE && input == 4 && old_state == 5) // evfSetParamInterrupt

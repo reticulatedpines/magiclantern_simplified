@@ -173,18 +173,19 @@ uint32_t ml_rpc_available()
 }
 
 #if defined(CONFIG_7D_MASTER)
-extern void vignetting_update_table(uint32_t *buffer);
+extern void vignetting_update_table(uint32_t *buffer, uint32_t length);
 
 uint32_t ml_rpc_handler_vignetting(uint8_t *buffer, uint32_t length)
 {
-    vignetting_update_table((uint32_t *)buffer);
+    vignetting_update_table((uint32_t *)buffer, length);
 }
 
 #else
 
-uint32_t ml_rpc_send_vignetting(uint32_t *buffer)
+/* send vignetting data to master digic. set length to 0 to disable vignetting correction */
+uint32_t ml_rpc_send_vignetting(uint32_t *buffer, uint32_t length)
 {
-    RequestRPC(ML_RPC_ID_VIGNETTING, buffer, 0x100 * 4, 0, 0);
+    RequestRPC(ML_RPC_ID_VIGNETTING, buffer, length, 0, 0);
 }
 #endif
 

@@ -245,30 +245,38 @@ void isrlog(uint32_t isr_id)
 }
 
 
-static uint32_t vignetting_data[0x80];
+static uint32_t vignetting_data_prep[0x80];
+static uint32_t vignetting_enabled = 0;
 
 /* this function is called from slave via RPC */
-void vignetting_update_table(uint32_t *buffer)
+void vignetting_update_table(uint32_t *buffer, uint32_t length)
 {
-    uint32_t index = 0;
-    
-    for(index = 0; index < 0x80; index++)
+    if(length == sizeof(vignetting_data_prep))
     {
-        uint32_t data = (buffer[2*index] & 0x03FF) | ((buffer[2*index+1] & 0x03FF) << 10);
-        vignetting_data[index] = data;
+        uint32_t index = 0;
+        
+        for(index = 0; index < COUNT(vignetting_data_prep); index++)
+        {
+            vignetting_data_prep[index] = buffer[index];
+        }
+        vignetting_enabled = 1;
+    }
+    else
+    {
+        vignetting_enabled = 0;
     }
 }
     
-void vignetting_correction(uint32_t *lvmgr)
+void vignetting_correction_apply_lvmgr(uint32_t *lvmgr)
 {
     uint32_t index = 0;
-    if(lvmgr)
+    if(vignetting_enabled && lvmgr)
     {
         uint32_t *vign = &lvmgr[0x83];
 
-        for(index = 0; index < 0x80; index++)
+        for(index = 0; index < COUNT(vignetting_data_prep); index++)
         {
-            vign[index] = vignetting_data[index];
+            vign[index] = vignetting_data_prep[index];
         }
     }
 }

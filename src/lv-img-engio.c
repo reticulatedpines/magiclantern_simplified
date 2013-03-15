@@ -445,11 +445,15 @@ void digic_dump_h264()
 #endif
 
 static uint32_t vignetting_data[0x100];
+static uint32_t vignetting_data_prep[0x80];
+static int vignetting_correction_initialized = 0;
 
 static CONFIG_INT("digic.vignetting.corr", vignetting_correction_enable, 0);
 static CONFIG_INT("digic.vignetting.a", vignetting_correction_a, 10);
 static CONFIG_INT("digic.vignetting.b", vignetting_correction_b, 0);
 static CONFIG_INT("digic.vignetting.c", vignetting_correction_c, 0);
+
+
 
 // index from 0 to 0x100, value from 0 to 1023
 // indexes greater than VIGNETTING_MAX_INDEX fall outside the image area
@@ -457,6 +461,7 @@ static void vignetting_correction_set(int index, int value)
 {
     vignetting_data[index & 0xFF] = value;
 }
+
 static int vignetting_correction_get(int index)
 {
     return vignetting_data[index & 0xFF];
@@ -490,30 +495,63 @@ static void vignetting_correction_set_coeffs(int a, int b, int c)
             vignetting_data[index] = vignetting_data[index] * 1023 / range;
     }
     
+    /* pre-calculate register values */
+    for(index = 0; index < 0x80; index++)
+    {
+        uint32_t data = (vignetting_data[2*index] & 0x03FF) | ((vignetting_data[2*index+1] & 0x03FF) << 10);
+        vignetting_data_prep[index] = data;
+    }
+    
 #if defined(CONFIG_7D)
-    ml_rpc_send_vignetting(vignetting_data);
+    /* send vignetting data to master */
+    ml_rpc_send_vignetting(vignetting_data_prep, vignetting_correction_enable ? sizeof(vignetting_data_prep) : 0);
 #endif
 }
 
-static void vignetting_correction()
+
+#if defined(CONFIG_7D)
+/* 7D version doesnt rewrite digic registers, but updates canon's register value buffer which is held in LVMgr */
+void vignetting_correction_apply_lvmgr(uint32_t *lvmgr)
 {
-    static int initialized = 0;
-    if (!initialized)
+    uint32_t index = 0;
+    if(vignetting_correction_enable && lvmgr)
     {
-        vignetting_correction_set_coeffs(vignetting_correction_a, vignetting_correction_b, vignetting_correction_c);
-        initialized = 1;
+        uint32_t *vign = &lvmgr[0x83];
+
+        for(index = 0; index < 0x80; index++)
+        {
+            vign[index] = vignetting_data_prep[index];
+        }
+    }
+}
+#else
+/* the other cameras rewrite digic registers */
+static void vignetting_correction_apply_regs()
+{
+    if (!vignetting_correction_initialized || !vignetting_correction_enable)
+    {
+        return;
     }
     
     uint32_t index = 0;
-    for(index = 0; index < 0x100; index+=2)
+    for(index = 0; index < COUNT(vignetting_data_prep); index++)
     {
-        *(volatile uint32_t*)(0xC0F08578) = index;
-        int lo = vignetting_data[index];
-        int hi = vignetting_data[index+1];
-        *(volatile uint32_t*)(0xC0F0857C) = (lo & 0x3FF) | ((hi & 0x3FF) << 10);
+        *(volatile uint32_t*)(0xC0F08578) = index * 2;
+        *(volatile uint32_t*)(0xC0F0857C) = vignetting_data_prep[index];
     }
     
-    *(volatile uint32_t*)(0xC0F08578) = 0x100;
+    *(volatile uint32_t*)(0xC0F08578) = COUNT(vignetting_data_prep) * 2;
+}
+#endif
+
+void vignetting_correction_toggle(void* priv, int delta)
+{
+    uint32_t *state = (uint32_t *)priv;
+    
+    *state = !*state;
+#if defined(CONFIG_7D)
+    ml_rpc_send_vignetting(vignetting_data_prep, *state ? sizeof(vignetting_data_prep) : 0);
+#endif
 }
 
 static int vignetting_luma[0x100];
@@ -618,9 +656,8 @@ void image_effects_step()
     digic_poke_step();
     #endif
     
-    #ifdef FEATURE_IMAGE_EFFECTS
+#ifdef FEATURE_IMAGE_EFFECTS
     
-    #if !defined(CONFIG_7D)
     // bulb ramping calibration works best on grayscale image
     extern int bulb_ramp_calibration_running;
     if (bulb_ramp_calibration_running)
@@ -664,13 +701,9 @@ void image_effects_step()
     if (zerosharp)  EngDrvOutLV(0xc0f2116c, 0x0); // sharpness trick: at -1, cancel it completely
 
     prev_swap_uv = swap_uv;
-    #endif
-
-    if (vignetting_correction_enable)
-        vignetting_correction();
-
     
-    #endif
+    vignetting_correction_apply_regs();
+#endif
 }
 
 void digic_iso_step()
@@ -747,6 +780,7 @@ static struct menu_entry lv_img_menu[] = {
         .name = "Vignetting",
         .max = 1,
         .priv = &vignetting_correction_enable,
+        .select = vignetting_correction_toggle,
         .help = "Vignetting correction or effects.",
         .depends_on = DEP_MOVIE_MODE,
         .submenu_width = 710,
@@ -976,4 +1010,11 @@ static void lv_img_init()
     }
 }
 
+void vignetting_init (void * parm)
+{
+    vignetting_correction_set_coeffs(vignetting_correction_a, vignetting_correction_b, vignetting_correction_c);
+    vignetting_correction_initialized = 1;
+}
+
 INIT_FUNC("lv_img", lv_img_init);
+TASK_CREATE( "vignetting_init", vignetting_init, 0, 0x1e, 0x2000 );
