@@ -749,10 +749,10 @@ void card_benchmark_wr(int bufsize, int K, int N)
     SW1(1,100);
     SW1(0,100);
     msleep(1000);
-    if (bufsize > 1024*1024) bmp_printf(FONT_MED, x, y += font_med.height, "read test skipped: buffer=%d\n", bufsize);
-    else
+    //if (bufsize > 1024*1024) bmp_printf(FONT_MED, x, y += font_med.height, "read test skipped: buffer=%d\n", bufsize);
+    //else
     {
-        void* buf = alloc_dma_memory(bufsize);
+        void* buf = shoot_malloc(bufsize);
         if (buf)
         {
             FILE* f = FIO_Open(CARD_DRIVE"bench.tmp", O_RDONLY | O_SYNC);
@@ -764,7 +764,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
                 FIO_ReadFile(f, UNCACHEABLE(buf), bufsize );
             }
             FIO_CloseFile(f);
-            free_dma_memory(buf);
+            shoot_free(buf);
             int t1 = tic();
             int speed = filesize * 10 / (t1 - t0);
             bmp_printf(FONT_MED, x, y += font_med.height, "Read speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
@@ -1927,7 +1927,7 @@ void draw_electronic_level(int angle, int prev_angle, int force_redraw)
 
 void disable_electronic_level()
 {
-    if (level_data.status == 2)
+    if (lv && level_data.status == 2)
     {
         GUI_SetRollingPitchingLevelStatus(1);
         msleep(100);
@@ -1938,7 +1938,7 @@ void show_electronic_level()
 {
     static int prev_angle10 = 0;
     int force_redraw = 0;
-    if (level_data.status != 2)
+    if (lv && level_data.status != 2)
     {
         GUI_SetRollingPitchingLevelStatus(0);
         msleep(100);
@@ -1969,15 +1969,11 @@ CONFIG_INT("hexdump", hexdump_addr, 0x5024);
 int hexdump_enabled = 0;
 int hexdump_digit_pos = 0; // 0...7, 8=all
 
-static void
-hexdump_print(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC (hexdump_print)
 {
-    int fnt = selected ? MENU_FONT_SEL : MENU_FONT;
+    int fnt = MENU_FONT;
+    int x = info->x;
+    int y = info->y;
     bmp_printf(
         fnt,
         x, y,
@@ -1996,69 +1992,35 @@ hexdump_print(
         );
 }
 
-static void
-hexdump_print_value_hex(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC (hexdump_print_value_hex)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Val hex32 : %x", 
+    MENU_SET_VALUE("%x",
         MEMX(hexdump_addr)
     );
 }
 
-
-static void
-hexdump_print_value_int32(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC (hexdump_print_value_int32)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Val int32 : %d", 
+    MENU_SET_VALUE(
+        "%d", 
         MEMX(hexdump_addr)
     );
 }
 
-static void
-hexdump_print_value_int16(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC (hexdump_print_value_int16)
 {
     int value = MEMX(hexdump_addr);
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Val int16 : %d %d", 
+    MENU_SET_VALUE(
+        "%d %d", 
         value & 0xFFFF, (value>>16) & 0xFFFF
     );
 }
 
-static void
-hexdump_print_value_int8(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC (hexdump_print_value_int8)
 {
     int value = MEMX(hexdump_addr);
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Val int8  : %d %d %d %d", 
+    MENU_SET_VALUE(
+        "%d %d %d %d", 
         (int8_t)( value      & 0xFF),
         (int8_t)((value>>8 ) & 0xFF),
         (int8_t)((value>>16) & 0xFF),
@@ -2066,18 +2028,11 @@ hexdump_print_value_int8(
     );
 }
 
-static void
-hexdump_print_value_str(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC (hexdump_print_value_str)
 {
     if (hexdump_addr & 0xF0000000) return;
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
+    MENU_SET_VALUE(
+        "%s",
         "Val string: %s",
         (char*)hexdump_addr
     );
@@ -2116,15 +2071,15 @@ void hexdump_digit_pos_toggle(void* priv, int dir)
 }
 
 int hexdump_prev = 0;
-void hexdump_deref(void* priv, int dir)
-{
-    hexdump_prev = hexdump_addr;
-    hexdump_addr = MEMX(hexdump_addr);
-}
-
 void hexdump_back(void* priv, int dir)
 {
     hexdump_addr = hexdump_prev;
+}
+void hexdump_deref(void* priv, int dir)
+{
+    if (dir < 0) hexdump_back(void* priv, int dir);
+    hexdump_prev = hexdump_addr;
+    hexdump_addr = MEMX(hexdump_addr);
 }
 #endif
 
@@ -2509,7 +2464,7 @@ void prop_dump()
 
 static void prop_toggle_i(void* priv, int unused) {prop_i = prop_i < 5 ? prop_i + 1 : prop_i == 5 ? 0xE : prop_i == 0xE ? 0x80 : 0; }
 static void prop_toggle_j(void* priv, int unused) {prop_j = mod(prop_j + 1, 0x10); }
-static void prop_toggle_k(void* priv, int unused) {prop_k = mod(prop_k + 1, 0x51); }
+static void prop_toggle_k(void* priv, int dir) {if (dir < 0) prop_toggle_j(priv, dir); prop_k = mod(prop_k + 1, 0x51); }
 #endif
 
 #ifdef CONFIG_KILL_FLICKER
@@ -2538,10 +2493,10 @@ struct menu_entry debug_menus[] = {
         .help = "Display memory contents in real-time (hexdump).",
         .children =  (struct menu_entry[]) {
             {
+                .name = "HexDump",
                 .priv = &hexdump_addr,
                 .select = hexdump_digit_toggle,
-                //~ .select_auto = hexdump_digit_pos_toggle,
-                .display = hexdump_print,
+                .update = hexdump_print,
                 .help = "Address to be analyzed"
             },
             {
@@ -2553,29 +2508,33 @@ struct menu_entry debug_menus[] = {
             {
                 .name = "Pointer dereference",
                 .select = hexdump_deref,
-                .select_reverse = hexdump_back,
                 .help = "Changes address to *(int*)addr [SET] or goes back [PLAY]."
             },
             {
+                .name = "Val hex32",
                 .display = hexdump_print_value_hex,
                 .select = hexdump_toggle_value_int32,
                 .help = "Value as hex."
             },
             {
+                .name = "Val int32",
                 .display = hexdump_print_value_int32,
                 .select = hexdump_toggle_value_int32,
                 .help = "Value as int32."
             },
             {
+                .name = "Val int16",
                 .display = hexdump_print_value_int16,
                 .select = hexdump_toggle_value_int16,
                 .help = "Value as 2 x int16. Toggle: changes second value."
             },
             {
+                .name = "Val int8",
                 .display = hexdump_print_value_int8,
                 .help = "Value as 4 x int8."
             },
             {
+                .name = "Val string",
                 .display = hexdump_print_value_str,
                 .help = "Value as string."
             },
@@ -2705,14 +2664,12 @@ struct menu_entry debug_menus[] = {
                 .priv = stub_test_task,
                 .help = "Tests Canon functions called by ML. SET=once, PLAY=100x."
             },
-            #ifdef CONFIG_PICOC // the tests depend on some picoc functions
             {
                 .name = "Menu integrity test",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = menu_self_test,
                 .help = "Internal menu tests: duplicates, wrap around etc.",
             },
-            #endif
             #if defined(CONFIG_7D)
             {
                 .name = "RPC reliability test (infinite loop)",
@@ -2924,7 +2881,7 @@ struct menu_entry debug_menus[] = {
         .name = "PROP display",
         .display = prop_display,
         .select = prop_toggle_k,
-        .select_reverse = prop_toggle_j,
+        // .select_reverse = prop_toggle_j,
         .select_Q = prop_toggle_i,
         .help = "Raw property display (read-only)",
     },

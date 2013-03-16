@@ -1,6 +1,9 @@
 /** \file
  * Bitrate
  */
+
+#if 0 // I can't understand this mess, sorry...
+
 #include "dryos.h"
 #include "bmp.h"
 #include "tasks.h"
@@ -12,7 +15,9 @@
 #include "lens.h"
 #include "cache_hacks.h"
 
+PROP_INT(PROP_REBOOT_MAYBE, rebootnow);
 int hibr_should_record_wav() { return 0; }
+extern int fps_override;
 
 CONFIG_INT( "h264.goplng", goplength, 0 );
 CONFIG_INT("h264.bitrate", bitrate, 0);
@@ -137,26 +142,28 @@ void bitrate_set()
     if (recording) return; 
 	if (!(ivaparam == 2)) ivaparam= *ivaparamstatus;	
 	if (patched_errors == 0) patch_errors();
+	if (ivaparam == 2 ) MEM(0X78828) = 0;
+	else {
+			if (!ivaparam && h2config !=0 && autoload!=0) load_h264_ini();
+			if (autoload!=0 && (oldh2config!=h2config) && h2config !=0)	load_h264_ini();	
+		  }
 
-		if (!ivaparam && h2config !=0 && autoload!=0) load_h264_ini();
-		if (autoload!=0 && (oldh2config!=h2config) && h2config !=0)	load_h264_ini();	
-	//	MEM(0X78828) = ivaparam;
- 
-       if (!ivaparam || (autoload == 2 || ivaparam ==2)) 
+ 	   
+       if (!ivaparam || (autoload == 2 || ivaparam == 2)) 
 			{
 				if (initqp == 0)
-					MEM(0X78830) =0;
+					MEM(0X78830) = 0;
 						else MEM(0X78830) = initqp;
 
-			    if (bitrate ==0)
-					MEM(0X7882C) =0;
+			    if (bitrate == 0)
+					MEM(0X7882C) = 0;
 						else MEM(0X7882C) = bitrate * 10000000;
 			}
-	   else {	MEM(0X78830) =0;
-				MEM(0X7882C) =0;
+	   else {	MEM(0X78830) = 0;
+				MEM(0X7882C) = 0;
 			 }
 		 oldh2config = h2config;
-	  if (ivaparam==2) MEM(0X78828) =0;
+	  
 //Not Super Useful Yet
 //if (!(goplength==0)) big_gop(goplength);
 			
@@ -185,14 +192,14 @@ PROP_HANDLER(PROP_MVR_REC_START)
     if (buf[0] == 1)
         movie_start_timestamp = get_seconds_clock();
 }
-
+/* This shows 0.
 #if defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
 PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
 PROP_INT(PROP_FREE_SPACE, free_space_raw);
-#else
+#else*/
 extern int cluster_size;
 extern int free_space_raw;
-#endif
+//#endif
 #define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
 
 void free_space_show()
@@ -324,20 +331,60 @@ void free_space_show_photomode()
                );
 }
 
+MENU_UPDATE_FUNC(bit_rated)
+{
+if ( (!ivaparam || (autoload == 2 || ivaparam == 2)) && CURRENT_VALUE != 0)
+MENU_SET_ENABLED(1);
+else
+{ MENU_SET_ENABLED(0);
+	MENU_SET_VALUE("OFF");
+}
 
+}
+
+MENU_UPDATE_FUNC(init_qp_d)
+{
+if ( (!ivaparam || (autoload == 2 || ivaparam == 2)) && CURRENT_VALUE != 0)
+MENU_SET_ENABLED(1);
+else
+{ MENU_SET_ENABLED(0);
+	MENU_SET_VALUE("OFF");
+}
+
+}
+
+MENU_UPDATE_FUNC(ivaparam_d)
+{ 
+if (!ivaparam) { MENU_SET_ENABLED(0); MENU_SET_VALUE("No"); }
+if (ivaparam == 1) { MENU_SET_ENABLED(1);	MENU_SET_VALUE("Yes"); }
+if (ivaparam == 2) { MENU_SET_ENABLED(0);	MENU_SET_VALUE("Disable"); }
+if (ivaparam == 3) { MENU_SET_ENABLED(0);	MENU_SET_VALUE("Check"); }
+					
+}
 static struct menu_entry mov_menus[] = {
+   {     .name = "Encoder",
+		.select = menu_open_submenu,     
+		.help = "Change H.264 bitrate. Pick configs. Be careful, recording may stop!",
+		.submenu_width = 715,        
+//		.edit_mode = EM_MANY_VALUES,
+        .depends_on = DEP_MOVIE_MODE,
+        .children =  (struct menu_entry[]) {
     {
         .name = "Bit Rate     ",
         .priv = &bitrate,
-        .min = 0,
+		.update = bit_rated,        
+		.min = 0,
         .max = 50,
-		.help = "H.264 bitrate. One unit = 10 mb/s. 0 = Off"
+		.icon_type = IT_BOOL,		
+		.help = "H.264 bitrate. One unit = 10 mb/s. 0 = Off"	
     },
     {
         .name = "InitQP     ",
         .priv = &initqp,
+		.update = init_qp_d,        
         .min = 0,
         .max = 50,
+		.icon_type = IT_BOOL,
         .help = "Init QP - Lower is better. 0 = Off"
     },
 /*
@@ -360,21 +407,15 @@ static struct menu_entry mov_menus[] = {
     },
 
     {
-        .name = "Config Loaded ",
-         .priv = &ivaparam,
-         .min = 0,
-         .max = 2,
-		.choices = (const char *[]) {"No", "Yes", "Disable"},        
-		.icon_type = IT_DICE_OFF,
-		.help = "Config Loaded. Disabling may keep some of the parameters"
-    },
-    {
         .name = "Config Select",
         .priv = &h2config,
         .min = 0,
         .max = 3,
         .choices = (const char *[]) {"Off/H264.ini", "CBR Fixed QP", "VBR", "Rate Control"},
         .help = "Select an Encoder Config. If off H264.ini will load."
+    },
+		MENU_EOL
+        },
     },
     {
         .name = "Load Config",
@@ -384,6 +425,18 @@ static struct menu_entry mov_menus[] = {
         .select = load_h264_ini,
         .help = "Manual Load Config from selection"
     },
+
+    {
+        .name = "Config Loaded ",
+         .priv = &ivaparam,
+         .min = 2,
+         .max = 3,
+		.update = ivaparam_d,        
+		.icon_type = IT_BOOL,		
+//		.choices = (const char *[]) {"No", "Yes", "Disable"},    
+		.help = "Config Loaded. Disabling may keep some of the parameters"
+    },
+
     {
         .name = "REC indicator",
         .priv = &time_indicator,
@@ -432,6 +485,17 @@ bitrate_task( void* unused )
             measure_bitrate();
             
             BMP_LOCK( show_mvr_buffer_status(); )
+			if ( (movie_elapsed_time_01s<100) && (movie_elapsed_time_01s>30) && 		
+					(measured_bitrate == 0) && (movie_bytes_written_32k == 0) 
+					&& (!fps_override) )
+						{// ASSERT (0);
+							//call ("SHUTDOWN");
+							//call ("dumpf");
+					NotifyBox(2000,"Not writing! Check settings!");
+					//~ prop_request_change(PROP_REBOOT_MAYBE, 0, 4);
+					//msleep(100000);
+					}
+
         }
         else
         {
@@ -446,3 +510,14 @@ bitrate_task( void* unused )
 
 TASK_CREATE("bitrate_task", bitrate_task, 0, 0x1d, 0x1000 );
 
+#else // dummy stubs so it can compile
+int time_indic_x =  720 - 160; // 160
+int time_indic_y = 0;
+int is_mvr_buffer_almost_full() { return 1; }
+void fps_show() {}
+void free_space_show() {}
+void free_space_show_photomode() {}
+void bitrate_mvr_log(char* mvr_logfile_buffer) {}
+void movie_indicators_show() {}
+int hibr_should_record_wav() {return 0;}
+#endif

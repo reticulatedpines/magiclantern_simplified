@@ -544,7 +544,7 @@ void clear_lv_afframe()
     afframe_countdown = 0;
 }
 
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3) || defined(CONFIG_6D)
 CONFIG_INT("play.quick.zoom", quickzoom, 0);
 CONFIG_INT("qr.zoom.play", ken_rockwell_zoom, 0);
 #else
@@ -1619,6 +1619,14 @@ int handle_arrow_keys(struct event * event)
     }
     #endif
 
+    #ifdef CONFIG_6D
+    if (event->param == BGMT_AFPAT_UNPRESS)
+    {
+        arrow_key_mode_toggle();
+        return 0;
+    }
+    #endif
+
     if (arrow_keys_mode && liveview_display_idle() && !gui_menu_shown())
     {
         // maybe current mode is no longer enabled in menu
@@ -1900,7 +1908,12 @@ void zoom_trick_step()
         //~ (PLAY_MODE && is_pure_play_photo_mode() && current_timestamp - timestamp_for_unknown_button >= 100) ||
         (PLAY_OR_QR_MODE && current_timestamp - timestamp_for_unknown_button >= 100))
     {
-        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+
+        // action!
+        if (zoom_trick == 1) fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+        if (zoom_trick == 2) arrow_key_mode_toggle();
+
+
         timestamp_for_unknown_button = 0;
         numclicks_for_unknown_button = 0;
     }
@@ -2915,7 +2928,11 @@ static void FAST anamorphic_squeeze()
         if (ya > os.y0 && ya < os.y_max)
         {
             if (!mv || (ya > os.y0 + os.off_169 && ya < os.y_max - os.off_169))
-                memcpy(&dst_buf[LV(0,y)/4], &src_buf[LV(0,ya)/4], 720*2);
+                #ifdef CONFIG_DMA_MEMCPY
+                    dma_memcpy(&dst_buf[LV(0,y)/4], &src_buf[LV(0,ya)/4], 720*2);
+                #else
+                    memcpy(&dst_buf[LV(0,y)/4], &src_buf[LV(0,ya)/4], 720*2);
+                #endif
             else
                 yuvcpy_dark(&dst_buf[LV(0,y)/4], &src_buf[LV(0,ya)/4], 720*2, y%2);
         }

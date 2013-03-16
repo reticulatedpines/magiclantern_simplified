@@ -565,9 +565,6 @@ static void fps_setup_timerB(int fps_x1000)
 
     // apply changes
     EngDrvOutLV(0xC0F06000, 1);
-
-    // take care of sound settings to prevent recording from stopping
-    update_sound_recording();
 }
 
 int fps_get_current_x1000()
@@ -1313,6 +1310,9 @@ static void fps_task()
 #endif
             fps_read_current_timer_values();
 
+            // take care of sound settings to prevent recording from stopping
+            update_sound_recording();
+
             int x0 = os.x0;
             int y0 = os.y_max - 2;
             
@@ -1352,6 +1352,9 @@ static void fps_task()
         //~ info_led_off();
         fps_read_current_timer_values();
         //~ bmp_printf(FONT_LARGE, 50, 100, "%dx, new timers: %d,%d ", lv_dispsize, fps_timer_a, fps_timer_b);
+
+        // take care of sound settings to prevent recording from stopping
+        update_sound_recording();
 
         if (!fps_warned && !gui_menu_shown())
         {

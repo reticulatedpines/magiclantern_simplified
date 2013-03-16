@@ -2661,7 +2661,7 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
     if (display_broken_for_mz())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "After using defish/anamorph, go outside LiveView and back.");
     #endif
-    #ifndef CONFIG_5D3
+    #if !defined(CONFIG_5D3) && !defined(CONFIG_6D)
     else if (is_movie_mode() && video_mode_fps > 30)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work well in current video mode");
     #endif
@@ -4134,7 +4134,11 @@ static void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lu
 {
     if (X==1)
     {
+        #ifdef CONFIG_DMA_MEMCPY
+        dma_memcpy(dst, src, num_pix*2);
+        #else
         memcpy(dst, src, num_pix*2);
+        #endif
     }
     else if (X==2)
     {
@@ -4382,11 +4386,17 @@ int liveview_display_idle()
     struct dialog * dialog = current->priv;
     extern thunk LiveViewApp_handler;
     extern uintptr_t new_LiveViewApp_handler;
-    #if defined(CONFIG_5D3) || defined(CONFIG_6D)
+
+    #if defined(CONFIG_5D3)
     extern thunk LiveViewLevelApp_handler;
     #endif
+
     #if defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
     extern thunk LiveViewShutterApp_handler;
+    #endif
+
+    #if defined(CONFIG_6D)
+    extern thunk LiveViewWifiApp_handler;
     #endif
 
     return
@@ -4396,10 +4406,13 @@ int liveview_display_idle()
         ( gui_menu_shown() || // force LiveView when menu is active, but hidden
             ( gui_state == GUISTATE_IDLE && 
               (dialog->handler == (dialog_handler_t) &LiveViewApp_handler || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler
-                  #if defined(CONFIG_5D3) || defined(CONFIG_6D)
+                  #if defined(CONFIG_5D3)
                   || dialog->handler == (dialog_handler_t) &LiveViewLevelApp_handler
                   #endif
-               //~ for this, check value of get_current_dialog_handler()
+                  #if defined(CONFIG_6D)
+                  || dialog->handler == (dialog_handler_t) &LiveViewWifiApp_handler
+                  #endif
+                  //~ for this, check value of get_current_dialog_handler()
                   #if defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
                   || dialog->handler == (dialog_handler_t) &LiveViewShutterApp_handler
                   #endif
@@ -5889,9 +5902,10 @@ void play_422(char* filename)
     else if (size == 1904 * 1274 * 2) { w = 1904; h = 1274; } 
     else if (size == 1620 * 1080 * 2) { w = 1620; h = 1080; } 
     else if (size == 1280 *  720 * 2) { w = 1280; h =  720; } 
-	else if (size == 1808 * 1206 * 2) { w = 1808; h = 1206; } // 6D
-	else if (size == 1680 *  952 * 2) { w = 1680; h =  952; } // 600D
-	else if (size == 1728 *  972 * 2) { w = 1728; h =  972; } // 600D Crop
+    else if (size == 1808 * 1206 * 2) { w = 1808; h = 1206; } // 6D
+    else if (size == 1104 *  736 * 2) { w = 1104; h =  736; } // 6D Zoom
+    else if (size == 1680 *  952 * 2) { w = 1680; h =  952; } // 600D
+    else if (size == 1728 *  972 * 2) { w = 1728; h =  972; } // 600D Crop
     else
     {
         bmp_printf(FONT_LARGE, 0, 50, "Cannot preview this picture.");

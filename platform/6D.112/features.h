@@ -8,6 +8,11 @@
 #undef FEATURE_IMAGE_REVIEW_PLAY // not needed, one can press Zoom right away
 #undef FEATURE_MLU_HANDHELD // not needed, Canon's silent mode is much better
 
+#define FEATURE_AFMA_TUNING
+#define CONFIG_AFMA_EXTENDED
+#define FEATURE_ZOOM_TRICK_5D3 // Doubleclick to zoom/shortcut
+#undef FEATURE_VOICE_TAGS // Asif stop is broken
+
 //#define FEATURE_ZOOM_TRICK_5D3
 ///#define HIJACK_CACHE_HACK Not working Yet
 #define FEATURE_SILENT_PIC_HIRES

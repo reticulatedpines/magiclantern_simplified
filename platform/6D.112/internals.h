@@ -49,19 +49,19 @@
 /** No flip-out display **/
 //~ #define CONFIG_VARIANGLE_DISPLAY
 
-/** Battery does not report exact percentage (I doubt) **/
+/** Battery Displays Percentage **/
 #define CONFIG_BATTERY_INFO
 
 /** We can do bulb exposures (well, I hope) **/
 #define CONFIG_BULB
 
-/** No idea here **/
+/** We have a B mode on the dial. **/
 #define CONFIG_SEPARATE_BULB_MODE
 
 /** We can't control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS
 
-/** No zoom button **/
+/** Zoom IN button but no out. **/
 //~ #define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
@@ -77,7 +77,10 @@
 #define CONFIG_FRAME_ISO_OVERRIDE
 
 /** But we can't override the digital ISO component via FRAME_ISO **/
-//#define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
+#define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
+
+/** We can also override shutter on a per-frame basis */
+#define CONFIG_FRAME_SHUTTER_OVERRIDE
 
 /** ExpSim works, changes in the canon menu too. **/
  #define CONFIG_EXPSIM

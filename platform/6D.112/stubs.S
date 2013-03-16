@@ -71,10 +71,8 @@ NSTUB(0xFF13A12C, SetBitmapVramAddress)
 NSTUB(0xFF18DFD4, SetGUIRequestMode)
 NSTUB(0x752e0, sounddev )  // Maybe 0x752e0 or 0x753f4
 NSTUB(0xFF11E24C, sounddev_task )
-//NSTUB(0xFF136F58, _audio_ic_read) //Alex: 0xff136f5c 
-//NSTUB(0xFF143104, _audio_ic_write) //Alex 0xff136ea4 
 NSTUB(0xFF143104, _audio_ic_write)
-NSTUB(0xFF142934, _audio_ic_read)
+NSTUB(0xFF1424E0, _audio_ic_read)
 NSTUB(0xFF14280C, TestSetAudioHeadPhone)
 NSTUB(0xFF14229C, SerialCommand_Send)
 //NSTUB(0xFF1430BC, SetAudioVolumeOut) // From initialization function.
@@ -130,7 +128,12 @@ NSTUB(0xFFCD1F34 - RAM_OFFSET, task_trampoline)
 NSTUB(0xFFCFB678 - RAM_OFFSET, vsnprintf)
 NSTUB(   0xB99DC, vram_info)
 NSTUB(0xFF713760, LiveViewShutterApp_handler)
-NSTUB(0xFF6BE3DC, LiveViewLevelApp_handler ) //str:DlgLiveViewLevele.c_TERMINATE_WINSYS_DELETE_DI
+
+//~ Doesn't take over like wifi app. level dialog non lv - ff716658
+//NSTUB(0xFF6BE3DC, LiveViewLevelApp_handler ) //str:DlgLiveViewLevele.c_TERMINATE_WINSYS_DELETE_DI
+//NSTUB(0xFF6BE3DC, LiveViewLevelApp_handler ) //str:DlgLiveViewLevele.c_TERMINATE_WINSYS_DELETE_DI
+NSTUB(0xFF716658, DeadViewLevelApp_handler ) //
+NSTUB(0xFF71DB74, LiveViewWifiApp_handler); //str:CONNECT_VIDEO_HDMI_TERMINATE_WINSYS_DELETE_DIA_v3)
 
 NSTUB(0xFF52C7FC, LiveViewApp_handler)
 NSTUB(0xFF52C3C8, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
@@ -138,7 +141,7 @@ NSTUB(0xFF52C3C8, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 
 NSTUB(0xFF3A195C, PlayMain_handler)
 NSTUB(0xFF558BAC, PlayMovieGuideApp_handler)
-	    NSTUB(0xff49c124, ErrCardForLVApp_handler) // not sure
+NSTUB(0xFF6BEBA4, ErrCardForLVApp_handler) // not sure
 NSTUB(0xFF50C514, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
 NSTUB(0xFF52A268, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
 
@@ -170,6 +173,12 @@ NSTUB(0xFF10ACAC, PD_RemoteRelease) //~ string: "COM_RemoteRelease:%lx, %lx"
 NSTUB(0x75F08, task_max)
 NSTUB(0xFFD0EF90 - RAM_OFFSET, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xFFCD4DC8 - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
+
+NSTUB(0xFF2ABD44, asifAIntDmaDac)
+NSTUB(0xFF2AC304, asifAStopDmaDac)
+NSTUB(0xFF2AC3B8, asifAStopDmaAdc)
+NSTUB(0xFF2AC668, asifAFuncIgnore_Give_FuncSync)
+NSTUB(0xFF2AC6A8, asifAIgnore_ASIF)
 
 //NSTUB(0xFF2AA934, PowerAudioOutput)
 NSTUB(0xFF142D54, PowerAudioOutput) //sub_FF142D54 Same Actions
@@ -212,7 +221,3 @@ NSTUB(   0x7AE8C, mvr_config)
 NSTUB(0xFF2AD0CC, mvrFixQScale)
 NSTUB(0xFF2ACBC4, mvrSetDefQScale)
 
-
-
-NSTUB(0xFF35E2CC, X3Current)
-NSTUB(0xFF35E854, DZOOM_ScanModeChange_Step)

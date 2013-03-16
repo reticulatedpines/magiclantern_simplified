@@ -1730,6 +1730,12 @@ silent_pic_take_lv_dbg()
 int silent_pic_matrix_running = 0;
 
 #ifdef FEATURE_SILENT_PIC_HIRES
+
+#if defined(CONFIG_6D)
+#define ZoomBoxOffsetX 24
+#define ZoomBoxOffsetY 301
+#endif
+
 void
 silent_pic_take_sweep(int interactive)
 {
@@ -1750,7 +1756,7 @@ silent_pic_take_sweep(int interactive)
     int afx0 = afframe[2];
     int afy0 = afframe[3];
 
-    set_lv_zoom(5);
+    set_lv_zoom(10);
     msleep(1000);
 
     struct vram_info * vram = get_yuv422_hd_vram();
@@ -1766,8 +1772,16 @@ silent_pic_take_sweep(int interactive)
     int i,j;
     int NL = SILENTPIC_NL;
     int NC = SILENTPIC_NC;
-    int x0 = (SENSOR_RES_X - NC * 1024) / 2;
-    int y0 = (SENSOR_RES_Y - NL * 680) / 2;
+
+
+    #if defined(CONFIG_6D)
+    int x0 = ( (SENSOR_RES_X - NC * 536) / 2) - 536; //612
+    int y0 = ( (SENSOR_RES_Y - NL * ((SENSOR_RES_Y - ZoomBoxOffsetY*2)/NL)  ) / 2 );
+    #else 
+    int x0 = (SENSOR_RES_X - NC * vram_hd.width)  / 2;
+    int y0 = (SENSOR_RES_Y - NL * vram_hd.height) / 2;
+    #endif
+
     for (i = 0; i < NL; i++)
     {
         for (j = 0; j < NC; j++)
@@ -1777,12 +1791,14 @@ silent_pic_take_sweep(int interactive)
             // full-res: 5202x3465
             // buffer size: 1024x680
             bmp_printf(FONT_MED, 100, 100, "Psst! Taking a high-res pic [%d,%d]      ", i, j);
-            afframe[2] = x0 + 1024 * j;
-            afframe[3] = y0 + 680 * i;
+
+            afframe[2] = x0 + vram_hd.width * j;
+            afframe[3] = y0 + vram_hd.height * i;
+
             prop_request_change(PROP_LV_AFFRAME, afframe, 0);
             //~ msleep(500);
             msleep(silent_pic_sweepdelay);
-            FIO_WriteFile(f, vram->vram, 1024 * 680 * 2);
+            FIO_WriteFile(f, vram->vram, vram_hd.width * vram_hd.height * 2);
             //~ bmp_printf(FONT_MED, 20, 150, "=> %d", ans);
             msleep(50);
         }
@@ -5274,6 +5290,15 @@ struct menu_entry tweak_menus_shoot[] = {
                 .depends_on = DEP_MANUAL_FOCUS,
             },
             #ifdef FEATURE_ZOOM_TRICK_5D3
+            #ifdef CONFIG_6D
+            {
+                .name = "Double Click",
+                .priv = &zoom_trick,
+                .max = 2,
+                .help = "Double-click top-right button in LV. Shortcuts or Zoom.",
+                .choices = CHOICES("OFF", "Zoom", "Shortcuts"),
+            },
+            #else // 5D3
             {
                 .name = "Zoom with old button",
                 .priv = &zoom_trick,
@@ -5281,6 +5306,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .help = "Use the old Zoom In button, as in 5D2. Double-click in LV.",
                 .choices = CHOICES("OFF", "ON (!)"),
             },
+            #endif
             #endif
             MENU_EOL
         },

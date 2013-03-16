@@ -4879,6 +4879,7 @@ static void menu_duplicate_test()
     }
 }
 
+#ifdef CONFIG_PICOC
 // for menu entries with custom toggle: check if it wraps around in both directions
 static int entry_check_wrap(const char* name, const char* entry_name, int dir)
 {
@@ -4957,6 +4958,7 @@ void menu_check_wrap()
     }
     console_printf("Wrap test: %d OK, %d bad\n", ok, bad);
 }
+#endif
 
 void menu_self_test()
 {
@@ -4964,7 +4966,9 @@ void menu_self_test()
     console_show();
     menu_duplicate_test();
     console_printf("\n");
+    #ifdef CONFIG_PICOC
     menu_check_wrap();
+    #endif
 }
 
 #endif

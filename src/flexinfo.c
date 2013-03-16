@@ -129,7 +129,7 @@ info_elem_t info_config[] =
     { .string = { { INFO_TYPE_STRING, { 0, -2, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_BOTTOM, 20, INFO_ANCHOR_LEFT | INFO_ANCHOR_BOTTOM, .name = "Sec" }}, INFO_STRING_TIME_SS, COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
 #endif
 
-#if defined(CONFIG_5D3)
+#if defined(CONFIG_5D3) || defined(CONFIG_6D)
     /* print ISO range */
     { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2, .name = "ISO Range" }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
 

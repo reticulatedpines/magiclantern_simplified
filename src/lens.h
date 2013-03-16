@@ -88,7 +88,34 @@ struct lens_info
 
 extern struct lens_info lens_info;
 
+#if defined(CONFIG_6D)
+struct prop_lv_lens
+{  
+        uint32_t                lens_rotation; // Identical Doesn't Change
+        uint32_t                lens_step; // Value Matches initial but doesn't move.
+        uint32_t                off_0x08;
+        uint32_t                off_0x0c;
+        uint32_t                off_0x10;
+        uint32_t                off_0x14;
+        uint32_t                off_0x18;
+        uint32_t                off_0x1c;
+        uint32_t                off_0x20;
+        uint32_t                off_0x24;
+        uint32_t                off_0x28;
+        uint16_t                off_unk0;        
+        uint8_t                 off_unk1;
+        uint16_t                focal_len;      
+        uint16_t                off_unk2;
+        uint16_t                focus_dist;      
+        uint32_t                off_0x30;
+        uint32_t                off_0x34;
+        uint8_t                 off_0x38;
 
+} __attribute__((packed));
+
+SIZE_CHECK_STRUCT( prop_lv_lens, 62 );
+
+#else
 struct prop_lv_lens
 {
         uint32_t                lens_rotation; // float in little-endian actually
@@ -111,6 +138,7 @@ struct prop_lv_lens
 
 SIZE_CHECK_STRUCT( prop_lv_lens, 58 );
 
+#endif
 
 struct prop_focus
 {
