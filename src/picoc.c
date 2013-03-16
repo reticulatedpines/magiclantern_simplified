@@ -218,7 +218,7 @@ static void run_script(const char *script)
 {
     script_state = SCRIPT_RUNNING;
 
-    msleep(300);
+    msleep(500);
     
     console_show();
     console_set_help_text("SET: show/hide");
