@@ -439,9 +439,9 @@ void digic_dump_h264()
 #endif // CONFIG_DIGIC_POKE
 
 #ifdef CONFIG_FULLFRAME
-#define VIGNETTING_MAX_INDEX 155
+#define VIGNETTING_MAX_INDEX 155 // 5D2
 #else
-#define VIGNETTING_MAX_INDEX 80 // not sure
+#define VIGNETTING_MAX_INDEX 145 // 60D
 #endif
 
 static uint32_t vignetting_data[0x100];
@@ -493,6 +493,9 @@ static void vignetting_correction_set_coeffs(int a, int b, int c)
         vignetting_data[index] -= min;
         if (range > 1023)
             vignetting_data[index] = vignetting_data[index] * 1023 / range;
+        
+        // debug - for finding VIGNETTING_MAX_INDEX
+        // vignetting_data[index] = (index > VIGNETTING_MAX_INDEX) ? 1023 : 0;
     }
     
     /* pre-calculate register values */
@@ -1004,10 +1007,6 @@ static void lv_img_init()
     menu_add( "Debug", dbg_menu, COUNT(dbg_menu) );
 #endif
 
-    for (int i = 0; i < 0x100; i++)
-    {
-        vignetting_correction_set(i, MIN(i * 1023 / VIGNETTING_MAX_INDEX, 1023));
-    }
 }
 
 void vignetting_init (void * parm)
