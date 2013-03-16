@@ -1927,7 +1927,7 @@ void draw_electronic_level(int angle, int prev_angle, int force_redraw)
 
 void disable_electronic_level()
 {
-    if (lv && level_data.status == 2)
+    if (level_data.status == 2)
     {
         GUI_SetRollingPitchingLevelStatus(1);
         msleep(100);
@@ -1938,7 +1938,7 @@ void show_electronic_level()
 {
     static int prev_angle10 = 0;
     int force_redraw = 0;
-    if (lv && level_data.status != 2)
+    if (level_data.status != 2)
     {
         GUI_SetRollingPitchingLevelStatus(0);
         msleep(100);
