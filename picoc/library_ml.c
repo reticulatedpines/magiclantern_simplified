@@ -489,6 +489,7 @@ static void LibSetFlash(struct ParseState *Parser, struct Value *ReturnValue, st
     set_flash_firing(strobo_fix_logic(Param[0]->Val->Integer));
 }
 
+REGISTER_PROP_HANDLER(PROP_POPUP_BUILTIN_FLASH, NULL);
 static void LibPopFlash(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     int req = 1;
