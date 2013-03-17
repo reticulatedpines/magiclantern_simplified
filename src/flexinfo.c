@@ -16,7 +16,7 @@
 #define FLEXINFO_DEVELOPER_MENU
 #define FLEXINFO_XML_CONFIG
 
-#ifdef CONFIG_60D
+#if defined(CONFIG_60D) || defined(CONFIG_650D)
 #undef FLEXINFO_DEVELOPER_MENU // squeeze a few K of RAM
 #undef FLEXINFO_XML_CONFIG
 #endif
