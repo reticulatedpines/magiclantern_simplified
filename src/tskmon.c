@@ -215,20 +215,30 @@ static void null_pointer_check()
 
             char* task_name = get_task_name_from_id(id);
 
-            #if defined(CONFIG_60D) || config(1100D)
-            /* ignore two Canon null pointer bugs (let's hope they are harmless...) */
-            /* one is around ff07cb10 and the other around ff013e9c */
-            /* [1100D] AeWB -> pc=ff07dbd4 lr=ff07dbd4 stack=137058+0x4000 entry=ff1ee5d8(9b9604) */
+            // Ignore Canon null pointer bugs (let's hope they are harmless...)
+
+            #if defined(CONFIG_60D) || config(1100D) || config(600D)
+            /* On 60D, one is around ff07cb10 and the other around ff013e9c
+             * [1100D] AeWB -> pc=ff07dbd4 lr=ff07dbd4 stack=137058+0x4000 entry=ff1ee5d8(9b9604)
+             * [600D]  AeWB -> pc=ff07f658 lr=ff07f658 stack=137058+0x4000 entry=ff1fbab4(90df10)
+             */
             if (streq(task_name, "AeWb") || streq(task_name, "FileMgr"))
                 return;
             #endif
 
-            #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_600D)
+            #if defined(CONFIG_550D) || defined(CONFIG_500D)
+            /* Ignore FileMgr NPE
+             * [500D] FileMgr -> pc=ffff0740 lr=ffff0728 stack=13bf88+0x1000 entry=ff1a67b0(65d230)
+             * [550D] FileMgr -> pc=      10 lr=ff01380c stack=113128+0x1000 entry=ff1d8a3c(72c488)
+             */
             if (streq(task_name, "FileMgr"))
                 return;
             #endif
 
             #ifdef CONFIG_5D2
+            /* Ignore USBTrns NPE
+             * [5D2] USBTrns -> pc=ffff0748 lr=ffff0730 stack=15ac60+0x1000 entry=ff914d28(0)
+             */
             if (streq(task_name, "USBTrns"))
                 return;
             #endif
