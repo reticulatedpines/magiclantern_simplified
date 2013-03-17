@@ -158,6 +158,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 
 // sync display filters (for these, we need to redirect display buffers
     #ifdef DISPLAY_STATE
+    #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
     {
         if (!silent_pic_preview())
@@ -172,6 +173,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
         else digic_zoom_overlay_step(1); // cleanup
         #endif
     }
+    #endif
     #endif
     
 #ifdef CONFIG_5D2
