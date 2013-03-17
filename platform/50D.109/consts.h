@@ -98,7 +98,7 @@
 #define MOV_OPT_STEP 2
 #define MOV_GOP_OPT_STEP 2
 
-#define AE_VALUE (*(int8_t*)0xfb30)
+#define AE_VALUE 0 // (*(int8_t*)0xfb30) - reported as not working
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x387C)
 #define CURRENT_DIALOG_MAYBE_2 (*(int*)0x6A50)
