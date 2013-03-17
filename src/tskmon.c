@@ -33,10 +33,10 @@ int tskmon_update_loads(taskload_t *task_loads)
     uint32_t total_runtime = 0;
 
     /* lock interrupts, so data is consistent */
-    uint32_t intflags = cli();    
+    uint32_t intflags = cli();
     memcpy(task_runtimes, tskmon_task_runtimes, sizeof(task_runtimes));
     total_runtime = tskmon_total_runtime;
-    
+
     /* and clear old data */
     for(int pos = 0; pos < TSKMON_MAX_TASKS; pos++)
     {
@@ -44,21 +44,21 @@ int tskmon_update_loads(taskload_t *task_loads)
     }
     tskmon_total_runtime = 0;
     sei(intflags);
-    
+
     /* now process */
     uint32_t idle_time = task_runtimes[tskmon_idle_task_id] + task_runtimes[tskmon_powermgr_task_id];
-    
+
     for(uint32_t pos = 0; pos < TSKMON_MAX_TASKS; pos++)
     {
         task_loads[pos].microseconds = task_runtimes[pos];
-        
+
         task_loads[pos].absolute = (task_runtimes[pos] * TSKMON_PCT_SCALING) / total_runtime;
-        
+
         if(task_loads[pos].absolute_avg > 0)
         {
             task_loads[pos].absolute_avg = (task_loads[pos].absolute_avg + task_loads[pos].absolute) / 2;
         }
-        
+
         /* all loads are relative to powermgr and idle task, so they must not be calculated */
         if((pos == tskmon_idle_task_id) || (pos == tskmon_powermgr_task_id))
         {
@@ -68,24 +68,24 @@ int tskmon_update_loads(taskload_t *task_loads)
         else
         {
             uint32_t base = (total_runtime - idle_time);
-            
+
             /* to prevent divide by zero */
             if(base == 0)
             {
                 base = 1;
             }
-            
+
             task_loads[pos].relative = (task_runtimes[pos] * TSKMON_PCT_SCALING) / base;
-        
+
             if(task_loads[pos].relative_avg > 0)
             {
                 task_loads[pos].relative_avg = (task_loads[pos].relative_avg + task_loads[pos].relative) / 2;
             }
         }
-        
+
         /* update averages */
     }
-    
+
     return (total_runtime - idle_time) * TSKMON_PCT_SCALING / total_runtime;
 }
 
@@ -95,7 +95,7 @@ static void tskmon_update_timers()
 {
     uint32_t current_timer_val = tskmon_get_timer_reg();
     uint32_t delta = 0;
-    
+
     /* handle overflow */
     if(tskmon_last_timer_val > current_timer_val)
     {
@@ -105,7 +105,7 @@ static void tskmon_update_timers()
     {
         delta = current_timer_val - tskmon_last_timer_val;
     }
-    
+
     tskmon_last_timer_val = current_timer_val;
     tskmon_active_time += delta;
 }
@@ -116,7 +116,7 @@ static void tskmon_update_runtime(struct task *task, uint32_t active_time)
     {
         return;
     }
-    
+
     /* is likely to overflow.... */
     if((task->taskId & 0xFF) < TSKMON_MAX_TASKS)
     {
@@ -127,13 +127,13 @@ static void tskmon_update_runtime(struct task *task, uint32_t active_time)
         tskmon_task_runtimes[TSKMON_MAX_TASKS-1] += active_time;
     }
     tskmon_total_runtime += active_time;
-    
+
     /* first time set idle/powermgr task ids */
     if(tskmon_idle_task_id == 0 && !strcmp(task->name, "idle"))
     {
         tskmon_idle_task_id = task->taskId & (TSKMON_MAX_TASKS-1);
     }
-    
+
     if(tskmon_powermgr_task_id == 0 && !strcmp(task->name, "PowerMgr"))
     {
         tskmon_powermgr_task_id = task->taskId & (TSKMON_MAX_TASKS-1);
@@ -143,31 +143,31 @@ static void tskmon_update_runtime(struct task *task, uint32_t active_time)
 static void tskmon_stack_checker(struct task *next_task)
 {
     uint32_t id = (next_task->taskId) & (TSKMON_MAX_TASKS-1);
-    
+
     if(!tskmon_task_stack_check[id])
     {
         return;
     }
-    
+
     uint32_t free = 0;
     uint32_t *ptr = (uint32_t*)(next_task->stackStartAddr);
-    
+
     /* check for magic value */
     while(*ptr == 0x19980218)
     {
         free += 4;
         ptr++;
     }
-    
+
     tskmon_task_stack_free[id] = free;
-    tskmon_task_stack_used[id] = next_task->stackSize - free;    
+    tskmon_task_stack_used[id] = next_task->stackSize - free;
     tskmon_task_stack_check[id] = 0;
-    
+
     /* at 1024 it gives warning for PowerMgr task */
     /* at 512 it gives warning for LightMeasure task */
     if (free < 200)
     {
-        bmp_printf(FONT(FONT_MED, free < 128 ? COLOR_RED : COLOR_WHITE, COLOR_BLACK), 0, 0, 
+        bmp_printf(FONT(FONT_MED, free < 128 ? COLOR_RED : COLOR_WHITE, COLOR_BLACK), 0, 0,
             "[%d] %s: stack %s: free=%d used=%d ",
             id, get_task_name_from_id(id),
             free < 64 ? "overflow" : "warning",
@@ -210,19 +210,20 @@ static void null_pointer_check()
             int ok = value_at_zero;
             int bad = *(int*)0;
             *(int*)0 = value_at_zero;
-            
+
             uint32_t id = (tskmon_last_task->taskId) & (TSKMON_MAX_TASKS-1);
 
             char* task_name = get_task_name_from_id(id);
 
-            #ifdef CONFIG_60D
+            #if defined(CONFIG_60D) || config(1100D)
             /* ignore two Canon null pointer bugs (let's hope they are harmless...) */
             /* one is around ff07cb10 and the other around ff013e9c */
+            /* [1100D] AeWB -> pc=ff07dbd4 lr=ff07dbd4 stack=137058+0x4000 entry=ff1ee5d8(9b9604) */
             if (streq(task_name, "AeWb") || streq(task_name, "FileMgr"))
                 return;
             #endif
 
-            #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_600D)
+            #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_600D)
             if (streq(task_name, "FileMgr"))
                 return;
             #endif
@@ -231,10 +232,10 @@ static void null_pointer_check()
             if (streq(task_name, "USBTrns"))
                 return;
             #endif
-            
+
             static char msg[256];
-                
-            STR_APPEND(msg, "[%d] %s: NULL PTR (%x,%x)\n", 
+
+            STR_APPEND(msg, "[%d] %s: NULL PTR (%x,%x)\n",
                 id, task_name,
                 bad, ok
             );
@@ -252,15 +253,15 @@ void tskmon_task_dispatch()
 {
 #ifdef HIJACK_TASK_ADDR
     struct task *next_task = *(struct task **)(HIJACK_TASK_ADDR);
-    
-    tskmon_stack_checker(next_task);    
+
+    tskmon_stack_checker(next_task);
     tskmon_update_timers();
     null_pointer_check();
-    
+
     if(next_task->taskId != tskmon_last_task->taskId)
     {
         tskmon_update_runtime(tskmon_last_task, tskmon_active_time);
-        
+
         /* restart timer and update active task */
         tskmon_active_time = 0;
         tskmon_last_task = next_task;
@@ -273,7 +274,7 @@ void tskmon_task_dispatch()
 void tskmon_pre_isr()
 {
     tskmon_isr_nesting++;
-    
+
     /* just in case that interrupts are nesting */
     if(tskmon_isr_nesting == 1)
     {
@@ -286,7 +287,7 @@ void tskmon_pre_isr()
 void tskmon_post_isr()
 {
     tskmon_isr_nesting--;
-    
+
     /* just in case that interrupts are nesting */
     if(tskmon_isr_nesting == 0)
     {
@@ -306,18 +307,18 @@ void tskmon_init()
     {
         tskmon_task_runtimes[pos] = 0;
     }
-    
+
     tskmon_idle_task_id = 0;
     tskmon_powermgr_task_id = 0;
     tskmon_last_task = NULL;
     tskmon_last_timer_val = 0;
     tskmon_active_time = 0;
     tskmon_total_runtime = 0;
-    
+
 #ifdef FEATURE_ISR_HOOKS
     extern void (*pre_isr_hook)();
     extern void (*post_isr_hook)();
-    
+
     pre_isr_hook = &tskmon_pre_isr;
     post_isr_hook = &tskmon_post_isr;
 #endif
