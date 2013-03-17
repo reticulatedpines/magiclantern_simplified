@@ -32,22 +32,20 @@
 #include "version.h"
 
 // for movie logging
-char* mvr_logfile_buffer = 0;
+static char* mvr_logfile_buffer = 0;
 /* delay to be waited after mirror is locked */
 CONFIG_INT("mlu.lens.delay", lens_mlu_delay, 7);
 
-void update_stuff();
+static void update_stuff();
 
 //~ extern struct semaphore * bv_sem;
 void bv_update_lensinfo();
 void bv_auto_update();
-void lensinfo_set_aperture(int raw);
-void bv_expsim_shift();
+static void lensinfo_set_aperture(int raw);
+static void bv_expsim_shift();
 
 
-CONFIG_INT("shutter.display.degrees", shutter_display_degrees, 0);
-
-CONFIG_INT("movie.log", movie_log, 0);
+static CONFIG_INT("movie.log", movie_log, 0);
 #ifdef CONFIG_FULLFRAME
 #define SENSORCROPFACTOR 10
 #define crop_info 0
@@ -578,7 +576,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
       }
 
     text_font = SHADOW_FONT(FONT(FONT_LARGE,fgs,bg));
-    if (is_movie_mode() && shutter_display_degrees)
+    /*if (is_movie_mode() && shutter_display_degrees)
     {
         snprintf(shutter, sizeof(shutter), "%d  ", shutter_degrees);
         bmp_printf( text_font, 
@@ -592,7 +590,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                     x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
                     y_origin, 
                     "o");
-    }
+    }*/
  /*   else if (is_movie_mode() && is_hard_shutter_override_active())
     {
         int d = get_shutter_override_degrees_x10();
@@ -611,8 +609,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
                     x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
                     y_origin, 
                     "o");
-    }*/
-    else
+    }
+    else*/
     {
         bmp_printf( text_font, 
                 x_origin + (shutter_x10 <= 3 ? 143 : 123) + font_med.width*2  , 
@@ -977,8 +975,8 @@ void draw_ml_topbar(int double_buffering, int clear)
         double_buffering_end(y, 35);
 }
 
-volatile int lv_focus_done = 1;
-volatile int lv_focus_error = 0;
+static volatile int lv_focus_done = 1;
+static volatile int lv_focus_error = 0;
 
 PROP_HANDLER( PROP_LV_FOCUS_DONE )
 {
@@ -990,7 +988,7 @@ PROP_HANDLER( PROP_LV_FOCUS_DONE )
     }
 }
 
-void
+static void
 lens_focus_wait( void )
 {
     for (int i = 0; i < 100; i++)
@@ -1073,7 +1071,7 @@ void lens_wait_readytotakepic(int wait)
     if (!recording) info_led_off();
 }
 
-int mirror_locked = 0;
+static int mirror_locked = 0;
 int mlu_lock_mirror_if_needed() // called by lens_take_picture; returns 0 if success, 1 if camera took a picture instead of locking mirror
 {
     #ifdef CONFIG_5DC
@@ -1540,14 +1538,14 @@ RAWVAL_FUNC(aperture)
 #define RAW2VALUE(param,rawvalue) ((int)values_##param[raw2index_##param(rawvalue)])
 #define VALUE2RAW(param,value) ((int)val2raw_##param(value))
 
-void lensinfo_set_iso(int raw)
+static void lensinfo_set_iso(int raw)
 {
     lens_info.raw_iso = raw;
     lens_info.iso = RAW2VALUE(iso, raw);
     update_stuff();
 }
 
-void lensinfo_set_shutter(int raw)
+static void lensinfo_set_shutter(int raw)
 {
     //~ bmp_printf(FONT_MED, 600, 100, "liss %d %d ", raw, caller);
     lens_info.raw_shutter = raw;
@@ -1555,7 +1553,7 @@ void lensinfo_set_shutter(int raw)
     update_stuff();
 }
 
-void lensinfo_set_aperture(int raw)
+static void lensinfo_set_aperture(int raw)
 {
     if (raw)
     {
@@ -1736,7 +1734,7 @@ PROP_HANDLER( PROP_WB_KELVIN_LV )
 }
 
 #if !defined(CONFIG_5DC) && !defined(CONFIG_40D)
-uint16_t custom_wb_gains[128];
+static uint16_t custom_wb_gains[128];
 PROP_HANDLER(PROP_CUSTOM_WB)
 {
     ASSERT(len <= sizeof(custom_wb_gains));
@@ -1861,11 +1859,11 @@ void iso_components_update()
     int digic_gain = get_digic_iso_gain_movie();
     if (lens_info.iso_equiv_raw && digic_gain != 1024 && is_movie_mode())
     {
-        lens_info.iso_equiv_raw = lens_info.iso_equiv_raw + (gain_to_ev_x8(digic_gain) - 80);
+        lens_info.iso_equiv_raw = lens_info.iso_equiv_raw + (gain_to_ev_scaled(digic_gain, 8) - 80);
     }
 }
 
-void update_stuff()
+static void update_stuff()
 {
     calc_dof( &lens_info );
     //~ if (gui_menu_shown()) lens_display_set_dirty();
@@ -2124,7 +2122,7 @@ void SW2(int v, int wait)
 
 /** exposure primitives (the "clean" way, via properties) */
 
-int prop_set_rawaperture(unsigned aperture)
+static int prop_set_rawaperture(unsigned aperture)
 {
     // Canon likes only numbers in 1/3 or 1/2-stop increments
     int r = aperture % 8;
@@ -2141,7 +2139,7 @@ int prop_set_rawaperture(unsigned aperture)
     return 0;
 }
 
-int prop_set_rawaperture_approx(unsigned new_av)
+static int prop_set_rawaperture_approx(unsigned new_av)
 {
 
     // Canon likes only numbers in 1/3 or 1/2-stop increments
@@ -2169,7 +2167,7 @@ int prop_set_rawaperture_approx(unsigned new_av)
     return ABS(aperture_ack - (int)new_av) <= 3;
 }
 
-int prop_set_rawshutter(unsigned shutter)
+static int prop_set_rawshutter(unsigned shutter)
 {
     // Canon likes numbers in 1/3 or 1/2-stop increments
     if (is_movie_mode())
@@ -2194,7 +2192,7 @@ int prop_set_rawshutter(unsigned shutter)
     return shutter_ack == s0;
 }
 
-int prop_set_rawshutter_approx(unsigned shutter)
+static int prop_set_rawshutter_approx(unsigned shutter)
 {
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
@@ -2204,7 +2202,7 @@ int prop_set_rawshutter_approx(unsigned shutter)
     return ABS(shutter_ack - shutter) <= 3;
 }
 
-int prop_set_rawiso(unsigned iso)
+static int prop_set_rawiso(unsigned iso)
 {
     lens_wait_readytotakepic(64);
     if (iso) iso = COERCE(iso, MIN_ISO, MAX_ISO); // ISO 100-25600
@@ -2274,7 +2272,7 @@ int bv_set_rawaperture(unsigned aperture)
     }
 }
 
-void bv_expsim_shift_try_iso(int newiso)
+static void bv_expsim_shift_try_iso(int newiso)
 {
     #ifndef FEATURE_LV_DISPLAY_GAIN
     #error This requires FEATURE_LV_DISPLAY_GAIN.
@@ -2306,7 +2304,7 @@ void bv_expsim_shift_try_iso(int newiso)
     CONTROL_BV_ISO = COERCE(newiso, 72, MAX_ISO_BV);
     set_photo_digital_iso_gain_for_bv(g);
 }
-void bv_expsim_shift()
+static void bv_expsim_shift()
 {
     set_photo_digital_iso_gain_for_bv(1024);
     if (!lv) return;
@@ -2360,7 +2358,7 @@ void bv_expsim_shift()
     return;
 }
 
-int bv_auto_should_enable()
+static int bv_auto_should_enable()
 {
     if (!bv_auto) return 0;
     if (!lv) return 0;
@@ -2511,7 +2509,7 @@ void lens_set_wbs_ba(int value)
 // Functions to change camera settings during bracketing
 // They will check the operation and retry if necessary
 // Used for HDR bracketing
-int hdr_set_something(int (*set_something)(int), int arg)
+static int hdr_set_something(int (*set_something)(int), int arg)
 {
     // first try to set it a few times...
     for (int i = 0; i < 5; i++)

@@ -28,17 +28,16 @@ extern void config_autosave_toggle(void* unused, int delta);
 static struct semaphore * beep_sem = 0;
 static struct semaphore * config_save_sem = 0;
 
-void debug_init_func()
+static void debug_init_func()
 {
     beep_sem = create_named_semaphore("beep_sem",1);
     config_save_sem = create_named_semaphore("config_save_sem",1);
 }
 INIT_FUNC("debug", debug_init_func);
 
-void Beep();
 void NormalDisplay();
 void MirrorDisplay();
-void HijackFormatDialogBox_main();
+static void HijackFormatDialogBox_main();
 void config_menu_init();
 void display_on();
 void display_off();
@@ -86,7 +85,7 @@ int rename_file(char* src, char* dst)
 
 void take_screenshot( int also_lv )
 {
-    Beep();
+    beep();
     
     FIO_RemoveFile(CARD_DRIVE"TEST.BMP");
     
@@ -371,39 +370,6 @@ int rand (void)
    return ABS(ans);
 }
 
-volatile int aff[26];
-
-int hdmi_code_array[8];
-
-PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
-{
-    memcpy(hdmi_code_array, buf, 32);
-}
-
-void ChangeHDMIOutputSizeToVGA()
-{
-    hdmi_code_array[0] = 2;
-    prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
-}
-
-void ChangeHDMIOutputSizeToFULLHD()
-{
-    hdmi_code_array[0] = 5;
-    prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
-} 
-
-
-static int compute_signature(int* start, int num)
-{
-	int c = 0;
-	int* p;
-	for (p = start; p < start + num; p++)
-	{
-		c += *p;
-	}
-	return c;
-}
-
 #ifdef CONFIG_ISO_TESTS
 
 void find_response_curve(char* fname)
@@ -663,7 +629,7 @@ FILE * movfile;
 int record_uncomp = 0;
 #endif
 
-void bsod()
+static void bsod()
 {
     msleep(rand() % 20000 + 2000);
     
@@ -698,10 +664,14 @@ void bsod()
     bmp_printf(fnt, 0, y+=h, "   for further assistance and information."                  );
 }
 
-void run_test()
+static void run_test()
 {
-    bsod();
-    call("dumpf");
+#ifdef CONFIG_TCC
+    msleep(1000);
+    
+    console_show();
+    tcc_execute_elf(CARD_DRIVE"test.elf", "main");
+#endif
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -721,7 +691,7 @@ static int tic()
     return now.tm_sec + now.tm_min * 60 + now.tm_hour * 3600 + now.tm_mday * 3600 * 24;
 }
 
-void card_benchmark_wr(int bufsize, int K, int N)
+static void card_benchmark_wr(int bufsize, int K, int N)
 {
     int x = 0;
     static int y = 50;
@@ -781,7 +751,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
     SW1(0,100);
 }
 
-void card_benchmark_task()
+static void card_benchmark_task()
 {
     msleep(1000);
     if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
@@ -813,7 +783,7 @@ void card_benchmark_task()
     task_create("change_colors", 0x1c, 0, change_colors_like_crazy, 0);
 }*/
 
- void stress_test_picture(int n, int delay)
+static void stress_test_picture(int n, int delay)
 {
     if (shutter_count > 50000) { beep(); return; }
     msleep(delay);
@@ -833,8 +803,8 @@ void card_benchmark_task()
 #define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); int ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
 #define TEST_TRY_FUNC_CHECK_STR(x, expected_string) { char* ans = (char*)(x); int ok = streq(ans, expected_string); TEST_MSG("[%s] %s => '%s'\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
 
-int test_task_created = 0;
-void test_task() { test_task_created = 1; }
+static int test_task_created = 0;
+static void test_task() { test_task_created = 1; }
 
 static void stub_test_task(void* arg)
 {
@@ -1131,7 +1101,7 @@ static void stress_test_task(void* unused)
         if (i == 250)
         {
             msleep(2000);
-            menu_stop();
+            gui_stop_menu();
             msleep(500);
             if (!lv) force_liveview();
         }
@@ -1139,7 +1109,7 @@ static void stress_test_task(void* unused)
         if (i == 500)
         {
             msleep(2000);
-            menu_stop();
+            gui_stop_menu();
             msleep(500);
             ensure_movie_mode();
             movie_start();
@@ -1148,7 +1118,7 @@ static void stress_test_task(void* unused)
         if (i == 750)
         {
             msleep(2000);
-            menu_stop();
+            gui_stop_menu();
             msleep(500);
             movie_end();
             msleep(2000);
@@ -1162,7 +1132,7 @@ static void stress_test_task(void* unused)
 
     }
     msleep(2000);
-    menu_stop();
+    gui_stop_menu();
     msleep(1000);
     if (!lv) force_liveview();
     msleep(2000);
@@ -1179,7 +1149,7 @@ static void stress_test_task(void* unused)
         fake_simple_button(BGMT_WHEEL_RIGHT);
         msleep(rand()%500);
     }
-    menu_stop();
+    gui_stop_menu();
     msleep(2000);
 #endif
 
@@ -1202,7 +1172,7 @@ static void stress_test_task(void* unused)
         dir = mod(dir + rand()%3 - 1, 7);
         msleep(MIN_MSLEEP);
     }
-    menu_stop();
+    gui_stop_menu();
 
     msleep(2000);
 
@@ -1372,7 +1342,8 @@ static void stress_test_task(void* unused)
     msleep(2000);
 
     NotifyBox(10000, "Menu scrolling");
-    open_canon_menu();
+    fake_simple_button(BGMT_MENU);
+    msleep(1000);
     for (int i = 0; i < 5000; i++)
         fake_simple_button(BGMT_WHEEL_LEFT);
     for (int i = 0; i < 5000; i++)
@@ -1624,7 +1595,7 @@ static void stress_test_random_task(void* unused)
 }
 */
 
-void stress_test_menu_dlg_api_task(void* unused)
+static void stress_test_menu_dlg_api_task(void* unused)
 {
     msleep(2000);
     info_led_blink(5,50,50);
@@ -1839,32 +1810,6 @@ static void dbg_memspy_update()
     }
 }
 #endif
-
-/* called from misc_shooting_info() in shoot.c */
-void display_clock()
-{
-#ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
-    int bg = bmp_getpixel(15, 430);
-
-    struct tm now;
-    LoadCalendarFromRTC( &now );
-    if (!lv)
-    {
-#ifdef CONFIG_7D
-        /* moved to flexinfo */
-#else
-        bg = bmp_getpixel( DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y );
-        uint32_t fnt = FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bg);
-        bmp_printf(fnt, DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y, "%02d:%02d", now.tm_hour, now.tm_min);
-#endif
-    }
-
-    static int prev_min = 0;
-    if (prev_min != now.tm_min) redraw();
-    prev_min = now.tm_min;
-#endif
-}
-
 
 #if CONFIG_DEBUGMSG
 static void dbg_draw_props(int changed);
@@ -2097,7 +2042,7 @@ int GetFreeMemForAllocateMemory()
 }
 
 #ifdef CONFIG_CRASH_LOG
-void save_crash_log()
+static void save_crash_log()
 {
     static char log_filename[100];
     
@@ -2142,7 +2087,7 @@ void save_crash_log()
 
 }
 
-void crash_log_step()
+static void crash_log_step()
 {
     static int dmlog_saved = 0;
     if (crash_log_requested)
@@ -2218,7 +2163,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
     }
 }
 
-void screenshot_start(void* priv, int delta)
+static void screenshot_start(void* priv, int delta)
 {
     screenshot_sec = 10;
 }
@@ -2484,7 +2429,7 @@ extern void peaking_benchmark();
 extern int show_cpu_usage_flag;
 
 
-struct menu_entry debug_menus[] = {
+static struct menu_entry debug_menus[] = {
 #ifdef CONFIG_HEXDUMP
     { 
         .name = "Memory Browser",
@@ -2664,12 +2609,14 @@ struct menu_entry debug_menus[] = {
                 .priv = stub_test_task,
                 .help = "Tests Canon functions called by ML. SET=once, PLAY=100x."
             },
+            #ifdef CONFIG_PICOC // the tests depend on some picoc functions
             {
                 .name = "Menu integrity test",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = menu_self_test,
                 .help = "Internal menu tests: duplicates, wrap around etc.",
             },
+            #endif
             #if defined(CONFIG_7D)
             {
                 .name = "RPC reliability test (infinite loop)",
@@ -3251,7 +3198,7 @@ unsigned GetFileSize(char* filename)
     return size;
 }
 
-int ReadFileToBuffer(char* filename, void* buf, int maxsize)
+static int ReadFileToBuffer(char* filename, void* buf, int maxsize)
 {
     int size = GetFileSize(filename);
     if (!size) return 0;
@@ -3267,7 +3214,7 @@ int ReadFileToBuffer(char* filename, void* buf, int maxsize)
 
 int keep_ml_after_format = 1;
 
-void HijackFormatDialogBox()
+static void HijackFormatDialogBox()
 {
     if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
     struct gui_task * current = gui_task_list.current;
@@ -3298,7 +3245,7 @@ void HijackFormatDialogBox()
     dialog_redraw(dialog);
 }
 
-void HijackCurrentDialogBox(int string_id, char* msg)
+static void HijackCurrentDialogBox(int string_id, char* msg)
 {
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
@@ -3320,7 +3267,7 @@ int handle_keep_ml_after_format_toggle()
  * for testing dialogs and string IDs
  */
 
-void HijackDialogBox()
+static void HijackDialogBox()
 {
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
@@ -3347,7 +3294,7 @@ void* tmp_buffer = 0;
 void* tmp_buffer_ptr = 0;
 #define TMP_MAX_BUF_SIZE 15000000
 
-int TmpMem_Init()
+static int TmpMem_Init()
 {
     ASSERT(!tmp_buffer);
     ASSERT(!tmp_files);
@@ -3386,13 +3333,13 @@ int TmpMem_Init()
     return 1;
 }
 
-void TmpMem_Done()
+static void TmpMem_Done()
 {
     SmallFree(tmp_files); tmp_files = 0;
     shoot_free(tmp_buffer); tmp_buffer = 0;
 }
 
-void TmpMem_UpdateSizeDisplay(int counting)
+static void TmpMem_UpdateSizeDisplay(int counting)
 {
     int size = tmp_buffer_ptr - tmp_buffer;
     int size_mb = size * 10 / 1024 / 1024;
@@ -3402,7 +3349,7 @@ void TmpMem_UpdateSizeDisplay(int counting)
     HijackCurrentDialogBox(3, msg);
 }
 
-void TmpMem_AddFile(char* filename)
+static void TmpMem_AddFile(char* filename)
 {
     if (!tmp_buffer) return;
     if (!tmp_buffer_ptr) return;
@@ -3432,7 +3379,7 @@ void TmpMem_AddFile(char* filename)
     }
 }
 
-void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
+static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
 {
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
@@ -3455,7 +3402,7 @@ void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
     FIO_CleanupAfterFindNext_maybe(dirent);
 }
 
-void CopyMLFilesToRAM_BeforeFormat()
+static void CopyMLFilesToRAM_BeforeFormat()
 {
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
     TmpMem_AddFile(CARD_DRIVE "MAGIC.FIR");
@@ -3472,7 +3419,7 @@ void CopyMLFilesToRAM_BeforeFormat()
 }
 
 // check if autoexec.bin is present on the card
-int check_autoexec()
+static int check_autoexec()
 {
     FILE * f = FIO_Open(CARD_DRIVE "AUTOEXEC.BIN", 0);
     if (f != (void*) -1)
@@ -3485,7 +3432,7 @@ int check_autoexec()
 
     
 // check if magic.fir is present on the card
-int check_fir()
+static int check_fir()
 {
     FILE * f = FIO_Open(CARD_DRIVE "MAGIC.FIR", 0);
     if (f != (void*) -1)
@@ -3496,7 +3443,7 @@ int check_fir()
     return 0;
 }
 
-void CopyMLFilesBack_AfterFormat()
+static void CopyMLFilesBack_AfterFormat()
 {
     int i;
     char msg[100];
@@ -3533,7 +3480,7 @@ void CopyMLFilesBack_AfterFormat()
     HijackCurrentDialogBox(STR_LOC, "Format");
 }
 
-void HijackFormatDialogBox_main()
+static void HijackFormatDialogBox_main()
 {
     if (!MENU_MODE) return;
     if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
@@ -3612,15 +3559,15 @@ void spy_event(struct event * event)
     }
 }
 
-int halfshutter_pressed;
+static int halfshutter_pressed;
 #ifdef CONFIG_5DC
 bool get_halfshutter_pressed() { return halfshutter_pressed; }
 #else
 bool get_halfshutter_pressed() { return HALFSHUTTER_PRESSED && !dofpreview; }
 #endif
 
-int zoom_in_pressed = 0;
-int zoom_out_pressed = 0;
+static int zoom_in_pressed = 0;
+static int zoom_out_pressed = 0;
 int get_zoom_out_pressed() { return zoom_out_pressed; }
 int joy_center_pressed = 0;
 
@@ -3678,9 +3625,9 @@ int handle_tricky_canon_calls(struct event * event)
         case MLEV_TURN_OFF_DISPLAY:
             if (DISPLAY_IS_ON) call("TurnOffDisplay");
             break;
-        case MLEV_ChangeHDMIOutputSizeToVGA:
+        /*case MLEV_ChangeHDMIOutputSizeToVGA:
             ChangeHDMIOutputSizeToVGA();
-            break;
+            break;*/
         case MLEV_LCD_SENSOR_START:
             #ifdef CONFIG_LCD_SENSOR
             DispSensorStart();

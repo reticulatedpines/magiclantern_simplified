@@ -73,7 +73,7 @@ global_property_handler(
 
 static unsigned property_list[256];
 
-void
+static void
 prop_init( void* unused )
 {
     int actual_num_properties = 0;
@@ -172,7 +172,7 @@ int _get_prop_len(int prop)
 }*/
 
 /* return cached length of property */
-uint32_t prop_get_prop_len(uint32_t property)
+static uint32_t prop_get_prop_len(uint32_t property)
 {
     struct prop_handler * handler = NULL;
 

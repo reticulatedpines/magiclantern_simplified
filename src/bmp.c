@@ -1404,7 +1404,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
 // http://chdk.setepontos.com/index.php?topic=6204.0
 
 // quick sanity test
-int bfnt_ok()
+static int bfnt_ok()
 {
     int* codes = (int*) BFNT_CHAR_CODES;
     int i;
@@ -1422,7 +1422,7 @@ int bfnt_ok()
 }
 
 // are all char codes in ascending order, for binary search?
-uint8_t* bfnt_find_char(int code)
+static uint8_t* bfnt_find_char(int code)
 {
     if (code < 0) // that's a ML icon
     {
@@ -1818,7 +1818,7 @@ int load_vram(const char * filename)
 
 void * bmp_lock = 0;
 
-void bmp_init(void* unused)
+static void bmp_init(void* unused)
 {
     bmp_lock = CreateRecursiveLock(0);
     ASSERT(bmp_lock)

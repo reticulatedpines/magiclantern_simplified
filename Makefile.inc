@@ -165,9 +165,6 @@ AFLAGS=\
     
 LFLAGS=
 
-# default libraries are arm-${ARM_ABI} with full optimization -O3
-LIB_TYPE = arm-${ARM_ABI}-O3
-
 CFLAGS += $(CFLAG_USER)
 LFLAGS += $(LFLAG_USER)
 AFLAGS += $(AFLAG_USER)
@@ -192,7 +189,7 @@ ifeq ($(CONFIG_PIC), y)
 CFLAGS += -fPIC -DPOSITION_INDEPENDENT
 AFLAGS += -fPIC -DPOSITION_INDEPENDENT
 LFLAGS += -fPIC
-LIB_TYPE = arm-${ARM_ABI}-O3-fPIC
+# fixme: dietlib with -fPIC
 endif
 
 ifeq ($(CONFIG_PICOC),y)
@@ -200,6 +197,13 @@ ifneq ($(CONFIG_CONSOLE),y)
 $(error CONFIG_PICOC requires CONFIG_CONSOLE = y, please enable it)
 endif
 CFLAGS += -DCONFIG_PICOC
+endif
+
+ifeq ($(CONFIG_TCC),y)
+ifneq ($(CONFIG_CONSOLE),y)
+$(error CONFIG_TCC requires CONFIG_CONSOLE = y, please enable it)
+endif
+CFLAGS += -DCONFIG_TCC
 endif
 
 ifeq ($(CONFIG_CONSOLE),y)
@@ -290,41 +294,68 @@ ML_OBJS-$(CONFIG_PICOC)	+= \
 	picoc.o \
 	chdk-gui_script.o \
 
+ML_OBJS-$(CONFIG_TCC) += \
+	tcc-glue.o \
+	tcc-gui.o \
+	chdk-gui_script.o \
+	script_lib.o \
+	$(TOP_DIR)/tcc/libtcc.a \
+
 endif
+
+$(TOP_DIR)/tcc/libtcc.a: FORCE
+	make -C $(TOP_DIR)/tcc
 
 # Extract the stdio files that we need
-STDIO_OBJ = \
-	lib_a-setjmp.o \
-	lib_a-strcmp.o \
-	lib_a-strlen.o \
-	lib_a-strncmp.o \
-	lib_a-strcpy.o \
-	lib_a-memcpy.o \
-	lib_a-memset.o \
+DIET_OBJ = \
+	strrchr.o \
+	strncpy.o \
+	strlen.o \
+	strncmp.o \
+	strcpy.o \
+	strcmp.o \
+	memset.o \
+	memcpy.o \
+	memccpy.o \
+	setjmp.o \
+	longjmp.o \
+	__longjmp.o \
+	sigjmp.o \
+	sigprocmask.o \
+	rt_sigprocmask.o \
+	unified.o \
+	errno.o \
+	errno_location.o \
+	sscanf.o \
+	vsscanf.o \
+	__v_scanf.o \
+	sprintf.o \
+	vsprintf.o \
+	strtold.o \
+	strtod.o \
+	memmove.o \
+	strtof.o \
+	strtoull.o \
+	strtol.o \
+	strtoul.o \
+	strchr.o \
+	memcmp.o \
+	atoi.o \
+	atol.o \
 
-ifneq ($(CONFIG_NO_EXTRA_OBJS),y)
-ifeq ($(CONFIG_PICOC),y)
+DIETLIBC_A = $(SRC_DIR)/libs/dietlib-0.33-none-eabi-Os/dietlibc.a
 
-STDIO_OBJ += \
-	lib_a-strncpy.o \
-	lib_a-ctype_.o \
-	lib_a-strrchr.o \
+$(DIET_OBJ): $(DIETLIBC_A)
+	$(call build,AR,$(AR) x $? $(DIET_OBJ))
 
-endif
-endif
-
-$(STDIO_OBJ): $(ARM_LIBC_A)
-	$(call build,AR,$(AR) x $? $(STDIO_OBJ))
-
-libstdio.a: $(STDIO_OBJ)
+dietlibc.a: $(DIET_OBJ)
 	$(call build,AR,$(AR) cr $@ $^)
 
-magiclantern: $(ML_OBJS-y) libstdio.a
+magiclantern: $(ML_OBJS-y) dietlibc.a
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-N \
 		$(LFLAGS) \
-		-L../../src/libs/$(LIB_TYPE) \
 		-nostdlib \
 		-mthumb-interwork \
 		-march=armv5te \
@@ -644,5 +675,6 @@ DEPS  := $(COBJS:.o=.d)
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 %.bin: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
+	$(READELF) -sW $< | grep 'GLOBAL' | grep -E 'FUNC|OBJECT' | gawk '{print $$2, $$8;}' | grep -v '^ ' | sort > $<.sym
 
 zip: prepare_zip magiclantern-$(VERSION).zip

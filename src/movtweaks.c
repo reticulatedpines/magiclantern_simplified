@@ -41,7 +41,28 @@
 
 void update_lvae_for_autoiso_n_displaygain();
 
+#ifdef FEATURE_FORCE_HDMI_VGA
 CONFIG_INT("hdmi.force.vga", hdmi_force_vga, 0);
+
+static int hdmi_code_array[8];
+
+PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
+{
+    memcpy(hdmi_code_array, buf, 32);
+}
+
+static void ChangeHDMIOutputSizeToVGA()
+{
+    hdmi_code_array[0] = 2;
+    prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
+}
+
+static void ChangeHDMIOutputSizeToFULLHD()
+{
+    hdmi_code_array[0] = 5;
+    prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
+} 
+#endif
 
 // WB workaround (not saved in movie mode)
 //**********************************************************************
@@ -88,7 +109,7 @@ void kelvin_wb_workaround_step()
 }
 #endif
 
-int ml_changing_shooting_mode = 0;
+static int ml_changing_shooting_mode = 0;
 PROP_HANDLER(PROP_SHOOTING_MODE)
 {
     kelvin_wb_dirty = 1;
@@ -108,16 +129,16 @@ void set_shooting_mode(int m)
     ml_changing_shooting_mode = 0;
 }
 
-CONFIG_INT("movie.restart", movie_restart,0);
+static CONFIG_INT("movie.restart", movie_restart,0);
 
 #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
 CONFIG_INT("movie.cliplen", movie_cliplen,0);
 #endif
 
 //~ CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
-CONFIG_INT("movie.rec-key", movie_rec_key, 0);
-CONFIG_INT("movie.rec-key-action", movie_rec_key_action, 0);
-CONFIG_INT("movie.rec-key-long", movie_rec_key_long, 0);
+static CONFIG_INT("movie.rec-key", movie_rec_key, 0);
+static CONFIG_INT("movie.rec-key-action", movie_rec_key_action, 0);
+static CONFIG_INT("movie.rec-key-long", movie_rec_key_long, 0);
 
 #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
 
@@ -153,7 +174,7 @@ static MENU_UPDATE_FUNC(movie_cliplen_display)
 
 #ifdef FEATURE_MOVIE_REC_KEY
 
-void movie_rec_halfshutter_step()
+static void movie_rec_halfshutter_step()
 {
     if (!movie_rec_key) return;
     if (!is_movie_mode() || !liveview_display_idle() || gui_menu_shown()) return;
@@ -232,8 +253,8 @@ void force_liveview()
 #endif
 }
 
-CONFIG_INT("shutter.lock", shutter_lock, 0);
-CONFIG_UNSIGNED("shutter.lock.value", shutter_lock_value, 0);
+static CONFIG_INT("shutter.lock", shutter_lock, 0);
+static CONFIG_UNSIGNED("shutter.lock.value", shutter_lock_value, 0);
 
 #ifdef FEATURE_SHUTTER_LOCK
 static void
@@ -252,7 +273,7 @@ shutter_lock_print(
     );
 }
 
-void shutter_lock_step()
+static void shutter_lock_step()
 {
     if (is_movie_mode()) // no effect in photo mode
     {
@@ -318,6 +339,17 @@ movtweak_task_init()
     bv_auto_update_startup();
     bv_startup = 0;
 #endif
+}
+
+static int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
+{
+    extern thunk ErrCardForLVApp_handler;
+    for (int i = 0; i <= wait/20; i++)
+    {
+        if ((intptr_t)get_current_dialog_handler() == (intptr_t)&ErrCardForLVApp_handler) return 1;
+        msleep(20);
+    }
+    return 0;
 }
 
 void movtweak_step()
@@ -594,7 +626,7 @@ void rec_notify_trigger(int rec)
  * 
  */
 
-struct semaphore * bv_sem = 0;
+static struct semaphore * bv_sem = 0;
 
 CONFIG_INT("bv.auto", bv_auto, 0);
 
@@ -684,10 +716,10 @@ PROP_HANDLER(PROP_LIVE_VIEW_VIEWTYPE)
 }
 #endif
 
-CONFIG_INT("lvae.iso.min", lvae_iso_min, 72);
-CONFIG_INT("lvae.iso.max", lvae_iso_max, 104);
-CONFIG_INT("lvae.iso.spd", lvae_iso_speed, 10);
-CONFIG_INT("lvae.disp.gain", lvae_disp_gain, 0);
+//~ CONFIG_INT("lvae.iso.min", lvae_iso_min, 72);
+//~ CONFIG_INT("lvae.iso.max", lvae_iso_max, 104);
+//~ CONFIG_INT("lvae.iso.spd", lvae_iso_speed, 10);
+//~ CONFIG_INT("lvae.disp.gain", lvae_disp_gain, 0);
 
 static PROP_INT(PROP_BV, prop_bv);
 
@@ -780,12 +812,6 @@ void update_lvae_for_autoiso_n_displaygain()
 #endif
 }
 #endif
-
-int gain_to_ev_x8(int gain)
-{
-    if (gain == 0) return 0;
-    return (int) roundf(log2f(gain) * 8.0f);
-}
 
 CONFIG_INT("iso.smooth", smooth_iso, 0);
 CONFIG_INT("iso.smooth.spd", smooth_iso_speed, 2);
@@ -1164,7 +1190,7 @@ void movie_tweak_menu_init()
 {
     menu_add( "Movie", movie_tweaks_menus, COUNT(movie_tweaks_menus) );
 }
-void movtweak_init()
+static void movtweak_init()
 {
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
     #ifdef FEATURE_EXPO_OVERRIDE

@@ -272,7 +272,7 @@ static int calc_fps_x1000(int timerA, int timerB)
     return f / timerB;
 }
 
-int get_current_tg_freq()
+static int get_current_tg_freq()
 {
     int timerA = (FPS_REGISTER_A_VALUE & 0xFFFF) + 1;
     if (timerA == 1) return 0;
@@ -491,9 +491,9 @@ static int fps_get_timer(int fps_x1000)
 }
 
 // used to see if Canon firmware changed FPS settings
-int written_value_a = 0;
-int written_value_b = 0;
-int fps_needs_updating = 0;
+static int written_value_a = 0;
+static int written_value_b = 0;
+static int fps_needs_updating = 0;
 /*int fps_was_changed_by_canon() 
 { 
     int ans = 
@@ -850,7 +850,7 @@ static int fps_try_to_get_exact_freq(int fps_x1000)
     return best_t;
 }
 
-int fps_try_to_get_180_360_shutter(int fps_x1000)
+static int fps_try_to_get_180_360_shutter(int fps_x1000)
 {
     // EAtarget = (E0 + (1/Fb - 1/F0)) * Ta / Ta0 => solve for Ta
     // Fb = TG / Ta0 / Tb
@@ -902,7 +902,7 @@ Technical: timer B can be altered via engio (with side effect) or via table patc
 
 */
 
-void fps_setup_timerA(int fps_x1000)
+static void fps_setup_timerA(int fps_x1000)
 {
     if (!lv) return;
     if (!DISPLAY_IS_ON && !recording) return;

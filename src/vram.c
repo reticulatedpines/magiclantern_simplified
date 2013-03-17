@@ -58,7 +58,7 @@ int bm2lv_x_cache[BMP_W_PLUS - BMP_W_MINUS];
 //~ int bm2hd_r_cache[BMP_H_PLUS - BMP_H_MINUS];
 int y_times_BMPPITCH_cache[BMP_H_PLUS - BMP_H_MINUS];
 
-void vram_update_luts()
+static void vram_update_luts()
 {
     for (int x = BMP_W_MINUS; x < BMP_W_PLUS; x++) 
     {
@@ -132,7 +132,7 @@ void vram_params_set_dirty()
 
 static uint32_t hd_size = 0;
 
-void vram_params_update_if_dirty()
+static void vram_params_update_if_dirty()
 {
     #ifdef REG_EDMAC_WRITE_LV_ADDR
     // EDMAC sizes may update after prop handlers, so check if their values changed
@@ -183,8 +183,8 @@ char vram_param_names[][12] = {
 
 #endif
 
-int digital_zoom_ratio = 0;
-int logical_connect=0;
+static int digital_zoom_ratio = 0;
+static int logical_connect=0;
 
 PROP_HANDLER(PROP_DIGITAL_ZOOM_RATIO)
 {
@@ -198,7 +198,7 @@ PROP_HANDLER(PROP_LOGICAL_CONNECT)
     vram_params_set_dirty();
 }
 
-PROP_INT(PROP_VIDEO_SYSTEM, pal);
+static PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
 void update_vram_params()
 {
@@ -506,7 +506,7 @@ void* get_fastrefresh_422_buf()
 }
 
 // Unfortunately this doesn't work on every 1100D model yet :(
-void* get_fastrefresh_422_other_buf()
+static void* get_fastrefresh_422_other_buf()
 {
     if (!fastrefresh_direction) {
         switch (YUV422_LV_BUFFER_DISPLAY_ADDR)

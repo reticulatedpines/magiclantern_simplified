@@ -188,7 +188,7 @@ int handle_scrollwheel_fast_clicks(struct event * event)
 }
 
 
-int null_event_handler(struct event * event) { return 1; }
+static int null_event_handler(struct event * event) { return 1; }
 int handle_flexinfo_keys(struct event * event) __attribute__((weak,alias("null_event_handler")));
 
 int handle_common_events_by_feature(struct event * event)

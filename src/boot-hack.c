@@ -39,9 +39,9 @@
 #endif
 
 /** These are called when new tasks are created */
-void my_task_dispatch_hook( struct context ** );
-int my_init_task(int a, int b, int c, int d);
-void my_bzero( uint8_t * base, uint32_t size );
+static void my_task_dispatch_hook( struct context ** );
+static int my_init_task(int a, int b, int c, int d);
+static void my_bzero( uint8_t * base, uint32_t size );
 
 /** This just goes into the bss */
 #define RELOCSIZE 0x3000 // look in HIJACK macros for the highest address, and subtract ROMBASEADDR
@@ -185,7 +185,7 @@ copy_and_restart( )
 #ifndef CONFIG_EARLY_PORT
 
 /** This task does nothing */
-void
+static void
 null_task( void )
 {
     DebugMsg( DM_SYS, 3, "%s created (and exiting)", __func__ );
@@ -196,7 +196,7 @@ null_task( void )
  * Called by DryOS when it is dispatching (or creating?)
  * a new task.
  */
-void
+static void
 my_task_dispatch_hook(
     struct context **   context
 )
@@ -252,7 +252,7 @@ my_task_dispatch_hook(
  * This requires the create_task(), dmstart(), msleep() and dumpf()
  * routines to have been found.
  */
-void
+static void
 my_dump_task( void )
 {
     call("dmstart");
@@ -313,7 +313,7 @@ int magic_is_off()
 
 #define BACKUP_BLOCKSIZE 0x00100000
 
-void backup_region(char *file, uint32_t base, uint32_t length)
+static void backup_region(char *file, uint32_t base, uint32_t length)
 {
     FILE *handle = NULL;
     uint32_t size = 0;
@@ -345,14 +345,14 @@ void backup_region(char *file, uint32_t base, uint32_t length)
     FIO_CloseFile(handle);
 }
 
-void backup_task()
+static void backup_task()
 {
     backup_region(CARD_DRIVE "ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
     backup_region(CARD_DRIVE "ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
 }
 #endif
 
-int _hold_your_horses = 1; // 0 after config is read
+static int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
 int ml_gui_initialized = 0; // 1 after gui_main_task is started 
 
@@ -370,7 +370,7 @@ static int compute_signature(int* start, int num)
 
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
-void my_big_init_task()
+static void my_big_init_task()
 {
 #if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
   uint32_t len;
@@ -553,10 +553,10 @@ void hold_your_horses(int showlogo)
  * Crash log should contain Canon error message.
  */
 static char assert_msg[256] = "";
-int (*old_assert_handler)(char*,char*,int,int) = 0;
+static int (*old_assert_handler)(char*,char*,int,int) = 0;
 const char* get_assert_msg() { return assert_msg; }
 
-int my_assert_handler(char* msg, char* file, int line, int arg4)
+static int my_assert_handler(char* msg, char* file, int line, int arg4)
 {
     snprintf(assert_msg, sizeof(assert_msg), 
         "ASSERT: %s\n"

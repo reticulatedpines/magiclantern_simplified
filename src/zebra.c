@@ -81,11 +81,11 @@ void draw_histogram_and_waveform(int);
 void update_disp_mode_bits_from_params();
 //~ void uyvy2yrgb(uint32_t , int* , int* , int* , int* );
 int toggle_disp_mode();
-void toggle_disp_mode_menu(void *priv, int delta);
+static void toggle_disp_mode_menu(void *priv, int delta);
 
 // in movie mode: skip the 16:9 bar when computing overlays
 // in photo mode: compute the overlays on full-screen image
-int FAST get_y_skip_offset_for_overlays()
+static int FAST get_y_skip_offset_for_overlays()
 {
     // in playback mode, and skip 16:9 bars for movies, but cover the entire area for photos
     if (!lv) return is_pure_play_movie_mode() ? os.off_169 : 0;
@@ -203,7 +203,7 @@ void uyvy_split(uint32_t uyvy, int* Y, int* U, int* V)
     *V = (int)(int8_t)UYVY_GET_V(uyvy);
 }
 
-int is_zoom_mode_so_no_zebras() 
+static int is_zoom_mode_so_no_zebras() 
 { 
     if (!lv) return 0;
     if (lv_dispsize == 1) return 0;
@@ -220,7 +220,7 @@ int lv_luma_is_accurate()
     return get_expsim() && digic_iso_gain_photo == 1024;
 }
 
-int show_lv_fps = 0; // for debugging
+static int show_lv_fps = 0; // for debugging
 
 static struct bmp_file_t * cropmarks = 0;
 static int _bmp_muted = false;
@@ -248,11 +248,11 @@ static CONFIG_INT("disp.mode.b", disp_mode_b, 1);
 static CONFIG_INT("disp.mode.c", disp_mode_c, 1);
 static CONFIG_INT("disp.mode.x", disp_mode_x, 1);
 
-       CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
+static CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
 static CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
 static CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
 static CONFIG_INT( "transparent.overlay.autoupd", transparent_overlay_auto_update, 1);
-int transparent_overlay_hidden = 0;
+static int transparent_overlay_hidden = 0;
 
 static CONFIG_INT( "global.draw",   global_draw, 3 );
 
@@ -263,10 +263,10 @@ static CONFIG_INT( "zebra.draw",    zebra_draw, 1 );
 static CONFIG_INT( "zebra.colorspace",    zebra_colorspace,   2 );// luma/rgb/lumafast
 static CONFIG_INT( "zebra.thr.hi",    zebra_level_hi, 99 );
 static CONFIG_INT( "zebra.thr.lo",    zebra_level_lo, 0 );
-       CONFIG_INT( "zebra.rec", zebra_rec,  1 );
+static CONFIG_INT( "zebra.rec", zebra_rec,  1 );
 static CONFIG_INT( "crop.enable",   crop_enabled,   0 ); // index of crop file
 static CONFIG_INT( "crop.index",    crop_index, 0 ); // index of crop file
-       CONFIG_INT( "crop.movieonly", cropmark_movieonly, 0);
+static CONFIG_INT( "crop.movieonly", cropmark_movieonly, 0);
 static CONFIG_INT("crop.playback", cropmarks_play, 0);
 static CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
 static CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
@@ -311,7 +311,7 @@ int get_zoom_overlay_trigger_by_focus_ring()
 #endif
 }
 
-int get_zoom_overlay_trigger_by_halfshutter()
+static int get_zoom_overlay_trigger_by_halfshutter()
 {
 #ifdef FEATURE_MAGIC_ZOOM
     #ifdef CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
@@ -325,15 +325,15 @@ int get_zoom_overlay_trigger_by_halfshutter()
 #endif
 }
 
-int zoom_overlay_triggered_by_zoom_btn = 0;
-int zoom_overlay_triggered_by_focus_ring_countdown = 0;
-int is_zoom_overlay_triggered_by_zoom_btn() 
+static int zoom_overlay_triggered_by_zoom_btn = 0;
+static int zoom_overlay_triggered_by_focus_ring_countdown = 0;
+static int is_zoom_overlay_triggered_by_zoom_btn() 
 { 
     if (!get_global_draw()) return 0;
     return zoom_overlay_triggered_by_zoom_btn;
 }
 
-int zoom_overlay_dirty = 0;
+static int zoom_overlay_dirty = 0;
 
 int should_draw_zoom_overlay()
 {
@@ -369,7 +369,7 @@ int digic_zoom_overlay_enabled()
         should_draw_zoom_overlay();
 }
 
-int nondigic_zoom_overlay_enabled()
+static int nondigic_zoom_overlay_enabled()
 {
     return zoom_overlay_size != 3 &&
         should_draw_zoom_overlay();
@@ -462,9 +462,9 @@ uint8_t* get_bvram_mirror() { return bvram_mirror; }
 //~ #define bvram_mirror bmp_vram_idle()
 
 
-int cropmark_cache_dirty = 1;
-int crop_dirty = 0;       // redraw cropmarks after some time (unit: 0.1s)
-int clearscreen_countdown = 20;
+static int cropmark_cache_dirty = 1;
+static int crop_dirty = 0;       // redraw cropmarks after some time (unit: 0.1s)
+static int clearscreen_countdown = 20;
 
 static uint8_t false_colour[][256] = {
     {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
@@ -610,7 +610,7 @@ vectorscope_putblock(uint8_t *bmp_buf, int xc, int yc, uint8_t color, int32_t fr
 }
 
 /* draws the overlay: circle with color dots. */
-void vectorscope_paint(uint8_t *bmp_buf, uint32_t x_origin, uint32_t y_origin)
+static void vectorscope_paint(uint8_t *bmp_buf, uint32_t x_origin, uint32_t y_origin)
 {    
     //int r = vectorscope_height/2 - 1;
     int xc = x_origin + vectorscope_width/2;
@@ -630,7 +630,7 @@ void vectorscope_paint(uint8_t *bmp_buf, uint32_t x_origin, uint32_t y_origin)
     vectorscope_putblock(bmp_buf, xc, yc, 15, -893, 204);
 }
 
-void
+static void
 vectorscope_clear()
 {
     if(vectorscope != NULL)
@@ -639,7 +639,7 @@ vectorscope_clear()
     }
 }
 
-void
+static void
 vectorscope_init()
 {
     if(vectorscope == NULL)
@@ -775,7 +775,7 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
  */
 
 #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM) || defined(FEATURE_VECTORSCOPE)
-void
+void // fixme: should be static
 hist_build()
 {
     struct vram_info * lv = get_yuv422_vram();
@@ -1206,7 +1206,7 @@ waveform_draw_image(
 #endif
 
 static FILE * g_aj_logfile = INVALID_PTR;
-unsigned int aj_create_log_file( char * name)
+static unsigned int aj_create_log_file( char * name)
 {
    g_aj_logfile = FIO_CreateFileEx( name );
    if ( g_aj_logfile == INVALID_PTR )
@@ -1217,7 +1217,7 @@ unsigned int aj_create_log_file( char * name)
    return( 1 );  // SUCCESS
 }
 
-void aj_close_log_file( void )
+static void aj_close_log_file( void )
 {
    if (g_aj_logfile == INVALID_PTR)
       return;
@@ -1252,7 +1252,7 @@ void dump_big_seg(int k, char* filename)
     DEBUG();
 }
 
-int fps_ticks = 0;
+static int fps_ticks = 0;
 
 static void waveform_init()
 {
@@ -1263,7 +1263,7 @@ static void waveform_init()
 #endif
 }
 
-void bvram_mirror_clear()
+static void bvram_mirror_clear()
 {
     ASSERT(bvram_mirror_start);
     BMP_LOCK( bzero32(bvram_mirror_start, BMP_VRAM_SIZE); )
@@ -1364,7 +1364,7 @@ static int bm_hd_bm2lv_sx = 0;
 static int bm_hd_lv2hd_sx = 0;
 static int old_peak_lores = 0;
 
-void zebra_update_lut()
+static void zebra_update_lut()
 {
     int rebuild = 0;
         
@@ -1398,14 +1398,14 @@ void zebra_update_lut()
 
 #define MAX_DIRTY_PIXELS 5000
 
-int focus_peaking_debug = 0;
+static int focus_peaking_debug = 0;
 #endif
 
 
 static int zebra_digic_dirty = 0;
 
 #ifdef FEATURE_ZEBRA
-void draw_zebras( int Z )
+static void draw_zebras( int Z )
 {
     uint8_t * const bvram = bmp_vram_real();
     int zd = Z && zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras
@@ -2139,7 +2139,7 @@ draw_zebra_and_focus( int Z, int F )
     return 0;
 }
 
-void guess_focus_peaking_threshold()
+static void guess_focus_peaking_threshold()
 {
 #ifdef FEATURE_FOCUS_PEAK
     if (!focus_peaking) return;
@@ -2157,7 +2157,7 @@ void guess_focus_peaking_threshold()
 
 
 // clear only zebra, focus assist and whatever else is in BMP VRAM mirror
-void
+static void
 clrscr_mirror( void )
 {
     if (!lv && !PLAY_OR_QR_MODE) return;
@@ -2290,7 +2290,7 @@ highlight_luma_range(int lo, int hi, int color1, int color2)
 
 #define MAX_CROP_NAME_LEN 15
 #define MAX_CROPMARKS 9
-int num_cropmarks = 0;
+static int num_cropmarks = 0;
 static int cropmarks_initialized = 0;
 static char cropmark_names[MAX_CROPMARKS][MAX_CROP_NAME_LEN];
 
@@ -3185,7 +3185,7 @@ static void idle_timeout_toggle(void* priv, int sign)
 }
 #endif
 
-CONFIG_INT("electronic.level", electronic_level, 0);
+static CONFIG_INT("electronic.level", electronic_level, 0);
 
 struct menu_entry zebra_menus[] = {
     #ifdef FEATURE_GLOBAL_DRAW
@@ -3601,7 +3601,7 @@ struct menu_entry zebra_menus[] = {
     #endif
 };
 
-struct menu_entry level_indic_menus[] = {
+static struct menu_entry level_indic_menus[] = {
     #ifdef CONFIG_ELECTRONIC_LEVEL
     #ifdef FEATURE_LEVEL_INDICATOR
     {
@@ -3614,7 +3614,7 @@ struct menu_entry level_indic_menus[] = {
     #endif
     #endif
 };
-struct menu_entry livev_dbg_menus[] = {
+static struct menu_entry livev_dbg_menus[] = {
     #ifdef FEATURE_SHOW_OVERLAY_FPS
     {
         .name = "Show Overlay FPS",
@@ -3644,7 +3644,7 @@ MENU_UPDATE_FUNC(batt_display)
 #ifdef CONFIG_LCD_SENSOR
 CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup, 1);
 #else
-int lcd_sensor_wakeup = 0;
+static int lcd_sensor_wakeup = 0;
 CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup_unused, 1);
 #endif
 
@@ -3737,7 +3737,7 @@ struct menu_entry livev_cfg_menus[] = {
 #endif
 
 #ifdef FEATURE_CROPMARKS
-void cropmark_draw_from_cache()
+static void cropmark_draw_from_cache()
 {
     uint8_t* B = bmp_vram();
     uint8_t* M = get_bvram_mirror();
@@ -3829,7 +3829,7 @@ cropmark_draw()
     if (!get_global_draw()) return;
 
     get_yuv422_vram(); // just to refresh VRAM params
-    clear_lv_affframe_if_dirty();
+    clear_lv_afframe_if_dirty();
 
     #ifdef FEATURE_GHOST_IMAGE
     if (transparent_overlay && !transparent_overlay_hidden && !PLAY_MODE)
@@ -4010,7 +4010,7 @@ void bmp_mute_flag_reset()
 }
 
 #ifdef FEATURE_MAGIC_ZOOM
-void zoom_overlay_toggle()
+static void zoom_overlay_toggle()
 {
     zoom_overlay_triggered_by_zoom_btn = !zoom_overlay_triggered_by_zoom_btn;
     if (!zoom_overlay_triggered_by_zoom_btn)
@@ -4436,8 +4436,8 @@ int zebra_should_run()
 }
 
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-int livev_for_playback_running = 0;
-void draw_livev_for_playback()
+static int livev_for_playback_running = 0;
+static void draw_livev_for_playback()
 {
     if (!PLAY_OR_QR_MODE) return;
 
@@ -4598,7 +4598,7 @@ static int idle_countdown_killflicker = 5;
 static int idle_countdown_killflicker_prev = 5;
 #endif
 
-int idle_is_powersave_enabled()
+static int idle_is_powersave_enabled()
 {
 #ifdef FEATURE_POWERSAVE_LIVEVIEW
     return idle_display_dim_after || idle_display_turn_off_after || idle_display_global_draw_off_after;
@@ -4607,7 +4607,7 @@ int idle_is_powersave_enabled()
 #endif
 }
 
-int idle_is_powersave_active()
+static int idle_is_powersave_active()
 {
 #ifdef FEATURE_POWERSAVE_LIVEVIEW
     return (idle_display_dim_after && !idle_countdown_display_dim_prev) || 
@@ -4735,7 +4735,7 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
     *prev_countdown = c;
 }
 
-int lv_zoom_before_pause = 0;
+static int lv_zoom_before_pause = 0;
 void PauseLiveView() // this should not include "display off" command
 {
 #if defined(CONFIG_LIVEVIEW) && defined(FEATURE_POWERSAVE_LIVEVIEW)
@@ -5142,7 +5142,7 @@ void schedule_transparent_overlay()
 }
 #endif
 
-volatile int lens_display_dirty = 0;
+static int lens_display_dirty = 0;
 void lens_display_set_dirty() 
 { 
     lens_display_dirty = 4; 
@@ -5549,7 +5549,7 @@ void update_disp_mode_params_from_bits()
 
 int get_disp_mode() { return disp_mode; }
 
-void toggle_disp_mode_menu(void *priv, int delta) {
+static void toggle_disp_mode_menu(void *priv, int delta) {
     if (!disp_profiles_0) menu_toggle_submenu();
     else toggle_disp_mode();
 }
@@ -5616,7 +5616,7 @@ int handle_disp_preset_key(struct event * event)
 }
 
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-int livev_playback = 0;
+static int livev_playback = 0;
 
 static void livev_playback_toggle()
 {

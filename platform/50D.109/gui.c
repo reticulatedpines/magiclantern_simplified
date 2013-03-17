@@ -29,9 +29,9 @@
 
 struct semaphore * gui_sem;
 
-int joy_center_press_count = 0;
-int joy_center_action_disabled = 0;
-void joypress_task()
+static int joy_center_press_count = 0;
+static int joy_center_action_disabled = 0;
+static void joypress_task()
 {
 	extern int joy_center_pressed;
 	while(1)

@@ -343,8 +343,10 @@ void script_define_param_variables()
         //int* v = &conf_script_vars[p];
         int _varname = 'a' + p;
         char* varname = (char*)&_varname;
+        #ifdef CONFIG_PICOC
         extern struct ValueType IntType;
         VariableDefinePlatformVar(NULL, varname, &IntType, (union AnyValue *)&conf_script_vars[p], FALSE);
+        #endif
         console_printf("   Param %s = %d; // %s\n", varname, conf_script_vars[p], script_params[p]);
     }
 }

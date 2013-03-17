@@ -86,7 +86,8 @@ void bitrate_write_mvr_config()
 #endif
 
 static struct mvr_config mvr_config_copy;
-void cbr_init()
+
+static void cbr_init()
 {
 #if defined(CONFIG_7D)
     /* we must do all transfers via uncached memory. prepare that buffer */
@@ -98,7 +99,7 @@ void cbr_init()
     memcpy(&mvr_config_copy, &mvr_config, sizeof(mvr_config_copy));
 }
 
-void vbr_fix(uint16_t param)
+static void vbr_fix(uint16_t param)
 {
     if (!lv) return;
     if (!is_movie_mode()) return; 
@@ -115,7 +116,7 @@ void vbr_fix(uint16_t param)
 }
 
 // may be dangerous if mvr_config and numbers are incorrect
-void opt_set(int num, int den)
+static void opt_set(int num, int den)
 {
 #if defined(CONFIG_7D)
     uint32_t combo = 0;
@@ -192,7 +193,7 @@ void opt_set(int num, int den)
     }
 }
 
-void bitrate_set()
+static void bitrate_set()
 {
     if (!lv) return;
     if (!is_movie_mode()) return; 
@@ -336,8 +337,8 @@ bitrate_toggle(void* priv, int delta)
 
 int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
 
-PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
-PROP_INT(PROP_FREE_SPACE, free_space_raw);
+static PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
+static PROP_INT(PROP_FREE_SPACE, free_space_raw);
 #define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
 
 
@@ -504,7 +505,7 @@ void time_indicator_show()
     //~ }
 }
 
-void measure_bitrate() // called once / second
+static void measure_bitrate() // called once / second
 {
     static uint32_t prev_bytes_written = 0;
     uint32_t bytes_written = MVR_BYTES_WRITTEN;
@@ -671,7 +672,7 @@ static struct menu_entry mov_tweak_menus[] = {
 #endif
 };
 
-void bitrate_init()
+static void bitrate_init()
 {
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
     menu_add( "Movie Tweaks", mov_tweak_menus, COUNT(mov_tweak_menus) );

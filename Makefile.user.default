@@ -15,7 +15,9 @@ OBJCOPY=$(ARM_BINPATH)/arm-$(ARM_ABI)-objcopy
 AR=$(ARM_BINPATH)/arm-$(ARM_ABI)-ar
 RANLIB=$(ARM_BINPATH)/arm-$(ARM_ABI)-ranlib
 READELF=$(ARM_BINPATH)/arm-$(ARM_ABI)-readelf
-ARM_LIBC_A = $(ARM_PATH)/arm-$(ARM_ABI)/lib/libc.a
+
+# deprecated, using dietlib instead
+# ARM_LIBC_A = $(ARM_PATH)/arm-$(ARM_ABI)/lib/libc.a
 
 # For cygwin users: windows version of yagarto AR is only acceptable relative path or C:\ style absolute path. So you may set relative path from platform/model dir (It means you need +2 "../").
 # ARM_LIBC_A = ../../../../../yagarto-20121222/arm-none-eabi/lib/libc.a
@@ -67,6 +69,7 @@ CONFIG_CONSOLE      = y
 CONFIG_DEBUGMSG     = 0
 CONFIG_CCACHE       = n
 CONFIG_PICOC        = y
+CONFIG_TCC          = n
 
 # You can customize CFLAG here
 #CFLAG_USER = -march=armv5te -mcpu=arm946e-s -O2 -DCONFIG_RELEASE_BUILD \

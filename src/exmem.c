@@ -24,7 +24,7 @@ struct memSuite
     int first_chunk_maybe;
 };
 
-void* shoot_malloc(int size)
+void* shoot_malloc(size_t size)
 {
     struct memSuite * hSuite = 0;
     AllocateMemoryResource(size + 4, allocCBR, &hSuite);
@@ -70,7 +70,7 @@ void shoot_free(void* ptr)
     take_semaphore(free_sem, 0);
 }
 
-void exmem_test()
+static void exmem_test()
 {
     msleep(2000);
     info_led_on();
@@ -81,7 +81,7 @@ void exmem_test()
     info_led_off();
 }
 
-void exmem_init()
+static void exmem_init()
 {
     alloc_sem = create_named_semaphore(0,0);
     free_sem = create_named_semaphore(0,0);

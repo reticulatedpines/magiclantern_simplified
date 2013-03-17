@@ -16,10 +16,10 @@ typedef struct
     uint32_t microseconds;
 } taskload_t;
 
-uint32_t tskmon_get_timer_reg();
+static uint32_t tskmon_get_timer_reg();
 int tskmon_update_loads(taskload_t *task_loads);
-void tskmon_update_timers();
-void tskmon_update_runtime(struct task *task, uint32_t active_time);
+static void tskmon_update_timers();
+static void tskmon_update_runtime(struct task *task, uint32_t active_time);
 void tskmon_task_dispatch();
 void tskmon_init();
 void tskmon_stack_check(uint32_t task_id);

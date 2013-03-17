@@ -47,10 +47,11 @@ void get_out_of_play_mode(int extra_wait);
 void wait_till_next_second();
 void zoom_sharpen_step();
 void zoom_auto_exposure_step();
-void ensure_play_or_qr_mode_after_shot();
+static void ensure_play_or_qr_mode_after_shot();
 void take_fast_pictures( int number );
 
 static void bulb_ramping_showinfo();
+static int is_bulb_mode_or_bulb_ramping();
 int bulb_ramp_calibration_running = 0;
 
 #if  !defined(AUDIO_REM_SHOT_POS_X) && !defined(AUDIO_REM_SHOT_POS_Y)
@@ -116,14 +117,14 @@ int uniwb_is_active()
 
 CONFIG_INT("hdr.enabled", hdr_enabled, 0);
 
-PROP_INT(PROP_AEB, aeb_setting);
+static PROP_INT(PROP_AEB, aeb_setting);
 #ifdef FEATURE_HDR_BRACKETING
 #define HDR_ENABLED (hdr_enabled && !aeb_setting) // when Canon bracketing is active, ML bracketing should not run
 #else
 #define HDR_ENABLED 0
 #endif
 
-CONFIG_INT("hdr.type", hdr_type, 0); // exposure, aperture, flash
+static CONFIG_INT("hdr.type", hdr_type, 0); // exposure, aperture, flash
 CONFIG_INT("hdr.frames", hdr_steps, 1);
 CONFIG_INT("hdr.ev_spacing", hdr_stepsize, 16);
 static CONFIG_INT("hdr.delay", hdr_delay, 1);
@@ -174,7 +175,7 @@ static CONFIG_INT( "mlu.mode", mlu_mode, 1);
 #define MLU_ALWAYS_ON (mlu_auto && mlu_mode == 0)
 #define MLU_SELF_TIMER (mlu_auto && mlu_mode == 1)
 #define MLU_HANDHELD (mlu_auto && mlu_mode == 2)
-int mlu_handled_debug = 0;
+static int mlu_handled_debug = 0;
 
 #ifndef CONFIG_5DC
 static CONFIG_INT("mlu.handheld.delay", mlu_handheld_delay, 4);
@@ -832,7 +833,7 @@ int get_mlu_delay(int raw)
 }
 
 #ifdef FEATURE_MLU_HANDHELD
-void mlu_take_pic()
+static void mlu_take_pic()
 {
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) // not sure about 7D
     SW1(1,00);
@@ -846,8 +847,8 @@ void mlu_take_pic()
     #endif
 }
 
-int mlu_shake_running = 0;
-void mlu_shake_task()
+static int mlu_shake_running = 0;
+static void mlu_shake_task()
 {
     #ifdef FEATURE_MLU_HANDHELD_DEBUG
     if (mlu_handled_debug) { msleep(1000); NotifyBox(5000, "Taking pic..."); msleep(1000); }
@@ -920,7 +921,7 @@ int handle_mlu_handheld(struct event * event)
 #ifdef FEATURE_LV_FOCUS_BOX_SNAP
 extern int focus_box_lv_jump;
 
-int center_lv_aff = 0;
+static int center_lv_aff = 0;
 void center_lv_afframe()
 {
     center_lv_aff = 1;
@@ -1588,7 +1589,7 @@ int busy_vsync(int hd, int timeout_ms)
 #endif
 }
 
-void
+static void
 silent_pic_take_simple(int interactive)
 {
     get_yuv422_hd_vram();
@@ -1746,7 +1747,7 @@ silent_pic_take_sweep(int interactive)
 
     bmp_printf(FONT_MED, 100, 100, "Psst! Preparing for high-res pic   ");
     while (get_halfshutter_pressed()) msleep(100);
-    menu_stop();
+    gui_stop_menu();
 
     bmp_draw_rect(COLOR_WHITE, (5-SILENTPIC_NC) * 360/5, (5-SILENTPIC_NL)*240/5, SILENTPIC_NC*720/5-1, SILENTPIC_NL*480/5-1);
     msleep(200);
@@ -2419,7 +2420,7 @@ static void kelvin_auto_run()
 {
     if (EXT_MONITOR_RCA) { NotifyBox(2000, "Not working on SD monitors."); return; }
     
-    menu_stop();
+    gui_stop_menu();
     int c0 = crit_kelvin(-1); // test current kelvin
     int i;
     if (c0 > 0) i = bin_search(lens_info.kelvin/KELVIN_STEP, KELVIN_MAX/KELVIN_STEP + 1, crit_kelvin);
@@ -2433,7 +2434,7 @@ static void wbs_gm_auto_run()
 {
     if (EXT_MONITOR_RCA) { NotifyBox(2000, "Not working on SD monitors."); return; }
 
-    menu_stop();
+    gui_stop_menu();
     int c0 = crit_wbs_gm(100); // test current value
     int i;
     if (c0 > 0) i = bin_search(lens_info.wbs_gm, 10, crit_wbs_gm);
@@ -3040,7 +3041,7 @@ void zoom_sharpen_step()
 }
 
 #ifdef CONFIG_EXPSIM
-void restore_expsim_task(int es)
+static void restore_expsim_task(int es)
 {
     for (int i = 0; i < 50; i++)
     {
@@ -3167,7 +3168,7 @@ int is_bulb_mode()
 #endif
 }
 
-int is_bulb_mode_or_bulb_ramping()
+static int is_bulb_mode_or_bulb_ramping()
 {
 #ifdef CONFIG_BULB
     if (BULB_EXPOSURE_CONTROL_ACTIVE) return 1; // this will force bulb mode when needed
@@ -3353,7 +3354,7 @@ static MENU_UPDATE_FUNC(bulb_display_submenu)
 #endif
 
 #ifdef FEATURE_MLU
-void mlu_selftimer_update()
+static void mlu_selftimer_update()
 {
     if (MLU_SELF_TIMER)
     {
@@ -3647,7 +3648,7 @@ static int bramp_measure_luma(int delay)
 }
 
 // still useful for bulb ramping
-int bramp_zoom_toggle_needed = 0; // for 600D and some new lenses?!
+static int bramp_zoom_toggle_needed = 0; // for 600D and some new lenses?!
 static int bramp_set_display_gain_and_measure_luma(int gain)
 {
     gain = COERCE(gain, 0, 65534);
@@ -3768,7 +3769,7 @@ static CONFIG_INT("bramp.calib.3", bramp_calib_cache_3, 0);
 static CONFIG_INT("bramp.calib.4", bramp_calib_cache_4, 0);
 static CONFIG_INT("bramp.calib.5", bramp_calib_cache_5, 0);
 
-void bramp_cleanup()
+static void bramp_cleanup()
 {
     if (bramp_log_file)
     {
@@ -3777,7 +3778,7 @@ void bramp_cleanup()
     }
 }
 
-void bulb_ramping_init()
+static void bulb_ramping_init()
 {
     if (bramp_init_done) return;
 
@@ -5316,17 +5317,17 @@ struct menu_entry tweak_menus_shoot[] = {
 
 #ifdef FEATURE_ML_AUTO_ISO
 
-CONFIG_INT("auto.iso.ml", ml_auto_iso, 0);
-CONFIG_INT("auto.iso.av.tv", ml_auto_iso_av_shutter, 3);
-CONFIG_INT("auto.iso.tv.av", ml_auto_iso_tv_aperture, 3);
+static CONFIG_INT("auto.iso.ml", ml_auto_iso, 0);
+static CONFIG_INT("auto.iso.av.tv", ml_auto_iso_av_shutter, 3);
+static CONFIG_INT("auto.iso.tv.av", ml_auto_iso_tv_aperture, 3);
 
-MENU_UPDATE_FUNC(ml_auto_iso_display)
+static MENU_UPDATE_FUNC(ml_auto_iso_display)
 {
     if (shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This feature only works in Tv and Av modes.");
 }
 
-void auto_iso_tweak_step()
+static void auto_iso_tweak_step()
 {
     static int last_iso = -1;
     if (!ml_auto_iso)
@@ -5802,7 +5803,7 @@ static struct menu_entry expo_menus[] = {
 
 
 // for firing HDR shots - avoids random misfire due to low polling frequency
-int picture_was_taken_flag = 0;
+static int picture_was_taken_flag = 0;
 
 void hdr_flag_picture_was_taken()
 {
@@ -5910,7 +5911,7 @@ void take_a_pic(int should_af, int allow_bulb)
 // do a part of the bracket (half or full) with ISO
 // return the remainder EV to be done normally (shutter, flash, whatever)
 static int hdr_iso00;
-int hdr_iso_shift(int ev_x8)
+static int hdr_iso_shift(int ev_x8)
 {
     hdr_iso00 = lens_info.raw_iso;
     int iso0 = hdr_iso00;
@@ -5945,7 +5946,7 @@ int hdr_iso_shift(int ev_x8)
     return ev_x8;
 }
 
-void hdr_iso_shift_restore()
+static void hdr_iso_shift_restore()
 {
     hdr_set_rawiso(hdr_iso00);
 }
@@ -6097,7 +6098,7 @@ static int hdr_check_cancel(int init)
 }
 #endif // FEATURE_HDR_BRACKETING
 
-void ensure_play_or_qr_mode_after_shot()
+static void ensure_play_or_qr_mode_after_shot()
 {
     msleep(300);
     while (!job_state_ready_to_take_pic()) msleep(100);
@@ -6127,7 +6128,7 @@ void ensure_play_or_qr_mode_after_shot()
 
 #ifdef FEATURE_HDR_BRACKETING
 
-void hdr_check_for_under_or_over_exposure(int* under, int* over)
+static void hdr_check_for_under_or_over_exposure(int* under, int* over)
 {
     if (hdr_type == 2) // DOF bracket => just repeat until reaching the limits
     {
@@ -6329,10 +6330,10 @@ void movie_start()
     }
     
     #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_5D2) // record button is used in ML menu => won't start recording
-    //~ menu_stop(); msleep(1000);
+    //~ gui_stop_menu(); msleep(1000);
     while (gui_menu_shown())
     {
-        menu_stop();
+        gui_stop_menu();
         msleep(1000);
     }
     #endif
@@ -6411,7 +6412,7 @@ void hdr_shot(int skip0, int wait)
     picture_was_taken_flag = 0;
 }
 
-int remote_shot_flag = 0;
+int remote_shot_flag = 0; // also in lcdsensor.c
 void schedule_remote_shot() { remote_shot_flag = 1; }
 
 static int movie_start_flag = 0;
@@ -6510,7 +6511,7 @@ void display_shooting_info_lv()
     display_expsim_status();
 }
 
-void display_trap_focus_msg()
+static void display_trap_focus_msg()
 {
 #ifdef FEATURE_TRAP_FOCUS
 #ifndef DISPLAY_TRAP_FOCUSMSG_POS_X
@@ -6577,17 +6578,6 @@ void display_trap_focus_info()
     }
     show_prev = show;
 #endif
-}
-
-int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
-{
-    extern thunk ErrCardForLVApp_handler;
-    for (int i = 0; i <= wait/20; i++)
-    {
-        if ((intptr_t)get_current_dialog_handler() == (intptr_t)&ErrCardForLVApp_handler) return 1;
-        msleep(20);
-    }
-    return 0;
 }
 
 void intervalometer_stop()
@@ -6738,7 +6728,7 @@ void take_fast_pictures( int number )
 }
 
 #ifdef FEATURE_MOTION_DETECT
-void md_take_pics() // for motion detection
+static void md_take_pics() // for motion detection
 {
     if (motion_detect_delay > 1) {
         for (int t=0; t<(int)motion_detect_delay; t++) {
@@ -6761,7 +6751,7 @@ void md_take_pics() // for motion detection
 }
 #endif
 
-struct msg_queue * shoot_task_mqueue = NULL;
+static struct msg_queue * shoot_task_mqueue = NULL;
 
 /* cause an immediate redraw of the shooting task infos. not used yet, but can be triggered by model-specific code */
 void shoot_task_redraw()
@@ -6785,7 +6775,6 @@ static void misc_shooting_info()
         if (!lv && display_idle())
         BMP_LOCK
         (
-            display_clock();
             display_shooting_info();
             free_space_show_photomode();
         )
@@ -7613,7 +7602,7 @@ shoot_task( void* unused )
 
 TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x2000 );
 
-void shoot_init()
+static void shoot_init()
 {
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
     seconds_clock_sem = create_named_semaphore("seconds_clock_sem", 1);
