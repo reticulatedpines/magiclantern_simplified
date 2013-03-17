@@ -390,6 +390,9 @@ int fps_get_shutter_speed_shift(int raw_shutter)
 // sound recording has to be disabled
 // otherwise recording is not stable
 //--------------------------------------------------------
+
+#define SOUND_RECORDING_ENABLED (sound_recording_mode != 1)
+
 static int old_sound_recording_mode = -1;
 int was_sound_recording_disabled_by_fps_override()
 {
@@ -422,7 +425,7 @@ static void restore_sound_recording()
 static void disable_sound_recording()
 {
     if (recording) return;
-    if (sound_recording_mode != 1)
+    if (SOUND_RECORDING_ENABLED && is_movie_mode())
     {
         old_sound_recording_mode = sound_recording_mode;
         set_sound_recording(1);
@@ -577,13 +580,26 @@ int fps_get_current_x1000()
 
 static MENU_UPDATE_FUNC(fps_print)
 {
+    static int last_inactive = 0;
+    int t = get_ms_clock_value_fast();
+    
     if (fps_override)
     {
         int current_fps = fps_get_current_x1000();
         MENU_SET_VALUE("%d.%03d", 
             current_fps/1000, current_fps%1000
         );
+        
+        /* FPS override will disable sound recording automatically, but not right away (only at next update step) */
+        /* if it can't be disabled automatically (timeout 1 second), show a warning so the user can disable it himself */
+        if (SOUND_RECORDING_ENABLED && is_movie_mode() && t > last_inactive + 1000)
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Sound recording must be disabled from Canon menu.");
     }
+    else
+    {
+        last_inactive = t;
+    }
+    
 }
 
 static MENU_UPDATE_FUNC(fps_current_print)
