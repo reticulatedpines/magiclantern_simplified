@@ -38,9 +38,6 @@ endif
 
 ifndef CONFIG_WIN32
 LIBS=-lm
-ifndef CONFIG_NOLDL
-LIBS+=-ldl
-endif
 endif
 
 # make libtcc as static or dynamic library?
@@ -134,7 +131,9 @@ PROGS+=$(PROGS_CROSS)
 TCCLIBS+=$(LIBTCC1_CROSS)
 endif
 
-all: $(PROGS) $(TCCLIBS) $(TCCDOCS)
+#all: $(PROGS) $(TCCLIBS) $(TCCDOCS)
+
+all: libtcc.a
 
 # Host Tiny C Compiler
 tcc$(EXESUF): tcc.o $(LIBTCC)

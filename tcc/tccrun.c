@@ -33,6 +33,8 @@ ST_DATA void *rt_prog_main;
 #define ucontext_t CONTEXT
 #endif
 
+#define ucontext_t int // hack, we don't have it
+
 static void set_pages_executable(void *ptr, unsigned long length);
 static void set_exception_handler(void);
 static int rt_get_caller_pc(addr_t *paddr, ucontext_t *uc, int level);
@@ -213,6 +215,7 @@ static int tcc_relocate_ex(TCCState *s1, void *ptr)
 
 static void set_pages_executable(void *ptr, unsigned long length)
 {
+/*
 #ifdef _WIN32
     unsigned long old_protect;
     VirtualProtect(ptr, length, PAGE_EXECUTE_READWRITE, &old_protect);
@@ -226,6 +229,7 @@ static void set_pages_executable(void *ptr, unsigned long length)
     end = (end + PAGESIZE - 1) & ~(PAGESIZE - 1);
     mprotect((void *)start, end - start, PROT_READ | PROT_WRITE | PROT_EXEC);
 #endif
+*/
 }
 
 /* ------------------------------------------------------------- */
@@ -405,6 +409,7 @@ static void rt_error(ucontext_t *uc, const char *fmt, ...)
 #ifndef _WIN32
 
 /* signal handler for fatal errors */
+/*
 static void sig_error(int signum, siginfo_t *siginf, void *puc)
 {
     ucontext_t *uc = puc;
@@ -440,6 +445,7 @@ static void sig_error(int signum, siginfo_t *siginf, void *puc)
     }
     exit(255);
 }
+*/
 
 #ifndef SA_SIGINFO
 # define SA_SIGINFO 0x00000004u
@@ -448,9 +454,10 @@ static void sig_error(int signum, siginfo_t *siginf, void *puc)
 /* Generate a stack backtrace when a CPU exception occurs. */
 static void set_exception_handler(void)
 {
-    struct sigaction sigact;
     /* install TCC signal handlers to print debug info on fatal
        runtime errors */
+/*
+    struct sigaction sigact;
     sigact.sa_flags = SA_SIGINFO | SA_RESETHAND;
     sigact.sa_sigaction = sig_error;
     sigemptyset(&sigact.sa_mask);
@@ -459,6 +466,7 @@ static void set_exception_handler(void)
     sigaction(SIGSEGV, &sigact, NULL);
     sigaction(SIGBUS, &sigact, NULL);
     sigaction(SIGABRT, &sigact, NULL);
+*/
 }
 
 /* ------------------------------------------------------------- */

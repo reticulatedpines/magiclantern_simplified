@@ -43,8 +43,8 @@
 #ifndef _WIN32
 # include <unistd.h>
 # include <sys/time.h>
-# include <sys/ucontext.h>
-# include <sys/mman.h>
+//# include <sys/ucontext.h>
+//# include <sys/mman.h>
 # ifndef CONFIG_TCC_STATIC
 #  include <dlfcn.h>
 # endif
@@ -1271,7 +1271,7 @@ ST_FUNC void gen_cvt_ftoi(int t);
 ST_FUNC void gen_cvt_ftof(int t);
 ST_FUNC void ggoto(void);
 #ifndef TCC_TARGET_C67
-ST_FUNC void o(unsigned int c);
+//ST_FUNC void o(unsigned int c);
 #endif
 #ifndef TCC_TARGET_ARM
 ST_FUNC void gen_cvt_itof(int t);
