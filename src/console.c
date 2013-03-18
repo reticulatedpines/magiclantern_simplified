@@ -79,21 +79,10 @@ console_test( void * priv )
     printf("The quick brown fox jumps over the lazy dog. Computer programs expand so as to fill the core available. El trabajo y la economia son la mejor loteria. \n");
 }
 
-static void
-console_print( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Debug Console : %s",
-        *(unsigned*) priv ? "ON " : "OFF"
-    );
-}
-
 static struct menu_entry script_menu[] = {
     {
+        .name       = "Debug Console",
         .priv		= &console_visible,
-        .display    = console_print,
         .select     = console_toggle_menu,
 		.min		= 0,
 		.max		= 1,
@@ -132,6 +121,8 @@ void console_puts(const char* str) // don't DebugMsg from here!
     #define NEW_CHAR(c) console_buffer[mod(console_buffer_index++, BUFSIZE)] = (c)
 
     #ifdef CONSOLE_DEBUG
+    bmp_printf(FONT_MED, 0, 0, "%s ", str);
+
     if (console_log_file)
         my_fprintf( console_log_file, "%s", str );
     #endif
