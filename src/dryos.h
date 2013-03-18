@@ -156,9 +156,6 @@ extern void sound_dev_task(void);
 #define     ATTR_DIRECTORY  0x10          /* entry is a directory name */ 
 #define     ATTR_ARCHIVE    0x20          /* file is new or modified */ 
 
-extern int open( const char * name, int flags, ... );
-extern int close( int fd );
-
 /** We don't know anything about this one. */
 struct fio_dirent;
 
