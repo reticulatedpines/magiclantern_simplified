@@ -170,7 +170,8 @@ NSTUB( 0x76268, vram_info )             // in vram_get_number
 NSTUB(0xFF1EBFE0, vsnprintf)                      // might be good (dumps=1, score=9.5)
 
 NSTUB(0xff383ac8, ShootOlcApp_handler)
-NSTUB(0xff35abc4, ErrCardForLVApp_handler) // not 100% sure
+NSTUB(0xFF45596C, ErrCardForLVApp_handler)
+//NSTUB(0xff35abc4, ErrCardApp_handler) Unused
 NSTUB(0xFF35B728, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
 
 NSTUB(0xFF1E874C, msg_queue_create)
