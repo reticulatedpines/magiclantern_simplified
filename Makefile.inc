@@ -199,6 +199,13 @@ endif
 CFLAGS += -DCONFIG_PICOC
 endif
 
+ifeq ($(CONFIG_TCC),y)
+ifneq ($(CONFIG_CONSOLE),y)
+$(error CONFIG_TCC requires CONFIG_CONSOLE = y, please enable it)
+endif
+CFLAGS += -DCONFIG_TCC
+endif
+
 ifeq ($(CONFIG_CONSOLE),y)
 CFLAGS += -DCONFIG_CONSOLE
 endif
@@ -287,7 +294,14 @@ ML_OBJS-$(CONFIG_PICOC)	+= \
 	picoc.o \
 	chdk-gui_script.o \
 
+ML_OBJS-$(CONFIG_TCC) += \
+	tcc-glue.o \
+	$(TOP_DIR)/tcc/libtcc.a \
+
 endif
+
+$(TOP_DIR)/tcc/libtcc.a:
+	make -C $(TOP_DIR)/tcc
 
 # Extract the stdio files that we need
 DIET_OBJ = \
