@@ -165,9 +165,6 @@ AFLAGS=\
     
 LFLAGS=
 
-# default libraries are arm-${ARM_ABI} with full optimization -O3
-LIB_TYPE = arm-${ARM_ABI}-O3
-
 CFLAGS += $(CFLAG_USER)
 LFLAGS += $(LFLAG_USER)
 AFLAGS += $(AFLAG_USER)
@@ -192,7 +189,7 @@ ifeq ($(CONFIG_PIC), y)
 CFLAGS += -fPIC -DPOSITION_INDEPENDENT
 AFLAGS += -fPIC -DPOSITION_INDEPENDENT
 LFLAGS += -fPIC
-LIB_TYPE = arm-${ARM_ABI}-O3-fPIC
+# fixme: dietlib with -fPIC
 endif
 
 ifeq ($(CONFIG_PICOC),y)
@@ -293,38 +290,53 @@ ML_OBJS-$(CONFIG_PICOC)	+= \
 endif
 
 # Extract the stdio files that we need
-STDIO_OBJ = \
-	lib_a-setjmp.o \
-	lib_a-strcmp.o \
-	lib_a-strlen.o \
-	lib_a-strncmp.o \
-	lib_a-strcpy.o \
-	lib_a-memcpy.o \
-	lib_a-memset.o \
+DIET_OBJ = \
+	strrchr.o \
+	strncpy.o \
+	strlen.o \
+	strncmp.o \
+	strcpy.o \
+	strcmp.o \
+	memset.o \
+	memcpy.o \
+	memccpy.o \
+	setjmp.o \
+	longjmp.o \
+	__longjmp.o \
+	sigjmp.o \
+	sigprocmask.o \
+	rt_sigprocmask.o \
+	unified.o \
+	errno.o \
+	errno_location.o \
+	sscanf.o \
+	vsscanf.o \
+	__v_scanf.o \
+	sprintf.o \
+	vsprintf.o \
+	strtold.o \
+	strtod.o \
+	memmove.o \
+	strtof.o \
+	strtoull.o \
+	strtol.o \
+	strtoul.o \
+	strchr.o \
+	memcmp.o \
 
-ifneq ($(CONFIG_NO_EXTRA_OBJS),y)
-ifeq ($(CONFIG_PICOC),y)
+DIETLIBC_A = $(SRC_DIR)/libs/dietlib-0.33-none-eabi-Os/dietlibc.a
 
-STDIO_OBJ += \
-	lib_a-strncpy.o \
-	lib_a-ctype_.o \
-	lib_a-strrchr.o \
+$(DIET_OBJ): $(DIETLIBC_A)
+	$(call build,AR,$(AR) x $? $(DIET_OBJ))
 
-endif
-endif
-
-$(STDIO_OBJ): $(ARM_LIBC_A)
-	$(call build,AR,$(AR) x $? $(STDIO_OBJ))
-
-libstdio.a: $(STDIO_OBJ)
+dietlibc.a: $(DIET_OBJ)
 	$(call build,AR,$(AR) cr $@ $^)
 
-magiclantern: $(ML_OBJS-y) libstdio.a
+magiclantern: $(ML_OBJS-y) dietlibc.a
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-N \
 		$(LFLAGS) \
-		-L../../src/libs/$(LIB_TYPE) \
 		-nostdlib \
 		-mthumb-interwork \
 		-march=armv5te \
