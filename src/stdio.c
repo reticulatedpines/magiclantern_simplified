@@ -69,7 +69,8 @@ int tolower(int c)
     return c;
 }
 
-int __errno;
+int errno;
+int* __errno(void) { return &errno; }
 
 int islower(int x) { return ((x)>='a') && ((x)<='z'); }
 int isupper(int x) { return ((x)>='A') && ((x)<='Z'); }
