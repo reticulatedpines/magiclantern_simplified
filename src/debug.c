@@ -700,11 +700,6 @@ void bsod()
 
 void run_test()
 {
-    #ifdef CONFIG_TCC
-    tcc_hello();
-    return;
-    #endif
-    
     bsod();
     call("dumpf");
 }

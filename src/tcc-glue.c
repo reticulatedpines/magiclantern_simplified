@@ -15,37 +15,33 @@ int add(int a, int b)
     return a + b;
 }
 
-char my_program[] =
-"int fib(int n)\n"
-"{\n"
-"    if (n <= 2)\n"
-"        return 1;\n"
-"    else\n"
-"        return fib(n-1) + fib(n-2);\n"
-"}\n"
-"\n"
-"int foo(int n)\n"
-"{\n"
-"    printf(\"Hello World!\\n\");\n"
-"    printf(\"fib(%d) = %d\\n\", n, fib(n));\n"
-"    printf(\"add(%d, %d) = %d\\n\", n, 2 * n, add(n, 2 * n));\n"
-"    return 0;\n"
-"}\n";
-
-/* call this from don't click me */
-int tcc_hello()
+void tcc_init_library(TCCState *s)
 {
-    /* display the script console */
-    console_show();
-    msleep(1000);
+    /* as a test, we add a symbol that the compiled program can use.
+       You may also open a dll with tcc_add_dll() and use symbols from that */
+    tcc_add_symbol(s, "add", add);
+}
+
+int tcc_compile_and_run(char* filename)
+{
+    int exit_code = 0;
     
+    /* Read the source file */
+    int size;
+    char* source = (char*)read_entire_file(filename, &size);
+    if (!source)
+    {
+        printf("Error loading '%s'\n", filename);
+        exit_code = 1; goto end;
+    }
+
     TCCState *s;
-    int (*func)(int);
+    int (*main)(int,int);
 
     /* create a TCC compilation context */
     s = tcc_new();
     if (!s)
-        return 1;
+        { exit_code = 1; goto end; }
     
     /* do not load standard libraries - we don't have them */
     tcc_set_options(s, "-nostdinc -nostdlib");
@@ -54,34 +50,34 @@ int tcc_hello()
     tcc_set_output_type(s, TCC_OUTPUT_MEMORY);
 
     /* compile our program from string */
-    if (tcc_compile_string(s, my_program) == -1)
-        return 1;
+    if (tcc_compile_string(s, source) == -1)
+        { exit_code = 1; goto end; }
 
-    /* as a test, we add a symbol that the compiled program can use.
-       You may also open a dll with tcc_add_dll() and use symbols from that */
-    tcc_add_symbol(s, "add", add);
+    tcc_init_library(s);
 
     /* relocate the code */
     if (tcc_relocate(s, TCC_RELOCATE_AUTO) < 0)
-        return 1;
+        { exit_code = 1; goto end; }
 
     /* get entry symbol */
-    func = tcc_get_symbol(s, "foo");
-    if (!func)
-        return 1;
+    main = tcc_get_symbol(s, "main");
+    if (!main)
+    {
+        printf("Could not find main()\n");
+        exit_code = 1; goto end; 
+    }
     
     /* enable the caching bit (todo: use AllocateMemory instead of alloc_dma_memory) */
-    func = CACHEABLE(func);
+    main = CACHEABLE(main);
     
     /* run the code */
-    func(32);
+    main(0, 0);
 
-    /* delete the compilation state */
-    tcc_delete(s);
-
-    /* hide the script console */
-    msleep(10000);
-    console_hide();
+end:
+    /* delete the compilation state and the source code buffer */
+    if (s) tcc_delete(s);
+    if (source) free_dma_memory(source);
+    return exit_code;
 }
 
 void exit(int code) 
@@ -101,7 +97,6 @@ int fprintf(FILE* unused, const char * fmt, ...)
     return 0;
 }
 
-/* fixme: \n at the end of line not working? */
 int printf(const char * fmt, ...)
 {
     va_list            ap;
@@ -116,6 +111,7 @@ int printf(const char * fmt, ...)
 int puts(const char * fmt)
 {
     console_puts(fmt);
+    console_puts("\n");
     return 0;
 }
 
@@ -144,3 +140,22 @@ DUMMY(localtime)
 DUMMY(close)
 DUMMY(getcwd)
 int _impure_ptr;
+
+/*
+
+for debugging: compile TCC with CFLAGS+=-finstrument-functions
+
+void __cyg_profile_func_enter(void *this_fn, void *call_site)
+                              __attribute__((no_instrument_function));
+
+void __cyg_profile_func_enter(void *this_fn, void *call_site) {
+  printf("ENTER: %x, from %x\n", this_fn, call_site);
+}
+
+void __cyg_profile_func_exit(void *this_fn, void *call_site)
+                             __attribute__((no_instrument_function));
+void __cyg_profile_func_exit(void *this_fn, void *call_site) {
+  printf("EXIT:  %x, from %x\n", this_fn, call_site);
+}
+
+*/

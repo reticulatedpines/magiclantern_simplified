@@ -296,11 +296,14 @@ ML_OBJS-$(CONFIG_PICOC)	+= \
 
 ML_OBJS-$(CONFIG_TCC) += \
 	tcc-glue.o \
+	tcc-gui.o \
+	chdk-gui_script.o \
+	script_lib.o \
 	$(TOP_DIR)/tcc/libtcc.a \
 
 endif
 
-$(TOP_DIR)/tcc/libtcc.a:
+$(TOP_DIR)/tcc/libtcc.a: FORCE
 	make -C $(TOP_DIR)/tcc
 
 # Extract the stdio files that we need
