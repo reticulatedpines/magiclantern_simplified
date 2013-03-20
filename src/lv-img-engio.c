@@ -38,7 +38,7 @@ static CONFIG_INT("digic.iso.gain.photo", digic_iso_gain_photo, 0);
 int get_digic_iso_gain_movie() { return DIGIC_ISO_GAIN_MOVIE; }
 int get_digic_iso_gain_photo() { return DIGIC_ISO_GAIN_PHOTO; }
 
-CONFIG_INT("digic.black.level", digic_black_level, 0);
+static CONFIG_INT("digic.black.level", digic_black_level, 0);
 int digic_iso_gain_movie_for_gradual_expo = 1024; // additional gain that won't appear in ML menus, but can be changed from code (to be "added" to digic_iso_gain_movie)
 int digic_iso_gain_photo_for_bv = 1024;
 
@@ -121,7 +121,7 @@ MENU_UPDATE_FUNC(digic_iso_print)
 }
 */
 
-MENU_UPDATE_FUNC(digic_black_print)
+static MENU_UPDATE_FUNC(digic_black_print)
 {
     MENU_SET_VALUE(
         "%s%d",
@@ -547,7 +547,7 @@ static void vignetting_correction_apply_regs()
 }
 #endif
 
-void vignetting_correction_toggle(void* priv, int delta)
+static void vignetting_correction_toggle(void* priv, int delta)
 {
     uint32_t *state = (uint32_t *)priv;
     
@@ -1009,7 +1009,7 @@ static void lv_img_init()
 
 }
 
-void vignetting_init (void * parm)
+static void vignetting_init (void * parm)
 {
     vignetting_correction_set_coeffs(vignetting_correction_a, vignetting_correction_b, vignetting_correction_c);
     vignetting_correction_initialized = 1;

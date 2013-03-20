@@ -277,8 +277,6 @@ OS_FUNCTION( 0x0700001,	void,	menu_add, const char * name, struct menu_entry * n
 extern void
 menu_init( void );
 
-extern void menu_stop(void);
-
 #define MNI_NONE -1
 #define MNI_OFF -2
 #define MNI_ON 1

@@ -14,12 +14,11 @@
 #include "lens.h"
 #include "math.h"
 
-void clear_lv_affframe();
-void lcd_adjust_position_step();
-void arrow_key_step();
-void preview_contrast_n_saturation_step();
-void adjust_saturation_level(int);
-void grayscale_menus_step();
+static void lcd_adjust_position_step();
+static void arrow_key_step();
+static void preview_contrast_n_saturation_step();
+static void adjust_saturation_level(int);
+static void grayscale_menus_step();
 void clear_lv_afframe();
 
 void NormalDisplay();
@@ -263,7 +262,7 @@ int get_expsim()
 }
 #ifdef CONFIG_EXPSIM
 
-void video_refresh()
+static void video_refresh()
 {
     set_lv_zoom(lv_dispsize);
     lens_display_set_dirty();
@@ -337,7 +336,7 @@ void set_expsim(){};
 // auto burst pic quality
 //**********************************************************************/
 
-CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
+static CONFIG_INT("burst.auto.picquality", auto_burst_pic_quality, 0);
 
 void set_pic_quality(int q)
 {
@@ -348,7 +347,7 @@ void set_pic_quality(int q)
 }
 
 #ifdef FEATURE_AUTO_BURST_PICQ
-int picq_saved = -1;
+static int picq_saved = -1;
 static void decrease_pic_quality()
 {
     if (picq_saved == -1) picq_saved = pic_quality; // save only first change
@@ -414,13 +413,13 @@ extern unsigned lcd_sensor_shortcuts;
 // backlight adjust
 //**********************************************************************/
 
-void show_display_gain_level()
+static void show_display_gain_level()
 {
     int digic_iso_gain_photo = get_digic_iso_gain_photo();
     int G = gain_to_ev_scaled(digic_iso_gain_photo, 1) - 10;
     NotifyBox(2000, "Display Gain : %d EV", G);
 }
-void adjust_backlight_level(int delta)
+static void adjust_backlight_level(int delta)
 {
     if (backlight_level < 1 || backlight_level > 7) return; // kore wa dame desu yo
     if (!DISPLAY_IS_ON) call("TurnOnDisplay");
@@ -472,7 +471,7 @@ void afframe_clr_dirty()
 }
 
 // this should be thread safe
-void clear_lv_affframe_if_dirty()
+void clear_lv_afframe_if_dirty()
 {
     //~ #ifndef CONFIG_50D
     if (af_frame_autohide && afframe_countdown && liveview_display_idle())
@@ -580,7 +579,7 @@ int timelapse_playback = 0;
 
 #ifdef FEATURE_SET_MAINDIAL
 
-void playback_set_wheel_action(int dir)
+static void playback_set_wheel_action(int dir)
 {
     #ifdef CONFIG_5DC
     play_set_wheel_action = COERCE(play_set_wheel_action, 3, 4);
@@ -630,7 +629,7 @@ int is_pure_play_photo_or_movie_mode() { return is_pure_play_photo_mode() || is_
 
 #ifdef FEATURE_SET_MAINDIAL
 
-void print_set_maindial_hint(int set)
+static void print_set_maindial_hint(int set)
 {
     if (is_pure_play_photo_mode())
     {
@@ -677,7 +676,7 @@ static void krzoom_task()
 #endif
 
 #ifdef FEATURE_SET_MAINDIAL
-void set_maindial_cleanup()
+static void set_maindial_cleanup()
 {
     #ifdef FEATURE_PLAY_EXPOSURE_FUSION
     // reset exposure fusion preview
@@ -938,7 +937,7 @@ int halfshutter_sticky = 0; // it's too easy to forget this on
 
 #ifdef FEATURE_STICKY_HALFSHUTTER
 
-void hs_show()
+static void hs_show()
 {
     bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), 720-font_large.width*3, 50, "HS");
 }
@@ -947,7 +946,7 @@ void hs_show()
     bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, 0), 720-font_large.width*3, 50, "  ");
 }*/
 
-void 
+static void 
 fake_halfshutter_step()
 {
     if (gui_menu_shown()) return;
@@ -1109,7 +1108,7 @@ static int play_zoom_last_x = 0;
 static int play_zoom_last_y = 0;
 #endif
 
-void play_zoom_center_on_last_af_point()
+static void play_zoom_center_on_last_af_point()
 {
     #ifdef IMGPLAY_ZOOM_POS_X
     if (play_zoom_last_x && play_zoom_last_y)
@@ -1119,7 +1118,7 @@ void play_zoom_center_on_last_af_point()
     }
     #endif
 }
-void play_zoom_center_pos_update()
+static void play_zoom_center_pos_update()
 {
     #ifdef IMGPLAY_ZOOM_POS_X
     if (PLAY_MODE && MEM(IMGPLAY_ZOOM_LEVEL_ADDR) > 5 && IMGPLAY_ZOOM_POS_X && IMGPLAY_ZOOM_POS_Y)
@@ -1312,7 +1311,7 @@ tweak_task( void* unused)
         #endif
 
         #ifdef FEATURE_LV_FOCUS_BOX_AUTOHIDE
-        clear_lv_affframe_if_dirty();
+        clear_lv_afframe_if_dirty();
         #endif
 
         #ifdef FEATURE_LV_BUTTON_RATE
@@ -1448,7 +1447,7 @@ CONFIG_INT("arrows.bright_sat", arrow_keys_bright_sat, 0);
 
 #ifdef FEATURE_ARROW_SHORTCUTS
 
-void arrow_key_set_toggle(void* priv, int delta)
+static void arrow_key_set_toggle(void* priv, int delta)
 {
     arrow_keys_use_set = !arrow_keys_use_set;
 }
@@ -1463,7 +1462,7 @@ static MENU_UPDATE_FUNC(arrow_key_set_display)
 }
 
 
-int is_arrow_mode_ok(int mode)
+static int is_arrow_mode_ok(int mode)
 {
     switch (mode)
     {
@@ -1476,7 +1475,7 @@ int is_arrow_mode_ok(int mode)
     return 0;
 }
 
-void arrow_key_mode_toggle()
+static void arrow_key_mode_toggle()
 {
     if (arrow_keys_mode >= 10) // temporarily disabled
     {
@@ -1492,9 +1491,9 @@ void arrow_key_mode_toggle()
     NotifyBoxHide();
 }
 
-void shutter_180() { lens_set_rawshutter(shutter_ms_to_raw(1000 / video_mode_fps / 2)); }
+static void shutter_180() { lens_set_rawshutter(shutter_ms_to_raw(1000 / video_mode_fps / 2)); }
 
-void brightness_saturation_reset(void);
+static void brightness_saturation_reset(void);
 
 #ifdef FEATURE_WHITE_BALANCE
 int handle_push_wb(struct event * event)
@@ -1745,7 +1744,7 @@ int handle_arrow_keys(struct event * event)
 }
 
 // only for toggling shortcuts in 500D
-void arrow_key_step()
+static void arrow_key_step()
 {
     if (!lv) return;
     if (gui_menu_shown()) return;
@@ -1957,7 +1956,7 @@ static CONFIG_INT("warn.alo", warn_alo, 0);
 static int warn_code = 0;
 
 #ifdef FEATURE_WARNINGS_FOR_BAD_SETTINGS
-char* get_warn_msg(char* separator)
+static char* get_warn_msg(char* separator)
 {
     static char msg[200];
     msg[0] = '\0';
@@ -1970,7 +1969,7 @@ char* get_warn_msg(char* separator)
     return msg;
 }
 
-void warn_action(int code)
+static void warn_action(int code)
 {
     // blink LED every second
     if (code)
@@ -2426,7 +2425,7 @@ static int focus_peaking_grayscale_running()
 
 #ifdef FEATURE_LV_SATURATION
 
-int is_adjusting_wb()
+static int is_adjusting_wb()
 {
     #if defined(CONFIG_5D2) || defined(CONFIG_5D3)
     // these cameras have a transparent LiveView dialog for adjusting Kelvin white balance
@@ -2445,7 +2444,7 @@ int is_adjusting_wb()
 
 int joke_mode = 0;
 
-void preview_contrast_n_saturation_step()
+static void preview_contrast_n_saturation_step()
 {
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
@@ -2567,7 +2566,7 @@ static void uniwb_correction_step()
 #endif
 
 #ifdef FEATURE_LV_BRIGHTNESS_CONTRAST
-void preview_show_contrast_curve()
+static void preview_show_contrast_curve()
 {
     int brightness_contrast_register = 0xC0F141B8;
     int value = (int) shamem_read(brightness_contrast_register);
@@ -2630,7 +2629,7 @@ static MENU_UPDATE_FUNC(preview_brightness_display)
 #endif
 
 #ifdef FEATURE_ARROW_SHORTCUTS
-void adjust_saturation_level(int delta)
+static void adjust_saturation_level(int delta)
 {
     preview_saturation = COERCE((int)preview_saturation + delta, -1, 3);
     NotifyBox(2000, 
@@ -2642,7 +2641,7 @@ void adjust_saturation_level(int delta)
     );
 }
 
-void brightness_saturation_reset()
+static void brightness_saturation_reset()
 {
     preview_saturation = 0;
     set_backlight_level(5);
@@ -2681,7 +2680,7 @@ void alter_bitmap_palette_entry(int color, int base_color, int luma_scale_factor
 #endif
 }
 
-void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shift)
+static void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int v_shift)
 {
 #ifndef CONFIG_VXWORKS
 
@@ -2783,7 +2782,7 @@ void grayscale_menus_step()
 #endif
 
 #ifdef FEATURE_IMAGE_POSITION
-void lcd_adjust_position_step()
+static void lcd_adjust_position_step()
 {
     if (ml_shutdown_requested) return;
     if (!DISPLAY_IS_ON) return;
@@ -2872,7 +2871,7 @@ static MENU_UPDATE_FUNC(anamorphic_preview_display)
 // for focus peaking (exception, since it doesn't operate on squeezed LV buffer, but on unsqeezed HD one
 // so... we'll try to squeeze the bitmap coords for output
 static int16_t anamorphic_bmp_y_lut[480];
-int anamorphic_squeeze_bmp_y(int y)
+int FAST anamorphic_squeeze_bmp_y(int y)
 {
     if (likely(!anamorphic_preview)) return y;
     if (unlikely(!lv)) return y;
@@ -2892,7 +2891,7 @@ int anamorphic_squeeze_bmp_y(int y)
     return anamorphic_bmp_y_lut[y];
 }
 
-void yuvcpy_dark(uint32_t* dst, uint32_t* src, size_t n, int parity)
+static void yuvcpy_dark(uint32_t* dst, uint32_t* src, size_t n, int parity)
 {
     if (parity)
     {
@@ -2999,7 +2998,7 @@ static void FAST defish_draw_lv_color_loop(uint32_t* src_buf, uint32_t* dst_buf,
         dst_buf[i] = src_buf[ind[i]];
 }
 
-void defish_draw_lv_color()
+static void defish_draw_lv_color()
 {
     if (!get_global_draw()) return;
     if (!lv) return;

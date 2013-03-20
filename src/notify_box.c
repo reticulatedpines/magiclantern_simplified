@@ -12,14 +12,14 @@
 #include "gui.h"
 #include "lens.h"
 
-struct semaphore * notify_box_show_sem = 0;
-struct semaphore * notify_box_main_sem = 0;
+static struct semaphore * notify_box_show_sem = 0;
+static struct semaphore * notify_box_main_sem = 0;
 
-int notify_box_timeout = 0;
-int notify_box_stop_request = 0;
-int notify_box_dirty = 0;
-char notify_box_msg[100];
-char notify_box_msg_tmp[100];
+static int notify_box_timeout = 0;
+static int notify_box_stop_request = 0;
+static int notify_box_dirty = 0;
+static char notify_box_msg[100];
+static char notify_box_msg_tmp[100];
 
 /*int handle_notifybox_bgmt(struct event * event)
 {
@@ -36,7 +36,7 @@ char notify_box_msg_tmp[100];
     return 0;
 }*/
 
-void NotifyBox_task(void* priv)
+static void NotifyBox_task(void* priv)
 {
     TASK_LOOP
     {

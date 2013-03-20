@@ -472,7 +472,7 @@ static struct menu_entry picoc_menu[] = {
             .icon_type = IT_SUBMENU, \
             .submenu_width = 700, \
             .children = picoc_submenu, \
-            .help  = "Run small C-like scripts. http://code.google.com/p/picoc/", \
+            .help  = "Run C scripts with TinyCC, http://bellard.org/tcc/.", \
             .help2 = "PLAY: quick start.", \
         },
     

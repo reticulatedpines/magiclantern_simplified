@@ -131,7 +131,7 @@ int display_is_on_550D = 0;
 int get_display_is_on_550D() { return display_is_on_550D; }
 #endif
 
-int (*StateTransition)(void*,int,int,int,int) = 0;
+static int (*StateTransition)(void*,int,int,int,int) = 0;
 static int stateobj_spy(struct state_object * self, int x, int input, int z, int t)
 {
     int old_state = self->current_state;

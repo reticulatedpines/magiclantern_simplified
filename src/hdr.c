@@ -52,7 +52,7 @@ int hdr_video_enabled()
     #endif
 }
 
-int is_hdr_valid_iso(int iso)
+static int is_hdr_valid_iso(int iso)
 {
     #ifdef CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
     return is_native_iso(iso);
@@ -342,7 +342,7 @@ int get_effective_hdr_iso_for_display(int raw_iso)
     int digic_iso_gain_movie = get_digic_iso_gain_movie();
     if (digic_iso_gain_movie != 1024)
     {
-        actual_iso += (gain_to_ev_x8(digic_iso_gain_movie) - 80);
+        actual_iso += (gain_to_ev_scaled(digic_iso_gain_movie, 8) - 80);
     }
     return actual_iso;
 }
@@ -458,7 +458,7 @@ struct menu_entry hdr_menu[] = {
     }
 };
 
-void iso_test()
+static void iso_test()
 {
     while(1)
     {

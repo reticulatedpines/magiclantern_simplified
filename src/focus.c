@@ -13,14 +13,19 @@
 #include "config.h"
 #include "ptp.h"
 
-void trap_focus_toggle_from_af_dlg();
+static void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
 
-int override_zoom_buttons; // while focus menu is active and rack focus items are selected
+static int override_zoom_buttons; // while focus menu is active and rack focus items are selected
 
 int should_override_zoom_buttons()
 {
     return (override_zoom_buttons && !is_manual_focus() && lv);// && get_menu_advanced_mode());
+}
+
+void reset_override_zoom_buttons()
+{
+    override_zoom_buttons = 0;
 }
 
 CONFIG_INT( "focus.stepsize", lens_focus_stepsize, 2 );
@@ -50,17 +55,17 @@ void LensFocusSetup(int stepsize, int stepdelay, int wait)
 static int focus_stack_enabled = 0;
 //~ CONFIG_INT( "focus.stack", focus_stack_enabled, 0);
 
-CONFIG_INT( "focus.bracket.step",   focus_stack_steps_per_picture, 5 );
-CONFIG_INT( "focus.bracket.front",  focus_bracket_front, 0 );
-CONFIG_INT( "focus.bracket.behind",  focus_bracket_behind, 0 );
+static CONFIG_INT( "focus.bracket.step",   focus_stack_steps_per_picture, 5 );
+static CONFIG_INT( "focus.bracket.front",  focus_bracket_front, 0 );
+static CONFIG_INT( "focus.bracket.behind",  focus_bracket_behind, 0 );
 //~ CONFIG_INT( "focus.bracket.dir",  focus_bracket_dir, 0 );
 
 #define FOCUS_BRACKET_COUNT (focus_bracket_front + focus_bracket_behind + 1)
 
-CONFIG_INT( "focus.follow", follow_focus, 0 );
-CONFIG_INT( "focus.follow.mode", follow_focus_mode, 0 ); // 0=arrows, 1=LCD sensor
-CONFIG_INT( "focus.follow.rev.h", follow_focus_reverse_h, 0); // for left/right buttons
-CONFIG_INT( "focus.follow.rev.v", follow_focus_reverse_v, 0); // for up/down buttons
+static CONFIG_INT( "focus.follow", follow_focus, 0 );
+static CONFIG_INT( "focus.follow.mode", follow_focus_mode, 0 ); // 0=arrows, 1=LCD sensor
+static CONFIG_INT( "focus.follow.rev.h", follow_focus_reverse_h, 0); // for left/right buttons
+static CONFIG_INT( "focus.follow.rev.v", follow_focus_reverse_v, 0); // for up/down buttons
 
 static int focus_dir;
 //~ int get_focus_dir() { return focus_dir; }
@@ -181,7 +186,7 @@ static int focus_stack_check_stop()
     return focus_stack_should_stop;
 }
 
-void focus_stack_ensure_preconditions()
+static void focus_stack_ensure_preconditions()
 {
     while (lens_info.job_state) msleep(100);
     if (!lv)
@@ -225,8 +230,17 @@ void focus_stack_ensure_preconditions()
     if (fstack_zoom > 1) set_lv_zoom(fstack_zoom);
 }
 
-// will be called from shoot_task
-void
+static void wait_notify(int seconds, char* msg)
+{
+    wait_till_next_second();
+    for (int i = 0; i < seconds; i++)
+    {
+        NotifyBox(2000, "%s: %d...", msg, seconds - i);
+        wait_till_next_second();
+    }
+}
+
+static void
 focus_stack(
     int count,
     int num_steps,
@@ -337,6 +351,7 @@ int is_focus_stack_enabled() { return focus_stack_enabled && (FOCUS_BRACKET_COUN
 
 #ifdef FEATURE_FOCUS_STACKING
 
+// will be called from shoot_task
 void focus_stack_run(int skip_frame)
 {
     int focus_bracket_sign = -1;
@@ -345,7 +360,7 @@ void focus_stack_run(int skip_frame)
     focus_stack( FOCUS_BRACKET_COUNT, focus_bracket_sign*focus_stack_steps_per_picture, skip_frame, focus_bracket_front, true);
 }
 
-void focus_stack_trigger_from_menu_work()
+static void focus_stack_trigger_from_menu_work()
 {
     if (!(FOCUS_BRACKET_COUNT-1)) { beep(); return; }
     msleep(1000);
@@ -355,7 +370,7 @@ void focus_stack_trigger_from_menu_work()
     focus_stack_enabled = 0;
 }
 
-void focus_stack_trigger_from_menu(void* priv, int delta)
+static void focus_stack_trigger_from_menu(void* priv, int delta)
 {
     run_in_separate_task(focus_stack_trigger_from_menu_work, 0);
 }
@@ -395,8 +410,8 @@ focus_reset_a( void * priv, int delta )
     else menu_enable_lv_transparent_mode();
 }
 
-int focus_rack_auto_record = 0;
-int focus_rack_enable_delay = 1;
+static int focus_rack_auto_record = 0;
+static int focus_rack_enable_delay = 1;
 
 static void
 focus_toggle( void * priv )
@@ -488,7 +503,7 @@ lens_focus_start(
     give_semaphore( focus_task_sem );
 }
 
-int queued_focus_steps = 0;
+static int queued_focus_steps = 0;
 void lens_focus_enqueue_step(int dir)
 {
     queued_focus_steps += ABS(dir);
@@ -540,16 +555,6 @@ rack_focus(
     }
 }
 
-void wait_notify(int seconds, char* msg)
-{
-    wait_till_next_second();
-    for (int i = 0; i < seconds; i++)
-    {
-        NotifyBox(2000, "%s: %d...", msg, seconds - i);
-        wait_till_next_second();
-    }
-}
-
 static void rack_focus_wait()
 {
     if (focus_rack_delay && focus_rack_enable_delay)
@@ -576,7 +581,7 @@ focus_task( void* unused )
             int movie_started_by_ml = 0;
             if (focus_rack_auto_record)
             {
-                menu_stop();
+                gui_stop_menu();
                 NotifyBox(2000, "Rack Focus: REC Start");
                 ensure_movie_mode();
                 if (!recording)
@@ -664,8 +669,8 @@ int focus_value = 0; // heuristic from 0 to 100
 int focus_value_delta = 0;
 int focus_min_value = 0; // to confirm focus variation 
 
-volatile int focus_done = 0;
-volatile uint32_t focus_done_raw = 0;
+static volatile int focus_done = 0;
+static volatile uint32_t focus_done_raw = 0;
 
 PROP_HANDLER(PROP_LV_FOCUS_DONE)
 {
@@ -688,7 +693,7 @@ int get_focus_graph()
     return 0;
 }
 
-int lv_focus_confirmation = 0;
+static int lv_focus_confirmation = 0;
 static int hsp_countdown = 0;
 int can_lv_trap_focus_be_active()
 {
@@ -709,7 +714,7 @@ int can_lv_trap_focus_be_active()
 }
 
 static int hsp = 0;
-int movie_af_reverse_dir_request = 0;
+static int movie_af_reverse_dir_request = 0;
 PROP_HANDLER(PROP_HALF_SHUTTER)
 {
     if (buf[0] && !hsp) movie_af_reverse_dir_request = 1;
@@ -840,15 +845,15 @@ int handle_trap_focus(struct event * event)
 }
 #endif
 
-int focus_graph_dirty = 0;
+static int focus_graph_dirty = 0;
 
 #if defined(FEATURE_TRAP_FOCUS) || defined(FEATURE_MAGIC_ZOOM) || defined(FEATURE_MOVIE_AF)
 
 #define NMAGS 64
 static int mags[NMAGS] = {0};
 #define FH COERCE(mags[i] * 45 / maxmagf, 0, 54)
-int maxmagf = 1;
-int minmag = 0;
+static int maxmagf = 1;
+static int minmag = 0;
 
 static void update_focus_mag(int mag)
 {
@@ -879,7 +884,7 @@ static void update_focus_mag(int mag)
     focus_min_value = COERCE(minmag * 45 / maxmagf, 0, 50) * 2;
     lv_focus_confirmation = (focus_value > 80 && focus_min_value < 60);
 }
-void plot_focus_mag()
+static void plot_focus_mag()
 {
     int x0 = 8;
     int y0 = 100;
@@ -907,9 +912,9 @@ void plot_focus_mag()
 #undef FH
 #undef NMAGS
 
-int focus_mag_a = 0;
-int focus_mag_b = 0;
-int focus_mag_c = 0;
+static int focus_mag_a = 0;
+static int focus_mag_b = 0;
+static int focus_mag_c = 0;
 
 PROP_HANDLER(PROP_LV_FOCUS_DATA)
 {
@@ -1030,13 +1035,15 @@ static MENU_UPDATE_FUNC(trap_focus_display)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Trap focus outside LiveView requires a chipped lens");
     if (t == 2 && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Assign AF button to half-shutter from CFn!");
+    if (lv && get_silent_pic())
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Trap focus in LV not working with silent pictures.");
 }
 
 
 extern int trap_focus;
 //~ extern int trap_focus_shoot_numpics;
 
-void trap_focus_toggle_from_af_dlg()
+static void trap_focus_toggle_from_af_dlg()
 {
     #ifndef CONFIG_50D
     trap_focus = !trap_focus;
@@ -1158,7 +1165,7 @@ static struct menu_entry focus_menu[] = {
                 .select = focus_stack_trigger_from_menu,
                 .update = focus_stack_update,
                 .help = "Run the focus stacking sequence.",
-                .help = "Tip: press MENU to interrupt the stacking sequence.",
+                .help2 = "Tip: press MENU to interrupt the stacking sequence.",
             },
             {
                 .name = "Num. pics in front",

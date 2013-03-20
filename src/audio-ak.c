@@ -199,7 +199,7 @@ audio_ic_set_input_volume(
 #endif
 
 #ifdef FEATURE_MIC_POWER
-int get_mic_power(int input_source)
+static int get_mic_power(int input_source)
 {
     return (input_source >= 2) ? mic_power : 1;
 }

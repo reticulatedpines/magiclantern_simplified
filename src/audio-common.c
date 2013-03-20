@@ -78,7 +78,7 @@ struct audio_level *get_audio_levels(void)
 }
 
 // from linux snd_soc_update_bits()
-void masked_audio_ic_write(
+static void masked_audio_ic_write(
                            unsigned reg,     // the register we wish to manipulate (eg AUDIO_IC_SIG1)
                            unsigned mask, // the range of bits we want to manipulate (eg 0x05 or b0000111) to only allow changes to b3,b2,b0
                            unsigned bits     // the bits we wish to set (eg 0x02 or b000010 to set b1, while clearing others within scope of the mask)
@@ -818,7 +818,7 @@ PROP_HANDLER( PROP_MIC_INSERTED )
     //~ menu_set_dirty();
 }
 
-int get_input_source()
+static int get_input_source()
 {
     int input_source;
     //setup input_source based on choice and mic pluggedinedness
@@ -957,7 +957,7 @@ enable_recording(
 }
 
 // to be called from some other tasks that may mess with audio 
-void audio_force_reconfigure() 
+static void audio_force_reconfigure() 
 {
     give_semaphore( gain.sem ); 
 }

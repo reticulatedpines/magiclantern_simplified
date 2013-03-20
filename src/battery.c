@@ -30,12 +30,12 @@ struct battery_history {
   int day;           // day        |
 };
 
-struct battery_history bat_hist[6];
-struct battery_info bat_info;
+static struct battery_history bat_hist[6];
+static struct battery_info bat_info;
 
-CONFIG_INT("battery.drain.rate.rev", battery_seconds_same_level_ok, 108); // initial estimation: 3 hours battery life
-int battery_seconds_same_level_tmp = 0;
-int battery_level_transitions = 0;
+static CONFIG_INT("battery.drain.rate.rev", battery_seconds_same_level_ok, 108); // initial estimation: 3 hours battery life
+static int battery_seconds_same_level_tmp = 0;
+static int battery_level_transitions = 0;
 
 PROP_HANDLER(PROP_BATTERY_REPORT) // also in memory address 7D.203: 7AF60, length 96 bytes
 {

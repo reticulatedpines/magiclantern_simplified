@@ -69,7 +69,7 @@ int tolower(int c)
     return c;
 }
 
-int errno;
+static int errno;
 int* __errno(void) { return &errno; }
 
 int islower(int x) { return ((x)>='a') && ((x)<='z'); }
@@ -97,7 +97,7 @@ int is_dir(char* path)
         return 1; // dir found
     }
 }
-void FIO_CreateDir_recursive(char* path)
+static void FIO_CreateDir_recursive(char* path)
 {
     //~ NotifyBox(2000, "create dir: %s ", path); msleep(2000);
     // B:/ML/something

@@ -7,7 +7,7 @@
 #include "af_patterns.h"
 #include "lens.h"
 
-CONFIG_INT("focus.patterns", af_patterns, 0);
+static CONFIG_INT("focus.patterns", af_patterns, 0);
 
 static type_PATTERN_MAP_ITEM pattern_map[] = {
         {AF_PATTERN_CENTER,         AF_PATTERN_SQUARE, AF_PATTERN_TOPHALF,        AF_PATTERN_BOTTOMHALF,     AF_PATTERN_LEFTHALF,      AF_PATTERN_RIGHTHALF},
@@ -73,14 +73,12 @@ BMP_LOCK( // reuse this for locking
 static void set_af_point(int afpoint)
 {
     if (!afp_len) return;
-    if (!gui_menu_shown() && beep_enabled) Beep();
+    if (!gui_menu_shown() && beep_enabled) beep();
     afp[0] = afpoint;
     prop_request_change(PROP_AFPOINT, afp, afp_len);
     if (!gui_menu_shown())
         task_create("afp_tmp", 0x18, 0, afp_show_in_viewfinder, 0);
 }
-
-int afpoint_for_key_guess = 0;
 
 static void afp_center () {
     set_af_point(afp_transformer(af_point, DIRECTION_CENTER));

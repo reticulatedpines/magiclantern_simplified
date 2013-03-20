@@ -5,9 +5,8 @@
 
 #include "dryos.h"
 
-int vsync_last_msg = 0;
-struct msg_queue * vsync_msg_queue = 0;
-int mz_buf = 0;
+static int vsync_last_msg = 0;
+static struct msg_queue * vsync_msg_queue = 0;
 
 
 void lv_vsync_signal()

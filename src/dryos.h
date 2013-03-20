@@ -413,6 +413,9 @@ SIZE_CHECK_STRUCT( dryos_meminfo, 0xC );
 extern void * malloc( size_t len );
 extern void free( void * buf );
 
+void * shoot_malloc( size_t len );
+void shoot_free( void * buf );
+
 #ifdef CONFIG_USE_MALLOC_FOR_SMALL_THINGS
 #define SmallAlloc malloc
 #define SmallFree free

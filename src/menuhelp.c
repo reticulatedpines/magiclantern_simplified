@@ -61,7 +61,7 @@ draw_beta_warning()
         build_user);
 }
 
-void 
+static void 
 draw_404_page()
 {
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
@@ -162,7 +162,7 @@ void menu_help_go_to_page(int page)
     menu_help_active = 1;
 }
 
-void str_make_lowercase(char* s)
+static void str_make_lowercase(char* s)
 {
     while (*s) { *s = tolower(*s); s++; }
 }

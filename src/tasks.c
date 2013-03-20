@@ -52,9 +52,9 @@ return "?";
 
 #ifndef CONFIG_VXWORKS
 #ifdef CONFIG_TSKMON
-taskload_t tskmon_task_loads[TSKMON_MAX_TASKS];
+static taskload_t tskmon_task_loads[TSKMON_MAX_TASKS];
 int show_cpu_usage_flag = 0;
-int task_load_update_request = 0;
+static int task_load_update_request = 0;
 #endif
 
 void task_update_loads() // called every second from clock_task

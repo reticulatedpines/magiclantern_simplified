@@ -5,23 +5,23 @@
 
 #ifdef CONFIG_TSKMON
 
-struct task *tskmon_last_task = NULL;
-uint32_t tskmon_last_timer_val = 0;
-uint32_t tskmon_active_time = 0;
-uint32_t tskmon_total_runtime = 0;
-uint32_t tskmon_task_runtimes[TSKMON_MAX_TASKS];
-uint32_t tskmon_task_stack_free[TSKMON_MAX_TASKS];
-uint32_t tskmon_task_stack_used[TSKMON_MAX_TASKS];
-uint32_t tskmon_task_stack_check[TSKMON_MAX_TASKS];
-uint32_t tskmon_idle_task_id = 0;
-uint32_t tskmon_powermgr_task_id = 0;
+static struct task *tskmon_last_task = NULL;
+static uint32_t tskmon_last_timer_val = 0;
+static uint32_t tskmon_active_time = 0;
+static uint32_t tskmon_total_runtime = 0;
+static uint32_t tskmon_task_runtimes[TSKMON_MAX_TASKS];
+static uint32_t tskmon_task_stack_free[TSKMON_MAX_TASKS];
+static uint32_t tskmon_task_stack_used[TSKMON_MAX_TASKS];
+static uint32_t tskmon_task_stack_check[TSKMON_MAX_TASKS];
+static uint32_t tskmon_idle_task_id = 0;
+static uint32_t tskmon_powermgr_task_id = 0;
 
 #ifdef FEATURE_ISR_HOOKS
-uint32_t tskmon_isr_nesting = 0;
-uint32_t tskmon_isr_task_active_time = 0;
+static uint32_t tskmon_isr_nesting = 0;
+static uint32_t tskmon_isr_task_active_time = 0;
 #endif
 
-uint32_t tskmon_get_timer_reg()
+static uint32_t tskmon_get_timer_reg()
 {
     return *(uint32_t*)0xC0242014;
 }
@@ -91,7 +91,7 @@ int tskmon_update_loads(taskload_t *task_loads)
 
 
 /* this updates tskmon_last_timer_val and counts up tskmon_active_time */
-void tskmon_update_timers()
+static void tskmon_update_timers()
 {
     uint32_t current_timer_val = tskmon_get_timer_reg();
     uint32_t delta = 0;
@@ -110,7 +110,7 @@ void tskmon_update_timers()
     tskmon_active_time += delta;
 }
 
-void tskmon_update_runtime(struct task *task, uint32_t active_time)
+static void tskmon_update_runtime(struct task *task, uint32_t active_time)
 {
     if(!task || active_time == 0)
     {
@@ -140,7 +140,7 @@ void tskmon_update_runtime(struct task *task, uint32_t active_time)
     }
 }
 
-void tskmon_stack_checker(struct task *next_task)
+static void tskmon_stack_checker(struct task *next_task)
 {
     uint32_t id = (next_task->taskId) & (TSKMON_MAX_TASKS-1);
     

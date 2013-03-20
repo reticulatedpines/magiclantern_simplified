@@ -111,8 +111,8 @@ void set_afma_mode(int mode)
  * Dot-Tune AFMA
  */
 
-int afma_mode = AFMA_MODE_AUTODETECT;
-int afma_mode_index = 0;
+static int afma_mode = AFMA_MODE_AUTODETECT;
+static int afma_mode_index = 0;
 
 static void afma_print_status(int8_t* score, int range_expand_factor)
 {

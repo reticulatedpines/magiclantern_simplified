@@ -342,7 +342,7 @@ void menu_prefs_init()
 
 static struct menu * menus;
 
-struct menu * menu_get_root() {
+static struct menu * menu_get_root() {
   return menus;
 }
 
@@ -427,7 +427,7 @@ static int round_to_R20(int val)
     return val * mag;
 }
 
-void menu_numeric_toggle_R20(int* val, int delta, int min, int max)
+static void menu_numeric_toggle_R20(int* val, int delta, int min, int max)
 {
     int v = *val;
 
@@ -452,7 +452,7 @@ void menu_numeric_toggle_R20(int* val, int delta, int min, int max)
     *val = v;
 }
 
-void menu_numeric_toggle_long_range(int* val, int delta, int min, int max)
+static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max)
 {
     int v = *val;
 
@@ -488,7 +488,7 @@ void menu_numeric_toggle(int* val, int delta, int min, int max)
     *val = mod(*val - min + delta, max - min + 1) + min;
 }
 
-void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
+static void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
 {
     static int prev_t = 0;
     int t = get_ms_clock_value();
@@ -1317,7 +1317,7 @@ static void slider(int x, int y, int current, int nmax, int fg, int bg)
         round_box(fg, x+8, y+8, 16, 16);
 }
 
-void submenu_only_icon(int x, int y, int color)
+static void submenu_only_icon(int x, int y, int color)
 {
     round_box(color, x+8, y+8, 16, 16);
     /*
@@ -1382,7 +1382,7 @@ void color_icon(int x, int y, const char* color)
 
 #endif // CONFIG_MENU_ICONS
 
-void FAST selection_bar_backend(int c, int black, int x0, int y0, int w, int h)
+static void FAST selection_bar_backend(int c, int black, int x0, int y0, int w, int h)
 {
     uint8_t* B = bmp_vram();
     #ifdef CONFIG_VXWORKS
@@ -2796,8 +2796,8 @@ menus_display(
 
     take_semaphore( menu_sem, 0 );
 
-    extern int override_zoom_buttons; // from focus.c
-    override_zoom_buttons = 0; // will override them only if rack focus items are selected
+    // will override them only if rack focus items are selected
+    reset_override_zoom_buttons();
 
     // how many tabs should we display? we should know in order to adjust the spacing between them
     // keep the conditions in sync with the next loop
@@ -2949,7 +2949,7 @@ implicit_submenu_display()
 }
 */
 
-int submenu_default_height(int count)
+static int submenu_default_height(int count)
 {
     return MIN(408, count * font_large.height + 40 + 50 - (count > 7 ? 30 : 0));
     /* body + titlebar + padding - smaller padding for large submenus */
@@ -3557,7 +3557,7 @@ menu_redraw()
     if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, redraw_in_progress ? MENU_REDRAW_QUICK : MENU_REDRAW_FULL);
 }
 
-void
+static void
 menu_redraw_full()
 {
     if (!DISPLAY_IS_ON) return;
@@ -3998,7 +3998,7 @@ gui_menu_shown( void )
     return menu_shown;
 }
 
-void
+static void
 open_canon_menu()
 {
     //~ while(1)
@@ -4035,7 +4035,7 @@ static void start_redraw_flood()
     task_create("menu_redraw_flood", 0x1c, 0, menu_redraw_flood, 0);
 }
 
-void piggyback_canon_menu()
+static void piggyback_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
     #ifdef CONFIG_500D
@@ -4458,7 +4458,7 @@ int handle_ml_menu_erase(struct event * event)
 }
 
 // this can be called from any task
-void menu_stop()
+static void menu_stop()
 {
     if (gui_menu_shown())
         give_semaphore( gui_sem );

@@ -21,13 +21,13 @@ static int beep_type = 0;
 static int record_flag = 0;
 
 CONFIG_INT("beep.enabled", beep_enabled, 1);
-CONFIG_INT("beep.volume", beep_volume, 3);
-CONFIG_INT("beep.freq.idx", beep_freq_idx, 11); // 1 KHz
-CONFIG_INT("beep.wavetype", beep_wavetype, 0); // square, sine, white noise
+static CONFIG_INT("beep.volume", beep_volume, 3);
+static CONFIG_INT("beep.freq.idx", beep_freq_idx, 11); // 1 KHz
+static CONFIG_INT("beep.wavetype", beep_wavetype, 0); // square, sine, white noise
 
 static int beep_freq_values[] = {55, 110, 220, 262, 294, 330, 349, 392, 440, 494, 880, 1000, 1760, 2000, 3520, 5000, 12000};
 
-void generate_beep_tone(int16_t* buf, int N);
+static void generate_beep_tone(int16_t* buf, int N);
 
 static void asif_stopped_cbr()
 {
@@ -39,7 +39,7 @@ static void asif_stop_cbr()
     StopASIFDMADAC(asif_stopped_cbr, 0);
     audio_configure(1);
 }
-void play_beep(int16_t* buf, int N)
+static void play_beep(int16_t* buf, int N)
 {
     beep_playing = 1;
     SetSamplingRate(48000, 1);
@@ -50,7 +50,7 @@ void play_beep(int16_t* buf, int N)
     StartASIFDMADAC(buf, N, 0, 0, asif_stop_cbr, 0);
 }
 
-void play_beep_ex(int16_t* buf, int N, int sample_rate)
+static void play_beep_ex(int16_t* buf, int N, int sample_rate)
 {
     beep_playing = 1;
     SetSamplingRate(sample_rate, 1);
@@ -61,7 +61,7 @@ void play_beep_ex(int16_t* buf, int N, int sample_rate)
     StartASIFDMADAC(buf, N, 0, 0, asif_stop_cbr, 0);
 }
 
-void normalize_audio(int16_t* buf, int N)
+static void normalize_audio(int16_t* buf, int N)
 {
     int m = 0;
     for (int i = 0; i < N/2; i++)
@@ -116,7 +116,7 @@ static int wav_find_chunk(uint8_t* buf, int size, uint32_t chunk_code)
     return offset;
 }
 
-void WAV_PlaySmall(char* filename)
+static void WAV_PlaySmall(char* filename)
 {
     int size = 0;
     uint8_t* buf = (uint8_t*)read_entire_file(filename, &size);
@@ -172,7 +172,7 @@ static void asif_continue_cbr()
     wav_ibuf = !wav_ibuf;
 }
 
-void WAV_Play(char* filename)
+static void WAV_Play(char* filename)
 {
     uint8_t* buf1 = (uint8_t*)(wav_buf[0]);
     uint8_t* buf2 = (uint8_t*)(wav_buf[1]);
@@ -248,7 +248,7 @@ static void record_show_progress()
     );
 }
 
-void WAV_RecordSmall(char* filename, int duration, int show_progress)
+static void WAV_RecordSmall(char* filename, int duration, int show_progress)
 {
     int N = 48000 * 2 * duration;
     uint8_t* wav_buf = alloc_dma_memory(sizeof(wav_header) + N);
@@ -313,7 +313,7 @@ static void audio_stop_recording()
 }
 #endif
 
-int audio_stop_rec_or_play() // true if it stopped anything
+static int audio_stop_rec_or_play() // true if it stopped anything
 {
     #ifndef FEATURE_WAV_RECORDING
     int audio_recording = 0;
@@ -333,7 +333,7 @@ typedef struct _write_q {
 
 #define QBUF_SIZE 4
 #define QBUF_MAX 20
-WRITE_Q *rootq;
+static WRITE_Q *rootq;
 
 static void add_write_q(void *buf){
     WRITE_Q *tmpq = rootq;
@@ -500,7 +500,7 @@ static MENU_UPDATE_FUNC(record_display)
 
 static struct semaphore * beep_sem;
 
-void play_test_tone()
+static void play_test_tone()
 {
     if (audio_stop_rec_or_play()) return;
 #ifdef CONFIG_600D
@@ -552,11 +552,6 @@ void beep()
 {
     if (!recording) // breaks audio
         unsafe_beep();
-}
-
-void Beep()
-{
-    beep();
 }
 
 #ifdef FEATURE_WAV_RECORDING
@@ -715,7 +710,7 @@ static int find_wav(int * index, char* fn)
 
 static char current_wav_filename[100];
 
-void find_next_wav(void* priv, int dir)
+static void find_next_wav(void* priv, int dir)
 {
     static int index = -1;
 
@@ -880,7 +875,7 @@ PROP_HANDLER( PROP_MVR_REC_START )
 }
 #endif
 
-MENU_UPDATE_FUNC(beep_update)
+static MENU_UPDATE_FUNC(beep_update)
 {
     MENU_SET_ENABLED(beep_enabled);
 }
