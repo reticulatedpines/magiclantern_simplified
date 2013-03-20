@@ -673,5 +673,6 @@ DEPS  := $(COBJS:.o=.d)
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 %.bin: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
+	$(READELF) -sW $< | grep 'GLOBAL' | grep -E 'FUNC|OBJECT' | gawk '{print $$2, $$8;}' | grep -v '^ ' | sort > $<.sym
 
 zip: prepare_zip magiclantern-$(VERSION).zip

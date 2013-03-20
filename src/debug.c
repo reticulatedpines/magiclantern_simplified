@@ -700,8 +700,10 @@ void bsod()
 
 void run_test()
 {
-    bsod();
-    call("dumpf");
+    msleep(1000);
+    
+    console_show();
+    tcc_execute_elf(CARD_DRIVE"test.elf", "main");
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
