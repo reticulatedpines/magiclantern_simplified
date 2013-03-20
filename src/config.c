@@ -351,33 +351,6 @@ config_parse_file(
     return 1;
 }
 
-
-
-int
-atoi(
-    const char *        s
-)
-{
-    int value = 0;
-    int sign = 1;
-
-    // Only handles base ten for now
-    while( 1 )
-    {
-        char c = *s++;
-        if (c == '-')
-        {
-            sign = -1;
-            continue;
-        }
-        if( !c || c < '0' || c > '9' )
-            break;
-        value = value * 10 + c - '0';
-    }
-
-    return value * sign;
-}
-
 struct config_var* get_config_vars_start() {
 	return _config_vars_start;
 }

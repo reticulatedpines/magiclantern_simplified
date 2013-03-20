@@ -340,6 +340,8 @@ DIET_OBJ = \
 	strtoul.o \
 	strchr.o \
 	memcmp.o \
+	atoi.o \
+	atol.o \
 
 DIETLIBC_A = $(SRC_DIR)/libs/dietlib-0.33-none-eabi-Os/dietlibc.a
 
