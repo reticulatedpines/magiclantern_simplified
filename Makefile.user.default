@@ -31,6 +31,7 @@ CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
 endif
 HOST_CC=gcc
 LD=$(CC)
+LD_REAL=$(ARM_BINPATH)/arm-$(ARM_ABI)-ld
 
 NIGHTLY_ROOT:=$(HOME)/public_html/nightly
 NIGHTLY_ARCHIVE:=$(NIGHTLY_ROOT)/archive
