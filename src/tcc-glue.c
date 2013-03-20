@@ -75,9 +75,23 @@ int tcc_load_symbols(TCCState *s, char *filename)
         count++;
     }
     printf("Added %d Magic Lantern symbols\n", count);
+
+
+    /* these are just to make the code compile */
+    void longjmp();
+    void setjmp();
     
-    /* parse the old plugin sections as all needed OS stubs are already described there */
+    /* ToDo: parse the old plugin sections as all needed OS stubs are already described there */
     tcc_add_symbol(s, "msleep", &msleep);
+    tcc_add_symbol(s, "longjmp", &longjmp);
+    tcc_add_symbol(s, "strcpy", &strcpy);
+    tcc_add_symbol(s, "setjmp", &setjmp);
+    tcc_add_symbol(s, "alloc_dma_memory", &alloc_dma_memory);
+    tcc_add_symbol(s, "free_dma_memory", &free_dma_memory);
+    tcc_add_symbol(s, "vsnprintf", &vsnprintf);
+    tcc_add_symbol(s, "strlen", &strlen);
+    tcc_add_symbol(s, "memcpy", &memcpy);
+    tcc_add_symbol(s, "printf", &printf);
 
     free_dma_memory(buf);
     return 0;
@@ -90,13 +104,14 @@ int tcc_execute_elf(char *filename, char *symbol)
     void *start_symbol = NULL;
     
     state = tcc_new();
+    tcc_set_options(state, "-nostdlib");
     tcc_load_symbols(state, CARD_DRIVE"magic.sym");
     
     int ret = tcc_add_file(state, filename);
     ret = tcc_relocate(state, TCC_RELOCATE_AUTO);
     start_symbol = tcc_get_symbol(state, symbol);
     
-    if(start_symbol)
+    if((uint32_t)start_symbol & 0x40000000)
     {
         uint32_t (*exec)() = start_symbol;
         return exec();
