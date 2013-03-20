@@ -1302,7 +1302,7 @@ LIBTCCAPI int tcc_add_symbol(TCCState *s, const char *name, const void *val)
     /* XXX: Same problem on linux but currently "solved" elsewhere
        via the rather dirty 'runtime_plt_and_got' hack. */
     add_elf_sym(symtab_section, (uintptr_t)val, 0,
-        ELFW(ST_INFO)(STB_GLOBAL, STT_NOTYPE), 0,
+        ELFW(ST_INFO)(STB_WEAK, STT_NOTYPE), 0,
         SHN_ABS, name);
 #endif
     return 0;
