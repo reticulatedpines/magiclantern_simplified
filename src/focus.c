@@ -174,6 +174,16 @@ display_lens_hyperfocal()
     );
 }
 
+static void wait_notify(int seconds, char* msg)
+{
+    wait_till_next_second();
+    for (int i = 0; i < seconds; i++)
+    {
+        NotifyBox(2000, "%s: %d...", msg, seconds - i);
+        wait_till_next_second();
+    }
+}
+
 #ifdef FEATURE_FOCUS_STACKING
 
 static int fstack_zoom = 1;
@@ -228,16 +238,6 @@ static void focus_stack_ensure_preconditions()
     msleep(300);
 
     if (fstack_zoom > 1) set_lv_zoom(fstack_zoom);
-}
-
-static void wait_notify(int seconds, char* msg)
-{
-    wait_till_next_second();
-    for (int i = 0; i < seconds; i++)
-    {
-        NotifyBox(2000, "%s: %d...", msg, seconds - i);
-        wait_till_next_second();
-    }
 }
 
 static void
@@ -490,7 +490,7 @@ static MENU_SELECT_FUNC(focus_stack_copy_rack_focus_settings)
     else focus_bracket_front = focus_bracket_behind = 0;
 }
 
-void
+static void
 lens_focus_start(
     int     dir
 )
