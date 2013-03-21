@@ -33,21 +33,20 @@
 #include "menuhelp.h"
 
 extern int menu_help_active;
-int current_page = 1;
-extern int help_pages;
+static int current_page = 1;
+static int help_pages = 100; // dummy value, will be updated on the fly
 
 void 
 draw_beta_warning()
 {
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
-    bfnt_puts("Magic Lantern", 242, 53, COLOR_WHITE, COLOR_BLACK);
+    bfnt_puts("Magic Lantern for 650D/T4i - Alpha 1", 50, 50, COLOR_WHITE, COLOR_BLACK);
 
-    bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
+    bmp_printf(FONT_MED, 50, 150, "   This is a version with limited functionality,    ");
+    bmp_printf(FONT_MED, 50, 180, "   for testing purposes, not for production work.   ");
 
-    bmp_printf(FONT_MED, 50, 200, "   Please report all bugs at www.magiclantern.fm.   ");
-
-    bmp_printf(FONT_MED, 50, 250, "      Be careful using it for production work.      ");
+    bmp_printf(FONT_MED, 50, 250, "     Please report bugs at www.magiclantern.fm.     ");
 
     bmp_printf(FONT_MED, 50, 300, "                       Enjoy!                       ");
 
@@ -61,7 +60,7 @@ draw_beta_warning()
         build_user);
 }
 
-static void 
+void 
 draw_404_page()
 {
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
@@ -162,7 +161,7 @@ void menu_help_go_to_page(int page)
     menu_help_active = 1;
 }
 
-static void str_make_lowercase(char* s)
+void str_make_lowercase(char* s)
 {
     while (*s) { *s = tolower(*s); s++; }
 }

@@ -1465,7 +1465,7 @@ void FAST dim_screen(int fg, int bg, int x0, int y0, int w, int h)
 // Icon is only drawn once for each menu item, even if this is called multiple times
 // Only the first call is executed
 
-int icon_drawn = 0;
+static int icon_drawn = 0;
 static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
 {
     if (icon_drawn) return;
@@ -3518,7 +3518,7 @@ void menu_benchmark()
 }
 */
 
-struct msg_queue * menu_redraw_queue = 0;
+static struct msg_queue * menu_redraw_queue = 0;
 
 static void
 menu_redraw_task()

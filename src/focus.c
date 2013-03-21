@@ -28,10 +28,10 @@ void reset_override_zoom_buttons()
     override_zoom_buttons = 0;
 }
 
-CONFIG_INT( "focus.stepsize", lens_focus_stepsize, 2 );
-CONFIG_INT( "focus.delay.ms10", lens_focus_delay, 1 );
-CONFIG_INT( "focus.wait", lens_focus_waitflag, 1 );
-CONFIG_INT( "focus.rack.delay", focus_rack_delay, 2);
+static CONFIG_INT( "focus.stepsize", lens_focus_stepsize, 2 );
+static CONFIG_INT( "focus.delay.ms10", lens_focus_delay, 1 );
+static CONFIG_INT( "focus.wait", lens_focus_waitflag, 1 );
+static CONFIG_INT( "focus.rack.delay", focus_rack_delay, 2);
 
 
 // all focus commands from this module are done with the configured step size and delay
@@ -490,7 +490,7 @@ static MENU_SELECT_FUNC(focus_stack_copy_rack_focus_settings)
     else focus_bracket_front = focus_bracket_behind = 0;
 }
 
-static void
+void
 lens_focus_start(
     int     dir
 )
@@ -831,7 +831,7 @@ static void movie_af_step(int mag)
 }
 #endif
 
-int trap_focus_autoscaling = 1;
+static int trap_focus_autoscaling = 1;
 
 #ifdef FEATURE_TRAP_FOCUS
 int handle_trap_focus(struct event * event)

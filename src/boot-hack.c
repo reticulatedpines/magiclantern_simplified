@@ -264,9 +264,6 @@ my_dump_task( void )
     call("dmstop");
 }
 
-
-struct config * global_config;
-
 static volatile int init_funcs_done;
 
 
@@ -660,11 +657,6 @@ int init_task_patched(int a, int b, int c, int d)
 
 }
 #endif // CONFIG_ALLOCATE_MEMORY_POOL
-
-// flag set to 1 when gui_main_task started to process messages from queue
-int gui_init_done = 0;
-
-
 
 /** Initial task setup.
  *

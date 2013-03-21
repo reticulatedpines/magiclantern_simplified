@@ -30,7 +30,7 @@ static void global_token_handler( void * token)
     global_token = token;
 }
 
-int current_prop_handler = 0;
+static int current_prop_handler = 0;
 
 static void *
 global_property_handler(

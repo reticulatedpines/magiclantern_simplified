@@ -82,7 +82,7 @@ static void shadow_fonts_compute()
     }
 }
 
-int fonts_done = 0;
+static int fonts_done = 0;
 
 void load_fonts(void* unused)
 {

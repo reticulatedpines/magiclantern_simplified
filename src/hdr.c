@@ -381,7 +381,7 @@ static MENU_UPDATE_FUNC(hdr_iso_display)
     }
 }
 
-struct menu_entry hdr_menu[] = {
+static struct menu_entry hdr_menu[] = {
     {
         .name = "HDR video",
         .priv = &hdrv_enabled,

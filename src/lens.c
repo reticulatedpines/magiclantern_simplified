@@ -1126,7 +1126,7 @@ int mlu_lock_mirror_if_needed() // called by lens_take_picture; returns 0 if suc
 }
 
 #define AF_BUTTON_NOT_MODIFIED 100
-int orig_af_button_assignment = AF_BUTTON_NOT_MODIFIED;
+static int orig_af_button_assignment = AF_BUTTON_NOT_MODIFIED;
 
 // to preview AF patterns
 void assign_af_button_to_halfshutter()

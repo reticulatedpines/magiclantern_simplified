@@ -47,28 +47,14 @@ static struct gain_struct gain = {
     .sem                    = (void*) 1,
 };
 
-CONFIG_INT( "audio.lovl",       lovl,           0 );
-CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
-int loopback = 1;
-//CONFIG_INT( "audio.input-source",     input_source,           0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced
-CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
-CONFIG_INT( "audio.filters",    enable_filters,        1 ); //disable the HPF, LPF and pre-emphasis filters
-//~ CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
+static CONFIG_INT( "audio.lovl",       lovl,           0 );
+static CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
+static int loopback = 1;
+static CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
+static CONFIG_INT( "audio.filters",    enable_filters,        1 ); //disable the HPF, LPF and pre-emphasis filters
 #define cfg_draw_meters 1
-#ifdef CONFIG_500D
-CONFIG_INT("audio.monitoring", audio_monitoring, 0);
-#else
-CONFIG_INT("audio.monitoring", audio_monitoring, 1);
-#endif
-int do_draw_meters = 0;
-
-
-/*
-  int ext_cfg_draw_meters(void)
-  {
-  return cfg_draw_meters;
-  }
-*/
+static CONFIG_INT("audio.monitoring", audio_monitoring, 1);
+static int do_draw_meters = 0;
 
 static struct audio_level audio_levels[2];
 
@@ -146,8 +132,8 @@ void draw_meters(void)
 }
 #else
 
-char left_label[10] = "LEFT ";
-char right_label[10] = "RIGHT";
+static char left_label[10] = "LEFT ";
+static char right_label[10] = "RIGHT";
 
 static uint8_t
 db_to_color(
@@ -796,7 +782,7 @@ audio_reg_dump_once()
 #endif
 
 
-int mic_inserted = -1;
+static int mic_inserted = -1;
 PROP_HANDLER( PROP_MIC_INSERTED )
 {
     if (mic_inserted != -1)

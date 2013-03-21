@@ -34,11 +34,11 @@ extern void display_gain_toggle(void* priv, int delta);
 void zoom_trick_step();
 #endif
 
-CONFIG_INT("dof.preview.sticky", dofpreview_sticky, 0);
+static CONFIG_INT("dof.preview.sticky", dofpreview_sticky, 0);
 
 #ifdef FEATURE_STICKY_DOF
 
-int dofp_value = 0;
+static int dofp_value = 0;
 static void
 dofp_set(int value)
 {
@@ -460,7 +460,7 @@ void set_backlight_level(int level)
 
 CONFIG_INT("af.frame.autohide", af_frame_autohide, 1);
 
-int afframe_countdown = 0;
+static int afframe_countdown = 0;
 void afframe_set_dirty()
 {
     afframe_countdown = 20;
@@ -544,36 +544,15 @@ void clear_lv_afframe()
 }
 
 #if defined(CONFIG_5D3) || defined(CONFIG_6D)
-CONFIG_INT("play.quick.zoom", quickzoom, 0);
-CONFIG_INT("qr.zoom.play", ken_rockwell_zoom, 0);
+static CONFIG_INT("play.quick.zoom", quickzoom, 0);
+static CONFIG_INT("qr.zoom.play", ken_rockwell_zoom, 0);
 #else
-CONFIG_INT("play.quick.zoom", quickzoom, 2);
+static CONFIG_INT("play.quick.zoom", quickzoom, 2);
 #endif
 
-#ifdef DISPLAY_HEADER_FOOTER_INFO
+static CONFIG_INT("play.set.wheel", play_set_wheel_action, 4);
 
-CONFIG_INT("info.header_left", header_left_info, 0);
-CONFIG_INT("info.header_right", header_right_info, 0);
-CONFIG_INT("info.footer_left", footer_left_info, 0);
-CONFIG_INT("info.foorer_right", footer_right_info, 0);
-
-static MENU_UPDATE_FUNC(header_display)
-{
-    MENU_SET_VALUE(
-        header_left_info == 0 ? "Off" :
-        header_left_info == 1 ? "Author's name" :
-        header_left_info == 2 ? "Copyright" :
-        header_left_info == 3 ? "Date" :
-        header_left_info == 4 ? "Lens name" :
-        header_left_info == 5 ? "ML version" :
-        "err"
-    );
-}
-#endif
-
-CONFIG_INT("play.set.wheel", play_set_wheel_action, 4);
-
-CONFIG_INT("quick.delete", quick_delete, 0);
+static CONFIG_INT("quick.delete", quick_delete, 0);
 
 int timelapse_playback = 0;
 
@@ -790,7 +769,7 @@ int handle_set_wheel_play(struct event * event)
 }
 #endif
 
-CONFIG_INT("play.lv.button", play_lv_action, 0);
+static CONFIG_INT("play.lv.button", play_lv_action, 0);
 
 #ifdef FEATURE_LV_BUTTON_RATE
 
@@ -933,7 +912,7 @@ int handle_lv_play(struct event * event)
 #endif
 
 //~ CONFIG_INT("halfshutter.sticky", halfshutter_sticky, 0);
-int halfshutter_sticky = 0; // it's too easy to forget this on
+static int halfshutter_sticky = 0; // it's too easy to forget this on
 
 #ifdef FEATURE_STICKY_HALFSHUTTER
 
@@ -1428,22 +1407,22 @@ void display_orientation_toggle(void* priv, int dir)
 
 CONFIG_INT("digital.zoom.shortcut", digital_zoom_shortcut, 1);
 
-CONFIG_INT("arrows.mode", arrow_keys_mode, 0);
-CONFIG_INT("arrows.set", arrow_keys_use_set, 1);
+static CONFIG_INT("arrows.mode", arrow_keys_mode, 0);
+static CONFIG_INT("arrows.set", arrow_keys_use_set, 1);
 #ifdef CONFIG_5D2
-    CONFIG_INT("arrows.audio", arrow_keys_audio, 0);
-    CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 0);
+    static CONFIG_INT("arrows.audio", arrow_keys_audio, 0);
+    static CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 0);
 #else
     #ifdef CONFIG_AUDIO_CONTROLS
-        CONFIG_INT("arrows.audio", arrow_keys_audio, 1);
+        static CONFIG_INT("arrows.audio", arrow_keys_audio, 1);
     #else
-        CONFIG_INT("arrows.audio", arrow_keys_audio_unused, 1);
-        int arrow_keys_audio = 0;
+        static CONFIG_INT("arrows.audio", arrow_keys_audio_unused, 1);
+        static int arrow_keys_audio = 0;
     #endif
-    CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 1);
+    static CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 1);
 #endif
-CONFIG_INT("arrows.tv_av", arrow_keys_shutter_aperture, 0);
-CONFIG_INT("arrows.bright_sat", arrow_keys_bright_sat, 0);
+static CONFIG_INT("arrows.tv_av", arrow_keys_shutter_aperture, 0);
+static CONFIG_INT("arrows.bright_sat", arrow_keys_bright_sat, 0);
 
 #ifdef FEATURE_ARROW_SHORTCUTS
 
@@ -2390,10 +2369,9 @@ struct menu_entry expo_tweak_menus[] = {
 };
 #endif
 
-CONFIG_INT("lv.bri", preview_brightness, 0);         // range: 0-2
-CONFIG_INT("lv.con", preview_contrast,   0);         // range: -3:3
-CONFIG_INT("lv.sat", preview_saturation, 0);         // range: -1:2
-//~ CONFIG_INT("lv.sat.wb", preview_saturation_boost_wb, 0);
+static CONFIG_INT("lv.bri", preview_brightness, 0);         // range: 0-2
+static CONFIG_INT("lv.con", preview_contrast,   0);         // range: -3:3
+static CONFIG_INT("lv.sat", preview_saturation, 0);         // range: -1:2
 
 #define PREVIEW_BRIGHTNESS_INDEX preview_brightness
 #define PREVIEW_CONTRAST_INDEX (preview_contrast + 3)
@@ -2408,9 +2386,9 @@ CONFIG_INT("lv.sat", preview_saturation, 0);         // range: -1:2
 #define PREVIEW_CONTRAST_AUTO (preview_contrast == 3)
 
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
-CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
 
-CONFIG_INT("uniwb.correction", uniwb_correction, 7);
+static CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
+static CONFIG_INT("uniwb.correction", uniwb_correction, 7);
 
 static int focus_peaking_grayscale_running()
 {
@@ -2837,7 +2815,7 @@ CONFIG_INT("defish.preview", defish_preview, 0);
 #define defish_preview 0
 #endif
 
-CONFIG_INT("anamorphic.preview", anamorphic_preview, 0);
+static CONFIG_INT("anamorphic.preview", anamorphic_preview, 0);
 //~ CONFIG_INT("anamorphic.ratio.idx", anamorphic_ratio_idx, 0);
 #define anamorphic_ratio_idx (anamorphic_preview-1)
 
@@ -3585,7 +3563,7 @@ static struct menu_entry display_menus[] = {
 };
 
 #ifndef CONFIG_5DC
-struct menu_entry play_menus[] = {
+static struct menu_entry play_menus[] = {
     #if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_IMAGE_REVIEW_PLAY) || defined(FEATURE_QUICK_ZOOM) || defined(FEATURE_KEN_ROCKWELL_ZOOM_5D3) || defined(FEATURE_REMEMBER_LAST_ZOOM_POS_5D3) || defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE) || defined(FEATURE_QUICK_ERASE)
     {
         .name = "Image review settings",

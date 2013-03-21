@@ -13,12 +13,12 @@
 #include "mvr.h"
 
 //----------------begin qscale-----------------
-CONFIG_INT( "h264.qscale", qscale_neg, 8 );
-CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
-CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
-CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
-CONFIG_INT( "bitrate.indicator", bitrate_indicator, 0);
-CONFIG_INT( "hibr.wav.record", cfg_hibr_wav_record, 0);
+static CONFIG_INT( "h264.qscale", qscale_neg, 8 );
+static CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
+static CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
+static CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
+static CONFIG_INT( "bitrate.indicator", bitrate_indicator, 0);
+static CONFIG_INT( "hibr.wav.record", cfg_hibr_wav_record, 0);
 
 #define qscale (-qscale_neg)
 
@@ -30,16 +30,16 @@ int hibr_should_record_wav() { return 0; }
 
 int time_indic_x =  720 - 160;
 int time_indic_y = 0;
-int time_indic_width = 160;
-int time_indic_height = 20;
-int time_indic_warning = 120;
+static int time_indic_width = 160;
+static int time_indic_height = 20;
+static int time_indic_warning = 120;
 static int time_indic_font  = FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
 
-int measured_bitrate = 0; // mbps
+static int measured_bitrate = 0; // mbps
 //~ int free_space_32k = 0;
-int movie_bytes_written_32k = 0;
+static int movie_bytes_written_32k = 0;
 
-int bitrate_dirty = 0;
+static int bitrate_dirty = 0;
 
 // don't call those outside vbr_fix / vbr_set
 void mvrFixQScale(uint16_t *);    // only safe to call when not recording
@@ -335,7 +335,7 @@ bitrate_toggle(void* priv, int delta)
 }
 
 
-int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
+static int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
 
 static PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
 static PROP_INT(PROP_FREE_SPACE, free_space_raw);
@@ -527,9 +527,9 @@ bitrate_indicator_display( void * priv, int x, int y, int selected )
     menu_draw_icon(x, y, MNI_BOOL_GDR(bitrate_indicator));
 }*/
 
-CONFIG_INT("buffer.warning.level", buffer_warning_level, 70);
+static CONFIG_INT("buffer.warning.level", buffer_warning_level, 70);
 
-int warning = 0;
+static int warning = 0;
 int is_mvr_buffer_almost_full() 
 {
     if (recording == 0) return 0;

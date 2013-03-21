@@ -68,10 +68,10 @@ static void ChangeHDMIOutputSizeToFULLHD()
 //**********************************************************************
 //~ CONFIG_INT( "white.balance.workaround", white_balance_workaround, 1);
 
-CONFIG_INT( "wb.kelvin", workaround_wb_kelvin, 6500);
-CONFIG_INT( "wbs.gm", workaround_wbs_gm, 100);
-CONFIG_INT( "wbs.ba", workaround_wbs_ba, 100);
-int kelvin_wb_dirty = 1;
+static CONFIG_INT( "wb.kelvin", workaround_wb_kelvin, 6500);
+static CONFIG_INT( "wbs.gm", workaround_wbs_gm, 100);
+static CONFIG_INT( "wbs.ba", workaround_wbs_ba, 100);
+static int kelvin_wb_dirty = 1;
 
 #ifdef CONFIG_WB_WORKAROUND
 
@@ -225,7 +225,7 @@ static MENU_UPDATE_FUNC(mode_remap_print)
 // start with LV
 //**********************************************************************
 
-CONFIG_INT( "enable-liveview",  enable_liveview,
+static CONFIG_INT( "enable-liveview",  enable_liveview,
     #ifdef CONFIG_5D2
     0
     #else
@@ -441,8 +441,8 @@ void movtweak_step()
         #endif
 }
 
-CONFIG_INT("screen_layout.lcd", screen_layout_lcd, SCREENLAYOUT_3_2_or_4_3);
-CONFIG_INT("screen_layout.ext", screen_layout_ext, SCREENLAYOUT_16_10);
+static CONFIG_INT("screen_layout.lcd", screen_layout_lcd, SCREENLAYOUT_3_2_or_4_3);
+static CONFIG_INT("screen_layout.ext", screen_layout_ext, SCREENLAYOUT_16_10);
 int* get_screen_layout_ptr() { return EXT_MONITOR_CONNECTED ? &screen_layout_ext : &screen_layout_lcd; }
 int get_screen_layout() 
 {
@@ -814,7 +814,7 @@ void update_lvae_for_autoiso_n_displaygain()
 #endif
 
 CONFIG_INT("iso.smooth", smooth_iso, 0);
-CONFIG_INT("iso.smooth.spd", smooth_iso_speed, 2);
+static CONFIG_INT("iso.smooth.spd", smooth_iso_speed, 2);
 
 #ifdef FEATURE_GRADUAL_EXPOSURE
 

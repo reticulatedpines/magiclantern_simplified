@@ -113,8 +113,8 @@ void take_screenshot( int also_lv )
 }
 #endif
 
-#ifdef CONFIG_DEBUGMSG
-int draw_prop = 0;
+#if CONFIG_DEBUGMSG
+static int draw_prop = 0;
 
 static void
 draw_prop_select( void * priv , int unused )
@@ -182,7 +182,7 @@ void info_led_blink(int times, int delay_on, int delay_off)
 }
 
 
-int config_ok = 0;
+static int config_ok = 0;
 static int config_deleted = 0;
 
 // this can be called from more tasks (gui, prop handler, menu), so it needs to be thread safe
@@ -1656,9 +1656,9 @@ void ui_lock(int x)
     msleep(50);
 }
 
-int mem_spy = 0;
-
 #if CONFIG_DEBUGMSG
+
+int mem_spy = 0;
 
 int mem_spy_start = 0; // start from here
 int mem_spy_bool = 0;           // only display booleans (0,1,-1)
@@ -1841,7 +1841,8 @@ memfilt(void* m, void* M, int value)
     bmp_printf(FONT_SMALL, x, y, "        ");
 }
 #endif
-int screenshot_sec = 0;
+
+static int screenshot_sec = 0;
 
 PROP_INT(PROP_ICU_UILOCK, uilock);
 
@@ -2120,7 +2121,6 @@ static void crash_log_step()
 }
 #endif
 
-int x = 0;
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
@@ -2212,9 +2212,9 @@ static void screenshot_start(void* priv, int delta)
 }
 */
 
-int draw_event = 0;
+static int draw_event = 0;
 
-#ifdef CONFIG_DEBUGMSG
+#if CONFIG_DEBUGMSG
 static void
 spy_print(
           void *            priv,
@@ -3027,15 +3027,13 @@ ack:
 #else
 #define num_properties 8192
 #endif
-unsigned* property_list = 0;
-
 
 void
 debug_init( void )
 {
-    draw_prop = 0;
-
 #if CONFIG_DEBUGMSG
+    draw_prop = 0;
+    static unsigned* property_list = 0;
     if (!property_list) property_list = SmallAlloc(num_properties * sizeof(unsigned));
     if (!property_list) return;
     unsigned i, j, k;
@@ -3218,7 +3216,7 @@ static int ReadFileToBuffer(char* filename, void* buf, int maxsize)
 
 #ifdef CONFIG_RESTORE_AFTER_FORMAT
 
-int keep_ml_after_format = 1;
+static int keep_ml_after_format = 1;
 
 static void HijackFormatDialogBox()
 {
@@ -3294,10 +3292,10 @@ struct tmp_file {
     int sig;
 };
 
-struct tmp_file * tmp_files = 0;
-int tmp_file_index = 0;
-void* tmp_buffer = 0;
-void* tmp_buffer_ptr = 0;
+static struct tmp_file * tmp_files = 0;
+static int tmp_file_index = 0;
+static void* tmp_buffer = 0;
+static void* tmp_buffer_ptr = 0;
 #define TMP_MAX_BUF_SIZE 15000000
 
 static int TmpMem_Init()

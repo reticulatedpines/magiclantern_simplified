@@ -417,8 +417,8 @@ int histogram_or_small_waveform_enabled() { return (hist_draw || (waveform_draw 
 static CONFIG_INT( "vectorscope.draw", vectorscope_draw, 0);
 
 /* runtime-configurable size */
-uint32_t vectorscope_width = 256;
-uint32_t vectorscope_height = 256;
+#define vectorscope_width 256
+#define vectorscope_height 256
 /* 128 is also a good choice, but 256 is max. U and V are using that resolution */
 #define VECTORSCOPE_WIDTH_MAX 256
 #define VECTORSCOPE_HEIGHT_MAX 256
@@ -445,7 +445,7 @@ static CONFIG_INT("idle.display.dim.after", idle_display_dim_after, 0);
 static CONFIG_INT("idle.display.gdraw_off.after", idle_display_global_draw_off_after, 0);
 static CONFIG_INT("idle.rec", idle_rec, 0);
 static CONFIG_INT("idle.shortcut.key", idle_shortcut_key, 0);
-CONFIG_INT("idle.blink", idle_blink, 1);
+static CONFIG_INT("idle.blink", idle_blink, 1);
 
 /**
  * Normal BMP VRAM has its origin in 720x480 center crop
@@ -487,8 +487,8 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
 }
 
 #ifdef CONFIG_VARIANGLE_DISPLAY
-volatile int lcd_position = 0;
-volatile int display_dont_mirror_dirty;
+static volatile int lcd_position = 0;
+static volatile int display_dont_mirror_dirty;
 PROP_HANDLER(PROP_LCD_POSITION)
 {
     if (lcd_position != (int)buf[0]) display_dont_mirror_dirty = 1;
@@ -2753,8 +2753,8 @@ void get_spot_yuv(int dxb, int* Y, int* U, int* V)
 }
 
 // for surface cleaning
-int spm_pre_xcb = -1;
-int spm_pre_ycb = -1;
+static int spm_pre_xcb = -1;
+static int spm_pre_ycb = -1;
 
 int get_spot_motion(int dxb, int xcb, int ycb, int draw)
 {
@@ -3644,11 +3644,10 @@ MENU_UPDATE_FUNC(batt_display)
 #ifdef CONFIG_LCD_SENSOR
 CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup, 1);
 #else
-static int lcd_sensor_wakeup = 0;
-CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup_unused, 1);
+#define lcd_sensor_wakeup 0
 #endif
 
-struct menu_entry powersave_menus[] = {
+static struct menu_entry powersave_menus[] = {
 #ifdef FEATURE_POWERSAVE_LIVEVIEW
 {
     .name = "Powersave in LiveView",
@@ -3935,8 +3934,7 @@ cropmark_redraw()
 
 PROP_HANDLER(PROP_GUI_STATE)
 {
-    extern int _bmp_draw_should_stop;
-    _bmp_draw_should_stop = 1; // abort drawing any slow cropmarks
+    bmp_draw_request_stop(); // abort drawing any slow cropmarks
 
     lv_paused = 0;
     

@@ -28,7 +28,7 @@ static MENU_UPDATE_FUNC(menu_edit_lv_print)
     bmp_fill(COLOR_BLACK, info->x + 6, info->y + 10, 19, 15);
 }
 
-struct menu_entry help_menus[] = {
+static struct menu_entry help_menus[] = {
     {
         .select = menu_nav_help_open,
         .name = "Press " INFO_BTN_NAME,
@@ -122,7 +122,5 @@ help_menu_init( void* unused )
 }
 
 INIT_FUNC( "help_menu", help_menu_init );
-
-int help_pages = 100; // dummy value, just to get started
 
 
