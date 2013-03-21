@@ -667,10 +667,16 @@ static void bsod()
 static void run_test()
 {
 #ifdef CONFIG_TCC
+    void tcc_plugin_load_all();
     msleep(1000);
     
     console_show();
-    tcc_execute_elf(CARD_DRIVE"test.elf", "main");
+    tcc_plugin_load_all();
+    
+    printf("\nNow loading full TCC module...\n");
+    uint32_t ret = tcc_execute_elf(CARD_DRIVE"ML/PLUGINS/libtcc.mo", "tcc_new");
+    printf("tcc_new() returned: 0x%08X\n", ret);
+    printf("Done!\n");
 #endif
 }
 
