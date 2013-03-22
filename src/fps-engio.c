@@ -160,8 +160,11 @@ static void flip_zoom();
 static void fps_read_default_timer_values();
 static void fps_read_current_timer_values();
 
-
+#ifdef CONFIG_DIGIC_V
+#define FPS_TIMER_A_MAX 0xFFFF
+#else
 #define FPS_TIMER_A_MAX 0x2000
+#endif
 
 #ifdef CONFIG_FPS_TIMER_A_ONLY
     #define FPS_TIMER_B_MAX fps_timer_b_orig

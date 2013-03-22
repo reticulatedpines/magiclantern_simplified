@@ -15,6 +15,9 @@
 /** This camera runs DryOS **/
 //~ #define CONFIG_VXWORKS
 
+/** This camera has a DIGIC V chip */
+#define CONFIG_DIGIC_V
+
 /** This camera has a full-frame sensor */
 #define CONFIG_FULLFRAME
 
