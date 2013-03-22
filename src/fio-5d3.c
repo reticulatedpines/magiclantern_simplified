@@ -285,26 +285,34 @@ int FIO_CreateDirectory(const char * dirname)
 }
 
 struct menu_entry card_menus[] = {
-    /*
     {
-        .name = "CF card", 
-        .update = &card_info_display,
-        .help = "CF card info: make and model."
-    },*/
-    {
-        .name = "Card test at startup", 
-        .priv = &card_test_enabled,
-        .max = 1,
-        .help = "File write test. Disable ONLY after testing ALL your cards!"
-    },
-    {
-        .name = "Preferred card", 
-        .priv = &card_force_type,
-        .min = 0,
-        .max = 2,
-        .choices = CHOICES("Off", "CF", "SD"),
-        .help = "Ensure that on startup your preferred card is selected."
-    },
+        .name = "Card settings",
+        .select = menu_open_submenu,
+        .help = "Preferences related to SD/CF card operation.",
+        .children =  (struct menu_entry[]) {
+            /*
+            {
+                .name = "CF card", 
+                .update = &card_info_display,
+                .help = "CF card info: make and model."
+            },*/
+            {
+                .name = "Card test at startup", 
+                .priv = &card_test_enabled,
+                .max = 1,
+                .help = "File write test. Disable ONLY after testing ALL your cards!"
+            },
+            {
+                .name = "Preferred card", 
+                .priv = &card_force_type,
+                .min = 0,
+                .max = 2,
+                .choices = CHOICES("OFF", "CF", "SD"),
+                .help = "Ensure that on startup your preferred card is selected."
+            },
+            MENU_EOL,
+        }
+    }
 };
 
 void fio_init()
