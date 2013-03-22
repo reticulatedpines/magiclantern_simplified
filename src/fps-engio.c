@@ -757,6 +757,9 @@ static void fps_reset()
     //~ fps_override = 0;
     fps_needs_updating = 0;
     fps_register_reset();
+    #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
+    fps_disable_timers_evfstate();
+    #endif
 
     #ifdef NEW_FPS_METHOD
     fps_unpatch_table(1);

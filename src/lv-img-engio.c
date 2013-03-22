@@ -23,6 +23,7 @@
 
 static volatile int fps_timerA_override = 0;
 static volatile int fps_timerB_override = 0;
+static volatile int fps_timers_updated = 0;
 
 static void fps_timers_update()
 {
@@ -31,18 +32,25 @@ static void fps_timers_update()
         EngDrvOutLV(FPS_REGISTER_A, fps_timerA_override);
         EngDrvOutLV(FPS_REGISTER_B, fps_timerB_override);
         EngDrvOutLV(FPS_REGISTER_CONFIRM_CHANGES, 1);
-        fps_timerA_override = fps_timerB_override = 0;
+        fps_timers_updated = 1;
     }
 }
 
 void fps_set_timers_from_evfstate(int timerA, int timerB, int wait)
 {
+    fps_timers_updated = 0;
     fps_timerA_override = timerA;
     fps_timerB_override = timerB;
     if (wait)
-        while (fps_timerA_override)
+        while (!fps_timers_updated)
             msleep(20);
 }
+
+void fps_disable_timers_evfstate()
+{
+    fps_timerA_override = fps_timerB_override = 0;
+}
+
 #endif
 
 #define SHAD_GAIN      0xc0f08030       // controls clipping point (digital ISO)
