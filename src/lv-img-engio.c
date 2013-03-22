@@ -15,6 +15,35 @@
 
 //~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
 
+#ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
+
+#define FPS_REGISTER_A 0xC0F06008
+#define FPS_REGISTER_B 0xC0F06014
+#define FPS_REGISTER_CONFIRM_CHANGES 0xC0F06000
+
+static volatile int fps_timerA_override = 0;
+static volatile int fps_timerB_override = 0;
+
+static void fps_timers_update()
+{
+    if (fps_timerA_override && fps_timerB_override)
+    {
+        EngDrvOutLV(FPS_REGISTER_A, fps_timerA_override);
+        EngDrvOutLV(FPS_REGISTER_B, fps_timerB_override);
+        EngDrvOutLV(FPS_REGISTER_CONFIRM_CHANGES, 1);
+        fps_timerA_override = fps_timerB_override = 0;
+    }
+}
+
+void fps_set_timers_from_evfstate(int timerA, int timerB, int wait)
+{
+    fps_timerA_override = timerA;
+    fps_timerB_override = timerB;
+    if (wait)
+        while (fps_timerA_override)
+            msleep(20);
+}
+#endif
 
 #define SHAD_GAIN      0xc0f08030       // controls clipping point (digital ISO)
 #define SHAD_PRESETUP  0xc0f08034       // controls black point? as in "dcraw -k"
@@ -657,6 +686,10 @@ void image_effects_step()
 
     #ifdef CONFIG_DIGIC_POKE
     digic_poke_step();
+    #endif
+    
+    #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
+    fps_timers_update();
     #endif
     
 #ifdef FEATURE_IMAGE_EFFECTS

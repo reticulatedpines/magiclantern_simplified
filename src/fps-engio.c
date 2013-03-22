@@ -15,7 +15,7 @@
  * 
  * unsigned long frame_rate[] = {
  *      FPS_REGISTER_B, 0xFFFF, // timer register
- *      0xC0F06000, 0x01,   // coherent update
+ *      FPS_REGISTER_CONFIRM_CHANGES, 0x01,   // coherent update
  *      0xFFFFFFFF          // end of commands
  * };
  *
@@ -43,6 +43,7 @@
 
 #define FPS_REGISTER_A 0xC0F06008
 #define FPS_REGISTER_B 0xC0F06014
+#define FPS_REGISTER_CONFIRM_CHANGES 0xC0F06000
 
 #define PACK(lo, hi) ((lo) & 0x0000FFFF) | (((hi) & 0x0000FFFF) << 16)
 
@@ -65,11 +66,11 @@ void EngDrvOutLV(int reg, int val)
        if we dont patch that, master will crash on record stop due to rewriting 
        with inconsistent values
     */
-    if(reg == 0xC0F06008)
+    if(reg == FPS_REGISTER_A)
     {
         ml_rpc_send(ML_RPC_ENGIO_WRITE, 0x8704, val, 0, 0);
     }
-    if(reg == 0xC0F06014)
+    if(reg == FPS_REGISTER_B)
     {
         ml_rpc_send(ML_RPC_ENGIO_WRITE, 0x8774, val, 0, 0);
     }
@@ -78,6 +79,31 @@ void EngDrvOutLV(int reg, int val)
 #endif
 
     _EngDrvOut(reg, val);
+}
+
+static void EngDrvOutFPS(int reg, int val)
+{
+    #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
+    // some cameras seem to prefer changing FPS registers from EVF (LiveView) task
+    static int a;
+    static int b;
+    if (reg == FPS_REGISTER_A)
+    {
+        EngDrvOutLV(reg, val);
+        a = val;
+    }
+    else if (reg == FPS_REGISTER_B)
+    {
+        EngDrvOutLV(reg, val);
+        b = val;
+    }
+    else if (reg == FPS_REGISTER_CONFIRM_CHANGES) 
+    {
+        fps_set_timers_from_evfstate(a, b, 1);
+    }
+    #else
+    EngDrvOutLV(reg, val);
+    #endif
 }
 
 
@@ -537,7 +563,7 @@ static void fps_setup_timerB(int fps_x1000)
         // output the value to register
         timerB -= 1;
         written_value_b = PACK(timerB, fps_reg_b_orig);
-        EngDrvOutLV(FPS_REGISTER_B, written_value_b);
+        EngDrvOutFPS(FPS_REGISTER_B, written_value_b);
         fps_needs_updating = 0;
     #ifdef NEW_FPS_METHOD
     }
@@ -557,20 +583,20 @@ static void fps_setup_timerB(int fps_x1000)
         fps_read_default_timer_values();
         if (defA_before_patching == fps_reg_a_orig && defB_before_patching == fps_reg_b_orig)
         {
-            EngDrvOutLV(FPS_REGISTER_A, written_value_a);
+            EngDrvOutFPS(FPS_REGISTER_A, written_value_a);
             fps_needs_updating = 0;
         }
         else // something went wrong, will fix at next iteration
         {
             //~ beep();
         }
-        //~ EngDrvOutLV(FPS_REGISTER_B, written_value_b);
+        //~ EngDrvOutFPS(FPS_REGISTER_B, written_value_b);
         msleep(500);
     }
     #endif
 
     // apply changes
-    EngDrvOutLV(0xC0F06000, 1);
+    EngDrvOutFPS(FPS_REGISTER_CONFIRM_CHANGES, 1);
 }
 
 int fps_get_current_x1000()
@@ -720,9 +746,9 @@ static void fps_register_reset()
     {
         written_value_a = 0;
         written_value_b = 0;
-        EngDrvOutLV(FPS_REGISTER_A, fps_reg_a_orig);
-        EngDrvOutLV(FPS_REGISTER_B, fps_reg_b_orig);
-        EngDrvOutLV(0xC0F06000, 1);
+        EngDrvOutFPS(FPS_REGISTER_A, fps_reg_a_orig);
+        EngDrvOutFPS(FPS_REGISTER_B, fps_reg_b_orig);
+        EngDrvOutFPS(FPS_REGISTER_CONFIRM_CHANGES, 1);
     }
 }
 
@@ -992,7 +1018,7 @@ static void fps_setup_timerA(int fps_x1000)
     int val_a = PACK(timerA-1, fps_timer_a_orig-1);
     written_value_a = val_a;
 
-    EngDrvOutLV(FPS_REGISTER_A, val_a);
+    EngDrvOutFPS(FPS_REGISTER_A, val_a);
 }
 
 static void fps_criteria_change(void* priv, int delta)
@@ -1579,7 +1605,7 @@ static void fps_patch_timerB(int timer_value)
 
     fps_unpatch_table(0);
     fps_read_default_timer_values();
-    EngDrvOutLV(FPS_REGISTER_A, fps_reg_a_orig);
+    EngDrvOutFPS(FPS_REGISTER_A, fps_reg_a_orig);
 
     flip_zoom_twostage(1);
     
