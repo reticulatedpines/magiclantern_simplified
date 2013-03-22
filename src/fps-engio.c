@@ -51,7 +51,7 @@
 #define FPS_REGISTER_A_DEFAULT_VALUE ((int) shamem_read(FPS_REGISTER_A+4))
 #define FPS_REGISTER_B_VALUE ((int) shamem_read(FPS_REGISTER_B))
 
-void EngDrvOutLV(int reg, int val)
+void EngDrvOutLV(uint32_t reg, uint32_t val)
 {
     if (!lv) return;
     if (!DISPLAY_IS_ON && !recording) return;
@@ -81,7 +81,7 @@ void EngDrvOutLV(int reg, int val)
     _EngDrvOut(reg, val);
 }
 
-static void EngDrvOutFPS(int reg, int val)
+static void EngDrvOutFPS(uint32_t reg, uint32_t val)
 {
     #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
     // some cameras seem to prefer changing FPS registers from EVF (LiveView) task
@@ -105,7 +105,6 @@ static void EngDrvOutFPS(int reg, int val)
     EngDrvOutLV(reg, val);
     #endif
 }
-
 
 static int fps_reg_a_orig = 0;
 static int fps_reg_b_orig = 0;
@@ -1276,6 +1275,22 @@ static void fps_check_refresh()
 
 #ifdef FEATURE_FPS_OVERRIDE
 
+#ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
+int fps_video_mode_changed()
+{
+    if (written_value_a != FPS_REGISTER_A_VALUE)
+        return 1;
+    
+    int wb = written_value_b & 0xFFFF;
+    int WB = FPS_REGISTER_B_VALUE & 0xFFFF;
+
+    if (ABS(wb - WB) > 2)
+        return 1;
+    
+    return 0;
+}
+#endif
+
 // do all FPS changes from this task only - to avoid trouble ;)
 static void fps_task()
 {
@@ -1465,7 +1480,7 @@ int handle_fps_events(struct event * event)
     // Very low FPS: first few frames will be recorded at normal FPS, to bypass Canon's internal checks
     // and to make the user interface responsive without having to wait for 30 frames
     int f = fps_values_x1000[fps_override_index];
-    if (f < 5000 &&
+    if (f < 5000 && !recording &&
     #if defined(CONFIG_50D) || defined(CONFIG_5D2)
         event->param == BGMT_PRESS_SET
     #else
