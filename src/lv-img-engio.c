@@ -154,7 +154,7 @@ void digic_iso_or_gain_toggle(int* priv, int delta)
     do {
         i = mod(i + delta, COUNT(digic_iso_presets));
     } while ((!mv && digic_iso_presets[i] < 1024)
-    #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+    #ifdef CONFIG_DIGIC_V
     || (mv && digic_iso_presets[i] > 2048) // high display gains not working
     #endif
     || (!mv && digic_iso_presets[i] > 65536)
@@ -217,7 +217,7 @@ static int get_new_white_level(int movie_gain, int* boost_stops)
     while (1)
     {
         result = default_white_level * COERCE(movie_gain, 0, 65536) / 1024;
-        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+        #ifdef CONFIG_DIGIC_V
         break;
         #endif
         if (result > 8192 && *boost_stops < 7) 
@@ -733,7 +733,7 @@ void digic_iso_step()
             int new_gain = get_new_white_level(total_movie_gain, &boost_stops);
             EngDrvOutLV(SHAD_GAIN, new_gain);
             shad_gain_last_written = new_gain;
-            #if !defined(CONFIG_5D3) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D) && !defined(CONFIG_6D)
+            #ifndef CONFIG_DIGIC_V
             EngDrvOutLV(ISO_PUSH_REGISTER, boost_stops << 8);
             #endif
         }
@@ -745,7 +745,7 @@ void digic_iso_step()
             EngDrvOutLV(SHAD_PRESETUP, presetup);
         }
 
-        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+        #ifdef CONFIG_DIGIC_V
         if (LVAE_DISP_GAIN) call("lvae_setdispgain", 0); // reset display gain
         #endif
 
@@ -758,7 +758,7 @@ void digic_iso_step()
         int total_photo_gain = DIGIC_ISO_GAIN_PHOTO * digic_iso_gain_photo_for_bv / 1024;
 
         if (total_photo_gain == 0) total_photo_gain = 1024;
-    #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+    #ifdef CONFIG_DIGIC_V
         int g = total_photo_gain == 1024 ? 0 : COERCE(total_photo_gain, 0, 65534);
         if (LVAE_DISP_GAIN != g) 
         {
