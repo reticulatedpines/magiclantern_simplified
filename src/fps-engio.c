@@ -1373,12 +1373,16 @@ static void fps_task()
             while (recording && MVR_FRAME_NUMBER < video_mode_fps) 
                 msleep(MIN_MSLEEP);
 
+        // on new cameras, timer B may be changed back and forth, e.g. EOS M: 2527/2528 for 24p
+        // these tiny changes should not be considered a video mode change
         static int prev_sig = 0;
+        static int prev_timer_b = 0;
         fps_read_current_timer_values();
         fps_read_default_timer_values();
-        int sig = fps_timer_a_orig + fps_timer_b_orig*314 + lv_dispsize*111 + video_mode_resolution*17 + video_mode_fps*123 + video_mode_crop*4567;
-        int video_mode_changed = (sig != prev_sig);
+        int sig = fps_timer_a_orig + lv_dispsize*111 + video_mode_resolution*17 + video_mode_fps*123 + video_mode_crop*4567;
+        int video_mode_changed = (sig != prev_sig) || ABS(fps_timer_b_orig - prev_timer_b) > 2;
         prev_sig = sig;
+        prev_timer_b = fps_timer_b_orig;
         
         //~ bmp_printf(FONT_LARGE, 50, 150, "%dx, setting up from %d,%d   ", lv_dispsize, fps_timer_a_orig, fps_timer_b_orig);
 
