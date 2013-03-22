@@ -211,7 +211,7 @@ static void fps_read_current_timer_values();
 #elif defined(CONFIG_5D3)
     #define TG_FREQ_BASE 24000000
     #define TG_FREQ_SHUTTER (ntsc ? 51120000 : 50000000)
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 500 : 400)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), 500)
 #elif defined(CONFIG_EOSM)
     #define TG_FREQ_BASE 32000000
     #define TG_FREQ_SHUTTER (ntsc || !recording ? 56760000 : 50000000)
