@@ -71,6 +71,8 @@ void* script_malloc(int size);
 #define free script_free
 #undef BIG_ENDIAN
 #define PicocPlatformSetExitPoint()
+#define strlen script_strlen
+#define strcmp script_strcmp
 
 //~ #define DEBUG_LEXER
 //~ #define DEBUG_HEAP

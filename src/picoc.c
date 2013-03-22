@@ -5,6 +5,9 @@
 
 #include "picoc.h"
 
+#include "setjmp.h"
+static jmp_buf PicocExitBuf;
+
 static int script_state = 0;
 #define SCRIPT_RUNNING 1
 #define SCRIPT_JUST_FINISHED -1
@@ -225,7 +228,6 @@ static void run_script(const char *script)
     console_set_status_text("Running script...");
     
     msleep(100);
-    extern int PicocExitBuf[];
     PicocInitialise(PICOC_HEAP_SIZE);
     
     if (!setjmp(PicocExitBuf))
@@ -575,9 +577,17 @@ void script_free(void* ptr) { SmallFree(ptr); }
 void script_free_dma(void* ptr) { free_dma_memory(ptr); }
 void script_msleep(int ms) { msleep(ms); }
 void script_LoadCalendarFromRTC(struct tm * tm) { LoadCalendarFromRTC(tm); };
+size_t script_strlen(const char* str ) { return strlen(str); }
+int script_strcmp(const char* s1, const char* s2 ) { return strcmp(s1, s2); }
 
 #include "cache_hacks.h"
 int script_cache_locked() { return cache_locked(); }
 void script_cache_lock() { cache_lock(); }
 void script_cache_unlock() { cache_unlock(); }
 void script_cache_fake(uint32_t address, uint32_t data, uint32_t type) { cache_fake(address, data, type); }
+
+void __attribute__((noreturn)) script_exit(int RetVal)
+{
+    PicocExitValue = RetVal;
+    longjmp(PicocExitBuf, 1);
+}

@@ -56,15 +56,10 @@ EXTERN void PicocPlatformScanFile(const char *FileName)
     PicocParse(FileName, SourceStr, strlen(SourceStr), TRUE, TRUE, FALSE);
 }
 
-/* mark where to end the program for platforms which require this */
-#include "setjmp.h"
-EXTERN jmp_buf PicocExitBuf;
-
 /* exit the program */
 void __attribute__((noreturn)) PlatformExit(int RetVal)
 {
-    PicocExitValue = RetVal;
-    longjmp(PicocExitBuf, 1);
+    script_exit(RetVal); // in picoc.c
 }
 
 void abort()
