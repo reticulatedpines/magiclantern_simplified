@@ -81,6 +81,9 @@ void EngDrvOutLV(uint32_t reg, uint32_t val)
     _EngDrvOut(reg, val);
 }
 
+static void fps_set_timers_from_evfstate(int timerA, int timerB, int wait);
+static void fps_disable_timers_evfstate();
+
 static void EngDrvOutFPS(uint32_t reg, uint32_t val)
 {
     #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
@@ -1280,7 +1283,7 @@ static void fps_check_refresh()
 #ifdef FEATURE_FPS_OVERRIDE
 
 #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
-int fps_video_mode_changed()
+static int fps_video_mode_changed()
 {
     if (written_value_a != FPS_REGISTER_A_VALUE)
         return 1;
@@ -1293,6 +1296,37 @@ int fps_video_mode_changed()
     
     return 0;
 }
+
+static volatile int fps_timerA_override = 0;
+static volatile int fps_timerB_override = 0;
+static volatile int fps_timers_updated = 0;
+
+void fps_update_timers_from_evfstate()
+{
+    if (fps_timerA_override && fps_timerB_override && !fps_video_mode_changed())
+    {
+        EngDrvOutLV(FPS_REGISTER_A, fps_timerA_override);
+        EngDrvOutLV(FPS_REGISTER_B, fps_timerB_override);
+        EngDrvOutLV(FPS_REGISTER_CONFIRM_CHANGES, 1);
+    }
+    fps_timers_updated = 1;
+}
+
+static void fps_set_timers_from_evfstate(int timerA, int timerB, int wait)
+{
+    fps_timers_updated = 0;
+    fps_timerA_override = timerA;
+    fps_timerB_override = timerB;
+    if (wait)
+        while (!fps_timers_updated)
+            msleep(20);
+}
+
+static void fps_disable_timers_evfstate()
+{
+    fps_timerA_override = fps_timerB_override = 0;
+}
+
 #endif
 
 // do all FPS changes from this task only - to avoid trouble ;)

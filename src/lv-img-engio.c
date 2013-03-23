@@ -15,47 +15,6 @@
 
 //~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
 
-#ifdef FEATURE_FPS_OVERRIDE
-#ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
-
-#define FPS_REGISTER_A 0xC0F06008
-#define FPS_REGISTER_B 0xC0F06014
-#define FPS_REGISTER_CONFIRM_CHANGES 0xC0F06000
-
-static volatile int fps_timerA_override = 0;
-static volatile int fps_timerB_override = 0;
-static volatile int fps_timers_updated = 0;
-
-static void fps_timers_update()
-{
-    static int k = 0;
-    if (fps_timerA_override && fps_timerB_override && !fps_video_mode_changed())
-    {
-        EngDrvOutLV(FPS_REGISTER_A, fps_timerA_override);
-        EngDrvOutLV(FPS_REGISTER_B, fps_timerB_override);
-        EngDrvOutLV(FPS_REGISTER_CONFIRM_CHANGES, 1);
-    }
-    fps_timers_updated = 1;
-}
-
-void fps_set_timers_from_evfstate(int timerA, int timerB, int wait)
-{
-    fps_timers_updated = 0;
-    fps_timerA_override = timerA;
-    fps_timerB_override = timerB;
-    if (wait)
-        while (!fps_timers_updated)
-            msleep(20);
-}
-
-void fps_disable_timers_evfstate()
-{
-    fps_timerA_override = fps_timerB_override = 0;
-}
-
-#endif
-#endif
-
 #define SHAD_GAIN      0xc0f08030       // controls clipping point (digital ISO)
 #define SHAD_PRESETUP  0xc0f08034       // controls black point? as in "dcraw -k"
 #define ISO_PUSH_REGISTER 0xc0f0e0f8    // like display gain, 0x100 = 1 stop, 0x700 = max of 7 stops
@@ -757,12 +716,6 @@ void image_effects_step()
 
     #ifdef CONFIG_DIGIC_POKE
     digic_poke_step();
-    #endif
-    
-    #ifdef FEATURE_FPS_OVERRIDE
-    #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
-    fps_timers_update();
-    #endif
     #endif
     
 #ifdef FEATURE_IMAGE_EFFECTS
