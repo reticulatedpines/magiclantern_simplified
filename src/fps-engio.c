@@ -666,7 +666,7 @@ static MENU_UPDATE_FUNC(desired_fps_print)
         );
 }
 
-#if defined(NEW_FPS_METHOD) || defined(CONFIG_DIGIC_V)
+#if defined(NEW_FPS_METHOD)
 
 static int video_mode[10];
 PROP_HANDLER(PROP_VIDEO_MODE)
@@ -680,6 +680,7 @@ static void flip_zoom_twostage(int stage)
     // flip zoom or video mode back and forth to apply settings instantly
     if (!lv) return;
     if (recording) return;
+    #ifndef CONFIG_DIGIC_V // causes corrupted video headers on 5D3
     if (is_movie_mode())
     {
         // in movie mode, flipping the FPS seems nicer
@@ -711,6 +712,7 @@ static void flip_zoom_twostage(int stage)
             return;
         }
     }
+    #endif
     
     static int zoom0;
     if (stage == 1)
@@ -730,9 +732,6 @@ void flip_zoom()
     flip_zoom_twostage(1);
     flip_zoom_twostage(2);
 }
-#endif
-
-#ifdef NEW_FPS_METHOD
 
 static void fps_unpatch_table(int refresh)
 {

@@ -219,6 +219,11 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
 		return;
 	}
 	#endif
+    
+    #ifdef CONFIG_DIGIC_V
+    if (property == PROP_VIDEO_MODE) // corrupted video headers on 5D3
+        return;
+    #endif
 
     int correct_len = prop_get_prop_len((int)property);
     if (len == 0) len = correct_len;
