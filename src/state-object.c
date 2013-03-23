@@ -217,6 +217,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     }
     #endif
 
+    #ifdef EVF_STATE
     if (self == EVF_STATE && input == 4 && old_state == 5) // evfSetParamInterrupt
     {
         #if defined(CONFIG_EVF_STATE_SYNC) // exception for overriding ISO
@@ -227,6 +228,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
         vignetting_correction_apply_regs();
         #endif
     }
+    #endif
 
 #ifdef CONFIG_5DC
     if (z == 0x0) { fake_simple_button(BGMT_PRESS_HALFSHUTTER); }
