@@ -2,6 +2,8 @@
  * FPS control with engio calls (talking to DIGIC!)
  * This method is portable: works on all cameras.
  * 
+ * https://docs.google.com/spreadsheet/ccc?key=0AgQ2MOkAZTFHdEZrXzBSZmdaSE9WVnpOblJ2ZGtoZXc#gid=0
+ * 
  **/
  
 /**
@@ -303,7 +305,7 @@ static int calc_fps_x1000(int timerA, int timerB)
     return f / timerB;
 }
 
-static int get_current_tg_freq()
+int get_current_tg_freq()
 {
     int timerA = (FPS_REGISTER_A_VALUE & 0xFFFF) + 1;
     if (timerA == 1) return 0;
@@ -363,7 +365,12 @@ int get_current_shutter_reciprocal_x1000()
     return (int) roundf(powf(2.0f, (lens_info.raw_shutter - 136) / 8.0f) * 1000.0f * 1000.0f);
 #else
 
+    #ifdef FEATURE_EXTREME_SHUTTER_SPEEDS
+    extreme_shutter_step();
+    #endif
+
     int timer = FRAME_SHUTTER_TIMER;
+    
     //~ NotifyBox(1000, "%d ", timer);
     int ntsc = is_current_mode_ntsc();
     int zoom = lv_dispsize > 1 ? 1 : 0;

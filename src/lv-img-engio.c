@@ -708,6 +708,23 @@ static MENU_UPDATE_FUNC(vignetting_graphs_update)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Vignetting correction is disabled.");
 }
 
+#ifdef FEATURE_EXTREME_SHUTTER_SPEEDS
+    #ifndef CONFIG_FRAME_SHUTTER_OVERRIDE
+    #error "This requires CONFIG_FRAME_SHUTTER_OVERRIDE"
+    #endif
+
+static CONFIG_INT("extreme.shutter", extreme_shutter, 0);
+
+void extreme_shutter_step()
+{
+    if (is_movie_mode() && extreme_shutter)
+    {
+        FRAME_SHUTTER_TIMER = 7 - extreme_shutter;
+    }
+}
+#endif
+
+
 void image_effects_step()
 {
     if (!DISPLAY_IS_ON && !recording) return;
@@ -768,7 +785,7 @@ void image_effects_step()
 
 void digic_iso_step()
 {
-#if defined(FEATURE_EXPO_ISO_DIGIC) || defined(FEATURE_LV_DISPLAY_GAIN)
+#if defined(FEATURE_EXPO_ISO_DIGIC) || defined(FEATURE_LV_DISPLAY_GAIN) || defined(FEATURE_EXTREME_SHUTTER_SPEEDS)
     if (!DISPLAY_IS_ON && !recording) return;
     if (!lv) return;
     if (lv_paused) return;
@@ -881,7 +898,7 @@ static struct menu_entry lv_img_menu[] = {
     },
     #endif
 
-    #if defined(FEATURE_IMAGE_EFFECTS) || defined(FEATURE_EXPO_ISO_DIGIC)
+    #if defined(FEATURE_IMAGE_EFFECTS) || defined(FEATURE_EXPO_ISO_DIGIC) || defined(FEATURE_EXTREME_SHUTTER_SPEEDS)
     {
         .name = "Image Finetuning",
         .select = menu_open_submenu,
@@ -912,6 +929,23 @@ static struct menu_entry lv_img_menu[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
                 .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
                 .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
+            },
+            #endif
+            
+            #ifdef FEATURE_EXTREME_SHUTTER_SPEEDS
+            {
+                .name = "Extreme Shutter Speed", 
+                .priv = &extreme_shutter, 
+                #ifdef CONFIG_5D3
+                .max = 5, // 1/50000 is pitch black
+                #else
+                .max = 6, // at least 60D works at 1/50000
+                #endif
+                .choices = CHOICES("OFF", "1/8000", "1/10000", "1/12500", "1/16000", "1/25000", "1/50000"),
+                .icon_type = IT_DICE_OFF,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .help = "Very fast shutter speeds (1/8000 - 1/50000).",
+                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
             },
             #endif
 

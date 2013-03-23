@@ -77,6 +77,9 @@
 /** But we can't override the digital ISO component via FRAME_ISO **/
 #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
 
+/** We can also override shutter on a per-frame basis */
+#define CONFIG_FRAME_SHUTTER_OVERRIDE
+
 /** We can't change ExpSim from ML :( **/
 //~ #define CONFIG_EXPSIM
 
