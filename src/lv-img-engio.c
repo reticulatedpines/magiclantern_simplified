@@ -558,20 +558,13 @@ void vignetting_correction_apply_regs()
     {
         return;
     }
-
+    
     #ifdef CONFIG_DIGIC_V
-    *(volatile uint32_t*)(0xC0F08578) = COUNT(vignetting_data_prep) * 2;
-    *(volatile uint32_t*)(0xC0F08D20) = COUNT(vignetting_data_prep) * 2;
-
     for(uint32_t index = 0; index < COUNT(vignetting_data_prep); index++)
     {
         *(volatile uint32_t*)(0xC0F08D1C) = vignetting_data_prep[index];
         *(volatile uint32_t*)(0xC0F08D24) = vignetting_data_prep[index];
     }
-
-    *(volatile uint32_t*)(0xC0F08578) = COUNT(vignetting_data_prep) * 2;
-    *(volatile uint32_t*)(0xC0F08D20) = COUNT(vignetting_data_prep) * 2;
-    
     #else
     for(uint32_t index = 0; index < COUNT(vignetting_data_prep); index++)
     {
@@ -594,10 +587,6 @@ static void vignetting_correction_toggle(void* priv, int delta)
 #if defined(CONFIG_7D)
     ml_rpc_send_vignetting(vignetting_data_prep, *state ? sizeof(vignetting_data_prep) : 0);
 #endif
-
-#ifdef CONFIG_DIGIC_V
-    flip_zoom(); // force updating the display mode
-#endif
 }
 
 static void vignetting_coeff_toggle(void* priv, int delta)
@@ -609,10 +598,6 @@ static void vignetting_coeff_toggle(void* priv, int delta)
 #ifdef CONFIG_7D
     if (vignetting_correction_enable)
         ml_rpc_send_vignetting(vignetting_data_prep, sizeof(vignetting_data_prep));
-#endif
-
-#ifdef CONFIG_DIGIC_V
-    flip_zoom(); // force updating the display mode
 #endif
 }
 
