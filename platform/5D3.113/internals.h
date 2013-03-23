@@ -121,5 +121,5 @@
 /** You can configure separate AFMA values for both wide and tele ends */
 #define CONFIG_AFMA_WIDE_TELE
 
-/** FPS override: change timers from EVF state */
-#define CONFIG_FPS_UPDATE_FROM_EVF_STATE
+/** FPS override: change timers from EVF state (both methods are OK on 5D3) */
+//~ #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
