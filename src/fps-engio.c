@@ -1294,13 +1294,13 @@ static int fps_video_mode_changed()
 {
     if (written_value_a != FPS_REGISTER_A_VALUE)
         return 1;
-    
+/* false positives on 6D
     int wb = written_value_b & 0xFFFF;
     int WB = FPS_REGISTER_B_VALUE & 0xFFFF;
 
     if (ABS(wb - WB) > 2)
         return 1;
-    
+*/
     return 0;
 }
 
@@ -1450,7 +1450,10 @@ static void fps_task()
         //~ bmp_printf(FONT_LARGE, 50, 150, "%dx, setting up from %d,%d   ", lv_dispsize, fps_timer_a_orig, fps_timer_b_orig);
 
         if (video_mode_changed && !recording) // Video mode changed, wait for it to settle
-        {                                     // This won't happen while recording (obvious), 
+        {                                     // This won't happen while recording (obvious),
+            #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
+            fps_disable_timers_evfstate();
+            #endif
             msleep(500);                      // BUT sometimes Canon code might choose to revert FPS back - in this case, ML must act quickly
             if (is_movie_mode() && video_mode_crop) msleep(500);
             continue;
