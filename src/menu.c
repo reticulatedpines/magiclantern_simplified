@@ -3381,24 +3381,29 @@ menu_redraw_do()
                     bmp_draw_to_idle(1);
                 }
                 
+                /*
                 int z = zebra_should_run();
                 if (menu_zebras_mirror_dirty && !z)
                 {
                     clear_zebras_from_mirror();
                     menu_zebras_mirror_dirty = 0;
-                }
+                }*/
 
                 static int prev_z = 0;
                 if (menu_lv_transparent_mode)
                 {
                     if (!quick_redraw)
                         bmp_fill( 0, 0, 0, 720, 480 );
+                    
+                    /*
                     if (z)
                     {
                         if (prev_z) copy_zebras_from_mirror();
                         else cropmark_clear_cache(); // will clear BVRAM mirror and reset cropmarks
                         menu_zebras_mirror_dirty = 1;
                     }
+                    */
+                    
                     if (hist_countdown == 0 && !should_draw_zoom_overlay())
                         draw_histogram_and_waveform(); // too slow
                     else
@@ -3409,7 +3414,7 @@ menu_redraw_do()
                     if (!quick_redraw)
                         bmp_fill(COLOR_BLACK, 0, 40, 720, 400 );
                 }
-                prev_z = z;
+                //~ prev_z = z;
 
                 menu_make_sure_selection_is_valid();
                 

@@ -3764,6 +3764,7 @@ static void cropmark_draw_from_cache()
 }
 #endif
 
+/*
 void copy_zebras_from_mirror()
 {
     uint32_t* B = (uint32_t*)bmp_vram();
@@ -3809,6 +3810,7 @@ void clear_zebras_from_mirror()
         }
     }
 }
+*/
 
 void cropmark_clear_cache()
 {
@@ -4401,7 +4403,7 @@ int liveview_display_idle()
         LV_NON_PAUSED && 
         DISPLAY_IS_ON &&
         !menu_active_and_not_hidden() && 
-        ( gui_menu_shown() || // force LiveView when menu is active, but hidden
+        (// gui_menu_shown() || // force LiveView when menu is active, but hidden
             ( gui_state == GUISTATE_IDLE && 
               (dialog->handler == (dialog_handler_t) &LiveViewApp_handler || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler
                   #if defined(CONFIG_5D3)
@@ -4522,7 +4524,7 @@ void draw_histogram_and_waveform(int allow_play)
     
     //~ if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
     if (!get_global_draw()) return;
-    if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play)) return;
+    if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play) && !gui_menu_shown()) return;
     if (is_zoom_mode_so_no_zebras()) return;
 
     int screen_layout = get_screen_layout();
@@ -4548,7 +4550,7 @@ void draw_histogram_and_waveform(int allow_play)
 
     //~ if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
-    if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play)) return;
+    if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play) && !gui_menu_shown()) return;
     if (is_zoom_mode_so_no_zebras()) return;
         
 #ifdef FEATURE_WAVEFORM
