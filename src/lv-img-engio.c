@@ -489,7 +489,7 @@ static uint32_t vignetting_data_prep[0x80];
 static int vignetting_correction_initialized = 0;
 
 static CONFIG_INT("digic.vignetting.corr", vignetting_correction_enable, 0);
-static CONFIG_INT("digic.vignetting.a", vignetting_correction_a, 10);
+static CONFIG_INT("digic.vignetting.a", vignetting_correction_a, -10);
 static CONFIG_INT("digic.vignetting.b", vignetting_correction_b, 0);
 static CONFIG_INT("digic.vignetting.c", vignetting_correction_c, 0);
 
@@ -531,8 +531,14 @@ static void vignetting_correction_set_coeffs(int a, int b, int c)
     for(index = 0; index < 0x100; index++)
     {
         vignetting_data[index] -= min;
+        
         if (range > 1023)
             vignetting_data[index] = vignetting_data[index] * 1023 / range;
+        
+        #ifdef CONFIG_DIGIC_V
+        // prefer to use 512 (0EV) if no correction is needed
+        vignetting_data[index] += MIN(512, 1023 - MIN(range, 1023));
+        #endif
         
         // debug - for finding VIGNETTING_MAX_INDEX
         // vignetting_data[index] = (index > VIGNETTING_MAX_INDEX) ? 1023 : 0;
@@ -541,7 +547,20 @@ static void vignetting_correction_set_coeffs(int a, int b, int c)
     /* pre-calculate register values */
     for(index = 0; index < 0x80; index++)
     {
+        #ifdef CONFIG_DIGIC_V
+        // 0    -> pitch black
+        // 256  -> -1EV (with pink highlights)
+        // 512  -> 0 EV (no correction)
+        // 1024 -> +1EV (blows hihglights)
+        // let's map 0-1024 to -2...+2EV; stick to 0EV if no correction is needed
+        int ev1 = vignetting_data[2*index] - 512;
+        int val1 = 512 * powf(2, ev1 / 256.0);
+        int ev2 = vignetting_data[2*index+1] - 512;
+        int val2 = 512 * powf(2, ev2 / 256.0);
+        uint32_t data = (val1 & 0xFFFF) | ((val2 & 0xFFFF) << 16);
+        #else
         uint32_t data = (vignetting_data[2*index] & 0x03FF) | ((vignetting_data[2*index+1] & 0x03FF) << 10);
+        #endif
         vignetting_data_prep[index] = data;
     }
     
@@ -569,23 +588,44 @@ void vignetting_correction_apply_lvmgr(uint32_t *lvmgr)
 }
 #else
 /* the other cameras rewrite digic registers */
-static void vignetting_correction_apply_regs()
+void vignetting_correction_apply_regs()
 {
+    if (!is_movie_mode()) return;
+    if (!DISPLAY_IS_ON && !recording) return;
+    if (!lv) return;
+    if (lv_paused) return;
+    
     if (!vignetting_correction_initialized || !vignetting_correction_enable)
     {
         return;
     }
+
+    #ifdef CONFIG_DIGIC_V
+    *(volatile uint32_t*)(0xC0F08578) = COUNT(vignetting_data_prep) * 2;
+    *(volatile uint32_t*)(0xC0F08D20) = COUNT(vignetting_data_prep) * 2;
+
+    for(uint32_t index = 0; index < COUNT(vignetting_data_prep); index++)
+    {
+        *(volatile uint32_t*)(0xC0F08D1C) = vignetting_data_prep[index];
+        *(volatile uint32_t*)(0xC0F08D24) = vignetting_data_prep[index];
+    }
+
+    *(volatile uint32_t*)(0xC0F08578) = COUNT(vignetting_data_prep) * 2;
+    *(volatile uint32_t*)(0xC0F08D20) = COUNT(vignetting_data_prep) * 2;
     
-    uint32_t index = 0;
-    for(index = 0; index < COUNT(vignetting_data_prep); index++)
+    #else
+    for(uint32_t index = 0; index < COUNT(vignetting_data_prep); index++)
     {
         *(volatile uint32_t*)(0xC0F08578) = index * 2;
         *(volatile uint32_t*)(0xC0F0857C) = vignetting_data_prep[index];
     }
-    
     *(volatile uint32_t*)(0xC0F08578) = COUNT(vignetting_data_prep) * 2;
+    #endif
+
 }
 #endif
+
+extern void flip_zoom();
 
 static void vignetting_correction_toggle(void* priv, int delta)
 {
@@ -594,6 +634,26 @@ static void vignetting_correction_toggle(void* priv, int delta)
     *state = !*state;
 #if defined(CONFIG_7D)
     ml_rpc_send_vignetting(vignetting_data_prep, *state ? sizeof(vignetting_data_prep) : 0);
+#endif
+
+#ifdef CONFIG_DIGIC_V
+    flip_zoom(); // force updating the display mode
+#endif
+}
+
+static void vignetting_coeff_toggle(void* priv, int delta)
+{
+    menu_numeric_toggle(priv, delta, -10, 10);
+
+    vignetting_correction_set_coeffs(vignetting_correction_a, vignetting_correction_b, vignetting_correction_c);
+
+#ifdef CONFIG_7D
+    if (vignetting_correction_enable)
+        ml_rpc_send_vignetting(vignetting_data_prep, sizeof(vignetting_data_prep));
+#endif
+
+#ifdef CONFIG_DIGIC_V
+    flip_zoom(); // force updating the display mode
 #endif
 }
 
@@ -642,8 +702,6 @@ static MENU_UPDATE_FUNC(vignetting_graphs_update)
 {
     if (entry->selected && info->x)
     {
-        vignetting_correction_set_coeffs(vignetting_correction_a, vignetting_correction_b, vignetting_correction_c);
-    
         int yb = 400;
         int xa = 720-218 - 70;
         //~ int yb = menu_active_but_hidden() ? 430 : 455;
@@ -677,11 +735,13 @@ static MENU_UPDATE_FUNC(vignetting_graphs_update)
             max = MAX(max, vignetting_data[i]);
         }
         
-        /* not sure if the units are really EV
-        int ev = xb + (max * 10 + 512) / 1024;
-        int ym = yb - max / 8;
-        bmp_printf(FONT_MED, 260, ym - font_med.height/2, "+%d.%d EV", ev/10, ev%10);
-        */
+        #ifdef CONFIG_DIGIC_V
+        bmp_printf(FONT(FONT_MED, 60, COLOR_BLACK), xb + 225, yb-128 - font_med.height/2, "+2 EV");
+        bmp_printf(FONT(FONT_MED, 60, COLOR_BLACK), xb + 225, yb - font_med.height/2, "-2 EV");
+        #else
+        bmp_printf(FONT(FONT_MED, 60, COLOR_BLACK), xb + 225, yb-128 - font_med.height/2, "+1 EV");
+        bmp_printf(FONT(FONT_MED, 60, COLOR_BLACK), xb + 225, yb - font_med.height/2, "0");
+        #endif
         
     }
     
@@ -750,8 +810,6 @@ void image_effects_step()
     if (zerosharp)  EngDrvOutLV(0xc0f2116c, 0x0); // sharpness trick: at -1, cancel it completely
 
     prev_swap_uv = swap_uv;
-    
-    vignetting_correction_apply_regs();
 #endif
 }
 
@@ -824,7 +882,7 @@ void digic_iso_step()
 void menu_open_submenu();
 
 static struct menu_entry lv_img_menu[] = {
-    #ifdef FEATURE_IMAGE_EFFECTS
+    #ifdef FEATURE_VIGNETTING_CORRECTION
     {
         .name = "Vignetting",
         .max = 1,
@@ -841,6 +899,7 @@ static struct menu_entry lv_img_menu[] = {
                 .unit = UNIT_x10,
                 .min = -10,
                 .max = 10,
+                .select = vignetting_coeff_toggle,
                 .update = vignetting_graphs_update,
                 .help = "Correction applied between central area and corners.",
                 .help2 = "Tip: set this to -1 for a nice vignette effect.",
@@ -851,6 +910,7 @@ static struct menu_entry lv_img_menu[] = {
                 .min = -10,
                 .max = 10,
                 .unit = UNIT_x10,
+                .select = vignetting_coeff_toggle,
                 .update = vignetting_graphs_update,
                 .help = "Correction with a stronger bias towards corners.",
             },
@@ -860,6 +920,7 @@ static struct menu_entry lv_img_menu[] = {
                 .min = -10,
                 .max = 10,
                 .unit = UNIT_x10,
+                .select = vignetting_coeff_toggle,
                 .update = vignetting_graphs_update,
             },
             MENU_EOL,

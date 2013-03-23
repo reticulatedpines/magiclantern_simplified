@@ -118,6 +118,8 @@
 
     #define FEATURE_IMAGE_EFFECTS
     
+    #define FEATURE_VIGNETTING_CORRECTION
+    
     // 50D movie hacks
     //~ #define FEATURE_MOVIE_RECORDING_50D
     //~ #define FEATURE_MOVIE_RECORDING_50D_SHUTTER_HACK

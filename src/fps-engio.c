@@ -179,9 +179,9 @@ static int is_current_mode_ntsc()
 }
 
 int fps_get_current_x1000();
+void flip_zoom(); // refreshes display mode
 static void fps_unpatch_table();
 static void fps_patch_timerB(int timer_value);
-static void flip_zoom();
 static void fps_read_default_timer_values();
 static void fps_read_current_timer_values();
 
@@ -656,12 +656,13 @@ static MENU_UPDATE_FUNC(desired_fps_print)
         );
 }
 
-#ifdef NEW_FPS_METHOD
+#if defined(NEW_FPS_METHOD) || defined(CONFIG_DIGIC_V)
 
-static int video_mode[5];
+static int video_mode[10];
 PROP_HANDLER(PROP_VIDEO_MODE)
 {
-    memcpy(video_mode, buf, 20);
+    ASSERT(len <= sizeof(video_mode));
+    memcpy(video_mode, buf, len);
 }
 
 static void flip_zoom_twostage(int stage)
@@ -687,13 +688,13 @@ static void flip_zoom_twostage(int stage)
                     f0 == 30 ? 25 : 
                     f0 == 50 ? 60 :
                   /*f0 == 60*/ 50;
-                prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+                prop_request_change(PROP_VIDEO_MODE, video_mode, 0);
                 msleep(50);
             }
             else if (stage == 2)
             {
                 video_mode[2] = f0;
-                prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+                prop_request_change(PROP_VIDEO_MODE, video_mode, 0);
                 msleep(50);
             }
 
@@ -714,11 +715,14 @@ static void flip_zoom_twostage(int stage)
     }
 }
 
-static void flip_zoom()
+void flip_zoom()
 {
     flip_zoom_twostage(1);
     flip_zoom_twostage(2);
 }
+#endif
+
+#ifdef NEW_FPS_METHOD
 
 static void fps_unpatch_table(int refresh)
 {

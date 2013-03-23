@@ -117,6 +117,10 @@ static void vsync_func() // called once per frame.. in theory :)
     // for those cameras, it's called from a different spot of the evf state object
     hdr_step();
     #endif
+
+    #ifndef CONFIG_DIGIC_V
+    vignetting_correction_apply_regs();
+    #endif
     
     digic_iso_step();
     image_effects_step();
@@ -213,10 +217,16 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     }
     #endif
 
-    #if defined(CONFIG_EVF_STATE_SYNC) // exception for overriding ISO
     if (self == EVF_STATE && input == 4 && old_state == 5) // evfSetParamInterrupt
+    {
+        #if defined(CONFIG_EVF_STATE_SYNC) // exception for overriding ISO
         hdr_step();
-    #endif
+        #endif
+        
+        #ifdef CONFIG_DIGIC_V
+        vignetting_correction_apply_regs();
+        #endif
+    }
 
 #ifdef CONFIG_5DC
     if (z == 0x0) { fake_simple_button(BGMT_PRESS_HALFSHUTTER); }
