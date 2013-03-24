@@ -1569,7 +1569,10 @@ int handle_fps_events(struct event * event)
 int fps_get_iso_correction_evx8()
 {
     if (!fps_override) return 0;
+    if (!fps_const_expo) return 0;
     if (!is_movie_mode()) return 0;
+    if (!lens_info.raw_iso) return; // no auto iso
+
     int unaltered = (int)roundf(1000/raw2shutterf(MAX(lens_info.raw_shutter, 96)));
     int altered_by_fps = get_shutter_reciprocal_x1000(unaltered, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
     float gf = 1.0f * altered_by_fps / unaltered;
