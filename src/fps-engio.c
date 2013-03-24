@@ -806,10 +806,18 @@ static MENU_UPDATE_FUNC(shutter_range_print)
     int shutter_r_0_hi_x1000 = 4000*1000;
     int tv_low = get_shutter_reciprocal_x1000(shutter_r_0_lo_x1000, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
     int tv_high = get_shutter_reciprocal_x1000(shutter_r_0_hi_x1000, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
-    MENU_SET_VALUE(
-        "1/%d..1/%d",
-        (tv_low+500)/1000, (tv_high+500)/1000
-    );
+    int tv_low_r = (tv_low+500)/1000;
+    int tv_low_s_x10 = 100000 / tv_low;
+    int tv_high_r = (tv_high+500)/1000;
+    int tv_high_s_x10 = 100000 / tv_high;
+
+    if (tv_low >= 10000) MENU_SET_VALUE("1/%d", tv_low_r);
+    else MENU_SET_VALUE("%d.%02d\"", tv_low_s_x10/100, tv_low_s_x10%100);
+
+    MENU_APPEND_VALUE("..");
+
+    if (tv_high >= 10000) MENU_APPEND_VALUE("1/%d", tv_high_r);
+    else MENU_APPEND_VALUE("%d.%02d\"", tv_high_s_x10/100, tv_high_s_x10%100);
 }
 
 
