@@ -1566,6 +1566,16 @@ int handle_fps_events(struct event * event)
     return 1;
 }
 
+int fps_get_iso_correction_evx8()
+{
+    if (!fps_override) return 0;
+    if (!is_movie_mode()) return 0;
+    int unaltered = (int)roundf(1000/raw2shutterf(MAX(lens_info.raw_shutter, 96)));
+    int altered_by_fps = get_shutter_reciprocal_x1000(unaltered, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
+    float gf = 1.0f * altered_by_fps / unaltered;
+    return log2f(gf)*8;
+}
+
 void fps_expo_iso_step()
 {
 #ifdef CONFIG_FRAME_ISO_OVERRIDE

@@ -297,7 +297,7 @@ int raw2iso(int raw_iso)
         iso = ((iso+5)/10) * 10;
     else if (iso >= 15)
         iso = ((iso+2)/5) * 5;
-    else
+    else if (iso > 5)
         iso = iso&~1;
     return iso;
 }
@@ -663,7 +663,14 @@ void draw_ml_bottombar(int double_buffering, int clear)
                 bg
             );
             char msg[10];
-            int iso = raw2iso(info->iso_equiv_raw);
+            int iso_equiv_raw = info->iso_equiv_raw;
+            
+            #ifdef FEATURE_FPS_OVERRIDE
+            iso_equiv_raw += fps_get_iso_correction_evx8();
+            #endif
+            
+            int iso = raw2iso(iso_equiv_raw);
+            
             snprintf(msg, sizeof(msg), "%d   ", iso >= 10000 ? iso/100 : iso);
             bmp_printf( text_font, 
                       x_origin + 250  , 
@@ -672,8 +679,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
             
             static char msg2[5];
             msg2[0] = '\0';
-            if (CONTROL_BV && lens_info.iso_equiv_raw == lens_info.raw_iso) { STR_APPEND(msg2, "ov"); }
-            else if (lens_info.iso_equiv_raw != lens_info.raw_iso) { STR_APPEND(msg2, "eq"); }
+            if (CONTROL_BV && iso_equiv_raw == lens_info.raw_iso) { STR_APPEND(msg2, "ov"); }
+            else if (iso_equiv_raw != lens_info.raw_iso) { STR_APPEND(msg2, "eq"); }
             if (get_htp()) { STR_APPEND(msg2, msg2[0] ? "+" : "D+"); }
             
             bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
