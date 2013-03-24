@@ -3241,7 +3241,7 @@ bulb_take_pic(int duration)
 
     ensure_bulb_mode();
     
-    lens_setup_af(AF_OFF);
+    lens_setup_af(AF_DISABLE);
     
     msleep(100);
     
@@ -6169,7 +6169,7 @@ static void hdr_auto_take_pics(int step_size, int skip0)
     int i;
     
     // make sure it won't autofocus
-    lens_setup_af(AF_OFF);
+    lens_setup_af(AF_DISABLE);
     // be careful: don't return without restoring the setting back!
     
     hdr_check_cancel(1);
@@ -6259,7 +6259,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
     int i;
     
     // make sure it won't autofocus
-    lens_setup_af(AF_OFF);
+    lens_setup_af(AF_DISABLE);
     // be careful: don't return without restoring the setting back!
     
     hdr_check_cancel(1);
@@ -6403,7 +6403,7 @@ void hdr_shot(int skip0, int wait)
     else // regular pic (not HDR)
 #endif
     {
-        lens_setup_af(AF_OFF);
+        lens_setup_af(AF_DISABLE);
         hdr_shutter_release(0);
         lens_cleanup_af();
     }
@@ -6692,7 +6692,7 @@ void take_fast_pictures( int number )
 #ifdef CONFIG_PROP_REQUEST_CHANGE
     if ( number > 1 && is_continuous_drive() && !is_bulb_mode() && !snap_sim)
     {
-        lens_setup_af(shoot_use_af ? AF_ON : AF_OFF);
+        lens_setup_af(shoot_use_af ? AF_ENABLE : AF_DISABLE);
         
         // continuous mode - simply hold shutter pressed 
         int f0 = file_number;
@@ -6722,7 +6722,7 @@ void take_fast_pictures( int number )
     {
         for (int i = 0; i < number; i++)
         {
-            take_a_pic(shoot_use_af ? AF_ON : AF_OFF, 1);
+            take_a_pic(shoot_use_af ? AF_ENABLE : AF_DISABLE, 1);
         }
     }
 }
@@ -7520,7 +7520,7 @@ shoot_task( void* unused )
             #ifndef CONFIG_VXWORKS
             if (lv && silent_pic_enabled) // half-press shutter to disable power management
             {
-                lens_setup_af(AF_OFF);
+                lens_setup_af(AF_DISABLE);
                 SW1(1,10);
                 SW1(0,50);
                 lens_cleanup_af();

@@ -271,8 +271,8 @@ void aperture_toggle( void* priv, int sign);
 #define MAX_ANALOG_ISO 112 // iso 3200
 #endif
 
-#define AF_ON 1
-#define AF_OFF 0
+#define AF_ENABLE 1
+#define AF_DISABLE 0
 #define AF_DONT_CHANGE -1
 
 #endif

@@ -1190,8 +1190,8 @@ int lens_setup_af(int should_af)
     
     if (!is_manual_focus())
     {
-        if (should_af == AF_ON) assign_af_button_to_halfshutter();
-        else if (should_af == AF_OFF) assign_af_button_to_star_button();
+        if (should_af == AF_ENABLE) assign_af_button_to_halfshutter();
+        else if (should_af == AF_DISABLE) assign_af_button_to_star_button();
         else return 0;
         
         return 1;
