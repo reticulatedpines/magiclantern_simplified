@@ -1584,7 +1584,7 @@ void fps_expo_iso_step()
     int unaltered = (int)roundf(1000/raw2shutterf(MAX(lens_info.raw_shutter, 96)));
     int altered_by_fps = get_shutter_reciprocal_x1000(unaltered, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
 
-    float gf = 1024 * altered_by_fps / unaltered;
+    float gf = 1024.0f * altered_by_fps / unaltered;
 
     // adjust ISO just like in smooth_iso_step (copied from there)
     int current_iso = FRAME_ISO & 0xFF;
