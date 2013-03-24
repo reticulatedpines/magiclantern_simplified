@@ -1102,13 +1102,23 @@ static struct menu_entry fps_menu[] = {
                     "High Jello",
                     #else
                     "Low Jello, 180d", 
-                    "Fast Tv, Jello",
+                    "HiJello, FastTv",
                     #endif
                 },
                 .icon_type = IT_DICE,
                 .max = 3,
                 .select = fps_criteria_change,
-                .help = "Optimization criteria - how to setup the two timers.",
+                .help = "Changing FPS has side effects - choose what's best for you:",
+                .help2 = 
+                        "Low light: at low FPS, use 1/FPS (360 deg) shutter speeds.\n"
+                        "Exact FPS: for 24.000 instead of 23.976 and similar.\n"
+                        #ifdef NEW_FPS_METHOD
+                        "High FPS: best for slight overcranking (eg 35fps from 30).\n"
+                        "High Jello: for slit-scan effect (2-5 fps and fast shutter).\n"
+                        #else
+                        "Low Jello, 180d: for 1/2fps shutter speed (1/20 at 10fps).\n" 
+                        "HiJello, FastTv: jello effects and fast shutters (2-5 fps).\n"
+                        #endif
             },
 #endif
             {
@@ -1116,7 +1126,8 @@ static struct menu_entry fps_menu[] = {
                 .update = shutter_range_print,
                 .select = fps_timer_fine_tune_a_big,
                 .icon_type = IT_ALWAYS_ON,
-                .help = "Shutter speed range with current settings. Adjusts timer A.",
+                .help  = "Shutter speed range, when Canon shows 1/30-1/4000.",
+                .help2 = "You can fine-tune this, but don't expect miracles.",
                 .shidden = 1,
             },
             {
