@@ -3,6 +3,10 @@
 #
 
 TOP ?= .
+
+include $(TOP)/../Makefile.user.default
+-include $(TOP)/../Makefile.user
+
 include $(TOP)/config.mak
 VPATH = $(top_srcdir)
 

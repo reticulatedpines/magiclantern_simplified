@@ -14,5 +14,7 @@ CFLAGS=-Os
 %.mo: %.o
 	$(LD_REAL) -r -o $@ $^
 
+clean:
+	rm *.o *.mo testplug.mo || true
 
 all: testplug.mo
