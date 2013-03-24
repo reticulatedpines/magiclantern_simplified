@@ -5,6 +5,7 @@
 
 #define UNPRESS -10000 // generic unpress code
 #define NO_KEY -1
+#define AF_ON 12345
 
 static char camera_model[32];
 static char firmware_version[32];
@@ -125,6 +126,13 @@ static void LibPress(struct ParseState *Parser, struct Value *ReturnValue, struc
     
     switch (btn)
     {
+        case AF_ON:
+        {
+            int x = 1;
+            prop_request_change(PROP_REMOTE_AFSTART_BUTTON, &x, 4);
+            msleep(50);
+            return;
+        }
         case BGMT_PRESS_HALFSHUTTER:
             SW1(1,50);
             return;
@@ -144,6 +152,13 @@ static void LibUnpress(struct ParseState *Parser, struct Value *ReturnValue, str
     int unpress = 0;
     switch (press)
     {
+        case AF_ON:
+        {
+            int x = 0;
+            prop_request_change(PROP_REMOTE_AFSTART_BUTTON, &x, 4);
+            msleep(50);
+            return;
+        }
         case BGMT_PRESS_HALFSHUTTER:
             SW1(0,50);
             return;
@@ -1331,6 +1346,8 @@ void PlatformLibraryInit()
 
     CONST0(UNPRESS)
     CONST0(NO_KEY)
+    CONST0(AF_ON)
+    CONST0(HALFSHUTTER_PRESSED)
 
     /** Color codes */
     CONST0(COLOR_EMPTY)
