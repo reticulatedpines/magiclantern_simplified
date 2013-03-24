@@ -192,14 +192,15 @@ static void fps_read_current_timer_values();
 
 #ifdef CONFIG_DIGIC_V
 #define FPS_TIMER_A_MAX 0xFFFF
+#define FPS_TIMER_B_MAX 0xFFFF
 #else
 #define FPS_TIMER_A_MAX 0x2000
+#define FPS_TIMER_B_MAX (0x4000-1)
 #endif
 
 #ifdef CONFIG_FPS_TIMER_A_ONLY
+    #undef FPS_TIMER_B_MAX
     #define FPS_TIMER_B_MAX fps_timer_b_orig
-#else
-    #define FPS_TIMER_B_MAX (0x4000-1)
 #endif
 
 //~ #define FPS_TIMER_B_MIN (fps_timer_b_orig-100)
@@ -524,8 +525,8 @@ static int fps_get_timer(int fps_x1000)
             if (ABS(TIMER_TO_FPS_x1000(fps_timer_rounded) - fps_x1000 + 1) < 500) fps_timer = fps_timer_rounded;
         }
     }
-
-    return fps_timer & 0xFFFF;
+    
+    return fps_timer;
 }
 
 // used to see if Canon firmware changed FPS settings
