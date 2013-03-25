@@ -401,6 +401,7 @@ bmp_puts(
 
 }
 
+/*
 void
 bmp_puts_w(
     unsigned        fontspec,
@@ -444,7 +445,7 @@ bmp_puts_w(
     }
 
 }
-
+*/
 
 // thread safe
 void
