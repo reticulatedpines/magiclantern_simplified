@@ -312,8 +312,8 @@ int tcc_compile_and_run(char* filename)
         exit_code = 1; goto end; 
     }
     
-    /* enable the caching bit (todo: use AllocateMemory instead of alloc_dma_memory) */
-    main = CACHEABLE(main);
+    /* http://repo.or.cz/w/tinycc.git/commit/6ed6a36a51065060bd5e9bb516b85ff796e05f30 */
+    clean_d_cache();
     
     /* run the code */
     main(0, 0);
