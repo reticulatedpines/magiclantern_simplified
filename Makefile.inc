@@ -177,6 +177,10 @@ ifeq ($(CONFIG_PTP),y)
 CFLAGS += -DCONFIG_PTP
 endif
 
+ifeq ($(CONFIG_MEMCHECK),y)
+CFLAGS += -DCONFIG_MEMCHECK
+endif
+
 ifeq ($(CONFIG_GDB),y)
 CFLAGS += -DCONFIG_GDB
 endif
@@ -262,6 +266,9 @@ ML_OBJS-$(CONFIG_GDB) += \
 
 ML_OBJS-$(CONFIG_PTP) += \
 	ptp.o \
+
+ML_OBJS-$(CONFIG_MEMCHECK) += \
+	memcheck.o \
 
 ML_OBJS-$(CONFIG_PTP_CHDK) += \
 	ptp-chdk.o \

@@ -666,6 +666,9 @@ static void bsod()
 
 static void run_test()
 {
+#ifdef CONFIG_MEMCHECK
+    memcheck_main();
+#endif
 #ifdef CONFIG_TCC
     void tcc_plugin_load_all();
     msleep(1000);
