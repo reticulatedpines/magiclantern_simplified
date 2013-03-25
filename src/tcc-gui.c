@@ -213,6 +213,9 @@ static MENU_UPDATE_FUNC(script_print)
 
 static void run_script(const char *script)
 {
+    extern int ml_started;
+    while (!ml_started) msleep(100); // for startup scripts
+
     script_state = SCRIPT_RUNNING;
 
     msleep(500);
@@ -550,10 +553,25 @@ void script_key_enqueue(int key)
     msg_queue_post(script_key_mq, key);
 }
 
-static void picoc_init()
+static void run_startup_script()
+{
+    for (int i = 0; i < script_cnt; i++)
+    {
+        if (streq(script_list[i], "AUTORUN.C"))
+        {
+            script_selected = i;
+            script_parse_header(i);
+            script_run_fun(0,0);
+            return;
+        }
+    }
+}
+
+static void pico_init()
 {
     script_key_mq = (struct msg_queue *) msg_queue_create("script_key", 10);
     find_scripts();
+    run_startup_script();
     menu_add("Scripts", picoc_menu, MIN(script_cnt, COUNT(picoc_menu)));
 }
 
