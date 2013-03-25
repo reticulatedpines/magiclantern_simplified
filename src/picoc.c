@@ -6,7 +6,13 @@
 #include "picoc.h"
 
 #include "setjmp.h"
-static jmp_buf PicocExitBuf;
+
+/* making this static breaks error handling in PicoC, figure out why! */
+
+/* to reproduce: make this static, write some gibberish in a script (e.g. call foobaz) and run it on 5D3 */
+/* the buffer is not getting corrupted, checked that with dump_exit_buf */
+/* doesn't matter if you compile arm or thumb, crashes in both cases */
+jmp_buf PicocExitBuf;
 
 static int script_state = 0;
 #define SCRIPT_RUNNING 1
@@ -217,6 +223,21 @@ static MENU_UPDATE_FUNC(script_print)
     script_selected = mod(script_selected + delta, script_cnt);
 }*/
 
+/*
+static void dump_exit_buf()
+{
+    int checksum = 0;
+    for (int i = 0; i < sizeof(jmp_buf); i++)
+    {
+        int elem = *(((uint8_t*)PicocExitBuf) + i);
+        console_printf("%x ", elem);
+        checksum += elem;
+    }
+    console_printf("[%d]\n", checksum);
+    msleep(1000);
+}
+*/
+
 static void run_script(const char *script)
 {
     extern int ml_started;
@@ -235,6 +256,7 @@ static void run_script(const char *script)
     
     if (!setjmp(PicocExitBuf))
     {
+        //~ dump_exit_buf();
         // parse and run our script
         PicocPlatformScanFile(get_script_path(script_selected));
         console_puts(    "Script finished.\n\n");
@@ -606,6 +628,7 @@ void script_cache_fake(uint32_t address, uint32_t data, uint32_t type) { cache_f
 
 void __attribute__((noreturn)) script_exit(int RetVal)
 {
+    //~ dump_exit_buf();
     PicocExitValue = RetVal;
     longjmp(PicocExitBuf, 1);
 }
