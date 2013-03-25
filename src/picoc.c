@@ -247,9 +247,10 @@ static void run_script(const char *script)
 
     msleep(500);
     
+    console_clear();
     console_show();
     console_set_help_text("SET: show/hide");
-    console_set_status_text("Running script...");
+    console_set_status_text("Script running...");
     
     msleep(100);
     PicocInitialise(PICOC_HEAP_SIZE);
@@ -259,12 +260,12 @@ static void run_script(const char *script)
         //~ dump_exit_buf();
         // parse and run our script
         PicocPlatformScanFile(get_script_path(script_selected));
-        console_puts(    "Script finished.\n\n");
+        console_puts(    "Script finished.\n");
     }
     else
     {
         // something went wrong
-        console_printf(  "Script error: %d.\n\n", PicocExitValue);
+        if (PicocExitValue) console_printf("Script error: %d.\n", PicocExitValue);
         msleep(500);
         gui_stop_menu();
         msleep(500);
@@ -329,7 +330,7 @@ int handle_picoc_keys(struct event * event)
 
     if (script_state != SCRIPT_IDLE) // toggle show/hide
     {
-        if (event->param == BGMT_PRESS_SET)
+        if (event->param == BGMT_PRESS_SET && display_idle())
         {
             console_toggle();
             return 0;

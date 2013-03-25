@@ -220,18 +220,19 @@ static void run_script(const char *script)
 
     msleep(500);
     
+    console_clear();
     console_show();
     console_set_help_text("SET: show/hide");
-    console_set_status_text("Running script...");
+    console_set_status_text("Script running...");
     
     int exit_code = tcc_compile_and_run(get_script_path(script_selected));
     if (exit_code == 0)
     {
-        console_puts(    "Script finished.\n\n");
+        console_puts(    "Script finished.\n");
     }
     else
     {
-        console_printf(  "Script error: %d.\n\n", exit_code);
+        console_printf(  "Script error: %d.\n", exit_code);
         msleep(500);
         gui_stop_menu();
         msleep(500);
@@ -295,7 +296,7 @@ int handle_picoc_keys(struct event * event)
 
     if (script_state != SCRIPT_IDLE) // toggle show/hide
     {
-        if (event->param == BGMT_PRESS_SET)
+        if (event->param == BGMT_PRESS_SET && display_idle())
         {
             console_toggle();
             return 0;
@@ -385,7 +386,7 @@ static MENU_UPDATE_FUNC(script_display)
     }
 }
 
-static struct menu_entry picoc_submenu[] = {
+static struct menu_entry tccgui_submenu[] = {
         {
             .name = "Show script",
             .priv = &script_preview_flag,
@@ -430,9 +431,9 @@ static struct menu_entry picoc_submenu[] = {
         MENU_EOL
 };
 
-#define MAX_PARAMS (COUNT(picoc_submenu) - 3)
+#define MAX_PARAMS (COUNT(tccgui_submenu) - 3)
 
-static struct menu_entry picoc_menu[] = {
+static struct menu_entry tccgui_menu[] = {
     /*
     {
         .name = "PicoC scripts...",
@@ -474,7 +475,7 @@ static struct menu_entry picoc_menu[] = {
             .update = script_display, \
             .icon_type = IT_SUBMENU, \
             .submenu_width = 700, \
-            .children = picoc_submenu, \
+            .children = tccgui_submenu, \
             .help  = "Run C scripts with TinyCC, http://bellard.org/tcc/.", \
             .help2 = "PLAY: quick start.", \
         },
@@ -505,7 +506,7 @@ void script_setup_param(
     )
 {
     if (param_index >= MAX_PARAMS) return;
-    struct menu_entry * entry = &(picoc_menu[script_selected].children[2 + param_index]);
+    struct menu_entry * entry = &(tccgui_menu[script_selected].children[2 + param_index]);
     entry->name = param_name;
     entry->priv = param_value;
     entry->min = min_value;
@@ -517,7 +518,7 @@ void script_reset_params()
 {
     for (int i = 0; i < MAX_PARAMS; i++)
     {
-        struct menu_entry * entry = &(picoc_menu[script_selected].children[2 + i]);
+        struct menu_entry * entry = &(tccgui_menu[script_selected].children[2 + i]);
         entry->name = 0;
         entry->priv = 0;
         entry->min = 0;
@@ -567,12 +568,12 @@ static void run_startup_script()
     }
 }
 
-static void pico_init()
+static void tccgui_init()
 {
     script_key_mq = (struct msg_queue *) msg_queue_create("script_key", 10);
     find_scripts();
     run_startup_script();
-    menu_add("Scripts", picoc_menu, MIN(script_cnt, COUNT(picoc_menu)));
+    menu_add("Scripts", tccgui_menu, MIN(script_cnt, COUNT(tccgui_menu)));
 }
 
-INIT_FUNC(__FILE__, picoc_init);
+INIT_FUNC(__FILE__, tccgui_init);

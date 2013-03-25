@@ -498,7 +498,10 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
     
     extern int script_stop_requested;
     if (script_stop_requested)
-        ProgramFail(Parser, "User pressed CTRL-C.");
+    {
+        PlatformPrintf("Stop requested.\n");
+        PlatformExit(0);
+    }
 
     ParserCopy(&PreState, Parser);
     Token = LexGetToken(Parser, &LexerValue, TRUE);
