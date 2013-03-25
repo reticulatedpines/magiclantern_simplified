@@ -1,4 +1,5 @@
-
+#include "arm-mcr.h"
+#include "tasks.h"
 
 #define MEM_SEC_ZONE 32
 #define MEMCHECK_ENTRIES 1024
@@ -20,9 +21,6 @@ typedef struct
 t_memcheck_entry memcheck_mallocbuf[MEMCHECK_ENTRIES];
 unsigned int memcheck_bufpos = 0;
 
-unsigned int (*f_cli)() = 0xFF1F5864;
-void (*f_sei)(unsigned int) = 0xFF1F5868;
-
 unsigned int memcheck_check(unsigned int entry)
 {
     unsigned int ptr = memcheck_mallocbuf[entry].ptr;
@@ -30,11 +28,18 @@ unsigned int memcheck_check(unsigned int entry)
     
     for(int pos = sizeof(t_memcheck_hdr); pos < MEM_SEC_ZONE; pos++)
     {
-        failed |= (((unsigned char *)ptr)[pos] != 0xA5)?2:0;
+        unsigned char value = ((unsigned char *)ptr)[pos];
+        // console_printf("check %d %x\n ", pos, value);
+        if (value != 0xA5)
+            failed |= 2;
     }
     for(int pos = 0; pos < MEM_SEC_ZONE; pos++)
     {
-        failed |= (((unsigned char *)ptr)[MEM_SEC_ZONE + ((t_memcheck_hdr *)ptr)->length + pos] != 0xA5)?4:0;
+        int pos2 = MEM_SEC_ZONE + ((t_memcheck_hdr *)ptr)->length + pos;
+        unsigned char value = ((unsigned char *)ptr)[pos2];
+        // console_printf("check %d %x\n ", pos2, value);
+        if (value != 0xA5)
+            failed |= 4;
     }  
     if((((t_memcheck_hdr *)ptr)->id != 0xFFFFFFFF) && (((t_memcheck_hdr *)ptr)->id != entry))
     {
@@ -76,7 +81,7 @@ void memcheck_add(unsigned int ptr, const char *file, unsigned int line)
 {
     int tries = MEMCHECK_ENTRIES;
     
-    unsigned int state = f_cli();
+    unsigned int state = cli();
     while(memcheck_mallocbuf[memcheck_bufpos].ptr != 0)
     {
         memcheck_bufpos++;
@@ -95,7 +100,7 @@ void memcheck_add(unsigned int ptr, const char *file, unsigned int line)
     
     ((t_memcheck_hdr *)ptr)->id = memcheck_bufpos;
     
-    f_sei(state);
+    sei(state);
 }
 
 void memcheck_remove(unsigned int ptr, unsigned int failed)
@@ -118,16 +123,18 @@ void memcheck_remove(unsigned int ptr, unsigned int failed)
         memcheck_mallocbuf[buf_pos].failed = 0;
         memcheck_mallocbuf[buf_pos].file = 0;
         
-        unsigned int state = f_cli();
+        unsigned int state = cli();
         memcheck_mallocbuf[buf_pos].ptr = 0;
         memcheck_bufpos = buf_pos;
-        f_sei(state);
+        sei(state);
     }
 }
 
 void *memcheck_malloc( unsigned int len, const char *file, unsigned int line, int mode)
 {
     unsigned int ptr;
+    
+    // console_printf("alloc %d %s:%d\n ", len, file, line);
 
     if(mode)
     {
@@ -156,14 +163,41 @@ void memcheck_free( void * buf, int mode)
 {
     unsigned int ptr = ((unsigned int)buf - MEM_SEC_ZONE);
     unsigned int failed = 0;
+    unsigned int failed_pos = 0;
     
     for(int pos = sizeof(t_memcheck_hdr); pos < MEM_SEC_ZONE; pos++)
     {
-        failed |= (((unsigned char *)ptr)[pos] != 0xA5)?2:0;
+        unsigned char value = ((unsigned char *)ptr)[pos];
+        // console_printf("free check %d %x\n ", pos, value);
+        if (value != 0xA5)
+        {
+            failed |= 2;
+            failed_pos = pos;
+        }
     }
     for(int pos = 0; pos < MEM_SEC_ZONE; pos++)
     {
-        failed |= (((unsigned char *)ptr)[MEM_SEC_ZONE + ((t_memcheck_hdr *)ptr)->length + pos] != 0xA5)?4:0;
+        int pos2 = MEM_SEC_ZONE + ((t_memcheck_hdr *)ptr)->length + pos;
+        unsigned char value = ((unsigned char *)ptr)[pos2];
+        // console_printf("free check %d %x\n ", pos2, value);
+        if (value != 0xA5)
+        {
+            failed |= 4;
+            failed_pos = pos2;
+        }
+    }
+    
+    if (failed)
+    {
+        int id = ((t_memcheck_hdr *)ptr)->id;
+        char* file = memcheck_mallocbuf[id].file;
+        int line = memcheck_mallocbuf[id].line;
+        console_printf(
+            "Failed: %s:%d\n"
+            "Error:  %d\n"
+            "Index:  %d\n", 
+            file, line, failed, failed_pos - MEM_SEC_ZONE
+        );
     }
     
     memcheck_remove(ptr, failed);
@@ -178,6 +212,7 @@ void memcheck_free( void * buf, int mode)
     }    
 }
 
+#if 0
 void *memcheck_realloc( void * buf, unsigned int newlen, const char *file, unsigned int line)
 {
     unsigned char *ptr = memcheck_malloc(newlen, file, line, 1);
@@ -188,6 +223,7 @@ void *memcheck_realloc( void * buf, unsigned int newlen, const char *file, unsig
     
     return ptr;
 }
+#endif
 
 void memcheck_main()
 {
@@ -199,13 +235,16 @@ void memcheck_main()
         unsigned int id = memcheck_get_failed(&file, &line);
         if(id)
         {
-            NotifyBox(1000, "Failed: %s", file);
-            msleep(1000);
-            NotifyBox(1000, "Line:   %d", line);
-            msleep(1000);
-            NotifyBox(1000, "Error:  %d", id);
+            console_show();
+            console_printf(
+                "Failed: %s:%d\n"
+                "Error:  %d\n", 
+                file, line, id
+            );
         }
-        msleep(1000);
+        msleep(200);
     }   
 }
- 
+
+TASK_CREATE( "memcheck_task", memcheck_main, 0, 0x1e, 0x2000 );
+

@@ -667,7 +667,13 @@ static void bsod()
 static void run_test()
 {
 #ifdef CONFIG_MEMCHECK
-    memcheck_main();
+    console_show();
+    console_printf("should raise error at index=10...\n");
+    char* foo = AllocateMemory(10);
+    foo[9] = 0;
+    foo[10] = 0;
+    FreeMemory(foo);
+    msleep(1000);
 #endif
 #ifdef CONFIG_TCC
     void tcc_plugin_load_all();

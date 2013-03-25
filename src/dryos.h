@@ -416,24 +416,7 @@ extern void free( void * buf );
 void * shoot_malloc( size_t len );
 void shoot_free( void * buf );
 
-#ifdef CONFIG_USE_MALLOC_FOR_SMALL_THINGS
-#define SmallAlloc malloc
-#define SmallFree free
-#else
-#define SmallAlloc AllocateMemory
-#define SmallFree FreeMemory
-#endif
-
-#ifdef CONFIG_USE_MALLOC_FOR_BMP
-#define BmpAlloc malloc
-#define BmpFree free
-#else
-#define BmpAlloc AllocateMemory
-#define BmpFree FreeMemory
-#endif
-
-
-extern void * realloc( void * buf, size_t newlen );
+//extern void * realloc( void * buf, size_t newlen );
 
 /** Set if the firmware was loaded via AUTOEXEC.BIN */
 extern int autoboot_loaded;
@@ -623,6 +606,26 @@ void set_afma(int value, int mode);
 #define AFMA_MODE_PER_LENS_TELE 0x202
 
 
+#ifdef CONFIG_MEMCHECK
+#include "memcheck.h"
+#endif
+
+#ifdef CONFIG_USE_MALLOC_FOR_SMALL_THINGS
+#define SmallAlloc malloc
+#define SmallFree free
+#else
+#define SmallAlloc AllocateMemory
+#define SmallFree FreeMemory
+#endif
+
+#ifdef CONFIG_USE_MALLOC_FOR_BMP
+#define BmpAlloc malloc
+#define BmpFree free
+#else
+#define BmpAlloc AllocateMemory
+#define BmpFree FreeMemory
+#endif
+
 
 
 /*********************************************************************
@@ -666,17 +669,6 @@ struct Controller
     int                             jobqueue_ptr;           //~ off_0x10    Pointer to JobQueue.
 };
 #endif
-
-
-
-
-
-
-
-
-
-
-
 
 
 
