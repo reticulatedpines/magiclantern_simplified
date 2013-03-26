@@ -645,7 +645,7 @@ clean:
 	rm -f $(MODULE_OBJS) $(MODULE_NAME)
 
 $(MODULE_NAME): $(MODULE_OBJS)
-	$(call build,LD_REAL,$(LD_REAL) -r -o $@ $^)
+	$(call build,MODULE,$(LD_REAL) -r -o $@ $^)
 endif
 
 
