@@ -28,11 +28,11 @@ MODULE_STRINGS_START()
     MODULE_STRING("License", "GPL")
 MODULE_STRINGS_END()
 
-MODULE_INFO_START(testplug)
+MODULE_INFO_START()
     MODULE_INIT(testplug_init)
     MODULE_DEINIT(testplug_deinit)
 MODULE_INFO_END()
 
-MODULE_PARAMS_START(testplug)
+MODULE_PARAMS_START()
     MODULE_PARAM(test_parameter, "uint32_t", "Some test parameter")
 MODULE_PARAMS_END()

@@ -638,13 +638,14 @@ else
 
 # should we define a platform for modules? for now use 'all' platform
 PLATFORM_INC=$(TOP_DIR)/platform/all
-CFLAGS += -DMODULE
+CFLAGS += -DMODULE -DMODULE_NAME=$(MODULE_NAME)
 
-all: $(MODULE_NAME)
+all: $(MODULE_NAME).mo
 clean:
-	rm -f $(MODULE_OBJS) $(MODULE_NAME)
+	$(call build,CLEAN,$(RM) -f $(MODULE_OBJS) $(MODULE_NAME).mo)
+	
 
-$(MODULE_NAME): $(MODULE_OBJS)
+$(MODULE_NAME).mo: $(MODULE_OBJS)
 	$(call build,MODULE,$(LD_REAL) -r -o $@ $^)
 endif
 
