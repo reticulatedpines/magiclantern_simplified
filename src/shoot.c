@@ -4496,6 +4496,11 @@ static int expo_lock_adjust_iso(int delta)
     int old_iso = lens_info.raw_iso;
     int delta_r = ((delta + 4 * SGN(delta)) / 8) * 8;
     int new_iso = old_iso - delta_r;
+
+    int max_auto_iso = auto_iso_range & 0xFF;
+    if (new_iso > max_auto_iso && old_iso < max_auto_iso)
+        new_iso = max_auto_iso;
+    
     lens_set_rawiso(new_iso);
     msleep(100);
     return delta - old_iso + lens_info.raw_iso;
@@ -4513,6 +4518,8 @@ static void expo_lock_step()
     if (!lens_info.raw_iso) return;
     if (ISO_ADJUSTMENT_ACTIVE) return;
     if (HDR_ENABLED) return;
+    
+    int max_auto_iso = auto_iso_range & 0xFF;
     
     if (expo_lock_value == 12345)
         expo_lock_value = expo_lock_get_current_value();
@@ -4572,7 +4579,7 @@ static void expo_lock_step()
     {
         int current_value = expo_lock_get_current_value();
         int delta = expo_lock_value - current_value;
-        if (expo_lock_tv == 1)
+        if (expo_lock_tv == 1 || (lens_info.raw_iso > max_auto_iso - 8 && delta < 0))
         {
             delta = expo_lock_adjust_av(delta);
             if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
@@ -4588,7 +4595,7 @@ static void expo_lock_step()
     {
         int current_value = expo_lock_get_current_value();
         int delta = expo_lock_value - current_value;
-        if (expo_lock_av == 1)
+        if (expo_lock_av == 1 || (lens_info.raw_iso > max_auto_iso - 8 && delta < 0))
         {
             delta = expo_lock_adjust_tv(delta);
             if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
