@@ -33,13 +33,6 @@ build = \
 	fi; \
 	$2
 
-# PyMite scripting paths
-PYMITE_PATH		= $(HOME)/build/pymite-08
-PYMITE_LIB		= $(PYMITE_PATH)/src/vm/libpmvm_dryos.a
-PYMITE_CFLAGS		= \
-	-I$(PYMITE_PATH)/src/vm \
-	-I$(PYMITE_PATH)/src/platform/dryos
-
 
 FLAGS=\
 	-Wp,-MMD,$(patsubst %.o,%.d,$(dir $@)$(notdir $@)) \
@@ -54,6 +47,12 @@ FLAGS=\
 	-DVERSION=\"$(VERSION)\" \
 	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG)
 
+#
+# ToDo: remove 
+#	-Wno-implicit-function-declaration
+#
+# Reason: these warnings make sense! potential crash situations.
+#
 CFLAGS=\
 	$(FLAGS) \
 	-Os \
@@ -78,7 +77,6 @@ CFLAGS=\
 
 NOT_USED_FLAGS=\
 	-march=armv5te \
-	-mthumb-interwork \
 	-msoft-float
 
 AFLAGS=\
@@ -143,6 +141,20 @@ ifeq ($(CONFIG_CONSOLE),y)
 CFLAGS += -DCONFIG_CONSOLE
 endif
 
+ifeq ($(CONFIG_MODULES),y)
+ifneq ($(CONFIG_TCC),y)
+$(error CONFIG_MODULES requires CONFIG_TCC = y, please enable it)
+endif
+CFLAGS += -DCONFIG_MODULES
+endif
+
+# PyMite scripting paths
+PYMITE_PATH		= $(HOME)/build/pymite-08
+PYMITE_LIB		= $(PYMITE_PATH)/src/vm/libpmvm_dryos.a
+PYMITE_CFLAGS	= \
+	-I$(PYMITE_PATH)/src/vm \
+	-I$(PYMITE_PATH)/src/platform/dryos
+
 
 #
 # global disabler for extra objects
@@ -201,6 +213,9 @@ ML_OBJS-$(CONFIG_TCC) += \
 	chdk-gui_script.o \
 	script_lib.o \
 	$(TOP_DIR)/tcc/libtcc.a
+
+ML_OBJS-$(CONFIG_MODULES) += \
+	module.o
 
 endif
 
@@ -643,7 +658,6 @@ CFLAGS += -DMODULE -DMODULE_NAME=$(MODULE_NAME)
 all: $(MODULE_NAME).mo
 clean:
 	$(call build,CLEAN,$(RM) -f $(MODULE_OBJS) $(MODULE_NAME).mo)
-	
 
 $(MODULE_NAME).mo: $(MODULE_OBJS)
 	$(call build,MODULE,$(LD_REAL) -r -o $@ $^)
