@@ -575,6 +575,27 @@ static void strcat_printf(char *buf, int buf_size, const char *fmt, ...)
     va_end(ap);
 }
 
+static void error_sprint_line(char* buf, int size, BufferedFile * f)
+{
+    char* linepos = f->buf_ptr;
+    while (linepos > (char*)(f->buffer) && *(linepos-1) != '\n')
+        linepos--;
+
+    strcat_printf(buf, size, "\n");
+    
+    char* pos = linepos;
+    while (pos < (char*)(f->buf_end) && *pos != '\n')
+        strcat_printf(buf, size, "%c", *pos++);
+
+    strcat_printf(buf, size, "\n");
+
+    pos = linepos;
+    while (pos < (char*)(f->buf_ptr) - 1)
+        strcat_printf(buf, size, *pos++ == '\t' ? "\t" : " ");
+    
+    strcat_printf(buf, size, "^\n");
+}
+
 static void error1(TCCState *s1, int is_warning, const char *fmt, va_list ap)
 {
     char buf[2048];
@@ -588,6 +609,7 @@ static void error1(TCCState *s1, int is_warning, const char *fmt, va_list ap)
             strcat_printf(buf, sizeof(buf), "In file included from %s:%d:\n",
                 (*pf)->filename, (*pf)->line_num);
         if (f->line_num > 0) {
+            error_sprint_line(buf, sizeof(buf), f);
             strcat_printf(buf, sizeof(buf), "%s:%d: ",
                 f->filename, f->line_num);
         } else {
