@@ -666,6 +666,7 @@ static void bsod()
 
 static void run_test()
 {
+/*
 #ifdef CONFIG_MEMCHECK
     console_show();
     console_printf("should raise error at index=10...\n");
@@ -675,16 +676,33 @@ static void run_test()
     FreeMemory(foo);
     msleep(1000);
 #endif
-#ifdef CONFIG_TCC
-    void tcc_module_load_all();
-    msleep(1000);
-    
+*/
+#ifdef CONFIG_MODULES
     console_show();
-    tcc_module_load_all();
-    
-    printf("\nNow loading full TCC module...\n");
-    uint32_t ret = tcc_execute_elf(CARD_DRIVE"ML/PLUGINS/libtcc.mo", "tcc_new");
-    printf("tcc_new() returned: 0x%08X\n", ret);
+    printf("Loading modules...\n");
+    msleep(1000);
+    module_load_all();
+    return;
+    printf("\nTesting full TCC module...\n");
+    for(int try = 0; try < 100; try++)
+    {
+        void *module = NULL;
+        uint32_t ret = 0;
+        
+        module = module_load(CARD_DRIVE"ML/PLUGINS/libtcc.mo");
+        if(module)
+        {
+            ret = module_exec(module, "tcc_new", 0);
+            printf("tcc_new() returned: 0x%08X\n", ret);
+            module_exec(module, "tcc_delete", 1, ret);
+            module_unload(module);
+        }
+        else
+        {
+            printf(" [E] load failed\n");
+        }
+        
+    }
     printf("Done!\n");
 #endif
 }

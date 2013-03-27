@@ -1,12 +1,19 @@
 #ifndef _module_h_
 #define _module_h_
 
+
+#define MAGIC_SYMBOLS           CARD_DRIVE"magic.sym"
+
 #define MODULE_INFO_PREFIX      __module_info_
 #define MODULE_STRINGS_PREFIX   __module_strings_
 #define MODULE_PARAMS_PREFIX    __module_params_
 #define MODULE_MAGIC 0x5A
 #define STR(x)  STR_(x)
 #define STR_(x) #x
+
+#define MODULE_COUNT_MAX         15
+#define MODULE_NAME_LENGTH       8
+#define MODULE_FILENAME_LENGTH   32
 
 /* update major if older modules will *not* be compatible */
 #define MODULE_MAJOR 0
@@ -59,6 +66,18 @@ typedef struct
 } module_strpair_t;
 
 
+/* index of all loaded modules */
+typedef struct
+{
+    char name[MODULE_NAME_LENGTH+1];
+    char filename[MODULE_FILENAME_LENGTH+1];
+    module_info_t *info;
+    module_info_t *strings;
+    module_info_t *params;
+    uint32_t valid;
+} module_entry_t;
+
+
 #define MODULE_INFO_START()                     MODULE_INFO_START_(MODULE_INFO_PREFIX,MODULE_NAME)
 #define MODULE_INFO_START_(prefix,modname)      MODULE_INFO_START__(prefix,modname)
 #define MODULE_INFO_START__(prefix,modname)     module_info_t prefix##modname = \
@@ -74,19 +93,34 @@ typedef struct
 #define MODULE_CB_PRE_SHOOT(func)                   .cb_pre_shoot = &func,
 #define MODULE_CB_POST_SHOOT(func)                  .cb_post_shoot = &func,
 #define MODULE_INFO_END()                       };
-                                                
+
 #define MODULE_STRINGS_START()                  MODULE_STRINGS_START_(MODULE_STRINGS_PREFIX,MODULE_NAME)
 #define MODULE_STRINGS_START_(prefix,modname)   MODULE_STRINGS_START__(prefix,modname)
 #define MODULE_STRINGS_START__(prefix,modname)  module_strpair_t prefix##modname[] = {
 #define MODULE_STRING(field,value)                  { field, value },
 #define MODULE_STRINGS_END()                        { (const char *)0, (const char *)0 }\
                                                 };
-                                                
+
 #define MODULE_PARAMS_START()                   MODULE_PARAMS_START_(MODULE_PARAMS_PREFIX,MODULE_NAME)
 #define MODULE_PARAMS_START_(prefix,modname)    MODULE_PARAMS_START__(prefix,modname)
 #define MODULE_PARAMS_START__(prefix,modname)   module_parmtinfo_t prefix##modname[] = {
 #define MODULE_PARAM(var,type,desc)                 { &var, #var, type, desc },
 #define MODULE_PARAMS_END()                         { (void *)0, (const char *)0, (const char *)0, (const char *)0 }\
                                                 };
+
+
+
+
+
+/* load all available modules. will be used on magic lantern boot */
+void module_load_all(void);
+void module_unload_all(void);
+
+/* explicitely load a standalone module. this is comparable to an executable */
+void *module_load(char *filename);
+int module_exec(void *module, char *symbol, uint32_t count, ...);
+int module_unload(void *module);
+
+
 
 #endif
