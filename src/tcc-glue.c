@@ -8,10 +8,11 @@
 
 #include "dryos.h"
 #include "libtcc.h"
+#include "module.h"
 
-#define MAX_PLUGIN_NUM 15
+#define MAX_MODULE_NUM 15
 #define FILENAME_SIZE 15
-static char plugin_list[MAX_PLUGIN_NUM][FILENAME_SIZE];
+static char module_list[MAX_MODULE_NUM][FILENAME_SIZE];
 
 int tcc_load_symbols(TCCState *s, char *filename)
 {
@@ -85,7 +86,7 @@ int tcc_load_symbols(TCCState *s, char *filename)
     void longjmp();
     void setjmp();
     
-    /* ToDo: parse the old plugin sections as all needed OS stubs are already described there */
+    /* ToDo: parse the old module sections as all needed OS stubs are already described there */
     tcc_add_symbol(s, "msleep", &msleep);
     tcc_add_symbol(s, "longjmp", &longjmp);
     tcc_add_symbol(s, "strcpy", &strcpy);
@@ -102,7 +103,7 @@ int tcc_load_symbols(TCCState *s, char *filename)
 }
 
 /* this is not perfect, as .Mo and .mO aren't detected. important? */
-static int is_valid_plugin_filename(char* filename)
+static int is_valid_module_filename(char* filename)
 {
     int n = strlen(filename);
     if ((n > 3) && (streq(filename + n - 3, ".MO") || streq(filename + n - 3, ".mo")) && (filename[0] != '.') && (filename[0] != '_'))
@@ -110,20 +111,20 @@ static int is_valid_plugin_filename(char* filename)
     return 0;
 }
 
-void tcc_plugin_load_all(void)
+void tcc_module_load_all(void)
 {
     TCCState *state = NULL;
-    uint32_t plugin_cnt = 0;
+    uint32_t module_cnt = 0;
     struct fio_file file;
-    char *plugin_dir = CARD_DRIVE "ML/PLUGINS/";
+    char *module_dir = CARD_DRIVE "ML/MODULES/";
     
     /* initialize linker */
     state = tcc_new();
     tcc_set_options(state, "-nostdlib");
     tcc_load_symbols(state, CARD_DRIVE"magic.sym");
     
-    printf("Scanning plugins...\n");
-    struct fio_dirent * dirent = FIO_FindFirstEx( plugin_dir, &file );
+    printf("Scanning modules...\n");
+    struct fio_dirent * dirent = FIO_FindFirstEx( module_dir, &file );
     if( IS_ERROR(dirent) )
     {
         NotifyBox(2000, "Plugin dir missing" );
@@ -134,14 +135,14 @@ void tcc_plugin_load_all(void)
     do
     {
         if (file.mode & ATTR_DIRECTORY) continue; // is a directory
-        if (is_valid_plugin_filename(file.name))
+        if (is_valid_module_filename(file.name))
         {
-            snprintf(plugin_list[plugin_cnt++], FILENAME_SIZE, "%s", file.name);
+            snprintf(module_list[module_cnt++], FILENAME_SIZE, "%s", file.name);
 
             printf("  [i] found: %s\n", file.name);
-            if (plugin_cnt >= MAX_PLUGIN_NUM)
+            if (module_cnt >= MAX_MODULE_NUM)
             {
-                NotifyBox(2000, "Too many plugins" );
+                NotifyBox(2000, "Too many modules" );
                 break;
             }
         }
@@ -149,27 +150,27 @@ void tcc_plugin_load_all(void)
     FIO_CleanupAfterFindNext_maybe(dirent);
     
     
-    printf("Load plugins...\n");
-    /* load plugins */
-    for (uint32_t i = 0; i < plugin_cnt; i++)
+    printf("Load modules...\n");
+    /* load modules */
+    for (uint32_t i = 0; i < module_cnt; i++)
     {
         char filename[64];
         
-        printf("  [i] load: %s\n", plugin_list[i]);
-        snprintf(filename, sizeof(filename), "%s%s", plugin_dir, plugin_list[i]);
-        uint32_t ret = tcc_add_file(state, filename);
+        printf("  [i] load: %s\n", module_list[i]);
+        snprintf(filename, sizeof(filename), "%s%s", module_dir, module_list[i]);
+        int32_t ret = tcc_add_file(state, filename);
         
         /* seems bad, disable it */
         if(ret < 0)
         {
             printf("  [E] load failed: %s ret %x\n", filename, ret);
-            //NotifyBox(2000, "Plugin file '%s' seems to be invalid", plugin_list[i] );
-            strcpy(plugin_list[i], "");
+            //NotifyBox(2000, "Plugin file '%s' seems to be invalid", module_list[i] );
+            strcpy(module_list[i], "");
         }
     }
     
     printf("Link in memory..\n");
-    uint32_t ret = tcc_relocate(state, TCC_RELOCATE_AUTO);
+    int32_t ret = tcc_relocate(state, TCC_RELOCATE_AUTO);
     if(ret < 0)
     {
         printf("  [E] failed to link modules\n");
@@ -178,52 +179,69 @@ void tcc_plugin_load_all(void)
         return;
     }
     
-    printf("Init plugins...\n");
-    /* init plugins */
-    for (int i = 0; i < plugin_cnt; i++)
+    printf("Init modules...\n");
+    /* init modules */
+    for (uint32_t i = 0; i < module_cnt; i++)
     {
-        if(strlen(plugin_list[i]) > 0)
+        if(strlen(module_list[i]) > 0)
         {
-            char init_func[32];
+            char module_name[32];
+            char module_info_name[32];
+            module_info_t *module_info_symbol = NULL;
             char *str = NULL;
             uint32_t pos = 0;
-            void *start_symbol = NULL;
             
             /* get filename, remove extension and append _init to get the init symbol */
-            memset(init_func, 0x00, sizeof(init_func));
-            strncpy(init_func, plugin_list[i], 8);
+            memset(module_name, 0x00, sizeof(module_info_name));
+            strncpy(module_name, module_list[i], 8);
             
-            while(init_func[pos])
+            while(module_name[pos])
             {
                 /* extension starting? terminate string */
-                if(init_func[pos] == '.')
+                if(module_name[pos] == '.')
                 {
-                    init_func[pos] = '\000';
+                    module_name[pos] = '\000';
                     break;
                 }
-                else if(init_func[pos] >= 'A' && init_func[pos] <= 'Z')
+                else if(module_name[pos] >= 'A' && module_name[pos] <= 'Z')
                 {
                     /* make lowercase */
-                    init_func[pos] |= 0x20;
+                    module_name[pos] |= 0x20;
                 }
                 pos++;
             }
-            strcpy(&init_func[strlen(init_func)], "_init"); 
+            snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_INFO_PREFIX), module_name);
             
-            start_symbol = tcc_get_symbol(state, init_func);
+            module_info_symbol = tcc_get_symbol(state, module_info_name);
             
-            if((uint32_t)start_symbol & 0x40000000)
+            /* check if the module symbol is defined */
+            if((uint32_t)module_info_symbol > 0x1000)
             {
-                uint32_t (*exec)() = start_symbol;
-                
-                printf("  [i] %s: 0x%08X\n", init_func, start_symbol);
-                printf("-----------------------------\n");
-                exec();
-                printf("-----------------------------\n");
+                if(module_info_symbol->api_magic == MODULE_MAGIC)
+                {
+                    if(module_info_symbol->api_major == MODULE_MAJOR && module_info_symbol->api_minor <= MODULE_MINOR)
+                    {
+                        printf("  [i] %s: 0x%08X\n", module_info_name, module_info_symbol);
+                        printf("-----------------------------\n");
+                        if(module_info_symbol->init)
+                        {
+                            module_info_symbol->init();
+                        }
+                        printf("-----------------------------\n");
+                    }
+                    else
+                    {
+                        printf("  %s: invalid version (%i.%i, expected %i.%i)\n", module_info_name, module_info_symbol->api_major, module_info_symbol->api_minor, MODULE_MAJOR, MODULE_MINOR);
+                    }
+                }
+                else
+                {
+                    printf("  %s: invalid MAGIC (0x%X)\n", module_info_name, module_info_symbol->api_magic);
+                }
             }
             else
             {
-                printf("  %s: not found\n", init_func);
+                printf("  %s: no info found (0x%X)\n", module_info_name, (uint32_t)module_info_symbol);
             }
         }
     }
