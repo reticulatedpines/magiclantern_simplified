@@ -188,7 +188,6 @@ void tcc_module_load_all(void)
             char module_name[32];
             char module_info_name[32];
             module_info_t *module_info_symbol = NULL;
-            char *str = NULL;
             uint32_t pos = 0;
             
             /* get filename, remove extension and append _init to get the init symbol */
@@ -210,18 +209,21 @@ void tcc_module_load_all(void)
                 }
                 pos++;
             }
+            printf("  [i] Init: '%s'\n", module_name);
+            
             snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_INFO_PREFIX), module_name);
             
+            /* now check for info structure */
             module_info_symbol = tcc_get_symbol(state, module_info_name);
             
-            /* check if the module symbol is defined */
+            /* check if the module symbol is defined. simple check for valid memory address just in case. */
             if((uint32_t)module_info_symbol > 0x1000)
             {
                 if(module_info_symbol->api_magic == MODULE_MAGIC)
                 {
                     if(module_info_symbol->api_major == MODULE_MAJOR && module_info_symbol->api_minor <= MODULE_MINOR)
                     {
-                        printf("  [i] %s: 0x%08X\n", module_info_name, module_info_symbol);
+                        printf("  [i] info at: 0x%08X\n", (uint32_t)module_info_symbol);
                         printf("-----------------------------\n");
                         if(module_info_symbol->init)
                         {
@@ -231,17 +233,17 @@ void tcc_module_load_all(void)
                     }
                     else
                     {
-                        printf("  %s: invalid version (%i.%i, expected %i.%i)\n", module_info_name, module_info_symbol->api_major, module_info_symbol->api_minor, MODULE_MAJOR, MODULE_MINOR);
+                        printf("  [E] invalid version (v%d.%d, expected v%d.%d)\n", module_info_symbol->api_major, module_info_symbol->api_minor, MODULE_MAJOR, MODULE_MINOR);
                     }
                 }
                 else
                 {
-                    printf("  %s: invalid MAGIC (0x%X)\n", module_info_name, module_info_symbol->api_magic);
+                    printf("  [E] invalid MAGIC (0x%X)\n", module_info_symbol->api_magic);
                 }
             }
             else
             {
-                printf("  %s: no info found (0x%X)\n", module_info_name, (uint32_t)module_info_symbol);
+                printf("  [E] no info found (0x%X)\n", (uint32_t)module_info_symbol);
             }
         }
     }
