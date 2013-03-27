@@ -676,11 +676,11 @@ static void run_test()
     msleep(1000);
 #endif
 #ifdef CONFIG_TCC
-    void tcc_plugin_load_all();
+    void tcc_module_load_all();
     msleep(1000);
     
     console_show();
-    tcc_plugin_load_all();
+    tcc_module_load_all();
     
     printf("\nNow loading full TCC module...\n");
     uint32_t ret = tcc_execute_elf(CARD_DRIVE"ML/PLUGINS/libtcc.mo", "tcc_new");
