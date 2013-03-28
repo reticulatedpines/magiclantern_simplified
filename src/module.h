@@ -13,14 +13,15 @@
 
 #define MODULE_COUNT_MAX         15
 #define MODULE_NAME_LENGTH       8
-#define MODULE_FILENAME_LENGTH   32
+#define MODULE_FILENAME_LENGTH   64
+#define MODULE_STATUS_LENGTH     64
 
 /* update major if older modules will *not* be compatible */
-#define MODULE_MAJOR 0
+#define MODULE_MAJOR 1
 /* update minor if older modules will be compatible, but newer module will not run on older magic lantern versions */
-#define MODULE_MINOR 1
+#define MODULE_MINOR 0
 /* update patch if nothing regarding to compatibility changes */
-#define MODULE_PATCH 1
+#define MODULE_PATCH 0
 
 /* module description that every module should deliver - optional.
    if not supplied, only the symbols are visible to other plugins.
@@ -36,6 +37,7 @@ typedef struct
 
     /* the plugin's name and init/deinit functions */
     const char *name;
+    const char *long_name;
     unsigned int (*init) ();
     unsigned int (*deinit) ();
 
@@ -56,7 +58,7 @@ typedef struct
     const char *name;
     /* description for the user */
     const char *desc;
-} module_parmtinfo_t;
+} module_parminfo_t;
 
 /* this struct supplies additional information like license, author etc - optional */
 typedef struct
@@ -71,9 +73,12 @@ typedef struct
 {
     char name[MODULE_NAME_LENGTH+1];
     char filename[MODULE_FILENAME_LENGTH+1];
+    char long_filename[MODULE_FILENAME_LENGTH+1];
+    char status[MODULE_STATUS_LENGTH+1];
+    char long_status[MODULE_STATUS_LENGTH+1];
     module_info_t *info;
-    module_info_t *strings;
-    module_info_t *params;
+    module_strpair_t *strings;
+    module_parminfo_t *params;
     int valid;
 } module_entry_t;
 
@@ -89,6 +94,7 @@ typedef struct
                                                     .name = #modname,
 #define MODULE_INIT(func)                           .init = &func,
 #define MODULE_DEINIT(func)                         .deinit = &func,
+#define MODULE_LONGNAME(name)                       .long_name = name,
 #define MODULE_CB_SHOOT_TASK(func)                  .cb_shoot_task = &func,
 #define MODULE_CB_PRE_SHOOT(func)                   .cb_pre_shoot = &func,
 #define MODULE_CB_POST_SHOOT(func)                  .cb_post_shoot = &func,
@@ -103,8 +109,8 @@ typedef struct
 
 #define MODULE_PARAMS_START()                   MODULE_PARAMS_START_(MODULE_PARAMS_PREFIX,MODULE_NAME)
 #define MODULE_PARAMS_START_(prefix,modname)    MODULE_PARAMS_START__(prefix,modname)
-#define MODULE_PARAMS_START__(prefix,modname)   module_parmtinfo_t prefix##modname[] = {
-#define MODULE_PARAM(var,type,desc)                 { &var, #var, type, desc },
+#define MODULE_PARAMS_START__(prefix,modname)   module_parminfo_t prefix##modname[] = {
+#define MODULE_PARAM(var,typestr,descr)             { .parameter = &var, .name = #var, .type = typestr, .desc = descr },
 #define MODULE_PARAMS_END()                         { (void *)0, (const char *)0, (const char *)0, (const char *)0 }\
                                                 };
 

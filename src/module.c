@@ -1,11 +1,18 @@
 
 #include "dryos.h"
+#include "menu.h"
 #include "console.h"
 #include "libtcc.h"
 #include "module.h"
+#include "config.h"
 
 static module_entry_t module_list[MODULE_COUNT_MAX];
 static TCCState *module_state = NULL;
+
+static struct menu_entry module_submenu[];
+static struct menu_entry module_menu[];
+
+CONFIG_INT("module.autoload", module_autoload_enabled, 0);
 
 static int module_load_symbols(TCCState *s, char *filename)
 {
@@ -113,7 +120,7 @@ void module_load_all(void)
     /* ensure all modules are unloaded */
     console_printf("Unloading modules...\n");
     module_unload_all();
-    
+
     /* initialize linker */
     state = tcc_new();
     tcc_set_options(state, "-nostdlib");
@@ -141,7 +148,7 @@ void module_load_all(void)
             char module_name[MODULE_FILENAME_LENGTH];
 
             /* get filename, remove extension and append _init to get the init symbol */
-            
+
             /* ensure the buffer is null terminated */
             memset(module_name, 0x00, sizeof(module_name));
             strncpy(module_name, file.name, MODULE_NAME_LENGTH);
@@ -163,7 +170,9 @@ void module_load_all(void)
                 }
                 pos++;
             }
-            strncpy(module_list[module_cnt].name, module_name, MODULE_NAME_LENGTH);
+            strncpy(module_list[module_cnt].name, module_name, sizeof(module_list[module_cnt].name));
+            snprintf(module_list[module_cnt].status, sizeof(module_list[module_cnt].status), "???");
+            snprintf(module_list[module_cnt].long_status, sizeof(module_list[module_cnt].long_status), "Seems linking failed. Unknown symbols?");
 
             console_printf("  [i] found: %s\n", file.name);
             module_cnt++;
@@ -180,18 +189,17 @@ void module_load_all(void)
     console_printf("Load modules...\n");
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
-        char filename[64];
-
         console_printf("  [i] load: %s\n", module_list[mod].filename);
-        snprintf(filename, sizeof(filename), "%s%s", MODULE_PATH, module_list[mod].filename);
-        int32_t ret = tcc_add_file(state, filename);
+        snprintf(module_list[mod].long_filename, sizeof(module_list[mod].long_filename), "%s%s", MODULE_PATH, module_list[mod].filename);
+        int32_t ret = tcc_add_file(state, module_list[mod].long_filename);
 
         /* seems bad, disable it */
         if(ret < 0)
         {
-            console_printf("  [E] load failed: %s ret %x\n", filename, ret);
-            //NotifyBox(2000, "Plugin file '%s' seems to be invalid", module_list[mod] );
-            strcpy(module_list[mod].filename, "");
+            module_list[mod].valid = 0;
+            snprintf(module_list[mod].status, sizeof(module_list[mod].status), "FileErr");
+            snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Load failed: %s, ret 0x%02X");
+            console_printf("  [E] %s\n", module_list[mod].long_status);
         }
     }
 
@@ -200,7 +208,6 @@ void module_load_all(void)
     if(ret < 0)
     {
         console_printf("  [E] failed to link modules\n");
-        //NotifyBox(2000, "Failed to link" );
         tcc_delete(state);
         return;
     }
@@ -209,11 +216,10 @@ void module_load_all(void)
     /* init modules */
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
-        if(strlen(module_list[mod].name) > 0)
+        if(!module_list[mod].valid)
         {
             char module_info_name[32];
             console_printf("  [i] Init: '%s'\n", module_list[mod].name);
-
 
             /* now check for info structure */
             snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_INFO_PREFIX), module_list[mod].name);
@@ -228,10 +234,10 @@ void module_load_all(void)
             {
                 if(module_list[mod].info->api_magic == MODULE_MAGIC)
                 {
-                    if(module_list[mod].info->api_major == MODULE_MAJOR && module_list[mod].info->api_minor <= MODULE_MINOR)
+                    if((module_list[mod].info->api_major == MODULE_MAJOR) && (module_list[mod].info->api_minor <= MODULE_MINOR))
                     {
                         module_list[mod].valid = 1;
-                        
+
                         console_printf("  [i] info    at: 0x%08X\n", (uint32_t)module_list[mod].info);
                         console_printf("  [i] strings at: 0x%08X\n", (uint32_t)module_list[mod].strings);
                         console_printf("  [i] params  at: 0x%08X\n", (uint32_t)module_list[mod].params);
@@ -241,20 +247,28 @@ void module_load_all(void)
                             module_list[mod].info->init();
                         }
                         console_printf("-----------------------------\n");
+                        snprintf(module_list[mod].status, sizeof(module_list[mod].status), "OK");
+                        snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Module loaded successfully");
                     }
                     else
                     {
-                        console_printf("  [E] invalid version (v%d.%d, expected v%d.%d)\n", module_list[mod].info->api_major, module_list[mod].info->api_minor, MODULE_MAJOR, MODULE_MINOR);
+                        snprintf(module_list[mod].status, sizeof(module_list[mod].status), "OldAPI");
+                        snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Wrong version (v%d.%d, expected v%d.%d)\n", module_list[mod].info->api_major, module_list[mod].info->api_minor, MODULE_MAJOR, MODULE_MINOR);
+                        console_printf("  [E] %s\n", module_list[mod].long_status);
                     }
                 }
                 else
                 {
-                    console_printf("  [E] invalid MAGIC (0x%X)\n", module_list[mod].info->api_magic);
+                    snprintf(module_list[mod].status, sizeof(module_list[mod].status), "Magic");
+                    snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Invalid Magic (0x%X)\n", module_list[mod].info->api_magic);
+                    console_printf("  [E] %s\n", module_list[mod].long_status);
                 }
             }
             else
             {
-                console_printf("  [E] no info found (0x%X)\n", (uint32_t)module_list[mod].info);
+                snprintf(module_list[mod].status, sizeof(module_list[mod].status), "noInfo");
+                snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "No info structure found (addr 0x%X)\n", (uint32_t)module_list[mod].info);
+                console_printf("  [E] %s\n", module_list[mod].long_status);
             }
         }
     }
@@ -274,7 +288,7 @@ void module_unload_all(void)
         strcpy(module_list[mod].name, "");
         strcpy(module_list[mod].filename, "");
     }
-    
+
     if(module_state)
     {
         TCCState *state = module_state;
@@ -389,3 +403,318 @@ int module_unload(void *module)
     tcc_delete(state);
     return 0;
 }
+
+
+
+static MENU_UPDATE_FUNC(module_menu_update_autoload)
+{
+    int mod_number = (int) entry->priv;
+
+    MENU_SET_VALUE("ON");
+    MENU_SET_ICON(MNI_ON, 0);
+    MENU_SET_WARNING(MENU_WARN_ADVICE, module_list[mod_number].long_filename);
+}
+
+static MENU_UPDATE_FUNC(module_menu_update_parameter)
+{
+    MENU_SET_VALUE((char*)entry->priv);
+}
+
+
+static MENU_UPDATE_FUNC(module_menu_update_entry)
+{
+    int mod_number = (int) entry->priv;
+
+    if(module_list[mod_number].valid)
+    {
+        if(module_list[mod_number].info->long_name)
+        {
+            MENU_SET_NAME(module_list[mod_number].info->long_name);
+        }
+        else
+        {
+            MENU_SET_NAME(module_list[mod_number].name);
+        }
+        MENU_SET_ICON(MNI_ON, 0);
+        MENU_SET_ENABLED(1);
+        MENU_SET_VALUE(module_list[mod_number].status);
+        MENU_SET_WARNING(MENU_WARN_ADVICE, module_list[mod_number].long_status);
+    }
+    else if(strlen(module_list[mod_number].filename))
+    {
+        MENU_SET_NAME(module_list[mod_number].filename);
+        MENU_SET_ICON(MNI_OFF, 0);
+        MENU_SET_ENABLED(1);
+        MENU_SET_VALUE(module_list[mod_number].status);
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, module_list[mod_number].long_status);
+    }
+    else
+    {
+        MENU_SET_NAME("");
+        MENU_SET_ICON(MNI_NONE, 0);
+        MENU_SET_ENABLED(1);
+        MENU_SET_VALUE("(nonexistent)");
+        MENU_SET_HELP("You should never see this");
+    }
+}
+
+static MENU_SELECT_FUNC(module_menu_select_empty)
+{
+}
+
+
+/* check which modules are loaded and hide others */
+static void module_menu_update()
+{
+    int mod_number = 0;
+    struct menu_entry * entry = module_menu;
+
+    while (entry)
+    {
+        /* only update those which display module information */
+        if(entry->update == module_menu_update_entry)
+        {
+            if(module_list[mod_number].valid)
+            {
+                MENU_SET_SHIDDEN(0);
+            }
+            else if(strlen(module_list[mod_number].filename))
+            {
+                MENU_SET_SHIDDEN(0);
+            }
+            else
+            {
+                MENU_SET_SHIDDEN(1);
+            }
+            mod_number++;
+        }
+        entry = entry->next;
+    }
+}
+
+/* check which modules are loaded and hide others */
+static void module_submenu_update(int mod_number)
+{
+    /* displaying two menus before parameters */
+    int entry = 1;
+
+    /* set autoload menu's priv to module id */
+    module_submenu[0].priv = mod_number;
+
+    /* make sure this module is loaded */
+    if(module_list[mod_number].valid)
+    {
+        module_strpair_t *strings = module_list[mod_number].strings;
+        module_parminfo_t *parms = module_list[mod_number].params;
+
+        if(module_submenu[entry].priv != MENU_EOL_PRIV)
+        {
+            module_submenu[entry].name = "----Information---";
+            module_submenu[entry].priv = 0;
+            module_submenu[entry].update = module_menu_update_parameter;
+            module_submenu[entry].select = module_menu_select_empty;
+            module_submenu[entry].shidden = 0;
+            entry++;
+        }
+        
+        while((strings->name != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
+        {
+            module_submenu[entry].name = strings->name;
+            module_submenu[entry].priv = strings->value;
+            module_submenu[entry].update = module_menu_update_parameter;
+            module_submenu[entry].select = module_menu_select_empty;
+            module_submenu[entry].shidden = 0;
+            strings++;
+            entry++;
+        }
+        
+        if(module_submenu[entry].priv != MENU_EOL_PRIV)
+        {
+            module_submenu[entry].name = "----Parameters----";
+            module_submenu[entry].priv = 0;
+            module_submenu[entry].update = module_menu_update_parameter;
+            module_submenu[entry].select = module_menu_select_empty;
+            module_submenu[entry].shidden = 0;
+            entry++;
+        }
+
+        while((parms->name != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
+        {
+            module_submenu[entry].name = parms->name;
+            module_submenu[entry].priv = parms->type;
+            module_submenu[entry].help = parms->desc;
+            module_submenu[entry].update = module_menu_update_parameter;
+            module_submenu[entry].select = module_menu_select_empty;
+            module_submenu[entry].shidden = 0;
+            parms++;
+            entry++;
+        }
+    }
+
+    /* disable other entries */
+    while(module_submenu[entry].priv != MENU_EOL_PRIV)
+    {
+        module_submenu[entry].shidden = 1;
+        entry++;
+    }
+}
+
+static MENU_SELECT_FUNC(module_menu_load)
+{
+    module_load_all();
+    module_menu_update();
+}
+
+static MENU_SELECT_FUNC(module_menu_unload)
+{
+    module_unload_all();
+    module_menu_update();
+}
+
+static MENU_SELECT_FUNC(module_open_submenu)
+{
+    int mod_number = (int)priv;
+    module_submenu_update(mod_number);
+    menu_open_submenu();
+}
+
+static struct menu_entry module_submenu[] = {
+        {
+            .name = "Autoload module",
+            .icon_type = MNI_ON,
+            .max = 1,
+            .update = module_menu_update_autoload,
+            .select = module_menu_select_empty,
+            .help = "Load automatically on startup. (Not implemented yet)",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        MENU_EOL
+};
+
+#define MAX_PARAMS (COUNT(module_submenu) - 3)
+
+#define MODULE_ENTRY(i) \
+        { \
+            .name = "Module", \
+            .priv = (void*)i, \
+            .select = module_open_submenu, \
+            .select_Q = module_open_submenu, \
+            .update = module_menu_update_entry, \
+            .icon_type = IT_SUBMENU, \
+            .submenu_width = 700, \
+            .children = module_submenu, \
+            .help = "", \
+            .help2 = "", \
+        },
+
+static struct menu_entry module_menu[] = {
+    {
+        .name = "Load modules now...",
+        .select = module_menu_load,
+        .help = "Loads modules in "MODULE_PATH,
+    },
+    {
+        .name = "Unload modules now...",
+        .select = module_menu_unload,
+        .help = "Unload loaded modules",
+    },
+    {
+        .name = "Autoload modules on startup",
+        .priv = &module_autoload_enabled,
+        .max = 1,
+        .help = "Loads modules every startup",
+    },
+    {
+        .name = "----Modules----",
+        .icon_type = MNI_NONE,
+        .select = module_menu_select_empty,
+    },
+    MODULE_ENTRY(0)
+    MODULE_ENTRY(1)
+    MODULE_ENTRY(2)
+    MODULE_ENTRY(3)
+    MODULE_ENTRY(4)
+    MODULE_ENTRY(5)
+    MODULE_ENTRY(6)
+    MODULE_ENTRY(7)
+    MODULE_ENTRY(8)
+    MODULE_ENTRY(9)
+    MODULE_ENTRY(10)
+    MODULE_ENTRY(11)
+    MODULE_ENTRY(12)
+    MODULE_ENTRY(13)
+    MODULE_ENTRY(14)
+};
+
+static void module_init()
+{
+    menu_add("Modules", module_menu, COUNT(module_menu));
+    module_menu_update();
+}
+
+void module_load_task(void* unused) 
+{
+    char *lockfile = MODULE_PATH"LOADING.LCK";
+    char *lockstr = "If you can read this, ML crashed last time. To save from faulty modules, autoload gets disabled.";
+    
+    if(module_autoload_enabled)
+    {
+        uint32_t size;
+        if( FIO_GetFileSize( lockfile, &size ) == 0 )
+        {
+            /* uh, it seems the camera didnt shut down cleanly, skip module loading this time */
+            msleep(1000);
+            NotifyBox(10000, "Camera was not shut down cleanly.\r\nSkipping module loading." );
+        }
+        else
+        {
+            FILE *handle = FIO_CreateFileEx(lockfile);
+            FIO_WriteFile(handle, lockstr, strlen(lockstr));
+            FIO_CloseFile(handle);
+            
+            /* now load modules */
+            module_load_all();
+            module_menu_update();
+        }
+        
+        /* wait until clean shutdown */
+        TASK_LOOP
+        {    
+            msleep(100);
+        }
+        
+        /* remove lockfile */
+        FIO_RemoveFile(lockfile);
+    }
+}
+
+TASK_CREATE("module_load_task", module_load_task, 0, 0x18, 0x2000 );
+
+INIT_FUNC(__FILE__, module_init);
+
