@@ -109,7 +109,6 @@ void module_load_all(void)
     TCCState *state = NULL;
     uint32_t module_cnt = 0;
     struct fio_file file;
-    char *module_dir = CARD_DRIVE "ML/MODULES/";
 
     /* ensure all modules are unloaded */
     console_printf("Unloading modules...\n");
@@ -126,7 +125,7 @@ void module_load_all(void)
     }
 
     console_printf("Scanning modules...\n");
-    struct fio_dirent * dirent = FIO_FindFirstEx( module_dir, &file );
+    struct fio_dirent * dirent = FIO_FindFirstEx( MODULE_PATH, &file );
     if( IS_ERROR(dirent) )
     {
         NotifyBox(2000, "Module dir missing" );
@@ -184,7 +183,7 @@ void module_load_all(void)
         char filename[64];
 
         console_printf("  [i] load: %s\n", module_list[mod].filename);
-        snprintf(filename, sizeof(filename), "%s%s", module_dir, module_list[mod].filename);
+        snprintf(filename, sizeof(filename), "%s%s", MODULE_PATH, module_list[mod].filename);
         int32_t ret = tcc_add_file(state, filename);
 
         /* seems bad, disable it */
@@ -261,7 +260,7 @@ void module_load_all(void)
     }
 
     module_state = state;
-    console_printf("Done!\n");
+    console_printf("Modules loaded\n");
 }
 
 void module_unload_all(void)

@@ -12,6 +12,10 @@
 #include "lens.h"
 #include "plugin.h"
 #include "version.h"
+
+#ifdef CONFIG_MODULES
+#include "module.h"
+#endif
 //#include "lua.h"
 
 #if defined(CONFIG_7D)
@@ -684,7 +688,6 @@ static void run_test()
     msleep(1000);
     module_load_all();
     module_unload_all();
-    console_printf("Done!\n");
     
     console_printf("\n");
     
@@ -697,7 +700,7 @@ static void run_test()
         void *module = NULL;
         uint32_t ret = 0;
         
-        module = module_load(CARD_DRIVE"ML/PLUGINS/libtcc.mo");
+        module = module_load(MODULE_PATH"libtcc.mex");
         if(module)
         {
             ret = module_exec(module, "tcc_new", 0);

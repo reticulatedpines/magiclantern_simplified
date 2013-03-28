@@ -1,8 +1,8 @@
 #ifndef _module_h_
 #define _module_h_
 
-
-#define MAGIC_SYMBOLS           CARD_DRIVE"magic.sym"
+#define MODULE_PATH             CARD_DRIVE"ML/MODULES/"
+#define MAGIC_SYMBOLS           CARD_DRIVE"ML/MODULES/MAGIC.SYM"
 
 #define MODULE_INFO_PREFIX      __module_info_
 #define MODULE_STRINGS_PREFIX   __module_strings_
