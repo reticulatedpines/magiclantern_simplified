@@ -74,7 +74,7 @@ typedef struct
     module_info_t *info;
     module_info_t *strings;
     module_info_t *params;
-    uint32_t valid;
+    int valid;
 } module_entry_t;
 
 
@@ -118,7 +118,7 @@ void module_unload_all(void);
 
 /* explicitely load a standalone module. this is comparable to an executable */
 void *module_load(char *filename);
-int module_exec(void *module, char *symbol, uint32_t count, ...);
+int module_exec(void *module, char *symbol, int count, ...);
 int module_unload(void *module);
 
 

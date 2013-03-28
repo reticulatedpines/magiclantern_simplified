@@ -1,5 +1,6 @@
 
 #include "dryos.h"
+#include "console.h"
 #include "libtcc.h"
 #include "module.h"
 
@@ -16,20 +17,20 @@ static int module_load_symbols(TCCState *s, char *filename)
 
     if( FIO_GetFileSize( filename, &size ) != 0 )
     {
-        printf("Error loading '%s': File does not exist\n", filename);
+        console_printf("Error loading '%s': File does not exist\n", filename);
         return -1;
     }
     buf = alloc_dma_memory(size);
     if(!buf)
     {
-        printf("Error loading '%s': File too large\n", filename);
+        console_printf("Error loading '%s': File too large\n", filename);
         return -1;
     }
 
     file = FIO_Open(filename, O_RDONLY | O_SYNC);
     if(!file)
     {
-        printf("Error loading '%s': File does not exist\n", filename);
+        console_printf("Error loading '%s': File does not exist\n", filename);
         free_dma_memory(buf);
         return -1;
     }
@@ -71,7 +72,7 @@ static int module_load_symbols(TCCState *s, char *filename)
         tcc_add_symbol(s, symbol_buf, address);
         count++;
     }
-    printf("Added %d Magic Lantern symbols\n", count);
+    //console_printf("Added %d Magic Lantern symbols\n", count);
 
 
     /* these are just to make the code compile */
@@ -88,7 +89,7 @@ static int module_load_symbols(TCCState *s, char *filename)
     tcc_add_symbol(s, "vsnprintf", &vsnprintf);
     tcc_add_symbol(s, "strlen", &strlen);
     tcc_add_symbol(s, "memcpy", &memcpy);
-    tcc_add_symbol(s, "printf", &printf);
+    tcc_add_symbol(s, "console_printf", &console_printf);
 
     free_dma_memory(buf);
     return 0;
@@ -111,7 +112,7 @@ void module_load_all(void)
     char *module_dir = CARD_DRIVE "ML/MODULES/";
 
     /* ensure all modules are unloaded */
-    printf("Unloading modules...\n");
+    console_printf("Unloading modules...\n");
     module_unload_all();
     
     /* initialize linker */
@@ -124,7 +125,7 @@ void module_load_all(void)
         return;
     }
 
-    printf("Scanning modules...\n");
+    console_printf("Scanning modules...\n");
     struct fio_dirent * dirent = FIO_FindFirstEx( module_dir, &file );
     if( IS_ERROR(dirent) )
     {
@@ -165,7 +166,7 @@ void module_load_all(void)
             }
             strncpy(module_list[module_cnt].name, module_name, MODULE_NAME_LENGTH);
 
-            printf("  [i] found: %s\n", file.name);
+            console_printf("  [i] found: %s\n", file.name);
             module_cnt++;
             if (module_cnt >= MODULE_COUNT_MAX)
             {
@@ -177,42 +178,42 @@ void module_load_all(void)
     FIO_CleanupAfterFindNext_maybe(dirent);
 
     /* load modules */
-    printf("Load modules...\n");
+    console_printf("Load modules...\n");
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
         char filename[64];
 
-        printf("  [i] load: %s\n", module_list[mod].filename);
+        console_printf("  [i] load: %s\n", module_list[mod].filename);
         snprintf(filename, sizeof(filename), "%s%s", module_dir, module_list[mod].filename);
         int32_t ret = tcc_add_file(state, filename);
 
         /* seems bad, disable it */
         if(ret < 0)
         {
-            printf("  [E] load failed: %s ret %x\n", filename, ret);
+            console_printf("  [E] load failed: %s ret %x\n", filename, ret);
             //NotifyBox(2000, "Plugin file '%s' seems to be invalid", module_list[mod] );
             strcpy(module_list[mod].filename, "");
         }
     }
 
-    printf("Linking..\n");
+    console_printf("Linking..\n");
     int32_t ret = tcc_relocate(state, TCC_RELOCATE_AUTO);
     if(ret < 0)
     {
-        printf("  [E] failed to link modules\n");
+        console_printf("  [E] failed to link modules\n");
         //NotifyBox(2000, "Failed to link" );
         tcc_delete(state);
         return;
     }
 
-    printf("Init modules...\n");
+    console_printf("Init modules...\n");
     /* init modules */
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
         if(strlen(module_list[mod].name) > 0)
         {
             char module_info_name[32];
-            printf("  [i] Init: '%s'\n", module_list[mod].name);
+            console_printf("  [i] Init: '%s'\n", module_list[mod].name);
 
 
             /* now check for info structure */
@@ -232,35 +233,35 @@ void module_load_all(void)
                     {
                         module_list[mod].valid = 1;
                         
-                        printf("  [i] info    at: 0x%08X\n", (uint32_t)module_list[mod].info);
-                        printf("  [i] strings at: 0x%08X\n", (uint32_t)module_list[mod].strings);
-                        printf("  [i] params  at: 0x%08X\n", (uint32_t)module_list[mod].params);
-                        printf("-----------------------------\n");
+                        console_printf("  [i] info    at: 0x%08X\n", (uint32_t)module_list[mod].info);
+                        console_printf("  [i] strings at: 0x%08X\n", (uint32_t)module_list[mod].strings);
+                        console_printf("  [i] params  at: 0x%08X\n", (uint32_t)module_list[mod].params);
+                        console_printf("-----------------------------\n");
                         if(module_list[mod].info->init)
                         {
                             module_list[mod].info->init();
                         }
-                        printf("-----------------------------\n");
+                        console_printf("-----------------------------\n");
                     }
                     else
                     {
-                        printf("  [E] invalid version (v%d.%d, expected v%d.%d)\n", module_list[mod].info->api_major, module_list[mod].info->api_minor, MODULE_MAJOR, MODULE_MINOR);
+                        console_printf("  [E] invalid version (v%d.%d, expected v%d.%d)\n", module_list[mod].info->api_major, module_list[mod].info->api_minor, MODULE_MAJOR, MODULE_MINOR);
                     }
                 }
                 else
                 {
-                    printf("  [E] invalid MAGIC (0x%X)\n", module_list[mod].info->api_magic);
+                    console_printf("  [E] invalid MAGIC (0x%X)\n", module_list[mod].info->api_magic);
                 }
             }
             else
             {
-                printf("  [E] no info found (0x%X)\n", (uint32_t)module_list[mod].info);
+                console_printf("  [E] no info found (0x%X)\n", (uint32_t)module_list[mod].info);
             }
         }
     }
 
     module_state = state;
-    printf("Done!\n");
+    console_printf("Done!\n");
 }
 
 void module_unload_all(void)
@@ -268,11 +269,11 @@ void module_unload_all(void)
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
     {
         module_list[mod].valid = 0;
-        strcpy(module_list[mod].name, "");
-        strcpy(module_list[mod].filename, "");
         module_list[mod].info = NULL;
         module_list[mod].strings = NULL;
         module_list[mod].params = NULL;
+        strcpy(module_list[mod].name, "");
+        strcpy(module_list[mod].filename, "");
     }
     
     if(module_state)
@@ -316,7 +317,7 @@ void *module_load(char *filename)
 }
 
 
-int module_exec(void *module, char *symbol, uint32_t count, ...)
+int module_exec(void *module, char *symbol, int count, ...)
 {
     int ret = -1;
     TCCState *state = (TCCState *)module;

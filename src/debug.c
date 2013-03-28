@@ -679,11 +679,19 @@ static void run_test()
 */
 #ifdef CONFIG_MODULES
     console_show();
-    printf("Loading modules...\n");
+
+    console_printf("Loading modules...\n");
     msleep(1000);
     module_load_all();
-    return;
-    printf("\nTesting full TCC module...\n");
+    module_unload_all();
+    console_printf("Done!\n");
+    
+    console_printf("\n");
+    
+    console_printf("Testing TCC executable...\n");
+    console_printf(" [i] this may take some time\n");
+    msleep(1000);
+    
     for(int try = 0; try < 100; try++)
     {
         void *module = NULL;
@@ -693,17 +701,24 @@ static void run_test()
         if(module)
         {
             ret = module_exec(module, "tcc_new", 0);
-            printf("tcc_new() returned: 0x%08X\n", ret);
-            module_exec(module, "tcc_delete", 1, ret);
+            if(!(ret & 0x40000000))
+            {
+                console_printf("tcc_new() returned: 0x%08X\n", ret);
+            }
+            else
+            {
+                module_exec(module, "tcc_delete", 1, ret);
+            }
             module_unload(module);
         }
         else
         {
-            printf(" [E] load failed\n");
+            console_printf(" [E] load failed\n");
         }
         
     }
-    printf("Done!\n");
+        
+    console_printf("Done!\n");
 #endif
 }
 

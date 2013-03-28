@@ -6,12 +6,8 @@ unsigned int test_parameter = 32;
 
 unsigned int testplug_init()
 {
-    msleep(500);
-    printf("TEST: Hiding Console\n");
+    printf("TEST: msleep(1000)\n");
     msleep(1000);
-    console_hide();
-    msleep(1000);
-    console_show();
     printf("TEST: Finished\n");
 
     return test_parameter;
