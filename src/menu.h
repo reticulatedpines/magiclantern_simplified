@@ -80,6 +80,7 @@ struct menu_display_info
 #define MENU_SET_SHORT_NAME(fmt, ...)  snprintf(info->short_name,  MENU_MAX_SHORT_NAME_LEN,  fmt, ## __VA_ARGS__)
 #define MENU_SET_SHORT_VALUE(fmt, ...) snprintf(info->short_value, MENU_MAX_SHORT_VALUE_LEN, fmt, ## __VA_ARGS__)
 #define MENU_SET_RINFO(fmt, ...)       snprintf(info->rinfo,       MENU_MAX_RINFO_LEN,       fmt, ## __VA_ARGS__)
+#define MENU_SET_SHIDDEN(state)        entry->shidden=state
 
 #define MENU_APPEND_VALUE(fmt, ...)    snprintf(info->value + strlen(info->value),   MENU_MAX_VALUE_LEN - strlen(info->value),     fmt,    ## __VA_ARGS__)
 #define MENU_APPEND_RINFO(fmt, ...)    snprintf(info->rinfo + strlen(info->rinfo),   MENU_MAX_RINFO_LEN - strlen(info->rinfo),     fmt,    ## __VA_ARGS__)
@@ -87,18 +88,18 @@ struct menu_display_info
 /* when the item is not selected, the help and warning overrides will not be parsed */
 /* warning level is still considered, for graying out menu items */
 
-#define MENU_SET_HELP(fmt, ...) ({ \
+#define MENU_SET_HELP(fmt, ...) do { \
                                     if (entry->selected) \
-                                        snprintf(info->help,    MENU_MAX_HELP_LEN,      fmt,    ## __VA_ARGS__) \
-                                })
+                                        snprintf(info->help,    MENU_MAX_HELP_LEN,      fmt,    ## __VA_ARGS__); \
+                                } while(0)
 
 // only show the highest-level warning
-#define MENU_SET_WARNING(level, fmt, ...) ({ \
+#define MENU_SET_WARNING(level, fmt, ...) do { \
                                     if ((level) > info->warning_level) { \
                                         info->warning_level = (level); \
                                         if (entry->selected) { snprintf(info->warning, MENU_MAX_WARNING_LEN,   fmt,    ## __VA_ARGS__); } \
                                     } \
-                                })
+                                } while(0)
 
 #define MENU_SET_ENABLED(val)   info->enabled = (val) // whether the feature is ON or OFF
 #define MENU_SET_ICON(ico, arg)  ({ info->icon = (ico); info->icon_arg = (arg); })
