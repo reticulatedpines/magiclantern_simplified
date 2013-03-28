@@ -5,6 +5,9 @@
 #include "libtcc.h"
 #include "module.h"
 #include "config.h"
+#include "string.h"
+
+extern int sscanf(const char *str, const char *format, ...);
 
 static module_entry_t module_list[MODULE_COUNT_MAX];
 static TCCState *module_state = NULL;
@@ -76,7 +79,7 @@ static int module_load_symbols(TCCState *s, char *filename)
         }
         sscanf(address_buf, "%x", &address);
 
-        tcc_add_symbol(s, symbol_buf, address);
+        tcc_add_symbol(s, symbol_buf, (void*)address);
         count++;
     }
     //console_printf("Added %d Magic Lantern symbols\n", count);
@@ -354,7 +357,7 @@ int module_exec(void *module, char *symbol, int count, ...)
             uint32_t (*exec)(uint32_t parm1, ...) = start_symbol;
 
             uint32_t *parms = malloc(sizeof(uint32_t) * count);
-            for(uint32_t parm = 0; parm < count; parm++)
+            for(int parm = 0; parm < count; parm++)
             {
                 parms[parm] = va_arg(args,uint32_t);
             }
@@ -499,7 +502,7 @@ static void module_submenu_update(int mod_number)
     int entry = 1;
 
     /* set autoload menu's priv to module id */
-    module_submenu[0].priv = mod_number;
+    module_submenu[0].priv = (void*)mod_number;
 
     /* make sure this module is loaded */
     if(module_list[mod_number].valid)
@@ -510,7 +513,7 @@ static void module_submenu_update(int mod_number)
         if(module_submenu[entry].priv != MENU_EOL_PRIV)
         {
             module_submenu[entry].name = "----Information---";
-            module_submenu[entry].priv = 0;
+            module_submenu[entry].priv = (void*)0;
             module_submenu[entry].update = module_menu_update_parameter;
             module_submenu[entry].select = module_menu_select_empty;
             module_submenu[entry].shidden = 0;
@@ -520,7 +523,7 @@ static void module_submenu_update(int mod_number)
         while((strings->name != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
         {
             module_submenu[entry].name = strings->name;
-            module_submenu[entry].priv = strings->value;
+            module_submenu[entry].priv = (void*)strings->value;
             module_submenu[entry].update = module_menu_update_parameter;
             module_submenu[entry].select = module_menu_select_empty;
             module_submenu[entry].shidden = 0;
@@ -531,7 +534,7 @@ static void module_submenu_update(int mod_number)
         if(module_submenu[entry].priv != MENU_EOL_PRIV)
         {
             module_submenu[entry].name = "----Parameters----";
-            module_submenu[entry].priv = 0;
+            module_submenu[entry].priv = (void*)0;
             module_submenu[entry].update = module_menu_update_parameter;
             module_submenu[entry].select = module_menu_select_empty;
             module_submenu[entry].shidden = 0;
@@ -541,7 +544,7 @@ static void module_submenu_update(int mod_number)
         while((parms->name != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
         {
             module_submenu[entry].name = parms->name;
-            module_submenu[entry].priv = parms->type;
+            module_submenu[entry].priv = (void*)parms->type;
             module_submenu[entry].help = parms->desc;
             module_submenu[entry].update = module_menu_update_parameter;
             module_submenu[entry].select = module_menu_select_empty;
@@ -616,8 +619,6 @@ static struct menu_entry module_submenu[] = {
         },
         MENU_EOL
 };
-
-#define MAX_PARAMS (COUNT(module_submenu) - 3)
 
 #define MODULE_ENTRY(i) \
         { \
