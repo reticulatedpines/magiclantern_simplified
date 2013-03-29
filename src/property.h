@@ -578,8 +578,15 @@ prop_handler_init(
 );
 
 
-/** Register a property handler with automated token function */
+/* add property handler to dynamic property list. need to run prop_update_registration() afterwards */
+void prop_add_handler (uint32_t property, void *handler);
+/* reset handler setup to the state after startup */
+void prop_reset_registration(void);
+/* only re-register handlers in case it was updated in meantime */
+void prop_update_registration(void);
 
+/** Register a property handler with automated token function. module.h will define it for modules */
+#if !defined(MODULE)
 #define REGISTER_PROP_HANDLER_EX( id, func, length ) \
 __attribute__((section(".prop_handlers"))) \
 __attribute__((used)) \
@@ -607,6 +614,10 @@ volatile uint32_t name; \
 PROP_HANDLER(id) { \
         name = buf[0]; \
 }
+
+#endif
+
+
 
 /**for reading simple integer properties */
 int get_prop(int prop);

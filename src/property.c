@@ -23,9 +23,16 @@
 extern struct prop_handler _prop_handlers_start[];
 extern struct prop_handler _prop_handlers_end[];
 
-static void * global_token;
+static void * global_token = NULL;
 
-static void global_token_handler( void * token)
+/* we are building a list of property handlers that can be updated and re-registered */
+static int actual_num_handlers = 0;
+static int actual_num_properties = 0;
+static struct prop_handler property_handlers[256];
+static uint32_t property_list[256];
+
+/* the token is needed for unregistering handlers and property cleanup */
+static void global_token_handler(void * token)
 {
     global_token = token;
 }
@@ -44,14 +51,12 @@ global_property_handler(
     if (property == 0x80010001) return (void*)_prop_cleanup(global_token, property);
 #endif
     
-    //~ bfnt_puts("Global prop", 0, 0, COLOR_BLACK, COLOR_WHITE);
-    struct prop_handler * handler = _prop_handlers_start;
-
-    for( ; handler < _prop_handlers_end ; handler++ )
+    for(int entry = 0; entry < actual_num_handlers; entry++ )
     {
+        struct prop_handler *handler = &property_handlers[entry];
+        
         if (handler->property == property)
         {
-            //~ bmp_printf(FONT_LARGE, 0, 0, "%x %x...", property, handler->handler);
             /* cache length of property if not set yet */
             if(handler->property_length == 0)
             {
@@ -65,18 +70,44 @@ global_property_handler(
                 handler->handler(property, priv, buf, len);
                 current_prop_handler = 0;
             }
-            //~ bmp_printf(FONT_LARGE, 0, 0, "%x %x :)", property, handler->handler);
         }
     }
     return (void*)_prop_cleanup(global_token, property);
 }
 
-static unsigned property_list[256];
 
-static void
-prop_init( void* unused )
+void prop_add_handler (uint32_t property, void *handler)
 {
-    int actual_num_properties = 0;
+#if defined(POSITION_INDEPENDENT)
+    handler[entry].handler = PIC_RESOLVE(handler[entry].handler);
+#endif
+    property_handlers[actual_num_handlers].handler = handler;
+    property_handlers[actual_num_handlers].property = property;
+    actual_num_handlers++;
+    
+    int duplicate = 0;
+    for (int i = 0; i < actual_num_properties; i++)
+    {
+        if (property_list[i] == property)
+        {
+            duplicate = 1;
+            break;
+        }
+    }
+
+    if (!duplicate)
+    {
+        property_list[actual_num_properties] = property;
+        actual_num_properties++;
+    }
+    if (actual_num_properties >= COUNT(property_list))
+    {
+        bfnt_puts("Too many prop handlers", 0, 0, COLOR_BLACK, COLOR_WHITE);
+    }
+}
+
+void prop_add_internal_handlers ()
+{
     struct prop_handler * handler = _prop_handlers_start;
 
     for( ; handler < _prop_handlers_end ; handler++ )
@@ -84,36 +115,64 @@ prop_init( void* unused )
 #if defined(POSITION_INDEPENDENT)
         handler->handler = PIC_RESOLVE(handler->handler);
 #endif
-        int duplicate = 0;
-        for (int i = 0; i < actual_num_properties; i++)
-        {
-            if (_prop_handlers_start[i].property == handler->property)
-            {
-                duplicate = 1;
-                break;
-            }
-        }
-
-        if (!duplicate)
-        {
-            property_list[actual_num_properties] = handler->property;
-            actual_num_properties++;
-        }
-        if (actual_num_properties >= COUNT(property_list))
-        {
-            bfnt_puts("Too many prop handlers", 0, 0, COLOR_BLACK, COLOR_WHITE);
-            break;
-        }
+        prop_add_handler(handler->property, handler->handler);
     }
-
-    prop_register_slave(
-        property_list,
-        actual_num_properties,
-        global_property_handler,
-        &global_token,
-        global_token_handler
-    );
 }
+
+/* this unregisters all ML handlers from canon fiormware */
+static void 
+prop_unregister_handlers()
+{
+#if defined(FEATURE_UNREGISTER_PROP)
+    if(global_token != NULL)
+    {
+        prop_unregister_slave(global_token);
+        global_token = 0;
+    }
+#endif
+}
+
+static void 
+prop_register_handlers()
+{
+    if(global_token == NULL)
+    {
+        prop_register_slave(
+            property_list,
+            actual_num_properties,
+            global_property_handler,
+            NULL,
+            global_token_handler
+        );
+    }
+}
+
+/* reset handler setup to the state after startup */
+void
+prop_reset_registration()
+{
+    prop_unregister_handlers();
+    actual_num_properties = 0;
+    actual_num_handlers = 0;
+    prop_add_internal_handlers();
+    prop_register_handlers();
+}
+
+/* only re-register handlers in case it was updated in meantime */
+void
+prop_update_registration()
+{
+    prop_unregister_handlers();
+    prop_register_handlers();
+}
+
+/* init function, called on startup */
+void
+prop_init( void* unused )
+{
+    prop_reset_registration();
+}
+
 
 #if 0
 // for reading simple integer properties
@@ -174,10 +233,9 @@ int _get_prop_len(int prop)
 /* return cached length of property */
 static uint32_t prop_get_prop_len(uint32_t property)
 {
-    struct prop_handler * handler = NULL;
-
-    for(handler = _prop_handlers_start; handler < _prop_handlers_end; handler++ )
+    for(int entry = 0; entry < actual_num_handlers; entry++ )
     {
+        struct prop_handler *handler = &property_handlers[entry];
         if (handler->property == property)
         {
             return handler->property_length;

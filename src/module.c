@@ -6,6 +6,7 @@
 #include "module.h"
 #include "config.h"
 #include "string.h"
+#include "property.h"
 
 extern int sscanf(const char *str, const char *format, ...);
 
@@ -119,6 +120,7 @@ void module_load_all(void)
     TCCState *state = NULL;
     uint32_t module_cnt = 0;
     struct fio_file file;
+    uint32_t update_properties = 0;
 
     /* ensure all modules are unloaded */
     console_printf("Unloading modules...\n");
@@ -231,6 +233,8 @@ void module_load_all(void)
             module_list[mod].strings = tcc_get_symbol(state, module_info_name);
             snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_PARAMS_PREFIX), module_list[mod].name);
             module_list[mod].params = tcc_get_symbol(state, module_info_name);
+            snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_PROPHANDLERS_PREFIX), module_list[mod].name);
+            module_list[mod].prop_handlers = tcc_get_symbol(state, module_info_name);
 
             /* check if the module symbol is defined. simple check for valid memory address just in case. */
             if((uint32_t)module_list[mod].info > 0x1000)
@@ -244,10 +248,22 @@ void module_load_all(void)
                         console_printf("  [i] info    at: 0x%08X\n", (uint32_t)module_list[mod].info);
                         console_printf("  [i] strings at: 0x%08X\n", (uint32_t)module_list[mod].strings);
                         console_printf("  [i] params  at: 0x%08X\n", (uint32_t)module_list[mod].params);
+                        console_printf("  [i] props   at: 0x%08X\n", (uint32_t)module_list[mod].prop_handlers);
                         console_printf("-----------------------------\n");
                         if(module_list[mod].info->init)
                         {
                             module_list[mod].info->init();
+                        }
+                        if(module_list[mod].prop_handlers)
+                        {
+                            module_prophandler_t **props = module_list[mod].prop_handlers;
+                            while(*props != NULL)
+                            {
+                                update_properties = 1;
+                                console_printf("  [i] prop %s\n", (*props)->name);
+                                prop_add_handler((*props)->property, (*props)->handler);
+                                props++;
+                            }
                         }
                         console_printf("-----------------------------\n");
                         snprintf(module_list[mod].status, sizeof(module_list[mod].status), "OK");
@@ -275,7 +291,12 @@ void module_load_all(void)
             }
         }
     }
-
+    
+    if(update_properties)
+    {
+        prop_update_registration();
+    }
+    
     module_state = state;
     console_printf("Modules loaded\n");
 }
@@ -288,6 +309,7 @@ void module_unload_all(void)
         module_list[mod].info = NULL;
         module_list[mod].strings = NULL;
         module_list[mod].params = NULL;
+        module_list[mod].prop_handlers = NULL;
         strcpy(module_list[mod].name, "");
         strcpy(module_list[mod].filename, "");
     }
@@ -296,6 +318,8 @@ void module_unload_all(void)
     {
         TCCState *state = module_state;
         module_state = NULL;
+        
+        prop_reset_registration();
         tcc_delete(state);
     }
 }
@@ -420,7 +444,16 @@ static MENU_UPDATE_FUNC(module_menu_update_autoload)
 
 static MENU_UPDATE_FUNC(module_menu_update_parameter)
 {
-    MENU_SET_VALUE((char*)entry->priv);
+    char *str = (char*)entry->priv;
+    
+    if(str)
+    {
+        MENU_SET_VALUE(str);
+    }
+    else
+    {
+        MENU_SET_VALUE("");
+    }
 }
 
 
@@ -509,6 +542,7 @@ static void module_submenu_update(int mod_number)
     {
         module_strpair_t *strings = module_list[mod_number].strings;
         module_parminfo_t *parms = module_list[mod_number].params;
+        module_prophandler_t **props = module_list[mod_number].prop_handlers;
 
         if(module_submenu[entry].priv != MENU_EOL_PRIV)
         {
@@ -550,6 +584,30 @@ static void module_submenu_update(int mod_number)
             module_submenu[entry].select = module_menu_select_empty;
             module_submenu[entry].shidden = 0;
             parms++;
+            entry++;
+        }
+        
+        if(module_submenu[entry].priv != MENU_EOL_PRIV)
+        {
+            module_submenu[entry].name = "----Properties----";
+#if !defined(FEATURE_UNREGISTER_PROP)
+            module_submenu[entry].priv = " (no support)";
+#endif
+            module_submenu[entry].update = module_menu_update_parameter;
+            module_submenu[entry].select = module_menu_select_empty;
+            module_submenu[entry].shidden = 0;
+            entry++;
+        }
+
+        while((*props != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
+        {
+            module_submenu[entry].name = (*props)->name;
+            module_submenu[entry].priv = (void*)0;
+            module_submenu[entry].help = "";
+            module_submenu[entry].update = module_menu_update_parameter;
+            module_submenu[entry].select = module_menu_select_empty;
+            module_submenu[entry].shidden = 0;
+            props++;
             entry++;
         }
     }

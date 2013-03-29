@@ -687,6 +687,8 @@ static void run_test()
     console_printf("Loading modules...\n");
     msleep(1000);
     module_load_all();
+    
+    return;
     module_unload_all();
     
     console_printf("\n");
