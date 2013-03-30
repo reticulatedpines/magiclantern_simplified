@@ -370,9 +370,6 @@ DIET_OBJ = \
 	memset.o \
 	memcpy.o \
 	memccpy.o \
-	setjmp.o \
-	longjmp.o \
-	__longjmp.o \
 	sigjmp.o \
 	sigprocmask.o \
 	rt_sigprocmask.o \
@@ -404,7 +401,19 @@ $(DIET_OBJ): $(DIETLIBC_A)
 dietlibc.a: $(DIET_OBJ)
 	$(call build,AR,$(AR) cr $@ $^)
 
-magiclantern: $(ML_OBJS-y) dietlibc.a
+# use setjmp from newlib because... the one from dietlibc freezes
+NEWLIB_OBJ = \
+	lib_a-setjmp.o \
+
+NEWLIB_LIBC_A = $(SRC_DIR)/libs/arm-none-eabi-O3/libc.a
+
+$(NEWLIB_OBJ): $(NEWLIB_LIBC_A)
+	$(call build,AR,$(AR) x $? $(NEWLIB_OBJ))
+
+newlib-libc.a: $(NEWLIB_OBJ)
+	$(call build,AR,$(AR) cr $@ $^)
+
+magiclantern: $(ML_OBJS-y) dietlibc.a newlib-libc.a
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-N \
