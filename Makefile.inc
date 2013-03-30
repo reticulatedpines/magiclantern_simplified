@@ -246,9 +246,15 @@ install: autoexec.bin
 	mkdir $(CF_CARD)/ML/scripts || echo "no problem"
 	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/ML/scripts/
 	cp $(SCRIPT_DIR)/*.c $(CF_CARD)/ML/scripts/
-	mkdir $(CF_CARD)/ML/plugins || echo "no problem"
-	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/ML/plugins/
+	cp $(SCRIPT_DIR)/*.py $(CF_CARD)/ML/scripts/
 	cp $(VRAM_DIR)/*.lut $(CF_CARD)/ML/data/
+	mkdir $(CF_CARD)/ML/modules || echo "no problem"
+	cp $(MODULES_DIR)/*/*.mo $(CF_CARD)/ML/modules/ || echo "no problem"
+	cp magiclantern.sym $(CF_CARD)/ML/modules/magic.sym
+	# todo: magic.sym is camera-specific, rename it (e.g. 550D-109.sym)
+
+#	mkdir $(CF_CARD)/ML/plugins || echo "no problem"
+#	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/ML/plugins/
 
 	$(UMOUNT) $(CF_CARD)
 

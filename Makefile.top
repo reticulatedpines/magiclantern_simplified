@@ -17,4 +17,5 @@ CROP_DIR=$(TOP_DIR)/data/cropmks
 VRAM_DIR=$(TOP_DIR)/data/vram
 SCRIPT_DIR=$(TOP_DIR)/scripts
 PLUGINS_DIR=$(TOP_DIR)/plugins
+MODULES_DIR=$(TOP_DIR)/modules
 BIN_FILES=magiclantern magiclantern.bin autoexec.bin autoexec
