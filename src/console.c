@@ -216,17 +216,6 @@ static void console_draw()
 
     /* can we use large fonts? */
     int can_use_large_font = (skipped_lines > 7 && chopped_columns > 25);
-    static int prev_large_font = 0;
-    if (prev_large_font && !can_use_large_font)
-    {
-        canon_gui_enable_front_buffer(1); // force a redraw
-        prev_large_font = can_use_large_font;
-        return; // better luck next time :)
-    }
-    prev_large_font = can_use_large_font;
-
-    /* prepare for display */
-    canon_gui_disable_front_buffer();
 
     /* top-left corner of "full" console (without lines/columns skipped) */
     unsigned x0 =  720/2 - fontspec_font(CONSOLE_FONT)->width * CONSOLE_W/2;
@@ -242,6 +231,23 @@ static void console_draw()
     int ya = (yc-1);
     int w = fontspec_font(fnt)->width * (CONSOLE_W - chopped_columns) + 2;
     int h = fontspec_font(fnt)->height * (CONSOLE_H - skipped_lines) + 2;
+
+    /* did the console shrink? if so, redraw Canon GUI around it */
+    static int prev_w = 0;
+    static int prev_h = 0;
+    if (w < prev_w || h < prev_h)
+    {
+        canon_gui_enable_front_buffer(1); // force a redraw
+        prev_w = w;
+        prev_h = h;
+        return; // better luck next time :)
+    }
+    prev_w = w;
+    prev_h = h;
+
+    /* prepare for display */
+    canon_gui_disable_front_buffer();
+
     bmp_draw_rect(60, xa, ya, w, h);
     bmp_draw_rect(COLOR_BLACK, xa-1, ya-1, w+2, h+2);
 
@@ -276,11 +282,19 @@ static void
 console_task( void* unused )
 {
     console_init();
+    int dirty = 0;
     TASK_LOOP
     {
-        if (console_visible && !gui_menu_shown())
+        // show the console only when there are no Canon dialogs on the screen
+        if (console_visible && (display_idle() || is_pure_play_photo_or_movie_mode()))
         {
-            console_draw();
+            if (dirty) console_draw();
+            dirty = 1;
+        }
+        else if (dirty)
+        {
+            canon_gui_enable_front_buffer(1);
+            dirty = 0;
         }
 
         if (!gui_menu_shown() && strlen(console_status_text))
