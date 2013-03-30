@@ -1693,6 +1693,7 @@ highlight_luma_range(int lo, int hi, int color1, int color2)
     }
 }
 
+#ifdef FEATURE_ZEBRA
 static MENU_UPDATE_FUNC(zebra_draw_display)
 {
     unsigned z = CURRENT_VALUE;
@@ -1700,16 +1701,9 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
     int over_disabled = (zebra_level_hi > 100);
     int under_disabled = (zebra_level_lo == 0);
     
-    char msg[50];
-    snprintf(msg, sizeof(msg), "Zebras      : ");
-    
-    if (!z)
+    if (z)
     {
-        MENU_APPEND_VALUE(msg, "OFF");
-    }
-    else
-    {
-        MENU_SET_VALUE(msg,
+        MENU_SET_VALUE(
             "%s, ",
             zebra_colorspace == 0 ? "Luma" :
             zebra_colorspace == 1 ? "RGB" : "LumaFast"
@@ -1717,35 +1711,31 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
     
         if (over_disabled)
         {
-            MENU_APPEND_VALUE(msg, 
+            MENU_APPEND_VALUE(
                 "under %d%%",
                 zebra_level_lo
             );
         }
         else if (under_disabled)
         {
-            MENU_APPEND_VALUE(msg, 
+            MENU_APPEND_VALUE(
                 "over %d%%",
                 zebra_level_hi
             );
         }
         else
         {
-            MENU_APPEND_VALUE(msg, 
+            MENU_APPEND_VALUE(
                 "%d..%d%%",
                 zebra_level_lo, zebra_level_hi
             );
         }
     }
-	MENU_SET_VALUE(
-        "%s", 
-        msg
-    );
 }
 
 static MENU_UPDATE_FUNC(zebra_level_display)
 {
-    unsigned level = CURRENT_VALUE;
+    int level = CURRENT_VALUE;
     if (level == 0 || level > 100)
     {
         MENU_SET_VALUE("Disabled");
@@ -1761,6 +1751,8 @@ static MENU_UPDATE_FUNC(zebra_level_display)
         );
     }
 }
+#endif
+
 /*static void
 zebra_toggle( void* priv, int sign )
 {
