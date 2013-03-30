@@ -520,6 +520,8 @@ OS_FUNCTION( 0x0100008, int,	FIO_FindNextEx, struct fio_dirent * dirent, struct 
 OS_FUNCTION( 0x0100009, void,	FIO_CleanupAfterFindNext_maybe, struct fio_dirent * dirent);
 OS_FUNCTION( 0x010000a,	FILE*,	FIO_CreateFileEx, const char* name );
 
+unsigned GetFileSize(char* filename);
+
 // stdio
 int vsnprintf(char* str, size_t n, const char* fmt, va_list ap ); // non-standard; don't export it
 
