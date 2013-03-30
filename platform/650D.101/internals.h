@@ -37,8 +37,8 @@
 /** This camera has a mirror lockup feature **/
 #define CONFIG_MLU
 
-/** This camera reports focus info in LiveView **/
-#define CONFIG_LV_FOCUS_INFO
+/** This camera doesn't report focus info in LiveView **/
+//~ #define CONFIG_LV_FOCUS_INFO
 
 /** No level sensor I guess **/
 //~ #define CONFIG_ELECTRONIC_LEVEL
@@ -118,10 +118,15 @@
 #define CONFIG_EVF_STATE_SYNC
 
 /** FPS override: we can only change timer A */
-#define CONFIG_FPS_TIMER_A_ONLY
+//~ #define CONFIG_FPS_TIMER_A_ONLY
 
 /** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
-#define CONFIG_FPS_AGGRESSIVE_UPDATE
+//~ #define CONFIG_FPS_AGGRESSIVE_UPDATE
+
+/** FPS override: change timers from EVF state */
+#define CONFIG_FPS_UPDATE_FROM_EVF_STATE
 
 /** We can record movies in regular photo modes - M, P, Tv, Av... */
 #define CONFIG_NO_DEDICATED_MOVIE_MODE
+
+
