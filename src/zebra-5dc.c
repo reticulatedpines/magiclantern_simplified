@@ -1693,8 +1693,6 @@ highlight_luma_range(int lo, int hi, int color1, int color2)
     }
 }
 
-//static void
-//zebra_draw_display( void * priv, int x, int y, int selected )
 static MENU_UPDATE_FUNC(zebra_draw_display)
 {
     unsigned z = CURRENT_VALUE;
@@ -1743,11 +1741,8 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
         "%s", 
         msg
     );
-    //MENU_SET_ICON(MNI_BOOL_GDR_EXPSIM(z), 0);
 }
 
-//static void
-//zebra_level_display( void * priv, int x, int y, int selected )
 static MENU_UPDATE_FUNC(zebra_level_display)
 {
     unsigned level = CURRENT_VALUE;
@@ -1791,8 +1786,6 @@ static void falsecolor_palette_preview(int x, int y)
     }
 }
 
-//static void
-//falsecolor_display( void * priv, int x, int y, int selected )
 static MENU_UPDATE_FUNC(falsecolor_display)
 {
     MENU_SET_VALUE(
@@ -1800,11 +1793,8 @@ static MENU_UPDATE_FUNC(falsecolor_display)
     );
     if (falsecolor_draw)
         falsecolor_palette_preview(info->x, info->y);
-    //MENU_SET_ICON (MNI_BOOL_GDR_EXPSIM(falsecolor_draw), 0);
 }
 
-//static void
-//falsecolor_display_palette( void * priv, int x, int y, int selected )
 static MENU_UPDATE_FUNC(falsecolor_display_palette)
 {
     MENU_SET_VALUE(
@@ -1814,8 +1804,6 @@ static MENU_UPDATE_FUNC(falsecolor_display_palette)
 }
 
 /*
-//static void
-//focus_debug_display( void * priv, int x, int y, int selected )
 static MENU_UPDATE_FUNC(focus_debug_display)
 {
     unsigned fc = *(unsigned*) priv;
@@ -1827,8 +1815,6 @@ static MENU_UPDATE_FUNC(focus_debug_display)
     );
 }*/
 
-//static void
-//focus_peaking_display( void * priv, int x, int y, int selected )
 static MENU_UPDATE_FUNC(focus_peaking_display)
 {
     unsigned f = CURRENT_VALUE;
@@ -1863,8 +1849,6 @@ static void focus_peaking_adjust_thr(void* priv, int delta)
 
 
 /*
-//static void
-//focus_graph_display( void * priv, int x, int y, int selected )
 static MENU_UPDATE_FUNC(focus_graph_display)
 {
     bmp_printf(
@@ -1876,8 +1860,6 @@ static MENU_UPDATE_FUNC(focus_graph_display)
 }*/
 
 /*
-//static void
-//edge_display( void * priv, int x, int y, int selected )
 static MENU_UPDATE_FUNC(edge_display)
 {
     bmp_printf(
@@ -1889,8 +1871,6 @@ static MENU_UPDATE_FUNC(edge_display)
 }*/
 
 /*
-//static void
-//hist_display( void * priv, int x, int y, int selected )
 static MENU_UPDATE_FUNC(hist_display)
 {
     bmp_printf(
@@ -1905,8 +1885,6 @@ static MENU_UPDATE_FUNC(hist_display)
     menu_draw_icon(MNI_BOOL_GDR_EXPSIM(hist_draw || waveform_draw), 0);
 }*/
 
-//static void
-//hist_print( void * priv, int x, int y, int selected )
 static MENU_UPDATE_FUNC(hist_print)
 {
     MENU_SET_VALUE(
@@ -1915,11 +1893,8 @@ static MENU_UPDATE_FUNC(hist_print)
         hist_draw == 0 ? "" : hist_log ? ",Log" : ",Lin",
         hist_draw && hist_warn ? ",clip warn" : ""
     );
-    //MENU_SET_ICON(MNI_BOOL_GDR_EXPSIM(hist_draw), 0);
 }
 
-//static void
-//hist_warn_display( void * priv, int x, int y, int selected )
 static MENU_UPDATE_FUNC(hist_warn_display)
 {
     MENU_SET_VALUE(
@@ -1931,11 +1906,8 @@ static MENU_UPDATE_FUNC(hist_warn_display)
         hist_warn == 4 ? "1% px" :
                          "Gradual"
     );
-    //MENU_SET_ICON(MNI_BOOL(hist_warn), 0);
 }
 
-//static void
-//waveform_print( void * priv, int x, int y, int selected )
 static MENU_UPDATE_FUNC(waveform_print)
 {
     MENU_SET_VALUE(
@@ -1945,12 +1917,8 @@ static MENU_UPDATE_FUNC(waveform_print)
         waveform_size == 1 ? "Large" : 
         waveform_size == 2 ? "FullScreen" : "err"
     );
-    //MENU_SET_ICON (MNI_BOOL_GDR_EXPSIM(waveform_draw), 0);
 }
 
-
-//static void
-//global_draw_display( void * priv, int x, int y, int selected )
 static MENU_UPDATE_FUNC(global_draw_display)
 {
     MENU_SET_VALUE (
@@ -1959,40 +1927,16 @@ static MENU_UPDATE_FUNC(global_draw_display)
     );
 }
 
-/*
-//static void
-//waveform_display( void * priv, int x, int y, int selected )
-static MENU_UPDATE_FUNC(waveform_display)
-{
-    MENU_SET_VALUE(
-        "Waveform    : %s",
-        *(unsigned*) priv ? "ON " : "OFF"
-    );
-    //MENU_SET_ICON(MNI_BOOL_GDR_EXPSIM(CURRENT_VALUE, 0);
-}*/
-
-//static void
-//vectorscope_display( void * priv, int x, int y, int selected )
 static MENU_UPDATE_FUNC(vectorscope_display)
 {
     MENU_SET_VALUE(
         "Vectorscope : %s",
         CURRENT_VALUE ? "ON " : "OFF"
     );
-    //MENU_SET_ICON(MNI_BOOL_GDR_EXPSIM(CURRENT_VALUE, 0);
 }
 
 
 #ifdef CONFIG_40D
-/*
-void
-clearscreen_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-*/
 static MENU_UPDATE_FUNC(clearscreen_display)
 {
     int mode = clearscreen;
@@ -2007,15 +1951,6 @@ static MENU_UPDATE_FUNC(clearscreen_display)
 }
 #endif
 
-/*
-static void
-spotmeter_menu_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-*/
 static MENU_UPDATE_FUNC(spotmeter_menu_display)
 {
     MENU_SET_VALUE(
@@ -2029,7 +1964,6 @@ static MENU_UPDATE_FUNC(spotmeter_menu_display)
         spotmeter_formula == 5 ? "HSL" :
         /*spotmeter_formula == 6*/"HSV"
     );
-    //MENU_SET_ICON (MNI_BOOL_GDR_EXPSIM(spotmeter_draw), 0);
 }
 
 // for surface cleaning
