@@ -121,6 +121,12 @@ int fputs(FILE* unused, const char * fmt)
     return 0;
 }
 
+int putchar(int c)
+{
+    console_puts(&c);
+    return c;
+}
+
 // no file I/O for now, but feel free to implement it
 
 /* i don't really understand FIO_SeekSkipFile etc yet, so build seek-able open function */
@@ -202,12 +208,34 @@ int lseek(int fd, int offset, int whence)
     return handle->pos;
 }
 
+FILE* fopen(const char * filename, const char * modes)
+{
+    console_printf("fopen('%s', '%s')\n", filename, modes);
+    if (modes[0] == 'r')
+        return FIO_Open(filename, O_RDONLY | O_SYNC);
+    else if (modes[0] == 'w')
+        return FIO_CreateFileEx(filename);
+    else printf("fopen: %s n/a\n", modes);
+    return NULL;
+}
+
+int fclose(FILE* stream)
+{
+    FIO_CloseFile(stream);
+    return 0;
+}
+
+size_t fread(void* ptr, size_t size, size_t count, FILE* stream)
+{
+    return FIO_ReadFile(stream, ptr, size * count);
+}
+
+size_t fwrite( const void * ptr, size_t size, size_t count, FILE * stream )
+{
+    return FIO_WriteFile(stream, ptr, size * count);
+}
 
 #define DUMMY(x) int x() { printf( #x "\n "); return 0; }
-
-DUMMY(fclose)
-DUMMY(fopen)
-DUMMY(fwrite)
 
 DUMMY(fputc)
 DUMMY(fdopen)
@@ -216,10 +244,12 @@ DUMMY(getenv)
 DUMMY(time)
 DUMMY(localtime)
 DUMMY(getcwd)
+DUMMY(system)
 int _impure_ptr;
 
-/*
 
+
+/*
 for debugging: compile TCC with CFLAGS+=-finstrument-functions
 
 void __cyg_profile_func_enter(void *this_fn, void *call_site)
