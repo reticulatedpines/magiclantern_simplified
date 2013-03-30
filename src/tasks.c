@@ -136,7 +136,7 @@ MENU_UPDATE_FUNC(tasks_print)
     
 #if defined(CONFIG_VXWORKS)
 
-    if (selected) 
+    if (entry->selected) 
     {
         bmp_fill(40, 0, 0, 720, 430);
     }

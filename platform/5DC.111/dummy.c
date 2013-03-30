@@ -99,7 +99,7 @@ void set_movie_digital_iso_gain(int gain) {};
 
 int bmp_is_on() { return 1; }
 
-void* shoot_malloc(int size) { return AllocateMemory(size); }
+void* shoot_malloc(size_t size) { return AllocateMemory(size); }
 void shoot_free(void* ptr) { FreeMemory(ptr); }
 
 void display_gain_toggle(){};

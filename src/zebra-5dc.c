@@ -165,6 +165,13 @@ void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
     *B = COERCE(Y + yuv2rgb_BU[U & 0xFF], 0, 255); \
 }
 
+void uyvy_split(uint32_t uyvy, int* Y, int* U, int* V) // maybe wrong!!!
+{
+    *Y = UYVY_GET_AVG_Y(uyvy);
+    *U = (int)(int8_t)UYVY_GET_U(uyvy);
+    *V = (int)(int8_t)UYVY_GET_V(uyvy);
+}
+
 int yuv411_to_422(uint32_t addr)
 {
     // 4 6  8 A  0 2 
@@ -334,6 +341,8 @@ static CONFIG_INT( "waveform.size", waveform_size,  0 );
 //~ static CONFIG_INT( "waveform.x",    waveform_x, 720 - WAVEFORM_WIDTH );
 //~ static CONFIG_INT( "waveform.y",    waveform_y, 480 - 50 - WAVEFORM_WIDTH );
 static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_ALMOST_BLACK ); // solid black
+
+int histogram_or_small_waveform_enabled() { return (hist_draw || (waveform_draw && !waveform_size)) && get_expsim(); }
 
 static CONFIG_INT( "vectorscope.draw", vectorscope_draw, 0);
 
@@ -973,7 +982,7 @@ hist_draw_image(
                 unsigned int over_b = hist_b[i] + hist_b[i-1] + hist_b[i-2];
                 if (over_r > thr) hist_dot(x_origin + HIST_WIDTH/2 - 25, yw, COLOR_RED,       bg, hist_dot_radius(over_r, hist_total_px), hist_dot_label(over_r, hist_total_px));
                 if (over_g > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,    bg, hist_dot_radius(over_g, hist_total_px), hist_dot_label(over_g, hist_total_px));
-                if (over_b > thr) hist_dot(x_origin + HIST_WIDTH/2 + 25, yw, COLOR_LIGHTBLUE, bg, hist_dot_radius(over_b, hist_total_px), hist_dot_label(over_b, hist_total_px));
+                if (over_b > thr) hist_dot(x_origin + HIST_WIDTH/2 + 25, yw, COLOR_LIGHT_BLUE, bg, hist_dot_radius(over_b, hist_total_px), hist_dot_label(over_b, hist_total_px));
             }
             else
             {
@@ -1684,10 +1693,11 @@ highlight_luma_range(int lo, int hi, int color1, int color2)
     }
 }
 
-static void
-zebra_draw_display( void * priv, int x, int y, int selected )
+//static void
+//zebra_draw_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(zebra_draw_display)
 {
-    unsigned z = *(unsigned*) priv;
+    unsigned z = CURRENT_VALUE;
     
     int over_disabled = (zebra_level_hi > 100);
     int under_disabled = (zebra_level_lo == 0);
@@ -1697,11 +1707,11 @@ zebra_draw_display( void * priv, int x, int y, int selected )
     
     if (!z)
     {
-        STR_APPEND(msg, "OFF");
+        MENU_APPEND_VALUE(msg, "OFF");
     }
     else
     {
-        STR_APPEND(msg,
+        MENU_SET_VALUE(msg,
             "%s, ",
             zebra_colorspace == 0 ? "Luma" :
             zebra_colorspace == 1 ? "RGB" : "LumaFast"
@@ -1709,58 +1719,48 @@ zebra_draw_display( void * priv, int x, int y, int selected )
     
         if (over_disabled)
         {
-            STR_APPEND(msg, 
+            MENU_APPEND_VALUE(msg, 
                 "under %d%%",
                 zebra_level_lo
             );
         }
         else if (under_disabled)
         {
-            STR_APPEND(msg, 
+            MENU_APPEND_VALUE(msg, 
                 "over %d%%",
                 zebra_level_hi
             );
         }
         else
         {
-            STR_APPEND(msg, 
+            MENU_APPEND_VALUE(msg, 
                 "%d..%d%%",
                 zebra_level_lo, zebra_level_hi
             );
         }
     }
-    bmp_printf(
-        MENU_FONT,
-        x, y,
+	MENU_SET_VALUE(
         "%s", 
         msg
     );
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(z));
+    //MENU_SET_ICON(MNI_BOOL_GDR_EXPSIM(z), 0);
 }
 
-static void
-zebra_level_display( void * priv, int x, int y, int selected )
+//static void
+//zebra_level_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(zebra_level_display)
 {
-    unsigned level = *(unsigned*) priv;
+    unsigned level = CURRENT_VALUE;
     if (level == 0 || level > 100)
     {
-            bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "%s : Disabled",
-            priv == &zebra_level_lo ? "Underexposure" : 
-                                      "Overexposure "
-        );
-        menu_draw_icon(x, y, MNI_DISABLE, 0);
+        MENU_SET_VALUE("Disabled");
+        MENU_SET_ICON(MNI_PERCENT_OFF, 0);
+        MENU_SET_ENABLED(0);
     }
     else
     {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "%s : %d%% (%d)",
-            priv == &zebra_level_lo ? "Underexposure" : 
-                                      "Overexposure ",
+        MENU_SET_VALUE(
+            "%d%% (%d)",
             level, 0, 
             (level * 255 + 50) / 100
         );
@@ -1791,35 +1791,32 @@ static void falsecolor_palette_preview(int x, int y)
     }
 }
 
-static void
-falsecolor_display( void * priv, int x, int y, int selected )
+//static void
+//falsecolor_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(falsecolor_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "False Color : %s",
-        falsecolor_draw ? falsecolor_palette_name() : "OFF"
-    );
-    if (falsecolor_draw)
-        falsecolor_palette_preview(x, y);
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(falsecolor_draw));
-}
-
-static void
-falsecolor_display_palette( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Palette : %s",
+    MENU_SET_VALUE(
         falsecolor_palette_name()
     );
-    falsecolor_palette_preview(x - 420, y + font_large.height + 10);
+    if (falsecolor_draw)
+        falsecolor_palette_preview(info->x, info->y);
+    //MENU_SET_ICON (MNI_BOOL_GDR_EXPSIM(falsecolor_draw), 0);
+}
+
+//static void
+//falsecolor_display_palette( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(falsecolor_display_palette)
+{
+    MENU_SET_VALUE(
+        falsecolor_palette_name()
+    );
+    falsecolor_palette_preview(info->x - 420, info->y + font_large.height + 10);
 }
 
 /*
-static void
-focus_debug_display( void * priv, int x, int y, int selected )
+//static void
+//focus_debug_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(focus_debug_display)
 {
     unsigned fc = *(unsigned*) priv;
     bmp_printf(
@@ -1830,14 +1827,13 @@ focus_debug_display( void * priv, int x, int y, int selected )
     );
 }*/
 
-static void
-focus_peaking_display( void * priv, int x, int y, int selected )
+//static void
+//focus_peaking_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(focus_peaking_display)
 {
-    unsigned f = *(unsigned*) priv;
+    unsigned f = CURRENT_VALUE;
     if (f)
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
+        MENU_SET_VALUE(
             "Focus Peak  : ON,%d.%d,%s%s",
             focus_peaking_pthr / 10, focus_peaking_pthr % 10, 
             focus_peaking_color == 0 ? "R" :
@@ -1850,13 +1846,12 @@ focus_peaking_display( void * priv, int x, int y, int selected )
             focus_peaking_color == 7 ? "local" : "err",
             focus_peaking_grayscale ? ",Gray" : ""
         );
+        /*
     else
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
+        MENU_SET_VALUE (
             "Focus Peak  : OFF"
         );
-    menu_draw_icon(x, y, MNI_BOOL_GDR(f));
+    MENU_SET_ICON(MNI_BOOL_GDR(f), 0);*/
 }
 
 static void focus_peaking_adjust_thr(void* priv, int delta)
@@ -1868,8 +1863,9 @@ static void focus_peaking_adjust_thr(void* priv, int delta)
 
 
 /*
-static void
-focus_graph_display( void * priv, int x, int y, int selected )
+//static void
+//focus_graph_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(focus_graph_display)
 {
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
@@ -1880,8 +1876,9 @@ focus_graph_display( void * priv, int x, int y, int selected )
 }*/
 
 /*
-static void
-edge_display( void * priv, int x, int y, int selected )
+//static void
+//edge_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(edge_display)
 {
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
@@ -1891,8 +1888,10 @@ edge_display( void * priv, int x, int y, int selected )
     );
 }*/
 
-/*static void
-hist_display( void * priv, int x, int y, int selected )
+/*
+//static void
+//hist_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(hist_display)
 {
     bmp_printf(
         selected ? MENU_FONT_SEL : MENU_FONT,
@@ -1903,29 +1902,27 @@ hist_display( void * priv, int x, int y, int selected )
         waveform_draw == 1 ? "Small" : waveform_draw == 2 ? "Large" : waveform_draw == 3 ? "FullScreen" : "OFF"
     );
     //~ bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(hist_draw || waveform_draw));
+    menu_draw_icon(MNI_BOOL_GDR_EXPSIM(hist_draw || waveform_draw), 0);
 }*/
 
-static void
-hist_print( void * priv, int x, int y, int selected )
+//static void
+//hist_print( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(hist_print)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
+    MENU_SET_VALUE(
         "Histogram   : %s%s%s",
         hist_draw == 0 ? "OFF" : hist_colorspace == 0 ? "Luma" : "RGB",
         hist_draw == 0 ? "" : hist_log ? ",Log" : ",Lin",
         hist_draw && hist_warn ? ",clip warn" : ""
     );
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(hist_draw));
+    //MENU_SET_ICON(MNI_BOOL_GDR_EXPSIM(hist_draw), 0);
 }
 
-static void
-hist_warn_display( void * priv, int x, int y, int selected )
+//static void
+//hist_warn_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(hist_warn_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
+    MENU_SET_VALUE(
         "Clip warning  : %s",
         hist_warn == 0 ? "OFF" :
         hist_warn == 1 ? "0.001% px" :
@@ -1934,62 +1931,60 @@ hist_warn_display( void * priv, int x, int y, int selected )
         hist_warn == 4 ? "1% px" :
                          "Gradual"
     );
-    menu_draw_icon(x, y, MNI_BOOL(hist_warn), 0);
+    //MENU_SET_ICON(MNI_BOOL(hist_warn), 0);
 }
 
-static void
-waveform_print( void * priv, int x, int y, int selected )
+//static void
+//waveform_print( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(waveform_print)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
+    MENU_SET_VALUE(
         "Waveform    : %s",
         waveform_draw == 0 ? "OFF" : 
         waveform_size == 0 ? "Small" : 
         waveform_size == 1 ? "Large" : 
         waveform_size == 2 ? "FullScreen" : "err"
     );
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(waveform_draw));
+    //MENU_SET_ICON (MNI_BOOL_GDR_EXPSIM(waveform_draw), 0);
 }
 
 
-static void
-global_draw_display( void * priv, int x, int y, int selected )
+//static void
+//global_draw_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(global_draw_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
+    MENU_SET_VALUE (
         "Show Overlay: %s",
         global_draw_mode == 0 ? "DirecPrint btn only" : "After taking a pic"
     );
 }
 
-/*static void
-waveform_display( void * priv, int x, int y, int selected )
+/*
+//static void
+//waveform_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(waveform_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
+    MENU_SET_VALUE(
         "Waveform    : %s",
         *(unsigned*) priv ? "ON " : "OFF"
     );
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(*(unsigned*) priv));
+    //MENU_SET_ICON(MNI_BOOL_GDR_EXPSIM(CURRENT_VALUE, 0);
 }*/
 
-static void
-vectorscope_display( void * priv, int x, int y, int selected )
+//static void
+//vectorscope_display( void * priv, int x, int y, int selected )
+static MENU_UPDATE_FUNC(vectorscope_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
+    MENU_SET_VALUE(
         "Vectorscope : %s",
-        *(unsigned*) priv ? "ON " : "OFF"
+        CURRENT_VALUE ? "ON " : "OFF"
     );
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(*(unsigned*) priv));
+    //MENU_SET_ICON(MNI_BOOL_GDR_EXPSIM(CURRENT_VALUE, 0);
 }
 
 
 #ifdef CONFIG_40D
+/*
 void
 clearscreen_display(
     void *          priv,
@@ -1997,11 +1992,11 @@ clearscreen_display(
     int         y,
     int         selected
 )
+*/
+static MENU_UPDATE_FUNC(clearscreen_display)
 {
     int mode = clearscreen;
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
+    MENU_SET_VALUE(
         "Clear overlays : %s",
         //~ mode ? "ON (HalfShutter)" : "OFF"
         mode == 0 ? "OFF" : 
@@ -2012,7 +2007,7 @@ clearscreen_display(
 }
 #endif
 
-
+/*
 static void
 spotmeter_menu_display(
     void *          priv,
@@ -2020,11 +2015,10 @@ spotmeter_menu_display(
     int         y,
     int         selected
 )
+*/
+static MENU_UPDATE_FUNC(spotmeter_menu_display)
 {
-
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
+    MENU_SET_VALUE(
         "Spotmeter   : %s",
         spotmeter_draw == 0    ? "OFF" : 
         spotmeter_formula == 0 ? "Percent" :
@@ -2035,7 +2029,7 @@ spotmeter_menu_display(
         spotmeter_formula == 5 ? "HSL" :
         /*spotmeter_formula == 6*/"HSV"
     );
-    menu_draw_icon(x, y, MNI_BOOL_GDR_EXPSIM(spotmeter_draw));
+    //MENU_SET_ICON (MNI_BOOL_GDR_EXPSIM(spotmeter_draw), 0);
 }
 
 // for surface cleaning
@@ -2264,8 +2258,7 @@ struct menu_entry zebra_menus[] = {
         .name = "Show Overlay",
         .priv       = &global_draw_mode,
         .max = 1,
-        //~ .select     = menu_binary_toggle,
-        .display    = global_draw_display,
+        .update    = global_draw_display,
         .icon_type = IT_DICE,
         .help = "When to display ML overlay graphics (zebra, histogram...)",
         //.essential = FOR_LIVEVIEW,
@@ -2273,8 +2266,7 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Zebras",
         .priv       = &zebra_draw,
-        .select     = menu_binary_toggle,
-        .display    = zebra_draw_display,
+        .update    = zebra_draw_display,
         .help = "Zebra stripes: show overexposed or underexposed areas.",
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
         .children =  (struct menu_entry[]) {
@@ -2283,7 +2275,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zebra_colorspace, 
                 .max = 1,
                 .choices = (const char *[]) {"Luma", "RGB", "Luma Fast"},
-                .icon_type = IT_NAMED_COLOR,
+                .icon_type = IT_DICE,
                 .help = "Luma: red/blue. RGB: color is reverse of clipped channel.",
             },
             {
@@ -2291,7 +2283,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zebra_level_lo, 
                 .min = 0,
                 .max = 20,
-                .display = zebra_level_display,
+                .update = zebra_level_display,
                 .help = "Underexposure threshold.",
             },
             {
@@ -2299,7 +2291,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &zebra_level_hi,
                 .min = 70,
                 .max = 101,
-                .display = zebra_level_display,
+                .update = zebra_level_display,
                 .help = "Overexposure threshold.",
             },
             MENU_EOL
@@ -2308,8 +2300,7 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Focus Peak",
         .priv           = &focus_peaking,
-        .display        = focus_peaking_display,
-        .select         = menu_binary_toggle,
+        .update        = focus_peaking_display,
         .help = "Show which parts of the image are in focus.",
         .submenu_width = 650,
         //.essential = FOR_LIVEVIEW,
@@ -2335,7 +2326,7 @@ struct menu_entry zebra_menus[] = {
                 .max = 7,
                 .choices = (const char *[]) {"Red", "Green", "Blue", "Cyan", "Magenta", "Yellow", "Global Focus", "Local Focus"},
                 .help = "Focus peaking color (fixed or color coding).",
-                .icon_type = IT_NAMED_COLOR,
+                .icon_type = IT_DICE,
             },
             {
                 .name = "Grayscale img.", 
@@ -2355,8 +2346,7 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Spotmeter",
         .priv           = &spotmeter_draw,
-        .select         = menu_binary_toggle,
-        .display        = spotmeter_menu_display,
+        .update        = spotmeter_menu_display,
         .help = "Exposure aid: display brightness from a small spot.",
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
         .children =  (struct menu_entry[]) {
@@ -2375,8 +2365,7 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "False color",
         .priv       = &falsecolor_draw,
-        .display    = falsecolor_display,
-        .select     = menu_binary_toggle,
+        .update    = falsecolor_display,
         .submenu_height = 160,
         .help = "Exposure aid: each brightness level is color-coded.",
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
@@ -2386,7 +2375,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &falsecolor_palette, 
                 .max = COUNT(false_colour)-1,
                 .icon_type = IT_DICE,
-                .display = falsecolor_display_palette,
+                .update = falsecolor_display_palette,
                 .help = "False color palettes for exposure, banding, green screen...",
             },
             MENU_EOL
@@ -2398,7 +2387,7 @@ struct menu_entry zebra_menus[] = {
         .priv       = &hist_draw,
         .select     = zebra_toggle,
         .select_auto = waveform_toggle,
-        .display    = hist_display,
+        .update    = hist_display,
         .help = "Histogram [SET] and Waveform [Q] for evaluating exposure.",
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
     },
@@ -2407,7 +2396,7 @@ struct menu_entry zebra_menus[] = {
         .name = "Histogram",
         .priv       = &hist_draw,
         .max = 1,
-        .display = hist_print,
+        .update = hist_print,
         .help = "Exposure aid: shows the distribution of brightness levels.",
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
         .children =  (struct menu_entry[]) {
@@ -2416,7 +2405,7 @@ struct menu_entry zebra_menus[] = {
                 .priv = &hist_colorspace, 
                 .max = 1,
                 .choices = (const char *[]) {"Luma", "RGB"},
-                .icon_type = IT_NAMED_COLOR,
+                .icon_type = IT_DICE,
                 .help = "Color space for histogram: Luma channel (YUV) / RGB.",
             },
             {
@@ -2431,7 +2420,7 @@ struct menu_entry zebra_menus[] = {
                 .name = "Clip warning",
                 .priv = &hist_warn, 
                 .max = 5,
-                .display = hist_warn_display,
+                .update = hist_warn_display,
                 .help = "Display warning dots when one color channel is clipped.",
             },
             MENU_EOL
@@ -2440,7 +2429,7 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Waveform",
         .priv       = &waveform_draw,
-        .display = waveform_print,
+        .update = waveform_print,
         .max = 1,
         .help = "Exposure aid: useful for checking overall brightness.",
         .children =  (struct menu_entry[]) {
@@ -2458,32 +2447,32 @@ struct menu_entry zebra_menus[] = {
     },
     {
         .name = "Vectorscope",
-        .display = vectorscope_display,
+        .update = vectorscope_display,
         .priv       = &vectorscope_draw,
         .max = 1,
         .help = "Shows color distribution as U-V plot. For grading & WB.",
         //.essential = FOR_LIVEVIEW,
     },
     //~ {
-        //~ .display        = crop_off_display,
+        //~ .update        = crop_off_display,
         //~ .select         = crop_off_toggle,
         //~ .select_reverse = crop_off_toggle_rev, 
     //~ },
     
     //~ {
         //~ .priv = "[debug] HDMI test", 
-        //~ .display = menu_print, 
+        //~ .update = menu_print, 
         //~ .select = hdmi_test_toggle,
     //~ }
     //~ {
         //~ .priv       = &edge_draw,
         //~ .select     = menu_binary_toggle,
-        //~ .display    = edge_display,
+        //~ .update    = edge_display,
     //~ },
     //~ {
         //~ .priv       = &waveform_draw,
         //~ .select     = menu_binary_toggle,
-        //~ .display    = waveform_display,
+        //~ .update    = waveform_display,
     //~ },
 };
 

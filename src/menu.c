@@ -3470,6 +3470,7 @@ menu_redraw_do()
     
     bmp_on();
 
+#ifdef FEATURE_COLOR_SCHEME
     if (!bmp_color_scheme)
     {
         // adjust some colors for better contrast
@@ -3489,6 +3490,7 @@ menu_redraw_do()
     #ifdef CONFIG_VXWORKS
     set_ml_palette();
     #endif
+#endif    
 
 }
 
@@ -3753,7 +3755,7 @@ handle_ml_menu_keys(struct event * event)
         give_semaphore(gui_sem);
         return 1;
     
-    #ifndef CONFIG_500D // LV is Q
+    #if !defined(CONFIG_500D) && !defined(CONFIG_5DC) // LV is Q
     case BGMT_LV:
         if (!lv) return 1;
         // else fallthru
