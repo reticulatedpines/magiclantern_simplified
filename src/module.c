@@ -544,71 +544,80 @@ static void module_submenu_update(int mod_number)
         module_parminfo_t *parms = module_list[mod_number].params;
         module_prophandler_t **props = module_list[mod_number].prop_handlers;
 
-        if(module_submenu[entry].priv != MENU_EOL_PRIV)
+        if (strings)
         {
-            module_submenu[entry].name = "----Information---";
-            module_submenu[entry].priv = (void*)0;
-            module_submenu[entry].update = module_menu_update_parameter;
-            module_submenu[entry].select = module_menu_select_empty;
-            module_submenu[entry].shidden = 0;
-            entry++;
+            if(module_submenu[entry].priv != MENU_EOL_PRIV)
+            {
+                module_submenu[entry].name = "----Information---";
+                module_submenu[entry].priv = (void*)0;
+                module_submenu[entry].update = module_menu_update_parameter;
+                module_submenu[entry].select = module_menu_select_empty;
+                module_submenu[entry].shidden = 0;
+                entry++;
+            }
+            
+            while((strings->name != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
+            {
+                module_submenu[entry].name = strings->name;
+                module_submenu[entry].priv = (void*)strings->value;
+                module_submenu[entry].update = module_menu_update_parameter;
+                module_submenu[entry].select = module_menu_select_empty;
+                module_submenu[entry].shidden = 0;
+                strings++;
+                entry++;
+            }
         }
         
-        while((strings->name != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
+        if (parms)
         {
-            module_submenu[entry].name = strings->name;
-            module_submenu[entry].priv = (void*)strings->value;
-            module_submenu[entry].update = module_menu_update_parameter;
-            module_submenu[entry].select = module_menu_select_empty;
-            module_submenu[entry].shidden = 0;
-            strings++;
-            entry++;
-        }
-        
-        if(module_submenu[entry].priv != MENU_EOL_PRIV)
-        {
-            module_submenu[entry].name = "----Parameters----";
-            module_submenu[entry].priv = (void*)0;
-            module_submenu[entry].update = module_menu_update_parameter;
-            module_submenu[entry].select = module_menu_select_empty;
-            module_submenu[entry].shidden = 0;
-            entry++;
-        }
+            if(module_submenu[entry].priv != MENU_EOL_PRIV)
+            {
+                module_submenu[entry].name = "----Parameters----";
+                module_submenu[entry].priv = (void*)0;
+                module_submenu[entry].update = module_menu_update_parameter;
+                module_submenu[entry].select = module_menu_select_empty;
+                module_submenu[entry].shidden = 0;
+                entry++;
+            }
 
-        while((parms->name != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
-        {
-            module_submenu[entry].name = parms->name;
-            module_submenu[entry].priv = (void*)parms->type;
-            module_submenu[entry].help = parms->desc;
-            module_submenu[entry].update = module_menu_update_parameter;
-            module_submenu[entry].select = module_menu_select_empty;
-            module_submenu[entry].shidden = 0;
-            parms++;
-            entry++;
+            while((parms->name != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
+            {
+                module_submenu[entry].name = parms->name;
+                module_submenu[entry].priv = (void*)parms->type;
+                module_submenu[entry].help = parms->desc;
+                module_submenu[entry].update = module_menu_update_parameter;
+                module_submenu[entry].select = module_menu_select_empty;
+                module_submenu[entry].shidden = 0;
+                parms++;
+                entry++;
+            }
         }
         
-        if(module_submenu[entry].priv != MENU_EOL_PRIV)
+        if (props)
         {
-            module_submenu[entry].name = "----Properties----";
-#if !defined(FEATURE_UNREGISTER_PROP)
-            module_submenu[entry].priv = " (no support)";
-#endif
-            module_submenu[entry].update = module_menu_update_parameter;
-            module_submenu[entry].select = module_menu_select_empty;
-            module_submenu[entry].shidden = 0;
-            entry++;
-        }
+            if(module_submenu[entry].priv != MENU_EOL_PRIV)
+            {
+                module_submenu[entry].name = "----Properties----";
+                #if !defined(FEATURE_UNREGISTER_PROP)
+                module_submenu[entry].priv = " (no support)";
+                #endif
+                module_submenu[entry].update = module_menu_update_parameter;
+                module_submenu[entry].select = module_menu_select_empty;
+                module_submenu[entry].shidden = 0;
+                entry++;
+            }
 
-        while((*props != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
-        {
-            module_submenu[entry].name = (*props)->name;
-            module_submenu[entry].priv = (void*)0;
-            module_submenu[entry].help = "";
-            module_submenu[entry].update = module_menu_update_parameter;
-            module_submenu[entry].select = module_menu_select_empty;
-            module_submenu[entry].shidden = 0;
-            props++;
-            entry++;
+            while((*props != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
+            {
+                module_submenu[entry].name = (*props)->name;
+                module_submenu[entry].priv = (void*)0;
+                module_submenu[entry].help = "";
+                module_submenu[entry].update = module_menu_update_parameter;
+                module_submenu[entry].select = module_menu_select_empty;
+                module_submenu[entry].shidden = 0;
+                props++;
+                entry++;
+            }
         }
     }
 
