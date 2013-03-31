@@ -3434,6 +3434,10 @@ menu_redraw_do()
                 }
 
                 if (beta_should_warn()) draw_beta_warning();
+                
+                #ifdef CONFIG_CONSOLE
+                console_draw_from_menu();
+                #endif
 
                 if (DOUBLE_BUFFERING)
                 {

@@ -178,9 +178,13 @@ void console_show_status()
     if (console_visible) bmp_printf(fnt, 720 - font_med.width * strlen(console_help_text), 480 - font_med.height, console_help_text);
 }
 
-static void console_draw()
+static void console_draw(int tiny)
 {
     int cbpos0 = mod((console_buffer_index / CONSOLE_W) * CONSOLE_W  + CONSOLE_W, BUFSIZE);
+    
+    /* display last two lines that actually contain something (don't display the cursor-only line) */
+    if (tiny && console_buffer_index % CONSOLE_W == 0)
+        cbpos0 -= CONSOLE_W;
 
     int skipped_lines = 0;
     int chopped_columns = 0;
@@ -200,29 +204,41 @@ static void console_draw()
     if (skipped_lines == CONSOLE_H) // nothing to show
         return;
     
+    if (tiny)
+        skipped_lines = CONSOLE_H - 2;
+    
     /* chop empty columns from the right */
     for (int j = CONSOLE_W-1; j > 0; j--)
     {
         int empty = 1;
-        for (int i = skipped_lines; i < CONSOLE_H; i++)
+        for (int i = skipped_lines; i < CONSOLE_H-1; i++)
             if (CONSOLE_BUFFER(cbpos0 + i*CONSOLE_W + j) != ' ')
                 { empty = 0; break; }
         if (empty) chopped_columns++;
         else break;
     }
+    chopped_columns = MIN(chopped_columns, CONSOLE_W - (console_buffer_index % CONSOLE_W));
     
     if (skipped_lines < 5) skipped_lines = 0;
     if (chopped_columns < 5) chopped_columns = 0;
 
     /* can we use large fonts? */
-    int can_use_large_font = (skipped_lines > 7 && chopped_columns > 25);
+    int can_use_large_font = (skipped_lines > 7 && chopped_columns > 25 && !tiny);
 
     /* top-left corner of "full" console (without lines/columns skipped) */
     unsigned x0 =  720/2 - fontspec_font(CONSOLE_FONT)->width * CONSOLE_W/2;
     unsigned y0 =  480/2 - fontspec_font(CONSOLE_FONT)->height * CONSOLE_H/2;
 
     /* correct y to account for skipped lines */
-    int yc = y0 + fontspec_font(CONSOLE_FONT)->height * skipped_lines;
+    int yc = y0;
+    if (tiny)
+    {
+        yc = gui_menu_shown() || MENU_MODE ? 435 : y0;
+    }
+    else
+    {
+        yc = y0 + fontspec_font(CONSOLE_FONT)->height * skipped_lines;
+    }
     if (can_use_large_font) yc -= (fontspec_font(FONT_LARGE)->height - fontspec_font(CONSOLE_FONT)->height) * (CONSOLE_H - skipped_lines);
 
     int fnt = FONT(can_use_large_font ? FONT_LARGE : CONSOLE_FONT,COLOR_WHITE, (lv || PLAY_OR_QR_MODE) ? COLOR_BG_DARK : COLOR_ALMOST_BLACK);
@@ -240,13 +256,14 @@ static void console_draw()
         canon_gui_enable_front_buffer(1); // force a redraw
         prev_w = w;
         prev_h = h;
-        return; // better luck next time :)
+        //return; // better luck next time :)
     }
+    else if (!tiny)
+        /* fixme: prevent Canon code from drawing over the console (ugly) */
+        canon_gui_disable_front_buffer();
     prev_w = w;
     prev_h = h;
 
-    /* prepare for display */
-    canon_gui_disable_front_buffer();
 
     bmp_draw_rect(60, xa, ya, w, h);
     bmp_draw_rect(COLOR_BLACK, xa-1, ya-1, w+2, h+2);
@@ -277,6 +294,10 @@ static void console_draw()
     }
 }
 
+void console_draw_from_menu()
+{
+    console_draw(1);
+}
 
 static void
 console_task( void* unused )
@@ -288,7 +309,7 @@ console_task( void* unused )
         // show the console only when there are no Canon dialogs on the screen
         if (console_visible && (display_idle() || is_pure_play_photo_or_movie_mode()))
         {
-            if (dirty) console_draw();
+            if (dirty) console_draw(0);
             dirty = 1;
         }
         else if (dirty)
@@ -296,6 +317,9 @@ console_task( void* unused )
             canon_gui_enable_front_buffer(1);
             dirty = 0;
         }
+        else if (console_visible && !gui_menu_shown())
+            console_draw(1);
+
 
         if (!gui_menu_shown() && strlen(console_status_text))
         {
@@ -306,4 +330,4 @@ console_task( void* unused )
     }
 }
 
-TASK_CREATE( "console_task", console_task, 0, 0x1f, 0x1000 );
+TASK_CREATE( "console_task", console_task, 0, 0x1d, 0x1000 );
