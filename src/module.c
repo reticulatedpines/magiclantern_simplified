@@ -18,9 +18,25 @@ static struct menu_entry module_menu[];
 
 CONFIG_INT("module.autoload", module_autoload_enabled, 0);
 
+static struct msg_queue * module_mq = 0;
+#define MSG_MODULE_LOAD_ALL 1
+#define MSG_MODULE_UNLOAD_ALL 2
+
+void module_load_all(void)
+{ 
+    msg_queue_post(module_mq, MSG_MODULE_LOAD_ALL); 
+}
+void module_unload_all(void)
+{
+    msg_queue_post(module_mq, MSG_MODULE_UNLOAD_ALL); 
+}
+
+static void _module_load_all(void);
+static void _module_unload_all(void);
+
 static int module_load_symbols(TCCState *s, char *filename)
 {
-    unsigned size = 0;
+    uint32_t size = 0;
     FILE* file = NULL;
     char *buf = NULL;
     uint32_t count = 0;
@@ -115,7 +131,7 @@ static int module_valid_filename(char* filename)
     return 0;
 }
 
-void module_load_all(void)
+static void _module_load_all(void)
 {
     TCCState *state = NULL;
     uint32_t module_cnt = 0;
@@ -124,7 +140,7 @@ void module_load_all(void)
 
     /* ensure all modules are unloaded */
     console_printf("Unloading modules...\n");
-    module_unload_all();
+    _module_unload_all();
 
     /* initialize linker */
     state = tcc_new();
@@ -301,7 +317,7 @@ void module_load_all(void)
     console_printf("Modules loaded\n");
 }
 
-void module_unload_all(void)
+static void _module_unload_all(void)
 {
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
     {
@@ -632,13 +648,11 @@ static void module_submenu_update(int mod_number)
 static MENU_SELECT_FUNC(module_menu_load)
 {
     module_load_all();
-    module_menu_update();
 }
 
 static MENU_SELECT_FUNC(module_menu_unload)
 {
     module_unload_all();
-    module_menu_update();
 }
 
 static MENU_SELECT_FUNC(module_open_submenu)
@@ -742,6 +756,7 @@ static struct menu_entry module_menu[] = {
 
 static void module_init()
 {
+    module_mq = (struct msg_queue *) msg_queue_create("module_mq", 1);
     menu_add("Modules", module_menu, COUNT(module_menu));
     module_menu_update();
 }
@@ -767,22 +782,44 @@ void module_load_task(void* unused)
             FIO_CloseFile(handle);
             
             /* now load modules */
-            module_load_all();
+            _module_load_all();
             module_menu_update();
         }
+    }
         
-        /* wait until clean shutdown */
-        TASK_LOOP
-        {    
-            msleep(100);
+    /* main loop, also wait until clean shutdown */
+    TASK_LOOP
+    {
+        int msg;
+        int err = msg_queue_receive(module_mq, (struct event**)&msg, 200);
+        if (err) continue;
+        
+        switch(msg)
+        {
+            case MSG_MODULE_LOAD_ALL:
+                _module_load_all();
+                module_menu_update();
+                break;
+
+            case MSG_MODULE_UNLOAD_ALL:
+                _module_unload_all();
+                module_menu_update();
+                beep();
+                break;
+            
+            default:
+                console_printf("invalid msg: %d\n", msg);
         }
-        
+    }
+
+    if(module_autoload_enabled)
+    {
         /* remove lockfile */
         FIO_RemoveFile(lockfile);
     }
 }
 
-TASK_CREATE("module_load_task", module_load_task, 0, 0x18, 0x2000 );
+TASK_CREATE("module_load_task", module_load_task, 0, 0x1e, 0x4000 );
 
 INIT_FUNC(__FILE__, module_init);
 
