@@ -67,9 +67,6 @@ ML_OBJS-y = \
 	tasks.o \
 	tskmon.o \
 	beep.o \
-	ptp.o \
-	ptp-ml.o \
-	ptp-chdk.o \
 	ptpbuf.o \
 	exmem.o \
 	vsync-lite.o \
@@ -86,7 +83,7 @@ include ../../Makefile.inc
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR     = 0xF8010000
-RESTARTSTART    = 0x00C80100
+RESTARTSTART    = 0x00C50100
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120
 

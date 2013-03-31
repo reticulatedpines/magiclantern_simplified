@@ -61,9 +61,14 @@ static uint8_t _reloc[ RELOCSIZE ];
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
     INSTR( rom_addr ) = BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
 
+#if defined(CONFIG_MEMPATCH_CHECK)
+uint32_t ml_used_mem = 0;
+uint32_t ml_reserved_mem = 0;
+#endif
 
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
+extern uint32_t _text_start[], _text_end[];
 
 /** Zeroes out bss */
 static inline void
@@ -687,6 +692,35 @@ my_init_task(int a, int b, int c, int d)
     #ifdef CONFIG_TSKMON
     tskmon_init();
     #endif
+    
+#if defined(CONFIG_MEMPATCH_CHECK)
+    /* get and check the reserved memory size for magic lantern to prevent invalid setups to crash camera */
+
+    uint32_t orig_instr = MEM(HIJACK_CACHE_HACK_BSS_END_ADDR);
+    uint32_t new_instr = HIJACK_CACHE_HACK_BSS_END_INSTR;
+    
+    /* check for the correct mov instruction */
+    if((orig_instr & 0xFFFFF000) != 0xE3A01000)
+    {
+        while(1);
+    }
+    uint32_t orig_rotate_imm = (orig_instr >> 8) & 0xF;
+    uint32_t orig_immed_8 = orig_instr & 0xFF;
+    uint32_t orig_end = ROR(orig_immed_8, 2 * orig_rotate_imm);
+    
+    uint32_t new_rotate_imm = (new_instr >> 8) & 0xF;
+    uint32_t new_immed_8 = new_instr & 0xFF;
+    uint32_t new_end = ROR(new_immed_8, 2 * new_rotate_imm);
+    
+    /* ToDo: check the memory size against ML binary size */
+    ml_reserved_mem = orig_end - new_end;
+    ml_used_mem = (uint32_t)&_bss_end - (uint32_t)&_text_start;
+    
+    if(ml_used_mem > ml_reserved_mem)
+    {
+        //while(1);
+    }
+#endif
     
     /* now patch init task and continue execution */
     cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, HIJACK_CACHE_HACK_BSS_END_INSTR, TYPE_ICACHE);

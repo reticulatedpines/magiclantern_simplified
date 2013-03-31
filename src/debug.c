@@ -2341,6 +2341,21 @@ static MENU_UPDATE_FUNC(meminfo_display)
     if (M < 1024*1024 || m < 128 * 1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
 #endif
 }
+
+#if defined(CONFIG_MEMPATCH_CHECK)
+extern uint32_t ml_reserved_mem;
+extern uint32_t ml_used_mem;
+
+static MENU_UPDATE_FUNC(meminfo_ml_display)
+{
+    MENU_SET_VALUE(
+        "%dK of %dK",
+        ml_used_mem/1024, ml_reserved_mem/1024
+    );
+    if (ml_reserved_mem < ml_used_mem) MENU_SET_WARNING(MENU_WARN_ADVICE, "ML uses too much memory!!.");
+}
+#endif
+
 #endif
 
 #ifdef FEATURE_SHOW_SHUTTER_COUNT
@@ -2666,7 +2681,7 @@ static struct menu_entry debug_menus[] = {
             {
                 .name = "Menu integrity test",
                 .select = (void(*)(void*,int))run_in_separate_task,
-                .priv = menu_self_test,
+                //.priv = menu_self_test,
                 .help = "Internal menu tests: duplicates, wrap around etc.",
             },
             #endif
@@ -2836,11 +2851,22 @@ static struct menu_entry debug_menus[] = {
         .icon_type = IT_ALWAYS_ON,
 #ifdef CONFIG_5DC
         .help = "Free memory, shared between ML and Canon firmware.",
-#else
+#elif !defined(CONFIG_MEMPATCH_CHECK)
         .help = "Free memory available for malloc and AllocateMemory.",
+#else
+        .help = "Free memory available for malloc and AllocateMemory plus ML reserved mem.",
 #endif
         //.essential = 0,
     },
+#if defined(CONFIG_MEMPATCH_CHECK)
+    {
+        .name = "ML Usage",
+        .update = meminfo_ml_display,
+        .icon_type = IT_ALWAYS_ON,
+        .help = "Memory reserved and used by ML's binary.",
+        //.essential = 0,
+    },
+#endif
 #endif
 #ifdef FEATURE_SHOW_SHUTTER_COUNT
     {

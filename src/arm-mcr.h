@@ -203,6 +203,9 @@ sei( uint32_t old_irq )
     | ((( ((uint32_t)dest) - ((uint32_t)pc) - 8 ) >> 2) & 0x00FFFFFF) \
     )
 
+#define ROR(val,count)   (ROR32(val,(count)%32))
+#define ROR32(val,count) (((val) >> (count))|((val) << (32-(count))))
+
 /** Simple boot loader memcpy.
  *
  * \note This is not general purpose; len must be > 0 and must be % 4
