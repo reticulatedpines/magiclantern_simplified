@@ -251,6 +251,8 @@ static void _module_load_all(void)
             module_list[mod].params = tcc_get_symbol(state, module_info_name);
             snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_PROPHANDLERS_PREFIX), module_list[mod].name);
             module_list[mod].prop_handlers = tcc_get_symbol(state, module_info_name);
+            snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_CBR_PREFIX), module_list[mod].name);
+            module_list[mod].cbr = tcc_get_symbol(state, module_info_name);
 
             /* check if the module symbol is defined. simple check for valid memory address just in case. */
             if((uint32_t)module_list[mod].info > 0x1000)
@@ -265,6 +267,7 @@ static void _module_load_all(void)
                         console_printf("  [i] strings at: 0x%08X\n", (uint32_t)module_list[mod].strings);
                         console_printf("  [i] params  at: 0x%08X\n", (uint32_t)module_list[mod].params);
                         console_printf("  [i] props   at: 0x%08X\n", (uint32_t)module_list[mod].prop_handlers);
+                        console_printf("  [i] cbr     at: 0x%08X\n", (uint32_t)module_list[mod].cbr);
                         console_printf("-----------------------------\n");
                         if(module_list[mod].info->init)
                         {
@@ -339,6 +342,7 @@ static void _module_unload_all(void)
             module_list[mod].strings = NULL;
             module_list[mod].params = NULL;
             module_list[mod].prop_handlers = NULL;
+            module_list[mod].cbr = NULL;
             strcpy(module_list[mod].name, "");
             strcpy(module_list[mod].filename, "");
         }
@@ -455,6 +459,27 @@ int module_unload(void *module)
     return 0;
 }
 
+/* execute all callback routines of given type. maybe it will get extended to support varargs */
+int module_exec_cbr(unsigned int type)
+{
+    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    {
+        module_cbr_t *cbr = module_list[mod].cbr;
+        if(module_list[mod].valid && cbr)
+        {
+            while(cbr->name)
+            {
+                if(cbr->type == type)
+                {
+                    cbr->handler(cbr->ctx);
+                }
+                cbr++;
+            }
+        }
+    }
+    
+    return 0;
+}
 
 
 static MENU_UPDATE_FUNC(module_menu_update_autoload)
@@ -566,6 +591,7 @@ static void module_submenu_update(int mod_number)
     {
         module_strpair_t *strings = module_list[mod_number].strings;
         module_parminfo_t *parms = module_list[mod_number].params;
+        module_cbr_t *cbr = module_list[mod_number].cbr;
         module_prophandler_t **props = module_list[mod_number].prop_handlers;
 
         if (strings)
@@ -617,7 +643,7 @@ static void module_submenu_update(int mod_number)
             }
         }
         
-        if (props)
+        if (props && *props)
         {
             if(module_submenu[entry].priv != MENU_EOL_PRIV)
             {
@@ -640,6 +666,31 @@ static void module_submenu_update(int mod_number)
                 module_submenu[entry].select = module_menu_select_empty;
                 module_submenu[entry].shidden = 0;
                 props++;
+                entry++;
+            }
+        }
+        
+        if (cbr)
+        {
+            if(module_submenu[entry].priv != MENU_EOL_PRIV)
+            {
+                module_submenu[entry].name = "----Callbacks-----";
+                module_submenu[entry].priv = (void*)0;
+                module_submenu[entry].update = module_menu_update_parameter;
+                module_submenu[entry].select = module_menu_select_empty;
+                module_submenu[entry].shidden = 0;
+                entry++;
+            }
+
+            while((cbr->name != NULL) && (module_submenu[entry].priv != MENU_EOL_PRIV))
+            {
+                module_submenu[entry].name = cbr->name;
+                module_submenu[entry].priv = (void*)cbr->symbol;
+                module_submenu[entry].help = "";
+                module_submenu[entry].update = module_menu_update_parameter;
+                module_submenu[entry].select = module_menu_select_empty;
+                module_submenu[entry].shidden = 0;
+                cbr++;
                 entry++;
             }
         }
@@ -678,6 +729,45 @@ static struct menu_entry module_submenu[] = {
             .update = module_menu_update_autoload,
             .select = module_menu_select_empty,
             .help = "Load automatically on startup. (Not implemented yet)",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
+        },
+        {
+            .help = "",
         },
         {
             .help = "",

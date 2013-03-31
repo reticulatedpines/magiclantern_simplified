@@ -33,6 +33,10 @@
 #include "gui.h"
 #include "math.h"
 
+#if defined(CONFIG_MODULES)
+#include "module.h"
+#endif
+
 static CONFIG_INT( "shoot.num", pics_to_take_at_once, 0);
 static CONFIG_INT( "shoot.af",  shoot_use_af, 0 );
 static int snap_sim = 0;
@@ -355,6 +359,9 @@ seconds_clock_task( void* unused )
         static int prev_s_clock = 0;
         if (prev_s_clock != seconds_clock)
         {
+#if defined(CONFIG_MODULES)
+            module_exec_cbr(CBR_SECONDS_CLOCK);
+#endif
             do_this_every_second();
             prev_s_clock = seconds_clock;
         }
@@ -6896,6 +6903,10 @@ shoot_task( void* unused )
 
         /* when we received a message, redraw immediately */
         if (k%5 == 0 || !err) misc_shooting_info();
+
+#if defined(CONFIG_MODULES)
+        module_exec_cbr(CBR_SHOOT_TASK);
+#endif
 
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);
