@@ -196,6 +196,14 @@ PUB_FUNC char *tcc_fileextension (const char *name)
 #undef malloc
 #undef realloc
 
+/*
+#define malloc(len)         memcheck_malloc(len,__FILE__,__LINE__,1)
+#define free(buf)           memcheck_free(buf,1)
+
+#define AllocateMemory(len) memcheck_malloc(len,__FILE__,__LINE__,0)
+#define FreeMemory(buf)     memcheck_free(buf,0)
+*/
+
 #ifdef MEM_DEBUG
 ST_DATA int mem_cur_size;
 ST_DATA int mem_max_size;
@@ -207,14 +215,14 @@ PUB_FUNC void tcc_free(void *ptr)
 #ifdef MEM_DEBUG
     mem_cur_size -= malloc_usable_size(ptr);
 #endif
-    //~ printf("tcc_free %x\n ", ptr);
+    //~ printf("tcc_free %x [%d]\n ", ptr, GetFreeMemForAllocateMemory());
     if (ptr) FreeMemory(ptr);
 }
 
 PUB_FUNC void *tcc_malloc(unsigned long size)
 {
     void *ptr;
-    //~ printf("tcc_malloc %d\n ", size);
+    //~ printf("tcc_malloc %d [%d]\n ", size, GetFreeMemForAllocateMemory());
     ptr = AllocateMemory(size);
     if (!ptr && size)
         tcc_error("memory full");
@@ -564,7 +572,7 @@ static void strcat_vprintf(char *buf, int buf_size, const char *fmt, va_list ap)
 {
     int len;
     len = strlen(buf);
-    vsnprintf(buf + len, buf_size - len, fmt, ap);
+    vsnprintf(buf + len, buf_size - len - 1, fmt, ap);
 }
 
 static void strcat_printf(char *buf, int buf_size, const char *fmt, ...)
@@ -585,7 +593,11 @@ static void error_sprint_line(char* buf, int size, BufferedFile * f)
     
     char* pos = linepos;
     while (pos < (char*)(f->buf_end) && *pos != '\n')
-        strcat_printf(buf, size, "%c", *pos++);
+    {
+        // workaround for missing %s in Canon's vnsprintf
+        int chr = *pos++;
+        strcat_printf(buf, size, "%s", &chr);
+    }
 
     strcat_printf(buf, size, "\n");
 
@@ -598,7 +610,7 @@ static void error_sprint_line(char* buf, int size, BufferedFile * f)
 
 static void error1(TCCState *s1, int is_warning, const char *fmt, va_list ap)
 {
-    char buf[2048];
+    char buf[256];
     BufferedFile **pf, *f;
     
     buf[0] = '\0';
@@ -627,7 +639,7 @@ static void error1(TCCState *s1, int is_warning, const char *fmt, va_list ap)
 
     if (!s1->error_func) {
         /* default case: stderr */
-        fprintf(stderr, "%s\n", buf);
+        printf("%s\n", buf);
     } else {
         s1->error_func(s1->error_opaque, buf);
     }
