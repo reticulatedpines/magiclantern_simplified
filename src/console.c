@@ -211,7 +211,7 @@ static void console_draw(int tiny)
     for (int j = CONSOLE_W-1; j > 0; j--)
     {
         int empty = 1;
-        for (int i = skipped_lines; i < CONSOLE_H-1; i++)
+        for (int i = skipped_lines; i < CONSOLE_H; i++)
             if (CONSOLE_BUFFER(cbpos0 + i*CONSOLE_W + j) != ' ')
                 { empty = 0; break; }
         if (empty) chopped_columns++;
@@ -296,7 +296,8 @@ static void console_draw(int tiny)
 
 void console_draw_from_menu()
 {
-    console_draw(1);
+    if (console_visible)
+        console_draw(1);
 }
 
 static void
