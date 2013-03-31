@@ -1,0 +1,56 @@
+333,335c333,335
+< #define tp_malloc(TP,x) tcc_mallocz(x)
+< #define tp_realloc(TP,x,y) tcc_realloc(x,y)
+< #define tp_free(TP,x) tcc_free(x)
+---
+> #define tp_malloc(TP,x) calloc((x),1)
+> #define tp_realloc(TP,x,y) realloc(x,y)
+> #define tp_free(TP,x) free(x)
+465,466c465
+<     printf("%s", e.string.val);
+<     //fwrite(e.string.val,1,e.string.len,stdout);
+---
+>     fwrite(e.string.val,1,e.string.len,stdout);
+764c763
+<     int h = l;// + (l >= 4?*(int*)v:0);
+---
+>     int h = l + (l >= 4?*(int*)v:0);
+1135,1137c1134
+<     //l = vsnprintf(NULL, 0, fmt,arg);
+<     char tmp[256];
+<     l = vsnprintf(tmp, sizeof(tmp), fmt,arg);
+---
+>     l = vsnprintf(NULL, 0, fmt,arg);
+1142c1139
+<     vsnprintf(s,l,fmt,arg);
+---
+>     vsprintf(s,fmt,arg);
+1418,1421c1415,1417
+<     //struct stat stbuf;
+<     //stat(fname, &stbuf);
+<     //l = stbuf.st_size;
+<     l = GetFileSize(fname);
+---
+>     struct stat stbuf;
+>     stat(fname, &stbuf);
+>     l = stbuf.st_size;
+1459,1460c1455,1456
+<     int size = GetFileSize(fname);
+<     return tp_number(size >= 0);
+---
+>     struct stat stbuf;
+>     return tp_number(!stat(fname,&stbuf));
+1464,1465c1460,1461
+<     //struct stat stbuf;
+<     //if (!stat(fname,&stbuf)) { return tp_number(stbuf.st_mtime); }
+---
+>     struct stat stbuf;
+>     if (!stat(fname,&stbuf)) { return tp_number(stbuf.st_mtime); }
+2116c2112
+<     tp_vm *tp = (tp_vm*)tp_malloc(NULL,sizeof(tp_vm));
+---
+>     tp_vm *tp = (tp_vm*)calloc(sizeof(tp_vm),1);
+2166c2162
+<     tp_free(NULL,tp);
+---
+>     free(tp);

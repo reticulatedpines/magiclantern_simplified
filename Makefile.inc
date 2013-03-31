@@ -219,6 +219,14 @@ ML_OBJS-$(CONFIG_MODULES) += \
 
 endif
 
+ifeq ($(CONFIG_TINYPY),y)
+LFLAGS += \
+	-u pow \
+	-u qsort \
+	-u strstr \
+	-u atof \
+
+endif
 
 #
 # here areMagic Lantern Core rules
@@ -392,6 +400,9 @@ DIET_OBJ = \
 	memcmp.o \
 	atoi.o \
 	atol.o \
+	strstr.o \
+	qsort.o \
+	atof.o \
 
 DIETLIBC_A = $(SRC_DIR)/libs/dietlib-0.33-none-eabi-Os/dietlibc.a
 
