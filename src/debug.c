@@ -2681,7 +2681,7 @@ static struct menu_entry debug_menus[] = {
             {
                 .name = "Menu integrity test",
                 .select = (void(*)(void*,int))run_in_separate_task,
-                //.priv = menu_self_test,
+                .priv = menu_self_test,
                 .help = "Internal menu tests: duplicates, wrap around etc.",
             },
             #endif
@@ -2851,16 +2851,14 @@ static struct menu_entry debug_menus[] = {
         .icon_type = IT_ALWAYS_ON,
 #ifdef CONFIG_5DC
         .help = "Free memory, shared between ML and Canon firmware.",
-#elif !defined(CONFIG_MEMPATCH_CHECK)
-        .help = "Free memory available for malloc and AllocateMemory.",
 #else
-        .help = "Free memory available for malloc and AllocateMemory plus ML reserved mem.",
+        .help = "Free memory available for malloc and AllocateMemory.",
 #endif
         //.essential = 0,
     },
 #if defined(CONFIG_MEMPATCH_CHECK)
     {
-        .name = "ML Usage",
+        .name = "ML RAM Usage",
         .update = meminfo_ml_display,
         .icon_type = IT_ALWAYS_ON,
         .help = "Memory reserved and used by ML's binary.",
