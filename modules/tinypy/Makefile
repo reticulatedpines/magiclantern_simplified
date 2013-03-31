@@ -12,3 +12,11 @@ include $(TOP_DIR)/Makefile.inc
 
 # some compile hacks
 CFLAGS += -fno-short-double
+
+tinypy-desktop: tinypy-desktop.c
+	gcc tinypy-desktop.c -o tinypy-desktop -lm -g
+
+all: tinypy.mo tinypy-desktop
+
+clean::
+	$(call build,CLEAN,$(RM) -f tinypy-desktop)

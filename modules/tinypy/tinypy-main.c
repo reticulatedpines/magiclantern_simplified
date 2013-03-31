@@ -1,5 +1,6 @@
 #include <module.h>
 #include "tinypy.c"
+//#include "math/init.c"
 
 /*
 int main(int argc, char *argv[]) {
@@ -42,5 +43,5 @@ MODULE_STRINGS_START()
     MODULE_STRING("Author", "Phil Hassey")
     MODULE_STRING("Ported by", "a1ex")
     MODULE_STRING("License", "MIT")
-    MODULE_STRING("Website", "code.google.com/p/tinypy")
+    MODULE_STRING("Website", "www.tinypy.org")
 MODULE_STRINGS_END()

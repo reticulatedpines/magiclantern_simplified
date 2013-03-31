@@ -258,8 +258,8 @@ typedef struct tp_frame_ {
     int cregs;
 } tp_frame_;
 
-#define TP_GCMAX 32
-#define TP_FRAMES 32
+#define TP_GCMAX 64
+#define TP_FRAMES 64
 #define TP_REGS_EXTRA 2
 /* #define TP_REGS_PER_FRAME 256*/
 #define TP_REGS 8192
@@ -1140,7 +1140,11 @@ tp_obj tp_printf(TP, char const *fmt,...) {
     s = r.string.info->s;
     va_end(arg);
     va_start(arg, fmt);
+    #ifdef CONFIG_MAGICLANTERN
     vsnprintf(s,l,fmt,arg);
+    #else
+    vsnprintf(s,l+1,fmt,arg);
+    #endif
     va_end(arg);
     return tp_track(tp,r);
 }

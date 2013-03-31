@@ -682,7 +682,7 @@ PLATFORM_INC=$(TOP_DIR)/platform/all
 CFLAGS += -DMODULE -DMODULE_NAME=$(MODULE_NAME)
 
 all: $(MODULE_NAME).mo
-clean:
+clean::
 	$(call build,CLEAN,$(RM) -f $(MODULE_OBJS) $(MODULE_NAME).mo)
 
 $(MODULE_NAME).mo: $(MODULE_OBJS)

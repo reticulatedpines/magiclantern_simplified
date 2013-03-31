@@ -1,56 +1,84 @@
-333,335c333,335
-< #define tp_malloc(TP,x) tcc_mallocz(x)
-< #define tp_realloc(TP,x,y) tcc_realloc(x,y)
-< #define tp_free(TP,x) tcc_free(x)
+261,262c261,262
+< #define TP_GCMAX 4096
+< #define TP_FRAMES 256
 ---
-> #define tp_malloc(TP,x) calloc((x),1)
-> #define tp_realloc(TP,x,y) realloc(x,y)
-> #define tp_free(TP,x) free(x)
-465,466c465
-<     printf("%s", e.string.val);
-<     //fwrite(e.string.val,1,e.string.len,stdout);
+> #define TP_GCMAX 64
+> #define TP_FRAMES 64
+265c265
+< #define TP_REGS 16384
 ---
->     fwrite(e.string.val,1,e.string.len,stdout);
-764c763
-<     int h = l;// + (l >= 4?*(int*)v:0);
+> #define TP_REGS 8192
+285a286
+> 
+333,335c334,336
+< #define tp_malloc(TP,x) calloc((x),1)
+< #define tp_realloc(TP,x,y) realloc(x,y)
+< #define tp_free(TP,x) free(x)
 ---
->     int h = l + (l >= 4?*(int*)v:0);
-1135,1137c1134
-<     //l = vsnprintf(NULL, 0, fmt,arg);
-<     char tmp[256];
-<     l = vsnprintf(tmp, sizeof(tmp), fmt,arg);
+> #define tp_malloc(TP,x) tcc_mallocz(x)
+> #define tp_realloc(TP,x,y) tcc_realloc(x,y)
+> #define tp_free(TP,x) tcc_free(x)
+465c466,467
+<     fwrite(e.string.val,1,e.string.len,stdout);
 ---
->     l = vsnprintf(NULL, 0, fmt,arg);
-1142c1139
-<     vsnprintf(s,l,fmt,arg);
+>     printf("%s", e.string.val);
+>     //fwrite(e.string.val,1,e.string.len,stdout);
+763c765
+<     int h = l + (l >= 4?*(int*)v:0);
 ---
->     vsprintf(s,fmt,arg);
-1418,1421c1415,1417
-<     //struct stat stbuf;
-<     //stat(fname, &stbuf);
-<     //l = stbuf.st_size;
-<     l = GetFileSize(fname);
+>     int h = l;// + (l >= 4?*(int*)v:0);
+1134c1136,1138
+<     l = vsnprintf(NULL, 0, fmt,arg);
 ---
->     struct stat stbuf;
->     stat(fname, &stbuf);
->     l = stbuf.st_size;
-1459,1460c1455,1456
-<     int size = GetFileSize(fname);
-<     return tp_number(size >= 0);
+>     //l = vsnprintf(NULL, 0, fmt,arg);
+>     char tmp[256];
+>     l = vsnprintf(tmp, sizeof(tmp)-1, fmt,arg);
+1139c1143,1147
+<     vsprintf(s,fmt,arg);
 ---
->     struct stat stbuf;
->     return tp_number(!stat(fname,&stbuf));
-1464,1465c1460,1461
-<     //struct stat stbuf;
-<     //if (!stat(fname,&stbuf)) { return tp_number(stbuf.st_mtime); }
+>     #ifdef CONFIG_MAGICLANTERN
+>     vsnprintf(s,l,fmt,arg);
+>     #else
+>     vsnprintf(s,l+1,fmt,arg);
+>     #endif
+1415,1417c1423,1426
+<     struct stat stbuf;
+<     stat(fname, &stbuf);
+<     l = stbuf.st_size;
 ---
->     struct stat stbuf;
->     if (!stat(fname,&stbuf)) { return tp_number(stbuf.st_mtime); }
-2116c2112
-<     tp_vm *tp = (tp_vm*)tp_malloc(NULL,sizeof(tp_vm));
+>     //struct stat stbuf;
+>     //stat(fname, &stbuf);
+>     //l = stbuf.st_size;
+>     l = GetFileSize(fname);
+1424a1434
+>     s[l]=0;
+1455,1456c1465,1466
+<     struct stat stbuf;
+<     return tp_number(!stat(fname,&stbuf));
 ---
->     tp_vm *tp = (tp_vm*)calloc(sizeof(tp_vm),1);
-2166c2162
-<     tp_free(NULL,tp);
+>     int size = GetFileSize(fname);
+>     return tp_number(size >= 0);
+1460,1461c1470,1471
+<     struct stat stbuf;
+<     if (!stat(fname,&stbuf)) { return tp_number(stbuf.st_mtime); }
 ---
->     free(tp);
+>     //struct stat stbuf;
+>     //if (!stat(fname,&stbuf)) { return tp_number(stbuf.st_mtime); }
+1688a1699
+>     //printf("collect %d\n", GetFreeMemForAllocateMemory());
+1719,1720c1730,1733
+<     if (tp->steps < TP_GCMAX || tp->grey->len > 0) {
+<         _tp_gcinc(tp); _tp_gcinc(tp);
+---
+>     int i;
+>     // aggressive garbage collection
+>     for (i = 0; i < 100 && tp->grey->len > 0; i++) {
+>         _tp_gcinc(tp);
+2112c2125
+<     tp_vm *tp = (tp_vm*)calloc(sizeof(tp_vm),1);
+---
+>     tp_vm *tp = (tp_vm*)tp_malloc(NULL,sizeof(tp_vm));
+2162c2175
+<     free(tp);
+---
+>     tp_free(NULL,tp);
