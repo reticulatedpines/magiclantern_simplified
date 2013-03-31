@@ -2168,6 +2168,24 @@ static void crash_log_step()
 }
 #endif
 
+static void null_pointer_check()
+{
+    static int first_time = 1;
+    static int value_at_zero = 0;
+    if (first_time)
+    {
+        value_at_zero = *(int*)0; // assume this is the correct value
+        first_time = 0;
+    }
+    else // did it change? it shouldn't
+    {
+        if (value_at_zero != *(int*)0)
+        {
+            bmp_printf(FONT(FONT_LARGE, COLOR_RED, COLOR_BLACK), 0, 0, "Null pointer error (%x,%x)", *(int*)0, value_at_zero);
+        }
+    }
+}
+
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
@@ -2177,6 +2195,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         if (hexdump_enabled)
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
+        
+        null_pointer_check();
       
         #ifdef FEATURE_SCREENSHOT
         if (screenshot_sec)
