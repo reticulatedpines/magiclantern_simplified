@@ -99,4 +99,3 @@
 
 #define WINSYS_BMP_DIRTY_BIT_NEG 0
 
-#define GUIMODE_ML_MENU (2) // not tested!!!

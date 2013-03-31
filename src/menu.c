@@ -3340,6 +3340,7 @@ CONFIG_INT("menu.upside.down", menu_upside_down, 0);
 static void 
 menu_redraw_do()
 {
+        #ifndef CONFIG_VXWORKS
         // force dialog change when canon dialog times out (EOSM, 6D etc)
         // don't try more often than once per second
         if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU && redraw_flood_stop)
@@ -3352,6 +3353,7 @@ menu_redraw_do()
                 SetGUIRequestMode(GUIMODE_ML_MENU);
             }
         }
+        #endif
 
         menu_damage = 0;
         //~ g_submenu_width = 720;
@@ -3470,7 +3472,7 @@ menu_redraw_do()
     
     bmp_on();
 
-#ifdef FEATURE_COLOR_SCHEME
+#ifdef FEATURE_COLOR_SCHEME  
     if (!bmp_color_scheme)
     {
         // adjust some colors for better contrast
@@ -3484,14 +3486,12 @@ menu_redraw_do()
 
         if (recording)
             alter_bitmap_palette_entry(COLOR_BLACK, COLOR_BG, 256, 256);
-
     }
+#endif
 
-    #ifdef CONFIG_VXWORKS
-    set_ml_palette();
+    #ifdef CONFIG_VXWORKS   
+    set_ml_palette();    
     #endif
-#endif    
-
 }
 
 /*
