@@ -319,23 +319,31 @@ static void _module_load_all(void)
 
 static void _module_unload_all(void)
 {
-    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
-    {
-        module_list[mod].valid = 0;
-        module_list[mod].info = NULL;
-        module_list[mod].strings = NULL;
-        module_list[mod].params = NULL;
-        module_list[mod].prop_handlers = NULL;
-        strcpy(module_list[mod].name, "");
-        strcpy(module_list[mod].filename, "");
-    }
-
     if(module_state)
     {
         TCCState *state = module_state;
         module_state = NULL;
         
+        /* first unregister all property handlers */
         prop_reset_registration();
+        
+        /* deinit and clean all modules */
+        for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+        {
+            if(module_list[mod].info && module_list[mod].info->deinit)
+            {
+                module_list[mod].info->deinit();
+            }
+            module_list[mod].valid = 0;
+            module_list[mod].info = NULL;
+            module_list[mod].strings = NULL;
+            module_list[mod].params = NULL;
+            module_list[mod].prop_handlers = NULL;
+            strcpy(module_list[mod].name, "");
+            strcpy(module_list[mod].filename, "");
+        }
+
+        /* release the global module state */
         tcc_delete(state);
     }
 }
