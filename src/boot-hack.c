@@ -61,10 +61,10 @@ static uint8_t _reloc[ RELOCSIZE ];
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
     INSTR( rom_addr ) = BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
 
-#if defined(CONFIG_MEMPATCH_CHECK)
+//#if defined(CONFIG_MEMPATCH_CHECK)
 uint32_t ml_used_mem = 0;
 uint32_t ml_reserved_mem = 0;
-#endif
+//#endif
 
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
@@ -128,6 +128,7 @@ copy_and_restart( )
     // Reserve memory after the BSS for our application
     #if !defined(CONFIG_ALLOCATE_MEMORY_POOL) // Some cameras load ML into the AllocateMemory pool (like 5500D/1100D)
     INSTR( HIJACK_INSTR_BSS_END ) = (uintptr_t) _bss_end;
+    ml_reserved_mem = (uintptr_t)_bss_end - RESTARTSTART;
     #endif
 
     // Fix the calls to bzero32() and create_init_task()
@@ -638,9 +639,10 @@ int init_task_patched(int a, int b, int c, int d)
     uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_END + CreateTaskMain_offset);
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
 
-    // change end limit to 0xc800000 => reserve 500K for ML
+    // change end limit to 0xc80000 => reserve 512K for ML
     // thanks to ARMada by g3gg0 for the black magic :)
-    *addr_AllocMem_end = MOV_R1_0xC800000_INSTR;
+    *addr_AllocMem_end = MOV_R1_0xC80000_INSTR;
+    ml_reserved_mem = 512 * 1024;
 
     // relocating CreateTaskMain does some nasty things, so, right after patching,
     // we jump back to ROM version; at least, what's before patching seems to be relocated properly
@@ -686,6 +688,9 @@ my_init_task(int a, int b, int c, int d)
     }
 #endif
 
+    // this is generic
+    ml_used_mem = (uint32_t)&_bss_end - (uint32_t)&_text_start;
+
 #ifdef HIJACK_CACHE_HACK
     /* as we do not return in the middle of te init task as in the hijack-through-copy method, we have to install the hook here */
     task_dispatch_hook = my_task_dispatch_hook;
@@ -723,7 +728,6 @@ my_init_task(int a, int b, int c, int d)
         uint32_t new_end = ROR(new_immed_8, 2 * new_rotate_imm);
         
         ml_reserved_mem = orig_end - new_end;
-        ml_used_mem = (uint32_t)&_bss_end - (uint32_t)&_text_start;
         
         /* ensure binary is not too large */
         if(ml_used_mem > ml_reserved_mem)

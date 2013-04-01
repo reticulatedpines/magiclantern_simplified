@@ -28,6 +28,9 @@
     /** It's a good idea to back up ROM contents on the card - just in case **/
     #define CONFIG_AUTOBACKUP_ROM
 
+    /** Check how much memory is used by ML and compare to how much we have reserved during the boot process **/
+    #define CONFIG_MEMPATCH_CHECK
+
     /** It's a good idea to run some automated tests **/
     #define CONFIG_STRESS_TEST
     #define CONFIG_BENCHMARKS
