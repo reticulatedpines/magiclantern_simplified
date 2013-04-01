@@ -2354,11 +2354,47 @@ static int stack_size_crit(int x)
     return -1;
 }
 
+static int max_shoot_malloc_mem = 0;
+static int shoot_malloc_crit(int x)
+{
+    void* p = shoot_malloc(x * 1024 * 64);
+    if (p) 
+    { 
+        max_shoot_malloc_mem = x * 1024 * 64;
+        shoot_free(p);
+        return 1; 
+    }
+    else return -1;
+}
+
+static int max_shoot_malloc_frag_mem = 0;
+static int shoot_malloc_fragmented_crit(int x)
+{
+    int ok = shoot_malloc_fragmented_test(x * 1024 * 1024);
+    if (ok) 
+    { 
+        max_shoot_malloc_frag_mem = x * 1024 * 1024;
+        return 1; 
+    }
+    else return -1;
+}
+
 /* fixme: find a way to read the free stack memory from DryOS */
 /* current workaround: compute it by trial and error when you press SET on Free Memory menu item */
-static void guess_free_stack_size(void* priv, int delta)
+static volatile int guess_mem_running = 0;
+static void guess_free_mem_task(void* priv, int delta)
 {
+    guess_mem_running = 1;
     bin_search(1, 1024, stack_size_crit);
+    bin_search(1, 1024, shoot_malloc_crit);
+    msleep(1000);
+    bin_search(1, 1024, shoot_malloc_fragmented_crit);
+    guess_mem_running = 0;
+}
+
+static void guess_free_mem()
+{
+    task_create("guess_mem", 0x12, 0, guess_free_mem_task, 0);
 }
 
 static MENU_UPDATE_FUNC(meminfo_display)
@@ -2366,45 +2402,87 @@ static MENU_UPDATE_FUNC(meminfo_display)
     int M = GetFreeMemForAllocateMemory();
     int m = MALLOC_FREE_MEMORY;
     
-#ifdef CONFIG_5DC
+#ifdef CONFIG_VXWORKS
     MENU_SET_VALUE(
         "%dK",
         M/1024
     );
     if (M < 1024*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
 #else
-    MENU_SET_VALUE(
-        "%dK + %dK",
-        m/1024, M/1024
-    );
 
-    if (max_stack_ack) MENU_APPEND_VALUE(
-        " + %dK",
-        max_stack_ack/1024
-    );
-    else MENU_APPEND_VALUE(" + ...");
+    int guess_needed = 0;
+    int info_type = (int) entry->priv;
+    switch (info_type)
+    {
+        case 0: // main entry
+            MENU_SET_VALUE(
+                "%dK + %dK",
+                m/1024, M/1024
+            );
+            if (M < 1024*1024 || m < 128 * 1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
+            MENU_SET_ENABLED(1);
+            MENU_SET_ICON(MNI_DICE, 0);
+            break;
+            
+        case 1: // malloc
+            MENU_SET_VALUE("%d K", m/1024);
+            break;
+            
+        case 2: // AllocateMemory
+            MENU_SET_VALUE("%d K", M/1024);
+            break;
 
-    MENU_SET_ICON(MNI_DICE, 0);
-    MENU_SET_ENABLED(1);
+        case 3: // task stack
+            MENU_SET_VALUE("%d K", max_stack_ack/1024);
+            guess_needed = 1;
+            break;
+
+        case 4: // shoot_malloc contig
+            MENU_SET_VALUE("%d M", max_shoot_malloc_mem/1024);
+            guess_needed = 1;
+            break;
+
+        case 5: // shoot_malloc fragmented
+            MENU_SET_VALUE("%d M", max_shoot_malloc_frag_mem/1024);
+            guess_needed = 1;
+            break;
+        
+        #if defined(CONFIG_MEMPATCH_CHECK)
+        case 6: // autoexec size
+        {
+            extern uint32_t ml_reserved_mem;
+            extern uint32_t ml_used_mem;
+
+            if (ABS(ml_used_mem - ml_reserved_mem) < 1024) MENU_SET_VALUE(
+                "%dK",
+                ml_used_mem/1024
+            );
+            else MENU_SET_VALUE(
+                "%dK of %dK",
+                ml_used_mem/1024, ml_reserved_mem/1024
+            );
+            if (ml_reserved_mem < ml_used_mem)
+                MENU_SET_WARNING(MENU_WARN_ADVICE, "ML uses too much memory!!");
+            break;
+        }
+        #endif
+    }
     
-    if (M < 1024*1024 || m < 128 * 1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
+    if (guess_needed && !guess_mem_running)
+    {
+        /* check this once every 30 seconds (not more often) */
+        static int aux = -INT_MIN;
+        if (should_run_polling_action(30000, &aux))
+        {
+            guess_mem_running = 1;
+            guess_free_mem();
+        }
+    }
+    
+    if (guess_mem_running)
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Trying to guess how much RAM we have...");
 #endif
 }
-
-#if defined(CONFIG_MEMPATCH_CHECK)
-extern uint32_t ml_reserved_mem;
-extern uint32_t ml_used_mem;
-
-static MENU_UPDATE_FUNC(meminfo_ml_display)
-{
-    MENU_SET_VALUE(
-        "%dK of %dK",
-        ml_used_mem/1024, ml_reserved_mem/1024
-    );
-    if (ml_reserved_mem < ml_used_mem) MENU_SET_WARNING(MENU_WARN_ADVICE, "ML uses too much memory!!.");
-}
-#endif
-
 #endif
 
 #ifdef FEATURE_SHOW_SHUTTER_COUNT
@@ -2884,6 +2962,72 @@ static struct menu_entry debug_menus[] = {
         .help = "Cycle through all GUI modes and take screenshots.",
     },
 #endif
+#ifdef FEATURE_SHOW_FREE_MEMORY
+#ifdef CONFIG_VXWORKS
+    {
+        .name = "Free Memory",
+        .update = meminfo_display,
+        .icon_type = IT_ALWAYS_ON,
+        .help = "Free memory, shared between ML and Canon firmware.",
+    }
+#else // dryos
+    {
+        .name = "Free Memory",
+        .update = meminfo_display,
+        .select = menu_open_submenu,
+        .help = "Free memory, shared between ML and Canon firmware.",
+        .help2 = "Press SET for detailed info.",
+        .submenu_width = 710,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "malloc",
+                .icon_type = IT_ALWAYS_ON,
+                .priv = 1,
+                .update = meminfo_display,
+                .help = "Free memory available via malloc.",
+            },
+            {
+                .name = "AllocateMemory",
+                .icon_type = IT_ALWAYS_ON,
+                .priv = 2,
+                .update = meminfo_display,
+                .help = "Free memory available via AllocateMemory.",
+            },
+            {
+                .name = "stack space",
+                .icon_type = IT_ALWAYS_ON,
+                .priv = 3,
+                .update = meminfo_display,
+                .help = "Free memory available as stack space for user tasks.",
+            },
+            {
+                .name = "shoot_malloc contig",
+                .icon_type = IT_ALWAYS_ON,
+                .priv = 4,
+                .update = meminfo_display,
+                .help = "Largest contiguous block from shoot memory.",
+            },
+            {
+                .name = "shoot_malloc total",
+                .icon_type = IT_ALWAYS_ON,
+                .priv = 5,
+                .update = meminfo_display,
+                .help = "Largest fragmented block from shoot memory.",
+            },
+            #if defined(CONFIG_MEMPATCH_CHECK)
+            {
+                .name = "AUTOEXEC.BIN size",
+                .icon_type = IT_ALWAYS_ON,
+                .priv = 6,
+                .update = meminfo_display,
+                .help = "Memory reserved statically at startup for ML binary.",
+            },
+            #endif
+            MENU_EOL
+        },
+    },
+#endif
+#endif
 #ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
     {
         .name = "Image buffers",
@@ -2892,29 +3036,6 @@ static struct menu_entry debug_menus[] = {
         .help = "Display the image buffer sizes (LiveView and Craw).",
         //.essential = 0,
     },
-#endif
-#ifdef FEATURE_SHOW_FREE_MEMORY
-    {
-        .name = "Free Memory",
-        .update = meminfo_display,
-        .select = guess_free_stack_size,
-        .icon_type = IT_BOOL,
-#ifdef CONFIG_5DC
-        .help = "Free memory, shared between ML and Canon firmware.",
-#else
-        .help = "Free memory available for malloc + AllocateMemory + stack.",
-#endif
-        //.essential = 0,
-    },
-#if defined(CONFIG_MEMPATCH_CHECK)
-    {
-        .name = "ML RAM Usage",
-        .update = meminfo_ml_display,
-        .icon_type = IT_ALWAYS_ON,
-        .help = "Memory reserved and used by ML's binary.",
-        //.essential = 0,
-    },
-#endif
 #endif
 #ifdef FEATURE_SHOW_SHUTTER_COUNT
     {
