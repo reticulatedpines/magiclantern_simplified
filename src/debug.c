@@ -2419,17 +2419,19 @@ static MENU_UPDATE_FUNC(meminfo_display)
                 "%dK + %dK",
                 m/1024, M/1024
             );
-            if (M < 1024*1024 || m < 128 * 1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
+            if (M < 1024*1024 || m < 128*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
             MENU_SET_ENABLED(1);
             MENU_SET_ICON(MNI_DICE, 0);
             break;
             
         case 1: // malloc
             MENU_SET_VALUE("%d K", m/1024);
+            if (m < 128*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Would be nice to have at least 128K free here.");
             break;
             
         case 2: // AllocateMemory
             MENU_SET_VALUE("%d K", M/1024);
+            if (M < 1024*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Canon code requires around 1 MB from here.");
             break;
 
         case 3: // task stack
