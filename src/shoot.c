@@ -378,7 +378,7 @@ TASK_CREATE( "clock_task", seconds_clock_task, 0, 0x19, 0x2000 );
 
 typedef int (*CritFunc)(int);
 // crit returns negative if the tested value is too high, positive if too low, 0 if perfect
-static int bin_search(int lo, int hi, CritFunc crit)
+int bin_search(int lo, int hi, CritFunc crit)
 {
     ASSERT(crit);
     if (lo >= hi-1) return lo;

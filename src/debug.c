@@ -687,9 +687,7 @@ static void run_test()
     console_printf("Loading modules...\n");
     msleep(1000);
     module_load_all();
-    
     return;
-    module_unload_all();
     
     console_printf("\n");
     
@@ -2342,6 +2340,27 @@ static MENU_UPDATE_FUNC(image_buf_display)
 #endif
 
 #ifdef FEATURE_SHOW_FREE_MEMORY
+
+static volatile int max_stack_ack = 0;
+
+static void max_stack_try(void* size) { max_stack_ack = (int) size; }
+
+static int stack_size_crit(int x)
+{
+    int size = x * 1024;
+    task_create("stack_try", 0x1e, size, max_stack_try, (void*) size);
+    msleep(50);
+    if (max_stack_ack == size) return 1;
+    return -1;
+}
+
+/* fixme: find a way to read the free stack memory from DryOS */
+/* current workaround: compute it by trial and error when you press SET on Free Memory menu item */
+static void guess_free_stack_size(void* priv, int delta)
+{
+    bin_search(1, 1024, stack_size_crit);
+}
+
 static MENU_UPDATE_FUNC(meminfo_display)
 {
     int M = GetFreeMemForAllocateMemory();
@@ -2358,6 +2377,16 @@ static MENU_UPDATE_FUNC(meminfo_display)
         "%dK + %dK",
         m/1024, M/1024
     );
+
+    if (max_stack_ack) MENU_APPEND_VALUE(
+        " + %dK",
+        max_stack_ack/1024
+    );
+    else MENU_APPEND_VALUE(" + ...");
+
+    MENU_SET_ICON(MNI_DICE, 0);
+    MENU_SET_ENABLED(1);
+    
     if (M < 1024*1024 || m < 128 * 1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
 #endif
 }
@@ -2511,7 +2540,7 @@ void menu_kill_flicker()
 extern void menu_open_submenu();
 extern MENU_UPDATE_FUNC(tasks_print);
 extern MENU_UPDATE_FUNC(batt_display);
-extern int tasks_show_flags;
+extern MENU_SELECT_FUNC(tasks_toggle_flags);
 extern void peaking_benchmark();
 
 extern int show_cpu_usage_flag;
@@ -2816,9 +2845,7 @@ static struct menu_entry debug_menus[] = {
             {
                 .name = "Task list",
                 .update = tasks_print,
-                .priv = &tasks_show_flags,
-                .min = 0,
-                .max = 3,
+                .select = tasks_toggle_flags,
                 #ifdef CONFIG_VXWORKS
                 .help = "Task info: name, priority, stack memory usage.",
                 #else
@@ -2830,6 +2857,7 @@ static struct menu_entry debug_menus[] = {
     },
 #endif
 #ifdef FEATURE_SHOW_CPU_USAGE
+#ifdef CONFIG_TSKMON
     {
         .name = "Show CPU usage",
         .priv = &show_cpu_usage_flag,
@@ -2837,6 +2865,7 @@ static struct menu_entry debug_menus[] = {
         .choices = (const char *[]) {"OFF", "Percentage", "Busy tasks (ABS)", "Busy tasks (REL)"},
         .help = "Display total CPU usage (percentage).",
     },
+#endif
 #endif
 #ifdef FEATURE_SHOW_GUI_EVENTS
     {
@@ -2868,11 +2897,12 @@ static struct menu_entry debug_menus[] = {
     {
         .name = "Free Memory",
         .update = meminfo_display,
-        .icon_type = IT_ALWAYS_ON,
+        .select = guess_free_stack_size,
+        .icon_type = IT_BOOL,
 #ifdef CONFIG_5DC
         .help = "Free memory, shared between ML and Canon firmware.",
 #else
-        .help = "Free memory available for malloc and AllocateMemory.",
+        .help = "Free memory available for malloc + AllocateMemory + stack.",
 #endif
         //.essential = 0,
     },
