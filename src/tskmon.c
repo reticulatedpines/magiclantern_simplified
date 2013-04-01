@@ -164,7 +164,8 @@ static void tskmon_stack_checker(struct task *next_task)
     tskmon_task_stack_check[id] = 0;
     
     /* at 1024 it gives warning for PowerMgr task */
-    if (free < 512)
+    /* at 512 it gives warning for PowerMgr task */
+    if (free < 256)
     {
         bmp_printf(FONT(FONT_MED, free < 128 ? COLOR_RED : COLOR_WHITE, COLOR_BLACK), 0, 0, 
             "[%d] %s: stack %s: free=%d used=%d ",
