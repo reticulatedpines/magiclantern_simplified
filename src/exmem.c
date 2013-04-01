@@ -27,7 +27,7 @@ struct memSuite
 void* shoot_malloc(size_t size)
 {
     struct memSuite * hSuite = 0;
-    AllocateMemoryResource(size + 4, allocCBR, &hSuite);
+    AllocateMemoryResource(size + 4, allocCBR, &hSuite, 0x50);
     int r = take_semaphore(alloc_sem, 1000);
     if (r) return 0;
     if (hSuite && hSuite->num_chunks != 1)
@@ -70,7 +70,7 @@ void* shoot_malloc(size_t size)
 int shoot_malloc_fragmented_test(size_t size)
 {
     struct memSuite * hSuite = 0;
-    AllocateMemoryResource(size, allocCBR, &hSuite);
+    AllocateMemoryResource(size, allocCBR, &hSuite, 0x50);
     int r = take_semaphore(alloc_sem, 1000);
     if (r) return 0;
     FreeMemoryResource(hSuite, freeCBR, 0);

@@ -2438,12 +2438,12 @@ static MENU_UPDATE_FUNC(meminfo_display)
             break;
 
         case 4: // shoot_malloc contig
-            MENU_SET_VALUE("%d M", max_shoot_malloc_mem/1024);
+            MENU_SET_VALUE("%d M", max_shoot_malloc_mem/1024/1024);
             guess_needed = 1;
             break;
 
         case 5: // shoot_malloc fragmented
-            MENU_SET_VALUE("%d M", max_shoot_malloc_frag_mem/1024);
+            MENU_SET_VALUE("%d M", max_shoot_malloc_frag_mem/1024/1024);
             guess_needed = 1;
             break;
         
