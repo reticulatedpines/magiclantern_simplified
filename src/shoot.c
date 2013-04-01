@@ -400,6 +400,9 @@ int get_exposure_time_raw()
 static PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
 #ifdef FEATURE_INTERVALOMETER
+
+static PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time)
+
 static MENU_UPDATE_FUNC(timelapse_calc_display)
 {
     int d = timer_values[interval_timer_index];
@@ -435,7 +438,10 @@ static MENU_UPDATE_FUNC(interval_timer_display)
     }
     MENU_SET_ICON(MNI_PERCENT, CURRENT_VALUE * 100 / COUNT(timer_values));
     MENU_SET_ENABLED(1);
-    
+
+    if (auto_power_off_time && auto_power_off_time <= d)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
+
     timelapse_calc_display(entry, info);
 }
 
@@ -483,6 +489,9 @@ static MENU_UPDATE_FUNC(intervalometer_display)
             format_time_hours_minutes_seconds(d),
             BULB_EXPOSURE_CONTROL_ACTIVE ? ", BRamp" : ""
         );
+        
+        if (auto_power_off_time && auto_power_off_time <= d)
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
     }
     else
     {
@@ -7660,3 +7669,4 @@ void iso_refresh_display() // in photo mode
     }
 #endif
 }
+
