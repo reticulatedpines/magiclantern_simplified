@@ -105,9 +105,9 @@ static CONFIG_INT("menu.junkie", junkie_mode, 0);
 
 static int is_customize_selected();
 
-#define CAN_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min && (entry)->max - (entry)->min < 15 && (entry)->priv)
-#define SHOULD_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min + 1 && (entry)->max - (entry)->min < 10 && (entry)->priv)
-#define IS_BOOL(entry) (((entry)->max - (entry)->min == 1 && (entry)->priv) || (entry->icon_type == IT_BOOL))
+#define CAN_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min && (entry)->max - (entry)->min < 15 && IS_ML_PTR((entry)->priv))
+#define SHOULD_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min + 1 && (entry)->max - (entry)->min < 10 && IS_ML_PTR((entry)->priv))
+#define IS_BOOL(entry) (((entry)->max - (entry)->min == 1 && IS_ML_PTR((entry)->priv)) || (entry->icon_type == IT_BOOL))
 #define IS_ACTION(entry) ((entry)->icon_type == IT_ACTION || (entry)->icon_type == IT_SUBMENU)
 #define SHOULD_USE_EDIT_MODE(entry) (!IS_BOOL(entry) && !IS_ACTION(entry))
 
@@ -429,6 +429,8 @@ static int round_to_R20(int val)
 
 static void menu_numeric_toggle_R20(int* val, int delta, int min, int max)
 {
+    ASSERT(IS_ML_PTR(val));
+
     int v = *val;
 
     if (v >= max && delta > 0)
@@ -454,6 +456,8 @@ static void menu_numeric_toggle_R20(int* val, int delta, int min, int max)
 
 static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max)
 {
+    ASSERT(IS_ML_PTR(val));
+
     int v = *val;
 
     if (v >= max && delta > 0)
@@ -485,11 +489,15 @@ static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max
 
 void menu_numeric_toggle(int* val, int delta, int min, int max)
 {
+    ASSERT(IS_ML_PTR(val));
+
     *val = mod(*val - min + delta, max - min + 1) + min;
 }
 
 static void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
 {
+    ASSERT(IS_ML_PTR(val));
+    
     static int prev_t = 0;
     int t = get_ms_clock_value();
     
@@ -516,7 +524,7 @@ static void entry_guess_icon_type(struct menu_entry * entry)
         {
             entry->icon_type = IT_SUBMENU;
         }
-        else if (!entry->priv || entry->select == (void(*)(void*,int))run_in_separate_task)
+        else if (!IS_ML_PTR(entry->priv) || entry->select == (void(*)(void*,int))run_in_separate_task)
         {
             entry->icon_type = IT_ACTION;
         }
@@ -557,7 +565,7 @@ static int entry_guess_enabled(struct menu_entry * entry)
 
 static int guess_submenu_enabled(struct menu_entry * entry)
 {
-    if (entry->priv) // if it has a priv field, use it as truth value for the entire group
+    if IS_ML_PTR(entry->priv) // if it has a priv field, use it as truth value for the entire group
     {
         return MENU_INT(entry);
     }
@@ -1810,7 +1818,7 @@ entry_default_display_info(
         STR_APPEND(value, "%s", entry->choices[SELECTED_INDEX(entry)]);
     }
 
-    else if (entry->priv && entry->select != (void(*)(void*,int))run_in_separate_task)
+    else if (IS_ML_PTR(entry->priv) && entry->select != (void(*)(void*,int))run_in_separate_task)
     {
         if (entry->min == 0 && entry->max == 1)
         {
@@ -3123,7 +3131,7 @@ menu_entry_select(
     if(mode == 1) // decrement
     {
         if (entry->select) entry->select( entry->priv, -1);
-        else menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max);
+        else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max);
     }
     else if (mode == 2) // Q
     {
@@ -3148,7 +3156,7 @@ menu_entry_select(
         {
             if (edit_mode) edit_mode = 0;
             else if( entry->select ) entry->select( entry->priv, 1);
-            else menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
+            else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
         }
         else */
         {
@@ -3159,14 +3167,14 @@ menu_entry_select(
             else if (entry->edit_mode == EM_MANY_VALUES_LV && lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
             else if (entry->edit_mode == EM_MANY_VALUES_LV && !lv) edit_mode = !edit_mode;
             else if (SHOULD_USE_EDIT_MODE(entry)) edit_mode = !edit_mode;
-            else if( entry->select ) entry->select( entry->priv, 1);
-            else menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
+            else if (entry->select) entry->select( entry->priv, 1);
+            else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
         }
     }
     else // increment
     {
         if( entry->select ) entry->select( entry->priv, 1);
-        else menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
+        else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
     }
     
     config_dirty = 1;
@@ -4706,7 +4714,7 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
         if (startswith(current, value) && !isdigit(current[strlen(value)]))
             goto ok; // accept 3500 instead of 3500K, or ON instead of ON,blahblah, but not 160 instead of 1600
         
-        if (entry->priv && CURRENT_VALUE == value_int)
+        if (IS_ML_PTR(entry->priv) && CURRENT_VALUE == value_int)
             goto ok; // also success!
 
         if (i > 0 && streq(current, last)) // value not changing? stop here
@@ -4725,7 +4733,7 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
         snprintf(last, sizeof(last), "%s", current);
         
         if (entry->select) entry->select( entry->priv, 1);
-        else if (entry->priv) menu_numeric_toggle_long_range(entry->priv, 1, entry->min, entry->max);
+        else if IS_ML_PTR(entry->priv) menu_numeric_toggle_long_range(entry->priv, 1, entry->min, entry->max);
         else break;
         
         msleep(20); // we may need to wait for property handlers to update
@@ -4751,7 +4759,7 @@ int menu_set_value_from_script(const char* name, const char* entry_name, int val
         snprintf(value_str, sizeof(value_str), "%d", value);
         return menu_set_str_value_from_script(name, entry_name, value_str, value);
     }
-    else if (entry->priv) // numeric item, just set it
+    else if IS_ML_PTR(entry->priv) // numeric item, just set it
     {
         *(int*)(entry->priv) = value;
         return 1; // success!
@@ -4812,20 +4820,20 @@ void menu_save_current_config_as_picoc_preset(char* filename)
                 header_printed = 1;
             }
             
-            if (!entry->select && entry->priv)
+            if (!entry->select && IS_ML_PTR(entry->priv))
                 CFG_APPEND("menu_set(\"%s\", \"%s\", %d);", menu->name, entry->name, CURRENT_VALUE);
             else
                 CFG_APPEND("menu_set_str(\"%s\", \"%s\", \"%s\");", menu->name, entry->name, value);
             int len = lastlen;
 
-            if ((entry->priv && entry->min != entry->max) || (entry->choices)) // we'll have comments
+            if ((IS_ML_PTR(entry->priv) && entry->min != entry->max) || (entry->choices)) // we'll have comments
             {
                 // pad with spaces and add "// "
                 for (i = 0; i < 60-len; i++)
                     CFG_APPEND(" ");
                 CFG_APPEND("// ");
             
-                if (entry->priv && entry->min != entry->max)
+                if (IS_ML_PTR(entry->priv) && entry->min != entry->max)
                 {
                     if (IS_BOOL(entry))
                         CFG_APPEND("%d or %d. ", entry->min, entry->max);

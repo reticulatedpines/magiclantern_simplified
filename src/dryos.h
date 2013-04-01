@@ -628,7 +628,7 @@ void set_afma(int value, int mode);
 #define BmpFree FreeMemory
 #endif
 
-
+#define IS_ML_PTR(val) (({ extern uint32_t _bss_end[]; (uintptr_t)(val) > (uintptr_t)RESTARTSTART && (uintptr_t)(val) < (uintptr_t)_bss_end;}))
 
 /*********************************************************************
  *

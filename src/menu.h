@@ -171,7 +171,7 @@ struct menu_entry
 };
 
 
-#define MENU_INT(entry) ((entry)->priv ? *(int*)(entry)->priv : 0)
+#define MENU_INT(entry) (IS_ML_PTR((entry)->priv) ? *(int*)(entry)->priv : 0)
 #define CURRENT_VALUE (MENU_INT(entry))
 
 // index into choices[] array
