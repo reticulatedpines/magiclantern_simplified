@@ -693,37 +693,58 @@ my_init_task(int a, int b, int c, int d)
     tskmon_init();
     #endif
     
-#if defined(CONFIG_MEMPATCH_CHECK)
-    /* get and check the reserved memory size for magic lantern to prevent invalid setups to crash camera */
-
     uint32_t orig_instr = MEM(HIJACK_CACHE_HACK_BSS_END_ADDR);
     uint32_t new_instr = HIJACK_CACHE_HACK_BSS_END_INSTR;
     
+    /* get and check the reserved memory size for magic lantern to prevent invalid setups to crash camera */
+
     /* check for the correct mov instruction */
-    if((orig_instr & 0xFFFFF000) != 0xE3A01000)
+    if((orig_instr & 0xFFFFF000) == 0xE3A01000)
     {
-        while(1);
-    }
-    uint32_t orig_rotate_imm = (orig_instr >> 8) & 0xF;
-    uint32_t orig_immed_8 = orig_instr & 0xFF;
-    uint32_t orig_end = ROR(orig_immed_8, 2 * orig_rotate_imm);
-    
-    uint32_t new_rotate_imm = (new_instr >> 8) & 0xF;
-    uint32_t new_immed_8 = new_instr & 0xFF;
-    uint32_t new_end = ROR(new_immed_8, 2 * new_rotate_imm);
-    
-    /* ToDo: check the memory size against ML binary size */
-    ml_reserved_mem = orig_end - new_end;
-    ml_used_mem = (uint32_t)&_bss_end - (uint32_t)&_text_start;
-    
-    if(ml_used_mem > ml_reserved_mem)
-    {
-        //while(1);
-    }
+#if defined(CONFIG_MEMPATCH_CHECK)
+        /* mask out the lowest bits for rotate and immed */
+        uint32_t new_address = RESTARTSTART;
+        
+        /* hardcode the new instruction to a 16 bit ROR of the upper byte of RESTARTSTART */
+        new_instr = orig_instr & 0xFFFFF000;
+        new_instr = new_instr | (8<<8) | ((new_address>>16) & 0xFF);
+        
+        /* now we calculated the new end address of malloc area, check the forged instruction, the resulting
+         * address and validate if the available memory is enough.
+         */
+        
+        /* check the memory size against ML binary size */
+        uint32_t orig_rotate_imm = (orig_instr >> 8) & 0xF;
+        uint32_t orig_immed_8 = orig_instr & 0xFF;
+        uint32_t orig_end = ROR(orig_immed_8, 2 * orig_rotate_imm);
+        
+        uint32_t new_rotate_imm = (new_instr >> 8) & 0xF;
+        uint32_t new_immed_8 = new_instr & 0xFF;
+        uint32_t new_end = ROR(new_immed_8, 2 * new_rotate_imm);
+        
+        ml_reserved_mem = orig_end - new_end;
+        ml_used_mem = (uint32_t)&_bss_end - (uint32_t)&_text_start;
+        
+        /* ensure binary is not too large */
+        if(ml_used_mem > ml_reserved_mem)
+        {
+            while(1)
+            {
+                info_led_blink(3, 500, 500);
+                info_led_blink(3, 100, 500);
+                msleep(1000);
+            }
+        }
 #endif
-    
-    /* now patch init task and continue execution */
-    cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, HIJACK_CACHE_HACK_BSS_END_INSTR, TYPE_ICACHE);
+        /* now patch init task and continue execution */
+        cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
+    }
+    else
+    {
+        /* we are not sure if this is a instruction, so patch data cache also */
+        cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
+        cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_DCACHE);
+    }
 
     #ifdef CONFIG_6D
     //Hijack GUI Task Here - Now we're booting with cache hacks and have menu.
