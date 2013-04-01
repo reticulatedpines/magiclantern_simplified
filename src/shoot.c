@@ -316,6 +316,10 @@ static void do_this_every_second() // called every second
     #ifdef FEATURE_SHOW_CPU_USAGE
     task_update_loads();
     #endif
+
+    #ifdef CONFIG_TSKMON
+    tskmon_stack_check_all();
+    #endif
     
     #ifdef FEATURE_SHOW_OVERLAY_FPS
     static int k = 0; k++;

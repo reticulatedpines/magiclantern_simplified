@@ -162,11 +162,28 @@ static void tskmon_stack_checker(struct task *next_task)
     tskmon_task_stack_free[id] = free;
     tskmon_task_stack_used[id] = next_task->stackSize - free;    
     tskmon_task_stack_check[id] = 0;
+    
+    /* at 1024 it gives warning for PowerMgr task */
+    if (free < 512)
+    {
+        bmp_printf(FONT(FONT_MED, free < 128 ? COLOR_RED : COLOR_WHITE, COLOR_BLACK), 0, 0, 
+            "[%d] %s: stack %s: free=%d used=%d ",
+            id, get_task_name_from_id(id),
+            free < 128 ? "overflow" : "warning",
+            free, next_task->stackSize - free
+        );
+    }
 }
 
 void tskmon_stack_check(uint32_t task_id)
 {
     tskmon_task_stack_check[task_id & (TSKMON_MAX_TASKS-1)] = 1;
+}
+
+void tskmon_stack_check_all()
+{
+    for (int id = 0; id < TSKMON_MAX_TASKS; id++)
+        tskmon_task_stack_check[id] = 1;
 }
 
 void tskmon_stack_get_max(uint32_t task_id, uint32_t *used, uint32_t *free)
