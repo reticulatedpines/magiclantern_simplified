@@ -117,6 +117,7 @@ static int module_load_symbols(TCCState *s, char *filename)
     tcc_add_symbol(s, "strlen", &strlen);
     tcc_add_symbol(s, "memcpy", &memcpy);
     tcc_add_symbol(s, "console_printf", &console_printf);
+    tcc_add_symbol(s, "task_create", &task_create);
 
     free_dma_memory(buf);
     return 0;

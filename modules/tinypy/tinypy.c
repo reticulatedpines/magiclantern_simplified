@@ -1140,11 +1140,7 @@ tp_obj tp_printf(TP, char const *fmt,...) {
     s = r.string.info->s;
     va_end(arg);
     va_start(arg, fmt);
-    #ifdef CONFIG_MAGICLANTERN
-    vsnprintf(s,l,fmt,arg);
-    #else
     vsnprintf(s,l+1,fmt,arg);
-    #endif
     va_end(arg);
     return tp_track(tp,r);
 }
@@ -2359,6 +2355,7 @@ int tp_step(TP) {
      fprintf(stderr,"%2d.%4d: %-6s %3d %3d %3d\n",tp->cur,cur - (tp_code*)f->code.string.val,tp_strings[e.i],VA,VB,VC);
        int i; for(i=0;i<16;i++) { fprintf(stderr,"%d: %s\n",i,TP_xSTR(regs[i])); }
     */
+    
     switch (e.i) {
         case TP_IEOF: tp_return(tp,tp_None); SR(0); break;
         case TP_IADD: RA = tp_add(tp,RB,RC); break;

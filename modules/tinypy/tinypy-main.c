@@ -11,9 +11,13 @@ int main(int argc, char *argv[]) {
 }
 */
 
-unsigned int tinypy_init()
+static int tinypy_running = 0;
+
+static void tinypy_task()
 {
+    tinypy_running = 1;
     printf("Hi there\n");
+
     char* args[2];
     args[0] = "foo";
     args[1] = "A:/ML/SCRIPTS/hello.py";
@@ -22,13 +26,27 @@ unsigned int tinypy_init()
     //random_init(tp);
     tp_ez_call(tp,"py2bc","tinypy",tp_None);
     tp_deinit(tp);
-
+    msleep(2000);
     printf("Bye\n");
+    tinypy_running = 0;
+}
+
+unsigned int tinypy_init()
+{
+    /* TinyPy is quite memory hungry, even for simple scripts */
+    /* But... hey, we can allocate up to 512K RAM (5D3) for stack usage! */
+    task_create("tinypy_task", 0x1f, 128*1024, tinypy_task, (void*)0);
     return 0; // idk
 }
 
 unsigned int tinypy_deinit()
 {
+    while (tinypy_running)
+    {
+        console_printf("waiting for script...\n");
+        msleep(1000);
+    }
+
     return 0; // idk
 }
 
