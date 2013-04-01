@@ -30,8 +30,12 @@ void* shoot_malloc(size_t size)
     AllocateMemoryResource(size + 4, allocCBR, &hSuite);
     int r = take_semaphore(alloc_sem, 1000);
     if (r) return 0;
-    if (hSuite && hSuite->num_chunks != 1) 
+    if (hSuite && hSuite->num_chunks != 1)
     {
+        FreeMemoryResource(hSuite, freeCBR, 0);
+        return 0;
+        
+        /*
         // let's try again, maybe we are luckier this time
         // keep the old suite allocated, otherwise we'll get it fragmented again
         msleep(1000);
@@ -52,6 +56,7 @@ void* shoot_malloc(size_t size)
             take_semaphore(free_sem, 0);
             return 0;
         }
+        */
     }
     //~ bmp_hexdump(FONT_SMALL, 0, 100, hSuite, 32*10);
     void* hChunk = (void*) GetFirstChunkFromSuite_maybe(hSuite);
@@ -59,6 +64,17 @@ void* shoot_malloc(size_t size)
     void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
     *(struct memSuite **)ptr = hSuite;
     return ptr + 4;
+}
+
+/* just try if we can allocate that much RAM, but don't return it (free it right away) */
+int shoot_malloc_fragmented_test(size_t size)
+{
+    struct memSuite * hSuite = 0;
+    AllocateMemoryResource(size, allocCBR, &hSuite);
+    int r = take_semaphore(alloc_sem, 1000);
+    if (r) return 0;
+    FreeMemoryResource(hSuite, freeCBR, 0);
+    return 1;
 }
 
 void shoot_free(void* ptr)
