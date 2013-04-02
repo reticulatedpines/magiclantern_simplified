@@ -756,6 +756,10 @@ my_init_task(int a, int b, int c, int d)
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_DCACHE);
     }
 
+    #ifdef ML_RESERVED_MEM // define this if we can't autodetect the reserved memory size
+    ml_reserved_mem = ML_RESERVED_MEM;
+    #endif
+
     #ifdef CONFIG_6D
     //Hijack GUI Task Here - Now we're booting with cache hacks and have menu.
     cache_fake(0xFF0DF6DC, BL_INSTR(0xFF0DF6DC, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);

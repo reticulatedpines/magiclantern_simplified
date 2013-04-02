@@ -10,6 +10,12 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0110DC
 #define HIJACK_TASK_ADDR 0x1a2c
 
+#define HIJACK_CACHE_HACK
+#define HIJACK_CACHE_HACK_BSS_END_ADDR   0xF8013698
+#define HIJACK_CACHE_HACK_BSS_END_INSTR  0x1F200000
+#define HIJACK_CACHE_HACK_INITTASK_ADDR  0xFF0110DC
+#define ML_RESERVED_MEM (1024*1024 - BMP_VRAM_SIZE - 0x200) // see zebra.c, bvram_mirror_start initialization, and boot-hack.c
+
 #define ARMLIB_OVERFLOWING_BUFFER 0x36468 // in AJ_armlib_setup_related3
 
 #define DRYOS_ASSERT_HANDLER 0x1A18 // dec TH_assert or assert_0
