@@ -1491,7 +1491,7 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
                 {
                     if ((buff[ptr+j] & (1 << (7-k)))) 
                         #ifdef CONFIG_VXWORKS
-                        bmp_putpixel_fast(bvram, px+j*8+k+xo, py + (i+yo)*2, fg);
+                        bmp_putpixel_fast(bvram, px+j*8+k+xo, py + (i+yo)*(c < 0 ? 1 : 2), fg);
                         #else
                         bmp_putpixel_fast(bvram, px+j*8+k+xo, py+i+yo, fg);
                         #endif
