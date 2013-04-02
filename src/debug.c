@@ -671,6 +671,7 @@ static void bsod()
 static void run_test()
 {
     *(int*)0 = 5;
+    msleep(100);
     return;
 /*
 #ifdef CONFIG_MEMCHECK
@@ -2088,6 +2089,16 @@ void request_crash_log(int type)
     crash_log_requested = type;
 }
 
+static int core_dump_requested = 0;
+static int core_dump_req_from = 0;
+static int core_dump_req_size = 0;
+void request_core_dump(int from, int size)
+{
+    core_dump_req_from = from;
+    core_dump_req_size = size;
+    core_dump_requested = 1;
+}
+
 int GetFreeMemForAllocateMemory()
 {
     int a,b;
@@ -2150,6 +2161,14 @@ static void crash_log_step()
         save_crash_log();
         crash_log_requested = 0;
         msleep(2000);
+    }
+    
+    if (core_dump_requested)
+    {
+        NotifyBox(100000, "Saving core dump, please wait...\n");
+        dump_seg(core_dump_req_from, core_dump_req_from + core_dump_req_size, CARD_DRIVE"COREDUMP.DAT");
+        NotifyBox(10000, "Pls send COREDUMP.DAT to ML devs.\n");
+        core_dump_requested = 0;
     }
         
     //~ bmp_printf(FONT_MED, 100, 100, "%x ", get_current_dialog_handler());

@@ -198,8 +198,8 @@ static void null_pointer_check()
     extern int ml_started;
     if (!ml_started) return;
     
-    static int first_time = 1;
-    static int value_at_zero = 0;
+    static volatile int first_time = 1;
+    static volatile int value_at_zero = 0;
     if (first_time)
     {
         value_at_zero = *(int*)0; // assume this is the correct value
@@ -209,20 +209,25 @@ static void null_pointer_check()
     {
         if (value_at_zero != *(int*)0)
         {
+            // reset the error quickly so it doesn't get reported twice
+            int ok = value_at_zero;
+            int bad = *(int*)0;
+            *(int*)0 = value_at_zero;
+            
             uint32_t id = (tskmon_last_task->taskId) & (TSKMON_MAX_TASKS-1);
-            static int guilty_task = -1;
-            static char guilty_task_name[20];
-            if (guilty_task == -1)
-            {
-                guilty_task = id;
-                snprintf(guilty_task_name, sizeof(guilty_task_name), get_task_name_from_id(guilty_task));
-            }
-            if (DISPLAY_IS_ON) bmp_printf(
-                FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 0, 0, 
-                "[%d] %s: null pointer error (%x,%x)", 
-                guilty_task, guilty_task_name,
-                *(int*)0, value_at_zero
+            
+            static char msg[256];
+                
+            STR_APPEND(msg, "[%d] %s: NULL PTR (%x,%x)\n", 
+                id, get_task_name_from_id(id),
+                bad, ok
             );
+            STR_APPEND(msg, "pc=%8x lr=%8x stack=%x+0x%x\n", tskmon_last_task->context->pc, tskmon_last_task->context->lr, tskmon_last_task->stackStartAddr, tskmon_last_task->stackSize);
+            STR_APPEND(msg, "entry=%x(%x)\n", tskmon_last_task->entry, tskmon_last_task->arg);
+            STR_APPEND(msg, "%8x %8x %8x %8x\n%8x %8x %8x %8x\n", *(uint32_t*)0, *(uint32_t*)4, *(uint32_t*)8, *(uint32_t*)0xc, *(uint32_t*)0x10, *(uint32_t*)0x14, *(uint32_t*)0x18, *(uint32_t*)0x1c);
+
+            ml_crash_message(msg);
+            request_core_dump(tskmon_last_task->stackStartAddr, tskmon_last_task->stackSize);
         }
     }
 }

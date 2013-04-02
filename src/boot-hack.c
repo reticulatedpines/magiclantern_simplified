@@ -586,6 +586,12 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func)
     request_crash_log(2);
 }
 
+void ml_crash_message(char* msg)
+{
+    snprintf(assert_msg, sizeof(assert_msg), "%s", msg);
+    request_crash_log(1);
+}
+
 #ifdef CONFIG_ALLOCATE_MEMORY_POOL
 
 #ifndef ITASK_LEN
