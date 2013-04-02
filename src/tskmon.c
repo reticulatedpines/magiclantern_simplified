@@ -212,11 +212,20 @@ static void null_pointer_check()
             *(int*)0 = value_at_zero;
             
             uint32_t id = (tskmon_last_task->taskId) & (TSKMON_MAX_TASKS-1);
+
+            char* task_name = get_task_name_from_id(id);
+
+            #ifdef CONFIG_60D
+            /* ignore two Canon null pointer bugs (let's hope they are harmless...) */
+            /* one is around ff07cb10 and the other around ff013e9c */
+            if (streq(task_name, "AeWb") || streq(task_name, "FileMgr"))
+                return;
+            #endif
             
             static char msg[256];
                 
             STR_APPEND(msg, "[%d] %s: NULL PTR (%x,%x)\n", 
-                id, get_task_name_from_id(id),
+                id, task_name,
                 bad, ok
             );
             STR_APPEND(msg, "pc=%8x lr=%8x stack=%x+0x%x\n", tskmon_last_task->context->pc, tskmon_last_task->context->lr, tskmon_last_task->stackStartAddr, tskmon_last_task->stackSize);
