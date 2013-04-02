@@ -195,9 +195,6 @@ void tskmon_stack_get_max(uint32_t task_id, uint32_t *used, uint32_t *free)
 
 static void null_pointer_check()
 {
-    extern int ml_started;
-    if (!ml_started) return;
-    
     static volatile int first_time = 1;
     static volatile int value_at_zero = 0;
     if (first_time)
