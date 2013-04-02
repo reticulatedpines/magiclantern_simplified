@@ -193,6 +193,40 @@ void tskmon_stack_get_max(uint32_t task_id, uint32_t *used, uint32_t *free)
     *used = tskmon_task_stack_used[task_id & (TSKMON_MAX_TASKS-1)];
 }
 
+static void null_pointer_check()
+{
+    extern int ml_started;
+    if (!ml_started) return;
+    
+    static int first_time = 1;
+    static int value_at_zero = 0;
+    if (first_time)
+    {
+        value_at_zero = *(int*)0; // assume this is the correct value
+        first_time = 0;
+    }
+    else // did it change? it shouldn't
+    {
+        if (value_at_zero != *(int*)0)
+        {
+            uint32_t id = (tskmon_last_task->taskId) & (TSKMON_MAX_TASKS-1);
+            static int guilty_task = -1;
+            static char guilty_task_name[20];
+            if (guilty_task == -1)
+            {
+                guilty_task = id;
+                snprintf(guilty_task_name, sizeof(guilty_task_name), get_task_name_from_id(guilty_task));
+            }
+            if (DISPLAY_IS_ON) bmp_printf(
+                FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 0, 0, 
+                "[%d] %s: null pointer error (%x,%x)", 
+                guilty_task, guilty_task_name,
+                *(int*)0, value_at_zero
+            );
+        }
+    }
+}
+
 void tskmon_task_dispatch()
 {
 #ifdef HIJACK_TASK_ADDR
@@ -200,6 +234,7 @@ void tskmon_task_dispatch()
     
     tskmon_stack_checker(next_task);    
     tskmon_update_timers();
+    null_pointer_check();
     
     if(next_task->taskId != tskmon_last_task->taskId)
     {
