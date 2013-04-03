@@ -164,13 +164,13 @@ static void tskmon_stack_checker(struct task *next_task)
     tskmon_task_stack_check[id] = 0;
     
     /* at 1024 it gives warning for PowerMgr task */
-    /* at 512 it gives warning for PowerMgr task */
-    if (free < 256)
+    /* at 512 it gives warning for LightMeasure task */
+    if (free < 200)
     {
         bmp_printf(FONT(FONT_MED, free < 128 ? COLOR_RED : COLOR_WHITE, COLOR_BLACK), 0, 0, 
             "[%d] %s: stack %s: free=%d used=%d ",
             id, get_task_name_from_id(id),
-            free < 128 ? "overflow" : "warning",
+            free < 64 ? "overflow" : "warning",
             free, next_task->stackSize - free
         );
     }
@@ -224,6 +224,11 @@ static void null_pointer_check()
 
             #ifdef CONFIG_550D
             if (streq(task_name, "FileMgr"))
+                return;
+            #endif
+
+            #ifdef CONFIG_5D2
+            if (streq(task_name, "USBTrns"))
                 return;
             #endif
             
