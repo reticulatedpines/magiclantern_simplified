@@ -570,6 +570,19 @@ OS_FUNCTION( 0x0400001,	const char*,	get_card_drive, void );
 uint32_t RegisterRPCHandler (uint32_t rpc_id, uint32_t (*handler) (uint8_t *, uint32_t));
 uint32_t RequestRPC (uint32_t id, void* data, uint32_t length, uint32_t cb, uint32_t cb_parm);
 
+/* MemorySuite routines */
+struct memSuite;
+struct memChunk;
+
+int AllocateMemoryResource(int size, void (*cbr)(unsigned int, struct memSuite *), unsigned int ctx, int type);
+int FreeMemoryResource(struct memSuite *hSuite, void (*cbr)(unsigned int), unsigned int ctx);
+struct memChunk *GetFirstChunkFromSuite(struct memSuite *hSuite);
+struct memChunk *GetNextMemoryChunk(struct memSuite *hSuite, struct memChunk *hPos);
+unsigned int GetSizeOfMemoryChunk(struct memChunk *chunk);
+struct memChunk *GetRemainOfMemoryChunk(struct memChunk *chunk);
+unsigned int GetAddressOfMemoryChunk(struct memChunk *chunk);
+int GetNumberOfChunks(struct memSuite *hSuite);
+int GetSizeOfMemorySuite(struct memSuite *hSuite);
 
 extern int _dummy_variable;
 

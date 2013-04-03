@@ -1,17 +1,19 @@
 #include "dryos.h"
+#include "bmp.h"
 
 // experimental memory allocation from shooting buffer (~160MB on 5D2)
+
 
 static struct semaphore * alloc_sem = 0;
 static struct semaphore * free_sem = 0;
 
-static void allocCBR(int a, int b)
+static void allocCBR(unsigned int a, struct memSuite *b)
 {
-    MEM(a) = b;
+    MEM(a) = (unsigned int)b;
     give_semaphore(alloc_sem);
 }
 
-static void freeCBR(int a, int b)
+static void freeCBR(unsigned int a)
 {
     give_semaphore(free_sem);
 }
@@ -24,10 +26,11 @@ struct memSuite
     int first_chunk_maybe;
 };
 
+
 void* shoot_malloc(size_t size)
 {
     struct memSuite * hSuite = 0;
-    AllocateMemoryResource(size + 4, allocCBR, &hSuite, 0x50);
+    AllocateMemoryResource(size + 4, allocCBR, (unsigned int)&hSuite, 0x50);
     int r = take_semaphore(alloc_sem, 1000);
     if (r) return 0;
     if (hSuite && hSuite->num_chunks != 1)
@@ -59,7 +62,7 @@ void* shoot_malloc(size_t size)
         */
     }
     //~ bmp_hexdump(FONT_SMALL, 0, 100, hSuite, 32*10);
-    void* hChunk = (void*) GetFirstChunkFromSuite_maybe(hSuite);
+    void* hChunk = (void*) GetFirstChunkFromSuite(hSuite);
     //~ bmp_hexdump(FONT_SMALL, 0, 300, hChunk, 32*10);
     void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
     *(struct memSuite **)ptr = hSuite;
@@ -70,7 +73,7 @@ void* shoot_malloc(size_t size)
 int shoot_malloc_fragmented_test(size_t size)
 {
     struct memSuite * hSuite = 0;
-    AllocateMemoryResource(size, allocCBR, &hSuite, 0x50);
+    AllocateMemoryResource(size, allocCBR, (unsigned int)&hSuite, 0x50);
     int r = take_semaphore(alloc_sem, 1000);
     if (r) return 0;
     FreeMemoryResource(hSuite, freeCBR, 0);
@@ -86,8 +89,41 @@ void shoot_free(void* ptr)
     take_semaphore(free_sem, 0);
 }
 
-static void exmem_test()
+void exmem_test()
 {
+#if defined(CONFIG_5D3) || defined(CONFIG_7D)
+    struct memSuite * hSuite = 0;
+    struct memChunk * hChunk = 0;
+    
+    msleep(2000);
+    AllocateMemoryResource(1024*1024*32, allocCBR, (unsigned int)&hSuite, 0x50);
+    int r = take_semaphore(alloc_sem, 1000);
+    if (r) return;
+    
+    if(!hSuite)
+    {
+        bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 0, 0, "Alloc Fail");
+        return;
+    }
+    hChunk = GetFirstChunkFromSuite(hSuite);
+    int num = 0;
+    
+    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 0, 0, "C:%d S:0x%08X", GetNumberOfChunks(hSuite), GetSizeOfMemorySuite(hSuite) );
+    while(hChunk)
+    {
+        if(num > 13)
+        {
+            num = 13;
+        }
+        bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 0, 30 + num * 20, 
+            "[%d] A:0x%08X S:0x%08X R:0x%08X", num, GetAddressOfMemoryChunk(hChunk), GetSizeOfMemoryChunk(hChunk), GetRemainOfMemoryChunk(hChunk));
+        hChunk = GetNextMemoryChunk(hSuite, hChunk);
+        num++;
+    } 
+    bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 0, 30 + num++ * 20, "Done");
+
+    FreeMemoryResource(hSuite, freeCBR, 0);
+#else
     msleep(2000);
     info_led_on();
     void* p = shoot_malloc(20000000);
@@ -95,6 +131,7 @@ static void exmem_test()
     msleep(2000);
     shoot_free(p);
     info_led_off();
+#endif
 }
 
 static void exmem_init()

@@ -43,6 +43,14 @@ NSTUB(0x23D0C, post_isr_hook)
 
 #define RAM_OFFSET 0xFF9DEF48 // some functions are copied to RAM at around ff0c009c; they have to be called from RAM...
 
+NSTUB(0xFF9EA118 - RAM_OFFSET, GetFirstChunkFromSuite)
+NSTUB(0xFF9EA8B4 - RAM_OFFSET, GetNextMemoryChunk)
+NSTUB(0xFF9E9AC0 - RAM_OFFSET, GetSizeOfMemoryChunk)
+NSTUB(0xFF9E9A90 - RAM_OFFSET, GetRemainOfMemoryChunk)
+NSTUB(0xFF9E9AF0 - RAM_OFFSET, GetAddressOfMemoryChunk)
+NSTUB(0xFF9E9ED8 - RAM_OFFSET, GetNumberOfChunks)
+NSTUB(0xFF9E9DF8 - RAM_OFFSET, GetSizeOfMemorySuite)
+
 NSTUB(0xff9f3900 - RAM_OFFSET, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
 NSTUB(0xff9e88e8 - RAM_OFFSET, AllocateMemory)
 NSTUB(0xff44c8c4, CreateDialogBox)
