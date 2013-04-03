@@ -3,20 +3,28 @@
 
 // experimental memory allocation from shooting buffer (~160MB on 5D2)
 
-
+int alloc_sem_timed_out = 0;
 static struct semaphore * alloc_sem = 0;
 static struct semaphore * free_sem = 0;
-
-static void allocCBR(unsigned int a, struct memSuite *b)
-{
-    MEM(a) = (unsigned int)b;
-    give_semaphore(alloc_sem);
-}
 
 static void freeCBR(unsigned int a)
 {
     give_semaphore(free_sem);
 }
+
+static void allocCBR(unsigned int a, struct memSuite *hSuite)
+{
+    /* in case we timed out last time, immediately free the newly allocated suite (its the one that timed out) */
+    if(alloc_sem_timed_out)
+    {
+        FreeMemoryResource(hSuite, freeCBR, 0);
+        alloc_sem_timed_out = 0;
+        return;
+    }
+    MEM(a) = (unsigned int)hSuite;
+    give_semaphore(alloc_sem);
+}
+
 
 struct memSuite
 {
@@ -27,43 +35,39 @@ struct memSuite
 };
 
 
-void* shoot_malloc(size_t size)
+struct memSuite *shoot_malloc_suite(size_t size)
 {
     struct memSuite * hSuite = 0;
-    AllocateMemoryResource(size + 4, allocCBR, (unsigned int)&hSuite, 0x50);
+    
+    /* reset timeout flag */
+    alloc_sem_timed_out = 0;
+    AllocateMemoryResource(size, allocCBR, (unsigned int)&hSuite, 0x50);
+    
     int r = take_semaphore(alloc_sem, 1000);
-    if (r) return 0;
-    if (hSuite && hSuite->num_chunks != 1)
+    if (r)
+    {
+        alloc_sem_timed_out = 1;
+        return NULL;
+    }
+    
+    return hSuite;
+}
+
+void* shoot_malloc(size_t size)
+{
+    struct memSuite * hSuite = shoot_malloc_suite(size + 4);
+
+    if (!hSuite)
+    {
+        return NULL;
+    }
+    
+    if (hSuite->num_chunks != 1)
     {
         FreeMemoryResource(hSuite, freeCBR, 0);
-        return 0;
-        
-        /*
-        // let's try again, maybe we are luckier this time
-        // keep the old suite allocated, otherwise we'll get it fragmented again
-        msleep(1000);
-        struct memSuite * hSuite2 = 0;
-        AllocateMemoryResource(size + 4, allocCBR, &hSuite2);
-        int r2 = take_semaphore(alloc_sem, 1000);
-
-        FreeMemoryResource(hSuite, freeCBR, 0);
-        take_semaphore(free_sem, 0);
-
-        if (r2 == 0 && hSuite2->num_chunks == 1) // yes!
-        {
-            hSuite = hSuite2;
-        }
-        else if (hSuite2) // boo...
-        {
-            FreeMemoryResource(hSuite2, freeCBR, 0);
-            take_semaphore(free_sem, 0);
-            return 0;
-        }
-        */
+        return NULL;
     }
-    //~ bmp_hexdump(FONT_SMALL, 0, 100, hSuite, 32*10);
     void* hChunk = (void*) GetFirstChunkFromSuite(hSuite);
-    //~ bmp_hexdump(FONT_SMALL, 0, 300, hChunk, 32*10);
     void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
     *(struct memSuite **)ptr = hSuite;
     return ptr + 4;

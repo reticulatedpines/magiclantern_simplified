@@ -670,8 +670,10 @@ static void bsod()
 
 static void run_test()
 {
-    *(int*)0 = 5;
-    msleep(100);
+
+    void exmem_test();
+
+    exmem_test();
     return;
 /*
 #ifdef CONFIG_MEMCHECK
@@ -2369,15 +2371,10 @@ static int shoot_malloc_crit(int x)
 }
 
 static int max_shoot_malloc_frag_mem = 0;
-static int shoot_malloc_fragmented_crit(int x)
+
+
+static void freeCBR(unsigned int a)
 {
-    int ok = shoot_malloc_fragmented_test(x * 1024 * 1024);
-    if (ok) 
-    { 
-        max_shoot_malloc_frag_mem = x * 1024 * 1024;
-        return 1; 
-    }
-    else return -1;
 }
 
 /* fixme: find a way to read the free stack memory from DryOS */
@@ -2386,10 +2383,35 @@ static volatile int guess_mem_running = 0;
 static void guess_free_mem_task(void* priv, int delta)
 {
     guess_mem_running = 1;
+    
+    /* reset values */
+    max_stack_ack = 0;
+    max_shoot_malloc_mem = 0;
+    max_shoot_malloc_frag_mem = 0;
+    
     bin_search(1, 1024, stack_size_crit);
     bin_search(1, 1024, shoot_malloc_crit);
-    msleep(1000);
-    bin_search(1, 1024, shoot_malloc_fragmented_crit);
+    
+    /* allocate some backup that will service the queued allocation request that fails during the loop */
+    struct memSuite *backup = shoot_malloc_suite(4 * 1024 * 1024);
+    
+    for(int size = 1; size < 1024; size++)
+    {
+        struct memSuite *testSuite = shoot_malloc_suite(size * 1024 * 1024);
+        if(testSuite)
+        {
+            FreeMemoryResource(testSuite, freeCBR, 0);
+            max_shoot_malloc_frag_mem = (32 + size) * 1024 * 1024;
+        }
+        else
+        {
+            break;
+        }
+    }
+    /* now free the backup suite. this causes the queued allocation before to get finished. as we timed out, it will get freed immediately in exmem.c:allocCBR */
+    FreeMemoryResource(backup, freeCBR, 0);
+    
+    menu_redraw();
     guess_mem_running = 0;
 }
 
