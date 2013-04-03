@@ -288,7 +288,7 @@ NSTUB(0xFF079ce4, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xff06f3d8, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff06f424, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff06f53c, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xff06c9ec, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff06c9ec, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff06c434, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature
 
 NSTUB(0xff1d8a3c, AJ_UserLevel_task)

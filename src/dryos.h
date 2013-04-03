@@ -580,7 +580,7 @@ struct memChunk *GetFirstChunkFromSuite(struct memSuite *hSuite);
 struct memChunk *GetNextMemoryChunk(struct memSuite *hSuite, struct memChunk *hPos);
 unsigned int GetSizeOfMemoryChunk(struct memChunk *chunk);
 struct memChunk *GetRemainOfMemoryChunk(struct memChunk *chunk);
-unsigned int GetAddressOfMemoryChunk(struct memChunk *chunk);
+unsigned int GetMemoryAddressOfMemoryChunk(struct memChunk *chunk);
 int GetNumberOfChunks(struct memSuite *hSuite);
 int GetSizeOfMemorySuite(struct memSuite *hSuite);
 

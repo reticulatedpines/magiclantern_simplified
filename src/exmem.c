@@ -116,7 +116,7 @@ void exmem_test()
             num = 13;
         }
         bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 0, 30 + num * 20, 
-            "[%d] A:0x%08X S:0x%08X R:0x%08X", num, GetAddressOfMemoryChunk(hChunk), GetSizeOfMemoryChunk(hChunk), GetRemainOfMemoryChunk(hChunk));
+            "[%d] A:0x%08X S:0x%08X R:0x%08X", num, GetMemoryAddressOfMemoryChunk(hChunk), GetSizeOfMemoryChunk(hChunk), GetRemainOfMemoryChunk(hChunk));
         hChunk = GetNextMemoryChunk(hSuite, hChunk);
         num++;
     } 

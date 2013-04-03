@@ -277,7 +277,7 @@ NSTUB(0xff0a5e44, SetGUIRequestMode)
 NSTUB(0xff0765a0, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff0765ec, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff076704, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xff073b98, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff073b98, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff0735e0, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature
 
 NSTUB(0xff06a93c, PowerAudioOutput)

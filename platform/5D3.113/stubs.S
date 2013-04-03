@@ -47,7 +47,7 @@ NSTUB(0xFF9EA118 - RAM_OFFSET, GetFirstChunkFromSuite)
 NSTUB(0xFF9EA8B4 - RAM_OFFSET, GetNextMemoryChunk)
 NSTUB(0xFF9E9AC0 - RAM_OFFSET, GetSizeOfMemoryChunk)
 NSTUB(0xFF9E9A90 - RAM_OFFSET, GetRemainOfMemoryChunk)
-NSTUB(0xFF9E9AF0 - RAM_OFFSET, GetAddressOfMemoryChunk)
+NSTUB(0xFF9E9AF0 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFF9E9ED8 - RAM_OFFSET, GetNumberOfChunks)
 NSTUB(0xFF9E9DF8 - RAM_OFFSET, GetSizeOfMemorySuite)
 
@@ -187,8 +187,6 @@ NSTUB(0xff181314, ENCODE_StartEncodeJpeg)
 NSTUB(0xff13c134, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff13c180, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff13c298, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xff9ea118 - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
-NSTUB(0xff9e9af0 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 
 NSTUB(0xFF9EB650 - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)
 

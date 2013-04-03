@@ -179,7 +179,7 @@ NSTUB(0xFF19991C, ENCODE_StartEncodeJpeg)
 NSTUB(0xFF13B678, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xFF13B6C4, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xFF13B7DC, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xFFA723E4 - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xFFA723E4 - RAM_OFFSET, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xFFA71DBC - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 
 NSTUB(0xFFA7391C - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)

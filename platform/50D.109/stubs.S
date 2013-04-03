@@ -260,5 +260,5 @@ NSTUB(0xff854fc8, TH_audio_ic_initialize)
 NSTUB(0xff86be28, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff86be6c, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff86bf7c, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xff869524, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff869524, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff868f44, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature

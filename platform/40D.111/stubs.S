@@ -171,7 +171,7 @@ NSTUB(0xffd4ad9c, msg_queue_create)
 NSTUB(0xffd5c458, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xffd5c4ac, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xffd5c500, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xffd480e0, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xffd480e0, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xffd47d4c, GetMemoryAddressOfMemoryChunk)
 
     //NSTUB(0xff07365c, PowerAudioOutput)
