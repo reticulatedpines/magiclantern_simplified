@@ -221,6 +221,11 @@ static void null_pointer_check()
             if (streq(task_name, "AeWb") || streq(task_name, "FileMgr"))
                 return;
             #endif
+
+            #ifdef CONFIG_550D
+            if (streq(task_name, "FileMgr"))
+                return;
+            #endif
             
             static char msg[256];
                 
