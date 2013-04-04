@@ -30,10 +30,12 @@
 
 #define NSTUB(addr,name) \
 	.global name; \
+	.extern name; \
 	name = addr
 
 #define NILSTUB(addr,name) \
 	.global name; \
+	.extern name; \
 	name: BX LR
 	
 

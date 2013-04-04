@@ -30,10 +30,12 @@
 
 #define NSTUB(addr,name) \
 	.global name; \
+	.extern name; \
 	name = addr
 
 #define XSTUB(addr,name) \
 	.global STUB_##name; \
+	.extern STUB_##name; \
 	STUB_##name = addr
 
 NSTUB( ROMBASEADDR, firmware_entry )
