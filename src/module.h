@@ -31,6 +31,7 @@
 #define CBR_SHOOT_TASK                3 /* called periodically from shoot task */
 #define CBR_IMAGE_FILTER              4
 #define CBR_SECONDS_CLOCK             5
+#define CBR_VSYNC                     6
 
 
 

@@ -9,6 +9,7 @@
 #include "bmp.h"
 #include "state-object.h"
 #include "property.h"
+#include "module.h"
 
 #ifdef CONFIG_STATE_OBJECT_HOOKS
 
@@ -113,6 +114,8 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 
 static void vsync_func() // called once per frame.. in theory :)
 {
+    module_exec_cbr(CBR_VSYNC);
+    
     #if !defined(CONFIG_EVF_STATE_SYNC)
     // for those cameras, it's called from a different spot of the evf state object
     hdr_step();
