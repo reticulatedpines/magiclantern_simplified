@@ -6040,6 +6040,12 @@ static int hdr_shutter_release(int ev_x8)
         int msc = ms * roundf(1000.0f * powf(2, ev_x8 / 8.0f))/1000;
         
         int rs = (BULB_EXPOSURE_CONTROL_ACTIVE) ? shutterf_to_raw_noflicker(bulb_shutter_valuef) : get_exposure_time_raw();
+        if (rs == 0) // shouldn't happen
+        {
+            msleep(1000);
+            rs = lens_info.raw_shutter; // maybe lucky this time?
+            ASSERT(rs);
+        }
         int rc = rs - ev_x8;
 
         int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
