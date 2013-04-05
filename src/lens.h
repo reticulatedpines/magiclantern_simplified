@@ -254,8 +254,10 @@ void aperture_toggle( void* priv, int sign);
 #define MAX_ISO 136 // may be better to fine-tune this for each camera
 
 // max iso with expo override
-#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
 #define MAX_ISO_BV 199
+#elif defined(CONFIG_6D)
+#define MAX_ISO_BV 136 // see ControlIso <= LVGAIN_MAX_ISO
 #elif defined(CONFIG_500D)
 #define MAX_ISO_BV (is_movie_mode() ? 104 : 112) // 1600 or 3200
 #else
