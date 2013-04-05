@@ -222,7 +222,7 @@ static void null_pointer_check()
                 return;
             #endif
 
-            #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_1100D)
+            #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_1100D) || defined(CONFIG_600D)
             if (streq(task_name, "FileMgr"))
                 return;
             #endif
