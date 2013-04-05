@@ -894,6 +894,7 @@ int handle_mlu_handheld(struct event * event)
         if (HDR_ENABLED) return 1; // may interfere with HDR bracketing
         if (trap_focus) return 1; // may not play nice with trap focus
         if (is_bulb_mode()) return 1; // not good in bulb mode
+        if (aeb_setting) return 1; // not working with Canon bracketing
 
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug && event->param == GMT_OLC_INFO_CHANGED)
@@ -3436,6 +3437,7 @@ static MENU_UPDATE_FUNC(mlu_display)
             is_bulb_mode() || 
             intervalometer_running || 
             motion_detect || 
+            aeb_setting ||
             #ifdef FEATURE_AUDIO_REMOTE_SHOT
             audio_release_running ||
             #endif
@@ -3449,6 +3451,7 @@ static MENU_UPDATE_FUNC(mlu_display)
             is_bulb_mode() ? "bulb shots" :
             intervalometer_running ? "intervalometer" :
             motion_detect ? "motion detection" :
+            aeb_setting ? "Canon bracketing (AEB)" :
             #ifdef FEATURE_AUDIO_REMOTE_SHOT
             audio_release_running ? "audio remote" :
             #endif
