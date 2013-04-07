@@ -164,13 +164,20 @@ static void tskmon_stack_checker(struct task *next_task)
     tskmon_task_stack_check[id] = 0;
 
     /* at 1024 it gives warning for PowerMgr task */
-    /* at 512 it gives warning for LightMeasure task */
-    if (free < 200)
+    if (free < 512)
     {
-        bmp_printf(FONT(FONT_MED, free < 128 ? COLOR_RED : COLOR_WHITE, COLOR_BLACK), 0, 0,
+        char* task_name = get_task_name_from_id(id);
+        
+        /* at 136 it gives warning for LightMeasure task (5D2/7D) - Canon allocated only 512 bytes for this task */
+        #if defined(CONFIG_5D2) || defined(CONFIG_7D)
+        if (streq(task_name, "LightMeasure") && free > 64)
+            return;
+        #endif
+
+        bmp_printf(FONT(FONT_MED, free < 128 ? COLOR_RED : COLOR_WHITE, COLOR_BLACK), 0, 0, 
             "[%d] %s: stack %s: free=%d used=%d ",
-            id, get_task_name_from_id(id),
-            free < 64 ? "overflow" : "warning",
+            id, task_name,
+            free < 128 ? "overflow" : "warning",
             free, next_task->stackSize - free
         );
     }
