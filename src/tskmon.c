@@ -224,21 +224,37 @@ static void null_pointer_check()
 
             // Ignore Canon null pointer bugs (let's hope they are harmless...)
 
-            #if defined(CONFIG_60D) || config(1100D) || config(600D)
-            /* On 60D, one is around ff07cb10 and the other around ff013e9c
+            #if defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_600D)
+            /* [60D]   AeWB -> pc=ff07cb10
              * [1100D] AeWB -> pc=ff07dbd4 lr=ff07dbd4 stack=137058+0x4000 entry=ff1ee5d8(9b9604)
              * [600D]  AeWB -> pc=ff07f658 lr=ff07f658 stack=137058+0x4000 entry=ff1fbab4(90df10)
              */
-            if (streq(task_name, "AeWb") || streq(task_name, "FileMgr"))
+            if (streq(task_name, "AeWb"))
                 return;
             #endif
 
-            #if defined(CONFIG_550D) || defined(CONFIG_500D)
+            #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_600D)
             /* Ignore FileMgr NPE
              * [500D] FileMgr -> pc=ffff0740 lr=ffff0728 stack=13bf88+0x1000 entry=ff1a67b0(65d230)
              * [550D] FileMgr -> pc=      10 lr=ff01380c stack=113128+0x1000 entry=ff1d8a3c(72c488)
+             * [60D]  FileMgr -> pc=ff013e9c
              */
             if (streq(task_name, "FileMgr"))
+                return;
+            #endif
+
+            #if defined(CONFIG_550D)
+            /* Ignore MovieRecorder NPE
+             * [550D] MovieRecorder -> pc=ff069f78 lr=    1ed0 stack=12c1b8+0x1000 entry=ff1d8a3c(8c2b04)
+             */
+            if (streq(task_name, "MovieRecorder"))
+                return;
+            #endif
+
+            #if defined(CONFIG_600D)
+            /* Ignore CLR_CALC NPE
+             */
+            if (streq(task_name, "CLR_CALC"))
                 return;
             #endif
 
