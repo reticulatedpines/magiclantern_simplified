@@ -105,6 +105,7 @@ void
 __attribute__((noreturn))
 cstart( void )
 {
+#ifndef CONFIG_QEMU
     #ifdef CONFIG_5D3
     int s = compute_signature((int*)0xFF0C0000, 0x10000);
     if (s != (int)0x2e2f65f5)
@@ -134,7 +135,8 @@ cstart( void )
     if (s != (int)0x6D677512)
         fail();
     #endif
-    
+#endif
+
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */
 	#if defined(CONFIG_40D)
         *(volatile int*) (LEDBLUE) = (LEDON);

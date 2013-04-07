@@ -115,6 +115,10 @@ static void console_init()
 void console_puts(const char* str) // don't DebugMsg from here!
 {
     #define NEW_CHAR(c) CONSOLE_BUFFER(console_buffer_index++) = (c)
+    
+    #ifdef CONFIG_QEMU
+    qprintf("%s", str);
+    #endif
 
     #ifdef CONSOLE_DEBUG
     bmp_printf(FONT_MED, 0, 0, "%s ", str);

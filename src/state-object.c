@@ -264,10 +264,7 @@ static void state_init(void* unused)
         stateobj_start_spy(DISPLAY_STATE);
     #endif
     #ifdef LV_STATE
-        while(!LV_STATE)
-        {
-            msleep(50);
-        }
+        while(!LV_STATE) msleep(50);
         stateobj_start_spy(LV_STATE);
     #endif
     //~ #ifdef MOVREC_STATE
@@ -286,6 +283,8 @@ static void state_init(void* unused)
     #endif
 }
 
+#ifndef CONFIG_QEMU // in QEMU, the state objects are not initialized, so just skip this for now to avoid infinite loops
 INIT_FUNC("state_init", state_init);
+#endif
 
 #endif

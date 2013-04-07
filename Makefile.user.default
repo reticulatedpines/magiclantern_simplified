@@ -75,6 +75,10 @@ CONFIG_MEMCHECK     = n
 CONFIG_MODULES      = n
 CONFIG_TINYPY       = n
 
+# Work in progress - would be nice to run the unmodified autoexec.bin in QEMU, but we are not there yet
+# so, for now, we'll just hack the source code to work around the limitations of the emulator
+CONFIG_QEMU         = n
+
 # You can customize CFLAG here
 #CFLAG_USER = -march=armv5te -mcpu=arm946e-s -O2 -DCONFIG_RELEASE_BUILD \
 

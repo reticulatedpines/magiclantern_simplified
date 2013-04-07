@@ -437,6 +437,10 @@ static void my_big_init_task()
     }
     return;
     #endif
+    
+    #ifdef CONFIG_QEMU
+    qemu_hello(); // see qemu-util.c
+    #endif
 
     #if defined(CONFIG_AUTOBACKUP_ROM)
     /* backup ROM first time to be prepared if anything goes wrong. choose low prio */

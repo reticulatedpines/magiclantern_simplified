@@ -148,6 +148,10 @@ endif
 CFLAGS += -DCONFIG_MODULES
 endif
 
+ifeq ($(CONFIG_QEMU),y)
+CFLAGS += -DCONFIG_QEMU -DCONFIG_STATIC_FONTS
+endif
+
 # PyMite scripting paths
 PYMITE_PATH		= $(HOME)/build/pymite-08
 PYMITE_LIB		= $(PYMITE_PATH)/src/vm/libpmvm_dryos.a
@@ -216,6 +220,12 @@ ML_OBJS-$(CONFIG_TCC) += \
 
 ML_OBJS-$(CONFIG_MODULES) += \
 	module.o
+
+ML_OBJS-$(CONFIG_QEMU)	+= \
+	qemu-util.o \
+	font-small.o \
+	font-med.o \
+	font-large.o
 
 endif
 
@@ -468,6 +478,17 @@ autoexec-fir: reboot.o
 		-Ttext $(FIR_BASE) \
 		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
 	);
+
+qemu-helper: qemu-helper.o stubs.S
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-nostdlib \
+		-march=armv5te \
+		-e _start \
+		-Ttext 0x30000000 \
+		$^ \
+		-lm -lgcc \
+	); \
 
 %-stubs.S: %.map
 	perl -ne > $@ < $< '\
