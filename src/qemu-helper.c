@@ -89,6 +89,7 @@ NULL_STUB_BODY_HEX(CreateRecursiveLock)
 NULL_STUB_BODY_HEX(prop_register_slave)
 NULL_STUB_BODY_HEX(LoadCalendarFromRTC)
 NULL_STUB_BODY_HEX(is_taskid_valid)
+NULL_STUB_BODY_HEX(GUI_Control)
 
 void launch(void (*func)(void*))
 {
@@ -233,6 +234,7 @@ extern thunk AllocateMemory_do;
 extern thunk msg_queue_create;
 extern thunk prop_register_slave;
 extern thunk is_taskid_valid;
+extern thunk GUI_Control;
 
 #define MAGIC (void*)0x12345678
 void*  stub_mappings[] = {
@@ -263,6 +265,7 @@ void*  stub_mappings[] = {
     STUB_MAP(prop_register_slave)
     STUB_MAP(LoadCalendarFromRTC)
     STUB_MAP(is_taskid_valid)
+    STUB_MAP(GUI_Control)
     
     MAGIC, MAGIC,
 };
