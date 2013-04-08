@@ -31,9 +31,10 @@ wget -c http://wiki.qemu-project.org/download/qemu-1.4.0.tar.bz2
 tar jxf qemu-1.4.0.tar.bz2
 
 # apply our patch
-patch -N -p1 < ../magic-lantern/contrib/qemu/qemu-scripts.patch
-chmod +x run_ml*.sh
+cp -v ../magic-lantern/contrib/qemu/scripts/* .
+chmod +x *.sh
 cd ${QEMU_DIR}
+cp -v ../../magic-lantern/contrib/qemu/hw/* hw/
 patch -N -p1 < ../../magic-lantern/contrib/qemu/qemu-1.4.0.patch
 cd ..
 
