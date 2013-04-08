@@ -337,6 +337,7 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start)
     s->cpu->env.regs[13] = 0x8000000;
 }
 
+ML_MACHINE(50D,   0xFF010000);
 ML_MACHINE(60D,   0xFF010000);
 ML_MACHINE(600D,  0xFF010000);
 ML_MACHINE(500D,  0xFF010000);
@@ -344,6 +345,7 @@ ML_MACHINE(5D2,   0xFF810000);
 ML_MACHINE(5D3,   0xFF0C0000);
 ML_MACHINE(650D,  0xFF0C0000);
 
+EOS_MACHINE(50D,  0xFF010000);
 EOS_MACHINE(60D,  0xFF010000);
 EOS_MACHINE(600D, 0xFF010000);
 EOS_MACHINE(500D, 0xFF010000);
@@ -353,12 +355,14 @@ EOS_MACHINE(650D, 0xFF0C0000);
 
 static void eos_machine_init(void)
 {
+    qemu_register_machine(&canon_eos_machine_ml_50D);
     qemu_register_machine(&canon_eos_machine_ml_60D);
     qemu_register_machine(&canon_eos_machine_ml_600D);
     qemu_register_machine(&canon_eos_machine_ml_500D);
     qemu_register_machine(&canon_eos_machine_ml_5D2);
     qemu_register_machine(&canon_eos_machine_ml_5D3);
     qemu_register_machine(&canon_eos_machine_ml_650D);
+    qemu_register_machine(&canon_eos_machine_50D);
     qemu_register_machine(&canon_eos_machine_60D);
     qemu_register_machine(&canon_eos_machine_600D);
     qemu_register_machine(&canon_eos_machine_500D);
