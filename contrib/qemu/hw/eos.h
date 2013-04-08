@@ -25,6 +25,7 @@
 #define REG_PRINT_CHAR 0xCF123000
 #define REG_SHUTDOWN   0xCF123004
 #define REG_DUMP_VRAM  0xCF123008
+#define REG_PRINT_NUM  0xCF12300C
 
 #define BMPPITCH 960
 #define BM(x,y) ((x) + (y) * BMPPITCH)

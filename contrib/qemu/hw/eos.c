@@ -89,6 +89,10 @@ static void eos_io_write(void *opaque, hwaddr addr, uint64_t val, uint32_t size)
         case REG_PRINT_CHAR:
             printf("%c", (uint8_t)val);
             return;
+        
+        case REG_PRINT_NUM:
+            printf("%x (%d)\n", (uint32_t)val, (uint32_t)val);
+            return;
 
         case REG_DUMP_VRAM:
             eos_dump_vram(val);
@@ -185,7 +189,7 @@ static void *eos_interrupt_thread(void *parm)
                     }
 
                     s->irq_id = pos;
-                    cpu_interrupt((CPUARMState *)s->cpu, CPU_INTERRUPT_HARD);
+                    cpu_interrupt(&(s->cpu->env), CPU_INTERRUPT_HARD);
                 }
             }
 
@@ -217,6 +221,7 @@ static EOSState *eos_init_cpu(void)
     //memory_region_add_subregion(s->system_mem, CACHING_BIT, &s->tcm_data);
 
     /* set up RAM, cached and uncached */
+    #undef TCM_SIZE
     #define TCM_SIZE 0
     memory_region_init_ram(&s->ram, "eos.ram", RAM_SIZE - TCM_SIZE);
     memory_region_add_subregion(s->system_mem, TCM_SIZE, &s->ram);
@@ -352,7 +357,7 @@ static void eos_machine_init(void)
     qemu_register_machine(&canon_eos_machine_ml_600D);
     qemu_register_machine(&canon_eos_machine_ml_500D);
     qemu_register_machine(&canon_eos_machine_ml_5D2);
-    qemu_register_machine(&canon_eos_machine_ml_5D3); // not working, trouble with create_init_task
+    qemu_register_machine(&canon_eos_machine_ml_5D3);
     qemu_register_machine(&canon_eos_machine_ml_650D);
     qemu_register_machine(&canon_eos_machine_60D);
     qemu_register_machine(&canon_eos_machine_600D);
@@ -510,13 +515,13 @@ unsigned int eos_trigger_int(EOSState *ws, unsigned int id, unsigned int delay)
 {
     if(!delay && ws->irq_enabled[id] && !ws->irq_id)
     {
-        //printf("[EOS] trigger int 0x%02X\n", id);
+        printf("[EOS] trigger int 0x%02X\n", id);
         ws->irq_id = id;
-        cpu_interrupt((CPUARMState *)ws->cpu, CPU_INTERRUPT_HARD);
+        cpu_interrupt(&(ws->cpu->env), CPU_INTERRUPT_HARD);
     }
     else
     {
-        //printf("[EOS] trigger int 0x%02X (delayed!)\n", id);
+        printf("[EOS] trigger int 0x%02X (delayed!)\n", id);
         if(!ws->irq_enabled[id])
         {
             delay = 1;
@@ -556,7 +561,7 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *ws, unsigned in
                     printf("[Int] Enabled interrupt ID 0x%02X PC: [0x%08X]\r\n", value, pc);
                 }
 
-                cpu_reset_interrupt((CPUARMState *)ws->cpu, CPU_INTERRUPT_HARD);
+                cpu_reset_interrupt(&(ws->cpu->env), CPU_INTERRUPT_HARD);
                 ws->irq_id = 0;
                 ws->irq_enabled[value] = 1;
                 return 0;
@@ -786,6 +791,8 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *ws, unsigned int addr
                         remain -= transfer;
                     }
                     free(buf);
+                    
+                    printf("[DMA%i] OK\n", parm);
 
                     eos_trigger_int(ws, interruptId[parm], 0);
                     log = 0;
