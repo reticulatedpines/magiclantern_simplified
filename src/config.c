@@ -180,12 +180,12 @@ config_auto_parse(
             cfg->value
         );
 
-        if( var->type == 0 )
-        {
+        //if( var->type == 0 )
+        //{
             *(unsigned*) var->value = atoi( cfg->value );
-        } else {
-            *(char **) var->value = cfg->value;
-        }
+        //} else {
+        //    *(char **) var->value = cfg->value;
+        //}
 
         return;
     }
@@ -236,18 +236,18 @@ config_save_file(
 
     for( ; var < _config_vars_end ; var++ )
     {
-        if( var->type == 0 )
+        //if( var->type == 0 )
             snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1,
                 "%s = %d\r\n",
                 var->name,
                 *(unsigned*) var->value
             );
-        else
-            snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1,
-                "%s = %s\r\n",
-                var->name,
-                *(const char**) var->value
-            );
+        //else
+        //    snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1,
+        //        "%s = %s\r\n",
+        //        var->name,
+        //        *(const char**) var->value
+        //    );
 
         count++;
     }
