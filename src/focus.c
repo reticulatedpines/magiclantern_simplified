@@ -338,7 +338,8 @@ focus_stack(
         NotifyBox(2000, "Focus stack not completed");
     }
     
-    lens_set_drivemode(prev_drive_mode);
+    if (prev_drive_mode != -1)
+        lens_set_drivemode(prev_drive_mode);
 }
 #endif
 
