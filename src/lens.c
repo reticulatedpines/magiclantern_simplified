@@ -2498,6 +2498,8 @@ int lens_set_ae( int ae )
 
 void lens_set_drivemode( int dm )
 {
+    if (dm < 0) return;
+    if (dm > 0x20) return;
     lens_wait_readytotakepic(64);
     prop_request_change( PROP_DRIVE, &dm, 4 );
     msleep(10);
