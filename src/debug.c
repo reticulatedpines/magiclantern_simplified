@@ -328,8 +328,9 @@ static MENU_UPDATE_FUNC(show_modified_settings)
                 if (k <= skip) continue;
                 
                 char* value = menu_get_str_value_from_script(menu->name, entry->name);
-                bmp_printf(FONT_MED, 10, y, "%s - %s", menu->name, entry->name, value);
-                bmp_printf(FONT_MED, 710 - strlen(value)*font_med.width, y, "%s", value);
+                if (k%2) bmp_fill(COLOR_GRAY(10), 0, y, 720, font_med.height);
+                bmp_printf(SHADOW_FONT(FONT_MED), 10, y, "%s - %s", menu->name, entry->name);
+                bmp_printf(SHADOW_FONT(FONT(FONT_MED, COLOR_YELLOW, COLOR_BLACK)), 720 - strlen(value)*font_med.width, y, "%s", value);
                 y += font_med.height;
                 if (y > 450)
                 {

@@ -1603,6 +1603,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     int hi = entry->max;
     int sel = SELECTED_INDEX(entry) + lo;
     int fnt = SHADOW_FONT(FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK));
+    int fntx = SHADOW_FONT(FONT(FONT_LARGE, COLOR_YELLOW, COLOR_BLACK));
     
     // don't draw too many items in the pickbox
     if (hi - lo > 10)
@@ -1635,7 +1636,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
         x0 = 700 - w;
     
     w = 720-x0+16; // extend it till the right edge
-
+    
     // draw the pickbox
     bmp_fill(45, x0-16, y0, w, h+1);
     for (int i = lo; i <= hi; i++)
@@ -1643,7 +1644,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
         int y = y0 + (i-lo) * 32;
         if (i == sel)
             selection_bar_backend(MENU_BAR_COLOR, 45, x0-16, y, w, 32);
-        bmp_printf(fnt, x0, y, pickbox_string(entry, i));
+        bmp_printf(i == sel && config_var_was_changed(entry->priv) ? fntx : fnt, x0, y, pickbox_string(entry, i));
     }
     
     /*
