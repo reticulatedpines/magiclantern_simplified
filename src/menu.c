@@ -1917,6 +1917,9 @@ entry_print(
 
     if (info->enabled == 0) 
         fnt = MENU_FONT_GRAY;
+    
+    if (config_var_was_changed(entry->priv))
+        fnt = FONT(FONT_LARGE, fontspec_fg(fnt) == COLOR_WHITE ? COLOR_YELLOW : COLOR_DARK_YELLOW_MOD, fontspec_bg(fnt));
 
     // far right end
     int x_end = in_submenu ? x + g_submenu_width - SUBMENU_OFFSET : 717;
@@ -3495,6 +3498,7 @@ menu_redraw_do()
         alter_bitmap_palette_entry(COLOR_DARK_ORANGE_MOD,   COLOR_ORANGE, 160, 160);
         alter_bitmap_palette_entry(COLOR_DARK_CYAN1_MOD,   COLOR_CYAN, 60, 60);
         alter_bitmap_palette_entry(COLOR_DARK_CYAN2_MOD,   COLOR_CYAN, 128, 128);
+        alter_bitmap_palette_entry(COLOR_DARK_YELLOW_MOD,   COLOR_YELLOW, 128, 128);
 
         if (recording)
             alter_bitmap_palette_entry(COLOR_BLACK, COLOR_BG, 256, 256);
