@@ -183,6 +183,7 @@ config_auto_parse(
         //if( var->type == 0 )
         //{
             *(unsigned*) var->value = atoi( cfg->value );
+            var->default_value = *(unsigned*) var->value;
         //} else {
         //    *(char **) var->value = cfg->value;
         //}
@@ -359,3 +360,27 @@ struct config_var* get_config_vars_end() {
 	return _config_vars_end;
 }
 
+static struct config_var* config_var_lookup(int* ptr)
+{
+    for(struct config_var *  var = _config_vars_start ; var < _config_vars_end ; var++ )
+    {
+        if (var->value == ptr)
+            return var;
+    }
+    return 0;
+}
+
+int config_var_was_changed(int* ptr)
+{
+    struct config_var * var = config_var_lookup(ptr);
+    if (!var) return 0;
+    return var->default_value != *(var->value);
+}
+
+int config_var_restore_default(int* ptr)
+{
+    struct config_var * var = config_var_lookup(ptr);
+    if (!var) return 0;
+    *(var->value) = var->default_value;
+    return 1;
+}

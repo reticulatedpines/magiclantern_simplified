@@ -76,6 +76,7 @@ struct config_var
         const char * name;
         //int        type;   //!< 0 == int, 1 == char *
         int *        value;
+        int          default_value;
 };
 
 
@@ -88,6 +89,7 @@ __config_##VAR = \
         .name           = NAME, \
 /*        .type           = TYPE_ENUM, */ \
         .value          = &VAR, \
+        .default_value  = VALUE, \
 }
 
 #define CONFIG_INT( NAME, VAR, VALUE ) \
@@ -105,6 +107,7 @@ __config_##VAR##INDEX = \
         .name           = NAME, \
 /*        .type           = TYPE_ENUM, */ \
         .value          = &(VAR[INDEX]), \
+        .default_value  = VALUE, \
 }
 
 #define CONFIG_ARRAY_ELEMENT( NAME, VAR, INDEX, VALUE ) \
