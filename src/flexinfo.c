@@ -179,20 +179,31 @@ info_elem_t info_config[] =
 
 #if defined(CONFIG_600D)
     /* entry 1, max AUTO ISO */
-    { .string = { { INFO_TYPE_STRING, { MAX_ISO_POS_X, MAX_ISO_POS_Y, 2, .name = "Max ISO Range"  }}, INFO_STRING_ISO_MAX, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { MAX_ISO_POS_X, MAX_ISO_POS_Y, 2, .name = "Max ISO Range"  }}, INFO_STRING_ISO_MAX, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM_SHADOW } },
 
     /* entry 2 and 3, WB strings */
-    { .string = { { INFO_TYPE_STRING, { WBS_GM_POS_X, WBS_GM_POS_Y, 2, .name = "WB GM" }}, INFO_STRING_WBS_GM, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
-    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2, .name = "WB BA" }}, INFO_STRING_WBS_BA, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_GM_POS_X, WBS_GM_POS_Y, 2, .name = "WB GM" }}, INFO_STRING_WBS_GM, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM_SHADOW } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2, .name = "WB BA" }}, INFO_STRING_WBS_BA, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM_SHADOW } },
 
     /* entry 4, MLU string */
     { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2, .name = "MLU" }}, INFO_STRING_MLU, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_SMALL } },
 
-    /* entry 5, kelvin */
-    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2, .name = "Kelvin" }}, INFO_STRING_KELVIN, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
+    /* entry 5, HDR bracketing status */
+    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2, .name = "HDR" }}, INFO_STRING_HDR, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM_SHADOW } },
 
-    /* entry 6, HDR bracketing status */
-    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2, .name = "HDR" }}, INFO_STRING_HDR, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    /* entry 6,7,8 and 9, Kelvin */
+    { .string = { { INFO_TYPE_STRING, { WB_K_ICON_POS_X, WB_K_ICON_POS_Y, 2, .name = "K ICON" }}, INFO_STRING_KELVIN_ICO, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
+    { .string = { { INFO_TYPE_STRING, { WB_K_ICON_POS_X+1, WB_K_ICON_POS_Y, 2, .name = "K ICON1" }}, INFO_STRING_KELVIN_ICO, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
+    { .string = { { INFO_TYPE_STRING, { WB_K_ICON_POS_X-1, WB_K_ICON_POS_Y, 2, .name = "K ICON2" }}, INFO_STRING_KELVIN_ICO, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
+    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2, .name = "Kelvin" }}, INFO_STRING_KELVIN, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
+
+    /* entry 10, header (optional) */
+    { .string = { { INFO_TYPE_STRING, { 28, 2, 2, .name = "Lens", .user_disable = 0 }}, INFO_STRING_LENS, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { 710, 2, 2, .name = "Date", .user_disable = 0, .anchor_flags_self = INFO_ANCHOR_RIGHT }}, INFO_STRING_CAM_DATE, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    /* entry 11, footer (optional) */
+    { .string = { { INFO_TYPE_STRING, { 28, 459, 2, .name = "Build", .user_disable = 0 }}, INFO_STRING_BUILD, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM_SHADOW } },
+    { .string = { { INFO_TYPE_STRING, { 693, 459, 2, .name = "Copyright", .user_disable = 0, .anchor_flags_self = INFO_ANCHOR_RIGHT }}, INFO_STRING_COPYRIGHT, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM_SHADOW } },
+    
 #endif
 
 #if defined(CONFIG_650D)
@@ -1129,6 +1140,15 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
                 return 1;
             }
             snprintf(buffer, maxsize, "%5d", lens_info.kelvin);
+            break;
+        }
+        case INFO_STRING_KELVIN_ICO:
+        {
+            if (lens_info.wb_mode != WB_KELVIN)
+            {
+                return 1;
+            }
+            snprintf(buffer, maxsize, "K");
             break;
         }
         case INFO_STRING_WBS_BA:
