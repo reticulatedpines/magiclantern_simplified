@@ -41,7 +41,11 @@ CONFIG_ARRAY_ELEMENT("hdrv.ext.iso.7", hdrv_extended_iso, 7, 0);
 
 static CONFIG_INT("hdrv.en", hdrv_enabled, 0);
 static CONFIG_INT("hdrv.iso.a", hdr_iso_a, 72);
+#ifdef CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
+static CONFIG_INT("hdrv.iso.b", hdr_iso_b, 104);
+#else
 static CONFIG_INT("hdrv.iso.b", hdr_iso_b, 101);
+#endif
 
 int hdr_video_enabled()
 {

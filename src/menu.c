@@ -342,7 +342,7 @@ void menu_prefs_init()
 
 static struct menu * menus;
 
-static struct menu * menu_get_root() {
+struct menu * menu_get_root() {
   return menus;
 }
 
@@ -4875,7 +4875,6 @@ end:
     free_dma_memory(cfg);
     give_semaphore(menu_sem);
 }
-
 
 #ifdef CONFIG_STRESS_TEST
 
