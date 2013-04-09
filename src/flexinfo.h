@@ -119,6 +119,7 @@ typedef struct
 #define INFO_STRING_FREE_GB              41
 #define INFO_STRING_FREE_GB_1            42
 #define INFO_STRING_FREE_GB_2            43
+#define INFO_STRING_KELVIN_ICO           44
 
 #define INFO_FONT_SMALL         0
 #define INFO_FONT_MEDIUM        1
@@ -133,7 +134,6 @@ typedef struct
 #define INFO_COL_PEEK          (0xFC000000) /* peek at actual position */
 #define INFO_COL_PEEK_ABS(x,y) (0xFD000000 | (((x) & 0xFFF) << 12) | ((y) & 0xFFF))
 #define INFO_COL_PEEK_REL(x,y) (0xFC000000 | (((x) & 0xFFF) << 12) | ((y) & 0xFFF))
-
 
 typedef struct
 {
