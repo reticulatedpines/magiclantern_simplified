@@ -243,9 +243,10 @@ static void null_pointer_check()
                 return;
             #endif
 
-            #if defined(CONFIG_550D)
+            #if defined(CONFIG_550D) || defined(CONFIG_500D)
             /* Ignore MovieRecorder NPE
              * [550D] MovieRecorder -> pc=ff069f78 lr=    1ed0 stack=12c1b8+0x1000 entry=ff1d8a3c(8c2b04)
+             * [500D] MovieRecorder -> pc=ffff0740 lr=ffff0728 stack=154010+0x1000 entry=ff1a67b0(8638b8)
              */
             if (streq(task_name, "MovieRecorder"))
                 return;
