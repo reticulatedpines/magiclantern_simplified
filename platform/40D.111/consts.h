@@ -42,7 +42,7 @@
 
 #define MVR_516_STRUCT 0
 
-#define MEM(x) (*(int*)(x))
+#define MEM(x) (*(volatile int*)(x))
 
 #define MVR_BUFFER_USAGE_FRAME 0
 #define MVR_BUFFER_USAGE_SOUND 0
