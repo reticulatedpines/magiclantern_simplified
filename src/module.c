@@ -707,6 +707,7 @@ static void module_submenu_update(int mod_number)
 
 static MENU_SELECT_FUNC(module_menu_load)
 {
+    console_show(); /* for debugging only */
     module_load_all();
 }
 
