@@ -4676,8 +4676,6 @@ end:
     free_dma_memory(cfg);
 }*/
 
-#ifdef CONFIG_PICOC
-
 int menu_get_value_from_script(const char* name, const char* entry_name)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
@@ -4777,6 +4775,8 @@ int menu_set_value_from_script(const char* name, const char* entry_name, int val
         return 0; // boo :(
     }
 }
+
+#ifdef CONFIG_PICOC
 
 void menu_save_current_config_as_picoc_preset(char* filename)
 {
