@@ -209,7 +209,7 @@ static void console_draw(int tiny)
         return;
     
     if (tiny)
-        skipped_lines = CONSOLE_H - 2;
+        skipped_lines = CONSOLE_H - 3;
     
     /* chop empty columns from the right */
     for (int j = CONSOLE_W-1; j > 0; j--)
@@ -237,7 +237,7 @@ static void console_draw(int tiny)
     int yc = y0;
     if (tiny)
     {
-        yc = gui_menu_shown() || MENU_MODE ? 435 : y0;
+        yc = gui_menu_shown() || MENU_MODE ? 415 : y0;
     }
     else
     {
