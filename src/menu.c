@@ -1603,7 +1603,6 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
     int hi = entry->max;
     int sel = SELECTED_INDEX(entry) + lo;
     int fnt = SHADOW_FONT(FONT(FONT_LARGE, COLOR_WHITE, COLOR_BLACK));
-    int fntx = SHADOW_FONT(FONT(FONT_LARGE, COLOR_YELLOW, COLOR_BLACK));
     
     // don't draw too many items in the pickbox
     if (hi - lo > 10)
@@ -1644,7 +1643,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
         int y = y0 + (i-lo) * 32;
         if (i == sel)
             selection_bar_backend(MENU_BAR_COLOR, 45, x0-16, y, w, 32);
-        bmp_printf(i == sel && config_var_was_changed(entry->priv) ? fntx : fnt, x0, y, pickbox_string(entry, i));
+        bmp_printf(fnt, x0, y, pickbox_string(entry, i));
     }
     
     /*
@@ -1919,9 +1918,6 @@ entry_print(
     if (info->enabled == 0) 
         fnt = MENU_FONT_GRAY;
     
-    if (config_var_was_changed(entry->priv))
-        fnt = FONT(FONT_LARGE, fontspec_fg(fnt) == COLOR_WHITE ? COLOR_YELLOW : COLOR_DARK_YELLOW_MOD, fontspec_bg(fnt));
-
     // far right end
     int x_end = in_submenu ? x + g_submenu_width - SUBMENU_OFFSET : 717;
     
@@ -3499,7 +3495,7 @@ menu_redraw_do()
         alter_bitmap_palette_entry(COLOR_DARK_ORANGE_MOD,   COLOR_ORANGE, 160, 160);
         alter_bitmap_palette_entry(COLOR_DARK_CYAN1_MOD,   COLOR_CYAN, 60, 60);
         alter_bitmap_palette_entry(COLOR_DARK_CYAN2_MOD,   COLOR_CYAN, 128, 128);
-        alter_bitmap_palette_entry(COLOR_DARK_YELLOW_MOD,   COLOR_YELLOW, 128, 128);
+        // alter_bitmap_palette_entry(COLOR_DARK_YELLOW_MOD,   COLOR_YELLOW, 128, 128);
 
         if (recording)
             alter_bitmap_palette_entry(COLOR_BLACK, COLOR_BG, 256, 256);
