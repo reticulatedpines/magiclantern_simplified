@@ -545,7 +545,6 @@ void clear_lv_afframe()
 
 #if defined(CONFIG_5D3) || defined(CONFIG_6D)
 static CONFIG_INT("play.quick.zoom", quickzoom, 0);
-static CONFIG_INT("qr.zoom.play", ken_rockwell_zoom, 0);
 #else
 static CONFIG_INT("play.quick.zoom", quickzoom, 2);
 #endif
@@ -638,6 +637,8 @@ static void print_set_maindial_hint(int set)
 #endif
 
 #ifdef FEATURE_KEN_ROCKWELL_ZOOM_5D3
+static CONFIG_INT("qr.zoom.play", ken_rockwell_zoom, 0);
+
 static volatile int krzoom_running = 0;
 static void krzoom_task()
 {
@@ -651,6 +652,17 @@ static void krzoom_task()
     }
     fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
     krzoom_running = 0;
+}
+
+int handle_krzoom(struct event * event)
+{
+    if (event->param == BGMT_PRESS_ZOOMIN_MAYBE && ken_rockwell_zoom && QR_MODE && !krzoom_running)
+    {
+        krzoom_running = 1;
+        task_create("krzoom_task", 0x1e, 0x1000, krzoom_task, 0);
+        return 0;
+    }
+    return 1;
 }
 #endif
 
@@ -669,7 +681,7 @@ static void set_maindial_cleanup()
 }
 #endif
 
-#if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_QUICK_ERASE) || defined(FEATURE_KEN_ROCKWELL_ZOOM_5D3)
+#if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_QUICK_ERASE)
 
 int handle_set_wheel_play(struct event * event)
 {
@@ -754,15 +766,6 @@ int handle_set_wheel_play(struct event * event)
         }
     }
     #endif
-    #endif
-    
-    #ifdef FEATURE_KEN_ROCKWELL_ZOOM_5D3
-    if (event->param == BGMT_PRESS_ZOOMIN_MAYBE && ken_rockwell_zoom && QR_MODE && !krzoom_running)
-    {
-        krzoom_running = 1;
-        task_create("krzoom_task", 0x1e, 0x1000, krzoom_task, 0);
-        return 0;
-    }
     #endif
 
     return 1;
