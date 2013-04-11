@@ -121,7 +121,7 @@
     #define FEATURE_VIGNETTING_CORRECTION
     
 #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
-    #define FEATURE_EXTREME_SHUTTER_SPEEDS
+    #define FEATURE_SHUTTER_FINE_TUNING
 #endif
     
     // 50D movie hacks

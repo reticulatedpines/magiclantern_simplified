@@ -195,8 +195,8 @@ void hdr_get_iso_range(int* iso_low, int* iso_high)
 
 void hdr_step()
 {
-#ifdef FEATURE_EXTREME_SHUTTER_SPEEDS
-    extreme_shutter_step();
+#ifdef FEATURE_SHUTTER_FINE_TUNING
+    shutter_finetune_step();
 #endif
 
 #ifdef CONFIG_FRAME_ISO_OVERRIDE

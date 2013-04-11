@@ -693,18 +693,66 @@ static MENU_UPDATE_FUNC(vignetting_graphs_update)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Vignetting correction is disabled.");
 }
 
-#ifdef FEATURE_EXTREME_SHUTTER_SPEEDS
+#ifdef FEATURE_SHUTTER_FINE_TUNING
     #ifndef CONFIG_FRAME_SHUTTER_OVERRIDE
     #error "This requires CONFIG_FRAME_SHUTTER_OVERRIDE"
     #endif
 
-static CONFIG_INT("extreme.shutter", extreme_shutter, 0);
+#ifdef CONFIG_DIGIC_V
+#define MIN_SHUTTER_TIMER 2
+#else
+#define MIN_SHUTTER_TIMER 1
+#endif
 
-void extreme_shutter_step()
+static CONFIG_INT("shutter.finetune", shutter_finetune, 0);
+
+static volatile int orig_shutter_timer = 0;
+static volatile int adjusted_shutter_timer = 0;
+
+/* should be called from the LV state object, from the same spot as HDR video */
+void shutter_finetune_step()
 {
-    if (is_movie_mode() && extreme_shutter)
+    if (is_movie_mode() && shutter_finetune)
     {
-        FRAME_SHUTTER_TIMER = 7 - extreme_shutter;
+        orig_shutter_timer = FRAME_SHUTTER_TIMER;
+        adjusted_shutter_timer = COERCE(orig_shutter_timer + shutter_finetune, MIN_SHUTTER_TIMER, 65535);
+        FRAME_SHUTTER_TIMER = adjusted_shutter_timer;
+    }
+}
+
+int shutter_finetune_get_adjusted_timer()
+{
+    if (shutter_finetune) return adjusted_shutter_timer;
+    else return FRAME_SHUTTER_TIMER;
+}
+
+static MENU_UPDATE_FUNC(shutter_finetune_display)
+{
+    if (!shutter_finetune)
+    {
+        MENU_SET_VALUE("OFF");
+    }
+    else if (is_movie_mode())
+    {
+        int delta = get_shutter_speed_us_from_timer(shutter_finetune)/10;
+        
+        /* fixme: small race condition */
+        int bk = adjusted_shutter_timer;
+        adjusted_shutter_timer = orig_shutter_timer;
+        int orig_shutter = get_current_shutter_reciprocal_x1000();
+        adjusted_shutter_timer = bk;
+        int adjusted_shutter = get_current_shutter_reciprocal_x1000();
+        
+        MENU_SET_VALUE("%s%d.%02d ms", delta > 0 ? "+" : "-", ABS(delta)/100, ABS(delta)%100);
+        if (orig_shutter/1000 < 1000)
+            MENU_SET_WARNING(MENU_WARN_INFO, "Shutter speed: 1/%d.%03d -> 1/%d.%03d", orig_shutter/1000, orig_shutter%1000, adjusted_shutter/1000, adjusted_shutter%1000);
+        else
+            MENU_SET_WARNING(MENU_WARN_INFO, "Shutter speed: 1/%d -> 1/%d", orig_shutter/1000, adjusted_shutter/1000);
+    }
+    else
+    {
+        int delta = shutter_finetune;
+        MENU_SET_VALUE("%s%d units", delta > 0 ? "+" : "", delta);
     }
 }
 #endif
@@ -770,7 +818,7 @@ void image_effects_step()
 
 void digic_iso_step()
 {
-#if defined(FEATURE_EXPO_ISO_DIGIC) || defined(FEATURE_LV_DISPLAY_GAIN) || defined(FEATURE_EXTREME_SHUTTER_SPEEDS)
+#if defined(FEATURE_EXPO_ISO_DIGIC) || defined(FEATURE_LV_DISPLAY_GAIN) || defined(FEATURE_SHUTTER_FINE_TUNING)
     if (!DISPLAY_IS_ON && !recording) return;
     if (!lv) return;
     if (lv_paused) return;
@@ -883,7 +931,7 @@ static struct menu_entry lv_img_menu[] = {
     },
     #endif
 
-    #if defined(FEATURE_IMAGE_EFFECTS) || defined(FEATURE_EXPO_ISO_DIGIC) || defined(FEATURE_EXTREME_SHUTTER_SPEEDS)
+    #if defined(FEATURE_IMAGE_EFFECTS) || defined(FEATURE_EXPO_ISO_DIGIC) || defined(FEATURE_SHUTTER_FINE_TUNING)
     {
         .name = "Image Finetuning",
         .select = menu_open_submenu,
@@ -910,26 +958,23 @@ static struct menu_entry lv_img_menu[] = {
                 .min = -100,
                 .max = 100,
                 .update = digic_black_print,
-                .icon_type = IT_PERCENT_OFF,
+                .icon_type = IT_PERCENT_LOG_OFF,
                 .edit_mode = EM_MANY_VALUES_LV,
                 .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
                 .help = "Adjust dark level, as with 'dcraw -k'. Fixes green shadows.",
             },
             #endif
             
-            #ifdef FEATURE_EXTREME_SHUTTER_SPEEDS
+            #ifdef FEATURE_SHUTTER_FINE_TUNING
             {
-                .name = "Extreme Shutter Speed", 
-                .priv = &extreme_shutter, 
-                #ifdef CONFIG_5D3
-                .max = 5, // 1/50000 is pitch black
-                #else
-                .max = 6, // at least 60D works at 1/50000
-                #endif
-                .choices = CHOICES("OFF", "1/8000", "1/10000", "1/12500", "1/16000", "1/25000", "1/50000"),
-                .icon_type = IT_DICE_OFF,
+                .name = "Shutter fine-tuning", 
+                .priv = &shutter_finetune,
+                .update = shutter_finetune_display,
+                .min = -500,
+                .max = 500,
+                .icon_type = IT_PERCENT_LOG_OFF,
                 .edit_mode = EM_MANY_VALUES_LV,
-                .help = "Very fast shutter speeds (1/8000 - 1/50000).",
+                .help = "Fine-tune shutter speed in approx 20-microsecond increments.",
                 .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
             },
             #endif

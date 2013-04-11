@@ -359,6 +359,17 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
     return ans;
 }
 
+/* shutter speed in microseconds, from timer value */
+int get_shutter_speed_us_from_timer(int timer)
+{
+    int ntsc = is_current_mode_ntsc();
+    int zoom = lv_dispsize > 1 ? 1 : 0;
+    int crop = video_mode_crop;
+    zoom+=0; crop+=0; ntsc+=0; // bypass warnings
+
+    return timer * 1000000 / (TG_FREQ_SHUTTER/1000);
+}
+
 int get_current_shutter_reciprocal_x1000()
 {
 #if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_40D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
@@ -366,11 +377,11 @@ int get_current_shutter_reciprocal_x1000()
     return (int) roundf(powf(2.0f, (lens_info.raw_shutter - 136) / 8.0f) * 1000.0f * 1000.0f);
 #else
 
-    #ifdef FEATURE_EXTREME_SHUTTER_SPEEDS
-    extreme_shutter_step();
-    #endif
-
     int timer = FRAME_SHUTTER_TIMER;
+
+    #ifdef FEATURE_SHUTTER_FINE_TUNING
+    timer = shutter_finetune_get_adjusted_timer();
+    #endif
     
     //~ NotifyBox(1000, "%d ", timer);
     int ntsc = is_current_mode_ntsc();
