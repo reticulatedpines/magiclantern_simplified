@@ -297,19 +297,10 @@ static MENU_SELECT_FUNC(mrc_dump_select)
     mrc_dump_process();
 }
 
-static int mrc_dump_page = 0;
-static int mrc_dump_need_more_pages;
+static int mrc_dump_page = 1;
 
 static MENU_UPDATE_FUNC(mrc_dump_update_all)
 {
-    if (!entry->selected) mrc_dump_page = 0;
-
-    if (!mrc_dump_page)
-    {
-        MENU_SET_VALUE("");
-        return;
-    }
-
     if (!info->x) return;
     info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
@@ -317,6 +308,7 @@ static MENU_UPDATE_FUNC(mrc_dump_update_all)
     int skip = (mrc_dump_page - 1) * (450 / font_large.height);
     int k = 0;
     int y = 0;
+    int printed = 0;
 
     mrc_cp = 15;
     for (mrc_op1 = 0; mrc_op1 < 7; mrc_op1++) /* at mrc_op1=7 it freezes on 5D3 */
@@ -332,6 +324,8 @@ static MENU_UPDATE_FUNC(mrc_dump_update_all)
                     
                     k++;
                     if (k <= skip) continue;
+                    
+                    printed = 1;
                     
                     if (k%2) bmp_fill(COLOR_GRAY(10), 0, y, 720, font_large.height);
 
@@ -363,7 +357,6 @@ static MENU_UPDATE_FUNC(mrc_dump_update_all)
 
                     if (y > 440)
                     {
-                        mrc_dump_need_more_pages = 1;
                         bmp_printf(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 710 - 7*font_med.width, y, "more...");
                         return;
                     }
@@ -371,82 +364,85 @@ static MENU_UPDATE_FUNC(mrc_dump_update_all)
             }
         }
     }
-    mrc_dump_need_more_pages = 0;
-}
-
-static MENU_SELECT_FUNC(mrc_dump_toggle_all)
-{
-    if (delta < 0)
-        mrc_dump_page--;
-    else if (mrc_dump_need_more_pages)
-        mrc_dump_page++;
-    else
-        mrc_dump_page = !mrc_dump_page;
+    if (!printed)
+    {
+        mrc_dump_page = 1;
+    }
 }
 
 static struct menu_entry mrc_dump_menu[] =
 {
     {
-        .name = "cp_num",
-        .priv = &mrc_cp,
-        .max = 15,
-        .icon_type = IT_ALWAYS_ON,
-    },
-    {
-        .name = "opcode1",
-        .priv = &mrc_op1,
-        .max = 7,
-        .icon_type = IT_ALWAYS_ON,
-    },
-    {
-        .name = "CRn",
-        .priv = &mrc_crn,
-        .max = 15,
-        .help = "",
-        .icon_type = IT_ALWAYS_ON,
-    },
-    {
-        .name = "CRm",
-        .priv = &mrc_crm,
-        .max = 15,
-        .icon_type = IT_ALWAYS_ON,
-    },
-    {
-        .name = "opcode2",
-        .priv = &mrc_op2,
-        .max = 7,
-        .icon_type = IT_ALWAYS_ON,
-    },
-    {
-        .name = "Instruction",
-        .min = 0,
-        .max = 0,
-        .icon_type = IT_BOOL,
-        .update = mrc_dump_update_ins,
-    },
-    {
-        .name = "(unknown)",
-        .min = 0,
-        .max = 0,
-        .icon_type = IT_BOOL,
-        .update = mrc_dump_update_str,
-    },
-    {
-        .name = "Read",
-        .update = mrc_dump_update_val,
-        .select = mrc_dump_select,
-    },
-    {
-        .name = "Read all",
-        .update = mrc_dump_update_all,
-        .select = mrc_dump_toggle_all,
-        .icon_type = IT_ACTION,
+        .name = "Show MRC regs",
+        .select = menu_open_submenu,
+        .children =  (struct menu_entry[]) {
+            /*
+            {
+                .name = "cp_num",
+                .priv = &mrc_cp,
+                .max = 15,
+                .icon_type = IT_ALWAYS_ON,
+            },
+            {
+                .name = "opcode1",
+                .priv = &mrc_op1,
+                .max = 7,
+                .icon_type = IT_ALWAYS_ON,
+            },
+            {
+                .name = "CRn",
+                .priv = &mrc_crn,
+                .max = 15,
+                .help = "",
+                .icon_type = IT_ALWAYS_ON,
+            },
+            {
+                .name = "CRm",
+                .priv = &mrc_crm,
+                .max = 15,
+                .icon_type = IT_ALWAYS_ON,
+            },
+            {
+                .name = "opcode2",
+                .priv = &mrc_op2,
+                .max = 7,
+                .icon_type = IT_ALWAYS_ON,
+            },
+            {
+                .name = "Instruction",
+                .min = 0,
+                .max = 0,
+                .icon_type = IT_BOOL,
+                .update = mrc_dump_update_ins,
+            },
+            {
+                .name = "(unknown)",
+                .min = 0,
+                .max = 0,
+                .icon_type = IT_BOOL,
+                .update = mrc_dump_update_str,
+            },
+            {
+                .name = "Read",
+                .update = mrc_dump_update_val,
+                .select = mrc_dump_select,
+            },
+            */
+            {
+                .name = "Read all",
+                .update = mrc_dump_update_all,
+                .priv = &mrc_dump_page,
+                .max = 100,
+                .icon_type = IT_ACTION,
+            },
+            MENU_EOL,
+        },
     }
 };
 
 unsigned int mrc_dump_init()
 {
-    menu_add("R", mrc_dump_menu, COUNT(mrc_dump_menu));
+    menu_add("Debug", mrc_dump_menu, COUNT(mrc_dump_menu));
     return 0;
 }
 

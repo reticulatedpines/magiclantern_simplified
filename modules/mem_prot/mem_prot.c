@@ -339,23 +339,30 @@ static MENU_SELECT_FUNC(mem_prot_select)
 static struct menu_entry mem_prot_menu[] =
 {
     {
-        .name = "Exceptions",
-        .update = mem_prot_update_count,
-        .select = mem_prot_select,
-    },
-    {
-        .name = "Last PC",
-        .update = mem_prot_update_addr,
-    },
-    {
-        .name = "Task",
-        .update = mem_prot_update_task,
-    },
+        .name = "Mem Protection",
+        .select = menu_open_submenu,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Exceptions",
+                .update = mem_prot_update_count,
+                .select = mem_prot_select,
+            },
+            {
+                .name = "Last PC",
+                .update = mem_prot_update_addr,
+            },
+            {
+                .name = "Task",
+                .update = mem_prot_update_task,
+            },
+            MENU_EOL,
+        }
+    }
 };
 
 unsigned int mem_prot_init()
 {
-    menu_add("Memory Protection", mem_prot_menu, COUNT(mem_prot_menu));
+    menu_add("Debug", mem_prot_menu, COUNT(mem_prot_menu));
     mem_prot_install();
     return 0;
 }
