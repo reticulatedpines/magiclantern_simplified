@@ -297,6 +297,93 @@ static MENU_SELECT_FUNC(mrc_dump_select)
     mrc_dump_process();
 }
 
+static int mrc_dump_page = 0;
+static int mrc_dump_need_more_pages;
+
+static MENU_UPDATE_FUNC(mrc_dump_update_all)
+{
+    if (!entry->selected) mrc_dump_page = 0;
+
+    if (!mrc_dump_page)
+    {
+        MENU_SET_VALUE("");
+        return;
+    }
+
+    if (!info->x) return;
+    info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+
+    int skip = (mrc_dump_page - 1) * (450 / font_large.height);
+    int k = 0;
+    int y = 0;
+
+    mrc_cp = 15;
+    for (mrc_op1 = 0; mrc_op1 < 7; mrc_op1++) /* at mrc_op1=7 it freezes on 5D3 */
+    {
+        for (mrc_crn = 0; mrc_crn <= 15; mrc_crn++)
+        {
+            for (mrc_crm = 0; mrc_crm <= 15; mrc_crm++)
+            {
+                for (mrc_op2 = 0; mrc_op2 <= 7; mrc_op2++)
+                {
+                    mrc_dump_process();
+                    if (mrc_value == 0) continue;
+                    
+                    k++;
+                    if (k <= skip) continue;
+                    
+                    if (k%2) bmp_fill(COLOR_GRAY(10), 0, y, 720, font_large.height);
+
+                    char *str = mrc_dump_get_desc(mrc_crn, mrc_op1, mrc_crm, mrc_op2);
+                    int yasm = y + font_small.height;
+                    if (str)
+                    {
+                        bmp_printf(
+                            SHADOW_FONT(FONT_SMALL), 10, y, 
+                            "%s", str
+                        );
+                    }
+                    else yasm -= font_small.height/2;
+
+                    bmp_printf(
+                        SHADOW_FONT(FONT_MED), 10, yasm, 
+                        "MRC p%d, %d, Rd, c%d, c%d, %d", 
+                        mrc_cp, mrc_op1, mrc_crn, mrc_crm, mrc_op2
+                    );
+
+                    bmp_printf(
+                        SHADOW_FONT(FONT(FONT_LARGE, COLOR_YELLOW, COLOR_BLACK)), 
+                        720 - 8*font_large.width, y, 
+                        "%8x", 
+                        mrc_value
+                    );
+                    
+                    y += font_large.height;
+
+                    if (y > 440)
+                    {
+                        mrc_dump_need_more_pages = 1;
+                        bmp_printf(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 710 - 7*font_med.width, y, "more...");
+                        return;
+                    }
+                }
+            }
+        }
+    }
+    mrc_dump_need_more_pages = 0;
+}
+
+static MENU_SELECT_FUNC(mrc_dump_toggle_all)
+{
+    if (delta < 0)
+        mrc_dump_page--;
+    else if (mrc_dump_need_more_pages)
+        mrc_dump_page++;
+    else
+        mrc_dump_page = !mrc_dump_page;
+}
+
 static struct menu_entry mrc_dump_menu[] =
 {
     {
@@ -349,6 +436,12 @@ static struct menu_entry mrc_dump_menu[] =
         .update = mrc_dump_update_val,
         .select = mrc_dump_select,
     },
+    {
+        .name = "Read all",
+        .update = mrc_dump_update_all,
+        .select = mrc_dump_toggle_all,
+        .icon_type = IT_ACTION,
+    }
 };
 
 unsigned int mrc_dump_init()
