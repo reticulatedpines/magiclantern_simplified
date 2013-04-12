@@ -727,7 +727,6 @@ static void bsod()
 
 static void run_test()
 {
-
     void exmem_test();
 
     exmem_test();
@@ -2996,6 +2995,8 @@ static struct menu_entry debug_menus[] = {
         }
     },
 #endif
+    MENU_PLACEHOLDER("Mem Protection"), // module mem_prot
+    MENU_PLACEHOLDER("Show MRC regs"), // module mrc_dump
 #ifdef FEATURE_SHOW_TASKS
     {
         .name = "Show tasks",

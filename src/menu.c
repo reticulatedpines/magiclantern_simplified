@@ -57,6 +57,7 @@ extern int bmp_color_scheme;
 
 #define MY_MENU_NAME "MyMenu"
 static struct menu * my_menu;
+static int my_menu_dirty = 0;
 
 //for vscroll
 #define MENU_LEN 11
@@ -907,6 +908,44 @@ static void menu_update_split_pos(struct menu * menu, struct menu_entry * entry)
     }
 }
 
+/* if we find a placeholder entry, use it for changing the menu order */
+/* todo: check interference with menu customization */
+static void
+menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
+{
+    if (!menu) return;
+    
+    for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+    {
+        if (entry != new_entry && MENU_IS_PLACEHOLDER(entry) && streq(entry->name, new_entry->name))
+        { /* found, let's try to swap the entries */
+          /* keep linked list pointers and customization flags from the old entry */
+            void* next = entry->next;
+            void* prev = entry->prev;
+            int selected = entry->selected;
+            int starred = entry->starred;
+            int hidden = entry->hidden;
+            int jhidden = entry->jhidden;
+            memcpy(entry, new_entry, sizeof(struct menu_entry));
+            entry->next = next;
+            entry->prev = prev;
+            entry->selected = selected;
+            entry->starred = starred;
+            entry->hidden = hidden;
+            entry->jhidden = jhidden;
+            
+            entry->shidden = 0;
+            new_entry->shidden = 1;
+            
+            if (entry->starred)
+                my_menu_dirty = 1;
+
+            /* warning: the unused entry is still kept in place, but hidden; important to delete? */
+            break;
+        }
+    }
+}
+
 void
 menu_add(
     const char *        name,
@@ -918,7 +957,6 @@ menu_add(
     menu_fixup_pic(new_entry, count);
 #endif
 
-#if 1
     // There is nothing to display. Sounds crazy (but might result from ifdef's)
     if ( count == 0 )
         return;
@@ -953,14 +991,15 @@ menu_add(
     for (int i = 0; i < count; i++)
     {
         new_entry->selected = 0;
-        //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry->next     = head->next;
         new_entry->prev     = head;
         head->next      = new_entry;
         head            = new_entry;
         menu_update_split_pos(menu, new_entry);
+        menu_update_placeholder(menu, new_entry);
         new_entry++;
     }
+    
     give_semaphore( menu_sem );
 
 
@@ -989,31 +1028,6 @@ menu_add(
         entry = entry->prev;
         if (!entry) break;
     }
-
-#else
-    // Maybe later...
-    struct menu_entry * child = head->child;
-    if( !child )
-    {
-        // No other child entries; add this one
-        // and select it
-        new_entry->highlighted  = 1;
-        new_entry->prev     = NULL;
-        new_entry->next     = NULL;
-        head->child     = new_entry;
-        return;
-    }
-
-    // Walk the child list to find the end
-    while( child->next )
-        child = child->next;
-
-    // Push the new entry onto the end of the list
-    new_entry->selected = 0;
-    new_entry->prev     = child;
-    new_entry->next     = NULL;
-    child->next     = new_entry;
-#endif
 }
 
 void dot(int x, int y, int color, int radius)
@@ -2177,7 +2191,7 @@ my_menu_add_entry(struct menu_entry * entry, int i)
     my_entry->next = next;
     my_entry->prev = prev;
     my_entry->selected = selected;
-    my_entry->shidden = 0;
+    my_entry->shidden = entry->shidden;
     my_entry->hidden = 0;
     my_entry->jhidden = 0;
     my_entry->starred = 0;
@@ -2189,6 +2203,7 @@ my_menu_add_entry(struct menu_entry * entry, int i)
 static int
 my_menu_rebuild()
 {
+    my_menu_dirty = 0;
     my_menu->split_pos = -12;
 
     int i = 0;
@@ -2786,6 +2801,9 @@ menus_display(
 {
     g_submenu_width = 720;
 
+    if (my_menu_dirty)
+        my_menu_rebuild();
+
     struct menu * submenu = 0;
     if (submenu_mode)
         submenu = get_current_submenu();
@@ -3104,7 +3122,7 @@ menu_entry_customize_toggle(
     }
 
     menu_flags_dirty = 1;
-    my_menu_rebuild();
+    my_menu_dirty = 1;
     menu_make_sure_selection_is_valid();
 }
 
@@ -4630,7 +4648,7 @@ static void menu_load_flags(char* filename)
 static void config_menu_load_flags()
 {
     menu_load_flags(CARD_DRIVE "ML/SETTINGS/MENU.CFG");
-    my_menu_rebuild();
+    my_menu_dirty = 1;
 }
 
 void config_menu_save_flags()

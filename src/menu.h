@@ -149,10 +149,12 @@ struct menu_entry
         menu_update_func update;
 
         unsigned selected   : 1;
+
         unsigned starred    : 1; // present in "my menu"
         unsigned hidden     : 1; // hidden from main menu
         unsigned jhidden    : 1; // hidden from junkie menu
         unsigned shidden    : 1; // special hide, not toggleable by user
+
         unsigned edit_mode  : 2;
         unsigned unit       : 4;
         unsigned icon_type  : 4;
@@ -312,6 +314,9 @@ menu_init( void );
 #define MENU_EOL_PRIV (void*)-1
 #define MENU_EOL { .priv = MENU_EOL_PRIV }
 #define MENU_IS_EOL(entry) ((intptr_t)(entry)->priv == -1)
+
+#define MENU_PLACEHOLDER(namae) { .name = namae, .priv = -2, .shidden = 1 }
+#define MENU_IS_PLACEHOLDER(entry) ((intptr_t)(entry)->priv == -2)
 
 //~ #ifdef CONFIG_VXWORKS
 #define MENU_WARNING_COLOR COLOR_RED
