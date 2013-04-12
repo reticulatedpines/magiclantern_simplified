@@ -908,6 +908,30 @@ static void menu_update_split_pos(struct menu * menu, struct menu_entry * entry)
     }
 }
 
+static void placeholder_copy(struct menu_entry * dst, struct menu_entry * src)
+{
+    /* keep linked list pointers and customization flags from the old entry */
+    void* next = dst->next;
+    void* prev = dst->prev;
+    int selected = dst->selected;
+    int starred = dst->starred;
+    int hidden = dst->hidden;
+    int jhidden = dst->jhidden;
+    
+    /* also keep the name pointer, which will help when removing the menu and restoring the placeholder */
+    char* name = (char*) dst->name;
+    
+    memcpy(dst, src, sizeof(struct menu_entry));
+
+    dst->next = next;
+    dst->prev = prev;
+    dst->name = name;
+    dst->selected = selected;
+    dst->starred = starred;
+    dst->hidden = hidden;
+    dst->jhidden = jhidden;
+}
+
 /* if we find a placeholder entry, use it for changing the menu order */
 /* todo: check interference with menu customization */
 static void
@@ -919,21 +943,8 @@ menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
     {
         if (entry != new_entry && MENU_IS_PLACEHOLDER(entry) && streq(entry->name, new_entry->name))
         { /* found, let's try to swap the entries */
-          /* keep linked list pointers and customization flags from the old entry */
-            void* next = entry->next;
-            void* prev = entry->prev;
-            int selected = entry->selected;
-            int starred = entry->starred;
-            int hidden = entry->hidden;
-            int jhidden = entry->jhidden;
-            memcpy(entry, new_entry, sizeof(struct menu_entry));
-            entry->next = next;
-            entry->prev = prev;
-            entry->selected = selected;
-            entry->starred = starred;
-            entry->hidden = hidden;
-            entry->jhidden = jhidden;
             
+            placeholder_copy(entry, new_entry);
             entry->shidden = 0;
             new_entry->shidden = 1;
             
@@ -1027,6 +1038,68 @@ menu_add(
         }
         entry = entry->prev;
         if (!entry) break;
+    }
+}
+
+static void menu_remove_entry(struct menu_entry * entry)
+{
+    console_show();
+    if (entry->prev)
+    {
+        // console_printf("link %s to %x\n", entry->prev->name, entry->next);
+        entry->prev->next = entry->next;
+    }
+    if (entry->next)
+    {
+        // console_printf("link %s to %x\n", entry->next->name, entry->prev);
+        entry->next->prev = entry->prev;
+    }
+    
+    /* remove the submenu */
+    /* fixme: won't work with composite submenus */
+    if (entry->children)
+    {
+        struct menu * submenu = menu_find_by_name( entry->name, ICON_ML_SUBMENU);
+        if (submenu)
+        {
+            // console_printf("unlink submenu %s\n", submenu->name);
+            submenu->children = 0;
+        }
+    }
+    
+    /* look for placeholder */
+    for (struct menu_entry * placeholder = entry->prev; placeholder; placeholder = placeholder->prev)
+    {
+        if (streq(placeholder->name, entry->name))
+        {
+            // console_printf("restore placeholder %s\n", entry->name);
+            struct menu_entry restored_placeholder = MENU_PLACEHOLDER(placeholder->name);
+            placeholder_copy(placeholder, &restored_placeholder);
+            break;
+        }
+    }
+}
+
+void
+menu_remove(
+    const char *        name,
+    struct menu_entry * old_entry,
+    int         count
+)
+{
+    if ( count == 0 )
+        return;
+
+    struct menu * menu = menu_find_by_name( name, 0);
+    if( !menu )
+        return;
+
+    for(struct menu_entry * entry = menu->children; entry; entry = entry->next)
+    {
+        if (entry >= old_entry && entry < old_entry + count)
+        {
+            menu_remove_entry(entry);
+        }
     }
 }
 
@@ -3417,7 +3490,6 @@ menu_redraw_do()
                     menu_zebras_mirror_dirty = 0;
                 }*/
 
-                static int prev_z = 0;
                 if (menu_lv_transparent_mode)
                 {
                     if (!quick_redraw)

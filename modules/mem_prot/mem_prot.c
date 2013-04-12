@@ -369,6 +369,7 @@ unsigned int mem_prot_init()
 
 unsigned int mem_prot_deinit()
 {
+    menu_remove("Debug", mem_prot_menu, COUNT(mem_prot_menu));
     return 0;
 }
 

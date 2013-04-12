@@ -276,6 +276,8 @@ extern void run_in_separate_task(void (*priv)(void), int delta);
 OS_FUNCTION( 0x0700001,	void,	menu_add, const char * name, struct menu_entry * new_entry, int count );
 //~ OS_FUNCTION( 0x0700002, void,	menu_draw_icon, int x, int y, int type, intptr_t arg); // deprecated
 
+void menu_remove(const char * name, struct menu_entry * old_entry, int count);
+
 
 extern void
 menu_init( void );
@@ -315,7 +317,7 @@ menu_init( void );
 #define MENU_EOL { .priv = MENU_EOL_PRIV }
 #define MENU_IS_EOL(entry) ((intptr_t)(entry)->priv == -1)
 
-#define MENU_PLACEHOLDER(namae) { .name = namae, .priv = -2, .shidden = 1 }
+#define MENU_PLACEHOLDER(namae) { .name = namae, .priv = (void*) -2, .shidden = 1 }
 #define MENU_IS_PLACEHOLDER(entry) ((intptr_t)(entry)->priv == -2)
 
 //~ #ifdef CONFIG_VXWORKS

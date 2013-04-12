@@ -448,6 +448,7 @@ unsigned int mrc_dump_init()
 
 unsigned int mrc_dump_deinit()
 {
+    menu_remove("Debug", mrc_dump_menu, COUNT(mrc_dump_menu));
     return 0;
 }
 
