@@ -25,6 +25,7 @@
  */
 
 #include "arm-mcr.h"
+#include "fw-signature.h"
 
 #undef RESTARTSTART
 #define RESTARTSTART_550 0xC80100
@@ -34,18 +35,6 @@
 #define RESTARTSTART_500 0x4d000
 #define RESTARTSTART_5D2 0x4E000
 #define RESTARTSTART_1100 0xC80100
-
-#define SIG_LEN 0x10000
-
-#define SIG_60D_111  0xaf91b602 // from FF010000
-#define SIG_550D_109 0x851320e6 // from FF010000
-#define SIG_600D_102 0x27fc03de // from FF010000
-#define SIG_600D_101 0x290106d8 // from FF010000 // firmwares are identical
-#define SIG_500D_110 0x4c0e5a7e // from FF010000
-#define SIG_50D_109  0x4673ef59 // from FF010000
-#define SIG_500D_111 0x44f49aef // from FF010000
-#define SIG_5D2_212  0xae78b938 // from FF010000
-#define SIG_1100_105 0x46de7624 // from FF010000
 
 asm(
 ".text\n"
@@ -90,16 +79,7 @@ static void fail()
     blink(50);
 }
 
-static int compute_signature(int* start, int num)
-{
-    int c = 0;
-    int* p;
-    for (p = start; p < start + num; p++)
-    {
-        c += *p;
-    }
-    return c;
-}
+extern int compute_signature(int* start, int num);
 
 /** Include the relocatable shim code */
 extern uint8_t blob_start_550;
@@ -123,7 +103,7 @@ void* ROMSTART = (void *)0xFF010000;
 
 static int guess_firmware_version()
 {
-    int s = compute_signature((int*)0xFF010000, SIG_LEN);
+    int s = compute_signature((int*)SIG_START, SIG_LEN);
     switch(s)
     {
         case SIG_550D_109:
@@ -165,7 +145,7 @@ static int guess_firmware_version()
             ROMSTART = (void *)0xFF810000;
             *(int*)0xC02200BC = 0x46;  // CF card LED on
             return 1;
-        case SIG_1100_105:
+        case SIG_1100D_105:
             blob_start = &blob_start_1100;
             blob_end = &blob_end_1100;
             RESTARTSTART = (void*)RESTARTSTART_1100;
