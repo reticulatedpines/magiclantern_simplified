@@ -3,7 +3,7 @@
 
 #define SIG_LEN 0x10000
 
-#if defined(CONFIG_DIGIC_V)
+#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
 #define SIG_START 0xFF0C0000
 #elif defined(CONFIG_7D) || defined(CONFIG_7D_MASTER)
 #define SIG_START 0xF8010000
