@@ -1,25 +1,25 @@
 /**
  * Main ML feature set
- * 
+ *
  * You can:
- * 
+ *
  * 1) include this file from platform/CAMERA/features.h (recommended for stable ports) and override a few things,
  *       or
  * 2) you can start from scratch with a minimal feature set (just define what you need).
- * 
+ *
  * Basically, if feature X works on most cameras, it's probably a good idea to put it here.
- * 
- * If feature X depends on some backend thingie, you can add the condition here 
- * 
+ *
+ * If feature X depends on some backend thingie, you can add the condition here
+ *
  * e.g.
- * 
+ *
  *      #ifdef CONFIG_VARIANGLE_DISPLAY
  *          #define FEATURE_IMAGE_ORIENTATION
  *          #define FEATURE_AUTO_MIRRORING_HACK
  *      #endif
  *
  * can be read as "all cameras with a flip-out display will have these two features".
- * 
+ *
  */
 
 /** Audio menu **/
@@ -82,7 +82,7 @@
     #define FEATURE_HISTOGRAM
     #define FEATURE_WAVEFORM
     #define FEATURE_VECTORSCOPE
-    
+
     #define FEATURE_OVERLAYS_IN_PLAYBACK_MODE
 
 /** Movie menu **/
@@ -110,20 +110,20 @@
     #define FEATURE_FPS_OVERRIDE
     #define FEATURE_FPS_RAMPING
     #define FEATURE_FPS_WAV_RECORD
-    
+
 #ifdef CONFIG_FRAME_ISO_OVERRIDE
     #define FEATURE_HDR_VIDEO
     //~ #define FEATURE_HDR_EXTENDED // for experts only
 #endif
 
     #define FEATURE_IMAGE_EFFECTS
-    
+
     #define FEATURE_VIGNETTING_CORRECTION
-    
+
 #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
     #define FEATURE_SHUTTER_FINE_TUNING
 #endif
-    
+
     // 50D movie hacks
     //~ #define FEATURE_MOVIE_RECORDING_50D
     //~ #define FEATURE_MOVIE_RECORDING_50D_SHUTTER_HACK
@@ -156,11 +156,11 @@
     #define FEATURE_MLU_HANDHELD
 
     //~ #define FEATURE_MLU_HANDHELD_DEBUG
-    //~ #define FEATURE_MLU_DIRECT_PRINT_SHORTCUT // for 5Dc 
+    //~ #define FEATURE_MLU_DIRECT_PRINT_SHORTCUT // for 5Dc
 
     #define FEATURE_FLASH_TWEAKS
     //~ #define FEATURE_LV_3RD_PARTY_FLASH // rebels only
-    
+
     // can do permanent damage, for research only!
     //~ #define FEATURE_PICQ_DANGEROUS
 #endif
@@ -209,7 +209,7 @@
 
     #define FEATURE_FORCE_HDMI_VGA
     #define FEATURE_UNIWB_CORRECTION
-    
+
     //~ #define FEATURE_DISPLAY_SHAKE // looks ugly :P
 
 /** Prefs menu **/
@@ -220,7 +220,7 @@
     #define FEATURE_PLAY_TIMELAPSE
     #define FEATURE_PLAY_EXPOSURE_ADJUST
     #define FEATURE_PLAY_422
-    
+
     #define FEATURE_IMAGE_REVIEW_PLAY
     #define FEATURE_QUICK_ZOOM
 #ifdef CONFIG_Q_MENU_PLAYBACK
@@ -228,7 +228,7 @@
     #define FEATURE_LV_BUTTON_RATE
 #endif
     #define FEATURE_QUICK_ERASE
-    
+
 #ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_LV_ZOOM_SETTINGS
     #define FEATURE_LV_ZOOM_SHARP_CONTRAST
@@ -236,50 +236,51 @@
     #define FEATURE_LV_ZOOM_AUTO_EXPOSURE
     #endif
     //~ #define FEATURE_ZOOM_TRICK_5D3 // not reliable
-    
+
     #define FEATURE_LV_FOCUS_BOX_FAST
     #define FEATURE_LV_FOCUS_BOX_SNAP
     #define FEATURE_LV_FOCUS_BOX_AUTOHIDE
-    
+
     #define FEATURE_ARROW_SHORTCUTS
-    
+
     #define FEATURE_STICKY_DOF
     #define FEATURE_STICKY_HALFSHUTTER
     //~ #define FEATURE_AUTO_BURST_PICQ // rebels only
 
 #endif
     //~ #define FEATURE_SWAP_MENU_ERASE // useful for 60D only
-    
+
     #define FEATURE_WARNINGS_FOR_BAD_SETTINGS
-    
+
 #ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_POWERSAVE_LIVEVIEW
 #endif
-    
+
     #define FEATURE_LV_DISPLAY_PRESETS
-    
+
     //~ #define FEATURE_EYEFI_TRICKS  // EyeFi tricks confirmed working only on 600D-60D
-    
+
     //~ #define FEATURE_KEN_ROCKWELL_ZOOM_5D3
-    
+
     //~ #define FEATURE_DIGITAL_ZOOM_SHORTCUT_600D
 
 /** Debug menu **/
-    
+
     //~ #define FEATURE_SHOW_OVERLAY_FPS
-    
+
     #define FEATURE_SCREENSHOT
     #define FEATURE_SCREENSHOT_422
 
     #define FEATURE_DONT_CLICK_ME
-    
+
     #define FEATURE_SHOW_TASKS
     #define FEATURE_SHOW_CPU_USAGE
     #define FEATURE_SHOW_GUI_EVENTS
-    
+
     #define FEATURE_SHOW_IMAGE_BUFFERS_INFO
     #define FEATURE_SHOW_FREE_MEMORY
     #define FEATURE_SHOW_SHUTTER_COUNT
     #define FEATURE_SHOW_CMOS_TEMPERATURE
 
+    //~ #define FEATURE_SHOW_SIGNATURE // useful when developing
     //~ #define FEATURE_GUIMODE_TEST // dangerous

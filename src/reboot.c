@@ -126,6 +126,11 @@ cstart( void )
         fail();
     #endif
 
+    #ifdef CONFIG_650D
+    if (s != (int)SIG_650D_101)
+        fail();
+    #endif
+
 #endif
 
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */
