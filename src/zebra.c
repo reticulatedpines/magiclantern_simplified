@@ -415,6 +415,7 @@ static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_ALMOST_BLACK ); // sol
 int histogram_or_small_waveform_enabled() { return (hist_draw || (waveform_draw && !waveform_size)) && get_expsim(); }
 
 static CONFIG_INT( "vectorscope.draw", vectorscope_draw, 0);
+static CONFIG_INT( "vectorscope.gain", vectorscope_gain, 0);
 
 /* runtime-configurable size */
 #define vectorscope_width 256
@@ -577,7 +578,7 @@ static uint8_t *vectorscope = NULL;
 
 /* helper to draw <count> pixels at given position. no wrap checks when <count> is greater 1 */
 static void 
-vectorscope_putpixel(uint8_t *bmp_buf, int x_pos, int y_pos, uint8_t color, uint8_t count)
+vectorscope_putpixels(uint8_t *bmp_buf, int x_pos, int y_pos, uint8_t color, uint8_t count)
 {
     int pos = x_pos + y_pos * vectorscope_width;
 
@@ -597,16 +598,16 @@ vectorscope_putblock(uint8_t *bmp_buf, int xc, int yc, uint8_t color, int32_t fr
     int x_pos = xc + ((int32_t)vectorscope_width * frac_x) / 4096;
     int y_pos = yc + (-(int32_t)vectorscope_height * frac_y) / 4096;
 
-    vectorscope_putpixel(bmp_buf, x_pos + 0, y_pos - 4, color, 1);
-    vectorscope_putpixel(bmp_buf, x_pos + 0, y_pos + 4, color, 1);
+    vectorscope_putpixels(bmp_buf, x_pos + 0, y_pos - 4, color, 1);
+    vectorscope_putpixels(bmp_buf, x_pos + 0, y_pos + 4, color, 1);
 
-    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos - 3, color, 7);
-    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos - 2, color, 7);
-    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos - 1, color, 7);
-    vectorscope_putpixel(bmp_buf, x_pos - 4, y_pos + 0, color, 9);
-    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos + 1, color, 7);
-    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos + 2, color, 7);
-    vectorscope_putpixel(bmp_buf, x_pos - 3, y_pos + 3, color, 7);
+    vectorscope_putpixels(bmp_buf, x_pos - 3, y_pos - 3, color, 7);
+    vectorscope_putpixels(bmp_buf, x_pos - 3, y_pos - 2, color, 7);
+    vectorscope_putpixels(bmp_buf, x_pos - 3, y_pos - 1, color, 7);
+    vectorscope_putpixels(bmp_buf, x_pos - 4, y_pos + 0, color, 9);
+    vectorscope_putpixels(bmp_buf, x_pos - 3, y_pos + 1, color, 7);
+    vectorscope_putpixels(bmp_buf, x_pos - 3, y_pos + 2, color, 7);
+    vectorscope_putpixels(bmp_buf, x_pos - 3, y_pos + 3, color, 7);
 }
 
 /* draws the overlay: circle with color dots. */
@@ -649,18 +650,8 @@ vectorscope_init()
     }
 }
 
-static inline void
-vectorscope_addpixel(uint8_t y, int8_t u, int8_t v)
+static int vectorscope_coord_uv_to_pos(int U, int V)
 {
-    if(vectorscope == NULL)
-    {
-        return;
-    }
-    
-    int32_t V = -v;
-    int32_t U = u;
-
-    
     /* convert YUV to vectorscope position */
     V *= vectorscope_height;
     V >>= 8;
@@ -670,12 +661,50 @@ vectorscope_addpixel(uint8_t y, int8_t u, int8_t v)
     U >>= 8;
     U += vectorscope_width >> 1;
 
-    uint16_t pos = U + V * vectorscope_width;
+    int pos = U + V * vectorscope_width;
+    
+    return pos;
+}
 
-    /* increase luminance at this position. when reaching 4*0x2A, we are at maximum. */
-    if(vectorscope[pos] < (0x2A << 2))
+static void
+vectorscope_addpixel(uint8_t y, int8_t u, int8_t v)
+{
+    if(vectorscope == NULL)
     {
-        vectorscope[pos]++;
+        return;
+    }
+    
+    int V = -v << vectorscope_gain;
+    int U = u << vectorscope_gain;
+    
+    int r = U*U + V*V;
+    if (r > 124*124)
+    {
+        /* almost out of circle, mark it with red */
+        for (int R = 124; R < 128; R++)
+        {
+            int c = U * R / (int)sqrtf(r);
+            int s = V * R / (int)sqrtf(r);
+            int pos = vectorscope_coord_uv_to_pos(c, s);
+            vectorscope[pos] = 255 - COLOR_RED;
+        }
+    }
+    else
+    {
+        if (vectorscope_gain)
+        {
+            /* simulate better resolution */
+            U += rand()%2;
+            V += rand()%2;
+        }
+        
+        int pos = vectorscope_coord_uv_to_pos(U, V);
+        
+        /* increase luminance at this position. when reaching 4*0x2A, we are at maximum. */
+        if(vectorscope[pos] < (0x2A << 2))
+        {
+            vectorscope[pos]++;
+        }
     }
 }
 
@@ -729,36 +758,46 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
 
             if (on_circle || (on_axis && brightness==0))
             {
-                #ifdef CONFIG_4_3_SCREEN
+                //#ifdef CONFIG_4_3_SCREEN
                 bmp_buf[x] = 60;
-                #else
-                bmp_buf[x] = COLOR_BLACK;
-                #endif
+                //#else
+                //bmp_buf[x] = COLOR_BLACK;
+                //#endif
             }
             else if (inside_circle)
             {
                 /* paint (semi)transparent when no pixels in this color range */
                 if (brightness == 0)
                 {
-                    #ifdef CONFIG_4_3_SCREEN
+                    //#ifdef CONFIG_4_3_SCREEN
                     bmp_buf[x] = COLOR_WHITE; // semitransparent looks bad
-                    #else
-                    bmp_buf[x] = (x+y)%2 ? COLOR_WHITE : 0;
-                    #endif
+                    //#else
+                    //bmp_buf[x] = (x+y)%2 ? COLOR_WHITE : 0;
+                    //#endif
                 }
-                else if (brightness > 0x26 + 0x2A * 4)
+                else if (brightness > (0x2A << 2))
                 {
                     /* some fake fixed color, for overlays */
                     bmp_buf[x] = 255 - brightness;
                 }
-                else
+                else if (brightness <= (0x29 << 2))
                 {
-                    /* 0x26 is the palette color for black plus max 0x2A until white */
+                    /* 0x26 is the palette color for black plus max 0x29 until white */
                     bmp_buf[x] = 0x26 + (brightness >> 2);
+                }
+                else
+                {   /* overflow */
+                    bmp_buf[x] = COLOR_YELLOW;
                 }
             }
         }
     }
+}
+
+static MENU_UPDATE_FUNC(vectorscope_update)
+{
+    if (vectorscope_draw && vectorscope_gain)
+        MENU_SET_VALUE("ON, 2x");
 }
 #endif
 
@@ -3602,8 +3641,19 @@ struct menu_entry zebra_menus[] = {
         .name = "Vectorscope",
         .priv       = &vectorscope_draw,
         .max = 1,
+        .update = vectorscope_update,
         .help = "Shows color distribution as U-V plot. For grading & WB.",
         .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "UV scaling",
+                .priv = &vectorscope_gain, 
+                .max = 1,
+                .choices = (const char *[]) {"OFF", "2x", "4x"},
+                .help = "Scaling for input signal (useful with flat picture styles).",
+            },
+            MENU_EOL
+        },
     },
     #endif
 };
@@ -4461,10 +4511,6 @@ static void draw_livev_for_playback()
     livev_for_playback_running = 1;
     get_yuv422_vram(); // just to refresh VRAM params
     
-	#ifdef FEATURE_DEFISHING_PREVIEW
-    extern int defish_preview;
-	#endif
-
     info_led_on();
 BMP_LOCK(
 
@@ -4476,6 +4522,7 @@ BMP_LOCK(
     #endif
 
     #ifdef FEATURE_DEFISHING_PREVIEW
+    extern int defish_preview;
     if (defish_preview)
         defish_draw_play();
     #endif
@@ -5637,9 +5684,7 @@ static void livev_playback_toggle()
     }
     else
     {
-        #ifdef CONFIG_4_3_SCREEN
-        clrscr(); // old cameras don't refresh the entire screen
-        #endif
+        clrscr();
         if (zebra_digic_dirty) digic_zebra_cleanup();
         redraw();
     }
