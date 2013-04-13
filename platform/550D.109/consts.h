@@ -166,10 +166,6 @@
 
 #define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
-// position for displaying shutter count and other info
-#define MENU_DISP_INFO_POS_X 0
-#define MENU_DISP_INFO_POS_Y 395
-
 // position for displaying clock outside LV
 #define DISPLAY_CLOCK_POS_X 200
 #define DISPLAY_CLOCK_POS_Y 410

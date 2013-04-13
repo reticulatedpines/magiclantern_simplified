@@ -123,10 +123,6 @@
 
 #define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
-// position for displaying shutter count and other info
-#define MENU_DISP_INFO_POS_X 0
-#define MENU_DISP_INFO_POS_Y 395
-
 #define GUIMODE_ML_MENU (recording ? 0 : lv ? 36 : 2)
 
 // position for displaying clock outside LV

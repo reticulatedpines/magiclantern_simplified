@@ -159,10 +159,6 @@
  * END
  */
 
-// position for displaying shutter count and other info
-#define MENU_DISP_INFO_POS_X 400
-#define MENU_DISP_INFO_POS_Y 0
-
 // position for displaying clock outside LV
 #define DISPLAY_CLOCK_POS_X 400
 #define DISPLAY_CLOCK_POS_Y 410
