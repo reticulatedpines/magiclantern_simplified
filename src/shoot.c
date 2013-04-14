@@ -675,7 +675,7 @@ static MENU_UPDATE_FUNC(motion_detect_display)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Press shutter halfway and be careful (tricky feature).");
 
     if (motion_detect_trigger < 2 && !lv)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "With current settings, motion detect only works in LiveView.");
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "With current settings, motion detect only works in LiveView.");
 }
 #endif
 
@@ -4953,7 +4953,7 @@ static struct menu_entry shoot_menus[] = {
         .max        = 1,
         .update     = motion_detect_display,
         .help = "Take a picture when subject is moving or exposure changes.",
-        .works_best_in = DEP_LIVEVIEW | DEP_PHOTO_MODE,
+        .works_best_in = DEP_PHOTO_MODE,
         .submenu_width = 650,
         .children =  (struct menu_entry[]) {
             {
@@ -7235,6 +7235,12 @@ shoot_task( void* unused )
         #endif
 
         #ifdef FEATURE_MOTION_DETECT
+        if (motion_detect && motion_detect_trigger < 2 && !lv && display_idle() && !gui_menu_shown())
+        {
+            // plain photo mode, go to LiveView
+            force_liveview();
+        }
+
         // same for motion detect
         int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && !recording && !gui_menu_shown();
         #else
