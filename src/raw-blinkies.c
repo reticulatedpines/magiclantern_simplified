@@ -87,20 +87,32 @@ static void raw_blinkies_guess_overexposure_levels()
     int Ychk, Uchk, Vchk;
     get_spot_yuv(30, &Ychk, &Uchk, &Vchk);
     
-    if (ABS(Y - Ychk) > 1 || ABS(U - Uchk) > 1 || ABS(V - Vchk) > 1)
+    if (ABS(Y - Ychk) > 1 || ABS(U - Uchk) > 1 || ABS(V - Vchk) > 1 || Y < 128)
     {
         NotifyBox(5000, "Image not overexposed, try again.");
         return;
     }
     
-    if (Y > 250)
+    if (Y > 253)
     {
         NotifyBox(5000, "Take the pic with RAW blinkies ON.");
         return;
     }
 
-    yuv2rgb(Y, U, V, &raw_blinkies_overexposure_level_R, &raw_blinkies_overexposure_level_G, &raw_blinkies_overexposure_level_B);
-    NotifyBox(5000, "Clipping points: %d, %d, %d ", raw_blinkies_overexposure_level_R, raw_blinkies_overexposure_level_G, raw_blinkies_overexposure_level_B);
+    int R, G, B;
+    yuv2rgb(Y, U, V, &R, &G, &B);
+
+    if (R > 253 || G > 253 || B > 253)
+    {
+        NotifyBox(5000, "Image too bright, try Neutral -4.");
+        return;
+    }
+    
+    NotifyBox(5000, "Clipping points: %d, %d, %d ", R, G, B);
+
+    raw_blinkies_overexposure_level_R = R;
+    raw_blinkies_overexposure_level_G = G;
+    raw_blinkies_overexposure_level_B = B;
     raw_blinkies_ps_sig = get_ps_sig();
     raw_blinkies_wb_sig = get_wb_sig();
 }
