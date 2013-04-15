@@ -863,6 +863,17 @@ void digic_iso_step()
     {
         if (digic_iso_gain_photo_for_bv == 0) digic_iso_gain_photo_for_bv = 1024;
         int total_photo_gain = DIGIC_ISO_GAIN_PHOTO * digic_iso_gain_photo_for_bv / 1024;
+        
+        #ifdef FEATURE_RAW_BLINKIES
+        if (raw_blinkies_enabled())
+        {
+            autodetect_default_white_level();
+            int boost_stops = 0;
+            int new_gain = get_new_white_level(256, &boost_stops);
+            EngDrvOutLV(SHAD_GAIN, new_gain);
+            shad_gain_last_written = new_gain;
+        }
+        #endif
 
         if (total_photo_gain == 0) total_photo_gain = 1024;
     #ifdef CONFIG_DIGIC_V
