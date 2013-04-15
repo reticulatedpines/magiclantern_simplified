@@ -1144,9 +1144,15 @@ hist_draw_image(
                     int xr = x_origin + raw_blinkies_overexposure_level_R * HIST_WIDTH / 256;
                     int xg = x_origin + raw_blinkies_overexposure_level_G * HIST_WIDTH / 256;
                     int xb = x_origin + raw_blinkies_overexposure_level_B * HIST_WIDTH / 256;
-                    draw_line(xr, y_origin, xr, y_origin + hist_height, COLOR_RED);
+                    draw_line(xr, y_origin, xr, y_origin + hist_height, COLOR_DARK_RED);
                     draw_line(xg, y_origin, xg, y_origin + hist_height, COLOR_GREEN1);
                     draw_line(xb, y_origin, xb, y_origin + hist_height, COLOR_BLUE);
+                    for (int j = -4; j <= 4; j++)
+                    {
+                        draw_line(xr, y_origin + hist_height, xr + j, y_origin + hist_height + 5, COLOR_RED);
+                        draw_line(xg, y_origin + hist_height, xg + j, y_origin + hist_height + 5, COLOR_GREEN2);
+                        draw_line(xb, y_origin + hist_height, xb + j, y_origin + hist_height + 5, COLOR_LIGHT_BLUE);
+                    }
                 }
                 #endif
                 
