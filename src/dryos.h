@@ -644,6 +644,12 @@ void set_afma(int value, int mode);
 
 #define IS_ML_PTR(val) ((uintptr_t)(val) > (uintptr_t)0x1000)
 
+
+/* beeps */
+void beep();
+void beep_times(int times);
+void beep_custom(int duration, int frequency, int wait);
+
 /*********************************************************************
  *
  *  Controller struct, present in Digic5 cameras like the 5d3 and 6D.

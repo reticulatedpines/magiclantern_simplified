@@ -16,9 +16,14 @@ int beep_playing = 0;
 #define BEEP_LONG -1
 #define BEEP_SHORT 0
 #define BEEP_WAV -2
+#define BEEP_CUSTOM_LEN_FREQ -3
+
 // positive values: X beeps
 static int beep_type = 0;
 static int record_flag = 0;
+
+static int beep_custom_duration;
+static int beep_custom_frequency;
 
 CONFIG_INT("beep.enabled", beep_enabled, 1);
 static CONFIG_INT("beep.volume", beep_volume, 3);
@@ -27,7 +32,7 @@ static CONFIG_INT("beep.wavetype", beep_wavetype, 0); // square, sine, white noi
 
 static int beep_freq_values[] = {55, 110, 220, 262, 294, 330, 349, 392, 440, 494, 880, 1000, 1760, 2000, 3520, 5000, 12000};
 
-static void generate_beep_tone(int16_t* buf, int N);
+static void generate_beep_tone(int16_t* buf, int N, int freq, int wavetype);
 
 static void asif_stopped_cbr()
 {
@@ -461,21 +466,19 @@ static MENU_UPDATE_FUNC(record_display)
 
 #endif
 
- void generate_beep_tone(int16_t* buf, int N)
+ void generate_beep_tone(int16_t* buf, int N, int freq, int wavetype)
 {
-    int beep_freq = beep_freq_values[beep_freq_idx];
-    
     // for sine wave: 1 hz => t = i * 2*pi*MUL / 48000
     int twopi = 102944;
-    float factor = (int)roundf((float)twopi / 48000.0f * beep_freq);
+    float factor = (int)roundf((float)twopi / 48000.0f * freq);
     
     for (int i = 0; i < N; i++)
     {
-        switch(beep_wavetype)
+        switch(wavetype)
         {
             case 0: // square
             {
-                int factor = 48000 / beep_freq / 2;
+                int factor = 48000 / freq / 2;
                 buf[i] = ((i/factor) % 2) ? 32767 : -32767;
                 break;
             }
@@ -521,6 +524,8 @@ void unsafe_beep()
         return;
     }
 
+    while (beep_playing) msleep(20);
+
     if (audio_stop_rec_or_play()) return;
 #ifdef CONFIG_600D
     if (AUDIO_MONITORING_HEADPHONES_CONNECTED){
@@ -534,13 +539,15 @@ void unsafe_beep()
 
 void beep_times(int times)
 {
-    times = COERCE(times, 1, 100);
-    
     if (!beep_enabled || recording)
     {
         info_led_blink(times,50,50); // silent warning
         return;
     }
+
+    while (beep_playing) msleep(20);
+
+    times = COERCE(times, 1, 100);
 
     if (audio_stop_rec_or_play()) return;
 
@@ -552,6 +559,29 @@ void beep()
 {
     if (!recording) // breaks audio
         unsafe_beep();
+}
+
+void beep_custom(int duration, int frequency, int wait)
+{
+    if (!beep_enabled || recording)
+    {
+        info_led_blink(1, duration, 10); // silent warning
+        return;
+    }
+
+    if (wait)
+        while (beep_playing) msleep(20);
+    
+    beep_type = BEEP_CUSTOM_LEN_FREQ;
+    beep_custom_duration = duration;
+    beep_custom_frequency = frequency;
+    give_semaphore(beep_sem);
+
+    if (wait)
+    {
+        msleep(50);
+        while (beep_playing) msleep(20);
+    }
 }
 
 #ifdef FEATURE_WAV_RECORDING
@@ -604,7 +634,7 @@ static void beep_task()
             if (!beep_buf) { N = 48000; beep_buf = SmallAlloc(N*2); } // not enough RAM, try a shorter tone
             if (!beep_buf) { N = 10000; beep_buf = SmallAlloc(N*2); } // even shorter
             if (!beep_buf) continue; // give up
-            generate_beep_tone(beep_buf, N);
+            generate_beep_tone(beep_buf, N, beep_freq_values[beep_freq_idx], beep_wavetype);
             play_beep(beep_buf, N);
             while (beep_playing) msleep(100);
             SmallFree(beep_buf);
@@ -615,8 +645,18 @@ static void beep_task()
             int N = 5000;
             int16_t* beep_buf = SmallAlloc(N*2);
             if (!beep_buf) continue; // give up
-            generate_beep_tone(beep_buf, 5000);
+            generate_beep_tone(beep_buf, 5000, beep_freq_values[beep_freq_idx], beep_wavetype);
             play_beep(beep_buf, 5000);
+            while (beep_playing) msleep(20);
+            SmallFree(beep_buf);
+        }
+        else if (beep_type == BEEP_CUSTOM_LEN_FREQ)
+        {
+            int N = beep_custom_duration * 48;
+            int16_t* beep_buf = SmallAlloc(N*2);
+            if (!beep_buf) continue; // give up
+            generate_beep_tone(beep_buf, N, beep_custom_frequency, 0);
+            play_beep(beep_buf, N);
             while (beep_playing) msleep(20);
             SmallFree(beep_buf);
         }
@@ -626,7 +666,7 @@ static void beep_task()
             int N = 10000;
             int16_t* beep_buf = SmallAlloc(N*2);
             if (!beep_buf) continue;
-            generate_beep_tone(beep_buf, N);
+            generate_beep_tone(beep_buf, N, beep_freq_values[beep_freq_idx], beep_wavetype);
             
             for (int i = 0; i < times/10; i++)
             {
