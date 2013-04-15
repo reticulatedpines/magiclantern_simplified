@@ -222,7 +222,9 @@ int handle_common_events_by_feature(struct event * event)
     // as a record of when the user was last actively pushing buttons.
     if (event->param != GMT_OLC_INFO_CHANGED)
         last_time_active = get_seconds_clock();
-    
+
+    if (handle_scrollwheel_fast_clicks(event)==0) return 0;
+
     if (handle_flexinfo_keys(event) == 0) return 0;
     
     #ifdef CONFIG_PICOC

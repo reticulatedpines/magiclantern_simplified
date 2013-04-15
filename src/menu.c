@@ -3770,8 +3770,6 @@ handle_ml_menu_keys(struct event * event)
     if (!DISPLAY_IS_ON)
         if (event->param != BGMT_PRESS_HALFSHUTTER) return 1;
     
-    if (handle_scrollwheel_fast_clicks(event)==0) return 0;
-    
     // rack focus may override some menu keys
     if (handle_rack_focus_menu_overrides(event)==0) return 0;
     
