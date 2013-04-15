@@ -5932,7 +5932,7 @@ void take_a_pic(int should_af, int allow_bulb)
     #endif
     {
         //~ beep();
-        if (allow_bulb && is_bulb_mode_or_bulb_ramping()) bulb_take_pic(BULB_SHUTTER_VALUE_MS);
+        if (allow_bulb && is_bulb_mode_or_bulb_ramping()) hdr_shot(0, 1);
         else lens_take_picture(64, should_af);
     }
     lens_wait_readytotakepic(64);
