@@ -223,7 +223,11 @@ static void null_pointer_check()
             char* task_name = get_task_name_from_id(id);
 
             // Ignore Canon null pointer bugs (let's hope they are harmless...)
-
+            
+            if (isupper(task_name[0])) // Canon tasks are named with uppercase letters, ML tasks are lowercase
+                return;
+            
+            #if 0
             #if defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_600D)
             /* [60D]   AeWB -> pc=ff07cb10
              * [1100D] AeWB -> pc=ff07dbd4 lr=ff07dbd4 stack=137058+0x4000 entry=ff1ee5d8(9b9604)
@@ -265,6 +269,7 @@ static void null_pointer_check()
              */
             if (streq(task_name, "USBTrns"))
                 return;
+            #endif
             #endif
 
             static char msg[256];
