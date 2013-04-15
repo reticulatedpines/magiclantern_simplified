@@ -5,3 +5,5 @@
 #undef FEATURE_FLASH_TWEAKS // no built-in flash
 
 #define FEATURE_AFMA_TUNING
+
+#define FEATURE_RAW_BLINKIES

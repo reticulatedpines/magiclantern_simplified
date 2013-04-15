@@ -874,9 +874,9 @@ hist_build()
                 uint32_t G_level = G * HIST_WIDTH / 256;
                 uint32_t B_level = B * HIST_WIDTH / 256;
                 
-                hist_r[R_level & 0x7F]++;
-                hist_g[G_level & 0x7F]++;
-                hist_b[B_level & 0x7F]++;
+                hist_r[R_level & (HIST_WIDTH-1)]++;
+                hist_g[G_level & (HIST_WIDTH-1)]++;
+                hist_b[B_level & (HIST_WIDTH-1)]++;
             }
             else // luma
             #endif
@@ -894,7 +894,7 @@ hist_build()
             uint32_t hist_level = Y * HIST_WIDTH / 256;
 
             // Ignore the 0 bin.  It generates too much noise
-            unsigned count = ++ (hist[ hist_level & 0x7F]);
+            unsigned count = ++ (hist[ hist_level & (HIST_WIDTH-1)]);
             if( hist_level && count > hist_max )
                 hist_max = count;
             #endif
@@ -940,6 +940,14 @@ int hist_get_percentile_level(int percentile)
 #endif
     return -1; // invalid argument?
 }
+
+#ifdef FEATURE_RAW_BLINKIES
+
+extern int raw_blinkies_overexposure_level_R;
+extern int raw_blinkies_overexposure_level_G;
+extern int raw_blinkies_overexposure_level_B;
+
+#endif
 
 int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
 {
@@ -1123,6 +1131,25 @@ hist_draw_image(
                 unsigned int over_r = hist_r[i] + hist_r[i-1] + hist_r[i-2];
                 unsigned int over_g = hist_g[i] + hist_g[i-1] + hist_g[i-2];
                 unsigned int over_b = hist_b[i] + hist_b[i-1] + hist_b[i-2];
+                
+                #ifdef FEATURE_RAW_BLINKIES
+                if (raw_blinkies_enabled())
+                {
+                    for (int j = i-3; j >= raw_blinkies_overexposure_level_R * HIST_WIDTH / 256 - 1; j--)
+                        over_r += hist_r[j];
+                    for (int j = i-3; j >= raw_blinkies_overexposure_level_G * HIST_WIDTH / 256 - 1; j--)
+                        over_g += hist_g[j];
+                    for (int j = i-3; j >= raw_blinkies_overexposure_level_B * HIST_WIDTH / 256 - 1; j--)
+                        over_b += hist_b[j];
+                    int xr = x_origin + raw_blinkies_overexposure_level_R * HIST_WIDTH / 256;
+                    int xg = x_origin + raw_blinkies_overexposure_level_G * HIST_WIDTH / 256;
+                    int xb = x_origin + raw_blinkies_overexposure_level_B * HIST_WIDTH / 256;
+                    draw_line(xr, y_origin, xr, y_origin + hist_height, COLOR_RED);
+                    draw_line(xg, y_origin, xg, y_origin + hist_height, COLOR_GREEN1);
+                    draw_line(xb, y_origin, xb, y_origin + hist_height, COLOR_BLUE);
+                }
+                #endif
+                
                 if (over_r > thr) hist_dot(x_origin + HIST_WIDTH/2 - 25, yw, COLOR_RED,        bg, hist_dot_radius(over_r, hist_total_px), hist_dot_label(over_r, hist_total_px));
                 if (over_g > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,     bg, hist_dot_radius(over_g, hist_total_px), hist_dot_label(over_g, hist_total_px));
                 if (over_b > thr) hist_dot(x_origin + HIST_WIDTH/2 + 25, yw, COLOR_LIGHT_BLUE, bg, hist_dot_radius(over_b, hist_total_px), hist_dot_label(over_b, hist_total_px));
@@ -1536,6 +1563,19 @@ static void draw_zebras( int Z )
         
         uint8_t * lvram = get_yuv422_vram()->vram;
 
+        int zlr = zlh;
+        int zlg = zlh;
+        int zlb = zlh;
+        
+        #ifdef FEATURE_RAW_BLINKIES
+        if (raw_blinkies_enabled())
+        {
+            zlr = raw_blinkies_overexposure_level_R - (255 - zlh);
+            zlg = raw_blinkies_overexposure_level_G - (255 - zlh);
+            zlb = raw_blinkies_overexposure_level_B - (255 - zlh);
+        }
+        #endif
+
         // draw zebra in 16:9 frame
         // y is in BM coords
         int off = get_y_skip_offset_for_overlays();
@@ -1602,12 +1642,12 @@ static void draw_zebras( int Z )
                     {
                         //~ BP = MP = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y);
                         //~ BN = MN = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh, y+1);
-                        
-                        if (unlikely(R > zlh)) // R clipped
+
+                        if (unlikely(R > zlr)) // R clipped
                         {
-                            if (unlikely(G > zlh)) // RG clipped
+                            if (unlikely(G > zlg)) // RG clipped
                             {
-                                if (B > zlh) // RGB clipped (all of them)
+                                if (B > zlb) // RGB clipped (all of them)
                                 {
                                     BP = MP = color_rgb_clipRGB;
                                     BN = MN = color_rgb_clipRGB_2;
@@ -1620,7 +1660,7 @@ static void draw_zebras( int Z )
                             }
                             else // R clipped, G not clipped
                             {
-                                if (unlikely(B > zlh)) // only R and B clipped
+                                if (unlikely(B > zlb)) // only R and B clipped
                                 {
                                     BP = MP = color_rgb_clipRB;
                                     BN = MN = color_rgb_clipRB_2;
@@ -1634,9 +1674,9 @@ static void draw_zebras( int Z )
                         }
                         else // R not clipped
                         {
-                            if (unlikely(G > zlh)) // R not clipped, G clipped
+                            if (unlikely(G > zlg)) // R not clipped, G clipped
                             {
-                                if (unlikely(B > zlh)) // only G and B clipped
+                                if (unlikely(B > zlb)) // only G and B clipped
                                 {
                                     BP = MP = color_rgb_clipGB;
                                     BN = MN = color_rgb_clipGB_2;
@@ -1649,7 +1689,7 @@ static void draw_zebras( int Z )
                             }
                             else // R not clipped, G not clipped
                             {
-                                if (unlikely(B > zlh)) // only B clipped
+                                if (unlikely(B > zlb)) // only B clipped
                                 {
                                     BP = MP = color_rgb_clipB;
                                     BN = MN = color_rgb_clipB_2;
@@ -4512,6 +4552,7 @@ static void draw_livev_for_playback()
     get_yuv422_vram(); // just to refresh VRAM params
     
     info_led_on();
+    
 BMP_LOCK(
 
     bvram_mirror_clear(); // may be filled with liveview cropmark / masking info, not needed in play mode
@@ -4548,6 +4589,15 @@ BMP_LOCK(
 
     bvram_mirror_clear(); // may remain filled with playback zebras 
 )
+
+    #ifdef FEATURE_RAW_BLINKIES
+    if (raw_blinkies_enabled())
+    {
+        expo_adjust_playback(1);
+        expo_adjust_playback(1);
+    }
+    #endif
+
     info_led_off();
     livev_for_playback_running = 0;
 }

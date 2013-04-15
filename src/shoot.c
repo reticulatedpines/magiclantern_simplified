@@ -5142,6 +5142,8 @@ static struct menu_entry shoot_menus[] = {
         .works_best_in = DEP_PHOTO_MODE,
     },
     #endif
+    
+    MENU_PLACEHOLDER("RAW Blinkies"),
 
     #ifdef FEATURE_LV_3RD_PARTY_FLASH
         #ifndef FEATURE_FLASH_TWEAKS
