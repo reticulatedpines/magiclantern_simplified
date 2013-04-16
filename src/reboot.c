@@ -122,7 +122,7 @@ cstart( void )
     #endif
     
     #ifdef CONFIG_6D
-    if (s != (int)SIG_6D_112)
+    if (s != (int)SIG_6D_113)
         fail();
     #endif
 
@@ -132,6 +132,8 @@ cstart( void )
     #endif
 
 #endif
+    
+    
 
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */
 	#if defined(CONFIG_40D)

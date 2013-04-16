@@ -64,7 +64,7 @@
 
 // for gui_main_task
 #define GMT_NFUNCS 7
-#define GMT_FUNCTABLE 0xFF9CDB54 // dec gui_main_task
+#define GMT_FUNCTABLE 0xFF9CDB68 // dec gui_main_task
 
 #define SENSOR_RES_X 4344
 #define SENSOR_RES_Y 2611

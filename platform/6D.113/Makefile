@@ -1,10 +1,10 @@
-#Makefile for 6D 112 firmware
+#Makefile for 6D 113 firmware
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=112
+FW_VERSION=113
 MODEL=6D
 ML_VERSION=unified1 
 
