@@ -34,6 +34,15 @@ struct memSuite
     int first_chunk_maybe;
 };
 
+struct memChunk
+{
+    char* signature; // MemChunk
+    int off_0x04;
+    int next_chunk_maybe;
+    int size;
+    int remain;
+};
+
 
 struct memSuite *shoot_malloc_suite(size_t size)
 {
@@ -51,6 +60,12 @@ struct memSuite *shoot_malloc_suite(size_t size)
     }
     
     return hSuite;
+}
+
+void shoot_free_suite(struct memSuite * hSuite)
+{
+    FreeMemoryResource(hSuite, freeCBR, 0);
+    take_semaphore(free_sem, 0);
 }
 
 void* shoot_malloc(size_t size)
@@ -95,7 +110,7 @@ void shoot_free(void* ptr)
 
 void exmem_test()
 {
-#if defined(CONFIG_5D3) || defined(CONFIG_7D)
+#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_5D2)
     struct memSuite * hSuite = 0;
     struct memChunk * hChunk = 0;
     
@@ -135,6 +150,28 @@ void exmem_test()
     msleep(2000);
     shoot_free(p);
     info_led_off();
+#endif
+}
+
+void exmem_dump_suite(struct memSuite * hSuite, char* filename)
+{
+#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_5D2)
+    if(!hSuite) return;
+
+    struct memChunk * hChunk = GetFirstChunkFromSuite(hSuite);
+    
+    FILE* f = FIO_CreateFileEx(filename);
+    
+    while(hChunk)
+    {
+        void* addr = GetMemoryAddressOfMemoryChunk(hChunk);
+        int size = GetSizeOfMemoryChunk(hChunk);
+        DryosDebugMsg(3, 33, "[%x] chunk=%x addr=%x size=%x", hSuite, hChunk, addr, size);
+        FIO_WriteFile(f, addr, size);
+        
+        hChunk = GetNextMemoryChunk(hSuite, hChunk);
+    }
+    FIO_CloseFile(f);
 #endif
 }
 
