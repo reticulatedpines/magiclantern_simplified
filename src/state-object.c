@@ -49,6 +49,7 @@
 #ifdef CONFIG_5D2
 #define MOVREC_STATE (*(struct state_object **)0x7C90)
 #define LV_STATE (*(struct state_object **)0x4528)
+#define SDS_FRONT3_STATE (*(struct state_object **)0x36B8)
 #endif
 
 #ifdef CONFIG_500D
@@ -149,7 +150,7 @@ int get_display_is_on_550D() { return display_is_on_550D; }
 #endif
 
 static int (*StateTransition)(void*,int,int,int,int) = 0;
-static int stateobj_spy(struct state_object * self, int x, int input, int z, int t)
+static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, int t)
 {
     int old_state = self->current_state;
 
@@ -243,39 +244,98 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     }
     #endif
 
-#ifdef CONFIG_5DC
-    if (z == 0x0) { fake_simple_button(BGMT_PRESS_HALFSHUTTER); }
-    if (z == 0xB) { fake_simple_button(BGMT_UNPRESS_HALFSHUTTER); }
-#endif
-
     return ans;
 }
 
-static int stateobj_start_spy(struct state_object * stateobj)
+#ifdef CONFIG_5DC
+static int stateobj_em_spy(struct state_object * self, int x, int input, int z, int t)
 {
-    StateTransition = (void *)stateobj->StateTransition_maybe;
-    stateobj->StateTransition_maybe = (void *)PIC_RESOLVE(stateobj_spy);
+    int ans = StateTransition(self, x, input, z, t);
+
+    if (z == 0x0) { fake_simple_button(BGMT_PRESS_HALFSHUTTER); }
+    if (z == 0xB) { fake_simple_button(BGMT_UNPRESS_HALFSHUTTER); }
+    return ans;
+}
+#endif
+
+#ifdef SCS_STATE
+static int stateobj_scs_spy(struct state_object * self, int x, int input, int z, int t)
+{
+    int ans = StateTransition(self, x, input, z, t);
+    //scs_iso_override_step(); todo
+    return ans;
+}
+#endif
+
+#ifdef SDS_FRONT3_STATE
+
+static uint32_t raw_image_buffer = 0;
+
+void* sdsf3_get_raw_image_buffer()
+{
+    // note: you need to skip a multiple of 8 pixels
+    // [TTJ] START RD1:0x4000048 RD2:0x64d1864
+    return (raw_image_buffer + ((3 * SENSOR_RES_X + 96) * 14 / 8));
+}
+
+static int stateobj_sdsf3_spy(struct state_object * self, int x, int input, int z, int t)
+{
+    int old_state = self->current_state;
+    int ans = StateTransition(self, x, input, z, t);
+    int new_state = self->current_state;
+
+    #ifdef CONFIG_5D2
+    // SDSf3:(0)  --  3 sdsMem1toRAWcompress-->(1)
+    // SDSf3:(1)  --  3 sdsMem1toJpegDevelop-->(1)
+    if (old_state == 0 && input == 3 && new_state == 1)
+    {
+        // grab the RAW image buffer address and hope it doesn't change
+        raw_image_buffer = shamem_read(0xc0f04A08);
+    }
+    #endif
+    return ans;
+}
+#endif
+
+static int stateobj_start_spy(struct state_object * stateobj, void* spy)
+{
+    if (!StateTransition)
+        StateTransition = (void *)stateobj->StateTransition_maybe;
+    
+    // double check if all states use the same transition function (they do, in theory)
+    else if ((void*)StateTransition != (void*)stateobj->StateTransition_maybe)
+    {
+        beep();
+        return;
+    }
+    
+    stateobj->StateTransition_maybe = spy;
     return 0; //not used currently
 }
 
 static void state_init(void* unused)
 {
     #ifdef DISPLAY_STATE
-        stateobj_start_spy(DISPLAY_STATE);
+        stateobj_start_spy(DISPLAY_STATE, stateobj_lv_spy);
     #endif
     #ifdef LV_STATE
         while(!LV_STATE) msleep(50);
-        stateobj_start_spy(LV_STATE);
+        stateobj_start_spy(LV_STATE, stateobj_lv_spy);
     #endif
-    //~ #ifdef MOVREC_STATE
-        //~ stateobj_start_spy(MOVREC_STATE);
-    //~ #endif
     #ifdef EVF_STATE
-        stateobj_start_spy(EVF_STATE);
+        stateobj_start_spy(EVF_STATE, stateobj_lv_spy);
     #endif
     
     #ifdef EMState
-        stateobj_start_spy(EMState);
+        stateobj_start_spy(EMState, stateobj_em_spy);
+    #endif
+
+    #ifdef SCS_STATE
+        stateobj_start_spy(SCS_STATE, stateobj_scs_spy);
+    #endif
+    
+    #ifdef SDS_FRONT3_STATE
+        stateobj_start_spy(SDS_FRONT3_STATE, stateobj_sdsf3_spy);
     #endif
     
     #ifdef CONFIG_550D

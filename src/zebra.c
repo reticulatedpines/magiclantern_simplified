@@ -32,6 +32,7 @@
 #include "gui.h"
 #include "lens.h"
 #include "math.h"
+#include "raw.h"
 
 
 #define DIGIC_ZEBRA_REGISTER 0xC0F140cc
@@ -62,7 +63,8 @@ static void schedule_transparent_overlay();
 //~ static void defish_draw_lv_color();
 static int zebra_color_word_row(int c, int y);
 static void spotmeter_step();
-
+static int zebra_rgb_color(int underexposed, int clipR, int clipG, int clipB, int y);
+static int zebra_rgb_solid_color(int underexposed, int clipR, int clipG, int clipB);
 
 static void cropmark_cache_update_signature();
 static int cropmark_cache_is_valid();
@@ -572,6 +574,8 @@ static uint32_t hist_max;
 /** total number of pixels analyzed by histogram */
 static uint32_t hist_total_px;
 
+static int hist_is_raw = 0;
+
 #ifdef FEATURE_VECTORSCOPE
 
 static uint8_t *vectorscope = NULL;
@@ -825,6 +829,7 @@ hist_build()
     #ifdef FEATURE_HISTOGRAM
     hist_max = 0;
     hist_total_px = 0;
+    hist_is_raw = 0;
     for( x=0 ; x<HIST_WIDTH ; x++ )
     {
         hist[x] = 0;
@@ -921,6 +926,99 @@ hist_build()
 }
 #endif
 
+#if defined(FEATURE_RAW_HISTOGRAM) || defined(FEATURE_RAW_ZEBRAS)
+int should_use_raw_overlays()
+{
+    if (QR_MODE && pic_quality == PICQ_RAW) // MRAW/SRAW are causing trouble, figure out why
+        return 1;
+    return 0;
+}
+int should_use_raw_overlays_menu()
+{
+    if (pic_quality == PICQ_RAW)
+        return 1;
+    return 0;
+}
+#endif
+
+#ifdef FEATURE_RAW_HISTOGRAM
+static FAST void hist_build_raw()
+{
+    raw_pixline * buf = RAW_IMAGE_BUFFER;
+    if (!buf) return;
+    
+    // this buffer contains 14-bit uncompressed RAW data
+    // first pixel should be red
+
+    hist_is_raw = 1;
+
+    hist_max = 0;
+    hist_total_px = 0;
+    for( int i = 0 ; i < HIST_WIDTH ; i++ )
+    {
+        hist[i] = 0;
+        hist_r[i] = 0;
+        hist_g[i] = 0;
+        hist_b[i] = 0;
+    }
+
+    for (int i = 0; i < SENSOR_RES_Y; i += 32)
+    {
+        for (int j = 0; j < SENSOR_RES_X/8; j += 4)
+        {
+            int r = buf[i][j].a;
+            int g = buf[i][j].h;
+            int b = buf[i+1][j].h;
+            int ir = r > RAW_BLACK_LEVEL ? (int)(log2f(r - RAW_BLACK_LEVEL) * (HIST_WIDTH-1) / 14) : 1;
+            int ig = g > RAW_BLACK_LEVEL ? (int)(log2f(g - RAW_BLACK_LEVEL) * (HIST_WIDTH-1) / 14) : 1;
+            int ib = b > RAW_BLACK_LEVEL ? (int)(log2f(b - RAW_BLACK_LEVEL) * (HIST_WIDTH-1) / 14) : 1;
+            hist_r[ir]++;
+            hist_g[ig]++;
+            hist_b[ib]++;
+            hist_total_px++;
+        }
+    }
+    for (int i = 0; i < HIST_WIDTH; i++)
+    {
+        hist_max = MAX(hist_max, hist_r[i]);
+        hist_max = MAX(hist_max, hist_g[i]);
+        hist_max = MAX(hist_max, hist_b[i]);
+        hist[i] = (hist_r[i] + hist_g[i] + hist_b[i]) / 3;
+    }
+}
+#endif
+
+#ifdef FEATURE_RAW_ZEBRAS
+static void draw_zebras_raw()
+{
+    raw_pixline * buf = RAW_IMAGE_BUFFER;
+    if (!buf) return;
+    uint8_t* bvram = bmp_vram();
+
+    int px = (RAW_SKIP_H/2) / 8;
+    int py = (RAW_SKIP_V/2);
+    
+    for (int i = py; i < SENSOR_RES_Y-py; i += 4)
+    {
+        for (int j = px; j < SENSOR_RES_X/8 - px; j ++)
+        {
+            int r = buf[i][j].a;
+            int g = buf[i][j].h;
+            int b = buf[i+1][j].h;
+            int m = MAX(MAX(r,g), b);
+            int c = zebra_rgb_solid_color(m < RAW_BLACK_LEVEL, r > 15000, g > 15000, b > 15000);
+            if (c)
+            {
+                int x = os.x0 + os.x_ex * (j-px) / (SENSOR_RES_X/8 - 2*px);
+                int y = os.y0 + os.y_ex * (i-py) / (SENSOR_RES_Y - 2*py);
+                uint16_t* b = &bvram[BM(x,y)];
+                *b = c;
+            }
+        }
+    }
+}
+#endif
+
 int hist_get_percentile_level(int percentile)
 {
 #ifdef FEATURE_HISTOGRAM
@@ -941,13 +1039,6 @@ int hist_get_percentile_level(int percentile)
     return -1; // invalid argument?
 }
 
-#ifdef FEATURE_RAW_BLINKIES
-
-extern int raw_blinkies_overexposure_level_R;
-extern int raw_blinkies_overexposure_level_G;
-extern int raw_blinkies_overexposure_level_B;
-
-#endif
 
 int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
 {
@@ -1007,20 +1098,38 @@ static int zebra_rgb_color(int underexposed, int clipR, int clipG, int clipB, in
 {
     if (underexposed) return zebra_color_word_row(79, y);
     
-    switch ((clipR ? 0 : 1) |
-            (clipG ? 0 : 2) |
-            (clipB ? 0 : 4))
+    switch ((clipR ? 4 : 0) |
+            (clipG ? 2 : 0) |
+            (clipB ? 1 : 0))
     {
-        case 0b000: return zebra_color_word_row(COLOR_BLACK, y);
-        case 0b001: return zebra_color_word_row(COLOR_RED,1);
-        case 0b010: return zebra_color_word_row(COLOR_GREEN2, 1);
-        case 0b100: return zebra_color_word_row(COLOR_LIGHT_BLUE, 1);
-        case 0b011: return y&2 ? 0 : ZEBRA_COLOR_WORD_SOLID(COLOR_YELLOW);
-        case 0b110: return y&2 ? 0 : ZEBRA_COLOR_WORD_SOLID(COLOR_CYAN);
-        case 0b101: return y&2 ? 0 : ZEBRA_COLOR_WORD_SOLID(COLOR_MAGENTA);
-        case 0b111: return 0;
+        case 0b111: return ZEBRA_COLOR_WORD_SOLID(COLOR_BLACK);
+        case 0b110: return ZEBRA_COLOR_WORD_SOLID(COLOR_YELLOW);
+        case 0b101: return ZEBRA_COLOR_WORD_SOLID(COLOR_MAGENTA);
+        case 0b011: return ZEBRA_COLOR_WORD_SOLID(COLOR_CYAN);
+        case 0b100: return y&2 ? 0 : ZEBRA_COLOR_WORD_SOLID(COLOR_RED);
+        case 0b001: return y&2 ? 0 : ZEBRA_COLOR_WORD_SOLID(COLOR_BLUE);
+        case 0b010: return y&2 ? 0 : ZEBRA_COLOR_WORD_SOLID(COLOR_GREEN2);
+        default: return 0;
     }
-    return 0;
+}
+
+static int zebra_rgb_solid_color(int underexposed, int clipR, int clipG, int clipB)
+{
+    if (underexposed) return ZEBRA_COLOR_WORD_SOLID(79);
+    
+    switch ((clipR ? 4 : 0) |
+            (clipG ? 2 : 0) |
+            (clipB ? 1 : 0))
+    {
+        case 0b111: return ZEBRA_COLOR_WORD_SOLID(COLOR_BLACK);
+        case 0b110: return ZEBRA_COLOR_WORD_SOLID(COLOR_YELLOW);
+        case 0b101: return ZEBRA_COLOR_WORD_SOLID(COLOR_MAGENTA);
+        case 0b011: return ZEBRA_COLOR_WORD_SOLID(COLOR_CYAN);
+        case 0b100: return ZEBRA_COLOR_WORD_SOLID(COLOR_RED);
+        case 0b001: return ZEBRA_COLOR_WORD_SOLID(COLOR_BLUE);
+        case 0b010: return ZEBRA_COLOR_WORD_SOLID(COLOR_GREEN2);
+        default: return 0;
+    }
 }
 #endif
 
@@ -1132,30 +1241,6 @@ hist_draw_image(
                 unsigned int over_g = hist_g[i] + hist_g[i-1] + hist_g[i-2];
                 unsigned int over_b = hist_b[i] + hist_b[i-1] + hist_b[i-2];
                 
-                #ifdef FEATURE_RAW_BLINKIES
-                if (raw_blinkies_enabled())
-                {
-                    for (int j = i-3; j >= raw_blinkies_overexposure_level_R * HIST_WIDTH / 256 - 1; j--)
-                        over_r += hist_r[j];
-                    for (int j = i-3; j >= raw_blinkies_overexposure_level_G * HIST_WIDTH / 256 - 1; j--)
-                        over_g += hist_g[j];
-                    for (int j = i-3; j >= raw_blinkies_overexposure_level_B * HIST_WIDTH / 256 - 1; j--)
-                        over_b += hist_b[j];
-                    int xr = x_origin + raw_blinkies_overexposure_level_R * HIST_WIDTH / 256;
-                    int xg = x_origin + raw_blinkies_overexposure_level_G * HIST_WIDTH / 256;
-                    int xb = x_origin + raw_blinkies_overexposure_level_B * HIST_WIDTH / 256;
-                    draw_line(xr, y_origin, xr, y_origin + hist_height, COLOR_DARK_RED);
-                    draw_line(xg, y_origin, xg, y_origin + hist_height, COLOR_GREEN1);
-                    draw_line(xb, y_origin, xb, y_origin + hist_height, COLOR_BLUE);
-                    for (int j = -4; j <= 4; j++)
-                    {
-                        draw_line(xr, y_origin + hist_height, xr + j, y_origin + hist_height + 5, COLOR_RED);
-                        draw_line(xg, y_origin + hist_height, xg + j, y_origin + hist_height + 5, COLOR_GREEN2);
-                        draw_line(xb, y_origin + hist_height, xb + j, y_origin + hist_height + 5, COLOR_LIGHT_BLUE);
-                    }
-                }
-                #endif
-                
                 if (over_r > thr) hist_dot(x_origin + HIST_WIDTH/2 - 25, yw, COLOR_RED,        bg, hist_dot_radius(over_r, hist_total_px), hist_dot_label(over_r, hist_total_px));
                 if (over_g > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,     bg, hist_dot_radius(over_g, hist_total_px), hist_dot_label(over_g, hist_total_px));
                 if (over_b > thr) hist_dot(x_origin + HIST_WIDTH/2 + 25, yw, COLOR_LIGHT_BLUE, bg, hist_dot_radius(over_b, hist_total_px), hist_dot_label(over_b, hist_total_px));
@@ -1168,6 +1253,8 @@ hist_draw_image(
         }
     }
     bmp_draw_rect(60, x_origin-1, y_origin-1, HIST_WIDTH+1, hist_height+1);
+    if (hist_is_raw)
+        bmp_printf(SHADOW_FONT(FONT_MED), x_origin+4, y_origin, "RAW");
 }
 #endif
 
@@ -1490,6 +1577,13 @@ static void draw_zebras( int Z )
     int zd = Z && zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || !recording); // when to draw zebras
     if (zd)
     {
+        #ifdef FEATURE_RAW_ZEBRAS
+        if (should_use_raw_overlays() && zebra_colorspace==1)
+        {
+            draw_zebras_raw();
+            return;
+        }
+        #endif
         int zlh = zebra_level_hi * 255 / 100 - 1;
         int zll = zebra_level_lo * 255 / 100;
 
@@ -1572,15 +1666,6 @@ static void draw_zebras( int Z )
         int zlr = zlh;
         int zlg = zlh;
         int zlb = zlh;
-        
-        #ifdef FEATURE_RAW_BLINKIES
-        if (raw_blinkies_enabled())
-        {
-            zlr = raw_blinkies_overexposure_level_R - (255 - zlh);
-            zlg = raw_blinkies_overexposure_level_G - (255 - zlh);
-            zlb = raw_blinkies_overexposure_level_B - (255 - zlh);
-        }
-        #endif
 
         // draw zebra in 16:9 frame
         // y is in BM coords
@@ -2519,6 +2604,11 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
             );
         }
     }
+
+    #ifdef FEATURE_RAW_ZEBRAS
+    if (z && zebra_colorspace==1 && should_use_raw_overlays_menu())
+        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW zebras after taking a picture.");
+    #endif
 }
 
 static MENU_UPDATE_FUNC(zebra_level_display)
@@ -2663,6 +2753,10 @@ static MENU_UPDATE_FUNC(hist_print)
             hist_log ? ",Log" : ",Lin",
             hist_warn ? ",clip warn" : ""
         );
+    #ifdef FEATURE_RAW_HISTOGRAM
+    if (hist_draw && hist_colorspace && should_use_raw_overlays_menu())
+        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram after taking a picture.");
+    #endif
 }
 #endif
 
@@ -4596,14 +4690,6 @@ BMP_LOCK(
     bvram_mirror_clear(); // may remain filled with playback zebras 
 )
 
-    #ifdef FEATURE_RAW_BLINKIES
-    if (raw_blinkies_enabled())
-    {
-        expo_adjust_playback(1);
-        expo_adjust_playback(1);
-    }
-    #endif
-
     info_led_off();
     livev_for_playback_running = 0;
 }
@@ -4629,6 +4715,13 @@ void draw_histogram_and_waveform(int allow_play)
     if (hist_draw || waveform_draw || vectorscope_draw)
     {
         hist_build();
+        
+        #ifdef FEATURE_RAW_HISTOGRAM
+        if (should_use_raw_overlays() && hist_colorspace)
+        {
+            hist_build_raw();
+        }
+        #endif
     }
 #endif
     
