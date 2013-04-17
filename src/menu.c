@@ -2148,7 +2148,7 @@ entry_print(
     if (entry->selected && info->warning[0])
     {
         int warn_color = 
-            info->warning_level == MENU_WARN_INFO ? 70 : 
+            info->warning_level == MENU_WARN_INFO ? COLOR_GREEN1 : 
             info->warning_level == MENU_WARN_ADVICE ? COLOR_YELLOW : 
             info->warning_level == MENU_WARN_NOT_WORKING ? COLOR_ORANGE : COLOR_WHITE;
         
