@@ -3563,13 +3563,17 @@ static int bramp_last_exposure_rounding_error_evx1000;
 static int measure_brightness_level(int initial_wait)
 {
     msleep(initial_wait);
-    if (bramp_hist_dirty)
-    {
-        struct vram_info * vram = get_yuv422_vram();
-        hist_build(vram->vram, vram->width, vram->pitch);
-        bramp_hist_dirty = 0;
-    }
-    int ans = hist_get_percentile_level(bramp_percentile);
+    // hack so the playback histogram won't disturb us
+    // todo: remove dependency on hist_build
+    BMP_LOCK(
+        if (bramp_hist_dirty)
+        {
+            struct vram_info * vram = get_yuv422_vram();
+            hist_build(vram->vram, vram->width, vram->pitch);
+            bramp_hist_dirty = 0;
+        }
+        int ans = hist_get_percentile_level(bramp_percentile);
+    )
     //~ get_out_of_play_mode(500);
     return ans;
 }
