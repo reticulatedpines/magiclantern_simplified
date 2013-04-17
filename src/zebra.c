@@ -929,13 +929,15 @@ hist_build()
 #if defined(FEATURE_RAW_HISTOGRAM) || defined(FEATURE_RAW_ZEBRAS)
 int should_use_raw_overlays()
 {
-    if (QR_MODE && pic_quality == PICQ_RAW) // MRAW/SRAW are causing trouble, figure out why
+    // MRAW/SRAW are causing trouble, figure out why
+    // RAW and RAW+JPEG are OK
+    if (QR_MODE && (pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
         return 1;
     return 0;
 }
 int should_use_raw_overlays_menu()
 {
-    if (pic_quality == PICQ_RAW)
+    if ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
         return 1;
     return 0;
 }
