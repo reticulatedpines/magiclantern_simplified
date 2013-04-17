@@ -3565,6 +3565,7 @@ static int measure_brightness_level(int initial_wait)
     msleep(initial_wait);
     // hack so the playback histogram won't disturb us
     // todo: remove dependency on hist_build
+    int ans;
     BMP_LOCK(
         if (bramp_hist_dirty)
         {
@@ -3572,7 +3573,7 @@ static int measure_brightness_level(int initial_wait)
             hist_build(vram->vram, vram->width, vram->pitch);
             bramp_hist_dirty = 0;
         }
-        int ans = hist_get_percentile_level(bramp_percentile);
+        ans = hist_get_percentile_level(bramp_percentile);
     )
     //~ get_out_of_play_mode(500);
     return ans;
