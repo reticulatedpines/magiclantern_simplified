@@ -466,7 +466,6 @@ autoexec: reboot.o
 		-Ttext $(AUTOEXEC_BASE) \
 		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
 	); \
-	$(STAT_CMD) autoexec.bin; \
 	$(READELF) -l magiclantern | grep -C 2 MemSiz
 
 autoexec-fir: reboot.o
@@ -746,7 +745,8 @@ DEPS  := $(COBJS:.o=.d)
 %.o: %.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.bin: %
-	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
+	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@) 
+	$(call build,STAT,$(STAT_CMD) $@)
 
 FORCE:
 
