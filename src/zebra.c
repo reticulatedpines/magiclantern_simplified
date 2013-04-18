@@ -1298,15 +1298,16 @@ hist_draw_image(
                 if (over > thr) hist_dot(x_origin + HIST_WIDTH/2, yw, COLOR_RED, bg, hist_dot_radius(over, hist_total_px), hist_dot_label(over, hist_total_px));
             }
         }
-
+        
         #ifdef FEATURE_RAW_HISTOGRAM
         /* divide the histogram in 12 equal slices - each slice is 1 EV */
         if (hist_is_raw)
         {
-            static int bar_pos = 0;
+            static int bar_pos;
+            if (i == 0) bar_pos = 0;
             if (i == bar_pos)
             {
-                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + hist_height - MAX(MAX(sizeR, sizeG), sizeB), COLOR_GRAY(50));
+                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + hist_height - MAX(MAX(sizeR, sizeG), sizeB) - 1, COLOR_GRAY(50));
                 bar_pos = (((bar_pos+1)*12/HIST_WIDTH) + 1) * HIST_WIDTH/12;
             }
         }
@@ -2671,7 +2672,7 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
 
     #ifdef FEATURE_RAW_ZEBRAS
     if (z && zebra_colorspace==1 && can_use_raw_overlays_menu())
-        raw_zebra_update(info, entry);
+        raw_zebra_update(entry, info);
     #endif
 }
 
@@ -2695,7 +2696,7 @@ static MENU_UPDATE_FUNC(zebra_level_display)
     
     #ifdef FEATURE_RAW_ZEBRAS
     if (can_use_raw_overlays_menu() && zebra_colorspace==1)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not used for RAW zebras.");
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Not used for RAW zebras.");
     #endif
 }
 #endif
@@ -2824,7 +2825,7 @@ static MENU_UPDATE_FUNC(hist_print)
         );
     #ifdef FEATURE_RAW_HISTOGRAM
     if (hist_draw && hist_colorspace && can_use_raw_overlays_menu())
-        raw_histo_update(info, entry);
+        raw_histo_update(entry, info);
     #endif
 }
 #endif
@@ -4793,6 +4794,7 @@ int should_draw_bottom_graphs()
 
 void draw_histogram_and_waveform(int allow_play)
 {
+   
     if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
     
