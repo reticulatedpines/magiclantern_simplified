@@ -975,9 +975,9 @@ static FAST void hist_build_raw()
             int g = buf[i][j].h;
             int b = buf[i+1][j].h;
             /* only show a 12-bit hisogram, since the rest is just noise */
-            int ir = r > RAW_BLACK_LEVEL ? (int)(log2f((r - RAW_BLACK_LEVEL) / 4.0f) * (HIST_WIDTH-1) / 12) : 1;
-            int ig = g > RAW_BLACK_LEVEL ? (int)(log2f((g - RAW_BLACK_LEVEL) / 4.0f) * (HIST_WIDTH-1) / 12) : 1;
-            int ib = b > RAW_BLACK_LEVEL ? (int)(log2f((b - RAW_BLACK_LEVEL) / 4.0f) * (HIST_WIDTH-1) / 12) : 1;
+            int ir = r > RAW_BLACK_LEVEL+4 ? (int)(log2f((r - RAW_BLACK_LEVEL) / 4.0f) * (HIST_WIDTH-1) / 12) : 1;
+            int ig = g > RAW_BLACK_LEVEL+4 ? (int)(log2f((g - RAW_BLACK_LEVEL) / 4.0f) * (HIST_WIDTH-1) / 12) : 1;
+            int ib = b > RAW_BLACK_LEVEL+4 ? (int)(log2f((b - RAW_BLACK_LEVEL) / 4.0f) * (HIST_WIDTH-1) / 12) : 1;
             hist_r[ir]++;
             hist_g[ig]++;
             hist_b[ib]++;
