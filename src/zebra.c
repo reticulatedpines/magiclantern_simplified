@@ -974,9 +974,10 @@ static FAST void hist_build_raw()
             int r = buf[i][j].a;
             int g = buf[i][j].h;
             int b = buf[i+1][j].h;
-            int ir = r > RAW_BLACK_LEVEL ? (int)(log2f(r - RAW_BLACK_LEVEL) * (HIST_WIDTH-1) / 14) : 1;
-            int ig = g > RAW_BLACK_LEVEL ? (int)(log2f(g - RAW_BLACK_LEVEL) * (HIST_WIDTH-1) / 14) : 1;
-            int ib = b > RAW_BLACK_LEVEL ? (int)(log2f(b - RAW_BLACK_LEVEL) * (HIST_WIDTH-1) / 14) : 1;
+            /* only show a 12-bit hisogram, since the rest is just noise */
+            int ir = r > RAW_BLACK_LEVEL ? (int)(log2f((r - RAW_BLACK_LEVEL) / 4.0f) * (HIST_WIDTH-1) / 12) : 1;
+            int ig = g > RAW_BLACK_LEVEL ? (int)(log2f((g - RAW_BLACK_LEVEL) / 4.0f) * (HIST_WIDTH-1) / 12) : 1;
+            int ib = b > RAW_BLACK_LEVEL ? (int)(log2f((b - RAW_BLACK_LEVEL) / 4.0f) * (HIST_WIDTH-1) / 12) : 1;
             hist_r[ir]++;
             hist_g[ig]++;
             hist_b[ib]++;
@@ -1173,6 +1174,8 @@ static int zebra_rgb_solid_color(int underexposed, int clipR, int clipG, int cli
 #ifdef FEATURE_HISTOGRAM
 static void hist_dot(int x, int y, int fg_color, int bg_color, int radius, int label)
 {
+    x &= ~3;
+    y &= ~3;
     for (int r = 0; r < radius; r++)
     {
         draw_circle(x, y, r, fg_color);
@@ -1182,13 +1185,20 @@ static void hist_dot(int x, int y, int fg_color, int bg_color, int radius, int l
     
     if (label)
     {
-        char msg[5];
-        snprintf(msg, sizeof(msg), "%d", label);
-        bmp_printf(
-            SHADOW_FONT(FONT(FONT_SMALL, COLOR_WHITE, fg_color)), 
-            x - font_small.width * strlen(msg) / 2 + 1, 
-            y - font_small.height/2,
-            msg);
+        if (label < 10)
+            bmp_printf(
+                SHADOW_FONT(FONT(FONT_MED, COLOR_WHITE, fg_color)), 
+                x - 4, 
+                y - font_med.height/2,
+                "%d", label
+            );
+        else
+            bmp_printf(
+                SHADOW_FONT(FONT(FONT_SMALL, COLOR_WHITE, fg_color)), 
+                x - 8, 
+                y - font_small.height/2,
+                "%d", label
+            );
     }
 }
 
@@ -1288,10 +1298,27 @@ hist_draw_image(
                 if (over > thr) hist_dot(x_origin + HIST_WIDTH/2, yw, COLOR_RED, bg, hist_dot_radius(over, hist_total_px), hist_dot_label(over, hist_total_px));
             }
         }
+
+        #ifdef FEATURE_RAW_HISTOGRAM
+        /* divide the histogram in 12 equal slices - each slice is 1 EV */
+        if (hist_is_raw)
+        {
+            static int bar_pos = 0;
+            if (i == bar_pos)
+            {
+                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + hist_height - MAX(MAX(sizeR, sizeG), sizeB), COLOR_GRAY(50));
+                bar_pos = (((bar_pos+1)*12/HIST_WIDTH) + 1) * HIST_WIDTH/12;
+            }
+        }
+        #endif
+
     }
     bmp_draw_rect(60, x_origin-1, y_origin-1, HIST_WIDTH+1, hist_height+1);
+    
+    #ifdef FEATURE_RAW_HISTOGRAM
     if (hist_is_raw)
         bmp_printf(SHADOW_FONT(FONT_MED), x_origin+4, y_origin, "RAW");
+    #endif
 }
 #endif
 
