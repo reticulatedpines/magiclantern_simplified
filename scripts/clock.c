@@ -42,8 +42,8 @@ void draw_clock_face()
 
 void draw_clock_hands(struct tm * t)
 {
-    int ang_h = -90 + t->hour   * 360.0 / 12;
-    int ang_m = -90 + t->minute * 360.0 / 60;
+    int ang_h = -90 + t->hour   * 360.0 / 12 + t->minute / 2 ;
+    int ang_m = -90 + t->minute * 360.0 / 60 + t->second / 10;
     int ang_s = -90 + t->second * 360.0 / 60;
 
     thick_line_polar(360, 240, 120, ang_h, 10, COLOR_WHITE);
