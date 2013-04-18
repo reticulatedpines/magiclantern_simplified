@@ -2472,10 +2472,6 @@ int lens_set_rawiso( int iso )
 
 int lens_set_rawshutter( int shutter )
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-    lens_info.raw_shutter = 0; // force a refresh from prop handler(PROP_SHUTTER)
-    #endif
-
     //~ bmp_printf(FONT_MED, 500, 300, "lsr %d ...", shutter);
     bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter); // first try to set via property
     //~ bmp_printf(FONT_MED, 500, 300, "lsr %d %d  ", shutter, bv_auto_needed_by_shutter);
