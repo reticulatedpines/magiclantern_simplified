@@ -927,7 +927,7 @@ hist_build()
 #endif
 
 #if defined(FEATURE_RAW_HISTOGRAM) || defined(FEATURE_RAW_ZEBRAS)
-int should_use_raw_overlays()
+int can_use_raw_overlays()
 {
     // MRAW/SRAW are causing trouble, figure out why
     // RAW and RAW+JPEG are OK
@@ -935,7 +935,7 @@ int should_use_raw_overlays()
         return 1;
     return 0;
 }
-int should_use_raw_overlays_menu()
+int can_use_raw_overlays_menu()
 {
     if ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
         return 1;
@@ -944,6 +944,9 @@ int should_use_raw_overlays_menu()
 #endif
 
 #ifdef FEATURE_RAW_HISTOGRAM
+
+static CONFIG_INT("raw.histo", raw_histogram_enable, 1);
+
 static FAST void hist_build_raw()
 {
     raw_pixline * buf = RAW_IMAGE_BUFFER;
@@ -988,9 +991,21 @@ static FAST void hist_build_raw()
         hist[i] = (hist_r[i] + hist_g[i] + hist_b[i]) / 3;
     }
 }
+static MENU_UPDATE_FUNC(raw_histo_update)
+{
+    if (!can_use_raw_overlays_menu())
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set picture quality to RAW in Canon menu.");
+    else if (hist_colorspace != 1)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set histogram color space to RGB.");
+    else if (raw_histogram_enable)
+        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram after taking a picture.");
+}
 #endif
 
 #ifdef FEATURE_RAW_ZEBRAS
+
+static CONFIG_INT("raw.zebra", raw_zebra_enable, 1);
+
 static void draw_zebras_raw()
 {
     raw_pixline * buf = RAW_IMAGE_BUFFER;
@@ -1013,11 +1028,31 @@ static void draw_zebras_raw()
             {
                 int x = os.x0 + os.x_ex * (j-px) / (SENSOR_RES_X/8 - 2*px);
                 int y = os.y0 + os.y_ex * (i-py) / (SENSOR_RES_Y - 2*py);
-                uint16_t* b = &bvram[BM(x,y)];
-                *b = c;
+                uint16_t* bp = &bvram[BM(x,y)];
+                uint16_t* mp = &bvram_mirror[BM(x,y)];
+
+                #define BP (*bp)
+                #define MP (*mp)
+                if (BP != 0 && BP != MP) continue;
+                if ((MP & 0x8080)) continue;
+                
+                BP = MP = c;
+                    
+                #undef MP
+                #undef BP
             }
         }
     }
+}
+
+static MENU_UPDATE_FUNC(raw_zebra_update)
+{
+    if (!can_use_raw_overlays_menu())
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set picture quality to RAW in Canon menu.");
+    else if (zebra_colorspace != 1)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set zebra color space to RGB.");
+    else if (raw_zebra_enable)
+        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW zebras after taking a picture.");
 }
 #endif
 
@@ -1580,7 +1615,7 @@ static void draw_zebras( int Z )
     if (zd)
     {
         #ifdef FEATURE_RAW_ZEBRAS
-        if (should_use_raw_overlays() && zebra_colorspace==1)
+        if (raw_zebra_enable && can_use_raw_overlays() && zebra_colorspace==1)
         {
             draw_zebras_raw();
             return;
@@ -2608,8 +2643,8 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
     }
 
     #ifdef FEATURE_RAW_ZEBRAS
-    if (z && zebra_colorspace==1 && should_use_raw_overlays_menu())
-        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW zebras after taking a picture.");
+    if (z && zebra_colorspace==1 && can_use_raw_overlays_menu())
+        raw_zebra_update(info, entry);
     #endif
 }
 
@@ -2630,6 +2665,11 @@ static MENU_UPDATE_FUNC(zebra_level_display)
             (level * 255 + 50) / 100
         );
     }
+    
+    #ifdef FEATURE_RAW_ZEBRAS
+    if (can_use_raw_overlays_menu() && zebra_colorspace==1)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not used for RAW zebras.");
+    #endif
 }
 #endif
 
@@ -2756,8 +2796,8 @@ static MENU_UPDATE_FUNC(hist_print)
             hist_warn ? ",clip warn" : ""
         );
     #ifdef FEATURE_RAW_HISTOGRAM
-    if (hist_draw && hist_colorspace && should_use_raw_overlays_menu())
-        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram after taking a picture.");
+    if (hist_draw && hist_colorspace && can_use_raw_overlays_menu())
+        raw_histo_update(info, entry);
     #endif
 }
 #endif
@@ -3442,6 +3482,15 @@ struct menu_entry zebra_menus[] = {
                 .help = "You can hide zebras when recording.",
             },
             #endif
+            #ifdef FEATURE_RAW_HISTOGRAM
+            {
+                .name = "Use RAW zebras",
+                .priv = &raw_zebra_enable,
+                .max = 1,
+                .update = raw_zebra_update,
+                .help = "Use RAW zebras whenever possible.",
+            },
+            #endif
             MENU_EOL
         },
     },
@@ -3752,6 +3801,15 @@ struct menu_entry zebra_menus[] = {
                 .max = 1,
                 .help = "Display warning dots when one color channel is clipped.",
             },
+            #ifdef FEATURE_RAW_HISTOGRAM
+            {
+                .name = "Use RAW histogram",
+                .priv = &raw_histogram_enable,
+                .max = 1,
+                .update = raw_histo_update,
+                .help = "Use RAW histogram whenever possible.",
+            },
+            #endif
             MENU_EOL
         },
     },
@@ -4719,7 +4777,7 @@ void draw_histogram_and_waveform(int allow_play)
         hist_build();
         
         #ifdef FEATURE_RAW_HISTOGRAM
-        if (should_use_raw_overlays() && hist_colorspace)
+        if (raw_histogram_enable && can_use_raw_overlays() && hist_colorspace)
         {
             hist_build_raw();
         }
