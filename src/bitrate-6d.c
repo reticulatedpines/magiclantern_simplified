@@ -513,7 +513,7 @@ TASK_CREATE("bitrate_task", bitrate_task, 0, 0x1d, 0x1000 );
 #else // dummy stubs so it can compile
 int time_indic_x =  720 - 160; // 160
 int time_indic_y = 0;
-int is_mvr_buffer_almost_full() { return 1; }
+int is_mvr_buffer_almost_full() { return 0; }
 void fps_show() {}
 void free_space_show() {}
 void free_space_show_photomode() {}
