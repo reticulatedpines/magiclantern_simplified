@@ -153,7 +153,7 @@ clean:
 	cd $(PLATFORM_PATH)/40D.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/EOSM.106/; $(MAKE) clean	
 	cd $(PLATFORM_PATH)/650D.101/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/6D.112/; $(MAKE) clean	
+	cd $(PLATFORM_PATH)/6D.113/; $(MAKE) clean	
 	$(MAKE) -C $(PLUGINS_DIR) clean
 	$(RM) -rf  $(BINARIES_PATH)
 	$(RM) -rf doxygen-doc/*

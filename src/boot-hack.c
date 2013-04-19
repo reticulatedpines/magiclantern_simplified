@@ -771,6 +771,10 @@ my_init_task(int a, int b, int c, int d)
         /* we are not sure if this is a instruction, so patch data cache also */
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_DCACHE);
+        
+    #ifdef CONFIG_6D
+        cache_fake(HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR, HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR, TYPE_ICACHE);
+    #endif
     }
 
     #ifdef ML_RESERVED_MEM // define this if we can't autodetect the reserved memory size
