@@ -46,7 +46,7 @@
 /** Define this if the camera has an ambient light sensor used for auto brightness **/
 //~ #define CONFIG_AUTO_BRIGHTNESS
 
-/** idk **/
+/** Rate Images in playback mode **/
 #define CONFIG_Q_MENU_PLAYBACK
 
 /** No flip-out display **/
@@ -68,7 +68,6 @@
 //~ #define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
-/** Well, I hope so **/
 #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
 #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
@@ -88,8 +87,8 @@
 /** ExpSim works, changes in the canon menu too. **/
  #define CONFIG_EXPSIM
 
-/** We can;t playback sounds via ASIF DMA (yet) **/
-//~ #define CONFIG_BEEP
+/** Asif ADC may crash after 2min **/
+#define CONFIG_BEEP
 
 /** This camera has no trouble saving Kelvin and/or WBShift in movie mode **/
 //~ #define CONFIG_WB_WORKAROUND
@@ -97,7 +96,7 @@
 /** We can restore ML files after formatting the card in the camera **/
 #define CONFIG_RESTORE_AFTER_FORMAT
 
-/** We don't know how to use DMA_MEMCPY (yet) **/
+/** We know how to use DMA_MEMCPY **/
 #define CONFIG_DMA_MEMCPY
 
 /** We shouldn't warn the user if movie exposure is Auto **/
@@ -112,14 +111,15 @@
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
 
-/** FPS override: we can only change timer A */
-#define CONFIG_FPS_TIMER_A_ONLY
-
-/** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
-#define CONFIG_FPS_AGGRESSIVE_UPDATE
-
 /** We can record movies in regular photo modes - M, P, Tv, Av... */
 #define CONFIG_NO_DEDICATED_MOVIE_MODE
 
 /** You can configure separate AFMA values for both wide and tele ends */
 #define CONFIG_AFMA_WIDE_TELE
+
+/** FIO_RenameFile works **/
+#define CONFIG_FIO_RENAMEFILE_WORKS
+
+/** FPS override: change timers from EVF state */
+#define CONFIG_FPS_UPDATE_FROM_EVF_STATE
+

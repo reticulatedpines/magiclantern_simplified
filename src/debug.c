@@ -2146,7 +2146,7 @@ void hexdump_back(void* priv, int dir)
 }
 void hexdump_deref(void* priv, int dir)
 {
-    if (dir < 0) hexdump_back(void* priv, int dir);
+    if (dir < 0) hexdump_back(priv, dir);
     hexdump_prev = hexdump_addr;
     hexdump_addr = MEMX(hexdump_addr);
 }
@@ -2744,30 +2744,30 @@ static struct menu_entry debug_menus[] = {
             },
             {
                 .name = "Val hex32",
-                .display = hexdump_print_value_hex,
+                //~.display = hexdump_print_value_hex,
                 .select = hexdump_toggle_value_int32,
                 .help = "Value as hex."
             },
             {
                 .name = "Val int32",
-                .display = hexdump_print_value_int32,
+                //~.display = hexdump_print_value_int32,
                 .select = hexdump_toggle_value_int32,
                 .help = "Value as int32."
             },
             {
                 .name = "Val int16",
-                .display = hexdump_print_value_int16,
+                //~.display = hexdump_print_value_int16,
                 .select = hexdump_toggle_value_int16,
                 .help = "Value as 2 x int16. Toggle: changes second value."
             },
             {
                 .name = "Val int8",
-                .display = hexdump_print_value_int8,
+                //~.display = hexdump_print_value_int8,
                 .help = "Value as 4 x int8."
             },
             {
                 .name = "Val string",
-                .display = hexdump_print_value_str,
+                //~.display = hexdump_print_value_str,
                 .help = "Value as string."
             },
             MENU_EOL

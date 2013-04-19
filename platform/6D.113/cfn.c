@@ -29,13 +29,26 @@ int get_alo() { return alo; }
 //}
 
 int get_mlu() { return mlu; }
-
 void set_mlu(int value) 
 {
     value = COERCE(value, 0, 1);
     prop_request_change(PROP_MLU, &value, 4);
 }
 
-int cfn_get_af_button_assignment() { return 0; }
-void cfn_set_af_button(int value) {}
 
+//PROP_CFN_TAB1/2/3/4
+// POS 8 = 1/2 Shutter
+// 0 - af 1- metering 2 - AeL
+static int8_t some_cfn[0x1d];
+PROP_HANDLER(0x80010007)
+{
+    ASSERT(len == 0x1d);
+    memcpy(some_cfn, buf, 0x1d);
+}
+
+int cfn_get_af_button_assignment() { return some_cfn[8]; }
+void cfn_set_af_button(int value) 
+{  
+    some_cfn[8] = COERCE(value, 0, 2);
+    prop_request_change(0x80010007, some_cfn, 0x1d);
+}

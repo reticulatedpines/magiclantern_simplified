@@ -32,7 +32,8 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1C6C
 #define HIJACK_TASK_ADDR 0x74BD8
 
-#define CACHE_HACK_FLUSH_RATE_SLAVE 0xFF1ABEC0
+#define CACHE_HACK_FLUSH_RATE_SLAVE 0xFF0EBEC0
+#define CACHE_HACK_GOP_SIZE_SLAVE   0xFF226724
 
 // look for LDRNE near 2nd ARM Library runtime error
 #define ARMLIB_OVERFLOWING_BUFFER 0x93b58 // in AJ_armlib_setup_related3
@@ -75,7 +76,7 @@
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x7763C)
 
-    #define LV_BOTTOM_BAR_DISPLAYED (lv_disp_mode)
+#define LV_BOTTOM_BAR_DISPLAYED (lv_disp_mode)
 
 //That Function is dead.
 #define ISO_ADJUSTMENT_ACTIVE 0
@@ -97,7 +98,19 @@
 
 #define MVR_FRAME_NUMBER  (*(int*)(0x1FC + MVR_516_STRUCT)) // in mvrExpStarted
     #define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))
-        #define AE_VALUE 0 // 404
+
+#define AE_VALUE (*(int8_t*)0x7F5B0)
+//Metering for LV in Manual Mode
+//FF6C98FC:	ebf28def 	bl	sub_FF36D0C0		⬁
+//FF6C9900:	e5c50007 	strb	r0, [r5, #7]
+// 0xff36c2d8: pointer to 0x7f554
+// return BYTE(*0x7F5B0)
+// SetLvExposureDataToWinSystem
+//
+//  ROM:FF36CD60                 LDR     R0, =byte_7F554
+//  ...
+//  ROM:FF36CE4C                 LDRB    R1, [R0,#0x1D]
+//  ROM:FF36CE50                 STRB    R1, [R0,#0x5C] ;this is our offset for AE_VALUE.
 
 #define DLG_PLAY 1
 #define DLG_MENU 2
@@ -173,7 +186,7 @@
 // 1/8000+ Possible but canon keeps resetting it.
 //#define FASTEST_SHUTTER_SPEED_RAW 160
 #define FASTEST_SHUTTER_SPEED_RAW 152
-    #define MAX_AE_EV 5
+#define MAX_AE_EV 5
 
 #define DIALOG_MnCardFormatBegin (0x8888C) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x8DAF0) // similar
@@ -185,24 +198,25 @@
 #define BFNT_BITMAP_OFFSET 0xf0369794
 #define BFNT_BITMAP_DATA   0xf036ca58
 
-
 #define DLG_SIGNATURE 0x6e6144  //~ look in stubs api stability test log: [Pass] MEM(dialog->type) => 0x6e6144
 
-    // from CFn
-         #define AF_BTN_HALFSHUTTER 0
-         #define AF_BTN_STAR 2
+// from CFn
+#define AF_BTN_HALFSHUTTER 0
+#define AF_BTN_STAR 2
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x7F77C) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
 #define IMGPLAY_ZOOM_POS_X MEM(0xb9a38) // CentrePos
 #define IMGPLAY_ZOOM_POS_Y MEM(0xb9a3C) // '[ImgPlyer] ScrollWidth:%ld ScrollHeight:%ld'
 
-    #define IMGPLAY_ZOOM_POS_X_CENTER 360
-    #define IMGPLAY_ZOOM_POS_Y_CENTER 240
+//#define IMGPLAY_ZOOM_POS_X_CENTER 360
+//#define IMGPLAY_ZOOM_POS_Y_CENTER 240
+#define IMGPLAY_ZOOM_POS_X_CENTER 0x2be
+#define IMGPLAY_ZOOM_POS_Y_CENTER 0x1d4
 #define IMGPLAY_ZOOM_POS_DELTA_X 110 //(0x2be - 0x190)
 #define IMGPLAY_ZOOM_POS_DELTA_Y 90 //(0x1d4 - 0x150)
 
-    #define BULB_EXPOSURE_CORRECTION 650 // looks huge...
+#define BULB_EXPOSURE_CORRECTION 649 // min value for which bulb exif is OK [not tested]
 
 // see http://magiclantern.wikia.com/wiki/VRAM/BMP
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x82B24)   //~ from string: refresh partly
@@ -213,17 +227,18 @@
 #define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x22)) // EP_SetControlParam
 #define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x24))
 #define CONTROL_BV_ISO  (*(uint16_t*)(LVAE_STRUCT+0x26))
-#define CONTROL_BV_ZERO (*(uint16_t*)(LVAE_STRUCT+0x28))
+#define CONTROL_BV_ZERO (*(uint16_t*)(LVAE_STRUCT+0x28)) //C4DA0
 #define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT))      // offset 0x0; at 3 it changes iso very slowly
-//~     #define LVAE_ISO_MIN    (*(uint8_t* )(LVAE_STRUCT+0x28)) // string: ISOMin:%d
-//~     #define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0x2a)) // no idea what this is
-#define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x3c)) // lvae_setdispgain
+#define LVAE_ISO_MIN    (*(uint8_t* )(LVAE_STRUCT+0x4EE)) // string: ISOMin:%d
+#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0x4F0)) // Movie Auto ISO min/max
+#define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x3c)) // lvae_setdispgain C4DB4
 #define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x1c)) // lvae_setmoviemanualcontrol
-
+#define LVAE_M_CTRL		(*(uint8_t* )(LVAE_STRUCT+0x18))
 #define MIN_MSLEEP 10
 
 #define INFO_BTN_NAME "INFO"
 #define Q_BTN_NAME "[Q]"
+//AF pattern Button
 #define ARROW_MODE_TOGGLE_KEY "Foc Pnts"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x75550)
@@ -233,8 +248,12 @@
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
 #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))
-#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
 #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
+
+//real frame BV
+//#define FRAME_BV (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+4))
+//calculated frame bv (faster?)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x94818

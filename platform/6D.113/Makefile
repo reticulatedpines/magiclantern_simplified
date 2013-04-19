@@ -65,18 +65,24 @@ ML_OBJS-y = \
 	ph_info_disp.o \
 	flexinfo.o \
 	afma.o \
+#	raw-blinkies.o \
+
+#	video_hacks.o \
+#	tp-spy.o \
+#	reloc.o \
+
+#	menuhelp.o \
+#	menuindex.o \
 
 #	evf-hacks.o \
 #	video_hacks.o \
-#	flexinfo.o \
-
 #	af_patterns.o \ // dangerous
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
 include ../../Makefile.inc
 
-# DryOSmemory map
+# DryOSmemory map 1F2C4000
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF0C0000
