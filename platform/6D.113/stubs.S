@@ -59,6 +59,7 @@ NSTUB(0xFF332530, FIO_Open)
 NSTUB(0xFF332740, FIO_ReadFile)
 NSTUB(0xFF332698, FIO_RemoveFile)
 NSTUB(0xFF3328E0, FIO_WriteFile)
+NSTUB(0xFF333024, FIO_RenameFile)
 NSTUB(0xFFCCDE4C - RAM_OFFSET, FreeMemory)
 NSTUB(0xFF0DFB2C, GUI_ChangeMode)
 NSTUB(0xFF0DF970, GUI_Control)
@@ -76,10 +77,8 @@ NSTUB(0xFF143118, _audio_ic_write)
 NSTUB(0xFF1424F4, _audio_ic_read)
 NSTUB(0xFF142820, TestSetAudioHeadPhone)
 NSTUB(0xFF1422B0, SerialCommand_Send)
-//NSTUB(0xFF1430BC, SetAudioVolumeOut) // From initialization function.
 NSTUB(0xFF11EA28, SetAudioVolumeOut) //str:SetVolumeOut_Volume 1 Parameter
 NSTUB(0xFF9D031C, audio_thresholds)
-//NSTUB(   0x77DC8, additional_version)
 
 
 NSTUB(0xFFCFD630 - RAM_OFFSET, alloc_dma_memory)
@@ -88,7 +87,6 @@ NSTUB(0xFFD2F2F8 - RAM_OFFSET, bzero32)
 NSTUB(0xFF146844, call)
 NSTUB(0xC0220000, camera_engine)
 NSTUB(0xFF78C3A0, cfReadBlk)
-	//	    NSTUB(   0x20890, cf_device) idk...
 NSTUB(0xFF0C1088, cli_save)
 NSTUB(0xFFCC664C - RAM_OFFSET, create_init_task)
 NSTUB(0xFFCCC530 - RAM_OFFSET, create_named_semaphore)
@@ -181,17 +179,21 @@ NSTUB(0xFF2AC3CC, asifAStopDmaAdc)
 NSTUB(0xFF2AC67C, asifAFuncIgnore_Give_FuncSync)
 NSTUB(0xFF2AC6BC, asifAIgnore_ASIF)
 
-//NSTUB(0xFF2AA934, PowerAudioOutput)
+
 NSTUB(0xFF142D68, PowerAudioOutput) //sub_FF142D54 Same Actions
 NSTUB(0xFF11C9A4, StartASIFDMADAC)  //~ warning: looks different
 NSTUB(0xFF11C5D0, StartASIFDMAADC)  //~ warning: looks different
 NSTUB(0xFF11CC24, StopASIFDMADAC)   //~ warning: looks different
-NSTUB(0xFF11D068, SetNextASIFADCBuffer)
-NSTUB(0xFF11D250, SetNextASIFDACBuffer)
+NSTUB(0xFF11C87C, StopASIFDMAADC)   //~ warning: looks different
+NSTUB(0xFF11D0EC, SetNextASIFADCBuffer)
+NSTUB(0xFF2AC6FC, SetNextASIFDACBuffer)
 NSTUB(0xFF142DE4, SetSamplingRate) //AudioIC.c_SetRate_hHPTimer Identical
-//NSTUB(0xFF2AB888, SetAudioVolumeOut) In Play Functions with PowerAudioOutput
-NSTUB(0xFF11E654, sounddev_active_in)
-NSTUB(0xFF11E680, sounddev_active_out)
+NSTUB(0xFF142B70, SetAudioVolumeOut) //Keep Volume (%d->%d)
+
+NSTUB(0xFF11E654, SoundDevActiveIn)
+NSTUB(0xFF11E680, SoundDevActiveOut)
+NSTUB(0xFF11E8AC, SoundDevShutDownIn)
+
 
 
 NSTUB(0xFFCE3188 - RAM_OFFSET, ENCODE_StartEncodeJpeg)  //~ called from RAM in 6D, wasn't in EOS M.
@@ -199,26 +201,24 @@ NSTUB(0xFFCE3188 - RAM_OFFSET, ENCODE_StartEncodeJpeg)  //~ called from RAM in 6
 NSTUB(0xFF14A424, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xFF14A470, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xFF14A588, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xFFCCF2E0 - RAM_OFFSET, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
-NSTUB(0xFFCCECB8 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 
-//NSTUB(0xFFCD0808 - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)
+NSTUB(0xFFCCF2E0 - RAM_OFFSET, GetFirstChunkFromSuite)
+NSTUB(0xFFCCFA7C - RAM_OFFSET, GetNextMemoryChunk)
+NSTUB(0xFFCCEC88 - RAM_OFFSET, GetSizeOfMemoryChunk)
+NSTUB(0xFFCCEC58 - RAM_OFFSET, GetRemainOfMemoryChunk)
+NSTUB(0xFFCCECB8 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
+NSTUB(0xFFCCF0A0 - RAM_OFFSET, GetNumberOfChunks)
+NSTUB(0xFFCCEFC0 - RAM_OFFSET, GetSizeOfMemorySuite)
+
+
+
 
 NSTUB(0xFFCD0818 - RAM_OFFSET, dma_memcpy) // Slower?
 
-//NSTUB(0xFFCD0998 - RAM_OFFSET, dma_memcpy) // V1: FFCD0998 V2:FFCD0ABC Made Weird Pics
 
 
 NSTUB(0xFF19A92C, GUI_SetRollingPitchingLevelStatus)
-
-//NSTUB(0xFFCD0ABC, dma_memcpy) // V1: FFCD0998 V2:FFCD0ABC
-NSTUB(0xFF24A058 - RAM_OFFSET, GetJpegBufForLV)
-NSTUB(0xFF24A064 - RAM_OFFSET, GetJpegSizeForLV)
-
-
 NSTUB(0xFF2AD104, mvrSetPrintMovieLog)
-NSTUB(0xFF2ACB14, mvrSetQscale)
 NSTUB(   0x7AE8C, mvr_config)
-NSTUB(0xFF2AD0E0, mvrFixQScale)
-NSTUB(0xFF2ACBD8, mvrSetDefQScale)
+
 
