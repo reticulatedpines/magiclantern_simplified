@@ -110,7 +110,7 @@ void shoot_free(void* ptr)
 
 void exmem_test()
 {
-#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_5D2) || defined(CONFIG_6D)
+#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_5D2) || defined(CONFIG_6D) || defined(CONFIG_1100D)
     struct memSuite * hSuite = 0;
     struct memChunk * hChunk = 0;
     
@@ -155,7 +155,7 @@ void exmem_test()
 
 void exmem_dump_suite(struct memSuite * hSuite, char* filename)
 {
-#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_5D2) || defined(CONFIG_6D)
+#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_5D2) || defined(CONFIG_6D) || defined(CONFIG_1100D)
     if(!hSuite) return;
 
     struct memChunk * hChunk = GetFirstChunkFromSuite(hSuite);

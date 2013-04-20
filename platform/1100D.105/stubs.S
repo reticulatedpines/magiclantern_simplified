@@ -189,7 +189,12 @@ NSTUB(0xff074b1c, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff074b68, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff074c80, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0xff072114, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff0728a8, GetNextMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
+NSTUB(0xff071b2c, GetSizeOfMemoryChunk) // AJ_PackMemory_IsChunkSignature
+NSTUB(0xff071afc, GetRemainOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p3
 NSTUB(0xff071b5c, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature
+NSTUB(0xff071e8c, GetNumberOfChunks) // AJ_PackMemory_PackMem_p2
+NSTUB(0xff071e28, GetSizeOfMemorySuite)
 
 NSTUB(0xFF069E9C, PowerAudioOutput)
 NSTUB(0xff055678, StartASIFDMADAC)
