@@ -6,9 +6,9 @@
 /** The 1100D port is pretty stable, so I think we can enable properties safely. **/
 #define CONFIG_PROP_REQUEST_CHANGE
 
-/**
- * State object hooks are pieces of code that run in Canon tasks (state objects). See state-object.c .
- * They might slow down Canon code, so here you can disable all of them (useful for debugging or early ports)
+/** 
+ * State object hooks are pieces of code that run in Canon tasks (state objects). See state-object.c . 
+ * They might slow down Canon code, so here you can disable all of them (useful for debugging or early ports) 
  */
 #define CONFIG_STATE_OBJECT_HOOKS
 
@@ -105,7 +105,7 @@
 #define CONFIG_EVF_STATE_SYNC
 
 /** This camera loads ML into the AllocateMemory pool **/
-//~ #define CONFIG_ALLOCATE_MEMORY_POOL
+#define CONFIG_ALLOCATE_MEMORY_POOL
 
 /** FPS override: we can change both timer A and B */
 //~ #define CONFIG_FPS_TIMER_A_ONLY
@@ -117,8 +117,8 @@
 #define CONFIG_MONO_MIC
 
 /** 1100D has very little RAM; use the malloc/free pool for bitmaps too (and only load small bitmaps) */
-//~ #define CONFIG_USE_MALLOC_FOR_SMALL_THINGS
-//~ #define CONFIG_USE_MALLOC_FOR_BMP
+#define CONFIG_USE_MALLOC_FOR_SMALL_THINGS
+#define CONFIG_USE_MALLOC_FOR_BMP
 
 
 /** This camera has a low-resolution display, may require some antialiasing tricks for icons/fonts */

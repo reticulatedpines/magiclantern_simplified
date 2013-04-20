@@ -12,11 +12,6 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0110DC
 #define HIJACK_TASK_ADDR 0x1a2c
 
-/* here we are patching RscMgr/SRM initialisation to use less memory */
-#define HIJACK_CACHE_HACK
-#define RSCMGR_MEMORY_PATCH_END          0xFF0138CC
-#define HIJACK_CACHE_HACK_INITTASK_ADDR  0xFF0110DC
-
 // Used in boot-hack.c with CONFIG_ALLOCATE_MEMORY_POOL
 #define ROM_ITASK_START 0xFF0197D8
 #define ROM_ITASK_END  0xFF0199B0
@@ -148,6 +143,10 @@
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04208 // SDRAM address of HD buffer (aka YUV)
 
 #define AE_VALUE 0 // 404
+
+// position for displaying shutter count and other info
+#define MENU_DISP_INFO_POS_X 400
+#define MENU_DISP_INFO_POS_Y 0
 
 // position for displaying clock outside LV
 #define DISPLAY_CLOCK_POS_X 400
