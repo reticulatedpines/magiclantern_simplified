@@ -121,7 +121,7 @@ static void vsync_func() // called once per frame.. in theory :)
 #if defined(CONFIG_MODULES)
     module_exec_cbr(CBR_VSYNC);
 #endif
-    
+
     #if !defined(CONFIG_EVF_STATE_SYNC)
     // for those cameras, it's called from a different spot of the evf state object
     hdr_step();
@@ -273,9 +273,7 @@ static uint32_t raw_image_buffer = 0;
 
 void* sss_get_raw_image_buffer()
 {
-    // note: you need to skip a multiple of 8 pixels
-    // [TTJ] START RD1:0x4000048 RD2:0x64d1864
-    return (raw_image_buffer + ((3 * SENSOR_RES_X + 96) * 14 / 8));
+    return raw_image_buffer;
 }
 
 static int stateobj_sss_spy(struct state_object * self, int x, int input, int z, int t)
@@ -285,11 +283,14 @@ static int stateobj_sss_spy(struct state_object * self, int x, int input, int z,
     int new_state = self->current_state;
 
     #ifdef CONFIG_5D3
-    /* state seems to be not correct */
-    if (old_state == 8 && input == 11 && new_state == 8)
+    if (old_state == 9 && input == 11 && new_state == 9) // sssCompleteMem1ToRaw
     {
         // grab the RAW image buffer address and hope it doesn't change
-        raw_image_buffer = shamem_read(0xc0f04010 | (8<<8));
+        // [TTL] START RD1:0x8602914 RD2:0xad24490
+        uint32_t edmac_addr = shamem_read(0xc0f04808);
+        
+        // note: you need to skip a multiple of 8 pixels
+        raw_image_buffer = edmac_addr + ((80 * SENSOR_RES_X + 48) * 14 / 8);
     }
     #endif
     return ans;
@@ -302,9 +303,7 @@ static uint32_t raw_image_buffer = 0;
 
 void* sdsf3_get_raw_image_buffer()
 {
-    // note: you need to skip a multiple of 8 pixels
-    // [TTJ] START RD1:0x4000048 RD2:0x64d1864
-    return (raw_image_buffer + ((3 * SENSOR_RES_X + 96) * 14 / 8));
+    return raw_image_buffer;
 }
 
 static int stateobj_sdsf3_spy(struct state_object * self, int x, int input, int z, int t)
@@ -319,7 +318,11 @@ static int stateobj_sdsf3_spy(struct state_object * self, int x, int input, int 
     if (old_state == 0 && input == 3 && new_state == 1)
     {
         // grab the RAW image buffer address and hope it doesn't change
-        raw_image_buffer = shamem_read(0xc0f04A08);
+        // [TTJ] START RD1:0x4000048 RD2:0x64d1864
+        uint32_t edmac_addr = shamem_read(0xc0f04A08);
+        
+        // note: you need to skip a multiple of 8 pixels
+        raw_image_buffer = edmac_addr + ((3 * SENSOR_RES_X + 96) * 14 / 8);
     }
     #endif
     return ans;

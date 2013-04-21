@@ -64,8 +64,8 @@
 #define GMT_FUNCTABLE 0xff796dac // dec gui_main_task
 //#define GMT_IDLEHANDLER_TASK (*(int*)0x2e81c) // dec create_idleHandler_task
 
- #define SENSOR_RES_X 4752
- #define SENSOR_RES_Y 3168
+#define SENSOR_RES_X 5936
+#define SENSOR_RES_Y 3804
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x29754) == 0xF))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x29754) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
@@ -241,3 +241,9 @@
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
+
+#define RAW_IMAGE_BUFFER ((void*)sss_get_raw_image_buffer())
+#define RAW_BLACK_LEVEL (2048+32)
+#define RAW_WHITE_LEVEL 15000
+#define RAW_SKIP_H 160 // to ignore the black border 
+#define RAW_SKIP_V 10
