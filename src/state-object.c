@@ -67,6 +67,7 @@
 #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
 #define EVF_STATE (*(struct state_object **)0x2600c)
 #define MOVREC_STATE (*(struct state_object **)0x27850)
+#define SSS_STATE (*(struct state_object **)0x25E44)
 #endif
 
 #ifdef CONFIG_EOSM
@@ -267,6 +268,34 @@ static int stateobj_scs_spy(struct state_object * self, int x, int input, int z,
 }
 #endif
 
+#ifdef SSS_STATE
+static uint32_t raw_image_buffer = 0;
+
+void* sss_get_raw_image_buffer()
+{
+    // note: you need to skip a multiple of 8 pixels
+    // [TTJ] START RD1:0x4000048 RD2:0x64d1864
+    return (raw_image_buffer + ((3 * SENSOR_RES_X + 96) * 14 / 8));
+}
+
+static int stateobj_sss_spy(struct state_object * self, int x, int input, int z, int t)
+{
+    int old_state = self->current_state;
+    int ans = StateTransition(self, x, input, z, t);
+    int new_state = self->current_state;
+
+    #ifdef CONFIG_5D3
+    /* state seems to be not correct */
+    if (old_state == 8 && input == 11 && new_state == 8)
+    {
+        // grab the RAW image buffer address and hope it doesn't change
+        raw_image_buffer = shamem_read(0xc0f04010 | (8<<8));
+    }
+    #endif
+    return ans;
+}
+#endif
+
 #ifdef SDS_FRONT3_STATE
 
 static uint32_t raw_image_buffer = 0;
@@ -332,6 +361,10 @@ static void state_init(void* unused)
 
     #ifdef SCS_STATE
         stateobj_start_spy(SCS_STATE, stateobj_scs_spy);
+    #endif
+    
+    #ifdef SSS_STATE
+        stateobj_start_spy(SSS_STATE, stateobj_sss_spy);
     #endif
     
     #ifdef SDS_FRONT3_STATE
