@@ -76,3 +76,19 @@ static inline int raw_blue_pixel(struct raw_pixblock * buf, int x, int y)
     int i = ((y * SENSOR_RES_X + x) / 8);
     return buf[i].h;
 }
+
+/* get the pixel at specified coords (exact, but you can get whatever color happens to be there) */
+static int raw_get_pixel(struct raw_pixblock * buf, int x, int y) {
+    struct raw_pixblock * p = (void*)buf + y * SENSOR_RES_X  + (x/8)*14;
+    switch (x%8) {
+        case 0: return p->a;
+        case 1: return p->b_lo | (p->b_hi << 12);
+        case 2: return p->c_lo | (p->c_hi << 10);
+        case 3: return p->d_lo | (p->d_hi << 8);
+        case 4: return p->e_lo | (p->e_hi << 6);
+        case 5: return p->f_lo | (p->f_hi << 4);
+        case 6: return p->g_lo | (p->g_hi << 2);
+        case 7: return p->h;
+    }
+    return p->a;
+}

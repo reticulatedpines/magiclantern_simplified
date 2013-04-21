@@ -967,9 +967,12 @@ static FAST void hist_build_raw()
         hist_b[i] = 0;
     }
 
-    for (int i = 0; i < SENSOR_RES_Y; i += 32)
+    int px = (RAW_SKIP_H/2) / 8;
+    int py = (RAW_SKIP_V/2) / 2 * 2;
+    
+    for (int i = py; i < SENSOR_RES_Y - py; i += 32)
     {
-        for (int j = 0; j < SENSOR_RES_X/8; j += 4)
+        for (int j = px; j < SENSOR_RES_X/8 - px; j += 4)
         {
             int r = buf[i][j].a;
             int g = buf[i][j].h;
@@ -1012,17 +1015,36 @@ static void draw_zebras_raw()
     raw_pixline * buf = RAW_IMAGE_BUFFER;
     if (!buf) return;
     uint8_t* bvram = bmp_vram();
-
     int px = (RAW_SKIP_H/2) / 8;
-    int py = (RAW_SKIP_V/2);
+    int py = (RAW_SKIP_V/2) / 2 * 2;
     
-    for (int i = py; i < SENSOR_RES_Y-py; i += 4)
+    for (int i = py; i < SENSOR_RES_Y - py; i += 4)
     {
         for (int j = px; j < SENSOR_RES_X/8 - px; j ++)
         {
             int r = buf[i][j].a;
             int g = buf[i][j].h;
             int b = buf[i+1][j].h;
+            
+            /* define this to check if color channels are identified correctly */
+            #undef RAW_ZEBRA_TEST
+            
+            #ifdef RAW_ZEBRA_TEST
+            {
+                uint32_t* lv = get_yuv422_vram()->vram;
+                int R = r > RAW_BLACK_LEVEL+16 ? (int)(log2f((r - RAW_BLACK_LEVEL) / 16.0f) * 255 / 10) : 1;
+                int G = g > RAW_BLACK_LEVEL+16 ? (int)(log2f((g - RAW_BLACK_LEVEL) / 32.0f) * 255 / 10) : 1;
+                int B = b > RAW_BLACK_LEVEL+16 ? (int)(log2f((b - RAW_BLACK_LEVEL) / 16.0f) * 255 / 10) : 1;
+                int Y =  (0.257 * R) + (0.504 * G) + (0.098 * B);
+                int U = -(0.148 * R) - (0.291 * G) + (0.439 * B);
+                int V =  (0.439 * R) - (0.368 * G) - (0.071 * B);
+                int x = os.x0 + os.x_ex * (j-px) / (SENSOR_RES_X/8 - 2*px);
+                int y = os.y0 + os.y_ex * (i-py) / (SENSOR_RES_Y - 2*py);
+                lv[LV(x,y)/4] = UYVY_PACK(U,Y,V,Y);
+                continue;
+            }
+            #endif
+            
             int m = MAX(MAX(r,g), b);
             int c = zebra_rgb_solid_color(m < RAW_BLACK_LEVEL, r > 15000, g > 15000, b > 15000);
             if (c)
