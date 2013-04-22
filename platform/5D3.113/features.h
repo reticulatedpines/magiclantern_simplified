@@ -25,3 +25,6 @@
 #define FEATURE_AFMA_TUNING
 
 #undef FEATURE_VOICE_TAGS // no sound recorded
+
+#define FEATURE_RAW_ZEBRAS
+#define FEATURE_RAW_HISTOGRAM
