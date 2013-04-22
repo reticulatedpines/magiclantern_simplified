@@ -2961,7 +2961,7 @@ static MENU_UPDATE_FUNC(spotmeter_menu_display)
             spotmeter_formula == 1 ? "0..255" :
             spotmeter_formula == 2 ? "IRE -1..101" :
             spotmeter_formula == 3 ? "IRE 0..108" :
-            spotmeter_formula == 4 ? "RGB" : "",
+            spotmeter_formula == 4 ? "RGB" : "RAW",
             
             spotmeter_draw && spotmeter_position ? ", AFbox" : ""
         );
@@ -3181,7 +3181,8 @@ static void spotmeter_step()
     if( !vram->vram )
         return;
 
-    spotmeter_erase();
+    if (!PLAY_OR_QR_MODE)
+        spotmeter_erase();
     
     const uint16_t*     vr = (uint16_t*) vram->vram;
     const unsigned      width = vram->width;
@@ -3233,6 +3234,35 @@ static void spotmeter_step()
     // Scale to 100%
     const unsigned      scaled = (101 * sy) / 256;
     
+    #ifdef FEATURE_RAW_SPOTMETER
+    int raw_luma = 0;
+    int raw_ev = 0;
+    if (can_use_raw_overlays())
+    {
+        int xcn = BM2N_X(xcb);
+        int ycn = BM2N_Y(ycb);
+        int xcr = xcn * SENSOR_RES_X / 720;
+        int ycr = ycn * SENSOR_RES_Y / 480;
+        void* raw_buf = RAW_IMAGE_BUFFER;
+        int dxr = dxb * SENSOR_RES_X / os.x_ex;
+
+        raw_luma = 0;
+        
+        /* note: I didn't check whether this actually covers the area displayed on the screen (it's just theory) */
+        for( y = ycr - dxr ; y <= ycr + dxr ; y++ )
+        {
+            for( x = xcr - dxr ; x <= xcr + dxr ; x++ )
+            {
+                raw_luma += raw_get_pixel(raw_buf, x, y);
+                
+            }
+        }
+        raw_luma /= (2 * dxr + 1) * (2 * dxr + 1);
+        int raw_max = RAW_WHITE_LEVEL - RAW_BLACK_LEVEL;
+        raw_ev = 10 * (-log2f(raw_max) + log2f(COERCE(raw_luma - RAW_BLACK_LEVEL, 1, raw_max)));
+    }
+    #endif
+    
     // spotmeter color: 
     // black on transparent, if brightness > 60%
     // white on transparent, if brightness < 50%
@@ -3278,14 +3308,32 @@ static void spotmeter_step()
     ycb -= font_med.height/2;
     xcb -= 2 * font_med.width;
 
+    #ifdef FEATURE_RAW_SPOTMETER
+    if (spotmeter_formula == 5 && can_use_raw_overlays())
+    {
+        bmp_printf(
+            fnt,
+            xcb - font_med.width, ycb, 
+            "-%d.%d EV",
+            -raw_ev/10, 
+            -raw_ev%10
+        );
+    }
+    else // will fall back to percent if no raw data is available
+    {
+        goto fallback_from_raw;
+    }
+    #endif
+    
     if (spotmeter_formula <= 1)
     {
+fallback_from_raw:
         bmp_printf(
             fnt,
             xcb, ycb, 
             "%3d%s",
-            spotmeter_formula == 0 ? scaled : sy,
-            spotmeter_formula == 0 ? "%" : ""
+            spotmeter_formula == 1 ? sy : scaled,
+            spotmeter_formula == 1 ? "" : "%"
         );
     }
     else if (spotmeter_formula <= 3)
@@ -3308,7 +3356,7 @@ static void spotmeter_step()
             spotmeter_formula == 2 ? "-1..101" : "0..108"
         );
     }
-    else
+    else if (spotmeter_formula == 4)
     {
         int uyvy = UYVY_PACK(su,sy,sv,sy);
         int R,G,B,Y;
@@ -3320,7 +3368,6 @@ static void spotmeter_step()
             "#%02x%02x%02x",
             R,G,B
         );
-
     }
 }
 
@@ -3779,8 +3826,12 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Spotmeter Unit",
                 .priv = &spotmeter_formula, 
+                #ifdef FEATURE_RAW_SPOTMETER
+                .max = 5,
+                #else
                 .max = 4,
-                .choices = (const char *[]) {"Percent", "0..255", "IRE -1..101", "IRE 0..108", "RGB (HTML)"},
+                #endif
+                .choices = (const char *[]) {"Percent", "0..255", "IRE -1..101", "IRE 0..108", "RGB (HTML)", "RAW (EV)"},
                 .icon_type = IT_DICE,
                 .help = "Measurement unit for brightness level(s).",
             },
