@@ -2715,7 +2715,7 @@ static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
     bmp_printf(
         FONT_MED,
         x0, y0,
-        "ED# Address  Size\n"
+        "EDM# Address  Size\n"
     );
 
     y0 += font_med.height * 2;
