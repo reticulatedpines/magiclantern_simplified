@@ -11,6 +11,17 @@
 
 #define HIJACK_CACHE_HACK
 
+#define HIJACK_ASIF_DAC_TIMEOUT 0xFF11CD44
+#define HIJACK_ASIF_KILL_SEM_WAIT 0xFF11CCB8
+#define HIJACK_ASIF_ADC_TIMEOUT 0xFF11C99C
+#define HIJACK_ASIF_KILL_SEM_WAIT2 0xFF11C910
+#define HIJACK_ASIF_CONT_JUMP_ADDR 0xFF2AC5E0
+#define HIJACK_ASIF_CONT_JUMP_INSTR 0xEA000009
+
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 10
+
+
 #define HIJACK_CACHE_HACK_INITTASK_ADDR 0xFF0C1C6C
 
 // load ML in the malloc pool
@@ -261,4 +272,3 @@
 
 //~ needs fixed to prevent half shutter making canon overlays visible. sub_ff52c568.htm Not Present but probably right.
 #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x84100) != 0x17) // dec CancelUnaviFeedBackTimer
-

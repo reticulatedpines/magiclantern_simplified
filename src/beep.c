@@ -5,6 +5,7 @@
 #include "config.h"
 #define _beep_c_
 #include "property.h"
+#include "cache_hacks.h"
 
 extern int gui_state;
 extern int file_number;
@@ -51,7 +52,7 @@ static void play_beep(int16_t* buf, int N)
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
     PowerAudioOutput();
     audio_configure(1);
-    SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
+    SetAudioVolumeOut(COERCE(beep_volume, 1, ASIF_MAX_VOL));
     StartASIFDMADAC(buf, N, 0, 0, asif_stop_cbr, 0);
 }
 
@@ -62,7 +63,7 @@ static void play_beep_ex(int16_t* buf, int N, int sample_rate)
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
     PowerAudioOutput();
     audio_configure(1);
-    SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
+    SetAudioVolumeOut(COERCE(beep_volume, 1, ASIF_MAX_VOL));
     StartASIFDMADAC(buf, N, 0, 0, asif_stop_cbr, 0);
 }
 
@@ -225,7 +226,7 @@ static void WAV_Play(char* filename)
 #else
     PowerAudioOutput();
     audio_configure(1);
-    SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
+    SetAudioVolumeOut(COERCE(beep_volume, 1, ASIF_MAX_VOL));
     
     StartASIFDMADAC(data, N1, buf2, N2, asif_continue_cbr, 0);
 #endif
@@ -401,6 +402,10 @@ static void asif_rec_continue_cbr()
         file = INVALID_PTR;
         audio_recording = 0;
         info_led_off();
+#ifdef CONFIG_6D
+		void StopASIFDMAADC();
+		StopASIFDMAADC(asif_rec_stop_cbr, 0);
+#endif
         return;
     }
     SetNextASIFADCBuffer(buf, WAV_BUF_SIZE);
@@ -424,11 +429,12 @@ void WAV_Record(char* filename, int show_progress)
 
     SetSamplingRate(48000, 1);
     MEM(0xC092011C) = 4; // SetASIFADCModeSingleINT16
-
-    wav_ibuf = 0;        
     
-#if defined(CONFIG_7D)
+    wav_ibuf = 0;
+    
+#if defined(CONFIG_7D) || defined(CONFIG_6D)
     /* experimental for 7D now, has to be made generic */
+	/* Enable audio Device */
     void SoundDevActiveIn (uint32_t);
     SoundDevActiveIn(0);
 #endif
@@ -439,8 +445,9 @@ void WAV_Record(char* filename, int show_progress)
         msleep(100);
         if (show_progress) record_show_progress();
     }
-#if defined(CONFIG_7D)
+#if defined(CONFIG_7D) || defined(CONFIG_6D)
     /* experimental for 7D now, has to be made generic */
+	/* Disable Audio */
     void SoundDevShutDownIn();
     SoundDevShutDownIn();
 #endif
@@ -921,17 +928,17 @@ static MENU_UPDATE_FUNC(beep_update)
 }
 
 static struct menu_entry beep_menus[] = {
-    #ifdef FEATURE_BEEP
-        #if !defined(CONFIG_7D)
-            {
-                .name = "Speaker Volume",
-                .priv       = &beep_volume,
-                .min = 1,
-                .max = 5,
-                .icon_type = IT_PERCENT,
-                .help = "Volume for ML beeps and WAV playback (1-5).",
-            },
-        #endif
+#ifdef FEATURE_BEEP
+#if !defined(CONFIG_7D)
+    {
+        .name = "Speaker Volume",
+        .priv       = &beep_volume,
+        .min = 1,
+        .max = ASIF_MAX_VOL,
+        .icon_type = IT_PERCENT,
+        .help = "Volume for ML beeps and WAV playback (1-5).",
+    },
+#endif
     {
         .name = "Beep, test tones",
         .select = menu_open_submenu,
@@ -1034,6 +1041,14 @@ void Load_ASIFDMAADC(){
 
 static void beep_init()
 {
+#ifdef CONFIG_6D
+    cache_fake(HIJACK_ASIF_DAC_TIMEOUT, INSTR_NOP, TYPE_ICACHE);    //~ FF11CD44 Assert This. Does it not stop properly?
+    cache_fake(HIJACK_ASIF_KILL_SEM_WAIT, INSTR_NOP, TYPE_ICACHE);    //~ Kill Wait for Semaphore
+    cache_fake(HIJACK_ASIF_ADC_TIMEOUT, INSTR_NOP, TYPE_ICACHE);    //~ FF11C99C ADC ASSERT
+    cache_fake(HIJACK_ASIF_KILL_SEM_WAIT2, INSTR_NOP, TYPE_ICACHE);    //~ FF11C910 ADC Semaphore
+    cache_fake(HIJACK_ASIF_CONT_JUMP_ADDR, HIJACK_ASIF_CONT_JUMP_INSTR, TYPE_ICACHE);    //~ FF11C910 ADC Continue Jump Assert, change BEQ to B
+#endif
+
 #ifdef FEATURE_WAV_RECORDING
     wav_buf[0] = alloc_dma_memory(WAV_BUF_SIZE);
     wav_buf[1] = alloc_dma_memory(WAV_BUF_SIZE);
@@ -1059,10 +1074,10 @@ INIT_FUNC("beep.init", beep_init);
 
 #else // beep not working, keep dummy stubs
 
-    void unsafe_beep(){}
-    void beep(){}
-    void Beep(){}
-    void beep_times(int times){};
-    int beep_enabled = 0;
+void unsafe_beep(){}
+void beep(){}
+void Beep(){}
+void beep_times(int times){};
+int beep_enabled = 0;
 #endif
 

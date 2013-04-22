@@ -180,3 +180,6 @@
 // for bulb ramping calibration: delay between two exposure readings (increase it if brightness updates slowly)
 // if not defined, default is 500
 #define BRAMP_CALIBRATION_DELAY 1000
+
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 5

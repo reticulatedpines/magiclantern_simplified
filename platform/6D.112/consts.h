@@ -239,3 +239,6 @@
 //~ needs fixed to prevent half shutter making canon overlays visible. sub_ff52c568.htm Not Present but probably right.
 #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x84100) != 0x17) // dec CancelUnaviFeedBackTimer
 
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 10
+

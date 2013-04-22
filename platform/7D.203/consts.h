@@ -264,3 +264,6 @@
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x249e4
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 5

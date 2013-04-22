@@ -219,6 +219,9 @@
 #define HIJACK_TOUCH_CBR_PTR 0x4D858
 
 
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 5
+
 
 
 

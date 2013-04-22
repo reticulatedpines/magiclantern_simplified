@@ -247,3 +247,6 @@
 #define RAW_WHITE_LEVEL 15000
 #define RAW_SKIP_H 160 // to ignore the black border 
 #define RAW_SKIP_V 10
+
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 5
