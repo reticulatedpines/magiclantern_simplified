@@ -76,9 +76,6 @@
 /* bitmask to mask out the SEGMENT field in a tag */
 #define CACHE_SEGMENT_ADDRMASK(t)   (CACHE_SEGMENT_BITMASK(t)<<CACHE_SEGMENT_TAGOFFSET(t))
 
-/** some generic instructions to patch with **/
-#define INSTR_NOP   0xE1A00000
-
 /* return cache size in bits (13 -> 2^13 -> 8192 -> 8KiB) */
 static uint32_t cache_get_size(uint32_t type)
 {
