@@ -2563,7 +2563,7 @@ static MENU_UPDATE_FUNC(meminfo_display)
     if (guess_needed && !guess_mem_running)
     {
         /* check this once every 30 seconds (not more often) */
-        static int aux = -INT_MIN;
+        static int aux = INT_MIN;
         if (should_run_polling_action(30000, &aux))
         {
             guess_mem_running = 1;
@@ -2704,6 +2704,60 @@ void menu_kill_flicker()
 {
     gui_stop_menu();
     canon_gui_disable_front_buffer();
+}
+#endif
+
+
+#ifdef FEATURE_SHOW_EDMAC_INFO
+
+static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
+{
+    bmp_printf(
+        FONT_MED,
+        x0, y0,
+        "ED# Address  Size\n"
+    );
+
+    y0 += font_med.height * 2;
+    
+    for (int i = 0; i < 16; i++)
+    {
+        char msg[100];
+        
+        uint32_t addr = shamem_read(base + (i<<8) + 8);
+        union edmac_size_t
+        {
+            struct { short x, y; } size;
+            uint32_t raw;
+        };
+        
+        union edmac_size_t size = (union edmac_size_t) shamem_read(base + (i<<8) + 0x10);
+        
+        if (addr && size.size.x > 0 && size.size.y > 0)
+        {
+            snprintf(msg, sizeof(msg), "[%x] %8x: %dx%d", i0+i, addr, size.size.x, size.size.y);
+        }
+        else
+        {
+            snprintf(msg, sizeof(msg), "[%x] %8x: %x", i0+i, addr, size.raw);
+        }
+        
+        bmp_printf(
+            FONT_MED,
+            x0, y0 + i * font_med.height, 
+            msg
+        );
+    }
+}
+
+static MENU_UPDATE_FUNC(edmac_display)
+{
+    if (!info->x) return;
+    info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+
+    edmac_display_page(0, 0xC0F04000, 20, 30);
+    edmac_display_page(16, 0xC0F26000, 360, 30);
 }
 #endif
 
@@ -3054,6 +3108,20 @@ static struct menu_entry debug_menus[] = {
         .select = (void(*)(void*,int))run_in_separate_task,
         .priv = guimode_test,
         .help = "Cycle through all GUI modes and take screenshots.",
+    },
+#endif
+#ifdef FEATURE_SHOW_EDMAC_INFO
+    {
+        .name = "Show EDMAC",
+        .select = menu_open_submenu,
+        .help = "Useful for finding image buffers.",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "EDMAC display",
+                .update = edmac_display,
+            },
+            MENU_EOL
+        }
     },
 #endif
 #ifdef FEATURE_SHOW_FREE_MEMORY
@@ -4007,6 +4075,8 @@ void EngDrvOut(int reg, int value)
     _EngDrvOut(reg, value);
 }
 
+#if 0 // moved to module mrc_dump?
+
 /* snprintf(buf,max_len,"%30s : %08x <8 groups of 4 bits 1/0>",header,data,data)*/
 static uint32_t dump_data(char* buf, uint32_t max_len, char* header, uint32_t data) {
         if (!buf || !header) return 0;
@@ -4188,3 +4258,4 @@ static uint32_t dump_cache(char* buf, uint32_t max_len) {
     sei(old_int);
         return len;
 }
+#endif

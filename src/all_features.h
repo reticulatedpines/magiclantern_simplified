@@ -281,6 +281,7 @@
     #define FEATURE_SHOW_FREE_MEMORY
     #define FEATURE_SHOW_SHUTTER_COUNT
     #define FEATURE_SHOW_CMOS_TEMPERATURE
+    #define FEATURE_SHOW_EDMAC_INFO
 
     //~ #define FEATURE_SHOW_SIGNATURE // useful when developing
     //~ #define FEATURE_GUIMODE_TEST // dangerous
