@@ -6892,18 +6892,6 @@ shoot_task( void* unused )
     /* creating a message queue primarily for interrupting sleep to repaint immediately */
     shoot_task_mqueue = (void*)msg_queue_create("shoot_task_mqueue", 1);
 
-    #ifdef CONFIG_LIVEVIEW
-    if (!lv)
-    {   // center AF frame at startup in photo mode
-        if (!((is_movie_mode() && video_mode_crop)))
-        {
-            afframe[2] = (afframe[0] - afframe[4])/2;
-            afframe[3] = (afframe[1] - afframe[5])/2;
-            prop_request_change(PROP_LV_AFFRAME, afframe, 0);
-        }
-    }
-    #endif
-
     bulb_shutter_valuef = (float)timer_values[bulb_duration_index];
     
     #ifdef FEATURE_MLU

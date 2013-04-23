@@ -3166,6 +3166,11 @@ spotmeter_erase()
     }
 }
 
+/* spotmeter position in QR mode */
+/* (in LiveView it's linked to focus box, but in QR we can't always move the LV box) */
+static int spotmeter_playback_offset_x = 0;
+static int spotmeter_playback_offset_y = 0;
+
 static void spotmeter_step()
 {
     if (gui_menu_shown()) return;
@@ -3197,8 +3202,19 @@ static void spotmeter_step()
     
     if (spotmeter_position == 1) // AF frame
     {
-        int aff_x0, aff_y0; 
-        get_afframe_pos(720, 480, &aff_x0, &aff_y0);
+        int aff_x0 = 360;
+        int aff_y0 = 240;
+        if (lv)
+        {
+            get_afframe_pos(720, 480, &aff_x0, &aff_y0);
+        }
+        else
+        {
+            spotmeter_playback_offset_x = COERCE(spotmeter_playback_offset_x, -300, 300);
+            spotmeter_playback_offset_y = COERCE(spotmeter_playback_offset_y, -200, 200);
+            aff_x0 = 360 + spotmeter_playback_offset_x;
+            aff_y0 = 240 + spotmeter_playback_offset_y;
+        }
         xcb = N2BM_X(aff_x0);
         ycb = N2BM_Y(aff_y0);
         xcb = COERCE(xcb, os.x0 + 50, os.x_max - 50);
@@ -6012,46 +6028,117 @@ static void livev_playback_toggle()
 }
 static void livev_playback_reset()
 {
+    if (livev_playback) redraw();
     livev_playback = 0;
+}
+
+static int livev_playback_refresh()
+{
+    while (livev_for_playback_running) msleep(20);
+    livev_playback_toggle();
+    if (!livev_playback) livev_playback_toggle();
 }
 
 int handle_livev_playback(struct event * event, int button)
 {
+    // move spotmeter in QR or playback mode
+
+    #define CONFIG_MOVE_SPOTMETER_IN_PLAYBACK
+    #ifdef CONFIG_MOVE_SPOTMETER_IN_PLAYBACK
+    if ((QR_MODE && ZEBRAS_IN_QUICKREVIEW) || (PLAY_MODE && livev_playback))
+    {
+        switch (event->param)
+        {
+            case BGMT_PRESS_LEFT:
+                spotmeter_playback_offset_x -= 50;
+                livev_playback_refresh();
+                return 0;
+
+            case BGMT_PRESS_RIGHT:
+                spotmeter_playback_offset_x += 50;
+                livev_playback_refresh();
+                return 0;
+            
+            case BGMT_PRESS_UP:
+                spotmeter_playback_offset_y -= 50;
+                livev_playback_refresh();
+                return 0;
+            
+            case BGMT_PRESS_DOWN:
+                spotmeter_playback_offset_y += 50;
+                livev_playback_refresh();
+                return 0;
+
+            #ifdef BGMT_PRESS_UP_LEFT
+            case BGMT_PRESS_UP_LEFT:
+                spotmeter_playback_offset_x -= 50;
+                spotmeter_playback_offset_y -= 50;
+                livev_playback_refresh();
+                return 0;
+
+            case BGMT_PRESS_DOWN_RIGHT:
+                spotmeter_playback_offset_x += 50;
+                spotmeter_playback_offset_y += 50;
+                livev_playback_refresh();
+                return 0;
+
+            case BGMT_PRESS_UP_RIGHT:
+                spotmeter_playback_offset_x += 50;
+                spotmeter_playback_offset_y -= 50;
+                livev_playback_refresh();
+                return 0;
+
+            case BGMT_PRESS_DOWN_LEFT:
+                spotmeter_playback_offset_x -= 50;
+                spotmeter_playback_offset_y += 50;
+                livev_playback_refresh();
+                return 0;
+            #endif
+
+            #ifdef BGMT_JOY_CENTER
+            case BGMT_JOY_CENTER:
+            #else
+            case BGMT_PRESS_SET:
+            #endif
+                spotmeter_playback_offset_x = spotmeter_playback_offset_y = 0;
+                livev_playback_refresh();
+                return 0;
+            
+            #ifdef BGMT_UNPRESS_UDLR
+            case BGMT_UNPRESS_UDLR:
+            #else
+            case BGMT_UNPRESS_LEFT:
+            case BGMT_UNPRESS_RIGHT:
+            case BGMT_UNPRESS_UP:
+            case BGMT_UNPRESS_DOWN:
+            #endif
+                return 0;
+        }
+    }
+    #endif
+
     // enable LiveV stuff in Play mode
-    if (PLAY_OR_QR_MODE && !gui_menu_shown())
+    if (PLAY_OR_QR_MODE)
     {
         if (event->param == button)
         {
             livev_playback_toggle();
             return 0;
         }
-        else
+        
+        else if (event->param == GMT_OLC_INFO_CHANGED)
+            return 1;
+
         #ifdef GMT_GUICMD_PRESS_BUTTON_SOMETHING
-        if (event->param != GMT_GUICMD_PRESS_BUTTON_SOMETHING)
+        else if (event->param == GMT_GUICMD_PRESS_BUTTON_SOMETHING)
+            return 1;
         #endif
+
+        else
         {
             livev_playback_reset();
         }
     }
-
-    if (QR_MODE && ZEBRAS_IN_QUICKREVIEW)
-    {
-        if (event->param == BGMT_PRESS_LEFT)
-            { move_lv_afframe(-300, 0); goto ok; }
-        else if (event->param == BGMT_PRESS_RIGHT)
-            { move_lv_afframe(300, 0); goto ok; }
-        else if (event->param == BGMT_PRESS_UP)
-            { move_lv_afframe(0, -300); goto ok; }
-        else if (event->param == BGMT_PRESS_DOWN)
-            { move_lv_afframe(0, 300); goto ok; }
-        return 1;
-
-    ok:
-        while (livev_for_playback_running) msleep(20);
-        trigger_zebras_for_qr();
-        return 0;
-    }
-
     return 1;
 }
 #endif
