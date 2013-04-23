@@ -3248,13 +3248,17 @@ static void spotmeter_step()
 
         raw_luma = 0;
         
-        /* note: I didn't check whether this actually covers the area displayed on the screen (it's just theory) */
         for( y = ycr - dxr ; y <= ycr + dxr ; y++ )
         {
             for( x = xcr - dxr ; x <= xcr + dxr ; x++ )
             {
                 raw_luma += raw_get_pixel(raw_buf, x, y);
                 
+                /* define this to check if spotmeter reads from the right place;
+                 * you should see some gibberish on raw zebras, right inside the spotmeter box */
+                #ifdef RAW_SPOTMETER_TEST
+                raw_set_pixel(raw_buf, x, y, rand());
+                #endif
             }
         }
         raw_luma /= (2 * dxr + 1) * (2 * dxr + 1);
@@ -3271,6 +3275,7 @@ static void spotmeter_step()
     // if false color is active, draw white on semi-transparent gray
 
     // protect the surroundings from zebras
+    #ifndef RAW_SPOTMETER_TEST
     uint32_t* M = (uint32_t*)get_bvram_mirror();
     uint32_t* B = (uint32_t*)bmp_vram();
 
@@ -3291,6 +3296,7 @@ static void spotmeter_step()
             B[BM(x,y)/4] = 0;
         }
     }
+    #endif
     
     static int fg = 0;
     if (scaled > 60) fg = COLOR_BLACK;
@@ -4808,6 +4814,7 @@ static void draw_livev_for_playback()
     }
     while (!DISPLAY_IS_ON) msleep(100);
     if (!PLAY_OR_QR_MODE) return;
+    if (QR_MODE) msleep(100);
 
     livev_for_playback_running = 1;
     get_yuv422_vram(); // just to refresh VRAM params

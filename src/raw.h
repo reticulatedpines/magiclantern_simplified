@@ -79,7 +79,7 @@ static inline int raw_blue_pixel(struct raw_pixblock * buf, int x, int y)
 
 /* get the pixel at specified coords (exact, but you can get whatever color happens to be there) */
 static int raw_get_pixel(struct raw_pixblock * buf, int x, int y) {
-    struct raw_pixblock * p = (void*)buf + y * SENSOR_RES_X  + (x/8)*14;
+    struct raw_pixblock * p = (void*)buf + y * (SENSOR_RES_X*14/8) + (x/8)*14;
     switch (x%8) {
         case 0: return p->a;
         case 1: return p->b_lo | (p->b_hi << 12);
@@ -89,6 +89,21 @@ static int raw_get_pixel(struct raw_pixblock * buf, int x, int y) {
         case 5: return p->f_lo | (p->f_hi << 4);
         case 6: return p->g_lo | (p->g_hi << 2);
         case 7: return p->h;
+    }
+    return p->a;
+}
+
+static int raw_set_pixel(struct raw_pixblock * buf, int x, int y, int value) {
+    struct raw_pixblock * p = (void*)buf + y * (SENSOR_RES_X*14/8) + (x/8)*14;
+    switch (x%8) {
+        case 0: p->a = value; break;
+        case 1: p->b_lo = value; p->b_hi = value >> 12; break;
+        case 2: p->c_lo = value; p->c_hi = value >> 10; break;
+        case 3: p->d_lo = value; p->d_hi = value >> 8; break;
+        case 4: p->e_lo = value; p->e_hi = value >> 6; break;
+        case 5: p->f_lo = value; p->f_hi = value >> 4; break;
+        case 6: p->g_lo = value; p->g_hi = value >> 2; break;
+        case 7: p->h = value; break;
     }
     return p->a;
 }
