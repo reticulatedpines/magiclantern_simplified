@@ -1060,7 +1060,7 @@ void center_lv_afframe_do()
 void move_lv_afframe(int dx, int dy)
 {
 #ifdef CONFIG_LIVEVIEW
-    if (!liveview_display_idle() && !QR_MODE) return;
+    if (!liveview_display_idle()) return;
     if (is_movie_mode() && video_mode_crop) return;
     if (recording && is_manual_focus()) // prop handler won't trigger, clear spotmeter 
         clear_lv_afframe();
