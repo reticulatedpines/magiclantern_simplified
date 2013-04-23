@@ -3319,7 +3319,7 @@ static void spotmeter_step()
     {
         bmp_printf(
             fnt,
-            xcb - font_med.width, ycb, 
+            xcb - font_med.width - 5, ycb, 
             "-%d.%d EV",
             -raw_ev/10, 
             -raw_ev%10
@@ -4298,6 +4298,14 @@ cropmark_redraw()
 }
 #endif
 
+static void trigger_zebras_for_qr()
+{
+    fake_simple_button(BTN_ZEBRAS_FOR_PLAYBACK);
+    #ifdef CONFIG_600D
+    if (BTN_ZEBRAS_FOR_PLAYBACK == BGMT_PRESS_DISP) fake_simple_button(BGMT_UNPRESS_DISP);
+    #endif
+}
+
 PROP_HANDLER(PROP_GUI_STATE)
 {
     bmp_draw_request_stop(); // abort drawing any slow cropmarks
@@ -4306,12 +4314,7 @@ PROP_HANDLER(PROP_GUI_STATE)
     
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
     if (ZEBRAS_IN_QUICKREVIEW && buf[0] == GUISTATE_QR)
-    {
-        fake_simple_button(BTN_ZEBRAS_FOR_PLAYBACK);
-        #ifdef CONFIG_600D
-        if (BTN_ZEBRAS_FOR_PLAYBACK == BGMT_PRESS_DISP) fake_simple_button(BGMT_UNPRESS_DISP);
-        #endif
-    }
+        trigger_zebras_for_qr();
 #endif
 
 #ifdef FEATURE_GHOST_IMAGE
@@ -6030,6 +6033,25 @@ int handle_livev_playback(struct event * event, int button)
             livev_playback_reset();
         }
     }
+
+    if (QR_MODE && ZEBRAS_IN_QUICKREVIEW)
+    {
+        if (event->param == BGMT_PRESS_LEFT)
+            { move_lv_afframe(-300, 0); goto ok; }
+        else if (event->param == BGMT_PRESS_RIGHT)
+            { move_lv_afframe(300, 0); goto ok; }
+        else if (event->param == BGMT_PRESS_UP)
+            { move_lv_afframe(0, -300); goto ok; }
+        else if (event->param == BGMT_PRESS_DOWN)
+            { move_lv_afframe(0, 300); goto ok; }
+        return 1;
+
+    ok:
+        while (livev_for_playback_running) msleep(20);
+        trigger_zebras_for_qr();
+        return 0;
+    }
+
     return 1;
 }
 #endif
