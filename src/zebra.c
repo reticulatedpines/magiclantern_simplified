@@ -4831,8 +4831,13 @@ int zebra_should_run()
 static int livev_for_playback_running = 0;
 static void draw_livev_for_playback()
 {
-    if (!PLAY_OR_QR_MODE) return;
     livev_for_playback_running = 1;
+
+    if (!PLAY_OR_QR_MODE)
+    {
+        livev_for_playback_running = 0;
+        return;
+    }
 
     extern int quick_review_allow_zoom;
     if (quick_review_allow_zoom && image_review_time == 0xff)
