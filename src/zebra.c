@@ -1002,8 +1002,6 @@ static MENU_UPDATE_FUNC(raw_histo_update)
 {
     if (!can_use_raw_overlays_menu())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set picture quality to RAW in Canon menu.");
-    else if (hist_colorspace != 1)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set histogram color space to RGB.");
     else if (raw_histogram_enable)
         MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram after taking a picture.");
 }
@@ -1080,10 +1078,8 @@ static MENU_UPDATE_FUNC(raw_zebra_update)
 {
     if (!can_use_raw_overlays_menu())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set picture quality to RAW in Canon menu.");
-    else if (zebra_colorspace != 1)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set zebra color space to RGB.");
     else if (raw_zebra_enable)
-        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW zebras after taking a picture.");
+        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW RGB zebras after taking a picture.");
 }
 #endif
 
@@ -1673,7 +1669,7 @@ static void draw_zebras( int Z )
     if (zd)
     {
         #ifdef FEATURE_RAW_ZEBRAS
-        if (raw_zebra_enable && can_use_raw_overlays() && zebra_colorspace==1)
+        if (raw_zebra_enable && can_use_raw_overlays())
         {
             draw_zebras_raw();
             return;
@@ -2701,7 +2697,7 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
     }
 
     #ifdef FEATURE_RAW_ZEBRAS
-    if (z && zebra_colorspace==1 && can_use_raw_overlays_menu())
+    if (z && can_use_raw_overlays_menu())
         raw_zebra_update(entry, info);
     #endif
 }
@@ -2725,7 +2721,7 @@ static MENU_UPDATE_FUNC(zebra_level_display)
     }
     
     #ifdef FEATURE_RAW_ZEBRAS
-    if (can_use_raw_overlays_menu() && zebra_colorspace==1)
+    if (can_use_raw_overlays_menu())
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not used for RAW zebras.");
     #endif
 }
@@ -2854,7 +2850,7 @@ static MENU_UPDATE_FUNC(hist_print)
             hist_warn ? ",clip warn" : ""
         );
     #ifdef FEATURE_RAW_HISTOGRAM
-    if (hist_draw && hist_colorspace && can_use_raw_overlays_menu())
+    if (hist_draw && can_use_raw_overlays_menu())
         raw_histo_update(entry, info);
     #endif
 }
@@ -3923,7 +3919,7 @@ struct menu_entry zebra_menus[] = {
                 .name = "Scaling",
                 .priv = &hist_log, 
                 .max = 1,
-                .choices = (const char *[]) {"Linear", "Logarithmic"},
+                .choices = (const char *[]) {"Linear", "Log"},
                 .help = "Linear or logarithmic histogram.",
                 .icon_type = IT_DICE,
             },
@@ -4923,7 +4919,7 @@ void draw_histogram_and_waveform(int allow_play)
         hist_build();
         
         #ifdef FEATURE_RAW_HISTOGRAM
-        if (raw_histogram_enable && can_use_raw_overlays() && hist_colorspace)
+        if (raw_histogram_enable && can_use_raw_overlays())
         {
             hist_build_raw();
         }
