@@ -2702,6 +2702,14 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
     #endif
 }
 
+static MENU_UPDATE_FUNC(zebra_param_not_used_for_raw)
+{
+    #ifdef FEATURE_RAW_ZEBRAS
+    if (raw_zebra_enable && can_use_raw_overlays_menu())
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Not used for RAW zebras.");
+    #endif
+}
+
 static MENU_UPDATE_FUNC(zebra_level_display)
 {
     int level = CURRENT_VALUE;
@@ -2720,10 +2728,7 @@ static MENU_UPDATE_FUNC(zebra_level_display)
         );
     }
     
-    #ifdef FEATURE_RAW_ZEBRAS
-    if (can_use_raw_overlays_menu())
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Not used for RAW zebras.");
-    #endif
+    zebra_param_not_used_for_raw(entry, info);
 }
 #endif
 
@@ -3577,7 +3582,8 @@ struct menu_entry zebra_menus[] = {
                 #endif
                 .choices = (const char *[]) {"Luma", "RGB", "Luma Fast"},
                 .icon_type = IT_DICE,
-                .help = "Luma: red/blue. RGB: color is reverse of clipped channel.",
+                .update = zebra_param_not_used_for_raw,
+                .help = "Luma: red/blue. RGB: show color of the clipped channel(s).",
             },
             {
                 .name = "Underexposure",
@@ -3604,6 +3610,7 @@ struct menu_entry zebra_menus[] = {
                 .max = 1,
                 .choices = (const char *[]) {"Hide", "Show"},
                 .help = "You can hide zebras when recording.",
+                .update = zebra_param_not_used_for_raw,
             },
             #endif
             #ifdef FEATURE_RAW_HISTOGRAM
