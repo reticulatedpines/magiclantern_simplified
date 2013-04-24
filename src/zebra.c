@@ -4832,6 +4832,7 @@ static int livev_for_playback_running = 0;
 static void draw_livev_for_playback()
 {
     if (!PLAY_OR_QR_MODE) return;
+    livev_for_playback_running = 1;
 
     extern int quick_review_allow_zoom;
     if (quick_review_allow_zoom && image_review_time == 0xff)
@@ -4841,10 +4842,13 @@ static void draw_livev_for_playback()
         msleep(500);
     }
     while (!DISPLAY_IS_ON) msleep(100);
-    if (!PLAY_OR_QR_MODE) return;
+    if (!PLAY_OR_QR_MODE)
+    {
+        livev_for_playback_running = 0;
+        return;
+    }
     if (QR_MODE) msleep(100);
 
-    livev_for_playback_running = 1;
     get_yuv422_vram(); // just to refresh VRAM params
     
     info_led_on();
@@ -6020,7 +6024,11 @@ static int livev_playback = 0;
 
 static void livev_playback_toggle()
 {
-    if (livev_for_playback_running) return;
+    if (livev_for_playback_running)
+    {
+        beep();
+        return;
+    }
     
     livev_playback = !livev_playback;
     if (livev_playback)
