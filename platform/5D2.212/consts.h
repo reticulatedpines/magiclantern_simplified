@@ -219,7 +219,7 @@
 
 #define RAW_IMAGE_BUFFER ((void*)sdsf3_get_raw_image_buffer())
 #define RAW_BLACK_LEVEL (1024+32) // camera-specific? not sure
-#define RAW_WHITE_LEVEL 15600
+//~ #define RAW_WHITE_LEVEL 15600 // autodetected
 #define RAW_SKIP_H 160 // to ignore the black border 
 #define RAW_SKIP_V 100
 

@@ -955,6 +955,9 @@ static FAST void hist_build_raw()
     // this buffer contains 14-bit uncompressed RAW data
     // first pixel should be red
 
+    int black = autodetect_black_level(buf);
+    int white = RAW_WHITE_LEVEL;
+
     hist_is_raw = 1;
 
     hist_max = 0;
@@ -978,9 +981,9 @@ static FAST void hist_build_raw()
             int g = buf[i][j].h;
             int b = buf[i+1][j].h;
             /* only show a 12-bit hisogram, since the rest is just noise */
-            int ir = r > RAW_BLACK_LEVEL+4 ? (int)(log2f((r - RAW_BLACK_LEVEL) / 4.0f) * (HIST_WIDTH-1) / 12) : 1;
-            int ig = g > RAW_BLACK_LEVEL+4 ? (int)(log2f((g - RAW_BLACK_LEVEL) / 4.0f) * (HIST_WIDTH-1) / 12) : 1;
-            int ib = b > RAW_BLACK_LEVEL+4 ? (int)(log2f((b - RAW_BLACK_LEVEL) / 4.0f) * (HIST_WIDTH-1) / 12) : 1;
+            int ir = COERCE((raw_to_ev(r, black, white) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
+            int ig = COERCE((raw_to_ev(g, black, white) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
+            int ib = COERCE((raw_to_ev(b, black, white) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
             hist_r[ir]++;
             hist_g[ig]++;
             hist_b[ib]++;
@@ -1014,10 +1017,14 @@ static void draw_zebras_raw()
 {
     raw_pixline * buf = RAW_IMAGE_BUFFER;
     if (!buf) return;
+
+    int black = autodetect_black_level(buf);
+    int white = RAW_WHITE_LEVEL;
+
     uint8_t* bvram = bmp_vram();
     int px = (RAW_SKIP_H/2) / 8;
     int py = (RAW_SKIP_V/2) / 2 * 2;
-    
+
     for (int i = py; i < SENSOR_RES_Y - py; i += 4)
     {
         for (int j = px; j < SENSOR_RES_X/8 - px; j ++)
@@ -1046,7 +1053,7 @@ static void draw_zebras_raw()
             #endif
             
             int m = MAX(MAX(r,g), b);
-            int c = zebra_rgb_solid_color(m < RAW_BLACK_LEVEL, r > 15000, g > 15000, b > 15000);
+            int c = zebra_rgb_solid_color(m < black, r > white, g > white, b > white);
             if (c)
             {
                 int x = os.x0 + os.x_ex * (j-px) / (SENSOR_RES_X/8 - 2*px);
@@ -3278,8 +3285,9 @@ static void spotmeter_step()
             }
         }
         raw_luma /= (2 * dxr + 1) * (2 * dxr + 1);
-        int raw_max = RAW_WHITE_LEVEL - RAW_BLACK_LEVEL;
-        raw_ev = 10 * (-log2f(raw_max) + log2f(COERCE(raw_luma - RAW_BLACK_LEVEL, 1, raw_max)));
+        int black = autodetect_black_level(raw_buf);
+        int white = RAW_WHITE_LEVEL;
+        raw_ev = (int) roundf(10.0 * raw_to_ev(raw_luma, black, white));
     }
     #endif
     

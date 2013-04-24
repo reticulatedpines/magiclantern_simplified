@@ -107,3 +107,26 @@ static int raw_set_pixel(struct raw_pixblock * buf, int x, int y, int value) {
     }
     return p->a;
 }
+
+/* input: 0 - 16384 (valid range: from black level to white level) */
+/* output: -14 ... 0 */
+static float raw_to_ev(int raw, int black_level, int white_level)
+{
+    int raw_max = white_level - black_level;
+    float raw_ev = -log2f(raw_max) + log2f(COERCE(raw - black_level, 1, raw_max));
+    return raw_ev;
+}
+
+static int autodetect_black_level(struct raw_pixblock * buf)
+{
+    /* fixme: define and use proper borders for black calibration */
+    int black = 0;
+    for (int i = 5; i < 10; i++)
+    {
+        for (int j = 5; j < 10; j++)
+        {
+            black += raw_get_pixel(buf, i, j);
+        }
+    }
+    return black / 25;
+}
