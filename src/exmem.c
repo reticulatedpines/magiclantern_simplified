@@ -43,6 +43,56 @@ struct memChunk
     int remain;
 };
 
+unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file)
+{
+    unsigned int written = 0;
+    
+    FILE *f = FIO_CreateFileEx(file);
+    if (f != (void*) -1)
+    {
+        struct memChunk *currentChunk;
+        unsigned char *chunkAddress;
+        unsigned int chunkAvail;
+        
+        currentChunk = GetFirstChunkFromSuite(hSuite);
+        
+        while(currentChunk)
+        {
+            chunkAvail = GetSizeOfMemoryChunk(currentChunk);
+            chunkAddress = (unsigned char*)GetMemoryAddressOfMemoryChunk(currentChunk);
+            
+            FIO_WriteFile(f, chunkAddress, chunkAvail);
+            written += chunkAvail;
+            currentChunk = GetNextMemoryChunk(hSuite, currentChunk);
+        }
+        FIO_CloseFile(f);
+    }
+    
+    return written;
+}
+
+unsigned int exmem_clear(struct memSuite * hSuite, char fill)
+{
+    unsigned int written = 0;
+    
+    struct memChunk *currentChunk;
+    unsigned char *chunkAddress;
+    unsigned int chunkAvail;
+    
+    currentChunk = GetFirstChunkFromSuite(hSuite);
+    
+    while(currentChunk)
+    {
+        chunkAvail = GetSizeOfMemoryChunk(currentChunk);
+        chunkAddress = (unsigned char*)GetMemoryAddressOfMemoryChunk(currentChunk);
+        
+        memset(chunkAddress, fill, chunkAvail);
+        written += chunkAvail;
+        currentChunk = GetNextMemoryChunk(hSuite, currentChunk);
+    }
+
+    return written;
+}
 
 struct memSuite *shoot_malloc_suite(size_t size)
 {

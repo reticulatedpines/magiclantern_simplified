@@ -5,10 +5,13 @@
 #include <menu.h>
 
 /* constant for now */
-#define BUFFER_SIZE 100
+#define BUFFER_SIZE 150
 
 void lv_rec_start();
 void lv_rec_stop();
+
+unsigned int exmem_clear(struct memSuite * hSuite, char fill);
+unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file);
 
 /* 5D3 hardcoded for now */
 int (*HPCopyAsync) (unsigned char *dst, unsigned char *src, int length, void (*cbr)(unsigned int), int ctx) = (int (*) (unsigned char *dst, unsigned char *src, int length, void (*cbr)(unsigned int), int ctx))0xCB80;
@@ -19,7 +22,8 @@ typedef struct
     int finished;
     int abort;
     int skipped;
-    int processed;
+    int savedFrames;
+    int maxFrames;
     int bytesWritten;
     
     struct memSuite *memSuite;
@@ -31,11 +35,8 @@ typedef struct
     unsigned int chunkAvail;
     unsigned int chunkUsed;
     
-    int dmaPending;
-    unsigned int dmaCopyCurrent;
-    unsigned int dmaCopyRemain;
-    unsigned int dstOffset;
-    unsigned int srcOffset;
+    unsigned int dmaChannel;
+    unsigned int dmaFlags;
 } lv_rec_data_t;
 
 static lv_rec_data_t *lv_rec_state = NULL;
@@ -46,18 +47,17 @@ static MENU_SELECT_FUNC(lv_rec_menu_start)
     lv_rec_start();
 }
 
-void lv_rec_create_task(void (*priv)(void), int delta)
+void lv_rec_create_task(int priv, int delta)
 {
     gui_stop_menu();
-    if (!priv) return;
-    task_create("lv_rec_task", 0x1a, 0x1000, priv, (void*)delta);
+    task_create("lv_rec_task", 0x1a, 0x1000, lv_rec_menu_start, (void*)delta);
 }
 
 static struct menu_entry lv_rec_menu[] =
 {
     {
         .name = "Start",
-        .priv = lv_rec_menu_start,
+        .priv = NULL,
         .select = (void (*)(void*,int))lv_rec_create_task,
         .help = "Start recording",
     },
@@ -96,47 +96,6 @@ void lv_rec_next_chunk(lv_rec_data_t *data)
     data->chunkUsed = 0;
 }
 
-void lv_rec_dma_cbr(unsigned int ctx)
-{
-    lv_rec_state->bytesWritten += lv_rec_state->dmaCopyCurrent;
-    lv_rec_state->chunkAvail -= lv_rec_state->dmaCopyCurrent;
-    lv_rec_state->dstOffset += lv_rec_state->dmaCopyCurrent;
-    lv_rec_state->srcOffset += lv_rec_state->dmaCopyCurrent;
-    
-    /* chunk is full? get a new one */
-    if(lv_rec_state->chunkAvail == 0)
-    {
-        lv_rec_state->dstOffset = 0;
-        /* try to get next available chunk */
-        lv_rec_next_chunk(lv_rec_state);
-        
-        /* none available? abort */
-        if(lv_rec_state->chunkAvail == 0)
-        {
-            lv_rec_state->finished = 1;
-            lv_rec_state = NULL;
-            return;
-        }
-    }
-    
-    /* data for copy remaining? restart DMA copy */
-    if(lv_rec_state->dmaCopyRemain)
-    {
-        unsigned int maxSize = MIN(lv_rec_state->dmaCopyRemain, lv_rec_state->chunkAvail);
-        
-        lv_rec_state->dmaCopyCurrent = maxSize;
-        lv_rec_state->dmaCopyRemain -= lv_rec_state->dmaCopyCurrent;
-        
-        lv_rec_state->dmaPending = 1;
-        HPCopyAsync(&lv_rec_state->chunkAddress[lv_rec_state->dstOffset], &lv_rec_state->vramAddress[lv_rec_state->srcOffset], lv_rec_state->dmaCopyCurrent, &lv_rec_dma_cbr, 0);
-    }
-    else
-    {
-        lv_rec_state->processed++;
-        lv_rec_state->dmaPending = 0;
-    }
-}
-
 unsigned int lv_rec_vsync_cbr(unsigned int ctx)
 {
     if(!lv_rec_state)
@@ -154,29 +113,29 @@ unsigned int lv_rec_vsync_cbr(unsigned int ctx)
     if(!lv_rec_state->running)
     {
         lv_rec_state->running = 1;
+        PackMem_StartEDmac(lv_rec_state->dmaChannel, 0);
     }
-    
-    if(lv_rec_state->dmaPending)
+    else
     {
-        lv_rec_state->skipped++;
-        return 0;
+        lv_rec_state->savedFrames++;
+        
+        if(lv_rec_state->savedFrames >= lv_rec_state->maxFrames)
+        {
+            PopEDmacForMemorySuite(lv_rec_state->dmaChannel);
+            lv_rec_state->finished = 1;
+            lv_rec_state = NULL;
+            return 0;
+        }
     }
-#define REG_EDMAC_WRITE_HD_ADDR 0xc0f04a08 // SDRAM address of HD buffer (aka YUV)
-#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR) + vram_hd.pitch)
-    lv_rec_state->vramAddress = CACHEABLE(YUV422_HD_BUFFER_DMA_ADDR);;
     
-    lv_rec_state->dmaCopyRemain = lv_rec_state->blockSize;
-    lv_rec_state->dmaCopyCurrent = 0;
-    lv_rec_state->dstOffset = 0;
-    lv_rec_state->srcOffset = 0;
-
-    /* start DMA transfer */
-    lv_rec_dma_cbr(0);
     return 0;
 }
 
 void lv_rec_start()
 {
+    int raw_mode = 0;
+    int single_file = 0;
+    
     int yPos = 0;
     lv_rec_data_t *data = AllocateMemory(sizeof(lv_rec_data_t));
     
@@ -196,30 +155,37 @@ void lv_rec_start()
     }
     bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Allocated %d MiB", BUFFER_SIZE);
     
-    struct vram_info *vram = get_yuv422_hd_vram();
-    unsigned int blockSize = vram->width * vram->height * 2;
+    int source_conn = 0x00;
     
-    data->vramAddress = vram->vram;
-    data->blockSize = blockSize;
-    
-    bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "blockSize %d", data->blockSize);
-    
-    data->currentChunk = GetFirstChunkFromSuite(data->memSuite);
-    if(!data->currentChunk)
+    if(raw_mode)
     {
-        FreeMemoryResource(data->memSuite, lv_rec_free_cbr, 0);
-        FreeMemory(data);
-        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to get currentChunk");
-        return;
+        /* copy 8 bytes per transfer */
+        data->dmaFlags = 0x20001000;
+        /* not sure about size yet */
+        data->blockSize = 0;
+        data->maxFrames = 10;
+        /* read from CRAW connection */
+        source_conn = 0x00;
+        single_file = 1;
     }
+    else
+    {
+        struct vram_info *vram = get_yuv422_hd_vram();
+        /* copy 1 byte per transfer */
+        data->dmaFlags = 0x20000000;
+        data->blockSize = vram->width * vram->height * 2;
+        data->maxFrames = (BUFFER_SIZE * 1024 * 1024) / data->blockSize;
+        /* read from YUV connection */
+        source_conn = 0x1B;
+    }
+    data->dmaChannel = 0x12;
+    ConnectWriteEDmac(data->dmaChannel, source_conn);
+    PackMem_SetEDmacForMemorySuite(data->dmaChannel, data->memSuite, 0);
     
-    data->chunkAvail = GetSizeOfMemoryChunk(data->currentChunk);
-    data->chunkAddress = (unsigned char*)GetMemoryAddressOfMemoryChunk(data->currentChunk);
     data->bytesWritten = 0;
     data->chunkUsed = 0;
-    data->dmaPending = 0;
     data->skipped = 0;
-    data->processed = 0;
+    data->savedFrames = 0;
     data->abort = 0;
     data->running = 0;
     data->finished = 0;
@@ -236,67 +202,79 @@ void lv_rec_start()
     while(!data->finished)
     {
         msleep(50);
-        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos, "0x%08X bytes, %d skips, %d saved", data->bytesWritten, data->skipped, data->processed);
+        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos, "0x%08X bytes, %d skips, %d saved", data->bytesWritten, data->skipped, data->savedFrames);
     }
     bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * ++yPos, "Saving");
     
-    /* save files */
-    int start_number;
-    char imgname[100];
-    for (start_number = 0 ; start_number < 1000; start_number++) // may be slow after many pics
+    if(single_file)
     {
-        snprintf(imgname, sizeof(imgname), "VRAM%d.422", start_number); // should be in root, because Canon's "dispcheck" saves screenshots there too
-        uint32_t size;
-        if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
-        if (size == 0) break;
+        /* save one single file */
+        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * ++yPos, "Saved: 0x%08X", exmem_save_buffer(data->memSuite, "DATA.BIN"));
     }
-    
-    bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * ++yPos, "Starting with '%s'", imgname);
-    
-    data->currentChunk = GetFirstChunkFromSuite(data->memSuite);
-    if(!data->currentChunk)
+    else
     {
-        FreeMemoryResource(data->memSuite, lv_rec_free_cbr, 0);
-        FreeMemory(data);
-        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to get currentChunk");
-        return;
-    }
-    
-    data->chunkAvail = GetSizeOfMemoryChunk(data->currentChunk);
-    data->chunkAddress = (unsigned char*)GetMemoryAddressOfMemoryChunk(data->currentChunk);
-    
-    /* now save all processed frames */
-    for(int frame_num = 0; frame_num < data->processed; frame_num++)
-    {
-        snprintf(imgname, sizeof(imgname), "VRAM%d.422", start_number + frame_num);
-        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos, "Saving '%s'", imgname);
-        FILE* f = FIO_CreateFileEx(imgname);
-        
-        unsigned int remain = data->blockSize;
-        unsigned int offset = 0;
-        while(remain > 0)
+        /* save multiple .422 files */
+        int start_number;
+        char imgname[100];
+        for (start_number = 0 ; start_number < 1000; start_number++) // may be slow after many pics
         {
-            if(!data->chunkAvail)
-            {
-                lv_rec_next_chunk(data);
-            }
-            
-            if(!data->chunkAvail)
-            {
-                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to get next data");
-                frame_num = data->processed;
-                break;
-            }
-            unsigned int avail = MIN(data->chunkAvail, remain);
-            
-            FIO_WriteFile(f, &data->chunkAddress[offset], avail);
-            remain -= avail;
-            offset += avail;
-            data->chunkAvail -= avail;
+            snprintf(imgname, sizeof(imgname), "VRAM%d.422", start_number); // should be in root, because Canon's "dispcheck" saves screenshots there too
+            uint32_t size;
+            if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
+            if (size == 0) break;
         }
-        FIO_CloseFile(f);
+        
+        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * ++yPos, "Starting with '%s'", imgname);
+        
+        data->currentChunk = GetFirstChunkFromSuite(data->memSuite);
+        if(!data->currentChunk)
+        {
+            FreeMemoryResource(data->memSuite, lv_rec_free_cbr, 0);
+            FreeMemory(data);
+            bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to get currentChunk");
+            return;
+        }
+        
+        data->chunkAvail = GetSizeOfMemoryChunk(data->currentChunk);
+        data->chunkAddress = (unsigned char*)GetMemoryAddressOfMemoryChunk(data->currentChunk);
+        
+        /* offset in current chunk */
+        unsigned int offset = 0;
+        
+        /* now save all savedFrames frames */
+        for(int frame_num = 0; frame_num < data->savedFrames; frame_num++)
+        {
+            snprintf(imgname, sizeof(imgname), "VRAM%d.422", start_number + frame_num);
+            bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos, "Saving '%s'", imgname);
+            FILE* f = FIO_CreateFileEx(imgname);
+            
+            unsigned int remain = data->blockSize;
+            while(remain > 0)
+            {
+                if(!data->chunkAvail)
+                {
+                    lv_rec_next_chunk(data);
+                    offset = 0;
+                }
+                
+                if(!data->chunkAvail)
+                {
+                    bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to get next data");
+                    frame_num = data->savedFrames;
+                    break;
+                }
+                unsigned int avail = MIN(data->chunkAvail, remain);
+                
+                FIO_WriteFile(f, UNCACHEABLE(&data->chunkAddress[offset]), avail);
+                remain -= avail;
+                offset += avail;
+                data->chunkAvail -= avail;
+            }
+            FIO_CloseFile(f);
+        }    
     }
     bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * ++yPos, "Recording finished");
+    
     FreeMemoryResource(data->memSuite, &lv_rec_free_cbr, 0);
     FreeMemory(data);
 }
