@@ -1053,7 +1053,8 @@ static void draw_zebras_raw()
             #endif
             
             int m = MAX(MAX(r,g), b);
-            int c = zebra_rgb_solid_color(m < black, r > white, g > white, b > white);
+            /* consider bottom 3 stops as underexposed */
+            int c = zebra_rgb_solid_color(m < black + 8, r > white, g > white, b > white);
             if (c)
             {
                 int x = os.x0 + os.x_ex * (j-px) / (SENSOR_RES_X/8 - 2*px);
