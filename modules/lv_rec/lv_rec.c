@@ -16,9 +16,12 @@ typedef struct
     int finished;
     int abort;
     int skipped;
+    
     int capturedFrames;
     int savedFrames;
     int maxFrames;
+    int maxFramesBufferable;
+    
     int bytesWritten;
     
     
@@ -175,7 +178,7 @@ unsigned int lv_rec_vsync_cbr(unsigned int ctx)
     {
         lv_rec_state->capturedFrames++;
         
-        if(lv_rec_state->capturedFrames >= lv_rec_state->maxFrames || (lv_rec_state->capturedFrames - lv_rec_state->savedFrames) > 30)
+        if(lv_rec_state->capturedFrames >= lv_rec_state->maxFrames || (lv_rec_state->capturedFrames - lv_rec_state->savedFrames) >= lv_rec_state->maxFramesBufferable)
         {
             PopEDmacForMemorySuite(lv_rec_state->dmaChannel);
             lv_rec_state->finished = 1;
@@ -275,6 +278,7 @@ void lv_rec_start()
     ConnectWriteEDmac(data->dmaChannel, source_conn);
     PackMem_SetEDmacForMemorySuite(data->dmaChannel, data->memSuite, 0);
     
+    data->maxFramesBufferable = data->allocatedMemory / data->blockSize;
     data->bytesWritten = 0;
     data->chunkUsed = 0;
     data->skipped = 0;
