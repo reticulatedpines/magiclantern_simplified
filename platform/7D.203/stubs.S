@@ -40,6 +40,18 @@ NSTUB(0x1940, post_isr_hook)
 
 NSTUB(0x67C, next_task_ctx)
 NSTUB(0x680, current_task_ctx)
+                          
+NSTUB(0xFF1F5418, ConnectWriteEDmac)
+NSTUB(0xFF1F54DC, ConnectReadEDmac)
+
+             
+NSTUB(0xFF3D26EC, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
+NSTUB(0xFF3D27CC, PackMem_RegisterEDmacAbortCBRForMemorySuite)
+NSTUB(0xFF3D275C, PackMem_RegisterEDmacPopCBRForMemorySuite)
+NSTUB(0xFF3D2644, PackMem_PopEDmacForMemorySuite)
+NSTUB(0xFF3D24A0, PackMem_SetEDmacForMemorySuite)
+NSTUB(0xFF3D2598, PackMem_StartEDmac)
+
 
 NSTUB(0xFF07AED4, RegisterRPCHandler)
 NSTUB(0xFF07AF84, RequestRPC)
