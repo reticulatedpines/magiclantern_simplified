@@ -65,6 +65,7 @@ ML_OBJS-y = \
 	vsync-lite.o \
 	battery.o \
 	afma.o \
+	chdk-dng.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

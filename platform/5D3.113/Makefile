@@ -69,6 +69,7 @@ ML_OBJS-y = \
 	ph_info_disp.o \
 	flexinfo.o \
 	afma.o \
+	chdk-dng.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

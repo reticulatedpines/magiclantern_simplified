@@ -1111,6 +1111,9 @@ static char* silent_pic_get_name()
     static int prev_folder_number = -1;
     
     char *extension = "422";
+#ifdef FEATURE_SILENT_PIC_RAW
+    extension = "DNG";
+#endif
     
 #ifdef FEATURE_SILENT_PIC_JPG
     if(silent_pic_jpeg)
@@ -1610,6 +1613,35 @@ int busy_vsync(int hd, int timeout_ms)
 #endif
 }
 
+#ifdef FEATURE_SILENT_PIC_RAW
+static void
+silent_pic_take_raw()
+{
+    /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
+    call("lv_save_raw", 1);
+    msleep(50);
+    
+    /* after filling one frame, disable the flag so we can dump the data without tearing */
+    call("lv_save_raw", 0);
+    msleep(50);
+
+    /* try to autodetect image size */
+    uint32_t lv_raw_size = MEMX(RAW_LV_EDMAC+8);
+    int lv_raw_pitch = lv_raw_size & 0xFFFF;
+    int lv_raw_width = lv_raw_pitch * 8 / 14;
+    //~ int lv_raw_height = (lv_raw_size >> 16) & 0xFFFF; // it's zero...
+    int lv_raw_height = lv_raw_width * 21/30; // dumb one-size-fits-all
+    uint32_t lv_raw_addr = MEMX(RAW_LV_EDMAC);
+
+    /* save it to card */
+    char* fn = silent_pic_get_name();
+    bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", lv_raw_width, lv_raw_height);
+    save_dng(fn, lv_raw_addr, lv_raw_width, lv_raw_height);
+    redraw();
+}
+
+#else // who needs 422 when we have raw?
+
 static void
 silent_pic_take_simple(int interactive)
 {
@@ -1725,6 +1757,8 @@ silent_pic_take_simple(int interactive)
         while (get_halfshutter_pressed()) msleep(100);
     }
 }
+#endif
+
 #else // no silent pics, need some dummy stubs
 int silent_pic_preview(){ return 0; }
 #endif
@@ -1846,6 +1880,10 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
     if (!silent_pic_enabled) return;
 
     if (!lv) force_liveview();
+    
+#ifdef FEATURE_SILENT_PIC_RAW
+    silent_pic_take_raw();
+#else
 
     switch(silent_pic_mode)
     {
@@ -1864,6 +1902,7 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
     }
 
     silent_pic_matrix_running = 0;
+#endif
 }
 #endif
 
@@ -5001,6 +5040,16 @@ static struct menu_entry shoot_menus[] = {
     },
     #endif
     #ifdef FEATURE_SILENT_PIC
+    #ifdef FEATURE_SILENT_PIC_RAW
+    {
+        .name = "Silent Picture",
+        .priv = &silent_pic_enabled,
+        .max  = 1,
+        .depends_on = DEP_LIVEVIEW,
+        .help  = "Take pics in LiveView without moving the shutter mechanism.",
+        .help2 = "File format: 14-bit DNG.",
+    },
+    #else // who needs 422 when we have raw?
     {
         .name = "Silent Picture",
         .priv = &silent_pic_enabled,
@@ -5045,6 +5094,7 @@ static struct menu_entry shoot_menus[] = {
             MENU_EOL
         },
     },
+    #endif
     #endif
     #ifdef FEATURE_MLU_HANDHELD
         #ifndef FEATURE_MLU

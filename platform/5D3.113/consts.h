@@ -243,10 +243,10 @@
 #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
 
 #define RAW_IMAGE_BUFFER ((void*)sss_get_raw_image_buffer())
-// #define RAW_BLACK_LEVEL (2048+16) autodetected
 #define RAW_WHITE_LEVEL 16000
 #define RAW_SKIP_H 160 // to ignore the black border 
 #define RAW_SKIP_V 10
+#define RAW_LV_EDMAC 0xc0f26208
 
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 5

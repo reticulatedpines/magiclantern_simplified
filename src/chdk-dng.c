@@ -1,6 +1,8 @@
 /**
  * DNG saving routines ported from CHDK
  * Code stripped down a bit, since we don't care about GPS and advanced exif stuff (at least for now)
+ * 
+ * TODO: make it platform-independent and move it to modules.
  */
 
 #include "dryos.h"
