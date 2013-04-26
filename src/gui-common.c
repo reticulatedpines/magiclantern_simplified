@@ -11,12 +11,17 @@ static int last_time_active = 0;
 int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
 int get_last_time_active() { return last_time_active; }
 
+#ifdef CONFIG_5D3
+extern int cf_card_workaround;
+#endif
+
 #if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
 // disable Canon bottom bar
-static uint32_t orig_DebugMsg_instr = 0;
+static int bottom_bar_hack = 0;
+
 static void hacked_DebugMsg(int class, int level, char* fmt, ...)
 {
-    if (class == 131 && level == 1)
+    if (bottom_bar_hack && class == 131 && level == 1)
     #if defined(CONFIG_5D3)
         MEM(0x3334C) = 0; // LvApp_struct.off_0x60 /*0x3334C*/ = ret_str:JudgeBottomInfoDispTimerState_FF4B0970
     #elif defined(CONFIG_6D)
@@ -28,16 +33,54 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
     #elif defined(CONFIG_650D)
         MEM(0x41868+0x58) = 0;
     #endif
+
+    #ifdef CONFIG_5D3
+    if (cf_card_workaround)
+    {
+        if (class == 34 && level == 1) // cfDMAWriteBlk
+        {
+            for (int i = 0; i < 10000; i++) 
+                asm("nop");
+        }
+    }
+    #endif
     
 #ifdef CONFIG_5D3
     extern int rec_led_off;
     if ((class == 34 || class == 35) && level == 1 && rec_led_off && recording) // cfWriteBlk, sdWriteBlk
         *(uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
 #endif
+
     return;
 }
-#endif
 
+static uint32_t orig_DebugMsg_instr = 0;
+
+static void DebugMsg_hack()
+{
+    if (!orig_DebugMsg_instr)
+    {
+        uint32_t d = (uint32_t)&DryosDebugMsg;
+        orig_DebugMsg_instr = *(uint32_t*)(d);
+        *(uint32_t*)(d) = B_INSTR((uint32_t)&DryosDebugMsg, hacked_DebugMsg);
+    }
+}
+
+static void DebugMsg_uninstall()
+{
+    // uninstall our mean hack (not used)
+    
+    if (orig_DebugMsg_instr)
+    {
+        uint32_t d = (uint32_t)&DryosDebugMsg;
+        *(uint32_t*)(d) = orig_DebugMsg_instr;
+        orig_DebugMsg_instr = 0;
+    }
+}
+
+INIT_FUNC("debugmsg-hack", DebugMsg_hack);
+
+#endif
 
 int handle_other_events(struct event * event)
 {
@@ -80,14 +123,7 @@ int handle_other_events(struct event * event)
     {
         if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
         {
-            // use a modified DebugMsg which disables bottom bar display timer instead of doing what it normally does
-            if (!orig_DebugMsg_instr)
-            {
-                uint32_t d = (uint32_t)&DryosDebugMsg;
-                orig_DebugMsg_instr = *(uint32_t*)(d);
-                *(uint32_t*)(d) = B_INSTR((uint32_t)&DryosDebugMsg, hacked_DebugMsg);
-            }
-            
+            bottom_bar_hack = 1;
             if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
 
             if (UNAVI_FEEDBACK_TIMER_ACTIVE)
@@ -98,14 +134,7 @@ int handle_other_events(struct event * event)
         }
         else
         {
-            // uninstall our mean hack
-            if (orig_DebugMsg_instr)
-            {
-                uint32_t d = (uint32_t)&DryosDebugMsg;
-                *(uint32_t*)(d) = orig_DebugMsg_instr;
-                orig_DebugMsg_instr = 0;
-            }
-
+            bottom_bar_hack  = 0;
             bottom_bar_dirty = 0;
         }
 

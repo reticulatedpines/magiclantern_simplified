@@ -29,12 +29,24 @@ MENU_UPDATE_FUNC(card_info_display)
     MENU_SET_ICON(cf_present ? MNI_ON : MNI_OFF, 0);
 }
 
+/* enable to slow down the write speed, which improves compatibility with certain cards */
+/* only enable if needed */
+CONFIG_INT("cf.workaround", cf_card_workaround, 0);
+
 void card_test(int type)
 {
     // some cards have timing issues on 5D3
     // ML will test for this bug at startup, and refuse to run on cards that can cause trouble
     // http://www.magiclantern.fm/forum/index.php?topic=2528.0
-    
+
+    if (!cf_card_workaround)
+    {
+        /* save the config with workaround enabled now, because if the test fails, we'll no longer able to save it */
+        cf_card_workaround = 1;
+        save_config(0,0);
+        cf_card_workaround = 0;
+    }
+
     if (is_dir(type ? "B:/" : "A:/"))
     {
         FILE* f = FIO_CreateFileEx(type ? "B:/test.dat" : "A:/test.dat");
@@ -57,8 +69,16 @@ void card_test(int type)
             while(1)
             {
                 bmp_fill(COLOR_BLACK, 0, 0, 550, 80);
-                bfnt_puts(type ? "SD card test failed!" : "CF card test failed!", 0, 0, COLOR_WHITE, COLOR_BLACK);
-                bfnt_puts("Do not use this card on 5D3!", 0, 40, COLOR_WHITE, COLOR_BLACK);
+                if (cf_card_workaround==0 && type==0)
+                {
+                    bfnt_puts("CF test fail, enabling workaround.", 0, 0, COLOR_WHITE, COLOR_BLACK);
+                    bfnt_puts("Restart the camera and try again!", 0, 40, COLOR_WHITE, COLOR_BLACK);
+                }
+                else
+                {
+                    bfnt_puts(type ? "SD card test failed!" : "CF card test failed!", 0, 0, COLOR_WHITE, COLOR_BLACK);
+                    bfnt_puts("Do not use this card on 5D3!", 0, 40, COLOR_WHITE, COLOR_BLACK);
+                }
                 beep();
                 info_led_blink(1, 1000, 1000);
             }
@@ -300,7 +320,14 @@ struct menu_entry card_menus[] = {
                 .name = "Card test at startup", 
                 .priv = &card_test_enabled,
                 .max = 1,
-                .help = "File write test. Disable ONLY after testing ALL your cards!"
+                .help = "File write test. Some cards may have compatibility issues.",
+            },
+            {
+                .name = "CF card workaround",
+                .priv = &cf_card_workaround,
+                .max = 1,
+                .help = "Slows down the CF write speed to let you use certain cards.",
+                .help2 = "(e.g. Kingston 16GB 266x is known to require this)"
             },
             {
                 .name = "Preferred card", 
