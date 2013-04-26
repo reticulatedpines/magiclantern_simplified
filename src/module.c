@@ -17,6 +17,7 @@ static struct menu_entry module_submenu[];
 static struct menu_entry module_menu[];
 
 CONFIG_INT("module.autoload", module_autoload_enabled, 0);
+CONFIG_INT("module.console", module_console_enabled, 0);
 
 static struct msg_queue * module_mq = 0;
 #define MSG_MODULE_LOAD_ALL 1
@@ -319,6 +320,11 @@ static void _module_load_all(void)
     
     module_state = state;
     console_printf("Modules loaded\n");
+    
+    if(!module_console_enabled)
+    {
+        console_hide();
+    }
 }
 
 static void _module_unload_all(void)
@@ -707,7 +713,7 @@ static void module_submenu_update(int mod_number)
 
 static MENU_SELECT_FUNC(module_menu_load)
 {
-    console_show(); /* for debugging only */
+    console_show();
     module_load_all();
 }
 
@@ -831,6 +837,12 @@ static struct menu_entry module_menu[] = {
         .priv = &module_autoload_enabled,
         .max = 1,
         .help = "Loads modules every startup",
+    },
+    {
+        .name = "Show console",
+        .priv = &module_console_enabled,
+        .max = 1,
+        .help = "Keep console shown after modules were loaded",
     },
     {
         .name = "----Modules----",
