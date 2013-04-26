@@ -2733,6 +2733,12 @@ static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
         
         union edmac_size_t size = (union edmac_size_t) shamem_read(base + (i<<8) + 0x10);
         
+        int state = MEM(base + (i<<8) + 0);
+        int color = 
+            state == 0 ? COLOR_GRAY(50) :   // inactive?
+            state == 1 ? COLOR_GREEN1 :     // active?
+            COLOR_RED;                      // no idea
+        
         if (addr && size.size.x > 0 && size.size.y > 0)
         {
             snprintf(msg, sizeof(msg), "[%x] %8x: %dx%d", i0+i, addr, size.size.x, size.size.y);
@@ -2742,8 +2748,11 @@ static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
             snprintf(msg, sizeof(msg), "[%x] %8x: %x", i0+i, addr, size.raw);
         }
         
+        if (color == COLOR_RED)
+            STR_APPEND(msg, " (%x)", state);
+        
         bmp_printf(
-            FONT_MED,
+            FONT(FONT_MED, color, COLOR_BLACK),
             x0, y0 + i * font_med.height, 
             msg
         );
@@ -2758,6 +2767,23 @@ static MENU_UPDATE_FUNC(edmac_display)
 
     edmac_display_page(0, 0xC0F04000, 20, 30);
     edmac_display_page(16, 0xC0F26000, 360, 30);
+
+
+    int x = 20;
+    bmp_printf(
+        FONT_MED,
+        20, 450, "EDMAC state: "
+    );
+
+    bmp_printf(
+        FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK),
+        20+200, 450, "inactive"
+    );
+
+    bmp_printf(
+        FONT(FONT_MED, COLOR_GREEN1, COLOR_BLACK),
+        20+350, 450, "running"
+    );
 }
 #endif
 
