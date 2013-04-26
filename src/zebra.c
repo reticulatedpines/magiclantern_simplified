@@ -4326,6 +4326,7 @@ cropmark_redraw()
 }
 #endif
 
+#ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
 static void trigger_zebras_for_qr()
 {
     fake_simple_button(BTN_ZEBRAS_FOR_PLAYBACK);
@@ -4333,6 +4334,7 @@ static void trigger_zebras_for_qr()
     if (BTN_ZEBRAS_FOR_PLAYBACK == BGMT_PRESS_DISP) fake_simple_button(BGMT_UNPRESS_DISP);
     #endif
 }
+#endif
 
 PROP_HANDLER(PROP_GUI_STATE)
 {
