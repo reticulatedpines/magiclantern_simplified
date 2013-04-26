@@ -17,8 +17,8 @@ static void allocCBR(unsigned int a, struct memSuite *hSuite)
     /* in case we timed out last time, immediately free the newly allocated suite (its the one that timed out) */
     if(alloc_sem_timed_out)
     {
-        FreeMemoryResource(hSuite, freeCBR, 0);
         alloc_sem_timed_out = 0;
+        shoot_free_suite(hSuite);
         return;
     }
     MEM(a) = (unsigned int)hSuite;
@@ -94,23 +94,53 @@ unsigned int exmem_clear(struct memSuite * hSuite, char fill)
     return written;
 }
 
+/* when size is set to zero, it will try to allocate the maximum possible block */
 struct memSuite *shoot_malloc_suite(size_t size)
 {
-    struct memSuite * hSuite = 0;
+    struct memSuite * hSuite = NULL;
     
-    /* reset timeout flag */
-    alloc_sem_timed_out = 0;
-    AllocateMemoryResource(size, allocCBR, (unsigned int)&hSuite, 0x50);
-    
-    int r = take_semaphore(alloc_sem, 1000);
-    if (r)
+    if(size > 0)
     {
-        alloc_sem_timed_out = 1;
-        return NULL;
+        /* reset timeout flag */
+        alloc_sem_timed_out = 0;
+        AllocateMemoryResource(size, allocCBR, (unsigned int)&hSuite, 0x50);
+        
+        int r = take_semaphore(alloc_sem, 100);
+        if (r)
+        {
+            alloc_sem_timed_out = 1;
+            return NULL;
+        }
+    }
+    else
+    {
+        /* allocate some backup that will service the queued allocation request that fails during the loop */
+        int backup_size = 4 * 1024 * 1024;
+        int max_size = 0;
+        struct memSuite *backup = shoot_malloc_suite(backup_size);
+
+        for(int size = 1; size < 1024; size++)
+        {
+            struct memSuite *testSuite = shoot_malloc_suite(size * 1024 * 1024);
+            if(testSuite)
+            {
+                shoot_free_suite(testSuite);
+                max_size = size * 1024 * 1024 + backup_size;
+            }
+            else
+            {
+                break;
+            }
+        }
+        /* now free the backup suite. this causes the queued allocation before to get finished. as we timed out, it will get freed immediately in exmem.c:allocCBR */
+        shoot_free_suite(backup);
+        
+        hSuite = shoot_malloc_suite(max_size);
     }
     
     return hSuite;
 }
+
 
 void shoot_free_suite(struct memSuite * hSuite)
 {
