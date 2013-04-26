@@ -123,3 +123,6 @@
 
 /** This camera has a low-resolution display, may require some antialiasing tricks for icons/fonts */
 #define CONFIG_LOW_RESOLUTION_DISPLAY
+
+/** Advanced EXMEM stubs are known and can be used */
+#define CONFIG_FULL_EXMEM_SUPPORT

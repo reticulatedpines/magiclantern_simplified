@@ -46,6 +46,7 @@ struct memChunk
 unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file)
 {
     unsigned int written = 0;
+#ifdef CONFIG_FULL_EXMEM_SUPPORT
     
     FILE *f = FIO_CreateFileEx(file);
     if (f != (void*) -1)
@@ -68,12 +69,14 @@ unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file)
         FIO_CloseFile(f);
     }
     
+#endif
     return written;
 }
 
 unsigned int exmem_clear(struct memSuite * hSuite, char fill)
 {
     unsigned int written = 0;
+#ifdef CONFIG_FULL_EXMEM_SUPPORT
     
     struct memChunk *currentChunk;
     unsigned char *chunkAddress;
@@ -90,7 +93,7 @@ unsigned int exmem_clear(struct memSuite * hSuite, char fill)
         written += chunkAvail;
         currentChunk = GetNextMemoryChunk(hSuite, currentChunk);
     }
-
+#endif
     return written;
 }
 
@@ -190,7 +193,7 @@ void shoot_free(void* ptr)
 
 void exmem_test()
 {
-#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_5D2) || defined(CONFIG_6D) || defined(CONFIG_1100D)
+#ifdef CONFIG_FULL_EXMEM_SUPPORT
     struct memSuite * hSuite = 0;
     struct memChunk * hChunk = 0;
     
@@ -230,28 +233,6 @@ void exmem_test()
     msleep(2000);
     shoot_free(p);
     info_led_off();
-#endif
-}
-
-void exmem_dump_suite(struct memSuite * hSuite, char* filename)
-{
-#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_5D2) || defined(CONFIG_6D) || defined(CONFIG_1100D)
-    if(!hSuite) return;
-
-    struct memChunk * hChunk = GetFirstChunkFromSuite(hSuite);
-    
-    FILE* f = FIO_CreateFileEx(filename);
-    
-    while(hChunk)
-    {
-        void* addr = GetMemoryAddressOfMemoryChunk(hChunk);
-        int size = GetSizeOfMemoryChunk(hChunk);
-        DryosDebugMsg(3, 33, "[%x] chunk=%x addr=%x size=%x", hSuite, hChunk, addr, size);
-        FIO_WriteFile(f, addr, size);
-        
-        hChunk = GetNextMemoryChunk(hSuite, hChunk);
-    }
-    FIO_CloseFile(f);
 #endif
 }
 
