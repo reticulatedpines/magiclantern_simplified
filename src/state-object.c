@@ -118,16 +118,16 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 
 static void vsync_func() // called once per frame.. in theory :)
 {
-#if defined(CONFIG_MODULES)
+    #if defined(CONFIG_MODULES)
     module_exec_cbr(CBR_VSYNC);
-#endif
+    #endif
 
     #if !defined(CONFIG_EVF_STATE_SYNC)
     // for those cameras, it's called from a different spot of the evf state object
     hdr_step();
     #endif
 
-    #ifndef CONFIG_DIGIC_V
+    #if !defined(CONFIG_DIGIC_V) && !defined(CONFIG_7D)
     vignetting_correction_apply_regs();
     #endif
 
@@ -229,6 +229,9 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
     if (self == LV_STATE && input==3 && old_state == 3)
     {
         vignetting_correction_apply_lvmgr(x);
+        #if !defined(CONFIG_7D_MASTER)
+        vsync_func();
+        #endif
     }
     #endif
 
