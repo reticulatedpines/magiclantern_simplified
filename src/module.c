@@ -10,6 +10,10 @@
 
 extern int sscanf(const char *str, const char *format, ...);
 
+
+/* this must be public as it is used by modules */
+char *module_card_drive = CARD_DRIVE;
+
 static module_entry_t module_list[MODULE_COUNT_MAX];
 static TCCState *module_state = NULL;
 

@@ -38,7 +38,7 @@
 /* update major if older modules will *not* be compatible */
 #define MODULE_MAJOR 1
 /* update minor if older modules will be compatible, but newer module will not run on older magic lantern versions */
-#define MODULE_MINOR 0
+#define MODULE_MINOR 1
 /* update patch if nothing regarding to compatibility changes */
 #define MODULE_PATCH 0
 
@@ -165,6 +165,8 @@ typedef struct
                                                                 };
 
 #if defined(MODULE)
+extern char *module_card_drive;
+#define MODULE_CARD_DRIVE                                       module_card_drive
 #define PROP_HANDLER(id)                                        MODULE_PROP_ENTRY_(MODULE_PROPHANDLER_PREFIX,MODULE_NAME, id, #id)
 #define MODULE_PROP_ENTRY_(prefix,modname,id,idstr)             MODULE_PROP_ENTRY__(prefix,modname,id,idstr)
 #define MODULE_PROP_ENTRY__(prefix,modname,id,idstr)            void prefix##modname##_##id(unsigned int, void *, void *, unsigned int);\
