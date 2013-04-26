@@ -292,10 +292,10 @@ void lv_rec_start()
         data->dmaFlags = 0x20000000;
         data->maxFrames = 2000;
         /* read from YUV connection */
-        source_conn = 0x19;
+        source_conn = 0x1B;
     }
     
-    data->dmaChannel = 0x13;
+    data->dmaChannel = 0x12;
     ConnectWriteEDmac(data->dmaChannel, source_conn);
     PackMem_SetEDmacForMemorySuite(data->dmaChannel, data->memSuite, 0);
     
