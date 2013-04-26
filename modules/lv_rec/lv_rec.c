@@ -10,31 +10,38 @@ void lv_rec_stop();
 unsigned int exmem_clear(struct memSuite * hSuite, char fill);
 unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file);
 
+/* this struct contains all necessary processing information */
 typedef struct
 {
-    int running;
-    int finished;
-    int abort;
-    int skipped;
+    /* processing state */
+    unsigned int running;
+    unsigned int finished;
+    unsigned int abort;
+    unsigned int skipped;
     
-    int capturedFrames;
-    int savedFrames;
-    int maxFrames;
-    int maxFramesBufferable;
+    /* counters and positions */
+    unsigned int capturedFrames;
+    unsigned int savedFrames;
+    unsigned int maxFrames;
+    unsigned int maxFramesBufferable;
     
-    int bytesWritten;
+    /* menu options */
+    unsigned int rawMode;
+    unsigned int singleFile;
+    unsigned int frameSkip;
     
-    
+    /* chunks etc */
     struct memSuite *memSuite;
-    struct memChunk *currentChunk;
-    int allocatedMemory;
-    
+    unsigned int allocatedMemory;
     unsigned int blockSize;
-    unsigned char *vramAddress;
+    
+    /* chunk processing pointers */
+    struct memChunk *currentChunk;
     unsigned char *chunkAddress;
     unsigned int chunkAvail;
     unsigned int chunkUsed;
     
+    /* EDMAC parameters */
     unsigned int dmaChannel;
     unsigned int dmaFlags;
 } lv_rec_data_t;
@@ -43,6 +50,7 @@ typedef struct
 int lv_rec_ring_mode = 1;
 int lv_rec_raw_mode = 0;
 int lv_rec_single_file = 0;
+int lv_rec_frame_skip = 1;
     
 static lv_rec_data_t *lv_rec_state = NULL;
 
@@ -90,6 +98,13 @@ static struct menu_entry lv_rec_menu[] =
         .select = (void (*)(void*,int))lv_rec_create_task,
         .update = lv_rec_menu_update,
         .help = "Start recording",
+    },
+    {
+        .name = "Frame skipping",
+        .priv = &lv_rec_frame_skip,
+        .min = 1,
+        .max = 20,
+        .help = "Record every n-th frame",
     },
     {
         .name = "Single file",
@@ -180,7 +195,7 @@ unsigned int lv_rec_vsync_cbr(unsigned int ctx)
         
         if(lv_rec_state->capturedFrames >= lv_rec_state->maxFrames || (lv_rec_state->capturedFrames - lv_rec_state->savedFrames) >= lv_rec_state->maxFramesBufferable)
         {
-            PopEDmacForMemorySuite(lv_rec_state->dmaChannel);
+            PackMem_PopEDmacForMemorySuite(lv_rec_state->dmaChannel);
             lv_rec_state->finished = 1;
             lv_rec_state = NULL;
             return 0;
@@ -223,6 +238,12 @@ void lv_rec_start()
     data->allocatedMemory = lv_rec_get_memsize(data->memSuite);
     bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Allocated %d MiB", data->allocatedMemory/1024/1024);
 
+    
+    /* menu options */
+    data->frameSkip = lv_rec_frame_skip;
+    data->rawMode = lv_rec_raw_mode;
+    data->singleFile = lv_rec_single_file;
+    
     int start_number;
     char imgname[100];
     /* offset in current chunk */
@@ -232,17 +253,17 @@ void lv_rec_start()
     /* get first available file name */    
     for (start_number = 0 ; start_number < 1000; start_number++)
     {
-        if(lv_rec_raw_mode)
+        if(data->rawMode)
         {
-            snprintf(imgname, sizeof(imgname), "MOV%04d.RAW", start_number);
+            snprintf(imgname, sizeof(imgname), "%sMOV%04d.RAW", MODULE_CARD_DRIVE, start_number);
         }
-        else if(lv_rec_single_file)
+        else if(data->singleFile)
         {
-            snprintf(imgname, sizeof(imgname), "MOV%04d.422", start_number);
+            snprintf(imgname, sizeof(imgname), "%sMOV%04d.422", MODULE_CARD_DRIVE, start_number);
         }
         else
         {
-            snprintf(imgname, sizeof(imgname), "VRAM%04d.422", start_number);
+            snprintf(imgname, sizeof(imgname), "%sVRAM%04d.422", MODULE_CARD_DRIVE, start_number);
         }
         
         uint32_t size;
@@ -252,7 +273,7 @@ void lv_rec_start()
     
     int source_conn = 0x00;
     
-    if(lv_rec_raw_mode)
+    if(data->rawMode)
     {
         /* copy 8 bytes per transfer */
         data->dmaFlags = 0x20001000;
@@ -271,22 +292,14 @@ void lv_rec_start()
         data->dmaFlags = 0x20000000;
         data->maxFrames = 2000;
         /* read from YUV connection */
-        source_conn = 0x1B;
+        source_conn = 0x19;
     }
     
-    data->dmaChannel = 0x12;
+    data->dmaChannel = 0x13;
     ConnectWriteEDmac(data->dmaChannel, source_conn);
     PackMem_SetEDmacForMemorySuite(data->dmaChannel, data->memSuite, 0);
     
     data->maxFramesBufferable = data->allocatedMemory / data->blockSize;
-    data->bytesWritten = 0;
-    data->chunkUsed = 0;
-    data->skipped = 0;
-    data->capturedFrames = 0;
-    data->savedFrames = 0;
-    data->abort = 0;
-    data->running = 0;
-    data->finished = 0;
     
     memcpy(save_data, data, sizeof(lv_rec_data_t));
     
@@ -301,17 +314,17 @@ void lv_rec_start()
         {
             if(data->capturedFrames > data->savedFrames)
             {
-                if(lv_rec_single_file || lv_rec_raw_mode)
+                if(data->singleFile || data->rawMode)
                 {
                     if(!save_file)
                     {
-                        if(lv_rec_raw_mode)
+                        if(data->rawMode)
                         {
-                            snprintf(imgname, sizeof(imgname), "MOV%04d.RAW", start_number + data->savedFrames);
+                            snprintf(imgname, sizeof(imgname), "%sMOV%04d.RAW", MODULE_CARD_DRIVE, start_number);
                         }
                         else
                         {
-                            snprintf(imgname, sizeof(imgname), "MOV%04d.422", start_number + data->savedFrames);
+                            snprintf(imgname, sizeof(imgname), "%sMOV%04d.422", MODULE_CARD_DRIVE, start_number);
                         }
                         bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * (yPos+1), "Saving '%s'", imgname);
                         save_file = FIO_CreateFileEx(imgname);
@@ -343,7 +356,10 @@ void lv_rec_start()
                             }
                             unsigned int avail = MIN(save_data->chunkAvail, remain);
                             
-                            FIO_WriteFile(save_file, UNCACHEABLE(&save_data->chunkAddress[offset]), avail);
+                            if((data->savedFrames % data->frameSkip) == 0)
+                            {
+                                FIO_WriteFile(save_file, UNCACHEABLE(&save_data->chunkAddress[offset]), avail);
+                            }
                             remain -= avail;
                             offset += avail;
                             save_data->chunkAvail -= avail;
@@ -358,42 +374,51 @@ void lv_rec_start()
                 }
                 else
                 {
-                    snprintf(imgname, sizeof(imgname), "VRAM%04d.422", start_number + data->savedFrames);
-                    bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * (yPos+1), "Saving '%s'", imgname);
-                    save_file = FIO_CreateFileEx(imgname);
+                    if((data->savedFrames % data->frameSkip) == 0)
+                    {
+                        snprintf(imgname, sizeof(imgname), "%sVRAM%04d.422", MODULE_CARD_DRIVE, start_number + (data->savedFrames / data->frameSkip));
+                        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * (yPos+1), "Saving '%s'", imgname);
+                        save_file = FIO_CreateFileEx(imgname);
+                    }
 
                     if(save_file)
                     {
-                        unsigned int remain = data->blockSize;
-                        while(remain > 0)
-                        {
-                            /* get next chunk in buffer */
-                            if(!save_data->chunkAvail)
+                            unsigned int remain = data->blockSize;
+                            while(remain > 0)
                             {
-                                lv_rec_next_chunk(save_data);
-                                offset = 0;
+                                /* get next chunk in buffer */
+                                if(!save_data->chunkAvail)
+                                {
+                                    lv_rec_next_chunk(save_data);
+                                    offset = 0;
+                                }
+                                
+                                /* end of suite reached, wrap over */
+                                if(!save_data->chunkAvail)
+                                {
+                                    save_data->currentChunk = NULL;
+                                    lv_rec_next_chunk(save_data);
+                                }
+                                
+                                if(!save_data->chunkAvail)
+                                {
+                                    bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to get next data");
+                                    break;
+                                }
+                                unsigned int avail = MIN(save_data->chunkAvail, remain);
+                                
+                                if((data->savedFrames % data->frameSkip) == 0)
+                                {
+                                    FIO_WriteFile(save_file, UNCACHEABLE(&save_data->chunkAddress[offset]), avail);
+                                }
+                                remain -= avail;
+                                offset += avail;
+                                save_data->chunkAvail -= avail;
                             }
-                            
-                            /* end of suite reached, wrap over */
-                            if(!save_data->chunkAvail)
+                            if((data->savedFrames % data->frameSkip) == 0)
                             {
-                                save_data->currentChunk = NULL;
-                                lv_rec_next_chunk(save_data);
+                                FIO_CloseFile(save_file);
                             }
-                            
-                            if(!save_data->chunkAvail)
-                            {
-                                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to get next data");
-                                break;
-                            }
-                            unsigned int avail = MIN(save_data->chunkAvail, remain);
-                            
-                            FIO_WriteFile(save_file, UNCACHEABLE(&save_data->chunkAddress[offset]), avail);
-                            remain -= avail;
-                            offset += avail;
-                            save_data->chunkAvail -= avail;
-                        }
-                        FIO_CloseFile(save_file);
                     }
                     else
                     {
@@ -413,13 +438,13 @@ void lv_rec_start()
             msleep(200);
         }
         
-        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos, "%s, %d buffered, %d saved  ", (data->finished?"Finished":(data->running?"Recording":"Wait.....")), data->capturedFrames - data->savedFrames, data->savedFrames);
+        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos, "%s, %d buffered, %d saved  ", (data->finished?"Finished":(data->running?"Recording":"Wait.....")), data->capturedFrames - data->savedFrames, data->savedFrames / data->frameSkip);
     }
     yPos++;
     
     if(lv_rec_ring_mode)
     {
-        if(lv_rec_single_file || lv_rec_raw_mode)
+        if(data->singleFile || data->rawMode)
         {
             FIO_CloseFile(save_file);
         }
@@ -427,7 +452,7 @@ void lv_rec_start()
     else
     {
         bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * ++yPos, "Saving");
-        if(lv_rec_single_file || lv_rec_raw_mode)
+        if(data->singleFile || data->rawMode)
         {
             /* save one single file */
             bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * ++yPos, "Saved: 0x%08X", exmem_save_buffer(data->memSuite, "DATA.BIN"));
@@ -454,9 +479,9 @@ void lv_rec_start()
             unsigned int offset = 0;
             
             /* now save all capturedFrames frames */
-            for(int frame_num = 0; frame_num < data->capturedFrames; frame_num++)
+            for(unsigned int frame_num = 0; frame_num < data->capturedFrames; frame_num++)
             {
-                snprintf(imgname, sizeof(imgname), "VRAM%d.422", start_number + frame_num);
+                snprintf(imgname, sizeof(imgname), "%sVRAM%d.422", MODULE_CARD_DRIVE, start_number + frame_num);
                 bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos, "Saving '%s'", imgname);
                 FILE* f = FIO_CreateFileEx(imgname);
                 
