@@ -164,7 +164,7 @@ static void tskmon_stack_checker(struct task *next_task)
     tskmon_task_stack_check[id] = 0;
 
     /* at 1024 it gives warning for PowerMgr task */
-    if (free < 512)
+    if (free < 256)
     {
         char* task_name = get_task_name_from_id(id);
         
