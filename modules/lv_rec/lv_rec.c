@@ -10,6 +10,52 @@ void lv_rec_stop();
 unsigned int exmem_clear(struct memSuite * hSuite, char fill);
 unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file);
 
+
+/* menu options */
+typedef struct
+{
+    unsigned int rawMode;
+    unsigned int singleFile;
+    unsigned int frameSkip;
+    unsigned int linesToSkip;
+} lv_rec_options_t;
+
+
+/* chunk processing pointers */
+typedef struct
+{
+    struct memSuite *memSuite;
+    struct memChunk *currentChunk;
+    unsigned char *chunkAddress;
+    unsigned int chunkAvail;
+    unsigned int chunkUsed;
+    unsigned int chunkOffset;
+} lv_rec_chunk_data_t;
+
+/* this struct contains all necessary processing information */
+typedef struct
+{
+    FILE *handle;
+    char fileName[32];
+    char filePrefix[5];
+    char fileSuffix[4];
+    
+    unsigned int handleWritten;
+    unsigned int fileSeqNum;
+    
+    /* chunks etc */
+    lv_rec_chunk_data_t chunkData;
+    
+    lv_rec_options_t options;
+    
+    /* resolution info */
+    unsigned int width;
+    unsigned int height;
+    unsigned int bytesPerLine;
+    unsigned int frameSize;
+    
+} lv_rec_save_data_t;
+
 /* this struct contains all necessary processing information */
 typedef struct
 {
@@ -25,28 +71,10 @@ typedef struct
     unsigned int maxFrames;
     unsigned int maxFramesBufferable;
     
-    /* resolution info */
-    unsigned int width;
-    unsigned int height;
-    unsigned int bytesPerLine;
-    unsigned int linesToSkip;
-    
-    /* menu options */
-    unsigned int rawMode;
-    unsigned int singleFile;
-    unsigned int frameSkip;
+    lv_rec_options_t options;
     
     /* chunks etc */
-    struct memSuite *memSuite;
-    unsigned int allocatedMemory;
-    unsigned int blockSize;
-    
-    /* chunk processing pointers */
-    struct memChunk *currentChunk;
-    unsigned char *chunkAddress;
-    unsigned int chunkAvail;
-    unsigned int chunkUsed;
-    unsigned int chunkOffset;
+    lv_rec_chunk_data_t chunkData;
     
     /* EDMAC parameters */
     unsigned int dmaChannel;
@@ -57,10 +85,10 @@ typedef struct
 /* in ring buffer mode, data is saved while recording -> more throughput */
 int lv_rec_ring_mode = 1;
 int lv_rec_raw_mode = 0;
-int lv_rec_single_file = 0;
+int lv_rec_single_file = 1;
 int lv_rec_frame_skip = 1;
 int lv_rec_line_skip = 0;
-int lv_rec_line_skip_preset = 0;
+int lv_rec_line_skip_preset = 3;
     
 static lv_rec_data_t *lv_rec_state = NULL;
 
@@ -76,43 +104,35 @@ void lv_rec_create_task(int priv, int delta)
     task_create("lv_rec_task", 0x1a, 0x1000, lv_rec_menu_start, (void*)delta);
 }
 
-static MENU_UPDATE_FUNC(lv_rec_menu_update)
+void lv_rec_update_preset()
 {
     struct vram_info *vram = get_yuv422_hd_vram();
+    int presets[] = { 0, 1080, 960, 720, 480 };
 
-    switch(lv_rec_line_skip_preset)
+    int preset_yres = presets[COERCE(lv_rec_line_skip_preset, 0, sizeof(presets)/sizeof(presets[0]))];
+    if(preset_yres != 0)
     {
-        case 0:
-            break;
-        case 1:
-            if(vram->height > 1080)
-            {
-                lv_rec_line_skip = (vram->height - 1080) / 2;
-            }
-            break;
-        case 2:
-            if(vram->height > 960)
-            {
-                lv_rec_line_skip = (vram->height - 960) / 2;
-            }
-            break;
-        case 3:
-            if(vram->height > 720)
-            {
-                lv_rec_line_skip = (vram->height - 720) / 2;
-            }
-            break;
-        case 4:
-            if(vram->height > 480)
-            {
-                lv_rec_line_skip = (vram->height - 480) / 2;
-            }
-            break;
+        if(vram->height >= preset_yres)
+        {
+            lv_rec_line_skip = (vram->height - preset_yres) / 2;
+        }
+        else
+        {
+            lv_rec_line_skip = 0;
+        }
     }
+}
+
+static MENU_UPDATE_FUNC(lv_rec_menu_update)
+{
+    lv_rec_update_preset();
+    
+    struct vram_info *vram = get_yuv422_hd_vram();
+    int yres = vram->height - 2*lv_rec_line_skip;
     
     MENU_SET_VALUE(
         "%dx%d",
-        vram->width, vram->height - 2*lv_rec_line_skip
+        vram->width, yres
     );
 
     if(lv_rec_raw_mode)
@@ -125,7 +145,7 @@ static MENU_UPDATE_FUNC(lv_rec_menu_update)
     {
         MENU_SET_HELP(
             "YUV422 MODE: Saving %d bytes per frame",
-            vram->width * vram->height * 2
+            vram->width * yres * 2
         );
     }
 }
@@ -140,20 +160,6 @@ static struct menu_entry lv_rec_menu[] =
         .help = "Start recording",
     },
     {
-        .name = "Frame skipping",
-        .priv = &lv_rec_frame_skip,
-        .min = 1,
-        .max = 20,
-        .help = "Record every n-th frame",
-    },
-    {
-        .name = "Line skipping",
-        .priv = &lv_rec_line_skip,
-        .min = 0,
-        .max = 400,
-        .help = "Drop that amount of lines on top and bottom each",
-    },
-    {
         .name = "Resolution preset", 
         .priv = &lv_rec_line_skip_preset,
         .min = 0,
@@ -162,10 +168,24 @@ static struct menu_entry lv_rec_menu[] =
         .help = "Set line skipping to get this resolution"
     },
     {
+        .name = "Crop amount top/bot",
+        .priv = &lv_rec_line_skip,
+        .min = 0,
+        .max = 400,
+        .help = "Drop that amount of lines on top and bottom each",
+    },
+    {
+        .name = "Frame skip",
+        .priv = &lv_rec_frame_skip,
+        .min = 1,
+        .max = 20,
+        .help = "Record every n-th frame",
+    },
+    {
         .name = "Single file",
         .priv = &lv_rec_single_file,
         .max = 1,
-        .help = "Record into one single file (a bit faster)",
+        .help = "Record into one single file (it is faster)",
     },
     /*
     {
@@ -202,7 +222,7 @@ int lv_rec_get_memsize(struct memSuite *suite)
     return size;
 }
 
-void lv_rec_next_chunk(lv_rec_data_t *data)
+void lv_rec_next_chunk(lv_rec_chunk_data_t *data)
 {
     data->chunkAddress = NULL;
     data->chunkAvail = 0;
@@ -230,33 +250,35 @@ void lv_rec_next_chunk(lv_rec_data_t *data)
 
 unsigned int lv_rec_vsync_cbr(unsigned int ctx)
 {
-    if(!lv_rec_state)
+    lv_rec_data_t *data = lv_rec_state;
+    
+    if(!data)
     {
         return 0;
     }
     
-    if(lv_rec_state->abort)
+    if(data->abort)
     {
-        lv_rec_state->finished = 1;
+        data->finished = 1;
         lv_rec_state = NULL;
         return 0;
     }
     
-    if(!lv_rec_state->running)
+    if(!data->running)
     {
-        lv_rec_state->running = 1;
-        ConnectWriteEDmac(lv_rec_state->dmaChannel, lv_rec_state->dmaSourceConn);
-        PackMem_SetEDmacForMemorySuite(lv_rec_state->dmaChannel, lv_rec_state->memSuite, lv_rec_state->dmaFlags);
-        PackMem_StartEDmac(lv_rec_state->dmaChannel, 0);
+        data->running = 1;
+        ConnectWriteEDmac(data->dmaChannel, data->dmaSourceConn);
+        PackMem_SetEDmacForMemorySuite(data->dmaChannel, data->chunkData.memSuite, data->dmaFlags);
+        PackMem_StartEDmac(data->dmaChannel, 0);
     }
     else
     {
-        lv_rec_state->capturedFrames++;
+        data->capturedFrames++;
         
-        if(lv_rec_state->capturedFrames >= lv_rec_state->maxFrames || (lv_rec_state->capturedFrames - lv_rec_state->savedFrames) >= lv_rec_state->maxFramesBufferable)
+        if(data->capturedFrames >= data->maxFrames || (data->capturedFrames - data->savedFrames) >= data->maxFramesBufferable)
         {
-            PackMem_PopEDmacForMemorySuite(lv_rec_state->dmaChannel);
-            lv_rec_state->finished = 1;
+            PackMem_PopEDmacForMemorySuite(data->dmaChannel);
+            data->finished = 1;
             lv_rec_state = NULL;
             return 0;
         }
@@ -265,258 +287,283 @@ unsigned int lv_rec_vsync_cbr(unsigned int ctx)
     return 0;
 }
 
-void lv_rec_save_frame(FILE *save_file, lv_rec_data_t *save_data, int skip_saving)
+unsigned int lv_rec_save_frame(FILE *save_file, lv_rec_save_data_t *save_data, int skip_saving)
 {
-    unsigned int skipBefore = save_data->linesToSkip * save_data->bytesPerLine;
-    unsigned int skipAfter = save_data->linesToSkip * save_data->bytesPerLine;
-    unsigned int payload = save_data->blockSize - skipBefore - skipAfter;
+    unsigned int skipBefore = save_data->options.linesToSkip * save_data->bytesPerLine;
+    unsigned int skipAfter = save_data->options.linesToSkip * save_data->bytesPerLine;
+    unsigned int payload = save_data->frameSize - skipBefore - skipAfter;
+    unsigned int written = 0;
     
     while(skipBefore > 0)
     {
         /* get next chunk in buffer */
-        if(!save_data->chunkAvail)
+        if(!save_data->chunkData.chunkAvail)
         {
-            lv_rec_next_chunk(save_data);
+            lv_rec_next_chunk(&save_data->chunkData);
         }
         
         /* end of suite reached, wrap over */
-        if(!save_data->chunkAvail)
+        if(!save_data->chunkData.chunkAvail)
         {
-            save_data->currentChunk = NULL;
-            lv_rec_next_chunk(save_data);
+            save_data->chunkData.currentChunk = NULL;
+            lv_rec_next_chunk(&save_data->chunkData);
         }
         
-        if(!save_data->chunkAvail)
+        if(!save_data->chunkData.chunkAvail)
         {
             break;
         }
-        unsigned int avail = MIN(save_data->chunkAvail, skipBefore);
+        unsigned int avail = MIN(save_data->chunkData.chunkAvail, skipBefore);
         
         skipBefore -= avail;
-        save_data->chunkOffset += avail;
-        save_data->chunkAvail -= avail;
+        save_data->chunkData.chunkOffset += avail;
+        save_data->chunkData.chunkAvail -= avail;
     }
     
     while(payload > 0)
     {
         /* get next chunk in buffer */
-        if(!save_data->chunkAvail)
+        if(!save_data->chunkData.chunkAvail)
         {
-            lv_rec_next_chunk(save_data);
+            lv_rec_next_chunk(&save_data->chunkData);
         }
         
         /* end of suite reached, wrap over */
-        if(!save_data->chunkAvail)
+        if(!save_data->chunkData.chunkAvail)
         {
-            save_data->currentChunk = NULL;
-            lv_rec_next_chunk(save_data);
+            save_data->chunkData.currentChunk = NULL;
+            lv_rec_next_chunk(&save_data->chunkData);
         }
         
-        if(!save_data->chunkAvail)
+        if(!save_data->chunkData.chunkAvail)
         {
-            //bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to get next data");
             break;
         }
-        unsigned int avail = MIN(save_data->chunkAvail, payload);
+        unsigned int avail = MIN(save_data->chunkData.chunkAvail, payload);
         
         if(!skip_saving)
         {
-            FIO_WriteFile(save_file, UNCACHEABLE(&save_data->chunkAddress[save_data->chunkOffset]), avail);
+            FIO_WriteFile(save_file, UNCACHEABLE(&save_data->chunkData.chunkAddress[save_data->chunkData.chunkOffset]), avail);
+            written += avail;
         }
         payload -= avail;
-        save_data->chunkOffset += avail;
-        save_data->chunkAvail -= avail;
+        save_data->chunkData.chunkOffset += avail;
+        save_data->chunkData.chunkAvail -= avail;
     }
     
     while(skipAfter > 0)
     {
         /* get next chunk in buffer */
-        if(!save_data->chunkAvail)
+        if(!save_data->chunkData.chunkAvail)
         {
-            lv_rec_next_chunk(save_data);
+            lv_rec_next_chunk(&save_data->chunkData);
         }
         
         /* end of suite reached, wrap over */
-        if(!save_data->chunkAvail)
+        if(!save_data->chunkData.chunkAvail)
         {
-            save_data->currentChunk = NULL;
-            lv_rec_next_chunk(save_data);
+            save_data->chunkData.currentChunk = NULL;
+            lv_rec_next_chunk(&save_data->chunkData);
         }
         
-        if(!save_data->chunkAvail)
+        if(!save_data->chunkData.chunkAvail)
         {
             break;
         }
-        unsigned int avail = MIN(save_data->chunkAvail, skipAfter);
+        unsigned int avail = MIN(save_data->chunkData.chunkAvail, skipAfter);
         
         skipAfter -= avail;
-        save_data->chunkOffset += avail;
-        save_data->chunkAvail -= avail;
+        save_data->chunkData.chunkOffset += avail;
+        save_data->chunkData.chunkAvail -= avail;
     }
     
+    return written;
+}
+
+void lv_rec_update_suffix(lv_rec_save_data_t *data)
+{
+    char tmp[3];
+    
+    if(data->fileSeqNum > 0 && data->fileSeqNum <= 99)
+    {
+        snprintf(tmp, 3, "%02d", data->fileSeqNum);
+        strcpy(&data->fileSuffix[1], tmp);
+    }
 }
 
 void lv_rec_start()
 {    
     int yPos = 3;
-    lv_rec_data_t *data = AllocateMemory(sizeof(lv_rec_data_t));
-    lv_rec_data_t *save_data = AllocateMemory(sizeof(lv_rec_data_t));
+    lv_rec_data_t data;
+    lv_rec_save_data_t save_data;
     
-    if(!data)
-    {
-        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to allocate lv_rec_data_t");
-        return;
-    }    
-    if(!save_data)
-    {
-        FreeMemory(data);
-        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to allocate lv_rec_data_t");
-        return;
-    }
+    memset(&data, 0x00, sizeof(lv_rec_data_t));
+    memset(&save_data, 0x00, sizeof(lv_rec_save_data_t));
     
-    memset(data, 0x00, sizeof(lv_rec_data_t));
-    
+    bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Allocating memory");
     /* get maximum available memory */
-    data->memSuite = shoot_malloc_suite(0);
+    data.chunkData.memSuite = shoot_malloc_suite(0);
     
-    if(!data->memSuite)
+    if(!data.chunkData.memSuite)
     {
-        FreeMemory(data);
-        FreeMemory(save_data);
         bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to allocate memory");
         return;
     }
-    data->allocatedMemory = lv_rec_get_memsize(data->memSuite);
-    bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Allocated %d MiB", data->allocatedMemory/1024/1024);
+    unsigned int allocatedMemory = lv_rec_get_memsize(data.chunkData.memSuite);
+    bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Allocated %d MiB", allocatedMemory/1024/1024);
 
+    lv_rec_update_preset();
     
     /* menu options */
-    data->frameSkip = lv_rec_frame_skip;
-    data->rawMode = lv_rec_raw_mode;
-    data->singleFile = lv_rec_single_file;
-    data->linesToSkip = lv_rec_line_skip;
+    data.options.frameSkip = lv_rec_frame_skip;
+    data.options.rawMode = lv_rec_raw_mode;
+    data.options.singleFile = lv_rec_single_file;
+    data.options.linesToSkip = lv_rec_line_skip;
     
-    int start_number;
-    char imgname[100];
-    FILE *save_file = NULL;
-    char *suffix = "";
+    save_data.options = data.options;
+    save_data.chunkData = data.chunkData;
     
-    if(data->rawMode)
+    int start_number = 0;
+    
+    /* set file pre/suffixes */
+    if(data.options.singleFile)
     {
-        suffix = "RAW";
+        strcpy(save_data.filePrefix, "MOV");
     }
     else
     {
-        suffix = "422";
+        strcpy(save_data.filePrefix, "VRAM");
+    }
+        
+    if(data.options.rawMode)
+    {
+        strcpy(save_data.fileSuffix, "RAW");
+    }
+    else
+    {
+        strcpy(save_data.fileSuffix, "422");
     }
     
     /* get first available file name */    
     for (start_number = 0 ; start_number < 1000; start_number++)
     {
-
-        if(data->singleFile)
+        if(data.options.singleFile)
         {
-            snprintf(imgname, sizeof(imgname), "%sMOV%04d.%s", MODULE_CARD_DRIVE, start_number, suffix);
+            snprintf(save_data.fileName, sizeof(save_data.fileName), "%sMOV%04d.%s", MODULE_CARD_DRIVE, start_number, save_data.fileSuffix);
         }
         else
         {
-            snprintf(imgname, sizeof(imgname), "%sVRAM%04d.%s", MODULE_CARD_DRIVE, start_number, suffix);
+            snprintf(save_data.fileName, sizeof(save_data.fileName), "%sVRAM%04d.%s", MODULE_CARD_DRIVE, start_number, save_data.fileSuffix);
         }
         
         uint32_t size;
-        if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
+        if( FIO_GetFileSize( save_data.fileName, &size ) != 0 ) break;
         if (size == 0) break;
     }
     
-    if(data->rawMode)
+    if(data.options.rawMode)
     {
         /* copy 8 bytes per transfer */
-        data->dmaFlags = 0x20001000;
+        data.dmaFlags = 0x20001000;
         /* not sure about size yet, this is the LV size, but it doesnt match */
-        //data->blockSize = 10 * 2080*1080*14/8;
+        //save_data.frameSize = 10 * 2080*1080*14/8;
         
         /* 5D3: video at 1280x720 */
-        data->blockSize = 0x268BD0;
+        save_data.frameSize = 0x268BD0;
         /* 5D3: video at 1920x1080 and 640x480 and photo-LV */
-        data->blockSize = 0x439450;
+        save_data.frameSize = 0x439450;
         /* 5D3: zoomed at any mode x5/x10 */
-        data->blockSize = 0x8A2A5A;
+        save_data.frameSize = 0x8A2A5A;
         
-        data->blockSize = 0x439450;
-        data->maxFrames = 5;
+        save_data.frameSize = 0x439450;
+        data.maxFrames = 5;
         /* read from CRAW connection */
-        data->dmaSourceConn = 0x00;
+        data.dmaSourceConn = 0x00;
         
-        //exmem_clear(data->memSuite, 0xEE);
+        //exmem_clear(data.chunkData.memSuite, 0xEE);
     }
     else
     {
         struct vram_info *vram = get_yuv422_hd_vram();
-        data->width = vram->width;
-        data->height = vram->height;
-        data->bytesPerLine = vram->width * 2;
-        data->blockSize = vram->width * vram->height * 2;
+        save_data.width = vram->width;
+        save_data.height = vram->height;
+        save_data.bytesPerLine = vram->width * 2;
+        save_data.frameSize = vram->width * vram->height * 2;
         
         /* copy 2 byte per transfer */
-        data->dmaFlags = 0x20000000;
-        data->maxFrames = 2000;
+        data.dmaFlags = 0x20000000;
+        data.maxFrames = 200000;
         /* read from YUV connection */
-        data->dmaSourceConn = 0x1B;
+        data.dmaSourceConn = 0x1B;
     }
     
-    data->dmaChannel = 0x11;
-    data->maxFramesBufferable = data->allocatedMemory / data->blockSize;
-    
-    memcpy(save_data, data, sizeof(lv_rec_data_t));
+    data.dmaChannel = 0x11;
+    data.maxFramesBufferable = allocatedMemory / save_data.frameSize;
     
     /* this enables recording */
-    lv_rec_state = data;
+    lv_rec_state = &data;
     
     bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Ready, waiting for first frame");
 
-    while(!data->finished || (lv_rec_ring_mode && (data->capturedFrames > data->savedFrames)))
+    int wait_loops = 0;
+    while(!data.finished || (lv_rec_ring_mode && (data.capturedFrames > data.savedFrames)))
     {
         if(lv_rec_ring_mode)
         {
-            if(data->capturedFrames > data->savedFrames)
+            if(data.capturedFrames > data.savedFrames)
             {
-                if(data->singleFile)
+                if(data.options.singleFile)
                 {
-                    if(!save_file)
+                    if(!save_data.handle)
                     {
-                        snprintf(imgname, sizeof(imgname), "%sMOV%04d.%s", MODULE_CARD_DRIVE, start_number, suffix);
-                        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * (yPos+1), "Saving '%s'", imgname);
-                        save_file = FIO_CreateFileEx(imgname);
+                        snprintf(save_data.fileName, sizeof(save_data.fileName), "%s%s%04d.%s", MODULE_CARD_DRIVE, save_data.filePrefix, start_number, save_data.fileSuffix);
+                        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * (yPos+1), "Saving to '%s'", save_data.fileName);
+                        save_data.handle = FIO_CreateFileEx(save_data.fileName);
+                        save_data.handleWritten = 0;
                     }
 
-                    if(save_file)
+                    if(save_data.handle)
                     {
                         /* save or skip, depending on skip counter */
-                        lv_rec_save_frame(save_file, save_data, (data->savedFrames % data->frameSkip) != 0);
+                        save_data.handleWritten += lv_rec_save_frame(save_data.handle, &save_data, (data.savedFrames % data.options.frameSkip) != 0);
                     }
                     else
                     {
+                        yPos++;
                         bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to save file");
                         break;
                     }
-                    data->savedFrames++;
+                    
+                    /* when reaching 2GiB, create another file */
+                    if(save_data.handleWritten > ((2UL * 1024UL) - 10UL) * 1024UL * 1024UL)
+                    {
+                        yPos++;
+                        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Creating next file");
+                        FIO_CloseFile(save_data.handle);
+                        save_data.handle = NULL;
+                        save_data.fileSeqNum++;
+                        lv_rec_update_suffix(&save_data);
+                    }
+                    data.savedFrames++;
                 }
                 else
                 {
-                    if((data->savedFrames % data->frameSkip) == 0)
+                    if((data.savedFrames % data.options.frameSkip) == 0)
                     {
-                        snprintf(imgname, sizeof(imgname), "%sVRAM%04d.%s", MODULE_CARD_DRIVE, start_number + (data->savedFrames / data->frameSkip), suffix);
-                        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * (yPos+1), "Saving '%s'", imgname);
-                        save_file = FIO_CreateFileEx(imgname);
+                        snprintf(save_data.fileName, sizeof(save_data.fileName), "%s%s%04d.%s", MODULE_CARD_DRIVE, save_data.filePrefix, start_number + (data.savedFrames / data.options.frameSkip), save_data.fileSuffix);
+                        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * (yPos+1), "Saving '%s'", save_data.fileName);
+                        save_data.handle = FIO_CreateFileEx(save_data.fileName);
+                        save_data.handleWritten = 0;
 
-                        if(save_file)
+                        if(save_data.handle)
                         {
-                            lv_rec_save_frame(save_file, save_data, 0);
-                            FIO_CloseFile(save_file);
-                            save_file = NULL;
+                            save_data.handleWritten += lv_rec_save_frame(save_data.handle, &save_data, 0);
+                            FIO_CloseFile(save_data.handle);
+                            save_data.handle = NULL;
                         }
                         else
                         {
+                            yPos++;
                             bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to save file");
                             break;
                         }
@@ -524,14 +571,25 @@ void lv_rec_start()
                     else
                     {
                         /* do not save data, just skip buffers */
-                        lv_rec_save_frame(save_file, save_data, 1);
+                        lv_rec_save_frame(save_data.handle, &save_data, 1);
                     }
-                    data->savedFrames++;
+                    data.savedFrames++;
                 }
+                
+                /* reset timeout counter */
+                wait_loops = 0;
             }
             else
             {
                 msleep(10);
+                if(wait_loops++ > 25)
+                {
+                    yPos++;
+                    bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "No more data, aborting.");
+                    lv_rec_state = NULL;
+                    PackMem_PopEDmacForMemorySuite(data.dmaChannel);
+                    data.finished = 1;
+                }
             }
         }
         else
@@ -539,84 +597,30 @@ void lv_rec_start()
             msleep(200);
         }
         
-        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos, "%s, %d buffered, %d saved  ", (data->finished?"Finished":(data->running?"Recording":"Wait.....")), data->capturedFrames - data->savedFrames, data->savedFrames / data->frameSkip);
+        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos, "%s, %d buffered, %d saved  ", (data.finished?"Finished":(data.running?"Recording":"Wait.....")), data.capturedFrames - data.savedFrames, data.savedFrames / data.options.frameSkip);
     }
     yPos++;
     
     if(lv_rec_ring_mode)
     {
-        if(data->singleFile)
+        if(data.options.singleFile)
         {
-            FIO_CloseFile(save_file);
+            FIO_CloseFile(save_data.handle);
         }
     }
     else
     {
         bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * ++yPos, "Saving");
-        if(data->singleFile)
+        if(data.options.singleFile)
         {
             /* save one single file */
-            bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * ++yPos, "Saved: 0x%08X", exmem_save_buffer(data->memSuite, "DATA.BIN"));
+            bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * ++yPos, "Saved: 0x%08X", exmem_save_buffer(data.chunkData.memSuite, "DATA.BIN"));
         }
-        else
-        {
-            /* save multiple .422 files */
-            bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * ++yPos, "Starting with '%s'", imgname);
-            
-            data->currentChunk = GetFirstChunkFromSuite(data->memSuite);
-            if(!data->currentChunk)
-            {
-                shoot_free_suite(data->memSuite);
-                FreeMemory(data);
-                FreeMemory(save_data);
-                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to get currentChunk");
-                return;
-            }
-            
-            data->chunkAvail = GetSizeOfMemoryChunk(data->currentChunk);
-            data->chunkAddress = (unsigned char*)GetMemoryAddressOfMemoryChunk(data->currentChunk);
-            
-            /* offset in current chunk */
-            unsigned int offset = 0;
-            
-            /* now save all capturedFrames frames */
-            for(unsigned int frame_num = 0; frame_num < data->capturedFrames; frame_num++)
-            {
-                snprintf(imgname, sizeof(imgname), "%sVRAM%d.422", MODULE_CARD_DRIVE, start_number + frame_num);
-                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos, "Saving '%s'", imgname);
-                FILE* f = FIO_CreateFileEx(imgname);
-                
-                unsigned int remain = data->blockSize;
-                while(remain > 0)
-                {
-                    if(!data->chunkAvail)
-                    {
-                        lv_rec_next_chunk(data);
-                        offset = 0;
-                    }
-                    
-                    if(!data->chunkAvail)
-                    {
-                        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Failed to get next data");
-                        frame_num = data->capturedFrames;
-                        break;
-                    }
-                    unsigned int avail = MIN(data->chunkAvail, remain);
-                    
-                    FIO_WriteFile(f, UNCACHEABLE(&data->chunkAddress[offset]), avail);
-                    remain -= avail;
-                    offset += avail;
-                    data->chunkAvail -= avail;
-                }
-                FIO_CloseFile(f);
-            }    
-        }
+        
     }
     bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * ++yPos, "Recording finished");
     
-    shoot_free_suite(data->memSuite);
-    FreeMemory(data);
-    FreeMemory(save_data);
+    shoot_free_suite(data.chunkData.memSuite);
 }
 
 void lv_rec_stop()
