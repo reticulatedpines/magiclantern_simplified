@@ -224,16 +224,13 @@ changelog:
 	echo "" >> ChangeLog.txt
 	COLUMNS=80 hg diff --stat -r $(call HG_CHANGESET_BEFORE_DATE, today - 30 days) -r $(call HG_CHANGESET_BEFORE_DATE, today - 2 days) | $(DIFFSTAT_FILTER) >> ChangeLog.txt ;
  
-nightly: clean all changelog
+nightly: changelog clean all 
 	mkdir -p $(NIGHTLY_DIR)
 	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 	cd $(PLATFORM_PATH)/all; mv *.zip $(NIGHTLY_DIR)
 	touch build.log
 	mv build.log $(NIGHTLY_DIR)
 	mv ChangeLog.txt $(NIGHTLY_DIR)
-	-unlink $(NIGHTLY_ROOT)/build.log
-	-unlink $(NIGHTLY_ROOT)/ChangeLog.txt
-	-unlink $(NIGHTLY_ROOT)/magiclantern*.zip
 	ln -s $(NIGHTLY_DIR)/build.log $(NIGHTLY_ROOT)
 	ln -s $(NIGHTLY_DIR)/ChangeLog.txt $(NIGHTLY_ROOT)
 	ln -s $(NIGHTLY_DIR)/magiclantern*.zip $(NIGHTLY_ROOT)
