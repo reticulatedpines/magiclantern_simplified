@@ -3,7 +3,7 @@
 
 #define SIG_LEN 0x10000
 
-#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_6D)
+#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_6D) || defined(CONFIG_650D)
 #define SIG_START 0xFF0C0000
 #elif defined(CONFIG_7D) || defined(CONFIG_7D_MASTER)
 #define SIG_START 0xF8010000
@@ -27,7 +27,7 @@
 #define SIG_EOSM_106 0x6393A881
 #define SIG_7D_203   0x50163E93
 #define SIG_7D_MASTER_203 0x640BF4D1
-#define SIG_650D_101 0x83e04919
+#define SIG_650D_101 0x12AEB7B3
 
 #define SHOULD_CHECK_SIG ((!defined(CONFIG_QEMU)) && (defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)))
 
