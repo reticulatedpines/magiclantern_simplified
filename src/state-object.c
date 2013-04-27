@@ -150,11 +150,25 @@ int display_is_on_550D = 0;
 int get_display_is_on_550D() { return display_is_on_550D; }
 #endif
 
+#ifdef FEATURE_SHOW_STATE_FPS
+static int state_activations = 0;
+static int current_trans = 0;
+int state_matrix[] = {1,2,3,4,5,6,7};
+#endif
+
 static int (*StateTransition)(void*,int,int,int,int) = 0;
 static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, int t)
 {
     int old_state = self->current_state;
 
+#ifdef FEATURE_SHOW_STATE_FPS
+    if (self == EVF_STATE) {
+        if(old_state == state_matrix[current_trans] && input == 15) {
+            bmp_printf(FONT_LARGE,0,0,"FIRING");
+            state_activations++;
+        }
+    }
+#endif
 #ifdef CONFIG_550D
     if (self == DISPLAY_STATE && old_state != 0 && input == 0) // TurnOffDisplay_action
         display_is_on_550D = 0;
@@ -162,7 +176,7 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
 
 // sync ML overlay tools (especially Magic Zoom) with LiveView
 // this is tricky...
-#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_650D)
+#if defined(CONFIG_5D3) || defined(CONFIG_6D)
     if (self == DISPLAY_STATE && (input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER))
         lv_vsync_signal();
 #elif defined(CONFIG_5D2)
@@ -172,6 +186,9 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
     }
 #elif defined(CONFIG_60D)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt
+        lv_vsync_signal();
+#elif defined(CONFIG_650D)
+    if (self == EVF_STATE && input == 15 && old_state == 5) // evfReadOutDoneInterrupt
         lv_vsync_signal();
 #endif
 
@@ -386,4 +403,14 @@ static void state_init(void* unused)
 INIT_FUNC("state_init", state_init);
 #endif
 
+#ifdef FEATURE_SHOW_STATE_FPS
+void update_state_fps() {
+    NotifyBox(1000,"i:%02d o:%02d %03d", 15, state_matrix[current_trans], state_activations);
+    state_activations = 0;
+    current_trans++;
+    if(current_trans > 6) {
+        current_trans = 0;
+    }
+}
+#endif
 #endif

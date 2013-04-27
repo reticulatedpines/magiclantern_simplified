@@ -325,6 +325,11 @@ static void do_this_every_second() // called every second
     static int k = 0; k++;
     if (k%10 == 0) update_lv_fps();
     #endif
+
+    #ifdef FEATURE_SHOW_STATE_FPS
+    static int j=0; j++;
+    if(j%10 == 0) update_state_fps();
+    #endif
 }
 
 static struct semaphore * seconds_clock_sem;
