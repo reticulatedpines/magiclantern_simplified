@@ -122,7 +122,7 @@ struct memSuite *shoot_malloc_suite(size_t size)
         int max_size = 0;
         struct memSuite *backup = shoot_malloc_suite(backup_size);
 
-        for(int size = 1; size < 1024; size++)
+        for(int size = 10; size < 1024; size += 10)
         {
             struct memSuite *testSuite = shoot_malloc_suite(size * 1024 * 1024);
             if(testSuite)
