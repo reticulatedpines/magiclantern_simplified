@@ -1,10 +1,9 @@
-#define __RAW_C__
-
 #include "dryos.h"
 #include "raw.h"
 #include "property.h"
 #include "math.h"
 #include "bmp.h"
+#include "lens.h"
 
 #undef RAW_DEBUG        /* define it to help with porting */
 #undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
@@ -69,6 +68,18 @@ void raw_buffer_intercept_from_stateobj()
     raw_buffer_photo = shamem_read(RAW_PHOTO_EDMAC);
 }
 
+/** 
+ * White level
+ * one size fits all: should work on most cameras and can't be wrong by more than 0.1 EV
+ */
+#define WHITE_LEVEL 15000
+
+/** there may be exceptions */
+#ifdef CONFIG_6D
+#undef WHITE_LEVEL
+#define WHITE_LEVEL 13000
+#endif
+
 /**
  * Color matrix should be copied from DCRAW.
  * It will also work with the values from some other camera, but colors may be a little off.
@@ -92,8 +103,14 @@ void raw_buffer_intercept_from_stateobj()
      -908, 10000,     2162, 10000,    5668, 10000
 #endif
 
-// one size fits all: can't be wrong by more than 0.1 EV
-#define WHITE_LEVEL 15000
+#ifdef CONFIG_6D
+    //~ { "Canon EOS 6D", 0, 0,
+    //~ { 7034,-804,-1014,-4420,12564,2058,-851,1994,5758 } },
+    #define CAM_COLORMATRIX1                       \
+     7034, 10000,     -804, 10000,    -1014, 10000,\
+    -4420, 10000,    12564, 10000,    2058, 10000, \
+     -851, 10000,     1994, 10000,    5758, 10000
+#endif
 
 struct raw_info raw_info = {
     .bits_per_pixel = 14,
@@ -188,9 +205,20 @@ int raw_update_params()
          *
          * I've guessed the image width by dumping the raw buffer, and then using FFT to guess the period of the image stream.
          * 
-         * 1) define RAW_DEBUG
-         * 2) load raw.buf into img.py and run guesspitch, instructions here: http://magiclantern.wikia.com/wiki/VRAM/550D
-         * 3) image width = pitch * 8 / 14
+         * 1) define RAW_DEBUG_DUMP
+         * 
+         * 2) load raw.buf into img.py and run guesspitch, details here: http://magiclantern.wikia.com/wiki/VRAM/550D 
+         * 
+         *          In [4]: s = readseg("raw.buf", 0, 30000000)
+         * 
+         *          In [5]: guesspitch(s)
+         *          3079
+         *          9743.42318935
+         * 
+         *          In [6]: 9743*8/14
+         *          Out[6]: 5567
+         * 
+         *          Then, trial and error => 5568.
          *
          * Also, the RAW file has unused areas, usually black; we need to skip them.
          * 
@@ -214,7 +242,7 @@ int raw_update_params()
         /* it's a bit larger than what the debug log says: [TTL][167,9410,0] RAW(5920,3950,0,14) */
         raw_info.width = 5936;
         raw_info.height = 3950;
-        skip_left = 125;
+        skip_left = 126;
         skip_right = 20;
         skip_top = 80;
         #endif
@@ -227,6 +255,25 @@ int raw_update_params()
         dbg_printf("Neither LV nor QR\n");
         return 0;
     }
+    
+    /**
+     * Dynamic range, from DxO
+     * e.g. http://www.dxomark.com/index.php/Cameras/Camera-Sensor-Database/Canon/EOS-5D-Mark-III
+     * Measurements | Dynamic range | Screen
+     * You can hover over the points to list the measured EV (thanks Audionut).
+     */
+    
+    #ifdef CONFIG_5D3
+    int dynamic_ranges[] = {1097, 1087, 1069, 1041, 994, 923, 830, 748, 648, 552, 464};
+    #endif
+
+    #ifdef CONFIG_5D2
+    int dynamic_ranges[] = {1116, 1112, 1092, 1066, 1005, 909, 813, 711, 567};
+    #endif
+
+    #ifdef CONFIG_6D
+    int dynamic_ranges[] = {1143, 1139, 1122, 1087, 1044, 976, 894, 797, 683, 624, 505};
+    #endif
 
 /*********************** Portable code ****************************************/
 
@@ -257,15 +304,40 @@ int raw_update_params()
     dbg_printf("bm2raw test: (%d,%d) - (%d,%d)\n", BM2RAW_X(os.x0), BM2RAW_Y(os.y0), BM2RAW_X(os.x_max), BM2RAW_Y(os.y_max));
     dbg_printf("  should be: (%d,%d) - (%d,%d)\n", raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2, raw_info.active_area.y2);
 
+    int iso = 0;
+    if (lv) iso = FRAME_ISO;
+    if (!iso) iso = lens_info.raw_iso;
+    if (!iso) iso = lens_info.raw_iso_auto;
+    int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 72 + (COUNT(dynamic_ranges)-1) * 8);
+    int dr_index = COERCE((iso_rounded - 72) / 8, 0, COUNT(dynamic_ranges)-1);
+    float iso_digital = (iso - iso_rounded) / 8.0f;
+    raw_info.dynamic_range = dynamic_ranges[dr_index];
+    dbg_printf("dynamic range: %d.%02d EV (iso=%d)\n", raw_info.dynamic_range/100, raw_info.dynamic_range%100, raw2iso(iso));
+    
     raw_info.black_level = autodetect_black_level();
     raw_info.white_level = WHITE_LEVEL;
+    
+    if (iso_digital <= 0)
+    {
+        /* at ISO 160, 320 etc, the white level is decreased by -1/3 EV */
+        raw_info.white_level *= powf(2, iso_digital);
+    }
+    else if (iso_digital > 0)
+    {
+        /* at positive digital ISO, the white level doesn't change, but the dynamic range is reduced */
+        raw_info.dynamic_range -= (iso_digital * 100);
+    }
 
     dbg_printf("black=%d white=%d\n", raw_info.black_level, raw_info.white_level);
 
     #ifdef RAW_DEBUG_DUMP
+    dbg_printf("saving raw buffer...\n");
     dump_seg(raw_info.buffer, MAX(raw_info.frame_size, 1000000), CARD_DRIVE"raw.buf");
+    dbg_printf("saving DNG...\n");
     save_dng(CARD_DRIVE"raw.dng");
+    dbg_printf("done\n");
     #endif
+    
     return 1;
 }
 
@@ -331,6 +403,12 @@ float FAST raw_to_ev(int raw)
     int raw_max = raw_info.white_level - raw_info.black_level;
     float raw_ev = -log2f(raw_max) + log2f(COERCE(raw - raw_info.black_level, 1, raw_max));
     return raw_ev;
+}
+
+int FAST ev_to_raw(float ev)
+{
+    int raw_max = raw_info.white_level - raw_info.black_level;
+    return raw_info.black_level + powf(2, ev) * raw_max;
 }
 
 int autodetect_black_level()

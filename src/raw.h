@@ -69,6 +69,7 @@ int raw_set_pixel(int x, int y, int value);
 /* input: 0 - 16384 (valid range: from black level to white level) */
 /* output: -14 ... 0 */
 float raw_to_ev(int raw);
+int FAST ev_to_raw(float ev);
 
 /* save a DNG file; all parameters are taken from raw_info */
 int save_dng(char* filename);
@@ -111,7 +112,6 @@ struct raw_info {
     int color_matrix1[18];      // DNG Color Matrix
     
     int dynamic_range;          // EV x10, from DxO
-    int underexposure_level;    // raw level just under the dynamic_range
 };
 
 extern struct raw_info raw_info;

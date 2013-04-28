@@ -1013,6 +1013,7 @@ static void draw_zebras_raw()
 
     int black = raw_info.black_level;
     int white = raw_info.white_level;
+    int underexposed = ev_to_raw(-raw_info.dynamic_range);
 
     for (int i = os.y0; i < os.y_max; i ++)
     {
@@ -1042,8 +1043,7 @@ static void draw_zebras_raw()
             #endif
             
             int m = MAX(MAX(r,g), b);
-            /* consider bottom 3 stops as underexposed */
-            int c = zebra_rgb_solid_color(m < black + 8, r > white, g > white, b > white);
+            int c = zebra_rgb_solid_color(m <= underexposed, r > white, g > white, b > white);
             if (c)
             {
                 uint16_t* bp = (uint16_t*) &bvram[BM(j,i)];
@@ -1267,7 +1267,11 @@ hist_draw_image(
         highlight_level = highlight_level * HIST_WIDTH / 256;
 
     int log_max = log_length(hist_max);
-    
+
+    #ifdef FEATURE_RAW_HISTOGRAM
+    int underexposed_level = COERCE((1200 - raw_info.dynamic_range) * HIST_WIDTH / 1200, 0, HIST_WIDTH-1);
+    #endif
+
     for( i=0 ; i < HIST_WIDTH ; i++ )
     {
         // Scale by the maximum bin value
@@ -1320,9 +1324,17 @@ hist_draw_image(
         {
             static unsigned bar_pos;
             if (i == 0) bar_pos = 0;
+            int h = hist_height - MAX(MAX(sizeR, sizeG), sizeB) - 1;
+
+            if (i <= underexposed_level)
+            {
+                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + h, 4);
+            }
+
             if (i == bar_pos)
             {
-                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + hist_height - MAX(MAX(sizeR, sizeG), sizeB) - 1, COLOR_GRAY(50));
+                int dy = (i < font_small.width * 7) ? font_small.height : 0;
+                draw_line(x_origin + i, y_origin + dy, x_origin + i, y_origin + h, COLOR_GRAY(50));
                 bar_pos = (((bar_pos+1)*12/HIST_WIDTH) + 1) * HIST_WIDTH/12;
             }
         }
@@ -1333,7 +1345,12 @@ hist_draw_image(
     
     #ifdef FEATURE_RAW_HISTOGRAM
     if (hist_is_raw)
-        bmp_printf(SHADOW_FONT(FONT_MED), x_origin+4, y_origin, "RAW");
+    {
+        char msg[10];
+        int dr = (raw_info.dynamic_range + 5) / 10;
+        snprintf(msg, sizeof(msg), "%d.%d EV", dr/10, dr%10);
+        bmp_printf(SHADOW_FONT(FONT_SMALL), x_origin+4, y_origin, msg);
+    }
     #endif
 }
 #endif
