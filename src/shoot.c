@@ -1647,10 +1647,10 @@ silent_pic_take_raw()
     #error This requires CONFIG_FULL_EXMEM_SUPPORT
     #endif
 
-static struct memSuite * sp_hSuite = 0;
-static int sp_running = 0;
-static void* sp_frames[100];
-static int sp_max_frames = 0;
+static volatile struct memSuite * sp_hSuite = 0;
+static volatile int sp_running = 0;
+static volatile void* sp_frames[100];
+static volatile int sp_max_frames = 0;
 #define SP_MAX_FRAME_SIZE 6000000
 
 /* called once per LiveView frame from LV state object */
