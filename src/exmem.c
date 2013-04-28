@@ -118,11 +118,11 @@ struct memSuite *shoot_malloc_suite(size_t size)
     else
     {
         /* allocate some backup that will service the queued allocation request that fails during the loop */
-        int backup_size = 4 * 1024 * 1024;
+        int backup_size = 8 * 1024 * 1024;
         int max_size = 0;
         struct memSuite *backup = shoot_malloc_suite(backup_size);
 
-        for(int size = 10; size < 1024; size += 10)
+        for(int size = 5; size < 1024; size += 5)
         {
             struct memSuite *testSuite = shoot_malloc_suite(size * 1024 * 1024);
             if(testSuite)
