@@ -31,6 +31,9 @@ ffffgggggggggggg
 gghhhhhhhhhhhhhh
 */
 
+#ifndef _raw_h_
+#define _raw_h_
+
 /* group 8 pixels in 14 bytes to simplify decoding */
 struct raw_pixblock
 {
@@ -50,83 +53,67 @@ struct raw_pixblock
     unsigned int g_lo: 2;
 } __attribute__((packed));
 
-/* a full line of pixels */
-typedef struct raw_pixblock raw_pixline[SENSOR_RES_X / 8];
+/* call this before performing any raw image analysis */
+/* returns 1=success, 0=failed */
+int raw_update_params();
 
-/* get a red pixel near the specified coords (approximate) */
-static inline int raw_red_pixel(struct raw_pixblock * buf, int x, int y)
-{
-    y = (y/2) * 2;
-    int i = ((y * SENSOR_RES_X + x) / 8);
-    return buf[i].a;
-}
+/* get a red/green/blue pixel near the specified coords (approximate) */
+int raw_red_pixel(int x, int y);
+int raw_green_pixel(int x, int y);
+int raw_blue_pixel(int x, int y);
 
-/* get a green pixel near the specified coords (approximate) */
-static inline int raw_green_pixel(struct raw_pixblock * buf, int x, int y)
-{
-    y = (y/2) * 2;
-    int i = ((y * SENSOR_RES_X + x) / 8);
-    return buf[i].h;
-}
-
-/* get a blue pixel near the specified coords (approximate) */
-static inline int raw_blue_pixel(struct raw_pixblock * buf, int x, int y)
-{
-    y = (y/2) * 2 + 1;
-    int i = ((y * SENSOR_RES_X + x) / 8);
-    return buf[i].h;
-}
-
-/* get the pixel at specified coords (exact, but you can get whatever color happens to be there) */
-static int raw_get_pixel(struct raw_pixblock * buf, int x, int y) {
-    struct raw_pixblock * p = (void*)buf + y * (SENSOR_RES_X*14/8) + (x/8)*14;
-    switch (x%8) {
-        case 0: return p->a;
-        case 1: return p->b_lo | (p->b_hi << 12);
-        case 2: return p->c_lo | (p->c_hi << 10);
-        case 3: return p->d_lo | (p->d_hi << 8);
-        case 4: return p->e_lo | (p->e_hi << 6);
-        case 5: return p->f_lo | (p->f_hi << 4);
-        case 6: return p->g_lo | (p->g_hi << 2);
-        case 7: return p->h;
-    }
-    return p->a;
-}
-
-static int raw_set_pixel(struct raw_pixblock * buf, int x, int y, int value) {
-    struct raw_pixblock * p = (void*)buf + y * (SENSOR_RES_X*14/8) + (x/8)*14;
-    switch (x%8) {
-        case 0: p->a = value; break;
-        case 1: p->b_lo = value; p->b_hi = value >> 12; break;
-        case 2: p->c_lo = value; p->c_hi = value >> 10; break;
-        case 3: p->d_lo = value; p->d_hi = value >> 8; break;
-        case 4: p->e_lo = value; p->e_hi = value >> 6; break;
-        case 5: p->f_lo = value; p->f_hi = value >> 4; break;
-        case 6: p->g_lo = value; p->g_hi = value >> 2; break;
-        case 7: p->h = value; break;
-    }
-    return p->a;
-}
+/* get/set the pixel at specified coords (exact, but you can get whatever color happens to be there) */
+int raw_get_pixel(int x, int y);
+int raw_set_pixel(int x, int y, int value);
 
 /* input: 0 - 16384 (valid range: from black level to white level) */
 /* output: -14 ... 0 */
-static float raw_to_ev(int raw, int black_level, int white_level)
-{
-    int raw_max = white_level - black_level;
-    float raw_ev = -log2f(raw_max) + log2f(COERCE(raw - black_level, 1, raw_max));
-    return raw_ev;
-}
+float raw_to_ev(int raw);
 
-static int autodetect_black_level(struct raw_pixblock * buf)
-{
-    /* fixme: define and use proper borders for black calibration */
-    int black = 0;
-    for (int i = 5; i < 10; i++)
+/* save a DNG file; all parameters are taken from raw_info */
+int save_dng(char* filename);
+
+/* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
+struct raw_info {
+    void* buffer;               // points to image data
+    
+    int height, width, pitch;
+    int frame_size;
+    int bits_per_pixel;         // 14
+
+    int black_level;            // autodetected
+    int white_level;            // somewhere around 13000 - 16000, varies with camera, settings etc
+                                // would be best to autodetect it, but we can't do this reliably yet
+    union                       // DNG JPEG info
     {
-        for (int j = 5; j < 10; j++)
+        struct
         {
-            black += raw_get_pixel(buf, i, j);
-        }
-    }
-    return black / 25;
-}
+            int x, y;           // DNG JPEG top left corner
+            int width, height;  // DNG JPEG size
+        } jpeg;
+        struct
+        {
+            int origin[2];
+            int size[2];
+        } crop;
+    };
+    union                       // DNG active sensor area (Y1, X1, Y2, X2)
+    {
+        struct
+        {
+            int y1, x1, y2, x2;
+        } active_area;
+        int dng_active_area[4];
+    };
+    int exposure_bias[2];       // DNG Exposure Bias (idk what's that)
+    int cfa_pattern;            // stick to 0x02010100 (RGBG) if you can
+    int calibration_illuminant1;
+    int color_matrix1[18];      // DNG Color Matrix
+    
+    int dynamic_range;          // EV x10, from DxO
+    int underexposure_level;    // raw level just under the dynamic_range
+};
+
+extern struct raw_info raw_info;
+
+#endif

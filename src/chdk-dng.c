@@ -13,6 +13,11 @@
 #define ufree free_dma_memory
 #define pow powf
 #define write FIO_WriteFile
+#define camera_sensor raw_info
+#define get_raw_pixel raw_get_pixel
+#define raw_rowpix width
+#define raw_rows height
+#define raw_size frame_size
 
 static int get_tick_count() { return get_ms_clock_value_fast(); }
 
@@ -26,97 +31,6 @@ static void FAST reverse_bytes_order(char* buf, int count)
         buf[2*i+1] = x;
         buf[2*i] = x >> 8;
     }
-}
-
-typedef struct {
-	int api_version;			// version of this structure
-
-    int bits_per_pixel;
-    int black_level;
-    int white_level;
-    int raw_rows, raw_rowpix, raw_rowlen, raw_size;
-    union                       // DNG JPEG info
-    {
-        struct
-        {
-            int x, y;           // DNG JPEG top left corner
-            int width, height;  // DNG JPEG size
-        } jpeg;
-        struct
-        {
-            int origin[2];
-            int size[2];
-        } crop;
-    };
-    union                       // DNG active sensor area (Y1, X1, Y2, X2)
-    {
-        struct
-        {
-            int y1, x1, y2, x2;
-        } active_area;
-        int dng_active_area[4];
-    };
-    int exposure_bias[2];       // DNG Exposure Bias
-    int cfa_pattern;
-    int calibration_illuminant1;
-    int color_matrix1[18];      // DNG Color Matrix
-} _cam_sensor;
-
-#define	cam_CFAPattern		0x01000201	// Green  Blue  Red  Green
-
-#ifdef CONFIG_5D2
-//~ { "Canon EOS 5D Mark II", 0, 0x3cf0,
-//~ { 4716,603,-830,-7798,15474,2480,-1496,1937,6651 } },
-
-#define CAM_COLORMATRIX1                       \
- 4716, 10000,      603, 10000,    -830, 10000, \
--7798, 10000,    15474, 10000,    2480, 10000, \
--1496, 10000,     1937, 10000,    6651, 10000
-#endif
-
-#ifdef CONFIG_5D3
-//~ { "Canon EOS 5D Mark III", 0, 0x3c80,
-//~ { 6722,-635,-963,-4287,12460,2028,-908,2162,5668 } },
-
-#define CAM_COLORMATRIX1                       \
- 6722, 10000,     -635, 10000,    -963, 10000, \
--4287, 10000,    12460, 10000,    2028, 10000, \
- -908, 10000,     2162, 10000,    5668, 10000
-#endif
-
-#define cam_CalibrationIlluminant1	1	// Daylight
-
-static _cam_sensor camera_sensor = { 
-    -1,
-    0, 
-    0, 0,
-    0, 0, 0, 0,
-    {{
-        0, 0,
-        0, 0
-    }},
-    { { 0, 0, 0, 0 } }, 
-    { -1 , 2 },
-    0,
-    cam_CalibrationIlluminant1,
-    { CAM_COLORMATRIX1 },
-};
-
-static unsigned char* rawadr;
-
-static unsigned short get_raw_pixel(unsigned int x,unsigned  int y) {
-    struct raw_pixblock * p = (void*)rawadr+y*camera_sensor.raw_rowlen+(x/8)*14;
-    switch (x%8) {
-        case 0: return p->a;
-        case 1: return p->b_lo | (p->b_hi << 12);
-        case 2: return p->c_lo | (p->c_hi << 10);
-        case 3: return p->d_lo | (p->d_hi << 8);
-        case 4: return p->e_lo | (p->e_hi << 6);
-        case 5: return p->f_lo | (p->f_hi << 4);
-        case 6: return p->g_lo | (p->g_hi << 2);
-        case 7: return p->h;
-    }
-    return p->a;
 }
 
 //thumbnail
@@ -569,32 +483,25 @@ PROP_HANDLER(PROP_CAM_MODEL)
     snprintf(cam_name, sizeof(cam_name), (const char *)buf);
 }
 
-int save_dng(char* filename, void* addr, int W, int H)
+int save_dng(char* filename)
 {
-    rawadr = addr;
-    camera_sensor.bits_per_pixel = 14;
-    camera_sensor.cfa_pattern = 0x02010100;
-    camera_sensor.raw_rows = H;
-    camera_sensor.raw_rowpix = W;
-    camera_sensor.raw_rowlen = camera_sensor.raw_rowpix * 14 / 8;
-    camera_sensor.raw_size = camera_sensor.raw_rows * camera_sensor.raw_rowlen;
-    camera_sensor.black_level = get_raw_pixel(10, 10),
-    camera_sensor.white_level = RAW_WHITE_LEVEL,
-    camera_sensor.jpeg.x = 0,
-    camera_sensor.jpeg.y = 0,
-    camera_sensor.jpeg.width = W,
-    camera_sensor.jpeg.height = H,
-    camera_sensor.active_area.x1 = 0;
-    camera_sensor.active_area.y1 = 0;
-    camera_sensor.active_area.x2 = W;
-    camera_sensor.active_area.y2 = H;
-    
     cam_AsShotNeutral[2] = 2500;
     cam_AsShotNeutral[4] = 1400;
     
+    #ifdef RAW_DEBUG_BLACK
+    raw_info.active_area.x1 = 0;
+    raw_info.active_area.x2 = raw_info.width;
+    raw_info.active_area.y1 = 0;
+    raw_info.active_area.y2 = raw_info.height;
+    raw_info.jpeg.x = 0;
+    raw_info.jpeg.y = 0;
+    raw_info.jpeg.width = raw_info.width;
+    raw_info.jpeg.height = raw_info.width;
+    #endif
+    
     FILE* f = FIO_CreateFileEx(filename);
     if (!f) return 0;
-    write_dng(f, addr);
+    write_dng(f, raw_info.buffer);
     FIO_CloseFile(f);
     return 1;
 }

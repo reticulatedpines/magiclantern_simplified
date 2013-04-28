@@ -32,6 +32,7 @@
 #include "lens.h"
 #include "gui.h"
 #include "math.h"
+#include "raw.h"
 
 #if defined(CONFIG_MODULES)
 #include "module.h"
@@ -1630,18 +1631,13 @@ silent_pic_take_raw()
     call("lv_save_raw", 0);
     msleep(50);
 
-    /* try to autodetect image size */
-    uint32_t lv_raw_size = MEMX(RAW_LV_EDMAC+8);
-    int lv_raw_pitch = lv_raw_size & 0xFFFF;
-    int lv_raw_width = lv_raw_pitch * 8 / 14;
-    //~ int lv_raw_height = (lv_raw_size >> 16) & 0xFFFF; // it's zero...
-    int lv_raw_height = lv_raw_width * 21/30; // dumb one-size-fits-all
-    uint32_t lv_raw_addr = MEMX(RAW_LV_EDMAC);
+    /* update raw geometry, autodetect black/white levels etc */
+    raw_update_params();
 
     /* save it to card */
     char* fn = silent_pic_get_name();
-    bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", lv_raw_width, lv_raw_height);
-    save_dng(fn, lv_raw_addr, lv_raw_width, lv_raw_height);
+    bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
+    save_dng(fn);
     redraw();
 }
 

@@ -110,7 +110,7 @@ extern struct vram_info vram_lv;
 #define BM2LV_Y(y) ((y) * bm2lv.sy / 1024 + bm2lv.ty)
 
 extern int bm2lv_x_cache[];
-#define BM2LV_X(x) bm2lv_x_cache[x - BMP_W_MINUS]
+#define BM2LV_X(x) bm2lv_x_cache[(x) - BMP_W_MINUS]
 
 #define LV2BM_X(x) ((x) * 1024 / bm2lv.sx - bm2lv.tx * 1024 / bm2lv.sx)
 #define LV2BM_Y(y) ((y) * 1024 / bm2lv.sy - bm2lv.ty * 1024 / bm2lv.sy)
@@ -264,24 +264,24 @@ extern int y_times_BMPPITCH_cache[];
 #define HD2RAW_DY(y) (HD2RAW_Y(y) - HD2RAW_Y(0))
 
 // unit: bytes
-#define BM2RAW(x,y) (BM2RAW_Y(y) * camera_sensor.pitch  + BM2RAW_X(x) * 14/8)
-#define RAW2BM(x,y) (RAW2BM_Y(y) * BMPPITCH             + RAW2BM_X(x) * 1)
+#define BM2RAW(x,y) (BM2RAW_Y(y) * raw_info.pitch  + BM2RAW_X(x) * 14/8)
+#define RAW2BM(x,y) (RAW2BM_Y(y) * BMPPITCH        + RAW2BM_X(x) * 1)
 
-#define LV2RAW(x,y) (LV2RAW_Y(y) * camera_sensor.pitch  + LV2RAW_X(x) * 14/8)
-#define RAW2LV(x,y) (RAW2LV_Y(y) * vram_lv.pitch        + RAW2LV_X(x) * 2)
+#define LV2RAW(x,y) (LV2RAW_Y(y) * raw_info.pitch  + LV2RAW_X(x) * 14/8)
+#define RAW2LV(x,y) (RAW2LV_Y(y) * vram_lv.pitch   + RAW2LV_X(x) * 2)
 
-#define RAW2HD(x,y) (RAW2HD_Y(y) * vram_hd.pitch        + RAW2HD_X(x) * 2)
-#define HD2RAW(x,y) (HD2RAW_Y(y) * camera_sensor.pitch  + HD2RAW_X(x) * 14/8)
+#define RAW2HD(x,y) (RAW2HD_Y(y) * vram_hd.pitch   + RAW2HD_X(x) * 2)
+#define HD2RAW(x,y) (HD2RAW_Y(y) * raw_info.pitch  + HD2RAW_X(x) * 14/8)
 
 // offset for a single row, in bytes
-#define BM2RAW_R(y) (BM2RAW_Y(y) * camera_sensor.pitch)
-#define RAW2BM_R(y) (RAW2BM_Y(y) * BMPPITCH           )
+#define BM2RAW_R(y) (BM2RAW_Y(y) * raw_info.pitch)
+#define RAW2BM_R(y) (RAW2BM_Y(y) * BMPPITCH      )
 
-#define LV2RAW_R(y) (LV2RAW_Y(y) * camera_sensor.pitch)
-#define RAW2LV_R(y) (RAW2LV_Y(y) * vram_lv.pitch      )
+#define LV2RAW_R(y) (LV2RAW_Y(y) * raw_info.pitch)
+#define RAW2LV_R(y) (RAW2LV_Y(y) * vram_lv.pitch )
 
 #define RAW2HD_R(y) (RAW2HD_Y(y) * vram_hd.pitch)
-#define HD2RAW_R(y) (HD2RAW_Y(y) * camera_sensor.pitch)
+#define HD2RAW_R(y) (HD2RAW_Y(y) * raw_info.pitch)
 
 #ifdef CONFIG_4_3_SCREEN
 #define SCREENLAYOUT_3_2 100

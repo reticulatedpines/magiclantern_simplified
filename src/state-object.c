@@ -289,13 +289,6 @@ static int stateobj_scs_spy(struct state_object * self, int x, int input, int z,
 #endif
 
 #ifdef SSS_STATE
-static uint32_t raw_image_buffer = 0;
-
-void* sss_get_raw_image_buffer()
-{
-    return raw_image_buffer;
-}
-
 static int stateobj_sss_spy(struct state_object * self, int x, int input, int z, int t)
 {
     int old_state = self->current_state;
@@ -304,28 +297,14 @@ static int stateobj_sss_spy(struct state_object * self, int x, int input, int z,
 
     #ifdef CONFIG_5D3
     if (old_state == 9 && input == 11 && new_state == 9) // sssCompleteMem1ToRaw
-    {
-        // grab the RAW image buffer address and hope it doesn't change
-        // [TTL] START RD1:0x8602914 RD2:0xad24490
-        uint32_t edmac_addr = shamem_read(0xc0f04808);
-        
-        // note: you need to skip a multiple of 8 pixels
-        raw_image_buffer = edmac_addr + ((80 * SENSOR_RES_X + 48) * 14 / 8);
-    }
+        raw_buffer_intercept_from_stateobj();
     #endif
+
     return ans;
 }
 #endif
 
 #ifdef SDS_FRONT3_STATE
-
-static uint32_t raw_image_buffer = 0;
-
-void* sdsf3_get_raw_image_buffer()
-{
-    return raw_image_buffer;
-}
-
 static int stateobj_sdsf3_spy(struct state_object * self, int x, int input, int z, int t)
 {
     int old_state = self->current_state;
@@ -336,15 +315,9 @@ static int stateobj_sdsf3_spy(struct state_object * self, int x, int input, int 
     // SDSf3:(0)  --  3 sdsMem1toRAWcompress-->(1)
     // SDSf3:(1)  --  3 sdsMem1toJpegDevelop-->(1)
     if (old_state == 0 && input == 3 && new_state == 1)
-    {
-        // grab the RAW image buffer address and hope it doesn't change
-        // [TTJ] START RD1:0x4000048 RD2:0x64d1864
-        uint32_t edmac_addr = shamem_read(0xc0f04A08);
-        
-        // note: you need to skip a multiple of 8 pixels
-        raw_image_buffer = edmac_addr + ((3 * SENSOR_RES_X + 96) * 14 / 8);
-    }
+        raw_buffer_intercept_from_stateobj();
     #endif
+
     return ans;
 }
 #endif

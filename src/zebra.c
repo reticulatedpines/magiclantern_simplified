@@ -949,14 +949,7 @@ static CONFIG_INT("raw.histo", raw_histogram_enable, 1);
 
 static FAST void hist_build_raw()
 {
-    raw_pixline * buf = RAW_IMAGE_BUFFER;
-    if (!buf) return;
-    
-    // this buffer contains 14-bit uncompressed RAW data
-    // first pixel should be red
-
-    int black = autodetect_black_level(buf);
-    int white = RAW_WHITE_LEVEL;
+    if (!raw_update_params()) return;
 
     hist_is_raw = 1;
 
@@ -970,20 +963,20 @@ static FAST void hist_build_raw()
         hist_b[i] = 0;
     }
 
-    int px = (RAW_SKIP_H/2) / 8;
-    int py = (RAW_SKIP_V/2) / 2 * 2;
-    
-    for (int i = py; i < SENSOR_RES_Y - py; i += 32)
+    for (int i = os.y0; i < os.y_max; i += 8)
     {
-        for (int j = px; j < SENSOR_RES_X/8 - px; j += 4)
+        for (int j = os.x0; j < os.x_max; j += 8)
         {
-            int r = buf[i][j].a;
-            int g = buf[i][j].h;
-            int b = buf[i+1][j].h;
+            int x = BM2RAW_X(j);
+            int y = BM2RAW_Y(i);
+            int r = raw_red_pixel(x, y);
+            int g = raw_green_pixel(x, y);
+            int b = raw_blue_pixel(x, y);
+            
             /* only show a 12-bit hisogram, since the rest is just noise */
-            int ir = COERCE((raw_to_ev(r, black, white) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
-            int ig = COERCE((raw_to_ev(g, black, white) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
-            int ib = COERCE((raw_to_ev(b, black, white) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
+            int ir = COERCE((raw_to_ev(r) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
+            int ig = COERCE((raw_to_ev(g) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
+            int ib = COERCE((raw_to_ev(b) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
             hist_r[ir]++;
             hist_g[ig]++;
             hist_b[ib]++;
@@ -1013,39 +1006,37 @@ static CONFIG_INT("raw.zebra", raw_zebra_enable, 1);
 
 static void draw_zebras_raw()
 {
-    raw_pixline * buf = RAW_IMAGE_BUFFER;
-    if (!buf) return;
+    if (!raw_update_params()) return;
 
-    int black = autodetect_black_level(buf);
-    int white = RAW_WHITE_LEVEL;
+    uint8_t * bvram = bmp_vram();
+    if (!bvram) return;
 
-    uint8_t* bvram = bmp_vram();
-    int px = (RAW_SKIP_H/2) / 8;
-    int py = (RAW_SKIP_V/2) / 2 * 2;
+    int black = raw_info.black_level;
+    int white = raw_info.white_level;
 
-    for (int i = py; i < SENSOR_RES_Y - py; i += 4)
+    for (int i = os.y0; i < os.y_max; i ++)
     {
-        for (int j = px; j < SENSOR_RES_X/8 - px; j ++)
+        for (int j = os.x0; j < os.x_max; j ++)
         {
-            int r = buf[i][j].a;
-            int g = buf[i][j].h;
-            int b = buf[i+1][j].h;
-            
+            int x = BM2RAW_X(j);
+            int y = BM2RAW_Y(i);
+            int r = raw_red_pixel(x, y);
+            int g = raw_green_pixel(x, y);
+            int b = raw_blue_pixel(x, y);
+        
             /* define this to check if color channels are identified correctly */
             #undef RAW_ZEBRA_TEST
             
             #ifdef RAW_ZEBRA_TEST
             {
                 uint32_t* lv = get_yuv422_vram()->vram;
-                int R = r > RAW_BLACK_LEVEL+16 ? (int)(log2f((r - RAW_BLACK_LEVEL) / 16.0f) * 255 / 10) : 1;
-                int G = g > RAW_BLACK_LEVEL+16 ? (int)(log2f((g - RAW_BLACK_LEVEL) / 32.0f) * 255 / 10) : 1;
-                int B = b > RAW_BLACK_LEVEL+16 ? (int)(log2f((b - RAW_BLACK_LEVEL) / 16.0f) * 255 / 10) : 1;
+                int R = r > raw_info.black_level+16 ? (int)(log2f((r - raw_info.black_level) / 16.0f) * 255 / 10) : 1;
+                int G = g > raw_info.black_level+16 ? (int)(log2f((g - raw_info.black_level) / 32.0f) * 255 / 10) : 1;
+                int B = b > raw_info.black_level+16 ? (int)(log2f((b - raw_info.black_level) / 16.0f) * 255 / 10) : 1;
                 int Y =  (0.257 * R) + (0.504 * G) + (0.098 * B);
                 int U = -(0.148 * R) - (0.291 * G) + (0.439 * B);
                 int V =  (0.439 * R) - (0.368 * G) - (0.071 * B);
-                int x = os.x0 + os.x_ex * (j-px) / (SENSOR_RES_X/8 - 2*px);
-                int y = os.y0 + os.y_ex * (i-py) / (SENSOR_RES_Y - 2*py);
-                lv[LV(x,y)/4] = UYVY_PACK(U,Y,V,Y);
+                lv[BM2LV(j,i)/4] = UYVY_PACK(U,Y,V,Y);
                 continue;
             }
             #endif
@@ -1055,10 +1046,8 @@ static void draw_zebras_raw()
             int c = zebra_rgb_solid_color(m < black + 8, r > white, g > white, b > white);
             if (c)
             {
-                int x = os.x0 + os.x_ex * (j-px) / (SENSOR_RES_X/8 - 2*px);
-                int y = os.y0 + os.y_ex * (i-py) / (SENSOR_RES_Y - 2*py);
-                uint16_t* bp = &bvram[BM(x,y)];
-                uint16_t* mp = &bvram_mirror[BM(x,y)];
+                uint16_t* bp = (uint16_t*) &bvram[BM(j,i)];
+                uint16_t* mp = (uint16_t*) &bvram_mirror[BM(j,i)];
 
                 #define BP (*bp)
                 #define MP (*mp)
@@ -1329,7 +1318,7 @@ hist_draw_image(
         /* divide the histogram in 12 equal slices - each slice is 1 EV */
         if (hist_is_raw)
         {
-            static int bar_pos;
+            static unsigned bar_pos;
             if (i == 0) bar_pos = 0;
             if (i == bar_pos)
             {
@@ -3262,14 +3251,11 @@ static void spotmeter_step()
     #ifdef FEATURE_RAW_SPOTMETER
     int raw_luma = 0;
     int raw_ev = 0;
-    if (can_use_raw_overlays())
+    if (can_use_raw_overlays() && raw_update_params())
     {
-        int xcn = BM2N_X(xcb);
-        int ycn = BM2N_Y(ycb);
-        int xcr = xcn * SENSOR_RES_X / 720;
-        int ycr = ycn * SENSOR_RES_Y / 480;
-        void* raw_buf = RAW_IMAGE_BUFFER;
-        int dxr = dxb * SENSOR_RES_X / os.x_ex;
+        int xcr = BM2RAW_X(xcb);
+        int ycr = BM2RAW_Y(ycb);
+        int dxr = BM2RAW_DX(dxb);
 
         raw_luma = 0;
         
@@ -3277,7 +3263,7 @@ static void spotmeter_step()
         {
             for( x = xcr - dxr ; x <= xcr + dxr ; x++ )
             {
-                raw_luma += raw_get_pixel(raw_buf, x, y);
+                raw_luma += raw_get_pixel(x, y);
                 
                 /* define this to check if spotmeter reads from the right place;
                  * you should see some gibberish on raw zebras, right inside the spotmeter box */
@@ -3287,9 +3273,7 @@ static void spotmeter_step()
             }
         }
         raw_luma /= (2 * dxr + 1) * (2 * dxr + 1);
-        int black = autodetect_black_level(raw_buf);
-        int white = RAW_WHITE_LEVEL;
-        raw_ev = (int) roundf(10.0 * raw_to_ev(raw_luma, black, white));
+        raw_ev = (int) roundf(10.0 * raw_to_ev(raw_luma));
     }
     #endif
     
@@ -6059,7 +6043,7 @@ static void livev_playback_reset()
     livev_playback = 0;
 }
 
-static int livev_playback_refresh()
+static void livev_playback_refresh()
 {
     while (livev_for_playback_running) msleep(20);
     livev_playback_toggle();
