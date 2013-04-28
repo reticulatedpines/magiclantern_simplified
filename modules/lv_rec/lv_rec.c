@@ -9,7 +9,7 @@ void lv_rec_stop();
 
 unsigned int exmem_clear(struct memSuite * hSuite, char fill);
 unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file);
-
+struct memSuite *CreateMemorySuite(unsigned int address, unsigned int size, unsigned int flags);
 
 /* menu options */
 typedef struct
@@ -53,6 +53,10 @@ typedef struct
     unsigned int height;
     unsigned int bytesPerLine;
     unsigned int frameSize;
+    unsigned int frameSizeReal;
+    
+    unsigned int topCrop;
+    unsigned int bottomCrop;
     
 } lv_rec_save_data_t;
 
@@ -75,8 +79,14 @@ typedef struct
     
     /* chunks etc */
     lv_rec_chunk_data_t chunkData;
+    struct memSuite *memCopySuite;
+    unsigned int frameSizeReal;
+    unsigned int frameSize;
     
     /* EDMAC parameters */
+    unsigned int dmaCopyChannel;
+    unsigned int dmaCopyConn;
+    
     unsigned int dmaChannel;
     unsigned int dmaSourceConn;
     unsigned int dmaFlags;
@@ -106,6 +116,13 @@ void lv_rec_create_task(int priv, int delta)
 
 void lv_rec_update_preset()
 {
+    if(lv_rec_line_skip_preset && lv_rec_raw_mode)
+    {
+        lv_rec_line_skip_preset = 0;
+        lv_rec_line_skip = 0;
+    }
+    return;
+    
     struct vram_info *vram = get_yuv422_hd_vram();
     int presets[] = { 0, 1080, 960, 720, 480 };
 
@@ -187,14 +204,13 @@ static struct menu_entry lv_rec_menu[] =
         .max = 1,
         .help = "Record into one single file (it is faster)",
     },
-    /*
     {
         .name = "RAW recording",
         .priv = &lv_rec_raw_mode,
         .max = 1,
         .help = "Record RAW data instead of YUV422 (no decoder yet)",
     },
-    */
+    
 };
 
 unsigned int lv_rec_init()
@@ -220,6 +236,14 @@ int lv_rec_get_memsize(struct memSuite *suite)
     }
     
     return size;
+}
+
+void complete_cbr(int ctx)
+{
+}
+
+void pop_cbr(int ctx)
+{
 }
 
 void lv_rec_next_chunk(lv_rec_chunk_data_t *data)
@@ -251,6 +275,7 @@ void lv_rec_next_chunk(lv_rec_chunk_data_t *data)
 unsigned int lv_rec_vsync_cbr(unsigned int ctx)
 {
     lv_rec_data_t *data = lv_rec_state;
+    int err = 0;
     
     if(!data)
     {
@@ -268,20 +293,37 @@ unsigned int lv_rec_vsync_cbr(unsigned int ctx)
     {
         data->running = 1;
         ConnectWriteEDmac(data->dmaChannel, data->dmaSourceConn);
-        PackMem_SetEDmacForMemorySuite(data->dmaChannel, data->chunkData.memSuite, data->dmaFlags);
+        err = PackMem_SetEDmacForMemorySuite(data->dmaChannel, data->chunkData.memSuite, data->dmaFlags);
         PackMem_StartEDmac(data->dmaChannel, 0);
+        
+        if(err)
+        {
+            bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * (18), "Failed: PackMem_SetEDmacForMemorySuite");
+        }
     }
     else
     {
-        data->capturedFrames++;
+        lv_rec_state->capturedFrames++;
         
         if(data->capturedFrames >= data->maxFrames || (data->capturedFrames - data->savedFrames) >= data->maxFramesBufferable)
         {
             PackMem_PopEDmacForMemorySuite(data->dmaChannel);
+            PackMem_PopEDmacForMemorySuite(data->dmaCopyChannel);
             data->finished = 1;
             lv_rec_state = NULL;
             return 0;
         }
+    }
+    
+#define RAW_LV_EDMAC 0xC0F26208
+    /* copy from RAW buffer */
+
+    ConnectReadEDmac(data->dmaCopyChannel, data->dmaCopyConn);
+    err = PackMem_SetEDmacForMemorySuite(data->dmaCopyChannel, data->memCopySuite, data->dmaFlags);
+    PackMem_StartEDmac(data->dmaCopyChannel, 2);
+    if(err)
+    {
+        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * (18), "Failed: PackMem_SetEDmacForMemorySuite");
     }
     
     return 0;
@@ -289,8 +331,8 @@ unsigned int lv_rec_vsync_cbr(unsigned int ctx)
 
 unsigned int lv_rec_save_frame(FILE *save_file, lv_rec_save_data_t *save_data, int skip_saving)
 {
-    unsigned int skipBefore = save_data->options.linesToSkip * save_data->bytesPerLine;
-    unsigned int skipAfter = save_data->options.linesToSkip * save_data->bytesPerLine;
+    unsigned int skipBefore = (save_data->topCrop + save_data->options.linesToSkip) * save_data->bytesPerLine;
+    unsigned int skipAfter = (save_data->bottomCrop + save_data->options.linesToSkip) * save_data->bytesPerLine;
     unsigned int payload = save_data->frameSize - skipBefore - skipAfter;
     unsigned int written = 0;
     
@@ -397,6 +439,7 @@ void lv_rec_start()
     lv_rec_data_t data;
     lv_rec_save_data_t save_data;
     
+    
     memset(&data, 0x00, sizeof(lv_rec_data_t));
     memset(&save_data, 0x00, sizeof(lv_rec_save_data_t));
     
@@ -463,24 +506,47 @@ void lv_rec_start()
     
     if(data.options.rawMode)
     {
+        
+        /* this needs tuning, especially the crop stuff needs rework to crop unneeded raw stuff */
+        save_data.width = 2080;
+        save_data.height = 1318;
+        save_data.bytesPerLine = (save_data.width * 14) / 8;
+        
         /* copy 8 bytes per transfer */
         data.dmaFlags = 0x20001000;
         /* not sure about size yet, this is the LV size, but it doesnt match */
         //save_data.frameSize = 10 * 2080*1080*14/8;
         
         /* 5D3: video at 1280x720 */
-        save_data.frameSize = 0x268BD0;
-        /* 5D3: video at 1920x1080 and 640x480 and photo-LV */
-        save_data.frameSize = 0x439450;
-        /* 5D3: zoomed at any mode x5/x10 */
-        save_data.frameSize = 0x8A2A5A;
+        //save_data.frameSizeReal = 0x268BD0;
+        /* 5D3: video at 1920x1080 and 640x480 and photo-LV -> 2080x1318*/
+        //save_data.frameSizeReal = 0x493450;
+        /* 5D3: zoomed at any mode x5/x10 -> 3744x1380 */
+        //save_data.frameSizeReal = 0x8A2A5A;
         
-        save_data.frameSize = 0x439450;
-        data.maxFrames = 5;
-        /* read from CRAW connection */
-        data.dmaSourceConn = 0x00;
+        //save_data.frameSize = 2080*1080*14/8;
         
-        //exmem_clear(data.chunkData.memSuite, 0xEE);
+        /*5D3: video at 1920x1080 and 640x480 and photo-LV -> 2080x1318, the top 27 lines are black */
+        save_data.frameSizeReal = 2080*1318*14/8;
+        save_data.topCrop = 0;
+        save_data.bottomCrop = 0;
+        
+        /* set block size for EDMAC and update cropping */
+        save_data.frameSize = (save_data.frameSizeReal + 4096) & (~4095);
+        save_data.bottomCrop += (save_data.frameSizeReal - save_data.frameSize + save_data.bytesPerLine - 1) / save_data.bytesPerLine;
+        
+        data.frameSize = save_data.frameSize;
+        
+        /* mem copy connection */
+        data.dmaCopyChannel = 0x19;
+        data.dmaCopyConn = 0x06;
+        data.dmaSourceConn = 0x06;
+        data.dmaFlags = 0;
+        
+        /* create a memory suite that consists of lv_save_raw raw buffer */
+        data.memCopySuite = CreateMemorySuite(shamem_read(RAW_LV_EDMAC), data.frameSize, 0);
+        PackMem_RegisterEDmacCompleteCBRForMemorySuite(data.dmaCopyChannel, &complete_cbr, 0);
+        PackMem_RegisterEDmacPopCBRForMemorySuite(data.dmaCopyChannel, &pop_cbr, 0);
     }
     else
     {
@@ -492,13 +558,18 @@ void lv_rec_start()
         
         /* copy 2 byte per transfer */
         data.dmaFlags = 0x20000000;
-        data.maxFrames = 200000;
         /* read from YUV connection */
         data.dmaSourceConn = 0x1B;
     }
-    
+
+    /* who wants to save more? */
+    data.maxFrames = 200000;
     data.dmaChannel = 0x11;
     data.maxFramesBufferable = allocatedMemory / save_data.frameSize;
+    
+    /* EDMAC callbacks */
+    PackMem_RegisterEDmacCompleteCBRForMemorySuite(data.dmaChannel, &complete_cbr, 1);
+    PackMem_RegisterEDmacPopCBRForMemorySuite(data.dmaChannel, &pop_cbr, 1);
     
     /* this enables recording */
     lv_rec_state = &data;
@@ -596,8 +667,19 @@ void lv_rec_start()
         {
             msleep(200);
         }
+            
+        struct memChunk *currentChunk = NULL;
+        unsigned char *chunkAddress = NULL;
+        if(data.memCopySuite)
+        {
+            currentChunk = GetFirstChunkFromSuite(data.memCopySuite);
+        }
+        if(currentChunk)
+        {
+            chunkAddress = (unsigned char*)GetMemoryAddressOfMemoryChunk(currentChunk);
+        }
         
-        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos, "%s, %d buffered, %d saved  ", (data.finished?"Finished":(data.running?"Recording":"Wait.....")), data.capturedFrames - data.savedFrames, data.savedFrames / data.options.frameSkip);
+        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos, "%s, %d buffered, %d saved 0x%08X", (data.finished?"Finished":(data.running?"Recording":"Wait.....")), data.capturedFrames - data.savedFrames, data.savedFrames / data.options.frameSkip, chunkAddress);
     }
     yPos++;
     
@@ -621,6 +703,12 @@ void lv_rec_start()
     bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * ++yPos, "Recording finished");
     
     shoot_free_suite(data.chunkData.memSuite);
+    
+    /* the dummy suite that points to lv_save_raw buffer */
+    if(data.memCopySuite)
+    {
+        DeleteMemorySuite(data.memCopySuite);
+    }
 }
 
 void lv_rec_stop()

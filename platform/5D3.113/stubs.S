@@ -44,16 +44,21 @@ NSTUB(0x23D08, pre_isr_hook)
 NSTUB(0x23D0C, post_isr_hook)
 
 
+NSTUB(0xAE24, CreateMemorySuite)
+NSTUB(0xAC1C, DeleteMemorySuite)
+
 NSTUB(0x126A4, ConnectWriteEDmac)
 NSTUB(0x12768, ConnectReadEDmac)
 NSTUB(0x125F8, SetEDmac)
 NSTUB(0x12AFC, EDMAC_RegisterCompleteCBR)
 NSTUB(0x12910, StartEDmac)
-NSTUB(0xFF576348, PackMem_SetEDmacForMemorySuite)
-NSTUB(0xFF5766D0, PackMem_RegisterEDmacPopCBRForMemorySuite)
+
+
 NSTUB(0xFF576634, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
+NSTUB(0xFF5766D0, PackMem_RegisterEDmacPopCBRForMemorySuite)
+NSTUB(0xFF576348, PackMem_SetEDmacForMemorySuite)
+NSTUB(0xFF576564, PackMem_PopEDmacForMemorySuite)
 NSTUB(0xFF57645C, PackMem_StartEDmac)
-NSTUB(0xFF576564, PopEDmacForMemorySuite)
 
 #define RAM_OFFSET 0xFF9DEF48 // some functions are copied to RAM at around ff0c009c; they have to be called from RAM...
 
