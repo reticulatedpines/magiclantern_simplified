@@ -106,6 +106,13 @@ struct trans2d lv2hd = {
     .sy = 2048, // dummy
 };
 
+struct trans2d lv2raw = {
+    .tx = 0,
+    .ty = 0,
+    .sx = 2048,
+    .sy = 2048,
+};
+
 // area from BMP where the LV image (3:2) is effectively drawn, without black bars
 // in this area we'll draw cropmarks, zebras and so on
 struct bmp_ov_loc_size os = {
