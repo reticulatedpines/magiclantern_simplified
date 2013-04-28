@@ -151,9 +151,9 @@ int get_display_is_on_550D() { return display_is_on_550D; }
 #endif
 
 #ifdef FEATURE_SHOW_STATE_FPS
-static int state_activations = 0;
-static int current_trans = 0;
-int state_matrix[] = {1,2,3,4,5,6,7};
+#define num_states 4
+#define num_inputs 32
+static int state_matrix[num_states][num_inputs];
 #endif
 
 static int (*StateTransition)(void*,int,int,int,int) = 0;
@@ -162,11 +162,8 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
     int old_state = self->current_state;
 
 #ifdef FEATURE_SHOW_STATE_FPS
-    if (self == EVF_STATE) {
-        if(old_state == state_matrix[current_trans] && input == 15) {
-            bmp_printf(FONT_LARGE,0,0,"FIRING");
-            state_activations++;
-        }
+    if (self == DISPLAY_STATE) {
+        state_matrix[old_state][input]++;
     }
 #endif
 #ifdef CONFIG_550D
@@ -197,10 +194,18 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
     #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
     {
+        #ifdef CONFIG_DISPLAY_FILTERS
         if (!silent_pic_preview())
+        #else
+        if(1)
+        #endif
         {
+            #ifdef FEATURE_HDR_VIDEO
             hdr_kill_flicker();
+            #endif
+            #ifdef CONFIG_DISPLAY_FILTERS
             display_filter_lv_vsync(old_state, x, input, z, t);
+            #endif
             #ifdef FEATURE_MAGIC_ZOOM
             digic_zoom_overlay_step(0);
             #endif
@@ -378,12 +383,24 @@ INIT_FUNC("state_init", state_init);
 
 #ifdef FEATURE_SHOW_STATE_FPS
 void update_state_fps() {
-    NotifyBox(1000,"i:%02d o:%02d %03d", 15, state_matrix[current_trans], state_activations);
-    state_activations = 0;
-    current_trans++;
-    if(current_trans > 6) {
-        current_trans = 0;
+    NotifyBox(1000,"Logging");
+    FILE* state_log_file = 0;
+    state_log_file = FIO_CreateFileEx(CARD_DRIVE "state.log");
+    if(state_log_file) {
+        for(int i=0;i<num_states;++i) {
+            for(int j=0;j<num_inputs;++j) {
+                if(state_matrix[i][j]) {
+                    my_fprintf(state_log_file,"%02d %02d %03d\n", i, j, state_matrix[i][j]);
+                    state_matrix[i][j] = 0;
+                }
+            }
+        }
+        FIO_CloseFile(state_log_file);
+        state_log_file = 0;
     }
+    NotifyBox(1000,"Done");
+
 }
+
 #endif
 #endif
