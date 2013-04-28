@@ -1652,6 +1652,10 @@ silent_pic_take_simple(int interactive)
     
     // start with black preview 
     silent_pic_buf = (void*)shoot_malloc(size + lv_size);
+    if(!silent_pic_buf) {
+        bmp_printf(FONT_MED,0,0,"Couldn't allocate 0x%x bytes" , size + lv_size);
+        return;
+    }
     bzero32(silent_pic_buf + size, lv_size);
     
     /* when in continuous mode, wait for halfshutter being released before starting */
