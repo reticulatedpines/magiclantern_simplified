@@ -71,7 +71,7 @@
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
 /** Well, I hope so **/
 /** ... users say it's not working, e.g. post #591 */
-//~ #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
 //~ #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
 /** Therefore, we can implement display filters (features that alter the LiveView image in real-time) **/
@@ -96,8 +96,8 @@
 /** We can restore ML files after formatting the card in the camera **/
 #define CONFIG_RESTORE_AFTER_FORMAT
 
-/** We don't know how to use DMA_MEMCPY (yet) **/
-//~ #define CONFIG_DMA_MEMCPY
+/** We can use DMA_MEMCPY **/
+#define CONFIG_DMA_MEMCPY
 
 /** We should warn the user if movie exposure is Auto, otherwise he may report it as a bug **/
 #define CONFIG_MOVIE_AE_WARNING
