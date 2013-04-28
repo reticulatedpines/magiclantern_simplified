@@ -777,7 +777,11 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             break;
             
         case 2:
+            #ifdef FEATURE_SILENT_PIC_RAW_BURST
+            MENU_SET_VALUE("End Trigger" );
+            #else
             MENU_SET_VALUE("Continuous" );
+            #endif
             break;
             
         case 3:
@@ -1647,11 +1651,13 @@ silent_pic_take_raw()
     #error This requires CONFIG_FULL_EXMEM_SUPPORT
     #endif
 
-static volatile struct memSuite * sp_hSuite = 0;
+static struct memSuite * sp_hSuite = 0;
 static volatile int sp_running = 0;
-static volatile void* sp_frames[100];
+#define SP_BUFFER_SIZE 128
+static volatile int sp_buffer_count = 0;
 static volatile int sp_max_frames = 0;
 #define SP_MAX_FRAME_SIZE 6000000
+static void* sp_frames[SP_BUFFER_SIZE];
 
 /* called once per LiveView frame from LV state object */
 void silent_pic_raw_vsync()
@@ -1666,7 +1672,7 @@ void silent_pic_raw_vsync()
     /* first frame? do some initialization */
     if (!hChunk)
     {
-        hChunk = GetFirstChunkFromSuite(sp_hSuite);
+        hChunk = (void*) GetFirstChunkFromSuite(sp_hSuite);
         ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
         num_frames = 0;
         //~ console_printf("first chunk: %x %x\n", hChunk, ptr);
@@ -1702,10 +1708,24 @@ void silent_pic_raw_vsync()
             if (!hChunk)
             {
                 //~ console_printf("no more memory\n");
-                sp_running = 0;
-                hChunk = 0;
-                sp_max_frames = num_frames;
-                return;
+                
+                if (silent_pic_mode == 2) // end trigger
+                {
+                    /* go back to start and overwrite previous pictures */
+                    hChunk = GetFirstChunkFromSuite(sp_hSuite);
+                    ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+                    
+                    /* write down where the buffer overflowed, so we know how many pics to save */
+                    if (!sp_buffer_count)
+                        sp_buffer_count = num_frames;
+                }
+                else // regular burst
+                {
+                    sp_running = 0;
+                    hChunk = 0;
+                    sp_max_frames = num_frames;
+                    return;
+                }
             }
             ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
             //~ console_printf("next chunk: %x %x\n", hChunk, ptr);
@@ -1720,7 +1740,7 @@ void silent_pic_raw_vsync()
     raw_lv_redirect_edmac(ptr);
     
     /* Prepare for next frame */
-    sp_frames[num_frames] = ptr;
+    sp_frames[num_frames % SP_BUFFER_SIZE] = ptr;
     ptr = ptr + raw_info.frame_size;
     num_frames++;
 
@@ -1742,7 +1762,8 @@ silent_pic_take_raw()
     while (!raw_update_params())
         msleep(50);
 
-    sp_max_frames = silent_pic_mode ? 100 : 1;
+    sp_buffer_count = 0;
+    sp_max_frames = silent_pic_mode == 1 ? SP_BUFFER_SIZE : silent_pic_mode == 2 ? 1000000 : 1;
     
     /* the actual grabbing the image(s) will happen from silent_pic_raw_vsync */
     sp_running = 1;
@@ -1757,12 +1778,14 @@ silent_pic_take_raw()
         /* this will take a while; pause the liveview and block the buttons to make sure the user won't do something stupid */
         PauseLiveView();
         ui_lock(UILOCK_EVERYTHING);
-        for (int i = 0; i < sp_max_frames; i++)
+        int i0 = 0;
+        if (sp_buffer_count) i0 = sp_max_frames - sp_buffer_count;
+        for (int i = i0; i < sp_max_frames; i++)
         {
             clrscr();
             char* fn = silent_pic_get_name();
             bmp_printf(FONT_MED, 0, 60, "Saving image %d of %d (%dx%d)...", i+1, sp_max_frames, raw_info.jpeg.width, raw_info.jpeg.height);
-            raw_info.buffer = sp_frames[i];
+            raw_info.buffer = sp_frames[i % SP_BUFFER_SIZE];
             save_dng(fn);
             if (i == 0) ui_lock(UILOCK_EVERYTHING); // sometimes the first call fails, so try again
         }
@@ -5201,9 +5224,9 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Mode",
                 .priv = &silent_pic_mode,
-                .max = 1,
+                .max = 2,
                 .help = "Silent picture mode: simple or burst.",
-                .choices = CHOICES("Simple", "Burst"),
+                .choices = CHOICES("Simple", "Burst", "Burst with End Trigger"),
                 .icon_type = IT_DICE,
             },
             MENU_EOL,

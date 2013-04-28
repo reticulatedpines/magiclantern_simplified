@@ -75,7 +75,7 @@ int FAST ev_to_raw(float ev);
 int save_dng(char* filename);
 
 /* redirect the LV RAW EDMAC in order to write the raw data at "ptr" */
-void raw_lv_redirect_edmac(uint32_t ptr);
+void raw_lv_redirect_edmac(void* ptr);
 
 /* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
 struct raw_info {

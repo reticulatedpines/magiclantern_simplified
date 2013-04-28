@@ -439,7 +439,7 @@ int autodetect_black_level()
     return black / num;
 }
 
-void raw_lv_redirect_edmac(uint32_t ptr)
+void raw_lv_redirect_edmac(void* ptr)
 {
     MEM(RAW_LV_EDMAC) = CACHEABLE(ptr);
 }
