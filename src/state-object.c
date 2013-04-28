@@ -143,6 +143,10 @@ static void vsync_func() // called once per frame.. in theory :)
     #ifdef FEATURE_DISPLAY_SHAKE
     display_shake_step();
     #endif
+
+    #ifdef FEATURE_SILENT_PIC_RAW_BURST
+    silent_pic_raw_vsync();
+    #endif
 }
 
 #ifdef CONFIG_550D

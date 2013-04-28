@@ -496,7 +496,7 @@ int save_dng(char* filename)
     raw_info.jpeg.x = 0;
     raw_info.jpeg.y = 0;
     raw_info.jpeg.width = raw_info.width;
-    raw_info.jpeg.height = raw_info.width;
+    raw_info.jpeg.height = raw_info.height;
     #endif
     
     FILE* f = FIO_CreateFileEx(filename);

@@ -156,6 +156,11 @@ int raw_update_params()
 
         /* autodetect raw size from EDMAC */
         uint32_t lv_raw_size = MEMX(RAW_LV_EDMAC+8);
+        if (!lv_raw_size)
+        {
+            dbg_printf("LV RAW size null\n");
+            return 0;
+        }
         int pitch = lv_raw_size & 0xFFFF;
         raw_info.width = pitch * 8 / 14;
         raw_info.height = raw_info.width; /* needs overwritten, but the default is useful for finding the real value */
@@ -172,7 +177,7 @@ int raw_update_params()
          * Try to use even offsets only, otherwise the colors will be screwed up.
          */
         #ifdef CONFIG_5D2
-        raw_info.height = zoom ? 1126 : 1265;
+        raw_info.height = zoom ? 1126 : 1266;
         skip_top        = zoom ?   50 :   16;
         skip_left       = 160;
         #endif
@@ -432,4 +437,9 @@ int autodetect_black_level()
         }
     }
     return black / num;
+}
+
+void raw_lv_redirect_edmac(uint32_t ptr)
+{
+    MEM(RAW_LV_EDMAC) = CACHEABLE(ptr);
 }

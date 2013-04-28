@@ -10,4 +10,5 @@
 #define FEATURE_RAW_ZEBRAS
 #define FEATURE_RAW_SPOTMETER
 
-#define FEATURE_SILENT_PIC_RAW
+#define FEATURE_SILENT_PIC_RAW_BURST
+//~ #define FEATURE_SILENT_PIC_RAW // - compatibility mode; define only one of those, not both

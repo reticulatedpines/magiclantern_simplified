@@ -1117,7 +1117,7 @@ static char* silent_pic_get_name()
     static int prev_folder_number = -1;
     
     char *extension = "422";
-#ifdef FEATURE_SILENT_PIC_RAW
+#if defined(FEATURE_SILENT_PIC_RAW) || defined(FEATURE_SILENT_PIC_RAW_BURST)
     extension = "DNG";
 #endif
     
@@ -1620,6 +1620,7 @@ int busy_vsync(int hd, int timeout_ms)
 }
 
 #ifdef FEATURE_SILENT_PIC_RAW
+
 static void
 silent_pic_take_raw()
 {
@@ -1641,6 +1642,146 @@ silent_pic_take_raw()
     redraw();
 }
 
+#elif defined(FEATURE_SILENT_PIC_RAW_BURST)
+    #ifndef CONFIG_FULL_EXMEM_SUPPORT
+    #error This requires CONFIG_FULL_EXMEM_SUPPORT
+    #endif
+
+static struct memSuite * sp_hSuite = 0;
+static int sp_running = 0;
+static void* sp_frames[100];
+static int sp_max_frames = 0;
+#define SP_MAX_FRAME_SIZE 6000000
+
+/* called once per LiveView frame from LV state object */
+void silent_pic_raw_vsync()
+{
+    if (!sp_running) return;
+    if (!sp_hSuite) return;
+    
+    static struct memChunk * hChunk = 0;
+    static void* ptr = 0;
+    static int num_frames = 0;
+
+    /* first frame? do some initialization */
+    if (!hChunk)
+    {
+        hChunk = GetFirstChunkFromSuite(sp_hSuite);
+        ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+        num_frames = 0;
+        //~ console_printf("first chunk: %x %x\n", hChunk, ptr);
+    }
+    
+    /* are we done? */
+    if ((num_frames && !HALFSHUTTER_PRESSED) || num_frames >= sp_max_frames)
+    {
+        sp_running = 0;
+        hChunk = 0;
+        sp_max_frames = num_frames;
+        //~ console_printf("done, got %d frames\n", sp_max_frames);
+        return;
+    }
+    
+    /* we'll look for contiguous blocks equal to raw_info.frame_size */
+    /* (so we'll make sure we can write raw_info.frame_size starting from ptr) */
+    
+    /* the EDMAC might write a bit more than that; we don't know how much, */
+    /* but for now we'll just assume it won't write more than SP_MAX_FRAME_SIZE */
+    while (1)
+    {
+        void* ptr0 = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+        int size = GetSizeOfMemoryChunk(hChunk);
+        int used = ptr - ptr0;
+        int remain = size - used;
+        //~ console_printf("remain: %x\n", remain);
+
+        if (remain < MAX(raw_info.frame_size, SP_MAX_FRAME_SIZE))
+        {
+            /* move to next chunk */
+            hChunk = GetNextMemoryChunk(sp_hSuite, hChunk);
+            if (!hChunk)
+            {
+                //~ console_printf("no more memory\n");
+                sp_running = 0;
+                hChunk = 0;
+                sp_max_frames = num_frames;
+                return;
+            }
+            ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+            //~ console_printf("next chunk: %x %x\n", hChunk, ptr);
+            continue;
+        }
+        break;
+    }
+
+    //~ console_printf("FRAME %d: hSuite=%x hChunk=%x ptr=%x\n", num_frames, sp_hSuite, hChunk, ptr);
+
+    /* Reprogram the raw EDMAC to output the data in our buffer (ptr) */
+    raw_lv_redirect_edmac(ptr);
+    
+    /* Prepare for next frame */
+    sp_frames[num_frames] = ptr;
+    ptr = ptr + raw_info.frame_size;
+    num_frames++;
+
+    bmp_printf(FONT_MED, 0, 60, "Capturing frame %d...", num_frames);
+}
+
+static void
+silent_pic_take_raw()
+{
+    /* allocate some RAM... as much as we can in burst mode */
+    sp_hSuite = shoot_malloc_suite(silent_pic_mode ? 0 : 20000000);
+    if (!sp_hSuite) { beep(); return; }
+
+    /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
+    call("lv_save_raw", 1);
+    msleep(50);
+ 
+    /* get image resolution, white level etc; retry if needed */
+    while (!raw_update_params())
+        msleep(50);
+
+    sp_max_frames = silent_pic_mode ? 100 : 1;
+    
+    /* the actual grabbing the image(s) will happen from silent_pic_raw_vsync */
+    sp_running = 1;
+    while (sp_running) msleep(20);
+    
+    /* disable the debug flag, no longer needed */
+    call("lv_save_raw", 0);
+
+    /* save the image(s) to card */
+    if (sp_max_frames > 1)
+    {
+        /* this will take a while; pause the liveview and block the buttons to make sure the user won't do something stupid */
+        PauseLiveView();
+        ui_lock(UILOCK_EVERYTHING);
+        for (int i = 0; i < sp_max_frames; i++)
+        {
+            clrscr();
+            char* fn = silent_pic_get_name();
+            bmp_printf(FONT_MED, 0, 60, "Saving image %d of %d (%dx%d)...", i+1, sp_max_frames, raw_info.jpeg.width, raw_info.jpeg.height);
+            raw_info.buffer = sp_frames[i];
+            save_dng(fn);
+            if (i == 0) ui_lock(UILOCK_EVERYTHING); // sometimes the first call fails, so try again
+        }
+        ui_lock(UILOCK_NONE);
+        ResumeLiveView();
+    }
+    else
+    {
+        char* fn = silent_pic_get_name();
+        bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
+        raw_info.buffer = sp_frames[0];
+        save_dng(fn);
+        redraw();
+    }
+    
+    /* cleanup */
+    shoot_free_suite(sp_hSuite);
+}
+ 
 #else // who needs 422 when we have raw?
 
 static void
@@ -1886,7 +2027,7 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
 
     if (!lv) force_liveview();
     
-#ifdef FEATURE_SILENT_PIC_RAW
+#if defined(FEATURE_SILENT_PIC_RAW) || defined(FEATURE_SILENT_PIC_RAW_BURST)
     silent_pic_take_raw();
 #else
 
@@ -5045,7 +5186,7 @@ static struct menu_entry shoot_menus[] = {
     },
     #endif
     #ifdef FEATURE_SILENT_PIC
-    #ifdef FEATURE_SILENT_PIC_RAW
+    #if defined(FEATURE_SILENT_PIC_RAW) || defined(FEATURE_SILENT_PIC_RAW_BURST)
     {
         .name = "Silent Picture",
         .priv = &silent_pic_enabled,
@@ -5053,6 +5194,21 @@ static struct menu_entry shoot_menus[] = {
         .depends_on = DEP_LIVEVIEW,
         .help  = "Take pics in LiveView without moving the shutter mechanism.",
         .help2 = "File format: 14-bit DNG.",
+        
+        #ifdef FEATURE_SILENT_PIC_RAW_BURST
+        .update = silent_pic_display,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Mode",
+                .priv = &silent_pic_mode,
+                .max = 1,
+                .help = "Silent picture mode: simple or burst.",
+                .choices = CHOICES("Simple", "Burst"),
+                .icon_type = IT_DICE,
+            },
+            MENU_EOL,
+        },
+        #endif
     },
     #else // who needs 422 when we have raw?
     {
