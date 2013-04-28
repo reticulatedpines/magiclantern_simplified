@@ -3154,10 +3154,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
     //~ int buf_size = 720*480*2;
     //~ void* src = (void*)vram->vram;
     //~ void* dst = src_buf + buf_size;
-#ifdef CONFIG_5D2
-    *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
-    *dst_buf = CACHEABLE(YUV422_LV_BUFFER_2);
-#elif defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
+#if defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
     
     // the EDMAC buffer is currently updating; use the previous one, which is complete
     static void* prev = 0;
