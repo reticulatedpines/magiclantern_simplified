@@ -731,6 +731,9 @@ static void bsod()
 
 static void run_test()
 {
+    call("lv_save_raw", 1);
+    return;
+    
 #ifdef FEATURE_SHOW_SIGNATURE
     console_show();
     console_printf("FW Signature 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
