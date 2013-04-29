@@ -320,7 +320,7 @@ static MENU_UPDATE_FUNC(show_modified_settings)
     int skip = (modified_settings_page - 1) * (460 / font_med.height);
     int k = 0;
     int y = 0;
-    struct menu * menu = menu_get_root();
+    struct menu * menu = (struct menu *) menu_get_root();
     for( ; menu ; menu = menu->next )
     {
         struct menu_entry * entry = menu->children;
@@ -331,7 +331,7 @@ static MENU_UPDATE_FUNC(show_modified_settings)
                 k++;
                 if (k <= skip) continue;
 
-                char* value = menu_get_str_value_from_script(menu->name, entry->name);
+                char* value = (char*) menu_get_str_value_from_script(menu->name, entry->name);
                 if (k%2) bmp_fill(COLOR_GRAY(10), 0, y, 720, font_med.height);
                 bmp_printf(SHADOW_FONT(FONT_MED), 10, y, "%s - %s", menu->name, entry->name);
                 bmp_printf(SHADOW_FONT(FONT(FONT_MED, COLOR_YELLOW, COLOR_BLACK)), 720 - strlen(value)*font_med.width, y, "%s", value);
@@ -733,7 +733,7 @@ static void run_test()
 {
 #ifdef FEATURE_SHOW_SIGNATURE
     console_show();
-    console_printf("FW Signature 0x%08x", compute_signature(SIG_START, SIG_LEN));
+    console_printf("FW Signature 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
     msleep(1000);
 #endif
 
@@ -2769,7 +2769,7 @@ static MENU_UPDATE_FUNC(edmac_display)
     edmac_display_page(16, 0xC0F26000, 360, 30);
 
 
-    int x = 20;
+    //~ int x = 20;
     bmp_printf(
         FONT_MED,
         20, 450, "EDMAC state: "
@@ -3170,35 +3170,35 @@ static struct menu_entry debug_menus[] = {
             {
                 .name = "malloc",
                 .icon_type = IT_ALWAYS_ON,
-                .priv = 1,
+                .priv = (int*)1,
                 .update = meminfo_display,
                 .help = "Free memory available via malloc.",
             },
             {
                 .name = "AllocateMemory",
                 .icon_type = IT_ALWAYS_ON,
-                .priv = 2,
+                .priv = (int*)2,
                 .update = meminfo_display,
                 .help = "Free memory available via AllocateMemory.",
             },
             {
                 .name = "stack space",
                 .icon_type = IT_ALWAYS_ON,
-                .priv = 3,
+                .priv = (int*)3,
                 .update = meminfo_display,
                 .help = "Free memory available as stack space for user tasks.",
             },
             {
                 .name = "shoot_malloc contig",
                 .icon_type = IT_ALWAYS_ON,
-                .priv = 4,
+                .priv = (int*)4,
                 .update = meminfo_display,
                 .help = "Largest contiguous block from shoot memory.",
             },
             {
                 .name = "shoot_malloc total",
                 .icon_type = IT_ALWAYS_ON,
-                .priv = 5,
+                .priv = (int*)5,
                 .update = meminfo_display,
                 .help = "Largest fragmented block from shoot memory.",
             },
@@ -3206,7 +3206,7 @@ static struct menu_entry debug_menus[] = {
             {
                 .name = "AUTOEXEC.BIN size",
                 .icon_type = IT_ALWAYS_ON,
-                .priv = 6,
+                .priv = (int*)6,
                 .update = meminfo_display,
                 .help = "Memory reserved statically at startup for ML binary.",
             },
@@ -4002,8 +4002,8 @@ void spy_event(struct event * event)
     }
 }
 
-static int halfshutter_pressed;
 #ifdef CONFIG_5DC
+static int halfshutter_pressed;
 bool get_halfshutter_pressed() { return halfshutter_pressed; }
 #else
 bool get_halfshutter_pressed() { return HALFSHUTTER_PRESSED && !dofpreview; }
