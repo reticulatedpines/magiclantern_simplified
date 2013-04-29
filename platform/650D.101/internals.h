@@ -128,5 +128,3 @@
 
 /** We can record movies in regular photo modes - M, P, Tv, Av... */
 #define CONFIG_NO_DEDICATED_MOVIE_MODE
-
-

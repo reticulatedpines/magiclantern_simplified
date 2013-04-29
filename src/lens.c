@@ -1640,7 +1640,9 @@ PROP_HANDLER( PROP_BV ) // camera-specific
 }
 #endif
 
+#ifdef FEATURE_EXPO_OVERRIDE
 static int shutter_was_set_from_ml = 0;
+#endif
 static int shutter_ack = -1;
 PROP_HANDLER( PROP_SHUTTER )
 {

@@ -968,8 +968,10 @@ fake_halfshutter_step()
 CONFIG_INT("focus.box.lv.jump", focus_box_lv_jump, 0);
 static CONFIG_INT("focus.box.lv.speed", focus_box_lv_speed, 1);
 
+#ifdef FEATURE_LV_FOCUS_BOX_FAST
 static int arrow_pressed = 0;
 static int arrow_unpressed = 0;
+#endif
 int handle_fast_zoom_box(struct event * event)
 {
 #ifdef FEATURE_LV_FOCUS_BOX_SNAP
@@ -982,8 +984,10 @@ int handle_fast_zoom_box(struct event * event)
         #ifndef CONFIG_550D // 550D should always center focus box with SET (it doesn't do by default)
         && (focus_box_lv_jump || (recording && is_manual_focus()))
         #endif
-        && liveview_display_idle() && !gui_menu_shown()
-        && !arrow_pressed)
+        #ifdef FEATURE_LV_FOCUS_BOX_FAST
+        && !arrow_pressed
+        #endif
+        && liveview_display_idle() && !gui_menu_shown())
     {
         center_lv_afframe();
         return 0;
@@ -1932,12 +1936,12 @@ int handle_zoom_trick_event(struct event * event)
 #endif
 
 
+#ifdef FEATURE_WARNINGS_FOR_BAD_SETTINGS
 static CONFIG_INT("warn.mode", warn_mode, 0);
 static CONFIG_INT("warn.picq", warn_picq, 0);
 static CONFIG_INT("warn.alo", warn_alo, 0);
-static int warn_code = 0;
 
-#ifdef FEATURE_WARNINGS_FOR_BAD_SETTINGS
+static int warn_code = 0;
 static char* get_warn_msg(char* separator)
 {
     static char msg[200];
