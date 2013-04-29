@@ -45,6 +45,9 @@ asm(
     "ORR     R0, R0, #0xD3\n"   // Set I,T, M=10011 == supervisor
     "MSR     CPSR, R0\n"
 
+/*	"ldr sp, =0x1900\n"  // 0x130
+	"mov fp, #0\n"
+*/
     "B       cstart\n"
 );
 
