@@ -30,8 +30,8 @@ int hibr_should_record_wav() { return 0; }
 
 int time_indic_x =  720 - 160;
 int time_indic_y = 0;
-static int time_indic_width = 160;
-static int time_indic_height = 20;
+//~ static int time_indic_width = 160;
+//~ static int time_indic_height = 20;
 static int time_indic_warning = 120;
 static int time_indic_font  = FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
 
