@@ -12,6 +12,13 @@ static void freeCBR(unsigned int a)
     give_semaphore(free_sem);
 }
 
+void shoot_free_suite(struct memSuite * hSuite)
+{
+    FreeMemoryResource(hSuite, freeCBR, 0);
+    take_semaphore(free_sem, 0);
+}
+
+
 static void allocCBR(unsigned int a, struct memSuite *hSuite)
 {
     /* in case we timed out last time, immediately free the newly allocated suite (its the one that timed out) */
@@ -144,12 +151,6 @@ struct memSuite *shoot_malloc_suite(size_t size)
     return hSuite;
 }
 
-
-void shoot_free_suite(struct memSuite * hSuite)
-{
-    FreeMemoryResource(hSuite, freeCBR, 0);
-    take_semaphore(free_sem, 0);
-}
 
 void* shoot_malloc(size_t size)
 {
