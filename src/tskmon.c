@@ -1,22 +1,27 @@
-
 #include "dryos.h"
 #include "bmp.h"
 #include "tskmon.h"
 #include "tasks.h"
 
+#ifdef CONFIG_TSKMON
 
-struct task *tskmon_last_task = NULL;
-uint32_t tskmon_last_timer_val = 0;
-uint32_t tskmon_active_time = 0;
-uint32_t tskmon_total_runtime = 0;
-uint32_t tskmon_task_runtimes[TSKMON_MAX_TASKS];
-uint32_t tskmon_task_stack_free[TSKMON_MAX_TASKS];
-uint32_t tskmon_task_stack_used[TSKMON_MAX_TASKS];
-uint32_t tskmon_task_stack_check[TSKMON_MAX_TASKS];
-uint32_t tskmon_idle_task_id = 0;
-uint32_t tskmon_powermgr_task_id = 0;
+static struct task *tskmon_last_task = NULL;
+static uint32_t tskmon_last_timer_val = 0;
+static uint32_t tskmon_active_time = 0;
+static uint32_t tskmon_total_runtime = 0;
+static uint32_t tskmon_task_runtimes[TSKMON_MAX_TASKS];
+static uint32_t tskmon_task_stack_free[TSKMON_MAX_TASKS];
+static uint32_t tskmon_task_stack_used[TSKMON_MAX_TASKS];
+static uint32_t tskmon_task_stack_check[TSKMON_MAX_TASKS];
+static uint32_t tskmon_idle_task_id = 0;
+static uint32_t tskmon_powermgr_task_id = 0;
 
-uint32_t tskmon_get_timer_reg()
+#ifdef FEATURE_ISR_HOOKS
+static uint32_t tskmon_isr_nesting = 0;
+static uint32_t tskmon_isr_task_active_time = 0;
+#endif
+
+static uint32_t tskmon_get_timer_reg()
 {
     return *(uint32_t*)0xC0242014;
 }
@@ -28,10 +33,10 @@ int tskmon_update_loads(taskload_t *task_loads)
     uint32_t total_runtime = 0;
 
     /* lock interrupts, so data is consistent */
-    uint32_t intflags = cli();    
+    uint32_t intflags = cli();
     memcpy(task_runtimes, tskmon_task_runtimes, sizeof(task_runtimes));
     total_runtime = tskmon_total_runtime;
-    
+
     /* and clear old data */
     for(int pos = 0; pos < TSKMON_MAX_TASKS; pos++)
     {
@@ -39,21 +44,21 @@ int tskmon_update_loads(taskload_t *task_loads)
     }
     tskmon_total_runtime = 0;
     sei(intflags);
-    
+
     /* now process */
     uint32_t idle_time = task_runtimes[tskmon_idle_task_id] + task_runtimes[tskmon_powermgr_task_id];
-    
+
     for(uint32_t pos = 0; pos < TSKMON_MAX_TASKS; pos++)
     {
         task_loads[pos].microseconds = task_runtimes[pos];
-        
+
         task_loads[pos].absolute = (task_runtimes[pos] * TSKMON_PCT_SCALING) / total_runtime;
-        
+
         if(task_loads[pos].absolute_avg > 0)
         {
             task_loads[pos].absolute_avg = (task_loads[pos].absolute_avg + task_loads[pos].absolute) / 2;
         }
-        
+
         /* all loads are relative to powermgr and idle task, so they must not be calculated */
         if((pos == tskmon_idle_task_id) || (pos == tskmon_powermgr_task_id))
         {
@@ -63,34 +68,34 @@ int tskmon_update_loads(taskload_t *task_loads)
         else
         {
             uint32_t base = (total_runtime - idle_time);
-            
+
             /* to prevent divide by zero */
             if(base == 0)
             {
                 base = 1;
             }
-            
+
             task_loads[pos].relative = (task_runtimes[pos] * TSKMON_PCT_SCALING) / base;
-        
+
             if(task_loads[pos].relative_avg > 0)
             {
                 task_loads[pos].relative_avg = (task_loads[pos].relative_avg + task_loads[pos].relative) / 2;
             }
         }
-        
+
         /* update averages */
     }
-    
+
     return (total_runtime - idle_time) * TSKMON_PCT_SCALING / total_runtime;
 }
 
 
 /* this updates tskmon_last_timer_val and counts up tskmon_active_time */
-void tskmon_update_timers()
+static void tskmon_update_timers()
 {
     uint32_t current_timer_val = tskmon_get_timer_reg();
     uint32_t delta = 0;
-    
+
     /* handle overflow */
     if(tskmon_last_timer_val > current_timer_val)
     {
@@ -100,18 +105,18 @@ void tskmon_update_timers()
     {
         delta = current_timer_val - tskmon_last_timer_val;
     }
-    
+
     tskmon_last_timer_val = current_timer_val;
     tskmon_active_time += delta;
 }
 
-void tskmon_update_runtime(struct task *task, uint32_t active_time)
+static void tskmon_update_runtime(struct task *task, uint32_t active_time)
 {
     if(!task || active_time == 0)
     {
         return;
     }
-    
+
     /* is likely to overflow.... */
     if((task->taskId & 0xFF) < TSKMON_MAX_TASKS)
     {
@@ -122,46 +127,71 @@ void tskmon_update_runtime(struct task *task, uint32_t active_time)
         tskmon_task_runtimes[TSKMON_MAX_TASKS-1] += active_time;
     }
     tskmon_total_runtime += active_time;
-    
+
     /* first time set idle/powermgr task ids */
     if(tskmon_idle_task_id == 0 && !strcmp(task->name, "idle"))
     {
         tskmon_idle_task_id = task->taskId & (TSKMON_MAX_TASKS-1);
     }
-    
+
     if(tskmon_powermgr_task_id == 0 && !strcmp(task->name, "PowerMgr"))
     {
         tskmon_powermgr_task_id = task->taskId & (TSKMON_MAX_TASKS-1);
     }
 }
 
-void tskmon_stack_checker(struct task *next_task)
+static void tskmon_stack_checker(struct task *next_task)
 {
     uint32_t id = (next_task->taskId) & (TSKMON_MAX_TASKS-1);
-    
+
     if(!tskmon_task_stack_check[id])
     {
         return;
     }
-    
+
     uint32_t free = 0;
     uint32_t *ptr = (uint32_t*)(next_task->stackStartAddr);
-    
+
     /* check for magic value */
     while(*ptr == 0x19980218)
     {
         free += 4;
         ptr++;
     }
-    
+
     tskmon_task_stack_free[id] = free;
-    tskmon_task_stack_used[id] = next_task->stackSize - free;    
+    tskmon_task_stack_used[id] = next_task->stackSize - free;
     tskmon_task_stack_check[id] = 0;
+
+    /* at 1024 it gives warning for PowerMgr task */
+    if (free < 256)
+    {
+        char* task_name = get_task_name_from_id(id);
+        
+        /* at 136 it gives warning for LightMeasure task (5D2/7D) - Canon allocated only 512 bytes for this task */
+        #if defined(CONFIG_5D2) || defined(CONFIG_7D)
+        if (streq(task_name, "LightMeasure") && free > 64)
+            return;
+        #endif
+
+        bmp_printf(FONT(FONT_MED, free < 128 ? COLOR_RED : COLOR_WHITE, COLOR_BLACK), 0, 0, 
+            "[%d] %s: stack %s: free=%d used=%d ",
+            id, task_name,
+            free < 128 ? "overflow" : "warning",
+            free, next_task->stackSize - free
+        );
+    }
 }
 
 void tskmon_stack_check(uint32_t task_id)
 {
     tskmon_task_stack_check[task_id & (TSKMON_MAX_TASKS-1)] = 1;
+}
+
+void tskmon_stack_check_all()
+{
+    for (int id = 0; id < TSKMON_MAX_TASKS; id++)
+        tskmon_task_stack_check[id] = 1;
 }
 
 void tskmon_stack_get_max(uint32_t task_id, uint32_t *used, uint32_t *free)
@@ -170,18 +200,107 @@ void tskmon_stack_get_max(uint32_t task_id, uint32_t *used, uint32_t *free)
     *used = tskmon_task_stack_used[task_id & (TSKMON_MAX_TASKS-1)];
 }
 
+static void null_pointer_check()
+{
+    static volatile int first_time = 1;
+    static volatile int value_at_zero = 0;
+    if (first_time)
+    {
+        value_at_zero = *(int*)0; // assume this is the correct value
+        first_time = 0;
+    }
+    else // did it change? it shouldn't
+    {
+        if (value_at_zero != *(int*)0)
+        {
+            // reset the error quickly so it doesn't get reported twice
+            int ok = value_at_zero;
+            int bad = *(int*)0;
+            *(int*)0 = value_at_zero;
+
+            uint32_t id = (tskmon_last_task->taskId) & (TSKMON_MAX_TASKS-1);
+
+            char* task_name = get_task_name_from_id(id);
+
+            // Ignore Canon null pointer bugs (let's hope they are harmless...)
+            
+            if (isupper(task_name[0])) // Canon tasks are named with uppercase letters, ML tasks are lowercase
+                return;
+            
+            #if 0
+            #if defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_600D)
+            /* [60D]   AeWB -> pc=ff07cb10
+             * [1100D] AeWB -> pc=ff07dbd4 lr=ff07dbd4 stack=137058+0x4000 entry=ff1ee5d8(9b9604)
+             * [600D]  AeWB -> pc=ff07f658 lr=ff07f658 stack=137058+0x4000 entry=ff1fbab4(90df10)
+             */
+            if (streq(task_name, "AeWb"))
+                return;
+            #endif
+
+            #if defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_600D)
+            /* Ignore FileMgr NPE
+             * [500D] FileMgr -> pc=ffff0740 lr=ffff0728 stack=13bf88+0x1000 entry=ff1a67b0(65d230)
+             * [550D] FileMgr -> pc=      10 lr=ff01380c stack=113128+0x1000 entry=ff1d8a3c(72c488)
+             * [60D]  FileMgr -> pc=ff013e9c
+             */
+            if (streq(task_name, "FileMgr"))
+                return;
+            #endif
+
+            #if defined(CONFIG_550D) || defined(CONFIG_500D)
+            /* Ignore MovieRecorder NPE
+             * [550D] MovieRecorder -> pc=ff069f78 lr=    1ed0 stack=12c1b8+0x1000 entry=ff1d8a3c(8c2b04)
+             * [500D] MovieRecorder -> pc=ffff0740 lr=ffff0728 stack=154010+0x1000 entry=ff1a67b0(8638b8)
+             */
+            if (streq(task_name, "MovieRecorder"))
+                return;
+            #endif
+
+            #if defined(CONFIG_600D)
+            /* Ignore CLR_CALC NPE
+             */
+            if (streq(task_name, "CLR_CALC"))
+                return;
+            #endif
+
+            #ifdef CONFIG_5D2
+            /* Ignore USBTrns NPE
+             * [5D2] USBTrns -> pc=ffff0748 lr=ffff0730 stack=15ac60+0x1000 entry=ff914d28(0)
+             */
+            if (streq(task_name, "USBTrns"))
+                return;
+            #endif
+            #endif
+
+            static char msg[256];
+
+            STR_APPEND(msg, "[%d] %s: NULL PTR (%x,%x)\n",
+                id, task_name,
+                bad, ok
+            );
+            STR_APPEND(msg, "pc=%8x lr=%8x stack=%x+0x%x\n", tskmon_last_task->context->pc, tskmon_last_task->context->lr, tskmon_last_task->stackStartAddr, tskmon_last_task->stackSize);
+            STR_APPEND(msg, "entry=%x(%x)\n", tskmon_last_task->entry, tskmon_last_task->arg);
+            STR_APPEND(msg, "%8x %8x %8x %8x\n%8x %8x %8x %8x\n", *(uint32_t*)0, *(uint32_t*)4, *(uint32_t*)8, *(uint32_t*)0xc, *(uint32_t*)0x10, *(uint32_t*)0x14, *(uint32_t*)0x18, *(uint32_t*)0x1c);
+
+            ml_crash_message(msg);
+            request_core_dump(tskmon_last_task->stackStartAddr, tskmon_last_task->stackSize);
+        }
+    }
+}
+
 void tskmon_task_dispatch()
 {
 #ifdef HIJACK_TASK_ADDR
     struct task *next_task = *(struct task **)(HIJACK_TASK_ADDR);
-    
-    tskmon_stack_checker(next_task);    
+
+    tskmon_stack_checker(next_task);
     tskmon_update_timers();
-    
+    null_pointer_check();
+
     if(next_task->taskId != tskmon_last_task->taskId)
     {
         tskmon_update_runtime(tskmon_last_task, tskmon_active_time);
-        
+
         /* restart timer and update active task */
         tskmon_active_time = 0;
         tskmon_last_task = next_task;
@@ -189,19 +308,59 @@ void tskmon_task_dispatch()
 #endif
 }
 
+#ifdef FEATURE_ISR_HOOKS
+
+void tskmon_pre_isr()
+{
+    tskmon_isr_nesting++;
+
+    /* just in case that interrupts are nesting */
+    if(tskmon_isr_nesting == 1)
+    {
+        tskmon_update_timers();
+        tskmon_isr_task_active_time = tskmon_active_time;
+        tskmon_active_time = 0;
+    }
+}
+
+void tskmon_post_isr()
+{
+    tskmon_isr_nesting--;
+
+    /* just in case that interrupts are nesting */
+    if(tskmon_isr_nesting == 0)
+    {
+        /* calculate runtime since las timer rading */
+        tskmon_update_timers();
+        /* apply to interrupt entry */
+        tskmon_task_runtimes[TSKMON_MAX_TASKS-1] += tskmon_active_time;
+        /* restore task runtime */
+        tskmon_active_time = tskmon_isr_task_active_time;
+    }
+}
+#endif
+
 void tskmon_init()
 {
     for(int pos = 0; pos < TSKMON_MAX_TASKS; pos++)
     {
         tskmon_task_runtimes[pos] = 0;
     }
-    
+
     tskmon_idle_task_id = 0;
     tskmon_powermgr_task_id = 0;
     tskmon_last_task = NULL;
     tskmon_last_timer_val = 0;
     tskmon_active_time = 0;
     tskmon_total_runtime = 0;
+
+#ifdef FEATURE_ISR_HOOKS
+    extern void (*pre_isr_hook)();
+    extern void (*post_isr_hook)();
+
+    pre_isr_hook = &tskmon_pre_isr;
+    post_isr_hook = &tskmon_post_isr;
+#endif
 }
 
-
+#endif

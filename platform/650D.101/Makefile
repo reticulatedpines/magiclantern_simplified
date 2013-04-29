@@ -13,6 +13,9 @@ PLATFORM_INC=.
 
 PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
+# compile position independent (experimental)
+CONFIG_PIC=n
+
 # magiclantern.lds script MUST be first
 # entry.o MUST be second
 # menu.o and debug.o must come before the modules
@@ -43,7 +46,6 @@ ML_OBJS-y = \
 	shoot.o \
 	chdk-gui_draw.o \
 	movtweaks.o \
-	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
 	af_patterns.o \
@@ -53,7 +55,6 @@ ML_OBJS-y = \
 	dialog_test.o \
 	vram.o \
 	aj_port.o \
-	lv-img-engio.o \
 	fps-engio.o \
 	hdr.o \
 	lv-img-engio.o \
@@ -63,11 +64,12 @@ ML_OBJS-y = \
 	beep.o \
 	audio-ak.o \
 	vsync-lite.o \
+	ph_info_disp.o \
+	flexinfo.o \
 	dm-spy.o \
 
 #include generic rules and definitions
-#TOP_DIR defined in upper Makefile
-include ../../Makefile.inc
+include  $(TOP_DIR)/Makefile.inc
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
@@ -78,3 +80,8 @@ AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120
 
 all: autoexec.bin
+
+x: 
+	make clean
+	make autoexec-fir.bin
+	python ../../../dumper/build_fir.py -r ../../../dumper/5D300113.FIR autoexec-fir.bin ml-650D-101.fir

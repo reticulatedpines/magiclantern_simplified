@@ -32,22 +32,20 @@
 #include "version.h"
 
 // for movie logging
-char* mvr_logfile_buffer = 0;
+static char* mvr_logfile_buffer = 0;
 /* delay to be waited after mirror is locked */
 CONFIG_INT("mlu.lens.delay", lens_mlu_delay, 7);
 
-void update_stuff();
+static void update_stuff();
 
 //~ extern struct semaphore * bv_sem;
 void bv_update_lensinfo();
 void bv_auto_update();
-void lensinfo_set_aperture(int raw);
-void bv_expsim_shift();
+static void lensinfo_set_aperture(int raw);
+static void bv_expsim_shift();
 
 
-CONFIG_INT("shutter.display.degrees", shutter_display_degrees, 0);
-
-CONFIG_INT("movie.log", movie_log, 0);
+static CONFIG_INT("movie.log", movie_log, 0);
 #ifdef CONFIG_FULLFRAME
 #define SENSORCROPFACTOR 10
 #define crop_info 0
@@ -83,12 +81,12 @@ calc_dof(
 )
 {
     #ifdef CONFIG_FULLFRAME
-    const uint32_t        coc = 29; // 1/1000 mm
+    const uint64_t        coc = 29; // 1/1000 mm
     #else
-    const uint32_t        coc = 19; // 1/1000 mm
+    const uint64_t        coc = 19; // 1/1000 mm
     #endif
-    const uint32_t        fd = info->focus_dist * 10; // into mm
-    const uint32_t        fl = info->focal_len; // already in mm
+    const uint64_t        fd = info->focus_dist * 10; // into mm
+    const uint64_t        fl = info->focal_len; // already in mm
 
     // If we have no aperture value then we can't compute any of this
     // Not all lenses report the focus distance
@@ -100,11 +98,11 @@ calc_dof(
         return;
     }
 
-    const uint32_t        fl2 = fl * fl;
+    const uint64_t        fl2 = fl * fl;
 
     // The aperture is scaled by 10 and the CoC by 1000,
     // so scale the focal len, too.  This results in a mm measurement
-    const unsigned H = ((1000 * fl2) / (info->aperture  * coc)) * 10;
+    const uint64_t H = ((1000 * fl2) / (info->aperture  * coc)) * 10;
     info->hyperfocal = H;
 
     // If we do not have the focus distance, then we can not compute
@@ -118,12 +116,12 @@ calc_dof(
 
     // fd is in mm, H is in mm, but the product of H * fd can
     // exceed 2^32, so we scale it back down before processing
-    info->dof_near = ((H * (fd/10)) / ( H + fd )) * 10; // in mm
+    info->dof_near = (H * fd) / ( H + fd ); // in mm
     if( fd >= H )
         info->dof_far = 1000 * 1000; // infinity
     else
     {
-        info->dof_far = ((((H/10) * (fd/10))) / ( H - fd )) * 100; // in mm
+        info->dof_far = (H * fd) / ( H - fd ); // in mm
     }
 }
 
@@ -299,7 +297,7 @@ int raw2iso(int raw_iso)
         iso = ((iso+5)/10) * 10;
     else if (iso >= 15)
         iso = ((iso+2)/5) * 5;
-    else
+    else if (iso > 5)
         iso = iso&~1;
     return iso;
 }
@@ -386,21 +384,8 @@ static void ml_bar_clear(int ytop, int height)
     }
 }
 
-void draw_ml_bottombar(int double_buffering, int clear)
+int FAST get_ml_bottombar_pos()
 {
-    //~ beep();
-    if (!should_draw_bottom_bar()) return;
-    
-    struct lens_info *    info = &lens_info;
-
-    //~ int bg = TOPBAR_BGCOLOR;
-    int bg = COLOR_BLACK;
-    if (is_movie_mode() || gui_menu_shown()) bg = COLOR_BLACK;
-    //~ unsigned font    = FONT(FONT_MED, COLOR_WHITE, bg);
-    //~ unsigned font_err    = FONT( FONT_MED, COLOR_RED, bg);
-    //~ unsigned Font    = FONT(FONT_LARGE, COLOR_WHITE, bg);
-    //~ unsigned height    = fontspec_height( font );
-    
     unsigned bottom = 480;
     int screen_layout = get_screen_layout();
     
@@ -413,19 +398,26 @@ void draw_ml_bottombar(int double_buffering, int clear)
     if (gui_menu_shown())
         bottom = 480 + (hdmi_code == 5 ? 40 : 0); // force it at the bottom of menu
 
-    //~ bottom -= 10;
+    return bottom - 35;
+}
+void draw_ml_bottombar(int double_buffering, int clear)
+{
+    //~ beep();
+    if (!should_draw_bottom_bar()) return;
+    
+    struct lens_info *    info = &lens_info;
 
-    //~ if (screen_layout == SCREENLAYOUT_16_9)
-        //~ bg = bmp_getpixel(os.x0 + 123, bottom-36);
-    //unsigned x = 420;
-    //~ unsigned y = 480 - height - 10;
-    //~ if (ext_monitor_hdmi) y += recording ? -100 : 200;
+    int bg = COLOR_BLACK;
+    if (is_movie_mode() || gui_menu_shown()) bg = COLOR_BLACK;
+    
+    int bar_height = 35;
+    int ytop = get_ml_bottombar_pos();
+    int bottom = ytop + bar_height;
+
 
     unsigned int x_origin = MAX(os.x0 + os.x_ex/2 - 360 + 50, 0);
     unsigned int y_origin = bottom - 30;
     unsigned text_font = SHADOW_FONT(FONT(FONT_LARGE, COLOR_WHITE, bg));
-	int bar_height = 35;
-    int ytop = bottom - bar_height;
 
     // start drawing to mirror buffer to avoid flicker
     if (double_buffering)
@@ -555,6 +547,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
       static char shutter[32];
       if (is_bulb_mode()) snprintf(shutter, sizeof(shutter), "BULB");
       else if (info->raw_shutter == 0) snprintf(shutter, sizeof(shutter), "    ");
+      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), "%dK ", shutter_reciprocal/1000);
       else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), "%d  ", shutter_reciprocal);
       else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
       else snprintf(shutter, sizeof(shutter), "%d\" ", (shutter_x10+5) / 10);
@@ -584,7 +577,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
       }
 
     text_font = SHADOW_FONT(FONT(FONT_LARGE,fgs,bg));
-    if (is_movie_mode() && shutter_display_degrees)
+    /*if (is_movie_mode() && shutter_display_degrees)
     {
         snprintf(shutter, sizeof(shutter), "%d  ", shutter_degrees);
         bmp_printf( text_font, 
@@ -598,7 +591,7 @@ void draw_ml_bottombar(int double_buffering, int clear)
                     x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
                     y_origin, 
                     "o");
-    }
+    }*/
  /*   else if (is_movie_mode() && is_hard_shutter_override_active())
     {
         int d = get_shutter_override_degrees_x10();
@@ -617,8 +610,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
                     x_origin + 143 + font_med.width*2 + (strlen(shutter) - 2) * font_large.width, 
                     y_origin, 
                     "o");
-    }*/
-    else
+    }
+    else*/
     {
         bmp_printf( text_font, 
                 x_origin + (shutter_x10 <= 3 ? 143 : 123) + font_med.width*2  , 
@@ -670,7 +663,14 @@ void draw_ml_bottombar(int double_buffering, int clear)
                 bg
             );
             char msg[10];
-            int iso = raw2iso(info->iso_equiv_raw);
+            int iso_equiv_raw = info->iso_equiv_raw;
+            
+            #ifdef FEATURE_FPS_OVERRIDE
+            iso_equiv_raw += fps_get_iso_correction_evx8();
+            #endif
+            
+            int iso = raw2iso(iso_equiv_raw);
+            
             snprintf(msg, sizeof(msg), "%d   ", iso >= 10000 ? iso/100 : iso);
             bmp_printf( text_font, 
                       x_origin + 250  , 
@@ -679,8 +679,8 @@ void draw_ml_bottombar(int double_buffering, int clear)
             
             static char msg2[5];
             msg2[0] = '\0';
-            if (CONTROL_BV && lens_info.iso_equiv_raw == lens_info.raw_iso) { STR_APPEND(msg2, "ov"); }
-            else if (lens_info.iso_equiv_raw != lens_info.raw_iso) { STR_APPEND(msg2, "eq"); }
+            if (CONTROL_BV && iso_equiv_raw == lens_info.raw_iso) { STR_APPEND(msg2, "ov"); }
+            else if (iso_equiv_raw != lens_info.raw_iso) { STR_APPEND(msg2, "eq"); }
             if (get_htp()) { STR_APPEND(msg2, msg2[0] ? "+" : "D+"); }
             
             bmp_printf( FONT(SHADOW_FONT(FONT_MED), FONT_FG(text_font), bg), 
@@ -810,14 +810,14 @@ void draw_ml_bottombar(int double_buffering, int clear)
                   COLOR_GREEN1;
         
         bat = bat * 22 / 100;
-        bmp_draw_rect(COLOR_BLACK, xr+1, y_origin-4, 9, 4);
-        bmp_draw_rect(COLOR_BLACK, xr-3, y_origin-1, 17, 31);
+        bmp_draw_rect(COLOR_BLACK, xr+1, y_origin-4, 10, 4);
+        bmp_draw_rect(COLOR_BLACK, xr-3, y_origin-1, 18, 31);
         //~ bmp_draw_rect(COLOR_BLACK, xr, y_origin+2, 11, 29);
-        bmp_draw_rect(COLOR_BLACK, xr+1, y_origin + 24 - bat, 9, bat+2);
-        bmp_fill(col, xr+4, y_origin-3, 8, 3);
-        bmp_draw_rect(col, xr-2, y_origin, 15, 29);
-        bmp_draw_rect(col, xr-1, y_origin + 1, 13, 27);
-        bmp_fill(col, xr+4, y_origin + 26 - bat, 8, bat);
+        bmp_draw_rect(COLOR_BLACK, xr+1, y_origin + 24 - bat, 10, bat+2);
+        bmp_fill(col, xr+2, y_origin-3, 8, 3);
+        bmp_draw_rect(col, xr-2, y_origin, 16, 29);
+        bmp_draw_rect(col, xr-1, y_origin + 1, 14, 27);
+        bmp_fill(col, xr+2, y_origin + 25 - bat, 8, bat);
 
     //~ if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
     //~ if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
@@ -869,42 +869,40 @@ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
     }
 }*/
 
-void draw_ml_topbar(int double_buffering, int clear)
+int FAST get_ml_topbar_pos()
 {
-    if (!get_global_draw()) return;
-    
-    //~ int bg = TOPBAR_BGCOLOR;
-    //~ if (gui_menu_shown()) bg = COLOR_BLACK;
-    unsigned font    = FONT(SHADOW_FONT(FONT_MED), COLOR_WHITE, COLOR_BLACK);
-    //~ unsigned font_err    = FONT( f, COLOR_RED, bg);
-    //~ unsigned Font    = FONT(FONT_LARGE, COLOR_WHITE, bg);
-    //~ unsigned height    = fontspec_height( font );
-    
-    int x = 80;
-    int y = 0;
-
     int screen_layout = get_screen_layout();
 
-    if (screen_layout >= 3 && !should_draw_bottom_bar())
-        return; // top bar drawn at bottom, may interfere with canon info
-
-
+    int y = 0;
     if (gui_menu_shown())
     {
-        x = MAX(os.x0 + os.x_ex/2 - 360, 0);
-        //~ y = MAX(os.y0 + os.y_ex/2 - 240, os.y0);
         y = (hdmi_code == 5 ? 40 : 0); // force it at the top of menu
     }
     else
     {
-        x = MAX(os.x0 + os.x_ex/2 - 360, 0);
         if (screen_layout == SCREENLAYOUT_3_2_or_4_3) y = os.y0; // just above the 16:9 frame
         else if (screen_layout == SCREENLAYOUT_16_9) y = os.y0 + os.off_169; // meters just below 16:9 border
         else if (screen_layout == SCREENLAYOUT_16_10) y = os.y0 + os.off_1610; // meters just below 16:9 border
         else if (screen_layout == SCREENLAYOUT_UNDER_3_2) y = MIN(os.y_max, 480 - 54);
         else if (screen_layout == SCREENLAYOUT_UNDER_16_9) y = MIN(os.y_max - os.off_169, 480 - 54);
     }
+    return y;
+}
+
+void draw_ml_topbar(int double_buffering, int clear)
+{
+    if (!get_global_draw()) return;
     
+    unsigned font    = FONT(SHADOW_FONT(FONT_MED), COLOR_WHITE, COLOR_BLACK);
+    
+    int x = MAX(os.x0 + os.x_ex/2 - 360, 0);
+    int y = get_ml_topbar_pos();
+
+    int screen_layout = get_screen_layout();
+    if (screen_layout >= 3 && !should_draw_bottom_bar())
+        return; // top bar drawn at bottom, may interfere with canon info
+
+    // fixme: draw them right from the first try
     extern int time_indic_x, time_indic_y; // for bitrate indicators
     if (time_indic_x != os.x_max - 160 || time_indic_y != (int)y) redraw();
     time_indic_x = os.x_max - 160;
@@ -967,11 +965,9 @@ void draw_ml_topbar(int double_buffering, int clear)
 
     x += 70;
     #ifdef CONFIG_BATTERY_INFO
-        bmp_printf( font, x, y,"T=%d BAT=%d", efic_temp, GetBatteryLevel());
-    #elif defined(CONFIG_550D)
-        bmp_printf( font, x, y,"T=%dC", EFIC_CELSIUS);
+        bmp_printf( font, x, y,"T=%dC BAT=%d", EFIC_CELSIUS, GetBatteryLevel());
     #else
-        bmp_printf( font, x, y,"T=%d", efic_temp);
+        bmp_printf( font, x, y,"T=%dC", EFIC_CELSIUS);
     #endif
 
     x += 160;
@@ -987,8 +983,8 @@ void draw_ml_topbar(int double_buffering, int clear)
         double_buffering_end(y, 35);
 }
 
-volatile int lv_focus_done = 1;
-volatile int lv_focus_error = 0;
+static volatile int lv_focus_done = 1;
+static volatile int lv_focus_error = 0;
 
 PROP_HANDLER( PROP_LV_FOCUS_DONE )
 {
@@ -1000,7 +996,7 @@ PROP_HANDLER( PROP_LV_FOCUS_DONE )
     }
 }
 
-void
+static void
 lens_focus_wait( void )
 {
     for (int i = 0; i < 100; i++)
@@ -1072,39 +1068,48 @@ static PROP_INT(PROP_ICU_UILOCK, uilock);
 void lens_wait_readytotakepic(int wait)
 {
     int i;
-    for (i = 0; i < wait * 10; i++)
+    for (i = 0; i < wait * 20; i++)
     {
         if (ml_shutdown_requested) return;
         if (sensor_cleaning) { msleep(50); continue; }
-        //~ if (lens_info.job_state <= 0xA && burst_count > 0 && !is_movie_mode()) break;
-        //~ if (lens_info.job_state <= 0xA && burst_count > 0 && is_movie_mode()) break;
-        if (lens_info.job_state <= 0xA && burst_count > 0 && ((uilock & 0xFF) == 0)) break;
-        msleep(20);
-        if (!recording)
-        {
-            if ((lens_info.job_state <= 0xA) || (uilock & 0xFF)) info_led_on();
-        }
+        if (shooting_mode == SHOOTMODE_M && lens_info.raw_shutter == 0) { msleep(50); continue; }
+        if (job_state_ready_to_take_pic() && burst_count > 0 && ((uilock & 0xFF) == 0)) break;
+        msleep(50);
+        if (!recording) info_led_on();
     }
     if (!recording) info_led_off();
 }
 
-int mirror_locked = 0;
-void mlu_lock_mirror_if_needed() // called by lens_take_picture
+static int mirror_locked = 0;
+int mlu_lock_mirror_if_needed() // called by lens_take_picture; returns 0 if success, 1 if camera took a picture instead of locking mirror
 {
     #ifdef CONFIG_5DC
     if (get_mlu()) set_mlu(0); // can't trigger shutter with MLU active, so just turn it off
-    return;
+    return 0;
     #endif
     
+    if (drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || drive_mode == DRIVE_SELFTIMER_CONTINUOUS)
+        return 0;
+    
+    if (get_mlu() && CURRENT_DIALOG_MAYBE)
+    {
+        SetGUIRequestMode(0);
+        int iter = 20;
+        while (iter-- && !display_idle())
+            msleep(50); 
+        msleep(500);
+    }
+
     //~ NotifyBox(1000, "MLU locking");
     if (get_mlu() && !lv)
     {
         if (!mirror_locked)
         {
-            mirror_locked = 1;
+            int fn = file_number;
+            
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
             SW1(1,50);
-            SW2(1,500);
+            SW2(1,250);
             SW2(0,50);
             SW1(0,50);
             #elif defined(CONFIG_40D)
@@ -1112,23 +1117,33 @@ void mlu_lock_mirror_if_needed() // called by lens_take_picture
             #else
             call("Release");
             #endif
-            msleep(get_mlu_delay(lens_mlu_delay));
+            
+            msleep(500);
+            if (file_number != fn) // Heh... camera took a picture instead. Cool.
+                return 1;
+
+            if (lv) // we have somehow got into LiveView, where MLU does nothing... so, no need to wait
+                return 0;
+
+            mirror_locked = 1;
+            
+            msleep(MAX(0, get_mlu_delay(lens_mlu_delay) - 500));
         }
     }
     //~ NotifyBox(1000, "MLU locked");
+    return 0;
 }
 
 #define AF_BUTTON_NOT_MODIFIED 100
-int orig_af_button_assignment = AF_BUTTON_NOT_MODIFIED;
+static int orig_af_button_assignment = AF_BUTTON_NOT_MODIFIED;
 
 // to preview AF patterns
 void assign_af_button_to_halfshutter()
 {
     if (ml_shutdown_requested) return;
-    if (is_manual_focus()) return;
     if (orig_af_button_assignment == AF_BTN_HALFSHUTTER) return;
     //~ take_semaphore(lens_sem, 0);
-    while (lens_info.job_state >= 0xa) msleep(20);
+    lens_wait_readytotakepic(64);
     if (ml_shutdown_requested) return;
     if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) orig_af_button_assignment = cfn_get_af_button_assignment();
     cfn_set_af_button(AF_BTN_HALFSHUTTER);
@@ -1139,10 +1154,9 @@ void assign_af_button_to_halfshutter()
 void assign_af_button_to_star_button()
 {
     if (ml_shutdown_requested) return;
-    if (is_manual_focus()) return;
     if (orig_af_button_assignment == AF_BTN_STAR) return;
     //~ take_semaphore(lens_sem, 0);
-    while (lens_info.job_state >= 0xa) msleep(20);
+    lens_wait_readytotakepic(64);
     if (ml_shutdown_requested) return;
     if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) orig_af_button_assignment = cfn_get_af_button_assignment();
     cfn_set_af_button(AF_BTN_STAR);
@@ -1156,7 +1170,7 @@ void restore_af_button_assignment()
     
     if (orig_af_button_assignment == AF_BUTTON_NOT_MODIFIED) return;
     //~ take_semaphore(lens_sem, 0);
-    while (lens_info.job_state >= 0xa) msleep(20);
+    lens_wait_readytotakepic(64);
     cfn_set_af_button(orig_af_button_assignment);
     msleep(100);
     if (cfn_get_af_button_assignment() == (int)orig_af_button_assignment)
@@ -1176,17 +1190,45 @@ void restore_af_button_assignment_at_shutdown()
     }
 }
 
+int ml_taking_pic = 0;
+
+int lens_setup_af(int should_af)
+{
+    ASSERT(should_af != AF_DONT_CHANGE);
+    
+    if (!is_manual_focus())
+    {
+        if (should_af == AF_ENABLE) assign_af_button_to_halfshutter();
+        else if (should_af == AF_DISABLE) assign_af_button_to_star_button();
+        else return 0;
+        
+        return 1;
+    }
+    return 0;
+}
+void lens_cleanup_af()
+{
+    restore_af_button_assignment();
+}
+
 int
 lens_take_picture(
     int wait, 
-    int allow_af
+    int should_af
 )
 {
-    if (!allow_af) assign_af_button_to_star_button();
+    if (ml_taking_pic) return -1;
+    ml_taking_pic = 1;
+
+    if (should_af != AF_DONT_CHANGE) lens_setup_af(should_af);
     //~ take_semaphore(lens_sem, 0);
     lens_wait_readytotakepic(64);
     
-    mlu_lock_mirror_if_needed();
+    // in some cases, the MLU setting is ignored; if ML can't detect this properly, this call will actually take a picture
+    // if it happens (e.g. with LV active, but camera in QR mode), that's it, we won't try taking another one
+    // side effects should be minimal
+    int took_pic = mlu_lock_mirror_if_needed();
+    if (took_pic) goto end;
 
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (get_mlu())
@@ -1219,67 +1261,32 @@ lens_take_picture(
      * There is a workaround: Just wait until shooting is possible again and then trigger SW1 for a short time.
      * Then the camera will shut down clean.
      */
-    lens_wait_readytotakepic(130000);
+    lens_wait_readytotakepic(64);
     SW1(1,50);
     SW1(0,50);
     SW1(1,50);
     SW1(0,50);
     #endif
-    
+
+end:
     if( !wait )
     {
         //~ give_semaphore(lens_sem);
-        if (!allow_af) restore_af_button_assignment();
+        if (should_af != AF_DONT_CHANGE) lens_cleanup_af();
+        ml_taking_pic = 0;
         return 0;
     }
     else
     {
         msleep(200);
+
+        if (drive_mode == DRIVE_SELFTIMER_2SEC) msleep(2000);
+        if (drive_mode == DRIVE_SELFTIMER_REMOTE || drive_mode == DRIVE_SELFTIMER_CONTINUOUS) msleep(10000);
+
         lens_wait_readytotakepic(wait);
         //~ give_semaphore(lens_sem);
-        if (!allow_af) restore_af_button_assignment();
-        return lens_info.job_state;
-    }
-}
-
-/* this function tries to press the shutter given duration */
-int
-lens_take_pictures(
-    int wait,
-    int allow_af,
-    int duration 
-)
-{
-    if (!allow_af) assign_af_button_to_star_button();
-
-    lens_wait_readytotakepic(64);    
-    mlu_lock_mirror_if_needed();
-    
-    /* take picture(s) */
-    SW2(1,duration);
-    SW2(0,50);
-    
-    #if defined(CONFIG_7D)
-    /* on EOS 7D the code to trigger SW1/SW2 is buggy that the metering somehow locks up.
-     * This causes the camera not to shut down when the card door is opened.
-     * There is a workaround: Just wait until shooting is possible again and then trigger SW1 for a short time.
-     * Then the camera will shut down clean.
-     */
-    lens_wait_readytotakepic(130000);
-    SW1(1,50);
-    SW1(0,50);
-    #endif
-    
-    if( !wait )
-    {
-        if (!allow_af) restore_af_button_assignment();
-        return 0;
-    }
-    else
-    {
-        msleep(200);
-        lens_wait_readytotakepic(wait);
-        if (!allow_af) restore_af_button_assignment();
+        if (should_af != AF_DONT_CHANGE) lens_cleanup_af();
+        ml_taking_pic = 0;
         return lens_info.job_state;
     }
 }
@@ -1411,12 +1418,12 @@ mvr_create_logfile(
     int sr_x1000 = get_current_shutter_reciprocal_x1000();
 
     MVR_LOG_APPEND (
-        "ISO            : %d\n"
+        "ISO            : %d%s\n"
         "Shutter        : 1/%d.%03ds\n"
         "Aperture       : f/%d.%d\n"
         "Focal length   : %d mm\n"
         "Focus distance : %d mm\n",
-        lens_info.iso,
+        lens_info.iso, get_htp() ? " D+" : "",
         sr_x1000/1000, sr_x1000%1000,
         lens_info.aperture / 10, lens_info.aperture % 10,
         lens_info.focal_len,
@@ -1537,17 +1544,17 @@ RAWVAL_FUNC(iso)
 RAWVAL_FUNC(shutter)
 RAWVAL_FUNC(aperture)
 
-#define RAW2VALUE(param,rawvalue) values_##param[raw2index_##param(rawvalue)]
-#define VALUE2RAW(param,value) val2raw_##param(value)
+#define RAW2VALUE(param,rawvalue) ((int)values_##param[raw2index_##param(rawvalue)])
+#define VALUE2RAW(param,value) ((int)val2raw_##param(value))
 
-void lensinfo_set_iso(int raw)
+static void lensinfo_set_iso(int raw)
 {
     lens_info.raw_iso = raw;
     lens_info.iso = RAW2VALUE(iso, raw);
     update_stuff();
 }
 
-void lensinfo_set_shutter(int raw)
+static void lensinfo_set_shutter(int raw)
 {
     //~ bmp_printf(FONT_MED, 600, 100, "liss %d %d ", raw, caller);
     lens_info.raw_shutter = raw;
@@ -1555,7 +1562,7 @@ void lensinfo_set_shutter(int raw)
     update_stuff();
 }
 
-void lensinfo_set_aperture(int raw)
+static void lensinfo_set_aperture(int raw)
 {
     if (raw)
     {
@@ -1633,7 +1640,9 @@ PROP_HANDLER( PROP_BV ) // camera-specific
 }
 #endif
 
+#ifdef FEATURE_EXPO_OVERRIDE
 static int shutter_was_set_from_ml = 0;
+#endif
 static int shutter_ack = -1;
 PROP_HANDLER( PROP_SHUTTER )
 {
@@ -1736,7 +1745,7 @@ PROP_HANDLER( PROP_WB_KELVIN_LV )
 }
 
 #if !defined(CONFIG_5DC) && !defined(CONFIG_40D)
-uint16_t custom_wb_gains[128];
+static uint16_t custom_wb_gains[128];
 PROP_HANDLER(PROP_CUSTOM_WB)
 {
     ASSERT(len <= sizeof(custom_wb_gains));
@@ -1847,6 +1856,7 @@ void split_iso(int raw_iso, unsigned int* analog_iso, int* digital_gain)
 {
     if (!raw_iso) { *analog_iso = 0; *digital_gain = 0; return; }
     int rounded = ((raw_iso+3)/8) * 8;
+    if (get_htp()) rounded -= 8;
     *analog_iso = COERCE(rounded, 72, MAX_ANALOG_ISO); // analog ISO range: 100-3200 (100-25600 on 5D3)
     *digital_gain = raw_iso - *analog_iso;
 }
@@ -1857,14 +1867,14 @@ void iso_components_update()
 
     lens_info.iso_equiv_raw = lens_info.raw_iso;
 
-    extern int digic_iso_gain_movie;
-    if (lens_info.iso_equiv_raw && digic_iso_gain_movie != 1024 && is_movie_mode())
+    int digic_gain = get_digic_iso_gain_movie();
+    if (lens_info.iso_equiv_raw && digic_gain != 1024 && is_movie_mode())
     {
-        lens_info.iso_equiv_raw = lens_info.iso_equiv_raw + (gain_to_ev_x8(digic_iso_gain_movie) - 80);
+        lens_info.iso_equiv_raw = lens_info.iso_equiv_raw + (gain_to_ev_scaled(digic_gain, 8) - 80);
     }
 }
 
-void update_stuff()
+static void update_stuff()
 {
     calc_dof( &lens_info );
     //~ if (gui_menu_shown()) lens_display_set_dirty();
@@ -1928,18 +1938,57 @@ PROP_HANDLER( PROP_LV_LENS )
 }
 #endif
 
+/**
+ * This tells whether the camera is ready to take a picture (or not)
+ * 5D2: the sequence is: 0 11 10 8 0
+ *      that means: 0 = idle, 11 = very busy (exposing), 10 = exposed, but processing (can take the next picture), 8 = done processing, just saving to card
+ *      also, when job state is 11, we can't change camera settings, but when it's 10, we can
+ * 5D3: the sequence is: 0 0x16 0x14 0x10 0
+ * other cameras may have different values
+ * 
+ * => hypothesis: the general sequence is:
+ * 
+ *   0 max something_smaller something_even_smaller and so on
+ * 
+ *   so, we only want to avoid the situation when job_state == max_job_state
+ * 
+ */
+
+static int max_job_state = 0;
+
+int job_state_ready_to_take_pic()
+{
+    if (max_job_state == 0) return 1;
+    return (int)lens_info.job_state < max_job_state;
+}
+
 PROP_HANDLER( PROP_LAST_JOB_STATE )
 {
     const uint32_t state = *(uint32_t*) buf;
     lens_info.job_state = state;
-    DEBUG("job state: %d", state);
-    mirror_locked = 0;
+    
+    if (max_job_state == 0 && state != 0)
+        max_job_state = state;
+    
+    ASSERT((int)state <= max_job_state);
+    
+    if (max_job_state && (int)state == max_job_state)
+    {
+        mirror_locked = 0;
+        hdr_flag_picture_was_taken();
+    }
+
+    #ifdef CONFIG_JOB_STATE_DEBUG
+    static char jmsg[100] = "";
+    STR_APPEND(jmsg, "%d ", state);
+    bmp_printf(FONT_MED,0,0, jmsg);
+    #endif
 }
 
 static int fae_ack = 12345;
 PROP_HANDLER(PROP_STROBO_AECOMP)
 {
-    lens_info.flash_ae = buf[0];
+    lens_info.flash_ae = (int8_t) buf[0];
     fae_ack = (int8_t) buf[0];
 }
 
@@ -1961,49 +2010,28 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
     //~ bv_auto_update();
 }
 
-#ifdef FEATURE_MOVIE_LOGGING
-static void 
-movielog_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Movie Logging : %s",
-        movie_log ? "ON" : "OFF"
-    );
-}
-#endif
-
 static struct menu_entry lens_menus[] = {
     #ifdef FEATURE_MOVIE_LOGGING
     {
         .name = "Movie Logging",
         .priv = &movie_log,
-        .select = menu_binary_toggle,
-        .display = movielog_display,
+        .max = 1,
         .help = "Save metadata for each movie, e.g. MVI_1234.LOG",
+        .depends_on = DEP_MOVIE_MODE,
     },
     #endif
 };
 
 #ifndef CONFIG_FULLFRAME
-static void cropinfo_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Crop Factor Display : %s",
-        crop_info ? "ON,35mm eq." : "OFF"
-    );
-    menu_draw_icon(x, y, MNI_BOOL_LV(crop_info));
-}
+
 static struct menu_entry tweak_menus[] = {
     {
         .name = "Crop Factor Display",
         .priv = &crop_info,
-        .select = menu_binary_toggle,
-        .display = cropinfo_display,
-        .help = "Display the 35mm equiv. focal length including crop factor."
+        .max  = 1,
+        .choices = CHOICES("OFF", "ON,35mm eq."),
+        .help = "Display the 35mm equiv. focal length including crop factor.",
+        .depends_on = DEP_LIVEVIEW | DEP_CHIPPED_LENS,
     }
 };
 #endif
@@ -2022,7 +2050,7 @@ lens_init( void* unused )
 {
     focus_done_sem = create_named_semaphore( "focus_sem", 1 );
 #ifndef CONFIG_5DC
-    menu_add("Movie", lens_menus, COUNT(lens_menus));
+    menu_add("Movie Tweaks", lens_menus, COUNT(lens_menus));
 #endif
 }
 
@@ -2082,7 +2110,7 @@ LENS_GET_FROM_OTHER_PICSTYLE(saturation)
 LENS_GET_FROM_OTHER_PICSTYLE(color_tone)
 
 LENS_SET_IN_PICSTYLE(contrast, -4, 4)
-LENS_SET_IN_PICSTYLE(sharpness, -1, 7)
+LENS_SET_IN_PICSTYLE(sharpness, 0, 7)
 LENS_SET_IN_PICSTYLE(saturation, -4, 4)
 LENS_SET_IN_PICSTYLE(color_tone, -4, 4)
 
@@ -2105,7 +2133,7 @@ void SW2(int v, int wait)
 
 /** exposure primitives (the "clean" way, via properties) */
 
-int prop_set_rawaperture(unsigned aperture)
+static int prop_set_rawaperture(unsigned aperture)
 {
     // Canon likes only numbers in 1/3 or 1/2-stop increments
     int r = aperture % 8;
@@ -2122,7 +2150,7 @@ int prop_set_rawaperture(unsigned aperture)
     return 0;
 }
 
-int prop_set_rawaperture_approx(unsigned new_av)
+static int prop_set_rawaperture_approx(unsigned new_av)
 {
 
     // Canon likes only numbers in 1/3 or 1/2-stop increments
@@ -2150,7 +2178,7 @@ int prop_set_rawaperture_approx(unsigned new_av)
     return ABS(aperture_ack - (int)new_av) <= 3;
 }
 
-int prop_set_rawshutter(unsigned shutter)
+static int prop_set_rawshutter(unsigned shutter)
 {
     // Canon likes numbers in 1/3 or 1/2-stop increments
     if (is_movie_mode())
@@ -2175,7 +2203,7 @@ int prop_set_rawshutter(unsigned shutter)
     return shutter_ack == s0;
 }
 
-int prop_set_rawshutter_approx(unsigned shutter)
+static int prop_set_rawshutter_approx(unsigned shutter)
 {
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
@@ -2185,7 +2213,7 @@ int prop_set_rawshutter_approx(unsigned shutter)
     return ABS(shutter_ack - shutter) <= 3;
 }
 
-int prop_set_rawiso(unsigned iso)
+static int prop_set_rawiso(unsigned iso)
 {
     lens_wait_readytotakepic(64);
     if (iso) iso = COERCE(iso, MIN_ISO, MAX_ISO); // ISO 100-25600
@@ -2255,7 +2283,7 @@ int bv_set_rawaperture(unsigned aperture)
     }
 }
 
-void bv_expsim_shift_try_iso(int newiso)
+static void bv_expsim_shift_try_iso(int newiso)
 {
     #ifndef FEATURE_LV_DISPLAY_GAIN
     #error This requires FEATURE_LV_DISPLAY_GAIN.
@@ -2287,11 +2315,11 @@ void bv_expsim_shift_try_iso(int newiso)
     CONTROL_BV_ISO = COERCE(newiso, 72, MAX_ISO_BV);
     set_photo_digital_iso_gain_for_bv(g);
 }
-void bv_expsim_shift()
+static void bv_expsim_shift()
 {
     set_photo_digital_iso_gain_for_bv(1024);
     if (!lv) return;
-    if (!expsim) return;
+    if (!get_expsim()) return;
     if (!CONTROL_BV) return;
    
     if (!is_movie_mode())
@@ -2341,7 +2369,7 @@ void bv_expsim_shift()
     return;
 }
 
-int bv_auto_should_enable()
+static int bv_auto_should_enable()
 {
     if (!bv_auto) return 0;
     if (!lv) return 0;
@@ -2391,7 +2419,7 @@ int bv_auto_should_enable()
         #endif
         
         // exposure simulation in Bulb mode
-        if (is_bulb_mode() && expsim)
+        if (is_bulb_mode() && get_expsim())
             return 1;
     }
     else if (bv_auto == 1) // always enable (except for situations where it's known to cause problems)
@@ -2446,10 +2474,6 @@ int lens_set_rawiso( int iso )
 
 int lens_set_rawshutter( int shutter )
 {
-    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
-    lens_info.raw_shutter = 0; // force a refresh from prop handler(PROP_SHUTTER)
-    #endif
-
     //~ bmp_printf(FONT_MED, 500, 300, "lsr %d ...", shutter);
     bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter); // first try to set via property
     //~ bmp_printf(FONT_MED, 500, 300, "lsr %d %d  ", shutter, bv_auto_needed_by_shutter);
@@ -2472,6 +2496,8 @@ int lens_set_ae( int ae )
 
 void lens_set_drivemode( int dm )
 {
+    if (dm < 0) return;
+    if (dm > 0x20) return;
     lens_wait_readytotakepic(64);
     prop_request_change( PROP_DRIVE, &dm, 4 );
     msleep(10);
@@ -2492,7 +2518,7 @@ void lens_set_wbs_ba(int value)
 // Functions to change camera settings during bracketing
 // They will check the operation and retry if necessary
 // Used for HDR bracketing
-int hdr_set_something(int (*set_something)(int), int arg)
+static int hdr_set_something(int (*set_something)(int), int arg)
 {
     // first try to set it a few times...
     for (int i = 0; i < 5; i++)

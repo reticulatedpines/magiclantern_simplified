@@ -59,15 +59,18 @@ static int handle_buttons(struct event * event)
 
 	#if 1
 	extern int digital_zoom_shortcut;
-	if (digital_zoom_shortcut && lv && is_movie_mode() && !recording && disp_pressed)
+	if (digital_zoom_shortcut && lv && is_movie_mode() && disp_pressed)
 	{
 		if (!video_mode_crop)
 		{
 			if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 			{
-				video_mode[0] = 0xc;
-				video_mode[4] = 2;
-				prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+				if (!recording)
+				{
+					video_mode[0] = 0xc;
+					video_mode[4] = 2;
+					prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+				}
 				return 0;
 			}
 		}
@@ -75,15 +78,22 @@ static int handle_buttons(struct event * event)
 		{
 			if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
 			{
-				int x = 300;
-				prop_request_change(PROP_DIGITAL_ZOOM_RATIO, &x, 4);
+				if (!recording)
+				{
+					int x = 300;
+					prop_request_change(PROP_DIGITAL_ZOOM_RATIO, &x, 4);
+				}
+				NotifyBox(2000, "Zoom greater than 3x is disabled.\n");
 				return 0; // don't allow more than 3x zoom
 			}
 			if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
 			{
-				video_mode[0] = 0;
-				video_mode[4] = 0;
-				prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+				if (!recording)
+				{
+					video_mode[0] = 0;
+					video_mode[4] = 0;
+					prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+				}
 				return 0;
 			}
 		}

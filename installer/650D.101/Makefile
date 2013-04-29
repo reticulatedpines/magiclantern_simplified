@@ -59,7 +59,7 @@ installer: magiclantern.bin updater.bin
 	make clean
 	make magiclantern.bin
 	make updater.bin
-	python ../../../../550_alex/dumper/build_fir7.py -r -i 0x301 -s updater.bin ../../../../550_alex/dumper/550d_109.fir 650D_101.fir
+	python ../../../dumper/build_fir7.py -r -i 0x301 -s updater.bin ../../../dumper/5D300113.FIR 650D_101.fir
 clean:
 	rm -f *.fir *.o autoexec* magiclantern* updater* ml.bin
 

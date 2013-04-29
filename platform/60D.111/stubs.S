@@ -30,10 +30,12 @@
 
 #define NSTUB(addr,name) \
 	.global name; \
+	.extern name; \
 	name = addr
 
 #define NILSTUB(addr,name) \
 	.global name; \
+	.extern name; \
 	name: BX LR
 	
 
@@ -112,7 +114,6 @@ NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
 NSTUB( 0xFF06FCC4, FreeMemory )
  	
 NSTUB( 0x2D1C, dm_names )                // in DebugMsg, before the 1st loop target
-NSTUB( 0xFF1F04EC, strcpy )              // finsig was wrong
 NSTUB( 0xff067b68, LoadCalendarFromRTC )
 NSTUB( 0xff07b8ac, task_trampoline )
 
@@ -130,7 +131,6 @@ NSTUB( 0xFF306208, gui_task_create )
 NSTUB( 0xFF306328, gui_task_destroy )
 NSTUB( 0xFF3060B8, ctrlman_dispatch_event )
 
-NSTUB( 0xFF537F28, memcpy )
 NSTUB( 0xFF1DE354, alloc_dma_memory )
 NSTUB( 0xFF1DE388, free_dma_memory )
 
@@ -166,8 +166,6 @@ NSTUB( 0xFF53D848, gui_main_task_functbl )
 NSTUB( 0xFF1AE0F0, mvrFixQScale )
 NSTUB( 0xFF1ADBCC, mvrSetDefQScale )
 
-NSTUB( 0xFF018838, strlen )
-NSTUB( 0xFF07FBBC, strcmp ) // cmpString
 //NSTUB( 0xFF538000, AJ_memset_R0_addr_R1_Len_R2_byteVal ) // bzero32+4
 
 NSTUB( 0x5dd0, mvr_config )
@@ -232,7 +230,7 @@ NSTUB(0xff07e384, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xff073aa8, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff073af4, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff073c0c, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xff0710a8, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff0710a8, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff070af0, GetMemoryAddressOfMemoryChunk)
 
 NSTUB(0xff0686f4, PowerAudioOutput)

@@ -57,8 +57,8 @@ for l in f[1:]:
         .name = "%s",
         .priv = "%s",
         .select = menu_help_go_to_label,
-        .display = menu_print,
-        //.essential = FOR_MOVIE | FOR_PHOTO,
+        .update = user_guide_display,
+        .icon_type = IT_ACTION,
     },""" % (item, item)
 
     if type == "end":

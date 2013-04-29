@@ -28,6 +28,7 @@
 
 #define NSTUB(addr,name) \
 	.global name; \
+	.extern name; \
 	name = addr
 
 NSTUB( ROMBASEADDR, firmware_entry )
@@ -111,7 +112,6 @@ NSTUB( 0xff867b54, AllocateMemory ) // thanks Alex
 NSTUB( 0xff867d18, FreeMemory ) // release_mem in Indy's IDC
 
 NSTUB( 0x2c48, dm_names )                // in DebugMsg, before the 1st loop target
-NSTUB( 0xff8751bc, strcpy )
 NSTUB( 0xff86334c, LoadCalendarFromRTC )
 NSTUB( 0xff86f990, task_trampoline )
 
@@ -128,7 +128,6 @@ NSTUB( 0xffa45f94, gui_task_create )
 NSTUB( 0xffa460b4, gui_task_destroy )
 NSTUB( 0xffa45e44, ctrlman_dispatch_event )
 
-NSTUB( 0xFFC09970, memcpy )
 NSTUB( 0xff88b7c4, prop_request_icu_auto_poweroff )
 NSTUB( 0xff991018, alloc_dma_memory )
 NSTUB( 0xff99104c, free_dma_memory )
@@ -179,8 +178,6 @@ NSTUB( 0xff968804, mvrSetVGAOptSize )																	//d
 //NSTUB( 0xFF17C024, mvrSetGopOptSizeVGA )
 NSTUB( 0xff96863c, mvrSetDeblockingFilter )																//d
 
-NSTUB( 0xff875218, strlen )																				//d
-NSTUB( 0xff8751d4, strcmp )																				//d
 NSTUB( 0xff820e80, main_ctrl_task )																		//d
 NSTUB( 0xff834b04, LVCAF_LensDriveStart )																//d
 NSTUB( 0x7674	 , mvr_config )																			//d
@@ -264,5 +261,5 @@ NSTUB(0xff854fc8, TH_audio_ic_initialize)
 NSTUB(0xff86be28, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff86be6c, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff86bf7c, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xff869524, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff869524, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff868f44, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature

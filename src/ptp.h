@@ -53,7 +53,7 @@ struct ptp_msg
 	uint32_t                transaction;
 	uint32_t                param_count;
 	uint32_t                param[ 5 ];
-} __PACKED__;
+} __attribute__((packed));
 
 SIZE_CHECK_STRUCT( ptp_msg, 0x24 );
 

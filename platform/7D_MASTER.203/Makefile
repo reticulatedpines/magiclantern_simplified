@@ -9,7 +9,7 @@ MODEL=7D_MASTER
 UPDATE_NAME=7D_203.fir
 ML_VERSION=unified1 
 
-CONFIG_NO_PTP=y
+CONFIG_NO_EXTRA_OBJS=y
 
 # compile position independent (experimental, not working completely yet)
 CONFIG_PIC=n
@@ -24,12 +24,14 @@ PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 # menu.o and debug.o must come before the modules
 ML_OBJS-y = \
 	magiclantern.lds \
+	beep.o \
 	entry.o \
 	master_boot.o \
 	stubs.o \
 	gdb.o \
 	ptpbuf.o \
 	ml_rpc.o \
+	state-object.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

@@ -25,14 +25,14 @@
 // from a screenshot
 #define COLOR_FG_NONLV 1
 
-#define MEM(x) (*(int*)(x))
+#define MEM(x) (*(volatile int*)(x))
 
 #define AE_VALUE 0 // 404
 
-#define CURRENT_DIALOG_MAYBE 0
-
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && MEM(0x27D8) && !MEM(0x3D50)) // StartPl1App, but not StartPlEraseApp
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && MEM(0x4C48)) // StartMenuMainHeaderApp
+
+#define CURRENT_DIALOG_MAYBE (gui_state == GUISTATE_PLAYMENU ? 1 : 0)
 
 #define NUM_PICSTYLES 9
 #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
@@ -42,7 +42,7 @@
 #define FASTEST_SHUTTER_SPEED_RAW 160
 #define MAX_AE_EV 2
 
-#define BULB_MIN_EXPOSURE 100
+#define BULB_MIN_EXPOSURE 500
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xffa85b50
@@ -101,3 +101,4 @@
 #define ARROW_MODE_TOGGLE_KEY ""
 
 #define WINSYS_BMP_DIRTY_BIT_NEG 0
+

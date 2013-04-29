@@ -135,10 +135,6 @@
 
 #define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
-// position for displaying shutter count and other info
-#define MENU_DISP_INFO_POS_X 0
-#define MENU_DISP_INFO_POS_Y 395
-
 // position for ML ISO disp outside LV
 #define MENU_DISP_ISO_POS_X 527
 #define MENU_DISP_ISO_POS_Y 45
@@ -148,7 +144,7 @@
 #define MAX_ISO_POS_Y 28
 
 // for ML hdr display
-#define HDR_STATUS_POS_X 560
+#define HDR_STATUS_POS_X 562
 #define HDR_STATUS_POS_Y 100
 
 //for HTP mode on display
@@ -159,11 +155,11 @@
 #define MLU_STATUS_POS_X 316
 #define MLU_STATUS_POS_Y 310
 
-#define WBS_POS_X 365
-#define WBS_POS_Y 260
-
 #define WBS_GM_POS_X 365
 #define WBS_GM_POS_Y 230
+
+#define WBS_POS_X 365
+#define WBS_POS_Y 260
 
 // Audio remote shot position info photo mode
 #define AUDIO_REM_SHOT_POS_X 200
@@ -174,8 +170,12 @@
 #define DISPLAY_CLOCK_POS_Y 410
 
 // position for displaying K icon in photo info display
-#define DISPLAY_KELVIN_POS_X 196
-#define DISPLAY_KELVIN_POS_Y 226
+#define WB_K_ICON_POS_X 192
+#define WB_K_ICON_POS_Y 226
+
+// position for displaying K values in photo info display
+#define WB_KELVIN_POS_X 192
+#define WB_KELVIN_POS_Y 260
 
 // position for displaying card size remain outside LV
 #define DISPLAY_GB_POS_X 305
@@ -260,7 +260,7 @@
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
 #define VIDEO_PARAMETERS_SRC_3 0x70AE8 // notation from g3gg0
-#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0))
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC))
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
 #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0x9))
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xa))
@@ -269,3 +269,15 @@
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x172c8
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+
+// for bulb ramping calibration: delay between two exposure readings (increase it if brightness updates slowly)
+// if not defined, default is 500
+#define BRAMP_CALIBRATION_DELAY 1000
+
+// measured by SDX
+// http://www.magiclantern.fm/forum/index.php?topic=4324.msg24231#msg24231
+// not sure, exiftool says x-128
+//~ #define EFIC_CELSIUS (efic_temp / 2 - 58)
+
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 5

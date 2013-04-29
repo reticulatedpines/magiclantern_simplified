@@ -71,7 +71,7 @@ void volume_up(){};
 void volume_down(){};
 
 void _EngDrvOut(int addr, int value) { MEM(addr) = value; }
-int shamem_read(int addr) { return 0; }
+uint32_t shamem_read(uint32_t addr) { return 0; }
 void _engio_write() {}
 
 int gain_to_ev_scaled() { return 0; }
@@ -100,8 +100,14 @@ void set_movie_digital_iso_gain(int gain) {};
 
 int bmp_is_on() { return 1; }
 
-void* shoot_malloc(int size) { return AllocateMemory(size); }
+void* shoot_malloc(size_t size) { return AllocateMemory(size); }
 void shoot_free(void* ptr) { FreeMemory(ptr); }
 
 void display_gain_toggle(){};
 void yuv_resize(){};
+
+int was_sound_recording_disabled_by_fps_override() { return 1; };
+int fps_should_record_wav() { return 0; };
+void movie_tweak_menu_init() {};
+//int hdr_video_enabled() { return 0; };
+int get_digic_iso_gain_movie() { return 0; };

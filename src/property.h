@@ -25,6 +25,11 @@
 #ifndef _property_h_
 #define _property_h_
 
+#define PROP_CAM_MODEL          0x00000002
+#define PROP_FIRMWARE_VER       0x02000001
+
+#define PROP_OPTICAL_CORRECT_PARAM 0x0B000000
+
 /** These are known */
 #define PROP_BURST_COUNT        0x80030006
 #define PROP_BAT_INFO           0x8003001d
@@ -117,7 +122,7 @@
 #define PROP_SHUTTER_ALSO       0x8000002c
 #define PROP_APERTURE           0x80000006
 #define PROP_ISO                        0x80000007
-#ifndef CONFIG_NO_AUTO_ISO
+#ifndef CONFIG_NO_AUTO_ISO_LIMITS
 #define PROP_AUTO_ISO_RANGE     0x8000003b // len=2, LSB is max iso, MSB is min iso (ignored?)
 #endif
 #define PROP_AE                         0x80000008 // signed 8-bit value
@@ -180,6 +185,11 @@
 #define PROP_LANGUAGE           0x02040002
 #define PROP_VIDEO_SYSTEM       0x02040003
 
+#define PROP_DATE_FORMAT		    0x02040005
+#define DATE_FORMAT_YYYY_MM_DD 	0
+#define DATE_FORMAT_MM_DD_YYYY 	1
+#define DATE_FORMAT_DD_MM_YYYY 	2
+
 #define PROP_ICU_UILOCK         0x80020009
 #define UILOCK_NONE       0x41000000
 #define UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL 0x4100014f
@@ -190,6 +200,7 @@
 #define UILOCK_POWER_SW   0x41000020
 
 #define PROP_SHOOTING_MODE  0x80000000 // During mode switch, it takes other values.
+#define PROP_SHOOTING_MODE_2  0x80000001 // for custom modes
 #define SHOOTMODE_P 0
 #define SHOOTMODE_TV 1
 #define SHOOTMODE_AV 2
@@ -232,6 +243,16 @@
 #define PROP_WBS_BA 0x80000011 // idem
 
 #define PROP_CUSTOM_WB 0x2020000 // len=52, contains multipliers at 0x20 [B?], 0x24 [G], 0x26 [R?] as int16, 1024=1
+#define PROP_METERING_MODE      0x80000002
+#define SPOT_METER 1
+#define EVAL_METER 3
+#define PARTIAL_METER 4
+#define CENTERW_METER 5
+
+#define AF_MODE      0x80000004
+#define ONE_SHOT 0
+#define AI_FOCUS 202
+#define AI_SERVO 101
 
 #define PROP_LAST_JOB_ID     0x02050001 // maybe?
 
@@ -269,7 +290,7 @@
 #define ALO_HIGH 2
 #define ALO_OFF 3
 
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3)
 #define PROP_HTP 0x8000004a
 #define PROP_MULTIPLE_EXPOSURE 0x0202000c
 #define PROP_MLU 0x80000047
@@ -557,8 +578,15 @@ prop_handler_init(
 );
 
 
-/** Register a property handler with automated token function */
+/* add property handler to dynamic property list. need to run prop_update_registration() afterwards */
+void prop_add_handler (uint32_t property, void *handler);
+/* reset handler setup to the state after startup */
+void prop_reset_registration(void);
+/* only re-register handlers in case it was updated in meantime */
+void prop_update_registration(void);
 
+/** Register a property handler with automated token function. module.h will define it for modules */
+#if !defined(MODULE)
 #define REGISTER_PROP_HANDLER_EX( id, func, length ) \
 __attribute__((section(".prop_handlers"))) \
 __attribute__((used)) \
@@ -586,6 +614,10 @@ volatile uint32_t name; \
 PROP_HANDLER(id) { \
         name = buf[0]; \
 }
+
+#endif
+
+
 
 /**for reading simple integer properties */
 int get_prop(int prop);

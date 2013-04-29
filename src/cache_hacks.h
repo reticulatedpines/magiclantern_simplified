@@ -1,6 +1,39 @@
 #ifndef _CACHE_HACKS_H_
 #define _CACHE_HACKS_H_
 
+/*
+ * Canon cameras appear to use the ARMv5 946E.
+ * (Confirmed on: 550D, ... )
+ *
+ * This processor supports a range of cache sizes from no cache (0KB) or
+ * 4KB to 1MB in powers of 2. Instruction(icache) and data(dcache) cache sizes
+ * can be independent and can not be changed at run time.
+ *
+ * A cache line is 32 bytes / 8 words / 8 instructions.
+ * 	byte address 	(Addr[1:0] = 2 bits)
+ * 	word address 	(Addr[4:2] = 2 bits)
+ * 	index 			(Addr[i+4:5] = i bits)
+ * 	address TAG 	(Addr[31:i+5] = 27 - i bits)
+ * Where 'i' is the size of the cache index in bits.
+ *
+ * There are 2^i cache lines.
+ * The index bits from the address select the cache line. The tag bits from the
+ * address are compared with the tag of the cache line and if the cache line is
+ * valid the byte and word bits extract the data from that cache line.
+ *
+ * The CP15 Control Register controls cache operation:
+ * bit 2  = dcache enable
+ * bit 12 = icache enable
+ *
+ * Self modifying code and reprogramming the protection regions requires a
+ * flush of the icache. Writing to CP15 register 7 flushes the
+ * cache. Writing a 0 flushes the entire icache. Writing the "FlushAddress"
+ * flushes that cache line. Icache automatically flushed on reset. Never needs
+ * to be cleaned because it cannot be written to.
+ *
+ * Dcache is automatically disabled and flushed on reset.
+ */
+
 #define TYPE_DCACHE 0
 #define TYPE_ICACHE 1
 
@@ -48,7 +81,8 @@ static uint32_t cache_get_size(uint32_t type)
 {
     uint32_t cache_info = 0;
     
-    /* get cache type register */
+    /* get cache type register
+     * On a 550D: 0x0F112112. 8KB I/D Cache. 4 way set associative.*/
     asm volatile ("\
        MRC p15, 0, %0, c0, c0, 1\r\n\
        " : "=r"(cache_info));
@@ -131,7 +165,6 @@ static void cache_fetch_line(uint32_t address, uint32_t type)
         cache_patch_single_word(base + pos * 4, temp_cacheline[pos], type);
     }
 }
-
 
 /* return the tag and content at given index (segment+index+word) */
 static void cache_get_content(uint32_t segment, uint32_t index, uint32_t word, uint32_t type, uint32_t *tag, uint32_t *data)
@@ -396,20 +429,41 @@ static void dcache_lock()
 }
 
 /* these are the "public" functions. please use only these if you are not sure what the others are for */
+
+static uint32_t cache_locked()
+{
+    uint32_t status = 0;
+    asm volatile ("\
+       /* get lockdown status */\
+       MRC p15, 0, %0, c9, c0, 1\r\n\
+       " : "=r"(status) : : "r0");
+    
+    return status;
+}
+
 static void cache_lock()
 {
+#if !defined(CONFIG_QEMU)
     icache_lock();
     dcache_lock();
+#endif
 }
 
 static void cache_unlock()
 {
+#if !defined(CONFIG_QEMU)
     icache_unlock();
     dcache_unlock();
+#endif
 }
 
 static uint32_t cache_fake(uint32_t address, uint32_t data, uint32_t type)
 {
+#if defined(CONFIG_QEMU)
+    /* QEMU doesn't seem to model the CPU cache, but we have configured the ROM area as RAM, so it's trivial to patch things */
+    MEM(address) = data;
+    return 0;
+#else    
     /* that word is already patched? return failure */
     /*
     if(!cache_is_patchable(address, type))
@@ -425,6 +479,7 @@ static uint32_t cache_fake(uint32_t address, uint32_t data, uint32_t type)
     }
 
     return cache_patch_single_word(address, data, type);
+#endif
 }
 
 #endif

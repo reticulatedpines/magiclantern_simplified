@@ -43,18 +43,11 @@ CONFIG_INT( "lcd.release", lcd_release_running, 0);
 
 void display_lcd_remote_icon(int x0, int y0);
 
-void 
-lcd_release_display( void * priv, int x, int y, int selected )
+MENU_UPDATE_FUNC(lcd_release_display)
 {
-    int v = (*(int*)priv);
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "LCDsensor Remote: %s",
-        v == 1 ? "Near" : v == 2 ? (get_mlu() ? "Away/MLU" : "Away") : v == 3 ? "Wave" : "OFF"
-    );
-    if (v) display_lcd_remote_icon(x-25, y+5);
-    menu_draw_icon(x, y, v ? MNI_NONE : MNI_OFF, 0);
+    int v = CURRENT_VALUE;
+    if (v) display_lcd_remote_icon(info->x-25, info->y+5);
+    MENU_SET_ICON(v ? MNI_NONE : MNI_OFF, 0);
 }
 
 extern int remote_shot_flag; // from shoot.c
@@ -64,7 +57,7 @@ int lcd_ff_dir = 1;
 PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 {
     if (!DISPLAY_SENSOR_POWERED) return; // false alarm
-    if (lens_info.job_state >= 10) return; // false alarm
+    if (lens_info.job_state) return; // false alarm
     if (get_halfshutter_pressed()) return; // user taking a normal picture
     
     static int prev = 0;
@@ -93,11 +86,7 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
     {
         if (gui_menu_shown()) return;
         if (lcd_release_running == 1 && off) return;
-        if (lcd_release_running == 2 && on )
-        {
-            if (get_mlu()) schedule_mlu_lock();
-            return;
-        }
+        if (lcd_release_running == 2 && on) return;
         if (lcd_release_running == 3) { wave_count++; wave_count_countdown = 50; }
         if (lcd_release_running == 3 && wave_count < 5) return;
 
@@ -120,10 +109,15 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 void lcd_release_step() // to be called from shoot_task
 {
     extern int lcd_sensor_wakeup;
-    if ((lcd_release_running || lcd_sensor_shortcuts || lcd_sensor_wakeup || get_follow_focus_mode()==1) && lv && !DISPLAY_SENSOR_POWERED && lens_info.job_state == 0) // force sensor on
+    int lcd_sensor_needeed_in_liveview = (lcd_release_running || lcd_sensor_shortcuts || lcd_sensor_wakeup || get_follow_focus_mode()==1);
+    int lcd_sensor_needeed_in_photomode = (lcd_release_running);
+    int lcd_sensor_needed = (lcd_sensor_needeed_in_liveview && lv) || (lcd_sensor_needeed_in_photomode && !lv && !DISPLAY_IS_ON && display_idle());
+    int lcd_sensor_start_preconditions = !DISPLAY_SENSOR_POWERED && lens_info.job_state == 0;
+    if (lcd_sensor_needed && lcd_sensor_start_preconditions) // force sensor on
     {
-        fake_simple_button(MLEV_LCD_SENSOR_START); // look at this***
-        msleep(500);
+        static int aux = 0;
+        if (should_run_polling_action(1000, &aux))
+            fake_simple_button(MLEV_LCD_SENSOR_START); // only try once per second
     }
 
     if (wave_count_countdown)
@@ -183,25 +177,4 @@ void display_lcd_remote_icon(int x0, int y0)
     //~ static unsigned int prev_lr = 0;
     //~ if (prev_lr != lcd_release_running) bmp_fill(bg, x0 - 20, y0, 40, 20);
     //~ prev_lr = lcd_release_running;
-}
-
-
-// sensor shortcuts
-//**********************************************************************
-
-void
-lcd_sensor_shortcuts_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "LCD Sensor Shortcuts: %s", 
-        lcd_sensor_shortcuts == 1 ? "ON" : 
-        lcd_sensor_shortcuts == 2 ? "Movie" : "OFF"
-    );
 }

@@ -78,7 +78,7 @@
 
 #define MVR_190_STRUCT (*(void**)0x1ed8) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
-#define MEM(x) (*(int*)(x))
+#define MEM(x) (*(volatile int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
@@ -98,7 +98,7 @@
 #define MOV_OPT_STEP 2
 #define MOV_GOP_OPT_STEP 2
 
-#define AE_VALUE (*(int8_t*)0xfb30)
+#define AE_VALUE 0 // (*(int8_t*)0xfb30) - reported as not working
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x387C)
 #define CURRENT_DIALOG_MAYBE_2 (*(int*)0x6A50)
@@ -122,10 +122,6 @@
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
 #define BTN_METERING_PRESSED_IN_LV 0 // 60D only
-
-// position for displaying shutter count and other info
-#define MENU_DISP_INFO_POS_X 0
-#define MENU_DISP_INFO_POS_Y 395
 
 #define GUIMODE_ML_MENU (recording ? 0 : lv ? 36 : 2)
 
@@ -161,7 +157,7 @@
 #define DIALOG_MnCardFormatBegin (0x1e704+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x1E7B8+4) // similar
 
-#define BULB_MIN_EXPOSURE 100
+#define BULB_MIN_EXPOSURE 500
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xf7c5e1d8
@@ -212,6 +208,7 @@
 
 #define LV_STRUCT_PTR 0x1D74
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
+#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5c)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x1F1C8

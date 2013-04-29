@@ -47,33 +47,31 @@
 #define BGMT_PRESS_DOWN 0x2a       //~ unpress = 0x2d
 #define BGMT_UNPRESS_DOWN 0x2b
 
-    #define BGMT_PRESS_HALFSHUTTER 0x50
-    #define BGMT_UNPRESS_HALFSHUTTER 0x51
-    #define BGMT_PRESS_FULLSHUTTER 0x52
-    #define BGMT_UNPRESS_FULLSHUTTER 0x53
+#define BGMT_PRESS_HALFSHUTTER 0x4e
+#define BGMT_UNPRESS_HALFSHUTTER 0x4f
+
+    #define BGMT_PRESS_FULLSHUTTER 0xdeadbeef
 
 #define GMT_GUICMD_PRESS_BUTTON_SOMETHING 0x52 // unhandled buttons?
 
-    //~ #define BGMT_LIGHT 0x20 // the little button for top screen backlight
-
-    #define GMT_OLC_INFO_CHANGED 105 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
+#define GMT_OLC_INFO_CHANGED 0x67 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 
 // needed for correct shutdown from powersave modes
 #define GMT_GUICMD_START_AS_CHECK 95
 #define GMT_GUICMD_OPEN_SLOT_COVER 91
 #define GMT_GUICMD_LOCK_OFF 89
-
+    
+    //~ not implemented yet
+    #define GMT_LOCAL_DIALOG_REFRESH_LV 0x36 // event type = 2, gui code = 0x100000C6 in EOS-M
     #define BGMT_FLASH_MOVIE (0)
     #define BGMT_PRESS_FLASH_MOVIE (0)
     #define BGMT_UNPRESS_FLASH_MOVIE (0)
     #define FLASH_BTN_MOVIE_MODE (get_disp_pressed() && lv)
 
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0x10
-    #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x11
+#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x11
 
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xe
-    #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xf
-
-    #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PRESS_DISP // what button to use for zebras in Play mode
+#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xf
 
 #endif

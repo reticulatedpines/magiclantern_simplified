@@ -7,15 +7,21 @@ SUPPORTED_MODELS:=60D 550D 600D 50D 500D 5D2 1100D
 # Path-related stuff
 # for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM_ABI=elf
 CCACHE=ccache
-ARM_ABI=elf
-ARM_PATH=~/arm-toolchain462
+ARM_ABI=none-eabi
+ARM_PATH=~/gcc-arm-none-eabi-4_7-2012q4
 ARM_BINPATH=$(ARM_PATH)/bin
-GCC_VERSION=4.6.2
+GCC_VERSION=4.7.3
 OBJCOPY=$(ARM_BINPATH)/arm-$(ARM_ABI)-objcopy
 AR=$(ARM_BINPATH)/arm-$(ARM_ABI)-ar
 RANLIB=$(ARM_BINPATH)/arm-$(ARM_ABI)-ranlib
 READELF=$(ARM_BINPATH)/arm-$(ARM_ABI)-readelf
-ARM_LIBC_A = $(ARM_PATH)/arm-$(ARM_ABI)/lib/libc.a
+
+# deprecated, using dietlib instead
+# ARM_LIBC_A = $(ARM_PATH)/arm-$(ARM_ABI)/lib/libc.a
+
+# For cygwin users: windows version of yagarto AR is only acceptable relative path or C:\ style absolute path. So you may set relative path from platform/model dir (It means you need +2 "../").
+# ARM_LIBC_A = ../../../../../yagarto-20121222/arm-none-eabi/lib/libc.a
+
 HOST_CFLAGS=-g -O3 -W -Wall
 PYTHON=python2
 ifeq ($(OS),Windows_NT)
@@ -25,6 +31,7 @@ CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
 endif
 HOST_CC=gcc
 LD=$(CC)
+LD_REAL=$(ARM_BINPATH)/arm-$(ARM_ABI)-ld
 
 NIGHTLY_ROOT:=$(HOME)/public_html/nightly
 NIGHTLY_ARCHIVE:=$(NIGHTLY_ROOT)/archive
@@ -59,9 +66,18 @@ CONFIG_PTP_ML       = n
 CONFIG_GDB          = n
 CONFIG_GDBSTUB      = n
 CONFIG_PLUGINS      = n
-CONFIG_CONSOLE      = n
+CONFIG_CONSOLE      = y
 CONFIG_DEBUGMSG     = 0
 CONFIG_CCACHE       = n
+CONFIG_PICOC        = y
+CONFIG_TCC          = n
+CONFIG_MEMCHECK     = n
+CONFIG_MODULES      = n
+CONFIG_TINYPY       = n
+
+# Work in progress - would be nice to run the unmodified autoexec.bin in QEMU, but we are not there yet
+# so, for now, we'll just hack the source code to work around the limitations of the emulator
+CONFIG_QEMU         = n
 
 # You can customize CFLAG here
 #CFLAG_USER = -march=armv5te -mcpu=arm946e-s -O2 -DCONFIG_RELEASE_BUILD \

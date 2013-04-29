@@ -11,18 +11,38 @@ static int last_time_active = 0;
 int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
 int get_last_time_active() { return last_time_active; }
 
-#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
+#ifdef CONFIG_5D3
+extern int cf_card_workaround;
+#endif
+
+#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
 // disable Canon bottom bar
-static uint32_t orig_DebugMsg_instr = 0;
+static int bottom_bar_hack = 0;
+
 static void hacked_DebugMsg(int class, int level, char* fmt, ...)
 {
-    if (class == 131 && level == 1)
+    if (bottom_bar_hack && class == 131 && level == 1)
     #if defined(CONFIG_5D3)
         MEM(0x3334C) = 0; // LvApp_struct.off_0x60 /*0x3334C*/ = ret_str:JudgeBottomInfoDispTimerState_FF4B0970
     #elif defined(CONFIG_6D)
         MEM(0x841C0) = 0;
     #elif defined(CONFIG_EOSM)
         MEM(0x5D88C) = 0;
+    #elif defined(CONFIG_1100D)
+        MEM(0xCBBC+0x5C) = 0;
+    #elif defined(CONFIG_650D)
+        MEM(0x41868+0x58) = 0;
+    #endif
+
+    #ifdef CONFIG_5D3
+    if (cf_card_workaround)
+    {
+        if (class == 34 && level == 1) // cfDMAWriteBlk
+        {
+            for (int i = 0; i < 10000; i++) 
+                asm("nop");
+        }
+    }
     #endif
     
 #ifdef CONFIG_5D3
@@ -30,17 +50,44 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
     if ((class == 34 || class == 35) && level == 1 && rec_led_off && recording) // cfWriteBlk, sdWriteBlk
         *(uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
 #endif
+
     return;
 }
-#endif
 
+static uint32_t orig_DebugMsg_instr = 0;
+
+static void DebugMsg_hack()
+{
+    if (!orig_DebugMsg_instr)
+    {
+        uint32_t d = (uint32_t)&DryosDebugMsg;
+        orig_DebugMsg_instr = *(uint32_t*)(d);
+        *(uint32_t*)(d) = B_INSTR((uint32_t)&DryosDebugMsg, hacked_DebugMsg);
+    }
+}
+
+static void DebugMsg_uninstall()
+{
+    // uninstall our mean hack (not used)
+    
+    if (orig_DebugMsg_instr)
+    {
+        uint32_t d = (uint32_t)&DryosDebugMsg;
+        *(uint32_t*)(d) = orig_DebugMsg_instr;
+        orig_DebugMsg_instr = 0;
+    }
+}
+
+INIT_FUNC("debugmsg-hack", DebugMsg_hack);
+
+#endif
 
 int handle_other_events(struct event * event)
 {
     extern int ml_started;
     if (!ml_started) return 1;
 
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
+#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
     if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
     {
         if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
@@ -71,19 +118,12 @@ int handle_other_events(struct event * event)
             lens_display_set_dirty();
         }
     }
-#elif defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
+#elif defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
     if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
     {
         if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
         {
-            // use a modified DebugMsg which disables bottom bar display timer instead of doing what it normally does
-            if (!orig_DebugMsg_instr)
-            {
-                uint32_t d = (uint32_t)&DryosDebugMsg;
-                orig_DebugMsg_instr = *(uint32_t*)(d);
-                *(uint32_t*)(d) = B_INSTR((uint32_t)&DryosDebugMsg, hacked_DebugMsg);
-            }
-            
+            bottom_bar_hack = 1;
             if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
 
             if (UNAVI_FEEDBACK_TIMER_ACTIVE)
@@ -94,14 +134,7 @@ int handle_other_events(struct event * event)
         }
         else
         {
-            // uninstall our mean hack
-            if (orig_DebugMsg_instr)
-            {
-                uint32_t d = (uint32_t)&DryosDebugMsg;
-                *(uint32_t*)(d) = orig_DebugMsg_instr;
-                orig_DebugMsg_instr = 0;
-            }
-
+            bottom_bar_hack  = 0;
             bottom_bar_dirty = 0;
         }
 
@@ -133,7 +166,7 @@ int handle_common_events_startup(struct event * event)
         if (event->param == BGMT_MENU) return 0; // otherwise would interfere with swap menu-erase
         #endif
         
-        #if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
+        #if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_650D)
         if (event->param == BGMT_LV) return 0; // discard REC button if it's pressed too early
         #endif
         
@@ -169,6 +202,24 @@ void check_pre_shutdown_flag() // called from ml_shutdown
     }
 }
 
+// ML doesn't know how to handle multiple button clicks in the same event code, so we'll split them in individual events
+int handle_scrollwheel_fast_clicks(struct event * event)
+{
+    if (event->arg <= 1) return 1;
+    
+    if (event->param == BGMT_WHEEL_UP || event->param == BGMT_WHEEL_DOWN || event->param == BGMT_WHEEL_LEFT ||  event->param == BGMT_WHEEL_RIGHT)
+    {
+        for (int i = 0; i < event->arg; i++)
+            GUI_Control(event->param, 0, 1, 0);
+        return 0;
+    }
+    return 1;
+}
+
+
+static int null_event_handler(struct event * event) { return 1; }
+int handle_flexinfo_keys(struct event * event) __attribute__((weak,alias("null_event_handler")));
+
 int handle_common_events_by_feature(struct event * event)
 {
     // common to most cameras
@@ -200,6 +251,14 @@ int handle_common_events_by_feature(struct event * event)
     // as a record of when the user was last actively pushing buttons.
     if (event->param != GMT_OLC_INFO_CHANGED)
         last_time_active = get_seconds_clock();
+
+    if (handle_scrollwheel_fast_clicks(event)==0) return 0;
+
+    if (handle_flexinfo_keys(event) == 0) return 0;
+    
+    #ifdef CONFIG_PICOC
+    if (handle_picoc_keys(event) == 0) return 0;
+    #endif
 
     #ifdef FEATURE_UPSIDE_DOWN
     if (handle_upside_down(event) == 0) return 0;
@@ -271,6 +330,10 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_zoom_x5_x10(event) == 0) return 0;
     #endif
     
+    #ifdef FEATURE_KEN_ROCKWELL_ZOOM_5D3
+    if (handle_krzoom(event) == 0) return 0;
+    #endif
+    
     #if !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3) && !defined(CONFIG_6D)
     if (handle_quick_access_menu_items(event) == 0) return 0;
     #endif
@@ -282,10 +345,12 @@ int handle_common_events_by_feature(struct event * event)
         || event->param == BGMT_Q_ALT
         #endif
     ))
+    #elif defined(BGMT_FUNC)
+    if (MENU_MODE && event->param == BGMT_FUNC)
     #elif defined(BGMT_PICSTYLE)
     if (MENU_MODE && event->param == BGMT_PICSTYLE)
-    #elif BGMT_FUNC
-    if (MENU_MODE && event->param == BGMT_FUNC)
+    #elif defined(BGMT_LV)
+    if (MENU_MODE && event->param == BGMT_LV)
     #else
     if (0)
     #endif

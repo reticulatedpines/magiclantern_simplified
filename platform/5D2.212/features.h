@@ -2,3 +2,13 @@
 
 #define FEATURE_LV_BUTTON_PROTECT // works even without the Q menu present
 #define FEATURE_REC_NOTIFY_BEEP
+#undef FEATURE_FLASH_TWEAKS // no built-in flash
+
+#define FEATURE_AFMA_TUNING
+
+#define FEATURE_RAW_HISTOGRAM
+#define FEATURE_RAW_ZEBRAS
+#define FEATURE_RAW_SPOTMETER
+
+#define FEATURE_SILENT_PIC_RAW_BURST
+//~ #define FEATURE_SILENT_PIC_RAW // - compatibility mode; define only one of those, not both

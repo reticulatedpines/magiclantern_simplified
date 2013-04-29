@@ -12,7 +12,7 @@
 #include "gui.h"
 #include "lens.h"
 
-void * test_dialog = 0;
+// static void * test_dialog = 0;
 
 void* get_current_dialog_handler()
 {
@@ -21,7 +21,7 @@ void* get_current_dialog_handler()
     return dialog->handler;
 }
 
-void print_dialog_handler_stack()
+static void print_dialog_handler_stack()
 {
     int x = 50;
     int y = 50;

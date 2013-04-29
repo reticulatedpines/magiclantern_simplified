@@ -46,7 +46,6 @@ ML_OBJS-y = \
 	shoot.o \
 	chdk-gui_draw.o \
 	movtweaks.o \
-	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
 	af_patterns.o \
@@ -67,6 +66,9 @@ ML_OBJS-y = \
 	tskmon.o \
 	beep.o \
 	vsync-lite.o \
+	battery.o \
+	ph_info_disp.o \
+	flexinfo.o \
 
 #include generic rules and definitions
 
@@ -77,7 +79,7 @@ include  $(TOP_DIR)/Makefile.inc
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR     = 0xFF010000
-RESTARTSTART    = 0x0005f000
+RESTARTSTART    = 0x1FF00100
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120
 

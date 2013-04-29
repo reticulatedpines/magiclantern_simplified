@@ -1,4 +1,5 @@
 #include <dryos.h>
+#include <property.h>
 
 // look on camera menu or review sites to get custom function numbers
 

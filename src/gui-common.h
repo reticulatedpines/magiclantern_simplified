@@ -7,7 +7,7 @@
 #define MLEV_HIJACK_FORMAT_DIALOG_BOX -1
 #define MLEV_TURN_ON_DISPLAY -2
 #define MLEV_TURN_OFF_DISPLAY -3
-#define MLEV_ChangeHDMIOutputSizeToVGA -5
+//~ #define MLEV_ChangeHDMIOutputSizeToVGA -5
 #define MLEV_LCD_SENSOR_START -6
 #define MLEV_REDRAW -7
 //~ #define MLEV_KILL_FLICKER -8

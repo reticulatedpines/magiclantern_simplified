@@ -13,6 +13,9 @@ PLATFORM_INC=.
 
 PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
+# compile position independent (experimental)
+CONFIG_PIC=n
+
 # magiclantern.lds script MUST be first
 # entry.o MUST be second
 # menu.o and debug.o must come before the modules
@@ -47,7 +50,6 @@ ML_OBJS-y = \
 	shoot.o \
 	chdk-gui_draw.o \
 	movtweaks.o \
-	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
 	af_patterns.o \
@@ -57,6 +59,7 @@ ML_OBJS-y = \
 	bootflags.o \
 	vram.o \
 	morse.o \
+	liveview.o \
 	reloc.o \
 	aj_port.o \
 	fps-engio.o \
@@ -67,6 +70,8 @@ ML_OBJS-y = \
 	tskmon.o \
 	beep.o \
 	vsync-lite.o \
+	ph_info_disp.o \
+	flexinfo.o \
 
 #include generic rules and definitions
 
@@ -78,7 +83,6 @@ CFLAGS += -D CONFIG_STATIC_FONTS=1
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF010000
-#RESTARTSTART		= 0x0008B000
 RESTARTSTART    = 0x00C80100
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120

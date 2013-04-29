@@ -44,6 +44,7 @@ toolchain/stamps
 platform/*/autoexec
 platform/*/magiclantern
 platform/*/magiclantern.lds
+platform/*/magiclantern.sym
 platform/all/autoexec-all
 doc/*.aux
 doc/*.out

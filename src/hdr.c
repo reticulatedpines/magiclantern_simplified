@@ -41,7 +41,11 @@ CONFIG_ARRAY_ELEMENT("hdrv.ext.iso.7", hdrv_extended_iso, 7, 0);
 
 static CONFIG_INT("hdrv.en", hdrv_enabled, 0);
 static CONFIG_INT("hdrv.iso.a", hdr_iso_a, 72);
+#ifdef CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
+static CONFIG_INT("hdrv.iso.b", hdr_iso_b, 104);
+#else
 static CONFIG_INT("hdrv.iso.b", hdr_iso_b, 101);
+#endif
 
 int hdr_video_enabled()
 {
@@ -52,7 +56,7 @@ int hdr_video_enabled()
     #endif
 }
 
-int is_hdr_valid_iso(int iso)
+static int is_hdr_valid_iso(int iso)
 {
     #ifdef CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
     return is_native_iso(iso);
@@ -112,7 +116,7 @@ static void hdrv_extended_iso_toggle(void* priv, int delta)
     uint8_t pos = hdrv_extended_step_edit - 1;
     do
     {
-        iso_table[pos] = mod(iso_table[pos] - 72 + delta, 120 - 72 + 1) + 72;
+        iso_table[pos] = mod(iso_table[pos] - 72 + delta, MAX_ISO_BV - 72 + 1) + 72;
     }
     while (!is_hdr_valid_iso(raw2iso(iso_table[pos])));
 }
@@ -163,11 +167,6 @@ void hdrv_extended_iso_display(void *priv, int x, int y, int selected)
     {
         menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This entry is unused. Increase step count.");
     }
-    
-    if (!lens_info.raw_iso)
-    {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Doesn't work with auto ISO.");
-    }
 }
 #endif
 
@@ -183,7 +182,7 @@ static void hdr_iso_toggle(void* priv, int delta)
     int* v = (int*)priv;
     do
     {
-        *v = mod(*v - 72 + delta, 120 - 72 + 1) + 72;
+        *v = mod(*v - MIN_ISO + delta, MAX_ANALOG_ISO - MIN_ISO + 1) + MIN_ISO;
     }
     while (!is_hdr_valid_iso(raw2iso(*v)));
 }
@@ -196,6 +195,10 @@ void hdr_get_iso_range(int* iso_low, int* iso_high)
 
 void hdr_step()
 {
+#ifdef FEATURE_SHUTTER_FINE_TUNING
+    shutter_finetune_step();
+#endif
+
 #ifdef CONFIG_FRAME_ISO_OVERRIDE
     if (!hdrv_enabled)
     {
@@ -290,23 +293,15 @@ void hdr_kill_flicker()
 #endif
 }
 
-static void
-hdr_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(hdr_print)
 {
     if (hdrv_enabled)
     {
         #ifdef FEATURE_HDR_EXTENDED
         if(hdrv_extended_mode)
         {
-            bmp_printf(
-                selected ? MENU_FONT_SEL : MENU_FONT,
-                x, y,
-                "HDR video     : ON (Extended)"
+            MENU_SET_VALUE(
+                "ON (Extended)"
             );
         }
         else
@@ -320,26 +315,16 @@ hdr_print(
             iso_low = raw2iso(get_effective_hdr_iso_for_display(iso_low));
             iso_high = raw2iso(get_effective_hdr_iso_for_display(iso_high));
 
-            bmp_printf(
-                selected ? MENU_FONT_SEL : MENU_FONT,
-                x, y,
-                "HDR video     : ISO %d/%d,%d.%dEV",
+            MENU_SET_VALUE(
+                "ISO %d/%d,%d.%dEV",
                 iso_low, iso_high, 
                 ev_x10/10, ev_x10%10
             );
+            MENU_SET_SHORT_VALUE(
+                "%d/%d",
+                iso_low, iso_high
+            );
         }
-        
-        if (!lens_info.raw_iso)
-            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Doesn't work with auto ISO.");
-    }
-    else
-    {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "HDR video     : OFF"
-        );
-        menu_draw_icon(x, y, MNI_OFF, 0);
     }
 }
 
@@ -362,42 +347,34 @@ int get_effective_hdr_iso_for_display(int raw_iso)
 #endif
 
     // also apply digic iso, if any
-    extern int digic_iso_gain_movie;
+    int digic_iso_gain_movie = get_digic_iso_gain_movie();
     if (digic_iso_gain_movie != 1024)
     {
-        actual_iso += (gain_to_ev_x8(digic_iso_gain_movie) - 80);
+        actual_iso += (gain_to_ev_scaled(digic_iso_gain_movie, 8) - 80);
     }
     return actual_iso;
 }
 
-void hdr_iso_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(hdr_iso_display)
 {
 #ifdef FEATURE_HDR_EXTENDED
     if(hdrv_extended_mode)
     {
-        bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT, x, y,"ISO %s: (n/a)", priv == &hdr_iso_a ? "A" : "B");
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Extended mode is enabled. Set ISO/Shutter on frame basis.");
+        MENU_SET_VALUE("(n/a)");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Extended mode is enabled. Set ISO/Shutter on frame basis.");
         return;
     }
 #endif
 
-    int hdr_iso = MEM(priv);
+    int hdr_iso = CURRENT_VALUE;
     int effective_iso = get_effective_hdr_iso_for_display(hdr_iso);
     int d = effective_iso - hdr_iso;
     d = d * 10 / 8;
     
     if (d)
     {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "ISO %s: %d (%d, %s%d.%d EV)", 
-            priv == &hdr_iso_a ? "A" : "B",
+        MENU_SET_VALUE(
+            "%d (%d, %s%d.%d EV)", 
             raw2iso(effective_iso),
             raw2iso(hdr_iso),
             d > 0 ? "+" : "-", ABS(d)/10, ABS(d)%10
@@ -405,34 +382,30 @@ void hdr_iso_display(
     }
     else
     {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "ISO %s     : %d", 
-            priv == &hdr_iso_a ? "A" : "B",
+        MENU_SET_VALUE(
+            "%d", 
             raw2iso(effective_iso)
         );
     }
-    if (!lens_info.raw_iso)
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Doesn't work with auto ISO.");
 }
 
-struct menu_entry hdr_menu[] = {
+static struct menu_entry hdr_menu[] = {
     {
         .name = "HDR video",
         .priv = &hdrv_enabled,
         .min = 0,
         .max = 1,
-        .display = hdr_print,
+        .update = hdr_print,
         .help = "Alternates ISO between frames. Flickers while recording.",
+        .depends_on = DEP_MOVIE_MODE | DEP_MANUAL_ISO,
         .children =  (struct menu_entry[]) {
             {
                 .name = "ISO A",
                 .priv = &hdr_iso_a,
                 .min = 72,
-                .max = 120,
+                .max = MAX_ANALOG_ISO,
                 .select = hdr_iso_toggle,
-                .display = hdr_iso_display,
+                .update = hdr_iso_display,
                 .unit = UNIT_ISO,
                 .help = "ISO value for one half of the frames.",
             },
@@ -440,9 +413,9 @@ struct menu_entry hdr_menu[] = {
                 .name = "ISO B",
                 .priv = &hdr_iso_b,
                 .min = 72,
-                .max = 120,
+                .max = MAX_ANALOG_ISO,
                 .select = hdr_iso_toggle,
-                .display = hdr_iso_display,
+                .update = hdr_iso_display,
                 .unit = UNIT_ISO,
                 .help = "ISO value for the other half of the frames.",
             },
@@ -471,7 +444,7 @@ struct menu_entry hdr_menu[] = {
                 .name = "Ext. ISO",
                 .priv = hdrv_extended_iso,
                 .min = 72,
-                .max = 120,
+                .max = MAX_ISO_BV,
                 .select = hdrv_extended_iso_toggle,
                 .display = hdrv_extended_iso_display,
                 .unit = UNIT_ISO,
@@ -481,7 +454,7 @@ struct menu_entry hdr_menu[] = {
                 .name = "Ext. Shutter",
                 .priv = hdrv_extended_shutter,
                 .min = 1,
-                .max = 120,
+                .max = MAX_ISO_BV,
                 .select = hdrv_extended_shutter_toggle,
                 .display = hdrv_extended_shutter_display,
                 .help = "Edit Shutter settings.",
@@ -493,7 +466,7 @@ struct menu_entry hdr_menu[] = {
     }
 };
 
-void iso_test()
+static void iso_test()
 {
     while(1)
     {

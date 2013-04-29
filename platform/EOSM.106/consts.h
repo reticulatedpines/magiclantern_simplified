@@ -16,8 +16,8 @@
 #define HIJACK_INSTR_MY_ITASK 0xff0c1cc8
 #define HIJACK_TASK_ADDR 0x3E2D8
 
-    // no idea if it's overflowing, need to check experimentally 
-    //~ #define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3
+// no idea if it's overflowing, need to check experimentally 
+#define ARMLIB_OVERFLOWING_BUFFER 0x66114 // in AJ_armlib_setup_related3
 
 #define DRYOS_ASSERT_HANDLER 0x3E2B8 // dec TH_assert or assert_0
 
@@ -68,7 +68,7 @@
 
 #define MVR_516_STRUCT (*(void**)0x3E640) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
-#define MEM(x) (*(int*)(x))
+#define MEM(x) (*(volatile int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
@@ -126,7 +126,7 @@
 #define DIALOG_MnCardFormatBegin (0x60DC0) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x64840) // similar
 
-#define BULB_MIN_EXPOSURE 100
+#define BULB_MIN_EXPOSURE 1000
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xffcb9c04
@@ -177,6 +177,7 @@
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
 #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
 #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
 
@@ -217,6 +218,9 @@
 //--------------
 #define HIJACK_TOUCH_CBR_PTR 0x4D858
 
+
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 5
 
 
 

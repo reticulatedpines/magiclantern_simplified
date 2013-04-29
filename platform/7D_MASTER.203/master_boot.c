@@ -116,8 +116,8 @@ void backup_region(char *file, uint32_t base, uint32_t length)
 void backup_task()
 {
     msleep(1000);
-    backup_region(CARD_DRIVE "ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
-    backup_region(CARD_DRIVE "ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
+    backup_region(CARD_DRIVE "ML/LOGS/M_ROM1.BIN", 0xF8000000, 0x01000000);
+    backup_region(CARD_DRIVE "ML/LOGS/M_ROM0.BIN", 0xF0000000, 0x01000000);
 }
 #endif
 
@@ -245,9 +245,72 @@ void isrlog(uint32_t isr_id)
 }
 
 
+static uint32_t vignetting_data_prep[0x80];
+static uint32_t vignetting_enabled = 0;
+
+/* this function is called from slave via RPC */
+void vignetting_update_table(uint32_t *buffer, uint32_t length)
+{
+    if(length == sizeof(vignetting_data_prep))
+    {
+        uint32_t index = 0;
+        
+        for(index = 0; index < COUNT(vignetting_data_prep); index++)
+        {
+            vignetting_data_prep[index] = buffer[index];
+        }
+        vignetting_enabled = 1;
+    }
+    else
+    {
+        vignetting_enabled = 0;
+    }
+}
+    
+void vignetting_correction_apply_lvmgr(uint32_t *lvmgr)
+{
+    uint32_t index = 0;
+    if(vignetting_enabled && lvmgr)
+    {
+        uint32_t *vign = &lvmgr[0x83];
+
+        for(index = 0; index < COUNT(vignetting_data_prep); index++)
+        {
+            vign[index] = vignetting_data_prep[index];
+        }
+    }
+}
+
+/** Call all of the init functions  */
+static void
+call_init_funcs( void * priv )
+{
+    extern struct task_create _init_funcs_start[];
+    extern struct task_create _init_funcs_end[];
+    struct task_create * init_func = _init_funcs_start;
+
+    for( ; init_func < _init_funcs_end ; init_func++ )
+    {
+#if defined(POSITION_INDEPENDENT)
+        init_func->entry = PIC_RESOLVE(init_func->entry);
+        init_func->name = PIC_RESOLVE(init_func->name);
+#endif
+        DebugMsg( DM_MAGIC, 3,
+            "Calling init_func %s (%x)",
+            init_func->name,
+            (uint32_t) init_func->entry
+        );
+        thunk entry = (thunk) init_func->entry;
+        entry();
+    }
+}
+
 void ml_init()
 {
-    ml_rpc_init();
+    msleep(500);
+    call_init_funcs(0);
+
+
     
     //pre_isr_hook = isrlog;
     

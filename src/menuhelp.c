@@ -33,26 +33,15 @@
 #include "menuhelp.h"
 
 extern int menu_help_active;
-int current_page = 1;
-extern int help_pages;
-void draw_page_number(int page);
-
-void draw_page_number(int page)
-{
-    char pg[4];
-    snprintf(pg, sizeof(pg), "%3d", page);
-    bfnt_puts(pg, 650+(page<10 ? 14 : page<100 ? 4 : 0) , 2, COLOR_FG_NONLV, COLOR_BG);
-
-}
+static int current_page = 1;
+static int help_pages = 100; // dummy value, will be updated on the fly
 
 void 
 draw_beta_warning()
 {
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
-    if (page_number_active) draw_page_number(1);
 
-//    bmp_printf(FONT_LARGE, 360 - font_large.width * 6, 50, "Magic Lantern");
-    bfnt_puts("Magic Lantern", 242, 53, COLOR_FG_NONLV, COLOR_BG);
+    bfnt_puts("Magic Lantern", 242, 53, COLOR_WHITE, COLOR_BLACK);
 
     bmp_printf(FONT_MED, 50, 150, "This is a development snapshot for testing purposes.");
 
@@ -116,11 +105,14 @@ void menu_help_show_page(int page)
     if (page == 0) { draw_404_page(); return; } // help page not found
     if (page == -1) { draw_help_not_installed_page(); return; } // help page not found
     
-    char path[100],rpath[30];
+    char path[100];
     struct bmp_file_t * doc = (void*) -1;
 
+#ifdef CONFIG_HELP_CACHE
+    char rpath[30];
     snprintf(rpath, sizeof(rpath), CARD_DRIVE "ML/doc/page-%03d.vrm", page);
     if (load_vram(rpath)==-1)
+#endif
     {
         snprintf(path, sizeof(path), CARD_DRIVE "ML/doc/page-%03d.bmh", page);
         doc = bmp_load(path, 1);
@@ -133,9 +125,10 @@ void menu_help_show_page(int page)
         if (doc)
         {
             bmp_draw_scaled_ex(doc, 0, 0, 720, 480, 0);
-
+            #ifdef CONFIG_HELP_CACHE
             extern int _bmp_draw_should_stop;
             if (!_bmp_draw_should_stop) save_vram(rpath);
+            #endif
             FreeMemory(doc);
         }
         else
@@ -144,7 +137,6 @@ void menu_help_show_page(int page)
             bmp_printf(FONT_MED, 0, 0, "Could not load help page %s.", path);
         }
     }
-    if (page_number_active==1) draw_page_number(page);
 }
 
 void menu_help_redraw()

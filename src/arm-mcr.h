@@ -186,7 +186,7 @@ sei( uint32_t old_irq )
 #define LOOP_INSTR    0xeafffffe    // 1: b 1b
 #define NOP_INSTR    0xe1a00000    // mov r0, r0
 #define MOV_R0_0_INSTR 0xe3a00000
-#define MOV_R1_0xC800000_INSTR 0xe3a01732 // mov r1, 0xc800000. 
+#define MOV_R1_0xC80000_INSTR 0xe3a01732 // mov r1, 0xc80000 
 
 #define MOV_RD_IMM_INSTR(rd,imm)\
     ( 0xE3A00000 \
@@ -202,6 +202,9 @@ sei( uint32_t old_irq )
     ( 0xEA000000 \
     | ((( ((uint32_t)dest) - ((uint32_t)pc) - 8 ) >> 2) & 0x00FFFFFF) \
     )
+
+#define ROR(val,count)   (ROR32(val,(count)%32))
+#define ROR32(val,count) (((val) >> (count))|((val) << (32-(count))))
 
 /** Simple boot loader memcpy.
  *

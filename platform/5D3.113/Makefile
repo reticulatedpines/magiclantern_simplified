@@ -28,6 +28,7 @@ ML_OBJS-y = \
 	version.o \
 	exmem.o \
 	bmp.o \
+	video_hacks.o \
 	fio-5d3.o \
 	font-dyn.o \
 	config.o \
@@ -48,7 +49,6 @@ ML_OBJS-y = \
 	shoot.o \
 	chdk-gui_draw.o \
 	movtweaks.o \
-	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
 	focus.o \
@@ -56,7 +56,6 @@ ML_OBJS-y = \
 	dialog_test.o \
 	vram.o \
 	aj_port.o \
-	lv-img-engio.o \
 	fps-engio.o \
 	tasks.o \
 	tskmon.o \
@@ -66,7 +65,12 @@ ML_OBJS-y = \
 	beep.o \
 	audio-ak.o \
 	vsync-lite.o \
+	battery.o \
 	ph_info_disp.o \
+	flexinfo.o \
+	afma.o \
+	raw.o \
+	chdk-dng.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
@@ -84,5 +88,5 @@ CFLAGS += -DCONFIG_5D3_MINIMAL=1 -DCONFIG_NO_SNAP_SIM=1
 
 x: 
 	make clean
-	make autoexec.bin
-	python ../../../dumper/build_fir.py -r ../../../dumper/5D300113.FIR autoexec.bin ml-5D3-113.fir
+	make autoexec-fir.bin
+	python ../../../dumper/build_fir.py -r ../../../dumper/5D300113.FIR autoexec-fir.bin ml-5D3-113.fir

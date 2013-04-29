@@ -48,8 +48,8 @@
 
 #define GMT_IDLEHANDLER_TASK (*(int*)0x134f4) // dec create_idleHandler_task
 
- #define SENSOR_RES_X 4752
- #define SENSOR_RES_Y 3168
+#define SENSOR_RES_X 5792
+#define SENSOR_RES_Y 3804
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x79B8) == 0xF))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x79B8) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
@@ -59,7 +59,7 @@
 
 #define MVR_516_STRUCT (*(void**)0x1ef0) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
-#define MEM(x) (*(int*)(x))
+#define MEM(x) (*(volatile int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
@@ -127,6 +127,10 @@
 #define HDR_STATUS_POS_X 180
 #define HDR_STATUS_POS_Y 460
 
+// for displaying battery
+#define DISPLAY_BATTERY_POS_X 195
+#define DISPLAY_BATTERY_POS_Y 404
+
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 500
 #define DISPLAY_TRAP_FOCUS_POS_Y 320
@@ -152,7 +156,7 @@
 #define DIALOG_MnCardFormatBegin (0x219EC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x21B0C) // similar
 
-#define BULB_MIN_EXPOSURE 200
+#define BULB_MIN_EXPOSURE 500
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xf7c5E9C0
@@ -207,7 +211,11 @@
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5C)
 #define FRAME_BV *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x5E)
 #define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x5A)
+#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x22528
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 24 + 4) - MEM(MALLOC_STRUCT + 24 + 8)) // "Total Size" - "Allocated Size"
+
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 5

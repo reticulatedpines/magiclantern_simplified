@@ -15,6 +15,9 @@
 /** This camera runs DryOS **/
 //~ #define CONFIG_VXWORKS
 
+/** This camera has a DIGIC V chip */
+#define CONFIG_DIGIC_V
+
 /** This camera has an APS-C sensor */
 //~ #define CONFIG_FULLFRAME
 
@@ -80,10 +83,10 @@
 #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
 
 /** We can't change ExpSim from ML (at least not yet) **/
-//~ #define CONFIG_EXPSIM
+#define CONFIG_EXPSIM
 
 /** We can;t playback sounds via ASIF DMA (yet) **/
-//~ #define CONFIG_BEEP
+#define CONFIG_BEEP
 
 /** This camera has no trouble saving Kelvin and/or WBShift in movie mode **/
 //~ #define CONFIG_WB_WORKAROUND
@@ -109,3 +112,12 @@
 
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
+
+/** FPS override: we can only change timer A */
+#define CONFIG_FPS_TIMER_A_ONLY
+
+/** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
+#define CONFIG_FPS_AGGRESSIVE_UPDATE
+
+/** We can record movies in regular photo modes - M, P, Tv, Av... */
+#define CONFIG_NO_DEDICATED_MOVIE_MODE

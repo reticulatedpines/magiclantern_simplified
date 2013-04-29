@@ -32,6 +32,7 @@
 
 #define NSTUB(addr,name) \
 	.global name; \
+	.extern name; \
 	name = addr
 
 NSTUB( ROMBASEADDR, firmware_entry )
@@ -104,7 +105,6 @@ NSTUB(0xff1a4fc8, gui_massive_event_loop)         // no match
 NSTUB(   0x591F0, gui_task_list)
 NSTUB(0xFF0C5488, init_task)
 NSTUB(0xFF0C8368, malloc)
-NSTUB(0xFFA9FFAC - RAM_OFFSET, memcpy)
 NSTUB(0xFFA87AD0 - RAM_OFFSET, msg_queue_post)
 NSTUB(0xFFA878E4 - RAM_OFFSET, msg_queue_receive)
 NSTUB(0xFFA6FC70 - RAM_OFFSET, msleep)
@@ -118,9 +118,6 @@ NSTUB(0xFF3420F4, register_func)
 NSTUB(0xFF6421C0, sdReadBlk)
 NSTUB(   0x60B2C, sd_device)
 NSTUB(0xFF0C10F8, sei_restore)
-//NSTUB(0xff1448c4, strcmp)
-NSTUB(0xFF35912C, strcpy)
-NSTUB(0xFF0C8284, strlen)
 NSTUB(0xFFA6F794 - RAM_OFFSET, take_semaphore)
 NSTUB(0xFFA6FD24 - RAM_OFFSET, task_create)
 NSTUB(   0x3E1C0, task_dispatch_hook )
@@ -135,7 +132,7 @@ NSTUB(0xFF539DC4, LiveViewApp_handler)
 
 NSTUB(0xFF3BBAFC, PlayMain_handler)
 NSTUB(0xFF553994, PlayMovieGuideApp_handler)
-	NSTUB(0xff49c124, ErrCardForLVApp_handler) // not sure
+NSTUB(0xFF6A2650, ErrCardForLVApp_handler)
 NSTUB(0xFF520378, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
 NSTUB(0xFF53786C, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
 
@@ -183,7 +180,7 @@ NSTUB(0xFF19991C, ENCODE_StartEncodeJpeg)
 NSTUB(0xFF13B678, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xFF13B6C4, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xFF13B7DC, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xFFA723E4 - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xFFA723E4 - RAM_OFFSET, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xFFA71DBC - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 
 NSTUB(0xFFA7391C - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)

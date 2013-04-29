@@ -79,7 +79,7 @@
 
 #define MVR_190_STRUCT (*(void**)0x1e90) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
-#define MEM(x) (*(int*)(x))
+#define MEM(x) (*(volatile int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
@@ -188,7 +188,7 @@
 #define DIALOG_MnCardFormatBegin (0x242AC+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x24398+4) // similar
 
-#define BULB_MIN_EXPOSURE 100
+#define BULB_MIN_EXPOSURE 1000
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xFF61E250
@@ -239,7 +239,11 @@
 
 #define LV_STRUCT_PTR 0x1d78
 #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x56)
+#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x24d48
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 24 + 4) - MEM(MALLOC_STRUCT + 24 + 8)) // "Total Size" - "Allocated Size"
+
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 5

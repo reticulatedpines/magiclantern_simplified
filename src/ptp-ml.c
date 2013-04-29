@@ -43,30 +43,30 @@ char* menu_data_fill(char* dptr, struct menu_entry * m2) {
 	uint32_t flags = 0;
 	int i;
 	if (m2->select) flags |= PTP_ML_SUBMENU_HAS_SELECT;
-	if (m2->select_reverse) flags |= PTP_ML_SUBMENU_HAS_SELECT_REVERSE;
+	//if (m2->select_reverse) flags |= PTP_ML_SUBMENU_HAS_SELECT_REVERSE;
 	if (m2->select_Q) flags |= PTP_ML_SUBMENU_HAS_SELECT_Q;
-	if (IS_VISIBLE(m2)) flags |= PTP_ML_SUBMENU_IS_ESSENTIAL; // probably needs fixing somewhere else too
+//	if (!HAS_HIDDEN_FLAG(m2)) flags |= PTP_ML_SUBMENU_IS_ESSENTIAL; // probably needs fixing somewhere else too
 	if (m2->choices) flags |= PTP_ML_SUBMENU_HAS_CHOICE;
 	if (m2->children) flags |= PTP_ML_SUBMENU_HAS_SUBMENU;
 	if (m2->selected) flags |= PTP_ML_SUBMENU_IS_SELECTED;
-	if (m2->display) flags |= PTP_ML_SUBMENU_HAS_DISPLAY;
+	//if (m2->display) flags |= PTP_ML_SUBMENU_HAS_DISPLAY;
 	flags |= (m2->edit_mode&0xF) << PTP_ML_SUBMENU_EDIT_MODE_SHIFT;
 	flags |= (m2->icon_type&0xF) << PTP_ML_SUBMENU_ICON_TYPE_SHIFT;
 	flags |= (m2->unit&0xF) << PTP_ML_SUBMENU_UNIT_SHIFT;
-	fill_uint32(dptr, m2->id);     dptr+=4;
+	/*fill_uint32(dptr, m2->id);*/     dptr+=4;
 	fill_uint32(dptr, m2->min);    dptr+=4;
 	fill_uint32(dptr, m2->max);    dptr+=4;
 	fill_uint32(dptr, flags);      dptr+=8; //4 bytes reserved for later use
 	if (m2->priv) fill_uint32(dptr, MEM(m2->priv)); else fill_uint32(dptr, -1);   dptr+=4;
 	fill_uint32(dptr, strl);       dptr+=4;
-	// memcpy doesn't work with unaligned data
-	my_memcpy(dptr, m2->name, strl);
+
+    memcpy(dptr, m2->name, strl);
 	dptr+=strl;
 	if (m2->choices) {
 		for (i=0;i<=m2->max;i++) {
 			strl = strlen(m2->choices[i]);
 			fill_uint32(dptr, strl);       dptr+=4;
-			my_memcpy(dptr, m2->choices[i], strl);
+			memcpy(dptr, m2->choices[i], strl);
 			dptr+=strl;
 		}
 	}
@@ -143,7 +143,7 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 					size += 8 + strlen(m->name);
 				}
 				m = menu_get_root();
-				data = AllocateMemory(size);
+				data = SmallAlloc(size);
 				if (!data) {
 					msg.id = PTP_RC_GeneralError;
 					break;
@@ -152,18 +152,17 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 				dptr = data;
 				for ( ; m ; m = m->next ) {
 					uint32_t strl = strlen(m->name);
-					fill_uint32(dptr, m->id);
+					//fill_uint32(dptr, m->id);
 					dptr+=4;
 					fill_uint32(dptr, strl);
 					dptr+=4;
-					// memcpy doesn't work with unaligned data
-					my_memcpy(dptr, m->name, strl);
+                    memcpy(dptr, m->name, strl);
 					dptr+=strl;
 				}
 				if ( !send_ptp_data(context, data, size ) ) {
 					msg.id = PTP_RC_GeneralError;
 				}
-				FreeMemory(data);
+				SmallFree(data);
 			}
 			break;
 		case PTP_ML_GetMenuStructs:
@@ -173,7 +172,7 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 				int size = 0;
 				msg.param_count = 0;
 
-				m = menu_find_by_id(param2);
+				/* ToDo: replacement    m = menu_find_by_id(param2); */
 				if (!m) {
 					msg.id = PTP_RC_GeneralError;
 					break;
@@ -184,7 +183,7 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 					size += menu_data_size(m2);
 				}
 				m2 = m;
-				data = AllocateMemory(size);
+				data = SmallAlloc(size);
 				if (!data) {
 					msg.id = PTP_RC_GeneralError;
 					break;
@@ -197,7 +196,7 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 				if ( !send_ptp_data(context, data, size ) ) {
 					msg.id = PTP_RC_GeneralError;
 				}
-				FreeMemory(data);
+				SmallFree(data);
 			}
 			break;
 		case PTP_ML_GetMenuStruct:
@@ -207,13 +206,13 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 				int size = 0;
 				msg.param_count = 0;
 
-				m = menu_find_by_id(param2);
+				/* ToDo: replacement    m = menu_find_by_id(param2); */
 				if (!m) {
 					msg.id = PTP_RC_GeneralError;
 					break;
 				}
 				size = menu_data_size(m);
-				data = AllocateMemory(size);
+				data = SmallAlloc(size);
 				if (!data) {
 					msg.id = PTP_RC_GeneralError;
 					break;
@@ -223,14 +222,15 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 				if ( !send_ptp_data(context, data, size ) ) {
 					msg.id = PTP_RC_GeneralError;
 				}
-				FreeMemory(data);
+				SmallFree(data);
 			}
 			break;
 
 		case PTP_ML_SetMenu:
 			{
 				struct menu_entry *entry;
-				entry = menu_find_by_id(param2);
+				/* ToDo: replacement    entry = menu_find_by_id(param2); */
+                
 				msg.param_count = 0;
 				if (!entry) {
 					msg.id = PTP_RC_GeneralError;
@@ -239,8 +239,9 @@ PTP_HANDLER( PTP_ML_CODE, 0 )
 
 				if(param3 == 1) // decrement
 				{
-					if( entry->select_reverse ) entry->select_reverse( entry->priv, -1 );
-					else if (entry->select) entry->select( entry->priv, -1);
+					//if( entry->select_reverse ) entry->select_reverse( entry->priv, -1 );
+					//else 
+                    if (entry->select) entry->select( entry->priv, -1);
 					else menu_numeric_toggle(entry->priv, -1, entry->min, entry->max);
 				}
 				else if (param3 == 2) // Q

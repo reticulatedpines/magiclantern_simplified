@@ -30,6 +30,7 @@
 
 #define NSTUB(addr,name) \
 	.global name; \
+	.extern name; \
 	name = addr
 
 NSTUB( ROMBASEADDR, firmware_entry )
@@ -109,7 +110,6 @@ NSTUB(0xffd4228c, gui_timer_something)
     //NSTUB(    0x3624, gui_timer_struct)
     NSTUB(0xdeadbeef, init_task)
 NSTUB(0xffd5b3e8, malloc) // not good, points to AllocateMemory
-NSTUB(0xFFD7D798, memcpy)
 NSTUB(0xffd432b8, msg_queue_post)
 NSTUB(0xffd42bd4, msg_queue_receive)
 NSTUB(0xffd44300, msleep)
@@ -132,9 +132,6 @@ NSTUB(0xffd4f93c, sei_restore)
     //NSTUB(    0x1f54, sounddev)
     //NSTUB(0xff063d64, sounddev_task)
     //NSTUB(0xFF0640EC, sounddev_active_in)
-NSTUB(0xFFD7D66C, strcmp)
-NSTUB(0xffd7d4e4, strcpy)
-NSTUB(0xffd7d334, strlen)
 NSTUB(0xffd43d8c, take_semaphore)
 NSTUB(0xffd4464c, task_create)
     //NSTUB(    0x1934, task_dispatch_hook )
@@ -175,7 +172,7 @@ NSTUB(0xffd4ad9c, msg_queue_create)
 NSTUB(0xffd5c458, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xffd5c4ac, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xffd5c500, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xffd480e0, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xffd480e0, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xffd47d4c, GetMemoryAddressOfMemoryChunk)
 
     //NSTUB(0xff07365c, PowerAudioOutput)

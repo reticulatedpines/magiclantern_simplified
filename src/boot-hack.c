@@ -34,17 +34,23 @@
 #include "property.h"
 #include "consts.h"
 #include "tskmon.h"
-#if defined(HIJACK_CACHE_HACK) || defined(CONFIG_6D)
+#if defined(HIJACK_CACHE_HACK)
 #include "cache_hacks.h"
 #endif
 
 /** These are called when new tasks are created */
-void my_task_dispatch_hook( struct context ** );
-int my_init_task(int a, int b, int c, int d);
-void my_bzero( uint8_t * base, uint32_t size );
+static void my_task_dispatch_hook( struct context ** );
+static int my_init_task(int a, int b, int c, int d);
+static void my_bzero( uint8_t * base, uint32_t size );
 
 /** This just goes into the bss */
 #define RELOCSIZE 0x3000 // look in HIJACK macros for the highest address, and subtract ROMBASEADDR
+
+#ifdef CONFIG_60D
+#undef RELOCSIZE
+#define RELOCSIZE 0x1200 // squeeze some RAM
+#endif
+
 static uint8_t _reloc[ RELOCSIZE ];
 #define RELOCADDR ((uintptr_t) _reloc)
 
@@ -55,9 +61,14 @@ static uint8_t _reloc[ RELOCSIZE ];
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
     INSTR( rom_addr ) = BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
 
+//#if defined(CONFIG_MEMPATCH_CHECK)
+uint32_t ml_used_mem = 0;
+uint32_t ml_reserved_mem = 0;
+//#endif
 
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
+extern uint32_t _text_start[], _text_end[];
 
 /** Zeroes out bss */
 static inline void
@@ -83,7 +94,7 @@ copy_and_restart( )
 {
     // Clear bss
     zero_bss();
-
+    
 #ifdef HIJACK_CACHE_HACK
     /* make sure we have the first segment locked in d/i cache for patching */    
     cache_lock();
@@ -117,6 +128,7 @@ copy_and_restart( )
     // Reserve memory after the BSS for our application
     #if !defined(CONFIG_ALLOCATE_MEMORY_POOL) // Some cameras load ML into the AllocateMemory pool (like 5500D/1100D)
     INSTR( HIJACK_INSTR_BSS_END ) = (uintptr_t) _bss_end;
+    ml_reserved_mem = (uintptr_t)_bss_end - RESTARTSTART;
     #endif
 
     // Fix the calls to bzero32() and create_init_task()
@@ -129,13 +141,6 @@ copy_and_restart( )
     // Make sure that our self-modifying code clears the cache
     clean_d_cache();
     flush_caches();
-    
-    //~ temporary, this is the only way I could manage to hijack the GUI task. just hacking data cache
-    //~ didn't work..
-#ifdef CONFIG_6D
-    cache_lock();
-    cache_fake(0xFF0DF6DC, BL_INSTR(0xFF0DF6DC, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
-#endif
 
     // We enter after the signature, avoiding the
     // relocation jump that is at the head of the data
@@ -163,7 +168,9 @@ copy_and_restart( )
 #if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD)
     // Install our task creation hooks
     task_dispatch_hook = my_task_dispatch_hook;
+    #ifdef CONFIG_TSKMON
     tskmon_init();
+    #endif
 #endif
 #endif
 
@@ -184,7 +191,7 @@ copy_and_restart( )
 #ifndef CONFIG_EARLY_PORT
 
 /** This task does nothing */
-void
+static void
 null_task( void )
 {
     DebugMsg( DM_SYS, 3, "%s created (and exiting)", __func__ );
@@ -195,7 +202,7 @@ null_task( void )
  * Called by DryOS when it is dispatching (or creating?)
  * a new task.
  */
-void
+static void
 my_task_dispatch_hook(
     struct context **   context
 )
@@ -203,7 +210,9 @@ my_task_dispatch_hook(
     if( !context )
         return;
     
+    #ifdef CONFIG_TSKMON
     tskmon_task_dispatch();
+    #endif
 
     // Do nothing unless a new task is starting via the trampoile
     if( (*context)->pc != (uint32_t) task_trampoline )
@@ -249,7 +258,7 @@ my_task_dispatch_hook(
  * This requires the create_task(), dmstart(), msleep() and dumpf()
  * routines to have been found.
  */
-void
+static void
 my_dump_task( void )
 {
     call("dmstart");
@@ -260,9 +269,6 @@ my_dump_task( void )
     call("dumpf");
     call("dmstop");
 }
-
-
-struct config * global_config;
 
 static volatile int init_funcs_done;
 
@@ -310,10 +316,10 @@ int magic_is_off()
 
 #define BACKUP_BLOCKSIZE 0x00100000
 
-void backup_region(char *file, uint32_t base, uint32_t length)
+static void backup_region(char *file, uint32_t base, uint32_t length)
 {
     FILE *handle = NULL;
-    unsigned int size = 0;
+    uint32_t size = 0;
     uint32_t pos = 0;
     
     /* already backed up that region? */
@@ -342,14 +348,14 @@ void backup_region(char *file, uint32_t base, uint32_t length)
     FIO_CloseFile(handle);
 }
 
-void backup_task()
+static void backup_task()
 {
     backup_region(CARD_DRIVE "ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
     backup_region(CARD_DRIVE "ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
 }
 #endif
 
-int _hold_your_horses = 1; // 0 after config is read
+static int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
 int ml_gui_initialized = 0; // 1 after gui_main_task is started 
 
@@ -367,7 +373,7 @@ static int compute_signature(int* start, int num)
 
 // Only after this task finished, the others are started
 // From here we can do file I/O and maybe other complex stuff
-void my_big_init_task()
+static void my_big_init_task()
 {
 #if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
   uint32_t len;
@@ -389,10 +395,20 @@ void my_big_init_task()
 #endif
 #ifdef CONFIG_DUMPER_BOOTFLAG
     msleep(5000);
-    SetGUIRequestMode(1);
+    SetGUIRequestMode(2);
     msleep(2000);
+
+    if (CURRENT_DIALOG_MAYBE != 2)
+    {
+        bmp_printf(FONT_LARGE, 50, 200, "Hudson, we have a problem!");
+        return;
+    }
+
+    // do try to enable bootflag in LiveView, or during sensor cleaning (it will fail while writing to ROM)
+    // no check is done here, other than a large delay and doing this while in Canon menu
     bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk");
     call("EnableBootDisk");
+    
     msleep(500);
     FILE* f = FIO_CreateFileEx(CARD_DRIVE "ROM.DAT");
     if (f != INVALID_PTR) {
@@ -420,6 +436,10 @@ void my_big_init_task()
         batt_display(0, 0, 0, 0);
     }
     return;
+    #endif
+    
+    #ifdef CONFIG_QEMU
+    qemu_hello(); // see qemu-util.c
     #endif
 
     #if defined(CONFIG_AUTOBACKUP_ROM)
@@ -539,18 +559,18 @@ void hold_your_horses(int showlogo)
  * Custom assert handler - intercept ERR70 and try to save a crash log.
  * Crash log should contain Canon error message.
  */
-static char assert_msg[1000] = "";
-int (*old_assert_handler)(char*,char*,int,int) = 0;
+static char assert_msg[256] = "";
+static int (*old_assert_handler)(char*,char*,int,int) = 0;
 const char* get_assert_msg() { return assert_msg; }
 
-int my_assert_handler(char* msg, char* file, int line, int arg4)
+static int my_assert_handler(char* msg, char* file, int line, int arg4)
 {
     snprintf(assert_msg, sizeof(assert_msg), 
         "ASSERT: %s\n"
         "at %s:%d, task %s\n"
         "lv:%d mode:%d\n", 
         msg, 
-        file, line, get_task_name_from_id(get_current_task()), 
+        file, line, get_task_name_from_id((unsigned int)get_current_task()), 
         lv, shooting_mode
     );
     request_crash_log(1);
@@ -564,10 +584,16 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func)
         "at %s:%d (%s), task %s\n"
         "lv:%d mode:%d\n", 
         msg, 
-        file, line, func, get_task_name_from_id(get_current_task()), 
+        file, line, func, get_task_name_from_id((unsigned int)get_current_task()), 
         lv, shooting_mode
     );
     request_crash_log(2);
+}
+
+void ml_crash_message(char* msg)
+{
+    snprintf(assert_msg, sizeof(assert_msg), "%s", msg);
+    request_crash_log(1);
 }
 
 #ifdef CONFIG_ALLOCATE_MEMORY_POOL
@@ -623,9 +649,10 @@ int init_task_patched(int a, int b, int c, int d)
     uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_END + CreateTaskMain_offset);
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
 
-    // change end limit to 0xc800000 => reserve 500K for ML
+    // change end limit to 0xc80000 => reserve 512K for ML
     // thanks to ARMada by g3gg0 for the black magic :)
-    *addr_AllocMem_end = MOV_R1_0xC800000_INSTR;
+    *addr_AllocMem_end = MOV_R1_0xC80000_INSTR;
+    ml_reserved_mem = 512 * 1024;
 
     // relocating CreateTaskMain does some nasty things, so, right after patching,
     // we jump back to ROM version; at least, what's before patching seems to be relocated properly
@@ -647,11 +674,6 @@ int init_task_patched(int a, int b, int c, int d)
 
 }
 #endif // CONFIG_ALLOCATE_MEMORY_POOL
-
-// flag set to 1 when gui_main_task started to process messages from queue
-int gui_init_done = 0;
-
-
 
 /** Initial task setup.
  *
@@ -676,14 +698,96 @@ my_init_task(int a, int b, int c, int d)
     }
 #endif
 
+    // this is generic
+    ml_used_mem = (uint32_t)&_bss_end - (uint32_t)&_text_start;
+
 #ifdef HIJACK_CACHE_HACK
     /* as we do not return in the middle of te init task as in the hijack-through-copy method, we have to install the hook here */
     task_dispatch_hook = my_task_dispatch_hook;
+    #ifdef CONFIG_TSKMON
     tskmon_init();
+    #endif
     
-    /* now patch init task and continue execution */
-    cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, HIJACK_CACHE_HACK_BSS_END_INSTR, TYPE_ICACHE);
+
+#if defined(RSCMGR_MEMORY_PATCH_END)
+    /* another new method for memory allocation, hopefully the last one :) */
+    uint32_t orig_length = MEM(RSCMGR_MEMORY_PATCH_END);
+    /* 0x00D00000 is the start address of its memory pool and we expect that it goes until 0x60000000, so its (0x20000000-0x00D00000) bytes */
+    uint32_t new_length = (RESTARTSTART & 0xFFFF0000) - 0x00D00000;
     
+    /* figured out that this is nonsense... */
+    //cache_fake(RSCMGR_MEMORY_PATCH_END, new_length, TYPE_DCACHE);
+    
+    /* RAM for ML is the difference minus BVRAM that is placed right behind ML */
+    ml_reserved_mem = orig_length - new_length - BMP_VRAM_SIZE - 0x200;
+    
+#else  
+    uint32_t orig_instr = MEM(HIJACK_CACHE_HACK_BSS_END_ADDR);
+    uint32_t new_instr = HIJACK_CACHE_HACK_BSS_END_INSTR;  
+    /* get and check the reserved memory size for magic lantern to prevent invalid setups to crash camera */
+
+    /* check for the correct mov instruction */
+    if((orig_instr & 0xFFFFF000) == 0xE3A01000)
+    {
+#if defined(CONFIG_MEMPATCH_CHECK)
+        /* mask out the lowest bits for rotate and immed */
+        uint32_t new_address = RESTARTSTART;
+        
+        /* hardcode the new instruction to a 16 bit ROR of the upper byte of RESTARTSTART */
+        new_instr = orig_instr & 0xFFFFF000;
+        new_instr = new_instr | (8<<8) | ((new_address>>16) & 0xFF);
+        
+        /* now we calculated the new end address of malloc area, check the forged instruction, the resulting
+         * address and validate if the available memory is enough.
+         */
+        
+        /* check the memory size against ML binary size */
+        uint32_t orig_rotate_imm = (orig_instr >> 8) & 0xF;
+        uint32_t orig_immed_8 = orig_instr & 0xFF;
+        uint32_t orig_end = ROR(orig_immed_8, 2 * orig_rotate_imm);
+        
+        uint32_t new_rotate_imm = (new_instr >> 8) & 0xF;
+        uint32_t new_immed_8 = new_instr & 0xFF;
+        uint32_t new_end = ROR(new_immed_8, 2 * new_rotate_imm);
+        
+        ml_reserved_mem = orig_end - new_end;
+        
+        /* ensure binary is not too large */
+        if(ml_used_mem > ml_reserved_mem)
+        {
+            while(1)
+            {
+                info_led_blink(3, 500, 500);
+                info_led_blink(3, 100, 500);
+                msleep(1000);
+            }
+        }
+#endif
+        /* now patch init task and continue execution */
+        cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
+    }
+    else
+    {
+        /* we are not sure if this is a instruction, so patch data cache also */
+        cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
+        cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_DCACHE);
+    
+    //~ fix start of AllocateMemory pool so it actually shrinks in size.
+    #ifdef CONFIG_6D
+        cache_fake(HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR, HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR, TYPE_ICACHE);
+    #endif
+    }
+
+    #ifdef ML_RESERVED_MEM // define this if we can't autodetect the reserved memory size
+    ml_reserved_mem = ML_RESERVED_MEM;
+    #endif
+#endif
+
+    #ifdef CONFIG_6D
+    //Hijack GUI Task Here - Now we're booting with cache hacks and have menu.
+    cache_fake(0xFF0DF6DC, BL_INSTR(0xFF0DF6DC, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
+    #endif
+
     int ans = init_task(a,b,c,d);
     
     /* no functions/caches need to get patched anymore, we can disable cache hacking again */    

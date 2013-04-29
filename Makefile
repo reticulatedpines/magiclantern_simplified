@@ -26,7 +26,7 @@ endif
 all: $(SUPPORTED_MODELS)
 	$(MAKE) -C $(PLATFORM_PATH)/all clean
 	$(MAKE) -C $(PLATFORM_PATH)/all x
-	$(MAKE) -C $(PLUGINS_DIR)
+	#~ $(MAKE) -C $(PLUGINS_DIR)
 
 60D:
 	$(MAKE) -C $(PLATFORM_PATH)/60D.111
@@ -76,7 +76,7 @@ EOSM:
 	$(MAKE) -C $(PLATFORM_PATH)/650D.101
 
 6D:
-	$(MAKE) -C $(PLATFORM_PATH)/6D.112
+	$(MAKE) -C $(PLATFORM_PATH)/6D.113
 
 plugins: FORCE
 	$(MAKE) -C $(PLUGINS_DIR)
@@ -153,7 +153,7 @@ clean:
 	cd $(PLATFORM_PATH)/40D.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/EOSM.106/; $(MAKE) clean	
 	cd $(PLATFORM_PATH)/650D.101/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/6D.112/; $(MAKE) clean	
+	cd $(PLATFORM_PATH)/6D.113/; $(MAKE) clean	
 	$(MAKE) -C $(PLUGINS_DIR) clean
 	$(RM) -rf  $(BINARIES_PATH)
 	$(RM) -rf doxygen-doc/*
@@ -174,6 +174,26 @@ doxygen:
 dropbox: all
 	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/bleeding-edge/
 
+
+# for changelog
+HG_TEMPLATE=--template '{node|short} | {author|user}: {desc|strip|firstline} \n'
+HG_DATE=`date -d '$(1)' +'%Y-%m-%d %H:%M:%S'`
+HG_DATE_RANGE=--date "$(call HG_DATE, $(1)) to $(call HG_DATE, $(2))"
+HG_CHANGESET_BEFORE_DATE=$(shell hg log --date "<$(call HG_DATE, $(1) )" --template '{date|localdate}:{node|short} \n' | sort | tail -1 | cut -d: -f2 )
+
+DIFFSTAT_FILTER=python -c 'import sys; \
+	from textwrap import wrap; \
+	L = sys.stdin.readlines() or ["No changes."]; \
+	L,last = L[:-1],L[-1]; \
+	L.sort(key=lambda l: -len(l)); \
+	F = [l.split("|")[0].strip() for l in L]; \
+	brk = max(len(L)/20, 3); \
+	sys.stdout.writelines(L[:brk]); \
+	sys.stdout.write("\n ".join(wrap(", ".join(F[brk:]), width=100, break_on_hyphens=False, break_long_words=False, initial_indent=" "))); \
+	sys.stdout.write("\n\n" if brk < len(L) else ""); \
+	sys.stdout.write(last); \
+	'
+
 # today's changes are considered in last 24 hours, before compilation time
 # yesterday changes: between 24 and 48 hours
 changelog:
@@ -182,27 +202,35 @@ changelog:
 	echo "===============================================================================" >> ChangeLog.txt
 	echo "" >> ChangeLog.txt
 	echo "Today's changes:" >> ChangeLog.txt
+	echo "----------------" >> ChangeLog.txt
 	echo "" >> ChangeLog.txt
-	hg log --date "`date -d 'today - 1 days' +'%Y-%m-%d %H:%M:%S'` to `date -d 'today' +'%Y-%m-%d %H:%M:%S'`" --template '{node|short} | {author|user}: {desc|strip|firstline} \n' >> ChangeLog.txt ;
+	hg log $(call HG_DATE_RANGE, today - 1 days, today) $(HG_TEMPLATE) >> ChangeLog.txt ;
+	echo "" >> ChangeLog.txt
+	COLUMNS=80 hg diff --stat -r $(call HG_CHANGESET_BEFORE_DATE, today - 1 days ) -r tip | $(DIFFSTAT_FILTER) >> ChangeLog.txt ;
+	echo "" >> ChangeLog.txt
 	echo "" >> ChangeLog.txt
 	echo "Yesterday's changes:" >> ChangeLog.txt
+	echo "--------------------" >> ChangeLog.txt
 	echo "" >> ChangeLog.txt
-	hg log --date "`date -d 'today - 2 days' +'%Y-%m-%d %H:%M:%S'` to `date -d 'today - 1 days' +'%Y-%m-%d %H:%M:%S'`" --template '{node|short} | {author|user}: {desc|strip|firstline} \n' >> ChangeLog.txt ;
+	hg log $(call HG_DATE_RANGE, today - 2 days, today - 1 days) $(HG_TEMPLATE) >> ChangeLog.txt ;
+	echo "" >> ChangeLog.txt
+	COLUMNS=80 hg diff --stat -r $(call HG_CHANGESET_BEFORE_DATE, today - 2 days) -r $(call HG_CHANGESET_BEFORE_DATE, today - 1 days) | $(DIFFSTAT_FILTER) >> ChangeLog.txt ;
+	echo "" >> ChangeLog.txt
 	echo "" >> ChangeLog.txt
 	echo "Changes for last 30 days:" >> ChangeLog.txt
+	echo "-------------------------" >> ChangeLog.txt
 	echo "" >> ChangeLog.txt
-	hg log --date "`date -d 'today - 30 days' +'%Y-%m-%d %H:%M:%S'` to `date -d 'today - 2 days' +'%Y-%m-%d %H:%M:%S'`" --template '{node|short} | {date|shortdate} | {author|user}: {desc|strip|firstline} \n' >> ChangeLog.txt ;
-
-nightly: clean all changelog
+	hg log $(call HG_DATE_RANGE, today - 30 days, today - 2 days) $(HG_TEMPLATE) >> ChangeLog.txt ;
+	echo "" >> ChangeLog.txt
+	COLUMNS=80 hg diff --stat -r $(call HG_CHANGESET_BEFORE_DATE, today - 30 days) -r $(call HG_CHANGESET_BEFORE_DATE, today - 2 days) | $(DIFFSTAT_FILTER) >> ChangeLog.txt ;
+ 
+nightly: changelog clean all 
 	mkdir -p $(NIGHTLY_DIR)
 	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 	cd $(PLATFORM_PATH)/all; mv *.zip $(NIGHTLY_DIR)
 	touch build.log
 	mv build.log $(NIGHTLY_DIR)
 	mv ChangeLog.txt $(NIGHTLY_DIR)
-	-unlink $(NIGHTLY_ROOT)/build.log
-	-unlink $(NIGHTLY_ROOT)/ChangeLog.txt
-	-unlink $(NIGHTLY_ROOT)/magiclantern*.zip
 	ln -s $(NIGHTLY_DIR)/build.log $(NIGHTLY_ROOT)
 	ln -s $(NIGHTLY_DIR)/ChangeLog.txt $(NIGHTLY_ROOT)
 	ln -s $(NIGHTLY_DIR)/magiclantern*.zip $(NIGHTLY_ROOT)

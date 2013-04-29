@@ -12,6 +12,14 @@
 #include "lens.h"
 #include "plugin.h"
 #include "version.h"
+
+#ifdef FEATURE_SHOW_SIGNATURE
+#include "fw-signature.h"
+#endif
+
+#ifdef CONFIG_MODULES
+#include "module.h"
+#endif
 //#include "lua.h"
 
 #if defined(CONFIG_7D)
@@ -28,23 +36,23 @@ extern void config_autosave_toggle(void* unused, int delta);
 static struct semaphore * beep_sem = 0;
 static struct semaphore * config_save_sem = 0;
 
-void debug_init_func()
+static void debug_init_func()
 {
     beep_sem = create_named_semaphore("beep_sem",1);
     config_save_sem = create_named_semaphore("config_save_sem",1);
 }
 INIT_FUNC("debug", debug_init_func);
 
-void Beep();
 void NormalDisplay();
 void MirrorDisplay();
-void HijackFormatDialogBox_main();
+static void HijackFormatDialogBox_main();
 void config_menu_init();
 void display_on();
 void display_off();
 void EngDrvOut(int reg, int value);
 unsigned GetFileSize(char* filename);
 
+void ui_lock(int what);
 
 void fake_halfshutter_step();
 
@@ -56,14 +64,14 @@ int rename_file(char* src, char* dst)
 
     return FIO_RenameFile(src, dst);
 
-#else 
+#else
     // FIO_RenameFile not known, or doesn't work
     // emulate it by copy + erase (poor man's rename :P )
-    
+
     const int bufsize = 128*1024;
     void* buf = alloc_dma_memory(bufsize);
     if (!buf) return 1;
-    
+
     FILE* f = FIO_Open(src, O_RDONLY | O_SYNC);
     if (f == INVALID_PTR) return 1;
 
@@ -73,7 +81,7 @@ int rename_file(char* src, char* dst)
     int r = 0;
     while ((r = FIO_ReadFile(f, buf, bufsize)))
         FIO_WriteFile(g, buf, r);
-    
+
     FIO_CloseFile(f);
     FIO_CloseFile(g);
     FIO_RemoveFile(src);
@@ -85,15 +93,15 @@ int rename_file(char* src, char* dst)
 
 void take_screenshot( int also_lv )
 {
-    Beep();
-    
+    beep();
+
     FIO_RemoveFile(CARD_DRIVE"TEST.BMP");
-    
+
     call( "dispcheck" );
     #ifdef FEATURE_SCREENSHOT_422
     if (also_lv) silent_pic_take_lv_dbg();
     #endif
-    
+
     if (GetFileSize(CARD_DRIVE"TEST.BMP") != 0xFFFFFFFF)
     { // old camera, screenshot saved as TEST.BMP => move it to VRAMxx.BMP
         msleep(300);
@@ -113,8 +121,8 @@ void take_screenshot( int also_lv )
 }
 #endif
 
-#ifdef CONFIG_DEBUGMSG
-int draw_prop = 0;
+#if CONFIG_DEBUGMSG
+static int draw_prop = 0;
 
 static void
 draw_prop_select( void * priv , int unused )
@@ -123,16 +131,25 @@ draw_prop_select( void * priv , int unused )
 }
 
 static int dbg_propn = 0;
-static void 
+static void
 draw_prop_reset( void * priv )
 {
     dbg_propn = 0;
 }
 #endif
 
-#if defined(CONFIG_7D)
-void _card_led_on()  { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON); }
-void _card_led_off() { *(volatile uint32_t*) (CARD_LED_ADDRESS) = 0x38400; } //TODO: Check if this is correct, because reboot.c said 0x838C00
+#if defined(CONFIG_7D) // pel: Checked. That's how it works in the 7D firmware
+void _card_led_on()  //See sub_FF32B410 -> sub_FF0800A4
+{
+    *(volatile uint32_t*) (CARD_LED_ADDRESS) = 0x800c00;
+    *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON); //0x138000
+}
+void _card_led_off()  //See sub_FF32B424 -> sub_FF0800B8
+{
+    *(volatile uint32_t*) (CARD_LED_ADDRESS) = 0x800c00;
+    *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF); //0x38400
+}
+//TODO: Check if this is correct, because reboot.c said 0x838C00
 #elif defined(CARD_LED_ADDRESS) && defined(LEDON) && defined(LEDOFF)
 void _card_led_on()  { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON); }
 void _card_led_off() { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF); }
@@ -173,7 +190,8 @@ void info_led_blink(int times, int delay_on, int delay_off)
 }
 
 
-int config_ok = 0;
+static int config_ok = 0;
+static int config_deleted = 0;
 
 // this can be called from more tasks (gui, prop handler, menu), so it needs to be thread safe
 void
@@ -182,43 +200,172 @@ save_config( void * priv, int delta )
 #ifdef CONFIG_CONFIG_FILE
     take_semaphore(config_save_sem, 0);
     update_disp_mode_bits_from_params();
-    config_save_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" ); 
-    config_menu_save_hidden_items();
+    config_save_file( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
+    config_menu_save_flags();
+    config_deleted = 0;
     give_semaphore(config_save_sem);
 #endif
 }
 
 #ifdef CONFIG_CONFIG_FILE
+#ifdef CONFIG_PICOC
+static char last_preset_file[50] = "";
+static int preset_just_saved = 0;
+static int preset_scripts_dirty = 0;
+
+static char*
+find_picoc_config_filename()
+{
+    for (int i = 0; i < 10; i++)
+    {
+        snprintf(last_preset_file, sizeof(last_preset_file), CARD_DRIVE"ML/SCRIPTS/PRESET%d.C", i);
+
+        if (GetFileSize(last_preset_file) == 0xFFFFFFFF) // this file does not exist
+            return last_preset_file;
+    }
+    return 0;
+}
+
+// if the user tries to save more presets at a time,
+// he will fill the script directory with identical files
+// so.. let's calm him down :)
+static int preset_user_angry = 0;
+
+static void
+save_config_as_picoc(void* priv, int delta)
+{
+    if (preset_just_saved)
+    {
+        preset_user_angry = 1;
+        return;
+    }
+
+    char* fn = find_picoc_config_filename();
+    if (fn)
+    {
+        menu_save_current_config_as_picoc_preset(fn);
+        preset_just_saved = 1;
+        preset_scripts_dirty = 1;
+    }
+}
+
+static MENU_UPDATE_FUNC(save_config_as_picoc_update)
+{
+    static int last_displayed = 0;
+    int t = get_ms_clock_value_fast();
+
+    if (preset_just_saved == 2 && t - last_displayed > 2000) // if this menu was not displayed for a while, we can save a new preset
+    {
+        preset_just_saved = 0;
+        preset_user_angry = 0;
+    }
+
+    if (preset_scripts_dirty)
+    {
+        MENU_SET_RINFO("Restart");
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Restart camera so the new preset appears in Scripts menu.");
+    }
+
+    if (preset_just_saved)
+    {
+        MENU_SET_NAME(last_preset_file + strlen(CARD_DRIVE"ML/SCRIPTS/"));
+        if (preset_user_angry)
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Change some settings before saving a new preset.");
+        last_displayed = t;
+        preset_just_saved = 2;
+    }
+}
+
+#endif // picoc
+
+static MENU_UPDATE_FUNC(delete_config_update)
+{
+    if (config_deleted)
+    {
+        MENU_SET_RINFO("Restart");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Restart your camera to complete the process.");
+    }
+}
+static MENU_UPDATE_FUNC(save_config_update)
+{
+    if (config_deleted)
+    {
+        MENU_SET_RINFO("Undo");
+    }
+}
 static void
 delete_config( void * priv, int delta )
 {
     FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
-    FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/HIDDEN.CFG" );
+    FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/MENU.CFG" );
     if (config_autosave) config_autosave_toggle(0, 0);
+    config_deleted = 1;
 }
 
-static void
-config_autosave_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static int modified_settings_page = 0;
+static int modified_settings_need_more_pages;
+static MENU_UPDATE_FUNC(show_modified_settings)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Config AutoSave  : %s", 
-        config_autosave ? "ON" : "OFF"
-    );
+    if (!entry->selected) modified_settings_page = 0;
+    if (!modified_settings_page)
+    {
+        MENU_SET_VALUE("");
+        return;
+    }
+
+    if (!info->x) return;
+    info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+
+    int skip = (modified_settings_page - 1) * (460 / font_med.height);
+    int k = 0;
+    int y = 0;
+    struct menu * menu = (struct menu *) menu_get_root();
+    for( ; menu ; menu = menu->next )
+    {
+        struct menu_entry * entry = menu->children;
+        for( ; entry ; entry = entry->next )
+        {
+            if (config_var_was_changed(entry->priv))
+            {
+                k++;
+                if (k <= skip) continue;
+
+                char* value = (char*) menu_get_str_value_from_script(menu->name, entry->name);
+                if (k%2) bmp_fill(COLOR_GRAY(10), 0, y, 720, font_med.height);
+                bmp_printf(SHADOW_FONT(FONT_MED), 10, y, "%s - %s", menu->name, entry->name);
+                bmp_printf(SHADOW_FONT(FONT(FONT_MED, COLOR_YELLOW, COLOR_BLACK)), 720 - strlen(value)*font_med.width, y, "%s", value);
+                y += font_med.height;
+                if (y > 450)
+                {
+                    modified_settings_need_more_pages = 1;
+                    bmp_printf(FONT(FONT_MED, COLOR_CYAN, COLOR_BLACK), 710 - 7*font_med.width, y, "more...");
+                    return;
+                }
+            }
+        }
+    }
+    if (k == 0) bmp_printf(FONT_LARGE, 10, 10, "No settings changed.");
+    modified_settings_need_more_pages = 0;
 }
+
+static MENU_SELECT_FUNC(toggle_modified_settings)
+{
+    if (delta < 0)
+        modified_settings_page--;
+    else if (modified_settings_need_more_pages)
+        modified_settings_page++;
+    else
+        modified_settings_page = !modified_settings_page;
+}
+
 #endif
 
 #if CONFIG_DEBUGMSG
 
 static int vmax(int* x, int n)
 {
-    int i; 
+    int i;
     int m = -100000;
     for (i = 0; i < n; i++)
         if (x[i] > m)
@@ -230,7 +377,7 @@ static void dump_rom_task(void* priv, int unused)
 {
     msleep(200);
     FILE * f = NULL;
-    
+
     f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/ROM0.BIN");
     if (f != (void*) -1)
     {
@@ -239,7 +386,7 @@ static void dump_rom_task(void* priv, int unused)
         FIO_CloseFile(f);
     }
     msleep(200);
-    
+
     f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/ROM1.BIN");
     if (f != (void*) -1)
     {
@@ -272,52 +419,20 @@ static void dump_logs(void* priv)
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
-unsigned int rand (void)
+int rand (void)
 {
    static unsigned int z1 = 12345, z2 = 12345, z3 = 12345, z4 = 12345;
    unsigned int b;
    b  = ((z1 << 6) ^ z1) >> 13;
    z1 = ((z1 & 4294967294U) << 18) ^ b;
-   b  = ((z2 << 2) ^ z2) >> 27; 
+   b  = ((z2 << 2) ^ z2) >> 27;
    z2 = ((z2 & 4294967288U) << 2) ^ b;
    b  = ((z3 << 13) ^ z3) >> 21;
    z3 = ((z3 & 4294967280U) << 7) ^ b;
    b  = ((z4 << 3) ^ z4) >> 12;
    z4 = ((z4 & 4294967168U) << 13) ^ b;
-   return (z1 ^ z2 ^ z3 ^ z4);
-}
-
-volatile int aff[26];
-
-int hdmi_code_array[8];
-
-PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
-{
-    memcpy(hdmi_code_array, buf, 32);
-}
-
-void ChangeHDMIOutputSizeToVGA()
-{
-    hdmi_code_array[0] = 2;
-    prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
-}
-
-void ChangeHDMIOutputSizeToFULLHD()
-{
-    hdmi_code_array[0] = 5;
-    prop_request_change(PROP_HDMI_CHANGE_CODE, hdmi_code_array, 32);
-} 
-
-
-static int compute_signature(int* start, int num)
-{
-	int c = 0;
-	int* p;
-	for (p = start; p < start + num; p++)
-	{
-		c += *p;
-	}
-	return c;
+   int ans = (z1 ^ z2 ^ z3 ^ z4);
+   return ABS(ans);
 }
 
 #ifdef CONFIG_ISO_TESTS
@@ -329,12 +444,12 @@ void find_response_curve(char* fname)
     ensure_movie_mode();
     clrscr();
     set_lv_zoom(5);
-    
+
     msleep(1000);
-    
+
     for (int i = 0; i < 64*2; i+=8)
         bmp_draw_rect(COLOR_BLACK,  i*5+40, 0, 8*5, 380);
-    
+
     draw_line( 40,  190,  720-40,  190, COLOR_BLACK);
 
     extern int bv_auto;
@@ -382,12 +497,12 @@ static void iso_response_curve_current()
 
     static char name[100];
     extern int digic_iso_gain;
-    
-    snprintf(name, sizeof(name), CARD_DRIVE "ML/LOGS/i%d%s%s.txt", 
-        raw2iso(lens_info.iso_equiv_raw), 
-        digic_iso_gain <= 256 ? "e2" : digic_iso_gain != 1024 ? "e" : "", 
+
+    snprintf(name, sizeof(name), CARD_DRIVE "ML/LOGS/i%d%s%s.txt",
+        raw2iso(lens_info.iso_equiv_raw),
+        digic_iso_gain <= 256 ? "e2" : digic_iso_gain != 1024 ? "e" : "",
         get_htp() ? "h" : "");
-    
+
     find_response_curve(name);
 }
 
@@ -481,17 +596,17 @@ void iso_movie_test()
 {
     msleep(2000);
     ensure_movie_mode();
-    
+
     int r = lens_info.iso_equiv_raw ? lens_info.iso_equiv_raw : lens_info.raw_iso_auto;
     int raw_iso0 = (r + 3) & ~3; // consider full-stop iso
     int tv0 = lens_info.raw_shutter;
     //int av0 = lens_info.raw_aperture;
     bv_enable(); // this enables shutter speed adjust in finer increments
-    
+
     extern int bv_auto;
     int bva0 = bv_auto;
     bv_auto = 0; // make sure it won't interfere
-    
+
     set_htp(0); msleep(100);
     movie_start();
 
@@ -505,13 +620,13 @@ void iso_movie_test()
     iso_movie_change_setting(raw_iso0-3, 790, tv0-6); // 100x ISO, -3/8 Canon gain, -3/8 ML gain, overexpose by 6/8 EV
     iso_movie_change_setting(raw_iso0-3, 724, tv0-7); // 100x ISO, -3/8 Canon gain, -4/8 ML gain, overexpose by 7/8 EV
     iso_movie_change_setting(raw_iso0-3, 664, tv0-7); // 100x ISO, -3/8 Canon gain, -5/8 ML gain, overexpose by 8/8 EV
-    
+
     msleep(1000);
     movie_end();
     msleep(2000);
-    
+
     set_htp(1);  // this can't be set while recording
-    
+
     movie_start();
 
     iso_movie_change_setting(raw_iso0,   0, tv0);     // fullstop ISO with HTP
@@ -527,7 +642,7 @@ void iso_movie_test()
     iso_movie_change_setting(raw_iso0+8, 724, tv0-4); // ML 140x equiv iso +1EV, with HTP, overexpose by 4/8 EV
     iso_movie_change_setting(raw_iso0+8, 664, tv0-5); // ML 130x equiv iso +1EV, with HTP, overexpose by 5/8 EV
     iso_movie_change_setting(raw_iso0+8, 512, tv0-8); // ML 100x equiv iso +1EV, with HTP, overexpose by 8/8 EV
-    
+
     movie_end();
 
     // restore settings back
@@ -555,28 +670,130 @@ void guimode_test()
         NotifyBox(500, "Trying GUI mode %d...", i);
         dump_seg(0, 0, fn); // temporary flag to indicate that this GUI mode was tried (and probably found to be troublesome)
         msleep(200);
-        
+
         SetGUIRequestMode(i);
-        
+
         msleep(1000);
         FIO_RemoveFile(fn);
 
         take_screenshot(0);
-        
+
         // try to reset to initial gui mode
         SetGUIRequestMode(0);
         SetGUIRequestMode(1);
         SetGUIRequestMode(0);
-        
+
         msleep(1000);
     }
 }
 #endif
 
-void run_test()
+//~ uncompressed video testing
+#ifdef CONFIG_6D
+FILE * movfile;
+int record_uncomp = 0;
+#endif
+
+static void bsod()
 {
-#ifdef CONFIG_40D	
-	debug_intercept();
+    msleep(rand() % 20000 + 2000);
+
+    do {
+        gui_stop_menu();
+        SetGUIRequestMode(1);
+        msleep(1000);
+    } while (CURRENT_DIALOG_MAYBE != 1);
+
+    canon_gui_disable_front_buffer();
+    ui_lock(UILOCK_EVERYTHING);
+    bmp_fill(COLOR_BLUE, 0, 0, 720, 480);
+    int fnt = SHADOW_FONT(FONT_MED);
+    int h = font_med.height;
+    int y = 50;
+    bmp_printf(fnt, 0, y+=h, "   A problem has been detected and Magic Lantern has been"   );
+    bmp_printf(fnt, 0, y+=h, "   shut down to prevent damage to your camera."              );
+    y += h;
+    bmp_printf(fnt, 0, y+=h, "   If this is the first time you've seen this Stop error"    );
+    bmp_printf(fnt, 0, y+=h, "   screen, restart your camera. If this screen appears"      );
+    bmp_printf(fnt, 0, y+=h, "   again, follow these steps:"                               );
+    y += h;
+    bmp_printf(fnt, 0, y+=h, "   Don't click things you don't know what they do."          );
+    y += h;
+    bmp_printf(fnt, 0, y+=h, "   Technical information:");
+    bmp_printf(fnt, 0, y+=h, "   *** STOP 0x000000aa (0x1000af22, 0xdeadbeef, 0xffff)"     );
+    y += h;
+    bmp_printf(fnt, 0, y+=h, "   Beginning dump of physical memory"                        );
+    bmp_printf(fnt, 0, y+=h, "   Physical memory dump complete. Your camera is bricked."   );
+    y += h;
+    bmp_printf(fnt, 0, y+=h, "   Contact the Magic Lantern guys at www.magiclantern.fm"    );
+    bmp_printf(fnt, 0, y+=h, "   for further assistance and information."                  );
+}
+
+static void run_test()
+{
+#ifdef FEATURE_SHOW_SIGNATURE
+    console_show();
+    console_printf("FW Signature 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
+    msleep(1000);
+#endif
+
+#if 0
+    void exmem_test();
+
+    exmem_test();
+    return;
+#endif
+/*
+#ifdef CONFIG_MEMCHECK
+    console_show();
+    console_printf("should raise error at index=10...\n");
+    char* foo = AllocateMemory(10);
+    foo[9] = 0;
+    foo[10] = 0;
+    FreeMemory(foo);
+    msleep(1000);
+#endif
+*/
+#ifdef CONFIG_MODULES
+    console_show();
+
+    console_printf("Loading modules...\n");
+    msleep(1000);
+    module_load_all();
+    return;
+
+    console_printf("\n");
+
+    console_printf("Testing TCC executable...\n");
+    console_printf(" [i] this may take some time\n");
+    msleep(1000);
+
+    for(int try = 0; try < 100; try++)
+    {
+        void *module = NULL;
+        uint32_t ret = 0;
+
+        module = module_load(MODULE_PATH"libtcc.mex");
+        if(module)
+        {
+            ret = module_exec(module, "tcc_new", 0);
+            if(!(ret & 0x40000000))
+            {
+                console_printf("tcc_new() returned: 0x%08X\n", ret);
+            }
+            else
+            {
+                module_exec(module, "tcc_delete", 1, ret);
+            }
+            module_unload(module);
+        }
+        else
+        {
+            console_printf(" [E] load failed\n");
+        }
+    }
+
+    console_printf("Done!\n");
 #endif
 }
 
@@ -597,12 +814,12 @@ static int tic()
     return now.tm_sec + now.tm_min * 60 + now.tm_hour * 3600 + now.tm_mday * 3600 * 24;
 }
 
-void card_benchmark_wr(int bufsize, int K, int N)
+static void card_benchmark_wr(int bufsize, int K, int N)
 {
     int x = 0;
     static int y = 50;
     if (K == 1) y = 50;
-    
+
     FIO_RemoveFile(CARD_DRIVE"bench.tmp");
     msleep(1000);
     int filesize = 1024; // MB
@@ -625,10 +842,10 @@ void card_benchmark_wr(int bufsize, int K, int N)
     SW1(1,100);
     SW1(0,100);
     msleep(1000);
-    if (bufsize > 1024*1024) bmp_printf(FONT_MED, x, y += font_med.height, "read test skipped: buffer=%d\n", bufsize);
-    else
+    //if (bufsize > 1024*1024) bmp_printf(FONT_MED, x, y += font_med.height, "read test skipped: buffer=%d\n", bufsize);
+    //else
     {
-        void* buf = alloc_dma_memory(bufsize);
+        void* buf = shoot_malloc(bufsize);
         if (buf)
         {
             FILE* f = FIO_Open(CARD_DRIVE"bench.tmp", O_RDONLY | O_SYNC);
@@ -640,7 +857,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
                 FIO_ReadFile(f, UNCACHEABLE(buf), bufsize );
             }
             FIO_CloseFile(f);
-            free_dma_memory(buf);
+            shoot_free(buf);
             int t1 = tic();
             int speed = filesize * 10 / (t1 - t0);
             bmp_printf(FONT_MED, x, y += font_med.height, "Read speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
@@ -657,7 +874,7 @@ void card_benchmark_wr(int bufsize, int K, int N)
     SW1(0,100);
 }
 
-void card_benchmark_task()
+static void card_benchmark_task()
 {
     msleep(1000);
     if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
@@ -689,7 +906,7 @@ void card_benchmark_task()
     task_create("change_colors", 0x1c, 0, change_colors_like_crazy, 0);
 }*/
 
- void stress_test_picture(int n, int delay)
+static void stress_test_picture(int n, int delay)
 {
     if (shutter_count > 50000) { beep(); return; }
     msleep(delay);
@@ -709,8 +926,8 @@ void card_benchmark_task()
 #define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); int ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
 #define TEST_TRY_FUNC_CHECK_STR(x, expected_string) { char* ans = (char*)(x); int ok = streq(ans, expected_string); TEST_MSG("[%s] %s => '%s'\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
 
-int test_task_created = 0;
-void test_task() { test_task_created = 1; }
+static int test_task_created = 0;
+static void test_task() { test_task_created = 1; }
 
 static void stub_test_task(void* arg)
 {
@@ -720,26 +937,26 @@ static void stub_test_task(void* arg)
     info_led_on();
     int passed_tests = 0;
     int failed_tests = 0;
-    
+
     FILE* log = FIO_CreateFileEx( CARD_DRIVE "stubtest.log" );
 
-    for (int i=0; i < n; i++) 
+    for (int i=0; i < n; i++)
     {
 
         // strlen
         TEST_TRY_FUNC_CHECK(strlen("abc"), == 3);
         TEST_TRY_FUNC_CHECK(strlen("qwertyuiop"), == 10);
         TEST_TRY_FUNC_CHECK(strlen(""), == 0);
-        
+
         // strcpy
         char msg[10];
         TEST_TRY_FUNC_CHECK(strcpy(msg, "hi there"), == (int)msg);
         TEST_TRY_FUNC_CHECK_STR(msg, "hi there");
-        
+
         // strcmp, snprintf
         // gcc will optimize strcmp calls with constant arguments, so use snprintf to force gcc to call strcmp
         char a[50]; char b[50];
-      
+
         TEST_TRY_FUNC_CHECK(snprintf(a, sizeof(a), "foo"), == 3);
         TEST_TRY_FUNC_CHECK(snprintf(b, sizeof(b), "foo"), == 3);
         TEST_TRY_FUNC_CHECK(strcmp(a, b), == 0);
@@ -766,7 +983,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK_STR(bar, "*****hjkl;");
         TEST_TRY_VOID(bzero32(bar + 5, 5));
         TEST_TRY_FUNC_CHECK_STR(bar, "****");
-        
+
         // digic clock, msleep
         int t0, t1;
         TEST_TRY_FUNC(t0 = *(uint32_t*)0xC0242014);
@@ -856,7 +1073,7 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 0);
         TEST_TRY_FUNC_CHECK(display_idle(), != 0);
         #endif
-        
+
         // GUI_Control
         TEST_TRY_VOID(GUI_Control(BGMT_PLAY, 0, 0, 0); msleep(500););
         TEST_TRY_FUNC_CHECK(PLAY_MODE, != 0);
@@ -878,8 +1095,8 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC(task_create("test", 0x1c, 0x1000, test_task, 0));
         msleep(100);
         TEST_TRY_FUNC_CHECK(test_task_created, == 1);
-        TEST_TRY_FUNC_CHECK_STR(get_task_name_from_id(get_current_task()), "run_test");
-        
+        TEST_TRY_FUNC_CHECK_STR(get_task_name_from_id((unsigned int)get_current_task()), "run_test");
+
         // mq
         static struct msg_queue * mq = 0;
         int m = 0;
@@ -908,13 +1125,13 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(ReleaseRecursiveLock(rlock), != 0);
 
         // file I/O
-        
+
         FILE* f;
         TEST_TRY_FUNC_CHECK(f = FIO_CreateFileEx(CARD_DRIVE"test.dat"), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
         TEST_TRY_FUNC_CHECK(FIO_WriteFile(f, (void*)ROMBASEADDR, 0x10000), == 0x10000);
         TEST_TRY_VOID(FIO_CloseFile(f));
-        unsigned int size;
+        uint32_t size;
         TEST_TRY_FUNC_CHECK(FIO_GetFileSize(CARD_DRIVE"test.dat", &size), == 0);
         TEST_TRY_FUNC_CHECK(size, == 0x20000);
         TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(0x20000), != (int)INVALID_PTR);
@@ -939,12 +1156,12 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(HALFSHUTTER_PRESSED, == 1);
         TEST_TRY_VOID(SW1(0,100));
         TEST_TRY_FUNC_CHECK(HALFSHUTTER_PRESSED, == 0);
-        
+
         beep();
     }
     FIO_CloseFile(log);
-    
-    
+
+
     NotifyBox(10000, "Test complete.\n%d passed, %d failed.", passed_tests, failed_tests);
 }
 
@@ -952,15 +1169,15 @@ static void stub_test_task(void* arg)
 static void rpc_test_task(void* unused)
 {
     uint32_t loops = 0;
-    
+
     ml_rpc_verbose(1);
     while(1)
     {
         msleep(50);
-        
+
         ml_rpc_send(ML_RPC_PING, *(volatile uint32_t *)0xC0242014, 0, 0, 1);
         loops++;
-    }    
+    }
     ml_rpc_verbose(0);
 }
 #endif
@@ -968,7 +1185,7 @@ static void rpc_test_task(void* unused)
 static void stress_test_task(void* unused)
 {
     NotifyBox(10000, "Stability Test..."); msleep(2000);
-    
+
     msleep(2000);
 
     #ifndef CONFIG_50D // taking pics while REC crashes with Canon firmware too
@@ -1003,28 +1220,28 @@ static void stress_test_task(void* unused)
     for (int i = 0; i <= 1000; i++)
     {
         NotifyBox(1000, "ML menu toggle: %d", i);
-        
+
         if (i == 250)
         {
             msleep(2000);
-            menu_stop();
+            gui_stop_menu();
             msleep(500);
             if (!lv) force_liveview();
         }
-        
+
         if (i == 500)
         {
             msleep(2000);
-            menu_stop();
+            gui_stop_menu();
             msleep(500);
             ensure_movie_mode();
             movie_start();
         }
-        
+
         if (i == 750)
         {
             msleep(2000);
-            menu_stop();
+            gui_stop_menu();
             msleep(500);
             movie_end();
             msleep(2000);
@@ -1038,7 +1255,7 @@ static void stress_test_task(void* unused)
 
     }
     msleep(2000);
-    menu_stop();
+    gui_stop_menu();
     msleep(1000);
     if (!lv) force_liveview();
     msleep(2000);
@@ -1055,7 +1272,7 @@ static void stress_test_task(void* unused)
         fake_simple_button(BGMT_WHEEL_RIGHT);
         msleep(rand()%500);
     }
-    menu_stop();
+    gui_stop_menu();
     msleep(2000);
 #endif
 
@@ -1078,7 +1295,7 @@ static void stress_test_task(void* unused)
         dir = mod(dir + rand()%3 - 1, 7);
         msleep(MIN_MSLEEP);
     }
-    menu_stop();
+    gui_stop_menu();
 
     msleep(2000);
 
@@ -1176,7 +1393,7 @@ static void stress_test_task(void* unused)
         canon_gui_enable();
         msleep(rand()%300);
     } */
-    
+
     msleep(2000);
 
     NotifyBox(10000, "LCD backlight...");
@@ -1228,15 +1445,15 @@ static void stress_test_task(void* unused)
 #endif
 
     msleep(1000);
-    
+
     for (int i = 0; i <= 10; i++)
     {
         NotifyBox(1000, "LED blinking: %d", i*10);
         info_led_blink(10, i*3, (10-i)*3);
     }
-    
+
     msleep(2000);
-    
+
     for (int i = 0; i <= 100; i++)
     {
         NotifyBox(1000, "Redraw test: %d", i);
@@ -1248,7 +1465,8 @@ static void stress_test_task(void* unused)
     msleep(2000);
 
     NotifyBox(10000, "Menu scrolling");
-    open_canon_menu();
+    fake_simple_button(BGMT_MENU);
+    msleep(1000);
     for (int i = 0; i < 5000; i++)
         fake_simple_button(BGMT_WHEEL_LEFT);
     for (int i = 0; i < 5000; i++)
@@ -1275,7 +1493,7 @@ static void stress_test_task(void* unused)
         set_shooting_mode(SHOOTMODE_AV);    msleep(100);
         set_shooting_mode(SHOOTMODE_P);    msleep(100);
     }
-    
+
     stress_test_picture(2, 2000);
 #endif
 
@@ -1296,7 +1514,7 @@ static void stress_test_task(void* unused)
 #endif
 
     NotifyBox(10000, "Expo tests...");
-    
+
     if (!lv) force_liveview();
     msleep(1000);
     for (int i = KELVIN_MIN; i <= KELVIN_MAX; i += KELVIN_STEP)
@@ -1376,7 +1594,7 @@ static void stress_test_task(void* unused)
     stress_test_picture(2, 2000);
 
     set_shooting_mode(SHOOTMODE_BULB);
-    
+
     msleep(1000);
     NotifyBox(10000, "Bulb picture taking");
     bulb_take_pic(2000);
@@ -1407,7 +1625,7 @@ static void stress_test_task(void* unused)
     //~ NotifyBox(10000, "Burn-in test (will take hours!)");
     //~ set_shooting_mode(SHOOTMODE_M);
     //~ xx_test2(0);
-    
+
 }
 
 /*
@@ -1500,7 +1718,7 @@ static void stress_test_random_task(void* unused)
 }
 */
 
-void stress_test_menu_dlg_api_task(void* unused)
+static void stress_test_menu_dlg_api_task(void* unused)
 {
     msleep(2000);
     info_led_blink(5,50,50);
@@ -1542,6 +1760,8 @@ static void bmp_fill_test_task()
     }
 }
 
+extern void menu_self_test();
+
 #endif // CONFIG_STRESS_TEST
 
 void ui_lock(int x)
@@ -1553,9 +1773,9 @@ void ui_lock(int x)
     msleep(50);
 }
 
-int mem_spy = 0;
-
 #if CONFIG_DEBUGMSG
+
+int mem_spy = 0;
 
 int mem_spy_start = 0; // start from here
 int mem_spy_bool = 0;           // only display booleans (0,1,-1)
@@ -1566,7 +1786,7 @@ int mem_spy_len = 0x10000/4;    // look at ### int32's; use only when mem_spy_fi
 
 int mem_spy_count_lo = 5; // how many times is a value allowed to change
 int mem_spy_count_hi = 50; // (limits)
-int mem_spy_freq_lo =  0; 
+int mem_spy_freq_lo =  0;
 int mem_spy_freq_hi =  0;  // or check frequecy between 2 limits (0 = disable)
 int mem_spy_value_lo = 0;
 int mem_spy_value_hi = 0;  // or look for a specific range of values (0 = disable)
@@ -1614,9 +1834,9 @@ static void dbg_memspy_init() // initial state of the analyzed memory
     bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
     //~ msleep(2000);
     //mem_spy_len is number of int32's
-    if (!dbg_memmirror) dbg_memmirror = AllocateMemory(mem_spy_len*4 + 100); // local copy of mem area analyzed
+    if (!dbg_memmirror) dbg_memmirror = SmallAlloc(mem_spy_len*4 + 100); // local copy of mem area analyzed
     if (!dbg_memmirror) return;
-    if (!dbg_memchanges) dbg_memchanges = AllocateMemory(mem_spy_len*4 + 100); // local copy of mem area analyzed
+    if (!dbg_memchanges) dbg_memchanges = SmallAlloc(mem_spy_len*4 + 100); // local copy of mem area analyzed
     if (!dbg_memchanges) return;
     int i;
     //~ bmp_printf(FONT_MED, 10,10, "memspy alloc");
@@ -1639,13 +1859,13 @@ static void dbg_memspy_update()
     static int init_done = 0;
     if (!init_done) dbg_memspy_init();
     init_done = 1;
-    
+
     if (!dbg_memmirror) return;
     if (!dbg_memchanges) return;
-    
+
     int elapsed_time = _toc();
     bmp_printf(FONT_MED, 50, 400, "%d ", elapsed_time);
-    
+
     int i;
     int k=0;
     for (i = 0; i < mem_spy_len; i++)
@@ -1671,19 +1891,19 @@ static void dbg_memspy_update()
             if (elapsed_time < mem_spy_start_time) dbg_memchanges[i] = 1000000; // so it will be ignored
         }
         //~ else continue;
-        
+
         if (mem_spy_bool && newval != 0 && newval != 1 && newval != -1) continue;
-        
+
         if (mem_spy_value_lo && newval < mem_spy_value_lo) continue;
         if (mem_spy_value_hi && newval > mem_spy_value_hi) continue;
-        
+
         if (mem_spy_count_lo && dbg_memchanges[i] < mem_spy_count_lo) continue;
         if (mem_spy_count_hi && dbg_memchanges[i] > mem_spy_count_hi) continue;
-        
+
         int freq = dbg_memchanges[i] / elapsed_time;
         if (mem_spy_freq_lo && freq < mem_spy_freq_lo) continue;
         if (mem_spy_freq_hi && freq > mem_spy_freq_hi) continue;
-        
+
 #ifdef CONFIG_VXWORKS
         int x =  10 + 16 * 22 * (k % 2);
         int y =  10 + 20 * (k / 2);
@@ -1696,7 +1916,7 @@ static void dbg_memspy_update()
         k = (k + 1) % 120;
 #endif
     }
-    
+
     for (i = 0; i < 10; i++)
     {
 #ifdef CONFIG_VXWORKS
@@ -1713,36 +1933,6 @@ static void dbg_memspy_update()
     }
 }
 #endif
-
-/* called from misc_shooting_info() in shoot.c */
-void display_clock()
-{
-#ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
-    int bg = bmp_getpixel(15, 430);
-
-    struct tm now;
-    LoadCalendarFromRTC( &now );
-    if (!lv)
-    {
-#ifdef CONFIG_7D
-        char msg[6];
-        snprintf(msg, sizeof(msg), "%02d:%02d", now.tm_hour, now.tm_min);
-        bg = bmp_getpixel(DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y);
-        int w = bfnt_puts(msg, DISPLAY_CLOCK_POS_X , DISPLAY_CLOCK_POS_Y, COLOR_CYAN, bg);
-       	bmp_printf(FONT(FONT_MED, COLOR_CYAN, bg), DISPLAY_CLOCK_POS_X+w+2, DISPLAY_CLOCK_POS_Y+18, "%02d", now.tm_sec);
-#else
-        bg = bmp_getpixel( DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y );
-        uint32_t fnt = FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bg);
-        bmp_printf(fnt, DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y, "%02d:%02d", now.tm_hour, now.tm_min);
-#endif
-    }
-
-    static int prev_min = 0;
-    if (prev_min != now.tm_min) redraw();
-    prev_min = now.tm_min;
-#endif
-}
-
 
 #if CONFIG_DEBUGMSG
 static void dbg_draw_props(int changed);
@@ -1768,13 +1958,14 @@ memfilt(void* m, void* M, int value)
     bmp_printf(FONT_SMALL, x, y, "        ");
 }
 #endif
-int screenshot_sec = 0;
+
+static int screenshot_sec = 0;
 
 PROP_INT(PROP_ICU_UILOCK, uilock);
 
 #ifdef CONFIG_ELECTRONIC_LEVEL
 
-struct rolling_pitching 
+struct rolling_pitching
 {
     uint8_t status;
     uint8_t cameraposture;
@@ -1793,7 +1984,7 @@ PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
 void draw_electronic_level(int angle, int prev_angle, int force_redraw)
 {
     if (!force_redraw && angle == prev_angle) return;
-    
+
     int x0 = os.x0 + os.x_ex/2;
     int y0 = os.y0 + os.y_ex/2;
     int r = 200;
@@ -1822,42 +2013,22 @@ void show_electronic_level()
         msleep(100);
         force_redraw = 1;
     }
-    
+
     static int k = 0;
     k++;
     if (k % 10 == 0) force_redraw = 1;
-    
+
     int angle100 = level_data.roll_sensor1 * 256 + level_data.roll_sensor2;
     int angle10 = angle100/10;
     draw_electronic_level(angle10, prev_angle10, force_redraw);
     draw_electronic_level(angle10 + 1800, prev_angle10 + 1800, force_redraw);
     //~ draw_line(x0, y0, x0 + r * cos(angle), y0 + r * sin(angle), COLOR_BLUE);
     prev_angle10 = angle10;
-    
+
     if (angle10 > 1800) angle10 -= 3600;
     bmp_printf(FONT_MED, 0, 35, "%s%3d", angle10 < 0 ? "-" : angle10 > 0 ? "+" : " ", ABS(angle10/10));
 }
 
-#endif
-
-#ifdef FEATURE_SNAP_SIM
-static int snap_sim = 0;
-int get_snap_sim() { return snap_sim; }
-static void
-snap_sim_display(
-        void *                  priv,
-        int                     x,
-        int                     y,
-        int                     selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Snap Simulation : %s", 
-        snap_sim == 0 ? "Take real pic" : snap_sim == 1 ? "Blink only" : snap_sim == 2 ? "Beep only" : "Blink & Beep"
-    );
-}
 #endif
 
 #ifdef CONFIG_HEXDUMP
@@ -1867,19 +2038,15 @@ CONFIG_INT("hexdump", hexdump_addr, 0x5024);
 int hexdump_enabled = 0;
 int hexdump_digit_pos = 0; // 0...7, 8=all
 
-static void
-hexdump_print(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC (hexdump_print)
 {
-    int fnt = selected ? MENU_FONT_SEL : MENU_FONT;
+    int fnt = MENU_FONT;
+    int x = info->x;
+    int y = info->y;
     bmp_printf(
         fnt,
         x, y,
-        "HexDump : %8x", 
+        "HexDump : %8x",
         hexdump_addr
     );
 
@@ -1889,74 +2056,40 @@ hexdump_print(
         bmp_printf(
             fnt,
             x + font_large.width * (17 - hexdump_digit_pos), y,
-            "%x", 
+            "%x",
             (hexdump_addr >> (hexdump_digit_pos * 4)) & 0xF
         );
 }
 
-static void
-hexdump_print_value_hex(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC (hexdump_print_value_hex)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Val hex32 : %x", 
+    MENU_SET_VALUE("%x",
         MEMX(hexdump_addr)
     );
 }
 
-
-static void
-hexdump_print_value_int32(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC (hexdump_print_value_int32)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Val int32 : %d", 
+    MENU_SET_VALUE(
+        "%d",
         MEMX(hexdump_addr)
     );
 }
 
-static void
-hexdump_print_value_int16(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC (hexdump_print_value_int16)
 {
     int value = MEMX(hexdump_addr);
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Val int16 : %d %d", 
+    MENU_SET_VALUE(
+        "%d %d",
         value & 0xFFFF, (value>>16) & 0xFFFF
     );
 }
 
-static void
-hexdump_print_value_int8(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC (hexdump_print_value_int8)
 {
     int value = MEMX(hexdump_addr);
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Val int8  : %d %d %d %d", 
+    MENU_SET_VALUE(
+        "%d %d %d %d",
         (int8_t)( value      & 0xFF),
         (int8_t)((value>>8 ) & 0xFF),
         (int8_t)((value>>16) & 0xFF),
@@ -1964,18 +2097,11 @@ hexdump_print_value_int8(
     );
 }
 
-static void
-hexdump_print_value_str(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC (hexdump_print_value_str)
 {
     if (hexdump_addr & 0xF0000000) return;
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
+    MENU_SET_VALUE(
+        "%s",
         "Val string: %s",
         (char*)hexdump_addr
     );
@@ -2014,15 +2140,15 @@ void hexdump_digit_pos_toggle(void* priv, int dir)
 }
 
 int hexdump_prev = 0;
-void hexdump_deref(void* priv, int dir)
-{
-    hexdump_prev = hexdump_addr;
-    hexdump_addr = MEMX(hexdump_addr);
-}
-
 void hexdump_back(void* priv, int dir)
 {
     hexdump_addr = hexdump_prev;
+}
+void hexdump_deref(void* priv, int dir)
+{
+    if (dir < 0) hexdump_back(priv, dir);
+    hexdump_prev = hexdump_addr;
+    hexdump_addr = MEMX(hexdump_addr);
 }
 #endif
 
@@ -2030,6 +2156,16 @@ static int crash_log_requested = 0;
 void request_crash_log(int type)
 {
     crash_log_requested = type;
+}
+
+static int core_dump_requested = 0;
+static int core_dump_req_from = 0;
+static int core_dump_req_size = 0;
+void request_core_dump(int from, int size)
+{
+    core_dump_req_from = from;
+    core_dump_req_size = size;
+    core_dump_requested = 1;
 }
 
 int GetFreeMemForAllocateMemory()
@@ -2040,22 +2176,22 @@ int GetFreeMemForAllocateMemory()
 }
 
 #ifdef CONFIG_CRASH_LOG
-void save_crash_log()
+static void save_crash_log()
 {
     static char log_filename[100];
-    
+
     int log_number = 0;
     for (log_number = 0; log_number < 100; log_number++)
     {
         snprintf(log_filename, sizeof(log_filename), crash_log_requested == 1 ? CARD_DRIVE "CRASH%02d.LOG" : CARD_DRIVE "ASSERT%02d.LOG", log_number);
-        unsigned size;
+        uint32_t size;
         if( FIO_GetFileSize( log_filename, &size ) != 0 ) break;
         if (size == 0) break;
     }
 
     FILE* f = FIO_CreateFileEx(log_filename);
     my_fprintf(f, "%s\n\n", get_assert_msg());
-    my_fprintf(f, 
+    my_fprintf(f,
         "Magic Lantern version : %s\n"
         "Mercurial changeset   : %s\n"
         "Built on %s by %s.\n",
@@ -2066,15 +2202,15 @@ void save_crash_log()
 
     int M = GetFreeMemForAllocateMemory();
     int m = MALLOC_FREE_MEMORY;
-    my_fprintf(f, 
+    my_fprintf(f,
         "Free Memory  : %dK + %dK\n",
         m/1024, M/1024
     );
 
     FIO_CloseFile(f);
-    
+
     msleep(1000);
-    
+
     if (crash_log_requested == 1)
         NotifyBox(5000, "Crash detected - log file saved.\n"
                         "Pls send CRASH%02d.LOG to ML devs.\n"
@@ -2085,7 +2221,7 @@ void save_crash_log()
 
 }
 
-void crash_log_step()
+static void crash_log_step()
 {
     static int dmlog_saved = 0;
     if (crash_log_requested)
@@ -2095,16 +2231,24 @@ void crash_log_step()
         crash_log_requested = 0;
         msleep(2000);
     }
-        
+
+    if (core_dump_requested)
+    {
+        NotifyBox(100000, "Saving core dump, please wait...\n");
+        dump_seg(core_dump_req_from, core_dump_req_from + core_dump_req_size, CARD_DRIVE"COREDUMP.DAT");
+        NotifyBox(10000, "Pls send COREDUMP.DAT to ML devs.\n");
+        core_dump_requested = 0;
+    }
+
     //~ bmp_printf(FONT_MED, 100, 100, "%x ", get_current_dialog_handler());
     extern thunk ErrForCamera_handler;
     if (get_current_dialog_handler() == (intptr_t)&ErrForCamera_handler)
     {
-        if (!dmlog_saved) 
-        { 
+        if (!dmlog_saved)
+        {
             beep();
             NotifyBox(10000, "Saving debug log...");
-            call("dumpf"); 
+            call("dumpf");
         }
         dmlog_saved = 1;
     }
@@ -2112,7 +2256,6 @@ void crash_log_step()
 }
 #endif
 
-int x = 0;
 static void
 debug_loop_task( void* unused ) // screenshot, draw_prop
 {
@@ -2122,7 +2265,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         if (hexdump_enabled)
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
-      
+
         #ifdef FEATURE_SCREENSHOT
         if (screenshot_sec)
         {
@@ -2134,12 +2277,12 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         #endif
 
         #ifdef CONFIG_RESTORE_AFTER_FORMAT
-        if (MENU_MODE) 
+        if (MENU_MODE)
         {
             HijackFormatDialogBox_main();
         }
         #endif
-        
+
         #if CONFIG_DEBUGMSG
         if (draw_prop)
         {
@@ -2152,16 +2295,16 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             continue;
         }
         #endif
-        
+
         #ifdef CONFIG_CRASH_LOG
         crash_log_step();
         #endif
-        
+
         msleep(200);
     }
 }
 
-void screenshot_start(void* priv, int delta)
+static void screenshot_start(void* priv, int delta)
 {
     screenshot_sec = 10;
 }
@@ -2171,7 +2314,7 @@ void screenshot_start(void* priv, int delta)
     msleep(1000);
     extern struct semaphore * gui_sem;
     give_semaphore(gui_sem);
-    
+
     select_menu_by_name("Audio", "AGC");
     msleep(1000); call("dispcheck");
 
@@ -2204,116 +2347,256 @@ void screenshot_start(void* priv, int delta)
 }
 */
 
-int draw_event = 0;
+static int draw_event = 0;
 
-#ifdef CONFIG_DEBUGMSG
+#if CONFIG_DEBUGMSG
 static void
 spy_print(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+          void *            priv,
+          int            x,
+          int            y,
+          int            selected
+          )
 {
     bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Spy %s/%s (s/q)",
-        draw_prop ? "PROP" : "prop",
-        mem_spy ? "MEM" : "mem"
-    );
+               selected ? MENU_FONT_SEL : MENU_FONT,
+               x, y,
+               "Spy %s/%s (s/q)",
+               draw_prop ? "PROP" : "prop",
+               mem_spy ? "MEM" : "mem"
+               );
     menu_draw_icon(x, y, MNI_BOOL(draw_prop || draw_event || mem_spy), 0);
+}
+
+static void
+lvbuf_display(
+              void *            priv,
+              int            x,
+              int            y,
+              int            selected
+              )
+{
+    bmp_printf(
+               selected ? MENU_FONT_SEL : MENU_FONT,
+               x, y,
+               "Dump Live View Buffers"
+               );
+}
+
+static void lvbuf_select()
+{
+    if (lv)
+    {
+        call("lv_vram_dump");
+        call("lv_ssdev_dump");
+        //~ call("lv_yuv_dump");
+        //~ call("lv_raw_dump2");
+        //~ call("lv_faceyuv_dump");
+    }
+    else
+        NotifyBox(5000, "Only Works In Live View!!!");
 }
 #endif
 
 #ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
-static void image_buf_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC(image_buf_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Image Buffers: %dx%d, %dx%d",
-        vram_lv.width, vram_lv.height, 
+    MENU_SET_VALUE(
+        "%dx%d, %dx%d",
+        vram_lv.width, vram_lv.height,
         vram_hd.width, vram_hd.height
     );
 }
 #endif
 
 #ifdef FEATURE_SHOW_FREE_MEMORY
-static void meminfo_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+
+static volatile int max_stack_ack = 0;
+
+static void max_stack_try(void* size) { max_stack_ack = (int) size; }
+
+static int stack_size_crit(int x)
+{
+    int size = x * 1024;
+    task_create("stack_try", 0x1e, size, max_stack_try, (void*) size);
+    msleep(50);
+    if (max_stack_ack == size) return 1;
+    return -1;
+}
+
+static int max_shoot_malloc_mem = 0;
+static int shoot_malloc_crit(int x)
+{
+    void* p = shoot_malloc(x * 1024 * 64);
+    if (p)
+    {
+        max_shoot_malloc_mem = x * 1024 * 64;
+        shoot_free(p);
+        return 1;
+    }
+    else return -1;
+}
+
+static int max_shoot_malloc_frag_mem = 0;
+
+
+static void freeCBR(unsigned int a)
+{
+}
+
+/* fixme: find a way to read the free stack memory from DryOS */
+/* current workaround: compute it by trial and error when you press SET on Free Memory menu item */
+static volatile int guess_mem_running = 0;
+static void guess_free_mem_task(void* priv, int delta)
+{
+    guess_mem_running = 1;
+
+    /* reset values */
+    max_stack_ack = 0;
+    max_shoot_malloc_mem = 0;
+    max_shoot_malloc_frag_mem = 0;
+
+    bin_search(1, 1024, stack_size_crit);
+    bin_search(1, 1024, shoot_malloc_crit);
+
+    /* allocate some backup that will service the queued allocation request that fails during the loop */
+    struct memSuite *backup = shoot_malloc_suite(4 * 1024 * 1024);
+
+    for(int size = 1; size < 1024; size++)
+    {
+        struct memSuite *testSuite = shoot_malloc_suite(size * 1024 * 1024);
+        if(testSuite)
+        {
+            FreeMemoryResource(testSuite, freeCBR, 0);
+            max_shoot_malloc_frag_mem = (32 + size) * 1024 * 1024;
+        }
+        else
+        {
+            break;
+        }
+    }
+    /* now free the backup suite. this causes the queued allocation before to get finished. as we timed out, it will get freed immediately in exmem.c:allocCBR */
+    FreeMemoryResource(backup, freeCBR, 0);
+
+    menu_redraw();
+    guess_mem_running = 0;
+}
+
+static void guess_free_mem()
+{
+    task_create("guess_mem", 0x12, 0, guess_free_mem_task, 0);
+}
+
+static MENU_UPDATE_FUNC(meminfo_display)
 {
     int M = GetFreeMemForAllocateMemory();
     int m = MALLOC_FREE_MEMORY;
-    
-#ifdef CONFIG_5DC
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Free Memory  : %dK",
+
+#ifdef CONFIG_VXWORKS
+    MENU_SET_VALUE(
+        "%dK",
         M/1024
     );
-    menu_draw_icon(x, y, M > 1024*1024 ? MNI_ON : MNI_WARNING, 0);
+    if (M < 1024*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
 #else
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Free Memory  : %dK + %dK",
-        m/1024, M/1024
-    );
-    menu_draw_icon(x, y, M > 1024*1024 && m > 128 * 1024 ? MNI_ON : MNI_WARNING, 0);
+
+    int guess_needed = 0;
+    int info_type = (int) entry->priv;
+    switch (info_type)
+    {
+        case 0: // main entry
+            MENU_SET_VALUE(
+                "%dK + %dK",
+                m/1024, M/1024
+            );
+            if (M < 1024*1024 || m < 128*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Not enough free memory.");
+            MENU_SET_ENABLED(1);
+            MENU_SET_ICON(MNI_DICE, 0);
+            break;
+
+        case 1: // malloc
+            MENU_SET_VALUE("%d K", m/1024);
+            if (m < 128*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Would be nice to have at least 128K free here.");
+            break;
+
+        case 2: // AllocateMemory
+            MENU_SET_VALUE("%d K", M/1024);
+            if (M < 1024*1024) MENU_SET_WARNING(MENU_WARN_ADVICE, "Canon code requires around 1 MB from here.");
+            break;
+
+        case 3: // task stack
+            MENU_SET_VALUE("%d K", max_stack_ack/1024);
+            guess_needed = 1;
+            break;
+
+        case 4: // shoot_malloc contig
+            MENU_SET_VALUE("%d M", max_shoot_malloc_mem/1024/1024);
+            guess_needed = 1;
+            break;
+
+        case 5: // shoot_malloc fragmented
+            MENU_SET_VALUE("%d M", max_shoot_malloc_frag_mem/1024/1024);
+            guess_needed = 1;
+            break;
+
+        #if defined(CONFIG_MEMPATCH_CHECK)
+        case 6: // autoexec size
+        {
+            extern uint32_t ml_reserved_mem;
+            extern uint32_t ml_used_mem;
+
+            if (ABS(ml_used_mem - ml_reserved_mem) < 1024) MENU_SET_VALUE(
+                "%dK",
+                ml_used_mem/1024
+            );
+            else MENU_SET_VALUE(
+                "%dK of %dK",
+                ml_used_mem/1024, ml_reserved_mem/1024
+            );
+            if (ml_reserved_mem < ml_used_mem)
+                MENU_SET_WARNING(MENU_WARN_ADVICE, "ML uses too much memory!!");
+            break;
+        }
+        #endif
+    }
+
+    if (guess_needed && !guess_mem_running)
+    {
+        /* check this once every 30 seconds (not more often) */
+        static int aux = INT_MIN;
+        if (should_run_polling_action(30000, &aux))
+        {
+            guess_mem_running = 1;
+            guess_free_mem();
+        }
+    }
+
+    if (guess_mem_running)
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Trying to guess how much RAM we have...");
 #endif
 }
 #endif
 
 #ifdef FEATURE_SHOW_SHUTTER_COUNT
-static void shuttercount_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC(shuttercount_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Shutter Count:%3dK = %d+%d",
+    MENU_SET_VALUE(
+        "%dK = %d+%d",
         (shutter_count_plus_lv_actuations + 500) / 1000,
         shutter_count, shutter_count_plus_lv_actuations - shutter_count
     );
-    menu_draw_icon(x, y, shutter_count_plus_lv_actuations > 50000 ? MNI_WARNING : MNI_ON, 0);
+    if (shutter_count_plus_lv_actuations > 50000)
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Too many shutter actuations.");
 }
 #endif
 
 #ifdef FEATURE_SHOW_CMOS_TEMPERATURE
-static void efictemp_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+static MENU_UPDATE_FUNC(efictemp_display)
 {
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-#ifdef CONFIG_550D
-        "CMOS Temperat: %d deg C",
+    MENU_SET_VALUE(
+        "%d deg C",
         EFIC_CELSIUS
-#else
-        "CMOS Temperat: %d (raw)",
-        efic_temp
-#endif
     );
-    menu_draw_icon(x, y, MNI_ON, 0);
 }
 #endif
 
@@ -2373,9 +2656,9 @@ void prop_dump()
 {
     FILE* f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/PROP.LOG");
     FILE* g = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/PROP-STR.LOG");
-    
+
     unsigned i, j, k;
-    
+
     for( i=0 ; i<256 ; i++ )
     {
         if (i > 0x10 && i != 0x80) continue;
@@ -2384,10 +2667,10 @@ void prop_dump()
             for( k=0 ; k<0x50 ; k++ )
             {
                 unsigned prop = 0
-                    | (i << 24) 
+                    | (i << 24)
                     | (j << 16)
                     | (k <<  0);
-        
+
                 bmp_printf(FONT_LARGE, 0, 0, "PROP %x...", prop);
                 int* data = 0;
                 size_t len = 0;
@@ -2413,7 +2696,7 @@ void prop_dump()
 
 static void prop_toggle_i(void* priv, int unused) {prop_i = prop_i < 5 ? prop_i + 1 : prop_i == 5 ? 0xE : prop_i == 0xE ? 0x80 : 0; }
 static void prop_toggle_j(void* priv, int unused) {prop_j = mod(prop_j + 1, 0x10); }
-static void prop_toggle_k(void* priv, int unused) {prop_k = mod(prop_k + 1, 0x51); }
+static void prop_toggle_k(void* priv, int dir) {if (dir < 0) prop_toggle_j(priv, dir); prop_k = mod(prop_k + 1, 0x51); }
 #endif
 
 #ifdef CONFIG_KILL_FLICKER
@@ -2424,28 +2707,108 @@ void menu_kill_flicker()
 }
 #endif
 
+
+#ifdef FEATURE_SHOW_EDMAC_INFO
+
+static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
+{
+    bmp_printf(
+        FONT_MED,
+        x0, y0,
+        "EDM# Address  Size\n"
+    );
+
+    y0 += font_med.height * 2;
+    
+    for (int i = 0; i < 16; i++)
+    {
+        char msg[100];
+        
+        uint32_t addr = shamem_read(base + (i<<8) + 8);
+        union edmac_size_t
+        {
+            struct { short x, y; } size;
+            uint32_t raw;
+        };
+        
+        union edmac_size_t size = (union edmac_size_t) shamem_read(base + (i<<8) + 0x10);
+        
+        int state = MEM(base + (i<<8) + 0);
+        int color = 
+            state == 0 ? COLOR_GRAY(50) :   // inactive?
+            state == 1 ? COLOR_GREEN1 :     // active?
+            COLOR_RED;                      // no idea
+        
+        if (addr && size.size.x > 0 && size.size.y > 0)
+        {
+            snprintf(msg, sizeof(msg), "[%x] %8x: %dx%d", i0+i, addr, size.size.x, size.size.y);
+        }
+        else
+        {
+            snprintf(msg, sizeof(msg), "[%x] %8x: %x", i0+i, addr, size.raw);
+        }
+        
+        if (color == COLOR_RED)
+            STR_APPEND(msg, " (%x)", state);
+        
+        bmp_printf(
+            FONT(FONT_MED, color, COLOR_BLACK),
+            x0, y0 + i * font_med.height, 
+            msg
+        );
+    }
+}
+
+static MENU_UPDATE_FUNC(edmac_display)
+{
+    if (!info->x) return;
+    info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+
+    edmac_display_page(0, 0xC0F04000, 20, 30);
+    edmac_display_page(16, 0xC0F26000, 360, 30);
+
+
+    //~ int x = 20;
+    bmp_printf(
+        FONT_MED,
+        20, 450, "EDMAC state: "
+    );
+
+    bmp_printf(
+        FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK),
+        20+200, 450, "inactive"
+    );
+
+    bmp_printf(
+        FONT(FONT_MED, COLOR_GREEN1, COLOR_BLACK),
+        20+350, 450, "running"
+    );
+}
+#endif
+
 extern void menu_open_submenu();
-extern void tasks_print(void* priv, int x0, int y0, int selected);
-extern void batt_display(void* priv, int x0, int y0, int selected);
-extern int tasks_show_flags;
+extern MENU_UPDATE_FUNC(tasks_print);
+extern MENU_UPDATE_FUNC(batt_display);
+extern MENU_SELECT_FUNC(tasks_toggle_flags);
 extern void peaking_benchmark();
 
 extern int show_cpu_usage_flag;
 
 
-struct menu_entry debug_menus[] = {
+static struct menu_entry debug_menus[] = {
 #ifdef CONFIG_HEXDUMP
-    { 
+    {
         .name = "Memory Browser",
         .priv = &hexdump_enabled,
         .max = 1,
         .help = "Display memory contents in real-time (hexdump).",
         .children =  (struct menu_entry[]) {
             {
+                .name = "HexDump",
                 .priv = &hexdump_addr,
                 .select = hexdump_digit_toggle,
-                //~ .select_auto = hexdump_digit_pos_toggle,
-                .display = hexdump_print,
+                .update = hexdump_print,
                 .help = "Address to be analyzed"
             },
             {
@@ -2457,30 +2820,34 @@ struct menu_entry debug_menus[] = {
             {
                 .name = "Pointer dereference",
                 .select = hexdump_deref,
-                .select_reverse = hexdump_back,
                 .help = "Changes address to *(int*)addr [SET] or goes back [PLAY]."
             },
             {
-                .display = hexdump_print_value_hex,
+                .name = "Val hex32",
+                //~.display = hexdump_print_value_hex,
                 .select = hexdump_toggle_value_int32,
                 .help = "Value as hex."
             },
             {
-                .display = hexdump_print_value_int32,
+                .name = "Val int32",
+                //~.display = hexdump_print_value_int32,
                 .select = hexdump_toggle_value_int32,
                 .help = "Value as int32."
             },
             {
-                .display = hexdump_print_value_int16,
+                .name = "Val int16",
+                //~.display = hexdump_print_value_int16,
                 .select = hexdump_toggle_value_int16,
                 .help = "Value as 2 x int16. Toggle: changes second value."
             },
             {
-                .display = hexdump_print_value_int8,
+                .name = "Val int8",
+                //~.display = hexdump_print_value_int8,
                 .help = "Value as 4 x int8."
             },
             {
-                .display = hexdump_print_value_str,
+                .name = "Val string",
+                //~.display = hexdump_print_value_str,
                 .help = "Value as string."
             },
             MENU_EOL
@@ -2516,7 +2883,7 @@ struct menu_entry debug_menus[] = {
         .name = "Spy prop/evt/mem",
         .select        = draw_prop_select,
         .select_Q = mem_spy_select,
-        .display    = spy_print,
+        //~.display    = spy_print,
         .help = "Spy properties / events / memory addresses which change."
     },
 /*    {
@@ -2548,7 +2915,7 @@ struct menu_entry debug_menus[] = {
 #if defined(CONFIG_7D)
     {
         .name        = "LV dumping",
-        .priv = 0x60D8, 
+        .priv = (int*) 0x60D8,
         .max = 6,
         .icon_type = IT_DICE_OFF,
         .help = "Silent picture mode: simple, burst, continuous or high-resolution.",
@@ -2597,7 +2964,7 @@ struct menu_entry debug_menus[] = {
 #endif
 #ifdef CONFIG_STRESS_TEST
     {
-        .name        = "Stability tests...",
+        .name        = "Burn-in tests",
         .select        = menu_open_submenu,
         .help = "Tests to make sure Magic Lantern is stable and won't crash.",
         .submenu_width = 650,
@@ -2609,6 +2976,14 @@ struct menu_entry debug_menus[] = {
                 .priv = stub_test_task,
                 .help = "Tests Canon functions called by ML. SET=once, PLAY=100x."
             },
+            #ifdef CONFIG_PICOC // the tests depend on some picoc functions
+            {
+                .name = "Menu integrity test",
+                .select = (void(*)(void*,int))run_in_separate_task,
+                .priv = menu_self_test,
+                .help = "Internal menu tests: duplicates, wrap around etc.",
+            },
+            #endif
             #if defined(CONFIG_7D)
             {
                 .name = "RPC reliability test (infinite loop)",
@@ -2637,13 +3012,13 @@ struct menu_entry debug_menus[] = {
             },
             {
                 .name = "Redraw test (infinite)",
-                .select = (void(*)(void*,int))run_in_separate_task, 
+                .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = excessive_redraws_task,
                 .help = "Causes excessive redraws for testing the graphics backend",
             },
             {
                 .name = "Rectangle test (infinite)",
-                .select = (void(*)(void*,int))run_in_separate_task, 
+                .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = bmp_fill_test_task,
                 .help = "Stresses graphics bandwith. Run this while recording.",
             },
@@ -2687,7 +3062,7 @@ struct menu_entry debug_menus[] = {
 #endif
 #ifdef CONFIG_BENCHMARKS
     {
-        .name        = "Benchmarks...",
+        .name        = "Benchmarks",
         .select        = menu_open_submenu,
         .help = "Check how fast is your camera. Card, CPU, graphics...",
         .submenu_width = 650,
@@ -2711,18 +3086,18 @@ struct menu_entry debug_menus[] = {
         }
     },
 #endif
+    MENU_PLACEHOLDER("Mem Protection"), // module mem_prot
+    MENU_PLACEHOLDER("Show MRC regs"), // module mrc_dump
 #ifdef FEATURE_SHOW_TASKS
     {
-        .name = "Show tasks...",
+        .name = "Show tasks",
         .select = menu_open_submenu,
         .help = "Displays the tasks started by Canon and Magic Lantern.",
         .children =  (struct menu_entry[]) {
             {
                 .name = "Task list",
-                .display = tasks_print,
-                .priv = &tasks_show_flags,
-                .min = 0,
-                .max = 3,
+                .update = tasks_print,
+                .select = tasks_toggle_flags,
                 #ifdef CONFIG_VXWORKS
                 .help = "Task info: name, priority, stack memory usage.",
                 #else
@@ -2734,6 +3109,7 @@ struct menu_entry debug_menus[] = {
     },
 #endif
 #ifdef FEATURE_SHOW_CPU_USAGE
+#ifdef CONFIG_TSKMON
     {
         .name = "Show CPU usage",
         .priv = &show_cpu_usage_flag,
@@ -2741,6 +3117,7 @@ struct menu_entry debug_menus[] = {
         .choices = (const char *[]) {"OFF", "Percentage", "Busy tasks (ABS)", "Busy tasks (REL)"},
         .help = "Display total CPU usage (percentage).",
     },
+#endif
 #endif
 #ifdef FEATURE_SHOW_GUI_EVENTS
     {
@@ -2759,81 +3136,143 @@ struct menu_entry debug_menus[] = {
         .help = "Cycle through all GUI modes and take screenshots.",
     },
 #endif
-#ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
+#ifdef FEATURE_SHOW_EDMAC_INFO
     {
-        .name = "Image buffers",
-        .display = image_buf_display,
-        .icon_type = IT_ALWAYS_ON,
-        .help = "Display the image buffer sizes (LiveView and Craw).",
-        //.essential = 0,
+        .name = "Show EDMAC",
+        .select = menu_open_submenu,
+        .help = "Useful for finding image buffers.",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "EDMAC display",
+                .update = edmac_display,
+            },
+            MENU_EOL
+        }
     },
 #endif
 #ifdef FEATURE_SHOW_FREE_MEMORY
+#ifdef CONFIG_VXWORKS
     {
         .name = "Free Memory",
-        .display = meminfo_display,
-#ifdef CONFIG_5DC
+        .update = meminfo_display,
+        .icon_type = IT_ALWAYS_ON,
         .help = "Free memory, shared between ML and Canon firmware.",
-#else
-        .help = "Free memory available for malloc and AllocateMemory.",
+    },
+#else // dryos
+    {
+        .name = "Free Memory",
+        .update = meminfo_display,
+        .select = menu_open_submenu,
+        .help = "Free memory, shared between ML and Canon firmware.",
+        .help2 = "Press SET for detailed info.",
+        .submenu_width = 710,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "malloc",
+                .icon_type = IT_ALWAYS_ON,
+                .priv = (int*)1,
+                .update = meminfo_display,
+                .help = "Free memory available via malloc.",
+            },
+            {
+                .name = "AllocateMemory",
+                .icon_type = IT_ALWAYS_ON,
+                .priv = (int*)2,
+                .update = meminfo_display,
+                .help = "Free memory available via AllocateMemory.",
+            },
+            {
+                .name = "stack space",
+                .icon_type = IT_ALWAYS_ON,
+                .priv = (int*)3,
+                .update = meminfo_display,
+                .help = "Free memory available as stack space for user tasks.",
+            },
+            {
+                .name = "shoot_malloc contig",
+                .icon_type = IT_ALWAYS_ON,
+                .priv = (int*)4,
+                .update = meminfo_display,
+                .help = "Largest contiguous block from shoot memory.",
+            },
+            {
+                .name = "shoot_malloc total",
+                .icon_type = IT_ALWAYS_ON,
+                .priv = (int*)5,
+                .update = meminfo_display,
+                .help = "Largest fragmented block from shoot memory.",
+            },
+            #if defined(CONFIG_MEMPATCH_CHECK)
+            {
+                .name = "AUTOEXEC.BIN size",
+                .icon_type = IT_ALWAYS_ON,
+                .priv = (int*)6,
+                .update = meminfo_display,
+                .help = "Memory reserved statically at startup for ML binary.",
+            },
+            #endif
+            MENU_EOL
+        },
+    },
 #endif
+#endif
+#ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
+    {
+        .name = "Image buffers",
+        .update = image_buf_display,
+        .icon_type = IT_ALWAYS_ON,
+        .help = "Display the image buffer sizes (LiveView and Craw).",
         //.essential = 0,
     },
 #endif
 #ifdef FEATURE_SHOW_SHUTTER_COUNT
     {
         .name = "Shutter Count",
-        .display = shuttercount_display,
+        .update = shuttercount_display,
+        .icon_type = IT_ALWAYS_ON,
         .help = "Number of pics taken + number of LiveView actuations",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
 #endif
 #ifdef FEATURE_SHOW_CMOS_TEMPERATURE
     {
-        .name = "CMOS temperature",
-        .display = efictemp_display,
-        #ifdef CONFIG_550D
-        .help = "Sensor temperature, in degrees Celsius.",
-        #else
-        .help = "Sensor temperature, in raw units.",
-        #endif
+        .name = "Internal Temp",
+        .update = efictemp_display,
+        .icon_type = IT_ALWAYS_ON,
+        .help = "EFIC chip temperature (somewhere on the mainboard).",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
 #endif
     #if 0 // CONFIG_5D2
     {
         .name = "Ambient light",
-        .display = ambient_display,
+        //~.display = ambient_display,
         .help = "Ambient light from the sensor under LCD, in raw units.",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     #endif
 #ifdef CONFIG_BATTERY_INFO
     {
-        .name = "Battery remaining",
-        .display = batt_display,
+        .name = "Battery level",
+        .update = batt_display,
         .help = "Battery remaining. Wait for 2%% discharge before reading.",
-        //.essential = FOR_MOVIE | FOR_PHOTO,
+        .icon_type = IT_ALWAYS_ON,
     },
 #endif
 #if CONFIG_DEBUGMSG
     {
         .name = "PROP display",
-        .display = prop_display,
-        .select = prop_toggle_k, 
-        .select_reverse = prop_toggle_j,
+        //~.display = prop_display,
+        .select = prop_toggle_k,
+        // .select_reverse = prop_toggle_j,
         .select_Q = prop_toggle_i,
         .help = "Raw property display (read-only)",
     },
-#endif
-#ifdef FEATURE_SNAP_SIM
     {
-        .name = "Snap Simulation",
-        .priv = &snap_sim, 
-        .max = 1,
-        .icon_type = IT_BOOL,
-        .choices = (const char *[]) {"Take real pic", "Blink & Beep"},
-        .help = "Save shutter cycles while trying Magic Lantern.",
+        .name = "Dump LV Buffers",
+        //~.display = lvbuf_display,
+        .select = lvbuf_select,
+        .help = "Dump .422 files containing LV/HD buf addrs in filenames.",
     },
 #endif
 };
@@ -2841,27 +3280,50 @@ struct menu_entry debug_menus[] = {
 #ifdef CONFIG_CONFIG_FILE
 static struct menu_entry cfg_menus[] = {
 {
-    .name = "Config file...",
+    .name = "Config file",
     .select = menu_open_submenu,
+    .submenu_width = 700,
     .help = "Config auto save, manual save, restore defaults...",
     .children =  (struct menu_entry[]) {
         {
             .name = "Config AutoSave",
             .priv = &config_autosave,
-            .display    = config_autosave_display,
+            .max  = 1,
             .select        = config_autosave_toggle,
             .help = "If enabled, ML settings are saved automatically at shutdown."
         },
         {
             .name = "Save config now",
             .select        = save_config,
-            .help = "Save ML settings to ML/MAGIC.CFG"
+            .update        = save_config_update,
+            .help = "Save ML settings to ML/SETTINGS/MAGIC.CFG ."
         },
         {
-            .name = "Delete config file",
+            .name = "Restore ML defaults",
             .select        = delete_config,
-            .help = "Use this to restore ML default settings. Restart needed."
+            .update        = delete_config_update,
+            .help  = "This restore ML default settings, by deleting MAGIC.CFG.",
         },
+
+        {
+            .name = "Show modified settings",
+            .update = show_modified_settings,
+            .select = toggle_modified_settings,
+            .max = 1,
+            .icon_type = IT_ACTION,
+            .help =  "Displays the settings that were changed from ML defaults.",
+        },
+
+        #ifdef CONFIG_PICOC
+        {
+            .name = "Export as PicoC script",
+            .select = save_config_as_picoc,
+            .update = save_config_as_picoc_update,
+            .help =  "Export current menu settings to ML/SCRIPTS/PRESETn.C.",
+            .help2 = "The preset will appear in Scripts menu. Edit/rename on PC.",
+        },
+        #endif
+
         MENU_EOL,
     },
 },
@@ -2902,7 +3364,7 @@ static unsigned dbg_props_f[MAXPROP] = {0};
 static void dbg_draw_props(int changed)
 {
     dbg_last_changed_propindex = changed;
-    int i; 
+    int i;
     for (i = 0; i < dbg_propn; i++)
     {
     	int x =  80;
@@ -2957,10 +3419,10 @@ debug_property_handler(
         len > 0x08 ? addr[2] : 0,
         len > 0x0c ? addr[3] : 0
     );*/
-    
+
     if( !draw_prop )
         goto ack;
-    
+
     // maybe the property is already in the array
     int i;
     for (i = 0; i < dbg_propn; i++)
@@ -3004,20 +3466,18 @@ ack:
 #else
 #define num_properties 8192
 #endif
-unsigned* property_list = 0;
-
 
 void
 debug_init( void )
 {
-    draw_prop = 0;
-
 #if CONFIG_DEBUGMSG
-    if (!property_list) property_list = AllocateMemory(num_properties * sizeof(unsigned));
+    draw_prop = 0;
+    static unsigned* property_list = 0;
+    if (!property_list) property_list = SmallAlloc(num_properties * sizeof(unsigned));
     if (!property_list) return;
     unsigned i, j, k;
     unsigned actual_num_properties = 0;
-    
+
     unsigned is[] = {0x2, 0x80, 0xe, 0x5, 0x4, 0x1, 0x0};
     for( i=0 ; i<COUNT(is) ; i++ )
     {
@@ -3026,7 +3486,7 @@ debug_init( void )
             for( k=0 ; k<0x50 ; k++ )
             {
                 unsigned prop = 0
-                    | (is[i] << 24) 
+                    | (is[i] << 24)
                     | (j << 16)
                     | (k <<  0);
 
@@ -3060,7 +3520,7 @@ CONFIG_INT( "debug.timed-dump",        timed_dump, 0 );
 struct bmp_file_t * logo = (void*) -1;
 void load_logo()
 {
-    if (logo == (void*) -1) 
+    if (logo == (void*) -1)
         logo = bmp_load(CARD_DRIVE "ML/DOC/logo.bmp",0);
 }
 void show_logo()
@@ -3073,18 +3533,18 @@ void show_logo()
     }
 }*/
 
-// initialization done AFTER reading the config file, 
+// initialization done AFTER reading the config file,
 // but BEFORE starting ML tasks
 void
 debug_init_stuff( void )
 {
     //~ set_pic_quality(PICQ_RAW);
     config_ok = 1;
-    
+
     #ifdef CONFIG_WB_WORKAROUND
     if (is_movie_mode()) restore_kelvin_wb();
     #endif
-    
+
     #ifdef CONFIG_5D3
     card_tests();
     #endif
@@ -3175,13 +3635,13 @@ PROP_HANDLER(PROP_ISO)
 
 unsigned GetFileSize(char* filename)
 {
-    unsigned size;
+    uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 )
         return 0xFFFFFFFF;
     return size;
 }
 
-int ReadFileToBuffer(char* filename, void* buf, int maxsize)
+static int ReadFileToBuffer(char* filename, void* buf, int maxsize)
 {
     int size = GetFileSize(filename);
     if (!size) return 0;
@@ -3195,9 +3655,9 @@ int ReadFileToBuffer(char* filename, void* buf, int maxsize)
 
 #ifdef CONFIG_RESTORE_AFTER_FORMAT
 
-int keep_ml_after_format = 1;
+static int keep_ml_after_format = 1;
 
-void HijackFormatDialogBox()
+static void HijackFormatDialogBox()
 {
     if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
     struct gui_task * current = gui_task_list.current;
@@ -3214,7 +3674,7 @@ void HijackFormatDialogBox()
     #define FORMAT_BTN "[PicSty]"
     #define STR_LOC 6
 #elif defined(CONFIG_EOSM)
-    #define FORMAT_BTN "[1-F. Tap]"
+    #define FORMAT_BTN "[Tap Screen]"
     #define STR_LOC 4
 #else
     #define FORMAT_BTN "[Q]"
@@ -3222,13 +3682,13 @@ void HijackFormatDialogBox()
 #endif
 
     if (keep_ml_after_format)
-        dialog_set_property_str(dialog, 4, "Format card, keep Magic Lantern " FORMAT_BTN);
+        dialog_set_property_str(dialog, 4, "Format card, keep ML " FORMAT_BTN);
     else
-        dialog_set_property_str(dialog, 4, "Format card, remove Magic Lantern " FORMAT_BTN);
+        dialog_set_property_str(dialog, 4, "Format card, remove ML " FORMAT_BTN);
     dialog_redraw(dialog);
 }
 
-void HijackCurrentDialogBox(int string_id, char* msg)
+static void HijackCurrentDialogBox(int string_id, char* msg)
 {
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
@@ -3246,11 +3706,11 @@ int handle_keep_ml_after_format_toggle()
     return 0;
 }
 
-/** 
+/**
  * for testing dialogs and string IDs
  */
 
-void HijackDialogBox()
+static void HijackDialogBox()
 {
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
@@ -3271,68 +3731,68 @@ struct tmp_file {
     int sig;
 };
 
-struct tmp_file * tmp_files = 0;
-int tmp_file_index = 0;
-void* tmp_buffer = 0;
-void* tmp_buffer_ptr = 0;
+static struct tmp_file * tmp_files = 0;
+static int tmp_file_index = 0;
+static void* tmp_buffer = 0;
+static void* tmp_buffer_ptr = 0;
 #define TMP_MAX_BUF_SIZE 15000000
 
-int TmpMem_Init()
+static int TmpMem_Init()
 {
     ASSERT(!tmp_buffer);
     ASSERT(!tmp_files);
-    static int retries = 0; 
+    static int retries = 0;
     tmp_file_index = 0;
-    if (!tmp_files) tmp_files = AllocateMemory(200 * sizeof(struct tmp_file));
-    if (!tmp_files) 
-    { 
+    if (!tmp_files) tmp_files = SmallAlloc(200 * sizeof(struct tmp_file));
+    if (!tmp_files)
+    {
         retries++;
-        HijackCurrentDialogBox(4, 
-            retries > 2 ? "Restart your camera (malloc error)." : 
+        HijackCurrentDialogBox(4,
+            retries > 2 ? "Restart your camera (malloc error)." :
                           "Format: malloc error :("
             );
         beep();
         msleep(2000);
-        return 0; 
+        return 0;
     }
-    
+
     if (!tmp_buffer) tmp_buffer = (void*)shoot_malloc(TMP_MAX_BUF_SIZE);
-    if (!tmp_buffer) 
-    { 
+    if (!tmp_buffer)
+    {
         retries++;
-        HijackCurrentDialogBox(4, 
-            retries > 2 ? "Restart your camera (shoot_malloc err)." : 
+        HijackCurrentDialogBox(4,
+            retries > 2 ? "Restart your camera (shoot_malloc err)." :
                           "Format: shoot_malloc error, retrying..."
         );
         beep();
         msleep(2000);
-        FreeMemory(tmp_files); tmp_files = 0;
-        return 0; 
+        SmallFree(tmp_files); tmp_files = 0;
+        return 0;
     }
-    
+
     retries = 0;
     tmp_buffer_ptr = tmp_buffer;
 
     return 1;
 }
 
-void TmpMem_Done()
+static void TmpMem_Done()
 {
-    FreeMemory(tmp_files); tmp_files = 0;
+    SmallFree(tmp_files); tmp_files = 0;
     shoot_free(tmp_buffer); tmp_buffer = 0;
 }
 
-void TmpMem_UpdateSizeDisplay(int counting)
+static void TmpMem_UpdateSizeDisplay(int counting)
 {
     int size = tmp_buffer_ptr - tmp_buffer;
     int size_mb = size * 10 / 1024 / 1024;
-    
+
     char msg[100];
     snprintf(msg, sizeof(msg), "Format       (ML size: %s%d.%d MB%s)", counting ? "> " : "", size_mb/10, size_mb%10, counting ? "..." : "");
     HijackCurrentDialogBox(3, msg);
 }
 
-void TmpMem_AddFile(char* filename)
+static void TmpMem_AddFile(char* filename)
 {
     if (!tmp_buffer) return;
     if (!tmp_buffer_ptr) return;
@@ -3341,7 +3801,7 @@ void TmpMem_AddFile(char* filename)
     if (filesize == -1) return;
     if (tmp_file_index >= 200) return;
     if (tmp_buffer_ptr + filesize + 10 >= tmp_buffer + TMP_MAX_BUF_SIZE) return;
-    
+
     ReadFileToBuffer(filename, tmp_buffer_ptr, filesize);
     snprintf(tmp_files[tmp_file_index].name, 50, "%s", filename);
     tmp_files[tmp_file_index].buf = tmp_buffer_ptr;
@@ -3349,20 +3809,20 @@ void TmpMem_AddFile(char* filename)
     tmp_files[tmp_file_index].sig = compute_signature(tmp_buffer_ptr, filesize/4);
     tmp_file_index++;
     tmp_buffer_ptr += (filesize + 10) & ~3;
-    
+
     /* no not update on every file, else it takes too long (90% of time updating display) */
     static int aux = 0;
-    if(should_update_loop_progress(500, &aux))
+    if(should_run_polling_action(500, &aux))
     {
         char msg[100];
-        
+
         snprintf(msg, sizeof(msg), "Reading %s...", filename, tmp_buffer_ptr);
         HijackCurrentDialogBox(4, msg);
         TmpMem_UpdateSizeDisplay(1);
     }
 }
 
-void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
+static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
 {
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
@@ -3374,6 +3834,9 @@ void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
         if (file.name[0] == '.' || file.name[0] == '_') continue;
         if (cropmarks_flag && !is_valid_cropmark_filename(file.name)) continue;
 
+        int n = strlen(file.name);
+        if ((n > 4) && (streq(file.name + n - 4, ".VRM") || streq(file.name + n - 4, ".vrm"))) continue;
+
         char fn[30];
         snprintf(fn, sizeof(fn), "%s%s", dir, file.name);
         TmpMem_AddFile(fn);
@@ -3382,14 +3845,10 @@ void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
     FIO_CleanupAfterFindNext_maybe(dirent);
 }
 
-void CopyMLFilesToRAM_BeforeFormat()
+static void CopyMLFilesToRAM_BeforeFormat()
 {
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
     TmpMem_AddFile(CARD_DRIVE "MAGIC.FIR");
-#ifdef FEATURE_CUSTOM_ICON
-    TmpMem_AddFile(CARD_DRIVE "autorun.inf");
-    TmpMem_AddFile(CARD_DRIVE "ML23icon.ico");
-#endif
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0);
@@ -3403,7 +3862,7 @@ void CopyMLFilesToRAM_BeforeFormat()
 }
 
 // check if autoexec.bin is present on the card
-int check_autoexec()
+static int check_autoexec()
 {
     FILE * f = FIO_Open(CARD_DRIVE "AUTOEXEC.BIN", 0);
     if (f != (void*) -1)
@@ -3414,9 +3873,9 @@ int check_autoexec()
     return 0;
 }
 
-    
+
 // check if magic.fir is present on the card
-int check_fir()
+static int check_fir()
 {
     FILE * f = FIO_Open(CARD_DRIVE "MAGIC.FIR", 0);
     if (f != (void*) -1)
@@ -3427,31 +3886,31 @@ int check_fir()
     return 0;
 }
 
-void CopyMLFilesBack_AfterFormat()
+static void CopyMLFilesBack_AfterFormat()
 {
     int i;
     char msg[100];
     int aux = 0;
     for (i = 0; i < tmp_file_index; i++)
     {
-        if(should_update_loop_progress(500, &aux))
+        if(should_run_polling_action(500, &aux))
         {
             snprintf(msg, sizeof(msg), "Restoring %s...", tmp_files[i].name);
             HijackCurrentDialogBox(STR_LOC, msg);
         }
         dump_seg(tmp_files[i].buf, tmp_files[i].size, tmp_files[i].name);
-        int sig = compute_signature(tmp_files[i].buf, tmp_files[i].size/4); 
+        int sig = compute_signature(tmp_files[i].buf, tmp_files[i].size/4);
         if (sig != tmp_files[i].sig)
         {
             snprintf(msg, sizeof(msg), "Could not restore %s :(", tmp_files[i].name);
             HijackCurrentDialogBox(STR_LOC, msg);
             msleep(2000);
             FIO_RemoveFile(tmp_files[i].name);
-            if (i <= 1) return; 
+            if (i <= 1) return;
             //else: if it copies AUTOEXEC.BIN and fonts, ignore the error, it's safe to run
         }
     }
-    
+
     /* make sure we don't enable bootflag when there is no autoexec.bin (anymore) */
     if(check_autoexec())
     {
@@ -3464,7 +3923,7 @@ void CopyMLFilesBack_AfterFormat()
     HijackCurrentDialogBox(STR_LOC, "Format");
 }
 
-void HijackFormatDialogBox_main()
+static void HijackFormatDialogBox_main()
 {
     if (!MENU_MODE) return;
     if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
@@ -3474,7 +3933,7 @@ void HijackFormatDialogBox_main()
     if (!check_autoexec() && !check_fir()) return;
 
     if (!TmpMem_Init()) return;
-    
+
     // before user attempts to do something, copy ML files to RAM
     ui_lock(UILOCK_EVERYTHING);
     CopyMLFilesToRAM_BeforeFormat();
@@ -3482,11 +3941,11 @@ void HijackFormatDialogBox_main()
 
     // all files copied, we can change the message in the format box and let the user know what's going on
     fake_simple_button(MLEV_HIJACK_FORMAT_DIALOG_BOX);
-    
+
     // waiting to exit the format dialog somehow
     while (MEM(DIALOG_MnCardFormatBegin))
         msleep(200);
-    
+
     // and maybe to finish formatting the card
     while (MEM(DIALOG_MnCardFormatExecute))
         msleep(50);
@@ -3498,29 +3957,29 @@ void HijackFormatDialogBox_main()
         CopyMLFilesBack_AfterFormat();
         ui_lock(UILOCK_NONE);
     }
-    
+
     TmpMem_Done();
 }
 #endif
 
 void config_menu_init()
 {
+    menu_prefs_init();
+
     #ifdef CONFIG_CONFIG_FILE
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
     #endif
-    
+
     #ifdef FEATURE_LV_DISPLAY_PRESETS
     extern struct menu_entry livev_cfg_menus[];
     menu_add( "Prefs", livev_cfg_menus,  1);
     #endif
-    
+
     crop_factor_menu_init();
+    customize_menu_init();
     menu_add( "Debug", debug_menus, COUNT(debug_menus) );
-    
-    #ifdef CONFIG_5D3
-    extern struct menu_entry card_menus[];
-    menu_add( "Debug", card_menus, 2 );
-    #endif
+
+    movie_tweak_menu_init();
 }
 
 void spy_event(struct event * event)
@@ -3530,9 +3989,9 @@ void spy_event(struct event * event)
         static int kev = 0;
         static int y = 250;
         kev++;
-        bmp_printf(FONT_MED, 0, y, "Ev%d: p=%8x *o=%8x/%8x/%8x a=%8x\n                                                           ", 
+        bmp_printf(FONT_MED, 0, y, "Ev%d: p=%8x *o=%8x/%8x/%8x a=%8x\n                                                           ",
             kev,
-            event->param, 
+            event->param,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
@@ -3543,15 +4002,15 @@ void spy_event(struct event * event)
     }
 }
 
-int halfshutter_pressed;
 #ifdef CONFIG_5DC
+static int halfshutter_pressed;
 bool get_halfshutter_pressed() { return halfshutter_pressed; }
 #else
 bool get_halfshutter_pressed() { return HALFSHUTTER_PRESSED && !dofpreview; }
 #endif
 
-int zoom_in_pressed = 0;
-int zoom_out_pressed = 0;
+static int zoom_in_pressed = 0;
+static int zoom_out_pressed = 0;
 int get_zoom_out_pressed() { return zoom_out_pressed; }
 int joy_center_pressed = 0;
 
@@ -3566,20 +4025,22 @@ int handle_buttons_being_held(struct event * event)
     if (event->param == BGMT_JOY_CENTER) joy_center_pressed = 1;
     if (event->param == BGMT_UNPRESS_UDLR) joy_center_pressed = 0;
     #endif
+    #ifdef BGMT_UNPRESS_ZOOMIN_MAYBE
     if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
     if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
+    #endif
     #ifdef BGMT_PRESS_ZOOMOUT_MAYBE
     if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
     if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
     #endif
-    
+
     return 1;
 }
 
 void fake_simple_button(int bgmt_code)
 {
     if ((uilock & 0xFFFF) && (bgmt_code >= 0)) return; // Canon events may not be safe to send when UI is locked; ML events are (and should be sent)
-    
+
     if (ml_shutdown_requested) return;
     GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
 }
@@ -3590,10 +4051,10 @@ int handle_tricky_canon_calls(struct event * event)
 {
     // fake ML events are always negative numbers
     if (event->param >= 0) return 1;
-    
+
     //~ static int k; k++;
     //~ bmp_printf(FONT_LARGE, 50, 50, "[%d] tricky call: %d ", k, event->param); msleep(1000);
-    
+
     switch (event->param)
     {
         #ifdef CONFIG_RESTORE_AFTER_FORMAT
@@ -3607,9 +4068,9 @@ int handle_tricky_canon_calls(struct event * event)
         case MLEV_TURN_OFF_DISPLAY:
             if (DISPLAY_IS_ON) call("TurnOffDisplay");
             break;
-        case MLEV_ChangeHDMIOutputSizeToVGA:
+        /*case MLEV_ChangeHDMIOutputSizeToVGA:
             ChangeHDMIOutputSizeToVGA();
-            break;
+            break;*/
         case MLEV_LCD_SENSOR_START:
             #ifdef CONFIG_LCD_SENSOR
             DispSensorStart();
@@ -3639,3 +4100,188 @@ void EngDrvOut(int reg, int value)
     if (!DISPLAY_IS_ON) return; // these are normally used with display on; otherwise, they may lock-up the camera
     _EngDrvOut(reg, value);
 }
+
+#if 0 // moved to module mrc_dump?
+
+/* snprintf(buf,max_len,"%30s : %08x <8 groups of 4 bits 1/0>",header,data,data)*/
+static uint32_t dump_data(char* buf, uint32_t max_len, char* header, uint32_t data) {
+        if (!buf || !header) return 0;
+#define SPACE10 "          "
+        //Note: %30s does not work
+        uint32_t len1 = snprintf(buf, max_len, SPACE10 SPACE10 SPACE10 " : %08X ", data);
+        for (uint32_t i = 0; i <= len1 && header[i]; i++) buf[i] = header[i];
+        buf += len1;
+        uint32_t len2 = snprintf(buf,max_len-len1,"XXXX,XXXX XXXX,XXXX XXXX,XXXX XXXX,XXXX\n");
+    for (int i = MIN(39-1,len2); i >= 0; i--) {
+        *(buf+i) = ((data & 0x1) != 0) ? '1' : '0';
+        data >>= 1;
+        if (((i)%5) == 0) i--;
+    }
+    return len1 + len2;
+}
+
+/* Dumps PSRs and coprocessor 15 to buf*/
+static uint32_t dump_cache(char* buf, uint32_t max_len) {
+        if (!buf) return 0;
+    uint32_t old_int;
+        uint32_t data;
+    asm __volatile__ (
+            "MRS %0, CPSR\n"
+            "ORR r1, %0, #0xC0\n" // set I flag to disable IRQ
+            "MSR CPSR_c, r1\n"
+            : "=r"(data) : : "r1"
+        );
+    old_int = data & 0xC0; // keep just the I flag
+        uint32_t len = 0;
+        // 20000013 - Supervisor mode. Thumb mode.
+    len += dump_data(buf+len, max_len-len, "CPSR", data);
+    asm __volatile__ ("MRS %0, SPSR" : "=r"(data));
+    // 00000093 - Supervisor mode. Thumb mode. IRQ disabled.
+    len += dump_data(buf+len, max_len-len, "SPSR", data);
+
+#define dump_MRC(op1, cIdx, cIdx2, op2, name) \
+                {asm volatile ("MRC p15, "#op1", %0, c"#cIdx", c"#cIdx2", "#op2 : "=r"(data)); \
+                len += dump_data(buf+len, max_len-len, #op1":c"#cIdx",c"#cIdx2":"#op2" "name, data);}
+
+        // Cache = I/D Cache
+        // TCM = Tightly Coupled Memory (small on-board memory)
+        // BIST = Built In Self Test
+        // Write Buffer != Cache.
+        // Values are read from a 550D
+/* General */
+        // 41059461 - ARM946. Rev 1. 5TE architecture.
+        dump_MRC(0,0,0,0, "ID");
+        // 0F112112 - Cache type: 4 way set associative. 8KB I/D Cache. 8 words / line
+        dump_MRC(0,0,0,1, "Cache Type");
+        // 000C00C0 - I/D TCM preset. 4KB each.
+        dump_MRC(0,0,0,2, "TCM Size");
+        // 0005107D - I/D TCM Enabled. I/D TCM Load mode Disabled.
+        // Load mode: At the same address: Reads from underlying memory. Writes to TCM.
+        // [15] Thumb state entry enabled from data loaded in to bit 0 of PC register.
+        // [14] Pseudo random cache replacement used.
+        // [13] Base address for exception vectors @ 0x00000000
+        // [12] ICache enable
+        // [7]  Little endian
+        // [2]  DCache enable
+        // [0]  Protection unit enabled
+        dump_MRC(0,1,0,0, "Control");
+
+/* Cache */
+        // 00000070 - I/D Cachable bit set for areas 4,5,6
+        dump_MRC(0,2,0,0, "DCache Cfg");
+        dump_MRC(0,2,0,1, "ICache Cfg");
+
+        // 00000070 - Write buffer enabled for areas 4,5,6
+        dump_MRC(0,3,0,0, "Wr Buf Ctl");
+        // Write Buffer is a 16 entry buffer (addr + [data chunks])
+        // Write back: (Cachable + Write Bufferable)
+        // Self modifying code in enabled areas should flush the write buffer
+        // Writes mark the cacheline as dirty but do not clean it
+        // Cleans use the write buffer
+        // Linefills cause the buffer to drain
+
+        // Write only. Read = 00000000
+        dump_MRC(0,7,5,0, "IC  Flush");
+        dump_MRC(0,7,5,1, "IC1 Flush");
+        dump_MRC(0,7,13,1,"IC Preftch");
+        dump_MRC(0,7,6,0, "DC  Flush");
+        dump_MRC(0,7,6,1, "DC1 Flush");
+        dump_MRC(0,7,10,1,"DC  Clean");
+        dump_MRC(0,7,14,1,"DC1 C/F");
+        dump_MRC(0,7,10,2,"DC1 Clean");
+        dump_MRC(0,7,14,2,"DC1 C/F");
+        dump_MRC(0,7,10,4,"Drain");
+        dump_MRC(0,7,0,4, "Sleep");
+        dump_MRC(0,15,8,2,"SleepOld");
+
+        dump_MRC(0,9,0,0, "DC Lock"); // 00000000 - Unused
+        dump_MRC(0,9,0,1, "IC Lock"); // 00000000 - Unused
+
+        // 00000000 - I/D cache streaming and linefill enabled
+        dump_MRC(0,15,0,0,"Test State");
+
+        // [31:30] Segment. [29:5] Zeros+Idx. [4:2] Word. [1:0] Zeros.
+        dump_MRC(3,15,0,0,"C Dbg Idx");
+        // [31:5] Tag+Idx. [4] Valid. [3:2] Dirty. [1:0] Set.
+        dump_MRC(3,15,1,0,"I TAG");
+        dump_MRC(3,15,2,0,"D TAG");
+        dump_MRC(3,15,3,0,"I Cache");
+        dump_MRC(3,15,4,0,"D Cache");
+
+/* TCM - Tightly Coupled Memory */
+        // 40000006 - D TCM located at 40000000 with a size of 4KB (no aliasing)
+        dump_MRC(0,9,1,0, "DTCM");
+        // 40000000 - I TCM located at 00000000 with a size of 4KB (no aliasing)
+        dump_MRC(0,9,1,1, "ITCM");
+
+/* Protection unit */
+        // I/D (Privileged + User) Read/Write Access for areas 0 to 6.
+        // No access for area 7.
+        // Protection check failure results in branch to Data Abort or Prefetch Abort.
+        dump_MRC(0,5,0,0, "AccPerm D");  // 00003FFF
+        dump_MRC(0,5,0,1, "AccPerm I");  // 00003FFF
+        dump_MRC(0,5,0,2, "AccPerm Dx"); // 03333333
+        dump_MRC(0,5,0,3, "AccPerm Ix"); // 03333333
+
+/* Memory Areas */
+        // Definition of areas 0 to 7. Base address, Size.
+        // Areas can overlap. Area 7 has the highest priority. Area 0 lowest.
+        dump_MRC(0,6,0,0, "Area 0"); // 0000003F - 00000000 - 4GB
+        dump_MRC(0,6,1,0, "Area 1"); // 0000003D - 00000000 - 2GB
+        dump_MRC(0,6,2,0, "Area 2"); // E0000039 - E0000000 - 512MB
+        dump_MRC(0,6,3,0, "Area 3"); // C0000039 - C0000000 - 512MB
+        dump_MRC(0,6,4,0, "Area 4"); // FF00002F - FF000000 - 16MB
+        dump_MRC(0,6,5,0, "Area 5"); // 00000039 - 00000000 - 512MB
+        dump_MRC(0,6,6,0, "Area 6"); // F780002D - F7800000 - 8MB
+        dump_MRC(0,6,7,0, "Area 7"); // 00000000 - Disabled
+
+/*BIST - Built In Self Test */
+        // 00100010 - BIST complete. (Invalid) size of 0.
+        dump_MRC(0,15,0,1,"TAG B Ctl");
+        // 00000000 - No BIST. (Invalid) size of 0.
+        dump_MRC(1,15,1,1,"TCM B Ctl");
+        // 00000000 - Cache RAM(CRM). No BIST. (Invalid) size of 0.
+        dump_MRC(2,15,1,1,"CRM B Ctl");
+        // (R)ead and (W)rite to control BIST operation.
+        // Operation depends on BIST Pause. 0 or 1.
+        // Address register:
+        //   R0+1: Fail addr. W0: Start addr. W1: peek/poke addr.
+        // General register:
+        //   R0: Fail data. R1: Peek data. W0: Seed data. W1: Poke data.
+        dump_MRC(0,15,0,2,"ITAG B Add"); // 00000000
+        dump_MRC(0,15,0,3,"ITAG B Gen"); // 00000000
+        dump_MRC(0,15,0,6,"DTAG B Add"); // 00000000
+        dump_MRC(0,15,0,7,"DTAG B Gen"); // 00000000
+        dump_MRC(1,15,0,2,"ITCM B Add"); // 00000000
+        dump_MRC(1,15,0,3,"ITCM B Gen"); // 00000000
+        dump_MRC(1,15,0,6,"DTCM B Add"); // 00000000
+        dump_MRC(1,15,0,7,"DTCM B Gen"); // 00000000
+        dump_MRC(2,15,0,2,"ICRM B Add"); // 00000000
+        dump_MRC(2,15,0,3,"ICRM B Gen"); // 00000000
+        dump_MRC(2,15,0,6,"DCRM B Add"); // 00000000
+        dump_MRC(2,15,0,7,"DCRM B Gen"); // 00000000
+
+/* Misc */
+        // 00000000 - Process ID - Unused
+        dump_MRC(0,13,0,1,"PID");
+        dump_MRC(0,13,1,1,"PID Old"); // alias
+
+        // 00000000 - nFIQ and nIRQ are not masked by a hardware trace.
+        dump_MRC(1,15,1,0,"Trace Ctrl");
+
+/* Debug communication channel - coprocessor 14*/
+/*#undef dump_MR
+#define dump_MRC(cIdx, name) \
+                {asm volatile ("MRC p14, 0, %0, c"#cIdx", c0" : "=r"(data)); \
+                len += dump_data(buf+len, max_len-len, "c"#cIdx" "name, data);}
+        // These cause a lock on my 550D
+        dump_MRC(0,"Dbg C Status");
+        dump_MRC(1,"Dbg C Read");
+        dump_MRC(2,"Dbg C Write"); // write only...
+        dump_MRC(3,"Dbg Status"); // bit 4 = debug from Thumb ? */
+
+#undef dump_MRC
+    sei(old_int);
+        return len;
+}
+#endif

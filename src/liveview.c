@@ -40,7 +40,7 @@ reloc_liveviewapp_init( void *unused )
 {
     //~ bmp_printf(FONT_LARGE, 50, 50, "reloc_len = %x", reloc_len);
     //~ msleep(2000);
-    if (!reloc_buf) reloc_buf = (uintptr_t) AllocateMemory(reloc_len + 64);
+    if (!reloc_buf) reloc_buf = (uintptr_t) SmallAlloc(reloc_len + 64);
 
     //~ bmp_printf(FONT_LARGE, 50, 50, "reloc: %x, %x, %x ", reloc_buf, reloc_start, reloc_end );
     //~ msleep(2000);

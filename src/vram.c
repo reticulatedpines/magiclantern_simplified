@@ -54,21 +54,21 @@ void update_vram_params();
 // cached LUTs for BM2LV-like macros
 
 int bm2lv_x_cache[BMP_W_PLUS - BMP_W_MINUS];
-int bm2n_x_cache [BMP_W_PLUS - BMP_W_MINUS];
-int bm2hd_r_cache[BMP_H_PLUS - BMP_H_MINUS];
+//~ int bm2n_x_cache [BMP_W_PLUS - BMP_W_MINUS];
+//~ int bm2hd_r_cache[BMP_H_PLUS - BMP_H_MINUS];
 int y_times_BMPPITCH_cache[BMP_H_PLUS - BMP_H_MINUS];
 
-void vram_update_luts()
+static void vram_update_luts()
 {
     for (int x = BMP_W_MINUS; x < BMP_W_PLUS; x++) 
     {
         bm2lv_x_cache[x - BMP_W_MINUS] = BM2LV_Xu(x);
-        bm2n_x_cache[x - BMP_W_MINUS] = BM2N_Xu(x);
+        //~ bm2n_x_cache[x - BMP_W_MINUS] = BM2N_Xu(x);
     }
 
     for (int y = BMP_H_MINUS; y < BMP_H_PLUS; y++) 
     {
-        bm2hd_r_cache[y - BMP_H_MINUS] = BM2HD_Ru(y);
+        //~ bm2hd_r_cache[y - BMP_H_MINUS] = BM2HD_Ru(y);
         y_times_BMPPITCH_cache[y - BMP_H_MINUS] = y * BMPPITCH;
     }
 }
@@ -106,6 +106,13 @@ struct trans2d lv2hd = {
     .sy = 2048, // dummy
 };
 
+struct trans2d lv2raw = {
+    .tx = 0,
+    .ty = 0,
+    .sx = 2048,
+    .sy = 2048,
+};
+
 // area from BMP where the LV image (3:2) is effectively drawn, without black bars
 // in this area we'll draw cropmarks, zebras and so on
 struct bmp_ov_loc_size os = {
@@ -120,9 +127,7 @@ struct bmp_ov_loc_size os = {
 //~ int hd_ratio_num = 3;
 //~ int hd_ratio_den = 2;
 
-int increment = 4;
-
-int vram_params_dirty = 1;
+static int vram_params_dirty = 1;
 void vram_params_set_dirty()
 {
     vram_params_dirty = 1;
@@ -132,7 +137,7 @@ void vram_params_set_dirty()
 
 static uint32_t hd_size = 0;
 
-void vram_params_update_if_dirty()
+static void vram_params_update_if_dirty()
 {
     #ifdef REG_EDMAC_WRITE_LV_ADDR
     // EDMAC sizes may update after prop handlers, so check if their values changed
@@ -154,6 +159,10 @@ void vram_params_update_if_dirty()
         )
     }
 }
+
+#if CONFIG_DEBUGMSG
+
+static int increment = 4;
 
 int* vram_params[] = { 
     &increment,
@@ -179,8 +188,10 @@ char vram_param_names[][12] = {
     "lv2hd.sx* ", "lv2hd.sy* ",
 };
 
-int digital_zoom_ratio = 0;
-int logical_connect=0;
+#endif
+
+static int digital_zoom_ratio = 0;
+static int logical_connect=0;
 
 PROP_HANDLER(PROP_DIGITAL_ZOOM_RATIO)
 {
@@ -194,7 +205,7 @@ PROP_HANDLER(PROP_LOGICAL_CONNECT)
     vram_params_set_dirty();
 }
 
-PROP_INT(PROP_VIDEO_SYSTEM, pal);
+static PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
 void update_vram_params()
 {
@@ -442,7 +453,7 @@ void lut_init()
 
 void* get_lcd_422_buf()
 {
-    #if defined(CONFIG_1100D) 
+    #if defined(CONFIG_1100D) || defined(CONFIG_6D)
     return (void*)CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR); // Good enough
     #else
     switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
@@ -471,7 +482,7 @@ void guess_fastrefresh_direction() {
 
 void* get_fastrefresh_422_buf()
 {
-    #ifdef CONFIG_1100D
+    #if defined(CONFIG_1100D) || defined(CONFIG_6D)
     return (void*)CACHEABLE(shamem_read(REG_EDMAC_WRITE_LV_ADDR)); // EDMAC holds the soon-to-be-displayed region
     #else
     if (fastrefresh_direction) {
@@ -502,7 +513,7 @@ void* get_fastrefresh_422_buf()
 }
 
 // Unfortunately this doesn't work on every 1100D model yet :(
-void* get_fastrefresh_422_other_buf()
+static void* get_fastrefresh_422_other_buf()
 {
     if (!fastrefresh_direction) {
         switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
@@ -648,6 +659,8 @@ PROP_HANDLER(PROP_LV_MOVIE_SELECT)
     vram_params_set_dirty();
 }
 
+#if CONFIG_DEBUGMSG
+
 static void
 vram_print(
     void *          priv,
@@ -685,7 +698,6 @@ static void vram_toggle_rev(void* priv, int unused) { vram_toggle(priv, -increme
         .select_reverse = vram_toggle_rev, \
     }, \
 
-#if CONFIG_DEBUGMSG
 static struct menu_entry vram_menus[] = {
     VRAM_MENU_ENTRY(0)
     VRAM_MENU_ENTRY(1)

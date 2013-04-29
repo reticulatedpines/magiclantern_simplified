@@ -32,6 +32,7 @@
 
 #define NSTUB(addr,name) \
 	.global name; \
+	.extern name; \
 	name = addr
 
 NSTUB( ROMBASEADDR, firmware_entry )
@@ -69,8 +70,14 @@ NSTUB(0xFF4D8358, RedrawDisplay)
 NSTUB(0xFFCFA150 - RAM_OFFSET, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
 NSTUB(0xFF13A12C, SetBitmapVramAddress)
 NSTUB(0xFF18DFD4, SetGUIRequestMode)
-    NSTUB(0xff136f5c, _audio_ic_read)
-    NSTUB(0xff136ea4, _audio_ic_write) // str:Reg_0x_02X_Data_04x
+NSTUB(0x752e0, sounddev )  // Maybe 0x752e0 or 0x753f4
+NSTUB(0xFF11E24C, sounddev_task )
+NSTUB(0xFF143104, _audio_ic_write)
+NSTUB(0xFF1424E0, _audio_ic_read)
+NSTUB(0xFF14280C, TestSetAudioHeadPhone)
+NSTUB(0xFF14229C, SerialCommand_Send)
+//NSTUB(0xFF1430BC, SetAudioVolumeOut) // From initialization function.
+NSTUB(0xFF11EA28, SetAudioVolumeOut) //str:SetVolumeOut_Volume 1 Parameter
 NSTUB(0xFF9D0308, audio_thresholds)
 //NSTUB(   0x77DC8, additional_version)
 
@@ -102,7 +109,6 @@ NSTUB(0xFF0DF59C, gui_main_task)
 NSTUB(   0x8295C, gui_task_list)
 NSTUB(0xFF0C5438, init_task)
 NSTUB(0xFF0C8D50, malloc)
-NSTUB(0xFFD2F204 - RAM_OFFSET, memcpy)
 NSTUB(0xFFCF9EF0 - RAM_OFFSET, msg_queue_post)
 NSTUB(0xFFCF9D04 - RAM_OFFSET, msg_queue_receive)
 NSTUB(0xFFCCCB5C - RAM_OFFSET, msleep)
@@ -116,8 +122,6 @@ NSTUB(0xFF14AD3C, register_func)
 NSTUB(0xFF79284C, sdReadBlk)
 NSTUB(   0x8D678, sd_device)
 NSTUB(0xFF0C109C, sei_restore)
-NSTUB(0xFF33FED8, strcpy)
-NSTUB(0xFF0C8C6C, strlen)
 NSTUB(0xFFCCC680 - RAM_OFFSET, take_semaphore)
 NSTUB(0xFFCCCC10 - RAM_OFFSET, task_create)
 NSTUB(   0x74ACC, task_dispatch_hook )
@@ -126,13 +130,19 @@ NSTUB(0xFFCFB678 - RAM_OFFSET, vsnprintf)
 NSTUB(   0xB99DC, vram_info)
 NSTUB(0xFF713760, LiveViewShutterApp_handler)
 
+//~ Doesn't take over like wifi app. level dialog non lv - ff716658
+//NSTUB(0xFF6BE3DC, LiveViewLevelApp_handler ) //str:DlgLiveViewLevele.c_TERMINATE_WINSYS_DELETE_DI
+//NSTUB(0xFF6BE3DC, LiveViewLevelApp_handler ) //str:DlgLiveViewLevele.c_TERMINATE_WINSYS_DELETE_DI
+NSTUB(0xFF716658, DeadViewLevelApp_handler ) //
+NSTUB(0xFF71DB74, LiveViewWifiApp_handler); //str:CONNECT_VIDEO_HDMI_TERMINATE_WINSYS_DELETE_DIA_v3)
+
 NSTUB(0xFF52C7FC, LiveViewApp_handler)
-//    NSTUB(0xff4b09e4, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
-//    NSTUB(0xff4b1cc4, LiveViewApp_handler_end) // start of next function
+NSTUB(0xFF52C3C8, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
+//    NSTUB(0xff4b1cc4, LiveViewApp_handler_end) //ends at FF52ED60 next NSTUB(0xFF52ED64, str:StartDummyDialog_CreateDummyDialogBox)
 
 NSTUB(0xFF3A195C, PlayMain_handler)
 NSTUB(0xFF558BAC, PlayMovieGuideApp_handler)
-	    NSTUB(0xff49c124, ErrCardForLVApp_handler) // not sure
+NSTUB(0xFF6BEBA4, ErrCardForLVApp_handler) // not sure
 NSTUB(0xFF50C514, ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
 NSTUB(0xFF52A268, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
 
@@ -149,9 +159,9 @@ NSTUB(0xFFCC5A70 - RAM_OFFSET, get_current_task)
 
 NSTUB(0x9A478, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
-	//    NSTUB(0xff34db4c, GuiSetAutoBrightness) // guess: refreshes brightness in auto mode?
+NSTUB(0xFF19AB44, GuiSetAutoBrightness)
 
-	//    NSTUB(0xFF195A3C, Gui_SetSoundRecord) danger
+NSTUB(0xFF19B434, Gui_SetSoundRecord)
 
 NSTUB(0xFFCCD840 - RAM_OFFSET, GetMemoryInformation)
 NSTUB(0xFF1529A0, copy_malloc_info_maybe)
@@ -165,14 +175,23 @@ NSTUB(0x75F08, task_max)
 NSTUB(0xFFD0EF90 - RAM_OFFSET, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xFFCD4DC8 - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 
-NSTUB(0xFF2AA934, PowerAudioOutput)
+NSTUB(0xFF2ABD44, asifAIntDmaDac)
+NSTUB(0xFF2AC304, asifAStopDmaDac)
+NSTUB(0xFF2AC3B8, asifAStopDmaAdc)
+NSTUB(0xFF2AC668, asifAFuncIgnore_Give_FuncSync)
+NSTUB(0xFF2AC6A8, asifAIgnore_ASIF)
+
+//NSTUB(0xFF2AA934, PowerAudioOutput)
+NSTUB(0xFF142D54, PowerAudioOutput) //sub_FF142D54 Same Actions
 NSTUB(0xFF11C9A4, StartASIFDMADAC)  //~ warning: looks different
 NSTUB(0xFF11C5D0, StartASIFDMAADC)  //~ warning: looks different
 NSTUB(0xFF11CC24, StopASIFDMADAC)   //~ warning: looks different
 NSTUB(0xFF11D068, SetNextASIFADCBuffer)
 NSTUB(0xFF11D250, SetNextASIFDACBuffer)
-    NSTUB(0xFF134458, SetSamplingRate )
-NSTUB(0xFF2AB888, SetAudioVolumeOut)
+NSTUB(0xFF142DD0, SetSamplingRate) //AudioIC.c_SetRate_hHPTimer Identical
+//NSTUB(0xFF2AB888, SetAudioVolumeOut) In Play Functions with PowerAudioOutput
+NSTUB(0xFF11E654, sounddev_active_in)
+NSTUB(0xFF11E680, sounddev_active_out)
 
 
 NSTUB(0xFFCE3178 - RAM_OFFSET, ENCODE_StartEncodeJpeg)  //~ called from RAM in 6D, wasn't in EOS M.
@@ -180,12 +199,21 @@ NSTUB(0xFFCE3178 - RAM_OFFSET, ENCODE_StartEncodeJpeg)  //~ called from RAM in 6
 NSTUB(0xFF14A410, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xFF14A45C, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xFF14A574, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xFFCCF2D0 - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xFFCCF2D0 - RAM_OFFSET, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xFFCCECA8 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 
-NSTUB(0xFFCD0808 - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)
+//NSTUB(0xFFCD0808 - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)
+
+NSTUB(0xFFCD0808 - RAM_OFFSET, dma_memcpy) // Slower?
+
+//NSTUB(0xFFCD0998 - RAM_OFFSET, dma_memcpy) // V1: FFCD0998 V2:FFCD0ABC Made Weird Pics
+
 
 NSTUB(0xFF19A918, GUI_SetRollingPitchingLevelStatus)
+
+//NSTUB(0xFFCD0ABC, dma_memcpy) // V1: FFCD0998 V2:FFCD0ABC
+NSTUB(0xFF24A044 - RAM_OFFSET, GetJpegBufForLV)
+NSTUB(0xFF24A050 - RAM_OFFSET, GetJpegSizeForLV)
 
 
 NSTUB(0xFF2AD0F0, mvrSetPrintMovieLog)
@@ -193,3 +221,4 @@ NSTUB(0xFF2ACB00, mvrSetQscale)
 NSTUB(   0x7AE8C, mvr_config)
 NSTUB(0xFF2AD0CC, mvrFixQScale)
 NSTUB(0xFF2ACBC4, mvrSetDefQScale)
+

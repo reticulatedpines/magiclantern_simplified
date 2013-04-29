@@ -30,6 +30,7 @@
 
 #define NSTUB(addr,name) \
 	.global name; \
+	.extern name; \
 	name = addr
 
 NSTUB( ROMBASEADDR, firmware_entry )
@@ -104,7 +105,6 @@ NSTUB( 0xFF06B270, AllocateMemory ) // thanks Alex
 NSTUB( 0xFF06B600, FreeMemory ) // release_mem in Indy's IDC
 
 NSTUB( 0x2B74, dm_names )                // in DebugMsg, before the 1st loop target
-NSTUB( 0xFF1EC1CC, strcpy )
 NSTUB( 0xFF06366C, LoadCalendarFromRTC )
 NSTUB( 0xFF0771BC, task_trampoline )
 
@@ -122,7 +122,6 @@ NSTUB( 0xFF2B4C10, gui_task_create )
 NSTUB( 0xFF2B4D30, gui_task_destroy )
 NSTUB( 0xFF2B4AC0, ctrlman_dispatch_event )
 
-NSTUB( 0xFF44F800, memcpy )
 NSTUB( 0xFF09786C, prop_request_icu_auto_poweroff )
 NSTUB( 0xFF1DA26C, alloc_dma_memory )
 NSTUB( 0xFF1DA2A0, free_dma_memory )
@@ -199,10 +198,6 @@ NSTUB( 0xFF2CFA54, MirrorDisplay )
 NSTUB( 0xFF2CFAB4, NormalDisplay )
 NSTUB( 0xFF2CFA84, ReverseDisplay)
 NSTUB( 0xFF2CE1F0, RedrawDisplay )
-
-NSTUB( 0xFF0181A4, strlen )
-NSTUB( 0xFF07B498, strcmp )
-//NSTUB( 0xFF44f8f8, AJ_memset_R0_addr_R1_Len_R2_byteVal ) // bzero32+4
 
 NSTUB( 0x67bc, mvr_config )
 
@@ -294,7 +289,7 @@ NSTUB(0xFF079ce4, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xff06f3d8, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff06f424, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff06f53c, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xff06c9ec, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff06c9ec, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff06c434, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature
 
 NSTUB(0xff1d8a3c, AJ_UserLevel_task)

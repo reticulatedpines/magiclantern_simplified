@@ -98,5 +98,17 @@
 /** We can display some extra info in photo mode (not LiveView) **/
 #define CONFIG_PHOTO_MODE_INFO_DISPLAY
 
-/** No auto ISO in Canon menus **/
-#define CONFIG_NO_AUTO_ISO
+/** No auto ISO limits in Canon menus **/
+#define CONFIG_NO_AUTO_ISO_LIMITS
+
+/** FPS override: we can change both timer A and B */
+//~ #define CONFIG_FPS_TIMER_A_ONLY
+
+/** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
+#define CONFIG_FPS_AGGRESSIVE_UPDATE
+
+/** This camera has a mono microphone input, so we should display only one audio meter **/
+#define CONFIG_MONO_MIC
+
+/** You can't AF by pressing shutter halfway in LiveView */
+#define CONFIG_NO_HALFSHUTTER_AF_IN_LIVEVIEW

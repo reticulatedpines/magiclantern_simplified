@@ -29,9 +29,9 @@
 
 struct semaphore * gui_sem;
 
-int joy_center_press_count = 0;
-int joy_center_action_disabled = 0;
-void joypress_task()
+static int joy_center_press_count = 0;
+static int joy_center_action_disabled = 0;
+static void joypress_task()
 {
 	extern int joy_center_pressed;
 	TASK_LOOP
@@ -42,7 +42,7 @@ void joypress_task()
 		{
 			if (!joy_center_action_disabled && gui_menu_shown() && joy_center_press_count && joy_center_press_count <= 20) // short press, ML menu active
 			{
-				if (is_submenu_mode_active())
+				if (is_submenu_or_edit_mode_active())
 				{
 					fake_simple_button(BGMT_PICSTYLE); // close submenu
 				}
@@ -153,8 +153,6 @@ struct gui_timer_struct
 };
 
 extern struct gui_timer_struct gui_timer_struct;
-
-int max_gui_queue_len = 0;
 
 // Replaces the gui_main_task
 static void

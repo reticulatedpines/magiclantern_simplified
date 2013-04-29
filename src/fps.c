@@ -200,7 +200,7 @@ static int get_table_pos(unsigned int fps_mode, unsigned int crop_mode, unsigned
 static int get_fps_video_mode()
 {
     int mode =
-        lv_dispsize > 1 || expsim!=2 ? 2 :
+        lv_dispsize > 1 || get_expsim()!=2 ? 2 :
         video_mode_fps == 60 ? 0 : 
         video_mode_fps == 50 ? 1 : 
         video_mode_fps == 30 ? 2 : 

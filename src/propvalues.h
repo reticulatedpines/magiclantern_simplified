@@ -46,6 +46,7 @@ extern int battery_level_bars;
 extern int sound_recording_mode; // 1 = disable?
 extern char artist_name[64];
 extern char copyright_info[64];
+extern int date_format;
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi || _ext_monitor_rca)
 #define EXT_MONITOR_RCA (_ext_monitor_rca && !ext_monitor_hdmi)
@@ -54,12 +55,10 @@ extern struct bmp_ov_loc_size os;
 
 bool is_movie_mode();
 
-// measured by Андрей Басов
-// http://groups.google.com/group/ml-devel/browse_thread/thread/725ae6f424dd2917
-#define EFIC_CELSIUS (efic_temp * 3/2 - 202)
-
 #ifndef _beep_c_
 extern int beep_enabled;
 #endif
+
+#define EFIC_CELSIUS ((int)efic_temp - 128)
 
 #endif

@@ -6,7 +6,7 @@
 #define _config_defines_h_
 
 /** 
- * Enable these for early ports inside the platform 
+ * Enable these for early ports
  */
 
     /** If CONFIG_EARLY_PORT is defined, only a few things will be enabled (e.g. changing version string) */
@@ -14,6 +14,9 @@
 
     /** Load fonts and print Hello World (disable CONFIG_EARLY_PORT); will not start any other ML tasks, handlers etc. */
     //~ #define CONFIG_HELLO_WORLD
+    
+    /** Create a developer FIR for enabling the bootflag and dumping the ROM. */
+    //~ #define CONFIG_DUMPER_BOOTFLAG
 
 /**
  * Some common stuff - you can override them in platform files
@@ -25,12 +28,18 @@
     /** It's a good idea to back up ROM contents on the card - just in case **/
     #define CONFIG_AUTOBACKUP_ROM
 
+    /** Check how much memory is used by ML and compare to how much we have reserved during the boot process **/
+    #define CONFIG_MEMPATCH_CHECK
+
     /** It's a good idea to run some automated tests **/
     #define CONFIG_STRESS_TEST
     #define CONFIG_BENCHMARKS
 
     /** You may want to disable this for troubleshooting **/
     #define CONFIG_CONFIG_FILE
+    
+    /** Show detailed info about tasks and CPU usage */
+    #define CONFIG_TSKMON
 
 /**
  * Some debug stuff - you should enable it Makefile.user to avoid pushing unwanted changes to the repo

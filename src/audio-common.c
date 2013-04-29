@@ -17,7 +17,6 @@ static void audio_menus_init();
 #ifdef FEATURE_HEADPHONE_MONITORING
 static void audio_monitoring_update();
 #endif
-static void check_sound_recording_warning(int x, int y);
 static void audio_input_toggle( void * priv, int delta );
 
 #ifdef CONFIG_600D
@@ -48,27 +47,14 @@ static struct gain_struct gain = {
     .sem                    = (void*) 1,
 };
 
-CONFIG_INT( "audio.lovl",       lovl,           0 );
-CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
-int loopback = 1;
-//CONFIG_INT( "audio.input-source",     input_source,           0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced
-CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
-CONFIG_INT( "audio.filters",    enable_filters,        1 ); //disable the HPF, LPF and pre-emphasis filters
-CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
-#ifdef CONFIG_500D
-CONFIG_INT("audio.monitoring", audio_monitoring, 0);
-#else
-CONFIG_INT("audio.monitoring", audio_monitoring, 1);
-#endif
-int do_draw_meters = 0;
-
-
-/*
-  int ext_cfg_draw_meters(void)
-  {
-  return cfg_draw_meters;
-  }
-*/
+static CONFIG_INT( "audio.lovl",       lovl,           0 );
+static CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
+static int loopback = 1;
+static CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
+static CONFIG_INT( "audio.filters",    enable_filters,        1 ); //disable the HPF, LPF and pre-emphasis filters
+#define cfg_draw_meters 1
+static CONFIG_INT("audio.monitoring", audio_monitoring, 1);
+static int do_draw_meters = 0;
 
 static struct audio_level audio_levels[2];
 
@@ -78,7 +64,7 @@ struct audio_level *get_audio_levels(void)
 }
 
 // from linux snd_soc_update_bits()
-void masked_audio_ic_write(
+static void masked_audio_ic_write(
                            unsigned reg,     // the register we wish to manipulate (eg AUDIO_IC_SIG1)
                            unsigned mask, // the range of bits we want to manipulate (eg 0x05 or b0000111) to only allow changes to b3,b2,b0
                            unsigned bits     // the bits we wish to set (eg 0x02 or b000010 to set b1, while clearing others within scope of the mask)
@@ -146,8 +132,8 @@ void draw_meters(void)
 }
 #else
 
-char left_label[10] = "LEFT ";
-char right_label[10] = "RIGHT";
+static char left_label[10] = "LEFT ";
+static char right_label[10] = "RIGHT";
 
 static uint8_t
 db_to_color(
@@ -288,10 +274,10 @@ static void draw_meters(void)
         
     if (gui_menu_shown())
         {
-            x0 = MAX(os.x0 + os.x_ex/2 - 360, 0);
-            y0 = MAX(os.y0 + os.y_ex/2 - 240, 0);
-            y0 += 380;
-            x0 += 10;
+            x0 = 10;
+            y0 = 457;
+            if (menu_active_but_hidden()) y0 = 10;
+            small = 0;
         }
     else
         {
@@ -796,7 +782,7 @@ audio_reg_dump_once()
 #endif
 
 
-int mic_inserted = -1;
+static int mic_inserted = -1;
 PROP_HANDLER( PROP_MIC_INSERTED )
 {
     if (mic_inserted != -1)
@@ -818,7 +804,7 @@ PROP_HANDLER( PROP_MIC_INSERTED )
     //~ menu_set_dirty();
 }
 
-int get_input_source()
+static int get_input_source()
 {
     int input_source;
     //setup input_source based on choice and mic pluggedinedness
@@ -869,21 +855,6 @@ audio_set_meterlabel(){
 
 }
 
-static void
-audio_meter_display( void * priv, int x, int y, int selected )
-{
-    unsigned v = *(unsigned*) priv;
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Audio Meters  : %s",
-               v ? "ON" : "OFF"
-               );
-    check_sound_recording_warning(x, y);
-    menu_draw_icon(x, y, MNI_BOOL_GDR(v));
-}
-
-
 #if 0
 static void
 audio_o2gain_display( void * priv, int x, int y, int selected )
@@ -903,55 +874,15 @@ audio_o2gain_display( void * priv, int x, int y, int selected )
 #endif
 
 
-static void
-audio_alc_display( void * priv, int x, int y, int selected )
-{
-    unsigned fnt = selected ? MENU_FONT_SEL : MENU_FONT;
-    bmp_printf(
-               FONT(fnt, alc_enable ? COLOR_RED : FONT_FG(fnt), FONT_BG(fnt)),
-               x, y,
-               //23456789012
-               "AGC                : %s",
-               alc_enable ? "ON " : "OFF"
-               );
-    check_sound_recording_warning(x, y);
-}
-
 static const char* get_audio_input_string()
 {
     return 
-        (input_choice == 0 ? "internal mic" : 
+        (input_choice == 0 ? "Internal mic" : 
          (input_choice == 1 ? "L:int R:ext" :
-          (input_choice == 2 ? "external stereo" : 
+          (input_choice == 2 ? "External stereo" : 
            (input_choice == 3 ? "L:int R:balanced" : 
             (input_choice == 4 ? (mic_inserted ? "Auto int/EXT " : "Auto INT/ext") : 
              "error")))));
-}
-
-static void
-audio_input_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Input Source  : %s", 
-               get_audio_input_string()
-               );
-    check_sound_recording_warning(x, y);
-    menu_draw_icon(x, y, input_choice == 4 ? MNI_AUTO : MNI_ON, 0);
-}
-
-
-static void
-audio_monitoring_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-               selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Headphone Mon.: %s",
-               audio_monitoring ? "ON" : "OFF"
-               );
-    check_sound_recording_warning(x, y);
 }
 
 
@@ -994,16 +925,13 @@ enable_recording(
         {
         case 0:
             // Movie recording stopped;  (fallthrough)
-#ifdef CONFIG_600D
-            audio_configure(1);
-#endif
-            break;
         case 2:
             // Movie recording started
-            give_semaphore( gain.sem );
-#ifdef CONFIG_600D
+            #ifdef CONFIG_600D
             audio_configure(1);
-#endif
+            #else
+            give_semaphore( gain.sem );
+            #endif
             break;
         case 1:
             // Movie recording about to start? : 600D do not override audio here. Recording start/stop will call case2 and case 2 together. So twice audio_configre() need more cpu/mem overhead. will stop recording.because buffer will full.
@@ -1015,7 +943,7 @@ enable_recording(
 }
 
 // to be called from some other tasks that may mess with audio 
-void audio_force_reconfigure() 
+static void audio_force_reconfigure() 
 {
     give_semaphore( gain.sem ); 
 }

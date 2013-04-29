@@ -30,11 +30,45 @@
 
 #define NSTUB(addr,name) \
 	.global name; \
+	.extern name; \
 	name = addr
+
+#define XSTUB(addr,name) \
+	.global STUB_##name; \
+	.extern STUB_##name; \
+	STUB_##name = addr
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
+NSTUB(0x23D08, pre_isr_hook)
+NSTUB(0x23D0C, post_isr_hook)
+
+
+NSTUB(0xAE24, CreateMemorySuite)
+NSTUB(0xAC1C, DeleteMemorySuite)
+
+NSTUB(0x126A4, ConnectWriteEDmac)
+NSTUB(0x12768, ConnectReadEDmac)
+NSTUB(0x125F8, SetEDmac)
+NSTUB(0x12AFC, EDMAC_RegisterCompleteCBR)
+NSTUB(0x12910, StartEDmac)
+
+
+NSTUB(0xFF576634, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
+NSTUB(0xFF5766D0, PackMem_RegisterEDmacPopCBRForMemorySuite)
+NSTUB(0xFF576348, PackMem_SetEDmacForMemorySuite)
+NSTUB(0xFF576564, PackMem_PopEDmacForMemorySuite)
+NSTUB(0xFF57645C, PackMem_StartEDmac)
+
 #define RAM_OFFSET 0xFF9DEF48 // some functions are copied to RAM at around ff0c009c; they have to be called from RAM...
+
+NSTUB(0xFF9EA118 - RAM_OFFSET, GetFirstChunkFromSuite)
+NSTUB(0xFF9EA8B4 - RAM_OFFSET, GetNextMemoryChunk)
+NSTUB(0xFF9E9AC0 - RAM_OFFSET, GetSizeOfMemoryChunk)
+NSTUB(0xFF9E9A90 - RAM_OFFSET, GetRemainOfMemoryChunk)
+NSTUB(0xFF9E9AF0 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
+NSTUB(0xFF9E9ED8 - RAM_OFFSET, GetNumberOfChunks)
+NSTUB(0xFF9E9DF8 - RAM_OFFSET, GetSizeOfMemorySuite)
 
 NSTUB(0xff9f3900 - RAM_OFFSET, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
 NSTUB(0xff9e88e8 - RAM_OFFSET, AllocateMemory)
@@ -97,13 +131,12 @@ NSTUB(0xff1a4fc8, gui_massive_event_loop)         // no match
 NSTUB(   0x32244, gui_task_list)
 NSTUB(0xff0c520c, init_task)
 NSTUB(0xff0c80ec, malloc)
-NSTUB(0xff9fb2ac - RAM_OFFSET, memcpy)
 NSTUB(0xff9f37b4 - RAM_OFFSET, msg_queue_post)
 NSTUB(0xff9f35c8 - RAM_OFFSET, msg_queue_receive)
 NSTUB(0xff9e79a4 - RAM_OFFSET, msleep)
 NSTUB(0xff123c88, _prop_cleanup)
 NSTUB(0xff123bbc, prop_deliver)
-//NSTUB(0xff123de4, prop_get_value) // unsafe?
+NSTUB(0xff123de4, prop_get_value) // unsafe?
 NSTUB(0xff12340c, prop_register_slave)
 NSTUB(0xff123600, _prop_request_change)
 NSTUB(0xff3f4f54, ptp_register_handler)
@@ -111,9 +144,6 @@ NSTUB(0xff13b630, register_func)
 NSTUB(0xff6b16ac, sdReadBlk)
 NSTUB(   0x399D4, sd_device)
 NSTUB(0xff0c10f4, sei_restore)
-//NSTUB(0xff1448c4, strcmp)
-NSTUB(0xff31b930, strcpy)
-NSTUB(0xff0c8008, strlen)
 NSTUB(0xff9e74c8 - RAM_OFFSET, take_semaphore)
 NSTUB(0xff9e7a58 - RAM_OFFSET, task_create)
 NSTUB(   0x23d00, task_dispatch_hook )
@@ -176,8 +206,6 @@ NSTUB(0xff181314, ENCODE_StartEncodeJpeg)
 NSTUB(0xff13c134, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff13c180, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff13c298, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xff9ea118 - RAM_OFFSET, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
-NSTUB(0xff9e9af0 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
 
 NSTUB(0xFF9EB650 - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)
 

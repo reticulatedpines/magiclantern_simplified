@@ -3,6 +3,14 @@
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
 
+#define CARD_A_MAKER 0x68C8B
+#define CARD_A_MODEL 0x68CBF
+#define CARD_A_LABEL 0x26E000
+//need to find
+//#define CARD_B_MAKER 0x  
+//#define CARD_B_MODEL 0x
+//#define CARD_B_LABEL 0x
+
 // thanks Indy
 #define HIJACK_INSTR_BL_CSTART  0xff0c0d7c
 #define HIJACK_INSTR_BSS_END 0xff0c1cb8
@@ -11,8 +19,13 @@
 #define HIJACK_INSTR_MY_ITASK 0xff0c1cc4
 #define HIJACK_TASK_ADDR 0x23E14
 
+/* these are used in bitrate.c for video bitrate hacks */
+#define CACHE_HACK_FLUSH_RATE_SLAVE  0xFF0EA4D0
+#define CACHE_HACK_GOP_SIZE_SLAVE    0xFF217624
+
+
 // no idea if it's overflowing, need to check experimentally 
-//~ #define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3
+#define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3
 
 #define DRYOS_ASSERT_HANDLER 0x23DF4 // dec TH_assert or assert_0
 
@@ -51,8 +64,8 @@
 #define GMT_FUNCTABLE 0xff796dac // dec gui_main_task
 //#define GMT_IDLEHANDLER_TASK (*(int*)0x2e81c) // dec create_idleHandler_task
 
- #define SENSOR_RES_X 4752
- #define SENSOR_RES_Y 3168
+#define SENSOR_RES_X 5936
+#define SENSOR_RES_Y 3804
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x29754) == 0xF))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x29754) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
@@ -62,7 +75,7 @@
 
 #define MVR_516_STRUCT (*(void**)0x241A0) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
-#define MEM(x) (*(int*)(x))
+#define MEM(x) (*(volatile int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
@@ -134,18 +147,13 @@
 #define WB_KELVIN_POS_Y 278
 
 // white balance shift values M2B1 in yellow
-#define WBS_POS_X 250
-#define WBS_POS_Y 263
-#define WBS_FONT FONT_LARGE
+#define WBS_POS_X 265
+#define WBS_POS_Y 278
+//~ #define WBS_FONT FONT_MED // not used?
 
 // for displaying battery
-#define DISPLAY_BATTERY_POS_X 150
+#define DISPLAY_BATTERY_POS_X 146
 #define DISPLAY_BATTERY_POS_Y 410
-#define DISPLAY_BATTERY_LEVEL_1 60 //%
-#define DISPLAY_BATTERY_LEVEL_2 20 //%
-
-// for header footer info
-#define DISPLAY_HEADER_FOOTER_INFO
 
 // for HDR status
 #define HDR_STATUS_POS_X 140
@@ -173,7 +181,7 @@
 #define DIALOG_MnCardFormatBegin (0x363BC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x39B98) // similar
 
-#define BULB_MIN_EXPOSURE 100
+#define BULB_MIN_EXPOSURE 500
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xf7363764
@@ -233,3 +241,6 @@
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
+
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 5

@@ -13,12 +13,14 @@
 #include "mvr.h"
 
 //----------------begin qscale-----------------
-CONFIG_INT( "h264.qscale.plus16", qscale_plus16, 16-8 );
-CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
-CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
-CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
-CONFIG_INT( "bitrate.indicator", bitrate_indicator, 0);
-CONFIG_INT( "hibr.wav.record", cfg_hibr_wav_record, 0);
+static CONFIG_INT( "h264.qscale", qscale_neg, 8 );
+static CONFIG_INT( "h264.bitrate-mode", bitrate_mode, 1 ); // off, CBR, VBR
+static CONFIG_INT( "h264.bitrate-factor", bitrate_factor, 10 );
+static CONFIG_INT( "time.indicator", time_indicator, 3); // 0 = off, 1 = current clip length, 2 = time remaining until filling the card, 3 = time remaining until 4GB
+static CONFIG_INT( "bitrate.indicator", bitrate_indicator, 0);
+static CONFIG_INT( "hibr.wav.record", cfg_hibr_wav_record, 0);
+
+#define qscale (-qscale_neg)
 
 #ifdef FEATURE_NITRATE_WAV_RECORD
 int hibr_should_record_wav() { return cfg_hibr_wav_record; }
@@ -28,18 +30,16 @@ int hibr_should_record_wav() { return 0; }
 
 int time_indic_x =  720 - 160;
 int time_indic_y = 0;
-int time_indic_width = 160;
-int time_indic_height = 20;
-int time_indic_warning = 120;
+//~ static int time_indic_width = 160;
+//~ static int time_indic_height = 20;
+static int time_indic_warning = 120;
 static int time_indic_font  = FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
 
-int measured_bitrate = 0; // mbps
+static int measured_bitrate = 0; // mbps
 //~ int free_space_32k = 0;
-int movie_bytes_written_32k = 0;
+static int movie_bytes_written_32k = 0;
 
-#define qscale (((int)qscale_plus16) - 16)
-
-int bitrate_dirty = 0;
+static int bitrate_dirty = 0;
 
 // don't call those outside vbr_fix / vbr_set
 void mvrFixQScale(uint16_t *);    // only safe to call when not recording
@@ -48,14 +48,7 @@ void mvrSetDefQScale(int16_t *);  // when recording, only change qscale by 1 at 
 
 
 #if defined(CONFIG_7D)
-#include "cache_hacks.h"
-#include "ml_rpc.h"
-
 #define ADDR_mvrConfig       0x8A14
-
-uint32_t bitrate_cache_hacks = 0;
-uint32_t bitrate_flushing_rate = 4;
-uint32_t bitrate_gop_size = 12;
 
 uint8_t *bulk_transfer_buf = NULL;
 uint32_t BulkOutIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t, uint32_t, uint32_t), uint32_t cb_parm);
@@ -90,74 +83,11 @@ void bitrate_write_mvr_config()
     }
 }
 
-static void
-bitrate_cache_hacks_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Video hacks   : %s", 
-               bitrate_cache_hacks ? "ON" : "OFF"
-               );
-
-    if(!ml_rpc_available())
-    {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Master DIGiC hacks not available in this release.");
-    }
-    else
-    {
-        menu_draw_icon(x, y, MNI_ON, 0);
-    }
-}
-
-static void
-bitrate_flushing_rate_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "Flush every   : %d frames", 
-               bitrate_flushing_rate
-               );
-
-    if(!ml_rpc_available())
-    {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Master DIGiC hacks not available in this release.");
-    }
-    else if(!bitrate_cache_hacks)
-    {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Video hacks disabled.");
-    }
-    else
-    {
-        menu_draw_icon(x, y, MNI_ON, 0);
-    }
-}
-
-static void
-bitrate_gop_size_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(selected ? MENU_FONT_SEL : MENU_FONT,
-               x, y,
-               "GOP size      : %d frames", 
-               bitrate_gop_size
-               );
-
-    if(!ml_rpc_available())
-    {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Master DIGiC hacks not available in this release.");
-    }
-    else if(!bitrate_cache_hacks)
-    {
-        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Video hacks disabled.");
-    }
-    else
-    {
-        menu_draw_icon(x, y, MNI_ON, 0);
-    }
-}
 #endif
 
 static struct mvr_config mvr_config_copy;
-void cbr_init()
+
+static void cbr_init()
 {
 #if defined(CONFIG_7D)
     /* we must do all transfers via uncached memory. prepare that buffer */
@@ -169,7 +99,7 @@ void cbr_init()
     memcpy(&mvr_config_copy, &mvr_config, sizeof(mvr_config_copy));
 }
 
-void vbr_fix(uint16_t param)
+static void vbr_fix(uint16_t param)
 {
     if (!lv) return;
     if (!is_movie_mode()) return; 
@@ -186,7 +116,7 @@ void vbr_fix(uint16_t param)
 }
 
 // may be dangerous if mvr_config and numbers are incorrect
-void opt_set(int num, int den)
+static void opt_set(int num, int den)
 {
 #if defined(CONFIG_7D)
     uint32_t combo = 0;
@@ -263,7 +193,7 @@ void opt_set(int num, int den)
     }
 }
 
-void bitrate_set()
+static void bitrate_set()
 {
     if (!lv) return;
     if (!is_movie_mode()) return; 
@@ -299,33 +229,43 @@ void bitrate_set()
     bitrate_dirty = 1;
 }
 
-static void
-bitrate_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(bitrate_print)
 {
-    int fnt = selected ? MENU_FONT_SEL : MENU_FONT;
-
     if (bitrate_mode == 0)
     {
-        bmp_printf( fnt, x, y, "Bit Rate      : FW default%s", bitrate_dirty ? "(reboot)" : "");
-        menu_draw_icon(x, y, bitrate_dirty ? MNI_WARNING : MNI_OFF, 0);
+        MENU_SET_VALUE("FW default%s", bitrate_dirty ? "(reboot)" : "");
+        MENU_SET_ENABLED(0);
+        if (bitrate_dirty)
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Restart your camera.");
     }
     else if (bitrate_mode == 1)
     {
-        if (bitrate_factor > 10) fnt = FONT(fnt, bitrate_factor > 14 ? COLOR_RED : COLOR_YELLOW, FONT_BG(fnt));
-        if (bitrate_factor < 7) fnt = FONT(fnt, bitrate_factor < 4 ? COLOR_RED : COLOR_YELLOW, FONT_BG(fnt));
-        bmp_printf( fnt, x, y, "Bit Rate (CBR): %s%d.%dx%s", bitrate_factor>10 ? "up to " : "", bitrate_factor/10, bitrate_factor%10, bitrate_dirty || bitrate_factor != 10 ? "" : " (FW default)");
-        menu_draw_icon(x, y, bitrate_dirty || bitrate_factor != 10 ? MNI_PERCENT : MNI_OFF, bitrate_factor * 100 / 30);
+        MENU_SET_NAME("Bit Rate (CBR)");
+        MENU_SET_VALUE("%s%d.%dx%s", bitrate_factor>10 ? "up to " : "", bitrate_factor/10, bitrate_factor%10, bitrate_factor != 10 ? "" : " (default)");
+        if (bitrate_factor != 10)
+        {
+            MENU_SET_ICON(MNI_PERCENT_ALLOW_OFF, bitrate_factor * 100 / 30);
+        }
+        else
+        {
+            MENU_SET_ICON(MNI_PERCENT_OFF, 33);
+            MENU_SET_ENABLED(0);
+        }
+        
+        if (bitrate_factor > 14 && SOUND_RECORDING_ENABLED)
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "Be careful, high bitrates and sound recording don't mix.");
+        else if (bitrate_factor > 10) 
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "Be careful, recording may stop.");
+        else if (bitrate_factor < 7) 
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "Be careful, image quality may be bad.");
     }
     else if (bitrate_mode == 2)
     {
-        fnt = FONT(fnt, COLOR_RED, FONT_BG(fnt));
-        bmp_printf( fnt, x, y, "Bit Rate (VBR): QScale %d", qscale);
-        menu_draw_icon(x, y, MNI_PERCENT, -(qscale-16) * 100 / 32);
+        MENU_SET_NAME("Bit Rate (VBR)");
+        MENU_SET_VALUE("QScale %s%d", qscale > 0 ? "+" : "", qscale);
+        MENU_SET_ICON(MNI_PERCENT, -(qscale-16) * 100 / 32);
+        MENU_SET_ENABLED(1);
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Be careful, bitrate is not constant, recording may stop.");
     }
 }
 
@@ -345,30 +285,19 @@ void bitrate_mvr_log(char* mvr_logfile_buffer)
     }
 }
 
-static void
-cbr_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(cbr_display)
 {
-    bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "CBR factor    : %d.%dx", bitrate_factor/10, bitrate_factor%10);
-    if (bitrate_mode == 1) menu_draw_icon(x, y, MNI_PERCENT, bitrate_factor * 100 / 30);
-    else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "CBR mode inactive => CBR setting not used.");
+    MENU_SET_VALUE("%d.%dx", bitrate_factor/10, bitrate_factor%10);
+    if (bitrate_mode != 1) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "CBR mode inactive => CBR setting not used.");
+    else MENU_SET_WARNING(MENU_WARN_ADVICE, "This is only an upper limit for the bitrate.");
+    if (bitrate_factor == 10) { MENU_SET_ICON(MNI_PERCENT_OFF, 33); MENU_SET_ENABLED(0); }
 }
 
-static void
-qscale_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(qscale_display)
 {
-    bmp_printf( selected ? MENU_FONT_SEL : MENU_FONT, x, y, "QScale factor : %d", qscale);
-    if (bitrate_mode == 2) menu_draw_icon(x, y, MNI_PERCENT, -(qscale-16) * 100 / 32);
-    else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "VBR mode inactive => QScale setting not used.");
+    MENU_SET_VALUE("%d", qscale);
+    if (bitrate_mode != 2) MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "VBR mode inactive => QScale setting not used.");
+    else MENU_SET_WARNING(MENU_WARN_ADVICE, "Bitrate may vary a lot (several orders of magnitude!)");
 }
 
 
@@ -377,7 +306,7 @@ bitrate_factor_toggle(void* priv, int delta)
 {
     if (recording) return;
  
-#if defined(CONFIG_7D)
+#if defined(FEATURE_VIDEO_HACKS)
     bitrate_factor = mod(bitrate_factor + delta - 1, 200) + 1;
 #else
     bitrate_factor = mod(bitrate_factor + delta - 1, 30) + 1;
@@ -388,14 +317,14 @@ static void
 bitrate_qscale_toggle(void* priv, int delta)
 {
     if (recording) return;
-    qscale_plus16 = mod(qscale_plus16 - delta, 33);
+    menu_numeric_toggle(&qscale_neg, delta, -16, 16);
 }
 
 static void 
 bitrate_toggle_mode(void* priv, int delta)
 {
     if (recording) return;
-    menu_ternary_toggle(priv, delta);
+    menu_numeric_toggle(priv, delta, 0, 2);
 }
 
 static void 
@@ -406,10 +335,10 @@ bitrate_toggle(void* priv, int delta)
 }
 
 
-int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
+static int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 10
 
-PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
-PROP_INT(PROP_FREE_SPACE, free_space_raw);
+static PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
+static PROP_INT(PROP_FREE_SPACE, free_space_raw);
 #define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
 
 
@@ -484,14 +413,8 @@ void free_space_show_photomode()
     int fsgr = free_space_32k - (fsg << 15);
     int fsgf = (fsgr * 10) >> 15;
     
-#if defined(CONFIG_7D)    
-    int x = 32+(fsg < 10 ? 24 : fsg < 100 ? 12 : 0);
-    int y = 123;
-    
-	char msg[7];
-	snprintf(msg, sizeof(msg), "%d.%d", fsg, fsgf);
-	int w = bfnt_puts(msg, x, y, COLOR_CYAN, bmp_getpixel(x,y));
-	bmp_printf(FONT(SHADOW_FONT(FONT_MED), COLOR_CYAN, bmp_getpixel(x,y)), x+w+4, y+18, "GB" );
+#if defined(CONFIG_7D)
+    /* moved to flexinfo */
 #else
 
     #if defined(DISPLAY_GB_POS_X) && defined(DISPLAY_GB_POS_Y)
@@ -582,7 +505,7 @@ void time_indicator_show()
     //~ }
 }
 
-void measure_bitrate() // called once / second
+static void measure_bitrate() // called once / second
 {
     static uint32_t prev_bytes_written = 0;
     uint32_t bytes_written = MVR_BYTES_WRITTEN;
@@ -590,20 +513,6 @@ void measure_bitrate() // called once / second
     prev_bytes_written = bytes_written;
     movie_bytes_written_32k = bytes_written >> 15;
     measured_bitrate = (ABS(bytes_delta) / 1024) * 8 / 1024;
-}
-
-static void
-time_indicator_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Time Indicator: %s",
-        time_indicator == 1 ? "Elapsed" :
-        time_indicator == 2 ? "Remain.Card" :
-        time_indicator == 3 ? "Remain.4GB" : "OFF"
-    );
-    menu_draw_icon(x, y, MNI_BOOL_GDR(time_indicator));
 }
 
 /*static void
@@ -618,27 +527,9 @@ bitrate_indicator_display( void * priv, int x, int y, int selected )
     menu_draw_icon(x, y, MNI_BOOL_GDR(bitrate_indicator));
 }*/
 
-CONFIG_INT("buffer.warning.level", buffer_warning_level, 70);
-static void
-buffer_warning_level_display( void * priv, int x, int y, int selected )
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "BuffWarnLevel : %d%%",
-        buffer_warning_level
-    );
-    menu_draw_icon(x, y, MNI_PERCENT, buffer_warning_level);
-}
+static CONFIG_INT("buffer.warning.level", buffer_warning_level, 70);
 
-static void buffer_warning_level_toggle(void* priv, int step)
-{
-    buffer_warning_level += step;
-    if (buffer_warning_level > 100) buffer_warning_level = 30;
-    if (buffer_warning_level < 30) buffer_warning_level = 100;
-}
-
-int warning = 0;
+static int warning = 0;
 int is_mvr_buffer_almost_full() 
 {
     if (recording == 0) return 0;
@@ -699,21 +590,22 @@ void movie_indicators_show()
 
 
 #ifdef FEATURE_NITRATE
-
 static struct menu_entry mov_menus[] = {
     {
         .name = "Bit Rate",
         .priv = &bitrate_mode,
-        .display    = bitrate_print,
+        .update     = bitrate_print,
         .select     = bitrate_toggle,
+        .icon_type  = IT_PERCENT_OFF,
         .help = "Change H.264 bitrate. Be careful, recording may stop!",
-        //.essential = 1,
         .edit_mode = EM_MANY_VALUES,
+        .depends_on = DEP_MOVIE_MODE,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Mode",
                 .priv = &bitrate_mode,
                 .max = 2,
+                .icon_type = IT_DICE_OFF,
                 .select = bitrate_toggle_mode,
                 .choices = (const char *[]) {"FW default", "CBR", "VBR (QScale)"},
                 .help = "Firmware default / CBR (recommended) / VBR (very risky)"
@@ -722,14 +614,20 @@ static struct menu_entry mov_menus[] = {
                 .name = "CBR factor",
                 .priv = &bitrate_factor,
                 .select = bitrate_factor_toggle,
-                .display = cbr_display,
+                .update = cbr_display,
+                .min = 1,
+                .max = 30,
+                .icon_type = IT_PERCENT_OFF, 
                 .help = "1.0x = Canon default, 0.4x = 30minutes, 1.4x = fast card."
             },
             {
                 .name = "QScale",
-                .priv = &qscale_plus16,
+                .priv = &qscale_neg,
                 .select = bitrate_qscale_toggle,
-                .display = qscale_display,
+                .update = qscale_display,
+                .min = -16,
+                .max = 16,
+                .icon_type = IT_PERCENT,
                 .help = "Quality factor (-16 = best quality). Try not to use it!"
             },
             {
@@ -738,38 +636,15 @@ static struct menu_entry mov_menus[] = {
                 .max = 1,
                 .help = "A = average, B = instant bitrate, Q = instant QScale."
             },
-#if defined(CONFIG_7D)
-            {
-                .name = "Video hacks",
-                .priv = &bitrate_cache_hacks,
-                .display = bitrate_cache_hacks_display,
-                .max  = 1,
-                .help = "Enable experimental hacks through cache hacks."
-            },
-            {
-                .name = "Flush rate",
-                .priv = &bitrate_flushing_rate,
-                .display    = bitrate_flushing_rate_display,
-                .min  = 2,
-                .max  = 50,
-                .help = "Flush movie buffer every n frames."
-            },
-            {
-                .name = "GOP size",
-                .priv = &bitrate_gop_size,
-                .display    = bitrate_gop_size_display,
-                .min  = 1,
-                .max  = 100,
-                .help = "Set GOP size to n frames."
-            },
-#endif
             {
                 .name = "BuffWarnLevel",
-                .select     = buffer_warning_level_toggle,
-                .display    = buffer_warning_level_display,
+                .priv = &buffer_warning_level,
+                .min = 30,
+                .max = 100,
+                .unit = UNIT_PERCENT,
                 .help = "ML will pause CPU-intensive graphics if buffer gets full."
             },
-  #ifdef FEATURE_NITRATE_WAV_RECORD
+#ifdef FEATURE_NITRATE_WAV_RECORD
             {
                 .name = "Sound Record",
                 .priv = &cfg_hibr_wav_record,
@@ -778,26 +653,29 @@ static struct menu_entry mov_menus[] = {
                 .choices = (const char *[]) {"Normal", "Separate WAV"},
                 .help = "You may get higher bitrates if you record sound separately.",
             },
-  #endif
+#endif
             MENU_EOL
         },
     },
-    #ifdef FEATURE_REC_INDICATOR
+};
+
+static struct menu_entry mov_tweak_menus[] = {
+#ifdef FEATURE_REC_INDICATOR
     {
         .name = "Time Indicator",
         .priv       = &time_indicator,
-        .select     = menu_quaternary_toggle,
-        .display    = time_indicator_display,
         .help = "Time indicator while recording.",
-        //.essential = 1,
-        //~ .edit_mode = EM_MANY_VALUES,
+        .max = 3,
+        .depends_on = DEP_MOVIE_MODE | DEP_GLOBAL_DRAW,
+        .choices = (const char *[]) {"OFF", "Elapsed", "Remain.Card", "Remain.4GB"}
     },
-    #endif
+#endif
 };
 
-void bitrate_init()
+static void bitrate_init()
 {
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
+    menu_add( "Movie Tweaks", mov_tweak_menus, COUNT(mov_tweak_menus) );
 }
 
 INIT_FUNC(__FILE__, bitrate_init);
@@ -805,52 +683,10 @@ INIT_FUNC(__FILE__, bitrate_init);
 static void
 bitrate_task( void* unused )
 {
-#if defined(CONFIG_7D)
-    int old_bitrate_cache_hacks = 0;
-    int old_bitrate_gop_size = 0;
-    int old_bitrate_flushing_rate = 0;
-#endif
-
     cbr_init();
     
     TASK_LOOP
     {
-#if defined(CONFIG_7D)
-        if(ml_rpc_available())
-        {
-            /* anything changed? */
-            if(bitrate_cache_hacks != old_bitrate_cache_hacks || bitrate_flushing_rate != old_bitrate_flushing_rate || bitrate_gop_size != old_bitrate_gop_size)
-            {
-                if(bitrate_cache_hacks)
-                {
-                    /* patch flushing rate */
-                    cache_fake(CACHE_HACK_FLUSH_RATE_SLAVE, 0xE3A00000 | (bitrate_flushing_rate & 0xFF), TYPE_ICACHE);
-                    ml_rpc_send(ML_RPC_CACHE_HACK, CACHE_HACK_FLUSH_RATE_MASTER, 0xE3A01000 | (bitrate_flushing_rate & 0xFF), TYPE_ICACHE, 2);
-                    
-                    /* set GOP size */
-                    ml_rpc_send(ML_RPC_CACHE_HACK, CACHE_HACK_GOP_SIZE_MASTER, 0xE3A01000 | (bitrate_gop_size & 0xFF), TYPE_ICACHE, 2);
-                    
-                    /* make sure canon sound is disabled */
-                    int mode  = 1;
-                    prop_request_change(PROP_MOVIE_SOUND_RECORD, &mode, 4);
-                    NotifyBox(2000,"Canon sound disabled");
-                }
-                else
-                {
-                    /* undo flushing rate */
-                    cache_fake(CACHE_HACK_FLUSH_RATE_SLAVE, MEM(CACHE_HACK_FLUSH_RATE_SLAVE), TYPE_ICACHE);
-                    ml_rpc_send(ML_RPC_CACHE_HACK_DEL, CACHE_HACK_FLUSH_RATE_MASTER, TYPE_ICACHE, 0, 2);
-                    
-                    /* undo GOP size */
-                    ml_rpc_send(ML_RPC_CACHE_HACK_DEL, CACHE_HACK_GOP_SIZE_MASTER, TYPE_ICACHE, 0, 2);
-                }
-                
-                old_bitrate_cache_hacks = bitrate_cache_hacks;
-                old_bitrate_gop_size = bitrate_gop_size;
-                old_bitrate_flushing_rate = bitrate_flushing_rate;
-            }
-        }
-#endif       
 
         if (recording)
         {

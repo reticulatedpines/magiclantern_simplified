@@ -15,6 +15,9 @@
 /** This camera runs DryOS **/
 //~ #define CONFIG_VXWORKS
 
+/** This camera has a DIGIC V chip */
+#define CONFIG_DIGIC_V
+
 /** This camera has an APS-C sensor */
 #define CONFIG_FULLFRAME
 
@@ -26,7 +29,7 @@
 #define CONFIG_3_2_SCREEN
 
 /** We only have a single LED **/
-#define CONFIG_BLUE_LED
+//~ #define CONFIG_BLUE_LED
 
 /** There is no LCD sensor that turns the display off **/
 //~ #define CONFIG_LCD_SENSOR
@@ -49,20 +52,20 @@
 /** No flip-out display **/
 //~ #define CONFIG_VARIANGLE_DISPLAY
 
-/** Battery does not report exact percentage (I doubt) **/
+/** Battery Displays Percentage **/
 #define CONFIG_BATTERY_INFO
 
 /** We can do bulb exposures (well, I hope) **/
 #define CONFIG_BULB
 
-/** No idea here **/
+/** We have a B mode on the dial. **/
 #define CONFIG_SEPARATE_BULB_MODE
 
 /** We can't control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS
 
-/** No zoom button **/
-#define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
+/** Zoom IN button but no out. **/
+//~ #define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
 /** Well, I hope so **/
@@ -74,13 +77,16 @@
 
 /** We can override ISO on a per-frame basis, by changing FRAME_ISO (e.g. for HDR video or gradual exposure) **/
 /** Well, I hope so **/
-//-#define CONFIG_FRAME_ISO_OVERRIDE
+#define CONFIG_FRAME_ISO_OVERRIDE
 
 /** But we can't override the digital ISO component via FRAME_ISO **/
 #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
 
-/** We can't change ExpSim from ML (at least not yet) **/
-//~ #define CONFIG_EXPSIM
+/** We can also override shutter on a per-frame basis */
+#define CONFIG_FRAME_SHUTTER_OVERRIDE
+
+/** ExpSim works, changes in the canon menu too. **/
+ #define CONFIG_EXPSIM
 
 /** We can;t playback sounds via ASIF DMA (yet) **/
 //~ #define CONFIG_BEEP
@@ -92,7 +98,7 @@
 #define CONFIG_RESTORE_AFTER_FORMAT
 
 /** We don't know how to use DMA_MEMCPY (yet) **/
-//~ #define CONFIG_DMA_MEMCPY
+#define CONFIG_DMA_MEMCPY
 
 /** We shouldn't warn the user if movie exposure is Auto **/
 //~ #define CONFIG_MOVIE_AE_WARNING
@@ -105,3 +111,15 @@
 
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
+
+/** FPS override: we can only change timer A */
+#define CONFIG_FPS_TIMER_A_ONLY
+
+/** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
+#define CONFIG_FPS_AGGRESSIVE_UPDATE
+
+/** We can record movies in regular photo modes - M, P, Tv, Av... */
+#define CONFIG_NO_DEDICATED_MOVIE_MODE
+
+/** You can configure separate AFMA values for both wide and tele ends */
+#define CONFIG_AFMA_WIDE_TELE

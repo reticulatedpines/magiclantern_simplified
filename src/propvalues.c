@@ -32,19 +32,20 @@ volatile PROP_INT(PROP_BURST_COUNT, burst_count);
 volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
 //~ int battery_level_bars = 0;
 PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
+volatile PROP_INT(PROP_DATE_FORMAT, date_format);
 
-#ifndef CONFIG_5D2
-volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
-#else
+#ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
 int ae_mode_movie = 1;
+#else
+volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
 #endif
 
 volatile int shooting_mode;
-PROP_HANDLER(PROP_SHOOTING_MODE)
+PROP_HANDLER(PROP_SHOOTING_MODE_2)
 {
     shooting_mode = buf[0];
 
-    #ifdef CONFIG_5D2
+    #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
     ae_mode_movie = shooting_mode == SHOOTMODE_M;
     #endif
 }
@@ -58,16 +59,14 @@ PROP_HANDLER(PROP_DOF_PREVIEW_MAYBE) // len=2
 volatile int lv = 0;
 volatile int lv_paused = 0; // not a property, but related
 
-bool is_movie_mode()
+bool FAST is_movie_mode()
 {
-    #if defined(CONFIG_50D) || defined(CONFIG_5D2)
+    #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
     return lv && lv_movie_select == LVMS_ENABLE_MOVIE
-            #if !defined(CONFIG_50D)
-            && expsim == 2  // movie enabled, but photo display is considered photo mode
+            #ifdef CONFIG_5D2
+            && get_expsim() == 2  // movie enabled, but photo display is considered photo mode
             #endif
         ;
-    #elif defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
-    return lv_movie_select == LVMS_ENABLE_MOVIE;
     #else
     return shooting_mode == SHOOTMODE_MOVIE;
     #endif
@@ -135,9 +134,10 @@ volatile PROP_INT(PROP_SHOOTING_TYPE, shooting_type);
 
 int lv_disp_mode;
 
+#ifndef CONFIG_EOSM //~ we update lv_disp_mode from 
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3) || defined(CONFIG_1100D) || defined(CONFIG_50D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3) || defined(CONFIG_1100D) || defined(CONFIG_50D) || defined(CONFIG_650D) || defined(CONFIG_6D)
     lv_disp_mode = (uint8_t)buf[1];
     #else
     lv_disp_mode = (uint8_t)buf[0];
@@ -148,8 +148,9 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
     #endif
 
 }
+#endif
 
-#if defined(CONFIG_NO_AUTO_ISO)
+#if defined(CONFIG_NO_AUTO_ISO_LIMITS)
 int auto_iso_range = 0x4868; // no auto ISO in Canon menus; considering it fixed 100-1600.
 #else
 volatile PROP_INT(PROP_AUTO_ISO_RANGE, auto_iso_range);

@@ -100,3 +100,8 @@
 /* we can use virtual keyboard here */
 //#define CONFIG_VKBD_IMPLEMENTED
 
+/** We can record movies in regular photo modes - M, P, Tv, Av... */
+#define CONFIG_NO_DEDICATED_MOVIE_MODE
+
+/** Advanced EXMEM stubs are known and can be used */
+#define CONFIG_FULL_EXMEM_SUPPORT

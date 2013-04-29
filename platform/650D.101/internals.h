@@ -4,7 +4,7 @@
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
 /** The 650D port is very young, so we don't enable these for now. **/
-//#define CONFIG_PROP_REQUEST_CHANGE
+//~ #define CONFIG_PROP_REQUEST_CHANGE
 
 /** 
  * State object hooks are pieces of code that run in Canon tasks (state objects). See state-object.c . 
@@ -14,6 +14,9 @@
 
 /** This camera runs DryOS **/
 //~ #define CONFIG_VXWORKS
+
+/** This camera has a DIGIC V chip */
+#define CONFIG_DIGIC_V
 
 /** This camera has an APS-C sensor */
 //~ #define CONFIG_FULLFRAME
@@ -34,8 +37,8 @@
 /** This camera has a mirror lockup feature **/
 #define CONFIG_MLU
 
-/** This camera reports focus info in LiveView **/
-#define CONFIG_LV_FOCUS_INFO
+/** This camera doesn't report focus info in LiveView **/
+//~ #define CONFIG_LV_FOCUS_INFO
 
 /** No level sensor I guess **/
 //~ #define CONFIG_ELECTRONIC_LEVEL
@@ -67,11 +70,12 @@
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
 /** Well, I hope so **/
+/** ... users say it's not working, e.g. post #591 */
 #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
-#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
+//~ #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
 /** Therefore, we can implement display filters (features that alter the LiveView image in real-time) **/
-#define CONFIG_DISPLAY_FILTERS
+//~ #define CONFIG_DISPLAY_FILTERS
 
 /** We can override ISO on a per-frame basis, by changing FRAME_ISO (e.g. for HDR video or gradual exposure) **/
 /** Well, I hope so **/
@@ -92,7 +96,7 @@
 /** We can restore ML files after formatting the card in the camera **/
 #define CONFIG_RESTORE_AFTER_FORMAT
 
-/** We don't know how to use DMA_MEMCPY (yet) **/
+/** We can use DMA_MEMCPY **/
 #define CONFIG_DMA_MEMCPY
 
 /** We should warn the user if movie exposure is Auto, otherwise he may report it as a bug **/
@@ -112,3 +116,15 @@
 
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
+
+/** FPS override: we can only change timer A */
+//~ #define CONFIG_FPS_TIMER_A_ONLY
+
+/** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
+//~ #define CONFIG_FPS_AGGRESSIVE_UPDATE
+
+/** FPS override: change timers from EVF state */
+#define CONFIG_FPS_UPDATE_FROM_EVF_STATE
+
+/** We can record movies in regular photo modes - M, P, Tv, Av... */
+#define CONFIG_NO_DEDICATED_MOVIE_MODE

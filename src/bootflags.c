@@ -7,7 +7,7 @@
 #include "config.h"
 
 /* CF/SD device structure. we have two types which have different parameter order and little differences in behavior */
-#if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_40D) && !defined(CONFIG_650D)
+#if !defined(CONFIG_500D) && !defined(CONFIG_50D) && !defined(CONFIG_5D2) && !defined(CONFIG_40D)
 struct cf_device
 {
     /* type b always reads from raw sectors */
@@ -106,19 +106,6 @@ bootflag_display(
 }
 #endif
 
-
-// gcc mempcy has odd alignment issues?
-void
-my_memcpy(
-    void *       dest,
-    const void *     src,
-    size_t          len
-)
-{
-    while( len-- > 0 )
-        *(uint8_t*)dest++ = *(const uint8_t*)src++;
-}
-
 extern struct cf_device * const cf_device[];
 extern struct cf_device * const sd_device[];
 
@@ -192,8 +179,8 @@ bootflag_write_bootblock( void )
         int rc = dev->read_block( dev, block, p.sectors_before_partition, 1 );
         int off1 = p.type == 6 ? 0x2b : 0x47;
         int off2 = p.type == 6 ? 0x40 : 0x5c;
-        my_memcpy( block + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
-        my_memcpy( block + off2, (uint8_t*) "BOOTDISK", 0x8 );
+        memcpy( block + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
+        memcpy( block + off2, (uint8_t*) "BOOTDISK", 0x8 );
         //~ NotifyBox(1000, "writing");
         rc = dev->write_block( dev, block, p.sectors_before_partition, 1 );
         if (rc != 1)
@@ -210,10 +197,10 @@ bootflag_write_bootblock( void )
 
         int off1 = 130;
         int off2 = 122;
-        my_memcpy( buffer + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
-        my_memcpy( buffer + off2, (uint8_t*) "BOOTDISK", 0x8 );
-        my_memcpy( buffer + 512*12 + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
-        my_memcpy( buffer + 512*12 + off2, (uint8_t*) "BOOTDISK", 0x8 );
+        memcpy( buffer + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
+        memcpy( buffer + off2, (uint8_t*) "BOOTDISK", 0x8 );
+        memcpy( buffer + 512*12 + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
+        memcpy( buffer + 512*12 + off2, (uint8_t*) "BOOTDISK", 0x8 );
         exfat_sum((uint32_t*)(buffer));
         exfat_sum((uint32_t*)(buffer+512*12));
 
@@ -256,15 +243,15 @@ bootflag_write_bootblock( void )
     if( strncmp((const char*) block + 0x52, "FAT32", 5) == 0 ) //check if this card is FAT32
     {
         dev->read_block( dev, 0, 1, block );
-        my_memcpy( block + 0x47, (uint8_t*) "EOS_DEVELOP", 0xB );
-        my_memcpy( block + 0x5C, (uint8_t*) "BOOTDISK", 0xB );
+        memcpy( block + 0x47, (uint8_t*) "EOS_DEVELOP", 0xB );
+        memcpy( block + 0x5C, (uint8_t*) "BOOTDISK", 0xB );
         dev->write_block( dev, 0, 1, block );
     }
     else if( strncmp((const char*) block + 0x36, "FAT16", 5) == 0 ) //check if this card is FAT16
     {
         dev->read_block( dev, 0, 1, block );
-        my_memcpy( block + 0x2B, (uint8_t*) "EOS_DEVELOP", 0xB );
-        my_memcpy( block + 0x40, (uint8_t*) "BOOTDISK", 0xB );
+        memcpy( block + 0x2B, (uint8_t*) "EOS_DEVELOP", 0xB );
+        memcpy( block + 0x40, (uint8_t*) "BOOTDISK", 0xB );
         dev->write_block( dev, 0, 1, block );
     }
     else if( strncmp((const char*) block + 0x3, "EXFAT", 5) == 0 ) //check if this card is EXFAT
@@ -273,10 +260,10 @@ bootflag_write_bootblock( void )
         dev->read_block( dev, 0, 24, buffer );
         int off1 = 130;
         int off2 = 122;
-        my_memcpy( buffer + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
-        my_memcpy( buffer + off2, (uint8_t*) "BOOTDISK", 0x8 );
-        my_memcpy( buffer + 512*12 + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
-        my_memcpy( buffer + 512*12 + off2, (uint8_t*) "BOOTDISK", 0x8 );
+        memcpy( buffer + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
+        memcpy( buffer + off2, (uint8_t*) "BOOTDISK", 0x8 );
+        memcpy( buffer + 512*12 + off1, (uint8_t*) "EOS_DEVELOP", 0xB );
+        memcpy( buffer + 512*12 + off2, (uint8_t*) "BOOTDISK", 0x8 );
         exfat_sum((uint32_t*)(buffer));
         exfat_sum((uint32_t*)(buffer+512*12));
         dev->write_block( dev, 0, 24, buffer );

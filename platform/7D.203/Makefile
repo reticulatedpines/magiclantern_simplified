@@ -10,7 +10,7 @@ UPDATE_NAME=7D_203.fir
 ML_VERSION=unified1 
 
 # compile position independent (experimental)
-CONFIG_PIC=y
+CONFIG_PIC=n
 
 #used in CFLAGS
 PLATFORM_INC=.
@@ -28,6 +28,7 @@ ML_OBJS-y = \
 	version.o \
 	ml_rpc.o \
 	bmp.o \
+	video_hacks.o \
 	font-dyn.o \
 	config.o \
 	menu.o \
@@ -48,7 +49,6 @@ ML_OBJS-y = \
 	shoot.o \
 	chdk-gui_draw.o \
 	movtweaks.o \
-	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
 	af_patterns.o \
@@ -67,13 +67,13 @@ ML_OBJS-y = \
 	tasks.o \
 	tskmon.o \
 	beep.o \
-	ptp.o \
-	ptp-ml.o \
-	ptp-chdk.o \
 	ptpbuf.o \
 	exmem.o \
 	vsync-lite.o \
+	battery.o \
 	ph_info_disp.o \
+	flexinfo.o \
+	afma.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
@@ -83,7 +83,7 @@ include ../../Makefile.inc
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR     = 0xF8010000
-RESTARTSTART    = 0x00C80100
+RESTARTSTART    = 0x1F800100
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120
 

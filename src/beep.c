@@ -1,10 +1,11 @@
 #include "dryos.h"
 #include "menu.h"
 #include "bmp.h"
+#include "math.h"
 #include "config.h"
-#include "cordic-16bit.h"
 #define _beep_c_
 #include "property.h"
+#include "cache_hacks.h"
 
 extern int gui_state;
 extern int file_number;
@@ -16,20 +17,23 @@ int beep_playing = 0;
 #define BEEP_LONG -1
 #define BEEP_SHORT 0
 #define BEEP_WAV -2
+#define BEEP_CUSTOM_LEN_FREQ -3
+
 // positive values: X beeps
 static int beep_type = 0;
 static int record_flag = 0;
 
+static int beep_custom_duration;
+static int beep_custom_frequency;
+
 CONFIG_INT("beep.enabled", beep_enabled, 1);
-CONFIG_INT("beep.volume", beep_volume, 3);
-CONFIG_INT("beep.freq.idx", beep_freq_idx, 11); // 1 KHz
-CONFIG_INT("beep.wavetype", beep_wavetype, 0); // square, sine, white noise
+static CONFIG_INT("beep.volume", beep_volume, 3);
+static CONFIG_INT("beep.freq.idx", beep_freq_idx, 11); // 1 KHz
+static CONFIG_INT("beep.wavetype", beep_wavetype, 0); // square, sine, white noise
 
 static int beep_freq_values[] = {55, 110, 220, 262, 294, 330, 349, 392, 440, 494, 880, 1000, 1760, 2000, 3520, 5000, 12000};
 
-void generate_beep_tone(int16_t* buf, int N);
-
-static int16_t beep_buf[5000];
+static void generate_beep_tone(int16_t* buf, int N, int freq, int wavetype);
 
 static void asif_stopped_cbr()
 {
@@ -41,29 +45,29 @@ static void asif_stop_cbr()
     StopASIFDMADAC(asif_stopped_cbr, 0);
     audio_configure(1);
 }
-void play_beep(int16_t* buf, int N)
+static void play_beep(int16_t* buf, int N)
 {
     beep_playing = 1;
     SetSamplingRate(48000, 1);
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
     PowerAudioOutput();
     audio_configure(1);
-    SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
+    SetAudioVolumeOut(COERCE(beep_volume, 1, ASIF_MAX_VOL));
     StartASIFDMADAC(buf, N, 0, 0, asif_stop_cbr, 0);
 }
 
-void play_beep_ex(int16_t* buf, int N, int sample_rate)
+static void play_beep_ex(int16_t* buf, int N, int sample_rate)
 {
     beep_playing = 1;
     SetSamplingRate(sample_rate, 1);
     MEM(0xC0920210) = 4; // SetASIFDACModeSingleINT16
     PowerAudioOutput();
     audio_configure(1);
-    SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
+    SetAudioVolumeOut(COERCE(beep_volume, 1, ASIF_MAX_VOL));
     StartASIFDMADAC(buf, N, 0, 0, asif_stop_cbr, 0);
 }
 
-void normalize_audio(int16_t* buf, int N)
+static void normalize_audio(int16_t* buf, int N)
 {
     int m = 0;
     for (int i = 0; i < N/2; i++)
@@ -118,7 +122,7 @@ static int wav_find_chunk(uint8_t* buf, int size, uint32_t chunk_code)
     return offset;
 }
 
-void WAV_PlaySmall(char* filename)
+static void WAV_PlaySmall(char* filename)
 {
     int size = 0;
     uint8_t* buf = (uint8_t*)read_entire_file(filename, &size);
@@ -174,14 +178,14 @@ static void asif_continue_cbr()
     wav_ibuf = !wav_ibuf;
 }
 
-void WAV_Play(char* filename)
+static void WAV_Play(char* filename)
 {
     uint8_t* buf1 = (uint8_t*)(wav_buf[0]);
     uint8_t* buf2 = (uint8_t*)(wav_buf[1]);
     if (!buf1) return;
     if (!buf2) return;
 
-    unsigned size;
+    uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 ) return;
 
     if( file != INVALID_PTR ) return;
@@ -222,7 +226,7 @@ void WAV_Play(char* filename)
 #else
     PowerAudioOutput();
     audio_configure(1);
-    SetAudioVolumeOut(COERCE(beep_volume, 1, 5));
+    SetAudioVolumeOut(COERCE(beep_volume, 1, ASIF_MAX_VOL));
     
     StartASIFDMADAC(data, N1, buf2, N2, asif_continue_cbr, 0);
 #endif
@@ -250,7 +254,7 @@ static void record_show_progress()
     );
 }
 
-void WAV_RecordSmall(char* filename, int duration, int show_progress)
+static void WAV_RecordSmall(char* filename, int duration, int show_progress)
 {
     int N = 48000 * 2 * duration;
     uint8_t* wav_buf = alloc_dma_memory(sizeof(wav_header) + N);
@@ -262,7 +266,7 @@ void WAV_RecordSmall(char* filename, int duration, int show_progress)
 
     int16_t* buf = (int16_t*)(wav_buf + sizeof(wav_header));
     
-    my_memcpy(wav_buf, wav_header, sizeof(wav_header));
+    memcpy(wav_buf, wav_header, sizeof(wav_header));
     wav_set_size(wav_buf, N);
 
     info_led_on();
@@ -315,7 +319,7 @@ static void audio_stop_recording()
 }
 #endif
 
-int audio_stop_rec_or_play() // true if it stopped anything
+static int audio_stop_rec_or_play() // true if it stopped anything
 {
     #ifndef FEATURE_WAV_RECORDING
     int audio_recording = 0;
@@ -335,7 +339,7 @@ typedef struct _write_q {
 
 #define QBUF_SIZE 4
 #define QBUF_MAX 20
-WRITE_Q *rootq;
+static WRITE_Q *rootq;
 
 static void add_write_q(void *buf){
     WRITE_Q *tmpq = rootq;
@@ -359,7 +363,7 @@ static void add_write_q(void *buf){
         memcpy(tmpq->buf + offset,buf,WAV_BUF_SIZE);
         tmpq->multiplex++;
     }else{
-        newq = AllocateMemory(sizeof(WRITE_Q));
+        newq = SmallAlloc(sizeof(WRITE_Q));
         memset(newq,0,sizeof(WRITE_Q));
         newq->buf = alloc_dma_memory(WAV_BUF_SIZE*QBUF_SIZE);
         memcpy(newq->buf ,buf,WAV_BUF_SIZE);
@@ -378,7 +382,7 @@ static void write_q_dump(){
         FIO_WriteFile(file, UNCACHEABLE(tmpq->buf), WAV_BUF_SIZE * tmpq->multiplex);
         free_dma_memory(tmpq->buf);
         prevq->next = tmpq->next;
-        FreeMemory(tmpq);
+        SmallFree(tmpq);
         tmpq = prevq;
     }
 }
@@ -398,6 +402,10 @@ static void asif_rec_continue_cbr()
         file = INVALID_PTR;
         audio_recording = 0;
         info_led_off();
+#ifdef CONFIG_6D
+		void StopASIFDMAADC();
+		StopASIFDMAADC(asif_rec_stop_cbr, 0);
+#endif
         return;
     }
     SetNextASIFADCBuffer(buf, WAV_BUF_SIZE);
@@ -421,11 +429,12 @@ void WAV_Record(char* filename, int show_progress)
 
     SetSamplingRate(48000, 1);
     MEM(0xC092011C) = 4; // SetASIFADCModeSingleINT16
-
-    wav_ibuf = 0;        
     
-#if defined(CONFIG_7D)
+    wav_ibuf = 0;
+    
+#if defined(CONFIG_7D) || defined(CONFIG_6D)
     /* experimental for 7D now, has to be made generic */
+	/* Enable audio Device */
     void SoundDevActiveIn (uint32_t);
     SoundDevActiveIn(0);
 #endif
@@ -436,8 +445,9 @@ void WAV_Record(char* filename, int show_progress)
         msleep(100);
         if (show_progress) record_show_progress();
     }
-#if defined(CONFIG_7D)
+#if defined(CONFIG_7D) || defined(CONFIG_6D)
     /* experimental for 7D now, has to be made generic */
+	/* Disable Audio */
     void SoundDevShutDownIn();
     SoundDevShutDownIn();
 #endif
@@ -445,78 +455,47 @@ void WAV_Record(char* filename, int show_progress)
     info_led_off();
 }
 
-static void
-record_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(record_display)
 {
     if (audio_recording)
     {
         int s = get_seconds_clock() - audio_recording_start_time;
-        bmp_printf(
-            MENU_FONT,
-            x, y,
-            "Recording... %02d:%02d", s/60, s%60
-        );
-        menu_draw_icon(x, y, MNI_WARNING, 0);
+        MENU_SET_NAME("Recording...");
+        MENU_SET_VALUE("%02d:%02d", s/60, s%60);
+        MENU_SET_ICON(MNI_RECORD, 0);
     }
     else
     {
-        bmp_printf(
-            MENU_FONT,
-            x, y,
-            "Record new audio clip"
-        );
-        menu_draw_icon(x, y, MNI_ACTION, 0);
+        MENU_SET_NAME("Record new audio clip");
+        MENU_SET_ICON(MNI_ACTION, 0);
     }
 }
 
 #endif
 
-static void cordic_ex(int theta, int* s, int* c, int n)
+ void generate_beep_tone(int16_t* buf, int N, int freq, int wavetype)
 {
-    theta = mod(theta + 2*half_pi, 4*half_pi) - 2*half_pi; // range: -pi...pi
-    if (theta < -half_pi || theta > half_pi)
-    {
-        if (theta < 0)
-            cordic(theta + 2*half_pi, s, c, n);
-        else
-            cordic(theta - 2*half_pi, s, c, n);
-        *s = -(*s);
-        *c = -(*c);
-    }
-    else
-    {
-        cordic(theta, s, c, n);
-    }
-}
-
- void generate_beep_tone(int16_t* buf, int N)
-{
-    int beep_freq = beep_freq_values[beep_freq_idx];
-    
     // for sine wave: 1 hz => t = i * 2*pi*MUL / 48000
     int twopi = 102944;
-    float factor = (int)roundf((float)twopi / 48000.0f * beep_freq);
+    float factor = (int)roundf((float)twopi / 48000.0f * freq);
     
     for (int i = 0; i < N; i++)
     {
-        switch(beep_wavetype)
+        switch(wavetype)
         {
             case 0: // square
             {
-                int factor = 48000 / beep_freq / 2;
+                int factor = 48000 / freq / 2;
                 buf[i] = ((i/factor) % 2) ? 32767 : -32767;
                 break;
             }
             case 1: // sine
             {
                 int t = (int)(factor * i);
-                int s, c;
-                cordic_ex(t % twopi, &s, &c, 16);
+                int ang = t % twopi;
+                #define MUL 16384
+                int s = sinf((float)ang / MUL) * MUL;
+
                 buf[i] = COERCE(s*2, -32767, 32767);
                 break;
             }
@@ -531,7 +510,7 @@ static void cordic_ex(int theta, int* s, int* c, int n)
 
 static struct semaphore * beep_sem;
 
-void play_test_tone()
+static void play_test_tone()
 {
     if (audio_stop_rec_or_play()) return;
 #ifdef CONFIG_600D
@@ -552,6 +531,8 @@ void unsafe_beep()
         return;
     }
 
+    while (beep_playing) msleep(20);
+
     if (audio_stop_rec_or_play()) return;
 #ifdef CONFIG_600D
     if (AUDIO_MONITORING_HEADPHONES_CONNECTED){
@@ -565,13 +546,15 @@ void unsafe_beep()
 
 void beep_times(int times)
 {
-    times = COERCE(times, 1, 10);
-    
     if (!beep_enabled || recording)
     {
         info_led_blink(times,50,50); // silent warning
         return;
     }
+
+    while (beep_playing) msleep(20);
+
+    times = COERCE(times, 1, 100);
 
     if (audio_stop_rec_or_play()) return;
 
@@ -585,9 +568,27 @@ void beep()
         unsafe_beep();
 }
 
-void Beep()
+void beep_custom(int duration, int frequency, int wait)
 {
-    beep();
+    if (!beep_enabled || recording)
+    {
+        info_led_blink(1, duration, 10); // silent warning
+        return;
+    }
+
+    if (wait)
+        while (beep_playing) msleep(20);
+    
+    beep_type = BEEP_CUSTOM_LEN_FREQ;
+    beep_custom_duration = duration;
+    beep_custom_frequency = frequency;
+    give_semaphore(beep_sem);
+
+    if (wait)
+    {
+        msleep(50);
+        while (beep_playing) msleep(20);
+    }
 }
 
 #ifdef FEATURE_WAV_RECORDING
@@ -636,36 +637,58 @@ static void beep_task()
         {
             info_led_on();
             int N = 48000*5;
-            int16_t* long_buf = AllocateMemory(N*2);
-            if (!long_buf) { N = 48000; long_buf = AllocateMemory(N*2); } // not enough RAM, try a shorter tone
-            if (!long_buf)
-            {
-                generate_beep_tone(beep_buf, 5000);  // really low RAM, do a really short tone
-                play_beep(beep_buf, 5000);
-                continue;
-            }
-            generate_beep_tone(long_buf, N);
-            play_beep(long_buf, N);
+            int16_t* beep_buf = SmallAlloc(N*2);
+            if (!beep_buf) { N = 48000; beep_buf = SmallAlloc(N*2); } // not enough RAM, try a shorter tone
+            if (!beep_buf) { N = 10000; beep_buf = SmallAlloc(N*2); } // even shorter
+            if (!beep_buf) continue; // give up
+            generate_beep_tone(beep_buf, N, beep_freq_values[beep_freq_idx], beep_wavetype);
+            play_beep(beep_buf, N);
             while (beep_playing) msleep(100);
-            FreeMemory(long_buf);
+            SmallFree(beep_buf);
             info_led_off();
         }
         else if (beep_type == BEEP_SHORT)
         {
-            generate_beep_tone(beep_buf, 5000);
+            int N = 5000;
+            int16_t* beep_buf = SmallAlloc(N*2);
+            if (!beep_buf) continue; // give up
+            generate_beep_tone(beep_buf, 5000, beep_freq_values[beep_freq_idx], beep_wavetype);
             play_beep(beep_buf, 5000);
             while (beep_playing) msleep(20);
+            SmallFree(beep_buf);
+        }
+        else if (beep_type == BEEP_CUSTOM_LEN_FREQ)
+        {
+            int N = beep_custom_duration * 48;
+            int16_t* beep_buf = SmallAlloc(N*2);
+            if (!beep_buf) continue; // give up
+            generate_beep_tone(beep_buf, N, beep_custom_frequency, 0);
+            play_beep(beep_buf, N);
+            while (beep_playing) msleep(20);
+            SmallFree(beep_buf);
         }
         else if (beep_type > 0) // N beeps
         {
-            int N = beep_type;
-            generate_beep_tone(beep_buf, 5000);
-            for (int i = 0; i < N; i++)
+            int times = beep_type;
+            int N = 10000;
+            int16_t* beep_buf = SmallAlloc(N*2);
+            if (!beep_buf) continue;
+            generate_beep_tone(beep_buf, N, beep_freq_values[beep_freq_idx], beep_wavetype);
+            
+            for (int i = 0; i < times/10; i++)
+            {
+                play_beep(beep_buf, 10000);
+                while (beep_playing) msleep(100);
+                msleep(500);
+            }
+            for (int i = 0; i < times%10; i++)
             {
                 play_beep(beep_buf, 3000);
                 while (beep_playing) msleep(20);
                 msleep(120);
             }
+            
+            SmallFree(beep_buf);
         }
         msleep(100);
         audio_configure(1);
@@ -690,7 +713,7 @@ static int find_wav(int * index, char* fn)
     }
 
     do {
-        if (file.mode & 0x10) continue; // is a directory
+        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
         int n = strlen(file.name);
         if ((n > 4) && (streq(file.name + n - 4, ".WAV")))
             N++;
@@ -716,7 +739,7 @@ static int find_wav(int * index, char* fn)
     int k = 0;
     int found = 0;
     do {
-        if (file.mode & 0x10) continue; // is a directory
+        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
         int n = strlen(file.name);
         if ((n > 4) && (streq(file.name + n - 4, ".WAV")))
         {
@@ -734,7 +757,7 @@ static int find_wav(int * index, char* fn)
 
 static char current_wav_filename[100];
 
-void find_next_wav(void* priv, int dir)
+static void find_next_wav(void* priv, int dir)
 {
     static int index = -1;
 
@@ -750,22 +773,14 @@ void find_next_wav(void* priv, int dir)
     }
 }
 
-static void
-filename_display(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
+static MENU_UPDATE_FUNC(filename_display)
 {
     // display only the filename, without the path
     char* fn = current_wav_filename + strlen(current_wav_filename) - 1;
     while (fn > current_wav_filename && *fn != '/') fn--; if (*fn == '/') fn++;
     
-    bmp_printf(
-        MENU_FONT,
-        x, y,
-        "File name     : %s", fn
+    MENU_SET_VALUE(
+        fn
     );
 }
 
@@ -810,7 +825,7 @@ static char* wav_get_new_filename()
     for ( ; wav_number < 10000; wav_number++)
     {
         snprintf(imgname, sizeof(imgname), "%s/SND_%04d.WAV", get_dcim_dir(), wav_number);
-        unsigned size;
+        uint32_t size;
         if( FIO_GetFileSize( imgname, &size ) != 0 ) break;
         if (size == 0) break;
     }
@@ -870,7 +885,7 @@ static void delete_file(void* priv, int delta)
 }
 #endif
 
-static CONFIG_INT("voice.tags", voice_tags, 0);
+CONFIG_INT("voice.tags", voice_tags, 0); // also seen in shoot.c
 
 #ifdef FEATURE_VOICE_TAGS
     #ifndef FEATURE_WAV_RECORDING
@@ -907,13 +922,29 @@ PROP_HANDLER( PROP_MVR_REC_START )
 }
 #endif
 
+static MENU_UPDATE_FUNC(beep_update)
+{
+    MENU_SET_ENABLED(beep_enabled);
+}
+
 static struct menu_entry beep_menus[] = {
-    #ifdef FEATURE_BEEP
+#ifdef FEATURE_BEEP
+#if !defined(CONFIG_7D)
     {
-        .name = "Beep and test tones...",
+        .name = "Speaker Volume",
+        .priv       = &beep_volume,
+        .min = 1,
+        .max = ASIF_MAX_VOL,
+        .icon_type = IT_PERCENT,
+        .help = "Volume for ML beeps and WAV playback (1-5).",
+    },
+#endif
+    {
+        .name = "Beep, test tones",
         .select = menu_open_submenu,
+        .update = beep_update,
+        .submenu_width = 680,
         .help = "Configure ML beeps and play test tones (440Hz, 1kHz...)",
-        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Enable Beeps",
@@ -921,17 +952,6 @@ static struct menu_entry beep_menus[] = {
                 .max = 1,
                 .help = "Enable beep signal for misc events in ML.",
             },
-#if !defined(CONFIG_7D)
-            {
-                .name = "Beep Volume",
-                .priv       = &beep_volume,
-                .min = 1,
-                .max = 5,
-                .icon_type = IT_PERCENT,
-                //~ .select = beep_volume_toggle,
-                .help = "Volume for ML beep and test tones (1-5).",
-            },
-#endif
             {
                 .name = "Tone Waveform", 
                 .priv = &beep_wavetype,
@@ -950,14 +970,14 @@ static struct menu_entry beep_menus[] = {
             },
             {
                 .name = "Play test tone",
-                //~ .display = play_test_tone_print,
+                //~ .update = play_test_tone_print,
                 .icon_type = IT_ACTION,
                 .select = play_test_tone,
                 .help = "Play a 5-second test tone with current settings.",
             },
             {
                 .name = "Test beep sound",
-                //~ .display = play_test_tone_print,
+                //~ .update = play_test_tone_print,
                 .icon_type = IT_ACTION,
                 .select = unsafe_beep,
                 .help = "Play a short beep which will be used for ML events.",
@@ -968,22 +988,21 @@ static struct menu_entry beep_menus[] = {
     #endif
     #ifdef FEATURE_WAV_RECORDING
     {
-        .name = "Sound recorder...",
+        .name = "Sound Recorder",
         .select = menu_open_submenu,
-        .help = "Record short audio clips, add voice tags to pictures...",
-        .submenu_width = 700,
+        .help = "Record and playback short audio clips (WAV).",
         .children =  (struct menu_entry[]) {
             {
-                .name = "Record",
-                .display = record_display,
-                .select = record_start,
-                .help = "Press SET to start or stop recording.",
-            },
-            {
                 .name = "File name",
-                .display = filename_display,
+                .update = filename_display,
                 .select = find_next_wav,
                 .help = "Select a file name for playback.",
+            },
+            {
+                .name = "Record",
+                .update = record_display,
+                .select = record_start,
+                .help = "Press SET to start or stop recording.",
             },
             {
                 .name = "Playback selected file",
@@ -995,19 +1014,12 @@ static struct menu_entry beep_menus[] = {
                 .select = delete_file,
                 .help = "Be careful :)",
             },
-            #ifdef FEATURE_VOICE_TAGS
-            {
-                .name = "Voice tags", 
-                .priv = &voice_tags, 
-                .max = 1,
-                .help = "After you take a picture, press SET to add a voice tag.",
-            },
-            #endif
             MENU_EOL,
         }
     },
     #endif
 };
+
 
 #if 0 // wtf is that?! start recording at startup?!
 #ifdef CONFIG_600D
@@ -1029,11 +1041,19 @@ void Load_ASIFDMAADC(){
 
 static void beep_init()
 {
+#ifdef CONFIG_6D
+    cache_fake(HIJACK_ASIF_DAC_TIMEOUT, NOP_INSTR, TYPE_ICACHE);    //~ FF11CD44 Assert This. Does it not stop properly?
+    cache_fake(HIJACK_ASIF_KILL_SEM_WAIT, NOP_INSTR, TYPE_ICACHE);    //~ Kill Wait for Semaphore
+    cache_fake(HIJACK_ASIF_ADC_TIMEOUT, NOP_INSTR, TYPE_ICACHE);    //~ FF11C99C ADC ASSERT
+    cache_fake(HIJACK_ASIF_KILL_SEM_WAIT2, NOP_INSTR, TYPE_ICACHE);    //~ FF11C910 ADC Semaphore
+    cache_fake(HIJACK_ASIF_CONT_JUMP_ADDR, HIJACK_ASIF_CONT_JUMP_INSTR, TYPE_ICACHE);    //~ FF11C910 ADC Continue Jump Assert, change BEQ to B
+#endif
+
 #ifdef FEATURE_WAV_RECORDING
     wav_buf[0] = alloc_dma_memory(WAV_BUF_SIZE);
     wav_buf[1] = alloc_dma_memory(WAV_BUF_SIZE);
     
-    rootq = AllocateMemory(sizeof(WRITE_Q));
+    rootq = SmallAlloc(sizeof(WRITE_Q));
     memset(rootq,0,sizeof(WRITE_Q));
     rootq->multiplex=100;
 #endif
@@ -1054,10 +1074,10 @@ INIT_FUNC("beep.init", beep_init);
 
 #else // beep not working, keep dummy stubs
 
-    void unsafe_beep(){}
-    void beep(){}
-    void Beep(){}
-    void beep_times(int times){};
-    int beep_enabled = 0;
+void unsafe_beep(){}
+void beep(){}
+void Beep(){}
+void beep_times(int times){};
+int beep_enabled = 0;
 #endif
 

@@ -24,7 +24,7 @@
  * Most of the stuff that follows is taken directly from the EOSM or 5D3
  */
     // no idea if it's overflowing, need to check experimentally 
-    //~ #define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3
+#define ARMLIB_OVERFLOWING_BUFFER 0x4A824 // in AJ_armlib_setup_related3
 
 #define DRYOS_ASSERT_HANDLER 0x233B8 // dec TH_assert or assert_0
 
@@ -37,7 +37,7 @@
 
 // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
 // stateobj_disp[1]
-#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x3EAB0+0x11c))
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x23C10+0x11c))
 
 
 #define EVF_STATEOBJ (*(struct state_object**)0x25B00)
@@ -72,7 +72,7 @@
 
 #define MVR_516_STRUCT (*(void**)0x2372C) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
-#define MEM(x) (*(int*)(x))
+#define MEM(x) (*(volatile int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
@@ -98,7 +98,7 @@
     #define DLG_FOCUS_MODE 0x123456
 
 /* these don't exist in the M */
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0
+#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x24)
 #define DLG_MOVIE_PRESS_LV_TO_RESUME 0
 /*--------------*/
 
@@ -109,30 +109,61 @@
     #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0
     #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0
 
-// position for displaying shutter count and other info 
-#define MENU_DISP_INFO_POS_X 0 
-#define MENU_DISP_INFO_POS_Y 395 
- 
-#define MENU_DISP_ISO_POS_X 527 
-#define MENU_DISP_ISO_POS_Y 45 
- 
-#define HDR_STATUS_POS_X 190 
-#define HDR_STATUS_POS_Y 450 
+// position for ML ISO disp outside LV
+#define MENU_DISP_ISO_POS_X 527
+#define MENU_DISP_ISO_POS_Y 45
 
-// In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
-// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
-#define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 88...98 ?!
+//position for ML MAX ISO
+#define MAX_ISO_POS_X 590
+#define MAX_ISO_POS_Y 28
+
+// for ML hdr display
+#define HDR_STATUS_POS_X 562
+#define HDR_STATUS_POS_Y 100
+
+//for HTP mode on display
+#define HTP_STATUS_POS_X 500
+#define HTP_STATUS_POS_Y 233
+
+//for Mirror Lock Up enabled on display
+#define MLU_STATUS_POS_X 316
+#define MLU_STATUS_POS_Y 310
+
+#define WBS_GM_POS_X 365
+#define WBS_GM_POS_Y 230
+
+#define WBS_POS_X 365
+#define WBS_POS_Y 260
+
+// Audio remote shot position info photo mode
+#define AUDIO_REM_SHOT_POS_X 200
+#define AUDIO_REM_SHOT_POS_Y 386
 
 // position for displaying clock outside LV
-#define DISPLAY_CLOCK_POS_X 400
+#define DISPLAY_CLOCK_POS_X 300
 #define DISPLAY_CLOCK_POS_Y 410
 
+// position for displaying K icon in photo info display
+#define WB_K_ICON_POS_X 192
+#define WB_K_ICON_POS_Y 226
+
+// position for displaying K values in photo info display
+#define WB_KELVIN_POS_X 192
+#define WB_KELVIN_POS_Y 260
+
+// position for displaying card size remain outside LV
+#define DISPLAY_GB_POS_X (DISPLAY_CLOCK_POS_X - 135)
+#define DISPLAY_GB_POS_Y 410
+
 // for displaying TRAP FOCUS msg outside LV
-#define DISPLAY_TRAP_FOCUS_POS_X 50
+#define DISPLAY_TRAP_FOCUS_POS_X 65
 #define DISPLAY_TRAP_FOCUS_POS_Y 360
 #define DISPLAY_TRAP_FOCUS_MSG       "TRAP FOCUS"
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
+// In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
+// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
+#define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 88...98 ?!
 #define NUM_PICSTYLES 10
 #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
@@ -144,14 +175,14 @@
 #define DIALOG_MnCardFormatBegin (0x44C38) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x48CFC) // similar
 
-    #define BULB_MIN_EXPOSURE 100
+    #define BULB_MIN_EXPOSURE 1000
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xffcca8a8
 #define BFNT_BITMAP_OFFSET 0xffccd7b8
 #define BFNT_BITMAP_DATA   0xffcd06c8
 
-    #define DLG_SIGNATURE 0x6e6144
+#define DLG_SIGNATURE 0x4c414944 
 
     // from CFn
      #define AF_BTN_HALFSHUTTER 0
@@ -198,14 +229,14 @@
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
 #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
 #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
-
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x4b428
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
-    //~ #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
+#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x41868+0x10) != 0x17) // dec CancelUnaviFeedBackTimer
 
 #define DISPLAY_ORIENTATION MEM(0x23C10+0xB8) // read-only; string: UpdateReverseTFT.
 
@@ -237,3 +268,6 @@
     #define TOUCH_MULTI 0x4D810   //~ found these with memspy. look for addresses changing with screen touches.
     //--------------
     #define HIJACK_TOUCH_CBR_PTR 0x4D858
+
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 5

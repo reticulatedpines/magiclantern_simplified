@@ -5,7 +5,6 @@
  * To create a configuration parameter:
  * <code>
  * CONFIG_INT( "name", variable, default_value );
- * CONFIG_STR( "name", variable, default_value );
  * </code>
  */
 /*
@@ -74,9 +73,10 @@ config_save_file(
 /** Create an auto-parsed config variable */
 struct config_var
 {
-        const char *            name;
-        int                     type;   //!< 0 == int, 1 == char *
-        void *                  value;  //!< int* if len == 0
+        const char * name;
+        //int        type;   //!< 0 == int, 1 == char *
+        int *        value;
+        int          default_value;
 };
 
 
@@ -87,11 +87,15 @@ __attribute__((section(".config_vars"))) \
 __config_##VAR = \
 { \
         .name           = NAME, \
-        .type           = TYPE_ENUM, \
+/*        .type           = TYPE_ENUM, */ \
         .value          = &VAR, \
+        .default_value  = VALUE, \
 }
 
 #define CONFIG_INT( NAME, VAR, VALUE ) \
+        _CONFIG_VAR( NAME, 0, int, VAR, VALUE )
+
+#define CONFIG_UNSIGNED( NAME, VAR, VALUE ) \
         _CONFIG_VAR( NAME, 0, unsigned int, VAR, VALUE )
 
 
@@ -101,8 +105,9 @@ __attribute__((section(".config_vars"))) \
 __config_##VAR##INDEX = \
 { \
         .name           = NAME, \
-        .type           = TYPE_ENUM, \
+/*        .type           = TYPE_ENUM, */ \
         .value          = &(VAR[INDEX]), \
+        .default_value  = VALUE, \
 }
 
 #define CONFIG_ARRAY_ELEMENT( NAME, VAR, INDEX, VALUE ) \

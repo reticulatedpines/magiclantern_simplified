@@ -105,6 +105,9 @@ resolutions = [ # from vram.c
     (1920, 1080), # HDMI FullHD
     (1920, 540),  # HDMI 720p
     (960, 540),   # HDMI 640 crop
+    (960, 639),   # 650D LV photo mode
+    (1728, 1151), # 650D FullHD
+    (1280, 689),  # 650D 720p 
     (1280,720)
 ]
 

@@ -80,6 +80,9 @@
 /** We can change ExpSim from ML **/
 #define CONFIG_EXPSIM
 
+/** We can set ExpSim to Movie too (not just photo) **/
+#define CONFIG_EXPSIM_MOVIE
+
 /** We can playback sounds via ASIF DMA **/
 #define CONFIG_BEEP
 
@@ -98,5 +101,21 @@
 /** We can display some extra info in photo mode (not LiveView) **/
 #define CONFIG_PHOTO_MODE_INFO_DISPLAY
 
-/** No auto ISO in Canon menus **/
-#define CONFIG_NO_AUTO_ISO
+/** No auto ISO limits in Canon menus **/
+#define CONFIG_NO_AUTO_ISO_LIMITS
+
+/** You can't AF by pressing shutter halfway in LiveView */
+#define CONFIG_NO_HALFSHUTTER_AF_IN_LIVEVIEW
+
+/** We can record movies in regular photo modes - M, P, Tv, Av... */
+#define CONFIG_NO_DEDICATED_MOVIE_MODE
+
+/** We can adjust AFMA (AF microadjustment) */
+#define CONFIG_AFMA
+
+/** The camera accepts extended AFMA values (default range: -20...20; extended: -100...100) */
+/** This can be dangerous, as the values are outside Canon limits */
+#define CONFIG_AFMA_EXTENDED
+
+/** Advanced EXMEM stubs are known and can be used */
+#define CONFIG_FULL_EXMEM_SUPPORT

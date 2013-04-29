@@ -25,6 +25,8 @@
 #ifndef _font_h_
 #define _font_h_
 
+#include "arm-mcr.h"
+
 struct font
 {
         unsigned        height;
@@ -43,6 +45,32 @@ struct sfont
         unsigned*       bitmap;
 };
 
+typedef struct
+{
+    uint32_t magic;
+    uint16_t off_0x4; // 0xffe2 in most of them?
+    uint16_t height; // in pixels, off_0x8;
+    uint32_t charmap_offset; // off_0x8, typicaly 0x24
+    uint32_t charmap_size; // off_0xc
+    uint32_t bitmap_size; //
+    const char name[16];
+} __attribute__((packed))
+canon_font_t;
+
+#define NUM_ML_ICONS 15
+
+typedef struct {
+	uint32_t charmap[NUM_ML_ICONS];
+	uint32_t offsets[NUM_ML_ICONS];
+	struct {
+		uint16_t width;
+		uint16_t height;
+		uint16_t display_width;
+		uint16_t xoff;
+		uint16_t yoff;
+		uint8_t bitmap[170];
+	} bitmaps[NUM_ML_ICONS];
+} canon_font_body_t;
 
 extern struct font font_small;
 extern struct font font_med;

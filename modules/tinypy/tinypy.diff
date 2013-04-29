@@ -1,0 +1,84 @@
+261,262c261,262
+< #define TP_GCMAX 4096
+< #define TP_FRAMES 256
+---
+> #define TP_GCMAX 64
+> #define TP_FRAMES 64
+265c265
+< #define TP_REGS 16384
+---
+> #define TP_REGS 8192
+285a286
+> 
+333,335c334,336
+< #define tp_malloc(TP,x) calloc((x),1)
+< #define tp_realloc(TP,x,y) realloc(x,y)
+< #define tp_free(TP,x) free(x)
+---
+> #define tp_malloc(TP,x) tcc_mallocz(x)
+> #define tp_realloc(TP,x,y) tcc_realloc(x,y)
+> #define tp_free(TP,x) tcc_free(x)
+465c466,467
+<     fwrite(e.string.val,1,e.string.len,stdout);
+---
+>     printf("%s", e.string.val);
+>     //fwrite(e.string.val,1,e.string.len,stdout);
+763c765
+<     int h = l + (l >= 4?*(int*)v:0);
+---
+>     int h = l;// + (l >= 4?*(int*)v:0);
+1134c1136,1138
+<     l = vsnprintf(NULL, 0, fmt,arg);
+---
+>     //l = vsnprintf(NULL, 0, fmt,arg);
+>     char tmp[256];
+>     l = vsnprintf(tmp, sizeof(tmp)-1, fmt,arg);
+1139c1143,1147
+<     vsprintf(s,fmt,arg);
+---
+>     #ifdef CONFIG_MAGICLANTERN
+>     vsnprintf(s,l,fmt,arg);
+>     #else
+>     vsnprintf(s,l+1,fmt,arg);
+>     #endif
+1415,1417c1423,1426
+<     struct stat stbuf;
+<     stat(fname, &stbuf);
+<     l = stbuf.st_size;
+---
+>     //struct stat stbuf;
+>     //stat(fname, &stbuf);
+>     //l = stbuf.st_size;
+>     l = GetFileSize(fname);
+1424a1434
+>     s[l]=0;
+1455,1456c1465,1466
+<     struct stat stbuf;
+<     return tp_number(!stat(fname,&stbuf));
+---
+>     int size = GetFileSize(fname);
+>     return tp_number(size >= 0);
+1460,1461c1470,1471
+<     struct stat stbuf;
+<     if (!stat(fname,&stbuf)) { return tp_number(stbuf.st_mtime); }
+---
+>     //struct stat stbuf;
+>     //if (!stat(fname,&stbuf)) { return tp_number(stbuf.st_mtime); }
+1688a1699
+>     //printf("collect %d\n", GetFreeMemForAllocateMemory());
+1719,1720c1730,1733
+<     if (tp->steps < TP_GCMAX || tp->grey->len > 0) {
+<         _tp_gcinc(tp); _tp_gcinc(tp);
+---
+>     int i;
+>     // aggressive garbage collection
+>     for (i = 0; i < 100 && tp->grey->len > 0; i++) {
+>         _tp_gcinc(tp);
+2112c2125
+<     tp_vm *tp = (tp_vm*)calloc(sizeof(tp_vm),1);
+---
+>     tp_vm *tp = (tp_vm*)tp_malloc(NULL,sizeof(tp_vm));
+2162c2175
+<     free(tp);
+---
+>     tp_free(NULL,tp);

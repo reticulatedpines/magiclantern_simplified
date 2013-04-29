@@ -30,6 +30,7 @@
 
 #define NSTUB(addr,name) \
 	.global name; \
+	.extern name; \
 	name = addr
 
 NSTUB( ROMBASEADDR, firmware_entry )
@@ -121,7 +122,6 @@ NSTUB(    0x38F0, gui_timer_struct)
 NSTUB(0xFF811DBC, init_task)
 NSTUB(0xFF82222C, main_ctrl_task)
 NSTUB(0xFF818F00, malloc)
-NSTUB(0xffc45808, memcpy)                         // delta = 40
 NSTUB(0xFF86DB74, msg_queue_post)
 NSTUB(0xFF86D988, msg_queue_receive)
 NSTUB(0xFF86E22C, msleep)
@@ -146,9 +146,6 @@ NSTUB(0xFF812E58, sei_restore)
 NSTUB(    0x2360, sounddev)
 NSTUB(0xff85b0e4, sounddev_task)
 NSTUB(0xff85b454, sounddev_active_in)
-NSTUB(0xFF87CC04, strcmp)
-NSTUB(0xFF87CBEC, strcpy)
-NSTUB(0xFF87CC48, strlen)
 NSTUB(0xFF86DD88, take_semaphore)
 NSTUB(0xFF86E2E4, task_create)
 NSTUB(    0x1934, task_dispatch_hook )
@@ -201,8 +198,13 @@ NSTUB(0xFF9B96A8, AJ_UserLevel_task)
 NSTUB(0xff8733fc, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff873440, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff873550, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xff870af8, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff870af8, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff871270, GetNextMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
+NSTUB(0xff8704e8, GetSizeOfMemoryChunk) // AJ_PackMemory_IsChunkSignature
+NSTUB(0xff8704b8, GetRemainOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p3
 NSTUB(0xff870518, GetMemoryAddressOfMemoryChunk)
+NSTUB(0xff870860, GetNumberOfChunks) // AJ_PackMemory_PackMem_p2
+NSTUB(0xFF8707FC, GetSizeOfMemorySuite)
 
 NSTUB(0xff85a890, PowerAudioOutput)
 NSTUB(0xff85828c, StartASIFDMADAC)

@@ -32,8 +32,69 @@
 
 //~ int bmp_enabled = 1;
 
+#ifdef CONFIG_VXWORKS
+    
+    // inline functions in bmp.h
+    
+#else // DryOS
+
+    // BMP_VRAM_START and BMP_VRAM_START are not generic - they only work on BMP buffer addresses returned by Canon firmware
+    uint8_t* BMP_VRAM_START(uint8_t* bmp_buf)
+    {
+        // 5D3: LCD: 00dc3100 / HDMI: 00d3c008
+        // 500D: LCD: 003638100 / HDMI: 003631008
+        // 550D/60D/5D2: LCD: ***87100 / HDMI: ***80008
+        
+        // 5D2 SD: 7108 / 74c8
+        
+        if (((uintptr_t)bmp_buf & 0xFFF) == 0x100) // 720x480 crop - alter it to point to full 960x540 buffer
+            return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET);
+
+        if (((uintptr_t)bmp_buf & 0xFFF) == 0x008) // HDMI 960x540 => return it as is
+            return bmp_buf;
+
+        if (((uintptr_t)bmp_buf & 0xFFF) == 0x108) // SD mode 1
+            return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 8);
+
+        if (((uintptr_t)bmp_buf & 0xFFF) == 0x4c8) // SD mode 1
+            return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 0x3c8);
+            
+        // something else - new camera? return it unchanged (failsafe)
+        ASSERT(0);
+        return bmp_buf;
+    }
+
+    uint8_t* bmp_vram_real()
+    {
+        return (uint8_t *)((uintptr_t)BMP_VRAM_START(bmp_vram_raw()) + BMP_HDMI_OFFSET);
+    }
+
+    /** Returns a pointer to idle BMP vram */
+    uint8_t* bmp_vram_idle()
+    {
+    #ifdef CONFIG_1100D
+        return (uint8_t *)((((uintptr_t)bmp_vram_real() + 0x80000) ^ 0x80000) - 0x80000);
+    #else
+        return (uint8_t *)((uintptr_t)bmp_vram_real() ^ 0x80000);
+    #endif
+    }
+#endif
+
 static int bmp_idle_flag = 0;
+
 void bmp_draw_to_idle(int value) { bmp_idle_flag = value; }
+
+/** Returns a pointer to currently selected BMP vram (real or mirror) */
+uint8_t * bmp_vram(void)
+{
+    #ifdef CONFIG_VXWORKS
+    set_ml_palette_if_dirty();
+    #endif
+    uint8_t * bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
+    
+    if (PLAY_MODE) return UNCACHEABLE(bmp_buf);
+    return bmp_buf;
+}
 
 // 0 = copy BMP to idle
 // 1 = copy idle to BMP
@@ -79,32 +140,41 @@ void bmp_idle_copy(int direction, int fullsize)
     }
 }
 
-/*
-void bmp_idle_clear()
-{
-    bzero32(BMP_VRAM_START(bmp_vram_idle()), BMP_VRAM_SIZE);
-}*/
-
-#ifdef CONFIG_VXWORKS
-void set_ml_palette_if_dirty(); // forward declaration
-#endif
-
-/** Returns a pointer to currently selected BMP vram (real or mirror) */
-uint8_t * bmp_vram(void)
+inline void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color)
 {
     #ifdef CONFIG_VXWORKS
-    set_ml_palette_if_dirty();
+    char* p = (char*)&bvram[(x)/2 + (y)/2 * BMPPITCH]; 
+    SET_4BIT_PIXEL(p, x, color);
+    #else
+    bvram[x + y * BMPPITCH] = color;
     #endif
-    uint8_t * bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
-    
-    if (PLAY_MODE) return UNCACHEABLE(bmp_buf);
-    return bmp_buf;
+
+     #ifdef CONFIG_500D // err70?!
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        asm("nop");
+     #endif
 }
 
 
+#ifndef CONFIG_60D
 #define USE_LUT
+#endif
 
-static void
+static void FAST
 _draw_char(
     unsigned    fontspec,
     uint8_t *    bmp_vram_row,
@@ -224,7 +294,7 @@ _draw_char(
 #else // 5DC    
     #define FPIX(i,j) (font->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
     //- #define BMPIX(i,j) bmp_vram_row[(i) * BMPPITCH + (j)]
-    #define BMPIX(i,j,color) unsigned char* p = &bmp_vram_row[((i)/2) * BMPPITCH + (j)/2]; SET_4BIT_PIXEL(p, j, color);
+    #define BMPIX(i,j,color) char* p = &bmp_vram_row[((i)/2) * BMPPITCH + (j)/2]; SET_4BIT_PIXEL(p, j, color);
     
     if (font == &font_large) // large fonts look better with line skipping
     {
@@ -331,6 +401,7 @@ bmp_puts(
 
 }
 
+/*
 void
 bmp_puts_w(
     unsigned        fontspec,
@@ -364,7 +435,6 @@ bmp_puts_w(
             (*y) += font->height;
             (*x) = initial_x;
             i = 0;
-            if (lv) msleep(1);
             if (c == '\n') continue;
         }
 
@@ -375,7 +445,7 @@ bmp_puts_w(
     }
 
 }
-
+*/
 
 // thread safe
 void
@@ -480,7 +550,7 @@ con_printf(
 }
 #endif
 
-#if 1
+#ifdef CONFIG_HEXDUMP
 
 void
 bmp_hexdump(
@@ -497,7 +567,7 @@ bmp_hexdump(
     // Round up
     len = (len + 15) & ~15;
 
-    const uint32_t *d = (uint32_t*) buf;
+    uint32_t d = (uint32_t) buf;
 
     do {
         bmp_printf(
@@ -510,24 +580,24 @@ bmp_hexdump(
             "%08x: %08x %08x %08x %08x %08x %08x %08x %08x : %04x",
             #endif
             (uint32_t) d,
-            len >  0 ? MEMX(d+0) : 0,
-            len >  4 ? MEMX(d+1) : 0,
-            len >  8 ? MEMX(d+2) : 0,
-            len > 12 ? MEMX(d+3) : 0,
+            len >  0 ? MEMX(d+0x00) : 0,
+            len >  4 ? MEMX(d+0x04) : 0,
+            len >  8 ? MEMX(d+0x08) : 0,
+            len > 12 ? MEMX(d+0x0C) : 0,
             #ifndef CONFIG_VXWORKS
-            len > 16 ? MEMX(d+4) : 0,
-            len > 20 ? MEMX(d+5) : 0,
-            len > 24 ? MEMX(d+6) : 0,
-            len > 28 ? MEMX(d+7) : 0,
+            len > 16 ? MEMX(d+0x10) : 0,
+            len > 20 ? MEMX(d+0x14) : 0,
+            len > 24 ? MEMX(d+0x18) : 0,
+            len > 28 ? MEMX(d+0x1C) : 0,
             #endif
             (void*)d - (void*)buf
         );
         y += fontspec_height( fontspec );
         #ifdef CONFIG_VXWORKS
-        d += 4;
+        d += 16;
         len -= 16;
         #else
-        d += 8;
+        d += 32;
         len -= 32;
         #endif
     } while(len > 0);
@@ -539,7 +609,7 @@ bmp_hexdump(
  */
 
 /* will allow 1-pixel resolution in X and also enables BMP_FILL_HALFALIGN which is 2-pixel resolution */
-//#define BMP_FILL_BYTEALIGN
+#define BMP_FILL_BYTEALIGN
 
 /** Fill a section of bitmap memory with solid color
  * Only has a four-pixel resolution in X.
@@ -652,6 +722,7 @@ bmp_fill(
     }
 }
 
+#if 0
 /** Draw a picture of the BMP color palette. */
 void
 bmp_draw_palette( void )
@@ -680,6 +751,7 @@ bmp_draw_palette( void )
     written = 1;
     msleep(2000);
 }
+#endif
 
 int retry_count = 0;
 
@@ -696,12 +768,7 @@ read_file(
         return -1;
     unsigned rc = FIO_ReadFile( file, buf, size );
     FIO_CloseFile( file );
-
-    if( rc == size )
-        return size;
-
-    DebugMsg( DM_MAGIC, 3, "%s: size=%d rc=%d", filename, size, rc );
-    return -1;
+    return rc;
 }
 
 
@@ -713,7 +780,7 @@ bmp_load(
 )
 {
     DebugMsg( DM_MAGIC, 3, "bmp_load(%s)", filename);
-    unsigned size;
+    uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 )
         goto getfilesize_fail;
 
@@ -769,7 +836,7 @@ bmp_load(
     // and release the uncacheable space.
 
     if (compression==bmp->compression) {
-        uint8_t * fast_buf = AllocateMemory( size + 32);
+        uint8_t * fast_buf = BmpAlloc( size + 32);
         if( !fast_buf )
             goto fail_buf_copy;
         memcpy(fast_buf, buf, size);
@@ -797,7 +864,7 @@ bmp_load(
             size_needed += 2; //0000 EOL
         }
         size_needed += 2; //0001 EOF
-        fast_buf = AllocateMemory( size_needed );
+        fast_buf = BmpAlloc( size_needed );
         if( !fast_buf ) goto fail_buf_copy;
         memcpy(fast_buf, buf, sizeof(struct bmp_file_t));
         gpos = fast_buf + sizeof(struct bmp_file_t);
@@ -839,13 +906,13 @@ getfilesize_fail:
 uint8_t* read_entire_file(const char * filename, int* buf_size)
 {
     *buf_size = 0;
-    unsigned size;
+    uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 )
         goto getfilesize_fail;
 
     DEBUG("File '%s' size %d bytes", filename, size);
 
-    uint8_t * buf = alloc_dma_memory( size );
+    uint8_t * buf = alloc_dma_memory( size + 1);
     if( !buf )
     {
         DebugMsg( DM_MAGIC, 3, "%s: alloc_dma_memory failed", filename );
@@ -856,6 +923,8 @@ uint8_t* read_entire_file(const char * filename, int* buf_size)
         goto read_fail;
 
     *buf_size = size;
+    
+    buf[size] = 0; // null-terminate text files
 
     return buf;
 
@@ -982,25 +1051,54 @@ void bmp_putpixel(int x, int y, uint8_t color)
     
     bmp_putpixel_fast(bvram, x, y, color);
 }
-
 void bmp_draw_rect(uint8_t color, int x0, int y0, int w, int h)
 {
+    // this should match bmp_fill
+    w--;
+    h--;
+    
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
-    
     draw_line(x0,   y0,   x0+w,   y0, color);
     draw_line(x0+w, y0,   x0+w, y0+h, color);
     draw_line(x0+w, y0+h,   x0, y0+h, color);
     draw_line(x0,   y0,     x0, y0+h, color);
 }
 
-int _bmp_draw_should_stop = 0;
+void bmp_draw_rect_chamfer(uint8_t color, int x0, int y0, int w, int h, int a, int thick_corners)
+{
+    // this should match bmp_fill
+    w--;
+    h--;
+
+    uint8_t * const bvram = bmp_vram();
+    if (!bvram) return;
+
+    draw_line(x0+a,   y0,     x0+w-a, y0,     color);
+    draw_line(x0+w-a, y0,     x0+w,   y0+a,   color);
+    draw_line(x0+w,   y0+a,   x0+w,   y0+h-a, color);
+    draw_line(x0+w,   y0+h-a, x0+w-a, y0+h,   color);
+    draw_line(x0+w-a, y0+h,   x0+a,   y0+h,   color);
+    draw_line(x0+a,   y0+h,   x0,     y0+h-a, color);
+    draw_line(x0,     y0+h-a, x0,     y0+a,   color);
+    draw_line(x0,     y0+a,   x0+a,   y0,     color);
+
+    if (thick_corners) // double the chamfer lines, useful for thicker rectangles
+    {
+        draw_line(x0+w-a, y0+1,   x0+w-1, y0+a,   color);
+        draw_line(x0+w-1, y0+h-a, x0+w-a, y0+h-1, color);
+        draw_line(x0+a,   y0+h-1, x0+1,   y0+h-a, color);
+        draw_line(x0+1,   y0+a,   x0+a,   y0+1,   color);
+    }
+}
+
+static int _bmp_draw_should_stop = 0;
 void bmp_draw_request_stop() { _bmp_draw_should_stop = 1; }
 
 #ifdef CONFIG_VXWORKS
 
 /** converting dryos palette to vxworks one */
-char bmp_lut[80] = { 
+static char bmp_lut[80] = { 
     0x00, 0xff, 0x99, 0x88, 0x77, 0x44, 0x22, 0x22, 0x11, 0x33, 0xDD, 0x33, 0x11, 0x33, 0x55, 0x66, 
     0x55, 0x77, 0x22, 0x77, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 
     0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x99, 0x99, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xBB,
@@ -1139,7 +1237,7 @@ int D2V(unsigned color) { return bmp_lut[MIN(color & 0xFF,79)]; }
         if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue; \
         if ((p == 0x14 || p == 0x3) && bmp_color == 0) continue; \
     } \
-    unsigned char* p = &b_row[ xs/2 ];  \
+    char* p = &b_row[ xs/2 ];  \
     SET_4BIT_PIXEL(p, xs, bmp_color); \
 
 #else
@@ -1307,7 +1405,7 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
 // http://chdk.setepontos.com/index.php?topic=6204.0
 
 // quick sanity test
-int bfnt_ok()
+static int bfnt_ok()
 {
     int* codes = (int*) BFNT_CHAR_CODES;
     int i;
@@ -1325,8 +1423,15 @@ int bfnt_ok()
 }
 
 // are all char codes in ascending order, for binary search?
-uint8_t* bfnt_find_char(int code)
+static uint8_t* bfnt_find_char(int code)
 {
+    if (code < 0) // that's a ML icon
+    {
+        code = -code-1;
+        if (code > NUM_ML_ICONS-1) return 0;
+        extern canon_font_body_t menu_icons_body;
+        return (uint8_t*) &menu_icons_body.bitmaps[code];
+    }
     int n = (BFNT_BITMAP_OFFSET - BFNT_CHAR_CODES) / 4;
     int* codes = (int*) BFNT_CHAR_CODES;
     int* off = (int*) BFNT_BITMAP_OFFSET;
@@ -1386,7 +1491,7 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
                 {
                     if ((buff[ptr+j] & (1 << (7-k)))) 
                         #ifdef CONFIG_VXWORKS
-                        bmp_putpixel_fast(bvram, px+j*8+k+xo, py + (i+yo)*2, fg);
+                        bmp_putpixel_fast(bvram, px+j*8+k+xo, py + (i+yo)*(c < 0 ? 1 : 2), fg);
                         #else
                         bmp_putpixel_fast(bvram, px+j*8+k+xo, py+i+yo, fg);
                         #endif
@@ -1514,7 +1619,28 @@ void bfnt_puts_utf8(int* s, int x, int y, int fg, int bg)
     }
 }*/
 
-#if 1
+void
+bfnt_printf(
+           int x,
+           int y,
+           int fg,
+           int bg,
+           const char *fmt,
+           ...
+           )
+{
+    va_list            ap;
+    
+    char bfnt_printf_buf[128];
+    
+    va_start( ap, fmt );
+    vsnprintf( bfnt_printf_buf, sizeof(bfnt_printf_buf)-1, fmt, ap );
+    va_end( ap );
+    
+    bfnt_puts(bfnt_printf_buf, x, y, fg, bg);
+}
+
+#if 0
 void
 bfnt_test()
 {
@@ -1596,6 +1722,7 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset)
     }
 }
 
+#if 0
 static void bmp_dim_line(void* dest, size_t n, int even)
 {
     ASSERT(dest);
@@ -1623,7 +1750,7 @@ static void bmp_dim_line(void* dest, size_t n, int even)
 }
 
 // this is only used in menu, so only cover the 720x480 part
-void bmp_dim()
+void bmp_dim(int y1, int y2)
 {
     uint32_t* b = (uint32_t *)bmp_vram();
     ASSERT(b);
@@ -1631,12 +1758,12 @@ void bmp_dim()
     int i;
     //int j;
 #ifdef CONFIG_VXWORKS
-    for (i = 0; i < 480; i+=2)
+    for (i = y1; i < y2; i+=2)
     {
         bmp_dim_line(&b[BM(0,i)/4], 360, (i/2)%2);
     }
 #else
-    for (i = 0; i < 480; i ++)
+    for (i = y1; i < y2; i ++)
     {
         bmp_dim_line(&b[BM(0,i)/4], 720, i%2);
     }
@@ -1682,16 +1809,17 @@ int load_vram(const char * filename)
     ASSERT(b);
     if (!b) return -1;
     
-    unsigned size;
+    uint32_t size;
     if( FIO_GetFileSize( filename, &size ) != 0 )
         return -1; 
     return read_file(filename, b, size);
 }
+#endif
 
 
 void * bmp_lock = 0;
 
-void bmp_init(void* unused)
+static void bmp_init(void* unused)
 {
     bmp_lock = CreateRecursiveLock(0);
     ASSERT(bmp_lock)

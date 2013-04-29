@@ -24,16 +24,222 @@ else
 endif
 
 
+# Quiet the build process
+build = \
+	@if [ X"$V" = X"1" ]; then \
+		echo '$2'; \
+	else \
+		printf "[ %-8s ]   %s\n"  $1 $@; \
+	fi; \
+	$2
+
+
+FLAGS=\
+	-Wp,-MMD,$(patsubst %.o,%.d,$(dir $@)$(notdir $@)) \
+	-Wp,-MT,$@ \
+	-nostdlib \
+	-fomit-frame-pointer \
+	-fno-strict-aliasing \
+	-DCONFIG_MAGICLANTERN=1 \
+	-DCONFIG_$(subst .,_,$(MODEL))=1 \
+	-DRESTARTSTART=$(RESTARTSTART) \
+	-DROMBASEADDR=$(ROMBASEADDR) \
+	-DVERSION=\"$(VERSION)\" \
+	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG)
+
+#
+# ToDo: remove 
+#	-Wno-implicit-function-declaration
+#
+# Reason: these warnings make sense! potential crash situations.
+#
+CFLAGS=\
+	$(FLAGS) \
+	-Os \
+	-Wall \
+	-W \
+	-Wno-unused-parameter \
+	-Wno-implicit-function-declaration \
+	-Wno-unused-function \
+	-Wno-missing-field-initializers \
+	-Wno-format \
+	-Wdouble-promotion \
+	-ffast-math \
+	-fno-trapping-math \
+	-fsingle-precision-constant \
+	-fshort-double \
+	-std=gnu99 \
+	-D__ARM__ \
+	-I$(PLATFORM_INC) \
+	-I$(SRC_DIR) \
+	-I$(PICOC_PATH) \
+	-mthumb-interwork
+
+NOT_USED_FLAGS=\
+	-march=armv5te \
+	-msoft-float
+
+AFLAGS=\
+	$(FLAGS)
+    
+LFLAGS=
+
+CFLAGS += $(CFLAG_USER)
+LFLAGS += $(LFLAG_USER)
+AFLAGS += $(AFLAG_USER)
+
+#
+# if this is module compilation, don't include Magic Lantern Core rules
+#
+ifeq ($(MODULE_NAME),)
+
+#
+# here are Magic Lantern Core additional CONFIG_ defines
+#
+ifeq ($(CONFIG_PYMITE),y)
+CFLAGS += $(PYMITE_CFLAGS)
+endif
+
+ifeq ($(CONFIG_PTP),y)
+CFLAGS += -DCONFIG_PTP
+endif
+
+ifeq ($(CONFIG_MEMCHECK),y)
+CFLAGS += -DCONFIG_MEMCHECK
+endif
+
+ifeq ($(CONFIG_GDB),y)
+CFLAGS += -DCONFIG_GDB
+endif
+
+ifeq ($(CONFIG_GDBSTUB),y)
+CFLAGS += -DCONFIG_GDB -DCONFIG_GDBSTUB
+endif
+
+ifeq ($(CONFIG_PIC), y)
+CFLAGS += -fPIC -DPOSITION_INDEPENDENT
+AFLAGS += -fPIC -DPOSITION_INDEPENDENT
+LFLAGS += -fPIC
+# fixme: dietlib with -fPIC
+endif
+
+ifeq ($(CONFIG_PICOC),y)
+ifneq ($(CONFIG_CONSOLE),y)
+$(error CONFIG_PICOC requires CONFIG_CONSOLE = y, please enable it)
+endif
+CFLAGS += -DCONFIG_PICOC
+endif
+
+ifeq ($(CONFIG_TCC),y)
+ifneq ($(CONFIG_CONSOLE),y)
+$(error CONFIG_TCC requires CONFIG_CONSOLE = y, please enable it)
+endif
+CFLAGS += -DCONFIG_TCC
+endif
+
+ifeq ($(CONFIG_CONSOLE),y)
+CFLAGS += -DCONFIG_CONSOLE
+endif
+
+ifeq ($(CONFIG_MODULES),y)
+ifneq ($(CONFIG_TCC),y)
+$(error CONFIG_MODULES requires CONFIG_TCC = y, please enable it)
+endif
+CFLAGS += -DCONFIG_MODULES
+endif
+
+ifeq ($(CONFIG_QEMU),y)
+CFLAGS += -DCONFIG_QEMU -DCONFIG_STATIC_FONTS
+endif
+
 # PyMite scripting paths
 PYMITE_PATH		= $(HOME)/build/pymite-08
 PYMITE_LIB		= $(PYMITE_PATH)/src/vm/libpmvm_dryos.a
-PYMITE_CFLAGS		= \
+PYMITE_CFLAGS	= \
 	-I$(PYMITE_PATH)/src/vm \
-	-I$(PYMITE_PATH)/src/platform/dryos \
+	-I$(PYMITE_PATH)/src/platform/dryos
 
 
 #
-# Install a normal firmware file to the CF card.
+# global disabler for extra objects
+#
+ifneq ($(CONFIG_NO_EXTRA_OBJS),y)
+
+#
+# depending on CONFIG_ defines add .o files (may get merged into definition above?) 
+#
+ML_OBJS-y += \
+	ico.o
+
+ML_OBJS-$(CONFIG_GDB) += \
+	gdb.o
+
+ML_OBJS-$(CONFIG_PTP) += \
+	ptp.o
+
+ML_OBJS-$(CONFIG_MEMCHECK) += \
+	memcheck.o
+
+ML_OBJS-$(CONFIG_PTP_CHDK) += \
+	ptp-chdk.o
+
+ML_OBJS-$(CONFIG_PTP_ML) += \
+	ptp-ml.o
+
+ML_OBJS-$(CONFIG_PYMITE) += \
+	script.o \
+	pymite-plat.o \
+	pymite-nat.o \
+	pymite-img.o \
+	$(PYMITE_LIB)
+
+ML_OBJS-$(CONFIG_PLUGINS) += \
+	plugin.o
+
+ML_OBJS-$(CONFIG_RELOC) += \
+	liveview.o \
+	reloc.o
+
+ML_OBJS-$(CONFIG_TIMECODE) += \
+	timecode.o
+
+ML_OBJS-$(CONFIG_CONSOLE) += \
+	console.o
+
+ML_OBJS-$(CONFIG_PICOC)	+= \
+	pico.o \
+	picoc.o \
+	chdk-gui_script.o
+
+ML_OBJS-$(CONFIG_TCC) += \
+	tcc-glue.o \
+	tcc-gui.o \
+	chdk-gui_script.o \
+	script_lib.o \
+	$(TOP_DIR)/tcc/libtcc.a
+
+ML_OBJS-$(CONFIG_MODULES) += \
+	module.o
+
+ML_OBJS-$(CONFIG_QEMU)	+= \
+	qemu-util.o \
+	font-small.o \
+	font-med.o \
+	font-large.o
+
+endif
+
+ifeq ($(CONFIG_TINYPY),y)
+LFLAGS += \
+	-u pow \
+	-u qsort \
+	-u strstr \
+	-u atof \
+
+endif
+
+#
+# here areMagic Lantern Core rules
 #
 all: autoexec.bin
 
@@ -57,10 +263,21 @@ install: autoexec.bin
 	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
 	mkdir $(CF_CARD)/ML/scripts || echo "no problem"
 	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/ML/scripts/
-	mkdir $(CF_CARD)/ML/plugins || echo "no problem"
-	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/ML/plugins/
+	cp $(SCRIPT_DIR)/*.c $(CF_CARD)/ML/scripts/
+	cp $(SCRIPT_DIR)/*.py $(CF_CARD)/ML/scripts/
 	cp $(VRAM_DIR)/*.lut $(CF_CARD)/ML/data/
+	mkdir $(CF_CARD)/ML/modules || echo "no problem"
+	cp $(MODULES_DIR)/*/*.mo $(CF_CARD)/ML/modules/ || echo "no problem"
+	cp magiclantern.sym $(CF_CARD)/ML/modules/magic.sym
+	# todo: magic.sym is camera-specific, rename it (e.g. 550D-109.sym)
 
+#	mkdir $(CF_CARD)/ML/plugins || echo "no problem"
+#	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/ML/plugins/
+
+	$(UMOUNT) $(CF_CARD)
+
+copy-autoexec: autoexec.bin
+	cp autoexec.bin $(CF_CARD)
 	$(UMOUNT) $(CF_CARD)
 
 ptpinstall: autoexec.bin
@@ -86,8 +303,9 @@ prepare_zip:
 	cp $(CROP_DIR)/*.bmp zip/ML/cropmks/
 	mkdir zip/ML/scripts || echo "ok"
 	cp $(SCRIPT_DIR)/*.lua zip/ML/scripts/
-	mkdir zip/ML/plugins || echo "ok"
-	cp $(PLUGINS_DIR)/*/*.bin zip/ML/plugins/
+	cp $(SCRIPT_DIR)/*.c zip/ML/scripts/
+	#mkdir zip/ML/plugins || echo "ok"
+	#cp $(PLUGINS_DIR)/*/*.bin zip/ML/plugins/
 	mkdir zip/ML/doc || echo "ok"
 	cp $(DOC_DIR)/cam/* zip/ML/doc/
 	cp $(SRC_DIR)/logo.bmp zip/ML/docs
@@ -120,82 +338,13 @@ magiclantern-$(VERSION).zip: \
 		ML/cropmks/* \
 		ML/doc/* \
 		ML/data/* \
+		ML/scripts/*.c \
 		*.fir \
 		autoexec.bin \
 
 		#~ ML/scripts/* \
-		#~ ML/plugins/* \
+		#~ ML/plugins/*
 
-CFLAGS=\
-	$(FLAGS) \
-	-Os \
-	-Wall \
-	-W \
-	-mstructure-size-boundary=32 \
-	-Wno-unused-parameter \
-	-Wno-implicit-function-declaration \
-	-Wno-unused-function \
-	-Wno-missing-field-initializers \
-	-Wno-format \
-	-Wdouble-promotion \
-	-std=gnu99 \
-	-D__ARM__ \
-	-I$(PLATFORM_INC) \
-	-I$(SRC_DIR) \
-
-NOT_USED_FLAGS=\
-	-march=armv5te \
-	-mthumb-interwork \
-	-msoft-float \
-
-AFLAGS=\
-	$(FLAGS) \
-    
-LFLAGS=
-
-# default libraries are arm-${ARM_ABI} with full optimization -O3
-LIB_TYPE = arm-${ARM_ABI}-O3
-
-CFLAGS += $(CFLAG_USER)
-LFLAGS += $(LFLAG_USER)
-AFLAGS += $(AFLAG_USER)
-
-ifeq ($(CONFIG_PYMITE),y)
-CFLAGS += $(PYMITE_CFLAGS)
-endif
-
-ifeq ($(CONFIG_PTP),y)
-CFLAGS += -DCONFIG_PTP
-endif
-
-ifeq ($(CONFIG_GDB),y)
-CFLAGS += -DCONFIG_GDB
-endif
-
-ifeq ($(CONFIG_GDBSTUB),y)
-CFLAGS += -DCONFIG_GDB -DCONFIG_GDBSTUB
-endif
-
-ifeq ($(CONFIG_PIC), y)
-CFLAGS += -fPIC -DPOSITION_INDEPENDENT
-AFLAGS += -fPIC -DPOSITION_INDEPENDENT
-LFLAGS += -fPIC
-LIB_TYPE = arm-${ARM_ABI}-O3-fPIC
-endif
-
-
-FLAGS=\
-	-Wp,-MMD,$(patsubst %.o,%.d,$(dir $@)$(notdir $@)) \
-	-Wp,-MT,$@ \
-	-nostdlib \
-	-fomit-frame-pointer \
-	-fno-strict-aliasing \
-	-DCONFIG_MAGICLANTERN=1 \
-	-DCONFIG_$(subst .,_,$(MODEL))=1 \
-	-DRESTARTSTART=$(RESTARTSTART) \
-	-DROMBASEADDR=$(ROMBASEADDR) \
-	-DVERSION=\"$(VERSION)\" \
-	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG) \
 
 
 dumper: dumper_entry.o dumper.o
@@ -220,75 +369,76 @@ test: test.o
 
 dumper_entry.o: flasher-stubs.S
 
-reboot.o: $(SRC_DIR)/reboot.c magiclantern.bin
+reboot.o: $(SRC_DIR)/reboot.c magiclantern.bin magiclantern.sym
 
 magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
 	$(call build,CPP,$(CPP) $(CFLAGS) $< | grep -v '^#' > $@)
 
-ifneq ($(CONFIG_NO_PTP),y)
-
-ML_OBJS-$(CONFIG_GDB) += \
-	gdb.o \
-
-ML_OBJS-$(CONFIG_PTP) += \
-	ptp.o \
-
-ML_OBJS-$(CONFIG_PTP_CHDK) += \
-	ptp-chdk.o \
-
-ML_OBJS-$(CONFIG_PTP_ML) += \
-	ptp-ml.o \
-
-endif
-
-NO=\
-	hotplug.o \
-	bootflags.o \
-	aj_port.o \
-	aj_lib_port.o \
-	font-huge.o \
-	bracket.o \
-	spotmeter.o \
-
-ML_OBJS-$(CONFIG_PYMITE) += \
-	script.o \
-	pymite-plat.o \
-	pymite-nat.o \
-	pymite-img.o \
-	$(PYMITE_LIB) \
-
-ML_OBJS-$(CONFIG_PLUGINS) += \
-	plugin.o \
-
-ML_OBJS-$(CONFIG_RELOC) += \
-	liveview.o \
-	reloc.o \
-
-ML_OBJS-$(CONFIG_TIMECODE) += \
-	timecode.o \
-
-ML_OBJS-$(CONFIG_CONSOLE) += \
-	console.o \
+$(TOP_DIR)/tcc/libtcc.a: FORCE
+	make -C $(TOP_DIR)/tcc
 
 # Extract the stdio files that we need
-STDIO_OBJ = \
-	lib_a-setjmp.o \
-	lib_a-strcmp.o \
-	lib_a-strlen.o \
-	lib_a-strncmp.o \
+DIET_OBJ = \
+	strrchr.o \
+	strncpy.o \
+	strlen.o \
+	strncmp.o \
+	strcpy.o \
+	strcmp.o \
+	memset.o \
+	memcpy.o \
+	memccpy.o \
+	sigjmp.o \
+	sigprocmask.o \
+	rt_sigprocmask.o \
+	unified.o \
+	errno.o \
+	errno_location.o \
+	sscanf.o \
+	vsscanf.o \
+	__v_scanf.o \
+	sprintf.o \
+	vsprintf.o \
+	strtold.o \
+	strtod.o \
+	memmove.o \
+	strtof.o \
+	strtoull.o \
+	strtol.o \
+	strtoul.o \
+	strchr.o \
+	memcmp.o \
+	atoi.o \
+	atol.o \
+	strstr.o \
+	qsort.o \
+	atof.o \
 
-$(STDIO_OBJ): $(ARM_LIBC_A)
-	$(call build,AR,$(AR) x $? $(STDIO_OBJ))
+DIETLIBC_A = $(SRC_DIR)/libs/dietlib-0.33-none-eabi-Os/dietlibc.a
 
-libstdio.a: $(STDIO_OBJ)
+$(DIET_OBJ): $(DIETLIBC_A)
+	$(call build,AR,$(AR) x $? $(DIET_OBJ))
+
+dietlibc.a: $(DIET_OBJ)
 	$(call build,AR,$(AR) cr $@ $^)
 
-magiclantern: $(ML_OBJS-y) libstdio.a
+# use setjmp from newlib because... the one from dietlibc freezes
+NEWLIB_OBJ = \
+	lib_a-setjmp.o \
+
+NEWLIB_LIBC_A = $(SRC_DIR)/libs/arm-none-eabi-O3/libc.a
+
+$(NEWLIB_OBJ): $(NEWLIB_LIBC_A)
+	$(call build,AR,$(AR) x $? $(NEWLIB_OBJ))
+
+newlib-libc.a: $(NEWLIB_OBJ)
+	$(call build,AR,$(AR) cr $@ $^)
+
+magiclantern: $(ML_OBJS-y) dietlibc.a newlib-libc.a
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-N \
 		$(LFLAGS) \
-		-L../../src/libs/$(LIB_TYPE) \
 		-nostdlib \
 		-mthumb-interwork \
 		-march=armv5te \
@@ -298,53 +448,6 @@ magiclantern: $(ML_OBJS-y) libstdio.a
 		-lgcc \
         -Xlinker -Map=location.map \
 	)
-
-
-# These do not need to be run.  Since bigtext is not
-# a standard program, the output files are checked in.
-#font-large.in: generate-font
-#	$(call build,'GENFONT',./$< > $@ \
-#		'fixed-bold-32' \
-#		16 30 \
-#	)
-#font-med.in: generate-font
-#	$(call build,'GENFONT',./$< > $@ \
-#		'-misc-fixed-medium-r-normal--20-2' \
-#		10 15 \
-#	)
-#font-small.in: generate-font
-#	$(call build,'GENFONT',./$< > $@ \
-#		'terminus-bold-12' \
-#		6 10 \
-#	)
-
-
-#font-large.c: font-large.in mkfont
-#	$(call build,MKFONT,./mkfont \
-#		< $< \
-#		> $@ \
-#		-width 20 \
-#		-height 32 \
-#		-name font_large \
-#	)
-#
-#font-med.c: font-med.in mkfont
-#	$(call build,MKFONT,./mkfont \
-#		< $< \
-#		> $@ \
-#		-width 12 \
-#		-height 20 \
-#		-name font_med \
-#	)
-#
-#font-small.c: font-small.in mkfont
-#	$(call build,MKFONT,./mkfont \
-#		< $< \
-#		> $@ \
-#		-width 8 \
-#		-height 12 \
-#		-name font_small \
-#	)
 
 $(PLATFORM_DIR)/version.c: FORCE
 	$(call build,VERSION,( \
@@ -363,7 +466,6 @@ autoexec: reboot.o
 		-Ttext $(AUTOEXEC_BASE) \
 		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
 	); \
-	$(STAT_CMD) autoexec.bin; \
 	$(READELF) -l magiclantern | grep -C 2 MemSiz
 
 autoexec-fir: reboot.o
@@ -375,6 +477,17 @@ autoexec-fir: reboot.o
 		-Ttext $(FIR_BASE) \
 		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
 	);
+
+qemu-helper: qemu-helper.o stubs.S
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-nostdlib \
+		-march=armv5te \
+		-e _start \
+		-Ttext 0x30000000 \
+		$^ \
+		-lm -lgcc \
+	); \
 
 %-stubs.S: %.map
 	perl -ne > $@ < $< '\
@@ -392,9 +505,46 @@ autoexec-fir: reboot.o
 		$< \
 	> $@
 
+docs:
+	cd $(DOC_DIR) && $(PYTHON) mkdoc.py
+	cd $(DOC_DIR) && $(PYTHON) mkdoc-cam.py
+
+docq:
+	cd $(DOC_DIR) && $(PYTHON) mkdoc.py
+	cd $(DOC_DIR) && $(PYTHON) mkdoc-cam.py quick
+
+installdoc:
+	mkdir $(CF_CARD)/ML/doc || echo "no problem"
+	cp -v $(DOC_DIR)/cam/* $(CF_CARD)/ML/doc/
+
+clean:
+	$(call build,CLEAN,$(RM) -f \
+		*.o   \
+		*.d \
+		*.a \
+        *.map \
+		$(BIN_FILES) \
+		magiclantern.lds \
+		*.bmp \
+		*.pdf \
+		*.txt \
+		make_bootable.sh \
+		422-jpg.py \
+		README \
+		data/cropmks/* \
+		scripts/* \
+		doc/* \
+		$(SRC_DIR)/*.o \
+	)
+	$(call build,CLEAN,$(RM) -rf zip)
+
+zip: prepare_zip magiclantern-$(VERSION).zip
+
+#
+# are these still relevant?
+#
+
 BASE=0xFF800000
-#BASE=0
-#BASE=0xFF000000
 
 1.1.0/ROM0.elf: 1.1.0/ROM0.bin 1.1.0/ROM0.map
 	./remake-elf \
@@ -409,7 +559,6 @@ strings: ROM0.bin
 	strings -t x $^
 
 ROM0.bin: FORCE
-FORCE:
 
 
 #
@@ -543,68 +692,61 @@ pymite-nat.c pymite-img.c: $(SCRIPTS)
 		-o $@ \
 		$^ \
 	)
+else
+#
+# when compiling module, define targets and flags
+#
 
-# Quiet the build process
-build = \
-	@if [ X"$V" = X"1" ]; then \
-		echo '$2'; \
-	else \
-		printf "[ %-8s ]   %s\n"  $1 $@; \
-	fi; \
-	$2
+# should we define a platform for modules? for now use 'all' platform
+PLATFORM_INC=$(TOP_DIR)/platform/all
+CFLAGS += -DMODULE -DMODULE_NAME=$(MODULE_NAME)
 
-docs:
-	cd $(DOC_DIR) && $(PYTHON) mkdoc.py
-	cd $(DOC_DIR) && $(PYTHON) mkdoc-cam.py
+all: $(MODULE_NAME).mo
+clean::
+	$(call build,CLEAN,$(RM) -f $(MODULE_OBJS) $(MODULE_NAME).mo)
 
-docq:
-	cd $(DOC_DIR) && $(PYTHON) mkdoc.py
-	cd $(DOC_DIR) && $(PYTHON) mkdoc-cam.py quick
+$(MODULE_NAME).mo: $(MODULE_OBJS)
+	$(call build,MODULE,$(LD_REAL) -r -o $@ $^)
+endif
 
-installdoc:
-	mkdir $(CF_CARD)/ML/doc || echo "no problem"
-	cp -v $(DOC_DIR)/cam/* $(CF_CARD)/ML/doc/
 
-clean:
-	$(call build,CLEAN,$(RM) -f \
-		*.o   \
-		*.d \
-		*.a \
-        *.map \
-		$(BIN_FILES) \
-		magiclantern.lds \
-		*.bmp \
-		*.pdf \
-		*.txt \
-		make_bootable.sh \
-		422-jpg.py \
-		README \
-		data/cropmks/* \
-		scripts/* \
-		doc/* \
-		$(SRC_DIR)/*.o \
-		)
-	$(call build,CLEAN,$(RM) -rf zip)
 
+#
+# generate dependencies
+#
 COBJS := $(filter %.o, $(ML_OBJS-y))
 DEPS  := $(COBJS:.o=.d)
 -include $(DEPS)
 
+
+#
+#
+# file type rules
+#
+#
 %.s: %.c
 	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
-%.o: $(SRC_DIR)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.sym: %
+	$(call build,SYMBOLS,$(READELF) -sW $< | grep GLOBAL | grep -E 'FUNC|OBJECT|ABS' | gawk '{print $$2 " " $$8;}' | grep -v '^ ' | sort > $@)
 %.o: $(PLATFORM_DIR)/%.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.o: $(SRC_DIR)/%.c
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.o: $(PICOC_PATH)/%.c
+	$(call build,CC,$(CC) $(CFLAGS) -c -mthumb -fwhole-program -o $@ $<)
 %.i: %.c
 	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
 %: %.c
 	$(call build,LD,$(CC) $(CFLAGS) -o $@ $<)
-%.o: $(SRC_DIR)/%.S
-	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 %.o: $(PLATFORM_DIR)/%.S
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
+%.o: $(SRC_DIR)/%.S
+	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
+%.o: %.c
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.bin: %
-	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
+	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@) 
+	$(call build,STAT,$(STAT_CMD) $@)
 
-zip: prepare_zip magiclantern-$(VERSION).zip
+FORCE:
+

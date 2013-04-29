@@ -12,68 +12,98 @@ static void menu_nav_help_open(void* priv, int delta)
     menu_help_go_to_label("Magic Lantern menu", 0);
 }
 
+static MENU_UPDATE_FUNC(user_guide_display)
+{
+    MENU_SET_VALUE("");
+}
 
-struct menu_entry help_menus[] = {
-    /*{
-        .name = "Press MENU : Easy/Advanced mode",
-        .display = menu_easy_advanced_display,
-        //.essential = FOR_MOVIE | FOR_PHOTO,
-    },*/
+static MENU_UPDATE_FUNC(menu_edit_lv_print)
+{
+    MENU_SET_NAME("");
+    
+    if (!info->x) return;
+    bmp_printf(FONT_LARGE, info->x, info->y, "  /ZoomIn");
+    // draw a LiveView icon (like the display one, but erase the lines)
+    bfnt_draw_char(ICON_ML_DISPLAY, info->x-4, info->y-4, COLOR_WHITE, COLOR_BLACK);
+    bmp_fill(COLOR_BLACK, info->x + 6, info->y + 10, 19, 15);
+}
+
+static struct menu_entry help_menus[] = {
     {
         .select = menu_nav_help_open,
-        .name = "Press " INFO_BTN_NAME
-                          " : Bring up Help menu",
-        //.essential = FOR_MOVIE | FOR_PHOTO,
+        .name = "Press " INFO_BTN_NAME,
+        .choices = CHOICES("Context help"),
     },
     {
         .select = menu_nav_help_open,
         #if defined(CONFIG_500D)
-        .name = "LiveView(Q): Bring up submenu...",
+        .name = "LiveView",
+        .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_50D)
-        .name = "Press FUNC : Bring up submenu...",
+        .name = "Press FUNC",
+        .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_5D2)
-        .name = "Pict.Style : Bring up submenu...",
+        .name = "Pict.Style",
+        .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_5DC) || defined(CONFIG_40D)
-        .name = "Press JUMP : Bring up submenu...",
+        .name = "Press JUMP",
+        .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_EOSM)
-        .name = "1-fingr Tap: Bring up submenu...",
+        .name = "1-finger Tap",
+        .choices = CHOICES("Open submenu (Q)"),
         #else
-        .name = "Press Q    : Bring up submenu...",
+        .name = "Press Q",
+        .choices = CHOICES("Open submenu"),
         #endif
-        //.essential = FOR_MOVIE | FOR_PHOTO,
+        
         .children =  (struct menu_entry[]) {
             {
                 .name = "... like this :)",
             },
             MENU_EOL,
-        }
+        },
+    },
+    #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+    {
+        .name = "LongJoystick",
+        .select = menu_nav_help_open,
+        .choices = CHOICES("Submenu one-handed"),
+        
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "... like this :)",
+            },
+            MENU_EOL,
+        },
+    },
+    #endif
+    {
+        .select = menu_nav_help_open,
+        .name = "SET/PLAY",
+        .choices = CHOICES("Edit values"),
     },
     {
         .select = menu_nav_help_open,
-        .name = "SET/PLAY   : Change values",
-        //.essential = FOR_MOVIE | FOR_PHOTO,
+        #ifdef CONFIG_500D
+        .name = "Zoom In",
+        #else
+        .name = "LiveView/ZoomIn",
+        .update = menu_edit_lv_print,
+        #endif
+        .choices = CHOICES("Edit in LiveView"),
     },
     {
         .select = menu_nav_help_open,
-        .name = "Zoom In    : Preview LiveView",
-        //.essential = FOR_MOVIE | FOR_PHOTO,
+        .name = "Press MENU",
+        .choices = CHOICES("Junkie mode"),
     },
     {
-        .select = menu_nav_help_open,
-        .name = "Press MENU : Show/hide items",
-        //.essential = FOR_MOVIE | FOR_PHOTO,
-    },
-    {
-        .name = "Key shortcuts",
-        .priv = "Key shortcuts",
+        .name = "Key Shortcuts",
         .select = menu_help_go_to_label,
-        .display = menu_print,
-        //.essential = FOR_MOVIE | FOR_PHOTO,
     },
     {
         .name = "Complete user guide",
         .select = menu_open_submenu,
-        //.essential = FOR_MOVIE | FOR_PHOTO,
         .children =  (struct menu_entry[]) {
             #include "menuindexentries.h"
             MENU_EOL
@@ -81,9 +111,7 @@ struct menu_entry help_menus[] = {
     },
     {
         .name = "About Magic Lantern",
-        .priv = "About Magic Lantern",
         .select = menu_help_go_to_label,
-        .display = menu_print,
     },
 };
 
@@ -94,7 +122,5 @@ help_menu_init( void* unused )
 }
 
 INIT_FUNC( "help_menu", help_menu_init );
-
-int help_pages = 100; // dummy value, just to get started
 
 

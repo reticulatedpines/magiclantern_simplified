@@ -9,6 +9,18 @@
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
 
+#define HIJACK_CACHE_HACK
+
+#define HIJACK_CACHE_HACK_INITTASK_ADDR 0xFF0C1C6C
+
+// load ML in the malloc pool
+//~ #define HIJACK_CACHE_HACK_BSS_END_ADDR 0xFF0C1C64
+//~ #define HIJACK_CACHE_HACK_BSS_END_INSTR 0xE3A01732 <- wrong
+
+// load ML in the AllocateMemory pool
+#define HIJACK_CACHE_HACK_BSS_END_ADDR 0xff0c3470
+#define HIJACK_CACHE_HACK_BSS_END_INSTR 0xCBC000
+
 #define HIJACK_INSTR_BL_CSTART  0xFF0C0D90
 #define HIJACK_INSTR_BSS_END 0xFF0C1C64
 #define HIJACK_FIXBR_BZERO32 0xFF0C1BB8
@@ -16,8 +28,10 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1C6C
 #define HIJACK_TASK_ADDR 0x74BD8
 
-    // no idea if it's overflowing, need to check experimentally
-    //~     #define ARMLIB_OVERFLOWING_BUFFER 0x3b670 // in AJ_armlib_setup_related3
+#define CACHE_HACK_FLUSH_RATE_SLAVE 0xFF1ABEC0
+
+// look for LDRNE near 2nd ARM Library runtime error
+#define ARMLIB_OVERFLOWING_BUFFER 0x93b58 // in AJ_armlib_setup_related3
 
 #define DRYOS_ASSERT_HANDLER 0x74BB8 // dec TH_assert or assert_0
 
@@ -39,6 +53,7 @@
 #define YUV422_HD_BUFFER_1 0x13FFF780
 #define YUV422_HD_BUFFER_2 0x0EFFF780
 
+
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x78664)
 
@@ -51,22 +66,23 @@
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xFF9CDB54 // dec gui_main_task
 
-#define SENSOR_RES_X 4752
-#define SENSOR_RES_Y 3168
-
+#define SENSOR_RES_X 4344
+#define SENSOR_RES_Y 2611
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x77638)
 
     #define LV_BOTTOM_BAR_DISPLAYED (lv_disp_mode)
 
-#define ISO_ADJUSTMENT_ACTIVE 0x7AAD0 // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
+//That Function is dead.
+#define ISO_ADJUSTMENT_ACTIVE 0
+//#define ISO_ADJUSTMENT_ACTIVE 0x7AAD0 // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
 // from a screenshot
 #define COLOR_FG_NONLV 1
 
 #define MVR_516_STRUCT (*(void**)0x74FA0) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
-#define MEM(x) (*(int*)(x))
+#define MEM(x) (*(volatile int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
@@ -77,13 +93,6 @@
 
 #define MVR_FRAME_NUMBER  (*(int*)(0x1FC + MVR_516_STRUCT)) // in mvrExpStarted
     #define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))
-
-    #define MOV_RES_AND_FPS_COMBINATIONS 9
-    #define MOV_OPT_NUM_PARAMS 2
-    #define MOV_GOP_OPT_NUM_PARAMS 5
-    #define MOV_OPT_STEP 5
-    #define MOV_GOP_OPT_STEP 5
-
         #define AE_VALUE 0 // 404
 
 #define DLG_PLAY 1
@@ -91,17 +100,17 @@
 
         #define DLG_FOCUS_MODE 0x123456
 
-/* these don't exist in the M */
-    #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0
-    #define DLG_MOVIE_PRESS_LV_TO_RESUME 0
-/*--------------*/
+#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x24)
+#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x25)
 
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
-    #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
-    #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0
-    #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0
+#define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xC0220174) & 1)) //NE((*0xC0220174 & 0x1)):
+#define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x74C44 
+#define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x74c34 //prop_deliver(*0x74C44, 0x74c34, 0x4, 0x0) +*0x74C34 = 1
+// In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
+// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
@@ -120,9 +129,31 @@
 #define DISPLAY_BATTERY_LEVEL_1 60
 #define DISPLAY_BATTERY_LEVEL_2 20
 
+//for HTP mode on display
+    #define HTP_STATUS_POS_X 500
+    #define HTP_STATUS_POS_Y 233
+
 // for HDR status
     #define HDR_STATUS_POS_X 180
     #define HDR_STATUS_POS_Y 460
+
+//for Mirror Lock Up enabled on display
+#define MLU_STATUS_POS_X 335
+#define MLU_STATUS_POS_Y 365
+
+// for the yellow ISO range [a-b]
+#define ISO_RANGE_POS_X 545
+#define ISO_RANGE_POS_Y 105
+
+#define WB_KELVIN_POS_X 190
+#define WB_KELVIN_POS_Y 280
+
+// white balance shift values M2B1 in yellow
+#define WBS_POS_X 265
+#define WBS_POS_Y 278
+
+// for header footer info
+#define DISPLAY_HEADER_FOOTER_INFO
 
 // for displaying TRAP FOCUS msg outside LV
     #define DISPLAY_TRAP_FOCUS_POS_X 50
@@ -130,18 +161,20 @@
     #define DISPLAY_TRAP_FOCUS_MSG       "TRAP FOCUS"
     #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
-    #define NUM_PICSTYLES 10
-    #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
+#define NUM_PICSTYLES 10
+#define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
 
     #define FLASH_MAX_EV 3
     #define FLASH_MIN_EV -10 // not sure if it actually works
-    #define FASTEST_SHUTTER_SPEED_RAW 152
+// 1/8000+ Possible but canon keeps resetting it.
+//#define FASTEST_SHUTTER_SPEED_RAW 160
+#define FASTEST_SHUTTER_SPEED_RAW 152
     #define MAX_AE_EV 5
 
 #define DIALOG_MnCardFormatBegin (0x8888C) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x8DAF0) // similar
 
-#define BULB_MIN_EXPOSURE 100
+#define BULB_MIN_EXPOSURE 500
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xf03664d0
@@ -155,16 +188,17 @@
          #define AF_BTN_HALFSHUTTER 0
          #define AF_BTN_STAR 2
 
-    #define IMGPLAY_ZOOM_LEVEL_ADDR (0x51E28) // dec GuiImageZoomDown and look for a negative counter
-    #define IMGPLAY_ZOOM_LEVEL_MAX 14
-    #define IMGPLAY_ZOOM_POS_X MEM(0x8D38C) // CentrePos
-    #define IMGPLAY_ZOOM_POS_Y MEM(0x8D390)
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x7F77C) // dec GuiImageZoomDown and look for a negative counter
+#define IMGPLAY_ZOOM_LEVEL_MAX 14
+#define IMGPLAY_ZOOM_POS_X MEM(0xb9a38) // CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0xb9a3C) // '[ImgPlyer] ScrollWidth:%ld ScrollHeight:%ld'
+
     #define IMGPLAY_ZOOM_POS_X_CENTER 360
     #define IMGPLAY_ZOOM_POS_Y_CENTER 240
 #define IMGPLAY_ZOOM_POS_DELTA_X 110 //(0x2be - 0x190)
 #define IMGPLAY_ZOOM_POS_DELTA_Y 90 //(0x1d4 - 0x150)
 
-        #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
+    #define BULB_EXPOSURE_CORRECTION 650 // looks huge...
 
 // see http://magiclantern.wikia.com/wiki/VRAM/BMP
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x82B24)   //~ from string: refresh partly
@@ -186,22 +220,25 @@
 
 #define INFO_BTN_NAME "INFO"
 #define Q_BTN_NAME "[Q]"
-        #define ARROW_MODE_TOGGLE_KEY "IDK"
+#define ARROW_MODE_TOGGLE_KEY "Foc Pnts"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x75550)
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
-#define VIDEO_PARAMETERS_SRC_3 MEM(0x76CFC)
-    #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+3))
-    #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))
-    #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
-    #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
-
+#define VIDEO_PARAMETERS_SRC_3 MEM(0x76cfc) //76cfc
+#define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
+#define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
+#define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
+#define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x94818
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
-//~ needs fixed to prevent half shutter making canon overlays visible.
-    #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x84100) != 0x17) // dec CancelUnaviFeedBackTimer
+//~ needs fixed to prevent half shutter making canon overlays visible. sub_ff52c568.htm Not Present but probably right.
+#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x84100) != 0x17) // dec CancelUnaviFeedBackTimer
+
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 10
 

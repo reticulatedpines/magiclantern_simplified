@@ -99,7 +99,7 @@
 
 #define MVR_752_STRUCT (*(void**)0x1e70) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
-#define MEM(x) (*(int*)(x))
+#define MEM(x) (*(volatile int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
@@ -165,10 +165,6 @@
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
 #define BTN_METERING_PRESSED_IN_LV 0 // 60D only
-
-// position for displaying shutter count and other info
-#define MENU_DISP_INFO_POS_X 0
-#define MENU_DISP_INFO_POS_Y 395
 
 // position for displaying clock outside LV
 #define DISPLAY_CLOCK_POS_X 200
@@ -257,10 +253,19 @@
 #define DISPLAY_IS_ON get_display_is_on_550D() // from state object
 
 #define LV_STRUCT_PTR 0x1d14
-#define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)
 #define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x5e)
+#define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)
 #define FRAME_BV *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x62)
+#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x64)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x27c28
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+
+// measured by Андрей Басов
+// http://groups.google.com/group/ml-devel/browse_thread/thread/725ae6f424dd2917
+// not sure, exiftool says x-128
+//~ #define EFIC_CELSIUS (efic_temp * 3/2 - 202)
+
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 5

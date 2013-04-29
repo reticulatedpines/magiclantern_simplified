@@ -15,6 +15,9 @@
 /** This camera runs DryOS **/
 //~ #define CONFIG_VXWORKS
 
+/** This camera has a DIGIC V chip */
+#define CONFIG_DIGIC_V
+
 /** This camera has a full-frame sensor */
 #define CONFIG_FULLFRAME
 
@@ -78,6 +81,9 @@
 /** But we can't override the digital ISO component via FRAME_ISO **/
 #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
 
+/** We can also override shutter on a per-frame basis */
+#define CONFIG_FRAME_SHUTTER_OVERRIDE
+
 /** We can change ExpSim from ML **/
 #define CONFIG_EXPSIM
 
@@ -101,3 +107,22 @@
 
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
+
+/** We can record movies in regular photo modes - M, P, Tv, Av... */
+#define CONFIG_NO_DEDICATED_MOVIE_MODE
+
+/** We can adjust AFMA (AF microadjustment) */
+#define CONFIG_AFMA
+
+/** The camera accepts extended AFMA values (default range: -20...20; extended: -100...100) */
+/** This can be dangerous, as the values are outside Canon limits */
+#define CONFIG_AFMA_EXTENDED
+
+/** You can configure separate AFMA values for both wide and tele ends */
+#define CONFIG_AFMA_WIDE_TELE
+
+/** FPS override: change timers from EVF state (both methods are OK on 5D3) */
+//~ #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
+
+/** Advanced EXMEM stubs are known and can be used */
+#define CONFIG_FULL_EXMEM_SUPPORT

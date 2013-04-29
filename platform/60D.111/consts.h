@@ -10,6 +10,12 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0110DC
 #define HIJACK_TASK_ADDR 0x1a2c
 
+#define HIJACK_CACHE_HACK
+#define HIJACK_CACHE_HACK_BSS_END_ADDR   0xF8013698
+#define HIJACK_CACHE_HACK_BSS_END_INSTR  0x1F200000
+#define HIJACK_CACHE_HACK_INITTASK_ADDR  0xFF0110DC
+#define ML_RESERVED_MEM (1024*1024 - BMP_VRAM_SIZE - 0x200) // see zebra.c, bvram_mirror_start initialization, and boot-hack.c
+
 #define ARMLIB_OVERFLOWING_BUFFER 0x36468 // in AJ_armlib_setup_related3
 
 #define DRYOS_ASSERT_HANDLER 0x1A18 // dec TH_assert or assert_0
@@ -89,7 +95,7 @@
 
 #define MVR_968_STRUCT (*(void**)0x1eF0) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
-#define MEM(x) (*(int*)(x))
+#define MEM(x) (*(volatile int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
@@ -159,10 +165,6 @@
  * END
  */
 
-// position for displaying shutter count and other info
-#define MENU_DISP_INFO_POS_X 400
-#define MENU_DISP_INFO_POS_Y 0
-
 // position for displaying clock outside LV
 #define DISPLAY_CLOCK_POS_X 400
 #define DISPLAY_CLOCK_POS_Y 410
@@ -171,8 +173,28 @@
 #define MENU_DISP_ISO_POS_Y 27
 
 // for HDR status
-#define HDR_STATUS_POS_X 190
-#define HDR_STATUS_POS_Y 450
+#define HDR_STATUS_POS_X 40
+#define HDR_STATUS_POS_Y 460
+
+// for displaying battery
+#define DISPLAY_BATTERY_POS_X 198
+#define DISPLAY_BATTERY_POS_Y 410
+
+// for the yellow ISO range [a-b]
+#define ISO_RANGE_POS_X 545
+#define ISO_RANGE_POS_Y 105
+
+// for kelvin WB
+#define WB_KELVIN_POS_X 360
+#define WB_KELVIN_POS_Y 279
+
+// white balance shift values M2B1 in yellow
+#define WBS_POS_X 320
+#define WBS_POS_Y 450
+
+//for Mirror Lock Up enabled on display
+#define MLU_STATUS_POS_X 538
+#define MLU_STATUS_POS_Y 133
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 35
@@ -198,7 +220,7 @@
 #define DIALOG_MnCardFormatBegin   (0x3031c+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x35290+4) // similar
 
-#define BULB_MIN_EXPOSURE 100
+#define BULB_MIN_EXPOSURE 500
 
 // HCanonGothic
 #define BFNT_CHAR_CODES    0xff7b1fb8 // space character, 0x20
@@ -252,7 +274,11 @@
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xa))
 #define FRAME_BV (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xb))
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC))
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x36f28
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 5

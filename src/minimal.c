@@ -3,20 +3,9 @@
  */
 
 #include "dryos.h"
-#include "config.h"
-#include "version.h"
-#include "bmp.h"
-#include "menu.h"
-#include "version.h"
-#include "property.h"
-#include "consts.h"
-
-/** If CONFIG_EARLY_PORT is defined, only a few things will be enabled */
-#undef CONFIG_EARLY_PORT
 
 /** These are called when new tasks are created */
-int my_init_task(int a, int b, int c, int d);
-void my_bzero( uint8_t * base, uint32_t size );
+static int my_init_task(int a, int b, int c, int d);
 
 /** This just goes into the bss */
 #define RELOCSIZE 0x3000 // look in HIJACK macros for the highest address, and subtract ROMBASEADDR
@@ -30,10 +19,6 @@ static uint8_t _reloc[ RELOCSIZE ];
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
     INSTR( rom_addr ) = BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
 
-/** Was this an autoboot or firmware file load? */
-int autoboot_loaded;
-
-
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
 
@@ -45,15 +30,11 @@ zero_bss( void )
         *(bss++) = 0;
 }
 
-
 void
 __attribute__((noreturn,noinline,naked))
 copy_and_restart( int offset )
 {
     zero_bss();
-
-    // Set the flag if this was an autoboot load
-    autoboot_loaded = (offset == 0);
 
     // Copy the firmware to somewhere safe in memory
     const uint8_t * const firmware_start = (void*) ROMBASEADDR;
@@ -109,11 +90,6 @@ copy_and_restart( int offset )
     * install our own handlers.
     */
 
-#ifndef CONFIG_EARLY_PORT
-    // Install our task creation hooks
-    //~ task_dispatch_hook = my_task_dispatch_hook;
-#endif
-
     // This will jump into the RAM version of the firmware,
     // but the last branch instruction at the end of this
     // has been modified to jump into the ROM version
@@ -134,7 +110,7 @@ copy_and_restart( int offset )
  */
 
 
-void run_test()
+static void run_test()
 {
     FILE * f = FIO_CreateFile(CARD_DRIVE "FF000000.BIN");
     if (f != (void*) -1)
@@ -144,12 +120,40 @@ void run_test()
     }
 }
 
-int
+static void null_pointer_check()
+{
+    static int first_time = 1;
+    static int value_at_zero = 0;
+    if (first_time)
+    {
+        value_at_zero = *(int*)0; // assume this is the correct value
+        first_time = 0;
+    }
+    else // did it change? it shouldn't
+    {
+        if (value_at_zero != *(int*)0)
+        {
+            *(uint32_t*)CARD_LED_ADDRESS ^= 2;
+        }
+        else
+        {
+            *(uint32_t*)CARD_LED_ADDRESS = 0x46;
+        }
+    }
+}
+
+static int
 my_init_task(int a, int b, int c, int d)
 {
     int ans = init_task(a,b,c,d);
     
     msleep(5000);
     
+    while(1)
+    {
+        null_pointer_check();
+        msleep(100);
+    }
+
     task_create("test", 0x1e, 0x1000, run_test, 0 );
 }

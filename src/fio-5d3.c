@@ -14,13 +14,9 @@ int card_select = 1;
 #define ML_CARD_LETTER (ml_card_select == 1 ? "A" : "B")
 
 CONFIG_INT("card.test", card_test_enabled, 1);
+CONFIG_INT("card.force_type", card_force_type, 0);
 
-static void card_info_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
+MENU_UPDATE_FUNC(card_info_display)
 {
     //~ int pcmcia  = *(uint8_t*)0x68c88;
     //~ int ide     = *(uint8_t*)0x68c89;
@@ -29,38 +25,28 @@ static void card_info_display(
     char* model = (char*)0x68cAA;
     int cf_present = is_dir("A:/");
 
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "CF: %s %s", 
-        cf_present ? make : "N/A", model
-    );
-    menu_draw_icon(x, y, cf_present ? MNI_ON : MNI_OFF, 0);
+    MENU_SET_VALUE("%s %s", cf_present ? make : "N/A", model);
+    MENU_SET_ICON(cf_present ? MNI_ON : MNI_OFF, 0);
 }
 
-static void
-card_test_display(
-    void *            priv,
-    int            x,
-    int            y,
-    int            selected
-)
-{
-    bmp_printf(
-        selected ? MENU_FONT_SEL : MENU_FONT,
-        x, y,
-        "Card test at startup : %s", 
-        card_test_enabled ? "ON" : "OFF"
-    );
-    menu_draw_icon(x, y, card_test_enabled ? MNI_ON : MNI_WARNING, (intptr_t) "Your choice. Just don't blame ML if you get corrupted files.");
-}
+/* enable to slow down the write speed, which improves compatibility with certain cards */
+/* only enable if needed */
+CONFIG_INT("cf.workaround", cf_card_workaround, 0);
 
 void card_test(int type)
 {
     // some cards have timing issues on 5D3
     // ML will test for this bug at startup, and refuse to run on cards that can cause trouble
     // http://www.magiclantern.fm/forum/index.php?topic=2528.0
-    
+
+    if (!cf_card_workaround)
+    {
+        /* save the config with workaround enabled now, because if the test fails, we'll no longer able to save it */
+        cf_card_workaround = 1;
+        save_config(0,0);
+        cf_card_workaround = 0;
+    }
+
     if (is_dir(type ? "B:/" : "A:/"))
     {
         FILE* f = FIO_CreateFileEx(type ? "B:/test.dat" : "A:/test.dat");
@@ -83,8 +69,16 @@ void card_test(int type)
             while(1)
             {
                 bmp_fill(COLOR_BLACK, 0, 0, 550, 80);
-                bfnt_puts(type ? "SD card test failed!" : "CF card test failed!", 0, 0, COLOR_WHITE, COLOR_BLACK);
-                bfnt_puts("Do not use this card on 5D3!", 0, 40, COLOR_WHITE, COLOR_BLACK);
+                if (cf_card_workaround==0 && type==0)
+                {
+                    bfnt_puts("CF test fail, enabling workaround.", 0, 0, COLOR_WHITE, COLOR_BLACK);
+                    bfnt_puts("Restart the camera and try again!", 0, 40, COLOR_WHITE, COLOR_BLACK);
+                }
+                else
+                {
+                    bfnt_puts(type ? "SD card test failed!" : "CF card test failed!", 0, 0, COLOR_WHITE, COLOR_BLACK);
+                    bfnt_puts("Do not use this card on 5D3!", 0, 40, COLOR_WHITE, COLOR_BLACK);
+                }
                 beep();
                 info_led_blink(1, 1000, 1000);
             }
@@ -98,6 +92,19 @@ void card_tests()
     {
         card_test(0);
         card_test(1);
+    }
+    
+    /* on startup enforce selected card.
+       if that card type is not available, canon will ignore this change */
+    if (card_force_type)
+    {
+        uint32_t value = card_force_type;
+        
+        /* ensure valid property value (side effect safe) */
+        if(value == 1 || value == 2)
+        {
+            prop_request_change(PROP_CARD_SELECT, &value, 4);
+        }
     }
 }
 
@@ -266,7 +273,7 @@ FILE* FIO_CreateFile(const char* filename )
 }
 
 //~ int _FIO_GetFileSize(const char * filename, unsigned * size);
-int FIO_GetFileSize(const char * filename, unsigned * size)
+int FIO_GetFileSize(const char * filename, uint32_t * size)
 {
     char new_filename[100];
     guess_drive_letter(new_filename, filename, 100);
@@ -297,19 +304,50 @@ int FIO_CreateDirectory(const char * dirname)
     return _FIO_CreateDirectory(new_dirname);
 }
 
-INIT_FUNC("fio", find_ml_card);
-
 struct menu_entry card_menus[] = {
     {
-        .name = "CF card", 
-        .display = &card_info_display,
-        .help = "CF card info: make and model."
-    },
-    {
-        .name = "Card test at startup", 
-        .priv = &card_test_enabled,
-        .display = &card_test_display,
-        .max = 1,
-        .help = "File write test. Disable ONLY after testing ALL your cards!"
-    },
+        .name = "Card settings",
+        .select = menu_open_submenu,
+        .help = "Preferences related to SD/CF card operation.",
+        .children =  (struct menu_entry[]) {
+            /*
+            {
+                .name = "CF card", 
+                .update = &card_info_display,
+                .help = "CF card info: make and model."
+            },*/
+            {
+                .name = "Card test at startup", 
+                .priv = &card_test_enabled,
+                .max = 1,
+                .help = "File write test. Some cards may have compatibility issues.",
+            },
+            {
+                .name = "CF card workaround",
+                .priv = &cf_card_workaround,
+                .max = 1,
+                .help = "Slows down the CF write speed to let you use certain cards.",
+                .help2 = "(e.g. Kingston 16GB 266x is known to require this)"
+            },
+            {
+                .name = "Preferred card", 
+                .priv = &card_force_type,
+                .min = 0,
+                .max = 2,
+                .choices = CHOICES("OFF", "CF", "SD"),
+                .help = "Ensure that on startup your preferred card is selected."
+            },
+            MENU_EOL,
+        }
+    }
 };
+
+void fio_init()
+{
+    menu_add( "Prefs", card_menus, COUNT(card_menus) );
+    
+    find_ml_card();
+}
+
+
+INIT_FUNC("fio_init", fio_init);

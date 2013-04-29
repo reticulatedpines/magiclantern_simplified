@@ -77,6 +77,9 @@
 /** But we can't override the digital ISO component via FRAME_ISO **/
 #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
 
+/** We can also override shutter on a per-frame basis */
+#define CONFIG_FRAME_SHUTTER_OVERRIDE
+
 /** We can't change ExpSim from ML :( **/
 //~ #define CONFIG_EXPSIM
 
@@ -101,9 +104,6 @@
 /** Show 4 char if camera support only 3 in photo mode (not LiveView) **/
 //~#define AVAIL_SHOT_WORKAROUND // not needed on 600D
 
-/** Header/footer selectable info**/
-#define DISPLAY_HEADER_FOOTER_INFO
-
 /** FIO_RenameFile works **/
 #define CONFIG_FIO_RENAMEFILE_WORKS
 
@@ -112,3 +112,9 @@
 
 /** This camera loads ML into the AllocateMemory pool **/
 //#define CONFIG_ALLOCATE_MEMORY_POOL
+
+/** 600D has little RAM for AllocateMemory; prefer the malloc/free pool for small things */
+#define CONFIG_USE_MALLOC_FOR_SMALL_THINGS
+
+/** Advanced EXMEM stubs are known and can be used */
+#define CONFIG_FULL_EXMEM_SUPPORT

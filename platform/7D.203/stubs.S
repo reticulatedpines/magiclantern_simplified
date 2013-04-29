@@ -30,18 +30,41 @@
 
 #define NSTUB(addr,name) \
 	.global name; \
+	.extern name; \
 	name = addr
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
-NSTUB( 0x67C, next_task_ctx )
-NSTUB( 0x680, current_task_ctx )
+NSTUB(0x193C, pre_isr_hook)
+NSTUB(0x1940, post_isr_hook)
+
+NSTUB(0x67C, next_task_ctx)
+NSTUB(0x680, current_task_ctx)
+                          
+NSTUB(0xFF1F5418, ConnectWriteEDmac)
+NSTUB(0xFF1F54DC, ConnectReadEDmac)
+
+             
+NSTUB(0xFF3D26EC, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
+NSTUB(0xFF3D27CC, PackMem_RegisterEDmacAbortCBRForMemorySuite)
+NSTUB(0xFF3D275C, PackMem_RegisterEDmacPopCBRForMemorySuite)
+NSTUB(0xFF3D2644, PackMem_PopEDmacForMemorySuite)
+NSTUB(0xFF3D24A0, PackMem_SetEDmacForMemorySuite)
+NSTUB(0xFF3D2598, PackMem_StartEDmac)
+
 
 NSTUB(0xFF07AED4, RegisterRPCHandler)
 NSTUB(0xFF07AF84, RequestRPC)
 NSTUB(0xFF07A704, BulkOutIPCTransfer)
 NSTUB(0xFF07A7D4, BulkInIPCTransfer)
 
+NSTUB(0xFF07E4A0, GetFirstChunkFromSuite)
+NSTUB(0xFF07EC38, GetNextMemoryChunk)
+NSTUB(0xFF07DEB8, GetSizeOfMemoryChunk)
+NSTUB(0xFF07DE88, GetRemainOfMemoryChunk)
+NSTUB(0xFF07DEE8, GetMemoryAddressOfMemoryChunk)
+NSTUB(0xFF07E258, GetNumberOfChunks)
+NSTUB(0xFF07E1B8, GetSizeOfMemorySuite)
 
 NSTUB(0xFF06494C, SoundDevStopIn)
 NSTUB(0xFF064A1C, SoundDevStopOut)
@@ -137,7 +160,6 @@ NSTUB(0xff07b708, gui_timer_something)
 NSTUB(    0x3624, gui_timer_struct)
 NSTUB(0xff018734, init_task)
 NSTUB(0xff0162f0, malloc)
-NSTUB(0xFF50CB90, memcpy)
 NSTUB(0xff205e5c, msg_queue_post)
 NSTUB(0xff205c70, msg_queue_receive)
 NSTUB(0xff07bdf8, msleep)
@@ -152,6 +174,7 @@ NSTUB(0xff068734, _prop_cleanup)
 NSTUB(0xff06858c, prop_deliver)
 NSTUB(0xff0687c8, prop_get_value)
 NSTUB(0xff068614, prop_register_slave)
+NSTUB(0xff0686a4, prop_unregister_slave)
 NSTUB(0xff067fac, _prop_request_change)
 NSTUB(0xff2885cc, ptp_register_handler)
 NSTUB(0xff20ae48, register_func)
@@ -161,9 +184,6 @@ NSTUB(0xff0104d0, sei_restore)
 NSTUB(    0x1f54, sounddev)
 NSTUB(0xff063d64, sounddev_task)
 NSTUB(0xFF0640EC, sounddev_active_in)
-NSTUB(0xff088ee8, strcmp)
-NSTUB(0xff20f2c8, strcpy)
-NSTUB(0xff016224, strlen)
 NSTUB(0xff07b924, take_semaphore)
 NSTUB(0xff07beac, task_create)
 NSTUB(    0x1934, task_dispatch_hook )
@@ -204,8 +224,6 @@ NSTUB(0xff014c10, get_current_task)
 NSTUB(0xff080e78, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff080ec4, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff080fdc, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xff07e4a0, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
-NSTUB(0xff07dee8, GetMemoryAddressOfMemoryChunk)
 
 NSTUB(0xff07365c, PowerAudioOutput)
 NSTUB(0xff061c44, StartASIFDMADAC)

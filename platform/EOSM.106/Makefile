@@ -43,7 +43,6 @@ ML_OBJS-y = \
 	shoot.o \
 	chdk-gui_draw.o \
 	movtweaks.o \
-	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
 	focus.o \
@@ -52,7 +51,6 @@ ML_OBJS-y = \
 	dialog_test.o \
 	vram.o \
 	aj_port.o \
-	lv-img-engio.o \
 	fps-engio.o \
 	tasks.o \
 	tskmon.o \

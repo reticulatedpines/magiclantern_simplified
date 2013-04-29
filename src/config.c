@@ -180,12 +180,12 @@ config_auto_parse(
             cfg->value
         );
 
-        if( var->type == 0 )
-        {
-            *(unsigned*) var->value = atoi( cfg->value );
-        } else {
-            *(char **) var->value = cfg->value;
-        }
+        //if( var->type == 0 )
+        //{
+            *(int*) var->value = atoi( cfg->value );
+        //} else {
+        //    *(char **) var->value = cfg->value;
+        //}
 
         return;
     }
@@ -236,29 +236,31 @@ config_save_file(
 
     for( ; var < _config_vars_end ; var++ )
     {
-        if( var->type == 0 )
-            snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1,
-                "%s = %d\r\n",
-                var->name,
-                *(unsigned*) var->value
-            );
-        else
-            snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1,
-                "%s = %s\r\n",
-                var->name,
-                *(const char**) var->value
-            );
+        if (*(int*)var->value == var->default_value)
+            continue;
+
+        snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1,
+            "%s = %d\r\n",
+            var->name,
+            *(int*) var->value
+        );
 
         count++;
     }
     
     FILE * file = FIO_CreateFileEx( filename );
     if( file == INVALID_PTR )
+    {
+        free_dma_memory(msg);
         return -1;
+    }
     
     FIO_WriteFile(file, msg, strlen(msg));
 
     FIO_CloseFile( file );
+    
+    free_dma_memory(msg);
+    
     return count;
 }
 
@@ -302,7 +304,7 @@ int config_autosave = 1;
 
 static int config_flag_file_setting_load(char* file)
 {
-    unsigned size;
+    uint32_t size;
     return ( FIO_GetFileSize( file, &size ) == 0 );
 }
 
@@ -345,27 +347,6 @@ config_parse_file(
     return 1;
 }
 
-
-
-int
-atoi(
-    const char *        s
-)
-{
-    int value = 0;
-
-    // Only handles base ten for now
-    while( 1 )
-    {
-        char c = *s++;
-        if( !c || c < '0' || c > '9' )
-            break;
-        value = value * 10 + c - '0';
-    }
-
-    return value;
-}
-
 struct config_var* get_config_vars_start() {
 	return _config_vars_start;
 }
@@ -374,3 +355,27 @@ struct config_var* get_config_vars_end() {
 	return _config_vars_end;
 }
 
+static struct config_var* config_var_lookup(int* ptr)
+{
+    for(struct config_var *  var = _config_vars_start ; var < _config_vars_end ; var++ )
+    {
+        if (var->value == ptr)
+            return var;
+    }
+    return 0;
+}
+
+int config_var_was_changed(int* ptr)
+{
+    struct config_var * var = config_var_lookup(ptr);
+    if (!var) return 0;
+    return var->default_value != *(var->value);
+}
+
+int config_var_restore_default(int* ptr)
+{
+    struct config_var * var = config_var_lookup(ptr);
+    if (!var) return 0;
+    *(var->value) = var->default_value;
+    return 1;
+}

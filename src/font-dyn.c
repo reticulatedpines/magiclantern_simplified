@@ -82,7 +82,7 @@ static void shadow_fonts_compute()
     }
 }
 
-int fonts_done = 0;
+static int fonts_done = 0;
 
 void load_fonts(void* unused)
 {
@@ -121,16 +121,16 @@ void load_fonts(void* unused)
     //#else
 #endif
 
-    /*font_small_shadow.bitmap = AllocateMemory(size);
+    /*font_small_shadow.bitmap = SmallAlloc(size);
     memcpy(font_small_shadow.bitmap, font_small.bitmap, size);
     font_med_shadow.bitmap = font_small_shadow.bitmap + 6136/4; // size of SMALL.FNT
     font_large_shadow.bitmap = font_med_shadow.bitmap + 10232/4; // size of MEDIUM.FNT
 	*/
-    font_small_shadow.bitmap = AllocateMemory(font_small.height*4*0x80);
+    font_small_shadow.bitmap = SmallAlloc(font_small.height*4*0x80);
     memcpy(font_small_shadow.bitmap, font_small.bitmap, font_small.height*4*0x80);
-    font_med_shadow.bitmap = AllocateMemory(font_med.height*4*0x80);
+    font_med_shadow.bitmap = SmallAlloc(font_med.height*4*0x80);
     memcpy(font_med_shadow.bitmap, font_med.bitmap, font_med.height*4*0x80);
-    font_large_shadow.bitmap = AllocateMemory(font_large.height*4*0x80);
+    font_large_shadow.bitmap = SmallAlloc(font_large.height*4*0x80);
     memcpy(font_large_shadow.bitmap, font_large.bitmap, font_large.height*4*0x80);
 
     shadow_fonts_compute();

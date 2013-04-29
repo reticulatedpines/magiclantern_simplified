@@ -26,6 +26,7 @@
 
 #include "arm-mcr.h"
 #include "consts.h"
+#include "fw-signature.h"
 
 asm(
     ".text\n"
@@ -63,7 +64,7 @@ asm(
     ".globl blob_end\n"
 );
 
-#if defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+#if SHOULD_CHECK_SIG
 static void busy_wait(int n)
 {
     int i,j;
@@ -91,53 +92,52 @@ static void fail()
     blink(50);
 }
 
-static int compute_signature(int* start, int num)
-{
-    int c = 0;
-    int* p;
-    for (p = start; p < start + num; p++)
-    {
-        c += *p;
-    }
-    return c;
-}
-
 #endif
+
+extern int compute_signature(int* start, int num);
 
 void
 __attribute__((noreturn))
 cstart( void )
 {
+#if SHOULD_CHECK_SIG
+
+    int s = compute_signature((int*)SIG_START, SIG_LEN);
+
     #ifdef CONFIG_5D3
-    int s = compute_signature((int*)0xFF0C0000, 0x10000);
-    if (s != (int)0x2e2f65f5)
+    if (s != (int)SIG_5D3_113)
         fail();
     #endif
     
     #ifdef CONFIG_EOSM
-    int s = compute_signature((int*)0xFF0C0000, 0x10000);
-    if (s != (int)0x6393A881)
+    if (s != (int)SIG_EOSM_106)
         fail();
     #endif
 
     #if defined(CONFIG_7D)
-    int s = compute_signature((int*)0xF8010000, 0x10000);
-    if (s != (int)0x50163E93)
+    if (s != (int)SIG_7D_203)
         fail();
     #endif
     
     #if defined(CONFIG_7D_MASTER)
-    int s = compute_signature((int*)0xF8010000, 0x10000);
-    if (s != (int)0x640BF4D1)
+    if (s != (int)SIG_7D_MASTER_203)
         fail();
     #endif
     
     #ifdef CONFIG_6D
-    int s = compute_signature((int*)0xFF0C0000, 0x10000);
-    if (s != (int)0x6D677512)
+    if (s != (int)SIG_6D_113)
         fail();
     #endif
+
+    #ifdef CONFIG_650D
+    if (s != (int)SIG_650D_101)
+        fail();
+    #endif
+
+#endif
     
+    
+
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */
 	#if defined(CONFIG_40D) || defined(CONFIG_5DC)
         *(volatile int*) (LEDBLUE) = (LEDON);

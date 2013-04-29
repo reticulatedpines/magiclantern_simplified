@@ -44,7 +44,6 @@ ML_OBJS-y = \
 	zebra.o \
 	shoot.o \
 	chdk-gui_draw.o \
-	my_memset.o \
 	menuhelp.o \
 	menuindex.o \
 	af_patterns.o \
@@ -63,6 +62,7 @@ ML_OBJS-y = \
 	tskmon.o \
 	beep.o \
 	vsync-lite.o \
+	afma.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

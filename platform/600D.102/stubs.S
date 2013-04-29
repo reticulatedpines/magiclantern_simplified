@@ -29,6 +29,7 @@
 
 #define NSTUB(addr,name) \
 	.global name; \
+	.extern name; \
 	name = addr
 
 NSTUB( ROMBASEADDR, firmware_entry )
@@ -112,7 +113,6 @@ NSTUB( 0xff072280, AllocateMemory_do) // no err70, malloc structure at 0x3070
 // FF05FECC WinSys_FreeMemory
 
 NSTUB( 0x2E0C, dm_names )                // in DebugMsg, before the 1st loop target
-NSTUB( 0xff20f3e4, strcpy )
 NSTUB( 0xFF069AE0, LoadCalendarFromRTC )
 NSTUB( 0xff07e3f4, task_trampoline )
 
@@ -130,7 +130,6 @@ NSTUB( 0xff31c594, gui_task_create )
 NSTUB( 0xff31c6b4, gui_task_destroy )
 NSTUB( 0xff31c444, ctrlman_dispatch_event )
 
-NSTUB( 0xFF5682F4, memcpy )
 NSTUB( 0xff230e48, prop_request_icu_auto_poweroff )           // "PROP_Request PROP_ICU_AUTO_POWEROFF(%d)"
 NSTUB( 0xff1fd2e4, alloc_dma_memory )
 NSTUB( 0xff1fd318, free_dma_memory )
@@ -208,9 +207,6 @@ NSTUB( 0xFF33BFAC, ReverseDisplay )
 //NSTUB( 0xff33a734, RedrawDisplay )
 
 
-NSTUB( 0xFF018C74, strlen )
-NSTUB( 0xFF082704, strcmp )     // used to cmp "akashimorino" 
-
 NSTUB( 0x6290, mvr_config )
 
 NSTUB( 0xff1f5c40, msg_queue_post)
@@ -282,8 +278,14 @@ NSTUB(0xff0a5e44, SetGUIRequestMode)
 NSTUB(0xff0765a0, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff0765ec, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff076704, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xff073b98, GetFirstChunkFromSuite_maybe) // AJ_PackMemory_PackMem_p3
+
+NSTUB(0xff073b98, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff0735e0, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature
+NSTUB(0xFF073580, GetRemainOfMemoryChunk)
+NSTUB(0xFF0735B0, GetSizeOfMemoryChunk)
+NSTUB(0xFF0738AC, GetSizeOfMemorySuite)
+NSTUB(0xFF073910, GetNumberOfChunks)
+NSTUB(0xFF07432C, GetNextMemoryChunk)
 
 NSTUB(0xff06a93c, PowerAudioOutput)
 NSTUB(0xff05587c, StartASIFDMADAC)

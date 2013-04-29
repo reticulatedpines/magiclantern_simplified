@@ -35,13 +35,8 @@ struct loaded_plugin {
 static struct loaded_plugin* plugins;
 static size_t plugins_count = 0;
 
-#if defined CONFIG_60D
-#define Allocator malloc
-#define DeAllocator free
-#else
-#define Allocator AllocateMemory
-#define DeAllocator FreeMemory
-#endif
+#define Allocator SmallAlloc
+#define DeAllocator SmallFree
 
 struct ext_plugin * load_plugin(const char* filename) {
 	unsigned size;

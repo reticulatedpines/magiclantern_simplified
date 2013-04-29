@@ -10,6 +10,7 @@
 #include "property.h"
 #include "bmp.h"
 #include "tskmon.h"
+#include "menu.h"
 
 struct task_attr_str {
   unsigned int entry;
@@ -50,12 +51,16 @@ return "?";
 }
 
 #ifndef CONFIG_VXWORKS
-taskload_t tskmon_task_loads[TSKMON_MAX_TASKS];
+#ifdef CONFIG_TSKMON
+static taskload_t tskmon_task_loads[TSKMON_MAX_TASKS];
 int show_cpu_usage_flag = 0;
-int task_load_update_request = 0;
+static int task_load_update_request = 0;
+#endif
 
 void task_update_loads() // called every second from clock_task
 {
+#ifdef CONFIG_TSKMON
+    #ifdef FEATURE_SHOW_CPU_USAGE
     if (show_cpu_usage_flag)
     {
         static int k = 0; k++;
@@ -79,12 +84,21 @@ void task_update_loads() // called every second from clock_task
                 int cpu_percent = show_cpu_usage_flag == 2 ? tskmon_task_loads[i].absolute : tskmon_task_loads[i].relative;
                 if (cpu_percent)
                 {
-                    char* name = get_task_name_from_id(i);
-                    if (streq(name, "PowerMgr"))
-                        continue;
+                    char* name = "";
+                    
+                    if(i < TSKMON_MAX_TASKS-1)
+                    {
+                        name = get_task_name_from_id(i);
+                        if (streq(name, "PowerMgr"))
+                            continue;
+                    }
+                    else
+                    {
+                        name = "Interrupts";
+                    }
                     char short_name[] = "           \0";
-                    my_memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
-                    int c = cpu_percent > 800 ? COLOR_RED : cpu_percent > 300 ? COLOR_YELLOW : cpu_percent > 100 ? COLOR_CYAN : COLOR_WHITE;
+                    memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
+                    int c = cpu_percent > 800 ? COLOR_RED : cpu_percent > 300 ? COLOR_YELLOW : cpu_percent > 100 ? COLOR_CYAN : (i == TSKMON_MAX_TASKS-1) ? COLOR_ORANGE : COLOR_WHITE;
                     bmp_printf(FONT(FONT_SMALL, c, COLOR_BLACK), x, y, 
                     "%s: %2d.%1d%%", 
                     short_name, cpu_percent/10, cpu_percent%10);
@@ -98,24 +112,76 @@ void task_update_loads() // called every second from clock_task
             prev_y = y;
         }
     }
+    #endif
     
+    #ifdef FEATURE_SHOW_TASKS
     if (task_load_update_request) // for menu
     {
         tskmon_update_loads(tskmon_task_loads);
         task_load_update_request = 0;
     }
+    #endif
+#endif
 }
 #endif
 
-int tasks_show_flags = 0;
-void tasks_print(void* priv, int x0, int y0, int selected)
+#if 0 // for debugging only (tskmon checks all tasks in background, so it shouldn't be needed)
+
+/* manually checks peak stack usage for current task (just call it from any task) */
+/* returns free stack space */
+int task_check_stack()
 {
+    struct task_attr_str task_attr;
+    int id = (int)get_current_task() & 0xFF;
+
+    /* works, gives the same result as DryOS routine, so... let's just use the DryOS one
+     *
+    #ifdef CONFIG_TSKMON
+    tskmon_stack_check(id);
+    msleep(50); // wait until the task is rescheduled, so tskmon can check it
+    uint32_t stack_used = 0;
+    uint32_t stack_free = 0;
+    tskmon_stack_get_max(id, &stack_used, &stack_free);
+    bmp_printf(FONT_MED, 0, 0, "free: %d used: %d", stack_free, stack_used);
+    return stack_free;
+    #elif !defined(CONFIG_VXWORKS)
+    */
+    
+    int r = is_taskid_valid(1, id, &task_attr);
+    if (r == 0)
+    {
+        int free = task_attr.size - task_attr.used;
+        bmp_printf(FONT(FONT_MED, free ? COLOR_WHITE : COLOR_RED, COLOR_BLACK), 0, 0, "%s: stack free: %d used: %d   ", get_task_name_from_id(id), free, task_attr.used);
+        return free;
+    }
+    return -1;
+    //#endif
+}
+#endif
+
+#ifdef FEATURE_SHOW_TASKS
+static int tasks_show_flags = 0;
+
+MENU_SELECT_FUNC(tasks_toggle_flags)
+{
+    #ifdef CONFIG_TSKMON
+    menu_numeric_toggle(&tasks_show_flags, delta, 0, 3);
+    #else
+    menu_numeric_toggle(&tasks_show_flags, delta, 0, 1);
+    #endif
+}
+
+MENU_UPDATE_FUNC(tasks_print)
+{
+    if (!info->x) return;
+
+    info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+    
 #if defined(CONFIG_VXWORKS)
 
-    if (selected) 
+    if (entry->selected) 
     {
-        menu_draw_icon(x0, y0, -1, 0);
-        bmp_fill(40, 0, 0, 720, 430);
+        bmp_fill(40, 0, 0, 720, 480);
     }
 
     static int task_info[100];
@@ -131,7 +197,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
         
         char* name = (char*) task_info[1]+1;
         char short_name[] = "             \0";
-        my_memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
+        memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
 
         // Canon tasks are named in uppercase (exception: idle); ML tasks are named in lowercase.
         int is_canon_task = (name[0]  < 'a' || name[0] > 'z' || name[1]  < 'a' || name[1] > 'z');
@@ -147,7 +213,7 @@ void tasks_print(void* priv, int x0, int y0, int selected)
             x, y, "%s: p=%d m=%d%%", 
             short_name, task_info[2], mem_percent);
         y += font_med.height-1;
-        if (y > 420)
+        if (y > 460)
         {
             x += 360;
             y = 10;
@@ -156,12 +222,13 @@ void tasks_print(void* priv, int x0, int y0, int selected)
 
 #else // DryOS - https://groups.google.com/forum/#!msg/ml-devel/JstGrNJiuVM/2L1QZpZ7F4YJ
 
+    #ifdef CONFIG_TSKMON
     task_load_update_request = 1; // will update at next second clock tick
+    #endif
 
-    if (selected) 
+    if (entry->selected) 
     {
-        menu_draw_icon(x0, y0, -1, 0);
-        bmp_fill(38, 0, 0, 720, 430);
+        bmp_fill(38, 0, 0, 720, 480);
     }
 
     int task_id;
@@ -185,14 +252,16 @@ void tasks_print(void* priv, int x0, int y0, int selected)
     y += font_med.height;
 
     task_id = 1;
-    bmp_printf(FONT_SMALL, x + 8*30, y - font_small.height, "task_max=%d", task_max);
     
-    for (task_id=1; task_id<(int)task_max; task_id++)
+    int total_tasks = 0;
+    for (task_id=1; task_id<=(int)task_max; task_id++)
     {
         r = is_taskid_valid(1, task_id, &task_attr); // ok
         if (r==0)
         {
-            r = get_obj_attr( &(task_attr.args), &(task_attr.fpu), 0, 0); // buggy ?
+            total_tasks++;
+
+            //r = get_obj_attr( &(task_attr.args), &(task_attr.fpu), 0, 0); // buggy ?
             if (task_attr.name!=0)
             {
                 name=task_attr.name;
@@ -211,8 +280,9 @@ void tasks_print(void* priv, int x0, int y0, int selected)
 
             char short_name[] = "                    \0";
             
-            my_memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
+            memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
 
+            #ifdef CONFIG_TSKMON
             /* print stack/cpu usage details */
             if(tasks_show_flags & 2)
             {
@@ -221,8 +291,8 @@ void tasks_print(void* priv, int x0, int y0, int selected)
                 int cpu_percent_rel = tskmon_task_loads[task_id].relative / 10;
                 int cpu_percent_rel_dec = tskmon_task_loads[task_id].relative % 10;
                 
-                bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, task_id >= 99 ? COLOR_RED : cpu_percent_rel < 50 ? COLOR_WHITE : cpu_percent_rel < 90 ? COLOR_YELLOW : COLOR_RED, 38)), x, y, 
-                "%02d %s: a=%2d.%1d%% r=%2d.%1d%%\n", 
+                bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, cpu_percent_rel < 50 ? COLOR_WHITE : cpu_percent_rel < 90 ? COLOR_YELLOW : COLOR_RED, 38)), x, y, 
+                "%3d %s: a=%2d.%1d%% r=%2d.%1d%%\n", 
                 task_id, short_name, cpu_percent_abs, cpu_percent_abs_dec, 0, cpu_percent_rel, cpu_percent_rel_dec, 0);
             }
             else
@@ -235,32 +305,44 @@ void tasks_print(void* priv, int x0, int y0, int selected)
                 
                 int mem_percent = stack_used * 100 / task_attr.size;
                 
-                uint32_t color = task_id >= 99 ? COLOR_RED : mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED;
+                uint32_t color = mem_percent < 50 ? COLOR_WHITE : mem_percent < 90 ? COLOR_YELLOW : COLOR_RED;
                 
                 if(stack_free == 0)
                 {
-                    color = COLOR_GRAY50;
+                    color = 50;
                 }
                 
                 bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, color, 38)), x, y, 
-                "%02d %s: p=%2x w=%2x m=%2d%% %d\n", 
+                "%3d %s: p=%2x w=%2x m=%2d%% %d\n", 
                 task_id, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
             }
+            #else
+                int mem_percent = task_attr.used * 100 / task_attr.size;
+                bmp_printf(SHADOW_FONT(FONT(FONT_SMALL, task_id >= 99 ? COLOR_RED : COLOR_WHITE, 38)), x, y, 
+                "%3d %s: p=%2x w=%2x m=%2d%% %d\n", 
+                task_id, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
+            #endif
 
             #if defined(CONFIG_5D3) || defined(CONFIG_60D) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
-            y += font_small.height - ((tasks_show_flags & 1) ? 2 : 0); // too many tasks - they don't fit on the screen :)
+            y += font_small.height - ((tasks_show_flags & 1) ? 1 : 0); // too many tasks - they don't fit on the screen :)
             #else
             y += font_small.height;
             #endif
-            if (y > 420)
+            if (y > 460)
             {
                 x += 360;
-                y = 10;
+                y = 10 + font_med.height;
             }
         }
     }
+    bmp_printf(
+        FONT(FONT_MED, COLOR_GRAY(30), COLOR_BLACK), 
+        720 - font_med.width * 9, 5, 
+        "[%d/%d]", total_tasks, task_max
+    );
 #endif
 }
+#endif
 
 void ml_shutdown()
 {

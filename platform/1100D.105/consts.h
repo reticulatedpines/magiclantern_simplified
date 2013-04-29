@@ -116,6 +116,7 @@
 #define FRAME_ISO (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0x8))
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xa))
 #define FRAME_BV (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xb))
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC)) // not sure
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x16fc8
@@ -142,3 +143,43 @@
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04208 // SDRAM address of HD buffer (aka YUV)
 
 #define AE_VALUE 0 // 404
+
+// position for displaying clock outside LV
+#define DISPLAY_CLOCK_POS_X 400
+#define DISPLAY_CLOCK_POS_Y 410
+
+#define MENU_DISP_ISO_POS_X 560
+#define MENU_DISP_ISO_POS_Y 27
+
+// for HDR status
+#define HDR_STATUS_POS_X 40
+#define HDR_STATUS_POS_Y 458
+
+// for displaying battery
+#define DISPLAY_BATTERY_POS_X 198
+#define DISPLAY_BATTERY_POS_Y 410
+
+// for the yellow ISO range [a-b]
+#define ISO_RANGE_POS_X 568
+#define ISO_RANGE_POS_Y 100
+
+// for kelvin WB
+#define WB_KELVIN_POS_X 195
+#define WB_KELVIN_POS_Y 273
+
+// white balance shift values M2B1 in yellow
+#define WBS_POS_X 363
+#define WBS_POS_Y 230
+
+// for displaying TRAP FOCUS msg outside LV
+#define DISPLAY_TRAP_FOCUS_POS_X 35
+#define DISPLAY_TRAP_FOCUS_POS_Y 358
+#define DISPLAY_TRAP_FOCUS_MSG       "TRAP FOCUS"
+#define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
+
+// for bulb ramping calibration: delay between two exposure readings (increase it if brightness updates slowly)
+// if not defined, default is 500
+#define BRAMP_CALIBRATION_DELAY 1000
+
+//~ max volume supported for beeps
+#define ASIF_MAX_VOL 5
