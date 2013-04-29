@@ -1046,13 +1046,13 @@ static void draw_zebras_raw()
             int c = zebra_rgb_solid_color(m <= underexposed, r > white, g > white, b > white);
             if (c)
             {
-                uint16_t* bp = (uint16_t*) &bvram[BM(j,i)];
-                uint16_t* mp = (uint16_t*) &bvram_mirror[BM(j,i)];
+                uint8_t* bp = (uint8_t*) &bvram[BM(j,i)];
+                uint8_t* mp = (uint8_t*) &bvram_mirror[BM(j,i)];
 
                 #define BP (*bp)
                 #define MP (*mp)
                 if (BP != 0 && BP != MP) continue;
-                if ((MP & 0x8080)) continue;
+                if ((MP & 0x80)) continue;
                 
                 BP = MP = c;
                     
