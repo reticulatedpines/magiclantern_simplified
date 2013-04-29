@@ -404,6 +404,12 @@ static CONFIG_INT( "hist.draw", hist_draw,  1 );
 static CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
 static CONFIG_INT( "hist.warn", hist_warn,  1 );
 static CONFIG_INT( "hist.log",  hist_log,   1 );
+static CONFIG_INT( "hist.meter", hist_meter,  0);
+#define HIST_METER_DYNAMIC_RAMGE 1
+#define HIST_METER_ETTR_HINT 2
+#define HIST_METER_ETTR_HINT_CLIP_GREEN 3
+
+
 static CONFIG_INT( "waveform.draw", waveform_draw,
 #ifdef CONFIG_4_3_SCREEN
 1
@@ -1011,7 +1017,6 @@ static void draw_zebras_raw()
     uint8_t * bvram = bmp_vram();
     if (!bvram) return;
 
-    int black = raw_info.black_level;
     int white = raw_info.white_level;
     int underexposed = ev_to_raw(- (raw_info.dynamic_range - 100) / 100.0);
 
@@ -1269,7 +1274,8 @@ hist_draw_image(
     int log_max = log_length(hist_max);
 
     #ifdef FEATURE_RAW_HISTOGRAM
-    int underexposed_level = COERCE((1200 - raw_info.dynamic_range) * HIST_WIDTH / 1200, 0, HIST_WIDTH-1);
+    unsigned underexposed_level = COERCE((1200 - raw_info.dynamic_range) * HIST_WIDTH / 1200, 0, HIST_WIDTH-1);
+    unsigned stops_until_overexposure = 0;
     #endif
 
     for( i=0 ; i < HIST_WIDTH ; i++ )
@@ -1303,9 +1309,9 @@ hist_draw_image(
             int bg = (hist_log ? COLOR_WHITE : COLOR_BLACK);
             if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
             {
-                unsigned int over_r = hist_r[i] + hist_r[i-1] + hist_r[i-2];
-                unsigned int over_g = hist_g[i] + hist_g[i-1] + hist_g[i-2];
-                unsigned int over_b = hist_b[i] + hist_b[i-1] + hist_b[i-2];
+                unsigned int over_r = hist_r[i] + hist_r[i-1];
+                unsigned int over_g = hist_g[i] + hist_g[i-1];
+                unsigned int over_b = hist_b[i] + hist_b[i-1];
                 
                 if (over_r > thr) hist_dot(x_origin + HIST_WIDTH/2 - 25, yw, COLOR_RED,        bg, hist_dot_radius(over_r, hist_total_px), hist_dot_label(over_r, hist_total_px));
                 if (over_g > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,     bg, hist_dot_radius(over_g, hist_total_px), hist_dot_label(over_g, hist_total_px));
@@ -1313,7 +1319,7 @@ hist_draw_image(
             }
             else
             {
-                unsigned int over = hist[i] + hist[i-1] + hist[i-2];
+                unsigned int over = hist[i] + hist[i-1];
                 if (over > thr) hist_dot(x_origin + HIST_WIDTH/2, yw, COLOR_RED, bg, hist_dot_radius(over, hist_total_px), hist_dot_label(over, hist_total_px));
             }
         }
@@ -1333,10 +1339,14 @@ hist_draw_image(
 
             if (i == bar_pos)
             {
-                int dy = (i < font_small.width * 7) ? font_small.height : 0;
+                int dy = (i < font_med.width * 4) ? font_med.height : 0;
                 draw_line(x_origin + i, y_origin + dy, x_origin + i, y_origin + h, COLOR_GRAY(50));
                 bar_pos = (((bar_pos+1)*12/HIST_WIDTH) + 1) * HIST_WIDTH/12;
             }
+
+            unsigned int thr = hist_total_px / 10000;
+            if (hist_r[i] > thr || (hist_g[i] > thr && hist_meter != HIST_METER_ETTR_HINT_CLIP_GREEN) || hist_b[i] > thr)
+                stops_until_overexposure = 120 - (i * 120 / (HIST_WIDTH-1));
         }
         #endif
 
@@ -1347,9 +1357,30 @@ hist_draw_image(
     if (hist_is_raw)
     {
         char msg[10];
-        int dr = (raw_info.dynamic_range + 5) / 10;
-        snprintf(msg, sizeof(msg), "%d.%d EV", dr/10, dr%10);
-        bmp_printf(SHADOW_FONT(FONT_SMALL), x_origin+4, y_origin, msg);
+        switch (hist_meter)
+        {
+            case HIST_METER_DYNAMIC_RAMGE:
+            {
+                int dr = (raw_info.dynamic_range + 5) / 10;
+                snprintf(msg, sizeof(msg), "D%d.%d", dr/10, dr%10);
+                break;
+            }
+
+            case HIST_METER_ETTR_HINT:
+            case HIST_METER_ETTR_HINT_CLIP_GREEN:
+            {
+                if (stops_until_overexposure)
+                    snprintf(msg, sizeof(msg), "E%d.%d", stops_until_overexposure/10, stops_until_overexposure%10);
+                else
+                    snprintf(msg, sizeof(msg), "OVER");
+                    break;
+            }
+            
+            default:
+                snprintf(msg, sizeof(msg), "RAW");
+                break;
+        }
+        bmp_printf(SHADOW_FONT(FONT_MED), x_origin+4, y_origin, msg);
     }
     #endif
 }
@@ -3914,6 +3945,7 @@ struct menu_entry zebra_menus[] = {
         .update = hist_print,
         .help = "Exposure aid: shows the distribution of brightness levels.",
         .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
+        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Color space",
@@ -3944,6 +3976,18 @@ struct menu_entry zebra_menus[] = {
                 .max = 1,
                 .update = raw_histo_update,
                 .help = "Use RAW histogram whenever possible.",
+            },
+            {
+                .name = "RAW EV indicator",
+                .priv = &hist_meter,
+                .max = 3,
+                .choices = CHOICES("OFF", "Dynamic Range", "ETTR hint", "ETTR G clip OK"),
+                .help = "Choose an EV image indicator to display on the histogram.",
+                .help2 = 
+                    " \n"
+                    "Display the dynamic range at current ISO, from DxO charts.\n"
+                    "Show how many stops you can push the exposure to the right.\n"
+                    "ETTR hint, if you don't mind clipping the GREEN channel.\n"
             },
             #endif
             MENU_EOL
