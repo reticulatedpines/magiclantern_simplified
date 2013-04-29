@@ -1,4 +1,3 @@
-#include "compiler.h"
 #include "dryos.h"
 
 void* memset32(void* dest, int val, size_t n)
