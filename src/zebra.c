@@ -1013,7 +1013,7 @@ static void draw_zebras_raw()
 
     int black = raw_info.black_level;
     int white = raw_info.white_level;
-    int underexposed = ev_to_raw(-raw_info.dynamic_range / 100.0);
+    int underexposed = ev_to_raw(- (raw_info.dynamic_range - 100) / 100.0);
 
     for (int i = os.y0; i < os.y_max; i ++)
     {
@@ -1326,9 +1326,9 @@ hist_draw_image(
             if (i == 0) bar_pos = 0;
             int h = hist_height - MAX(MAX(sizeR, sizeG), sizeB) - 1;
 
-            if (i <= underexposed_level)
+            if (i <= underexposed_level + HIST_WIDTH/12)
             {
-                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + h, 4);
+                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + h, i <= underexposed_level ? 4 : COLOR_GRAY(20));
             }
 
             if (i == bar_pos)
