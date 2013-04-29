@@ -224,8 +224,8 @@ struct Value *VariableDefine(struct ParseState *Parser, char *Ident, struct Valu
 /* define a variable. Ident must be registered. If it's a redefinition from the same declaration don't throw an error */
 struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser, char *Ident, struct ValueType *Typ, int IsStatic, int *FirstVisit)
 {
-    struct Value *ExistingValue;
-    const char *DeclFileName;
+    struct Value *ExistingValue = NULL;
+    const char *DeclFileName = NULL;
     int DeclLine;
     int DeclColumn;
     
@@ -234,7 +234,7 @@ struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser, char *
         char MangledName[LINEBUFFER_MAX];
         char *MNPos = &MangledName[0];
         char *MNEnd = &MangledName[LINEBUFFER_MAX-1];
-        const char *RegisteredMangledName;
+        const char *RegisteredMangledName = NULL;
         
         /* make the mangled static name (avoiding using sprintf() to minimise library impact) */
         memset((void *)&MangledName, '\0', sizeof(MangledName));
@@ -280,15 +280,15 @@ struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser, char *
 /* check if a variable with a given name is defined. Ident must be registered */
 int VariableDefined(const char *Ident)
 {
-    struct Value *FoundValue;
+    struct Value *FoundValue = NULL;
     
     if (TopStackFrame == NULL || !TableGet(&TopStackFrame->LocalTable, Ident, &FoundValue, NULL, NULL, NULL))
     {
         if (!TableGet(&GlobalTable, Ident, &FoundValue, NULL, NULL, NULL))
             return FALSE;
     }
-    
-    if (FoundValue->OutOfScope)
+
+    if (FoundValue && FoundValue->OutOfScope)
         return FALSE;
     
     return TRUE;

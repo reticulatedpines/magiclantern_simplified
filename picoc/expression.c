@@ -986,8 +986,8 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
         struct Value *StructVal = ParamVal;
         struct ValueType *StructType = ParamVal->Typ;
         char *DerefDataLoc = (char *)ParamVal->Val;
-        struct Value *MemberValue;
-        struct Value *Result;
+        struct Value *MemberValue = NULL;
+        struct Value *Result = NULL;
 
         /* if we're doing '->' dereference the struct pointer first */
         if (Token == TokenArrow)
