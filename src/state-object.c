@@ -340,7 +340,7 @@ static int stateobj_start_spy(struct state_object * stateobj, void* spy)
     else if ((void*)StateTransition != (void*)stateobj->StateTransition_maybe)
     {
         beep();
-        return;
+        return 1;
     }
     
     stateobj->StateTransition_maybe = spy;

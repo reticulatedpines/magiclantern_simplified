@@ -222,7 +222,9 @@ int lv_luma_is_accurate()
     return get_expsim() && digic_iso_gain_photo == 1024;
 }
 
+#ifdef FEATURE_SHOW_OVERLAY_FPS
 static int show_lv_fps = 0; // for debugging
+#endif
 
 static struct bmp_file_t * cropmarks = 0;
 static int _bmp_muted = false;
@@ -404,6 +406,12 @@ static CONFIG_INT( "hist.draw", hist_draw,  1 );
 static CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
 static CONFIG_INT( "hist.warn", hist_warn,  1 );
 static CONFIG_INT( "hist.log",  hist_log,   1 );
+static CONFIG_INT( "hist.meter", hist_meter,  0);
+#define HIST_METER_DYNAMIC_RAMGE 1
+#define HIST_METER_ETTR_HINT 2
+#define HIST_METER_ETTR_HINT_CLIP_GREEN 3
+
+
 static CONFIG_INT( "waveform.draw", waveform_draw,
 #ifdef CONFIG_4_3_SCREEN
 1
@@ -467,7 +475,6 @@ uint8_t* get_bvram_mirror() { return bvram_mirror; }
 
 static int cropmark_cache_dirty = 1;
 static int crop_dirty = 0;       // redraw cropmarks after some time (unit: 0.1s)
-static int clearscreen_countdown = 20;
 
 static uint8_t false_colour[][256] = {
     {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
@@ -1011,9 +1018,8 @@ static void draw_zebras_raw()
     uint8_t * bvram = bmp_vram();
     if (!bvram) return;
 
-    int black = raw_info.black_level;
     int white = raw_info.white_level;
-    int underexposed = ev_to_raw(-raw_info.dynamic_range);
+    int underexposed = ev_to_raw(- (raw_info.dynamic_range - 100) / 100.0);
 
     for (int i = os.y0; i < os.y_max; i ++)
     {
@@ -1046,13 +1052,13 @@ static void draw_zebras_raw()
             int c = zebra_rgb_solid_color(m <= underexposed, r > white, g > white, b > white);
             if (c)
             {
-                uint16_t* bp = (uint16_t*) &bvram[BM(j,i)];
-                uint16_t* mp = (uint16_t*) &bvram_mirror[BM(j,i)];
+                uint8_t* bp = (uint8_t*) &bvram[BM(j,i)];
+                uint8_t* mp = (uint8_t*) &bvram_mirror[BM(j,i)];
 
                 #define BP (*bp)
                 #define MP (*mp)
                 if (BP != 0 && BP != MP) continue;
-                if ((MP & 0x8080)) continue;
+                if ((MP & 0x80)) continue;
                 
                 BP = MP = c;
                     
@@ -1269,7 +1275,8 @@ hist_draw_image(
     int log_max = log_length(hist_max);
 
     #ifdef FEATURE_RAW_HISTOGRAM
-    int underexposed_level = COERCE((1200 - raw_info.dynamic_range) * HIST_WIDTH / 1200, 0, HIST_WIDTH-1);
+    unsigned underexposed_level = COERCE((1200 - raw_info.dynamic_range) * HIST_WIDTH / 1200, 0, HIST_WIDTH-1);
+    unsigned stops_until_overexposure = 0;
     #endif
 
     for( i=0 ; i < HIST_WIDTH ; i++ )
@@ -1303,9 +1310,9 @@ hist_draw_image(
             int bg = (hist_log ? COLOR_WHITE : COLOR_BLACK);
             if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
             {
-                unsigned int over_r = hist_r[i] + hist_r[i-1] + hist_r[i-2];
-                unsigned int over_g = hist_g[i] + hist_g[i-1] + hist_g[i-2];
-                unsigned int over_b = hist_b[i] + hist_b[i-1] + hist_b[i-2];
+                unsigned int over_r = hist_r[i] + hist_r[i-1];
+                unsigned int over_g = hist_g[i] + hist_g[i-1];
+                unsigned int over_b = hist_b[i] + hist_b[i-1];
                 
                 if (over_r > thr) hist_dot(x_origin + HIST_WIDTH/2 - 25, yw, COLOR_RED,        bg, hist_dot_radius(over_r, hist_total_px), hist_dot_label(over_r, hist_total_px));
                 if (over_g > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,     bg, hist_dot_radius(over_g, hist_total_px), hist_dot_label(over_g, hist_total_px));
@@ -1313,7 +1320,7 @@ hist_draw_image(
             }
             else
             {
-                unsigned int over = hist[i] + hist[i-1] + hist[i-2];
+                unsigned int over = hist[i] + hist[i-1];
                 if (over > thr) hist_dot(x_origin + HIST_WIDTH/2, yw, COLOR_RED, bg, hist_dot_radius(over, hist_total_px), hist_dot_label(over, hist_total_px));
             }
         }
@@ -1326,17 +1333,21 @@ hist_draw_image(
             if (i == 0) bar_pos = 0;
             int h = hist_height - MAX(MAX(sizeR, sizeG), sizeB) - 1;
 
-            if (i <= underexposed_level)
+            if (i <= underexposed_level + HIST_WIDTH/12)
             {
-                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + h, 4);
+                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + h, i <= underexposed_level ? 4 : COLOR_GRAY(20));
             }
 
             if (i == bar_pos)
             {
-                int dy = (i < font_small.width * 7) ? font_small.height : 0;
+                int dy = (i < font_med.width * 4) ? font_med.height : 0;
                 draw_line(x_origin + i, y_origin + dy, x_origin + i, y_origin + h, COLOR_GRAY(50));
                 bar_pos = (((bar_pos+1)*12/HIST_WIDTH) + 1) * HIST_WIDTH/12;
             }
+
+            unsigned int thr = hist_total_px / 10000;
+            if (hist_r[i] > thr || (hist_g[i] > thr && hist_meter != HIST_METER_ETTR_HINT_CLIP_GREEN) || hist_b[i] > thr)
+                stops_until_overexposure = 120 - (i * 120 / (HIST_WIDTH-1));
         }
         #endif
 
@@ -1347,9 +1358,30 @@ hist_draw_image(
     if (hist_is_raw)
     {
         char msg[10];
-        int dr = (raw_info.dynamic_range + 5) / 10;
-        snprintf(msg, sizeof(msg), "%d.%d EV", dr/10, dr%10);
-        bmp_printf(SHADOW_FONT(FONT_SMALL), x_origin+4, y_origin, msg);
+        switch (hist_meter)
+        {
+            case HIST_METER_DYNAMIC_RAMGE:
+            {
+                int dr = (raw_info.dynamic_range + 5) / 10;
+                snprintf(msg, sizeof(msg), "D%d.%d", dr/10, dr%10);
+                break;
+            }
+
+            case HIST_METER_ETTR_HINT:
+            case HIST_METER_ETTR_HINT_CLIP_GREEN:
+            {
+                if (stops_until_overexposure)
+                    snprintf(msg, sizeof(msg), "E%d.%d", stops_until_overexposure/10, stops_until_overexposure%10);
+                else
+                    snprintf(msg, sizeof(msg), "OVER");
+                    break;
+            }
+            
+            default:
+                snprintf(msg, sizeof(msg), "RAW");
+                break;
+        }
+        bmp_printf(SHADOW_FONT(FONT_MED), x_origin+4, y_origin, msg);
     }
     #endif
 }
@@ -1618,6 +1650,9 @@ static inline int zebra_color_word_row(int c, int y)
 
 #ifdef FEATURE_FOCUS_PEAK
 
+#define MAX_DIRTY_PIXELS 5000
+
+
 static int* dirty_pixels = 0;
 static uint32_t* dirty_pixel_values = 0;
 static int dirty_pixels_num = 0;
@@ -1659,9 +1694,6 @@ static void zebra_update_lut()
     }
 }
 
-#define MAX_DIRTY_PIXELS 5000
-
-static int focus_peaking_debug = 0;
 #endif
 
 
@@ -3360,7 +3392,9 @@ static void spotmeter_step()
     
     if (spotmeter_formula <= 1)
     {
+#ifdef FEATURE_RAW_SPOTMETER
 fallback_from_raw:
+#endif
         bmp_printf(
             fnt,
             xcb, ycb, 
@@ -3706,12 +3740,6 @@ struct menu_entry zebra_menus[] = {
                 .max = 1,
                 .help = "Display LiveView image in grayscale.",
             },
-            /*{
-                .priv = &focus_peaking_debug,
-                .max = 1,
-                .name = "Debug mode",
-                .help = "Displays raw contrast image (grayscale).",
-            },*/
             MENU_EOL
         },
     },
@@ -3914,6 +3942,7 @@ struct menu_entry zebra_menus[] = {
         .update = hist_print,
         .help = "Exposure aid: shows the distribution of brightness levels.",
         .depends_on = DEP_GLOBAL_DRAW | DEP_EXPSIM,
+        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Color space",
@@ -3944,6 +3973,18 @@ struct menu_entry zebra_menus[] = {
                 .max = 1,
                 .update = raw_histo_update,
                 .help = "Use RAW histogram whenever possible.",
+            },
+            {
+                .name = "RAW EV indicator",
+                .priv = &hist_meter,
+                .max = 3,
+                .choices = CHOICES("OFF", "Dynamic Range", "ETTR hint", "ETTR G clip OK"),
+                .help = "Choose an EV image indicator to display on the histogram.",
+                .help2 = 
+                    " \n"
+                    "Display the dynamic range at current ISO, from DxO charts.\n"
+                    "Show how many stops you can push the exposure to the right.\n"
+                    "ETTR hint, if you don't mind clipping the GREEN channel.\n"
             },
             #endif
             MENU_EOL
@@ -5003,10 +5044,12 @@ static int idle_countdown_display_dim = 50;
 static int idle_countdown_display_off = 50;
 static int idle_countdown_globaldraw = 50;
 static int idle_countdown_clrscr = 50;
+#ifdef FEATURE_POWERSAVE_LIVEVIEW
 static int idle_countdown_display_dim_prev = 50;
 static int idle_countdown_display_off_prev = 50;
 static int idle_countdown_globaldraw_prev = 50;
 static int idle_countdown_clrscr_prev = 50;
+#endif
 
 #ifdef CONFIG_KILL_FLICKER
 static int idle_countdown_killflicker = 5;
@@ -5150,7 +5193,10 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
     *prev_countdown = c;
 }
 
+#if defined(CONFIG_LIVEVIEW) && defined(FEATURE_POWERSAVE_LIVEVIEW)
 static int lv_zoom_before_pause = 0;
+#endif
+
 void PauseLiveView() // this should not include "display off" command
 {
 #if defined(CONFIG_LIVEVIEW) && defined(FEATURE_POWERSAVE_LIVEVIEW)
@@ -5179,12 +5225,12 @@ void PauseLiveView() // this should not include "display off" command
 int ResumeLiveView()
 {
     info_led_on();
+    int ans = 0;
 #if defined(CONFIG_LIVEVIEW) && defined(FEATURE_POWERSAVE_LIVEVIEW)
     if (ml_shutdown_requested) return 0;
     if (sensor_cleaning) return 0;
     if (PLAY_MODE) return 0;
     if (MENU_MODE) return 0;
-    int ans = 0;
     if (LV_PAUSED)
     {
         int x = 0;
@@ -5201,8 +5247,8 @@ int ResumeLiveView()
     }
     lv_paused = 0;
     info_led_off();
-    return ans;
 #endif
+    return ans;
 }
 
 #ifdef FEATURE_POWERSAVE_LIVEVIEW

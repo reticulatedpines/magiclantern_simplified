@@ -29,7 +29,7 @@ static void * global_token = NULL;
 static int actual_num_handlers = 0;
 static int actual_num_properties = 0;
 static struct prop_handler property_handlers[256];
-static uint32_t property_list[256];
+static unsigned property_list[256];
 
 /* the token is needed for unregistering handlers and property cleanup */
 static void global_token_handler(void * token)

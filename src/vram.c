@@ -127,8 +127,6 @@ struct bmp_ov_loc_size os = {
 //~ int hd_ratio_num = 3;
 //~ int hd_ratio_den = 2;
 
-static int increment = 4;
-
 static int vram_params_dirty = 1;
 void vram_params_set_dirty()
 {
@@ -163,6 +161,8 @@ static void vram_params_update_if_dirty()
 }
 
 #if CONFIG_DEBUGMSG
+
+static int increment = 4;
 
 int* vram_params[] = { 
     &increment,

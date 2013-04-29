@@ -757,8 +757,8 @@ void LexHashIfdef(struct ParseState *Parser, int IfNot)
 void LexHashIf(struct ParseState *Parser)
 {
     /* get symbol to check */
-    struct Value *IdentValue;
-    struct Value *SavedValue;
+    struct Value *IdentValue = NULL;
+    struct Value *SavedValue = NULL;
     struct ParseState MacroParser;
     enum LexToken Token = LexGetRawToken(Parser, &IdentValue, TRUE);
 

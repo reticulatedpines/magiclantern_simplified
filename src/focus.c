@@ -854,7 +854,6 @@ static int focus_graph_dirty = 0;
 static int mags[NMAGS] = {0};
 #define FH COERCE(mags[i] * 45 / maxmagf, 0, 54)
 static int maxmagf = 1;
-static int minmag = 0;
 
 static void update_focus_mag(int mag)
 {

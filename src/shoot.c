@@ -23,6 +23,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include "shoot.h"
+
 #include "dryos.h"
 #include "bmp.h"
 #include "version.h"
@@ -150,10 +152,14 @@ static int intervalometer_next_shot_time = 0;
 #define TRAP_ERR_CFN 1
 #define TRAP_IDLE    2
 #define TRAP_ACTIVE  3
+
+#ifdef FEATURE_TRAP_FOCUS
 static uint32_t trap_focus_continuous_state = 0;
 static uint32_t trap_focus_msg = 0;
+#endif
 
 CONFIG_INT( "focus.trap", trap_focus, 0);
+
 //~ CONFIG_INT( "focus.trap.numpics", trap_focus_shoot_numpics, 1);
 static CONFIG_INT( "audio.release-level", audio_release_level, 10);
 static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
@@ -180,7 +186,10 @@ static CONFIG_INT( "mlu.mode", mlu_mode, 1);
 #define MLU_ALWAYS_ON (mlu_auto && mlu_mode == 0)
 #define MLU_SELF_TIMER (mlu_auto && mlu_mode == 1)
 #define MLU_HANDHELD (mlu_auto && mlu_mode == 2)
+
+#ifdef FEATURE_MLU_HANDHELD_DEBUG
 static int mlu_handled_debug = 0;
+#endif
 
 #ifndef CONFIG_5DC
 static CONFIG_INT("mlu.handheld.delay", mlu_handheld_delay, 4);
@@ -434,7 +443,7 @@ static MENU_UPDATE_FUNC(timelapse_calc_display)
 
 static MENU_UPDATE_FUNC(interval_timer_display)
 {
-    int d = timer_values[CURRENT_VALUE];
+    unsigned int d = timer_values[CURRENT_VALUE];
     if (!d)
     {
         MENU_SET_NAME("Take pics...");
@@ -494,7 +503,7 @@ static MENU_UPDATE_FUNC(intervalometer_display)
     int p = CURRENT_VALUE;
     if (p)
     {
-        int d = timer_values[interval_timer_index];
+        unsigned int d = timer_values[interval_timer_index];
         MENU_SET_VALUE("ON, %s%s",
             format_time_hours_minutes_seconds(d),
             BULB_EXPOSURE_CONTROL_ACTIVE ? ", BRamp" : ""
@@ -7459,8 +7468,6 @@ shoot_task( void* unused )
                 SW1(1,50);
                 break;        
         }
-        #else
-        int tfx = 0;
         #endif
 
         #ifdef FEATURE_MOTION_DETECT
