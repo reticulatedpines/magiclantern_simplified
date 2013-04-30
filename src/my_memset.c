@@ -1,4 +1,4 @@
-#include "compiler.h"
+//#include "compiler.h" obsolete
 #include "dryos.h"
 
 void* memset32(void* dest, int val, size_t n)
