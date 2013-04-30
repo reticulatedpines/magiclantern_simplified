@@ -1660,6 +1660,41 @@ silent_pic_take_raw()
     #error This requires CONFIG_FULL_EXMEM_SUPPORT
     #endif
 
+/**
+ * Raw image data is available after call("lv_save_raw", 1), via EDMAC.
+ * We can redirect it so the image data is written in our memory buffer, so there's no memcpy overhead.
+ * 
+ * We can also allocate ~180MB via shoot_malloc_suite from the photo burst buffer,
+ * but this memory is fragmented. You only get it in small chunks (between 1-20 MB each).
+ * 
+ * One problem is that EDMAC (the thing that outputs image data) can only write the full image 
+ * in a contiguous block. I don't know yet how to program it to skip lines or to switch chunks 
+ * in the middle - g3gg0 has some ideas though). 
+ * 
+ * So, we have to reserve memory for full image blocks, even if we crop the image;
+ * otherwise the EDMAC will overwrite who knows what.
+ * 
+ * There will be quite a bit of memory wasted because of fragmentation.
+ *  ____________________________________________________________________________________________________
+ * |memory chunk 1                           |memory chunk 2                                            |
+ * |*****************************************|**********************************************************|
+ * |[frame  1][frame  2][frame  3]--unused---|[frame  4][frame  5][frame  6][frame  7]-------unused-----|
+ * |[frame 1 from EDMAC]                     |[frame 4 from EDMAC]                                      |
+ * |          [frame 2 from EDMAC]           |          [frame 5 from EDMAC]                            |
+ * |                    [frame 3 from EDMAC] |                    [frame 6 from EDMAC]                  |
+ * |                              [frame 4 doesnt fit]                      [frame 7 from EDMAC]        |
+ * |                                         |                                        [frame 8 doesnt fit]
+ * |_________________________________________|__________________________________________________________|
+ * 
+ * The burst algorithm is quite simple: at every LiveView frame (vsync call), 
+ * it iterates through memory chunks until it finds one that is large enough,
+ * then it redirects the raw buffer there, and repeats until there's no more RAM.
+ * Each frame pointer is saved in an array, so at the end we just save all the images
+ * to card, one by one, as DNG.
+ * 
+ * In "end trigger" mode, the buffer becomes a ring buffer (old images are overwritten).
+ **/
+
 static struct memSuite * sp_hSuite = 0;
 static volatile int sp_running = 0;
 #define SP_BUFFER_SIZE 128
