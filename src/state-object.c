@@ -177,9 +177,10 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
 
 // sync ML overlay tools (especially Magic Zoom) with LiveView
 // this is tricky...
-#if defined(CONFIG_5D3) || defined(CONFIG_6D)
+#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_650D)
     if (self == DISPLAY_STATE && (input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER))
         lv_vsync_signal();
+
 #elif defined(CONFIG_5D2)
     if (self == LV_STATE)//&& old_state == 4)
     {
@@ -189,8 +190,12 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt
         lv_vsync_signal();
 #elif defined(CONFIG_650D) || defined(CONFIG_EOSM)
-    if (self == EVF_STATE && input == 15 && old_state == 5)
+    if (self == EVF_STATE && input == 15 && old_state == 5) {
+#ifdef CONFIG_650D
+        if(!is_movie_mode())
+#endif
         lv_vsync_signal();
+    }
 #endif
 
 // sync display filters (for these, we need to redirect display buffers
