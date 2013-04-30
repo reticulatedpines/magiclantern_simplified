@@ -820,8 +820,8 @@ static int tic()
 static void card_benchmark_wr(int bufsize, int K, int N)
 {
     int x = 0;
-    static int y = 50;
-    if (K == 1) y = 50;
+    static int y = 100;
+    if (K == 1) y = 100;
 
     FIO_RemoveFile(CARD_DRIVE"bench.tmp");
     msleep(2000);
@@ -887,6 +887,10 @@ static void card_benchmark_task()
     msleep(3000);
     canon_gui_disable_front_buffer();
     clrscr();
+    bmp_printf(FONT_MED, 0, 60, "Magic Lantern %s (%s)", build_version, build_id); // this includes camera name
+    #ifdef CARD_A_MAKER
+    bmp_printf(FONT_MED, 0, 80, "CF card: %s %s (%s)", CARD_A_MAKER, CARD_A_MODEL, CARD_A_LABEL);
+    #endif
     card_benchmark_wr(2*1024*1024,  1, 9);
     card_benchmark_wr(2000000,      2, 9);
     card_benchmark_wr(3*1024*1024,  3, 9);
