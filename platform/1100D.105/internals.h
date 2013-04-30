@@ -126,3 +126,5 @@
 
 /** Advanced EXMEM stubs are known and can be used */
 #define CONFIG_FULL_EXMEM_SUPPORT
+
+#define CONFIG_MENU_WITH_AV

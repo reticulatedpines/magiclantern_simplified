@@ -418,8 +418,6 @@ int FAST ev_to_raw(float ev)
 
 int autodetect_black_level()
 {
-    struct raw_pixblock * buf = raw_info.buffer;
-
     int black = 0;
     int num = 0;
     /* use a small area from top-left corner for quick black calibration */
@@ -441,5 +439,5 @@ int autodetect_black_level()
 
 void raw_lv_redirect_edmac(void* ptr)
 {
-    MEM(RAW_LV_EDMAC) = CACHEABLE(ptr);
+    MEM(RAW_LV_EDMAC) = (volatile uint32_t)CACHEABLE(ptr);
 }

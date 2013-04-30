@@ -18,6 +18,8 @@
 #define MLEV_MENU_OPEN -13
 #define MLEV_MENU_CLOSE -14
 #define MLEV_MENU_REDRAW -15
+#define MLEV_AV_SHORT -16
+#define MLEV_AV_LONG -17
  
 
 /** \file
