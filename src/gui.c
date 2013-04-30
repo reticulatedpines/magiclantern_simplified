@@ -134,7 +134,7 @@ PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 int video_mode[5];
 PROP_HANDLER(PROP_VIDEO_MODE)
 {
-	memcpy(video_mode, buf, 20);
+    memcpy(video_mode, buf, 20);
 }
 
 int disp_pressed = 0;
@@ -156,46 +156,46 @@ int handle_digital_zoom_shortcut(struct event * event)
             break;
     }
 
-	extern int digital_zoom_shortcut;
-	if (digital_zoom_shortcut && lv && is_movie_mode() && disp_pressed)
-	{
-		if (!video_mode_crop)
-		{
-			if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
-			{
-				if (!recording)
-				{
-					video_mode[0] = 0xc;
-					video_mode[4] = 2;
-					prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
-				}
-				return 0;
-			}
-		}
-		else
-		{
-			if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
-			{
-				if (!recording)
-				{
-					int x = 300;
-					prop_request_change(PROP_DIGITAL_ZOOM_RATIO, &x, 4);
-				}
-				NotifyBox(2000, "Zoom greater than 3x is disabled.\n");
-				return 0; // don't allow more than 3x zoom
-			}
-			if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
-			{
-				if (!recording)
-				{
-					video_mode[0] = 0;
-					video_mode[4] = 0;
-					prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
-				}
-				return 0;
-			}
-		}
-	}
+    extern int digital_zoom_shortcut;
+    if (digital_zoom_shortcut && lv && is_movie_mode() && disp_pressed)
+    {
+        if (!video_mode_crop)
+        {
+            if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+            {
+                if (!recording)
+                {
+                    video_mode[0] = 0xc;
+                    video_mode[4] = 2;
+                    prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+                }
+                return 0;
+            }
+        }
+        else
+        {
+            if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+            {
+                if (!recording)
+                {
+                    int x = 300;
+                    prop_request_change(PROP_DIGITAL_ZOOM_RATIO, &x, 4);
+                }
+                NotifyBox(2000, "Zoom greater than 3x is disabled.\n");
+                return 0; // don't allow more than 3x zoom
+            }
+            if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
+            {
+                if (!recording)
+                {
+                    video_mode[0] = 0;
+                    video_mode[4] = 0;
+                    prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
+                }
+                return 0;
+            }
+        }
+    }
     return 1;
 }
 #endif //FEATURE_DIGITAL_ZOOM_SHORTCUT
@@ -204,7 +204,7 @@ int handle_digital_zoom_shortcut(struct event * event)
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
-	ASSERT(event->type == 0)
+    ASSERT(event->type == 0)
 
     if (event->type != 0) return 1; // only handle events with type=0 (buttons)
     if (handle_common_events_startup(event) == 0) return 0;
@@ -255,6 +255,21 @@ struct gui_main_struct {
 
 extern struct gui_main_struct gui_main_struct;
 
+#ifdef CONFIG_GUI_DEBUG
+void show_event_codes(struct event * event)
+{
+    if ( event-> type == 0
+            && event->param != 0x69
+            && event->param != 0x11
+            && event->param != 0xf
+            && event->param != 0x54
+       )   //~ block some common events
+    {
+        console_printf("[%d] event->param: 0x%x\n", event_ctr++, event->param);
+    }
+}
+#endif
+
 static void ml_gui_main_task()
 {
     struct event * event = NULL;
@@ -264,46 +279,47 @@ static void ml_gui_main_task()
     gui_init_end(); // no params?
     while(1)
     {
-#if defined(CONFIG_550D) || defined(CONFIG_7D)
+        #if defined(CONFIG_550D) || defined(CONFIG_7D)
         msg_queue_receive(gui_main_struct.msg_queue_550d, &event, 0);
         gui_main_struct.counter_550d--;
-#else
+        #else
         msg_queue_receive(gui_main_struct.msg_queue, &event, 0);
         gui_main_struct.counter--;
-#endif
-        if (event == NULL) continue;
+        #endif
+
+        if (event == NULL) {
+            continue;
+        }
+
         index = event->type;
 
-#ifdef CONFIG_GUI_DEBUG
-        if (event->type == 0
-            && event->param != 0x69
-            && event->param != 0x11
-            && event->param != 0xf
-            && event->param != 0x54
-            )   //~ block some common events
+        if (!magic_is_off())
         {
-            console_printf("[%d] event->param: 0x%x\n", event_ctr++, event->param);
+
+            if (event->type == 0)
+            {
+                #ifdef CONFIG_GUI_DEBUG
+                show_event_codes(event);
+                #endif
+                if (handle_buttons(event) == 0) { // ML button/event handler
+                    continue;
+                }
+            }
+            else
+            {
+                if (handle_other_events(event) == 0) {
+                    continue;
+                }
+            }
         }
-#endif
 
-		if (!magic_is_off())
-		{
-			if (event->type == 0)
-			{
-				if (handle_buttons(event) == 0) // ML button/event handler
-					continue;
-			}
-			else
-			{
-				if (handle_other_events(event) == 0)
-					continue;
-			}
-		}
+        if (IS_FAKE(event)) {
+           event->arg = 0;
+        }
 
-        if (IS_FAKE(event)) event->arg = 0;
-
-        if ((index >= GMT_NFUNCS) || (index < 0))
+        if ((index >= GMT_NFUNCS) || (index < 0)) {
             continue;
+        }
 
         void(*f)(struct event *) = funcs[index];
         f(event);
