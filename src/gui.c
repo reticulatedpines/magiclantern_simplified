@@ -19,12 +19,18 @@
 /**
  * Supported cameras [E] Means it's enabled
  * [E] 1100D: counter_0x0c <-> msg_queue_0x30
- * 5D3  : counter_0x0c <-> msg_queue_0x30
  * [E] 600D : counter_0x0c <-> msg_queue_0x30
  * [E] 60D  : counter_0x0c <-> msg_queue_0x30
- * 650D : counter_0x0c <-> msg_queue_0x30
- * 6D   : counter_0x0c <-> msg_queue_0x30
- * 650D : counter_0x0c <-> msg_queue_0x30
+ * [E] 650D : counter_0x0c <-> msg_queue_0x30
+ * [E] EOSM : counter_0x0c <-> msg_queue_0x30
+ * [D] 5D3  : counter_0x0c <-> msg_queue_0x30
+ * [D] 6D   : counter_0x0c <-> msg_queue_0x30
+ */
+
+/**
+ * Easy to support cameras
+ * [E] 550D : counter_0x04 <-> msg_queue_0x38
+ * [D] 7D   : counter_0x04 <-> msg_queue_0x38
  */
 
 /**
@@ -32,8 +38,6 @@
  * 5D2  : counter_0x04 <-> msg_queue_0x34
  * 50D  : counter_0x04 <-> msg_queue_0x34
  * 500D : counter_0x04 <-> msg_queue_0x34
- * 550D : counter_0x04 <-> msg_queue_0x38
- * 7D   : counter_0x04 <-> msg_queue_0x38
  */
 
 struct semaphore * gui_sem;
@@ -206,12 +210,21 @@ static int handle_buttons(struct event * event)
     if (handle_common_events_startup(event) == 0) return 0;
     extern int ml_started;
     if (!ml_started) return 1;
-
+#ifdef FEATURE_LV_FOCUS_SNAP
+    if (lv && event->param == BGMT_PRESS_SET && !gui_menu_shown())
+    {
+        center_lv_afframe();
+        return 0;
+    }
+#endif
 #ifdef FEATURE_DETECT_AV_SHORT
     if (handle_av_for_short_press(event) == 0) return 0;
     #ifdef CONFIG_MENU_WITH_AV
     if (handle_av_for_ml_menu(event) == 0) return 0;
     #endif
+#endif
+#ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT
+    if (handle_digital_zoom_shortcut(event) == 0) return 0;
 #endif
 
     if (handle_common_events_by_feature(event) == 0) return 0;
@@ -223,7 +236,7 @@ static int handle_buttons(struct event * event)
 
 struct gui_main_struct {
   void *          obj;        // off_0x00;
-  uint32_t        off_0x04;
+  uint32_t        counter_550d;
   uint32_t        off_0x08;
   uint32_t        counter; // off_0x0c;
   uint32_t        off_0x10;
@@ -236,7 +249,7 @@ struct gui_main_struct {
   uint32_t        off_0x2c;
   struct msg_queue *    msg_queue;    // off_0x30;
   struct msg_queue *    off_0x34;    // off_0x34;
-  struct msg_queue *    off_0x38;    // off_0x38;
+  struct msg_queue *    msg_queue_550d;    // off_0x38;
   uint32_t        off_0x3c;
 };
 
@@ -251,8 +264,13 @@ static void ml_gui_main_task()
     gui_init_end(); // no params?
     while(1)
     {
+#if defined(CONFIG_550D) || defined(CONFIG_7D)
+        msg_queue_receive(gui_main_struct.msg_queue_550d, &event, 0);
+        gui_main_struct.counter_550d--;
+#else
         msg_queue_receive(gui_main_struct.msg_queue, &event, 0);
         gui_main_struct.counter--;
+#endif
         if (event == NULL) continue;
         index = event->type;
 
