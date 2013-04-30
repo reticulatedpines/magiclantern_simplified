@@ -820,8 +820,8 @@ static int tic()
 static void card_benchmark_wr(int bufsize, int K, int N)
 {
     int x = 0;
-    static int y = 100;
-    if (K == 1) y = 100;
+    static int y = 80;
+    if (K == 1) y = 80;
 
     FIO_RemoveFile(CARD_DRIVE"bench.tmp");
     msleep(2000);
@@ -861,7 +861,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
             shoot_free(buf);
             int t1 = tic();
             int speed = filesize * 10 / (t1 - t0);
-            bmp_printf(FONT_MED, x, y += font_med.height, "Read speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
+            bmp_printf(FONT_MED, x, y += font_med.height, "Read speed  (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
         }
         else
         {
@@ -887,10 +887,38 @@ static void card_benchmark_task()
     msleep(3000);
     canon_gui_disable_front_buffer();
     clrscr();
-    bmp_printf(FONT_MED, 0, 60, "Magic Lantern %s (%s)", build_version, build_id); // this includes camera name
+    bmp_printf(FONT_MED, 0, 40, "ML %s, %s", build_version, build_id); // this includes camera name
     #ifdef CARD_A_MAKER
-    bmp_printf(FONT_MED, 0, 80, "CF card: %s %s (%s)", CARD_A_MAKER, CARD_A_MODEL, CARD_A_LABEL);
+    bmp_printf(FONT_MED, 0, 60, "CF %s %s", CARD_A_MAKER, CARD_A_MODEL);
     #endif
+    
+    char mode[100];
+    snprintf(mode, sizeof(mode), "Mode: ");
+    if (lv)
+    {
+        if (lv_dispsize > 1)
+        {
+            STR_APPEND(mode, "LV zoom x%d", lv_dispsize);
+        }
+        else if (is_movie_mode())
+        {
+            char* video_modes[] = {"1920x1080", "1280x720", "640x480"};
+            STR_APPEND(mode, "movie %s%s %dp", video_modes[video_mode_resolution], video_mode_crop ? " crop" : "", video_mode_fps);
+        }
+        else
+        {
+            STR_APPEND(mode, "LV photo");
+        }
+    }
+    else
+    {
+        STR_APPEND(mode, PLAY_MODE ? "playback" : display_idle() ? "photo" : "idk");
+    }
+    
+    STR_APPEND(mode, ", Global Draw: %s", get_global_draw() ? "ON" : "OFF");
+    
+    bmp_printf(FONT_MED, 0, 80, mode);
+
     card_benchmark_wr(2*1024*1024,  1, 9);
     card_benchmark_wr(2000000,      2, 9);
     card_benchmark_wr(3*1024*1024,  3, 9);
