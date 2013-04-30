@@ -210,19 +210,14 @@ static int handle_buttons(struct event * event)
     if (handle_common_events_startup(event) == 0) return 0;
     extern int ml_started;
     if (!ml_started) return 1;
-#ifdef FEATURE_LV_FOCUS_SNAP
-    if (lv && event->param == BGMT_PRESS_SET && !gui_menu_shown())
-    {
-        center_lv_afframe();
-        return 0;
-    }
-#endif
+
 #ifdef FEATURE_DETECT_AV_SHORT
     if (handle_av_for_short_press(event) == 0) return 0;
     #ifdef CONFIG_MENU_WITH_AV
     if (handle_av_for_ml_menu(event) == 0) return 0;
     #endif
 #endif
+
 #ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT
     if (handle_digital_zoom_shortcut(event) == 0) return 0;
 #endif
