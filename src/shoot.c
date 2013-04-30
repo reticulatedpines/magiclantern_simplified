@@ -1789,6 +1789,7 @@ void silent_pic_raw_vsync()
     num_frames++;
 
     bmp_printf(FONT_MED, 0, 60, "Capturing frame %d...", num_frames);
+    if (sp_buffer_count) bmp_printf(FONT_MED, 0, 80, "Buffer full: %d frames", sp_buffer_count);
 }
 
 static void
