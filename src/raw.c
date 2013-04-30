@@ -443,3 +443,36 @@ void raw_lv_redirect_edmac(void* ptr)
 {
     MEM(RAW_LV_EDMAC) = CACHEABLE(ptr);
 }
+
+void FAST raw_preview_fast()
+{
+    uint16_t* lv = YUV422_LV_BUFFER_DISPLAY_ADDR;
+    if (!lv) return;
+    
+    uint8_t gamma[1024];
+    
+    for (int i = 0; i < 1024; i++)
+    {
+        int g = log2f(i+1) * 255 / 10;
+        gamma[i] = g * g / 255; /* idk, looks better this way */
+    }
+    
+    int x1 = BM2LV_X(os.x0);
+    int x2 = BM2LV_X(os.x_max);
+    int y1 = BM2LV_Y(os.y0);
+    int y2 = BM2LV_Y(os.y_max);
+    
+    for (int y = y1; y < y2; y++)
+    {
+        for (int x = x1; x < x2; x++)
+        {
+            /* always choose a green pixel */
+            int xr = BM2RAW_X(x) & ~1;
+            int yr = BM2RAW_Y(y) | 1;
+            
+            int c = raw_get_pixel(xr, yr);
+            int Y = gamma[COERCE((c - raw_info.black_level) >> 4, 0, 1023)];
+            lv[BM2LV(x,y)/2] = Y << 8;
+        }
+    }
+}
