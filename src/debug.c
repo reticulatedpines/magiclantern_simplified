@@ -824,7 +824,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
     if (K == 1) y = 50;
 
     FIO_RemoveFile(CARD_DRIVE"bench.tmp");
-    msleep(1000);
+    msleep(2000);
     int filesize = 1024; // MB
     int n = filesize * 1024 * 1024 / bufsize;
     {
@@ -842,11 +842,9 @@ static void card_benchmark_wr(int bufsize, int K, int N)
         int speed = filesize * 10 / (t1 - t0);
         bmp_printf(FONT_MED, x, y += font_med.height, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
     }
-    SW1(1,100);
-    SW1(0,100);
-    msleep(1000);
-    //if (bufsize > 1024*1024) bmp_printf(FONT_MED, x, y += font_med.height, "read test skipped: buffer=%d\n", bufsize);
-    //else
+
+    msleep(2000);
+
     {
         void* buf = shoot_malloc(bufsize);
         if (buf)
@@ -872,15 +870,14 @@ static void card_benchmark_wr(int bufsize, int K, int N)
     }
 
     FIO_RemoveFile(CARD_DRIVE"bench.tmp");
-    msleep(1000);
-    SW1(1,100);
-    SW1(0,100);
+    msleep(2000);
 }
 
 static void card_benchmark_task()
 {
     msleep(1000);
     if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
+
     #ifdef CONFIG_5D3
     extern int card_select;
     NotifyBox(2000, "%s Benchmark (1 GB)...", card_select == 1 ? "CF" : "SD");
@@ -890,9 +887,13 @@ static void card_benchmark_task()
     msleep(3000);
     canon_gui_disable_front_buffer();
     clrscr();
-    //~ card_benchmark_wr(16384, 1, 3);
-    card_benchmark_wr(131072, 1, 2);
-    card_benchmark_wr(16777216, 2, 2);
+    card_benchmark_wr(2*1024*1024,  1, 7);
+    card_benchmark_wr(2000000,      2, 7);
+    card_benchmark_wr(4*1024*1024,  3, 7);
+    card_benchmark_wr(4000000,      4, 7);
+    card_benchmark_wr(16*1024*1024, 5, 7);
+    card_benchmark_wr(16000000,     6, 7);
+    card_benchmark_wr(128*1024,     7, 7);
     msleep(3000);
     call("dispcheck");
     canon_gui_enable_front_buffer(1);
