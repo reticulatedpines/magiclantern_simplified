@@ -5,7 +5,7 @@
 
 #define CARD_A_MAKER 0x68C8B
 #define CARD_A_MODEL 0x68CBF
-#define CARD_A_LABEL 0x26E000
+//~ #define CARD_A_LABEL 0x26E000 not good
 //need to find
 //#define CARD_B_MAKER 0x  
 //#define CARD_B_MODEL 0x
