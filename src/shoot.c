@@ -1695,48 +1695,56 @@ silent_pic_take_raw()
  * In "end trigger" mode, the buffer becomes a ring buffer (old images are overwritten).
  **/
 
-static struct memSuite * sp_hSuite = 0;
 static volatile int sp_running = 0;
 #define SP_BUFFER_SIZE 128
-static volatile int sp_buffer_count = 0;
-static volatile int sp_max_frames = 0;
-#define SP_MAX_FRAME_SIZE 6000000
 static void* sp_frames[SP_BUFFER_SIZE];
+static volatile int sp_buffer_count = 0;    /* how many valid slots we have in the buffer (up to SP_BUFFER_SIZE) */
+static volatile int sp_max_frames = 0;      /* after how many pictures we should stop (even if we still have enough RAM) */
+static volatile int sp_num_frames = 0;      /* how many pics we actually took */
 
 /* called once per LiveView frame from LV state object */
 void silent_pic_raw_vsync()
 {
     if (!sp_running) return;
-    if (!sp_hSuite) return;
-    
-    static struct memChunk * hChunk = 0;
-    static void* ptr = 0;
-    static int num_frames = 0;
-
-    /* first frame? do some initialization */
-    if (!hChunk)
-    {
-        hChunk = (void*) GetFirstChunkFromSuite(sp_hSuite);
-        ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-        num_frames = 0;
-        //~ console_printf("first chunk: %x %x\n", hChunk, ptr);
-    }
+    if (!sp_buffer_count) return;
     
     /* are we done? */
-    if ((num_frames && !HALFSHUTTER_PRESSED) || num_frames >= sp_max_frames)
+    if ((sp_num_frames && !HALFSHUTTER_PRESSED) || sp_num_frames >= sp_max_frames)
     {
         sp_running = 0;
-        hChunk = 0;
-        sp_max_frames = num_frames;
-        //~ console_printf("done, got %d frames\n", sp_max_frames);
         return;
     }
+
+    /* Reprogram the raw EDMAC to output the data in our buffer (ptr) */
+    raw_lv_redirect_edmac(sp_frames[sp_num_frames % sp_buffer_count]);
+    sp_num_frames++;
+    
+    bmp_printf(FONT_MED, 0, 60, "Capturing frame %d...", sp_num_frames);
+}
+
+static void
+silent_pic_take_raw()
+{
+    /* allocate some RAM... as much as we can in burst mode */
+    struct memSuite * hSuite = shoot_malloc_suite(silent_pic_mode ? 0 : 20000000);
+    if (!hSuite) { beep(); return; }
+
+    /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
+    call("lv_save_raw", 1);
+    msleep(100);
+ 
+    /* get image resolution, white level etc; retry if needed */
+    while (!raw_update_params())
+        msleep(50);
     
     /* we'll look for contiguous blocks equal to raw_info.frame_size */
     /* (so we'll make sure we can write raw_info.frame_size starting from ptr) */
     
-    /* the EDMAC might write a bit more than that; we don't know how much, */
-    /* but for now we'll just assume it won't write more than SP_MAX_FRAME_SIZE */
+    struct memChunk * hChunk = (void*) GetFirstChunkFromSuite(hSuite);
+    void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+    sp_buffer_count = 0;
+    sp_num_frames = 0;
+
     while (1)
     {
         void* ptr0 = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
@@ -1745,70 +1753,37 @@ void silent_pic_raw_vsync()
         int remain = size - used;
         //~ console_printf("remain: %x\n", remain);
 
-        if (remain < MAX(raw_info.frame_size, SP_MAX_FRAME_SIZE))
+        /* the EDMAC might write a bit more than that, so we'll use a small safety margin */
+        if (remain < raw_info.frame_size * 33/32)
         {
             /* move to next chunk */
-            hChunk = GetNextMemoryChunk(sp_hSuite, hChunk);
+            hChunk = GetNextMemoryChunk(hSuite, hChunk);
             if (!hChunk)
             {
                 //~ console_printf("no more memory\n");
-                
-                if (silent_pic_mode == 2) // end trigger
-                {
-                    /* go back to start and overwrite previous pictures */
-                    hChunk = GetFirstChunkFromSuite(sp_hSuite);
-                    ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-                    
-                    /* write down where the buffer overflowed, so we know how many pics to save */
-                    if (!sp_buffer_count)
-                        sp_buffer_count = num_frames;
-                }
-                else // regular burst
-                {
-                    sp_running = 0;
-                    hChunk = 0;
-                    sp_max_frames = num_frames;
-                    return;
-                }
+                break;
             }
             ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
             //~ console_printf("next chunk: %x %x\n", hChunk, ptr);
             continue;
         }
-        break;
+        else /* alright, a new frame fits here */
+        {
+            //~ console_printf("FRAME %d: hSuite=%x hChunk=%x ptr=%x\n", sp_buffer_count, hSuite, hChunk, ptr);
+            sp_frames[sp_buffer_count] = ptr;
+            sp_buffer_count++;
+            ptr = ptr + raw_info.frame_size;
+            if (sp_buffer_count >= SP_BUFFER_SIZE)
+            {
+                //~ console_printf("we have lots of RAM, lol\n");
+                break;
+            }
+        }
     }
-
-    //~ console_printf("FRAME %d: hSuite=%x hChunk=%x ptr=%x\n", num_frames, sp_hSuite, hChunk, ptr);
-
-    /* Reprogram the raw EDMAC to output the data in our buffer (ptr) */
-    raw_lv_redirect_edmac(ptr);
     
-    /* Prepare for next frame */
-    sp_frames[num_frames % SP_BUFFER_SIZE] = ptr;
-    ptr = ptr + raw_info.frame_size;
-    num_frames++;
+    bmp_printf(FONT_MED, 0, 80, "Buffer: %d frames", sp_buffer_count);
 
-    bmp_printf(FONT_MED, 0, 60, "Capturing frame %d...", num_frames);
-    if (sp_buffer_count) bmp_printf(FONT_MED, 0, 80, "Buffer full: %d frames", sp_buffer_count);
-}
-
-static void
-silent_pic_take_raw()
-{
-    /* allocate some RAM... as much as we can in burst mode */
-    sp_hSuite = shoot_malloc_suite(silent_pic_mode ? 0 : 20000000);
-    if (!sp_hSuite) { beep(); return; }
-
-    /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
-    call("lv_save_raw", 1);
-    msleep(50);
- 
-    /* get image resolution, white level etc; retry if needed */
-    while (!raw_update_params())
-        msleep(50);
-
-    sp_buffer_count = 0;
-    sp_max_frames = silent_pic_mode == 1 ? SP_BUFFER_SIZE : silent_pic_mode == 2 ? 1000000 : 1;
+    sp_max_frames = silent_pic_mode == 1 ? sp_buffer_count : silent_pic_mode == 2 ? 1000000 : 1;
     
     /* the actual grabbing the image(s) will happen from silent_pic_raw_vsync */
     sp_running = 1;
@@ -1818,22 +1793,20 @@ silent_pic_take_raw()
     call("lv_save_raw", 0);
 
     /* save the image(s) to card */
-    if (sp_max_frames > 1)
+    if (sp_num_frames > 1)
     {
         /* this will take a while; pause the liveview and block the buttons to make sure the user won't do something stupid */
         PauseLiveView();
         ui_lock(UILOCK_EVERYTHING);
-        int i0 = 0;
-        if (sp_buffer_count) i0 = sp_max_frames - sp_buffer_count;
-        for (int i = i0; i < sp_max_frames; i++)
+        int i0 = MAX(0, sp_num_frames - sp_buffer_count);
+        for (int i = i0; i < sp_num_frames; i++)
         {
             clrscr();
             char* fn = silent_pic_get_name();
-            bmp_printf(FONT_MED, 0, 60, "Saving image %d of %d (%dx%d)...", i+1, sp_max_frames, raw_info.jpeg.width, raw_info.jpeg.height);
-            raw_info.buffer = sp_frames[i % SP_BUFFER_SIZE];
+            bmp_printf(FONT_MED, 0, 60, "Saving image %d of %d (%dx%d)...", i+1, sp_num_frames, raw_info.jpeg.width, raw_info.jpeg.height);
+            raw_info.buffer = sp_frames[i % sp_buffer_count];
             raw_preview_fast();
             save_dng(fn);
-            if (i == 0) ui_lock(UILOCK_EVERYTHING); // sometimes the first call fails, so try again
         }
         ui_lock(UILOCK_NONE);
         ResumeLiveView();
@@ -1848,7 +1821,8 @@ silent_pic_take_raw()
     }
     
     /* cleanup */
-    shoot_free_suite(sp_hSuite);
+    sp_buffer_count = 0;
+    shoot_free_suite(hSuite);
 }
  
 #else // who needs 422 when we have raw?
