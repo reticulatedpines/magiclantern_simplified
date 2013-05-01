@@ -246,7 +246,8 @@ static void guess_drive_letter(char* new_filename, const char* old_filename, int
         return;
     }
     
-    if (old_filename[0] == 'M' && old_filename[1] == 'L' && old_filename[2] == '/') // something in ML dir
+    if ((old_filename[0] == 'M' && old_filename[1] == 'L' && old_filename[2] == '/') // something in ML dir
+        || !strchr(old_filename, "/")) // something in root dir
     {
         snprintf(new_filename, 100, "%s:/%s", ML_CARD_LETTER, old_filename);
     }
