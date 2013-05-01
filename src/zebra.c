@@ -125,7 +125,7 @@ static int yuv2rgb_BU[256];
 
 static void precompute_yuv2rgb()
 {
-#if defined(CONFIG_5D3) || defined(CONFIG_6D)// REC 709
+#ifdef CONFIG_REC709
     /*
     *R = *Y + 1608 * V / 1024;
     *G = *Y -  191 * U / 1024 - 478 * V / 1024;

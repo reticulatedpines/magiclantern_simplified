@@ -1789,6 +1789,7 @@ void silent_pic_raw_vsync()
     num_frames++;
 
     bmp_printf(FONT_MED, 0, 60, "Capturing frame %d...", num_frames);
+    if (sp_buffer_count) bmp_printf(FONT_MED, 0, 80, "Buffer full: %d frames", sp_buffer_count);
 }
 
 static void
@@ -1830,6 +1831,7 @@ silent_pic_take_raw()
             char* fn = silent_pic_get_name();
             bmp_printf(FONT_MED, 0, 60, "Saving image %d of %d (%dx%d)...", i+1, sp_max_frames, raw_info.jpeg.width, raw_info.jpeg.height);
             raw_info.buffer = sp_frames[i % SP_BUFFER_SIZE];
+            raw_preview_fast();
             save_dng(fn);
             if (i == 0) ui_lock(UILOCK_EVERYTHING); // sometimes the first call fails, so try again
         }
