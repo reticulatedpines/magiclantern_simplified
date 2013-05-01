@@ -794,10 +794,14 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             break;
             
         case 3:
+            #ifdef FEATURE_SILENT_PIC_RAW_BURST
+            MENU_SET_VALUE("Slit-Scan" );
+            #else
             MENU_SET_VALUE("HiRes, %dx%d",
                 SILENTPIC_NL,
                 SILENTPIC_NC
             );
+            #endif
             break;
     }
 }
@@ -1592,20 +1596,19 @@ void ensure_movie_mode()
 // this buffer will contain the HD image (saved to card) and a LV preview (for display)
 static void * silent_pic_buf = 0;
 
-
 #ifdef CONFIG_DISPLAY_FILTERS
+#ifndef FEATURE_SILENT_PIC_RAW_BURST
 int silent_pic_preview()
 {
-#ifndef CONFIG_VXWORKS
     if (silent_pic_buf && silent_pic_mode == 0) // only preview single silent pics (not burst etc)
     {
         int size = vram_hd.pitch * vram_hd.height;
         YUV422_LV_BUFFER_DISPLAY_ADDR = (intptr_t)silent_pic_buf + size;
         return 1;
     }
-#endif
     return 0;
 }
+#endif
 #endif
 
 // uses busy waiting
@@ -1703,11 +1706,55 @@ static volatile int sp_buffer_count = 0;    /* how many valid slots we have in t
 static volatile int sp_max_frames = 0;      /* after how many pictures we should stop (even if we still have enough RAM) */
 static volatile int sp_num_frames = 0;      /* how many pics we actually took */
 
+#ifdef CONFIG_DISPLAY_FILTERS
+static void* silent_pic_display_buf = 0;
+int silent_pic_preview()
+{
+    if (silent_pic_display_buf && silent_pic_mode == 3) // only preview slit-scan pics
+    {
+        YUV422_LV_BUFFER_DISPLAY_ADDR = (intptr_t)silent_pic_display_buf;
+        return 1;
+    }
+    return 0;
+}
+#endif
+
+void silent_pic_raw_slitscan_vsync()
+{
+    static int line = 0;
+    void* buf = sp_frames[0];
+    
+    if (line >= raw_info.height) /* done */
+    {
+        sp_num_frames = 1;
+        sp_running = 0;
+        line = 0;
+    }
+    else
+    {
+        int offset = raw_info.pitch * line;
+        memcpy(buf + offset, raw_info.buffer + offset, raw_info.pitch);
+        line++;
+        bmp_printf(FONT_MED, 0, 60, "Slit-scan: %d%%...", line * 100 / raw_info.height);
+        
+        #ifdef CONFIG_DISPLAY_FILTERS
+        int display_offset = vram_lv.pitch * line * vram_lv.height / raw_info.height;
+        memcpy(silent_pic_display_buf + display_offset, vram_lv.vram + display_offset, vram_lv.pitch);
+        #endif
+    }
+}
+
 /* called once per LiveView frame from LV state object */
 void silent_pic_raw_vsync()
 {
     if (!sp_running) return;
     if (!sp_buffer_count) return;
+    
+    if (silent_pic_mode == 3)
+    {
+        silent_pic_raw_slitscan_vsync();
+        return;
+    }
     
     /* are we done? */
     if ((sp_num_frames && !HALFSHUTTER_PRESSED) || sp_num_frames >= sp_max_frames)
@@ -1727,7 +1774,7 @@ static void
 silent_pic_take_raw()
 {
     /* allocate some RAM... as much as we can in burst mode */
-    struct memSuite * hSuite = shoot_malloc_suite(silent_pic_mode ? 0 : 20000000);
+    struct memSuite * hSuite = shoot_malloc_suite(silent_pic_mode == 1 || silent_pic_mode == 2 ? 0 : 30000000);
     if (!hSuite) { beep(); return; }
 
     /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
@@ -1781,11 +1828,30 @@ silent_pic_take_raw()
             }
         }
     }
-    
-    bmp_printf(FONT_MED, 0, 80, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (hSuite->size / 100));
 
     sp_max_frames = silent_pic_mode == 1 ? sp_buffer_count : silent_pic_mode == 2 ? 1000000 : 1;
     
+    if (sp_buffer_count <= sp_max_frames)
+        bmp_printf(FONT_MED, 0, 80, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (hSuite->size / 100));
+
+    if (sp_max_frames == 0)
+    {
+        bmp_printf(FONT_MED, 0, 80, "Buffer error");
+        return;
+    }
+    
+    #ifdef CONFIG_DISPLAY_FILTERS
+    if (silent_pic_mode == 3)
+    {
+        /* init preview */
+        uint32_t* src_buf;
+        uint32_t* dst_buf;
+        display_filter_get_buffers(&src_buf, &dst_buf);
+        silent_pic_display_buf = dst_buf;
+        memset(silent_pic_display_buf, 0, vram_lv.height * vram_lv.pitch);
+    }
+    #endif
+
     /* the actual grabbing the image(s) will happen from silent_pic_raw_vsync */
     sp_running = 1;
     while (sp_running)
@@ -1802,7 +1868,7 @@ silent_pic_take_raw()
     call("lv_save_raw", 0);
 
     /* save the image(s) to card */
-    if (sp_num_frames > 1)
+    if (sp_num_frames > 1 || silent_pic_mode == 3)
     {
         /* this will take a while; pause the liveview and block the buttons to make sure the user won't do something stupid */
         PauseLiveView();
@@ -1818,6 +1884,15 @@ silent_pic_take_raw()
             save_dng(fn);
         }
         ui_lock(UILOCK_NONE);
+        
+        /* slit-scan: wait for half-shutter press after reviewing the image */
+        if (silent_pic_mode == 3)
+        {
+            bmp_printf(FONT_MED, 0, 60, "Done, press shutter half-way to exit.");
+            while (!HALFSHUTTER_PRESSED)
+                msleep(20);
+        }
+                
         ResumeLiveView();
     }
     else
@@ -1832,6 +1907,10 @@ silent_pic_take_raw()
     /* cleanup */
     sp_buffer_count = 0;
     shoot_free_suite(hSuite);
+
+    #ifdef CONFIG_DISPLAY_FILTERS
+    silent_pic_display_buf = 0;
+    #endif
 }
  
 #else // who needs 422 when we have raw?
@@ -5253,9 +5332,9 @@ static struct menu_entry shoot_menus[] = {
             {
                 .name = "Mode",
                 .priv = &silent_pic_mode,
-                .max = 2,
+                .max = 3,
                 .help = "Silent picture mode: simple or burst.",
-                .choices = CHOICES("Simple", "Burst", "Burst with End Trigger"),
+                .choices = CHOICES("Simple", "Burst", "Burst with End Trigger", "Slit-Scan"),
                 .icon_type = IT_DICE,
             },
             MENU_EOL,
