@@ -3,10 +3,6 @@
  * This was previously camera-specific
  **/
 
-#ifdef CONFIG_650D
-#error "UNSUPPORTED"
-#endif
-
 #include <gui.h>
 
 #include <dryos.h>
