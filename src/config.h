@@ -88,8 +88,8 @@ __config_##VAR = \
 { \
         .name           = NAME, \
 /*        .type           = TYPE_ENUM, */ \
-        .value          = &VAR, \
-        .default_value  = VALUE, \
+        .value          = (int*) &VAR, \
+        .default_value  = (int) VALUE, \
 }
 
 #define CONFIG_INT( NAME, VAR, VALUE ) \

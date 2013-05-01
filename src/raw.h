@@ -6,7 +6,7 @@
 /**
 * RAW pixels (document mode, as with dcraw -D -o 0):
 
-    01 23 45 67 89 AB ... (SENSOR_RES_X-1)
+    01 23 45 67 89 AB ... (raw_info.width-1)
     ab cd ef gh ab cd ...
 
     v-------------------------- first pixel should be red
@@ -15,7 +15,7 @@
 2   RG RG RG RG RG RG ...
 3   GB GB GB GB GB GB ...
 ...
-SENSOR_RES_Y-1
+(raw_info.height-1)
 */
 
 /**
@@ -69,7 +69,7 @@ int raw_set_pixel(int x, int y, int value);
 /* input: 0 - 16384 (valid range: from black level to white level) */
 /* output: -14 ... 0 */
 float raw_to_ev(int raw);
-int FAST ev_to_raw(float ev);
+int ev_to_raw(float ev);
 
 /* save a DNG file; all parameters are taken from raw_info */
 int save_dng(char* filename);

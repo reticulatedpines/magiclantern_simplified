@@ -2483,8 +2483,6 @@ static char shoot_malloc_frag_desc[70] = "";
 static volatile int guess_mem_running = 0;
 static void guess_free_mem_task(void* priv, int delta)
 {
-    static int k = 0;
-
     /* reset values */
     max_stack_ack = 0;
     max_shoot_malloc_mem = 0;
@@ -2503,7 +2501,6 @@ static void guess_free_mem_task(void* priv, int delta)
     
     #ifdef CONFIG_FULL_EXMEM_SUPPORT
     struct memChunk *currentChunk;
-    unsigned char *chunkAddress;
     unsigned int chunkAvail;
     unsigned int total = 0;
     
@@ -2514,7 +2511,6 @@ static void guess_free_mem_task(void* priv, int delta)
     while(currentChunk)
     {
         chunkAvail = GetSizeOfMemoryChunk(currentChunk);
-        chunkAddress = (unsigned char*)GetMemoryAddressOfMemoryChunk(currentChunk);
     
         int mb = 10*chunkAvail/1024/1024;
         STR_APPEND(shoot_malloc_frag_desc, mb%10 ? "%s%d.%d" : "%s%d", total ? "+" : "", mb/10, mb%10);

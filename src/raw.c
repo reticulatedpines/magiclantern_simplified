@@ -143,6 +143,9 @@ int raw_update_params()
     int mv1080crop = mv && video_mode_resolution == 0 && video_mode_crop;
     int mv640crop = mv && video_mode_resolution == 2 && video_mode_crop;
     int zoom = lv_dispsize > 1;
+    
+    /* silence warnings; not all cameras have all these modes */
+    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop;
 
     if (lv)
     {
@@ -418,8 +421,6 @@ int FAST ev_to_raw(float ev)
 
 int autodetect_black_level()
 {
-    struct raw_pixblock * buf = raw_info.buffer;
-
     int black = 0;
     int num = 0;
     /* use a small area from top-left corner for quick black calibration */
@@ -441,7 +442,7 @@ int autodetect_black_level()
 
 void raw_lv_redirect_edmac(void* ptr)
 {
-    MEM(RAW_LV_EDMAC) = CACHEABLE(ptr);
+    MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
 }
 
 void FAST raw_preview_fast()
