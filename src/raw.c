@@ -446,7 +446,7 @@ void raw_lv_redirect_edmac(void* ptr)
 
 void FAST raw_preview_fast()
 {
-    uint16_t* lv = YUV422_LV_BUFFER_DISPLAY_ADDR;
+    uint16_t* lv = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
     if (!lv) return;
     
     uint8_t gamma[1024];

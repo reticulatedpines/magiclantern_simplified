@@ -1639,7 +1639,7 @@ int busy_vsync(int hd, int timeout_ms)
 #ifdef FEATURE_SILENT_PIC_RAW
 
 static void
-silent_pic_take_raw()
+silent_pic_take_raw(int interactive)
 {
     /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
     call("lv_save_raw", 1);
@@ -1722,7 +1722,7 @@ int silent_pic_preview()
 void silent_pic_raw_slitscan_vsync()
 {
     static int line = 0;
-    void* buf = sp_frames[0];
+    void* buf = CACHEABLE(sp_frames[0]);
     
     if (line >= raw_info.height) /* done */
     {
@@ -1771,7 +1771,7 @@ void silent_pic_raw_vsync()
 }
 
 static void
-silent_pic_take_raw()
+silent_pic_take_raw(int interactive)
 {
     /* allocate some RAM... as much as we can in burst mode */
     struct memSuite * hSuite = shoot_malloc_suite(silent_pic_mode == 1 || silent_pic_mode == 2 ? 0 : 30000000);
@@ -1847,8 +1847,8 @@ silent_pic_take_raw()
         uint32_t* src_buf;
         uint32_t* dst_buf;
         display_filter_get_buffers(&src_buf, &dst_buf);
-        silent_pic_display_buf = dst_buf;
-        memset(silent_pic_display_buf, 0, vram_lv.height * vram_lv.pitch);
+        memset(dst_buf, 0, vram_lv.height * vram_lv.pitch);
+        silent_pic_display_buf = CACHEABLE(dst_buf);
     }
     #endif
 
@@ -1886,13 +1886,17 @@ silent_pic_take_raw()
         ui_lock(UILOCK_NONE);
         
         /* slit-scan: wait for half-shutter press after reviewing the image */
-        if (silent_pic_mode == 3)
+        if (silent_pic_mode == 3 && interactive)
         {
+            beep();
             bmp_printf(FONT_MED, 0, 60, "Done, press shutter half-way to exit.");
             while (!HALFSHUTTER_PRESSED)
                 msleep(20);
         }
-                
+        #ifdef CONFIG_DISPLAY_FILTERS
+        silent_pic_display_buf = 0;
+        #endif
+        
         ResumeLiveView();
     }
     else
@@ -1907,10 +1911,6 @@ silent_pic_take_raw()
     /* cleanup */
     sp_buffer_count = 0;
     shoot_free_suite(hSuite);
-
-    #ifdef CONFIG_DISPLAY_FILTERS
-    silent_pic_display_buf = 0;
-    #endif
 }
  
 #else // who needs 422 when we have raw?
@@ -2159,7 +2159,7 @@ silent_pic_take(int interactive) // for remote release, set interactive=0
     if (!lv) force_liveview();
     
 #if defined(FEATURE_SILENT_PIC_RAW) || defined(FEATURE_SILENT_PIC_RAW_BURST)
-    silent_pic_take_raw();
+    silent_pic_take_raw(interactive);
 #else
 
     switch(silent_pic_mode)
