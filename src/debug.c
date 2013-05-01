@@ -941,8 +941,8 @@ static void card_benchmark_task()
     card_benchmark_wr(16*1024*1024, 7, 9);
     card_benchmark_wr(16000000,     8, 9);
     card_benchmark_wr(128*1024,     9, 9);
-    msleep(3000);
     call("dispcheck");
+    msleep(3000);
     canon_gui_enable_front_buffer(1);
 }
 
@@ -973,13 +973,15 @@ static void mem_benchmark_run(char* msg, int* y, int times, int bufsize, mem_ben
     /* transform in MB/s x100 */
     speed = speed * 100 / 1024;
     
-    bmp_printf(FONT_MED, 0, *y += font_med.height, "%s : %d.%02d MB/s", msg, speed/100, speed%100);
+    bmp_printf(FONT_MED, 0, *y += font_med.height, "%s :%4d.%02d MB/s", msg, speed/100, speed%100);
 }
 
 static void mem_benchmark_task()
 {
     msleep(1000);
     if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
+    canon_gui_disable_front_buffer();
+    clrscr();
     print_benchmark_header();
 
     int bufsize = 4*1024*1024;
@@ -994,16 +996,21 @@ static void mem_benchmark_task()
 
     int y = 80;
 
-    
-    int speed;
-    mem_benchmark_run("memcpy cacheable    ", &y, 50, bufsize, (mem_bench_fun)memcpy,   CACHEABLE(buf1),   CACHEABLE(buf2),   bufsize, 0);
-    mem_benchmark_run("memcpy uncacheable  ", &y, 50, bufsize, (mem_bench_fun)memcpy,   UNCACHEABLE(buf1), UNCACHEABLE(buf2), bufsize, 0);
-    mem_benchmark_run("memcpy64 cacheable  ", &y, 50, bufsize, (mem_bench_fun)memcpy64, CACHEABLE(buf1),   CACHEABLE(buf2),   bufsize, 0);
-    mem_benchmark_run("memcpy64 uncacheable", &y, 50, bufsize, (mem_bench_fun)memcpy64, UNCACHEABLE(buf1), UNCACHEABLE(buf2), bufsize, 0);
-    mem_benchmark_run("memset cacheable    ", &y, 50, bufsize, (mem_bench_fun)memset,   CACHEABLE(buf1),   0,                 bufsize, 0);
-    mem_benchmark_run("memset uncacheable  ", &y, 50, bufsize, (mem_bench_fun)memset,   UNCACHEABLE(buf1), 0,                 bufsize, 0);
-    mem_benchmark_run("memset64 cacheable  ", &y, 50, bufsize, (mem_bench_fun)memset64, CACHEABLE(buf1),   0,                 bufsize, 0);
-    mem_benchmark_run("memset64 uncacheable", &y, 50, bufsize, (mem_bench_fun)memset64, UNCACHEABLE(buf1), 0,                 bufsize, 0);
+    mem_benchmark_run("memcpy cacheable    ", &y, 50, bufsize, (mem_bench_fun)memcpy,     (intptr_t)CACHEABLE(buf1),   (intptr_t)CACHEABLE(buf2),   bufsize, 0);
+    mem_benchmark_run("memcpy uncacheable  ", &y, 50, bufsize, (mem_bench_fun)memcpy,     (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0);
+    mem_benchmark_run("memcpy64 cacheable  ", &y, 50, bufsize, (mem_bench_fun)memcpy64,   (intptr_t)CACHEABLE(buf1),   (intptr_t)CACHEABLE(buf2),   bufsize, 0);
+    mem_benchmark_run("memcpy64 uncacheable", &y, 50, bufsize, (mem_bench_fun)memcpy64,   (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0);
+    #ifdef CONFIG_DMA_MEMCPY
+    mem_benchmark_run("dma_memcpy cacheable", &y, 50, bufsize, (mem_bench_fun)dma_memcpy, (intptr_t)CACHEABLE(buf1),   (intptr_t)CACHEABLE(buf2),   bufsize, 0);
+    mem_benchmark_run("dma_memcpy uncacheab", &y, 50, bufsize, (mem_bench_fun)dma_memcpy, (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0);
+    #endif
+    mem_benchmark_run("memset cacheable    ", &y, 50, bufsize, (mem_bench_fun)memset,     (intptr_t)CACHEABLE(buf1),   0,                           bufsize, 0);
+    mem_benchmark_run("memset uncacheable  ", &y, 50, bufsize, (mem_bench_fun)memset,     (intptr_t)UNCACHEABLE(buf1), 0,                           bufsize, 0);
+    mem_benchmark_run("memset64 cacheable  ", &y, 50, bufsize, (mem_bench_fun)memset64,   (intptr_t)CACHEABLE(buf1),   0,                           bufsize, 0);
+    mem_benchmark_run("memset64 uncacheable", &y, 50, bufsize, (mem_bench_fun)memset64,   (intptr_t)UNCACHEABLE(buf1), 0,                           bufsize, 0);
+    call("dispcheck");
+    msleep(3000);
+    canon_gui_enable_front_buffer(1);
 }
 
 #endif
@@ -3197,7 +3204,7 @@ static struct menu_entry debug_menus[] = {
                 .help = "Check card read/write speed. Uses a 1GB temporary file."
             },
             {
-                .name = "Memory benchmark (quick)",
+                .name = "Memory benchmark (1 min)",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = mem_benchmark_task,
                 .help = "Check memory read/write speed."
