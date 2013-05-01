@@ -1722,7 +1722,7 @@ int silent_pic_preview()
 void silent_pic_raw_slitscan_vsync()
 {
     static int line = 0;
-    void* buf = CACHEABLE(sp_frames[0]);
+    void* buf = sp_frames[0];
     
     if (line >= raw_info.height) /* done */
     {
@@ -1733,13 +1733,13 @@ void silent_pic_raw_slitscan_vsync()
     else
     {
         int offset = raw_info.pitch * line;
-        memcpy(buf + offset, raw_info.buffer + offset, raw_info.pitch);
+        memcpy(CACHEABLE(buf + offset), CACHEABLE(raw_info.buffer + offset), raw_info.pitch);
         line++;
         bmp_printf(FONT_MED, 0, 60, "Slit-scan: %d%%...", line * 100 / raw_info.height);
         
         #ifdef CONFIG_DISPLAY_FILTERS
         int display_offset = vram_lv.pitch * line * vram_lv.height / raw_info.height;
-        memcpy(silent_pic_display_buf + display_offset, vram_lv.vram + display_offset, vram_lv.pitch);
+        memcpy(CACHEABLE(silent_pic_display_buf + display_offset), CACHEABLE(vram_lv.vram + display_offset), vram_lv.pitch);
         #endif
     }
 }
