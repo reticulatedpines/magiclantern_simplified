@@ -819,6 +819,7 @@ PROP_HANDLER( PROP_LV_AFFRAME ) {
     
     memcpy(afframe, buf, len);
     afframe_ack = 1;
+    
 }
 #else
 static int afframe[100]; // dummy
@@ -1781,13 +1782,21 @@ silent_pic_take_raw()
         }
     }
     
-    bmp_printf(FONT_MED, 0, 80, "Buffer: %d frames", sp_buffer_count);
+    bmp_printf(FONT_MED, 0, 80, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (hSuite->size / 100));
 
     sp_max_frames = silent_pic_mode == 1 ? sp_buffer_count : silent_pic_mode == 2 ? 1000000 : 1;
     
     /* the actual grabbing the image(s) will happen from silent_pic_raw_vsync */
     sp_running = 1;
-    while (sp_running) msleep(20);
+    while (sp_running)
+    {
+        msleep(20);
+        if (!lv)
+        {
+            sp_running = 0;
+            break;
+        }
+    }
     
     /* disable the debug flag, no longer needed */
     call("lv_save_raw", 0);
