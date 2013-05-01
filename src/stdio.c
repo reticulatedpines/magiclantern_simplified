@@ -175,12 +175,37 @@ snprintf(
     return len;
 }
 
-void* memset32(void* dest, int val, size_t n)
+/**
+ * 5D3            cacheable     uncacheable
+ * newlib memset: 237MB/s       100MB/s
+ * memset64     : 194MB/s (!)   130MB/s
+ */
+
+void* FAST memset64(void* dest, int val, size_t n)
 {
-    dest = (void*)((intptr_t)dest & ~3);
-    uint32_t* dst = (uint32_t*) dest;
-    uint32_t v = val;
-    for(size_t i = 0; i < n/4; i++)
+    dest = (void*)((intptr_t)dest & ~7);
+    uint64_t* dst = (uint64_t*) dest;
+    uint64_t v = (uint64_t)val | ((uint64_t)val << 32);
+    dst++;
+    for(size_t i = 1; i < n/8; i++)
         *dst++ = v;
+    return (void*)dest;
+}
+
+/**
+ * 5D3            cacheable     uncacheable
+ * newlib memcpy: 75MB/s        17MB/s
+ * diet memcpy  : 19MB/s        4MB/s
+ * memcpy64     : 80MB/s        32MB/s
+ */
+
+void* FAST memcpy64(void* dest, void* srce, size_t n)
+{
+    uint64_t* dst = (intptr_t) dest & ~7;
+    uint64_t* src = (intptr_t) srce & ~7;
+    dst++; src++;
+    for(size_t i = 1; i < n/8; i++)
+        *dst++ = *src++;
+    
     return (void*)dest;
 }
