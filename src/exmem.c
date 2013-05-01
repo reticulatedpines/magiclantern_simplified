@@ -136,21 +136,73 @@ struct memSuite *shoot_malloc_suite(size_t size)
 
 void* shoot_malloc(size_t size)
 {
-    struct memSuite * hSuite = shoot_malloc_suite(size + 4);
-
-    if (!hSuite)
-    {
-        return NULL;
-    }
+    /* hack: we'll keep allocating until we find one contiguous block; then we'll free the unused ones */
+    /* in theory, it's guaranteed to find a block of size X if there is one of size X+2MB */
+    /* in practice, we'll see... */
     
-    if (hSuite->num_chunks != 1)
+    struct memSuite * suites[100];
+    struct memSuite * theSuite = NULL;
+    
+    for (int i = 0; i < COUNT(suites); i++)
+        suites[i] = NULL;
+
+    /* first try a quick search with big chances of success */
+    for (int i = 0; i < COUNT(suites); i++)
     {
-        FreeMemoryResource(hSuite, freeCBR, 0);
-        return NULL;
+        struct memSuite * hSuite = shoot_malloc_suite(size + 8);
+        if (!hSuite) break;
+
+        if (hSuite->num_chunks == 1)
+        {
+            theSuite = hSuite; /* bingo! */
+            break;
+        }
+        
+        /* NG, keep trying; we'll free this one later*/
+        suites[i] = hSuite;
     }
-    void* hChunk = (void*) GetFirstChunkFromSuite(hSuite);
+
+    /* free temporary suites */
+    for (int i = 0; i < COUNT(suites); i++)
+        if (suites[i])
+            FreeMemoryResource(suites[i], freeCBR, 0), suites[i] = 0;
+
+    if (!theSuite)
+    {
+        /* couldn't find anything, let's try something more aggressive */
+        for (int i = 0; i < COUNT(suites); i++)
+        {
+            struct memSuite * hSuite = shoot_malloc_suite(size + 8);
+            if (!hSuite) break;
+
+            if (hSuite->num_chunks == 1)
+            {
+                theSuite = hSuite; /* bingo! */
+                break;
+            }
+            
+            /* NG, keep trying; free this one and allocate a 2MB one */
+            FreeMemoryResource(hSuite, freeCBR, 0);
+            suites[i] = shoot_malloc_suite(2 * 1024 * 1024);
+        }
+
+        /* free temporary suites */
+        for (int i = 0; i < COUNT(suites); i++)
+            if (suites[i])
+                FreeMemoryResource(suites[i], freeCBR, 0), suites[i] = 0;
+
+        if (!theSuite)
+        {
+            /* phuck! */
+            return NULL;
+        }
+    }
+
+    /* we're lucky */
+    /* now we only have to tweak some things so it behaves like plain malloc */
+    void* hChunk = (void*) GetFirstChunkFromSuite(theSuite);
     void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-    *(struct memSuite **)ptr = hSuite;
+    *(struct memSuite **)ptr = theSuite;
     return ptr + 4;
 }
 
