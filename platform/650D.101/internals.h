@@ -66,7 +66,7 @@
 //~ #define CONFIG_AUDIO_CONTROLS
 
 /** No zoom button **/
-//~ #define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
+#define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
 /** Well, I hope so **/
