@@ -817,18 +817,24 @@ static int tic()
     return now.tm_sec + now.tm_min * 60 + now.tm_hour * 3600 + now.tm_mday * 3600 * 24;
 }
 
+/* for 5D3, the location of the benchmark file is important;
+ * if we put it in root, it will benchmark the ML card;
+ * if we put it in DCIM, it will benchmark the card selected in Canon menu, which is what we want.
+ */
+#define CARD_BENCHMARK_FILE CARD_DRIVE"DCIM/bench.tmp"
+
 static void card_benchmark_wr(int bufsize, int K, int N)
 {
     int x = 0;
     static int y = 80;
     if (K == 1) y = 80;
 
-    FIO_RemoveFile(CARD_DRIVE"bench.tmp");
+    FIO_RemoveFile(CARD_BENCHMARK_FILE);
     msleep(2000);
     int filesize = 1024; // MB
     int n = filesize * 1024 * 1024 / bufsize;
     {
-        FILE* f = FIO_CreateFileEx(CARD_DRIVE"bench.tmp");
+        FILE* f = FIO_CreateFileEx(CARD_BENCHMARK_FILE);
         int t0 = tic();
         int i;
         for (i = 0; i < n; i++)
@@ -849,7 +855,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
         void* buf = shoot_malloc(bufsize);
         if (buf)
         {
-            FILE* f = FIO_Open(CARD_DRIVE"bench.tmp", O_RDONLY | O_SYNC);
+            FILE* f = FIO_Open(CARD_BENCHMARK_FILE, O_RDONLY | O_SYNC);
             int t0 = tic();
             int i;
             for (i = 0; i < n; i++)
@@ -869,28 +875,13 @@ static void card_benchmark_wr(int bufsize, int K, int N)
         }
     }
 
-    FIO_RemoveFile(CARD_DRIVE"bench.tmp");
+    FIO_RemoveFile(CARD_BENCHMARK_FILE);
     msleep(2000);
 }
 
-static void card_benchmark_task()
+static void print_benchmark_header()
 {
-    msleep(1000);
-    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
-
-    #ifdef CONFIG_5D3
-    extern int card_select;
-    NotifyBox(2000, "%s Benchmark (1 GB)...", card_select == 1 ? "CF" : "SD");
-    #else
-    NotifyBox(2000, "Card benchmark (1 GB)...");
-    #endif
-    msleep(3000);
-    canon_gui_disable_front_buffer();
-    clrscr();
     bmp_printf(FONT_MED, 0, 40, "ML %s, %s", build_version, build_id); // this includes camera name
-    #ifdef CARD_A_MAKER
-    bmp_printf(FONT_MED, 0, 60, "CF %s %s", CARD_A_MAKER, CARD_A_MODEL);
-    #endif
     
     char mode[100];
     snprintf(mode, sizeof(mode), "Mode: ");
@@ -917,7 +908,29 @@ static void card_benchmark_task()
     
     STR_APPEND(mode, ", Global Draw: %s", get_global_draw() ? "ON" : "OFF");
     
-    bmp_printf(FONT_MED, 0, 80, mode);
+    bmp_printf(FONT_MED, 0, 60, mode);
+}
+
+static void card_benchmark_task()
+{
+    msleep(1000);
+    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
+
+    #ifdef CONFIG_5D3
+    extern int card_select;
+    NotifyBox(2000, "%s Benchmark (1 GB)...", card_select == 1 ? "CF" : "SD");
+    #else
+    NotifyBox(2000, "Card benchmark (1 GB)...");
+    #endif
+    msleep(3000);
+    canon_gui_disable_front_buffer();
+    clrscr();
+    
+    print_benchmark_header();
+
+    #ifdef CARD_A_MAKER
+    bmp_printf(FONT_MED, 0, 80, "CF %s %s", CARD_A_MAKER, CARD_A_MODEL);
+    #endif
 
     card_benchmark_wr(2*1024*1024,  1, 9);
     card_benchmark_wr(2000000,      2, 9);
@@ -931,6 +944,66 @@ static void card_benchmark_task()
     msleep(3000);
     call("dispcheck");
     canon_gui_enable_front_buffer(1);
+}
+
+typedef void (*mem_bench_fun)(
+    int arg0,
+    int arg1,
+    int arg2,
+    int arg3
+);
+
+
+static void mem_benchmark_run(char* msg, int* y, int times, int bufsize, mem_bench_fun bench_fun, int arg0, int arg1, int arg2, int arg3)
+{
+    bmp_printf(FONT_LARGE, 0, 0, "%s...", msg);
+
+    int t0 = get_ms_clock_value();
+    for (int i = 0; i < times; i++)
+    {
+        bench_fun(arg0, arg1, arg2, arg3);
+        if (i%2) info_led_off(); else info_led_on();
+    }
+    int t1 = get_ms_clock_value();
+    int dt = t1 - t0;
+    
+    /* units: KB/s */
+    int speed = bufsize * times / dt;
+
+    /* transform in MB/s x100 */
+    speed = speed * 100 / 1024;
+    
+    bmp_printf(FONT_MED, 0, *y += font_med.height, "%s : %d.%02d MB/s", msg, speed/100, speed%100);
+}
+
+static void mem_benchmark_task()
+{
+    msleep(1000);
+    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
+    print_benchmark_header();
+
+    int bufsize = 4*1024*1024;
+    
+    void* buf1 = shoot_malloc(bufsize * 2);
+    if (!buf1)
+    {
+        bmp_printf(FONT_LARGE, 0, 0, "malloc error :(");
+        return;
+    }
+    void* buf2 = buf1 + bufsize;
+
+    int y = 80;
+
+    
+    int speed;
+    mem_benchmark_run("memcpy cacheable    ", &y, 50, bufsize, (mem_bench_fun)memcpy,   CACHEABLE(buf1),   CACHEABLE(buf2),   bufsize, 0);
+    mem_benchmark_run("memcpy uncacheable  ", &y, 50, bufsize, (mem_bench_fun)memcpy,   UNCACHEABLE(buf1), UNCACHEABLE(buf2), bufsize, 0);
+    mem_benchmark_run("memcpy64 cacheable  ", &y, 50, bufsize, (mem_bench_fun)memcpy64, CACHEABLE(buf1),   CACHEABLE(buf2),   bufsize, 0);
+    mem_benchmark_run("memcpy64 uncacheable", &y, 50, bufsize, (mem_bench_fun)memcpy64, UNCACHEABLE(buf1), UNCACHEABLE(buf2), bufsize, 0);
+    mem_benchmark_run("memset cacheable    ", &y, 50, bufsize, (mem_bench_fun)memset,   CACHEABLE(buf1),   0,                 bufsize, 0);
+    mem_benchmark_run("memset uncacheable  ", &y, 50, bufsize, (mem_bench_fun)memset,   UNCACHEABLE(buf1), 0,                 bufsize, 0);
+    mem_benchmark_run("memset64 cacheable  ", &y, 50, bufsize, (mem_bench_fun)memset64, CACHEABLE(buf1),   0,                 bufsize, 0);
+    mem_benchmark_run("memset64 uncacheable", &y, 50, bufsize, (mem_bench_fun)memset64, UNCACHEABLE(buf1), 0,                 bufsize, 0);
 }
 
 #endif
@@ -3121,7 +3194,13 @@ static struct menu_entry debug_menus[] = {
                 .name = "Card R/W benchmark (5 min)",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = card_benchmark_task,
-                .help = "Check card read/write speed. Uses a 256MB temp file."
+                .help = "Check card read/write speed. Uses a 1GB temporary file."
+            },
+            {
+                .name = "Memory benchmark (quick)",
+                .select = (void(*)(void*,int))run_in_separate_task,
+                .priv = mem_benchmark_task,
+                .help = "Check memory read/write speed."
             },
             #ifdef FEATURE_FOCUS_PEAK
             {
