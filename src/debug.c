@@ -2476,18 +2476,14 @@ static int shoot_malloc_crit(int x)
 }
 
 static int max_shoot_malloc_frag_mem = 0;
-
-
-static void freeCBR(unsigned int a)
-{
-}
+static char shoot_malloc_frag_desc[70] = "";
 
 /* fixme: find a way to read the free stack memory from DryOS */
 /* current workaround: compute it by trial and error when you press SET on Free Memory menu item */
 static volatile int guess_mem_running = 0;
 static void guess_free_mem_task(void* priv, int delta)
 {
-    guess_mem_running = 1;
+    static int k = 0;
 
     /* reset values */
     max_stack_ack = 0;
@@ -2497,8 +2493,42 @@ static void guess_free_mem_task(void* priv, int delta)
     bin_search(1, 1024, stack_size_crit);
     bin_search(1, 1024, shoot_malloc_crit);
 
-    struct memSuite * test = shoot_malloc_suite(0);
-    max_shoot_malloc_frag_mem = test->size;
+    struct memSuite * hSuite = shoot_malloc_suite(0);
+    if (!hSuite)
+    {
+        beep();
+        guess_mem_running = 0;
+        return;
+    }
+    
+    #ifdef CONFIG_FULL_EXMEM_SUPPORT
+    struct memChunk *currentChunk;
+    unsigned char *chunkAddress;
+    unsigned int chunkAvail;
+    unsigned int total = 0;
+    
+    currentChunk = GetFirstChunkFromSuite(hSuite);
+    
+    snprintf(shoot_malloc_frag_desc, sizeof(shoot_malloc_frag_desc), "");
+    
+    while(currentChunk)
+    {
+        chunkAvail = GetSizeOfMemoryChunk(currentChunk);
+        chunkAddress = (unsigned char*)GetMemoryAddressOfMemoryChunk(currentChunk);
+    
+        int mb = 10*chunkAvail/1024/1024;
+        STR_APPEND(shoot_malloc_frag_desc, mb%10 ? "%s%d.%d" : "%s%d", total ? "+" : "", mb/10, mb%10);
+        total += chunkAvail;
+
+        currentChunk = GetNextMemoryChunk(hSuite, currentChunk);
+    }
+    STR_APPEND(shoot_malloc_frag_desc, " MB.");
+    max_shoot_malloc_frag_mem = total;
+    #else
+    max_shoot_malloc_frag_mem = hSuite->size;
+    #endif
+    
+    shoot_free_suite(hSuite);
 
     menu_redraw();
     guess_mem_running = 0;
@@ -2506,7 +2536,7 @@ static void guess_free_mem_task(void* priv, int delta)
 
 static void guess_free_mem()
 {
-    task_create("guess_mem", 0x12, 0, guess_free_mem_task, 0);
+    task_create("guess_mem", 0x1e, 0x4000, guess_free_mem_task, 0);
 }
 
 static MENU_UPDATE_FUNC(meminfo_display)
@@ -2558,6 +2588,7 @@ static MENU_UPDATE_FUNC(meminfo_display)
 
         case 5: // shoot_malloc fragmented
             MENU_SET_VALUE("%d M", max_shoot_malloc_frag_mem/1024/1024);
+            MENU_SET_HELP(shoot_malloc_frag_desc);
             guess_needed = 1;
             break;
 
