@@ -48,6 +48,7 @@
 #endif
 #include <stdarg.h>
 #include "plugin.h"
+#include "exmem.h"
 
 /** Check a pointer for error code */
 #define IS_ERROR(ptr)   (1 & (uintptr_t) ptr)
@@ -412,10 +413,6 @@ SIZE_CHECK_STRUCT( dryos_meminfo, 0xC );
 
 extern void * malloc( size_t len );
 extern void free( void * buf );
-
-void * shoot_malloc( size_t len );
-struct memSuite *shoot_malloc_suite(size_t size);
-void shoot_free( void * buf );
 
 //extern void * realloc( void * buf, size_t newlen );
 

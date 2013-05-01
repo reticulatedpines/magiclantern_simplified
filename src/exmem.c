@@ -32,24 +32,6 @@ static void allocCBR(unsigned int a, struct memSuite *hSuite)
     give_semaphore(alloc_sem);
 }
 
-
-struct memSuite
-{
-    char* signature; // MemSuite
-    int size;
-    int num_chunks;
-    int first_chunk_maybe;
-};
-
-struct memChunk
-{
-    char* signature; // MemChunk
-    int off_0x04;
-    int next_chunk_maybe;
-    int size;
-    int remain;
-};
-
 unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file)
 {
     unsigned int written = 0;
@@ -172,17 +154,6 @@ void* shoot_malloc(size_t size)
     return ptr + 4;
 }
 
-/* just try if we can allocate that much RAM, but don't return it (free it right away) */
-int shoot_malloc_fragmented_test(size_t size)
-{
-    struct memSuite * hSuite = 0;
-    AllocateMemoryResource(size, allocCBR, (unsigned int)&hSuite, 0x50);
-    int r = take_semaphore(alloc_sem, 1000);
-    if (r) return 0;
-    FreeMemoryResource(hSuite, freeCBR, 0);
-    return 1;
-}
-
 void shoot_free(void* ptr)
 {
     if (!ptr) return;
@@ -192,6 +163,7 @@ void shoot_free(void* ptr)
     take_semaphore(free_sem, 0);
 }
 
+#if 0
 void exmem_test()
 {
 #ifdef CONFIG_FULL_EXMEM_SUPPORT
@@ -236,6 +208,7 @@ void exmem_test()
     info_led_off();
 #endif
 }
+#endif
 
 static void exmem_init()
 {

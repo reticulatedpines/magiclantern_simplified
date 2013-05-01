@@ -2497,24 +2497,8 @@ static void guess_free_mem_task(void* priv, int delta)
     bin_search(1, 1024, stack_size_crit);
     bin_search(1, 1024, shoot_malloc_crit);
 
-    /* allocate some backup that will service the queued allocation request that fails during the loop */
-    struct memSuite *backup = shoot_malloc_suite(4 * 1024 * 1024);
-
-    for(int size = 1; size < 1024; size++)
-    {
-        struct memSuite *testSuite = shoot_malloc_suite(size * 1024 * 1024);
-        if(testSuite)
-        {
-            FreeMemoryResource(testSuite, freeCBR, 0);
-            max_shoot_malloc_frag_mem = (32 + size) * 1024 * 1024;
-        }
-        else
-        {
-            break;
-        }
-    }
-    /* now free the backup suite. this causes the queued allocation before to get finished. as we timed out, it will get freed immediately in exmem.c:allocCBR */
-    FreeMemoryResource(backup, freeCBR, 0);
+    struct memSuite * test = shoot_malloc_suite(0);
+    max_shoot_malloc_frag_mem = test->size;
 
     menu_redraw();
     guess_mem_running = 0;
