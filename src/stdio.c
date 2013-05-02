@@ -201,8 +201,8 @@ void* FAST memset64(void* dest, int val, size_t n)
 
 void* FAST memcpy64(void* dest, void* srce, size_t n)
 {
-    uint64_t* dst = (intptr_t) dest & ~7;
-    uint64_t* src = (intptr_t) srce & ~7;
+    uint64_t* dst = (uint64_t*)((intptr_t) dest & ~7);
+    uint64_t* src = (uint64_t*)((intptr_t) srce & ~7);
     dst++; src++;
     for(size_t i = 1; i < n/8; i++)
         *dst++ = *src++;
