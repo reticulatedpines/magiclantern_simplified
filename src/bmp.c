@@ -92,7 +92,7 @@ uint8_t * bmp_vram(void)
     #endif
     uint8_t * bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
     
-    if (PLAY_MODE) return UNCACHEABLE(bmp_buf);
+    // if (PLAY_MODE) return UNCACHEABLE(bmp_buf);
     return bmp_buf;
 }
 

@@ -4942,6 +4942,8 @@ BMP_LOCK(
     bvram_mirror_clear(); // may remain filled with playback zebras 
 )
 
+    clean_d_cache(); // to avoid display artifacts
+
     info_led_off();
     livev_for_playback_running = 0;
 }
