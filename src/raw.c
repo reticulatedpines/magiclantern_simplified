@@ -158,7 +158,7 @@ int raw_update_params()
         }
 
         /* autodetect raw size from EDMAC */
-        uint32_t lv_raw_size = MEMX(RAW_LV_EDMAC+8);
+        uint32_t lv_raw_size = shamem_read(RAW_LV_EDMAC+8);
         if (!lv_raw_size)
         {
             dbg_printf("LV RAW size null\n");
@@ -458,6 +458,14 @@ int autodetect_black_level()
 void raw_lv_redirect_edmac(void* ptr)
 {
     MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
+}
+
+int raw_lv_settings_still_valid()
+{
+    /* should be fast enough for vsync calls */
+    int edmac_pitch = shamem_read(RAW_LV_EDMAC+8) & 0xFFFF;
+    if (edmac_pitch != raw_info.pitch) return 0;
+    return 1;
 }
 
 void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int ultra_fast)

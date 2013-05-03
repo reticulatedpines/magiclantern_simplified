@@ -1720,7 +1720,7 @@ int silent_pic_preview()
 }
 #endif
 
-void silent_pic_raw_slitscan_vsync()
+static void silent_pic_raw_slitscan_vsync()
 {
     void* buf = sp_frames[0];
     
@@ -1742,7 +1742,8 @@ void silent_pic_raw_slitscan_vsync()
 void silent_pic_raw_vsync()
 {
     if (!sp_running) return;
-    if (!sp_buffer_count) return;
+    if (!sp_buffer_count) { sp_running = 0; return; };
+    if (!raw_lv_settings_still_valid()) { sp_running = 0; return; }
     
     if (silent_pic_mode == 3)
     {

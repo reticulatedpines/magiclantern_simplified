@@ -81,6 +81,9 @@ void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int 
 /* redirect the LV RAW EDMAC in order to write the raw data at "ptr" */
 void raw_lv_redirect_edmac(void* ptr);
 
+/* quick check whether the settings from raw_info are still valid (for lv vsync calls) */
+int raw_lv_settings_still_valid();
+
 /* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
 struct raw_info {
     void* buffer;               // points to image data
