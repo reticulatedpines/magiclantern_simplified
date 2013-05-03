@@ -171,6 +171,14 @@ static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );    // 0 = normal, 1 
 static CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);   // index of matrix size (2x1 .. 5x5)
 static CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
 
+#ifdef FEATURE_SILENT_PIC_RAW_BURST
+#define SILENT_PIC_MODE_SIMPLE 0
+#define SILENT_PIC_MODE_BURST 1
+#define SILENT_PIC_MODE_BURST_END_TRIGGER 2
+#define SILENT_PIC_MODE_BEST_SHOTS 3
+#define SILENT_PIC_MODE_SLITSCAN 4
+#endif
+
 //~ static CONFIG_INT( "zoom.enable.face", zoom_enable_face, 0);
 static CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 static CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
@@ -767,6 +775,34 @@ static MENU_UPDATE_FUNC(silent_pic_check_highres_warnings)
 
 static MENU_UPDATE_FUNC(silent_pic_display)
 {
+#ifdef FEATURE_SILENT_PIC_RAW_BURST
+    if (!silent_pic_enabled)
+        return;
+
+    switch (silent_pic_mode)
+    {
+        case SILENT_PIC_MODE_SIMPLE:
+            MENU_SET_VALUE("Simple");
+            break;
+
+        case SILENT_PIC_MODE_BURST:
+            MENU_SET_VALUE("Burst");
+            break;
+
+        case SILENT_PIC_MODE_BURST_END_TRIGGER:
+            MENU_SET_VALUE("End Trigger");
+            break;
+
+        case SILENT_PIC_MODE_BEST_SHOTS:
+            MENU_SET_VALUE("Best Shots");
+            break;
+
+        case SILENT_PIC_MODE_SLITSCAN:
+            MENU_SET_VALUE("Slit-Scan");
+            break;
+    }
+
+#else
     #ifdef FEATURE_SILENT_PIC_HIRES
     if (silent_pic_mode == 3)
         silent_pic_check_highres_warnings(entry, info); // show warnings, if any
@@ -786,24 +822,17 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             break;
             
         case 2:
-            #ifdef FEATURE_SILENT_PIC_RAW_BURST
-            MENU_SET_VALUE("End Trigger" );
-            #else
             MENU_SET_VALUE("Continuous" );
-            #endif
             break;
             
         case 3:
-            #ifdef FEATURE_SILENT_PIC_RAW_BURST
-            MENU_SET_VALUE("Slit-Scan" );
-            #else
             MENU_SET_VALUE("HiRes, %dx%d",
                 SILENTPIC_NL,
                 SILENTPIC_NC
             );
-            #endif
             break;
     }
+#endif
 }
 
 #endif //#ifdef FEATURE_SILENT_PIC
@@ -1702,6 +1731,7 @@ silent_pic_take_raw(int interactive)
 static volatile int sp_running = 0;
 #define SP_BUFFER_SIZE 128
 static void* sp_frames[SP_BUFFER_SIZE];
+static int sp_focus[SP_BUFFER_SIZE];        /* raw focus value for each shot (for best shots mode) */
 static volatile int sp_buffer_count = 0;    /* how many valid slots we have in the buffer (up to SP_BUFFER_SIZE) */
 static volatile int sp_max_frames = 0;      /* after how many pictures we should stop (even if we still have enough RAM) */
 static volatile int sp_num_frames = 0;      /* how many pics we actually took */
@@ -1745,7 +1775,7 @@ void silent_pic_raw_vsync()
     if (!sp_buffer_count) { sp_running = 0; return; };
     if (!raw_lv_settings_still_valid()) { sp_running = 0; return; }
     
-    if (silent_pic_mode == 3)
+    if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN)
     {
         silent_pic_raw_slitscan_vsync();
         return;
@@ -1757,9 +1787,29 @@ void silent_pic_raw_vsync()
         sp_running = 0;
         return;
     }
+    
+    int next_slot = sp_num_frames % sp_buffer_count;
+    
+    if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+    {
+        /* choose the least focused image and replace it */
+        extern int focus_value_raw;
+        int f = focus_value_raw;
+        
+        int minf = f;
+        int found = 0;
+        for (int i = 0; i < sp_buffer_count; i++)
+            if (sp_focus[i] < minf)
+                minf = sp_focus[i], next_slot = i, found = 1;
+
+        if (!found) /* all buffered pics are better than this one */
+            return;
+        
+        sp_focus[next_slot] = f;
+    }
 
     /* Reprogram the raw EDMAC to output the data in our buffer (ptr) */
-    raw_lv_redirect_edmac(sp_frames[sp_num_frames % sp_buffer_count]);
+    raw_lv_redirect_edmac(sp_frames[next_slot]);
     sp_num_frames++;
     
     bmp_printf(FONT_MED, 0, 60, "Capturing frame %d...", sp_num_frames);
@@ -1768,10 +1818,6 @@ void silent_pic_raw_vsync()
 static void
 silent_pic_take_raw(int interactive)
 {
-    /* allocate some RAM... as much as we can in burst mode */
-    struct memSuite * hSuite = shoot_malloc_suite(silent_pic_mode == 1 || silent_pic_mode == 2 ? 0 : 30000000);
-    if (!hSuite) { beep(); return; }
-
     /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
     call("lv_save_raw", 1);
     msleep(100);
@@ -1779,15 +1825,35 @@ silent_pic_take_raw(int interactive)
     /* get image resolution, white level etc; retry if needed */
     while (!raw_update_params())
         msleep(50);
+
+    /* allocate RAM */
+    struct memSuite * hSuite = 0;
+    switch (silent_pic_mode)
+    {
+        /* allocate as much as we can in burst mode */
+        case SILENT_PIC_MODE_BURST:
+        case SILENT_PIC_MODE_BURST_END_TRIGGER:
+        case SILENT_PIC_MODE_BEST_SHOTS:
+            hSuite = shoot_malloc_suite(0);
+            break;
+        
+        /* allocate only one frame in simple and slitscan modes */
+        case SILENT_PIC_MODE_SIMPLE:
+        case SILENT_PIC_MODE_SLITSCAN:
+            hSuite = (void*)shoot_malloc(raw_info.frame_size * 33/32) - 4; /* ugly, but works; see exmem.c */
+            break;
+    }
+
+    if (!hSuite) { beep(); return; }
     
     /* we'll look for contiguous blocks equal to raw_info.frame_size */
     /* (so we'll make sure we can write raw_info.frame_size starting from ptr) */
-    
     struct memChunk * hChunk = (void*) GetFirstChunkFromSuite(hSuite);
     void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
     sp_buffer_count = 0;
     sp_num_frames = 0;
     sp_slitscan_line = 0;
+    memset(sp_focus, 0, sizeof(sp_focus));
 
     while (1)
     {
@@ -1825,7 +1891,23 @@ silent_pic_take_raw(int interactive)
         }
     }
 
-    sp_max_frames = silent_pic_mode == 1 ? sp_buffer_count : silent_pic_mode == 2 ? 1000000 : 1;
+    /* how many pics we should take? */
+    
+    switch (silent_pic_mode)
+    {
+        case SILENT_PIC_MODE_SIMPLE:
+        case SILENT_PIC_MODE_SLITSCAN:
+            sp_max_frames = 1;
+            break;
+
+        case SILENT_PIC_MODE_BURST:
+            sp_max_frames = sp_buffer_count;
+        
+        case SILENT_PIC_MODE_BURST_END_TRIGGER:
+        case SILENT_PIC_MODE_BEST_SHOTS:
+            sp_max_frames = 1000000;
+            break;
+    }
     
     if (sp_buffer_count <= sp_max_frames)
         bmp_printf(FONT_MED, 0, 80, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (hSuite->size / 100));
@@ -1837,7 +1919,10 @@ silent_pic_take_raw(int interactive)
     }
     
     #ifdef CONFIG_DISPLAY_FILTERS
-    if (silent_pic_mode == 3 || lv_dispsize == 5)
+    /* in slit-scan mode we need preview, obviously */
+    /* in zoom mode, the framing doesn't match, so we'll force preview for raw in x5 */
+    /* don't preview in x10 mode, so you can use it for focusing */
+    if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN || lv_dispsize == 5)
     {
         /* init preview */
         uint32_t* src_buf;
@@ -1862,17 +1947,20 @@ silent_pic_take_raw(int interactive)
             void* raw_buf = sp_frames[MAX(0,sp_num_frames-2) % sp_buffer_count];
             static int first_line = 0;
             int last_line;
-            if (silent_pic_mode == 3)
+            int ultra_fast;
+            if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN)
             {
                 last_line = RAW2LV_Y(sp_slitscan_line);
                 if (first_line > last_line) first_line = BM2LV_Y(os.y0);
+                ultra_fast = 0;
             }
             else
             {
                 first_line = BM2LV_Y(os.y0);
                 last_line = BM2LV_Y(os.y_max);
+                ultra_fast = 1;
             }
-            raw_preview_fast_ex(raw_buf, silent_pic_display_buf, first_line, last_line, silent_pic_mode != 3);
+            raw_preview_fast_ex(raw_buf, silent_pic_display_buf, first_line, last_line, ultra_fast);
         }
         #endif
         
@@ -1892,7 +1980,7 @@ silent_pic_take_raw(int interactive)
     call("lv_save_raw", 0);
 
     /* save the image(s) to card */
-    if (sp_num_frames > 1 || silent_pic_mode == 3)
+    if (sp_num_frames > 1 || silent_pic_mode == SILENT_PIC_MODE_SLITSCAN)
     {
         /* this will take a while; pause the liveview and block the buttons to make sure the user won't do something stupid */
         PauseLiveView();
@@ -1910,7 +1998,7 @@ silent_pic_take_raw(int interactive)
         ui_lock(UILOCK_NONE);
         
         /* slit-scan: wait for half-shutter press after reviewing the image */
-        if (silent_pic_mode == 3 && interactive)
+        if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN && interactive)
         {
             beep();
             bmp_printf(FONT_MED, 0, 60, "Done, press shutter half-way to exit.");
@@ -5351,11 +5439,17 @@ static struct menu_entry shoot_menus[] = {
         .update = silent_pic_display,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Mode",
+                .name = "Silent Mode",
                 .priv = &silent_pic_mode,
-                .max = 3,
-                .help = "Silent picture mode: simple or burst.",
-                .choices = CHOICES("Simple", "Burst", "Burst with End Trigger", "Slit-Scan"),
+                .max = 4,
+                .help = "Choose the silent picture mode:",
+                .help2 = 
+                    "Take a silent picture when you press the shutter halfway.\n"
+                    "Take pictures until memory gets full, then save to card.\n"
+                    "Take pictures continuously, save the last few pics to card.\n"
+                    "Take pictures continuously, save the best (focused) images.\n"
+                    "Distorted pictures for funky effects.\n",
+                .choices = CHOICES("Simple", "Burst", "Burst with End Trigger", "Best Shots", "Slit-Scan"),
                 .icon_type = IT_DICE,
             },
             MENU_EOL,

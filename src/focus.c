@@ -669,6 +669,7 @@ int movie_af_stepsize = 10;
 int focus_value = 0; // heuristic from 0 to 100
 int focus_value_delta = 0;
 int focus_min_value = 0; // to confirm focus variation 
+int focus_value_raw = 0; // as reported by Canon firmware; the range depends heavily on image contrast
 
 static volatile int focus_done = 0;
 static volatile uint32_t focus_done_raw = 0;
@@ -858,6 +859,7 @@ static int maxmagf = 1;
 static void update_focus_mag(int mag)
 {
     focus_graph_dirty = 1;
+    focus_value_raw = mag;
     int maxmag = 1;
     int minmag = 100000000;
     int i;
