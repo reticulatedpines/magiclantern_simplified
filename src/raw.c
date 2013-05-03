@@ -388,6 +388,21 @@ int FAST raw_get_pixel(int x, int y) {
     return p->a;
 }
 
+int FAST raw_get_pixel_ex(void* raw_buffer, int x, int y) {
+    struct raw_pixblock * p = (void*)raw_buffer + y * raw_info.pitch + (x/8)*14;
+    switch (x%8) {
+        case 0: return p->a;
+        case 1: return p->b_lo | (p->b_hi << 12);
+        case 2: return p->c_lo | (p->c_hi << 10);
+        case 3: return p->d_lo | (p->d_hi << 8);
+        case 4: return p->e_lo | (p->e_hi << 6);
+        case 5: return p->f_lo | (p->f_hi << 4);
+        case 6: return p->g_lo | (p->g_hi << 2);
+        case 7: return p->h;
+    }
+    return p->a;
+}
+
 int FAST raw_set_pixel(int x, int y, int value)
 {
     struct raw_pixblock * p = (void*)raw_info.buffer + y * raw_info.pitch + (x/8)*14;
@@ -445,10 +460,13 @@ void raw_lv_redirect_edmac(void* ptr)
     MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
 }
 
-void FAST raw_preview_fast()
+void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2)
 {
-    uint16_t* lv = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
+    uint16_t* lv = CACHEABLE(lv_buffer);
     if (!lv) return;
+    
+    struct raw_pixblock * raw = CACHEABLE(raw_buffer);
+    if (!raw) return;
     
     uint8_t gamma[1024];
     
@@ -460,8 +478,6 @@ void FAST raw_preview_fast()
     
     int x1 = BM2LV_X(os.x0);
     int x2 = BM2LV_X(os.x_max);
-    int y1 = BM2LV_Y(os.y0);
-    int y2 = BM2LV_Y(os.y_max);
     
     for (int y = y1; y < y2; y++)
     {
@@ -471,9 +487,14 @@ void FAST raw_preview_fast()
             int xr = BM2RAW_X(x) & ~1;
             int yr = BM2RAW_Y(y) | 1;
             
-            int c = raw_get_pixel(xr, yr);
+            int c = raw_get_pixel_ex(raw, xr, yr);
             int Y = gamma[COERCE((c - raw_info.black_level) >> 4, 0, 1023)];
             lv[BM2LV(x,y)/2] = Y << 8;
         }
     }
+}
+
+void FAST raw_preview_fast()
+{
+    raw_preview_fast_ex(raw_info.buffer, (void*)YUV422_LV_BUFFER_DISPLAY_ADDR, BM2LV_Y(os.y0), BM2LV_Y(os.y_max));
 }

@@ -1705,12 +1705,13 @@ static void* sp_frames[SP_BUFFER_SIZE];
 static volatile int sp_buffer_count = 0;    /* how many valid slots we have in the buffer (up to SP_BUFFER_SIZE) */
 static volatile int sp_max_frames = 0;      /* after how many pictures we should stop (even if we still have enough RAM) */
 static volatile int sp_num_frames = 0;      /* how many pics we actually took */
+static volatile int sp_slitscan_line = 0;   /* current line for slit-scan */
 
 #ifdef CONFIG_DISPLAY_FILTERS
 static void* silent_pic_display_buf = 0;
 int silent_pic_preview()
 {
-    if (silent_pic_display_buf && silent_pic_mode == 3) // only preview slit-scan pics
+    if (silent_pic_display_buf)
     {
         YUV422_LV_BUFFER_DISPLAY_ADDR = (intptr_t)silent_pic_display_buf;
         return 1;
@@ -1721,26 +1722,19 @@ int silent_pic_preview()
 
 void silent_pic_raw_slitscan_vsync()
 {
-    static int line = 0;
     void* buf = sp_frames[0];
     
-    if (line >= raw_info.height) /* done */
+    if (sp_slitscan_line >= raw_info.height) /* done */
     {
-        sp_num_frames = 1;
         sp_running = 0;
-        line = 0;
     }
     else
     {
-        int offset = raw_info.pitch * line;
+        int offset = raw_info.pitch * sp_slitscan_line;
         memcpy(CACHEABLE(buf + offset), CACHEABLE(raw_info.buffer + offset), raw_info.pitch);
-        line++;
-        bmp_printf(FONT_MED, 0, 60, "Slit-scan: %d%%...", line * 100 / raw_info.height);
-        
-        #ifdef CONFIG_DISPLAY_FILTERS
-        int display_offset = vram_lv.pitch * line * vram_lv.height / raw_info.height;
-        memcpy(CACHEABLE(silent_pic_display_buf + display_offset), CACHEABLE(vram_lv.vram + display_offset), vram_lv.pitch);
-        #endif
+        sp_slitscan_line++;
+        sp_num_frames = 1;
+        bmp_printf(FONT_MED, 0, 60, "Slit-scan: %d%%...", sp_slitscan_line * 100 / raw_info.height);
     }
 }
 
@@ -1792,6 +1786,7 @@ silent_pic_take_raw(int interactive)
     void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
     sp_buffer_count = 0;
     sp_num_frames = 0;
+    sp_slitscan_line = 0;
 
     while (1)
     {
@@ -1841,13 +1836,14 @@ silent_pic_take_raw(int interactive)
     }
     
     #ifdef CONFIG_DISPLAY_FILTERS
-    if (silent_pic_mode == 3)
+    if (silent_pic_mode == 3 || lv_dispsize == 5)
     {
         /* init preview */
         uint32_t* src_buf;
         uint32_t* dst_buf;
         display_filter_get_buffers(&src_buf, &dst_buf);
         memset(dst_buf, 0, vram_lv.height * vram_lv.pitch);
+        memset(sp_frames[0], 0, raw_info.frame_size);
         silent_pic_display_buf = CACHEABLE(dst_buf);
     }
     #endif
@@ -1857,13 +1853,40 @@ silent_pic_take_raw(int interactive)
     while (sp_running)
     {
         msleep(20);
+        
+        #ifdef CONFIG_DISPLAY_FILTERS
+        if (silent_pic_display_buf)
+        {
+            /* try to preview the last completed frame; if there isn't any, use the first frame */
+            void* raw_buf = sp_frames[MAX(0,sp_num_frames-2) % sp_buffer_count];
+            static int first_line = 0;
+            int last_line;
+            if (silent_pic_mode == 3)
+            {
+                last_line = RAW2LV_Y(sp_slitscan_line);
+                if (first_line > last_line) first_line = BM2LV_Y(os.y0);
+            }
+            else
+            {
+                first_line = BM2LV_Y(os.y0);
+                last_line = BM2LV_Y(os.y_max);
+            }
+            raw_preview_fast_ex(raw_buf, silent_pic_display_buf, first_line, last_line);
+        }
+        #endif
+        
         if (!lv)
         {
             sp_running = 0;
+            interactive = 0;
             break;
         }
     }
-    
+
+    #ifdef CONFIG_DISPLAY_FILTERS
+    silent_pic_display_buf = 0;
+    #endif
+
     /* disable the debug flag, no longer needed */
     call("lv_save_raw", 0);
 
@@ -1893,9 +1916,6 @@ silent_pic_take_raw(int interactive)
             while (!HALFSHUTTER_PRESSED)
                 msleep(20);
         }
-        #ifdef CONFIG_DISPLAY_FILTERS
-        silent_pic_display_buf = 0;
-        #endif
         
         ResumeLiveView();
     }

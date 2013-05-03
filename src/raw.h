@@ -76,6 +76,7 @@ int save_dng(char* filename);
 
 /* quick preview of the raw buffer */
 void raw_preview_fast();
+void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int end_line);
 
 /* redirect the LV RAW EDMAC in order to write the raw data at "ptr" */
 void raw_lv_redirect_edmac(void* ptr);
