@@ -460,10 +460,11 @@ void raw_lv_redirect_edmac(void* ptr)
     MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
 }
 
-void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2)
+void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int ultra_fast)
 {
-    uint16_t* lv = CACHEABLE(lv_buffer);
-    if (!lv) return;
+    uint16_t* lv16 = CACHEABLE(lv_buffer);
+    uint64_t* lv64 = (uint64_t*) lv16;
+    if (!lv16) return;
     
     struct raw_pixblock * raw = CACHEABLE(raw_buffer);
     if (!raw) return;
@@ -472,29 +473,56 @@ void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2)
     
     for (int i = 0; i < 1024; i++)
     {
-        int g = log2f(i+1) * 255 / 10;
+        int g = (i > (raw_info.black_level>>4)) ? log2f(i - (raw_info.black_level>>4)) * 255 / 10 : 0;
         gamma[i] = g * g / 255; /* idk, looks better this way */
     }
     
     int x1 = BM2LV_X(os.x0);
     int x2 = BM2LV_X(os.x_max);
+
+    /* cache the LV to RAW transformation for the inner loop to make it faster */
+    /* we will always choose a green pixel */
     
-    for (int y = y1; y < y2; y++)
+    int* lv2rx = SmallAlloc(x2 * 4);
+    if (!lv2rx) return;
+    for (int x = x1; x < x2; x++)
+        lv2rx[x] = LV2RAW_X(x) & ~1;
+
+    int dy = ultra_fast ? 2 : 1;
+    for (int y = y1; y < y2; y += dy)
     {
-        for (int x = x1; x < x2; x++)
+        int yr = LV2RAW_Y(y) | 1;
+        struct raw_pixblock * row = (void*)raw + yr * raw_info.pitch;
+        
+        if (ultra_fast) /* prefer real-time low-res display */
         {
-            /* always choose a green pixel */
-            int xr = BM2RAW_X(x) & ~1;
-            int yr = BM2RAW_Y(y) | 1;
-            
-            int c = raw_get_pixel_ex(raw, xr, yr);
-            int Y = gamma[COERCE((c - raw_info.black_level) >> 4, 0, 1023)];
-            lv[BM2LV(x,y)/2] = Y << 8;
+            for (int x = x1; x < x2; x += 4)
+            {
+                int xr = lv2rx[x];
+                struct raw_pixblock * p = row + (xr/8);
+                int c = p->a;
+                uint64_t Y = gamma[c >> 4];
+                Y = (Y << 8) | (Y << 24) | (Y << 40) | (Y << 56);
+                int idx = LV(x,y)/8;
+                lv64[idx] = Y;
+                lv64[idx + vram_lv.pitch/8] = Y;
+            }
+        }
+        else /* prefer full-res, don't care if it's a little slower */
+        {
+            for (int x = x1; x < x2; x++)
+            {
+                int xr = lv2rx[x];
+                int c = raw_get_pixel_ex(raw, xr, yr);
+                uint16_t Y = gamma[c >> 4];
+                lv16[LV(x,y)/2] = Y << 8;
+            }
         }
     }
+    SmallFree(lv2rx);
 }
 
 void FAST raw_preview_fast()
 {
-    raw_preview_fast_ex(raw_info.buffer, (void*)YUV422_LV_BUFFER_DISPLAY_ADDR, BM2LV_Y(os.y0), BM2LV_Y(os.y_max));
+    raw_preview_fast_ex(raw_info.buffer, (void*)YUV422_LV_BUFFER_DISPLAY_ADDR, BM2LV_Y(os.y0), BM2LV_Y(os.y_max), 0);
 }

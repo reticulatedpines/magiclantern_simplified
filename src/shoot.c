@@ -1871,7 +1871,7 @@ silent_pic_take_raw(int interactive)
                 first_line = BM2LV_Y(os.y0);
                 last_line = BM2LV_Y(os.y_max);
             }
-            raw_preview_fast_ex(raw_buf, silent_pic_display_buf, first_line, last_line);
+            raw_preview_fast_ex(raw_buf, silent_pic_display_buf, first_line, last_line, silent_pic_mode != 3);
         }
         #endif
         
