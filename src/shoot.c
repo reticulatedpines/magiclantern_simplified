@@ -1755,7 +1755,7 @@ static void silent_pic_raw_show_focus(int current)
     extern int focus_value_raw;
 
     /* display a simple focus analysis */
-    int maxf = 0;
+    int maxf = focus_value_raw;
     for (int i = 0; i < sp_buffer_count; i++)
     {
         if (sp_focus[i] == INT_MAX)
@@ -1778,6 +1778,35 @@ static void silent_pic_raw_show_focus(int current)
         int f = COERCE((sp_focus[current] == INT_MAX ? focus_value_raw : sp_focus[current]) * 100 / maxf, 0, 999);
         bmp_printf(FONT_MED, 0, 180, "Focus: %d%% ", f);
     }
+}
+
+static int silent_pic_raw_choose_next_slot()
+{
+    extern int focus_value_raw;
+    int f = focus_value_raw;
+
+    /* the current focus value seems to be for picture k-2 (where k is the current one) */
+    /* can be checked with FPS override, e.g. at 2fps, cover the lens with the hand and uncover it for 1-2 frames */
+    /* => it should save first the frames that are correctly exposed */
+    static int prev_slot_1 = 0;
+    static int prev_slot_2 = 0;
+    if (sp_focus[prev_slot_2] == INT_MAX)
+        sp_focus[prev_slot_2] = f;
+
+    /* choose the least focused image and replace it */
+    int minf = INT_MAX;
+    int next_slot = 0;
+    for (int i = 0; i < sp_buffer_count; i++)
+        if (sp_focus[i] < minf)
+            minf = sp_focus[i], next_slot = i;
+
+    /* next picture will be saved in next_slot */
+    /* we don't know its focus value yet, so we put INT_MAX as a placeholder */
+    sp_focus[next_slot] = INT_MAX;
+    
+    prev_slot_2 = prev_slot_1;
+    prev_slot_1 = next_slot;
+    return next_slot;
 }
 
 static void silent_pic_raw_slitscan_vsync()
@@ -1822,36 +1851,108 @@ void silent_pic_raw_vsync()
     
     if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
     {
-        extern int focus_value_raw;
-        int f = focus_value_raw;
-
-        /* the current focus value seems to be for picture k-2 (where k is the current one) */
-        /* can be checked with FPS override, e.g. at 2fps, cover the lens with the hand and uncover it for 1-2 frames */
-        /* => it should save first the frames that are correctly exposed */
-        static int prev_slot_1 = 0;
-        static int prev_slot_2 = 0;
-        if (sp_focus[prev_slot_2] == INT_MAX)
-            sp_focus[prev_slot_2] = f;
-
-        /* choose the least focused image and replace it */
-        int minf = INT_MAX;
-        for (int i = 0; i < sp_buffer_count; i++)
-            if (sp_focus[i] < minf)
-                minf = sp_focus[i], next_slot = i;
-
-        /* next picture will be saved in next_slot */
-        /* we don't know its focus value yet, so we put INT_MAX as a placeholder */
-        sp_focus[next_slot] = INT_MAX;
-        
-        prev_slot_2 = prev_slot_1;
-        prev_slot_1 = next_slot;
+        next_slot = silent_pic_raw_choose_next_slot();
     }
 
     /* Reprogram the raw EDMAC to output the data in our buffer (ptr) */
-    raw_lv_redirect_edmac(sp_frames[next_slot]);
+    raw_lv_redirect_edmac(sp_frames[next_slot % sp_buffer_count]);
     sp_num_frames++;
     
     bmp_printf(FONT_MED, 0, 60, "Capturing frame %d...", sp_num_frames);
+}
+
+static void silent_pic_raw_init_preview()
+{
+    /* in slit-scan mode we need preview, obviously */
+    /* in zoom mode, the framing doesn't match, so we'll force preview for raw in x5 */
+    /* don't preview in x10 mode, so you can use it for focusing */
+    if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN || lv_dispsize == 5)
+    {
+        /* init preview */
+        uint32_t* src_buf;
+        uint32_t* dst_buf;
+        display_filter_get_buffers(&src_buf, &dst_buf);
+        memset(dst_buf, 0, vram_lv.height * vram_lv.pitch);
+        memset(sp_frames[0], 0, raw_info.frame_size);
+        silent_pic_display_buf = CACHEABLE(dst_buf);
+    }
+}
+static void silent_pic_raw_update_preview()
+{
+    if (!silent_pic_display_buf) return;
+
+    /* try to preview the last completed frame; if there isn't any, use the first frame */
+    void* raw_buf = sp_frames[MAX(0,sp_num_frames-2) % sp_buffer_count];
+    static int first_line = 0;
+    int last_line;
+    int ultra_fast;
+    if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN)
+    {
+        last_line = RAW2LV_Y(sp_slitscan_line);
+        if (first_line > last_line) first_line = BM2LV_Y(os.y0);
+        ultra_fast = 0; /* since we only refresh a few lines at a time, we can use better quality */
+    }
+    else
+    {
+        first_line = BM2LV_Y(os.y0);
+        last_line = BM2LV_Y(os.y_max);
+        ultra_fast = 1; /* we have to refresh complete frames, so we'll sacrifice quality to gain some speed */
+    }
+    
+    if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+    {
+        for (int i = 0; i < sp_buffer_count; i++)
+            if (sp_focus[i] == INT_MAX)
+                raw_buf = sp_frames[i];
+    }
+    
+    raw_preview_fast_ex(raw_buf, silent_pic_display_buf, first_line, last_line, ultra_fast);
+}
+
+static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
+{
+    /* we'll look for contiguous blocks equal to raw_info.frame_size */
+    /* (so we'll make sure we can write raw_info.frame_size starting from ptr) */
+    struct memChunk * hChunk = (void*) GetFirstChunkFromSuite(hSuite);
+    void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+    int count = 0;
+
+    while (1)
+    {
+        void* ptr0 = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+        int size = GetSizeOfMemoryChunk(hChunk);
+        int used = ptr - ptr0;
+        int remain = size - used;
+        //~ console_printf("remain: %x\n", remain);
+
+        /* the EDMAC might write a bit more than that, so we'll use a small safety margin */
+        if (remain < raw_info.frame_size * 33/32)
+        {
+            /* move to next chunk */
+            hChunk = GetNextMemoryChunk(hSuite, hChunk);
+            if (!hChunk)
+            {
+                //~ console_printf("no more memory\n");
+                break;
+            }
+            ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+            //~ console_printf("next chunk: %x %x\n", hChunk, ptr);
+            continue;
+        }
+        else /* alright, a new frame fits here */
+        {
+            //~ console_printf("FRAME %d: hSuite=%x hChunk=%x ptr=%x\n", count, hSuite, hChunk, ptr);
+            sp_frames[count] = ptr;
+            count++;
+            ptr = ptr + raw_info.frame_size;
+            if (count >= SP_BUFFER_SIZE)
+            {
+                //~ console_printf("we have lots of RAM, lol\n");
+                break;
+            }
+        }
+    }
+    return count;
 }
 
 static void
@@ -1880,60 +1981,31 @@ silent_pic_take_raw(int interactive)
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
             hSuite = (void*)shoot_malloc(raw_info.frame_size * 33/32); /* ugly, but works; see exmem.c */
-            if (!hSuite) { beep(); return; }
-            hSuite = *(struct memSuite **)(((void*)hSuite) - 4);
+            if (hSuite) hSuite = *(struct memSuite **)(((void*)hSuite) - 4);
             break;
     }
 
-    if (!hSuite) { beep(); return; }
+    if (!hSuite) { beep(); goto cleanup; }
+
+    /* how many pics we can take in the current memory suite? */
+    /* we'll have a pointer to each picture slot in sp_frames[], indexed from 0 to sp_buffer_count */
+    sp_buffer_count = silent_pic_raw_prepare_buffers(hSuite);
+
+    if (sp_buffer_count > 1)
+        bmp_printf(FONT_MED, 0, 80, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (hSuite->size / 100));
+
+    if (sp_buffer_count == 0)
+    {
+        bmp_printf(FONT_MED, 0, 80, "Buffer error");
+        goto cleanup;
+    }
     
-    /* we'll look for contiguous blocks equal to raw_info.frame_size */
-    /* (so we'll make sure we can write raw_info.frame_size starting from ptr) */
-    struct memChunk * hChunk = (void*) GetFirstChunkFromSuite(hSuite);
-    void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-    sp_buffer_count = 0;
+    /* misc initializers */
     sp_num_frames = 0;
     sp_slitscan_line = 0;
     memset(sp_focus, 0, sizeof(sp_focus));
 
-    while (1)
-    {
-        void* ptr0 = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-        int size = GetSizeOfMemoryChunk(hChunk);
-        int used = ptr - ptr0;
-        int remain = size - used;
-        //~ console_printf("remain: %x\n", remain);
-
-        /* the EDMAC might write a bit more than that, so we'll use a small safety margin */
-        if (remain < raw_info.frame_size * 33/32)
-        {
-            /* move to next chunk */
-            hChunk = GetNextMemoryChunk(hSuite, hChunk);
-            if (!hChunk)
-            {
-                //~ console_printf("no more memory\n");
-                break;
-            }
-            ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-            //~ console_printf("next chunk: %x %x\n", hChunk, ptr);
-            continue;
-        }
-        else /* alright, a new frame fits here */
-        {
-            //~ console_printf("FRAME %d: hSuite=%x hChunk=%x ptr=%x\n", sp_buffer_count, hSuite, hChunk, ptr);
-            sp_frames[sp_buffer_count] = ptr;
-            sp_buffer_count++;
-            ptr = ptr + raw_info.frame_size;
-            if (sp_buffer_count >= SP_BUFFER_SIZE)
-            {
-                //~ console_printf("we have lots of RAM, lol\n");
-                break;
-            }
-        }
-    }
-
     /* how many pics we should take? */
-    
     switch (silent_pic_mode)
     {
         case SILENT_PIC_MODE_SIMPLE:
@@ -1943,6 +2015,7 @@ silent_pic_take_raw(int interactive)
 
         case SILENT_PIC_MODE_BURST:
             sp_max_frames = sp_buffer_count;
+            break;
         
         case SILENT_PIC_MODE_BURST_END_TRIGGER:
         case SILENT_PIC_MODE_BEST_SHOTS:
@@ -1950,29 +2023,8 @@ silent_pic_take_raw(int interactive)
             break;
     }
     
-    if (sp_buffer_count > 1)
-        bmp_printf(FONT_MED, 0, 80, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (hSuite->size / 100));
-
-    if (sp_max_frames == 0)
-    {
-        bmp_printf(FONT_MED, 0, 80, "Buffer error");
-        return;
-    }
-    
     #ifdef CONFIG_DISPLAY_FILTERS
-    /* in slit-scan mode we need preview, obviously */
-    /* in zoom mode, the framing doesn't match, so we'll force preview for raw in x5 */
-    /* don't preview in x10 mode, so you can use it for focusing */
-    if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN || lv_dispsize == 5)
-    {
-        /* init preview */
-        uint32_t* src_buf;
-        uint32_t* dst_buf;
-        display_filter_get_buffers(&src_buf, &dst_buf);
-        memset(dst_buf, 0, vram_lv.height * vram_lv.pitch);
-        memset(sp_frames[0], 0, raw_info.frame_size);
-        silent_pic_display_buf = CACHEABLE(dst_buf);
-    }
+    silent_pic_raw_init_preview();
     #endif
 
     /* the actual grabbing the image(s) will happen from silent_pic_raw_vsync */
@@ -1982,35 +2034,7 @@ silent_pic_take_raw(int interactive)
         msleep(20);
         
         #ifdef CONFIG_DISPLAY_FILTERS
-        if (silent_pic_display_buf)
-        {
-            /* try to preview the last completed frame; if there isn't any, use the first frame */
-            void* raw_buf = sp_frames[MAX(0,sp_num_frames-2) % sp_buffer_count];
-            static int first_line = 0;
-            int last_line;
-            int ultra_fast;
-            if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN)
-            {
-                last_line = RAW2LV_Y(sp_slitscan_line);
-                if (first_line > last_line) first_line = BM2LV_Y(os.y0);
-                ultra_fast = 0; /* since we only refresh a few lines at a time, we can use better quality */
-            }
-            else
-            {
-                first_line = BM2LV_Y(os.y0);
-                last_line = BM2LV_Y(os.y_max);
-                ultra_fast = 1; /* we have to refresh complete frames, so we'll sacrifice quality to gain some speed */
-            }
-            
-            if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
-            {
-                for (int i = 0; i < sp_buffer_count; i++)
-                    if (sp_focus[i] == INT_MAX)
-                        raw_buf = sp_frames[i];
-            }
-            
-            raw_preview_fast_ex(raw_buf, silent_pic_display_buf, first_line, last_line, ultra_fast);
-        }
+        silent_pic_raw_update_preview();
         #endif
         
         if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
@@ -2079,10 +2103,11 @@ silent_pic_take_raw(int interactive)
             raw_preview_fast();
             save_dng(fn);
             
-            if (HALFSHUTTER_PRESSED && i > i0)
+            if ((HALFSHUTTER_PRESSED || !LV_PAUSED) && i > i0)
             {
                 /* save at least 2 pics, then allow the user to cancel the saving process */
                 beep();
+                bmp_printf(FONT_MED, 0, 60, "Saving canceled.");
                 while (HALFSHUTTER_PRESSED) msleep(10);
                 break;
             }
@@ -2098,7 +2123,8 @@ silent_pic_take_raw(int interactive)
                 msleep(20);
         }
         
-        ResumeLiveView();
+        if (LV_PAUSED) ResumeLiveView();
+        else redraw();
     }
     else
     {
@@ -2109,9 +2135,11 @@ silent_pic_take_raw(int interactive)
         redraw();
     }
     
-    /* cleanup */
+cleanup:
+    sp_running = 0;
     sp_buffer_count = 0;
-    shoot_free_suite(hSuite);
+    if (hSuite) shoot_free_suite(hSuite);
+    call("lv_save_raw", 0);
 }
  
 #else // who needs 422 when we have raw?
@@ -5541,7 +5569,7 @@ static struct menu_entry shoot_menus[] = {
                     "Take pictures continuously, save the last few pics to card.\n"
                     "Take pictures continuously, save the best (focused) images.\n"
                     "Distorted pictures for funky effects.\n",
-                .choices = CHOICES("Simple", "Burst", "Burst with End Trigger", "Best Shots", "Slit-Scan"),
+                .choices = CHOICES("Simple", "Burst", "Burst, End Trigger", "Best Shots", "Slit-Scan"),
                 .icon_type = IT_DICE,
             },
             MENU_EOL,
