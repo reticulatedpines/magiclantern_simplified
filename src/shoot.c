@@ -1750,6 +1750,36 @@ int silent_pic_preview()
 }
 #endif
 
+static void silent_pic_raw_show_focus(int current)
+{
+    extern int focus_value_raw;
+
+    /* display a simple focus analysis */
+    int maxf = 0;
+    for (int i = 0; i < sp_buffer_count; i++)
+    {
+        if (sp_focus[i] == INT_MAX)
+        {
+            current = i;
+            continue;
+        }
+        maxf = MAX(maxf, sp_focus[i]);
+    }
+
+    for (int i = 0; i < sp_buffer_count; i++)
+    {
+        int f = COERCE((sp_focus[i] == INT_MAX ? focus_value_raw : sp_focus[i]) * 50 / maxf, 0, 50);
+        bmp_fill(0, i * 4, 180 - 50, 2, 50 - f);
+        bmp_fill(i == current || sp_focus[i] == INT_MAX ? COLOR_RED : COLOR_BLUE, i * 4, 180 - f, 2, f);
+    }
+    
+    if (current >= 0)
+    {
+        int f = COERCE((sp_focus[current] == INT_MAX ? focus_value_raw : sp_focus[current]) * 100 / maxf, 0, 999);
+        bmp_printf(FONT_MED, 0, 180, "Focus: %d%% ", f);
+    }
+}
+
 static void silent_pic_raw_slitscan_vsync()
 {
     void* buf = sp_frames[0];
@@ -1792,20 +1822,29 @@ void silent_pic_raw_vsync()
     
     if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
     {
-        /* choose the least focused image and replace it */
         extern int focus_value_raw;
         int f = focus_value_raw;
-        
-        int minf = f;
-        int found = 0;
+
+        /* the current focus value seems to be for picture k-2 (where k is the current one) */
+        /* can be checked with FPS override, e.g. at 2fps, cover the lens with the hand and uncover it for 1-2 frames */
+        /* => it should save first the frames that are correctly exposed */
+        static int prev_slot_1 = 0;
+        static int prev_slot_2 = 0;
+        if (sp_focus[prev_slot_2] == INT_MAX)
+            sp_focus[prev_slot_2] = f;
+
+        /* choose the least focused image and replace it */
+        int minf = INT_MAX;
         for (int i = 0; i < sp_buffer_count; i++)
             if (sp_focus[i] < minf)
-                minf = sp_focus[i], next_slot = i, found = 1;
+                minf = sp_focus[i], next_slot = i;
 
-        if (!found) /* all buffered pics are better than this one */
-            return;
+        /* next picture will be saved in next_slot */
+        /* we don't know its focus value yet, so we put INT_MAX as a placeholder */
+        sp_focus[next_slot] = INT_MAX;
         
-        sp_focus[next_slot] = f;
+        prev_slot_2 = prev_slot_1;
+        prev_slot_1 = next_slot;
     }
 
     /* Reprogram the raw EDMAC to output the data in our buffer (ptr) */
@@ -1840,7 +1879,9 @@ silent_pic_take_raw(int interactive)
         /* allocate only one frame in simple and slitscan modes */
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
-            hSuite = (void*)shoot_malloc(raw_info.frame_size * 33/32) - 4; /* ugly, but works; see exmem.c */
+            hSuite = (void*)shoot_malloc(raw_info.frame_size * 33/32); /* ugly, but works; see exmem.c */
+            if (!hSuite) { beep(); return; }
+            hSuite = *(struct memSuite **)(((void*)hSuite) - 4);
             break;
     }
 
@@ -1909,7 +1950,7 @@ silent_pic_take_raw(int interactive)
             break;
     }
     
-    if (sp_buffer_count <= sp_max_frames)
+    if (sp_buffer_count > 1)
         bmp_printf(FONT_MED, 0, 80, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (hSuite->size / 100));
 
     if (sp_max_frames == 0)
@@ -1952,17 +1993,28 @@ silent_pic_take_raw(int interactive)
             {
                 last_line = RAW2LV_Y(sp_slitscan_line);
                 if (first_line > last_line) first_line = BM2LV_Y(os.y0);
-                ultra_fast = 0;
+                ultra_fast = 0; /* since we only refresh a few lines at a time, we can use better quality */
             }
             else
             {
                 first_line = BM2LV_Y(os.y0);
                 last_line = BM2LV_Y(os.y_max);
-                ultra_fast = 1;
+                ultra_fast = 1; /* we have to refresh complete frames, so we'll sacrifice quality to gain some speed */
             }
+            
+            if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+            {
+                for (int i = 0; i < sp_buffer_count; i++)
+                    if (sp_focus[i] == INT_MAX)
+                        raw_buf = sp_frames[i];
+            }
+            
             raw_preview_fast_ex(raw_buf, silent_pic_display_buf, first_line, last_line, ultra_fast);
         }
         #endif
+        
+        if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+            silent_pic_raw_show_focus(-1);
         
         if (!lv)
         {
@@ -1978,22 +2030,62 @@ silent_pic_take_raw(int interactive)
 
     /* disable the debug flag, no longer needed */
     call("lv_save_raw", 0);
+    
+    if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+    {
+        /* extrapolate the current focus value for the last two pics */
+        extern int focus_value_raw;
+        for (int i = 0; i < sp_buffer_count; i++)
+            if (sp_focus[i] == INT_MAX)
+                sp_focus[i] = focus_value_raw;
+
+        /* sort the files by focus value, best pictures first */
+        for (int i = 0; i < sp_buffer_count; i++)
+        {
+            for (int j = i+1; j < sp_buffer_count; j++)
+            {
+                if (sp_focus[i] < sp_focus[j])
+                {
+                    { int aux = sp_focus[i]; sp_focus[i] = sp_focus[j]; sp_focus[j] = aux; }
+                    { void* aux = sp_frames[i]; sp_frames[i] = sp_frames[j]; sp_frames[j] = aux; }
+                }
+            }
+        }
+    }
 
     /* save the image(s) to card */
     if (sp_num_frames > 1 || silent_pic_mode == SILENT_PIC_MODE_SLITSCAN)
     {
         /* this will take a while; pause the liveview and block the buttons to make sure the user won't do something stupid */
         PauseLiveView();
-        ui_lock(UILOCK_EVERYTHING);
+        ui_lock(UILOCK_EVERYTHING & ~1); /* everything but shutter */
         int i0 = MAX(0, sp_num_frames - sp_buffer_count);
+        
+        if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+        {
+            sp_num_frames -= i0, i0 = 0; /* save pics starting from index 0, to preserve ordering by focus */
+        }
+        
         for (int i = i0; i < sp_num_frames; i++)
         {
             clrscr();
             char* fn = silent_pic_get_name();
             bmp_printf(FONT_MED, 0, 60, "Saving image %d of %d (%dx%d)...", i+1, sp_num_frames, raw_info.jpeg.width, raw_info.jpeg.height);
+
+            if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+                silent_pic_raw_show_focus(i);
+
             raw_info.buffer = sp_frames[i % sp_buffer_count];
             raw_preview_fast();
             save_dng(fn);
+            
+            if (HALFSHUTTER_PRESSED && i > i0)
+            {
+                /* save at least 2 pics, then allow the user to cancel the saving process */
+                beep();
+                while (HALFSHUTTER_PRESSED) msleep(10);
+                break;
+            }
         }
         ui_lock(UILOCK_NONE);
         
