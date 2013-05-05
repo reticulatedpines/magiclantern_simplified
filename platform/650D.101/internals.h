@@ -64,8 +64,8 @@
 /** We can't control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS
 
-/** No zoom button **/
-//~ #define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
+/** No zoom button while recording **/
+#define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
 /** Well, I hope so **/
