@@ -13,6 +13,11 @@
 #include "plugin.h"
 #include "version.h"
 
+#ifdef FEATURE_DEBUG_INTERCEPT
+#include "dm-spy.h"
+#include "tp-spy.h"
+#endif
+
 #ifdef FEATURE_SHOW_SIGNATURE
 #include "fw-signature.h"
 #endif
@@ -29,6 +34,7 @@
 #if defined(CONFIG_600D) && defined(CONFIG_AUDIO_600D_DEBUG)
 void audio_reg_dump_once();
 #endif
+
 
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused, int delta);
@@ -2948,6 +2954,20 @@ static struct menu_entry debug_menus[] = {
         .priv =         run_test,
         .select        = (void(*)(void*,int))run_in_separate_task,
         .help = "The camera may turn into a 1DX or it may explode."
+    },
+#endif
+#ifdef FEATURE_DEBUG_INTERCEPT
+    {
+        .name        = "DM Log",
+        .priv        = debug_intercept,
+        .select      = (void(*)(void*,int))run_in_separate_task,
+        .help = "Log DebugMessages"
+    },
+    {
+        .name        = "TryPostEvent Log",
+        .priv        = tp_intercept,
+        .select      = (void(*)(void*,int))run_in_separate_task,
+        .help = "Log TryPostEvents"
     },
 #endif
 #if defined(CONFIG_7D)
