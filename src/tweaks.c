@@ -3536,7 +3536,7 @@ static struct menu_entry display_menus[] = {
                     .name = "Auto Mirroring",
                     .priv = &display_dont_mirror,
                     .max  = 1,
-                    .choices = (const char *[]) {"Don't allow", "Allow"},
+                    .choices = (const char *[]) {"Allow", "Don't allow"},
                     .help = "Prevents display mirroring, which may reverse ML texts.",
                     .icon_type = IT_DISABLE_SOME_FEATURE,
                 },
