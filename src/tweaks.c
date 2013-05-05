@@ -2936,7 +2936,7 @@ static void FAST anamorphic_squeeze()
 }*/
 
 //~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "ML/SETTINGS/recti.lut");
-#if defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_5DC) // fullframe
+#if defined(CONFIG_FULLFRAME)
 #define defish_lut_file_rectilin CARD_DRIVE "ML/DATA/ff8r.lut"
 #define defish_lut_file_panini CARD_DRIVE "ML/DATA/ff8p.lut"
 #else
