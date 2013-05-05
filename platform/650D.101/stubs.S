@@ -33,18 +33,34 @@
 .text
 
 #define NSTUB(addr,name) \
-        .global name; \
-        name = addr
+	.global name; \
+	.extern name; \
+	name = addr
 
-// ROMBASEADDR 0xff0c0000 (Indy)
+#define XSTUB(addr,name) \
+	.global STUB_##name; \
+	.extern STUB_##name; \
+	STUB_##name = addr
 
 NSTUB( ROMBASEADDR, firmware_entry )
-// FFA4DF58 assert (Indy)
+
+NSTUB(0x8B7C, CreateMemorySuite)
+NSTUB(0x8974, DeleteMemorySuite)
+
+NSTUB(0x1152C, ConnectWriteEDmac)
+NSTUB(0x115F0, ConnectReadEDmac)
+NSTUB(0x11480, SetEDmac)
+NSTUB(0x11984, EDMAC_RegisterCompleteCBR)
+NSTUB(0x11798, StartEDmac)
+
+
+NSTUB(0xFF5EDF58, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
+NSTUB(0xFF5EDFF4, PackMem_RegisterEDmacPopCBRForMemorySuite)
+NSTUB(0xFF5EDC6C, PackMem_SetEDmacForMemorySuite)
+NSTUB(0xFF5EDE88, PackMem_PopEDmacForMemorySuite)
+NSTUB(0xFF5EDD80, PackMem_StartEDmac)
 
 #define RAM_OFFSET (0xFFA4DF58-0x1900) // Indy: some functions are copied to RAM at around ff0c0098; they have to be called from RAM...
-
-// 0x1C45C, bzero32        
-// 0x2EB8, create_init_task     = ffa4f510
 
 NSTUB(0xFF0C10E4, cli_save) // from Indy
 NSTUB(0xFF0C10F8, sei_restore) // from Indy
@@ -85,11 +101,9 @@ NSTUB(0xFFA60014 - RAM_OFFSET, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_
 NSTUB(0xFF128734, SetBitmapVramAddress)
 NSTUB(0xFF1A953C, SetGUIRequestMode)
 
-/* find */
-    NSTUB(0xff136f5c, _audio_ic_read)
-    NSTUB(0xff136ea4, _audio_ic_write) // str:Reg_0x_02X_Data_04x
+    //NSTUB(0xff136f5c, _audio_ic_read)
+    //NSTUB(0xff136ea4, _audio_ic_write) // str:Reg_0x_02X_Data_04x
 //NSTUB(   0x26C34, additional_version) // not working
-/*--------------*/
 
 NSTUB(0xFFA634E4 - RAM_OFFSET, alloc_dma_memory)
 NSTUB(   0x51DEC, bmp_vram_info ) // look in SetBitmapVramAddress - as in 60D
