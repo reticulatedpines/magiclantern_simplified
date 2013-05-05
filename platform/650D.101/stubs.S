@@ -65,7 +65,7 @@ NSTUB(0xFF341FD8, FIO_WriteFile) // from Indy
 NSTUB(0xFF342088, FIO_CloseFile) // from Indy
 NSTUB(0xFF343080, FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
 NSTUB(0xFF3428E4, FIO_CreateDirectory)
-NSTUB(0xFF342EAC, FIO_FindFirstEx)  
+NSTUB(0xFF342EAC, FIO_FindFirstEx)
 NSTUB(0xFF342FA0, FIO_FindNextEx)
 NSTUB(0xFF342204, FIO_GetFileSize)
 NSTUB(0xFF341C28, FIO_Open)
@@ -144,7 +144,6 @@ NSTUB(0xFF527C14, LiveViewApp_handler)
 NSTUB(0xFF528ABC, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF529DC0, LiveViewApp_handler_end) // start of next function
 
-//NSTUB(0xFF3B5D4C, PlayMain_handler)
 NSTUB(0xFF6F916C, PlayMain_handler)
 NSTUB(0xFF54209C, PlayMovieGuideApp_handler)
 NSTUB(0xFF68FA50, ErrCardForLVApp_handler)
@@ -189,21 +188,23 @@ NSTUB(0xFF108F48, SetNextASIFDACBuffer)
 NSTUB(0xFF132C20, SetSamplingRate )
 NSTUB(0xFF1325B8, SetAudioVolumeOut)
 
-
 NSTUB(0xFF19CD0C, ENCODE_StartEncodeJpeg)
 
 NSTUB(0xFF13BA28, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xFF13BA74, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xFF13BB8C, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xFFA55580 - RAM_OFFSET, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
-NSTUB(0xFFA54F58 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
+
+NSTUB(0x8F28, GetFirstChunkFromSuite)
+NSTUB(0x8900, GetMemoryAddressOfMemoryChunk)
+NSTUB(0x88A0, GetRemainOfMemoryChunk)
+NSTUB(0x88D0, GetSizeOfMemoryChunk)
+NSTUB(0x8C08, GetSizeOfMemorySuite)
+NSTUB(0x8CE8, GetNumberOfChunks)
+NSTUB(0x96C4, GetNextMemoryChunk)
 
 NSTUB(0xFFA56AB8 - RAM_OFFSET, dma_memcpy) // AJ_HP_Copy_n_DMA_channel_n_BLTDMA
 
 NSTUB(0xFF1B54F8, GUI_SetRollingPitchingLevelStatus)
-
-
-
 
 NSTUB(0xFF2BEEDC, mvrSetPrintMovieLog)
 NSTUB(0xFF2BE8EC, mvrSetQscale)

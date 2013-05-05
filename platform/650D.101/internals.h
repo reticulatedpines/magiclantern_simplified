@@ -102,9 +102,6 @@
 /** We can display some extra info in photo mode (not LiveView) **/
 #define CONFIG_PHOTO_MODE_INFO_DISPLAY
 
-/** FIO_RenameFile works **/
-#define CONFIG_FIO_RENAMEFILE_WORKS
-
 /** No additional_version stub on this DryOS version **/
 #define CONFIG_NO_ADDITIONAL_VERSION
 
@@ -114,14 +111,14 @@
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
 
-/** FPS override: we can only change timer A */
-//~ #define CONFIG_FPS_TIMER_A_ONLY
+/** We can record movies in regular photo modes - M, P, Tv, Av... */
+#define CONFIG_NO_DEDICATED_MOVIE_MODE
 
-/** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
-//~ #define CONFIG_FPS_AGGRESSIVE_UPDATE
+/** FIO_RenameFile works **/
+#define CONFIG_FIO_RENAMEFILE_WORKS
 
 /** FPS override: change timers from EVF state */
 #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
 
-/** We can record movies in regular photo modes - M, P, Tv, Av... */
-#define CONFIG_NO_DEDICATED_MOVIE_MODE
+/** Advanced EXMEM stubs are known and can be used */
+#define CONFIG_FULL_EXMEM_SUPPORT
