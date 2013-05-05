@@ -50,8 +50,7 @@
 #define CONFIG_Q_MENU_PLAYBACK
 
 /** It has a flip-out display **/
-/** Missing stubs, disabled for now **/
-//#define CONFIG_VARIANGLE_DISPLAY
+#define CONFIG_VARIANGLE_DISPLAY
 
 /** Battery does not report exact percentage **/
 //~ #define CONFIG_BATTERY_INFO

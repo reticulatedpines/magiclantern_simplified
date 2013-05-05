@@ -218,3 +218,7 @@ NSTUB(0xFF330408, touch_cbr_canon)
 NSTUB(0xFF5A55FC, lvae_setdispgain)
 NSTUB(0xFF66F328, GetCFnData)
 NSTUB(0xFF66F540, SetCFnData)
+
+NSTUB(0xFF4D4BE4, NormalDisplay)
+NSTUB(0xFF4D4BB4, ReverseDisplay)
+NSTUB(0xFF4D4B84, MirrorDisplay)
