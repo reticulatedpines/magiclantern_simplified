@@ -96,7 +96,9 @@
 /** We can't restore ML files after formatting the card in the camera **/
 //~ #define CONFIG_RESTORE_AFTER_FORMAT
 
-/** We don't know how to use DMA_MEMCPY (yet) **/
+/** We know how to use DMA_MEMCPY, though I don't see any reason for doing so **/
+/** it's not really faster than plain memcpy, and the side effects are not yet fully understood **/
+/** (read: I'm too dumb to understand why it's better than memcpy and why it's safe to use) **/
 //~ #define CONFIG_DMA_MEMCPY
 
 /** We shouldn't warn the user if movie exposure is Auto **/

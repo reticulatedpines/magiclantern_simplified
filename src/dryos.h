@@ -59,6 +59,7 @@ extern float powf(float x, float y);
 extern uint32_t shamem_read(uint32_t addr);
 extern void* memset64(void* dest, int val, size_t n);
 extern void* memcpy64(void* dest, void* srce, size_t n);
+extern void* dma_memcpy(void* dest, void* srce, size_t n);
 
 /** Panic and abort the camera */
 extern void __attribute__((noreturn))
