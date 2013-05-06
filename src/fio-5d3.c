@@ -101,7 +101,8 @@ void card_tests()
         uint32_t value = card_force_type;
         
         /* ensure valid property value (side effect safe) */
-        if(value == 1 || value == 2)
+        if ((value == 1 && is_dir("A:/")) ||
+            (value == 2 && is_dir("B:/")))
         {
             prop_request_change(PROP_CARD_SELECT, &value, 4);
         }
@@ -336,7 +337,7 @@ struct menu_entry card_menus[] = {
                 .min = 0,
                 .max = 2,
                 .choices = CHOICES("OFF", "CF", "SD"),
-                .help = "Ensure that on startup your preferred card is selected."
+                .help = "Make sure your preferred card is selected at startup."
             },
             MENU_EOL,
         }
