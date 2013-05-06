@@ -1474,7 +1474,7 @@ waveform_draw_image(
 
                 // Draw the pixel, rounding down to the nearest
                 // quad word write (and then nop to avoid err70).
-                *(uint32_t*)( row + (i & ~3) ) = pixel;
+                *(uint32_t*) ALIGN32(row + i) = pixel;
                 #ifdef CONFIG_500D // err70?!
                 asm( "nop" );
                 asm( "nop" );
@@ -4540,8 +4540,8 @@ void zoom_overlay_set_countdown(int x)
 
 static void FAST yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 {
-    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
-    src = (void*)((unsigned int)src & 0xFFFFFFFC);
+    dst = ALIGN32(dst);
+    src = ALIGN32(src);
     uint32_t* last_s = src + (num_pix>>1);
     for (; src < last_s; src++, dst += 2)
     {
@@ -4555,8 +4555,8 @@ static void FAST yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 
 static void FAST yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
 {
-    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
-    src = (void*)((unsigned int)src & 0xFFFFFFFC);
+    dst = ALIGN32(dst);
+    src = ALIGN32(src);
     uint32_t* last_s = src + (num_pix>>1);
     for (; src < last_s; src++, dst += 3)
     {
@@ -4571,8 +4571,8 @@ static void FAST yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
 
 static void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lut)
 {
-    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
-    src = (void*)((unsigned int)src & 0xFFFFFFFC);
+    dst = ALIGN32(dst);
+    src = ALIGN32(src);
     
     if (X==1)
     {

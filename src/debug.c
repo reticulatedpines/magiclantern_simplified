@@ -598,7 +598,7 @@ void iso_movie_test()
     ensure_movie_mode();
 
     int r = lens_info.iso_equiv_raw ? lens_info.iso_equiv_raw : lens_info.raw_iso_auto;
-    int raw_iso0 = (r + 3) & ~3; // consider full-stop iso
+    int raw_iso0 = (r + 3) & ~7; // consider full-stop iso
     int tv0 = lens_info.raw_shutter;
     //int av0 = lens_info.raw_aperture;
     bv_enable(); // this enables shutter speed adjust in finer increments
@@ -3994,7 +3994,7 @@ static void TmpMem_AddFile(char* filename)
     tmp_files[tmp_file_index].size = filesize;
     tmp_files[tmp_file_index].sig = compute_signature(tmp_buffer_ptr, filesize/4);
     tmp_file_index++;
-    tmp_buffer_ptr += (filesize + 10) & ~3;
+    tmp_buffer_ptr += ALIGN32SUP(filesize);
 
     /* no not update on every file, else it takes too long (90% of time updating display) */
     static int aux = 0;

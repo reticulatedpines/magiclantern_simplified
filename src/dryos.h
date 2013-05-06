@@ -496,6 +496,14 @@ int rand (void);
         *(volatile uint32_t *)(x) \
 )
 
+#define ALIGN16(x) ((typeof(x))(((uint32_t)(x)) & ~1))
+#define ALIGN32(x) ((typeof(x))(((uint32_t)(x)) & ~3))
+#define ALIGN64(x) ((typeof(x))(((uint32_t)(x)) & ~7))
+
+#define ALIGN16SUP(x) ((typeof(x))(((uint32_t)(x) + 1) & ~1))
+#define ALIGN32SUP(x) ((typeof(x))(((uint32_t)(x) + 3) & ~3))
+#define ALIGN64SUP(x) ((typeof(x))(((uint32_t)(x) + 7) & ~7))
+
 #if defined(POSITION_INDEPENDENT)
 extern uint32_t _ml_base_address;
 #define PIC_RESOLVE(x) ( ((uint32_t) (x) >> 24 == 0xE0)?((uint32_t) (x) - 0xE0000000 + _ml_base_address):(x) )

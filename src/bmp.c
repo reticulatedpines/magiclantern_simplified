@@ -256,7 +256,7 @@ _draw_char(
         {
             // Start this scanline
             uint32_t * row = front_row;
-            row = (uint32_t*)((unsigned)row & ~3); // weird artifacts otherwise
+            row = ALIGN32(row); // weird artifacts otherwise
             if (row >= end) return;
 
             // move to the next scanline
