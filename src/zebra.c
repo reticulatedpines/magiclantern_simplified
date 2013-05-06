@@ -4538,7 +4538,7 @@ void zoom_overlay_set_countdown(int x)
     zoom_overlay_triggered_by_focus_ring_countdown = x;
 }
 
-static void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
+static void FAST yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 {
     dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
     src = (void*)((unsigned int)src & 0xFFFFFFFC);
@@ -4553,7 +4553,7 @@ static void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
     }
 }
 
-static void yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
+static void FAST yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
 {
     dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
     src = (void*)((unsigned int)src & 0xFFFFFFFC);
@@ -4571,6 +4571,9 @@ static void yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
 
 static void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lut)
 {
+    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
+    src = (void*)((unsigned int)src & 0xFFFFFFFC);
+    
     if (X==1)
     {
         #ifdef CONFIG_DMA_MEMCPY
