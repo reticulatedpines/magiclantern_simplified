@@ -16,6 +16,10 @@ int card_select = 1;
 CONFIG_INT("card.test", card_test_enabled, 1);
 CONFIG_INT("card.force_type", card_force_type, 0);
 
+/* enable to slow down the write speed, which improves compatibility with certain cards */
+/* only enable if needed */
+CONFIG_INT("cf.workaround", cf_card_workaround, 0);
+
 MENU_UPDATE_FUNC(card_info_display)
 {
     //~ int pcmcia  = *(uint8_t*)0x68c88;
@@ -29,10 +33,6 @@ MENU_UPDATE_FUNC(card_info_display)
     MENU_SET_ICON(cf_present ? MNI_ON : MNI_OFF, 0);
 }
 
-/* enable to slow down the write speed, which improves compatibility with certain cards */
-/* only enable if needed */
-CONFIG_INT("cf.workaround", cf_card_workaround, 0);
-
 void card_test(int type)
 {
     // some cards have timing issues on 5D3
@@ -41,7 +41,7 @@ void card_test(int type)
 
     if (!cf_card_workaround)
     {
-        /* save the config with workaround enabled now, because if the test fails, we'll no longer able to save it */
+        /* save the config with workaround enabled now, because if the test fails, we may no longer able to save it */
         cf_card_workaround = 1;
         save_config(0,0);
         cf_card_workaround = 0;
@@ -66,13 +66,15 @@ void card_test(int type)
         
         if (fail) // fsck!
         {
+            int warning_enabling_workaround = (cf_card_workaround==0 && type==0);
             while(1)
             {
                 bmp_fill(COLOR_BLACK, 0, 0, 550, 80);
-                if (cf_card_workaround==0 && type==0)
+                if (warning_enabling_workaround)
                 {
                     bfnt_puts("CF test fail, enabling workaround.", 0, 0, COLOR_WHITE, COLOR_BLACK);
-                    bfnt_puts("Restart the camera and try again!", 0, 40, COLOR_WHITE, COLOR_BLACK);
+                    bfnt_puts("Restart the camera and try again.", 0, 40, COLOR_WHITE, COLOR_BLACK);
+                    cf_card_workaround = 1;
                 }
                 else
                 {
