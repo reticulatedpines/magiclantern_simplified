@@ -206,6 +206,7 @@ NSTUB(0xff181314, ENCODE_StartEncodeJpeg)
 NSTUB(0xff13c134, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff13c180, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff13c298, FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xff0f102c, AllocateMemoryResourceForSingleChunck)
 
 NSTUB(0xFF9EB650 - RAM_OFFSET, AJ_HP_Copy_n_DMA_channel_n_BLTDMA)
 

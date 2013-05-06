@@ -2595,18 +2595,6 @@ static int stack_size_crit(int x)
 }
 
 static int max_shoot_malloc_mem = 0;
-static int shoot_malloc_crit(int x)
-{
-    void* p = shoot_malloc(x * 1024 * 64);
-    if (p)
-    {
-        max_shoot_malloc_mem = x * 1024 * 64;
-        shoot_free(p);
-        return 1;
-    }
-    else return -1;
-}
-
 static int max_shoot_malloc_frag_mem = 0;
 static char shoot_malloc_frag_desc[70] = "";
 
@@ -2621,7 +2609,19 @@ static void guess_free_mem_task(void* priv, int delta)
     max_shoot_malloc_frag_mem = 0;
 
     bin_search(1, 1024, stack_size_crit);
-    bin_search(1, 1024, shoot_malloc_crit);
+    
+    {
+        struct memSuite * hSuite = shoot_malloc_suite_contig(0);
+        if (!hSuite)
+        {
+            beep();
+            guess_mem_running = 0;
+            return;
+        }
+        ASSERT(hSuite->num_chunks == 1);
+        max_shoot_malloc_mem = hSuite->size;
+        shoot_free_suite(hSuite);
+    }
 
     struct memSuite * hSuite = shoot_malloc_suite(0);
     if (!hSuite)
@@ -2630,6 +2630,7 @@ static void guess_free_mem_task(void* priv, int delta)
         guess_mem_running = 0;
         return;
     }
+    max_shoot_malloc_frag_mem = hSuite->size;
     
     #ifdef CONFIG_FULL_EXMEM_SUPPORT
     struct memChunk *currentChunk;
@@ -2651,9 +2652,7 @@ static void guess_free_mem_task(void* priv, int delta)
         currentChunk = GetNextMemoryChunk(hSuite, currentChunk);
     }
     STR_APPEND(shoot_malloc_frag_desc, " MB.");
-    max_shoot_malloc_frag_mem = total;
-    #else
-    max_shoot_malloc_frag_mem = hSuite->size;
+    ASSERT(max_shoot_malloc_frag_mem == total);
     #endif
     
     shoot_free_suite(hSuite);
@@ -2743,9 +2742,9 @@ static MENU_UPDATE_FUNC(meminfo_display)
 
     if (guess_needed && !guess_mem_running)
     {
-        /* check this once every 30 seconds (not more often) */
+        /* check this once every 10 seconds (not more often) */
         static int aux = INT_MIN;
-        if (should_run_polling_action(30000, &aux))
+        if (should_run_polling_action(10000, &aux))
         {
             guess_mem_running = 1;
             guess_free_mem();

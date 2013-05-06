@@ -1980,8 +1980,7 @@ silent_pic_take_raw(int interactive)
         /* allocate only one frame in simple and slitscan modes */
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
-            hSuite = (void*)shoot_malloc(raw_info.frame_size * 33/32); /* ugly, but works; see exmem.c */
-            if (hSuite) hSuite = *(struct memSuite **)(((void*)hSuite) - 4);
+            hSuite = shoot_malloc_suite_contig(raw_info.frame_size * 33/32);
             break;
     }
 

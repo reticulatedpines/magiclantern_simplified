@@ -3,7 +3,7 @@
 
 // experimental memory allocation from shooting buffer (~160MB on 5D2)
 
-int alloc_sem_timed_out = 0;
+static int alloc_sem_timed_out = 0;
 static struct semaphore * alloc_sem = 0;
 static struct semaphore * free_sem = 0;
 
@@ -93,8 +93,7 @@ struct memSuite *shoot_malloc_suite(size_t size)
     
     if(size > 0)
     {
-        /* reset timeout flag */
-        alloc_sem_timed_out = 0;
+        ASSERT(!alloc_sem_timed_out);
         AllocateMemoryResource(size, allocCBR, (unsigned int)&hSuite, 0x50);
         
         int r = take_semaphore(alloc_sem, 100);
@@ -103,15 +102,17 @@ struct memSuite *shoot_malloc_suite(size_t size)
             alloc_sem_timed_out = 1;
             return NULL;
         }
+
+        ASSERT(size == hSuite->size);
     }
     else
     {
         /* allocate some backup that will service the queued allocation request that fails during the loop */
-        int backup_size = 8 * 1024 * 1024;
+        int backup_size = 4 * 1024 * 1024;
         int max_size = 0;
         struct memSuite *backup = shoot_malloc_suite(backup_size);
 
-        for(int size = 5; size < 1024; size += 5)
+        for(int size = 4; size < 1024; size += 4)
         {
             struct memSuite *testSuite = shoot_malloc_suite(size * 1024 * 1024);
             if(testSuite)
@@ -133,72 +134,52 @@ struct memSuite *shoot_malloc_suite(size_t size)
     return hSuite;
 }
 
+struct memSuite * shoot_malloc_suite_contig(size_t size)
+{
+    if(size > 0)
+    {
+        ASSERT(!alloc_sem_timed_out);
+
+        struct memSuite * hSuite = NULL;
+        AllocateMemoryResourceForSingleChunck(size, allocCBR, (unsigned int)&hSuite, 0x50);
+
+        int r = take_semaphore(alloc_sem, 100);
+        if (r)
+        {
+            alloc_sem_timed_out = 1;
+            return NULL;
+        }
+        
+        ASSERT(size == hSuite->size);
+        console_printf("%d\n", size);
+        return hSuite;
+    }
+    else
+    {
+        /* find the largest chunk and try to allocate it */
+        struct memSuite * hSuite = shoot_malloc_suite(0);
+        if (!hSuite) return 0;
+        
+        int max_size = 0;
+        struct memChunk * hChunk = GetFirstChunkFromSuite(hSuite);
+        while(hChunk)
+        {
+            int size = GetSizeOfMemoryChunk(hChunk);
+            max_size = MAX(max_size, size);
+            hChunk = GetNextMemoryChunk(hSuite, hChunk);
+        }
+        
+        shoot_free_suite(hSuite);
+        
+        return shoot_malloc_suite_contig(max_size);
+    }
+}
 
 void* shoot_malloc(size_t size)
 {
-    /* hack: we'll keep allocating until we find one contiguous block; then we'll free the unused ones */
-    /* in theory, it's guaranteed to find a block of size X if there is one of size X+2MB */
-    /* in practice, we'll see... */
+    struct memSuite * theSuite = shoot_malloc_suite_contig(size + 4);
+    if (!theSuite) return 0;
     
-    struct memSuite * suites[100];
-    struct memSuite * theSuite = NULL;
-    
-    for (int i = 0; i < COUNT(suites); i++)
-        suites[i] = NULL;
-
-    /* first try a quick search with big chances of success */
-    for (int i = 0; i < COUNT(suites); i++)
-    {
-        struct memSuite * hSuite = shoot_malloc_suite(size + 8);
-        if (!hSuite) break;
-
-        if (hSuite->num_chunks == 1)
-        {
-            theSuite = hSuite; /* bingo! */
-            break;
-        }
-        
-        /* NG, keep trying; we'll free this one later*/
-        suites[i] = hSuite;
-    }
-
-    /* free temporary suites */
-    for (int i = 0; i < COUNT(suites); i++)
-        if (suites[i])
-            FreeMemoryResource(suites[i], freeCBR, 0), suites[i] = 0;
-
-    if (!theSuite)
-    {
-        /* couldn't find anything, let's try something more aggressive */
-        for (int i = 0; i < COUNT(suites); i++)
-        {
-            struct memSuite * hSuite = shoot_malloc_suite(size + 8);
-            if (!hSuite) break;
-
-            if (hSuite->num_chunks == 1)
-            {
-                theSuite = hSuite; /* bingo! */
-                break;
-            }
-            
-            /* NG, keep trying; free this one and allocate a 2MB one */
-            FreeMemoryResource(hSuite, freeCBR, 0);
-            suites[i] = shoot_malloc_suite(2 * 1024 * 1024);
-        }
-
-        /* free temporary suites */
-        for (int i = 0; i < COUNT(suites); i++)
-            if (suites[i])
-                FreeMemoryResource(suites[i], freeCBR, 0), suites[i] = 0;
-
-        if (!theSuite)
-        {
-            /* phuck! */
-            return NULL;
-        }
-    }
-
-    /* we're lucky */
     /* now we only have to tweak some things so it behaves like plain malloc */
     void* hChunk = (void*) GetFirstChunkFromSuite(theSuite);
     void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
