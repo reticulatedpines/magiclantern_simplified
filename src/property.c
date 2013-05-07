@@ -297,8 +297,10 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
     
     if (property == PROP_BATTERY_REPORT && len == 1) goto ok; // exception: this call is correct for polling battery level
     
+    #ifndef CONFIG_5DC
     if (property == PROP_REMOTE_SW1 || property == PROP_REMOTE_SW2)
         ASSERT(len <= 4); // some cameras have len=2, others 4; we pass a single integer as param, so max len is 4
+    #endif
     
     if (correct_len != (int)len)
     {
