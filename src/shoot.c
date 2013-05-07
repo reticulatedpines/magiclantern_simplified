@@ -1453,7 +1453,11 @@ void expo_adjust_playback(int dir)
             uint8_t* luma1 = &current_buf[i+1];
             uint8_t* luma2 = &current_buf[i+3];
             int luma_avg = (*luma1 + *luma2) / 2;
-            int chroma_scaling = (int)exp_inc[luma_avg] * 1024 / (luma_avg);
+            /* if luma is scaled by 1.3, scale chroma by 1.2 */
+            /* doesn't make any sense, but looks good */
+            /* if chroma is scaled by the same amount of luma, the colors are often too strong */
+            /* if scaling by "half" (e.g. 1.15 instead of 1.3), the colors look a bit dull */
+            int chroma_scaling = (int)((exp_inc[luma_avg] * 2 + luma_avg) / 3) * 1024 / (luma_avg);
             
             // scale luma values individually with the curve LUT
             *luma1 = exp_inc[*luma1];
@@ -1486,7 +1490,7 @@ void expo_adjust_playback(int dir)
             uint8_t* luma1 = &current_buf[i+1];
             uint8_t* luma2 = &current_buf[i+3];
             int luma_avg = (*luma1 + *luma2) / 2;
-            int chroma_scaling = (int)exp_dec[luma_avg] * 1024 / (luma_avg);
+            int chroma_scaling = (int)((exp_dec[luma_avg] * 2 + luma_avg) / 3) * 1024 / (luma_avg);
             
             *luma1 = exp_dec[*luma1];
             *luma2 = exp_dec[*luma2];
