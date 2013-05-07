@@ -61,7 +61,7 @@ void __attribute__((noreturn)) PlatformExit(int RetVal)
     script_exit(RetVal); // in picoc.c
 }
 
-void abort()
+/*void abort()
 {
     PlatformExit(-1);
-}
+}*/
