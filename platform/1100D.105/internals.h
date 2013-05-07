@@ -125,4 +125,4 @@
 #define CONFIG_LOW_RESOLUTION_DISPLAY
 
 /** We have AllocateMemoryResourceForSingleChunck */
-#define CONFIG_EXMEM_SINGLE_CHUNCK
+//~ #define CONFIG_EXMEM_SINGLE_CHUNCK - wrong stub maybe

@@ -108,4 +108,4 @@
 #define CONFIG_EVF_STATE_SYNC
 
 /** We have AllocateMemoryResourceForSingleChunck */
-#define CONFIG_EXMEM_SINGLE_CHUNCK
+//~ #define CONFIG_EXMEM_SINGLE_CHUNCK - wrong stub
