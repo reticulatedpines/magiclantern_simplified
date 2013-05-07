@@ -2938,7 +2938,7 @@ static void FAST anamorphic_squeeze()
 }*/
 
 //~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "ML/SETTINGS/recti.lut");
-#if defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_5DC) // fullframe
+#if defined(CONFIG_FULLFRAME)
 #define defish_lut_file_rectilin CARD_DRIVE "ML/DATA/ff8r.lut"
 #define defish_lut_file_panini CARD_DRIVE "ML/DATA/ff8p.lut"
 #else
@@ -3542,7 +3542,7 @@ static struct menu_entry display_menus[] = {
                     .name = "Auto Mirroring",
                     .priv = &display_dont_mirror,
                     .max  = 1,
-                    .choices = (const char *[]) {"Don't allow", "Allow"},
+                    .choices = (const char *[]) {"Allow", "Don't allow"},
                     .help = "Prevents display mirroring, which may reverse ML texts.",
                     .icon_type = IT_DISABLE_SOME_FEATURE,
                 },

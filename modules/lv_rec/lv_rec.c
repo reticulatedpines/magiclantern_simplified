@@ -11,6 +11,20 @@ unsigned int exmem_clear(struct memSuite * hSuite, char fill);
 unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file);
 struct memSuite *CreateMemorySuite(unsigned int address, unsigned int size, unsigned int flags);
 
+/* file footer data */
+typedef struct
+{
+    unsigned char magic[4];
+    unsigned short xRes;
+    unsigned short yRes;
+    unsigned int frameSize;
+    unsigned int frameCount;
+    unsigned int frameSkip;
+    unsigned int sourceFpsx1000;
+    unsigned int reserved3;
+    unsigned int reserved4;
+} lv_rec_file_footer_t;
+
 /* menu options */
 typedef struct
 {
@@ -19,7 +33,6 @@ typedef struct
     unsigned int frameSkip;
     unsigned int linesToSkip;
 } lv_rec_options_t;
-
 
 /* chunk processing pointers */
 typedef struct
@@ -56,6 +69,9 @@ typedef struct
     unsigned int bytesPerLine;
     unsigned int frameSize;
     unsigned int frameSizeReal;
+    
+    /* number of frames captured */
+    unsigned int frameCount;
     
     /* the number of lines to crop on top and bottom */
     unsigned int topCrop;
@@ -176,10 +192,10 @@ void lv_rec_update_preset(lv_rec_save_data_t *data)
             data->options.linesToSkip = 0;
         }
         
+        /* in raw mode we just can skip two lines */
         if(data->options.rawMode && (data->options.linesToSkip % 2))
         {
             data->options.linesToSkip--;
-            // data->options.bottomCrop += 2; // to be verified
         }
         
         /* set global option too */
@@ -443,6 +459,40 @@ unsigned int lv_rec_save_frame(FILE *save_file, lv_rec_save_data_t *save_data, i
     return written;
 }
 
+/* add a footer to given file handle to  */
+unsigned int lv_rec_save_footer(FILE *save_file, lv_rec_save_data_t *save_data)
+{
+    lv_rec_file_footer_t footer;
+    
+    if(save_data->options.rawMode)
+    {
+        strcpy((char*)footer.magic, "RAW");
+    }
+    else
+    {
+        strcpy((char*)footer.magic, "YUV");
+    }
+    
+    if(save_data->options.singleFile)
+    {
+        strcpy((char*)&footer.magic[3], "M");
+    }
+    else
+    {
+        strcpy((char*)&footer.magic[3], "I");
+    }
+    
+    footer.xRes = save_data->width;
+    footer.yRes = save_data->finalHeight;
+    footer.frameSize = save_data->finalHeight * save_data->bytesPerLine;
+    footer.frameCount = save_data->frameCount;
+    footer.frameSkip = save_data->options.frameSkip;
+    
+    FIO_WriteFile(save_file, &footer, sizeof(lv_rec_file_footer_t));
+    
+    return sizeof(lv_rec_file_footer_t);
+}
+
 void lv_rec_update_suffix(lv_rec_save_data_t *data)
 {
     char tmp[3];
@@ -470,6 +520,7 @@ void lv_rec_start()
     /* this causes the function to hang!? */
     if(data.options.rawMode)
     {
+        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Make sure you ran call('lv_save_raw')");
         //call("lv_save_raw", 1);
     }
     
@@ -485,11 +536,12 @@ void lv_rec_start()
     unsigned int allocatedMemory = lv_rec_get_memsize(data.chunkData.memSuite);
     bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Allocated %d MiB", allocatedMemory/1024/1024);
 
-    /* ensure the selected profile is applied, dont rely on menu painting to do this for us */
-    lv_rec_update_preset(&save_data);
     
     save_data.options = data.options;
     save_data.chunkData = data.chunkData;
+    
+    /* ensure the selected profile is applied, dont rely on menu painting to do this for us */
+    lv_rec_update_preset(&save_data);
     
     /* file sequence number */
     int start_number = 0;
@@ -528,8 +580,6 @@ void lv_rec_start()
         /* copy 8 bytes per transfer */
         data.dmaFlags = 0x20001000;
 
-        lv_rec_update_resolution(&save_data);
-        
         /* set block size for EDMAC and update cropping */
         save_data.frameSize = (save_data.frameSizeReal + 4095) & (~4095);
         
@@ -549,8 +599,6 @@ void lv_rec_start()
     }
     else
     {
-        lv_rec_update_resolution(&save_data);
-        
         /* copy 2 byte per transfer */
         data.dmaFlags = 0x20000000;
         /* read from YUV connection */
@@ -629,6 +677,8 @@ void lv_rec_start()
                         if(save_data.handle)
                         {
                             save_data.handleWritten += lv_rec_save_frame(save_data.handle, &save_data, 0);
+                            save_data.frameCount = 1;
+                            lv_rec_save_footer(save_data.handle, &save_data);
                             FIO_CloseFile(save_data.handle);
                             save_data.handle = NULL;
                         }
@@ -675,6 +725,8 @@ void lv_rec_start()
     {
         if(data.options.singleFile)
         {
+            save_data.frameCount = data.capturedFrames;
+            lv_rec_save_footer(save_data.handle, &save_data);
             FIO_CloseFile(save_data.handle);
         }
     }

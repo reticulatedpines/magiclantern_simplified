@@ -50,8 +50,7 @@
 #define CONFIG_Q_MENU_PLAYBACK
 
 /** It has a flip-out display **/
-/** Missing stubs, disabled for now **/
-//#define CONFIG_VARIANGLE_DISPLAY
+#define CONFIG_VARIANGLE_DISPLAY
 
 /** Battery does not report exact percentage **/
 //~ #define CONFIG_BATTERY_INFO
@@ -65,17 +64,15 @@
 /** We can't control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS
 
-/** No zoom button **/
-//~ #define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
+/** No zoom button while recording **/
+#define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
-/** Well, I hope so **/
-/** ... users say it's not working, e.g. post #591 */
 #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
-//~ #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
+#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
 /** Therefore, we can implement display filters (features that alter the LiveView image in real-time) **/
-//~ #define CONFIG_DISPLAY_FILTERS
+#define CONFIG_DISPLAY_FILTERS
 
 /** We can override ISO on a per-frame basis, by changing FRAME_ISO (e.g. for HDR video or gradual exposure) **/
 /** Well, I hope so **/
@@ -105,9 +102,6 @@
 /** We can display some extra info in photo mode (not LiveView) **/
 #define CONFIG_PHOTO_MODE_INFO_DISPLAY
 
-/** FIO_RenameFile works **/
-#define CONFIG_FIO_RENAMEFILE_WORKS
-
 /** No additional_version stub on this DryOS version **/
 #define CONFIG_NO_ADDITIONAL_VERSION
 
@@ -117,14 +111,14 @@
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
 
-/** FPS override: we can only change timer A */
-//~ #define CONFIG_FPS_TIMER_A_ONLY
+/** We can record movies in regular photo modes - M, P, Tv, Av... */
+#define CONFIG_NO_DEDICATED_MOVIE_MODE
 
-/** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
-//~ #define CONFIG_FPS_AGGRESSIVE_UPDATE
+/** FIO_RenameFile works **/
+#define CONFIG_FIO_RENAMEFILE_WORKS
 
 /** FPS override: change timers from EVF state */
 #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
 
-/** We can record movies in regular photo modes - M, P, Tv, Av... */
-#define CONFIG_NO_DEDICATED_MOVIE_MODE
+/** Advanced EXMEM stubs are known and can be used */
+#define CONFIG_FULL_EXMEM_SUPPORT
