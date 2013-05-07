@@ -677,7 +677,7 @@ vram_print(
         "%s = %d",
         vram_param_names[(int)priv], MEM(vram_params[(int)priv])
     );
-    menu_draw_icon(x,y,MNI_NONE,0);
+    //~ menu_draw_icon(x,y,MNI_NONE,0); //errors when compiling
 }
 
 static void vram_toggle(void* priv, int delta)
@@ -693,9 +693,9 @@ static void vram_toggle_rev(void* priv, int unused) { vram_toggle(priv, -increme
 
 #define VRAM_MENU_ENTRY(x)  { \
         .priv = (void *) x, \
-        .display    = vram_print, \
+        .update    = vram_print, \
         .select     = vram_toggle_fwd, \
-        .select_reverse = vram_toggle_rev, \
+        .select_Q = vram_toggle_rev, \
     }, \
 
 static struct menu_entry vram_menus[] = {
