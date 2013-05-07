@@ -261,7 +261,13 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
         
         shoot_free_suite(hSuite);
         
+        #ifdef CONFIG_EXMEM_SINGLE_CHUNCK
         return shoot_malloc_suite_contig(max_size);
+        #else
+        /* our hack is not guaranteed to find the largest block, so we will reduce the size a bit */
+        /* in theory, it should find a block of size N-2, if there is one block with size N MB */
+        return shoot_malloc_suite_contig(max_size - 2 * 1024 * 1024);
+        #endif
     }
 }
 
