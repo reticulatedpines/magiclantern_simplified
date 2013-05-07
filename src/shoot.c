@@ -5418,6 +5418,7 @@ static struct menu_entry shoot_menus[] = {
                 .edit_mode = EM_MANY_VALUES,
                 .depends_on = DEP_PHOTO_MODE,
             },
+            #ifdef FEATURE_FLASH_NOFLASH
             {
                 .name = "Flash / No flash",
                 .update    = flash_and_no_flash_display,
@@ -5426,6 +5427,7 @@ static struct menu_entry shoot_menus[] = {
                 .depends_on = DEP_PHOTO_MODE,
                 .help = "Take odd pictures with flash, even pictures without flash.",
             },
+            #endif
             #ifdef FEATURE_LV_3RD_PARTY_FLASH
             {
                 .name = "3rd p. flash LV",
