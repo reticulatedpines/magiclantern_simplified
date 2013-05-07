@@ -1090,11 +1090,11 @@ static void stress_test_picture(int n, int delay)
     msleep(delay);
 }
 
-#define TEST_MSG(fmt, ...) { my_fprintf(log, fmt, ## __VA_ARGS__); bmp_printf(FONT_MED, 0, 0, fmt, ## __VA_ARGS__); }
-#define TEST_TRY_VOID(x) { x; TEST_MSG("       %s\n", #x); }
-#define TEST_TRY_FUNC(x) { int ans = (int)(x); TEST_MSG("       %s => 0x%x\n", #x, ans); }
-#define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); int ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
-#define TEST_TRY_FUNC_CHECK_STR(x, expected_string) { char* ans = (char*)(x); int ok = streq(ans, expected_string); TEST_MSG("[%s] %s => '%s'\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
+#define TEST_MSG(fmt, ...) { if (!silence || !ok) my_fprintf(log, fmt, ## __VA_ARGS__); bmp_printf(FONT_MED, 0, 0, fmt, ## __VA_ARGS__); }
+#define TEST_TRY_VOID(x) { x; ok = 1; TEST_MSG("       %s\n", #x); }
+#define TEST_TRY_FUNC(x) { int ans = (int)(x); ok = 1; TEST_MSG("       %s => 0x%x\n", #x, ans); }
+#define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
+#define TEST_TRY_FUNC_CHECK_STR(x, expected_string) { char* ans = (char*)(x); ok = streq(ans, expected_string); TEST_MSG("[%s] %s => '%s'\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
 
 static int test_task_created = 0;
 static void test_task() { test_task_created = 1; }
@@ -1109,6 +1109,8 @@ static void stub_test_task(void* arg)
     int failed_tests = 0;
 
     FILE* log = FIO_CreateFileEx( CARD_DRIVE "stubtest.log" );
+    int silence = 0;    // if 1, only failures are logged to file
+    int ok = 1;
 
     for (int i=0; i < n; i++)
     {
@@ -1184,43 +1186,124 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(mod(s1-s0, 60), <= 2);
 
         // mallocs
-        int m0, m1, m2;
-        void* p;
-        TEST_TRY_FUNC(m0 = MALLOC_FREE_MEMORY);
-        TEST_TRY_FUNC_CHECK(p = malloc(50*1024), != 0);
-        TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
-        TEST_TRY_FUNC(m1 = MALLOC_FREE_MEMORY);
-        TEST_TRY_VOID(free(p));
-        TEST_TRY_FUNC(m2 = MALLOC_FREE_MEMORY);
-        TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 50*1024), < 2048);
-        TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
+        // run this test 200 times to check for memory leaks 
+        for (int i = 0; i < 200; i++)
+        {
+            int silence = (i > 0);
+            int m0, m1, m2;
+            void* p;
+            TEST_TRY_FUNC(m0 = MALLOC_FREE_MEMORY);
+            TEST_TRY_FUNC_CHECK(p = malloc(50*1024), != 0);
+            TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
+            TEST_TRY_FUNC(m1 = MALLOC_FREE_MEMORY);
+            TEST_TRY_VOID(free(p));
+            TEST_TRY_FUNC(m2 = MALLOC_FREE_MEMORY);
+            TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 50*1024), < 2048);
+            TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
 
-        TEST_TRY_FUNC(m0 = GetFreeMemForAllocateMemory());
-        TEST_TRY_FUNC_CHECK(p = AllocateMemory(256*1024), != 0);
-        TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
-        TEST_TRY_FUNC(m1 = GetFreeMemForAllocateMemory());
-        TEST_TRY_VOID(FreeMemory(p));
-        TEST_TRY_FUNC(m2 = GetFreeMemForAllocateMemory());
-        TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 256*1024), < 2048);
-        TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
+            TEST_TRY_FUNC(m0 = GetFreeMemForAllocateMemory());
+            TEST_TRY_FUNC_CHECK(p = AllocateMemory(256*1024), != 0);
+            TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
+            TEST_TRY_FUNC(m1 = GetFreeMemForAllocateMemory());
+            TEST_TRY_VOID(FreeMemory(p));
+            TEST_TRY_FUNC(m2 = GetFreeMemForAllocateMemory());
+            TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 256*1024), < 2048);
+            TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
 
-        // these buffers may be from different memory pools, just check for leaks in main pools
-        int m01, m02, m11, m12;
-        TEST_TRY_FUNC(m01 = MALLOC_FREE_MEMORY);
-        TEST_TRY_FUNC(m02 = GetFreeMemForAllocateMemory());
-        TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(256*1024), != 0);
-        TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
-        TEST_TRY_FUNC_CHECK(CACHEABLE(p), != (int)p);
-        TEST_TRY_FUNC_CHECK(UNCACHEABLE(CACHEABLE(p)), == (int)p);
-        TEST_TRY_VOID(free_dma_memory(p));
-        TEST_TRY_FUNC_CHECK(p = (void*)shoot_malloc(24*1024*1024), != 0);
-        TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
-        TEST_TRY_VOID(shoot_free(p));
-        TEST_TRY_FUNC(m11 = MALLOC_FREE_MEMORY);
-        TEST_TRY_FUNC(m12 = GetFreeMemForAllocateMemory());
-        TEST_TRY_FUNC_CHECK(ABS(m01-m11), < 2048);
-        TEST_TRY_FUNC_CHECK(ABS(m02-m12), < 2048);
+            // these buffers may be from different memory pools, just check for leaks in main pools
+            int m01, m02, m11, m12;
+            TEST_TRY_FUNC(m01 = MALLOC_FREE_MEMORY);
+            TEST_TRY_FUNC(m02 = GetFreeMemForAllocateMemory());
+            TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(256*1024), != 0);
+            TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+            TEST_TRY_FUNC_CHECK(CACHEABLE(p), != (int)p);
+            TEST_TRY_FUNC_CHECK(UNCACHEABLE(CACHEABLE(p)), == (int)p);
+            TEST_TRY_VOID(free_dma_memory(p));
+            TEST_TRY_FUNC_CHECK(p = (void*)shoot_malloc(24*1024*1024), != 0);
+            TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+            TEST_TRY_VOID(shoot_free(p));
+            TEST_TRY_FUNC(m11 = MALLOC_FREE_MEMORY);
+            TEST_TRY_FUNC(m12 = GetFreeMemForAllocateMemory());
+            TEST_TRY_FUNC_CHECK(ABS(m01-m11), < 2048);
+            TEST_TRY_FUNC_CHECK(ABS(m02-m12), < 2048);
+        }
+        
+        // exmem
+        // run this test 20 times to check for memory leaks 
+        for (int i = 0; i < 20; i++)
+        {
+            int silence = (i > 0);
 
+            struct memSuite * suite = 0;
+            struct memChunk * chunk = 0;
+            void* p = 0;
+            int total = 0;
+
+            // contiguous allocation
+            TEST_TRY_FUNC_CHECK(suite = shoot_malloc_suite_contig(24*1024*1024), != 0);
+            TEST_TRY_FUNC_CHECK_STR(suite->signature, "MemSuite");
+            TEST_TRY_FUNC_CHECK(suite->num_chunks, == 1);
+            TEST_TRY_FUNC_CHECK(suite->size, == 24*1024*1024);
+            TEST_TRY_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
+            TEST_TRY_FUNC_CHECK_STR(chunk->signature, "MemChunk");
+            TEST_TRY_FUNC_CHECK(chunk->size, == 24*1024*1024);
+            TEST_TRY_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
+            TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+            TEST_TRY_VOID(shoot_free_suite(suite); suite = 0; chunk = 0;);
+
+            // contiguous allocation, largest block
+            TEST_TRY_FUNC_CHECK(suite = shoot_malloc_suite_contig(0), != 0);
+            TEST_TRY_FUNC_CHECK_STR(suite->signature, "MemSuite");
+            TEST_TRY_FUNC_CHECK(suite->num_chunks, == 1);
+            TEST_TRY_FUNC_CHECK(suite->size, > 24*1024*1024);
+            TEST_TRY_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
+            TEST_TRY_FUNC_CHECK_STR(chunk->signature, "MemChunk");
+            TEST_TRY_FUNC_CHECK(chunk->size, == suite->size);
+            TEST_TRY_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
+            TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+            TEST_TRY_VOID(shoot_free_suite(suite); suite = 0; chunk = 0;);
+
+            // fragmented allocation
+            TEST_TRY_FUNC_CHECK(suite = shoot_malloc_suite(64*1024*1024), != 0);
+            TEST_TRY_FUNC_CHECK_STR(suite->signature, "MemSuite");
+            TEST_TRY_FUNC_CHECK(suite->num_chunks, > 1);
+            TEST_TRY_FUNC_CHECK(suite->size, == 64*1024*1024);
+
+            // iterating through chunks
+            total = 0;
+            TEST_TRY_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
+            while(chunk)
+            {
+                TEST_TRY_FUNC_CHECK_STR(chunk->signature, "MemChunk");
+                TEST_TRY_FUNC_CHECK(total += chunk->size, <= 64*1024*1024);
+                TEST_TRY_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
+                TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+                TEST_TRY_FUNC(chunk = GetNextMemoryChunk(suite, chunk));
+            }
+            TEST_TRY_FUNC_CHECK(total, == 64*1024*1024);
+            TEST_TRY_VOID(shoot_free_suite(suite); suite = 0; chunk = 0; );
+
+            // fragmented allocation, max size
+            TEST_TRY_FUNC_CHECK(suite = shoot_malloc_suite(0), != 0);
+            TEST_TRY_FUNC_CHECK_STR(suite->signature, "MemSuite");
+            TEST_TRY_FUNC_CHECK(suite->num_chunks, > 1);
+            TEST_TRY_FUNC_CHECK(suite->size, > 64*1024*1024);
+
+            // iterating through chunks
+            total = 0;
+            TEST_TRY_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
+            while(chunk)
+            {
+                TEST_TRY_FUNC_CHECK_STR(chunk->signature, "MemChunk");
+                TEST_TRY_FUNC_CHECK(total += chunk->size, <= suite->size);
+                TEST_TRY_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
+                TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+                TEST_TRY_FUNC(chunk = GetNextMemoryChunk(suite, chunk));
+            }
+            TEST_TRY_FUNC_CHECK(total, == suite->size);
+            TEST_TRY_VOID(shoot_free_suite(suite); suite = 0; chunk = 0; );
+        }
+        
         // engio
         TEST_TRY_VOID(EngDrvOut(0xC0F14400, 0x1234));
         TEST_TRY_FUNC_CHECK(shamem_read(0xC0F14400), == 0x1234);
@@ -1304,6 +1387,7 @@ static void stub_test_task(void* arg)
         uint32_t size;
         TEST_TRY_FUNC_CHECK(FIO_GetFileSize(CARD_DRIVE"test.dat", &size), == 0);
         TEST_TRY_FUNC_CHECK(size, == 0x20000);
+        void* p;
         TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(0x20000), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(f = FIO_Open(CARD_DRIVE"test.dat", O_RDONLY | O_SYNC), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
