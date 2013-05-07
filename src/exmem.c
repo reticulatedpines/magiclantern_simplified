@@ -52,7 +52,6 @@ static void allocCBR(unsigned int a, struct memSuite *hSuite)
 unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file)
 {
     unsigned int written = 0;
-#ifdef CONFIG_FULL_EXMEM_SUPPORT
     
     FILE *f = FIO_CreateFileEx(file);
     if (f != (void*) -1)
@@ -75,14 +74,12 @@ unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file)
         FIO_CloseFile(f);
     }
     
-#endif
     return written;
 }
 
 unsigned int exmem_clear(struct memSuite * hSuite, char fill)
 {
     unsigned int written = 0;
-#ifdef CONFIG_FULL_EXMEM_SUPPORT
     
     struct memChunk *currentChunk;
     unsigned char *chunkAddress;
@@ -99,7 +96,6 @@ unsigned int exmem_clear(struct memSuite * hSuite, char fill)
         written += chunkAvail;
         currentChunk = GetNextMemoryChunk(hSuite, currentChunk);
     }
-#endif
     return written;
 }
 
@@ -120,7 +116,7 @@ struct memSuite *shoot_malloc_suite(size_t size)
             return NULL;
         }
 
-        ASSERT(size == hSuite->size);
+        ASSERT((int)size == hSuite->size);
     }
     else
     {
@@ -151,10 +147,85 @@ struct memSuite *shoot_malloc_suite(size_t size)
     return hSuite;
 }
 
+#ifndef CONFIG_EXMEM_SINGLE_CHUNCK
+/* compatibility mode: we don't have AllocateMemoryResourceForSingleChunck, so we'll use our own implementation */
+/* it's a lot slower, but at least it works */
+
+/* try hard to allocate a contiguous block */
+static struct memSuite * shoot_malloc_suite_contig_fixedsize(size_t size)
+{
+    /* hack: we'll keep allocating until we find one contiguous block; then we'll free the unused ones */
+    /* in theory, it's guaranteed to find a block of size X if there is one of size X+2MB */
+    /* in practice, we'll see... */
+    
+    struct memSuite * suites[100];
+    struct memSuite * theSuite = NULL;
+    
+    for (int i = 0; i < COUNT(suites); i++)
+        suites[i] = NULL;
+
+    /* first try a quick search with big chances of success */
+    for (int i = 0; i < COUNT(suites); i++)
+    {
+        struct memSuite * hSuite = shoot_malloc_suite(size);
+        if (!hSuite) break;
+
+        if (hSuite->num_chunks == 1)
+        {
+            theSuite = hSuite; /* bingo! */
+            break;
+        }
+        
+        /* NG, keep trying; we'll free this one later*/
+        suites[i] = hSuite;
+    }
+
+    /* free temporary suites */
+    for (int i = 0; i < COUNT(suites); i++)
+        if (suites[i])
+            FreeMemoryResource(suites[i], freeCBR, 0), suites[i] = 0;
+
+    if (!theSuite)
+    {
+        /* couldn't find anything, let's try something more aggressive */
+        for (int i = 0; i < COUNT(suites); i++)
+        {
+            struct memSuite * hSuite = shoot_malloc_suite(size + 8);
+            if (!hSuite) break;
+
+            if (hSuite->num_chunks == 1)
+            {
+                theSuite = hSuite; /* bingo! */
+                break;
+            }
+            
+            /* NG, keep trying; free this one and allocate a 2MB one */
+            FreeMemoryResource(hSuite, freeCBR, 0);
+            suites[i] = shoot_malloc_suite(2 * 1024 * 1024);
+        }
+
+        /* free temporary suites */
+        for (int i = 0; i < COUNT(suites); i++)
+            if (suites[i])
+                FreeMemoryResource(suites[i], freeCBR, 0), suites[i] = 0;
+
+        if (!theSuite)
+        {
+            /* phuck! */
+            return NULL;
+        }
+    }
+
+    /* we're lucky */
+    return theSuite;
+}
+#endif
+
 struct memSuite * shoot_malloc_suite_contig(size_t size)
 {
     if(size > 0)
     {
+        #ifdef CONFIG_EXMEM_SINGLE_CHUNCK
         ASSERT(!alloc_sem_timed_out);
 
         struct memSuite * hSuite = NULL;
@@ -167,9 +238,11 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
             return NULL;
         }
         
-        ASSERT(size == hSuite->size);
-        console_printf("%d\n", size);
+        ASSERT((int)size == hSuite->size);
         return hSuite;
+        #else
+        return shoot_malloc_suite_contig_fixedsize(size);
+        #endif
     }
     else
     {
@@ -216,7 +289,6 @@ void shoot_free(void* ptr)
 #if 0
 void exmem_test()
 {
-#ifdef CONFIG_FULL_EXMEM_SUPPORT
     struct memSuite * hSuite = 0;
     struct memChunk * hChunk = 0;
     
@@ -248,15 +320,6 @@ void exmem_test()
     bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 0, 30 + num++ * 20, "Done");
 
     FreeMemoryResource(hSuite, freeCBR, 0);
-#else
-    msleep(2000);
-    info_led_on();
-    void* p = shoot_malloc(20000000);
-    NotifyBox(2000, "%x ", p);
-    msleep(2000);
-    shoot_free(p);
-    info_led_off();
-#endif
 }
 #endif
 

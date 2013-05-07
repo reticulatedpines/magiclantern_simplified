@@ -1693,9 +1693,6 @@ silent_pic_take_raw(int interactive)
 }
 
 #elif defined(FEATURE_SILENT_PIC_RAW_BURST)
-    #ifndef CONFIG_FULL_EXMEM_SUPPORT
-    #error This requires CONFIG_FULL_EXMEM_SUPPORT
-    #endif
 
 /**
  * Raw image data is available after call("lv_save_raw", 1), via EDMAC.

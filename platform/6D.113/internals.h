@@ -123,8 +123,5 @@
 /** FPS override: change timers from EVF state */
 #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
 
-/** Advanced EXMEM stubs are known and can be used */
-#define CONFIG_FULL_EXMEM_SUPPORT
-
 /** Use the new Rec.709 for YUV-RGB conversion (undefine for Rec.601) */
 #define CONFIG_REC709

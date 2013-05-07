@@ -195,16 +195,14 @@ NSTUB(0xff818110, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 
 NSTUB(0xFF9B96A8, AJ_UserLevel_task)
 
+/** ExMem **/
 NSTUB(0xff8733fc, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff873440, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff873550, FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xff0f102c, AllocateMemoryResourceForSingleChunck)
 NSTUB(0xff870af8, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff871270, GetNextMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-NSTUB(0xff8704e8, GetSizeOfMemoryChunk) // AJ_PackMemory_IsChunkSignature
-NSTUB(0xff8704b8, GetRemainOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p3
 NSTUB(0xff870518, GetMemoryAddressOfMemoryChunk)
-NSTUB(0xff870860, GetNumberOfChunks) // AJ_PackMemory_PackMem_p2
-NSTUB(0xFF8707FC, GetSizeOfMemorySuite)
 
 NSTUB(0xff85a890, PowerAudioOutput)
 NSTUB(0xff85828c, StartASIFDMADAC)

@@ -106,3 +106,6 @@
 
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
+
+/** We have AllocateMemoryResourceForSingleChunck */
+#define CONFIG_EXMEM_SINGLE_CHUNCK

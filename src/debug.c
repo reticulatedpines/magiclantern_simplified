@@ -2716,10 +2716,9 @@ static void guess_free_mem_task(void* priv, int delta)
     }
     max_shoot_malloc_frag_mem = hSuite->size;
     
-    #ifdef CONFIG_FULL_EXMEM_SUPPORT
     struct memChunk *currentChunk;
-    unsigned int chunkAvail;
-    unsigned int total = 0;
+    int chunkAvail;
+    int total = 0;
     
     currentChunk = GetFirstChunkFromSuite(hSuite);
     
@@ -2737,7 +2736,6 @@ static void guess_free_mem_task(void* priv, int delta)
     }
     STR_APPEND(shoot_malloc_frag_desc, " MB.");
     ASSERT(max_shoot_malloc_frag_mem == total);
-    #endif
     
     shoot_free_suite(hSuite);
 
