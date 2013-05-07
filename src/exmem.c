@@ -7,6 +7,24 @@ static int alloc_sem_timed_out = 0;
 static struct semaphore * alloc_sem = 0;
 static struct semaphore * free_sem = 0;
 
+int GetNumberOfChunks(struct memSuite * suite)
+{
+    CHECK_SUITE_SIGNATURE(suite);
+    return suite->num_chunks;
+}
+
+int GetSizeOfMemorySuite(struct memSuite * suite)
+{
+    CHECK_SUITE_SIGNATURE(suite);
+    return suite->size;
+}
+
+int GetSizeOfMemoryChunk(struct memChunk * chunk)
+{
+    CHECK_CHUNK_SIGNATURE(chunk);
+    return chunk->size;
+}
+
 static void freeCBR(unsigned int a)
 {
     give_semaphore(free_sem);
@@ -17,7 +35,6 @@ void shoot_free_suite(struct memSuite * hSuite)
     FreeMemoryResource(hSuite, freeCBR, 0);
     take_semaphore(free_sem, 0);
 }
-
 
 static void allocCBR(unsigned int a, struct memSuite *hSuite)
 {

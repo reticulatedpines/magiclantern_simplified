@@ -20,6 +20,9 @@ struct memChunk
     int remain;
 };
 
+#define CHECK_SUITE_SIGNATURE(suite) ASSERT(streq((suite)->signature, "MemSuite"));
+#define CHECK_CHUNK_SIGNATURE(chunk) ASSERT(streq((chunk)->signature, "MemChunk"));
+
 /* these return a memory suite, which consists of one or more memory chunks */
 /* it is up to user to iterate through the chunks */
 struct memSuite *shoot_malloc_suite(size_t size);
@@ -42,12 +45,11 @@ unsigned int exmem_clear(struct memSuite * hSuite, char fill);
 int AllocateMemoryResource(int size, void (*cbr)(unsigned int, struct memSuite *), unsigned int ctx, int type);
 int AllocateMemoryResourceForSingleChunck(int size, void (*cbr)(unsigned int, struct memSuite *), unsigned int ctx, int type);
 int FreeMemoryResource(struct memSuite *hSuite, void (*cbr)(unsigned int), unsigned int ctx);
-struct memChunk *GetFirstChunkFromSuite(struct memSuite *hSuite);
-struct memChunk *GetNextMemoryChunk(struct memSuite *hSuite, struct memChunk *hPos);
-unsigned int GetSizeOfMemoryChunk(struct memChunk *chunk);
-struct memChunk *GetRemainOfMemoryChunk(struct memChunk *chunk);
-unsigned int GetMemoryAddressOfMemoryChunk(struct memChunk *chunk);
-int GetNumberOfChunks(struct memSuite *hSuite);
-int GetSizeOfMemorySuite(struct memSuite *hSuite);
 
+int GetNumberOfChunks(struct memSuite * suite);
+int GetSizeOfMemorySuite(struct memSuite * suite);
+struct memChunk * GetFirstChunkFromSuite(struct memSuite * suite);
+struct memChunk * GetNextMemoryChunk(struct memSuite * suite, struct memChunk * chunk);
+int GetSizeOfMemoryChunk(struct memChunk * chunk);
+void* GetMemoryAddressOfMemoryChunk(struct memChunk * chunk);
 #endif

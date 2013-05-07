@@ -163,11 +163,7 @@ NSTUB(0xff0f102c, AllocateMemoryResourceForSingleChunck)
 
 NSTUB(0xFF9EA118 - RAM_OFFSET, GetFirstChunkFromSuite)
 NSTUB(0xFF9EA8B4 - RAM_OFFSET, GetNextMemoryChunk)
-NSTUB(0xFF9E9AC0 - RAM_OFFSET, GetSizeOfMemoryChunk)
-NSTUB(0xFF9E9A90 - RAM_OFFSET, GetRemainOfMemoryChunk)
 NSTUB(0xFF9E9AF0 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
-NSTUB(0xFF9E9ED8 - RAM_OFFSET, GetNumberOfChunks)
-NSTUB(0xFF9E9DF8 - RAM_OFFSET, GetSizeOfMemorySuite)
 
 /** Engio **/
 NSTUB(0xff28cc3c, _engio_write)
@@ -234,3 +230,7 @@ NSTUB(0xFF57645C, PackMem_StartEDmac)
 // NSTUB(0xff4b09e4, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 // NSTUB(0xff4b1cc4, LiveViewApp_handler_end) // start of next function
 // NSTUB(0xff13b630, register_func)
+// NSTUB(0xFF9E9AC0 - RAM_OFFSET, GetSizeOfMemoryChunk)
+// NSTUB(0xFF9E9A90 - RAM_OFFSET, GetRemainOfMemoryChunk)
+// NSTUB(0xFF9E9ED8 - RAM_OFFSET, GetNumberOfChunks)
+// NSTUB(0xFF9E9DF8 - RAM_OFFSET, GetSizeOfMemorySuite)
