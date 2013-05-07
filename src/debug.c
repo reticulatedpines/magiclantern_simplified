@@ -1054,7 +1054,7 @@ static void edmac_memcpy_test(char *dst, char *src, int length)
     uint32_t dmaConnection = 6;
 
     /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
-    uint32_t dmaFlags = 0x60001000;
+    uint32_t dmaFlags = 0x20001000;
 
     /* create a memory suite from a already existing (continuous) memory block with given size. */
     struct memSuite *memSuiteSource = CreateMemorySuite(src, length, 0);
