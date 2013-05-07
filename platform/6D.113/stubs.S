@@ -198,20 +198,14 @@ NSTUB(0xFF11E8AC, SoundDevShutDownIn)
 
 NSTUB(0xFFCE3188 - RAM_OFFSET, ENCODE_StartEncodeJpeg)  //~ called from RAM in 6D, wasn't in EOS M.
 
+/** ExMem **/
 NSTUB(0xFF14A424, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xFF14A470, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xFF14A588, FreeMemoryResource) // m_pfFreeMemoryCBR
-
+NSTUB(0xFF0F2EC4, AllocateMemoryResourceForSingleChunck)
 NSTUB(0xFFCCF2E0 - RAM_OFFSET, GetFirstChunkFromSuite)
 NSTUB(0xFFCCFA7C - RAM_OFFSET, GetNextMemoryChunk)
-NSTUB(0xFFCCEC88 - RAM_OFFSET, GetSizeOfMemoryChunk)
-NSTUB(0xFFCCEC58 - RAM_OFFSET, GetRemainOfMemoryChunk)
 NSTUB(0xFFCCECB8 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
-NSTUB(0xFFCCF0A0 - RAM_OFFSET, GetNumberOfChunks)
-NSTUB(0xFFCCEFC0 - RAM_OFFSET, GetSizeOfMemorySuite)
-
-
-
 
 NSTUB(0xFFCD0818 - RAM_OFFSET, dma_memcpy) // Slower?
 
@@ -222,3 +216,24 @@ NSTUB(0xFF2AD104, mvrSetPrintMovieLog)
 NSTUB(   0x7AE8C, mvr_config)
 
 
+/** experimental EDMAC research **/
+NSTUB(0xAE24, CreateMemorySuite)
+NSTUB(0xAC1C, DeleteMemorySuite)
+
+NSTUB(0x126A4, ConnectWriteEDmac)
+NSTUB(0x12768, ConnectReadEDmac)
+NSTUB(0x125F8, SetEDmac)
+NSTUB(0x12AFC, EDMAC_RegisterCompleteCBR)
+NSTUB(0x12910, StartEDmac)
+
+NSTUB(0xFF576634, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
+NSTUB(0xFF5766D0, PackMem_RegisterEDmacPopCBRForMemorySuite)
+NSTUB(0xFF576348, PackMem_SetEDmacForMemorySuite)
+NSTUB(0xFF576564, PackMem_PopEDmacForMemorySuite)
+NSTUB(0xFF57645C, PackMem_StartEDmac)
+
+/** Unused **/
+//NSTUB(0xFFCCEC88 - RAM_OFFSET, GetSizeOfMemoryChunk)
+//NSTUB(0xFFCCEC58 - RAM_OFFSET, GetRemainOfMemoryChunk)
+//NSTUB(0xFFCCF0A0 - RAM_OFFSET, GetNumberOfChunks)
+//NSTUB(0xFFCCEFC0 - RAM_OFFSET, GetSizeOfMemorySuite)

@@ -125,3 +125,6 @@
 
 /** Use the new Rec.709 for YUV-RGB conversion (undefine for Rec.601) */
 #define CONFIG_REC709
+
+/** We have AllocateMemoryResourceForSingleChunck */
+#define CONFIG_EXMEM_SINGLE_CHUNCK
