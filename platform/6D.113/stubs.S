@@ -217,20 +217,20 @@ NSTUB(   0x7AE8C, mvr_config)
 
 
 /** experimental EDMAC research **/
-NSTUB(0xAE24, CreateMemorySuite)
-NSTUB(0xAC1C, DeleteMemorySuite)
 
-NSTUB(0x126A4, ConnectWriteEDmac)
-NSTUB(0x12768, ConnectReadEDmac)
-NSTUB(0x125F8, SetEDmac)
-NSTUB(0x12AFC, EDMAC_RegisterCompleteCBR)
-NSTUB(0x12910, StartEDmac)
-
-NSTUB(0xFF576634, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
-NSTUB(0xFF5766D0, PackMem_RegisterEDmacPopCBRForMemorySuite)
-NSTUB(0xFF576348, PackMem_SetEDmacForMemorySuite)
-NSTUB(0xFF576564, PackMem_PopEDmacForMemorySuite)
-NSTUB(0xFF57645C, PackMem_StartEDmac)
+NSTUB(0xBA50, CreateMemorySuite) //FFCCEF34
+NSTUB(0xB848, DeleteMemorySuite) // FFCCED2C
+NSTUB(0x34168, ConnectWriteEDmac)
+NSTUB(0x3422C, ConnectReadEDmac)
+NSTUB(0x34008, SetEDmac)
+NSTUB(0x34778, EDMAC_RegisterCompleteCBR)
+NSTUB(0x343B4, StartEDmac)
+NSTUB(0xFF61277C, PackMem_SetEDmacForMemorySuite)
+NSTUB(0xFF612B04, PackMem_RegisterEDmacPopCBRForMemorySuite)
+NSTUB(0xFF612A68, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
+NSTUB(0xFF612BA0, PackMem_RegisterEDmacAbortCBRForMemorySuite)
+NSTUB(0xFF612890, PackMem_StartEDmac)
+NSTUB(0xFF612998, PackMem_PopEDmacForMemorySuite)
 
 /** Unused **/
 //NSTUB(0xFFCCEC88 - RAM_OFFSET, GetSizeOfMemoryChunk)
