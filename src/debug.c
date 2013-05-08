@@ -817,13 +817,6 @@ void run_in_separate_task(void (*priv)(void), int delta)
 
 #ifdef CONFIG_BENCHMARKS
 
-static int tic()
-{
-    struct tm now;
-    LoadCalendarFromRTC(&now);
-    return now.tm_sec + now.tm_min * 60 + now.tm_hour * 3600 + now.tm_mday * 3600 * 24;
-}
-
 /* for 5D3, the location of the benchmark file is important;
  * if we put it in root, it will benchmark the ML card;
  * if we put it in DCIM, it will benchmark the card selected in Canon menu, which is what we want.
@@ -842,17 +835,17 @@ static void card_benchmark_wr(int bufsize, int K, int N)
     int n = filesize * 1024 * 1024 / bufsize;
     {
         FILE* f = FIO_CreateFileEx(CARD_BENCHMARK_FILE);
-        int t0 = tic();
+        int t0 = get_ms_clock_value();
         int i;
         for (i = 0; i < n; i++)
         {
-            uint32_t start = (int)UNCACHEABLE(0);
+            uint32_t start = (int)UNCACHEABLE(YUV422_LV_BUFFER_1);
             bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
             FIO_WriteFile( f, (const void *) start, bufsize );
         }
         FIO_CloseFile(f);
-        int t1 = tic();
-        int speed = filesize * 10 / (t1 - t0);
+        int t1 = get_ms_clock_value();
+        int speed = filesize * 1000 * 10 / (t1 - t0);
         bmp_printf(FONT_MED, x, y += font_med.height, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
     }
 
@@ -863,7 +856,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
         if (buf)
         {
             FILE* f = FIO_Open(CARD_BENCHMARK_FILE, O_RDONLY | O_SYNC);
-            int t0 = tic();
+            int t0 = get_ms_clock_value();
             int i;
             for (i = 0; i < n; i++)
             {
@@ -872,8 +865,8 @@ static void card_benchmark_wr(int bufsize, int K, int N)
             }
             FIO_CloseFile(f);
             shoot_free(buf);
-            int t1 = tic();
-            int speed = filesize * 10 / (t1 - t0);
+            int t1 = get_ms_clock_value();
+            int speed = filesize * 1000 * 10 / (t1 - t0);
             bmp_printf(FONT_MED, x, y += font_med.height, "Read speed  (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
         }
         else
