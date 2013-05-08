@@ -1734,6 +1734,7 @@ static volatile int sp_running = 0;
 static void* sp_frames[SP_BUFFER_SIZE];
 static int sp_focus[SP_BUFFER_SIZE];        /* raw focus value for each shot (for best shots mode) */
 static volatile int sp_buffer_count = 0;    /* how many valid slots we have in the buffer (up to SP_BUFFER_SIZE) */
+static volatile int sp_min_frames = 0;      /* how many pictures we should take without halfshutter pressed (e.g. from intervalometer) */
 static volatile int sp_max_frames = 0;      /* after how many pictures we should stop (even if we still have enough RAM) */
 static volatile int sp_num_frames = 0;      /* how many pics we actually took */
 static volatile int sp_slitscan_line = 0;   /* current line for slit-scan */
@@ -1842,7 +1843,7 @@ void silent_pic_raw_vsync()
     }
     
     /* are we done? */
-    if ((sp_num_frames && !HALFSHUTTER_PRESSED) || sp_num_frames >= sp_max_frames)
+    if ((sp_num_frames >= sp_min_frames && !HALFSHUTTER_PRESSED) || sp_num_frames >= sp_max_frames)
     {
         sp_running = 0;
         return;
@@ -2022,6 +2023,9 @@ silent_pic_take_raw(int interactive)
             sp_max_frames = 1000000;
             break;
     }
+    
+    /* when triggered from e.g. intervalometer (noninteractive), take a full burst */
+    sp_min_frames = interactive ? 1 : silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS ? 200 : sp_buffer_count;
     
     #ifdef CONFIG_DISPLAY_FILTERS
     silent_pic_raw_init_preview();
