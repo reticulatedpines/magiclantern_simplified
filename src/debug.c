@@ -3133,6 +3133,8 @@ static void edmac_display_detailed(int i0, uint32_t base, int i)
     
     /* http://magiclantern.wikia.com/wiki/Register_Map#EDMAC */
 
+    uint32_t state = MEM(base + (i<<8) + 0);
+    uint32_t flags = shamem_read(base + (i<<8) + 4);
     uint32_t addr = shamem_read(base + (i<<8) + 8);
 
     union edmac_size_t
@@ -3145,15 +3147,15 @@ static void edmac_display_detailed(int i0, uint32_t base, int i)
     union edmac_size_t size_b = (union edmac_size_t) shamem_read(base + (i<<8) + 0x10);
     union edmac_size_t size_a = (union edmac_size_t) shamem_read(base + (i<<8) + 0x14);
     
-    int state = MEM(base + (i<<8) + 0);
-    int off1b = shamem_read(base + (i<<8) + 0x18);
-    int off2b = shamem_read(base + (i<<8) + 0x1C);
-    int off1a = shamem_read(base + (i<<8) + 0x20);
-    int off2a = shamem_read(base + (i<<8) + 0x24);
-    int off3  = shamem_read(base + (i<<8) + 0x28);
+    uint32_t off1b = shamem_read(base + (i<<8) + 0x18);
+    uint32_t off2b = shamem_read(base + (i<<8) + 0x1C);
+    uint32_t off1a = shamem_read(base + (i<<8) + 0x20);
+    uint32_t off2a = shamem_read(base + (i<<8) + 0x24);
+    uint32_t off3  = shamem_read(base + (i<<8) + 0x28);
     
     bmp_printf(FONT_MED, 50, y += font_med.height, "Address : %8x ", addr);
     bmp_printf(FONT_MED, 50, y += font_med.height, "State   : %8x ", state);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Flags   : %8x ", flags);
     y += font_med.height;
     bmp_printf(FONT_MED, 50, y += font_med.height, "Size A  : %8x (%d x %d) ", size_a.raw, size_a.size.x, size_a.size.y);
     bmp_printf(FONT_MED, 50, y += font_med.height, "Size B  : %8x (%d x %d) ", size_b.raw, size_b.size.x, size_b.size.y);
