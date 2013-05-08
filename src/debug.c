@@ -3067,6 +3067,8 @@ void menu_kill_flicker()
 
 #ifdef FEATURE_SHOW_EDMAC_INFO
 
+static int edmac_selection;
+
 static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
 {
     bmp_printf(
@@ -3098,11 +3100,11 @@ static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
         
         if (addr && size.size.x > 0 && size.size.y > 0)
         {
-            snprintf(msg, sizeof(msg), "[%x] %8x: %dx%d", i0+i, addr, size.size.x, size.size.y);
+            snprintf(msg, sizeof(msg), "[%2d] %8x: %dx%d", i0+i, addr, size.size.x, size.size.y);
         }
         else
         {
-            snprintf(msg, sizeof(msg), "[%x] %8x: %x", i0+i, addr, size.raw);
+            snprintf(msg, sizeof(msg), "[%2d] %8x: %x", i0+i, addr, size.raw);
         }
         
         if (color == COLOR_RED)
@@ -3116,31 +3118,93 @@ static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
     }
 }
 
+static void edmac_display_detailed(int i0, uint32_t base, int i)
+{
+    int x = 50;
+    int y = 50;
+    bmp_printf(
+        FONT_LARGE,
+        x, y,
+        "EDMAC #%d - %x\n", 
+        i0 + i,
+        base + (i<<8) + 8
+    );
+    y += font_large.height;
+    
+    /* http://magiclantern.wikia.com/wiki/Register_Map#EDMAC */
+
+    uint32_t addr = shamem_read(base + (i<<8) + 8);
+
+    union edmac_size_t
+    {
+        struct { short x, y; } size;
+        uint32_t raw;
+    };
+    
+    union edmac_size_t size_n = (union edmac_size_t) shamem_read(base + (i<<8) + 0x0C);
+    union edmac_size_t size_b = (union edmac_size_t) shamem_read(base + (i<<8) + 0x10);
+    union edmac_size_t size_a = (union edmac_size_t) shamem_read(base + (i<<8) + 0x14);
+    
+    int state = MEM(base + (i<<8) + 0);
+    int off1b = shamem_read(base + (i<<8) + 0x18);
+    int off2b = shamem_read(base + (i<<8) + 0x1C);
+    int off1a = shamem_read(base + (i<<8) + 0x20);
+    int off2a = shamem_read(base + (i<<8) + 0x24);
+    int off3  = shamem_read(base + (i<<8) + 0x28);
+    
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Address : %8x ", addr);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "State   : %8x ", state);
+    y += font_med.height;
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Size A  : %8x (%d x %d) ", size_a.raw, size_a.size.x, size_a.size.y);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Size B  : %8x (%d x %d) ", size_b.raw, size_b.size.x, size_b.size.y);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Size N  : %8x (%d x %d) ", size_n.raw, size_n.size.x, size_n.size.y);
+    y += font_med.height;
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off1a   : %8x ", off1a);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off1b   : %8x ", off1b);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off2a   : %8x ", off2a);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off2b   : %8x ", off2b);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off3    : %8x ", off3);
+}
+
 static MENU_UPDATE_FUNC(edmac_display)
 {
     if (!info->x) return;
     info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
-    edmac_display_page(0, 0xC0F04000, 20, 30);
-    edmac_display_page(16, 0xC0F26000, 360, 30);
+    if (edmac_selection == 0) // overview
+    {
+        edmac_display_page(0, 0xC0F04000, 20, 30);
+        edmac_display_page(16, 0xC0F26000, 360, 30);
 
+        //~ int x = 20;
+        bmp_printf(
+            FONT_MED,
+            20, 450, "EDMAC state: "
+        );
 
-    //~ int x = 20;
-    bmp_printf(
-        FONT_MED,
-        20, 450, "EDMAC state: "
-    );
+        bmp_printf(
+            FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK),
+            20+200, 450, "inactive"
+        );
 
-    bmp_printf(
-        FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK),
-        20+200, 450, "inactive"
-    );
+        bmp_printf(
+            FONT(FONT_MED, COLOR_GREEN1, COLOR_BLACK),
+            20+350, 450, "running"
+        );
 
-    bmp_printf(
-        FONT(FONT_MED, COLOR_GREEN1, COLOR_BLACK),
-        20+350, 450, "running"
-    );
+        bmp_printf(
+            FONT_MED,
+            720 - font_med.width * 13, 450, "[Scrollwheel]"
+        );
+    }
+    else // detailed view
+    {
+        if (edmac_selection <= 16)
+            edmac_display_detailed(0, 0xC0F04000, edmac_selection - 1);
+        else
+            edmac_display_detailed(16, 0xC0F26000, edmac_selection - 16 - 1);
+    }
 }
 #endif
 
@@ -3521,6 +3585,8 @@ static struct menu_entry debug_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "EDMAC display",
+                .priv = &edmac_selection,
+                .max = 32,
                 .update = edmac_display,
             },
             MENU_EOL
