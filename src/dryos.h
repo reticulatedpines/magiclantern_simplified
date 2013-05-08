@@ -182,6 +182,11 @@ typedef struct _file * FILE;
 extern FILE *
 FIO_OpenFile(
         const char *            name
+#ifdef CONFIG_VXWORKS
+		,
+		int flags,
+		int mode
+#endif
 );
 
 extern ssize_t

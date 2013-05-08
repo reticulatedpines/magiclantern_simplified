@@ -8,11 +8,11 @@
 void movtweak_task_init() {}
 void movtweak_step() {}
 
-int fps_get_shutter_speed_shift() {}
+int fps_get_shutter_speed_shift() { return 0; }
 
-void *AcquireRecursiveLock(void *lock, int n){}
+void *AcquireRecursiveLock(void *lock, int n){ return NULL; }
 //~ void *CreateRecursiveLock(int n){}
-void *ReleaseRecursiveLock(void *lock){}
+void *ReleaseRecursiveLock(void *lock){ return NULL; }
 int audio_meters_are_drawn() { return 0; } 
 int override_zoom_buttons = 0;
 void lcd_release_step(){};
@@ -22,7 +22,7 @@ void set_shooting_mode(){};
 int get_screen_layout(){ return 0; };
 void rec_notify_trigger(){};
 void set_display_gain_equiv(){};
-void fps_get_current_x1000() { return 0; }
+int fps_get_current_x1000() { return 0; }
 void display_lcd_remote_icon(){}
 int get_lcd_sensor_shortcuts(){ return 0; }
 void digic_iso_toggle(){}
@@ -62,6 +62,7 @@ void hdr_mvr_log(){};
 int hdrv_enabled = 0;
 void hdr_get_iso_range(){};
 void fps_show(){};
+int hdr_video_enabled(){return 0;};
 
 void input_toggle(){};
 void out_volume_up(){};
@@ -104,3 +105,9 @@ void shoot_free(void* ptr) { FreeMemory(ptr); }
 
 void display_gain_toggle(){};
 void yuv_resize(){};
+
+int was_sound_recording_disabled_by_fps_override() { return 1; };
+int fps_should_record_wav() { return 0; };
+void movie_tweak_menu_init() {};
+//int hdr_video_enabled() { return 0; };
+int get_digic_iso_gain_movie() { return 0; };

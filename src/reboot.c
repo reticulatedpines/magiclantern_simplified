@@ -44,9 +44,12 @@ asm(
     "BIC     R0, R0, #0x3F\n"   // Clear I,F,T
     "ORR     R0, R0, #0xD3\n"   // Set I,T, M=10011 == supervisor
     "MSR     CPSR, R0\n"
+
+/*	"ldr sp, =0x1900\n"  // 0x130
+	"mov fp, #0\n"
+*/
     "B       cstart\n"
 );
-
 
 /** Include the relocatable shim code */
 extern uint8_t blob_start;
@@ -136,9 +139,9 @@ cstart( void )
     
 
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */
-	#if defined(CONFIG_40D)
+	#if defined(CONFIG_40D) || defined(CONFIG_5DC)
         *(volatile int*) (LEDBLUE) = (LEDON);
-        *(volatile int*) (LEDRED)  = (LEDON);
+        *(volatile int*) (LEDRED)  = (LEDON); // do we need the red too ?
 	#elif defined(CARD_LED_ADDRESS) && defined(LEDON) // A more portable way, hopefully
         *(volatile int*) (CARD_LED_ADDRESS) = (LEDON);
 	#endif

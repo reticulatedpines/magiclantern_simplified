@@ -3306,7 +3306,7 @@ static struct menu_entry debug_menus[] = {
         .name = "Spy prop/evt/mem",
         .select        = draw_prop_select,
         .select_Q = mem_spy_select,
-        .display    = spy_print,
+        //~.display    = spy_print,
         .help = "Spy properties / events / memory addresses which change."
     },
 /*    {
@@ -3602,7 +3602,7 @@ static struct menu_entry debug_menus[] = {
         .update = meminfo_display,
         .icon_type = IT_ALWAYS_ON,
         .help = "Free memory, shared between ML and Canon firmware.",
-    }
+    },
 #else // dryos
     {
         .name = "Free Memory",
@@ -3691,7 +3691,7 @@ static struct menu_entry debug_menus[] = {
     #if 0 // CONFIG_5D2
     {
         .name = "Ambient light",
-        .display = ambient_display,
+        //~.display = ambient_display,
         .help = "Ambient light from the sensor under LCD, in raw units.",
         //.essential = FOR_MOVIE | FOR_PHOTO,
     },
@@ -3707,7 +3707,7 @@ static struct menu_entry debug_menus[] = {
 #if CONFIG_DEBUGMSG
     {
         .name = "PROP display",
-        .display = prop_display,
+        //~.display = prop_display,
         .select = prop_toggle_k,
         // .select_reverse = prop_toggle_j,
         .select_Q = prop_toggle_i,
@@ -3715,7 +3715,7 @@ static struct menu_entry debug_menus[] = {
     },
     {
         .name = "Dump LV Buffers",
-        .display = lvbuf_display,
+        //~.display = lvbuf_display,
         .select = lvbuf_select,
         .help = "Dump .422 files containing LV/HD buf addrs in filenames.",
     },

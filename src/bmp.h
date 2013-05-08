@@ -93,14 +93,14 @@ extern int bmp_vram_idle_ptr;
 /** Returns a pointer to idle BMP vram */
 inline uint8_t* bmp_vram_idle()
 {
-    return (uint8_t *)((uintptr_t)bmp_vram_idle_ptr);
+	return (uint8_t *)((uintptr_t)bmp_vram_idle_ptr);
 }
 
 inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf) { return bmp_buf; }
 
 #define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
 
-#define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = ((x) % 2) ? ((*(char*)(p) & 0x0F) | (D2V(color) << 4)) : ((*(char*)(p) & 0xF0) | (D2V(color) & 0x0F))    
+#define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = ((x) % 2) ? ((*(char*)(p) & 0x0F) | (D2V(color) << 4)) : ((*(char*)(p) & 0xF0) | (D2V(color) & 0x0F))
 
 #else // dryos
 

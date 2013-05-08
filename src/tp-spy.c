@@ -68,7 +68,7 @@ char* get_call_stack()
 int my_TryPostEvent(int taskclass, int obj, int event, int arg3, int arg4)
 {
     DryosDebugMsg(0,0,"[%d] *** TryPostEvent(%x, %x %s, %x, %x [%x %x %x %x], %x)\n   call stack: %s", get_ms_clock_value(), taskclass, obj, MEM(obj), event, arg3, MEM(arg3), MEM(arg3+4), MEM(arg3+8), MEM(arg3+12), arg4, get_call_stack());
-    if (streq(MEM(obj), "PropMgr"))
+    if (streq((char *)MEM(obj), "PropMgr"))
     {
         if (event == 3)
         {
@@ -97,7 +97,7 @@ void tp_intercept()
         if (!reloc_buf) reloc_buf = (uintptr_t) AllocateMemory(reloc_len + 64);
         if (!reloc_buf2) reloc_buf2 = (uintptr_t) AllocateMemory(reloc_len2 + 64);
 
-        new_TryPostEvent = reloc(
+        new_TryPostEvent = (void *)reloc(
             0,      // we have physical memory
             0,      // with no virtual offset
             reloc_start,
@@ -105,7 +105,7 @@ void tp_intercept()
             reloc_buf
         );
 
-        new_TryPostStageEvent = reloc(
+        new_TryPostStageEvent = (void *)reloc(
             0,      // we have physical memory
             0,      // with no virtual offset
             reloc_start2,
