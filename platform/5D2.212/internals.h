@@ -116,6 +116,3 @@
 /** The camera accepts extended AFMA values (default range: -20...20; extended: -100...100) */
 /** This can be dangerous, as the values are outside Canon limits */
 #define CONFIG_AFMA_EXTENDED
-
-/** Advanced EXMEM stubs are known and can be used */
-#define CONFIG_FULL_EXMEM_SUPPORT

@@ -3769,7 +3769,10 @@ handle_ml_menu_keys(struct event * event)
     if (!menu_shown) return 1;
     if (!DISPLAY_IS_ON)
         if (event->param != BGMT_PRESS_HALFSHUTTER) return 1;
-    
+
+    // on some cameras, scroll events may arrive grouped; we can't handle it, so split into individual events
+    if (handle_scrollwheel_fast_clicks(event)==0) return 0;
+
     // rack focus may override some menu keys
     if (handle_rack_focus_menu_overrides(event)==0) return 0;
     

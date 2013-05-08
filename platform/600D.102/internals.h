@@ -116,5 +116,5 @@
 /** 600D has little RAM for AllocateMemory; prefer the malloc/free pool for small things */
 #define CONFIG_USE_MALLOC_FOR_SMALL_THINGS
 
-/** Advanced EXMEM stubs are known and can be used */
-#define CONFIG_FULL_EXMEM_SUPPORT
+/** We have AllocateMemoryResourceForSingleChunck */
+#define CONFIG_EXMEM_SINGLE_CHUNCK

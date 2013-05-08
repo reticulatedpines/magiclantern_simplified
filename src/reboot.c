@@ -44,11 +44,6 @@ asm(
     "BIC     R0, R0, #0x3F\n"   // Clear I,F,T
     "ORR     R0, R0, #0xD3\n"   // Set I,T, M=10011 == supervisor
     "MSR     CPSR, R0\n"
-
-/* seems not needed? here as a reminder for 0xAF work
-    "ldr sp, =0x1900\n"  // 0x130
-	"mov fp, #0\n"*/
-
     "B       cstart\n"
 );
 

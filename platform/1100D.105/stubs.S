@@ -185,16 +185,14 @@ NSTUB(0xff07f448, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 
 NSTUB(0xff0a3434, SetGUIRequestMode)
 
+/** ExMem **/
 NSTUB(0xff074b1c, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff074b68, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff074c80, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0xff072114, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff0728a8, GetNextMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-NSTUB(0xff071b2c, GetSizeOfMemoryChunk) // AJ_PackMemory_IsChunkSignature
-NSTUB(0xff071afc, GetRemainOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p3
 NSTUB(0xff071b5c, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature
-NSTUB(0xff071e8c, GetNumberOfChunks) // AJ_PackMemory_PackMem_p2
-NSTUB(0xff071e28, GetSizeOfMemorySuite)
+NSTUB(0xff02b054, AllocateMemoryResourceForSingleChunck)
 
 NSTUB(0xFF069E9C, PowerAudioOutput)
 NSTUB(0xff055678, StartASIFDMADAC)
@@ -216,3 +214,9 @@ NSTUB(0xFF1CAD8C, SIO3_ISR)
 
 NSTUB(0xFF10DC10, GetJpegBufForLV)  // Actually FA_GetJpegBufForLV check ROM FA_ routines to find it
 NSTUB(0xFF10DC1C, GetJpegSizeForLV) // Actually FA_GetJpegSizeForLV (see above)
+
+/** Unused **/
+//NSTUB(0xff071b2c, GetSizeOfMemoryChunk) // AJ_PackMemory_IsChunkSignature
+//NSTUB(0xff071afc, GetRemainOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p3
+//NSTUB(0xff071e8c, GetNumberOfChunks) // AJ_PackMemory_PackMem_p2
+//NSTUB(0xff071e28, GetSizeOfMemorySuite)

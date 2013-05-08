@@ -202,7 +202,11 @@ void check_pre_shutdown_flag() // called from ml_shutdown
     }
 }
 
-// ML doesn't know how to handle multiple button clicks in the same event code, so we'll split them in individual events
+// ML doesn't know how to handle multiple button clicks in the same event code,
+// so we'll split them in individual events
+
+// this has some side effects on Canon code, visible e.g. on 5d3 when adjusting WB,
+// so for now we'll only call it when needed (e.g. menu, scripts)
 int handle_scrollwheel_fast_clicks(struct event * event)
 {
     if (event->arg <= 1) return 1;
@@ -251,8 +255,6 @@ int handle_common_events_by_feature(struct event * event)
     // as a record of when the user was last actively pushing buttons.
     if (event->param != GMT_OLC_INFO_CHANGED)
         last_time_active = get_seconds_clock();
-
-    if (handle_scrollwheel_fast_clicks(event)==0) return 0;
 
     if (handle_flexinfo_keys(event) == 0) return 0;
     

@@ -13,6 +13,11 @@
 #include "plugin.h"
 #include "version.h"
 
+#ifdef FEATURE_DEBUG_INTERCEPT
+#include "dm-spy.h"
+#include "tp-spy.h"
+#endif
+
 #ifdef FEATURE_SHOW_SIGNATURE
 #include "fw-signature.h"
 #endif
@@ -29,6 +34,7 @@
 #if defined(CONFIG_600D) && defined(CONFIG_AUDIO_600D_DEBUG)
 void audio_reg_dump_once();
 #endif
+
 
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused, int delta);
@@ -598,7 +604,7 @@ void iso_movie_test()
     ensure_movie_mode();
 
     int r = lens_info.iso_equiv_raw ? lens_info.iso_equiv_raw : lens_info.raw_iso_auto;
-    int raw_iso0 = (r + 3) & ~3; // consider full-stop iso
+    int raw_iso0 = (r + 3) & ~7; // consider full-stop iso
     int tv0 = lens_info.raw_shutter;
     //int av0 = lens_info.raw_aperture;
     bv_enable(); // this enables shutter speed adjust in finer increments
@@ -731,6 +737,10 @@ static void bsod()
 
 static void run_test()
 {
+    call("lv_save_raw", 1);
+    call("aewb_enableaewb", 0);
+    return;
+    
 #ifdef FEATURE_SHOW_SIGNATURE
     console_show();
     console_printf("FW Signature 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
@@ -807,49 +817,46 @@ void run_in_separate_task(void (*priv)(void), int delta)
 
 #ifdef CONFIG_BENCHMARKS
 
-static int tic()
-{
-    struct tm now;
-    LoadCalendarFromRTC(&now);
-    return now.tm_sec + now.tm_min * 60 + now.tm_hour * 3600 + now.tm_mday * 3600 * 24;
-}
+/* for 5D3, the location of the benchmark file is important;
+ * if we put it in root, it will benchmark the ML card;
+ * if we put it in DCIM, it will benchmark the card selected in Canon menu, which is what we want.
+ */
+#define CARD_BENCHMARK_FILE CARD_DRIVE"DCIM/bench.tmp"
 
 static void card_benchmark_wr(int bufsize, int K, int N)
 {
     int x = 0;
-    static int y = 50;
-    if (K == 1) y = 50;
+    static int y = 80;
+    if (K == 1) y = 80;
 
-    FIO_RemoveFile(CARD_DRIVE"bench.tmp");
-    msleep(1000);
+    FIO_RemoveFile(CARD_BENCHMARK_FILE);
+    msleep(2000);
     int filesize = 1024; // MB
     int n = filesize * 1024 * 1024 / bufsize;
     {
-        FILE* f = FIO_CreateFileEx(CARD_DRIVE"bench.tmp");
-        int t0 = tic();
+        FILE* f = FIO_CreateFileEx(CARD_BENCHMARK_FILE);
+        int t0 = get_ms_clock_value();
         int i;
         for (i = 0; i < n; i++)
         {
-            uint32_t start = (int)UNCACHEABLE(0);
+            uint32_t start = (int)UNCACHEABLE(YUV422_LV_BUFFER_1);
             bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
             FIO_WriteFile( f, (const void *) start, bufsize );
         }
         FIO_CloseFile(f);
-        int t1 = tic();
-        int speed = filesize * 10 / (t1 - t0);
+        int t1 = get_ms_clock_value();
+        int speed = filesize * 1000 * 10 / (t1 - t0);
         bmp_printf(FONT_MED, x, y += font_med.height, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
     }
-    SW1(1,100);
-    SW1(0,100);
-    msleep(1000);
-    //if (bufsize > 1024*1024) bmp_printf(FONT_MED, x, y += font_med.height, "read test skipped: buffer=%d\n", bufsize);
-    //else
+
+    msleep(2000);
+
     {
         void* buf = shoot_malloc(bufsize);
         if (buf)
         {
-            FILE* f = FIO_Open(CARD_DRIVE"bench.tmp", O_RDONLY | O_SYNC);
-            int t0 = tic();
+            FILE* f = FIO_Open(CARD_BENCHMARK_FILE, O_RDONLY | O_SYNC);
+            int t0 = get_ms_clock_value();
             int i;
             for (i = 0; i < n; i++)
             {
@@ -858,9 +865,9 @@ static void card_benchmark_wr(int bufsize, int K, int N)
             }
             FIO_CloseFile(f);
             shoot_free(buf);
-            int t1 = tic();
-            int speed = filesize * 10 / (t1 - t0);
-            bmp_printf(FONT_MED, x, y += font_med.height, "Read speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
+            int t1 = get_ms_clock_value();
+            int speed = filesize * 1000 * 10 / (t1 - t0);
+            bmp_printf(FONT_MED, x, y += font_med.height, "Read speed  (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
         }
         else
         {
@@ -868,16 +875,47 @@ static void card_benchmark_wr(int bufsize, int K, int N)
         }
     }
 
-    FIO_RemoveFile(CARD_DRIVE"bench.tmp");
-    msleep(1000);
-    SW1(1,100);
-    SW1(0,100);
+    FIO_RemoveFile(CARD_BENCHMARK_FILE);
+    msleep(2000);
+}
+
+static void print_benchmark_header()
+{
+    bmp_printf(FONT_MED, 0, 40, "ML %s, %s", build_version, build_id); // this includes camera name
+    
+    char mode[100];
+    snprintf(mode, sizeof(mode), "Mode: ");
+    if (lv)
+    {
+        if (lv_dispsize > 1)
+        {
+            STR_APPEND(mode, "LV zoom x%d", lv_dispsize);
+        }
+        else if (is_movie_mode())
+        {
+            char* video_modes[] = {"1920x1080", "1280x720", "640x480"};
+            STR_APPEND(mode, "movie %s%s %dp", video_modes[video_mode_resolution], video_mode_crop ? " crop" : "", video_mode_fps);
+        }
+        else
+        {
+            STR_APPEND(mode, "LV photo");
+        }
+    }
+    else
+    {
+        STR_APPEND(mode, PLAY_MODE ? "playback" : display_idle() ? "photo" : "idk");
+    }
+    
+    STR_APPEND(mode, ", Global Draw: %s", get_global_draw() ? "ON" : "OFF");
+    
+    bmp_printf(FONT_MED, 0, 60, mode);
 }
 
 static void card_benchmark_task()
 {
     msleep(1000);
     if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
+
     #ifdef CONFIG_5D3
     extern int card_select;
     NotifyBox(2000, "%s Benchmark (1 GB)...", card_select == 1 ? "CF" : "SD");
@@ -887,12 +925,309 @@ static void card_benchmark_task()
     msleep(3000);
     canon_gui_disable_front_buffer();
     clrscr();
-    //~ card_benchmark_wr(16384, 1, 3);
-    card_benchmark_wr(131072, 1, 2);
-    card_benchmark_wr(16777216, 2, 2);
-    msleep(3000);
+    
+    print_benchmark_header();
+
+    #ifdef CARD_A_MAKER
+    bmp_printf(FONT_MED, 0, 80, "CF %s %s", CARD_A_MAKER, CARD_A_MODEL);
+    #endif
+
+    card_benchmark_wr(2*1024*1024,  1, 9);
+    card_benchmark_wr(2000000,      2, 9);
+    card_benchmark_wr(3*1024*1024,  3, 9);
+    card_benchmark_wr(3000000,      4, 9);
+    card_benchmark_wr(4*1024*1024,  5, 9);
+    card_benchmark_wr(4000000,      6, 9);
+    card_benchmark_wr(16*1024*1024, 7, 9);
+    card_benchmark_wr(16000000,     8, 9);
+    card_benchmark_wr(128*1024,     9, 9);
     call("dispcheck");
-    canon_gui_enable_front_buffer(1);
+    msleep(3000);
+    canon_gui_enable_front_buffer(0);
+}
+
+
+
+#ifdef CONFIG_5D3
+
+static struct msg_queue * twocard_mq = 0;
+static volatile int twocard_bufsize = 0;
+static volatile int twocard_done = 0;
+
+static void twocard_init()
+{
+    twocard_mq = (void*)msg_queue_create("twocard", 100);
+}
+INIT_FUNC("twocard", twocard_init);
+
+static void twocard_write_task(char* filename)
+{
+    int bufsize = twocard_bufsize;
+    int t0 = get_ms_clock_value();
+    int cf = filename[0] == 'A';
+    int msg;
+    int filesize = 0;
+    FILE* f = FIO_CreateFileEx(filename);
+    if (f != INVALID_PTR)
+    {
+        while (msg_queue_receive(twocard_mq, (struct event **) &msg, 1000) == 0)
+        {
+            uint32_t start = (int)UNCACHEABLE(YUV422_LV_BUFFER_1);
+            bmp_printf(FONT_MED, 0, cf*20, "[%s] Writing chunk %d [total=%d MB] (buf=%dK)... ", cf ? "CF" : "SD", msg, filesize, bufsize/1024);
+            int r = FIO_WriteFile( f, (const void *) start, bufsize );
+            if (r != bufsize) break; // card full?
+            filesize += bufsize / 1024 / 1024;
+        }
+        FIO_CloseFile(f);
+        FIO_RemoveFile(filename);
+        int t1 = get_ms_clock_value() - 1000;
+        int speed = filesize * 1000 * 10 / (t1 - t0);
+        bmp_printf(FONT_MED, 0, 120+cf*20, "[%s] Write speed (buffer=%dk):\t %d.%d MB/s\n", cf ? "CF" : "SD", bufsize/1024, speed/10, speed % 10);
+    }
+    twocard_done++;
+}
+
+static void twocard_benchmark_task()
+{
+    msleep(1000);
+    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
+    canon_gui_disable_front_buffer();
+    clrscr();
+    print_benchmark_header();
+
+    #ifdef CARD_A_MAKER
+    bmp_printf(FONT_MED, 0, 80, "CF %s %s", CARD_A_MAKER, CARD_A_MODEL);
+    #endif
+
+    uint32_t bufsize = 32*1024*1024;
+
+    msleep(2000);
+    uint32_t filesize = 2048; // MB
+    uint32_t n = filesize * 1024 * 1024 / bufsize;
+    twocard_bufsize = bufsize;
+
+    for (uint32_t i = 0; i < n; i++)
+        msg_queue_post(twocard_mq, i);
+    
+    twocard_done = 0;
+    task_create("twocard_cf", 0x1d, 0x2000, twocard_write_task, "A:/bench.tmp");
+    task_create("twocard_sd", 0x1d, 0x2000, twocard_write_task, "B:/bench.tmp");
+
+    while (twocard_done < 2) msleep(100);
+    
+    call("dispcheck");
+    msleep(3000);
+    canon_gui_enable_front_buffer(0);
+}
+
+#endif
+
+typedef void (*mem_bench_fun)(
+    int arg0,
+    int arg1,
+    int arg2,
+    int arg3
+);
+
+
+static void mem_benchmark_run(char* msg, int* y, int bufsize, mem_bench_fun bench_fun, int arg0, int arg1, int arg2, int arg3)
+{
+    bmp_printf(FONT_LARGE, 0, 0, "%s...", msg);
+
+    int times = 0;
+    int t0 = get_ms_clock_value();
+    for (int i = 0; i < 1000; i++)
+    {
+        bench_fun(arg0, arg1, arg2, arg3);
+        if (i%2) info_led_off(); else info_led_on();
+        
+        /* run the benchmark for roughly 1 second */
+        if (get_ms_clock_value_fast() - t0 > 1000)
+        {
+            times = i + 1;
+            break;
+        }
+    }
+    int t1 = get_ms_clock_value();
+    int dt = t1 - t0;
+    
+    info_led_off();
+    
+    /* units: KB/s */
+    int speed = bufsize * times / dt;
+
+    /* transform in MB/s x100 */
+    speed = speed * 100 / 1024;
+    
+    bmp_printf(FONT_MED, 0, *y += font_med.height, "%s :%4d.%02d MB/s", msg, speed/100, speed%100);
+    msleep(10);
+}
+
+static void mem_test_bmp_fill(int arg0, int arg1, int arg2, int arg3)
+{
+    bmp_draw_to_idle(1);
+    bmp_fill(COLOR_BLACK, arg0, arg1, arg2, arg3);
+    bmp_draw_to_idle(0);
+}
+
+static uint64_t FAST mem_test_read64(uint64_t* buf, uint32_t n)
+{
+    /** GCC output with -Os attribute(O3):
+     * loc_7433C
+     * LDMIA   R0!, {R2,R3}
+     * CMP     R0, R1
+     * BNE     loc_7433C
+     */
+    
+    /* note: this kind of loops are much faster with -funroll-all-loops */
+    register uint64_t tmp = 0;
+    for (uint32_t i = 0; i < n/8; i++)
+        tmp = buf[i];
+    return tmp;
+}
+
+static uint32_t FAST mem_test_read32(uint32_t* buf, uint32_t n)
+{
+    /** GCC output with -Os attribute(O3):
+     * loc_74310
+     * LDR     R0, [R3],#4
+     * CMP     R3, R2
+     * BNE     loc_74310
+     */
+    
+    register uint32_t tmp = 0;
+    for (uint32_t i = 0; i < n/4; i++)
+        tmp = buf[i];
+    return tmp;
+}
+
+#ifdef CONFIG_EDMAC_MEMCPY
+
+/* todo: move in a separate source file? */
+
+static struct semaphore * edmac_memcpy_sem = 0; /* to allow only one memcpy running at a time */
+static struct semaphore * edmac_memcpy_done_sem = 0; /* to know when memcpy is finished */
+
+static void edmac_memcpy_init()
+{
+    edmac_memcpy_sem = create_named_semaphore("edmac_memcpy_sem", 1);
+    edmac_memcpy_done_sem = create_named_semaphore("edmac_memcpy_done_sem", 0);
+}
+
+INIT_FUNC("edmac_memcpy", edmac_memcpy_init);
+
+static void edmac_memcpy_complete_cbr (int ctx)
+{
+    give_semaphore(edmac_memcpy_done_sem);
+}
+
+void* edmac_memcpy(void* dst, void* src, size_t length)
+{
+    take_semaphore(edmac_memcpy_sem, 0);
+
+    if(length % 4096)
+    {
+        length &= 4095;
+    }
+    
+    /* pick some free (check using debug menu) EDMAC channels write: 0x00-0x06, 0x10-0x16, 0x20-0x21. read: 0x08-0x0D, 0x18-0x1D,0x28-0x2B */
+    uint32_t dmaChannelRead = 0x19;
+    uint32_t dmaChannelWrite = 0x11;
+
+    /* both channels get connected to this... lets call it service. it will just output the data it gets as input */
+    uint32_t dmaConnection = 6;
+
+    /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
+    uint32_t dmaFlags = 0x20001000;
+
+    /* create a memory suite from a already existing (continuous) memory block with given size. */
+    struct memSuite *memSuiteSource = CreateMemorySuite(src, length, 0);
+    struct memSuite *memSuiteDest = CreateMemorySuite(dst, length, 0);
+
+    /* only read channel will emit a callback when reading from memory is done. write channels would just silently wrap */
+    PackMem_RegisterEDmacCompleteCBRForMemorySuite(dmaChannelRead, &edmac_memcpy_complete_cbr, 0);
+
+    /* connect the selected channels to 6 so any data read from RAM is passed to write channel */
+    ConnectWriteEDmac(dmaChannelWrite, dmaConnection);
+    ConnectReadEDmac(dmaChannelRead, dmaConnection);
+
+    /* setup EDMAC driver to handle memory suite copy. check return codes for being zero (OK)! if !=0 then the suite size was not a multiple of 4096 */
+    int err = PackMem_SetEDmacForMemorySuite(dmaChannelWrite, memSuiteDest , dmaFlags);
+    err |= PackMem_SetEDmacForMemorySuite(dmaChannelRead, memSuiteSource , dmaFlags);
+
+    if(err)
+    {
+        return 0;
+    }
+    
+    /* start transfer. no flags for write, 2 for read channels */
+    PackMem_StartEDmac(dmaChannelWrite, 0);
+    PackMem_StartEDmac(dmaChannelRead, 2);
+    take_semaphore(edmac_memcpy_done_sem, 0);
+    
+    give_semaphore(edmac_memcpy_sem);
+    return dst;
+}
+#endif
+
+static void mem_benchmark_task()
+{
+    msleep(1000);
+    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
+    canon_gui_disable_front_buffer();
+    clrscr();
+    print_benchmark_header();
+
+    int bufsize = 16*1024*1024;
+    
+    void* buf1 = 0;
+    void* buf2 = 0;
+    buf1 = shoot_malloc(bufsize);
+    buf2 = shoot_malloc(bufsize);
+    if (!buf1 || !buf2)
+    {
+        bmp_printf(FONT_LARGE, 0, 0, "malloc error :(");
+        goto cleanup;
+    }
+
+    int y = 80;
+
+#if 0 // need to hack the source code to run this benchmark
+    extern int defish_ind;
+    defish_draw_lv_color();
+    void defish_draw_lv_color_loop(uint64_t* src_buf, uint64_t* dst_buf, int* ind);
+    if (defish_ind)
+    mem_benchmark_run("defish_draw_lv_color", &y, 720*os.y_ex, (mem_bench_fun)defish_draw_lv_color_loop, (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), defish_ind, 0);
+#endif
+
+    mem_benchmark_run("memcpy cacheable    ", &y, bufsize, (mem_bench_fun)memcpy,     (intptr_t)CACHEABLE(buf1),   (intptr_t)CACHEABLE(buf2),   bufsize, 0);
+    mem_benchmark_run("memcpy uncacheable  ", &y, bufsize, (mem_bench_fun)memcpy,     (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0);
+    mem_benchmark_run("memcpy64 cacheable  ", &y, bufsize, (mem_bench_fun)memcpy64,   (intptr_t)CACHEABLE(buf1),   (intptr_t)CACHEABLE(buf2),   bufsize, 0);
+    mem_benchmark_run("memcpy64 uncacheable", &y, bufsize, (mem_bench_fun)memcpy64,   (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0);
+    #ifdef CONFIG_DMA_MEMCPY
+    mem_benchmark_run("dma_memcpy cacheable", &y, bufsize, (mem_bench_fun)dma_memcpy, (intptr_t)CACHEABLE(buf1),   (intptr_t)CACHEABLE(buf2),   bufsize, 0);
+    mem_benchmark_run("dma_memcpy uncacheab", &y, bufsize, (mem_bench_fun)dma_memcpy, (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0);
+    #endif
+    #ifdef CONFIG_EDMAC_MEMCPY
+    mem_benchmark_run("edmac_memcpy        ", &y, bufsize, (mem_bench_fun)edmac_memcpy, (intptr_t)buf1,   (intptr_t)buf2,   bufsize, 0);
+    #endif
+    mem_benchmark_run("memset cacheable    ", &y, bufsize, (mem_bench_fun)memset,     (intptr_t)CACHEABLE(buf1),   0,                           bufsize, 0);
+    mem_benchmark_run("memset uncacheable  ", &y, bufsize, (mem_bench_fun)memset,     (intptr_t)UNCACHEABLE(buf1), 0,                           bufsize, 0);
+    mem_benchmark_run("memset64 cacheable  ", &y, bufsize, (mem_bench_fun)memset64,   (intptr_t)CACHEABLE(buf1),   0,                           bufsize, 0);
+    mem_benchmark_run("memset64 uncacheable", &y, bufsize, (mem_bench_fun)memset64,   (intptr_t)UNCACHEABLE(buf1), 0,                           bufsize, 0);
+    mem_benchmark_run("read32 cacheable    ", &y, bufsize, (mem_bench_fun)mem_test_read32, (intptr_t)CACHEABLE(buf1),   bufsize, 0, 0);
+    mem_benchmark_run("read32 uncacheable  ", &y, bufsize, (mem_bench_fun)mem_test_read32, (intptr_t)UNCACHEABLE(buf1), bufsize, 0, 0);
+    mem_benchmark_run("read64 cacheable    ", &y, bufsize, (mem_bench_fun)mem_test_read64, (intptr_t)CACHEABLE(buf1),   bufsize, 0, 0);
+    mem_benchmark_run("read64 uncacheable  ", &y, bufsize, (mem_bench_fun)mem_test_read64, (intptr_t)UNCACHEABLE(buf1), bufsize, 0, 0);
+    mem_benchmark_run("bmp_fill to idle buf", &y, 720*480, (mem_bench_fun)mem_test_bmp_fill, 0, 0, 720, 480);
+
+    call("dispcheck");
+    msleep(3000);
+    canon_gui_enable_front_buffer(0);
+
+cleanup:
+    if (buf1) shoot_free(buf1);
+    if (buf2) shoot_free(buf2);
 }
 
 #endif
@@ -920,11 +1255,11 @@ static void stress_test_picture(int n, int delay)
     msleep(delay);
 }
 
-#define TEST_MSG(fmt, ...) { my_fprintf(log, fmt, ## __VA_ARGS__); bmp_printf(FONT_MED, 0, 0, fmt, ## __VA_ARGS__); }
-#define TEST_TRY_VOID(x) { x; TEST_MSG("       %s\n", #x); }
-#define TEST_TRY_FUNC(x) { int ans = (int)(x); TEST_MSG("       %s => 0x%x\n", #x, ans); }
-#define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); int ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
-#define TEST_TRY_FUNC_CHECK_STR(x, expected_string) { char* ans = (char*)(x); int ok = streq(ans, expected_string); TEST_MSG("[%s] %s => '%s'\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
+#define TEST_MSG(fmt, ...) { if (!silence || !ok) my_fprintf(log, fmt, ## __VA_ARGS__); bmp_printf(FONT_MED, 0, 0, fmt, ## __VA_ARGS__); }
+#define TEST_TRY_VOID(x) { x; ok = 1; TEST_MSG("       %s\n", #x); }
+#define TEST_TRY_FUNC(x) { int ans = (int)(x); ok = 1; TEST_MSG("       %s => 0x%x\n", #x, ans); }
+#define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
+#define TEST_TRY_FUNC_CHECK_STR(x, expected_string) { char* ans = (char*)(x); ok = streq(ans, expected_string); TEST_MSG("[%s] %s => '%s'\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
 
 static int test_task_created = 0;
 static void test_task() { test_task_created = 1; }
@@ -939,6 +1274,8 @@ static void stub_test_task(void* arg)
     int failed_tests = 0;
 
     FILE* log = FIO_CreateFileEx( CARD_DRIVE "stubtest.log" );
+    int silence = 0;    // if 1, only failures are logged to file
+    int ok = 1;
 
     for (int i=0; i < n; i++)
     {
@@ -1014,43 +1351,124 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(mod(s1-s0, 60), <= 2);
 
         // mallocs
-        int m0, m1, m2;
-        void* p;
-        TEST_TRY_FUNC(m0 = MALLOC_FREE_MEMORY);
-        TEST_TRY_FUNC_CHECK(p = malloc(50*1024), != 0);
-        TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
-        TEST_TRY_FUNC(m1 = MALLOC_FREE_MEMORY);
-        TEST_TRY_VOID(free(p));
-        TEST_TRY_FUNC(m2 = MALLOC_FREE_MEMORY);
-        TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 50*1024), < 2048);
-        TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
+        // run this test 200 times to check for memory leaks 
+        for (int i = 0; i < 200; i++)
+        {
+            int silence = (i > 0);
+            int m0, m1, m2;
+            void* p;
+            TEST_TRY_FUNC(m0 = MALLOC_FREE_MEMORY);
+            TEST_TRY_FUNC_CHECK(p = malloc(50*1024), != 0);
+            TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
+            TEST_TRY_FUNC(m1 = MALLOC_FREE_MEMORY);
+            TEST_TRY_VOID(free(p));
+            TEST_TRY_FUNC(m2 = MALLOC_FREE_MEMORY);
+            TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 50*1024), < 2048);
+            TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
 
-        TEST_TRY_FUNC(m0 = GetFreeMemForAllocateMemory());
-        TEST_TRY_FUNC_CHECK(p = AllocateMemory(256*1024), != 0);
-        TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
-        TEST_TRY_FUNC(m1 = GetFreeMemForAllocateMemory());
-        TEST_TRY_VOID(FreeMemory(p));
-        TEST_TRY_FUNC(m2 = GetFreeMemForAllocateMemory());
-        TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 256*1024), < 2048);
-        TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
+            TEST_TRY_FUNC(m0 = GetFreeMemForAllocateMemory());
+            TEST_TRY_FUNC_CHECK(p = AllocateMemory(256*1024), != 0);
+            TEST_TRY_FUNC_CHECK(CACHEABLE(p), == (int)p);
+            TEST_TRY_FUNC(m1 = GetFreeMemForAllocateMemory());
+            TEST_TRY_VOID(FreeMemory(p));
+            TEST_TRY_FUNC(m2 = GetFreeMemForAllocateMemory());
+            TEST_TRY_FUNC_CHECK(ABS((m0-m1) - 256*1024), < 2048);
+            TEST_TRY_FUNC_CHECK(ABS(m0-m2), < 2048);
 
-        // these buffers may be from different memory pools, just check for leaks in main pools
-        int m01, m02, m11, m12;
-        TEST_TRY_FUNC(m01 = MALLOC_FREE_MEMORY);
-        TEST_TRY_FUNC(m02 = GetFreeMemForAllocateMemory());
-        TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(256*1024), != 0);
-        TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
-        TEST_TRY_FUNC_CHECK(CACHEABLE(p), != (int)p);
-        TEST_TRY_FUNC_CHECK(UNCACHEABLE(CACHEABLE(p)), == (int)p);
-        TEST_TRY_VOID(free_dma_memory(p));
-        TEST_TRY_FUNC_CHECK(p = (void*)shoot_malloc(24*1024*1024), != 0);
-        TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
-        TEST_TRY_VOID(shoot_free(p));
-        TEST_TRY_FUNC(m11 = MALLOC_FREE_MEMORY);
-        TEST_TRY_FUNC(m12 = GetFreeMemForAllocateMemory());
-        TEST_TRY_FUNC_CHECK(ABS(m01-m11), < 2048);
-        TEST_TRY_FUNC_CHECK(ABS(m02-m12), < 2048);
+            // these buffers may be from different memory pools, just check for leaks in main pools
+            int m01, m02, m11, m12;
+            TEST_TRY_FUNC(m01 = MALLOC_FREE_MEMORY);
+            TEST_TRY_FUNC(m02 = GetFreeMemForAllocateMemory());
+            TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(256*1024), != 0);
+            TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+            TEST_TRY_FUNC_CHECK(CACHEABLE(p), != (int)p);
+            TEST_TRY_FUNC_CHECK(UNCACHEABLE(CACHEABLE(p)), == (int)p);
+            TEST_TRY_VOID(free_dma_memory(p));
+            TEST_TRY_FUNC_CHECK(p = (void*)shoot_malloc(24*1024*1024), != 0);
+            TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+            TEST_TRY_VOID(shoot_free(p));
+            TEST_TRY_FUNC(m11 = MALLOC_FREE_MEMORY);
+            TEST_TRY_FUNC(m12 = GetFreeMemForAllocateMemory());
+            TEST_TRY_FUNC_CHECK(ABS(m01-m11), < 2048);
+            TEST_TRY_FUNC_CHECK(ABS(m02-m12), < 2048);
+        }
+        
+        // exmem
+        // run this test 20 times to check for memory leaks 
+        for (int i = 0; i < 20; i++)
+        {
+            int silence = (i > 0);
 
+            struct memSuite * suite = 0;
+            struct memChunk * chunk = 0;
+            void* p = 0;
+            int total = 0;
+
+            // contiguous allocation
+            TEST_TRY_FUNC_CHECK(suite = shoot_malloc_suite_contig(24*1024*1024), != 0);
+            TEST_TRY_FUNC_CHECK_STR(suite->signature, "MemSuite");
+            TEST_TRY_FUNC_CHECK(suite->num_chunks, == 1);
+            TEST_TRY_FUNC_CHECK(suite->size, == 24*1024*1024);
+            TEST_TRY_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
+            TEST_TRY_FUNC_CHECK_STR(chunk->signature, "MemChunk");
+            TEST_TRY_FUNC_CHECK(chunk->size, == 24*1024*1024);
+            TEST_TRY_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
+            TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+            TEST_TRY_VOID(shoot_free_suite(suite); suite = 0; chunk = 0;);
+
+            // contiguous allocation, largest block
+            TEST_TRY_FUNC_CHECK(suite = shoot_malloc_suite_contig(0), != 0);
+            TEST_TRY_FUNC_CHECK_STR(suite->signature, "MemSuite");
+            TEST_TRY_FUNC_CHECK(suite->num_chunks, == 1);
+            TEST_TRY_FUNC_CHECK(suite->size, > 24*1024*1024);
+            TEST_TRY_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
+            TEST_TRY_FUNC_CHECK_STR(chunk->signature, "MemChunk");
+            TEST_TRY_FUNC_CHECK(chunk->size, == suite->size);
+            TEST_TRY_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
+            TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+            TEST_TRY_VOID(shoot_free_suite(suite); suite = 0; chunk = 0;);
+
+            // fragmented allocation
+            TEST_TRY_FUNC_CHECK(suite = shoot_malloc_suite(64*1024*1024), != 0);
+            TEST_TRY_FUNC_CHECK_STR(suite->signature, "MemSuite");
+            TEST_TRY_FUNC_CHECK(suite->num_chunks, > 1);
+            TEST_TRY_FUNC_CHECK(suite->size, == 64*1024*1024);
+
+            // iterating through chunks
+            total = 0;
+            TEST_TRY_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
+            while(chunk)
+            {
+                TEST_TRY_FUNC_CHECK_STR(chunk->signature, "MemChunk");
+                TEST_TRY_FUNC_CHECK(total += chunk->size, <= 64*1024*1024);
+                TEST_TRY_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
+                TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+                TEST_TRY_FUNC(chunk = GetNextMemoryChunk(suite, chunk));
+            }
+            TEST_TRY_FUNC_CHECK(total, == 64*1024*1024);
+            TEST_TRY_VOID(shoot_free_suite(suite); suite = 0; chunk = 0; );
+
+            // fragmented allocation, max size
+            TEST_TRY_FUNC_CHECK(suite = shoot_malloc_suite(0), != 0);
+            TEST_TRY_FUNC_CHECK_STR(suite->signature, "MemSuite");
+            TEST_TRY_FUNC_CHECK(suite->num_chunks, > 1);
+            TEST_TRY_FUNC_CHECK(suite->size, > 64*1024*1024);
+
+            // iterating through chunks
+            total = 0;
+            TEST_TRY_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
+            while(chunk)
+            {
+                TEST_TRY_FUNC_CHECK_STR(chunk->signature, "MemChunk");
+                TEST_TRY_FUNC_CHECK(total += chunk->size, <= suite->size);
+                TEST_TRY_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
+                TEST_TRY_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+                TEST_TRY_FUNC(chunk = GetNextMemoryChunk(suite, chunk));
+            }
+            TEST_TRY_FUNC_CHECK(total, == suite->size);
+            TEST_TRY_VOID(shoot_free_suite(suite); suite = 0; chunk = 0; );
+        }
+        
         // engio
         TEST_TRY_VOID(EngDrvOut(0xC0F14400, 0x1234));
         TEST_TRY_FUNC_CHECK(shamem_read(0xC0F14400), == 0x1234);
@@ -1134,6 +1552,7 @@ static void stub_test_task(void* arg)
         uint32_t size;
         TEST_TRY_FUNC_CHECK(FIO_GetFileSize(CARD_DRIVE"test.dat", &size), == 0);
         TEST_TRY_FUNC_CHECK(size, == 0x20000);
+        void* p;
         TEST_TRY_FUNC_CHECK(p = alloc_dma_memory(0x20000), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(f = FIO_Open(CARD_DRIVE"test.dat", O_RDONLY | O_SYNC), != (int)INVALID_PTR);
         TEST_TRY_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
@@ -2425,58 +2844,65 @@ static int stack_size_crit(int x)
 }
 
 static int max_shoot_malloc_mem = 0;
-static int shoot_malloc_crit(int x)
-{
-    void* p = shoot_malloc(x * 1024 * 64);
-    if (p)
-    {
-        max_shoot_malloc_mem = x * 1024 * 64;
-        shoot_free(p);
-        return 1;
-    }
-    else return -1;
-}
-
 static int max_shoot_malloc_frag_mem = 0;
-
-
-static void freeCBR(unsigned int a)
-{
-}
+static char shoot_malloc_frag_desc[70] = "";
 
 /* fixme: find a way to read the free stack memory from DryOS */
 /* current workaround: compute it by trial and error when you press SET on Free Memory menu item */
 static volatile int guess_mem_running = 0;
 static void guess_free_mem_task(void* priv, int delta)
 {
-    guess_mem_running = 1;
-
     /* reset values */
     max_stack_ack = 0;
     max_shoot_malloc_mem = 0;
     max_shoot_malloc_frag_mem = 0;
 
     bin_search(1, 1024, stack_size_crit);
-    bin_search(1, 1024, shoot_malloc_crit);
-
-    /* allocate some backup that will service the queued allocation request that fails during the loop */
-    struct memSuite *backup = shoot_malloc_suite(4 * 1024 * 1024);
-
-    for(int size = 1; size < 1024; size++)
+    
     {
-        struct memSuite *testSuite = shoot_malloc_suite(size * 1024 * 1024);
-        if(testSuite)
+        struct memSuite * hSuite = shoot_malloc_suite_contig(0);
+        if (!hSuite)
         {
-            FreeMemoryResource(testSuite, freeCBR, 0);
-            max_shoot_malloc_frag_mem = (32 + size) * 1024 * 1024;
+            beep();
+            guess_mem_running = 0;
+            return;
         }
-        else
-        {
-            break;
-        }
+        ASSERT(hSuite->num_chunks == 1);
+        max_shoot_malloc_mem = hSuite->size;
+        shoot_free_suite(hSuite);
     }
-    /* now free the backup suite. this causes the queued allocation before to get finished. as we timed out, it will get freed immediately in exmem.c:allocCBR */
-    FreeMemoryResource(backup, freeCBR, 0);
+
+    struct memSuite * hSuite = shoot_malloc_suite(0);
+    if (!hSuite)
+    {
+        beep();
+        guess_mem_running = 0;
+        return;
+    }
+    max_shoot_malloc_frag_mem = hSuite->size;
+    
+    struct memChunk *currentChunk;
+    int chunkAvail;
+    int total = 0;
+    
+    currentChunk = GetFirstChunkFromSuite(hSuite);
+    
+    snprintf(shoot_malloc_frag_desc, sizeof(shoot_malloc_frag_desc), "");
+    
+    while(currentChunk)
+    {
+        chunkAvail = GetSizeOfMemoryChunk(currentChunk);
+    
+        int mb = 10*chunkAvail/1024/1024;
+        STR_APPEND(shoot_malloc_frag_desc, mb%10 ? "%s%d.%d" : "%s%d", total ? "+" : "", mb/10, mb%10);
+        total += chunkAvail;
+
+        currentChunk = GetNextMemoryChunk(hSuite, currentChunk);
+    }
+    STR_APPEND(shoot_malloc_frag_desc, " MB.");
+    ASSERT(max_shoot_malloc_frag_mem == total);
+    
+    shoot_free_suite(hSuite);
 
     menu_redraw();
     guess_mem_running = 0;
@@ -2484,7 +2910,7 @@ static void guess_free_mem_task(void* priv, int delta)
 
 static void guess_free_mem()
 {
-    task_create("guess_mem", 0x12, 0, guess_free_mem_task, 0);
+    task_create("guess_mem", 0x1e, 0x4000, guess_free_mem_task, 0);
 }
 
 static MENU_UPDATE_FUNC(meminfo_display)
@@ -2536,6 +2962,7 @@ static MENU_UPDATE_FUNC(meminfo_display)
 
         case 5: // shoot_malloc fragmented
             MENU_SET_VALUE("%d M", max_shoot_malloc_frag_mem/1024/1024);
+            MENU_SET_HELP(shoot_malloc_frag_desc);
             guess_needed = 1;
             break;
 
@@ -2562,9 +2989,9 @@ static MENU_UPDATE_FUNC(meminfo_display)
 
     if (guess_needed && !guess_mem_running)
     {
-        /* check this once every 30 seconds (not more often) */
+        /* check this once every 10 seconds (not more often) */
         static int aux = INT_MIN;
-        if (should_run_polling_action(30000, &aux))
+        if (should_run_polling_action(10000, &aux))
         {
             guess_mem_running = 1;
             guess_free_mem();
@@ -2710,6 +3137,8 @@ void menu_kill_flicker()
 
 #ifdef FEATURE_SHOW_EDMAC_INFO
 
+static int edmac_selection;
+
 static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
 {
     bmp_printf(
@@ -2741,11 +3170,11 @@ static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
         
         if (addr && size.size.x > 0 && size.size.y > 0)
         {
-            snprintf(msg, sizeof(msg), "[%x] %8x: %dx%d", i0+i, addr, size.size.x, size.size.y);
+            snprintf(msg, sizeof(msg), "[%2d] %8x: %dx%d", i0+i, addr, size.size.x, size.size.y);
         }
         else
         {
-            snprintf(msg, sizeof(msg), "[%x] %8x: %x", i0+i, addr, size.raw);
+            snprintf(msg, sizeof(msg), "[%2d] %8x: %x", i0+i, addr, size.raw);
         }
         
         if (color == COLOR_RED)
@@ -2759,31 +3188,95 @@ static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
     }
 }
 
+static void edmac_display_detailed(int i0, uint32_t base, int i)
+{
+    int x = 50;
+    int y = 50;
+    bmp_printf(
+        FONT_LARGE,
+        x, y,
+        "EDMAC #%d - %x\n", 
+        i0 + i,
+        base + (i<<8) + 8
+    );
+    y += font_large.height;
+    
+    /* http://magiclantern.wikia.com/wiki/Register_Map#EDMAC */
+
+    uint32_t state = MEM(base + (i<<8) + 0);
+    uint32_t flags = shamem_read(base + (i<<8) + 4);
+    uint32_t addr = shamem_read(base + (i<<8) + 8);
+
+    union edmac_size_t
+    {
+        struct { short x, y; } size;
+        uint32_t raw;
+    };
+    
+    union edmac_size_t size_n = (union edmac_size_t) shamem_read(base + (i<<8) + 0x0C);
+    union edmac_size_t size_b = (union edmac_size_t) shamem_read(base + (i<<8) + 0x10);
+    union edmac_size_t size_a = (union edmac_size_t) shamem_read(base + (i<<8) + 0x14);
+    
+    uint32_t off1b = shamem_read(base + (i<<8) + 0x18);
+    uint32_t off2b = shamem_read(base + (i<<8) + 0x1C);
+    uint32_t off1a = shamem_read(base + (i<<8) + 0x20);
+    uint32_t off2a = shamem_read(base + (i<<8) + 0x24);
+    uint32_t off3  = shamem_read(base + (i<<8) + 0x28);
+    
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Address : %8x ", addr);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "State   : %8x ", state);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Flags   : %8x ", flags);
+    y += font_med.height;
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Size A  : %8x (%d x %d) ", size_a.raw, size_a.size.x, size_a.size.y);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Size B  : %8x (%d x %d) ", size_b.raw, size_b.size.x, size_b.size.y);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Size N  : %8x (%d x %d) ", size_n.raw, size_n.size.x, size_n.size.y);
+    y += font_med.height;
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off1a   : %8x ", off1a);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off1b   : %8x ", off1b);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off2a   : %8x ", off2a);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off2b   : %8x ", off2b);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off3    : %8x ", off3);
+}
+
 static MENU_UPDATE_FUNC(edmac_display)
 {
     if (!info->x) return;
     info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
 
-    edmac_display_page(0, 0xC0F04000, 20, 30);
-    edmac_display_page(16, 0xC0F26000, 360, 30);
+    if (edmac_selection == 0) // overview
+    {
+        edmac_display_page(0, 0xC0F04000, 20, 30);
+        edmac_display_page(16, 0xC0F26000, 360, 30);
 
+        //~ int x = 20;
+        bmp_printf(
+            FONT_MED,
+            20, 450, "EDMAC state: "
+        );
 
-    //~ int x = 20;
-    bmp_printf(
-        FONT_MED,
-        20, 450, "EDMAC state: "
-    );
+        bmp_printf(
+            FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK),
+            20+200, 450, "inactive"
+        );
 
-    bmp_printf(
-        FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK),
-        20+200, 450, "inactive"
-    );
+        bmp_printf(
+            FONT(FONT_MED, COLOR_GREEN1, COLOR_BLACK),
+            20+350, 450, "running"
+        );
 
-    bmp_printf(
-        FONT(FONT_MED, COLOR_GREEN1, COLOR_BLACK),
-        20+350, 450, "running"
-    );
+        bmp_printf(
+            FONT_MED,
+            720 - font_med.width * 13, 450, "[Scrollwheel]"
+        );
+    }
+    else // detailed view
+    {
+        if (edmac_selection <= 16)
+            edmac_display_detailed(0, 0xC0F04000, edmac_selection - 1);
+        else
+            edmac_display_detailed(16, 0xC0F26000, edmac_selection - 16 - 1);
+    }
 }
 #endif
 
@@ -2912,6 +3405,20 @@ static struct menu_entry debug_menus[] = {
         .priv =         run_test,
         .select        = (void(*)(void*,int))run_in_separate_task,
         .help = "The camera may turn into a 1DX or it may explode."
+    },
+#endif
+#ifdef FEATURE_DEBUG_INTERCEPT
+    {
+        .name        = "DM Log",
+        .priv        = debug_intercept,
+        .select      = (void(*)(void*,int))run_in_separate_task,
+        .help = "Log DebugMessages"
+    },
+    {
+        .name        = "TryPostEvent Log",
+        .priv        = tp_intercept,
+        .select      = (void(*)(void*,int))run_in_separate_task,
+        .help = "Log TryPostEvents"
     },
 #endif
 #if defined(CONFIG_7D)
@@ -3074,7 +3581,21 @@ static struct menu_entry debug_menus[] = {
                 .name = "Card R/W benchmark (5 min)",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = card_benchmark_task,
-                .help = "Check card read/write speed. Uses a 256MB temp file."
+                .help = "Check card read/write speed. Uses a 1GB temporary file."
+            },
+            #ifdef CONFIG_5D3
+            {
+                .name = "CF+SD write benchmark (1 min)",
+                .select = (void(*)(void*,int))run_in_separate_task,
+                .priv = twocard_benchmark_task,
+                .help = "Write speed on both CF and SD cards at the same time."
+            },
+            #endif
+            {
+                .name = "Memory benchmark (1 min)",
+                .select = (void(*)(void*,int))run_in_separate_task,
+                .priv = mem_benchmark_task,
+                .help = "Check memory read/write speed."
             },
             #ifdef FEATURE_FOCUS_PEAK
             {
@@ -3146,6 +3667,8 @@ static struct menu_entry debug_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "EDMAC display",
+                .priv = &edmac_selection,
+                .max = 32,
                 .update = edmac_display,
             },
             MENU_EOL
@@ -3810,7 +4333,7 @@ static void TmpMem_AddFile(char* filename)
     tmp_files[tmp_file_index].size = filesize;
     tmp_files[tmp_file_index].sig = compute_signature(tmp_buffer_ptr, filesize/4);
     tmp_file_index++;
-    tmp_buffer_ptr += (filesize + 10) & ~3;
+    tmp_buffer_ptr += ALIGN32SUP(filesize);
 
     /* no not update on every file, else it takes too long (90% of time updating display) */
     static int aux = 0;

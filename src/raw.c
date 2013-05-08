@@ -50,6 +50,9 @@
 #define RAW_PHOTO_EDMAC 0xc0f04808
 #endif
 
+#ifdef CONFIG_650D
+#define RAW_PHOTO_EDMAC 0xc0f04808
+#endif
 static uint32_t raw_buffer_photo = 0;
 
 /* called from state-object.c, SDSf3 or SSS state */
@@ -112,6 +115,15 @@ void raw_buffer_intercept_from_stateobj()
      -851, 10000,     1994, 10000,    5758, 10000
 #endif
 
+#ifdef CONFIG_650D
+    //~  { "Canon EOS 650D", 0, 0x354d,
+    //~  { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
+    #define CAM_COLORMATRIX1                       \
+     6602, 10000,     -841, 10000,    -939, 10000,\
+    -4472, 10000,    12458, 10000,    2247, 10000, \
+     -975, 10000,     2039, 10000,    6148, 10000
+#endif
+
 struct raw_info raw_info = {
     .bits_per_pixel = 14,
     .black_level = 1024,
@@ -143,6 +155,9 @@ int raw_update_params()
     int mv1080crop = mv && video_mode_resolution == 0 && video_mode_crop;
     int mv640crop = mv && video_mode_resolution == 2 && video_mode_crop;
     int zoom = lv_dispsize > 1;
+    
+    /* silence warnings; not all cameras have all these modes */
+    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop;
 
     if (lv)
     {
@@ -155,7 +170,8 @@ int raw_update_params()
         }
 
         /* autodetect raw size from EDMAC */
-        uint32_t lv_raw_size = MEMX(RAW_LV_EDMAC+8);
+        uint32_t lv_raw_height = shamem_read(RAW_LV_EDMAC+4);
+        uint32_t lv_raw_size = shamem_read(RAW_LV_EDMAC+8);
         if (!lv_raw_size)
         {
             dbg_printf("LV RAW size null\n");
@@ -163,30 +179,34 @@ int raw_update_params()
         }
         int pitch = lv_raw_size & 0xFFFF;
         raw_info.width = pitch * 8 / 14;
-        raw_info.height = raw_info.width; /* needs overwritten, but the default is useful for finding the real value */
+        
+        /* 5D2 uses lv_raw_size >> 16, 5D3 uses lv_raw_height, so this hopefully covers both cases */
+        raw_info.height = MAX((lv_raw_height & 0xFFFF) + 1, ((lv_raw_size >> 16) & 0xFFFF) + 1);
 
         /** 
-         * Height can't be detected, so it has to be hardcoded.
-         * Also, the RAW file has unused areas, usually black; we need to skip them.
+         * The RAW file has unused areas, usually black; we need to skip them.
          *
-         * To find these things, try a height bigger than the real one, and use 0 for skip values.
-         * 
-         * Load the RAW in your favorite photo editor (e.g. ufraw+gimp),
+         * To find the skip values, start with 0,
+         * load the RAW in your favorite photo editor (e.g. ufraw+gimp),
          * then find the usable area, read the coords and plug the skip values here.
          * 
          * Try to use even offsets only, otherwise the colors will be screwed up.
          */
         #ifdef CONFIG_5D2
-        raw_info.height = zoom ? 1126 : 1266;
-        skip_top        = zoom ?   50 :   16;
+        skip_top        = zoom ?   50 :   18;
         skip_left       = 160;
         #endif
         
         #ifdef CONFIG_5D3
-        raw_info.height = zoom ? 1380 : mv720 ? 690 : 1315;
         skip_top        = zoom ?   60 : mv720 ?  20 :   30;
         skip_left       = 146;
         skip_right      = 6;
+        #endif
+
+        #ifdef CONFIG_650D
+        skip_top    = 26;
+        skip_left   = 100;
+        skip_bottom = 1;
         #endif
 
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, raw_info.width, raw_info.height);
@@ -278,6 +298,10 @@ int raw_update_params()
 
     #ifdef CONFIG_6D
     int dynamic_ranges[] = {1143, 1139, 1122, 1087, 1044, 976, 894, 797, 683, 624, 505};
+    #endif
+
+    #ifdef CONFIG_650D
+    int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
     #endif
 
 /*********************** Portable code ****************************************/
@@ -385,6 +409,21 @@ int FAST raw_get_pixel(int x, int y) {
     return p->a;
 }
 
+int FAST raw_get_pixel_ex(void* raw_buffer, int x, int y) {
+    struct raw_pixblock * p = (void*)raw_buffer + y * raw_info.pitch + (x/8)*14;
+    switch (x%8) {
+        case 0: return p->a;
+        case 1: return p->b_lo | (p->b_hi << 12);
+        case 2: return p->c_lo | (p->c_hi << 10);
+        case 3: return p->d_lo | (p->d_hi << 8);
+        case 4: return p->e_lo | (p->e_hi << 6);
+        case 5: return p->f_lo | (p->f_hi << 4);
+        case 6: return p->g_lo | (p->g_hi << 2);
+        case 7: return p->h;
+    }
+    return p->a;
+}
+
 int FAST raw_set_pixel(int x, int y, int value)
 {
     struct raw_pixblock * p = (void*)raw_info.buffer + y * raw_info.pitch + (x/8)*14;
@@ -418,8 +457,6 @@ int FAST ev_to_raw(float ev)
 
 int autodetect_black_level()
 {
-    struct raw_pixblock * buf = raw_info.buffer;
-
     int black = 0;
     int num = 0;
     /* use a small area from top-left corner for quick black calibration */
@@ -441,5 +478,80 @@ int autodetect_black_level()
 
 void raw_lv_redirect_edmac(void* ptr)
 {
-    MEM(RAW_LV_EDMAC) = CACHEABLE(ptr);
+    MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
+}
+
+int raw_lv_settings_still_valid()
+{
+    /* should be fast enough for vsync calls */
+    int edmac_pitch = shamem_read(RAW_LV_EDMAC+8) & 0xFFFF;
+    if (edmac_pitch != raw_info.pitch) return 0;
+    return 1;
+}
+
+void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int ultra_fast)
+{
+    uint16_t* lv16 = CACHEABLE(lv_buffer);
+    uint64_t* lv64 = (uint64_t*) lv16;
+    if (!lv16) return;
+    
+    struct raw_pixblock * raw = CACHEABLE(raw_buffer);
+    if (!raw) return;
+    
+    uint8_t gamma[1024];
+    
+    for (int i = 0; i < 1024; i++)
+    {
+        int g = (i > (raw_info.black_level>>4)) ? log2f(i - (raw_info.black_level>>4)) * 255 / 10 : 0;
+        gamma[i] = g * g / 255; /* idk, looks better this way */
+    }
+    
+    int x1 = BM2LV_X(os.x0);
+    int x2 = BM2LV_X(os.x_max);
+
+    /* cache the LV to RAW transformation for the inner loop to make it faster */
+    /* we will always choose a green pixel */
+    
+    int* lv2rx = SmallAlloc(x2 * 4);
+    if (!lv2rx) return;
+    for (int x = x1; x < x2; x++)
+        lv2rx[x] = LV2RAW_X(x) & ~1;
+
+    int dy = ultra_fast ? 2 : 1;
+    for (int y = y1; y < y2; y += dy)
+    {
+        int yr = LV2RAW_Y(y) | 1;
+        struct raw_pixblock * row = (void*)raw + yr * raw_info.pitch;
+        
+        if (ultra_fast) /* prefer real-time low-res display */
+        {
+            for (int x = x1; x < x2; x += 4)
+            {
+                int xr = lv2rx[x];
+                struct raw_pixblock * p = row + (xr/8);
+                int c = p->a;
+                uint64_t Y = gamma[c >> 4];
+                Y = (Y << 8) | (Y << 24) | (Y << 40) | (Y << 56);
+                int idx = LV(x,y)/8;
+                lv64[idx] = Y;
+                lv64[idx + vram_lv.pitch/8] = Y;
+            }
+        }
+        else /* prefer full-res, don't care if it's a little slower */
+        {
+            for (int x = x1; x < x2; x++)
+            {
+                int xr = lv2rx[x];
+                int c = raw_get_pixel_ex(raw, xr, yr);
+                uint16_t Y = gamma[c >> 4];
+                lv16[LV(x,y)/2] = Y << 8;
+            }
+        }
+    }
+    SmallFree(lv2rx);
+}
+
+void FAST raw_preview_fast()
+{
+    raw_preview_fast_ex(raw_info.buffer, (void*)YUV422_LV_BUFFER_DISPLAY_ADDR, BM2LV_Y(os.y0), BM2LV_Y(os.y_max), 0);
 }

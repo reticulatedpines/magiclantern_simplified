@@ -2903,6 +2903,8 @@ static void FAST anamorphic_squeeze()
     uint32_t* src_buf;
     uint32_t* dst_buf;
     display_filter_get_buffers(&src_buf, &dst_buf);
+    src_buf = CACHEABLE(src_buf);
+    dst_buf = CACHEABLE(dst_buf);
     
     int mv = is_movie_mode();
     int ym = os.y0 + os.y_ex/2;
@@ -2936,7 +2938,7 @@ static void FAST anamorphic_squeeze()
 }*/
 
 //~ CONFIG_STR("defish.lut", defish_lut_file, CARD_DRIVE "ML/SETTINGS/recti.lut");
-#if defined(CONFIG_5D2) || defined(CONFIG_5D3) || defined(CONFIG_5DC) // fullframe
+#if defined(CONFIG_FULLFRAME)
 #define defish_lut_file_rectilin CARD_DRIVE "ML/DATA/ff8r.lut"
 #define defish_lut_file_panini CARD_DRIVE "ML/DATA/ff8p.lut"
 #else
@@ -2977,11 +2979,16 @@ static uint32_t get_yuv_pixel(uint32_t* buf, int pixoff)
     return (chroma | (luma << 8) | (luma << 24));
 }
 
-static void FAST defish_draw_lv_color_loop(uint32_t* src_buf, uint32_t* dst_buf, int* ind)
+static void FAST defish_draw_lv_color_loop(uint64_t* src_buf, uint64_t* dst_buf, int* ind)
 {
-    for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
+    src_buf = CACHEABLE((intptr_t)src_buf & ~7);
+    dst_buf = CACHEABLE((intptr_t)dst_buf & ~7);
+    for (int i = 720 * (os.y0/4); i < 720 * (os.y_max/4); i++)
         dst_buf[i] = src_buf[ind[i]];
 }
+
+// debug only
+//~ int* defish_ind;
 
 static void defish_draw_lv_color()
 {
@@ -3002,11 +3009,11 @@ static void defish_draw_lv_color()
     static int* ind = 0;
     if (!ind) 
     {
-        ind = AllocateMemory(720*240*4);
+        ind = AllocateMemory(720*120*4);
     }
     if (!ind) 
     {
-        ind = (int*) shoot_malloc(720*240*4);
+        ind = (int*) shoot_malloc(720*120*4);
         return;
     }
     if (!ind) 
@@ -3021,7 +3028,7 @@ static void defish_draw_lv_color()
     if (sig != prev_sig)
     {
         prev_sig = sig;
-        bzero32(ind, 720*240*4);
+        bzero32(ind, 720*120*4);
     
         info_led_on();
         for (int y = BM2LV_Y(os.y0); y < BM2LV_Y(os.y0 + os.y_ex/2); y++)
@@ -3053,29 +3060,28 @@ static void defish_draw_lv_color()
                     int Y = (off_i[k] ? N2LV_Y(off_i[k]) - y + BM2LV_Y(os.y0) - 1 : y);
                     int X = (off_j[k] ? N2LV_X(off_j[k]) - x + BM2LV_X(os.x0) : x);
                     
-                    int is = COERCE(LV(X,Y)/4, 0, 720*240-1);
+                    int is = COERCE(LV(X,Y)/8, 0, 720*120-1);
                     int ids;
                     if (DEFISH_HD)
                     {
                         int Id = (off_i[k] ? off_i[k]*16 - id : id);
                         int Jd = (off_j[k] ? off_j[k]*16 - jd : jd);
-                        ids = Nh2HD(Jd,Id)/4;
+                        ids = Nh2HD(Jd,Id)/8;
                     }
                     else
                     {
                         int Id = (off_i[k] ? off_i[k] - id : id);
                         int Jd = (off_j[k] ? off_j[k] - jd : jd);
-                        ids = N2LV(Jd,Id)/4;
+                        ids = N2LV(Jd,Id)/8;
                     }
                     ind[is] = ids;
-                    dst_buf[is] = src_buf[ids];
                 }
             }
         }
         info_led_off();
     }
-    
-    defish_draw_lv_color_loop(src_buf, dst_buf, ind);
+    //~ defish_ind = ind;
+    defish_draw_lv_color_loop((uint64_t*)src_buf, (uint64_t*)dst_buf, ind);
 }
 
 void defish_draw_play()
@@ -3536,7 +3542,7 @@ static struct menu_entry display_menus[] = {
                     .name = "Auto Mirroring",
                     .priv = &display_dont_mirror,
                     .max  = 1,
-                    .choices = (const char *[]) {"Don't allow", "Allow"},
+                    .choices = (const char *[]) {"Allow", "Don't allow"},
                     .help = "Prevents display mirroring, which may reverse ML texts.",
                     .icon_type = IT_DISABLE_SOME_FEATURE,
                 },

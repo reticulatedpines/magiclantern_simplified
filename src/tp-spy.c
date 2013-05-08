@@ -15,6 +15,7 @@
  * 
  **/
 
+#include "tp-spy.h"
 #include "dryos.h"
 #include "bmp.h"
 #include "cache_hacks.h"

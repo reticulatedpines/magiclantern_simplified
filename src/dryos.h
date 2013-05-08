@@ -48,6 +48,7 @@
 #endif
 #include <stdarg.h>
 #include "plugin.h"
+#include "exmem.h"
 
 /** Check a pointer for error code */
 #define IS_ERROR(ptr)   (1 & (uintptr_t) ptr)
@@ -56,6 +57,10 @@ extern void * memset ( void * ptr, int value, size_t num );
 extern float roundf(float x);
 extern float powf(float x, float y);
 extern uint32_t shamem_read(uint32_t addr);
+extern void* memset64(void* dest, int val, size_t n);
+extern void* memcpy64(void* dest, void* srce, size_t n);
+extern void* dma_memcpy(void* dest, void* srce, size_t n);
+extern void* edmac_memcpy(void* dest, void* srce, size_t n);
 
 /** Panic and abort the camera */
 extern void __attribute__((noreturn))
@@ -418,10 +423,6 @@ SIZE_CHECK_STRUCT( dryos_meminfo, 0xC );
 extern void * malloc( size_t len );
 extern void free( void * buf );
 
-void * shoot_malloc( size_t len );
-struct memSuite *shoot_malloc_suite(size_t size);
-void shoot_free( void * buf );
-
 //extern void * realloc( void * buf, size_t newlen );
 
 /** Set if the firmware was loaded via AUTOEXEC.BIN */
@@ -501,6 +502,14 @@ int rand (void);
         *(volatile uint32_t *)(x) \
 )
 
+#define ALIGN16(x) ((typeof(x))(((uint32_t)(x)) & ~1))
+#define ALIGN32(x) ((typeof(x))(((uint32_t)(x)) & ~3))
+#define ALIGN64(x) ((typeof(x))(((uint32_t)(x)) & ~7))
+
+#define ALIGN16SUP(x) ((typeof(x))(((uint32_t)(x) + 1) & ~1))
+#define ALIGN32SUP(x) ((typeof(x))(((uint32_t)(x) + 3) & ~3))
+#define ALIGN64SUP(x) ((typeof(x))(((uint32_t)(x) + 7) & ~7))
+
 #if defined(POSITION_INDEPENDENT)
 extern uint32_t _ml_base_address;
 #define PIC_RESOLVE(x) ( ((uint32_t) (x) >> 24 == 0xE0)?((uint32_t) (x) - 0xE0000000 + _ml_base_address):(x) )
@@ -575,20 +584,6 @@ OS_FUNCTION( 0x0400001,	const char*,	get_card_drive, void );
 
 uint32_t RegisterRPCHandler (uint32_t rpc_id, uint32_t (*handler) (uint8_t *, uint32_t));
 uint32_t RequestRPC (uint32_t id, void* data, uint32_t length, uint32_t cb, uint32_t cb_parm);
-
-/* MemorySuite routines */
-struct memSuite;
-struct memChunk;
-
-int AllocateMemoryResource(int size, void (*cbr)(unsigned int, struct memSuite *), unsigned int ctx, int type);
-int FreeMemoryResource(struct memSuite *hSuite, void (*cbr)(unsigned int), unsigned int ctx);
-struct memChunk *GetFirstChunkFromSuite(struct memSuite *hSuite);
-struct memChunk *GetNextMemoryChunk(struct memSuite *hSuite, struct memChunk *hPos);
-unsigned int GetSizeOfMemoryChunk(struct memChunk *chunk);
-struct memChunk *GetRemainOfMemoryChunk(struct memChunk *chunk);
-unsigned int GetMemoryAddressOfMemoryChunk(struct memChunk *chunk);
-int GetNumberOfChunks(struct memSuite *hSuite);
-int GetSizeOfMemorySuite(struct memSuite *hSuite);
 
 extern int _dummy_variable;
 

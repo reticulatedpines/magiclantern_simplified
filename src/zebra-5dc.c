@@ -176,7 +176,7 @@ int yuv411_to_422(uint32_t addr)
 {
     // 4 6  8 A  0 2 
     // uYvY yYuY vYyY
-    addr = addr & ~3; // multiple of 4
+    addr = ALIGN32(addr);
         
     // multiples of 12, offset 0: vYyY u
     // multiples of 12, offset 4: uYvY

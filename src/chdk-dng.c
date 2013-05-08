@@ -459,7 +459,7 @@ static void create_thumbnail()
 //-------------------------------------------------------------------
 // Write DNG header, thumbnail and data to file
 
-static void write_dng(int fd, char* rawadr) 
+static void write_dng(FILE* fd, char* rawadr) 
 {
     create_dng_header();
 

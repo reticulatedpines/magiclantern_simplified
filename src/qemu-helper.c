@@ -149,8 +149,8 @@ void* q_AllocateMemory(size_t size)
     qprintf("*** AllocateMemory(%x)", size);
     
     static uint32_t alloc_ptr = 0x10000000;
-    void* ans = (void*)((alloc_ptr + 64) & ~3);
-    alloc_ptr = (alloc_ptr + size + 128) & ~3;
+    void* ans = (void*)ALIGN32(alloc_ptr + 64);
+    alloc_ptr = ALIGN32(alloc_ptr + size + 128);
     qprintf(" => %x\n", ans);
     return ans;
 }
