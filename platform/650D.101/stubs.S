@@ -237,3 +237,9 @@ NSTUB(0xFF66F540, SetCFnData)
 NSTUB(0xFF4D4BE4, NormalDisplay)
 NSTUB(0xFF4D4BB4, ReverseDisplay)
 NSTUB(0xFF4D4B84, MirrorDisplay)
+
+NSTUB(0x16C44, TryPostEvent)
+NSTUB(0x16CA0, TryPostEvent_end)
+
+NSTUB(0x16564, TryPostStageEvent)
+NSTUB(0x165C0, TryPostStageEvent_end)
