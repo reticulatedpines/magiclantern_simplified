@@ -738,6 +738,7 @@ static void bsod()
 static void run_test()
 {
     call("lv_save_raw", 1);
+    call("aewb_enableaewb", 0);
     return;
     
 #ifdef FEATURE_SHOW_SIGNATURE
@@ -951,6 +952,82 @@ static void card_benchmark_task()
     msleep(3000);
     canon_gui_enable_front_buffer(0);
 }
+
+
+
+#ifdef CONFIG_5D3
+
+static struct msg_queue * twocard_mq = 0;
+static volatile int twocard_bufsize = 0;
+static volatile int twocard_done = 0;
+
+static void twocard_init()
+{
+    twocard_mq = (void*)msg_queue_create("twocard", 100);
+}
+INIT_FUNC("twocard", twocard_init);
+
+static void twocard_write_task(char* filename)
+{
+    int bufsize = twocard_bufsize;
+    int t0 = get_ms_clock_value();
+    int cf = filename[0] == 'A';
+    int msg;
+    int filesize = 0;
+    FILE* f = FIO_CreateFileEx(filename);
+    if (f != INVALID_PTR)
+    {
+        while (msg_queue_receive(twocard_mq, (struct event **) &msg, 1000) == 0)
+        {
+            uint32_t start = (int)UNCACHEABLE(YUV422_LV_BUFFER_1);
+            bmp_printf(FONT_MED, 0, cf*20, "[%s] Writing chunk %d [total=%d MB] (buf=%dK)... ", cf ? "CF" : "SD", msg, filesize, bufsize/1024);
+            int r = FIO_WriteFile( f, (const void *) start, bufsize );
+            if (r != bufsize) break; // card full?
+            filesize += bufsize / 1024 / 1024;
+        }
+        FIO_CloseFile(f);
+        FIO_RemoveFile(filename);
+        int t1 = get_ms_clock_value() - 1000;
+        int speed = filesize * 1000 * 10 / (t1 - t0);
+        bmp_printf(FONT_MED, 0, 120+cf*20, "[%s] Write speed (buffer=%dk):\t %d.%d MB/s\n", cf ? "CF" : "SD", bufsize/1024, speed/10, speed % 10);
+    }
+    twocard_done++;
+}
+
+static void twocard_benchmark_task()
+{
+    msleep(1000);
+    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
+    canon_gui_disable_front_buffer();
+    clrscr();
+    print_benchmark_header();
+
+    #ifdef CARD_A_MAKER
+    bmp_printf(FONT_MED, 0, 80, "CF %s %s", CARD_A_MAKER, CARD_A_MODEL);
+    #endif
+
+    uint32_t bufsize = 32*1024*1024;
+
+    msleep(2000);
+    uint32_t filesize = 2048; // MB
+    uint32_t n = filesize * 1024 * 1024 / bufsize;
+    twocard_bufsize = bufsize;
+
+    for (uint32_t i = 0; i < n; i++)
+        msg_queue_post(twocard_mq, i);
+    
+    twocard_done = 0;
+    task_create("twocard_cf", 0x1d, 0x2000, twocard_write_task, "A:/bench.tmp");
+    task_create("twocard_sd", 0x1d, 0x2000, twocard_write_task, "B:/bench.tmp");
+
+    while (twocard_done < 2) msleep(100);
+    
+    call("dispcheck");
+    msleep(3000);
+    canon_gui_enable_front_buffer(0);
+}
+
+#endif
 
 typedef void (*mem_bench_fun)(
     int arg0,
@@ -3511,6 +3588,14 @@ static struct menu_entry debug_menus[] = {
                 .priv = card_benchmark_task,
                 .help = "Check card read/write speed. Uses a 1GB temporary file."
             },
+            #ifdef CONFIG_5D3
+            {
+                .name = "CF+SD write benchmark (1 min)",
+                .select = (void(*)(void*,int))run_in_separate_task,
+                .priv = twocard_benchmark_task,
+                .help = "Write speed on both CF and SD cards at the same time."
+            },
+            #endif
             {
                 .name = "Memory benchmark (1 min)",
                 .select = (void(*)(void*,int))run_in_separate_task,
