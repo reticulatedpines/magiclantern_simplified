@@ -67,6 +67,8 @@ ML_OBJS-y = \
 	ph_info_disp.o \
 	flexinfo.o \
 	dm-spy.o \
+	raw.o \
+	chdk-dng.o \
 
 #include generic rules and definitions
 include  $(TOP_DIR)/Makefile.inc

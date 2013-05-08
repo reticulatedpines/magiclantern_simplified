@@ -211,9 +211,9 @@ NSTUB(0xFF13BB8C, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0x8F28, GetFirstChunkFromSuite)
 NSTUB(0x8900, GetMemoryAddressOfMemoryChunk)
 NSTUB(0x88A0, GetRemainOfMemoryChunk)
-NSTUB(0x88D0, GetSizeOfMemoryChunk)
-NSTUB(0x8C08, GetSizeOfMemorySuite)
-NSTUB(0x8CE8, GetNumberOfChunks)
+//NSTUB(0x88D0, GetSizeOfMemoryChunk)
+//NSTUB(0x8C08, GetSizeOfMemorySuite)
+//NSTUB(0x8CE8, GetNumberOfChunks)
 NSTUB(0x96C4, GetNextMemoryChunk)
 
 NSTUB(0xFFA56AB8 - RAM_OFFSET, dma_memcpy) // AJ_HP_Copy_n_DMA_channel_n_BLTDMA

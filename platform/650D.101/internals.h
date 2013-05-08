@@ -4,7 +4,7 @@
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
 /** The 650D port is very young, so we don't enable these for now. **/
-//~ #define CONFIG_PROP_REQUEST_CHANGE
+#define CONFIG_PROP_REQUEST_CHANGE
 
 /** 
  * State object hooks are pieces of code that run in Canon tasks (state objects). See state-object.c . 
@@ -75,7 +75,6 @@
 #define CONFIG_DISPLAY_FILTERS
 
 /** We can override ISO on a per-frame basis, by changing FRAME_ISO (e.g. for HDR video or gradual exposure) **/
-/** Well, I hope so **/
 #define CONFIG_FRAME_ISO_OVERRIDE
 
 /** But we can't override the digital ISO component via FRAME_ISO **/
@@ -94,7 +93,9 @@
 #define CONFIG_RESTORE_AFTER_FORMAT
 
 /** We can use DMA_MEMCPY **/
-#define CONFIG_DMA_MEMCPY
+// #define CONFIG_DMA_MEMCPY
+/** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
+#define CONFIG_EDMAC_MEMCPY
 
 /** We should warn the user if movie exposure is Auto, otherwise he may report it as a bug **/
 #define CONFIG_MOVIE_AE_WARNING
@@ -119,6 +120,3 @@
 
 /** FPS override: change timers from EVF state */
 #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
-
-/** Advanced EXMEM stubs are known and can be used */
-#define CONFIG_FULL_EXMEM_SUPPORT

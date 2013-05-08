@@ -50,6 +50,9 @@
 #define RAW_PHOTO_EDMAC 0xc0f04808
 #endif
 
+#ifdef CONFIG_650D
+#define RAW_PHOTO_EDMAC 0xc0f04808
+#endif
 static uint32_t raw_buffer_photo = 0;
 
 /* called from state-object.c, SDSf3 or SSS state */
@@ -110,6 +113,15 @@ void raw_buffer_intercept_from_stateobj()
      7034, 10000,     -804, 10000,    -1014, 10000,\
     -4420, 10000,    12564, 10000,    2058, 10000, \
      -851, 10000,     1994, 10000,    5758, 10000
+#endif
+
+#ifdef CONFIG_650D
+    //~  { "Canon EOS 650D", 0, 0x354d,
+    //~  { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
+    #define CAM_COLORMATRIX1                       \
+     6602, 10000,     -841, 10000,    -939, 10000,\
+    -4472, 10000,    12458, 10000,    2247, 10000, \
+     -975, 10000,     2039, 10000,    6148, 10000
 #endif
 
 struct raw_info raw_info = {
@@ -189,6 +201,12 @@ int raw_update_params()
         skip_top        = zoom ?   60 : mv720 ?  20 :   30;
         skip_left       = 146;
         skip_right      = 6;
+        #endif
+
+        #ifdef CONFIG_650D
+        skip_top    = 26;
+        skip_left   = 100;
+        skip_bottom = 1;
         #endif
 
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, raw_info.width, raw_info.height);
@@ -280,6 +298,10 @@ int raw_update_params()
 
     #ifdef CONFIG_6D
     int dynamic_ranges[] = {1143, 1139, 1122, 1087, 1044, 976, 894, 797, 683, 624, 505};
+    #endif
+
+    #ifdef CONFIG_650D
+    int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
     #endif
 
 /*********************** Portable code ****************************************/
