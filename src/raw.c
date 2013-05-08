@@ -158,6 +158,7 @@ int raw_update_params()
         }
 
         /* autodetect raw size from EDMAC */
+        uint32_t lv_raw_height = shamem_read(RAW_LV_EDMAC+4);
         uint32_t lv_raw_size = shamem_read(RAW_LV_EDMAC+8);
         if (!lv_raw_size)
         {
@@ -166,27 +167,25 @@ int raw_update_params()
         }
         int pitch = lv_raw_size & 0xFFFF;
         raw_info.width = pitch * 8 / 14;
-        raw_info.height = raw_info.width; /* needs overwritten, but the default is useful for finding the real value */
+        
+        /* 5D2 uses lv_raw_size >> 16, 5D3 uses lv_raw_height, so this hopefully covers both cases */
+        raw_info.height = MAX((lv_raw_height & 0xFFFF) + 1, ((lv_raw_size >> 16) & 0xFFFF) + 1);
 
         /** 
-         * Height can't be detected, so it has to be hardcoded.
-         * Also, the RAW file has unused areas, usually black; we need to skip them.
+         * The RAW file has unused areas, usually black; we need to skip them.
          *
-         * To find these things, try a height bigger than the real one, and use 0 for skip values.
-         * 
-         * Load the RAW in your favorite photo editor (e.g. ufraw+gimp),
+         * To find the skip values, start with 0,
+         * load the RAW in your favorite photo editor (e.g. ufraw+gimp),
          * then find the usable area, read the coords and plug the skip values here.
          * 
          * Try to use even offsets only, otherwise the colors will be screwed up.
          */
         #ifdef CONFIG_5D2
-        raw_info.height = zoom ? 1126 : 1266;
-        skip_top        = zoom ?   50 :   16;
+        skip_top        = zoom ?   50 :   18;
         skip_left       = 160;
         #endif
         
         #ifdef CONFIG_5D3
-        raw_info.height = zoom ? 1380 : mv720 ? 690 : 1315;
         skip_top        = zoom ?   60 : mv720 ?  20 :   30;
         skip_left       = 146;
         skip_right      = 6;
