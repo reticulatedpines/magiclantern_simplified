@@ -1031,16 +1031,30 @@ static uint32_t FAST mem_test_read32(uint32_t* buf, uint32_t n)
     return tmp;
 }
 
-#if 0
-uint32_t volatile edmac_memcpy_done = 0;
+#ifdef CONFIG_EDMAC_MEMCPY
 
-static void complete_cbr (int ctx)
+/* todo: move in a separate source file? */
+
+static struct semaphore * edmac_memcpy_sem = 0; /* to allow only one memcpy running at a time */
+static struct semaphore * edmac_memcpy_done_sem = 0; /* to know when memcpy is finished */
+
+static void edmac_memcpy_init()
 {
-    edmac_memcpy_done = 1;
+    edmac_memcpy_sem = create_named_semaphore("edmac_memcpy_sem", 1);
+    edmac_memcpy_done_sem = create_named_semaphore("edmac_memcpy_done_sem", 0);
 }
 
-static void edmac_memcpy_test(char *dst, char *src, int length)
+INIT_FUNC("edmac_memcpy", edmac_memcpy_init);
+
+static void edmac_memcpy_complete_cbr (int ctx)
 {
+    give_semaphore(edmac_memcpy_done_sem);
+}
+
+void* edmac_memcpy(void* dst, void* src, size_t length)
+{
+    take_semaphore(edmac_memcpy_sem, 0);
+
     if(length % 4096)
     {
         length &= 4095;
@@ -1061,7 +1075,7 @@ static void edmac_memcpy_test(char *dst, char *src, int length)
     struct memSuite *memSuiteDest = CreateMemorySuite(dst, length, 0);
 
     /* only read channel will emit a callback when reading from memory is done. write channels would just silently wrap */
-    PackMem_RegisterEDmacCompleteCBRForMemorySuite(dmaChannelRead, &complete_cbr, 0);
+    PackMem_RegisterEDmacCompleteCBRForMemorySuite(dmaChannelRead, &edmac_memcpy_complete_cbr, 0);
 
     /* connect the selected channels to 6 so any data read from RAM is passed to write channel */
     ConnectWriteEDmac(dmaChannelWrite, dmaConnection);
@@ -1073,20 +1087,16 @@ static void edmac_memcpy_test(char *dst, char *src, int length)
 
     if(err)
     {
-        return;
+        return 0;
     }
-    
-    /* reset signalling flag */
-    edmac_memcpy_done = 0;
     
     /* start transfer. no flags for write, 2 for read channels */
     PackMem_StartEDmac(dmaChannelWrite, 0);
     PackMem_StartEDmac(dmaChannelRead, 2);
+    take_semaphore(edmac_memcpy_done_sem, 0);
     
-    /* yes, active waiting is bad. but its imitating memcpy */
-    while(!edmac_memcpy_done)
-    {
-    }
+    give_semaphore(edmac_memcpy_sem);
+    return dst;
 }
 #endif
 
@@ -1128,8 +1138,8 @@ static void mem_benchmark_task()
     mem_benchmark_run("dma_memcpy cacheable", &y, bufsize, (mem_bench_fun)dma_memcpy, (intptr_t)CACHEABLE(buf1),   (intptr_t)CACHEABLE(buf2),   bufsize, 0);
     mem_benchmark_run("dma_memcpy uncacheab", &y, bufsize, (mem_bench_fun)dma_memcpy, (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0);
     #endif
-    #if 0
-    mem_benchmark_run("edmac_memcpy uncache", &y, bufsize, (mem_bench_fun)edmac_memcpy_test, (intptr_t)CACHEABLE(buf1),   (intptr_t)CACHEABLE(buf2),   bufsize, 0);
+    #ifdef CONFIG_EDMAC_MEMCPY
+    mem_benchmark_run("edmac_memcpy        ", &y, bufsize, (mem_bench_fun)edmac_memcpy, (intptr_t)buf1,   (intptr_t)buf2,   bufsize, 0);
     #endif
     mem_benchmark_run("memset cacheable    ", &y, bufsize, (mem_bench_fun)memset,     (intptr_t)CACHEABLE(buf1),   0,                           bufsize, 0);
     mem_benchmark_run("memset uncacheable  ", &y, bufsize, (mem_bench_fun)memset,     (intptr_t)UNCACHEABLE(buf1), 0,                           bufsize, 0);

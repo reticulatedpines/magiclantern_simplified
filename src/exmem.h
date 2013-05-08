@@ -52,4 +52,6 @@ struct memChunk * GetFirstChunkFromSuite(struct memSuite * suite);
 struct memChunk * GetNextMemoryChunk(struct memSuite * suite, struct memChunk * chunk);
 int GetSizeOfMemoryChunk(struct memChunk * chunk);
 void* GetMemoryAddressOfMemoryChunk(struct memChunk * chunk);
+
+struct memSuite * CreateMemorySuite(void* src, size_t length, int idk);
 #endif

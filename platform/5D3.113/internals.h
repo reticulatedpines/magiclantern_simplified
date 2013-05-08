@@ -101,6 +101,9 @@
 /** (read: I'm too dumb to understand why it's better than memcpy and why it's safe to use) **/
 //~ #define CONFIG_DMA_MEMCPY
 
+/** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
+#define CONFIG_EDMAC_MEMCPY
+
 /** We shouldn't warn the user if movie exposure is Auto **/
 //~ #define CONFIG_MOVIE_AE_WARNING
 
