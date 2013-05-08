@@ -1098,15 +1098,17 @@ static void mem_benchmark_task()
     clrscr();
     print_benchmark_header();
 
-    int bufsize = 8*1024*1024;
+    int bufsize = 16*1024*1024;
     
-    void* buf1 = shoot_malloc(bufsize * 2);
-    if (!buf1)
+    void* buf1 = 0;
+    void* buf2 = 0;
+    buf1 = shoot_malloc(bufsize);
+    buf2 = shoot_malloc(bufsize);
+    if (!buf1 || !buf2)
     {
         bmp_printf(FONT_LARGE, 0, 0, "malloc error :(");
-        return;
+        goto cleanup;
     }
-    void* buf2 = buf1 + bufsize;
 
     int y = 80;
 
@@ -1138,9 +1140,14 @@ static void mem_benchmark_task()
     mem_benchmark_run("read64 cacheable    ", &y, bufsize, (mem_bench_fun)mem_test_read64, (intptr_t)CACHEABLE(buf1),   bufsize, 0, 0);
     mem_benchmark_run("read64 uncacheable  ", &y, bufsize, (mem_bench_fun)mem_test_read64, (intptr_t)UNCACHEABLE(buf1), bufsize, 0, 0);
     mem_benchmark_run("bmp_fill to idle buf", &y, 720*480, (mem_bench_fun)mem_test_bmp_fill, 0, 0, 720, 480);
+
     call("dispcheck");
     msleep(3000);
     canon_gui_enable_front_buffer(0);
+
+cleanup:
+    if (buf1) shoot_free(buf1);
+    if (buf2) shoot_free(buf2);
 }
 
 #endif
