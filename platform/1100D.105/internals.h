@@ -124,5 +124,5 @@
 /** This camera has a low-resolution display, may require some antialiasing tricks for icons/fonts */
 #define CONFIG_LOW_RESOLUTION_DISPLAY
 
-/** We have AllocateMemoryResourceForSingleChunck */
-#define CONFIG_EXMEM_SINGLE_CHUNCK
+/** We have AllocateMemoryResourceForSingleChunk */
+#define CONFIG_EXMEM_SINGLE_CHUNK

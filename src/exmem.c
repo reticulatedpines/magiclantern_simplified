@@ -148,7 +148,7 @@ struct memSuite *shoot_malloc_suite(size_t size)
 }
 
 #ifndef CONFIG_EXMEM_SINGLE_CHUNCK
-/* compatibility mode: we don't have AllocateMemoryResourceForSingleChunck, so we'll use our own implementation */
+/* compatibility mode: we don't have AllocateMemoryResourceForSingleChunk, so we'll use our own implementation */
 /* it's a lot slower, but at least it works */
 
 /* try hard to allocate a contiguous block */
@@ -229,7 +229,7 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
         ASSERT(!alloc_sem_timed_out);
 
         struct memSuite * hSuite = NULL;
-        AllocateMemoryResourceForSingleChunck(size, allocCBR, (unsigned int)&hSuite, 0x50);
+        AllocateMemoryResourceForSingleChunk(size, allocCBR, (unsigned int)&hSuite, 0x50);
 
         int r = take_semaphore(alloc_sem, 100);
         if (r)

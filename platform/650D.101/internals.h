@@ -121,5 +121,5 @@
 /** FPS override: change timers from EVF state */
 #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
 
-/** We have AllocateMemoryResourceForSingleChunck */
-#define CONFIG_EXMEM_SINGLE_CHUNCK
+/** We have AllocateMemoryResourceForSingleChunk */
+#define CONFIG_EXMEM_SINGLE_CHUNK

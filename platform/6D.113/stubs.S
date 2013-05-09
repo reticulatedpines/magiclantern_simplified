@@ -202,7 +202,7 @@ NSTUB(0xFFCE3188 - RAM_OFFSET, ENCODE_StartEncodeJpeg)  //~ called from RAM in 6
 NSTUB(0xFF14A424, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xFF14A470, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xFF14A588, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xFF0F2EC4, AllocateMemoryResourceForSingleChunck)
+NSTUB(0xFF0F2EC4, AllocateMemoryResourceForSingleChunk)
 NSTUB(0xFFCCF2E0 - RAM_OFFSET, GetFirstChunkFromSuite)
 NSTUB(0xFFCCFA7C - RAM_OFFSET, GetNextMemoryChunk)
 NSTUB(0xFFCCECB8 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)

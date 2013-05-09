@@ -282,7 +282,7 @@ NSTUB(0xff076704, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0xff073b98, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF07432C, GetNextMemoryChunk)
 NSTUB(0xff0735e0, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature
-NSTUB(0xFF02B874, AllocateMemoryResourceForSingleChunck) // Initialize Resource Wrapper R1
+NSTUB(0xFF02B874, AllocateMemoryResourceForSingleChunk) // Initialize Resource Wrapper R1
 
 NSTUB(0xff06a93c, PowerAudioOutput)
 NSTUB(0xff05587c, StartASIFDMADAC)
