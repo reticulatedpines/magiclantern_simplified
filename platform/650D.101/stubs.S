@@ -207,6 +207,7 @@ NSTUB(0xFF19CD0C, ENCODE_StartEncodeJpeg)
 NSTUB(0xFF13BA28, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xFF13BA74, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xFF13BB8C, FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xFF0E94C4, AllocateMemoryResourceForSingleChunck) // Initialize Resource Wrapper R1
 
 NSTUB(0x8F28, GetFirstChunkFromSuite)
 NSTUB(0x8900, GetMemoryAddressOfMemoryChunk)
