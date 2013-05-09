@@ -147,7 +147,7 @@ struct memSuite *shoot_malloc_suite(size_t size)
     return hSuite;
 }
 
-#ifndef CONFIG_EXMEM_SINGLE_CHUNCK
+#ifndef CONFIG_EXMEM_SINGLE_CHUNK
 /* compatibility mode: we don't have AllocateMemoryResourceForSingleChunk, so we'll use our own implementation */
 /* it's a lot slower, but at least it works */
 
@@ -225,7 +225,7 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
 {
     if(size > 0)
     {
-        #ifdef CONFIG_EXMEM_SINGLE_CHUNCK
+        #ifdef CONFIG_EXMEM_SINGLE_CHUNK
         ASSERT(!alloc_sem_timed_out);
 
         struct memSuite * hSuite = NULL;
@@ -261,7 +261,7 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
         
         shoot_free_suite(hSuite);
         
-        #ifdef CONFIG_EXMEM_SINGLE_CHUNCK
+        #ifdef CONFIG_EXMEM_SINGLE_CHUNK
         return shoot_malloc_suite_contig(max_size);
         #else
         /* our hack is not guaranteed to find the largest block, so we will reduce the size a bit */
