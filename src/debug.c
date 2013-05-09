@@ -62,6 +62,11 @@ void ui_lock(int what);
 
 void fake_halfshutter_step();
 
+#ifdef FEATURE_DEBUG_INTERCEPT
+void j_debug_intercept() { debug_intercept(); }
+void j_tp_intercept() { tp_intercept(); }
+#endif
+
 #ifdef FEATURE_SCREENSHOT
 
 int rename_file(char* src, char* dst)
@@ -3408,13 +3413,13 @@ static struct menu_entry debug_menus[] = {
 #ifdef FEATURE_DEBUG_INTERCEPT
     {
         .name        = "DM Log",
-        .priv        = debug_intercept,
+        .priv        = j_debug_intercept,
         .select      = (void(*)(void*,int))run_in_separate_task,
         .help = "Log DebugMessages"
     },
     {
         .name        = "TryPostEvent Log",
-        .priv        = tp_intercept,
+        .priv        = j_tp_intercept,
         .select      = (void(*)(void*,int))run_in_separate_task,
         .help = "Log TryPostEvents"
     },

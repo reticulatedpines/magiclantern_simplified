@@ -18,9 +18,12 @@
 #include "dm-spy.h"
 #include "dryos.h"
 #include "bmp.h"
-#include "cache_hacks.h"
 
-#define BUF_SIZE (1024*1024)
+#if !(defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D))
+#include "cache_hacks.h"
+#endif
+
+unsigned int BUF_SIZE = (1024*1024);
 static char* buf = 0;
 static int len = 0;
 
