@@ -23,7 +23,7 @@
 #include "cache_hacks.h"
 #endif
 
-unsigned int BUF_SIZE = (1024*1024);
+unsigned int BUFF_SIZE = (1024*1024);
 static char *tp_buf = 0;
 static int tp_len = 0;
 
@@ -70,28 +70,21 @@ char* get_call_stack()
 
 volatile int in_trypostevent = 0;
 
-void tp_log(const char* caller, int taskclass, int obj, int event, int arg3, int arg4) {
-	tp_len += snprintf(tp_buf + tp_len, BUF_SIZE - tp_len, "[%d]\t%20s(%x, %x '%s', %x, %x, %x)\n", get_ms_clock_value(), caller, taskclass, obj, MEM(obj), event, arg3, arg4);
-}
-
 int my_TryPostEvent(int taskclass, int obj, int event, int arg3, int arg4)
-{
-	tp_log("TryPostEvent", taskclass, obj, event, arg3, arg4);
-    return new_TryPostEvent(taskclass, obj, event, arg3, arg4);
+{	tp_len += snprintf(tp_buf + tp_len, BUFF_SIZE - tp_len, "*** TryPostEvent(%x, %x '%s', %x, %x, %x)\n", taskclass, obj, MEM(obj), event, arg3, arg4);
+	return new_TryPostEvent(taskclass, obj, event, arg3, arg4);
 }
 
 int my_TryPostStageEvent(int taskclass, int obj, int event, int arg3, int arg4)
-{
-	tp_log("TryPostStageEvent", taskclass, obj, event, arg3, arg4);
+{	tp_len += snprintf(tp_buf + tp_len, BUFF_SIZE - tp_len, "*** TryPostStageEvent(%x, %x '%s', %x, %x, %x)\n", taskclass, obj, MEM(obj), event, arg3, arg4);
     return new_TryPostStageEvent(taskclass, obj, event, arg3, arg4);
 }
 
-// call this from "don't click me"
 void tp_intercept()
 {
     if (!tp_buf) // first call, intercept debug messages
     {
-	tp_buf = alloc_dma_memory(tp_buf_SIZE);
+	tp_buf = alloc_dma_memory(BUFF_SIZE);
 	tp_len = 0;
 
     	if (!reloc_tp_buf) reloc_tp_buf = (uintptr_t) AllocateMemory(reloc_tp_len + 64);
