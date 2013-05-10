@@ -3203,9 +3203,9 @@ static void edmac_display_page(int i0, int x0, int y0)
     }
 }
 
-static void edmac_display_detailed(int i0, int i)
+static void edmac_display_detailed(int channel)
 {
-    uint32_t base = edmac_get_base(i0+i);
+    uint32_t base = edmac_get_base(channel);
 
     int x = 50;
     int y = 50;
@@ -3213,7 +3213,7 @@ static void edmac_display_detailed(int i0, int i)
         FONT_LARGE,
         x, y,
         "EDMAC #%d - %x\n", 
-        i0 + i,
+        channel,
         base
     );
     y += font_large.height;
@@ -3240,8 +3240,8 @@ static void edmac_display_detailed(int i0, int i)
     uint32_t off2a = shamem_read(base + 0x24);
     uint32_t off3  = shamem_read(base + 0x28);
 
-    uint32_t conn_w  = edmac_get_connection(i0+i, EDMAC_DIR_WRITE);
-    uint32_t conn_r  = edmac_get_connection(i0+i, EDMAC_DIR_READ);
+    uint32_t conn_w  = edmac_get_connection(channel, EDMAC_DIR_WRITE);
+    uint32_t conn_r  = edmac_get_connection(channel, EDMAC_DIR_READ);
     
     bmp_printf(FONT_MED, 50, y += font_med.height, "Address    : %8x ", addr);
     bmp_printf(FONT_MED, 50, y += font_med.height, "State      : %8x ", state);
@@ -3266,8 +3266,8 @@ static void edmac_display_detailed(int i0, int i)
      * => *(8 + 32*arg0 + *0x12400) = arg1
      * and also: *(12 + 32*arg0 + *0x12400) = arg1
      */
-    uint32_t cbr1 = MEM(8 + 32*(i+i0) + MEM(0x12400));
-    uint32_t cbr2 = MEM(12 + 32*(i+i0) + MEM(0x12400));
+    uint32_t cbr1 = MEM(8 + 32*(channel) + MEM(0x12400));
+    uint32_t cbr2 = MEM(12 + 32*(channel) + MEM(0x12400));
     bmp_printf(FONT_MED, 50, y += font_med.height, "CBR handler: %8x %s", cbr1, asm_guess_func_name_from_string(cbr1));
     bmp_printf(FONT_MED, 50, y += font_med.height, "CBR abort  : %8x %s", cbr2, asm_guess_func_name_from_string(cbr2));
     #endif
@@ -3307,10 +3307,7 @@ static MENU_UPDATE_FUNC(edmac_display)
     }
     else // detailed view
     {
-        if (edmac_selection <= 16)
-            edmac_display_detailed(0, edmac_selection - 1);
-        else
-            edmac_display_detailed(16, edmac_selection - 16 - 1);
+        edmac_display_detailed(edmac_selection - 1);
     }
 }
 #endif
@@ -3701,7 +3698,7 @@ static struct menu_entry debug_menus[] = {
             {
                 .name = "EDMAC display",
                 .priv = &edmac_selection,
-                .max = 32,
+                .max = 48,
                 .update = edmac_display,
             },
             MENU_EOL
