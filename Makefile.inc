@@ -169,7 +169,8 @@ ifneq ($(CONFIG_NO_EXTRA_OBJS),y)
 # depending on CONFIG_ defines add .o files (may get merged into definition above?) 
 #
 ML_OBJS-y += \
-	ico.o
+	ico.o \
+	edmac.o
 
 ML_OBJS-$(CONFIG_GDB) += \
 	gdb.o
