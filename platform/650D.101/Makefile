@@ -69,6 +69,7 @@ ML_OBJS-y = \
 	dm-spy.o \
 	raw.o \
 	chdk-dng.o \
+	edmac-memcpy.o \
 
 #include generic rules and definitions
 include  $(TOP_DIR)/Makefile.inc
