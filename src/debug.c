@@ -12,6 +12,8 @@
 #include "lens.h"
 #include "plugin.h"
 #include "version.h"
+#include "edmac.h"
+#include "asm.h"
 
 #ifdef FEATURE_DEBUG_INTERCEPT
 #include "dm-spy.h"
@@ -3144,7 +3146,7 @@ void menu_kill_flicker()
 
 static int edmac_selection;
 
-static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
+static void edmac_display_page(int i0, int x0, int y0)
 {
     bmp_printf(
         FONT_MED,
@@ -3158,16 +3160,17 @@ static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
     {
         char msg[100];
         
-        uint32_t addr = shamem_read(base + (i<<8) + 8);
+        uint32_t base = edmac_get_base(i0+i);
+        uint32_t addr = shamem_read(base + 8);
         union edmac_size_t
         {
             struct { short x, y; } size;
             uint32_t raw;
         };
         
-        union edmac_size_t size = (union edmac_size_t) shamem_read(base + (i<<8) + 0x10);
+        union edmac_size_t size = (union edmac_size_t) shamem_read(base + 0x10);
         
-        int state = MEM(base + (i<<8) + 0);
+        int state = MEM(base + 0);
         int color = 
             state == 0 ? COLOR_GRAY(50) :   // inactive?
             state == 1 ? COLOR_GREEN1 :     // active?
@@ -3184,7 +3187,14 @@ static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
         
         if (color == COLOR_RED)
             STR_APPEND(msg, " (%x)", state);
+
+        uint32_t conn_w  = edmac_get_connection(i0+i, EDMAC_DIR_WRITE);
+        uint32_t conn_r  = edmac_get_connection(i0+i, EDMAC_DIR_READ);
         
+        if (conn_r == 0xFF) { if (conn_w != 0) STR_APPEND(msg, " <w%x>", conn_w); }
+        else if (conn_w == 0) { STR_APPEND(msg, " <r%x>", conn_r); }
+        else { STR_APPEND(msg, " <%x,%x>", conn_w, conn_r); }
+
         bmp_printf(
             FONT(FONT_MED, color, COLOR_BLACK),
             x0, y0 + i * font_med.height, 
@@ -3193,8 +3203,10 @@ static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
     }
 }
 
-static void edmac_display_detailed(int i0, uint32_t base, int i)
+static void edmac_display_detailed(int i0, int i)
 {
+    uint32_t base = edmac_get_base(i0+i);
+
     int x = 50;
     int y = 50;
     bmp_printf(
@@ -3202,15 +3214,15 @@ static void edmac_display_detailed(int i0, uint32_t base, int i)
         x, y,
         "EDMAC #%d - %x\n", 
         i0 + i,
-        base + (i<<8) + 8
+        base
     );
     y += font_large.height;
     
     /* http://magiclantern.wikia.com/wiki/Register_Map#EDMAC */
 
-    uint32_t state = MEM(base + (i<<8) + 0);
-    uint32_t flags = shamem_read(base + (i<<8) + 4);
-    uint32_t addr = shamem_read(base + (i<<8) + 8);
+    uint32_t state = MEM(base + 0);
+    uint32_t flags = shamem_read(base + 4);
+    uint32_t addr = shamem_read(base + 8);
 
     union edmac_size_t
     {
@@ -3218,29 +3230,47 @@ static void edmac_display_detailed(int i0, uint32_t base, int i)
         uint32_t raw;
     };
     
-    union edmac_size_t size_n = (union edmac_size_t) shamem_read(base + (i<<8) + 0x0C);
-    union edmac_size_t size_b = (union edmac_size_t) shamem_read(base + (i<<8) + 0x10);
-    union edmac_size_t size_a = (union edmac_size_t) shamem_read(base + (i<<8) + 0x14);
+    union edmac_size_t size_n = (union edmac_size_t) shamem_read(base + 0x0C);
+    union edmac_size_t size_b = (union edmac_size_t) shamem_read(base + 0x10);
+    union edmac_size_t size_a = (union edmac_size_t) shamem_read(base + 0x14);
     
-    uint32_t off1b = shamem_read(base + (i<<8) + 0x18);
-    uint32_t off2b = shamem_read(base + (i<<8) + 0x1C);
-    uint32_t off1a = shamem_read(base + (i<<8) + 0x20);
-    uint32_t off2a = shamem_read(base + (i<<8) + 0x24);
-    uint32_t off3  = shamem_read(base + (i<<8) + 0x28);
+    uint32_t off1b = shamem_read(base + 0x18);
+    uint32_t off2b = shamem_read(base + 0x1C);
+    uint32_t off1a = shamem_read(base + 0x20);
+    uint32_t off2a = shamem_read(base + 0x24);
+    uint32_t off3  = shamem_read(base + 0x28);
+
+    uint32_t conn_w  = edmac_get_connection(i0+i, EDMAC_DIR_WRITE);
+    uint32_t conn_r  = edmac_get_connection(i0+i, EDMAC_DIR_READ);
     
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Address : %8x ", addr);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "State   : %8x ", state);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Flags   : %8x ", flags);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Address    : %8x ", addr);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "State      : %8x ", state);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Flags      : %8x ", flags);
     y += font_med.height;
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Size A  : %8x (%d x %d) ", size_a.raw, size_a.size.x, size_a.size.y);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Size B  : %8x (%d x %d) ", size_b.raw, size_b.size.x, size_b.size.y);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Size N  : %8x (%d x %d) ", size_n.raw, size_n.size.x, size_n.size.y);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Size A     : %8x (%d x %d) ", size_a.raw, size_a.size.x, size_a.size.y);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Size B     : %8x (%d x %d) ", size_b.raw, size_b.size.x, size_b.size.y);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Size N     : %8x (%d x %d) ", size_n.raw, size_n.size.x, size_n.size.y);
     y += font_med.height;
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off1a   : %8x ", off1a);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off1b   : %8x ", off1b);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off2a   : %8x ", off2a);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off2b   : %8x ", off2b);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off3    : %8x ", off3);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off1a      : %8x ", off1a);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off1b      : %8x ", off1b);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off2a      : %8x ", off2a);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off2b      : %8x ", off2b);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off3       : %8x ", off3);
+    y += font_med.height;
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Connection : write=0x%x read=0x%x ", conn_w, conn_r);
+    
+    #ifdef CONFIG_5D3
+    /**
+     * ConnectReadEDmac(channel, conn)
+     * RAM:edmac_register_interrupt(channel, cbr_handler, ...)
+     * => *(8 + 32*arg0 + *0x12400) = arg1
+     * and also: *(12 + 32*arg0 + *0x12400) = arg1
+     */
+    uint32_t cbr1 = MEM(8 + 32*(i+i0) + MEM(0x12400));
+    uint32_t cbr2 = MEM(12 + 32*(i+i0) + MEM(0x12400));
+    bmp_printf(FONT_MED, 50, y += font_med.height, "CBR handler: %8x %s", cbr1, asm_guess_func_name_from_string(cbr1));
+    bmp_printf(FONT_MED, 50, y += font_med.height, "CBR abort  : %8x %s", cbr2, asm_guess_func_name_from_string(cbr2));
+    #endif
 }
 
 static MENU_UPDATE_FUNC(edmac_display)
@@ -3251,8 +3281,8 @@ static MENU_UPDATE_FUNC(edmac_display)
 
     if (edmac_selection == 0) // overview
     {
-        edmac_display_page(0, 0xC0F04000, 20, 30);
-        edmac_display_page(16, 0xC0F26000, 360, 30);
+        edmac_display_page(0, 0, 30);
+        edmac_display_page(16, 360, 30);
 
         //~ int x = 20;
         bmp_printf(
@@ -3278,9 +3308,9 @@ static MENU_UPDATE_FUNC(edmac_display)
     else // detailed view
     {
         if (edmac_selection <= 16)
-            edmac_display_detailed(0, 0xC0F04000, edmac_selection - 1);
+            edmac_display_detailed(0, edmac_selection - 1);
         else
-            edmac_display_detailed(16, 0xC0F26000, edmac_selection - 16 - 1);
+            edmac_display_detailed(16, edmac_selection - 16 - 1);
     }
 }
 #endif

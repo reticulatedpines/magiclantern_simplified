@@ -2,6 +2,8 @@
 #include "dryos.h"
 #include "edmac.h"
 
+#ifdef CONFIG_5D3 /* this part doesn't look portable */
+
 #define WRITE(x) (x)
 #define READ(x)  (0x80000000 | (x))
 
@@ -40,6 +42,8 @@ uint32_t edmac_get_dir(uint32_t channel)
     return EDMAC_DIR_UNUSED;
 }
 
+#endif
+
 uint32_t edmac_get_base(uint32_t channel)
 {
     uint32_t bases[] = { 0xC0F04000, 0xC0F26000, 0xC0F30000 };
@@ -51,7 +55,8 @@ uint32_t edmac_get_base(uint32_t channel)
 
 uint32_t edmac_get_state(uint32_t channel)
 {
-    return shamem_read(edmac_get_base(channel) + 0x00);
+    /* this one is retrieved by EngDrvIn (reading directly from the register, not the cached value) */
+    return MEM(edmac_get_base(channel) + 0x00);
 }
 
 uint32_t edmac_get_flags(uint32_t channel)
