@@ -1,4 +1,5 @@
-
+#ifndef _ptpbuf_h_
+#define _ptpbuf_h_
 
 #define UNCACHEABLE(x)   ((void*)(((uint32_t)(x)) | 0x40000000))
 #define PTPBUF_BUFS      16
@@ -28,3 +29,5 @@ typedef struct
     ptpbuf_buffer_t *buffers;
     uint32_t *fetchable;
 } ptpbuf_t;
+
+#endif // _ptpbuf_h_

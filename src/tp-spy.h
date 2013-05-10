@@ -1,4 +1,4 @@
-#ifndef _tp_spy_h
-#define _tp_spy_h
+#ifndef _tp_spy_h_
+#define _tp_spy_h_
 void tp_intercept();
-#endif //_tp_spy_h
+#endif //_tp_spy_h_

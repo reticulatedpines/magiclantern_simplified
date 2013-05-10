@@ -1,5 +1,5 @@
-#ifndef FW_SIGNATURE_H
-#define FW_SIGNATURE_H
+#ifndef _fw_signature_h_
+#define _fw_signature_h_
 
 #define SIG_LEN 0x10000
 
@@ -42,4 +42,4 @@ static int compute_signature(int* start, int num)
     return c;
 }
 
-#endif //FW_SIGNATURE_H
+#endif //_fw_signature_h_
