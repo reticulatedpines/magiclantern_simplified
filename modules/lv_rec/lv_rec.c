@@ -616,6 +616,7 @@ void lv_rec_start()
     bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Ready, waiting for first frame");
 
     int wait_loops = 0;
+    int t0 = get_ms_clock_value();
     while(!data.finished || (lv_rec_ring_mode && (data.capturedFrames > data.savedFrames)))
     {
         if(lv_rec_ring_mode)
@@ -708,7 +709,15 @@ void lv_rec_start()
         {
             msleep(200);
         }
-        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos, "%s, %d buffered, %d saved", (data.finished?"Finished":(data.running?"Recording":"Wait.....")), data.capturedFrames - data.savedFrames, data.savedFrames / data.options.frameSkip);
+        int t1 = get_ms_clock_value();
+        int speed = (save_data.handleWritten / 1024) * 10 / (t1 - t0) * 1000 / 1024; // MB/s x10
+        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos, 
+            "%s, %d buffered, %d saved, %d.%d MB/s ", 
+            (data.finished?"Finished":(data.running?"Recording":"Wait.....")), 
+            data.capturedFrames - data.savedFrames, 
+            data.savedFrames / data.options.frameSkip,
+            speed/10, speed%10
+        );
     }
     yPos++;
     
