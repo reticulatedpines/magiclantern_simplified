@@ -125,6 +125,7 @@ void raw_buffer_intercept_from_stateobj()
 #endif
 
 struct raw_info raw_info = {
+    .api_version = 1,
     .bits_per_pixel = 14,
     .black_level = 1024,
     .white_level = 13000,

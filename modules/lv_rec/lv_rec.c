@@ -3,27 +3,13 @@
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
+#include "lv_rec.h"
 
 void lv_rec_start();
 void lv_rec_stop();
 
 unsigned int exmem_clear(struct memSuite * hSuite, char fill);
 unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file);
-struct memSuite *CreateMemorySuite(unsigned int address, unsigned int size, unsigned int flags);
-
-/* file footer data */
-typedef struct
-{
-    unsigned char magic[4];
-    unsigned short xRes;
-    unsigned short yRes;
-    unsigned int frameSize;
-    unsigned int frameCount;
-    unsigned int frameSkip;
-    unsigned int sourceFpsx1000;
-    unsigned int reserved3;
-    unsigned int reserved4;
-} lv_rec_file_footer_t;
 
 /* menu options */
 typedef struct
@@ -124,13 +110,13 @@ int lv_rec_line_skip_preset = 3;
     
 static lv_rec_data_t *lv_rec_state = NULL;
 
-static MENU_SELECT_FUNC(lv_rec_menu_start)
+static void lv_rec_menu_start()
 {
     msleep(2000);
     lv_rec_start();
 }
 
-void lv_rec_create_task(int priv, int delta)
+static MENU_SELECT_FUNC(lv_rec_create_task)
 {
     gui_stop_menu();
     task_create("lv_rec_task", 0x1a, 0x1000, lv_rec_menu_start, (void*)delta);
@@ -488,6 +474,9 @@ unsigned int lv_rec_save_footer(FILE *save_file, lv_rec_save_data_t *save_data)
     footer.frameCount = save_data->frameCount;
     footer.frameSkip = save_data->options.frameSkip;
     
+    footer.sourceFpsx1000 = fps_get_current_x1000();
+    footer.raw_info = raw_info;
+    
     FIO_WriteFile(save_file, &footer, sizeof(lv_rec_file_footer_t));
     
     return sizeof(lv_rec_file_footer_t);
@@ -520,8 +509,10 @@ void lv_rec_start()
     /* this causes the function to hang!? */
     if(data.options.rawMode)
     {
-        bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Make sure you ran call('lv_save_raw')");
-        //call("lv_save_raw", 1);
+        //~ bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 30, 20 * yPos++, "Make sure you ran call('lv_save_raw')");
+        call("lv_save_raw", 1);
+        msleep(200);
+        raw_update_params();
     }
     
     /* get maximum available memory */
@@ -593,7 +584,7 @@ void lv_rec_start()
         data.dmaFlags = 0;
         
         /* create a memory suite that consists of lv_save_raw raw buffer */
-        data.memCopySuite = CreateMemorySuite(shamem_read(RAW_LV_EDMAC), save_data.frameSize, 0);
+        data.memCopySuite = CreateMemorySuite((void*)shamem_read(RAW_LV_EDMAC), save_data.frameSize, 0);
         PackMem_RegisterEDmacCompleteCBRForMemorySuite(data.dmaCopyChannel, &complete_cbr, 0);
         PackMem_RegisterEDmacPopCBRForMemorySuite(data.dmaCopyChannel, &pop_cbr, 0);
     }

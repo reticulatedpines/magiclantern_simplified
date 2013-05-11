@@ -86,6 +86,7 @@ int raw_lv_settings_still_valid();
 
 /* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
 struct raw_info {
+    int api_version;            // increase this when changing the structure
     void* buffer;               // points to image data
     
     int height, width, pitch;
