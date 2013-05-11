@@ -37,7 +37,7 @@ int main(int argc, char** argv)
     raw_info = lv_rec_footer.raw_info;
     fseek(fi, 0, SEEK_SET);
 
-    if (!strcmp((char*)&lv_rec_footer.magic, "RAW"))
+    if (strncmp((char*)lv_rec_footer.magic, "RAWM", 4))
         FAIL("This ain't a lv_rec RAW file\n");
     
     if (raw_info.api_version != 1)
