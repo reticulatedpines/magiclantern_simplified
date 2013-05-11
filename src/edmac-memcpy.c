@@ -62,7 +62,13 @@ void* edmac_memcpy(void* dst, void* src, size_t length)
     PackMem_StartEDmac(dmaChannelWrite, 0);
     PackMem_StartEDmac(dmaChannelRead, 2);
     take_semaphore(edmac_memcpy_done_sem, 0);
-    
+
+    /* cleanup */
+    PackMem_PopEDmacForMemorySuite(dmaChannelRead);
+    PackMem_PopEDmacForMemorySuite(dmaChannelWrite);
+    DeleteMemorySuite(memSuiteSource);
+    DeleteMemorySuite(memSuiteDest);
+
     give_semaphore(edmac_memcpy_sem);
     return dst;
 }
