@@ -119,7 +119,7 @@
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 6
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(6, something)
-#define GUIMODE_ML_MENU (recording ? 0 : lv ? 43 : 2)
+#define GUIMODE_ML_MENU (is_movie_mode() ? 0 : lv ? 43 : 2)
 
 // position for ML ISO disp outside LV
 #define MENU_DISP_ISO_POS_X 470

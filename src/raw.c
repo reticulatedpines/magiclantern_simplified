@@ -125,6 +125,7 @@ void raw_buffer_intercept_from_stateobj()
 #endif
 
 struct raw_info raw_info = {
+    .api_version = 1,
     .bits_per_pixel = 14,
     .black_level = 1024,
     .white_level = 13000,
@@ -142,6 +143,8 @@ int raw_update_params()
     console_show();
     #endif
     
+    int width = 0;
+    int height = 0;
     int skip_left = 0;
     int skip_right = 0;
     int skip_top = 0;
@@ -178,10 +181,10 @@ int raw_update_params()
             return 0;
         }
         int pitch = lv_raw_size & 0xFFFF;
-        raw_info.width = pitch * 8 / 14;
+        width = pitch * 8 / 14;
         
         /* 5D2 uses lv_raw_size >> 16, 5D3 uses lv_raw_height, so this hopefully covers both cases */
-        raw_info.height = MAX((lv_raw_height & 0xFFFF) + 1, ((lv_raw_size >> 16) & 0xFFFF) + 1);
+        height = MAX((lv_raw_height & 0xFFFF) + 1, ((lv_raw_size >> 16) & 0xFFFF) + 1);
 
         /** 
          * The RAW file has unused areas, usually black; we need to skip them.
@@ -209,7 +212,7 @@ int raw_update_params()
         skip_bottom = 1;
         #endif
 
-        dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, raw_info.width, raw_info.height);
+        dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
     }
     else if (QR_MODE) // image review after taking pics
@@ -255,24 +258,24 @@ int raw_update_params()
         
         #ifdef CONFIG_5D2
         /* from debug log: [TTJ][150,27089,0] RAW(5792,3804,0,14) */
-        raw_info.width = 5792;
-        raw_info.height = 3804;
+        width = 5792;
+        height = 3804;
         skip_left = 176;
         skip_top = 54;
         /* first pixel should be red, but here it isn't, so we'll skip one line */
-        raw_info.buffer += raw_info.width * 14/8;
+        raw_info.buffer += width * 14/8;
         #endif
 
         #ifdef CONFIG_5D3
         /* it's a bit larger than what the debug log says: [TTL][167,9410,0] RAW(5920,3950,0,14) */
-        raw_info.width = 5936;
-        raw_info.height = 3950;
+        width = 5936;
+        height = 3950;
         skip_left = 126;
         skip_right = 20;
         skip_top = 80;
         #endif
 
-        dbg_printf("Photo raw buffer: %x (%dx%d)\n", raw_info.buffer, raw_info.width, raw_info.height);
+        dbg_printf("Photo raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
     }
     else
@@ -306,32 +309,7 @@ int raw_update_params()
 
 /*********************** Portable code ****************************************/
 
-    raw_info.pitch = raw_info.width * 14 / 8;
-    raw_info.frame_size = raw_info.height * raw_info.pitch;
-    raw_info.active_area.x1 = skip_left;
-    raw_info.active_area.y1 = skip_top;
-    raw_info.active_area.x2 = raw_info.width - skip_right;
-    raw_info.active_area.y2 = raw_info.height - skip_bottom;
-    raw_info.jpeg.x = 0;
-    raw_info.jpeg.y = 0;
-    raw_info.jpeg.width = raw_info.width - skip_left - skip_right;
-    raw_info.jpeg.height = raw_info.height - skip_top - skip_bottom;
-
-    dbg_printf("active area: x=%d..%d, y=%d..%d\n", raw_info.active_area.x1, raw_info.active_area.x2, raw_info.active_area.y1, raw_info.active_area.y2);
-    
-    get_yuv422_vram(); // update vram parameters
-    lv2raw.sx = 1024 * raw_info.jpeg.width / BM2LV_DX(os.x_ex);
-    lv2raw.sy = 1024 * raw_info.jpeg.height / BM2LV_DY(os.y_ex);
-    lv2raw.tx = skip_left - LV2RAW_DX(os.x0);
-    lv2raw.ty = skip_top - LV2RAW_DY(os.y0);
-
-    dbg_printf("lv2raw sx:%d sy:%d tx:%d ty:%d\n", lv2raw.sx, lv2raw.sy, lv2raw.tx, lv2raw.ty);
-    dbg_printf("raw2lv test: (%d,%d) - (%d,%d)\n", RAW2LV_X(raw_info.active_area.x1), RAW2LV_Y(raw_info.active_area.y1), RAW2LV_X(raw_info.active_area.x2), RAW2LV_Y(raw_info.active_area.y2));
-    dbg_printf("  should be: (%d,%d) - (%d,%d)\n", 0, 0, vram_lv.width, vram_lv.height);
-    dbg_printf("raw2bm test: (%d,%d) - (%d,%d)\n", RAW2BM_X(raw_info.active_area.x1), RAW2BM_Y(raw_info.active_area.y1), RAW2BM_X(raw_info.active_area.x2), RAW2BM_Y(raw_info.active_area.y2));
-    dbg_printf("  should be: (%d,%d) - (%d,%d)\n", os.x0, os.y0, os.x_max, os.y_max);
-    dbg_printf("bm2raw test: (%d,%d) - (%d,%d)\n", BM2RAW_X(os.x0), BM2RAW_Y(os.y0), BM2RAW_X(os.x_max), BM2RAW_Y(os.y_max));
-    dbg_printf("  should be: (%d,%d) - (%d,%d)\n", raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2, raw_info.active_area.y2);
+    raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
 
     int iso = 0;
     if (lv) iso = FRAME_ISO;
@@ -368,6 +346,38 @@ int raw_update_params()
     #endif
     
     return 1;
+}
+
+void raw_set_geometry(int width, int height, int skip_left, int skip_right, int skip_top, int skip_bottom)
+{
+    raw_info.width = width;
+    raw_info.height = height;
+    raw_info.pitch = raw_info.width * 14 / 8;
+    raw_info.frame_size = raw_info.height * raw_info.pitch;
+    raw_info.active_area.x1 = skip_left;
+    raw_info.active_area.y1 = skip_top;
+    raw_info.active_area.x2 = raw_info.width - skip_right;
+    raw_info.active_area.y2 = raw_info.height - skip_bottom;
+    raw_info.jpeg.x = 0;
+    raw_info.jpeg.y = 0;
+    raw_info.jpeg.width = raw_info.width - skip_left - skip_right;
+    raw_info.jpeg.height = raw_info.height - skip_top - skip_bottom;
+
+    dbg_printf("active area: x=%d..%d, y=%d..%d\n", raw_info.active_area.x1, raw_info.active_area.x2, raw_info.active_area.y1, raw_info.active_area.y2);
+    
+    get_yuv422_vram(); // update vram parameters
+    lv2raw.sx = 1024 * raw_info.jpeg.width / BM2LV_DX(os.x_ex);
+    lv2raw.sy = 1024 * raw_info.jpeg.height / BM2LV_DY(os.y_ex);
+    lv2raw.tx = skip_left - LV2RAW_DX(os.x0);
+    lv2raw.ty = skip_top - LV2RAW_DY(os.y0);
+
+    dbg_printf("lv2raw sx:%d sy:%d tx:%d ty:%d\n", lv2raw.sx, lv2raw.sy, lv2raw.tx, lv2raw.ty);
+    dbg_printf("raw2lv test: (%d,%d) - (%d,%d)\n", RAW2LV_X(raw_info.active_area.x1), RAW2LV_Y(raw_info.active_area.y1), RAW2LV_X(raw_info.active_area.x2), RAW2LV_Y(raw_info.active_area.y2));
+    dbg_printf("  should be: (%d,%d) - (%d,%d)\n", 0, 0, vram_lv.width, vram_lv.height);
+    dbg_printf("raw2bm test: (%d,%d) - (%d,%d)\n", RAW2BM_X(raw_info.active_area.x1), RAW2BM_Y(raw_info.active_area.y1), RAW2BM_X(raw_info.active_area.x2), RAW2BM_Y(raw_info.active_area.y2));
+    dbg_printf("  should be: (%d,%d) - (%d,%d)\n", os.x0, os.y0, os.x_max, os.y_max);
+    dbg_printf("bm2raw test: (%d,%d) - (%d,%d)\n", BM2RAW_X(os.x0), BM2RAW_Y(os.y0), BM2RAW_X(os.x_max), BM2RAW_Y(os.y_max));
+    dbg_printf("  should be: (%d,%d) - (%d,%d)\n", raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2, raw_info.active_area.y2);
 }
 
 int FAST raw_red_pixel(int x, int y)

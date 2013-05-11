@@ -84,8 +84,11 @@ void raw_lv_redirect_edmac(void* ptr);
 /* quick check whether the settings from raw_info are still valid (for lv vsync calls) */
 int raw_lv_settings_still_valid();
 
+void raw_set_geometry(int width, int height, int skip_left, int skip_right, int skip_top, int skip_bottom);
+
 /* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
 struct raw_info {
+    int api_version;            // increase this when changing the structure
     void* buffer;               // points to image data
     
     int height, width, pitch;
