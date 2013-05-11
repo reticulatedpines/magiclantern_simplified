@@ -4153,6 +4153,7 @@ void menu_redraw_flood()
         menu_redraw_full();
         msleep(20);
     }
+    msleep(500);
     redraw_flood_stop = 1;
 }
 
