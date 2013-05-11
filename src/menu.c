@@ -4166,9 +4166,6 @@ static void start_redraw_flood()
 static void piggyback_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    #ifdef CONFIG_500D
-    if (is_movie_mode()) return; // doesn'tworkstation
-    #endif
     if (recording) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
@@ -4187,9 +4184,6 @@ static void piggyback_canon_menu()
 static void close_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    #ifdef CONFIG_500D
-    if (is_movie_mode()) return; // doesn'tworkstation
-    #endif
     if (recording) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
