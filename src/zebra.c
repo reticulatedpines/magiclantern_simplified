@@ -34,6 +34,9 @@
 #include "math.h"
 #include "raw.h"
 
+#include "imgconv.h"
+#include "falsecolor.h"
+#include "histogram.h"
 
 #define DIGIC_ZEBRA_REGISTER 0xC0F140cc
 #define FAST_ZEBRA_GRID_COLOR 4 // invisible diagonal grid for zebras; must be unused and only from 0-15
@@ -87,7 +90,7 @@ static void toggle_disp_mode_menu(void *priv, int delta);
 
 // in movie mode: skip the 16:9 bar when computing overlays
 // in photo mode: compute the overlays on full-screen image
-static int FAST get_y_skip_offset_for_overlays()
+int FAST get_y_skip_offset_for_overlays()
 {
     // in playback mode, and skip 16:9 bars for movies, but cover the entire area for photos
     if (!lv) return is_pure_play_movie_mode() ? os.off_169 : 0;
@@ -102,117 +105,6 @@ static int FAST get_y_skip_offset_for_overlays()
     if (t > mid) b = MIN(b, t);
     if (b < os.y_max - off) off = os.y_max - b;
     return off;
-}
-
-
-// precompute some parts of YUV to RGB computations
-static int yuv2rgb_RV[256];
-static int yuv2rgb_GU[256];
-static int yuv2rgb_GV[256];
-static int yuv2rgb_BU[256];
-
-/** http://www.martinreddy.net/gfx/faqs/colorconv.faq
- * BT 601:
- * R'= Y' + 0.000*U' + 1.403*V'
- * G'= Y' - 0.344*U' - 0.714*V'
- * B'= Y' + 1.773*U' + 0.000*V'
- * 
- * BT 709:
- * R'= Y' + 0.0000*Cb + 1.5701*Cr
- * G'= Y' - 0.1870*Cb - 0.4664*Cr
- * B'= Y' - 1.8556*Cb + 0.0000*Cr
- */
-
-static void precompute_yuv2rgb()
-{
-#ifdef CONFIG_REC709
-    /*
-    *R = *Y + 1608 * V / 1024;
-    *G = *Y -  191 * U / 1024 - 478 * V / 1024;
-    *B = *Y + 1900 * U / 1024;
-    */
-    for (int u = 0; u < 256; u++)
-    {
-        int8_t U = u;
-        yuv2rgb_GU[u] = (-191 * U) >> 10;
-        yuv2rgb_BU[u] = (1900 * U) >> 10;
-    }
-
-    for (int v = 0; v < 256; v++)
-    {
-        int8_t V = v;
-        yuv2rgb_RV[v] = (1608 * V) >> 10;
-        yuv2rgb_GV[v] = (-478 * V) >> 10;
-    }
-#else // REC 601
-    /*
-    *R = *Y + ((1437 * V) >> 10);
-    *G = *Y -  ((352 * U) >> 10) - ((731 * V) >> 10);
-    *B = *Y + ((1812 * U) >> 10);
-    */
-    for (int u = 0; u < 256; u++)
-    {
-        int8_t U = u;
-        yuv2rgb_GU[u] = (-352 * U) >> 10;
-        yuv2rgb_BU[u] = (1812 * U) >> 10;
-    }
-
-    for (int v = 0; v < 256; v++)
-    {
-        int8_t V = v;
-        yuv2rgb_RV[v] = (1437 * V) >> 10;
-        yuv2rgb_GV[v] = (-731 * V) >> 10;
-    }
-#endif
-}
-
-/*inline void uyvy2yrgb(uint32_t uyvy, int* Y, int* R, int* G, int* B)
-{
-    uint32_t y1 = (uyvy >> 24) & 0xFF;
-    uint32_t y2 = (uyvy >>  8) & 0xFF;
-    *Y = (y1+y2) / 2;
-    uint8_t u = (uyvy >>  0) & 0xFF;
-    uint8_t v = (uyvy >> 16) & 0xFF;
-    *R = MIN(*Y + yuv2rgb_RV[v], 255);
-    *G = MIN(*Y + yuv2rgb_GU[u] + yuv2rgb_GV[v], 255);
-    *B = MIN(*Y + yuv2rgb_BU[u], 255);
-} */
-
-#define UYVY_GET_AVG_Y(uyvy) (((((uyvy) >> 24) & 0xFF) + (((uyvy) >> 8) & 0xFF)) >> 1)
-#define UYVY_GET_U(uyvy) (((uyvy)       ) & 0xFF)
-#define UYVY_GET_V(uyvy) (((uyvy) >>  16) & 0xFF)
-#define COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B) \
-{ \
-    Y = UYVY_GET_AVG_Y(uyvy); \
-    const int gv = UYVY_GET_V(uyvy); \
-    const int gu = UYVY_GET_U(uyvy); \
-    int v = Y + yuv2rgb_RV[gv]; \
-    R = COERCE(v, 0, 255); \
-    v = Y + yuv2rgb_GU[gu] + yuv2rgb_GV[gv]; \
-    G = COERCE(v, 0, 255); \
-    v = Y + yuv2rgb_BU[gu]; \
-    B = COERCE(v, 0, 255); \
-} \
-
-#define UYVY_PACK(u,y1,v,y2) ((u) & 0xFF) | (((y1) & 0xFF) << 8) | (((v) & 0xFF) << 16) | (((y2) & 0xFF) << 24);
-
-void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
-{
-    const int v_and_ff = V & 0xFF;
-    const int u_and_ff = U & 0xFF;
-    int v = Y + yuv2rgb_RV[v_and_ff];
-    *R = COERCE(v, 0, 255);
-    v = Y + yuv2rgb_GU[u_and_ff] + yuv2rgb_GV[v_and_ff];
-    *G = COERCE(v, 0, 255);
-    v = Y + yuv2rgb_BU[u_and_ff];
-    *B = COERCE(v, 0, 255);
-}
-
-void uyvy_split(uint32_t uyvy, int* Y, int* U, int* V)
-{
-    *Y = UYVY_GET_AVG_Y(uyvy);
-    *U = (int)(int8_t)UYVY_GET_U(uyvy);
-    *V = (int)(int8_t)UYVY_GET_V(uyvy);
 }
 
 static int is_zoom_mode_so_no_zebras() 
@@ -243,8 +135,6 @@ int bmp_is_on() { return !_bmp_muted; }
 void bmp_on();
 void bmp_off();
 
-#define hist_height         54
-#define HIST_WIDTH          128
 #define WAVEFORM_WIDTH 180
 #define WAVEFORM_HEIGHT 120
 #define WAVEFORM_FACTOR (1 << waveform_size) // 1, 2 or 4
@@ -282,8 +172,6 @@ static CONFIG_INT( "crop.enable",   crop_enabled,   0 ); // index of crop file
 static CONFIG_INT( "crop.index",    crop_index, 0 ); // index of crop file
 static CONFIG_INT( "crop.movieonly", cropmark_movieonly, 0);
 static CONFIG_INT("crop.playback", cropmarks_play, 0);
-static CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
-static CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
 
 #define MZ_ZOOM_WHILE_RECORDING 1
 #define MZ_ZOOMREC_N_FOCUS_RING 2
@@ -383,7 +271,7 @@ int digic_zoom_overlay_enabled()
         should_draw_zoom_overlay();
 }
 
-static int nondigic_zoom_overlay_enabled()
+int nondigic_zoom_overlay_enabled()
 {
     return zoom_overlay_size != 3 &&
         should_draw_zoom_overlay();
@@ -411,16 +299,6 @@ int focus_peaking_as_display_filter()
     return 0;
     #endif
 }
-
-static CONFIG_INT( "hist.draw", hist_draw,  1 );
-static CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
-static CONFIG_INT( "hist.warn", hist_warn,  1 );
-static CONFIG_INT( "hist.log",  hist_log,   1 );
-static CONFIG_INT( "hist.meter", hist_meter,  0);
-#define HIST_METER_DYNAMIC_RAMGE 1
-#define HIST_METER_ETTR_HINT 2
-#define HIST_METER_ETTR_HINT_CLIP_GREEN 3
-
 
 static CONFIG_INT( "waveform.draw", waveform_draw,
 #ifdef CONFIG_4_3_SCREEN
@@ -485,15 +363,6 @@ uint8_t* get_bvram_mirror() { return bvram_mirror; }
 
 static int cropmark_cache_dirty = 1;
 static int crop_dirty = 0;       // redraw cropmarks after some time (unit: 0.1s)
-
-static uint8_t false_colour[][256] = {
-    {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
-    {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x26, 0x26, 0x27, 0x27, 0x27, 0x27, 0x27, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x29, 0x29, 0x29, 0x29, 0x29, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2F, 0x2F, 0x2F, 0x2F, 0x2F, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31, 0x31, 0x31, 0x31, 0x31, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x33, 0x33, 0x33, 0x33, 0x33, 0x34, 0x34, 0x34, 0x34, 0x34, 0x34, 0x35, 0x35, 0x35, 0x35, 0x35, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x37, 0x37, 0x37, 0x37, 0x37, 0x38, 0x38, 0x38, 0x38, 0x38, 0x38, 0x39, 0x39, 0x39, 0x39, 0x39, 0x3A, 0x3A, 0x3A, 0x3A, 0x3A, 0x3A, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3D, 0x3D, 0x3D, 0x3D, 0x3D, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x41, 0x41, 0x41, 0x41, 0x41, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x43, 0x43, 0x43, 0x43, 0x43, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x45, 0x45, 0x45, 0x45, 0x45, 0x46, 0x46, 0x46, 0x46, 0x46, 0x46, 0x47, 0x47, 0x47, 0x47, 0x47, 0x48, 0x48, 0x48, 0x48, 0x48, 0x48, 0x49, 0x49, 0x49, 0x49, 0x49, 0x4A, 0x4A, 0x4A, 0x4A, 0x4A, 0x4A, 0x4B, 0x4B, 0x4B, 0x4B, 0x4B, 0x4C, 0x4C, 0x4C, 0x4C, 0x4C, 0x4C, 0x4D, 0x4D, 0x4D, 0x4D, 0x4D, 0x4E, 0x4E, 0x4E, 0x4E, 0x4E, 0x4E, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
-    {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
-    {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
-    {0x0E, 0x26, 0x30, 0x26, 0x30, 0x26, 0x30, 0x26, 0x30, 0x27, 0x31, 0x27, 0x31, 0x27, 0x31, 0x27, 0x31, 0x28, 0x32, 0x28, 0x32, 0x28, 0x32, 0x28, 0x32, 0x29, 0x33, 0x29, 0x33, 0x29, 0x33, 0x29, 0x33, 0x2a, 0x34, 0x2a, 0x34, 0x2a, 0x34, 0x2a, 0x34, 0x2a, 0x35, 0x2b, 0x35, 0x2b, 0x35, 0x2b, 0x35, 0x2b, 0x36, 0x2c, 0x36, 0x2c, 0x36, 0x2c, 0x36, 0x2c, 0x37, 0x2d, 0x37, 0x2d, 0x37, 0x2d, 0x37, 0x2d, 0x38, 0x2e, 0x38, 0x2e, 0x38, 0x2e, 0x38, 0x2e, 0x38, 0x2f, 0x39, 0x2f, 0x39, 0x2f, 0x39, 0x2f, 0x39, 0x30, 0x3a, 0x30, 0x3a, 0x30, 0x3a, 0x30, 0x3a, 0x31, 0x3b, 0x31, 0x3b, 0x31, 0x3b, 0x31, 0x3b, 0x32, 0x3c, 0x32, 0x3c, 0x32, 0x3c, 0x32, 0x3c, 0x33, 0x3d, 0x33, 0x3d, 0x33, 0x3d, 0x33, 0x3d, 0x33, 0x3e, 0x34, 0x3e, 0x34, 0x3e, 0x34, 0x3e, 0x34, 0x3f, 0x35, 0x3f, 0x35, 0x3f, 0x35, 0x3f, 0x35, 0x40, 0x36, 0x40, 0x36, 0x40, 0x36, 0x40, 0x36, 0x41, 0x37, 0x41, 0x37, 0x41, 0x37, 0x41, 0x37, 0x41, 0x38, 0x42, 0x38, 0x42, 0x38, 0x42, 0x38, 0x42, 0x39, 0x43, 0x39, 0x43, 0x39, 0x43, 0x39, 0x43, 0x3a, 0x44, 0x3a, 0x44, 0x3a, 0x44, 0x3a, 0x44, 0x3b, 0x45, 0x3b, 0x45, 0x3b, 0x45, 0x3b, 0x45, 0x3c, 0x46, 0x3c, 0x46, 0x3c, 0x46, 0x3c, 0x46, 0x3c, 0x47, 0x3d, 0x47, 0x3d, 0x47, 0x3d, 0x47, 0x3d, 0x48, 0x3e, 0x48, 0x3e, 0x48, 0x3e, 0x48, 0x3e, 0x49, 0x3f, 0x49, 0x3f, 0x49, 0x3f, 0x49, 0x3f, 0x4a, 0x40, 0x4a, 0x40, 0x4a, 0x40, 0x4a, 0x40, 0x4a, 0x41, 0x4b, 0x41, 0x4b, 0x41, 0x4b, 0x41, 0x4b, 0x42, 0x4c, 0x42, 0x4c, 0x42, 0x4c, 0x42, 0x4c, 0x43, 0x4d, 0x43, 0x4d, 0x43, 0x4d, 0x43, 0x4d, 0x44, 0x4e, 0x44, 0x4e, 0x44, 0x4e, 0x44, 0x4e, 0x08},
-    {0x26, 0x26, 0x26, 0x27, 0x27, 0x28, 0x28, 0x28, 0x29, 0x29, 0x2A, 0x2A, 0x2B, 0x2B, 0x2B, 0x2C, 0x2C, 0x2D, 0x2D, 0x2D, 0x2E, 0x2E, 0x2F, 0x2F, 0x30, 0x30, 0x30, 0x31, 0x31, 0x32, 0x32, 0x33, 0x33, 0x33, 0x34, 0x34, 0x35, 0x35, 0x35, 0x36, 0x36, 0x37, 0x37, 0x38, 0x38, 0x38, 0x39, 0x39, 0x3A, 0x3A, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x3A, 0x3A, 0x3B, 0x3B, 0x3C, 0x3C, 0x3D, 0x3D, 0x3D, 0x3E, 0x3E, 0x3F, 0x3F, 0x3F, 0x40, 0x40, 0x41, 0x41, 0x42, 0x42, 0x42, 0x43, 0x43, 0x44, 0x44, 0x44, 0x45, 0x45, 0x46, 0x46, 0x47, 0x47, 0x47, 0x48, 0x48, 0x49, 0x49, 0x49, 0x4A, 0x4A, 0x4B, 0x4B, 0x4C, 0x4C, 0x4C, 0x4D, 0x4D, 0x4E, 0x4E, 0x4F},
-};
 
 void crop_set_dirty(int value)
 {
@@ -577,21 +446,6 @@ int get_global_draw_setting() // whatever is set in menu
 static uint8_t* waveform = 0;
 #define WAVEFORM_UNSAFE(x,y) (waveform[(x) + (y) * WAVEFORM_WIDTH])
 #define WAVEFORM(x,y) (waveform[COERCE((x), 0, WAVEFORM_WIDTH-1) + COERCE((y), 0, WAVEFORM_HEIGHT-1) * WAVEFORM_WIDTH])
-
-/** Store the histogram data for each of the "HIST_WIDTH" bins */
-static uint32_t hist[HIST_WIDTH];
-static uint32_t hist_r[HIST_WIDTH];
-static uint32_t hist_g[HIST_WIDTH];
-static uint32_t hist_b[HIST_WIDTH];
-
-/** Maximum value in the histogram so that at least one entry fills
- * the box */
-static uint32_t hist_max;
-
-/** total number of pixels analyzed by histogram */
-static uint32_t hist_total_px;
-
-static int hist_is_raw = 0;
 
 #ifdef FEATURE_VECTORSCOPE
 
@@ -854,13 +708,7 @@ hist_build()
     int x,y;
 
     #ifdef FEATURE_HISTOGRAM
-    hist_max = 0;
-    hist_total_px = 0;
-    hist_is_raw = 0;
-    memset(hist, 0, sizeof(hist)/sizeof(hist[0]));
-    memset(hist_r, 0, sizeof(hist_r)/sizeof(hist_r[0]));
-    memset(hist_g, 0, sizeof(hist_g)/sizeof(hist_g[0]));
-    memset(hist_b, 0, sizeof(hist_b)/sizeof(hist_b[0]));
+    memset(&histogram, 0, sizeof(histogram));
     #endif
 
     #ifdef FEATURE_WAVEFORM
@@ -880,16 +728,17 @@ hist_build()
     
     int mz = nondigic_zoom_overlay_enabled();
     int off = get_y_skip_offset_for_overlays();
-    for( y = os.y0 + off; y < os.y_max - off; y += 2 )
+    int yoffset = 0;
+    for( y = os.y0 + off, yoffset = y * vram_lv.pitch; y < os.y_max - off; y += 2, yoffset += vram_lv.pitch )
     {
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
-            uint32_t pixel = buf[BM2LV(x,y) >> 2];
-            
+            uint32_t pixel = buf[(yoffset + (BM2LV_X(x) << 1)) >> 2];
+
             // ignore magic zoom borders
             if (mz && (pixel == MZ_WHITE || pixel == MZ_BLACK || pixel == MZ_GREEN))
                 continue;
-            
+
             int Y;
 
             #ifdef FEATURE_HISTOGRAM
@@ -903,9 +752,9 @@ hist_build()
                 uint32_t G_level = (G * HIST_WIDTH) >> 8;
                 uint32_t B_level = (B * HIST_WIDTH) >> 8;
                 
-                hist_r[R_level & (HIST_WIDTH-1)]++;
-                hist_g[G_level & (HIST_WIDTH-1)]++;
-                hist_b[B_level & (HIST_WIDTH-1)]++;
+                histogram.hist_r[R_level & (HIST_WIDTH-1)]++;
+                histogram.hist_g[G_level & (HIST_WIDTH-1)]++;
+                histogram.hist_b[B_level & (HIST_WIDTH-1)]++;
             }
             else // luma
             #endif
@@ -919,13 +768,13 @@ hist_build()
             #endif
 
             #ifdef FEATURE_HISTOGRAM
-            hist_total_px++;
+            histogram.total_px++;
             uint32_t hist_level = (Y * HIST_WIDTH) >> 8;
 
             // Ignore the 0 bin.  It generates too much noise
-            unsigned count = ++ (hist[ hist_level & (HIST_WIDTH-1)]);
-            if( hist_level && count > hist_max )
-                hist_max = count;
+            unsigned count = ++ (histogram.hist[ hist_level & (HIST_WIDTH-1)]);
+            if( hist_level && count > histogram.max )
+                histogram.max = count;
             #endif
             
             #ifdef FEATURE_WAVEFORM
@@ -964,60 +813,6 @@ int can_use_raw_overlays_menu()
     if ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
         return 1;
     return 0;
-}
-#endif
-
-#ifdef FEATURE_RAW_HISTOGRAM
-
-static CONFIG_INT("raw.histo", raw_histogram_enable, 1);
-
-static FAST void hist_build_raw()
-{
-    if (!raw_update_params()) return;
-
-    hist_is_raw = 1;
-
-    hist_max = 0;
-    hist_total_px = 0;
-    memset(hist, 0, sizeof(hist)/sizeof(hist[0]));
-    memset(hist_r, 0, sizeof(hist_r)/sizeof(hist_r[0]));
-    memset(hist_g, 0, sizeof(hist_g)/sizeof(hist_g[0]));
-    memset(hist_b, 0, sizeof(hist_b)/sizeof(hist_b[0]));
-
-    for (int i = os.y0; i < os.y_max; i += 8)
-    {
-        for (int j = os.x0; j < os.x_max; j += 8)
-        {
-            int x = BM2RAW_X(j);
-            int y = BM2RAW_Y(i);
-            int r = raw_red_pixel(x, y);
-            int g = raw_green_pixel(x, y);
-            int b = raw_blue_pixel(x, y);
-            
-            /* only show a 12-bit hisogram, since the rest is just noise */
-            int ir = COERCE((raw_to_ev(r) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
-            int ig = COERCE((raw_to_ev(g) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
-            int ib = COERCE((raw_to_ev(b) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
-            hist_r[ir]++;
-            hist_g[ig]++;
-            hist_b[ib]++;
-            hist_total_px++;
-        }
-    }
-    for (int i = 0; i < HIST_WIDTH; i++)
-    {
-        hist_max = MAX(hist_max, hist_r[i]);
-        hist_max = MAX(hist_max, hist_g[i]);
-        hist_max = MAX(hist_max, hist_b[i]);
-        hist[i] = (hist_r[i] + hist_g[i] + hist_b[i]) / 3;
-    }
-}
-static MENU_UPDATE_FUNC(raw_histo_update)
-{
-    if (!can_use_raw_overlays_menu())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set picture quality to RAW in Canon menu.");
-    else if (raw_histogram_enable)
-        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram after taking a picture.");
 }
 #endif
 
@@ -1092,27 +887,6 @@ static MENU_UPDATE_FUNC(raw_zebra_update)
 }
 #endif
 
-int hist_get_percentile_level(int percentile)
-{
-#ifdef FEATURE_HISTOGRAM
-    int total = 0;
-    int i;
-    for( i=0 ; i < HIST_WIDTH ; i++ )
-        total += hist[i];
-    
-    int thr = total * percentile / 100;  // 50% => median
-    int n = 0;
-    for( i=0 ; i < HIST_WIDTH ; i++ )
-    {
-        n += hist[i];
-        if (n >= thr)
-            return i * 255 / HIST_WIDTH;
-    }
-#endif
-    return -1; // invalid argument?
-}
-
-
 int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
 {
     *under = -1;
@@ -1145,26 +919,6 @@ int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
     }
     return total;
 }
-
-#ifdef FEATURE_HISTOGRAM
-static int hist_rgb_color(int y, int sizeR, int sizeG, int sizeB)
-{
-    switch ((y > sizeR ? 0 : 1) |
-            (y > sizeG ? 0 : 2) |
-            (y > sizeB ? 0 : 4))
-    {
-        case 0b000: return COLOR_ALMOST_BLACK;
-        case 0b001: return COLOR_RED;
-        case 0b010: return COLOR_GREEN2;
-        case 0b100: return COLOR_LIGHT_BLUE;
-        case 0b011: return COLOR_YELLOW;
-        case 0b110: return COLOR_CYAN;
-        case 0b101: return COLOR_MAGENTA;
-        case 0b111: return COLOR_WHITE;
-    }
-    return 0;
-}
-#endif
 
 #ifdef FEATURE_ZEBRA
 #define ZEBRA_COLOR_WORD_SOLID(x) ( (x) | (x)<<8 | (x)<<16 | (x)<<24 )
@@ -1207,210 +961,6 @@ static int zebra_rgb_solid_color(int underexposed, int clipR, int clipG, int cli
 }
 #endif
 
-#ifdef FEATURE_HISTOGRAM
-static void hist_dot(int x, int y, int fg_color, int bg_color, int radius, int label)
-{
-    x &= ~3;
-    y &= ~3;
-    for (int r = 0; r < radius; r++)
-    {
-        draw_circle(x, y, r, fg_color);
-        draw_circle(x + 1, y, r, fg_color);
-    }
-    draw_circle(x, y, radius, bg_color);
-    
-    if (label)
-    {
-        if (label < 10)
-            bmp_printf(
-                SHADOW_FONT(FONT(FONT_MED, COLOR_WHITE, fg_color)), 
-                x - 4, 
-                y - font_med.height/2,
-                "%d", label
-            );
-        else
-            bmp_printf(
-                SHADOW_FONT(FONT(FONT_SMALL, COLOR_WHITE, fg_color)), 
-                x - 8, 
-                y - font_small.height/2,
-                "%d", label
-            );
-    }
-}
-
-static int hist_dot_radius(int over, int hist_total_px)
-{
-    // overexposures stronger than 1% are displayed at max radius (10)
-    int p = 100 * over / hist_total_px;
-    if (p > 1) return 10;
-    
-    // for smaller overexposure percentages, use dot radius to suggest the amount
-    unsigned p1000 = 100 * 1000 * over / hist_total_px;
-    int plog = p1000 ? (int)log2f(p1000) : 0;
-    return MIN(plog, 10);
-}
-
-static int hist_dot_label(int over, int hist_total_px)
-{
-    return 100 * over / hist_total_px;
-}
-
-/** Draw the histogram image into the bitmap framebuffer.
- *
- * Draw one pixel at a time; it seems to be ok with err70.
- * Since there is plenty of math per pixel this doesn't
- * swamp the bitmap framebuffer hardware.
- */
-static void
-hist_draw_image(
-    unsigned        x_origin,
-    unsigned        y_origin,
-    int highlight_level
-)
-{
-    if (!PLAY_OR_QR_MODE)
-    {
-        if (!lv_luma_is_accurate()) return;
-    }
-    uint8_t * const bvram = bmp_vram();
-    if (!bvram) return;
-
-    // Align the x origin, just in case
-    x_origin &= ~3;
-
-    uint8_t * row = bvram + x_origin + y_origin * BMPPITCH;
-    if( hist_max == 0 )
-        hist_max = 1;
-
-    unsigned i, y;
-    
-    if (highlight_level >= 0) 
-        highlight_level = (highlight_level * HIST_WIDTH) >> 8;
-
-    int log_max = log_length(hist_max);
-
-    #ifdef FEATURE_RAW_HISTOGRAM
-    const unsigned v = (1200 - raw_info.dynamic_range) * HIST_WIDTH / 1200;
-    unsigned underexposed_level = COERCE(v, 0, HIST_WIDTH-1);
-    unsigned stops_until_overexposure = 0;
-    #endif
-
-    for( i=0 ; i < HIST_WIDTH ; i++ )
-    {
-        // Scale by the maximum bin value
-        const uint32_t size  = hist_log ? log_length(hist[i])   * hist_height / log_max : (hist[i]   * hist_height) / hist_max;
-        const uint32_t sizeR = hist_log ? log_length(hist_r[i]) * hist_height / log_max : (hist_r[i] * hist_height) / hist_max;
-        const uint32_t sizeG = hist_log ? log_length(hist_g[i]) * hist_height / log_max : (hist_g[i] * hist_height) / hist_max;
-        const uint32_t sizeB = hist_log ? log_length(hist_b[i]) * hist_height / log_max : (hist_b[i] * hist_height) / hist_max;
-
-        uint8_t * col = row + i;
-        // vertical line up to the hist size
-        for( y=hist_height ; y>0 ; y-- , col += BMPPITCH )
-        {
-            if (highlight_level >= 0)
-            {
-                int hilight = ABS(i-highlight_level) <= 1;
-                *col = y > size + hilight ? COLOR_BG : (hilight ? COLOR_RED : COLOR_WHITE);
-            }
-            else if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
-                *col = hist_rgb_color(y, sizeR, sizeG, sizeB);
-            else
-                *col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][((i << 8) / HIST_WIDTH) & 0xFF]: COLOR_WHITE);
-        }
-        
-        if (hist_warn && i == HIST_WIDTH - 1)
-        {
-            unsigned int thr = hist_total_px / 100000; // start at 0.0001 with a tiny dot
-            thr = MAX(thr, 1);
-            int yw = y_origin + 12 + (hist_log ? hist_height - 24 : 0);
-            int bg = (hist_log ? COLOR_WHITE : COLOR_BLACK);
-            if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
-            {
-                unsigned int over_r = hist_r[i] + hist_r[i-1];
-                unsigned int over_g = hist_g[i] + hist_g[i-1];
-                unsigned int over_b = hist_b[i] + hist_b[i-1];
-                
-                if (over_r > thr) hist_dot(x_origin + HIST_WIDTH/2 - 25, yw, COLOR_RED,        bg, hist_dot_radius(over_r, hist_total_px), hist_dot_label(over_r, hist_total_px));
-                if (over_g > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,     bg, hist_dot_radius(over_g, hist_total_px), hist_dot_label(over_g, hist_total_px));
-                if (over_b > thr) hist_dot(x_origin + HIST_WIDTH/2 + 25, yw, COLOR_LIGHT_BLUE, bg, hist_dot_radius(over_b, hist_total_px), hist_dot_label(over_b, hist_total_px));
-            }
-            else
-            {
-                unsigned int over = hist[i] + hist[i-1];
-                if (over > thr) hist_dot(x_origin + HIST_WIDTH/2, yw, COLOR_RED, bg, hist_dot_radius(over, hist_total_px), hist_dot_label(over, hist_total_px));
-            }
-        }
-        
-        #ifdef FEATURE_RAW_HISTOGRAM
-        /* divide the histogram in 12 equal slices - each slice is 1 EV */
-        if (hist_is_raw)
-        {
-            static unsigned bar_pos;
-            if (i == 0) bar_pos = 0;
-            int h = hist_height - MAX(MAX(sizeR, sizeG), sizeB) - 1;
-
-            if (i <= underexposed_level + HIST_WIDTH/12)
-            {
-                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + h, i <= underexposed_level ? 4 : COLOR_GRAY(20));
-            }
-
-            if (i == bar_pos)
-            {
-                int dy = (i < font_med.width * 4) ? font_med.height : 0;
-                draw_line(x_origin + i, y_origin + dy, x_origin + i, y_origin + h, COLOR_GRAY(50));
-                bar_pos = (((bar_pos+1)*12/HIST_WIDTH) + 1) * HIST_WIDTH/12;
-            }
-
-            unsigned int thr = hist_total_px / 10000;
-            if (hist_r[i] > thr || (hist_g[i] > thr && hist_meter != HIST_METER_ETTR_HINT_CLIP_GREEN) || hist_b[i] > thr)
-                stops_until_overexposure = 120 - (i * 120 / (HIST_WIDTH-1));
-        }
-        #endif
-
-    }
-    bmp_draw_rect(60, x_origin-1, y_origin-1, HIST_WIDTH+1, hist_height+1);
-    
-    #ifdef FEATURE_RAW_HISTOGRAM
-    if (hist_is_raw)
-    {
-        char msg[10];
-        switch (hist_meter)
-        {
-            case HIST_METER_DYNAMIC_RAMGE:
-            {
-                int dr = (raw_info.dynamic_range + 5) / 10;
-                snprintf(msg, sizeof(msg), "D%d.%d", dr/10, dr%10);
-                break;
-            }
-
-            case HIST_METER_ETTR_HINT:
-            case HIST_METER_ETTR_HINT_CLIP_GREEN:
-            {
-                if (stops_until_overexposure)
-                    snprintf(msg, sizeof(msg), "E%d.%d", stops_until_overexposure/10, stops_until_overexposure%10);
-                else
-                    snprintf(msg, sizeof(msg), "OVER");
-                    break;
-            }
-            
-            default:
-                snprintf(msg, sizeof(msg), "RAW");
-                break;
-        }
-        bmp_printf(SHADOW_FONT(FONT_MED), x_origin+4, y_origin, msg);
-    }
-    #endif
-}
-#endif
-
-void hist_highlight(int level)
-{
-#ifdef FEATURE_HISTOGRAM
-    get_yuv422_vram();
-    hist_draw_image( os.x_max - HIST_WIDTH, os.y0 + 100, level );
-#endif
-}
-
 #ifdef FEATURE_WAVEFORM
 /** Draw the waveform image into the bitmap framebuffer.
  *
@@ -1437,8 +987,8 @@ waveform_draw_image(
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
     unsigned pitch = BMPPITCH;
-    if( hist_max == 0 )
-        hist_max = 1;
+    if( histogram.max == 0 )
+        histogram.max = 1;
 
     int i, y;
 
@@ -1626,18 +1176,6 @@ static int get_focus_color(int thr, int d)
                                      9 /*light blue*/) : 1;
 }
 #endif
-
-static void little_cleanup(void* BP, void* MP)
-{
-    uint8_t* bp = BP; uint8_t* mp = MP;
-    if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
-    bp++; mp++;
-    if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
-    bp++; mp++;
-    if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
-    bp++; mp++;
-    if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
-}
 
 #ifdef FEATURE_ZEBRA
 static inline int zebra_color_word_row(int c, int y)
@@ -2501,71 +2039,6 @@ clrscr_mirror( void )
     }
 }
 
-#ifdef FEATURE_FALSE_COLOR
-static void
-draw_false_downsampled( void )
-{
-    //~ if (vram_width > 720) return;
-    //~ if (!PLAY_MODE)
-    //~ {
-        //~ if (!expsim) return;
-    //~ }
-    
-    // exception: green screen palette is not fixed
-    if (falsecolor_palette == 5)
-    {
-        aj_green_screen();
-        return;
-    }
-
-    
-    //~ bvram_mirror_init();
-    uint8_t * const bvram = bmp_vram_real();
-    if (!bvram) return;
-    if (!bvram_mirror) return;
-
-    uint8_t * const lvram = get_yuv422_vram()->vram;
-    uint8_t* fc = false_colour[falsecolor_palette];
-
-    int off = get_y_skip_offset_for_overlays();
-    for(int y = os.y0 + off; y < os.y_max - off; y += 2 )
-    {
-        uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV_R(y)    );  // 2 pixels
-        uint16_t * const b_row = (uint16_t*)( bvram        + BM_R(y)       );  // 2 pixels
-        uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y)       );  // 2 pixels
-        
-        uint8_t* lvp; // that's a moving pointer through lv vram
-        uint16_t* bp;  // through bmp vram
-        uint16_t* mp;  // through mirror
-        
-        for (int x = os.x0; x < os.x_max; x += 2)
-        {
-            lvp = (uint8_t *)(v_row + BM2LV_X(x)/2); lvp++;
-            bp = b_row + x/2;
-            mp = m_row + x/2;
-            
-            #define BP (*bp)
-            #define MP (*mp)
-            #define BN (*(bp + BMPPITCH/2))
-            #define MN (*(mp + BMPPITCH/2))
-            
-            if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
-            if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/2, mp + BMPPITCH/2); continue; }
-            if ((MP & 0x80808080) || (MN & 0x80808080)) continue;
-            
-            int c = fc[*lvp]; c |= (c << 8);
-            MP = BP = c;
-            MN = BN = c;
-
-            #undef BP
-            #undef MP
-            #undef BN
-            #undef MN
-        }
-    }
-}
-#endif
-
 #ifdef FEATURE_BULB_RAMPING
 void
 highlight_luma_range(int lo, int hi, int color1, int color2)
@@ -2778,45 +2251,6 @@ static MENU_UPDATE_FUNC(zebra_level_display)
 }
 #endif
 
-#ifdef FEATURE_FALSE_COLOR
-static char* falsecolor_palette_name()
-{
-    return
-        falsecolor_palette == 0 ? "Marshall" :
-        falsecolor_palette == 1 ? "SmallHD" :
-        falsecolor_palette == 2 ? "50-55%" :
-        falsecolor_palette == 3 ? "67-72%" :
-        falsecolor_palette == 4 ? "Banding detection" :
-        falsecolor_palette == 5 ? "GreenScreen" : "Unk";
-}
-
-static void falsecolor_palette_preview(int x, int y)
-{
-    for (int i = 0; i < 256; i++)
-    {
-        draw_line(x + 419 + i, y, x + 419 + i, y + font_large.height - 2, false_colour[falsecolor_palette][i]);
-    }
-}
-
-static MENU_UPDATE_FUNC(falsecolor_display)
-{
-    if (falsecolor_draw)
-    {
-        MENU_SET_VALUE(
-            falsecolor_palette_name()
-        );
-        if (info->x) falsecolor_palette_preview(info->x, info->y);
-    }
-}
-
-static MENU_UPDATE_FUNC(falsecolor_display_palette)
-{
-    MENU_SET_VALUE(
-        falsecolor_palette_name()
-    );
-    if (info->x) falsecolor_palette_preview(info->x - 420, info->y + font_large.height + 10);
-}
-#endif
 
 #ifdef FEATURE_FOCUS_PEAK
 static MENU_UPDATE_FUNC(focus_peaking_display)
@@ -2886,24 +2320,6 @@ static MENU_UPDATE_FUNC(crop_display_submenu)
     }
     
     MENU_SET_ICON(MNI_DICE, (num_cropmarks<<16) + index);
-}
-#endif
-
-#ifdef FEATURE_HISTOGRAM
-
-static MENU_UPDATE_FUNC(hist_print)
-{
-    if (hist_draw)
-        MENU_SET_VALUE(
-            "%s%s%s",
-            hist_colorspace == 0 ? "Luma" : "RGB",
-            hist_log ? ",Log" : ",Lin",
-            hist_warn ? ",clip warn" : ""
-        );
-    #ifdef FEATURE_RAW_HISTOGRAM
-    if (hist_draw && can_use_raw_overlays_menu())
-        raw_histo_update(entry, info);
-    #endif
 }
 #endif
 
@@ -3147,7 +2563,7 @@ int get_spot_motion(int dxb, int xcb, int ycb, int draw)
             int p2 = (vr2[pos] >> 8) & 0xFF;
             int dif = ABS(p1 - p2);
             D += dif;
-            if (draw) bm[x + y_skip_pitch] = false_colour[5][dif & 0xFF];
+            if (draw) bm[x + y_skip_pitch] = falsecolor_value_ex(5, dif & 0xFF);
         }
     }
 
@@ -3669,7 +3085,7 @@ struct menu_entry zebra_menus[] = {
                 .update = zebra_param_not_used_for_raw,
             },
             #endif
-            #ifdef FEATURE_RAW_HISTOGRAM
+            #if defined(FEATURE_RAW_HISTOGRAM) && defined(FEATURE_RAW_ZEBRAS)
             {
                 .name = "Use RAW zebras",
                 .priv = &raw_zebra_enable,
@@ -3944,7 +3360,7 @@ struct menu_entry zebra_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Palette      ",
-                .priv = &falsecolor_palette, 
+                .priv = &falsecolor_palette,
                 .max = COUNT(false_colour)-1,
                 .icon_type = IT_DICE,
                 .choices = CHOICES("Marshall", "SmallHD", "50-55%", "67-72%", "Banding detection", "GreenScreen"),
@@ -4559,63 +3975,6 @@ void zoom_overlay_set_countdown(int x)
     zoom_overlay_triggered_by_focus_ring_countdown = x;
 }
 
-static void FAST yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
-{
-    dst = ALIGN32(dst);
-    src = ALIGN32(src);
-    uint32_t* last_s = src + (num_pix>>1);
-    for (; src < last_s; src++, dst += 2)
-    {
-        uint32_t chroma = (*src)  & 0x00FF00FF;
-        uint32_t luma1 = (*src >>  8) & 0xFF;
-        uint32_t luma2 = (*src >> 24) & 0xFF;
-        *(dst) = chroma | (luma1 << 8) | (luma1 << 24);
-        *(dst+1) = chroma | (luma2 << 8) | (luma2 << 24);
-    }
-}
-
-static void FAST yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
-{
-    dst = ALIGN32(dst);
-    src = ALIGN32(src);
-    uint32_t* last_s = src + (num_pix>>1);
-    for (; src < last_s; src++, dst += 3)
-    {
-        uint32_t chroma = (*src)  & 0x00FF00FF;
-        uint32_t luma1 = (*src >>  8) & 0xFF;
-        uint32_t luma2 = (*src >> 24) & 0xFF;
-        const int l18 = luma1 << 8;
-        const int l28 = luma2 << 8;
-        const int l224 = luma2 << 24;
-        *(dst)   = chroma | l18 | (luma1 << 24);
-        *(dst+1) = chroma | l18 | l224;
-        *(dst+2) = chroma | l28 | l224;
-    }
-}
-
-static void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lut)
-{
-    dst = ALIGN32(dst);
-    src = ALIGN32(src);
-    
-    if (X==1)
-    {
-        #ifdef CONFIG_DMA_MEMCPY
-        dma_memcpy(dst, src, num_pix << 1);
-        #else
-        memcpy(dst, src, num_pix << 1);
-        #endif
-    }
-    else if (X==2)
-    {
-        yuvcpy_x2(dst, src, num_pix >> 1);
-    }
-    else if (X==3)
-    {
-        yuvcpy_x3(dst, src, num_pix/3);
-    }
-}
-
 void digic_zoom_overlay_step(int force_off)
 {
 #if !defined(CONFIG_VXWORKS)
@@ -4934,9 +4293,9 @@ static void draw_livev_for_playback()
     if (QR_MODE) msleep(100);
 
     get_yuv422_vram(); // just to refresh VRAM params
-    
+
     info_led_on();
-    
+
 BMP_LOCK(
 
     bvram_mirror_clear(); // may be filled with liveview cropmark / masking info, not needed in play mode
@@ -4992,17 +4351,17 @@ int should_draw_bottom_graphs()
 
 void draw_histogram_and_waveform(int allow_play)
 {
-   
+
     if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
-    
+
     get_yuv422_vram();
 
 #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM) || defined(FEATURE_VECTORSCOPE)
     if (hist_draw || waveform_draw || vectorscope_draw)
     {
         hist_build();
-        
+
         #ifdef FEATURE_RAW_HISTOGRAM
         if (raw_histogram_enable && can_use_raw_overlays())
         {
@@ -5011,7 +4370,7 @@ void draw_histogram_and_waveform(int allow_play)
         #endif
     }
 #endif
-    
+
     //~ if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
     if (!get_global_draw()) return;
     if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play) && !gui_menu_shown()) return;
@@ -6358,38 +5717,6 @@ static void show_overlay()
     afframe_clr_dirty();
 }
 
-void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
-{
-    ASSERT(src);
-    ASSERT(dst);
-    if (!dst) return;
-    int i,j;
-    
-    // only used for menu => 720x480
-    static int16_t js_cache[720];
-    
-    for (j = 0; j < 720; j++)
-        js_cache[j] = (j - x0) * denx / 128 + x0;
-    
-    for (i = 0; i < 480; i++)
-    {
-        int is = (i - y0) * deny / 128 + y0;
-        uint8_t* dst_r = &dst[BM(0,i)];
-        uint8_t* src_r = &src[BM(0,is)];
-        
-        if (is >= 0 && is < 480)
-        {
-            for (j = 0; j < 720; j++)
-            {
-                int js = js_cache[j];
-                dst_r[j] = likely(js >= 0 && js < 720) ? src_r[js] : 0;
-            }
-        }
-        else
-            bzero32(dst_r, 720);
-    }
-}
-
 static void transparent_overlay_from_play()
 {
     if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(1000); }
@@ -6421,42 +5748,6 @@ PROP_HANDLER(PROP_LV_ACTION)
     zoom_sharpen_step();
     zoom_auto_exposure_step();
     #endif
-}
-
-void yuv_resize(uint32_t* src, int src_w, int src_h, uint32_t* dst, int dst_w, int dst_h)
-{
-    int i,j;
-    const int srcw_half = src_w >> 1;
-    const int dstw_half = dst_w >> 1;
-    for (i = 0; i < dst_h; i++)
-    {
-        const int src_off_part = (i*src_h/dst_h) * srcw_half;
-        const int dst_off_y = i * dstw_half;
-        int mult_srcw = 0;
-        for (j = 0; j < dstw_half; j++, mult_srcw += src_w)
-        {
-            dst[dst_off_y + j] = src[src_off_part + mult_srcw/dst_w];
-        }
-    }
-}
-
-void yuv_halfcopy(uint32_t* dst, uint32_t* src, int w, int h, int top_half)
-{
-    int i,j;
-    const int w_half = w >> 1;
-    int pos = 0;
-    for (i = 0; i < h; i++,pos += w_half)
-    {
-        for (j = 0; j < w/2; j++)
-        {
-            int sign = j - i * w_half/h;
-            const int offset = pos + j;
-            if ((top_half && sign > 0) || (!top_half && sign <= 0))
-            {
-                dst[offset] = src[offset];
-            }
-        }
-    }
 }
 
 void play_422(char* filename)

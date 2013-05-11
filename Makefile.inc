@@ -172,6 +172,13 @@ ML_OBJS-y += \
 	ico.o \
 	edmac.o
 
+ML_COMMON_SRC_OBJS =  \
+	imgconv.o \
+	histogram.o \
+	falsecolor.o
+
+ML_OBJS-y += $(ML_COMMON_SRC_OBJS)
+
 ML_OBJS-$(CONFIG_GDB) += \
 	gdb.o
 
