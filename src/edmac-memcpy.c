@@ -25,7 +25,7 @@ void* edmac_memcpy(void* dst, void* src, size_t length)
 
     if(length % 4096)
     {
-        length &= 4095;
+        length &= ~4095;
     }
     
     /* pick some free (check using debug menu) EDMAC channels write: 0x00-0x06, 0x10-0x16, 0x20-0x21. read: 0x08-0x0D, 0x18-0x1D,0x28-0x2B */
