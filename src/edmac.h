@@ -54,4 +54,19 @@ uint32_t edmac_get_length(uint32_t channel);
 uint32_t edmac_get_connection(uint32_t channel, uint32_t direction);
 uint32_t edmac_get_dir(uint32_t channel);
 
+struct edmac_info
+{
+    unsigned int off1a;
+    unsigned int off1b;
+    unsigned int off2a;
+    unsigned int off2b;
+    unsigned int off3;
+    unsigned int xa;
+    unsigned int xb;
+    unsigned int ya;
+    unsigned int yb;
+    unsigned int xn;
+    unsigned int yn;
+};
+
 #endif
