@@ -53,7 +53,7 @@ int main(int argc, char** argv)
     CHECK(raw, "malloc");
     
     /* override the resolution from raw_info with the one from lv_rec_footer, if they don't match */
-    if (lv_rec_footer.xRes != raw_info.pitch)
+    if (lv_rec_footer.xRes != raw_info.width)
     {
         raw_info.width = lv_rec_footer.xRes;
         raw_info.active_area.x1 = 0;
