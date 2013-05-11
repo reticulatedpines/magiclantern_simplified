@@ -126,16 +126,11 @@ void bmp_idle_copy(int direction, int fullsize)
                 memcpy(idle+i*BMPPITCH, real+i*BMPPITCH, 360);
         }
 #else
-        if (direction)
-        {
-            for (int i = 0; i < 480; i ++)
-                memcpy(real+i*BMPPITCH, idle+i*BMPPITCH, 720);
-        }
-        else
-        {
-            for (int i = 0; i < 480; i ++)
-                memcpy(idle+i*BMPPITCH, real+i*BMPPITCH, 720);
-        }
+        unsigned char * dst_ptr = direction ? real : idle;
+        unsigned char * src_ptr = direction ? idle : real;
+
+        for (int i = 0; i < 480; i++, dst_ptr += BMPPITCH, src_ptr += BMPPITCH)
+            memcpy(dst_ptr, src_ptr, 720);
 #endif
     }
 }
@@ -201,7 +196,7 @@ _draw_char(
 
     const uint32_t    pitch        = BMPPITCH / 4;
     uint32_t *    front_row    = (uint32_t *) bmp_vram_row;
-    
+
     // boundary checking, don't write past this address
     uint32_t* end = (uint32_t *)(BMP_VRAM_END(v) - font->width);
 
@@ -209,6 +204,8 @@ _draw_char(
     //uint32_t flags = cli();
     if ((fontspec & SHADOW_MASK) == 0)
     {
+        const uint32_t maxw = font->width >> 2;
+
         for( i=0 ; i<font->height ; i++ )
         {
             // Start this scanline
@@ -220,8 +217,7 @@ _draw_char(
 
             uint32_t pixels = font->bitmap[ c + (i << 7) ];
             uint8_t pixel;
-
-            for( j=0 ; j<font->width/4 ; j++ )
+            for( j=0 ; j<maxw ; j++ )
             {
                 uint32_t bmp_pixels = 0;
                 for( pixel=0 ; pixel<4 ; pixel++, pixels <<=1 )
@@ -252,6 +248,8 @@ _draw_char(
         fg_color >>= 24;
         bg_color >>= 24;
 
+        const uint32_t maxw = font->width >> 2;
+
         for( i=0 ; i<font->height ; i++ )
         {
             // Start this scanline
@@ -266,10 +264,11 @@ _draw_char(
             uint32_t pixels_shadow = shadow->bitmap[ c + (i << 7) ];
             uint8_t pixel;
 
-            for( j=0 ; j<font->width/4 ; j++ )
+
+            for( j=0 ; j<maxw ; j++ )
             {
                 uint32_t bmp_pixels = *(row);
-                
+
                 for( pixel=0 ; pixel<4 ; pixel++, pixels <<=1, pixels_shadow <<=1 )
                 {
                     //~ bmp_pixels >>= 8;
@@ -295,7 +294,10 @@ _draw_char(
     #define FPIX(i,j) (font->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
     //- #define BMPIX(i,j) bmp_vram_row[(i) * BMPPITCH + (j)]
     #define BMPIX(i,j,color) char* p = &bmp_vram_row[((i)/2) * BMPPITCH + (j)/2]; SET_4BIT_PIXEL(p, j, color);
-    
+
+    const int bg_color_24 = bg_color >> 24;
+    const int fg_color_24 = fg_color >> 24;
+
     if (font == &font_large) // large fonts look better with line skipping
     {
         for( i = 0 ; i<font->height ; i++ )
@@ -304,11 +306,11 @@ _draw_char(
             {
                 if FPIX(i,j)
                 {
-                    BMPIX(i,j,fg_color>>24);
+                    BMPIX(i,j,fg_color_24);
                 }
                 else
                 {
-                    BMPIX(i,j,bg_color>>24);
+                    BMPIX(i,j,bg_color_24);
                 }
             }
         }
@@ -321,7 +323,7 @@ _draw_char(
             {
                 if (!FPIX(i,j))
                 {
-                    BMPIX(i,j,bg_color>>24);
+                    BMPIX(i,j,bg_color_24);
                 }
             }
         }
@@ -332,7 +334,7 @@ _draw_char(
             {
                 if FPIX(i,j)
                 {
-                    BMPIX(i,j,fg_color>>24);
+                    BMPIX(i,j,fg_color_24);
                 }
             }
         }

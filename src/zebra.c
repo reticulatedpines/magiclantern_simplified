@@ -97,7 +97,7 @@ static int FAST get_y_skip_offset_for_overlays()
     if (lv && is_movie_mode() && video_mode_resolution <= 1) off = os.off_169;
     int t = get_ml_topbar_pos();
     int b = get_ml_bottombar_pos();
-    int mid = os.y0 + os.y_ex/2;
+    int mid = os.y0 + (os.y_ex >> 1);
     if (t < mid && t + 25 > os.y0 + off) off = t + 25 - os.x0;
     if (t > mid) b = MIN(b, t);
     if (b < os.y_max - off) off = os.y_max - b;
@@ -134,34 +134,34 @@ static void precompute_yuv2rgb()
     for (int u = 0; u < 256; u++)
     {
         int8_t U = u;
-        yuv2rgb_GU[u] = -191 * U / 1024;
-        yuv2rgb_BU[u] = 1900 * U / 1024;
+        yuv2rgb_GU[u] = (-191 * U) >> 10;
+        yuv2rgb_BU[u] = (1900 * U) >> 10;
     }
 
     for (int v = 0; v < 256; v++)
     {
         int8_t V = v;
-        yuv2rgb_RV[v] = 1608 * V / 1024;
-        yuv2rgb_GV[v] = -478 * V / 1024;
+        yuv2rgb_RV[v] = (1608 * V) >> 10;
+        yuv2rgb_GV[v] = (-478 * V) >> 10;
     }
 #else // REC 601
     /*
-    *R = *Y + 1437 * V / 1024;
-    *G = *Y -  352 * U / 1024 - 731 * V / 1024;
-    *B = *Y + 1812 * U / 1024;
+    *R = *Y + ((1437 * V) >> 10);
+    *G = *Y -  ((352 * U) >> 10) - ((731 * V) >> 10);
+    *B = *Y + ((1812 * U) >> 10);
     */
     for (int u = 0; u < 256; u++)
     {
         int8_t U = u;
-        yuv2rgb_GU[u] = -352 * U / 1024;
-        yuv2rgb_BU[u] = 1812 * U / 1024;
+        yuv2rgb_GU[u] = (-352 * U) >> 10;
+        yuv2rgb_BU[u] = (1812 * U) >> 10;
     }
 
     for (int v = 0; v < 256; v++)
     {
         int8_t V = v;
-        yuv2rgb_RV[v] = 1437 * V / 1024;
-        yuv2rgb_GV[v] = -731 * V / 1024;
+        yuv2rgb_RV[v] = (1437 * V) >> 10;
+        yuv2rgb_GV[v] = (-731 * V) >> 10;
     }
 #endif
 }
@@ -184,18 +184,28 @@ static void precompute_yuv2rgb()
 #define COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B) \
 { \
     Y = UYVY_GET_AVG_Y(uyvy); \
-    R = COERCE(Y + yuv2rgb_RV[UYVY_GET_V(uyvy)], 0, 255); \
-    G = COERCE(Y + yuv2rgb_GU[UYVY_GET_U(uyvy)] + yuv2rgb_GV[UYVY_GET_V(uyvy)], 0, 255); \
-    B = COERCE(Y + yuv2rgb_BU[UYVY_GET_U(uyvy)], 0, 255); \
+    const int gv = UYVY_GET_V(uyvy); \
+    const int gu = UYVY_GET_U(uyvy); \
+    int v = Y + yuv2rgb_RV[gv]; \
+    R = COERCE(v, 0, 255); \
+    v = Y + yuv2rgb_GU[gu] + yuv2rgb_GV[gv]; \
+    G = COERCE(v, 0, 255); \
+    v = Y + yuv2rgb_BU[gu]; \
+    B = COERCE(v, 0, 255); \
 } \
 
 #define UYVY_PACK(u,y1,v,y2) ((u) & 0xFF) | (((y1) & 0xFF) << 8) | (((v) & 0xFF) << 16) | (((y2) & 0xFF) << 24);
 
 void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
 {
-    *R = COERCE(Y + yuv2rgb_RV[V & 0xFF], 0, 255); \
-    *G = COERCE(Y + yuv2rgb_GU[U & 0xFF] + yuv2rgb_GV[V & 0xFF], 0, 255); \
-    *B = COERCE(Y + yuv2rgb_BU[U & 0xFF], 0, 255); \
+    const int v_and_ff = V & 0xFF;
+    const int u_and_ff = U & 0xFF;
+    int v = Y + yuv2rgb_RV[v_and_ff];
+    *R = COERCE(v, 0, 255);
+    v = Y + yuv2rgb_GU[u_and_ff] + yuv2rgb_GV[v_and_ff];
+    *G = COERCE(v, 0, 255);
+    v = Y + yuv2rgb_BU[u_and_ff];
+    *B = COERCE(v, 0, 255);
 }
 
 void uyvy_split(uint32_t uyvy, int* Y, int* U, int* V)
@@ -606,8 +616,8 @@ vectorscope_putpixels(uint8_t *bmp_buf, int x_pos, int y_pos, uint8_t color, uin
 static void 
 vectorscope_putblock(uint8_t *bmp_buf, int xc, int yc, uint8_t color, int32_t frac_x, int32_t frac_y)
 {
-    int x_pos = xc + ((int32_t)vectorscope_width * frac_x) / 4096;
-    int y_pos = yc + (-(int32_t)vectorscope_height * frac_y) / 4096;
+    int x_pos = xc + (((int32_t)vectorscope_width * frac_x) >> 12);
+    int y_pos = yc + ((-(int32_t)vectorscope_height * frac_y) >> 12);
 
     vectorscope_putpixels(bmp_buf, x_pos + 0, y_pos - 4, color, 1);
     vectorscope_putpixels(bmp_buf, x_pos + 0, y_pos + 4, color, 1);
@@ -625,8 +635,8 @@ vectorscope_putblock(uint8_t *bmp_buf, int xc, int yc, uint8_t color, int32_t fr
 static void vectorscope_paint(uint8_t *bmp_buf, uint32_t x_origin, uint32_t y_origin)
 {    
     //int r = vectorscope_height/2 - 1;
-    int xc = x_origin + vectorscope_width/2;
-    int yc = y_origin + vectorscope_height/2;
+    int xc = x_origin + (vectorscope_width >> 1);
+    int yc = y_origin + (vectorscope_height >> 1);
 
     /* red block at U=-14.7% V=61.5% => U=-304/2048th V=1259/2048th */
     vectorscope_putblock(bmp_buf, xc, yc, 8, -302, 1259);
@@ -689,13 +699,14 @@ vectorscope_addpixel(uint8_t y, int8_t u, int8_t v)
     int U = u << vectorscope_gain;
     
     int r = U*U + V*V;
+    const int r_sqrt = (int)sqrtf(r);
     if (r > 124*124)
     {
         /* almost out of circle, mark it with red */
         for (int R = 124; R < 128; R++)
         {
-            int c = U * R / (int)sqrtf(r);
-            int s = V * R / (int)sqrtf(r);
+            int c = U * R / r_sqrt;
+            int s = V * R / r_sqrt;
             int pos = vectorscope_coord_uv_to_pos(c, s);
             vectorscope[pos] = 255 - COLOR_RED;
         }
@@ -736,6 +747,11 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
 
     vectorscope_paint(vectorscope, 0, 0);
 
+    const uint32_t vsh2 = vectorscope_height >> 1;
+    const int r = vsh2 - 1;
+    const int r_plus1_square = (r+1)*(r+1);
+    const int r_minus1_square = (r-1)*(r-1);
+
     for(uint32_t y = 0; y < vectorscope_height; y++)
     {
         #ifdef CONFIG_4_3_SCREEN
@@ -744,28 +760,32 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
         uint8_t *bmp_buf = &(bvram[BM(x_origin, y_origin+y)]);
         #endif
 
+        const int yc = y - vsh2;
+        const int yc_square = yc * yc;
+        const int yc_663div1024 = (yc * 663) >> 10;
+
         for(uint32_t x = 0; x < vectorscope_width; x++)
         {
             uint8_t brightness = vectorscope[x + y*vectorscope_width];
 
-            int xc = x - vectorscope_height/2;
-            int yc = y - vectorscope_height/2;
-            int r = vectorscope_height/2 - 1;
-            int inside_circle = xc*xc + yc*yc < (r-1)*(r-1);
-            int on_circle = !inside_circle && xc*xc + yc*yc <= (r+1)*(r+1);
+            int xc = x - vsh2;
+            int xc_square = xc * xc;
+            int xc_plus_yc_square = xc_square + yc_square;
+            int inside_circle = xc_plus_yc_square < r_minus1_square;
+            int on_circle = !inside_circle && xc_plus_yc_square <= r_plus1_square;
             // kdenlive vectorscope:
             // center: 175,180
             // I: 83,38   => dx=-92, dy=142
             // Q: 320,87  => dx=145, dy=93
             // let's say 660/1024 is a good approximation of the slope
-            
+
             // wikipedia image:
             // center: 318, 294
             // I: 171, 68  => 147,226
             // Q: 545, 147 => 227,147
             // => 663/1024 is a better approximation
-            
-            int on_axis = (x==vectorscope_width/2) || (y==vectorscope_height/2) || (inside_circle && (xc==yc*663/1024 || -xc*663/1024==yc));
+
+            int on_axis = (x==vectorscope_width/2) || (y==vsh2) || (inside_circle && (xc==yc_663div1024 || -xc*663/1024==yc));
 
             if (on_circle || (on_axis && brightness==0))
             {
@@ -837,13 +857,10 @@ hist_build()
     hist_max = 0;
     hist_total_px = 0;
     hist_is_raw = 0;
-    for( x=0 ; x<HIST_WIDTH ; x++ )
-    {
-        hist[x] = 0;
-        hist_r[x] = 0;
-        hist_g[x] = 0;
-        hist_b[x] = 0;
-    }
+    memset(hist, 0, sizeof(hist)/sizeof(hist[0]));
+    memset(hist_r, 0, sizeof(hist_r)/sizeof(hist_r[0]));
+    memset(hist_g, 0, sizeof(hist_g)/sizeof(hist_g[0]));
+    memset(hist_b, 0, sizeof(hist_b)/sizeof(hist_b[0]));
     #endif
 
     #ifdef FEATURE_WAVEFORM
@@ -867,7 +884,7 @@ hist_build()
     {
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
-            uint32_t pixel = buf[BM2LV(x,y)/4];
+            uint32_t pixel = buf[BM2LV(x,y) >> 2];
             
             // ignore magic zoom borders
             if (mz && (pixel == MZ_WHITE || pixel == MZ_BLACK || pixel == MZ_GREEN))
@@ -882,9 +899,9 @@ hist_build()
                 //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
                 COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
                 // YRGB range: 0-255
-                uint32_t R_level = R * HIST_WIDTH / 256;
-                uint32_t G_level = G * HIST_WIDTH / 256;
-                uint32_t B_level = B * HIST_WIDTH / 256;
+                uint32_t R_level = (R * HIST_WIDTH) >> 8;
+                uint32_t G_level = (G * HIST_WIDTH) >> 8;
+                uint32_t B_level = (B * HIST_WIDTH) >> 8;
                 
                 hist_r[R_level & (HIST_WIDTH-1)]++;
                 hist_g[G_level & (HIST_WIDTH-1)]++;
@@ -897,13 +914,13 @@ hist_build()
             {
                 uint32_t p1 = ((pixel >> 16) & 0xFF00) >> 8;
                 uint32_t p2 = ((pixel >>  0) & 0xFF00) >> 8;
-                Y = (p1+p2) / 2; 
+                Y = (p1+p2) >> 1; 
             }
             #endif
 
             #ifdef FEATURE_HISTOGRAM
             hist_total_px++;
-            uint32_t hist_level = Y * HIST_WIDTH / 256;
+            uint32_t hist_level = (Y * HIST_WIDTH) >> 8;
 
             // Ignore the 0 bin.  It generates too much noise
             unsigned count = ++ (hist[ hist_level & (HIST_WIDTH-1)]);
@@ -915,7 +932,7 @@ hist_build()
             // Update the waveform plot
             if (waveform_draw) 
             {
-                uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) / 256);
+                uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) >> 8);
                 if ((*w) < 250) (*w)++;
             }
             #endif
@@ -962,13 +979,10 @@ static FAST void hist_build_raw()
 
     hist_max = 0;
     hist_total_px = 0;
-    for( int i = 0 ; i < HIST_WIDTH ; i++ )
-    {
-        hist[i] = 0;
-        hist_r[i] = 0;
-        hist_g[i] = 0;
-        hist_b[i] = 0;
-    }
+    memset(hist, 0, sizeof(hist)/sizeof(hist[0]));
+    memset(hist_r, 0, sizeof(hist_r)/sizeof(hist_r[0]));
+    memset(hist_g, 0, sizeof(hist_g)/sizeof(hist_g[0]));
+    memset(hist_b, 0, sizeof(hist_b)/sizeof(hist_b[0]));
 
     for (int i = os.y0; i < os.y_max; i += 8)
     {
@@ -1116,13 +1130,14 @@ int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
         uint32_t * const v_row = (uint32_t*)( vram + BM2LV_R(y) );
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
-            uint32_t pixel = v_row[x/2];
+            uint32_t pixel = v_row[x >> 1];
             
             int Y, R, G, B;
             //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
             COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
             
-            int M = MAX(MAX(R,G),B);
+            int M = MAX(R,G);
+            M = MAX(M, B);
             if (pixel && Y < thr_lo) (*under)++; // try to ignore black bars
             if (M > thr_hi) (*over)++;
             total++;
@@ -1270,12 +1285,13 @@ hist_draw_image(
     unsigned i, y;
     
     if (highlight_level >= 0) 
-        highlight_level = highlight_level * HIST_WIDTH / 256;
+        highlight_level = (highlight_level * HIST_WIDTH) >> 8;
 
     int log_max = log_length(hist_max);
 
     #ifdef FEATURE_RAW_HISTOGRAM
-    unsigned underexposed_level = COERCE((1200 - raw_info.dynamic_range) * HIST_WIDTH / 1200, 0, HIST_WIDTH-1);
+    const unsigned v = (1200 - raw_info.dynamic_range) * HIST_WIDTH / 1200;
+    unsigned underexposed_level = COERCE(v, 0, HIST_WIDTH-1);
     unsigned stops_until_overexposure = 0;
     #endif
 
@@ -1299,7 +1315,7 @@ hist_draw_image(
             else if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
                 *col = hist_rgb_color(y, sizeR, sizeG, sizeB);
             else
-                *col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][(i * 256 / HIST_WIDTH) & 0xFF]: COLOR_WHITE);
+                *col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][((i << 8) / HIST_WIDTH) & 0xFF]: COLOR_WHITE);
         }
         
         if (hist_warn && i == HIST_WIDTH - 1)
@@ -1448,7 +1464,7 @@ waveform_draw_image(
                     //~ count /= 2;
                 }
                 // Scale to a grayscale
-                count = (count * 42) / 128;
+                count = (count * 42) >> 7;
                 if( count > 42 - 5 )
                     count = COLOR_RED;
                 else
@@ -1456,13 +1472,13 @@ waveform_draw_image(
                     count += 38 + 5;
                 else
                 // Draw a series of colored scales
-                if( y == (WAVEFORM_HEIGHT*1)/4 )
+                if( y == (WAVEFORM_HEIGHT*1)>>2 )
                     count = COLOR_BLUE;
                 else
-                if( y == (WAVEFORM_HEIGHT*2)/4 )
+                if( y == (WAVEFORM_HEIGHT*2)>>2 )
                     count = 0xE; // pink
                 else
-                if( y == (WAVEFORM_HEIGHT*3)/4 )
+                if( y == (WAVEFORM_HEIGHT*3)>>2 )
                     count = COLOR_BLUE;
                 else
                     count = waveform_bg; // transparent
@@ -1770,8 +1786,8 @@ static void draw_zebras( int Z )
 
                 for (int x = os.x0; x < os.x_max; x += 4)
                 {
-                    bp = b_row + x/4;
-                    mp = m_row + x/4;
+                    bp = b_row + (x >> 2);
+                    mp = m_row + (x >> 2);
                     #define BP (*bp)
                     #define MP (*mp)
                     if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
@@ -1836,15 +1852,15 @@ static void draw_zebras( int Z )
 
             for (int x = os.x0; x < os.x_max; x += 4)
             {
-                lvp = v_row + BM2LV_X(x)/2;
-                bp = b_row + x/4;
-                mp = m_row + x/4;
+                lvp = v_row + (BM2LV_X(x) >> 1);
+                bp = b_row + (x >> 2);
+                mp = m_row + (x >> 2);
                 #define BP (*bp)
                 #define MP (*mp)
                 #define BN (*(bp + BMPPITCH/4))
                 #define MN (*(mp + BMPPITCH/4))
                 if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
-                if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/4, mp + BMPPITCH/4); continue; }
+                if (BN != 0 && BN != MN) { little_cleanup(bp + (BMPPITCH >> 2), mp + (BMPPITCH >> 2)); continue; }
                 if ((MP & 0x80808080) || (MN & 0x80808080)) continue;
                 
                 if (zebra_colorspace == 1 && !EXT_MONITOR_RCA) // rgb
@@ -1972,57 +1988,46 @@ static inline int peak_d2xy_sharpen(uint8_t* p8)
     diff -= (int)(*(p8 - 2));
     diff -= (int)(*(p8 + vram_lv.pitch));
     diff -= (int)(*(p8 - vram_lv.pitch));
-    return COERCE(orig + diff*4, 0, 255);
+    int v = orig + (diff << 2);
+    return COERCE(v, 0, 255);
+}
+
+static inline int FAST calc_peak(const uint8_t* p8, const int pitch)
+{
+    // approximate second derivative with a Laplacian kernel:
+    //     -1
+    //  -1  4 -1
+    //     -1
+    const int p8_xmin1 = (int)(*(p8 - 2));
+    const int p8_xplus1 = (int)(*(p8 + 2));
+    const int p8_ymin1 = (int)(*(p8 - pitch));
+    const int p8_yplus1 = (int)(*(p8 + pitch));
+
+    int result = ((int)(*p8) * 4);
+    result -= p8_xplus1 + p8_xmin1 + p8_yplus1 + p8_ymin1;
+
+    int e = ABS(result);
+
+    if (focus_peaking_filter_edges)
+    {
+        // filter out strong edges where first derivative is strong
+        // as these are usually false positives
+        int d1x = ABS(p8_xplus1 - p8_xmin1);
+        int d1y = ABS(p8_yplus1 - p8_ymin1);
+        int d1 = MAX(d1x, d1y);
+        e = MAX(e - ((d1 << focus_peaking_filter_edges) >> 2), 0) * 2;
+    }
+    return e;
 }
 
 static inline int FAST peak_d2xy(const uint8_t* p8)
 {
-    // approximate second derivative with a Laplacian kernel:
-    //     -1
-    //  -1  4 -1
-    //     -1
-    int result = ((int)(*p8) * 4) - (int)(*(p8 + 2));
-    result -= (int)(*(p8 - 2));
-    result -= (int)(*(p8 + vram_lv.pitch));
-    result -= (int)(*(p8 - vram_lv.pitch));
-
-    int e = ABS(result);
-    
-    if (focus_peaking_filter_edges)
-    {
-        // filter out strong edges where first derivative is strong
-        // as these are usually false positives
-        int d1x = ABS((int)(*(p8 + 2)) - (int)(*(p8 - 2)));
-        int d1y = ABS((int)(*(p8 + vram_lv.pitch)) - (int)(*(p8 - vram_lv.pitch)));
-        int d1 = MAX(d1x, d1y);
-        e = MAX(e - ((d1 << focus_peaking_filter_edges) >> 2), 0) * 2;
-    }
-    return e;
+    return calc_peak(p8, vram_lv.pitch);
 }
 
 static inline int FAST peak_d2xy_hd(const uint8_t* p8)
 {
-    // approximate second derivative with a Laplacian kernel:
-    //     -1
-    //  -1  4 -1
-    //     -1
-    int result = ((int)(*p8) * 4) - (int)(*(p8 + 2));
-    result -= (int)(*(p8 - 2));
-    result -= (int)(*(p8 + vram_hd.pitch));
-    result -= (int)(*(p8 - vram_hd.pitch));
-
-    int e = ABS(result);
-    
-    if (focus_peaking_filter_edges)
-    {
-        // filter out strong edges where first derivative is strong
-        // as these are usually false positives
-        int d1x = ABS((int)(*(p8 + 2)) - (int)(*(p8 - 2)));
-        int d1y = ABS((int)(*(p8 + vram_hd.pitch)) - (int)(*(p8 - vram_hd.pitch)));
-        int d1 = MAX(d1x, d1y);
-        e = MAX(e - ((d1 << focus_peaking_filter_edges) >> 2), 0) * 2;
-    }
-    return e;
+    return calc_peak(p8, vram_hd.pitch);
 }
 
 #ifdef FEATURE_FOCUS_PEAK_DISP_FILTER
@@ -2047,9 +2052,9 @@ static inline int peak_blend_alpha(uint32_t* s, int e)
     const int v_hot = 127;
     
     int er = 255-e;
-    int y = (y_cold * er + y_hot * e) / 256;
-    int u = (u_cold * er + u_hot * e) / 256;
-    int v = (v_cold * er + v_hot * e) / 256;
+    int y = (y_cold * er + y_hot * e) >> 8;
+    int u = (u_cold * er + u_hot * e) >> 8;
+    int v = (v_cold * er + v_hot * e) >> 8;
     
     return UYVY_PACK(u,y,v,y);
 }
@@ -2086,13 +2091,13 @@ void FAST peak_disp_filter()
     // the percentage selected in menu represents how many pixels are considered in focus
     // let's say above some FOCUSED_THR
     // so, let's scale edge value so that e=thr maps to e=FOCUSED_THR
-    for (int i = 0; i < 255; i++)
-        peak_scaling[i] = MIN(i * FOCUSED_THR / thr, 255);
+    for (int i = 0, int i_fthr = 0; i < 255; i++, i_fthr += FOCUSED_THR)
+        peak_scaling[i] = MIN(i_fthr / thr, 255);
     
     int n_over = 0;
     int n_total = 720 * (os.y_max - os.y0) / 2;
-    
-    #define PEAK_LOOP for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
+
+    #define PEAK_LOOP for (int i = 720 * (os.y0/2), int max = 720 * (os.y_max/2); i < max; i++)
     // generic loop:
     //~ for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
     //~ {
@@ -2215,28 +2220,30 @@ static void FAST focus_found_pixel(int x, int y, int e, int thr, uint8_t * const
     
     uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
     uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
-    
-    uint16_t pixel = b_row[x/2];
-    uint16_t mirror = m_row[x/2];
-    uint16_t pixel2 = b_row[x/2 + BMPPITCH/2];
-    uint16_t mirror2 = m_row[x/2 + BMPPITCH/2];
+
+    const int x_half = x >> 1;
+    uint32_t pixel = b_row[x_half];
+    uint32_t mirror = m_row[x_half];
+    const int pos = x_half + (BMPPITCH >> 1);
+    uint32_t pixel2 = b_row[pos];
+    uint32_t mirror2 = m_row[pos];
     if (mirror  & 0x8080) 
         return;
     if (mirror2 & 0x8080)
         return;
-    if (pixel  != 0 && pixel  != mirror )
+    if (pixel  != 0 && pixel  != mirror)
         return;
     if (pixel2 != 0 && pixel2 != mirror2)
         return;
 
     if (dirty_pixels_num < MAX_DIRTY_PIXELS)
     {
-        dirty_pixel_values[dirty_pixels_num] = (uint32_t)b_row[x/2] + ((uint32_t)b_row[x/2 + BMPPITCH/2] << 16);
-        dirty_pixels[dirty_pixels_num++] = (void*)&b_row[x/2] - (void*)bvram;
+        dirty_pixel_values[dirty_pixels_num] = pixel + (pixel2 << 16);
+        dirty_pixels[dirty_pixels_num++] = (void*)&b_row[x_half] - (void*)bvram;
     }
 
-    b_row[x/2] = b_row[x/2 + BMPPITCH/2] = 
-    m_row[x/2] = m_row[x/2 + BMPPITCH/2] = color;
+    b_row[x_half] = b_row[pos] = 
+    m_row[x_half] = m_row[pos] = color;
 }
 
 static void focus_found_pixel_playback(int x, int y, int e, int thr, uint8_t * const bvram)
@@ -2245,12 +2252,13 @@ static void focus_found_pixel_playback(int x, int y, int e, int thr, uint8_t * c
 
     uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
     uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
-    
-    uint16_t pixel = b_row[x/2];
-    uint16_t mirror = m_row[x/2];
+
+    const int x_half = x >> 1;
+    uint16_t pixel = b_row[x_half];
+    uint16_t mirror = m_row[x_half];
     if (mirror  & 0x8080) 
         return;
-    if (pixel  != 0 && pixel  != mirror )
+    if (pixel  != 0 && pixel  != mirror)
         return;
 
     bmp_putpixel_fast(bvram, x, y, color);
@@ -3063,9 +3071,11 @@ void get_spot_yuv_ex(int size_dxb, int dx, int dy, int* Y, int* U, int* V, int d
         }
     }
 
-    sy /= (2 * dxl + 1) * (2 * dxl + 1);
-    su /= (dxl + 1) * (2 * dxl + 1);
-    sv /= (dxl + 1) * (2 * dxl + 1);
+    const int dx1_two_plus1 = (2 * dxl + 1);
+    const int val = (dxl + 1) * dx1_two_plus1;
+    sy /= dx1_two_plus1 * dx1_two_plus1;
+    su /= val;
+    sv /= val;
 
     *Y = sy;
     *U = su;
@@ -3095,19 +3105,22 @@ int get_spot_motion(int dxb, int xcb, int ycb, int draw)
     int                 x, y;
 
 
-    int xcl = BM2LV_X(xcb);
-    int ycl = BM2LV_Y(ycb);
-    int dxl = BM2LV_DX(dxb);
+    const int xcl = BM2LV_X(xcb);
+    const int ycl = BM2LV_Y(ycb);
+    const int dxl = BM2LV_DX(dxb);
 
 	// surface cleaning
 	if ( spm_pre_xcb != -1 && spm_pre_ycb != -1 && draw && (spm_pre_xcb != xcb || spm_pre_ycb != ycb) ) {
 		int p_xcl = BM2LV_X(spm_pre_xcb);
-    	int p_ycl = BM2LV_Y(spm_pre_ycb);
+		int p_ycl = BM2LV_Y(spm_pre_ycb);
+		int ymax = p_ycl + dxl+5;
+		int xmax = p_xcl + dxl+5;
 		int x, y;
-		for( y = p_ycl - (dxl+5) ; y <= p_ycl + dxl+5 ; y++ ) {
-		    for( x = p_xcl - (dxl+5) ; x <= p_xcl + dxl+5 ; x++ )
+		for( y = p_ycl - (dxl+5) ; y <= ymax ; y++ ) {
+		    const int yskip = y * BMPPITCH;
+		    for( x = p_xcl - (dxl+5) ; x <= xmax ; x++ )
 		    {
-		        bm[x + y * BMPPITCH] = 0;
+		        bm[x + yskip] = 0;
 		    }
 		}
 	}
@@ -3125,18 +3138,22 @@ int get_spot_motion(int dxb, int xcb, int ycb, int draw)
     unsigned D = 0;
     for( y = ycl - dxl ; y <= ycl + dxl ; y++ )
     {
+        const int yskip = y * width;
+        const int y_skip_pitch = y * BMPPITCH;
         for( x = xcl - dxl ; x <= xcl + dxl ; x++ )
         {
-            int p1 = (vr1[ x + y * width ] >> 8) & 0xFF;
-            int p2 = (vr2[ x + y * width ] >> 8) & 0xFF;
+            const int pos = x + yskip;
+            int p1 = (vr1[pos] >> 8) & 0xFF;
+            int p2 = (vr2[pos] >> 8) & 0xFF;
             int dif = ABS(p1 - p2);
             D += dif;
-            if (draw) bm[x + y * BMPPITCH] = false_colour[5][dif & 0xFF];
+            if (draw) bm[x + y_skip_pitch] = false_colour[5][dif & 0xFF];
         }
     }
-    
-    D = D * 2;
-    D /= (2 * dxl + 1) * (2 * dxl + 1);
+
+    D <<= 1;
+    const int val = (2 * dxl + 1);
+    D /= val * val;
     return D;
 }
 
@@ -3164,9 +3181,10 @@ int get_spot_focus(int dxb)
     // Sum the absolute difference of values around the center
     for( y = ycl - dxl ; y <= ycl + dxl ; y++ )
     {
+        const int yskip = y * (width >> 1);
         for( x = xcl - dxl ; x <= xcl + dxl ; x++ )
         {
-            uint32_t p = vr[ x/2 + y * width/2 ];
+            uint32_t p = vr[ x/2 + yskip ];
             int32_t p0 = (p >> 24) & 0xFF;
             int32_t p1 = (p >>  8) & 0xFF;
             sf += ABS(p1 - p0);
@@ -3290,21 +3308,23 @@ static void spotmeter_step()
         }
     }
 
-    sy /= (2 * dxl + 1) * (2 * dxl + 1);
-    su /= (dxl + 1) * (2 * dxl + 1);
-    sv /= (dxl + 1) * (2 * dxl + 1);
+    const int two_dx1_plus1 = (2 * dxl + 1);
+    const int val = (dxl + 1) * two_dx1_plus1;
+    sy /= two_dx1_plus1 * two_dx1_plus1;
+    su /= val;
+    sv /= val;
 
     // Scale to 100%
-    const unsigned      scaled = (101 * sy) / 256;
-    
+    const unsigned      scaled = (101 * sy) >> 8;
+
     #ifdef FEATURE_RAW_SPOTMETER
     int raw_luma = 0;
     int raw_ev = 0;
     if (can_use_raw_overlays() && raw_update_params())
     {
-        int xcr = BM2RAW_X(xcb);
-        int ycr = BM2RAW_Y(ycb);
-        int dxr = BM2RAW_DX(dxb);
+        const int xcr = BM2RAW_X(xcb);
+        const int ycr = BM2RAW_Y(ycb);
+        const int dxr = BM2RAW_DX(dxb);
 
         raw_luma = 0;
         
@@ -3321,7 +3341,8 @@ static void spotmeter_step()
                 #endif
             }
         }
-        raw_luma /= (2 * dxr + 1) * (2 * dxr + 1);
+        const int two_dxr_plus1 = 2 * dxr + 1;
+        raw_luma /= two_dxr_plus1 * two_dxr_plus1;
         raw_ev = (int) roundf(10.0 * raw_to_ev(raw_luma));
     }
     #endif
@@ -4563,9 +4584,12 @@ static void FAST yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
         uint32_t chroma = (*src)  & 0x00FF00FF;
         uint32_t luma1 = (*src >>  8) & 0xFF;
         uint32_t luma2 = (*src >> 24) & 0xFF;
-        *(dst)   = chroma | (luma1 << 8) | (luma1 << 24);
-        *(dst+1) = chroma | (luma1 << 8) | (luma2 << 24);
-        *(dst+2) = chroma | (luma2 << 8) | (luma2 << 24);
+        const int l18 = luma1 << 8;
+        const int l28 = luma2 << 8;
+        const int l224 = luma2 << 24;
+        *(dst)   = chroma | l18 | (luma1 << 24);
+        *(dst+1) = chroma | l18 | l224;
+        *(dst+2) = chroma | l28 | l224;
     }
 }
 
@@ -4577,14 +4601,14 @@ static void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lu
     if (X==1)
     {
         #ifdef CONFIG_DMA_MEMCPY
-        dma_memcpy(dst, src, num_pix*2);
+        dma_memcpy(dst, src, num_pix << 1);
         #else
-        memcpy(dst, src, num_pix*2);
+        memcpy(dst, src, num_pix << 1);
         #endif
     }
     else if (X==2)
     {
-        yuvcpy_x2(dst, src, num_pix/2);
+        yuvcpy_x2(dst, src, num_pix >> 1);
     }
     else if (X==3)
     {
@@ -4763,10 +4787,15 @@ static void draw_zoom_overlay(int dirty)
         #endif
         w /= X;
         h /= X;
-        memset64(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
-        memset64(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
-        memset64(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
-        memset64(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
+        const int val_in_coerce_w = aff_x0_lv - (w>>1);
+        const int coerce_w = COERCE(val_in_coerce_w, 0, 720-w);
+        const int val_in_coerce_h1 = aff_y0_lv - (h>>1);
+        const int val_in_coerce_h2 = aff_y0_lv + (h>>1);
+
+        memset64(lvr + coerce_w + COERCE(val_in_coerce_h1 - 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
+        memset64(lvr + coerce_w + COERCE(val_in_coerce_h1 - 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
+        memset64(lvr + coerce_w + COERCE(val_in_coerce_h2 + 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
+        memset64(lvr + coerce_w + COERCE(val_in_coerce_h2 + 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
     }
 
     //~ draw_circle(x0,y0,45,COLOR_WHITE);
@@ -6397,11 +6426,16 @@ PROP_HANDLER(PROP_LV_ACTION)
 void yuv_resize(uint32_t* src, int src_w, int src_h, uint32_t* dst, int dst_w, int dst_h)
 {
     int i,j;
+    const int srcw_half = src_w >> 1;
+    const int dstw_half = dst_w >> 1;
     for (i = 0; i < dst_h; i++)
     {
-        for (j = 0; j < dst_w/2; j++)
+        const int src_off_part = (i*src_h/dst_h) * srcw_half;
+        const int dst_off_y = i * dstw_half;
+        int mult_srcw = 0;
+        for (j = 0; j < dstw_half; j++, mult_srcw += src_w)
         {
-            dst[i * dst_w/2 + j] = src[(i*src_h/dst_h) * src_w/2 + (j*src_w/dst_w)];
+            dst[dst_off_y + j] = src[src_off_part + mult_srcw/dst_w];
         }
     }
 }
@@ -6409,14 +6443,17 @@ void yuv_resize(uint32_t* src, int src_w, int src_h, uint32_t* dst, int dst_w, i
 void yuv_halfcopy(uint32_t* dst, uint32_t* src, int w, int h, int top_half)
 {
     int i,j;
-    for (i = 0; i < h; i++)
+    const int w_half = w >> 1;
+    int pos = 0;
+    for (i = 0; i < h; i++,pos += w_half)
     {
         for (j = 0; j < w/2; j++)
         {
-            int sign = j - i * w/h/2;
+            int sign = j - i * w_half/h;
+            const int offset = pos + j;
             if ((top_half && sign > 0) || (!top_half && sign <= 0))
             {
-                dst[i * w/2 + j] = src[i * w/2 + j];
+                dst[offset] = src[offset];
             }
         }
     }

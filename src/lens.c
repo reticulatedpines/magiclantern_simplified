@@ -1771,9 +1771,9 @@ void lens_set_custom_wb_gains(int gain_R, int gain_G, int gain_B)
     gain_B = COERCE(gain_B, 128, 8192);
 
     // round off a bit to get nice values in menu
-    gain_R = ((gain_R + 8) / 16) * 16;
-    gain_B = ((gain_B + 8) / 16) * 16;
-    
+    gain_R = ((gain_R + 8) >> 4) << 4;
+    gain_B = ((gain_B + 8) >> 4) << 4;
+
     custom_wb_gains[16] = gain_R;
     custom_wb_gains[18] = gain_G;
     custom_wb_gains[19] = gain_B;
