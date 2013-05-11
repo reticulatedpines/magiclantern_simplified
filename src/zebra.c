@@ -4983,7 +4983,7 @@ void draw_histogram_and_waveform(int allow_play)
     }
 #endif
     
-    //~ if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
+    if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
     if (!get_global_draw()) return;
     if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play) && !gui_menu_shown()) return;
     if (is_zoom_mode_so_no_zebras()) return;
@@ -5007,13 +5007,11 @@ void draw_histogram_and_waveform(int allow_play)
     }
 #endif
 
-    if (nondigic_zoom_overlay_enabled()) return;
-
-    //~ if (menu_active_and_not_hidden()) return;
+    if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
     if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play) && !gui_menu_shown()) return;
     if (is_zoom_mode_so_no_zebras()) return;
-        
+
 #ifdef FEATURE_WAVEFORM
     if( waveform_draw)
     {

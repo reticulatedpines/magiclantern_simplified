@@ -3440,16 +3440,32 @@ static void
 menu_redraw_do()
 {
         #ifndef CONFIG_VXWORKS
-        // force dialog change when canon dialog times out (EOSM, 6D etc)
-        // don't try more often than once per second
-        if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU && redraw_flood_stop)
+        if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU)
         {
-            static int aux = 0;
-            if (should_run_polling_action(1000, &aux))
+            if (redraw_flood_stop)
             {
-                bmp_off();
-                start_redraw_flood();
-                SetGUIRequestMode(GUIMODE_ML_MENU);
+                // Canon dialog timed out?
+                #if 1
+                menu_shown = 0; // better just close ML menu? you don't open it for staring at it anyway...
+                bmp_on();
+                redraw();
+                return;
+                #else
+                // force dialog change when canon dialog times out (EOSM, 6D etc)
+                // don't try more often than once per second
+                static int aux = 0;
+                if (should_run_polling_action(1000, &aux))
+                {
+                    bmp_off();
+                    start_redraw_flood();
+                    SetGUIRequestMode(GUIMODE_ML_MENU);
+                }
+                #endif
+            }
+            else
+            {
+                // Canon dialog didn't come up yet; try again later
+                return;
             }
         }
         #endif
