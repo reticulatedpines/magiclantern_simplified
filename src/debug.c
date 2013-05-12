@@ -1067,7 +1067,7 @@ static void mem_benchmark_run(char* msg, int* y, int bufsize, mem_bench_fun benc
 
     int times = 0;
     int t0 = get_ms_clock_value();
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < INT_MAX; i++)
     {
         bench_fun(arg0, arg1, arg2, arg3);
         if (i%2) info_led_off(); else info_led_on();
@@ -1099,6 +1099,13 @@ static void mem_test_bmp_fill(int arg0, int arg1, int arg2, int arg3)
     bmp_draw_to_idle(1);
     bmp_fill(COLOR_BLACK, arg0, arg1, arg2, arg3);
     bmp_draw_to_idle(0);
+}
+
+void mem_test_edmac_copy_rectangle(int arg0, int arg1, int arg2, int arg3)
+{
+    uint8_t* real = bmp_vram_real();
+    uint8_t* idle = bmp_vram_idle();
+    edmac_copy_rectangle_adv(BMP_VRAM_START(idle), BMP_VRAM_START(real), 960, 0, 0, 960, 0, 0, 720, 480);
 }
 
 static uint64_t FAST mem_test_read64(uint64_t* buf, uint32_t n)
@@ -1173,6 +1180,7 @@ static void mem_benchmark_task()
     #endif
     #ifdef CONFIG_EDMAC_MEMCPY
     mem_benchmark_run("edmac_memcpy        ", &y, bufsize, (mem_bench_fun)edmac_memcpy, (intptr_t)buf1,   (intptr_t)buf2,   bufsize, 0);
+    mem_benchmark_run("edmac_copy_rectangle", &y, 720*480, (mem_bench_fun)mem_test_edmac_copy_rectangle, 0, 0, 0, 0);
     #endif
     mem_benchmark_run("memset cacheable    ", &y, bufsize, (mem_bench_fun)memset,     (intptr_t)CACHEABLE(buf1),   0,                           bufsize, 0);
     mem_benchmark_run("memset uncacheable  ", &y, bufsize, (mem_bench_fun)memset,     (intptr_t)UNCACHEABLE(buf1), 0,                           bufsize, 0);
