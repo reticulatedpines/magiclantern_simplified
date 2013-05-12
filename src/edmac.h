@@ -38,22 +38,6 @@
 #define EDMAC_DIR_WRITE   1
 #define EDMAC_DIR_UNUSED  2
 
-void EDMAC_Register_Complete_CBR(unsigned int channel, void (*cbr)(), unsigned int ctx);
-void SetEDmac(unsigned int channel, void *address, unsigned int *ptr, int flags);
-void StartEDmac(unsigned int channel, int flags);
-void ConnectWriteEDmac(unsigned int channel, unsigned int where);
-void ConnectReadEDmac(unsigned int channel, unsigned int where);
-unsigned int GetEdmacAddress(unsigned int channel);
-
-
-uint32_t edmac_get_flags(uint32_t channel);
-uint32_t edmac_get_state(uint32_t channel);
-uint32_t edmac_get_base(uint32_t channel);
-uint32_t edmac_get_address(uint32_t channel);
-uint32_t edmac_get_length(uint32_t channel);
-uint32_t edmac_get_connection(uint32_t channel, uint32_t direction);
-uint32_t edmac_get_dir(uint32_t channel);
-
 struct edmac_info
 {
     unsigned int off1a;
@@ -68,5 +52,22 @@ struct edmac_info
     unsigned int xn;
     unsigned int yn;
 };
+
+
+void EDMAC_Register_Complete_CBR(unsigned int channel, void (*cbr)(), unsigned int ctx);
+void SetEDmac(unsigned int channel, void *address, struct edmac_info *ptr, int flags);
+void StartEDmac(unsigned int channel, int flags);
+void ConnectWriteEDmac(unsigned int channel, unsigned int where);
+void ConnectReadEDmac(unsigned int channel, unsigned int where);
+unsigned int GetEdmacAddress(unsigned int channel);
+
+
+uint32_t edmac_get_flags(uint32_t channel);
+uint32_t edmac_get_state(uint32_t channel);
+uint32_t edmac_get_base(uint32_t channel);
+uint32_t edmac_get_address(uint32_t channel);
+uint32_t edmac_get_length(uint32_t channel);
+uint32_t edmac_get_connection(uint32_t channel, uint32_t direction);
+uint32_t edmac_get_dir(uint32_t channel);
 
 #endif
