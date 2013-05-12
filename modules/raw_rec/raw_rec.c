@@ -194,6 +194,9 @@ static void show_buffer_status(int adj)
     );
 }
 
+static int frame_offset_x = 0;
+static int frame_offset_y = 0;
+
 static void process_frame()
 {
     if (!lv) return;
@@ -205,6 +208,30 @@ static void process_frame()
     /* center crop */
     int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
     int skip_y = raw_info.active_area.y1 + (raw_info.jpeg.height - res_y) / 2;
+    
+    /* proof of concept panning mode: press half-shutter and it pans horizontally */
+    /* todo: hook the LEFT and RIGHT keys maybe */
+    if (get_halfshutter_pressed())
+    {
+        bmp_draw_rect(0, RAW2BM_X(skip_x + frame_offset_x), RAW2BM_Y(skip_y), RAW2BM_DX(res_x), RAW2BM_DY(res_y));
+        bmp_draw_rect(0, RAW2BM_X(skip_x + frame_offset_x)-1, RAW2BM_Y(skip_y)-1, RAW2BM_DX(res_x)+2, RAW2BM_DY(res_y)+2);
+
+        static int frame_offset_delta = 8;
+        frame_offset_x += frame_offset_delta;
+        
+        if (skip_x + frame_offset_x > raw_info.active_area.x2 - res_x)
+        {
+            frame_offset_x = raw_info.active_area.x2 - res_x - skip_x;
+            frame_offset_delta = -frame_offset_delta;
+        }
+        else if (skip_x + frame_offset_x < raw_info.active_area.x1)
+        {
+            frame_offset_x = raw_info.active_area.x1 - skip_x;
+            frame_offset_delta = -frame_offset_delta;
+        }
+    }
+    skip_x += frame_offset_x;
+    skip_y += frame_offset_y;
     
     /* copy frame to our buffer */
     void* ptr = buffers[capturing_buffer_index] + capture_offset;
