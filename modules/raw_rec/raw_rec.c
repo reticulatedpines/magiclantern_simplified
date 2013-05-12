@@ -338,7 +338,9 @@ static void raw_video_rec_task()
         if (saving_buffer_index != capturing_buffer_index)
         {
             if (!t0) t0 = get_ms_clock_value();
-            written += FIO_WriteFile(f, buffers[saving_buffer_index], big_buffer_size);
+            int r = FIO_WriteFile(f, buffers[saving_buffer_index], big_buffer_size);
+            if (r != big_buffer_size) goto abort;
+            written += big_buffer_size;
             saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
         }
 
@@ -362,7 +364,8 @@ static void raw_video_rec_task()
         /* leave some margin to be able to flush everything, just in case */
         if (written > 0xFFFFFFFFu - ((uint32_t)buffer_count + 1) * 32*1024*1024)
         {
-            bmp_printf( FONT_MED, 30, 70, 
+abort:
+            bmp_printf( FONT_MED, 30, 90, 
                 "Movie recording stopped automagically"
             );
             msleep(1000);
