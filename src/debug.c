@@ -747,6 +747,7 @@ static void bsod()
 
 static void run_test()
 {
+    #ifdef CONFIG_EDMAC_MEMCPY
     msleep(2000);
     
     uint8_t* real = bmp_vram_real();
@@ -767,6 +768,7 @@ static void run_test()
         }
     }
     return;
+    #endif
     
     call("lv_save_raw", 1);
     call("aewb_enableaewb", 0);
@@ -1101,12 +1103,14 @@ static void mem_test_bmp_fill(int arg0, int arg1, int arg2, int arg3)
     bmp_draw_to_idle(0);
 }
 
+#ifdef CONFIG_EDMAC_MEMCPY
 void mem_test_edmac_copy_rectangle(int arg0, int arg1, int arg2, int arg3)
 {
     uint8_t* real = bmp_vram_real();
     uint8_t* idle = bmp_vram_idle();
     edmac_copy_rectangle_adv(BMP_VRAM_START(idle), BMP_VRAM_START(real), 960, 0, 0, 960, 0, 0, 720, 480);
 }
+#endif
 
 static uint64_t FAST mem_test_read64(uint64_t* buf, uint32_t n)
 {
