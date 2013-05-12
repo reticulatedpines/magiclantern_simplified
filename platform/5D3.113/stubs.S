@@ -196,6 +196,7 @@ NSTUB(0x12768, ConnectReadEDmac)
 NSTUB(0x125F8, SetEDmac)
 NSTUB(0x12AFC, EDMAC_RegisterCompleteCBR)
 NSTUB(0x12910, StartEDmac)
+NSTUB(0x12B38, PopEDmac)
 
 NSTUB(0xFF576634, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
 NSTUB(0xFF5766D0, PackMem_RegisterEDmacPopCBRForMemorySuite)

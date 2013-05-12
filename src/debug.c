@@ -747,6 +747,27 @@ static void bsod()
 
 static void run_test()
 {
+    msleep(2000);
+    
+    uint8_t* real = bmp_vram_real();
+    uint8_t* idle = bmp_vram_idle();
+    int xPos = 0;
+    int xOff = 2;
+    int yPos = 0;
+    
+    edmac_copy_rectangle_adv(BMP_VRAM_START(idle), BMP_VRAM_START(real), 960, 0, 0, 960, 0, 0, 960, 560);
+    while(true)
+    {
+        edmac_copy_rectangle_adv(BMP_VRAM_START(real), BMP_VRAM_START(idle), 960, 0, 0, 960, xPos, yPos, 960-xPos, 560-yPos);
+        xPos += xOff;
+        
+        if(xPos >= 720 || xPos < 0)
+        {
+            xOff *= -1;
+        }
+    }
+    return;
+    
     call("lv_save_raw", 1);
     call("aewb_enableaewb", 0);
     return;
