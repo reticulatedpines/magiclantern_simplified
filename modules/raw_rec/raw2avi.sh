@@ -1,10 +1,11 @@
-#!/usr/bin/sh
-
+#!/bin/bash
 # Converts RAW videos to AVI MJPEG
 # usage: raw2avi foo.raw
 # output. video.avi
 
-./raw2dng $1
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+${DIR}/raw2dng $1
 ufraw-batch --out-type=jpg *.dng
 rm *.dng
 rm video.avi
