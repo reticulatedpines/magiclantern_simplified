@@ -60,6 +60,7 @@ static int saving_buffer_index = 0;               /* from which buffer we are sa
 static int big_buffer_size = 0;                   /* how much data we should save from a buffer (ideally 32MB, in practice a bit less) */
 static int capture_offset = 0;                    /* position of capture pointer inside the buffer (0-32MB) */
 static int frame_count = 0;                       /* how many frames we have processed */
+static int frame_skips = 0;                       /* how many frames were dropped/skipped */
 static struct semaphore * copy_sem = 0;           /* for vertical sync used when copying frames */
 
 static int get_res_x()
@@ -183,15 +184,20 @@ static void show_buffer_status(int adj)
     
     /* could use a nicer display, but stars should be fine too */
     char buffer_status[10];
-    for (int i = 0; i < free_buffers; i++)
+    for (int i = 0; i < (buffer_count-free_buffers); i++)
         buffer_status[i] = '*';
-    for (int i = free_buffers; i < buffer_count; i++)
-        buffer_status[i] = ' ';
+    for (int i = (buffer_count-free_buffers); i < buffer_count; i++)
+        buffer_status[i] = '.';
     buffer_status[buffer_count] = 0;
 
-    bmp_printf( FONT_MED, 30, 50, 
-        buffer_status
-    );
+    if(frame_skips > 0)
+    {
+        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 30, 50, "Buffer usage: <%s> Skipped frames: %d", buffer_status, frame_skips);
+    }
+    else
+    {
+        bmp_printf(FONT_MED, 30, 50, "Buffer usage: <%s>", buffer_status);
+    }
 }
 
 static int frame_offset_x = 0;
@@ -274,6 +280,7 @@ unsigned int raw_rec_vsync_cbr(unsigned int unused)
         }
         else
         {
+            frame_skips++;
             /* card too slow */
             bmp_printf( FONT_MED, 30, 70, 
                 "Skipping frames...   "
@@ -329,6 +336,7 @@ static void raw_video_rec_task()
     big_buffer_size = 0;
     capture_offset = 0;
     frame_count = 0;
+    frame_skips = 0;
     
     msleep(1000);
     
