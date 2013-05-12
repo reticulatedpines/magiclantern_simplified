@@ -196,6 +196,8 @@ static void show_buffer_status(int adj)
 
 static void process_frame()
 {
+    if (!lv) return;
+    
     /* copy current frame to our buffer and crop it to its final size */
     int res_x = get_res_x();
     int res_y = get_res_y();
@@ -363,6 +365,7 @@ static void raw_video_rec_task()
             bmp_printf( FONT_MED, 30, 70, 
                 "Movie recording stopped automagically"
             );
+            msleep(1000);
             break;
         }
     }
