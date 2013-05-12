@@ -1,6 +1,7 @@
 #define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC02200A0 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDBLUE     *(int*)0xC02200F0
+#define LEDRED      *(int*)0xC02200A0
 #define LEDON   0x46
 #define LEDOFF  0x44
 
@@ -87,6 +88,8 @@
 #define DISPLAY_SENSOR_POWERED 0
 #define LVAE_DISP_GAIN 0
 #define MVR_FRAME_NUMBER 0
+
+#define FRAME_ISO _dummy_variable
 
 #define CONTROL_BV_ISO _dummy_variable
 #define CONTROL_BV_TV _dummy_variable

@@ -5,21 +5,41 @@
  * TODO: make it platform-independent and move it to modules.
  */
 
+#ifdef CONFIG_MAGICLANTERN
 #include "dryos.h"
 #include "property.h"
-#include "raw.h"
-
 #define umalloc alloc_dma_memory
 #define ufree free_dma_memory
 #define pow powf
-#define write FIO_WriteFile
+
+static int get_tick_count() { return get_ms_clock_value_fast(); }
+
+#else // if we compile it for desktop
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
+#include "math.h"
+#include <sys/types.h>
+#define FAST
+#define UNCACHEABLE(x) (x)
+#define umalloc malloc
+#define ufree free
+
+#define FIO_CreateFileEx(name) fopen(name, "wb")
+#define FIO_WriteFile(f, ptr, count) fwrite(ptr, 1, count, f)
+#define FIO_CloseFile(f) fclose(f)
+
+#endif
+
+#include "raw.h"
+
+/* adaptations from CHDK to ML */
 #define camera_sensor raw_info
 #define get_raw_pixel raw_get_pixel
 #define raw_rowpix width
 #define raw_rows height
 #define raw_size frame_size
-
-static int get_tick_count() { return get_ms_clock_value_fast(); }
+#define write FIO_WriteFile
 
 static void FAST reverse_bytes_order(char* buf, int count)
 {
@@ -409,11 +429,6 @@ static int pow_calc_2( int mult, int x, int x_div, double y, int y_div)
 		return mult	* pow( x1, y );
 }
 
-static int pow_calc( int mult, int x, int x_div, int y, int y_div)
-{
-	return pow_calc_2( mult, x, x_div, y, y_div);
-}
-
 //-------------------------------------------------------------------
 // Functions for creating DNG thumbnail image
 
@@ -459,7 +474,7 @@ static void create_thumbnail()
 //-------------------------------------------------------------------
 // Write DNG header, thumbnail and data to file
 
-static void write_dng(int fd, char* rawadr) 
+static void write_dng(FILE* fd, char* rawadr) 
 {
     create_dng_header();
 
@@ -477,11 +492,12 @@ static void write_dng(int fd, char* rawadr)
     }
 }
 
-
+#ifdef CONFIG_MAGICLANTERN
 PROP_HANDLER(PROP_CAM_MODEL)
 {
     snprintf(cam_name, sizeof(cam_name), (const char *)buf);
 }
+#endif
 
 int save_dng(char* filename)
 {

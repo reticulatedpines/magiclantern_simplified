@@ -1474,7 +1474,7 @@ waveform_draw_image(
 
                 // Draw the pixel, rounding down to the nearest
                 // quad word write (and then nop to avoid err70).
-                *(uint32_t*)( row + (i & ~3) ) = pixel;
+                *(uint32_t*) ALIGN32(row + i) = pixel;
                 #ifdef CONFIG_500D // err70?!
                 asm( "nop" );
                 asm( "nop" );
@@ -4538,10 +4538,10 @@ void zoom_overlay_set_countdown(int x)
     zoom_overlay_triggered_by_focus_ring_countdown = x;
 }
 
-static void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
+static void FAST yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 {
-    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
-    src = (void*)((unsigned int)src & 0xFFFFFFFC);
+    dst = ALIGN32(dst);
+    src = ALIGN32(src);
     uint32_t* last_s = src + (num_pix>>1);
     for (; src < last_s; src++, dst += 2)
     {
@@ -4553,10 +4553,10 @@ static void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
     }
 }
 
-static void yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
+static void FAST yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
 {
-    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
-    src = (void*)((unsigned int)src & 0xFFFFFFFC);
+    dst = ALIGN32(dst);
+    src = ALIGN32(src);
     uint32_t* last_s = src + (num_pix>>1);
     for (; src < last_s; src++, dst += 3)
     {
@@ -4571,6 +4571,9 @@ static void yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
 
 static void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lut)
 {
+    dst = ALIGN32(dst);
+    src = ALIGN32(src);
+    
     if (X==1)
     {
         #ifdef CONFIG_DMA_MEMCPY
@@ -4760,10 +4763,10 @@ static void draw_zoom_overlay(int dirty)
         #endif
         w /= X;
         h /= X;
-        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
-        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
-        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
-        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
+        memset64(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
+        memset64(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
+        memset64(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
+        memset64(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
     }
 
     //~ draw_circle(x0,y0,45,COLOR_WHITE);
@@ -4803,10 +4806,10 @@ static void draw_zoom_overlay(int dirty)
     #ifdef CONFIG_1100D
     H /= 2; //LCD res fix (half height)
     #endif
-    memset32(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
-    memset32(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
-    memset32(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
-    memset32(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
+    memset64(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
+    memset64(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
+    memset64(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
+    memset64(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
     #ifdef CONFIG_1100D
     H *= 2; // Undo it
     #endif
@@ -4942,6 +4945,8 @@ BMP_LOCK(
     bvram_mirror_clear(); // may remain filled with playback zebras 
 )
 
+    clean_d_cache(); // to avoid display artifacts
+
     info_led_off();
     livev_for_playback_running = 0;
 }
@@ -4978,7 +4983,7 @@ void draw_histogram_and_waveform(int allow_play)
     }
 #endif
     
-    //~ if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
+    if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
     if (!get_global_draw()) return;
     if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play) && !gui_menu_shown()) return;
     if (is_zoom_mode_so_no_zebras()) return;
@@ -5002,13 +5007,11 @@ void draw_histogram_and_waveform(int allow_play)
     }
 #endif
 
-    if (nondigic_zoom_overlay_enabled()) return;
-
-    //~ if (menu_active_and_not_hidden()) return;
+    if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
     if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play) && !gui_menu_shown()) return;
     if (is_zoom_mode_so_no_zebras()) return;
-        
+
 #ifdef FEATURE_WAVEFORM
     if( waveform_draw)
     {

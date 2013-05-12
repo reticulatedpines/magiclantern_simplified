@@ -3440,16 +3440,32 @@ static void
 menu_redraw_do()
 {
         #ifndef CONFIG_VXWORKS
-        // force dialog change when canon dialog times out (EOSM, 6D etc)
-        // don't try more often than once per second
-        if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU && redraw_flood_stop)
+        if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU)
         {
-            static int aux = 0;
-            if (should_run_polling_action(1000, &aux))
+            if (redraw_flood_stop)
             {
-                bmp_off();
-                start_redraw_flood();
-                SetGUIRequestMode(GUIMODE_ML_MENU);
+                // Canon dialog timed out?
+                #if 1
+                menu_shown = 0; // better just close ML menu? you don't open it for staring at it anyway...
+                bmp_on();
+                redraw();
+                return;
+                #else
+                // force dialog change when canon dialog times out (EOSM, 6D etc)
+                // don't try more often than once per second
+                static int aux = 0;
+                if (should_run_polling_action(1000, &aux))
+                {
+                    bmp_off();
+                    start_redraw_flood();
+                    SetGUIRequestMode(GUIMODE_ML_MENU);
+                }
+                #endif
+            }
+            else
+            {
+                // Canon dialog didn't come up yet; try again later
+                return;
             }
         }
         #endif
@@ -3769,7 +3785,10 @@ handle_ml_menu_keys(struct event * event)
     if (!menu_shown) return 1;
     if (!DISPLAY_IS_ON)
         if (event->param != BGMT_PRESS_HALFSHUTTER) return 1;
-    
+
+    // on some cameras, scroll events may arrive grouped; we can't handle it, so split into individual events
+    if (handle_scrollwheel_fast_clicks(event)==0) return 0;
+
     // rack focus may override some menu keys
     if (handle_rack_focus_menu_overrides(event)==0) return 0;
     
@@ -4134,6 +4153,7 @@ void menu_redraw_flood()
         menu_redraw_full();
         msleep(20);
     }
+    msleep(500);
     redraw_flood_stop = 1;
 }
 
@@ -4146,9 +4166,6 @@ static void start_redraw_flood()
 static void piggyback_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    #ifdef CONFIG_500D
-    if (is_movie_mode()) return; // doesn'tworkstation
-    #endif
     if (recording) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
@@ -4167,9 +4184,6 @@ static void piggyback_canon_menu()
 static void close_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    #ifdef CONFIG_500D
-    if (is_movie_mode()) return; // doesn'tworkstation
-    #endif
     if (recording) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;

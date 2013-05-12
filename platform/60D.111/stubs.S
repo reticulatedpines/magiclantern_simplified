@@ -227,10 +227,13 @@ NSTUB(0x3234, task_max)
 NSTUB(0xFF33EF30, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xff07e384, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 
+/** ExMem **/
 NSTUB(0xff073aa8, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff073af4, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff073c0c, FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xff02e9dc, AllocateMemoryResourceForSingleChunk)
 NSTUB(0xff0710a8, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff071840, GetNextMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
 NSTUB(0xff070af0, GetMemoryAddressOfMemoryChunk)
 
 NSTUB(0xff0686f4, PowerAudioOutput)

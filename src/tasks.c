@@ -195,7 +195,7 @@ MENU_UPDATE_FUNC(tasks_print)
     {
         get_task_info(tasks[i], task_info);
         
-        char* name = task_info[1]+1;
+        char* name = (char*) task_info[1]+1;
         char short_name[] = "             \0";
         memcpy(short_name, name, MIN(sizeof(short_name)-2, strlen(name)));
 

@@ -3,9 +3,27 @@
 
 // experimental memory allocation from shooting buffer (~160MB on 5D2)
 
-int alloc_sem_timed_out = 0;
+static int alloc_sem_timed_out = 0;
 static struct semaphore * alloc_sem = 0;
 static struct semaphore * free_sem = 0;
+
+int GetNumberOfChunks(struct memSuite * suite)
+{
+    CHECK_SUITE_SIGNATURE(suite);
+    return suite->num_chunks;
+}
+
+int GetSizeOfMemorySuite(struct memSuite * suite)
+{
+    CHECK_SUITE_SIGNATURE(suite);
+    return suite->size;
+}
+
+int GetSizeOfMemoryChunk(struct memChunk * chunk)
+{
+    CHECK_CHUNK_SIGNATURE(chunk);
+    return chunk->size;
+}
 
 static void freeCBR(unsigned int a)
 {
@@ -17,7 +35,6 @@ void shoot_free_suite(struct memSuite * hSuite)
     FreeMemoryResource(hSuite, freeCBR, 0);
     take_semaphore(free_sem, 0);
 }
-
 
 static void allocCBR(unsigned int a, struct memSuite *hSuite)
 {
@@ -32,28 +49,9 @@ static void allocCBR(unsigned int a, struct memSuite *hSuite)
     give_semaphore(alloc_sem);
 }
 
-
-struct memSuite
-{
-    char* signature; // MemSuite
-    int size;
-    int num_chunks;
-    int first_chunk_maybe;
-};
-
-struct memChunk
-{
-    char* signature; // MemChunk
-    int off_0x04;
-    int next_chunk_maybe;
-    int size;
-    int remain;
-};
-
 unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file)
 {
     unsigned int written = 0;
-#ifdef CONFIG_FULL_EXMEM_SUPPORT
     
     FILE *f = FIO_CreateFileEx(file);
     if (f != (void*) -1)
@@ -76,14 +74,12 @@ unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file)
         FIO_CloseFile(f);
     }
     
-#endif
     return written;
 }
 
 unsigned int exmem_clear(struct memSuite * hSuite, char fill)
 {
     unsigned int written = 0;
-#ifdef CONFIG_FULL_EXMEM_SUPPORT
     
     struct memChunk *currentChunk;
     unsigned char *chunkAddress;
@@ -100,7 +96,6 @@ unsigned int exmem_clear(struct memSuite * hSuite, char fill)
         written += chunkAvail;
         currentChunk = GetNextMemoryChunk(hSuite, currentChunk);
     }
-#endif
     return written;
 }
 
@@ -111,8 +106,7 @@ struct memSuite *shoot_malloc_suite(size_t size)
     
     if(size > 0)
     {
-        /* reset timeout flag */
-        alloc_sem_timed_out = 0;
+        ASSERT(!alloc_sem_timed_out);
         AllocateMemoryResource(size, allocCBR, (unsigned int)&hSuite, 0x50);
         
         int r = take_semaphore(alloc_sem, 100);
@@ -121,15 +115,17 @@ struct memSuite *shoot_malloc_suite(size_t size)
             alloc_sem_timed_out = 1;
             return NULL;
         }
+
+        ASSERT((int)size == hSuite->size);
     }
     else
     {
         /* allocate some backup that will service the queued allocation request that fails during the loop */
-        int backup_size = 8 * 1024 * 1024;
+        int backup_size = 4 * 1024 * 1024;
         int max_size = 0;
         struct memSuite *backup = shoot_malloc_suite(backup_size);
 
-        for(int size = 5; size < 1024; size += 5)
+        for(int size = 4; size < 1024; size += 4)
         {
             struct memSuite *testSuite = shoot_malloc_suite(size * 1024 * 1024);
             if(testSuite)
@@ -151,36 +147,140 @@ struct memSuite *shoot_malloc_suite(size_t size)
     return hSuite;
 }
 
+#ifndef CONFIG_EXMEM_SINGLE_CHUNK
+/* compatibility mode: we don't have AllocateMemoryResourceForSingleChunk, so we'll use our own implementation */
+/* it's a lot slower, but at least it works */
+
+/* try hard to allocate a contiguous block */
+static struct memSuite * shoot_malloc_suite_contig_fixedsize(size_t size)
+{
+    /* hack: we'll keep allocating until we find one contiguous block; then we'll free the unused ones */
+    /* in theory, it's guaranteed to find a block of size X if there is one of size X+2MB */
+    /* in practice, we'll see... */
+    
+    struct memSuite * suites[100];
+    struct memSuite * theSuite = NULL;
+    
+    for (int i = 0; i < COUNT(suites); i++)
+        suites[i] = NULL;
+
+    /* first try a quick search with big chances of success */
+    for (int i = 0; i < COUNT(suites); i++)
+    {
+        struct memSuite * hSuite = shoot_malloc_suite(size);
+        if (!hSuite) break;
+
+        if (hSuite->num_chunks == 1)
+        {
+            theSuite = hSuite; /* bingo! */
+            break;
+        }
+        
+        /* NG, keep trying; we'll free this one later*/
+        suites[i] = hSuite;
+    }
+
+    /* free temporary suites */
+    for (int i = 0; i < COUNT(suites); i++)
+        if (suites[i])
+            FreeMemoryResource(suites[i], freeCBR, 0), suites[i] = 0;
+
+    if (!theSuite)
+    {
+        /* couldn't find anything, let's try something more aggressive */
+        for (int i = 0; i < COUNT(suites); i++)
+        {
+            struct memSuite * hSuite = shoot_malloc_suite(size + 8);
+            if (!hSuite) break;
+
+            if (hSuite->num_chunks == 1)
+            {
+                theSuite = hSuite; /* bingo! */
+                break;
+            }
+            
+            /* NG, keep trying; free this one and allocate a 2MB one */
+            FreeMemoryResource(hSuite, freeCBR, 0);
+            suites[i] = shoot_malloc_suite(2 * 1024 * 1024);
+        }
+
+        /* free temporary suites */
+        for (int i = 0; i < COUNT(suites); i++)
+            if (suites[i])
+                FreeMemoryResource(suites[i], freeCBR, 0), suites[i] = 0;
+
+        if (!theSuite)
+        {
+            /* phuck! */
+            return NULL;
+        }
+    }
+
+    /* we're lucky */
+    return theSuite;
+}
+#endif
+
+struct memSuite * shoot_malloc_suite_contig(size_t size)
+{
+    if(size > 0)
+    {
+        #ifdef CONFIG_EXMEM_SINGLE_CHUNK
+        ASSERT(!alloc_sem_timed_out);
+
+        struct memSuite * hSuite = NULL;
+        AllocateMemoryResourceForSingleChunk(size, allocCBR, (unsigned int)&hSuite, 0x50);
+
+        int r = take_semaphore(alloc_sem, 100);
+        if (r)
+        {
+            alloc_sem_timed_out = 1;
+            return NULL;
+        }
+        
+        ASSERT((int)size == hSuite->size);
+        return hSuite;
+        #else
+        return shoot_malloc_suite_contig_fixedsize(size);
+        #endif
+    }
+    else
+    {
+        /* find the largest chunk and try to allocate it */
+        struct memSuite * hSuite = shoot_malloc_suite(0);
+        if (!hSuite) return 0;
+        
+        int max_size = 0;
+        struct memChunk * hChunk = GetFirstChunkFromSuite(hSuite);
+        while(hChunk)
+        {
+            int size = GetSizeOfMemoryChunk(hChunk);
+            max_size = MAX(max_size, size);
+            hChunk = GetNextMemoryChunk(hSuite, hChunk);
+        }
+        
+        shoot_free_suite(hSuite);
+        
+        #ifdef CONFIG_EXMEM_SINGLE_CHUNK
+        return shoot_malloc_suite_contig(max_size);
+        #else
+        /* our hack is not guaranteed to find the largest block, so we will reduce the size a bit */
+        /* in theory, it should find a block of size N-2, if there is one block with size N MB */
+        return shoot_malloc_suite_contig(max_size - 2 * 1024 * 1024);
+        #endif
+    }
+}
 
 void* shoot_malloc(size_t size)
 {
-    struct memSuite * hSuite = shoot_malloc_suite(size + 4);
-
-    if (!hSuite)
-    {
-        return NULL;
-    }
+    struct memSuite * theSuite = shoot_malloc_suite_contig(size + 4);
+    if (!theSuite) return 0;
     
-    if (hSuite->num_chunks != 1)
-    {
-        FreeMemoryResource(hSuite, freeCBR, 0);
-        return NULL;
-    }
-    void* hChunk = (void*) GetFirstChunkFromSuite(hSuite);
+    /* now we only have to tweak some things so it behaves like plain malloc */
+    void* hChunk = (void*) GetFirstChunkFromSuite(theSuite);
     void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-    *(struct memSuite **)ptr = hSuite;
+    *(struct memSuite **)ptr = theSuite;
     return ptr + 4;
-}
-
-/* just try if we can allocate that much RAM, but don't return it (free it right away) */
-int shoot_malloc_fragmented_test(size_t size)
-{
-    struct memSuite * hSuite = 0;
-    AllocateMemoryResource(size, allocCBR, (unsigned int)&hSuite, 0x50);
-    int r = take_semaphore(alloc_sem, 1000);
-    if (r) return 0;
-    FreeMemoryResource(hSuite, freeCBR, 0);
-    return 1;
 }
 
 void shoot_free(void* ptr)
@@ -192,9 +292,9 @@ void shoot_free(void* ptr)
     take_semaphore(free_sem, 0);
 }
 
+#if 0
 void exmem_test()
 {
-#ifdef CONFIG_FULL_EXMEM_SUPPORT
     struct memSuite * hSuite = 0;
     struct memChunk * hChunk = 0;
     
@@ -226,16 +326,8 @@ void exmem_test()
     bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BLACK), 0, 30 + num++ * 20, "Done");
 
     FreeMemoryResource(hSuite, freeCBR, 0);
-#else
-    msleep(2000);
-    info_led_on();
-    void* p = shoot_malloc(20000000);
-    NotifyBox(2000, "%x ", p);
-    msleep(2000);
-    shoot_free(p);
-    info_led_off();
-#endif
 }
+#endif
 
 static void exmem_init()
 {

@@ -47,7 +47,6 @@ asm(
     "B       cstart\n"
 );
 
-
 /** Include the relocatable shim code */
 extern uint8_t blob_start;
 extern uint8_t blob_end;
@@ -136,9 +135,9 @@ cstart( void )
     
 
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */
-	#if defined(CONFIG_40D)
+	#if defined(CONFIG_40D) || defined(CONFIG_5DC)
         *(volatile int*) (LEDBLUE) = (LEDON);
-        *(volatile int*) (LEDRED)  = (LEDON);
+        *(volatile int*) (LEDRED)  = (LEDON); // do we need the red too ?
 	#elif defined(CARD_LED_ADDRESS) && defined(LEDON) // A more portable way, hopefully
         *(volatile int*) (CARD_LED_ADDRESS) = (LEDON);
 	#endif

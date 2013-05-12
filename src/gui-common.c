@@ -15,7 +15,7 @@ int get_last_time_active() { return last_time_active; }
 extern int cf_card_workaround;
 #endif
 
-#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
 // disable Canon bottom bar
 static int bottom_bar_hack = 0;
 
@@ -81,6 +81,7 @@ static void DebugMsg_uninstall()
 INIT_FUNC("debugmsg-hack", DebugMsg_hack);
 
 #endif
+int fbuff=1;
 
 int handle_other_events(struct event * event)
 {
@@ -112,13 +113,13 @@ int handle_other_events(struct event * event)
         
         if (!liveview_display_idle()) bottom_bar_dirty = 0;
         if (bottom_bar_dirty) bottom_bar_dirty--;
-        
+
         if (bottom_bar_dirty == 1)
         {
             lens_display_set_dirty();
         }
     }
-#elif defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+#elif defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
     if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
     {
         if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
@@ -141,6 +142,39 @@ int handle_other_events(struct event * event)
         if (!liveview_display_idle()) bottom_bar_dirty = 0;
         if (bottom_bar_dirty) bottom_bar_dirty--;
         
+        if (bottom_bar_dirty == 1)
+        {
+            lens_display_set_dirty();
+        }
+    }
+#elif defined(CONFIG_650D)
+    if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
+    {
+        if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
+        {
+            if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
+
+            if (fbuff && UNAVI_FEEDBACK_TIMER_ACTIVE)
+            {
+                clrscr();
+                canon_gui_disable_front_buffer();
+                bottom_bar_dirty=0;
+                fbuff = 0;
+            }
+            if (!fbuff && !UNAVI_FEEDBACK_TIMER_ACTIVE)
+            {
+                canon_gui_enable_front_buffer(0);
+                fbuff=1;
+            }
+        }
+        else
+        {
+            bottom_bar_dirty = 0;
+        }
+
+        if (!liveview_display_idle()) bottom_bar_dirty = 0;
+        if (bottom_bar_dirty) bottom_bar_dirty--;
+
         if (bottom_bar_dirty == 1)
         {
             lens_display_set_dirty();
@@ -202,7 +236,11 @@ void check_pre_shutdown_flag() // called from ml_shutdown
     }
 }
 
-// ML doesn't know how to handle multiple button clicks in the same event code, so we'll split them in individual events
+// ML doesn't know how to handle multiple button clicks in the same event code,
+// so we'll split them in individual events
+
+// this has some side effects on Canon code, visible e.g. on 5d3 when adjusting WB,
+// so for now we'll only call it when needed (e.g. menu, scripts)
 int handle_scrollwheel_fast_clicks(struct event * event)
 {
     if (event->arg <= 1) return 1;
@@ -251,8 +289,6 @@ int handle_common_events_by_feature(struct event * event)
     // as a record of when the user was last actively pushing buttons.
     if (event->param != GMT_OLC_INFO_CHANGED)
         last_time_active = get_seconds_clock();
-
-    if (handle_scrollwheel_fast_clicks(event)==0) return 0;
 
     if (handle_flexinfo_keys(event) == 0) return 0;
     

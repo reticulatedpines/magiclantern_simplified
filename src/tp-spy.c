@@ -15,13 +15,17 @@
  * 
  **/
 
+#include "tp-spy.h"
 #include "dryos.h"
 #include "bmp.h"
-#include "cache_hacks.h"
 
-//~ #define BUF_SIZE (1024*1024)
-//~ static char* buf = 0;
-//~ static int len = 0;
+#if !(defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D))
+#include "cache_hacks.h"
+#endif
+
+unsigned int BUFF_SIZE = (1024*1024);
+static char *tp_buf = 0;
+static int tp_len = 0;
 
 extern thunk TryPostEvent;
 extern thunk TryPostEvent_end;
@@ -31,14 +35,14 @@ extern thunk TryPostStageEvent_end;
 
 #define reloc_start ((uintptr_t)&TryPostEvent)
 #define reloc_end   ((uintptr_t)&TryPostEvent_end)
-#define reloc_len   (reloc_end - reloc_start)
+#define reloc_tp_len   (reloc_end - reloc_start)
 
 #define reloc_start2 ((uintptr_t)&TryPostStageEvent)
 #define reloc_end2   ((uintptr_t)&TryPostStageEvent_end)
-#define reloc_len2   (reloc_end2 - reloc_start2)
+#define reloc_tp_len2   (reloc_end2 - reloc_start2)
 
-static uintptr_t reloc_buf = 0;
-static uintptr_t reloc_buf2 = 0;
+static uintptr_t reloc_tp_buf = 0;
+static uintptr_t reloc_tp_buf2 = 0;
 
 static int (*new_TryPostEvent)(int taskclass, int obj, int event, int arg1, int arg2) = 0;
 static int (*new_TryPostStageEvent)(int taskclass, int obj, int event, int arg1, int arg2) = 0;
@@ -64,63 +68,61 @@ char* get_call_stack()
     return callstack;
 }
 
+volatile int in_trypostevent = 0;
+
 int my_TryPostEvent(int taskclass, int obj, int event, int arg3, int arg4)
-{
-    DryosDebugMsg(0,0,"[%d] *** TryPostEvent(%x, %x %s, %x, %x [%x %x %x %x], %x)\n   call stack: %s", get_ms_clock_value(), taskclass, obj, MEM(obj), event, arg3, MEM(arg3), MEM(arg3+4), MEM(arg3+8), MEM(arg3+12), arg4, get_call_stack());
-    if (streq(MEM(obj), "PropMgr"))
-    {
-        if (event == 3)
-        {
-            DryosDebugMsg(0,0,"   prop_deliver(&0x%x, 0x%x, 0x%x)", MEM(MEM(arg3)), MEM(arg3+4), arg4);
-        }
-        else if (event == 7)
-        {
-            DryosDebugMsg(0,0,"   prop_request_change(0x%x, &0x%x, 0x%x)", MEM(arg3), MEM(MEM(arg3+4)), arg4);
-        }
-    }
-    return new_TryPostEvent(taskclass, obj, event, arg3, arg4);
+{	tp_len += snprintf(tp_buf + tp_len, BUFF_SIZE - tp_len, "*** TryPostEvent(%x, %x '%s', %x, %x, %x)\n", taskclass, obj, MEM(obj), event, arg3, arg4);
+	return new_TryPostEvent(taskclass, obj, event, arg3, arg4);
 }
 
 int my_TryPostStageEvent(int taskclass, int obj, int event, int arg3, int arg4)
-{
-    DryosDebugMsg(0,0,"[%d] *** TryPostStageEvent(%x, %x %s, %x, %x [%x %x %x %x], %x)", get_ms_clock_value(), taskclass, obj, MEM(obj), event, arg3, MEM(arg3), MEM(arg3+4), MEM(arg3+8), MEM(arg3+12), arg4 );
+{	tp_len += snprintf(tp_buf + tp_len, BUFF_SIZE - tp_len, "*** TryPostStageEvent(%x, %x '%s', %x, %x, %x)\n", taskclass, obj, MEM(obj), event, arg3, arg4);
     return new_TryPostStageEvent(taskclass, obj, event, arg3, arg4);
 }
 
-// call this from "don't click me"
 void tp_intercept()
 {
-    //~ if (!buf) // first call, intercept debug messages
+    if (!tp_buf) // first call, intercept debug messages
     {
-        //~ buf = alloc_dma_memory(BUF_SIZE);
-        if (!reloc_buf) reloc_buf = (uintptr_t) AllocateMemory(reloc_len + 64);
-        if (!reloc_buf2) reloc_buf2 = (uintptr_t) AllocateMemory(reloc_len2 + 64);
+	tp_buf = alloc_dma_memory(BUFF_SIZE);
+	tp_len = 0;
 
-        new_TryPostEvent = reloc(
+    	if (!reloc_tp_buf) reloc_tp_buf = (uintptr_t) AllocateMemory(reloc_tp_len + 64);
+        if (!reloc_tp_buf2) reloc_tp_buf2 = (uintptr_t) AllocateMemory(reloc_tp_len2 + 64);
+
+        new_TryPostEvent = (void *)reloc(
             0,      // we have physical memory
             0,      // with no virtual offset
             reloc_start,
             reloc_end,
-            reloc_buf
+            reloc_tp_buf
         );
 
-        new_TryPostStageEvent = reloc(
+        new_TryPostStageEvent = (void *)reloc(
             0,      // we have physical memory
             0,      // with no virtual offset
             reloc_start2,
             reloc_end2,
-            reloc_buf2
+            reloc_tp_buf2
         );
+#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+        uint32_t d = (uint32_t)&TryPostEvent;
+        *(uint32_t*)(d) = B_INSTR((uint32_t)&TryPostEvent, my_TryPostEvent);
 
-        cache_fake((uint32_t)&TryPostEvent, B_INSTR((uint32_t)&TryPostEvent, my_TryPostEvent), TYPE_ICACHE);
-        cache_fake((uint32_t)&TryPostStageEvent, B_INSTR((uint32_t)&TryPostStageEvent, my_TryPostStageEvent), TYPE_ICACHE);
-        //~ NotifyBox(2000, "Now logging... ALL TryPostEvent's :)", len);
+        uint32_t e = (uint32_t)&TryPostStageEvent;
+        *(uint32_t*)(e) = B_INSTR((uint32_t)&TryPostStageEvent, my_TryPostStageEvent);
+
+#else
+       cache_fake((uint32_t)&TryPostEvent, B_INSTR((uint32_t)&TryPostEvent, my_TryPostEvent), TYPE_ICACHE);
+       cache_fake((uint32_t)&TryPostStageEvent, B_INSTR((uint32_t)&TryPostStageEvent, my_TryPostStageEvent), TYPE_ICACHE);
+#endif
+         NotifyBox(2000, "Now logging... ALL TryPostEvent's :)");
+    } else // subsequent call, save log to file
+    {
+		tp_buf[tp_len] = 0;
+        dump_seg(tp_buf, tp_len, CARD_DRIVE"tp.log");
+        NotifyBox(2000, "Saved %d bytes.", tp_len);
+		tp_len = 0;
     }
-    //~ else // subsequent call, save log to file
-    //~ {
-        //~ dump_seg(buf, len, CARD_DRIVE"tp.log");
-        //~ NotifyBox(2000, "Saved %d bytes.", len);
-    //~ }
-    //~ beep();
 }
 

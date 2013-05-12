@@ -15,11 +15,15 @@
  * 
  **/
 
+#include "dm-spy.h"
 #include "dryos.h"
 #include "bmp.h"
-#include "cache_hacks.h"
 
-#define BUF_SIZE (1024*1024)
+#if !(defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D))
+#include "cache_hacks.h"
+#endif
+
+unsigned int BUF_SIZE = (1024*1024);
 static char* buf = 0;
 static int len = 0;
 
@@ -70,8 +74,10 @@ void debug_intercept()
     }
     else // subsequent call, save log to file
     {
+        buf[len] = 0;
         dump_seg(buf, len, CARD_DRIVE"dm.log");
         NotifyBox(2000, "Saved %d bytes.", len);
+        len = 0;
     }
     beep();
 }

@@ -6,7 +6,7 @@
 /**
 * RAW pixels (document mode, as with dcraw -D -o 0):
 
-    01 23 45 67 89 AB ... (SENSOR_RES_X-1)
+    01 23 45 67 89 AB ... (raw_info.width-1)
     ab cd ef gh ab cd ...
 
     v-------------------------- first pixel should be red
@@ -15,7 +15,7 @@
 2   RG RG RG RG RG RG ...
 3   GB GB GB GB GB GB ...
 ...
-SENSOR_RES_Y-1
+(raw_info.height-1)
 */
 
 /**
@@ -69,19 +69,26 @@ int raw_set_pixel(int x, int y, int value);
 /* input: 0 - 16384 (valid range: from black level to white level) */
 /* output: -14 ... 0 */
 float raw_to_ev(int raw);
-int FAST ev_to_raw(float ev);
+int ev_to_raw(float ev);
 
 /* save a DNG file; all parameters are taken from raw_info */
 int save_dng(char* filename);
 
 /* quick preview of the raw buffer */
 void raw_preview_fast();
+void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int end_line, int ultra_fast);
 
 /* redirect the LV RAW EDMAC in order to write the raw data at "ptr" */
 void raw_lv_redirect_edmac(void* ptr);
 
+/* quick check whether the settings from raw_info are still valid (for lv vsync calls) */
+int raw_lv_settings_still_valid();
+
+void raw_set_geometry(int width, int height, int skip_left, int skip_right, int skip_top, int skip_bottom);
+
 /* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
 struct raw_info {
+    int api_version;            // increase this when changing the structure
     void* buffer;               // points to image data
     
     int height, width, pitch;

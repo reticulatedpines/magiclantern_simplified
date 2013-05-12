@@ -169,7 +169,8 @@ ifneq ($(CONFIG_NO_EXTRA_OBJS),y)
 # depending on CONFIG_ defines add .o files (may get merged into definition above?) 
 #
 ML_OBJS-y += \
-	ico.o
+	ico.o \
+	edmac.o
 
 ML_OBJS-$(CONFIG_GDB) += \
 	gdb.o
@@ -385,9 +386,6 @@ DIET_OBJ = \
 	strncmp.o \
 	strcpy.o \
 	strcmp.o \
-	memset.o \
-	memcpy.o \
-	memccpy.o \
 	sigjmp.o \
 	sigprocmask.o \
 	rt_sigprocmask.o \
@@ -423,8 +421,13 @@ dietlibc.a: $(DIET_OBJ)
 	$(call build,AR,$(AR) cr $@ $^)
 
 # use setjmp from newlib because... the one from dietlibc freezes
+# memcpy/memset are also much faster in newlib
 NEWLIB_OBJ = \
 	lib_a-setjmp.o \
+	lib_a-memcpy.o \
+	lib_a-memcpy-stub.o \
+	lib_a-memccpy.o \
+	lib_a-memset.o \
 
 NEWLIB_LIBC_A = $(SRC_DIR)/libs/arm-none-eabi-O3/libc.a
 
