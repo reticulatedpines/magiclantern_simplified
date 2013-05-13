@@ -249,7 +249,7 @@ static void process_frame()
     
     /* copy frame to our buffer */
     void* ptr = buffers[capturing_buffer_index] + capture_offset;
-    edmac_copy_rectangle(ptr, raw_info.buffer, raw_info.pitch, skip_x/8*14, skip_y, res_x*14/8, res_y);
+    edmac_copy_rectangle(ptr, raw_info.buffer, raw_info.pitch, skip_x/8*14, skip_y/2*2, res_x*14/8, res_y);
     
     /* hack: edmac rectangle routine only works for first call, third call and so on, figure out why */
     /* meanwhile, just use a dummy call that will fail */
