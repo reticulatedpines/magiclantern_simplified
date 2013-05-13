@@ -469,6 +469,7 @@ static struct menu_entry raw_video_menu[] =
         .name = "RAW video",
         .select = menu_open_submenu,
         .submenu_width = 710,
+        .depends_on = DEP_LIVEVIEW,
         .help = "Record 14-bit RAW video on fast cards.",
         .children =  (struct menu_entry[]) {
             {
