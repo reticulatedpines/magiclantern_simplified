@@ -144,20 +144,19 @@ static unsigned int lv_rec_save_footer(FILE *save_file)
 static int setup_buffers()
 {
     /* try to use contiguous 32MB chunks for maximizing CF write speed */
-    
-    /* autodetect max buffer size, since not all cameras can allocate 32 MB */
-    buffer_size_allocated = 0;
+    buffer_size_allocated = 32*1024*1024;
     
     /* grab as many of these as we can */
     for (int i = 0; i < COUNT(buffers_suite); i++)
     {
-        buffers_suite[i] = shoot_malloc_suite_contig(buffer_size_allocated);
+        /* autodetect max buffer size, since not all cameras can allocate 32 MB */
+        buffers_suite[i] = shoot_malloc_suite_contig(i < 2 ? 0 : buffer_size_allocated);
         
         if (buffers_suite[i])
         {
-            if (!buffer_size_allocated)
+            if (i < 2)
             {
-                buffer_size_allocated = buffers_suite[0]->size;
+                buffer_size_allocated = MIN(buffer_size_allocated, buffers_suite[i]->size);
                 bmp_printf(FONT_MED, 30, 50, "Buffer size: %d MB", buffer_size_allocated / 1024 / 1024);
             }
             buffers[i] = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(buffers_suite[i]));
