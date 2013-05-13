@@ -54,10 +54,11 @@ static int raw_recording_state = RAW_IDLE;
 
 static struct memSuite * buffers_suite[10] = {0}; /* memory suites for our buffers */
 static void * buffers[10] = {0};                  /* our buffers, as plain pointers */
+static int buffer_size_allocated = 32*1024*1024;  /* how big is one buffer (up to 32MB) */
+static int buffer_size_used = 0;                  /* how much data we should save from a buffer (ideally 32MB, in practice a bit less) */
 static int buffer_count = 0;                      /* how many buffers we could allocate */
 static int capturing_buffer_index = 0;            /* in which buffer we are capturing */
 static int saving_buffer_index = 0;               /* from which buffer we are saving to card */
-static int big_buffer_size = 0;                   /* how much data we should save from a buffer (ideally 32MB, in practice a bit less) */
 static int capture_offset = 0;                    /* position of capture pointer inside the buffer (0-32MB) */
 static int frame_count = 0;                       /* how many frames we have processed */
 static int frame_skips = 0;                       /* how many frames were dropped/skipped */
@@ -142,13 +143,23 @@ static unsigned int lv_rec_save_footer(FILE *save_file)
 
 static int setup_buffers()
 {
-    /* only use contiguous 32MB chunks for maximizing CF write speed */
+    /* try to use contiguous 32MB chunks for maximizing CF write speed */
+    
+    /* autodetect max buffer size, since not all cameras can allocate 32 MB */
+    buffer_size_allocated = 0;
+    
     /* grab as many of these as we can */
     for (int i = 0; i < COUNT(buffers_suite); i++)
     {
-        buffers_suite[i] = shoot_malloc_suite_contig(32*1024*1024);
+        buffers_suite[i] = shoot_malloc_suite_contig(buffer_size_allocated);
+        
         if (buffers_suite[i])
         {
+            if (!buffer_size_allocated)
+            {
+                buffer_size_allocated = buffers_suite[0]->size;
+                bmp_printf(FONT_MED, 30, 50, "Buffer size: %d MB", buffer_size_allocated / 1024 / 1024);
+            }
             buffers[i] = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(buffers_suite[i]));
         }
         else
@@ -192,7 +203,7 @@ static void show_buffer_status(int adj)
 
     if(frame_skips > 0)
     {
-        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 30, 50, "Buffer usage: <%s> Skipped frames: %d", buffer_status, frame_skips);
+        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 30, 50, "Buffer usage: <%s>, %d skipped frames", buffer_status, frame_skips);
     }
     else
     {
@@ -268,13 +279,13 @@ unsigned int raw_rec_vsync_cbr(unsigned int unused)
 {
     if (!RAW_IS_RECORDING) return 0;
     
-    if (capture_offset + raw_info.frame_size >= 32*1024*1024)
+    if (capture_offset + raw_info.frame_size >= buffer_size_allocated)
     {
         /* this buffer is full, try next one */
         int next_buffer = mod(capturing_buffer_index + 1, buffer_count);
         if (next_buffer != saving_buffer_index)
         {
-            big_buffer_size = capture_offset;
+            buffer_size_used = capture_offset;
             capturing_buffer_index = next_buffer;
             capture_offset = 0;
         }
@@ -333,7 +344,7 @@ static void raw_video_rec_task()
     buffer_count = 0;
     capturing_buffer_index = 0;
     saving_buffer_index = 0;
-    big_buffer_size = 0;
+    buffer_size_used = 0;
     capture_offset = 0;
     frame_count = 0;
     frame_skips = 0;
@@ -347,15 +358,25 @@ static void raw_video_rec_task()
     /* create output file */
     char* filename = get_next_raw_movie_file_name();
     FILE* f = FIO_CreateFileEx(filename);
-    if (f == INVALID_PTR) goto cleanup;
+    if (f == INVALID_PTR)
+    {
+        bmp_printf( FONT_MED, 30, 50, "File create error");
+        goto cleanup;
+    }
     
     /* allocate memory */
     if (!setup_buffers())
+    {
+        bmp_printf( FONT_MED, 30, 50, "Memory error");
         goto cleanup;
+    }
     
     /* detect raw parameters (geometry, black level etc) */
     if (!raw_update_params())
+    {
+        bmp_printf( FONT_MED, 30, 50, "Raw detect error");
         goto cleanup;
+    }
     
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
@@ -373,9 +394,9 @@ static void raw_video_rec_task()
         if (saving_buffer_index != capturing_buffer_index)
         {
             if (!t0) t0 = get_ms_clock_value();
-            int r = FIO_WriteFile(f, buffers[saving_buffer_index], big_buffer_size);
-            if (r != big_buffer_size) goto abort;
-            written += big_buffer_size;
+            int r = FIO_WriteFile(f, buffers[saving_buffer_index], buffer_size_used);
+            if (r != buffer_size_used) goto abort;
+            written += buffer_size_used;
             saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
         }
 
@@ -415,7 +436,7 @@ abort:
     while (saving_buffer_index != capturing_buffer_index)
     {
         if (!t0) t0 = get_ms_clock_value();
-        written += FIO_WriteFile(f, buffers[saving_buffer_index], big_buffer_size);
+        written += FIO_WriteFile(f, buffers[saving_buffer_index], buffer_size_used);
         saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
     }
     written += FIO_WriteFile(f, buffers[capturing_buffer_index], capture_offset);
