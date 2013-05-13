@@ -107,6 +107,7 @@ struct memSuite *shoot_malloc_suite(size_t size)
     if(size > 0)
     {
         ASSERT(!alloc_sem_timed_out);
+        alloc_sem_timed_out = 0;
         AllocateMemoryResource(size, allocCBR, (unsigned int)&hSuite, 0x50);
         
         int r = take_semaphore(alloc_sem, 100);
@@ -227,6 +228,7 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
     {
         #ifdef CONFIG_EXMEM_SINGLE_CHUNK
         ASSERT(!alloc_sem_timed_out);
+        alloc_sem_timed_out = 0;
 
         struct memSuite * hSuite = NULL;
         AllocateMemoryResourceForSingleChunk(size, allocCBR, (unsigned int)&hSuite, 0x50);

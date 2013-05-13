@@ -154,11 +154,7 @@ static int setup_buffers()
         
         if (buffers_suite[i])
         {
-            if (i < 2)
-            {
-                buffer_size_allocated = MIN(buffer_size_allocated, buffers_suite[i]->size);
-                bmp_printf(FONT_MED, 30, 50, "Buffer size: %d MB", buffer_size_allocated / 1024 / 1024);
-            }
+            if (i < 2) buffer_size_allocated = MIN(buffer_size_allocated, buffers_suite[i]->size);
             buffers[i] = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(buffers_suite[i]));
         }
         else
@@ -166,7 +162,9 @@ static int setup_buffers()
             buffer_count = i;
             break;
         }
+        bmp_printf(FONT_MED, 30, 50, "Alloc %d x %d MB", i+1, buffer_size_allocated / 1024 / 1024);
     }
+    
     /* we need at least two buffers */
     return (buffer_count > 1);
 }
