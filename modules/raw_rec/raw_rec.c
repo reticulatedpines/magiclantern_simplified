@@ -52,6 +52,8 @@ static int raw_recording_state = RAW_IDLE;
 #define RAW_IS_RECORDING (raw_recording_state == RAW_RECORDING)
 #define RAW_IS_FINISHING (raw_recording_state == RAW_FINISHING)
 
+static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
+
 static struct memSuite * buffers_suite[10] = {0}; /* memory suites for our buffers */
 static void * buffers[10] = {0};                  /* our buffers, as plain pointers */
 static int buffer_size_allocated = 32*1024*1024;  /* how big is one buffer (up to 32MB) */
@@ -143,6 +145,12 @@ static unsigned int lv_rec_save_footer(FILE *save_file)
 
 static int setup_buffers()
 {
+    /* allocate memory for double buffering */
+    /* yes, I know this may eat a big 32MB buffer, but I don't have a better solution atm */
+    fullsize_buffers[0] = shoot_malloc(10*1024*1024); /* any image size bigger than that? */
+    fullsize_buffers[1] = raw_info.buffer;            /* reuse Canon's buffer */
+    if (fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0) return 0;
+
     /* try to use contiguous 32MB chunks for maximizing CF write speed */
     buffer_size_allocated = 32*1024*1024;
     
@@ -150,11 +158,12 @@ static int setup_buffers()
     for (int i = 0; i < COUNT(buffers_suite); i++)
     {
         /* autodetect max buffer size, since not all cameras can allocate 32 MB */
-        buffers_suite[i] = shoot_malloc_suite_contig(i < 2 ? 0 : buffer_size_allocated);
+        /* try hard to get at least 3 buffers; also works with 2, but it's more likely to skip frames */
+        buffers_suite[i] = shoot_malloc_suite_contig(i < 3 ? 0 : buffer_size_allocated);
         
         if (buffers_suite[i])
         {
-            if (i < 2) buffer_size_allocated = MIN(buffer_size_allocated, buffers_suite[i]->size);
+            if (i < 3) buffer_size_allocated = MIN(buffer_size_allocated, buffers_suite[i]->size);
             buffers[i] = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(buffers_suite[i]));
         }
         else
@@ -166,7 +175,9 @@ static int setup_buffers()
     }
     
     /* we need at least two buffers */
-    return (buffer_count > 1);
+    if (buffer_count < 2) return 0;
+    
+    return 1;
 }
 
 static void free_buffers()
@@ -180,6 +191,9 @@ static void free_buffers()
             buffers[i] = 0;
         }
     }
+    
+    if (fullsize_buffers[0]) shoot_free(fullsize_buffers[0]);
+    //if (fullsize_buffers[1]) shoot_free(fullsize_buffers[1]);
 }
 
 static void show_buffer_status(int adj)
@@ -215,6 +229,9 @@ static void process_frame()
 {
     if (!lv) return;
     
+    /* skip the first frame, it will be gibberish */
+    if (frame_count == 0) { frame_count++; return; }
+    
     /* copy current frame to our buffer and crop it to its final size */
     int res_x = get_res_x();
     int res_y = get_res_y();
@@ -249,7 +266,7 @@ static void process_frame()
     
     /* copy frame to our buffer */
     void* ptr = buffers[capturing_buffer_index] + capture_offset;
-    edmac_copy_rectangle(ptr, raw_info.buffer, raw_info.pitch, skip_x/8*14, skip_y/2*2, res_x*14/8, res_y);
+    edmac_copy_rectangle(ptr, fullsize_buffers[(frame_count+1) % 2], raw_info.pitch, skip_x/8*14, skip_y/2*2, res_x*14/8, res_y);
     
     /* hack: edmac rectangle routine only works for first call, third call and so on, figure out why */
     /* meanwhile, just use a dummy call that will fail */
@@ -275,6 +292,9 @@ static void process_frame()
 unsigned int raw_rec_vsync_cbr(unsigned int unused)
 {
     if (!RAW_IS_RECORDING) return 0;
+    
+    /* double-buffering */
+    raw_lv_redirect_edmac(fullsize_buffers[frame_count % 2]);
     
     if (capture_offset + raw_info.frame_size >= buffer_size_allocated)
     {
@@ -361,17 +381,19 @@ static void raw_video_rec_task()
         goto cleanup;
     }
     
-    /* allocate memory */
-    if (!setup_buffers())
-    {
-        bmp_printf( FONT_MED, 30, 50, "Memory error");
-        goto cleanup;
-    }
+    msleep(100);
     
     /* detect raw parameters (geometry, black level etc) */
     if (!raw_update_params())
     {
         bmp_printf( FONT_MED, 30, 50, "Raw detect error");
+        goto cleanup;
+    }
+
+    /* allocate memory */
+    if (!setup_buffers())
+    {
+        bmp_printf( FONT_MED, 30, 50, "Memory error");
         goto cleanup;
     }
     
