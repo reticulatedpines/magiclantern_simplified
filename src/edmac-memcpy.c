@@ -28,6 +28,10 @@ void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, i
     uint32_t dmaChannelRead = 0x19;
     uint32_t dmaChannelWrite = 0x11;
     
+    #ifdef CONFIG_5D2
+    dmaChannelWrite = 3;
+    #endif
+    
     /* both channels get connected to this... lets call it service. it will just output the data it gets as input */
     uint32_t dmaConnection = 6;
 

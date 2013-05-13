@@ -116,3 +116,6 @@
 /** The camera accepts extended AFMA values (default range: -20...20; extended: -100...100) */
 /** This can be dangerous, as the values are outside Canon limits */
 #define CONFIG_AFMA_EXTENDED
+
+/** We can use the DMA controller to copy data */
+#define CONFIG_EDMAC_MEMCPY
