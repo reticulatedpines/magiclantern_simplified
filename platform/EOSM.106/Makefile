@@ -13,53 +13,8 @@ PLATFORM_INC=.
 
 PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
-# magiclantern.lds script MUST be first
-# entry.o MUST be second
-# menu.o and debug.o must come before the modules
-ML_OBJS-y = \
-	magiclantern.lds \
-	entry.o \
-	boot-hack.o \
-	stubs.o \
-	version.o \
-	exmem.o \
-	bmp.o \
-	font-dyn.o \
-	config.o \
-	menu.o \
-	debug.o \
-	stdio.o \
-	bitrate.o \
-	tweaks.o \
-	lens.o \
-	property.o \
-	propvalues.o \
-	gui.o \
-	gui-common.o \
+ML_EXTRA_OBJS = \
 	misc.o \
-	picstyle.o \
-	cfn.o \
-	zebra.o \
-	shoot.o \
-	chdk-gui_draw.o \
-	movtweaks.o \
-	menuhelp.o \
-	menuindex.o \
-	focus.o \
-	notify_box.o \
-	bootflags.o \
-	dialog_test.o \
-	vram.o \
-	aj_port.o \
-	fps-engio.o \
-	tasks.o \
-	tskmon.o \
-	state-object.o \
-	hdr.o \
-	lv-img-engio.o \
-	beep.o \
-	audio-ak.o \
-	vsync-lite.o \
 	dm-spy.o \
 
 #include generic rules and definitions

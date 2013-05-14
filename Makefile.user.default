@@ -58,12 +58,16 @@ VERSION:=v2.3.NEXT.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION)
 
 # Build configuration - untested and debug stuff handy for devs
 CONFIG_PYMITE       = n
+ifndef CONFIG_RELOC
 CONFIG_RELOC        = n
+endif
 CONFIG_TIMECODE     = n
 CONFIG_PTP          = n
 CONFIG_PTP_CHDK     = n
 CONFIG_PTP_ML       = n
+ifndef CONFIG_GDB
 CONFIG_GDB          = n
+endif
 CONFIG_GDBSTUB      = n
 CONFIG_PLUGINS      = n
 CONFIG_CONSOLE      = y
