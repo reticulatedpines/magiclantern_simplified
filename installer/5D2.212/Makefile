@@ -10,17 +10,7 @@ UPDATE_NAME=5D2-212.fir
 ML_VERSION=unified1 
 FIRMWARE_ID	= 0x80000218
 
-
-#used in CFLAGS
-PLATFORM_INC=../../platform/$(MODEL).$(FW_VERSION)
-
-PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
-
-CONFIG_ADD_INSTALLER_OBJECTS=y
-
-#include generic rules and definitions
-#TOP_DIR defined in upper Makefile
-include ../../Makefile.inc
+include $(TOP_DIR)/installer/Makefile.installer.default
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss

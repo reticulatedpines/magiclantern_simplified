@@ -70,10 +70,14 @@ CONFIG_GDB          = n
 endif
 CONFIG_GDBSTUB      = n
 CONFIG_PLUGINS      = n
+ifndef CONFIG_CONSOLE
 CONFIG_CONSOLE      = y
+endif
 CONFIG_DEBUGMSG     = 0
 CONFIG_CCACHE       = n
+ifndef CONFIG_PICOC
 CONFIG_PICOC        = y
+endif
 CONFIG_TCC          = n
 CONFIG_MEMCHECK     = n
 CONFIG_MODULES      = n

@@ -8,16 +8,7 @@ FW_VERSION=101
 MODEL=650D
 UPDATE_NAME=$(MODEL)-$(FW_VERSION).fir 
 
-#used in CFLAGS
-PLATFORM_INC=../../platform/$(MODEL).$(FW_VERSION)
-
-PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
-
-CONFIG_ADD_INSTALLER_OBJECTS=y
-
-#include generic rules and definitions
-#TOP_DIR defined in upper Makefile
-include ../../Makefile.inc
+include $(TOP_DIR)/installer/Makefile.installer.default
 
 CFLAGS += -DCONFIG_STATIC_FONTS=1
 
