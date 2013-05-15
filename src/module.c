@@ -22,6 +22,7 @@ static struct menu_entry module_menu[];
 
 CONFIG_INT("module.autoload", module_autoload_enabled, 0);
 CONFIG_INT("module.console", module_console_enabled, 0);
+char *module_lockfile = MODULE_PATH"LOADING.LCK";
 
 static struct msg_queue * module_mq = 0;
 #define MSG_MODULE_LOAD_ALL 1
@@ -1062,16 +1063,12 @@ static void module_init()
 void module_load_task(void* unused) 
 {
     /* no clean shutdown hoom implemented yet */
-#if defined(MODULE_CHECK_CRASH)
-    char *lockfile = MODULE_PATH"LOADING.LCK";
     char *lockstr = "If you can read this, ML crashed last time. To save from faulty modules, autoload gets disabled.";
-#endif
 
     if(module_autoload_enabled)
     {
-#if defined(MODULE_CHECK_CRASH)
         uint32_t size;
-        if( FIO_GetFileSize( lockfile, &size ) == 0 )
+        if( FIO_GetFileSize( module_lockfile, &size ) == 0 )
         {
             /* uh, it seems the camera didnt shut down cleanly, skip module loading this time */
             msleep(1000);
@@ -1079,7 +1076,7 @@ void module_load_task(void* unused)
         }
         else
         {
-            FILE *handle = FIO_CreateFileEx(lockfile);
+            FILE *handle = FIO_CreateFileEx(module_lockfile);
             FIO_WriteFile(handle, lockstr, strlen(lockstr));
             FIO_CloseFile(handle);
             
@@ -1087,11 +1084,6 @@ void module_load_task(void* unused)
             _module_load_all();
             module_menu_update();
         }
-#else
-        /* now load modules */
-        _module_load_all();
-        module_menu_update();
-#endif
     }
         
     /* main loop, also wait until clean shutdown */
@@ -1118,14 +1110,18 @@ void module_load_task(void* unused)
                 console_printf("invalid msg: %d\n", msg);
         }
     }
+}
 
-#if defined(MODULE_CHECK_CRASH)
+/* clean shutdown, unlink lockfile */
+int module_shutdown()
+{
+    /* ToDo: Save config */
+    
     if(module_autoload_enabled)
     {
         /* remove lockfile */
-        FIO_RemoveFile(lockfile);
+        FIO_RemoveFile(module_lockfile);
     }
-#endif
 }
 
 TASK_CREATE("module_load_task", module_load_task, 0, 0x1e, 0x4000 );
