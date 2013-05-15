@@ -470,6 +470,7 @@ int module_unload(void *module)
     return 0;
 }
 
+
 /* execute all callback routines of given type. maybe it will get extended to support varargs */
 int module_exec_cbr(unsigned int type)
 {
@@ -490,6 +491,187 @@ int module_exec_cbr(unsigned int type)
     }
     
     return 0;
+}
+
+/* translate camera specific key to portable module key */
+#define MODULE_CHECK_KEY(in,out) if(in != 0){ if(key == in) { return out; } }
+
+/* these are to ensure that the checked keys are defined. we have to ensure they're defined before using. are there better ways to ensure? */
+#if !defined(BGMT_WHEEL_UP)
+#define BGMT_WHEEL_UP 0
+#endif
+#if !defined(BGMT_WHEEL_DOWN)
+#define BGMT_WHEEL_DOWN 0
+#endif
+#if !defined(BGMT_WHEEL_LEFT)
+#define BGMT_WHEEL_LEFT 0
+#endif
+#if !defined(BGMT_WHEEL_RIGHT)
+#define BGMT_WHEEL_RIGHT 0
+#endif
+#if !defined(BGMT_PRESS_SET)
+#define BGMT_PRESS_SET 0
+#endif
+#if !defined(BGMT_UNPRESS_SET)
+#define BGMT_UNPRESS_SET 0
+#endif
+#if !defined(BGMT_MENU)
+#define BGMT_MENU 0
+#endif
+#if !defined(BGMT_INFO)
+#define BGMT_INFO 0
+#endif
+#if !defined(BGMT_PLAY)
+#define BGMT_PLAY 0
+#endif
+#if !defined(BGMT_TRASH)
+#define BGMT_TRASH 0
+#endif
+#if !defined(BGMT_PRESS_DP)
+#define BGMT_PRESS_DP 0
+#endif
+#if !defined(BGMT_UNPRESS_DP)
+#define BGMT_UNPRESS_DP 0
+#endif
+#if !defined(BGMT_RATE)
+#define BGMT_RATE 0
+#endif
+#if !defined(BGMT_REC)
+#define BGMT_REC 0
+#endif
+#if !defined(BGMT_PRESS_ZOOMIN_MAYBE)
+#define BGMT_PRESS_ZOOMIN_MAYBE 0
+#endif
+#if !defined(BGMT_LV)
+#define BGMT_LV 0
+#endif
+#if !defined(BGMT_Q)
+#define BGMT_Q 0
+#endif
+#if !defined(BGMT_PICSTYLE)
+#define BGMT_PICSTYLE 0
+#endif
+#if !defined(BGMT_JOY_CENTER)
+#define BGMT_JOY_CENTER 0
+#endif
+#if !defined(BGMT_PRESS_UP)
+#define BGMT_PRESS_UP 0
+#endif
+#if !defined(BGMT_PRESS_UP_RIGHT)
+#define BGMT_PRESS_UP_RIGHT 0
+#endif
+#if !defined(BGMT_PRESS_UP_LEFT)
+#define BGMT_PRESS_UP_LEFT 0
+#endif
+#if !defined(BGMT_PRESS_RIGHT)
+#define BGMT_PRESS_RIGHT 0
+#endif
+#if !defined(BGMT_PRESS_LEFT)
+#define BGMT_PRESS_LEFT 0
+#endif
+#if !defined(BGMT_PRESS_DOWN_RIGHT)
+#define BGMT_PRESS_DOWN_RIGHT 0
+#endif
+#if !defined(BGMT_PRESS_DOWN_LEFT)
+#define BGMT_PRESS_DOWN_LEFT 0
+#endif
+#if !defined(BGMT_PRESS_DOWN)
+#define BGMT_PRESS_DOWN 0
+#endif
+#if !defined(BGMT_UNPRESS_UDLR)
+#define BGMT_UNPRESS_UDLR 0
+#endif
+#if !defined(BGMT_PRESS_HALFSHUTTER)
+#define BGMT_PRESS_HALFSHUTTER 0
+#endif
+#if !defined(BGMT_UNPRESS_HALFSHUTTER)
+#define BGMT_UNPRESS_HALFSHUTTER 0
+#endif
+#if !defined(BGMT_PRESS_FULLSHUTTER)
+#define BGMT_PRESS_FULLSHUTTER 0
+#endif
+#if !defined(BGMT_UNPRESS_FULLSHUTTER)
+#define BGMT_UNPRESS_FULLSHUTTER 0
+#endif
+#if !defined(BGMT_PRESS_FLASH_MOVIE)
+#define BGMT_PRESS_FLASH_MOVIE 0
+#endif
+#if !defined(BGMT_UNPRESS_FLASH_MOVIE)
+#define BGMT_UNPRESS_FLASH_MOVIE 0
+#endif
+int module_translate_event(int key)
+{
+    MODULE_CHECK_KEY(BGMT_WHEEL_UP             , MODULE_KEY_WHEEL_UP             );
+    MODULE_CHECK_KEY(BGMT_WHEEL_DOWN           , MODULE_KEY_WHEEL_DOWN           );
+    MODULE_CHECK_KEY(BGMT_WHEEL_LEFT           , MODULE_KEY_WHEEL_LEFT           );
+    MODULE_CHECK_KEY(BGMT_WHEEL_RIGHT          , MODULE_KEY_WHEEL_RIGHT          );
+    MODULE_CHECK_KEY(BGMT_PRESS_SET            , MODULE_KEY_PRESS_SET            );
+    MODULE_CHECK_KEY(BGMT_UNPRESS_SET          , MODULE_KEY_UNPRESS_SET          );
+    MODULE_CHECK_KEY(BGMT_MENU                 , MODULE_KEY_MENU                 );
+    MODULE_CHECK_KEY(BGMT_INFO                 , MODULE_KEY_INFO                 );
+    MODULE_CHECK_KEY(BGMT_PLAY                 , MODULE_KEY_PLAY                 );
+    MODULE_CHECK_KEY(BGMT_TRASH                , MODULE_KEY_TRASH                );
+    MODULE_CHECK_KEY(BGMT_PRESS_DP             , MODULE_KEY_PRESS_DP             );
+    MODULE_CHECK_KEY(BGMT_UNPRESS_DP           , MODULE_KEY_UNPRESS_DP           );
+    MODULE_CHECK_KEY(BGMT_RATE                 , MODULE_KEY_RATE                 );
+    MODULE_CHECK_KEY(BGMT_REC                  , MODULE_KEY_REC                  );
+    MODULE_CHECK_KEY(BGMT_PRESS_ZOOMIN_MAYBE   , MODULE_KEY_PRESS_ZOOMIN         );
+    MODULE_CHECK_KEY(BGMT_LV                   , MODULE_KEY_LV                   );
+    MODULE_CHECK_KEY(BGMT_Q                    , MODULE_KEY_Q                    );
+    MODULE_CHECK_KEY(BGMT_PICSTYLE             , MODULE_KEY_PICSTYLE             );
+    MODULE_CHECK_KEY(BGMT_JOY_CENTER           , MODULE_KEY_JOY_CENTER           );
+    MODULE_CHECK_KEY(BGMT_PRESS_UP             , MODULE_KEY_PRESS_UP             );
+    MODULE_CHECK_KEY(BGMT_PRESS_UP_RIGHT       , MODULE_KEY_PRESS_UP_RIGHT       );
+    MODULE_CHECK_KEY(BGMT_PRESS_UP_LEFT        , MODULE_KEY_PRESS_UP_LEFT        );
+    MODULE_CHECK_KEY(BGMT_PRESS_RIGHT          , MODULE_KEY_PRESS_RIGHT          );
+    MODULE_CHECK_KEY(BGMT_PRESS_LEFT           , MODULE_KEY_PRESS_LEFT           );
+    MODULE_CHECK_KEY(BGMT_PRESS_DOWN_RIGHT     , MODULE_KEY_PRESS_DOWN_RIGHT     );
+    MODULE_CHECK_KEY(BGMT_PRESS_DOWN_LEFT      , MODULE_KEY_PRESS_DOWN_LEFT      );
+    MODULE_CHECK_KEY(BGMT_PRESS_DOWN           , MODULE_KEY_PRESS_DOWN           );
+    MODULE_CHECK_KEY(BGMT_UNPRESS_UDLR         , MODULE_KEY_UNPRESS_UDLR         );
+    MODULE_CHECK_KEY(BGMT_PRESS_HALFSHUTTER    , MODULE_KEY_PRESS_HALFSHUTTER    );
+    MODULE_CHECK_KEY(BGMT_UNPRESS_HALFSHUTTER  , MODULE_KEY_UNPRESS_HALFSHUTTER  );
+    MODULE_CHECK_KEY(BGMT_PRESS_FULLSHUTTER    , MODULE_KEY_PRESS_FULLSHUTTER    );
+    MODULE_CHECK_KEY(BGMT_UNPRESS_FULLSHUTTER  , MODULE_KEY_UNPRESS_FULLSHUTTER  );
+    MODULE_CHECK_KEY(BGMT_PRESS_FLASH_MOVIE    , MODULE_KEY_PRESS_FLASH_MOVIE    );
+    MODULE_CHECK_KEY(BGMT_UNPRESS_FLASH_MOVIE  , MODULE_KEY_UNPRESS_FLASH_MOVIE  );
+    
+    return 0;
+}
+#undef MODULE_CHECK_KEY
+
+int handle_module_keys(struct event * event)
+{
+    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    {
+        module_cbr_t *cbr = module_list[mod].cbr;
+        if(module_list[mod].valid && cbr)
+        {
+            while(cbr->name)
+            {
+                if(cbr->type == CBR_KEYPRESS)
+                {
+                    /* key got handled? */
+                    if(!cbr->handler(module_translate_event(event->param)))
+                    {
+                        return 0;
+                    }
+                }
+                if(cbr->type == CBR_KEYPRESS_RAW)
+                {
+                    /* key got handled? */
+                    if(!cbr->handler(event))
+                    {
+                        return 0;
+                    }
+                }
+                cbr++;
+            }
+        }
+    }
+    
+    /* noone handled */
+    return 1;
 }
 
 
