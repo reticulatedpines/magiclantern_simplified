@@ -44,7 +44,8 @@ static int stop_on_buffer_overflow = 1;
 #define RAW_IDLE      0
 #define RAW_PREPARING 1
 #define RAW_RECORDING 2
-#define RAW_FINISHING 3
+#define RAW_STOPPING  3 /* video stopped due to user pressing REC/LV or buffer hickup */
+#define RAW_FINISHING 4
 
 static int raw_recording_state = RAW_IDLE;
 
@@ -396,13 +397,9 @@ static char* get_next_raw_movie_file_name()
 static void raw_video_rec_task()
 {
     /* init stuff */
+    FILE* f = NULL;
     raw_recording_state = RAW_PREPARING;
     buffer_count = 0;
-    capturing_buffer_index = 0;
-    saving_buffer_index = 0;
-    capture_offset = 0;
-    frame_count = 0;
-    frame_skips = 0;
     
     msleep(1000);
     
@@ -410,24 +407,6 @@ static void raw_video_rec_task()
     call("lv_save_raw", 1);
     msleep(100);
     
-    /* create output file */
-    char* filename = get_next_raw_movie_file_name();
-    FILE* f = FIO_CreateFileEx(filename);
-    if (f == INVALID_PTR)
-    {
-        bmp_printf( FONT_MED, 30, 50, "File create error");
-        goto cleanup;
-    }
-    
-    msleep(100);
-    
-    /* detect raw parameters (geometry, black level etc) */
-    if (!raw_update_params())
-    {
-        bmp_printf( FONT_MED, 30, 50, "Raw detect error");
-        goto cleanup;
-    }
-
     /* allocate memory */
     if (!setup_buffers())
     {
@@ -435,9 +414,53 @@ static void raw_video_rec_task()
         goto cleanup;
     }
     
+restart:
+    /* when recording was stopped, we end here again */
+    raw_recording_state = RAW_PREPARING;
+    capturing_buffer_index = 0;
+    saving_buffer_index = 0;
+    capture_offset = 0;
+    frame_count = 0;
+    frame_skips = 0;
+    
+    /* create output file */
+    char* filename = get_next_raw_movie_file_name();
+    f = FIO_CreateFileEx(filename);
+    if (f == INVALID_PTR)
+    {
+        bmp_printf( FONT_MED, 30, 50, "File create error");
+        goto cleanup;
+    }
+    
+    /* detect raw parameters (geometry, black level etc) */
+    if (!raw_update_params())
+    {
+        bmp_printf( FONT_MED, 30, 50, "Raw detect error");
+        goto cleanup;
+    }
+    
+    msleep(100);
+    
     /* this will enable the vsync CBR and the other task(s) */
-    raw_recording_state = RAW_RECORDING;
-
+    while(raw_recording_state == RAW_PREPARING)
+    {
+        bmp_printf(SHADOW_FONT(FONT_MED), 30, 35, "READY. Press LV/Rec button to start recording.");
+        msleep(100);
+    }
+    
+    redraw();
+    
+    /* some state change happened. check what to do. */
+    switch(raw_recording_state)
+    {
+        case RAW_RECORDING:
+            break;
+        case RAW_FINISHING:
+            goto cleanup;
+        case RAW_STOPPING:
+            goto restart;
+    }
+    
     /* offload frame copying to another task, so we don't slow down Canon's LiveView task */
     task_create("raw_copy_task", 0x18, 0x1000, raw_video_copy_task, (void*)0);
 
@@ -461,7 +484,7 @@ static void raw_video_rec_task()
             written += size_used;
             saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
         }
-
+        
         /* how fast are we writing? does this speed match our benchmarks? */
         if (t0)
         {
@@ -486,12 +509,10 @@ abort:
             bmp_printf( FONT_MED, 30, 90, 
                 "Movie recording stopped automagically"
             );
+            raw_recording_state = RAW_STOPPING;
             break;
         }
     }
-
-    /* done, this will stop the vsync CBR and the copying task */
-    raw_recording_state = RAW_FINISHING;
 
     /* wait until the other tasks calm down */
     msleep(1000);
@@ -515,6 +536,20 @@ abort:
         );
         beep();
         msleep(2000);
+    }
+    
+    /* close file */
+    if (f) FIO_CloseFile(f);
+    f = NULL;
+
+    /* decision point. either finishing or just stopping this movie file */
+    switch(raw_recording_state)
+    {
+        case RAW_FINISHING:
+            break;
+        case RAW_STOPPING:
+            redraw();
+            goto restart;
     }
 
 cleanup:
@@ -593,6 +628,25 @@ unsigned int raw_rec_deinit()
     return 0;
 }
 
+unsigned int raw_rec_keypress_cbr(unsigned int key)
+{
+    if(key == MODULE_KEY_LV || key == MODULE_KEY_REC)
+    {
+        switch(raw_recording_state)
+        {
+            case RAW_PREPARING:
+                raw_recording_state = RAW_RECORDING;
+                return 0;
+                break;
+            case RAW_RECORDING:
+                raw_recording_state = RAW_STOPPING;
+                return 0;
+        }
+    }
+    
+    return 1;
+}
+
 MODULE_INFO_START()
     MODULE_INIT(raw_rec_init)
     MODULE_DEINIT(raw_rec_deinit)
@@ -607,4 +661,5 @@ MODULE_STRINGS_END()
 
 MODULE_CBRS_START()
     MODULE_CBR(CBR_VSYNC, raw_rec_vsync_cbr, 0)
+    MODULE_CBR(CBR_KEYPRESS, raw_rec_keypress_cbr, 0)
 MODULE_CBRS_END()
