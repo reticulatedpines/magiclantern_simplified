@@ -52,12 +52,16 @@ static int raw_recording_state = RAW_IDLE;
 #define RAW_IS_RECORDING (raw_recording_state == RAW_RECORDING)
 #define RAW_IS_FINISHING (raw_recording_state == RAW_FINISHING)
 
-static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
+struct buff
+{
+    void* ptr;
+    int size;
+    int used;
+};
 
-static struct memSuite * buffers_suite[10] = {0}; /* memory suites for our buffers */
-static void * buffers[10] = {0};                  /* our buffers, as plain pointers */
-static int buffer_size_allocated = 32*1024*1024;  /* how big is one buffer (up to 32MB) */
-static int buffer_size_used = 0;                  /* how much data we should save from a buffer (ideally 32MB, in practice a bit less) */
+static struct memSuite * mem_suite = 0;            /* memory suite for our buffers */
+static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
+static struct buff buffers[10];           /* our recording buffers */
 static int buffer_count = 0;                      /* how many buffers we could allocate */
 static int capturing_buffer_index = 0;            /* in which buffer we are capturing */
 static int saving_buffer_index = 0;               /* from which buffer we are saving to card */
@@ -132,47 +136,73 @@ static unsigned int lv_rec_save_footer(FILE *save_file)
     footer.xRes = get_res_x();
     footer.yRes = get_res_y();
     footer.frameSize = footer.xRes * footer.yRes * 14/8;
-    footer.frameCount = frame_count;
+    footer.frameCount = frame_count - 1; /* last frame is usually gibberish */
     footer.frameSkip = 1;
     
     footer.sourceFpsx1000 = fps_get_current_x1000();
     footer.raw_info = raw_info;
 
-    FIO_WriteFile(save_file, UNCACHEABLE(&footer), sizeof(lv_rec_file_footer_t));
+    int written = FIO_WriteFile(save_file, UNCACHEABLE(&footer), sizeof(lv_rec_file_footer_t));
     
-    return sizeof(lv_rec_file_footer_t);
+    return written == sizeof(lv_rec_file_footer_t);
 }
 
 static int setup_buffers()
 {
-    /* allocate memory for double buffering */
-    /* yes, I know this may eat a big 32MB buffer, but I don't have a better solution atm */
-    fullsize_buffers[0] = shoot_malloc(10*1024*1024); /* any image size bigger than that? */
-    fullsize_buffers[1] = raw_info.buffer;            /* reuse Canon's buffer */
-    if (fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0) return 0;
-
-    /* try to use contiguous 32MB chunks for maximizing CF write speed */
-    buffer_size_allocated = 32*1024*1024;
+    /* allocate the entire memory, but only use large chunks */
+    /* yes, this may be a bit wasteful, but at least it works */
+    mem_suite = shoot_malloc_suite(0);
+    if (!mem_suite) return 0;
     
-    /* grab as many of these as we can */
-    for (int i = 0; i < COUNT(buffers_suite); i++)
+    /* allocate memory for double buffering */
+    int buf_size = raw_info.frame_size * 33/32; /* leave some margin, just in case */
+
+    /* find the smallest chunk that we can use for buf_size */
+    fullsize_buffers[0] = 0;
+    struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
+    int waste = INT_MAX;
+    while(chunk)
     {
-        /* autodetect max buffer size, since not all cameras can allocate 32 MB */
-        /* try hard to get at least 3 buffers; also works with 2, but it's more likely to skip frames */
-        buffers_suite[i] = shoot_malloc_suite_contig(i < 3 ? 0 : buffer_size_allocated);
-        
-        if (buffers_suite[i])
+        int size = GetSizeOfMemoryChunk(chunk);
+        if (size >= buf_size)
         {
-            if (i < 3) buffer_size_allocated = MIN(buffer_size_allocated, buffers_suite[i]->size);
-            buffers[i] = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(buffers_suite[i]));
+            if (size - buf_size < waste)
+            {
+                waste = size - buf_size;
+                fullsize_buffers[0] = GetMemoryAddressOfMemoryChunk(chunk);
+            }
         }
-        else
-        {
-            buffer_count = i;
-            break;
-        }
-        bmp_printf(FONT_MED, 30, 50, "Alloc %d x %d MB", i+1, buffer_size_allocated / 1024 / 1024);
+        chunk = GetNextMemoryChunk(mem_suite, chunk);
     }
+    if (fullsize_buffers[0] == 0) return 0;
+    
+    /* reuse Canon's buffer */
+    fullsize_buffers[1] = raw_info.buffer;
+    if (fullsize_buffers[1] == 0) return 0;
+
+    /* use all chunks larger than 16MB for recording */
+    chunk = GetFirstChunkFromSuite(mem_suite);
+    buffer_count = 0;
+    int total = 0;
+    while(chunk && buffer_count < COUNT(buffers))
+    {
+        int size = GetSizeOfMemoryChunk(chunk);
+        if (size >= 16*1024*1024)
+        {
+            void* ptr = GetMemoryAddressOfMemoryChunk(chunk);
+            if (ptr != fullsize_buffers[0])
+            {
+                buffers[buffer_count].ptr = ptr;
+                buffers[buffer_count].size = size;
+                buffers[buffer_count].used = 0;
+                buffer_count++;
+                total += size;
+            }
+        }
+        chunk = GetNextMemoryChunk(mem_suite, chunk);
+    }
+    
+    bmp_printf(FONT_MED, 30, 50, "Alloc %d x %d MB", buffer_count, total / 1024 / 1024 / buffer_count);
     
     /* we need at least two buffers */
     if (buffer_count < 2) return 0;
@@ -182,18 +212,8 @@ static int setup_buffers()
 
 static void free_buffers()
 {
-    for (int i = 0; i < COUNT(buffers_suite); i++)
-    {
-        if (buffers_suite[i])
-        {
-            shoot_free_suite(buffers_suite[i]);
-            buffers_suite[i] = 0;
-            buffers[i] = 0;
-        }
-    }
-    
-    if (fullsize_buffers[0]) shoot_free(fullsize_buffers[0]);
-    //if (fullsize_buffers[1]) shoot_free(fullsize_buffers[1]);
+    if (mem_suite) shoot_free_suite(mem_suite);
+    mem_suite = 0;
 }
 
 static void show_buffer_status(int adj)
@@ -265,7 +285,7 @@ static void process_frame()
     skip_y += frame_offset_y;
     
     /* copy frame to our buffer */
-    void* ptr = buffers[capturing_buffer_index] + capture_offset;
+    void* ptr = buffers[capturing_buffer_index].ptr + capture_offset;
     edmac_copy_rectangle(ptr, fullsize_buffers[(frame_count+1) % 2], raw_info.pitch, skip_x/8*14, skip_y/2*2, res_x*14/8, res_y);
     
     /* hack: edmac rectangle routine only works for first call, third call and so on, figure out why */
@@ -292,17 +312,18 @@ static void process_frame()
 unsigned int raw_rec_vsync_cbr(unsigned int unused)
 {
     if (!RAW_IS_RECORDING) return 0;
+    if (!raw_lv_settings_still_valid()) { raw_recording_state = RAW_FINISHING; return 0; }
     
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[frame_count % 2]);
     
-    if (capture_offset + raw_info.frame_size >= buffer_size_allocated)
+    if (capture_offset + raw_info.frame_size >= buffers[capturing_buffer_index].size)
     {
         /* this buffer is full, try next one */
         int next_buffer = mod(capturing_buffer_index + 1, buffer_count);
         if (next_buffer != saving_buffer_index)
         {
-            buffer_size_used = capture_offset;
+            buffers[capturing_buffer_index].used = capture_offset;
             capturing_buffer_index = next_buffer;
             capture_offset = 0;
         }
@@ -361,7 +382,6 @@ static void raw_video_rec_task()
     buffer_count = 0;
     capturing_buffer_index = 0;
     saving_buffer_index = 0;
-    buffer_size_used = 0;
     capture_offset = 0;
     frame_count = 0;
     frame_skips = 0;
@@ -413,9 +433,11 @@ static void raw_video_rec_task()
         if (saving_buffer_index != capturing_buffer_index)
         {
             if (!t0) t0 = get_ms_clock_value();
-            int r = FIO_WriteFile(f, buffers[saving_buffer_index], buffer_size_used);
-            if (r != buffer_size_used) goto abort;
-            written += buffer_size_used;
+            void* ptr = buffers[saving_buffer_index].ptr;
+            int size_used = buffers[saving_buffer_index].used;
+            int r = FIO_WriteFile(f, ptr, size_used);
+            if (r != size_used) goto abort;
+            written += size_used;
             saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
         }
 
@@ -443,7 +465,6 @@ abort:
             bmp_printf( FONT_MED, 30, 90, 
                 "Movie recording stopped automagically"
             );
-            msleep(1000);
             break;
         }
     }
@@ -451,17 +472,29 @@ abort:
     /* done, this will stop the vsync CBR and the copying task */
     raw_recording_state = RAW_FINISHING;
 
+    /* wait until the other tasks calm down */
+    msleep(1000);
+
     /* write remaining frames */
     while (saving_buffer_index != capturing_buffer_index)
     {
         if (!t0) t0 = get_ms_clock_value();
-        written += FIO_WriteFile(f, buffers[saving_buffer_index], buffer_size_used);
+        written += FIO_WriteFile(f, buffers[saving_buffer_index].ptr, buffers[saving_buffer_index].used);
         saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
     }
-    written += FIO_WriteFile(f, buffers[capturing_buffer_index], capture_offset);
+    written += FIO_WriteFile(f, buffers[capturing_buffer_index].ptr, capture_offset);
 
     /* write metadata */
     lv_rec_save_footer(f);
+    int footer_ok = lv_rec_save_footer(f);
+    if (!footer_ok)
+    {
+        bmp_printf( FONT_MED, 30, 110, 
+            "Footer save error"
+        );
+        beep();
+        msleep(2000);
+    }
 
 cleanup:
     if (f) FIO_CloseFile(f);
