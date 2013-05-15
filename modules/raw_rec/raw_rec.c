@@ -401,7 +401,7 @@ static void raw_video_rec_task()
     raw_recording_state = RAW_RECORDING;
 
     /* offload frame copying to another task, so we don't slow down Canon's LiveView task */
-    task_create("raw_copy_task", 0x1a, 0x1000, raw_video_copy_task, (void*)0);
+    task_create("raw_copy_task", 0x18, 0x1000, raw_video_copy_task, (void*)0);
 
     int t0 = 0;
     uint32_t written = 0;
@@ -480,7 +480,7 @@ static MENU_SELECT_FUNC(raw_start_stop)
     else
     {
         gui_stop_menu();
-        task_create("raw_rec_task", 0x1a, 0x1000, raw_video_rec_task, (void*)0);
+        task_create("raw_rec_task", 0x19, 0x1000, raw_video_rec_task, (void*)0);
     }
 }
 
