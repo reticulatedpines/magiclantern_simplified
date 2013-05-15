@@ -533,7 +533,9 @@ void unsafe_beep()
     }
 
     while (beep_playing) msleep(20);
+    #ifdef FEATURE_WAV_RECORD
     if (audio_recording) return;
+    #endif
 
 #ifdef CONFIG_600D
     if (AUDIO_MONITORING_HEADPHONES_CONNECTED){
@@ -1081,12 +1083,16 @@ INIT_FUNC("beep.init", beep_init);
 /* public recording API */
 void WAV_StartRecord(char* filename)
 {
+    #ifdef FEATURE_WAV_RECORD
     record_start(filename, 0);
+    #endif
 }
 
 void WAV_StopRecord()
 {
+    #ifdef FEATURE_WAV_RECORD
     audio_stop_recording();
+    #endif
 }
 
 #else // beep not working, keep dummy stubs
