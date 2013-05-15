@@ -4,7 +4,7 @@
  * - buffering: group the frames in 32GB contiguous chunks, to maximize writing speed
  * - edmac_copy_rectangle: we can crop the image and trim the black borders!
  * - edmac operation done outside the LV task
- * - on buffer overflow, it skips frames, rather than stopping
+ * - on buffer overflow, it stops or skips frames (user-selected)
  * - using generic raw routines, no hardcoded stuff (should be easier to port)
  * - only for RAW in a single file (do one thing and do it well)
  * - goal: 1920x1080 on 1000x cards
@@ -39,6 +39,7 @@ static int resolution_presets_y[] = {  320,  360,  480,  540,  720,  840,  960, 
 static int resolution_index_x = 5;
 static int resolution_index_y = 4;
 static int measured_write_speed = 0;
+static int stop_on_buffer_overflow = 1;
 
 #define RAW_IDLE      0
 #define RAW_PREPARING 1
@@ -59,9 +60,9 @@ struct buff
     int used;
 };
 
-static struct memSuite * mem_suite = 0;            /* memory suite for our buffers */
+static struct memSuite * mem_suite = 0;           /* memory suite for our buffers */
 static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
-static struct buff buffers[10];           /* our recording buffers */
+static struct buff buffers[10];                   /* our recording buffers */
 static int buffer_count = 0;                      /* how many buffers we could allocate */
 static int capturing_buffer_index = 0;            /* in which buffer we are capturing */
 static int saving_buffer_index = 0;               /* from which buffer we are saving to card */
@@ -313,7 +314,8 @@ unsigned int raw_rec_vsync_cbr(unsigned int unused)
 {
     if (!RAW_IS_RECORDING) return 0;
     if (!raw_lv_settings_still_valid()) { raw_recording_state = RAW_FINISHING; return 0; }
-    
+    if (stop_on_buffer_overflow && frame_skips) return 0;
+
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[frame_count % 2]);
     
@@ -329,11 +331,14 @@ unsigned int raw_rec_vsync_cbr(unsigned int unused)
         }
         else
         {
-            frame_skips++;
             /* card too slow */
-            bmp_printf( FONT_MED, 30, 70, 
-                "Skipping frames...   "
-            );
+            frame_skips++;
+            if (!stop_on_buffer_overflow)
+            {
+                bmp_printf( FONT_MED, 30, 70, 
+                    "Skipping frames...   "
+                );
+            }
             show_buffer_status(-1);
             return 0;
         }
@@ -429,7 +434,10 @@ static void raw_video_rec_task()
     /* main recording loop */
     while (RAW_IS_RECORDING && lv)
     {
-        /* do we have buffers completely filled with data, that we can save? */
+        if (stop_on_buffer_overflow && frame_skips)
+            goto abort;
+
+        /* do we have any buffers completely filled with data, that we can save? */
         if (saving_buffer_index != capturing_buffer_index)
         {
             if (!t0) t0 = get_ms_clock_value();
@@ -547,6 +555,13 @@ static struct menu_entry raw_video_menu[] =
                 .max = COUNT(resolution_presets_y) - 1,
                 .update = resolution_update,
                 .choices = RESOLUTION_CHOICES_Y,
+            },
+            {
+                .name = "Buffer full",
+                .priv = &stop_on_buffer_overflow,
+                .max = 1,
+                .choices = CHOICES("Skip frames", "Stop recording"),
+                .help = "What to do when the buffer gets full: stop or skip frames.",
             },
             MENU_EOL,
         },
