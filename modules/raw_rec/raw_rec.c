@@ -122,9 +122,18 @@ static MENU_UPDATE_FUNC(resolution_update)
     int possible = is_x ? get_res_x() : get_res_y();
     MENU_SET_VALUE("%d", possible);
     
-    if (selected != possible)
-        MENU_SET_RINFO("can't do %d", selected);
-
+    if(lv)
+    {
+        if (selected != possible)
+            MENU_SET_RINFO("can't do %d", selected);
+        else
+            MENU_SET_RINFO("max %d", is_x ? raw_info.jpeg.width : raw_info.jpeg.height);
+    }
+    else
+    {
+        MENU_SET_RINFO("");
+    }
+    
     write_speed_update(entry, info);
 }
 
