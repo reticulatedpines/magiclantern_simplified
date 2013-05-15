@@ -879,11 +879,15 @@ static void module_init()
 
 void module_load_task(void* unused) 
 {
+    /* no clean shutdown hoom implemented yet */
+#if defined(MODULE_CHECK_CRASH)
     char *lockfile = MODULE_PATH"LOADING.LCK";
     char *lockstr = "If you can read this, ML crashed last time. To save from faulty modules, autoload gets disabled.";
-    
+#endif
+
     if(module_autoload_enabled)
     {
+#if defined(MODULE_CHECK_CRASH)
         uint32_t size;
         if( FIO_GetFileSize( lockfile, &size ) == 0 )
         {
@@ -901,6 +905,11 @@ void module_load_task(void* unused)
             _module_load_all();
             module_menu_update();
         }
+#else
+        /* now load modules */
+        _module_load_all();
+        module_menu_update();
+#endif
     }
         
     /* main loop, also wait until clean shutdown */
@@ -928,11 +937,13 @@ void module_load_task(void* unused)
         }
     }
 
+#if defined(MODULE_CHECK_CRASH)
     if(module_autoload_enabled)
     {
         /* remove lockfile */
         FIO_RemoveFile(lockfile);
     }
+#endif
 }
 
 TASK_CREATE("module_load_task", module_load_task, 0, 0x1e, 0x4000 );
