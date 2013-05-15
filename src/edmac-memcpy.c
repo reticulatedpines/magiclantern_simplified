@@ -85,7 +85,7 @@ void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, i
 
 void* edmac_copy_rectangle(void* dst, void* src, int src_width, int x, int y, int w, int h)
 {
-    edmac_copy_rectangle_adv(dst, src, src_width, x, y, w, 0, 0, w, h);
+    return edmac_copy_rectangle_adv(dst, src, src_width, x, y, w, 0, 0, w, h);
 }
 
 void* edmac_memcpy(void* dst, void* src, size_t length)
