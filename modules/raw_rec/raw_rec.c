@@ -351,7 +351,11 @@ unsigned int raw_rec_vsync_cbr(unsigned int unused)
     /* don't do the copying from LiveView task, because we might slow it down */
     give_semaphore(copy_sem);
     //~ process_frame();
-    
+
+    /* try a sync beep */
+    if (frame_count == 0)
+        beep();
+
     return 0;
 }
 
