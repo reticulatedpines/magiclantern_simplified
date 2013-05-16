@@ -78,6 +78,11 @@ int save_dng(char* filename);
 void raw_preview_fast();
 void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int end_line, int ultra_fast);
 
+/* enable/disable/check LiveView RAW flag (lv_save_raw) */
+void raw_lv_enable();
+void raw_lv_disable();
+int raw_lv_enabled();
+
 /* redirect the LV RAW EDMAC in order to write the raw data at "ptr" */
 void raw_lv_redirect_edmac(void* ptr);
 

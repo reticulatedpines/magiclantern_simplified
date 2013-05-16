@@ -609,3 +609,21 @@ void FAST raw_preview_fast()
 {
     raw_preview_fast_ex(raw_info.buffer, (void*)YUV422_LV_BUFFER_DISPLAY_ADDR, BM2LV_Y(os.y0), BM2LV_Y(os.y_max), 0);
 }
+
+static int lv_raw_enabled;
+void raw_lv_enable()
+{
+    lv_raw_enabled = 1;
+    call("lv_save_raw", 1);
+}
+
+void raw_lv_disable()
+{
+    lv_raw_enabled = 0;
+    call("lv_save_raw", 0);
+}
+
+int raw_lv_is_enabled()
+{
+    return lv_raw_enabled;
+}
