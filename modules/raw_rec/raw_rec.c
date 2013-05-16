@@ -91,10 +91,13 @@ static MENU_UPDATE_FUNC(write_speed_update)
     int fps = fps_get_current_x1000();
     int speed = (res_x * res_y * 14/8 / 1024) * fps / 100 / 1024;
     int ok = speed < measured_write_speed; 
-    MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, "Write speed needed: %d.%d MB/s at %d.%03d fps.", speed/10, speed%10, fps/1000, fps%1000);
+    MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
+        "Write speed needed: %d.%d MB/s at %d.%03d fps.",
+        speed/10, speed%10, fps/1000, fps%1000
+    );
 }
 
-static MENU_UPDATE_FUNC(raw_main_update)
+static void refresh_raw_settings()
 {
     if (RAW_IS_IDLE)
     {
@@ -108,18 +111,30 @@ static MENU_UPDATE_FUNC(raw_main_update)
             call("lv_save_raw", 0);
         }
     }
+}
+static MENU_UPDATE_FUNC(raw_main_update)
+{
+    if (!raw_video_enabled) return;
+    
+    refresh_raw_settings();
     
     if (!RAW_IS_IDLE)
     {
-        MENU_SET_NAME(RAW_IS_RECORDING ? "Recording..." : RAW_IS_PREPARING ? "Starting..." : RAW_IS_FINISHING ? "Stopping..." : "err");
+        MENU_SET_VALUE(RAW_IS_RECORDING ? "Recording..." : RAW_IS_PREPARING ? "Starting..." : RAW_IS_FINISHING ? "Stopping..." : "err");
         MENU_SET_ICON(MNI_RECORD, 0);
     }
-    
+    else
+    {
+        MENU_SET_VALUE("ON, %dx%d", get_res_x(), get_res_y());
+    }
+
     write_speed_update(entry, info);
 }
 
 static MENU_UPDATE_FUNC(resolution_update)
 {
+    refresh_raw_settings();
+
     int is_x = (entry->priv == &resolution_index_x);
     int selected = is_x ? resolution_presets_x[resolution_index_x] : resolution_presets_y[resolution_index_y];
     int possible = is_x ? get_res_x() : get_res_y();
@@ -257,6 +272,95 @@ static void show_buffer_status(int adj)
 
 static int frame_offset_x = 0;
 static int frame_offset_y = 0;
+static int frame_offset_delta_x = 0;
+static int frame_offset_delta_y = 0;
+
+static void cropmark_draw()
+{
+    int res_x = get_res_x();
+    int res_y = get_res_y();
+    int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
+    int skip_y = raw_info.active_area.y1 + (raw_info.jpeg.height - res_y) / 2;
+
+    skip_x += frame_offset_x;
+    skip_y += frame_offset_y;
+    
+    int x = RAW2BM_X(skip_x);
+    int y = RAW2BM_Y(skip_y);
+    int w = RAW2BM_DX(res_x);
+    int h = RAW2BM_DY(res_y);
+    static int prev_x = 0;
+    static int prev_y = 0;
+    static int prev_w = 0;
+    static int prev_h = 0;
+
+    /* window changed? erase the old cropmark */
+    if (prev_x != x || prev_y != y || prev_w != w || prev_h != h)
+    {
+        bmp_draw_rect(0, prev_x, prev_y, prev_w, prev_h);
+        bmp_draw_rect(0, prev_x-1, prev_y-1, prev_w+2, prev_h+2);
+    }
+    
+    prev_x = x;
+    prev_y = y;
+    prev_w = w;
+    prev_h = h;
+
+    /* display a simple cropmark */
+    bmp_draw_rect(COLOR_WHITE, x, y, w, h);
+    bmp_draw_rect(COLOR_BLACK, x-1, y-1, w+2, h+2);
+}
+
+static void panning_update()
+{
+    if (frame_offset_delta_x)
+    {
+        int res_x = get_res_x();
+        int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
+        
+        frame_offset_x = COERCE(
+            frame_offset_x + frame_offset_delta_x, 
+            raw_info.active_area.x1 - skip_x,
+            raw_info.active_area.x2 - res_x - skip_x
+        );
+    }
+
+    if (frame_offset_delta_y)
+    {
+        int res_y = get_res_y();
+        int skip_y = raw_info.active_area.y1 + (raw_info.jpeg.height - res_y) / 2;
+        
+        frame_offset_y = COERCE(
+            frame_offset_y + frame_offset_delta_y, 
+            raw_info.active_area.y1 - skip_y,
+            raw_info.active_area.y2 - res_y - skip_y
+        );
+    }
+}
+
+static unsigned int raw_rec_polling_cbr(unsigned int unused)
+{
+    /* refresh cropmark (faster when panning, slower when idle) */
+    static int aux = INT_MIN;
+    if (frame_offset_delta_x || frame_offset_delta_y || should_run_polling_action(500, &aux))
+    {
+        if (liveview_display_idle())
+        {
+            BMP_LOCK( cropmark_draw(); )
+        }
+    }
+
+    /* update settings when changing video modes (outside menu) */
+    if (raw_video_enabled && RAW_IS_IDLE && !gui_menu_shown())
+    {
+        if (!raw_lv_settings_still_valid())
+        {
+            refresh_raw_settings();
+        }
+    }
+
+    return 0;
+}
 
 static void process_frame()
 {
@@ -272,28 +376,6 @@ static void process_frame()
     /* center crop */
     int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
     int skip_y = raw_info.active_area.y1 + (raw_info.jpeg.height - res_y) / 2;
-    
-    /* proof of concept panning mode: press half-shutter and it pans horizontally */
-    /* todo: hook the LEFT and RIGHT keys maybe */
-    if (get_halfshutter_pressed())
-    {
-        bmp_draw_rect(0, RAW2BM_X(skip_x + frame_offset_x), RAW2BM_Y(skip_y), RAW2BM_DX(res_x), RAW2BM_DY(res_y));
-        bmp_draw_rect(0, RAW2BM_X(skip_x + frame_offset_x)-1, RAW2BM_Y(skip_y)-1, RAW2BM_DX(res_x)+2, RAW2BM_DY(res_y)+2);
-
-        static int frame_offset_delta = 8;
-        frame_offset_x += frame_offset_delta;
-        
-        if (skip_x + frame_offset_x > raw_info.active_area.x2 - res_x)
-        {
-            frame_offset_x = raw_info.active_area.x2 - res_x - skip_x;
-            frame_offset_delta = -frame_offset_delta;
-        }
-        else if (skip_x + frame_offset_x < raw_info.active_area.x1)
-        {
-            frame_offset_x = raw_info.active_area.x1 - skip_x;
-            frame_offset_delta = -frame_offset_delta;
-        }
-    }
     skip_x += frame_offset_x;
     skip_y += frame_offset_y;
     
@@ -311,10 +393,6 @@ static void process_frame()
 
     if (display_idle())
     {
-        /* display a simple cropmark */
-        bmp_draw_rect(COLOR_WHITE, RAW2BM_X(skip_x), RAW2BM_Y(skip_y), RAW2BM_DX(res_x), RAW2BM_DY(res_y));
-        bmp_draw_rect(COLOR_BLACK, RAW2BM_X(skip_x)-1, RAW2BM_Y(skip_y)-1, RAW2BM_DX(res_x)+2, RAW2BM_DY(res_y)+2);
-        
         bmp_printf( FONT_MED, 30, 70, 
             "Capturing frame %d...", 
             frame_count
@@ -322,8 +400,13 @@ static void process_frame()
     }
 }
 
-unsigned int raw_rec_vsync_cbr(unsigned int unused)
+static unsigned int raw_rec_vsync_cbr(unsigned int unused)
 {
+    if (!raw_video_enabled) return 0;
+ 
+    /* panning window is updated when recording, but also when not recording */
+    panning_update();
+
     if (!RAW_IS_RECORDING) return 0;
     if (!raw_lv_settings_still_valid()) { raw_recording_state = RAW_FINISHING; return 0; }
     if (stop_on_buffer_overflow && frame_skips) return 0;
@@ -406,6 +489,8 @@ static void raw_video_rec_task()
     capture_offset = 0;
     frame_count = 0;
     frame_skips = 0;
+    frame_offset_delta_x = 0;
+    frame_offset_delta_y = 0;
     
     /* enable the raw flag */
     call("lv_save_raw", 1);
@@ -495,6 +580,11 @@ abort:
     /* wait until the other tasks calm down */
     msleep(1000);
 
+    bmp_printf( FONT_MED, 30, 70, 
+        "Frames captured: %d    ", 
+        frame_count - 1
+    );
+
     /* write remaining frames */
     while (saving_buffer_index != capturing_buffer_index)
     {
@@ -545,20 +635,11 @@ static struct menu_entry raw_video_menu[] =
         .name = "RAW video",
         .priv = &raw_video_enabled,
         .max = 1,
+        .update = raw_main_update,
         .submenu_width = 710,
         .depends_on = DEP_LIVEVIEW,
-        .help = "Record 14-bit RAW video on fast cards.",
-        .help = "To record, enable this and press the LiveView button.",
+        .help = "Record 14-bit RAW video. Press LiveView to start.",
         .children =  (struct menu_entry[]) {
-            /*
-            {
-                .name = "Start",
-                .icon_type = IT_ACTION,
-                .update = raw_main_update,
-                .select = raw_start_stop,
-                .help = "Your camera will explode.",
-            },
-            */
             {
                 .name = "Width",
                 .priv = &resolution_index_x,
@@ -586,36 +667,84 @@ static struct menu_entry raw_video_menu[] =
 };
 
 
-unsigned int raw_rec_keypress_cbr(unsigned int key)
+static unsigned int raw_rec_keypress_cbr(unsigned int key)
 {
     if (!raw_video_enabled)
         return 1;
     
+    /* keys are only hooked in LiveView */
+    if (!liveview_display_idle())
+        return 1;
+    
+    /* start/stop recording with the LiveView key */
     if(key == MODULE_KEY_LV || key == MODULE_KEY_REC)
     {
-        if (liveview_display_idle())
+        switch(raw_recording_state)
         {
-            switch(raw_recording_state)
-            {
-                case RAW_IDLE:
-                case RAW_RECORDING:
-                    raw_start_stop(0,0);
-                    return 0;
-            }
+            case RAW_IDLE:
+            case RAW_RECORDING:
+                raw_start_stop(0,0);
+                break;
         }
+        return 0;
+    }
+    
+    /* panning (with arrow keys) */
+    switch (key)
+    {
+        case MODULE_KEY_PRESS_LEFT:
+            frame_offset_delta_x -= 8;
+            return 0;
+        case MODULE_KEY_PRESS_RIGHT:
+            frame_offset_delta_x += 8;
+            return 0;
+        case MODULE_KEY_PRESS_UP:
+            frame_offset_delta_y -= 8;
+            return 0;
+        case MODULE_KEY_PRESS_DOWN:
+            frame_offset_delta_y += 8;
+            return 0;
+        case MODULE_KEY_PRESS_DOWN_LEFT:
+            frame_offset_delta_y += 8;
+            frame_offset_delta_x -= 8;
+            return 0;
+        case MODULE_KEY_PRESS_DOWN_RIGHT:
+            frame_offset_delta_y += 8;
+            frame_offset_delta_x += 8;
+            return 0;
+        case MODULE_KEY_PRESS_UP_LEFT:
+            frame_offset_delta_y -= 8;
+            frame_offset_delta_x -= 8;
+            return 0;
+        case MODULE_KEY_PRESS_UP_RIGHT:
+            frame_offset_delta_y -= 8;
+            frame_offset_delta_x += 8;
+            return 0;
+        case MODULE_KEY_JOY_CENTER:
+            /* first click stop the motion, second click center the window */
+            if (frame_offset_delta_x || frame_offset_delta_y)
+            {
+                frame_offset_delta_y = 0;
+                frame_offset_delta_x = 0;
+            }
+            else
+            {
+                frame_offset_y = 0;
+                frame_offset_x = 0;
+            }
     }
     
     return 1;
 }
 
-unsigned int raw_rec_init()
+static unsigned int raw_rec_init()
 {
     copy_sem = create_named_semaphore("raw_copy_sem", 0);
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
     return 0;
 }
 
-unsigned int raw_rec_deinit()
+static unsigned int raw_rec_deinit()
 {
     return 0;
 }
@@ -635,4 +764,5 @@ MODULE_STRINGS_END()
 MODULE_CBRS_START()
     MODULE_CBR(CBR_VSYNC, raw_rec_vsync_cbr, 0)
     MODULE_CBR(CBR_KEYPRESS, raw_rec_keypress_cbr, 0)
+    MODULE_CBR(CBR_SHOOT_TASK, raw_rec_polling_cbr, 0)
 MODULE_CBRS_END()
