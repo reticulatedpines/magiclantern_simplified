@@ -567,7 +567,7 @@ void beep_times(int times)
 
 void beep()
 {
-    if (!recording) // breaks audio
+    if (recording <= 0) // breaks audio
         unsafe_beep();
 }
 

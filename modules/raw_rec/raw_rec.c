@@ -550,7 +550,7 @@ static void raw_video_rec_task()
     uint32_t written = 0;
     
     /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
-    recording = 3;
+    recording = -1;
     
     /* main recording loop */
     while (RAW_IS_RECORDING && lv)
