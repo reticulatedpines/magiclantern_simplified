@@ -191,12 +191,26 @@ NSTUB(0xff1370a4, SetAudioVolumeOut)
 NSTUB(0xAE24, CreateMemorySuite)
 NSTUB(0xAC1C, DeleteMemorySuite)
 
-NSTUB(0x126A4, ConnectWriteEDmac)
-NSTUB(0x12768, ConnectReadEDmac)
-NSTUB(0x125F8, SetEDmac)
-NSTUB(0x12AFC, EDMAC_RegisterCompleteCBR)
-NSTUB(0x12910, StartEDmac)
-NSTUB(0x12B38, PopEDmac)
+
+/** EDMAC routines */
+NSTUB(0x000125F8, SetEDmac)
+NSTUB(0x00012910, StartEDmac)
+NSTUB(0x00012AA4, PopEDmac)
+NSTUB(0x00012A5C, AbortEDmac)
+NSTUB(0x000126A4, ConnectWriteEDmac)
+NSTUB(0x00012768, ConnectReadEDmac)
+
+/** keep the old name until all are refcatored **/
+NSTUB(0x00012AFC, EDMAC_RegisterCompleteCBR)
+
+/** register/unregister CBR names **/
+NSTUB(0x00012AFC, RegisterEDmacCompleteCBR)
+NSTUB(0x00012BE4, RegisterEDmacAbortCBR)
+NSTUB(0x00012C78, RegisterEDmacPopCBR)
+NSTUB(0x00012B38, UnregisterEDmacCompleteCBR)
+NSTUB(0x00012C20, UnregisterEDmacAbortCBR)
+NSTUB(0x00012CB4, UnregisterEDmacPopCBR)
+
 
 NSTUB(0xFF576634, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
 NSTUB(0xFF5766D0, PackMem_RegisterEDmacPopCBRForMemorySuite)
