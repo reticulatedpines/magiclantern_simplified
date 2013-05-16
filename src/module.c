@@ -661,7 +661,7 @@ int handle_module_keys(struct event * event)
                 if(cbr->type == CBR_KEYPRESS_RAW)
                 {
                     /* key got handled? */
-                    if(!cbr->handler(event))
+                    if(!cbr->handler((int)event))
                     {
                         return 0;
                     }
@@ -675,6 +675,50 @@ int handle_module_keys(struct event * event)
     return 1;
 }
 
+int module_display_filter_enabled()
+{
+    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    {
+        module_cbr_t *cbr = module_list[mod].cbr;
+        if(module_list[mod].valid && cbr)
+        {
+            while(cbr->name)
+            {
+                if(cbr->type == CBR_DISPLAY_FILTER_ENABLED)
+                {
+                    cbr->ctx = cbr->handler(cbr->ctx);
+                    if (cbr->ctx)
+                        return 1;
+                }
+                cbr++;
+            }
+        }
+    }
+    return 0;
+}
+
+int module_display_filter_update()
+{
+    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    {
+        module_cbr_t *cbr = module_list[mod].cbr;
+        if(module_list[mod].valid && cbr)
+        {
+            while(cbr->name)
+            {
+                if(cbr->type == CBR_DISPLAY_FILTER_UPDATE)
+                {
+                    struct display_filter_buffers buffers;
+                    display_filter_get_buffers((uint32_t**)&(buffers.src_buf), (uint32_t**)&(buffers.dst_buf));
+                    if (cbr->handler((intptr_t) &buffers) == 1)
+                        return 1;
+                }
+                cbr++;
+            }
+        }
+    }
+    return 0;
+}
 
 static MENU_UPDATE_FUNC(module_menu_update_autoload)
 {
@@ -1122,6 +1166,7 @@ int module_shutdown()
         /* remove lockfile */
         FIO_RemoveFile(module_lockfile);
     }
+    return 0;
 }
 
 TASK_CREATE("module_load_task", module_load_task, 0, 0x1e, 0x4000 );

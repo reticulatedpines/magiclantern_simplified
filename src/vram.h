@@ -48,6 +48,7 @@ struct bmp_vram_info
 
 extern struct bmp_vram_info bmp_vram_info[];
 
+struct display_filter_buffers { void* src_buf; void* dst_buf; };
 
 
 /** Internal ML structure for describing VRAM buffers.

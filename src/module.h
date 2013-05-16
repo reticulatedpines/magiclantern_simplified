@@ -33,7 +33,9 @@
 #define CBR_VSYNC                     6
 #define CBR_KEYPRESS                  7 /* when a key was pressed, this cbr gets the translated key as ctx */
 #define CBR_KEYPRESS_RAW              8 /* when a key was pressed, this cbr gets the raw (struct event *) as ctx */
-
+#define CBR_DISPLAY_FILTER_ENABLED    9 /* should return 1 if the display filter mode should be enabled */
+#define CBR_DISPLAY_FILTER_UPDATE     10 /* should update the image displayed; will get (struct display_filter_buffers *) */
+                                         /* and should return 1 if the filter actually ran (so we shouldn't try other filters) */
 
 /* portable key codes. intentionally defines to make numbers hardcoded so changed order wont change the integer number */
 #define MODULE_KEY_PRESS_HALFSHUTTER       ( 1)
