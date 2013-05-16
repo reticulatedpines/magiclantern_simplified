@@ -335,6 +335,20 @@ int hist_get_percentile_level(int percentile)
     return -1; // invalid argument?
 }
 
+MENU_UPDATE_FUNC(hist_warn_display)
+{
+    MENU_SET_VALUE(
+        "Clip warning  : %s",
+        hist_warn == 0 ? "OFF" :
+        hist_warn == 1 ? "0.001% px" :
+        hist_warn == 2 ? "0.01% px" :
+        hist_warn == 3 ? "0.1% px" : 
+        hist_warn == 4 ? "1% px" :
+                         "Gradual"
+    );
+}
+
+
 void hist_highlight(int level)
 {
 #ifdef FEATURE_HISTOGRAM
