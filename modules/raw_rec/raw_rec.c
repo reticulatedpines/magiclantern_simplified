@@ -29,8 +29,8 @@
 /* when enabled, it hooks shortcut keys */
 static int raw_video_enabled = 0;
 
-static int resolution_presets_x[] = {  640,  720,  960,  1280,  1320,  1920,  2048,  2560,  2880,  3592 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","720","960","1280","1320","1920","2048","2560","2880","3592")
+static int resolution_presets_x[] = {  640,  720,  960,  1280,  1320,  1440,  1600,  1720,  1880,  1920,  2048,  2560,  2880,  3592 };
+#define  RESOLUTION_CHOICES_X CHOICES("640","720","960","1280","1320","1440","1600","1720","1880","1920","2048","2560","2880","3592")
 static int resolution_presets_y[] = {  320,  360,  480,  540,  720,  840,  960,  1080,  1152,  1280,  1320 };
 #define  RESOLUTION_CHOICES_Y CHOICES("320","360","480","540","720","840","960","1080","1152","1280","1320")
 
@@ -39,8 +39,8 @@ static int resolution_presets_y[] = {  320,  360,  480,  540,  720,  840,  960, 
 //~ static CONFIG_INT("raw.write.spd", measured_write_speed, 0);
 
 /* no config options yet */
-static int resolution_index_x = 5;
-static int resolution_index_y = 4;
+static int resolution_index_x = 9;
+static int resolution_index_y = 7;
 static int measured_write_speed = 0;
 static int stop_on_buffer_overflow = 1;
 static int sound_rec = 2;
