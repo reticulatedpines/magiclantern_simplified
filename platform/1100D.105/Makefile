@@ -18,11 +18,13 @@ CONFIG_PIC=n
 
 CONFIG_RELOC=y
 
-ML_EXTRA_OBJS = \
+ML_FONT_OBJS = \
 	font-small2.o \
 	font-med2.o \
 	font-large.o \
 	font-dyn.o \
+
+ML_EXTRA_OBJS = \
 	misc.o \
 	ph_info_disp.o \
 	flexinfo.o \

@@ -15,6 +15,7 @@ PLATFORM_INC=.
 PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
 CONFIG_RELOC = y
+CONFIG_STATIC_FONTS=y
 
 ML_ZEBRA_OBJ = zebra-5dc.o
 
@@ -22,9 +23,6 @@ ML_EXTRA_OBJS = \
 	local_entry.o \
 	init.o \
 	dummy.o \
-	font-large.o \
-	font-med.o \
-	font-small.o \
 	dm-spy.o \
 	tp-spy.o \
 

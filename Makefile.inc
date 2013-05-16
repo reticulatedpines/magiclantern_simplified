@@ -175,8 +175,21 @@ endif
 ifeq ($(ML_ZEBRA_OBJ), n)
 ML_ZEBRA_OBJ =
 else ifndef ML_ZEBRA_OBJ
-#extra objects for zebra are temporary. should be moved to ML_OBJS-y after clean up with other zebra files.
 ML_ZEBRA_OBJ = zebra.o
+endif
+
+ML_STATIC_FONT_OBJS = \
+	font-small.o \
+	font-medium.o \
+	font-large.o
+
+ML_DYNAMIC_FONT_OBJS = \
+	font-dyn.o
+
+ifeq ($(CONFIG_STATIC_FONTS), y)
+ML_FONT_OBJS = $(ML_STATIC_FONT_OBJS)
+else ifndef ML_FONT_OBJS
+ML_FONT_OBJS = $(ML_DYNAMIC_FONT_OBJS)
 endif
 
 #
@@ -205,7 +218,7 @@ ML_INSTALLER_OBJS = \
 	installer.o \
 	ico.o \
 	bmp.o \
-	font-dyn.o \
+	$(ML_FONT_OBJS) \
 	stdio.o \
 	property.o \
 	propvalues.o \
@@ -226,7 +239,7 @@ ML_SRC_OBJS = \
 	picstyle.o \
 	exmem.o \
 	bmp.o \
-	font-dyn.o \
+	$(ML_FONT_OBJS) \
 	config.o \
 	stdio.o \
 	tweaks.o \
@@ -324,9 +337,7 @@ ML_OBJS-$(CONFIG_MODULES) += \
 
 ML_OBJS-$(CONFIG_QEMU)	+= \
 	qemu-util.o \
-	font-small.o \
-	font-med.o \
-	font-large.o
+	$(ML_STATIC_FONT_OBJS)
 
 ifdef ML_EXCLUDE_OBJS
 ML_OBJS-y := $(filter-out $(ML_EXCLUDE_OBJS), $(ML_OBJS-y))
