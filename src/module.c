@@ -495,110 +495,110 @@ int module_exec_cbr(unsigned int type)
 }
 
 /* translate camera specific key to portable module key */
-#define MODULE_CHECK_KEY(in,out) if(in != 0){ if(key == in) { return out; } }
+#define MODULE_CHECK_KEY(in,out) if(in != -1){ if(key == in) { return out; } }
 
 /* these are to ensure that the checked keys are defined. we have to ensure they're defined before using. are there better ways to ensure? */
 #if !defined(BGMT_WHEEL_UP)
-#define BGMT_WHEEL_UP 0
+#define BGMT_WHEEL_UP -1
 #endif
 #if !defined(BGMT_WHEEL_DOWN)
-#define BGMT_WHEEL_DOWN 0
+#define BGMT_WHEEL_DOWN -1
 #endif
 #if !defined(BGMT_WHEEL_LEFT)
-#define BGMT_WHEEL_LEFT 0
+#define BGMT_WHEEL_LEFT -1
 #endif
 #if !defined(BGMT_WHEEL_RIGHT)
-#define BGMT_WHEEL_RIGHT 0
+#define BGMT_WHEEL_RIGHT -1
 #endif
 #if !defined(BGMT_PRESS_SET)
-#define BGMT_PRESS_SET 0
+#define BGMT_PRESS_SET -1
 #endif
 #if !defined(BGMT_UNPRESS_SET)
-#define BGMT_UNPRESS_SET 0
+#define BGMT_UNPRESS_SET -1
 #endif
 #if !defined(BGMT_MENU)
-#define BGMT_MENU 0
+#define BGMT_MENU -1
 #endif
 #if !defined(BGMT_INFO)
-#define BGMT_INFO 0
+#define BGMT_INFO -1
 #endif
 #if !defined(BGMT_PLAY)
-#define BGMT_PLAY 0
+#define BGMT_PLAY -1
 #endif
 #if !defined(BGMT_TRASH)
-#define BGMT_TRASH 0
+#define BGMT_TRASH -1
 #endif
 #if !defined(BGMT_PRESS_DP)
-#define BGMT_PRESS_DP 0
+#define BGMT_PRESS_DP -1
 #endif
 #if !defined(BGMT_UNPRESS_DP)
-#define BGMT_UNPRESS_DP 0
+#define BGMT_UNPRESS_DP -1
 #endif
 #if !defined(BGMT_RATE)
-#define BGMT_RATE 0
+#define BGMT_RATE -1
 #endif
 #if !defined(BGMT_REC)
-#define BGMT_REC 0
+#define BGMT_REC -1
 #endif
 #if !defined(BGMT_PRESS_ZOOMIN_MAYBE)
-#define BGMT_PRESS_ZOOMIN_MAYBE 0
+#define BGMT_PRESS_ZOOMIN_MAYBE -1
 #endif
 #if !defined(BGMT_LV)
-#define BGMT_LV 0
+#define BGMT_LV -1
 #endif
 #if !defined(BGMT_Q)
-#define BGMT_Q 0
+#define BGMT_Q -1
 #endif
 #if !defined(BGMT_PICSTYLE)
-#define BGMT_PICSTYLE 0
+#define BGMT_PICSTYLE -1
 #endif
 #if !defined(BGMT_JOY_CENTER)
-#define BGMT_JOY_CENTER 0
+#define BGMT_JOY_CENTER -1
 #endif
 #if !defined(BGMT_PRESS_UP)
-#define BGMT_PRESS_UP 0
+#define BGMT_PRESS_UP -1
 #endif
 #if !defined(BGMT_PRESS_UP_RIGHT)
-#define BGMT_PRESS_UP_RIGHT 0
+#define BGMT_PRESS_UP_RIGHT -1
 #endif
 #if !defined(BGMT_PRESS_UP_LEFT)
-#define BGMT_PRESS_UP_LEFT 0
+#define BGMT_PRESS_UP_LEFT -1
 #endif
 #if !defined(BGMT_PRESS_RIGHT)
-#define BGMT_PRESS_RIGHT 0
+#define BGMT_PRESS_RIGHT -1
 #endif
 #if !defined(BGMT_PRESS_LEFT)
-#define BGMT_PRESS_LEFT 0
+#define BGMT_PRESS_LEFT -1
 #endif
 #if !defined(BGMT_PRESS_DOWN_RIGHT)
-#define BGMT_PRESS_DOWN_RIGHT 0
+#define BGMT_PRESS_DOWN_RIGHT -1
 #endif
 #if !defined(BGMT_PRESS_DOWN_LEFT)
-#define BGMT_PRESS_DOWN_LEFT 0
+#define BGMT_PRESS_DOWN_LEFT -1
 #endif
 #if !defined(BGMT_PRESS_DOWN)
-#define BGMT_PRESS_DOWN 0
+#define BGMT_PRESS_DOWN -1
 #endif
 #if !defined(BGMT_UNPRESS_UDLR)
-#define BGMT_UNPRESS_UDLR 0
+#define BGMT_UNPRESS_UDLR -1
 #endif
 #if !defined(BGMT_PRESS_HALFSHUTTER)
-#define BGMT_PRESS_HALFSHUTTER 0
+#define BGMT_PRESS_HALFSHUTTER -1
 #endif
 #if !defined(BGMT_UNPRESS_HALFSHUTTER)
-#define BGMT_UNPRESS_HALFSHUTTER 0
+#define BGMT_UNPRESS_HALFSHUTTER -1
 #endif
 #if !defined(BGMT_PRESS_FULLSHUTTER)
-#define BGMT_PRESS_FULLSHUTTER 0
+#define BGMT_PRESS_FULLSHUTTER -1
 #endif
 #if !defined(BGMT_UNPRESS_FULLSHUTTER)
-#define BGMT_UNPRESS_FULLSHUTTER 0
+#define BGMT_UNPRESS_FULLSHUTTER -1
 #endif
 #if !defined(BGMT_PRESS_FLASH_MOVIE)
-#define BGMT_PRESS_FLASH_MOVIE 0
+#define BGMT_PRESS_FLASH_MOVIE -1
 #endif
 #if !defined(BGMT_UNPRESS_FLASH_MOVIE)
-#define BGMT_UNPRESS_FLASH_MOVIE 0
+#define BGMT_UNPRESS_FLASH_MOVIE -1
 #endif
 int module_translate_event(int key)
 {
