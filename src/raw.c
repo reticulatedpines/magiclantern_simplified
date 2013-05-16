@@ -28,10 +28,14 @@
 #define RAW_LV_EDMAC 0xC0F04508
 #endif
 
-#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined (CONFIG_550D) || defined(CONFIG_650D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_5D3) || defined(CONFIG_6D) defined(CONFIG_650D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_EOSM)
 /* probably all new cameras use this address */
 #define RAW_LV_EDMAC 0xC0F26208
 #endif
+
+ #if defined(CONFIG_550D)
+ #define RAW_LV_EDMAC 0xC0F26008
+ #endif
 
 /**
  * Photo-mode raw buffer address
@@ -42,16 +46,12 @@
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+#if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined (CONFIG_550D) || defined(CONFIG_650D)
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
 #if defined(CONFIG_5D3) || defined(CONFIG_6D)
 #define RAW_PHOTO_EDMAC 0xc0f04808
-#endif
-
-#if defined(CONFIG_550D)
-#define RAW_LV_EDMAC 0xC0F26008
 #endif
 
 static uint32_t raw_buffer_photo = 0;
