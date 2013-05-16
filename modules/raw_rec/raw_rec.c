@@ -74,6 +74,7 @@ static int capture_offset = 0;                    /* position of capture pointer
 static int frame_count = 0;                       /* how many frames we have processed */
 static int frame_skips = 0;                       /* how many frames were dropped/skipped */
 static struct semaphore * copy_sem = 0;           /* for vertical sync used when copying frames */
+static char* movie_filename = 0;                  /* file name for current (or last) movie */
 
 static int get_res_x()
 {
@@ -513,8 +514,8 @@ static void raw_video_rec_task()
     msleep(100);
     
     /* create output file */
-    char* filename = get_next_raw_movie_file_name();
-    FILE* f = FIO_CreateFileEx(filename);
+    movie_filename = get_next_raw_movie_file_name();
+    FILE* f = FIO_CreateFileEx(movie_filename);
     if (f == INVALID_PTR)
     {
         bmp_printf( FONT_MED, 30, 50, "File create error");
@@ -537,8 +538,8 @@ static void raw_video_rec_task()
 
     if (sound_rec == 1)
     {
-        char* wavfile = get_wav_file_name(filename);
-        bmp_printf( FONT_MED, 30, 90, "Sound: %s%s", wavfile + 17, wavfile[0] == 'B' && filename[0] == 'A' ? " on SD card" : "");
+        char* wavfile = get_wav_file_name(movie_filename);
+        bmp_printf( FONT_MED, 30, 90, "Sound: %s%s", wavfile + 17, wavfile[0] == 'B' && movie_filename[0] == 'A' ? " on SD card" : "");
         bmp_printf( FONT_MED, 30, 90, "%s", wavfile);
         WAV_StartRecord(wavfile);
     }
@@ -578,7 +579,7 @@ static void raw_video_rec_task()
             measured_write_speed = speed;
             if (liveview_display_idle()) bmp_printf( FONT_MED, 30, 90, 
                 "%s: %d MB, %d.%d MB/s",
-                filename + 17, /* skip A:/DCIM/100CANON/ */
+                movie_filename + 17, /* skip A:/DCIM/100CANON/ */
                 written / 1024 / 1024,
                 speed/10, speed%10
             );
@@ -657,6 +658,77 @@ static MENU_SELECT_FUNC(raw_start_stop)
     }
 }
 
+static int raw_playing = 0;
+static void raw_video_playback_task()
+{
+    PauseLiveView();
+    
+    int resx = get_res_x();
+    int resy = get_res_y();
+    raw_set_geometry(resx, resy, 0, 0, 0, 0);
+    
+    FILE* f = INVALID_PTR;
+    void* buf = shoot_malloc(raw_info.frame_size);
+    if (!buf)
+        goto cleanup;
+
+    bmp_printf(FONT_MED, 0, 0, "file '%s' ", movie_filename);
+    msleep(100);
+
+    if (!movie_filename)
+        goto cleanup;
+
+    f = FIO_Open( movie_filename, O_RDONLY | O_SYNC );
+    if( f == INVALID_PTR )
+        goto cleanup;
+
+    clrscr();
+    for (int i = 0; i < frame_count-1; i++)
+    {
+        bmp_printf(FONT_MED, 0, os.y_max - 20, "%d/%d", i+1, frame_count-1);
+        bmp_printf(FONT_MED, os.x_max - font_med.width*9, os.y_max - font_med.height, "%dx%d", resx, resy);
+        int r = FIO_ReadFile(f, buf, raw_info.frame_size);
+        if (r != raw_info.frame_size)
+            break;
+        
+        if (get_halfshutter_pressed())
+            break;
+        
+        raw_info.buffer = buf;
+        raw_set_geometry(resx, resy, 0, 0, 0, 0);
+        raw_preview_fast();
+    }
+
+cleanup:
+    if (f != INVALID_PTR) FIO_CloseFile(f);
+    if (buf) shoot_free(buf);
+    raw_playing = 0;
+    ResumeLiveView();
+}
+
+static MENU_SELECT_FUNC(raw_playback_start)
+{
+    if (!raw_playing && RAW_IS_IDLE)
+    {
+        if (!movie_filename)
+        {
+            bmp_printf(FONT_MED, 20, 50, "Please record a movie first.");
+            return;
+        }
+        raw_playing = 1;
+        gui_stop_menu();
+        task_create("raw_rec_task", 0x1e, 0x1000, raw_video_playback_task, (void*)0);
+    }
+}
+
+static MENU_UPDATE_FUNC(raw_playback_update)
+{
+    if (movie_filename)
+        MENU_SET_VALUE(movie_filename + 17);
+    else
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Record a video clip first.");
+}
+
 static struct menu_entry raw_video_menu[] =
 {
     {
@@ -695,6 +767,13 @@ static struct menu_entry raw_video_menu[] =
                 .max = 1,
                 .choices = CHOICES("Skip frames", "Stop recording"),
                 .help = "What to do when the buffer gets full: stop or skip frames.",
+            },
+            {
+                .name = "Playback",
+                .select = raw_playback_start,
+                .update = raw_playback_update,
+                .icon_type = IT_ACTION,
+                .help = "Play back the last raw video clip.",
             },
             MENU_EOL,
         },
