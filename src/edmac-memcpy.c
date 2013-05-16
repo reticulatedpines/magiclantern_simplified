@@ -20,6 +20,10 @@ static void edmac_memcpy_complete_cbr (int ctx)
     give_semaphore(edmac_memcpy_done_sem);
 }
 
+static void edmac_memcpy_null_cbr (int ctx)
+{
+}
+
 void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h)
 {
     take_semaphore(edmac_memcpy_sem, 0);
@@ -46,9 +50,9 @@ void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, i
     RegisterEDmacCompleteCBR(dmaChannelRead, &edmac_memcpy_complete_cbr, 0);
     RegisterEDmacAbortCBR(dmaChannelRead, &edmac_memcpy_complete_cbr, 0);
     RegisterEDmacPopCBR(dmaChannelRead, &edmac_memcpy_complete_cbr, 0);
-    RegisterEDmacCompleteCBR(dmaChannelWrite, &edmac_memcpy_complete_cbr, 0);
-    RegisterEDmacAbortCBR(dmaChannelWrite, &edmac_memcpy_complete_cbr, 0);
-    RegisterEDmacPopCBR(dmaChannelWrite, &edmac_memcpy_complete_cbr, 0);
+    RegisterEDmacCompleteCBR(dmaChannelWrite, &edmac_memcpy_null_cbr, 0);
+    RegisterEDmacAbortCBR(dmaChannelWrite, &edmac_memcpy_null_cbr, 0);
+    RegisterEDmacPopCBR(dmaChannelWrite, &edmac_memcpy_null_cbr, 0);
     
     /* connect the selected channels to 6 so any data read from RAM is passed to write channel */
     ConnectWriteEDmac(dmaChannelWrite, dmaConnection);
@@ -79,6 +83,17 @@ void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, i
     StartEDmac(dmaChannelWrite, 0);
     StartEDmac(dmaChannelRead, 2);
     take_semaphore(edmac_memcpy_done_sem, 0);
+    
+    /* set default CBRs again and stop both DMAs */
+    UnregisterEDmacCompleteCBR(dmaChannelRead);
+    UnregisterEDmacAbortCBR(dmaChannelRead);
+    UnregisterEDmacPopCBR(dmaChannelRead);
+    UnregisterEDmacCompleteCBR(dmaChannelWrite);
+    UnregisterEDmacAbortCBR(dmaChannelWrite);
+    UnregisterEDmacPopCBR(dmaChannelWrite);
+    
+    PopEDmac(dmaChannelRead);
+    PopEDmac(dmaChannelWrite);
 
     give_semaphore(edmac_memcpy_sem);
     return dst;
