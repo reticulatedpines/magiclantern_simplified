@@ -59,6 +59,7 @@ extern int hist_warn;
 extern int hist_log;
 
 MENU_UPDATE_FUNC(hist_print);
+MENU_UPDATE_FUNC(hist_warn_display);
 
 MENU_UPDATE_FUNC(raw_histo_update);
 

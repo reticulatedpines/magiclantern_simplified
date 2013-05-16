@@ -1629,13 +1629,13 @@ void FAST peak_disp_filter()
     // the percentage selected in menu represents how many pixels are considered in focus
     // let's say above some FOCUSED_THR
     // so, let's scale edge value so that e=thr maps to e=FOCUSED_THR
-    for (int i = 0, int i_fthr = 0; i < 255; i++, i_fthr += FOCUSED_THR)
+    for (int i = 0, i_fthr = 0; i < 255; i++, i_fthr += FOCUSED_THR)
         peak_scaling[i] = MIN(i_fthr / thr, 255);
     
     int n_over = 0;
     int n_total = 720 * (os.y_max - os.y0) / 2;
 
-    #define PEAK_LOOP for (int i = 720 * (os.y0/2), int max = 720 * (os.y_max/2); i < max; i++)
+    #define PEAK_LOOP for (int i = 720 * (os.y0/2), max = 720 * (os.y_max/2); i < max; i++)
     // generic loop:
     //~ for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
     //~ {

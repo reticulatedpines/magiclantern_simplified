@@ -130,6 +130,105 @@ void yuv_halfcopy(uint32_t* dst, uint32_t* src, int w, int h, int top_half)
     }
 }
 
+int yuv411_to_422(uint32_t addr)
+{
+    // 4 6  8 A  0 2 
+    // uYvY yYuY vYyY
+    addr = ALIGN32(addr);
+        
+    // multiples of 12, offset 0: vYyY u
+    // multiples of 12, offset 4: uYvY
+    // multiples of 12, offset 8: yYuY v
+
+    uint8_t* p = (uint8_t*) addr;
+
+    switch ((addr/4) % 3)
+    {
+        case 0:
+        {
+            unsigned u = p[4];
+            unsigned v = p[0];
+            unsigned y1 = p[1];
+            unsigned y2 = p[2];
+            return UYVY_PACK(u,y1,v,y2);
+        }
+        case 1:
+        {
+            return MEM(addr);
+        }
+        case 2:
+        {
+            unsigned u = p[2];
+            unsigned v = p[4];
+            unsigned y1 = p[0];
+            unsigned y2 = p[1];
+            return UYVY_PACK(u,y1,v,y2);
+        }
+    }
+
+	return 0; // unreachable, shut the compiler warnings
+}
+
+void yuv411_to_rgb(uint32_t addr, int* Y, int* R, int* G, int* B)
+{
+    // 4 6  8 A  0 2 
+    // uYvY yYuY vYyY
+    addr = addr & ~3; // multiple of 4
+        
+    // multiples of 12, offset 0: vYyY u
+    // multiples of 12, offset 4: uYvY
+    // multiples of 12, offset 8: yYuY v
+
+    uint8_t* p = (uint8_t*) addr;
+    int y = 0;
+    int U = 0;
+    int V = 0;
+    
+    // trick to compute [ am3 = (addr/4) % 3 ] a little bit faster
+    static int am3 = 0;
+    static int c = 0;
+    
+    static unsigned int prev_addr = 0;
+    if (likely(addr == prev_addr + 4))
+    {
+        am3 = am3 + 1;
+        if (unlikely(am3 == 3)) am3 = 0;
+    }
+    else if (likely(addr == prev_addr))
+    {
+    }
+    else
+    {
+        am3 = (addr/4) % 3;
+    }
+    prev_addr = addr;
+
+    switch (am3)
+    {
+        case 0:
+            U = p[4];
+            V = p[0];
+            y = p[1];
+            break;
+        case 1:
+            U = p[0];
+            V = p[2];
+            y = p[1];
+            break;
+        case 2:
+            U = p[2];
+            V = p[4];
+            y = p[0];
+            break;
+    }
+
+    *Y = y;
+    *R = COERCE(y + yuv2rgb_RV[V], 0, 255);
+    *G = COERCE(y + yuv2rgb_GU[U] + yuv2rgb_GV[V], 0, 255);
+    *B = COERCE(y + yuv2rgb_BU[U], 0, 255);
+}
+
+
 void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
 {
     ASSERT(src);
