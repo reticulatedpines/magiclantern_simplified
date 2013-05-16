@@ -47,7 +47,7 @@
 //~ #define CONFIG_AUTO_BRIGHTNESS
 
 /** There is a Q menu in Play mode, with image protect, rate etc **/
-#define CONFIG_Q_MENU_PLAYBACK
+//~ #define CONFIG_Q_MENU_PLAYBACK
 
 /** It has a flip-out display **/
 #define CONFIG_VARIANGLE_DISPLAY

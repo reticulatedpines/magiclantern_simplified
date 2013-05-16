@@ -42,7 +42,7 @@
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined(CONFIG_650D) //FIXME: 650D is untested
+#if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
@@ -320,7 +320,7 @@ int raw_update_params()
         skip_top = 50; // Meta Data
         #endif
 
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)  //FIXME: Need Raw photo location first.
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
         width = 5280;
         height = 3528;
         skip_left = 68;
