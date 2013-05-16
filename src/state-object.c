@@ -85,6 +85,7 @@
 #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 24
 #define EVF_STATE (*(struct state_object **)0x25B00)
 #define MOVREC_STATE (*(struct state_object **)0x27704)
+#define SSS_STATE (*(struct state_object **)0x257B8)
 #endif
 
 #ifdef CONFIG_1100D
@@ -308,8 +309,13 @@ static int stateobj_sss_spy(struct state_object * self, int x, int input, int z,
     int ans = StateTransition(self, x, input, z, t);
     int new_state = self->current_state;
 
-    #ifdef CONFIG_5D3
+    #if defined(CONFIG_5D3)
     if (old_state == 9 && input == 11 && new_state == 9) // sssCompleteMem1ToRaw
+        raw_buffer_intercept_from_stateobj();
+    #endif
+
+    #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+    if (old_state == 10 && input == 11 && new_state == 2) // delayCompleteRawtoSraw
         raw_buffer_intercept_from_stateobj();
     #endif
 
