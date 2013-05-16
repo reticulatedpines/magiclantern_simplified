@@ -52,7 +52,7 @@ NSTUB(0x115F0, ConnectReadEDmac)
 NSTUB(0x11480, SetEDmac)
 NSTUB(0x11984, EDMAC_RegisterCompleteCBR)
 NSTUB(0x11798, StartEDmac)
-
+NSTUB(0x1192C, PopEDmac) //Xref: PackMem_PopEDmacForMemorySuite
 
 NSTUB(0xFF5EDF58, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
 NSTUB(0xFF5EDFF4, PackMem_RegisterEDmacPopCBRForMemorySuite)
