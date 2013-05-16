@@ -28,7 +28,7 @@
 #define RAW_LV_EDMAC 0xC0F04508
 #endif
 
-#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_650D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined (CONFIG_550D) || defined(CONFIG_650D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_EOSM)
 /* probably all new cameras use this address */
 #define RAW_LV_EDMAC 0xC0F26208
 #endif
