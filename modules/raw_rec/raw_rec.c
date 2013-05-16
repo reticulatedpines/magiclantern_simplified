@@ -549,6 +549,9 @@ static void raw_video_rec_task()
     int t0 = 0;
     uint32_t written = 0;
     
+    /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
+    recording = 3;
+    
     /* main recording loop */
     while (RAW_IS_RECORDING && lv)
     {
@@ -600,6 +603,8 @@ abort:
 
     /* wait until the other tasks calm down */
     msleep(1000);
+
+    recording = 0;
 
     if (sound_rec == 1)
     {
