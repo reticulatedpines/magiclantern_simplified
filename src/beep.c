@@ -533,7 +533,7 @@ void unsafe_beep()
     }
 
     while (beep_playing) msleep(20);
-    #ifdef FEATURE_WAV_RECORD
+    #ifdef FEATURE_WAV_RECORDING
     if (audio_recording) return;
     #endif
 
@@ -1083,14 +1083,14 @@ INIT_FUNC("beep.init", beep_init);
 /* public recording API */
 void WAV_StartRecord(char* filename)
 {
-    #ifdef FEATURE_WAV_RECORD
+    #ifdef FEATURE_WAV_RECORDING
     record_start(filename, 0);
     #endif
 }
 
 void WAV_StopRecord()
 {
-    #ifdef FEATURE_WAV_RECORD
+    #ifdef FEATURE_WAV_RECORDING
     audio_stop_recording();
     #endif
 }
