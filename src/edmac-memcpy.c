@@ -41,10 +41,15 @@ void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, i
     /* create a memory suite from a already existing (continuous) memory block with given size. */
     uint32_t src_adjusted = ((uint32_t)src & 0x1FFFFFFF) + src_x + src_y * src_width;
     uint32_t dst_adjusted = ((uint32_t)dst & 0x1FFFFFFF) + dst_x + dst_y * dst_width;
-
+    
     /* only read channel will emit a callback when reading from memory is done. write channels would just silently wrap */
-    EDMAC_RegisterCompleteCBR(dmaChannelRead, &edmac_memcpy_complete_cbr, 0);
-
+    RegisterEDmacCompleteCBR(dmaChannelRead, &edmac_memcpy_complete_cbr, 0);
+    RegisterEDmacAbortCBR(dmaChannelRead, &edmac_memcpy_complete_cbr, 0);
+    RegisterEDmacPopCBR(dmaChannelRead, &edmac_memcpy_complete_cbr, 0);
+    RegisterEDmacCompleteCBR(dmaChannelWrite, &edmac_memcpy_complete_cbr, 0);
+    RegisterEDmacAbortCBR(dmaChannelWrite, &edmac_memcpy_complete_cbr, 0);
+    RegisterEDmacPopCBR(dmaChannelWrite, &edmac_memcpy_complete_cbr, 0);
+    
     /* connect the selected channels to 6 so any data read from RAM is passed to write channel */
     ConnectWriteEDmac(dmaChannelWrite, dmaConnection);
     ConnectReadEDmac(dmaChannelRead, dmaConnection);
@@ -74,10 +79,6 @@ void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, i
     StartEDmac(dmaChannelWrite, 0);
     StartEDmac(dmaChannelRead, 2);
     take_semaphore(edmac_memcpy_done_sem, 0);
-
-    /* cleanup */
-    PopEDmac(dmaChannelRead);
-    PopEDmac(dmaChannelWrite);
 
     give_semaphore(edmac_memcpy_sem);
     return dst;
