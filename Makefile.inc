@@ -176,7 +176,7 @@ ifeq ($(ML_ZEBRA_OBJ), n)
 ML_ZEBRA_OBJ =
 else ifndef ML_ZEBRA_OBJ
 #extra objects for zebra are temporary. should be moved to ML_OBJS-y after clean up with other zebra files.
-ML_ZEBRA_OBJ = zebra.o imgconv.o histogram.o falsecolor.o
+ML_ZEBRA_OBJ = zebra.o
 endif
 
 #
@@ -256,10 +256,12 @@ ML_SRC_OBJS = \
 	vsync-lite.o \
 	tskmon.o \
 	battery.o \
+	imgconv.o \
+	histogram.o \
+	falsecolor.o \
 	$(ML_BITRATE_OBJ) \
 	$(ML_AUDIO_OBJ) \
 	$(ML_ZEBRA_OBJ) \
-
 
 
 ML_OBJS-$(CONFIG_ADD_INSTALLER_OBJECTS) += \
@@ -325,6 +327,10 @@ ML_OBJS-$(CONFIG_QEMU)	+= \
 	font-small.o \
 	font-med.o \
 	font-large.o
+
+ifdef ML_EXCLUDE_OBJS
+ML_OBJS-y := $(filter-out $(ML_EXCLUDE_OBJS), $(ML_OBJS-y))
+endif
 
 endif
 
