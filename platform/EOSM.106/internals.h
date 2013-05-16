@@ -40,7 +40,7 @@
 /** This camera reports focus info in LiveView **/
 #define CONFIG_LV_FOCUS_INFO
 
-/** No level sensor I guess **/
+/** Sensor gives some data Needs Help **/
 //~ #define CONFIG_ELECTRONIC_LEVEL
 
 /** Define this if the camera has an ambient light sensor used for auto brightness **/
@@ -52,20 +52,20 @@
 /** No flip-out display **/
 //~ #define CONFIG_VARIANGLE_DISPLAY
 
-/** Battery does not report exact percentage (I doubt) **/
+/** Battery does not report exact percentage **/
 //~ #define CONFIG_BATTERY_INFO
 
 /** We can do bulb exposures (well, I hope) **/
 #define CONFIG_BULB
 
-/** No idea here **/
-#define CONFIG_SEPARATE_BULB_MODE
+/** There is no Bulb Mode **/
+//~ #define CONFIG_SEPARATE_BULB_MODE
 
 /** We can't control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS
 
 /** No zoom button **/
-//~ #define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
+#define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
 /** Well, I hope so **/
@@ -73,11 +73,10 @@
 #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
 /** Therefore, we can implement display filters (features that alter the LiveView image in real-time) **/
-//-#define CONFIG_DISPLAY_FILTERS
+#define CONFIG_DISPLAY_FILTERS
 
 /** We can override ISO on a per-frame basis, by changing FRAME_ISO (e.g. for HDR video or gradual exposure) **/
-/** Well, I hope so **/
-//-#define CONFIG_FRAME_ISO_OVERRIDE
+#define CONFIG_FRAME_ISO_OVERRIDE
 
 /** But we can't override the digital ISO component via FRAME_ISO **/
 #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
@@ -94,11 +93,14 @@
 /** We can restore ML files after formatting the card in the camera **/
 #define CONFIG_RESTORE_AFTER_FORMAT
 
-/** We don't know how to use DMA_MEMCPY (yet) **/
+/** We know how to use DMA_MEMCPY but regular memcpy is faster anyway **/
 //~ #define CONFIG_DMA_MEMCPY
 
+/** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
+#define CONFIG_EDMAC_MEMCPY
+
 /** We shouldn't warn the user if movie exposure is Auto **/
-//~ #define CONFIG_MOVIE_AE_WARNING
+#define CONFIG_MOVIE_AE_WARNING
 
 /** No photo mode outside LiveView **/
 //~ #define CONFIG_PHOTO_MODE_INFO_DISPLAY
@@ -113,11 +115,17 @@
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
 
-/** FPS override: we can only change timer A */
-#define CONFIG_FPS_TIMER_A_ONLY
-
 /** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
 #define CONFIG_FPS_AGGRESSIVE_UPDATE
 
-/** We can record movies in regular photo modes - M, P, Tv, Av... */
+/** FIO_RenameFile works **/
+#define CONFIG_FIO_RENAMEFILE_WORKS
+
+/** FPS override: change timers from EVF state */
+#define CONFIG_FPS_UPDATE_FROM_EVF_STATE
+
+/** There is a Movie Mode, needs research */
 #define CONFIG_NO_DEDICATED_MOVIE_MODE
+
+/** We have AllocateMemoryResourceForSingleChunck */
+#define CONFIG_EXMEM_SINGLE_CHUNCK

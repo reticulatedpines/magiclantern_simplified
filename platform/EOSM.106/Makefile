@@ -61,6 +61,12 @@ ML_OBJS-y = \
 	audio-ak.o \
 	vsync-lite.o \
 	dm-spy.o \
+	video_hacks.o \
+	raw.o \
+	chdk-dng.o \
+	tp-spy.o \
+	reloc.o \
+	edmac-memcpy.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

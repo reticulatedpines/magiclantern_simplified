@@ -24,7 +24,7 @@
  * To find it, call("lv_save_raw") and look for an EDMAC channel that becomes active (Debug menu)
  **/
 
-#ifdef CONFIG_5D2
+#if defined(CONFIG_5D2) || defined(CONFIG_600D)
 #define RAW_LV_EDMAC 0xC0F04508
 #endif
 
@@ -42,17 +42,14 @@
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#ifdef CONFIG_5D2
+#if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined(CONFIG_650D) //FIXME: 650D is untested
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3) || defined(CONFIG_6D)
 #define RAW_PHOTO_EDMAC 0xc0f04808
 #endif
 
-#ifdef CONFIG_650D
-#define RAW_PHOTO_EDMAC 0xc0f04808
-#endif
 static uint32_t raw_buffer_photo = 0;
 
 /* called from state-object.c, SDSf3 or SSS state */
@@ -69,6 +66,8 @@ void raw_buffer_intercept_from_stateobj()
      * look it up on the EDMAC registers and use that one instead.
      */
     raw_buffer_photo = shamem_read(RAW_PHOTO_EDMAC);
+
+
 }
 
 /** 
@@ -115,10 +114,20 @@ void raw_buffer_intercept_from_stateobj()
      -851, 10000,     1994, 10000,    5758, 10000
 #endif
 
-#ifdef CONFIG_650D
-    //~  { "Canon EOS 650D", 0, 0x354d,
-    //~  { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
+#ifdef CONFIG_600D
+	//~ { "Canon EOS 600D", 0, 0x3510,
+	//~ { 6461,-907,-882,-4300,12184,2378,-819,1944,5931 } },
     #define CAM_COLORMATRIX1                       \
+      6461, 10000,     -907, 10000,    -882, 10000,\
+    -4300, 10000,    12184, 10000,    2378, 10000, \
+     -819, 10000,     1944, 10000,    5931, 10000
+#endif
+
+#if defined(CONFIG_650D) || defined(CONFIG_EOSM) //Same sensor??
+    //~ { "Canon EOS 650D", 0, 0x354d,
+    //~ { "Canon EOS M", 0, 0,
+    //~ { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
+	#define CAM_COLORMATRIX1                     \
      6602, 10000,     -841, 10000,    -939, 10000,\
     -4472, 10000,    12458, 10000,    2247, 10000, \
      -975, 10000,     2039, 10000,    6148, 10000
@@ -206,12 +215,22 @@ int raw_update_params()
         skip_right      = 6;
         #endif
 
-        #ifdef CONFIG_650D
-        skip_top    = 26;
-        skip_left   = 100;
-        skip_bottom = 1;
+        #ifdef CONFIG_6D
+        //~ raw_info.height = zoom ? 980 : mv720 ? 656 : 1244;
+        skip_top        = 24;
+        skip_left       = 76;
+        skip_right      = zoom ? 104: 4; //Extra Pixel in 720P zoom. 3 other modes.
+        //~ skip_bottom = 1;
         #endif
 
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+        //~ raw_info.height = zoom ? 1102 : 718;
+        skip_top    = 24;
+        skip_left   = 68;
+        skip_right  = 0;
+        skip_bottom = 1;
+        #endif
+        
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
     }
@@ -275,6 +294,23 @@ int raw_update_params()
         skip_top = 80;
         #endif
 
+        #ifdef CONFIG_6D  //Needs check from Raw dump but looks aligned.
+        width = 5568;
+        height = 3708;
+        skip_left = 84; //Meta Data
+        skip_right = 0;
+        skip_top = 50; // Meta Data
+        #endif
+
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)  //FIXME: Need Raw photo location first.
+        width = 5280;
+        height = 3528;
+        skip_left = 68;
+        skip_right = 0;
+        skip_top = 28;
+        #endif
+
+
         dbg_printf("Photo raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
     }
@@ -303,8 +339,16 @@ int raw_update_params()
     int dynamic_ranges[] = {1143, 1139, 1122, 1087, 1044, 976, 894, 797, 683, 624, 505};
     #endif
 
+    #ifdef CONFIG_600D
+    int dynamic_ranges[] = {1146, 1139, 1116, 1061, 980, 898, 806, 728};
+	#endif
+
     #ifdef CONFIG_650D
     int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
+    #endif
+
+    #ifdef CONFIG_EOSM
+    int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
     #endif
 
 /*********************** Portable code ****************************************/
