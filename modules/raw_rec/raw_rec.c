@@ -44,6 +44,7 @@ static int resolution_index_y = 4;
 static int measured_write_speed = 0;
 static int stop_on_buffer_overflow = 1;
 static int sound_rec = 2;
+static int panning_enabled = 0;
 
 #define RAW_IDLE      0
 #define RAW_PREPARING 1
@@ -105,12 +106,9 @@ static void refresh_raw_settings()
     {
         /* poke the raw flag every now and then, to autodetect the resolution */
         static int aux = INT_MIN;
-        if (should_run_polling_action(2000, &aux))
+        if (should_run_polling_action(1000, &aux))
         {
-            call("lv_save_raw", 1);
-            msleep(50);
             raw_update_params();
-            call("lv_save_raw", 0);
         }
     }
 }
@@ -284,8 +282,11 @@ static void cropmark_draw()
     int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
     int skip_y = raw_info.active_area.y1 + (raw_info.jpeg.height - res_y) / 2;
 
-    skip_x += frame_offset_x;
-    skip_y += frame_offset_y;
+    if (panning_enabled)
+    {
+        skip_x += frame_offset_x;
+        skip_y += frame_offset_y;
+    }
     
     int x = RAW2BM_X(skip_x);
     int y = RAW2BM_Y(skip_y);
@@ -315,6 +316,8 @@ static void cropmark_draw()
 
 static void panning_update()
 {
+    if (!panning_enabled) return;
+    
     if (frame_offset_delta_x)
     {
         int res_x = get_res_x();
@@ -355,10 +358,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     /* update settings when changing video modes (outside menu) */
     if (raw_video_enabled && RAW_IS_IDLE && !gui_menu_shown())
     {
-        if (!raw_lv_settings_still_valid())
-        {
-            refresh_raw_settings();
-        }
+        refresh_raw_settings();
     }
 
     return 0;
@@ -509,10 +509,6 @@ static void raw_video_rec_task()
     frame_offset_delta_x = 0;
     frame_offset_delta_y = 0;
     
-    /* enable the raw flag */
-    call("lv_save_raw", 1);
-    msleep(100);
-    
     /* create output file */
     movie_filename = get_next_raw_movie_file_name();
     FILE* f = FIO_CreateFileEx(movie_filename);
@@ -605,6 +601,11 @@ abort:
     /* wait until the other tasks calm down */
     msleep(1000);
 
+    if (sound_rec == 1)
+    {
+        WAV_StopRecord();
+    }
+
     bmp_printf( FONT_MED, 30, 70, 
         "Frames captured: %d    ", 
         frame_count - 1
@@ -631,15 +632,9 @@ abort:
         msleep(2000);
     }
 
-    if (sound_rec == 1)
-    {
-        WAV_StopRecord();
-    }
-
 cleanup:
     if (f) FIO_CloseFile(f);
     free_buffers();
-    call("lv_save_raw", 0);
     redraw();
     raw_recording_state = RAW_IDLE;
 }
@@ -658,9 +653,22 @@ static MENU_SELECT_FUNC(raw_start_stop)
     }
 }
 
+static MENU_SELECT_FUNC(raw_video_toggle)
+{
+    raw_video_enabled = !raw_video_enabled;
+    
+    /* toggle the lv_save_raw flag from raw.c */
+    if (raw_video_enabled)
+        raw_lv_enable();
+    else
+        raw_lv_disable();
+    msleep(50);
+}
+
 static int raw_playing = 0;
 static void raw_video_playback_task()
 {
+    set_lv_zoom(1);
     PauseLiveView();
     
     int resx = get_res_x();
@@ -734,6 +742,7 @@ static struct menu_entry raw_video_menu[] =
     {
         .name = "RAW video",
         .priv = &raw_video_enabled,
+        .select = raw_video_toggle,
         .max = 1,
         .update = raw_main_update,
         .submenu_width = 710,
@@ -760,6 +769,13 @@ static struct menu_entry raw_video_menu[] =
                 .max = 2,
                 .choices = CHOICES("OFF", "Separate WAV", "Sync beep"),
                 .help = "Sound recording options.",
+            },
+            {
+                .name = "Dolly mode",
+                .priv = &panning_enabled,
+                .max = 1,
+                .help = "Smooth panning of the recording window (software dolly).",
+                .help2 = "Use arrow keys to move the window.",
             },
             {
                 .name = "Buffer full",
@@ -804,50 +820,69 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     }
     
     /* panning (with arrow keys) */
-    switch (key)
+    if (panning_enabled)
     {
-        case MODULE_KEY_PRESS_LEFT:
-            frame_offset_delta_x -= 8;
-            return 0;
-        case MODULE_KEY_PRESS_RIGHT:
-            frame_offset_delta_x += 8;
-            return 0;
-        case MODULE_KEY_PRESS_UP:
-            frame_offset_delta_y -= 8;
-            return 0;
-        case MODULE_KEY_PRESS_DOWN:
-            frame_offset_delta_y += 8;
-            return 0;
-        case MODULE_KEY_PRESS_DOWN_LEFT:
-            frame_offset_delta_y += 8;
-            frame_offset_delta_x -= 8;
-            return 0;
-        case MODULE_KEY_PRESS_DOWN_RIGHT:
-            frame_offset_delta_y += 8;
-            frame_offset_delta_x += 8;
-            return 0;
-        case MODULE_KEY_PRESS_UP_LEFT:
-            frame_offset_delta_y -= 8;
-            frame_offset_delta_x -= 8;
-            return 0;
-        case MODULE_KEY_PRESS_UP_RIGHT:
-            frame_offset_delta_y -= 8;
-            frame_offset_delta_x += 8;
-            return 0;
-        case MODULE_KEY_JOY_CENTER:
-            /* first click stop the motion, second click center the window */
-            if (frame_offset_delta_x || frame_offset_delta_y)
-            {
-                frame_offset_delta_y = 0;
-                frame_offset_delta_x = 0;
-            }
-            else
-            {
-                frame_offset_y = 0;
-                frame_offset_x = 0;
-            }
+        switch (key)
+        {
+            case MODULE_KEY_PRESS_LEFT:
+                frame_offset_delta_x -= 8;
+                return 0;
+            case MODULE_KEY_PRESS_RIGHT:
+                frame_offset_delta_x += 8;
+                return 0;
+            case MODULE_KEY_PRESS_UP:
+                frame_offset_delta_y -= 8;
+                return 0;
+            case MODULE_KEY_PRESS_DOWN:
+                frame_offset_delta_y += 8;
+                return 0;
+            case MODULE_KEY_PRESS_DOWN_LEFT:
+                frame_offset_delta_y += 8;
+                frame_offset_delta_x -= 8;
+                return 0;
+            case MODULE_KEY_PRESS_DOWN_RIGHT:
+                frame_offset_delta_y += 8;
+                frame_offset_delta_x += 8;
+                return 0;
+            case MODULE_KEY_PRESS_UP_LEFT:
+                frame_offset_delta_y -= 8;
+                frame_offset_delta_x -= 8;
+                return 0;
+            case MODULE_KEY_PRESS_UP_RIGHT:
+                frame_offset_delta_y -= 8;
+                frame_offset_delta_x += 8;
+                return 0;
+            case MODULE_KEY_JOY_CENTER:
+                /* first click stop the motion, second click center the window */
+                if (frame_offset_delta_x || frame_offset_delta_y)
+                {
+                    frame_offset_delta_y = 0;
+                    frame_offset_delta_x = 0;
+                }
+                else
+                {
+                    frame_offset_y = 0;
+                    frame_offset_x = 0;
+                }
+        }
     }
     
+    return 1;
+}
+
+static unsigned int raw_rec_should_preview(unsigned int ctx)
+{
+    /* enable preview in x5 mode, since framing doesn't match */
+    /* keep x10 mode unaltered, for focusing */
+    return raw_video_enabled && RAW_IS_IDLE && lv_dispsize == 5;
+}
+
+static unsigned int raw_rec_update_preview(unsigned int ctx)
+{
+    if (!raw_rec_should_preview(0))
+        return 0;
+    struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
+    raw_preview_fast_ex(raw_info.buffer, buffers->dst_buf, BM2LV_Y(os.y0), BM2LV_Y(os.y_max), !get_halfshutter_pressed());
     return 1;
 }
 
@@ -879,4 +914,6 @@ MODULE_CBRS_START()
     MODULE_CBR(CBR_VSYNC, raw_rec_vsync_cbr, 0)
     MODULE_CBR(CBR_KEYPRESS, raw_rec_keypress_cbr, 0)
     MODULE_CBR(CBR_SHOOT_TASK, raw_rec_polling_cbr, 0)
+    MODULE_CBR(CBR_DISPLAY_FILTER_ENABLED, raw_rec_should_preview, 0)
+    MODULE_CBR(CBR_DISPLAY_FILTER_UPDATE, raw_rec_update_preview, 0)
 MODULE_CBRS_END()
