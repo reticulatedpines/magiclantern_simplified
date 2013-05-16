@@ -26,6 +26,9 @@
 #include "../lv_rec/lv_rec.h"
 #include "edmac.h"
 
+/* when enabled, it hooks shortcut keys */
+static int raw_video_enabled = 0;
+
 static int resolution_presets_x[] = {  640,  720,  960,  1280,  1320,  1920,  2048,  2560,  2880,  3592 };
 #define  RESOLUTION_CHOICES_X CHOICES("640","720","960","1280","1320","1920","2048","2560","2880","3592")
 static int resolution_presets_y[] = {  320,  360,  480,  540,  720,  840,  960,  1080,  1152,  1280,  1320 };
@@ -404,8 +407,6 @@ static void raw_video_rec_task()
     frame_count = 0;
     frame_skips = 0;
     
-    msleep(1000);
-    
     /* enable the raw flag */
     call("lv_save_raw", 1);
     msleep(100);
@@ -418,8 +419,6 @@ static void raw_video_rec_task()
         bmp_printf( FONT_MED, 30, 50, "File create error");
         goto cleanup;
     }
-    
-    msleep(100);
     
     /* detect raw parameters (geometry, black level etc) */
     if (!raw_update_params())
@@ -533,6 +532,7 @@ static MENU_SELECT_FUNC(raw_start_stop)
     }
     else
     {
+        raw_recording_state = RAW_PREPARING;
         gui_stop_menu();
         task_create("raw_rec_task", 0x19, 0x1000, raw_video_rec_task, (void*)0);
     }
@@ -543,11 +543,14 @@ static struct menu_entry raw_video_menu[] =
 {
     {
         .name = "RAW video",
-        .select = menu_open_submenu,
+        .priv = &raw_video_enabled,
+        .max = 1,
         .submenu_width = 710,
         .depends_on = DEP_LIVEVIEW,
         .help = "Record 14-bit RAW video on fast cards.",
+        .help = "To record, enable this and press the LiveView button.",
         .children =  (struct menu_entry[]) {
+            /*
             {
                 .name = "Start",
                 .icon_type = IT_ACTION,
@@ -555,6 +558,7 @@ static struct menu_entry raw_video_menu[] =
                 .select = raw_start_stop,
                 .help = "Your camera will explode.",
             },
+            */
             {
                 .name = "Width",
                 .priv = &resolution_index_x,
@@ -580,6 +584,29 @@ static struct menu_entry raw_video_menu[] =
         },
     }
 };
+
+
+unsigned int raw_rec_keypress_cbr(unsigned int key)
+{
+    if (!raw_video_enabled)
+        return 1;
+    
+    if(key == MODULE_KEY_LV || key == MODULE_KEY_REC)
+    {
+        if (liveview_display_idle())
+        {
+            switch(raw_recording_state)
+            {
+                case RAW_IDLE:
+                case RAW_RECORDING:
+                    raw_start_stop(0,0);
+                    return 0;
+            }
+        }
+    }
+    
+    return 1;
+}
 
 unsigned int raw_rec_init()
 {
@@ -607,4 +634,5 @@ MODULE_STRINGS_END()
 
 MODULE_CBRS_START()
     MODULE_CBR(CBR_VSYNC, raw_rec_vsync_cbr, 0)
+    MODULE_CBR(CBR_KEYPRESS, raw_rec_keypress_cbr, 0)
 MODULE_CBRS_END()
