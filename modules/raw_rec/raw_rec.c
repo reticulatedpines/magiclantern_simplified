@@ -170,7 +170,7 @@ static unsigned int lv_rec_save_footer(FILE *save_file)
     footer.sourceFpsx1000 = fps_get_current_x1000();
     footer.raw_info = raw_info;
 
-    int written = FIO_WriteFile(save_file, UNCACHEABLE(&footer), sizeof(lv_rec_file_footer_t));
+    int written = FIO_WriteFile(save_file, &footer, sizeof(lv_rec_file_footer_t));
     
     return written == sizeof(lv_rec_file_footer_t);
 }
@@ -384,10 +384,6 @@ static void process_frame()
     /* copy frame to our buffer */
     void* ptr = buffers[capturing_buffer_index].ptr + capture_offset;
     edmac_copy_rectangle(ptr, fullsize_buffers[(frame_count+1) % 2], raw_info.pitch, skip_x/8*14, skip_y/2*2, res_x*14/8, res_y);
-    
-    /* hack: edmac rectangle routine only works for first call, third call and so on, figure out why */
-    /* meanwhile, just use a dummy call that will fail */
-    edmac_memcpy(bmp_vram_idle(), bmp_vram_real(), 4096);
 
     /* advance to next frame */
     frame_count++;
@@ -626,7 +622,6 @@ abort:
     written += FIO_WriteFile(f, buffers[capturing_buffer_index].ptr, capture_offset);
 
     /* write metadata */
-    lv_rec_save_footer(f);
     int footer_ok = lv_rec_save_footer(f);
     if (!footer_ok)
     {
