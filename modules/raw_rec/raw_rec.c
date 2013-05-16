@@ -43,6 +43,7 @@ static int resolution_index_x = 5;
 static int resolution_index_y = 4;
 static int measured_write_speed = 0;
 static int stop_on_buffer_overflow = 1;
+static int sound_rec = 2;
 
 #define RAW_IDLE      0
 #define RAW_PREPARING 1
@@ -246,7 +247,7 @@ static void free_buffers()
 
 static void show_buffer_status(int adj)
 {
-    if (!display_idle()) return;
+    if (!liveview_display_idle()) return;
     
     int free_buffers = mod(saving_buffer_index - capturing_buffer_index, buffer_count); /* how many free slots do we have? */
     if (free_buffers == 0) free_buffers = 4; /* saving task waiting for capturing task */
@@ -391,7 +392,7 @@ static void process_frame()
     frame_count++;
     capture_offset += res_x * res_y * 14/8;
 
-    if (display_idle())
+    if (liveview_display_idle())
     {
         bmp_printf( FONT_MED, 30, 70, 
             "Capturing frame %d...", 
@@ -448,7 +449,7 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
     //~ process_frame();
 
     /* try a sync beep */
-    if (frame_count == 0)
+    if (sound_rec == 2 && frame_count == 0)
         beep();
 
     return 0;
@@ -477,6 +478,21 @@ static char* get_next_raw_movie_file_name()
     }
     
     return filename;
+}
+
+static char* get_wav_file_name(char* movie_filename)
+{
+    /* same name as movie, but with wav extension */
+    static char wavfile[100];
+    snprintf(wavfile, sizeof(wavfile), movie_filename);
+    int len = strlen(wavfile);
+    wavfile[len-4] = '.';
+    wavfile[len-3] = 'W';
+    wavfile[len-2] = 'A';
+    wavfile[len-1] = 'V';
+    /* prefer SD card for saving WAVs (should be faster on 5D3) */
+    if (is_dir("B:/")) wavfile[0] = 'B';
+    return wavfile;
 }
 
 static void raw_video_rec_task()
@@ -518,6 +534,14 @@ static void raw_video_rec_task()
         bmp_printf( FONT_MED, 30, 50, "Memory error");
         goto cleanup;
     }
+
+    if (sound_rec == 1)
+    {
+        char* wavfile = get_wav_file_name(filename);
+        bmp_printf( FONT_MED, 30, 90, "Sound: %s%s", wavfile + 17, wavfile[0] == 'B' && filename[0] == 'A' ? " on SD card" : "");
+        bmp_printf( FONT_MED, 30, 90, "%s", wavfile);
+        WAV_StartRecord(wavfile);
+    }
     
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
@@ -552,7 +576,7 @@ static void raw_video_rec_task()
             int t1 = get_ms_clock_value();
             int speed = (written / 1024) * 10 / (t1 - t0) * 1000 / 1024; // MB/s x10
             measured_write_speed = speed;
-            if (display_idle()) bmp_printf( FONT_MED, 30, 90, 
+            if (liveview_display_idle()) bmp_printf( FONT_MED, 30, 90, 
                 "%s: %d MB, %d.%d MB/s",
                 filename + 17, /* skip A:/DCIM/100CANON/ */
                 written / 1024 / 1024,
@@ -606,6 +630,11 @@ abort:
         msleep(2000);
     }
 
+    if (sound_rec == 1)
+    {
+        WAV_StopRecord();
+    }
+
 cleanup:
     if (f) FIO_CloseFile(f);
     free_buffers();
@@ -627,7 +656,6 @@ static MENU_SELECT_FUNC(raw_start_stop)
         task_create("raw_rec_task", 0x19, 0x1000, raw_video_rec_task, (void*)0);
     }
 }
-
 
 static struct menu_entry raw_video_menu[] =
 {
@@ -653,6 +681,13 @@ static struct menu_entry raw_video_menu[] =
                 .max = COUNT(resolution_presets_y) - 1,
                 .update = resolution_update,
                 .choices = RESOLUTION_CHOICES_Y,
+            },
+            {
+                .name = "Sound",
+                .priv = &sound_rec,
+                .max = 2,
+                .choices = CHOICES("OFF", "Separate WAV", "Sync beep"),
+                .help = "Sound recording options.",
             },
             {
                 .name = "Buffer full",
