@@ -111,6 +111,7 @@ static int is_zoom_mode_so_no_zebras()
 { 
     if (!lv) return 0;
     if (lv_dispsize == 1) return 0;
+    if (raw_lv_is_enabled()) return 0; /* exception: in raw mode we can record crop videos */
     
     return 1;
 }
@@ -806,12 +807,20 @@ int can_use_raw_overlays()
     // RAW and RAW+JPEG are OK
     if (QR_MODE && (pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
         return 1;
+    
+    if (lv && raw_lv_is_enabled())
+        return 1;
+    
     return 0;
 }
 int can_use_raw_overlays_menu()
 {
     if ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
         return 1;
+
+    if (lv && raw_lv_is_enabled())
+        return 1;
+
     return 0;
 }
 #endif
@@ -1261,7 +1270,7 @@ static void draw_zebras( int Z )
     if (zd)
     {
         #ifdef FEATURE_RAW_ZEBRAS
-        if (raw_zebra_enable && can_use_raw_overlays())
+        if (raw_zebra_enable && can_use_raw_overlays() && !lv)
         {
             draw_zebras_raw();
             return;
@@ -2216,7 +2225,7 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
     }
 
     #ifdef FEATURE_RAW_ZEBRAS
-    if (z && can_use_raw_overlays_menu())
+    if (z && can_use_raw_overlays_menu() && !lv)
         raw_zebra_update(entry, info);
     #endif
 }
@@ -2224,7 +2233,7 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
 static MENU_UPDATE_FUNC(zebra_param_not_used_for_raw)
 {
     #ifdef FEATURE_RAW_ZEBRAS
-    if (raw_zebra_enable && can_use_raw_overlays_menu())
+    if (raw_zebra_enable && can_use_raw_overlays_menu() && !lv)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not used for RAW zebras.");
     #endif
 }
@@ -4360,14 +4369,14 @@ void draw_histogram_and_waveform(int allow_play)
 #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM) || defined(FEATURE_VECTORSCOPE)
     if (hist_draw || waveform_draw || vectorscope_draw)
     {
-        hist_build();
-
         #ifdef FEATURE_RAW_HISTOGRAM
         if (raw_histogram_enable && can_use_raw_overlays())
         {
             hist_build_raw();
         }
+        else
         #endif
+        hist_build();
     }
 #endif
     

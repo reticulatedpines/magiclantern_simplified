@@ -78,7 +78,12 @@ MENU_UPDATE_FUNC(raw_histo_update)
     if (!can_use_raw_overlays_menu())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set picture quality to RAW in Canon menu.");
     else if (raw_histogram_enable)
-        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram after taking a picture.");
+    {
+        if (lv && raw_lv_is_enabled())
+            MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram in LiveView and after taking a pic.");
+        else
+            MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram after taking a picture.");
+    }
 }
 #endif
 
