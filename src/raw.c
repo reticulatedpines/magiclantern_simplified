@@ -28,7 +28,7 @@
 #define RAW_LV_EDMAC 0xC0F04508
 #endif
 
-#ifdef CONFIG_500D
+#if defined(CONFIG_500D) || defined(CONFIG_550D)
 #define RAW_LV_EDMAC 0xC0F26008
 #endif
 
@@ -46,7 +46,7 @@
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_500D) //FIXME: 650D is untested
+#if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_550D) || defined(CONFIG_500D) //FIXME: 650D is untested
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
@@ -126,6 +126,15 @@ void raw_buffer_intercept_from_stateobj()
      4763, 10000,      712, 10000,    -646, 10000, \
     -6821, 10000,    14399, 10000,    2640, 10000, \
     -1921, 10000,     3276, 10000,    6561, 10000
+#endif
+
+#ifdef CONFIG_550D
+    //~ { "Canon EOS 550D", 0, 0x3dd7,
+    //~	{  6941,-1164,-857,-3825,11597,2534,-416,1540,6039 } },
+    #define CAM_COLORMATRIX1                        \
+     6461, 10000,     -1164, 10000,    -857, 10000,\
+    -3825, 10000,     11597, 10000,    2534, 10000,\
+    -416, 10000,      1540, 10000,    6039, 10000
 #endif
 
 #ifdef CONFIG_600D
@@ -241,6 +250,12 @@ int raw_update_params()
         skip_top    = 24;
         skip_left   = zoom ? 64 : 74;
         #endif
+
+        //#ifdef CONFIG_550D // wolf
+        //skip_top        = 26;
+        //skip_left       = 152;
+        //skip_right      =  0;
+        //#endif
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
         //~ raw_info.height = zoom ? 1102 : 718;
@@ -360,6 +375,10 @@ int raw_update_params()
 
     #ifdef CONFIG_500D
     int dynamic_ranges[] = {1104, 1094, 1066, 1007, 933, 848, 737, 625};
+    #endif
+
+    #ifdef CONFIG_550D
+    int dynamic_ranges[] = {1095, 1092, 1059, 1008, 917, 844, 744, 645};
     #endif
 
     #ifdef CONFIG_600D
