@@ -239,7 +239,7 @@ int raw_update_params()
 
         #ifdef CONFIG_500D
         skip_top    = 24;
-        skip_left   = 74;
+        skip_left   = zoom ? 64 : 74;
         #endif
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
