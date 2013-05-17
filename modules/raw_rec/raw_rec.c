@@ -345,6 +345,9 @@ static void panning_update()
 
 static unsigned int raw_rec_polling_cbr(unsigned int unused)
 {
+    if (!raw_video_enabled)
+        return 0;
+    
     /* refresh cropmark (faster when panning, slower when idle) */
     static int aux = INT_MIN;
     if (frame_offset_delta_x || frame_offset_delta_y || should_run_polling_action(500, &aux))
@@ -356,7 +359,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     }
 
     /* update settings when changing video modes (outside menu) */
-    if (raw_video_enabled && RAW_IS_IDLE && !gui_menu_shown())
+    if (RAW_IS_IDLE && !gui_menu_shown())
     {
         refresh_raw_settings();
     }
