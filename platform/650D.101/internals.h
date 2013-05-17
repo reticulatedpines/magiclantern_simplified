@@ -123,3 +123,6 @@
 
 /** We have AllocateMemoryResourceForSingleChunk */
 #define CONFIG_EXMEM_SINGLE_CHUNK
+
+#define CONFIG_RAW_LV
+#define CONFIG_RAW_PHOTO

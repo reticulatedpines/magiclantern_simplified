@@ -32,10 +32,12 @@ void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int sr
     uint32_t dmaChannelRead = 0x19;
     uint32_t dmaChannelWrite = 0x11;
     
-    #ifdef CONFIG_5D2
-    dmaChannelWrite = 3;
+    #if defined(CONFIG_5D2)
+    dmaChannelWrite = 0x3;
+    #elif defined(CONFIG_650D)
+    dmaChannelWrite = 0x13;
     #endif
-    
+
     /* both channels get connected to this... lets call it service. it will just output the data it gets as input */
     uint32_t dmaConnection = 6;
 
@@ -93,8 +95,11 @@ void edmac_copy_rectangle_adv_finish()
     /* pick some free (check using debug menu) EDMAC channels write: 0x00-0x06, 0x10-0x16, 0x20-0x21. read: 0x08-0x0D, 0x18-0x1D,0x28-0x2B */
     uint32_t dmaChannelRead = 0x19;
     uint32_t dmaChannelWrite = 0x11;
-    #ifdef CONFIG_5D2
-    dmaChannelWrite = 3;
+
+    #if defined(CONFIG_5D2)
+    dmaChannelWrite = 0x3;
+    #elif defined(CONFIG_650D)
+    dmaChannelWrite = 0x13;
     #endif
     /* duplicate code ends */
 
