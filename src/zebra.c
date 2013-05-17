@@ -38,6 +38,11 @@
 #include "falsecolor.h"
 #include "histogram.h"
 
+#if defined(FEATURE_RAW_HISTOGRAM) || defined(FEATURE_RAW_ZEBRAS) || defined(FEATURE_RAW_SPOTMETER)
+#define FEATURE_RAW_OVERLAYS
+#endif
+
+
 #define DIGIC_ZEBRA_REGISTER 0xC0F140cc
 #define FAST_ZEBRA_GRID_COLOR 4 // invisible diagonal grid for zebras; must be unused and only from 0-15
 
@@ -111,7 +116,9 @@ static int is_zoom_mode_so_no_zebras()
 { 
     if (!lv) return 0;
     if (lv_dispsize == 1) return 0;
+    #ifdef FEATURE_RAW_OVERLAYS
     if (raw_lv_is_enabled()) return 0; /* exception: in raw mode we can record crop videos */
+    #endif
     
     return 1;
 }
@@ -800,7 +807,7 @@ hist_build()
 }
 #endif
 
-#if defined(FEATURE_RAW_HISTOGRAM) || defined(FEATURE_RAW_ZEBRAS)
+#ifdef FEATURE_RAW_OVERLAYS
 int can_use_raw_overlays()
 {
     // MRAW/SRAW are causing trouble, figure out why
@@ -3094,7 +3101,7 @@ struct menu_entry zebra_menus[] = {
                 .update = zebra_param_not_used_for_raw,
             },
             #endif
-            #if defined(FEATURE_RAW_HISTOGRAM) && defined(FEATURE_RAW_ZEBRAS)
+            #ifdef FEATURE_RAW_ZEBRAS
             {
                 .name = "Use RAW zebras",
                 .priv = &raw_zebra_enable,
