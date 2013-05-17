@@ -74,7 +74,6 @@ static int saving_buffer_index = 0;               /* from which buffer we are sa
 static int capture_offset = 0;                    /* position of capture pointer inside the buffer (0-32MB) */
 static int frame_count = 0;                       /* how many frames we have processed */
 static int frame_skips = 0;                       /* how many frames were dropped/skipped */
-static struct semaphore * copy_sem = 0;           /* for vertical sync used when copying frames */
 static char* movie_filename = 0;                  /* file name for current (or last) movie */
 
 static int get_res_x()
@@ -367,12 +366,12 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     return 0;
 }
 
-static void process_frame()
+static int process_frame()
 {
-    if (!lv) return;
+    if (!lv) return 0;
     
     /* skip the first frame, it will be gibberish */
-    if (frame_count == 0) { frame_count++; return; }
+    if (frame_count == 0) { frame_count++; return 0; }
     
     /* copy current frame to our buffer and crop it to its final size */
     int res_x = get_res_x();
@@ -384,9 +383,9 @@ static void process_frame()
     skip_x += frame_offset_x;
     skip_y += frame_offset_y;
     
-    /* copy frame to our buffer */
+    /* start copying frame to our buffer */
     void* ptr = buffers[capturing_buffer_index].ptr + capture_offset;
-    edmac_copy_rectangle(ptr, fullsize_buffers[(frame_count+1) % 2], raw_info.pitch, skip_x/8*14, skip_y/2*2, res_x*14/8, res_y);
+    int ans = edmac_copy_rectangle_start(ptr, fullsize_buffers[(frame_count+1) % 2], raw_info.pitch, skip_x/8*14, skip_y/2*2, res_x*14/8, res_y);
 
     /* advance to next frame */
     frame_count++;
@@ -399,10 +398,21 @@ static void process_frame()
             frame_count
         );
     }
+    
+    return ans;
 }
 
 static unsigned int raw_rec_vsync_cbr(unsigned int unused)
 {
+    static int dma_transfer_in_progress = 0;
+    /* there may be DMA transfers started in process_frame, finish them */
+    /* let's assume they are faster than LiveView refresh rate (well, they HAVE to be) */
+    if (dma_transfer_in_progress)
+    {
+        edmac_copy_rectangle_finish();
+        dma_transfer_in_progress = 0;
+    }
+    
     if (!raw_video_enabled) return 0;
  
     /* panning window is updated when recording, but also when not recording */
@@ -444,25 +454,13 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
         show_buffer_status(0);
     }
     
-    /* don't do the copying from LiveView task, because we might slow it down */
-    give_semaphore(copy_sem);
-    //~ process_frame();
+    dma_transfer_in_progress = process_frame();
 
     /* try a sync beep */
     if (sound_rec == 2 && frame_count == 0)
         beep();
 
     return 0;
-}
-
-static void raw_video_copy_task()
-{
-    while (RAW_IS_RECORDING)
-    {
-        int r = take_semaphore(copy_sem, 500);
-        if (r == 0)
-            process_frame();
-    }
 }
 
 static char* get_next_raw_movie_file_name()
@@ -541,9 +539,6 @@ static void raw_video_rec_task()
     
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
-
-    /* offload frame copying to another task, so we don't slow down Canon's LiveView task */
-    task_create("raw_copy_task", 0x18, 0x1000, raw_video_copy_task, (void*)0);
 
     int t0 = 0;
     uint32_t written = 0;
@@ -658,6 +653,8 @@ static MENU_SELECT_FUNC(raw_start_stop)
 
 static MENU_SELECT_FUNC(raw_video_toggle)
 {
+    if (!RAW_IS_IDLE) return;
+    
     raw_video_enabled = !raw_video_enabled;
     
     /* toggle the lv_save_raw flag from raw.c */
@@ -891,7 +888,6 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
 
 static unsigned int raw_rec_init()
 {
-    copy_sem = create_named_semaphore("raw_copy_sem", 0);
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
     return 0;
 }
