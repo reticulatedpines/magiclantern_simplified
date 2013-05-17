@@ -219,10 +219,21 @@ NSTUB(0xff86412c, EnableImagePhysicalScreenParameter)
 NSTUB(0xFFB6B1D4, StartPlayProtectGuideApp)
 NSTUB(0xffb6af34, StopPlayProtectGuideApp)
 
-/** experimental EDMAC research **/
-NSTUB(0xFF9A4604, ConnectWriteEDmac)
-NSTUB(0xFF9A462C, ConnectReadEDmac)
+/** EDMAC routines **/
 NSTUB(0xFF9A45E8, SetEDmac)
-NSTUB(0xFF9A4798, EDMAC_RegisterCompleteCBR)
 NSTUB(0xFF9A464C, StartEDmac)
 NSTUB(0xFF9A47AC, PopEDmac)
+//NSTUB([idk], AbortEDmac)
+NSTUB(0xFF9A4604, ConnectWriteEDmac)
+NSTUB(0xFF9A462C, ConnectReadEDmac)
+
+/** keep the old name until all are refcatored **/
+NSTUB(0xFF9A4798, EDMAC_RegisterCompleteCBR)
+
+/** register/unregister CBR names **/
+NSTUB(0xFF9A4798, RegisterEDmacCompleteCBR)
+NSTUB(0xFF9A47C0, RegisterEDmacAbortCBR)
+NSTUB(0xFF9A4828, RegisterEDmacPopCBR)
+NSTUB(0xFF9A47AC, UnregisterEDmacCompleteCBR)
+NSTUB(0xFF9A47F8, UnregisterEDmacAbortCBR)
+NSTUB(0xFF9A483C, UnregisterEDmacPopCBR)
