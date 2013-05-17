@@ -251,11 +251,11 @@ int raw_update_params()
         skip_left   = zoom ? 64 : 74;
         #endif
 
-        //#ifdef CONFIG_550D // wolf
-        //skip_top        = 26;
-        //skip_left       = 152;
-        //skip_right      =  0;
-        //#endif
+        #ifdef CONFIG_550D
+        skip_top    = 26;
+        skip_left   = zoom ? 0 : 152;
+        skip_right  = zoom ? 0 : 2;
+        #endif
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
         //~ raw_info.height = zoom ? 1102 : 718;
