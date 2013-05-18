@@ -840,19 +840,19 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Sound recording options.",
             },
             {
-                .name = "Slider mode",
-                .priv = &panning_enabled,
-                .max = 1,
-                .help = "Smooth panning of the recording window (software dolly).",
-                .help2 = "Use arrow keys to move the window.",
-            },
-            {
                 .name = "Frame skipping",
                 .priv = &stop_on_buffer_overflow,
                 .max = 1,
                 .choices = CHOICES("Allow", "OFF"),
                 .icon_type = IT_BOOL_NEG,
                 .help = "Enable if you don't mind skipping frames (for slow cards).",
+            },
+            {
+                .name = "Panning mode",
+                .priv = &panning_enabled,
+                .max = 1,
+                .help = "Smooth panning of the recording window (software dolly).",
+                .help2 = "Use direction keys to move the window.",
             },
             {
                 .name = "HaCk3D mode",
@@ -908,25 +908,25 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
                 frame_offset_delta_x += 8;
                 return 0;
             case MODULE_KEY_PRESS_UP:
-                frame_offset_delta_y -= 8;
+                frame_offset_delta_y -= 2;
                 return 0;
             case MODULE_KEY_PRESS_DOWN:
-                frame_offset_delta_y += 8;
+                frame_offset_delta_y += 2;
                 return 0;
             case MODULE_KEY_PRESS_DOWN_LEFT:
-                frame_offset_delta_y += 8;
+                frame_offset_delta_y += 2;
                 frame_offset_delta_x -= 8;
                 return 0;
             case MODULE_KEY_PRESS_DOWN_RIGHT:
-                frame_offset_delta_y += 8;
+                frame_offset_delta_y += 2;
                 frame_offset_delta_x += 8;
                 return 0;
             case MODULE_KEY_PRESS_UP_LEFT:
-                frame_offset_delta_y -= 8;
+                frame_offset_delta_y -= 2;
                 frame_offset_delta_x -= 8;
                 return 0;
             case MODULE_KEY_PRESS_UP_RIGHT:
-                frame_offset_delta_y -= 8;
+                frame_offset_delta_y -= 2;
                 frame_offset_delta_x += 8;
                 return 0;
             case MODULE_KEY_JOY_CENTER:
