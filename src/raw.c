@@ -33,6 +33,10 @@
 #define RAW_LV_EDMAC 0xC0F26208
 #endif
 
+#if defined(CONFIG_550D)
+#define RAW_LV_EDMAC 0xC0F26008
+#endif
+
 /**
  * Photo-mode raw buffer address
  * On old cameras, it can be intercepted from SDSf3 state object, right after sdsMem1toRAWcompress.
@@ -42,7 +46,7 @@
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+#if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined (CONFIG_550D) || defined(CONFIG_650D)
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
@@ -103,6 +107,15 @@ void raw_buffer_intercept_from_stateobj()
      6722, 10000,     -635, 10000,    -963, 10000, \
     -4287, 10000,    12460, 10000,    2028, 10000, \
      -908, 10000,     2162, 10000,    5668, 10000
+#endif
+
+#ifdef CONFIG_550D
+   //~ { "Canon EOS 550D", 0, 0x3dd7,
+   //~	{  6941,-1164,-857,-3825,11597,2534,-416,1540,6039 } },
+    #define CAM_COLORMATRIX1                        \
+      6461, 10000,     -1164, 10000,    -857, 10000,\
+     -3825, 10000,     11597, 10000,    2534, 10000,\
+      -416, 10000,      1540, 10000,    6039, 10000
 #endif
 
 #ifdef CONFIG_6D
@@ -213,6 +226,11 @@ int raw_update_params()
         skip_top        = zoom ?   60 : mv720 ?  20 :   30;
         skip_left       = 146;
         skip_right      = 6;
+        #endif
+
+        #ifdef CONFIG_550D
+        skip_top        = 26;
+        skip_left       = 152;
         #endif
 
         #ifdef CONFIG_6D
@@ -333,6 +351,11 @@ int raw_update_params()
 
     #ifdef CONFIG_5D2
     int dynamic_ranges[] = {1116, 1112, 1092, 1066, 1005, 909, 813, 711, 567};
+    #endif
+
+    #ifdef CONFIG_550D
+    //int dynamic_ranges[] = {1157, 1154, 1121, 1070, 979, 906, 805, 707}; I took the values Greg recommended
+    int dynamic_ranges[] = {1095, 1092, 1059, 1008, 917, 844, 744, 645};
     #endif
 
     #ifdef CONFIG_6D
