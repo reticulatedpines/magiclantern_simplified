@@ -1112,67 +1112,6 @@ cleanup:
     canon_gui_enable_front_buffer(1);
 }
 
-static void card_random_bufsize_benchmark_task()
-{
-    msleep(1000);
-    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
-    canon_gui_disable_front_buffer();
-    clrscr();
-    
-    int x = 0;
-    int y = 100;
-    
-    FILE* log = FIO_CreateFileEx(CARD_DRIVE"benchrnd.log");
-    if (log == INVALID_PTR) goto cleanup;
-
-    my_fprintf(log, "Random buffer size experiment\n");
-    my_fprintf(log, "ML %s, %s\n", build_version, build_id); // this includes camera name
-    char* mode = print_benchmark_header();
-    my_fprintf(log, "%s\n", mode);
-    
-    #ifdef CARD_A_MAKER
-    my_fprintf(log, "CF %s %s\n", CARD_A_MAKER, CARD_A_MODEL);
-    #endif
-    
-    while(1)
-    {
-        msleep(1000);
-        uint32_t filesize = 256; // MB
-        uint32_t n = 1000;
-
-        FILE* f = FIO_CreateFileEx(CARD_BENCHMARK_FILE);
-        int t0 = get_ms_clock_value();
-        int total = 0;
-        for (uint32_t i = 0; i < n; i++)
-        {
-            /* random buffer size between 5M and 32M, with 1K step */
-            uint32_t bufsize = ((rand() % (32768 - 5120 + 1)) + 5120) * 1024;
-
-            uint32_t start = (int)UNCACHEABLE(YUV422_LV_BUFFER_1);
-            bmp_printf(FONT_LARGE, 0, 0, "Writing: %d/100 (buf=%dK)... ", (total / 1024 * 100) / (filesize * 1024), bufsize/1024);
-            uint32_t r = FIO_WriteFile( f, (const void *) start, bufsize );
-            total += r;
-            if (r != bufsize) break;
-            if (total > filesize * 1024 * 1024)
-            {
-                n = i+1;
-                break;
-            }
-        }
-        FIO_CloseFile(f);
-        uint32_t bufsize = total / n;
-        int t1 = get_ms_clock_value();
-        int speed = total / 1024 * 1000 / 1024 * 10 / (t1 - t0);
-        bmp_printf(FONT_MED, x, y += font_med.height, "Write speed (avg buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
-        if (y > 450) y = 100;
-        my_fprintf(log, "%d %d\n", bufsize, speed);
-        
-    }
-cleanup:
-    if (log != INVALID_PTR) FIO_CloseFile(log);
-    canon_gui_enable_front_buffer(1);
-}
-
 typedef void (*mem_bench_fun)(
     int arg0,
     int arg1,
@@ -3705,13 +3644,6 @@ static struct menu_entry debug_menus[] = {
                 .priv = card_bufsize_benchmark_task,
                 .help = "Experiment for finding optimal write buffer sizes.",
                 .help2 = "Results saved in BENCH.LOG."
-            },
-            {
-                .name = "Random buffer size test (inf)",
-                .select = (void(*)(void*,int))run_in_separate_task,
-                .priv = card_random_bufsize_benchmark_task,
-                .help = "Try a file writing strategy with variable buffer size.",
-                .help2 = "Results saved in BENCHRND.LOG."
             },
             #ifdef CONFIG_5D3
             {
