@@ -562,6 +562,8 @@ void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2,
     
     int x1 = BM2LV_X(os.x0);
     int x2 = BM2LV_X(os.x_max);
+    x1 = MAX(x1, RAW2LV_X(raw_info.active_area.x1));
+    x2 = MIN(x2, RAW2LV_X(raw_info.active_area.x2));
 
     /* cache the LV to RAW transformation for the inner loop to make it faster */
     /* we will always choose a green pixel */
@@ -571,14 +573,23 @@ void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2,
     for (int x = x1; x < x2; x++)
         lv2rx[x] = LV2RAW_X(x) & ~1;
 
-    int dy = ultra_fast ? 2 : 1;
-    for (int y = y1; y < y2; y += dy)
+    for (int y = y1; y < y2; y++)
     {
         int yr = LV2RAW_Y(y) | 1;
+
+        if (yr < raw_info.active_area.y1 || yr >= raw_info.active_area.y2)
+        {
+            /* out of range, just fill with black */
+            memset(&lv64[LV(0,y)/8], 0, BM2LV_DX(x2-x1)*2);
+            continue;
+        }
+
         struct raw_pixblock * row = (void*)raw + yr * raw_info.pitch;
         
         if (ultra_fast) /* prefer real-time low-res display */
         {
+            if (y%2) continue;
+            
             for (int x = x1; x < x2; x += 4)
             {
                 int xr = lv2rx[x];
@@ -626,4 +637,25 @@ void raw_lv_disable()
 int raw_lv_is_enabled()
 {
     return lv_raw_enabled;
+}
+
+/* may not be correct on 4:3 screens */
+int raw_force_aspect_ratio_1to1()
+{
+    if (lv2raw.sy < lv2raw.sx) /* image too tall */
+    {
+        lv2raw.sy = lv2raw.sx;
+        int height = RAW2LV_DY(raw_info.jpeg.height);
+        int offset = (vram_lv.height - height) / 2;
+        int skip_top = raw_info.active_area.y1;
+        lv2raw.ty = skip_top - LV2RAW_DY(os.y0) - LV2RAW_DY(offset);
+    }
+    else if (lv2raw.sx < lv2raw.sy) /* image too wide */
+    {
+        lv2raw.sx = lv2raw.sy;
+        int width = RAW2LV_DX(raw_info.jpeg.width);
+        int offset = (vram_lv.width - width) / 2;
+        int skip_left = raw_info.active_area.x1;
+        lv2raw.tx = skip_left - LV2RAW_DX(os.x0) - LV2RAW_DX(offset);
+    }
 }
