@@ -274,9 +274,12 @@ static int frame_offset_y = 0;
 static int frame_offset_delta_x = 0;
 static int frame_offset_delta_y = 0;
 
+static unsigned int raw_rec_should_preview(unsigned int ctx);
+
 static void cropmark_draw()
 {
-    raw_force_aspect_ratio_1to1();
+    if (raw_rec_should_preview(0))
+        raw_force_aspect_ratio_1to1();
 
     int res_x = get_res_x();
     int res_y = get_res_y();
