@@ -132,6 +132,13 @@ static MENU_UPDATE_FUNC(raw_main_update)
 
 static MENU_UPDATE_FUNC(resolution_update)
 {
+    if (!raw_video_enabled)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable RAW video first.");
+        MENU_SET_VALUE("N/A");
+        return;
+    }
+    
     refresh_raw_settings();
 
     int is_x = (entry->priv == &resolution_index_x);
@@ -142,7 +149,7 @@ static MENU_UPDATE_FUNC(resolution_update)
     if(lv)
     {
         if (selected != possible)
-            MENU_SET_RINFO("can't do %d", selected);
+            MENU_SET_RINFO("  can't %d", selected);
         else
             MENU_SET_RINFO("max %d", is_x ? raw_info.jpeg.width : raw_info.jpeg.height);
     }
@@ -782,11 +789,12 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "Use arrow keys to move the window.",
             },
             {
-                .name = "Buffer full",
+                .name = "Frame skipping",
                 .priv = &stop_on_buffer_overflow,
                 .max = 1,
-                .choices = CHOICES("Skip frames", "Stop recording"),
-                .help = "What to do when the buffer gets full: stop or skip frames.",
+                .choices = CHOICES("Allow", "OFF"),
+                .icon_type = IT_BOOL_NEG,
+                .help = "Enable if you don't mind skipping frames (for slow cards).",
             },
             {
                 .name = "Playback",
