@@ -46,11 +46,7 @@
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-<<<<<<< local
-#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined (CONFIG_550D) || defined(CONFIG_650D) || defined(CONFIG_EOSM)
-=======
-#if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_550D) || defined(CONFIG_500D) //FIXME: 650D is untested
->>>>>>> other
+#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined (CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_EOSM)
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
