@@ -136,15 +136,6 @@ void raw_buffer_intercept_from_stateobj()
     -1921, 10000,     3276, 10000,    6561, 10000
 #endif
 
-#ifdef CONFIG_550D
-    //~ { "Canon EOS 550D", 0, 0x3dd7,
-    //~	{  6941,-1164,-857,-3825,11597,2534,-416,1540,6039 } },
-    #define CAM_COLORMATRIX1                        \
-     6461, 10000,     -1164, 10000,    -857, 10000,\
-    -3825, 10000,     11597, 10000,    2534, 10000,\
-    -416, 10000,      1540, 10000,    6039, 10000
-#endif
-
 #ifdef CONFIG_600D
 	//~ { "Canon EOS 600D", 0, 0x3510,
 	//~ { 6461,-907,-882,-4300,12184,2378,-819,1944,5931 } },
@@ -244,11 +235,6 @@ int raw_update_params()
         skip_top        = zoom ?   60 : mv720 ?  20 :   30;
         skip_left       = 146;
         skip_right      = 6;
-        #endif
-
-        #ifdef CONFIG_550D
-        skip_top        = 26;
-        skip_left       = 152;
         #endif
 
         #ifdef CONFIG_6D
