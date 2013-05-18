@@ -103,7 +103,7 @@ static void refresh_raw_settings()
 {
     if (RAW_IS_IDLE)
     {
-        /* poke the raw flag every now and then, to autodetect the resolution */
+        /* autodetect the resolution (update every second) */
         static int aux = INT_MIN;
         if (should_run_polling_action(1000, &aux))
         {
@@ -276,6 +276,8 @@ static int frame_offset_delta_y = 0;
 
 static void cropmark_draw()
 {
+    raw_force_aspect_ratio_1to1();
+
     int res_x = get_res_x();
     int res_y = get_res_y();
     int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
@@ -691,6 +693,8 @@ static void raw_video_playback_task()
         goto cleanup;
 
     clrscr();
+    struct vram_info * lv_vram = get_yuv422_vram();
+    memset(lv_vram->vram, 0, lv_vram->width * lv_vram->pitch);
     for (int i = 0; i < frame_count-1; i++)
     {
         bmp_printf(FONT_MED, 0, os.y_max - 20, "%d/%d", i+1, frame_count-1);
@@ -704,6 +708,7 @@ static void raw_video_playback_task()
         
         raw_info.buffer = buf;
         raw_set_geometry(resx, resy, 0, 0, 0, 0);
+        raw_force_aspect_ratio_1to1();
         raw_preview_fast();
     }
 
@@ -874,7 +879,7 @@ static unsigned int raw_rec_should_preview(unsigned int ctx)
 {
     /* enable preview in x5 mode, since framing doesn't match */
     /* keep x10 mode unaltered, for focusing */
-    return raw_video_enabled && RAW_IS_IDLE && lv_dispsize == 5;
+    return raw_video_enabled && lv_dispsize == 5;
 }
 
 static unsigned int raw_rec_update_preview(unsigned int ctx)
@@ -882,7 +887,9 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     if (!raw_rec_should_preview(0))
         return 0;
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
+    raw_force_aspect_ratio_1to1();
     raw_preview_fast_ex(raw_info.buffer, buffers->dst_buf, BM2LV_Y(os.y0), BM2LV_Y(os.y_max), !get_halfshutter_pressed());
+    if (!RAW_IS_IDLE) msleep(500); /* be gentle with the CPU, save it for recording */
     return 1;
 }
 
