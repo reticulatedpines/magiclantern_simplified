@@ -319,29 +319,22 @@ static void panning_update()
 {
     if (!panning_enabled) return;
     
-    if (frame_offset_delta_x)
-    {
-        int res_x = get_res_x();
-        int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
-        
-        frame_offset_x = COERCE(
-            frame_offset_x + frame_offset_delta_x, 
-            raw_info.active_area.x1 - skip_x,
-            raw_info.active_area.x2 - res_x - skip_x
-        );
-    }
-
-    if (frame_offset_delta_y)
-    {
-        int res_y = get_res_y();
-        int skip_y = raw_info.active_area.y1 + (raw_info.jpeg.height - res_y) / 2;
-        
-        frame_offset_y = COERCE(
-            frame_offset_y + frame_offset_delta_y, 
-            raw_info.active_area.y1 - skip_y,
-            raw_info.active_area.y2 - res_y - skip_y
-        );
-    }
+    int res_x = get_res_x();
+    int res_y = get_res_y();
+    int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
+    int skip_y = raw_info.active_area.y1 + (raw_info.jpeg.height - res_y) / 2;
+    
+    frame_offset_x = COERCE(
+        frame_offset_x + frame_offset_delta_x, 
+        raw_info.active_area.x1 - skip_x,
+        raw_info.active_area.x2 - res_x - skip_x
+    );
+    
+    frame_offset_y = COERCE(
+        frame_offset_y + frame_offset_delta_y, 
+        raw_info.active_area.y1 - skip_y,
+        raw_info.active_area.y2 - res_y - skip_y
+    );
 }
 
 static unsigned int raw_rec_polling_cbr(unsigned int unused)
@@ -382,8 +375,11 @@ static int process_frame()
     /* center crop */
     int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
     int skip_y = raw_info.active_area.y1 + (raw_info.jpeg.height - res_y) / 2;
-    skip_x += frame_offset_x;
-    skip_y += frame_offset_y;
+    if (panning_enabled)
+    {
+        skip_x += frame_offset_x;
+        skip_y += frame_offset_y;
+    }
     
     /* start copying frame to our buffer */
     void* ptr = buffers[capturing_buffer_index].ptr + capture_offset;
@@ -776,7 +772,7 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Sound recording options.",
             },
             {
-                .name = "Dolly mode",
+                .name = "Slider mode",
                 .priv = &panning_enabled,
                 .max = 1,
                 .help = "Smooth panning of the recording window (software dolly).",
