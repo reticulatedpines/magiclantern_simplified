@@ -10,19 +10,6 @@ include Makefile.top
 include Makefile.user.default
 -include Makefile.user
 
-UNAME:=$(shell uname)
-
-ifeq ($(UNAME), Darwin)
-	# Variable declaration for Mac OS X
-	UMOUNT=hdiutil unmount
-	CF_CARD=/Volumes/EOS_DIGITAL
-else
-	# Default settings for remaining operating systems
-	CF_CARD=/media/EOS_DIGITAL
-	UMOUNT=umount
-endif
-
-
 all: $(SUPPORTED_MODELS)
 	$(MAKE) -C $(PLATFORM_PATH)/all clean
 	$(MAKE) -C $(PLATFORM_PATH)/all x

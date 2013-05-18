@@ -1,6 +1,24 @@
 #User-defined values for ML build system
 #Copy me to Makefile.user, keeping ONLY the options that you want to customize
 
+UNAME:=$(shell uname)
+
+UNAME:=$(shell uname)
+
+ifeq ($(UNAME), Darwin)
+	# Variable declaration for Mac OS X
+	UMOUNT=hdiutil unmount
+	CF_CARD="/Volumes/EOS_DIGITAL"
+	STAT_CMD=stat -f "%N: %z bytes"
+else
+	# Default settings for remaining operating systems
+	UMOUNT=umount
+	CF_CARD="/media/EOS_DIGITAL/"
+	STAT_CMD=stat -c "%n: %s bytes"
+endif
+
+
+
 # Supported camera models
 SUPPORTED_MODELS:=60D 550D 600D 50D 500D 5D2 1100D
 
