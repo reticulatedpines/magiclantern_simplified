@@ -45,6 +45,7 @@ static int measured_write_speed = 0;
 static int stop_on_buffer_overflow = 1;
 static int sound_rec = 2;
 static int panning_enabled = 0;
+static int hacked_mode = 0;
 
 #define RAW_IDLE      0
 #define RAW_PREPARING 1
@@ -371,6 +372,61 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     return 0;
 }
 
+static void lv_unhack(int unused)
+{
+    call("aewb_enableaewb", 1);
+    idle_globaldraw_en();
+    PauseLiveView();
+    ResumeLiveView();
+}
+
+static void hack_liveview()
+{
+    if (!hacked_mode) return;
+    
+    int rec = RAW_IS_RECORDING;
+    static int prev_rec = 0;
+    int should_hack = 0;
+    int should_unhack = 0;
+
+    if (rec)
+    {
+        if (frame_count == 0)
+            should_hack = 1;
+        /*
+        if (frame_count % 10 == 0)
+            should_hack = 1;
+        else if (frame_count % 10 == 9)
+            should_unhack = 1;
+        */
+    }
+    else if (prev_rec)
+    {
+        should_unhack = 1;
+    }
+    prev_rec = rec;
+    
+    if (should_hack)
+    {
+        call("aewb_enableaewb", 0);
+        idle_globaldraw_dis();
+        for (int channel = 0; channel < 32; channel++)
+        {
+            /* silence out the EDMACs used for HD and LV buffers */
+            int pitch = edmac_get_length(channel) & 0xFFFF;
+            if (pitch == vram_lv.pitch || pitch == vram_hd.pitch)
+            {
+                uint32_t reg = edmac_get_base(channel);
+                *(volatile uint32_t *)(reg + 0x10) = shamem_read(reg + 0x10) & 0xFFFF;
+            }
+        }
+    }
+    else if (should_unhack)
+    {
+        task_create("lv_unhack", 0x1e, 0x1000, lv_unhack, (void*)0);
+    }
+}
+
 static int process_frame()
 {
     if (!lv) return 0;
@@ -422,6 +478,8 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
     }
     
     if (!raw_video_enabled) return 0;
+    
+    hack_liveview();
  
     /* panning window is updated when recording, but also when not recording */
     panning_update();
@@ -795,6 +853,13 @@ static struct menu_entry raw_video_menu[] =
                 .choices = CHOICES("Allow", "OFF"),
                 .icon_type = IT_BOOL_NEG,
                 .help = "Enable if you don't mind skipping frames (for slow cards).",
+            },
+            {
+                .name = "HaCk3D mode",
+                .priv = &hacked_mode,
+                .max = 1,
+                .help = "Some extreme hacks for squeezing a little more speed.",
+                .help2 = "Your camera will explode.",
             },
             {
                 .name = "Playback",
