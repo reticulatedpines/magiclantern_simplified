@@ -16,6 +16,12 @@ PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 ML_EXTRA_OBJS = \
 	misc.o \
 	dm-spy.o \
+	video_hacks.o \
+	raw.o \
+	chdk-dng.o \
+	tp-spy.o \
+	reloc.o \
+	edmac-memcpy.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

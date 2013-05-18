@@ -78,7 +78,12 @@ MENU_UPDATE_FUNC(raw_histo_update)
     if (!can_use_raw_overlays_menu())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set picture quality to RAW in Canon menu.");
     else if (raw_histogram_enable)
-        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram after taking a picture.");
+    {
+        if (lv && raw_lv_is_enabled())
+            MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram in LiveView and after taking a pic.");
+        else
+            MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram after taking a picture.");
+    }
 }
 #endif
 
@@ -334,6 +339,20 @@ int hist_get_percentile_level(int percentile)
 #endif
     return -1; // invalid argument?
 }
+
+MENU_UPDATE_FUNC(hist_warn_display)
+{
+    MENU_SET_VALUE(
+        "Clip warning  : %s",
+        hist_warn == 0 ? "OFF" :
+        hist_warn == 1 ? "0.001% px" :
+        hist_warn == 2 ? "0.01% px" :
+        hist_warn == 3 ? "0.1% px" : 
+        hist_warn == 4 ? "1% px" :
+                         "Gradual"
+    );
+}
+
 
 void hist_highlight(int level)
 {

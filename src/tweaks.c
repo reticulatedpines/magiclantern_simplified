@@ -3202,10 +3202,18 @@ int display_filter_enabled()
     #endif
     if (EXT_MONITOR_CONNECTED) return 0; // non-scalable code
     if (!lv) return 0;
+
+    
+    int mdf = 0;
+    #ifdef CONFIG_MODULES
+    mdf = module_display_filter_enabled();
+    #endif
+    
     int fp = focus_peaking_as_display_filter();
-    if (!(defish_preview || anamorphic_preview || fp)) return 0;
+    if (!(defish_preview || anamorphic_preview || fp || mdf)) return 0;
     if (!zebra_should_run()) return 0;
     if (should_draw_zoom_overlay()) return 0; // not enough CPU power to run MZ and filters at the same time
+    
     return fp ? 2 : 1;
 }
 
@@ -3256,6 +3264,13 @@ void display_filter_step(int k)
     msleep(20);
     
     //~ if (!HALFSHUTTER_PRESSED) return;
+    
+    #ifdef CONFIG_MODULES
+    if (module_display_filter_update())
+    {
+    }
+    else
+    #endif
 
     #ifdef FEATURE_DEFISHING_PREVIEW
     if (defish_preview)

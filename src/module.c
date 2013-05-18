@@ -22,6 +22,7 @@ static struct menu_entry module_menu[];
 
 CONFIG_INT("module.autoload", module_autoload_enabled, 0);
 CONFIG_INT("module.console", module_console_enabled, 0);
+char *module_lockfile = MODULE_PATH"LOADING.LCK";
 
 static struct msg_queue * module_mq = 0;
 #define MSG_MODULE_LOAD_ALL 1
@@ -470,6 +471,7 @@ int module_unload(void *module)
     return 0;
 }
 
+
 /* execute all callback routines of given type. maybe it will get extended to support varargs */
 int module_exec_cbr(unsigned int type)
 {
@@ -492,6 +494,231 @@ int module_exec_cbr(unsigned int type)
     return 0;
 }
 
+/* translate camera specific key to portable module key */
+#define MODULE_CHECK_KEY(in,out) if(in != -1){ if(key == in) { return out; } }
+
+/* these are to ensure that the checked keys are defined. we have to ensure they're defined before using. are there better ways to ensure? */
+#if !defined(BGMT_WHEEL_UP)
+#define BGMT_WHEEL_UP -1
+#endif
+#if !defined(BGMT_WHEEL_DOWN)
+#define BGMT_WHEEL_DOWN -1
+#endif
+#if !defined(BGMT_WHEEL_LEFT)
+#define BGMT_WHEEL_LEFT -1
+#endif
+#if !defined(BGMT_WHEEL_RIGHT)
+#define BGMT_WHEEL_RIGHT -1
+#endif
+#if !defined(BGMT_PRESS_SET)
+#define BGMT_PRESS_SET -1
+#endif
+#if !defined(BGMT_UNPRESS_SET)
+#define BGMT_UNPRESS_SET -1
+#endif
+#if !defined(BGMT_MENU)
+#define BGMT_MENU -1
+#endif
+#if !defined(BGMT_INFO)
+#define BGMT_INFO -1
+#endif
+#if !defined(BGMT_PLAY)
+#define BGMT_PLAY -1
+#endif
+#if !defined(BGMT_TRASH)
+#define BGMT_TRASH -1
+#endif
+#if !defined(BGMT_PRESS_DP)
+#define BGMT_PRESS_DP -1
+#endif
+#if !defined(BGMT_UNPRESS_DP)
+#define BGMT_UNPRESS_DP -1
+#endif
+#if !defined(BGMT_RATE)
+#define BGMT_RATE -1
+#endif
+#if !defined(BGMT_REC)
+#define BGMT_REC -1
+#endif
+#if !defined(BGMT_PRESS_ZOOMIN_MAYBE)
+#define BGMT_PRESS_ZOOMIN_MAYBE -1
+#endif
+#if !defined(BGMT_LV)
+#define BGMT_LV -1
+#endif
+#if !defined(BGMT_Q)
+#define BGMT_Q -1
+#endif
+#if !defined(BGMT_PICSTYLE)
+#define BGMT_PICSTYLE -1
+#endif
+#if !defined(BGMT_JOY_CENTER)
+#define BGMT_JOY_CENTER -1
+#endif
+#if !defined(BGMT_PRESS_UP)
+#define BGMT_PRESS_UP -1
+#endif
+#if !defined(BGMT_PRESS_UP_RIGHT)
+#define BGMT_PRESS_UP_RIGHT -1
+#endif
+#if !defined(BGMT_PRESS_UP_LEFT)
+#define BGMT_PRESS_UP_LEFT -1
+#endif
+#if !defined(BGMT_PRESS_RIGHT)
+#define BGMT_PRESS_RIGHT -1
+#endif
+#if !defined(BGMT_PRESS_LEFT)
+#define BGMT_PRESS_LEFT -1
+#endif
+#if !defined(BGMT_PRESS_DOWN_RIGHT)
+#define BGMT_PRESS_DOWN_RIGHT -1
+#endif
+#if !defined(BGMT_PRESS_DOWN_LEFT)
+#define BGMT_PRESS_DOWN_LEFT -1
+#endif
+#if !defined(BGMT_PRESS_DOWN)
+#define BGMT_PRESS_DOWN -1
+#endif
+#if !defined(BGMT_UNPRESS_UDLR)
+#define BGMT_UNPRESS_UDLR -1
+#endif
+#if !defined(BGMT_PRESS_HALFSHUTTER)
+#define BGMT_PRESS_HALFSHUTTER -1
+#endif
+#if !defined(BGMT_UNPRESS_HALFSHUTTER)
+#define BGMT_UNPRESS_HALFSHUTTER -1
+#endif
+#if !defined(BGMT_PRESS_FULLSHUTTER)
+#define BGMT_PRESS_FULLSHUTTER -1
+#endif
+#if !defined(BGMT_UNPRESS_FULLSHUTTER)
+#define BGMT_UNPRESS_FULLSHUTTER -1
+#endif
+#if !defined(BGMT_PRESS_FLASH_MOVIE)
+#define BGMT_PRESS_FLASH_MOVIE -1
+#endif
+#if !defined(BGMT_UNPRESS_FLASH_MOVIE)
+#define BGMT_UNPRESS_FLASH_MOVIE -1
+#endif
+int module_translate_event(int key)
+{
+    MODULE_CHECK_KEY(BGMT_WHEEL_UP             , MODULE_KEY_WHEEL_UP             );
+    MODULE_CHECK_KEY(BGMT_WHEEL_DOWN           , MODULE_KEY_WHEEL_DOWN           );
+    MODULE_CHECK_KEY(BGMT_WHEEL_LEFT           , MODULE_KEY_WHEEL_LEFT           );
+    MODULE_CHECK_KEY(BGMT_WHEEL_RIGHT          , MODULE_KEY_WHEEL_RIGHT          );
+    MODULE_CHECK_KEY(BGMT_PRESS_SET            , MODULE_KEY_PRESS_SET            );
+    MODULE_CHECK_KEY(BGMT_UNPRESS_SET          , MODULE_KEY_UNPRESS_SET          );
+    MODULE_CHECK_KEY(BGMT_MENU                 , MODULE_KEY_MENU                 );
+    MODULE_CHECK_KEY(BGMT_INFO                 , MODULE_KEY_INFO                 );
+    MODULE_CHECK_KEY(BGMT_PLAY                 , MODULE_KEY_PLAY                 );
+    MODULE_CHECK_KEY(BGMT_TRASH                , MODULE_KEY_TRASH                );
+    MODULE_CHECK_KEY(BGMT_PRESS_DP             , MODULE_KEY_PRESS_DP             );
+    MODULE_CHECK_KEY(BGMT_UNPRESS_DP           , MODULE_KEY_UNPRESS_DP           );
+    MODULE_CHECK_KEY(BGMT_RATE                 , MODULE_KEY_RATE                 );
+    MODULE_CHECK_KEY(BGMT_REC                  , MODULE_KEY_REC                  );
+    MODULE_CHECK_KEY(BGMT_PRESS_ZOOMIN_MAYBE   , MODULE_KEY_PRESS_ZOOMIN         );
+    MODULE_CHECK_KEY(BGMT_LV                   , MODULE_KEY_LV                   );
+    MODULE_CHECK_KEY(BGMT_Q                    , MODULE_KEY_Q                    );
+    MODULE_CHECK_KEY(BGMT_PICSTYLE             , MODULE_KEY_PICSTYLE             );
+    MODULE_CHECK_KEY(BGMT_JOY_CENTER           , MODULE_KEY_JOY_CENTER           );
+    MODULE_CHECK_KEY(BGMT_PRESS_UP             , MODULE_KEY_PRESS_UP             );
+    MODULE_CHECK_KEY(BGMT_PRESS_UP_RIGHT       , MODULE_KEY_PRESS_UP_RIGHT       );
+    MODULE_CHECK_KEY(BGMT_PRESS_UP_LEFT        , MODULE_KEY_PRESS_UP_LEFT        );
+    MODULE_CHECK_KEY(BGMT_PRESS_RIGHT          , MODULE_KEY_PRESS_RIGHT          );
+    MODULE_CHECK_KEY(BGMT_PRESS_LEFT           , MODULE_KEY_PRESS_LEFT           );
+    MODULE_CHECK_KEY(BGMT_PRESS_DOWN_RIGHT     , MODULE_KEY_PRESS_DOWN_RIGHT     );
+    MODULE_CHECK_KEY(BGMT_PRESS_DOWN_LEFT      , MODULE_KEY_PRESS_DOWN_LEFT      );
+    MODULE_CHECK_KEY(BGMT_PRESS_DOWN           , MODULE_KEY_PRESS_DOWN           );
+    MODULE_CHECK_KEY(BGMT_UNPRESS_UDLR         , MODULE_KEY_UNPRESS_UDLR         );
+    MODULE_CHECK_KEY(BGMT_PRESS_HALFSHUTTER    , MODULE_KEY_PRESS_HALFSHUTTER    );
+    MODULE_CHECK_KEY(BGMT_UNPRESS_HALFSHUTTER  , MODULE_KEY_UNPRESS_HALFSHUTTER  );
+    MODULE_CHECK_KEY(BGMT_PRESS_FULLSHUTTER    , MODULE_KEY_PRESS_FULLSHUTTER    );
+    MODULE_CHECK_KEY(BGMT_UNPRESS_FULLSHUTTER  , MODULE_KEY_UNPRESS_FULLSHUTTER  );
+    MODULE_CHECK_KEY(BGMT_PRESS_FLASH_MOVIE    , MODULE_KEY_PRESS_FLASH_MOVIE    );
+    MODULE_CHECK_KEY(BGMT_UNPRESS_FLASH_MOVIE  , MODULE_KEY_UNPRESS_FLASH_MOVIE  );
+    
+    return 0;
+}
+#undef MODULE_CHECK_KEY
+
+int handle_module_keys(struct event * event)
+{
+    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    {
+        module_cbr_t *cbr = module_list[mod].cbr;
+        if(module_list[mod].valid && cbr)
+        {
+            while(cbr->name)
+            {
+                if(cbr->type == CBR_KEYPRESS)
+                {
+                    /* key got handled? */
+                    if(!cbr->handler(module_translate_event(event->param)))
+                    {
+                        return 0;
+                    }
+                }
+                if(cbr->type == CBR_KEYPRESS_RAW)
+                {
+                    /* key got handled? */
+                    if(!cbr->handler((int)event))
+                    {
+                        return 0;
+                    }
+                }
+                cbr++;
+            }
+        }
+    }
+    
+    /* noone handled */
+    return 1;
+}
+
+int module_display_filter_enabled()
+{
+    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    {
+        module_cbr_t *cbr = module_list[mod].cbr;
+        if(module_list[mod].valid && cbr)
+        {
+            while(cbr->name)
+            {
+                if(cbr->type == CBR_DISPLAY_FILTER_ENABLED)
+                {
+                    cbr->ctx = cbr->handler(cbr->ctx);
+                    if (cbr->ctx)
+                        return 1;
+                }
+                cbr++;
+            }
+        }
+    }
+    return 0;
+}
+
+int module_display_filter_update()
+{
+    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    {
+        module_cbr_t *cbr = module_list[mod].cbr;
+        if(module_list[mod].valid && cbr)
+        {
+            while(cbr->name)
+            {
+                if(cbr->type == CBR_DISPLAY_FILTER_UPDATE)
+                {
+                    struct display_filter_buffers buffers;
+                    display_filter_get_buffers((uint32_t**)&(buffers.src_buf), (uint32_t**)&(buffers.dst_buf));
+                    if (cbr->handler((intptr_t) &buffers) == 1)
+                        return 1;
+                }
+                cbr++;
+            }
+        }
+    }
+    return 0;
+}
 
 static MENU_UPDATE_FUNC(module_menu_update_autoload)
 {
@@ -879,13 +1106,13 @@ static void module_init()
 
 void module_load_task(void* unused) 
 {
-    char *lockfile = MODULE_PATH"LOADING.LCK";
+    /* no clean shutdown hoom implemented yet */
     char *lockstr = "If you can read this, ML crashed last time. To save from faulty modules, autoload gets disabled.";
-    
+
     if(module_autoload_enabled)
     {
         uint32_t size;
-        if( FIO_GetFileSize( lockfile, &size ) == 0 )
+        if( FIO_GetFileSize( module_lockfile, &size ) == 0 )
         {
             /* uh, it seems the camera didnt shut down cleanly, skip module loading this time */
             msleep(1000);
@@ -893,7 +1120,7 @@ void module_load_task(void* unused)
         }
         else
         {
-            FILE *handle = FIO_CreateFileEx(lockfile);
+            FILE *handle = FIO_CreateFileEx(module_lockfile);
             FIO_WriteFile(handle, lockstr, strlen(lockstr));
             FIO_CloseFile(handle);
             
@@ -927,12 +1154,19 @@ void module_load_task(void* unused)
                 console_printf("invalid msg: %d\n", msg);
         }
     }
+}
 
+/* clean shutdown, unlink lockfile */
+int module_shutdown()
+{
+    /* ToDo: Save config */
+    
     if(module_autoload_enabled)
     {
         /* remove lockfile */
-        FIO_RemoveFile(lockfile);
+        FIO_RemoveFile(module_lockfile);
     }
+    return 0;
 }
 
 TASK_CREATE("module_load_task", module_load_task, 0, 0x1e, 0x4000 );

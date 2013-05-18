@@ -19,6 +19,8 @@ CONFIG_RELOC = y
 ML_EXTRA_OBJS = \
 	misc.o \
 	lcdsensor.o \
+	raw.o \
+	chdk-dng.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

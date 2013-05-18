@@ -24,7 +24,6 @@
 #define MODULE_STATUS_LENGTH          64
 
 
-
 /* some callbacks that may be needed by modules. more to come. ideas? needs? */
 #define CBR_PRE_SHOOT                 1 /* called before image is taken */
 #define CBR_POST_SHOOT                2 /* called after image is taken */
@@ -32,13 +31,55 @@
 #define CBR_IMAGE_FILTER              4
 #define CBR_SECONDS_CLOCK             5
 #define CBR_VSYNC                     6
+#define CBR_KEYPRESS                  7 /* when a key was pressed, this cbr gets the translated key as ctx */
+#define CBR_KEYPRESS_RAW              8 /* when a key was pressed, this cbr gets the raw (struct event *) as ctx */
+#define CBR_DISPLAY_FILTER_ENABLED    9 /* should return 1 if the display filter mode should be enabled */
+#define CBR_DISPLAY_FILTER_UPDATE     10 /* should update the image displayed; will get (struct display_filter_buffers *) */
+                                         /* and should return 1 if the filter actually ran (so we shouldn't try other filters) */
+
+/* portable key codes. intentionally defines to make numbers hardcoded so changed order wont change the integer number */
+#define MODULE_KEY_PRESS_HALFSHUTTER       ( 1)
+#define MODULE_KEY_UNPRESS_HALFSHUTTER     ( 2)
+#define MODULE_KEY_PRESS_FULLSHUTTER       ( 3)
+#define MODULE_KEY_UNPRESS_FULLSHUTTER     ( 4)
+#define MODULE_KEY_WHEEL_UP                ( 5)
+#define MODULE_KEY_WHEEL_DOWN              ( 6)
+#define MODULE_KEY_WHEEL_LEFT              ( 7)
+#define MODULE_KEY_WHEEL_RIGHT             ( 8)
+#define MODULE_KEY_PRESS_SET               ( 9)
+#define MODULE_KEY_UNPRESS_SET             (10)
+#define MODULE_KEY_JOY_CENTER              (11)
+#define MODULE_KEY_PRESS_UP                (12)
+#define MODULE_KEY_PRESS_UP_RIGHT          (13)
+#define MODULE_KEY_PRESS_UP_LEFT           (14)
+#define MODULE_KEY_PRESS_RIGHT             (15)
+#define MODULE_KEY_PRESS_LEFT              (16)
+#define MODULE_KEY_PRESS_DOWN_RIGHT        (17)
+#define MODULE_KEY_PRESS_DOWN_LEFT         (18)
+#define MODULE_KEY_PRESS_DOWN              (19)
+#define MODULE_KEY_UNPRESS_UDLR            (20)
+#define MODULE_KEY_PRESS_ZOOMIN            (21)     
+#define MODULE_KEY_MENU                    (22)
+#define MODULE_KEY_INFO                    (23)
+#define MODULE_KEY_PLAY                    (24)
+#define MODULE_KEY_TRASH                   (25)
+#define MODULE_KEY_RATE                    (26)
+#define MODULE_KEY_REC                     (27)
+#define MODULE_KEY_LV                      (28)
+#define MODULE_KEY_Q                       (29)
+#define MODULE_KEY_PICSTYLE                (30)
+#define MODULE_KEY_PRESS_FLASH_MOVIE       (31)
+#define MODULE_KEY_UNPRESS_FLASH_MOVIE     (32)
+#define MODULE_KEY_PRESS_DP                (33)
+#define MODULE_KEY_UNPRESS_DP              (34)
+
 
 
 
 /* update major if older modules will *not* be compatible */
 #define MODULE_MAJOR 1
 /* update minor if older modules will be compatible, but newer module will not run on older magic lantern versions */
-#define MODULE_MINOR 1
+#define MODULE_MINOR 2
 /* update patch if nothing regarding to compatibility changes */
 #define MODULE_PATCH 0
 

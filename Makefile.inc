@@ -9,21 +9,6 @@ ifeq ($(CONFIG_CCACHE), y)
     HOST_CC := $(CCACHE) $(CC)
 endif	
 
-UNAME:=$(shell uname)
-
-ifeq ($(UNAME), Darwin)
-	# Variable declaration for Mac OS X
-	UMOUNT=hdiutil unmount
-	CF_CARD="/Volumes/EOS_DIGITAL"
-	STAT_CMD=stat -f "%N: %z bytes"
-else
-	# Default settings for remaining operating systems
-	UMOUNT=umount
-	CF_CARD=/media/EOS_DIGITAL/
-	STAT_CMD=stat -c "%n: %s bytes"
-endif
-
-
 # Quiet the build process
 build = \
 	@if [ X"$V" = X"1" ]; then \
@@ -568,12 +553,10 @@ magiclantern: $(ML_OBJS-y) dietlibc.a newlib-libc.a
 	)
 
 $(PLATFORM_DIR)/version.c: FORCE
-	$(call build,VERSION,( \
-		echo 'const char build_version[] = "$(VERSION)";' ; \
-		echo 'const char build_id[] = "'`hg id`'";' ; \
-		echo 'const char build_date[] ="'`date -u "+%Y-%m-%d %H:%M:%S"`'";' ; \
-		echo 'const char build_user[] = "'`whoami`@`hostname`'";' ; \
-	) > $@)
+		echo 'const char build_version[] = "$(VERSION)";' > $@
+		echo 'const char build_id[] = "'`hg id`'";' >> $@
+		echo 'const char build_date[] ="'`date -u "+%Y-%m-%d %H:%M:%S"`'";' >> $@
+		echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
 
 autoexec: reboot.o
 	$(call build,LD,$(LD) \

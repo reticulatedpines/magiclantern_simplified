@@ -52,4 +52,8 @@ void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny);
 
 void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lut);
 
+int yuv411_to_422(uint32_t addr);
+
+void yuv411_to_rgb(uint32_t addr, int* Y, int* R, int* G, int* B);
+
 #endif /* _imgconv_h_ */

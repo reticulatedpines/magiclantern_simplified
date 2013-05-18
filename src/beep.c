@@ -22,6 +22,7 @@ int beep_playing = 0;
 // positive values: X beeps
 static int beep_type = 0;
 static int record_flag = 0;
+static char* record_filename = 0;
 
 static int beep_custom_duration;
 static int beep_custom_frequency;
@@ -122,7 +123,7 @@ static int wav_find_chunk(uint8_t* buf, int size, uint32_t chunk_code)
     return offset;
 }
 
-static void WAV_PlaySmall(char* filename)
+static void wav_playsmall(char* filename)
 {
     int size = 0;
     uint8_t* buf = (uint8_t*)read_entire_file(filename, &size);
@@ -178,7 +179,7 @@ static void asif_continue_cbr()
     wav_ibuf = !wav_ibuf;
 }
 
-static void WAV_Play(char* filename)
+static void wav_play(char* filename)
 {
     uint8_t* buf1 = (uint8_t*)(wav_buf[0]);
     uint8_t* buf2 = (uint8_t*)(wav_buf[1]);
@@ -254,7 +255,7 @@ static void record_show_progress()
     );
 }
 
-static void WAV_RecordSmall(char* filename, int duration, int show_progress)
+static void wav_recordsmall(char* filename, int duration, int show_progress)
 {
     int N = 48000 * 2 * duration;
     uint8_t* wav_buf = alloc_dma_memory(sizeof(wav_header) + N);
@@ -412,7 +413,7 @@ static void asif_rec_continue_cbr()
     wav_ibuf = !wav_ibuf;
 }
 
-void WAV_Record(char* filename, int show_progress)
+static void wav_record(char* filename, int show_progress)
 {
     uint8_t* buf1 = (uint8_t*)wav_buf[0];
     uint8_t* buf2 = (uint8_t*)wav_buf[1];
@@ -473,7 +474,7 @@ static MENU_UPDATE_FUNC(record_display)
 
 #endif
 
- void generate_beep_tone(int16_t* buf, int N, int freq, int wavetype)
+static void generate_beep_tone(int16_t* buf, int N, int freq, int wavetype)
 {
     // for sine wave: 1 hz => t = i * 2*pi*MUL / 48000
     int twopi = 102944;
@@ -532,8 +533,10 @@ void unsafe_beep()
     }
 
     while (beep_playing) msleep(20);
+    #ifdef FEATURE_WAV_RECORDING
+    if (audio_recording) return;
+    #endif
 
-    if (audio_stop_rec_or_play()) return;
 #ifdef CONFIG_600D
     if (AUDIO_MONITORING_HEADPHONES_CONNECTED){
         NotifyBox(2000,"600D does not support\nPlay and monitoring together");
@@ -564,7 +567,7 @@ void beep_times(int times)
 
 void beep()
 {
-    if (!recording) // breaks audio
+    if (recording <= 0) // breaks audio
         unsafe_beep();
 }
 
@@ -624,6 +627,7 @@ static void beep_task()
             wav_record_do();
             #endif
             record_flag = 0;
+            record_filename = 0;
             continue;
         }
         
@@ -788,7 +792,7 @@ static void wav_playback_do()
 {
     if (beep_playing) return;
     if (audio_recording) return;
-    WAV_Play(current_wav_filename);
+    wav_play(current_wav_filename);
 }
 #endif
 
@@ -810,17 +814,8 @@ static char* wav_get_new_filename()
     static char imgname[100];
     int wav_number = 1;
     
-    if (QR_MODE)
-    {
-        snprintf(imgname, sizeof(imgname), "%s/IMG_%04d.WAV", get_dcim_dir(), file_number);
-        return imgname;
-    }
-    
-    else if (recording)
-    {
-        snprintf(imgname, sizeof(imgname), "%s/MVI_%04d.WAV", get_dcim_dir(), file_number);
-        return imgname;
-    }
+    if (record_filename)
+        return record_filename;
     
     for ( ; wav_number < 10000; wav_number++)
     {
@@ -851,7 +846,7 @@ static void wav_record_do()
     snprintf(current_wav_filename, sizeof(current_wav_filename), fn);
     if (recording) wav_notify_filename();
     else msleep(100); // to avoid the noise from shortcut key
-    WAV_Record(fn, q);
+    wav_record(fn, q);
     if (q)
     {
         redraw();
@@ -872,6 +867,12 @@ static void record_start(void* priv, int delta)
         return ;
     }
 
+    if (priv)
+    {
+        static char record_filename_buf[100];
+        snprintf(record_filename_buf, sizeof(record_filename_buf), "%s", priv);
+        record_filename = record_filename_buf;
+    }
     record_flag = 1;
     give_semaphore(beep_sem);
 }
@@ -904,7 +905,9 @@ int handle_voice_tags(struct event * event)
         }
         if (QR_MODE)
         {
-            record_start(0,0);
+            char filename[100];
+            snprintf(filename, sizeof(filename), "%s/IMG_%04d.WAV", get_dcim_dir(), file_number);
+            record_start(filename,0);
             return 0;
         }
     }
@@ -917,7 +920,12 @@ PROP_HANDLER( PROP_MVR_REC_START )
 {
     if (!fps_should_record_wav() && !hibr_should_record_wav()) return;
     int rec = buf[0];
-    if (rec == 1) record_start(0,0);
+    if (rec == 1)
+    {
+        char filename[100];
+        snprintf(filename, sizeof(filename), "%s/MVI_%04d.WAV", get_dcim_dir(), file_number);
+        record_start(filename,0);
+    }
     else if (rec == 0) audio_stop_recording();
 }
 #endif
@@ -1071,6 +1079,21 @@ static void beep_init()
 }
 
 INIT_FUNC("beep.init", beep_init);
+
+/* public recording API */
+void WAV_StartRecord(char* filename)
+{
+    #ifdef FEATURE_WAV_RECORDING
+    record_start(filename, 0);
+    #endif
+}
+
+void WAV_StopRecord()
+{
+    #ifdef FEATURE_WAV_RECORDING
+    audio_stop_recording();
+    #endif
+}
 
 #else // beep not working, keep dummy stubs
 

@@ -8,7 +8,7 @@
 lv_rec_file_footer_t lv_rec_footer;
 struct raw_info raw_info;
 
-#define FAIL(fmt,...) { fprintf(stderr, "Error: "); fprintf(stderr, fmt, ## __VA_ARGS__); exit(1); }
+#define FAIL(fmt,...) { fprintf(stderr, "Error: "); fprintf(stderr, fmt, ## __VA_ARGS__); fprintf(stderr, "\n"); exit(1); }
 #define CHECK(ok, fmt,...) { if (!ok) FAIL(fmt, ## __VA_ARGS__); }
 
 int main(int argc, char** argv)
@@ -29,7 +29,8 @@ int main(int argc, char** argv)
     }
     
     FILE* fi = fopen(argv[1], "rb");
-    CHECK(fi, "%s", argv[1]);
+    CHECK(fi, "could not open %s", argv[1]);
+    if (sizeof(lv_rec_file_footer_t) != 192) FAIL("sizeof(lv_rec_file_footer_t) = %d, should be 192", sizeof(lv_rec_file_footer_t));
     
     fseek(fi, -sizeof(lv_rec_file_footer_t), SEEK_END);
     int r = fread(&lv_rec_footer, 1, sizeof(lv_rec_file_footer_t), fi);

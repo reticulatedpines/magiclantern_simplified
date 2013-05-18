@@ -78,6 +78,11 @@ int save_dng(char* filename);
 void raw_preview_fast();
 void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int end_line, int ultra_fast);
 
+/* enable/disable/check LiveView RAW flag (lv_save_raw) */
+void raw_lv_enable();
+void raw_lv_disable();
+int raw_lv_enabled();
+
 /* redirect the LV RAW EDMAC in order to write the raw data at "ptr" */
 void raw_lv_redirect_edmac(void* ptr);
 
@@ -85,6 +90,7 @@ void raw_lv_redirect_edmac(void* ptr);
 int raw_lv_settings_still_valid();
 
 void raw_set_geometry(int width, int height, int skip_left, int skip_right, int skip_top, int skip_bottom);
+int raw_force_aspect_ratio_1to1();
 
 /* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
 struct raw_info {

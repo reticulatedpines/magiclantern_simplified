@@ -44,16 +44,31 @@
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
-NSTUB(0x8B7C, CreateMemorySuite)
-NSTUB(0x8974, DeleteMemorySuite)
+/** experimental EDMAC research **/
+NSTUB(0x00008B7C, CreateMemorySuite)
+NSTUB(0x00008974, DeleteMemorySuite)
 
-NSTUB(0x1152C, ConnectWriteEDmac)
-NSTUB(0x115F0, ConnectReadEDmac)
-NSTUB(0x11480, SetEDmac)
-NSTUB(0x11984, EDMAC_RegisterCompleteCBR)
-NSTUB(0x11798, StartEDmac)
+/** EDMAC routines */
+NSTUB(0x00011480, SetEDmac)
+NSTUB(0x00011798, StartEDmac)
+NSTUB(0x0001192C, PopEDmac) //Xref: PackMem_PopEDmacForMemorySuite
+NSTUB(0x000118E4, AbortEDmac)
+NSTUB(0x0001152C, ConnectWriteEDmac)
+NSTUB(0x000115F0, ConnectReadEDmac)
 
 
+/** keep the old name until all are refactored **/
+NSTUB(0x00011984, EDMAC_RegisterCompleteCBR)
+
+/** register/unregister CBR names **/
+NSTUB(0x00011984, RegisterEDmacCompleteCBR)
+NSTUB(0x00011A6C, RegisterEDmacAbortCBR)
+NSTUB(0x00011B00, RegisterEDmacPopCBR)
+NSTUB(0x000119C0, UnregisterEDmacCompleteCBR)
+NSTUB(0x00011AA8, UnregisterEDmacAbortCBR)
+NSTUB(0x00011B3C, UnregisterEDmacPopCBR)
+
+/** PackMem **/
 NSTUB(0xFF5EDF58, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
 NSTUB(0xFF5EDFF4, PackMem_RegisterEDmacPopCBRForMemorySuite)
 NSTUB(0xFF5EDC6C, PackMem_SetEDmacForMemorySuite)

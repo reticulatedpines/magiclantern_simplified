@@ -24,8 +24,12 @@
  * To find it, call("lv_save_raw") and look for an EDMAC channel that becomes active (Debug menu)
  **/
 
-#ifdef CONFIG_5D2
+#if defined(CONFIG_5D2) || defined(CONFIG_600D)
 #define RAW_LV_EDMAC 0xC0F04508
+#endif
+
+#if defined(CONFIG_500D) || defined(CONFIG_550D)
+#define RAW_LV_EDMAC 0xC0F26008
 #endif
 
 #if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_650D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_EOSM)
@@ -42,17 +46,14 @@
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#ifdef CONFIG_5D2
+#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined (CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_EOSM)
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3) || defined(CONFIG_6D)
 #define RAW_PHOTO_EDMAC 0xc0f04808
 #endif
 
-#ifdef CONFIG_650D
-#define RAW_PHOTO_EDMAC 0xc0f04808
-#endif
 static uint32_t raw_buffer_photo = 0;
 
 /* called from state-object.c, SDSf3 or SSS state */
@@ -69,6 +70,8 @@ void raw_buffer_intercept_from_stateobj()
      * look it up on the EDMAC registers and use that one instead.
      */
     raw_buffer_photo = shamem_read(RAW_PHOTO_EDMAC);
+
+
 }
 
 /** 
@@ -106,6 +109,15 @@ void raw_buffer_intercept_from_stateobj()
      -908, 10000,     2162, 10000,    5668, 10000
 #endif
 
+#ifdef CONFIG_550D
+   //~ { "Canon EOS 550D", 0, 0x3dd7,
+   //~	{  6941,-1164,-857,-3825,11597,2534,-416,1540,6039 } },
+    #define CAM_COLORMATRIX1                        \
+      6461, 10000,     -1164, 10000,    -857, 10000,\
+     -3825, 10000,     11597, 10000,    2534, 10000,\
+      -416, 10000,      1540, 10000,    6039, 10000
+#endif
+
 #ifdef CONFIG_6D
     //~ { "Canon EOS 6D", 0, 0,
     //~ { 7034,-804,-1014,-4420,12564,2058,-851,1994,5758 } },
@@ -115,10 +127,29 @@ void raw_buffer_intercept_from_stateobj()
      -851, 10000,     1994, 10000,    5758, 10000
 #endif
 
-#ifdef CONFIG_650D
-    //~  { "Canon EOS 650D", 0, 0x354d,
-    //~  { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
+#ifdef CONFIG_500D
+    //~ { "Canon EOS 500D", 0, 0x3479,
+    //~ { 4763,712,-646,-6821,14399,2640,-1921,3276,6561 } },
     #define CAM_COLORMATRIX1                       \
+     4763, 10000,      712, 10000,    -646, 10000, \
+    -6821, 10000,    14399, 10000,    2640, 10000, \
+    -1921, 10000,     3276, 10000,    6561, 10000
+#endif
+
+#ifdef CONFIG_600D
+	//~ { "Canon EOS 600D", 0, 0x3510,
+	//~ { 6461,-907,-882,-4300,12184,2378,-819,1944,5931 } },
+    #define CAM_COLORMATRIX1                       \
+      6461, 10000,     -907, 10000,    -882, 10000,\
+    -4300, 10000,    12184, 10000,    2378, 10000, \
+     -819, 10000,     1944, 10000,    5931, 10000
+#endif
+
+#if defined(CONFIG_650D) || defined(CONFIG_EOSM) //Same sensor??
+    //~ { "Canon EOS 650D", 0, 0x354d,
+    //~ { "Canon EOS M", 0, 0,
+    //~ { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
+	#define CAM_COLORMATRIX1                     \
      6602, 10000,     -841, 10000,    -939, 10000,\
     -4472, 10000,    12458, 10000,    2247, 10000, \
      -975, 10000,     2039, 10000,    6148, 10000
@@ -206,12 +237,33 @@ int raw_update_params()
         skip_right      = 6;
         #endif
 
-        #ifdef CONFIG_650D
-        skip_top    = 26;
-        skip_left   = 100;
-        skip_bottom = 1;
+        #ifdef CONFIG_6D
+        //~ raw_info.height = zoom ? 980 : mv720 ? 656 : 1244;
+        skip_top        = 24;
+        skip_left       = 76;
+        skip_right      = zoom ? 104: 4; //Extra Pixel in 720P zoom. 3 other modes.
+        //~ skip_bottom = 1;
         #endif
 
+        #ifdef CONFIG_500D
+        skip_top    = 24;
+        skip_left   = zoom ? 64 : 74;
+        #endif
+
+        #ifdef CONFIG_550D
+        skip_top    = 26;
+        skip_left   = zoom ? 0 : 152;
+        skip_right  = zoom ? 0 : 2;
+        #endif
+
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+        //~ raw_info.height = zoom ? 1102 : 718;
+        skip_top    = 24;
+        skip_left   = 68;
+        skip_right  = 0;
+        skip_bottom = 1;
+        #endif
+        
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
     }
@@ -275,6 +327,23 @@ int raw_update_params()
         skip_top = 80;
         #endif
 
+        #ifdef CONFIG_6D  //Needs check from Raw dump but looks aligned.
+        width = 5568;
+        height = 3708;
+        skip_left = 84; //Meta Data
+        skip_right = 0;
+        skip_top = 50; // Meta Data
+        #endif
+
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+        width = 5280;
+        height = 3528;
+        skip_left = 68;
+        skip_right = 0;
+        skip_top = 28;
+        #endif
+
+
         dbg_printf("Photo raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
     }
@@ -303,8 +372,25 @@ int raw_update_params()
     int dynamic_ranges[] = {1143, 1139, 1122, 1087, 1044, 976, 894, 797, 683, 624, 505};
     #endif
 
+    #ifdef CONFIG_500D
+    int dynamic_ranges[] = {1104, 1094, 1066, 1007, 933, 848, 737, 625};
+    #endif
+
+    #ifdef CONFIG_550D
+    //int dynamic_ranges[] = {1157, 1154, 1121, 1070, 979, 906, 805, 707}; I took the values Greg recommended
+    int dynamic_ranges[] = {1095, 1092, 1059, 1008, 917, 844, 744, 645};
+    #endif
+
+    #ifdef CONFIG_600D
+    int dynamic_ranges[] = {1146, 1139, 1116, 1061, 980, 898, 806, 728};
+	#endif
+
     #ifdef CONFIG_650D
     int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
+    #endif
+
+    #ifdef CONFIG_EOSM
+    int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
     #endif
 
 /*********************** Portable code ****************************************/
@@ -518,6 +604,8 @@ void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2,
     
     int x1 = BM2LV_X(os.x0);
     int x2 = BM2LV_X(os.x_max);
+    x1 = MAX(x1, RAW2LV_X(raw_info.active_area.x1));
+    x2 = MIN(x2, RAW2LV_X(raw_info.active_area.x2));
 
     /* cache the LV to RAW transformation for the inner loop to make it faster */
     /* we will always choose a green pixel */
@@ -527,14 +615,23 @@ void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2,
     for (int x = x1; x < x2; x++)
         lv2rx[x] = LV2RAW_X(x) & ~1;
 
-    int dy = ultra_fast ? 2 : 1;
-    for (int y = y1; y < y2; y += dy)
+    for (int y = y1; y < y2; y++)
     {
         int yr = LV2RAW_Y(y) | 1;
+
+        if (yr < raw_info.active_area.y1 || yr >= raw_info.active_area.y2)
+        {
+            /* out of range, just fill with black */
+            memset(&lv64[LV(0,y)/8], 0, BM2LV_DX(x2-x1)*2);
+            continue;
+        }
+
         struct raw_pixblock * row = (void*)raw + yr * raw_info.pitch;
         
         if (ultra_fast) /* prefer real-time low-res display */
         {
+            if (y%2) continue;
+            
             for (int x = x1; x < x2; x += 4)
             {
                 int xr = lv2rx[x];
@@ -564,4 +661,43 @@ void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2,
 void FAST raw_preview_fast()
 {
     raw_preview_fast_ex(raw_info.buffer, (void*)YUV422_LV_BUFFER_DISPLAY_ADDR, BM2LV_Y(os.y0), BM2LV_Y(os.y_max), 0);
+}
+
+static int lv_raw_enabled;
+void raw_lv_enable()
+{
+    lv_raw_enabled = 1;
+    call("lv_save_raw", 1);
+}
+
+void raw_lv_disable()
+{
+    lv_raw_enabled = 0;
+    call("lv_save_raw", 0);
+}
+
+int raw_lv_is_enabled()
+{
+    return lv_raw_enabled;
+}
+
+/* may not be correct on 4:3 screens */
+int raw_force_aspect_ratio_1to1()
+{
+    if (lv2raw.sy < lv2raw.sx) /* image too tall */
+    {
+        lv2raw.sy = lv2raw.sx;
+        int height = RAW2LV_DY(raw_info.jpeg.height);
+        int offset = (vram_lv.height - height) / 2;
+        int skip_top = raw_info.active_area.y1;
+        lv2raw.ty = skip_top - LV2RAW_DY(os.y0) - LV2RAW_DY(offset);
+    }
+    else if (lv2raw.sx < lv2raw.sy) /* image too wide */
+    {
+        lv2raw.sx = lv2raw.sy;
+        int width = RAW2LV_DX(raw_info.jpeg.width);
+        int offset = (vram_lv.width - width) / 2;
+        int skip_left = raw_info.active_area.x1;
+        lv2raw.tx = skip_left - LV2RAW_DX(os.x0) - LV2RAW_DX(offset);
+    }
 }
