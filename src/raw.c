@@ -28,13 +28,13 @@
 #define RAW_LV_EDMAC 0xC0F04508
 #endif
 
+#if defined(CONFIG_500D) || defined(CONFIG_550D)
+#define RAW_LV_EDMAC 0xC0F26008
+#endif
+
 #if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_650D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_EOSM)
 /* probably all new cameras use this address */
 #define RAW_LV_EDMAC 0xC0F26208
-#endif
-
-#if defined(CONFIG_550D)
-#define RAW_LV_EDMAC 0xC0F26008
 #endif
 
 /**
@@ -46,7 +46,7 @@
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined (CONFIG_550D) || defined(CONFIG_650D)
+#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined (CONFIG_550D) || defined(CONFIG_650D) || defined(CONFIG_EOSM)
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
@@ -125,6 +125,15 @@ void raw_buffer_intercept_from_stateobj()
      7034, 10000,     -804, 10000,    -1014, 10000,\
     -4420, 10000,    12564, 10000,    2058, 10000, \
      -851, 10000,     1994, 10000,    5758, 10000
+#endif
+
+#ifdef CONFIG_500D
+    //~ { "Canon EOS 500D", 0, 0x3479,
+    //~ { 4763,712,-646,-6821,14399,2640,-1921,3276,6561 } },
+    #define CAM_COLORMATRIX1                       \
+     4763, 10000,      712, 10000,    -646, 10000, \
+    -6821, 10000,    14399, 10000,    2640, 10000, \
+    -1921, 10000,     3276, 10000,    6561, 10000
 #endif
 
 #ifdef CONFIG_600D
@@ -239,6 +248,11 @@ int raw_update_params()
         skip_left       = 76;
         skip_right      = zoom ? 104: 4; //Extra Pixel in 720P zoom. 3 other modes.
         //~ skip_bottom = 1;
+        #endif
+
+        #ifdef CONFIG_500D
+        skip_top    = 24;
+        skip_left   = 74;
         #endif
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
@@ -360,6 +374,10 @@ int raw_update_params()
 
     #ifdef CONFIG_6D
     int dynamic_ranges[] = {1143, 1139, 1122, 1087, 1044, 976, 894, 797, 683, 624, 505};
+    #endif
+
+    #ifdef CONFIG_500D
+    int dynamic_ranges[] = {1104, 1094, 1066, 1007, 933, 848, 737, 625};
     #endif
 
     #ifdef CONFIG_600D
