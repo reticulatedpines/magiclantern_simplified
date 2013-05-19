@@ -414,6 +414,7 @@ static void hack_liveview()
     {
         call("aewb_enableaewb", 0);
         idle_globaldraw_dis();
+        int y = 100;
         for (int channel = 0; channel < 32; channel++)
         {
             /* silence out the EDMACs used for HD and LV buffers */
@@ -421,6 +422,7 @@ static void hack_liveview()
             if (pitch == vram_lv.pitch || pitch == vram_hd.pitch)
             {
                 uint32_t reg = edmac_get_base(channel);
+                bmp_printf(FONT_SMALL, 30, y += font_small.height, "Hack %x %x ", reg, shamem_read(reg + 0x10) & 0xFFFF);
                 *(volatile uint32_t *)(reg + 0x10) = shamem_read(reg + 0x10) & 0xFFFF;
             }
         }
@@ -859,7 +861,7 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "Use direction keys to move the window.",
             },
             {
-                .name = "HaCk3D mode",
+                .name = "HaCKeD mode",
                 .priv = &hacked_mode,
                 .max = 1,
                 .help = "Some extreme hacks for squeezing a little more speed.",
