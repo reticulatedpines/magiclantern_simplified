@@ -315,10 +315,11 @@ int raw_update_params()
         /* from debug log: [TTJ][150,27089,0] RAW(5792,3804,0,14) */
         width = 5792;
         height = 3804;
-        skip_left = 176;
+        skip_left = 160;
         skip_top = 54;
         /* first pixel should be red, but here it isn't, so we'll skip one line */
-        raw_info.buffer += width * 14/8;
+        /* also we have a 16-pixel border on the left that contains image data */
+        raw_info.buffer += width * 14/8 + 16*14/8;
         #endif
 
         #ifdef CONFIG_5D3
