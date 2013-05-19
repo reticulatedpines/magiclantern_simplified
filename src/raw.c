@@ -562,15 +562,14 @@ int FAST ev_to_raw(float ev)
     return raw_info.black_level + powf(2, ev) * raw_max;
 }
 
-int autodetect_black_level()
+static int autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, int dy, int* out_mean, int* out_stdev)
 {
     int black = 0;
     int num = 0;
-    /* use the left black bar for black calibration */
     /* compute average level */
-    for (int y = raw_info.active_area.y1 + 20; y < raw_info.active_area.y2 - 20; y += 5)
+    for (int y = y1; y < y2; y += dy)
     {
-        for (int x = 4; x < raw_info.active_area.x1 - 4; x += 3)
+        for (int x = x1; x < x2; x += dx)
         {
             black += raw_get_pixel(x, y);
             num++;
@@ -581,9 +580,9 @@ int autodetect_black_level()
 
     /* compute standard deviation */
     int stdev = 0;
-    for (int y = raw_info.active_area.y1 + 20; y < raw_info.active_area.y2 - 20; y += 5)
+    for (int y = y1; y < y2; y += dy)
     {
-        for (int x = 4; x < raw_info.active_area.x1 - 4; x += 3)
+        for (int x = x1; x < x2; x += dx)
         {
             int dif = raw_get_pixel(x, y) - mean;
             stdev += dif * dif;
@@ -596,6 +595,34 @@ int autodetect_black_level()
     }
     stdev /= num;
     stdev = sqrtf(stdev);
+    
+    *out_mean = mean;
+    *out_stdev = stdev;
+}
+
+int autodetect_black_level()
+{
+    int mean = 0;
+    int stdev = 0;
+    
+    if (raw_info.active_area.x1 > 10) /* use the left black bar for black calibration */
+    {
+        autodetect_black_level_calc(
+            4, raw_info.active_area.x1 - 4,
+            raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 
+            3, 5,
+            &mean, &stdev
+        );
+    }
+    else /* use the top black bar for black calibration */
+    {
+        autodetect_black_level_calc(
+            raw_info.active_area.x1 + 20, raw_info.active_area.x2 - 20, 
+            4, raw_info.active_area.y1 - 4,
+            5, 3,
+            &mean, &stdev
+        );
+    }
     
     #ifndef CONFIG_DXO_DYNAMIC_RANGE
     /* this is a bit above DxO measurements by around 0.2 - 0.3 EV */
