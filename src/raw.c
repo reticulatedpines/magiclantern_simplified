@@ -46,7 +46,7 @@
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined (CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined (CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_60D)
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
@@ -144,6 +144,16 @@ void raw_buffer_intercept_from_stateobj()
     -4300, 10000,    12184, 10000,    2378, 10000, \
      -819, 10000,     1944, 10000,    5931, 10000
 #endif
+
+#ifdef CONFIG_60D
+        //~ { "Canon EOS 60D", 0, 0x2ff7,
+        //~ {  6719,-994,-925,-4408,12426,2211,-887,2129,6051 } },
+    #define CAM_COLORMATRIX1                       \
+      6719, 10000,     -994, 10000,    -925, 10000,\
+    -4400, 10000,    12426, 10000,    2211, 10000, \
+     -887, 10000,     2129, 10000,    6051, 10000
+#endif
+
 
 #if defined(CONFIG_650D) || defined(CONFIG_EOSM) //Same sensor??
     //~ { "Canon EOS 650D", 0, 0x354d,
@@ -255,6 +265,14 @@ int raw_update_params()
         skip_left   = zoom ? 0 : 152;
         skip_right  = zoom ? 0 : 2;
         #endif
+
+	#ifdef CONFIG_60D
+        skip_top    = 22;
+	skip_left   = 148;
+//        skip_left   = zoom ? 0 : 0;
+//        skip_right  = zoom ? 0 : 0;
+        #endif
+
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
         //~ raw_info.height = zoom ? 1102 : 718;
@@ -383,7 +401,7 @@ int raw_update_params()
 
     #ifdef CONFIG_600D
     int dynamic_ranges[] = {1146, 1139, 1116, 1061, 980, 898, 806, 728};
-	#endif
+    #endif
 
     #ifdef CONFIG_650D
     int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
@@ -391,6 +409,10 @@ int raw_update_params()
 
     #ifdef CONFIG_EOSM
     int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
+    #endif
+
+    #ifdef CONFIG_60D
+    int dynamic_ranges[] = {1091, 1072, 1055, 999, 910, 824, 736, 662};
     #endif
 
 /*********************** Portable code ****************************************/
