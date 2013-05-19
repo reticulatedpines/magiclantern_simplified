@@ -4376,14 +4376,11 @@ void draw_histogram_and_waveform(int allow_play)
 #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM) || defined(FEATURE_VECTORSCOPE)
     if (hist_draw || waveform_draw || vectorscope_draw)
     {
+        hist_build(); /* also updates waveform and vectorscope */
         #ifdef FEATURE_RAW_HISTOGRAM
         if (raw_histogram_enable && can_use_raw_overlays())
-        {
             hist_build_raw();
-        }
-        else
         #endif
-        hist_build();
     }
 #endif
     
