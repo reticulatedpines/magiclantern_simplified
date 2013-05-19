@@ -274,8 +274,6 @@ int raw_update_params()
         skip_top    = 26;
         skip_left   = 152;
         skip_right  = 2;
-//        skip_left   = zoom ? 0 : 0;
-//        skip_right  = zoom ? 0 : 0;
         #endif
 
 
@@ -418,7 +416,7 @@ int raw_update_params()
 
     #ifdef CONFIG_60D
     int dynamic_ranges[] = {1091, 1072, 1055, 999, 910, 824, 736, 662};
-    #endif
+        #endif
 
 /*********************** Portable code ****************************************/
 
