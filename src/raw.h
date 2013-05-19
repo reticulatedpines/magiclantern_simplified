@@ -90,7 +90,7 @@ void raw_lv_redirect_edmac(void* ptr);
 int raw_lv_settings_still_valid();
 
 void raw_set_geometry(int width, int height, int skip_left, int skip_right, int skip_top, int skip_bottom);
-int raw_force_aspect_ratio_1to1();
+void raw_force_aspect_ratio_1to1();
 
 /* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
 struct raw_info {
@@ -130,7 +130,7 @@ struct raw_info {
     int calibration_illuminant1;
     int color_matrix1[18];      // DNG Color Matrix
     
-    int dynamic_range;          // EV x10, from DxO
+    int dynamic_range;          // EV x100, from analyzing black level and noise (very close to DxO)
 };
 
 extern struct raw_info raw_info;

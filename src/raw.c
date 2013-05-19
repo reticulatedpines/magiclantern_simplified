@@ -10,6 +10,9 @@
 #undef RAW_DEBUG_BLACK  /* for checking black level calibration */
 /* see also RAW_ZEBRA_TEST and RAW_SPOTMETER_TEST in zebra.c */
 
+/* can be computed from black level analysis, so we no longer need this */
+#undef CONFIG_DXO_DYNAMIC_RANGE
+
 #ifdef RAW_DEBUG
 #define dbg_printf(fmt,...) { console_printf(fmt, ## __VA_ARGS__); }
 #else
@@ -352,7 +355,8 @@ int raw_update_params()
         dbg_printf("Neither LV nor QR\n");
         return 0;
     }
-    
+
+#ifdef CONFIG_DXO_DYNAMIC_RANGE
     /**
      * Dynamic range, from DxO
      * e.g. http://www.dxomark.com/index.php/Cameras/Camera-Sensor-Database/Canon/EOS-5D-Mark-III
@@ -392,7 +396,7 @@ int raw_update_params()
     #ifdef CONFIG_EOSM
     int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
     #endif
-
+#endif
 /*********************** Portable code ****************************************/
 
     raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
@@ -401,25 +405,32 @@ int raw_update_params()
     if (lv) iso = FRAME_ISO;
     if (!iso) iso = lens_info.raw_iso;
     if (!iso) iso = lens_info.raw_iso_auto;
+#ifdef CONFIG_DXO_DYNAMIC_RANGE
     int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 72 + (COUNT(dynamic_ranges)-1) * 8);
     int dr_index = COERCE((iso_rounded - 72) / 8, 0, COUNT(dynamic_ranges)-1);
     float iso_digital = (iso - iso_rounded) / 8.0f;
     raw_info.dynamic_range = dynamic_ranges[dr_index];
     dbg_printf("dynamic range: %d.%02d EV (iso=%d)\n", raw_info.dynamic_range/100, raw_info.dynamic_range%100, raw2iso(iso));
+#else
+    int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 200);
+    float iso_digital = (iso - iso_rounded) / 8.0f;
+#endif
     
-    raw_info.black_level = autodetect_black_level();
     raw_info.white_level = WHITE_LEVEL;
+    raw_info.black_level = autodetect_black_level();
     
     if (iso_digital <= 0)
     {
         /* at ISO 160, 320 etc, the white level is decreased by -1/3 EV */
         raw_info.white_level *= powf(2, iso_digital);
     }
+#ifdef CONFIG_DXO_DYNAMIC_RANGE
     else if (iso_digital > 0)
     {
         /* at positive digital ISO, the white level doesn't change, but the dynamic range is reduced */
         raw_info.dynamic_range -= (iso_digital * 100);
     }
+#endif
 
     dbg_printf("black=%d white=%d\n", raw_info.black_level, raw_info.white_level);
 
@@ -555,13 +566,27 @@ int autodetect_black_level()
 {
     int black = 0;
     int num = 0;
-    /* use a small area from top-left corner for quick black calibration */
-    for (int y = raw_info.active_area.y1 + 10; y < raw_info.active_area.y1 + 20; y++)
+    /* use the left black bar for black calibration */
+    /* compute average level */
+    for (int y = raw_info.active_area.y1 + 20; y < raw_info.active_area.y2 - 20; y += 5)
     {
-        for (int x = 0; x < raw_info.active_area.x1 - 5; x += 2)
+        for (int x = 4; x < raw_info.active_area.x1 - 4; x += 3)
         {
             black += raw_get_pixel(x, y);
             num++;
+        }
+    }
+
+    int mean = black / num;
+
+    /* compute standard deviation */
+    int stdev = 0;
+    for (int y = raw_info.active_area.y1 + 20; y < raw_info.active_area.y2 - 20; y += 5)
+    {
+        for (int x = 4; x < raw_info.active_area.x1 - 4; x += 3)
+        {
+            int dif = raw_get_pixel(x, y) - mean;
+            stdev += dif * dif;
             
             #ifdef RAW_DEBUG_BLACK
             /* to check if we are reading the black level from the proper spot, enable RAW_DEBUG_BLACK here and in save_dng. */
@@ -569,7 +594,17 @@ int autodetect_black_level()
             #endif
         }
     }
-    return black / num;
+    stdev /= num;
+    stdev = sqrtf(stdev);
+    
+    #ifndef CONFIG_DXO_DYNAMIC_RANGE
+    /* this is a bit above DxO measurements by around 0.2 - 0.3 EV */
+    raw_info.dynamic_range = (int)roundf((log2f(raw_info.white_level) - log2f(stdev)) * 100) - 25;
+    #endif
+
+    // bmp_printf(FONT_MED, 50, 100, "black: mean=%d stdev=%d dr=%d \n", mean, stdev, raw_info.dynamic_range);
+
+    return mean + stdev;
 }
 
 void raw_lv_redirect_edmac(void* ptr)
@@ -682,7 +717,7 @@ int raw_lv_is_enabled()
 }
 
 /* may not be correct on 4:3 screens */
-int raw_force_aspect_ratio_1to1()
+void raw_force_aspect_ratio_1to1()
 {
     if (lv2raw.sy < lv2raw.sx) /* image too tall */
     {

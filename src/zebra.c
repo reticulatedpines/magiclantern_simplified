@@ -3435,7 +3435,7 @@ struct menu_entry zebra_menus[] = {
                 .help = "Choose an EV image indicator to display on the histogram.",
                 .help2 = 
                     " \n"
-                    "Display the dynamic range at current ISO, from DxO charts.\n"
+                    "Display the dynamic range at current ISO, from noise stdev.\n"
                     "Show how many stops you can push the exposure to the right.\n"
                     "ETTR hint, if you don't mind clipping the GREEN channel.\n"
             },
