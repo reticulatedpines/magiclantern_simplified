@@ -416,7 +416,7 @@ int raw_update_params()
 
     #ifdef CONFIG_60D
     int dynamic_ranges[] = {1091, 1072, 1055, 999, 910, 824, 736, 662};
-        #endif
+    #endif
 
 /*********************** Portable code ****************************************/
 
