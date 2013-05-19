@@ -604,7 +604,7 @@ int autodetect_black_level()
 
     // bmp_printf(FONT_MED, 50, 100, "black: mean=%d stdev=%d dr=%d \n", mean, stdev, raw_info.dynamic_range);
 
-    return mean + stdev;
+    return mean + stdev/2;
 }
 
 void raw_lv_redirect_edmac(void* ptr)
