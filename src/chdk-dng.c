@@ -53,11 +53,6 @@ static void FAST reverse_bytes_order(char* buf, int count)
     }
 }
 
-//thumbnail
-#define DNG_TH_WIDTH 128
-#define DNG_TH_HEIGHT 96
-// higly recommended that DNG_TH_WIDTH*DNG_TH_HEIGHT would be divisible by 512
-
 struct dir_entry{unsigned short tag; unsigned short type; unsigned int count; unsigned int offset;};
 
 #define T_BYTE      1
@@ -112,68 +107,32 @@ static struct t_data_for_exif exif_data;
 
 // warning: according to TIFF format specification, elements must be sorted by tag value in ascending order!
 
-// Index of specific entries in ifd0 below.
-// *** warning - if entries are added or removed these should be updated ***
-#define CAMERA_NAME_INDEX           8       // tag 0x110
-#define THUMB_DATA_INDEX            9       // tag 0x111
-#define ORIENTATION_INDEX           10      // tag 0x112
-#define CHDK_VER_INDEX              15      // tag 0x131
-#define ARTIST_NAME_INDEX           17      // tag 0x13B
-#define SUBIFDS_INDEX               18      // tag 0x14A
-#define COPYRIGHT_INDEX             19      // tag 0x8298
-#define EXIF_IFD_INDEX              20      // tag 0x8769
-#define DNG_VERSION_INDEX           22      // tag 0xC612
-#define UNIQUE_CAMERA_MODEL_INDEX   24      // tag 0xC614
+// warning: according to TIFF format specification, elements must be sorted by tag value in ascending order!
 
 #define CAM_MAKE                    "Canon"
 
-struct dir_entry ifd0[]={
-    {0xFE,   T_LONG,       1,  1},                                 // NewSubFileType: Preview Image
-    {0x100,  T_LONG,       1,  DNG_TH_WIDTH},                      // ImageWidth
-    {0x101,  T_LONG,       1,  DNG_TH_HEIGHT},                     // ImageLength
-    {0x102,  T_SHORT,      3,  (int)cam_PreviewBitsPerSample},     // BitsPerSample: 8,8,8
-    {0x103,  T_SHORT,      1,  1},                                 // Compression: Uncompressed
-    {0x106,  T_SHORT,      1,  2},                                 // PhotometricInterpretation: RGB
-    {0x10E,  T_ASCII,      1,  0},                                 // ImageDescription
-    {0x10F,  T_ASCII,      sizeof(CAM_MAKE), (int)CAM_MAKE},       // Make
-    {0x110,  T_ASCII,      32, (int)cam_name},                     // Model: Filled at header generation.
-    {0x111,  T_LONG,       1,  0},                                 // StripOffsets: Offset
-    {0x112,  T_SHORT,      1,  1},                                 // Orientation: 1 - 0th row is top, 0th column is left
-    {0x115,  T_SHORT,      1,  3},                                 // SamplesPerPixel: 3
-    {0x116,  T_SHORT,      1,  DNG_TH_HEIGHT},                     // RowsPerStrip
-    {0x117,  T_LONG,       1,  DNG_TH_WIDTH*DNG_TH_HEIGHT*3},      // StripByteCounts = preview size
-    {0x11C,  T_SHORT,      1,  1},                                 // PlanarConfiguration: 1
-    {0x131,  T_ASCII|T_PTR,32, 0},                                 // Software
-    {0x132,  T_ASCII,      20, (int)cam_datetime},                 // DateTime
-    {0x13B,  T_ASCII|T_PTR,64, (int)dng_artist_name},              // Artist: Filled at header generation.
-    {0x14A,  T_LONG,       1,  0},                                 // SubIFDs offset
-    {0x8298, T_ASCII|T_PTR,64, (int)dng_copyright},                // Copyright
-    {0x8769, T_LONG,       1,  0},                                 // EXIF_IFD offset
-    {0x9216, T_BYTE,       4,  0x00000001},                        // TIFF/EPStandardID: 1.0.0.0
-    {0xC612, T_BYTE,       4,  0x00000301},                        // DNGVersion: 1.3.0.0
-    {0xC613, T_BYTE,       4,  0x00000101},                        // DNGBackwardVersion: 1.1.0.0
-    {0xC614, T_ASCII,      32, (int)cam_name},                     // UniqueCameraModel. Filled at header generation.
-    {0xC621, T_SRATIONAL,  9,  (int)&camera_sensor.color_matrix1},
-    {0xC627, T_RATIONAL,   3,  (int)cam_AnalogBalance},
-    {0xC628, T_RATIONAL,   3,  (int)cam_AsShotNeutral},
-    {0xC62A, T_SRATIONAL,  1,  (int)&camera_sensor.exposure_bias},
-    {0xC62B, T_RATIONAL,   1,  (int)cam_BaselineNoise},
-    {0xC62C, T_RATIONAL,   1,  (int)cam_BaselineSharpness},
-    {0xC62E, T_RATIONAL,   1,  (int)cam_LinearResponseLimit},
-};
-
-// Index of specific entries in ifd1 below.
+// Index of specific entries in ifd0 below.
 // *** warning - if entries are added or removed these should be updated ***
-#define RAW_DATA_INDEX              6       // tag 0x111
+#define RAW_DATA_INDEX              8       // tag 0x111
+#define CAMERA_NAME_INDEX           7       // tag 0x110
+#define CHDK_VER_INDEX              17      // tag 0x131
+#define ARTIST_NAME_INDEX           19      // tag 0x13B
+#define COPYRIGHT_INDEX             22      // tag 0x8298
+#define EXIF_IFD_INDEX              23      // tag 0x8769
+#define DNG_VERSION_INDEX           25      // tag 0xC612
+#define UNIQUE_CAMERA_MODEL_INDEX   27      // tag 0xC614
 
-struct dir_entry ifd1[]={
+struct dir_entry ifd0[]={
     {0xFE,   T_LONG,       1,  0},                                 // NewSubFileType: Main Image
     {0x100,  T_LONG|T_PTR, 1,  (int)&camera_sensor.raw_rowpix},    // ImageWidth
     {0x101,  T_LONG|T_PTR, 1,  (int)&camera_sensor.raw_rows},      // ImageLength
     {0x102,  T_SHORT|T_PTR,1,  (int)&camera_sensor.bits_per_pixel},// BitsPerSample
     {0x103,  T_SHORT,      1,  1},                                 // Compression: Uncompressed
     {0x106,  T_SHORT,      1,  0x8023},                            // PhotometricInterpretation: CFA
+    {0x10F,  T_ASCII,      sizeof(CAM_MAKE), (int)CAM_MAKE},       // Make
+    {0x110,  T_ASCII,      32, (int)cam_name},                     // Model: Filled at header generation.
     {0x111,  T_LONG,       1,  0},                                 // StripOffsets: Offset
+    {0x112,  T_SHORT,      1,  1},                                 // Orientation: 1 - 0th row is top, 0th column is left
     {0x115,  T_SHORT,      1,  1},                                 // SamplesPerPixel: 1
     {0x116,  T_SHORT|T_PTR,1,  (int)&camera_sensor.raw_rows},      // RowsPerStrip
     {0x117,  T_LONG|T_PTR, 1,  (int)&camera_sensor.raw_size},      // StripByteCounts = CHDK RAW size
@@ -181,12 +140,28 @@ struct dir_entry ifd1[]={
     {0x11B,  T_RATIONAL,   1,  (int)cam_Resolution},               // YResolution
     {0x11C,  T_SHORT,      1,  1},                                 // PlanarConfiguration: 1
     {0x128,  T_SHORT,      1,  2},                                 // ResolutionUnit: inch
+    {0x131,  T_ASCII|T_PTR,32, 0},                                 // Software
+    {0x132,  T_ASCII,      20, (int)cam_datetime},                 // DateTime
+    {0x13B,  T_ASCII|T_PTR,64, (int)dng_artist_name},                  // Artist: Filled at header generation.
     {0x828D, T_SHORT,      2,  0x00020002},                        // CFARepeatPatternDim: Rows = 2, Cols = 2
     {0x828E, T_BYTE|T_PTR, 4,  (int)&camera_sensor.cfa_pattern},
+    {0x8298, T_ASCII|T_PTR,64, (int)dng_copyright},                // Copyright
+    {0x8769, T_LONG,       1,  0},                                 // EXIF_IFD offset
+    {0x9216, T_BYTE,       4,  0x00000001},                        // TIFF/EPStandardID: 1.0.0.0
+    {0xC612, T_BYTE,       4,  0x00000301},                        // DNGVersion: 1.3.0.0
+    {0xC613, T_BYTE,       4,  0x00000101},                        // DNGBackwardVersion: 1.1.0.0
+    {0xC614, T_ASCII,      32, (int)cam_name},                     // UniqueCameraModel. Filled at header generation.
     {0xC61A, T_LONG|T_PTR, 1,  (int)&camera_sensor.black_level},   // BlackLevel
     {0xC61D, T_LONG|T_PTR, 1,  (int)&camera_sensor.white_level},   // WhiteLevel
     {0xC61F, T_LONG,       2,  (int)&camera_sensor.crop.origin},
     {0xC620, T_LONG,       2,  (int)&camera_sensor.crop.size},
+    {0xC621, T_SRATIONAL,  9,  (int)&camera_sensor.color_matrix1},
+    {0xC627, T_RATIONAL,   3,  (int)cam_AnalogBalance},
+    {0xC628, T_RATIONAL,   3,  (int)cam_AsShotNeutral},
+    {0xC62A, T_SRATIONAL,  1,  (int)&camera_sensor.exposure_bias},
+    {0xC62B, T_RATIONAL,   1,  (int)cam_BaselineNoise},
+    {0xC62C, T_RATIONAL,   1,  (int)cam_BaselineSharpness},
+    {0xC62E, T_RATIONAL,   1,  (int)cam_LinearResponseLimit},
     {0xC68D, T_LONG,       4,  (int)&camera_sensor.dng_active_area},
 };
 
@@ -247,7 +222,6 @@ struct
 } ifd_list[] = 
 {
     {ifd0,      DIR_SIZE(ifd0),     DIR_SIZE(ifd0)}, 
-    {ifd1,      DIR_SIZE(ifd1),     DIR_SIZE(ifd1)}, 
     {exif_ifd,  DIR_SIZE(exif_ifd), DIR_SIZE(exif_ifd)}, 
 };
 
@@ -316,23 +290,12 @@ static void create_dng_header(){
     dng_header_buf_offset=0;
     if (!dng_header_buf) return;
 
-    // create buffer for thumbnail
-    thumbnail_buf = malloc(DNG_TH_WIDTH*DNG_TH_HEIGHT*3);
-    if (!thumbnail_buf)
-    {
-        ufree(dng_header_buf);
-        dng_header_buf = 0;
-        return;
-    }
-
     //  writing offsets for EXIF IFD and RAW data and calculating offset for extra data
 
     extra_offset=TIFF_HDR_SIZE;
 
-    ifd0[SUBIFDS_INDEX].offset = TIFF_HDR_SIZE + ifd_list[0].count * 12 + 6;                            // SubIFDs offset
-    ifd0[EXIF_IFD_INDEX].offset = TIFF_HDR_SIZE + (ifd_list[0].count + ifd_list[1].count) * 12 + 6 + 6; // EXIF IFD offset
-    ifd0[THUMB_DATA_INDEX].offset = raw_offset;                                     //StripOffsets for thumbnail
-    ifd1[RAW_DATA_INDEX].offset = raw_offset + DNG_TH_WIDTH * DNG_TH_HEIGHT * 3;    //StripOffsets for main image
+    ifd0[EXIF_IFD_INDEX].offset = TIFF_HDR_SIZE + ifd_list[0].count * 12 + 6; // EXIF IFD offset
+    ifd0[RAW_DATA_INDEX].offset = raw_offset;    //StripOffsets for main image
 
     for (j=0;j<ifd_count;j++)
     {
@@ -417,60 +380,6 @@ static void free_dng_header(void)
     }
 }
 
-static int pow_calc_2( int mult, int x, int x_div, double y, int y_div)
-{
-	double x1 = x;
-	if ( x_div != 1 ) { x1=x1/x_div;}
-	if ( y_div != 1 ) { y=y/y_div;}
-
-	if ( mult==1 )
-		return pow( x1, y );
-                else
-		return mult	* pow( x1, y );
-}
-
-//-------------------------------------------------------------------
-// Functions for creating DNG thumbnail image
-
-static unsigned char gammma[256];
-
-static void fill_gamma_buf(void)
-{
-    int i;
-    if (gammma[255]) return;
-    for (i=0; i<12; i++) gammma[i]=pow_calc_2(255, i, 255, 0.5, 1);
-    for (i=12; i<64; i++) gammma[i]=pow_calc_2(255, i, 255, 0.4, 1);
-    for (i=64; i<=255; i++) gammma[i]=pow_calc_2(255, i, 255, 0.25, 1);
-}
-
-static void create_thumbnail()
-{
-    register int i, j, x, y, yadj, xadj;
-    register char *buf = thumbnail_buf;
-    register int shift = camera_sensor.bits_per_pixel - 8;
-
-    // The sensor bayer patterns are:
-    //  0x02010100  0x01000201  0x01020001
-    //      R G         G B         G R
-    //      G B         R G         B G
-    // for the second pattern yadj shifts the thumbnail row down one line
-    // for the third pattern xadj shifts the thumbnail row accross one pixel
-    // these make the patterns the same
-    yadj = (camera_sensor.cfa_pattern == 0x01000201) ? 1 : 0;
-    xadj = (camera_sensor.cfa_pattern == 0x01020001) ? 1 : 0;
-
-    for (i=0; i<DNG_TH_HEIGHT; i++)
-        for (j=0; j<DNG_TH_WIDTH; j++)
-        {
-            x = ((camera_sensor.active_area.x1 + camera_sensor.jpeg.x + (camera_sensor.jpeg.width  * j) / DNG_TH_WIDTH)  & 0xFFFFFFFE) + xadj;
-            y = ((camera_sensor.active_area.y1 + camera_sensor.jpeg.y + (camera_sensor.jpeg.height * i) / DNG_TH_HEIGHT) & 0xFFFFFFFE) + yadj;
-
-            *buf++ = gammma[get_raw_pixel(x,y)>>shift];           // red pixel
-            *buf++ = gammma[6*(get_raw_pixel(x+1,y)>>shift)/10];  // green pixel
-            *buf++ = gammma[get_raw_pixel(x+1,y+1)>>shift];       // blue pixel
-        }
-}
-
 //-------------------------------------------------------------------
 // Write DNG header, thumbnail and data to file
 
@@ -480,14 +389,9 @@ static void write_dng(FILE* fd, char* rawadr)
 
     if (dng_header_buf)
     {
-        fill_gamma_buf();
-        create_thumbnail();
         write(fd, dng_header_buf, dng_header_buf_size);
-        write(fd, thumbnail_buf, DNG_TH_WIDTH*DNG_TH_HEIGHT*3);
-
         reverse_bytes_order(UNCACHEABLE(rawadr), camera_sensor.raw_size);
         write(fd, UNCACHEABLE(rawadr), camera_sensor.raw_size);
-
         free_dng_header();
     }
 }
@@ -501,8 +405,8 @@ PROP_HANDLER(PROP_CAM_MODEL)
 
 int save_dng(char* filename)
 {
-    cam_AsShotNeutral[2] = 2500;
-    cam_AsShotNeutral[4] = 1400;
+    cam_AsShotNeutral[2] = 2477; /* 5D3 6000K */
+    cam_AsShotNeutral[4] = 1462;
     
     #ifdef RAW_DEBUG_BLACK
     raw_info.active_area.x1 = 0;
