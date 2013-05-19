@@ -410,12 +410,12 @@ int raw_update_params()
     int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
     #endif
 
-    #ifdef CONFIG_EOSM
-    int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
-    #endif
-
     #ifdef CONFIG_60D
     int dynamic_ranges[] = {1091, 1072, 1055, 999, 910, 824, 736, 662};
+    #endif
+
+    #ifdef CONFIG_EOSM
+    int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
     #endif
 
 /*********************** Portable code ****************************************/
