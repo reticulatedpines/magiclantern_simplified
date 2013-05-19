@@ -227,6 +227,10 @@ static int setup_buffers()
             void* ptr = GetMemoryAddressOfMemoryChunk(chunk);
             if (ptr != fullsize_buffers[0])
             {
+                /* 32MB writes are slower (require two cfDMAWriteBlk calls: 65533+3 blocks).
+                 * Shrink the buffer by 1.5 K and it's fast again. We'll throw away 64K, just in case. */
+                size = MIN(size, 32*1024*1024 - 64*1024);
+                
                 buffers[buffer_count].ptr = ptr;
                 buffers[buffer_count].size = size;
                 buffers[buffer_count].used = 0;
