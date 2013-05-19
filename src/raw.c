@@ -266,9 +266,10 @@ int raw_update_params()
         skip_right  = zoom ? 0 : 2;
         #endif
 
-	#ifdef CONFIG_60D
-        skip_top    = 22;
-	skip_left   = 148;
+        #ifdef CONFIG_60D
+        skip_top    = 26;
+        skip_left   = 152;
+        skip_right  = 2;
 //        skip_left   = zoom ? 0 : 0;
 //        skip_right  = zoom ? 0 : 0;
         #endif
