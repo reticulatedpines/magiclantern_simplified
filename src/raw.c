@@ -46,12 +46,16 @@
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined (CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_60D)
+#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined (CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_EOSM)
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
 #if defined(CONFIG_5D3) || defined(CONFIG_6D)
 #define RAW_PHOTO_EDMAC 0xc0f04808
+#endif
+
+#if defined(CONFIG_60D)
+#define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
 static uint32_t raw_buffer_photo = 0;
@@ -150,7 +154,7 @@ void raw_buffer_intercept_from_stateobj()
         //~ {  6719,-994,-925,-4408,12426,2211,-887,2129,6051 } },
     #define CAM_COLORMATRIX1                       \
       6719, 10000,     -994, 10000,    -925, 10000,\
-    -4400, 10000,    12426, 10000,    2211, 10000, \
+    -4408, 10000,    12426, 10000,    2211, 10000, \
      -887, 10000,     2129, 10000,    6051, 10000
 #endif
 
@@ -270,8 +274,6 @@ int raw_update_params()
         skip_top    = 26;
         skip_left   = 152;
         skip_right  = 2;
-//        skip_left   = zoom ? 0 : 0;
-//        skip_right  = zoom ? 0 : 0;
         #endif
 
 
