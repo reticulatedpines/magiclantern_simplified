@@ -169,11 +169,9 @@ else ifndef ML_BOOTFLAGS_OBJ
 ML_BOOTFLAGS_OBJ = bootflags.o
 endif
 
-ifndef ML_AF_PATTERNS_OBJ
-ML_AF_PATTERNS_OBJ = af_patterns.o
-else ifeq($(ML_AF_PATTERNS_OBJ), n)
+ifeq ($(ML_AF_PATTERNS_OBJ), n)
 ML_AF_PATTERNS_OBJ = 
-else
+else ifndef ML_AF_PATTERNS_OBJ
 ML_AF_PATTERNS_OBJ = af_patterns.o
 endif
 
