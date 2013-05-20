@@ -417,10 +417,10 @@ static void hack_liveview()
         {
             /* silence out the EDMACs used for HD and LV buffers */
             int pitch = edmac_get_length(channel) & 0xFFFF;
-            if (pitch == vram_lv.pitch || pitch == vram_hd.pitch)
+            if (pitch == vram_lv.pitch || pitch == vram_hd.pitch || pitch == 512 || pitch == 478)
             {
                 uint32_t reg = edmac_get_base(channel);
-                bmp_printf(FONT_SMALL, 30, y += font_small.height, "Hack %x %x ", reg, shamem_read(reg + 0x10) & 0xFFFF);
+                bmp_printf(FONT_SMALL, 30, y += font_small.height, "Hack %x %dx%d ", reg, shamem_read(reg + 0x10) & 0xFFFF, shamem_read(reg + 0x10) >> 16);
                 *(volatile uint32_t *)(reg + 0x10) = shamem_read(reg + 0x10) & 0xFFFF;
             }
         }
