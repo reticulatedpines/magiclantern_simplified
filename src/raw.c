@@ -588,7 +588,7 @@ int FAST ev_to_raw(float ev)
     return raw_info.black_level + powf(2, ev) * raw_max;
 }
 
-static int autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, int dy, int* out_mean, int* out_stdev)
+static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, int dy, float* out_mean, float* out_stdev)
 {
     int black = 0;
     int num = 0;
@@ -602,10 +602,10 @@ static int autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, i
         }
     }
 
-    int mean = black / num;
+    float mean = black / num;
 
     /* compute standard deviation */
-    int stdev = 0;
+    float stdev = 0;
     for (int y = y1; y < y2; y += dy)
     {
         for (int x = x1; x < x2; x += dx)
@@ -628,8 +628,8 @@ static int autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, i
 
 int autodetect_black_level()
 {
-    int mean = 0;
-    int stdev = 0;
+    float mean = 0;
+    float stdev = 0;
     
     if (raw_info.active_area.x1 > 10) /* use the left black bar for black calibration */
     {
