@@ -409,6 +409,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
 
 static void lv_unhack(int unused)
 {
+    call("aewb_enableaewb", 1);
     idle_globaldraw_en();
     PauseLiveView();
     ResumeLiveView();
@@ -442,13 +443,14 @@ static void hack_liveview()
     
     if (should_hack)
     {
+        call("aewb_enableaewb", 0);
         idle_globaldraw_dis();
         int y = 100;
         for (int channel = 0; channel < 32; channel++)
         {
             /* silence out the EDMACs used for HD and LV buffers */
             int pitch = edmac_get_length(channel) & 0xFFFF;
-            if (pitch == vram_lv.pitch || pitch == vram_hd.pitch || pitch == 512 || pitch == 478)
+            if (pitch == vram_lv.pitch || pitch == vram_hd.pitch)
             {
                 uint32_t reg = edmac_get_base(channel);
                 bmp_printf(FONT_SMALL, 30, y += font_small.height, "Hack %x %dx%d ", reg, shamem_read(reg + 0x10) & 0xFFFF, shamem_read(reg + 0x10) >> 16);
