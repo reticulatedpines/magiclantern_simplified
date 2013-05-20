@@ -4073,7 +4073,7 @@ static void draw_zoom_overlay(int dirty)
     uint16_t*       hdr = (uint16_t*) hd->vram;
 
     // select buffer where MZ should be written (camera-specific, guesswork)
-    #if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_EOSM)
     /* fixme: ugly hack */
     void busy_vsync(int hd, int timeout_ms)
     {
@@ -4094,7 +4094,7 @@ static void draw_zoom_overlay(int dirty)
     lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     busy_vsync(0, 20);
     #endif
-    #if defined(CONFIG_5D3) || defined(CONFIG_6D)
+    #if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_650D)
     lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
     if (lvr != CACHEABLE(YUV422_LV_BUFFER_1) && lvr != CACHEABLE(YUV422_LV_BUFFER_2) && lvr != CACHEABLE(YUV422_LV_BUFFER_3)) return;
     #else

@@ -82,6 +82,7 @@
 
 #ifdef CONFIG_650D
 #define DISPLAY_STATE DISPLAY_STATEOBJ
+#define INPUT_SET_IMAGE_VRAM_PARAMETER_MUTE_FLIP_CBR 23
 #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 24
 #define EVF_STATE (*(struct state_object **)0x25B00)
 #define MOVREC_STATE (*(struct state_object **)0x27704)
@@ -178,7 +179,7 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
 
 // sync ML overlay tools (especially Magic Zoom) with LiveView
 // this is tricky...
-#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_650D)
+#if defined(CONFIG_5D3) || defined(CONFIG_6D)
     if (self == DISPLAY_STATE && (input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER))
         lv_vsync_signal();
 
@@ -190,9 +191,11 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
 #elif defined(CONFIG_60D)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt
         lv_vsync_signal();
-#endif
-
-#if defined(CONFIG_EOSM)
+#elif defined(CONFIG_650D)
+    if (self == DISPLAY_STATE && (input == INPUT_SET_IMAGE_VRAM_PARAMETER_MUTE_FLIP_CBR)) {
+        lv_vsync_signal();
+    }
+#elif defined(CONFIG_EOSM)
     if (self == EVF_STATE && input == 15 && old_state == 5) {
         lv_vsync_signal();
     }
