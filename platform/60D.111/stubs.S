@@ -245,3 +245,23 @@ NSTUB(0xFF055BA8, SetNextASIFDACBuffer)
 NSTUB(0xff06877c, SetSamplingRate )
 NSTUB(0xff068478, SetAudioVolumeOut)
 
+
+
+/** EDMAC routines **/
+NSTUB(0xFF1C42A8, SetEDmac)
+NSTUB(0xFF1C45A8, StartEDmac)
+NSTUB(0xFF1C47AC, PopEDmac)
+//NSTUB([idk], AbortEDmac)
+NSTUB(0xFF1C4360, ConnectWriteEDmac)
+NSTUB(0xFF1C4424, ConnectReadEDmac)
+
+/** keep the old name until all are refcatored **/
+NSTUB(0xFF1C4798, EDMAC_RegisterCompleteCBR)
+
+/** register/unregister CBR names **/
+NSTUB(0xFF1C4798, RegisterEDmacCompleteCBR)
+NSTUB(0xFF1C47C0, RegisterEDmacAbortCBR)
+NSTUB(0xFF1C48C8, RegisterEDmacPopCBR)
+NSTUB(0xFF1C47AC, UnregisterEDmacCompleteCBR)
+NSTUB(0xFF1C4800, UnregisterEDmacAbortCBR)
+NSTUB(0xFF1C48DC, UnregisterEDmacPopCBR)
