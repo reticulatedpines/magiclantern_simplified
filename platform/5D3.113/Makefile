@@ -17,55 +17,13 @@ PLATFORM_INC=.
 
 PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
-# magiclantern.lds script MUST be first
-# entry.o MUST be second
-# menu.o and debug.o must come before the modules
-ML_OBJS-y = \
-	magiclantern.lds \
-	entry.o \
-	boot-hack.o \
-	stubs.o \
-	version.o \
-	exmem.o \
-	bmp.o \
+ML_BITRATE_OBJ = bitrate-5d3.o
+ML_AF_PATTERNS_OBJ = n
+
+ML_EXTRA_OBJS = \
 	video_hacks.o \
 	fio-5d3.o \
-	font-dyn.o \
-	config.o \
-	menu.o \
-	debug.o \
-	stdio.o \
-	bitrate-5d3.o \
-	tweaks.o \
-	lens.o \
-	property.o \
-	propvalues.o \
-	gui.o \
-	gui-common.o \
 	misc.o \
-	picstyle.o \
-	cfn.o \
-	zebra.o \
-	shoot.o \
-	chdk-gui_draw.o \
-	movtweaks.o \
-	menuhelp.o \
-	menuindex.o \
-	focus.o \
-	notify_box.o \
-	dialog_test.o \
-	vram.o \
-	aj_port.o \
-	fps-engio.o \
-	tasks.o \
-	tskmon.o \
-	state-object.o \
-	hdr.o \
-	lv-img-engio.o \
-	beep.o \
-	audio-ak.o \
-	vsync-lite.o \
-	battery.o \
 	ph_info_disp.o \
 	flexinfo.o \
 	afma.o \

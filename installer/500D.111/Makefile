@@ -9,32 +9,7 @@ MODEL=500D
 UPDATE_NAME=500D-111.fir
 ML_VERSION=unified1 
 
-#used in CFLAGS
-PLATFORM_INC=../../platform/$(MODEL).$(FW_VERSION)
-
-PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
-
-# magiclantern.lds script MUST be first
-# entry.o MUST be second
-# menu.o and debug.o must come before the modules
-ML_OBJS-y = \
-	magiclantern.lds \
-	$(SRC_DIR)/entry.o \
-	installer.o \
-	$(PLATFORM_DIR)/stubs.o \
-	version.o \
-	bmp.o \
-	chdk-gui_draw.o \
-	font-dyn.o \
-	stdio.o \
-	property.o \
-	propvalues.o \
-	dialog_test.o \
-	bootflags.o \
-	vram.o \
-
-#include generic rules and definitions
-include  $(TOP_DIR)/Makefile.inc
+include $(TOP_DIR)/installer/Makefile.installer.default
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
