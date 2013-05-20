@@ -175,18 +175,28 @@ else ifndef ML_AF_PATTERNS_OBJ
 ML_AF_PATTERNS_OBJ = af_patterns.o
 endif
 
+ML_SMALL_FONT_OBJS = \
+    font-small2.o \
+    font-med2.o \
+    font-large.o \
+
 ML_STATIC_FONT_OBJS = \
 	font-small.o \
-	font-medium.o \
+	font-med.o \
 	font-large.o
 
 ML_DYNAMIC_FONT_OBJS = \
 	font-dyn.o
 
-ifeq ($(CONFIG_STATIC_FONTS), y)
-ML_FONT_OBJS = $(ML_STATIC_FONT_OBJS)
-else ifndef ML_FONT_OBJS
+ifeq ($(CONFIG_SMALL_FONTS), y)
+ML_STATIC_FONT_OBJS = $(ML_SMALL_FONT_OBJS)
+endif
+
 ML_FONT_OBJS = $(ML_DYNAMIC_FONT_OBJS)
+
+ifeq ($(CONFIG_STATIC_FONTS), y)
+ML_FONT_OBJS += $(ML_STATIC_FONT_OBJS)
+CFLAGS += -DCONFIG_STATIC_FONTS=1
 endif
 
 #

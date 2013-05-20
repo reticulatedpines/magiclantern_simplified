@@ -18,11 +18,8 @@ CONFIG_PIC=n
 
 CONFIG_RELOC=y
 
-ML_FONT_OBJS = \
-	font-small2.o \
-	font-med2.o \
-	font-large.o \
-	font-dyn.o \
+CONFIG_SMALL_FONTS=y
+CONFIG_STATIC_FONTS=y
 
 ML_EXTRA_OBJS = \
 	misc.o \
@@ -32,8 +29,6 @@ ML_EXTRA_OBJS = \
 #include generic rules and definitions
 
 include  $(TOP_DIR)/Makefile.inc
-
-CFLAGS += -D CONFIG_STATIC_FONTS=1 
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
