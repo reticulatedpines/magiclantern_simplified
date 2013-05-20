@@ -651,8 +651,18 @@ int autodetect_black_level()
     }
     
     #ifndef CONFIG_DXO_DYNAMIC_RANGE
-    /* this is a bit above DxO measurements by around 0.2 - 0.3 EV */
-    raw_info.dynamic_range = (int)roundf((log2f(raw_info.white_level) - log2f(stdev)) * 100) - 25;
+    /**
+     * A = full well capacity / read-out noise 
+     * DR in dB = 20 log10(A)
+     * DR in stops = dB / 6 = log2(A)
+     * I guess noise level is the RMS value, which is identical to stdev
+     * 
+     * This is quite close to DxO measurements (within +/- 0.5 EV), 
+     * except at very high ISOs where there seems to be noise reduction applied to raw data
+     */
+     
+    int black_level = mean + stdev/2;
+    raw_info.dynamic_range = (int)roundf((log2f(raw_info.white_level - black_level) - log2f(stdev)) * 100);
     #endif
 
     // bmp_printf(FONT_MED, 50, 100, "black: mean=%d stdev=%d dr=%d \n", mean, stdev, raw_info.dynamic_range);
