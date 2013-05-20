@@ -69,7 +69,7 @@
 //~ #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
 /** Therefore, we can't implement display filters (features that alter the LiveView image in real-time) **/
-#define CONFIG_DISPLAY_FILTERS
+//~ #define CONFIG_DISPLAY_FILTERS
 
 /** We can't override ISO on a per-frame basis, by changing FRAME_ISO (e.g. for HDR video or gradual exposure) **/
 //~ #define CONFIG_FRAME_ISO_OVERRIDE
