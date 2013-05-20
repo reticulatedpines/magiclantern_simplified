@@ -2107,7 +2107,7 @@ entry_print(
         int help_color = 70;
         
         /* overriden help will go in first free slot */
-        char* help1 = entry->help;
+        char* help1 = (char*)entry->help;
         if (!help1) help1 = info->help;
         
         if (help1) bmp_printf(

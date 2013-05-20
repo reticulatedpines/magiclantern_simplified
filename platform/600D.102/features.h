@@ -8,3 +8,5 @@
 #undef FEATURE_AUTO_BURST_PICQ // not working on 600D
 
 #define FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY
+
+#undef FEATURE_SILENT_PIC // todo: copy raw port from 1%
