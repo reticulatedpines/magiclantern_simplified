@@ -203,7 +203,7 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
     #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
     {
-        #ifdef CONFIG_DISPLAY_FILTERS
+        #if defined(FEATURE_SILENT_PIC_RAW_BURST) && defined(CONFIG_DISPLAY_FILTERS)
         if (!silent_pic_preview())
         #else
         if(1)
