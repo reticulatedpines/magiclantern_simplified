@@ -378,7 +378,6 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
 
 static void lv_unhack(int unused)
 {
-    call("aewb_enableaewb", 1);
     idle_globaldraw_en();
     PauseLiveView();
     ResumeLiveView();
@@ -412,7 +411,6 @@ static void hack_liveview()
     
     if (should_hack)
     {
-        call("aewb_enableaewb", 0);
         idle_globaldraw_dis();
         int y = 100;
         for (int channel = 0; channel < 32; channel++)
