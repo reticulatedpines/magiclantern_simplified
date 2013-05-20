@@ -2106,14 +2106,19 @@ entry_print(
     {
         int help_color = 70;
         
-        if (entry->help) bmp_printf(
+        /* overriden help will go in first free slot */
+        char* help1 = entry->help;
+        if (!help1) help1 = info->help;
+        
+        if (help1) bmp_printf(
             FONT(FONT_MED, help_color, MENU_BG_COLOR_HEADER_FOOTER), 
              10,  MENU_HELP_Y_POS, 
             "%s",
-            entry->help
+            help1
         );
 
-        char* help2 = info->help;
+        char* help2 = 0;
+        if (help1 != info->help) help2 = info->help;
         if (entry->help2)
         {
             help2 = menu_help_get_line(entry->help2, SELECTED_INDEX(entry));
