@@ -679,6 +679,7 @@ int handle_module_keys(struct event * event)
 
 int module_display_filter_enabled()
 {
+#ifdef FEATURE_DISPLAY_FILTERS
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
     {
         module_cbr_t *cbr = module_list[mod].cbr;
@@ -696,11 +697,13 @@ int module_display_filter_enabled()
             }
         }
     }
+#endif
     return 0;
 }
 
 int module_display_filter_update()
 {
+#ifdef FEATURE_DISPLAY_FILTERS
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
     {
         module_cbr_t *cbr = module_list[mod].cbr;
@@ -719,6 +722,7 @@ int module_display_filter_update()
             }
         }
     }
+#endif
     return 0;
 }
 
