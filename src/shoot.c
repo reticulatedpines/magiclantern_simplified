@@ -1675,11 +1675,11 @@ static void
 silent_pic_take_raw(int interactive)
 {
     /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
-    call("lv_save_raw", 1);
+    raw_lv_enable();
     msleep(50);
     
     /* after filling one frame, disable the flag so we can dump the data without tearing */
-    call("lv_save_raw", 0);
+    raw_lv_disable();
     msleep(50);
 
     /* update raw geometry, autodetect black/white levels etc */
@@ -1961,7 +1961,7 @@ static void
 silent_pic_take_raw(int interactive)
 {
     /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
-    call("lv_save_raw", 1);
+    raw_lv_enable();
     msleep(100);
  
     /* get image resolution, white level etc; retry if needed */
@@ -2057,7 +2057,7 @@ silent_pic_take_raw(int interactive)
     #endif
 
     /* disable the debug flag, no longer needed */
-    call("lv_save_raw", 0);
+    raw_lv_disable();
     
     if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
     {
@@ -2143,7 +2143,7 @@ cleanup:
     sp_running = 0;
     sp_buffer_count = 0;
     if (hSuite) shoot_free_suite(hSuite);
-    call("lv_save_raw", 0);
+    raw_lv_disable();
 }
  
 #else // who needs 422 when we have raw?
