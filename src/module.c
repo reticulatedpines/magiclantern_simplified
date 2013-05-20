@@ -600,8 +600,10 @@ int module_exec_cbr(unsigned int type)
 #if !defined(BGMT_UNPRESS_FLASH_MOVIE)
 #define BGMT_UNPRESS_FLASH_MOVIE -1
 #endif
-int module_translate_event(int key)
+int module_translate_event(struct event* event)
 {
+    int key = event->param;
+
     MODULE_CHECK_KEY(BGMT_WHEEL_UP             , MODULE_KEY_WHEEL_UP             );
     MODULE_CHECK_KEY(BGMT_WHEEL_DOWN           , MODULE_KEY_WHEEL_DOWN           );
     MODULE_CHECK_KEY(BGMT_WHEEL_LEFT           , MODULE_KEY_WHEEL_LEFT           );
@@ -653,7 +655,7 @@ int handle_module_keys(struct event * event)
                 if(cbr->type == CBR_KEYPRESS)
                 {
                     /* key got handled? */
-                    if(!cbr->handler(module_translate_event(event->param)))
+                    if(!cbr->handler(module_translate_event(event)))
                     {
                         return 0;
                     }
