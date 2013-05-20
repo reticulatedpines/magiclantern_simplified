@@ -137,6 +137,7 @@ ifeq ($(CONFIG_QEMU),y)
 CFLAGS += -DCONFIG_QEMU -DCONFIG_STATIC_FONTS
 endif
 
+
 # PyMite scripting paths
 PYMITE_PATH		= $(HOME)/build/pymite-08
 PYMITE_LIB		= $(PYMITE_PATH)/src/vm/libpmvm_dryos.a
@@ -144,25 +145,130 @@ PYMITE_CFLAGS	= \
 	-I$(PYMITE_PATH)/src/vm \
 	-I$(PYMITE_PATH)/src/platform/dryos
 
+ifeq ($(ML_BITRATE_OBJ), n)
+ML_BITRATE_OBJ =
+else ifndef ML_BITRATE_OBJ
+ML_BITRATE_OBJ = bitrate.o
+endif
+
+ifeq ($(ML_AUDIO_OBJ), n)
+ML_AUDIO_OBJ =
+else ifndef ML_AUDIO_OBJ
+ML_AUDIO_OBJ = audio-ak.o
+endif
+
+ifeq ($(ML_ZEBRA_OBJ), n)
+ML_ZEBRA_OBJ =
+else ifndef ML_ZEBRA_OBJ
+ML_ZEBRA_OBJ = zebra.o
+endif
+
+ML_STATIC_FONT_OBJS = \
+	font-small.o \
+	font-medium.o \
+	font-large.o
+
+ML_DYNAMIC_FONT_OBJS = \
+	font-dyn.o
+
+ifeq ($(CONFIG_STATIC_FONTS), y)
+ML_FONT_OBJS = $(ML_STATIC_FONT_OBJS)
+else ifndef ML_FONT_OBJS
+ML_FONT_OBJS = $(ML_DYNAMIC_FONT_OBJS)
+endif
 
 #
 # global disabler for extra objects
 #
 ifneq ($(CONFIG_NO_EXTRA_OBJS),y)
 
+ifndef CONFIG_ADD_INSTALLER_OBJECTS
+CONFIG_ADD_SOURCE_OBJECTS = y
+endif
+
 #
 # depending on CONFIG_ defines add .o files (may get merged into definition above?) 
 #
-ML_OBJS-y += \
-	ico.o \
-	edmac.o
 
-ML_COMMON_SRC_OBJS =  \
+# magiclantern.lds script MUST be first
+# entry.o MUST be second
+# menu.o and debug.o must come before the modules
+ML_OBJS-y = \
+	magiclantern.lds \
+	$(SRC_DIR)/entry.o \
+	$(PLATFORM_DIR)/stubs.o \
+	version.o
+
+ML_INSTALLER_OBJS = \
+	installer.o \
+	ico.o \
+	bmp.o \
+	$(ML_FONT_OBJS) \
+	stdio.o \
+	property.o \
+	propvalues.o \
+	dialog_test.o \
+	bootflags.o \
+	vram.o \
+
+#	chdk-gui_draw.o
+
+ML_SRC_OBJS = \
+	boot-hack.o \
+	ico.o \
+	edmac.o \
+	menu.o \
+	debug.o \
+	cfn.o \
+	gui.o \
+	picstyle.o \
+	exmem.o \
+	bmp.o \
+	$(ML_FONT_OBJS) \
+	config.o \
+	stdio.o \
+	tweaks.o \
+	lens.o \
+	property.o \
+	propvalues.o \
+	gui-common.o \
+	chdk-gui_draw.o \
+	movtweaks.o \
+	menuhelp.o \
+	menuindex.o \
+	af_patterns.o \
+	focus.o \
+	notify_box.o \
+	bootflags.o \
+	dialog_test.o \
+	vram.o \
+	morse.o \
+	aj_port.o \
+	fps-engio.o \
+	shoot.o \
+	hdr.o \
+	lv-img-engio.o \
+	state-object.o \
+	tasks.o \
+	beep.o \
+	vsync-lite.o \
+	tskmon.o \
+	battery.o \
 	imgconv.o \
 	histogram.o \
-	falsecolor.o
+	falsecolor.o \
+	$(ML_BITRATE_OBJ) \
+	$(ML_AUDIO_OBJ) \
+	$(ML_ZEBRA_OBJ) \
 
-ML_OBJS-y += $(ML_COMMON_SRC_OBJS)
+
+ML_OBJS-$(CONFIG_ADD_INSTALLER_OBJECTS) += \
+	$(ML_INSTALLER_OBJS)
+
+ML_OBJS-$(CONFIG_ADD_SOURCE_OBJECTS) += \
+	$(ML_SRC_OBJS)
+
+ML_OBJS-y += $(ML_EXTRA_OBJS)
 
 ML_OBJS-$(CONFIG_GDB) += \
 	gdb.o
@@ -216,9 +322,11 @@ ML_OBJS-$(CONFIG_MODULES) += \
 
 ML_OBJS-$(CONFIG_QEMU)	+= \
 	qemu-util.o \
-	font-small.o \
-	font-med.o \
-	font-large.o
+	$(ML_STATIC_FONT_OBJS)
+
+ifdef ML_EXCLUDE_OBJS
+ML_OBJS-y := $(filter-out $(ML_EXCLUDE_OBJS), $(ML_OBJS-y))
+endif
 
 endif
 
