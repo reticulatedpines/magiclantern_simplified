@@ -756,12 +756,14 @@ void raw_lv_enable()
 {
     lv_raw_enabled = 1;
     call("lv_save_raw", 1);
+    call("lv_af_raw", 1); /* this enables Canon's bad pixel removal, thanks nanomad */
 }
 
 void raw_lv_disable()
 {
     lv_raw_enabled = 0;
     call("lv_save_raw", 0);
+    call("lv_af_raw", 0);
 }
 
 int raw_lv_is_enabled()
