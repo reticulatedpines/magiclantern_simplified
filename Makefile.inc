@@ -163,6 +163,12 @@ else ifndef ML_ZEBRA_OBJ
 ML_ZEBRA_OBJ = zebra.o
 endif
 
+ifeq ($(ML_BOOTFLAGS_OBJ), n)
+ML_BOOTFLAGS_OBJ =
+else ifndef ML_BOOTFLAGS_OBJ
+ML_BOOTFLAGS_OBJ = bootflags.o
+endif
+
 ifndef ML_AF_PATTERNS_OBJ
 ML_AF_PATTERNS_OBJ = af_patterns.o
 else ifeq($(ML_AF_PATTERNS_OBJ), n)
@@ -247,7 +253,7 @@ ML_SRC_OBJS = \
 	$(ML_AF_PATTERNS_OBJ) \
 	focus.o \
 	notify_box.o \
-	bootflags.o \
+	$(ML_BOOTFLAGS_OBJ) \
 	dialog_test.o \
 	vram.o \
 	morse.o \
