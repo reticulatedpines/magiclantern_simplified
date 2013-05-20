@@ -349,8 +349,6 @@ struct menu_entry card_menus[] = {
 void fio_init()
 {
     menu_add( "Prefs", card_menus, COUNT(card_menus) );
-    
-    find_ml_card();
 }
 
 
