@@ -254,7 +254,6 @@ ML_SRC_OBJS = \
 	$(ML_BOOTFLAGS_OBJ) \
 	dialog_test.o \
 	vram.o \
-	morse.o \
 	aj_port.o \
 	fps-engio.o \
 	shoot.o \
