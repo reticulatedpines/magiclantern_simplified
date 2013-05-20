@@ -74,6 +74,8 @@
 #define MODULE_KEY_UNPRESS_DP              (34)
 
 
+#define MODULE_KEY_CANON     0
+#define MODULE_KEY_PORTABLE  1
 
 
 /* update major if older modules will *not* be compatible */

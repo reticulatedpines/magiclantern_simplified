@@ -495,7 +495,7 @@ int module_exec_cbr(unsigned int type)
 }
 
 /* translate camera specific key to portable module key */
-#define MODULE_CHECK_KEY(in,out) if(in != -1){ if(key == in) { return out; } }
+#define MODULE_TRANSLATE_KEY(in,out,dest) if(dest == MODULE_KEY_PORTABLE) { if(in != -1){ if(key == in) { return out; } }} else {if(out != -1){ if(key == out) { return in; } }}
 
 /* these are to ensure that the checked keys are defined. we have to ensure they're defined before using. are there better ways to ensure? */
 #if !defined(BGMT_WHEEL_UP)
@@ -600,48 +600,48 @@ int module_exec_cbr(unsigned int type)
 #if !defined(BGMT_UNPRESS_FLASH_MOVIE)
 #define BGMT_UNPRESS_FLASH_MOVIE -1
 #endif
-int module_translate_event(struct event* event)
+int module_translate_event(struct event* event, int dest)
 {
     int key = event->param;
 
-    MODULE_CHECK_KEY(BGMT_WHEEL_UP             , MODULE_KEY_WHEEL_UP             );
-    MODULE_CHECK_KEY(BGMT_WHEEL_DOWN           , MODULE_KEY_WHEEL_DOWN           );
-    MODULE_CHECK_KEY(BGMT_WHEEL_LEFT           , MODULE_KEY_WHEEL_LEFT           );
-    MODULE_CHECK_KEY(BGMT_WHEEL_RIGHT          , MODULE_KEY_WHEEL_RIGHT          );
-    MODULE_CHECK_KEY(BGMT_PRESS_SET            , MODULE_KEY_PRESS_SET            );
-    MODULE_CHECK_KEY(BGMT_UNPRESS_SET          , MODULE_KEY_UNPRESS_SET          );
-    MODULE_CHECK_KEY(BGMT_MENU                 , MODULE_KEY_MENU                 );
-    MODULE_CHECK_KEY(BGMT_INFO                 , MODULE_KEY_INFO                 );
-    MODULE_CHECK_KEY(BGMT_PLAY                 , MODULE_KEY_PLAY                 );
-    MODULE_CHECK_KEY(BGMT_TRASH                , MODULE_KEY_TRASH                );
-    MODULE_CHECK_KEY(BGMT_PRESS_DP             , MODULE_KEY_PRESS_DP             );
-    MODULE_CHECK_KEY(BGMT_UNPRESS_DP           , MODULE_KEY_UNPRESS_DP           );
-    MODULE_CHECK_KEY(BGMT_RATE                 , MODULE_KEY_RATE                 );
-    MODULE_CHECK_KEY(BGMT_REC                  , MODULE_KEY_REC                  );
-    MODULE_CHECK_KEY(BGMT_PRESS_ZOOMIN_MAYBE   , MODULE_KEY_PRESS_ZOOMIN         );
-    MODULE_CHECK_KEY(BGMT_LV                   , MODULE_KEY_LV                   );
-    MODULE_CHECK_KEY(BGMT_Q                    , MODULE_KEY_Q                    );
-    MODULE_CHECK_KEY(BGMT_PICSTYLE             , MODULE_KEY_PICSTYLE             );
-    MODULE_CHECK_KEY(BGMT_JOY_CENTER           , MODULE_KEY_JOY_CENTER           );
-    MODULE_CHECK_KEY(BGMT_PRESS_UP             , MODULE_KEY_PRESS_UP             );
-    MODULE_CHECK_KEY(BGMT_PRESS_UP_RIGHT       , MODULE_KEY_PRESS_UP_RIGHT       );
-    MODULE_CHECK_KEY(BGMT_PRESS_UP_LEFT        , MODULE_KEY_PRESS_UP_LEFT        );
-    MODULE_CHECK_KEY(BGMT_PRESS_RIGHT          , MODULE_KEY_PRESS_RIGHT          );
-    MODULE_CHECK_KEY(BGMT_PRESS_LEFT           , MODULE_KEY_PRESS_LEFT           );
-    MODULE_CHECK_KEY(BGMT_PRESS_DOWN_RIGHT     , MODULE_KEY_PRESS_DOWN_RIGHT     );
-    MODULE_CHECK_KEY(BGMT_PRESS_DOWN_LEFT      , MODULE_KEY_PRESS_DOWN_LEFT      );
-    MODULE_CHECK_KEY(BGMT_PRESS_DOWN           , MODULE_KEY_PRESS_DOWN           );
-    MODULE_CHECK_KEY(BGMT_UNPRESS_UDLR         , MODULE_KEY_UNPRESS_UDLR         );
-    MODULE_CHECK_KEY(BGMT_PRESS_HALFSHUTTER    , MODULE_KEY_PRESS_HALFSHUTTER    );
-    MODULE_CHECK_KEY(BGMT_UNPRESS_HALFSHUTTER  , MODULE_KEY_UNPRESS_HALFSHUTTER  );
-    MODULE_CHECK_KEY(BGMT_PRESS_FULLSHUTTER    , MODULE_KEY_PRESS_FULLSHUTTER    );
-    MODULE_CHECK_KEY(BGMT_UNPRESS_FULLSHUTTER  , MODULE_KEY_UNPRESS_FULLSHUTTER  );
-    MODULE_CHECK_KEY(BGMT_PRESS_FLASH_MOVIE    , MODULE_KEY_PRESS_FLASH_MOVIE    );
-    MODULE_CHECK_KEY(BGMT_UNPRESS_FLASH_MOVIE  , MODULE_KEY_UNPRESS_FLASH_MOVIE  );
+    MODULE_TRANSLATE_KEY(BGMT_WHEEL_UP             , MODULE_KEY_WHEEL_UP             , dest);
+    MODULE_TRANSLATE_KEY(BGMT_WHEEL_DOWN           , MODULE_KEY_WHEEL_DOWN           , dest);
+    MODULE_TRANSLATE_KEY(BGMT_WHEEL_LEFT           , MODULE_KEY_WHEEL_LEFT           , dest);
+    MODULE_TRANSLATE_KEY(BGMT_WHEEL_RIGHT          , MODULE_KEY_WHEEL_RIGHT          , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_SET            , MODULE_KEY_PRESS_SET            , dest);
+    MODULE_TRANSLATE_KEY(BGMT_UNPRESS_SET          , MODULE_KEY_UNPRESS_SET          , dest);
+    MODULE_TRANSLATE_KEY(BGMT_MENU                 , MODULE_KEY_MENU                 , dest);
+    MODULE_TRANSLATE_KEY(BGMT_INFO                 , MODULE_KEY_INFO                 , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PLAY                 , MODULE_KEY_PLAY                 , dest);
+    MODULE_TRANSLATE_KEY(BGMT_TRASH                , MODULE_KEY_TRASH                , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_DP             , MODULE_KEY_PRESS_DP             , dest);
+    MODULE_TRANSLATE_KEY(BGMT_UNPRESS_DP           , MODULE_KEY_UNPRESS_DP           , dest);
+    MODULE_TRANSLATE_KEY(BGMT_RATE                 , MODULE_KEY_RATE                 , dest);
+    MODULE_TRANSLATE_KEY(BGMT_REC                  , MODULE_KEY_REC                  , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_ZOOMIN_MAYBE   , MODULE_KEY_PRESS_ZOOMIN         , dest);
+    MODULE_TRANSLATE_KEY(BGMT_LV                   , MODULE_KEY_LV                   , dest);
+    MODULE_TRANSLATE_KEY(BGMT_Q                    , MODULE_KEY_Q                    , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PICSTYLE             , MODULE_KEY_PICSTYLE             , dest);
+    MODULE_TRANSLATE_KEY(BGMT_JOY_CENTER           , MODULE_KEY_JOY_CENTER           , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_UP             , MODULE_KEY_PRESS_UP             , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_UP_RIGHT       , MODULE_KEY_PRESS_UP_RIGHT       , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_UP_LEFT        , MODULE_KEY_PRESS_UP_LEFT        , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_RIGHT          , MODULE_KEY_PRESS_RIGHT          , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_LEFT           , MODULE_KEY_PRESS_LEFT           , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_DOWN_RIGHT     , MODULE_KEY_PRESS_DOWN_RIGHT     , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_DOWN_LEFT      , MODULE_KEY_PRESS_DOWN_LEFT      , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_DOWN           , MODULE_KEY_PRESS_DOWN           , dest);
+    MODULE_TRANSLATE_KEY(BGMT_UNPRESS_UDLR         , MODULE_KEY_UNPRESS_UDLR         , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_HALFSHUTTER    , MODULE_KEY_PRESS_HALFSHUTTER    , dest);
+    MODULE_TRANSLATE_KEY(BGMT_UNPRESS_HALFSHUTTER  , MODULE_KEY_UNPRESS_HALFSHUTTER  , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_FULLSHUTTER    , MODULE_KEY_PRESS_FULLSHUTTER    , dest);
+    MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FULLSHUTTER  , MODULE_KEY_UNPRESS_FULLSHUTTER  , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_FLASH_MOVIE    , MODULE_KEY_PRESS_FLASH_MOVIE    , dest);
+    MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FLASH_MOVIE  , MODULE_KEY_UNPRESS_FLASH_MOVIE  , dest);
     
     return 0;
 }
-#undef MODULE_CHECK_KEY
+#undef MODULE_TRANSLATE_KEY
 
 int handle_module_keys(struct event * event)
 {
@@ -655,7 +655,7 @@ int handle_module_keys(struct event * event)
                 if(cbr->type == CBR_KEYPRESS)
                 {
                     /* key got handled? */
-                    if(!cbr->handler(module_translate_event(event)))
+                    if(!cbr->handler(module_translate_event(event, MODULE_KEY_PORTABLE)))
                     {
                         return 0;
                     }
