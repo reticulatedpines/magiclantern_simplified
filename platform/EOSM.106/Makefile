@@ -13,6 +13,8 @@ PLATFORM_INC=.
 
 PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
+ML_AF_PATTERNS_OBJ = n
+
 ML_EXTRA_OBJS = \
 	misc.o \
 	dm-spy.o \

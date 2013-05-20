@@ -163,6 +163,14 @@ else ifndef ML_ZEBRA_OBJ
 ML_ZEBRA_OBJ = zebra.o
 endif
 
+ifndef ML_AF_PATTERNS_OBJ
+ML_AF_PATTERNS_OBJ = af_patterns.o
+else ifeq($(ML_AF_PATTERNS_OBJ), n)
+ML_AF_PATTERNS_OBJ = 
+else
+ML_AF_PATTERNS_OBJ = af_patterns.o
+endif
+
 ML_STATIC_FONT_OBJS = \
 	font-small.o \
 	font-medium.o \
@@ -236,7 +244,7 @@ ML_SRC_OBJS = \
 	movtweaks.o \
 	menuhelp.o \
 	menuindex.o \
-	af_patterns.o \
+	$(ML_AF_PATTERNS_OBJ) \
 	focus.o \
 	notify_box.o \
 	bootflags.o \
