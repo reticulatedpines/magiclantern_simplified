@@ -98,6 +98,37 @@ static MENU_UPDATE_FUNC(write_speed_update)
         "Write speed needed: %d.%d MB/s at %d.%03d fps.",
         speed/10, speed%10, fps/1000, fps%1000
     );
+    char msg[70];
+    int best_num = 0;
+    int best_den = 0;
+    float ratio = (float)res_x / res_y;
+    float minerr = 100;
+    for (int num = 0; num < 20; num++)
+    {
+        for (int den = 0; den < 20; den++)
+        {
+            float err = ABS((float)num / den - ratio);
+            if (err < minerr)
+            {
+                minerr = err;
+                best_num = num;
+                best_den = den;
+            }
+        }
+    }
+    snprintf(msg, sizeof(msg), "Aspect ratio: %d:%d", best_num, best_den);
+    if (ratio > 1)
+    {
+        int r = ratio * 100;
+        if (r%100) STR_APPEND(msg, " (%d.%02d:1)", r/100, r%100);
+    }
+    else
+    {
+        int r = (1/ratio) * 100;
+        if (r%100) STR_APPEND(msg, " (1:%d.%02d)", r/100, r%100);
+    }
+    
+    MENU_SET_HELP(msg);
 }
 
 static void refresh_raw_settings()
