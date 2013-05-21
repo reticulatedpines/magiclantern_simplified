@@ -45,9 +45,9 @@ static CONFIG_INT( "shoot.af",  shoot_use_af, 0 );
 static int snap_sim = 0;
 
 static CONFIG_INT("post.deflicker", post_deflicker, 0);
-static CONFIG_INT("post.deflicker.sidecar", post_deflicker_sidecar_type, 0);
-static CONFIG_INT("post.deflicker.prctile", post_deflicker_percentile, 0);
-static CONFIG_INT("post.deflicker.level", post_deflicker_target_level, 0);
+static CONFIG_INT("post.deflicker.sidecar", post_deflicker_sidecar_type, 1);
+static CONFIG_INT("post.deflicker.prctile", post_deflicker_percentile, 50);
+static CONFIG_INT("post.deflicker.level", post_deflicker_target_level, -4);
 
 void move_lv_afframe(int dx, int dy);
 void movie_start();
@@ -3682,38 +3682,39 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, float ev)
 
 static void post_deflicker_step()
 {
-	int q = QR_MODE;
-	static int prev_q = 0;
-	int just_took_pic = q && !prev_q;
-	prev_q = q;
-	
-	if (just_took_pic)
-	{
-		int raw = raw_hist_get_percentile_level(post_deflicker_percentile);
-		if (raw < 0) return;
-		float ev = raw_to_ev(raw);
-		float correction = post_deflicker_target_level - ev;
-		int cor_x100 = (int)roundf(correction * 100);
-		bmp_printf(FONT_MED, 0, os.y_max - font_med.height, 
-			"Post exposure: %s%d.%02d EV\n",
-			FMT_FIXEDPOINT2S(cor_x100)
-		);
-		post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, correction);
-	}
+    int q = QR_MODE;
+    static int prev_q = 0;
+    int just_took_pic = q && !prev_q;
+    prev_q = q;
+    
+    if (just_took_pic)
+    {
+        int raw = raw_hist_get_percentile_level(post_deflicker_percentile);
+        if (raw < 0) return;
+        float ev = raw_to_ev(raw);
+        float correction = post_deflicker_target_level - ev;
+        int cor_x100 = (int)roundf(correction * 100);
+        post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, correction);
+        msleep(200);
+        bmp_printf(FONT_MED, 0, os.y_max - font_med.height, 
+            "Post exposure: %s%d.%02d EV\n",
+            FMT_FIXEDPOINT2S(cor_x100)
+        );
+    }
 }
 
 static MENU_UPDATE_FUNC(post_deflicker_update)
 {
-	if (!can_use_raw_overlays_photo())
-	{
-		MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
-	}
-	
-	if (post_deflicker)
-		MENU_SET_VALUE(post_deflicker_sidecar_type ? "UFRaw" : "Adobe XMP");
-	
-	if (post_deflicker && post_deflicker_sidecar_type==0)
-		MENU_SET_WARNING(MENU_WARN_INFO, "You must rename *.UFR to *.ufraw: rename 's/UFR$/ufraw' *");
+    if (!can_use_raw_overlays_photo())
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
+    }
+    
+    if (post_deflicker)
+        MENU_SET_VALUE(post_deflicker_sidecar_type ? "UFRaw" : "Adobe XMP");
+    
+    if (post_deflicker && post_deflicker_sidecar_type==0)
+        MENU_SET_WARNING(MENU_WARN_INFO, "You must rename *.UFR to *.ufraw: rename 's/UFR$/ufraw' *");
 }
 
 #endif
@@ -4322,7 +4323,7 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type  = IT_PERCENT_LOG_OFF,
                 .help = "Stop the intervalometer after taking X shots.",
             },
-			#ifdef FEATURE_BULB_RAMPING
+            #ifdef FEATURE_BULB_RAMPING
             {
                 .name = "Manual ExpoRamp",
                 .priv       = &bramp_manual_speed_evx1000_per_shot,
@@ -4445,8 +4446,8 @@ static struct menu_entry shoot_menus[] = {
                 .choices = CHOICES("OFF", "0.1s", "0.2s", "0.3s", "0.4s", "0.5s", "0.6s", "0.7s", "0.8s", "0.9s", "1s"),
                 .help = "Delay between the detected motion and the picture taken.",
             },
-			MENU_EOL
-		}
+            MENU_EOL
+        }
 
     },
     #endif
@@ -6378,10 +6379,10 @@ shoot_task( void* unused )
 #if defined(CONFIG_MODULES)
         module_exec_cbr(CBR_SHOOT_TASK);
 #endif
-		
-		#ifdef FEATURE_POST_DEFLICKER
-		post_deflicker_step();
-		#endif
+
+        #ifdef FEATURE_POST_DEFLICKER
+        post_deflicker_step();
+        #endif
 
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);

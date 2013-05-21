@@ -342,6 +342,8 @@ void hist_highlight(int level)
 #endif
 }
 
+#ifdef FEATURE_RAW_HISTOGRAM
+
 int raw_hist_get_percentile_level(int percentile)
 {
     if (!raw_update_params()) return -1;
@@ -385,3 +387,5 @@ end:
     SmallFree(hist);
     return ans;
 }
+
+#endif
