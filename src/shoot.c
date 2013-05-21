@@ -3636,6 +3636,12 @@ static void picq_toggle(void* priv)
 }
 #endif
 
+static char file_prefix[8] = "IMG_";
+PROP_HANDLER(PROP_FILE_PREFIX)
+{
+    snprintf(file_prefix, sizeof(file_prefix), "%s", (const char *)buf);
+}
+
 #ifdef FEATURE_POST_DEFLICKER
 static char* xmp_template =
 "<?xpacket begin='﻿' id='W5M0MpCehiHzreSzNTczkc9d'?>\n"
@@ -3662,7 +3668,7 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, float ev)
 {
     int evi = ev * 100000;
     char fn[100];
-    snprintf(fn, sizeof(fn), "%s/IMG_%04d.%s", get_dcim_dir(), file_number, type ? "UFR" : "XMP");
+    snprintf(fn, sizeof(fn), "%s/%s%04d.%s", get_dcim_dir(), file_prefix, file_number, type ? "UFR" : "XMP");
     FILE* f = FIO_CreateFileEx(fn);
     if (f == INVALID_PTR) return;
     if (type == 0)
@@ -3673,8 +3679,8 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, float ev)
     {
         char raw[100];
         char jpg[100];
-        snprintf(raw, sizeof(raw), "IMG_%04d.CR2", file_number);
-        snprintf(jpg, sizeof(jpg), "IMG_%04d.JPG", file_number);
+        snprintf(raw, sizeof(raw), "%s%04d.CR2", file_prefix, file_number);
+        snprintf(jpg, sizeof(jpg), "%s%04d.JPG", file_prefix, file_number);
         my_fprintf(f, ufraw_template, raw, jpg, FMT_FIXEDPOINT5(evi));
     }
     FIO_CloseFile(f);
@@ -5353,22 +5359,22 @@ void hdr_create_script(int f0, int focus_stack)
     if (hdr_scripts == 1)
     {
         my_fprintf(f, "#!/usr/bin/env bash\n");
-        my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
+        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, file_prefix, f0, file_prefix, mod(f0 + steps - 1, 10000));
         my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG ", focus_stack ? "--exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, "IMG_%04d.JPG ", mod(f0 + i, 10000));
+            my_fprintf(f, "%s%04d.JPG ", file_prefix, mod(f0 + i, 10000));
         }
         my_fprintf(f, "\n");
     }
     else if (hdr_scripts == 2)
     {
         my_fprintf(f, "#!/usr/bin/env bash\n");
-        my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
+        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, file_prefix, f0, file_prefix, mod(f0 + steps - 1, 10000));
         my_fprintf(f, "align_image_stack -m -a %s_AIS_%04d", focus_stack ? "FST" : "HDR", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, " IMG_%04d.JPG", mod(f0 + i, 10000));
+            my_fprintf(f, " %s%04d.JPG", file_prefix, mod(f0 + i, 10000));
         }
         my_fprintf(f, "\n");
         my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG %s_AIS_%04d*\n", focus_stack ? "--contrast-window-size=9 --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0, focus_stack ? "FST" : "HDR", f0);
@@ -5378,12 +5384,12 @@ void hdr_create_script(int f0, int focus_stack)
     {
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, " IMG_%04d.JPG", mod(f0 + i, 10000));
+            my_fprintf(f, " %s%04d.JPG", file_prefix, mod(f0 + i, 10000));
         }
     }
     
     FIO_CloseFile(f);
-    NotifyBox(5000, "Saved %s\nIMG_%04d.JPG ... IMG_%04d.JPG", name + 17, f0, mod(f0 + steps - 1, 10000));
+    NotifyBox(5000, "Saved %s\n%s%04d.JPG ... %s%04d.JPG", name + 17, file_prefix, f0, file_prefix, mod(f0 + steps - 1, 10000));
 }
 #endif // HDR/FST
 
