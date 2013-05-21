@@ -33,7 +33,6 @@ struct Histogram histogram;
 
 #define HIST_METER_DYNAMIC_RAMGE 1
 #define HIST_METER_ETTR_HINT 2
-#define HIST_METER_ETTR_HINT_CLIP_GREEN 3
 
 void hist_build_raw()
 {
@@ -188,7 +187,7 @@ void hist_draw_image(
     #ifdef FEATURE_RAW_HISTOGRAM
     const unsigned v = (1200 - raw_info.dynamic_range) * HIST_WIDTH / 1200;
     unsigned underexposed_level = COERCE(v, 0, HIST_WIDTH-1);
-    unsigned stops_until_overexposure = 0;
+    int stops_until_overexposure = 0;
     #endif
 
     for( i=0 ; i < HIST_WIDTH ; i++ )
@@ -263,7 +262,7 @@ void hist_draw_image(
             }
 
             unsigned int thr = histogram.total_px / 10000;
-            if (histogram.hist_r[i] > thr || (histogram.hist_g[i] > thr && hist_meter != HIST_METER_ETTR_HINT_CLIP_GREEN) || histogram.hist_b[i] > thr)
+            if (histogram.hist_r[i] > thr || histogram.hist_g[i] > thr || histogram.hist_b[i] > thr)
                 stops_until_overexposure = 120 - (i * 120 / (HIST_WIDTH-1));
         }
         #endif
@@ -285,13 +284,20 @@ void hist_draw_image(
             }
 
             case HIST_METER_ETTR_HINT:
-            case HIST_METER_ETTR_HINT_CLIP_GREEN:
             {
-                if (stops_until_overexposure)
-                    snprintf(msg, sizeof(msg), "E%d.%d", stops_until_overexposure/10, stops_until_overexposure%10);
+                if (!stops_until_overexposure)
+                    stops_until_overexposure = -12345678;
+                #ifdef FEATURE_AUTO_ETTR
+                int ettr_stops = auto_ettr_get_correction();
+                if (ettr_stops != -12345678)
+                    stops_until_overexposure = ettr_stops/10;
+                #endif
+                
+                if (stops_until_overexposure != -12345678)
+                    snprintf(msg, sizeof(msg), "E%s%d.%d", FMT_FIXEDPOINT1(stops_until_overexposure));
                 else
                     snprintf(msg, sizeof(msg), "OVER");
-                    break;
+                break;
             }
             
             default:
@@ -344,7 +350,7 @@ void hist_highlight(int level)
 
 #ifdef FEATURE_RAW_HISTOGRAM
 
-int raw_hist_get_percentile_level(int percentile)
+int raw_hist_get_percentile_level(int percentile, int gray_projection)
 {
     if (!raw_update_params()) return -1;
     get_yuv422_vram();
@@ -359,8 +365,8 @@ int raw_hist_get_percentile_level(int percentile)
         {
             int x = BM2RAW_X(j);
             int y = BM2RAW_Y(i);
-            int g = raw_green_pixel(x, y) & 16383;
-            hist[g]++;
+            int px = raw_get_gray_pixel(x, y, gray_projection);
+            hist[px & 16383]++;
         }
     }
 
@@ -383,9 +389,32 @@ int raw_hist_get_percentile_level(int percentile)
         }
     }
 
-end:
     SmallFree(hist);
     return ans;
+}
+
+int raw_hist_get_overexposure_percentage(int gray_projection)
+{
+    if (!raw_update_params()) return -1;
+    get_yuv422_vram();
+    
+    int white = raw_info.white_level;
+    int over = 0;
+    int total = 0;
+    
+    for (int i = os.y0; i < os.y_max; i += 2)
+    {
+        for (int j = os.x0; j < os.x_max; j += 2)
+        {
+            int x = BM2RAW_X(j);
+            int y = BM2RAW_Y(i);
+            int px = raw_get_gray_pixel(x, y, gray_projection);
+            if (px >= white) over++;
+            total++;
+        }
+    }
+    
+    return over * 100 / total;
 }
 
 #endif

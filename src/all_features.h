@@ -65,6 +65,11 @@
 #endif
 
     #define FEATURE_EXPO_OVERRIDE
+
+#ifdef CONFIG_RAW_PHOTO
+    #define FEATURE_AUTO_ETTR
+#endif
+
 #endif
 
 /** Overlay menu **/

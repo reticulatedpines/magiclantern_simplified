@@ -35,6 +35,7 @@
 #include "gui.h"
 #include "math.h"
 #include "raw.h"
+#include "histogram.h"
 
 #if defined(CONFIG_MODULES)
 #include "module.h"
@@ -44,10 +45,19 @@ static CONFIG_INT( "shoot.num", pics_to_take_at_once, 0);
 static CONFIG_INT( "shoot.af",  shoot_use_af, 0 );
 static int snap_sim = 0;
 
+#ifdef FEATURE_POST_DEFLICKER
 static CONFIG_INT("post.deflicker", post_deflicker, 0);
 static CONFIG_INT("post.deflicker.sidecar", post_deflicker_sidecar_type, 1);
 static CONFIG_INT("post.deflicker.prctile", post_deflicker_percentile, 50);
 static CONFIG_INT("post.deflicker.level", post_deflicker_target_level, -4);
+#endif
+
+#ifdef FEATURE_AUTO_ETTR
+static CONFIG_INT("auto.ettr", auto_ettr, 0);
+static CONFIG_INT("auto.ettr.prctile", auto_ettr_percentile, 98);
+static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
+static CONFIG_INT("auto.ettr.max.shutter", auto_ettr_max_shutter, 11);
+#endif
 
 void move_lv_afframe(int dx, int dy);
 void movie_start();
@@ -3690,12 +3700,12 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, 
 
 static int deflicker_last_correction_x100 = 0;
 
-void post_deflicker_step()
+static void post_deflicker_step()
 {
     if (!post_deflicker) return;
     if (HDR_ENABLED) return;
     
-    int raw = raw_hist_get_percentile_level(post_deflicker_percentile);
+    int raw = raw_hist_get_percentile_level(post_deflicker_percentile, GRAY_PROJECTION_GREEN);
     if (raw < 0)
     {
         deflicker_last_correction_x100 = 0;
@@ -3738,18 +3748,136 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
     }
     
     if (post_deflicker)
+    {
         MENU_SET_VALUE(post_deflicker_sidecar_type ? "UFRaw" : "Adobe XMP");
+        MENU_SET_RINFO("%d/%d%%", post_deflicker_target_level, post_deflicker_percentile);
+    }
     
     if (post_deflicker && post_deflicker_sidecar_type==0)
         MENU_SET_WARNING(MENU_WARN_INFO, "You must rename *.UFR to *.ufraw: rename 's/UFR$/ufraw' *");
 }
+#endif
 
+#ifdef FEATURE_AUTO_ETTR
+/* also used for display on histogram */
+int auto_ettr_get_correction()
+{
+    int raw = raw_hist_get_percentile_level(auto_ettr_percentile, GRAY_PROJECTION_MAX_RGB);
+    if (raw < 0)
+        return -12345678;
+    
+    float ev = raw_to_ev(raw);
+    float correction = MIN(auto_ettr_target_level, -0.5) - ev;
+    
+    if (correction < 0)
+    {
+        /* we don't know how much to go back in order to fix the overexposure */
+        /* so we'll use a heuristic: for each 10% of blown out image, go back 1EV */
+        int overexposed = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_MAX_RGB);
+        correction -= overexposed / 10.0;
+    }
+    
+    return (int)(correction * 100);
+}
+
+static int expo_lock_adjust_iso(int delta);
+static int expo_lock_adjust_tv(int delta);
+static int expo_lock_get_current_value();
+static int expo_lock_value;
+
+static volatile int auto_ettr_running = 0;
+static void auto_ettr_step_task(int corr)
+{
+    if (auto_ettr_running) return;
+    
+    int delta = -corr * 8 / 100;
+    int shutter_lim = auto_ettr_max_shutter*8 + 16;
+
+    if (lens_info.raw_shutter < shutter_lim)
+    {
+        delta += lens_info.raw_shutter - shutter_lim;
+        lens_set_rawshutter(shutter_lim);
+    }
+    
+    if (delta < 0) /* slower shutter speed */
+    {
+        int delta_extra = 0;
+        if (lens_info.raw_shutter + delta < shutter_lim)
+        {
+            int old_delta = delta;
+            delta = shutter_lim - lens_info.raw_shutter;
+            delta_extra = old_delta - delta;
+        }
+        
+        delta = expo_lock_adjust_tv(delta);
+        delta += delta_extra;
+        delta = expo_lock_adjust_iso(delta);
+    }
+    else /* faster shutter speed */
+    {
+        delta = expo_lock_adjust_iso(delta);
+        delta = expo_lock_adjust_tv(delta);
+    }
+
+    /* don't let expo lock undo our changes */
+    expo_lock_value = expo_lock_get_current_value();
+
+    auto_ettr_running = 0;
+}
+
+static void auto_ettr_step()
+{
+    if (!auto_ettr) return;
+    if (shooting_mode != SHOOTMODE_M) return;
+    if (lens_info.raw_iso == 0) return;
+    if (lens_info.raw_shutter == 0) return;
+    if (auto_ettr_running) return;
+    if (HDR_ENABLED) return;
+    int corr = auto_ettr_get_correction();
+    if (corr != -12345678)
+    {
+        /* we'd better not change expo settings from prop task (we won't get correct confirmations) */
+        task_create("ettr_task", 0x1c, 0x1000, auto_ettr_step_task, (void*) corr);
+    }
+}
+
+static MENU_UPDATE_FUNC(auto_ettr_update)
+{
+    if (!can_use_raw_overlays_photo())
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
+    }
+
+    if (HDR_ENABLED)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
+    }
+    
+    if (is_continuous_drive())
+    {
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
+    }
+    
+    if (auto_ettr)
+        MENU_SET_RINFO("%d/%d%%", auto_ettr_target_level, auto_ettr_percentile);
+}
+
+#endif
+
+#if defined(FEATURE_POST_DEFLICKER) || defined(FEATURE_AUTO_ETTR)
 PROP_HANDLER(PROP_GUI_STATE)
 {
     if (buf[0] == GUISTATE_QR)
+    {
+        #ifdef FEATURE_POST_DEFLICKER
         post_deflicker_step();
+        #endif
+        
+        #ifdef FEATURE_AUTO_ETTR
+        auto_ettr_step();
+        #endif
+    }
 }
-
 #endif
 
 #ifdef FEATURE_BULB_RAMPING
@@ -5292,6 +5420,45 @@ static struct menu_entry expo_menus[] = {
             },*/
             MENU_EOL
         }
+    },
+    #endif
+    #ifdef FEATURE_AUTO_ETTR
+    {
+        .name = "Auto ETTR", 
+        .priv = &auto_ettr, 
+        .update = auto_ettr_update,
+        .max = 1,
+        .help  = "Auto expose to the right when you shoot RAW.",
+        .help2 = "Take a test picture (underexposed). Next pic will be ETTR.",
+        .depends_on = DEP_PHOTO_MODE | DEP_M_MODE | DEP_MANUAL_ISO,
+        .submenu_width = 710,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "ETTR percentile",
+                .priv = &auto_ettr_percentile,
+                .min = 50,
+                .max = 100,
+                .unit = UNIT_PERCENT,
+                .help = "Where to meter for ETTR. Recommended: 90-99% (highlights).",
+            },
+            {
+                .name = "ETTR target level",
+                .priv = &auto_ettr_target_level,
+                .min = -4,
+                .max = 0,
+                .choices = CHOICES("-4 EV", "-3 EV", "-2 EV", "-1 EV", "-0.5 EV"),
+                .help = "Exposure target for ETTR. Recommended: -0.5 or -1 EV.",
+            },
+            {
+                .name = "Slowest shutter",
+                .priv = &auto_ettr_max_shutter,
+                .max = 16,
+                .icon_type = IT_PERCENT,
+                .choices = CHOICES("30\"", "15\"", "8\"", "4\"", "2\"", "1\"", "1/2", "1/4", "1/8", "1/15", "1/30", "1/60", "1/125", "1/250", "1/500", "1/1000", "1/2000"),
+                .help = "Slowest shutter speed for ETTR."
+            },
+            MENU_EOL,
+        },
     },
     #endif
     #ifdef FEATURE_EXPO_LOCK
