@@ -85,6 +85,16 @@
 
     #define FEATURE_OVERLAYS_IN_PLAYBACK_MODE
 
+
+#if defined(CONFIG_RAW_PHOTO) || defined(CONFIG_RAW_LIVEVIEW)
+    #define FEATURE_RAW_HISTOGRAM
+    #define FEATURE_RAW_SPOTMETER
+#endif
+
+#ifdef CONFIG_RAW_PHOTO
+    #define FEATURE_RAW_ZEBRAS
+#endif
+
 /** Movie menu **/
     #define FEATURE_NITRATE
     //~ #define FEATURE_NITRATE_WAV_RECORD // not user-proof at all
@@ -166,6 +176,16 @@
 #endif
 
     #define FEATURE_SNAP_SIM
+
+
+#ifdef CONFIG_RAW_LIVEVIEW
+    #define FEATURE_SILENT_PIC_RAW_BURST
+    //~ #define FEATURE_SILENT_PIC_RAW // - compatibility mode; define only one of those, not both
+#endif
+
+#ifdef CONFIG_RAW_PHOTO
+    #define FEATURE_POST_DEFLICKER
+#endif
 
 /** Focus menu **/
     #define FEATURE_TRAP_FOCUS

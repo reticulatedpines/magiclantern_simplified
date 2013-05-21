@@ -109,3 +109,6 @@
 
 /** We have AllocateMemoryResourceForSingleChunk */
 #define CONFIG_EXMEM_SINGLE_CHUNK
+
+/** We have access to raw data in LiveView only for now */
+#define CONFIG_RAW_LIVEVIEW

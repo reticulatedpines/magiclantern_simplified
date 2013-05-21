@@ -134,3 +134,7 @@
 
 /** Use the new Rec.709 for YUV-RGB conversion (undefine for Rec.601) */
 #define CONFIG_REC709
+
+/** We have access to raw data in both photo mode and in LiveView */
+#define CONFIG_RAW_PHOTO
+#define CONFIG_RAW_LIVEVIEW
