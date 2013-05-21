@@ -249,6 +249,7 @@ ML_SRC_OBJS = \
 	$(ML_FONT_OBJS) \
 	config.o \
 	stdio.o \
+	$(ML_BITRATE_OBJ) \
 	tweaks.o \
 	lens.o \
 	property.o \
@@ -278,7 +279,6 @@ ML_SRC_OBJS = \
 	imgconv.o \
 	histogram.o \
 	falsecolor.o \
-	$(ML_BITRATE_OBJ) \
 	$(ML_AUDIO_OBJ) \
 	$(ML_ZEBRA_OBJ) \
 
