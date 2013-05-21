@@ -5410,7 +5410,6 @@ void take_a_pic(int should_af, int allow_bulb)
     else
     #endif
     {
-        //~ beep();
         if (allow_bulb && is_bulb_mode_or_bulb_ramping()) hdr_shot(0, 1);
         else lens_take_picture(64, should_af);
     }
@@ -5472,7 +5471,7 @@ static int hdr_shutter_release(int ev_x8)
     lens_wait_readytotakepic(64);
 
     int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode_or_bulb_ramping());
-    int dont_change_exposure = ev_x8 == 0 && !HDR_ENABLED && !BULB_EXPOSURE_CONTROL_ACTIVE;
+    int dont_change_exposure = ev_x8 == 0 && !HDR_ENABLED && !BULB_EXPOSURE_CONTROL_ACTIVE && !is_bulb_mode_or_bulb_ramping();
 
     if (dont_change_exposure)
     {
@@ -5539,7 +5538,7 @@ static int hdr_shutter_release(int ev_x8)
 
 #ifdef CONFIG_BULB
         // then choose the best option (bulb for long exposures, regular for short exposures)
-        if (msc >= 10000 || (BULB_EXPOSURE_CONTROL_ACTIVE && msc > BULB_MIN_EXPOSURE))
+        if (msc >= 10000 || (BULB_EXPOSURE_CONTROL_ACTIVE && msc > BULB_MIN_EXPOSURE) || is_bulb_mode_or_bulb_ramping())
         {
             bulb_take_pic(msc);
         }
