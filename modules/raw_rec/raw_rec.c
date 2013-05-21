@@ -258,12 +258,9 @@ static int setup_buffers()
             void* ptr = GetMemoryAddressOfMemoryChunk(chunk);
             if (ptr != fullsize_buffers[0])
             {
-                /* 32MB writes are slower (require two cfDMAWriteBlk calls: 65533+3 blocks).
-                 * Shrink the buffer by 1.5 K and it's fast again. We'll throw away 64K, just in case. */
-                size = MIN(size, 32*1024*1024 - 64*1024);
-                
-                buffers[buffer_count].ptr = ptr;
-                buffers[buffer_count].size = size;
+                /* make sure our buffers are aligned at 4K */
+                buffers[buffer_count].ptr = (((intptr_t)ptr + 4095) & ~4095);
+                buffers[buffer_count].size = size - 8192;
                 buffers[buffer_count].used = 0;
                 buffer_count++;
                 total += size;
@@ -273,16 +270,23 @@ static int setup_buffers()
     }
     
     /* try to recycle the waste */
-    if (waste >= 16*1024*1024)
+    if (waste >= 16*1024*1024 + 8192)
     {
-        buffers[buffer_count].ptr = fullsize_buffers[0] + buf_size;
-        buffers[buffer_count].size = waste;
+        buffers[buffer_count].ptr = (((intptr_t)(fullsize_buffers[0] + buf_size) + 4095) & ~4095);
+        buffers[buffer_count].size = waste - 8192;
         buffers[buffer_count].used = 0;
         buffer_count++;
         total += waste;
     }
     
-    bmp_printf(FONT_MED, 30, 90, "Alloc %d x %d MB", buffer_count, total / 1024 / 1024 / buffer_count);
+    char msg[100];
+    snprintf(msg, sizeof(msg), "Alloc: ");
+    for (int i = 0; i < buffer_count; i++)
+    {
+        STR_APPEND(msg, "%dM", (buffers[i].size / 1024 + 512) / 1024);
+        if (i < buffer_count-1) STR_APPEND(msg, "+");
+    }
+    bmp_printf(FONT_MED, 30, 90, msg);
     
     /* we need at least two buffers */
     if (buffer_count < 2) return 0;
