@@ -610,6 +610,13 @@ const char* get_dcim_dir();
 #define FMT_FIXEDPOINT3(x)  (x) < 0 ? "-" :                 "", ABS(x)/1000, ABS(x)%1000
 #define FMT_FIXEDPOINT3S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/1000, ABS(x)%1000
 
+// to be used with "%s%d.%04d" - for values with three decimal places
+#define FMT_FIXEDPOINT4(x)  (x) < 0 ? "-" :                 "", ABS(x)/10000, ABS(x)%10000
+#define FMT_FIXEDPOINT4S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/10000, ABS(x)%10000
+
+// to be used with "%s%d.%05d" - for values with three decimal places
+#define FMT_FIXEDPOINT5(x)  (x) < 0 ? "-" :                 "", ABS(x)/100000, ABS(x)%100000
+#define FMT_FIXEDPOINT5S(x) (x) < 0 ? "-" : (x) > 0 ? "+" : "", ABS(x)/100000, ABS(x)%100000
 
 /** AF microadjustment **/
 int get_afma(int mode);

@@ -2055,40 +2055,6 @@ clrscr_mirror( void )
     }
 }
 
-#ifdef FEATURE_BULB_RAMPING
-void
-highlight_luma_range(int lo, int hi, int color1, int color2)
-{
-    uint8_t * const bvram = bmp_vram();
-    if (!bvram) return;
-    if (!bvram_mirror) return;
-    int y;
-    uint8_t * const lvram = get_yuv422_vram()->vram;
-    int lvpitch = get_yuv422_vram()->pitch;
-    for( y = 0; y < 480; y += 2 )
-    {
-        uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch );        // 2 pixel
-        uint16_t * const b_row = (uint16_t*)( bvram + y * BMPPITCH);          // 2 pixel
-        
-        uint8_t* lvp; // that's a moving pointer through lv vram
-        uint16_t* bp;  // through bmp vram
-        
-        for (lvp = ((uint8_t*)v_row)+1, bp = b_row; lvp < (uint8_t*)(v_row + 720/2) ; lvp += 4, bp++)
-        {
-            int x = ((int)lvp) / 2;
-            int color = (y/2 - x/2) % 2 ? color1 | color1 << 8 : color2 | color2 << 8;
-            #define BP (*bp)
-            #define BN (*(bp + BMPPITCH/2))
-            int pix = (*lvp + *(lvp+2))/2;
-            int c = pix >= lo && *lvp <= hi ? color : 0;
-            BN = BP = c;
-            #undef BP
-            #undef BN
-        }
-    }
-}
-#endif
-
 #ifdef FEATURE_CROPMARKS
 
 #define MAX_CROP_NAME_LEN 15
