@@ -162,16 +162,51 @@ void* edmac_memset(void* dst, int value, size_t length)
     return dst;
 }
 
+uint32_t edmac_find_divider(size_t length)
+{
+    int blocksize = 4096;
+    
+    /* find a fitting 2^x divider */
+    while((blocksize > 0) && (length % blocksize))
+    {
+        blocksize >>= 1;
+    }
+    
+    /* could not find a fitting divider */
+    if(!blocksize)
+    {
+        return 0;
+    }
+    
+    return blocksize;
+}
+
 void* edmac_memcpy(void* dst, void* src, size_t length)
 {
-    int h = length / 4096;
-    return edmac_copy_rectangle_adv(dst, src, 4096, 0, 0, 4096, 0, 0, 4096, h);
+    int blocksize = edmac_find_divider(length);
+    
+    if(!blocksize)
+    {
+        return memcpy(dst, src, length);
+    }
+    
+    return edmac_copy_rectangle_adv(dst, src, blocksize, 0, 0, blocksize, 0, 0, blocksize, length / blocksize);
 }
 
 void* edmac_memcpy_start(void* dst, void* src, size_t length)
 {
-    int h = length / 4096;
-    return edmac_copy_rectangle_adv_start(dst, src, 4096, 0, 0, 4096, 0, 0, 4096, h);
+    int blocksize = edmac_find_divider(length);
+    
+    if(!blocksize)
+    {
+        void * ret = memcpy(dst, src, length);
+        /* simulate a started copy operation */
+        take_semaphore(edmac_memcpy_sem, 0);
+        give_semaphore(edmac_read_done_sem);
+        return ret;
+    }
+    
+    return edmac_copy_rectangle_adv_start(dst, src, blocksize, 0, 0, blocksize, 0, 0, blocksize, length / blocksize);
 }
 
 void edmac_memcpy_finish()
