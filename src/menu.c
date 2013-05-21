@@ -500,11 +500,12 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
     ASSERT(IS_ML_PTR(val));
     
     static int prev_t = 0;
+    static int prev_delta = 1000;
     int t = get_ms_clock_value();
     
     if (max - min > 20)
     {
-        if (t - prev_t < 300)
+        if (t - prev_t < 200 && prev_delta < 200)
             menu_numeric_toggle_R20(val, delta, min, max);
         else
             menu_numeric_toggle_long_range(val, delta, min, max);
@@ -514,6 +515,7 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
         *val = mod(*val - min + delta, max - min + 1) + min;
     }
     
+    prev_delta = t - prev_t;
     prev_t = t;
 }
 
