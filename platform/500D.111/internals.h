@@ -112,3 +112,6 @@
 
 /** You can't AF by pressing shutter halfway in LiveView */
 #define CONFIG_NO_HALFSHUTTER_AF_IN_LIVEVIEW
+
+/** We can use the DMA controller to copy data */
+#define CONFIG_EDMAC_MEMCPY

@@ -19,6 +19,7 @@ ML_EXTRA_OBJS = \
 	lcdsensor.o \
 	raw.o \
 	chdk-dng.o \
+	edmac-memcpy.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
