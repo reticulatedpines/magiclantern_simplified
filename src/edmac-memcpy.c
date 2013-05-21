@@ -129,7 +129,7 @@ void edmac_copy_rectangle_finish()
 void* edmac_memset(void* dst, int value, size_t length)
 {
     uint32_t blocksize = 64;
-    uint32_t leading = MIN(length, (uint32_t)dst % blocksize);
+    uint32_t leading = MIN(length, (blocksize - ((uint32_t)dst % blocksize)) % blocksize);
     uint32_t trailing = (length - leading) % blocksize;
     uint32_t copyable = length - leading - trailing;
     
