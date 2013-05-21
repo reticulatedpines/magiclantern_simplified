@@ -272,7 +272,17 @@ static int setup_buffers()
         chunk = GetNextMemoryChunk(mem_suite, chunk);
     }
     
-    bmp_printf(FONT_MED, 30, 50, "Alloc %d x %d MB", buffer_count, total / 1024 / 1024 / buffer_count);
+    /* try to recycle the waste */
+    if (waste >= 16*1024*1024)
+    {
+        buffers[buffer_count].ptr = fullsize_buffers[0] + buf_size;
+        buffers[buffer_count].size = waste;
+        buffers[buffer_count].used = 0;
+        buffer_count++;
+        total += waste;
+    }
+    
+    bmp_printf(FONT_MED, 30, 90, "Alloc %d x %d MB", buffer_count, total / 1024 / 1024 / buffer_count);
     
     /* we need at least two buffers */
     if (buffer_count < 2) return 0;
@@ -453,7 +463,7 @@ static void hack_liveview()
             if (pitch == vram_lv.pitch || pitch == vram_hd.pitch)
             {
                 uint32_t reg = edmac_get_base(channel);
-                bmp_printf(FONT_SMALL, 30, y += font_small.height, "Hack %x %dx%d ", reg, shamem_read(reg + 0x10) & 0xFFFF, shamem_read(reg + 0x10) >> 16);
+                bmp_printf(FONT_SMALL, 30, y += font_small.height, "Hack %x %x ", reg, shamem_read(reg + 0x10) & 0xFFFF);
                 *(volatile uint32_t *)(reg + 0x10) = shamem_read(reg + 0x10) & 0xFFFF;
             }
         }
@@ -560,7 +570,7 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
     dma_transfer_in_progress = process_frame();
 
     /* try a sync beep */
-    if (sound_rec == 2 && frame_count == 0)
+    if (sound_rec == 2 && frame_count == 1)
         beep();
 
     return 0;
@@ -674,7 +684,7 @@ static void raw_video_rec_task()
             int speed = (written / 1024) * 10 / (t1 - t0) * 1000 / 1024; // MB/s x10
             measured_write_speed = speed;
             if (liveview_display_idle()) bmp_printf( FONT_MED, 30, 90, 
-                "%s: %d MB, %d.%d MB/s",
+                "%s: %d MB, %d.%d MB/s ",
                 movie_filename + 17, /* skip A:/DCIM/100CANON/ */
                 written / 1024 / 1024,
                 speed/10, speed%10
