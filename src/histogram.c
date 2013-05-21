@@ -342,3 +342,46 @@ void hist_highlight(int level)
 #endif
 }
 
+int raw_hist_get_percentile_level(int percentile)
+{
+    if (!raw_update_params()) return -1;
+    get_yuv422_vram();
+    
+    int* hist = SmallAlloc(16384*4);
+    if (!hist) return -1;
+    memset(hist, 0, 16384*4);
+    
+    for (int i = os.y0; i < os.y_max; i++)
+    {
+        for (int j = os.x0; j < os.x_max; j++)
+        {
+            int x = BM2RAW_X(j);
+            int y = BM2RAW_Y(i);
+            int g = raw_green_pixel(x, y) & 16383;
+            hist[g]++;
+        }
+    }
+
+    int total = 0;
+    int i;
+    for( i=0 ; i < 16384 ; i++ )
+        total += hist[i];
+    
+    int thr = total * percentile / 100;  // 50% => median
+    int n = 0;
+    int ans = -1;
+    
+    for( i=0 ; i < 16384; i++ )
+    {
+       n += hist[i];
+        if (n >= thr)
+        {
+            ans = i;
+            break;
+        }
+    }
+
+end:
+    SmallFree(hist);
+    return ans;
+}
