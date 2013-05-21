@@ -32,7 +32,7 @@ int main(int argc, char** argv)
     CHECK(fi, "could not open %s", argv[1]);
     if (sizeof(lv_rec_file_footer_t) != 192) FAIL("sizeof(lv_rec_file_footer_t) = %d, should be 192", sizeof(lv_rec_file_footer_t));
     
-    fseek(fi, -sizeof(lv_rec_file_footer_t), SEEK_END);
+    fseeko(fi, -192, SEEK_END);
     int r = fread(&lv_rec_footer, 1, sizeof(lv_rec_file_footer_t), fi);
     CHECK(r == sizeof(lv_rec_file_footer_t), "footer");
     raw_info = lv_rec_footer.raw_info;
