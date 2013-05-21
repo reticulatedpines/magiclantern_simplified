@@ -3662,9 +3662,11 @@ static char* ufraw_template =
 "<OutputFilename>%s</OutputFilename>\n"
 "<Exposure>%s%d.%05d</Exposure>\n"
 "<ExposureNorm>1</ExposureNorm>\n"
+"<ClipHighlights>film</ClipHighlights>\n"
+"<OutputType>4</OutputType>\n"
 "</UFRaw>\n";
 
-static void post_deflicker_save_sidecar_file_for_cr2(int type, float ev)
+static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, float ev)
 {
     int evi = ev * 100000;
     char fn[100];
@@ -3686,26 +3688,35 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, float ev)
     FIO_CloseFile(f);
 }
 
-static void post_deflicker_step()
+static int deflicker_last_correction_x100 = 0;
+
+void post_deflicker_step()
 {
-    int q = QR_MODE;
-    static int prev_q = 0;
-    int just_took_pic = q && !prev_q;
-    prev_q = q;
+    if (!post_deflicker) return;
+    if (HDR_ENABLED) return;
     
-    if (just_took_pic)
+    int raw = raw_hist_get_percentile_level(post_deflicker_percentile);
+    if (raw < 0)
     {
-        int raw = raw_hist_get_percentile_level(post_deflicker_percentile);
-        if (raw < 0) return;
-        float ev = raw_to_ev(raw);
-        float correction = post_deflicker_target_level - ev;
-        int cor_x100 = (int)roundf(correction * 100);
-        post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, correction);
-        msleep(200);
+        deflicker_last_correction_x100 = 0;
+        return;
+    }
+    float ev = raw_to_ev(raw);
+    float correction = post_deflicker_target_level - ev;
+    deflicker_last_correction_x100 = (int)roundf(correction * 100);
+    post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, file_number, correction);
+}
+
+/* called from QR zebras */
+void post_deflicker_show_info()
+{
+    if (post_deflicker && deflicker_last_correction_x100)
+    {
         bmp_printf(FONT_MED, 0, os.y_max - font_med.height, 
             "Post exposure: %s%d.%02d EV\n",
-            FMT_FIXEDPOINT2S(cor_x100)
+            FMT_FIXEDPOINT2S(deflicker_last_correction_x100)
         );
+        deflicker_last_correction_x100 = 0;
     }
 }
 
@@ -3715,12 +3726,28 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
     }
+
+    if (HDR_ENABLED)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
+    }
+    
+    if (is_continuous_drive())
+    {
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
+    }
     
     if (post_deflicker)
         MENU_SET_VALUE(post_deflicker_sidecar_type ? "UFRaw" : "Adobe XMP");
     
     if (post_deflicker && post_deflicker_sidecar_type==0)
         MENU_SET_WARNING(MENU_WARN_INFO, "You must rename *.UFR to *.ufraw: rename 's/UFR$/ufraw' *");
+}
+
+PROP_HANDLER(PROP_GUI_STATE)
+{
+    if (buf[0] == GUISTATE_QR)
+        post_deflicker_step();
 }
 
 #endif
@@ -4602,7 +4629,7 @@ static struct menu_entry shoot_menus[] = {
         .submenu_width = 710,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Sidecar type",
+                .name = "Sidecar file type",
                 .priv = &post_deflicker_sidecar_type,
                 .max = 1,
                 .choices = CHOICES("Adobe XMP", "UFRaw"),
@@ -6385,10 +6412,6 @@ shoot_task( void* unused )
 #if defined(CONFIG_MODULES)
         module_exec_cbr(CBR_SHOOT_TASK);
 #endif
-
-        #ifdef FEATURE_POST_DEFLICKER
-        post_deflicker_step();
-        #endif
 
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);

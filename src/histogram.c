@@ -353,9 +353,9 @@ int raw_hist_get_percentile_level(int percentile)
     if (!hist) return -1;
     memset(hist, 0, 16384*4);
     
-    for (int i = os.y0; i < os.y_max; i++)
+    for (int i = os.y0; i < os.y_max; i += 2)
     {
-        for (int j = os.x0; j < os.x_max; j++)
+        for (int j = os.x0; j < os.x_max; j += 2)
         {
             int x = BM2RAW_X(j);
             int y = BM2RAW_Y(i);
