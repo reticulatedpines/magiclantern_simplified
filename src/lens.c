@@ -262,14 +262,6 @@ void round_noflicker_test()
     NotifyBox(5000, msg);
 }*/
 
-// NOT thread safe, see above!
-// useful for bulb ramping
-int shutterf_to_raw_noflicker(float shutterf)
-{
-    if (shutterf == 0) return 160;
-    return round_noflicker(56.0f - log2f(shutterf) * 8.0f);
-}
-
 float raw2shutterf(int raw_shutter)
 {
     if (!raw_shutter) return 0.0;
@@ -2378,10 +2370,6 @@ static int bv_auto_should_enable()
     if (zoom_auto_exposure && lv_dispsize > 1)
         return 0; // otherwise it would interfere with auto exposure
     
-    extern int bulb_ramp_calibration_running; 
-    if (bulb_ramp_calibration_running) 
-        return 0; // temporarily disable BV mode to make sure display gain will work
-
     if (LVAE_DISP_GAIN) // compatibility problem, disable it
         return 0;
 

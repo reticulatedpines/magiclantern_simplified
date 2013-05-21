@@ -22,10 +22,10 @@ my_fprintf(
 {
     va_list         ap;
 
-    char* buf = alloc_dma_memory(256);
+    char* buf = alloc_dma_memory(4096);
 
     va_start( ap, fmt );
-    int len = vsnprintf( buf, 255, fmt, ap );
+    int len = vsnprintf( buf, 4095, fmt, ap );
     va_end( ap );
 
     FIO_WriteFile( file, buf, len );

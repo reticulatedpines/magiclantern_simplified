@@ -394,11 +394,7 @@ int handle_common_events_by_feature(struct event * event)
     #endif
          return handle_keep_ml_after_format_toggle();
 #endif
-    
-    #ifdef FEATURE_BULB_RAMPING
-    if (handle_bulb_ramping_keys(event) == 0) return 0;
-    #endif
-    
+        
     #ifdef FEATURE_FPS_OVERRIDE
     if (handle_fps_events(event) == 0) return 0;
     #endif

@@ -59,7 +59,6 @@ void take_fast_pictures( int number );
 
 static void bulb_ramping_showinfo();
 static int is_bulb_mode_or_bulb_ramping();
-int bulb_ramp_calibration_running = 0;
 
 #if  !defined(AUDIO_REM_SHOT_POS_X) && !defined(AUDIO_REM_SHOT_POS_Y)
     #define AUDIO_REM_SHOT_POS_X 20
@@ -211,21 +210,10 @@ static CONFIG_INT( "motion.position", motion_detect_position, 0);
 
 int get_silent_pic() { return silent_pic_enabled; } // silent pic will disable trap focus
 
-//~ static CONFIG_INT("bulb.ramping", bulb_ramping_enabled, 0);
-static CONFIG_INT("bulb.ramping.mode", bramp_auto_exposure, 0);
-//~ static CONFIG_INT("bulb.ramping.auto.speed", bramp_auto_ramp_speed, 100); // max 0.1 EV/shot
-//~ static CONFIG_INT("bulb.ramping.smooth", bramp_auto_smooth, 50);
-static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 50);
 static CONFIG_INT("bulb.ramping.man.expo", bramp_manual_speed_evx1000_per_shot, 0);
 static CONFIG_INT("bulb.ramping.man.focus", bramp_manual_speed_focus_steps_per_shot, 0);
 
-
-#define BRAMP_FEEDBACK_LOOP     (bramp_auto_exposure == 1) // smooth exposure changes
-#define BRAMP_LRT_HOLY_GRAIL    (bramp_auto_exposure == 2) // only apply integer EV correction
-#define BRAMP_LRT_HOLY_GRAIL_STOPS 1
-
-
-#define BULB_EXPOSURE_CONTROL_ACTIVE (intervalometer_running && (bramp_auto_exposure || bramp_manual_speed_evx1000_per_shot))
+#define BULB_EXPOSURE_CONTROL_ACTIVE (intervalometer_running && bramp_manual_speed_evx1000_per_shot)
 
 static int intervalometer_running = 0;
 int is_intervalometer_running() { return intervalometer_running; }
@@ -591,58 +579,6 @@ static MENU_UPDATE_FUNC(manual_focus_ramp_print)
         MENU_SET_ICON(MNI_PERCENT_ALLOW_OFF, 50 + log_length(ABS(steps)) * 50 / max * SGN(steps));
     }
 }
-
-/*
-static MENU_UPDATE_FUNC(bulb_ramping_print)
-{
-    int evx1000 = bramp_manual_speed_evx1000_per_shot;
-    int steps = bramp_manual_speed_focus_steps_per_shot;
-
-    static char msg[100];
-    msg[0] = 0;
-
-    // try to write this as compact as possible, there's very little space in the menu
-    if (!bulb_ramping_enabled)
-    {
-        STR_APPEND(msg, "OFF");
-    }
-    else
-    {
-        if (bramp_auto_exposure)
-        {
-            STR_APPEND(msg, 
-                bramp_auto_exposure == 1 ? "Smooth" :
-                bramp_auto_exposure == 2 ? "LRT" : "err"
-            );
-        }
-        if (evx1000)
-        {
-            STR_APPEND(msg, "%s.", evx1000 >= 1000 ? "+1" : evx1000 <= -1000 ? "-1" : evx1000 > 0 ? "+" : "-");
-            int r = ABS(evx1000) % 1000;
-            if (r % 100 == 0)       { STR_APPEND(msg, "%01d", r / 100); }
-            else if (r % 10 == 0)   { STR_APPEND(msg, "%02d", r / 10 ); }
-            else                    { STR_APPEND(msg, "%03d", r      ); }
-            STR_APPEND(msg, "EV/p");
-        }
-        if (steps)
-        {
-            STR_APPEND(msg, "%s%dFS", steps > 0 ? "+" : "", steps);
-        }
-    }
-    
-    MENU_SET_VALUE(msg);
-
-    if (!bramp_auto_exposure && !evx1000 && !steps)
-    {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Nothing enabled from the submenu.");
-    }
-
-    if (!intervalometer_running)
-    {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You also need to enable the intervalometer.");
-    }
-}
-*/
 
 static int ev_values[] = {-1000, -750, -500, -200, -100, -50, -20, -10, -5, -2, -1, 0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 750, 1000};
 
@@ -3226,7 +3162,7 @@ void zoom_sharpen_step()
     static int sa = 100;
     static int sh = 100;
     
-    if (zoom_sharpen && lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown() && !bulb_ramp_calibration_running) // bump contrast/sharpness
+    if (zoom_sharpen && lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown()) // bump contrast/sharpness
     {
         if (co == 100)
         {
@@ -3275,7 +3211,7 @@ void zoom_auto_exposure_step()
     static int es = -1;
     // static int aem = -1;
     
-    if (lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown() && !bulb_ramp_calibration_running)
+    if (lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown())
     {
         // photo mode: disable ExpSim
         // movie mode 5D2: disable ExpSim
@@ -3738,96 +3674,7 @@ static int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int interv
     return 0; // nothing changed
 }
 
-static FILE* bramp_log_file = 0;
-static int bramp_init_state = 0;
 static int bramp_init_done = 0;
-static int bramp_reference_level = 0;
-static int bramp_measured_level = 0;
-//~ int bramp_level_ev_ratio = 0;
-static int bramp_hist_dirty = 0;
-static int bramp_ev_reference_x1000 = 0;
-static int bramp_prev_shot_was_bad = 1;
-static float bramp_u1 = 0; // for the feedback controller: command at previous step
-static int bramp_last_exposure_rounding_error_evx1000;
-
-static int measure_brightness_level(int initial_wait)
-{
-    msleep(initial_wait);
-    // hack so the playback histogram won't disturb us
-    // todo: remove dependency on hist_build
-    int ans;
-    BMP_LOCK(
-        if (bramp_hist_dirty)
-        {
-            struct vram_info * vram = get_yuv422_vram();
-            hist_build(vram->vram, vram->width, vram->pitch);
-            bramp_hist_dirty = 0;
-        }
-        ans = hist_get_percentile_level(bramp_percentile);
-    )
-    //~ get_out_of_play_mode(500);
-    return ans;
-}
-
-static void bramp_change_percentile(int dir)
-{
-    ASSERT(PLAY_MODE);
-    NotifyBoxHide();
-    bramp_percentile = COERCE(bramp_percentile + dir * 5, 5, 95);
-    
-    int i;
-    for (i = 0; i <= 20; i++)
-    {
-        bramp_reference_level = measure_brightness_level(0); // at bramp_percentile
-        if (bramp_reference_level > 230) bramp_percentile = COERCE(bramp_percentile - 5, 5, 95);
-        else if (bramp_reference_level < 25) bramp_percentile = COERCE(bramp_percentile + 5, 5, 95);
-        else break;
-    }
-    if (i >= 20) { NotifyBox(1000, "Image not properly exposed"); return; }
-
-    int level_8bit = bramp_reference_level;
-    int level_8bit_plus = level_8bit + 5; //hist_get_percentile_level(bramp_percentile + 5) * 255 / 100;
-    int level_8bit_minus = level_8bit - 5; //hist_get_percentile_level(bramp_percentile - 5) * 255 / 100;
-    clrscr();
-    highlight_luma_range(level_8bit_minus, level_8bit_plus, COLOR_BLUE, COLOR_WHITE);
-    hist_highlight(level_8bit);
-    bmp_printf(FONT_LARGE, 50, 400, 
-        "Meter for %s\n"
-        "(%2d%% luma at %dth percentile)",
-        bramp_percentile < 40 ? "shadows" : bramp_percentile < 70 ? "midtones" : "highlights",
-        bramp_reference_level*100/255, 0,
-        bramp_percentile);
-}
-
-int handle_bulb_ramping_keys(struct event * event)
-{
-    if (intervalometer_running && bramp_init_state && PLAY_MODE)
-    {
-        switch (event->param)
-        {
-            case BGMT_PRESS_SET:
-            {
-                bramp_init_state = 0; // OK :)
-                NotifyBox(1000, "OK");
-                return 1;
-            }
-            case BGMT_WHEEL_LEFT:
-            case BGMT_WHEEL_RIGHT:
-            {
-                int dir = event->param == BGMT_WHEEL_LEFT ? -1 : 1;
-                bramp_change_percentile(dir);
-                //~ NotifyBoxHide();
-                return 0;
-            }
-        }
-    }
-    
-    // test interpolation on luma-ev curve
-    //~ for (int i = 0; i < 255; i += 5)
-        //~ bramp_plot_luma_ev_point(i, COLOR_GREEN1);
-
-    return 1;
-}
 
 static void flip_zoom()
 {
@@ -3845,156 +3692,7 @@ static void flip_zoom()
     set_lv_zoom(zoom0);
 }
 
-
-static int bramp_measure_luma(int delay)
-{
-    ASSERT(lv);
-    ASSERT(lv_dispsize > 1);
-    ASSERT(get_expsim());
-    ASSERT(shooting_mode == SHOOTMODE_M);
-    //~ ASSERT(LVAE_DISP_GAIN); // display gain can also be zero, no problem
-    
-    msleep(delay);
-    // we are in zoom mode, histogram not normally updated => we can reuse the buffer
-    //~ struct vram_info * vram = get_yuv422_vram();
-    //~ hist_build(vram->vram, vram->width, vram->pitch);
-    //~ bramp_hist_dirty = 0;
-    //~ return hist_get_percentile_level(50) * 255/100; // median => much more robust in cluttered scenes, but more sensitive to noise
-    int Y,U,V;
-    get_spot_yuv(200, &Y, &U, &V);
-    return Y;
-}
-
-// still useful for bulb ramping
-static int bramp_zoom_toggle_needed = 0; // for 600D and some new lenses?!
-static int bramp_set_display_gain_and_measure_luma(int gain)
-{
-    gain = COERCE(gain, 0, 65534);
-    //~ bmp_printf(FONT_MED, 100, 100, "%d ", gain);
-    //~ set_display_gain_equiv(gain);
-    call("lvae_setdispgain", gain);
-    if (lv_dispsize == 1) set_lv_zoom(5);
-    if (bramp_zoom_toggle_needed)
-    {
-        flip_zoom();
-        msleep(1000);
-    }
-    #ifdef BRAMP_CALIBRATION_DELAY
-    msleep(BRAMP_CALIBRATION_DELAY);
-    #else
-    msleep(500);
-    #endif
-    return bramp_measure_luma(0);
-}
-
-static int crit_dispgain_50(int gain)
-{
-    if (!lv) return 0;
-    int Y = bramp_set_display_gain_and_measure_luma(gain);
-    NotifyBox(1000, "Gain=%d => Luma=%d ", gain, Y);
-    return 128 - Y;
-}
-
-
-static int bramp_luma_ev[11];
-
-static void bramp_plot_luma_ev()
-{
-    for (int i = -5; i < 5; i++)
-    {
-        int luma1 = bramp_luma_ev[i+5];
-        int luma2 = bramp_luma_ev[i+6];
-        int x1 =  350 + i * 20;
-        int x2 =  350 + (i+1) * 20;
-        int y1 =  240 - (luma1-128)/2;
-        int y2 =  240 - (luma2-128)/2;
-        draw_line(x1, y1, x2, y2, COLOR_RED);
-        draw_line(x1, y1+1, x2, y2+1, COLOR_RED);
-        draw_line(x1, y1+2, x2, y2+2, COLOR_WHITE);
-        draw_line(x1, y1-1, x2, y2-1, COLOR_WHITE);
-    }
-    int x1 =  350 - 5 * 20;
-    int x2 =  350 + 5 * 20;
-    int y1 =  240 - 128/2;
-    int y2 =  240 + 128/2;
-    bmp_draw_rect(COLOR_WHITE, x1, y1, x2-x1, y2-y1);
-}
-
-static int bramp_luma_to_ev_x100(int luma)
-{
-    int i;
-    for (i = -5; i < 5; i++)
-        if (luma <= bramp_luma_ev[i+5]) break;
-    i = COERCE(i-1, -5, 4);
-    // now, luma is between luma1 and luma2
-    // EV correction is between i EV and (i+1) EV => linear approximation
-    int luma1 = bramp_luma_ev[i+5];
-    int luma2 = bramp_luma_ev[i+6];
-    int k = (luma-luma1) * 1000 / (luma2-luma1);
-    //~ return i * 100;
-    int ev_x100 = ((1000-k) * i + k * (i+1))/10;
-    //~ NotifyBox(1000, "%d,%d=>%d", luma, i, ev_x100);
-    return COERCE(ev_x100, -500, 500);
-}
-
-static void bramp_plot_luma_ev_point(int luma, int color)
-{
-    luma = COERCE(luma, 0, 255);
-    int ev = bramp_luma_to_ev_x100(luma);
-    ev = COERCE(ev, -500, 500);
-    int x = 350 + ev * 20 / 100;
-    int y = 240 - (luma-128)/2;
-    for (int r = 0; r < 5; r++)
-    {
-        draw_circle(x, y, r, color);
-        draw_circle(x+1, y, r, color);
-    }
-    draw_circle(x, y, 6, COLOR_WHITE);
-}
-
-static void bramp_plot_holy_grail_hysteresis(int luma_ref)
-{
-    luma_ref = COERCE(luma_ref, 0, 255);
-    int ev = bramp_luma_to_ev_x100(luma_ref);
-    int ev1 = ev - BRAMP_LRT_HOLY_GRAIL_STOPS * 100;
-    int ev2 = ev + BRAMP_LRT_HOLY_GRAIL_STOPS * 100;
-    int x1 = 350 + ev1 * 20 / 100;
-    int x2 = 350 + ev2 * 20 / 100;
-    int y1 = 240 - (-128)/2;
-    int y2 = 240 - ( 128)/2;
-
-    draw_line(x1, y1, x1, y2, COLOR_BLACK);
-    draw_line(x2, y1, x2, y2, COLOR_WHITE);
-    draw_line(x1+1, y1, x1+1, y2, COLOR_WHITE);
-    draw_line(x2+1, y1, x2+1, y2, COLOR_BLACK);
-
-}
-
 #define BRAMP_SHUTTER_0 56 // 1 second exposure => just for entering compensation
-//~ static int bramp_temporary_exposure_compensation_ev_x100 = 0;
-
-// bulb ramping calibration cache
-static CONFIG_INT("bramp.calib.sig", bramp_calib_sig, 0);
-static CONFIG_INT("bramp.calib.m5", bramp_calib_cache_m5, 0);
-static CONFIG_INT("bramp.calib.m4", bramp_calib_cache_m4, 0);
-static CONFIG_INT("bramp.calib.m3", bramp_calib_cache_m3, 0);
-static CONFIG_INT("bramp.calib.m2", bramp_calib_cache_m2, 0);
-static CONFIG_INT("bramp.calib.m1", bramp_calib_cache_m1, 0);
-static CONFIG_INT("bramp.calib.0", bramp_calib_cache_0, 0);
-static CONFIG_INT("bramp.calib.1", bramp_calib_cache_1, 0);
-static CONFIG_INT("bramp.calib.2", bramp_calib_cache_2, 0);
-static CONFIG_INT("bramp.calib.3", bramp_calib_cache_3, 0);
-static CONFIG_INT("bramp.calib.4", bramp_calib_cache_4, 0);
-static CONFIG_INT("bramp.calib.5", bramp_calib_cache_5, 0);
-
-static void bramp_cleanup()
-{
-    if (bramp_log_file)
-    {
-        FIO_CloseFile(bramp_log_file);
-        bramp_log_file = 0;
-    }
-}
 
 static void bulb_ramping_init()
 {
@@ -4009,8 +3707,6 @@ static void bulb_ramping_init()
     }
     
     if (BULB_EXPOSURE_CONTROL_ACTIVE) set_shooting_mode(SHOOTMODE_M);
-    
-    msleep(2000);
 
     static char fn[50];
     for (int i = 0; i < 100; i++)
@@ -4020,309 +3716,11 @@ static void bulb_ramping_init()
         if( FIO_GetFileSize( fn, &size ) != 0 ) break;
         if (size == 0) break;
     }
-    bramp_log_file = FIO_CreateFileEx(fn);
+    beep();
 
     bulb_duration_index = 0; // disable bulb timer to avoid interference
     bulb_shutter_valuef = raw2shutterf(lens_info.raw_shutter);
-    bramp_ev_reference_x1000 = 0;
-    bramp_last_exposure_rounding_error_evx1000 = 0;
-    //~ bramp_temporary_exposure_compensation_ev_x100 = 0;
-    bramp_prev_shot_was_bad = 1; // force full correction at first step
-    bramp_u1 = 0.0;
-    
-    if (!bramp_auto_exposure) 
-    {
-        bramp_init_done = 1;
-        return;
-    }
-
-    // if calibration is cached, load it from config file
-    int calib_sig = lens_info.picstyle * 123 + lens_get_contrast() + (get_htp() ? 17 : 23);
-    if (calib_sig == (int)bramp_calib_sig)
-    {
-        bramp_luma_ev[0] = bramp_calib_cache_m5;
-        bramp_luma_ev[1] = bramp_calib_cache_m4;
-        bramp_luma_ev[2] = bramp_calib_cache_m3;
-        bramp_luma_ev[3] = bramp_calib_cache_m2;
-        bramp_luma_ev[4] = bramp_calib_cache_m1;
-        bramp_luma_ev[5] = bramp_calib_cache_0;
-        bramp_luma_ev[6] = bramp_calib_cache_1;
-        bramp_luma_ev[7] = bramp_calib_cache_2;
-        bramp_luma_ev[8] = bramp_calib_cache_3;
-        bramp_luma_ev[9] = bramp_calib_cache_4;
-        bramp_luma_ev[10] = bramp_calib_cache_5;
-
-        my_fprintf(bramp_log_file, "Luma curve: cached: %d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", bramp_calib_cache_m5, bramp_calib_cache_m4, bramp_calib_cache_m3, bramp_calib_cache_m2, bramp_calib_cache_m1, bramp_calib_cache_0, bramp_calib_cache_1, bramp_calib_cache_2, bramp_calib_cache_3, bramp_calib_cache_4, bramp_calib_cache_5);
-
-    }
-    else // compute calibration from scratch
-    {
-
-        NotifyBox(100000, "Calibration...");
-        bulb_ramp_calibration_running = 1;
-
-        set_shooting_mode(SHOOTMODE_M);
-        if (!lv) force_liveview();
-        int e0 = get_expsim();
-        int iso0 = lens_info.raw_iso;
-        int s0 = lens_info.raw_shutter;
-        set_expsim(1);
-
-    calib_start:
-        SW1(1,50); // reset power management timers
-        SW1(0,50);
-        set_lv_zoom(lv_dispsize == 10 ? 5 : 10);
-        
-        lens_set_rawiso(COERCE(iso0, 80, 120));
-
-        NotifyBox(2000, "Testing display gain...");
-        int Y;
-        int Yn = bramp_set_display_gain_and_measure_luma(100);
-        int Yp = bramp_set_display_gain_and_measure_luma(65535);
-        bramp_zoom_toggle_needed = (ABS(Yn - Yp) < 10);
-        if (bramp_zoom_toggle_needed)
-        {
-            Yn = bramp_set_display_gain_and_measure_luma(100);
-            Yp = bramp_set_display_gain_and_measure_luma(65535);
-        }
-        bramp_set_display_gain_and_measure_luma(0);
-        int ok = (ABS(Yn - Yp) > 10);
-        if (!ok)
-        {
-            set_expsim(e0);
-            NotifyBox(5000, "Cannot calibrate.        \n"
-                            "Please report to ML devs."); msleep(5000);
-            intervalometer_stop();
-            goto end;
-        }
-        
-        // first try to brighten the image
-        while (bramp_measure_luma(500) < 128)
-        {
-            if (lens_info.raw_iso+8 <= 120) // 6400
-            {
-                NotifyBox(2000, "Too dark, increasing ISO...");
-                lens_set_rawiso(lens_info.raw_iso + 8);
-                continue;
-            }
-            else if (lens_info.raw_shutter-8 >= 20)
-            {
-                NotifyBox(2000, "Too dark, increasing exp.time...");
-                lens_set_rawshutter(lens_info.raw_shutter - 8);
-                continue;
-            }
-            else break;
-        }
-        
-        // then try to darken 
-        while (bramp_measure_luma(500) > 150)
-        {
-            if (lens_info.raw_iso-8 >= 80) // 200
-            {
-                NotifyBox(2000, "Too bright, decreasing ISO...");
-                lens_set_rawiso(lens_info.raw_iso - 8);
-                continue;
-            }
-            else if (lens_info.raw_shutter <= 152) // 1/4000
-            {
-                NotifyBox(2000, "Too bright, decreasing exp.time...");
-                lens_set_rawshutter(lens_info.raw_shutter + 8);
-                continue;
-            }
-            else break;
-        }
-        
-        // at this point, the image should be roughly OK exposed
-        // we can now play only with display gain
-        
-        
-        int gain0 = bin_search(128, 2000, crit_dispgain_50);
-        Y = bramp_set_display_gain_and_measure_luma(gain0);
-        if (ABS(Y-128) > 2) 
-        {
-            NotifyBox(1000, "Scene %s, retrying...", 
-                gain0 > 1900 ? "too dark" :
-                gain0 < 130 ? "too bright" : 
-                "not static"
-            ); 
-            msleep(500);
-            goto calib_start;
-        }
-        
-        for (int i = -5; i <= 5; i++)
-        {
-            Y = bramp_set_display_gain_and_measure_luma(gain0 * (1 << (i+10)) / 1024);
-            NotifyBox(500, "%d EV => luma=%d  ", i, Y);
-            if (i == 0) // here, luma should be 128
-            {
-                if (ABS(Y-128) > 2) {msleep(500); NotifyBox(1000, "Middle check failed, retrying..."); msleep(1000); goto calib_start;}
-                else Y = 128;
-            }
-            int prev_Y = i > -5 ? bramp_luma_ev[i+5-1] : 0;
-            if (Y < prev_Y-3) 
-            {
-                msleep(500); NotifyBox(1000, "Decreasing curve (%d->%d), retrying...", prev_Y, Y); msleep(1000); 
-                goto calib_start;
-            }
-            bramp_luma_ev[i+5] = MAX(Y, prev_Y);
-            bramp_plot_luma_ev();
-            //~ set_display_gain(1<<i);
-        }
-        
-        // final check
-        Y = bramp_set_display_gain_and_measure_luma(gain0);
-        msleep(500);
-        if (ABS(Y-128) > 2) { msleep(500); NotifyBox(1000, "Final check failed (%d), retrying...", Y); msleep(1000); goto calib_start;}
-
-        // calibration accepted :)
-
-        bulb_ramp_calibration_running = 0;
-        bramp_set_display_gain_and_measure_luma(0);
-        set_expsim(e0);
-        lens_set_rawiso(iso0);
-        lens_set_rawshutter(s0);
-
-        fake_simple_button(BGMT_LV);
-        msleep(1000);
-
-        // save calibration results in config file
-        bramp_calib_sig = calib_sig;
-        bramp_calib_cache_m5 = bramp_luma_ev[0];
-        bramp_calib_cache_m4 = bramp_luma_ev[1];
-        bramp_calib_cache_m3 = bramp_luma_ev[2];
-        bramp_calib_cache_m2 = bramp_luma_ev[3];
-        bramp_calib_cache_m1 = bramp_luma_ev[4];
-        bramp_calib_cache_0  = bramp_luma_ev[5];
-        bramp_calib_cache_1  = bramp_luma_ev[6];
-        bramp_calib_cache_2  = bramp_luma_ev[7];
-        bramp_calib_cache_3  = bramp_luma_ev[8];
-        bramp_calib_cache_4  = bramp_luma_ev[9];
-        bramp_calib_cache_5  = bramp_luma_ev[10];
-        my_fprintf(bramp_log_file, "Luma curve: %d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", bramp_calib_cache_m5, bramp_calib_cache_m4, bramp_calib_cache_m3, bramp_calib_cache_m2, bramp_calib_cache_m1, bramp_calib_cache_0, bramp_calib_cache_1, bramp_calib_cache_2, bramp_calib_cache_3, bramp_calib_cache_4, bramp_calib_cache_5);
-
-    }
-
-    fake_simple_button(BGMT_PLAY);
-    msleep(1000);
-    
-    if (!PLAY_MODE) { NotifyBox(1000, "BRamp: could not go to PLAY mode"); msleep(2000); intervalometer_stop(); goto end; }
-    
-    //~ bramp_level_ev_ratio = 0;
-    bramp_measured_level = 0;
-    
-    bramp_init_state = 1;
-    
-    msleep(200);
-    bramp_hist_dirty = 1;
-    bramp_change_percentile(0); // show current selection;
-
-    NotifyBox(100000, "Choose a well-exposed photo  \n"
-                      "and tonal range to meter for.\n"
-                      "Keys: arrows, main dial, SET.");
-    
-    void* play_buf = get_yuv422_vram()->vram;
-    while (PLAY_MODE && bramp_init_state == 1)
-    {
-        if (get_yuv422_vram()->vram != play_buf) // another image selected
-        {
-            bramp_hist_dirty = 1;
-            bramp_change_percentile(0); // update current selection
-            play_buf = get_yuv422_vram()->vram;
-        }
-        msleep(100);
-    }
-    if (!PLAY_MODE) { intervalometer_stop(); goto end; }
-    
-    bramp_init_done = 1; // OK :)
-
-    set_shooting_mode(SHOOTMODE_M);
-    lens_set_rawshutter(BRAMP_SHUTTER_0);
-    if (lv) fake_simple_button(BGMT_LV);
-    msleep(1000);
-    set_shooting_mode(SHOOTMODE_M);
-
-    my_fprintf(bramp_log_file, "Reference level: %d at %d-th percentile\n", bramp_reference_level, bramp_percentile);
-
-end:
-    bulb_ramp_calibration_running = 0;
 }
-
-// monitor shutter speed and aperture and consider your changes as exposure compensation for bulb ramping
-/*
-static void bramp_temporary_exposure_compensation_update()
-{
-    if (!bramp_init_done) return;
-    if (!bulb_ramping_enabled) return;
-    int shutter = (int)lens_info.raw_shutter;
-    int aperture = (int)lens_info.raw_aperture;
-
-    static int prev_shutter = 0;
-    static int prev_aperture = 0;
-
-    int ec_rounded_abs = (ABS(bramp_temporary_exposure_compensation_ev_x100) + 5) / 10;
-
-    if (prev_shutter > 0xC && shutter > 0xC)
-    {
-        int ec_delta_shutter = -(shutter - prev_shutter) * 100/8;
-        int ec_delta_aperture = (aperture - prev_aperture) * 100/8;
-        int ec_delta = ec_delta_shutter + ec_delta_aperture;
-        if (ec_delta)
-        {
-            bramp_temporary_exposure_compensation_ev_x100 += ec_delta;
-            ec_rounded_abs = (ABS(bramp_temporary_exposure_compensation_ev_x100) + 5) / 10;
-            bmp_printf(FONT_LARGE, 0, 0, 
-                "Exp.Comp for next shot: %s%d.%d EV",
-                bramp_temporary_exposure_compensation_ev_x100 > 0 ? "+" : "-",
-                ec_rounded_abs / 10, ec_rounded_abs % 10
-            );
-        }
-    }
-
-    // extend compensation range beyond normal shutter speed limits
-    if (ec_rounded_abs == 0 && shutter != BRAMP_SHUTTER_0) // cancel drift
-    {
-        lens_set_rawshutter(BRAMP_SHUTTER_0);
-        shutter = lens_info.raw_shutter;
-    }
-    else if (prev_shutter > 144) // 1/2000
-    {
-        lens_set_rawshutter(prev_shutter - 32);
-        shutter = lens_info.raw_shutter;
-    }
-    else if (prev_shutter < 24) // 16 seconds
-    {
-        lens_set_rawshutter(prev_shutter + 32);
-        shutter = lens_info.raw_shutter;
-    }
-
-    prev_shutter = shutter;
-    prev_aperture = aperture;
-}*/
-
-/*
-static int brightness_samples_a[11][11];
-static int brightness_samples_b[11][11];
-static int brightness_samples_delta[11][11];
-
-int measure_brightness_difference()
-{
-    for (int i = 0; i <= 10; i++)
-    {
-        for (int j = 0; j <= 10; j++)
-        {
-            brightness_samples_a[i][j] = brightness_samples_b[i][j];
-            int Y,U,V;
-            int dx = (j-5) * 65;
-            int dy = (i-5) * 40;
-            get_spot_yuv_ex(10, dx, dy, &Y, &U, &V, 1, 0);
-            brightness_samples_b[i][j] = Y;
-            brightness_samples_delta[i][j] = bramp_luma_to_ev_x100(brightness_samples_b[i][j]) - bramp_luma_to_ev_x100(brightness_samples_a[i][j]);
-            int xcb = os.x0 + os.x_ex/2 + dx;
-            int ycb = os.y0 + os.y_ex/2 + dy;
-            bmp_printf(SHADOW_FONT(FONT_SMALL), xcb, ycb, "%d ", brightness_samples_delta[i][j]);
-        }
-    }
-}*/
 
 static void compute_exposure_for_next_shot()
 {
@@ -4333,7 +3731,6 @@ static void compute_exposure_for_next_shot()
     static int prev_file_number = 12345;
     if (prev_file_number == file_number)
     {
-        my_fprintf(bramp_log_file, "Picture not taken\n");
         NotifyBox(2000, "Picture not taken :("); msleep(2000);
         return;
     }
@@ -4347,185 +3744,6 @@ static void compute_exposure_for_next_shot()
     // also, don't go faster than 1/4000 (or 1/8000)
     float shutter_min = 1.0 / (FASTEST_SHUTTER_SPEED_RAW == 160 ? 8000 : 4000);
     
-    if (bramp_auto_exposure)
-    {
-        //~ msleep(200);
-        ensure_play_or_qr_mode_after_shot();
-        //~ draw_livev_for_playback();
-
-        //~ NotifyBox(2000, "Exposure for next shot..."); msleep(1000);
-
-        //~ NotifyBoxHide();
-        //~ msleep(500);
-        bramp_hist_dirty = 1;
-        bramp_measured_level = measure_brightness_level(0);
-        int mev = bramp_luma_to_ev_x100(bramp_measured_level);
-        //~ NotifyBox(1000, "Brightness level: %d (%s%d.%02d EV)", bramp_measured_level, FMT_FIXEDPOINT2(mev)); msleep(1000);
-
-        my_fprintf(bramp_log_file, "%04d luma=%3d rounderr=%3d ", file_number, bramp_measured_level, bramp_last_exposure_rounding_error_evx1000);
-
-        /**
-         * Use a discrete feedback controller, designed such as the closed loop system 
-         * has two real poles placed at f, where f is the smoothing factor (0.1 ... 0.9).
-         *
-         *  r = expo reference (0, unless manual ramping is active)
-         *  e = expo difference          
-         *  u = expo correction
-         *  T = log2(exposure time)                  +----------< brightness change from real world (sunrise, sunset)
-         *                                           |   +------< measurement noise (let's say around 0.03 EV stdev)
-         *              _______        ______        |   |
-         * r     _  e  |       |   u  |  1   |   T   V   V
-         * -----( )----| Bramp |------|(z-1) |------(+)-(+)----+----> picture
-         *     - ^     |_______|      |______|                 |
-         *       |_____________________________________________| y = brightness level (EV); luma=bramp_reference_level => 0 EV.
-         * 
-         * P = 1/(z-1) - integrator. 
-         * Rationale: the exposure correction at each step is accumulated.
-         * 
-         * Closed loop system:
-         * S = B*P / (1 + B*P)
-         *
-         * We want to fix the closed loop response (S), so we try to find out the controller B by inverting the process P
-         * => B = S / (P - S*P)
-         *
-         * We will place both closed-loop poles at smoothing factor value f in range [0.1 ... 0.9] and keep the static gain at 1.
-         * S = z / (z-f) / (z-f) / (1 / (1-f) / (1-f))
-         *
-         * Result:
-         *
-         *      b*z          b
-         * B = -----  = -----------
-         *     z - a     1 - a*z^-1
-         *
-         * with:
-         *    b = f^2 - 2f + 1
-         *    a = f^2
-         * 
-         * Computing exposure correction:
-         * 
-         * u = B/A * e
-         *    => u(k) = b e(k) + a u(k-1)
-         * 
-         * Exception: if ABS(e) > 2 EV, apply almost-full correction (B = 0.9) to bring it quickly back on track, 
-         * without caring about flicker.
-         * 
-         */
-
-        // unit: 0.01 EV
-        int y_x100 = bramp_luma_to_ev_x100(bramp_measured_level) - bramp_luma_to_ev_x100(bramp_reference_level) - bramp_last_exposure_rounding_error_evx1000/10;
-        int r_x100 = bramp_ev_reference_x1000/10;
-        int e_x100 = COERCE(r_x100 - y_x100, -mev-500, -mev+500);
-        // positive e => picture should be brightened
-
-        my_fprintf(bramp_log_file, "y=%4d r=%4d e=%4d => ", y_x100, r_x100, e_x100);
-
-        if (BRAMP_LRT_HOLY_GRAIL)
-        {
-            // only apply an integer amount of correction
-            int step_x100 = BRAMP_LRT_HOLY_GRAIL_STOPS * 100;
-            int c = (ABS(e_x100) / step_x100) * BRAMP_LRT_HOLY_GRAIL_STOPS;
-            if (e_x100 < 0) c = -c;
-            float u = c;
-            bulb_shutter_valuef *= powf(2, u);
-
-            int corr_x100 = (int) roundf(u * 100.0f);
-            my_fprintf(bramp_log_file, "LRT: e=%4d u=%4d ", e_x100, corr_x100);
-
-            NotifyBox(2000, "Exposure difference: %s%d.%02d EV \n"
-                            "Exposure correction: %s%d.%02d EV ",
-                            FMT_FIXEDPOINT2S(e_x100),
-                            FMT_FIXEDPOINT2S(corr_x100)
-                );
-            msleep(500);
-        }
-        else if (BRAMP_FEEDBACK_LOOP)
-        {
-            // a difference of more than 2 EV will be fully corrected right away
-            int expo_diff_too_big = 
-                (e_x100 > 200 && bulb_shutter_valuef < shutter_max) ||
-                (e_x100 < -200 && bulb_shutter_valuef > shutter_min);
-            int should_apply_full_correction_immediately = (expo_diff_too_big || bramp_prev_shot_was_bad) && !BRAMP_LRT_HOLY_GRAIL;
-            bramp_prev_shot_was_bad = expo_diff_too_big;
-
-            if (should_apply_full_correction_immediately)
-            {
-                // big change in brightness - request a new picture without waiting, and apply full correction
-                // most probably, user changed ND filters or moved the camera
-                
-                NotifyBox(1000, "Exposure difference: %s%d.%02d EV ", FMT_FIXEDPOINT2S(e_x100));
-                msleep(500);
-
-                float cor = COERCE((float)e_x100 / 111.0f, -3.0f, 3.0f);
-                bulb_shutter_valuef *= powf(2, cor); // apply 90% of correction, but not more than 3 EV, to keep things stable
-                
-                // use high iso to adjust faster, then go back at low iso
-                for (int i = 0; i < 5; i++)
-                    bulb_ramping_adjust_iso_180_rule_without_changing_exposure(expo_diff_too_big ? 1 : timer_values[interval_timer_index]);
-                    
-                bulb_shutter_valuef = COERCE(bulb_shutter_valuef, shutter_min, shutter_max);
-
-                // set Canon shutter speed close to bulb one (just for display)
-                lens_set_rawshutter(shutterf_to_raw(bulb_shutter_valuef));
-
-                my_fprintf(bramp_log_file, "harsh: cor=%d shutter=%6dms iso=%4d\n", (int)roundf(cor * 100.0f), BULB_SHUTTER_VALUE_MS, lens_info.iso);
-
-                // force next shot to be taken quicker
-                intervalometer_next_shot_time = seconds_clock;
-                return;
-            }
-            else // small change in brightness - apply only a small amount of correction to keep things smooth
-            {    // see comments above for the feedback loop design
-                bramp_ev_reference_x1000 += manual_evx1000;
-
-                float u = 0;
-
-                // auto adjust the smooth factor based on exposure difference over last few frames
-                // big expo difference => more aggressive correction
-                // small expo difference => calm down, less flicker
-                
-                static int expo_diff = 0;
-                expo_diff = (e_x100 * e_x100 / 100 + expo_diff * 9) / 10;
-                
-                // don't change the smooth factor too fast
-                // let it become aggressive quickly (fast response to sudden ramps) 
-                // but don't let it calm down too fast, to get some time for settling
-                static int expo_diff_filtered = 0;
-                if (expo_diff > expo_diff_filtered)
-                     expo_diff_filtered = MIN(expo_diff, expo_diff_filtered + 50);
-                else if (expo_diff < expo_diff_filtered - 10)
-                     expo_diff_filtered = MAX(expo_diff + 10, expo_diff_filtered - 5);
-                
-                // try to follow the ramps at around 0.5 EV behind
-                int fi = get_smooth_factor_from_max_ev_speed(expo_diff_filtered * 2);
-                
-                // plug this adaptive smooth factor into our feedback loop
-                // here we have a small trick for reducing the side effects of changing the smooth factor while running
-                float f = (float)fi / 100.0f;
-                float e = (float)e_x100 / 100.0f;
-
-                float b = f*f - 2*f + 1;
-                float a = f*f;
-                
-                u = b*e + bramp_u1;
-                bramp_u1 = a*u;
-               
-                bulb_shutter_valuef *= powf(2, u);
-
-                // display some info
-                int corr_x100 = (int) roundf(u * 100.0f);
-                NotifyBox(2000, "Exposure difference: %s%d.%02d EV \n"
-                                "Exposure correction: %s%d.%02d EV ",
-                                FMT_FIXEDPOINT2S(e_x100),
-                                FMT_FIXEDPOINT2S(corr_x100)
-                    );  
-
-                my_fprintf(bramp_log_file, "soft: f=%2d e=%4d u=%4d ", fi, (int)roundf(e*100), corr_x100);
-
-                msleep(500);
-            }
-        }
-    }
-
     // apply manual exposure ramping, if any
     if (manual_evx1000)
         bulb_shutter_valuef *= powf(2, (float)manual_evx1000 / 1000.0f);
@@ -4539,9 +3757,6 @@ static void compute_exposure_for_next_shot()
         
         // set Canon shutter speed close to bulb one (just for display)
         lens_set_rawshutter(shutterf_to_raw(bulb_shutter_valuef));
-
-        int shutter = (int)roundf(bulb_shutter_valuef * 100000.0f);
-        my_fprintf(bramp_log_file, "shutter=%3d.%05ds iso=%4d\n", shutter/100000, shutter%100000, lens_info.iso);
     }
         
     if (mf_steps && !is_manual_focus())
@@ -4584,16 +3799,6 @@ static void bulb_ramping_showinfo()
         s / 1000, s % 1000,
         lens_info.iso, get_htp() ? 200 : 100, raw2iso(auto_iso_range & 0xFF)
         );
-    
-    if (bramp_auto_exposure && (PLAY_MODE || QR_MODE))
-    {
-        bramp_plot_luma_ev();
-        bramp_plot_luma_ev_point(bramp_measured_level, COLOR_RED);
-        bramp_plot_luma_ev_point(bramp_reference_level, COLOR_BLUE);
-        
-        if (BRAMP_LRT_HOLY_GRAIL)
-            bramp_plot_holy_grail_hysteresis(bramp_reference_level);
-    }
 }
 
 #endif // FEATURE_BULB_RAMPING
@@ -5030,23 +4235,7 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type  = IT_PERCENT_LOG_OFF,
                 .help = "Stop the intervalometer after taking X shots.",
             },
-
-            #ifdef FEATURE_BULB_RAMPING
-                #ifndef FEATURE_HISTOGRAM
-                #error This requires FEATURE_HISTOGRAM.
-                #endif
-
-            {
-                .name = "Auto ExpoRamp",
-                .priv       = &bramp_auto_exposure,
-                .max = 2,
-                .icon_type = IT_DICE_OFF,
-                .choices = CHOICES("OFF", "Smooth ramping", "LRT Holy Grail 1EV"),
-                .help = "Choose the algorithm for automatic bulb ramping.",
-                .help2 = " \n"
-                        "Feedback loop. Works best with expos longer than 1 second.\n"
-                        "Expo is adjusted in 1EV integer steps. vimeo.com/26083323",
-            },
+			#ifdef FEATURE_BULB_RAMPING
             {
                 .name = "Manual ExpoRamp",
                 .priv       = &bramp_manual_speed_evx1000_per_shot,
@@ -5067,28 +4256,12 @@ static struct menu_entry shoot_menus[] = {
                 .depends_on = DEP_AUTOFOCUS,
                 .works_best_in = DEP_LIVEVIEW,
             },
-            
             #endif
-            
             MENU_EOL
         },
     },
     #endif
-    /*
-    {
-        .name = "Bulb Ramping", // will move focus ramping to scripts
-        .priv       = &bulb_ramping_enabled,
-        .update     = bulb_ramping_print,
-        .max        = 1,
-        .submenu_width = 710,
-        .help = "Exposure / focus ramping for advanced timelapse sequences.",
-        .depends_on = DEP_PHOTO_MODE,
-        .children =  (struct menu_entry[]) {
 
-            MENU_EOL,
-        }
-    },
-    */
     #ifdef FEATURE_BULB_TIMER
     {
         .name = "Bulb Timer",
@@ -6224,7 +5397,7 @@ static int hdr_shutter_release(int ev_x8)
         int ms = get_exposure_time_ms();
         int msc = ms * roundf(1000.0f * powf(2, ev_x8 / 8.0f))/1000;
         
-        int rs = (BULB_EXPOSURE_CONTROL_ACTIVE) ? shutterf_to_raw_noflicker(bulb_shutter_valuef) : get_exposure_time_raw();
+        int rs = (BULB_EXPOSURE_CONTROL_ACTIVE) ? shutterf_to_raw(bulb_shutter_valuef) : get_exposure_time_raw();
         if (rs == 0) // shouldn't happen
         {
             msleep(1000);
@@ -6242,12 +5415,9 @@ static int hdr_shutter_release(int ev_x8)
 
 #ifdef CONFIG_BULB
         // then choose the best option (bulb for long exposures, regular for short exposures)
-        if (msc >= 10000 || (BULB_EXPOSURE_CONTROL_ACTIVE && msc > BULB_MIN_EXPOSURE && !BRAMP_LRT_HOLY_GRAIL))
+        if (msc >= 10000 || (BULB_EXPOSURE_CONTROL_ACTIVE && msc > BULB_MIN_EXPOSURE))
         {
             bulb_take_pic(msc);
-            #ifdef FEATURE_BULB_RAMPING
-            bramp_last_exposure_rounding_error_evx1000 = 0; // bulb ramping assumed to be exact
-            #endif
         }
         else
 #endif
@@ -6257,17 +5427,6 @@ static int hdr_shutter_release(int ev_x8)
             #endif
             ans = MIN(ans, hdr_set_rawshutter(rc));
             take_a_pic(AF_DONT_CHANGE, 0);
-            
-            #ifdef FEATURE_BULB_RAMPING
-            if (BULB_EXPOSURE_CONTROL_ACTIVE)
-            {
-                // since actual shutter speed differs from float value quite a bit, 
-                // we will need this to correct metering readings
-                bramp_last_exposure_rounding_error_evx1000 = (int)roundf(log2f(raw2shutterf(rs) / bulb_shutter_valuef) * 1000.0f);
-                ASSERT(ABS(bramp_last_exposure_rounding_error_evx1000) < 500);
-            }
-            else bramp_last_exposure_rounding_error_evx1000 = 0;
-            #endif
         }
         
         if (drive_mode == DRIVE_SELFTIMER_2SEC) msleep(2500);
@@ -6804,9 +5963,6 @@ void intervalometer_stop()
     if (intervalometer_running)
     {
         intervalometer_running = 0;
-        #ifdef FEATURE_BULB_RAMPING
-        bramp_init_state = 0;
-        #endif
         NotifyBox(2000, "Intervalometer stopped.");
         //~ display_on();
     }
@@ -7749,7 +6905,6 @@ shoot_task( void* unused )
             #ifdef FEATURE_INTERVALOMETER
             #ifdef FEATURE_BULB_RAMPING
             bramp_init_done = 0;
-            bramp_cleanup();
             #endif
             intervalometer_pictures_taken = 0;
             intervalometer_next_shot_time = seconds_clock + MAX(timer_values[interval_start_timer_index], 1);

@@ -320,26 +320,6 @@ MENU_UPDATE_FUNC(hist_print)
 
 #endif /* defined(FEATURE_HISTOGRAM) */
 
-int hist_get_percentile_level(int percentile)
-{
-#ifdef FEATURE_HISTOGRAM
-    int total = 0;
-    int i;
-    for( i=0 ; i < HIST_WIDTH ; i++ )
-        total += histogram.hist[i];
-    
-    int thr = total * percentile / 100;  // 50% => median
-    int n = 0;
-    for( i=0 ; i < HIST_WIDTH ; i++ )
-    {
-        n += histogram.hist[i];
-        if (n >= thr)
-            return i * 255 / HIST_WIDTH;
-    }
-#endif
-    return -1; // invalid argument?
-}
-
 MENU_UPDATE_FUNC(hist_warn_display)
 {
     MENU_SET_VALUE(

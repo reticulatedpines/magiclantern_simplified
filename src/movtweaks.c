@@ -639,13 +639,11 @@ static MENU_UPDATE_FUNC(bv_display)
         bv_auto == 1 ? "ON" : "OFF"
     );
 
-    extern int bulb_ramp_calibration_running; 
     extern int zoom_auto_exposure;
 
     if (bv_auto == 1 && !CONTROL_BV) 
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING,
             (zoom_auto_exposure && lv_dispsize > 1) ? "Temporarily disabled (auto exposure on zoom)." :
-            (bulb_ramp_calibration_running) ? "Temporarily disabled (bulb ramping calibration)." :
             LVAE_DISP_GAIN ? "Temporarily disabled (display gain active)." :
             "Temporarily disabled."
         );

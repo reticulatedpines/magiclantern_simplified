@@ -33,8 +33,6 @@ void hist_build();
 
 void hist_build_raw();
 
-int hist_get_percentile_level(int percentile);
-
 /** Draw the histogram image into the bitmap framebuffer.
  *
  * Draw one pixel at a time; it seems to be ok with err70.
