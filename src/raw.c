@@ -573,6 +573,25 @@ int FAST raw_set_pixel(int x, int y, int value)
     return p->a;
 }
 
+int FAST raw_get_gray_pixel(int x, int y, int gray_projection)
+{
+    switch (gray_projection)
+    {
+        case GRAY_PROJECTION_RED:
+            return raw_red_pixel(x, y);
+        case GRAY_PROJECTION_GREEN:
+            return raw_green_pixel(x, y);
+        case GRAY_PROJECTION_BLUE:
+            return raw_blue_pixel(x, y);
+        case GRAY_PROJECTION_AVERAGE_RGB:
+            return (raw_red_pixel(x, y) + raw_green_pixel(x, y) + raw_blue_pixel(x, y)) / 3;
+        case GRAY_PROJECTION_MAX_RGB:
+            return MAX(MAX(raw_red_pixel(x, y), raw_green_pixel(x, y)), raw_blue_pixel(x, y));
+        default:
+            return -1;
+    }
+}
+
 /* input: 0 - 16384 (valid range: from black level to white level) */
 /* output: -14 ... 0 */
 float FAST raw_to_ev(int raw)

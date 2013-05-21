@@ -66,6 +66,14 @@ int raw_blue_pixel(int x, int y);
 int raw_get_pixel(int x, int y);
 int raw_set_pixel(int x, int y, int value);
 
+/* get a grayscale pixel according to some projection from RGB */
+int raw_get_gray_pixel(int x, int y, int gray_projection);
+#define GRAY_PROJECTION_RED 0
+#define GRAY_PROJECTION_GREEN 1
+#define GRAY_PROJECTION_BLUE 2
+#define GRAY_PROJECTION_AVERAGE_RGB 3
+#define GRAY_PROJECTION_MAX_RGB 4
+
 /* input: 0 - 16384 (valid range: from black level to white level) */
 /* output: -14 ... 0 */
 float raw_to_ev(int raw);
