@@ -808,28 +808,39 @@ hist_build()
 #endif
 
 #ifdef FEATURE_RAW_OVERLAYS
-int can_use_raw_overlays()
+
+int can_use_raw_overlays_photo()
 {
     // MRAW/SRAW are causing trouble, figure out why
     // RAW and RAW+JPEG are OK
-    if (QR_MODE && (pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
-        return 1;
-    
-    if (lv && raw_lv_is_enabled())
-        return 1;
-    
-    return 0;
-}
-int can_use_raw_overlays_menu()
-{
     if ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
         return 1;
 
+    return 0;
+}
+
+int can_use_raw_overlays()
+{
+    if (QR_MODE && can_use_raw_overlays_photo())
+        return 1;
+    
+    if (lv && raw_lv_is_enabled())
+        return 1;
+    
+    return 0;
+}
+
+int can_use_raw_overlays_menu()
+{
+    if (can_use_raw_overlays_photo())
+        return 1;
+
     if (lv && raw_lv_is_enabled())
         return 1;
 
     return 0;
 }
+
 #endif
 
 #ifdef FEATURE_RAW_ZEBRAS

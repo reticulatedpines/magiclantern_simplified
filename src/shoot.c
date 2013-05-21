@@ -44,6 +44,11 @@ static CONFIG_INT( "shoot.num", pics_to_take_at_once, 0);
 static CONFIG_INT( "shoot.af",  shoot_use_af, 0 );
 static int snap_sim = 0;
 
+static CONFIG_INT("post.deflicker", post_deflicker, 0);
+static CONFIG_INT("post.deflicker.sidecar", post_deflicker_sidecar_type, 0);
+static CONFIG_INT("post.deflicker.prctile", post_deflicker_percentile, 0);
+static CONFIG_INT("post.deflicker.level", post_deflicker_target_level, 0);
+
 void move_lv_afframe(int dx, int dy);
 void movie_start();
 void movie_end();
@@ -3631,6 +3636,66 @@ static void picq_toggle(void* priv)
 }
 #endif
 
+#ifdef FEATURE_POST_DEFLICKER
+static char* xmp_template =
+"<?xpacket begin='﻿' id='W5M0MpCehiHzreSzNTczkc9d'?>\n"
+"<x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='Image::ExifTool 7.89'>\n"
+"<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>\n"
+" <rdf:Description rdf:about=''\n"
+"  xmlns:crs='http://ns.adobe.com/camera-raw-settings/1.0/'>\n"
+"  <crs:Exposure>%s%d.%05d</crs:Exposure>\n"
+" </rdf:Description>\n"
+"</rdf:RDF>\n"
+"</x:xmpmeta>\n"
+"<?xpacket end='w'?>\n";
+
+static char* ufraw_template =
+"<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+"<UFRaw Version='7'>\n"
+"<InputFilename>%s</InputFilename>\n"
+"<OutputFilename>%s</OutputFilename>\n"
+"<Exposure>%s%d.%05d</Exposure>\n"
+"<ExposureNorm>1</ExposureNorm>\n"
+"</UFRaw>\n";
+
+static void post_deflicker_save_sidecar_file_for_cr2(int type, float ev)
+{
+    int evi = ev * 100000;
+    char fn[100];
+    snprintf(fn, sizeof(fn), "%s/IMG_%04d.%s", get_dcim_dir(), file_number, type ? "UFR" : "XMP");
+    FILE* f = FIO_CreateFileEx(fn);
+    if (f == INVALID_PTR) return;
+    if (type == 0)
+    {
+        my_fprintf(f, xmp_template, FMT_FIXEDPOINT5S(evi));
+    }
+    else if (type == 1)
+    {
+        char raw[100];
+        char jpg[100];
+        snprintf(raw, sizeof(raw), "IMG_%04d.CR2", file_number);
+        snprintf(jpg, sizeof(jpg), "IMG_%04d.JPG", file_number);
+        my_fprintf(f, ufraw_template, raw, jpg, FMT_FIXEDPOINT5(evi));
+    }
+    FIO_CloseFile(f);
+}
+
+static MENU_UPDATE_FUNC(post_deflicker_update)
+{
+	if (!can_use_raw_overlays_photo())
+	{
+		MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
+	}
+	
+	if (post_deflicker)
+		MENU_SET_VALUE(post_deflicker_sidecar_type ? "UFRaw" : "Adobe XMP");
+	
+	if (post_deflicker && post_deflicker_sidecar_type==0)
+		MENU_SET_WARNING(MENU_WARN_INFO, "You must rename *.UFR to *.ufraw: rename 's/UFR$/ufraw' *");
+}
+
+#endif
+
 #ifdef FEATURE_BULB_RAMPING
 
 static int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int intervalometer_delay)
@@ -4496,7 +4561,44 @@ static struct menu_entry shoot_menus[] = {
     },
     #endif
     
-    MENU_PLACEHOLDER("RAW Blinkies"),
+    #ifdef FEATURE_POST_DEFLICKER
+    {
+        .name = "Post Deflicker", 
+        .priv = &post_deflicker, 
+        .max = 1,
+        .update = post_deflicker_update,
+        .help  = "Create sidecar files with exposure compensation,",
+        .help2 = "so all your pics look equally exposed, without flicker.",
+        .works_best_in = DEP_PHOTO_MODE,
+        .submenu_width = 710,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Sidecar type",
+                .priv = &post_deflicker_sidecar_type,
+                .max = 1,
+                .choices = CHOICES("Adobe XMP", "UFRaw"),
+                .help = "Sidecar file format, for deflicker metadata.",
+            },
+            {
+                .name = "Deflicker percentile",
+                .priv = &post_deflicker_percentile,
+                .min = 20,
+                .max = 80,
+                .unit = UNIT_PERCENT,
+                .help = "Where to meter for deflickering. Recommended: 50% (median).",
+            },
+            {
+                .name = "Deflicker target level",
+                .priv = &post_deflicker_target_level,
+                .min = -8,
+                .max = -1,
+                .choices = CHOICES("-8 EV", "-7 EV", "-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV"),
+                .help = "Desired exposure level for processed pics. 0=overexposed.",
+            },
+            MENU_EOL,
+        },
+    },
+    #endif
 
     #ifdef FEATURE_LV_3RD_PARTY_FLASH
         #ifndef FEATURE_FLASH_TWEAKS
