@@ -358,10 +358,12 @@ int raw_hist_get_percentile_level(int percentile, int gray_projection)
     int* hist = SmallAlloc(16384*4);
     if (!hist) return -1;
     memset(hist, 0, 16384*4);
-    
-    for (int i = os.y0; i < os.y_max; i += 2)
+
+    int step = lv ? 4 : 2;
+
+    for (int i = os.y0; i < os.y_max; i += step)
     {
-        for (int j = os.x0; j < os.x_max; j += 2)
+        for (int j = os.x0; j < os.x_max; j += step)
         {
             int x = BM2RAW_X(j);
             int y = BM2RAW_Y(i);
@@ -402,9 +404,11 @@ int raw_hist_get_overexposure_percentage(int gray_projection)
     int over = 0;
     int total = 0;
     
-    for (int i = os.y0; i < os.y_max; i += 2)
+    int step = lv ? 4 : 2;
+    
+    for (int i = os.y0; i < os.y_max; i += step)
     {
-        for (int j = os.x0; j < os.x_max; j += 2)
+        for (int j = os.x0; j < os.x_max; j += step)
         {
             int x = BM2RAW_X(j);
             int y = BM2RAW_Y(i);

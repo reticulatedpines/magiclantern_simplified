@@ -5103,6 +5103,8 @@ livev_hipriority_task( void* unused )
         if (zebra_digic_dirty && !zd) digic_zebra_cleanup();
         #endif
         
+        static int raw_flag = 0;
+        
         if (!zebra_should_run())
         {
             while (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) msleep(100);
@@ -5113,6 +5115,9 @@ livev_hipriority_task( void* unused )
                 if (lv && !gui_menu_shown()) redraw();
                 #ifdef CONFIG_ELECTRONIC_LEVEL
                 disable_electronic_level();
+                #endif
+                #ifdef CONFIG_RAW_LIVEVIEW
+                if (raw_flag) { raw_lv_release(); raw_flag = 0; }
                 #endif
                 while (!zebra_should_run()) 
                 {
@@ -5130,7 +5135,27 @@ livev_hipriority_task( void* unused )
         struct vram_info * hd = get_yuv422_hd_vram();
         bmp_printf(FONT_MED, 100, 100, "ext:%d%d%d \nlv:%x %dx%d \nhd:%x %dx%d ", EXT_MONITOR_RCA, ext_monitor_hdmi, hdmi_code, lv->vram, lv->width, lv->height, hd->vram, hd->width, hd->height);
         #endif
-        
+
+        #ifdef CONFIG_RAW_LIVEVIEW
+        if (!raw_flag && !is_movie_mode())
+        {
+            /* if picture quality is raw, switch the LiveView to raw mode */
+            int raw = pic_quality & 0x60000;
+            int jpg = pic_quality & 0x10000;
+            /* only histogram and spotmeter are working in LV raw mode */
+            if (raw && !jpg && lv_dispsize == 1 && (hist_draw || spotmeter_draw))
+            {
+                raw_lv_request();
+                raw_flag = 1;
+            }
+        }
+        if (raw_flag && lv_dispsize > 1)
+        {
+            raw_lv_release();
+            raw_flag = 0;
+        }
+        #endif
+
         int mz = should_draw_zoom_overlay();
 
         lv_vsync(mz);

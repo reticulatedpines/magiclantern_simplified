@@ -87,6 +87,7 @@ void raw_preview_fast();
 void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int end_line, int ultra_fast);
 
 /* request/release/check LiveView RAW flag (lv_save_raw) */
+/* you have to call request/release in pairs (be careful not to request once and release twice) */
 void raw_lv_request();
 void raw_lv_release();
 int raw_lv_enabled();
