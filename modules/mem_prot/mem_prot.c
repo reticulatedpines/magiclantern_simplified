@@ -206,7 +206,7 @@ unsigned int mem_prot_find_hooks()
         {
             if(mem_prot_hook_full)
             {
-                return 0;
+                return 1;
             }
             mem_prot_hook_full = addr;
         }
@@ -214,7 +214,7 @@ unsigned int mem_prot_find_hooks()
         {
             if(mem_prot_hook_part)
             {
-                return 0;
+                return 2;
             }
             mem_prot_hook_part = addr;
         }
@@ -224,7 +224,7 @@ unsigned int mem_prot_find_hooks()
     /* failed to find irq stack head */
     if(addr >= 0x1000)
     {
-        return 0;
+        return 3;
     }
     
     /* leave some space to prevent false stack overflow alarms (if someone ever checked...) */
@@ -232,16 +232,17 @@ unsigned int mem_prot_find_hooks()
     
     if(mem_prot_hook_full && mem_prot_hook_part)
     {
-        return 1;
+        return 0;
     }
-    return 0;
+    return 4;
 }
 
 void mem_prot_install()
 {
-    if(!mem_prot_find_hooks())
+    unsigned int err = mem_prot_find_hooks();
+    if(err)
     {
-        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 0, 0, "mem_prot: Failed to find hook points.");
+        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 0, 0, "mem_prot: Failed to find hook points (err %d).", err);
         return;
     }
     
