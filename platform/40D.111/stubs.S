@@ -2,7 +2,7 @@
  * Entry points into the firmware image.
  *
  * These are the functions that we can call from our tasks
- * in the Canon 2.0.3 firmware for the 7D.
+ * in the Canon 1.1.1 firmware for the 40d.
  *
  * \todo Sort this file?  Generate it from the IDA map?
  */
@@ -230,3 +230,22 @@ NSTUB(0xFFB8B6EC, ptp_register_handlers_0x9800)
 NSTUB(0xFFD4C1EC, DM_TryPostEvent)
 
 NSTUB(0xFF84768C, FA_Release)
+
+/** EDMAC routines **/
+NSTUB(0xFFCF7F94, SetEDmac)
+NSTUB(0xFFCF7FF4, StartEDmac)
+NSTUB(0xFFCF80B4, PopEDmac)
+//NSTUB([idk], AbortEDmac)
+NSTUB(0xFFCF7FB4, ConnectWriteEDmac)
+NSTUB(0xFFCF7FD0, ConnectReadEDmac)
+
+/** keep the old name until all are refcatored **/
+NSTUB(0xFFCF8094, EDMAC_RegisterCompleteCBR)
+
+/** register/unregister CBR names **/
+NSTUB(0xFFCF8094, RegisterEDmacCompleteCBR)
+NSTUB(0xFFCF80CC, RegisterEDmacAbortCBR)
+NSTUB(0xFFCF814C, RegisterEDmacPopCBR)
+NSTUB(0xFFCF80B4, UnregisterEDmacCompleteCBR)
+NSTUB(0xFFCF8114, UnregisterEDmacAbortCBR)
+NSTUB(0xFFCF816C, UnregisterEDmacPopCBR)
