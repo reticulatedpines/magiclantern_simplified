@@ -3764,11 +3764,11 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
 /* also used for display on histogram */
 int auto_ettr_get_correction()
 {
-    static int last_value = -12345678;
+    static int last_value = INT_MIN;
     
     /* this is kinda slow, don't run it more often than once per second */
     static int aux = INT_MIN;
-    if (!should_run_polling_action(1000, &aux) && last_value != -12345678)
+    if (!should_run_polling_action(500, &aux) && last_value != INT_MIN)
         return last_value;
     
     int gray_proj = 
@@ -3779,21 +3779,21 @@ int auto_ettr_get_correction()
     int raw = raw_hist_get_percentile_level(auto_ettr_percentile, gray_proj);
     if (raw < 0)
     {
-        last_value = -12345678;
+        last_value = INT_MIN;
         return last_value;
     }
     
     float ev = raw_to_ev(raw);
     float target = MIN(auto_ettr_target_level, -0.5);
     float correction = target - ev;
-    
-    if (correction <= target)
+    if (correction <= target + 0.1)
     {
         /* we don't know how much to go back in order to fix the overexposure */
         /* so we'll use a heuristic: for each 10% of blown out image, go back 1EV */
         int overexposed = raw_hist_get_overexposure_percentage(gray_proj);
         correction -= overexposed / 10.0;
     }
+
     
     last_value = (int)(correction * 100);
     return last_value;
@@ -3856,7 +3856,7 @@ static void auto_ettr_step()
     if (auto_ettr_running) return;
     if (HDR_ENABLED) return;
     int corr = auto_ettr_get_correction();
-    if (corr != -12345678)
+    if (corr != INT_MIN)
     {
         /* we'd better not change expo settings from prop task (we won't get correct confirmations) */
         task_create("ettr_task", 0x1c, 0x1000, auto_ettr_step_task, (void*) corr);
@@ -3888,7 +3888,7 @@ static void auto_ettr_step_lv()
     raw_lv_release();
     
     /* only correct if the difference is greater than 0.5 EV */
-    if (corr != -12345678 && ABS(corr) > 50)
+    if (corr != INT_MIN && ABS(corr) > 50)
     {
         auto_ettr_work(corr);
     }
@@ -4036,7 +4036,7 @@ static void compute_exposure_for_next_shot()
     return;
     #endif
     
-    static int prev_file_number = 12345;
+    static int prev_file_number = INT_MAX;
     if (prev_file_number == file_number)
     {
         NotifyBox(2000, "Picture not taken :("); msleep(2000);
@@ -4128,7 +4128,7 @@ static CONFIG_INT("expo.lock.av", expo_lock_av, 1);
 static CONFIG_INT("expo.lock.iso", expo_lock_iso, 1);
 
 // keep this constant
-static int expo_lock_value = 12345;
+static int expo_lock_value = INT_MAX;
 
 static MENU_UPDATE_FUNC(expo_lock_display)
 {
@@ -4228,7 +4228,7 @@ static int expo_lock_adjust_iso(int delta)
     
     int old_iso = lens_info.raw_iso;
     int delta_r = ((delta + 4 * SGN(delta)) / 8) * 8;
-    int new_iso = old_iso - delta_r;
+    int new_iso = COERCE(old_iso - delta_r, MIN_ISO, MAX_ANALOG_ISO);
 
     int max_auto_iso = auto_iso_range & 0xFF;
     if (new_iso > max_auto_iso && old_iso < max_auto_iso)
@@ -4254,7 +4254,7 @@ static void expo_lock_step()
     
     int max_auto_iso = auto_iso_range & 0xFF;
     
-    if (expo_lock_value == 12345)
+    if (expo_lock_value == INT_MAX)
         expo_lock_value = expo_lock_get_current_value();
     
     static int p_tv = 0;

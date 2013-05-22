@@ -287,14 +287,14 @@ void hist_draw_image(
             case HIST_METER_ETTR_HINT:
             {
                 if (!stops_until_overexposure)
-                    stops_until_overexposure = -12345678;
+                    stops_until_overexposure = INT_MIN;
                 #ifdef FEATURE_AUTO_ETTR
                 int ettr_stops = auto_ettr_get_correction();
-                if (ettr_stops != -12345678)
+                if (ettr_stops != INT_MIN)
                     stops_until_overexposure = ettr_stops/10;
                 #endif
                 
-                if (stops_until_overexposure != -12345678)
+                if (stops_until_overexposure != INT_MIN)
                     snprintf(msg, sizeof(msg), "E%s%d.%d", FMT_FIXEDPOINT1(stops_until_overexposure));
                 else
                     snprintf(msg, sizeof(msg), "OVER");
@@ -401,7 +401,8 @@ int raw_hist_get_overexposure_percentage(int gray_projection)
     if (!raw_update_params()) return -1;
     get_yuv422_vram();
     
-    int white = raw_info.white_level;
+    /* use some tolerance when checking for overexposure, because white level might vary a little */
+    int white = raw_info.white_level * 90 / 100;
     int over = 0;
     int total = 0;
     
