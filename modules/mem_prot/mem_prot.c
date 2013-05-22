@@ -21,7 +21,6 @@ extern unsigned int mem_prot_irq_orig;
 extern unsigned int mem_prot_trap_stackptr;
 unsigned int mem_prot_trap_stack[MRC_DUMP_STACK_SIZE];
 
-unsigned int mem_prot_hook_stackhead = 0;
 unsigned int mem_prot_irq_end_full_addr = 0;
 unsigned int mem_prot_irq_end_part_addr = 0;
 unsigned int mem_prot_hook_full = 0;
@@ -233,9 +232,8 @@ unsigned int mem_prot_find_hooks()
     else
     {
         /* leave some space to prevent false stack overflow alarms (if someone ever checked...) */
-        mem_prot_hook_stackhead = addr + 0x100;
-        mem_prot_irq_end_full_addr = mem_prot_hook_stackhead + 0;
-        mem_prot_irq_end_part_addr = mem_prot_hook_stackhead + 4;
+        mem_prot_irq_end_full_addr = addr + 0x100;
+        mem_prot_irq_end_part_addr = addr + 0x104;
     }
     
     if(mem_prot_hook_full && mem_prot_hook_part)
@@ -266,8 +264,8 @@ void mem_prot_install()
     MEM(0x00000030) = (unsigned int)&mem_prot_irq_entry;
     
     /* place a LDR PC, [PC, rel_offset] at irq end  to jump to our code */
-    MEM(mem_prot_hook_full) = 0xE59FF000 | ((mem_prot_irq_end_full_addr) - mem_prot_hook_full - 8);
-    MEM(mem_prot_hook_part) = 0xE59FF000 | ((mem_prot_irq_end_part_addr) - mem_prot_hook_part - 8);
+    MEM(mem_prot_hook_full) = 0xE59FF000 | (((mem_prot_irq_end_full_addr) - mem_prot_hook_full - 8)) & 0xFFF;
+    MEM(mem_prot_hook_part) = 0xE59FF000 | (((mem_prot_irq_end_part_addr) - mem_prot_hook_part - 8)) & 0xFFF;
     
     /* install data abort handler */
     MEM(0x0000002C) = (unsigned int)&mem_prot_trap;
