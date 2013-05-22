@@ -3763,9 +3763,19 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
 /* also used for display on histogram */
 int auto_ettr_get_correction()
 {
+    static int last_value = -12345678;
+    
+    /* this is kinda slow, don't run it more often than once per second */
+    static int aux = INT_MIN;
+    if (!should_run_polling_action(1000, &aux) && last_value != -12345678)
+        return last_value;
+    
     int raw = raw_hist_get_percentile_level(auto_ettr_percentile, GRAY_PROJECTION_MAX_RGB);
     if (raw < 0)
-        return -12345678;
+    {
+        last_value = -12345678;
+        return last_value;
+    }
     
     float ev = raw_to_ev(raw);
     float correction = MIN(auto_ettr_target_level, -0.5) - ev;
@@ -3778,7 +3788,8 @@ int auto_ettr_get_correction()
         correction -= overexposed / 10.0;
     }
     
-    return (int)(correction * 100);
+    last_value = (int)(correction * 100);
+    return last_value;
 }
 
 static int expo_lock_adjust_iso(int delta);
