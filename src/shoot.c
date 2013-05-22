@@ -3800,7 +3800,7 @@ int auto_ettr_get_correction()
 }
 
 static int expo_lock_adjust_iso(int delta);
-static int expo_lock_adjust_tv(int delta);
+static int expo_lock_adjust_tv(int delta, int slowest_shutter);
 static int expo_lock_get_current_value();
 static int expo_lock_value;
 
@@ -3825,14 +3825,14 @@ static void auto_ettr_work(int corr)
             delta_extra = old_delta - delta;
         }
         
-        delta = expo_lock_adjust_tv(delta);
+        delta = expo_lock_adjust_tv(delta, shutter_lim);
         delta += delta_extra;
         delta = expo_lock_adjust_iso(delta);
     }
     else /* faster shutter speed */
     {
         delta = expo_lock_adjust_iso(delta);
-        delta = expo_lock_adjust_tv(delta);
+        delta = expo_lock_adjust_tv(delta, shutter_lim);
     }
 
     /* don't let expo lock undo our changes */
@@ -4168,7 +4168,7 @@ static int expo_lock_get_current_value()
 }
 
 // returns the remainder
-static int expo_lock_adjust_tv(int delta)
+static int expo_lock_adjust_tv(int delta, int slowest_shutter)
 {
     if (!delta) return 0;
     int old_tv = lens_info.raw_shutter;
@@ -4177,10 +4177,10 @@ static int expo_lock_adjust_tv(int delta)
 
     if (!expo_value_rounding_ok(new_tv)) // try to change it by a small amount, so Canon firmware will accept it
     {
-        int new_tv_plus1  = COERCE(new_tv + 1, 16, FASTEST_SHUTTER_SPEED_RAW);
-        int new_tv_minus1 = COERCE(new_tv - 1, 16, FASTEST_SHUTTER_SPEED_RAW);
-        int new_tv_plus2  = COERCE(new_tv + 2, 16, FASTEST_SHUTTER_SPEED_RAW);
-        int new_tv_minus2 = COERCE(new_tv - 2, 16, FASTEST_SHUTTER_SPEED_RAW);
+        int new_tv_plus1  = COERCE(new_tv + 1, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
+        int new_tv_minus1 = COERCE(new_tv - 1, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
+        int new_tv_plus2  = COERCE(new_tv + 2, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
+        int new_tv_minus2 = COERCE(new_tv - 2, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
         
         if (expo_value_rounding_ok(new_tv_plus1)) new_tv = new_tv_plus1;
         else if (expo_value_rounding_ok(new_tv_minus1)) new_tv = new_tv_minus1;
@@ -4296,13 +4296,13 @@ static void expo_lock_step()
             int delta = expo_lock_value - current_value;
             if (expo_lock_iso == 1)
             {
-                delta = expo_lock_adjust_tv(delta);
+                delta = expo_lock_adjust_tv(delta, 0);
                 if (ABS(delta) >= 4) delta = expo_lock_adjust_av(delta);
             }
             else
             {
                 delta = expo_lock_adjust_av(delta);
-                if (ABS(delta) >= 4) delta = expo_lock_adjust_tv(delta);
+                if (ABS(delta) >= 4) delta = expo_lock_adjust_tv(delta, 0);
             }
             //~ delta = expo_lock_adjust_iso(delta);
     }
@@ -4320,7 +4320,7 @@ static void expo_lock_step()
             if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
             if (ABS(delta) >= 8) delta = expo_lock_adjust_av(delta);
         }
-        //~ delta = expo_lock_adjust_tv(delta);
+        //~ delta = expo_lock_adjust_tv(delta, 0);
     }
     else if (what_changed == 3 && expo_lock_av)
     {
@@ -4328,13 +4328,13 @@ static void expo_lock_step()
         int delta = expo_lock_value - current_value;
         if (expo_lock_av == 1 || (lens_info.raw_iso > max_auto_iso - 8 && delta < 0))
         {
-            delta = expo_lock_adjust_tv(delta);
+            delta = expo_lock_adjust_tv(delta, 0);
             if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
         }
         else
         {
             if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
-            if (ABS(delta) >= 8) delta = expo_lock_adjust_tv(delta);
+            if (ABS(delta) >= 8) delta = expo_lock_adjust_tv(delta, 0);
         }
         //~ delta = expo_lock_adjust_av(delta);
     }
