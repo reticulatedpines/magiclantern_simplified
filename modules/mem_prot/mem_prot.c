@@ -244,6 +244,21 @@ unsigned int mem_prot_find_hooks()
     return 4;
 }
 
+void mem_prot_ins_ldr(unsigned int pos, unsigned int dest)
+{
+    int offset = dest - (pos + 8);
+    
+    if(offset >= 0)
+    {
+        MEM(pos) = 0xE59FF000 | (offset & 0xFFF);
+    }
+    else
+    {
+        MEM(pos) = 0xE51FF000 | ((-offset) & 0xFFF);
+    }
+}
+
+
 void mem_prot_install()
 {
     unsigned int err = mem_prot_find_hooks();
@@ -263,9 +278,9 @@ void mem_prot_install()
     mem_prot_irq_orig = MEM(0x00000030);
     MEM(0x00000030) = (unsigned int)&mem_prot_irq_entry;
     
-    /* place a LDR PC, [PC, rel_offset] at irq end  to jump to our code */
-    MEM(mem_prot_hook_full) = 0xE59FF000 | (((mem_prot_irq_end_full_addr) - mem_prot_hook_full - 8)) & 0xFFF;
-    MEM(mem_prot_hook_part) = 0xE59FF000 | (((mem_prot_irq_end_part_addr) - mem_prot_hook_part - 8)) & 0xFFF;
+    /* place a LDR PC, [PC, rel_offset] at irq end to jump to our code */
+    mem_prot_ins_ldr(mem_prot_hook_full, mem_prot_irq_end_full_addr);
+    mem_prot_ins_ldr(mem_prot_hook_part, mem_prot_irq_end_part_addr);
     
     /* install data abort handler */
     MEM(0x0000002C) = (unsigned int)&mem_prot_trap;
