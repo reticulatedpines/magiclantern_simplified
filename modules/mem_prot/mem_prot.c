@@ -266,8 +266,8 @@ void mem_prot_install()
     MEM(0x00000030) = (unsigned int)&mem_prot_irq_entry;
     
     /* place a LDR PC, [PC, rel_offset] at irq end  to jump to our code */
-    MEM(mem_prot_hook_full) = 0xE59FF000 | ((mem_prot_hook_stackhead + 0) - mem_prot_hook_full - 8);
-    MEM(mem_prot_hook_part) = 0xE59FF000 | ((mem_prot_hook_stackhead + 4) - mem_prot_hook_part - 8);
+    MEM(mem_prot_hook_full) = 0xE59FF000 | ((mem_prot_irq_end_full_addr) - mem_prot_hook_full - 8);
+    MEM(mem_prot_hook_part) = 0xE59FF000 | ((mem_prot_irq_end_part_addr) - mem_prot_hook_part - 8);
     
     /* install data abort handler */
     MEM(0x0000002C) = (unsigned int)&mem_prot_trap;
