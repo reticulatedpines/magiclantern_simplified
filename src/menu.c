@@ -2126,19 +2126,21 @@ entry_print(
             help2 = menu_help_get_line(entry->help2, SELECTED_INDEX(entry));
         }
         
+        char default_help_buf[MENU_MAX_HELP_LEN];
         if (!entry->help2 || strlen(help2) < 2) // default help just list the choices
         {
             int num = NUM_CHOICES(entry);
             if (num > 2 && num < 10)
             {
-                help2[0] = 0;
+                default_help_buf[0] = 0;
                 for (int i = entry->min; i <= entry->max; i++)
                 {
                     int len = strlen(help2);
                     if (len > 58) break;
-                    snprintf(help2 + len, MENU_MAX_HELP_LEN - len, "%s%s", pickbox_string(entry, i), i < entry->max ? " / " : ".");
+                    STR_APPEND(default_help_buf, "%s%s", pickbox_string(entry, i), i < entry->max ? " / " : ".");
                 }
                 help_color = 50;
+                help2 = default_help_buf;
             }
         }
 
