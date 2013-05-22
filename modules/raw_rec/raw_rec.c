@@ -259,7 +259,7 @@ static int setup_buffers()
             if (ptr != fullsize_buffers[0])
             {
                 /* make sure our buffers are aligned at 4K */
-                buffers[buffer_count].ptr = (((intptr_t)ptr + 4095) & ~4095);
+                buffers[buffer_count].ptr = (void*)(((intptr_t)ptr + 4095) & ~4095);
                 buffers[buffer_count].size = size - 8192;
                 buffers[buffer_count].used = 0;
                 buffer_count++;
@@ -272,7 +272,7 @@ static int setup_buffers()
     /* try to recycle the waste */
     if (waste >= 16*1024*1024 + 8192)
     {
-        buffers[buffer_count].ptr = (((intptr_t)(fullsize_buffers[0] + buf_size) + 4095) & ~4095);
+        buffers[buffer_count].ptr = (void*)(((intptr_t)(fullsize_buffers[0] + buf_size) + 4095) & ~4095);
         buffers[buffer_count].size = waste - 8192;
         buffers[buffer_count].used = 0;
         buffer_count++;
@@ -776,9 +776,9 @@ static MENU_SELECT_FUNC(raw_video_toggle)
     
     /* toggle the lv_save_raw flag from raw.c */
     if (raw_video_enabled)
-        raw_lv_enable();
+        raw_lv_request();
     else
-        raw_lv_disable();
+        raw_lv_release();
     msleep(50);
 }
 

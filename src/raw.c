@@ -781,14 +781,14 @@ void FAST raw_preview_fast()
 }
 
 static int lv_raw_enabled;
-void raw_lv_enable()
+static void raw_lv_enable()
 {
     lv_raw_enabled = 1;
     call("lv_save_raw", 1);
     call("lv_af_raw", 1); /* this enables Canon's bad pixel removal, thanks nanomad */
 }
 
-void raw_lv_disable()
+static void raw_lv_disable()
 {
     lv_raw_enabled = 0;
     call("lv_save_raw", 0);
@@ -798,6 +798,35 @@ void raw_lv_disable()
 int raw_lv_is_enabled()
 {
     return lv_raw_enabled;
+}
+
+static int raw_lv_request_count = 0;
+
+static void raw_lv_update()
+{
+    int new_state = raw_lv_request_count > 0;
+    if (new_state && !lv_raw_enabled)
+    {
+        raw_lv_enable();
+        msleep(50);
+    }
+    else if (!new_state && lv_raw_enabled)
+    {
+        raw_lv_disable();
+        msleep(50);
+    }
+}
+
+void raw_lv_request()
+{
+    raw_lv_request_count++;
+    raw_lv_update();
+}
+void raw_lv_release()
+{
+    raw_lv_request_count--;
+    ASSERT(raw_lv_request_count >= 0);
+    raw_lv_update();
 }
 
 /* may not be correct on 4:3 screens */
