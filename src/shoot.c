@@ -3871,6 +3871,7 @@ static void auto_ettr_step_lv()
     if (lens_info.raw_shutter == 0) return;
     if (HDR_ENABLED) return;
     if (!expsim) return;
+    if (is_movie_mode()) return;
     if (lv_dispsize != 1) return;
     if (LV_PAUSED) return;
     if (get_halfshutter_pressed()) return;

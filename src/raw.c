@@ -596,8 +596,8 @@ int FAST raw_get_gray_pixel(int x, int y, int gray_projection)
             int b = raw_blue_pixel(x, y);
             int M = MAX(MAX(r,g),b);
             int m = MIN(MIN(r,g),b);
-            if (r > m && r < M) return r;
-            if (g > m && g < M) return g;
+            if (r >= m && r <= M) return r;
+            if (g >= m && g <= M) return g;
             return b;
         }
         default:

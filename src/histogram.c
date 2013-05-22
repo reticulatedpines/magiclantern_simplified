@@ -31,7 +31,7 @@ struct Histogram histogram;
 
 #ifdef FEATURE_RAW_HISTOGRAM
 
-#define HIST_METER_DYNAMIC_RAMGE 1
+#define HIST_METER_DYNAMIC_RANGE 1
 #define HIST_METER_ETTR_HINT 2
 
 void hist_build_raw()
@@ -277,7 +277,7 @@ void hist_draw_image(
         char msg[10];
         switch (hist_meter)
         {
-            case HIST_METER_DYNAMIC_RAMGE:
+            case HIST_METER_DYNAMIC_RANGE:
             {
                 int dr = (raw_info.dynamic_range + 5) / 10;
                 snprintf(msg, sizeof(msg), "D%d.%d", dr/10, dr%10);
