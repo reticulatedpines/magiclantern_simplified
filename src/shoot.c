@@ -3887,8 +3887,8 @@ static void auto_ettr_step_lv()
     int corr = auto_ettr_get_correction();
     raw_lv_release();
     
-    /* only correct if the difference is 0.4 EV or greater */
-    if (corr != -12345678 && ABS(corr) >= 40)
+    /* only correct if the difference is greater than 0.5 EV */
+    if (corr != -12345678 && ABS(corr) > 50)
     {
         auto_ettr_work(corr);
     }
@@ -4173,7 +4173,7 @@ static int expo_lock_adjust_tv(int delta, int slowest_shutter)
     if (!delta) return 0;
     int old_tv = lens_info.raw_shutter;
     int new_tv = old_tv + delta;
-    new_tv = COERCE(new_tv, 16, FASTEST_SHUTTER_SPEED_RAW);
+    new_tv = COERCE(new_tv, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
 
     if (!expo_value_rounding_ok(new_tv)) // try to change it by a small amount, so Canon firmware will accept it
     {
@@ -4181,11 +4181,13 @@ static int expo_lock_adjust_tv(int delta, int slowest_shutter)
         int new_tv_minus1 = COERCE(new_tv - 1, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
         int new_tv_plus2  = COERCE(new_tv + 2, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
         int new_tv_minus2 = COERCE(new_tv - 2, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
+        int new_tv_plus3  = COERCE(new_tv + 3, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
         
         if (expo_value_rounding_ok(new_tv_plus1)) new_tv = new_tv_plus1;
         else if (expo_value_rounding_ok(new_tv_minus1)) new_tv = new_tv_minus1;
         else if (expo_value_rounding_ok(new_tv_plus2)) new_tv = new_tv_plus2;
         else if (expo_value_rounding_ok(new_tv_minus2)) new_tv = new_tv_minus2;
+        else if (expo_value_rounding_ok(new_tv_plus3)) new_tv = new_tv_plus3;
     }
 
     lens_set_rawshutter(new_tv);
