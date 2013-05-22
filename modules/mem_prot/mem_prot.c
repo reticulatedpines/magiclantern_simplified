@@ -22,6 +22,8 @@ extern unsigned int mem_prot_trap_stackptr;
 unsigned int mem_prot_trap_stack[MRC_DUMP_STACK_SIZE];
 
 unsigned int mem_prot_hook_stackhead = 0;
+unsigned int mem_prot_irq_end_full_addr = 0;
+unsigned int mem_prot_irq_end_part_addr = 0;
 unsigned int mem_prot_hook_full = 0;
 unsigned int mem_prot_hook_part = 0;
 
@@ -224,16 +226,23 @@ unsigned int mem_prot_find_hooks()
     /* failed to find irq stack head */
     if(addr >= 0x1000)
     {
-        return 3;
+        /* use free space in IV for our pointers. vectors RESET and BKPT are not used. */
+        mem_prot_irq_end_full_addr = 0x00;
+        mem_prot_irq_end_part_addr = 0x14;
     }
-    
-    /* leave some space to prevent false stack overflow alarms (if someone ever checked...) */
-    mem_prot_hook_stackhead = addr + 0x100;
+    else
+    {
+        /* leave some space to prevent false stack overflow alarms (if someone ever checked...) */
+        mem_prot_hook_stackhead = addr + 0x100;
+        mem_prot_irq_end_full_addr = mem_prot_hook_stackhead + 0;
+        mem_prot_irq_end_part_addr = mem_prot_hook_stackhead + 4;
+    }
     
     if(mem_prot_hook_full && mem_prot_hook_part)
     {
         return 0;
     }
+    
     return 4;
 }
 
@@ -249,8 +258,8 @@ void mem_prot_install()
     unsigned int int_status = cli();
     
     /* place jumps to our interrupt end code */
-    MEM(mem_prot_hook_stackhead + 0) = &mem_prot_irq_end_full;
-    MEM(mem_prot_hook_stackhead + 4) = &mem_prot_irq_end_part;
+    MEM(mem_prot_irq_end_full_addr) = &mem_prot_irq_end_full;
+    MEM(mem_prot_irq_end_part_addr) = &mem_prot_irq_end_part;
     
     /* install pre-irq hook */
     mem_prot_irq_orig = MEM(0x00000030);
