@@ -5141,9 +5141,8 @@ livev_hipriority_task( void* unused )
         {
             /* if picture quality is raw, switch the LiveView to raw mode */
             int raw = pic_quality & 0x60000;
-            int jpg = pic_quality & 0x10000;
             /* only histogram and spotmeter are working in LV raw mode */
-            if (raw && !jpg && lv_dispsize == 1 && (hist_draw || spotmeter_draw))
+            if (raw && lv_dispsize == 1 && (hist_draw || spotmeter_draw))
             {
                 raw_lv_request();
                 raw_flag = 1;

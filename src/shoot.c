@@ -3797,11 +3797,8 @@ static int expo_lock_adjust_tv(int delta);
 static int expo_lock_get_current_value();
 static int expo_lock_value;
 
-static volatile int auto_ettr_running = 0;
-static void auto_ettr_step_task(int corr)
+static void auto_ettr_work(int corr)
 {
-    if (auto_ettr_running) return;
-    
     int delta = -corr * 8 / 100;
     int shutter_lim = auto_ettr_max_shutter*8 + 16;
 
@@ -3833,7 +3830,13 @@ static void auto_ettr_step_task(int corr)
 
     /* don't let expo lock undo our changes */
     expo_lock_value = expo_lock_get_current_value();
+}
 
+static volatile int auto_ettr_running = 0;
+static void auto_ettr_step_task(int corr)
+{
+    if (auto_ettr_running) return;
+    auto_ettr_work(corr);
     auto_ettr_running = 0;
 }
 
@@ -3853,25 +3856,59 @@ static void auto_ettr_step()
     }
 }
 
+static void auto_ettr_step_lv()
+{
+    if (!auto_ettr) return;
+    if (shooting_mode != SHOOTMODE_M) return;
+    if (lens_info.raw_iso == 0) return;
+    if (lens_info.raw_shutter == 0) return;
+    if (HDR_ENABLED) return;
+    if (!expsim) return;
+    if (lv_dispsize != 1) return;
+    if (LV_PAUSED) return;
+
+    int raw = pic_quality & 0x60000;
+    if (!raw) return;
+    
+    /* only update once per second, so the exposure has a chance to be updated on the LCD */
+    static int aux = INT_MIN;
+    if (!should_run_polling_action(1000, &aux))
+        return;
+    
+    int corr = auto_ettr_get_correction();
+    if (corr != -12345678)
+    {
+        raw_lv_request();
+        auto_ettr_work(corr);
+        raw_lv_release();
+    }
+}
+
 static MENU_UPDATE_FUNC(auto_ettr_update)
 {
-    if (!can_use_raw_overlays_photo())
-    {
+    int raw = pic_quality & 0x60000;
+    if (!raw)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You must shoot RAW in order to use this.");
+
+    if (!lv && !can_use_raw_overlays_photo())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
-    }
 
     if (HDR_ENABLED)
-    {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
-    }
+
+    if (lv && !expsim)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "In LiveView, this requires ExpSim enabled.");
     
     if (is_continuous_drive())
-    {
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
-    }
     
     if (auto_ettr)
         MENU_SET_RINFO("%d/%d%%", auto_ettr_target_level, auto_ettr_percentile);
+
+    if (lv)
+        MENU_SET_HELP("In LiveView, just wait for exposure to settle, then shoot.");
+    else
+        MENU_SET_HELP("Take a test picture (underexposed). Next pic will be ETTR.");
 }
 
 #endif
@@ -5441,7 +5478,6 @@ static struct menu_entry expo_menus[] = {
         .update = auto_ettr_update,
         .max = 1,
         .help  = "Auto expose to the right when you shoot RAW.",
-        .help2 = "Take a test picture (underexposed). Next pic will be ETTR.",
         .depends_on = DEP_PHOTO_MODE | DEP_M_MODE | DEP_MANUAL_ISO,
         .submenu_width = 710,
         .children =  (struct menu_entry[]) {
@@ -6591,6 +6627,11 @@ shoot_task( void* unused )
 #if defined(CONFIG_MODULES)
         module_exec_cbr(CBR_SHOOT_TASK);
 #endif
+
+        #ifdef FEATURE_AUTO_ETTR
+        if (lv)
+            auto_ettr_step_lv();
+        #endif
 
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);
