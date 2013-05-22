@@ -587,6 +587,19 @@ int FAST raw_get_gray_pixel(int x, int y, int gray_projection)
             return (raw_red_pixel(x, y) + raw_green_pixel(x, y) + raw_blue_pixel(x, y)) / 3;
         case GRAY_PROJECTION_MAX_RGB:
             return MAX(MAX(raw_red_pixel(x, y), raw_green_pixel(x, y)), raw_blue_pixel(x, y));
+        case GRAY_PROJECTION_MAX_RB:
+            return MAX(raw_red_pixel(x, y), raw_blue_pixel(x, y));
+        case GRAY_PROJECTION_MEDIAN_RGB:
+        {
+            int r = raw_red_pixel(x, y);
+            int g = raw_green_pixel(x, y);
+            int b = raw_blue_pixel(x, y);
+            int M = MAX(MAX(r,g),b);
+            int m = MIN(MIN(r,g),b);
+            if (r > m && r < M) return r;
+            if (g > m && g < M) return g;
+            return b;
+        }
         default:
             return -1;
     }

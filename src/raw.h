@@ -73,6 +73,8 @@ int raw_get_gray_pixel(int x, int y, int gray_projection);
 #define GRAY_PROJECTION_BLUE 2
 #define GRAY_PROJECTION_AVERAGE_RGB 3
 #define GRAY_PROJECTION_MAX_RGB 4
+#define GRAY_PROJECTION_MAX_RB 5
+#define GRAY_PROJECTION_MEDIAN_RGB 6
 
 /* input: 0 - 16384 (valid range: from black level to white level) */
 /* output: -14 ... 0 */

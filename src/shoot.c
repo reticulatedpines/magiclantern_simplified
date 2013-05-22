@@ -57,6 +57,7 @@ static CONFIG_INT("auto.ettr", auto_ettr, 0);
 static CONFIG_INT("auto.ettr.prctile", auto_ettr_percentile, 98);
 static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
 static CONFIG_INT("auto.ettr.max.shutter", auto_ettr_max_shutter, 11);
+static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 #endif
 
 void move_lv_afframe(int dx, int dy);
@@ -3770,7 +3771,12 @@ int auto_ettr_get_correction()
     if (!should_run_polling_action(1000, &aux) && last_value != -12345678)
         return last_value;
     
-    int raw = raw_hist_get_percentile_level(auto_ettr_percentile, GRAY_PROJECTION_MAX_RGB);
+    int gray_proj = 
+        auto_ettr_clip == 0 ? GRAY_PROJECTION_MAX_RGB :
+        auto_ettr_clip == 1 ? GRAY_PROJECTION_MAX_RB :
+        auto_ettr_clip == 2 ? GRAY_PROJECTION_MEDIAN_RGB : -1;
+    
+    int raw = raw_hist_get_percentile_level(auto_ettr_percentile, gray_proj);
     if (raw < 0)
     {
         last_value = -12345678;
@@ -3778,13 +3784,14 @@ int auto_ettr_get_correction()
     }
     
     float ev = raw_to_ev(raw);
-    float correction = MIN(auto_ettr_target_level, -0.5) - ev;
+    float target = MIN(auto_ettr_target_level, -0.5);
+    float correction = target - ev;
     
-    if (correction < 0)
+    if (correction <= target)
     {
         /* we don't know how much to go back in order to fix the overexposure */
         /* so we'll use a heuristic: for each 10% of blown out image, go back 1EV */
-        int overexposed = raw_hist_get_overexposure_percentage(GRAY_PROJECTION_MAX_RGB);
+        int overexposed = raw_hist_get_overexposure_percentage(gray_proj);
         correction -= overexposed / 10.0;
     }
     
@@ -3866,6 +3873,7 @@ static void auto_ettr_step_lv()
     if (!expsim) return;
     if (lv_dispsize != 1) return;
     if (LV_PAUSED) return;
+    if (get_halfshutter_pressed()) return;
 
     int raw = pic_quality & 0x60000;
     if (!raw) return;
@@ -3875,12 +3883,14 @@ static void auto_ettr_step_lv()
     if (!should_run_polling_action(1000, &aux))
         return;
     
+    raw_lv_request();
     int corr = auto_ettr_get_correction();
-    if (corr != -12345678)
+    raw_lv_release();
+    
+    /* only correct if the difference is 0.4 EV or greater */
+    if (corr != -12345678 && ABS(corr) >= 40)
     {
-        raw_lv_request();
         auto_ettr_work(corr);
-        raw_lv_release();
     }
 }
 
@@ -5496,6 +5506,13 @@ static struct menu_entry expo_menus[] = {
                 .max = 0,
                 .choices = CHOICES("-4 EV", "-3 EV", "-2 EV", "-1 EV", "-0.5 EV"),
                 .help = "Exposure target for ETTR. Recommended: -0.5 or -1 EV.",
+            },
+            {
+                .name = "Clipping mode",
+                .priv = &auto_ettr_clip,
+                .max = 2,
+                .choices = CHOICES("No clipping", "Clip GREEN", "Clip ANY"),
+                .help = "Choose what color channels are allowed to be clipped.",
             },
             {
                 .name = "Slowest shutter",
