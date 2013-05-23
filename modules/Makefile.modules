@@ -13,7 +13,7 @@ clean::
 $(MODULE_OUTPUT): $(MODULE_OBJS)
 	$(call build,MODULE,$(LD_REAL) -r -o $@ $^)
 
-install::
+install:: all
 	cp $(PWD)/$(MODULE_OUTPUT) $(CF_CARD_ML_DIR)/modules
 
 FORCE:

@@ -16,7 +16,7 @@ all:
 clean:
 	$(call make_all_modules,clean)
 
-install:
+install: all
 	mkdir $(CF_CARD_ML_DIR)/modules || echo "no problem"
 	$(call make_dynamic_modules, install)
 	cp $(MODULES_DIR)/*/*.mo $(CF_CARD_ML_DIR)/modules/ || echo "no problem"
