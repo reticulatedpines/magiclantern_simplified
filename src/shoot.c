@@ -3761,6 +3761,8 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
 #endif
 
 #ifdef FEATURE_AUTO_ETTR
+
+static int auto_ettr_overexposure_warning = 0;
 /* also used for display on histogram */
 int auto_ettr_get_correction()
 {
@@ -3792,8 +3794,9 @@ int auto_ettr_get_correction()
         /* so we'll use a heuristic: for each 10% of blown out image, go back 1EV */
         int overexposed = raw_hist_get_overexposure_percentage(gray_proj);
         correction -= overexposed / 10.0;
+        auto_ettr_overexposure_warning = 1;
     }
-
+    else auto_ettr_overexposure_warning = 0;
     
     last_value = (int)(correction * 100);
     return last_value;
@@ -3844,6 +3847,9 @@ static void auto_ettr_step_task(int corr)
 {
     if (auto_ettr_running) return;
     auto_ettr_work(corr);
+    if (ABS(corr) < 50) { } /* that's ok */
+    else if (auto_ettr_overexposure_warning || ABS(corr) > 800) beep_times(2); /* take two more pics */
+    else beep_times(1); /* take one more pic */
     auto_ettr_running = 0;
 }
 
@@ -3888,10 +3894,17 @@ static void auto_ettr_step_lv()
     int corr = auto_ettr_get_correction();
     raw_lv_release();
     
-    /* only correct if the difference is greater than 0.5 EV */
-    if (corr != INT_MIN && ABS(corr) > 50)
+    /* only correct if the difference is greater than 0.6 EV */
+    static int settled = 0;
+    if (corr != INT_MIN && ABS(corr) > 60)
     {
         auto_ettr_work(corr);
+        settled = 0;
+    }
+    else
+    {
+        settled++;
+        if (settled == 2) beep();
     }
 }
 
