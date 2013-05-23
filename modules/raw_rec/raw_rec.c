@@ -278,7 +278,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
     
     if (selected_y != res_y)
     {
-        char* ratio = guess_aspect_ratio(res_x, res_y);
+        char* ratio = guess_aspect_ratio(res_x, res_y * squeeze);
         MENU_SET_VALUE(ratio);
         MENU_SET_HELP("Could not get %s. Max vertical resolution: %d.", aspect_ratio_choices[aspect_ratio_index], res_y);
     }
