@@ -3788,7 +3788,7 @@ int auto_ettr_get_correction()
     float ev = raw_to_ev(raw);
     float target = MIN(auto_ettr_target_level, -0.5);
     float correction = target - ev;
-    if (correction <= target + 0.1)
+    if (correction <= target + 0.3)
     {
         /* we don't know how much to go back in order to fix the overexposure */
         /* so we'll use a heuristic: for each 10% of blown out image, go back 1EV */
