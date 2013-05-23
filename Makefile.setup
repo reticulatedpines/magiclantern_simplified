@@ -1,0 +1,76 @@
+# Generic makefile
+# Include default and user-customized options where needed
+# If you want to customize them copy Makefile.user.default to Makefile.user keeping only the options that you want to customize
+include $(TOP_DIR)/Makefile.top
+include $(TOP_DIR)/Makefile.user.default
+-include $(TOP_DIR)/Makefile.user
+
+ifeq ($(CONFIG_CCACHE), y)
+    CC := $(CCACHE) $(CC)
+    HOST_CC := $(CCACHE) $(CC)
+endif	
+
+# Quiet the build process
+build = \
+	@if [ X"$V" = X"1" ]; then \
+		echo '$2'; \
+	else \
+		printf "[ %-8s ]   %s\n"  $1 $@; \
+	fi; \
+	$2
+
+
+FLAGS=\
+	-Wp,-MMD,$(patsubst %.o,%.d,$(dir $@)$(notdir $@)) \
+	-Wp,-MT,$@ \
+	-nostdlib \
+	-fomit-frame-pointer \
+	-fno-strict-aliasing \
+	-DCONFIG_MAGICLANTERN=1 \
+	-DCONFIG_$(subst .,_,$(MODEL))=1 \
+	-DRESTARTSTART=$(RESTARTSTART) \
+	-DROMBASEADDR=$(ROMBASEADDR) \
+	-DVERSION=\"$(VERSION)\" \
+	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG)
+
+#
+# ToDo: remove 
+#	-Wno-implicit-function-declaration
+#
+# Reason: these warnings make sense! potential crash situations.
+#
+CFLAGS=\
+	$(FLAGS) \
+	-Os \
+	-Wall \
+	-W \
+	-Wno-unused-parameter \
+	-Wno-implicit-function-declaration \
+	-Wno-unused-function \
+	-Wno-missing-field-initializers \
+	-Wno-format \
+	-Wdouble-promotion \
+	-ffast-math \
+	-fno-trapping-math \
+	-fsingle-precision-constant \
+	-fshort-double \
+	-std=gnu99 \
+	-D__ARM__ \
+	-I$(PLATFORM_INC) \
+	-I$(SRC_DIR) \
+	-I$(PICOC_PATH) \
+	-mthumb-interwork
+
+NOT_USED_FLAGS=\
+	-march=armv5te \
+	-msoft-float
+
+AFLAGS=\
+	$(FLAGS)
+    
+-LFLAGS=
+
+CFLAGS += $(CFLAG_USER)
+FLAGS += $(LFLAG_USER)
+AFLAGS += $(AFLAG_USER)
+
