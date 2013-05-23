@@ -48,7 +48,7 @@ void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int sr
     take_semaphore(edmac_memcpy_sem, 0);
     
     /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
-    uint32_t dmaFlags = 0x20001000;
+    uint32_t dmaFlags = 0x60000000;
 
     /* create a memory suite from a already existing (continuous) memory block with given size. */
     uint32_t src_adjusted = ((uint32_t)src & 0x1FFFFFFF) + src_x + src_y * src_width;
