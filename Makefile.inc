@@ -306,7 +306,7 @@ install: autoexec.bin
 	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD_ML_DIR)data/
 	mkdir $(CF_CARD_ML_DIR)/cropmks || echo "no problem"
 	cp $(CROP_DIR)/*.bmp $(CF_CARD_ML_DIR)/cropmks/
-	mkdir $(CF_CARD_ML_DIR)scripts || echo "no problem"
+	mkdir $(CF_CARD_ML_DIR)/scripts || echo "no problem"
 	cp $(SCRIPT_DIR)/*.lua $(CF_CARD_ML_DIR)/scripts/
 	cp $(SCRIPT_DIR)/*.c $(CF_CARD_ML_DIR)/scripts/
 	cp $(SCRIPT_DIR)/*.py $(CF_CARD_ML_DIR)/scripts/
