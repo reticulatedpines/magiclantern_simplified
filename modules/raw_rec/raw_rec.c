@@ -79,9 +79,34 @@ static int frame_count = 0;                       /* how many frames we have pro
 static int frame_skips = 0;                       /* how many frames were dropped/skipped */
 static char* movie_filename = 0;                  /* file name for current (or last) movie */
 
+static float get_squeeze_factor()
+{
+    if (video_mode_resolution == 1) /* 720p, image squeezed */
+    {
+        /* assume the raw image should be 16:9 when de-squeezed */
+        int correct_height = raw_info.jpeg.width * 9 / 16;
+        return (float)correct_height / raw_info.jpeg.height;
+    }
+    return 1.0f;
+}
+
 static int get_res_x()
 {
     return MIN(resolution_presets_x[resolution_index_x], raw_info.jpeg.width);
+}
+
+static int calc_res_y(int res_x, int num, int den, float squeeze)
+{
+    if (squeeze != 1.0f)
+    {
+        /* image should be enlarged vertically in post by a factor equal to "squeeze" */
+        return (int)(roundf(res_x * den / num / squeeze) + 1) & ~1;
+    }
+    else
+    {
+        /* assume square pixels */
+        return (res_x * den / num + 1) & ~1;
+    }
 }
 
 static int get_res_y()
@@ -89,7 +114,8 @@ static int get_res_y()
     int res_x = get_res_x();
     int num = aspect_ratio_presets_num[aspect_ratio_index];
     int den = aspect_ratio_presets_den[aspect_ratio_index];
-    return MIN((res_x * den / num + 1) & ~1, raw_info.jpeg.height);
+    float squeeze = get_squeeze_factor();
+    return MIN(calc_res_y(res_x, num, den, squeeze), raw_info.jpeg.height);
 }
 
 static char* guess_aspect_ratio(int res_x, int res_y)
@@ -117,7 +143,7 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     
     if (minerr < 0.05)
     {
-        int h = (res_x * best_den / best_num + 1) & ~1;
+        int h = calc_res_y(res_x, best_num, best_den, get_squeeze_factor());
         char* qualifier = h != res_y ? "almost " : "";
         snprintf(msg, sizeof(msg), "%s%d:%d", qualifier, best_num, best_den);
     }
@@ -183,6 +209,26 @@ static MENU_UPDATE_FUNC(raw_main_update)
     write_speed_update(entry, info);
 }
 
+static MENU_UPDATE_FUNC(aspect_ratio_update_info)
+{
+    int res_x = get_res_x();
+    int res_y = get_res_y();
+    float squeeze = get_squeeze_factor();
+    if (squeeze == 1.0f)
+    {
+        char* ratio = guess_aspect_ratio(res_x, res_y);
+        MENU_SET_HELP("%dx%d (%s)", res_x, res_y, ratio);
+    }
+    else
+    {
+        int num = aspect_ratio_presets_num[aspect_ratio_index];
+        int den = aspect_ratio_presets_den[aspect_ratio_index];
+        int sq100 = (int)roundf(squeeze*100);
+        int res_y_corrected = calc_res_y(res_x, num, den, 1.0f);
+        MENU_SET_HELP("%dx%d. Stretch by %s%d.%02dx to get %dx%d (%s) in post.", res_x, res_y, FMT_FIXEDPOINT2(sq100), res_x, res_y_corrected, aspect_ratio_choices[aspect_ratio_index]);
+    }
+}
+
 static MENU_UPDATE_FUNC(resolution_update)
 {
     if (!raw_video_enabled || !lv)
@@ -206,8 +252,7 @@ static MENU_UPDATE_FUNC(resolution_update)
     }
     else
     {
-        char* ratio = guess_aspect_ratio(res_x, res_y);
-        MENU_SET_HELP("%dx%d (%s)", res_x, res_y, ratio);
+        aspect_ratio_update_info(entry, info);
     }
 
     write_speed_update(entry, info);
@@ -228,7 +273,8 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
     int res_y = get_res_y();
     int num = aspect_ratio_presets_num[aspect_ratio_index];
     int den = aspect_ratio_presets_den[aspect_ratio_index];
-    int selected_y = (res_x * den / num + 1) & ~1;
+    float squeeze = get_squeeze_factor();
+    int selected_y = calc_res_y(res_x, num, den, squeeze);
     
     if (selected_y != res_y)
     {
@@ -238,8 +284,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
     }
     else
     {
-        char* ratio = guess_aspect_ratio(res_x, res_y);
-        MENU_SET_HELP("%dx%d (%s)", res_x, res_y, ratio);
+        aspect_ratio_update_info(entry, info);
     }
     write_speed_update(entry, info);
 }
