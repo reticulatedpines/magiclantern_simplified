@@ -3881,6 +3881,7 @@ static void auto_ettr_step_lv()
     if (lv_dispsize != 1) return;
     if (LV_PAUSED) return;
     if (get_halfshutter_pressed()) return;
+    if (!liveview_display_idle()) return;
 
     int raw = pic_quality & 0x60000;
     if (!raw) return;
