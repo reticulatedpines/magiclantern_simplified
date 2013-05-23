@@ -3455,9 +3455,7 @@ menu_redraw_do()
             {
                 // Canon dialog timed out?
                 #if 1
-                menu_shown = 0; // better just close ML menu? you don't open it for staring at it anyway...
-                bmp_on();
-                redraw();
+                gui_stop_menu(); // better just close ML menu? you don't open it for staring at it anyway...
                 return;
                 #else
                 // force dialog change when canon dialog times out (EOSM, 6D etc)
