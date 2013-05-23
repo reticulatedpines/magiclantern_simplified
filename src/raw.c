@@ -443,14 +443,23 @@ int raw_update_params()
 #endif
     
     raw_info.white_level = WHITE_LEVEL;
-    raw_info.black_level = autodetect_black_level();
-    
+
+#ifndef CONFIG_DXO_DYNAMIC_RANGE
     if (iso_digital <= 0)
     {
         /* at ISO 160, 320 etc, the white level is decreased by -1/3 EV */
         raw_info.white_level *= powf(2, iso_digital);
     }
+#endif
+
+    raw_info.black_level = autodetect_black_level();
+    
 #ifdef CONFIG_DXO_DYNAMIC_RANGE
+    if (iso_digital <= 0)
+    {
+        /* at ISO 160, 320 etc, the white level is decreased by -1/3 EV */
+        raw_info.white_level *= powf(2, iso_digital);
+    }
     else if (iso_digital > 0)
     {
         /* at positive digital ISO, the white level doesn't change, but the dynamic range is reduced */
