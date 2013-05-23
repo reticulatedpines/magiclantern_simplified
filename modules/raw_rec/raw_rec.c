@@ -31,8 +31,10 @@ static int raw_video_enabled = 0;
 
 static int resolution_presets_x[] = {  640,  720,  960,  1280,  1320,  1440,  1600,  1720,  1880,  1920,  2048,  2560,  2880,  3592 };
 #define  RESOLUTION_CHOICES_X CHOICES("640","720","960","1280","1320","1440","1600","1720","1880","1920","2048","2560","2880","3592")
-static int resolution_presets_y[] = {  320,  360,  480,  540,  720,  840,  960,  1080,  1152,  1280,  1320 };
-#define  RESOLUTION_CHOICES_Y CHOICES("320","360","480","540","720","840","960","1080","1152","1280","1320")
+
+static int aspect_ratio_presets_num[]      = {    3,     239,     235,    2,    16,    5,    3,    4,    1};
+static int aspect_ratio_presets_den[]      = {    1,     100,     100,    1,     9,    3,    2,    3,    1};
+static const char * aspect_ratio_choices[] = { "3:1","2.39:1","2.35:1","2:1","16:9","5:3","3:2","4:3","1:1"};
 
 //~ static CONFIG_INT("raw.res.x", resolution_index_x, 2);
 //~ static CONFIG_INT("raw.res.y", resolution_index_y, 4);
@@ -40,7 +42,7 @@ static int resolution_presets_y[] = {  320,  360,  480,  540,  720,  840,  960, 
 
 /* no config options yet */
 static int resolution_index_x = 9;
-static int resolution_index_y = 7;
+static int aspect_ratio_index = 4;
 static int measured_write_speed = 0;
 static int stop_on_buffer_overflow = 1;
 static int sound_rec = 2;
@@ -84,7 +86,57 @@ static int get_res_x()
 
 static int get_res_y()
 {
-    return MIN(resolution_presets_y[resolution_index_y], raw_info.jpeg.height);
+    int res_x = get_res_x();
+    int num = aspect_ratio_presets_num[aspect_ratio_index];
+    int den = aspect_ratio_presets_den[aspect_ratio_index];
+    return MIN((res_x * den / num + 1) & ~1, raw_info.jpeg.height);
+}
+
+static char* guess_aspect_ratio(int res_x, int res_y)
+{
+    static char msg[20];
+    int best_num = 0;
+    int best_den = 0;
+    float ratio = (float)res_x / res_y;
+    float minerr = 100;
+    /* common ratios that are expressed as integer numbers, e.g. 3:2, 16:9, but not 2.35:1 */
+    static int common_ratios_x[] = {1, 2, 3, 3, 4, 16, 5, 5};
+    static int common_ratios_y[] = {1, 1, 1, 2, 3, 9,  4, 3};
+    for (int i = 0; i < COUNT(common_ratios_x); i++)
+    {
+        int num = common_ratios_x[i];
+        int den = common_ratios_y[i];
+        float err = ABS((float)num / den - ratio);
+        if (err < minerr)
+        {
+            minerr = err;
+            best_num = num;
+            best_den = den;
+        }
+    }
+    
+    if (minerr < 0.05)
+    {
+        int h = (res_x * best_den / best_num + 1) & ~1;
+        char* qualifier = h != res_y ? "almost " : "";
+        snprintf(msg, sizeof(msg), "%s%d:%d", qualifier, best_num, best_den);
+    }
+    else if (ratio > 1)
+    {
+        int r = (int)roundf(ratio * 100);
+        int r2 = (int)roundf(ratio * 1000);
+        /* is it 2.35:1 or 2.353:1? */
+        char* qualifier = ABS(r2 - r * 10) >= 1 ? "almost " : "";
+        if (r%100) snprintf(msg, sizeof(msg), "%s%d.%02d:1", qualifier, r/100, r%100);
+    }
+    else
+    {
+        int r = (int)roundf((1/ratio) * 100);
+        int r2 = (int)roundf((1/ratio) * 1000);
+        char* qualifier = ABS(r2 - r * 10) >= 1 ? "almost " : "";
+        if (r%100) snprintf(msg, sizeof(msg), "%s1:%d.%02d", qualifier, r/100, r%100);
+    }
+    return msg;
 }
 
 static MENU_UPDATE_FUNC(write_speed_update)
@@ -98,37 +150,6 @@ static MENU_UPDATE_FUNC(write_speed_update)
         "Write speed needed: %d.%d MB/s at %d.%03d fps.",
         speed/10, speed%10, fps/1000, fps%1000
     );
-    char msg[70];
-    int best_num = 0;
-    int best_den = 0;
-    float ratio = (float)res_x / res_y;
-    float minerr = 100;
-    for (int num = 0; num < 20; num++)
-    {
-        for (int den = 0; den < 20; den++)
-        {
-            float err = ABS((float)num / den - ratio);
-            if (err < minerr)
-            {
-                minerr = err;
-                best_num = num;
-                best_den = den;
-            }
-        }
-    }
-    snprintf(msg, sizeof(msg), "Aspect ratio: %d:%d", best_num, best_den);
-    if (ratio > 1)
-    {
-        int r = ratio * 100;
-        if (r%100) STR_APPEND(msg, " (%d.%02d:1)", r/100, r%100);
-    }
-    else
-    {
-        int r = (1/ratio) * 100;
-        if (r%100) STR_APPEND(msg, " (1:%d.%02d)", r/100, r%100);
-    }
-    
-    MENU_SET_HELP(msg);
 }
 
 static void refresh_raw_settings()
@@ -164,7 +185,7 @@ static MENU_UPDATE_FUNC(raw_main_update)
 
 static MENU_UPDATE_FUNC(resolution_update)
 {
-    if (!raw_video_enabled)
+    if (!raw_video_enabled || !lv)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable RAW video first.");
         MENU_SET_VALUE("N/A");
@@ -173,23 +194,53 @@ static MENU_UPDATE_FUNC(resolution_update)
     
     refresh_raw_settings();
 
-    int is_x = (entry->priv == &resolution_index_x);
-    int selected = is_x ? resolution_presets_x[resolution_index_x] : resolution_presets_y[resolution_index_y];
-    int possible = is_x ? get_res_x() : get_res_y();
-    MENU_SET_VALUE("%d", possible);
+    int res_x = get_res_x();
+    int res_y = get_res_y();
+    int selected_x = resolution_presets_x[resolution_index_x];
+
+    MENU_SET_VALUE("%dx%d", res_x, res_y);
     
-    if(lv)
+    if (selected_x != res_x)
     {
-        if (selected != possible)
-            MENU_SET_RINFO("  can't %d", selected);
-        else
-            MENU_SET_RINFO("max %d", is_x ? raw_info.jpeg.width : raw_info.jpeg.height);
+        MENU_SET_HELP("%d is not possible in current video mode (max %d).", selected_x, res_x);
     }
     else
     {
-        MENU_SET_RINFO("");
+        char* ratio = guess_aspect_ratio(res_x, res_y);
+        MENU_SET_HELP("%dx%d (%s)", res_x, res_y, ratio);
+    }
+
+    write_speed_update(entry, info);
+}
+
+static MENU_UPDATE_FUNC(aspect_ratio_update)
+{
+    if (!raw_video_enabled || !lv)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable RAW video first.");
+        MENU_SET_VALUE("N/A");
+        return;
     }
     
+    refresh_raw_settings();
+
+    int res_x = get_res_x();
+    int res_y = get_res_y();
+    int num = aspect_ratio_presets_num[aspect_ratio_index];
+    int den = aspect_ratio_presets_den[aspect_ratio_index];
+    int selected_y = (res_x * den / num + 1) & ~1;
+    
+    if (selected_y != res_y)
+    {
+        char* ratio = guess_aspect_ratio(res_x, res_y);
+        MENU_SET_VALUE(ratio);
+        MENU_SET_HELP("Could not get %s. Max vertical resolution: %d.", aspect_ratio_choices[aspect_ratio_index], res_y);
+    }
+    else
+    {
+        char* ratio = guess_aspect_ratio(res_x, res_y);
+        MENU_SET_HELP("%dx%d (%s)", res_x, res_y, ratio);
+    }
     write_speed_update(entry, info);
 }
 
@@ -870,19 +921,29 @@ static struct menu_entry raw_video_menu[] =
         .help = "Record 14-bit RAW video. Press LiveView to start.",
         .children =  (struct menu_entry[]) {
             {
-                .name = "Width",
+                .name = "Resolution",
                 .priv = &resolution_index_x,
                 .max = COUNT(resolution_presets_x) - 1,
                 .update = resolution_update,
                 .choices = RESOLUTION_CHOICES_X,
             },
             {
-                .name = "Height",
-                .priv = &resolution_index_y,
-                .max = COUNT(resolution_presets_y) - 1,
-                .update = resolution_update,
-                .choices = RESOLUTION_CHOICES_Y,
+                .name = "Aspect ratio",
+                .priv = &aspect_ratio_index,
+                .max = COUNT(aspect_ratio_presets_num) - 1,
+                .update = aspect_ratio_update,
+                .choices = aspect_ratio_choices,
             },
+            /*
+            {
+                .name = "Source ratio",
+                .priv = &source_ratio,
+                .max = 2,
+                .choices = CHOICES("Square pixels", "16:9", "3:2"),
+                .help  = "Choose aspect ratio of the source image (LiveView buffer).",
+                .help2 = "Useful for video modes with squeezed image (e.g. 720p).",
+            },
+            */
             {
                 .name = "Sound",
                 .priv = &sound_rec,
