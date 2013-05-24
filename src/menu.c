@@ -3231,6 +3231,7 @@ menu_entry_select(
     if(mode == 1) // decrement
     {
         if (entry->select) entry->select( entry->priv, -1);
+        else if (IS_ML_PTR(entry->priv) && entry->unit == UNIT_HEX) menu_numeric_toggle(entry->priv, -1, entry->min, entry->max);
         else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max);
     }
     else if (mode == 2) // Q
@@ -3274,6 +3275,7 @@ menu_entry_select(
     else // increment
     {
         if( entry->select ) entry->select( entry->priv, 1);
+        else if (IS_ML_PTR(entry->priv) && entry->unit == UNIT_HEX) menu_numeric_toggle(entry->priv, 1, entry->min, entry->max);
         else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max);
     }
     
