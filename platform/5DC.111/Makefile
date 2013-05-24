@@ -18,14 +18,13 @@ CONFIG_RELOC = y
 CONFIG_STATIC_FONTS=y
 
 ML_ZEBRA_OBJ = zebra-5dc.o
+ML_ENTRY_OBJ = local_entry.o
 
 ML_EXCLUDE_OBJS = \
 	boot-hack.o \
 	bitrate.o \
 	fps-engio.o \
 	audio-ak.o \
-	entry.o \
-	$(SRC_DIR)/entry.o \
 	movtweaks.o \
 	exmem.o \
 	liveview.o \
@@ -34,7 +33,6 @@ ML_EXCLUDE_OBJS = \
 	hdr.o \
 
 ML_EXTRA_OBJS = \
-		local_entry.o \
 		init.o \
 		dummy.o \
 		dm-spy.o \
