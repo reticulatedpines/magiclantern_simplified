@@ -60,11 +60,8 @@ NSTUB(0xFF07A7D4, BulkInIPCTransfer)
 
 NSTUB(0xFF07E4A0, GetFirstChunkFromSuite)
 NSTUB(0xFF07EC38, GetNextMemoryChunk)
-NSTUB(0xFF07DEB8, GetSizeOfMemoryChunk)
 NSTUB(0xFF07DE88, GetRemainOfMemoryChunk)
 NSTUB(0xFF07DEE8, GetMemoryAddressOfMemoryChunk)
-NSTUB(0xFF07E258, GetNumberOfChunks)
-NSTUB(0xFF07E1B8, GetSizeOfMemorySuite)
 
 NSTUB(0xFF06494C, SoundDevStopIn)
 NSTUB(0xFF064A1C, SoundDevStopOut)

@@ -34,6 +34,14 @@
 #include "math.h"
 #include "raw.h"
 
+#include "imgconv.h"
+#include "falsecolor.h"
+#include "histogram.h"
+
+#if defined(FEATURE_RAW_HISTOGRAM) || defined(FEATURE_RAW_ZEBRAS) || defined(FEATURE_RAW_SPOTMETER)
+#define FEATURE_RAW_OVERLAYS
+#endif
+
 
 #define DIGIC_ZEBRA_REGISTER 0xC0F140cc
 #define FAST_ZEBRA_GRID_COLOR 4 // invisible diagonal grid for zebras; must be unused and only from 0-15
@@ -87,7 +95,7 @@ static void toggle_disp_mode_menu(void *priv, int delta);
 
 // in movie mode: skip the 16:9 bar when computing overlays
 // in photo mode: compute the overlays on full-screen image
-static int FAST get_y_skip_offset_for_overlays()
+int FAST get_y_skip_offset_for_overlays()
 {
     // in playback mode, and skip 16:9 bars for movies, but cover the entire area for photos
     if (!lv) return is_pure_play_movie_mode() ? os.off_169 : 0;
@@ -97,118 +105,20 @@ static int FAST get_y_skip_offset_for_overlays()
     if (lv && is_movie_mode() && video_mode_resolution <= 1) off = os.off_169;
     int t = get_ml_topbar_pos();
     int b = get_ml_bottombar_pos();
-    int mid = os.y0 + os.y_ex/2;
+    int mid = os.y0 + (os.y_ex >> 1);
     if (t < mid && t + 25 > os.y0 + off) off = t + 25 - os.x0;
     if (t > mid) b = MIN(b, t);
     if (b < os.y_max - off) off = os.y_max - b;
     return off;
 }
 
-
-// precompute some parts of YUV to RGB computations
-static int yuv2rgb_RV[256];
-static int yuv2rgb_GU[256];
-static int yuv2rgb_GV[256];
-static int yuv2rgb_BU[256];
-
-/** http://www.martinreddy.net/gfx/faqs/colorconv.faq
- * BT 601:
- * R'= Y' + 0.000*U' + 1.403*V'
- * G'= Y' - 0.344*U' - 0.714*V'
- * B'= Y' + 1.773*U' + 0.000*V'
- * 
- * BT 709:
- * R'= Y' + 0.0000*Cb + 1.5701*Cr
- * G'= Y' - 0.1870*Cb - 0.4664*Cr
- * B'= Y' - 1.8556*Cb + 0.0000*Cr
- */
-
-static void precompute_yuv2rgb()
-{
-#if defined(CONFIG_5D3) || defined(CONFIG_6D)// REC 709
-    /*
-    *R = *Y + 1608 * V / 1024;
-    *G = *Y -  191 * U / 1024 - 478 * V / 1024;
-    *B = *Y + 1900 * U / 1024;
-    */
-    for (int u = 0; u < 256; u++)
-    {
-        int8_t U = u;
-        yuv2rgb_GU[u] = -191 * U / 1024;
-        yuv2rgb_BU[u] = 1900 * U / 1024;
-    }
-
-    for (int v = 0; v < 256; v++)
-    {
-        int8_t V = v;
-        yuv2rgb_RV[v] = 1608 * V / 1024;
-        yuv2rgb_GV[v] = -478 * V / 1024;
-    }
-#else // REC 601
-    /*
-    *R = *Y + 1437 * V / 1024;
-    *G = *Y -  352 * U / 1024 - 731 * V / 1024;
-    *B = *Y + 1812 * U / 1024;
-    */
-    for (int u = 0; u < 256; u++)
-    {
-        int8_t U = u;
-        yuv2rgb_GU[u] = -352 * U / 1024;
-        yuv2rgb_BU[u] = 1812 * U / 1024;
-    }
-
-    for (int v = 0; v < 256; v++)
-    {
-        int8_t V = v;
-        yuv2rgb_RV[v] = 1437 * V / 1024;
-        yuv2rgb_GV[v] = -731 * V / 1024;
-    }
-#endif
-}
-
-/*inline void uyvy2yrgb(uint32_t uyvy, int* Y, int* R, int* G, int* B)
-{
-    uint32_t y1 = (uyvy >> 24) & 0xFF;
-    uint32_t y2 = (uyvy >>  8) & 0xFF;
-    *Y = (y1+y2) / 2;
-    uint8_t u = (uyvy >>  0) & 0xFF;
-    uint8_t v = (uyvy >> 16) & 0xFF;
-    *R = MIN(*Y + yuv2rgb_RV[v], 255);
-    *G = MIN(*Y + yuv2rgb_GU[u] + yuv2rgb_GV[v], 255);
-    *B = MIN(*Y + yuv2rgb_BU[u], 255);
-} */
-
-#define UYVY_GET_AVG_Y(uyvy) (((((uyvy) >> 24) & 0xFF) + (((uyvy) >> 8) & 0xFF)) >> 1)
-#define UYVY_GET_U(uyvy) (((uyvy)       ) & 0xFF)
-#define UYVY_GET_V(uyvy) (((uyvy) >>  16) & 0xFF)
-#define COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B) \
-{ \
-    Y = UYVY_GET_AVG_Y(uyvy); \
-    R = COERCE(Y + yuv2rgb_RV[UYVY_GET_V(uyvy)], 0, 255); \
-    G = COERCE(Y + yuv2rgb_GU[UYVY_GET_U(uyvy)] + yuv2rgb_GV[UYVY_GET_V(uyvy)], 0, 255); \
-    B = COERCE(Y + yuv2rgb_BU[UYVY_GET_U(uyvy)], 0, 255); \
-} \
-
-#define UYVY_PACK(u,y1,v,y2) ((u) & 0xFF) | (((y1) & 0xFF) << 8) | (((v) & 0xFF) << 16) | (((y2) & 0xFF) << 24);
-
-void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
-{
-    *R = COERCE(Y + yuv2rgb_RV[V & 0xFF], 0, 255); \
-    *G = COERCE(Y + yuv2rgb_GU[U & 0xFF] + yuv2rgb_GV[V & 0xFF], 0, 255); \
-    *B = COERCE(Y + yuv2rgb_BU[U & 0xFF], 0, 255); \
-}
-
-void uyvy_split(uint32_t uyvy, int* Y, int* U, int* V)
-{
-    *Y = UYVY_GET_AVG_Y(uyvy);
-    *U = (int)(int8_t)UYVY_GET_U(uyvy);
-    *V = (int)(int8_t)UYVY_GET_V(uyvy);
-}
-
 static int is_zoom_mode_so_no_zebras() 
 { 
     if (!lv) return 0;
     if (lv_dispsize == 1) return 0;
+    #ifdef FEATURE_RAW_OVERLAYS
+    if (raw_lv_is_enabled()) return 0; /* exception: in raw mode we can record crop videos */
+    #endif
     
     return 1;
 }
@@ -233,8 +143,6 @@ int bmp_is_on() { return !_bmp_muted; }
 void bmp_on();
 void bmp_off();
 
-#define hist_height         54
-#define HIST_WIDTH          128
 #define WAVEFORM_WIDTH 180
 #define WAVEFORM_HEIGHT 120
 #define WAVEFORM_FACTOR (1 << waveform_size) // 1, 2 or 4
@@ -272,8 +180,6 @@ static CONFIG_INT( "crop.enable",   crop_enabled,   0 ); // index of crop file
 static CONFIG_INT( "crop.index",    crop_index, 0 ); // index of crop file
 static CONFIG_INT( "crop.movieonly", cropmark_movieonly, 0);
 static CONFIG_INT("crop.playback", cropmarks_play, 0);
-static CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
-static CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
 
 #define MZ_ZOOM_WHILE_RECORDING 1
 #define MZ_ZOOMREC_N_FOCUS_RING 2
@@ -373,7 +279,7 @@ int digic_zoom_overlay_enabled()
         should_draw_zoom_overlay();
 }
 
-static int nondigic_zoom_overlay_enabled()
+int nondigic_zoom_overlay_enabled()
 {
     return zoom_overlay_size != 3 &&
         should_draw_zoom_overlay();
@@ -401,16 +307,6 @@ int focus_peaking_as_display_filter()
     return 0;
     #endif
 }
-
-static CONFIG_INT( "hist.draw", hist_draw,  1 );
-static CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
-static CONFIG_INT( "hist.warn", hist_warn,  1 );
-static CONFIG_INT( "hist.log",  hist_log,   1 );
-static CONFIG_INT( "hist.meter", hist_meter,  0);
-#define HIST_METER_DYNAMIC_RAMGE 1
-#define HIST_METER_ETTR_HINT 2
-#define HIST_METER_ETTR_HINT_CLIP_GREEN 3
-
 
 static CONFIG_INT( "waveform.draw", waveform_draw,
 #ifdef CONFIG_4_3_SCREEN
@@ -475,15 +371,6 @@ uint8_t* get_bvram_mirror() { return bvram_mirror; }
 
 static int cropmark_cache_dirty = 1;
 static int crop_dirty = 0;       // redraw cropmarks after some time (unit: 0.1s)
-
-static uint8_t false_colour[][256] = {
-    {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
-    {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x26, 0x26, 0x27, 0x27, 0x27, 0x27, 0x27, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x29, 0x29, 0x29, 0x29, 0x29, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2F, 0x2F, 0x2F, 0x2F, 0x2F, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31, 0x31, 0x31, 0x31, 0x31, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x33, 0x33, 0x33, 0x33, 0x33, 0x34, 0x34, 0x34, 0x34, 0x34, 0x34, 0x35, 0x35, 0x35, 0x35, 0x35, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x37, 0x37, 0x37, 0x37, 0x37, 0x38, 0x38, 0x38, 0x38, 0x38, 0x38, 0x39, 0x39, 0x39, 0x39, 0x39, 0x3A, 0x3A, 0x3A, 0x3A, 0x3A, 0x3A, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3D, 0x3D, 0x3D, 0x3D, 0x3D, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x41, 0x41, 0x41, 0x41, 0x41, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x43, 0x43, 0x43, 0x43, 0x43, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x45, 0x45, 0x45, 0x45, 0x45, 0x46, 0x46, 0x46, 0x46, 0x46, 0x46, 0x47, 0x47, 0x47, 0x47, 0x47, 0x48, 0x48, 0x48, 0x48, 0x48, 0x48, 0x49, 0x49, 0x49, 0x49, 0x49, 0x4A, 0x4A, 0x4A, 0x4A, 0x4A, 0x4A, 0x4B, 0x4B, 0x4B, 0x4B, 0x4B, 0x4C, 0x4C, 0x4C, 0x4C, 0x4C, 0x4C, 0x4D, 0x4D, 0x4D, 0x4D, 0x4D, 0x4E, 0x4E, 0x4E, 0x4E, 0x4E, 0x4E, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
-    {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
-    {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
-    {0x0E, 0x26, 0x30, 0x26, 0x30, 0x26, 0x30, 0x26, 0x30, 0x27, 0x31, 0x27, 0x31, 0x27, 0x31, 0x27, 0x31, 0x28, 0x32, 0x28, 0x32, 0x28, 0x32, 0x28, 0x32, 0x29, 0x33, 0x29, 0x33, 0x29, 0x33, 0x29, 0x33, 0x2a, 0x34, 0x2a, 0x34, 0x2a, 0x34, 0x2a, 0x34, 0x2a, 0x35, 0x2b, 0x35, 0x2b, 0x35, 0x2b, 0x35, 0x2b, 0x36, 0x2c, 0x36, 0x2c, 0x36, 0x2c, 0x36, 0x2c, 0x37, 0x2d, 0x37, 0x2d, 0x37, 0x2d, 0x37, 0x2d, 0x38, 0x2e, 0x38, 0x2e, 0x38, 0x2e, 0x38, 0x2e, 0x38, 0x2f, 0x39, 0x2f, 0x39, 0x2f, 0x39, 0x2f, 0x39, 0x30, 0x3a, 0x30, 0x3a, 0x30, 0x3a, 0x30, 0x3a, 0x31, 0x3b, 0x31, 0x3b, 0x31, 0x3b, 0x31, 0x3b, 0x32, 0x3c, 0x32, 0x3c, 0x32, 0x3c, 0x32, 0x3c, 0x33, 0x3d, 0x33, 0x3d, 0x33, 0x3d, 0x33, 0x3d, 0x33, 0x3e, 0x34, 0x3e, 0x34, 0x3e, 0x34, 0x3e, 0x34, 0x3f, 0x35, 0x3f, 0x35, 0x3f, 0x35, 0x3f, 0x35, 0x40, 0x36, 0x40, 0x36, 0x40, 0x36, 0x40, 0x36, 0x41, 0x37, 0x41, 0x37, 0x41, 0x37, 0x41, 0x37, 0x41, 0x38, 0x42, 0x38, 0x42, 0x38, 0x42, 0x38, 0x42, 0x39, 0x43, 0x39, 0x43, 0x39, 0x43, 0x39, 0x43, 0x3a, 0x44, 0x3a, 0x44, 0x3a, 0x44, 0x3a, 0x44, 0x3b, 0x45, 0x3b, 0x45, 0x3b, 0x45, 0x3b, 0x45, 0x3c, 0x46, 0x3c, 0x46, 0x3c, 0x46, 0x3c, 0x46, 0x3c, 0x47, 0x3d, 0x47, 0x3d, 0x47, 0x3d, 0x47, 0x3d, 0x48, 0x3e, 0x48, 0x3e, 0x48, 0x3e, 0x48, 0x3e, 0x49, 0x3f, 0x49, 0x3f, 0x49, 0x3f, 0x49, 0x3f, 0x4a, 0x40, 0x4a, 0x40, 0x4a, 0x40, 0x4a, 0x40, 0x4a, 0x41, 0x4b, 0x41, 0x4b, 0x41, 0x4b, 0x41, 0x4b, 0x42, 0x4c, 0x42, 0x4c, 0x42, 0x4c, 0x42, 0x4c, 0x43, 0x4d, 0x43, 0x4d, 0x43, 0x4d, 0x43, 0x4d, 0x44, 0x4e, 0x44, 0x4e, 0x44, 0x4e, 0x44, 0x4e, 0x08},
-    {0x26, 0x26, 0x26, 0x27, 0x27, 0x28, 0x28, 0x28, 0x29, 0x29, 0x2A, 0x2A, 0x2B, 0x2B, 0x2B, 0x2C, 0x2C, 0x2D, 0x2D, 0x2D, 0x2E, 0x2E, 0x2F, 0x2F, 0x30, 0x30, 0x30, 0x31, 0x31, 0x32, 0x32, 0x33, 0x33, 0x33, 0x34, 0x34, 0x35, 0x35, 0x35, 0x36, 0x36, 0x37, 0x37, 0x38, 0x38, 0x38, 0x39, 0x39, 0x3A, 0x3A, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x3A, 0x3A, 0x3B, 0x3B, 0x3C, 0x3C, 0x3D, 0x3D, 0x3D, 0x3E, 0x3E, 0x3F, 0x3F, 0x3F, 0x40, 0x40, 0x41, 0x41, 0x42, 0x42, 0x42, 0x43, 0x43, 0x44, 0x44, 0x44, 0x45, 0x45, 0x46, 0x46, 0x47, 0x47, 0x47, 0x48, 0x48, 0x49, 0x49, 0x49, 0x4A, 0x4A, 0x4B, 0x4B, 0x4C, 0x4C, 0x4C, 0x4D, 0x4D, 0x4E, 0x4E, 0x4F},
-};
 
 void crop_set_dirty(int value)
 {
@@ -568,21 +455,6 @@ static uint8_t* waveform = 0;
 #define WAVEFORM_UNSAFE(x,y) (waveform[(x) + (y) * WAVEFORM_WIDTH])
 #define WAVEFORM(x,y) (waveform[COERCE((x), 0, WAVEFORM_WIDTH-1) + COERCE((y), 0, WAVEFORM_HEIGHT-1) * WAVEFORM_WIDTH])
 
-/** Store the histogram data for each of the "HIST_WIDTH" bins */
-static uint32_t hist[HIST_WIDTH];
-static uint32_t hist_r[HIST_WIDTH];
-static uint32_t hist_g[HIST_WIDTH];
-static uint32_t hist_b[HIST_WIDTH];
-
-/** Maximum value in the histogram so that at least one entry fills
- * the box */
-static uint32_t hist_max;
-
-/** total number of pixels analyzed by histogram */
-static uint32_t hist_total_px;
-
-static int hist_is_raw = 0;
-
 #ifdef FEATURE_VECTORSCOPE
 
 static uint8_t *vectorscope = NULL;
@@ -606,8 +478,8 @@ vectorscope_putpixels(uint8_t *bmp_buf, int x_pos, int y_pos, uint8_t color, uin
 static void 
 vectorscope_putblock(uint8_t *bmp_buf, int xc, int yc, uint8_t color, int32_t frac_x, int32_t frac_y)
 {
-    int x_pos = xc + ((int32_t)vectorscope_width * frac_x) / 4096;
-    int y_pos = yc + (-(int32_t)vectorscope_height * frac_y) / 4096;
+    int x_pos = xc + (((int32_t)vectorscope_width * frac_x) >> 12);
+    int y_pos = yc + ((-(int32_t)vectorscope_height * frac_y) >> 12);
 
     vectorscope_putpixels(bmp_buf, x_pos + 0, y_pos - 4, color, 1);
     vectorscope_putpixels(bmp_buf, x_pos + 0, y_pos + 4, color, 1);
@@ -625,8 +497,8 @@ vectorscope_putblock(uint8_t *bmp_buf, int xc, int yc, uint8_t color, int32_t fr
 static void vectorscope_paint(uint8_t *bmp_buf, uint32_t x_origin, uint32_t y_origin)
 {    
     //int r = vectorscope_height/2 - 1;
-    int xc = x_origin + vectorscope_width/2;
-    int yc = y_origin + vectorscope_height/2;
+    int xc = x_origin + (vectorscope_width >> 1);
+    int yc = y_origin + (vectorscope_height >> 1);
 
     /* red block at U=-14.7% V=61.5% => U=-304/2048th V=1259/2048th */
     vectorscope_putblock(bmp_buf, xc, yc, 8, -302, 1259);
@@ -689,13 +561,14 @@ vectorscope_addpixel(uint8_t y, int8_t u, int8_t v)
     int U = u << vectorscope_gain;
     
     int r = U*U + V*V;
+    const int r_sqrt = (int)sqrtf(r);
     if (r > 124*124)
     {
         /* almost out of circle, mark it with red */
         for (int R = 124; R < 128; R++)
         {
-            int c = U * R / (int)sqrtf(r);
-            int s = V * R / (int)sqrtf(r);
+            int c = U * R / r_sqrt;
+            int s = V * R / r_sqrt;
             int pos = vectorscope_coord_uv_to_pos(c, s);
             vectorscope[pos] = 255 - COLOR_RED;
         }
@@ -736,6 +609,11 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
 
     vectorscope_paint(vectorscope, 0, 0);
 
+    const uint32_t vsh2 = vectorscope_height >> 1;
+    const int r = vsh2 - 1;
+    const int r_plus1_square = (r+1)*(r+1);
+    const int r_minus1_square = (r-1)*(r-1);
+
     for(uint32_t y = 0; y < vectorscope_height; y++)
     {
         #ifdef CONFIG_4_3_SCREEN
@@ -744,28 +622,32 @@ vectorscope_draw_image(uint32_t x_origin, uint32_t y_origin)
         uint8_t *bmp_buf = &(bvram[BM(x_origin, y_origin+y)]);
         #endif
 
+        const int yc = y - vsh2;
+        const int yc_square = yc * yc;
+        const int yc_663div1024 = (yc * 663) >> 10;
+
         for(uint32_t x = 0; x < vectorscope_width; x++)
         {
             uint8_t brightness = vectorscope[x + y*vectorscope_width];
 
-            int xc = x - vectorscope_height/2;
-            int yc = y - vectorscope_height/2;
-            int r = vectorscope_height/2 - 1;
-            int inside_circle = xc*xc + yc*yc < (r-1)*(r-1);
-            int on_circle = !inside_circle && xc*xc + yc*yc <= (r+1)*(r+1);
+            int xc = x - vsh2;
+            int xc_square = xc * xc;
+            int xc_plus_yc_square = xc_square + yc_square;
+            int inside_circle = xc_plus_yc_square < r_minus1_square;
+            int on_circle = !inside_circle && xc_plus_yc_square <= r_plus1_square;
             // kdenlive vectorscope:
             // center: 175,180
             // I: 83,38   => dx=-92, dy=142
             // Q: 320,87  => dx=145, dy=93
             // let's say 660/1024 is a good approximation of the slope
-            
+
             // wikipedia image:
             // center: 318, 294
             // I: 171, 68  => 147,226
             // Q: 545, 147 => 227,147
             // => 663/1024 is a better approximation
-            
-            int on_axis = (x==vectorscope_width/2) || (y==vectorscope_height/2) || (inside_circle && (xc==yc*663/1024 || -xc*663/1024==yc));
+
+            int on_axis = (x==vectorscope_width/2) || (y==vsh2) || (inside_circle && (xc==yc_663div1024 || -xc*663/1024==yc));
 
             if (on_circle || (on_axis && brightness==0))
             {
@@ -834,16 +716,7 @@ hist_build()
     int x,y;
 
     #ifdef FEATURE_HISTOGRAM
-    hist_max = 0;
-    hist_total_px = 0;
-    hist_is_raw = 0;
-    for( x=0 ; x<HIST_WIDTH ; x++ )
-    {
-        hist[x] = 0;
-        hist_r[x] = 0;
-        hist_g[x] = 0;
-        hist_b[x] = 0;
-    }
+    memset(&histogram, 0, sizeof(histogram));
     #endif
 
     #ifdef FEATURE_WAVEFORM
@@ -863,16 +736,17 @@ hist_build()
     
     int mz = nondigic_zoom_overlay_enabled();
     int off = get_y_skip_offset_for_overlays();
-    for( y = os.y0 + off; y < os.y_max - off; y += 2 )
+    int yoffset = 0;
+    for( y = os.y0 + off, yoffset = y * vram_lv.pitch; y < os.y_max - off; y += 2, yoffset += vram_lv.pitch )
     {
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
-            uint32_t pixel = buf[BM2LV(x,y)/4];
-            
+            uint32_t pixel = buf[(yoffset + (BM2LV_X(x) << 1)) >> 2];
+
             // ignore magic zoom borders
             if (mz && (pixel == MZ_WHITE || pixel == MZ_BLACK || pixel == MZ_GREEN))
                 continue;
-            
+
             int Y;
 
             #ifdef FEATURE_HISTOGRAM
@@ -882,13 +756,13 @@ hist_build()
                 //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
                 COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
                 // YRGB range: 0-255
-                uint32_t R_level = R * HIST_WIDTH / 256;
-                uint32_t G_level = G * HIST_WIDTH / 256;
-                uint32_t B_level = B * HIST_WIDTH / 256;
+                uint32_t R_level = (R * HIST_WIDTH) >> 8;
+                uint32_t G_level = (G * HIST_WIDTH) >> 8;
+                uint32_t B_level = (B * HIST_WIDTH) >> 8;
                 
-                hist_r[R_level & (HIST_WIDTH-1)]++;
-                hist_g[G_level & (HIST_WIDTH-1)]++;
-                hist_b[B_level & (HIST_WIDTH-1)]++;
+                histogram.hist_r[R_level & (HIST_WIDTH-1)]++;
+                histogram.hist_g[G_level & (HIST_WIDTH-1)]++;
+                histogram.hist_b[B_level & (HIST_WIDTH-1)]++;
             }
             else // luma
             #endif
@@ -897,25 +771,25 @@ hist_build()
             {
                 uint32_t p1 = ((pixel >> 16) & 0xFF00) >> 8;
                 uint32_t p2 = ((pixel >>  0) & 0xFF00) >> 8;
-                Y = (p1+p2) / 2; 
+                Y = (p1+p2) >> 1; 
             }
             #endif
 
             #ifdef FEATURE_HISTOGRAM
-            hist_total_px++;
-            uint32_t hist_level = Y * HIST_WIDTH / 256;
+            histogram.total_px++;
+            uint32_t hist_level = (Y * HIST_WIDTH) >> 8;
 
             // Ignore the 0 bin.  It generates too much noise
-            unsigned count = ++ (hist[ hist_level & (HIST_WIDTH-1)]);
-            if( hist_level && count > hist_max )
-                hist_max = count;
+            unsigned count = ++ (histogram.hist[ hist_level & (HIST_WIDTH-1)]);
+            if( hist_level && count > histogram.max )
+                histogram.max = count;
             #endif
             
             #ifdef FEATURE_WAVEFORM
             // Update the waveform plot
             if (waveform_draw) 
             {
-                uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) / 256);
+                uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) >> 8);
                 if ((*w) < 250) (*w)++;
             }
             #endif
@@ -933,78 +807,40 @@ hist_build()
 }
 #endif
 
-#if defined(FEATURE_RAW_HISTOGRAM) || defined(FEATURE_RAW_ZEBRAS)
-int can_use_raw_overlays()
+#ifdef FEATURE_RAW_OVERLAYS
+
+int can_use_raw_overlays_photo()
 {
     // MRAW/SRAW are causing trouble, figure out why
     // RAW and RAW+JPEG are OK
-    if (QR_MODE && (pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
-        return 1;
-    return 0;
-}
-int can_use_raw_overlays_menu()
-{
     if ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF))
         return 1;
+
     return 0;
 }
-#endif
 
-#ifdef FEATURE_RAW_HISTOGRAM
-
-static CONFIG_INT("raw.histo", raw_histogram_enable, 1);
-
-static FAST void hist_build_raw()
+int can_use_raw_overlays()
 {
-    if (!raw_update_params()) return;
-
-    hist_is_raw = 1;
-
-    hist_max = 0;
-    hist_total_px = 0;
-    for( int i = 0 ; i < HIST_WIDTH ; i++ )
-    {
-        hist[i] = 0;
-        hist_r[i] = 0;
-        hist_g[i] = 0;
-        hist_b[i] = 0;
-    }
-
-    for (int i = os.y0; i < os.y_max; i += 8)
-    {
-        for (int j = os.x0; j < os.x_max; j += 8)
-        {
-            int x = BM2RAW_X(j);
-            int y = BM2RAW_Y(i);
-            int r = raw_red_pixel(x, y);
-            int g = raw_green_pixel(x, y);
-            int b = raw_blue_pixel(x, y);
-            
-            /* only show a 12-bit hisogram, since the rest is just noise */
-            int ir = COERCE((raw_to_ev(r) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
-            int ig = COERCE((raw_to_ev(g) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
-            int ib = COERCE((raw_to_ev(b) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
-            hist_r[ir]++;
-            hist_g[ig]++;
-            hist_b[ib]++;
-            hist_total_px++;
-        }
-    }
-    for (int i = 0; i < HIST_WIDTH; i++)
-    {
-        hist_max = MAX(hist_max, hist_r[i]);
-        hist_max = MAX(hist_max, hist_g[i]);
-        hist_max = MAX(hist_max, hist_b[i]);
-        hist[i] = (hist_r[i] + hist_g[i] + hist_b[i]) / 3;
-    }
+    if (QR_MODE && can_use_raw_overlays_photo())
+        return 1;
+    
+    if (lv && raw_lv_is_enabled())
+        return 1;
+    
+    return 0;
 }
-static MENU_UPDATE_FUNC(raw_histo_update)
+
+int can_use_raw_overlays_menu()
 {
-    if (!can_use_raw_overlays_menu())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set picture quality to RAW in Canon menu.");
-    else if (raw_histogram_enable)
-        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram after taking a picture.");
+    if (can_use_raw_overlays_photo())
+        return 1;
+
+    if (lv && raw_lv_is_enabled())
+        return 1;
+
+    return 0;
 }
+
 #endif
 
 #ifdef FEATURE_RAW_ZEBRAS
@@ -1078,27 +914,6 @@ static MENU_UPDATE_FUNC(raw_zebra_update)
 }
 #endif
 
-int hist_get_percentile_level(int percentile)
-{
-#ifdef FEATURE_HISTOGRAM
-    int total = 0;
-    int i;
-    for( i=0 ; i < HIST_WIDTH ; i++ )
-        total += hist[i];
-    
-    int thr = total * percentile / 100;  // 50% => median
-    int n = 0;
-    for( i=0 ; i < HIST_WIDTH ; i++ )
-    {
-        n += hist[i];
-        if (n >= thr)
-            return i * 255 / HIST_WIDTH;
-    }
-#endif
-    return -1; // invalid argument?
-}
-
-
 int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
 {
     *under = -1;
@@ -1116,13 +931,14 @@ int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
         uint32_t * const v_row = (uint32_t*)( vram + BM2LV_R(y) );
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
-            uint32_t pixel = v_row[x/2];
+            uint32_t pixel = v_row[x >> 1];
             
             int Y, R, G, B;
             //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
             COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
             
-            int M = MAX(MAX(R,G),B);
+            int M = MAX(R,G);
+            M = MAX(M, B);
             if (pixel && Y < thr_lo) (*under)++; // try to ignore black bars
             if (M > thr_hi) (*over)++;
             total++;
@@ -1130,26 +946,6 @@ int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
     }
     return total;
 }
-
-#ifdef FEATURE_HISTOGRAM
-static int hist_rgb_color(int y, int sizeR, int sizeG, int sizeB)
-{
-    switch ((y > sizeR ? 0 : 1) |
-            (y > sizeG ? 0 : 2) |
-            (y > sizeB ? 0 : 4))
-    {
-        case 0b000: return COLOR_ALMOST_BLACK;
-        case 0b001: return COLOR_RED;
-        case 0b010: return COLOR_GREEN2;
-        case 0b100: return COLOR_LIGHT_BLUE;
-        case 0b011: return COLOR_YELLOW;
-        case 0b110: return COLOR_CYAN;
-        case 0b101: return COLOR_MAGENTA;
-        case 0b111: return COLOR_WHITE;
-    }
-    return 0;
-}
-#endif
 
 #ifdef FEATURE_ZEBRA
 #define ZEBRA_COLOR_WORD_SOLID(x) ( (x) | (x)<<8 | (x)<<16 | (x)<<24 )
@@ -1192,209 +988,6 @@ static int zebra_rgb_solid_color(int underexposed, int clipR, int clipG, int cli
 }
 #endif
 
-#ifdef FEATURE_HISTOGRAM
-static void hist_dot(int x, int y, int fg_color, int bg_color, int radius, int label)
-{
-    x &= ~3;
-    y &= ~3;
-    for (int r = 0; r < radius; r++)
-    {
-        draw_circle(x, y, r, fg_color);
-        draw_circle(x + 1, y, r, fg_color);
-    }
-    draw_circle(x, y, radius, bg_color);
-    
-    if (label)
-    {
-        if (label < 10)
-            bmp_printf(
-                SHADOW_FONT(FONT(FONT_MED, COLOR_WHITE, fg_color)), 
-                x - 4, 
-                y - font_med.height/2,
-                "%d", label
-            );
-        else
-            bmp_printf(
-                SHADOW_FONT(FONT(FONT_SMALL, COLOR_WHITE, fg_color)), 
-                x - 8, 
-                y - font_small.height/2,
-                "%d", label
-            );
-    }
-}
-
-static int hist_dot_radius(int over, int hist_total_px)
-{
-    // overexposures stronger than 1% are displayed at max radius (10)
-    int p = 100 * over / hist_total_px;
-    if (p > 1) return 10;
-    
-    // for smaller overexposure percentages, use dot radius to suggest the amount
-    unsigned p1000 = 100 * 1000 * over / hist_total_px;
-    int plog = p1000 ? (int)log2f(p1000) : 0;
-    return MIN(plog, 10);
-}
-
-static int hist_dot_label(int over, int hist_total_px)
-{
-    return 100 * over / hist_total_px;
-}
-
-/** Draw the histogram image into the bitmap framebuffer.
- *
- * Draw one pixel at a time; it seems to be ok with err70.
- * Since there is plenty of math per pixel this doesn't
- * swamp the bitmap framebuffer hardware.
- */
-static void
-hist_draw_image(
-    unsigned        x_origin,
-    unsigned        y_origin,
-    int highlight_level
-)
-{
-    if (!PLAY_OR_QR_MODE)
-    {
-        if (!lv_luma_is_accurate()) return;
-    }
-    uint8_t * const bvram = bmp_vram();
-    if (!bvram) return;
-
-    // Align the x origin, just in case
-    x_origin &= ~3;
-
-    uint8_t * row = bvram + x_origin + y_origin * BMPPITCH;
-    if( hist_max == 0 )
-        hist_max = 1;
-
-    unsigned i, y;
-    
-    if (highlight_level >= 0) 
-        highlight_level = highlight_level * HIST_WIDTH / 256;
-
-    int log_max = log_length(hist_max);
-
-    #ifdef FEATURE_RAW_HISTOGRAM
-    unsigned underexposed_level = COERCE((1200 - raw_info.dynamic_range) * HIST_WIDTH / 1200, 0, HIST_WIDTH-1);
-    unsigned stops_until_overexposure = 0;
-    #endif
-
-    for( i=0 ; i < HIST_WIDTH ; i++ )
-    {
-        // Scale by the maximum bin value
-        const uint32_t size  = hist_log ? log_length(hist[i])   * hist_height / log_max : (hist[i]   * hist_height) / hist_max;
-        const uint32_t sizeR = hist_log ? log_length(hist_r[i]) * hist_height / log_max : (hist_r[i] * hist_height) / hist_max;
-        const uint32_t sizeG = hist_log ? log_length(hist_g[i]) * hist_height / log_max : (hist_g[i] * hist_height) / hist_max;
-        const uint32_t sizeB = hist_log ? log_length(hist_b[i]) * hist_height / log_max : (hist_b[i] * hist_height) / hist_max;
-
-        uint8_t * col = row + i;
-        // vertical line up to the hist size
-        for( y=hist_height ; y>0 ; y-- , col += BMPPITCH )
-        {
-            if (highlight_level >= 0)
-            {
-                int hilight = ABS(i-highlight_level) <= 1;
-                *col = y > size + hilight ? COLOR_BG : (hilight ? COLOR_RED : COLOR_WHITE);
-            }
-            else if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
-                *col = hist_rgb_color(y, sizeR, sizeG, sizeB);
-            else
-                *col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][(i * 256 / HIST_WIDTH) & 0xFF]: COLOR_WHITE);
-        }
-        
-        if (hist_warn && i == HIST_WIDTH - 1)
-        {
-            unsigned int thr = hist_total_px / 100000; // start at 0.0001 with a tiny dot
-            thr = MAX(thr, 1);
-            int yw = y_origin + 12 + (hist_log ? hist_height - 24 : 0);
-            int bg = (hist_log ? COLOR_WHITE : COLOR_BLACK);
-            if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
-            {
-                unsigned int over_r = hist_r[i] + hist_r[i-1];
-                unsigned int over_g = hist_g[i] + hist_g[i-1];
-                unsigned int over_b = hist_b[i] + hist_b[i-1];
-                
-                if (over_r > thr) hist_dot(x_origin + HIST_WIDTH/2 - 25, yw, COLOR_RED,        bg, hist_dot_radius(over_r, hist_total_px), hist_dot_label(over_r, hist_total_px));
-                if (over_g > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,     bg, hist_dot_radius(over_g, hist_total_px), hist_dot_label(over_g, hist_total_px));
-                if (over_b > thr) hist_dot(x_origin + HIST_WIDTH/2 + 25, yw, COLOR_LIGHT_BLUE, bg, hist_dot_radius(over_b, hist_total_px), hist_dot_label(over_b, hist_total_px));
-            }
-            else
-            {
-                unsigned int over = hist[i] + hist[i-1];
-                if (over > thr) hist_dot(x_origin + HIST_WIDTH/2, yw, COLOR_RED, bg, hist_dot_radius(over, hist_total_px), hist_dot_label(over, hist_total_px));
-            }
-        }
-        
-        #ifdef FEATURE_RAW_HISTOGRAM
-        /* divide the histogram in 12 equal slices - each slice is 1 EV */
-        if (hist_is_raw)
-        {
-            static unsigned bar_pos;
-            if (i == 0) bar_pos = 0;
-            int h = hist_height - MAX(MAX(sizeR, sizeG), sizeB) - 1;
-
-            if (i <= underexposed_level + HIST_WIDTH/12)
-            {
-                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + h, i <= underexposed_level ? 4 : COLOR_GRAY(20));
-            }
-
-            if (i == bar_pos)
-            {
-                int dy = (i < font_med.width * 4) ? font_med.height : 0;
-                draw_line(x_origin + i, y_origin + dy, x_origin + i, y_origin + h, COLOR_GRAY(50));
-                bar_pos = (((bar_pos+1)*12/HIST_WIDTH) + 1) * HIST_WIDTH/12;
-            }
-
-            unsigned int thr = hist_total_px / 10000;
-            if (hist_r[i] > thr || (hist_g[i] > thr && hist_meter != HIST_METER_ETTR_HINT_CLIP_GREEN) || hist_b[i] > thr)
-                stops_until_overexposure = 120 - (i * 120 / (HIST_WIDTH-1));
-        }
-        #endif
-
-    }
-    bmp_draw_rect(60, x_origin-1, y_origin-1, HIST_WIDTH+1, hist_height+1);
-    
-    #ifdef FEATURE_RAW_HISTOGRAM
-    if (hist_is_raw)
-    {
-        char msg[10];
-        switch (hist_meter)
-        {
-            case HIST_METER_DYNAMIC_RAMGE:
-            {
-                int dr = (raw_info.dynamic_range + 5) / 10;
-                snprintf(msg, sizeof(msg), "D%d.%d", dr/10, dr%10);
-                break;
-            }
-
-            case HIST_METER_ETTR_HINT:
-            case HIST_METER_ETTR_HINT_CLIP_GREEN:
-            {
-                if (stops_until_overexposure)
-                    snprintf(msg, sizeof(msg), "E%d.%d", stops_until_overexposure/10, stops_until_overexposure%10);
-                else
-                    snprintf(msg, sizeof(msg), "OVER");
-                    break;
-            }
-            
-            default:
-                snprintf(msg, sizeof(msg), "RAW");
-                break;
-        }
-        bmp_printf(SHADOW_FONT(FONT_MED), x_origin+4, y_origin, msg);
-    }
-    #endif
-}
-#endif
-
-void hist_highlight(int level)
-{
-#ifdef FEATURE_HISTOGRAM
-    get_yuv422_vram();
-    hist_draw_image( os.x_max - HIST_WIDTH, os.y0 + 100, level );
-#endif
-}
-
 #ifdef FEATURE_WAVEFORM
 /** Draw the waveform image into the bitmap framebuffer.
  *
@@ -1421,8 +1014,8 @@ waveform_draw_image(
     uint8_t * const bvram = bmp_vram();
     if (!bvram) return;
     unsigned pitch = BMPPITCH;
-    if( hist_max == 0 )
-        hist_max = 1;
+    if( histogram.max == 0 )
+        histogram.max = 1;
 
     int i, y;
 
@@ -1448,7 +1041,7 @@ waveform_draw_image(
                     //~ count /= 2;
                 }
                 // Scale to a grayscale
-                count = (count * 42) / 128;
+                count = (count * 42) >> 7;
                 if( count > 42 - 5 )
                     count = COLOR_RED;
                 else
@@ -1456,13 +1049,13 @@ waveform_draw_image(
                     count += 38 + 5;
                 else
                 // Draw a series of colored scales
-                if( y == (WAVEFORM_HEIGHT*1)/4 )
+                if( y == (WAVEFORM_HEIGHT*1)>>2 )
                     count = COLOR_BLUE;
                 else
-                if( y == (WAVEFORM_HEIGHT*2)/4 )
+                if( y == (WAVEFORM_HEIGHT*2)>>2 )
                     count = 0xE; // pink
                 else
-                if( y == (WAVEFORM_HEIGHT*3)/4 )
+                if( y == (WAVEFORM_HEIGHT*3)>>2 )
                     count = COLOR_BLUE;
                 else
                     count = waveform_bg; // transparent
@@ -1474,7 +1067,7 @@ waveform_draw_image(
 
                 // Draw the pixel, rounding down to the nearest
                 // quad word write (and then nop to avoid err70).
-                *(uint32_t*)( row + (i & ~3) ) = pixel;
+                *(uint32_t*) ALIGN32(row + i) = pixel;
                 #ifdef CONFIG_500D // err70?!
                 asm( "nop" );
                 asm( "nop" );
@@ -1611,18 +1204,6 @@ static int get_focus_color(int thr, int d)
 }
 #endif
 
-static void little_cleanup(void* BP, void* MP)
-{
-    uint8_t* bp = BP; uint8_t* mp = MP;
-    if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
-    bp++; mp++;
-    if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
-    bp++; mp++;
-    if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
-    bp++; mp++;
-    if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
-}
-
 #ifdef FEATURE_ZEBRA
 static inline int zebra_color_word_row(int c, int y)
 {
@@ -1707,7 +1288,7 @@ static void draw_zebras( int Z )
     if (zd)
     {
         #ifdef FEATURE_RAW_ZEBRAS
-        if (raw_zebra_enable && can_use_raw_overlays())
+        if (raw_zebra_enable && can_use_raw_overlays() && !lv)
         {
             draw_zebras_raw();
             return;
@@ -1770,8 +1351,8 @@ static void draw_zebras( int Z )
 
                 for (int x = os.x0; x < os.x_max; x += 4)
                 {
-                    bp = b_row + x/4;
-                    mp = m_row + x/4;
+                    bp = b_row + (x >> 2);
+                    mp = m_row + (x >> 2);
                     #define BP (*bp)
                     #define MP (*mp)
                     if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
@@ -1836,15 +1417,15 @@ static void draw_zebras( int Z )
 
             for (int x = os.x0; x < os.x_max; x += 4)
             {
-                lvp = v_row + BM2LV_X(x)/2;
-                bp = b_row + x/4;
-                mp = m_row + x/4;
+                lvp = v_row + (BM2LV_X(x) >> 1);
+                bp = b_row + (x >> 2);
+                mp = m_row + (x >> 2);
                 #define BP (*bp)
                 #define MP (*mp)
                 #define BN (*(bp + BMPPITCH/4))
                 #define MN (*(mp + BMPPITCH/4))
                 if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
-                if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/4, mp + BMPPITCH/4); continue; }
+                if (BN != 0 && BN != MN) { little_cleanup(bp + (BMPPITCH >> 2), mp + (BMPPITCH >> 2)); continue; }
                 if ((MP & 0x80808080) || (MN & 0x80808080)) continue;
                 
                 if (zebra_colorspace == 1 && !EXT_MONITOR_RCA) // rgb
@@ -1972,57 +1553,46 @@ static inline int peak_d2xy_sharpen(uint8_t* p8)
     diff -= (int)(*(p8 - 2));
     diff -= (int)(*(p8 + vram_lv.pitch));
     diff -= (int)(*(p8 - vram_lv.pitch));
-    return COERCE(orig + diff*4, 0, 255);
+    int v = orig + (diff << 2);
+    return COERCE(v, 0, 255);
+}
+
+static inline int FAST calc_peak(const uint8_t* p8, const int pitch)
+{
+    // approximate second derivative with a Laplacian kernel:
+    //     -1
+    //  -1  4 -1
+    //     -1
+    const int p8_xmin1 = (int)(*(p8 - 2));
+    const int p8_xplus1 = (int)(*(p8 + 2));
+    const int p8_ymin1 = (int)(*(p8 - pitch));
+    const int p8_yplus1 = (int)(*(p8 + pitch));
+
+    int result = ((int)(*p8) * 4);
+    result -= p8_xplus1 + p8_xmin1 + p8_yplus1 + p8_ymin1;
+
+    int e = ABS(result);
+
+    if (focus_peaking_filter_edges)
+    {
+        // filter out strong edges where first derivative is strong
+        // as these are usually false positives
+        int d1x = ABS(p8_xplus1 - p8_xmin1);
+        int d1y = ABS(p8_yplus1 - p8_ymin1);
+        int d1 = MAX(d1x, d1y);
+        e = MAX(e - ((d1 << focus_peaking_filter_edges) >> 2), 0) * 2;
+    }
+    return e;
 }
 
 static inline int FAST peak_d2xy(const uint8_t* p8)
 {
-    // approximate second derivative with a Laplacian kernel:
-    //     -1
-    //  -1  4 -1
-    //     -1
-    int result = ((int)(*p8) * 4) - (int)(*(p8 + 2));
-    result -= (int)(*(p8 - 2));
-    result -= (int)(*(p8 + vram_lv.pitch));
-    result -= (int)(*(p8 - vram_lv.pitch));
-
-    int e = ABS(result);
-    
-    if (focus_peaking_filter_edges)
-    {
-        // filter out strong edges where first derivative is strong
-        // as these are usually false positives
-        int d1x = ABS((int)(*(p8 + 2)) - (int)(*(p8 - 2)));
-        int d1y = ABS((int)(*(p8 + vram_lv.pitch)) - (int)(*(p8 - vram_lv.pitch)));
-        int d1 = MAX(d1x, d1y);
-        e = MAX(e - ((d1 << focus_peaking_filter_edges) >> 2), 0) * 2;
-    }
-    return e;
+    return calc_peak(p8, vram_lv.pitch);
 }
 
 static inline int FAST peak_d2xy_hd(const uint8_t* p8)
 {
-    // approximate second derivative with a Laplacian kernel:
-    //     -1
-    //  -1  4 -1
-    //     -1
-    int result = ((int)(*p8) * 4) - (int)(*(p8 + 2));
-    result -= (int)(*(p8 - 2));
-    result -= (int)(*(p8 + vram_hd.pitch));
-    result -= (int)(*(p8 - vram_hd.pitch));
-
-    int e = ABS(result);
-    
-    if (focus_peaking_filter_edges)
-    {
-        // filter out strong edges where first derivative is strong
-        // as these are usually false positives
-        int d1x = ABS((int)(*(p8 + 2)) - (int)(*(p8 - 2)));
-        int d1y = ABS((int)(*(p8 + vram_hd.pitch)) - (int)(*(p8 - vram_hd.pitch)));
-        int d1 = MAX(d1x, d1y);
-        e = MAX(e - ((d1 << focus_peaking_filter_edges) >> 2), 0) * 2;
-    }
-    return e;
+    return calc_peak(p8, vram_hd.pitch);
 }
 
 #ifdef FEATURE_FOCUS_PEAK_DISP_FILTER
@@ -2047,9 +1617,9 @@ static inline int peak_blend_alpha(uint32_t* s, int e)
     const int v_hot = 127;
     
     int er = 255-e;
-    int y = (y_cold * er + y_hot * e) / 256;
-    int u = (u_cold * er + u_hot * e) / 256;
-    int v = (v_cold * er + v_hot * e) / 256;
+    int y = (y_cold * er + y_hot * e) >> 8;
+    int u = (u_cold * er + u_hot * e) >> 8;
+    int v = (v_cold * er + v_hot * e) >> 8;
     
     return UYVY_PACK(u,y,v,y);
 }
@@ -2086,13 +1656,13 @@ void FAST peak_disp_filter()
     // the percentage selected in menu represents how many pixels are considered in focus
     // let's say above some FOCUSED_THR
     // so, let's scale edge value so that e=thr maps to e=FOCUSED_THR
-    for (int i = 0; i < 255; i++)
-        peak_scaling[i] = MIN(i * FOCUSED_THR / thr, 255);
+    for (int i = 0, i_fthr = 0; i < 255; i++, i_fthr += FOCUSED_THR)
+        peak_scaling[i] = MIN(i_fthr / thr, 255);
     
     int n_over = 0;
     int n_total = 720 * (os.y_max - os.y0) / 2;
-    
-    #define PEAK_LOOP for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
+
+    #define PEAK_LOOP for (int i = 720 * (os.y0/2), max = 720 * (os.y_max/2); i < max; i++)
     // generic loop:
     //~ for (int i = 720 * (os.y0/2); i < 720 * (os.y_max/2); i++)
     //~ {
@@ -2215,28 +1785,30 @@ static void FAST focus_found_pixel(int x, int y, int e, int thr, uint8_t * const
     
     uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
     uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
-    
-    uint16_t pixel = b_row[x/2];
-    uint16_t mirror = m_row[x/2];
-    uint16_t pixel2 = b_row[x/2 + BMPPITCH/2];
-    uint16_t mirror2 = m_row[x/2 + BMPPITCH/2];
+
+    const int x_half = x >> 1;
+    uint32_t pixel = b_row[x_half];
+    uint32_t mirror = m_row[x_half];
+    const int pos = x_half + (BMPPITCH >> 1);
+    uint32_t pixel2 = b_row[pos];
+    uint32_t mirror2 = m_row[pos];
     if (mirror  & 0x8080) 
         return;
     if (mirror2 & 0x8080)
         return;
-    if (pixel  != 0 && pixel  != mirror )
+    if (pixel  != 0 && pixel  != mirror)
         return;
     if (pixel2 != 0 && pixel2 != mirror2)
         return;
 
     if (dirty_pixels_num < MAX_DIRTY_PIXELS)
     {
-        dirty_pixel_values[dirty_pixels_num] = (uint32_t)b_row[x/2] + ((uint32_t)b_row[x/2 + BMPPITCH/2] << 16);
-        dirty_pixels[dirty_pixels_num++] = (void*)&b_row[x/2] - (void*)bvram;
+        dirty_pixel_values[dirty_pixels_num] = pixel + (pixel2 << 16);
+        dirty_pixels[dirty_pixels_num++] = (void*)&b_row[x_half] - (void*)bvram;
     }
 
-    b_row[x/2] = b_row[x/2 + BMPPITCH/2] = 
-    m_row[x/2] = m_row[x/2 + BMPPITCH/2] = color;
+    b_row[x_half] = b_row[pos] = 
+    m_row[x_half] = m_row[pos] = color;
 }
 
 static void focus_found_pixel_playback(int x, int y, int e, int thr, uint8_t * const bvram)
@@ -2245,12 +1817,13 @@ static void focus_found_pixel_playback(int x, int y, int e, int thr, uint8_t * c
 
     uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
     uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
-    
-    uint16_t pixel = b_row[x/2];
-    uint16_t mirror = m_row[x/2];
+
+    const int x_half = x >> 1;
+    uint16_t pixel = b_row[x_half];
+    uint16_t mirror = m_row[x_half];
     if (mirror  & 0x8080) 
         return;
-    if (pixel  != 0 && pixel  != mirror )
+    if (pixel  != 0 && pixel  != mirror)
         return;
 
     bmp_putpixel_fast(bvram, x, y, color);
@@ -2493,105 +2066,6 @@ clrscr_mirror( void )
     }
 }
 
-#ifdef FEATURE_FALSE_COLOR
-static void
-draw_false_downsampled( void )
-{
-    //~ if (vram_width > 720) return;
-    //~ if (!PLAY_MODE)
-    //~ {
-        //~ if (!expsim) return;
-    //~ }
-    
-    // exception: green screen palette is not fixed
-    if (falsecolor_palette == 5)
-    {
-        aj_green_screen();
-        return;
-    }
-
-    
-    //~ bvram_mirror_init();
-    uint8_t * const bvram = bmp_vram_real();
-    if (!bvram) return;
-    if (!bvram_mirror) return;
-
-    uint8_t * const lvram = get_yuv422_vram()->vram;
-    uint8_t* fc = false_colour[falsecolor_palette];
-
-    int off = get_y_skip_offset_for_overlays();
-    for(int y = os.y0 + off; y < os.y_max - off; y += 2 )
-    {
-        uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV_R(y)    );  // 2 pixels
-        uint16_t * const b_row = (uint16_t*)( bvram        + BM_R(y)       );  // 2 pixels
-        uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y)       );  // 2 pixels
-        
-        uint8_t* lvp; // that's a moving pointer through lv vram
-        uint16_t* bp;  // through bmp vram
-        uint16_t* mp;  // through mirror
-        
-        for (int x = os.x0; x < os.x_max; x += 2)
-        {
-            lvp = (uint8_t *)(v_row + BM2LV_X(x)/2); lvp++;
-            bp = b_row + x/2;
-            mp = m_row + x/2;
-            
-            #define BP (*bp)
-            #define MP (*mp)
-            #define BN (*(bp + BMPPITCH/2))
-            #define MN (*(mp + BMPPITCH/2))
-            
-            if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
-            if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/2, mp + BMPPITCH/2); continue; }
-            if ((MP & 0x80808080) || (MN & 0x80808080)) continue;
-            
-            int c = fc[*lvp]; c |= (c << 8);
-            MP = BP = c;
-            MN = BN = c;
-
-            #undef BP
-            #undef MP
-            #undef BN
-            #undef MN
-        }
-    }
-}
-#endif
-
-#ifdef FEATURE_BULB_RAMPING
-void
-highlight_luma_range(int lo, int hi, int color1, int color2)
-{
-    uint8_t * const bvram = bmp_vram();
-    if (!bvram) return;
-    if (!bvram_mirror) return;
-    int y;
-    uint8_t * const lvram = get_yuv422_vram()->vram;
-    int lvpitch = get_yuv422_vram()->pitch;
-    for( y = 0; y < 480; y += 2 )
-    {
-        uint32_t * const v_row = (uint32_t*)( lvram + y * lvpitch );        // 2 pixel
-        uint16_t * const b_row = (uint16_t*)( bvram + y * BMPPITCH);          // 2 pixel
-        
-        uint8_t* lvp; // that's a moving pointer through lv vram
-        uint16_t* bp;  // through bmp vram
-        
-        for (lvp = ((uint8_t*)v_row)+1, bp = b_row; lvp < (uint8_t*)(v_row + 720/2) ; lvp += 4, bp++)
-        {
-            int x = ((int)lvp) / 2;
-            int color = (y/2 - x/2) % 2 ? color1 | color1 << 8 : color2 | color2 << 8;
-            #define BP (*bp)
-            #define BN (*(bp + BMPPITCH/2))
-            int pix = (*lvp + *(lvp+2))/2;
-            int c = pix >= lo && *lvp <= hi ? color : 0;
-            BN = BP = c;
-            #undef BP
-            #undef BN
-        }
-    }
-}
-#endif
-
 #ifdef FEATURE_CROPMARKS
 
 #define MAX_CROP_NAME_LEN 15
@@ -2735,7 +2209,7 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
     }
 
     #ifdef FEATURE_RAW_ZEBRAS
-    if (z && can_use_raw_overlays_menu())
+    if (z && can_use_raw_overlays_menu() && !lv)
         raw_zebra_update(entry, info);
     #endif
 }
@@ -2743,7 +2217,7 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
 static MENU_UPDATE_FUNC(zebra_param_not_used_for_raw)
 {
     #ifdef FEATURE_RAW_ZEBRAS
-    if (raw_zebra_enable && can_use_raw_overlays_menu())
+    if (raw_zebra_enable && can_use_raw_overlays_menu() && !lv)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not used for RAW zebras.");
     #endif
 }
@@ -2770,45 +2244,6 @@ static MENU_UPDATE_FUNC(zebra_level_display)
 }
 #endif
 
-#ifdef FEATURE_FALSE_COLOR
-static char* falsecolor_palette_name()
-{
-    return
-        falsecolor_palette == 0 ? "Marshall" :
-        falsecolor_palette == 1 ? "SmallHD" :
-        falsecolor_palette == 2 ? "50-55%" :
-        falsecolor_palette == 3 ? "67-72%" :
-        falsecolor_palette == 4 ? "Banding detection" :
-        falsecolor_palette == 5 ? "GreenScreen" : "Unk";
-}
-
-static void falsecolor_palette_preview(int x, int y)
-{
-    for (int i = 0; i < 256; i++)
-    {
-        draw_line(x + 419 + i, y, x + 419 + i, y + font_large.height - 2, false_colour[falsecolor_palette][i]);
-    }
-}
-
-static MENU_UPDATE_FUNC(falsecolor_display)
-{
-    if (falsecolor_draw)
-    {
-        MENU_SET_VALUE(
-            falsecolor_palette_name()
-        );
-        if (info->x) falsecolor_palette_preview(info->x, info->y);
-    }
-}
-
-static MENU_UPDATE_FUNC(falsecolor_display_palette)
-{
-    MENU_SET_VALUE(
-        falsecolor_palette_name()
-    );
-    if (info->x) falsecolor_palette_preview(info->x - 420, info->y + font_large.height + 10);
-}
-#endif
 
 #ifdef FEATURE_FOCUS_PEAK
 static MENU_UPDATE_FUNC(focus_peaking_display)
@@ -2878,24 +2313,6 @@ static MENU_UPDATE_FUNC(crop_display_submenu)
     }
     
     MENU_SET_ICON(MNI_DICE, (num_cropmarks<<16) + index);
-}
-#endif
-
-#ifdef FEATURE_HISTOGRAM
-
-static MENU_UPDATE_FUNC(hist_print)
-{
-    if (hist_draw)
-        MENU_SET_VALUE(
-            "%s%s%s",
-            hist_colorspace == 0 ? "Luma" : "RGB",
-            hist_log ? ",Log" : ",Lin",
-            hist_warn ? ",clip warn" : ""
-        );
-    #ifdef FEATURE_RAW_HISTOGRAM
-    if (hist_draw && can_use_raw_overlays_menu())
-        raw_histo_update(entry, info);
-    #endif
 }
 #endif
 
@@ -3063,9 +2480,11 @@ void get_spot_yuv_ex(int size_dxb, int dx, int dy, int* Y, int* U, int* V, int d
         }
     }
 
-    sy /= (2 * dxl + 1) * (2 * dxl + 1);
-    su /= (dxl + 1) * (2 * dxl + 1);
-    sv /= (dxl + 1) * (2 * dxl + 1);
+    const int dx1_two_plus1 = (2 * dxl + 1);
+    const int val = (dxl + 1) * dx1_two_plus1;
+    sy /= dx1_two_plus1 * dx1_two_plus1;
+    su /= val;
+    sv /= val;
 
     *Y = sy;
     *U = su;
@@ -3095,19 +2514,22 @@ int get_spot_motion(int dxb, int xcb, int ycb, int draw)
     int                 x, y;
 
 
-    int xcl = BM2LV_X(xcb);
-    int ycl = BM2LV_Y(ycb);
-    int dxl = BM2LV_DX(dxb);
+    const int xcl = BM2LV_X(xcb);
+    const int ycl = BM2LV_Y(ycb);
+    const int dxl = BM2LV_DX(dxb);
 
 	// surface cleaning
 	if ( spm_pre_xcb != -1 && spm_pre_ycb != -1 && draw && (spm_pre_xcb != xcb || spm_pre_ycb != ycb) ) {
 		int p_xcl = BM2LV_X(spm_pre_xcb);
-    	int p_ycl = BM2LV_Y(spm_pre_ycb);
+		int p_ycl = BM2LV_Y(spm_pre_ycb);
+		int ymax = p_ycl + dxl+5;
+		int xmax = p_xcl + dxl+5;
 		int x, y;
-		for( y = p_ycl - (dxl+5) ; y <= p_ycl + dxl+5 ; y++ ) {
-		    for( x = p_xcl - (dxl+5) ; x <= p_xcl + dxl+5 ; x++ )
+		for( y = p_ycl - (dxl+5) ; y <= ymax ; y++ ) {
+		    const int yskip = y * BMPPITCH;
+		    for( x = p_xcl - (dxl+5) ; x <= xmax ; x++ )
 		    {
-		        bm[x + y * BMPPITCH] = 0;
+		        bm[x + yskip] = 0;
 		    }
 		}
 	}
@@ -3125,18 +2547,22 @@ int get_spot_motion(int dxb, int xcb, int ycb, int draw)
     unsigned D = 0;
     for( y = ycl - dxl ; y <= ycl + dxl ; y++ )
     {
+        const int yskip = y * width;
+        const int y_skip_pitch = y * BMPPITCH;
         for( x = xcl - dxl ; x <= xcl + dxl ; x++ )
         {
-            int p1 = (vr1[ x + y * width ] >> 8) & 0xFF;
-            int p2 = (vr2[ x + y * width ] >> 8) & 0xFF;
+            const int pos = x + yskip;
+            int p1 = (vr1[pos] >> 8) & 0xFF;
+            int p2 = (vr2[pos] >> 8) & 0xFF;
             int dif = ABS(p1 - p2);
             D += dif;
-            if (draw) bm[x + y * BMPPITCH] = false_colour[5][dif & 0xFF];
+            if (draw) bm[x + y_skip_pitch] = falsecolor_value_ex(5, dif & 0xFF);
         }
     }
-    
-    D = D * 2;
-    D /= (2 * dxl + 1) * (2 * dxl + 1);
+
+    D <<= 1;
+    const int val = (2 * dxl + 1);
+    D /= val * val;
     return D;
 }
 
@@ -3164,9 +2590,10 @@ int get_spot_focus(int dxb)
     // Sum the absolute difference of values around the center
     for( y = ycl - dxl ; y <= ycl + dxl ; y++ )
     {
+        const int yskip = y * (width >> 1);
         for( x = xcl - dxl ; x <= xcl + dxl ; x++ )
         {
-            uint32_t p = vr[ x/2 + y * width/2 ];
+            uint32_t p = vr[ x/2 + yskip ];
             int32_t p0 = (p >> 24) & 0xFF;
             int32_t p1 = (p >>  8) & 0xFF;
             sf += ABS(p1 - p0);
@@ -3290,21 +2717,23 @@ static void spotmeter_step()
         }
     }
 
-    sy /= (2 * dxl + 1) * (2 * dxl + 1);
-    su /= (dxl + 1) * (2 * dxl + 1);
-    sv /= (dxl + 1) * (2 * dxl + 1);
+    const int two_dx1_plus1 = (2 * dxl + 1);
+    const int val = (dxl + 1) * two_dx1_plus1;
+    sy /= two_dx1_plus1 * two_dx1_plus1;
+    su /= val;
+    sv /= val;
 
     // Scale to 100%
-    const unsigned      scaled = (101 * sy) / 256;
-    
+    const unsigned      scaled = (101 * sy) >> 8;
+
     #ifdef FEATURE_RAW_SPOTMETER
     int raw_luma = 0;
     int raw_ev = 0;
     if (can_use_raw_overlays() && raw_update_params())
     {
-        int xcr = BM2RAW_X(xcb);
-        int ycr = BM2RAW_Y(ycb);
-        int dxr = BM2RAW_DX(dxb);
+        const int xcr = BM2RAW_X(xcb);
+        const int ycr = BM2RAW_Y(ycb);
+        const int dxr = BM2RAW_DX(dxb);
 
         raw_luma = 0;
         
@@ -3321,7 +2750,8 @@ static void spotmeter_step()
                 #endif
             }
         }
-        raw_luma /= (2 * dxr + 1) * (2 * dxr + 1);
+        const int two_dxr_plus1 = 2 * dxr + 1;
+        raw_luma /= two_dxr_plus1 * two_dxr_plus1;
         raw_ev = (int) roundf(10.0 * raw_to_ev(raw_luma));
     }
     #endif
@@ -3648,7 +3078,7 @@ struct menu_entry zebra_menus[] = {
                 .update = zebra_param_not_used_for_raw,
             },
             #endif
-            #ifdef FEATURE_RAW_HISTOGRAM
+            #ifdef FEATURE_RAW_ZEBRAS
             {
                 .name = "Use RAW zebras",
                 .priv = &raw_zebra_enable,
@@ -3923,7 +3353,7 @@ struct menu_entry zebra_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Palette      ",
-                .priv = &falsecolor_palette, 
+                .priv = &falsecolor_palette,
                 .max = COUNT(false_colour)-1,
                 .icon_type = IT_DICE,
                 .choices = CHOICES("Marshall", "SmallHD", "50-55%", "67-72%", "Banding detection", "GreenScreen"),
@@ -3977,14 +3407,13 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "RAW EV indicator",
                 .priv = &hist_meter,
-                .max = 3,
-                .choices = CHOICES("OFF", "Dynamic Range", "ETTR hint", "ETTR G clip OK"),
+                .max = 2,
+                .choices = CHOICES("OFF", "Dynamic Range", "ETTR hint"),
                 .help = "Choose an EV image indicator to display on the histogram.",
                 .help2 = 
                     " \n"
-                    "Display the dynamic range at current ISO, from DxO charts.\n"
+                    "Display the dynamic range at current ISO, from noise stdev.\n"
                     "Show how many stops you can push the exposure to the right.\n"
-                    "ETTR hint, if you don't mind clipping the GREEN channel.\n"
             },
             #endif
             MENU_EOL
@@ -4538,57 +3967,6 @@ void zoom_overlay_set_countdown(int x)
     zoom_overlay_triggered_by_focus_ring_countdown = x;
 }
 
-static void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
-{
-    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
-    src = (void*)((unsigned int)src & 0xFFFFFFFC);
-    uint32_t* last_s = src + (num_pix>>1);
-    for (; src < last_s; src++, dst += 2)
-    {
-        uint32_t chroma = (*src)  & 0x00FF00FF;
-        uint32_t luma1 = (*src >>  8) & 0xFF;
-        uint32_t luma2 = (*src >> 24) & 0xFF;
-        *(dst) = chroma | (luma1 << 8) | (luma1 << 24);
-        *(dst+1) = chroma | (luma2 << 8) | (luma2 << 24);
-    }
-}
-
-static void yuvcpy_x3(uint32_t* dst, uint32_t* src, int num_pix)
-{
-    dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
-    src = (void*)((unsigned int)src & 0xFFFFFFFC);
-    uint32_t* last_s = src + (num_pix>>1);
-    for (; src < last_s; src++, dst += 3)
-    {
-        uint32_t chroma = (*src)  & 0x00FF00FF;
-        uint32_t luma1 = (*src >>  8) & 0xFF;
-        uint32_t luma2 = (*src >> 24) & 0xFF;
-        *(dst)   = chroma | (luma1 << 8) | (luma1 << 24);
-        *(dst+1) = chroma | (luma1 << 8) | (luma2 << 24);
-        *(dst+2) = chroma | (luma2 << 8) | (luma2 << 24);
-    }
-}
-
-static void yuvcpy_main(uint32_t* dst, uint32_t* src, int num_pix, int X, int lut)
-{
-    if (X==1)
-    {
-        #ifdef CONFIG_DMA_MEMCPY
-        dma_memcpy(dst, src, num_pix*2);
-        #else
-        memcpy(dst, src, num_pix*2);
-        #endif
-    }
-    else if (X==2)
-    {
-        yuvcpy_x2(dst, src, num_pix/2);
-    }
-    else if (X==3)
-    {
-        yuvcpy_x3(dst, src, num_pix/3);
-    }
-}
-
 void digic_zoom_overlay_step(int force_off)
 {
 #if !defined(CONFIG_VXWORKS)
@@ -4671,11 +4049,28 @@ static void draw_zoom_overlay(int dirty)
     uint16_t*       hdr = (uint16_t*) hd->vram;
 
     // select buffer where MZ should be written (camera-specific, guesswork)
-    #if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+    #if defined(CONFIG_5D2) || defined(CONFIG_EOSM)
+    /* fixme: ugly hack */
+    void busy_vsync(int hd, int timeout_ms)
+    {
+        int timeout_us = timeout_ms * 1000;
+        void* old = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
+        int t0 = *(uint32_t*)0xC0242014;
+        while(1)
+        {
+            int t1 = *(uint32_t*)0xC0242014;
+            int dt = mod(t1 - t0, 1048576);
+            void* new = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
+            if (old != new) break;
+            if (dt > timeout_us)
+                return 0;
+            for (int i = 0; i < 100; i++) asm("nop"); // don't stress the digic too much
+        }
+    }
     lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     busy_vsync(0, 20);
     #endif
-    #if defined(CONFIG_5D3) || defined(CONFIG_6D)
+    #if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_650D)
     lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
     if (lvr != CACHEABLE(YUV422_LV_BUFFER_1) && lvr != CACHEABLE(YUV422_LV_BUFFER_2) && lvr != CACHEABLE(YUV422_LV_BUFFER_3)) return;
     #else
@@ -4760,10 +4155,15 @@ static void draw_zoom_overlay(int dirty)
         #endif
         w /= X;
         h /= X;
-        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
-        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
-        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
-        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
+        const int val_in_coerce_w = aff_x0_lv - (w>>1);
+        const int coerce_w = COERCE(val_in_coerce_w, 0, 720-w);
+        const int val_in_coerce_h1 = aff_y0_lv - (h>>1);
+        const int val_in_coerce_h2 = aff_y0_lv + (h>>1);
+
+        memset64(lvr + coerce_w + COERCE(val_in_coerce_h1 - 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
+        memset64(lvr + coerce_w + COERCE(val_in_coerce_h1 - 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
+        memset64(lvr + coerce_w + COERCE(val_in_coerce_h2 + 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
+        memset64(lvr + coerce_w + COERCE(val_in_coerce_h2 + 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
     }
 
     //~ draw_circle(x0,y0,45,COLOR_WHITE);
@@ -4803,10 +4203,10 @@ static void draw_zoom_overlay(int dirty)
     #ifdef CONFIG_1100D
     H /= 2; //LCD res fix (half height)
     #endif
-    memset32(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
-    memset32(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
-    memset32(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
-    memset32(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
+    memset64(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
+    memset64(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
+    memset64(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
+    memset64(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
     #ifdef CONFIG_1100D
     H *= 2; // Undo it
     #endif
@@ -4902,9 +4302,9 @@ static void draw_livev_for_playback()
     if (QR_MODE) msleep(100);
 
     get_yuv422_vram(); // just to refresh VRAM params
-    
+
     info_led_on();
-    
+
 BMP_LOCK(
 
     bvram_mirror_clear(); // may be filled with liveview cropmark / masking info, not needed in play mode
@@ -4938,9 +4338,15 @@ BMP_LOCK(
         guess_focus_peaking_threshold();
         draw_zebra_and_focus(1,1);
     }
+    
+    #ifdef FEATURE_POST_DEFLICKER
+    post_deflicker_show_info();
+    #endif
 
     bvram_mirror_clear(); // may remain filled with playback zebras 
 )
+
+    clean_d_cache(); // to avoid display artifacts
 
     info_led_off();
     livev_for_playback_running = 0;
@@ -4958,27 +4364,24 @@ int should_draw_bottom_graphs()
 
 void draw_histogram_and_waveform(int allow_play)
 {
-   
+
     if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
-    
+
     get_yuv422_vram();
 
 #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM) || defined(FEATURE_VECTORSCOPE)
     if (hist_draw || waveform_draw || vectorscope_draw)
     {
-        hist_build();
-        
+        hist_build(); /* also updates waveform and vectorscope */
         #ifdef FEATURE_RAW_HISTOGRAM
         if (raw_histogram_enable && can_use_raw_overlays())
-        {
             hist_build_raw();
-        }
         #endif
     }
 #endif
     
-    //~ if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
+    if (menu_active_and_not_hidden()) return; // hack: not to draw histo over menu
     if (!get_global_draw()) return;
     if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play) && !gui_menu_shown()) return;
     if (is_zoom_mode_so_no_zebras()) return;
@@ -5002,9 +4405,7 @@ void draw_histogram_and_waveform(int allow_play)
     }
 #endif
 
-    if (nondigic_zoom_overlay_enabled()) return;
-
-    //~ if (menu_active_and_not_hidden()) return;
+    if (menu_active_and_not_hidden()) return;
     if (!get_global_draw()) return;
     if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play) && !gui_menu_shown()) return;
     if (is_zoom_mode_so_no_zebras()) return;
@@ -5702,6 +5103,8 @@ livev_hipriority_task( void* unused )
         if (zebra_digic_dirty && !zd) digic_zebra_cleanup();
         #endif
         
+        static int raw_flag = 0;
+        
         if (!zebra_should_run())
         {
             while (clearscreen == 1 && (get_halfshutter_pressed() || dofpreview)) msleep(100);
@@ -5712,6 +5115,9 @@ livev_hipriority_task( void* unused )
                 if (lv && !gui_menu_shown()) redraw();
                 #ifdef CONFIG_ELECTRONIC_LEVEL
                 disable_electronic_level();
+                #endif
+                #ifdef CONFIG_RAW_LIVEVIEW
+                if (raw_flag) { raw_lv_release(); raw_flag = 0; }
                 #endif
                 while (!zebra_should_run()) 
                 {
@@ -5729,7 +5135,26 @@ livev_hipriority_task( void* unused )
         struct vram_info * hd = get_yuv422_hd_vram();
         bmp_printf(FONT_MED, 100, 100, "ext:%d%d%d \nlv:%x %dx%d \nhd:%x %dx%d ", EXT_MONITOR_RCA, ext_monitor_hdmi, hdmi_code, lv->vram, lv->width, lv->height, hd->vram, hd->width, hd->height);
         #endif
-        
+
+        #ifdef CONFIG_RAW_LIVEVIEW
+        if (!raw_flag && !is_movie_mode())
+        {
+            /* if picture quality is raw, switch the LiveView to raw mode */
+            int raw = pic_quality & 0x60000;
+            /* only histogram and spotmeter are working in LV raw mode */
+            if (raw && lv_dispsize == 1 && (hist_draw || spotmeter_draw))
+            {
+                raw_lv_request();
+                raw_flag = 1;
+            }
+        }
+        if (raw_flag && lv_dispsize > 1)
+        {
+            raw_lv_release();
+            raw_flag = 0;
+        }
+        #endif
+
         int mz = should_draw_zoom_overlay();
 
         lv_vsync(mz);
@@ -6324,38 +5749,6 @@ static void show_overlay()
     afframe_clr_dirty();
 }
 
-void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
-{
-    ASSERT(src);
-    ASSERT(dst);
-    if (!dst) return;
-    int i,j;
-    
-    // only used for menu => 720x480
-    static int16_t js_cache[720];
-    
-    for (j = 0; j < 720; j++)
-        js_cache[j] = (j - x0) * denx / 128 + x0;
-    
-    for (i = 0; i < 480; i++)
-    {
-        int is = (i - y0) * deny / 128 + y0;
-        uint8_t* dst_r = &dst[BM(0,i)];
-        uint8_t* src_r = &src[BM(0,is)];
-        
-        if (is >= 0 && is < 480)
-        {
-            for (j = 0; j < 720; j++)
-            {
-                int js = js_cache[j];
-                dst_r[j] = likely(js >= 0 && js < 720) ? src_r[js] : 0;
-            }
-        }
-        else
-            bzero32(dst_r, 720);
-    }
-}
-
 static void transparent_overlay_from_play()
 {
     if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(1000); }
@@ -6387,34 +5780,6 @@ PROP_HANDLER(PROP_LV_ACTION)
     zoom_sharpen_step();
     zoom_auto_exposure_step();
     #endif
-}
-
-void yuv_resize(uint32_t* src, int src_w, int src_h, uint32_t* dst, int dst_w, int dst_h)
-{
-    int i,j;
-    for (i = 0; i < dst_h; i++)
-    {
-        for (j = 0; j < dst_w/2; j++)
-        {
-            dst[i * dst_w/2 + j] = src[(i*src_h/dst_h) * src_w/2 + (j*src_w/dst_w)];
-        }
-    }
-}
-
-void yuv_halfcopy(uint32_t* dst, uint32_t* src, int w, int h, int top_half)
-{
-    int i,j;
-    for (i = 0; i < h; i++)
-    {
-        for (j = 0; j < w/2; j++)
-        {
-            int sign = j - i * w/h/2;
-            if ((top_half && sign > 0) || (!top_half && sign <= 0))
-            {
-                dst[i * w/2 + j] = src[i * w/2 + j];
-            }
-        }
-    }
 }
 
 void play_422(char* filename)

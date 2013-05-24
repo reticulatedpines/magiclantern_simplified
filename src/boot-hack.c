@@ -375,11 +375,12 @@ static int compute_signature(int* start, int num)
 // From here we can do file I/O and maybe other complex stuff
 static void my_big_init_task()
 {
-#if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
-  uint32_t len;
   #ifdef CONFIG_5D3
   find_ml_card();
   #endif
+
+#if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
+  uint32_t len;
   load_fonts();
 #endif
 

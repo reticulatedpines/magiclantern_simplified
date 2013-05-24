@@ -35,6 +35,7 @@
 #include "gui.h"
 #include "math.h"
 #include "raw.h"
+#include "histogram.h"
 
 #if defined(CONFIG_MODULES)
 #include "module.h"
@@ -43,6 +44,21 @@
 static CONFIG_INT( "shoot.num", pics_to_take_at_once, 0);
 static CONFIG_INT( "shoot.af",  shoot_use_af, 0 );
 static int snap_sim = 0;
+
+#ifdef FEATURE_POST_DEFLICKER
+static CONFIG_INT("post.deflicker", post_deflicker, 0);
+static CONFIG_INT("post.deflicker.sidecar", post_deflicker_sidecar_type, 1);
+static CONFIG_INT("post.deflicker.prctile", post_deflicker_percentile, 50);
+static CONFIG_INT("post.deflicker.level", post_deflicker_target_level, -4);
+#endif
+
+#ifdef FEATURE_AUTO_ETTR
+static CONFIG_INT("auto.ettr", auto_ettr, 0);
+static CONFIG_INT("auto.ettr.prctile", auto_ettr_percentile, 98);
+static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
+static CONFIG_INT("auto.ettr.max.shutter", auto_ettr_max_shutter, 11);
+static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
+#endif
 
 void move_lv_afframe(int dx, int dy);
 void movie_start();
@@ -59,7 +75,6 @@ void take_fast_pictures( int number );
 
 static void bulb_ramping_showinfo();
 static int is_bulb_mode_or_bulb_ramping();
-int bulb_ramp_calibration_running = 0;
 
 #if  !defined(AUDIO_REM_SHOT_POS_X) && !defined(AUDIO_REM_SHOT_POS_Y)
     #define AUDIO_REM_SHOT_POS_X 20
@@ -160,16 +175,17 @@ static uint32_t trap_focus_msg = 0;
 
 CONFIG_INT( "focus.trap", trap_focus, 0);
 
-//~ CONFIG_INT( "focus.trap.numpics", trap_focus_shoot_numpics, 1);
 static CONFIG_INT( "audio.release-level", audio_release_level, 10);
 static CONFIG_INT( "flash_and_no_flash", flash_and_no_flash, 0);
 static CONFIG_INT( "lv_3rd_party_flash", lv_3rd_party_flash, 0);
 
 static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );
-static CONFIG_INT( "silent.pic.jpeg", silent_pic_jpeg, 0 );
-static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );    // 0 = normal, 1 = burst, 2 = continuous, 3 = hi-res
-static CONFIG_INT( "silent.pic.highres", silent_pic_highres, 0);   // index of matrix size (2x1 .. 5x5)
-static CONFIG_INT( "silent.pic.sweepdelay", silent_pic_sweepdelay, 350);
+static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );
+#define SILENT_PIC_MODE_SIMPLE 0
+#define SILENT_PIC_MODE_BURST 1
+#define SILENT_PIC_MODE_BURST_END_TRIGGER 2
+#define SILENT_PIC_MODE_BEST_SHOTS 3
+#define SILENT_PIC_MODE_SLITSCAN 4
 
 //~ static CONFIG_INT( "zoom.enable.face", zoom_enable_face, 0);
 static CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
@@ -210,21 +226,10 @@ static CONFIG_INT( "motion.position", motion_detect_position, 0);
 
 int get_silent_pic() { return silent_pic_enabled; } // silent pic will disable trap focus
 
-//~ static CONFIG_INT("bulb.ramping", bulb_ramping_enabled, 0);
-static CONFIG_INT("bulb.ramping.mode", bramp_auto_exposure, 0);
-//~ static CONFIG_INT("bulb.ramping.auto.speed", bramp_auto_ramp_speed, 100); // max 0.1 EV/shot
-//~ static CONFIG_INT("bulb.ramping.smooth", bramp_auto_smooth, 50);
-static CONFIG_INT("bulb.ramping.percentile", bramp_percentile, 50);
 static CONFIG_INT("bulb.ramping.man.expo", bramp_manual_speed_evx1000_per_shot, 0);
 static CONFIG_INT("bulb.ramping.man.focus", bramp_manual_speed_focus_steps_per_shot, 0);
 
-
-#define BRAMP_FEEDBACK_LOOP     (bramp_auto_exposure == 1) // smooth exposure changes
-#define BRAMP_LRT_HOLY_GRAIL    (bramp_auto_exposure == 2) // only apply integer EV correction
-#define BRAMP_LRT_HOLY_GRAIL_STOPS 1
-
-
-#define BULB_EXPOSURE_CONTROL_ACTIVE (intervalometer_running && (bramp_auto_exposure || bramp_manual_speed_evx1000_per_shot))
+#define BULB_EXPOSURE_CONTROL_ACTIVE (intervalometer_running && bramp_manual_speed_evx1000_per_shot)
 
 static int intervalometer_running = 0;
 int is_intervalometer_running() { return intervalometer_running; }
@@ -591,58 +596,6 @@ static MENU_UPDATE_FUNC(manual_focus_ramp_print)
     }
 }
 
-/*
-static MENU_UPDATE_FUNC(bulb_ramping_print)
-{
-    int evx1000 = bramp_manual_speed_evx1000_per_shot;
-    int steps = bramp_manual_speed_focus_steps_per_shot;
-
-    static char msg[100];
-    msg[0] = 0;
-
-    // try to write this as compact as possible, there's very little space in the menu
-    if (!bulb_ramping_enabled)
-    {
-        STR_APPEND(msg, "OFF");
-    }
-    else
-    {
-        if (bramp_auto_exposure)
-        {
-            STR_APPEND(msg, 
-                bramp_auto_exposure == 1 ? "Smooth" :
-                bramp_auto_exposure == 2 ? "LRT" : "err"
-            );
-        }
-        if (evx1000)
-        {
-            STR_APPEND(msg, "%s.", evx1000 >= 1000 ? "+1" : evx1000 <= -1000 ? "-1" : evx1000 > 0 ? "+" : "-");
-            int r = ABS(evx1000) % 1000;
-            if (r % 100 == 0)       { STR_APPEND(msg, "%01d", r / 100); }
-            else if (r % 10 == 0)   { STR_APPEND(msg, "%02d", r / 10 ); }
-            else                    { STR_APPEND(msg, "%03d", r      ); }
-            STR_APPEND(msg, "EV/p");
-        }
-        if (steps)
-        {
-            STR_APPEND(msg, "%s%dFS", steps > 0 ? "+" : "", steps);
-        }
-    }
-    
-    MENU_SET_VALUE(msg);
-
-    if (!bramp_auto_exposure && !evx1000 && !steps)
-    {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Nothing enabled from the submenu.");
-    }
-
-    if (!intervalometer_running)
-    {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You also need to enable the intervalometer.");
-    }
-}
-*/
-
 static int ev_values[] = {-1000, -750, -500, -200, -100, -50, -20, -10, -5, -2, -1, 0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 750, 1000};
 
 static void bramp_manual_evx1000_toggle(void* priv, int delta)
@@ -733,76 +686,34 @@ static MENU_UPDATE_FUNC(flash_and_no_flash_display)
 
 #endif
 
-#ifdef FEATURE_SILENT_PIC
-                                                 //2  4  6  9 12 16 20 25
-static const int16_t silent_pic_sweep_modes_l[] = {2, 2, 2, 3, 3, 4, 4, 5};
-static const int16_t silent_pic_sweep_modes_c[] = {1, 2, 3, 3, 4, 4, 5, 5};
-#define SILENTPIC_NL COERCE(silent_pic_sweep_modes_l[COERCE(silent_pic_highres,0,COUNT(silent_pic_sweep_modes_l)-1)], 0, 5)
-#define SILENTPIC_NC COERCE(silent_pic_sweep_modes_c[COERCE(silent_pic_highres,0,COUNT(silent_pic_sweep_modes_c)-1)], 0, 5)
-
-#ifdef FEATURE_SILENT_PIC_HIRES
-static int silent_pic_hires_check() // should match the warnings below
-{
-    if (
-            (is_movie_mode() && video_mode_crop) ||
-            ((SILENTPIC_NL > 4 || SILENTPIC_NC > 4) && !is_manual_focus()) ||
-        0)
-            return 0;
-    return 1;
-}
-static MENU_UPDATE_FUNC(silent_pic_check_highres_warnings)
-{
-    if (silent_pic_mode != 3)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Hi-res mode disabled.");
-    else if (is_movie_mode() && video_mode_crop)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Hi-res silent pictures won't work in crop mode.");
-    else if ((SILENTPIC_NL > 4 || SILENTPIC_NC > 4) && !is_manual_focus())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Matrices higher than 4x4 require manual focus."); 
-    else if (!is_movie_mode())
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Hi-res works best in movie mode (not photo mode).");
-    else
-        MENU_SET_WARNING(MENU_WARN_INFO, "Resolution: %dx%d", SILENTPIC_NC*(1024-8), SILENTPIC_NL*(680-8));
-}
-#endif
-
 static MENU_UPDATE_FUNC(silent_pic_display)
 {
-    #ifdef FEATURE_SILENT_PIC_HIRES
-    if (silent_pic_mode == 3)
-        silent_pic_check_highres_warnings(entry, info); // show warnings, if any
-    #endif
-    
     if (!silent_pic_enabled)
         return;
-    
-    switch(silent_pic_mode)
+
+    switch (silent_pic_mode)
     {
-        case 0:
-            MENU_SET_VALUE("Simple" );
+        case SILENT_PIC_MODE_SIMPLE:
+            MENU_SET_VALUE("Simple");
             break;
-            
-        case 1:
-            MENU_SET_VALUE("Burst" );
+
+        case SILENT_PIC_MODE_BURST:
+            MENU_SET_VALUE("Burst");
             break;
-            
-        case 2:
-            #ifdef FEATURE_SILENT_PIC_RAW_BURST
-            MENU_SET_VALUE("End Trigger" );
-            #else
-            MENU_SET_VALUE("Continuous" );
-            #endif
+
+        case SILENT_PIC_MODE_BURST_END_TRIGGER:
+            MENU_SET_VALUE("End Trigger");
             break;
-            
-        case 3:
-            MENU_SET_VALUE("HiRes, %dx%d",
-                SILENTPIC_NL,
-                SILENTPIC_NC
-            );
+
+        case SILENT_PIC_MODE_BEST_SHOTS:
+            MENU_SET_VALUE("Best Shots");
+            break;
+
+        case SILENT_PIC_MODE_SLITSCAN:
+            MENU_SET_VALUE("Slit-Scan");
             break;
     }
 }
-
-#endif //#ifdef FEATURE_SILENT_PIC
 
 static volatile int afframe_ack = 0;
 #ifdef CONFIG_LIVEVIEW
@@ -819,6 +730,7 @@ PROP_HANDLER( PROP_LV_AFFRAME ) {
     
     memcpy(afframe, buf, len);
     afframe_ack = 1;
+    
 }
 #else
 static int afframe[100]; // dummy
@@ -1121,6 +1033,10 @@ void move_lv_afframe(int dx, int dy)
 }
 
 #ifdef FEATURE_SILENT_PIC
+    #if !defined(FEATURE_SILENT_PIC_RAW) && !defined(FEATURE_SILENT_PIC_RAW_BURST)
+    #error FEATURE_SILENT_PIC requires FEATURE_SILENT_PIC_RAW or FEATURE_SILENT_PIC_RAW_BURST
+    #endif
+
 static char* silent_pic_get_name()
 {
     static char imgname[100];
@@ -1129,17 +1045,7 @@ static char* silent_pic_get_name()
     static int prev_file_number = -1;
     static int prev_folder_number = -1;
     
-    char *extension = "422";
-#if defined(FEATURE_SILENT_PIC_RAW) || defined(FEATURE_SILENT_PIC_RAW_BURST)
-    extension = "DNG";
-#endif
-    
-#ifdef FEATURE_SILENT_PIC_JPG
-    if(silent_pic_jpeg)
-    {
-        extension = "jpg";
-    }
-#endif
+    char *extension = "DNG";
     
     if (prev_file_number != file_number) silent_number = 1;
     if (prev_folder_number != folder_number) silent_number = 1;
@@ -1419,7 +1325,11 @@ void expo_adjust_playback(int dir)
             uint8_t* luma1 = &current_buf[i+1];
             uint8_t* luma2 = &current_buf[i+3];
             int luma_avg = (*luma1 + *luma2) / 2;
-            int chroma_scaling = (int)exp_inc[luma_avg] * 1024 / (luma_avg);
+            /* if luma is scaled by 1.3, scale chroma by 1.2 */
+            /* doesn't make any sense, but looks good */
+            /* if chroma is scaled by the same amount of luma, the colors are often too strong */
+            /* if scaling by "half" (e.g. 1.15 instead of 1.3), the colors look a bit dull */
+            int chroma_scaling = (int)((exp_inc[luma_avg] * 2 + luma_avg) / 3) * 1024 / (luma_avg);
             
             // scale luma values individually with the curve LUT
             *luma1 = exp_inc[*luma1];
@@ -1452,7 +1362,7 @@ void expo_adjust_playback(int dir)
             uint8_t* luma1 = &current_buf[i+1];
             uint8_t* luma2 = &current_buf[i+3];
             int luma_avg = (*luma1 + *luma2) / 2;
-            int chroma_scaling = (int)exp_dec[luma_avg] * 1024 / (luma_avg);
+            int chroma_scaling = (int)((exp_dec[luma_avg] * 2 + luma_avg) / 3) * 1024 / (luma_avg);
             
             *luma1 = exp_dec[*luma1];
             *luma2 = exp_dec[*luma2];
@@ -1587,62 +1497,17 @@ void ensure_movie_mode()
 #endif
 }
 
-#ifdef FEATURE_SILENT_PIC
-// this buffer will contain the HD image (saved to card) and a LV preview (for display)
-static void * silent_pic_buf = 0;
-
-
-#ifdef CONFIG_DISPLAY_FILTERS
-int silent_pic_preview()
-{
-#ifndef CONFIG_VXWORKS
-    if (silent_pic_buf && silent_pic_mode == 0) // only preview single silent pics (not burst etc)
-    {
-        int size = vram_hd.pitch * vram_hd.height;
-        YUV422_LV_BUFFER_DISPLAY_ADDR = (intptr_t)silent_pic_buf + size;
-        return 1;
-    }
-#endif
-    return 0;
-}
-#endif
-
-// uses busy waiting
-// it can be refactored without busy wait, similar to lv_vsync (with another MQ maybe)
-// returns: 1=success, 0=failure
-int busy_vsync(int hd, int timeout_ms)
-{
-#ifdef REG_EDMAC_WRITE_LV_ADDR
-    int timeout_us = timeout_ms * 1000;
-    void* old = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
-    int t0 = *(uint32_t*)0xC0242014;
-    while(1)
-    {
-        int t1 = *(uint32_t*)0xC0242014;
-        int dt = mod(t1 - t0, 1048576);
-        void* new = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
-        if (old != new) break;
-        if (dt > timeout_us)
-            return 0;
-        for (int i = 0; i < 100; i++) asm("nop"); // don't stress the digic too much
-    }
-    return 1;
-#else
-    return 0;
-#endif
-}
-
 #ifdef FEATURE_SILENT_PIC_RAW
 
 static void
-silent_pic_take_raw()
+silent_pic_take_raw(int interactive)
 {
     /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
-    call("lv_save_raw", 1);
+    raw_lv_request();
     msleep(50);
     
     /* after filling one frame, disable the flag so we can dump the data without tearing */
-    call("lv_save_raw", 0);
+    raw_lv_release();
     msleep(50);
 
     /* update raw geometry, autodetect black/white levels etc */
@@ -1656,52 +1521,237 @@ silent_pic_take_raw()
 }
 
 #elif defined(FEATURE_SILENT_PIC_RAW_BURST)
-    #ifndef CONFIG_FULL_EXMEM_SUPPORT
-    #error This requires CONFIG_FULL_EXMEM_SUPPORT
-    #endif
 
-static struct memSuite * sp_hSuite = 0;
+/**
+ * Raw image data is available after call("lv_save_raw", 1), via EDMAC.
+ * We can redirect it so the image data is written in our memory buffer, so there's no memcpy overhead.
+ * 
+ * We can also allocate ~180MB via shoot_malloc_suite from the photo burst buffer,
+ * but this memory is fragmented. You only get it in small chunks (between 1-20 MB each).
+ * 
+ * One problem is that EDMAC (the thing that outputs image data) can only write the full image 
+ * in a contiguous block. I don't know yet how to program it to skip lines or to switch chunks 
+ * in the middle - g3gg0 has some ideas though). 
+ * 
+ * So, we have to reserve memory for full image blocks, even if we crop the image;
+ * otherwise the EDMAC will overwrite who knows what.
+ * 
+ * There will be quite a bit of memory wasted because of fragmentation.
+ *  ____________________________________________________________________________________________________
+ * |memory chunk 1                           |memory chunk 2                                            |
+ * |*****************************************|**********************************************************|
+ * |[frame  1][frame  2][frame  3]--unused---|[frame  4][frame  5][frame  6][frame  7]-------unused-----|
+ * |[frame 1 from EDMAC]                     |[frame 4 from EDMAC]                                      |
+ * |          [frame 2 from EDMAC]           |          [frame 5 from EDMAC]                            |
+ * |                    [frame 3 from EDMAC] |                    [frame 6 from EDMAC]                  |
+ * |                              [frame 4 doesnt fit]                      [frame 7 from EDMAC]        |
+ * |                                         |                                        [frame 8 doesnt fit]
+ * |_________________________________________|__________________________________________________________|
+ * 
+ * The burst algorithm is quite simple: at every LiveView frame (vsync call), 
+ * it iterates through memory chunks until it finds one that is large enough,
+ * then it redirects the raw buffer there, and repeats until there's no more RAM.
+ * Each frame pointer is saved in an array, so at the end we just save all the images
+ * to card, one by one, as DNG.
+ * 
+ * In "end trigger" mode, the buffer becomes a ring buffer (old images are overwritten).
+ **/
+
 static volatile int sp_running = 0;
 #define SP_BUFFER_SIZE 128
-static volatile int sp_buffer_count = 0;
-static volatile int sp_max_frames = 0;
-#define SP_MAX_FRAME_SIZE 6000000
 static void* sp_frames[SP_BUFFER_SIZE];
+static int sp_focus[SP_BUFFER_SIZE];        /* raw focus value for each shot (for best shots mode) */
+static volatile int sp_buffer_count = 0;    /* how many valid slots we have in the buffer (up to SP_BUFFER_SIZE) */
+static volatile int sp_min_frames = 0;      /* how many pictures we should take without halfshutter pressed (e.g. from intervalometer) */
+static volatile int sp_max_frames = 0;      /* after how many pictures we should stop (even if we still have enough RAM) */
+static volatile int sp_num_frames = 0;      /* how many pics we actually took */
+static volatile int sp_slitscan_line = 0;   /* current line for slit-scan */
+
+#ifdef CONFIG_DISPLAY_FILTERS
+static void* silent_pic_display_buf = 0;
+int silent_pic_preview()
+{
+    if (silent_pic_display_buf)
+    {
+        YUV422_LV_BUFFER_DISPLAY_ADDR = (intptr_t)silent_pic_display_buf;
+        return 1;
+    }
+    return 0;
+}
+#endif
+
+static void silent_pic_raw_show_focus(int current)
+{
+    extern int focus_value_raw;
+
+    /* display a simple focus analysis */
+    int maxf = focus_value_raw;
+    for (int i = 0; i < sp_buffer_count; i++)
+    {
+        if (sp_focus[i] == INT_MAX)
+        {
+            current = i;
+            continue;
+        }
+        maxf = MAX(maxf, sp_focus[i]);
+    }
+
+    for (int i = 0; i < sp_buffer_count; i++)
+    {
+        int f = COERCE((sp_focus[i] == INT_MAX ? focus_value_raw : sp_focus[i]) * 50 / maxf, 0, 50);
+        bmp_fill(0, i * 4, 180 - 50, 2, 50 - f);
+        bmp_fill(i == current || sp_focus[i] == INT_MAX ? COLOR_RED : COLOR_BLUE, i * 4, 180 - f, 2, f);
+    }
+    
+    if (current >= 0)
+    {
+        int f = COERCE((sp_focus[current] == INT_MAX ? focus_value_raw : sp_focus[current]) * 100 / maxf, 0, 999);
+        bmp_printf(FONT_MED, 0, 180, "Focus: %d%% ", f);
+    }
+}
+
+static int silent_pic_raw_choose_next_slot()
+{
+    extern int focus_value_raw;
+    int f = focus_value_raw;
+
+    /* the current focus value seems to be for picture k-2 (where k is the current one) */
+    /* can be checked with FPS override, e.g. at 2fps, cover the lens with the hand and uncover it for 1-2 frames */
+    /* => it should save first the frames that are correctly exposed */
+    static int prev_slot_1 = 0;
+    static int prev_slot_2 = 0;
+    if (sp_focus[prev_slot_2] == INT_MAX)
+        sp_focus[prev_slot_2] = f;
+
+    /* choose the least focused image and replace it */
+    int minf = INT_MAX;
+    int next_slot = 0;
+    for (int i = 0; i < sp_buffer_count; i++)
+        if (sp_focus[i] < minf)
+            minf = sp_focus[i], next_slot = i;
+
+    /* next picture will be saved in next_slot */
+    /* we don't know its focus value yet, so we put INT_MAX as a placeholder */
+    sp_focus[next_slot] = INT_MAX;
+    
+    prev_slot_2 = prev_slot_1;
+    prev_slot_1 = next_slot;
+    return next_slot;
+}
+
+static void silent_pic_raw_slitscan_vsync()
+{
+    void* buf = sp_frames[0];
+    
+    if (sp_slitscan_line >= raw_info.height) /* done */
+    {
+        sp_running = 0;
+    }
+    else
+    {
+        int offset = raw_info.pitch * sp_slitscan_line;
+        memcpy(CACHEABLE(buf + offset), CACHEABLE(raw_info.buffer + offset), raw_info.pitch);
+        sp_slitscan_line++;
+        sp_num_frames = 1;
+        bmp_printf(FONT_MED, 0, 60, "Slit-scan: %d%%...", sp_slitscan_line * 100 / raw_info.height);
+    }
+}
 
 /* called once per LiveView frame from LV state object */
 void silent_pic_raw_vsync()
 {
     if (!sp_running) return;
-    if (!sp_hSuite) return;
+    if (!sp_buffer_count) { sp_running = 0; return; };
+    if (!raw_lv_settings_still_valid()) { sp_running = 0; return; }
     
-    static struct memChunk * hChunk = 0;
-    static void* ptr = 0;
-    static int num_frames = 0;
-
-    /* first frame? do some initialization */
-    if (!hChunk)
+    if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN)
     {
-        hChunk = (void*) GetFirstChunkFromSuite(sp_hSuite);
-        ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-        num_frames = 0;
-        //~ console_printf("first chunk: %x %x\n", hChunk, ptr);
-    }
-    
-    /* are we done? */
-    if ((num_frames && !HALFSHUTTER_PRESSED) || num_frames >= sp_max_frames)
-    {
-        sp_running = 0;
-        hChunk = 0;
-        sp_max_frames = num_frames;
-        //~ console_printf("done, got %d frames\n", sp_max_frames);
+        silent_pic_raw_slitscan_vsync();
         return;
     }
     
+    /* are we done? */
+    if ((sp_num_frames >= sp_min_frames && !HALFSHUTTER_PRESSED) || sp_num_frames >= sp_max_frames)
+    {
+        sp_running = 0;
+        return;
+    }
+    
+    int next_slot = sp_num_frames % sp_buffer_count;
+    
+    if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+    {
+        next_slot = silent_pic_raw_choose_next_slot();
+    }
+
+    /* Reprogram the raw EDMAC to output the data in our buffer (ptr) */
+    raw_lv_redirect_edmac(sp_frames[next_slot % sp_buffer_count]);
+    sp_num_frames++;
+    
+    bmp_printf(FONT_MED, 0, 60, "Capturing frame %d...", sp_num_frames);
+}
+
+static void silent_pic_raw_init_preview()
+{
+    /* in slit-scan mode we need preview, obviously */
+    /* in zoom mode, the framing doesn't match, so we'll force preview for raw in x5 */
+    /* don't preview in x10 mode, so you can use it for focusing */
+    if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN || lv_dispsize == 5)
+    {
+        /* init preview */
+        uint32_t* src_buf;
+        uint32_t* dst_buf;
+        display_filter_get_buffers(&src_buf, &dst_buf);
+        memset(dst_buf, 0, vram_lv.height * vram_lv.pitch);
+        memset(sp_frames[0], 0, raw_info.frame_size);
+        #ifdef CONFIG_DISPLAY_FILTERS
+        silent_pic_display_buf = CACHEABLE(dst_buf);
+        #endif
+    }
+}
+static void silent_pic_raw_update_preview()
+{
+    #ifdef CONFIG_DISPLAY_FILTERS
+    if (!silent_pic_display_buf) return;
+    #endif
+    /* try to preview the last completed frame; if there isn't any, use the first frame */
+    void* raw_buf = sp_frames[MAX(0,sp_num_frames-2) % sp_buffer_count];
+    static int first_line = 0;
+    int last_line;
+    int ultra_fast;
+    if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN)
+    {
+        last_line = RAW2LV_Y(sp_slitscan_line);
+        if (first_line > last_line) first_line = BM2LV_Y(os.y0);
+        ultra_fast = 0; /* since we only refresh a few lines at a time, we can use better quality */
+    }
+    else
+    {
+        first_line = BM2LV_Y(os.y0);
+        last_line = BM2LV_Y(os.y_max);
+        ultra_fast = 1; /* we have to refresh complete frames, so we'll sacrifice quality to gain some speed */
+    }
+    
+    if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+    {
+        for (int i = 0; i < sp_buffer_count; i++)
+            if (sp_focus[i] == INT_MAX)
+                raw_buf = sp_frames[i];
+    }
+    
+    #ifdef CONFIG_DISPLAY_FILTERS
+    raw_preview_fast_ex(raw_buf, silent_pic_display_buf, first_line, last_line, ultra_fast);
+    #endif
+}
+
+static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
+{
     /* we'll look for contiguous blocks equal to raw_info.frame_size */
     /* (so we'll make sure we can write raw_info.frame_size starting from ptr) */
-    
-    /* the EDMAC might write a bit more than that; we don't know how much, */
-    /* but for now we'll just assume it won't write more than SP_MAX_FRAME_SIZE */
+    struct memChunk * hChunk = (void*) GetFirstChunkFromSuite(hSuite);
+    void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+    int count = 0;
+
     while (1)
     {
         void* ptr0 = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
@@ -1710,96 +1760,209 @@ void silent_pic_raw_vsync()
         int remain = size - used;
         //~ console_printf("remain: %x\n", remain);
 
-        if (remain < MAX(raw_info.frame_size, SP_MAX_FRAME_SIZE))
+        /* the EDMAC might write a bit more than that, so we'll use a small safety margin */
+        if (remain < raw_info.frame_size * 33/32)
         {
             /* move to next chunk */
-            hChunk = GetNextMemoryChunk(sp_hSuite, hChunk);
+            hChunk = GetNextMemoryChunk(hSuite, hChunk);
             if (!hChunk)
             {
                 //~ console_printf("no more memory\n");
-                
-                if (silent_pic_mode == 2) // end trigger
-                {
-                    /* go back to start and overwrite previous pictures */
-                    hChunk = GetFirstChunkFromSuite(sp_hSuite);
-                    ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-                    
-                    /* write down where the buffer overflowed, so we know how many pics to save */
-                    if (!sp_buffer_count)
-                        sp_buffer_count = num_frames;
-                }
-                else // regular burst
-                {
-                    sp_running = 0;
-                    hChunk = 0;
-                    sp_max_frames = num_frames;
-                    return;
-                }
+                break;
             }
             ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
             //~ console_printf("next chunk: %x %x\n", hChunk, ptr);
             continue;
         }
-        break;
+        else /* alright, a new frame fits here */
+        {
+            //~ console_printf("FRAME %d: hSuite=%x hChunk=%x ptr=%x\n", count, hSuite, hChunk, ptr);
+            sp_frames[count] = ptr;
+            count++;
+            ptr = ptr + raw_info.frame_size;
+            if (count >= SP_BUFFER_SIZE)
+            {
+                //~ console_printf("we have lots of RAM, lol\n");
+                break;
+            }
+        }
     }
-
-    //~ console_printf("FRAME %d: hSuite=%x hChunk=%x ptr=%x\n", num_frames, sp_hSuite, hChunk, ptr);
-
-    /* Reprogram the raw EDMAC to output the data in our buffer (ptr) */
-    raw_lv_redirect_edmac(ptr);
-    
-    /* Prepare for next frame */
-    sp_frames[num_frames % SP_BUFFER_SIZE] = ptr;
-    ptr = ptr + raw_info.frame_size;
-    num_frames++;
-
-    bmp_printf(FONT_MED, 0, 60, "Capturing frame %d...", num_frames);
+    return count;
 }
 
 static void
-silent_pic_take_raw()
+silent_pic_take_raw(int interactive)
 {
-    /* allocate some RAM... as much as we can in burst mode */
-    sp_hSuite = shoot_malloc_suite(silent_pic_mode ? 0 : 20000000);
-    if (!sp_hSuite) { beep(); return; }
-
     /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
-    call("lv_save_raw", 1);
-    msleep(50);
+    int raw_flag = 1;
+    raw_lv_request();
+    msleep(100);
  
     /* get image resolution, white level etc; retry if needed */
     while (!raw_update_params())
         msleep(50);
 
-    sp_buffer_count = 0;
-    sp_max_frames = silent_pic_mode == 1 ? SP_BUFFER_SIZE : silent_pic_mode == 2 ? 1000000 : 1;
+    /* allocate RAM */
+    struct memSuite * hSuite = 0;
+    switch (silent_pic_mode)
+    {
+        /* allocate as much as we can in burst mode */
+        case SILENT_PIC_MODE_BURST:
+        case SILENT_PIC_MODE_BURST_END_TRIGGER:
+        case SILENT_PIC_MODE_BEST_SHOTS:
+            hSuite = shoot_malloc_suite(0);
+            break;
+        
+        /* allocate only one frame in simple and slitscan modes */
+        case SILENT_PIC_MODE_SIMPLE:
+        case SILENT_PIC_MODE_SLITSCAN:
+            hSuite = shoot_malloc_suite_contig(raw_info.frame_size * 33/32);
+            break;
+    }
+
+    if (!hSuite) { beep(); goto cleanup; }
+
+    /* how many pics we can take in the current memory suite? */
+    /* we'll have a pointer to each picture slot in sp_frames[], indexed from 0 to sp_buffer_count */
+    sp_buffer_count = silent_pic_raw_prepare_buffers(hSuite);
+
+    if (sp_buffer_count > 1)
+        bmp_printf(FONT_MED, 0, 80, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (hSuite->size / 100));
+
+    if (sp_buffer_count == 0)
+    {
+        bmp_printf(FONT_MED, 0, 80, "Buffer error");
+        goto cleanup;
+    }
     
+    /* misc initializers */
+    sp_num_frames = 0;
+    sp_slitscan_line = 0;
+    memset(sp_focus, 0, sizeof(sp_focus));
+
+    /* how many pics we should take? */
+    switch (silent_pic_mode)
+    {
+        case SILENT_PIC_MODE_SIMPLE:
+        case SILENT_PIC_MODE_SLITSCAN:
+            sp_max_frames = 1;
+            break;
+
+        case SILENT_PIC_MODE_BURST:
+            sp_max_frames = sp_buffer_count;
+            break;
+        
+        case SILENT_PIC_MODE_BURST_END_TRIGGER:
+        case SILENT_PIC_MODE_BEST_SHOTS:
+            sp_max_frames = 1000000;
+            break;
+    }
+    
+    /* when triggered from e.g. intervalometer (noninteractive), take a full burst */
+    sp_min_frames = interactive ? 1 : silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS ? 200 : sp_buffer_count;
+    
+    #ifdef CONFIG_DISPLAY_FILTERS
+    silent_pic_raw_init_preview();
+    #endif
+
     /* the actual grabbing the image(s) will happen from silent_pic_raw_vsync */
     sp_running = 1;
-    while (sp_running) msleep(20);
-    
+    while (sp_running)
+    {
+        msleep(20);
+        
+        #ifdef CONFIG_DISPLAY_FILTERS
+        silent_pic_raw_update_preview();
+        #endif
+        
+        if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+            silent_pic_raw_show_focus(-1);
+        
+        if (!lv)
+        {
+            sp_running = 0;
+            interactive = 0;
+            break;
+        }
+    }
+
+    #ifdef CONFIG_DISPLAY_FILTERS
+    silent_pic_display_buf = 0;
+    #endif
+
     /* disable the debug flag, no longer needed */
-    call("lv_save_raw", 0);
+    raw_lv_release(); raw_flag = 0;
+    
+    if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+    {
+        /* extrapolate the current focus value for the last two pics */
+        extern int focus_value_raw;
+        for (int i = 0; i < sp_buffer_count; i++)
+            if (sp_focus[i] == INT_MAX)
+                sp_focus[i] = focus_value_raw;
+
+        /* sort the files by focus value, best pictures first */
+        for (int i = 0; i < sp_buffer_count; i++)
+        {
+            for (int j = i+1; j < sp_buffer_count; j++)
+            {
+                if (sp_focus[i] < sp_focus[j])
+                {
+                    { int aux = sp_focus[i]; sp_focus[i] = sp_focus[j]; sp_focus[j] = aux; }
+                    { void* aux = sp_frames[i]; sp_frames[i] = sp_frames[j]; sp_frames[j] = aux; }
+                }
+            }
+        }
+    }
 
     /* save the image(s) to card */
-    if (sp_max_frames > 1)
+    if (sp_num_frames > 1 || silent_pic_mode == SILENT_PIC_MODE_SLITSCAN)
     {
         /* this will take a while; pause the liveview and block the buttons to make sure the user won't do something stupid */
         PauseLiveView();
-        ui_lock(UILOCK_EVERYTHING);
-        int i0 = 0;
-        if (sp_buffer_count) i0 = sp_max_frames - sp_buffer_count;
-        for (int i = i0; i < sp_max_frames; i++)
+        ui_lock(UILOCK_EVERYTHING & ~1); /* everything but shutter */
+        int i0 = MAX(0, sp_num_frames - sp_buffer_count);
+        
+        if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+        {
+            sp_num_frames -= i0, i0 = 0; /* save pics starting from index 0, to preserve ordering by focus */
+        }
+        
+        for (int i = i0; i < sp_num_frames; i++)
         {
             clrscr();
             char* fn = silent_pic_get_name();
-            bmp_printf(FONT_MED, 0, 60, "Saving image %d of %d (%dx%d)...", i+1, sp_max_frames, raw_info.jpeg.width, raw_info.jpeg.height);
-            raw_info.buffer = sp_frames[i % SP_BUFFER_SIZE];
+            bmp_printf(FONT_MED, 0, 60, "Saving image %d of %d (%dx%d)...", i+1, sp_num_frames, raw_info.jpeg.width, raw_info.jpeg.height);
+
+            if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+                silent_pic_raw_show_focus(i);
+
+            raw_info.buffer = sp_frames[i % sp_buffer_count];
+            raw_preview_fast();
             save_dng(fn);
-            if (i == 0) ui_lock(UILOCK_EVERYTHING); // sometimes the first call fails, so try again
+            
+            if ((HALFSHUTTER_PRESSED || !LV_PAUSED) && i > i0)
+            {
+                /* save at least 2 pics, then allow the user to cancel the saving process */
+                beep();
+                bmp_printf(FONT_MED, 0, 60, "Saving canceled.");
+                while (HALFSHUTTER_PRESSED) msleep(10);
+                break;
+            }
         }
         ui_lock(UILOCK_NONE);
-        ResumeLiveView();
+        
+        /* slit-scan: wait for half-shutter press after reviewing the image */
+        if (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN && interactive)
+        {
+            beep();
+            bmp_printf(FONT_MED, 0, 60, "Done, press shutter half-way to exit.");
+            while (!HALFSHUTTER_PRESSED)
+                msleep(20);
+        }
+        
+        if (LV_PAUSED) ResumeLiveView();
+        else redraw();
     }
     else
     {
@@ -1810,135 +1973,13 @@ silent_pic_take_raw()
         redraw();
     }
     
-    /* cleanup */
-    shoot_free_suite(sp_hSuite);
+cleanup:
+    sp_running = 0;
+    sp_buffer_count = 0;
+    if (hSuite) shoot_free_suite(hSuite);
+    if (raw_flag) raw_lv_release();
 }
  
-#else // who needs 422 when we have raw?
-
-static void
-silent_pic_take_simple(int interactive)
-{
-    get_yuv422_hd_vram();
-    int size = vram_hd.pitch * vram_hd.height;
-    int lv_size = vram_lv.pitch * vram_lv.height;
-    
-    // start with black preview 
-    silent_pic_buf = (void*)shoot_malloc(size + lv_size);
-    if(!silent_pic_buf) {
-        bmp_printf(FONT_MED,0,0,"Couldn't allocate 0x%x bytes" , size + lv_size);
-        return;
-    }
-    bzero32(silent_pic_buf + size, lv_size);
-    
-    /* when in continuous mode, wait for halfshutter being released before starting */
-    if(silent_pic_mode == 2)
-    {
-        while(get_halfshutter_pressed())
-        {
-            msleep(10);
-        }
-    }
-    
-    if (silent_pic_buf)
-    {
-        do
-        {
-            char* imgname = silent_pic_get_name();
-            // copy the HD picture into the temporary buffer
-            
-#ifdef FEATURE_SILENT_PIC_JPG
-            if(silent_pic_jpeg)
-            {
-                uint32_t loopcount = 0;
-                uint8_t *oldBuf = (uint8_t*) GetJpegBufForLV();
-                uint32_t oldLen = GetJpegSizeForLV();
-                
-                /* wait until size or buffer changed, then its likely that it is a new frame */
-                while((uint32_t)GetJpegSizeForLV() == oldLen || (uint8_t*)GetJpegBufForLV() == oldBuf)
-                {
-                    msleep(MIN_MSLEEP);
-                    if(++loopcount > 500)
-                    {
-                        NotifyBox(2000, "Failed to wait until\nJPEG buffer updates"); 
-                        msleep(5000);
-                        return;
-                    }
-                }
-                uint8_t *srcBuf = (uint8_t*) GetJpegBufForLV();
-                uint32_t srcLen = GetJpegSizeForLV();
-                
-                /* buffer is for sure larger than the jpeg will ever get */
-                dma_memcpy(silent_pic_buf, srcBuf, srcLen);
-                
-                dump_seg(silent_pic_buf, srcLen, imgname);
-            }
-            else
-#endif
-            {
-                // first we will copy the picture in a temporary buffer, to avoid horizontal cuts
-                void* buf = (void*)YUV422_HD_BUFFER_DMA_ADDR;
-
-                // wait until EDMAC HD buffer changes; at that point, 'buf' will contain a complete picture (and EDMAC starts filling the new one)
-                busy_vsync(1, 100);
-                
-                #ifdef CONFIG_DMA_MEMCPY
-                dma_memcpy(silent_pic_buf, buf, size);
-                #else
-                memcpy(silent_pic_buf, buf, size);
-                #endif
-                
-                /* we can take our time and resize it for preview purposes, only do that for single pics */
-                if(silent_pic_mode == 0)
-                {
-                    yuv_resize(silent_pic_buf, vram_hd.width, vram_hd.height, silent_pic_buf + size, vram_lv.width, vram_lv.height);
-                }
-                dump_seg(silent_pic_buf, size, imgname);
-            }
-
-            /* in burst mode abort when halfshutter isnt pressed anymore */
-            if(silent_pic_mode == 1)
-            {
-                if(!get_halfshutter_pressed())
-                {
-                    break;
-                }
-            }
-            else if(silent_pic_mode == 2)
-            {
-                /* cancel continuous mode with halfshutter press */
-                if(get_halfshutter_pressed())
-                {
-                    /* wait until button is released to prevent from firing again */
-                    while(get_halfshutter_pressed())
-                    {
-                        msleep(10);
-                    }
-                    break;
-                }
-            }
-            else
-            {
-                break;
-            }
-            
-            /* repeat process if half-shutter is still pressed and burst mode was enabled */
-        } while (1);
-        
-        shoot_free(silent_pic_buf);
-        silent_pic_buf = NULL;
-    }
-
-    /* if not in burst mode, wait until half-shutter was released */
-    if (interactive && silent_pic_mode == 0) // single mode
-    {
-        while (get_halfshutter_pressed()) msleep(100);
-    }
-}
-#endif
-
-#else // no silent pics, need some dummy stubs
-int silent_pic_preview(){ return 0; }
 #endif
 
 #ifdef FEATURE_SCREENSHOT_422
@@ -1960,127 +2001,12 @@ silent_pic_take_lv_dbg()
 #endif
 
 #ifdef FEATURE_SILENT_PIC
-
-int silent_pic_matrix_running = 0;
-
-#ifdef FEATURE_SILENT_PIC_HIRES
-
-#if defined(CONFIG_6D)
-#define ZoomBoxOffsetX 24
-#define ZoomBoxOffsetY 301
-#endif
-
-void
-silent_pic_take_sweep(int interactive)
-{
-#ifdef CONFIG_LIVEVIEW
-    if (recording) return;
-    if (!lv) return;
-    if (!silent_pic_hires_check()) return;
-
-    bmp_printf(FONT_MED, 100, 100, "Psst! Preparing for high-res pic   ");
-    while (get_halfshutter_pressed()) msleep(100);
-    gui_stop_menu();
-
-    bmp_draw_rect(COLOR_WHITE, (5-SILENTPIC_NC) * 360/5, (5-SILENTPIC_NL)*240/5, SILENTPIC_NC*720/5-1, SILENTPIC_NL*480/5-1);
-    msleep(200);
-    if (interactive) msleep(2000);
-    redraw(); msleep(100);
-    
-    int afx0 = afframe[2];
-    int afy0 = afframe[3];
-
-    set_lv_zoom(10);
-    msleep(1000);
-
-    struct vram_info * vram = get_yuv422_hd_vram();
-
-    char* imgname = silent_pic_get_name();
-
-    FILE* f = FIO_CreateFileEx(imgname);
-    if (f == INVALID_PTR)
-    {
-        bmp_printf(FONT_SMALL, 120, 40, "FCreate: Err %s", imgname);
-        return;
-    }
-    int i,j;
-    int NL = SILENTPIC_NL;
-    int NC = SILENTPIC_NC;
-
-
-    #if defined(CONFIG_6D)
-    int x0 = ( (SENSOR_RES_X - NC * 536) / 2) - 536; //612
-    int y0 = ( (SENSOR_RES_Y - NL * ((SENSOR_RES_Y - ZoomBoxOffsetY*2)/NL)  ) / 2 );
-    #else 
-    int x0 = (SENSOR_RES_X - NC * vram_hd.width)  / 2;
-    int y0 = (SENSOR_RES_Y - NL * vram_hd.height) / 2;
-    #endif
-
-    for (i = 0; i < NL; i++)
-    {
-        for (j = 0; j < NC; j++)
-        {
-            // afframe[2,3]: x,y
-            // range obtained by moving the zoom window: 250 ... 3922, 434 ... 2394 => upper left corner
-            // full-res: 5202x3465
-            // buffer size: 1024x680
-            bmp_printf(FONT_MED, 100, 100, "Psst! Taking a high-res pic [%d,%d]      ", i, j);
-
-            afframe[2] = x0 + vram_hd.width * j;
-            afframe[3] = y0 + vram_hd.height * i;
-
-            prop_request_change(PROP_LV_AFFRAME, afframe, 0);
-            //~ msleep(500);
-            msleep(silent_pic_sweepdelay);
-            FIO_WriteFile(f, vram->vram, vram_hd.width * vram_hd.height * 2);
-            //~ bmp_printf(FONT_MED, 20, 150, "=> %d", ans);
-            msleep(50);
-        }
-    }
-    FIO_CloseFile(f);
-    
-    // restore
-    set_lv_zoom(1);
-    msleep(1000);
-    afframe[2] = afx0;
-    afframe[3] = afy0;
-    prop_request_change(PROP_LV_AFFRAME, afframe, 0);
-
-    bmp_printf(FONT_MED, 100, 100, "Psst! Just took a high-res pic   ");
-#endif
-}
-#endif
-
-
 static void
 silent_pic_take(int interactive) // for remote release, set interactive=0
 {
     if (!silent_pic_enabled) return;
-
     if (!lv) force_liveview();
-    
-#if defined(FEATURE_SILENT_PIC_RAW) || defined(FEATURE_SILENT_PIC_RAW_BURST)
-    silent_pic_take_raw();
-#else
-
-    switch(silent_pic_mode)
-    {
-        /* normal, burst, continuous */
-        case 0:
-        case 1:
-        case 2:
-            silent_pic_take_simple(interactive);
-            break;
-        #ifdef FEATURE_SILENT_PIC_HIRES
-        case 3:
-            silent_pic_matrix_running = 1;
-            silent_pic_take_sweep(interactive);
-            break;
-        #endif
-    }
-
-    silent_pic_matrix_running = 0;
-#endif
+    silent_pic_take_raw(interactive);
 }
 #endif
 
@@ -3253,7 +3179,7 @@ void zoom_sharpen_step()
     static int sa = 100;
     static int sh = 100;
     
-    if (zoom_sharpen && lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown() && !bulb_ramp_calibration_running) // bump contrast/sharpness
+    if (zoom_sharpen && lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown()) // bump contrast/sharpness
     {
         if (co == 100)
         {
@@ -3302,7 +3228,7 @@ void zoom_auto_exposure_step()
     static int es = -1;
     // static int aem = -1;
     
-    if (lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown() && !bulb_ramp_calibration_running)
+    if (lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown())
     {
         // photo mode: disable ExpSim
         // movie mode 5D2: disable ExpSim
@@ -3722,6 +3648,312 @@ static void picq_toggle(void* priv)
 }
 #endif
 
+static char file_prefix[8] = "IMG_";
+PROP_HANDLER(PROP_FILE_PREFIX)
+{
+    snprintf(file_prefix, sizeof(file_prefix), "%s", (const char *)buf);
+}
+
+#ifdef FEATURE_POST_DEFLICKER
+static char* xmp_template =
+"<?xpacket begin='﻿' id='W5M0MpCehiHzreSzNTczkc9d'?>\n"
+"<x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='Image::ExifTool 7.89'>\n"
+"<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>\n"
+" <rdf:Description rdf:about=''\n"
+"  xmlns:crs='http://ns.adobe.com/camera-raw-settings/1.0/'>\n"
+"  <crs:Exposure>%s%d.%05d</crs:Exposure>\n"
+" </rdf:Description>\n"
+"</rdf:RDF>\n"
+"</x:xmpmeta>\n"
+"<?xpacket end='w'?>\n";
+
+static char* ufraw_template =
+"<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+"<UFRaw Version='7'>\n"
+"<InputFilename>%s</InputFilename>\n"
+"<OutputFilename>%s</OutputFilename>\n"
+"<Exposure>%s%d.%05d</Exposure>\n"
+"<ExposureNorm>1</ExposureNorm>\n"
+"<ClipHighlights>film</ClipHighlights>\n"
+"<OutputType>4</OutputType>\n"
+"</UFRaw>\n";
+
+static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, float ev)
+{
+    int evi = ev * 100000;
+    char fn[100];
+    snprintf(fn, sizeof(fn), "%s/%s%04d.%s", get_dcim_dir(), file_prefix, file_number, type ? "UFR" : "XMP");
+    FILE* f = FIO_CreateFileEx(fn);
+    if (f == INVALID_PTR) return;
+    if (type == 0)
+    {
+        my_fprintf(f, xmp_template, FMT_FIXEDPOINT5S(evi));
+    }
+    else if (type == 1)
+    {
+        char raw[100];
+        char jpg[100];
+        snprintf(raw, sizeof(raw), "%s%04d.CR2", file_prefix, file_number);
+        snprintf(jpg, sizeof(jpg), "%s%04d.JPG", file_prefix, file_number);
+        my_fprintf(f, ufraw_template, raw, jpg, FMT_FIXEDPOINT5(evi));
+    }
+    FIO_CloseFile(f);
+}
+
+static int deflicker_last_correction_x100 = 0;
+
+static void post_deflicker_step()
+{
+    if (!post_deflicker) return;
+    if (HDR_ENABLED) return;
+    
+    int raw = raw_hist_get_percentile_level(post_deflicker_percentile, GRAY_PROJECTION_GREEN);
+    if (raw < 0)
+    {
+        deflicker_last_correction_x100 = 0;
+        return;
+    }
+    float ev = raw_to_ev(raw);
+    float correction = post_deflicker_target_level - ev;
+    deflicker_last_correction_x100 = (int)roundf(correction * 100);
+    post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, file_number, correction);
+}
+
+/* called from QR zebras */
+void post_deflicker_show_info()
+{
+    if (post_deflicker && deflicker_last_correction_x100)
+    {
+        bmp_printf(FONT_MED, 0, os.y_max - font_med.height, 
+            "Post exposure: %s%d.%02d EV\n",
+            FMT_FIXEDPOINT2S(deflicker_last_correction_x100)
+        );
+        deflicker_last_correction_x100 = 0;
+    }
+}
+
+static MENU_UPDATE_FUNC(post_deflicker_update)
+{
+    if (!can_use_raw_overlays_photo())
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
+    }
+
+    if (HDR_ENABLED)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
+    }
+    
+    if (is_continuous_drive())
+    {
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
+    }
+    
+    if (post_deflicker)
+    {
+        MENU_SET_VALUE(post_deflicker_sidecar_type ? "UFRaw" : "XMP");
+        MENU_SET_RINFO("%d/%d%%", post_deflicker_target_level, post_deflicker_percentile);
+    }
+    
+    if (post_deflicker && post_deflicker_sidecar_type==1)
+        MENU_SET_WARNING(MENU_WARN_INFO, "You must rename *.UFR to *.ufraw: rename 's/UFR$/ufraw' *");
+}
+#endif
+
+#ifdef FEATURE_AUTO_ETTR
+
+static int auto_ettr_overexposure_warning = 0;
+/* also used for display on histogram */
+int auto_ettr_get_correction()
+{
+    static int last_value = INT_MIN;
+    
+    /* this is kinda slow, don't run it more often than once per second */
+    static int aux = INT_MIN;
+    if (!should_run_polling_action(500, &aux) && last_value != INT_MIN)
+        return last_value;
+    
+    int gray_proj = 
+        auto_ettr_clip == 0 ? GRAY_PROJECTION_MAX_RGB :
+        auto_ettr_clip == 1 ? GRAY_PROJECTION_MAX_RB :
+        auto_ettr_clip == 2 ? GRAY_PROJECTION_MEDIAN_RGB : -1;
+    
+    int raw = raw_hist_get_percentile_level(auto_ettr_percentile, gray_proj);
+    if (raw < 0)
+    {
+        last_value = INT_MIN;
+        return last_value;
+    }
+    
+    float ev = raw_to_ev(raw);
+    float target = MIN(auto_ettr_target_level, -0.5);
+    float correction = target - ev;
+    if (correction <= target + 0.3)
+    {
+        /* we don't know how much to go back in order to fix the overexposure */
+        /* so we'll use a heuristic: for each 10% of blown out image, go back 1EV */
+        int overexposed = raw_hist_get_overexposure_percentage(gray_proj);
+        correction -= overexposed / 10.0;
+        auto_ettr_overexposure_warning = 1;
+    }
+    else auto_ettr_overexposure_warning = 0;
+    
+    last_value = (int)(correction * 100);
+    return last_value;
+}
+
+static int expo_lock_adjust_iso(int delta);
+static int expo_lock_adjust_tv(int delta, int slowest_shutter);
+static int expo_lock_get_current_value();
+static int expo_lock_value;
+
+static void auto_ettr_work(int corr)
+{
+    int delta = -corr * 8 / 100;
+    int shutter_lim = auto_ettr_max_shutter*8 + 16;
+
+    if (lens_info.raw_shutter < shutter_lim)
+    {
+        delta += lens_info.raw_shutter - shutter_lim;
+        lens_set_rawshutter(shutter_lim);
+    }
+    
+    if (delta < 0) /* slower shutter speed */
+    {
+        int delta_extra = 0;
+        if (lens_info.raw_shutter + delta < shutter_lim)
+        {
+            int old_delta = delta;
+            delta = shutter_lim - lens_info.raw_shutter;
+            delta_extra = old_delta - delta;
+        }
+        
+        delta = expo_lock_adjust_tv(delta, shutter_lim);
+        delta += delta_extra;
+        delta = expo_lock_adjust_iso(delta);
+    }
+    else /* faster shutter speed */
+    {
+        delta = expo_lock_adjust_iso(delta);
+        delta = expo_lock_adjust_tv(delta, shutter_lim);
+    }
+
+    /* don't let expo lock undo our changes */
+    expo_lock_value = expo_lock_get_current_value();
+}
+
+static volatile int auto_ettr_running = 0;
+static void auto_ettr_step_task(int corr)
+{
+    if (auto_ettr_running) return;
+    auto_ettr_work(corr);
+    if (ABS(corr) < 50) { } /* that's ok */
+    else if (auto_ettr_overexposure_warning || ABS(corr) > 800) beep_times(2); /* take two more pics */
+    else beep_times(1); /* take one more pic */
+    auto_ettr_running = 0;
+}
+
+static void auto_ettr_step()
+{
+    if (!auto_ettr) return;
+    if (shooting_mode != SHOOTMODE_M) return;
+    if (lens_info.raw_iso == 0) return;
+    if (lens_info.raw_shutter == 0) return;
+    if (auto_ettr_running) return;
+    if (HDR_ENABLED) return;
+    int corr = auto_ettr_get_correction();
+    if (corr != INT_MIN)
+    {
+        /* we'd better not change expo settings from prop task (we won't get correct confirmations) */
+        task_create("ettr_task", 0x1c, 0x1000, auto_ettr_step_task, (void*) corr);
+    }
+}
+
+static void auto_ettr_step_lv()
+{
+    if (!auto_ettr) return;
+    if (shooting_mode != SHOOTMODE_M) return;
+    if (lens_info.raw_iso == 0) return;
+    if (lens_info.raw_shutter == 0) return;
+    if (HDR_ENABLED) return;
+    if (!expsim) return;
+    if (is_movie_mode()) return;
+    if (lv_dispsize != 1) return;
+    if (LV_PAUSED) return;
+    if (get_halfshutter_pressed()) return;
+    if (!liveview_display_idle()) return;
+
+    int raw = pic_quality & 0x60000;
+    if (!raw) return;
+    
+    /* only update once per second, so the exposure has a chance to be updated on the LCD */
+    static int aux = INT_MIN;
+    if (!should_run_polling_action(1000, &aux))
+        return;
+    
+    raw_lv_request();
+    int corr = auto_ettr_get_correction();
+    raw_lv_release();
+    
+    /* only correct if the difference is greater than 0.6 EV */
+    static int settled = 0;
+    if (corr != INT_MIN && ABS(corr) > 60)
+    {
+        auto_ettr_work(corr);
+        settled = 0;
+    }
+    else
+    {
+        settled++;
+        if (settled == 2) beep();
+    }
+}
+
+static MENU_UPDATE_FUNC(auto_ettr_update)
+{
+    int raw = pic_quality & 0x60000;
+    if (!raw)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You must shoot RAW in order to use this.");
+
+    if (!lv && !can_use_raw_overlays_photo())
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
+
+    if (HDR_ENABLED)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
+
+    if (lv && !expsim)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "In LiveView, this requires ExpSim enabled.");
+    
+    if (is_continuous_drive())
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
+    
+    if (auto_ettr)
+        MENU_SET_RINFO("%d/%d%%", auto_ettr_target_level, auto_ettr_percentile);
+
+    if (lv)
+        MENU_SET_HELP("In LiveView, just wait for exposure to settle, then shoot.");
+    else
+        MENU_SET_HELP("Take a test picture (underexposed). Next pic will be ETTR.");
+}
+
+#endif
+
+#if defined(FEATURE_POST_DEFLICKER) || defined(FEATURE_AUTO_ETTR)
+PROP_HANDLER(PROP_GUI_STATE)
+{
+    if (buf[0] == GUISTATE_QR)
+    {
+        #ifdef FEATURE_POST_DEFLICKER
+        post_deflicker_step();
+        #endif
+        
+        #ifdef FEATURE_AUTO_ETTR
+        auto_ettr_step();
+        #endif
+    }
+}
+#endif
+
 #ifdef FEATURE_BULB_RAMPING
 
 static int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int intervalometer_delay)
@@ -3765,96 +3997,7 @@ static int bulb_ramping_adjust_iso_180_rule_without_changing_exposure(int interv
     return 0; // nothing changed
 }
 
-static FILE* bramp_log_file = 0;
-static int bramp_init_state = 0;
 static int bramp_init_done = 0;
-static int bramp_reference_level = 0;
-static int bramp_measured_level = 0;
-//~ int bramp_level_ev_ratio = 0;
-static int bramp_hist_dirty = 0;
-static int bramp_ev_reference_x1000 = 0;
-static int bramp_prev_shot_was_bad = 1;
-static float bramp_u1 = 0; // for the feedback controller: command at previous step
-static int bramp_last_exposure_rounding_error_evx1000;
-
-static int measure_brightness_level(int initial_wait)
-{
-    msleep(initial_wait);
-    // hack so the playback histogram won't disturb us
-    // todo: remove dependency on hist_build
-    int ans;
-    BMP_LOCK(
-        if (bramp_hist_dirty)
-        {
-            struct vram_info * vram = get_yuv422_vram();
-            hist_build(vram->vram, vram->width, vram->pitch);
-            bramp_hist_dirty = 0;
-        }
-        ans = hist_get_percentile_level(bramp_percentile);
-    )
-    //~ get_out_of_play_mode(500);
-    return ans;
-}
-
-static void bramp_change_percentile(int dir)
-{
-    ASSERT(PLAY_MODE);
-    NotifyBoxHide();
-    bramp_percentile = COERCE(bramp_percentile + dir * 5, 5, 95);
-    
-    int i;
-    for (i = 0; i <= 20; i++)
-    {
-        bramp_reference_level = measure_brightness_level(0); // at bramp_percentile
-        if (bramp_reference_level > 230) bramp_percentile = COERCE(bramp_percentile - 5, 5, 95);
-        else if (bramp_reference_level < 25) bramp_percentile = COERCE(bramp_percentile + 5, 5, 95);
-        else break;
-    }
-    if (i >= 20) { NotifyBox(1000, "Image not properly exposed"); return; }
-
-    int level_8bit = bramp_reference_level;
-    int level_8bit_plus = level_8bit + 5; //hist_get_percentile_level(bramp_percentile + 5) * 255 / 100;
-    int level_8bit_minus = level_8bit - 5; //hist_get_percentile_level(bramp_percentile - 5) * 255 / 100;
-    clrscr();
-    highlight_luma_range(level_8bit_minus, level_8bit_plus, COLOR_BLUE, COLOR_WHITE);
-    hist_highlight(level_8bit);
-    bmp_printf(FONT_LARGE, 50, 400, 
-        "Meter for %s\n"
-        "(%2d%% luma at %dth percentile)",
-        bramp_percentile < 40 ? "shadows" : bramp_percentile < 70 ? "midtones" : "highlights",
-        bramp_reference_level*100/255, 0,
-        bramp_percentile);
-}
-
-int handle_bulb_ramping_keys(struct event * event)
-{
-    if (intervalometer_running && bramp_init_state && PLAY_MODE)
-    {
-        switch (event->param)
-        {
-            case BGMT_PRESS_SET:
-            {
-                bramp_init_state = 0; // OK :)
-                NotifyBox(1000, "OK");
-                return 1;
-            }
-            case BGMT_WHEEL_LEFT:
-            case BGMT_WHEEL_RIGHT:
-            {
-                int dir = event->param == BGMT_WHEEL_LEFT ? -1 : 1;
-                bramp_change_percentile(dir);
-                //~ NotifyBoxHide();
-                return 0;
-            }
-        }
-    }
-    
-    // test interpolation on luma-ev curve
-    //~ for (int i = 0; i < 255; i += 5)
-        //~ bramp_plot_luma_ev_point(i, COLOR_GREEN1);
-
-    return 1;
-}
 
 static void flip_zoom()
 {
@@ -3872,156 +4015,7 @@ static void flip_zoom()
     set_lv_zoom(zoom0);
 }
 
-
-static int bramp_measure_luma(int delay)
-{
-    ASSERT(lv);
-    ASSERT(lv_dispsize > 1);
-    ASSERT(get_expsim());
-    ASSERT(shooting_mode == SHOOTMODE_M);
-    //~ ASSERT(LVAE_DISP_GAIN); // display gain can also be zero, no problem
-    
-    msleep(delay);
-    // we are in zoom mode, histogram not normally updated => we can reuse the buffer
-    //~ struct vram_info * vram = get_yuv422_vram();
-    //~ hist_build(vram->vram, vram->width, vram->pitch);
-    //~ bramp_hist_dirty = 0;
-    //~ return hist_get_percentile_level(50) * 255/100; // median => much more robust in cluttered scenes, but more sensitive to noise
-    int Y,U,V;
-    get_spot_yuv(200, &Y, &U, &V);
-    return Y;
-}
-
-// still useful for bulb ramping
-static int bramp_zoom_toggle_needed = 0; // for 600D and some new lenses?!
-static int bramp_set_display_gain_and_measure_luma(int gain)
-{
-    gain = COERCE(gain, 0, 65534);
-    //~ bmp_printf(FONT_MED, 100, 100, "%d ", gain);
-    //~ set_display_gain_equiv(gain);
-    call("lvae_setdispgain", gain);
-    if (lv_dispsize == 1) set_lv_zoom(5);
-    if (bramp_zoom_toggle_needed)
-    {
-        flip_zoom();
-        msleep(1000);
-    }
-    #ifdef BRAMP_CALIBRATION_DELAY
-    msleep(BRAMP_CALIBRATION_DELAY);
-    #else
-    msleep(500);
-    #endif
-    return bramp_measure_luma(0);
-}
-
-static int crit_dispgain_50(int gain)
-{
-    if (!lv) return 0;
-    int Y = bramp_set_display_gain_and_measure_luma(gain);
-    NotifyBox(1000, "Gain=%d => Luma=%d ", gain, Y);
-    return 128 - Y;
-}
-
-
-static int bramp_luma_ev[11];
-
-static void bramp_plot_luma_ev()
-{
-    for (int i = -5; i < 5; i++)
-    {
-        int luma1 = bramp_luma_ev[i+5];
-        int luma2 = bramp_luma_ev[i+6];
-        int x1 =  350 + i * 20;
-        int x2 =  350 + (i+1) * 20;
-        int y1 =  240 - (luma1-128)/2;
-        int y2 =  240 - (luma2-128)/2;
-        draw_line(x1, y1, x2, y2, COLOR_RED);
-        draw_line(x1, y1+1, x2, y2+1, COLOR_RED);
-        draw_line(x1, y1+2, x2, y2+2, COLOR_WHITE);
-        draw_line(x1, y1-1, x2, y2-1, COLOR_WHITE);
-    }
-    int x1 =  350 - 5 * 20;
-    int x2 =  350 + 5 * 20;
-    int y1 =  240 - 128/2;
-    int y2 =  240 + 128/2;
-    bmp_draw_rect(COLOR_WHITE, x1, y1, x2-x1, y2-y1);
-}
-
-static int bramp_luma_to_ev_x100(int luma)
-{
-    int i;
-    for (i = -5; i < 5; i++)
-        if (luma <= bramp_luma_ev[i+5]) break;
-    i = COERCE(i-1, -5, 4);
-    // now, luma is between luma1 and luma2
-    // EV correction is between i EV and (i+1) EV => linear approximation
-    int luma1 = bramp_luma_ev[i+5];
-    int luma2 = bramp_luma_ev[i+6];
-    int k = (luma-luma1) * 1000 / (luma2-luma1);
-    //~ return i * 100;
-    int ev_x100 = ((1000-k) * i + k * (i+1))/10;
-    //~ NotifyBox(1000, "%d,%d=>%d", luma, i, ev_x100);
-    return COERCE(ev_x100, -500, 500);
-}
-
-static void bramp_plot_luma_ev_point(int luma, int color)
-{
-    luma = COERCE(luma, 0, 255);
-    int ev = bramp_luma_to_ev_x100(luma);
-    ev = COERCE(ev, -500, 500);
-    int x = 350 + ev * 20 / 100;
-    int y = 240 - (luma-128)/2;
-    for (int r = 0; r < 5; r++)
-    {
-        draw_circle(x, y, r, color);
-        draw_circle(x+1, y, r, color);
-    }
-    draw_circle(x, y, 6, COLOR_WHITE);
-}
-
-static void bramp_plot_holy_grail_hysteresis(int luma_ref)
-{
-    luma_ref = COERCE(luma_ref, 0, 255);
-    int ev = bramp_luma_to_ev_x100(luma_ref);
-    int ev1 = ev - BRAMP_LRT_HOLY_GRAIL_STOPS * 100;
-    int ev2 = ev + BRAMP_LRT_HOLY_GRAIL_STOPS * 100;
-    int x1 = 350 + ev1 * 20 / 100;
-    int x2 = 350 + ev2 * 20 / 100;
-    int y1 = 240 - (-128)/2;
-    int y2 = 240 - ( 128)/2;
-
-    draw_line(x1, y1, x1, y2, COLOR_BLACK);
-    draw_line(x2, y1, x2, y2, COLOR_WHITE);
-    draw_line(x1+1, y1, x1+1, y2, COLOR_WHITE);
-    draw_line(x2+1, y1, x2+1, y2, COLOR_BLACK);
-
-}
-
 #define BRAMP_SHUTTER_0 56 // 1 second exposure => just for entering compensation
-//~ static int bramp_temporary_exposure_compensation_ev_x100 = 0;
-
-// bulb ramping calibration cache
-static CONFIG_INT("bramp.calib.sig", bramp_calib_sig, 0);
-static CONFIG_INT("bramp.calib.m5", bramp_calib_cache_m5, 0);
-static CONFIG_INT("bramp.calib.m4", bramp_calib_cache_m4, 0);
-static CONFIG_INT("bramp.calib.m3", bramp_calib_cache_m3, 0);
-static CONFIG_INT("bramp.calib.m2", bramp_calib_cache_m2, 0);
-static CONFIG_INT("bramp.calib.m1", bramp_calib_cache_m1, 0);
-static CONFIG_INT("bramp.calib.0", bramp_calib_cache_0, 0);
-static CONFIG_INT("bramp.calib.1", bramp_calib_cache_1, 0);
-static CONFIG_INT("bramp.calib.2", bramp_calib_cache_2, 0);
-static CONFIG_INT("bramp.calib.3", bramp_calib_cache_3, 0);
-static CONFIG_INT("bramp.calib.4", bramp_calib_cache_4, 0);
-static CONFIG_INT("bramp.calib.5", bramp_calib_cache_5, 0);
-
-static void bramp_cleanup()
-{
-    if (bramp_log_file)
-    {
-        FIO_CloseFile(bramp_log_file);
-        bramp_log_file = 0;
-    }
-}
 
 static void bulb_ramping_init()
 {
@@ -4036,8 +4030,6 @@ static void bulb_ramping_init()
     }
     
     if (BULB_EXPOSURE_CONTROL_ACTIVE) set_shooting_mode(SHOOTMODE_M);
-    
-    msleep(2000);
 
     static char fn[50];
     for (int i = 0; i < 100; i++)
@@ -4047,309 +4039,11 @@ static void bulb_ramping_init()
         if( FIO_GetFileSize( fn, &size ) != 0 ) break;
         if (size == 0) break;
     }
-    bramp_log_file = FIO_CreateFileEx(fn);
+    beep();
 
     bulb_duration_index = 0; // disable bulb timer to avoid interference
     bulb_shutter_valuef = raw2shutterf(lens_info.raw_shutter);
-    bramp_ev_reference_x1000 = 0;
-    bramp_last_exposure_rounding_error_evx1000 = 0;
-    //~ bramp_temporary_exposure_compensation_ev_x100 = 0;
-    bramp_prev_shot_was_bad = 1; // force full correction at first step
-    bramp_u1 = 0.0;
-    
-    if (!bramp_auto_exposure) 
-    {
-        bramp_init_done = 1;
-        return;
-    }
-
-    // if calibration is cached, load it from config file
-    int calib_sig = lens_info.picstyle * 123 + lens_get_contrast() + (get_htp() ? 17 : 23);
-    if (calib_sig == (int)bramp_calib_sig)
-    {
-        bramp_luma_ev[0] = bramp_calib_cache_m5;
-        bramp_luma_ev[1] = bramp_calib_cache_m4;
-        bramp_luma_ev[2] = bramp_calib_cache_m3;
-        bramp_luma_ev[3] = bramp_calib_cache_m2;
-        bramp_luma_ev[4] = bramp_calib_cache_m1;
-        bramp_luma_ev[5] = bramp_calib_cache_0;
-        bramp_luma_ev[6] = bramp_calib_cache_1;
-        bramp_luma_ev[7] = bramp_calib_cache_2;
-        bramp_luma_ev[8] = bramp_calib_cache_3;
-        bramp_luma_ev[9] = bramp_calib_cache_4;
-        bramp_luma_ev[10] = bramp_calib_cache_5;
-
-        my_fprintf(bramp_log_file, "Luma curve: cached: %d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", bramp_calib_cache_m5, bramp_calib_cache_m4, bramp_calib_cache_m3, bramp_calib_cache_m2, bramp_calib_cache_m1, bramp_calib_cache_0, bramp_calib_cache_1, bramp_calib_cache_2, bramp_calib_cache_3, bramp_calib_cache_4, bramp_calib_cache_5);
-
-    }
-    else // compute calibration from scratch
-    {
-
-        NotifyBox(100000, "Calibration...");
-        bulb_ramp_calibration_running = 1;
-
-        set_shooting_mode(SHOOTMODE_M);
-        if (!lv) force_liveview();
-        int e0 = get_expsim();
-        int iso0 = lens_info.raw_iso;
-        int s0 = lens_info.raw_shutter;
-        set_expsim(1);
-
-    calib_start:
-        SW1(1,50); // reset power management timers
-        SW1(0,50);
-        set_lv_zoom(lv_dispsize == 10 ? 5 : 10);
-        
-        lens_set_rawiso(COERCE(iso0, 80, 120));
-
-        NotifyBox(2000, "Testing display gain...");
-        int Y;
-        int Yn = bramp_set_display_gain_and_measure_luma(100);
-        int Yp = bramp_set_display_gain_and_measure_luma(65535);
-        bramp_zoom_toggle_needed = (ABS(Yn - Yp) < 10);
-        if (bramp_zoom_toggle_needed)
-        {
-            Yn = bramp_set_display_gain_and_measure_luma(100);
-            Yp = bramp_set_display_gain_and_measure_luma(65535);
-        }
-        bramp_set_display_gain_and_measure_luma(0);
-        int ok = (ABS(Yn - Yp) > 10);
-        if (!ok)
-        {
-            set_expsim(e0);
-            NotifyBox(5000, "Cannot calibrate.        \n"
-                            "Please report to ML devs."); msleep(5000);
-            intervalometer_stop();
-            goto end;
-        }
-        
-        // first try to brighten the image
-        while (bramp_measure_luma(500) < 128)
-        {
-            if (lens_info.raw_iso+8 <= 120) // 6400
-            {
-                NotifyBox(2000, "Too dark, increasing ISO...");
-                lens_set_rawiso(lens_info.raw_iso + 8);
-                continue;
-            }
-            else if (lens_info.raw_shutter-8 >= 20)
-            {
-                NotifyBox(2000, "Too dark, increasing exp.time...");
-                lens_set_rawshutter(lens_info.raw_shutter - 8);
-                continue;
-            }
-            else break;
-        }
-        
-        // then try to darken 
-        while (bramp_measure_luma(500) > 150)
-        {
-            if (lens_info.raw_iso-8 >= 80) // 200
-            {
-                NotifyBox(2000, "Too bright, decreasing ISO...");
-                lens_set_rawiso(lens_info.raw_iso - 8);
-                continue;
-            }
-            else if (lens_info.raw_shutter <= 152) // 1/4000
-            {
-                NotifyBox(2000, "Too bright, decreasing exp.time...");
-                lens_set_rawshutter(lens_info.raw_shutter + 8);
-                continue;
-            }
-            else break;
-        }
-        
-        // at this point, the image should be roughly OK exposed
-        // we can now play only with display gain
-        
-        
-        int gain0 = bin_search(128, 2000, crit_dispgain_50);
-        Y = bramp_set_display_gain_and_measure_luma(gain0);
-        if (ABS(Y-128) > 2) 
-        {
-            NotifyBox(1000, "Scene %s, retrying...", 
-                gain0 > 1900 ? "too dark" :
-                gain0 < 130 ? "too bright" : 
-                "not static"
-            ); 
-            msleep(500);
-            goto calib_start;
-        }
-        
-        for (int i = -5; i <= 5; i++)
-        {
-            Y = bramp_set_display_gain_and_measure_luma(gain0 * (1 << (i+10)) / 1024);
-            NotifyBox(500, "%d EV => luma=%d  ", i, Y);
-            if (i == 0) // here, luma should be 128
-            {
-                if (ABS(Y-128) > 2) {msleep(500); NotifyBox(1000, "Middle check failed, retrying..."); msleep(1000); goto calib_start;}
-                else Y = 128;
-            }
-            int prev_Y = i > -5 ? bramp_luma_ev[i+5-1] : 0;
-            if (Y < prev_Y-3) 
-            {
-                msleep(500); NotifyBox(1000, "Decreasing curve (%d->%d), retrying...", prev_Y, Y); msleep(1000); 
-                goto calib_start;
-            }
-            bramp_luma_ev[i+5] = MAX(Y, prev_Y);
-            bramp_plot_luma_ev();
-            //~ set_display_gain(1<<i);
-        }
-        
-        // final check
-        Y = bramp_set_display_gain_and_measure_luma(gain0);
-        msleep(500);
-        if (ABS(Y-128) > 2) { msleep(500); NotifyBox(1000, "Final check failed (%d), retrying...", Y); msleep(1000); goto calib_start;}
-
-        // calibration accepted :)
-
-        bulb_ramp_calibration_running = 0;
-        bramp_set_display_gain_and_measure_luma(0);
-        set_expsim(e0);
-        lens_set_rawiso(iso0);
-        lens_set_rawshutter(s0);
-
-        fake_simple_button(BGMT_LV);
-        msleep(1000);
-
-        // save calibration results in config file
-        bramp_calib_sig = calib_sig;
-        bramp_calib_cache_m5 = bramp_luma_ev[0];
-        bramp_calib_cache_m4 = bramp_luma_ev[1];
-        bramp_calib_cache_m3 = bramp_luma_ev[2];
-        bramp_calib_cache_m2 = bramp_luma_ev[3];
-        bramp_calib_cache_m1 = bramp_luma_ev[4];
-        bramp_calib_cache_0  = bramp_luma_ev[5];
-        bramp_calib_cache_1  = bramp_luma_ev[6];
-        bramp_calib_cache_2  = bramp_luma_ev[7];
-        bramp_calib_cache_3  = bramp_luma_ev[8];
-        bramp_calib_cache_4  = bramp_luma_ev[9];
-        bramp_calib_cache_5  = bramp_luma_ev[10];
-        my_fprintf(bramp_log_file, "Luma curve: %d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", bramp_calib_cache_m5, bramp_calib_cache_m4, bramp_calib_cache_m3, bramp_calib_cache_m2, bramp_calib_cache_m1, bramp_calib_cache_0, bramp_calib_cache_1, bramp_calib_cache_2, bramp_calib_cache_3, bramp_calib_cache_4, bramp_calib_cache_5);
-
-    }
-
-    fake_simple_button(BGMT_PLAY);
-    msleep(1000);
-    
-    if (!PLAY_MODE) { NotifyBox(1000, "BRamp: could not go to PLAY mode"); msleep(2000); intervalometer_stop(); goto end; }
-    
-    //~ bramp_level_ev_ratio = 0;
-    bramp_measured_level = 0;
-    
-    bramp_init_state = 1;
-    
-    msleep(200);
-    bramp_hist_dirty = 1;
-    bramp_change_percentile(0); // show current selection;
-
-    NotifyBox(100000, "Choose a well-exposed photo  \n"
-                      "and tonal range to meter for.\n"
-                      "Keys: arrows, main dial, SET.");
-    
-    void* play_buf = get_yuv422_vram()->vram;
-    while (PLAY_MODE && bramp_init_state == 1)
-    {
-        if (get_yuv422_vram()->vram != play_buf) // another image selected
-        {
-            bramp_hist_dirty = 1;
-            bramp_change_percentile(0); // update current selection
-            play_buf = get_yuv422_vram()->vram;
-        }
-        msleep(100);
-    }
-    if (!PLAY_MODE) { intervalometer_stop(); goto end; }
-    
-    bramp_init_done = 1; // OK :)
-
-    set_shooting_mode(SHOOTMODE_M);
-    lens_set_rawshutter(BRAMP_SHUTTER_0);
-    if (lv) fake_simple_button(BGMT_LV);
-    msleep(1000);
-    set_shooting_mode(SHOOTMODE_M);
-
-    my_fprintf(bramp_log_file, "Reference level: %d at %d-th percentile\n", bramp_reference_level, bramp_percentile);
-
-end:
-    bulb_ramp_calibration_running = 0;
 }
-
-// monitor shutter speed and aperture and consider your changes as exposure compensation for bulb ramping
-/*
-static void bramp_temporary_exposure_compensation_update()
-{
-    if (!bramp_init_done) return;
-    if (!bulb_ramping_enabled) return;
-    int shutter = (int)lens_info.raw_shutter;
-    int aperture = (int)lens_info.raw_aperture;
-
-    static int prev_shutter = 0;
-    static int prev_aperture = 0;
-
-    int ec_rounded_abs = (ABS(bramp_temporary_exposure_compensation_ev_x100) + 5) / 10;
-
-    if (prev_shutter > 0xC && shutter > 0xC)
-    {
-        int ec_delta_shutter = -(shutter - prev_shutter) * 100/8;
-        int ec_delta_aperture = (aperture - prev_aperture) * 100/8;
-        int ec_delta = ec_delta_shutter + ec_delta_aperture;
-        if (ec_delta)
-        {
-            bramp_temporary_exposure_compensation_ev_x100 += ec_delta;
-            ec_rounded_abs = (ABS(bramp_temporary_exposure_compensation_ev_x100) + 5) / 10;
-            bmp_printf(FONT_LARGE, 0, 0, 
-                "Exp.Comp for next shot: %s%d.%d EV",
-                bramp_temporary_exposure_compensation_ev_x100 > 0 ? "+" : "-",
-                ec_rounded_abs / 10, ec_rounded_abs % 10
-            );
-        }
-    }
-
-    // extend compensation range beyond normal shutter speed limits
-    if (ec_rounded_abs == 0 && shutter != BRAMP_SHUTTER_0) // cancel drift
-    {
-        lens_set_rawshutter(BRAMP_SHUTTER_0);
-        shutter = lens_info.raw_shutter;
-    }
-    else if (prev_shutter > 144) // 1/2000
-    {
-        lens_set_rawshutter(prev_shutter - 32);
-        shutter = lens_info.raw_shutter;
-    }
-    else if (prev_shutter < 24) // 16 seconds
-    {
-        lens_set_rawshutter(prev_shutter + 32);
-        shutter = lens_info.raw_shutter;
-    }
-
-    prev_shutter = shutter;
-    prev_aperture = aperture;
-}*/
-
-/*
-static int brightness_samples_a[11][11];
-static int brightness_samples_b[11][11];
-static int brightness_samples_delta[11][11];
-
-int measure_brightness_difference()
-{
-    for (int i = 0; i <= 10; i++)
-    {
-        for (int j = 0; j <= 10; j++)
-        {
-            brightness_samples_a[i][j] = brightness_samples_b[i][j];
-            int Y,U,V;
-            int dx = (j-5) * 65;
-            int dy = (i-5) * 40;
-            get_spot_yuv_ex(10, dx, dy, &Y, &U, &V, 1, 0);
-            brightness_samples_b[i][j] = Y;
-            brightness_samples_delta[i][j] = bramp_luma_to_ev_x100(brightness_samples_b[i][j]) - bramp_luma_to_ev_x100(brightness_samples_a[i][j]);
-            int xcb = os.x0 + os.x_ex/2 + dx;
-            int ycb = os.y0 + os.y_ex/2 + dy;
-            bmp_printf(SHADOW_FONT(FONT_SMALL), xcb, ycb, "%d ", brightness_samples_delta[i][j]);
-        }
-    }
-}*/
 
 static void compute_exposure_for_next_shot()
 {
@@ -4357,10 +4051,9 @@ static void compute_exposure_for_next_shot()
     return;
     #endif
     
-    static int prev_file_number = 12345;
+    static int prev_file_number = INT_MAX;
     if (prev_file_number == file_number)
     {
-        my_fprintf(bramp_log_file, "Picture not taken\n");
         NotifyBox(2000, "Picture not taken :("); msleep(2000);
         return;
     }
@@ -4374,185 +4067,6 @@ static void compute_exposure_for_next_shot()
     // also, don't go faster than 1/4000 (or 1/8000)
     float shutter_min = 1.0 / (FASTEST_SHUTTER_SPEED_RAW == 160 ? 8000 : 4000);
     
-    if (bramp_auto_exposure)
-    {
-        //~ msleep(200);
-        ensure_play_or_qr_mode_after_shot();
-        //~ draw_livev_for_playback();
-
-        //~ NotifyBox(2000, "Exposure for next shot..."); msleep(1000);
-
-        //~ NotifyBoxHide();
-        //~ msleep(500);
-        bramp_hist_dirty = 1;
-        bramp_measured_level = measure_brightness_level(0);
-        int mev = bramp_luma_to_ev_x100(bramp_measured_level);
-        //~ NotifyBox(1000, "Brightness level: %d (%s%d.%02d EV)", bramp_measured_level, FMT_FIXEDPOINT2(mev)); msleep(1000);
-
-        my_fprintf(bramp_log_file, "%04d luma=%3d rounderr=%3d ", file_number, bramp_measured_level, bramp_last_exposure_rounding_error_evx1000);
-
-        /**
-         * Use a discrete feedback controller, designed such as the closed loop system 
-         * has two real poles placed at f, where f is the smoothing factor (0.1 ... 0.9).
-         *
-         *  r = expo reference (0, unless manual ramping is active)
-         *  e = expo difference          
-         *  u = expo correction
-         *  T = log2(exposure time)                  +----------< brightness change from real world (sunrise, sunset)
-         *                                           |   +------< measurement noise (let's say around 0.03 EV stdev)
-         *              _______        ______        |   |
-         * r     _  e  |       |   u  |  1   |   T   V   V
-         * -----( )----| Bramp |------|(z-1) |------(+)-(+)----+----> picture
-         *     - ^     |_______|      |______|                 |
-         *       |_____________________________________________| y = brightness level (EV); luma=bramp_reference_level => 0 EV.
-         * 
-         * P = 1/(z-1) - integrator. 
-         * Rationale: the exposure correction at each step is accumulated.
-         * 
-         * Closed loop system:
-         * S = B*P / (1 + B*P)
-         *
-         * We want to fix the closed loop response (S), so we try to find out the controller B by inverting the process P
-         * => B = S / (P - S*P)
-         *
-         * We will place both closed-loop poles at smoothing factor value f in range [0.1 ... 0.9] and keep the static gain at 1.
-         * S = z / (z-f) / (z-f) / (1 / (1-f) / (1-f))
-         *
-         * Result:
-         *
-         *      b*z          b
-         * B = -----  = -----------
-         *     z - a     1 - a*z^-1
-         *
-         * with:
-         *    b = f^2 - 2f + 1
-         *    a = f^2
-         * 
-         * Computing exposure correction:
-         * 
-         * u = B/A * e
-         *    => u(k) = b e(k) + a u(k-1)
-         * 
-         * Exception: if ABS(e) > 2 EV, apply almost-full correction (B = 0.9) to bring it quickly back on track, 
-         * without caring about flicker.
-         * 
-         */
-
-        // unit: 0.01 EV
-        int y_x100 = bramp_luma_to_ev_x100(bramp_measured_level) - bramp_luma_to_ev_x100(bramp_reference_level) - bramp_last_exposure_rounding_error_evx1000/10;
-        int r_x100 = bramp_ev_reference_x1000/10;
-        int e_x100 = COERCE(r_x100 - y_x100, -mev-500, -mev+500);
-        // positive e => picture should be brightened
-
-        my_fprintf(bramp_log_file, "y=%4d r=%4d e=%4d => ", y_x100, r_x100, e_x100);
-
-        if (BRAMP_LRT_HOLY_GRAIL)
-        {
-            // only apply an integer amount of correction
-            int step_x100 = BRAMP_LRT_HOLY_GRAIL_STOPS * 100;
-            int c = (ABS(e_x100) / step_x100) * BRAMP_LRT_HOLY_GRAIL_STOPS;
-            if (e_x100 < 0) c = -c;
-            float u = c;
-            bulb_shutter_valuef *= powf(2, u);
-
-            int corr_x100 = (int) roundf(u * 100.0f);
-            my_fprintf(bramp_log_file, "LRT: e=%4d u=%4d ", e_x100, corr_x100);
-
-            NotifyBox(2000, "Exposure difference: %s%d.%02d EV \n"
-                            "Exposure correction: %s%d.%02d EV ",
-                            FMT_FIXEDPOINT2S(e_x100),
-                            FMT_FIXEDPOINT2S(corr_x100)
-                );
-            msleep(500);
-        }
-        else if (BRAMP_FEEDBACK_LOOP)
-        {
-            // a difference of more than 2 EV will be fully corrected right away
-            int expo_diff_too_big = 
-                (e_x100 > 200 && bulb_shutter_valuef < shutter_max) ||
-                (e_x100 < -200 && bulb_shutter_valuef > shutter_min);
-            int should_apply_full_correction_immediately = (expo_diff_too_big || bramp_prev_shot_was_bad) && !BRAMP_LRT_HOLY_GRAIL;
-            bramp_prev_shot_was_bad = expo_diff_too_big;
-
-            if (should_apply_full_correction_immediately)
-            {
-                // big change in brightness - request a new picture without waiting, and apply full correction
-                // most probably, user changed ND filters or moved the camera
-                
-                NotifyBox(1000, "Exposure difference: %s%d.%02d EV ", FMT_FIXEDPOINT2S(e_x100));
-                msleep(500);
-
-                float cor = COERCE((float)e_x100 / 111.0f, -3.0f, 3.0f);
-                bulb_shutter_valuef *= powf(2, cor); // apply 90% of correction, but not more than 3 EV, to keep things stable
-                
-                // use high iso to adjust faster, then go back at low iso
-                for (int i = 0; i < 5; i++)
-                    bulb_ramping_adjust_iso_180_rule_without_changing_exposure(expo_diff_too_big ? 1 : timer_values[interval_timer_index]);
-                    
-                bulb_shutter_valuef = COERCE(bulb_shutter_valuef, shutter_min, shutter_max);
-
-                // set Canon shutter speed close to bulb one (just for display)
-                lens_set_rawshutter(shutterf_to_raw(bulb_shutter_valuef));
-
-                my_fprintf(bramp_log_file, "harsh: cor=%d shutter=%6dms iso=%4d\n", (int)roundf(cor * 100.0f), BULB_SHUTTER_VALUE_MS, lens_info.iso);
-
-                // force next shot to be taken quicker
-                intervalometer_next_shot_time = seconds_clock;
-                return;
-            }
-            else // small change in brightness - apply only a small amount of correction to keep things smooth
-            {    // see comments above for the feedback loop design
-                bramp_ev_reference_x1000 += manual_evx1000;
-
-                float u = 0;
-
-                // auto adjust the smooth factor based on exposure difference over last few frames
-                // big expo difference => more aggressive correction
-                // small expo difference => calm down, less flicker
-                
-                static int expo_diff = 0;
-                expo_diff = (e_x100 * e_x100 / 100 + expo_diff * 9) / 10;
-                
-                // don't change the smooth factor too fast
-                // let it become aggressive quickly (fast response to sudden ramps) 
-                // but don't let it calm down too fast, to get some time for settling
-                static int expo_diff_filtered = 0;
-                if (expo_diff > expo_diff_filtered)
-                     expo_diff_filtered = MIN(expo_diff, expo_diff_filtered + 50);
-                else if (expo_diff < expo_diff_filtered - 10)
-                     expo_diff_filtered = MAX(expo_diff + 10, expo_diff_filtered - 5);
-                
-                // try to follow the ramps at around 0.5 EV behind
-                int fi = get_smooth_factor_from_max_ev_speed(expo_diff_filtered * 2);
-                
-                // plug this adaptive smooth factor into our feedback loop
-                // here we have a small trick for reducing the side effects of changing the smooth factor while running
-                float f = (float)fi / 100.0f;
-                float e = (float)e_x100 / 100.0f;
-
-                float b = f*f - 2*f + 1;
-                float a = f*f;
-                
-                u = b*e + bramp_u1;
-                bramp_u1 = a*u;
-               
-                bulb_shutter_valuef *= powf(2, u);
-
-                // display some info
-                int corr_x100 = (int) roundf(u * 100.0f);
-                NotifyBox(2000, "Exposure difference: %s%d.%02d EV \n"
-                                "Exposure correction: %s%d.%02d EV ",
-                                FMT_FIXEDPOINT2S(e_x100),
-                                FMT_FIXEDPOINT2S(corr_x100)
-                    );  
-
-                my_fprintf(bramp_log_file, "soft: f=%2d e=%4d u=%4d ", fi, (int)roundf(e*100), corr_x100);
-
-                msleep(500);
-            }
-        }
-    }
-
     // apply manual exposure ramping, if any
     if (manual_evx1000)
         bulb_shutter_valuef *= powf(2, (float)manual_evx1000 / 1000.0f);
@@ -4566,9 +4080,6 @@ static void compute_exposure_for_next_shot()
         
         // set Canon shutter speed close to bulb one (just for display)
         lens_set_rawshutter(shutterf_to_raw(bulb_shutter_valuef));
-
-        int shutter = (int)roundf(bulb_shutter_valuef * 100000.0f);
-        my_fprintf(bramp_log_file, "shutter=%3d.%05ds iso=%4d\n", shutter/100000, shutter%100000, lens_info.iso);
     }
         
     if (mf_steps && !is_manual_focus())
@@ -4611,16 +4122,6 @@ static void bulb_ramping_showinfo()
         s / 1000, s % 1000,
         lens_info.iso, get_htp() ? 200 : 100, raw2iso(auto_iso_range & 0xFF)
         );
-    
-    if (bramp_auto_exposure && (PLAY_MODE || QR_MODE))
-    {
-        bramp_plot_luma_ev();
-        bramp_plot_luma_ev_point(bramp_measured_level, COLOR_RED);
-        bramp_plot_luma_ev_point(bramp_reference_level, COLOR_BLUE);
-        
-        if (BRAMP_LRT_HOLY_GRAIL)
-            bramp_plot_holy_grail_hysteresis(bramp_reference_level);
-    }
 }
 
 #endif // FEATURE_BULB_RAMPING
@@ -4642,7 +4143,7 @@ static CONFIG_INT("expo.lock.av", expo_lock_av, 1);
 static CONFIG_INT("expo.lock.iso", expo_lock_iso, 1);
 
 // keep this constant
-static int expo_lock_value = 12345;
+static int expo_lock_value = INT_MAX;
 
 static MENU_UPDATE_FUNC(expo_lock_display)
 {
@@ -4682,24 +4183,26 @@ static int expo_lock_get_current_value()
 }
 
 // returns the remainder
-static int expo_lock_adjust_tv(int delta)
+static int expo_lock_adjust_tv(int delta, int slowest_shutter)
 {
     if (!delta) return 0;
     int old_tv = lens_info.raw_shutter;
     int new_tv = old_tv + delta;
-    new_tv = COERCE(new_tv, 16, FASTEST_SHUTTER_SPEED_RAW);
+    new_tv = COERCE(new_tv, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
 
     if (!expo_value_rounding_ok(new_tv)) // try to change it by a small amount, so Canon firmware will accept it
     {
-        int new_tv_plus1  = COERCE(new_tv + 1, 16, FASTEST_SHUTTER_SPEED_RAW);
-        int new_tv_minus1 = COERCE(new_tv - 1, 16, FASTEST_SHUTTER_SPEED_RAW);
-        int new_tv_plus2  = COERCE(new_tv + 2, 16, FASTEST_SHUTTER_SPEED_RAW);
-        int new_tv_minus2 = COERCE(new_tv - 2, 16, FASTEST_SHUTTER_SPEED_RAW);
+        int new_tv_plus1  = COERCE(new_tv + 1, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
+        int new_tv_minus1 = COERCE(new_tv - 1, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
+        int new_tv_plus2  = COERCE(new_tv + 2, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
+        int new_tv_minus2 = COERCE(new_tv - 2, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
+        int new_tv_plus3  = COERCE(new_tv + 3, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
         
         if (expo_value_rounding_ok(new_tv_plus1)) new_tv = new_tv_plus1;
         else if (expo_value_rounding_ok(new_tv_minus1)) new_tv = new_tv_minus1;
         else if (expo_value_rounding_ok(new_tv_plus2)) new_tv = new_tv_plus2;
         else if (expo_value_rounding_ok(new_tv_minus2)) new_tv = new_tv_minus2;
+        else if (expo_value_rounding_ok(new_tv_plus3)) new_tv = new_tv_plus3;
     }
 
     lens_set_rawshutter(new_tv);
@@ -4740,7 +4243,7 @@ static int expo_lock_adjust_iso(int delta)
     
     int old_iso = lens_info.raw_iso;
     int delta_r = ((delta + 4 * SGN(delta)) / 8) * 8;
-    int new_iso = old_iso - delta_r;
+    int new_iso = COERCE(old_iso - delta_r, MIN_ISO, MAX_ANALOG_ISO);
 
     int max_auto_iso = auto_iso_range & 0xFF;
     if (new_iso > max_auto_iso && old_iso < max_auto_iso)
@@ -4766,7 +4269,7 @@ static void expo_lock_step()
     
     int max_auto_iso = auto_iso_range & 0xFF;
     
-    if (expo_lock_value == 12345)
+    if (expo_lock_value == INT_MAX)
         expo_lock_value = expo_lock_get_current_value();
     
     static int p_tv = 0;
@@ -4810,13 +4313,13 @@ static void expo_lock_step()
             int delta = expo_lock_value - current_value;
             if (expo_lock_iso == 1)
             {
-                delta = expo_lock_adjust_tv(delta);
+                delta = expo_lock_adjust_tv(delta, 0);
                 if (ABS(delta) >= 4) delta = expo_lock_adjust_av(delta);
             }
             else
             {
                 delta = expo_lock_adjust_av(delta);
-                if (ABS(delta) >= 4) delta = expo_lock_adjust_tv(delta);
+                if (ABS(delta) >= 4) delta = expo_lock_adjust_tv(delta, 0);
             }
             //~ delta = expo_lock_adjust_iso(delta);
     }
@@ -4834,7 +4337,7 @@ static void expo_lock_step()
             if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
             if (ABS(delta) >= 8) delta = expo_lock_adjust_av(delta);
         }
-        //~ delta = expo_lock_adjust_tv(delta);
+        //~ delta = expo_lock_adjust_tv(delta, 0);
     }
     else if (what_changed == 3 && expo_lock_av)
     {
@@ -4842,13 +4345,13 @@ static void expo_lock_step()
         int delta = expo_lock_value - current_value;
         if (expo_lock_av == 1 || (lens_info.raw_iso > max_auto_iso - 8 && delta < 0))
         {
-            delta = expo_lock_adjust_tv(delta);
+            delta = expo_lock_adjust_tv(delta, 0);
             if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
         }
         else
         {
             if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
-            if (ABS(delta) >= 8) delta = expo_lock_adjust_tv(delta);
+            if (ABS(delta) >= 8) delta = expo_lock_adjust_tv(delta, 0);
         }
         //~ delta = expo_lock_adjust_av(delta);
     }
@@ -5057,23 +4560,7 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type  = IT_PERCENT_LOG_OFF,
                 .help = "Stop the intervalometer after taking X shots.",
             },
-
             #ifdef FEATURE_BULB_RAMPING
-                #ifndef FEATURE_HISTOGRAM
-                #error This requires FEATURE_HISTOGRAM.
-                #endif
-
-            {
-                .name = "Auto ExpoRamp",
-                .priv       = &bramp_auto_exposure,
-                .max = 2,
-                .icon_type = IT_DICE_OFF,
-                .choices = CHOICES("OFF", "Smooth ramping", "LRT Holy Grail 1EV"),
-                .help = "Choose the algorithm for automatic bulb ramping.",
-                .help2 = " \n"
-                        "Feedback loop. Works best with expos longer than 1 second.\n"
-                        "Expo is adjusted in 1EV integer steps. vimeo.com/26083323",
-            },
             {
                 .name = "Manual ExpoRamp",
                 .priv       = &bramp_manual_speed_evx1000_per_shot,
@@ -5094,28 +4581,12 @@ static struct menu_entry shoot_menus[] = {
                 .depends_on = DEP_AUTOFOCUS,
                 .works_best_in = DEP_LIVEVIEW,
             },
-            
             #endif
-            
             MENU_EOL
         },
     },
     #endif
-    /*
-    {
-        .name = "Bulb Ramping", // will move focus ramping to scripts
-        .priv       = &bulb_ramping_enabled,
-        .update     = bulb_ramping_print,
-        .max        = 1,
-        .submenu_width = 710,
-        .help = "Exposure / focus ramping for advanced timelapse sequences.",
-        .depends_on = DEP_PHOTO_MODE,
-        .children =  (struct menu_entry[]) {
 
-            MENU_EOL,
-        }
-    },
-    */
     #ifdef FEATURE_BULB_TIMER
     {
         .name = "Bulb Timer",
@@ -5212,13 +4683,12 @@ static struct menu_entry shoot_menus[] = {
                 .choices = CHOICES("OFF", "0.1s", "0.2s", "0.3s", "0.4s", "0.5s", "0.6s", "0.7s", "0.8s", "0.9s", "1s"),
                 .help = "Delay between the detected motion and the picture taken.",
             },
-			MENU_EOL
-		}
+            MENU_EOL
+        }
 
     },
     #endif
     #ifdef FEATURE_SILENT_PIC
-    #if defined(FEATURE_SILENT_PIC_RAW) || defined(FEATURE_SILENT_PIC_RAW_BURST)
     {
         .name = "Silent Picture",
         .priv = &silent_pic_enabled,
@@ -5231,63 +4701,23 @@ static struct menu_entry shoot_menus[] = {
         .update = silent_pic_display,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Mode",
+                .name = "Silent Mode",
                 .priv = &silent_pic_mode,
-                .max = 2,
-                .help = "Silent picture mode: simple or burst.",
-                .choices = CHOICES("Simple", "Burst", "Burst with End Trigger"),
+                .max = 4,
+                .help = "Choose the silent picture mode:",
+                .help2 = 
+                    "Take a silent picture when you press the shutter halfway.\n"
+                    "Take pictures until memory gets full, then save to card.\n"
+                    "Take pictures continuously, save the last few pics to card.\n"
+                    "Take pictures continuously, save the best (focused) images.\n"
+                    "Distorted pictures for funky effects.\n",
+                .choices = CHOICES("Simple", "Burst", "Burst, End Trigger", "Best Shots", "Slit-Scan"),
                 .icon_type = IT_DICE,
             },
             MENU_EOL,
         },
         #endif
     },
-    #else // who needs 422 when we have raw?
-    {
-        .name = "Silent Picture",
-        .priv = &silent_pic_enabled,
-        .max  = 1,
-        .update = silent_pic_display,
-        .depends_on = DEP_LIVEVIEW,
-        .help  = "Take pics in LiveView without moving the shutter mechanism.",
-        .help2 = "Do not try this if you are afraid of computers!",
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Mode",
-                .priv = &silent_pic_mode,
-                #ifdef FEATURE_SILENT_PIC_HIRES
-                .max = 3, // hi-res works
-                .help = "Silent picture mode: simple, burst, continuous or high-resolution.",
-                #else
-                .max = 2, // hi-res doesn't work
-                .help = "Silent picture mode: simple, burst or continuous.",
-                #endif
-                .choices = CHOICES("Simple", "Burst", "Continuous", "Hi-Res"),
-                .icon_type = IT_DICE,
-            },
-            #ifdef FEATURE_SILENT_PIC_HIRES
-            {
-                .name = "Hi-Res", 
-                .priv = &silent_pic_highres,
-                .update = silent_pic_check_highres_warnings,
-                .max = COUNT(silent_pic_sweep_modes_l)-1,
-                .choices = CHOICES("2x1", "2x2", "2x3", "3x3", "3x4", "4x4", "4x5", "5x5"),
-                .icon_type = IT_DICE,
-                .help = "For hi-res matrix mode: select number of subpictures."
-            },
-            #endif
-            #ifdef FEATURE_SILENT_PIC_JPG
-            {
-                .name = "LV JPEG", 
-                .priv = &silent_pic_jpeg,
-                .max = 1,
-                .help = "Save LV as JPEG"
-            },
-            #endif
-            MENU_EOL
-        },
-    },
-    #endif
     #endif
     #ifdef FEATURE_MLU_HANDHELD
         #ifndef FEATURE_MLU
@@ -5391,7 +4821,44 @@ static struct menu_entry shoot_menus[] = {
     },
     #endif
     
-    MENU_PLACEHOLDER("RAW Blinkies"),
+    #ifdef FEATURE_POST_DEFLICKER
+    {
+        .name = "Post Deflicker", 
+        .priv = &post_deflicker, 
+        .max = 1,
+        .update = post_deflicker_update,
+        .help  = "Create sidecar files with exposure compensation,",
+        .help2 = "so all your pics look equally exposed, without flicker.",
+        .works_best_in = DEP_PHOTO_MODE,
+        .submenu_width = 710,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Sidecar file type",
+                .priv = &post_deflicker_sidecar_type,
+                .max = 1,
+                .choices = CHOICES("Adobe XMP", "UFRaw"),
+                .help = "Sidecar file format, for deflicker metadata.",
+            },
+            {
+                .name = "Deflicker percentile",
+                .priv = &post_deflicker_percentile,
+                .min = 20,
+                .max = 80,
+                .unit = UNIT_PERCENT,
+                .help = "Where to meter for deflickering. Recommended: 50% (median).",
+            },
+            {
+                .name = "Deflicker target level",
+                .priv = &post_deflicker_target_level,
+                .min = -8,
+                .max = -1,
+                .choices = CHOICES("-8 EV", "-7 EV", "-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV"),
+                .help = "Desired exposure level for processed pics. 0=overexposed.",
+            },
+            MENU_EOL,
+        },
+    },
+    #endif
 
     #ifdef FEATURE_LV_3RD_PARTY_FLASH
         #ifndef FEATURE_FLASH_TWEAKS
@@ -6033,6 +5500,51 @@ static struct menu_entry expo_menus[] = {
         }
     },
     #endif
+    #ifdef FEATURE_AUTO_ETTR
+    {
+        .name = "Auto ETTR", 
+        .priv = &auto_ettr, 
+        .update = auto_ettr_update,
+        .max = 1,
+        .help  = "Auto expose to the right when you shoot RAW.",
+        .depends_on = DEP_PHOTO_MODE | DEP_M_MODE | DEP_MANUAL_ISO,
+        .submenu_width = 710,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "ETTR percentile",
+                .priv = &auto_ettr_percentile,
+                .min = 50,
+                .max = 100,
+                .unit = UNIT_PERCENT,
+                .help = "Where to meter for ETTR. Recommended: 90-99% (highlights).",
+            },
+            {
+                .name = "ETTR target level",
+                .priv = &auto_ettr_target_level,
+                .min = -4,
+                .max = 0,
+                .choices = CHOICES("-4 EV", "-3 EV", "-2 EV", "-1 EV", "-0.5 EV"),
+                .help = "Exposure target for ETTR. Recommended: -0.5 or -1 EV.",
+            },
+            {
+                .name = "Clipping mode",
+                .priv = &auto_ettr_clip,
+                .max = 2,
+                .choices = CHOICES("No clipping", "Clip GREEN", "Clip ANY"),
+                .help = "Choose what color channels are allowed to be clipped.",
+            },
+            {
+                .name = "Slowest shutter",
+                .priv = &auto_ettr_max_shutter,
+                .max = 16,
+                .icon_type = IT_PERCENT,
+                .choices = CHOICES("30\"", "15\"", "8\"", "4\"", "2\"", "1\"", "1/2", "1/4", "1/8", "1/15", "1/30", "1/60", "1/125", "1/250", "1/500", "1/1000", "1/2000"),
+                .help = "Slowest shutter speed for ETTR."
+            },
+            MENU_EOL,
+        },
+    },
+    #endif
     #ifdef FEATURE_EXPO_LOCK
     {
         .name       = "Expo.Lock",
@@ -6125,22 +5637,22 @@ void hdr_create_script(int f0, int focus_stack)
     if (hdr_scripts == 1)
     {
         my_fprintf(f, "#!/usr/bin/env bash\n");
-        my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
+        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, file_prefix, f0, file_prefix, mod(f0 + steps - 1, 10000));
         my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG ", focus_stack ? "--exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, "IMG_%04d.JPG ", mod(f0 + i, 10000));
+            my_fprintf(f, "%s%04d.JPG ", file_prefix, mod(f0 + i, 10000));
         }
         my_fprintf(f, "\n");
     }
     else if (hdr_scripts == 2)
     {
         my_fprintf(f, "#!/usr/bin/env bash\n");
-        my_fprintf(f, "\n# %s_%04d.JPG from IMG_%04d.JPG ... IMG_%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, f0, mod(f0 + steps - 1, 10000));
+        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, file_prefix, f0, file_prefix, mod(f0 + steps - 1, 10000));
         my_fprintf(f, "align_image_stack -m -a %s_AIS_%04d", focus_stack ? "FST" : "HDR", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, " IMG_%04d.JPG", mod(f0 + i, 10000));
+            my_fprintf(f, " %s%04d.JPG", file_prefix, mod(f0 + i, 10000));
         }
         my_fprintf(f, "\n");
         my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG %s_AIS_%04d*\n", focus_stack ? "--contrast-window-size=9 --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0, focus_stack ? "FST" : "HDR", f0);
@@ -6150,12 +5662,12 @@ void hdr_create_script(int f0, int focus_stack)
     {
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, " IMG_%04d.JPG", mod(f0 + i, 10000));
+            my_fprintf(f, " %s%04d.JPG", file_prefix, mod(f0 + i, 10000));
         }
     }
     
     FIO_CloseFile(f);
-    NotifyBox(5000, "Saved %s\nIMG_%04d.JPG ... IMG_%04d.JPG", name + 17, f0, mod(f0 + steps - 1, 10000));
+    NotifyBox(5000, "Saved %s\n%s%04d.JPG ... %s%04d.JPG", name + 17, file_prefix, f0, file_prefix, mod(f0 + steps - 1, 10000));
 }
 #endif // HDR/FST
 
@@ -6183,7 +5695,6 @@ void take_a_pic(int should_af, int allow_bulb)
     else
     #endif
     {
-        //~ beep();
         if (allow_bulb && is_bulb_mode_or_bulb_ramping()) hdr_shot(0, 1);
         else lens_take_picture(64, should_af);
     }
@@ -6245,7 +5756,7 @@ static int hdr_shutter_release(int ev_x8)
     lens_wait_readytotakepic(64);
 
     int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode_or_bulb_ramping());
-    int dont_change_exposure = ev_x8 == 0 && !HDR_ENABLED && !BULB_EXPOSURE_CONTROL_ACTIVE;
+    int dont_change_exposure = ev_x8 == 0 && !HDR_ENABLED && !BULB_EXPOSURE_CONTROL_ACTIVE && !is_bulb_mode_or_bulb_ramping();
 
     if (dont_change_exposure)
     {
@@ -6294,7 +5805,7 @@ static int hdr_shutter_release(int ev_x8)
         int ms = get_exposure_time_ms();
         int msc = ms * roundf(1000.0f * powf(2, ev_x8 / 8.0f))/1000;
         
-        int rs = (BULB_EXPOSURE_CONTROL_ACTIVE) ? shutterf_to_raw_noflicker(bulb_shutter_valuef) : get_exposure_time_raw();
+        int rs = (BULB_EXPOSURE_CONTROL_ACTIVE) ? shutterf_to_raw(bulb_shutter_valuef) : get_exposure_time_raw();
         if (rs == 0) // shouldn't happen
         {
             msleep(1000);
@@ -6312,12 +5823,9 @@ static int hdr_shutter_release(int ev_x8)
 
 #ifdef CONFIG_BULB
         // then choose the best option (bulb for long exposures, regular for short exposures)
-        if (msc >= 10000 || (BULB_EXPOSURE_CONTROL_ACTIVE && msc > BULB_MIN_EXPOSURE && !BRAMP_LRT_HOLY_GRAIL))
+        if (msc >= 10000 || (BULB_EXPOSURE_CONTROL_ACTIVE && msc > BULB_MIN_EXPOSURE) || is_bulb_mode_or_bulb_ramping())
         {
             bulb_take_pic(msc);
-            #ifdef FEATURE_BULB_RAMPING
-            bramp_last_exposure_rounding_error_evx1000 = 0; // bulb ramping assumed to be exact
-            #endif
         }
         else
 #endif
@@ -6327,17 +5835,6 @@ static int hdr_shutter_release(int ev_x8)
             #endif
             ans = MIN(ans, hdr_set_rawshutter(rc));
             take_a_pic(AF_DONT_CHANGE, 0);
-            
-            #ifdef FEATURE_BULB_RAMPING
-            if (BULB_EXPOSURE_CONTROL_ACTIVE)
-            {
-                // since actual shutter speed differs from float value quite a bit, 
-                // we will need this to correct metering readings
-                bramp_last_exposure_rounding_error_evx1000 = (int)roundf(log2f(raw2shutterf(rs) / bulb_shutter_valuef) * 1000.0f);
-                ASSERT(ABS(bramp_last_exposure_rounding_error_evx1000) < 500);
-            }
-            else bramp_last_exposure_rounding_error_evx1000 = 0;
-            #endif
         }
         
         if (drive_mode == DRIVE_SELFTIMER_2SEC) msleep(2500);
@@ -6874,9 +6371,6 @@ void intervalometer_stop()
     if (intervalometer_running)
     {
         intervalometer_running = 0;
-        #ifdef FEATURE_BULB_RAMPING
-        bramp_init_state = 0;
-        #endif
         NotifyBox(2000, "Intervalometer stopped.");
         //~ display_on();
     }
@@ -7169,6 +6663,11 @@ shoot_task( void* unused )
 #if defined(CONFIG_MODULES)
         module_exec_cbr(CBR_SHOOT_TASK);
 #endif
+
+        #ifdef FEATURE_AUTO_ETTR
+        if (lv)
+            auto_ettr_step_lv();
+        #endif
 
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);
@@ -7819,7 +7318,6 @@ shoot_task( void* unused )
             #ifdef FEATURE_INTERVALOMETER
             #ifdef FEATURE_BULB_RAMPING
             bramp_init_done = 0;
-            bramp_cleanup();
             #endif
             intervalometer_pictures_taken = 0;
             intervalometer_next_shot_time = seconds_clock + MAX(timer_values[interval_start_timer_index], 1);

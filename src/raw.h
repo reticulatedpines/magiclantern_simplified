@@ -6,7 +6,7 @@
 /**
 * RAW pixels (document mode, as with dcraw -D -o 0):
 
-    01 23 45 67 89 AB ... (SENSOR_RES_X-1)
+    01 23 45 67 89 AB ... (raw_info.width-1)
     ab cd ef gh ab cd ...
 
     v-------------------------- first pixel should be red
@@ -15,7 +15,7 @@
 2   RG RG RG RG RG RG ...
 3   GB GB GB GB GB GB ...
 ...
-SENSOR_RES_Y-1
+(raw_info.height-1)
 */
 
 /**
@@ -66,19 +66,46 @@ int raw_blue_pixel(int x, int y);
 int raw_get_pixel(int x, int y);
 int raw_set_pixel(int x, int y, int value);
 
+/* get a grayscale pixel according to some projection from RGB */
+int raw_get_gray_pixel(int x, int y, int gray_projection);
+#define GRAY_PROJECTION_RED 0
+#define GRAY_PROJECTION_GREEN 1
+#define GRAY_PROJECTION_BLUE 2
+#define GRAY_PROJECTION_AVERAGE_RGB 3
+#define GRAY_PROJECTION_MAX_RGB 4
+#define GRAY_PROJECTION_MAX_RB 5
+#define GRAY_PROJECTION_MEDIAN_RGB 6
+
 /* input: 0 - 16384 (valid range: from black level to white level) */
 /* output: -14 ... 0 */
 float raw_to_ev(int raw);
-int FAST ev_to_raw(float ev);
+int ev_to_raw(float ev);
 
 /* save a DNG file; all parameters are taken from raw_info */
 int save_dng(char* filename);
 
+/* quick preview of the raw buffer */
+void raw_preview_fast();
+void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int end_line, int ultra_fast);
+
+/* request/release/check LiveView RAW flag (lv_save_raw) */
+/* you have to call request/release in pairs (be careful not to request once and release twice) */
+void raw_lv_request();
+void raw_lv_release();
+int raw_lv_enabled();
+
 /* redirect the LV RAW EDMAC in order to write the raw data at "ptr" */
 void raw_lv_redirect_edmac(void* ptr);
 
+/* quick check whether the settings from raw_info are still valid (for lv vsync calls) */
+int raw_lv_settings_still_valid();
+
+void raw_set_geometry(int width, int height, int skip_left, int skip_right, int skip_top, int skip_bottom);
+void raw_force_aspect_ratio_1to1();
+
 /* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
 struct raw_info {
+    int api_version;            // increase this when changing the structure
     void* buffer;               // points to image data
     
     int height, width, pitch;
@@ -114,7 +141,7 @@ struct raw_info {
     int calibration_illuminant1;
     int color_matrix1[18];      // DNG Color Matrix
     
-    int dynamic_range;          // EV x10, from DxO
+    int dynamic_range;          // EV x100, from analyzing black level and noise (very close to DxO)
 };
 
 extern struct raw_info raw_info;

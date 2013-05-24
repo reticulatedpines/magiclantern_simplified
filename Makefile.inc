@@ -9,21 +9,6 @@ ifeq ($(CONFIG_CCACHE), y)
     HOST_CC := $(CCACHE) $(CC)
 endif	
 
-UNAME:=$(shell uname)
-
-ifeq ($(UNAME), Darwin)
-	# Variable declaration for Mac OS X
-	UMOUNT=hdiutil unmount
-	CF_CARD="/Volumes/EOS_DIGITAL"
-	STAT_CMD=stat -f "%N: %z bytes"
-else
-	# Default settings for remaining operating systems
-	UMOUNT=umount
-	CF_CARD=/media/EOS_DIGITAL/
-	STAT_CMD=stat -c "%n: %s bytes"
-endif
-
-
 # Quiet the build process
 build = \
 	@if [ X"$V" = X"1" ]; then \
@@ -152,6 +137,7 @@ ifeq ($(CONFIG_QEMU),y)
 CFLAGS += -DCONFIG_QEMU -DCONFIG_STATIC_FONTS
 endif
 
+
 # PyMite scripting paths
 PYMITE_PATH		= $(HOME)/build/pymite-08
 PYMITE_LIB		= $(PYMITE_PATH)/src/vm/libpmvm_dryos.a
@@ -159,17 +145,151 @@ PYMITE_CFLAGS	= \
 	-I$(PYMITE_PATH)/src/vm \
 	-I$(PYMITE_PATH)/src/platform/dryos
 
+ifeq ($(ML_BITRATE_OBJ), n)
+ML_BITRATE_OBJ =
+else ifndef ML_BITRATE_OBJ
+ML_BITRATE_OBJ = bitrate.o
+endif
+
+ifeq ($(ML_AUDIO_OBJ), n)
+ML_AUDIO_OBJ =
+else ifndef ML_AUDIO_OBJ
+ML_AUDIO_OBJ = audio-ak.o
+endif
+
+ifeq ($(ML_ZEBRA_OBJ), n)
+ML_ZEBRA_OBJ =
+else ifndef ML_ZEBRA_OBJ
+ML_ZEBRA_OBJ = zebra.o
+endif
+
+ifeq ($(ML_BOOTFLAGS_OBJ), n)
+ML_BOOTFLAGS_OBJ =
+else ifndef ML_BOOTFLAGS_OBJ
+ML_BOOTFLAGS_OBJ = bootflags.o
+endif
+
+ifeq ($(ML_AF_PATTERNS_OBJ), n)
+ML_AF_PATTERNS_OBJ = 
+else ifndef ML_AF_PATTERNS_OBJ
+ML_AF_PATTERNS_OBJ = af_patterns.o
+endif
+
+ML_SMALL_FONT_OBJS = \
+    font-small2.o \
+    font-med2.o \
+    font-large.o \
+
+ML_STATIC_FONT_OBJS = \
+	font-small.o \
+	font-med.o \
+	font-large.o
+
+ML_DYNAMIC_FONT_OBJS = \
+	font-dyn.o
+
+ifeq ($(CONFIG_SMALL_FONTS), y)
+ML_STATIC_FONT_OBJS = $(ML_SMALL_FONT_OBJS)
+endif
+
+ML_FONT_OBJS = $(ML_DYNAMIC_FONT_OBJS)
+
+ifeq ($(CONFIG_STATIC_FONTS), y)
+ML_FONT_OBJS += $(ML_STATIC_FONT_OBJS)
+CFLAGS += -DCONFIG_STATIC_FONTS=1
+endif
 
 #
 # global disabler for extra objects
 #
 ifneq ($(CONFIG_NO_EXTRA_OBJS),y)
 
+ifndef CONFIG_ADD_INSTALLER_OBJECTS
+CONFIG_ADD_SOURCE_OBJECTS = y
+endif
+
 #
 # depending on CONFIG_ defines add .o files (may get merged into definition above?) 
 #
-ML_OBJS-y += \
-	ico.o
+
+# magiclantern.lds script MUST be first
+# entry.o MUST be second
+# menu.o and debug.o must come before the modules
+ML_OBJS-y = \
+	magiclantern.lds \
+	$(SRC_DIR)/entry.o \
+	$(PLATFORM_DIR)/stubs.o \
+	version.o
+
+ML_INSTALLER_OBJS = \
+	installer.o \
+	ico.o \
+	bmp.o \
+	$(ML_FONT_OBJS) \
+	stdio.o \
+	property.o \
+	propvalues.o \
+	dialog_test.o \
+	bootflags.o \
+	vram.o \
+
+#	chdk-gui_draw.o
+
+ML_SRC_OBJS = \
+	boot-hack.o \
+	ico.o \
+	edmac.o \
+	menu.o \
+	debug.o \
+	cfn.o \
+	gui.o \
+	picstyle.o \
+	exmem.o \
+	bmp.o \
+	$(ML_FONT_OBJS) \
+	config.o \
+	stdio.o \
+	$(ML_BITRATE_OBJ) \
+	tweaks.o \
+	lens.o \
+	property.o \
+	propvalues.o \
+	gui-common.o \
+	chdk-gui_draw.o \
+	movtweaks.o \
+	menuhelp.o \
+	menuindex.o \
+	$(ML_AF_PATTERNS_OBJ) \
+	focus.o \
+	notify_box.o \
+	$(ML_BOOTFLAGS_OBJ) \
+	dialog_test.o \
+	vram.o \
+	aj_port.o \
+	fps-engio.o \
+	shoot.o \
+	hdr.o \
+	lv-img-engio.o \
+	state-object.o \
+	tasks.o \
+	beep.o \
+	vsync-lite.o \
+	tskmon.o \
+	battery.o \
+	imgconv.o \
+	histogram.o \
+	falsecolor.o \
+	$(ML_AUDIO_OBJ) \
+	$(ML_ZEBRA_OBJ) \
+
+
+ML_OBJS-$(CONFIG_ADD_INSTALLER_OBJECTS) += \
+	$(ML_INSTALLER_OBJS)
+
+ML_OBJS-$(CONFIG_ADD_SOURCE_OBJECTS) += \
+	$(ML_SRC_OBJS)
+
+ML_OBJS-y += $(ML_EXTRA_OBJS)
 
 ML_OBJS-$(CONFIG_GDB) += \
 	gdb.o
@@ -223,9 +343,11 @@ ML_OBJS-$(CONFIG_MODULES) += \
 
 ML_OBJS-$(CONFIG_QEMU)	+= \
 	qemu-util.o \
-	font-small.o \
-	font-med.o \
-	font-large.o
+	$(ML_STATIC_FONT_OBJS)
+
+ifdef ML_EXCLUDE_OBJS
+ML_OBJS-y := $(filter-out $(ML_EXCLUDE_OBJS), $(ML_OBJS-y))
+endif
 
 endif
 
@@ -385,9 +507,6 @@ DIET_OBJ = \
 	strncmp.o \
 	strcpy.o \
 	strcmp.o \
-	memset.o \
-	memcpy.o \
-	memccpy.o \
 	sigjmp.o \
 	sigprocmask.o \
 	rt_sigprocmask.o \
@@ -423,8 +542,13 @@ dietlibc.a: $(DIET_OBJ)
 	$(call build,AR,$(AR) cr $@ $^)
 
 # use setjmp from newlib because... the one from dietlibc freezes
+# memcpy/memset are also much faster in newlib
 NEWLIB_OBJ = \
 	lib_a-setjmp.o \
+	lib_a-memcpy.o \
+	lib_a-memcpy-stub.o \
+	lib_a-memccpy.o \
+	lib_a-memset.o \
 
 NEWLIB_LIBC_A = $(SRC_DIR)/libs/arm-none-eabi-O3/libc.a
 
@@ -450,12 +574,10 @@ magiclantern: $(ML_OBJS-y) dietlibc.a newlib-libc.a
 	)
 
 $(PLATFORM_DIR)/version.c: FORCE
-	$(call build,VERSION,( \
-		echo 'const char build_version[] = "$(VERSION)";' ; \
-		echo 'const char build_id[] = "'`hg id`'";' ; \
-		echo 'const char build_date[] ="'`date -u "+%Y-%m-%d %H:%M:%S"`'";' ; \
-		echo 'const char build_user[] = "'`whoami`@`hostname`'";' ; \
-	) > $@)
+		echo 'const char build_version[] = "$(VERSION)";' > $@
+		echo 'const char build_id[] = "'`hg id`'";' >> $@
+		echo 'const char build_date[] ="'`date -u "+%Y-%m-%d %H:%M:%S"`'";' >> $@
+		echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
 
 autoexec: reboot.o
 	$(call build,LD,$(LD) \

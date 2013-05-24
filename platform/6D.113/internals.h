@@ -3,7 +3,7 @@
  */
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
-/** The EOS_M port is very young, so we don't enable these for now. **/
+/** The 6D port is very young, so we don't enable these for now. **/
 #define CONFIG_PROP_REQUEST_CHANGE
 
 /** 
@@ -34,7 +34,7 @@
 /** There is no LCD sensor that turns the display off **/
 //~ #define CONFIG_LCD_SENSOR
 
-/** This camera has no miror **/
+/** This camera has a mirror lockup feature **/
 #define CONFIG_MLU
 
 /** This camera reports focus info in LiveView **/
@@ -102,7 +102,7 @@
 /** We shouldn't warn the user if movie exposure is Auto **/
 //~ #define CONFIG_MOVIE_AE_WARNING
 
-/** No photo mode outside LiveView **/
+/** We can display some extra info in photo mode (not LiveView) **/
 #define CONFIG_PHOTO_MODE_INFO_DISPLAY
 
 /** No additional_version stub on this DryOS version **/
@@ -123,5 +123,12 @@
 /** FPS override: change timers from EVF state */
 #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
 
-/** Advanced EXMEM stubs are known and can be used */
-#define CONFIG_FULL_EXMEM_SUPPORT
+/** Use the new Rec.709 for YUV-RGB conversion (undefine for Rec.601) */
+#define CONFIG_REC709
+
+/** We have AllocateMemoryResourceForSingleChunk */
+#define CONFIG_EXMEM_SINGLE_CHUNK
+
+/** We have access to raw data in both photo mode and in LiveView */
+#define CONFIG_RAW_PHOTO
+#define CONFIG_RAW_LIVEVIEW

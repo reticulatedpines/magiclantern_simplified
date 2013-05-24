@@ -103,3 +103,6 @@
 
 /** The malloc pool has some free space, let's use it for small things */
 #define CONFIG_USE_MALLOC_FOR_SMALL_THINGS
+
+/** We have access to raw data in LiveView only for now */
+#define CONFIG_RAW_LIVEVIEW

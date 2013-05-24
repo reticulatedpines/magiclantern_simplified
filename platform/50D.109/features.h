@@ -17,3 +17,5 @@
 #undef FEATURE_UPSIDE_DOWN // not working, http://www.magiclantern.fm/forum/index.php?topic=4430
 
 #define FEATURE_AFMA_TUNING
+
+#undef FEATURE_SILENT_PIC // todo: apply raw patch from smeangol

@@ -1,6 +1,24 @@
 #User-defined values for ML build system
 #Copy me to Makefile.user, keeping ONLY the options that you want to customize
 
+UNAME:=$(shell uname)
+
+UNAME:=$(shell uname)
+
+ifeq ($(UNAME), Darwin)
+	# Variable declaration for Mac OS X
+	UMOUNT=hdiutil unmount
+	CF_CARD="/Volumes/EOS_DIGITAL"
+	STAT_CMD=stat -f "%N: %z bytes"
+else
+	# Default settings for remaining operating systems
+	UMOUNT=umount
+	CF_CARD="/media/EOS_DIGITAL/"
+	STAT_CMD=stat -c "%n: %s bytes"
+endif
+
+
+
 # Supported camera models
 SUPPORTED_MODELS:=60D 550D 600D 50D 500D 5D2 1100D
 
@@ -58,18 +76,26 @@ VERSION:=v2.3.NEXT.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION)
 
 # Build configuration - untested and debug stuff handy for devs
 CONFIG_PYMITE       = n
+ifndef CONFIG_RELOC
 CONFIG_RELOC        = n
+endif
 CONFIG_TIMECODE     = n
 CONFIG_PTP          = n
 CONFIG_PTP_CHDK     = n
 CONFIG_PTP_ML       = n
+ifndef CONFIG_GDB
 CONFIG_GDB          = n
+endif
 CONFIG_GDBSTUB      = n
 CONFIG_PLUGINS      = n
+ifndef CONFIG_CONSOLE
 CONFIG_CONSOLE      = y
+endif
 CONFIG_DEBUGMSG     = 0
 CONFIG_CCACHE       = n
+ifndef CONFIG_PICOC
 CONFIG_PICOC        = y
+endif
 CONFIG_TCC          = n
 CONFIG_MEMCHECK     = n
 CONFIG_MODULES      = n

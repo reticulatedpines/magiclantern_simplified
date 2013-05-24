@@ -769,14 +769,6 @@ void image_effects_step()
     #endif
     
 #ifdef FEATURE_IMAGE_EFFECTS
-    
-    // bulb ramping calibration works best on grayscale image
-    extern int bulb_ramp_calibration_running;
-    if (bulb_ramp_calibration_running)
-    {
-        EngDrvOutLV(0xc0f0f070, 0x01000100);
-        return;
-    }
     static int prev_swap_uv = 0;
 
     if (!is_movie_mode()) return;
@@ -824,9 +816,6 @@ void digic_iso_step()
     if (lv_paused) return;
     int mv = is_movie_mode();
     if (mv && lens_info.iso == 0) return; // no auto ISO, please
-
-    extern int bulb_ramp_calibration_running;
-    if (bulb_ramp_calibration_running) return;
 #endif
 #ifdef FEATURE_EXPO_ISO_DIGIC
     if (mv)

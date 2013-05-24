@@ -117,5 +117,9 @@
 /** This can be dangerous, as the values are outside Canon limits */
 #define CONFIG_AFMA_EXTENDED
 
-/** Advanced EXMEM stubs are known and can be used */
-#define CONFIG_FULL_EXMEM_SUPPORT
+/** We can use the DMA controller to copy data */
+#define CONFIG_EDMAC_MEMCPY
+
+/** We have access to raw data in both photo mode and in LiveView */
+#define CONFIG_RAW_PHOTO
+#define CONFIG_RAW_LIVEVIEW

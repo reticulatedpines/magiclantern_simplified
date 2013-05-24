@@ -361,9 +361,9 @@ void movtweak_step()
     #ifdef FEATURE_MOVIE_RESTART
         static int recording_prev = 0;
         #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_7D)
-        if (recording == 0 && recording_prev && !movie_was_stopped_by_set) // see also gui.c
+        if (recording == 0 && recording_prev > 0 && !movie_was_stopped_by_set) // see also gui.c
         #else
-        if (recording == 0 && recording_prev && wait_for_lv_err_msg(0))
+        if (recording == 0 && recording_prev > 0 && wait_for_lv_err_msg(0))
         #endif
         {
             if (movie_restart)
@@ -545,7 +545,8 @@ void rec_notify_continuous(int called_from_menu)
     
     if (rec_notify == 1)
     {
-        if (!recording) BMP_LOCK (
+        if (!recording)
+        {
             int xc = os.x0 + os.x_ex/2;
             int yc = os.y0 + os.y_ex/2;
             int rx = os.y_ex * 7/15;
@@ -558,7 +559,7 @@ void rec_notify_continuous(int called_from_menu)
             bmp_draw_rect(COLOR_RED, xc - rx + 1, yc - ry + 1, rx * 2 - 2, ry * 2 - 2);
             draw_line(xc + rx, yc - ry, xc - rx, yc + ry, COLOR_RED);
             draw_line(xc + rx, yc - ry + 1, xc - rx, yc + ry + 1, COLOR_RED);
-        )
+        }
     }
     else if (rec_notify == 2)
     {
@@ -638,13 +639,11 @@ static MENU_UPDATE_FUNC(bv_display)
         bv_auto == 1 ? "ON" : "OFF"
     );
 
-    extern int bulb_ramp_calibration_running; 
     extern int zoom_auto_exposure;
 
     if (bv_auto == 1 && !CONTROL_BV) 
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING,
             (zoom_auto_exposure && lv_dispsize > 1) ? "Temporarily disabled (auto exposure on zoom)." :
-            (bulb_ramp_calibration_running) ? "Temporarily disabled (bulb ramping calibration)." :
             LVAE_DISP_GAIN ? "Temporarily disabled (display gain active)." :
             "Temporarily disabled."
         );

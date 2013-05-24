@@ -48,6 +48,7 @@ struct bmp_vram_info
 
 extern struct bmp_vram_info bmp_vram_info[];
 
+struct display_filter_buffers { void* src_buf; void* dst_buf; };
 
 
 /** Internal ML structure for describing VRAM buffers.
@@ -106,20 +107,20 @@ extern struct vram_info vram_lv;
 
 
  // offsets on one axis, in pixels
-#define BM2LV_Xu(x) ((x) * bm2lv.sx / 1024 + bm2lv.tx)
-#define BM2LV_Y(y) ((y) * bm2lv.sy / 1024 + bm2lv.ty)
+#define BM2LV_Xu(x) ((((x) * bm2lv.sx) >> 10) + bm2lv.tx)
+#define BM2LV_Y(y) ((((y) * bm2lv.sy) >> 10) + bm2lv.ty)
 
 extern int bm2lv_x_cache[];
 #define BM2LV_X(x) bm2lv_x_cache[(x) - BMP_W_MINUS]
 
-#define LV2BM_X(x) ((x) * 1024 / bm2lv.sx - bm2lv.tx * 1024 / bm2lv.sx)
-#define LV2BM_Y(y) ((y) * 1024 / bm2lv.sy - bm2lv.ty * 1024 / bm2lv.sy)
+#define LV2BM_X(x) (((x) << 10) / bm2lv.sx - (bm2lv.tx << 10) / bm2lv.sx)
+#define LV2BM_Y(y) (((y) << 10) / bm2lv.sy - (bm2lv.ty << 10) / bm2lv.sy)
 
-#define LV2HD_X(x) ((x) * lv2hd.sx / 1024 + lv2hd.tx)
-#define LV2HD_Y(y) ((y) * lv2hd.sy / 1024 + lv2hd.ty)
+#define LV2HD_X(x) ((((x) * lv2hd.sx) >> 10) + lv2hd.tx)
+#define LV2HD_Y(y) ((((y) * lv2hd.sy) >> 10) + lv2hd.ty)
 
-#define HD2LV_X(x) ((x) * 1024 / lv2hd.sx - lv2hd.tx * 1024 / lv2hd.sx)
-#define HD2LV_Y(y) ((y) * 1024 / lv2hd.sy - lv2hd.ty * 1024 / lv2hd.sy)
+#define HD2LV_X(x) (((x) << 10) / lv2hd.sx - (lv2hd.tx << 10) / lv2hd.sx)
+#define HD2LV_Y(y) (((y) << 10) / lv2hd.sy - (lv2hd.ty << 10) / lv2hd.sy)
 
 #define BM2HD_X(x) LV2HD_X(BM2LV_X(x))
 #define BM2HD_Y(y) LV2HD_Y(BM2LV_Y(y))
@@ -147,13 +148,13 @@ extern int bm2lv_x_cache[];
 #define HD2BM_DY(y) (HD2BM_Y(y) - HD2BM_Y(0))
 
 // offsets in image matrix, in bytes
-#define BM2LV(x,y) (BM2LV_Y(y) * vram_lv.pitch + BM2LV_X(x) * 2)
+#define BM2LV(x,y) (BM2LV_Y(y) * vram_lv.pitch + (BM2LV_X(x) << 1))
 #define LV2BM(x,y) (LV2BM_Y(y) * BMPPITCH      + LV2BM_X(x) * 1)
 
-#define LV2HD(x,y) (LV2HD_Y(y) * vram_hd.pitch + LV2HD_X(x) * 2)
-#define HD2LV(x,y) (HD2LV_Y(y) * vram_lv.pitch + HD2LV_X(x) * 2)
+#define LV2HD(x,y) (LV2HD_Y(y) * vram_hd.pitch + (LV2HD_X(x) << 1))
+#define HD2LV(x,y) (HD2LV_Y(y) * vram_lv.pitch + (HD2LV_X(x) << 1))
 
-#define BM2HD(x,y) (BM2HD_Y(y) * vram_hd.pitch + BM2HD_X(x) * 2)
+#define BM2HD(x,y) (BM2HD_Y(y) * vram_hd.pitch + (BM2HD_X(x) << 1))
 #define HD2BM(x,y) (HD2BM_Y(y) * BMPPITCH      + HD2BM_X(x) * 1)
 
 // offset for a single row, in bytes
@@ -173,13 +174,13 @@ extern int bm2lv_x_cache[];
 extern int y_times_BMPPITCH_cache[];
 
 #ifdef CONFIG_VXWORKS
-#define BM(x,y) (((x)/2) * 1 + ((y)/2) * BMPPITCH     )
+#define BM(x,y) (((x) >> 1) * 1 + ((y) >> 1) * BMPPITCH     )
 #else
 #define BM(x,y) ((x) * 1 + y_times_BMPPITCH_cache[y - BMP_H_MINUS])
 #endif
 
-#define LV(x,y) ((x) * 2 + (y) * vram_lv.pitch)
-#define HD(x,y) ((x) * 2 + (y) * vram_hd.pitch)
+#define LV(x,y) (((x) << 1) + (y) * vram_lv.pitch)
+#define HD(x,y) (((x) << 1) + (y) * vram_hd.pitch)
 #define BM_R(y) ((y) * BMPPITCH     )
 #define LV_R(y) ((y) * vram_lv.pitch)
 #define HD_R(y) ((y) * vram_hd.pitch)
@@ -206,8 +207,8 @@ extern int y_times_BMPPITCH_cache[];
 #define LV2N(x,y) (LV2N_Y(y) * 720 + LV2N_X(x))
 #define HD2N(x,y) (HD2N_Y(y) * 720 + HD2N_X(x))
 #define N2BM(x,y) (N2BM_Y(y) * BMPPITCH      + N2LV_X(x) * 1)
-#define N2LV(x,y) (N2LV_Y(y) * vram_lv.pitch + N2LV_X(x) * 2)
-#define N2HD(x,y) (N2HD_Y(y) * vram_hd.pitch + N2HD_X(x) * 2)
+#define N2LV(x,y) (N2LV_Y(y) * vram_lv.pitch + (N2LV_X(x) << 1))
+#define N2HD(x,y) (N2HD_Y(y) * vram_hd.pitch + (N2HD_X(x) << 1))
 
 #define BM2N_DX(x) (BM2N_X(x) - BM2N_X(0))
 #define BM2N_DY(y) (BM2N_Y(y) - BM2N_Y(0))
@@ -216,27 +217,27 @@ extern int y_times_BMPPITCH_cache[];
 #define N2BM_DY(y) (N2BM_Y(y) - N2BM_Y(0))
 
 // normalized coordinates with high resolution (0,0 ... 720*16,480*16)
-#define Nh2BMh_X(xn) ((xn) * os.x_ex / 720 + os.x0 * 16)
-#define Nh2BMh_Y(yn) ((yn) * os.y_ex / 480 + os.y0 * 16)
+#define Nh2BMh_X(xn) ((xn) * os.x_ex / 720 + (os.x0 << 4))
+#define Nh2BMh_Y(yn) ((yn) * os.y_ex / 480 + (os.y0 << 4))
 
-#define BMh2LVh_X(x) ((x) * bm2lv.sx / 1024 + bm2lv.tx * 16)
-#define BMh2LVh_Y(y) ((y) * bm2lv.sy / 1024 + bm2lv.ty * 16)
+#define BMh2LVh_X(x) ((((x) * bm2lv.sx) >> 10) + (bm2lv.tx << 4))
+#define BMh2LVh_Y(y) ((((y) * bm2lv.sy) >> 10) + (bm2lv.ty << 4))
 
-#define LVh2HD_X(x) ((x) * lv2hd.sx / 1024 / 16 + lv2hd.tx)
-#define LVh2HD_Y(y) ((y) * lv2hd.sy / 1024 / 16 + lv2hd.ty)
+#define LVh2HD_X(x) ((((x) * lv2hd.sx) >> 14) + lv2hd.tx)
+#define LVh2HD_Y(y) ((((y) * lv2hd.sy) >> 14) + lv2hd.ty)
 
 #define BMh2HD_X(x) LVh2HD_X(BMh2LVh_X(x))
 #define BMh2HD_Y(y) LVh2HD_Y(BMh2LVh_Y(y))
 
-#define Nh2HD(x,y) (BMh2HD_Y(Nh2BMh_Y(y)) * vram_hd.pitch + BMh2HD_X(Nh2BMh_X(x)) * 2)
+#define Nh2HD(x,y) (BMh2HD_Y(Nh2BMh_Y(y)) * vram_hd.pitch + (BMh2HD_X(Nh2BMh_X(x)) << 1))
 
 // RAW coordinates
 
 // unit: pixels
-#define LV2RAW_X(x) ((x) * lv2raw.sx / 1024 + lv2raw.tx)
-#define LV2RAW_Y(y) ((y) * lv2raw.sy / 1024 + lv2raw.ty)
-#define RAW2LV_X(x) ((x) * 1024 / lv2raw.sx - lv2raw.tx * 1024 / lv2raw.sx)
-#define RAW2LV_Y(y) ((y) * 1024 / lv2raw.sy - lv2raw.ty * 1024 / lv2raw.sy)
+#define LV2RAW_X(x) ((((x) * lv2raw.sx) >> 10) + lv2raw.tx)
+#define LV2RAW_Y(y) ((((y) * lv2raw.sy) >> 10) + lv2raw.ty)
+#define RAW2LV_X(x) (((x) << 10) / lv2raw.sx - (lv2raw.tx << 10) / lv2raw.sx)
+#define RAW2LV_Y(y) (((y) << 10) / lv2raw.sy - (lv2raw.ty << 10) / lv2raw.sy)
 
 #define BM2RAW_X(x) LV2RAW_X(BM2LV_X(x))
 #define BM2RAW_Y(y) LV2RAW_Y(BM2LV_Y(y))
@@ -264,14 +265,14 @@ extern int y_times_BMPPITCH_cache[];
 #define HD2RAW_DY(y) (HD2RAW_Y(y) - HD2RAW_Y(0))
 
 // unit: bytes
-#define BM2RAW(x,y) (BM2RAW_Y(y) * raw_info.pitch  + BM2RAW_X(x) * 14/8)
+#define BM2RAW(x,y) (BM2RAW_Y(y) * raw_info.pitch  + ((BM2RAW_X(x) * 14) >> 3))
 #define RAW2BM(x,y) (RAW2BM_Y(y) * BMPPITCH        + RAW2BM_X(x) * 1)
 
-#define LV2RAW(x,y) (LV2RAW_Y(y) * raw_info.pitch  + LV2RAW_X(x) * 14/8)
-#define RAW2LV(x,y) (RAW2LV_Y(y) * vram_lv.pitch   + RAW2LV_X(x) * 2)
+#define LV2RAW(x,y) (LV2RAW_Y(y) * raw_info.pitch  + ((LV2RAW_X(x) * 14) >> 3))
+#define RAW2LV(x,y) (RAW2LV_Y(y) * vram_lv.pitch   + (RAW2LV_X(x) << 1))
 
-#define RAW2HD(x,y) (RAW2HD_Y(y) * vram_hd.pitch   + RAW2HD_X(x) * 2)
-#define HD2RAW(x,y) (HD2RAW_Y(y) * raw_info.pitch  + HD2RAW_X(x) * 14/8)
+#define RAW2HD(x,y) (RAW2HD_Y(y) * vram_hd.pitch   + (RAW2HD_X(x) << 1))
+#define HD2RAW(x,y) (HD2RAW_Y(y) * raw_info.pitch  + ((HD2RAW_X(x) * 14) >> 3))
 
 // offset for a single row, in bytes
 #define BM2RAW_R(y) (BM2RAW_Y(y) * raw_info.pitch)

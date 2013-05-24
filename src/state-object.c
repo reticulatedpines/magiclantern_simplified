@@ -82,9 +82,11 @@
 
 #ifdef CONFIG_650D
 #define DISPLAY_STATE DISPLAY_STATEOBJ
+#define INPUT_SET_IMAGE_VRAM_PARAMETER_MUTE_FLIP_CBR 23
 #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 24
 #define EVF_STATE (*(struct state_object **)0x25B00)
 #define MOVREC_STATE (*(struct state_object **)0x27704)
+#define SSS_STATE (*(struct state_object **)0x257B8)
 #endif
 
 #ifdef CONFIG_1100D
@@ -180,6 +182,7 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
 #if defined(CONFIG_5D3) || defined(CONFIG_6D)
     if (self == DISPLAY_STATE && (input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER))
         lv_vsync_signal();
+
 #elif defined(CONFIG_5D2)
     if (self == LV_STATE)//&& old_state == 4)
     {
@@ -188,9 +191,14 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
 #elif defined(CONFIG_60D)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt
         lv_vsync_signal();
-#elif defined(CONFIG_650D) || defined(CONFIG_EOSM)
-    if (self == EVF_STATE && input == 15 && old_state == 5)
+#elif defined(CONFIG_650D)
+    if (self == DISPLAY_STATE && (input == INPUT_SET_IMAGE_VRAM_PARAMETER_MUTE_FLIP_CBR)) {
         lv_vsync_signal();
+    }
+#elif defined(CONFIG_EOSM)
+    if (self == EVF_STATE && input == 15 && old_state == 5) {
+        lv_vsync_signal();
+    }
 #endif
 
 // sync display filters (for these, we need to redirect display buffers
@@ -198,7 +206,7 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
     #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
     {
-        #ifdef CONFIG_DISPLAY_FILTERS
+        #if defined(FEATURE_SILENT_PIC_RAW_BURST) && defined(CONFIG_DISPLAY_FILTERS)
         if (!silent_pic_preview())
         #else
         if(1)
@@ -304,8 +312,13 @@ static int stateobj_sss_spy(struct state_object * self, int x, int input, int z,
     int ans = StateTransition(self, x, input, z, t);
     int new_state = self->current_state;
 
-    #ifdef CONFIG_5D3
+    #if defined(CONFIG_5D3)
     if (old_state == 9 && input == 11 && new_state == 9) // sssCompleteMem1ToRaw
+        raw_buffer_intercept_from_stateobj();
+    #endif
+
+    #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+    if (old_state == 10 && input == 11 && new_state == 2) // delayCompleteRawtoSraw
         raw_buffer_intercept_from_stateobj();
     #endif
 

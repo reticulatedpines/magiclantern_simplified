@@ -21,7 +21,8 @@ extern unsigned int mem_prot_irq_orig;
 extern unsigned int mem_prot_trap_stackptr;
 unsigned int mem_prot_trap_stack[MRC_DUMP_STACK_SIZE];
 
-unsigned int mem_prot_hook_stackhead = 0;
+unsigned int mem_prot_irq_end_full_addr = 0;
+unsigned int mem_prot_irq_end_part_addr = 0;
 unsigned int mem_prot_hook_full = 0;
 unsigned int mem_prot_hook_part = 0;
 
@@ -206,7 +207,7 @@ unsigned int mem_prot_find_hooks()
         {
             if(mem_prot_hook_full)
             {
-                return 0;
+                return 1;
             }
             mem_prot_hook_full = addr;
         }
@@ -214,7 +215,7 @@ unsigned int mem_prot_find_hooks()
         {
             if(mem_prot_hook_part)
             {
-                return 0;
+                return 2;
             }
             mem_prot_hook_part = addr;
         }
@@ -224,40 +225,62 @@ unsigned int mem_prot_find_hooks()
     /* failed to find irq stack head */
     if(addr >= 0x1000)
     {
-        return 0;
+        /* use free space in IV for our pointers. vectors RESET and BKPT are not used. */
+        mem_prot_irq_end_full_addr = 0x00;
+        mem_prot_irq_end_part_addr = 0x14;
     }
-    
-    /* leave some space to prevent false stack overflow alarms (if someone ever checked...) */
-    mem_prot_hook_stackhead = addr + 0x100;
+    else
+    {
+        /* leave some space to prevent false stack overflow alarms (if someone ever checked...) */
+        mem_prot_irq_end_full_addr = addr + 0x100;
+        mem_prot_irq_end_part_addr = addr + 0x104;
+    }
     
     if(mem_prot_hook_full && mem_prot_hook_part)
     {
-        return 1;
+        return 0;
     }
-    return 0;
+    
+    return 4;
 }
+
+void mem_prot_ins_ldr(unsigned int pos, unsigned int dest)
+{
+    int offset = dest - (pos + 8);
+    
+    if(offset >= 0)
+    {
+        MEM(pos) = 0xE59FF000 | (offset & 0xFFF);
+    }
+    else
+    {
+        MEM(pos) = 0xE51FF000 | ((-offset) & 0xFFF);
+    }
+}
+
 
 void mem_prot_install()
 {
-    if(!mem_prot_find_hooks())
+    unsigned int err = mem_prot_find_hooks();
+    if(err)
     {
-        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 0, 0, "mem_prot: Failed to find hook points.");
+        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 0, 0, "mem_prot: Failed to find hook points (err %d).", err);
         return;
     }
     
     unsigned int int_status = cli();
     
     /* place jumps to our interrupt end code */
-    MEM(mem_prot_hook_stackhead + 0) = &mem_prot_irq_end_full;
-    MEM(mem_prot_hook_stackhead + 4) = &mem_prot_irq_end_part;
+    MEM(mem_prot_irq_end_full_addr) = &mem_prot_irq_end_full;
+    MEM(mem_prot_irq_end_part_addr) = &mem_prot_irq_end_part;
     
     /* install pre-irq hook */
     mem_prot_irq_orig = MEM(0x00000030);
     MEM(0x00000030) = (unsigned int)&mem_prot_irq_entry;
     
-    /* place a LDR PC, [PC, rel_offset] at irq end  to jump to our code */
-    MEM(mem_prot_hook_full) = 0xE59FF000 | ((mem_prot_hook_stackhead + 0) - mem_prot_hook_full - 8);
-    MEM(mem_prot_hook_part) = 0xE59FF000 | ((mem_prot_hook_stackhead + 4) - mem_prot_hook_part - 8);
+    /* place a LDR PC, [PC, rel_offset] at irq end to jump to our code */
+    mem_prot_ins_ldr(mem_prot_hook_full, mem_prot_irq_end_full_addr);
+    mem_prot_ins_ldr(mem_prot_hook_part, mem_prot_irq_end_part_addr);
     
     /* install data abort handler */
     MEM(0x0000002C) = (unsigned int)&mem_prot_trap;

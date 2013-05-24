@@ -92,7 +92,7 @@ uint8_t * bmp_vram(void)
     #endif
     uint8_t * bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
     
-    if (PLAY_MODE) return UNCACHEABLE(bmp_buf);
+    // if (PLAY_MODE) return UNCACHEABLE(bmp_buf);
     return bmp_buf;
 }
 
@@ -126,16 +126,11 @@ void bmp_idle_copy(int direction, int fullsize)
                 memcpy(idle+i*BMPPITCH, real+i*BMPPITCH, 360);
         }
 #else
-        if (direction)
-        {
-            for (int i = 0; i < 480; i ++)
-                memcpy(real+i*BMPPITCH, idle+i*BMPPITCH, 720);
-        }
-        else
-        {
-            for (int i = 0; i < 480; i ++)
-                memcpy(idle+i*BMPPITCH, real+i*BMPPITCH, 720);
-        }
+        unsigned char * dst_ptr = direction ? real : idle;
+        unsigned char * src_ptr = direction ? idle : real;
+
+        for (int i = 0; i < 480; i++, dst_ptr += BMPPITCH, src_ptr += BMPPITCH)
+            memcpy(dst_ptr, src_ptr, 720);
 #endif
     }
 }
@@ -201,7 +196,7 @@ _draw_char(
 
     const uint32_t    pitch        = BMPPITCH / 4;
     uint32_t *    front_row    = (uint32_t *) bmp_vram_row;
-    
+
     // boundary checking, don't write past this address
     uint32_t* end = (uint32_t *)(BMP_VRAM_END(v) - font->width);
 
@@ -209,6 +204,8 @@ _draw_char(
     //uint32_t flags = cli();
     if ((fontspec & SHADOW_MASK) == 0)
     {
+        const uint32_t maxw = font->width >> 2;
+
         for( i=0 ; i<font->height ; i++ )
         {
             // Start this scanline
@@ -220,8 +217,7 @@ _draw_char(
 
             uint32_t pixels = font->bitmap[ c + (i << 7) ];
             uint8_t pixel;
-
-            for( j=0 ; j<font->width/4 ; j++ )
+            for( j=0 ; j<maxw ; j++ )
             {
                 uint32_t bmp_pixels = 0;
                 for( pixel=0 ; pixel<4 ; pixel++, pixels <<=1 )
@@ -252,11 +248,13 @@ _draw_char(
         fg_color >>= 24;
         bg_color >>= 24;
 
+        const uint32_t maxw = font->width >> 2;
+
         for( i=0 ; i<font->height ; i++ )
         {
             // Start this scanline
             uint32_t * row = front_row;
-            row = (uint32_t*)((unsigned)row & ~3); // weird artifacts otherwise
+            row = ALIGN32(row); // weird artifacts otherwise
             if (row >= end) return;
 
             // move to the next scanline
@@ -266,10 +264,11 @@ _draw_char(
             uint32_t pixels_shadow = shadow->bitmap[ c + (i << 7) ];
             uint8_t pixel;
 
-            for( j=0 ; j<font->width/4 ; j++ )
+
+            for( j=0 ; j<maxw ; j++ )
             {
                 uint32_t bmp_pixels = *(row);
-                
+
                 for( pixel=0 ; pixel<4 ; pixel++, pixels <<=1, pixels_shadow <<=1 )
                 {
                     //~ bmp_pixels >>= 8;
@@ -295,7 +294,10 @@ _draw_char(
     #define FPIX(i,j) (font->bitmap[ c + ((i) << 7) ] & (1 << (31-(j))))
     //- #define BMPIX(i,j) bmp_vram_row[(i) * BMPPITCH + (j)]
     #define BMPIX(i,j,color) char* p = &bmp_vram_row[((i)/2) * BMPPITCH + (j)/2]; SET_4BIT_PIXEL(p, j, color);
-    
+
+    const int bg_color_24 = bg_color >> 24;
+    const int fg_color_24 = fg_color >> 24;
+
     if (font == &font_large) // large fonts look better with line skipping
     {
         for( i = 0 ; i<font->height ; i++ )
@@ -304,11 +306,11 @@ _draw_char(
             {
                 if FPIX(i,j)
                 {
-                    BMPIX(i,j,fg_color>>24);
+                    BMPIX(i,j,fg_color_24);
                 }
                 else
                 {
-                    BMPIX(i,j,bg_color>>24);
+                    BMPIX(i,j,bg_color_24);
                 }
             }
         }
@@ -321,7 +323,7 @@ _draw_char(
             {
                 if (!FPIX(i,j))
                 {
-                    BMPIX(i,j,bg_color>>24);
+                    BMPIX(i,j,bg_color_24);
                 }
             }
         }
@@ -332,7 +334,7 @@ _draw_char(
             {
                 if FPIX(i,j)
                 {
-                    BMPIX(i,j,fg_color>>24);
+                    BMPIX(i,j,fg_color_24);
                 }
             }
         }
@@ -605,15 +607,8 @@ bmp_hexdump(
 #endif
 
 /** Fill a section of bitmap memory with solid color
- * Only has a four-pixel resolution in X.
  */
 
-/* will allow 1-pixel resolution in X and also enables BMP_FILL_HALFALIGN which is 2-pixel resolution */
-#define BMP_FILL_BYTEALIGN
-
-/** Fill a section of bitmap memory with solid color
- * Only has a four-pixel resolution in X.
- */
 void
 bmp_fill(
     uint8_t            color,
@@ -631,94 +626,13 @@ bmp_fill(
     y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
     w = COERCE(w, 0, BMP_W_PLUS-x-1);
     h = COERCE(h, 0, BMP_H_PLUS-y-1);
-   
-    const uint16_t halfColor = ((uint16_t)color << 8) | color;
-    const uint32_t wordColor = ((uint32_t)halfColor << 16) | halfColor;
-    const uint64_t dwordColor = ((uint64_t)wordColor << 32) | wordColor;
-   
-    uint8_t* b = bmp_vram();
-   
-    /* pre-align the pixels to speed up fill routine below.
-       will draw pixels for byte addresses (if enabled) so the code later can use a optimized dword-store operation.
-       if using x positions and widths that are 8-pixel aligned, this code will not get called.
-      
-       __builtin_expect(exp, result) tells the compiler what we think the result is in most of the cases.
-       this will improve performance by not-jumping around, but continously executing code.
-       will reduce the perfomance impact of the byte-/word- aligning routines when enabled.
-     */
-#if defined(BMP_FILL_BYTEALIGN)
-    if(unlikely(x & 1))
-    {
-        for (int posY = y; posY < y+h; posY++)
-        {
-            *((uint8_t *)&(b[BM(x,posY)])) = color;
-        }
-        x += 1;
-        w -= 1;
-    }
-    if(unlikely(w & 1))
-    {
-        w -= 1;
-        for (int posY = y; posY < y+h; posY++)
-        {
-            *((uint8_t *)&(b[BM(x+w,posY)])) = color;
-        }
-    }
-#endif
-#if defined(BMP_FILL_BYTEALIGN) || defined(BMP_FILL_HALFALIGN)
-    if(unlikely(x & 2))
-    {
-        for (int posY = y; posY < y+h; posY++)
-        {
-            *((uint16_t *)&(b[BM(x,posY)])) = halfColor;
-        }
-        x += 2;
-        w -= 2;
-    }
-    if(unlikely(w & 2))
-    {
-        w -= 2;
-        for (int posY = y; posY < y+h; posY++)
-        {
-            *((uint16_t *)&(b[BM(x+w,posY)])) = halfColor;
-        }
-    }
-#endif
-    /* any 32-bit access necessary? not that complex to handle.
-       STRD in the loop later allows 32-bit aligned addresses, so no special treatment needed to make the memory addresses 64 bit aligned.
-       unfortunately the compiler does not generate STRDs, but STM.
-      
-       tell the compiler, is is unlikely that this condition is true, as many paints may start at e.g. 0 and end with e.g. 720
-    */
-    if(unlikely(w & 4))
-    {
-        /* fill a column with 32 bit writes */
-        for (int posY = y; posY < y+h; posY++)
-        {
-            *((uint32_t *)&(b[BM(x,posY)])) = wordColor;
-        }
-        x += 4;
-        w -= 4;
-    }
 
-    /* not needed if BMP_FILL_BYTEALIGN is set, but doesnt hurt. its just to protect from misaligned accesses */
-    x &= ~3;
-    w &= ~7;
-   
-    /* finally fill with optimized 64 bit writes.
-       planned to let the compiler generate STRD that uses only 2 cpu cycles plus ADD that needs 1.
-       but we only get STMIA. the generated STMIA is also fine, but that uses 4 instead of 3 cpu cycles. still not that bad.
-     */
-    for (int i = y; i < y+h; i++)
+    uint8_t* b = bmp_vram();
+
+    for (int i = y; i < y + h; i++)
     {
-        uint32_t buffer = (uint32_t)&(b[BM(x,i)]);
-        uint32_t bufferEnd = (uint32_t)&(b[BM(x+w,i)]);
-       
-        while (buffer < bufferEnd)
-        {
-            *((uint64_t*)buffer) = dwordColor;
-            buffer += 8;
-        }
+        uint8_t* row = b + BM(x,i);
+        memset(row, color, w);
     }
 }
 

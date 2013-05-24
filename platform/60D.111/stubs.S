@@ -227,10 +227,13 @@ NSTUB(0x3234, task_max)
 NSTUB(0xFF33EF30, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xff07e384, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 
+/** ExMem **/
 NSTUB(0xff073aa8, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff073af4, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff073c0c, FreeMemoryResource) // m_pfFreeMemoryCBR
+NSTUB(0xff02e9dc, AllocateMemoryResourceForSingleChunk)
 NSTUB(0xff0710a8, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff071840, GetNextMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
 NSTUB(0xff070af0, GetMemoryAddressOfMemoryChunk)
 
 NSTUB(0xff0686f4, PowerAudioOutput)
@@ -242,3 +245,23 @@ NSTUB(0xFF055BA8, SetNextASIFDACBuffer)
 NSTUB(0xff06877c, SetSamplingRate )
 NSTUB(0xff068478, SetAudioVolumeOut)
 
+
+
+/** EDMAC routines **/
+NSTUB(0xFF1C42A8, SetEDmac)
+NSTUB(0xFF1C45A8, StartEDmac)
+NSTUB(0xFF1C47AC, PopEDmac)
+//NSTUB([idk], AbortEDmac)
+NSTUB(0xFF1C4360, ConnectWriteEDmac)
+NSTUB(0xFF1C4424, ConnectReadEDmac)
+
+/** keep the old name until all are refcatored **/
+NSTUB(0xFF1C4798, EDMAC_RegisterCompleteCBR)
+
+/** register/unregister CBR names **/
+NSTUB(0xFF1C4798, RegisterEDmacCompleteCBR)
+NSTUB(0xFF1C47C0, RegisterEDmacAbortCBR)
+NSTUB(0xFF1C48C8, RegisterEDmacPopCBR)
+NSTUB(0xFF1C47AC, UnregisterEDmacCompleteCBR)
+NSTUB(0xFF1C4800, UnregisterEDmacAbortCBR)
+NSTUB(0xFF1C48DC, UnregisterEDmacPopCBR)

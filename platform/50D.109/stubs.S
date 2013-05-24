@@ -258,8 +258,29 @@ NSTUB(0xff85460c, SetAudioVolumeOut)
 NSTUB(0xff853250, TH_asif_initialize)
 NSTUB(0xff854fc8, TH_audio_ic_initialize)
 
+/** ExMem **/
 NSTUB(0xff86be28, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff86be6c, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff86bf7c, FreeMemoryResource) // m_pfFreeMemoryCBR
 NSTUB(0xff869524, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
+NSTUB(0xff869c9c, GetNextMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
 NSTUB(0xff868f44, GetMemoryAddressOfMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature
+
+/** EDMAC routines **/
+NSTUB(0xFF97C8D4, SetEDmac)
+NSTUB(0xFF97C938, StartEDmac)
+NSTUB(0xFF97CA98, PopEDmac)
+//NSTUB([idk], AbortEDmac)
+NSTUB(0xFF97C8F0, ConnectWriteEDmac)
+NSTUB(0xFF97C918, ConnectReadEDmac)
+
+/** keep the old name until all are refcatored **/
+NSTUB(0xFF97CA84, EDMAC_RegisterCompleteCBR)
+
+/** register/unregister CBR names **/
+NSTUB(0xFF97CA84, RegisterEDmacCompleteCBR)
+NSTUB(0xFF97CAAC, RegisterEDmacAbortCBR)
+NSTUB(0xFF97CB14, RegisterEDmacPopCBR)
+NSTUB(0xFF97CA98, UnregisterEDmacCompleteCBR)
+NSTUB(0xFF97CAE4, UnregisterEDmacAbortCBR)
+NSTUB(0xFF97CB28, UnregisterEDmacPopCBR)

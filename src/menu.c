@@ -500,11 +500,12 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
     ASSERT(IS_ML_PTR(val));
     
     static int prev_t = 0;
+    static int prev_delta = 1000;
     int t = get_ms_clock_value();
     
     if (max - min > 20)
     {
-        if (t - prev_t < 300)
+        if (t - prev_t < 200 && prev_delta < 200)
             menu_numeric_toggle_R20(val, delta, min, max);
         else
             menu_numeric_toggle_long_range(val, delta, min, max);
@@ -514,6 +515,7 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max)
         *val = mod(*val - min + delta, max - min + 1) + min;
     }
     
+    prev_delta = t - prev_t;
     prev_t = t;
 }
 
@@ -2106,32 +2108,39 @@ entry_print(
     {
         int help_color = 70;
         
-        if (entry->help) bmp_printf(
+        /* overriden help will go in first free slot */
+        char* help1 = (char*)entry->help;
+        if (!help1) help1 = info->help;
+        
+        if (help1) bmp_printf(
             FONT(FONT_MED, help_color, MENU_BG_COLOR_HEADER_FOOTER), 
              10,  MENU_HELP_Y_POS, 
             "%s",
-            entry->help
+            help1
         );
 
-        char* help2 = info->help;
+        char* help2 = 0;
+        if (help1 != info->help) help2 = info->help;
         if (entry->help2)
         {
             help2 = menu_help_get_line(entry->help2, SELECTED_INDEX(entry));
         }
         
+        char default_help_buf[MENU_MAX_HELP_LEN];
         if (!entry->help2 || strlen(help2) < 2) // default help just list the choices
         {
             int num = NUM_CHOICES(entry);
             if (num > 2 && num < 10)
             {
-                help2[0] = 0;
+                default_help_buf[0] = 0;
                 for (int i = entry->min; i <= entry->max; i++)
                 {
                     int len = strlen(help2);
                     if (len > 58) break;
-                    snprintf(help2 + len, MENU_MAX_HELP_LEN - len, "%s%s", pickbox_string(entry, i), i < entry->max ? " / " : ".");
+                    STR_APPEND(default_help_buf, "%s%s", pickbox_string(entry, i), i < entry->max ? " / " : ".");
                 }
                 help_color = 50;
+                help2 = default_help_buf;
             }
         }
 
@@ -3440,16 +3449,30 @@ static void
 menu_redraw_do()
 {
         #ifndef CONFIG_VXWORKS
-        // force dialog change when canon dialog times out (EOSM, 6D etc)
-        // don't try more often than once per second
-        if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU && redraw_flood_stop)
+        if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU)
         {
-            static int aux = 0;
-            if (should_run_polling_action(1000, &aux))
+            if (redraw_flood_stop)
             {
-                bmp_off();
-                start_redraw_flood();
-                SetGUIRequestMode(GUIMODE_ML_MENU);
+                // Canon dialog timed out?
+                #if 1
+                gui_stop_menu(); // better just close ML menu? you don't open it for staring at it anyway...
+                return;
+                #else
+                // force dialog change when canon dialog times out (EOSM, 6D etc)
+                // don't try more often than once per second
+                static int aux = 0;
+                if (should_run_polling_action(1000, &aux))
+                {
+                    bmp_off();
+                    start_redraw_flood();
+                    SetGUIRequestMode(GUIMODE_ML_MENU);
+                }
+                #endif
+            }
+            else
+            {
+                // Canon dialog didn't come up yet; try again later
+                return;
             }
         }
         #endif
@@ -3769,7 +3792,10 @@ handle_ml_menu_keys(struct event * event)
     if (!menu_shown) return 1;
     if (!DISPLAY_IS_ON)
         if (event->param != BGMT_PRESS_HALFSHUTTER) return 1;
-    
+
+    // on some cameras, scroll events may arrive grouped; we can't handle it, so split into individual events
+    if (handle_scrollwheel_fast_clicks(event)==0) return 0;
+
     // rack focus may override some menu keys
     if (handle_rack_focus_menu_overrides(event)==0) return 0;
     
@@ -4134,6 +4160,7 @@ void menu_redraw_flood()
         menu_redraw_full();
         msleep(20);
     }
+    msleep(500);
     redraw_flood_stop = 1;
 }
 
@@ -4146,9 +4173,6 @@ static void start_redraw_flood()
 static void piggyback_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    #ifdef CONFIG_500D
-    if (is_movie_mode()) return; // doesn'tworkstation
-    #endif
     if (recording) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
@@ -4167,9 +4191,6 @@ static void piggyback_canon_menu()
 static void close_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    #ifdef CONFIG_500D
-    if (is_movie_mode()) return; // doesn'tworkstation
-    #endif
     if (recording) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;

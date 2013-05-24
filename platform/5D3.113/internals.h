@@ -96,8 +96,13 @@
 /** We can't restore ML files after formatting the card in the camera **/
 //~ #define CONFIG_RESTORE_AFTER_FORMAT
 
-/** We don't know how to use DMA_MEMCPY (yet) **/
+/** We know how to use DMA_MEMCPY, though I don't see any reason for doing so **/
+/** it's not really faster than plain memcpy, and the side effects are not yet fully understood **/
+/** (read: I'm too dumb to understand why it's better than memcpy and why it's safe to use) **/
 //~ #define CONFIG_DMA_MEMCPY
+
+/** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
+#define CONFIG_EDMAC_MEMCPY
 
 /** We shouldn't warn the user if movie exposure is Auto **/
 //~ #define CONFIG_MOVIE_AE_WARNING
@@ -124,5 +129,12 @@
 /** FPS override: change timers from EVF state (both methods are OK on 5D3) */
 //~ #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
 
-/** Advanced EXMEM stubs are known and can be used */
-#define CONFIG_FULL_EXMEM_SUPPORT
+/** We have AllocateMemoryResourceForSingleChunk */
+#define CONFIG_EXMEM_SINGLE_CHUNK
+
+/** Use the new Rec.709 for YUV-RGB conversion (undefine for Rec.601) */
+#define CONFIG_REC709
+
+/** We have access to raw data in both photo mode and in LiveView */
+#define CONFIG_RAW_PHOTO
+#define CONFIG_RAW_LIVEVIEW

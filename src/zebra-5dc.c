@@ -34,6 +34,10 @@
 #include "lens.h"
 #include "math.h"
 
+#include "imgconv.h"
+#include "histogram.h"
+#include "falsecolor.h"
+
 #define ext_monitor_rca 0
 
 static void waveform_init();
@@ -84,7 +88,6 @@ void bmp_on(){};
 void clear_zebras_from_mirror(){};
 void copy_zebras_from_mirror(){};
 void cropmark_clear_cache(){};
-void bmp_zoom(){};
 void update_disp_mode_bits_from_params(){};
 int disp_profiles_0 = 0;
 
@@ -92,183 +95,6 @@ int disp_profiles_0 = 0;
 
 //    uYvY yYuY vYyY
 // => uYvY uYvY uYvY
-
-// precompute some parts of YUV to RGB computations
-static int yuv2rgb_RV[256];
-static int yuv2rgb_GU[256];
-static int yuv2rgb_GV[256];
-static int yuv2rgb_BU[256];
-
-/** http://www.martinreddy.net/gfx/faqs/colorconv.faq
- * BT 601:
- * R'= Y' + 0.000*U' + 1.403*V'
- * G'= Y' - 0.344*U' - 0.714*V'
- * B'= Y' + 1.773*U' + 0.000*V'
- * 
- * BT 709:
- * R'= Y' + 0.0000*Cb + 1.5701*Cr
- * G'= Y' - 0.1870*Cb - 0.4664*Cr
- * B'= Y' - 1.8556*Cb + 0.0000*Cr
- */
-
-static void precompute_yuv2rgb()
-{
-    /*
-    *R = *Y + 1437 * V / 1024;
-    *G = *Y -  352 * U / 1024 - 731 * V / 1024;
-    *B = *Y + 1812 * U / 1024;
-    */
-    for (int u = 0; u < 256; u++)
-    {
-        int8_t U = u;
-        yuv2rgb_GU[u] = -352 * U / 1024;
-        yuv2rgb_BU[u] = 1812 * U / 1024;
-    }
-
-    for (int v = 0; v < 256; v++)
-    {
-        int8_t V = v;
-        yuv2rgb_RV[v] = 1437 * V / 1024;
-        yuv2rgb_GV[v] = -731 * V / 1024;
-    }
-}
-
-/*inline void uyvy2yrgb(uint32_t uyvy, int* Y, int* R, int* G, int* B)
-{
-    uint32_t y1 = (uyvy >> 24) & 0xFF;
-    uint32_t y2 = (uyvy >>  8) & 0xFF;
-    *Y = (y1+y2) / 2;
-    uint8_t u = (uyvy >>  0) & 0xFF;
-    uint8_t v = (uyvy >> 16) & 0xFF;
-    *R = MIN(*Y + yuv2rgb_RV[v], 255);
-    *G = MIN(*Y + yuv2rgb_GU[u] + yuv2rgb_GV[v], 255);
-    *B = MIN(*Y + yuv2rgb_BU[u], 255);
-} */
-
-#define UYVY_GET_AVG_Y(uyvy) (((((uyvy) >> 24) & 0xFF) + (((uyvy) >> 8) & 0xFF)) >> 1)
-#define UYVY_GET_U(uyvy) (((uyvy)       ) & 0xFF)
-#define UYVY_GET_V(uyvy) (((uyvy) >>  16) & 0xFF)
-#define COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B) \
-{ \
-    Y = UYVY_GET_AVG_Y(uyvy); \
-    R = COERCE(Y + yuv2rgb_RV[UYVY_GET_V(uyvy)], 0, 255); \
-    G = COERCE(Y + yuv2rgb_GU[UYVY_GET_U(uyvy)] + yuv2rgb_GV[UYVY_GET_V(uyvy)], 0, 255); \
-    B = COERCE(Y + yuv2rgb_BU[UYVY_GET_U(uyvy)], 0, 255); \
-} \
-
-#define UYVY_PACK(u,y1,v,y2) ((u) & 0xFF) | (((y1) & 0xFF) << 8) | (((v) & 0xFF) << 16) | (((y2) & 0xFF) << 24);
-
-void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
-{
-    *R = COERCE(Y + yuv2rgb_RV[V & 0xFF], 0, 255); \
-    *G = COERCE(Y + yuv2rgb_GU[U & 0xFF] + yuv2rgb_GV[V & 0xFF], 0, 255); \
-    *B = COERCE(Y + yuv2rgb_BU[U & 0xFF], 0, 255); \
-}
-
-void uyvy_split(uint32_t uyvy, int* Y, int* U, int* V) // maybe wrong!!!
-{
-    *Y = UYVY_GET_AVG_Y(uyvy);
-    *U = (int)(int8_t)UYVY_GET_U(uyvy);
-    *V = (int)(int8_t)UYVY_GET_V(uyvy);
-}
-
-int yuv411_to_422(uint32_t addr)
-{
-    // 4 6  8 A  0 2 
-    // uYvY yYuY vYyY
-    addr = addr & ~3; // multiple of 4
-        
-    // multiples of 12, offset 0: vYyY u
-    // multiples of 12, offset 4: uYvY
-    // multiples of 12, offset 8: yYuY v
-
-    uint8_t* p = (uint8_t*) addr;
-
-    switch ((addr/4) % 3)
-    {
-        case 0:
-        {
-            unsigned u = p[4];
-            unsigned v = p[0];
-            unsigned y1 = p[1];
-            unsigned y2 = p[2];
-            return UYVY_PACK(u,y1,v,y2);
-        }
-        case 1:
-        {
-            return MEM(addr);
-        }
-        case 2:
-        {
-            unsigned u = p[2];
-            unsigned v = p[4];
-            unsigned y1 = p[0];
-            unsigned y2 = p[1];
-            return UYVY_PACK(u,y1,v,y2);
-        }
-    }
-
-	return 0; // unreachable, shut the compiler warnings
-}
-
-void yuv411_to_rgb(uint32_t addr, int* Y, int* R, int* G, int* B)
-{
-    // 4 6  8 A  0 2 
-    // uYvY yYuY vYyY
-    addr = addr & ~3; // multiple of 4
-        
-    // multiples of 12, offset 0: vYyY u
-    // multiples of 12, offset 4: uYvY
-    // multiples of 12, offset 8: yYuY v
-
-    uint8_t* p = (uint8_t*) addr;
-    int y = 0;
-    int U = 0;
-    int V = 0;
-    
-    // trick to compute [ am3 = (addr/4) % 3 ] a little bit faster
-    static int am3 = 0;
-    static int c = 0;
-    
-    static unsigned int prev_addr = 0;
-    if (likely(addr == prev_addr + 4))
-    {
-        am3 = am3 + 1;
-        if (unlikely(am3 == 3)) am3 = 0;
-    }
-    else if (likely(addr == prev_addr))
-    {
-    }
-    else
-    {
-        am3 = (addr/4) % 3;
-    }
-    prev_addr = addr;
-
-    switch (am3)
-    {
-        case 0:
-            U = p[4];
-            V = p[0];
-            y = p[1];
-            break;
-        case 1:
-            U = p[0];
-            V = p[2];
-            y = p[1];
-            break;
-        case 2:
-            U = p[2];
-            V = p[4];
-            y = p[0];
-            break;
-    }
-
-    *Y = y;
-    *R = COERCE(y + yuv2rgb_RV[V], 0, 255);
-    *G = COERCE(y + yuv2rgb_GU[U] + yuv2rgb_GV[V], 0, 255);
-    *B = COERCE(y + yuv2rgb_BU[U], 0, 255);
-}
 
 static int bmp_is_on() { return 1; }
 
@@ -300,8 +126,6 @@ static CONFIG_INT( "zebra.colorspace",    zebra_colorspace,   0 );// luma/rgb/lu
 static CONFIG_INT( "zebra.thr.hi",    zebra_level_hi, 99 );
 static CONFIG_INT( "zebra.thr.lo",    zebra_level_lo, 1 );
        CONFIG_INT( "zebra.rec", zebra_rec,  1 );
-static CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
-static CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
 
 int should_draw_zoom_overlay()
 {
@@ -332,12 +156,6 @@ int is_focus_peaking_enabled() { return focus_peaking; }
 //~ static CONFIG_INT( "focus.graph", focus_graph, 0);
 
 //~ static CONFIG_INT( "edge.draw", edge_draw,  0 );
-static CONFIG_INT( "hist.draw", hist_draw,  1 );
-static CONFIG_INT( "hist.colorspace",   hist_colorspace,    0 );
-static CONFIG_INT( "hist.warn", hist_warn,  5 );
-static CONFIG_INT( "hist.log",  hist_log,   1 );
-//~ static CONFIG_INT( "hist.x",        hist_x,     720 - HIST_WIDTH - 4 );
-//~ static CONFIG_INT( "hist.y",        hist_y,     100 );
 static CONFIG_INT( "waveform.draw", waveform_draw, 0);
 static CONFIG_INT( "waveform.size", waveform_size,  0 );
 //~ static CONFIG_INT( "waveform.x",    waveform_x, 720 - WAVEFORM_WIDTH );
@@ -399,15 +217,6 @@ int crop_dirty = 0;       // redraw cropmarks after some time (unit: 0.1s)
 int clearscreen_countdown = 20;
 
 //~ int recording = 0;
-
-static uint8_t false_colour[][256] = {
-    {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
-    {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x26, 0x26, 0x27, 0x27, 0x27, 0x27, 0x27, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x29, 0x29, 0x29, 0x29, 0x29, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2F, 0x2F, 0x2F, 0x2F, 0x2F, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31, 0x31, 0x31, 0x31, 0x31, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x33, 0x33, 0x33, 0x33, 0x33, 0x34, 0x34, 0x34, 0x34, 0x34, 0x34, 0x35, 0x35, 0x35, 0x35, 0x35, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x37, 0x37, 0x37, 0x37, 0x37, 0x38, 0x38, 0x38, 0x38, 0x38, 0x38, 0x39, 0x39, 0x39, 0x39, 0x39, 0x3A, 0x3A, 0x3A, 0x3A, 0x3A, 0x3A, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3D, 0x3D, 0x3D, 0x3D, 0x3D, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x41, 0x41, 0x41, 0x41, 0x41, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x43, 0x43, 0x43, 0x43, 0x43, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x45, 0x45, 0x45, 0x45, 0x45, 0x46, 0x46, 0x46, 0x46, 0x46, 0x46, 0x47, 0x47, 0x47, 0x47, 0x47, 0x48, 0x48, 0x48, 0x48, 0x48, 0x48, 0x49, 0x49, 0x49, 0x49, 0x49, 0x4A, 0x4A, 0x4A, 0x4A, 0x4A, 0x4A, 0x4B, 0x4B, 0x4B, 0x4B, 0x4B, 0x4C, 0x4C, 0x4C, 0x4C, 0x4C, 0x4C, 0x4D, 0x4D, 0x4D, 0x4D, 0x4D, 0x4E, 0x4E, 0x4E, 0x4E, 0x4E, 0x4E, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
-    {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
-    {0x0E, 0x0E, 0x0E, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x02},
-    {0x0E, 0x26, 0x30, 0x26, 0x30, 0x26, 0x30, 0x26, 0x30, 0x27, 0x31, 0x27, 0x31, 0x27, 0x31, 0x27, 0x31, 0x28, 0x32, 0x28, 0x32, 0x28, 0x32, 0x28, 0x32, 0x29, 0x33, 0x29, 0x33, 0x29, 0x33, 0x29, 0x33, 0x2a, 0x34, 0x2a, 0x34, 0x2a, 0x34, 0x2a, 0x34, 0x2a, 0x35, 0x2b, 0x35, 0x2b, 0x35, 0x2b, 0x35, 0x2b, 0x36, 0x2c, 0x36, 0x2c, 0x36, 0x2c, 0x36, 0x2c, 0x37, 0x2d, 0x37, 0x2d, 0x37, 0x2d, 0x37, 0x2d, 0x38, 0x2e, 0x38, 0x2e, 0x38, 0x2e, 0x38, 0x2e, 0x38, 0x2f, 0x39, 0x2f, 0x39, 0x2f, 0x39, 0x2f, 0x39, 0x30, 0x3a, 0x30, 0x3a, 0x30, 0x3a, 0x30, 0x3a, 0x31, 0x3b, 0x31, 0x3b, 0x31, 0x3b, 0x31, 0x3b, 0x32, 0x3c, 0x32, 0x3c, 0x32, 0x3c, 0x32, 0x3c, 0x33, 0x3d, 0x33, 0x3d, 0x33, 0x3d, 0x33, 0x3d, 0x33, 0x3e, 0x34, 0x3e, 0x34, 0x3e, 0x34, 0x3e, 0x34, 0x3f, 0x35, 0x3f, 0x35, 0x3f, 0x35, 0x3f, 0x35, 0x40, 0x36, 0x40, 0x36, 0x40, 0x36, 0x40, 0x36, 0x41, 0x37, 0x41, 0x37, 0x41, 0x37, 0x41, 0x37, 0x41, 0x38, 0x42, 0x38, 0x42, 0x38, 0x42, 0x38, 0x42, 0x39, 0x43, 0x39, 0x43, 0x39, 0x43, 0x39, 0x43, 0x3a, 0x44, 0x3a, 0x44, 0x3a, 0x44, 0x3a, 0x44, 0x3b, 0x45, 0x3b, 0x45, 0x3b, 0x45, 0x3b, 0x45, 0x3c, 0x46, 0x3c, 0x46, 0x3c, 0x46, 0x3c, 0x46, 0x3c, 0x47, 0x3d, 0x47, 0x3d, 0x47, 0x3d, 0x47, 0x3d, 0x48, 0x3e, 0x48, 0x3e, 0x48, 0x3e, 0x48, 0x3e, 0x49, 0x3f, 0x49, 0x3f, 0x49, 0x3f, 0x49, 0x3f, 0x4a, 0x40, 0x4a, 0x40, 0x4a, 0x40, 0x4a, 0x40, 0x4a, 0x41, 0x4b, 0x41, 0x4b, 0x41, 0x4b, 0x41, 0x4b, 0x42, 0x4c, 0x42, 0x4c, 0x42, 0x4c, 0x42, 0x4c, 0x43, 0x4d, 0x43, 0x4d, 0x43, 0x4d, 0x43, 0x4d, 0x44, 0x4e, 0x44, 0x4e, 0x44, 0x4e, 0x44, 0x4e, 0x08},
-    {0x26, 0x26, 0x26, 0x27, 0x27, 0x28, 0x28, 0x28, 0x29, 0x29, 0x2A, 0x2A, 0x2B, 0x2B, 0x2B, 0x2C, 0x2C, 0x2D, 0x2D, 0x2D, 0x2E, 0x2E, 0x2F, 0x2F, 0x30, 0x30, 0x30, 0x31, 0x31, 0x32, 0x32, 0x33, 0x33, 0x33, 0x34, 0x34, 0x35, 0x35, 0x35, 0x36, 0x36, 0x37, 0x37, 0x38, 0x38, 0x38, 0x39, 0x39, 0x3A, 0x3A, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x3A, 0x3A, 0x3B, 0x3B, 0x3C, 0x3C, 0x3D, 0x3D, 0x3D, 0x3E, 0x3E, 0x3F, 0x3F, 0x3F, 0x40, 0x40, 0x41, 0x41, 0x42, 0x42, 0x42, 0x43, 0x43, 0x44, 0x44, 0x44, 0x45, 0x45, 0x46, 0x46, 0x47, 0x47, 0x47, 0x48, 0x48, 0x49, 0x49, 0x49, 0x4A, 0x4A, 0x4B, 0x4B, 0x4C, 0x4C, 0x4C, 0x4D, 0x4D, 0x4E, 0x4E, 0x4F},
-};
 
 void crop_set_dirty(int value)
 {
@@ -752,26 +561,6 @@ hist_build()
     }
 }
 
-int hist_get_percentile_level(int percentile)
-{
-    int total = 0;
-    int i;
-    for( i=0 ; i < HIST_WIDTH ; i++ )
-        total += hist[i];
-    
-    int thr = total * percentile / 100;  // 50% => median
-    int n = 0;
-    for( i=0 ; i < HIST_WIDTH ; i++ )
-    {
-        n += hist[i];
-        if (n >= thr)
-            return i * 255 / HIST_WIDTH;
-    }
-    return -1; // invalid argument?
-}
-
-#define UYVY_GET_AVG_Y(uyvy) (((((uyvy) >> 24) & 0xFF) + (((uyvy) >> 8) & 0xFF)) >> 1)
-
 int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
 {
     *under = -1;
@@ -906,101 +695,6 @@ static int hist_dot_label(int over, int hist_total_px)
     return hist_warn <= 4 ? 0 : p;
 }
 
-/** Draw the histogram image into the bitmap framebuffer.
- *
- * Draw one pixel at a time; it seems to be ok with err70.
- * Since there is plenty of math per pixel this doesn't
- * swamp the bitmap framebuffer hardware.
- */
-static void
-hist_draw_image(
-    unsigned        x_origin,
-    unsigned        y_origin,
-    int highlight_level
-)
-{
-    if (!PLAY_OR_QR_MODE)
-    {
-        if (!lv_luma_is_accurate()) return;
-    }
-    uint8_t * const bvram = bmp_vram(); // okay
-    if (!bvram) return;
-
-    // Align the x origin, just in case
-    x_origin &= ~3;
-
-    if( hist_max == 0 )
-        hist_max = 1;
-
-    unsigned i, y;
-    
-    if (highlight_level >= 0) 
-        highlight_level = highlight_level * HIST_WIDTH / 256;
-
-    int log_max = log_length(hist_max);
-    
-    for( i=0 ; i < HIST_WIDTH ; i++ )
-    {
-        // Scale by the maximum bin value
-        const uint32_t size  = hist_log ? log_length(hist[i])   * hist_height / log_max : (hist[i]   * hist_height) / hist_max;
-        const uint32_t sizeR = hist_log ? log_length(hist_r[i]) * hist_height / log_max : (hist_r[i] * hist_height) / hist_max;
-        const uint32_t sizeG = hist_log ? log_length(hist_g[i]) * hist_height / log_max : (hist_g[i] * hist_height) / hist_max;
-        const uint32_t sizeB = hist_log ? log_length(hist_b[i]) * hist_height / log_max : (hist_b[i] * hist_height) / hist_max;
-
-        uint8_t color;
-        uint8_t * col = &color;
-        // vertical line up to the hist size
-        for( y=hist_height ; y>0 ; y-- )
-        {
-            if (highlight_level >= 0)
-            {
-                int hilight = ABS(i-highlight_level) <= 1;
-                *col = y > size + hilight ? COLOR_BG : (hilight ? COLOR_RED : COLOR_WHITE);
-            }
-            else if (hist_colorspace == 1 && !ext_monitor_rca) // RGB
-                *col = hist_rgb_color(y, sizeR, sizeG, sizeB);
-            else
-                *col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][(i * 256 / HIST_WIDTH) & 0xFF]: COLOR_WHITE);
-            
-            bmp_putpixel_fast(bvram, x_origin + i, y_origin + hist_height - y, color);
-        }
-        
-        if (hist_warn && i == HIST_WIDTH - 1
-            && !nondigic_zoom_overlay_enabled()) // magic zoom borders will be "overexposed" => will cause warning
-        {
-            unsigned int thr = hist_total_px / (
-                hist_warn == 1 ? 100000 : // 0.001%
-                hist_warn == 2 ? 10000  : // 0.01%
-                hist_warn == 3 ? 1000   : // 0.1%
-                hist_warn == 4 ? 100    : // 1%
-                                 100000); // start at 0.0001 with a tiny dot
-            thr = MAX(thr, 1);
-            int yw = y_origin + 12 + (hist_log ? hist_height - 24 : 0);
-            int bg = (hist_log ? COLOR_WHITE : COLOR_BLACK);
-            if (hist_colorspace == 1 && !ext_monitor_rca) // RGB
-            {
-                unsigned int over_r = hist_r[i] + hist_r[i-1] + hist_r[i-2];
-                unsigned int over_g = hist_g[i] + hist_g[i-1] + hist_g[i-2];
-                unsigned int over_b = hist_b[i] + hist_b[i-1] + hist_b[i-2];
-                if (over_r > thr) hist_dot(x_origin + HIST_WIDTH/2 - 25, yw, COLOR_RED,       bg, hist_dot_radius(over_r, hist_total_px), hist_dot_label(over_r, hist_total_px));
-                if (over_g > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,    bg, hist_dot_radius(over_g, hist_total_px), hist_dot_label(over_g, hist_total_px));
-                if (over_b > thr) hist_dot(x_origin + HIST_WIDTH/2 + 25, yw, COLOR_LIGHT_BLUE, bg, hist_dot_radius(over_b, hist_total_px), hist_dot_label(over_b, hist_total_px));
-            }
-            else
-            {
-                unsigned int over = hist[i] + hist[i-1] + hist[i-2];
-                if (over > thr) hist_dot(x_origin + HIST_WIDTH/2, yw, COLOR_RED, bg, hist_dot_radius(over, hist_total_px), hist_dot_label(over, hist_total_px));
-            }
-        }
-    }
-    bmp_draw_rect(60, x_origin-1, y_origin-1, HIST_WIDTH+1, hist_height+1);
-}
-
-void hist_highlight(int level)
-{
-    get_yuv422_vram();
-    hist_draw_image( os.x_max - HIST_WIDTH, os.y0 + 100, level );
-}
 
 /** Draw the waveform image into the bitmap framebuffer.
  *
@@ -1601,69 +1295,6 @@ void guess_focus_peaking_threshold()
     }
 }
 
-static void
-draw_false_downsampled( void )
-{
-    return;
-    //~ if (vram_width > 720) return;
-    //~ if (!PLAY_MODE)
-    //~ {
-        //~ if (!expsim) return;
-    //~ }
-    
-    // exception: green screen palette is not fixed
-    if (falsecolor_palette == 5)
-    {
-        aj_green_screen();
-        return;
-    }
-
-    
-    //~ bvram_mirror_init();
-    uint8_t * const bvram = bmp_vram_real();
-    if (!bvram) return;
-    if (!bvram_mirror) return;
-
-    uint8_t * const lvram = get_yuv422_vram()->vram;
-    uint8_t* fc = false_colour[falsecolor_palette];
-
-    for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
-    {
-        uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV_R(y)    );  // 2 pixels
-        uint16_t * const b_row = (uint16_t*)( bvram        + BM_R(y)       );  // 2 pixels
-        uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y)       );  // 2 pixels
-        
-        uint8_t* lvp; // that's a moving pointer through lv vram
-        uint16_t* bp;  // through bmp vram
-        uint16_t* mp;  // through mirror
-        
-        for (int x = os.x0; x < os.x_max; x += 2)
-        {
-            lvp = (uint8_t *)(v_row + BM2LV_X(x)/2); lvp++;
-            bp = b_row + x/2;
-            mp = m_row + x/2;
-            
-            #define BP (*bp)
-            #define MP (*mp)
-            #define BN (*(bp + BMPPITCH/2))
-            #define MN (*(mp + BMPPITCH/2))
-            
-            if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
-            if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/2, mp + BMPPITCH/2); continue; }
-            if ((MP & 0x80808080) || (MN & 0x80808080)) continue;
-            
-            int c = fc[*lvp]; c |= (c << 8);
-            MP = BP = c;
-            MN = BN = c;
-
-            #undef BP
-            #undef MP
-            #undef BN
-            #undef MN
-        }
-    }
-}
-
 void
 highlight_luma_range(int lo, int hi, int color1, int color2)
 {
@@ -1762,42 +1393,6 @@ zebra_toggle( void* priv, int sign )
     menu_ternary_toggle(priv, -sign);
 }*/
 
-static char* falsecolor_palette_name()
-{
-    return
-        falsecolor_palette == 0 ? "Marshall" :
-        falsecolor_palette == 1 ? "SmallHD" :
-        falsecolor_palette == 2 ? "50-55%" :
-        falsecolor_palette == 3 ? "67-72%" :
-        falsecolor_palette == 4 ? "Banding detection" :
-        falsecolor_palette == 5 ? "GreenScreen" : "Unk";
-}
-
-static void falsecolor_palette_preview(int x, int y)
-{
-    for (int i = 0; i < 256; i++)
-    {
-        draw_line(x + 419 + i, y, x + 419 + i, y + font_large.height - 2, false_colour[falsecolor_palette][i]);
-    }
-}
-
-static MENU_UPDATE_FUNC(falsecolor_display)
-{
-    MENU_SET_VALUE(
-        falsecolor_palette_name()
-    );
-    if (falsecolor_draw)
-        falsecolor_palette_preview(info->x, info->y);
-}
-
-static MENU_UPDATE_FUNC(falsecolor_display_palette)
-{
-    MENU_SET_VALUE(
-        falsecolor_palette_name()
-    );
-    falsecolor_palette_preview(info->x - 420, info->y + font_large.height + 10);
-}
-
 /*
 static MENU_UPDATE_FUNC(focus_debug_display)
 {
@@ -1879,29 +1474,6 @@ static MENU_UPDATE_FUNC(hist_display)
     //~ bmp_printf(FONT_MED, x + 460, y+5, "[SET/Q]");
     menu_draw_icon(MNI_BOOL_GDR_EXPSIM(hist_draw || waveform_draw), 0);
 }*/
-
-static MENU_UPDATE_FUNC(hist_print)
-{
-    MENU_SET_VALUE(
-        ": %s%s%s",
-        hist_draw == 0 ? "OFF" : hist_colorspace == 0 ? "Luma" : "RGB",
-        hist_draw == 0 ? "" : hist_log ? ",Log" : ",Lin",
-        hist_draw && hist_warn ? ",clip warn" : ""
-    );
-}
-
-static MENU_UPDATE_FUNC(hist_warn_display)
-{
-    MENU_SET_VALUE(
-        ": %s",
-        hist_warn == 0 ? "OFF" :
-        hist_warn == 1 ? "0.001% px" :
-        hist_warn == 2 ? "0.01% px" :
-        hist_warn == 3 ? "0.1% px" : 
-        hist_warn == 4 ? "1% px" :
-                         "Gradual"
-    );
-}
 
 static MENU_UPDATE_FUNC(waveform_print)
 {
@@ -2450,11 +2022,13 @@ void draw_livev_for_playback()
     bvram_mirror_clear(); // may be filled with liveview cropmark / masking info, not needed in play mode
     clrscr();
 
+#if defined(FEATURE_FALSE_COLOR)
     if (falsecolor_draw) 
     {
         draw_false_downsampled();
     }
     else
+#endif
     {
         guess_focus_peaking_threshold();
         draw_zebra_and_focus(1,1);
@@ -2608,36 +2182,6 @@ static void zebra_init()
 }
 
 INIT_FUNC(__FILE__, zebra_init);
-
-#ifdef CONFIG_40D
-void yuv_resize(uint32_t* src, int src_w, int src_h, uint32_t* dst, int dst_w, int dst_h)
-{
-    int i,j;
-    for (i = 0; i < dst_h; i++)
-    {
-        for (j = 0; j < dst_w/2; j++)
-        {
-            dst[i * dst_w/2 + j] = src[(i*src_h/dst_h) * src_w/2 + (j*src_w/dst_w)];
-        }
-    }
-}
-#endif
-
-void yuv_halfcopy(uint32_t* dst, uint32_t* src, int w, int h, int top_half)
-{
-    int i,j;
-    for (i = 0; i < h; i++)
-    {
-        for (j = 0; j < w/2; j++)
-        {
-            int sign = j - i * w/h/2;
-            if ((top_half && sign > 0) || (!top_half && sign <= 0))
-            {
-                dst[i * w/2 + j] = src[i * w/2 + j];
-            }
-        }
-    }
-}
 
 void peaking_benchmark()
 {

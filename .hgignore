@@ -74,4 +74,7 @@ UserGuide-cam.tex-e
 platform/all/ML
 zip.txt
 doxygen-doc/*
+modules/*/*.mo
+modules/raw_rec/raw2dng
+modules/raw_rec/raw2dng.exe
 syntax: regexp
