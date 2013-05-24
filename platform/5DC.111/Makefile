@@ -17,26 +17,28 @@ PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 CONFIG_RELOC = y
 CONFIG_STATIC_FONTS=y
 
-ML_BOOT_HACK_OBJ=n
-ML_BITRATE_OBJ=n
-ML_FPS_ENGIO_OBJ=n
-ML_AUDIO_OBJ=n
-ML_LIVEVIEW_OBJ=n
-ML_MOVTWEAKS_OBJ=n
-ML_LV_IMG_ENGIO_OBJ=n
-ML_HDR_OBJ=n
-ML_EXMEM_OBJ=n
-ML_BOOTFLAGS_OBJ=n
-ML_ENTRY_OBJ = local_entry.o
-
 ML_ZEBRA_OBJ = zebra-5dc.o
 
-ML_EXTRA_OBJS = \
-	init.o \
-	dummy.o \
-	dm-spy.o \
-	tp-spy.o \
+ML_EXCLUDE_OBJS = \
+	boot-hack.o \
+	bitrate.o \
+	fps-engio.o \
+	audio-ak.o \
+	entry.o \
+	$(SRC_DIR)/entry.o \
+	movtweaks.o \
+	exmem.o \
+	liveview.o \
+	bootflags.o \
+	lv-img-engio.o \
+	hdr.o \
 
+ML_EXTRA_OBJS = \
+		local_entry.o \
+		init.o \
+		dummy.o \
+		dm-spy.o \
+		tp-spy.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile

@@ -66,7 +66,7 @@ NOT_USED_FLAGS=\
 
 AFLAGS=\
 	$(FLAGS)
-
+    
 LFLAGS=
 
 CFLAGS += $(CFLAG_USER)
@@ -145,29 +145,10 @@ PYMITE_CFLAGS	= \
 	-I$(PYMITE_PATH)/src/vm \
 	-I$(PYMITE_PATH)/src/platform/dryos
 
-# only because of 5DC, it's not ready for boot-hack.c yet.
-ifeq ($(ML_BOOT_HACK_OBJ), n)
-ML_BOOT_HACK_OBJ =
-else ifndef ML_BOOT_HACK_OBJ
-ML_BOOT_HACK_OBJ = boot-hack.o
-endif
-
-ifeq ($(ML_LIVEVIEW_OBJ), n)
-ML_LIVEVIEW_OBJ =
-else ifndef ML_LIVEVIEW_OBJ
-ML_LIVEVIEW_OBJ = liveview.o
-endif
-
 ifeq ($(ML_BITRATE_OBJ), n)
 ML_BITRATE_OBJ =
 else ifndef ML_BITRATE_OBJ
 ML_BITRATE_OBJ = bitrate.o
-endif
-
-ifeq ($(ML_FPS_ENGIO_OBJ), n)
-ML_FPS_ENGIO_OBJ =
-else ifndef ML_FPS_ENGIO_OBJ
-ML_FPS_ENGIO_OBJ = fps-engio.o
 endif
 
 ifeq ($(ML_AUDIO_OBJ), n)
@@ -194,46 +175,10 @@ else ifndef ML_AF_PATTERNS_OBJ
 ML_AF_PATTERNS_OBJ = af_patterns.o
 endif
 
-ifeq ($(ML_MOVTWEAKS_OBJ), n)
-ML_MOVTWEAKS_OBJ =
-else ifndef ML_MOVTWEAKS_OBJ
-ML_MOVTWEAKS_OBJ = movtweaks.o
-endif
-
-ifeq ($(ML_LV_IMG_ENGIO_OBJ), n)
-ML_LV_IMG_ENGIO_OBJ =
-else ifndef ML_LV_IMG_ENGIO_OBJ
-ML_LV_IMG_ENGIO_OBJ = lv-img-engio.o
-endif
-
-ifeq ($(ML_HDR_OBJ), n)
-ML_HDR_OBJ =
-else ifndef ML_HDR_OBJ
-ML_HDR_OBJ = hdr.o
-endif
-
-ifeq ($(ML_IMGCONV_OBJ), n)
-ML_IMGCONV_OBJ =
-else ifndef ML_IMGCONV_OBJ
-ML_IMGCONV_OBJ = imgconv.o
-endif
-
-ifeq ($(ML_EXMEM_OBJ), n)
-ML_EXMEM_OBJ =
-else ifndef ML_EXMEM_OBJ
-ML_EXMEM_OBJ = exmem.o
-endif
-
-ifeq ($(ML_ENTRY_OBJ), n)
-ML_ENTRY_OBJ =
-else ifndef ML_ENTRY_OBJ
-ML_ENTRY_OBJ = $(SRC_DIR)/entry.o
-endif
-
 ML_SMALL_FONT_OBJS = \
-	font-small2.o \
-	font-med2.o \
-	font-large.o \
+    font-small2.o \
+    font-med2.o \
+    font-large.o \
 
 ML_STATIC_FONT_OBJS = \
 	font-small.o \
@@ -272,7 +217,7 @@ endif
 # menu.o and debug.o must come before the modules
 ML_OBJS-y = \
 	magiclantern.lds \
-	$(ML_ENTRY_OBJ) \
+	$(SRC_DIR)/entry.o \
 	$(PLATFORM_DIR)/stubs.o \
 	version.o
 
@@ -285,17 +230,13 @@ ML_INSTALLER_OBJS = \
 	property.o \
 	propvalues.o \
 	dialog_test.o \
-	$(ML_BOOTFLAGS_OBJ) \
+	bootflags.o \
 	vram.o \
 
 #	chdk-gui_draw.o
 
-# 5DC is not ready for boot-hack.c yet
-ifneq ($(MODEL), 5DC)
-endif
-
-ML_SRC_OBJS += \
-	$(ML_BOOT_HACK_OBJ) \
+ML_SRC_OBJS = \
+	boot-hack.o \
 	ico.o \
 	edmac.o \
 	menu.o \
@@ -303,7 +244,7 @@ ML_SRC_OBJS += \
 	cfn.o \
 	gui.o \
 	picstyle.o \
-	$(ML_EXMEM_OBJ) \
+	exmem.o \
 	bmp.o \
 	$(ML_FONT_OBJS) \
 	config.o \
@@ -315,7 +256,7 @@ ML_SRC_OBJS += \
 	propvalues.o \
 	gui-common.o \
 	chdk-gui_draw.o \
-	$(ML_MOVTWEAKS_OBJ) \
+	movtweaks.o \
 	menuhelp.o \
 	menuindex.o \
 	$(ML_AF_PATTERNS_OBJ) \
@@ -325,17 +266,17 @@ ML_SRC_OBJS += \
 	dialog_test.o \
 	vram.o \
 	aj_port.o \
-	$(ML_FPS_ENGIO_OBJ) \
+	fps-engio.o \
 	shoot.o \
-	$(ML_HDR_OBJ) \
-	$(ML_LV_IMG_ENGIO_OBJ) \
+	hdr.o \
+	lv-img-engio.o \
 	state-object.o \
 	tasks.o \
 	beep.o \
 	vsync-lite.o \
 	tskmon.o \
 	battery.o \
-	$(ML_IMGCONV_OBJ) \
+	imgconv.o \
 	histogram.o \
 	falsecolor.o \
 	$(ML_AUDIO_OBJ) \
@@ -376,7 +317,7 @@ ML_OBJS-$(CONFIG_PLUGINS) += \
 	plugin.o
 
 ML_OBJS-$(CONFIG_RELOC) += \
-	$(ML_LIVEVIEW_OBJ) \
+	liveview.o \
 	reloc.o
 
 ML_OBJS-$(CONFIG_TIMECODE) += \
@@ -629,7 +570,7 @@ magiclantern: $(ML_OBJS-y) dietlibc.a newlib-libc.a
 		$^ \
 		-lm \
 		-lgcc \
-		-Xlinker -Map=location.map \
+        -Xlinker -Map=location.map \
 	)
 
 $(PLATFORM_DIR)/version.c: FORCE
@@ -703,7 +644,7 @@ clean:
 		*.o   \
 		*.d \
 		*.a \
-		*.map \
+        *.map \
 		$(BIN_FILES) \
 		magiclantern.lds \
 		*.bmp \
@@ -931,4 +872,3 @@ DEPS  := $(COBJS:.o=.d)
 
 FORCE:
 
-# vim: ft=make
