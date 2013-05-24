@@ -1338,7 +1338,7 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
     if (z)
     {
         MENU_SET_VALUE(
-            ": %s, ",
+            "%s, ",
             zebra_colorspace == 0 ? "Luma" :
             zebra_colorspace == 1 ? "RGB" : "LumaFast"
         );
@@ -1410,7 +1410,7 @@ static MENU_UPDATE_FUNC(focus_peaking_display)
     unsigned f = CURRENT_VALUE;
     if (f)
         MENU_SET_VALUE(
-            ": ON,%d.%d,%s%s",
+            "ON,%d.%d,%s%s",
             focus_peaking_pthr / 10, focus_peaking_pthr % 10, 
             focus_peaking_color == 0 ? "R" :
             focus_peaking_color == 1 ? "G" :
@@ -1478,7 +1478,7 @@ static MENU_UPDATE_FUNC(hist_display)
 static MENU_UPDATE_FUNC(waveform_print)
 {
     MENU_SET_VALUE(
-        ": %s",
+        "%s",
         waveform_draw == 0 ? "OFF" : 
         waveform_size == 0 ? "Small" : 
         waveform_size == 1 ? "Large" : 
@@ -1489,7 +1489,7 @@ static MENU_UPDATE_FUNC(waveform_print)
 static MENU_UPDATE_FUNC(global_draw_display)
 {
     MENU_SET_VALUE (
-        " :%s",
+        "%s",
         global_draw_mode == 0 ? "DirecPrint btn only" : "After taking a pic "
     );
 }
@@ -1497,7 +1497,7 @@ static MENU_UPDATE_FUNC(global_draw_display)
 static MENU_UPDATE_FUNC(vectorscope_display)
 {
     MENU_SET_VALUE(
-        ": %s",
+        "%s",
         CURRENT_VALUE ? "ON " : "OFF"
     );
 }
@@ -1521,7 +1521,7 @@ static MENU_UPDATE_FUNC(clearscreen_display)
 static MENU_UPDATE_FUNC(spotmeter_menu_display)
 {
     MENU_SET_VALUE(
-        ": %s",
+        "%s",
         spotmeter_draw == 0    ? "OFF" : 
         spotmeter_formula == 0 ? "Percent" :
         spotmeter_formula == 1 ? "0..255" :
