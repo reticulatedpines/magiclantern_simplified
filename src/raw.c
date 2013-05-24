@@ -27,7 +27,7 @@
  * To find it, call("lv_save_raw") and look for an EDMAC channel that becomes active (Debug menu)
  **/
 
-#if defined(CONFIG_5D2) || defined(CONFIG_600D)
+#if defined(CONFIG_5D2) 
 #define RAW_LV_EDMAC 0xC0F04508
 #endif
 
@@ -254,6 +254,13 @@ int raw_update_params()
         skip_right      = 6;
         #endif
 
+        #ifdef CONFIG_600D
+        //  raw_info.height = mv1080crop ? 1042 : zoom ? 1100 : mv720 ? 714 : 1176;
+        skip_top        =  26;
+        skip_left       = zoom ?   0 : 152;
+        skip_right      = zoom ?   0 : 2;
+        #endif        
+
         #ifdef CONFIG_6D
         //~ raw_info.height = zoom ? 980 : mv720 ? 656 : 1244;
         skip_top        = 24;
@@ -350,6 +357,14 @@ int raw_update_params()
         skip_left = 126;
         skip_right = 20;
         skip_top = 80;
+        #endif
+
+        #ifdef CONFIG_600D
+        width = 5344; //From Guess Py
+        height = 3465;
+        skip_left = 152;
+        skip_right = 10;
+        skip_top = 56;
         #endif
 
         #ifdef CONFIG_6D  //Needs check from Raw dump but looks aligned.
