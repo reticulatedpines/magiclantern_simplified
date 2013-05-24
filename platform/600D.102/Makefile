@@ -24,6 +24,10 @@ ML_EXTRA_OBJS = \
 	misc.o \
 	ph_info_disp.o \
 	flexinfo.o \
+	raw.o \
+	chdk-dng.o \
+	edmac-memcpy.o \
+
 
 #include generic rules and definitions
 
