@@ -272,7 +272,6 @@ ML_SRC_OBJS = \
 	lv-img-engio.o \
 	state-object.o \
 	tasks.o \
-	beep.o \
 	vsync-lite.o \
 	tskmon.o \
 	battery.o \
@@ -281,6 +280,7 @@ ML_SRC_OBJS = \
 	falsecolor.o \
 	$(ML_AUDIO_OBJ) \
 	$(ML_ZEBRA_OBJ) \
+	beep.o \
 
 
 ML_OBJS-$(CONFIG_ADD_INSTALLER_OBJECTS) += \
