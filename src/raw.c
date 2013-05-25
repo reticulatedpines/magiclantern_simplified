@@ -58,7 +58,7 @@
 #endif
 
 #if defined(CONFIG_60D)
-#define RAW_PHOTO_EDMAC 0xc0f04A08
+#define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
 static uint32_t raw_buffer_photo = 0;
@@ -301,6 +301,11 @@ int raw_update_params()
     else if (QR_MODE) // image review after taking pics
     {
         raw_info.buffer = (void*) raw_buffer_photo;
+        
+        #ifdef CONFIG_60D
+        raw_info.buffer = (void*) shamem_read(RAW_PHOTO_EDMAC);
+        #endif
+        
         if (!raw_info.buffer)
         {
             dbg_printf("Photo raw buffer null\n");
@@ -373,6 +378,14 @@ int raw_update_params()
         skip_left = 84; //Meta Data
         skip_right = 0;
         skip_top = 50; // Meta Data
+        #endif
+
+        #if defined(CONFIG_60D)
+        width = 5344;
+        height = 3516;
+        skip_left = 142;
+        skip_right = 0;
+        skip_top = 50;
         #endif
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
