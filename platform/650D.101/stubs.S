@@ -44,6 +44,8 @@
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
+NSTUB(0xFF376650, lv_change_raw)
+
 /** experimental EDMAC research **/
 NSTUB(0x00008B7C, CreateMemorySuite)
 NSTUB(0x00008974, DeleteMemorySuite)

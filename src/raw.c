@@ -388,12 +388,13 @@ int raw_update_params()
         skip_top = 50;
         #endif
 
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+        #if defined(CONFIG_EOSM) || defined(CONFIG_650D)
         width = 5280;
         height = 3528;
-        skip_left = 68;
-        skip_right = 0;
-        skip_top = 28;
+        skip_left = 84;
+        skip_top = 64;
+        skip_right = width - 5267;
+        skip_bottom = height - 3519; 
         #endif
 
 
