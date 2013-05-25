@@ -1,82 +1,5 @@
 # Generic makefile
-# Include default and user-customized options where needed
-# If you want to customize them copy Makefile.user.default to Makefile.user keeping only the options that you want to customize
-include $(TOP_DIR)/Makefile.user.default
--include $(TOP_DIR)/Makefile.user
-
-ifeq ($(CONFIG_CCACHE), y)
-    CC := $(CCACHE) $(CC)
-    HOST_CC := $(CCACHE) $(CC)
-endif	
-
-# Quiet the build process
-build = \
-	@if [ X"$V" = X"1" ]; then \
-		echo '$2'; \
-	else \
-		printf "[ %-8s ]   %s\n"  $1 $@; \
-	fi; \
-	$2
-
-
-FLAGS=\
-	-Wp,-MMD,$(patsubst %.o,%.d,$(dir $@)$(notdir $@)) \
-	-Wp,-MT,$@ \
-	-nostdlib \
-	-fomit-frame-pointer \
-	-fno-strict-aliasing \
-	-DCONFIG_MAGICLANTERN=1 \
-	-DCONFIG_$(subst .,_,$(MODEL))=1 \
-	-DRESTARTSTART=$(RESTARTSTART) \
-	-DROMBASEADDR=$(ROMBASEADDR) \
-	-DVERSION=\"$(VERSION)\" \
-	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG)
-
-#
-# ToDo: remove 
-#	-Wno-implicit-function-declaration
-#
-# Reason: these warnings make sense! potential crash situations.
-#
-CFLAGS=\
-	$(FLAGS) \
-	-Os \
-	-Wall \
-	-W \
-	-Wno-unused-parameter \
-	-Wno-implicit-function-declaration \
-	-Wno-unused-function \
-	-Wno-missing-field-initializers \
-	-Wno-format \
-	-Wdouble-promotion \
-	-ffast-math \
-	-fno-trapping-math \
-	-fsingle-precision-constant \
-	-fshort-double \
-	-std=gnu99 \
-	-D__ARM__ \
-	-I$(PLATFORM_INC) \
-	-I$(SRC_DIR) \
-	-I$(PICOC_PATH) \
-	-mthumb-interwork
-
-NOT_USED_FLAGS=\
-	-march=armv5te \
-	-msoft-float
-
-AFLAGS=\
-	$(FLAGS)
-    
-LFLAGS=
-
-CFLAGS += $(CFLAG_USER)
-LFLAGS += $(LFLAG_USER)
-AFLAGS += $(AFLAG_USER)
-
-#
-# if this is module compilation, don't include Magic Lantern Core rules
-#
-ifeq ($(MODULE_NAME),)
+include $(TOP_DIR)/Makefile.setup
 
 #
 # here are Magic Lantern Core additional CONFIG_ defines
@@ -377,24 +300,24 @@ menuindex.o: menuindexentries.h
 install: autoexec.bin
 	cp $^ $(CF_CARD)
 
-	mkdir $(CF_CARD)/ML || echo "no problem"
-	mkdir $(CF_CARD)/ML/settings || echo "no problem"
-	mkdir $(CF_CARD)/ML/data || echo "no problem"
-	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/data/
-	mkdir $(CF_CARD)/ML/cropmks || echo "no problem"
-	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
-	mkdir $(CF_CARD)/ML/scripts || echo "no problem"
-	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/ML/scripts/
-	cp $(SCRIPT_DIR)/*.c $(CF_CARD)/ML/scripts/
-	cp $(SCRIPT_DIR)/*.py $(CF_CARD)/ML/scripts/
-	cp $(VRAM_DIR)/*.lut $(CF_CARD)/ML/data/
-	mkdir $(CF_CARD)/ML/modules || echo "no problem"
+	mkdir $(CF_CARD_ML_DIR) || echo "no problem"
+	mkdir $(CF_CARD_ML_DIR)/settings || echo "no problem"
+	mkdir $(CF_CARD_ML_DIR)/data || echo "no problem"
+	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD_ML_DIR)data/
+	mkdir $(CF_CARD_ML_DIR)/cropmks || echo "no problem"
+	cp $(CROP_DIR)/*.bmp $(CF_CARD_ML_DIR)/cropmks/
+	mkdir $(CF_CARD_ML_DIR)/scripts || echo "no problem"
+	cp $(SCRIPT_DIR)/*.lua $(CF_CARD_ML_DIR)/scripts/
+	cp $(SCRIPT_DIR)/*.c $(CF_CARD_ML_DIR)/scripts/
+	cp $(SCRIPT_DIR)/*.py $(CF_CARD_ML_DIR)/scripts/
+	cp $(VRAM_DIR)/*.lut $(CF_CARD_ML_DIR)/data/
+	make -C $(TOP_DIR)/modules install
 	cp $(MODULES_DIR)/*/*.mo $(CF_CARD)/ML/modules/ || echo "no problem"
-	cp magiclantern.sym $(CF_CARD)/ML/modules/magic.sym
+#	mkdir $(CF_CARD_ML_DIR)/plugins || echo "no problem"
+	cp magiclantern.sym $(CF_CARD_ML_DIR)/modules/magic.sym
 	# todo: magic.sym is camera-specific, rename it (e.g. 550D-109.sym)
 
-#	mkdir $(CF_CARD)/ML/plugins || echo "no problem"
-#	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/ML/plugins/
+#	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD_ML_DIR)/plugins/
 
 	$(UMOUNT) $(CF_CARD)
 
@@ -636,8 +559,8 @@ docq:
 	cd $(DOC_DIR) && $(PYTHON) mkdoc-cam.py quick
 
 installdoc:
-	mkdir $(CF_CARD)/ML/doc || echo "no problem"
-	cp -v $(DOC_DIR)/cam/* $(CF_CARD)/ML/doc/
+	mkdir $(CF_CARD_ML_DIR)/doc || echo "no problem"
+	cp -v $(DOC_DIR)/cam/* $(CF_CARD_ML_DIR)/doc/
 
 clean:
 	$(call build,CLEAN,$(RM) -f \
@@ -814,61 +737,8 @@ pymite-nat.c pymite-img.c: $(SCRIPTS)
 		-o $@ \
 		$^ \
 	)
-else
-#
-# when compiling module, define targets and flags
-#
 
-# should we define a platform for modules? for now use 'all' platform
-PLATFORM_INC=$(TOP_DIR)/platform/all
-CFLAGS += -DMODULE -DMODULE_NAME=$(MODULE_NAME)
-
-all: $(MODULE_NAME).mo
-clean::
-	$(call build,CLEAN,$(RM) -f $(MODULE_OBJS) $(MODULE_NAME).mo)
-
-$(MODULE_NAME).mo: $(MODULE_OBJS)
-	$(call build,MODULE,$(LD_REAL) -r -o $@ $^)
-endif
-
-
-
-#
-# generate dependencies
-#
-COBJS := $(filter %.o, $(ML_OBJS-y))
-DEPS  := $(COBJS:.o=.d)
--include $(DEPS)
-
-
-#
-#
-# file type rules
-#
-#
-%.s: %.c
-	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
-%.sym: %
-	$(call build,SYMBOLS,$(READELF) -sW $< | grep GLOBAL | grep -E 'FUNC|OBJECT|ABS' | gawk '{print $$2 " " $$8;}' | grep -v '^ ' | sort > $@)
-%.o: $(PLATFORM_DIR)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
-%.o: $(SRC_DIR)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
-%.o: $(PICOC_PATH)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -mthumb -fwhole-program -o $@ $<)
-%.i: %.c
-	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
-%: %.c
-	$(call build,LD,$(CC) $(CFLAGS) -o $@ $<)
-%.o: $(PLATFORM_DIR)/%.S
-	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
-%.o: $(SRC_DIR)/%.S
-	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
-%.o: %.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
-%.bin: %
-	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@) 
-	$(call build,STAT,$(STAT_CMD) $@)
+include $(TOP_DIR)/Makefile.filerules
 
 FORCE:
 
