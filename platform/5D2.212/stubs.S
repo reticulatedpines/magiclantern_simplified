@@ -199,7 +199,6 @@ NSTUB(0xFF9B96A8, AJ_UserLevel_task)
 NSTUB(0xff8733fc, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xff873440, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xff873550, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xff0f102c, AllocateMemoryResourceForSingleChunk)
 NSTUB(0xff870af8, GetFirstChunkFromSuite) // AJ_PackMemory_PackMem_p3
 NSTUB(0xff871270, GetNextMemoryChunk) // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
 NSTUB(0xff870518, GetMemoryAddressOfMemoryChunk)

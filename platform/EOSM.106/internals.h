@@ -127,5 +127,3 @@
 /** There is a Movie Mode, needs research */
 #define CONFIG_NO_DEDICATED_MOVIE_MODE
 
-/** We have AllocateMemoryResourceForSingleChunck */
-#define CONFIG_EXMEM_SINGLE_CHUNCK

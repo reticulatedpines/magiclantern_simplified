@@ -148,90 +148,15 @@ struct memSuite *shoot_malloc_suite(size_t size)
     return hSuite;
 }
 
-#ifndef CONFIG_EXMEM_SINGLE_CHUNK
-/* compatibility mode: we don't have AllocateMemoryResourceForSingleChunk, so we'll use our own implementation */
-/* it's a lot slower, but at least it works */
-
-/* try hard to allocate a contiguous block */
-static struct memSuite * shoot_malloc_suite_contig_fixedsize(size_t size)
-{
-    /* hack: we'll keep allocating until we find one contiguous block; then we'll free the unused ones */
-    /* in theory, it's guaranteed to find a block of size X if there is one of size X+2MB */
-    /* in practice, we'll see... */
-    
-    struct memSuite * suites[100];
-    struct memSuite * theSuite = NULL;
-    
-    for (int i = 0; i < COUNT(suites); i++)
-        suites[i] = NULL;
-
-    /* first try a quick search with big chances of success */
-    for (int i = 0; i < COUNT(suites); i++)
-    {
-        struct memSuite * hSuite = shoot_malloc_suite(size);
-        if (!hSuite) break;
-
-        if (hSuite->num_chunks == 1)
-        {
-            theSuite = hSuite; /* bingo! */
-            break;
-        }
-        
-        /* NG, keep trying; we'll free this one later*/
-        suites[i] = hSuite;
-    }
-
-    /* free temporary suites */
-    for (int i = 0; i < COUNT(suites); i++)
-        if (suites[i])
-            FreeMemoryResource(suites[i], freeCBR, 0), suites[i] = 0;
-
-    if (!theSuite)
-    {
-        /* couldn't find anything, let's try something more aggressive */
-        for (int i = 0; i < COUNT(suites); i++)
-        {
-            struct memSuite * hSuite = shoot_malloc_suite(size + 8);
-            if (!hSuite) break;
-
-            if (hSuite->num_chunks == 1)
-            {
-                theSuite = hSuite; /* bingo! */
-                break;
-            }
-            
-            /* NG, keep trying; free this one and allocate a 2MB one */
-            FreeMemoryResource(hSuite, freeCBR, 0);
-            suites[i] = shoot_malloc_suite(2 * 1024 * 1024);
-        }
-
-        /* free temporary suites */
-        for (int i = 0; i < COUNT(suites); i++)
-            if (suites[i])
-                FreeMemoryResource(suites[i], freeCBR, 0), suites[i] = 0;
-
-        if (!theSuite)
-        {
-            /* phuck! */
-            return NULL;
-        }
-    }
-
-    /* we're lucky */
-    return theSuite;
-}
-#endif
-
 struct memSuite * shoot_malloc_suite_contig(size_t size)
 {
     if(size > 0)
     {
-        #ifdef CONFIG_EXMEM_SINGLE_CHUNK
         ASSERT(!alloc_sem_timed_out);
         alloc_sem_timed_out = 0;
 
         struct memSuite * hSuite = NULL;
-        AllocateMemoryResourceForSingleChunk(size, allocCBR, (unsigned int)&hSuite, 0x50);
+        AllocateContinuousMemoryResource(size, allocCBR, (unsigned int)&hSuite, 0x50);
 
         int r = take_semaphore(alloc_sem, 100);
         if (r)
@@ -242,9 +167,6 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
         
         ASSERT((int)size == hSuite->size);
         return hSuite;
-        #else
-        return shoot_malloc_suite_contig_fixedsize(size);
-        #endif
     }
     else
     {
@@ -263,13 +185,7 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
         
         shoot_free_suite(hSuite);
         
-        #ifdef CONFIG_EXMEM_SINGLE_CHUNK
         return shoot_malloc_suite_contig(max_size);
-        #else
-        /* our hack is not guaranteed to find the largest block, so we will reduce the size a bit */
-        /* in theory, it should find a block of size N-2, if there is one block with size N MB */
-        return shoot_malloc_suite_contig(max_size - 2 * 1024 * 1024);
-        #endif
     }
 }
 
