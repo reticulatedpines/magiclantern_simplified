@@ -1,4 +1,3 @@
-
 #include <dryos.h>
 #include <property.h>
 #include <menu.h>
@@ -193,7 +192,7 @@ info_elem_t info_config[] =
     { .string = { { INFO_TYPE_STRING, { 200, 410, 2, .name = "Time" }}, INFO_STRING_TIME, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
     
     /* entry 6, HDR bracketing status */
-    { .string = { { INFO_TYPE_STRING, { 266, 200, 2, .name = "HDR" }}, INFO_STRING_HDR, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { 316, 200, 2, .anchor_flags_self = INFO_ANCHOR_HCENTER, .name = "HDR" }}, INFO_STRING_HDR, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
 
     /* entry 7, free space & photos left*/
     { .fill =   { { INFO_TYPE_FILL,   { 519, 396, 1, INFO_ANCHOR_ABSOLUTE, 0, INFO_ANCHOR_ABSOLUTE, 138, 55, .name = "Space (clear)" }}, .color = INFO_COL_PEEK } },
