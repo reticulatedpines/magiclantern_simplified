@@ -61,6 +61,8 @@ static CONFIG_INT("auto.ettr.max.shutter", auto_ettr_max_shutter, 11);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 #endif
 
+#define AUTO_ETTR_TRIGGER_PHOTO (auto_ettr_trigger == 0 || intervalometer_running)
+
 void move_lv_afframe(int dx, int dy);
 void movie_start();
 void movie_end();
@@ -517,6 +519,11 @@ static MENU_UPDATE_FUNC(intervalometer_display)
         
         if (auto_power_off_time && auto_power_off_time <= d)
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
+        
+        #ifdef FEATURE_AUTO_ETTR
+        if (auto_ettr && image_review_time == 0 && AUTO_ETTR_TRIGGER_PHOTO)
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR: enable image review from Canon menu.");
+        #endif
     }
     else
     {
@@ -3736,20 +3743,17 @@ void post_deflicker_show_info()
 static MENU_UPDATE_FUNC(post_deflicker_update)
 {
     if (!can_use_raw_overlays_photo())
-    {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
-    }
 
     if (HDR_ENABLED)
-    {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
-    }
+
+    if (image_review_time == 0)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable image review from Canon menu.");
     
     if (is_continuous_drive())
-    {
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
-    }
-    
+
     if (post_deflicker)
     {
         MENU_SET_VALUE(post_deflicker_sidecar_type ? "UFRaw" : "XMP");
@@ -3902,7 +3906,7 @@ static int auto_ettr_check_lv()
 
 static void auto_ettr_step_lv()
 {
-    if (!auto_ettr || auto_ettr_trigger != 0)
+    if (!auto_ettr || !AUTO_ETTR_TRIGGER_PHOTO)
         return;
     
     if (!auto_ettr_check_lv())
@@ -3979,17 +3983,20 @@ end:
 
 int handle_ettr_keys(struct event * event)
 {
-    if (auto_ettr && auto_ettr_trigger && auto_ettr_check_pre_lv() && (!lv || auto_ettr_check_in_lv()))
+    if (!auto_ettr) return 1;
+    if (!auto_ettr_trigger) return 1;
+    if (!display_idle()) return 1;
+    if (!auto_ettr_check_pre_lv()) return 1;
+    if (lv && !auto_ettr_check_in_lv()) return 1;
+    
+    if (
+            (auto_ettr_trigger == 1 && event->param == BGMT_PRESS_SET) ||
+            (auto_ettr_trigger == 2 && detect_double_click(event, BGMT_PRESS_HALFSHUTTER, BGMT_UNPRESS_HALFSHUTTER)) ||
+       0)
     {
-        if (
-                (auto_ettr_trigger == 1 && event->param == BGMT_PRESS_SET) ||
-                (auto_ettr_trigger == 2 && detect_double_click(event, BGMT_PRESS_HALFSHUTTER, BGMT_UNPRESS_HALFSHUTTER)) ||
-           0)
-        {
-            auto_ettr_running = 1;
-            task_create("ettr_task", 0x1c, 0x1000, auto_ettr_on_request_task, (void*) 0);
-            if (auto_ettr_trigger == 1) return 0;
-        }
+        auto_ettr_running = 1;
+        task_create("ettr_task", 0x1c, 0x1000, auto_ettr_on_request_task, (void*) 0);
+        if (auto_ettr_trigger == 1) return 0;
     }
     return 1;
 }
@@ -4000,8 +4007,11 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     if (!raw)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You must shoot RAW in order to use this.");
 
-    if (!lv && !can_use_raw_overlays_photo())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
+    if (!lv && !can_use_raw_overlays_photo() && AUTO_ETTR_TRIGGER_PHOTO)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available, try in LiveView.");
+
+    if (image_review_time == 0 && AUTO_ETTR_TRIGGER_PHOTO)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable image review from Canon menu.");
 
     if (HDR_ENABLED)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
@@ -4009,16 +4019,18 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     if (lv && !expsim)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "In LiveView, this requires ExpSim enabled.");
     
-    if (is_continuous_drive())
+    if (is_continuous_drive() && AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
     
     if (auto_ettr)
         MENU_SET_RINFO("%dEV/%d%%", auto_ettr_target_level, auto_ettr_percentile);
 
     if (auto_ettr && auto_ettr_trigger)
-        MENU_SET_VALUE(auto_ettr_trigger == 1 ? "SET" : "HalfS DBC");
+        MENU_SET_VALUE(auto_ettr_trigger == 1 ? "Press SET" : "HalfS DBC");
 
-    if (lv)
+    if (auto_ettr_trigger)
+        MENU_SET_HELP("Press the shortcut key to optimize the exposure (ETTR).");
+    else if (lv)
         MENU_SET_HELP("In LiveView, just wait for exposure to settle, then shoot.");
     else
         MENU_SET_HELP("Take a test picture (underexposed). Next pic will be ETTR.");
@@ -4036,7 +4048,7 @@ PROP_HANDLER(PROP_GUI_STATE)
         #endif
         
         #ifdef FEATURE_AUTO_ETTR
-        if (auto_ettr_trigger == 0)
+        if (AUTO_ETTR_TRIGGER_PHOTO)
             auto_ettr_step();
         #endif
     }
@@ -4676,6 +4688,46 @@ static struct menu_entry shoot_menus[] = {
     },
     #endif
 
+    #ifdef FEATURE_POST_DEFLICKER
+    {
+        .name = "Post Deflicker", 
+        .priv = &post_deflicker, 
+        .max = 1,
+        .update = post_deflicker_update,
+        .help  = "Create sidecar files with exposure compensation,",
+        .help2 = "so all your pics look equally exposed, without flicker.",
+        .works_best_in = DEP_PHOTO_MODE,
+        .submenu_width = 710,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Sidecar file type",
+                .priv = &post_deflicker_sidecar_type,
+                .max = 1,
+                .choices = CHOICES("Adobe XMP", "UFRaw"),
+                .help = "Sidecar file format, for deflicker metadata.",
+            },
+            {
+                .name = "Deflicker percentile",
+                .priv = &post_deflicker_percentile,
+                .min = 20,
+                .max = 80,
+                .unit = UNIT_PERCENT,
+                .help  = "Where to meter for deflickering. Recommended: 50% (median).",
+                .help2 = "Try 75% if you get black borders (e.g. Samyang 8mm on 5D).",
+            },
+            {
+                .name = "Deflicker target level",
+                .priv = &post_deflicker_target_level,
+                .min = -8,
+                .max = -1,
+                .choices = CHOICES("-8 EV", "-7 EV", "-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV"),
+                .help = "Desired exposure level for processed pics. 0=overexposed.",
+            },
+            MENU_EOL,
+        },
+    },
+    #endif
+
     #ifdef FEATURE_BULB_TIMER
     {
         .name = "Bulb Timer",
@@ -4910,45 +4962,6 @@ static struct menu_entry shoot_menus[] = {
     },
     #endif
     
-    #ifdef FEATURE_POST_DEFLICKER
-    {
-        .name = "Post Deflicker", 
-        .priv = &post_deflicker, 
-        .max = 1,
-        .update = post_deflicker_update,
-        .help  = "Create sidecar files with exposure compensation,",
-        .help2 = "so all your pics look equally exposed, without flicker.",
-        .works_best_in = DEP_PHOTO_MODE,
-        .submenu_width = 710,
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Sidecar file type",
-                .priv = &post_deflicker_sidecar_type,
-                .max = 1,
-                .choices = CHOICES("Adobe XMP", "UFRaw"),
-                .help = "Sidecar file format, for deflicker metadata.",
-            },
-            {
-                .name = "Deflicker percentile",
-                .priv = &post_deflicker_percentile,
-                .min = 20,
-                .max = 80,
-                .unit = UNIT_PERCENT,
-                .help = "Where to meter for deflickering. Recommended: 50% (median).",
-            },
-            {
-                .name = "Deflicker target level",
-                .priv = &post_deflicker_target_level,
-                .min = -8,
-                .max = -1,
-                .choices = CHOICES("-8 EV", "-7 EV", "-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV"),
-                .help = "Desired exposure level for processed pics. 0=overexposed.",
-            },
-            MENU_EOL,
-        },
-    },
-    #endif
-
     #ifdef FEATURE_LV_3RD_PARTY_FLASH
         #ifndef FEATURE_FLASH_TWEAKS
         #error This requires FEATURE_FLASH_TWEAKS.

@@ -25,7 +25,7 @@ CONFIG_INT( "hist.draw", hist_draw,  1 );
 CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
 CONFIG_INT( "hist.warn", hist_warn,  1 );
 CONFIG_INT( "hist.log",  hist_log,   1 );
-CONFIG_INT( "hist.meter", hist_meter,  0);
+CONFIG_INT( "hist.meter", hist_meter,  2);
 
 struct Histogram histogram;
 
