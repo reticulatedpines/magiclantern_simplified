@@ -54,7 +54,7 @@ static CONFIG_INT("post.deflicker.level", post_deflicker_target_level, -4);
 
 #ifdef FEATURE_AUTO_ETTR
 static CONFIG_INT("auto.ettr", auto_ettr, 0);
-static CONFIG_INT("auto.ettr.trigger", auto_ettr_trigger, 0);
+static CONFIG_INT("auto.ettr.trigger", auto_ettr_trigger, 1);
 static CONFIG_INT("auto.ettr.prctile", auto_ettr_percentile, 98);
 static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
 static CONFIG_INT("auto.ettr.max.shutter", auto_ettr_max_shutter, 11);
