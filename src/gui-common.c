@@ -426,6 +426,10 @@ int handle_common_events_by_feature(struct event * event)
     #if defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE)
     if (handle_lv_play(event) == 0) return 0;
     #endif
+    
+    #ifdef FEATURE_AUTO_ETTR
+    if (handle_ettr_keys(event) == 0) return 0;
+    #endif
 
     return 1;
 }

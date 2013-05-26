@@ -54,6 +54,7 @@ static CONFIG_INT("post.deflicker.level", post_deflicker_target_level, -4);
 
 #ifdef FEATURE_AUTO_ETTR
 static CONFIG_INT("auto.ettr", auto_ettr, 0);
+static CONFIG_INT("auto.ettr.trigger", auto_ettr_trigger, 0);
 static CONFIG_INT("auto.ettr.prctile", auto_ettr_percentile, 98);
 static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
 static CONFIG_INT("auto.ettr.max.shutter", auto_ettr_max_shutter, 11);
@@ -3752,7 +3753,7 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
     if (post_deflicker)
     {
         MENU_SET_VALUE(post_deflicker_sidecar_type ? "UFRaw" : "XMP");
-        MENU_SET_RINFO("%d/%d%%", post_deflicker_target_level, post_deflicker_percentile);
+        MENU_SET_RINFO("%dEV/%d%%", post_deflicker_target_level, post_deflicker_percentile);
     }
     
     if (post_deflicker && post_deflicker_sidecar_type==1)
@@ -3845,7 +3846,6 @@ static void auto_ettr_work(int corr)
 static volatile int auto_ettr_running = 0;
 static void auto_ettr_step_task(int corr)
 {
-    if (auto_ettr_running) return;
     auto_ettr_work(corr);
     if (ABS(corr) < 50) { } /* that's ok */
     else if (auto_ettr_overexposure_warning || ABS(corr) > 800) beep_times(2); /* take two more pics */
@@ -3865,27 +3865,52 @@ static void auto_ettr_step()
     if (corr != INT_MIN)
     {
         /* we'd better not change expo settings from prop task (we won't get correct confirmations) */
+        auto_ettr_running = 1;
         task_create("ettr_task", 0x1c, 0x1000, auto_ettr_step_task, (void*) corr);
     }
 }
 
-static void auto_ettr_step_lv()
+static int auto_ettr_check_pre_lv()
 {
-    if (!auto_ettr) return;
-    if (shooting_mode != SHOOTMODE_M) return;
-    if (lens_info.raw_iso == 0) return;
-    if (lens_info.raw_shutter == 0) return;
-    if (HDR_ENABLED) return;
-    if (!expsim) return;
-    if (is_movie_mode()) return;
-    if (lv_dispsize != 1) return;
-    if (LV_PAUSED) return;
-    if (get_halfshutter_pressed()) return;
-    if (!liveview_display_idle()) return;
+    if (!auto_ettr) return 0;
+    if (shooting_mode != SHOOTMODE_M) return 0;
+    if (lens_info.raw_iso == 0) return 0;
+    if (lens_info.raw_shutter == 0) return 0;
+    if (HDR_ENABLED) return 0;
 
     int raw = pic_quality & 0x60000;
-    if (!raw) return;
+    if (!raw) return 0;
+    return 1;
+}
+
+static int auto_ettr_check_in_lv()
+{
+    if (!expsim) return 0;
+    if (is_movie_mode()) return 0;
+    if (lv_dispsize != 1) return 0;
+    if (LV_PAUSED) return 0;
+    if (!liveview_display_idle()) return 0;
+    return 1;
+}
+
+static int auto_ettr_check_lv()
+{
+    if (!auto_ettr_check_pre_lv()) return 0;
+    if (!auto_ettr_check_in_lv()) return 0;
+    return 1;
+}
+
+static void auto_ettr_step_lv()
+{
+    if (!auto_ettr || auto_ettr_trigger != 0)
+        return;
     
+    if (!auto_ettr_check_lv())
+        return;
+    
+    if (get_halfshutter_pressed())
+        return;
+
     /* only update once per second, so the exposure has a chance to be updated on the LCD */
     static int aux = INT_MIN;
     if (!should_run_polling_action(1000, &aux))
@@ -3909,6 +3934,66 @@ static void auto_ettr_step_lv()
     }
 }
 
+static void auto_ettr_on_request_task(int unused)
+{
+    beep();
+    
+    int was_in_lv = lv;
+    if (!lv) force_liveview();
+    if (!lv) goto end;
+    if (lv_dispsize != 1) set_lv_zoom(1);
+    if (!auto_ettr_check_lv()) goto end;
+    if (get_halfshutter_pressed())
+    {
+        msleep(500);
+        if (get_halfshutter_pressed()) goto end;
+    }
+
+    NotifyBox(100000, "Auto ETTR...");
+    for (int k = 0; k < 5; k++)
+    {
+        msleep(1000);
+        
+        raw_lv_request();
+        int corr = auto_ettr_get_correction();
+        raw_lv_release();
+
+        if (corr != INT_MIN)
+            auto_ettr_work(corr);
+        else
+            break;
+        
+        if (ABS(corr) < 60)
+            break;
+        
+        if (get_halfshutter_pressed())
+            break;
+    }
+    NotifyBoxHide();
+
+end:
+    beep();
+    if (lv && !was_in_lv) fake_simple_button(BGMT_LV);
+    auto_ettr_running = 0;
+}
+
+int handle_ettr_keys(struct event * event)
+{
+    if (auto_ettr && auto_ettr_trigger && auto_ettr_check_pre_lv() && (!lv || auto_ettr_check_in_lv()))
+    {
+        if (
+                (auto_ettr_trigger == 1 && event->param == BGMT_PRESS_SET) ||
+                (auto_ettr_trigger == 2 && detect_double_click(event, BGMT_PRESS_HALFSHUTTER, BGMT_UNPRESS_HALFSHUTTER)) ||
+           0)
+        {
+            auto_ettr_running = 1;
+            task_create("ettr_task", 0x1c, 0x1000, auto_ettr_on_request_task, (void*) 0);
+            if (auto_ettr_trigger == 1) return 0;
+        }
+    }
+    return 1;
+}
+
 static MENU_UPDATE_FUNC(auto_ettr_update)
 {
     int raw = pic_quality & 0x60000;
@@ -3928,7 +4013,10 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
     
     if (auto_ettr)
-        MENU_SET_RINFO("%d/%d%%", auto_ettr_target_level, auto_ettr_percentile);
+        MENU_SET_RINFO("%dEV/%d%%", auto_ettr_target_level, auto_ettr_percentile);
+
+    if (auto_ettr && auto_ettr_trigger)
+        MENU_SET_VALUE(auto_ettr_trigger == 1 ? "SET" : "HalfS DBC");
 
     if (lv)
         MENU_SET_HELP("In LiveView, just wait for exposure to settle, then shoot.");
@@ -3948,7 +4036,8 @@ PROP_HANDLER(PROP_GUI_STATE)
         #endif
         
         #ifdef FEATURE_AUTO_ETTR
-        auto_ettr_step();
+        if (auto_ettr_trigger == 0)
+            auto_ettr_step();
         #endif
     }
 }
@@ -5508,6 +5597,13 @@ static struct menu_entry expo_menus[] = {
         .depends_on = DEP_PHOTO_MODE | DEP_M_MODE | DEP_MANUAL_ISO,
         .submenu_width = 710,
         .children =  (struct menu_entry[]) {
+            {
+                .name = "Trigger mode",
+                .priv = &auto_ettr_trigger,
+                .max = 2,
+                .choices = CHOICES("Always ON", "Press SET", "HalfS DblClick"),
+                .help = "When should the exposure be adjusted for ETTR",
+            },
             {
                 .name = "ETTR percentile",
                 .priv = &auto_ettr_percentile,
