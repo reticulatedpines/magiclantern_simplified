@@ -186,9 +186,10 @@ void hist_draw_image(
     int log_max = log_length(histogram.max);
 
     #ifdef FEATURE_RAW_HISTOGRAM
-    const unsigned v = (1200 - raw_info.dynamic_range) * HIST_WIDTH / 1200;
-    unsigned underexposed_level = COERCE(v, 0, HIST_WIDTH-1);
+    const int v = (1200 - raw_info.dynamic_range) * HIST_WIDTH / 1200;
+    int underexposed_level = COERCE(v, 0, HIST_WIDTH-1);
     int stops_until_overexposure = 0;
+    if (lv && !is_movie_mode()) underexposed_level = INT_MIN;
     #endif
 
     for( i=0 ; i < HIST_WIDTH ; i++ )
@@ -250,9 +251,9 @@ void hist_draw_image(
             if (i == 0) bar_pos = 0;
             int h = hist_height - MAX(MAX(sizeR, sizeG), sizeB) - 1;
 
-            if (i <= underexposed_level + HIST_WIDTH/12)
+            if ((int)i <= underexposed_level + HIST_WIDTH/12)
             {
-                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + h, i <= underexposed_level ? 4 : COLOR_GRAY(20));
+                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + h, (int)i <= underexposed_level ? 4 : COLOR_GRAY(20));
             }
 
             if (i == bar_pos)
@@ -279,6 +280,7 @@ void hist_draw_image(
         {
             case HIST_METER_DYNAMIC_RANGE:
             {
+                if (lv && !is_movie_mode()) goto _default;
                 int dr = (raw_info.dynamic_range + 5) / 10;
                 snprintf(msg, sizeof(msg), "D%d.%d", dr/10, dr%10);
                 break;
@@ -302,6 +304,7 @@ void hist_draw_image(
             }
             
             default:
+            _default:
                 snprintf(msg, sizeof(msg), "RAW");
                 break;
         }
