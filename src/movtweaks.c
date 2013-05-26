@@ -246,7 +246,8 @@ void force_liveview()
     while (get_halfshutter_pressed()) msleep(100);
     ResumeLiveView();
     while (get_halfshutter_pressed()) msleep(100);
-    get_out_of_play_mode(200);
+    SetGUIRequestMode(0);
+    msleep(200);
     info_led_off();
     if (!lv) fake_simple_button(BGMT_LV);
     msleep(1500);
