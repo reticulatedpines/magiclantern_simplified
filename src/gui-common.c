@@ -429,3 +429,48 @@ int handle_common_events_by_feature(struct event * event)
 
     return 1;
 }
+
+int detect_double_click(struct event * event, int pressed_code, int unpressed_code)
+{
+    /*       pressed    unpressed   pressed   unpressed */
+    /* ____|``````````|__________|``````````|__________ */
+    /*    tp1        tu1        tp2        tu2=t        */
+    /*     |<---p1--->|<---u1--->|<---p2--->|           */
+    
+    /* note: half-shutter events may come twice, e.g. P P U U, so we need to ignore some of them */
+    
+    static int tp1 = 0;
+    static int tu1 = 0;
+    static int tp2 = 0;
+    static int last_was_pressed = 0;
+
+    if (event->param == pressed_code && !last_was_pressed)
+    {
+        last_was_pressed = 1;
+        int t = get_ms_clock_value();
+        tp1 = tu1;
+        tu1 = tp2;
+        tp2 = t;
+    }
+    else if (event->param == unpressed_code && last_was_pressed)
+    {
+        last_was_pressed = 0;
+        int tu2 = get_ms_clock_value();
+        int p1 = tu1 - tp1;
+        int u1 = tp2 - tu1;
+        int p2 = tu2 - tp2;
+
+        // bmp_printf(FONT_MED, 100, 100, "%d %d %d  ", p1, u1, p2);
+        
+        if ((ABS(p1 - 120) < 80) && (ABS(u1 - 120) < 80) && (ABS(p2 - 120) < 80))
+        {
+            tp1 = tu1 = tp2 = tu2 = 0;
+            return 1;
+        }
+        
+        tp1 = tu1;
+        tu1 = tp2;
+        tp2 = tu2;
+    }
+    return 0;
+}
