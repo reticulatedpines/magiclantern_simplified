@@ -3807,7 +3807,7 @@ int auto_ettr_get_correction()
     return last_value;
 }
 
-static int expo_lock_adjust_iso(int delta);
+static int expo_lock_adjust_iso(int delta, int look_at_auto_iso_range);
 static int expo_lock_adjust_tv(int delta, int slowest_shutter);
 static int expo_lock_get_current_value();
 static int expo_lock_value;
@@ -3835,11 +3835,11 @@ static void auto_ettr_work(int corr)
         
         delta = expo_lock_adjust_tv(delta, shutter_lim);
         delta += delta_extra;
-        delta = expo_lock_adjust_iso(delta);
+        delta = expo_lock_adjust_iso(delta, 0);
     }
     else /* faster shutter speed */
     {
-        delta = expo_lock_adjust_iso(delta);
+        delta = expo_lock_adjust_iso(delta, 0);
         delta = expo_lock_adjust_tv(delta, shutter_lim);
     }
 
@@ -4338,7 +4338,7 @@ static int expo_lock_adjust_av(int delta)
     return delta - lens_info.raw_aperture + old_av;
 }
 
-static int expo_lock_adjust_iso(int delta)
+static int expo_lock_adjust_iso(int delta, int look_at_auto_iso_range)
 {
     if (!delta) return 0;
     
@@ -4346,9 +4346,14 @@ static int expo_lock_adjust_iso(int delta)
     int delta_r = ((delta + 4 * SGN(delta)) / 8) * 8;
     int new_iso = COERCE(old_iso - delta_r, MIN_ISO, MAX_ANALOG_ISO);
 
-    int max_auto_iso = auto_iso_range & 0xFF;
-    if (new_iso > max_auto_iso && old_iso < max_auto_iso)
-        new_iso = max_auto_iso;
+    if (look_at_auto_iso_range)
+    {
+        /* for very fast adjustments: stop at max auto ISO;
+         * will try to adjust something else before going above max auto ISO */
+        int max_auto_iso = auto_iso_range & 0xFF;
+        if (new_iso > max_auto_iso && old_iso < max_auto_iso)
+            new_iso = max_auto_iso;
+    }
     
     lens_set_rawiso(new_iso);
     msleep(100);
@@ -4431,11 +4436,11 @@ static void expo_lock_step()
         if (expo_lock_tv == 1 || (lens_info.raw_iso > max_auto_iso - 8 && delta < 0))
         {
             delta = expo_lock_adjust_av(delta);
-            if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
+            if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta, 1);
         }
         else
         {
-            if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
+            if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta, 1);
             if (ABS(delta) >= 8) delta = expo_lock_adjust_av(delta);
         }
         //~ delta = expo_lock_adjust_tv(delta, 0);
@@ -4447,11 +4452,11 @@ static void expo_lock_step()
         if (expo_lock_av == 1 || (lens_info.raw_iso > max_auto_iso - 8 && delta < 0))
         {
             delta = expo_lock_adjust_tv(delta, 0);
-            if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
+            if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta, 1);
         }
         else
         {
-            if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
+            if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta, 1);
             if (ABS(delta) >= 8) delta = expo_lock_adjust_tv(delta, 0);
         }
         //~ delta = expo_lock_adjust_av(delta);
