@@ -3819,8 +3819,16 @@ static void auto_ettr_work(int corr)
 
     if (lens_info.raw_shutter < shutter_lim)
     {
+        /* shutter too slow? clamp it */
         delta += lens_info.raw_shutter - shutter_lim;
         lens_set_rawshutter(shutter_lim);
+    }
+    else if (lens_info.raw_shutter > shutter_lim + 4 && lens_info.raw_iso > MIN_ISO + 4)
+    {
+        /* we could use a slower shutter and a smaller ISO */
+        int diff = MIN(lens_info.raw_shutter - shutter_lim, lens_info.raw_iso - MIN_ISO);
+        delta += expo_lock_adjust_tv(-diff, shutter_lim);
+        delta += expo_lock_adjust_iso(diff, 0);
     }
     
     if (delta < 0) /* slower shutter speed */
