@@ -288,11 +288,10 @@ int raw_update_params()
 
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
-        //~ raw_info.height = zoom ? 1102 : 718;
-        skip_top    = 24;
-        skip_left   = 68;
+        skip_top    = 28;
+        skip_left   = 74;
         skip_right  = 0;
-        skip_bottom = 1;
+        skip_bottom = 4;
         #endif
         
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
