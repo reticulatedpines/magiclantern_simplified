@@ -817,6 +817,7 @@ menu_has_visible_items(struct menu * menu)
             streq(menu->name, "Debug") ||
             streq(menu->name, "Help") ||
             //~ streq(menu->name, "Scripts") ||
+            streq(menu->name, "Modules") ||
            0)
             return 0;
     }
