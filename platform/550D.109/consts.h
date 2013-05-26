@@ -166,17 +166,9 @@
 
 #define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
-// position for displaying clock outside LV
-#define DISPLAY_CLOCK_POS_X 200
-#define DISPLAY_CLOCK_POS_Y 410
-
-// for intermediate ISO
+// for intermediate ISO (move to flexinfo?)
 #define MENU_DISP_ISO_POS_X 470
 #define MENU_DISP_ISO_POS_Y 40
-
-// for HDR status
-#define HDR_STATUS_POS_X 380
-#define HDR_STATUS_POS_Y 450
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 410
@@ -262,7 +254,7 @@
 #define MALLOC_STRUCT 0x27c28
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
-// measured by Андрей Басов
+// measured by ÐÐ½Ð´Ñ€ÐµÐ¹ Ð‘Ð°ÑÐ¾Ð²
 // http://groups.google.com/group/ml-devel/browse_thread/thread/725ae6f424dd2917
 // not sure, exiftool says x-128
 //~ #define EFIC_CELSIUS (efic_temp * 3/2 - 202)
