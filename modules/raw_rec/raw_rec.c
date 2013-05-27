@@ -32,9 +32,9 @@ static int raw_video_enabled = 0;
 static int resolution_presets_x[] = {  640,  720,  960,  1280,  1320,  1440,  1600,  1720,  1880,  1920,  2048,  2560,  2880,  3592 };
 #define  RESOLUTION_CHOICES_X CHOICES("640","720","960","1280","1320","1440","1600","1720","1880","1920","2048","2560","2880","3592")
 
-static int aspect_ratio_presets_num[]      = {    3,     239,     235,    2,    16,    5,    3,    4,    1};
-static int aspect_ratio_presets_den[]      = {    1,     100,     100,    1,     9,    3,    2,    3,    1};
-static const char * aspect_ratio_choices[] = { "3:1","2.39:1","2.35:1","2:1","16:9","5:3","3:2","4:3","1:1"};
+static int aspect_ratio_presets_num[]      = {    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    1};
+static int aspect_ratio_presets_den[]      = {    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    1};
+static const char * aspect_ratio_choices[] = { "3:1","2.67:1","2.50:1","2.39:1","2.35:1","2.20:1","2:1","1.85:1", "16:9","5:3","3:2","4:3","1:1"};
 
 //~ static CONFIG_INT("raw.res.x", resolution_index_x, 2);
 //~ static CONFIG_INT("raw.res.y", resolution_index_y, 4);
@@ -42,7 +42,7 @@ static const char * aspect_ratio_choices[] = { "3:1","2.39:1","2.35:1","2:1","16
 
 /* no config options yet */
 static int resolution_index_x = 9;
-static int aspect_ratio_index = 4;
+static int aspect_ratio_index = 8;
 static int measured_write_speed = 0;
 static int stop_on_buffer_overflow = 1;
 static int sound_rec = 2;
