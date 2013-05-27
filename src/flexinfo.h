@@ -118,8 +118,6 @@ typedef struct
 #define INFO_STRING_FREE_GB_INT          41
 #define INFO_STRING_FREE_GB_FLOAT        42
 #define INFO_STRING_KELVIN_ICO           43
-#define INFO_STRING_KELVIN_NOPAD         44
-#define INFO_STRING_PICTURES_AVAIL_NOPAD 45
 
 #define INFO_FONT_SMALL         0
 #define INFO_FONT_MEDIUM        1
