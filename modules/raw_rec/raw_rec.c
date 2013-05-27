@@ -93,7 +93,10 @@ static float get_squeeze_factor()
 
 static int get_res_x()
 {
-    return MIN(resolution_presets_x[resolution_index_x], raw_info.jpeg.width);
+    /* make sure we don't get dead pixels from rounding */
+    int left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
+    int right_margin = (raw_info.active_area.x2) / 8 * 8;
+    return MIN(resolution_presets_x[resolution_index_x], right_margin - left_margin );
 }
 
 static int calc_res_y(int res_x, int num, int den, float squeeze)
@@ -597,7 +600,7 @@ static int process_frame()
     
     /* start copying frame to our buffer */
     void* ptr = buffers[capturing_buffer_index].ptr + capture_offset;
-    int ans = edmac_copy_rectangle_start(ptr, fullsize_buffers[(frame_count+1) % 2], raw_info.pitch, skip_x/8*14, skip_y/2*2, res_x*14/8, res_y);
+    int ans = edmac_copy_rectangle_start(ptr, fullsize_buffers[(frame_count+1) % 2], raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
 
     /* advance to next frame */
     frame_count++;
