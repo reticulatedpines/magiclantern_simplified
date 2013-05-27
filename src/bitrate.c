@@ -413,7 +413,7 @@ void free_space_show_photomode()
     int fsgr = free_space_32k - (fsg << 15);
     int fsgf = (fsgr * 10) >> 15;
     
-#if defined(CONFIG_7D)
+#if defined(CONFIG_7D) || defined(CONFIG_550D)
     /* moved to flexinfo */
 #else
 

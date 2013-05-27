@@ -58,7 +58,7 @@
 #endif
 
 #if defined(CONFIG_60D)
-#define RAW_PHOTO_EDMAC 0xc0f04A08
+#define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
 static uint32_t raw_buffer_photo = 0;
@@ -288,11 +288,10 @@ int raw_update_params()
 
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
-        //~ raw_info.height = zoom ? 1102 : 718;
-        skip_top    = 24;
-        skip_left   = 68;
+        skip_top    = 28;
+        skip_left   = 74;
         skip_right  = 0;
-        skip_bottom = 1;
+        skip_bottom = 4;
         #endif
         
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
@@ -301,6 +300,11 @@ int raw_update_params()
     else if (QR_MODE) // image review after taking pics
     {
         raw_info.buffer = (void*) raw_buffer_photo;
+        
+        #ifdef CONFIG_60D
+        raw_info.buffer = (void*) shamem_read(RAW_PHOTO_EDMAC);
+        #endif
+        
         if (!raw_info.buffer)
         {
             dbg_printf("Photo raw buffer null\n");
@@ -375,12 +379,21 @@ int raw_update_params()
         skip_top = 50; // Meta Data
         #endif
 
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+        #if defined(CONFIG_60D)
+        width = 5344;
+        height = 3516;
+        skip_left = 142;
+        skip_right = 0;
+        skip_top = 50;
+        #endif
+
+        #if defined(CONFIG_EOSM) || defined(CONFIG_650D)
         width = 5280;
         height = 3528;
-        skip_left = 68;
-        skip_right = 0;
-        skip_top = 28;
+        skip_left = 84;
+        skip_top = 64;
+        skip_right = width - 5267;
+        skip_bottom = height - 3519; 
         #endif
 
 

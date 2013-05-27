@@ -1,4 +1,3 @@
-
 #ifndef _flexinfo_h_
 #define _flexinfo_h_
 
@@ -116,10 +115,9 @@ typedef struct
 #define INFO_STRING_MLU                  38
 #define INFO_STRING_HDR                  39
 #define INFO_STRING_CAM_DATE             40
-#define INFO_STRING_FREE_GB              41
-#define INFO_STRING_FREE_GB_1            42
-#define INFO_STRING_FREE_GB_2            43
-#define INFO_STRING_KELVIN_ICO           44
+#define INFO_STRING_FREE_GB_INT          41
+#define INFO_STRING_FREE_GB_FLOAT        42
+#define INFO_STRING_KELVIN_ICO           43
 
 #define INFO_FONT_SMALL         0
 #define INFO_FONT_MEDIUM        1

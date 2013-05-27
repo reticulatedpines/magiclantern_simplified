@@ -1,4 +1,3 @@
-
 #include <dryos.h>
 #include <property.h>
 #include <menu.h>
@@ -30,8 +29,8 @@
 /* e.g. 5D3 has different free space calculation, decide it by property availability, maybe there are others too */
 #define free_space_32k (free_space_raw * (cluster_size>>10) / (32768>>10))
 #ifdef PROP_CLUSTER_SIZE
-PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
-PROP_INT(PROP_FREE_SPACE, free_space_raw);
+static PROP_INT(PROP_CLUSTER_SIZE, cluster_size);
+static PROP_INT(PROP_FREE_SPACE, free_space_raw);
 #else
 extern int cluster_size;
 extern int free_space_raw;
@@ -120,7 +119,7 @@ info_elem_t info_config[] =
 
     /* entry 16, free space */
     { .text = { { INFO_TYPE_TEXT, { 144, 162, 2, .anchor_flags_self = (INFO_ANCHOR_RIGHT | INFO_ANCHOR_BOTTOM), .name = "GB" }}, "GB", COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
-    { .string = { { INFO_TYPE_STRING, { 0, 2, 2, INFO_ANCHOR_LEFT | INFO_ANCHOR_BOTTOM, 16, INFO_ANCHOR_RIGHT | INFO_ANCHOR_BOTTOM, .name = "Space" }}, INFO_STRING_FREE_GB_2, COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_CANON } },
+    { .string = { { INFO_TYPE_STRING, { 0, 2, 2, INFO_ANCHOR_LEFT | INFO_ANCHOR_BOTTOM, 16, INFO_ANCHOR_RIGHT | INFO_ANCHOR_BOTTOM, .name = "Space" }}, INFO_STRING_FREE_GB_FLOAT, COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_CANON } },
 
     /* entry 18, clock */
     { .string = { { INFO_TYPE_STRING, { 35, 250, 2, .name = "Hrs" }}, INFO_STRING_TIME_HH24, COLOR_CYAN, INFO_COL_PEEK, INFO_FONT_CANON } },
@@ -175,6 +174,32 @@ info_elem_t info_config[] =
 
     /* entry 10, HDR bracketing status */
     { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2, .name = "HDR" }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+#endif
+
+#if defined(CONFIG_550D)
+    /* entry 1 and 2, WB strings */
+    { .string = { { INFO_TYPE_STRING, { 490, 245, 2, .name = "WB BA" }}, INFO_STRING_WBS_BA, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM_SHADOW } },
+    { .string = { { INFO_TYPE_STRING, { 490, 270, 2, .name = "WB GM" }}, INFO_STRING_WBS_GM, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM_SHADOW } },
+
+    /* entry 3, MLU string */
+    { .string = { { INFO_TYPE_STRING, { 78, 260, 2, .name = "MLU" }}, INFO_STRING_MLU, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
+    
+    /* entry 4, Kelvin */
+    { .string = { { INFO_TYPE_STRING, { 307+(94/2), 237+(62/2), 2, .anchor_flags_self = INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER, .name = "Kelvin" }}, INFO_STRING_KELVIN, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
+    { .fill =   { { INFO_TYPE_FILL,   { 307, 237, 1, INFO_ANCHOR_ABSOLUTE, 4, INFO_ANCHOR_ABSOLUTE, 94, 62, .name = "Kelvin (clear)" }}, .color = INFO_COL_FIELD } },
+
+    /* entry 6, clock */
+    { .string = { { INFO_TYPE_STRING, { 200, 410, 2, .name = "Time" }}, INFO_STRING_TIME, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    
+    /* entry 7, HDR bracketing status */
+    { .string = { { INFO_TYPE_STRING, { 316, 200, 2, .anchor_flags_self = INFO_ANCHOR_HCENTER, .name = "HDR" }}, INFO_STRING_HDR, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
+
+    /* entry 8-11, free space & photos left*/
+    { .fill =   { { INFO_TYPE_FILL,   { 519, 396, 1, INFO_ANCHOR_ABSOLUTE, 0, INFO_ANCHOR_ABSOLUTE, 138, 55, .name = "Space (clear)" }}, .color = INFO_COL_PEEK } },
+    { .string = { { INFO_TYPE_STRING, { 519+(138/2), 412, 2, .anchor_flags_self = (INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER), .name = "Space Pics" }}, INFO_STRING_PICTURES_AVAIL, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_CANON } },
+    { .string = { { INFO_TYPE_STRING, { 573, 442, 3, .anchor_flags_self = (INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER), .name = "Space GB" }}, INFO_STRING_FREE_GB_FLOAT, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    { .text =   { { INFO_TYPE_TEXT,   { 2, 0, 3, (INFO_ANCHOR_VCENTER|INFO_ANCHOR_RIGHT), 10, (INFO_ANCHOR_VCENTER|INFO_ANCHOR_LEFT), .name = "GB" }}, "GB", COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    
 #endif
 
 #if defined(CONFIG_600D)
@@ -1139,7 +1164,7 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             {
                 return 1;
             }
-            snprintf(buffer, maxsize, "%5d", lens_info.kelvin);
+            snprintf(buffer, maxsize, "%d", lens_info.kelvin);
             break;
         }
         case INFO_STRING_KELVIN_ICO:
@@ -1370,12 +1395,8 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         {
             if (avail_shot>99999)
                 snprintf(buffer, maxsize, "[99999]");
-            else if (avail_shot>9999)
-                snprintf(buffer, maxsize, "[%5d]", avail_shot);
-            else if (avail_shot>999)
-                snprintf(buffer, maxsize, "[%4d]", avail_shot);
             else
-                snprintf(buffer, maxsize, "[%3d]", avail_shot);
+                snprintf(buffer, maxsize, "%d", avail_shot);
             break;
         }
 
@@ -1410,22 +1431,13 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             break;
         }
 #endif
-        case INFO_STRING_FREE_GB:
+        case INFO_STRING_FREE_GB_INT:
         {
             int fsg = free_space_32k >> 15;
             snprintf(buffer, maxsize, "%d", fsg);
             break;
         }
-        case INFO_STRING_FREE_GB_1:
-        {
-            int fsg = free_space_32k >> 15;
-            int fsgr = free_space_32k - (fsg << 15);
-            int fsgf = (fsgr * 10) >> 15;
-
-            snprintf(buffer, maxsize, "%d.%d", fsg, fsgf / 10);
-            break;
-        }
-        case INFO_STRING_FREE_GB_2:
+        case INFO_STRING_FREE_GB_FLOAT:
         {
             int fsg = free_space_32k >> 15;
             int fsgr = free_space_32k - (fsg << 15);
@@ -2576,9 +2588,8 @@ info_string_map_t info_string_map[] =
     { INFO_STRING_MLU                , "MLU"                 },
     { INFO_STRING_HDR                , "HDR"                 },
     { INFO_STRING_CAM_DATE           , "CAM_DATE"            },
-    { INFO_STRING_FREE_GB            , "FREE_GB"             },
-    { INFO_STRING_FREE_GB_1          , "FREE_GB_1"           },
-    { INFO_STRING_FREE_GB_2          , "FREE_GB_2"           }
+    { INFO_STRING_FREE_GB_INT        , "FREE_GB_INT"         },
+    { INFO_STRING_FREE_GB_FLOAT      , "FREE_GB_FLOAT"       }
 };
 
 void info_edit_parameters(uint32_t action, uint32_t parameter)
