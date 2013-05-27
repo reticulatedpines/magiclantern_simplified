@@ -33,7 +33,7 @@ MENU_UPDATE_FUNC(card_info_display)
     MENU_SET_ICON(cf_present ? MNI_ON : MNI_OFF, 0);
 }
 
-void card_test(int type)
+static void card_test(int type)
 {
     // some cards have timing issues on 5D3
     // ML will test for this bug at startup, and refuse to run on cards that can cause trouble
@@ -88,12 +88,14 @@ void card_test(int type)
     }
 }
 
+static int free_space_raw_a, free_space_raw_b;
+
 void card_tests()
 {
     if (card_test_enabled)
     {
-        card_test(0);
-        card_test(1);
+        if (free_space_raw_a > 10) card_test(0);
+        if (free_space_raw_b > 10) card_test(1);
     }
     
     /* on startup enforce selected card.
@@ -145,16 +147,16 @@ void find_ml_card()
 }
 
 int cluster_size = 0;
-int cluster_size_a = 0;
-int cluster_size_b = 0;
+static int cluster_size_a = 0;
+static int cluster_size_b = 0;
 
 int free_space_raw = 0;
-int free_space_raw_a = 0;
-int free_space_raw_b = 0;
+static int free_space_raw_a = 0;
+static int free_space_raw_b = 0;
 
 int file_number = 0;
-int file_number_a = 0;
-int file_number_b = 0;
+static int file_number_a = 0;
+static int file_number_b = 0;
 
 int folder_number = 0;
 int folder_number_a = 0;
@@ -346,7 +348,7 @@ struct menu_entry card_menus[] = {
     }
 };
 
-void fio_init()
+static void fio_init()
 {
     menu_add( "Prefs", card_menus, COUNT(card_menus) );
 }
