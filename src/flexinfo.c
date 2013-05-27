@@ -2588,8 +2588,8 @@ info_string_map_t info_string_map[] =
     { INFO_STRING_MLU                , "MLU"                 },
     { INFO_STRING_HDR                , "HDR"                 },
     { INFO_STRING_CAM_DATE           , "CAM_DATE"            },
-    { INFO_STRING_FREE_GB_INT        , "FREE_GB"             },
-    { INFO_STRING_FREE_GB_FLOAT      , "FREE_GB_1"           }
+    { INFO_STRING_FREE_GB_INT        , "FREE_GB_INT"         },
+    { INFO_STRING_FREE_GB_FLOAT      , "FREE_GB_FLOAT"       }
 };
 
 void info_edit_parameters(uint32_t action, uint32_t parameter)
