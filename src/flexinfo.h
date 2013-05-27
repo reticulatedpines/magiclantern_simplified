@@ -120,8 +120,7 @@ typedef struct
 #define INFO_STRING_HDR                  42
 #define INFO_STRING_CAM_DATE             43
 #define INFO_STRING_FREE_GB_INT          44
-#define INFO_STRING_FREE_GB_FLOAT_UNIT   45
-#define INFO_STRING_FREE_GB_FLOAT        46
+#define INFO_STRING_FREE_GB_FLOAT        45
 
 #define INFO_FONT_SMALL         0
 #define INFO_FONT_MEDIUM        1
