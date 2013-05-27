@@ -720,10 +720,24 @@ static char* get_next_raw_movie_file_name()
         {
             snprintf(filename, sizeof(filename), "%s/M%02d-%02d%02d.RAW", get_dcim_dir(), now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
         }
+        
+        /* already existing file? */
         uint32_t size;
         if( FIO_GetFileSize( filename, &size ) != 0 ) break;
         if (size == 0) break;
     }
+    
+    return filename;
+}
+
+static char* get_next_chunk_file_name(char* base_name, int chunk)
+{
+    static char filename[100];
+
+    /* change file extension, according to chunk number: RAW, R00, R01 and so on */
+    snprintf(filename, sizeof(filename), "%s", base_name);
+    int len = strlen(filename);
+    snprintf(filename + len - 2, 3, "%02d", chunk-1);
     
     return filename;
 }
@@ -755,10 +769,27 @@ static void raw_video_rec_task()
     frame_skips = 0;
     frame_offset_delta_x = 0;
     frame_offset_delta_y = 0;
+    FILE* f = 0;
+    uint32_t written = 0; /* in KB */
+    
+    /* create a backup file, to make sure we can save the file footer even if the card is full */
+    char backup_filename[100];
+    snprintf(backup_filename, sizeof(backup_filename), "%s/backup.raw", get_dcim_dir());
+    FILE* bf = FIO_CreateFileEx(backup_filename);
+    if (bf == INVALID_PTR)
+    {
+        bmp_printf( FONT_MED, 30, 50, "File create error");
+        goto cleanup;
+    }
+    FIO_WriteFile(bf, (void*)0x40000000, 32*1024);
+    FIO_CloseFile(bf);
+    
     
     /* create output file */
+    int chunk = 0;
     movie_filename = get_next_raw_movie_file_name();
-    FILE* f = FIO_CreateFileEx(movie_filename);
+    char* chunk_filename = movie_filename;
+    f = FIO_CreateFileEx(movie_filename);
     if (f == INVALID_PTR)
     {
         bmp_printf( FONT_MED, 30, 50, "File create error");
@@ -791,7 +822,6 @@ static void raw_video_rec_task()
     raw_recording_state = RAW_RECORDING;
 
     int t0 = 0;
-    uint32_t written = 0;
     
     /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
     recording = -1;
@@ -809,8 +839,35 @@ static void raw_video_rec_task()
             void* ptr = buffers[saving_buffer_index].ptr;
             int size_used = buffers[saving_buffer_index].used;
             int r = FIO_WriteFile(f, ptr, size_used);
-            if (r != size_used) goto abort;
-            written += size_used;
+
+            if (r != size_used) /* 4GB limit or card full? */
+            {
+                /* it failed right away? card must be full */
+                if (written == 0) goto abort;
+                
+                /* try to create a new chunk */
+                chunk_filename = get_next_chunk_file_name(movie_filename, ++chunk);
+                FILE* g = FIO_CreateFileEx(chunk_filename);
+                if (g == INVALID_PTR) goto abort;
+                
+                /* write the remaining data in the new chunk */
+                int r2 = FIO_WriteFile(g, ptr + r, size_used - r);
+                if (r2 == size_used - r) /* new chunk worked, continue with it */
+                {
+                    FIO_CloseFile(f);
+                    f = g;
+                }
+                else /* new chunk didn't work, card full */
+                {
+                    /* let's hope we can still save the footer in the current chunk (don't create a new one) */
+                    FIO_CloseFile(g);
+                    FIO_RemoveFile(chunk_filename);
+                    goto abort;
+                }
+            }
+            
+            /* all fine */
+            written += size_used / 1024;
             saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
         }
 
@@ -818,21 +875,18 @@ static void raw_video_rec_task()
         if (t0)
         {
             int t1 = get_ms_clock_value();
-            int speed = (written / 1024) * 10 / (t1 - t0) * 1000 / 1024; // MB/s x10
+            int speed = written * 10 / (t1 - t0) * 1000 / 1024; // MB/s x10
             measured_write_speed = speed;
             if (liveview_display_idle()) bmp_printf( FONT_MED, 30, 90, 
                 "%s: %d MB, %d.%d MB/s ",
-                movie_filename + 17, /* skip A:/DCIM/100CANON/ */
-                written / 1024 / 1024,
+                chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
+                written / 1024,
                 speed/10, speed%10
             );
         }
 
-        msleep(20);
-        
-        /* 4GB limit? not yet handled */
-        /* leave some margin to be able to flush everything, just in case */
-        if (written > 0xFFFFFFFFu - ((uint32_t)buffer_count + 1) * 32*1024*1024)
+        /* error handling */
+        if (0)
         {
 abort:
             bmp_printf( FONT_MED, 30, 90, 
@@ -846,7 +900,7 @@ abort:
     raw_recording_state = RAW_FINISHING;
 
     /* wait until the other tasks calm down */
-    msleep(1000);
+    msleep(500);
 
     recording = 0;
 
@@ -863,18 +917,46 @@ abort:
     /* write remaining frames */
     while (saving_buffer_index != capturing_buffer_index)
     {
-        if (!t0) t0 = get_ms_clock_value();
-        written += FIO_WriteFile(f, buffers[saving_buffer_index].ptr, buffers[saving_buffer_index].used);
+        written += FIO_WriteFile(f, buffers[saving_buffer_index].ptr, buffers[saving_buffer_index].used) / 1024;
         saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
     }
-    written += FIO_WriteFile(f, buffers[capturing_buffer_index].ptr, capture_offset);
+    written += FIO_WriteFile(f, buffers[capturing_buffer_index].ptr, capture_offset) / 1024;
 
-    /* write metadata */
-    int footer_ok = lv_rec_save_footer(f);
-    if (!footer_ok)
+    /* remove the backup file, to make sure we can save the footer even if card is full */
+    FIO_RemoveFile(backup_filename);
+    msleep(500);
+
+    if (written && f)
+    {
+        /* write footer (metadata) */
+        int footer_ok = lv_rec_save_footer(f);
+        if (!footer_ok)
+        {
+            /* try to save footer in a new chunk */
+            FIO_CloseFile(f); f = 0;
+            chunk_filename = get_next_chunk_file_name(movie_filename, ++chunk);
+            FILE* g = FIO_CreateFileEx(chunk_filename);
+            if (g != INVALID_PTR)
+            {
+                footer_ok = lv_rec_save_footer(g);
+                FIO_CloseFile(g);
+            }
+        }
+
+        /* still didn't succeed? */
+        if (!footer_ok)
+        {
+            bmp_printf( FONT_MED, 30, 110, 
+                "Footer save error"
+            );
+            beep();
+            msleep(2000);
+        }
+    }
+    else
     {
         bmp_printf( FONT_MED, 30, 110, 
-            "Footer save error"
+            "Nothing saved, card full maybe."
         );
         beep();
         msleep(2000);
@@ -882,6 +964,8 @@ abort:
 
 cleanup:
     if (f) FIO_CloseFile(f);
+    if (!written) { FIO_RemoveFile(movie_filename); movie_filename = 0; }
+    FIO_RemoveFile(backup_filename);
     free_buffers();
     redraw();
     raw_recording_state = RAW_IDLE;
