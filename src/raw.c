@@ -82,6 +82,25 @@ void raw_buffer_intercept_from_stateobj()
 }
 
 /** 
+ * Raw type (optional)
+ * decompile lv_af_raw
+ * => (5D3) lv_set_raw_type(arg0 ? 4 : 7)
+ * => MEM(0x2D168) = a bunch of values, default 34, 18 with lv_af on, 14 with lv_af off.
+ * see also http://www.magiclantern.fm/forum/index.php?topic=5614.msg39696#msg39696
+ */
+
+#ifdef CONFIG_5D3
+/**
+ * Renato [http://www.magiclantern.fm/forum/index.php?topic=5614.msg41070#msg41070]:
+ * "Best images in: 17, 35, 37, 39, 81, 83, 99"
+ * note: values are off by 1
+ */
+#define PREFERRED_RAW_TYPE 16
+#define RAW_TYPE_ADDRESS 0x2D168
+#endif
+
+
+/** 
  * White level
  * one size fits all: should work on most cameras and can't be wrong by more than 0.1 EV
  */
@@ -832,18 +851,32 @@ void FAST raw_preview_fast()
 }
 
 static int lv_raw_enabled;
+#ifdef PREFERRED_RAW_TYPE
+static int old_raw_type = -1;
+#endif
 static void raw_lv_enable()
 {
     lv_raw_enabled = 1;
     call("lv_save_raw", 1);
-    call("lv_af_raw", 1); /* this enables Canon's bad pixel removal, thanks nanomad */
+    
+    #ifdef PREFERRED_RAW_TYPE
+    old_raw_type = MEM(RAW_TYPE_ADDRESS);
+    MEM(RAW_TYPE_ADDRESS) = PREFERRED_RAW_TYPE;
+    #endif
 }
 
 static void raw_lv_disable()
 {
     lv_raw_enabled = 0;
     call("lv_save_raw", 0);
-    call("lv_af_raw", 0);
+    
+    #ifdef PREFERRED_RAW_TYPE
+    if (old_raw_type != -1)
+    {
+        MEM(RAW_TYPE_ADDRESS) = old_raw_type;
+        old_raw_type = -1;
+    }
+    #endif
 }
 
 int raw_lv_is_enabled()
