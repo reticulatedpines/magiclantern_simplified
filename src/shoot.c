@@ -3664,7 +3664,6 @@ PROP_HANDLER(PROP_FILE_PREFIX)
 
 #ifdef FEATURE_POST_DEFLICKER
 static char* xmp_template =
-"<?xpacket begin='﻿' id='W5M0MpCehiHzreSzNTczkc9d'?>\n"
 "<x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='Image::ExifTool 7.89'>\n"
 "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>\n"
 " <rdf:Description rdf:about=''\n"
@@ -3672,8 +3671,7 @@ static char* xmp_template =
 "  <crs:Exposure>%s%d.%05d</crs:Exposure>\n"
 " </rdf:Description>\n"
 "</rdf:RDF>\n"
-"</x:xmpmeta>\n"
-"<?xpacket end='w'?>\n";
+"</x:xmpmeta>\n";
 
 static char* ufraw_template =
 "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
