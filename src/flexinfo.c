@@ -1,4 +1,3 @@
-
 #include <dryos.h>
 #include <property.h>
 #include <menu.h>
@@ -186,7 +185,7 @@ info_elem_t info_config[] =
     { .string = { { INFO_TYPE_STRING, { 78, 260, 2, .name = "MLU" }}, INFO_STRING_MLU, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
     
     /* entry 4, Kelvin */
-    { .string = { { INFO_TYPE_STRING, { 307+(94/2), 237+(62/2), 2, .anchor_flags_self = INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER, .name = "Kelvin" }}, INFO_STRING_KELVIN_NOPAD, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
+    { .string = { { INFO_TYPE_STRING, { 307+(94/2), 237+(62/2), 2, .anchor_flags_self = INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER, .name = "Kelvin" }}, INFO_STRING_KELVIN, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
     { .fill =   { { INFO_TYPE_FILL,   { 307, 237, 1, INFO_ANCHOR_ABSOLUTE, 4, INFO_ANCHOR_ABSOLUTE, 94, 62, .name = "Kelvin (clear)" }}, .color = INFO_COL_FIELD } },
 
     /* entry 6, clock */
@@ -197,7 +196,7 @@ info_elem_t info_config[] =
 
     /* entry 8-11, free space & photos left*/
     { .fill =   { { INFO_TYPE_FILL,   { 519, 396, 1, INFO_ANCHOR_ABSOLUTE, 0, INFO_ANCHOR_ABSOLUTE, 138, 55, .name = "Space (clear)" }}, .color = INFO_COL_PEEK } },
-    { .string = { { INFO_TYPE_STRING, { 519+(138/2), 412, 2, .anchor_flags_self = (INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER), .name = "Space Pics" }}, INFO_STRING_PICTURES_AVAIL_NOPAD, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_CANON } },
+    { .string = { { INFO_TYPE_STRING, { 519+(138/2), 412, 2, .anchor_flags_self = (INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER), .name = "Space Pics" }}, INFO_STRING_PICTURES_AVAIL, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_CANON } },
     { .string = { { INFO_TYPE_STRING, { 573, 442, 3, .anchor_flags_self = (INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER), .name = "Space GB" }}, INFO_STRING_FREE_GB_FLOAT, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
     { .text =   { { INFO_TYPE_TEXT,   { 2, 0, 3, (INFO_ANCHOR_VCENTER|INFO_ANCHOR_RIGHT), 10, (INFO_ANCHOR_VCENTER|INFO_ANCHOR_LEFT), .name = "GB" }}, "GB", COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
     
@@ -1165,15 +1164,6 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             {
                 return 1;
             }
-            snprintf(buffer, maxsize, "%5d", lens_info.kelvin);
-            break;
-        }
-        case INFO_STRING_KELVIN_NOPAD:
-        {
-            if (lens_info.wb_mode != WB_KELVIN)
-            {
-                return 1;
-            }
             snprintf(buffer, maxsize, "%d", lens_info.kelvin);
             break;
         }
@@ -1402,19 +1392,6 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         }
 
         case INFO_STRING_PICTURES_AVAIL:
-        {
-            if (avail_shot>99999)
-                snprintf(buffer, maxsize, "[99999]");
-            else if (avail_shot>9999)
-                snprintf(buffer, maxsize, "[%5d]", avail_shot);
-            else if (avail_shot>999)
-                snprintf(buffer, maxsize, "[%4d]", avail_shot);
-            else
-                snprintf(buffer, maxsize, "[%3d]", avail_shot);
-            break;
-        }
-
-        case INFO_STRING_PICTURES_AVAIL_NOPAD:
         {
             if (avail_shot>99999)
                 snprintf(buffer, maxsize, "[99999]");
@@ -2570,51 +2547,49 @@ void info_edit_anchoring(uint32_t action, uint32_t parameter)
 
 info_string_map_t info_string_map[] = 
 {
-    { INFO_STRING_NONE                 , "NONE" 	              },
-    { INFO_STRING_ISO                  , "ISO"  	              },
-    { INFO_STRING_ISO_MIN              , "ISO_MIN"	              },
-    { INFO_STRING_ISO_MAX              , "ISO_MAX"	              },
-    { INFO_STRING_ISO_MINMAX           , "ISO_MINMAX"	              },
-    { INFO_STRING_KELVIN               , "KELVIN"	              },
-    { INFO_STRING_KELVIN_NOPAD         , "KELVIN_NOPAD"               },
-    { INFO_STRING_WBS_BA               , "WBS_BA"	              },
-    { INFO_STRING_WBS_GM               , "WBS_GM"	              },
-    { INFO_STRING_DATE_DDMMYYYY        , "DATE_DDMMYYYY"              },
-    { INFO_STRING_DATE_YYYYMMDD        , "DATE_YYYYMMDD"              },
-    { INFO_STRING_DATE_MM              , "DATE_MM"	              },
-    { INFO_STRING_DATE_DD              , "DATE_DD"	              },
-    { INFO_STRING_DATE_YY              , "DATE_YY"	              },
-    { INFO_STRING_DATE_YYYY            , "DATE_YYYY"	              },
-    { INFO_STRING_TIME                 , "TIME" 	              },
-    { INFO_STRING_TIME_HH12            , "TIME_HH12"	              },
-    { INFO_STRING_TIME_HH24            , "TIME_HH24"	              },
-    { INFO_STRING_TIME_MM              , "TIME_MM"	              },
-    { INFO_STRING_TIME_SS              , "TIME_SS"	              },
-    { INFO_STRING_TIME_AMPM            , "TIME_AMPM"	              },
-    { INFO_STRING_ARTIST               , "ARTIST"	              },
-    { INFO_STRING_COPYRIGHT            , "COPYRIGHT"	              },
-    { INFO_STRING_LENS                 , "LENS" 	              },
-    { INFO_STRING_BUILD                , "BUILD"	              },
-    { INFO_STRING_CARD_LABEL_A         , "CARD_LABEL_A"               },
-    { INFO_STRING_CARD_LABEL_B         , "CARD_LABEL_B"               },
-    { INFO_STRING_CARD_SPACE_A         , "CARD_SPACE_A"               },
-    { INFO_STRING_CARD_SPACE_B         , "CARD_SPACE_B"               },
-    { INFO_STRING_CARD_FILES_A         , "CARD_FILES_A"               },
-    { INFO_STRING_CARD_FILES_B         , "CARD_FILES_B"               },
-    { INFO_STRING_CARD_MAKER_A         , "CARD_MAKER_A"               },
-    { INFO_STRING_CARD_MAKER_B         , "CARD_MAKER_B"               },
-    { INFO_STRING_CARD_MODEL_A         , "CARD_MODEL_A"               },
-    { INFO_STRING_CARD_MODEL_B         , "CARD_MODEL_B"               },
-    { INFO_STRING_BATTERY_PCT          , "BATTERY_PCT"                },
-    { INFO_STRING_BATTERY_ID           , "BATTERY_ID"	              },
-    { INFO_STRING_PICTURES_AVAIL_AUTO  , "PICTURES_AVAIL_AUTO"        },
-    { INFO_STRING_PICTURES_AVAIL       , "PICTURES_AVAIL"             },
-    { INFO_STRING_PICTURES_AVAIL_NOPAD , "PICTURES_AVAIL_NOPAD"       },
-    { INFO_STRING_MLU                  , "MLU"  	              },
-    { INFO_STRING_HDR                  , "HDR"  	              },
-    { INFO_STRING_CAM_DATE             , "CAM_DATE"	              },
-    { INFO_STRING_FREE_GB_INT          , "FREE_GB_INT"	              },
-    { INFO_STRING_FREE_GB_FLOAT        , "FREE_GB_FLOAT"              }
+    { INFO_STRING_NONE               , "NONE"                },
+    { INFO_STRING_ISO                , "ISO"                 },
+    { INFO_STRING_ISO_MIN            , "ISO_MIN"             },
+    { INFO_STRING_ISO_MAX            , "ISO_MAX"             },
+    { INFO_STRING_ISO_MINMAX         , "ISO_MINMAX"          },
+    { INFO_STRING_KELVIN             , "KELVIN"              },
+    { INFO_STRING_WBS_BA             , "WBS_BA"              },
+    { INFO_STRING_WBS_GM             , "WBS_GM"              },
+    { INFO_STRING_DATE_DDMMYYYY      , "DATE_DDMMYYYY"       },
+    { INFO_STRING_DATE_YYYYMMDD      , "DATE_YYYYMMDD"       },
+    { INFO_STRING_DATE_MM            , "DATE_MM"             },
+    { INFO_STRING_DATE_DD            , "DATE_DD"             },
+    { INFO_STRING_DATE_YY            , "DATE_YY"             },
+    { INFO_STRING_DATE_YYYY          , "DATE_YYYY"           },
+    { INFO_STRING_TIME               , "TIME"                },
+    { INFO_STRING_TIME_HH12          , "TIME_HH12"           },
+    { INFO_STRING_TIME_HH24          , "TIME_HH24"           },
+    { INFO_STRING_TIME_MM            , "TIME_MM"             },
+    { INFO_STRING_TIME_SS            , "TIME_SS"             },
+    { INFO_STRING_TIME_AMPM          , "TIME_AMPM"           },
+    { INFO_STRING_ARTIST             , "ARTIST"              },
+    { INFO_STRING_COPYRIGHT          , "COPYRIGHT"           },
+    { INFO_STRING_LENS               , "LENS"                },
+    { INFO_STRING_BUILD              , "BUILD"               },
+    { INFO_STRING_CARD_LABEL_A       , "CARD_LABEL_A"        },
+    { INFO_STRING_CARD_LABEL_B       , "CARD_LABEL_B"        },
+    { INFO_STRING_CARD_SPACE_A       , "CARD_SPACE_A"        },
+    { INFO_STRING_CARD_SPACE_B       , "CARD_SPACE_B"        },
+    { INFO_STRING_CARD_FILES_A       , "CARD_FILES_A"        },
+    { INFO_STRING_CARD_FILES_B       , "CARD_FILES_B"        },
+    { INFO_STRING_CARD_MAKER_A       , "CARD_MAKER_A"        },
+    { INFO_STRING_CARD_MAKER_B       , "CARD_MAKER_B"        },
+    { INFO_STRING_CARD_MODEL_A       , "CARD_MODEL_A"        },
+    { INFO_STRING_CARD_MODEL_B       , "CARD_MODEL_B"        },
+    { INFO_STRING_BATTERY_PCT        , "BATTERY_PCT"         },
+    { INFO_STRING_BATTERY_ID         , "BATTERY_ID"          },
+    { INFO_STRING_PICTURES_AVAIL_AUTO, "PICTURES_AVAIL_AUTO" },
+    { INFO_STRING_PICTURES_AVAIL     , "PICTURES_AVAIL"      },
+    { INFO_STRING_MLU                , "MLU"                 },
+    { INFO_STRING_HDR                , "HDR"                 },
+    { INFO_STRING_CAM_DATE           , "CAM_DATE"            },
+    { INFO_STRING_FREE_GB_INT        , "FREE_GB"             },
+    { INFO_STRING_FREE_GB_FLOAT      , "FREE_GB_1"           }
 };
 
 void info_edit_parameters(uint32_t action, uint32_t parameter)
