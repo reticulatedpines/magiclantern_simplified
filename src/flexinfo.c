@@ -1,3 +1,4 @@
+
 #include <dryos.h>
 #include <property.h>
 #include <menu.h>
@@ -188,16 +189,17 @@ info_elem_t info_config[] =
     { .string = { { INFO_TYPE_STRING, { 307+(94/2), 237+(62/2), 2, .anchor_flags_self = INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER, .name = "Kelvin" }}, INFO_STRING_KELVIN_NOPAD, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
     { .fill =   { { INFO_TYPE_FILL,   { 307, 237, 1, INFO_ANCHOR_ABSOLUTE, 4, INFO_ANCHOR_ABSOLUTE, 94, 62, .name = "Kelvin (clear)" }}, .color = INFO_COL_FIELD } },
 
-    /* entry 5, clock */
+    /* entry 6, clock */
     { .string = { { INFO_TYPE_STRING, { 200, 410, 2, .name = "Time" }}, INFO_STRING_TIME, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
     
-    /* entry 6, HDR bracketing status */
+    /* entry 7, HDR bracketing status */
     { .string = { { INFO_TYPE_STRING, { 316, 200, 2, .anchor_flags_self = INFO_ANCHOR_HCENTER, .name = "HDR" }}, INFO_STRING_HDR, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
 
-    /* entry 7, free space & photos left*/
+    /* entry 8-11, free space & photos left*/
     { .fill =   { { INFO_TYPE_FILL,   { 519, 396, 1, INFO_ANCHOR_ABSOLUTE, 0, INFO_ANCHOR_ABSOLUTE, 138, 55, .name = "Space (clear)" }}, .color = INFO_COL_PEEK } },
-    { .string = { { INFO_TYPE_STRING, { 519+(138/2), 412, 2, .anchor_flags_self = INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER, .name = "Space Pics" }}, INFO_STRING_PICTURES_AVAIL_NOPAD, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_CANON } },
-    { .string = { { INFO_TYPE_STRING, { 592, 442, 3, .anchor_flags_self = INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER, .name = "Space GB" }}, INFO_STRING_FREE_GB_FLOAT_UNIT, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    { .string = { { INFO_TYPE_STRING, { 519+(138/2), 412, 2, .anchor_flags_self = (INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER), .name = "Space Pics" }}, INFO_STRING_PICTURES_AVAIL_NOPAD, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_CANON } },
+    { .string = { { INFO_TYPE_STRING, { 573, 442, 3, .anchor_flags_self = (INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER), .name = "Space GB" }}, INFO_STRING_FREE_GB_FLOAT, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    { .text =   { { INFO_TYPE_TEXT,   { 2, 0, 3, (INFO_ANCHOR_VCENTER|INFO_ANCHOR_RIGHT), 10, (INFO_ANCHOR_VCENTER|INFO_ANCHOR_LEFT), .name = "GB" }}, "GB", COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
     
 #endif
 
@@ -1458,15 +1460,6 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             snprintf(buffer, maxsize, "%d", fsg);
             break;
         }
-        case INFO_STRING_FREE_GB_FLOAT_UNIT:
-        {
-            int fsg = free_space_32k >> 15;
-            int fsgr = free_space_32k - (fsg << 15);
-            int fsgf = (fsgr * 10) >> 15;
-
-            snprintf(buffer, maxsize, "%d.%dGB", fsg, fsgf);
-            break;
-        }
         case INFO_STRING_FREE_GB_FLOAT:
         {
             int fsg = free_space_32k >> 15;
@@ -2621,7 +2614,6 @@ info_string_map_t info_string_map[] =
     { INFO_STRING_HDR                  , "HDR"  	              },
     { INFO_STRING_CAM_DATE             , "CAM_DATE"	              },
     { INFO_STRING_FREE_GB_INT          , "FREE_GB_INT"	              },
-    { INFO_STRING_FREE_GB_FLOAT_UNIT   , "FREE_GB_FLOAT_UNIT"         },
     { INFO_STRING_FREE_GB_FLOAT        , "FREE_GB_FLOAT"              }
 };
 
