@@ -82,7 +82,7 @@ static char* movie_filename = 0;                  /* file name for current (or l
 
 static float get_squeeze_factor()
 {
-    if (video_mode_resolution == 1) /* 720p, image squeezed */
+    if (video_mode_resolution == 1 && lv_dispsize == 1 && is_movie_mode()) /* 720p, image squeezed */
     {
         /* assume the raw image should be 16:9 when de-squeezed */
         int correct_height = raw_info.jpeg.width * 9 / 16;
