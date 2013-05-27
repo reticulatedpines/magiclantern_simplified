@@ -862,6 +862,7 @@ static void raw_video_rec_task()
                     /* let's hope we can still save the footer in the current chunk (don't create a new one) */
                     FIO_CloseFile(g);
                     FIO_RemoveFile(chunk_filename);
+                    chunk--;
                     goto abort;
                 }
             }
