@@ -5,6 +5,9 @@
  * TODO: make it platform-independent and move it to modules.
  */
 
+
+#undef RAW_DEBUG_BLACK
+
 #ifdef CONFIG_MAGICLANTERN
 #include "dryos.h"
 #include "property.h"

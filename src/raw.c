@@ -418,15 +418,12 @@ int raw_update_params()
         skip_top = 50;
         #endif
 
-        #if defined(CONFIG_EOSM) || defined(CONFIG_650D)
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
         width = 5280;
         height = 3528;
-        skip_left = 84;
-        skip_top = 64;
-        skip_right = width - 5267;
-        skip_bottom = height - 3519; 
+        skip_left = 72;
+        skip_top = 52;
         #endif
-
 
         dbg_printf("Photo raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
