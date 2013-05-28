@@ -1,7 +1,15 @@
+/*
+ *  7D 2.0.3 consts
+ */
+
 #define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC022D06C // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x138000
 #define LEDOFF 0x38400
+
+//~ Format dialog consts
+#define FORMAT_BTN "[Q]"
+#define STR_LOC 11
 
 #define CARD_A_MAKER 0x8748F
 #define CARD_A_MODEL 0x874c3

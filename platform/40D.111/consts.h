@@ -1,3 +1,7 @@
+/*
+ *  40D 1.1.1 consts
+ */
+
 #define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC02200E0 // http://magiclantern.wikia.com/wiki/Led_addresses
 
@@ -5,6 +9,10 @@
 #define LEDRED      *(volatile int*)0xC02200E0
 #define LEDON   0x46
 #define LEDOFF  0x44
+
+//~ Format dialog consts
+#define FORMAT_BTN "[Q]"
+#define STR_LOC 11
 
 #define DRYOS_ASSERT_HANDLER 0xEF78 // dec TH_assert or assert_0
 

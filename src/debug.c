@@ -3425,13 +3425,11 @@ static struct menu_entry debug_menus[] = {
         .help = "Take a screenshot for each ML menu.",
     }, */
 #if CONFIG_DEBUGMSG
-    #ifndef CONFIG_5DC
     {
         .name = "Draw palette",
         .select        = (void(*)(void*,int))bmp_draw_palette,
         .help = "Display a test pattern to see the color palette."
     },
-    #endif
     {
         .name = "Spy prop/evt/mem",
         .select        = draw_prop_select,
@@ -4254,22 +4252,12 @@ static void HijackFormatDialogBox()
     struct dialog * dialog = current->priv;
     if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
 
-#if defined(CONFIG_50D)
-    #define FORMAT_BTN "[FUNC]"
-    #define STR_LOC 6
-#elif defined(CONFIG_500D)
-    #define FORMAT_BTN "[LV]"
-    #define STR_LOC 12      //~ by the others' pattern, should this be 10 not 12?
-#elif defined(CONFIG_5D2)
-    #define FORMAT_BTN "[PicSty]"
-    #define STR_LOC 6
-#elif defined(CONFIG_EOSM)
-    #define FORMAT_BTN "[Tap Screen]"
-    #define STR_LOC 4
-#else
-    #define FORMAT_BTN "[Q]"
-    #define STR_LOC 11
-#endif
+    /** Defaults for format dialog consts **/
+    #if !defined(FORMAT_BTN)
+        #define FORMAT_BTN "[Q]"
+    #elif !defined(STR_LOC)
+        #define STR_LOC 11
+    #endif
 
     if (keep_ml_after_format)
         dialog_set_property_str(dialog, 4, "Format card, keep ML " FORMAT_BTN);

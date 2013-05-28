@@ -1,7 +1,5 @@
 /*
- *  Almost none of this is correct yet, only a skeleton to be filled in later.
- *
- *  Indented line = incorrect.
+ * Consts for 6D 113 firmware
  */
 
 #define CARD_DRIVE "B:/"
@@ -9,32 +7,41 @@
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
 
+//~ Format dialog consts
+#define FORMAT_BTN "[Q]"
+#define STR_LOC 12
+
 #define HIJACK_CACHE_HACK
 
+#define HIJACK_ASIF_NEXT_BUFF 0xFF2AC4C8
+#define HIJACK_ASIF_CONT_JUMP_INSTR 0xE1500000
 #define HIJACK_ASIF_DAC_TIMEOUT 0xFF11CD44
 #define HIJACK_ASIF_KILL_SEM_WAIT 0xFF11CCB8
 #define HIJACK_ASIF_ADC_TIMEOUT 0xFF11C99C
 #define HIJACK_ASIF_KILL_SEM_WAIT2 0xFF11C910
-#define HIJACK_ASIF_CONT_JUMP_ADDR 0xFF2AC5E0
-#define HIJACK_ASIF_CONT_JUMP_INSTR 0xEA000009
+//~ #define HIJACK_ASIF_CONT_JUMP_ADDR 0xFF2AC5E0
+//~ #define HIJACK_ASIF_CONT_JUMP_INSTR 0xEA000009
+#define HIJACK_ASIF_CONT_JUMP_ADDR 0xFF2AC5DC
+#define HIJACK_ASIF_CONT_JUMP_INSTR 0xE1500000
+
 
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 10
 
-
 #define HIJACK_CACHE_HACK_INITTASK_ADDR 0xFF0C1C6C
-
-// load ML in the malloc pool
-//~ #define HIJACK_CACHE_HACK_BSS_END_ADDR 0xFF0C1C64
-//~ #define HIJACK_CACHE_HACK_BSS_END_INSTR 0xD7900
 
 // load ML in the AllocateMemory pool
 #define HIJACK_CACHE_HACK_BSS_END_ADDR 0xff0c3470
-#define HIJACK_CACHE_HACK_BSS_END_INSTR 0xCBC000
+//~ #define HIJACK_CACHE_HACK_BSS_END_INSTR 0xCBC000
+//0xA0000 - 640K Should Be enough for everyone
+#define HIJACK_CACHE_HACK_BSS_END_INSTR 0xC1C000
 
-//~ fixup start address of AllocateMemory pool
+//~ fixup start address of AllocateMemory pool 0x8F0000
 #define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR 0xFF0C3190
-#define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR 0xE2410887 
+//#define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR 0xE2410887 
+//0x7D0000
+#define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR 0xE241087D 
+
 
 #define HIJACK_INSTR_BL_CSTART  0xFF0C0D90
 #define HIJACK_INSTR_BSS_END 0xFF0C1C64
@@ -45,6 +52,7 @@
 
 #define CACHE_HACK_FLUSH_RATE_SLAVE 0xFF0EBEC0
 #define CACHE_HACK_GOP_SIZE_SLAVE   0xFF226724
+
 
 // look for LDRNE near 2nd ARM Library runtime error
 #define ARMLIB_OVERFLOWING_BUFFER 0x93b58 // in AJ_armlib_setup_related3
@@ -66,12 +74,17 @@
 
 
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
+//same thing?
 #define YUV422_HD_BUFFER_1 0x13FFF780
 #define YUV422_HD_BUFFER_2 0x0EFFF780
+//#define YUV422_HD_BUFFER_DMA_ADDR 0x54000000
+//#define YUV422_HD_BUFFER_1 0x54000000
+//#define YUV422_HD_BUFFER_2 0x4ee00000 //Also 0x4f000000 in Logs
+//#define YUV422_HD_BUFFER_2 0x4f000000 //Also 0x4f000000 in Logs
 
 
 // see "focusinfo" and Wiki:Struct_Guessing
-#define FOCUS_CONFIRMATION (*(int*)0x78664)
+#define FOCUS_CONFIRMATION (*(int*)0x78668)
 
 //~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
 #define HALFSHUTTER_PRESSED (*(int*)0x75FD0)
@@ -82,16 +95,25 @@
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xFF9CDB68 // dec gui_main_task
 
-#define SENSOR_RES_X 4344
-#define SENSOR_RES_Y 2611
+/* 
+Thumb size:  5472 x 3648
+Full size:   5568 x 3708
+Image size:  5496 x 3670
+Output size: 5496 x 3670
+*/
+
+#define SENSOR_RES_X 5568
+#define SENSOR_RES_Y 3680
+
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x7763C)
 
-#define LV_BOTTOM_BAR_DISPLAYED (lv_disp_mode)
+//For Scroll Wheels
+//~ #define LV_BOTTOM_BAR_DISPLAYED (lv_disp_mode)
+#define LV_BOTTOM_BAR_DISPLAYED UNAVI_FEEDBACK_TIMER_ACTIVE
 
 //That Function is dead.
 #define ISO_ADJUSTMENT_ACTIVE 0
-//#define ISO_ADJUSTMENT_ACTIVE 0x7AAD0 // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
 // from a screenshot
 #define COLOR_FG_NONLV 1
@@ -102,13 +124,16 @@
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
-// macros copied from arm-console
+// macros copied from arm-console decompile to see how it calculates
 #define MVR_BUFFER_USAGE_FRAME MAX(MEM(MVR_516_STRUCT + 0x594), MEM(MVR_516_STRUCT + 0x590))
-    #define MVR_BUFFER_USAGE_SOUND 0 // not sure
-#define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
+#define MVR_BUFFER_USAGE_SOUND div_maybe(100 * ( MEM(MVR_516_STRUCT + 712) - MEM(MVR_516_STRUCT + 724) ), 10)
+//~ #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
+//~ Stops at 100% with sound on.
+#define MVR_BUFFER_USAGE MVR_BUFFER_USAGE_FRAME + MVR_BUFFER_USAGE_SOUND
 
 #define MVR_FRAME_NUMBER  (*(int*)(0x1FC + MVR_516_STRUCT)) // in mvrExpStarted
-    #define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))
+#define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))  //Not sure where to find but works.
+//~ #define MVR_BYTES_WRITTEN (*(int*)(0x1A4 + MVR_516_STRUCT)) //%s : End(%d) (%5dKB/S)
 
 #define AE_VALUE (*(int8_t*)0x7F5B0)
 //Metering for LV in Manual Mode
@@ -117,19 +142,15 @@
 // 0xff36c2d8: pointer to 0x7f554
 // return BYTE(*0x7F5B0)
 // SetLvExposureDataToWinSystem
-//
-//  ROM:FF36CD60                 LDR     R0, =byte_7F554
-//  ...
-//  ROM:FF36CE4C                 LDRB    R1, [R0,#0x1D]
-//  ROM:FF36CE50                 STRB    R1, [R0,#0x5C] ;this is our offset for AE_VALUE.
 
 #define DLG_PLAY 1
 #define DLG_MENU 2
 
-        #define DLG_FOCUS_MODE 0x123456
+#define DLG_FOCUS_MODE 0x123456
 
 #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x24)
 #define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x25)
+
 
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
@@ -137,8 +158,6 @@
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xC0220174) & 1)) //NE((*0xC0220174 & 0x1)):
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x74C44 
 #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x74c34 //prop_deliver(*0x74C44, 0x74c34, 0x4, 0x0) +*0x74C34 = 1
-// In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
-// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
@@ -176,9 +195,9 @@
 #define WB_KELVIN_POS_X 190
 #define WB_KELVIN_POS_Y 280
 
-// white balance shift values M2B1 in yellow
-#define WBS_POS_X 265
-#define WBS_POS_Y 278
+	// white balance shift values M2B1 in yellow
+	#define WBS_POS_X 265
+	#define WBS_POS_Y 278
 
 // for header footer info
 #define DISPLAY_HEADER_FOOTER_INFO
@@ -192,8 +211,8 @@
 #define NUM_PICSTYLES 10
 #define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
 
-    #define FLASH_MAX_EV 3
-    #define FLASH_MIN_EV -10 // not sure if it actually works
+#define FLASH_MAX_EV 3
+#define FLASH_MIN_EV -10 // not sure if it actually works
 // 1/8000+ Possible but canon keeps resetting it.
 //#define FASTEST_SHUTTER_SPEED_RAW 160
 #define FASTEST_SHUTTER_SPEED_RAW 152
@@ -215,6 +234,7 @@
 #define AF_BTN_HALFSHUTTER 0
 #define AF_BTN_STAR 2
 
+    
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x7F77C) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
 #define IMGPLAY_ZOOM_POS_X MEM(0xb9a38) // CentrePos
@@ -255,7 +275,7 @@
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x75550)
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
-#define VIDEO_PARAMETERS_SRC_3 MEM(0x76cfc) //76cfc
+#define VIDEO_PARAMETERS_SRC_3 MEM(0x76D00) //76cfc
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
 #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))
@@ -271,4 +291,12 @@
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 //~ needs fixed to prevent half shutter making canon overlays visible. sub_ff52c568.htm Not Present but probably right.
-#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x84100) != 0x17) // dec CancelUnaviFeedBackTimer
+//~ #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x84100) != 0x17) // 1 All the Time
+//~ #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x8418c) == 0x2) // Between the "17s" find with mem browser
+//~ #define UNAVI (MEM(0x8418c)) // Between the "17s" find with mem browser
+#define UNAVI (MEM(0x8418c) ==2) // Between the "17s" find with mem browser
+#define SCROLLHACK (MEM(0x841C0) !=0)
+#define UNAVI_FEEDBACK_TIMER_ACTIVE (UNAVI || SCROLLHACK)
+//~ #define RAW_WHITE_LEVEL 13225
+//~ #define RAW_SKIP_H 152 // to ignore the black border 
+//~ #define RAW_SKIP_V 12

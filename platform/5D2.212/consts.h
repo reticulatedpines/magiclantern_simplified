@@ -1,7 +1,15 @@
+/*
+ *  5D2 2.1.2 consts
+ */
+
 #define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC02200BC // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x46
 #define LEDOFF 0x44
+
+//~ Format dialog consts
+#define FORMAT_BTN "[PicSty]"
+#define STR_LOC 6
 
 // thanks Indy
 #define HIJACK_INSTR_BL_CSTART  0xFF812AE8

@@ -1,7 +1,5 @@
 /*
- *  Almost none of this is correct yet, only a skeleton to be filled in later.
- *
- *  Indented line = incorrect.
+ *  650D 1.0.1 consts
  */
 
 /* 
@@ -11,6 +9,10 @@
 #define CARD_LED_ADDRESS 0xC022C188 // like 5dm3 and EOS-M
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
+
+//~ Format dialog consts
+#define FORMAT_BTN "[Q]"
+#define STR_LOC 11
 
 // RESTARTSTART 0x7e100
 #define HIJACK_INSTR_BL_CSTART  0xFF0C0D80

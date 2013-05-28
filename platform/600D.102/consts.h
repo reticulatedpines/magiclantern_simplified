@@ -1,7 +1,15 @@
+/*
+ *  600D 1.0.2 consts
+ */
+
 #define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x46
 #define LEDOFF 0x44
+
+//~ Format dialog consts
+#define FORMAT_BTN "[Q]"
+#define STR_LOC 11
 
 #define HIJACK_CACHE_HACK
 

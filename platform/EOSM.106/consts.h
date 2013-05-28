@@ -1,7 +1,5 @@
 /*
- *  Almost none of this is correct yet, only a skeleton to be filled in later.
- *
- *  Indented line = incorrect.
+ *  EOS M 1.0.6 consts
  */
 
 #define CARD_DRIVE "B:/"
@@ -9,12 +7,51 @@
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
 
+//~ Format dialog consts
+#define FORMAT_BTN "[Tap Screen]"
+#define STR_LOC 4
+
+#define HIJACK_CACHE_HACK
+#define HIJACK_CACHE_HACK_INITTASK_ADDR 0xFF0C1CC8
 #define HIJACK_INSTR_BL_CSTART  0xff0c0d80
 #define HIJACK_INSTR_BSS_END 0xff0c1cbc
 #define HIJACK_FIXBR_BZERO32 0xff0c1c20
 #define HIJACK_FIXBR_CREATE_ITASK 0xff0c1cac
-#define HIJACK_INSTR_MY_ITASK 0xff0c1cc8
+#define HIJACK_INSTR_MY_ITASK 0xFF0C1CC8
 #define HIJACK_TASK_ADDR 0x3E2D8
+
+// Doesn't resize memory..
+// load ML in the malloc pool //0xD16F8 - A0000 = 316F8
+//~ #define HIJACK_CACHE_HACK_BSS_END_ADDR 0xff0c1cbc
+//~ #define HIJACK_CACHE_HACK_BSS_END_INSTR 0xCCC000
+//~ #define HIJACK_CACHE_HACK_BSS_END_INSTR 0x13E260 //Move Start Address Up
+
+//Patch Malloc End
+//~ #define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR 0xFF0C1CC0
+//~ #define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR 0xCF958 
+
+
+
+// load ML in the AllocateMemory pool 
+//0xD6C000 - 0x80000 = CEC000
+#define HIJACK_CACHE_HACK_BSS_END_ADDR 0xFF0C31AC
+//~ #define HIJACK_CACHE_HACK_BSS_END_INSTR 0xCEC000
+//0xA0000 - 640K Should Be enough for everyone
+#define HIJACK_CACHE_HACK_BSS_END_INSTR 0xCCC000
+
+
+//~ fixup start address of AllocateMemory pool
+#define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR 0xFF0C3058
+//~ #define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR 0xE2410887 
+//0x7D0000
+#define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR 0xE241087D 
+
+
+
+#define CACHE_HACK_FLUSH_RATE_SLAVE 0xFF0E2C60
+//~ #define CACHE_HACK_GOP_SIZE_SLAVE 0xFF23AAC4
+//~ #define CACHE_HACK_GOP_SIZE_SLAVE 0xFF23AF6C
+#define CACHE_HACK_GOP_SIZE_SLAVE 0xFF2078A0
 
 // no idea if it's overflowing, need to check experimentally 
 #define ARMLIB_OVERFLOWING_BUFFER 0x66114 // in AJ_armlib_setup_related3
@@ -42,7 +79,7 @@
 #define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
-    #define FOCUS_CONFIRMATION (*(int*)0x42540)
+#define FOCUS_CONFIRMATION (*(int*)0x42540)
 
 //~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
 #define HALFSHUTTER_PRESSED (*(int*)0x3F684)
@@ -53,15 +90,16 @@
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xff7f8e04 // dec gui_main_task
 
-#define SENSOR_RES_X 4752
-#define SENSOR_RES_Y 3168
+#define SENSOR_RES_X 5280
+#define SENSOR_RES_Y 3528
 
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x41414)
 
-#define LV_BOTTOM_BAR_DISPLAYED (lv_disp_mode)
+//~ #define LV_BOTTOM_BAR_DISPLAYED (lv_disp_mode)
+#define LV_BOTTOM_BAR_DISPLAYED UNAVI_FEEDBACK_TIMER_ACTIVE
 
-    #define ISO_ADJUSTMENT_ACTIVE 0 // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
+#define ISO_ADJUSTMENT_ACTIVE 0 // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
     // from a screenshot
     #define COLOR_FG_NONLV 1
@@ -86,12 +124,12 @@
 #define MOV_OPT_STEP 5
 #define MOV_GOP_OPT_STEP 5
 
-    #define AE_VALUE 0 // 404
+#define AE_VALUE (*(int8_t*)0x51C58)
 
 #define DLG_PLAY 1
 #define DLG_MENU 2
-
-    #define DLG_FOCUS_MODE 0x123456
+#define DLG_INFO 0x15
+#define DLG_FOCUS_MODE 0x123456
 
 /* these don't exist in the M */
 #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0
@@ -107,7 +145,9 @@
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
- #define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 90...102 ?!
+ //~ #define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 90...102 ?!
+ #define GUIMODE_ML_MENU (recording ? 99 : 90 ) // any from 90...102 ?!
+ //~ #define GUIMODE_ML_MENU 86 // any from 90...102 ?!
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 50
@@ -135,9 +175,9 @@
 
 #define DLG_SIGNATURE 0x6e6144
 
-    // from CFn
-     #define AF_BTN_HALFSHUTTER 0
-     #define AF_BTN_STAR 2
+// from CFn
+#define AF_BTN_HALFSHUTTER 0
+#define AF_BTN_STAR 2
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x51E28) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
@@ -186,7 +226,11 @@
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 //~ needs fixed to prevent half shutter making canon overlays visible.
-    #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x5D800) != 0x17) // dec CancelUnaviFeedBackTimer
+//~ #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x5D858) == 0x2) // dec CancelUnaviFeedBackTimer
+#define UNAVI (MEM(0x5D858) == 2) // Find with Mem Browser
+#define SCROLLHACK (MEM(0x5D88C) != 0)
+#define UNAVI_FEEDBACK_TIMER_ACTIVE (UNAVI || SCROLLHACK)
+        
 
 
 /******************************************************************************************************************
@@ -220,8 +264,14 @@
 
 
 //~ max volume supported for beeps
-#define ASIF_MAX_VOL 5
+#define ASIF_MAX_VOL 10
 
+//~ #define RAW_IMAGE_BUFFER ((void*)sss_get_raw_image_buffer())
+//~ #define RAW_BLACK_LEVEL (2048+32)
+//~ #define RAW_WHITE_LEVEL 15000
+//~ #define RAW_SKIP_H 48 // to ignore the black border 
+//~ #define RAW_SKIP_V 60
+//~ #define RAW_LV_EDMAC 0xc0f26208
 
 
 

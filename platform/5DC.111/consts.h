@@ -1,9 +1,17 @@
+/*
+ *  5Dc 1.1.1 consts
+ */
+
 #define CARD_DRIVE "A:/"
 #define CARD_LED_ADDRESS 0xC02200A0 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDBLUE     *(int*)0xC02200F0
 #define LEDRED      *(int*)0xC02200A0
 #define LEDON   0x46
 #define LEDOFF  0x44
+
+//~ Format dialog consts
+#define FORMAT_BTN "[Q]"
+#define STR_LOC 11
 
 #define YUV422_LV_BUFFER_1 0x10b63e8 
 #define YUV422_LV_BUFFER_2 0x10b63ec

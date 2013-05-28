@@ -13,14 +13,7 @@ int fps_get_shutter_speed_shift() { return 0; }
 void *AcquireRecursiveLock(void *lock, int n){ return NULL; }
 //~ void *CreateRecursiveLock(int n){}
 void *ReleaseRecursiveLock(void *lock){ return NULL; }
-//void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny) { return; }
-struct memSuite * shoot_malloc_suite_contig(size_t size) { return 0; }
-struct memSuite *shoot_malloc_suite(size_t size) { return 0; }
-struct memChunk * GetFirstChunkFromSuite(struct memSuite * suite) { return 0; }
-void* GetMemoryAddressOfMemoryChunk(struct memChunk * chunk) { return 0; }
-void shoot_free_suite(struct memSuite * hSuite) { return; }
-struct memChunk * GetNextMemoryChunk(struct memSuite * suite, struct memChunk * chunk) { return 0; }
-int audio_meters_are_drawn() { return 0; }
+int audio_meters_are_drawn() { return 0; } 
 int override_zoom_buttons = 0;
 void lcd_release_step(){};
 void force_liveview() {};
@@ -111,7 +104,7 @@ void* shoot_malloc(size_t size) { return AllocateMemory(size); }
 void shoot_free(void* ptr) { FreeMemory(ptr); }
 
 void display_gain_toggle(){};
-//void yuv_resize(){};
+void yuv_resize(){};
 
 int was_sound_recording_disabled_by_fps_override() { return 1; };
 int fps_should_record_wav() { return 0; };
