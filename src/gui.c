@@ -42,12 +42,17 @@ struct semaphore * gui_sem;
 int event_ctr = 0;
 #endif
 
-#ifdef FEATURE_DETECT_AV_SHORT
+#ifdef CONFIG_MENU_WITH_AV
 int bgmt_av_status;
 int get_bgmt_av_status() {
     return bgmt_av_status;
 }
 
+/** 
+ * FIXME: Totally statically-coded for 1100D..
+ * But at least Canon decided to keep the TRASH button
+ * in the newer models...Thanks!
+ */
 int update_bgmt_av_status(struct event * event) {
     if(!BGMT_AV) return -1;
     if(event == NULL) return -1;
@@ -75,7 +80,7 @@ int update_bgmt_av_status(struct event * event) {
     return -1; //Annoying compiler :)
 }
 
-int handle_av_for_short_press(struct event* event) {
+int handle_av_short_for_menu(struct event* event) {
     static int t_press   = 0;
     static int t_unpress = 0;
     unsigned int dt = 0;
@@ -85,7 +90,6 @@ int handle_av_for_short_press(struct event* event) {
     if(gui_menu_shown()) {
         t_unpress = 0;
         t_press = 0;
-        return 1;
     }
     /** AV long/short press management code. Assumes that the press event is fired only once even if the button is held **/
     if(bgmt_av_status == 1) { // AV PRESSED
@@ -98,30 +102,11 @@ int handle_av_for_short_press(struct event* event) {
         t_unpress = get_ms_clock_value();
         dt = t_unpress - t_press; // Time elapsed since the AV button was pressed
         if (dt < 200 && is_idle) { // 200ms  -> short press
-            fake_simple_button(MLEV_AV_SHORT);
-            return 0;
+            fake_simple_button(BGMT_TRASH);
         }
     }
     return 1;
 } 
-#endif //FEATURE_DETECT_AV_SHORT
-
-#ifdef CONFIG_MENU_WITH_AV
-#ifndef FEATURE_DETECT_AV_SHORT
-#error "CONFIG_MENU_WITH_AV requires FEATURE_DETECT_AV_SHORT"
-#endif
-
-int handle_av_for_ml_menu(struct event* event) {
-    static int last_opened = 0;
-    int now = get_ms_clock_value();
-    if(event->param == MLEV_AV_SHORT && !gui_menu_shown() && (now - last_opened) > 200) {
-        last_opened = now;
-        give_semaphore(gui_sem);
-        return 0;
-    } 
-    return 1;
-}
-
 #endif //CONFIG_MENU_WITH_AV
 
 #ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT
@@ -207,11 +192,8 @@ static int handle_buttons(struct event * event)
     extern int ml_started;
     if (!ml_started) return 1;
 
-#ifdef FEATURE_DETECT_AV_SHORT
-    if (handle_av_for_short_press(event) == 0) return 0;
-    #ifdef CONFIG_MENU_WITH_AV
-    if (handle_av_for_ml_menu(event) == 0) return 0;
-    #endif
+#ifdef CONFIG_MENU_WITH_AV
+    if (handle_av_short_for_menu(event) == 0) return 0;
 #endif
 
 #ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT
