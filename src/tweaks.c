@@ -805,6 +805,10 @@ void play_lv_key_step()
         NotifyBoxHide();
         fake_simple_button(BGMT_Q); // rate image
         fake_simple_button(BGMT_PRESS_DOWN);
+    
+#ifdef CONFIG_6D    //~ it moves too fast to register the second click down otherwise.
+        msleep(200);
+    #endif
 
         // for photos, we need to go down 2 steps
         // for movies, we only need 1 step
