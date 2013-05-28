@@ -61,7 +61,7 @@
 /** We have a B mode on the dial. **/
 #define CONFIG_SEPARATE_BULB_MODE
 
-/** We can't control audio settings from ML **/
+/** We can't control audio settings from ML (digic4) **/
 //~ #define CONFIG_AUDIO_CONTROLS
 
 /** Zoom IN button but no out. **/
