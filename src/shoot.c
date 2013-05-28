@@ -3664,7 +3664,7 @@ PROP_HANDLER(PROP_FILE_PREFIX)
 
 #ifdef FEATURE_POST_DEFLICKER
 static char* xmp_template =
-"<?xpacket begin='﻿'?>\n"
+"<?xpacket begin='﻿'?> \n"
 "<x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='Image::ExifTool 7.89'>\n"
 "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>\n"
 " <rdf:Description rdf:about=''\n"
