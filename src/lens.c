@@ -1651,6 +1651,9 @@ PROP_HANDLER( PROP_SHUTTER )
         #ifdef CONFIG_500D
         && !is_movie_mode()
         #endif
+      	#ifdef CONFIG_6D
+        && !(buf[0] == FASTEST_SHUTTER_SPEED_RAW )
+        #endif
 
         )
     {
@@ -1892,7 +1895,7 @@ PROP_HANDLER( PROP_LV_FOCAL_DISTANCE )
     zoom_focus_ring_trigger();
 #endif
 }
-#else
+#endif
 PROP_HANDLER( PROP_LV_LENS )
 {
     const struct prop_lv_lens * const lv_lens = (void*) buf;
@@ -1907,7 +1910,7 @@ PROP_HANDLER( PROP_LV_LENS )
 
     //~ lens_info.lens_rotation = *((float*)&lrswap);
     //~ lens_info.lens_step = *((float*)&lsswap);
-    
+#if !defined(CONFIG_EOSM)  
     static unsigned old_focus_dist = 0;
     static unsigned old_focal_len = 0;
     if (lv && (old_focus_dist && lens_info.focus_dist != old_focus_dist) && (old_focal_len && lens_info.focal_len == old_focal_len))
@@ -1925,10 +1928,9 @@ PROP_HANDLER( PROP_LV_LENS )
     }
     old_focus_dist = lens_info.focus_dist;
     old_focal_len = lens_info.focal_len;
-
+#endif
     update_stuff();
 }
-#endif
 
 /**
  * This tells whether the camera is ready to take a picture (or not)
@@ -2102,7 +2104,7 @@ LENS_GET_FROM_OTHER_PICSTYLE(saturation)
 LENS_GET_FROM_OTHER_PICSTYLE(color_tone)
 
 LENS_SET_IN_PICSTYLE(contrast, -4, 4)
-LENS_SET_IN_PICSTYLE(sharpness, 0, 7)
+LENS_SET_IN_PICSTYLE(sharpness, -1, 7)
 LENS_SET_IN_PICSTYLE(saturation, -4, 4)
 LENS_SET_IN_PICSTYLE(color_tone, -4, 4)
 
@@ -2397,7 +2399,7 @@ static int bv_auto_should_enable()
             //~ return 0;
         
         // underexposure bug with manual lenses in M mode
-        #if defined(CONFIG_60D) || defined(CONFIG_5D3)
+        #if defined(CONFIG_60D) || defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
         if (shooting_mode == SHOOTMODE_M && 
             !is_movie_mode() &&
             !lens_info.name[0] && 

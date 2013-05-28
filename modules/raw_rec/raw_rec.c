@@ -48,7 +48,6 @@ static int stop_on_buffer_overflow = 1;
 static int sound_rec = 2;
 static int panning_enabled = 0;
 static int hacked_mode = 0;
-static int long_file_names = 0;
 
 #define RAW_IDLE      0
 #define RAW_PREPARING 1
@@ -682,21 +681,6 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
     return 0;
 }
 
-static int check_long_file_names()
-{
-    /* check for long file name support */
-    char fn[100];
-    snprintf(fn, sizeof(fn), "%s/test12345678.tmp", get_dcim_dir());
-    FILE* f = FIO_CreateFileEx(fn);
-    if (f != INVALID_PTR)
-    {
-        FIO_CloseFile(f);
-        FIO_RemoveFile(fn);
-        return 1;
-    }
-    return 0;
-}
-
 static char* get_next_raw_movie_file_name()
 {
     static char filename[100];
@@ -710,16 +694,7 @@ static char* get_next_raw_movie_file_name()
          * Get unique file names from the current date/time
          * last field gets incremented if there's another video with the same name
          */
-        if (long_file_names)
-        {
-            /* we have long file names, but they don't seem to be very long... */
-            char* months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-            snprintf(filename, sizeof(filename), "%s/%s%02d-%02d%02d%02d.RAW", get_dcim_dir(), months[COERCE(now.tm_mon, 0, 11)], now.tm_mday, now.tm_hour, now.tm_min, COERCE(now.tm_sec + number, 0, 99));
-        }
-        else
-        {
-            snprintf(filename, sizeof(filename), "%s/M%02d-%02d%02d.RAW", get_dcim_dir(), now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
-        }
+        snprintf(filename, sizeof(filename), "%s/M%02d-%02d%02d.RAW", get_dcim_dir(), now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
         
         /* already existing file? */
         uint32_t size;
@@ -1247,7 +1222,6 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
 static unsigned int raw_rec_init()
 {
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
-    long_file_names = check_long_file_names();
     return 0;
 }
 

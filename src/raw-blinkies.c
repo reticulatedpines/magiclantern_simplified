@@ -30,6 +30,8 @@ int raw_blinkies_enabled() { return raw_blinkies; }
 #define SCS_STATE (*(struct state_object **)0x31cc)
 #elif CONFIG_5D2
 #define SCS_STATE (*(struct state_object **)0x3168)
+#elif CONFIG_6D
+#define SCS_STATE (*(struct state_object **)0x76094)
 #endif
 
 #define SHAD_GAIN      0xc0f08030

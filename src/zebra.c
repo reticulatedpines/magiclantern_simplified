@@ -55,10 +55,9 @@
 extern int kill_canon_gui_mode;
 #endif                      // but it will display ML graphics
 
-#if 0
-extern int start_recording_on_resume;
-static int resumed_due_to_halfshutter = 0;
-#endif
+
+
+
 static void waveform_init();
 //~ static void histo_init();
 static void do_disp_mode_change();
@@ -2403,7 +2402,7 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
     if (display_broken_for_mz())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "After using defish/anamorph, go outside LiveView and back.");
     #endif
-    #if !defined(CONFIG_5D3) && !defined(CONFIG_6D)
+    #if !defined(CONFIG_6D) && !defined(CONFIG_5D3) && !defined(CONFIG_EOSM)
     else if (is_movie_mode() && video_mode_fps > 30)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work well in current video mode");
     #endif
@@ -5798,32 +5797,34 @@ void play_422(char* filename)
 
     int w,h;
     // auto-generated code from 422-jpg.py
-         if (size == 1120 *  746 * 2) { w = 1120; h =  746; }
-    else if (size == 1872 * 1080 * 2) { w = 1872; h = 1080; }
-    else if (size == 1024 *  680 * 2) { w = 1024; h =  680; }
-    else if (size == 1560 *  884 * 2) { w = 1560; h =  884; }
-    else if (size ==  944 *  632 * 2) { w =  944; h =  632; }
-    else if (size ==  928 *  616 * 2) { w =  928; h =  616; }
-    else if (size == 1576 * 1048 * 2) { w = 1576; h = 1048; }
-    else if (size == 1576 *  632 * 2) { w = 1576; h =  632; }
-    else if (size ==  720 *  480 * 2) { w =  720; h =  480; }
-    else if (size == 1056 *  704 * 2) { w = 1056; h =  704; }
-    else if (size == 1720 *  974 * 2) { w = 1720; h =  974; }
-    else if (size == 1280 *  580 * 2) { w = 1280; h =  580; }
-    else if (size ==  640 *  480 * 2) { w =  640; h =  480; }
-    else if (size == 1024 *  680 * 2) { w = 1024; h =  680; }
-    else if (size == 1056 *  756 * 2) { w = 1056; h =  756; }
-    else if (size == 1728 *  972 * 2) { w = 1728; h =  972; }
-    else if (size == 1680 *  945 * 2) { w = 1680; h =  945; }
-    else if (size == 1280 *  560 * 2) { w = 1280; h =  560; }
-    else if (size == 1152 *  768 * 2) { w = 1152; h =  768; }
-    else if (size == 1904 * 1274 * 2) { w = 1904; h = 1274; }
-    else if (size == 1620 * 1080 * 2) { w = 1620; h = 1080; }
-    else if (size == 1280 *  720 * 2) { w = 1280; h =  720; }
-    else if (size == 1808 * 1206 * 2) { w = 1808; h = 1206; } // 6D
-    else if (size == 1104 *  736 * 2) { w = 1104; h =  736; } // 6D Zoom
-    else if (size == 1680 *  952 * 2) { w = 1680; h =  952; } // 600D
-    else if (size == 1728 *  972 * 2) { w = 1728; h =  972; } // 600D Crop
+
+         if (size == 1120 *  746 * 2) { w = 1120; h =  746; } 
+    else if (size == 1872 * 1080 * 2) { w = 1872; h = 1080; } 
+    else if (size == 1024 *  680 * 2) { w = 1024; h =  680; } 
+    else if (size == 1560 *  884 * 2) { w = 1560; h =  884; } 
+    else if (size ==  944 *  632 * 2) { w =  944; h =  632; } 
+    else if (size ==  928 *  616 * 2) { w =  928; h =  616; } 
+    else if (size == 1576 * 1048 * 2) { w = 1576; h = 1048; } 
+    else if (size == 1576 *  632 * 2) { w = 1576; h =  632; } 
+    else if (size ==  720 *  480 * 2) { w =  720; h =  480; } 
+    else if (size == 1056 *  704 * 2) { w = 1056; h =  704; } 
+    else if (size == 1720 *  974 * 2) { w = 1720; h =  974; } 
+    else if (size == 1280 *  580 * 2) { w = 1280; h =  580; } 
+    else if (size ==  640 *  480 * 2) { w =  640; h =  480; } 
+    else if (size == 1024 *  680 * 2) { w = 1024; h =  680; } 
+    else if (size == 1056 *  756 * 2) { w = 1056; h =  756; } 
+    else if (size == 1728 *  972 * 2) { w = 1728; h =  972; } 
+    else if (size == 1680 *  945 * 2) { w = 1680; h =  945; } 
+    else if (size == 1280 *  560 * 2) { w = 1280; h =  560; } 
+    else if (size == 1152 *  768 * 2) { w = 1152; h =  768; } 
+    else if (size == 1904 * 1274 * 2) { w = 1904; h = 1274; } 
+    else if (size == 1620 * 1080 * 2) { w = 1620; h = 1080; } 
+    else if (size == 1280 *  720 * 2) { w = 1280; h =  720; } 
+	else if (size == 1808 * 1206 * 2) { w = 1808; h = 1206; } // 6D Movie
+	else if (size == 1816 * 1210 * 2) { w = 1816; h = 1210; } // 6D Photo
+	else if (size == 1104 *  736 * 2) { w = 1104; h =  736; } // 6D Zoom
+	else if (size == 1680 *  952 * 2) { w = 1680; h =  952; } // 600D
+	else if (size == 1728 *  972 * 2) { w = 1728; h =  972; } // 600D Crop
     else if (size == 960  *  639 * 2) { w =  960; h =  639; } // 650D LV STDBY
     else if (size == 1729 * 1151 * 2) { w = 1728; h = 1151; } // 650D 1080p/480p recording
     else if (size == 1280 * 689  * 2) { w = 1280; h =  689; } // 650D 720p recording

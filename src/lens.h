@@ -115,6 +115,32 @@ struct prop_lv_lens
 
 SIZE_CHECK_STRUCT( prop_lv_lens, 62 );
 
+#elif defined(CONFIG_EOSM)
+struct prop_lv_lens
+{
+        uint32_t                lens_rotation; // 
+        uint32_t                lens_step; // 
+        uint32_t                off_0x08;  // 
+        uint32_t                off_0x0c;  // 
+        uint32_t                off_0x10;  // 
+        uint32_t                off_0x14;  // 
+        uint32_t                off_0x18;  // 
+        uint32_t                off_0x1c;  // 
+        uint32_t                off_0x20;  // 
+        uint32_t                off_0x24;  // 
+        uint32_t                off_0x28;  // L10  - names not accurate
+        uint16_t                off_0x30;  //      
+        uint16_t                focal_len; // 
+        uint16_t                focus_dist; // One FD
+        uint16_t                focus_dist2;//       
+        uint16_t                off_0x38;  // 
+        uint32_t                off_0x3c;  // 
+        uint8_t                 off_0x3D;  // 
+        
+} __attribute__((packed));
+
+SIZE_CHECK_STRUCT( prop_lv_lens, 59 );
+
 #else
 struct prop_lv_lens
 {

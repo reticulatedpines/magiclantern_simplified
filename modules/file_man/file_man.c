@@ -7,7 +7,10 @@
 #include <menu.h>
 
 #define MAX_PATH_LEN 0x80
-char gPath[MAX_PATH_LEN];
+static char gPath[MAX_PATH_LEN];
+
+static int cf_present;
+static int sd_present;
 
 struct file_entry
 {
@@ -132,13 +135,26 @@ static void build_file_menu()
 static void ScanDir(char *path)
 {
     clear_file_menu();
+    
+    if (strlen(path) == 0)
+    {
+        add_file_entry("A:/", TYPE_DIR, 0);
+        add_file_entry("B:/", TYPE_DIR, 0);
+        build_file_menu();
+        return;
+    }
+    
     add_file_entry("../", TYPE_DIR, 0);
     
     struct fio_file file;
     struct fio_dirent * dirent = 0;
 
     dirent = FIO_FindFirstEx( path, &file );
-    if( IS_ERROR(dirent) ) return;
+    if( IS_ERROR(dirent) )
+    {
+        build_file_menu();
+        return;
+    }
     
     do
     {
@@ -173,30 +189,42 @@ static void BrowseDown(char* path)
     ScanDir(gPath);
 }
 
+static void restore_menu_selection(char* old_dir)
+{
+    for (struct file_entry * fe = file_entries; fe; fe = fe->next)
+    {
+        if (streq(fe->name, old_dir))
+        {
+            fe->menu_entry.selected = 1;
+            for (struct file_entry * e = file_entries; e; e = e->next)
+                if (e != fe) e->menu_entry.selected = 0;
+            break;
+        }
+    }
+}
+
 static void BrowseUp()
 {
     char* p = gPath + strlen(gPath) - 2;
     while (p > gPath && *p != '/') p--;
-    if (*p == '/')
+
+    if (*p == '/') /* up one level */
     {
         char old_dir[MAX_PATH_LEN];
         snprintf(old_dir, sizeof(old_dir), p+1);
         *(p+1) = 0;
         ScanDir(gPath);
-        
-        /* move menu selection back to the old dir */
-        for (struct file_entry * fe = file_entries; fe; fe = fe->next)
-        {
-            if (streq(fe->name, old_dir))
-            {
-                fe->menu_entry.selected = 1;
-                for (struct file_entry * e = file_entries; e; e = e->next)
-                    if (e != fe) e->menu_entry.selected = 0;
-                break;
-            }
-        }
+        restore_menu_selection(old_dir);
     }
-    else
+    else if (cf_present && sd_present && strlen(gPath) > 0) /* two cards: show A:/ and B:/ in menu */
+    {
+        char old_dir[MAX_PATH_LEN];
+        snprintf(old_dir, sizeof(old_dir), "%s", gPath);
+        gPath[0] = 0;
+        ScanDir("");
+        restore_menu_selection(old_dir);
+    }
+    else /* already at the top, close the file browser */
     {
         menu_close_submenu();
     }
@@ -387,8 +415,8 @@ static MENU_UPDATE_FUNC(update_action)
 
 static int InitRootDir()
 {
-    int cf_present = is_dir("A:/");
-    int sd_present = is_dir("B:/");
+    cf_present = is_dir("A:/");
+    sd_present = is_dir("B:/");
 
     if (cf_present && !sd_present)
     {
@@ -400,8 +428,7 @@ static int InitRootDir()
     }
     else if (sd_present && cf_present)
     {
-        add_file_entry("A:/", TYPE_DIR, 0);
-        add_file_entry("B:/", TYPE_DIR, 0);
+        Browse("");
     }
     else return -1;
     

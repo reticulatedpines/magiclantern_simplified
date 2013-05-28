@@ -72,12 +72,24 @@
 
 #ifdef CONFIG_EOSM
 #define EVF_STATE (*(struct state_object **)0x40944)
+#define SSS_STATE (*(struct state_object **)0x405EC)
+#define MOVREC_STATE (*(struct state_object **)0x426A4)
+#define DISPLAY_STATE DISPLAY_STATEOBJ //Works for Photo Overlay
+#define INPUT_SET_IMAGE_VRAM_PARAMETER_MUTE_FLIP_CBR 26
+#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 27
+#define FACE_STATE (*(struct state_object **)0x40A4C)
+#define DISP2_STATE (*(struct state_object **)0x3EBBC)
+#define LVCDEV_STATE (*(struct state_object **)0x43978)
+#define CLR_CALC_STATE (*(struct state_object **)0x43B74) 
+//~ #define DISPLAY_STATE FACE_STATE
 #endif
 
 #ifdef CONFIG_6D
 #define DISPLAY_STATE DISPLAY_STATEOBJ
 #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 23
-#define EVF_STATE (*(struct state_object**)0x76D18)
+#define EVF_STATE (*(struct state_object**)0x76D1C) //Sub 4 for for 112
+#define SSS_STATE (*(struct state_object **)0x76B78)
+#define MOVREC_STATE (*(struct state_object **)0x787EC)
 #endif
 
 #ifdef CONFIG_650D
@@ -191,6 +203,11 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
 #elif defined(CONFIG_60D)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt
         lv_vsync_signal();
+#elif defined(CONFIG_600D)
+    if (self == EVF_STATE && old_state == 5) {  
+		//600D Goes 3 - 4 - 5 5 and 3 ever 1/2 frame
+        lv_vsync_signal();
+	}
 #elif defined(CONFIG_650D)
     if (self == DISPLAY_STATE && (input == INPUT_SET_IMAGE_VRAM_PARAMETER_MUTE_FLIP_CBR)) {
         lv_vsync_signal();
@@ -312,7 +329,7 @@ static int stateobj_sss_spy(struct state_object * self, int x, int input, int z,
     int ans = StateTransition(self, x, input, z, t);
     int new_state = self->current_state;
 
-    #if defined(CONFIG_5D3)
+    #if defined(CONFIG_5D3) || defined(CONFIG_6D)
     if (old_state == 9 && input == 11 && new_state == 9) // sssCompleteMem1ToRaw
         raw_buffer_intercept_from_stateobj();
     #endif
