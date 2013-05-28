@@ -99,6 +99,9 @@
 /** We know how to use DMA_MEMCPY **/
 #define CONFIG_DMA_MEMCPY
 
+/** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
+#define CONFIG_EDMAC_MEMCPY
+
 /** We shouldn't warn the user if movie exposure is Auto **/
 //~ #define CONFIG_MOVIE_AE_WARNING
 
@@ -129,3 +132,4 @@
 /** We have access to raw data in both photo mode and in LiveView */
 #define CONFIG_RAW_PHOTO
 #define CONFIG_RAW_LIVEVIEW
+

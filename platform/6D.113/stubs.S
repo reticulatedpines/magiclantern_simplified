@@ -198,7 +198,6 @@ NSTUB(0xFF11E6E0, SoundDevStartIn)
 
 
 NSTUB(0xFFCE3188 - RAM_OFFSET, ENCODE_StartEncodeJpeg)  //~ called from RAM in 6D, wasn't in EOS M.
-
 NSTUB(0xFFCD0818 - RAM_OFFSET, dma_memcpy) // Slower?
 
 
@@ -218,32 +217,28 @@ NSTUB(   0x7AE8C, mvr_config)
 
 NSTUB(0xFF1F2550, IvaParamMode)
 
-NSTUB(0xBA50, CreateMemorySuite) //FFCCEF34
-NSTUB(0xB848, DeleteMemorySuite) // FFCCED2C
+NSTUB(0xFFCCEF34 - RAM_OFFSET, CreateMemorySuite)
+NSTUB(0xFFCCED2C - RAM_OFFSET, DeleteMemorySuite)
 
-
-// Edmac 
-// Ram Offset:FFCC34E4
 /** experimental EDMAC research **/
 /** EDMAC routines */
-NSTUB(0x34008, SetEDmac)
-NSTUB(0x343B4, StartEDmac)
-NSTUB(0x34720, PopEDmac) //FFCF7C04 NEW
-//NSTUB(0x347B4, PopEDmac) //FFCF7C04 OLD
-NSTUB(0x346D8, AbortEDmac) //FFCF7BBC 
-NSTUB(0x34168, ConnectWriteEDmac)
-NSTUB(0x3422C, ConnectReadEDmac)
+NSTUB(0xFFCF74EC - RAM_OFFSET, SetEDmac)
+NSTUB(0xFFCF7898 - RAM_OFFSET, StartEDmac)
+NSTUB(0xFFCF7C04 - RAM_OFFSET, PopEDmac)
+NSTUB(0xFFCF7BBC - RAM_OFFSET, AbortEDmac)
+NSTUB(0xFFCF764C - RAM_OFFSET, ConnectWriteEDmac)
+NSTUB(0xFFCF7710 - RAM_OFFSET, ConnectReadEDmac)
 
 /** keep the old name until all are refcatored **/
-NSTUB(0x34778, EDMAC_RegisterCompleteCBR)
+NSTUB(0xFFCF7C5C - RAM_OFFSET, EDMAC_RegisterCompleteCBR)
 
 /** register/unregister CBR names **/
-NSTUB(0x34778, RegisterEDmacCompleteCBR) //FFCF7C5C 
-NSTUB(0x3480C, RegisterEDmacAbortCBR) //FFCF7CF0
-NSTUB(0x348A0, RegisterEDmacPopCBR) //FFCF7D84
-NSTUB(0x347B4, UnregisterEDmacCompleteCBR)
-NSTUB(0x34848, UnregisterEDmacAbortCBR) //FFCF7D2C 
-NSTUB(0x348DC, UnregisterEDmacPopCBR) //FFCF7DC0 
+NSTUB(0xFFCF7C5C - RAM_OFFSET, RegisterEDmacCompleteCBR)
+NSTUB(0xFFCF7CF0 - RAM_OFFSET, RegisterEDmacAbortCBR)
+NSTUB(0xFFCF7D84 - RAM_OFFSET, RegisterEDmacPopCBR)
+NSTUB(0xFFCF7C98 - RAM_OFFSET, UnregisterEDmacCompleteCBR)
+NSTUB(0xFFCF7D2C - RAM_OFFSET, UnregisterEDmacAbortCBR)
+NSTUB(0xFFCF7DC0 - RAM_OFFSET, UnregisterEDmacPopCBR)
 
 NSTUB(0xFF612A68, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
 NSTUB(0xFF612B04, PackMem_RegisterEDmacPopCBRForMemorySuite)
@@ -254,15 +249,15 @@ NSTUB(0xFF612BA0, PackMem_RegisterEDmacAbortCBRForMemorySuite)
 
 
 /* TP LOG */
-NSTUB(0x39F04, TryPostEvent)
-NSTUB(0x39F88, TryPostEvent_end)
+NSTUB(0xFFCFD3E8 - RAM_OFFSET, TryPostEvent)
+NSTUB(0xFFCFD46C - RAM_OFFSET, TryPostEvent_end)
 
-NSTUB(0x39824, TryPostStageEvent)
-NSTUB(0x398A8, TryPostStageEvent_end)
+NSTUB(0xFFCFCD08 - RAM_OFFSET, TryPostStageEvent)
+NSTUB(0xFFCFCD8C - RAM_OFFSET, TryPostStageEvent_end)
 
-NSTUB(0x35700, MREQ_ISR)
-NSTUB(0x35784, SIO3_ISR)
-NSTUB(0x8FE4, register_interrupt)
+NSTUB(0xFFCF8BE4 - RAM_OFFSET, MREQ_ISR)
+NSTUB(0xFFCF8C68 - RAM_OFFSET, SIO3_ISR)
+NSTUB(0xFFCCC4C8 - RAM_OFFSET, register_interrupt)
 
 /** Unused **/
 //NSTUB(0xFFCCEC88 - RAM_OFFSET, GetSizeOfMemoryChunk)
