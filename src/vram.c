@@ -693,9 +693,9 @@ static void vram_toggle_rev(void* priv, int unused) { vram_toggle(priv, -increme
 
 #define VRAM_MENU_ENTRY(x)  { \
         .priv = (void *) x, \
-        .display    = vram_print, \
-        .select     = vram_toggle_fwd, \
-        .select_reverse = vram_toggle_rev, \
+        .update    = vram_print, \
+        .select     = vram_toggle, \
+        .select_Q = vram_toggle_rev, \
     }, \
 
 static struct menu_entry vram_menus[] = {

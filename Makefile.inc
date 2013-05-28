@@ -98,6 +98,12 @@ else ifndef ML_AF_PATTERNS_OBJ
 ML_AF_PATTERNS_OBJ = af_patterns.o
 endif
 
+ifeq ($(ML_ENTRY_OBJ), n)
+ML_ENTRY_OBJ =
+else ifndef ML_ENTRY_OBJ
+ML_ENTRY_OBJ = $(SRC_DIR)/entry.o
+endif
+
 ML_SMALL_FONT_OBJS = \
     font-small2.o \
     font-med2.o \
@@ -140,7 +146,7 @@ endif
 # menu.o and debug.o must come before the modules
 ML_OBJS-y = \
 	magiclantern.lds \
-	$(SRC_DIR)/entry.o \
+	$(ML_ENTRY_OBJ) \
 	$(PLATFORM_DIR)/stubs.o \
 	version.o
 

@@ -632,7 +632,11 @@ bmp_fill(
     for (int i = y; i < y + h; i++)
     {
         uint8_t* row = b + BM(x,i);
+#ifdef CONFIG_VXWORKS
+        memset(row, color, w/2);
+#else
         memset(row, color, w);
+#endif
     }
 }
 

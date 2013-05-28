@@ -1410,7 +1410,7 @@ static MENU_UPDATE_FUNC(focus_peaking_display)
     unsigned f = CURRENT_VALUE;
     if (f)
         MENU_SET_VALUE(
-            "Focus Peak  : ON,%d.%d,%s%s",
+            "ON,%d.%d,%s%s",
             focus_peaking_pthr / 10, focus_peaking_pthr % 10, 
             focus_peaking_color == 0 ? "R" :
             focus_peaking_color == 1 ? "G" :
@@ -1478,7 +1478,7 @@ static MENU_UPDATE_FUNC(hist_display)
 static MENU_UPDATE_FUNC(waveform_print)
 {
     MENU_SET_VALUE(
-        "Waveform    : %s",
+        "%s",
         waveform_draw == 0 ? "OFF" : 
         waveform_size == 0 ? "Small" : 
         waveform_size == 1 ? "Large" : 
@@ -1489,15 +1489,15 @@ static MENU_UPDATE_FUNC(waveform_print)
 static MENU_UPDATE_FUNC(global_draw_display)
 {
     MENU_SET_VALUE (
-        "Show Overlay: %s",
-        global_draw_mode == 0 ? "DirecPrint btn only" : "After taking a pic"
+        "%s",
+        global_draw_mode == 0 ? "DirecPrint btn only" : "After taking a pic "
     );
 }
 
 static MENU_UPDATE_FUNC(vectorscope_display)
 {
     MENU_SET_VALUE(
-        "Vectorscope : %s",
+        "%s",
         CURRENT_VALUE ? "ON " : "OFF"
     );
 }
@@ -1521,7 +1521,7 @@ static MENU_UPDATE_FUNC(clearscreen_display)
 static MENU_UPDATE_FUNC(spotmeter_menu_display)
 {
     MENU_SET_VALUE(
-        "Spotmeter   : %s",
+        "%s",
         spotmeter_draw == 0    ? "OFF" : 
         spotmeter_formula == 0 ? "Percent" :
         spotmeter_formula == 1 ? "0..255" :
@@ -1768,6 +1768,7 @@ struct menu_entry zebra_menus[] = {
         .name = "Zebras",
         .priv       = &zebra_draw,
         .update    = zebra_draw_display,
+        .max = 1,
         .help = "Zebra stripes: show overexposed or underexposed areas.",
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
         .children =  (struct menu_entry[]) {
@@ -1802,6 +1803,7 @@ struct menu_entry zebra_menus[] = {
         .name = "Focus Peak",
         .priv           = &focus_peaking,
         .update        = focus_peaking_display,
+        .max = 1,
         .help = "Show which parts of the image are in focus.",
         .submenu_width = 650,
         //.essential = FOR_LIVEVIEW,
@@ -1847,12 +1849,13 @@ struct menu_entry zebra_menus[] = {
     {
         .name = "Spotmeter",
         .priv           = &spotmeter_draw,
+        .max = 1,
         .update        = spotmeter_menu_display,
         .help = "Exposure aid: display brightness from a small spot.",
         //.essential = FOR_LIVEVIEW | FOR_PLAYBACK,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Unit",
+                .name = "Spotmeter Unit",
                 .priv = &spotmeter_formula, 
                 .max = 4,
                 .choices = (const char *[]) {"Percent", "0..255", "IRE -1..101", "IRE 0..108", "RGB (HTML)"},

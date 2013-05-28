@@ -3425,11 +3425,13 @@ static struct menu_entry debug_menus[] = {
         .help = "Take a screenshot for each ML menu.",
     }, */
 #if CONFIG_DEBUGMSG
+    #ifndef CONFIG_5DC
     {
         .name = "Draw palette",
         .select        = (void(*)(void*,int))bmp_draw_palette,
         .help = "Display a test pattern to see the color palette."
     },
+    #endif
     {
         .name = "Spy prop/evt/mem",
         .select        = draw_prop_select,

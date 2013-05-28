@@ -788,7 +788,9 @@ static void LibSetCanonGUI(struct ParseState *Parser, struct Value *ReturnValue,
 static void LibSetGuiMode(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     int mode = Param[0]->Val->Integer;
+#ifndef CONFIG_5DC
     SetGUIRequestMode(mode);
+#endif
 }
 
 static void LibGetGuiMode(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)

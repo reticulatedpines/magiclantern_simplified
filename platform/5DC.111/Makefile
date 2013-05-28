@@ -18,14 +18,25 @@ CONFIG_RELOC = y
 CONFIG_STATIC_FONTS=y
 
 ML_ZEBRA_OBJ = zebra-5dc.o
+ML_ENTRY_OBJ = local_entry.o
+
+ML_EXCLUDE_OBJS = \
+	boot-hack.o \
+	bitrate.o \
+	fps-engio.o \
+	audio-ak.o \
+	movtweaks.o \
+	exmem.o \
+	liveview.o \
+	bootflags.o \
+	lv-img-engio.o \
+	hdr.o \
 
 ML_EXTRA_OBJS = \
-	local_entry.o \
-	init.o \
-	dummy.o \
-	dm-spy.o \
-	tp-spy.o \
-
+		init.o \
+		dummy.o \
+		dm-spy.o \
+		tp-spy.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
