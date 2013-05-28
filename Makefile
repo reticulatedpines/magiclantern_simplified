@@ -89,7 +89,7 @@ fir:
 	cd installer/1100D.105/; $(MAKE) clean
 	cd installer/EOSM.106/; $(MAKE) clean
 	cd installer/650D.101/; $(MAKE) clean
-	cd installer/6D.112/; $(MAKE) clean
+	cd installer/6D.113/; $(MAKE) clean
 	$(MAKE) installer -C installer/550D.109/
 	$(MAKE) installer -C installer/60D.111/
 	$(MAKE) installer -C installer/600D.102/
@@ -99,7 +99,7 @@ fir:
 	$(MAKE) installer -C installer/1100D.105/
 	$(MAKE) installer -C installer/EOSM.106/
 	$(MAKE) installer -C installer/650D.101/
-	$(MAKE) installer -C installer/6D.112/
+	$(MAKE) installer -C installer/6D.113/
 
 install_fir: fir
 	cp installer/550D.109/$(UPDATE_NAME) $(CF_CARD)
@@ -111,7 +111,7 @@ install_fir: fir
 	cp installer/1100D.105/$(UPDATE_NAME) $(CF_CARD)
 	cp installer/EOSM.106/$(UPDATE_NAME) $(CF_CARD)
 	cp installer/650D.101/$(UPDATE_NAME) $(CF_CARD)
-	cp installer/6D.112/$(UPDATE_NAME) $(CF_CARD)
+	cp installer/6D.113/$(UPDATE_NAME) $(CF_CARD)
 
 clean:
 	$(call build,CLEAN,$(RM) -f \
