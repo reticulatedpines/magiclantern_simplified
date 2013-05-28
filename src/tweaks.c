@@ -2119,7 +2119,7 @@ static struct menu_entry key_menus[] = {
     },
     #endif
 
-    #if defined(CONFIG_LCD_SENSOR) || defined(FEATURE_STICKY_DOF) || defined(FEATURE_STICKY_HALFSHUTTER) || defined(FEATURE_SWAP_MENU_ERASE) || defined(FEATURE_DIGITAL_ZOOM_SHORTCUT_600D)
+    #if defined(CONFIG_LCD_SENSOR) || defined(FEATURE_STICKY_DOF) || defined(FEATURE_STICKY_HALFSHUTTER) || defined(FEATURE_SWAP_MENU_ERASE) || defined(FEATURE_DIGITAL_ZOOM_SHORTCUT)
     {
         .name       = "Misc key settings",
         .select = menu_open_submenu,
@@ -2159,7 +2159,7 @@ static struct menu_entry key_menus[] = {
                 .help = "Swaps MENU and ERASE buttons."
             },
             #endif
-            #ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT_600D
+            #ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT
             {
                 .name = "DigitalZoom Shortcut",
                 .priv = &digital_zoom_shortcut,

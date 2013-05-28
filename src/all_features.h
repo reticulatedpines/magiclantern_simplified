@@ -288,7 +288,7 @@
 
     //~ #define FEATURE_KEN_ROCKWELL_ZOOM_5D3
 
-    //~ #define FEATURE_DIGITAL_ZOOM_SHORTCUT_600D
+    //~ #define FEATURE_DIGITAL_ZOOM_SHORTCUT
 
 /** Debug menu **/
 

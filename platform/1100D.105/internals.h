@@ -123,3 +123,6 @@
 
 /** This camera has a low-resolution display, may require some antialiasing tricks for icons/fonts */
 #define CONFIG_LOW_RESOLUTION_DISPLAY
+
+/** This camera uses the exposure comp button to open ML menu */
+#define CONFIG_MENU_WITH_AV
