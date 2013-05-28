@@ -427,18 +427,18 @@ static void wav_record(char* filename, int show_progress)
     
     audio_recording = 1;
     audio_recording_start_time = get_seconds_clock();
-
-    SetSamplingRate(48000, 1);
-    MEM(0xC092011C) = 4; // SetASIFADCModeSingleINT16
     
-    wav_ibuf = 0;
-    
-#if defined(CONFIG_7D) || defined(CONFIG_6D)
+#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
     /* experimental for 7D now, has to be made generic */
 	/* Enable audio Device */
     void SoundDevActiveIn (uint32_t);
     SoundDevActiveIn(0);
 #endif
+    
+    SetSamplingRate(48000, 1);
+    MEM(0xC092011C) = 4; // SetASIFADCModeSingleINT16
+    
+    wav_ibuf = 0;
 
     StartASIFDMAADC(buf1, WAV_BUF_SIZE, buf2, WAV_BUF_SIZE, asif_rec_continue_cbr, 0);
     while (audio_recording) 
@@ -446,7 +446,7 @@ static void wav_record(char* filename, int show_progress)
         msleep(100);
         if (show_progress) record_show_progress();
     }
-#if defined(CONFIG_7D) || defined(CONFIG_6D)
+#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
     /* experimental for 7D now, has to be made generic */
 	/* Disable Audio */
     void SoundDevShutDownIn();
