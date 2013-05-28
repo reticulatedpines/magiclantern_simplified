@@ -112,7 +112,7 @@ static int is_customize_selected();
 #define IS_ACTION(entry) ((entry)->icon_type == IT_ACTION || (entry)->icon_type == IT_SUBMENU)
 #define SHOULD_USE_EDIT_MODE(entry) (!IS_BOOL(entry) && !IS_ACTION(entry))
 
-#define HAS_SINGLE_ITEM_SUBMENU(entry) ((entry)->children && !(entry)->children[0].next && !(entry)->children[0].prev)
+#define HAS_SINGLE_ITEM_SUBMENU(entry) ((entry)->children && !(entry)->children[0].next && !(entry)->children[0].prev && !MENU_IS_EOL(entry->children))
 #define IS_SINGLE_ITEM_SUBMENU_ENTRY(entry) (!(entry)->next && !(entry)->prev)
 
 static int can_be_turned_off(struct menu_entry * entry)
@@ -1044,9 +1044,12 @@ menu_add(
     }
 }
 
-static void menu_remove_entry(struct menu_entry * entry)
+static void menu_remove_entry(struct menu * menu, struct menu_entry * entry)
 {
-    console_show();
+    if (menu->children == entry)
+    {
+        menu->children = entry->next;
+    }
     if (entry->prev)
     {
         // console_printf("link %s to %x\n", entry->prev->name, entry->next);
@@ -1101,7 +1104,7 @@ menu_remove(
     {
         if (entry >= old_entry && entry < old_entry + count)
         {
-            menu_remove_entry(entry);
+            menu_remove_entry(menu, entry);
         }
     }
 }

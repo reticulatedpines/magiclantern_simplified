@@ -3347,6 +3347,7 @@ extern int show_cpu_usage_flag;
 
 
 static struct menu_entry debug_menus[] = {
+    MENU_PLACEHOLDER("File Browser"),
 #ifdef CONFIG_HEXDUMP
     {
         .name = "Memory Browser",

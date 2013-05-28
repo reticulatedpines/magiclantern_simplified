@@ -168,7 +168,7 @@ struct fio_dirent;
 struct fio_file {
         //! 0x10 == directory, 0x22 
         uint32_t                mode;           // off_0x00;
-        uint32_t                off_0x04;
+        uint32_t                size;
         uint32_t                timestamp;      // off_0x08;
         uint32_t                off_0x0c;
         char                    name[ 0x80 ];
