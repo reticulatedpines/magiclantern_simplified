@@ -612,6 +612,7 @@ static MENU_UPDATE_FUNC(bitrate_gop_size_update)
 
 
 static struct menu_entry mov_menus[] = {
+    /*
    {     .name = "Encoder",
 		.select = menu_open_submenu,     
 		.help = "Change H.264 bitrate. Pick configs. Be careful, recording may stop!",
@@ -694,6 +695,7 @@ static struct menu_entry mov_menus[] = {
 //		.choices = (const char *[]) {"No", "Yes", "Disable"},    
 		.help = "Config Loaded. Disabling may keep some of the parameters"
     },
+     */
 
     {
         .name = "REC indicator",
@@ -792,5 +794,5 @@ bitrate_task( void* unused )
     }
 }
 
-TASK_CREATE("bitrate_task", bitrate_task, 0, 0x1d, 0x1000 );
+//~ TASK_CREATE("bitrate_task", bitrate_task, 0, 0x1d, 0x1000 );
 
