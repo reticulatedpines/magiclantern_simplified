@@ -417,7 +417,7 @@ dumper_entry.o: flasher-stubs.S
 reboot.o: $(SRC_DIR)/reboot.c magiclantern.bin magiclantern.sym
 
 magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
-	$(call build,CPP,$(CPP) $(CFLAGS) $< | grep -v '^#' > $@)
+	$(call build,CPP,$(CPP) $(CFLAGS) $< | $(GREP) -v '^#' > $@)
 
 $(TOP_DIR)/tcc/libtcc.a: FORCE
 	make -C $(TOP_DIR)/tcc
@@ -511,7 +511,7 @@ autoexec: reboot.o
 		-Ttext $(AUTOEXEC_BASE) \
 		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
 	); \
-	$(READELF) -l magiclantern | grep -C 2 MemSiz
+	$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz
 
 autoexec-fir: reboot.o
 	$(call build,LD,$(LD) \

@@ -14,7 +14,7 @@ DEPS  := $(COBJS:.o=.d)
 %.s: %.c
 	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
 %.sym: %
-	$(call build,SYMBOLS,$(READELF) -sW $< | grep GLOBAL | grep -E 'FUNC|OBJECT|ABS' | awk '{print $$2 " " $$8;}' | grep -v '^ ' | sort > $@)
+	$(call build,SYMBOLS,$(READELF) -sW $< | $(GREP) GLOBAL | $(GREP) -E 'FUNC|OBJECT|ABS' | $(AWK) '{print $$2 " " $$8;}' | $(GREP) -v '^ ' | sort > $@)
 %.o: $(PLATFORM_DIR)/%.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.o: $(SRC_DIR)/%.c
