@@ -15,16 +15,26 @@ struct file_entry
     struct menu_entry menu_entry;
     char name[MAX_PATH_LEN];
     unsigned int size;
-    unsigned int is_dir: 1;
+    unsigned int type: 2;
     unsigned int added: 1;
 };
 
+#define TYPE_DIR 0
+#define TYPE_FILE 1
+#define TYPE_ACTION 2
+
 static struct file_entry * file_entries = 0;
 
-static MENU_SELECT_FUNC(selectdir);
-static MENU_UPDATE_FUNC(updatedir);
-static MENU_SELECT_FUNC(selectfile);
-static MENU_UPDATE_FUNC(updatefile);
+/* view file mode */
+static int view_file = 0;
+
+static MENU_SELECT_FUNC(select_dir);
+static MENU_UPDATE_FUNC(update_dir);
+static MENU_SELECT_FUNC(select_file);
+static MENU_UPDATE_FUNC(update_file);
+static MENU_SELECT_FUNC(default_select_action);
+static MENU_UPDATE_FUNC(update_action);
+static MENU_SELECT_FUNC(BrowseUpMenu);
 
 static struct menu_entry fileman_menu[] =
 {
@@ -50,10 +60,10 @@ static void clear_file_menu()
     }
 }
 
-static void add_file_entry(char* txt, int size)
+static struct file_entry * add_file_entry(char* txt, int type, int size)
 {
     struct file_entry * fe = AllocateMemory(sizeof(struct file_entry));
-    if (!fe) return;
+    if (!fe) return 0;
     memset(fe, 0, sizeof(struct file_entry));
     snprintf(fe->name, sizeof(fe->name), "%s", txt);
     fe->size = size;
@@ -61,45 +71,50 @@ static void add_file_entry(char* txt, int size)
     fe->menu_entry.name = fe->name;
     fe->menu_entry.priv = fe;
     
-    int dir = txt[strlen(txt)-1] == '/';
-    fe->is_dir = dir;
-    if (fe->is_dir)
+    fe->type = type;
+    fe->menu_entry.select_Q = BrowseUpMenu;
+    if (fe->type == TYPE_DIR)
     {
-        fe->menu_entry.select = selectdir;
-        fe->menu_entry.update = updatedir;
+        fe->menu_entry.select = select_dir;
+        fe->menu_entry.update = update_dir;
     }
-    else
+    else if (fe->type == TYPE_FILE)
     {
-        fe->menu_entry.select = selectfile;
-        fe->menu_entry.select_Q = selectfile;
-        fe->menu_entry.update = updatefile;
+        fe->menu_entry.select = select_file;
+        fe->menu_entry.update = update_file;
+    }
+    else if (fe->type == TYPE_ACTION)
+    {
+        fe->menu_entry.select = default_select_action;
+        fe->menu_entry.update = update_action;
+        fe->menu_entry.icon_type = IT_ACTION;
     }
     fe->next = file_entries;
     file_entries = fe;
+    return fe;
 }
 
-static void build_file_menu(struct file_entry * fe)
+static void build_file_menu()
 {
     /* HaCKeD Sort */
-    struct file_entry * fe0 = fe;
     int done = 0;
     while (!done)
     {
         done = 1;
         
-        for (struct file_entry * fe = fe0; fe; fe = fe->next)
+        for (struct file_entry * fe = file_entries; fe; fe = fe->next)
         {
             if (!fe->added)
             {
                 /* are there any entries that should be before "fe" ? */
                 /* if yes, skip "fe", add those entries, and try again */
                 int should_skip = 0;
-                for (struct file_entry * e = fe0; e; e = e->next)
+                for (struct file_entry * e = file_entries; e; e = e->next)
                 {
                     if (!e->added && e != fe)
                     {
-                        if (e->is_dir && !fe->is_dir) { should_skip = 1; break; }
-                        if ((e->is_dir == fe->is_dir) && strcmp(e->name, fe->name) < 0) { should_skip = 1; break; }
+                        if (e->type < fe->type) { should_skip = 1; break; }
+                        if ((e->type == fe->type) && strcmp(e->name, fe->name) < 0) { should_skip = 1; break; }
                     }
                 }
                 
@@ -117,14 +132,14 @@ static void build_file_menu(struct file_entry * fe)
 static void ScanDir(char *path)
 {
     clear_file_menu();
-    add_file_entry("../", 0);
+    add_file_entry("../", TYPE_DIR, 0);
     
     struct fio_file file;
     struct fio_dirent * dirent = 0;
 
     dirent = FIO_FindFirstEx( path, &file );
     if( IS_ERROR(dirent) ) return;
-        
+    
     do
     {
         if (file.name[0] == '.') continue;
@@ -132,16 +147,16 @@ static void ScanDir(char *path)
         {
             int len = strlen(file.name);
             snprintf(file.name + len, sizeof(file.name) - len, "/");
-            add_file_entry(file.name, 0);
+            add_file_entry(file.name, TYPE_DIR, 0);
         }
         else
         {
-            add_file_entry(file.name, file.size);
+            add_file_entry(file.name, TYPE_FILE, file.size);
         }
     }
     while( FIO_FindNextEx( dirent, &file ) == 0);
     
-    build_file_menu(file_entries);
+    build_file_menu();
     
     FIO_CleanupAfterFindNext_maybe(dirent);
 }
@@ -158,7 +173,7 @@ static void BrowseDown(char* path)
     ScanDir(gPath);
 }
 
-static void BrowseUp(char* path)
+static void BrowseUp()
 {
     char* p = gPath + strlen(gPath) - 2;
     while (p > gPath && *p != '/') p--;
@@ -187,7 +202,12 @@ static void BrowseUp(char* path)
     }
 }
 
-static MENU_SELECT_FUNC(selectdir)
+static MENU_SELECT_FUNC(BrowseUpMenu)
+{
+    BrowseUp();
+}
+
+static MENU_SELECT_FUNC(select_dir)
 {
     struct file_entry * fe = (struct file_entry *) priv;
     char* name = (char*) fe->name;
@@ -197,7 +217,7 @@ static MENU_SELECT_FUNC(selectdir)
          || (delta < 0)
         )
     {
-       BrowseUp(name);
+       BrowseUp();
     }
     else
     {
@@ -205,16 +225,12 @@ static MENU_SELECT_FUNC(selectdir)
     }
 }
 
-static MENU_SELECT_FUNC(selectfile)
-{
-    beep();
-}
-
-static MENU_UPDATE_FUNC(updatedir)
+static MENU_UPDATE_FUNC(update_dir)
 {
     MENU_SET_VALUE("");
     MENU_SET_ICON(MNI_AUTO, 0);
     MENU_SET_HELP(gPath);
+    if (entry->selected) view_file = 0;
 }
 
 const char * format_size( unsigned size)
@@ -244,7 +260,109 @@ const char * format_size( unsigned size)
     return str;
 }
 
-static MENU_UPDATE_FUNC(updatefile)
+static MENU_SELECT_FUNC(viewfile_toggle)
+{
+    view_file = !view_file;
+}
+
+static MENU_UPDATE_FUNC(viewfile_show)
+{
+    if (view_file)
+    {
+        static char buf[1025];
+        FILE * file = FIO_Open( gPath, O_RDONLY | O_SYNC );
+        if (file != INVALID_PTR)
+        {
+            int r = FIO_ReadFile(file, buf, sizeof(buf)-1);
+            FIO_CloseFile(file);
+            buf[r] = 0;
+            info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+            clrscr();
+            big_bmp_printf(FONT_MED, 0, 0, "%s", buf);
+        }
+        else
+        {
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "Error reading %s", gPath);
+            view_file = 0;
+        }
+    }
+    else
+    {
+        update_action(entry, info);
+    }
+}
+
+static int delete_confirm_flag = 0;
+
+static MENU_SELECT_FUNC(delete_file)
+{
+    if (streq(gPath+1, ":/AUTOEXEC.BIN"))
+    {
+        beep();
+        return;
+    }
+
+    if (!delete_confirm_flag)
+    {
+        delete_confirm_flag = get_ms_clock_value();
+        beep();
+    }
+    else
+    {
+        delete_confirm_flag = 0;
+        FIO_RemoveFile(gPath);
+        BrowseUp();
+    }
+}
+
+static MENU_UPDATE_FUNC(delete_confirm)
+{
+    update_action(entry, info);
+
+    /* delete confirmation timeout after 2 seconds */
+    if (get_ms_clock_value() > delete_confirm_flag + 2000)
+        delete_confirm_flag = 0;
+
+    /* no question mark in in our font, fsck! */
+    if (delete_confirm_flag)
+        MENU_SET_RINFO("Press SET to confirm");
+}
+
+static MENU_SELECT_FUNC(select_file)
+{
+    struct file_entry * fe = (struct file_entry *) priv;
+    
+    /* fe will be freed in clear_file_menu; backup things that we are going to reuse */
+    char name[MAX_PATH_LEN];
+    snprintf(name, sizeof(name), "%s", fe->name);
+    int size = fe->size;
+    STR_APPEND(gPath, "%s", name);
+    
+    clear_file_menu();
+    /* at this point, fe was freed and is no longer valid */
+    fe = 0;
+    
+    struct file_entry * e = add_file_entry(name, TYPE_FILE, size);
+    if (!e) return;
+    e->menu_entry.select = BrowseUpMenu;
+    e->menu_entry.select_Q = BrowseUpMenu;
+    e->menu_entry.priv = e;
+    
+    e = add_file_entry("View", TYPE_ACTION, 0);
+    e->menu_entry.select = viewfile_toggle;
+    e->menu_entry.update = viewfile_show;
+
+    e = add_file_entry("Delete", TYPE_ACTION, 0);
+    e->menu_entry.select = delete_file;
+    e->menu_entry.update = delete_confirm;
+
+    //~ e = add_file_entry("Copy", TYPE_ACTION, 0);
+    //~ e = add_file_entry("Rename", TYPE_ACTION, 0);
+    
+    build_file_menu();
+}
+
+static MENU_UPDATE_FUNC(update_file)
 {
     struct file_entry * fe = (struct file_entry *) entry->priv;
     MENU_SET_VALUE("");
@@ -252,6 +370,19 @@ static MENU_UPDATE_FUNC(updatefile)
     MENU_SET_RINFO("%s", format_size(fe->size));
     MENU_SET_ICON(MNI_OFF, 0);
     MENU_SET_HELP(gPath);
+    if (entry->selected) view_file = 0;
+}
+
+static MENU_SELECT_FUNC(default_select_action)
+{
+    beep();
+}
+
+static MENU_UPDATE_FUNC(update_action)
+{
+    MENU_SET_VALUE("");
+    MENU_SET_HELP(gPath);
+    if (entry->selected) view_file = 0;
 }
 
 static int InitRootDir()
@@ -269,8 +400,8 @@ static int InitRootDir()
     }
     else if (sd_present && cf_present)
     {
-        add_file_entry("A:/", 0);
-        add_file_entry("B:/", 0);
+        add_file_entry("A:/", TYPE_DIR, 0);
+        add_file_entry("B:/", TYPE_DIR, 0);
     }
     else return -1;
     
