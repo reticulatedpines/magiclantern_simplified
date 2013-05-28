@@ -74,7 +74,7 @@ $(PLUGIN_BASE_DIR)/loader.c: $(PLUGIN_BASE_DIR)/../platform/all/autoexec.bin
 	$(call build,RB,$(PLUGIN_BASE_DIR)/loader_gen.rb)
 
 $(PLUGIN_BASE_DIR)/plugin.lds: $(PLUGIN_BASE_DIR)/plugin.lds.S
-	$(call build,CPP,$(CPP) $(CFLAGS) $< | grep -v '^#' > $@)
+	$(call build,CPP,$(CPP) $(CFLAGS) $< | $(GREP) -v '^#' > $@)
 
 $(PLUGIN_NAME): $(PLUGIN_MAIN_OBJS)
 	$(call build,LD,$(LD) \

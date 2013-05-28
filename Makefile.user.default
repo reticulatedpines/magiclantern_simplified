@@ -3,8 +3,6 @@
 
 UNAME:=$(shell uname)
 
-UNAME:=$(shell uname)
-
 ifeq ($(UNAME), Darwin)
 	# Variable declaration for Mac OS X
 	UMOUNT=hdiutil unmount
@@ -17,39 +15,39 @@ else
 	STAT_CMD=stat -c "%n: %s bytes"
 endif
 
-
-
 # Supported camera models
 SUPPORTED_MODELS:=60D 550D 600D 50D 500D 5D2 1100D
 
-# Path-related stuff
+# GCC-related stuff
 # for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM_ABI=elf
-CCACHE=ccache
 ARM_ABI=none-eabi
+GCC_VERSION=4.7.3
 ARM_PATH=~/gcc-arm-none-eabi-4_7-2012q4
 ARM_BINPATH=$(ARM_PATH)/bin
-GCC_VERSION=4.7.3
-OBJCOPY=$(ARM_BINPATH)/arm-$(ARM_ABI)-objcopy
-AR=$(ARM_BINPATH)/arm-$(ARM_ABI)-ar
-RANLIB=$(ARM_BINPATH)/arm-$(ARM_ABI)-ranlib
-READELF=$(ARM_BINPATH)/arm-$(ARM_ABI)-readelf
 
-# deprecated, using dietlib instead
-# ARM_LIBC_A = $(ARM_PATH)/arm-$(ARM_ABI)/lib/libc.a
-
-# For cygwin users: windows version of yagarto AR is only acceptable relative path or C:\ style absolute path. So you may set relative path from platform/model dir (It means you need +2 "../").
-# ARM_LIBC_A = ../../../../../yagarto-20121222/arm-none-eabi/lib/libc.a
-
-HOST_CFLAGS=-g -O3 -W -Wall
-PYTHON=python2
 ifeq ($(OS),Windows_NT)
 CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION).exe
 else
 CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
 endif
-HOST_CC=gcc
+
 LD=$(CC)
+OBJCOPY=$(ARM_BINPATH)/arm-$(ARM_ABI)-objcopy
+AR=$(ARM_BINPATH)/arm-$(ARM_ABI)-ar
+RANLIB=$(ARM_BINPATH)/arm-$(ARM_ABI)-ranlib
+READELF=$(ARM_BINPATH)/arm-$(ARM_ABI)-readelf
 LD_REAL=$(ARM_BINPATH)/arm-$(ARM_ABI)-ld
+
+# You can customize CFLAG here
+HOST_CFLAGS=-g -O3 -W -Wall
+#CFLAG_USER = -march=armv5te -mcpu=arm946e-s -O2 -DCONFIG_RELEASE_BUILD \
+
+# Additional binaries
+HOST_CC=which gcc
+CCACHE=ccache
+GREP=grep
+AWK=awk
+PYTHON=python2
 
 NIGHTLY_ROOT:=$(HOME)/public_html/nightly
 NIGHTLY_ARCHIVE:=$(NIGHTLY_ROOT)/archive
@@ -104,7 +102,3 @@ CONFIG_TINYPY       = n
 # Work in progress - would be nice to run the unmodified autoexec.bin in QEMU, but we are not there yet
 # so, for now, we'll just hack the source code to work around the limitations of the emulator
 CONFIG_QEMU         = n
-
-# You can customize CFLAG here
-#CFLAG_USER = -march=armv5te -mcpu=arm946e-s -O2 -DCONFIG_RELEASE_BUILD \
-
