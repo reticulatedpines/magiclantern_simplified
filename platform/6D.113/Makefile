@@ -14,6 +14,7 @@ PLATFORM_INC=.
 PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
 ML_BITRATE_OBJ = bitrate-6d.o
+ML_AF_PATTERNS_OBJ = n
 
 ML_EXTRA_OBJS = \
 	misc.o \
@@ -21,18 +22,12 @@ ML_EXTRA_OBJS = \
 	ph_info_disp.o \
 	flexinfo.o \
 	afma.o \
-#	raw-blinkies.o \
-
-#	video_hacks.o \
-#	tp-spy.o \
-#	reloc.o \
-
-#	menuhelp.o \
-#	menuindex.o \
-
-#	evf-hacks.o \
-#	video_hacks.o \
-#	af_patterns.o \ // dangerous
+	raw.o \
+	chdk-dng.o \
+	tp-spy.o \
+	reloc.o \
+	edmac-memcpy.o \
+	asm.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
@@ -42,7 +37,7 @@ include ../../Makefile.inc
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF0C0000
-RESTARTSTART	= 0x00CBC100
+RESTARTSTART	= 0x00C1C100
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120
 

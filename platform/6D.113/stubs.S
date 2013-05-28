@@ -136,7 +136,6 @@ NSTUB(0xFF71DB88, LiveViewWifiApp_handler); //str:CONNECT_VIDEO_HDMI_TERMINATE_W
 
 NSTUB(0xFF52C810, LiveViewApp_handler)
 NSTUB(0xFF52C3DC, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
-//    NSTUB(0xff4b1cc4, LiveViewApp_handler_end) //ends at FF52ED60 next NSTUB(0xFF52ED64, str:StartDummyDialog_CreateDummyDialogBox)
 
 NSTUB(0xFF3A1970, PlayMain_handler)
 NSTUB(0xFF558BC0, PlayMovieGuideApp_handler)
@@ -148,10 +147,9 @@ NSTUB(0xFF2AE148, _engio_write)
 NSTUB(0xFF2ADECC, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
 NSTUB(0xFF2ADE30, _EngDrvOut) // AJ_EngDrvOut_1xVar_to_ShadowStruct
 
-		//    NSTUB(0xff9b1be0 - RAM_OFFSET, LightMeasure_n_Callback_r0) - looks a bit different, disabling for now
 NSTUB(0xFF539BA8, ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
+NSTUB(0xFF52A83C, SetDisplayDlgLV)
 
-		//    NSTUB(0xff987200 - RAM_OFFSET, set_fps_maybe)
 
 NSTUB(0xFFCC5A80 - RAM_OFFSET, get_current_task)
 
@@ -186,50 +184,85 @@ NSTUB(0xFF11C5D0, StartASIFDMAADC)  //~ warning: looks different
 NSTUB(0xFF11CC24, StopASIFDMADAC)   //~ warning: looks different
 NSTUB(0xFF11C87C, StopASIFDMAADC)   //~ warning: looks different
 NSTUB(0xFF11D0EC, SetNextASIFADCBuffer)
-NSTUB(0xFF2AC6FC, SetNextASIFDACBuffer)
+//NSTUB(0xFF2AC6FC, SetNextASIFDACBuffer) //From ACTRL
+NSTUB(0xFF11D2D4, SetNextASIFDACBuffer) // From Event Generating Functions
+NSTUB(0xFF143D0C, PowerMicAmp)
+
 NSTUB(0xFF142DE4, SetSamplingRate) //AudioIC.c_SetRate_hHPTimer Identical
 NSTUB(0xFF142B70, SetAudioVolumeOut) //Keep Volume (%d->%d)
-
+NSTUB(0xFF11E9F4, SetAudioVolumeIn) // SetVolumeIn(alc, L, R)
 NSTUB(0xFF11E654, SoundDevActiveIn)
 NSTUB(0xFF11E680, SoundDevActiveOut)
 NSTUB(0xFF11E8AC, SoundDevShutDownIn)
-
+NSTUB(0xFF11E6E0, SoundDevStartIn)
 
 
 NSTUB(0xFFCE3188 - RAM_OFFSET, ENCODE_StartEncodeJpeg)  //~ called from RAM in 6D, wasn't in EOS M.
 
-/** ExMem **/
-NSTUB(0xFF14A424, AllocateMemoryResource) // m_pfAllocMemoryCBR
-NSTUB(0xFF14A470, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
-NSTUB(0xFF14A588, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xFFCCF2E0 - RAM_OFFSET, GetFirstChunkFromSuite)
-NSTUB(0xFFCCFA7C - RAM_OFFSET, GetNextMemoryChunk)
-NSTUB(0xFFCCECB8 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
-
 NSTUB(0xFFCD0818 - RAM_OFFSET, dma_memcpy) // Slower?
 
 
+/** ExMem **/
+NSTUB(0xFF14A424, AllocateMemoryResource) // m_pfAllocMemoryCBR
+NSTUB(0xFF14A470, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
+NSTUB(0xFF0F2EC4, AllocateMemoryResourceForSingleChunk)
+NSTUB(0xFF14A588, FreeMemoryResource) // m_pfFreeMemoryCBR
+
+NSTUB(0xFFCCECB8 - RAM_OFFSET, GetMemoryAddressOfMemoryChunk)
+NSTUB(0xFFCCF2E0 - RAM_OFFSET, GetFirstChunkFromSuite)
+NSTUB(0xFFCCFA7C - RAM_OFFSET, GetNextMemoryChunk)
 
 NSTUB(0xFF19A92C, GUI_SetRollingPitchingLevelStatus)
 NSTUB(0xFF2AD104, mvrSetPrintMovieLog)
 NSTUB(   0x7AE8C, mvr_config)
 
-
-/** experimental EDMAC research **/
+NSTUB(0xFF1F2550, IvaParamMode)
 
 NSTUB(0xBA50, CreateMemorySuite) //FFCCEF34
 NSTUB(0xB848, DeleteMemorySuite) // FFCCED2C
+
+
+// Edmac 
+// Ram Offset:FFCC34E4
+/** experimental EDMAC research **/
+/** EDMAC routines */
+NSTUB(0x34008, SetEDmac)
+NSTUB(0x343B4, StartEDmac)
+NSTUB(0x34720, PopEDmac) //FFCF7C04 NEW
+//NSTUB(0x347B4, PopEDmac) //FFCF7C04 OLD
+NSTUB(0x346D8, AbortEDmac) //FFCF7BBC 
 NSTUB(0x34168, ConnectWriteEDmac)
 NSTUB(0x3422C, ConnectReadEDmac)
-NSTUB(0x34008, SetEDmac)
+
+/** keep the old name until all are refcatored **/
 NSTUB(0x34778, EDMAC_RegisterCompleteCBR)
-NSTUB(0x343B4, StartEDmac)
-NSTUB(0xFF61277C, PackMem_SetEDmacForMemorySuite)
-NSTUB(0xFF612B04, PackMem_RegisterEDmacPopCBRForMemorySuite)
+
+/** register/unregister CBR names **/
+NSTUB(0x34778, RegisterEDmacCompleteCBR) //FFCF7C5C 
+NSTUB(0x3480C, RegisterEDmacAbortCBR) //FFCF7CF0
+NSTUB(0x348A0, RegisterEDmacPopCBR) //FFCF7D84
+NSTUB(0x347B4, UnregisterEDmacCompleteCBR)
+NSTUB(0x34848, UnregisterEDmacAbortCBR) //FFCF7D2C 
+NSTUB(0x348DC, UnregisterEDmacPopCBR) //FFCF7DC0 
+
 NSTUB(0xFF612A68, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
-NSTUB(0xFF612BA0, PackMem_RegisterEDmacAbortCBRForMemorySuite)
-NSTUB(0xFF612890, PackMem_StartEDmac)
+NSTUB(0xFF612B04, PackMem_RegisterEDmacPopCBRForMemorySuite)
+NSTUB(0xFF61277C, PackMem_SetEDmacForMemorySuite)
 NSTUB(0xFF612998, PackMem_PopEDmacForMemorySuite)
+NSTUB(0xFF612890, PackMem_StartEDmac)
+NSTUB(0xFF612BA0, PackMem_RegisterEDmacAbortCBRForMemorySuite)
+
+
+/* TP LOG */
+NSTUB(0x39F04, TryPostEvent)
+NSTUB(0x39F88, TryPostEvent_end)
+
+NSTUB(0x39824, TryPostStageEvent)
+NSTUB(0x398A8, TryPostStageEvent_end)
+
+NSTUB(0x35700, MREQ_ISR)
+NSTUB(0x35784, SIO3_ISR)
+NSTUB(0x8FE4, register_interrupt)
 
 /** Unused **/
 //NSTUB(0xFFCCEC88 - RAM_OFFSET, GetSizeOfMemoryChunk)
