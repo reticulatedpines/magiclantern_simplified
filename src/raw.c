@@ -286,9 +286,9 @@ int raw_update_params()
 
         #ifdef CONFIG_6D
         //~ raw_info.height = zoom ? 980 : mv720 ? 656 : 1244;
-        skip_top        = 24;
-        skip_left       = 76;
-        skip_right      = zoom ? 104: 4; //Extra Pixel in 720P zoom. 3 other modes.
+        skip_top        = zoom ? 30 : mv720 ? 28 : 28; //28
+        skip_left       = zoom ? 84 : mv720 ? 86: 86; //86
+        skip_right      = zoom ? 0  : mv720 ? 12 : 10;
         //~ skip_bottom = 1;
         #endif
 
@@ -297,7 +297,7 @@ int raw_update_params()
         skip_left   = zoom ? 64 : 74;
         #endif
 
-        #ifdef CONFIG_550D
+        #if defined(CONFIG_550D) || defined(CONFIG_600D)
         skip_top    = 26;
         skip_left   = zoom ? 0 : 152;
         skip_right  = zoom ? 0 : 2;
@@ -398,10 +398,18 @@ int raw_update_params()
         width = 5568;
         height = 3708;
         skip_left = 84; //Meta Data
-        skip_right = 0;
+        skip_right = 14;
         skip_top = 50; // Meta Data
         #endif
 
+		#ifdef CONFIG_600D
+        width = 5344; 
+        height = 3465;
+        skip_left = 152;
+        skip_right = 10;
+        skip_top = 56;
+		#endif
+		
         #if defined(CONFIG_60D)
         width = 5344;
         height = 3516;

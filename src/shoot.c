@@ -760,7 +760,7 @@ static int zoom_was_triggered_by_halfshutter = 0;
 
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
-#if defined(CONFIG_6D) 
+#if defined(CONFIG_6D) || defined(CONFIG_EOSM) 
 ASSERT(buf[0] == 1 || buf[0]==129 || buf[0] == 5 || buf[0] == 10);
    
 #else
@@ -7439,7 +7439,7 @@ shoot_task( void* unused )
             #endif
 
 #ifdef FEATURE_AUDIO_REMOTE_SHOT
-#if defined(CONFIG_7D)
+#if defined(CONFIG_7D) || defined(CONFIG_6D)
             /* experimental for 7D now, has to be made generic */
             static int last_audio_release_running = 0;
             
@@ -7448,9 +7448,17 @@ shoot_task( void* unused )
                 last_audio_release_running = audio_release_running;
                 
                 if(audio_release_running)
-                {
+                {   
+					#ifdef CONFIG_7D
                     void (*SoundDevActiveIn) (uint32_t) = 0xFF0640EC;
                     SoundDevActiveIn(0);
+                    #else //Enable Audio IC In Photo Mode if off
+						{   if (!is_movie_mode())
+							{	void SoundDevActiveIn();
+								SoundDevActiveIn(0);
+							}
+						} 
+					#endif
                 }
             }
 #endif

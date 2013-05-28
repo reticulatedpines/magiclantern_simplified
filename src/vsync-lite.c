@@ -15,7 +15,7 @@ void lv_vsync_signal()
 
 void lv_vsync(int mz)
 {
-    #if defined(CONFIG_5D3) || defined(CONFIG_60D) || defined(CONFIG_6D) || defined(CONFIG_650D)
+    #if defined(CONFIG_5D3) || defined(CONFIG_60D) || defined(CONFIG_6D) || defined(CONFIG_650D) || defined(CONFIG_EOSM)
     int msg;
     msg_queue_receive(vsync_msg_queue, (struct event**)&msg, 100);
     #else

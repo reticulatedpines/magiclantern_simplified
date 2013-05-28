@@ -2,7 +2,7 @@
 #include "dryos.h"
 #include "edmac.h"
 
-#ifdef CONFIG_5D3 /* this part doesn't look portable */
+#if defined(CONFIG_5D3) || defined(CONFIG_6D) /* 6D + 5D3 are Identical */
 
 #define WRITE(x) (x)
 #define READ(x)  (0x80000000 | (x))

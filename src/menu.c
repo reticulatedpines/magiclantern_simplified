@@ -4261,6 +4261,10 @@ static void menu_close()
     menu_lv_transparent_mode = 0;
     
     close_canon_menu();
+	#ifdef CONFIG_EOSM
+	if (recording)
+	SetGUIRequestMode(0);
+	#endif
     canon_gui_enable_front_buffer(0);
     redraw();
     if (lv) bmp_on();
@@ -4575,8 +4579,8 @@ int handle_ml_menu_erase(struct event * event)
     if (dofpreview) return 1; // don't open menu when DOF preview is locked
     
 #ifdef CONFIG_EOSM
-    if (recording)
-        return 1;
+    //~ if (recording)
+        //~ return 1;
 #endif
     
     if (event->param == BGMT_TRASH)
