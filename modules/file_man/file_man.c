@@ -267,7 +267,7 @@ const char * format_size( unsigned size)
 
     if( size > 1024*1024*1024 )
     {
-        int size_gb = (size/1024 + 5 * 10) / 1024 / 1024;
+        int size_gb = (size/1024 + 5) * 10 / 1024 / 1024;
         snprintf( str, sizeof(str), "%d.%dGB", size_gb/10, size_gb%10);
     }
     else if( size > 1024*1024 )
