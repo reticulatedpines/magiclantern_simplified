@@ -101,7 +101,8 @@ void raw_buffer_intercept_from_stateobj()
 
 #ifdef CONFIG_5D2
 /* a.d.: without lv_af_raw, 5D2 has magenta cast in zoom mode */
-#define USE_LV_AF_RAW
+/* af raw is actually edge detection for focusing (nanomad) */
+// #define USE_LV_AF_RAW
 #endif
 
 /** 
