@@ -20,7 +20,6 @@ ML_EXTRA_OBJS = \
 	misc.o \
 	ph_info_disp.o \
 	flexinfo.o \
-	dm-spy.o \
 	raw.o \
 	chdk-dng.o \
 	edmac-memcpy.o \
