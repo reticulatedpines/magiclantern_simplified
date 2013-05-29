@@ -186,7 +186,6 @@ void yuv411_to_rgb(uint32_t addr, int* Y, int* R, int* G, int* B)
     
     // trick to compute [ am3 = (addr/4) % 3 ] a little bit faster
     static int am3 = 0;
-    static int c = 0;
     
     static unsigned int prev_addr = 0;
     if (likely(addr == prev_addr + 4))

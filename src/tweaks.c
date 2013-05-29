@@ -1428,7 +1428,6 @@ static CONFIG_INT("arrows.set", arrow_keys_use_set, 1);
         static CONFIG_INT("arrows.audio", arrow_keys_audio, 1);
     #else
         static CONFIG_INT("arrows.audio", arrow_keys_audio_unused, 1);
-        static int arrow_keys_audio = 0;
     #endif
     static CONFIG_INT("arrows.iso_kelvin", arrow_keys_iso_kelvin, 1);
 #endif
@@ -2811,7 +2810,7 @@ void display_shake_step()
     if (hdmi_code == 5) return;
     static int k; k++;
     if (k%2) return;
-    if (MEM(REG_EDMAC_WRITE_LV_ADDR) & 0xFFFF != YUV422_LV_BUFFER_1 & 0xFFFF) return;
+    if ((MEM(REG_EDMAC_WRITE_LV_ADDR) & 0xFFFF) != (YUV422_LV_BUFFER_1 & 0xFFFF)) return;
     MEM(REG_EDMAC_WRITE_LV_ADDR) += (vram_lv.pitch * vram_lv.height);
 }
 #endif
@@ -3550,7 +3549,7 @@ static struct menu_entry display_menus[] = {
                 {
                     .name = "Orientation",
                     .priv = &DISPLAY_ORIENTATION,
-                    .select     = display_orientation_toggle,
+                    .select = display_orientation_toggle,
                     .max = 2,
                     .choices = (const char *[]) {"Normal", "Reverse", "Mirror"},
                     .help = "Display + LiveView orientation: Normal / Reverse / Mirror."
