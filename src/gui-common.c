@@ -4,6 +4,7 @@
 #include <dryos.h>
 #include <propvalues.h>
 #include <bmp.h>
+#include <property.h>
 
 static int bottom_bar_dirty = 0;
 static int last_time_active = 0;
