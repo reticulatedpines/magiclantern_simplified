@@ -288,7 +288,7 @@ int update_bgmt_av_status(struct event * event) {
             if(gmt_int_ev_obj == (0x3010040+2*shooting_mode)) return 0;
             break;
         default:
-            return -1;
+            break;
     }
     return -1; //Annoying compiler :)
 }
@@ -341,11 +341,14 @@ int handle_digital_zoom_shortcut(struct event * event)
         case BGMT_PRESS_DISP:
             disp_pressed = 1; 
             disp_zoom_pressed = 0; 
+            break;
         case BGMT_UNPRESS_DISP:
             disp_pressed = 0;
+            break;
         case BGMT_PRESS_ZOOMIN_MAYBE: 
         case BGMT_PRESS_ZOOMOUT_MAYBE:
             disp_zoom_pressed = 1;
+            break;
         default:
             break;
     }
