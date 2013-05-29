@@ -25,3 +25,5 @@
 #define FEATURE_AFMA_TUNING
 
 #undef FEATURE_VOICE_TAGS // no sound recorded
+
+#define FEATURE_JOY_CENTER_ACTIONS 
