@@ -3,6 +3,26 @@
  * This was previously camera-specific
  **/
 
+/*
+ * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the
+ * Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
+
 #include <gui.h>
 
 #include <dryos.h>
@@ -38,6 +58,54 @@
 
 struct semaphore * gui_sem;
 
+#ifdef FEATURE_JOY_CENTER_ACTIONS
+static int joy_center_press_count = 0;
+static int joy_center_action_disabled = 0;
+static void joypress_task()
+{
+	extern int joy_center_pressed;
+	TASK_LOOP
+	{
+		msleep(20);
+		if (joy_center_pressed) joy_center_press_count++;
+		else
+		{
+			if (!joy_center_action_disabled && gui_menu_shown() && joy_center_press_count && joy_center_press_count <= 20) // short press, ML menu active
+			{
+				if (is_submenu_or_edit_mode_active())
+				{
+					fake_simple_button(BGMT_Q); // close submenu
+				}
+				else
+				{
+					fake_simple_button(BGMT_PRESS_SET); // do normal SET
+					fake_simple_button(BGMT_UNPRESS_UDLR);
+				}
+			}
+			joy_center_press_count = 0;
+		}
+
+		if (!joy_center_action_disabled && joy_center_press_count > 20) // long press
+		{
+			joy_center_press_count = 0;
+			fake_simple_button(BGMT_UNPRESS_UDLR);
+
+			if (gui_menu_shown())
+				fake_simple_button(BGMT_Q);
+			else if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU || PLAY_MODE)
+			{
+				give_semaphore( gui_sem ); // open ML menu
+				joy_center_press_count = 0;
+				joy_center_pressed = 0;
+			}
+			msleep(500);
+		}
+
+	}
+}
+TASK_CREATE( "joypress_task", joypress_task, 0, 0x1a, 0x1000 );
+#endif // FEATURE_JOY_CENTER_ACTIONS
+
 #ifdef CONFIG_GUI_DEBUG
 int event_ctr = 0;
 #endif
@@ -54,7 +122,25 @@ static int handle_buttons(struct event * event)
 
 
     if (handle_common_events_by_feature(event) == 0) return 0;
+
+#ifdef FEATURE_JOY_CENTER_ACTIONS
+	if (event->param == BGMT_JOY_CENTER && gui_menu_shown())
+	{
+		joy_center_press_count = 1;
+		return 0; // handled above
+	}
+
+	if (event->param == BGMT_PRESS_LEFT || event->param == BGMT_PRESS_RIGHT ||
+		event->param == BGMT_PRESS_DOWN || event->param == BGMT_PRESS_UP ||
+		event->param == BGMT_PRESS_UP_LEFT || event->param == BGMT_PRESS_UP_RIGHT ||
+		event->param == BGMT_PRESS_DOWN_LEFT || event->param == BGMT_PRESS_DOWN_RIGHT)
+		joy_center_action_disabled = 1;
+
+	if (event->param == BGMT_UNPRESS_UDLR)
+		joy_center_action_disabled = 0;
     
+#endif // FEATURE_JOY_CENTER_ACTIONS
+
     return 1;
 }
 
