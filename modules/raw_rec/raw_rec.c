@@ -746,6 +746,7 @@ static void raw_video_rec_task()
     frame_offset_delta_y = 0;
     FILE* f = 0;
     uint32_t written = 0; /* in KB */
+    uint32_t written_chunk = 0; /* in bytes, for current chunk */
     
     /* create a backup file, to make sure we can save the file footer even if the card is full */
     char backup_filename[100];
@@ -819,6 +820,19 @@ static void raw_video_rec_task()
             {
                 /* it failed right away? card must be full */
                 if (written == 0) goto abort;
+
+                if (r == -1)
+                {
+                    /* 4GB limit? it stops after writing 4294967295 bytes, but FIO_WriteFile may return -1 */
+                    if ((uint64_t)written_chunk + size_used > 4294967295)
+                    {
+                        r = 4294967295 - written_chunk;
+                    }
+                    else /* idk */
+                    {
+                        r = 0;
+                    }
+                }
                 
                 /* try to create a new chunk */
                 chunk_filename = get_next_chunk_file_name(movie_filename, ++chunk);
@@ -831,6 +845,7 @@ static void raw_video_rec_task()
                 {
                     FIO_CloseFile(f);
                     f = g;
+                    written_chunk = 0;
                 }
                 else /* new chunk didn't work, card full */
                 {
@@ -844,6 +859,7 @@ static void raw_video_rec_task()
             
             /* all fine */
             written += size_used / 1024;
+            written_chunk += size_used;
             saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
         }
 
