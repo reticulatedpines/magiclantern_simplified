@@ -180,7 +180,7 @@ void show_event_codes(struct event * event)
 }
 #endif
 
-static void ml_gui_main_task()
+void ml_gui_main_task()
 {
     struct event * event = NULL;
     int index = 0;
@@ -235,5 +235,6 @@ static void ml_gui_main_task()
         f(event);
     }
 } 
-
+#ifndef CONFIG_6D
 TASK_OVERRIDE( gui_main_task, ml_gui_main_task);
+#endif

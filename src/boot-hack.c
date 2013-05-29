@@ -82,8 +82,8 @@ zero_bss( void )
 #if defined(CONFIG_6D)
 void hijack_6d_guitask()
 {
-    void my_gui_main_task();
-    task_create("GuiMainTask", 0x17, 0x2000, my_gui_main_task, 0);
+    extern void ml_gui_main_task();
+    task_create("GuiMainTask", 0x17, 0x2000, ml_gui_main_task, 0);
 }
 #endif
 
