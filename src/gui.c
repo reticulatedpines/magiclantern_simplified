@@ -40,7 +40,7 @@
  * [E] 650D : counter_0x0c <-> msg_queue_0x30
  * [E] EOSM : counter_0x0c <-> msg_queue_0x30
  * [E] 5D3  : counter_0x0c <-> msg_queue_0x30
- * [D] 6D   : counter_0x0c <-> msg_queue_0x30
+ * [E] 6D   : counter_0x0c <-> msg_queue_0x30
  */
 
 /**
