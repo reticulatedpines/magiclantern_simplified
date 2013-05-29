@@ -819,6 +819,7 @@ static void raw_video_rec_task()
             {
                 /* it failed right away? card must be full */
                 if (written == 0) goto abort;
+                r = MAX(r, 0);
                 
                 /* try to create a new chunk */
                 chunk_filename = get_next_chunk_file_name(movie_filename, ++chunk);
