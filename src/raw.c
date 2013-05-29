@@ -49,7 +49,7 @@
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined (CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_EOSM)
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
@@ -57,7 +57,7 @@
 #define RAW_PHOTO_EDMAC 0xc0f04808
 #endif
 
-#if defined(CONFIG_60D)
+#if defined(CONFIG_60D) || defined (CONFIG_550D)
 #define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
@@ -386,6 +386,15 @@ int raw_update_params()
         skip_top = 80;
         #endif
 
+        #ifdef CONFIG_550D
+        width = 5344;
+        height = 3516;
+        skip_left = 142;
+        skip_right = 18;
+        skip_top = 58;
+        skip_bottom = 10;
+        #endif
+
         #ifdef CONFIG_600D
         width = 5344; //From Guess Py
         height = 3465;
@@ -402,14 +411,6 @@ int raw_update_params()
         skip_top = 50; // Meta Data
         #endif
 
-		#ifdef CONFIG_600D
-        width = 5344; 
-        height = 3465;
-        skip_left = 152;
-        skip_right = 10;
-        skip_top = 56;
-		#endif
-		
         #if defined(CONFIG_60D)
         width = 5344;
         height = 3516;

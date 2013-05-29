@@ -106,3 +106,6 @@
 
 /** We have access to raw data in LiveView only for now */
 #define CONFIG_RAW_LIVEVIEW
+
+/** We have access to raw photo buffer for raw histogram, raw zebras and so on */
+#define CONFIG_RAW_PHOTO
