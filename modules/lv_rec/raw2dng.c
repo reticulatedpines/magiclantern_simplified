@@ -167,7 +167,7 @@ static int stripes_correction_needed = 0;
 #define SET_PG(x) { int v = (x); p->g_lo = v; p->g_hi = v >> 2; }
 #define SET_PH(x) { int v = (x); p->h = v; }
 
-#define RAW_MUL(p, x) ((((int)(p) - raw_info.black_level) * (int)(x) / 1024) + raw_info.black_level)
+#define RAW_MUL(p, x) MIN((((int)(p) - raw_info.black_level) * (int)(x) / 1024) + raw_info.black_level, 16383)
 #define FACTOR(a,b) ({ int A = ((int)(a) - raw_info.black_level); int B = ((int)(b) - raw_info.black_level); B > 4 ? (A * 1024 / B) : 1024; })
 
 #define F2H(x) COERCE(x, 0, 2047)
