@@ -884,6 +884,7 @@ abort:
             bmp_printf( FONT_MED, 30, 90, 
                 "Movie recording stopped automagically"
             );
+            beep_times(2);
             break;
         }
     }
@@ -941,7 +942,7 @@ abort:
             bmp_printf( FONT_MED, 30, 110, 
                 "Footer save error"
             );
-            beep();
+            beep_times(3);
             msleep(2000);
         }
     }
@@ -950,7 +951,7 @@ abort:
         bmp_printf( FONT_MED, 30, 110, 
             "Nothing saved, card full maybe."
         );
-        beep();
+        beep_times(3);
         msleep(2000);
     }
 
