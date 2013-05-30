@@ -183,6 +183,77 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     return msg;
 }
 
+/* how many frames it's likely to get at some write speed? */
+static int sim_frames(int write_speed)
+{
+    int res_x = get_res_x();
+    int res_y = get_res_y();
+    int frame_size = res_x * res_y * 14/8;
+
+    /* how many frames we can have in RAM */
+    int total = 0;
+    int used = 0;
+    for (int i = 0; i < buffer_count; i++)
+        total += buffers[i].size / frame_size;
+
+    int f = 0;
+    int k = 0;
+    float wt = 0;
+    float fps = fps_get_current_x1000() / 1000.0;
+    float t = 0;
+    while (used < total && f < 10000)
+    {
+        t += 1/fps;
+        f++;
+        used++;
+        
+        int current_buf_cap = buffers[k].size / frame_size;
+
+        /* can we write a chunk? enough data and previous write finished */
+        if (used > current_buf_cap && t >= wt)
+        {
+            if (wt > 0)
+            {
+                /* we just wrote a chunk to card, so we have more free memory now */
+                used -= current_buf_cap;
+                k = (k + 1) % buffer_count;
+            }
+            /* new write process starts now, wt is when it will finish */
+            wt += (float)(frame_size * current_buf_cap) / write_speed + 0.01;
+        }
+    }
+    return f;
+}
+
+/* how many frames can we record with current settings, without dropping? */
+static char* guess_how_many_frames()
+{
+    if (!measured_write_speed) return "";
+    if (!buffer_count) return "";
+    
+    /* the algorithm seems to overestimate the actual frames, so tune it down a little */
+    int write_speed_lo = measured_write_speed * 1024 * 1024 / 10 - 3 * 1024 * 1024;
+    int write_speed_hi = measured_write_speed * 1024 * 1024 / 10;
+    
+    int f_lo = sim_frames(write_speed_lo);
+    int f_hi = sim_frames(write_speed_hi);
+    
+    static char msg[50];
+    if (f_lo < 5000)
+    {
+        if (f_lo != f_hi)
+            snprintf(msg, sizeof(msg), "Expect %d-%d frames at %d-%dMB/s.", f_lo, f_hi, write_speed_lo / 1024 / 1024, write_speed_hi / 1024 / 1024);
+        else
+            snprintf(msg, sizeof(msg), "Expect around %d frames at %d-%dMB/s.", f_lo, write_speed_lo / 1024 / 1024, write_speed_hi / 1024 / 1024);
+    }
+    else
+    {
+        snprintf(msg, sizeof(msg), "Continuous recording OK.");
+    }
+    
+    return msg;
+}
+
 static MENU_UPDATE_FUNC(write_speed_update)
 {
     int res_x = get_res_x();
@@ -197,10 +268,17 @@ static MENU_UPDATE_FUNC(write_speed_update)
     }
     else
     {
-        MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
-            "Write speed needed: %d.%d MB/s at %d.%03d fps.",
-            speed/10, speed%10, fps/1000, fps%1000
-        );
+        if (!measured_write_speed)
+            MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
+                "Write speed needed: %d.%d MB/s at %d.%03d fps.",
+                speed/10, speed%10, fps/1000, fps%1000
+            );
+        else
+            MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
+                "%d.%d MB/s at %d.%03dp. %s",
+                speed/10, speed%10, fps/1000, fps%1000,
+                guess_how_many_frames()
+            );
     }
 }
 
