@@ -549,7 +549,7 @@ void unsafe_beep()
 
 void beep_times(int times)
 {
-    if (!beep_enabled || recording)
+    if (!beep_enabled || recording > 0)
     {
         info_led_blink(times,50,50); // silent warning
         return;
@@ -573,7 +573,7 @@ void beep()
 
 void beep_custom(int duration, int frequency, int wait)
 {
-    if (!beep_enabled || recording)
+    if (!beep_enabled || recording > 0)
     {
         info_led_blink(1, duration, 10); // silent warning
         return;
