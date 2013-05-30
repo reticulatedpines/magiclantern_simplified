@@ -218,8 +218,13 @@ static int sim_frames(int write_speed)
                 used -= current_buf_cap;
                 k = (k + 1) % buffer_count;
             }
+            else
+            {
+                /* first file write starts here */
+                wt = t;
+            }
             /* new write process starts now, wt is when it will finish */
-            wt += (float)(frame_size * current_buf_cap) / write_speed + 0.01;
+            wt += (float)(frame_size * current_buf_cap) / write_speed;
         }
     }
     return f;
@@ -231,9 +236,8 @@ static char* guess_how_many_frames()
     if (!measured_write_speed) return "";
     if (!buffer_count) return "";
     
-    /* the algorithm seems to overestimate the actual frames, so tune it down a little */
-    int write_speed_lo = measured_write_speed * 1024 * 1024 / 10 - 3 * 1024 * 1024;
-    int write_speed_hi = measured_write_speed * 1024 * 1024 / 10;
+    int write_speed_lo = measured_write_speed * 1024 * 1024 / 10 - 1 * 1024 * 1024;
+    int write_speed_hi = measured_write_speed * 1024 * 1024 / 10 + 1 * 1024 * 1024;
     
     int f_lo = sim_frames(write_speed_lo);
     int f_hi = sim_frames(write_speed_hi);
