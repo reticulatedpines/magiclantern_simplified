@@ -951,7 +951,8 @@ static void raw_video_rec_task()
                 {
                     FIO_CloseFile(f);
                     f = g;
-                    written_chunk = 0;
+                    written += size_used / 1024;
+                    written_chunk = r2;
                 }
                 else /* new chunk didn't work, card full */
                 {
@@ -962,10 +963,13 @@ static void raw_video_rec_task()
                     goto abort;
                 }
             }
+            else
+            {
+                /* all fine */
+                written += size_used / 1024;
+                written_chunk += size_used;
+            }
             
-            /* all fine */
-            written += size_used / 1024;
-            written_chunk += size_used;
             saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
         }
 
