@@ -176,6 +176,39 @@ info_elem_t info_config[] =
     { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2, .name = "HDR" }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
 #endif
 
+#if defined(CONFIG_500D)
+    /* entry 1 and 2, WB strings */
+    { .string = { { INFO_TYPE_STRING, { 420, 245, 2, .name = "WB BA" }}, INFO_STRING_WBS_BA, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_MEDIUM_SHADOW } },
+    { .string = { { INFO_TYPE_STRING, { 420, 270, 2, .name = "WB GM" }}, INFO_STRING_WBS_GM, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_MEDIUM_SHADOW } },
+
+    /* entry 3, MLU string */
+    { .string = { { INFO_TYPE_STRING, { 78, 260, 2, .name = "MLU" }}, INFO_STRING_MLU, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
+    
+    /* entry 4, Kelvin */
+    { .string = { { INFO_TYPE_STRING, { 307+(94/2), 237+(62/2), 2, .anchor_flags_self = INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER, .name = "Kelvin" }}, INFO_STRING_KELVIN, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
+    { .fill =   { { INFO_TYPE_FILL,   { 307, 237, 1, INFO_ANCHOR_ABSOLUTE, 4, INFO_ANCHOR_ABSOLUTE, 94, 62, .name = "Kelvin (clear)" }}, .color = INFO_COL_PEEK } },
+
+    /* entry 6, clock */
+    { .string = { { INFO_TYPE_STRING, { 200, 410, 2, .name = "Time" }}, INFO_STRING_TIME, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    
+    /* entry 7, HDR bracketing status */
+    { .string = { { INFO_TYPE_STRING, { 316, 200, 2, .anchor_flags_self = INFO_ANCHOR_HCENTER, .name = "HDR" }}, INFO_STRING_HDR, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_MEDIUM } },
+
+    /* entry 8-11, free space & photos left*/
+    { .fill =   { { INFO_TYPE_FILL,   { 519, 396, 1, INFO_ANCHOR_ABSOLUTE, 0, INFO_ANCHOR_ABSOLUTE, 138, 55, .name = "Space (clear)" }}, .color = INFO_COL_PEEK } },
+    { .string = { { INFO_TYPE_STRING, { 519+(138/2), 412, 2, .anchor_flags_self = (INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER), .name = "Space Pics" }}, INFO_STRING_PICTURES_AVAIL, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_CANON } },
+    { .string = { { INFO_TYPE_STRING, { 573, 442, 3, .anchor_flags_self = (INFO_ANCHOR_VCENTER|INFO_ANCHOR_HCENTER), .name = "Space GB" }}, INFO_STRING_FREE_GB_FLOAT, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
+    { .text =   { { INFO_TYPE_TEXT,   { 2, 0, 3, (INFO_ANCHOR_VCENTER|INFO_ANCHOR_RIGHT), 10, (INFO_ANCHOR_VCENTER|INFO_ANCHOR_LEFT), .name = "GB" }}, "GB", COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_LARGE } },
+
+    /* entry 12, header (optional) */
+    { .string = { { INFO_TYPE_STRING, { 28, 2, 2, .name = "Lens", .user_disable = 0 }}, INFO_STRING_LENS, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { 710, 2, 2, .name = "Date", .user_disable = 0, .anchor_flags_self = INFO_ANCHOR_RIGHT }}, INFO_STRING_CAM_DATE, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+
+    /* entry 13, footer (optional) */
+    { .string = { { INFO_TYPE_STRING, { 28, 459, 2, .name = "Build", .user_disable = 0 }}, INFO_STRING_BUILD, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_MEDIUM_SHADOW } },
+    { .string = { { INFO_TYPE_STRING, { 693, 459, 2, .name = "Copyright", .user_disable = 0, .anchor_flags_self = INFO_ANCHOR_RIGHT }}, INFO_STRING_COPYRIGHT, COLOR_FG_NONLV, INFO_COL_PEEK, INFO_FONT_MEDIUM_SHADOW } },
+#endif
+
 #if defined(CONFIG_550D)
     /* entry 1 and 2, WB strings */
     { .string = { { INFO_TYPE_STRING, { 490, 245, 2, .name = "WB BA" }}, INFO_STRING_WBS_BA, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM_SHADOW } },
@@ -2711,7 +2744,11 @@ int handle_flexinfo_keys(struct event * event)
             info_edit_mode = 0;
             break;
             
+        #if defined(CONFIG_500D)
+        case BGMT_LV:
+        #else
         case BGMT_Q:
+        #endif
             info_edit_mode = (info_edit_mode + 1) % (sizeof(info_edit_handlers) / sizeof(info_edit_handlers[0]));
             if(info_edit_mode == 0)
             {

@@ -409,14 +409,13 @@ void fps_show()
 
 void free_space_show_photomode()
 {
-    int fsg = free_space_32k >> 15;
-    int fsgr = free_space_32k - (fsg << 15);
-    int fsgf = (fsgr * 10) >> 15;
-    
-#if defined(CONFIG_7D) || defined(CONFIG_550D)
+#if defined(CONFIG_7D) || defined(CONFIG_550D) || defined(CONFIG_500D)
     /* moved to flexinfo */
 #else
 
+    int fsg = free_space_32k >> 15;
+    int fsgr = free_space_32k - (fsg << 15);
+    int fsgf = (fsgr * 10) >> 15;
     #if defined(DISPLAY_GB_POS_X) && defined(DISPLAY_GB_POS_Y)
     int x = DISPLAY_GB_POS_X;
     int y = DISPLAY_GB_POS_Y;

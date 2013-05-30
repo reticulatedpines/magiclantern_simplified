@@ -16,6 +16,8 @@ PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
 ML_EXTRA_OBJS = \
 	misc.o \
+	ph_info_disp.o \
+	flexinfo.o \
 	lcdsensor.o \
 	raw.o \
 	chdk-dng.o \
