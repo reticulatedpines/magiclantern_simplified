@@ -29,8 +29,15 @@
 /* when enabled, it hooks shortcut keys */
 static int raw_video_enabled = 0;
 
-static int resolution_presets_x[] = {  640,  720,  960,  1280,  1320,  1440,  1600,  1720,  1880,  1920,  2048,  2560,  2880,  3592 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","720","960","1280","1320","1440","1600","1720","1880","1920","2048","2560","2880","3592")
+/**
+ * resolution should be multiple of 64x32 or 128x16
+ * this way, we get frame size multiple of 512, so there's no write speed penalty
+ * (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks)
+ * mod16 request: http://www.magiclantern.fm/forum/index.php?topic=5839.0
+ **/
+
+static int resolution_presets_x[] = {  640,  768,  960,  1280,  1344,  1472,  1600,  1728,  1856,  1920,  2048,  2560,  2880,  3584 };
+#define  RESOLUTION_CHOICES_X CHOICES("640","768","960","1280","1344","1472","1600","1728","1856","1920","2048","2560","2880","3584")
 
 static int aspect_ratio_presets_num[]      = {    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    1};
 static int aspect_ratio_presets_den[]      = {    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    1};
@@ -95,20 +102,27 @@ static int get_res_x()
     /* make sure we don't get dead pixels from rounding */
     int left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
     int right_margin = (raw_info.active_area.x2) / 8 * 8;
-    return MIN(resolution_presets_x[resolution_index_x], right_margin - left_margin );
+    
+    ASSERT(resolution_presets_x[resolution_index_x] % 64 == 0);
+    
+    int max = (right_margin - left_margin) & ~15;
+    while (max % 16 || (max * 14/8) % 16) max--;
+
+    return MIN(resolution_presets_x[resolution_index_x], max);
 }
 
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
+    int rounding_mask = res_x % 128 ? 31 : 15;
     if (squeeze != 1.0f)
     {
         /* image should be enlarged vertically in post by a factor equal to "squeeze" */
-        return (int)(roundf(res_x * den / num / squeeze) + 1) & ~1;
+        return (int)(roundf(res_x * den / num / squeeze) + rounding_mask) & ~rounding_mask;
     }
     else
     {
         /* assume square pixels */
-        return (res_x * den / num + 1) & ~1;
+        return (res_x * den / num + rounding_mask) & ~rounding_mask;
     }
 }
 
@@ -118,7 +132,8 @@ static int get_res_y()
     int num = aspect_ratio_presets_num[aspect_ratio_index];
     int den = aspect_ratio_presets_den[aspect_ratio_index];
     float squeeze = get_squeeze_factor();
-    return MIN(calc_res_y(res_x, num, den, squeeze), raw_info.jpeg.height);
+    int rounding_mask = res_x % 128 ? 31 : 15;
+    return MIN(calc_res_y(res_x, num, den, squeeze), raw_info.jpeg.height & ~rounding_mask);
 }
 
 static char* guess_aspect_ratio(int res_x, int res_y)
@@ -175,10 +190,18 @@ static MENU_UPDATE_FUNC(write_speed_update)
     int fps = fps_get_current_x1000();
     int speed = (res_x * res_y * 14/8 / 1024) * fps / 100 / 1024;
     int ok = speed < measured_write_speed; 
-    MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
-        "Write speed needed: %d.%d MB/s at %d.%03d fps.",
-        speed/10, speed%10, fps/1000, fps%1000
-    );
+
+    if ((res_x * res_y * 14/8) % 512)
+    {
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "Frame size not multiple of 512 bytes!");
+    }
+    else
+    {
+        MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
+            "Write speed needed: %d.%d MB/s at %d.%03d fps.",
+            speed/10, speed%10, fps/1000, fps%1000
+        );
+    }
 }
 
 static void refresh_raw_settings()
