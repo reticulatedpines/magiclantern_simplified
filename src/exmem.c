@@ -142,7 +142,8 @@ struct memSuite *shoot_malloc_suite(size_t size)
         /* now free the backup suite. this causes the queued allocation before to get finished. as we timed out, it will get freed immediately in exmem.c:allocCBR */
         shoot_free_suite(backup);
         
-        hSuite = shoot_malloc_suite(max_size);
+        /* allocating max_size + backup_size was reported to fail sometimes */
+        hSuite = shoot_malloc_suite(max_size + backup_size - 1024 * 1024);
     }
     
     return hSuite;
