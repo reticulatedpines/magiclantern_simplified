@@ -847,7 +847,8 @@ static void raw_video_rec_task()
                 if (r == -1)
                 {
                     /* 4GB limit? it stops after writing 4294967295 bytes, but FIO_WriteFile may return -1 */
-                    if ((uint64_t)written_chunk + size_used > 4294967295)
+                    //if ((uint64_t)written_chunk + size_used > 4294967295)
+                    if (1) // renato says it's not working?!
                     {
                         r = 4294967295 - written_chunk;
                     }
