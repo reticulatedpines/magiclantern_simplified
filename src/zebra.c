@@ -1157,9 +1157,7 @@ void bvram_mirror_init()
         //~ #if defined(CONFIG_600D) || defined(CONFIG_1100D)
         //~ bvram_mirror_start = (void*)shoot_malloc(BMP_VRAM_SIZE); // there's little memory available in system pool
         //~ #else
-        #ifdef CONFIG_60D
-        bvram_mirror_start = RESTARTSTART + 1024*1024 - BMP_VRAM_SIZE - 0x200;
-        #elif defined(RSCMGR_MEMORY_PATCH_END)
+        #if defined(RSCMGR_MEMORY_PATCH_END)
         extern unsigned int ml_reserved_mem;
         bvram_mirror_start = RESTARTSTART + ml_reserved_mem;
         #else
