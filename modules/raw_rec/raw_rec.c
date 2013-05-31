@@ -1020,6 +1020,7 @@ abort:
     /* write remaining frames */
     while (saving_buffer_index != capturing_buffer_index)
     {
+        show_buffer_status(0);
         written += FIO_WriteFile(f, buffers[saving_buffer_index].ptr, buffers[saving_buffer_index].used) / 1024;
         saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
     }
