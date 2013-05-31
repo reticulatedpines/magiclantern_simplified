@@ -77,7 +77,7 @@ struct buff
 
 static struct memSuite * mem_suite = 0;           /* memory suite for our buffers */
 static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
-static struct buff buffers[10];                   /* our recording buffers */
+static struct buff buffers[20];                   /* our recording buffers */
 static int buffer_count = 0;                      /* how many buffers we could allocate */
 static int capturing_buffer_index = 0;            /* in which buffer we are capturing */
 static int saving_buffer_index = 0;               /* from which buffer we are saving to card */
@@ -933,6 +933,11 @@ static void raw_video_rec_task()
                     if (1) // renato says it's not working?!
                     {
                         r = 4294967295 - written_chunk;
+                        
+                        /* 5D2 does not write anything if the call failed, but 5D3 writes exactly 4294967295 */
+                        /* this one should cover both cases in a portable way */
+                        /* on 5D2 will succeed, on 5D3 should fail right away */
+                        FIO_WriteFile(f, ptr, r);
                     }
                     else /* idk */
                     {
