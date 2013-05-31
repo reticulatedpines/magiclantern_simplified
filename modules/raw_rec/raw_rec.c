@@ -53,8 +53,32 @@ static int aspect_ratio_index = 8;
 static int measured_write_speed = 0;
 static int stop_on_buffer_overflow = 1;
 static int sound_rec = 2;
-static int panning_enabled = 0;
-static int hacked_mode = 0;
+
+static int framing_mode = 0;
+#define FRAMING_CENTER (framing_mode == 0)
+#define FRAMING_LEFT (framing_mode == 1)
+#define FRAMING_PANNING (framing_mode == 2)
+
+static int preview_mode = 0;
+#define PREVIEW_AUTO (preview_mode == 0)
+#define PREVIEW_CANON (preview_mode == 1)
+#define PREVIEW_ML (preview_mode == 2)
+#define PREVIEW_HACKED (preview_mode == 3)
+
+static int res_x = 0;
+static int res_y = 0;
+static int max_res_x = 0;
+static int max_res_y = 0;
+static int shave_right = 0;
+static float squeeze_factor = 0;
+int frame_size = 0;
+int skip_x = 0;
+int skip_y = 0;
+
+static int frame_offset_x = 0;
+static int frame_offset_y = 0;
+static int frame_offset_delta_x = 0;
+static int frame_offset_delta_y = 0;
 
 #define RAW_IDLE      0
 #define RAW_PREPARING 1
@@ -62,6 +86,8 @@ static int hacked_mode = 0;
 #define RAW_FINISHING 3
 
 static int raw_recording_state = RAW_IDLE;
+static int raw_playing = 0;
+static int raw_previewing = 0;
 
 #define RAW_IS_IDLE      (raw_recording_state == RAW_IDLE)
 #define RAW_IS_PREPARING (raw_recording_state == RAW_PREPARING)
@@ -89,31 +115,6 @@ static char* movie_filename = 0;                  /* file name for current (or l
 
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_frame(unsigned char *);
 
-static float get_squeeze_factor()
-{
-    if (video_mode_resolution == 1 && lv_dispsize == 1 && is_movie_mode()) /* 720p, image squeezed */
-    {
-        /* assume the raw image should be 16:9 when de-squeezed */
-        int correct_height = raw_info.jpeg.width * 9 / 16;
-        return (float)correct_height / raw_info.jpeg.height;
-    }
-    return 1.0f;
-}
-
-static int get_res_x()
-{
-    /* make sure we don't get dead pixels from rounding */
-    int left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
-    int right_margin = (raw_info.active_area.x2) / 8 * 8;
-    
-    ASSERT(resolution_presets_x[resolution_index_x] % 64 == 0);
-    
-    int max = (right_margin - left_margin) & ~15;
-    while (max % 16 || (max * 14/8) % 16) max--;
-
-    return MIN(resolution_presets_x[resolution_index_x], max);
-}
-
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
     int rounding_mask = res_x % 128 ? 31 : 15;
@@ -129,14 +130,60 @@ static int calc_res_y(int res_x, int num, int den, float squeeze)
     }
 }
 
-static int get_res_y()
+static void update_cropping_offsets()
 {
-    int res_x = get_res_x();
+    int sx = raw_info.active_area.x1 + (max_res_x - res_x) / 2;
+    int sy = raw_info.active_area.y1 + (max_res_y - res_y) / 2;
+
+    if (FRAMING_PANNING)
+    {
+        sx += frame_offset_x;
+        sy += frame_offset_y;
+    }
+    else if (FRAMING_LEFT)
+    {
+        sx = raw_info.active_area.x1;
+    }
+
+    skip_x = sx;
+    skip_y = sy;
+}
+
+static void update_resolution_params()
+{
+    /* max res X */
+    /* make sure we don't get dead pixels from rounding */
+    int left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
+    int right_margin = (raw_info.active_area.x2 + shave_right) / 8 * 8;
+    int max = (right_margin - left_margin) & ~15;
+    while (max % 16 || (max * 14/8) % 16) max--;
+    max_res_x = max;
+    
+    /* max res Y */
+    int rounding_mask_y = res_x % 128 ? 31 : 15;
+    max_res_y = raw_info.jpeg.height & ~rounding_mask_y;
+
+    /* squeeze factor */
+    if (video_mode_resolution == 1 && lv_dispsize == 1 && is_movie_mode()) /* 720p, image squeezed */
+    {
+        /* assume the raw image should be 16:9 when de-squeezed */
+        int correct_height = max_res_x * 9 / 16;
+        squeeze_factor = (float)correct_height / max_res_y;
+    }
+    else squeeze_factor = 1.0f;
+
+    /* res X */
+    res_x = MIN(resolution_presets_x[resolution_index_x], max_res_x);
+
+    /* res Y */
     int num = aspect_ratio_presets_num[aspect_ratio_index];
     int den = aspect_ratio_presets_den[aspect_ratio_index];
-    float squeeze = get_squeeze_factor();
-    int rounding_mask = res_x % 128 ? 31 : 15;
-    return MIN(calc_res_y(res_x, num, den, squeeze), raw_info.jpeg.height & ~rounding_mask);
+    res_y = MIN(calc_res_y(res_x, num, den, squeeze_factor), max_res_y);
+
+    /* frame size */
+    frame_size = res_x * res_y * 14/8;
+    
+    update_cropping_offsets();
 }
 
 static char* guess_aspect_ratio(int res_x, int res_y)
@@ -164,7 +211,7 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     
     if (minerr < 0.05)
     {
-        int h = calc_res_y(res_x, best_num, best_den, get_squeeze_factor());
+        int h = calc_res_y(res_x, best_num, best_den, squeeze_factor);
         char* qualifier = h != res_y ? "almost " : "";
         snprintf(msg, sizeof(msg), "%s%d:%d", qualifier, best_num, best_den);
     }
@@ -189,9 +236,6 @@ static char* guess_aspect_ratio(int res_x, int res_y)
 /* how many frames it's likely to get at some write speed? */
 static int sim_frames(int write_speed)
 {
-    int res_x = get_res_x();
-    int res_y = get_res_y();
-    int frame_size = res_x * res_y * 14/8;
 
     /* how many frames we can have in RAM */
     int total = 0;
@@ -263,8 +307,6 @@ static char* guess_how_many_frames()
 
 static MENU_UPDATE_FUNC(write_speed_update)
 {
-    int res_x = get_res_x();
-    int res_y = get_res_y();
     int fps = fps_get_current_x1000();
     int speed = (res_x * res_y * 14/8 / 1024) * fps / 100 / 1024;
     int ok = speed < measured_write_speed; 
@@ -289,15 +331,23 @@ static MENU_UPDATE_FUNC(write_speed_update)
     }
 }
 
+static void update_shave()
+{
+    shave_right = FRAMING_LEFT ? (raw_info.width + shave_right - res_x - skip_x) / 8 * 8 : 0;
+    raw_lv_shave_right(shave_right);
+}
+
 static void refresh_raw_settings()
 {
-    if (RAW_IS_IDLE)
+    if (RAW_IS_IDLE && !raw_playing && !raw_previewing)
     {
-        /* autodetect the resolution (update every second) */
+        /* autodetect the resolution (update 4 times per second) */
         static int aux = INT_MIN;
-        if (should_run_polling_action(1000, &aux))
+        if (should_run_polling_action(250, &aux))
         {
             raw_update_params();
+            update_resolution_params();
+            update_shave();
         }
     }
 }
@@ -314,7 +364,7 @@ static MENU_UPDATE_FUNC(raw_main_update)
     }
     else
     {
-        MENU_SET_VALUE("ON, %dx%d", get_res_x(), get_res_y());
+        MENU_SET_VALUE("ON, %dx%d", res_x, res_y);
     }
 
     write_speed_update(entry, info);
@@ -322,10 +372,7 @@ static MENU_UPDATE_FUNC(raw_main_update)
 
 static MENU_UPDATE_FUNC(aspect_ratio_update_info)
 {
-    int res_x = get_res_x();
-    int res_y = get_res_y();
-    float squeeze = get_squeeze_factor();
-    if (squeeze == 1.0f)
+    if (squeeze_factor == 1.0f)
     {
         char* ratio = guess_aspect_ratio(res_x, res_y);
         MENU_SET_HELP("%dx%d (%s)", res_x, res_y, ratio);
@@ -334,7 +381,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update_info)
     {
         int num = aspect_ratio_presets_num[aspect_ratio_index];
         int den = aspect_ratio_presets_den[aspect_ratio_index];
-        int sq100 = (int)roundf(squeeze*100);
+        int sq100 = (int)roundf(squeeze_factor*100);
         int res_y_corrected = calc_res_y(res_x, num, den, 1.0f);
         MENU_SET_HELP("%dx%d. Stretch by %s%d.%02dx to get %dx%d (%s) in post.", res_x, res_y, FMT_FIXEDPOINT2(sq100), res_x, res_y_corrected, aspect_ratio_choices[aspect_ratio_index]);
     }
@@ -351,15 +398,13 @@ static MENU_UPDATE_FUNC(resolution_update)
     
     refresh_raw_settings();
 
-    int res_x = get_res_x();
-    int res_y = get_res_y();
     int selected_x = resolution_presets_x[resolution_index_x];
 
     MENU_SET_VALUE("%dx%d", res_x, res_y);
     
-    if (selected_x != res_x)
+    if (selected_x > max_res_x)
     {
-        MENU_SET_HELP("%d is not possible in current video mode (max %d).", selected_x, res_x);
+        MENU_SET_HELP("%d is not possible in current video mode (max %d).", selected_x, max_res_x);
     }
     else
     {
@@ -380,16 +425,13 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
     
     refresh_raw_settings();
 
-    int res_x = get_res_x();
-    int res_y = get_res_y();
     int num = aspect_ratio_presets_num[aspect_ratio_index];
     int den = aspect_ratio_presets_den[aspect_ratio_index];
-    float squeeze = get_squeeze_factor();
-    int selected_y = calc_res_y(res_x, num, den, squeeze);
+    int selected_y = calc_res_y(res_x, num, den, squeeze_factor);
     
     if (selected_y != res_y)
     {
-        char* ratio = guess_aspect_ratio(res_x, res_y * squeeze);
+        char* ratio = guess_aspect_ratio(res_x, res_y * squeeze_factor);
         MENU_SET_VALUE(ratio);
         MENU_SET_HELP("Could not get %s. Max vertical resolution: %d.", aspect_ratio_choices[aspect_ratio_index], res_y);
     }
@@ -406,8 +448,8 @@ static unsigned int lv_rec_save_footer(FILE *save_file)
     lv_rec_file_footer_t footer;
     
     strcpy((char*)footer.magic, "RAWM");
-    footer.xRes = get_res_x();
-    footer.yRes = get_res_y();
+    footer.xRes = res_x;
+    footer.yRes = res_y;
     footer.frameSize = footer.xRes * footer.yRes * 14/8;
     footer.frameCount = frame_count - 1; /* last frame is usually gibberish */
     footer.frameSkip = 1;
@@ -533,40 +575,23 @@ static void show_buffer_status(int adj)
     }
 }
 
-static int frame_offset_x = 0;
-static int frame_offset_y = 0;
-static int frame_offset_delta_x = 0;
-static int frame_offset_delta_y = 0;
-
 static unsigned int raw_rec_should_preview(unsigned int ctx);
 
 static void cropmark_draw()
 {
-    if (raw_rec_should_preview(0))
-        raw_force_aspect_ratio_1to1();
-
-    int res_x = get_res_x();
-    int res_y = get_res_y();
-    int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
-    int skip_y = raw_info.active_area.y1 + (raw_info.jpeg.height - res_y) / 2;
-
-    if (panning_enabled)
-    {
-        skip_x += frame_offset_x;
-        skip_y += frame_offset_y;
-    }
-    
     int x = RAW2BM_X(skip_x);
     int y = RAW2BM_Y(skip_y);
     int w = RAW2BM_DX(res_x);
     int h = RAW2BM_DY(res_y);
+    int p = raw_rec_should_preview(0);
     static int prev_x = 0;
     static int prev_y = 0;
     static int prev_w = 0;
     static int prev_h = 0;
+    static int prev_p = 0;
 
     /* window changed? erase the old cropmark */
-    if (prev_x != x || prev_y != y || prev_w != w || prev_h != h)
+    if (prev_x != x || prev_y != y || prev_w != w || prev_h != h || prev_p != p)
     {
         bmp_draw_rect(0, prev_x, prev_y, prev_w, prev_h);
         bmp_draw_rect(0, prev_x-1, prev_y-1, prev_w+2, prev_h+2);
@@ -577,31 +602,34 @@ static void cropmark_draw()
     prev_w = w;
     prev_h = h;
 
-    /* display a simple cropmark */
-    bmp_draw_rect(COLOR_WHITE, x, y, w, h);
-    bmp_draw_rect(COLOR_BLACK, x-1, y-1, w+2, h+2);
+    if (!p)
+    {
+        /* display a simple cropmark */
+        bmp_draw_rect(COLOR_WHITE, x, y, w, h);
+        bmp_draw_rect(COLOR_BLACK, x-1, y-1, w+2, h+2);
+    }
 }
 
 static void panning_update()
 {
-    if (!panning_enabled) return;
-    
-    int res_x = get_res_x();
-    int res_y = get_res_y();
-    int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
-    int skip_y = raw_info.active_area.y1 + (raw_info.jpeg.height - res_y) / 2;
-    
+    if (!FRAMING_PANNING) return;
+
+    int sx = raw_info.active_area.x1 + (max_res_x - res_x) / 2;
+    int sy = raw_info.active_area.y1 + (max_res_y - res_y) / 2;
+
     frame_offset_x = COERCE(
         frame_offset_x + frame_offset_delta_x, 
-        raw_info.active_area.x1 - skip_x,
-        raw_info.active_area.x2 - res_x - skip_x
+        raw_info.active_area.x1 - sx,
+        raw_info.active_area.x1 + max_res_x - res_x - sx
     );
     
     frame_offset_y = COERCE(
         frame_offset_y + frame_offset_delta_y, 
-        raw_info.active_area.y1 - skip_y,
-        raw_info.active_area.y2 - res_y - skip_y
+        raw_info.active_area.y1 - sy,
+        raw_info.active_area.y1 + max_res_y - res_y - sy
     );
+
+    update_cropping_offsets();
 }
 
 static unsigned int raw_rec_polling_cbr(unsigned int unused)
@@ -630,15 +658,15 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
 
 static void lv_unhack(int unused)
 {
+    while (!RAW_IS_IDLE) msleep(100);
     call("aewb_enableaewb", 1);
-    idle_globaldraw_en();
     PauseLiveView();
     ResumeLiveView();
 }
 
 static void hack_liveview()
 {
-    if (!hacked_mode) return;
+    if (!PREVIEW_HACKED) return;
     
     int rec = RAW_IS_RECORDING;
     static int prev_rec = 0;
@@ -665,7 +693,6 @@ static void hack_liveview()
     if (should_hack)
     {
         call("aewb_enableaewb", 0);
-        idle_globaldraw_dis();
         int y = 100;
         for (int channel = 0; channel < 32; channel++)
         {
@@ -693,19 +720,6 @@ static int process_frame()
     if (frame_count == 0) { frame_count++; return 0; }
     
     /* copy current frame to our buffer and crop it to its final size */
-    int res_x = get_res_x();
-    int res_y = get_res_y();
-    
-    /* center crop */
-    int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
-    int skip_y = raw_info.active_area.y1 + (raw_info.jpeg.height - res_y) / 2;
-    if (panning_enabled)
-    {
-        skip_x += frame_offset_x;
-        skip_y += frame_offset_y;
-    }
-    
-    /* start copying frame to our buffer */
     void* ptr = buffers[capturing_buffer_index].ptr + capture_offset;
     void* fullSizeBuffer = fullsize_buffers[(fullsize_buffer_pos+1) % 2];
 
@@ -745,7 +759,7 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
         edmac_copy_rectangle_finish();
         dma_transfer_in_progress = 0;
     }
-    
+
     if (!raw_video_enabled) return 0;
     
     hack_liveview();
@@ -760,8 +774,6 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
     
-    int res_x = get_res_x();
-    int res_y = get_res_y();
     if (capture_offset + res_x * res_y * 14/8 >= buffers[capturing_buffer_index].size)
     {
         /* this buffer is full, try next one */
@@ -1121,21 +1133,25 @@ static MENU_SELECT_FUNC(raw_video_toggle)
     
     /* toggle the lv_save_raw flag from raw.c */
     if (raw_video_enabled)
+    {
         raw_lv_request();
+    }
     else
+    {
         raw_lv_release();
+        raw_lv_shave_right(0);
+    }
     msleep(50);
 }
 
-static int raw_playing = 0;
 static void raw_video_playback_task()
 {
     set_lv_zoom(1);
     PauseLiveView();
     
-    int resx = get_res_x();
-    int resy = get_res_y();
-    raw_set_geometry(resx, resy, 0, 0, 0, 0);
+    shave_right = 0;
+    raw_lv_shave_right(0);
+    raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
     
     FILE* f = INVALID_PTR;
     void* buf = shoot_malloc(raw_info.frame_size);
@@ -1158,16 +1174,16 @@ static void raw_video_playback_task()
     for (int i = 0; i < frame_count-1; i++)
     {
         bmp_printf(FONT_MED, 0, os.y_max - 20, "%d/%d", i+1, frame_count-1);
-        bmp_printf(FONT_MED, os.x_max - font_med.width*9, os.y_max - font_med.height, "%dx%d", resx, resy);
+        bmp_printf(FONT_MED, os.x_max - font_med.width*9, os.y_max - font_med.height, "%dx%d", res_x, res_y);
         int r = FIO_ReadFile(f, buf, raw_info.frame_size);
         if (r != raw_info.frame_size)
             break;
         
         if (get_halfshutter_pressed())
             break;
-        
+
         raw_info.buffer = buf;
-        raw_set_geometry(resx, resy, 0, 0, 0, 0);
+        raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
         raw_force_aspect_ratio_1to1();
         raw_preview_fast();
     }
@@ -1254,18 +1270,24 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Enable if you don't mind skipping frames (for slow cards).",
             },
             {
-                .name = "Panning mode",
-                .priv = &panning_enabled,
-                .max = 1,
-                .help = "Smooth panning of the recording window (software dolly).",
-                .help2 = "Use direction keys to move the window.",
+                .name = "Framing",
+                .priv = &framing_mode,
+                .max = 2,
+                .choices = CHOICES("Center", "Force Left", "Dolly mode"),
+                .help = "Choose how to frame recorded the image.",
+                .help2 = "Center: most intuitive, but not the fastest.\n"
+                         "Force Left: we can chop off the right side for higher speed.\n"
+                         "Dolly: smooth panning of the recording window, with arrows."
             },
             {
-                .name = "HaCKeD mode",
-                .priv = &hacked_mode,
-                .max = 1,
-                .help = "Some extreme hacks for squeezing a little more speed.",
-                .help2 = "Your camera will explode.",
+                .name = "Preview",
+                .priv = &preview_mode,
+                .max = 3,
+                .choices = CHOICES("Auto", "Canon", "ML Grayscale", "HaCKeD"),
+                .help2 = "Auto: ML chooses what's best for each video mode\n"
+                         "Canon: plain old LiveView. Framing is not always correct.\n"
+                         "ML Grayscale: looks ugly, but at least framing is correct.\n"
+                         "HaCKeD: try to squeeze a little speed by killing LiveView.\n"
             },
             {
                 .name = "Playback",
@@ -1303,7 +1325,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     }
     
     /* panning (with arrow keys) */
-    if (panning_enabled)
+    if (FRAMING_PANNING)
     {
         switch (key)
         {
@@ -1355,19 +1377,39 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
 
 static unsigned int raw_rec_should_preview(unsigned int ctx)
 {
-    /* enable preview in x5 mode, since framing doesn't match */
-    /* keep x10 mode unaltered, for focusing */
-    return raw_video_enabled && lv_dispsize == 5;
+    if (!raw_video_enabled) return 0;
+    
+    if (PREVIEW_AUTO)
+        /* enable preview in x5 mode, since framing doesn't match */
+        /* keep x10 mode unaltered, for focusing */
+        return lv_dispsize == 5;
+
+    else if (PREVIEW_CANON)
+        return 0;
+    
+    else if (PREVIEW_ML)
+        return 1;
+    
+    else if (PREVIEW_HACKED)
+        return RAW_IS_RECORDING || get_halfshutter_pressed() || lv_dispsize == 5;
+    
+    return 0;
 }
 
 static unsigned int raw_rec_update_preview(unsigned int ctx)
 {
     if (!raw_rec_should_preview(0))
         return 0;
+
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
+
+    raw_previewing = 1;
+    raw_set_preview_rect(skip_x, skip_y, res_x, res_y);
     raw_force_aspect_ratio_1to1();
-    raw_preview_fast_ex(raw_info.buffer, buffers->dst_buf, BM2LV_Y(os.y0), BM2LV_Y(os.y_max), !get_halfshutter_pressed());
-    if (!RAW_IS_IDLE) msleep(500); /* be gentle with the CPU, save it for recording */
+    raw_preview_fast_ex((void*)-1, PREVIEW_HACKED && RAW_RECORDING ? (void*)-1 : buffers->dst_buf, -1, -1, !get_halfshutter_pressed());
+    raw_previewing = 0;
+
+    if (!RAW_IS_IDLE) msleep(250); /* be gentle with the CPU, save it for recording */
     return 1;
 }
 
