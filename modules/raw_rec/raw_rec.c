@@ -470,7 +470,7 @@ static int setup_buffers()
     if (!mem_suite) return 0;
     
     /* allocate memory for double buffering */
-    int buf_size = raw_info.frame_size * 33/32; /* leave some margin, just in case */
+    int buf_size = (raw_info.width + shave_right) * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
 
     /* find the smallest chunk that we can use for buf_size */
     fullsize_buffers[0] = 0;
