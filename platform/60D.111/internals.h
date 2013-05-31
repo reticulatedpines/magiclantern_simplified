@@ -113,3 +113,7 @@
 /** We have access to raw data in LiveView and Photo mode */
 #define CONFIG_RAW_LIVEVIEW
 #define CONFIG_RAW_PHOTO
+
+/** We know how to use edmac_memcpy */
+#define CONFIG_EDMAC_MEMCPY
+
