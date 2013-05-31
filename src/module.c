@@ -95,6 +95,7 @@ static int module_load_symbols(TCCState *s, char *filename)
         symbol_buf[length] = '\000';
 
         pos += length + 1;
+        length = 0;
 
         while(buf[pos + length] && (buf[pos + length] == '\r' || buf[pos + length] == '\n'))
         {
