@@ -86,6 +86,8 @@ int save_dng(char* filename);
 
 /* quick preview of the raw buffer */
 void raw_preview_fast();
+
+/* pass -1 if default value for some parameter is fine */
 void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int end_line, int ultra_fast);
 
 /* request/release/check LiveView RAW flag (lv_save_raw) */
@@ -97,11 +99,18 @@ int raw_lv_enabled();
 /* redirect the LV RAW EDMAC in order to write the raw data at "ptr" */
 void raw_lv_redirect_edmac(void* ptr);
 
+/* cut the right part of the LV raw image (makes buffer smaller); may reduce DMA load */
+void raw_lv_shave_right(int offset);
+
 /* quick check whether the settings from raw_info are still valid (for lv vsync calls) */
 int raw_lv_settings_still_valid();
 
 void raw_set_geometry(int width, int height, int skip_left, int skip_right, int skip_top, int skip_bottom);
 void raw_force_aspect_ratio_1to1();
+void raw_set_preview_rect(int x, int y, int w, int h);
+
+/* called from state-object.c */
+void raw_lv_vsync_cbr();
 
 /* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
 struct raw_info {
