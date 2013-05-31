@@ -82,9 +82,12 @@ static int buffer_count = 0;                      /* how many buffers we could a
 static int capturing_buffer_index = 0;            /* in which buffer we are capturing */
 static int saving_buffer_index = 0;               /* from which buffer we are saving to card */
 static int capture_offset = 0;                    /* position of capture pointer inside the buffer (0-32MB) */
+static int fullsize_buffer_pos = 0;               /* which of the full size buffers (double buffering) is currently in use */
 static int frame_count = 0;                       /* how many frames we have processed */
 static int frame_skips = 0;                       /* how many frames were dropped/skipped */
 static char* movie_filename = 0;                  /* file name for current (or last) movie */
+
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_frame(unsigned char *);
 
 static float get_squeeze_factor()
 {
@@ -704,7 +707,18 @@ static int process_frame()
     
     /* start copying frame to our buffer */
     void* ptr = buffers[capturing_buffer_index].ptr + capture_offset;
-    int ans = edmac_copy_rectangle_start(ptr, fullsize_buffers[(frame_count+1) % 2], raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
+    void* fullSizeBuffer = fullsize_buffers[(fullsize_buffer_pos+1) % 2];
+
+    /* advance to next buffer for the upcoming capture */
+    fullsize_buffer_pos = (fullsize_buffer_pos + 1) % 2;
+    
+    /* dont process this frame if a module wants to skip that */
+    if(raw_rec_skip_frame(fullSizeBuffer))
+    {
+        return 0;
+    }
+    
+    int ans = edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
 
     /* advance to next frame */
     frame_count++;
@@ -744,7 +758,7 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
     if (stop_on_buffer_overflow && frame_skips) return 0;
 
     /* double-buffering */
-    raw_lv_redirect_edmac(fullsize_buffers[frame_count % 2]);
+    raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
     
     int res_x = get_res_x();
     int res_y = get_res_y();
@@ -976,6 +990,11 @@ static void raw_video_rec_task()
             }
             
             saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
+        }
+        else
+        {
+            /* to be verified if it is okay to sleep when the buffers are empty */
+            msleep(20);
         }
 
         /* how fast are we writing? does this speed match our benchmarks? */
