@@ -48,6 +48,44 @@ static MENU_SELECT_FUNC(default_select_action);
 static MENU_UPDATE_FUNC(update_action);
 static MENU_SELECT_FUNC(BrowseUpMenu);
 
+#define MAX_FILETYPE_HANDLERS 32
+#define FILEMAN_CMD_INFO 0
+#define FILEMAN_CMD_VIEW 1
+struct filetype_handler
+{
+    char *extension;
+    char *type;
+    unsigned int (*handler)(unsigned int cmd, char *file, char *data);
+};
+
+int fileman_filetype_registered = 0;
+struct filetype_handler fileman_filetypes[MAX_FILETYPE_HANDLERS];
+
+/* this function has to be public so that other modules can register file types for viewing this file */
+unsigned int fileman_register_type(char *ext, char *type, unsigned int (*handler)(unsigned int cmd, char *file, char *data))
+{
+    if(fileman_filetype_registered < MAX_FILETYPE_HANDLERS)
+    {
+        fileman_filetypes[fileman_filetype_registered].extension = ext;
+        fileman_filetypes[fileman_filetype_registered].type = type;
+        fileman_filetypes[fileman_filetype_registered].handler = handler;
+        fileman_filetype_registered++;
+    }
+}
+
+struct filetype_handler *fileman_find_filetype(char *extension)
+{
+    for(int pos = 0; pos < fileman_filetype_registered; pos++)
+    {
+        if(!strcmp(extension, fileman_filetypes[pos].extension))
+        {
+            return &fileman_filetypes[pos];
+        }
+    }
+    
+    return NULL;
+}
+
 static struct menu_entry fileman_menu[] =
 {
     {
@@ -436,8 +474,37 @@ static MENU_UPDATE_FUNC(MoveFileProgress)
 
 }
 
+static char *fileman_get_extension(char *filename)
+{
+    int pos = strlen(filename) - 1;
+    while(pos > 0 && filename[pos] != '.')
+    {
+        pos--;
+    }
+    
+    /* does the file have an extension */
+    if(pos > 0)
+    {
+        return &filename[pos + 1];
+    }
+    
+    return NULL;
+}
+
 static MENU_SELECT_FUNC(viewfile_toggle)
 {
+    char *ext = fileman_get_extension(gPath);
+    
+    if(ext)
+    {
+        struct filetype_handler *filetype = fileman_find_filetype(ext);
+        if(filetype)
+        {
+            filetype->handler(FILEMAN_CMD_VIEW, gPath, NULL);
+            return;
+        }
+    }
+    
     view_file = !view_file;
 }
 
@@ -464,7 +531,20 @@ static MENU_UPDATE_FUNC(viewfile_show)
     }
     else
     {
-        update_action(entry, info);
+        char *ext = fileman_get_extension(gPath);
+        
+        if(ext)
+        {
+            struct filetype_handler *filetype = fileman_find_filetype(ext);
+            if(filetype)
+            {
+                MENU_SET_RINFO("Type: %s", filetype->type);
+            }
+        }
+        else
+        {
+            update_action(entry, info);
+        }
     }
 }
 
@@ -527,18 +607,22 @@ static MENU_SELECT_FUNC(select_file)
     e = add_file_entry("Copy", TYPE_ACTION, 0);
     e->menu_entry.select = CopyFile;
     e->menu_entry.update = CopyFileProgress;
+    e->menu_entry.priv = NULL;
 
     e = add_file_entry("Move", TYPE_ACTION, 0);
     e->menu_entry.select = MoveFile;
     e->menu_entry.update = MoveFileProgress;
+    e->menu_entry.priv = NULL;
 
     e = add_file_entry("View", TYPE_ACTION, 0);
     e->menu_entry.select = viewfile_toggle;
     e->menu_entry.update = viewfile_show;
+    e->menu_entry.priv = NULL;
 
     e = add_file_entry("Delete", TYPE_ACTION, 0);
     e->menu_entry.select = delete_file;
     e->menu_entry.update = delete_confirm;
+    e->menu_entry.priv = NULL;
 
     //~ e = add_file_entry("Copy", TYPE_ACTION, 0);
     //~ e = add_file_entry("Rename", TYPE_ACTION, 0);
