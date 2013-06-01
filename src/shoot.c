@@ -6975,7 +6975,7 @@ shoot_task( void* unused )
          */
         if (lv_3rd_party_flash && !is_movie_mode())
         {
-            if (lv && HALFSHUTTER_PRESSED)
+            if (lv && get_halfshutter_pressed())
             {
                 /* timeout after 2 minutes */
                 uint32_t loops = 1200;
@@ -6990,16 +6990,18 @@ shoot_task( void* unused )
                 {
                     msleep(100);
                 }
-
-                /* re-press half-shutter */
-                SW1(1,100);
                 
-                bmp_printf(FONT_MED, 0, 20, "(waiting for releasing half-shutter)");
+                msleep(200);
+                
+                /* re-press half-shutter */
+                SW1(1,200);
+                
+                bmp_printf(FONT_MED, 0, 0, "(take pic or release half-shutter)");
                 
                 /* timeout after 2 minutes */
                 loops = 1200;
                 /* and wait for being released again */
-                while (HALFSHUTTER_PRESSED && loops--) msleep(100);
+                while (get_halfshutter_pressed() && loops--) msleep(100);
 
                 if(loops)
                 {
