@@ -150,6 +150,11 @@ extern void sound_dev_task(void);
 #define O_ASYNC          020000
 /* @} */
 
+/* whence value for FIO_SeekFile */
+#define 	SEEK_SET   0
+#define 	SEEK_CUR   1
+#define 	SEEK_END   2
+
 /**
  * File mode attributes, for FindFirst/FindNext
  */
@@ -534,6 +539,7 @@ OS_FUNCTION( 0x0100007, struct fio_dirent *,	FIO_FindFirstEx, const char * dirna
 OS_FUNCTION( 0x0100008, int,	FIO_FindNextEx, struct fio_dirent * dirent, struct fio_file * file);
 OS_FUNCTION( 0x0100009, void,	FIO_CleanupAfterFindNext_maybe, struct fio_dirent * dirent);
 OS_FUNCTION( 0x010000a,	FILE*,	FIO_CreateFileEx, const char* name );
+OS_FUNCTION( 0x010000b,	int,	FIO_SeekFile, FILE* stream, size_t position, int whence);
 
 unsigned GetFileSize(char* filename);
 
