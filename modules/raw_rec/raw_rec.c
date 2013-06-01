@@ -114,6 +114,7 @@ static int frame_skips = 0;                       /* how many frames were droppe
 static char* movie_filename = 0;                  /* file name for current (or last) movie */
 
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_frame(unsigned char *);
+extern WEAK_FUNC(ret_1) unsigned int fileman_register_type(char *ext, char *type, void(*func)(unsigned int cmd, char *file, char *data));
 
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
@@ -1166,7 +1167,12 @@ static void raw_video_playback_task()
 
     f = FIO_Open( movie_filename, O_RDONLY | O_SYNC );
     if( f == INVALID_PTR )
+    {
+        beep();
+        bmp_printf(FONT_MED, 0, 0, "Failed to open file '%s' ", movie_filename);
+        msleep(2000);
         goto cleanup;
+    }
 
     clrscr();
     struct vram_info * lv_vram = get_yuv422_vram();
@@ -1193,6 +1199,33 @@ cleanup:
     if (buf) shoot_free(buf);
     raw_playing = 0;
     ResumeLiveView();
+}
+
+static void raw_video_playback(char *filename)
+{
+    movie_filename = filename;
+    raw_playing = 1;
+    gui_stop_menu();
+    
+    task_create("raw_rec_task", 0x1e, 0x1000, raw_video_playback_task, (void*)0);
+}
+
+#define FILEMAN_CMD_INFO 0
+#define FILEMAN_CMD_VIEW 1
+
+void raw_rec_filehandler(unsigned int cmd, char *file, char *data)
+{
+    /* there is no header and clean interface yet */
+    switch(cmd)
+    {
+        case FILEMAN_CMD_INFO:
+            strcpy(data, "A 14-bit RAW Video");
+            break;
+        case FILEMAN_CMD_VIEW:
+            raw_video_playback(file);
+            break;
+    }
+    return;
 }
 
 static MENU_SELECT_FUNC(raw_playback_start)
@@ -1416,6 +1449,7 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
 static unsigned int raw_rec_init()
 {
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
+    fileman_register_type("RAW", "RAW Video", raw_rec_filehandler);
     return 0;
 }
 
