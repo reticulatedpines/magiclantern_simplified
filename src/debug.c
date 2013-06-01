@@ -389,6 +389,8 @@ static int vmax(int* x, int n)
     return m;
 }
 
+#endif
+
 static void dump_rom_task(void* priv, int unused)
 {
     msleep(200);
@@ -412,6 +414,15 @@ static void dump_rom_task(void* priv, int unused)
     }
     msleep(200);
 
+    f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/ROM2.BIN");
+    if (f != (void*) -1)
+    {
+        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM2");
+        FIO_WriteFile(f, (void*) 0xFF010000, 0x00FEFFFF); // 0xFFFF FFFF - 0xFF01 0000 - 1 to make disassemble.pl happy
+        FIO_CloseFile(f);
+    }
+    msleep(200);
+
     dump_big_seg(4, CARD_DRIVE "ML/LOGS/RAM4.BIN");
 }
 
@@ -420,7 +431,6 @@ static void dump_rom(void* priv, int unused)
     gui_stop_menu();
     task_create("dump_task", 0x1e, 0, dump_rom_task, 0);
 }
-#endif
 
 static void dump_logs_task(void* priv)
 {
@@ -3487,12 +3497,12 @@ static struct menu_entry debug_menus[] = {
         .select        = dlg_test,
         .help = "Dialog templates (up/dn) and color palettes (left/right)"
     },*/
+#endif
     {
         .name        = "Dump ROM and RAM",
         .select        = dump_rom,
-        .help = "0.BIN:0-0FFFFFFF, ROM0.BIN:F0000000, ROM1.BIN:F8000000"
+        .help = "ROM0.BIN:F0000000,ROM1.BIN:F8000000,ROM2.BIN:FF010000"
     },
-#endif
 #ifdef CONFIG_40D
     {
         .name        = "Dump camera logs",
