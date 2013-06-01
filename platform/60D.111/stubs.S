@@ -84,6 +84,7 @@ NSTUB( 0xFF1C9F9C, FIO_Open)
 NSTUB( 0xFF1CA058, FIO_CreateFile )
 NSTUB( 0xFF1CA104, FIO_RemoveFile ) // after FIO_CreateFile, before FIO_ReadFile
 NSTUB( 0xFF1CA1AC, FIO_ReadFile )
+NSTUB( 0xFF1CA32C, FIO_SkipFile )
 NSTUB( 0xFF1CA34C, FIO_WriteFile )
 NSTUB( 0xFF1CA3FC, FIO_CloseFile )
 NSTUB( 0xFF1CA578, FIO_GetFileSize )
