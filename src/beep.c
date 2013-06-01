@@ -1102,5 +1102,8 @@ void beep(){}
 void Beep(){}
 void beep_times(int times){};
 int beep_enabled = 0;
+void WAV_StartRecord(char* filename){};
+void WAV_StopRecord(){};
+
 #endif
 
