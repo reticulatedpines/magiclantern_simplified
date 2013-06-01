@@ -92,7 +92,7 @@ unsigned int exmem_clear(struct memSuite * hSuite, char fill)
         chunkAvail = GetSizeOfMemoryChunk(currentChunk);
         chunkAddress = (unsigned char*)GetMemoryAddressOfMemoryChunk(currentChunk);
         
-        memset(chunkAddress, fill, chunkAvail);
+        memset(CACHEABLE(chunkAddress), fill, chunkAvail);
         written += chunkAvail;
         currentChunk = GetNextMemoryChunk(hSuite, currentChunk);
     }
