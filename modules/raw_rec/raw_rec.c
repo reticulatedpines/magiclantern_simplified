@@ -463,6 +463,42 @@ static unsigned int lv_rec_save_footer(FILE *save_file)
     return written == sizeof(lv_rec_file_footer_t);
 }
 
+static unsigned int lv_rec_read_footer(FILE *f)
+{
+    lv_rec_file_footer_t footer;
+
+    /* get current position in file, seek to footer, read and go back where we were */
+    unsigned int old_pos = FIO_SeekFile(f, 0, 1);
+    FIO_SeekFile(f, -sizeof(lv_rec_file_footer_t), 2);
+    int read = FIO_ReadFile(f, &footer, sizeof(lv_rec_file_footer_t));
+    FIO_SeekFile(f, old_pos, 0);
+
+    /* check if the footer was read */
+    if(read != sizeof(lv_rec_file_footer_t))
+    {
+        bmp_printf(FONT_MED, 30, 190, "File position mismatch. Read %d", read);
+        beep();
+        msleep(1000);
+    }
+    
+    /* check if the footer is in the right format */
+    if(strncmp(footer.magic, "RAWM", 4))
+    {
+        bmp_printf(FONT_MED, 30, 190, "Footer format mismatch");
+        beep();
+        msleep(1000);
+        return 0;
+    }
+        
+    /* update global variables with data from footer */
+    res_x = footer.xRes;
+    res_y = footer.yRes;
+    frame_count = footer.frameCount + 1;
+    raw_info = footer.raw_info;
+    
+    return 1;
+}
+
 static int setup_buffers()
 {
     /* allocate the entire memory, but only use large chunks */
@@ -1147,24 +1183,16 @@ static MENU_SELECT_FUNC(raw_video_toggle)
 
 static void raw_video_playback_task()
 {
-    set_lv_zoom(1);
-    PauseLiveView();
-    
-    shave_right = 0;
-    raw_lv_shave_right(0);
-    raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
-    
+    void* buf = NULL;
     FILE* f = INVALID_PTR;
-    void* buf = shoot_malloc(raw_info.frame_size);
-    if (!buf)
-        goto cleanup;
 
     bmp_printf(FONT_MED, 0, 0, "file '%s' ", movie_filename);
-    msleep(100);
+    /* sleep a little longer, sometimes the photo screen redraws directly over our cleared area */
+    msleep(250);
 
     if (!movie_filename)
         goto cleanup;
-
+    
     f = FIO_Open( movie_filename, O_RDONLY | O_SYNC );
     if( f == INVALID_PTR )
     {
@@ -1173,8 +1201,22 @@ static void raw_video_playback_task()
         msleep(2000);
         goto cleanup;
     }
-
+    
+    /* read footer information and update global variables, will seek automatically */
+    lv_rec_read_footer(f);
+    
+    buf = shoot_malloc(raw_info.frame_size);
+    if (!buf)
+        goto cleanup;
+        
+    set_lv_zoom(1);
+    PauseLiveView();
     clrscr();
+    
+    shave_right = 0;
+    raw_lv_shave_right(0);
+    raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
+    
     struct vram_info * lv_vram = get_yuv422_vram();
     memset(lv_vram->vram, 0, lv_vram->width * lv_vram->pitch);
     for (int i = 0; i < frame_count-1; i++)
