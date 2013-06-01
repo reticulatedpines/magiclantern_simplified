@@ -414,15 +414,6 @@ static void dump_rom_task(void* priv, int unused)
     }
     msleep(200);
 
-    f = FIO_CreateFileEx(CARD_DRIVE "ML/LOGS/ROM2.BIN");
-    if (f != (void*) -1)
-    {
-        bmp_printf(FONT_LARGE, 0, 60, "Writing ROM2");
-        FIO_WriteFile(f, (void*) 0xFF010000, 0x00FEFFFF); // 0xFFFF FFFF - 0xFF01 0000 - 1 to make disassemble.pl happy
-        FIO_CloseFile(f);
-    }
-    msleep(200);
-
     dump_big_seg(4, CARD_DRIVE "ML/LOGS/RAM4.BIN");
 }
 
@@ -3501,7 +3492,7 @@ static struct menu_entry debug_menus[] = {
     {
         .name        = "Dump ROM and RAM",
         .select        = dump_rom,
-        .help = "ROM0.BIN:F0000000,ROM1.BIN:F8000000,ROM2.BIN:FF010000"
+        .help = "ROM0.BIN:F0000000, ROM1.BIN:F8000000, RAM4.BIN"
     },
 #ifdef CONFIG_40D
     {
