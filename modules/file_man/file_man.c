@@ -46,7 +46,11 @@ static MENU_SELECT_FUNC(select_file);
 static MENU_UPDATE_FUNC(update_file);
 static MENU_SELECT_FUNC(default_select_action);
 static MENU_UPDATE_FUNC(update_action);
+static MENU_UPDATE_FUNC(update_status);
 static MENU_SELECT_FUNC(BrowseUpMenu);
+static MENU_SELECT_FUNC(FileCopyStart);
+static MENU_SELECT_FUNC(FileMoveStart);
+static MENU_SELECT_FUNC(FileOpCancel);
 
 #define MAX_FILETYPE_HANDLERS 32
 #define FILEMAN_CMD_INFO 0
@@ -71,6 +75,7 @@ unsigned int fileman_register_type(char *ext, char *type, unsigned int (*handler
         fileman_filetypes[fileman_filetype_registered].handler = handler;
         fileman_filetype_registered++;
     }
+    return 0;
 }
 
 struct filetype_handler *fileman_find_filetype(char *extension)
@@ -161,7 +166,7 @@ static void build_file_menu()
                 int should_skip = 0;
                 for (struct file_entry * e = file_entries; e; e = e->next)
                 {
-                    if (!e->added && e != fe)
+                    if (!e->added && e != fe && fe->type != TYPE_ACTION && e->type != TYPE_ACTION)
                     {
                         if (e->type < fe->type) { should_skip = 1; break; }
                         if ((e->type == fe->type) && strcmp(e->name, fe->name) < 0) { should_skip = 1; break; }
@@ -191,41 +196,22 @@ static void ScanDir(char *path)
         return;
     }
 
-    if(op_mode != FILE_OP_NONE)
-    {
-        console_printf("ScanDir\n");
-        char srcpath[MAX_PATH_LEN];
-        strcpy(srcpath,gSrcFile);
-        char *p = srcpath+strlen(srcpath);
-        while (p > srcpath && *p != '/') p--;
-        *(p+1) = 0;
-
-        console_printf("src: %s\n",srcpath);
-        console_printf("dst: %s\n",path);
-
-
-        if(strcmp(path,srcpath) != 0){
-            add_file_entry("***Select Here***", TYPE_DIR, 0);
-            add_file_entry("*** Cancel OP ***", TYPE_DIR, 0);
-        }
-    }
-
-
-    add_file_entry("../", TYPE_DIR, 0);
-
     struct fio_file file;
     struct fio_dirent * dirent = 0;
 
     dirent = FIO_FindFirstEx( path, &file );
     if( IS_ERROR(dirent) )
     {
+        add_file_entry("../", TYPE_DIR, 0);
         build_file_menu();
         return;
     }
 
+    int n = 0;
     do
     {
         if (file.name[0] == '.') continue;
+        n++;
         if (file.mode & ATTR_DIRECTORY)
         {
             int len = strlen(file.name);
@@ -238,6 +224,59 @@ static void ScanDir(char *path)
         }
     }
     while( FIO_FindNextEx( dirent, &file ) == 0);
+
+    if (!n)
+    {
+        /* nothing here, add this so menu won't crash */
+        add_file_entry("../", TYPE_DIR, 0);
+    }
+
+    if(op_mode != FILE_OP_NONE)
+    {
+        console_printf("ScanDir\n");
+        char srcpath[MAX_PATH_LEN];
+        strcpy(srcpath,gSrcFile);
+        char *p = srcpath+strlen(srcpath);
+        while (p > srcpath && *p != '/') p--;
+        *(p+1) = 0;
+
+        console_printf("src: %s\n",srcpath);
+        console_printf("dst: %s\n",path);
+
+        if(strcmp(path,srcpath) != 0)
+        {
+            struct file_entry * e;
+            
+            /* need to add these in reverse order */
+
+            e = add_file_entry("*** Cancel OP ***", TYPE_ACTION, 0);
+            if (e)
+            {
+                e->menu_entry.select = FileOpCancel;
+                e->menu_entry.priv = NULL;
+            }
+
+            switch (op_mode)
+            {
+                case FILE_OP_COPY:
+                    e = add_file_entry("*** Copy Here ***", TYPE_ACTION, 0);
+                    if (e)
+                    {
+                        e->menu_entry.select = FileCopyStart;
+                        e->menu_entry.priv = NULL;
+                    }
+                    break;
+                case FILE_OP_MOVE:
+                    e = add_file_entry("*** Move Here ***", TYPE_ACTION, 0);
+                    if (e)
+                    {
+                        e->menu_entry.select = FileMoveStart;
+                        e->menu_entry.priv = NULL;
+                    }
+                    break;
+            }
+        }
+    }
 
     build_file_menu();
 
@@ -368,25 +407,22 @@ FileMove(void *unused)
 }
 
 
-static void FileOperation(){
-
-    switch(op_mode){
-    case FILE_OP_COPY:
-        task_create("FileCopy_task", 0x1b, 0x4000, FileCopy, 0);
-        break;
-    case FILE_OP_MOVE:
-        task_create("FileMove_task", 0x1b, 0x4000, FileMove, 0);
-        break;
-    case FILE_OP_PREVIEW:
-        break;
-    }
-    //cleanup
+static MENU_SELECT_FUNC(FileCopyStart)
+{
+    task_create("FileCopy_task", 0x1b, 0x4000, FileCopy, 0);
     op_mode = FILE_OP_NONE;
-
     ScanDir(gPath);
 }
 
-static void FileOpCancel(){
+static MENU_SELECT_FUNC(FileMoveStart)
+{
+    task_create("FileMove_task", 0x1b, 0x4000, FileMove, 0);
+    op_mode = FILE_OP_NONE;
+    ScanDir(gPath);
+}
+
+static MENU_SELECT_FUNC(FileOpCancel)
+{
     gSrcFile[0] = 0;
     op_mode = FILE_OP_NONE;
     ScanDir(gPath);
@@ -401,25 +437,21 @@ static MENU_SELECT_FUNC(select_dir)
 {
     struct file_entry * fe = (struct file_entry *) priv;
     char* name = (char*) fe->name;
-    if(!strcmp(name,"***Select Here***")){
-        FileOperation();
-    }else if(!strcmp(name,"*** Cancel OP ***")){
-        FileOpCancel();
-    }else if (!strcmp(name,"../") || (delta < 0))
-        {
-            BrowseUp();
-        }
+    if (!strcmp(name,"../") || (delta < 0))
+    {
+        BrowseUp();
+    }
     else
-        {
-            BrowseDown(name);
-        }
+    {
+        BrowseDown(name);
+    }
 }
 
 static MENU_UPDATE_FUNC(update_dir)
 {
     MENU_SET_VALUE("");
     MENU_SET_ICON(MNI_AUTO, 0);
-    MENU_SET_HELP(gPath);
+    update_status(entry, info);
     if (entry->selected) view_file = 0;
 }
 
@@ -541,10 +573,8 @@ static MENU_UPDATE_FUNC(viewfile_show)
                 MENU_SET_RINFO("Type: %s", filetype->type);
             }
         }
-        else
-        {
-            update_action(entry, info);
-        }
+
+        update_action(entry, info);
     }
 }
 
@@ -598,36 +628,57 @@ static MENU_SELECT_FUNC(select_file)
     /* at this point, fe was freed and is no longer valid */
     fe = 0;
 
-    struct file_entry * e = add_file_entry(name, TYPE_FILE, size);
-    if (!e) return;
-    e->menu_entry.select = BrowseUpMenu;
-    e->menu_entry.select_Q = BrowseUpMenu;
-    e->menu_entry.priv = e;
-
-    e = add_file_entry("Copy", TYPE_ACTION, 0);
-    e->menu_entry.select = CopyFile;
-    e->menu_entry.update = CopyFileProgress;
-    e->menu_entry.priv = NULL;
+    struct file_entry * e;
+    
+    /* note: need to add these in reverse order */
+    e = add_file_entry("Delete", TYPE_ACTION, 0);
+    if (e)
+    {
+        e->menu_entry.select = delete_file;
+        e->menu_entry.update = delete_confirm;
+        e->menu_entry.priv = NULL;
+    }
 
     e = add_file_entry("Move", TYPE_ACTION, 0);
-    e->menu_entry.select = MoveFile;
-    e->menu_entry.update = MoveFileProgress;
-    e->menu_entry.priv = NULL;
+    if (e)
+    {
+        e->menu_entry.select = MoveFile;
+        //e->menu_entry.update = MoveFileProgress;
+        e->menu_entry.priv = NULL;
+    }
+
+    e = add_file_entry("Copy", TYPE_ACTION, 0);
+    if (e)
+    {
+        e->menu_entry.select = CopyFile;
+        //e->menu_entry.update = CopyFileProgress;
+        e->menu_entry.priv = NULL;
+    }
 
     e = add_file_entry("View", TYPE_ACTION, 0);
-    e->menu_entry.select = viewfile_toggle;
-    e->menu_entry.update = viewfile_show;
-    e->menu_entry.priv = NULL;
+    if (e)
+    {
+        e->menu_entry.select = viewfile_toggle;
+        e->menu_entry.update = viewfile_show;
+        e->menu_entry.priv = NULL;
+    }
 
-    e = add_file_entry("Delete", TYPE_ACTION, 0);
-    e->menu_entry.select = delete_file;
-    e->menu_entry.update = delete_confirm;
-    e->menu_entry.priv = NULL;
-
-    //~ e = add_file_entry("Copy", TYPE_ACTION, 0);
-    //~ e = add_file_entry("Rename", TYPE_ACTION, 0);
+    e = add_file_entry(name, TYPE_FILE, size);
+    if (e)
+    {
+        e->menu_entry.select = BrowseUpMenu;
+        e->menu_entry.select_Q = BrowseUpMenu;
+        e->menu_entry.priv = e;
+    }
 
     build_file_menu();
+}
+
+static MENU_UPDATE_FUNC(update_status)
+{
+    MENU_SET_HELP(gPath);
+    if (op_mode != FILE_OP_NONE)
+        MENU_SET_WARNING(MENU_WARN_INFO, "%s %s", op_mode == FILE_OP_COPY ? "Copy" : "Move", gSrcFile);
 }
 
 static MENU_UPDATE_FUNC(update_file)
@@ -637,7 +688,7 @@ static MENU_UPDATE_FUNC(update_file)
 
     MENU_SET_RINFO("%s", format_size(fe->size));
     MENU_SET_ICON(MNI_OFF, 0);
-    MENU_SET_HELP(gPath);
+    update_status(entry, info);
     if (entry->selected) view_file = 0;
 }
 
@@ -649,7 +700,7 @@ static MENU_SELECT_FUNC(default_select_action)
 static MENU_UPDATE_FUNC(update_action)
 {
     MENU_SET_VALUE("");
-    MENU_SET_HELP(gPath);
+    update_status(entry, info);
     if (entry->selected) view_file = 0;
 }
 
