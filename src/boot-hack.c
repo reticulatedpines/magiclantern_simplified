@@ -645,10 +645,15 @@ int init_task_patched(int a, int b, int c, int d)
     uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_END + CreateTaskMain_offset);
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
 
+    #ifdef CONFIG_550D
+    // change end limit to 0xc60000 => reserve 640K for ML
+    *addr_AllocMem_end = MOV_R1_0xC60000_INSTR;
+    ml_reserved_mem = 640 * 1024;
+    #else
     // change end limit to 0xc80000 => reserve 512K for ML
-    // thanks to ARMada by g3gg0 for the black magic :)
     *addr_AllocMem_end = MOV_R1_0xC80000_INSTR;
     ml_reserved_mem = 512 * 1024;
+    #endif
 
     // relocating CreateTaskMain does some nasty things, so, right after patching,
     // we jump back to ROM version; at least, what's before patching seems to be relocated properly
