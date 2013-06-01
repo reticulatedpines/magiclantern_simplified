@@ -105,35 +105,33 @@ NSTUB(0xFF345520, FIO_RenameFile)
 NSTUB(0x7A94, FreeMemory)
 NSTUB(0xFF0D6FEC, GUI_ChangeMode)
 NSTUB(0xFF0D6E30, GUI_Control)
-	NSTUB(0xFF1BDDC4, GUI_GetFirmVersion)
-	NSTUB(0xFF1308C4, LoadCalendarFromRTC) // Not so sure....
-	NSTUB(0xFF32861C, MuteOff_0)
-	NSTUB(0xFF3285D4, MuteOn_0)
-	NSTUB(0xFF4D3090, RedrawDisplay)
+NSTUB(0xFF1BFE58, GUI_GetFirmVersion)
+NSTUB(0xFF131454, LoadCalendarFromRTC) // Not so sure....
+NSTUB(0xFF4D70E8, RedrawDisplay)
 NSTUB(0x139BC, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
-	NSTUB(0xFF128734, SetBitmapVramAddress)
-	NSTUB(0xFF1A953C, SetGUIRequestMode)
+NSTUB(0xFF1292B0 , SetBitmapVramAddress)
+NSTUB(0xFF1AB548, SetGUIRequestMode)
 
-	    //NSTUB(0xff136f5c, _audio_ic_read)
-	    //NSTUB(0xff136ea4, _audio_ic_write) // str:Reg_0x_02X_Data_04x
+    //NSTUB(0xff136f5c, _audio_ic_read)
+    //NSTUB(0xff136ea4, _audio_ic_write) // str:Reg_0x_02X_Data_04x
 	//NSTUB(   0x26C34, additional_version) // not working
 
-	NSTUB(0xFFA634E4 - RAM_OFFSET, alloc_dma_memory)
-	NSTUB(   0x51DEC, bmp_vram_info ) // look in SetBitmapVramAddress - as in 60D
+NSTUB(0x16E8C, alloc_dma_memory)
+NSTUB(   0x522CC, bmp_vram_info ) // look in SetBitmapVramAddress - as in 60D
 NSTUB(0x1C45C, bzero32)
-	NSTUB(0xFF137E84, call)
-	NSTUB(0xC0220000, camera_engine)
-	NSTUB(0xFF73C608, cfReadBlk)
-	        //	NSTUB(   0x20890, cf_device) idk...
+NSTUB(0xFF138A34 , call)
+NSTUB(0xC0220000, camera_engine)
+NSTUB(0xFF745CB4, cfReadBlk)
+    //	NSTUB(   0x20890, cf_device) idk...
 NSTUB(0x2EB8, create_init_task)
 NSTUB(0x6178, create_named_semaphore)
-	NSTUB(0xFF4B069C, ctrlman_dispatch_event)
-	NSTUB(0xFF4B3654, dialog_redraw)
-	NSTUB(0xFF51FCE0, dialog_set_property_str)
-	NSTUB(   0x241BC, dm_names)
-	NSTUB(0xFFA50320 - RAM_OFFSET, dm_set_store_level) // Not so sure
-	NSTUB(0xFFA502B8 - RAM_OFFSET, dm_set_print_level) // Not so sure
-	NSTUB(0xFF327FCC, dispcheck)
+NSTUB(0xFF4B46F4, ctrlman_dispatch_event)
+NSTUB(0xFF4B76AC, dialog_redraw)
+NSTUB(0xFF523C90, dialog_set_property_str)
+NSTUB(   0x241C8, dm_names)
+NSTUB(0x3CC8, dm_set_store_level) // Not so sure
+NSTUB(0x3C60, dm_set_print_level) // Not so sure
+NSTUB(0xFF32AC9C, dispcheck)
 
 NSTUB(0xFF0C8340, free) // see "can't malloc"
 	NSTUB(0xFFA63518 - RAM_OFFSET, free_dma_memory)
