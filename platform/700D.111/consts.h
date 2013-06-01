@@ -8,8 +8,8 @@
 
 #define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC022C188 // like 5dm3 and EOS-M
-    #define LEDON 0x138800
-    #define LEDOFF 0x838C00
+#define LEDON 0x138800
+#define LEDOFF 0x838C00
 
 //~ Format dialog consts
 #define FORMAT_BTN "[Q]"
@@ -17,19 +17,19 @@
 
     // RESTARTSTART 0x7e100
 #define HIJACK_INSTR_BL_CSTART  0xFF0C0D90
-    #define HIJACK_INSTR_BSS_END 0xFF0C1CBC
-    #define HIJACK_FIXBR_BZERO32 0xFF0C1C20
-    #define HIJACK_FIXBR_CREATE_ITASK 0xFF0C1CAC
-    #define HIJACK_INSTR_MY_ITASK 0xFF0C1CC8
+#define HIJACK_INSTR_BSS_END 0xFF0C1CCC //BSS_END is 0x7EB60
+#define HIJACK_FIXBR_BZERO32 0xFF0C1C30
+#define HIJACK_FIXBR_CREATE_ITASK 0xFF0C1CBC
+#define HIJACK_INSTR_MY_ITASK 0xFF0C1CD8
     #define HIJACK_TASK_ADDR 0x233D8
 
-    /*
-     * Most of the stuff that follows is taken directly from the EOSM or 5D3
-     */
-        // no idea if it's overflowing, need to check experimentally 
-    #define ARMLIB_OVERFLOWING_BUFFER 0x4A824 // in AJ_armlib_setup_related3
+/*
+ * Most of the stuff that follows is taken directly from the EOSM or 5D3
+ */
+// no idea if it's overflowing, need to check experimentally 
+#define ARMLIB_OVERFLOWING_BUFFER 0x4AD20 // in AJ_armlib_setup_related3
 
-    #define DRYOS_ASSERT_HANDLER 0x233B8 // dec TH_assert or assert_0
+#define DRYOS_ASSERT_HANDLER 0x233BC // dec TH_assert or assert_0
 
     #define YUV422_LV_BUFFER_1 0x4bde7800
     #define YUV422_LV_BUFFER_2 0x4b9d7800

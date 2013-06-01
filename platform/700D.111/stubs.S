@@ -45,28 +45,28 @@
 NSTUB( ROMBASEADDR, firmware_entry )
 
 /** experimental EDMAC research **/
-NSTUB(0x00008B7C, CreateMemorySuite)
-NSTUB(0x00008974, DeleteMemorySuite)
+NSTUB(0x8B7C, CreateMemorySuite)
+NSTUB(0x8974, DeleteMemorySuite)
 
 /** EDMAC routines */
-NSTUB(0x00011480, SetEDmac)
-NSTUB(0x00011798, StartEDmac)
-NSTUB(0x0001192C, PopEDmac) //Xref: PackMem_PopEDmacForMemorySuite
-NSTUB(0x000118E4, AbortEDmac)
-NSTUB(0x0001152C, ConnectWriteEDmac)
-NSTUB(0x000115F0, ConnectReadEDmac)
+NSTUB(0x11480, SetEDmac)
+NSTUB(0x11798, StartEDmac)
+NSTUB(0x1192C, PopEDmac) //Xref: PackMem_PopEDmacForMemorySuite
+NSTUB(0x118E4, AbortEDmac)
+NSTUB(0x1152C, ConnectWriteEDmac)
+NSTUB(0x115F0, ConnectReadEDmac)
 
 
 /** keep the old name until all are refactored **/
-NSTUB(0x00011984, EDMAC_RegisterCompleteCBR)
+NSTUB(0x11984, EDMAC_RegisterCompleteCBR)
 
 /** register/unregister CBR names **/
-NSTUB(0x00011984, RegisterEDmacCompleteCBR)
-NSTUB(0x00011A6C, RegisterEDmacAbortCBR)
-NSTUB(0x00011B00, RegisterEDmacPopCBR)
-NSTUB(0x000119C0, UnregisterEDmacCompleteCBR)
-NSTUB(0x00011AA8, UnregisterEDmacAbortCBR)
-NSTUB(0x00011B3C, UnregisterEDmacPopCBR)
+NSTUB(0x11984, RegisterEDmacCompleteCBR)
+NSTUB(0x11A6C, RegisterEDmacAbortCBR)
+NSTUB(0x11B00, RegisterEDmacPopCBR)
+NSTUB(0x119C0, UnregisterEDmacCompleteCBR)
+NSTUB(0x11AA8, UnregisterEDmacAbortCBR)
+NSTUB(0x11B3C, UnregisterEDmacPopCBR)
 
 /** PackMem **/
 NSTUB(0xFF5F3354, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
@@ -81,36 +81,36 @@ NSTUB(0xFF5F317C, PackMem_StartEDmac)
 	NSTUB(0xFF0C10F8, sei_restore) 
 NSTUB(0xFF0C1C20, cstart )
 
-NSTUB(0x000138A8, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
-	NSTUB(0xFFA53D50 - RAM_OFFSET, AllocateMemory)
+NSTUB(0x138A8, AcquireRecursiveLock) // AJ_KernelDry_KerRLock.c
+NSTUB(0x76F8, AllocateMemory)
 NSTUB(0xFF4B6970, CreateDialogBox)
-	NSTUB(0xFFA56754 - RAM_OFFSET, CreateRecursiveLock)
+NSTUB(0x13810, CreateRecursiveLock)
 NSTUB(0xFF4B5938, DeleteDialogBox)
-NSTUB(0x0000395C, DryosDebugMsg)
+NSTUB(0x395C, DryosDebugMsg)
 
 	//FIO Functions
-	NSTUB(0xFF341CE4, FIO_CreateFile) 
-	NSTUB(0xFF341FD8, FIO_WriteFile) 
-	NSTUB(0xFF342088, FIO_CloseFile) 
-	NSTUB(0xFF343080, FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
-	NSTUB(0xFF3428E4, FIO_CreateDirectory)
-	NSTUB(0xFF342EAC, FIO_FindFirstEx)
-	NSTUB(0xFF342FA0, FIO_FindNextEx)
-	NSTUB(0xFF342204, FIO_GetFileSize)
-	NSTUB(0xFF341C28, FIO_Open)
-	NSTUB(0xFF341E38, FIO_ReadFile)
-	NSTUB(0xFF341D90, FIO_RemoveFile)
-	NSTUB(0xFF34271C, FIO_RenameFile)
+NSTUB(0xFF344AE8, FIO_CreateFile) 
+NSTUB(0xFF344DDC, FIO_WriteFile) 
+NSTUB(0xFF344E8C, FIO_CloseFile) 
+NSTUB(0xFF345E84, FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
+NSTUB(0xFF3456E8, FIO_CreateDirectory)
+NSTUB(0xFF345CB0, FIO_FindFirstEx)
+NSTUB(0xFF345DA4, FIO_FindNextEx)
+NSTUB(0xFF345008, FIO_GetFileSize)
+NSTUB(0xFF344A2C, FIO_Open)
+NSTUB(0xFF344C3C, FIO_ReadFile)
+NSTUB(0xFF344B94, FIO_RemoveFile)
+NSTUB(0xFF345520, FIO_RenameFile)
 
-	NSTUB(0xFFA540EC - RAM_OFFSET, FreeMemory)
-	NSTUB(0xFF0D6E88, GUI_ChangeMode)
-	NSTUB(0xFF0D6CCC, GUI_Control)
+NSTUB(0x7A94, FreeMemory)
+NSTUB(0xFF0D6FEC, GUI_ChangeMode)
+NSTUB(0xFF0D6E30, GUI_Control)
 	NSTUB(0xFF1BDDC4, GUI_GetFirmVersion)
 	NSTUB(0xFF1308C4, LoadCalendarFromRTC) // Not so sure....
 	NSTUB(0xFF32861C, MuteOff_0)
 	NSTUB(0xFF3285D4, MuteOn_0)
 	NSTUB(0xFF4D3090, RedrawDisplay)
-NSTUB(0x000139BC, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
+NSTUB(0x139BC, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
 	NSTUB(0xFF128734, SetBitmapVramAddress)
 	NSTUB(0xFF1A953C, SetGUIRequestMode)
 
@@ -120,13 +120,13 @@ NSTUB(0x000139BC, ReleaseRecursiveLock) // AJ_KernelDry_KerRLock.c_p2
 
 	NSTUB(0xFFA634E4 - RAM_OFFSET, alloc_dma_memory)
 	NSTUB(   0x51DEC, bmp_vram_info ) // look in SetBitmapVramAddress - as in 60D
-NSTUB(0x00001C45C, bzero32)
+NSTUB(0x1C45C, bzero32)
 	NSTUB(0xFF137E84, call)
 	NSTUB(0xC0220000, camera_engine)
 	NSTUB(0xFF73C608, cfReadBlk)
 	        //	NSTUB(   0x20890, cf_device) idk...
-NSTUB(0x00002EB8, create_init_task)
-	NSTUB(0xFFA527D0 - RAM_OFFSET, create_named_semaphore)
+NSTUB(0x2EB8, create_init_task)
+NSTUB(0x6178, create_named_semaphore)
 	NSTUB(0xFF4B069C, ctrlman_dispatch_event)
 	NSTUB(0xFF4B3654, dialog_redraw)
 	NSTUB(0xFF51FCE0, dialog_set_property_str)
@@ -155,10 +155,10 @@ NSTUB(0xFF0C82E8, malloc)
 	NSTUB(0xFF11E704, prop_register_slave)
 	NSTUB(0xFF11E8F8, _prop_request_change)
 	NSTUB(0xFF4543AC, ptp_register_handler)
-	NSTUB(0xFF33DBC0, register_func)
+NSTUB(0xFF3409C4, register_func)
 	NSTUB(0xFF742AC8, sdReadBlk)
 	NSTUB(   0x48B6C, sd_device)
-NSTUB(0x000062D8 - RAM_OFFSET, take_semaphore)
+NSTUB(0x62D8 - RAM_OFFSET, take_semaphore)
 	NSTUB(0xFFA52EC0 - RAM_OFFSET, task_create)
 	NSTUB(   0x232C4, task_dispatch_hook )
 	NSTUB(0xFFA581D8 - RAM_OFFSET, task_trampoline)
@@ -187,7 +187,7 @@ NSTUB(0x000062D8 - RAM_OFFSET, take_semaphore)
 
 	    //NSTUB(0xff987200 - RAM_OFFSET, set_fps_maybe)
 
-	NSTUB(0xFFA4EB84 - RAM_OFFSET, get_current_task)
+NSTUB(0x252C, get_current_task)
 
 	NSTUB(0x505EC, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 
@@ -204,7 +204,7 @@ NSTUB(0x000062D8 - RAM_OFFSET, take_semaphore)
 
 	// for task information
 	NSTUB(0x247A4, task_max) // Not so sure....
-	NSTUB(0xFFA65F84 - RAM_OFFSET, is_taskid_valid) // AJ_task_trampoline_related_p10
+NSTUB(0x1992C, is_taskid_valid) // AJ_task_trampoline_related_p10
 	NSTUB(0xFFA5ACE4 - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 	NSTUB(0xFF1337F0, PowerAudioOutput) // not sure, looks different
 	NSTUB(0xFF108918, StartASIFDMADAC)  //~ warning: looks different
@@ -221,13 +221,13 @@ NSTUB(0x000062D8 - RAM_OFFSET, take_semaphore)
 	NSTUB(0xFF13BA74, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 	NSTUB(0xFF13BB8C, FreeMemoryResource) // m_pfFreeMemoryCBR
 
-	NSTUB(0x8F28, GetFirstChunkFromSuite)
-	NSTUB(0x8900, GetMemoryAddressOfMemoryChunk)
-	NSTUB(0x88A0, GetRemainOfMemoryChunk)
-	//NSTUB(0x88D0, GetSizeOfMemoryChunk)
-	//NSTUB(0x8C08, GetSizeOfMemorySuite)
-	//NSTUB(0x8CE8, GetNumberOfChunks)
-	NSTUB(0x96C4, GetNextMemoryChunk)
+NSTUB(0x8F28, GetFirstChunkFromSuite)
+NSTUB(0x8900, GetMemoryAddressOfMemoryChunk)
+NSTUB(0x88A0, GetRemainOfMemoryChunk)
+//NSTUB(0x88D0, GetSizeOfMemoryChunk)
+//NSTUB(0x8C08, GetSizeOfMemorySuite)
+//NSTUB(0x8CE8, GetNumberOfChunks)
+NSTUB(0x96C4, GetNextMemoryChunk)
 
 	NSTUB(0xFFA56AB8 - RAM_OFFSET, dma_memcpy) // AJ_HP_Copy_n_DMA_channel_n_BLTDMA
 
@@ -251,8 +251,8 @@ NSTUB(0x000062D8 - RAM_OFFSET, take_semaphore)
 	NSTUB(0xFF4D4BB4, ReverseDisplay)
 	NSTUB(0xFF4D4B84, MirrorDisplay)
 
-	NSTUB(0x16C44, TryPostEvent)
-	NSTUB(0x16CA0, TryPostEvent_end)
+NSTUB(0x16C44, TryPostEvent)
+NSTUB(0x16CA0, TryPostEvent_end)
 
-	NSTUB(0x16564, TryPostStageEvent)
-	NSTUB(0x165C0, TryPostStageEvent_end)
+NSTUB(0x16564, TryPostStageEvent)
+NSTUB(0x165C0, TryPostStageEvent_end)
