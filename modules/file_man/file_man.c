@@ -9,6 +9,7 @@
 #define MAX_PATH_LEN 0x80
 static char gPath[MAX_PATH_LEN];
 static char gSrcFile[MAX_PATH_LEN];
+static char gStatusMsg[60];
 static unsigned int op_mode;
 
 static int cf_present;
@@ -184,8 +185,13 @@ static void build_file_menu()
     }
 }
 
+static struct semaphore * scandir_sem = 0;
+
+/* this is called from file copy/move tasks as well as from GUI task, so it needs to be thread safe */
 static void ScanDir(char *path)
 {
+    take_semaphore(scandir_sem, 0);
+
     clear_file_menu();
 
     if (strlen(path) == 0)
@@ -193,6 +199,7 @@ static void ScanDir(char *path)
         add_file_entry("A:/", TYPE_DIR, 0);
         add_file_entry("B:/", TYPE_DIR, 0);
         build_file_menu();
+        give_semaphore(scandir_sem);
         return;
     }
 
@@ -204,6 +211,7 @@ static void ScanDir(char *path)
     {
         add_file_entry("../", TYPE_DIR, 0);
         build_file_menu();
+        give_semaphore(scandir_sem);
         return;
     }
 
@@ -233,7 +241,6 @@ static void ScanDir(char *path)
 
     if(op_mode != FILE_OP_NONE)
     {
-        console_printf("ScanDir\n");
         char srcpath[MAX_PATH_LEN];
         strcpy(srcpath,gSrcFile);
         char *p = srcpath+strlen(srcpath);
@@ -250,29 +257,17 @@ static void ScanDir(char *path)
             /* need to add these in reverse order */
 
             e = add_file_entry("*** Cancel OP ***", TYPE_ACTION, 0);
-            if (e)
-            {
-                e->menu_entry.select = FileOpCancel;
-                e->menu_entry.priv = NULL;
-            }
+            if (e) e->menu_entry.select = FileOpCancel;
 
             switch (op_mode)
             {
                 case FILE_OP_COPY:
                     e = add_file_entry("*** Copy Here ***", TYPE_ACTION, 0);
-                    if (e)
-                    {
-                        e->menu_entry.select = FileCopyStart;
-                        e->menu_entry.priv = NULL;
-                    }
+                    if (e) e->menu_entry.select = FileCopyStart;
                     break;
                 case FILE_OP_MOVE:
                     e = add_file_entry("*** Move Here ***", TYPE_ACTION, 0);
-                    if (e)
-                    {
-                        e->menu_entry.select = FileMoveStart;
-                        e->menu_entry.priv = NULL;
-                    }
+                    if (e) e->menu_entry.select = FileMoveStart;
                     break;
             }
         }
@@ -281,6 +276,7 @@ static void ScanDir(char *path)
     build_file_menu();
 
     FIO_CleanupAfterFindNext_maybe(dirent);
+    give_semaphore(scandir_sem);
 }
 
 static void Browse(char* path)
@@ -380,7 +376,9 @@ FileCopy(void *unused)
     char dstfile[MAX_PATH_LEN];
     snprintf(dstfile,MAX_PATH_LEN,"%s%s",gPath,fname);
 
+    snprintf(gStatusMsg, sizeof(gStatusMsg), "Copying %s to %s...", gSrcFile, gPath);
     ML_FIO_CopyFile(gSrcFile,dstfile);
+    gStatusMsg[0] = 0;
 
     if(!strcmp(gPath,tmpdst)) ScanDir(gPath);
 }
@@ -398,10 +396,9 @@ FileMove(void *unused)
     char dstfile[MAX_PATH_LEN];
     snprintf(dstfile,MAX_PATH_LEN,"%s%s",gPath,fname);
 
-    console_printf("Move\n");
-    console_printf("src: %s\n",gSrcFile);
-    console_printf("dst: %s\n",dstfile);
+    snprintf(gStatusMsg, sizeof(gStatusMsg), "Moving %s to %s...", gSrcFile, gPath);
     ML_FIO_MoveFile(gSrcFile,dstfile);
+    gStatusMsg[0] = 0;
 
     if(!strcmp(gPath,tmpdst)) ScanDir(gPath);
 }
@@ -409,14 +406,14 @@ FileMove(void *unused)
 
 static MENU_SELECT_FUNC(FileCopyStart)
 {
-    task_create("FileCopy_task", 0x1b, 0x4000, FileCopy, 0);
+    task_create("filecopy_task", 0x1b, 0x4000, FileCopy, 0);
     op_mode = FILE_OP_NONE;
     ScanDir(gPath);
 }
 
 static MENU_SELECT_FUNC(FileMoveStart)
 {
-    task_create("FileMove_task", 0x1b, 0x4000, FileMove, 0);
+    task_create("filemove_task", 0x1b, 0x4000, FileMove, 0);
     op_mode = FILE_OP_NONE;
     ScanDir(gPath);
 }
@@ -636,7 +633,6 @@ static MENU_SELECT_FUNC(select_file)
     {
         e->menu_entry.select = delete_file;
         e->menu_entry.update = delete_confirm;
-        e->menu_entry.priv = NULL;
     }
 
     e = add_file_entry("Move", TYPE_ACTION, 0);
@@ -644,7 +640,6 @@ static MENU_SELECT_FUNC(select_file)
     {
         e->menu_entry.select = MoveFile;
         //e->menu_entry.update = MoveFileProgress;
-        e->menu_entry.priv = NULL;
     }
 
     e = add_file_entry("Copy", TYPE_ACTION, 0);
@@ -652,7 +647,6 @@ static MENU_SELECT_FUNC(select_file)
     {
         e->menu_entry.select = CopyFile;
         //e->menu_entry.update = CopyFileProgress;
-        e->menu_entry.priv = NULL;
     }
 
     e = add_file_entry("View", TYPE_ACTION, 0);
@@ -660,7 +654,6 @@ static MENU_SELECT_FUNC(select_file)
     {
         e->menu_entry.select = viewfile_toggle;
         e->menu_entry.update = viewfile_show;
-        e->menu_entry.priv = NULL;
     }
 
     e = add_file_entry(name, TYPE_FILE, size);
@@ -679,6 +672,8 @@ static MENU_UPDATE_FUNC(update_status)
     MENU_SET_HELP(gPath);
     if (op_mode != FILE_OP_NONE)
         MENU_SET_WARNING(MENU_WARN_INFO, "%s %s", op_mode == FILE_OP_COPY ? "Copy" : "Move", gSrcFile);
+    else if (gStatusMsg[0])
+        MENU_SET_WARNING(MENU_WARN_INFO, "%s", gStatusMsg);
 }
 
 static MENU_UPDATE_FUNC(update_file)
@@ -728,6 +723,7 @@ static int InitRootDir()
 
 unsigned int fileman_init()
 {
+    scandir_sem = create_named_semaphore("scandir", 1);
     menu_add("Debug", fileman_menu, COUNT(fileman_menu));
     op_mode = FILE_OP_NONE;
     InitRootDir();
