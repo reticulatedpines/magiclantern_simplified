@@ -2963,7 +2963,11 @@ static void guess_free_mem_task(void* priv, int delta)
         for (uint32_t p = start; p < end; p += 4)
         {
             uint32_t v = MEM(p);
+            #ifdef CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
+            if (v != 0x124B1DE0 /* RA(W)VIDEO*/)
+            #else
             if (v != 0 && v != 0xFFFFFFFF)
+            #endif
             {
                 empty = 0;
                 break;
@@ -3031,7 +3035,7 @@ static MENU_UPDATE_FUNC(meminfo_display)
 
         case 5: // shoot_malloc fragmented
             MENU_SET_VALUE("%d M", max_shoot_malloc_frag_mem/1024/1024);
-            MENU_SET_HELP(shoot_malloc_frag_desc);
+            MENU_SET_WARNING(MENU_WARN_INFO, shoot_malloc_frag_desc);
             guess_needed = 1;
             for (int i = 0; i < 720; i++)
                 if (memory_map[i])

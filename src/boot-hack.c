@@ -90,6 +90,10 @@ copy_and_restart( )
     // Clear bss
     zero_bss();
     
+#ifdef CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
+    memset64(0x00D00000, 0x124B1DE0 /* RA(W)VIDEO*/, 0x1FE00000 - 0x00D00000);
+#endif
+    
 #ifdef HIJACK_CACHE_HACK
     /* make sure we have the first segment locked in d/i cache for patching */    
     cache_lock();
