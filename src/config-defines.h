@@ -57,6 +57,10 @@
     /** Print button codes in the console as they're received by gui_main_task.
         ---> look at 6D gui.c for example of how to implement */
     //~ #define CONFIG_GUI_DEBUG
+    
+    /** Hack to see what memory regions were touched by Canon code and what seems to be unused */
+    /** warning: it will slow down boot by a few seconds */
+    //~ #define CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
 
 /** What internals do we have on each camera? **/
 #include "internals.h" // from platform directory

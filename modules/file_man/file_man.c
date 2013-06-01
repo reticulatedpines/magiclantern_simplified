@@ -8,6 +8,8 @@
 
 #define MAX_PATH_LEN 0x80
 static char gPath[MAX_PATH_LEN];
+static char gSrcFile[MAX_PATH_LEN];
+static unsigned int op_mode;
 
 static int cf_present;
 static int sd_present;
@@ -26,6 +28,13 @@ struct file_entry
 #define TYPE_FILE 1
 #define TYPE_ACTION 2
 
+enum _FILER_OP {
+    FILE_OP_NONE,
+    FILE_OP_COPY,
+    FILE_OP_MOVE,
+    FILE_OP_PREVIEW
+};
+
 static struct file_entry * file_entries = 0;
 
 /* view file mode */
@@ -38,6 +47,44 @@ static MENU_UPDATE_FUNC(update_file);
 static MENU_SELECT_FUNC(default_select_action);
 static MENU_UPDATE_FUNC(update_action);
 static MENU_SELECT_FUNC(BrowseUpMenu);
+
+#define MAX_FILETYPE_HANDLERS 32
+#define FILEMAN_CMD_INFO 0
+#define FILEMAN_CMD_VIEW 1
+struct filetype_handler
+{
+    char *extension;
+    char *type;
+    unsigned int (*handler)(unsigned int cmd, char *file, char *data);
+};
+
+int fileman_filetype_registered = 0;
+struct filetype_handler fileman_filetypes[MAX_FILETYPE_HANDLERS];
+
+/* this function has to be public so that other modules can register file types for viewing this file */
+unsigned int fileman_register_type(char *ext, char *type, unsigned int (*handler)(unsigned int cmd, char *file, char *data))
+{
+    if(fileman_filetype_registered < MAX_FILETYPE_HANDLERS)
+    {
+        fileman_filetypes[fileman_filetype_registered].extension = ext;
+        fileman_filetypes[fileman_filetype_registered].type = type;
+        fileman_filetypes[fileman_filetype_registered].handler = handler;
+        fileman_filetype_registered++;
+    }
+}
+
+struct filetype_handler *fileman_find_filetype(char *extension)
+{
+    for(int pos = 0; pos < fileman_filetype_registered; pos++)
+    {
+        if(!strcmp(extension, fileman_filetypes[pos].extension))
+        {
+            return &fileman_filetypes[pos];
+        }
+    }
+    
+    return NULL;
+}
 
 static struct menu_entry fileman_menu[] =
 {
@@ -70,10 +117,10 @@ static struct file_entry * add_file_entry(char* txt, int type, int size)
     memset(fe, 0, sizeof(struct file_entry));
     snprintf(fe->name, sizeof(fe->name), "%s", txt);
     fe->size = size;
-    
+
     fe->menu_entry.name = fe->name;
     fe->menu_entry.priv = fe;
-    
+
     fe->type = type;
     fe->menu_entry.select_Q = BrowseUpMenu;
     if (fe->type == TYPE_DIR)
@@ -104,7 +151,7 @@ static void build_file_menu()
     while (!done)
     {
         done = 1;
-        
+
         for (struct file_entry * fe = file_entries; fe; fe = fe->next)
         {
             if (!fe->added)
@@ -120,7 +167,7 @@ static void build_file_menu()
                         if ((e->type == fe->type) && strcmp(e->name, fe->name) < 0) { should_skip = 1; break; }
                     }
                 }
-                
+
                 if (!should_skip)
                 {
                     menu_add("File Browser", &(fe->menu_entry), 1);
@@ -135,7 +182,7 @@ static void build_file_menu()
 static void ScanDir(char *path)
 {
     clear_file_menu();
-    
+
     if (strlen(path) == 0)
     {
         add_file_entry("A:/", TYPE_DIR, 0);
@@ -143,9 +190,29 @@ static void ScanDir(char *path)
         build_file_menu();
         return;
     }
-    
+
+    if(op_mode != FILE_OP_NONE)
+    {
+        console_printf("ScanDir\n");
+        char srcpath[MAX_PATH_LEN];
+        strcpy(srcpath,gSrcFile);
+        char *p = srcpath+strlen(srcpath);
+        while (p > srcpath && *p != '/') p--;
+        *(p+1) = 0;
+
+        console_printf("src: %s\n",srcpath);
+        console_printf("dst: %s\n",path);
+
+
+        if(strcmp(path,srcpath) != 0){
+            add_file_entry("***Select Here***", TYPE_DIR, 0);
+            add_file_entry("*** Cancel OP ***", TYPE_DIR, 0);
+        }
+    }
+
+
     add_file_entry("../", TYPE_DIR, 0);
-    
+
     struct fio_file file;
     struct fio_dirent * dirent = 0;
 
@@ -155,7 +222,7 @@ static void ScanDir(char *path)
         build_file_menu();
         return;
     }
-    
+
     do
     {
         if (file.name[0] == '.') continue;
@@ -171,9 +238,9 @@ static void ScanDir(char *path)
         }
     }
     while( FIO_FindNextEx( dirent, &file ) == 0);
-    
+
     build_file_menu();
-    
+
     FIO_CleanupAfterFindNext_maybe(dirent);
 }
 
@@ -230,6 +297,101 @@ static void BrowseUp()
     }
 }
 
+static int
+ML_FIO_CopyFile(char *src,char *dst){
+    const int bufsize = 128*1024;
+    void* buf = alloc_dma_memory(bufsize);
+    if (!buf) return 1;
+
+    FILE* f = FIO_Open(src, O_RDONLY | O_SYNC);
+    if (f == INVALID_PTR) return 1;
+
+    FILE* g = FIO_CreateFileEx(dst);
+    if (g == INVALID_PTR) { FIO_CloseFile(f); return 1; }
+
+    int r = 0;
+    while ((r = FIO_ReadFile(f, buf, bufsize)))
+        FIO_WriteFile(g, buf, r);
+
+    FIO_CloseFile(f);
+    FIO_CloseFile(g);
+    msleep(1000); // this decreases the chances of getting corrupted files (fig    ure out why!)
+    free_dma_memory(buf);
+    return 0;
+}
+
+static int
+ML_FIO_MoveFile(char *src,char *dst){
+
+    ML_FIO_CopyFile(src,dst);
+    FIO_RemoveFile(src);
+    return 0;
+}
+
+static void
+FileCopy(void *unused)
+{
+    char fname[MAX_PATH_LEN],tmpdst[MAX_PATH_LEN];
+    strcpy(tmpdst,gPath);
+    size_t totallen = strlen(gSrcFile);
+    char *p = gSrcFile + totallen;
+    while (p > gSrcFile && *p != '/') p--;
+    strcpy(fname,p+1);
+
+    char dstfile[MAX_PATH_LEN];
+    snprintf(dstfile,MAX_PATH_LEN,"%s%s",gPath,fname);
+
+    ML_FIO_CopyFile(gSrcFile,dstfile);
+
+    if(!strcmp(gPath,tmpdst)) ScanDir(gPath);
+}
+
+static void
+FileMove(void *unused)
+{
+    char fname[MAX_PATH_LEN],tmpdst[MAX_PATH_LEN];
+    strcpy(tmpdst,gPath);
+    size_t totallen = strlen(gSrcFile);
+    char *p = gSrcFile + totallen;
+    while (p > gSrcFile && *p != '/') p--;
+    strcpy(fname,p+1);
+
+    char dstfile[MAX_PATH_LEN];
+    snprintf(dstfile,MAX_PATH_LEN,"%s%s",gPath,fname);
+
+    console_printf("Move\n");
+    console_printf("src: %s\n",gSrcFile);
+    console_printf("dst: %s\n",dstfile);
+    ML_FIO_MoveFile(gSrcFile,dstfile);
+
+    if(!strcmp(gPath,tmpdst)) ScanDir(gPath);
+}
+
+
+static void FileOperation(){
+
+    switch(op_mode){
+    case FILE_OP_COPY:
+        task_create("FileCopy_task", 0x1b, 0x4000, FileCopy, 0);
+        break;
+    case FILE_OP_MOVE:
+        task_create("FileMove_task", 0x1b, 0x4000, FileMove, 0);
+        break;
+    case FILE_OP_PREVIEW:
+        break;
+    }
+    //cleanup
+    op_mode = FILE_OP_NONE;
+
+    ScanDir(gPath);
+}
+
+static void FileOpCancel(){
+    gSrcFile[0] = 0;
+    op_mode = FILE_OP_NONE;
+    ScanDir(gPath);
+}
+
 static MENU_SELECT_FUNC(BrowseUpMenu)
 {
     BrowseUp();
@@ -239,18 +401,18 @@ static MENU_SELECT_FUNC(select_dir)
 {
     struct file_entry * fe = (struct file_entry *) priv;
     char* name = (char*) fe->name;
-    if ((name[0] == '.' &&
-         name[1] == '.' &&
-         name[2] == '/')
-         || (delta < 0)
-        )
-    {
-       BrowseUp();
-    }
+    if(!strcmp(name,"***Select Here***")){
+        FileOperation();
+    }else if(!strcmp(name,"*** Cancel OP ***")){
+        FileOpCancel();
+    }else if (!strcmp(name,"../") || (delta < 0))
+        {
+            BrowseUp();
+        }
     else
-    {
-       BrowseDown(name);
-    }
+        {
+            BrowseDown(name);
+        }
 }
 
 static MENU_UPDATE_FUNC(update_dir)
@@ -288,8 +450,61 @@ const char * format_size( unsigned size)
     return str;
 }
 
+static MENU_SELECT_FUNC(CopyFile)
+{
+    strcpy(gSrcFile,gPath);
+    console_printf("Copysrc: %s\n",gSrcFile);
+    op_mode = FILE_OP_COPY;
+}
+
+static MENU_UPDATE_FUNC(CopyFileProgress)
+{
+
+}
+
+static MENU_SELECT_FUNC(MoveFile)
+{
+    strcpy(gSrcFile,gPath);
+    console_printf("Movesrc: %s\n",gSrcFile);
+    op_mode = FILE_OP_MOVE;
+}
+
+static MENU_UPDATE_FUNC(MoveFileProgress)
+{
+
+}
+
+static char *fileman_get_extension(char *filename)
+{
+    int pos = strlen(filename) - 1;
+    while(pos > 0 && filename[pos] != '.')
+    {
+        pos--;
+    }
+    
+    /* does the file have an extension */
+    if(pos > 0)
+    {
+        return &filename[pos + 1];
+    }
+    
+    return NULL;
+}
+
 static MENU_SELECT_FUNC(viewfile_toggle)
 {
+    char *ext = fileman_get_extension(gPath);
+    
+    if(ext)
+    {
+        struct filetype_handler *filetype = fileman_find_filetype(ext);
+        if(filetype)
+        {
+            filetype->handler(FILEMAN_CMD_VIEW, gPath, NULL);
+            return;
+        }
+    }
+    
     view_file = !view_file;
 }
 
@@ -316,7 +531,20 @@ static MENU_UPDATE_FUNC(viewfile_show)
     }
     else
     {
-        update_action(entry, info);
+        char *ext = fileman_get_extension(gPath);
+        
+        if(ext)
+        {
+            struct filetype_handler *filetype = fileman_find_filetype(ext);
+            if(filetype)
+            {
+                MENU_SET_RINFO("Type: %s", filetype->type);
+            }
+        }
+        else
+        {
+            update_action(entry, info);
+        }
     }
 }
 
@@ -359,34 +587,46 @@ static MENU_UPDATE_FUNC(delete_confirm)
 static MENU_SELECT_FUNC(select_file)
 {
     struct file_entry * fe = (struct file_entry *) priv;
-    
+
     /* fe will be freed in clear_file_menu; backup things that we are going to reuse */
     char name[MAX_PATH_LEN];
     snprintf(name, sizeof(name), "%s", fe->name);
     int size = fe->size;
     STR_APPEND(gPath, "%s", name);
-    
+
     clear_file_menu();
     /* at this point, fe was freed and is no longer valid */
     fe = 0;
-    
+
     struct file_entry * e = add_file_entry(name, TYPE_FILE, size);
     if (!e) return;
     e->menu_entry.select = BrowseUpMenu;
     e->menu_entry.select_Q = BrowseUpMenu;
     e->menu_entry.priv = e;
-    
+
+    e = add_file_entry("Copy", TYPE_ACTION, 0);
+    e->menu_entry.select = CopyFile;
+    e->menu_entry.update = CopyFileProgress;
+    e->menu_entry.priv = NULL;
+
+    e = add_file_entry("Move", TYPE_ACTION, 0);
+    e->menu_entry.select = MoveFile;
+    e->menu_entry.update = MoveFileProgress;
+    e->menu_entry.priv = NULL;
+
     e = add_file_entry("View", TYPE_ACTION, 0);
     e->menu_entry.select = viewfile_toggle;
     e->menu_entry.update = viewfile_show;
+    e->menu_entry.priv = NULL;
 
     e = add_file_entry("Delete", TYPE_ACTION, 0);
     e->menu_entry.select = delete_file;
     e->menu_entry.update = delete_confirm;
+    e->menu_entry.priv = NULL;
 
     //~ e = add_file_entry("Copy", TYPE_ACTION, 0);
     //~ e = add_file_entry("Rename", TYPE_ACTION, 0);
-    
+
     build_file_menu();
 }
 
@@ -394,7 +634,7 @@ static MENU_UPDATE_FUNC(update_file)
 {
     struct file_entry * fe = (struct file_entry *) entry->priv;
     MENU_SET_VALUE("");
-    
+
     MENU_SET_RINFO("%s", format_size(fe->size));
     MENU_SET_ICON(MNI_OFF, 0);
     MENU_SET_HELP(gPath);
@@ -431,13 +671,14 @@ static int InitRootDir()
         Browse("");
     }
     else return -1;
-    
+
     return 0;
 }
 
 unsigned int fileman_init()
 {
     menu_add("Debug", fileman_menu, COUNT(fileman_menu));
+    op_mode = FILE_OP_NONE;
     InitRootDir();
     return 0;
 }

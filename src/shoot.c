@@ -1717,11 +1717,10 @@ static void silent_pic_raw_init_preview()
         #endif
     }
 }
+#ifdef CONFIG_DISPLAY_FILTERS
 static void silent_pic_raw_update_preview()
 {
-    #ifdef CONFIG_DISPLAY_FILTERS
     if (!silent_pic_display_buf) return;
-    #endif
     /* try to preview the last completed frame; if there isn't any, use the first frame */
     void* raw_buf = sp_frames[MAX(0,sp_num_frames-2) % sp_buffer_count];
     static int first_line = 0;
@@ -1747,11 +1746,9 @@ static void silent_pic_raw_update_preview()
                 raw_buf = sp_frames[i];
     }
     
-    #ifdef CONFIG_DISPLAY_FILTERS
     raw_preview_fast_ex(raw_buf, silent_pic_display_buf, first_line, last_line, ultra_fast);
-    #endif
 }
-
+#endif
 static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
 {
     /* we'll look for contiguous blocks equal to raw_info.frame_size */
