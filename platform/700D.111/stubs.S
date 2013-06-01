@@ -134,9 +134,9 @@ NSTUB(0x3C60, dm_set_print_level) // Not so sure
 NSTUB(0xFF32AC9C, dispcheck)
 
 NSTUB(0xFF0C8340, free) // see "can't malloc"
-	NSTUB(0xFFA63518 - RAM_OFFSET, free_dma_memory)
+NSTUB(0x16EC0, free_dma_memory)
 	NSTUB(0xFF62A628, fsuDecodePartitionTable) // AJ_fsuGetPart_related
-	NSTUB(0xFFA52A1C - RAM_OFFSET, give_semaphore)
+NSTUB(0x63C4, give_semaphore)
 	NSTUB(0xFF0D7340, gui_init_end)
 	NSTUB(   0x236A8, gui_main_struct)
 	NSTUB(0xFF0D68F8, gui_main_task)
@@ -145,9 +145,9 @@ NSTUB(0xFF0C8340, free) // see "can't malloc"
 	NSTUB(   0x3D7A0, gui_task_list)
 NSTUB(0xFF0C5408, init_task)
 NSTUB(0xFF0C82E8, malloc)
-	NSTUB(0xFFA5FDB4 - RAM_OFFSET, msg_queue_post)
-	NSTUB(0xFFA5FBC8 - RAM_OFFSET, msg_queue_receive)
-	NSTUB(0xFFA52E0C - RAM_OFFSET, msleep)
+NSTUB(0x1375C, msg_queue_post)
+NSTUB(0x13570, msg_queue_receive)
+NSTUB(0x67B4, msleep)
 	NSTUB(0xFF11EF80, _prop_cleanup)
 	NSTUB(0xFF11EEB4, prop_deliver)
 	NSTUB(0xFF11E704, prop_register_slave)
@@ -156,11 +156,11 @@ NSTUB(0xFF0C82E8, malloc)
 NSTUB(0xFF3409C4, register_func)
 	NSTUB(0xFF742AC8, sdReadBlk)
 	NSTUB(   0x48B6C, sd_device)
-NSTUB(0x62D8 - RAM_OFFSET, take_semaphore)
-	NSTUB(0xFFA52EC0 - RAM_OFFSET, task_create)
+NSTUB(0x62D8, take_semaphore)
+NSTUB(0x6868, task_create)
 	NSTUB(   0x232C4, task_dispatch_hook )
-	NSTUB(0xFFA581D8 - RAM_OFFSET, task_trampoline)
-	NSTUB(0xFFA6153C - RAM_OFFSET, vsnprintf) // not sure it gets called from RAM
+NSTUB(0xBB80, task_trampoline)
+NSTUB(0x14EE4, vsnprintf) // not sure it gets called from RAM
 	NSTUB(0xFF3F6AA4, vram_get_number)
 	NSTUB(   0x6E4A4, vram_info) // in vram_get_number
 	NSTUB(0xFF6DF964, LiveViewShutterApp_handler)
@@ -180,30 +180,23 @@ NSTUB(0x62D8 - RAM_OFFSET, take_semaphore)
 	NSTUB(0xFF2BFCA4, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
 	NSTUB(0xFF2BFC08, _EngDrvOut) // AJ_EngDrvOut_1xVar_to_ShadowStruct
 
-	    //NSTUB(0xff9b1be0 - RAM_OFFSET, LightMeasure_n_Callback_r0) - looks a bit different, disabling for now
 	NSTUB(0xFF52E4E4, ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
-
-	    //NSTUB(0xff987200 - RAM_OFFSET, set_fps_maybe)
 
 NSTUB(0x252C, get_current_task)
 
-	NSTUB(0x505EC, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+NSTUB(0x50ACC, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14400
 
-		//NSTUB(0xff34db4c, GuiSetAutoBrightness) // guess: refreshes brightness in auto mode?
 
-		//NSTUB(0xFF195A3C, Gui_SetSoundRecord) danger
+NSTUB(0x7498, GetMemoryInformation)
 
-	NSTUB(0xFFA53AF0 - RAM_OFFSET, GetMemoryInformation)
-	    //NSTUB(0xFF143C18, copy_malloc_info_maybe)
-
-	NSTUB(0xFFA5FAB8 - RAM_OFFSET, msg_queue_create)
+NSTUB(0x13460, msg_queue_create)
 
 	NSTUB(0xFF1001BC, PD_RemoteRelease)
 
 	// for task information
 	NSTUB(0x247A4, task_max) // Not so sure....
 NSTUB(0x1992C, is_taskid_valid) // AJ_task_trampoline_related_p10
-	NSTUB(0xFFA5ACE4 - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
+NSTUB(0xE68C, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 	NSTUB(0xFF1337F0, PowerAudioOutput) // not sure, looks different
 	NSTUB(0xFF108918, StartASIFDMADAC)  //~ warning: looks different
 	NSTUB(0xFF108760, StartASIFDMAADC)  //~ warning: looks different
@@ -227,15 +220,15 @@ NSTUB(0x88A0, GetRemainOfMemoryChunk)
 //NSTUB(0x8CE8, GetNumberOfChunks)
 NSTUB(0x96C4, GetNextMemoryChunk)
 
-	NSTUB(0xFFA56AB8 - RAM_OFFSET, dma_memcpy) // AJ_HP_Copy_n_DMA_channel_n_BLTDMA
+NSTUB(0xA460, dma_memcpy) // AJ_HP_Copy_n_DMA_channel_n_BLTDMA
 
-	NSTUB(0xFF1B54F8, GUI_SetRollingPitchingLevelStatus)
+NSTUB(0xFF1B7580, GUI_SetRollingPitchingLevelStatus)
 
-	NSTUB(0xFF2BEEDC, mvrSetPrintMovieLog)
-	NSTUB(0xFF2BE8EC, mvrSetQscale)
+NSTUB(0xFF2C191C, mvrSetPrintMovieLog)
+NSTUB(0xFF2C132C, mvrSetQscale)
 	NSTUB(   0x31424, mvr_config)
-	NSTUB(0xFF2BEEB8, mvrFixQScale)
-	NSTUB(0xFF2BE9B0, mvrSetDefQScale)
+NSTUB(0xFF2C18F8, mvrFixQScale)
+NSTUB(0xFF2C13F0, mvrSetDefQScale)
 
 	NSTUB(0xFF11F0DC, prop_get_value)
 	NSTUB(0xFF2A4840, ptpPropSetUILock)
