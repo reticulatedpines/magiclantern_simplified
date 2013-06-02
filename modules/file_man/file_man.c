@@ -541,11 +541,10 @@ static MENU_SELECT_FUNC(CopyFile)
 {
     console_printf("CopyFile()\n");
     if(mfile_is_regged("")==0){
-        console_printf("add entry for copy\n");
+        console_printf("addreg: %s\n",gPath);
         mfile_add_tail();
     }
     op_mode = FILE_OP_COPY;
-
     BrowseUp();
 }
 
@@ -557,7 +556,6 @@ static MENU_UPDATE_FUNC(CopyFileProgress)
 static MENU_SELECT_FUNC(MoveFile)
 {
     if(mfile_is_regged("")==0){
-        console_printf("add entry for move\n");
         mfile_add_tail();
     }
     op_mode = FILE_OP_MOVE;
@@ -688,12 +686,11 @@ static MENU_UPDATE_FUNC(delete_confirm)
 }
 
 static int mfile_is_regged(char *fname){
-    if(strlen(fname) == 0) return -1;
-
     char tmpfname[MAX_PATH_LEN];
     strcpy(tmpfname,gPath);
-    STR_APPEND(tmpfname,fname);
-    console_printf("reg: %s\n",tmpfname);   
+    if(strlen(fname))
+        STR_APPEND(tmpfname,fname);
+
     FILES_LIST *tmpmf = mfile_root;
     while(tmpmf->next){
         tmpmf = tmpmf->next;
@@ -720,7 +717,7 @@ static unsigned int mfile_find_remove(){
 }
 
 static unsigned int mfile_add_tail(){
-    console_printf("mf_add %s",gPath);
+    console_printf("mf_add %s\n",gPath);
     FILES_LIST *newmf;
     FILES_LIST *tmpmf = mfile_root;
     while(tmpmf->next)
