@@ -1214,9 +1214,9 @@ static void raw_video_playback_task()
     buf = shoot_malloc(raw_info.frame_size);
     if (!buf)
         goto cleanup;
+
+    vram_clear_lv();
     
-    struct vram_info * lv_vram = get_yuv422_vram();
-    memset(lv_vram->vram, 0, lv_vram->width * lv_vram->pitch);
     for (int i = 0; i < frame_count-1; i++)
     {
         bmp_printf(FONT_MED, os.x_max - font_med.width*10, os.y_max - 20, "%d/%d", i+1, frame_count-1);

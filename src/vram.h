@@ -79,6 +79,7 @@ void redraw();
 struct vram_info * get_yuv422_vram();
 struct vram_info * get_yuv422_hd_vram();
 void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf);
+void vram_clear_lv();
 
 
 // [ sx   0   x ]
