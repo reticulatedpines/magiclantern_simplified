@@ -60,6 +60,7 @@ typedef struct
     char *name;
     char *description;
     t_ime_start start;
+    void (*configure)();
 } t_ime_handler;
 
 /* IME modules call this function to register themselves. threadsafe */

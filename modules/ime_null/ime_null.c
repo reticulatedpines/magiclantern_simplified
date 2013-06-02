@@ -11,6 +11,9 @@
 
 #include "../ime_base/ime_base.h"
 
+static void ime_null_config()
+{
+}
 
 static unsigned int ime_null_start(char *text, int max_length, int codepage, int charset, t_ime_update_cbr update, int x, int y, int w, int h)
 {
@@ -29,6 +32,7 @@ static t_ime_handler ime_null_descriptor =
     .name = "ime_null",
     .description = "Dummy input method",
     .start = &ime_null_start,
+    .configure = &ime_null_config,
 };
 
 static unsigned int ime_null_init()

@@ -84,6 +84,14 @@ static MENU_SELECT_FUNC(ime_base_test)
     msleep(2000);
 }
 
+static MENU_SELECT_FUNC(ime_base_config)
+{
+    if(ime_base_method < ime_base_method_count && ime_base_methods[ime_base_method].configure != NULL)
+    {
+        return ime_base_methods[ime_base_method].configure();
+    }
+}
+
 static struct menu_entry ime_base_menu[] =
 {
     {
@@ -96,6 +104,10 @@ static struct menu_entry ime_base_menu[] =
                 .priv = &ime_base_method,
                 .select = &ime_base_method_select,
                 .update = &ime_base_method_update,
+            },
+            {
+                .name = "Configure method",
+                .select = &ime_base_config,
             },
             {
                 .name = "Test method",
