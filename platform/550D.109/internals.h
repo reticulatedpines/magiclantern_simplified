@@ -109,3 +109,6 @@
 
 /** We have access to raw photo buffer for raw histogram, raw zebras and so on */
 #define CONFIG_RAW_PHOTO
+
+/** We can use the DMA controller to copy data */
+#define CONFIG_EDMAC_MEMCPY
