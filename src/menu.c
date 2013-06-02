@@ -93,6 +93,7 @@ static int menu_zebras_mirror_dirty = 0; // to clear zebras from mirror (avoids 
 
 int menu_help_active = 0; // also used in menuhelp.c
 int menu_redraw_blocked = 0; // also used in flexinfo
+static int menu_redraw_cancel = 0;
 
 static int submenu_mode = 0;
 static int edit_mode = 0;
@@ -2256,6 +2257,9 @@ menu_entry_process(
         if (info.custom_drawing == CUSTOM_DRAW_THIS_MENU)
             return 0;
         
+        if (info.custom_drawing == CUSTOM_DRAW_DO_NOT_DRAW)
+            menu_redraw_cancel = 1;
+        
         // print the menu on the screen
         if (info.custom_drawing == CUSTOM_DRAW_DISABLE)
             entry_print(x, y, ABS(menu->split_pos), entry, &info, IS_SUBMENU(menu));
@@ -2704,7 +2708,10 @@ menu_entry_process_junkie(
         // menu->update asked to draw the entire screen by itself? stop drawing right now
         if (info.custom_drawing == CUSTOM_DRAW_THIS_MENU)
             return 0;
-        
+
+        if (info.custom_drawing == CUSTOM_DRAW_DO_NOT_DRAW)
+            menu_redraw_cancel = 1;
+
         // print the menu on the screen
         if (info.custom_drawing == CUSTOM_DRAW_DISABLE)
             entry_print_junkie(x, y, w, h, entry, &info, menu->selected);
@@ -3573,31 +3580,38 @@ menu_redraw_do()
                     // copy image to main buffer
                     bmp_draw_to_idle(0);
 
-                    int screen_layout = get_screen_layout();
-                    if (hdmi_code == 2) // copy at a smaller scale to fit the screen
+                    if (menu_redraw_cancel)
                     {
-                        if (screen_layout == SCREENLAYOUT_16_10)
-                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  150, /* 128 div */ 143, /* 128 div */ 169);
-                        else if (screen_layout == SCREENLAYOUT_16_9)
-                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  165, /* 128 div */ 143, /* 128 div */ 185);
+                        /* maybe next time */
+                        menu_redraw_cancel = 0;
+                    }
+                    else
+                    {
+                        int screen_layout = get_screen_layout();
+                        if (hdmi_code == 2) // copy at a smaller scale to fit the screen
+                        {
+                            if (screen_layout == SCREENLAYOUT_16_10)
+                                bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  150, /* 128 div */ 143, /* 128 div */ 169);
+                            else if (screen_layout == SCREENLAYOUT_16_9)
+                                bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  165, /* 128 div */ 143, /* 128 div */ 185);
+                            else
+                            {
+                                if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
+                                else bmp_idle_copy(1,0);
+                            }
+                        }
+                        else if (EXT_MONITOR_RCA)
+                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  200, /* 128 div */ 135, /* 128 div */ 135);
                         else
                         {
                             if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
                             else bmp_idle_copy(1,0);
                         }
                     }
-                    else if (EXT_MONITOR_RCA)
-                        bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  200, /* 128 div */ 135, /* 128 div */ 135);
-                    else
-                    {
-                        if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
-                        else bmp_idle_copy(1,0);
-                    }
                     //~ bmp_idle_clear();
                 }
             )
             //~ update_stuff();
-            
             lens_display_set_dirty();
         }
     

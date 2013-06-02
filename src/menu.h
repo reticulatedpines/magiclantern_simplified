@@ -63,7 +63,7 @@ struct menu_display_info
     int icon_arg;
     enum {MENU_WARN_NONE, MENU_WARN_INFO, MENU_WARN_ADVICE, MENU_WARN_NOT_WORKING} 
         warning_level;
-    enum {CUSTOM_DRAW_DISABLE, CUSTOM_DRAW_THIS_ENTRY, CUSTOM_DRAW_THIS_MENU} 
+    enum {CUSTOM_DRAW_DISABLE, CUSTOM_DRAW_THIS_ENTRY, CUSTOM_DRAW_THIS_MENU, CUSTOM_DRAW_DO_NOT_DRAW} 
         custom_drawing;
     int x;
     int y; // for custom drawing
