@@ -420,7 +420,7 @@ test: test.o
 
 dumper_entry.o: flasher-stubs.S
 
-reboot.o: $(SRC_DIR)/reboot.c magiclantern.bin magiclantern.sym
+reboot.o: $(SRC_DIR)/reboot.c $(PLATFORM_DIR)/version.bin magiclantern.bin magiclantern.sym
 
 magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
 	$(call build,CPP,$(CPP) $(CFLAGS) $< | $(GREP) -v '^#' > $@)
@@ -503,10 +503,22 @@ magiclantern: $(ML_OBJS-y) dietlibc.a newlib-libc.a
 	)
 
 $(PLATFORM_DIR)/version.c: FORCE
-		echo 'const char build_version[] = "$(VERSION)";' > $@
-		echo 'const char build_id[] = "'`hg id`'";' >> $@
-		echo 'const char build_date[] ="'`date -u "+%Y-%m-%d %H:%M:%S"`'";' >> $@
-		echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
+		$(call build,"VERSION",echo 'const char build_version[] = "$(VERSION)";') > $@
+		@echo 'const char build_id[] = "'`hg id`'";' >> $@
+		@echo 'const char build_date[] ="'`date -u "+%Y-%m-%d %H:%M:%S"`'";' >> $@
+		@echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
+
+# this must have exactly 0x11C (284) bytes, see reboot.c
+$(PLATFORM_DIR)/version.bin: FORCE
+		$(call build,"VERSION",echo -e '\b\b\b\bMagic Lantern $(VERSION)') > $@
+		@echo 'Mercurial changeset: '`hg id` >> $@
+		@echo 'Built on '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
+		@echo '' >> $@
+		@echo 'Camera  : $(MODEL)' >> $@
+		@echo 'Firmware: $(FW_VERSION)' >> $@
+		@echo -e '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' >> $@
+		@echo -e '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' >> $@
+		@truncate -s 284 $@
 
 autoexec: reboot.o
 	$(call build,LD,$(LD) \
