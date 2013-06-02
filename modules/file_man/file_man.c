@@ -1,10 +1,12 @@
 #define CONFIG_CONSOLE
+#define _file_man_c_
 
 #include <module.h>
 #include <dryos.h>
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
+#include "file_man.h"
 
 #define MAX_PATH_LEN 0x80
 static char gPath[MAX_PATH_LEN];
@@ -54,20 +56,19 @@ static MENU_SELECT_FUNC(FileMoveStart);
 static MENU_SELECT_FUNC(FileOpCancel);
 
 #define MAX_FILETYPE_HANDLERS 32
-#define FILEMAN_CMD_INFO 0
-#define FILEMAN_CMD_VIEW 1
+
 struct filetype_handler
 {
     char *extension;
     char *type;
-    unsigned int (*handler)(unsigned int cmd, char *file, char *data);
+    filetype_handler_func handler;
 };
 
 int fileman_filetype_registered = 0;
 struct filetype_handler fileman_filetypes[MAX_FILETYPE_HANDLERS];
 
 /* this function has to be public so that other modules can register file types for viewing this file */
-unsigned int fileman_register_type(char *ext, char *type, unsigned int (*handler)(unsigned int cmd, char *file, char *data))
+unsigned int fileman_register_type(char *ext, char *type, filetype_handler_func handler)
 {
     if(fileman_filetype_registered < MAX_FILETYPE_HANDLERS)
     {
@@ -548,6 +549,33 @@ static char *fileman_get_extension(char *filename)
     return NULL;
 }
 
+FILETYPE_HANDLER(text_handler)
+{
+    if (cmd != FILEMAN_CMD_VIEW_IN_MENU)
+        return 0; /* this handler only knows to show things in menu */
+    
+    char* buf = alloc_dma_memory(1025);
+    if (!buf) return 0;
+    
+    FILE * file = FIO_Open( filename, O_RDONLY | O_SYNC );
+    if (file != INVALID_PTR)
+    {
+        int r = FIO_ReadFile(file, buf, 1024);
+        FIO_CloseFile(file);
+        buf[r] = 0;
+        for (int i = 0; i < r; i++)
+            if (buf[i] == 0) buf[i] = ' ';
+        big_bmp_printf(FONT_MED, 0, 0, "%s", buf);
+        free_dma_memory(buf);
+        return 1;
+    }
+    else
+    {
+        free_dma_memory(buf);
+        return 0;
+    }
+}
+
 static MENU_SELECT_FUNC(viewfile_toggle)
 {
     char *ext = fileman_get_extension(gPath);
@@ -557,8 +585,18 @@ static MENU_SELECT_FUNC(viewfile_toggle)
         struct filetype_handler *filetype = fileman_find_filetype(ext);
         if(filetype)
         {
-            filetype->handler(FILEMAN_CMD_VIEW, gPath, NULL);
-            return;
+            int status = filetype->handler(FILEMAN_CMD_VIEW_OUTSIDE_MENU, gPath, NULL);
+            if (status > 0)
+            {
+                /* file is being viewed outside menu */
+                return;
+            }
+            else if (status < 0)
+            {
+                /* error */
+                beep();
+            }
+            /* else, we should display the file without leaving the menu */
         }
     }
     
@@ -567,46 +605,33 @@ static MENU_SELECT_FUNC(viewfile_toggle)
 
 static MENU_UPDATE_FUNC(viewfile_show)
 {
+    char *ext = fileman_get_extension(gPath);
+    struct filetype_handler *filetype = NULL;
+    if (ext) filetype = fileman_find_filetype(ext);
+
     if (view_file)
     {
-        char* buf = alloc_dma_memory(1025);
-        if (!buf)
-        {
-            view_file = 0;
-            return;
-        }
-        FILE * file = FIO_Open( gPath, O_RDONLY | O_SYNC );
-        if (file != INVALID_PTR)
-        {
-            int r = FIO_ReadFile(file, buf, 1024);
-            FIO_CloseFile(file);
-            buf[r] = 0;
-            for (int i = 0; i < r; i++)
-                if (buf[i] == 0) buf[i] = ' ';
-            info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-            clrscr();
-            big_bmp_printf(FONT_MED, 0, 0, "%s", buf);
-        }
-        else
-        {
-            MENU_SET_WARNING(MENU_WARN_ADVICE, "Error reading %s", gPath);
-            view_file = 0;
-        }
-        free_dma_memory(buf);
+        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+        clrscr();
+
+        int status = 0;
+
+        /* custom handler? try it first */
+        if (filetype)
+            status = filetype->handler(FILEMAN_CMD_VIEW_IN_MENU, gPath, NULL);
+        
+        /* custom handler doesn't know how to display the file? try the default handler */
+        if (status == 0) status = text_handler(FILEMAN_CMD_VIEW_IN_MENU, gPath, NULL);
+        
+        /* error? */
+        if (status <= 0) bmp_printf(FONT_MED, 0, 0, "Error viewing %s (%s)", gPath, filetype->type);
     }
     else
     {
-        char *ext = fileman_get_extension(gPath);
-        
-        if(ext)
+        if(filetype)
         {
-            struct filetype_handler *filetype = fileman_find_filetype(ext);
-            if(filetype)
-            {
-                MENU_SET_RINFO("Type: %s", filetype->type);
-            }
+            MENU_SET_RINFO("Type: %s", filetype->type);
         }
-
         update_action(entry, info);
     }
 }
