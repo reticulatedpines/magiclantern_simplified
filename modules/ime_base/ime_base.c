@@ -35,11 +35,11 @@ unsigned int ime_base_register(t_ime_handler *handler)
     return 0;
 }
 
-unsigned int ime_base_start ( char *text, int max_length, int charset, t_ime_update_cbr update, int x, int y, int w, int h )
+unsigned int ime_base_start ( char *text, int max_length, int codepage, int charset, t_ime_update_cbr update, int x, int y, int w, int h )
 {
     if(ime_base_method < ime_base_method_count)
     {
-        return ime_base_methods[ime_base_method].start(text, max_length, charset, update, x, y, w, h);
+        return ime_base_methods[ime_base_method].start(text, max_length, codepage, charset, update, x, y, w, h);
     }
     
     strncpy(text, "No IME available", max_length);
@@ -79,7 +79,7 @@ static MENU_SELECT_FUNC(ime_base_test)
 {
     char buffer[100];
     
-    int ret = ime_base_start(buffer, sizeof(buffer), IME_UTF8, &ime_base_test_update, 0, 0, 0, 0);
+    int ret = ime_base_start(buffer, sizeof(buffer), IME_UTF8, IME_CHARSET_ANY, &ime_base_test_update, 0, 0, 0, 0);
     bmp_printf(FONT_MED, 30, 120, "IME ret: <%s>, %d", buffer, ret);
     msleep(2000);
 }

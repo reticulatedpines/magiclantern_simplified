@@ -12,7 +12,7 @@
 #include "../ime_base/ime_base.h"
 
 
-static unsigned int ime_null_start(char *text, int max_length, int charset, t_ime_update_cbr update, int x, int y, int w, int h)
+static unsigned int ime_null_start(char *text, int max_length, int codepage, int charset, t_ime_update_cbr update, int x, int y, int w, int h)
 {
     update("Dummy update text", 0, 0);
     
