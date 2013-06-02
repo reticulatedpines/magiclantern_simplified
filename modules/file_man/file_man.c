@@ -344,23 +344,49 @@ ML_FIO_CopyFile(char *src,char *dst){
     FILE* g = FIO_CreateFileEx(dst);
     if (g == INVALID_PTR) { FIO_CloseFile(f); return 1; }
 
+    int err = 0;
     int r = 0;
     while ((r = FIO_ReadFile(f, buf, bufsize)))
-        FIO_WriteFile(g, buf, r);
+    {
+        int w = FIO_WriteFile(g, buf, r);
+        if (w != r)
+        {
+            /* copy failed; abort and delete the incomplete file */
+            err = 1;
+            break;
+        }
+    }
 
     FIO_CloseFile(f);
     FIO_CloseFile(g);
     msleep(1000); // this decreases the chances of getting corrupted files (fig    ure out why!)
     free_dma_memory(buf);
+    
+    if (err)
+    {
+        FIO_RemoveFile(dst);
+        return 1;
+    }
+    
+    /* all OK */
     return 0;
 }
 
 static int
 ML_FIO_MoveFile(char *src,char *dst){
 
-    ML_FIO_CopyFile(src,dst);
-    FIO_RemoveFile(src);
-    return 0;
+    int err = ML_FIO_CopyFile(src,dst);
+    if (!err)
+    {
+        /* file copied, we can remove the old one */
+        FIO_RemoveFile(src);
+        return 0;
+    }
+    else
+    {
+        /* something went wrong; keep the old file and return error code */
+        return err;
+    }
 }
 
 static void
@@ -377,8 +403,9 @@ FileCopy(void *unused)
     snprintf(dstfile,MAX_PATH_LEN,"%s%s",gPath,fname);
 
     snprintf(gStatusMsg, sizeof(gStatusMsg), "Copying %s to %s...", gSrcFile, gPath);
-    ML_FIO_CopyFile(gSrcFile,dstfile);
-    gStatusMsg[0] = 0;
+    int err = ML_FIO_CopyFile(gSrcFile,dstfile);
+    if (err) snprintf(gStatusMsg, sizeof(gStatusMsg), "Copy error (%d)", err);
+    else gStatusMsg[0] = 0;
 
     if(!strcmp(gPath,tmpdst)) ScanDir(gPath);
 }
@@ -397,8 +424,9 @@ FileMove(void *unused)
     snprintf(dstfile,MAX_PATH_LEN,"%s%s",gPath,fname);
 
     snprintf(gStatusMsg, sizeof(gStatusMsg), "Moving %s to %s...", gSrcFile, gPath);
-    ML_FIO_MoveFile(gSrcFile,dstfile);
-    gStatusMsg[0] = 0;
+    int err = ML_FIO_MoveFile(gSrcFile,dstfile);
+    if (err) snprintf(gStatusMsg, sizeof(gStatusMsg), "Move error (%d)", err);
+    else gStatusMsg[0] = 0;
 
     if(!strcmp(gPath,tmpdst)) ScanDir(gPath);
 }
