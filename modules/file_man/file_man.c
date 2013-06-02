@@ -60,7 +60,6 @@ static MENU_SELECT_FUNC(BrowseUpMenu);
 static MENU_SELECT_FUNC(FileCopyStart);
 static MENU_SELECT_FUNC(FileMoveStart);
 static MENU_SELECT_FUNC(FileOpCancel);
-static MENU_UPDATE_FUNC(select_multi);
 static unsigned int mfile_add_tail();
 static unsigned int mfile_clean_all();
 static int mfile_is_regged(char *fname);
@@ -540,10 +539,14 @@ const char * format_size( unsigned size)
 
 static MENU_SELECT_FUNC(CopyFile)
 {
+    console_printf("CopyFile()\n");
     if(mfile_is_regged("")==0){
+        console_printf("add entry for copy\n");
         mfile_add_tail();
     }
     op_mode = FILE_OP_COPY;
+
+    BrowseUp();
 }
 
 static MENU_UPDATE_FUNC(CopyFileProgress)
@@ -553,8 +556,14 @@ static MENU_UPDATE_FUNC(CopyFileProgress)
 
 static MENU_SELECT_FUNC(MoveFile)
 {
-    mfile_add_tail();
+    if(mfile_is_regged("")==0){
+        console_printf("add entry for move\n");
+        mfile_add_tail();
+    }
     op_mode = FILE_OP_MOVE;
+
+    BrowseUp();
+
 }
 
 static MENU_UPDATE_FUNC(MoveFileProgress)
@@ -703,7 +712,7 @@ static unsigned int mfile_find_remove(){
         tmpmf = tmpmf->next;
         if(!strcmp(tmpmf->name,gPath)){ //match
             prevmf->next = tmpmf->next;
-            free((void *)tmpmf);
+            FreeMemory((void *)tmpmf);
             return 1;
         }
     }
@@ -733,24 +742,26 @@ static unsigned int mfile_clean_all(){
         prevmf = tmpmf;
         tmpmf = tmpmf->next;
         prevmf->next = tmpmf->next;
-        free((void *)tmpmf);
+        FreeMemory((void *)tmpmf);
         tmpmf = prevmf;
     }
     return 0;
 }
 
-static MENU_UPDATE_FUNC(mfile_clear_all_selected_menu)
+static MENU_SELECT_FUNC(mfile_clear_all_selected_menu)
 {
     mfile_clean_all();
     BrowseUp();
 }
 
-static MENU_UPDATE_FUNC(select_multi)
+static MENU_SELECT_FUNC(select_multi)
 {
     console_printf("select_multi %s\n",gPath);
     //Find already registerd entry (toggle reg/rem)
-    if(mfile_find_remove() ==0)
+    if(mfile_find_remove() == 0)
         mfile_add_tail();
+
+    if(mfile_root->next == NULL) op_mode = FILE_OP_NONE;
 
     BrowseUp();
 }
