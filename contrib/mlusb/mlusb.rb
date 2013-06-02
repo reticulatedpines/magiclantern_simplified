@@ -19,7 +19,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-require 'lib/ptp'
+require './lib/ptp'
 
 canon = PTP.find_devices.select do |d|
   d.idVendor == PTP::PTPVendorCanon
