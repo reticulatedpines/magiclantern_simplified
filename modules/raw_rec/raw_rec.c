@@ -469,9 +469,9 @@ static unsigned int lv_rec_read_footer(FILE *f)
 
     /* get current position in file, seek to footer, read and go back where we were */
     unsigned int old_pos = FIO_SeekFile(f, 0, 1);
-    FIO_SeekFile(f, -sizeof(lv_rec_file_footer_t), 2);
+    FIO_SeekFile(f, -sizeof(lv_rec_file_footer_t), SEEK_END);
     int read = FIO_ReadFile(f, &footer, sizeof(lv_rec_file_footer_t));
-    FIO_SeekFile(f, old_pos, 0);
+    FIO_SeekFile(f, old_pos, SEEK_SET);
 
     /* check if the footer was read */
     if(read != sizeof(lv_rec_file_footer_t))
@@ -494,7 +494,7 @@ static unsigned int lv_rec_read_footer(FILE *f)
     res_x = footer.xRes;
     res_y = footer.yRes;
     frame_count = footer.frameCount + 1;
-    raw_info = footer.raw_info;
+    // raw_info = footer.raw_info;
     
     return 1;
 }
@@ -1186,9 +1186,18 @@ static void raw_video_playback_task()
     void* buf = NULL;
     FILE* f = INVALID_PTR;
 
-    bmp_printf(FONT_MED, 0, 0, "file '%s' ", movie_filename);
-    /* sleep a little longer, sometimes the photo screen redraws directly over our cleared area */
-    msleep(250);
+    /* prepare display */
+    if (lv)
+    {
+        set_lv_zoom(1);
+        PauseLiveView();
+    }
+    if (!lv_paused)
+    {
+        SetGUIRequestMode(1);
+        msleep(1000);
+    }
+    clrscr();
 
     if (!movie_filename)
         goto cleanup;
@@ -1204,30 +1213,29 @@ static void raw_video_playback_task()
     
     /* read footer information and update global variables, will seek automatically */
     lv_rec_read_footer(f);
+
+    shave_right = 0;
+    raw_lv_shave_right(0);
+    raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
     
     buf = shoot_malloc(raw_info.frame_size);
     if (!buf)
         goto cleanup;
-        
-    set_lv_zoom(1);
-    PauseLiveView();
-    clrscr();
-    
-    shave_right = 0;
-    raw_lv_shave_right(0);
-    raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
     
     struct vram_info * lv_vram = get_yuv422_vram();
     memset(lv_vram->vram, 0, lv_vram->width * lv_vram->pitch);
     for (int i = 0; i < frame_count-1; i++)
     {
-        bmp_printf(FONT_MED, 0, os.y_max - 20, "%d/%d", i+1, frame_count-1);
-        bmp_printf(FONT_MED, os.x_max - font_med.width*9, os.y_max - font_med.height, "%dx%d", res_x, res_y);
+        bmp_printf(FONT_MED, os.x_max - font_med.width*10, os.y_max - 20, "%d/%d", i+1, frame_count-1);
+        bmp_printf(FONT_MED, 0, os.y_max - font_med.height, "%s: %dx%d", movie_filename, res_x, res_y);
         int r = FIO_ReadFile(f, buf, raw_info.frame_size);
         if (r != raw_info.frame_size)
             break;
         
         if (get_halfshutter_pressed())
+            break;
+
+        if (display_idle())
             break;
 
         raw_info.buffer = buf;
@@ -1240,7 +1248,7 @@ cleanup:
     if (f != INVALID_PTR) FIO_CloseFile(f);
     if (buf) shoot_free(buf);
     raw_playing = 0;
-    ResumeLiveView();
+    if (lv_paused) ResumeLiveView();
 }
 
 static void raw_video_playback(char *filename)
