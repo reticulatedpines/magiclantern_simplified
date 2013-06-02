@@ -72,16 +72,24 @@ static MENU_SELECT_FUNC(ime_base_method_select)
 
 IME_UPDATE_FUNC(ime_base_test_update)
 {
-    bmp_printf(FONT_MED, 30, 90, "IME CBR: <%s>, %d, %d", text, caret_pos, selection_length);
+    bmp_printf(FONT_MED, 30, 90, "ime_base: CBR: <%s>, %d, %d", text, caret_pos, selection_length);
+    return IME_OK;
+}
+
+static void ime_base_test_task(int unused)
+{
+    char buffer[100];
+    
+    strcpy(buffer, "test");
+    
+    int ret = ime_base_start(buffer, sizeof(buffer), IME_UTF8, IME_CHARSET_ANY, &ime_base_test_update, 0, 0, 0, 0);
+    bmp_printf(FONT_MED, 30, 120, "ime_base: ret: <%s>, %d", buffer, ret);
+    msleep(2000);
 }
 
 static MENU_SELECT_FUNC(ime_base_test)
 {
-    char buffer[100];
-    
-    int ret = ime_base_start(buffer, sizeof(buffer), IME_UTF8, IME_CHARSET_ANY, &ime_base_test_update, 0, 0, 0, 0);
-    bmp_printf(FONT_MED, 30, 120, "IME ret: <%s>, %d", buffer, ret);
-    msleep(2000);
+    task_create("ime_base_test_task", 0x1c, 0x1000, ime_base_test_task, (void*)0);
 }
 
 static MENU_SELECT_FUNC(ime_base_config)
