@@ -21,7 +21,7 @@
 #define HIJACK_FIXBR_BZERO32 0xFF0C1C30
 #define HIJACK_FIXBR_CREATE_ITASK 0xFF0C1CBC
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1CD8
-    #define HIJACK_TASK_ADDR 0x233D8
+#define HIJACK_TASK_ADDR 0x233DC
 
 /*
  * Most of the stuff that follows is taken directly from the EOSM or 5D3
@@ -38,45 +38,45 @@
     #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)
     #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04108 // SDRAM address of HD buffer (aka YUV)
 
-    // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
-    // stateobj_disp[1]
-    #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x23C10+0x11c))
+// http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
+// stateobj_disp[1]
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x23C20+0x11c))
 
 
-    #define EVF_STATEOBJ (*(struct state_object**)0x25B00)
-    #define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR)) // first line from DMA is dummy
+#define EVF_STATEOBJ (*(struct state_object**)0x25B0C)
+#define YUV422_HD_BUFFER_DMA_ADDR (shamem_read(REG_EDMAC_WRITE_HD_ADDR)) // first line from DMA is dummy
 
 
         // http://magiclantern.wikia.com/wiki/ASM_Zedbra
     #define YUV422_HD_BUFFER_1 0x463cc080
     #define YUV422_HD_BUFFER_2 0x46000080
-    #define IS_HD_BUFFER(x)  (1) // quick check if x looks like a valid HD buffer
+#define IS_HD_BUFFER(x)  (1) // quick check if x looks like a valid HD buffer
 
-    // see "focusinfo" and Wiki:Struct_Guessing
-    #define FOCUS_CONFIRMATION (*(int*)0x275A0)
+// see "focusinfo" and Wiki:Struct_Guessing
+#define FOCUS_CONFIRMATION (*(int*)0x27660)
 
-    //~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
-    #define HALFSHUTTER_PRESSED (*(int*)0x24878)
+//~ look for string "[MC] permit LV instant", it's the struct refrenced in this function.
+#define HALFSHUTTER_PRESSED (*(int*)0x24884)
 
-        #define DISPLAY_SENSOR_POWERED 0
+    #define DISPLAY_SENSOR_POWERED 0
 
-    // for gui_main_task
-    #define GMT_NFUNCS 7
-    #define GMT_FUNCTABLE 0xff7ef1e8 // dec gui_main_task
+// for gui_main_task
+#define GMT_NFUNCS 7
+#define GMT_FUNCTABLE 0xFF7FA094 //dec gui_main_task
 
     #define SENSOR_RES_X 5184
     #define SENSOR_RES_Y 3456
-    #define CURRENT_DIALOG_MAYBE (*(int*)0x264DC) // in SetGUIRequestMode
-    #define LV_BOTTOM_BAR_DISPLAYED UNAVI_FEEDBACK_TIMER_ACTIVE
+#define CURRENT_DIALOG_MAYBE (*(int*)0x2658C) // in SetGUIRequestMode
+#define LV_BOTTOM_BAR_DISPLAYED UNAVI_FEEDBACK_TIMER_ACTIVE
     #define ISO_ADJUSTMENT_ACTIVE ((*(int*)(0x31184)) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
-        // from a screenshot
-        #define COLOR_FG_NONLV 1
+    // from a screenshot
+    #define COLOR_FG_NONLV 1
 
-    #define MVR_516_STRUCT (*(void**)0x2372C) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
+#define MVR_516_STRUCT (*(void**)0x23734) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
-    #define MEM(x) (*(volatile int*)(x))
-    #define div_maybe(a,b) ((a)/(b))
+#define MEM(x) (*(volatile int*)(x))
+#define div_maybe(a,b) ((a)/(b))
 
     // see mvrGetBufferUsage, which is not really safe to call => err70
     // macros copied from arm-console
@@ -93,12 +93,12 @@
     #define MOV_OPT_STEP 5
     #define MOV_GOP_OPT_STEP 5
 
-        #define AE_VALUE 0 // 404
+    #define AE_VALUE 0 // 404
 
     #define DLG_PLAY 1
     #define DLG_MENU 2
 
-        #define DLG_FOCUS_MODE 0x123456
+    #define DLG_FOCUS_MODE 0x123456
 
     /* these don't exist in the M */
     #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x24)
@@ -108,9 +108,9 @@
     #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
     #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
 
-        #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
-        #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0
-        #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0
+    #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
+    #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0
+    #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0
 
     // position for ML ISO disp outside LV
     #define MENU_DISP_ISO_POS_X 527
@@ -175,49 +175,49 @@
     #define FASTEST_SHUTTER_SPEED_RAW 152
     #define MAX_AE_EV 5
 
-    #define DIALOG_MnCardFormatBegin (0x44C38) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
-    #define DIALOG_MnCardFormatExecute (0x48CFC) // similar
+#define DIALOG_MnCardFormatBegin (0x44EC0) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
+#define DIALOG_MnCardFormatExecute (0x49190) // similar
 
-        #define BULB_MIN_EXPOSURE 1000
+    #define BULB_MIN_EXPOSURE 1000
 
-    // http://magiclantern.wikia.com/wiki/Fonts
-    #define BFNT_CHAR_CODES    0xffcca8a8
-    #define BFNT_BITMAP_OFFSET 0xffccd7b8
-    #define BFNT_BITMAP_DATA   0xffcd06c8
+// http://magiclantern.wikia.com/wiki/Fonts
+#define BFNT_CHAR_CODES    0xFFCF67E4
+#define BFNT_BITMAP_OFFSET 0xFFCCD7F0
+#define BFNT_BITMAP_DATA   0xFFCFC674
 
     #define DLG_SIGNATURE 0x4c414944 
 
-        // from CFn
-         #define AF_BTN_HALFSHUTTER 0
-         #define AF_BTN_STAR 2
+    // from CFn
+    #define AF_BTN_HALFSHUTTER 0
+    #define AF_BTN_STAR 2
 
-    #define IMGPLAY_ZOOM_LEVEL_ADDR (0x3689C+0xC) // dec GuiImageZoomDown and look for a negative counter
-    #define IMGPLAY_ZOOM_LEVEL_MAX 14
-    #define IMGPLAY_ZOOM_POS_X MEM(0x6E500) // CentrePos
-    #define IMGPLAY_ZOOM_POS_Y MEM(0x6E504)
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x369A4) // dec GuiImageZoomDown and look for a negative counter
+#define IMGPLAY_ZOOM_LEVEL_MAX 14
+#define IMGPLAY_ZOOM_POS_X MEM(0x6EE34) // CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x6EE34+0x4)
     #define IMGPLAY_ZOOM_POS_X_CENTER 0x144
     #define IMGPLAY_ZOOM_POS_Y_CENTER 0xd8
     #define IMGPLAY_ZOOM_POS_DELTA_X (0x144 - 0x93)
     #define IMGPLAY_ZOOM_POS_DELTA_Y (0xd8 - 0x7d)
 
 
-        #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
+    #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
-    // see http://magiclantern.wikia.com/wiki/VRAM/BMP
-    #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x3d914+0x2c)
+// see http://magiclantern.wikia.com/wiki/VRAM/BMP
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x3DA14+0x2C)
 
-    // manual exposure overrides
-    #define LVAE_STRUCT 0x77B2C
-    #define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x20)) // EP_SetControlBv
-    #define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x22)) // EP_SetControlParam
-    #define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x24))
-    #define CONTROL_BV_ISO  (*(uint16_t*)(LVAE_STRUCT+0x26))
-    #define CONTROL_BV_ZERO (*(uint16_t*)(LVAE_STRUCT+0x28))
-    #define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT))      // offset 0x0; at 3 it changes iso very slowly
+// manual exposure overrides
+#define LVAE_STRUCT 0x7846C
+#define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x20)) // EP_SetControlBv
+#define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x22)) // EP_SetControlParam
+#define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x24))
+#define CONTROL_BV_ISO  (*(uint16_t*)(LVAE_STRUCT+0x26))
+#define CONTROL_BV_ZERO (*(uint16_t*)(LVAE_STRUCT+0x28))
+#define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT))      // offset 0x0; at 3 it changes iso very slowly
     //~ #define LVAE_ISO_MIN    (*(uint8_t* )(LVAE_STRUCT+0x28)) // string: ISOMin:%d
     //~ #define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0x2a)) // no idea what this is
-    #define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x3c)) // lvae_setdispgain
-    #define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x1c)) // lvae_setmoviemanualcontrol
+#define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x3c)) // lvae_setdispgain
+#define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x1c)) // lvae_setmoviemanualcontrol
 
     #define MIN_MSLEEP 10
 
@@ -225,25 +225,27 @@
     #define Q_BTN_NAME "[Q]"
     #define ARROW_MODE_TOGGLE_KEY "DISP"
 
-    #define DISPLAY_STATEOBJ (*(struct state_object **)0x23D1C)
-    #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+#define DISPLAY_STATEOBJ (*(struct state_object **)0x23C20+0x10C)
+#define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
-    #define VIDEO_PARAMETERS_SRC_3 MEM(0x25AE4) // Look for MAX_FRAMEDATA_DEBUGMEMBER then go up -> 0x25AA4 + 0x40
-    #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
-    #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
-    #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))
-    #define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
-    #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
+#define VIDEO_PARAMETERS_SRC_3 MEM(0x25AE4) // Look for MAX_FRAMEDATA_DEBUGMEMBER then go up -> 0x25AA4 + 0x40
+#define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
+#define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
+#define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))
+#define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+6))
+#define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
     // see "Malloc Information"
-    #define MALLOC_STRUCT 0x4b428
-    #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT 0x4b908
+#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
-    #define UNAVI (MEM(0x4188c)) // dec CancelUnaviFeedBackTimer, then look around that memory area for a location that changes when you keep HS pressed
-    #define UNAVI_AV (MEM(0x418C0)) //Same as above, but this location is linked to the exp comp button
-    #define UNAVI_FEEDBACK_TIMER_ACTIVE ((UNAVI == 2) || (UNAVI_AV != 0))
+//TODO: Check if this hack works again or not :(
+#define UNAVI_BASE (0x41948)
+#define UNAVI (MEM(UNAVI_BASE + 0x24)) // dec CancelUnaviFeedBackTimer, then look around that memory area for a location that changes when you keep HS pressed
+#define UNAVI_AV (MEM(UNAVI_BASE + 0x58)) //Same as above, but this location is linked to the exp comp button
+#define UNAVI_FEEDBACK_TIMER_ACTIVE ((UNAVI == 2) || (UNAVI_AV != 0))
 
-    #define DISPLAY_ORIENTATION MEM(0x23C10+0xB8) // read-only; string: UpdateReverseTFT.
+#define DISPLAY_ORIENTATION MEM(0x23C20+0xB8) // read-only; string: UpdateReverseTFT.
 
     /******************************************************************************************************************
      * touch_num_fingers_ptr:
@@ -267,12 +269,12 @@
      *
      *  And that's how Canon's touch screen works :)
      *******************************************************************************************************************/
-        //~ not used [was for early implemenation]
-        #define TOUCH_XY_RAW1 0x4D868
-        #define TOUCH_XY_RAW2 (TOUCH_XY_RAW1+4)
-        #define TOUCH_MULTI 0x4D810   //~ found these with memspy. look for addresses changing with screen touches.
-        //--------------
-        #define HIJACK_TOUCH_CBR_PTR 0x4D858
+    //~ not used [was for early implemenation]
+    #define TOUCH_XY_RAW1 0x4D868
+    #define TOUCH_XY_RAW2 (TOUCH_XY_RAW1+4)
+    #define TOUCH_MULTI 0x4D810   //~ found these with memspy. look for addresses changing with screen touches.
+    //--------------
+    #define HIJACK_TOUCH_CBR_PTR 0x4D858
 
     //~ max volume supported for beeps
     #define ASIF_MAX_VOL 5
