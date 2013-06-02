@@ -601,39 +601,16 @@ static MENU_SELECT_FUNC(viewfile_toggle)
     }
     
     view_file = !view_file;
+    BrowseUp();
 }
 
-static MENU_UPDATE_FUNC(viewfile_show)
+static MENU_UPDATE_FUNC(viewfile_update)
 {
     char *ext = fileman_get_extension(gPath);
     struct filetype_handler *filetype = NULL;
     if (ext) filetype = fileman_find_filetype(ext);
-
-    if (view_file)
-    {
-        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-        clrscr();
-
-        int status = 0;
-
-        /* custom handler? try it first */
-        if (filetype)
-            status = filetype->handler(FILEMAN_CMD_VIEW_IN_MENU, gPath, NULL);
-        
-        /* custom handler doesn't know how to display the file? try the default handler */
-        if (status == 0) status = text_handler(FILEMAN_CMD_VIEW_IN_MENU, gPath, NULL);
-        
-        /* error? */
-        if (status <= 0) bmp_printf(FONT_MED, 0, 0, "Error viewing %s (%s)", gPath, filetype->type);
-    }
-    else
-    {
-        if(filetype)
-        {
-            MENU_SET_RINFO("Type: %s", filetype->type);
-        }
-        update_action(entry, info);
-    }
+    if(filetype) MENU_SET_RINFO("Type: %s", filetype->type);
+    update_action(entry, info);
 }
 
 static int delete_confirm_flag = 0;
@@ -674,6 +651,8 @@ static MENU_UPDATE_FUNC(delete_confirm)
 
 static MENU_SELECT_FUNC(select_file)
 {
+    if (view_file) { view_file = 0; return; }
+
     struct file_entry * fe = (struct file_entry *) priv;
 
     /* fe will be freed in clear_file_menu; backup things that we are going to reuse */
@@ -714,7 +693,7 @@ static MENU_SELECT_FUNC(select_file)
     if (e)
     {
         e->menu_entry.select = viewfile_toggle;
-        e->menu_entry.update = viewfile_show;
+        e->menu_entry.update = viewfile_update;
     }
 
     e = add_file_entry(name, TYPE_FILE, size);
@@ -745,7 +724,30 @@ static MENU_UPDATE_FUNC(update_file)
     MENU_SET_RINFO("%s", format_size(fe->size));
     MENU_SET_ICON(MNI_OFF, 0);
     update_status(entry, info);
-    if (entry->selected) view_file = 0;
+    
+    if (entry->selected && view_file)
+    {
+        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+        bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+        
+        char filename[MAX_PATH_LEN];
+        snprintf(filename, sizeof(filename), "%s%s", gPath, fe->name);
+
+        int status = 0;
+
+        /* custom handler? try it first */
+        char *ext = fileman_get_extension(filename);
+        struct filetype_handler *filetype = fileman_find_filetype(ext);
+        if (filetype)
+            status = filetype->handler(FILEMAN_CMD_VIEW_IN_MENU, filename, NULL);
+        
+        /* custom handler doesn't know how to display the file? try the default handler */
+        if (status == 0) status = text_handler(FILEMAN_CMD_VIEW_IN_MENU, filename, NULL);
+        
+        /* error? */
+        if (status <= 0) bmp_printf(FONT_MED, 0, 460, "Error viewing %s (%s)", gPath, filetype->type);
+        else bmp_printf(FONT_MED, 0, 460, "%s", filename);
+    }
 }
 
 static MENU_SELECT_FUNC(default_select_action)

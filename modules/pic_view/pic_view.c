@@ -13,7 +13,6 @@ int bmp_show(char* file)
     if (!bmp) return 0;
     bmp_draw_scaled_ex(bmp, 0, 0, 720, 480, 0);
     bmp_free(bmp);
-    bmp_printf(FONT_MED, 0, 0, "%s", file);
     return 1;
 }
 
@@ -28,13 +27,12 @@ int yuv422_show(char* filename)
     extern int lv;
     if (lv)
     {
-        bmp_printf(FONT_MED, 0, 20, "Try again outside LiveView.");
+        bmp_printf(FONT_MED, 0, 0, "Try again outside LiveView.");
         return 0;
     }
 
     clrscr();
-    bmp_printf(FONT_MED, 0, 0, "%s ", filename);
-    bmp_printf(FONT_MED, 600, 0, "%d", size);
+    bmp_printf(FONT_MED, 600, 460, "%d", size);
 
     int w,h;
     // auto-generated code from 422-jpg.py
@@ -71,7 +69,7 @@ int yuv422_show(char* filename)
     else if (size == 1280 * 689  * 2) { w = 1280; h =  689; } // 650D 720p recording
     else return 0;
 
-    bmp_printf(FONT_MED, 600, 0, " %dx%d ", w, h);
+    bmp_printf(FONT_MED, 600, 460, " %dx%d ", w, h);
 
     size_t rc = read_file( filename, buf, size );
     if( rc != size ) return 0;
