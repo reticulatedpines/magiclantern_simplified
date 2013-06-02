@@ -175,7 +175,7 @@ NSTUB(0xFF527C14, LiveViewApp_handler)
 NSTUB(0xFF528ABC, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF529DC0, LiveViewApp_handler_end) // start of next function
 
-NSTUB(0xFF6F916C, PlayMain_handler)
+NSTUB(0xFF3B5D4C, PlayMain_handler)
 NSTUB(0xFF54209C, PlayMovieGuideApp_handler)
 NSTUB(0xFF68FA50, ErrCardForLVApp_handler)
 //NSTUB(0xFF511384, ErrCardApp_handler) // Unused
