@@ -352,7 +352,6 @@ bmp_puts(
         const char *s
 )
 {
-
     *x = COERCE(*x, BMP_W_MINUS, BMP_W_PLUS);
     *y = COERCE(*y, BMP_H_MINUS, BMP_H_PLUS);
     
@@ -386,9 +385,14 @@ bmp_puts(
             continue;
         }
 
-        if( c == '\b' )
+        if( c == '\b' && *x >= initial_x + font->width)
         {
             (*x) -= font->width;
+            #ifdef CONFIG_VXWORKS
+            row -= font->width / 2;
+            #else
+            row -= font->width;
+            #endif
             continue;
         }
 
