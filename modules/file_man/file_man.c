@@ -569,13 +569,20 @@ static MENU_UPDATE_FUNC(viewfile_show)
 {
     if (view_file)
     {
-        static char buf[1025];
+        char* buf = alloc_dma_memory(1025);
+        if (!buf)
+        {
+            view_file = 0;
+            return;
+        }
         FILE * file = FIO_Open( gPath, O_RDONLY | O_SYNC );
         if (file != INVALID_PTR)
         {
-            int r = FIO_ReadFile(file, buf, sizeof(buf)-1);
+            int r = FIO_ReadFile(file, buf, 1024);
             FIO_CloseFile(file);
             buf[r] = 0;
+            for (int i = 0; i < r; i++)
+                if (buf[i] == 0) buf[i] = ' ';
             info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
             clrscr();
             big_bmp_printf(FONT_MED, 0, 0, "%s", buf);
@@ -585,6 +592,7 @@ static MENU_UPDATE_FUNC(viewfile_show)
             MENU_SET_WARNING(MENU_WARN_ADVICE, "Error reading %s", gPath);
             view_file = 0;
         }
+        free_dma_memory(buf);
     }
     else
     {
