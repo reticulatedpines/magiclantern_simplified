@@ -1187,16 +1187,9 @@ static void raw_video_playback_task()
     FILE* f = INVALID_PTR;
 
     /* prepare display */
-    if (lv)
-    {
-        set_lv_zoom(1);
-        PauseLiveView();
-    }
-    if (!lv_paused)
-    {
-        SetGUIRequestMode(1);
-        msleep(1000);
-    }
+    SetGUIRequestMode(1);
+    msleep(1000);
+    ui_lock(UILOCK_EVERYTHING & ~1); /* everything but shutter */
     clrscr();
 
     if (!movie_filename)
@@ -1235,7 +1228,7 @@ static void raw_video_playback_task()
         if (get_halfshutter_pressed())
             break;
 
-        if (display_idle())
+        if (gui_state != GUISTATE_PLAYMENU)
             break;
 
         raw_info.buffer = buf;
@@ -1248,7 +1241,8 @@ cleanup:
     if (f != INVALID_PTR) FIO_CloseFile(f);
     if (buf) shoot_free(buf);
     raw_playing = 0;
-    if (lv_paused) ResumeLiveView();
+    SetGUIRequestMode(0);
+    ui_lock(UILOCK_NONE);
 }
 
 static void raw_video_playback(char *filename)
