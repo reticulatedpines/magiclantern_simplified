@@ -3455,7 +3455,7 @@ static void
 menu_redraw_do()
 {
         #ifndef CONFIG_VXWORKS
-        if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU)
+        if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU && CURRENT_DIALOG_MAYBE != DLG_PLAY)
         {
             if (redraw_flood_stop)
             {
@@ -4341,7 +4341,7 @@ menu_task( void* unused )
             if (gui_state == GUISTATE_MENUDISP && menu_shown)
                 menu_close();
 
-            if (!DISPLAY_IS_ON && menu_shown)
+            if (!DISPLAY_IS_ON && menu_shown && CURRENT_DIALOG_MAYBE != DLG_PLAY)
                 menu_close();
             
             continue;
@@ -5107,3 +5107,14 @@ void menu_self_test()
 
 #endif // CONFIG_STRESS_TEST
 #endif // CONFIG_PICOC
+
+int menu_request_image_backend()
+{
+    if (CURRENT_DIALOG_MAYBE != DLG_PLAY)
+    {
+        SetGUIRequestMode(DLG_PLAY);
+        return 0;
+    }
+    clrscr();
+    return 1;
+}

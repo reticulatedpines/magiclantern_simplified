@@ -45,6 +45,10 @@ int gui_menu_shown();
 void menu_show_only_selected();
 int get_menu_advanced_mode();
 
+/* call this if you want to display some image data in ML menu */
+/* (will stop LiveView and go to play mode) */
+int menu_request_image_backend();
+
 struct menu_display_info
 {
     char* name;
