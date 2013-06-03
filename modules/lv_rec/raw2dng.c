@@ -181,7 +181,7 @@ static int stripes_correction_needed = 0;
 #define F2H(x) COERCE(x - (8192-1024), 0, 2047)
 #define H2F(x) ((x) + (8192-1024))
 
-void add_pixel(int hist[8][2048], int num[8], int offset, int pa, int pb, int pc)
+static void add_pixel(int hist[8][2048], int num[8], int offset, int pa, int pb, int pc)
 {
     int a = pa;
     int b = pb;
@@ -242,8 +242,8 @@ static void detect_vertical_stripes_coeffs()
             int pd2 = PD - raw_info.black_level;
             int pe2 = PE - raw_info.black_level;
             int pf2 = PF - raw_info.black_level;
-            int pg2 = PG - raw_info.black_level;
-            int ph2 = PH - raw_info.black_level;
+            //~ int pg2 = PG - raw_info.black_level;
+            //~ int ph2 = PH - raw_info.black_level;
             
             /* verification: introducing strong banding in one column
              * should not affect the coefficients from the other columns */
