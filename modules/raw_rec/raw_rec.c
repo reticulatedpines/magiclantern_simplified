@@ -495,6 +495,8 @@ static unsigned int lv_rec_read_footer(FILE *f)
     res_y = footer.yRes;
     frame_count = footer.frameCount + 1;
     // raw_info = footer.raw_info;
+    raw_info.white_level = footer.raw_info.white_level;
+    raw_info.black_level = footer.raw_info.black_level;
     
     return 1;
 }
