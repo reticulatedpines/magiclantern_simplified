@@ -37,7 +37,7 @@
 #define PTP_RC_GeneralError     0x2002
 #define PTP_RC_ParameterNotSupported 0x2006
 
-#define BUF_SIZE 131072
+#define BUF_SIZE 128 * 1024
 
 /** @} */
 
