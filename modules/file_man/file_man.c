@@ -8,14 +8,9 @@
 #include <menu.h>
 #include "file_man.h"
 
+
+//Definitions
 #define MAX_PATH_LEN 0x80
-static char gPath[MAX_PATH_LEN];
-static char gStatusMsg[60];
-static unsigned int op_mode;
-
-static int cf_present;
-static int sd_present;
-
 struct file_entry
 {
     struct file_entry * next;
@@ -32,8 +27,6 @@ typedef struct _multi_files
     char name[MAX_PATH_LEN];
 }FILES_LIST;
 
-static FILES_LIST *mfile_root;
-
 
 #define TYPE_DIR 0
 #define TYPE_FILE 1
@@ -46,11 +39,28 @@ enum _FILER_OP {
     FILE_OP_PREVIEW
 };
 
+#define MAX_FILETYPE_HANDLERS 32
+struct filetype_handler
+{
+    char *extension;
+    char *type;
+    filetype_handler_func handler;
+};
+
+//Global values
+static char gPath[MAX_PATH_LEN];
+static char gStatusMsg[60];
+static unsigned int op_mode;
+
+static int cf_present;
+static int sd_present;
+
+static int view_file = 0; /* view file mode */
 static struct file_entry * file_entries = 0;
+static FILES_LIST *mfile_root;
+int fileman_filetype_registered = 0;
 
-/* view file mode */
-static int view_file = 0;
-
+//Prototypes
 static MENU_SELECT_FUNC(select_dir);
 static MENU_UPDATE_FUNC(update_dir);
 static MENU_SELECT_FUNC(select_file);
@@ -65,18 +75,11 @@ static MENU_SELECT_FUNC(FileOpCancel);
 static unsigned int mfile_add_tail();
 static unsigned int mfile_clean_all();
 static int mfile_is_regged(char *fname);
-
-#define MAX_FILETYPE_HANDLERS 32
-
-struct filetype_handler
-{
-    char *extension;
-    char *type;
-    filetype_handler_func handler;
-};
-
-int fileman_filetype_registered = 0;
 struct filetype_handler fileman_filetypes[MAX_FILETYPE_HANDLERS];
+
+/**********************************
+ ** code start from here
+ **********************************/
 
 /* this function has to be public so that other modules can register file types for viewing this file */
 unsigned int fileman_register_type(char *ext, char *type, filetype_handler_func handler)
