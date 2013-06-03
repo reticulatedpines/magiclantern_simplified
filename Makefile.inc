@@ -588,6 +588,9 @@ clean:
         *.map \
 		$(BIN_FILES) \
 		magiclantern.lds \
+		magiclantern.sym \
+        version.c \
+        version.bin \
 		*.bmp \
 		*.pdf \
 		*.txt \
