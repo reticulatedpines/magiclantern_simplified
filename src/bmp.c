@@ -695,6 +695,15 @@ read_file(
 
 
 /** Load a BMP file into memory so that it can be drawn onscreen */
+
+#ifdef CONFIG_USE_MALLOC_FOR_BMP
+#define BmpAlloc malloc
+#define BmpFree free
+#else
+#define BmpAlloc AllocateMemory
+#define BmpFree FreeMemory
+#endif
+
 struct bmp_file_t *
 bmp_load(
     const char *        filename,
@@ -824,6 +833,10 @@ getfilesize_fail:
     return NULL;
 }
 
+void bmp_free(struct bmp_file_t * bmp)
+{
+    if (bmp) BmpFree(bmp);
+}
 
 uint8_t* read_entire_file(const char * filename, int* buf_size)
 {

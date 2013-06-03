@@ -1774,17 +1774,6 @@ static void stress_test_task(void* unused)
     msleep(2000);
 #endif
 
-#ifdef FEATURE_PLAY_422
-    fake_simple_button(BGMT_PLAY); msleep(1000);
-    for (int i = 0; i < 100; i++)
-    {
-        NotifyBox(1000, "PLAY: 422 scrolling: %d", i);
-        play_next_422_task(1);
-    }
-    get_out_of_play_mode();
-    msleep(2000);
-#endif
-
     fake_simple_button(BGMT_PLAY); msleep(1000);
     for (int i = 0; i < 50; i++)
     {

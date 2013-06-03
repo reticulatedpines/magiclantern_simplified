@@ -1,10 +1,12 @@
 #define CONFIG_CONSOLE
+#define _file_man_c_
 
 #include <module.h>
 #include <dryos.h>
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
+#include "file_man.h"
 
 #define MAX_PATH_LEN 0x80
 static char gPath[MAX_PATH_LEN];
@@ -54,20 +56,19 @@ static MENU_SELECT_FUNC(FileMoveStart);
 static MENU_SELECT_FUNC(FileOpCancel);
 
 #define MAX_FILETYPE_HANDLERS 32
-#define FILEMAN_CMD_INFO 0
-#define FILEMAN_CMD_VIEW 1
+
 struct filetype_handler
 {
     char *extension;
     char *type;
-    unsigned int (*handler)(unsigned int cmd, char *file, char *data);
+    filetype_handler_func handler;
 };
 
 int fileman_filetype_registered = 0;
 struct filetype_handler fileman_filetypes[MAX_FILETYPE_HANDLERS];
 
 /* this function has to be public so that other modules can register file types for viewing this file */
-unsigned int fileman_register_type(char *ext, char *type, unsigned int (*handler)(unsigned int cmd, char *file, char *data))
+unsigned int fileman_register_type(char *ext, char *type, filetype_handler_func handler)
 {
     if(fileman_filetype_registered < MAX_FILETYPE_HANDLERS)
     {
@@ -307,6 +308,8 @@ static void restore_menu_selection(char* old_dir)
 
 static void BrowseUp()
 {
+    view_file = 0;
+
     char* p = gPath + strlen(gPath) - 2;
     while (p > gPath && *p != '/') p--;
 
@@ -548,6 +551,33 @@ static char *fileman_get_extension(char *filename)
     return NULL;
 }
 
+FILETYPE_HANDLER(text_handler)
+{
+    if (cmd != FILEMAN_CMD_VIEW_IN_MENU)
+        return 0; /* this handler only knows to show things in menu */
+    
+    char* buf = alloc_dma_memory(1025);
+    if (!buf) return 0;
+    
+    FILE * file = FIO_Open( filename, O_RDONLY | O_SYNC );
+    if (file != INVALID_PTR)
+    {
+        int r = FIO_ReadFile(file, buf, 1024);
+        FIO_CloseFile(file);
+        buf[r] = 0;
+        for (int i = 0; i < r; i++)
+            if (buf[i] == 0) buf[i] = ' ';
+        big_bmp_printf(FONT_MED, 0, 0, "%s", buf);
+        free_dma_memory(buf);
+        return 1;
+    }
+    else
+    {
+        free_dma_memory(buf);
+        return 0;
+    }
+}
+
 static MENU_SELECT_FUNC(viewfile_toggle)
 {
     char *ext = fileman_get_extension(gPath);
@@ -557,58 +587,32 @@ static MENU_SELECT_FUNC(viewfile_toggle)
         struct filetype_handler *filetype = fileman_find_filetype(ext);
         if(filetype)
         {
-            filetype->handler(FILEMAN_CMD_VIEW, gPath, NULL);
-            return;
+            int status = filetype->handler(FILEMAN_CMD_VIEW_OUTSIDE_MENU, gPath, NULL);
+            if (status > 0)
+            {
+                /* file is being viewed outside menu */
+                return;
+            }
+            else if (status < 0)
+            {
+                /* error */
+                beep();
+            }
+            /* else, we should display the file without leaving the menu */
         }
     }
     
+    BrowseUp();
     view_file = !view_file;
 }
 
-static MENU_UPDATE_FUNC(viewfile_show)
+static MENU_UPDATE_FUNC(viewfile_update)
 {
-    if (view_file)
-    {
-        char* buf = alloc_dma_memory(1025);
-        if (!buf)
-        {
-            view_file = 0;
-            return;
-        }
-        FILE * file = FIO_Open( gPath, O_RDONLY | O_SYNC );
-        if (file != INVALID_PTR)
-        {
-            int r = FIO_ReadFile(file, buf, 1024);
-            FIO_CloseFile(file);
-            buf[r] = 0;
-            for (int i = 0; i < r; i++)
-                if (buf[i] == 0) buf[i] = ' ';
-            info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-            clrscr();
-            big_bmp_printf(FONT_MED, 0, 0, "%s", buf);
-        }
-        else
-        {
-            MENU_SET_WARNING(MENU_WARN_ADVICE, "Error reading %s", gPath);
-            view_file = 0;
-        }
-        free_dma_memory(buf);
-    }
-    else
-    {
-        char *ext = fileman_get_extension(gPath);
-        
-        if(ext)
-        {
-            struct filetype_handler *filetype = fileman_find_filetype(ext);
-            if(filetype)
-            {
-                MENU_SET_RINFO("Type: %s", filetype->type);
-            }
-        }
-
-        update_action(entry, info);
-    }
+    char *ext = fileman_get_extension(gPath);
+    struct filetype_handler *filetype = NULL;
+    if (ext) filetype = fileman_find_filetype(ext);
+    if(filetype) MENU_SET_RINFO("Type: %s", filetype->type);
+    update_action(entry, info);
 }
 
 static int delete_confirm_flag = 0;
@@ -649,6 +653,8 @@ static MENU_UPDATE_FUNC(delete_confirm)
 
 static MENU_SELECT_FUNC(select_file)
 {
+    if (view_file) { view_file = 0; return; }
+
     struct file_entry * fe = (struct file_entry *) priv;
 
     /* fe will be freed in clear_file_menu; backup things that we are going to reuse */
@@ -689,14 +695,13 @@ static MENU_SELECT_FUNC(select_file)
     if (e)
     {
         e->menu_entry.select = viewfile_toggle;
-        e->menu_entry.update = viewfile_show;
+        e->menu_entry.update = viewfile_update;
     }
 
     e = add_file_entry(name, TYPE_FILE, size);
     if (e)
     {
         e->menu_entry.select = BrowseUpMenu;
-        e->menu_entry.select_Q = BrowseUpMenu;
         e->menu_entry.priv = e;
     }
 
@@ -720,7 +725,53 @@ static MENU_UPDATE_FUNC(update_file)
     MENU_SET_RINFO("%s", format_size(fe->size));
     MENU_SET_ICON(MNI_OFF, 0);
     update_status(entry, info);
-    if (entry->selected) view_file = 0;
+    
+    static int dirty = 0;
+    if (!view_file) dirty = 1;
+    
+    if (entry->selected && view_file)
+    {
+        static int last_updated = 0;
+        int t = get_ms_clock_value();
+        if (t - last_updated > 1000) dirty = 1;
+
+        char filename[MAX_PATH_LEN];
+        snprintf(filename, sizeof(filename), "%s%s", gPath, fe->name);
+
+        static char prev_filename[MAX_PATH_LEN];
+        if (!streq(prev_filename, filename)) dirty = 1;
+        snprintf(prev_filename, sizeof(prev_filename), "%s", filename);
+
+        if (dirty)
+        {
+            dirty = 0;
+            info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+            bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+
+            int status = 0;
+
+            /* custom handler? try it first */
+            char *ext = fileman_get_extension(filename);
+            struct filetype_handler *filetype = fileman_find_filetype(ext);
+            if (filetype)
+                status = filetype->handler(FILEMAN_CMD_VIEW_IN_MENU, filename, NULL);
+            
+            /* custom handler doesn't know how to display the file? try the default handler */
+            if (status == 0) status = text_handler(FILEMAN_CMD_VIEW_IN_MENU, filename, NULL);
+            
+            /* error? */
+            if (status <= 0) bmp_printf(FONT_MED, 0, 460, "Error viewing %s (%s)", gPath, filetype->type);
+            else bmp_printf(FONT_MED, 0, 460, "%s", filename);
+            
+            if (status != 1) dirty = 1;
+        }
+        else
+        {
+            /* nothing changed, keep previous screen */
+            info->custom_drawing = CUSTOM_DRAW_DO_NOT_DRAW;
+        }
+        last_updated = get_ms_clock_value();
+    }
 }
 
 static MENU_SELECT_FUNC(default_select_action)

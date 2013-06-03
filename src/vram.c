@@ -600,6 +600,11 @@ struct vram_info * get_yuv422_hd_vram()
     return &vram_hd;
 }
 
+void vram_clear_lv()
+{
+    struct vram_info * lv_vram = get_yuv422_vram();
+    memset(lv_vram->vram, 0, lv_vram->height * lv_vram->pitch);
+}
 
 // those properties may signal a screen layout change
 

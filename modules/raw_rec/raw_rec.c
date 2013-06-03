@@ -25,6 +25,7 @@
 #include <config.h>
 #include "../lv_rec/lv_rec.h"
 #include "edmac.h"
+#include "../file_man/file_man.h"
 
 /* when enabled, it hooks shortcut keys */
 static int raw_video_enabled = 0;
@@ -114,7 +115,6 @@ static int frame_skips = 0;                       /* how many frames were droppe
 static char* movie_filename = 0;                  /* file name for current (or last) movie */
 
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_frame(unsigned char *);
-extern WEAK_FUNC(ret_1) unsigned int fileman_register_type(char *ext, char *type, void(*func)(unsigned int cmd, char *file, char *data));
 
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
@@ -591,7 +591,7 @@ static void show_buffer_status(int adj)
     if (!liveview_display_idle()) return;
     
     int free_buffers = mod(saving_buffer_index - capturing_buffer_index, buffer_count); /* how many free slots do we have? */
-    if (free_buffers == 0) free_buffers = 4; /* saving task waiting for capturing task */
+    if (free_buffers == 0) free_buffers = buffer_count; /* saving task waiting for capturing task */
     free_buffers += adj; /* when skipping frames, adj is -1, because capturing_buffer_index was not incremented yet */
     
     /* could use a nicer display, but stars should be fine too */
@@ -907,6 +907,7 @@ static void raw_video_rec_task()
     buffer_count = 0;
     capturing_buffer_index = 0;
     saving_buffer_index = 0;
+    fullsize_buffer_pos = 0;
     capture_offset = 0;
     frame_count = 0;
     frame_skips = 0;
@@ -915,7 +916,11 @@ static void raw_video_rec_task()
     FILE* f = 0;
     uint32_t written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
-    
+
+    /* disable canon graphics (gains a little speed) */
+    int canon_gui = !canon_gui_front_buffer_disabled();
+    canon_gui_disable_front_buffer();
+
     /* create a backup file, to make sure we can save the file footer even if the card is full */
     char backup_filename[100];
     snprintf(backup_filename, sizeof(backup_filename), "%s/backup.raw", get_dcim_dir());
@@ -1144,6 +1149,7 @@ cleanup:
     if (!written) { FIO_RemoveFile(movie_filename); movie_filename = 0; }
     FIO_RemoveFile(backup_filename);
     free_buffers();
+    if (canon_gui) canon_gui_enable_front_buffer(0);
     redraw();
     raw_recording_state = RAW_IDLE;
 }
@@ -1214,9 +1220,9 @@ static void raw_video_playback_task()
     buf = shoot_malloc(raw_info.frame_size);
     if (!buf)
         goto cleanup;
+
+    vram_clear_lv();
     
-    struct vram_info * lv_vram = get_yuv422_vram();
-    memset(lv_vram->vram, 0, lv_vram->width * lv_vram->pitch);
     for (int i = 0; i < frame_count-1; i++)
     {
         bmp_printf(FONT_MED, os.x_max - font_med.width*10, os.y_max - 20, "%d/%d", i+1, frame_count-1);
@@ -1254,22 +1260,19 @@ static void raw_video_playback(char *filename)
     task_create("raw_rec_task", 0x1e, 0x1000, raw_video_playback_task, (void*)0);
 }
 
-#define FILEMAN_CMD_INFO 0
-#define FILEMAN_CMD_VIEW 1
-
-void raw_rec_filehandler(unsigned int cmd, char *file, char *data)
+FILETYPE_HANDLER(raw_rec_filehandler)
 {
     /* there is no header and clean interface yet */
     switch(cmd)
     {
         case FILEMAN_CMD_INFO:
             strcpy(data, "A 14-bit RAW Video");
-            break;
-        case FILEMAN_CMD_VIEW:
-            raw_video_playback(file);
-            break;
+            return 1;
+        case FILEMAN_CMD_VIEW_OUTSIDE_MENU:
+            raw_video_playback(filename);
+            return 1;
     }
-    return;
+    return 0; /* command not handled */
 }
 
 static MENU_SELECT_FUNC(raw_playback_start)
@@ -1486,7 +1489,14 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     raw_preview_fast_ex((void*)-1, PREVIEW_HACKED && RAW_RECORDING ? (void*)-1 : buffers->dst_buf, -1, -1, !get_halfshutter_pressed());
     raw_previewing = 0;
 
-    if (!RAW_IS_IDLE) msleep(250); /* be gentle with the CPU, save it for recording */
+    if (!RAW_IS_IDLE)
+    {
+        /* be gentle with the CPU, save it for recording (especially if the buffer is almost full) */
+        int free_buffers = mod(saving_buffer_index - capturing_buffer_index, buffer_count);
+        if (free_buffers == 0) free_buffers = buffer_count;
+        int used_buffers = buffer_count - free_buffers;
+        msleep(free_buffers <= 2 ? 2000 : used_buffers > 1 ? 1000 : 100);
+    }
     return 1;
 }
 

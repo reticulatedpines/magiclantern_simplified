@@ -652,14 +652,6 @@ void set_afma(int value, int mode);
 #define SmallFree FreeMemory
 #endif
 
-#ifdef CONFIG_USE_MALLOC_FOR_BMP
-#define BmpAlloc malloc
-#define BmpFree free
-#else
-#define BmpAlloc AllocateMemory
-#define BmpFree FreeMemory
-#endif
-
 #define IS_ML_PTR(val) ((uintptr_t)(val) > (uintptr_t)0x1000)
 
 
