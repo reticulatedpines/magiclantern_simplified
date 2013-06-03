@@ -145,6 +145,9 @@
 #define DLG_Q_UNAVI 0x21
 #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1c)
 #define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1d)
+#define DLG_PLAY 1
+#define DLG_MENU 2
+
 
 // trial and error
 // choose a gui mode which lets you:
