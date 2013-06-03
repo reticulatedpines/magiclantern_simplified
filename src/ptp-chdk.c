@@ -542,7 +542,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                 }
 
                 char *buf;
-                buf = (char *) alloc_dma_memory(BUF_SIZE+64);
+                buf = (char *) alloc_dma_memory(BUF_SIZE);
                 if ( buf == NULL )
                 {
                     msg.id = PTP_RC_GeneralError;
