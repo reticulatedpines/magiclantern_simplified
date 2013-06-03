@@ -15,7 +15,7 @@ static struct edmac_info dst_edmac_info;
 #if defined(CONFIG_5D2)
 uint32_t edmac_read_chan = 0x19;
 uint32_t edmac_write_chan = 0x3;
-#elif defined(CONFIG_650D)
+#elif defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
 uint32_t edmac_read_chan = 0x19;
 uint32_t edmac_write_chan = 0x13;
 #else
