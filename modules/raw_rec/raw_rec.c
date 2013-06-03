@@ -591,7 +591,7 @@ static void show_buffer_status(int adj)
     if (!liveview_display_idle()) return;
     
     int free_buffers = mod(saving_buffer_index - capturing_buffer_index, buffer_count); /* how many free slots do we have? */
-    if (free_buffers == 0) free_buffers = 4; /* saving task waiting for capturing task */
+    if (free_buffers == 0) free_buffers = buffer_count; /* saving task waiting for capturing task */
     free_buffers += adj; /* when skipping frames, adj is -1, because capturing_buffer_index was not incremented yet */
     
     /* could use a nicer display, but stars should be fine too */
@@ -907,6 +907,7 @@ static void raw_video_rec_task()
     buffer_count = 0;
     capturing_buffer_index = 0;
     saving_buffer_index = 0;
+    fullsize_buffer_pos = 0;
     capture_offset = 0;
     frame_count = 0;
     frame_skips = 0;
@@ -915,7 +916,11 @@ static void raw_video_rec_task()
     FILE* f = 0;
     uint32_t written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
-    
+
+    /* disable canon graphics (gains a little speed) */
+    int canon_gui = !canon_gui_front_buffer_disabled();
+    canon_gui_disable_front_buffer();
+
     /* create a backup file, to make sure we can save the file footer even if the card is full */
     char backup_filename[100];
     snprintf(backup_filename, sizeof(backup_filename), "%s/backup.raw", get_dcim_dir());
@@ -1144,6 +1149,7 @@ cleanup:
     if (!written) { FIO_RemoveFile(movie_filename); movie_filename = 0; }
     FIO_RemoveFile(backup_filename);
     free_buffers();
+    if (canon_gui) canon_gui_enable_front_buffer(0);
     redraw();
     raw_recording_state = RAW_IDLE;
 }
@@ -1483,7 +1489,14 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     raw_preview_fast_ex((void*)-1, PREVIEW_HACKED && RAW_RECORDING ? (void*)-1 : buffers->dst_buf, -1, -1, !get_halfshutter_pressed());
     raw_previewing = 0;
 
-    if (!RAW_IS_IDLE) msleep(250); /* be gentle with the CPU, save it for recording */
+    if (!RAW_IS_IDLE)
+    {
+        /* be gentle with the CPU, save it for recording (especially if the buffer is almost full) */
+        int free_buffers = mod(saving_buffer_index - capturing_buffer_index, buffer_count);
+        if (free_buffers == 0) free_buffers = buffer_count;
+        int used_buffers = buffer_count - free_buffers;
+        msleep(free_buffers <= 2 ? 2000 : used_buffers > 1 ? 1000 : 100);
+    }
     return 1;
 }
 
