@@ -6,19 +6,32 @@
 #include <bmp.h>
 #include <property.h>
 
+#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
+#define CONFIG_LVAPP_HACK_RELOC
+#elif defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
+#define CONFIG_LVAPP_HACK_DEBUGMSG
+#elif defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D)
+#define CONFIG_LVAPP_HACK_FBUFF
+#endif
+
+#if defined(CONFIG_LVAPP_HACK_RELOC) || defined(CONFIG_LVAPP_HACK_DEBUGMSG) || defined(CONFIG_LVAPP_HACK_FBUFF)
+#define CONFIG_LVAPP_HACK
+#endif
+
 static int bottom_bar_dirty = 0;
 static int last_time_active = 0;
 
 int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
 int get_last_time_active() { return last_time_active; }
 
+// disable Canon bottom bar
+static int bottom_bar_hack = 0;
+
+#if defined(CONFIG_LVAPP_HACK_DEBUGMSG)
+
 #ifdef CONFIG_5D3
 extern int cf_card_workaround;
 #endif
-
-#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
-// disable Canon bottom bar
-static int bottom_bar_hack = 0;
 
 static void hacked_DebugMsg(int class, int level, char* fmt, ...)
 {
@@ -29,10 +42,6 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
         MEM(0x841C0) = 0;
     #elif defined(CONFIG_EOSM)
         MEM(0x5D88C) = 0;
-    #elif defined(CONFIG_1100D)
-        MEM(0xCBBC+0x5C) = 0;
-    #elif defined(CONFIG_650D)
-        MEM(0x41868+0x58) = 0;
     #endif
 
     #ifdef CONFIG_5D3
@@ -81,105 +90,69 @@ static void DebugMsg_uninstall()
 
 INIT_FUNC("debugmsg-hack", DebugMsg_hack);
 
-#endif
-int fbuff=1;
+#endif // CONFIG_LVAPP_HACK_DEBUGMSG
 
 int handle_other_events(struct event * event)
 {
     extern int ml_started;
     if (!ml_started) return 1;
 
-#if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
-    if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
+#ifdef CONFIG_LVAPP_HACK
+
+    unsigned short int lv_refreshing = lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV;
+    unsigned short int should_hide = lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1;
+    
+    if(lv_refreshing)
     {
-        if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
+        if(should_hide)
         {
-            // install a modified handler which does not activate bottom bar display timer
+            #ifdef CONFIG_LVAPP_HACK_RELOC
             reloc_liveviewapp_install();
+            #endif
             
-            if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
-
-            if (UNAVI_FEEDBACK_TIMER_ACTIVE)
-            {
-                HideUnaviFeedBack_maybe();
-                bottom_bar_dirty = 0;
-            }
-
-        }
-        else
-        {
-            reloc_liveviewapp_uninstall();
-            bottom_bar_dirty = 0;
-        }
-        
-        if (!liveview_display_idle()) bottom_bar_dirty = 0;
-        if (bottom_bar_dirty) bottom_bar_dirty--;
-
-        if (bottom_bar_dirty == 1)
-        {
-            lens_display_set_dirty();
-        }
-    }
-#elif defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
-    if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
-    {
-        if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
-        {
             bottom_bar_hack = 1;
+
             if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
 
+            #ifdef CONFIG_LVAPP_HACK_FBUFF
+            if (!canon_gui_front_buffer_disabled() && UNAVI_FEEDBACK_TIMER_ACTIVE)
+            {
+                clrscr();
+                canon_gui_disable_front_buffer();
+                bottom_bar_dirty=0;
+            }
+
+            if (canon_gui_front_buffer_disabled() && !UNAVI_FEEDBACK_TIMER_ACTIVE)
+            {
+                canon_gui_enable_front_buffer(0);
+            }
+            #else
             if (UNAVI_FEEDBACK_TIMER_ACTIVE)
             {
                 HideUnaviFeedBack_maybe();
                 bottom_bar_dirty = 0;
             }
+            #endif
+
         }
         else
         {
+            #ifdef CONFIG_LVAPP_HACK_RELOC
+            reloc_liveviewapp_uninstall();
+            #endif
+
             bottom_bar_hack  = 0;
             bottom_bar_dirty = 0;
         }
 
         if (!liveview_display_idle()) bottom_bar_dirty = 0;
         if (bottom_bar_dirty) bottom_bar_dirty--;
-        
-        if (bottom_bar_dirty == 1)
-        {
-            lens_display_set_dirty();
-        }
-    }
-#elif defined(CONFIG_650D)
-    if (lv && event->type == 2 && event->param == GMT_LOCAL_DIALOG_REFRESH_LV)
-    {
-        if (lv_disp_mode == 0 && get_global_draw_setting() && liveview_display_idle() && lv_dispsize == 1)
-        {
-            if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
-
-            if (fbuff && UNAVI_FEEDBACK_TIMER_ACTIVE)
-            {
-                clrscr();
-                canon_gui_disable_front_buffer();
-                bottom_bar_dirty=0;
-                fbuff = 0;
-            }
-            if (!fbuff && !UNAVI_FEEDBACK_TIMER_ACTIVE)
-            {
-                canon_gui_enable_front_buffer(0);
-                fbuff=1;
-            }
-        }
-        else
-        {
-            bottom_bar_dirty = 0;
-        }
-
-        if (!liveview_display_idle()) bottom_bar_dirty = 0;
-        if (bottom_bar_dirty) bottom_bar_dirty--;
 
         if (bottom_bar_dirty == 1)
         {
             lens_display_set_dirty();
         }
+
     }
 #endif
     return 1;
