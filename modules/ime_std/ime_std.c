@@ -218,6 +218,8 @@ static unsigned int ime_std_keypress_cbr(unsigned int key)
         case MODULE_KEY_PRESS_SET:
             if(ime_std_selection < ime_std_charcount)
             {
+                unsigned char selected_char = ime_std_charset[ime_std_selection];
+                
                 if(selected_char == CHAR_DEL)
                 {
                     /* todo: real backspace/delete */
@@ -236,7 +238,7 @@ static unsigned int ime_std_keypress_cbr(unsigned int key)
                 }
                 else
                 {
-                    ime_std_string[ime_std_caret_pos] = ime_std_charset[ime_std_selection];
+                    ime_std_string[ime_std_caret_pos] = selected_char;
                     ime_std_caret_pos++;
                 }
             }
