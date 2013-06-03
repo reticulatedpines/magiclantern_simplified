@@ -687,29 +687,37 @@ static MENU_UPDATE_FUNC(delete_confirm)
         MENU_SET_RINFO("Press SET to confirm");
 }
 
-static int mfile_is_regged(char *fname){
+static int 
+mfile_is_regged(char *fname)
+{
     char tmpfname[MAX_PATH_LEN];
     strcpy(tmpfname,gPath);
     if(strlen(fname))
         STR_APPEND(tmpfname,fname);
 
     FILES_LIST *tmpmf = mfile_root;
-    while(tmpmf->next){
+    while(tmpmf->next)
+    {
         tmpmf = tmpmf->next;
-        if(!strcmp(tmpmf->name,tmpfname)){ //match
+        if(!strcmp(tmpmf->name,tmpfname))
+        { //match
             return 1;
         }
     }
     return 0;
 }
 
-static unsigned int mfile_find_remove(){
+static unsigned int 
+mfile_find_remove()
+{
     FILES_LIST *prevmf;
     FILES_LIST *tmpmf = mfile_root;
-    while(tmpmf->next){
+    while(tmpmf->next)
+    {
         prevmf = tmpmf;
         tmpmf = tmpmf->next;
-        if(!strcmp(tmpmf->name,gPath)){ //match
+        if(!strcmp(tmpmf->name,gPath))
+        { //match
             prevmf->next = tmpmf->next;
             FreeMemory((void *)tmpmf);
             return 1;
@@ -718,7 +726,9 @@ static unsigned int mfile_find_remove(){
     return 0;
 }
 
-static unsigned int mfile_add_tail(){
+static unsigned int 
+mfile_add_tail()
+{
     console_printf("mf_add %s\n",gPath);
     FILES_LIST *newmf;
     FILES_LIST *tmpmf = mfile_root;
@@ -734,10 +744,13 @@ static unsigned int mfile_add_tail(){
     return 0;
 }
 
-static unsigned int mfile_clean_all(){
+static unsigned int 
+mfile_clean_all()
+{
     FILES_LIST *prevmf;
     FILES_LIST *tmpmf = mfile_root;
-    while(tmpmf->next){
+    while(tmpmf->next)
+    {
         prevmf = tmpmf;
         tmpmf = tmpmf->next;
         prevmf->next = tmpmf->next;
@@ -832,16 +845,20 @@ static MENU_SELECT_FUNC(select_file)
 static MENU_UPDATE_FUNC(update_status)
 {
     MENU_SET_HELP(gPath);
-    if (op_mode != FILE_OP_NONE){
+    if (op_mode != FILE_OP_NONE)
+    {
         FILES_LIST *tmpmf = mfile_root;
         int i = 0;
-        while(tmpmf->next){
+        while(tmpmf->next)
+        {
             tmpmf = tmpmf->next;
             i++;
         }
-        if(i == 1){
+        if(i == 1)
+        {
             MENU_SET_WARNING(MENU_WARN_INFO, "%s %s", op_mode == FILE_OP_COPY ? "Copy" : "Move", tmpmf->name);
-        }else{
+        }else
+        {
             MENU_SET_WARNING(MENU_WARN_INFO, "%s MultipleFiles", op_mode == FILE_OP_COPY ? "Copy" : "Move");
         }            
     }else if (gStatusMsg[0])
