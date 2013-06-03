@@ -344,7 +344,7 @@ void update_vram_params()
     vram_hd.pitch = hd_size & 0xFFFF;
     vram_hd.width = vram_hd.pitch / 2;
     vram_hd.height = ((hd_size >> 16) & 0xFFFF)
-        #if !defined(CONFIG_5D3) && !defined(CONFIG_EOSM) && !defined(CONFIG_650D) && !defined(CONFIG_6D)
+        #if !defined(CONFIG_DIGIC_V)
         + 1
         #endif
         ;
