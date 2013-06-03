@@ -25,6 +25,7 @@
 #include <config.h>
 #include "../lv_rec/lv_rec.h"
 #include "edmac.h"
+#include "../file_man/file_man.h"
 
 /* when enabled, it hooks shortcut keys */
 static int raw_video_enabled = 0;
@@ -114,7 +115,6 @@ static int frame_skips = 0;                       /* how many frames were droppe
 static char* movie_filename = 0;                  /* file name for current (or last) movie */
 
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_frame(unsigned char *);
-extern WEAK_FUNC(ret_1) unsigned int fileman_register_type(char *ext, char *type, void(*func)(unsigned int cmd, char *file, char *data));
 
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
@@ -1254,22 +1254,19 @@ static void raw_video_playback(char *filename)
     task_create("raw_rec_task", 0x1e, 0x1000, raw_video_playback_task, (void*)0);
 }
 
-#define FILEMAN_CMD_INFO 0
-#define FILEMAN_CMD_VIEW 1
-
-void raw_rec_filehandler(unsigned int cmd, char *file, char *data)
+FILETYPE_HANDLER(raw_rec_filehandler)
 {
     /* there is no header and clean interface yet */
     switch(cmd)
     {
         case FILEMAN_CMD_INFO:
             strcpy(data, "A 14-bit RAW Video");
-            break;
-        case FILEMAN_CMD_VIEW:
-            raw_video_playback(file);
-            break;
+            return 1;
+        case FILEMAN_CMD_VIEW_OUTSIDE_MENU:
+            raw_video_playback(filename);
+            return 1;
     }
-    return;
+    return 0; /* command not handled */
 }
 
 static MENU_SELECT_FUNC(raw_playback_start)
