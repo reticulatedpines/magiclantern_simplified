@@ -2053,9 +2053,19 @@ static struct menu_entry key_menus[] = {
             {
                 .name = "Snap points",
                 .priv = &focus_box_lv_jump,
+                #ifdef FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
+                .max = 5,
+                #else
                 .max = 4,
+                #endif
                 .icon_type = IT_DICE_OFF,
-                .choices = (const char *[]) {"Center (OFF)", "Center/Top/Right", "Center/T/R/B/L", "Center/TL/TR/BR/BL", "Center + 8 pts"},
+                .choices = (const char *[]) 
+                {
+                    "Center (OFF)", "Center/Top/Right", "Center/T/R/B/L", "Center/TL/TR/BR/BL", "Center + 8 pts"
+                    #ifdef FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
+                    ,"Center to x5 RAW"
+                    #endif
+                },
                 .help = "Snap the focus box to preset points (press CENTER key)",
             },
             #endif
