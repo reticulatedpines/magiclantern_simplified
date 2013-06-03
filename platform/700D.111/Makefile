@@ -4,7 +4,7 @@ TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=101
+FW_VERSION=111
 MODEL=700D
 ML_VERSION=unified1 
 
