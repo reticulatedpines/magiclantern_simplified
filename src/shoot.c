@@ -3898,18 +3898,13 @@ static int auto_ettr_check_pre_lv()
     if (lens_info.raw_iso == 0) return 0;
     if (lens_info.raw_shutter == 0) return 0;
     if (HDR_ENABLED) return 0;
-
-    if (lv && raw_lv_is_enabled()) return 1;
-
-    int raw = pic_quality & 0x60000;
-    if (!raw) return 0;
-    return 1;
+    int raw = is_movie_mode() ? raw_lv_is_enabled() : pic_quality & 0x60000;
+    return raw;
 }
 
 static int auto_ettr_check_in_lv()
 {
     if (!expsim) return 0;
-    if (is_movie_mode() && !raw_lv_is_enabled()) return 0;
     if (lv_dispsize != 1) return 0;
     if (LV_PAUSED) return 0;
     if (!liveview_display_idle()) return 0;
@@ -4028,9 +4023,10 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_MOVIE)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR only works in M and RAW MOVIE modes.");
 
-    int raw = pic_quality & 0x60000;
-    if (!raw && !raw_lv_is_enabled())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You must shoot RAW in order to use this.");
+    int raw = is_movie_mode() ? raw_lv_is_enabled() : pic_quality & 0x60000;
+
+    if (!raw)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "[%s] You must shoot RAW in order to use this.", is_movie_mode() ? "MOVIE" : "PHOTO");
 
     if (!lv && !can_use_raw_overlays_photo() && AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available, try in LiveView.");
