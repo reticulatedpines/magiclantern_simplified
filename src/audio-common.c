@@ -1,8 +1,4 @@
 
-#if defined(CONFIG_50D)
-#include "disable-this-module.h"
-#endif
-
 #define SOUND_RECORDING_ENABLED (sound_recording_mode != 1) // not 100% sure
 
 #if defined(CONFIG_500D) || defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D)
@@ -96,9 +92,6 @@ audio_level_to_db(
     
     return 0;
 }
-
-
-
 
 #ifdef OSCOPE_METERS
 void draw_meters(void)
@@ -876,13 +869,21 @@ audio_o2gain_display( void * priv, int x, int y, int selected )
 
 static const char* get_audio_input_string()
 {
-    return 
-        (input_choice == 0 ? "Internal mic" : 
-         (input_choice == 1 ? "L:int R:ext" :
-          (input_choice == 2 ? "External stereo" : 
-           (input_choice == 3 ? "L:int R:balanced" : 
-            (input_choice == 4 ? (mic_inserted ? "Auto int/EXT " : "Auto INT/ext") : 
-             "error")))));
+    switch(input_choice) {
+        case 0:
+            return "Internal mic";
+        case 1:
+            return "L:int R:ext";
+        case 2:
+            return "External Stereo";
+        case 3:
+            return "L:int R:balanced";
+        case 4:
+            return (mic_inserted? "Auto int/EXT" : "Auto INT/ext");
+        default:
+            break;
+    }
+    return "error";
 }
 
 
@@ -917,12 +918,10 @@ audio_monitoring_toggle( void * priv, int delta )
 }
 
 static void
-enable_recording(
-                 int                    mode
-                 )
+enable_recording(int mode)
 {
     switch( mode )
-        {
+    {
         case 0:
             // Movie recording stopped;  (fallthrough)
         case 2:
@@ -939,7 +938,7 @@ enable_recording(
         default:
             // Uh?
             break;
-        }
+    }
 }
 
 // to be called from some other tasks that may mess with audio 
@@ -949,9 +948,7 @@ static void audio_force_reconfigure()
 }
 
 static void
-enable_meters(
-              int                       mode
-              )
+enable_meters(int mode)
 {
     loopback = do_draw_meters = !mode;
 #if !defined(CONFIG_600D)
