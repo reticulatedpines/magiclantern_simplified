@@ -7417,6 +7417,20 @@ shoot_task( void* unused )
             }
             intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);
             intervalometer_pictures_taken++;
+            
+            #ifdef FEATURE_AUTO_ETTR
+            if (auto_ettr && image_review_time)
+            {
+                /* make sure auto ETTR has a chance to run (it's triggered by prop handler on QR mode) */
+                /* timeout: a bit more than exposure time, to handle long expo noise reduction */
+                for (int i = 0; i < raw2shutter_ms(lens_info.raw_shutter)/100; i++)
+                {
+                    if (QR_OR_PLAY) break;
+                    msleep(150);
+                }
+                msleep(500);
+            }
+            #endif
 
             #ifdef FEATURE_BULB_RAMPING
             if (BULB_EXPOSURE_CONTROL_ACTIVE)
