@@ -11,9 +11,9 @@
 
 #include "../ime_base/ime_base.h"
 
-#define CHAR_OK     '\001'
-#define CHAR_CANCEL '\002'
-#define CHAR_DEL    '\008'
+#define CHAR_OK     0x01
+#define CHAR_CANCEL 0x02
+#define CHAR_DEL    0x08
 
 unsigned char *ime_std_string = NULL;
 
