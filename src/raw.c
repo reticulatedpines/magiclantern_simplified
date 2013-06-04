@@ -35,7 +35,7 @@
 #define RAW_LV_EDMAC 0xC0F26008
 #endif
 
-#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_650D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_DIGIC_V) || defined(CONFIG_600D) || defined(CONFIG_60D)
 /* probably all new cameras use this address */
 #define RAW_LV_EDMAC 0xC0F26208
 #endif
@@ -49,7 +49,7 @@
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_600D) || (defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME))
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
@@ -186,7 +186,7 @@ void raw_buffer_intercept_from_stateobj()
 #endif
 
 
-#if defined(CONFIG_650D) || defined(CONFIG_EOSM) //Same sensor??
+#if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D) //Same sensor??. TODO: Check 700D/100D
     //~ { "Canon EOS 650D", 0, 0x354d,
     //~ { "Canon EOS M", 0, 0,
     //~ { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
@@ -311,7 +311,7 @@ int raw_update_params()
         #endif
 
 
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
         skip_top    = 28;
         skip_left   = 74;
         skip_right  = 0;
@@ -420,7 +420,7 @@ int raw_update_params()
         skip_top = 50;
         #endif
 
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
         width = 5280;
         height = 3528;
         skip_left = 72;
