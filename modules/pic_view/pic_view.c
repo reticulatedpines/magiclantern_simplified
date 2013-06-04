@@ -6,6 +6,138 @@
 #include <bmp.h>
 #include <menu.h>
 #include "../file_man/file_man.h"
+#include "raw.h"
+
+#define T_BYTE      1
+#define T_ASCII     2
+#define T_SHORT     3
+#define T_LONG      4
+#define T_RATIONAL  5
+#define T_SBYTE     6
+#define T_UNDEFINED 7
+#define T_SSHORT    8
+#define T_SLONG     9
+#define T_SRATIONAL 10
+#define T_FLOAT     11
+#define T_DOUBLE    12
+
+static int tif_parse_ifd(int id, char* buf, int off)
+{
+    int entries = *(short*)(buf+off); off += 2;
+    //~ printf("ifd %d: (%d)\n", id, entries);
+    int imagetype = -1;
+    for (int i = 0; i < entries; i++)
+    {
+        unsigned int tag = *(unsigned short*)(buf+off); off += 2;
+        unsigned int type = *(unsigned short*)(buf+off); off += 2; (void)type;
+        unsigned int count = *(unsigned int*)(buf+off); off += 4; (void)count;
+        unsigned int data = *(unsigned int*)(buf+off); off += 4;
+        //~ printf("%x %x %x %d\n", tag, type, count, data);
+        
+        switch (tag)
+        {
+            case 0xFE: /* NewSubFileType */
+                imagetype = data;
+                break;
+            
+            case 0x14A: /* SubIFD */
+                //~ printf("subifd: %x\n", data);
+                tif_parse_ifd(id+10, buf, data);
+                break;
+        }
+        
+        if (imagetype == 0) /* NewSubFileType: Main Image */
+        {
+            switch (tag)
+            {
+                case 0x100: /* ImageWidth */
+                    //~ printf("width: %d\n", data);
+                    raw_info.width = data;
+                    break;
+                case 0x101: /* ImageLength */
+                    //~ printf("height: %d\n", data);
+                    raw_info.height = data;
+                    break;
+                case 0x111: /* StripOffset */
+                    //~ printf("buffer offset: %d\n", data);
+                    raw_info.buffer = buf + data;
+                    break;
+                case 0xC61A: /* BlackLevel */
+                    //~ printf("black: %d\n", data);
+                    raw_info.black_level = data;
+                    break;
+                case 0xC61D: /* WhiteLevel */
+                    //~ printf("white: %d\n", data);
+                    raw_info.white_level = data;
+                    break;
+                case 0xC68D: /* active area */
+                {
+                    int* area = (void*)buf + data;
+                    //~ printf("crop: %d %d %d %d\n", area[0], area[1], area[2], area[3]);
+                    memcpy(&raw_info.active_area, area, 4 * 4);
+                    break;
+                }
+            }
+        }
+    }
+    unsigned int next = *(unsigned int*)(buf+off); off += 4;
+    return next;
+}
+
+static void FAST reverse_bytes_order(char* buf, int count)
+{
+    short* buf16 = (short*) buf;
+    int i;
+    for (i = 0; i < count/2; i++)
+    {
+        short x = buf16[i];
+        buf[2*i+1] = x;
+        buf[2*i] = x >> 8;
+    }
+}
+
+static int dng_show(char* filename)
+{
+    uint32_t size;
+    if( FIO_GetFileSize( filename, &size ) != 0 ) return 0;
+    char* buf = shoot_malloc(size);
+    if (!buf) return 0;
+
+    size_t rc = read_file( filename, buf, size );
+    if( rc != size ) goto err;
+
+    int* buf32 = (int*) buf;
+    if (buf32[0] != 0x002A4949 && buf32[1] != 0x00000008)
+    {
+        bmp_printf(FONT_MED, 0, 0, "Not a CHDK DNG");
+        goto err;
+    }
+
+    raw_info.width = 0;
+    raw_info.height = 0;
+    
+    int off = 8;
+    for (int ifd = 0; off; ifd++)
+        off = tif_parse_ifd(ifd, buf, off);
+    
+    if (!raw_info.width) goto err;
+    if (!raw_info.height) goto err;
+    
+    raw_set_geometry(raw_info.width, raw_info.height, raw_info.active_area.x1, raw_info.active_area.y1, raw_info.width - raw_info.active_area.x2, raw_info.height - raw_info.active_area.y2);
+    raw_force_aspect_ratio_1to1();
+
+    reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
+
+    vram_clear_lv();
+    raw_preview_fast();
+    shoot_free(buf);
+    
+    bmp_printf(FONT_MED, 600, 460, " %dx%d ", raw_info.width, raw_info.height);
+    return 1;
+err:
+    shoot_free(buf);
+    return 0;
+}
 
 int bmp_show(char* file)
 {
@@ -23,13 +155,6 @@ int yuv422_show(char* filename)
     uint32_t * buf = shoot_malloc(size);
     if (!buf) return 0;
     struct vram_info * vram = get_yuv422_vram();
-
-    extern int lv;
-    if (lv)
-    {
-        bmp_printf(FONT_MED, 0, 0, "Try again outside LiveView.");
-        return 0;
-    }
 
     clrscr();
     bmp_printf(FONT_MED, 600, 460, "%d", size);
@@ -67,15 +192,19 @@ int yuv422_show(char* filename)
     else if (size == 960  *  639 * 2) { w =  960; h =  639; } // 650D LV STDBY
     else if (size == 1729 * 1151 * 2) { w = 1728; h = 1151; } // 650D 1080p/480p recording
     else if (size == 1280 * 689  * 2) { w = 1280; h =  689; } // 650D 720p recording
-    else return 0;
+    else goto err;
 
     bmp_printf(FONT_MED, 600, 460, " %dx%d ", w, h);
 
     size_t rc = read_file( filename, buf, size );
-    if( rc != size ) return 0;
+    if( rc != size ) goto err;
     yuv_resize(buf, w, h, (uint32_t*)vram->vram, vram->width, vram->height);
     shoot_free(buf);
     return 1;
+
+err:
+    shoot_free(buf);
+    return 0;
 }
 
 FILETYPE_HANDLER(bmp_filehandler)
@@ -90,9 +219,12 @@ FILETYPE_HANDLER(bmp_filehandler)
 
 FILETYPE_HANDLER(yuv422_filehandler)
 {
+    extern int gui_state;
     switch(cmd)
     {
         case FILEMAN_CMD_VIEW_IN_MENU:
+            if (!menu_request_image_backend()) return 2;
+            if (gui_state != GUISTATE_PLAYMENU) return 2;
             return yuv422_show(filename) ? 1 : -1;
     }
     return 0;
@@ -100,7 +232,14 @@ FILETYPE_HANDLER(yuv422_filehandler)
 
 FILETYPE_HANDLER(dng_filehandler)
 {
-    /* not implemented yet */
+    extern int gui_state;
+    switch(cmd)
+    {
+        case FILEMAN_CMD_VIEW_IN_MENU:
+            if (!menu_request_image_backend()) return 2;
+            if (gui_state != GUISTATE_PLAYMENU) return 2;
+            return dng_show(filename) ? 1 : -1;
+    }
     return 0;
 }
 
