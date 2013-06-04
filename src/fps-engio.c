@@ -119,15 +119,16 @@ static int fps_timer_a_orig;
 static int fps_timer_b;        // C0F06014
 static int fps_timer_b_orig; 
 
-#ifdef CONFIG_1100D
-//restrict max fps to 35 for 1100D
-static int fps_values_x1000[] = {150, 200, 250, 333, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000,
-                                5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 12500, 14000, 15000, 16000,
-                                17000, 18000, 19000, 20000, 21000, 22000, 23000, 24000, 25000, 26000, 27000,
-                                28000, 29000, 30000, 31000, 32000, 33000, 33333, 34000, 35000};
-#else
-static int fps_values_x1000[] = {150, 200, 250, 333, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 12500, 14000, 15000, 16000, 17000, 18000, 19000, 20000, 21000, 22000, 23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 31000, 32000, 33000, 33333, 34000, 35000, 40000, 48000, 50000, 60000, 65000};
-#endif
+static int fps_values_x1000[] = {
+    150, 200, 250, 333, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000,
+    5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 12500, 14000, 15000, 16000,
+    17000, 18000, 19000, 20000, 21000, 22000, 23000, 23976, 24000, 25000, 26000, 27000,
+    28000, 29000, 29970, 30000, 31000, 32000, 33000, 33333, 34000, 35000
+    // restrict max fps to 35 for 1100D, 5D2, 50D, 500D (others?)
+    #if !defined(CONFIG_1100D) && !defined(CONFIG_5D2) && !defined(CONFIG_50D) && !defined(CONFIG_500D)
+    , 40000, 48000, 50000, 60000, 65000
+    #endif
+};
 
 static CONFIG_INT("fps.override", fps_override, 0);
 #ifndef FEATURE_FPS_OVERRIDE
@@ -673,17 +674,17 @@ static MENU_UPDATE_FUNC(fps_current_print)
 
 static MENU_UPDATE_FUNC(desired_fps_print)
 {
-    int desired_fps = fps_values_x1000[fps_override_index] / 10;
+    int desired_fps = fps_values_x1000[fps_override_index];
     int default_fps = lv ? calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig) : 0;
-    if (desired_fps % 100)
+    if (desired_fps % 1000)
         MENU_SET_VALUE(
-            "%d.%02d (from %d)",
-            desired_fps/100, desired_fps%100, (default_fps+500)/1000
+            "%d.%03d (from %d)",
+            desired_fps/1000, desired_fps%1000, (default_fps+500)/1000
         );
     else
         MENU_SET_VALUE(
             "%d (from %d)",
-            desired_fps/100, (default_fps+500)/1000
+            desired_fps/1000, (default_fps+500)/1000
         );
 }
 
