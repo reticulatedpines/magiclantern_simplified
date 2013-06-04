@@ -884,6 +884,8 @@ extern int focus_box_lv_jump;
 #ifdef FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
 static CONFIG_INT("focus.box.raw.x5.x", focus_box_raw_x5_x, 0);
 static CONFIG_INT("focus.box.raw.x5.y", focus_box_raw_x5_y, 0);
+static CONFIG_INT("focus.box.raw.x5.w", focus_box_raw_x5_w, 0);
+static CONFIG_INT("focus.box.raw.x5.h", focus_box_raw_x5_h, 0);
 #endif
 
 static int center_lv_aff = 0;
@@ -1018,8 +1020,8 @@ void center_lv_afframe_do()
                     int here_y = (y1+y2) * scale_y / 200;
                     
                     /* we want to be in the center */
-                    int dest_x = raw_info.active_area.x1 + MAX(raw_info.jpeg.width, w + 300) / 2;
-                    int dest_y = raw_info.active_area.y1 + MAX(raw_info.jpeg.height, h + 300) / 2;
+                    int dest_x = raw_info.active_area.x1 + MAX(raw_info.jpeg.width, w + 350) / 2;
+                    int dest_y = raw_info.active_area.y1 + MAX(raw_info.jpeg.height, h + 350) / 2;
                     
                     /* focus box is here */
                     int Xc = Xtl + w/2;
@@ -1038,6 +1040,8 @@ void center_lv_afframe_do()
                     /* save the position for 1x mode, where we no longer know the raw parameters */
                     focus_box_raw_x5_x = pos_x[1];
                     focus_box_raw_x5_y = pos_y[1];
+                    focus_box_raw_x5_w = raw_info.jpeg.width;
+                    focus_box_raw_x5_h = raw_info.jpeg.height;
                 }
                 else NotifyBox(2000, "Boo... %d %d %d %d ", x1, x2, y1, y2);
             }
@@ -1051,6 +1055,19 @@ void center_lv_afframe_do()
                 /* flip between center and saved position */
                 pos_x[1] = focus_box_raw_x5_x;
                 pos_y[1] = focus_box_raw_x5_y;
+                
+                /* draw a cropmark showing the raw zoom area */
+                int xl = pos_x[1] * vram_lv.width / W;
+                int yl = pos_y[1] * vram_lv.height / H;
+                int wl = focus_box_raw_x5_w * vram_lv.width / W;
+                int hl = focus_box_raw_x5_h * vram_lv.height / H;
+                int x = LV2BM_X(xl);
+                int y = LV2BM_Y(yl);
+                int w = LV2BM_DX(wl);
+                int h = LV2BM_DY(hl);
+                bmp_draw_rect(COLOR_WHITE, x-w/2, y-h/2, w, h);
+                bmp_draw_rect(COLOR_BLACK, x-w/2-1, y-h/2-1, w+2, h+2);
+                redraw_after(1000);
             }
             else NotifyBox(2000, "Try zooming first");
         }
@@ -1060,10 +1077,15 @@ void center_lv_afframe_do()
     int current = -1;
     int Xc = Xtl + w/2;
     int Yc = Ytl + h/2;
+    int emin = 200;
     for (int i = 0; i < n; i++)
     {
-        if (ABS(pos_x[i] - Xc) < 200 && ABS(pos_y[i] - Yc) < 200)
+        int e = MAX(ABS(pos_x[i] - Xc), ABS(pos_y[i] - Yc));
+        if (e < emin)
+        {
             current = i;
+            emin = e;
+        }
     }
     int next = mod(current + 1, n);
     
@@ -3648,7 +3670,7 @@ PROP_HANDLER(PROP_FILE_PREFIX)
 
 #ifdef FEATURE_POST_DEFLICKER
 static char* xmp_template =
-"<?xpacket begin='﻿'?> \n"
+"\xef\xbb\xbf"
 "<x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='Image::ExifTool 7.89'>\n"
 "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>\n"
 " <rdf:Description rdf:about=''\n"
@@ -3656,8 +3678,7 @@ static char* xmp_template =
 "  <crs:Exposure>%s%d.%05d</crs:Exposure>\n"
 " </rdf:Description>\n"
 "</rdf:RDF>\n"
-"</x:xmpmeta>\n"
-"<?xpacket end='w'?>\n";
+"</x:xmpmeta>\n";
 
 static char* ufraw_template =
 "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
@@ -3672,13 +3693,15 @@ static char* ufraw_template =
 
 static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, float ev)
 {
-    int evi = ev * 100000;
     char fn[100];
     snprintf(fn, sizeof(fn), "%s/%s%04d.%s", get_dcim_dir(), file_prefix, file_number, type ? "UFR" : "XMP");
     FILE* f = FIO_CreateFileEx(fn);
     if (f == INVALID_PTR) return;
     if (type == 0)
     {
+        /* renato: [...] for ACR should be -4 to +4.  If it is outside the +-4 range then it ignores [...] */
+        ev = COERCE(ev, -4, 4);
+        int evi = ev * 100000;
         my_fprintf(f, xmp_template, FMT_FIXEDPOINT5S(evi));
     }
     else if (type == 1)
@@ -3687,6 +3710,8 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, 
         char jpg[100];
         snprintf(raw, sizeof(raw), "%s%04d.CR2", file_prefix, file_number);
         snprintf(jpg, sizeof(jpg), "%s%04d.JPG", file_prefix, file_number);
+        ev = COERCE(ev, -6, 6);
+        int evi = ev * 100000;
         my_fprintf(f, ufraw_template, raw, jpg, FMT_FIXEDPOINT5(evi));
     }
     FIO_CloseFile(f);
