@@ -3672,13 +3672,15 @@ static char* ufraw_template =
 
 static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, float ev)
 {
-    int evi = ev * 100000;
     char fn[100];
     snprintf(fn, sizeof(fn), "%s/%s%04d.%s", get_dcim_dir(), file_prefix, file_number, type ? "UFR" : "XMP");
     FILE* f = FIO_CreateFileEx(fn);
     if (f == INVALID_PTR) return;
     if (type == 0)
     {
+        /* renato: [...] for ACR should be -4 to +4.  If it is outside the +-4 range then it ignores [...] */
+        ev = COERCE(ev, -4, 4);
+        int evi = ev * 100000;
         my_fprintf(f, xmp_template, FMT_FIXEDPOINT5S(evi));
     }
     else if (type == 1)
@@ -3687,6 +3689,8 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, 
         char jpg[100];
         snprintf(raw, sizeof(raw), "%s%04d.CR2", file_prefix, file_number);
         snprintf(jpg, sizeof(jpg), "%s%04d.JPG", file_prefix, file_number);
+        ev = COERCE(ev, -6, 6);
+        int evi = ev * 100000;
         my_fprintf(f, ufraw_template, raw, jpg, FMT_FIXEDPOINT5(evi));
     }
     FIO_CloseFile(f);
