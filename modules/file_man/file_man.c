@@ -458,7 +458,7 @@ FileMove(void *unused)
         snprintf(dstfile,MAX_PATH_LEN,"%s%s",gPath,fname);
         
         snprintf(gStatusMsg, sizeof(gStatusMsg), "Moving %s to %s...", tmpmf->name, gPath);
-        int err = ML_FIO_CopyFile(tmpmf->name,dstfile);
+        int err = ML_FIO_MoveFile(tmpmf->name,dstfile);
         if (err) snprintf(gStatusMsg, sizeof(gStatusMsg), "Move error (%d)", err);
         else gStatusMsg[0] = 0;
     }
