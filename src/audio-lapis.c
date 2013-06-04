@@ -353,10 +353,6 @@ audio_ic_set_recplay_state(){
 void
 audio_configure( int force )
 {
-#if defined(CONFIG_5D3)
-    return;
-#endif
-
     extern int beep_playing;
     if (beep_playing && !(audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED))
         return; // don't redirect wav playing to headphones if they are not connected
