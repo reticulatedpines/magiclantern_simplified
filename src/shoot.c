@@ -3804,13 +3804,6 @@ int auto_ettr_get_correction()
     
     float ev = raw_to_ev(raw);
     
-    if (lv && !is_movie_mode())
-    {
-        /* in photo mode, LV iso is not equal to photo ISO because of ExpSim */
-        /* the digital ISO will not change the raw histogram, so we need to compensate the EV factor manually */
-        float ev_corr = log2f(shamem_read(0xc0f08030) * 4.0 / raw_info.white_level);
-        ev += ev_corr;
-    }
     //~ bmp_printf(FONT_MED, 50, 200, "%d ", MEMX(0xc0f08030));
     float target = MIN(auto_ettr_target_level, -0.5);
     float correction = target - ev;

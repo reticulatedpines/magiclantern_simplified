@@ -458,6 +458,17 @@ int raw_update_params()
         if (iso_digital <= 0)
             raw_info.white_level *= powf(2, iso_digital);
     }
+    else if (!is_movie_mode())
+    {
+        /* in photo mode, LV iso is not equal to photo ISO because of ExpSim *
+         * the digital ISO will not change the raw histogram
+         * but we want the histogram to mimic the CR2 one as close as possible
+         * so we do this by compensating the white level manually
+         * warning: this may exceed 16383!
+         */
+        int shad_gain = shamem_read(0xc0f08030);
+        raw_info.white_level = raw_info.white_level * 4096 / shad_gain;
+    }
 
     raw_info.black_level = autodetect_black_level();
     
