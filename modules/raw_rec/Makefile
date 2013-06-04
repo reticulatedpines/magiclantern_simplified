@@ -1,13 +1,10 @@
 
-# this is a very simple makefile for modules
-TOP_DIR=../..
-
 # define the module name - make sure name is max 8 characters
 MODULE_NAME=raw_rec
 MODULE_OBJS=raw_rec.o
 
 # include modules environment
-include $(TOP_DIR)/modules/Makefile.modules
+include ../Makefile.modules
 
 all:: raw2dng
 

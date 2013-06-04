@@ -8,6 +8,11 @@
 #include "string.h"
 #include "property.h"
 
+#ifndef CONFIG_MODULES_MODEL_SYM
+#error Not defined file name with symbols
+#endif
+#define MAGIC_SYMBOLS                 CARD_DRIVE"ML/MODULES/"CONFIG_MODULES_MODEL_SYM
+
 extern int sscanf(const char *str, const char *format, ...);
 
 

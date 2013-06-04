@@ -1,0 +1,14 @@
+#Makefile.setup.platform for 5DC
+
+ifeq ($(FW_VERSION),111)
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+ROMBASEADDR     = 0xFF810000
+RESTARTSTART    = 0x00980000
+
+AUTOEXEC_BASE   = 0x10800000
+FIR_BASE        = 0x10800120
+
+#End of FW_VERSION == 111
+endif

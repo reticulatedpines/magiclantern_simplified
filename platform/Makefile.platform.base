@@ -1,0 +1,53 @@
+
+ifndef ML_SRC_PROFILE
+$(error ML_SRC_PROFILE is not defined)
+endif
+
+ifndef MODEL
+$(error Camera MODEL is not defined)
+endif
+
+include $(TOP_DIR)/Makefile.top
+include $(PLATFORM_PATH)/Makefile.platform.map
+
+ifndef FW_VERSION
+FW_VERSION=$(call platform_version,$(MODEL))
+endif
+
+#not used?
+ML_VERSION=unified1
+
+ifndef ML_MODEL_DIR
+ML_MODEL_DIR = $(MODEL).$(FW_VERSION)
+endif
+
+PLATFORM_DIR=$(PLATFORM_PATH)/$(ML_MODEL_DIR)
+PLATFORM_INC=$(PLATFORM_DIR)
+UPDATE_NAME_FIR = $(MODEL)_$(FW_VERSION).fir
+
+ifndef ML_MAKEFILE_PLATFORM_SETUP
+ML_MAKEFILE_PLATFORM_SETUP = $(PLATFORM_DIR)/Makefile.platform.default
+endif
+
+-include $(ML_MAKEFILE_PLATFORM_SETUP)
+
+ifndef AUTOEXEC_BASE
+AUTOEXEC_BASE	= 0x40800000
+endif
+
+ifndef FIR_BASE
+FIR_BASE	= 0x40800120
+endif
+
+ifndef ROMBASEADDR
+$(error ROMBASEADDR is not defined)
+endif
+
+ifndef RESTARTSTART
+$(error RESTARTSTART is not defined)
+endif
+
+include $(TOP_DIR)/Makefile.setup
+include $(SRC_DIR)/Makefile.src
+
+include $(PLATFORM_PATH)/Makefile.platform.extras

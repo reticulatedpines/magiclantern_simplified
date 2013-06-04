@@ -1,9 +1,11 @@
 # Generic makefile
 # Include default and user-customized options where needed
 # If you want to customize them copy Makefile.user.default to Makefile.user keeping only the options that you want to customize
+
 include $(TOP_DIR)/Makefile.top
-include $(TOP_DIR)/Makefile.user.default
+-include $(TOP_DIR)/Makefile.user.default
 -include $(TOP_DIR)/Makefile.user
+
 
 ifeq ($(CONFIG_CCACHE), y)
     CC := $(CCACHE) $(CC)
@@ -25,13 +27,7 @@ FLAGS=\
 	-Wp,-MT,$@ \
 	-nostdlib \
 	-fomit-frame-pointer \
-	-fno-strict-aliasing \
-	-DCONFIG_MAGICLANTERN=1 \
-	-DCONFIG_$(subst .,_,$(MODEL))=1 \
-	-DRESTARTSTART=$(RESTARTSTART) \
-	-DROMBASEADDR=$(ROMBASEADDR) \
-	-DVERSION=\"$(VERSION)\" \
-	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG)
+	-fno-strict-aliasing
 
 #
 # ToDo: remove 
@@ -70,7 +66,39 @@ AFLAGS=\
     
 -LFLAGS=
 
+ifdef CONFIG_SMALL_FONTS
+$(error CONFIG_SMALL_FONTS must be renamed to ML_SRC_SMALL_FONTS)
+endif
+
+ifdef CONFIG_STATIC_FONTS
+$(error CONFIG_STATIC_FONTS must be renamed to ML_SRC_STATIC_FONTS)
+endif
+
+_defined_configs = $(filter CONFIG_%, $(.VARIABLES))
+# Functionality that disables all CONFIG_* entries
+ifeq ($(ML_SETUP_DISABLE_USER_CONFIGS),y)
+#show_config_values=$(foreach c, $(defined_configs), $(c)=$($(c)))
+#$(warning before setting to NO $(show_config_values))
+$(foreach config, $(_defined_configs), $(eval $(config)=n))
+#$(warning after setting to NO $(show_config_values))
+endif
+
+-include Makefile.setup.default
+-include Makefile.setup.user
+
+ifdef ML_SETUP_EXTENSION
+-include Makefile.$(ML_SETUP_EXTENSION).default
+-include Makefile.$(ML_SETUP_EXTENSION).user
+endif
+
+$(foreach entry, $(_defined_configs), $(eval _CONFIGS-with-$($(entry))+= $(entry)))
+# List of defined configs
+ML_SETUP_ENABLED_CONFIGS = $(_CONFIGS-with-y)
+
+# List of configs (CONFIG_%) which also have (%_DIR) variable defined
+$(foreach entry, $(ML_SETUP_ENABLED_CONFIGS), $(eval _CONFIGS-with-dir-$(origin $(patsubst CONFIG_%,%,$(entry))_DIR)+= $(entry)))
+ML_SETUP_CONFIGS_WITH_DIR = $(_CONFIGS-with-dir-file)
+
 CFLAGS += $(CFLAG_USER)
 FLAGS += $(LFLAG_USER)
 AFLAGS += $(AFLAG_USER)
-

@@ -1,13 +1,11 @@
 #Makefile for an autoexec.bin able to run on all cameras
 
-TOP_DIR=../..
-include $(TOP_DIR)/Makefile.top
- 
-empty:=
-space:= $(empty) $(empty)
-MODEL=$(subst $(space),.,$(SUPPORTED_MODELS))
+x: prepare-all autoexec-all autoexec-all.bin
+	cp autoexec-all.bin autoexec.bin
+	$(STAT_CMD) autoexec.bin; \
 
-include  $(TOP_DIR)/Makefile.inc
+prepare-all:
+	$(MAKE) -C .. all-supported-models
 
 autoexec-all: reboot-all.o
 	$(call build,LD,$(LD) \
@@ -19,9 +17,13 @@ autoexec-all: reboot-all.o
 		$^ \
 	); \
 
-ROMBASEADDR		= 0xFF010000
+clean::
+	$(call rm_file, autoexec-all autoexec-all.bin)
 
-x: autoexec-all autoexec-all.bin
-	cp autoexec-all.bin autoexec.bin
-	$(STAT_CMD) autoexec.bin; \
+empty:=
+space:= $(empty) $(empty)
+MODEL=$(subst $(space),.,$(SUPPORTED_MODELS))
 
+ML_MODEL_DIR = all
+
+include  ../Makefile.platform

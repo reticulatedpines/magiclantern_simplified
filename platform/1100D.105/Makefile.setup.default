@@ -1,0 +1,12 @@
+# compile position independent (experimental)
+CONFIG_PIC=n
+
+CONFIG_RELOC=y
+
+ML_SRC_SMALL_FONTS=y
+ML_SRC_STATIC_FONTS=y
+
+ML_SRC_EXTRA_OBJS = \
+	misc.o \
+	ph_info_disp.o \
+	flexinfo.o

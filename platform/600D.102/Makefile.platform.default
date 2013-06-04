@@ -1,0 +1,23 @@
+#Makefile.setup.platform for 600D
+
+#not used but...
+FIRMWARE_ID_600D 	= 0x80000286
+
+ifeq ($(FW_VERSION),102)
+CANON_NAME_FIR=CCF11102.FIR
+
+ROMBASEADDR     = 0xFF010000
+ifeq ($(ML_SRC_PROFILE),generic)
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART    = 0x00C80100
+else ifeq ($(ML_SRC_PROFILE),installer)
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART		= 0x00082000
+endif
+
+#End of FW_VERSION == 102
+endif

@@ -4,6 +4,11 @@
 #include <bmp.h>
 #include <menu.h>
 
+#ifdef CONFIG_GDB
+#error ssss
+#endif
+
+
 #define MEM(x) (*(volatile unsigned int *)(x))
 #define CF_REG_B(x) *(volatile unsigned char *)(0xC0620000 | x)
 #define CF_REG_W(x) *(volatile unsigned short *)(0xC0620000 | x)

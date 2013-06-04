@@ -1,0 +1,15 @@
+#Makefile for 7D
+
+# compile position independent (experimental)
+CONFIG_PIC=n
+
+CONFIG_GDB=y
+
+ML_SRC_EXTRA_OBJS = \
+	ml_rpc.o \
+	video_hacks.o \
+	misc.o \
+	ptpbuf.o \
+	ph_info_disp.o \
+	flexinfo.o \
+	afma.o \

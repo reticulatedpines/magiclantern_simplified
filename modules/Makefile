@@ -1,10 +1,7 @@
-TOP_DIR= ..
+TOP_DIR?=..
+
+ML_SETUP_EXTENSION=modules
 include $(TOP_DIR)/Makefile.setup
-
-include $(MODULES_DIR)/Makefile.user.default
--include $(MODULES_DIR)/Makefile.user
-
-make_loop = $(foreach module,$(1), make -C $(MODULES_DIR)/$(module) $(2);)
 
 make_dynamic_modules = $(call make_loop, $(ML_MODULES_DYNAMIC), $(1))
 
@@ -16,7 +13,9 @@ all:
 clean:
 	$(call make_all_modules,clean)
 
-install: all
-	mkdir $(CF_CARD_ML_DIR)/modules || echo "no problem"
+prepare_install:
+	mkdir $(INSTALL_MODULES_DIR) || echo "no problem"
+
+install: prepare_install all
 	$(call make_dynamic_modules, install)
-	cp $(MODULES_DIR)/*/*.mo $(CF_CARD_ML_DIR)/modules/ || echo "no problem"
+	$(CP) $(MODULES_DIR)/*/*.mo $(INSTALL_MODULES_DIR)/ || echo "no problem"

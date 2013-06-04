@@ -1,0 +1,33 @@
+PLATFORM_MAP = \
+	40D.111 \
+	50D.109 \
+	5D2.212 \
+	5DC.111 \
+	60D.111 \
+	7D.203 \
+	1100D.105 \
+	500D.111 \
+	550D.109 \
+	5D3.113 \
+	600D.102 \
+	650D.101 \
+	6D.113 \
+	7D_MASTER.203 \
+	EOSM.106
+
+platform_map = $(filter $(1).%, $(PLATFORM_MAP))
+
+make_platform_dirs = $(foreach elem,$(1),$(call platform_map,$(elem)))
+
+ALL_SUPPORTED_MODELS=$(basename $(PLATFORM_MAP))
+
+platform_version = $(patsubst $(strip $(1)).%,%,$(call platform_map, $(1)))
+
+# Executes make for passed camera model
+# Typical use case can be (setting targets for all camera models and execute this function):
+# $(ALL_SUPPORTED_MODELS):
+#	$(call platform_make_run)
+#
+define platform_make_run
+	+$(MAKE) -C $(PLATFORM_PATH)/$(call platform_map, $@)
+endef
