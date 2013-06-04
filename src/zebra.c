@@ -4225,9 +4225,7 @@ int liveview_display_idle()
 
     #if defined(CONFIG_5D3)
     extern thunk LiveViewLevelApp_handler;
-    #endif
-
-    #if defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+    #elif defined(CONFIG_DIGIC_V)
     extern thunk LiveViewShutterApp_handler;
     #endif
 
@@ -4249,7 +4247,7 @@ int liveview_display_idle()
                   || dialog->handler == (dialog_handler_t) &LiveViewWifiApp_handler
                   #endif
                   //~ for this, check value of get_current_dialog_handler()
-                  #if defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+                  #if defined(CONFIG_DIGIC_V) && !defined(CONFIG_5D3)
                   || dialog->handler == (dialog_handler_t) &LiveViewShutterApp_handler
                   #endif
               ) &&
