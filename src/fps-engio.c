@@ -590,6 +590,20 @@ static void fps_setup_timerB(int fps_x1000)
     {
         fps_unpatch_table(1);
     #endif
+    
+        // did anything change since our calculations?
+        int defA_before = fps_reg_a_orig;
+        int defB_before = fps_reg_b_orig;
+        fps_read_default_timer_values();
+        if (defA_before != fps_reg_a_orig || defB_before != fps_reg_b_orig)
+        {
+            // phuck! CTRL-Z, CTRL-Z!
+            //~ beep();
+            written_value_a = 0;
+            EngDrvOutFPS(FPS_REGISTER_A, fps_reg_a_orig);
+            return;
+        }
+
         
         // output the value to register
         timerB -= 1;
