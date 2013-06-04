@@ -3785,9 +3785,9 @@ int auto_ettr_get_correction()
 {
     static int last_value = INT_MIN;
     
-    /* this is kinda slow, don't run it more often than once per second */
+    /* this is kinda slow, don't run it very often */
     static int aux = INT_MIN;
-    if (!should_run_polling_action(500, &aux) && last_value != INT_MIN)
+    if (!should_run_polling_action(100, &aux) && last_value != INT_MIN)
         return last_value;
     
     int gray_proj = 
@@ -3803,6 +3803,15 @@ int auto_ettr_get_correction()
     }
     
     float ev = raw_to_ev(raw);
+    
+    if (lv && !is_movie_mode())
+    {
+        /* in photo mode, LV iso is not equal to photo ISO because of ExpSim */
+        /* the digital ISO will not change the raw histogram, so we need to compensate the EV factor manually */
+        float ev_corr = log2f(shamem_read(0xc0f08030) * 4.0 / raw_info.white_level);
+        ev += ev_corr;
+    }
+    //~ bmp_printf(FONT_MED, 50, 200, "%d ", MEMX(0xc0f08030));
     float target = MIN(auto_ettr_target_level, -0.5);
     float correction = target - ev;
     if (correction <= target + 0.1)

@@ -493,7 +493,7 @@ int raw_update_params()
     raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
 
     int iso = 0;
-    if (lv) iso = FRAME_ISO;
+    if (lv && is_movie_mode()) iso = FRAME_ISO;
     if (!iso) iso = lens_info.raw_iso;
     if (!iso) iso = lens_info.raw_iso_auto;
 #ifdef CONFIG_DXO_DYNAMIC_RANGE
@@ -510,9 +510,10 @@ int raw_update_params()
     raw_info.white_level = WHITE_LEVEL;
 
 #ifndef CONFIG_DXO_DYNAMIC_RANGE
-    if (iso_digital <= 0)
+    if (iso_digital <= 0 && !lv)
     {
         /* at ISO 160, 320 etc, the white level is decreased by -1/3 EV */
+        /* in LiveView, it doesn't change */
         raw_info.white_level *= powf(2, iso_digital);
     }
 #endif
