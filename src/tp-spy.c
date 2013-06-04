@@ -19,7 +19,7 @@
 #include "dryos.h"
 #include "bmp.h"
 
-#if !(defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D))
+#if !defined(CONFIG_DIGIC_V) //Digic V have this stuff inside RAM already
 #include "cache_hacks.h"
 #endif
 
@@ -105,7 +105,7 @@ void tp_intercept()
             reloc_end2,
             reloc_tp_buf2
         );
-#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+#if defined(CONFIG_DIGIC_V)
         uint32_t d = (uint32_t)&TryPostEvent;
         *(uint32_t*)(d) = B_INSTR((uint32_t)&TryPostEvent, my_TryPostEvent);
 
