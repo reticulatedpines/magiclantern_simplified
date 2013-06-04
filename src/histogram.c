@@ -405,7 +405,7 @@ int raw_hist_get_overexposure_percentage(int gray_projection)
     get_yuv422_vram();
     
     /* use some tolerance when checking for overexposure, because white level might vary a little */
-    int white = raw_info.white_level * 90 / 100;
+    int white = raw_info.white_level * 80 / 100;
     int over = 0;
     int total = 0;
     

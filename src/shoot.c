@@ -57,8 +57,9 @@ static CONFIG_INT("auto.ettr", auto_ettr, 0);
 static CONFIG_INT("auto.ettr.trigger", auto_ettr_trigger, 1);
 static CONFIG_INT("auto.ettr.prctile", auto_ettr_percentile, 98);
 static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
-static CONFIG_INT("auto.ettr.max.shutter", auto_ettr_max_shutter, 11);
+static CONFIG_INT("auto.ettr.max.tv", auto_ettr_max_shutter, 88);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
+static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
 #endif
 
 #define AUTO_ETTR_TRIGGER_PHOTO (auto_ettr_trigger == 0 || intervalometer_running)
@@ -2209,8 +2210,8 @@ static MENU_UPDATE_FUNC(shutter_display)
     else
     {
         MENU_SET_VALUE(
-            "1/%d",
-            lens_info.shutter
+            "%s",
+            lens_format_shutter(lens_info.raw_shutter)
         );
     }
 
@@ -3804,12 +3805,12 @@ int auto_ettr_get_correction()
     float ev = raw_to_ev(raw);
     float target = MIN(auto_ettr_target_level, -0.5);
     float correction = target - ev;
-    if (correction <= target + 0.3)
+    if (correction <= target + 0.1)
     {
         /* we don't know how much to go back in order to fix the overexposure */
-        /* so we'll use a heuristic: for each 10% of blown out image, go back 1EV */
+        /* so we'll use a heuristic: for each 10% of blown out image, go back 1/2EV */
         int overexposed = raw_hist_get_overexposure_percentage(gray_proj);
-        correction -= overexposed / 10.0;
+        correction -= overexposed / 20.0;
         auto_ettr_overexposure_warning = 1;
     }
     else auto_ettr_overexposure_warning = 0;
@@ -3823,14 +3824,44 @@ static int expo_lock_value;
 
 static void auto_ettr_work(int corr)
 {
-    int delta = -corr * 8 / 100;
-    int shutter_lim = auto_ettr_max_shutter*8 + 16;
-    
-    if (is_movie_mode()) shutter_lim = MAX(shutter_lim, shutter_ms_to_raw(1000 / video_mode_fps));
-    
     int tv = lens_info.raw_shutter;
     int iso = lens_info.raw_iso;
     if (!tv || !iso) return;
+
+    int delta = -corr * 8 / 100;
+
+    static int prev_tv = 0;
+    if (auto_ettr_adjust_mode == 1)
+    {
+        if (prev_tv != tv)
+        {
+            auto_ettr_max_shutter = tv;
+            if (lv)
+            {
+                NotifyBox(2000, "Auto ETTR: Tv <= %s ", lens_format_shutter(tv));
+                prev_tv = tv;
+                return; /* wait for next iteration */
+            }
+            else
+            {
+                msleep(500);
+                bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: Tv <= %s ", lens_format_shutter(tv));
+            }
+        }
+    }
+    else
+    {
+        if (lv && prev_tv != tv)
+        {
+            prev_tv = tv;
+            return; /* small pause when you change exposure manually */
+        }
+    }
+
+    int shutter_lim = auto_ettr_max_shutter;
+
+    /* can't go slower than 1/fps in movie mode */
+    if (is_movie_mode()) shutter_lim = MAX(shutter_lim, shutter_ms_to_raw(1000 / video_mode_fps));
 
     //~ int old_expo = tv - iso;
 
@@ -3862,6 +3893,8 @@ static void auto_ettr_work(int corr)
 
     /* don't let expo lock undo our changes */
     expo_lock_value = expo_lock_get_current_value();
+    
+    prev_tv = lens_info.raw_shutter;
 }
 
 static volatile int auto_ettr_running = 0;
@@ -3989,6 +4022,8 @@ static void auto_ettr_on_request_task(int unused)
         
         if (get_halfshutter_pressed())
             break;
+        
+        if (k == 4) beep();
     }
     NotifyBoxHide();
 
@@ -4057,6 +4092,18 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
         MENU_SET_HELP("Take a test picture (underexposed). Next pic will be ETTR.");
 }
 
+static MENU_UPDATE_FUNC(auto_ettr_max_shutter_update)
+{
+    MENU_SET_VALUE("%s", lens_format_shutter(auto_ettr_max_shutter));
+    if (auto_ettr_adjust_mode == 1)
+        MENU_SET_WARNING(MENU_WARN_INFO, "Adjust shutter speed from top scrollwheel, outside menu.");
+}
+
+static MENU_SELECT_FUNC(auto_ettr_max_shutter_toggle)
+{
+    if (auto_ettr_adjust_mode == 0)
+        auto_ettr_max_shutter = mod(auto_ettr_max_shutter/4*4 - 16 + delta * 4, FASTEST_SHUTTER_SPEED_RAW - 16 + 4) + 16;
+}
 #endif
 
 #if defined(FEATURE_POST_DEFLICKER) || defined(FEATURE_AUTO_ETTR)
@@ -5666,10 +5713,18 @@ static struct menu_entry expo_menus[] = {
             {
                 .name = "Slowest shutter",
                 .priv = &auto_ettr_max_shutter,
-                .max = 16,
+                .select = auto_ettr_max_shutter_toggle,
+                .update = auto_ettr_max_shutter_update,
+                .min = 16,
+                .max = FASTEST_SHUTTER_SPEED_RAW,
                 .icon_type = IT_PERCENT,
-                .choices = CHOICES("30\"", "15\"", "8\"", "4\"", "2\"", "1\"", "1/2", "1/4", "1/8", "1/15", "1/30", "1/60", "1/125", "1/250", "1/500", "1/1000", "1/2000"),
                 .help = "Slowest shutter speed for ETTR."
+            },
+            {
+                .name = "Link to Canon shutter",
+                .priv = &auto_ettr_adjust_mode,
+                .max = 1,
+                .help = "Hack to adjust slowest shutter from main dial.",
             },
             MENU_EOL,
         },
