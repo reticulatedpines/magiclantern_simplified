@@ -129,7 +129,7 @@ int raw_get_pixel(int x, int y) {
  * 
  * For speed reasons:
  * - Correction factors are computed from the first frame only.
- * - Only channels with error greater than 0.5% are corrected.
+ * - Only channels with error greater than 0.2% are corrected.
  */
 
 static int stripes_coeffs[8];
@@ -168,7 +168,7 @@ static int stripes_correction_needed = 0;
 #define SET_PH(x) { int v = (x); p->h = v; }
 
 #define RAW_MUL(p, x) MIN((((int)(p) - raw_info.black_level) * (int)(x) / 1024) + raw_info.black_level, 16383)
-#define FACTOR(a,b) ({ int A = ((int)(a) - raw_info.black_level); int B = ((int)(b) - raw_info.black_level); B > 4 ? (A * 1024 / B) : 1024; })
+#define FACTOR(a,b) ({ int A = ((int)(a) - raw_info.black_level); int B = ((int)(b) - raw_info.black_level); B > 32 ? (A * 1024 / B) : 1024; })
 
 #define F2H(x) COERCE(x, 0, 2047)
 #define H2F(x) (x)
@@ -212,7 +212,7 @@ static void detect_vertical_stripes_coeffs()
             {
                 int c = H2F(k);
                 /* do we really need stripe correction, or it won't be noticeable? or maybe it's just computation error? */
-                if (abs(c - 1024) < 5)
+                if (abs(c - 1024) <= 2)
                 {
                     stripes_coeffs[j] = 0;
                 }

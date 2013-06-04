@@ -1160,6 +1160,8 @@ void bvram_mirror_init()
         #if defined(RSCMGR_MEMORY_PATCH_END)
         extern unsigned int ml_reserved_mem;
         bvram_mirror_start = RESTARTSTART + ml_reserved_mem;
+        #elif defined(CONFIG_EOSM)
+        bvram_mirror_start = (void*)malloc(BMP_VRAM_SIZE); // malloc is big!    
         #else
         bvram_mirror_start = (void*)AllocateMemory(BMP_VRAM_SIZE);
         #endif
@@ -2144,7 +2146,7 @@ static void reload_cropmark()
     {
         void* old_crop = cropmarks;
         cropmarks = 0;
-        BmpFree(old_crop);
+        bmp_free(old_crop);
     }
 
     cropmark_clear_cache();
@@ -5775,69 +5777,6 @@ PROP_HANDLER(PROP_LV_ACTION)
     zoom_sharpen_step();
     zoom_auto_exposure_step();
     #endif
-}
-
-void play_422(char* filename)
-{
-    //~ bmp_printf(FONT_LARGE, 0, 0, filename);
-    //~ return;
-    clrscr();
-    
-    uint32_t size;
-    if( FIO_GetFileSize( filename, &size ) != 0 ) return;
-    uint32_t * buf = (uint32_t*)YUV422_HD_BUFFER_2;
-    struct vram_info * vram = get_yuv422_vram();
-
-    bmp_printf(FONT_LARGE, 0, 0, "%s ", filename+17);
-    bmp_printf(FONT_LARGE, 500, 0, "%d", size);
-
-    int w,h;
-    // auto-generated code from 422-jpg.py
-
-         if (size == 1120 *  746 * 2) { w = 1120; h =  746; } 
-    else if (size == 1872 * 1080 * 2) { w = 1872; h = 1080; } 
-    else if (size == 1024 *  680 * 2) { w = 1024; h =  680; } 
-    else if (size == 1560 *  884 * 2) { w = 1560; h =  884; } 
-    else if (size ==  944 *  632 * 2) { w =  944; h =  632; } 
-    else if (size ==  928 *  616 * 2) { w =  928; h =  616; } 
-    else if (size == 1576 * 1048 * 2) { w = 1576; h = 1048; } 
-    else if (size == 1576 *  632 * 2) { w = 1576; h =  632; } 
-    else if (size ==  720 *  480 * 2) { w =  720; h =  480; } 
-    else if (size == 1056 *  704 * 2) { w = 1056; h =  704; } 
-    else if (size == 1720 *  974 * 2) { w = 1720; h =  974; } 
-    else if (size == 1280 *  580 * 2) { w = 1280; h =  580; } 
-    else if (size ==  640 *  480 * 2) { w =  640; h =  480; } 
-    else if (size == 1024 *  680 * 2) { w = 1024; h =  680; } 
-    else if (size == 1056 *  756 * 2) { w = 1056; h =  756; } 
-    else if (size == 1728 *  972 * 2) { w = 1728; h =  972; } 
-    else if (size == 1680 *  945 * 2) { w = 1680; h =  945; } 
-    else if (size == 1280 *  560 * 2) { w = 1280; h =  560; } 
-    else if (size == 1152 *  768 * 2) { w = 1152; h =  768; } 
-    else if (size == 1904 * 1274 * 2) { w = 1904; h = 1274; } 
-    else if (size == 1620 * 1080 * 2) { w = 1620; h = 1080; } 
-    else if (size == 1280 *  720 * 2) { w = 1280; h =  720; } 
-	else if (size == 1808 * 1206 * 2) { w = 1808; h = 1206; } // 6D Movie
-	else if (size == 1816 * 1210 * 2) { w = 1816; h = 1210; } // 6D Photo
-	else if (size == 1104 *  736 * 2) { w = 1104; h =  736; } // 6D Zoom
-	else if (size == 1680 *  952 * 2) { w = 1680; h =  952; } // 600D
-	else if (size == 1728 *  972 * 2) { w = 1728; h =  972; } // 600D Crop
-    else if (size == 960  *  639 * 2) { w =  960; h =  639; } // 650D LV STDBY
-    else if (size == 1729 * 1151 * 2) { w = 1728; h = 1151; } // 650D 1080p/480p recording
-    else if (size == 1280 * 689  * 2) { w = 1280; h =  689; } // 650D 720p recording
-    else
-    {
-        bmp_printf(FONT_LARGE, 0, 50, "Cannot preview this picture.");
-        bzero32(vram->vram, vram->width * vram->height * 2);
-        return;
-    }
-
-    bmp_printf(FONT_LARGE, 500, 0, " %dx%d ", w, h);
-    if (PLAY_MODE) bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
-
-    size_t rc = read_file( filename, buf, size );
-    if( rc != size ) return;
-
-    yuv_resize(buf, w, h, (uint32_t*)vram->vram, vram->width, vram->height);
 }
 
 void peaking_benchmark()

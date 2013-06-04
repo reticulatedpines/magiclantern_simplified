@@ -19,6 +19,7 @@
 #define dbg_printf(fmt,...) {}
 #endif
 
+static int shave_right = 0;
 
 /*********************** Camera-specific constants ****************************/
 
@@ -318,6 +319,12 @@ int raw_update_params()
         skip_bottom = 4;
         #endif
         
+        if (shave_right)
+        {
+            width -= shave_right;
+            skip_right = MAX(0, skip_right - shave_right);
+        }
+        
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
     }
@@ -538,6 +545,25 @@ int raw_update_params()
     return 1;
 }
 
+static int preview_rect_x;
+static int preview_rect_y;
+static int preview_rect_w;
+static int preview_rect_h;
+
+void raw_set_preview_rect(int x, int y, int w, int h)
+{
+    preview_rect_x = x;
+    preview_rect_y = y;
+    preview_rect_w = w;
+    preview_rect_h = h;
+
+    get_yuv422_vram(); // update vram parameters
+    lv2raw.sx = 1024 * w / BM2LV_DX(os.x_ex);
+    lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex);
+    lv2raw.tx = x - LV2RAW_DX(os.x0);
+    lv2raw.ty = y - LV2RAW_DY(os.y0);
+}
+
 void raw_set_geometry(int width, int height, int skip_left, int skip_right, int skip_top, int skip_bottom)
 {
     raw_info.width = width;
@@ -555,11 +581,7 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
 
     dbg_printf("active area: x=%d..%d, y=%d..%d\n", raw_info.active_area.x1, raw_info.active_area.x2, raw_info.active_area.y1, raw_info.active_area.y2);
     
-    get_yuv422_vram(); // update vram parameters
-    lv2raw.sx = 1024 * raw_info.jpeg.width / BM2LV_DX(os.x_ex);
-    lv2raw.sy = 1024 * raw_info.jpeg.height / BM2LV_DY(os.y_ex);
-    lv2raw.tx = skip_left - LV2RAW_DX(os.x0);
-    lv2raw.ty = skip_top - LV2RAW_DY(os.y0);
+    raw_set_preview_rect(skip_left, skip_top, raw_info.jpeg.width + shave_right, raw_info.jpeg.height);
 
     dbg_printf("lv2raw sx:%d sy:%d tx:%d ty:%d\n", lv2raw.sx, lv2raw.sy, lv2raw.tx, lv2raw.ty);
     dbg_printf("raw2lv test: (%d,%d) - (%d,%d)\n", RAW2LV_X(raw_info.active_area.x1), RAW2LV_Y(raw_info.active_area.y1), RAW2LV_X(raw_info.active_area.x2), RAW2LV_Y(raw_info.active_area.y2));
@@ -764,7 +786,7 @@ int autodetect_black_level()
     raw_info.dynamic_range = (int)roundf((log2f(raw_info.white_level - black_level) - log2f(stdev)) * 100);
     #endif
 
-    // bmp_printf(FONT_MED, 50, 100, "black: mean=%d stdev=%d dr=%d \n", mean, stdev, raw_info.dynamic_range);
+    // bmp_printf(FONT_MED, 50, 350, "black: mean=%d stdev=%d dr=%d \n", (int)mean, (int)stdev, raw_info.dynamic_range);
 
     /* slight correction for the magenta cast in shadows */
     return mean + stdev/8;
@@ -775,15 +797,31 @@ void raw_lv_redirect_edmac(void* ptr)
     MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
 }
 
+void raw_lv_shave_right(int offset)
+{
+    shave_right = MAX(offset/8*8, 0);
+}
+
+void raw_lv_vsync_cbr()
+{
+    if (shave_right)
+    {
+        int edmac_pitch = shamem_read(RAW_LV_EDMAC+8) & 0xFFFF;
+        int pitch_offset = shave_right/8*14;
+        if (pitch_offset >= edmac_pitch) return;
+        MEM(RAW_LV_EDMAC-8+0x1C) = -pitch_offset;
+    }
+}
+
 int raw_lv_settings_still_valid()
 {
     /* should be fast enough for vsync calls */
     int edmac_pitch = shamem_read(RAW_LV_EDMAC+8) & 0xFFFF;
-    if (edmac_pitch != raw_info.pitch) return 0;
+    if (edmac_pitch != raw_info.pitch + shave_right*14/8) return 0;
     return 1;
 }
 
-void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int ultra_fast)
+static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1, int y2, int ultra_fast)
 {
     uint16_t* lv16 = CACHEABLE(lv_buffer);
     uint64_t* lv64 = (uint64_t*) lv16;
@@ -802,8 +840,8 @@ void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2,
     
     int x1 = BM2LV_X(os.x0);
     int x2 = BM2LV_X(os.x_max);
-    x1 = MAX(x1, RAW2LV_X(raw_info.active_area.x1));
-    x2 = MIN(x2, RAW2LV_X(raw_info.active_area.x2));
+    x1 = MAX(x1, RAW2LV_X(MAX(raw_info.active_area.x1, preview_rect_x)));
+    x2 = MIN(x2, RAW2LV_X(MIN(raw_info.active_area.x2, preview_rect_x + preview_rect_w)));
 
     /* cache the LV to RAW transformation for the inner loop to make it faster */
     /* we will always choose a green pixel */
@@ -817,7 +855,7 @@ void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2,
     {
         int yr = LV2RAW_Y(y) | 1;
 
-        if (yr < raw_info.active_area.y1 || yr >= raw_info.active_area.y2)
+        if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
         {
             /* out of range, just fill with black */
             memset(&lv64[LV(0,y)/8], 0, BM2LV_DX(x2-x1)*2);
@@ -856,9 +894,29 @@ void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2,
     SmallFree(lv2rx);
 }
 
+void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int ultra_fast)
+{
+    if (raw_buffer == (void*)-1)
+        raw_buffer = raw_info.buffer;
+    
+    if (lv_buffer == (void*)-1)
+        lv_buffer = (void*)YUV422_LV_BUFFER_DISPLAY_ADDR;
+    
+    if (y1 == -1)
+        y1 = BM2LV_Y(os.y0);
+    
+    if (y2 == -1)
+        y2 = BM2LV_Y(os.y_max);
+    
+    if (ultra_fast == -1)
+        ultra_fast = 0;
+    
+    raw_preview_fast_work(raw_buffer, lv_buffer, y1, y2, ultra_fast);
+}
+
 void FAST raw_preview_fast()
 {
-    raw_preview_fast_ex(raw_info.buffer, (void*)YUV422_LV_BUFFER_DISPLAY_ADDR, BM2LV_Y(os.y0), BM2LV_Y(os.y_max), 0);
+    raw_preview_fast_ex((void*)-1, (void*)-1, -1, -1, -1);
 }
 
 static int lv_raw_enabled;
@@ -868,6 +926,7 @@ static int old_raw_type = -1;
 static void raw_lv_enable()
 {
     lv_raw_enabled = 1;
+    shave_right = 0;
     call("lv_save_raw", 1);
     
 #ifdef PREFERRED_RAW_TYPE
@@ -934,17 +993,17 @@ void raw_force_aspect_ratio_1to1()
     if (lv2raw.sy < lv2raw.sx) /* image too tall */
     {
         lv2raw.sy = lv2raw.sx;
-        int height = RAW2LV_DY(raw_info.jpeg.height);
+        int height = RAW2LV_DY(preview_rect_h);
         int offset = (vram_lv.height - height) / 2;
-        int skip_top = raw_info.active_area.y1;
+        int skip_top = preview_rect_y;
         lv2raw.ty = skip_top - LV2RAW_DY(os.y0) - LV2RAW_DY(offset);
     }
     else if (lv2raw.sx < lv2raw.sy) /* image too wide */
     {
         lv2raw.sx = lv2raw.sy;
-        int width = RAW2LV_DX(raw_info.jpeg.width);
+        int width = RAW2LV_DX(preview_rect_w);
         int offset = (vram_lv.width - width) / 2;
-        int skip_left = raw_info.active_area.x1;
+        int skip_left = preview_rect_x;
         lv2raw.tx = skip_left - LV2RAW_DX(os.x0) - LV2RAW_DX(offset);
     }
 }

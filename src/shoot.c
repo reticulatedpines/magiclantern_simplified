@@ -1392,96 +1392,6 @@ void expo_adjust_playback(int dir)
 
 #endif
 
-#ifdef FEATURE_PLAY_422
-
-// that's extremely inefficient
-static int find_422(int * index, char* fn)
-{
-    struct fio_file file;
-    struct fio_dirent * dirent = 0;
-    int N = 0;
-    
-    dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
-    if( IS_ERROR(dirent) )
-    {
-        bmp_printf( FONT_LARGE, 40, 40, "find_422: dir err" );
-        return 0;
-    }
-
-    do {
-        if (file.mode & 0x10) continue; // is a directory
-        int n = strlen(file.name);
-        if ((n > 4) && (streq(file.name + n - 4, ".422")))
-            N++;
-    } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
-
-    static int old_N = 0;
-    if (N != old_N) // number of pictures was changed, display the last one
-    {
-        old_N = N;
-        *index = N-1;
-    }
-    
-    *index = mod(*index, N);
-
-    dirent = FIO_FindFirstEx( get_dcim_dir(), &file );
-    if( IS_ERROR(dirent) )
-    {
-        bmp_printf( FONT_LARGE, 40, 40, "find_422: dir err" );
-        return 0;
-    }
-
-    int k = 0;
-    int found = 0;
-    do {
-        if (file.mode & 0x10) continue; // is a directory
-        int n = strlen(file.name);
-        if ((n > 4) && (streq(file.name + n - 4, ".422")))
-        {
-            if (k == *index)
-            {
-                snprintf(fn, 100, "%s/%s", get_dcim_dir(), file.name);
-                found = 1;
-            }
-            k++;
-        }
-    } while( FIO_FindNextEx( dirent, &file ) == 0);
-    FIO_CleanupAfterFindNext_maybe(dirent);
-    return found;
-}
-
-void play_next_422_task(int dir)
-{
-    ASSERT(set_maindial_sem);
-    take_semaphore(set_maindial_sem, 0);
-    
-    static int index = -1;
-    static char ffn[100];
-    
-    index += dir;
-    
-    if (find_422(&index, ffn))
-    {
-        play_422(ffn);
-        //~ bmp_printf(FONT_LARGE, 0, 0, ffn);
-    }
-    else
-    {
-        bmp_printf(FONT_LARGE, 0, 0, "No 422 files found");
-    }
-
-    give_semaphore(set_maindial_sem);
-}
-
-
-void play_next_422(int dir)
-{
-    task_create("422_task", 0x1c, 0, play_next_422_task, (void*)dir);
-}
-#endif
-
-
 void ensure_movie_mode()
 {
 #ifdef CONFIG_MOVIE
@@ -1717,11 +1627,10 @@ static void silent_pic_raw_init_preview()
         #endif
     }
 }
+#ifdef CONFIG_DISPLAY_FILTERS
 static void silent_pic_raw_update_preview()
 {
-    #ifdef CONFIG_DISPLAY_FILTERS
     if (!silent_pic_display_buf) return;
-    #endif
     /* try to preview the last completed frame; if there isn't any, use the first frame */
     void* raw_buf = sp_frames[MAX(0,sp_num_frames-2) % sp_buffer_count];
     static int first_line = 0;
@@ -1747,11 +1656,9 @@ static void silent_pic_raw_update_preview()
                 raw_buf = sp_frames[i];
     }
     
-    #ifdef CONFIG_DISPLAY_FILTERS
     raw_preview_fast_ex(raw_buf, silent_pic_display_buf, first_line, last_line, ultra_fast);
-    #endif
 }
-
+#endif
 static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
 {
     /* we'll look for contiguous blocks equal to raw_info.frame_size */
@@ -6975,7 +6882,7 @@ shoot_task( void* unused )
          */
         if (lv_3rd_party_flash && !is_movie_mode())
         {
-            if (lv && HALFSHUTTER_PRESSED)
+            if (lv && get_halfshutter_pressed())
             {
                 /* timeout after 2 minutes */
                 uint32_t loops = 1200;
@@ -6990,16 +6897,18 @@ shoot_task( void* unused )
                 {
                     msleep(100);
                 }
-
-                /* re-press half-shutter */
-                SW1(1,100);
                 
-                bmp_printf(FONT_MED, 0, 20, "(waiting for releasing half-shutter)");
+                msleep(200);
+                
+                /* re-press half-shutter */
+                SW1(1,200);
+                
+                bmp_printf(FONT_MED, 0, 0, "(take pic or release half-shutter)");
                 
                 /* timeout after 2 minutes */
                 loops = 1200;
                 /* and wait for being released again */
-                while (HALFSHUTTER_PRESSED && loops--) msleep(100);
+                while (get_halfshutter_pressed() && loops--) msleep(100);
 
                 if(loops)
                 {

@@ -37,7 +37,7 @@ asm(
        so cut the first 0x120 bytes off autoexec.bin before embedding into .fir 
      */
     "B       skip_fir_header\n"
-    ".space 0x11C\n"
+    ".incbin \"version.bin\"\n" // this must have exactly 0x11C (284) bytes
     "skip_fir_header:\n"
 
     "MRS     R0, CPSR\n"

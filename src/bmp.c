@@ -352,7 +352,6 @@ bmp_puts(
         const char *s
 )
 {
-
     *x = COERCE(*x, BMP_W_MINUS, BMP_W_PLUS);
     *y = COERCE(*y, BMP_H_MINUS, BMP_H_PLUS);
     
@@ -386,9 +385,14 @@ bmp_puts(
             continue;
         }
 
-        if( c == '\b' )
+        if( c == '\b' && *x >= initial_x + font->width)
         {
             (*x) -= font->width;
+            #ifdef CONFIG_VXWORKS
+            row -= font->width / 2;
+            #else
+            row -= font->width;
+            #endif
             continue;
         }
 
@@ -691,6 +695,15 @@ read_file(
 
 
 /** Load a BMP file into memory so that it can be drawn onscreen */
+
+#ifdef CONFIG_USE_MALLOC_FOR_BMP
+#define BmpAlloc malloc
+#define BmpFree free
+#else
+#define BmpAlloc AllocateMemory
+#define BmpFree FreeMemory
+#endif
+
 struct bmp_file_t *
 bmp_load(
     const char *        filename,
@@ -820,6 +833,10 @@ getfilesize_fail:
     return NULL;
 }
 
+void bmp_free(struct bmp_file_t * bmp)
+{
+    if (bmp) BmpFree(bmp);
+}
 
 uint8_t* read_entire_file(const char * filename, int* buf_size)
 {

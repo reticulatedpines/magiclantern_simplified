@@ -23,6 +23,7 @@ ML_EXTRA_OBJS = \
 	lcdsensor.o \
 	raw.o \
 	chdk-dng.o \
+	edmac-memcpy.o \
 
 #include generic rules and definitions
 #TOP_DIR defined in upper Makefile
@@ -40,7 +41,7 @@ ROMBASEADDR     = 0xFF010000
 # For injecting ML into AllocateMemory (system memory) pool - which is much bigger; 
 # The malloc pool is very small on 550D and creates problems when Canon firmware tries to malloc.
 # They don't always check for successful mallocs, and this causes weird bugs - camera acting like drunk :)
-RESTARTSTART    = 0xC80100
+RESTARTSTART    = 0xC60100
 
 AUTOEXEC_BASE   = 0x40800000
 FIR_BASE        = 0x40800120

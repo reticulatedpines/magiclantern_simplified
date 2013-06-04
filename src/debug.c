@@ -389,6 +389,8 @@ static int vmax(int* x, int n)
     return m;
 }
 
+#endif
+
 static void dump_rom_task(void* priv, int unused)
 {
     msleep(200);
@@ -420,7 +422,6 @@ static void dump_rom(void* priv, int unused)
     gui_stop_menu();
     task_create("dump_task", 0x1e, 0, dump_rom_task, 0);
 }
-#endif
 
 static void dump_logs_task(void* priv)
 {
@@ -1773,17 +1774,6 @@ static void stress_test_task(void* unused)
     msleep(2000);
 #endif
 
-#ifdef FEATURE_PLAY_422
-    fake_simple_button(BGMT_PLAY); msleep(1000);
-    for (int i = 0; i < 100; i++)
-    {
-        NotifyBox(1000, "PLAY: 422 scrolling: %d", i);
-        play_next_422_task(1);
-    }
-    get_out_of_play_mode();
-    msleep(2000);
-#endif
-
     fake_simple_button(BGMT_PLAY); msleep(1000);
     for (int i = 0; i < 50; i++)
     {
@@ -2878,6 +2868,10 @@ static int stack_size_crit(int x)
 static int max_shoot_malloc_mem = 0;
 static int max_shoot_malloc_frag_mem = 0;
 static char shoot_malloc_frag_desc[70] = "";
+static char memory_map[720];
+
+#define MEMORY_MAP_ADDRESS_TO_INDEX(p) ((int)CACHEABLE(p)/1024 * 720 / 512/1024)
+#define MEMORY_MAP_INDEX_TO_ADDRESS(i) ALIGN32((i) * 512 * 1024 / 720 * 1024)
 
 /* fixme: find a way to read the free stack memory from DryOS */
 /* current workaround: compute it by trial and error when you press SET on Free Memory menu item */
@@ -2915,26 +2909,63 @@ static void guess_free_mem_task(void* priv, int delta)
     
     struct memChunk *currentChunk;
     int chunkAvail;
+    void* chunkAddress;
     int total = 0;
     
     currentChunk = GetFirstChunkFromSuite(hSuite);
     
     snprintf(shoot_malloc_frag_desc, sizeof(shoot_malloc_frag_desc), "");
-    
+    memset(memory_map, 0, sizeof(memory_map));
+
     while(currentChunk)
     {
         chunkAvail = GetSizeOfMemoryChunk(currentChunk);
+        chunkAddress = (void*)GetMemoryAddressOfMemoryChunk(currentChunk);
     
         int mb = 10*chunkAvail/1024/1024;
         STR_APPEND(shoot_malloc_frag_desc, mb%10 ? "%s%d.%d" : "%s%d", total ? "+" : "", mb/10, mb%10);
         total += chunkAvail;
 
+        int start = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAddress);
+        int width = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAvail);
+        memset(memory_map + start, COLOR_GREEN1, width);
+
         currentChunk = GetNextMemoryChunk(hSuite, currentChunk);
     }
     STR_APPEND(shoot_malloc_frag_desc, " MB.");
     ASSERT(max_shoot_malloc_frag_mem == total);
+
+    exmem_clear(hSuite, 0);
     
     shoot_free_suite(hSuite);
+    
+    /* memory analysis: how much appears unused? */
+    for (uint32_t i = 0; i < 720; i++)
+    {
+        if (memory_map[i])
+            continue;
+        
+        uint32_t empty = 1;
+        uint32_t start = MEMORY_MAP_INDEX_TO_ADDRESS(i);
+        uint32_t end = MEMORY_MAP_INDEX_TO_ADDRESS(i+1);
+        uint32_t val0 = MEM(start);
+        
+        for (uint32_t p = start; p < end; p += 4)
+        {
+            uint32_t v = MEM(p);
+            #ifdef CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
+            if (v != 0x124B1DE0 /* RA(W)VIDEO*/)
+            #else
+            if (v != 0 && v != 0xFFFFFFFF)
+            #endif
+            {
+                empty = 0;
+                break;
+            }
+        }
+        
+        memory_map[i] = empty ? COLOR_BLUE : COLOR_RED;
+    }
 
     menu_redraw();
     guess_mem_running = 0;
@@ -2994,8 +3025,11 @@ static MENU_UPDATE_FUNC(meminfo_display)
 
         case 5: // shoot_malloc fragmented
             MENU_SET_VALUE("%d M", max_shoot_malloc_frag_mem/1024/1024);
-            MENU_SET_HELP(shoot_malloc_frag_desc);
+            MENU_SET_WARNING(MENU_WARN_INFO, shoot_malloc_frag_desc);
             guess_needed = 1;
+            for (int i = 0; i < 720; i++)
+                if (memory_map[i])
+                    draw_line(i, 400, i, 410, memory_map[i]);
             break;
 
         #if defined(CONFIG_MEMPATCH_CHECK)
@@ -3014,6 +3048,7 @@ static MENU_UPDATE_FUNC(meminfo_display)
             );
             if (ml_reserved_mem < ml_used_mem)
                 MENU_SET_WARNING(MENU_WARN_ADVICE, "ML uses too much memory!!");
+            
             break;
         }
         #endif
@@ -3021,9 +3056,9 @@ static MENU_UPDATE_FUNC(meminfo_display)
 
     if (guess_needed && !guess_mem_running)
     {
-        /* check this once every 10 seconds (not more often) */
+        /* check this once every 20 seconds (not more often) */
         static int aux = INT_MIN;
-        if (should_run_polling_action(10000, &aux))
+        if (should_run_polling_action(20000, &aux))
         {
             guess_mem_running = 1;
             guess_free_mem();
@@ -3032,6 +3067,8 @@ static MENU_UPDATE_FUNC(meminfo_display)
 
     if (guess_mem_running)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Trying to guess how much RAM we have...");
+    else
+        MENU_SET_HELP("GREEN=free shoot, BLUE=00/FF maybe free, RED=maybe used");
 #endif
 }
 #endif
@@ -3444,12 +3481,12 @@ static struct menu_entry debug_menus[] = {
         .select        = dlg_test,
         .help = "Dialog templates (up/dn) and color palettes (left/right)"
     },*/
+#endif
     {
         .name        = "Dump ROM and RAM",
         .select        = dump_rom,
-        .help = "0.BIN:0-0FFFFFFF, ROM0.BIN:F0000000, ROM1.BIN:F8000000"
+        .help = "ROM0.BIN:F0000000, ROM1.BIN:F8000000, RAM4.BIN"
     },
-#endif
 #ifdef CONFIG_40D
     {
         .name        = "Dump camera logs",

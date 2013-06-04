@@ -141,6 +141,10 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 
 static void vsync_func() // called once per frame.. in theory :)
 {
+    #ifdef CONFIG_RAW_LIVEVIEW
+    raw_lv_vsync_cbr(); // in raw.c
+    #endif
+    
     #if defined(CONFIG_MODULES)
     module_exec_cbr(CBR_VSYNC);
     #endif
