@@ -10,9 +10,6 @@
 #undef RAW_DEBUG_BLACK  /* for checking black level calibration */
 /* see also RAW_ZEBRA_TEST and RAW_SPOTMETER_TEST in zebra.c */
 
-/* can be computed from black level analysis, so we no longer need this */
-#undef CONFIG_DXO_DYNAMIC_RANGE
-
 #ifdef RAW_DEBUG
 #define dbg_printf(fmt,...) { console_printf(fmt, ## __VA_ARGS__); }
 #else
@@ -443,96 +440,27 @@ int raw_update_params()
         return 0;
     }
 
-#ifdef CONFIG_DXO_DYNAMIC_RANGE
-    /**
-     * Dynamic range, from DxO
-     * e.g. http://www.dxomark.com/index.php/Cameras/Camera-Sensor-Database/Canon/EOS-5D-Mark-III
-     * Measurements | Dynamic range | Screen
-     * You can hover over the points to list the measured EV (thanks Audionut).
-     */
-    
-    #ifdef CONFIG_5D3
-    int dynamic_ranges[] = {1097, 1087, 1069, 1041, 994, 923, 830, 748, 648, 552, 464};
-    #endif
-
-    #ifdef CONFIG_5D2
-    int dynamic_ranges[] = {1116, 1112, 1092, 1066, 1005, 909, 813, 711, 567};
-    #endif
-
-    #ifdef CONFIG_6D
-    int dynamic_ranges[] = {1143, 1139, 1122, 1087, 1044, 976, 894, 797, 683, 624, 505};
-    #endif
-
-    #ifdef CONFIG_500D
-    int dynamic_ranges[] = {1104, 1094, 1066, 1007, 933, 848, 737, 625};
-    #endif
-
-    #ifdef CONFIG_550D
-    //int dynamic_ranges[] = {1157, 1154, 1121, 1070, 979, 906, 805, 707}; I took the values Greg recommended
-    int dynamic_ranges[] = {1095, 1092, 1059, 1008, 917, 844, 744, 645};
-    #endif
-
-    #ifdef CONFIG_600D
-    int dynamic_ranges[] = {1146, 1139, 1116, 1061, 980, 898, 806, 728};
-    #endif
-
-    #ifdef CONFIG_650D
-    int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
-    #endif
-
-    #ifdef CONFIG_60D
-    int dynamic_ranges[] = {1091, 1072, 1055, 999, 910, 824, 736, 662};
-    #endif
-
-    #ifdef CONFIG_EOSM
-    int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
-    #endif
-#endif
 /*********************** Portable code ****************************************/
 
     raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
 
-    int iso = 0;
-    if (lv && is_movie_mode()) iso = FRAME_ISO;
-    if (!iso) iso = lens_info.raw_iso;
-    if (!iso) iso = lens_info.raw_iso_auto;
-#ifdef CONFIG_DXO_DYNAMIC_RANGE
-    int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 72 + (COUNT(dynamic_ranges)-1) * 8);
-    int dr_index = COERCE((iso_rounded - 72) / 8, 0, COUNT(dynamic_ranges)-1);
-    float iso_digital = (iso - iso_rounded) / 8.0f;
-    raw_info.dynamic_range = dynamic_ranges[dr_index];
-    dbg_printf("dynamic range: %d.%02d EV (iso=%d)\n", raw_info.dynamic_range/100, raw_info.dynamic_range%100, raw2iso(iso));
-#else
-    int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 200);
-    float iso_digital = (iso - iso_rounded) / 8.0f;
-#endif
-    
     raw_info.white_level = WHITE_LEVEL;
 
-#ifndef CONFIG_DXO_DYNAMIC_RANGE
-    if (iso_digital <= 0 && !lv)
+    if (!lv)
     {
         /* at ISO 160, 320 etc, the white level is decreased by -1/3 EV */
         /* in LiveView, it doesn't change */
-        raw_info.white_level *= powf(2, iso_digital);
+        int iso = 0;
+        if (!iso) iso = lens_info.raw_iso;
+        if (!iso) iso = lens_info.raw_iso_auto;
+        int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 200);
+        float iso_digital = (iso - iso_rounded) / 8.0f;
+        if (iso_digital <= 0)
+            raw_info.white_level *= powf(2, iso_digital);
     }
-#endif
 
     raw_info.black_level = autodetect_black_level();
     
-#ifdef CONFIG_DXO_DYNAMIC_RANGE
-    if (iso_digital <= 0)
-    {
-        /* at ISO 160, 320 etc, the white level is decreased by -1/3 EV */
-        raw_info.white_level *= powf(2, iso_digital);
-    }
-    else if (iso_digital > 0)
-    {
-        /* at positive digital ISO, the white level doesn't change, but the dynamic range is reduced */
-        raw_info.dynamic_range -= (iso_digital * 100);
-    }
-#endif
-
     dbg_printf("black=%d white=%d\n", raw_info.black_level, raw_info.white_level);
 
     #ifdef RAW_DEBUG_DUMP
@@ -772,7 +700,6 @@ int autodetect_black_level()
         );
     }
     
-    #ifndef CONFIG_DXO_DYNAMIC_RANGE
     /**
      * A = full well capacity / read-out noise 
      * DR in dB = 20 log10(A)
@@ -785,7 +712,6 @@ int autodetect_black_level()
      
     int black_level = mean + stdev/2;
     raw_info.dynamic_range = (int)roundf((log2f(raw_info.white_level - black_level) - log2f(stdev)) * 100);
-    #endif
 
     // bmp_printf(FONT_MED, 50, 350, "black: mean=%d stdev=%d dr=%d \n", (int)mean, (int)stdev, raw_info.dynamic_range);
 
