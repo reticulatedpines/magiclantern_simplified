@@ -15,7 +15,7 @@
 #define FLEXINFO_DEVELOPER_MENU
 #define FLEXINFO_XML_CONFIG
 
-#if defined(CONFIG_60D) || defined(CONFIG_650D)
+#if defined(CONFIG_60D) || defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D)
 #undef FLEXINFO_DEVELOPER_MENU // squeeze a few K of RAM
 #undef FLEXINFO_XML_CONFIG
 #endif
@@ -264,7 +264,7 @@ info_elem_t info_config[] =
     
 #endif
 
-#if defined(CONFIG_650D)
+#if defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D)
     /* entry 1, max AUTO ISO */
     { .string = { { INFO_TYPE_STRING, { MAX_ISO_POS_X, MAX_ISO_POS_Y, 2, .name = "Max ISO Range"  }}, INFO_STRING_ISO_MAX, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
 
