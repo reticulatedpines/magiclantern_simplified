@@ -3880,7 +3880,8 @@ static void auto_ettr_work(int corr)
     iso += tvr - tv;
     
     /* analog iso can be only in 1 EV increments */
-    int isor = COERCE((iso + 4) / 8 * 8, MIN_ISO, MAX_ANALOG_ISO);
+    int max_auto_iso = auto_iso_range & 0xFF;
+    int isor = COERCE((iso + 4) / 8 * 8, MIN_ISO, max_auto_iso);
     
     /* cancel ISO rounding errors by adjusting shutter, which goes in smaller increments */
     tvr += isor - iso;
