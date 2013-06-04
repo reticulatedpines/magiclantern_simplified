@@ -356,11 +356,11 @@ void update_vram_params()
     #if defined(CONFIG_600D)
     int bar_x = is_movie_mode() && video_mode_resolution >= 2 ? off_43 : 0;
     int bar_y = is_movie_mode() && video_mode_resolution <= 1 ? os.off_169 : 0;
-    #elif defined(CONFIG_5D3) || defined(CONFIG_1100D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+    #elif defined(CONFIG_1100D) || defined(CONFIG_DIGIC_V)
     int bar_x = 0;
     int bar_y = is_movie_mode() && video_mode_resolution == 1 ? os.off_169 : 0;
     off_43+=0; // bypass warning
-    #elif defined(CONFIG_500D) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+    #elif defined(CONFIG_500D) || defined(CONFIG_7D) //TODO: 650D/6D/EOSM used to have this one enabled too...which one is correct?
     int bar_x = 0;
     int bar_y = 0;
     off_43+=0; // bypass warning
