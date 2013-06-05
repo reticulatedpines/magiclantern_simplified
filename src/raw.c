@@ -466,7 +466,12 @@ int raw_update_params()
 
 /*********************** Portable code ****************************************/
 
-    raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
+    int dirty = 0;
+    if (width != raw_info.width || height != raw_info.height)
+    {
+        raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
+        dirty = 1;
+    }
 
     raw_info.white_level = WHITE_LEVEL;
 
@@ -491,10 +496,15 @@ int raw_update_params()
          * warning: this may exceed 16383!
          */
         int shad_gain = shamem_read(0xc0f08030);
-        raw_info.white_level = raw_info.white_level * 4096 / shad_gain;
+        
+        /* LV histogram seems to be underexposed by 0.15 EV compared to photo one,
+         * so we compensate for that too (4096 -> 3691) */
+        raw_info.white_level = raw_info.white_level * 3691 / shad_gain;
     }
 
-    raw_info.black_level = autodetect_black_level();
+    int black_aux = INT_MIN;
+    if (!lv || dirty || should_run_polling_action(1000, &black_aux))
+        raw_info.black_level = autodetect_black_level();
     
     dbg_printf("black=%d white=%d\n", raw_info.black_level, raw_info.white_level);
 
@@ -663,13 +673,44 @@ int FAST raw_get_gray_pixel(int x, int y, int gray_projection)
 float FAST raw_to_ev(int raw)
 {
     int raw_max = raw_info.white_level - raw_info.black_level;
+    
+    if (unlikely(raw_info.white_level > 16383) && unlikely(raw > 10000))
+    {
+        /**
+         * Hack for photo mode LV raw overlays (histogram & friends)
+         * to show correct overexposure warnings when ExpSim is done with -1/3 EV digital ISO.
+         * 
+         * Canon implements ExpSim by varying iso/shutter/aperture in full stops, and digital ISO for 1/3 stops.
+         * Digital ISO does not affect the raw histogram, so they add -1/3, 0 or +1/3 EV when developing the raw for LV display
+         * We did the same adjustment by adjusting the white level in raw_update_params.
+         * But when the correction is -1/3 EV, the white level is greater than 16383,
+         * so the overexposure indicators will read a negative EV instead of 0 (they will no longer indicate overexposure).
+         * 
+         * With this hack, we are pushing raw values greater than 10000 towards 0 EV (overexposed) level,
+         * thus keeping the correct horizontal position of the histogram at midtones (raw - 1/3 EV)
+         * and getting correct overexposure indicators for highlights (0 EV).
+         * 
+         * Math:
+         *      at raw=10000 we keep the original white level,
+         *      at raw=15000 or more, white level becomes 15000,
+         *      with linear interpolation, thus stretching the histogram in the brightest half-stop.
+         * 
+         * Feel free to optimize it with fixed point.
+         * 
+         * This hack has no effect in movie mode or outside LV, because white level is normally under 16383.
+         */
+        float k = COERCE((raw - 10000) / 5000.0, 0.0, 1.0);
+        int adjusted_white = raw_info.white_level * (1-k) + 15000 * k;
+        raw_max = adjusted_white - raw_info.black_level;
+    }
+    
     float raw_ev = -log2f(raw_max) + log2f(COERCE(raw - raw_info.black_level, 1, raw_max));
     return raw_ev;
 }
 
 int FAST ev_to_raw(float ev)
 {
-    int raw_max = raw_info.white_level - raw_info.black_level;
+    int raw_max = MIN(raw_info.white_level, 16383) - raw_info.black_level;
     return raw_info.black_level + powf(2, ev) * raw_max;
 }
 

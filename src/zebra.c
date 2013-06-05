@@ -837,6 +837,10 @@ int can_use_raw_overlays_menu()
     if (lv && raw_lv_is_enabled())
         return 1;
 
+    int raw = pic_quality & 0x60000;
+    if (lv && !is_movie_mode() && raw)
+        return 1;
+
     return 0;
 }
 
@@ -904,12 +908,61 @@ static void draw_zebras_raw()
     }
 }
 
+static void FAST draw_zebras_raw_lv()
+{
+    if (!raw_update_params()) return;
+
+    uint8_t * const bvram = bmp_vram_real();
+    if (!bvram) return;
+    uint8_t * const bvram_mirror = get_bvram_mirror();
+    if (!bvram_mirror) return;
+
+    int white = raw_info.white_level;
+    if (white > 16383) white = 15000;
+    int underexposed = ev_to_raw(- (raw_info.dynamic_range - 100) / 100.0);
+
+    int off = get_y_skip_offset_for_overlays();
+    for(int i = os.y0 + off; i < os.y_max - off; i += 2 )
+    {
+        uint32_t * const b_row = (uint32_t*)( bvram        + BM_R(i)       );  // 2 pixels
+        uint32_t * const m_row = (uint32_t*)( bvram_mirror + BM_R(i)       );  // 2 pixels
+        
+        uint32_t* bp;  // through bmp vram
+        uint32_t* mp;  // through mirror
+        
+        for (int j = os.x0; j < os.x_max; j += 4)
+        {
+            bp = b_row + j/4;
+            mp = m_row + j/4;
+            
+            #define BP (*bp)
+            #define MP (*mp)
+            
+            if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
+            if ((MP & 0x80808080)) continue;
+            
+            int x = BM2RAW_X(j);
+            int y = BM2RAW_Y(i);
+            int r = raw_red_pixel(x, y);
+            int g = raw_green_pixel(x, y);
+            int b = raw_blue_pixel(x, y);
+            int m = MAX(MAX(r,g), b);
+            int c = zebra_rgb_solid_color(m <= underexposed, r > white, g > white, b > white);
+
+            MP = BP = c;
+
+            #undef BP
+            #undef MP
+        }
+    }
+}
+
 static MENU_UPDATE_FUNC(raw_zebra_update)
 {
     if (!can_use_raw_overlays_menu())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set picture quality to RAW in Canon menu.");
     else if (raw_zebra_enable)
-        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW RGB zebras after taking a picture.");
+        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW RGB zebras in LiveView and after taking a pic.");
 }
 #endif
 
@@ -1287,9 +1340,10 @@ static void draw_zebras( int Z )
     if (zd)
     {
         #ifdef FEATURE_RAW_ZEBRAS
-        if (raw_zebra_enable && can_use_raw_overlays() && !lv)
+        if (raw_zebra_enable && can_use_raw_overlays())
         {
-            draw_zebras_raw();
+            if (lv) draw_zebras_raw_lv();
+            else draw_zebras_raw();
             return;
         }
         #endif
@@ -2208,16 +2262,19 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
     }
 
     #ifdef FEATURE_RAW_ZEBRAS
-    if (z && can_use_raw_overlays_menu() && !lv)
+    if (z && can_use_raw_overlays_menu())
+    {
         raw_zebra_update(entry, info);
+        if (raw_zebra_enable) MENU_SET_VALUE("RAW RGB");
+    }
     #endif
 }
 
 static MENU_UPDATE_FUNC(zebra_param_not_used_for_raw)
 {
     #ifdef FEATURE_RAW_ZEBRAS
-    if (raw_zebra_enable && can_use_raw_overlays_menu() && !lv)
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Not used for RAW zebras.");
+    if (raw_zebra_enable && can_use_raw_overlays_menu())
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not used for RAW zebras.");
     #endif
 }
 
