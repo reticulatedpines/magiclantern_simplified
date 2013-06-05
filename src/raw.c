@@ -699,7 +699,7 @@ float FAST raw_to_ev(int raw)
 
 int FAST ev_to_raw(float ev)
 {
-    int raw_max = raw_info.white_level - raw_info.black_level;
+    int raw_max = MIN(raw_info.white_level, 16383) - raw_info.black_level;
     return raw_info.black_level + powf(2, ev) * raw_max;
 }
 
