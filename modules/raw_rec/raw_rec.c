@@ -771,6 +771,12 @@ static int process_frame()
         return 0;
     }
     
+    /* try a sync beep */
+    if (sound_rec == 2 && frame_count == 1)
+    {
+        beep();
+    }
+
     int ans = edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
 
     /* advance to next frame */
@@ -843,10 +849,6 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
     }
     
     dma_transfer_in_progress = process_frame();
-
-    /* try a sync beep */
-    if (sound_rec == 2 && frame_count == 1)
-        beep();
 
     return 0;
 }
