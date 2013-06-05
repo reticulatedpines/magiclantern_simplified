@@ -541,7 +541,13 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                     break;
                 }
 
-                char buf[BUF_SIZE+32];
+                char *buf;
+                buf = (char *) alloc_dma_memory(BUF_SIZE);
+                if ( buf == NULL )
+                {
+                    msg.id = PTP_RC_GeneralError;
+                    break;
+                }
                 tmp = s;
                 t = s;
                 while ( (r = FIO_ReadFile(f, UNCACHEABLE(buf), (t<BUF_SIZE) ? t : BUF_SIZE)) > 0 )
@@ -552,6 +558,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                     tmp = 0;
                 }
                 FIO_CloseFile(f);
+                free_dma_memory(buf);
                 // XXX check that we actually read/send s bytes! (t == 0)
 
                 msg.param_count = 1;
@@ -575,5 +582,3 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
 
     return 0;
 }
-
-

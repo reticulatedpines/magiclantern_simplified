@@ -2679,7 +2679,8 @@ static void spotmeter_step()
         int aff_y0 = 240;
         if (lv)
         {
-            get_afframe_pos(720, 480, &aff_x0, &aff_y0);
+            if (lv_dispsize == 1)
+                get_afframe_pos(720, 480, &aff_x0, &aff_y0);
         }
         else
         {

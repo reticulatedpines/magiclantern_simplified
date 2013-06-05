@@ -57,8 +57,9 @@ static CONFIG_INT("auto.ettr", auto_ettr, 0);
 static CONFIG_INT("auto.ettr.trigger", auto_ettr_trigger, 1);
 static CONFIG_INT("auto.ettr.prctile", auto_ettr_percentile, 98);
 static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
-static CONFIG_INT("auto.ettr.max.shutter", auto_ettr_max_shutter, 11);
+static CONFIG_INT("auto.ettr.max.tv", auto_ettr_max_shutter, 88);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
+static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
 #endif
 
 #define AUTO_ETTR_TRIGGER_PHOTO (auto_ettr_trigger == 0 || intervalometer_running)
@@ -881,11 +882,19 @@ int handle_mlu_handheld(struct event * event)
 #ifdef FEATURE_LV_FOCUS_BOX_SNAP
 extern int focus_box_lv_jump;
 
+#ifdef FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
+static CONFIG_INT("focus.box.raw.x5.x", focus_box_raw_x5_x, 0);
+static CONFIG_INT("focus.box.raw.x5.y", focus_box_raw_x5_y, 0);
+static CONFIG_INT("focus.box.raw.x5.w", focus_box_raw_x5_w, 0);
+static CONFIG_INT("focus.box.raw.x5.h", focus_box_raw_x5_h, 0);
+#endif
+
 static int center_lv_aff = 0;
 void center_lv_afframe()
 {
     center_lv_aff = 1;
 }
+
 void center_lv_afframe_do()
 {
 #ifdef CONFIG_LIVEVIEW
@@ -899,7 +908,8 @@ void center_lv_afframe_do()
         focus_box_lv_jump == 1 ? 3 :
         focus_box_lv_jump == 2 ? 5 :
         focus_box_lv_jump == 3 ? 5 :
-                             9 ;
+        focus_box_lv_jump == 4 ? 9 :
+                             2 ;
 
     int W = afframe[0];
     int H = afframe[1];
@@ -978,15 +988,105 @@ void center_lv_afframe_do()
         pos_x[8] = W*2/8;
         pos_y[8] = H / 2;
     }
-    
+    #ifdef FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
+    else if (focus_box_lv_jump == 5)
+    {
+        pos_x[1] = pos_x[0];
+        pos_y[1] = pos_y[0];
+        
+        if (lv_dispsize > 1)
+        {
+            /* center on the raw frame */
+            raw_lv_request();
+            if (raw_update_params())
+            {
+                /* find out where we are inside the raw frame */
+                uint32_t pos1 = shamem_read(0xc0f09050);
+                uint32_t pos2 = shamem_read(0xc0f09054);
+                int x1 = pos1 & 0xFFFF;
+                int x2 = pos2 & 0xFFFF;
+                int y1 = pos1 >> 16;
+                int y2 = pos2 >> 16;
+                
+                /* does it look alright? */
+                if (x1 && x2 && y1 && y2 &&
+                    x2 > x1 + 100 && y2 > y1 + 100)
+                {
+                    /* convert everything in focus box coords (pixels) */
+                    int scale_x = w * 100 / (x2-x1);
+                    int scale_y = h * 100 / (y2-y1);
+                    
+                    /* where we are inside the raw frame, in focus box coords */
+                    int here_x = (x1+x2) * scale_x / 200;
+                    int here_y = (y1+y2) * scale_y / 200;
+                    
+                    /* we want to be in the center */
+                    int dest_x = raw_info.active_area.x1 + MAX(raw_info.jpeg.width, w + 350) / 2;
+                    int dest_y = raw_info.active_area.y1 + MAX(raw_info.jpeg.height, h + 350) / 2;
+                    
+                    /* focus box is here */
+                    int Xc = Xtl + w/2;
+                    int Yc = Ytl + h/2;
+
+                    //~ NotifyBox(2000, "aff(%d,%d)\nhere (%d,%d)\ndest (%d,%d)\ntotal (%d,%d)", Xc, Yc, here_x, here_y, dest_x, dest_y, W, H);
+                    
+                    /* and we'll move it here */
+                    pos_x[1] = Xc + dest_x - here_x;
+                    pos_y[1] = Yc + dest_y - here_y;
+                    
+                    /* disable centering in x5 mode, since we will lose the framing */
+                    pos_x[0] = pos_x[1];
+                    pos_y[0] = pos_y[1];
+                    
+                    /* save the position for 1x mode, where we no longer know the raw parameters */
+                    focus_box_raw_x5_x = pos_x[1];
+                    focus_box_raw_x5_y = pos_y[1];
+                    focus_box_raw_x5_w = raw_info.jpeg.width;
+                    focus_box_raw_x5_h = raw_info.jpeg.height;
+                }
+                else NotifyBox(2000, "Boo... %d %d %d %d ", x1, x2, y1, y2);
+            }
+            else NotifyBox(2000, "Raw err");
+            raw_lv_release();
+        }
+        else
+        {
+            if (focus_box_raw_x5_x && focus_box_raw_x5_y)
+            {
+                /* flip between center and saved position */
+                pos_x[1] = focus_box_raw_x5_x;
+                pos_y[1] = focus_box_raw_x5_y;
+                
+                /* draw a cropmark showing the raw zoom area */
+                int xl = pos_x[1] * vram_lv.width / W;
+                int yl = pos_y[1] * vram_lv.height / H;
+                int wl = focus_box_raw_x5_w * vram_lv.width / W;
+                int hl = focus_box_raw_x5_h * vram_lv.height / H;
+                int x = LV2BM_X(xl);
+                int y = LV2BM_Y(yl);
+                int w = LV2BM_DX(wl);
+                int h = LV2BM_DY(hl);
+                bmp_draw_rect(COLOR_WHITE, x-w/2, y-h/2, w, h);
+                bmp_draw_rect(COLOR_BLACK, x-w/2-1, y-h/2-1, w+2, h+2);
+                redraw_after(1000);
+            }
+            else NotifyBox(2000, "Try zooming first");
+        }
+    }
+    #endif    
     // now let's see where we are
     int current = -1;
     int Xc = Xtl + w/2;
     int Yc = Ytl + h/2;
+    int emin = 200;
     for (int i = 0; i < n; i++)
     {
-        if (ABS(pos_x[i] - Xc) < 200 && ABS(pos_y[i] - Yc) < 200)
+        int e = MAX(ABS(pos_x[i] - Xc), ABS(pos_y[i] - Yc));
+        if (e < emin)
+        {
             current = i;
+            emin = e;
+        }
     }
     int next = mod(current + 1, n);
     
@@ -2110,8 +2210,8 @@ static MENU_UPDATE_FUNC(shutter_display)
     else
     {
         MENU_SET_VALUE(
-            "1/%d",
-            lens_info.shutter
+            "%s",
+            lens_format_shutter(lens_info.raw_shutter)
         );
     }
 
@@ -3571,7 +3671,7 @@ PROP_HANDLER(PROP_FILE_PREFIX)
 
 #ifdef FEATURE_POST_DEFLICKER
 static char* xmp_template =
-"<?xpacket begin='﻿'?> \n"
+"\xef\xbb\xbf<?xpacket begin=''?> \n"
 "<x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='Image::ExifTool 7.89'>\n"
 "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>\n"
 " <rdf:Description rdf:about=''\n"
@@ -3581,6 +3681,7 @@ static char* xmp_template =
 "</rdf:RDF>\n"
 "</x:xmpmeta>\n"
 "<?xpacket end='w'?>\n";
+
 
 static char* ufraw_template =
 "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
@@ -3595,13 +3696,15 @@ static char* ufraw_template =
 
 static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, float ev)
 {
-    int evi = ev * 100000;
     char fn[100];
     snprintf(fn, sizeof(fn), "%s/%s%04d.%s", get_dcim_dir(), file_prefix, file_number, type ? "UFR" : "XMP");
     FILE* f = FIO_CreateFileEx(fn);
     if (f == INVALID_PTR) return;
     if (type == 0)
     {
+        /* renato: [...] for ACR should be -4 to +4.  If it is outside the +-4 range then it ignores [...] */
+        ev = COERCE(ev, -4, 4);
+        int evi = ev * 100000;
         my_fprintf(f, xmp_template, FMT_FIXEDPOINT5S(evi));
     }
     else if (type == 1)
@@ -3610,6 +3713,8 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, 
         char jpg[100];
         snprintf(raw, sizeof(raw), "%s%04d.CR2", file_prefix, file_number);
         snprintf(jpg, sizeof(jpg), "%s%04d.JPG", file_prefix, file_number);
+        ev = COERCE(ev, -6, 6);
+        int evi = ev * 100000;
         my_fprintf(f, ufraw_template, raw, jpg, FMT_FIXEDPOINT5(evi));
     }
     FIO_CloseFile(f);
@@ -3680,9 +3785,9 @@ int auto_ettr_get_correction()
 {
     static int last_value = INT_MIN;
     
-    /* this is kinda slow, don't run it more often than once per second */
+    /* this is kinda slow, don't run it very often */
     static int aux = INT_MIN;
-    if (!should_run_polling_action(500, &aux) && last_value != INT_MIN)
+    if (!should_run_polling_action(100, &aux) && last_value != INT_MIN)
         return last_value;
     
     int gray_proj = 
@@ -3698,14 +3803,16 @@ int auto_ettr_get_correction()
     }
     
     float ev = raw_to_ev(raw);
+    
+    //~ bmp_printf(FONT_MED, 50, 200, "%d ", MEMX(0xc0f08030));
     float target = MIN(auto_ettr_target_level, -0.5);
     float correction = target - ev;
-    if (correction <= target + 0.3)
+    if (correction <= target + 0.1)
     {
         /* we don't know how much to go back in order to fix the overexposure */
-        /* so we'll use a heuristic: for each 10% of blown out image, go back 1EV */
+        /* so we'll use a heuristic: for each 10% of blown out image, go back 1/2EV */
         int overexposed = raw_hist_get_overexposure_percentage(gray_proj);
-        correction -= overexposed / 10.0;
+        correction -= overexposed / 20.0;
         auto_ettr_overexposure_warning = 1;
     }
     else auto_ettr_overexposure_warning = 0;
@@ -3719,11 +3826,44 @@ static int expo_lock_value;
 
 static void auto_ettr_work(int corr)
 {
-    int delta = -corr * 8 / 100;
-    int shutter_lim = auto_ettr_max_shutter*8 + 16;
     int tv = lens_info.raw_shutter;
     int iso = lens_info.raw_iso;
     if (!tv || !iso) return;
+
+    int delta = -corr * 8 / 100;
+
+    static int prev_tv = 0;
+    if (auto_ettr_adjust_mode == 1)
+    {
+        if (prev_tv != tv)
+        {
+            auto_ettr_max_shutter = tv;
+            if (lv)
+            {
+                NotifyBox(2000, "Auto ETTR: Tv <= %s ", lens_format_shutter(tv));
+                prev_tv = tv;
+                return; /* wait for next iteration */
+            }
+            else
+            {
+                msleep(500);
+                bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: Tv <= %s ", lens_format_shutter(tv));
+            }
+        }
+    }
+    else
+    {
+        if (lv && prev_tv != tv)
+        {
+            prev_tv = tv;
+            return; /* small pause when you change exposure manually */
+        }
+    }
+
+    int shutter_lim = auto_ettr_max_shutter;
+
+    /* can't go slower than 1/fps in movie mode */
+    if (is_movie_mode()) shutter_lim = MAX(shutter_lim, shutter_ms_to_raw(1000 / video_mode_fps));
 
     //~ int old_expo = tv - iso;
 
@@ -3740,7 +3880,8 @@ static void auto_ettr_work(int corr)
     iso += tvr - tv;
     
     /* analog iso can be only in 1 EV increments */
-    int isor = COERCE((iso + 4) / 8 * 8, MIN_ISO, MAX_ANALOG_ISO);
+    int max_auto_iso = auto_iso_range & 0xFF;
+    int isor = COERCE((iso + 4) / 8 * 8, MIN_ISO, max_auto_iso);
     
     /* cancel ISO rounding errors by adjusting shutter, which goes in smaller increments */
     tvr += isor - iso;
@@ -3755,6 +3896,8 @@ static void auto_ettr_work(int corr)
 
     /* don't let expo lock undo our changes */
     expo_lock_value = expo_lock_get_current_value();
+    
+    prev_tv = lens_info.raw_shutter;
 }
 
 static volatile int auto_ettr_running = 0;
@@ -3787,20 +3930,17 @@ static void auto_ettr_step()
 static int auto_ettr_check_pre_lv()
 {
     if (!auto_ettr) return 0;
-    if (shooting_mode != SHOOTMODE_M) return 0;
+    if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_MOVIE) return 0;
     if (lens_info.raw_iso == 0) return 0;
     if (lens_info.raw_shutter == 0) return 0;
     if (HDR_ENABLED) return 0;
-
-    int raw = pic_quality & 0x60000;
-    if (!raw) return 0;
-    return 1;
+    int raw = is_movie_mode() ? raw_lv_is_enabled() : pic_quality & 0x60000;
+    return raw;
 }
 
 static int auto_ettr_check_in_lv()
 {
     if (!expsim) return 0;
-    if (is_movie_mode()) return 0;
     if (lv_dispsize != 1) return 0;
     if (LV_PAUSED) return 0;
     if (!liveview_display_idle()) return 0;
@@ -3885,6 +4025,8 @@ static void auto_ettr_on_request_task(int unused)
         
         if (get_halfshutter_pressed())
             break;
+        
+        if (k == 4) beep();
     }
     NotifyBoxHide();
 
@@ -3916,9 +4058,13 @@ int handle_ettr_keys(struct event * event)
 
 static MENU_UPDATE_FUNC(auto_ettr_update)
 {
-    int raw = pic_quality & 0x60000;
+    if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_MOVIE)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR only works in M and RAW MOVIE modes.");
+
+    int raw = is_movie_mode() ? raw_lv_is_enabled() : pic_quality & 0x60000;
+
     if (!raw)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You must shoot RAW in order to use this.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "[%s] You must shoot RAW in order to use this.", is_movie_mode() ? "MOVIE" : "PHOTO");
 
     if (!lv && !can_use_raw_overlays_photo() && AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available, try in LiveView.");
@@ -3949,6 +4095,18 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
         MENU_SET_HELP("Take a test picture (underexposed). Next pic will be ETTR.");
 }
 
+static MENU_UPDATE_FUNC(auto_ettr_max_shutter_update)
+{
+    MENU_SET_VALUE("%s", lens_format_shutter(auto_ettr_max_shutter));
+    if (auto_ettr_adjust_mode == 1)
+        MENU_SET_WARNING(MENU_WARN_INFO, "Adjust shutter speed from top scrollwheel, outside menu.");
+}
+
+static MENU_SELECT_FUNC(auto_ettr_max_shutter_toggle)
+{
+    if (auto_ettr_adjust_mode == 0)
+        auto_ettr_max_shutter = mod(auto_ettr_max_shutter/4*4 - 16 + delta * 4, FASTEST_SHUTTER_SPEED_RAW - 16 + 4) + 16;
+}
 #endif
 
 #if defined(FEATURE_POST_DEFLICKER) || defined(FEATURE_AUTO_ETTR)
@@ -5522,7 +5680,7 @@ static struct menu_entry expo_menus[] = {
         .update = auto_ettr_update,
         .max = 1,
         .help  = "Auto expose to the right when you shoot RAW.",
-        .depends_on = DEP_PHOTO_MODE | DEP_M_MODE | DEP_MANUAL_ISO,
+        .depends_on = DEP_MANUAL_ISO,
         .submenu_width = 710,
         .children =  (struct menu_entry[]) {
             {
@@ -5558,10 +5716,18 @@ static struct menu_entry expo_menus[] = {
             {
                 .name = "Slowest shutter",
                 .priv = &auto_ettr_max_shutter,
-                .max = 16,
+                .select = auto_ettr_max_shutter_toggle,
+                .update = auto_ettr_max_shutter_update,
+                .min = 16,
+                .max = FASTEST_SHUTTER_SPEED_RAW,
                 .icon_type = IT_PERCENT,
-                .choices = CHOICES("30\"", "15\"", "8\"", "4\"", "2\"", "1\"", "1/2", "1/4", "1/8", "1/15", "1/30", "1/60", "1/125", "1/250", "1/500", "1/1000", "1/2000"),
                 .help = "Slowest shutter speed for ETTR."
+            },
+            {
+                .name = "Link to Canon shutter",
+                .priv = &auto_ettr_adjust_mode,
+                .max = 1,
+                .help = "Hack to adjust slowest shutter from main dial.",
             },
             MENU_EOL,
         },
@@ -7315,6 +7481,20 @@ shoot_task( void* unused )
             }
             intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);
             intervalometer_pictures_taken++;
+            
+            #ifdef FEATURE_AUTO_ETTR
+            if (auto_ettr && image_review_time)
+            {
+                /* make sure auto ETTR has a chance to run (it's triggered by prop handler on QR mode) */
+                /* timeout: a bit more than exposure time, to handle long expo noise reduction */
+                for (int i = 0; i < raw2shutter_ms(lens_info.raw_shutter)/100; i++)
+                {
+                    if (QR_OR_PLAY) break;
+                    msleep(150);
+                }
+                msleep(500);
+            }
+            #endif
 
             #ifdef FEATURE_BULB_RAMPING
             if (BULB_EXPOSURE_CONTROL_ACTIVE)

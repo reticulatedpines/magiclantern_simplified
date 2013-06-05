@@ -308,6 +308,8 @@ static void restore_menu_selection(char* old_dir)
 
 static void BrowseUp()
 {
+    view_file = 0;
+
     char* p = gPath + strlen(gPath) - 2;
     while (p > gPath && *p != '/') p--;
 
@@ -600,8 +602,8 @@ static MENU_SELECT_FUNC(viewfile_toggle)
         }
     }
     
-    view_file = !view_file;
     BrowseUp();
+    view_file = !view_file;
 }
 
 static MENU_UPDATE_FUNC(viewfile_update)
@@ -700,7 +702,6 @@ static MENU_SELECT_FUNC(select_file)
     if (e)
     {
         e->menu_entry.select = BrowseUpMenu;
-        e->menu_entry.select_Q = BrowseUpMenu;
         e->menu_entry.priv = e;
     }
 
@@ -725,28 +726,51 @@ static MENU_UPDATE_FUNC(update_file)
     MENU_SET_ICON(MNI_OFF, 0);
     update_status(entry, info);
     
+    static int dirty = 0;
+    if (!view_file) dirty = 1;
+    
     if (entry->selected && view_file)
     {
-        info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
-        bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
-        
+        static int last_updated = 0;
+        int t = get_ms_clock_value();
+        if (t - last_updated > 1000) dirty = 1;
+
         char filename[MAX_PATH_LEN];
         snprintf(filename, sizeof(filename), "%s%s", gPath, fe->name);
 
-        int status = 0;
+        static char prev_filename[MAX_PATH_LEN];
+        if (!streq(prev_filename, filename)) dirty = 1;
+        snprintf(prev_filename, sizeof(prev_filename), "%s", filename);
 
-        /* custom handler? try it first */
-        char *ext = fileman_get_extension(filename);
-        struct filetype_handler *filetype = fileman_find_filetype(ext);
-        if (filetype)
-            status = filetype->handler(FILEMAN_CMD_VIEW_IN_MENU, filename, NULL);
-        
-        /* custom handler doesn't know how to display the file? try the default handler */
-        if (status == 0) status = text_handler(FILEMAN_CMD_VIEW_IN_MENU, filename, NULL);
-        
-        /* error? */
-        if (status <= 0) bmp_printf(FONT_MED, 0, 460, "Error viewing %s (%s)", gPath, filetype->type);
-        else bmp_printf(FONT_MED, 0, 460, "%s", filename);
+        if (dirty)
+        {
+            dirty = 0;
+            info->custom_drawing = CUSTOM_DRAW_THIS_MENU;
+            bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+
+            int status = 0;
+
+            /* custom handler? try it first */
+            char *ext = fileman_get_extension(filename);
+            struct filetype_handler *filetype = fileman_find_filetype(ext);
+            if (filetype)
+                status = filetype->handler(FILEMAN_CMD_VIEW_IN_MENU, filename, NULL);
+            
+            /* custom handler doesn't know how to display the file? try the default handler */
+            if (status == 0) status = text_handler(FILEMAN_CMD_VIEW_IN_MENU, filename, NULL);
+            
+            /* error? */
+            if (status <= 0) bmp_printf(FONT_MED, 0, 460, "Error viewing %s (%s)", gPath, filetype->type);
+            else bmp_printf(FONT_MED, 0, 460, "%s", filename);
+            
+            if (status != 1) dirty = 1;
+        }
+        else
+        {
+            /* nothing changed, keep previous screen */
+            info->custom_drawing = CUSTOM_DRAW_DO_NOT_DRAW;
+        }
+        last_updated = get_ms_clock_value();
     }
 }
 

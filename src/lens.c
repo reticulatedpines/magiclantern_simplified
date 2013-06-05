@@ -861,6 +861,21 @@ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
     }
 }*/
 
+char* lens_format_shutter(int tv)
+{
+      int shutter_x10 = raw2shutter_ms(tv) / 100;
+      int shutter_reciprocal = tv ? (int) roundf(4000.0f / powf(2.0f, (152 - tv)/8.0f)) : 0;
+      if (shutter_reciprocal > 100) shutter_reciprocal = 10 * ((shutter_reciprocal+5) / 10);
+      if (shutter_reciprocal > 1000) shutter_reciprocal = 100 * ((shutter_reciprocal+50) / 100);
+      static char shutter[32];
+      if (tv == 0) snprintf(shutter, sizeof(shutter), "N/A");
+      else if (shutter_reciprocal >= 10000) snprintf(shutter, sizeof(shutter), "1/%dK ", shutter_reciprocal/1000);
+      else if (shutter_x10 <= 3) snprintf(shutter, sizeof(shutter), "1/%d  ", shutter_reciprocal);
+      else if (shutter_x10 % 10 && shutter_x10 < 30) snprintf(shutter, sizeof(shutter), "%d.%d\"", shutter_x10 / 10, shutter_x10 % 10);
+      else snprintf(shutter, sizeof(shutter), "%d\" ", (shutter_x10+5) / 10);
+      return shutter;
+}
+
 int FAST get_ml_topbar_pos()
 {
     int screen_layout = get_screen_layout();
