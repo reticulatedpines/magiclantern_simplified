@@ -465,7 +465,12 @@ int raw_update_params()
 
 /*********************** Portable code ****************************************/
 
-    raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
+    int dirty = 0;
+    if (width != raw_info.width || height != raw_info.height)
+    {
+        raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
+        dirty = 1;
+    }
 
     raw_info.white_level = WHITE_LEVEL;
 
@@ -496,7 +501,9 @@ int raw_update_params()
         raw_info.white_level = raw_info.white_level * 3691 / shad_gain;
     }
 
-    raw_info.black_level = autodetect_black_level();
+    int black_aux = INT_MIN;
+    if (!lv || dirty || should_run_polling_action(1000, &black_aux))
+        raw_info.black_level = autodetect_black_level();
     
     dbg_printf("black=%d white=%d\n", raw_info.black_level, raw_info.white_level);
 
