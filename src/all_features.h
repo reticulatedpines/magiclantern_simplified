@@ -58,7 +58,6 @@
 
     #define FEATURE_EXPO_LOCK
     #define FEATURE_EXPO_PRESET
-    #define FEATURE_ML_AUTO_ISO
 
 #ifdef CONFIG_EXPSIM
     #define FEATURE_EXPSIM
