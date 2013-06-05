@@ -3671,17 +3671,16 @@ PROP_HANDLER(PROP_FILE_PREFIX)
 
 #ifdef FEATURE_POST_DEFLICKER
 static char* xmp_template =
-"\xef\xbb\xbf<?xpacket begin=''?> \n"
-"<x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='Image::ExifTool 7.89'>\n"
-"<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>\n"
-" <rdf:Description rdf:about=''\n"
-"  xmlns:crs='http://ns.adobe.com/camera-raw-settings/1.0/'>\n"
-"  <crs:Exposure>%s%d.%05d</crs:Exposure>\n"
-" </rdf:Description>\n"
-"</rdf:RDF>\n"
-"</x:xmpmeta>\n"
-"<?xpacket end='w'?>\n";
-
+"<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Magic Lantern\">\n"
+" <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n"
+"  <rdf:Description rdf:about=\"\"\n"
+"    xmlns:crs=\"http://ns.adobe.com/camera-raw-settings/1.0/\"\n"
+"   crs:ProcessVersion=\"6.7\"\n"
+"   crs:Exposure2012=\"%s%d.%05d\"\n"
+"   crs:AlreadyApplied=\"False\">\n"
+"  </rdf:Description>\n"
+" </rdf:RDF>\n"
+"</x:xmpmeta>\n";
 
 static char* ufraw_template =
 "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
@@ -3736,6 +3735,7 @@ static void post_deflicker_step()
     float ev = raw_to_ev(raw);
     float correction = post_deflicker_target_level - ev;
     deflicker_last_correction_x100 = (int)roundf(correction * 100);
+    
     post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, file_number, correction);
 }
 
