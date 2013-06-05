@@ -929,6 +929,9 @@ static void FAST draw_zebras_raw_lv()
         
         uint32_t* bp;  // through bmp vram
         uint32_t* mp;  // through mirror
+
+        int y = BM2RAW_Y(i);
+        if (y < raw_info.active_area.y1 || y > raw_info.active_area.y2) continue;
         
         for (int j = os.x0; j < os.x_max; j += 4)
         {
@@ -942,7 +945,9 @@ static void FAST draw_zebras_raw_lv()
             if ((MP & 0x80808080)) continue;
             
             int x = BM2RAW_X(j);
-            int y = BM2RAW_Y(i);
+            
+            if (x < raw_info.active_area.x1 || x > raw_info.active_area.x2) continue;
+            
             int r = raw_red_pixel(x, y);
             int g = raw_green_pixel(x, y);
             int b = raw_blue_pixel(x, y);
@@ -2793,12 +2798,16 @@ static void spotmeter_step()
         const int dxr = BM2RAW_DX(dxb);
 
         raw_luma = 0;
-        
+        int raw_count = 0;
         for( y = ycr - dxr ; y <= ycr + dxr ; y++ )
         {
+            if (y < raw_info.active_area.y1 || y > raw_info.active_area.y2) continue;
             for( x = xcr - dxr ; x <= xcr + dxr ; x++ )
             {
+                if (x < raw_info.active_area.x1 || x > raw_info.active_area.x2) continue;
+
                 raw_luma += raw_get_pixel(x, y);
+                raw_count++;
                 
                 /* define this to check if spotmeter reads from the right place;
                  * you should see some gibberish on raw zebras, right inside the spotmeter box */
@@ -2807,8 +2816,8 @@ static void spotmeter_step()
                 #endif
             }
         }
-        const int two_dxr_plus1 = 2 * dxr + 1;
-        raw_luma /= two_dxr_plus1 * two_dxr_plus1;
+        if (!raw_count) return;
+        raw_luma /= raw_count;
         raw_ev = (int) roundf(10.0 * raw_to_ev(raw_luma));
     }
     #endif
