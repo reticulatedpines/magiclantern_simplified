@@ -490,7 +490,10 @@ int raw_update_params()
          * warning: this may exceed 16383!
          */
         int shad_gain = shamem_read(0xc0f08030);
-        raw_info.white_level = raw_info.white_level * 4096 / shad_gain;
+        
+        /* LV histogram seems to be underexposed by 0.15 EV compared to photo one,
+         * so we compensate for that too (4096 -> 3691) */
+        raw_info.white_level = raw_info.white_level * 3691 / shad_gain;
     }
 
     raw_info.black_level = autodetect_black_level();
