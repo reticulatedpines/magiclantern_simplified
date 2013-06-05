@@ -3702,7 +3702,8 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, 
     if (type == 0)
     {
         /* renato: [...] for ACR should be -4 to +4.  If it is outside the +-4 range then it ignores [...] */
-        ev = COERCE(ev, -4, 4);
+        /* [...]maximum exposure should be 3.9999 and not 4. */
+        ev = COERCE(ev, -3.9999, 3.9999);
         int evi = ev * 100000;
         my_fprintf(f, xmp_template, FMT_FIXEDPOINT5S(evi));
     }
