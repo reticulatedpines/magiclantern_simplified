@@ -3,7 +3,9 @@
 # If you want to customize them copy Makefile.user.default to Makefile.user keeping only the options that you want to customize
 
 include $(TOP_DIR)/Makefile.top
+
 -include $(TOP_DIR)/Makefile.user.default
+
 -include $(TOP_DIR)/Makefile.user
 
 
@@ -84,10 +86,12 @@ $(foreach config, $(_defined_configs), $(eval $(config)=n))
 endif
 
 -include Makefile.setup.default
+
 -include Makefile.setup.user
 
 ifdef ML_SETUP_EXTENSION
 -include Makefile.$(ML_SETUP_EXTENSION).default
+
 -include Makefile.$(ML_SETUP_EXTENSION).user
 endif
 

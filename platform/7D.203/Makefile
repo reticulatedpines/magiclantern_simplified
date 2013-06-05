@@ -1,6 +1,7 @@
 #Makefile for 7D
 
 MODEL=7D
+
 include ../Makefile.platform
 
 FIR-MASTER: autoexec-fir-master

@@ -2,7 +2,9 @@
 # this is a very simple makefile for plugins
 
 TOP ?= .
+
 include $(TOP)/../../Makefile.user.default
+
 include $(TOP)/../../Makefile.user
 
 CFLAGS=-Os

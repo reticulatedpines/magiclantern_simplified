@@ -11,4 +11,6 @@ ML_SRC_EXTRA_OBJS = \
 	chdk-dng.o \
 	tp-spy.o \
 	reloc.o \
-	edmac-memcpy.o \
+	edmac-memcpy.o
+
+

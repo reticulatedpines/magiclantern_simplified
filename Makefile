@@ -7,7 +7,9 @@
 
 TOP_DIR=$(PWD)
 include Makefile.top
+
 include Makefile.user.default
+
 -include Makefile.user
 
 

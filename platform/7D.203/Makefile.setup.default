@@ -12,4 +12,5 @@ ML_SRC_EXTRA_OBJS = \
 	ptpbuf.o \
 	ph_info_disp.o \
 	flexinfo.o \
-	afma.o \
+	afma.o
+

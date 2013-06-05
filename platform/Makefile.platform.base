@@ -8,6 +8,7 @@ $(error Camera MODEL is not defined)
 endif
 
 include $(TOP_DIR)/Makefile.top
+
 include $(PLATFORM_PATH)/Makefile.platform.map
 
 ifndef FW_VERSION
@@ -48,6 +49,7 @@ $(error RESTARTSTART is not defined)
 endif
 
 include $(TOP_DIR)/Makefile.setup
+
 include $(SRC_DIR)/Makefile.src
 
 include $(PLATFORM_PATH)/Makefile.platform.extras

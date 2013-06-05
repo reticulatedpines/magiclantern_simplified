@@ -1,6 +1,7 @@
 TOP_DIR?=..
 
 ML_SETUP_EXTENSION=modules
+
 include $(TOP_DIR)/Makefile.setup
 
 make_dynamic_modules = $(call make_loop, $(ML_MODULES_DYNAMIC), $(1))

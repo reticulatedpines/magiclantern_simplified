@@ -1,6 +1,7 @@
 TOP_DIR=..
 
 include Makefile.platform.map
+
 include $(TOP_DIR)/Makefile.setup
 
 MAKE_SUPPORTED_MODELS:=$(call make_platform_dirs, $(SUPPORTED_MODELS))

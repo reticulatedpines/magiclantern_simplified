@@ -22,6 +22,6 @@ ML_SRC_EXTRA_OBJS = \
 		init.o \
 		dummy.o \
 		dm-spy.o \
-		tp-spy.o \
+		tp-spy.o
 
 CFLAG_USER += -Wno-unused-variable

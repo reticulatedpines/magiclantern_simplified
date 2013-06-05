@@ -9,4 +9,5 @@ ML_SRC_EXTRA_OBJS = \
 	lcdsensor.o \
 	raw.o \
 	chdk-dng.o \
-	edmac-memcpy.o \
+	edmac-memcpy.o
+

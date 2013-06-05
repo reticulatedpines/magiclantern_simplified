@@ -2,4 +2,4 @@ ML_AUDIO_OBJ=n
 
 ML_SRC_EXTRA_OBJS = \
 	misc.o \
-	afma.o \
+	afma.o

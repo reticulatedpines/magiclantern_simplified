@@ -5,4 +5,4 @@ ML_ZEBRA_OBJ = zebra-5dc.o
 ML_SRC_EXTRA_OBJS = \
 	init.o \
 	dummy.o \
-	dm-spy.o \
+	dm-spy.o

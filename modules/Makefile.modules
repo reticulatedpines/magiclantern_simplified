@@ -1,6 +1,7 @@
 TOP_DIR?=../..
 ML_SETUP_DISABLE_USER_CONFIGS=y
 ML_SETUP_EXTENSION=modules
+
 include $(TOP_DIR)/Makefile.setup
 
 # should we define a platform for modules? for now use 'all' platform
