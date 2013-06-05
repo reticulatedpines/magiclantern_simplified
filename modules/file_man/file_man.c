@@ -58,6 +58,23 @@ static int sd_present;
 static int view_file = 0; /* view file mode */
 static struct file_entry * file_entries = 0;
 static FILES_LIST *mfile_root;
+static struct semaphore * mfile_sem = 0; /* exclusive access to the list of selected files (can't change while copying, for example) */
+
+/**
+ * file copying and moving are background tasks;
+ * if there is such an operation in progress, it requires exclusive access to mfile list (selected files)
+ * simple error handler: just beep
+ */
+#define MFILE_SEM(x) \
+{ \
+    if (take_semaphore(mfile_sem, 200) == 0) \
+    { \
+        x; \
+        give_semaphore(mfile_sem); \
+    } \
+    else beep(); \
+}
+
 int fileman_filetype_registered = 0;
 
 //Prototypes
@@ -409,7 +426,9 @@ ML_FIO_MoveFile(char *src,char *dst){
 static void
 FileCopy(void *unused)
 {
-    char fname[MAX_PATH_LEN],tmpdst[MAX_PATH_LEN];
+MFILE_SEM (
+    char fname[MAX_PATH_LEN];
+    char tmpdst[MAX_PATH_LEN];
     char dstfile[MAX_PATH_LEN];
     size_t totallen = 0;
     FILES_LIST *mf = mfile_root;
@@ -424,22 +443,28 @@ FileCopy(void *unused)
         while (p > mf->name && *p != '/') p--;
         strcpy(fname,p+1);
         
-        snprintf(dstfile,MAX_PATH_LEN,"%s%s",gPath,fname);
+        snprintf(dstfile,MAX_PATH_LEN,"%s%s",tmpdst,fname);
         
-        snprintf(gStatusMsg, sizeof(gStatusMsg), "Copying %s to %s...", mf->name, gPath);
+        snprintf(gStatusMsg, sizeof(gStatusMsg), "Copying %s to %s...", mf->name, tmpdst);
         int err = ML_FIO_CopyFile(mf->name,dstfile);
         if (err) snprintf(gStatusMsg, sizeof(gStatusMsg), "Copy error (%d)", err);
         else gStatusMsg[0] = 0;
     }
 
     mfile_clean_all();
+
+    /* are we still in the same dir? rescan */
     if(!strcmp(gPath,tmpdst)) ScanDir(gPath);
+)
 }
 
 static void
 FileMove(void *unused)
 {
-    char fname[MAX_PATH_LEN],tmpdst[MAX_PATH_LEN];
+MFILE_SEM (
+    
+    char fname[MAX_PATH_LEN];
+    char tmpdst[MAX_PATH_LEN];
     char dstfile[MAX_PATH_LEN];
     size_t totallen = 0;
     FILES_LIST *mf = mfile_root;
@@ -454,38 +479,45 @@ FileMove(void *unused)
         while (p > mf->name && *p != '/') p--;
         strcpy(fname,p+1);
         
-        snprintf(dstfile,MAX_PATH_LEN,"%s%s",gPath,fname);
+        snprintf(dstfile,MAX_PATH_LEN,"%s%s",tmpdst,fname);
         
-        snprintf(gStatusMsg, sizeof(gStatusMsg), "Moving %s to %s...", mf->name, gPath);
+        snprintf(gStatusMsg, sizeof(gStatusMsg), "Moving %s to %s...", mf->name, tmpdst);
         int err = ML_FIO_MoveFile(mf->name,dstfile);
         if (err) snprintf(gStatusMsg, sizeof(gStatusMsg), "Move error (%d)", err);
         else gStatusMsg[0] = 0;
     }
 
     mfile_clean_all();
-    if(!strcmp(gPath,tmpdst)) ScanDir(gPath);
+    ScanDir(gPath);
+)
 }
 
 
 static MENU_SELECT_FUNC(FileCopyStart)
 {
+MFILE_SEM (
     task_create("filecopy_task", 0x1b, 0x4000, FileCopy, 0);
     op_mode = FILE_OP_NONE;
+)
     ScanDir(gPath);
 }
 
 static MENU_SELECT_FUNC(FileMoveStart)
 {
+MFILE_SEM (
     task_create("filemove_task", 0x1b, 0x4000, FileMove, 0);
     op_mode = FILE_OP_NONE;
+)
     ScanDir(gPath);
 }
 
 static MENU_SELECT_FUNC(FileOpCancel)
 {
+MFILE_SEM (
     mfile_clean_all();
     op_mode = FILE_OP_NONE;
     ScanDir(gPath);
+)
 }
 
 static MENU_SELECT_FUNC(BrowseUpMenu)
@@ -544,20 +576,24 @@ const char * format_size( unsigned size)
 
 static MENU_SELECT_FUNC(CopyFile)
 {
+MFILE_SEM (
     if (!mfile_root->next) /* nothing selected, operate on current file */
         mfile_add_tail(gPath);
 
     op_mode = FILE_OP_COPY;
     BrowseUp();
+)
 }
 
 static MENU_SELECT_FUNC(MoveFile)
 {
+MFILE_SEM (
     if (!mfile_root->next) /* nothing selected, operate on current file */
         mfile_add_tail(gPath);
 
     op_mode = FILE_OP_MOVE;
     BrowseUp();
+)
 }
 
 static char *fileman_get_extension(char *filename)
@@ -645,6 +681,8 @@ static int delete_confirm_flag = 0;
 
 static MENU_SELECT_FUNC(delete_file)
 {
+MFILE_SEM (
+
     if (!mfile_root->next) /* nothing selected, operate on current file */
         mfile_add_tail(gPath);
 
@@ -670,6 +708,8 @@ static MENU_SELECT_FUNC(delete_file)
         mfile_clean_all();
         BrowseUp();
     }
+
+)
 }
 
 static MENU_UPDATE_FUNC(delete_confirm)
@@ -722,7 +762,6 @@ mfile_find_remove(char* path)
 static unsigned int 
 mfile_add_tail(char* path)
 {
-    console_printf("mf_add %s\n",path);
     FILES_LIST *newmf;
     FILES_LIST *mf = mfile_root;
     while(mf->next)
@@ -803,12 +842,15 @@ static int mfile_get_dir_count()
 
 static MENU_SELECT_FUNC(mfile_clear_all_selected_menu)
 {
+MFILE_SEM (
     mfile_clean_all();
     BrowseUp();
+)
 }
 
 static MENU_SELECT_FUNC(select_multi_first)
 {
+MFILE_SEM (
     //Find already registerd entry (toggle reg/rem)
     if(mfile_find_remove(gPath) == 0)
         mfile_add_tail(gPath);
@@ -816,10 +858,12 @@ static MENU_SELECT_FUNC(select_multi_first)
     if(mfile_root->next == NULL) op_mode = FILE_OP_NONE;
 
     BrowseUp();
+)
 }
 
 static MENU_SELECT_FUNC(select_multi)
 {
+MFILE_SEM (
     char filename[MAX_PATH_LEN];
     struct file_entry * fe = (struct file_entry *) priv;
     if (!fe) return;
@@ -829,10 +873,12 @@ static MENU_SELECT_FUNC(select_multi)
         mfile_add_tail(filename);
 
     if(mfile_root->next == NULL) op_mode = FILE_OP_NONE;
+)
 }
 
 static MENU_SELECT_FUNC(select_by_extension)
 {
+MFILE_SEM (
     char* ext = gPath + strlen(gPath) - 1;
     while (ext > gPath && *ext != '/' && *ext != '.') ext--;
     if (*ext == '.')
@@ -856,6 +902,7 @@ static MENU_SELECT_FUNC(select_by_extension)
         }
     }
     else beep();
+)
 }
 
 static MENU_SELECT_FUNC(file_menu)
@@ -1109,6 +1156,7 @@ static int InitRootDir()
 unsigned int fileman_init()
 {
     scandir_sem = create_named_semaphore("scandir", 1);
+    mfile_sem = create_named_semaphore("mfile", 1);
     menu_add("Debug", fileman_menu, COUNT(fileman_menu));
     op_mode = FILE_OP_NONE;
     mfile_root = AllocateMemory(sizeof(FILES_LIST));
