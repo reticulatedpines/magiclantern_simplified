@@ -226,7 +226,7 @@ NSTUB(0xFF1B7580, GUI_SetRollingPitchingLevelStatus)
 
 NSTUB(0xFF2C191C, mvrSetPrintMovieLog)
 NSTUB(0xFF2C132C, mvrSetQscale)
-	NSTUB(   0x31424, mvr_config)
+NSTUB(   0x314F4, mvr_config)
 NSTUB(0xFF2C18F8, mvrFixQScale)
 NSTUB(0xFF2C13F0, mvrSetDefQScale)
 
