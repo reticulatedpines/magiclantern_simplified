@@ -16,6 +16,8 @@ PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
 CONFIG_RELOC = y
 
+ML_PICSTYLE_AUTO = n
+
 ML_EXTRA_OBJS = \
 	misc.o \
 	ph_info_disp.o \

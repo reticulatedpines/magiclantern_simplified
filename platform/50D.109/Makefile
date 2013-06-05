@@ -16,6 +16,8 @@ PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
 ML_AUDIO_OBJ=n
 
+ML_PICSTYLE_AUTO = n
+
 ML_EXTRA_OBJS = \
 	misc.o \
 	afma.o \

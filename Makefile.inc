@@ -68,6 +68,12 @@ PYMITE_CFLAGS	= \
 	-I$(PYMITE_PATH)/src/vm \
 	-I$(PYMITE_PATH)/src/platform/dryos
 
+ifeq ($(ML_PICSTYLE_AUTO), n)
+ML_PICSTYLE_OBJ = picstyle-noauto.o
+else
+ML_PICSTYLE_OBJ = picstyle.o
+endif
+
 ifeq ($(ML_BITRATE_OBJ), n)
 ML_BITRATE_OBJ =
 else ifndef ML_BITRATE_OBJ
@@ -172,7 +178,7 @@ ML_SRC_OBJS = \
 	debug.o \
 	cfn.o \
 	gui.o \
-	picstyle.o \
+    $(ML_PICSTYLE_OBJ) \
 	exmem.o \
 	bmp.o \
 	$(ML_FONT_OBJS) \
