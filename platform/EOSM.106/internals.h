@@ -127,3 +127,6 @@
 /** There is a Movie Mode, needs research */
 #define CONFIG_NO_DEDICATED_MOVIE_MODE
 
+/** We have access to Raw data */
+#define CONFIG_RAW_LIVEVIEW
+#define CONFIG_RAW_PHOTO

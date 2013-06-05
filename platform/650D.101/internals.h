@@ -121,5 +121,6 @@
 /** FPS override: change timers from EVF state */
 #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
 
+/** We have access to Raw data */
 #define CONFIG_RAW_LIVEVIEW
 #define CONFIG_RAW_PHOTO
