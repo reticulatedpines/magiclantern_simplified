@@ -5259,7 +5259,7 @@ livev_hipriority_task( void* unused )
             else
             #endif
             {
-                BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 4 : 2) == 0, k % 2 == 1); )
+                BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 5 : 3) == 0, k % 2 == 1); )
             }
         }
 
