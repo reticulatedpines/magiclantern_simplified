@@ -25,7 +25,7 @@ static int shave_right = 0;
  * To find it, call("lv_save_raw") and look for an EDMAC channel that becomes active (Debug menu)
  **/
 
-#if defined(CONFIG_5D2) 
+#if defined(CONFIG_5D2) || defined(CONFIG_50D)
 #define RAW_LV_EDMAC 0xC0F04508
 #endif
 
@@ -47,7 +47,7 @@ static int shave_right = 0;
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_50D)
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
@@ -183,7 +183,15 @@ void raw_buffer_intercept_from_stateobj()
      -887, 10000,     2129, 10000,    6051, 10000
 #endif
 
-
+#ifdef CONFIG_50D // these values are in ufraw-0.19.2
+    //~{ "Canon EOS 50D", 0, 0x3d93,
+	//~{ 4920,616,-593,-6493,13964,2784,-1774,3178,7005 } }, 
+    #define CAM_COLORMATRIX1                       \
+     4920, 10000,      616, 10000,    -593, 10000, \
+    -6493, 10000,    12964, 10000,    2784, 10000, \
+    -1774, 10000,     3178, 10000,    7005, 10000
+#endif
+	
 #if defined(CONFIG_650D) || defined(CONFIG_EOSM) //Same sensor??
     //~ { "Canon EOS 650D", 0, 0x354d,
     //~ { "Canon EOS M", 0, 0,
@@ -308,7 +316,13 @@ int raw_update_params()
         skip_right  = zoom ? 0 : 2;
         #endif
 
-
+        #ifdef CONFIG_50D
+		skip_top    = zoom ? 0 : 26;
+		skip_left   = 74;
+        skip_right  = 0;
+        skip_bottom = 0;
+        #endif
+		
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
         skip_top    = 28;
         skip_left   = 74;
@@ -423,6 +437,15 @@ int raw_update_params()
         skip_right = 0;
         skip_top = 50;
         #endif
+
+/*        #if defined(CONFIG_50D) NEED Raw dump to get correct values
+        width = 5344;
+        height = 3516;
+        skip_left = 142;
+        skip_right = 0;
+        skip_top = 50;
+        #endif 
+*/
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
         width = 5280;
