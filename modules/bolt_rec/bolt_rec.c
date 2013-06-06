@@ -269,33 +269,47 @@ static void bolt_rec_plot(unsigned int x, unsigned int y, unsigned int w, unsign
     draw_line(x - 1, y + h - trigVal, x + w + 1, y + h - trigVal, COLOR_WHITE);
 }
 
+void bolt_rec_update_plots(int x, int y)
+{
+    /* ensure we dont paint outside the screen */
+    if(y + 2 * bolt_rec_plot_height > 480 - 10)
+    {
+        y = 480 - 10 - 2 * bolt_rec_plot_height;
+    }
+
+    /* draw a nice border. ToDo: improve using lines */
+    bmp_fill(COLOR_GRAY(60), x - 3, y - 3, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + font_med.height);
+    bmp_fill(COLOR_GRAY(60), x - 4, y - 4, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + font_med.height);
+    bmp_fill(COLOR_GRAY(20), x - 1, y - 1, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + font_med.height);
+    bmp_fill(COLOR_GRAY(20), x - 0, y - 0, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + font_med.height);
+    bmp_fill(COLOR_GRAY(30), x - 2, y - 2, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + font_med.height);
+
+    /* paint plots */
+    bolt_rec_plot(x, y, LOG_ENTRIES, bolt_rec_plot_height, bolt_rec_abs_peak, bolt_rec_abs_avg, bolt_rec_abs_log_pos, LOG_ENTRIES, bolt_rec_abs_trigger, bolt_rec_abs_max);
+    bolt_rec_plot(x, y + bolt_rec_plot_height + 1, LOG_ENTRIES, bolt_rec_plot_height, bolt_rec_rel_peak, NULL, bolt_rec_rel_log_pos, LOG_ENTRIES, bolt_rec_rel_trigger, bolt_rec_rel_max);
+
+    /* print text into plot */
+    bmp_printf(SHADOW_FONT(FONT_SMALL), x + 2, y + 2, "Abs: %s", bolt_rec_abs_enabled?"   ":"OFF");
+    bmp_printf(SHADOW_FONT(FONT_SMALL), x + 2, y + bolt_rec_plot_height + 3, "Rel: ", bolt_rec_rel_enabled?"   ":"OFF");
+    bmp_printf(SHADOW_FONT(FONT_SMALL), x + 4, y + 2 * bolt_rec_plot_height + 2, "Rec: %s", bolt_rec_recording?"ON ":"OFF");
+}
+
+static MENU_UPDATE_FUNC(bolt_rec_update_plot_menu)
+{
+    if(entry->selected && bolt_rec_enabled && lv)
+    {
+        bolt_rec_update_plots(720-LOG_ENTRIES-25, 110);
+    }
+}
+
 static void bolt_rec_plot_task()
 {
     while(1)
     {
-        unsigned int x = 20;
-        unsigned int y = 200;
-
-        /* ensure we dont paint outside the screen */
-        if(y + 2 * bolt_rec_plot_height > 480 - 10)
-        {
-            y = 480 - 10 - 2 * bolt_rec_plot_height;
-        }
-
         if(!gui_menu_shown() && bolt_rec_enabled && lv)
         {
-            bmp_fill(COLOR_GRAY(20), x - 2, y - 2, LOG_ENTRIES + 4, 2 * bolt_rec_plot_height + 5);
-
-            /* paint plots */
-            bolt_rec_plot(x, y, LOG_ENTRIES, bolt_rec_plot_height, bolt_rec_abs_peak, bolt_rec_abs_avg, bolt_rec_abs_log_pos, LOG_ENTRIES, bolt_rec_abs_trigger, bolt_rec_abs_max);
-            bolt_rec_plot(x, y + bolt_rec_plot_height + 1, LOG_ENTRIES, bolt_rec_plot_height, bolt_rec_rel_peak, NULL, bolt_rec_rel_log_pos, LOG_ENTRIES, bolt_rec_rel_trigger, bolt_rec_rel_max);
-
-            bmp_printf(FONT_SMALL, x + 2, y + 2, "Abs: ", bolt_rec_abs_enabled?"ON ":"OFF");
-            bmp_printf(FONT_SMALL, x + 2, y + bolt_rec_plot_height + 3, "Rel: ", bolt_rec_rel_enabled?"ON ":"OFF");
-
-            bmp_printf(FONT_SMALL, x + 4, y + 2 * bolt_rec_plot_height + 2, "Rec: %s", bolt_rec_recording?"ON ":"OFF");
+            bolt_rec_update_plots(20, 200);
         }
-        //bmp_printf(FONT_SMALL, x + 4, y + 1 + height, "%d/%d/%d/%d/%d     ", bolt_rec_abs_avg[start], bolt_rec_abs_peak[start], max, trigger, bolt_rec_recording);
         msleep(100);
     }
 }
@@ -361,12 +375,14 @@ static struct menu_entry bolt_rec_menu[] =
             {
                 .name = "Abs: trigger value",
                 .priv = &bolt_rec_abs_trigger,
+                .update = &bolt_rec_update_plot_menu,
                 .min = 0,
                 .max = 16384,
             },
             {
                 .name = "Rel: trigger value",
                 .priv = &bolt_rec_rel_trigger,
+                .update = &bolt_rec_update_plot_menu,
                 .min = 0,
                 .max = 16384,
             },
