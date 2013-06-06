@@ -31,10 +31,8 @@
 static int raw_video_enabled = 0;
 
 /**
- * resolution should be multiple of 64x32 or 128x16
- * this way, we get frame size multiple of 512, so there's no write speed penalty
- * (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks)
- * mod16 request: http://www.magiclantern.fm/forum/index.php?topic=5839.0
+ * resolution should be multiple of 16 horizontally
+ * see http://www.magiclantern.fm/forum/index.php?topic=5839.0
  **/
 
 static int resolution_presets_x[] = {  640,  768,  960,  1280,  1344,  1472,  1600,  1728,  1856,  1920,  2048,  2560,  2880,  3584 };
@@ -118,16 +116,15 @@ extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_frame(unsigned char *);
 
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
-    int rounding_mask = res_x % 128 ? 31 : 15;
     if (squeeze != 1.0f)
     {
         /* image should be enlarged vertically in post by a factor equal to "squeeze" */
-        return (int)(roundf(res_x * den / num / squeeze) + rounding_mask) & ~rounding_mask;
+        return (int)(roundf(res_x * den / num / squeeze) + 1) & ~1;
     }
     else
     {
         /* assume square pixels */
-        return (res_x * den / num + rounding_mask) & ~rounding_mask;
+        return (res_x * den / num + 1) & ~1;
     }
 }
 
@@ -157,12 +154,11 @@ static void update_resolution_params()
     int left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
     int right_margin = (raw_info.active_area.x2 + shave_right) / 8 * 8;
     int max = (right_margin - left_margin) & ~15;
-    while (max % 16 || (max * 14/8) % 16) max--;
+    while (max % 16) max--;
     max_res_x = max;
     
     /* max res Y */
-    int rounding_mask_y = res_x % 128 ? 31 : 15;
-    max_res_y = raw_info.jpeg.height & ~rounding_mask_y;
+    max_res_y = raw_info.jpeg.height & ~1;
 
     /* squeeze factor */
     if (video_mode_resolution == 1 && lv_dispsize == 1 && is_movie_mode()) /* 720p, image squeezed */
@@ -182,7 +178,8 @@ static void update_resolution_params()
     res_y = MIN(calc_res_y(res_x, num, den, squeeze_factor), max_res_y);
 
     /* frame size */
-    frame_size = res_x * res_y * 14/8;
+    /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
+    frame_size = (res_x * res_y * 14/8 + 511) & ~511;
     
     update_cropping_offsets();
 }
@@ -312,7 +309,7 @@ static MENU_UPDATE_FUNC(write_speed_update)
     int speed = (res_x * res_y * 14/8 / 1024) * fps / 100 / 1024;
     int ok = speed < measured_write_speed; 
 
-    if ((res_x * res_y * 14/8) % 512)
+    if (frame_size % 512)
     {
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Frame size not multiple of 512 bytes!");
     }
