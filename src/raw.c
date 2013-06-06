@@ -317,12 +317,12 @@ int raw_update_params()
         #endif
 
         #ifdef CONFIG_50D
-		skip_top    = zoom ? 0 : 26;
-		skip_left   = 74;
+        skip_top    =  26;
+        skip_left   =  zoom ? 64: 74;
         skip_right  = 0;
         skip_bottom = 0;
         #endif
-		
+
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
         skip_top    = 28;
         skip_left   = 74;
@@ -446,7 +446,6 @@ int raw_update_params()
         skip_top = 50;
         #endif 
 */
-
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
         width = 5280;
         height = 3528;
