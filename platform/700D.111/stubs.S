@@ -193,8 +193,8 @@ NSTUB(0x13460, msg_queue_create)
 
 NSTUB(0xFF100A44, PD_RemoteRelease)
 
-	// for task information
-	NSTUB(0x247A4, task_max) // Not so sure....
+// for task information
+NSTUB(0x247B0, task_max) // Not so sure....
 NSTUB(0x1992C, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xE68C, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF13435C, PowerAudioOutput) // not sure, looks different
