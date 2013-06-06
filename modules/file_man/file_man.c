@@ -1171,7 +1171,10 @@ unsigned int fileman_init()
 
 unsigned int fileman_deinit()
 {
-    //experimental
+    //experimental. maybe not working yet.
+    if(mfile_root->next) return -1;
+
+    //FUTURE TODO: release semaphore here.
     clear_file_menu();
     mfile_clean_all();
     FreeMemory(mfile_root);
