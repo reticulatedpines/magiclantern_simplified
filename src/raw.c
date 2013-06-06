@@ -17,6 +17,7 @@
 #endif
 
 static int shave_right = 0;
+static int dirty = 0;
 
 /*********************** Camera-specific constants ****************************/
 
@@ -466,12 +467,13 @@ int raw_update_params()
 
 /*********************** Portable code ****************************************/
 
-    int dirty = 0;
-    if (width != raw_info.width || height != raw_info.height)
-    {
-        raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
+    static int prev_shave = 0;
+    if (width != raw_info.width || height != raw_info.height || shave_right != prev_shave)
         dirty = 1;
-    }
+    prev_shave = shave_right;
+    
+    if (dirty)
+        raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
 
     raw_info.white_level = WHITE_LEVEL;
 
@@ -1009,4 +1011,9 @@ void raw_force_aspect_ratio_1to1()
         int skip_left = preview_rect_x;
         lv2raw.tx = skip_left - LV2RAW_DX(os.x0) - LV2RAW_DX(offset);
     }
+}
+
+void raw_set_dirty()
+{
+    dirty = 1;
 }
