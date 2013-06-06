@@ -15,13 +15,13 @@ _CONFIGS_to_compile_rules = $(foreach elem, $(_CONFIGS_to_compile), $(elem)$(_CO
 _CONFIGS_clean=$(patsubst %, %$(_CONFIGS_clean_name), $(_CONFIGS_to_compile))
 _CONFIGS_install=$(patsubst %, %$(_CONFIGS_install_name), $(_CONFIGS_to_compile))
 
-clean:: $(_CONFIGS_clean)
+clean-all:: clean $(_CONFIGS_clean)
 
 CONFIG_%$(_CONFIGS_compile_name):
 	+$(MAKE) -C $($*_DIR)
 
 CONFIG_%$(_CONFIGS_clean_name):
-	+$(MAKE) -C $($*_DIR)
+	+$(MAKE) -C $($*_DIR) clean
 
 CONFIG_%$(_CONFIGS_install_name): CONFIG_%$(_CONFIGS_compile_name)
 	+$(MAKE) -C $($*_DIR) install
