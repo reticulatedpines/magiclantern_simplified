@@ -31,18 +31,17 @@
 static int raw_video_enabled = 0;
 
 /**
- * resolution should be multiple of 64x32 or 128x16
- * this way, we get frame size multiple of 512, so there's no write speed penalty
- * (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks)
- * mod16 request: http://www.magiclantern.fm/forum/index.php?topic=5839.0
+ * resolution should be multiple of 16 horizontally
+ * see http://www.magiclantern.fm/forum/index.php?topic=5839.0
+ * use roughly 10% increments
  **/
 
-static int resolution_presets_x[] = {  640,  768,  960,  1280,  1344,  1472,  1600,  1728,  1856,  1920,  2048,  2560,  2880,  3584 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","768","960","1280","1344","1472","1600","1728","1856","1920","2048","2560","2880","3584")
+static int resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1600,  1728,  1856,  1920,  2048,  2240,  2560,  2880,  3584 };
+#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1600","1728","1856","1920","2048","2240","2560","2880","3584")
 
-static int aspect_ratio_presets_num[]      = {    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    1};
-static int aspect_ratio_presets_den[]      = {    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    1};
-static const char * aspect_ratio_choices[] = { "3:1","2.67:1","2.50:1","2.39:1","2.35:1","2.20:1","2:1","1.85:1", "16:9","5:3","3:2","4:3","1:1"};
+static int aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    1,    1 };
+static int aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    1,    2 };
+static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1","2.39:1","2.35:1","2.20:1","2:1","1.85:1", "16:9","5:3","3:2","4:3","1:1","1:2"};
 
 //~ static CONFIG_INT("raw.res.x", resolution_index_x, 2);
 //~ static CONFIG_INT("raw.res.y", resolution_index_y, 4);
@@ -65,6 +64,8 @@ static int preview_mode = 0;
 #define PREVIEW_CANON (preview_mode == 1)
 #define PREVIEW_ML (preview_mode == 2)
 #define PREVIEW_HACKED (preview_mode == 3)
+
+static int memory_hack = 0;
 
 static int res_x = 0;
 static int res_y = 0;
@@ -118,16 +119,15 @@ extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_frame(unsigned char *);
 
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
-    int rounding_mask = res_x % 128 ? 31 : 15;
     if (squeeze != 1.0f)
     {
         /* image should be enlarged vertically in post by a factor equal to "squeeze" */
-        return (int)(roundf(res_x * den / num / squeeze) + rounding_mask) & ~rounding_mask;
+        return (int)(roundf(res_x * den / num / squeeze) + 1) & ~1;
     }
     else
     {
         /* assume square pixels */
-        return (res_x * den / num + rounding_mask) & ~rounding_mask;
+        return (res_x * den / num + 1) & ~1;
     }
 }
 
@@ -157,12 +157,11 @@ static void update_resolution_params()
     int left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
     int right_margin = (raw_info.active_area.x2 + shave_right) / 8 * 8;
     int max = (right_margin - left_margin) & ~15;
-    while (max % 16 || (max * 14/8) % 16) max--;
+    while (max % 16) max--;
     max_res_x = max;
     
     /* max res Y */
-    int rounding_mask_y = res_x % 128 ? 31 : 15;
-    max_res_y = raw_info.jpeg.height & ~rounding_mask_y;
+    max_res_y = raw_info.jpeg.height & ~1;
 
     /* squeeze factor */
     if (video_mode_resolution == 1 && lv_dispsize == 1 && is_movie_mode()) /* 720p, image squeezed */
@@ -182,7 +181,8 @@ static void update_resolution_params()
     res_y = MIN(calc_res_y(res_x, num, den, squeeze_factor), max_res_y);
 
     /* frame size */
-    frame_size = res_x * res_y * 14/8;
+    /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
+    frame_size = (res_x * res_y * 14/8 + 511) & ~511;
     
     update_cropping_offsets();
 }
@@ -213,22 +213,23 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     if (minerr < 0.05)
     {
         int h = calc_res_y(res_x, best_num, best_den, squeeze_factor);
-        char* qualifier = h != res_y ? "almost " : "";
+        /* if the difference is 1 pixel, consider it exact */
+        char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         snprintf(msg, sizeof(msg), "%s%d:%d", qualifier, best_num, best_den);
     }
     else if (ratio > 1)
     {
         int r = (int)roundf(ratio * 100);
-        int r2 = (int)roundf(ratio * 1000);
         /* is it 2.35:1 or 2.353:1? */
-        char* qualifier = ABS(r2 - r * 10) >= 1 ? "almost " : "";
+        int h = calc_res_y(res_x, r, 100, squeeze_factor);
+        char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         if (r%100) snprintf(msg, sizeof(msg), "%s%d.%02d:1", qualifier, r/100, r%100);
     }
     else
     {
         int r = (int)roundf((1/ratio) * 100);
-        int r2 = (int)roundf((1/ratio) * 1000);
-        char* qualifier = ABS(r2 - r * 10) >= 1 ? "almost " : "";
+        int h = calc_res_y(res_x, 100, r, squeeze_factor);
+        char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         if (r%100) snprintf(msg, sizeof(msg), "%s1:%d.%02d", qualifier, r/100, r%100);
     }
     return msg;
@@ -312,7 +313,7 @@ static MENU_UPDATE_FUNC(write_speed_update)
     int speed = (res_x * res_y * 14/8 / 1024) * fps / 100 / 1024;
     int ok = speed < measured_write_speed; 
 
-    if ((res_x * res_y * 14/8) % 512)
+    if (frame_size % 512)
     {
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Frame size not multiple of 512 bytes!");
     }
@@ -338,13 +339,13 @@ static void update_shave()
     raw_lv_shave_right(shave_right);
 }
 
-static void refresh_raw_settings()
+static void refresh_raw_settings(int force)
 {
     if (RAW_IS_IDLE && !raw_playing && !raw_previewing)
     {
         /* autodetect the resolution (update 4 times per second) */
         static int aux = INT_MIN;
-        if (should_run_polling_action(250, &aux))
+        if (force || should_run_polling_action(250, &aux))
         {
             raw_update_params();
             update_resolution_params();
@@ -356,7 +357,7 @@ static MENU_UPDATE_FUNC(raw_main_update)
 {
     if (!raw_video_enabled) return;
     
-    refresh_raw_settings();
+    refresh_raw_settings(0);
     
     if (!RAW_IS_IDLE)
     {
@@ -397,7 +398,7 @@ static MENU_UPDATE_FUNC(resolution_update)
         return;
     }
     
-    refresh_raw_settings();
+    refresh_raw_settings(1);
 
     int selected_x = resolution_presets_x[resolution_index_x];
 
@@ -424,13 +425,13 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
         return;
     }
     
-    refresh_raw_settings();
+    refresh_raw_settings(0);
 
     int num = aspect_ratio_presets_num[aspect_ratio_index];
     int den = aspect_ratio_presets_den[aspect_ratio_index];
     int selected_y = calc_res_y(res_x, num, den, squeeze_factor);
     
-    if (selected_y != res_y)
+    if (selected_y > max_res_y + 2)
     {
         char* ratio = guess_aspect_ratio(res_x, res_y * squeeze_factor);
         MENU_SET_VALUE(ratio);
@@ -505,7 +506,13 @@ static int setup_buffers()
 {
     /* allocate the entire memory, but only use large chunks */
     /* yes, this may be a bit wasteful, but at least it works */
+    
+    if (memory_hack) { PauseLiveView(); msleep(200); }
+    
     mem_suite = shoot_malloc_suite(0);
+    
+    if (memory_hack) { ResumeLiveView(); msleep(500); }
+    
     if (!mem_suite) return 0;
     
     /* allocate memory for double buffering */
@@ -689,7 +696,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     /* update settings when changing video modes (outside menu) */
     if (RAW_IS_IDLE && !gui_menu_shown())
     {
-        refresh_raw_settings();
+        refresh_raw_settings(0);
     }
 
     return 0;
@@ -771,6 +778,12 @@ static int process_frame()
         return 0;
     }
     
+    /* try a sync beep */
+    if (sound_rec == 2 && frame_count == 1)
+    {
+        beep();
+    }
+
     int ans = edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
 
     /* advance to next frame */
@@ -843,10 +856,6 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
     }
     
     dma_transfer_in_progress = process_frame();
-
-    /* try a sync beep */
-    if (sound_rec == 2 && frame_count == 1)
-        beep();
 
     return 0;
 }
@@ -1370,6 +1379,12 @@ static struct menu_entry raw_video_menu[] =
                          "Canon: plain old LiveView. Framing is not always correct.\n"
                          "ML Grayscale: looks ugly, but at least framing is correct.\n"
                          "HaCKeD: try to squeeze a little speed by killing LiveView.\n"
+            },
+            {
+                .name = "Memory hack",
+                .priv = &memory_hack,
+                .max = 1,
+                .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
             },
             {
                 .name = "Playback",

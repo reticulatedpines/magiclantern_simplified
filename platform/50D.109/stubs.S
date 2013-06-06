@@ -90,6 +90,7 @@ NSTUB( 0xff9829d0, FIO_WriteFile )								//d
 NSTUB( 0xff982820, FIO_ReadFile )								//d
 NSTUB( 0xff982704, FIO_RemoveFile )								//d
 NSTUB( 0xff982df4, FIO_CreateDirectory)
+NSTUB( 0xFF9829A0, FIO_SeekFile)
 	
 NSTUB( 0xff866a1c, give_semaphore )																		//d
 NSTUB( 0xff866934, take_semaphore )																		//d

@@ -5238,76 +5238,6 @@ struct menu_entry tweak_menus_shoot[] = {
     #endif
 };
 
-#ifdef FEATURE_ML_AUTO_ISO
-
-static CONFIG_INT("auto.iso.ml", ml_auto_iso, 0);
-static CONFIG_INT("auto.iso.av.tv", ml_auto_iso_av_shutter, 3);
-static CONFIG_INT("auto.iso.tv.av", ml_auto_iso_tv_aperture, 3);
-
-static MENU_UPDATE_FUNC(ml_auto_iso_display)
-{
-    if (shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This feature only works in Tv and Av modes.");
-}
-
-static void auto_iso_tweak_step()
-{
-    static int last_iso = -1;
-    if (!ml_auto_iso)
-    {
-        if (last_iso != -1) // when disabling ML auto ISO, restore previous ISO
-        {   
-            lens_set_rawiso(last_iso);
-            last_iso = -1;
-        }
-        return;
-    }
-    if (ISO_ADJUSTMENT_ACTIVE) return;
-    if (!display_idle()) return;
-    
-    if (last_iso == -1) last_iso = lens_info.raw_iso;
-    
-    int min_iso = MIN_ISO;
-    int max_iso = auto_iso_range & 0xFF;
-    
-    if (shooting_mode == SHOOTMODE_AV && lens_info.raw_shutter)
-    {
-        int ref_tv = 88 + 8*ml_auto_iso_av_shutter;
-
-        int new_iso = lens_info.raw_iso;
-        int e = ABS(lens_info.raw_shutter - ref_tv);
-        int er = (e+4)/8*8;
-        if (lens_info.raw_shutter <= ref_tv-4)
-            new_iso = MIN(lens_info.raw_iso + er, max_iso);
-        else if (lens_info.raw_shutter > ref_tv+4)
-            new_iso = MAX(lens_info.raw_iso - er, min_iso);
-        if (new_iso != lens_info.raw_iso)
-            lens_set_rawiso(new_iso);
-    }
-    else if (shooting_mode == SHOOTMODE_TV && lens_info.raw_aperture)
-    {
-        // you can't go fully wide open, because ML would have no way to know when to raise ISO
-        int av_min = (int)lens_info.raw_aperture_min + 4;
-        int av_max = (int)lens_info.raw_aperture_max - 5;
-        if (av_min >= av_max) return;
-        int ref_av = COERCE(16 + 8*(int)ml_auto_iso_tv_aperture, av_min, av_max);
-
-        int e = ABS(lens_info.raw_aperture - ref_av);
-        int er = (e+4)/8*8;
-        int new_iso = lens_info.raw_iso;
-        if (lens_info.raw_aperture <= ref_av-4)
-            new_iso = MIN(lens_info.raw_iso + er, max_iso);
-        else if (lens_info.raw_aperture > ref_av+4)
-            new_iso = MAX(lens_info.raw_iso - er, min_iso);
-        if (new_iso != lens_info.raw_iso)
-            lens_set_rawiso(new_iso);
-    }
-    else return;
-    
-    if (get_halfshutter_pressed()) msleep(200); // try to reduce the influence over autofocus
-}
-#endif // FEATURE_ML_AUTO_ISO
-
 extern int lvae_iso_max;
 extern int lvae_iso_min;
 extern int lvae_iso_speed;
@@ -5633,45 +5563,6 @@ static struct menu_entry expo_menus[] = {
     #endif
             MENU_EOL
         },
-    },
-    #endif
-    #ifdef FEATURE_ML_AUTO_ISO
-    {
-        .name = "ML Auto ISO",
-        .priv = &ml_auto_iso, 
-        .max = 1,
-        .update = ml_auto_iso_display,
-        .help = "Experimental auto ISO algorithms.",
-        .submenu_width = 700,
-        .depends_on = DEP_PHOTO_MODE,
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Shutter for Av mode",
-                .priv = &ml_auto_iso_av_shutter,
-                .max = 7,
-                .icon_type = IT_PERCENT,
-                .choices = CHOICES("1/15", "1/30", "1/60", "1/125", "1/250", "1/500", "1/1000", "1/2000"),
-                .help = "Preferred shutter speed for Av mode (+/- 0.5 EV)."
-            },
-            {
-                .name = "Aperture for Tv mode",
-                .priv = &ml_auto_iso_tv_aperture,
-                .max = 8,
-                .icon_type = IT_PERCENT,
-                .choices = CHOICES("f/1.4", "f/2.0", "f/2.8", "f/4.0", "f/5.6", "f/8", "f/11", "f/16", "f/22"),
-                .help = "Preferred aperture for Tv mode (+/- 0.5 EV)."
-            },
-            /*
-            {
-                .name = "A-ISO smoothness",
-                .priv = &lvae_iso_speed,
-                .min = 3,
-                .max = 30,
-                .help = "Speed for movie Auto ISO. Low values = smooth transitions.",
-                .edit_mode = EM_MANY_VALUES_LV,
-            },*/
-            MENU_EOL
-        }
     },
     #endif
     #ifdef FEATURE_AUTO_ETTR
@@ -6911,10 +6802,6 @@ shoot_task( void* unused )
         }
         zoom_lv_face_step();
         zoom_focus_ring_step();
-        #endif
-        
-        #ifdef FEATURE_ML_AUTO_ISO
-        auto_iso_tweak_step();
         #endif
         
         #ifdef FEATURE_MLU

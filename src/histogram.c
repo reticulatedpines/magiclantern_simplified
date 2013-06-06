@@ -43,10 +43,14 @@ void hist_build_raw()
 
     for (int i = os.y0; i < os.y_max; i += 8)
     {
+        int y = BM2RAW_Y(i);
+        if (y < raw_info.active_area.y1 || y > raw_info.active_area.y2) continue;
+        
         for (int j = os.x0; j < os.x_max; j += 8)
         {
             int x = BM2RAW_X(j);
-            int y = BM2RAW_Y(i);
+            if (x < raw_info.active_area.x1 || x > raw_info.active_area.x2) continue;
+            
             int r = raw_red_pixel(x, y);
             int g = raw_green_pixel(x, y);
             int b = raw_blue_pixel(x, y);
