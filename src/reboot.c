@@ -129,7 +129,8 @@ cstart( void )
     if (s != (int)SIG_650D_101)
         fail();
     #endif
-
+    
+    //TODO: Add CONFIG_700D and CONFIG_100D signature check
 #endif
     
     

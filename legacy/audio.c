@@ -86,6 +86,7 @@ CONFIG_INT( "audio.mic-power",  mic_power,      1 );
 CONFIG_INT( "audio.o2gain",     o2gain,         0 );
 //CONFIG_INT( "audio.mic-in",   mic_in,         0 ); // not used any more?
 #endif
+
 CONFIG_INT( "audio.lovl",       lovl,           0 );
 CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
 int loopback = 1;
@@ -93,20 +94,14 @@ int loopback = 1;
 CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
 CONFIG_INT( "audio.filters",    enable_filters,        1 ); //disable the HPF, LPF and pre-emphasis filters
 CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
+
 #ifdef CONFIG_500D
 CONFIG_INT("audio.monitoring", audio_monitoring, 0);
 #else
 CONFIG_INT("audio.monitoring", audio_monitoring, 1);
 #endif
+
 int do_draw_meters = 0;
-
-
-/*
-int ext_cfg_draw_meters(void)
-{
-    return cfg_draw_meters;
-}
-*/
 
 static struct audio_level audio_levels[2];
 

@@ -1,10 +1,10 @@
 /**
- * Camera internals for EOS-M 1.0.6
+ * Camera internals for 700D 1.1.1
  */
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
-/** The EOS_M port is very young, so we don't enable these for now. **/
-#define CONFIG_PROP_REQUEST_CHANGE
+/** The 700D port is very young, so we don't enable these for now. **/
+//~ #define CONFIG_PROP_REQUEST_CHANGE
 
 /** 
  * State object hooks are pieces of code that run in Canon tasks (state objects). See state-object.c . 
@@ -31,44 +31,43 @@
 /** We only have a single LED **/
 //~ #define CONFIG_BLUE_LED
 
-/** There is no LCD sensor that turns the display off **/
+/** There's a display sensor, but I've yet to find the correct stubs **/
 //~ #define CONFIG_LCD_SENSOR
 
-/** This camera has no miror **/
-//~ #define CONFIG_MLU
+/** This camera has a mirror lockup feature **/
+#define CONFIG_MLU
 
-/** This camera reports focus info in LiveView **/
-#define CONFIG_LV_FOCUS_INFO
+/** This camera doesn't report focus info in LiveView **/
+//~ #define CONFIG_LV_FOCUS_INFO
 
-/** Sensor gives some data Needs Help **/
+/** No level sensor I guess **/
 //~ #define CONFIG_ELECTRONIC_LEVEL
 
 /** Define this if the camera has an ambient light sensor used for auto brightness **/
 //~ #define CONFIG_AUTO_BRIGHTNESS
 
-/** idk **/
+/** There is a Q menu in Play mode, with image protect, rate etc **/
 //~ #define CONFIG_Q_MENU_PLAYBACK
 
-/** No flip-out display **/
-//~ #define CONFIG_VARIANGLE_DISPLAY
+/** It has a flip-out display **/
+#define CONFIG_VARIANGLE_DISPLAY
 
 /** Battery does not report exact percentage **/
 //~ #define CONFIG_BATTERY_INFO
 
-/** We can do bulb exposures (well, I hope) **/
+/** We can do bulb exposures **/
 #define CONFIG_BULB
 
-/** There is no Bulb Mode **/
+/** Bulb mode is done by going to M mode and setting shutter speed beyond 30s **/
 //~ #define CONFIG_SEPARATE_BULB_MODE
 
 /** We can't control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS
 
-/** No zoom button **/
+/** No zoom button while recording **/
 #define CONFIG_ZOOM_BTN_NOT_WORKING_WHILE_RECORDING
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
-/** Well, I hope so **/
 #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
 #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
@@ -81,11 +80,11 @@
 /** But we can't override the digital ISO component via FRAME_ISO **/
 #define CONFIG_FRAME_ISO_OVERRIDE_ANALOG_ONLY
 
-/** We can't change ExpSim from ML (at least not yet) **/
-#define CONFIG_EXPSIM
+/** We can't change ExpSim from ML :( **/
+//~ #define CONFIG_EXPSIM
 
-/** We can;t playback sounds via ASIF DMA (yet) **/
-#define CONFIG_BEEP
+/** We can't playback sounds via ASIF DMA (yet) **/
+//~ #define CONFIG_BEEP
 
 /** This camera has no trouble saving Kelvin and/or WBShift in movie mode **/
 //~ #define CONFIG_WB_WORKAROUND
@@ -93,30 +92,28 @@
 /** We can restore ML files after formatting the card in the camera **/
 #define CONFIG_RESTORE_AFTER_FORMAT
 
-/** We know how to use DMA_MEMCPY but regular memcpy is faster anyway **/
-//~ #define CONFIG_DMA_MEMCPY
-
+/** We can use DMA_MEMCPY **/
+// #define CONFIG_DMA_MEMCPY
 /** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
 #define CONFIG_EDMAC_MEMCPY
 
-/** We shouldn't warn the user if movie exposure is Auto **/
+/** We should warn the user if movie exposure is Auto, otherwise he may report it as a bug **/
 #define CONFIG_MOVIE_AE_WARNING
 
-/** No photo mode outside LiveView **/
-//~ #define CONFIG_PHOTO_MODE_INFO_DISPLAY
+/** We can display some extra info in photo mode (not LiveView) **/
+#define CONFIG_PHOTO_MODE_INFO_DISPLAY
 
 /** No additional_version stub on this DryOS version **/
 #define CONFIG_NO_ADDITIONAL_VERSION
 
-/** Touchscreen support **/
-// Needs more hacking, I'll fix it once i get the EOSM - nanomad
-//~ #define CONFIG_TOUCHSCREEN
+/** Touch screen support **/
+#define CONFIG_TOUCHSCREEN
 
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
 
-/** FPS override: Canon changes FPS registers often; we need to undo their changes asap */
-#define CONFIG_FPS_AGGRESSIVE_UPDATE
+/** We can record movies in regular photo modes - M, P, Tv, Av... */
+#define CONFIG_NO_DEDICATED_MOVIE_MODE
 
 /** FIO_RenameFile works **/
 #define CONFIG_FIO_RENAMEFILE_WORKS
@@ -124,9 +121,5 @@
 /** FPS override: change timers from EVF state */
 #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
 
-/** There is a Movie Mode, needs research */
-#define CONFIG_NO_DEDICATED_MOVIE_MODE
-
-/** We have access to Raw data */
 #define CONFIG_RAW_LIVEVIEW
 #define CONFIG_RAW_PHOTO

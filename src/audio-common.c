@@ -1,11 +1,7 @@
 
-#if defined(CONFIG_50D)
-#include "disable-this-module.h"
-#endif
-
 #define SOUND_RECORDING_ENABLED (sound_recording_mode != 1) // not 100% sure
 
-#if defined(CONFIG_500D) || defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_650D)
+#if defined(CONFIG_500D) || defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D)
 int audio_thresholds[] = { 0x7fff, 0x7213, 0x65ab, 0x5a9d, 0x50c2, 0x47fa, 0x4026, 0x392c, 0x32f4, 0x2d6a, 0x2879, 0x2412, 0x2026, 0x1ca7, 0x1989, 0x16c2, 0x1449, 0x1214, 0x101d, 0xe5c, 0xccc, 0xb68, 0xa2a, 0x90f, 0x813, 0x732, 0x66a, 0x5b7, 0x518, 0x48a, 0x40c, 0x39b, 0x337, 0x2dd, 0x28d, 0x246, 0x207, 0x1ce, 0x19c, 0x16f, 0x147 };
 #endif
 
@@ -96,9 +92,6 @@ audio_level_to_db(
     
     return 0;
 }
-
-
-
 
 #ifdef OSCOPE_METERS
 void draw_meters(void)
@@ -876,13 +869,21 @@ audio_o2gain_display( void * priv, int x, int y, int selected )
 
 static const char* get_audio_input_string()
 {
-    return 
-        (input_choice == 0 ? "Internal mic" : 
-         (input_choice == 1 ? "L:int R:ext" :
-          (input_choice == 2 ? "External stereo" : 
-           (input_choice == 3 ? "L:int R:balanced" : 
-            (input_choice == 4 ? (mic_inserted ? "Auto int/EXT " : "Auto INT/ext") : 
-             "error")))));
+    switch(input_choice) {
+        case 0:
+            return "Internal mic";
+        case 1:
+            return "L:int R:ext";
+        case 2:
+            return "External Stereo";
+        case 3:
+            return "L:int R:balanced";
+        case 4:
+            return (mic_inserted? "Auto int/EXT" : "Auto INT/ext");
+        default:
+            break;
+    }
+    return "error";
 }
 
 
@@ -917,12 +918,10 @@ audio_monitoring_toggle( void * priv, int delta )
 }
 
 static void
-enable_recording(
-                 int                    mode
-                 )
+enable_recording(int mode)
 {
     switch( mode )
-        {
+    {
         case 0:
             // Movie recording stopped;  (fallthrough)
         case 2:
@@ -939,7 +938,7 @@ enable_recording(
         default:
             // Uh?
             break;
-        }
+    }
 }
 
 // to be called from some other tasks that may mess with audio 
@@ -949,9 +948,7 @@ static void audio_force_reconfigure()
 }
 
 static void
-enable_meters(
-              int                       mode
-              )
+enable_meters(int mode)
 {
     loopback = do_draw_meters = !mode;
 #if !defined(CONFIG_600D)

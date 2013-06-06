@@ -3,7 +3,7 @@
 
 #define SIG_LEN 0x10000
 
-#if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_6D) || defined(CONFIG_650D)
+#if defined(CONFIG_DIGIC_V)
 #define SIG_START 0xFF0C0000
 #elif defined(CONFIG_7D) || defined(CONFIG_7D_MASTER)
 #define SIG_START 0xF8010000
@@ -28,8 +28,10 @@
 #define SIG_7D_203   0x50163E93
 #define SIG_7D_MASTER_203 0x640BF4D1
 #define SIG_650D_101 0x12AEB7B3
-
-#define SHOULD_CHECK_SIG ((!defined(CONFIG_QEMU)) && (defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)))
+//TODO: Fix CONFIG_700D and CONFIG_100D
+    #define SIG_700D_111 0xDEADBEEF
+    #define SIG_100D_101 0xDEADBEEF
+#define SHOULD_CHECK_SIG ((!defined(CONFIG_QEMU)) && (defined(CONFIG_DIGIC_V) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER)))
 
 static int compute_signature(int* start, int num)
 {
