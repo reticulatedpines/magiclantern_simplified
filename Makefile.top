@@ -35,4 +35,20 @@ INSTALL_FINISH ?= $(UMOUNT) $(CF_CARD)
 
 make_loop = +$(foreach entry, $(1), $(MAKE) -C $(entry) $(2);)
 
-rm_file = $(call build,RM,$(RM) -f $(1))
+# $1 = root_dir
+# $2 = dir-target
+define call_make_rule
+	+$(MAKE) -C $(1)/$(word 1, $(subst _rule_, ,$@)) $(word 2, $(subst _rule_, ,$@))
+endef
+
+define call_make_rule_ex
+	+$(MAKE) -C $(2)/$(call $(1), $(word 1, $(subst _rule_, ,$@))) $(word 2, $(subst _rule_, ,$@))
+endef
+
+
+# $1 - targets
+# $2 - rule name
+# Returns list of targets (combination of target name and rule name)
+define targets_rules
+$(foreach model, $1, $(model)_rule_$(strip $(2)))
+endef

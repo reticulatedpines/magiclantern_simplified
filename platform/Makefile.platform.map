@@ -23,11 +23,8 @@ ALL_SUPPORTED_MODELS=$(basename $(PLATFORM_MAP))
 
 platform_version = $(patsubst $(strip $(1)).%,%,$(call platform_map, $(1)))
 
-# Executes make for passed camera model
-# Typical use case can be (setting targets for all camera models and execute this function):
-# $(ALL_SUPPORTED_MODELS):
-#	$(call platform_make_run)
-#
-define platform_make_run
-	+$(MAKE) -C $(PLATFORM_PATH)/$(call platform_map, $@)
-endef
+PLATFORM_CLEAN_ALL_TARGETS = $(call targets_rules, $(ALL_SUPPORTED_MODELS), clean)
+
+PLATFORM_INSTALL_ALL_TARGETS = $(call targets_rules, $(ALL_SUPPORTED_MODELS), install)
+
+call_make_platform = $(call call_make_rule_ex, platform_map, $(PLATFORM_PATH))

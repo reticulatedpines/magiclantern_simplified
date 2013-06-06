@@ -13,7 +13,7 @@ MODULE_OUTPUT = $(MODULE_NAME).mo
 all:: $(MODULE_OUTPUT)
 
 clean::
-	$(call build,CLEAN,$(RM) -f $(MODULE_OBJS) $(MODULE_OUTPUT) *.o *.d)
+	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) *.o *.d)
 
 $(MODULE_OUTPUT): $(MODULE_OBJS)
 	$(call build,MODULE,$(LD_REAL) -r -o $@ $^)

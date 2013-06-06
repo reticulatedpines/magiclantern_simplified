@@ -4,15 +4,23 @@ TOP_DIR=..
 
 include $(TOP_DIR)/Makefile.top
 
-make_installer_loop = @$(call make_loop, $(SUPPORTED_INSTALLERS), $(1))
+INSTALLER_CLEAN_ALL_TARGETS = $(call targets_rules, $(SUPPORTED_INSTALLERS), clean)
 
-fir:
-	$(call make_installer_loop, installer)
+INSTALLER_INSTALLER_TARGETS = $(call targets_rules, $(SUPPORTED_INSTALLERS), installer)
 
-clean:
-	$(call make_installer_loop,clean)
+INSTALLER_INSTALL_TARGETS = $(call targets_rules, $(SUPPORTED_INSTALLERS), install)
 
-clean_and_fir: clean fir
+fir: $(INSTALLER_INSTALLER_TARGETS)
 
-install_fir: fir
-	$(call make_installer_loop, install)
+clean: $(INSTALLER_CLEAN_ALL_TARGETS)
+
+clean_and_fir: | clean
+clean_and_fir: fir
+
+install_fir: $(INSTALLER_INSTALL_TARGETS)
+
+
+$(INSTALLER_INSTALL_TARGETS) $(INSTALLER_INSTALLER_TARGETS) $(INSTALLER_CLEAN_ALL_TARGETS) $(SUPPORTED_INSTALLERS):
+	$(call call_make_rule, $(TOP_DIR)/installer)
+
+.PHONY: $(INSTALLER_INSTALLER_TARGETS) $(INSTALLER_INSTALL_TARGETS) $(INSTALLER_CLEAN_ALL_TARGETS) $(SUPPORTED_INSTALLERS)

@@ -28,6 +28,6 @@ install_fir: build_fir
 	$(CP) $(UPDATE_NAME_FIR) $(INSTALL_DIR)/
 
 clean_fir::
-	$(call rm_file, $(ML_BUILD_FIR_PLATFORM_FILE) $(UPDATE_NAME))
+	$(call rm_files, $(ML_BUILD_FIR_PLATFORM_FILE) $(UPDATE_NAME))
 
 clean_install_fir: install_fir | clean_fir

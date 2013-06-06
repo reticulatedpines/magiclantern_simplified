@@ -103,7 +103,7 @@ build = \
 
 
 clean:
-	$(call build,CLEAN,$(RM) -f \
+	$(call rm_files, \
 		$(PLUGIN_BASE_DIR)/*.o   \
 		$(PLUGIN_BASE_DIR)/.*.d \
 		$(PLUGIN_BASE_DIR)/.*.a \

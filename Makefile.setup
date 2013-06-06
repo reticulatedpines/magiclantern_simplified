@@ -23,6 +23,16 @@ build = \
 	fi; \
 	$2
 
+define rm_files
+	@printf "[ RM ] %s\n" "$1";
+	@$(RM) -f $1
+endef
+
+define rm_dir
+	@printf "[ RM dir ] %s\n" "$1";
+	@$(RM) -rf $1
+endef
+
 
 FLAGS=\
 	-Wp,-MMD,$(patsubst %.o,%.d,$(dir $@)$(notdir $@)) \

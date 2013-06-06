@@ -21,6 +21,6 @@ updater: reboot-ins.o
 	);
 
 clean::
-	$(call rm_file, updater*)
+	$(call rm_files, updater*)
 
 include $(TOP_DIR)/Makefile.inc

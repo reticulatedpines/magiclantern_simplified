@@ -78,12 +78,12 @@ installdoc:
 prepare_zip:
 	$(eval INSTALL_DIR = zip)
 	$(eval INSTALL_FINISH = )
-	rm -rf $(INSTALL_DIR)/
+	$(call rm_dir $(INSTALL_DIR)/)
 	mkdir -p $(INSTALL_DIR)
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: install
-	-rm $@
+	-$(call rm_files, $@)
 	chmod -x $(INSTALL_DIR)/autoexec.bin
 	cd $(INSTALL_DIR); zip -z ../$@ < \
 		../$(SRC_DIR)/zip.txt -r .\
@@ -93,7 +93,7 @@ zip:: install installdoc clean_install_fir
 zip:: magiclantern-$(VERSION).zip
 
 clean::
-	$(RM) -rf zip
+	$(call rm_dir, zip)
 
 FORCE:
 

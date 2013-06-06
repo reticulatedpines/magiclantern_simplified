@@ -23,4 +23,4 @@ raw2dng.exe: FORCE
 	$(call build,MINGW,$(MINGW) raw2dng.o chdk-dng.o -o raw2dng.exe -lm -m32)
 
 clean::
-	$(call build,CLEAN,$(RM) -f raw2dng)
+	$(call rm_files, raw2dng)

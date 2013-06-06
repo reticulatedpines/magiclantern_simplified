@@ -6,12 +6,7 @@
 #http://www.gnu.org/software/make/manual/make.html#Variables_002fRecursion
 
 TOP_DIR=$(PWD)
-include Makefile.top
-
-include Makefile.user.default
-
--include Makefile.user
-
+include Makefile.setup
 
 all: $(SUPPORTED_MODELS)
 
@@ -20,7 +15,7 @@ include $(PLATFORM_PATH)/Makefile.platform.map
 # This rule is able to run make for specific model (defined in ALL_SUPPORTED_MODELS)
 #60D 550D 600D 1100D 50D 500D 5D2 5DC 40D 5D3 EOSM 650D 6D 7D_MASTER::
 $(ALL_SUPPORTED_MODELS)::
-	$(call platform_make_run)
+	$(call call_make_platform)
 
 7D:: 7D_MASTER
 	$(MAKE) -C $(PLATFORM_PATH)/7D.203
@@ -36,8 +31,7 @@ platform_all_model:
 install_platform_all_model: platform_all_model
 	$(MAKE) -C $(PLATFORM_PATH) install-all-model
 
-install: prepare_install_dir install_platform_all_model install_extra_data
-	$(UMOUNT) $(CF_CARD)
+install: install_platform_all_model
 
 fir:
 	$(MAKE) -C installer clean_and_fir
@@ -49,13 +43,13 @@ platform_clean:
 	$(MAKE) -C platform clean
 
 clean: platform_clean doxygen_clean
-	$(call build,CLEAN,$(RM) -f \
+	$(call rm_files, \
 		magiclantern.lds \
 		$(LUA_PATH)/*.o \
 		$(LUA_PATH)/.*.d \
 		$(LUA_PATH)/liblua.a \
 		*.pdf)
-		$(RM) -rf  $(BINARIES_PATH)
+		@$(RM) -rf  $(BINARIES_PATH)
 
 
 zip: all
@@ -72,7 +66,7 @@ doxygen:
 	doxygen
 
 doxygen_clean:
-	$(RM) -rf doxygen-doc/*
+	$(call rm_dir, doxygen-doc)
 
 dropbox: all
 	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/bleeding-edge/

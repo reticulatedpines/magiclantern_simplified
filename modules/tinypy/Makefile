@@ -12,7 +12,7 @@ include ../Makefile.modules
 all:: tinypy-desktop
 
 clean::
-	$(call build,CLEAN,$(RM) -f tinypy-desktop)
+	$(call rm_files, tinypy-desktop)
 
 tinypy-desktop: tinypy-desktop.c tinypy.c
 	gcc tinypy-desktop.c -o tinypy-desktop -lm -g

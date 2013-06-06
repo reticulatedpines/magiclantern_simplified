@@ -4,19 +4,24 @@ ML_SETUP_EXTENSION=modules
 
 include $(TOP_DIR)/Makefile.setup
 
-make_dynamic_modules = $(call make_loop, $(ML_MODULES_DYNAMIC), $(1))
+MODULES_ALL_TARGETS = $(ML_MODULES_DYNAMIC) $(ML_MODULES_STATIC)
 
-make_all_modules = $(call make_loop, $(ML_MODULES_STATIC) $(ML_MODULES_DYNAMIC), $(1))
+MODULES_CLEAN_ALL_TARGETS = $(call targets_rules, $(MODULES_ALL_TARGETS), clean)
 
-all:
-	$(call make_all_modules,)
+MODULES_INSTALL_DYNAMIC_TARGETS = $(call targets_rules, $(ML_MODULES_DYNAMIC), install)
 
-clean:
-	$(call make_all_modules,clean)
+all: $(MODULES_ALL_TARGETS)
 
-prepare_install:
-	mkdir $(INSTALL_MODULES_DIR) || echo "no problem"
+clean: $(MODULES_CLEAN_ALL_TARGETS)
 
-install: prepare_install all
-	$(call make_dynamic_modules, install)
+prepare_install: all
+	mkdir -p $(INSTALL_MODULES_DIR) || echo "no problem"
+
+install: | prepare_install
+install: all
 	$(CP) $(MODULES_DIR)/*/*.mo $(INSTALL_MODULES_DIR)/ || echo "no problem"
+
+$(MODULES_INSTALL_DYNAMIC_TARGETS) $(MODULES_CLEAN_ALL_TARGETS) $(ML_MODULES_DYNAMIC):
+	$(call call_make_rule, $(MODULES_DIR))
+
+.PHONY: $(MODULES_ALL_TARGETS)

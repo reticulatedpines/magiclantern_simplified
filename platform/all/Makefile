@@ -1,11 +1,16 @@
 #Makefile for an autoexec.bin able to run on all cameras
 
-x: prepare-all autoexec-all autoexec-all.bin
-	cp autoexec-all.bin autoexec.bin
-	$(STAT_CMD) autoexec.bin; \
+x: prepare-all autoexec-all autoexec.bin
+#	cp autoexec-all.bin autoexec.bin
+	$(STAT_CMD) autoexec.bin;
 
 prepare-all:
 	$(MAKE) -C .. all-supported-models
+
+reboot-all.o : prepare-all
+
+autoexec.bin: autoexec-all.bin
+	$(CP) autoexec-all.bin autoexec.bin
 
 autoexec-all: reboot-all.o
 	$(call build,LD,$(LD) \
@@ -18,7 +23,7 @@ autoexec-all: reboot-all.o
 	); \
 
 clean::
-	$(call rm_file, autoexec-all autoexec-all.bin)
+	$(call rm_files, autoexec-all autoexec-all.bin)
 
 empty:=
 space:= $(empty) $(empty)

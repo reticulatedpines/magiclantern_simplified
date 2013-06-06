@@ -6,17 +6,14 @@ include $(TOP_DIR)/Makefile.setup
 
 MAKE_SUPPORTED_MODELS:=$(call make_platform_dirs, $(SUPPORTED_MODELS))
 
-make_supported_loop = @$(call make_loop, $(MAKE_SUPPORTED_MODELS), $(1))
+all:: all-supported-models all-model
 
-make_all_loop = @$(call make_loop, $(PLATFORM_MAP), $(1))
+all-supported-models: $(SUPPORTED_MODELS)
 
-all:: all-supported-models
+clean-supported-models:
 
-all-supported-models:
-	$(call make_supported_loop, all)
-
-all-model:
-	+$(MAKE) -C x
+all-model: all-supported-models
+	+$(MAKE) -C all x
 
 install-all-model:
 	+$(MAKE) -C all install
@@ -24,12 +21,13 @@ install-all-model:
 clean-all-model:
 	+$(MAKE) -C all clean
 
-clean: clean-all-model
-	$(call make_all_loop, clean)
+clean: clean-all-model $(PLATFORM_CLEAN_ALL_TARGETS)
 
 install:
-	
+
+$(PLATFORM_CLEAN_ALL_TARGETS):
+	$(call call_make_platform)
 
 # This rule is able to run make for specific model (defined in ALL_SUPPORTED_MODELS), for example for 60D
 $(ALL_SUPPORTED_MODELS):
-	$(call platform_make_run)
+	$(call call_make_platform)

@@ -5,7 +5,7 @@
 all:: autoexec.bin
 
 clean::
-	$(call rm_file, *.o *.d autoexec autoexec.bin magiclantern magiclantern.bin)
+	$(call rm_files, *.o *.d autoexec autoexec.bin magiclantern magiclantern.bin)
 
 CFLAGS += \
 	-DCONFIG_MAGICLANTERN=1 \
@@ -192,7 +192,7 @@ magiclantern: $(ML_OBJS-y) dietlibc.a newlib-libc.a
 reboot.o: $(SRC_DIR)/reboot.c $(PLATFORM_DIR)/version.bin magiclantern.bin
 
 clean::
-	$(call rm_file, magiclantern.bin autoexec autoexec.map location.map)
+	$(call rm_files, magiclantern.bin autoexec autoexec.map location.map)
 
 autoexec: reboot.o
 	$(call build,LD,$(LD) \
@@ -216,13 +216,13 @@ autoexec-fir: reboot.o
 	);
 
 clean::
-	$(call rm_file, autoexec-fir autoexec-fir.bin)
+	$(call rm_files, autoexec-fir autoexec-fir.bin)
 
 magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
 	$(call build,CPP,$(CPP) $(CFLAGS) $< | $(GREP) -v '^#' > $@)
 
 clean::
-	$(call rm_file, magiclantern.lds)
+	$(call rm_files, magiclantern.lds)
 
 $(TOP_DIR)/tcc/libtcc.a: FORCE
 	+$(MAKE) -C $(TOP_DIR)/tcc
@@ -287,7 +287,7 @@ newlib-libc.a: $(NEWLIB_OBJ)
 	$(call build,AR,$(AR) cr $@ $^)
 
 clean::
-	$(call rm_file,newlib-libc.a $(NEWLIB_OBJ) dietlibc.a)
+	$(call rm_files, newlib-libc.a $(NEWLIB_OBJ) dietlibc.a)
 
 $(PLATFORM_DIR)/version.c: FORCE
 	$(call build,"VERSION",echo 'const char build_version[] = "$(VERSION)";') > $@
@@ -317,6 +317,6 @@ $(SRC_DIR)/menuindexentries.h:
 menuindex.o: $(SRC_DIR)/menuindexentries.h
 
 clean::
-	$(call rm_file, version.c version.bin)
+	$(call rm_files, version.c version.bin)
 
 FORCE:
