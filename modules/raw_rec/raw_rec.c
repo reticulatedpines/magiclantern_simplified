@@ -210,22 +210,23 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     if (minerr < 0.05)
     {
         int h = calc_res_y(res_x, best_num, best_den, squeeze_factor);
-        char* qualifier = h != res_y ? "almost " : "";
+        /* if the difference is 1 pixel, consider it exact */
+        char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         snprintf(msg, sizeof(msg), "%s%d:%d", qualifier, best_num, best_den);
     }
     else if (ratio > 1)
     {
         int r = (int)roundf(ratio * 100);
-        int r2 = (int)roundf(ratio * 1000);
         /* is it 2.35:1 or 2.353:1? */
-        char* qualifier = ABS(r2 - r * 10) >= 1 ? "almost " : "";
+        int h = calc_res_y(res_x, r, 100, squeeze_factor);
+        char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         if (r%100) snprintf(msg, sizeof(msg), "%s%d.%02d:1", qualifier, r/100, r%100);
     }
     else
     {
         int r = (int)roundf((1/ratio) * 100);
-        int r2 = (int)roundf((1/ratio) * 1000);
-        char* qualifier = ABS(r2 - r * 10) >= 1 ? "almost " : "";
+        int h = calc_res_y(res_x, 100, r, squeeze_factor);
+        char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         if (r%100) snprintf(msg, sizeof(msg), "%s1:%d.%02d", qualifier, r/100, r%100);
     }
     return msg;
@@ -427,7 +428,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
     int den = aspect_ratio_presets_den[aspect_ratio_index];
     int selected_y = calc_res_y(res_x, num, den, squeeze_factor);
     
-    if (selected_y != res_y)
+    if (selected_y > max_res_y + 2)
     {
         char* ratio = guess_aspect_ratio(res_x, res_y * squeeze_factor);
         MENU_SET_VALUE(ratio);
