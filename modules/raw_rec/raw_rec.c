@@ -337,13 +337,13 @@ static void update_shave()
     raw_lv_shave_right(shave_right);
 }
 
-static void refresh_raw_settings()
+static void refresh_raw_settings(int force)
 {
     if (RAW_IS_IDLE && !raw_playing && !raw_previewing)
     {
         /* autodetect the resolution (update 4 times per second) */
         static int aux = INT_MIN;
-        if (should_run_polling_action(250, &aux))
+        if (force || should_run_polling_action(250, &aux))
         {
             raw_update_params();
             update_resolution_params();
@@ -355,7 +355,7 @@ static MENU_UPDATE_FUNC(raw_main_update)
 {
     if (!raw_video_enabled) return;
     
-    refresh_raw_settings();
+    refresh_raw_settings(0);
     
     if (!RAW_IS_IDLE)
     {
@@ -396,7 +396,7 @@ static MENU_UPDATE_FUNC(resolution_update)
         return;
     }
     
-    refresh_raw_settings();
+    refresh_raw_settings(1);
 
     int selected_x = resolution_presets_x[resolution_index_x];
 
@@ -423,7 +423,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
         return;
     }
     
-    refresh_raw_settings();
+    refresh_raw_settings(0);
 
     int num = aspect_ratio_presets_num[aspect_ratio_index];
     int den = aspect_ratio_presets_den[aspect_ratio_index];
@@ -688,7 +688,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     /* update settings when changing video modes (outside menu) */
     if (RAW_IS_IDLE && !gui_menu_shown())
     {
-        refresh_raw_settings();
+        refresh_raw_settings(0);
     }
 
     return 0;
