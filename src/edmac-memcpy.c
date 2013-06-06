@@ -12,7 +12,7 @@ static struct edmac_info src_edmac_info;
 static struct edmac_info dst_edmac_info;
 
 /* pick some free (check using debug menu) EDMAC channels write: 0x00-0x06, 0x10-0x16, 0x20-0x21. read: 0x08-0x0D, 0x18-0x1D,0x28-0x2B */
-#if defined(CONFIG_5D2)
+#if defined(CONFIG_5D2) || defined(CONFIG_50D)
 uint32_t edmac_read_chan = 0x19;
 uint32_t edmac_write_chan = 0x3;
 #elif defined(CONFIG_650D) || defined(CONFIG_EOSM)
