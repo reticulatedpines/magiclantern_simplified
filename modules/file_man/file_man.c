@@ -444,6 +444,7 @@ MFILE_SEM (
         strcpy(fname,p+1);
         
         snprintf(dstfile,MAX_PATH_LEN,"%s%s",tmpdst,fname);
+        if(streq(mf->name,dstfile)) continue; // src and dst are idential.skip this transaction.
         
         snprintf(gStatusMsg, sizeof(gStatusMsg), "Copying %s to %s...", mf->name, tmpdst);
         int err = ML_FIO_CopyFile(mf->name,dstfile);
@@ -480,6 +481,7 @@ MFILE_SEM (
         strcpy(fname,p+1);
         
         snprintf(dstfile,MAX_PATH_LEN,"%s%s",tmpdst,fname);
+        if(streq(mf->name,dstfile)) continue; // src and dst are idential.skip this transaction.
         
         snprintf(gStatusMsg, sizeof(gStatusMsg), "Moving %s to %s...", mf->name, tmpdst);
         int err = ML_FIO_MoveFile(mf->name,dstfile);
@@ -1169,6 +1171,11 @@ unsigned int fileman_init()
 
 unsigned int fileman_deinit()
 {
+    //experimental
+    clear_file_menu();
+    mfile_clean_all();
+    FreeMemory(mfile_root);
+    menu_remove("Debug", fileman_menu, COUNT(fileman_menu));
     return 0;
 }
 
