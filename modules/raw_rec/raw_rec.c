@@ -48,8 +48,8 @@ static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1
 //~ static CONFIG_INT("raw.write.spd", measured_write_speed, 0);
 
 /* no config options yet */
-static int resolution_index_x = 9;
-static int aspect_ratio_index = 8;
+static int resolution_index_x = 12;
+static int aspect_ratio_index = 10;
 static int measured_write_speed = 0;
 static int stop_on_buffer_overflow = 1;
 static int sound_rec = 2;
@@ -1495,8 +1495,14 @@ static unsigned int raw_rec_should_preview(unsigned int ctx)
 
 static unsigned int raw_rec_update_preview(unsigned int ctx)
 {
+    static int preview_dirty = 0;
+    
     if (!raw_rec_should_preview(0))
+    {
+        if (preview_dirty)
+            raw_set_dirty();
         return 0;
+    }
 
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
 
