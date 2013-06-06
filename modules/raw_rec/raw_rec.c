@@ -65,6 +65,8 @@ static int preview_mode = 0;
 #define PREVIEW_ML (preview_mode == 2)
 #define PREVIEW_HACKED (preview_mode == 3)
 
+static int memory_hack = 0;
+
 static int res_x = 0;
 static int res_y = 0;
 static int max_res_x = 0;
@@ -504,7 +506,13 @@ static int setup_buffers()
 {
     /* allocate the entire memory, but only use large chunks */
     /* yes, this may be a bit wasteful, but at least it works */
+    
+    if (memory_hack) { PauseLiveView(); msleep(200); }
+    
     mem_suite = shoot_malloc_suite(0);
+    
+    if (memory_hack) { ResumeLiveView(); msleep(500); }
+    
     if (!mem_suite) return 0;
     
     /* allocate memory for double buffering */
@@ -1371,6 +1379,12 @@ static struct menu_entry raw_video_menu[] =
                          "Canon: plain old LiveView. Framing is not always correct.\n"
                          "ML Grayscale: looks ugly, but at least framing is correct.\n"
                          "HaCKeD: try to squeeze a little speed by killing LiveView.\n"
+            },
+            {
+                .name = "Memory hack",
+                .priv = &memory_hack,
+                .max = 1,
+                .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
             },
             {
                 .name = "Playback",
