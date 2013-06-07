@@ -1001,8 +1001,13 @@ void center_lv_afframe_do()
             if (raw_update_params())
             {
                 /* find out where we are inside the raw frame */
+                #ifdef CONFIG_DIGIC_V
                 uint32_t pos1 = shamem_read(0xc0f09050);
                 uint32_t pos2 = shamem_read(0xc0f09054);
+                #else
+                uint32_t pos1 = shamem_read(0xc0f0851C);
+                uint32_t pos2 = shamem_read(0xc0f08520);
+                #endif
                 int x1 = pos1 & 0xFFFF;
                 int x2 = pos2 & 0xFFFF;
                 int y1 = pos1 >> 16;
@@ -1058,10 +1063,12 @@ void center_lv_afframe_do()
                 pos_y[1] = focus_box_raw_x5_y;
                 
                 /* draw a cropmark showing the raw zoom area */
-                int xl = pos_x[1] * vram_lv.width / W;
-                int yl = pos_y[1] * vram_lv.height / H;
-                int wl = focus_box_raw_x5_w * vram_lv.width / W;
-                int hl = focus_box_raw_x5_h * vram_lv.height / H;
+                int extent_x = BM2LV_DX(os.x_ex);
+                int extent_y = BM2LV_DY(os.y_ex);
+                int xl = pos_x[1] * extent_x / W;
+                int yl = pos_y[1] * extent_y / H;
+                int wl = focus_box_raw_x5_w * extent_x / W;
+                int hl = focus_box_raw_x5_h * extent_y / H;
                 int x = LV2BM_X(xl);
                 int y = LV2BM_Y(yl);
                 int w = LV2BM_DX(wl);
