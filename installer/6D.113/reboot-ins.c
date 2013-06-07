@@ -27,7 +27,7 @@
 #include "arm-mcr.h"
 
 #define SIG_LEN 0x10000
-#define FIRMWARE_SIGNATURE 0x6D677512 // from FF0C0000
+#define FIRMWARE_SIGNATURE 0x6B6A9C6F // from FF0C0000
 
 asm(
     ".text\n"

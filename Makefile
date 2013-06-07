@@ -62,6 +62,9 @@ EOSM:
 650D:
 	$(MAKE) -C $(PLATFORM_PATH)/650D.101
 
+700D:
+	$(MAKE) -C $(PLATFORM_PATH)/700D.111
+
 6D:
 	$(MAKE) -C $(PLATFORM_PATH)/6D.113
 
@@ -89,6 +92,7 @@ fir:
 	cd installer/1100D.105/; $(MAKE) clean
 	cd installer/EOSM.106/; $(MAKE) clean
 	cd installer/650D.101/; $(MAKE) clean
+	cd installer/700D.111/; $(MAKE) clean
 	cd installer/6D.113/; $(MAKE) clean
 	$(MAKE) installer -C installer/550D.109/
 	$(MAKE) installer -C installer/60D.111/
@@ -99,6 +103,7 @@ fir:
 	$(MAKE) installer -C installer/1100D.105/
 	$(MAKE) installer -C installer/EOSM.106/
 	$(MAKE) installer -C installer/650D.101/
+	$(MAKE) installer -C installer/700D.111/
 	$(MAKE) installer -C installer/6D.113/
 
 install_fir: fir
@@ -111,6 +116,7 @@ install_fir: fir
 	cp installer/1100D.105/$(UPDATE_NAME) $(CF_CARD)
 	cp installer/EOSM.106/$(UPDATE_NAME) $(CF_CARD)
 	cp installer/650D.101/$(UPDATE_NAME) $(CF_CARD)
+	cp installer/700D.111/$(UPDATE_NAME) $(CF_CARD)
 	cp installer/6D.113/$(UPDATE_NAME) $(CF_CARD)
 
 clean:
@@ -140,6 +146,7 @@ clean:
 	cd $(PLATFORM_PATH)/40D.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/EOSM.106/; $(MAKE) clean	
 	cd $(PLATFORM_PATH)/650D.101/; $(MAKE) clean
+	cd $(PLATFORM_PATH)/700D.111/; $(MAKE) clean
 	cd $(PLATFORM_PATH)/6D.113/; $(MAKE) clean	
 	$(MAKE) -C $(PLUGINS_DIR) clean
 	$(RM) -rf  $(BINARIES_PATH)

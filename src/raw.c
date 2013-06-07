@@ -17,6 +17,7 @@
 #endif
 
 static int shave_right = 0;
+static int dirty = 0;
 
 /*********************** Camera-specific constants ****************************/
 
@@ -33,7 +34,7 @@ static int shave_right = 0;
 #define RAW_LV_EDMAC 0xC0F26008
 #endif
 
-#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_650D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_DIGIC_V) || defined(CONFIG_600D) || defined(CONFIG_60D)
 /* probably all new cameras use this address */
 #define RAW_LV_EDMAC 0xC0F26208
 #endif
@@ -47,7 +48,7 @@ static int shave_right = 0;
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_50D)
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_600D) || (defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME))
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
@@ -192,7 +193,7 @@ void raw_buffer_intercept_from_stateobj()
     -1774, 10000,     3178, 10000,    7005, 10000
 #endif
 	
-#if defined(CONFIG_650D) || defined(CONFIG_EOSM) //Same sensor??
+#if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D) //Same sensor??. TODO: Check 700D/100D
     //~ { "Canon EOS 650D", 0, 0x354d,
     //~ { "Canon EOS M", 0, 0,
     //~ { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
@@ -323,7 +324,7 @@ int raw_update_params()
         skip_bottom = 0;
         #endif
 
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
         skip_top    = 28;
         skip_left   = 74;
         skip_right  = 0;
@@ -438,7 +439,8 @@ int raw_update_params()
         skip_top = 50;
         #endif
 
-/*        #if defined(CONFIG_50D) NEED Raw dump to get correct values
+/*      
+        #if defined(CONFIG_50D) // NEED Raw dump to get correct values
         width = 5344;
         height = 3516;
         skip_left = 142;
@@ -446,7 +448,8 @@ int raw_update_params()
         skip_top = 50;
         #endif 
 */
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
         width = 5280;
         height = 3528;
         skip_left = 72;
@@ -464,12 +467,13 @@ int raw_update_params()
 
 /*********************** Portable code ****************************************/
 
-    int dirty = 0;
-    if (width != raw_info.width || height != raw_info.height)
-    {
-        raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
+    static int prev_shave = 0;
+    if (width != raw_info.width || height != raw_info.height || shave_right != prev_shave)
         dirty = 1;
-    }
+    prev_shave = shave_right;
+    
+    if (dirty)
+        raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
 
     raw_info.white_level = WHITE_LEVEL;
 
@@ -1007,4 +1011,9 @@ void raw_force_aspect_ratio_1to1()
         int skip_left = preview_rect_x;
         lv2raw.tx = skip_left - LV2RAW_DX(os.x0) - LV2RAW_DX(offset);
     }
+}
+
+void raw_set_dirty()
+{
+    dirty = 1;
 }

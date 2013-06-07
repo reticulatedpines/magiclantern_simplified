@@ -102,6 +102,14 @@
 #define SSS_STATE (*(struct state_object **)0x257B8)
 #endif
 
+#ifdef CONFIG_700D
+#define DISPLAY_STATE DISPLAY_STATEOBJ
+    #define INPUT_SET_IMAGE_VRAM_PARAMETER_MUTE_FLIP_CBR 23
+    #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 24
+    #define EVF_STATE (*(struct state_object **)0x25B00)
+    #define SSS_STATE (*(struct state_object **)0x257B8)
+#endif
+
 #ifdef CONFIG_1100D
 #define DISPLAY_STATE DISPLAY_STATEOBJ
 #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
@@ -213,7 +221,7 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
 		//600D Goes 3 - 4 - 5 5 and 3 ever 1/2 frame
         lv_vsync_signal();
 	}
-#elif defined(CONFIG_650D)
+#elif defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D) //TODO: Check 700D and 100D
     if (self == DISPLAY_STATE && (input == INPUT_SET_IMAGE_VRAM_PARAMETER_MUTE_FLIP_CBR)) {
         lv_vsync_signal();
     }
@@ -339,7 +347,7 @@ static int stateobj_sss_spy(struct state_object * self, int x, int input, int z,
         raw_buffer_intercept_from_stateobj();
     #endif
 
-    #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+    #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONIFG_100D) //TODO: Check 700D and 100D
     if (old_state == 10 && input == 11 && new_state == 2) // delayCompleteRawtoSraw
         raw_buffer_intercept_from_stateobj();
     #endif

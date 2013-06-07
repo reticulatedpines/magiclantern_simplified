@@ -225,7 +225,7 @@ static void detect_vertical_stripes_coeffs()
     for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.frame_size; row += raw_info.pitch / sizeof(struct raw_pixblock))
     {
         struct raw_pixblock * p;
-        for (p = row; (void*)p < (void*)row + raw_info.pitch;)
+        for (p = row; (void*)p < (void*)row + raw_info.pitch - sizeof(struct raw_pixblock);)
         {
             int pa = PA - raw_info.black_level;
             int pb = PB - raw_info.black_level;

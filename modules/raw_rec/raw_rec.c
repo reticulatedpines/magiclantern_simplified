@@ -48,8 +48,8 @@ static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1
 //~ static CONFIG_INT("raw.write.spd", measured_write_speed, 0);
 
 /* no config options yet */
-static int resolution_index_x = 9;
-static int aspect_ratio_index = 8;
+static int resolution_index_x = 12;
+static int aspect_ratio_index = 10;
 static int measured_write_speed = 0;
 static int stop_on_buffer_overflow = 1;
 static int sound_rec = 2;
@@ -64,6 +64,8 @@ static int preview_mode = 0;
 #define PREVIEW_CANON (preview_mode == 1)
 #define PREVIEW_ML (preview_mode == 2)
 #define PREVIEW_HACKED (preview_mode == 3)
+
+static int memory_hack = 0;
 
 static int res_x = 0;
 static int res_y = 0;
@@ -504,7 +506,13 @@ static int setup_buffers()
 {
     /* allocate the entire memory, but only use large chunks */
     /* yes, this may be a bit wasteful, but at least it works */
+    
+    if (memory_hack) { PauseLiveView(); msleep(200); }
+    
     mem_suite = shoot_malloc_suite(0);
+    
+    if (memory_hack) { ResumeLiveView(); msleep(500); }
+    
     if (!mem_suite) return 0;
     
     /* allocate memory for double buffering */
@@ -1373,6 +1381,12 @@ static struct menu_entry raw_video_menu[] =
                          "HaCKeD: try to squeeze a little speed by killing LiveView.\n"
             },
             {
+                .name = "Memory hack",
+                .priv = &memory_hack,
+                .max = 1,
+                .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
+            },
+            {
                 .name = "Playback",
                 .select = raw_playback_start,
                 .update = raw_playback_update,
@@ -1481,8 +1495,14 @@ static unsigned int raw_rec_should_preview(unsigned int ctx)
 
 static unsigned int raw_rec_update_preview(unsigned int ctx)
 {
+    static int preview_dirty = 0;
+    
     if (!raw_rec_should_preview(0))
+    {
+        if (preview_dirty)
+            raw_set_dirty();
         return 0;
+    }
 
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
 
