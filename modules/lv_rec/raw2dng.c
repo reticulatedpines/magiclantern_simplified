@@ -143,7 +143,7 @@ int raw_get_pixel(int x, int y) {
  */
 
 #define FIXP_ONE 65536
-#define FIXP_RANGE 16384
+#define FIXP_RANGE 65536
 
 static int stripes_coeffs[8] = {0};
 static int stripes_correction_needed = 0;
@@ -181,8 +181,8 @@ static int stripes_correction_needed = 0;
 #define SET_PH(x) { int v = (x); p->h = v; }
 
 #define RAW_MUL(p, x) MIN((((int)(p) - raw_info.black_level) * (int)(x) / FIXP_ONE) + raw_info.black_level, 16383)
-#define F2H(x) COERCE(x - (FIXP_ONE - FIXP_RANGE/2), 0, FIXP_RANGE-1)
-#define H2F(x) ((x) + (FIXP_ONE - FIXP_RANGE/2))
+#define F2H(ev) COERCE((int)(FIXP_RANGE/2 + ev * FIXP_RANGE/2), 0, FIXP_RANGE-1)
+#define H2F(x) ((double)((x) - FIXP_RANGE/2) / (FIXP_RANGE/2))
 
 static void add_pixel(int hist[8][FIXP_RANGE], int num[8], int offset, int pa, int pb)
 {
@@ -207,14 +207,15 @@ static void add_pixel(int hist[8][FIXP_RANGE], int num[8], int offset, int pa, i
      */
     double af = a + (rand() % 1024) / 1024.0 - 0.5;
     double bf = b + (rand() % 1024) / 1024.0 - 0.5;
-    int factor = af * FIXP_ONE / bf;
+    double factor = af / bf;
+    double ev = log2(factor);
     
     /**
      * add to histogram (for computing the median)
-     * use a strong weight towards highlights, because that's where the banding is worse
+     * use a slight weight towards highlights, because that's where the banding is worse
      */
-    int weight = a;
-    hist[offset][F2H(factor)] += weight;
+    int weight = log(a);
+    hist[offset][F2H(ev)] += weight;
     num[offset] += weight;
 }
 
@@ -297,9 +298,15 @@ static void detect_vertical_stripes_coeffs()
             add_pixel(hist, num, 7, pb2, ph);
         }
     }
-    
-    /* compute the median correction factor (this will reject outliers) */
+
     int j,k;
+    
+    int max[8] = {0};
+    for (j = 0; j < 8; j++)
+        for (k = 1; k < FIXP_RANGE-1; k++)
+            max[j] = MAX(max[j], hist[j][k]);
+
+    /* compute the median correction factor (this will reject outliers) */
     for (j = 0; j < 8; j++)
     {
         if (num[j] < raw_info.frame_size / 128) continue;
@@ -309,7 +316,7 @@ static void detect_vertical_stripes_coeffs()
             t += hist[j][k];
             if (t >= num[j]/2)
             {
-                int c = H2F(k);
+                int c = pow(2, H2F(k)) * FIXP_ONE;
                 stripes_coeffs[j] = c;
                 break;
             }
@@ -319,7 +326,7 @@ static void detect_vertical_stripes_coeffs()
 #if 0
     /* debug graphs */
     FILE* f = fopen("raw2dng.m", "w");
-    fprintf(f, "h = {}; x = {};\n");
+    fprintf(f, "h = {}; x = {}; c = \"rgbcmy\"; \n");
     for (j = 2; j < 8; j++)
     {
         fprintf(f, "h{end+1} = [");
@@ -332,11 +339,12 @@ static void detect_vertical_stripes_coeffs()
         fprintf(f, "x{end+1} = [");
         for (k = 1; k < FIXP_RANGE-1; k++)
         {
-            fprintf(f, "%d ", H2F(k) );
+            fprintf(f, "%f ", H2F(k) );
         }
-        fprintf(f, "] / %d;\n", FIXP_ONE);
+        fprintf(f, "];\n");
+        fprintf(f, "plot(log2(%d/%d) + [0 0], [0 %d], ['*-' c(%d)]); hold on;\n", stripes_coeffs[j], FIXP_ONE, max[j], j-1);
     }
-    fprintf(f, "c = \"rgbcmy\"; for i = 1:6, plot(x{i}, h{i}, c(i)); hold on; end;");
+    fprintf(f, "for i = 1:6, plot(x{i}, h{i}, c(i)); hold on; end;");
     fclose(f);
     system("octave --persist raw2dng.m");
 #endif
