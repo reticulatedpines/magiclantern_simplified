@@ -3844,9 +3844,9 @@ int auto_ettr_get_correction()
     if (correction <= target + 0.1)
     {
         /* we don't know how much to go back in order to fix the overexposure */
-        /* so we'll use a heuristic: for each 10% of blown out image, go back 1/2EV */
+        /* so we'll use a heuristic: for each 10% of blown out image, go back 1EV */
         int overexposed = raw_hist_get_overexposure_percentage(gray_proj);
-        correction -= overexposed / 20.0;
+        correction -= overexposed / 10.0;
         auto_ettr_overexposure_warning = 1;
     }
     else auto_ettr_overexposure_warning = 0;
@@ -3887,7 +3887,7 @@ static void auto_ettr_work(int corr)
     }
     else
     {
-        if (lv && prev_tv != tv)
+        if (lv && prev_tv != tv && auto_ettr_trigger == 0)
         {
             prev_tv = tv;
             return; /* small pause when you change exposure manually */
