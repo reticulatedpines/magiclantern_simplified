@@ -895,6 +895,58 @@ void center_lv_afframe()
     center_lv_aff = 1;
 }
 
+#ifdef CONFIG_RAW_LIVEVIEW
+int focus_box_get_raw_crop_offset(int* delta_x, int* delta_y)
+{
+    /* are we in x5/x10 zoom mode? */
+    if (lv && lv_dispsize > 1)
+    {
+        /* find out where we are inside the raw frame */
+        #ifdef CONFIG_DIGIC_V
+        uint32_t pos1 = shamem_read(0xc0f09050);
+        uint32_t pos2 = shamem_read(0xc0f09054);
+        #else
+        uint32_t pos1 = shamem_read(0xc0f0851C);
+        uint32_t pos2 = shamem_read(0xc0f08520);
+        #endif
+        int x1 = pos1 & 0xFFFF;
+        int x2 = pos2 & 0xFFFF;
+        int y1 = pos1 >> 16;
+        int y2 = pos2 >> 16;
+        
+        /* does it look alright? */
+        if (x1 && x2 && y1 && y2 &&
+            x2 > x1 + 100 && y2 > y1 + 100)
+        {
+            int w = afframe[4];
+            int h = afframe[5];
+
+            /* convert everything in focus box coords (pixels) */
+            int scale_x = w * 100 / (x2-x1);
+            int scale_y = h * 100 / (y2-y1);
+            
+            /* where we are inside the raw frame, in focus box coords */
+            int here_x = (x1+x2) * scale_x / 200;
+            int here_y = (y1+y2) * scale_y / 200;
+            
+            /* we want to be in the center */
+            int dest_x = raw_info.active_area.x1 + MAX(raw_info.jpeg.width, w + 350) / 2;
+            int dest_y = raw_info.active_area.y1 + MAX(raw_info.jpeg.height, h + 350) / 2;
+            
+            /* how far we are from there? */
+            *delta_x = dest_x - here_x;
+            *delta_y = dest_y - here_y;
+            return 1;
+        }
+    }
+
+    /* phuck! */
+    *delta_x = 0;
+    *delta_y = 0;
+    return 0;
+}
+#endif
+
 void center_lv_afframe_do()
 {
 #ifdef CONFIG_LIVEVIEW
@@ -1000,35 +1052,9 @@ void center_lv_afframe_do()
             raw_lv_request();
             if (raw_update_params())
             {
-                /* find out where we are inside the raw frame */
-                #ifdef CONFIG_DIGIC_V
-                uint32_t pos1 = shamem_read(0xc0f09050);
-                uint32_t pos2 = shamem_read(0xc0f09054);
-                #else
-                uint32_t pos1 = shamem_read(0xc0f0851C);
-                uint32_t pos2 = shamem_read(0xc0f08520);
-                #endif
-                int x1 = pos1 & 0xFFFF;
-                int x2 = pos2 & 0xFFFF;
-                int y1 = pos1 >> 16;
-                int y2 = pos2 >> 16;
-                
-                /* does it look alright? */
-                if (x1 && x2 && y1 && y2 &&
-                    x2 > x1 + 100 && y2 > y1 + 100)
+                int delta_x, delta_y;
+                if (focus_box_get_raw_crop_offset(&delta_x, &delta_y))
                 {
-                    /* convert everything in focus box coords (pixels) */
-                    int scale_x = w * 100 / (x2-x1);
-                    int scale_y = h * 100 / (y2-y1);
-                    
-                    /* where we are inside the raw frame, in focus box coords */
-                    int here_x = (x1+x2) * scale_x / 200;
-                    int here_y = (y1+y2) * scale_y / 200;
-                    
-                    /* we want to be in the center */
-                    int dest_x = raw_info.active_area.x1 + MAX(raw_info.jpeg.width, w + 350) / 2;
-                    int dest_y = raw_info.active_area.y1 + MAX(raw_info.jpeg.height, h + 350) / 2;
-                    
                     /* focus box is here */
                     int Xc = Xtl + w/2;
                     int Yc = Ytl + h/2;
@@ -1036,8 +1062,8 @@ void center_lv_afframe_do()
                     //~ NotifyBox(2000, "aff(%d,%d)\nhere (%d,%d)\ndest (%d,%d)\ntotal (%d,%d)", Xc, Yc, here_x, here_y, dest_x, dest_y, W, H);
                     
                     /* and we'll move it here */
-                    pos_x[1] = Xc + dest_x - here_x;
-                    pos_y[1] = Yc + dest_y - here_y;
+                    pos_x[1] = Xc + delta_x;
+                    pos_y[1] = Yc + delta_y;
                     
                     /* disable centering in x5 mode, since we will lose the framing */
                     pos_x[0] = pos_x[1];
@@ -1049,7 +1075,7 @@ void center_lv_afframe_do()
                     focus_box_raw_x5_w = raw_info.jpeg.width;
                     focus_box_raw_x5_h = raw_info.jpeg.height;
                 }
-                else NotifyBox(2000, "Boo... %d %d %d %d ", x1, x2, y1, y2);
+                else NotifyBox(2000, "Boo...");
             }
             else NotifyBox(2000, "Raw err");
             raw_lv_release();
