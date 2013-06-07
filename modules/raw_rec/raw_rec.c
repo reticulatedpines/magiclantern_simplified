@@ -145,6 +145,17 @@ static void update_cropping_offsets()
     {
         sx = raw_info.active_area.x1;
     }
+    else if (FRAMING_CENTER && lv_dispsize > 1)
+    {
+        /* try to center the recording window on the YUV frame */
+        int delta_x, delta_y;
+        int ok = focus_box_get_raw_crop_offset(&delta_x, &delta_y);
+        if (ok)
+        {
+            sx = COERCE(sx - delta_x, raw_info.active_area.x1, raw_info.active_area.x2 - res_x);
+            sy = COERCE(sy - delta_y, raw_info.active_area.y1, raw_info.active_area.y2 - res_y);
+        }
+    }
 
     skip_x = sx;
     skip_y = sy;
@@ -625,6 +636,8 @@ static unsigned int raw_rec_should_preview(unsigned int ctx);
 
 static void cropmark_draw()
 {
+    if (lv_dispsize > 1) return;
+    
     int x = RAW2BM_X(skip_x);
     int y = RAW2BM_Y(skip_y);
     int w = RAW2BM_DX(res_x);
@@ -1476,9 +1489,11 @@ static unsigned int raw_rec_should_preview(unsigned int ctx)
 {
     if (!raw_video_enabled) return 0;
     
+    /* keep x10 mode unaltered, for focusing */
+    if (lv_dispsize == 10) return 0;
+    
     if (PREVIEW_AUTO)
         /* enable preview in x5 mode, since framing doesn't match */
-        /* keep x10 mode unaltered, for focusing */
         return lv_dispsize == 5;
 
     else if (PREVIEW_CANON)

@@ -9,6 +9,8 @@
 //#define FEATURE_SILENT_PIC_RAW  ---> Set Burst or single not both! single gives undefined reference to `silent_pic_raw_vsync'
 //~ #define FEATURE_LVAE_EXPO_LOCK // unreliable, and we have full manual controls now
 
+#define FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
+
 // no audio at all
 #undef FEATURE_AUDIO_METERS
 #undef FEATURE_BEEP
