@@ -50,7 +50,7 @@ char gdb_callstack[256];
 breakpoint_t gdb_breakpoints[GDB_BKPT_COUNT];
 uint32_t gdb_exceptions_handled = 0;
 uint32_t gdb_context_buffer[GDB_STACK_SIZE + 18 /* context */];
-void (*gdb_orig_undef_handler)(void) = 0;
+void (*gdb_orig_abort_handler)(void) = 0;
 
 
 void gdb_main_task(void);
@@ -77,8 +77,8 @@ void (*orig_post_isr_hook) (uint32_t) = 0;
 #endif
 
 
-extern uint32_t gdb_undef_stack;
-void gdb_undef_handler(void);
+extern uint32_t gdb_bkpt_stack;
+void gdb_abort_handler(void);
 void gdb_word2hexword(char *s, uint32_t val);
 
 #if defined(CONFIG_GDBSTUB)
@@ -109,11 +109,11 @@ asm(
 #endif
     
 asm(
-    ".globl gdb_undef_handler\n"
-    "gdb_undef_handler:\n"
+    ".globl gdb_abort_handler\n"
+    "gdb_abort_handler:\n"
 
     /* keep space for CPSR */
-    "LDR     SP, gdb_undef_stack\n"
+    "LDR     SP, gdb_bkpt_stack\n"
     "SUB     SP, #0x04\n"
 
     /* then store PC */
@@ -174,7 +174,7 @@ asm(
     /* jump back */
     "MOVS    PC, LR\n"
 
-    "gdb_undef_stack:\n"
+    "gdb_bkpt_stack:\n"
     ".word 0x00000000\n"
 );
 
@@ -472,14 +472,44 @@ void gdb_delete_bkpt(breakpoint_t *bkpt)
 /* remove breakpoint instruction (unarm) and set flags accordingly */
 void gdb_unarm_bkpt(breakpoint_t *bkpt)
 {
-    cache_fake(bkpt->address, MEM(bkpt->address), TYPE_ICACHE);
+    /* don't unarm this breakpoint twice */
+    if(!(bkpt->flags & GDB_BKPT_FLAG_ARMED))
+    {
+        return;
+    }
+    
+    /* decide between cached and uncached regions */
+    if(bkpt->isCached)
+    {
+        cache_fake(bkpt->address, bkpt->origOpcode, TYPE_ICACHE);
+    }
+    else
+    {
+        MEM(bkpt->address) = bkpt->origOpcode;
+        bkpt->origOpcode = 0x00000000;
+    }
     bkpt->flags &= ~GDB_BKPT_FLAG_ARMED;
 }
 
 /* place breakpoint instruction (unarm) and set flags accordingly */
 void gdb_arm_bkpt(breakpoint_t *bkpt)
 {
-    cache_fake(bkpt->address, GDB_BKPT_OPCODE, TYPE_ICACHE);
+    /* don't arm this breakpoint twice */
+    if(bkpt->flags & GDB_BKPT_FLAG_ARMED)
+    {
+        return;
+    }
+    
+    /* decide between cached and uncached regions */
+    if(bkpt->isCached)
+    {
+        cache_fake(bkpt->address, GDB_BKPT_OPCODE, TYPE_ICACHE);
+    }
+    else
+    {
+        bkpt->origOpcode = MEM(bkpt->address);
+        MEM(bkpt->address) = GDB_BKPT_OPCODE;
+    }
     bkpt->flags |= GDB_BKPT_FLAG_ARMED;
 }
 
@@ -615,12 +645,14 @@ breakpoint_t * gdb_add_bkpt(uint32_t address, uint32_t flags)
             gdb_breakpoints[pos].id = pos;
             gdb_breakpoints[pos].linkId = GDB_LINK_NONE;
             gdb_breakpoints[pos].address = address;
+            gdb_breakpoints[pos].isCached = 1;//(address & 0xF0000000) != 0x40000000;
             gdb_breakpoints[pos].flags = GDB_BKPT_FLAG_ENABLED;
             gdb_breakpoints[pos].hitcount = 0;
             gdb_breakpoints[pos].taskStruct = NULL;
             gdb_breakpoints[pos].taskState = 0;
             gdb_breakpoints[pos].unStall = 0;
             gdb_breakpoints[pos].callback = 0;
+            gdb_breakpoints[pos].origOpcode = MEM(address);
 
             if(flags & GDB_BKPT_FLAG_WATCHPOINT)
             {
@@ -641,7 +673,7 @@ breakpoint_t * gdb_add_bkpt(uint32_t address, uint32_t flags)
 
 
 
-/* this is the C code of our undefined instruction handler. it may alter registers given in ctx
+/* this is the C code of our abort handler. it may alter registers given in ctx
     context save format:
     [R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 SP LR PC CPSR]
 */
@@ -709,18 +741,24 @@ void gdb_exception_handler(uint32_t *ctx)
 #endif
     {
         breakpoint_t *bkpt = gdb_find_bkpt(ctx[15]);
-
+        
         if(!bkpt)
         {
             /* uhmm. we did not place that breakpoint there - for now just skip the instruction */
             ctx[15] += 4;
             /* well, this would dump some wrong information, but should kill the offending task. some alternative */
-            //gdb_orig_undef_handler();
+            //gdb_orig_abort_handler();
         }
         else if(bkpt->flags & GDB_BKPT_FLAG_WATCHPOINT)
         {
+            /* ouch we already were in abort mode - what now? */
+            if((ctx[16] & 0x1F) == 0x17)
+            {
+                gdb_unarm_bkpt(bkpt);
+                return;
+            }
+            
             bkpt->hitcount++;
-
             gdb_exceptions_handled += 0x0001;
 
             /* this is a watchpoint, backup context */
@@ -811,27 +849,27 @@ uint32_t gdb_install_hooks()
 
 uint32_t gdb_install_handler()
 {
-    uint32_t undef_handler_addr = 0;
-    uint32_t undef_handler_opcode = *(uint32_t*)0x04;
+    uint32_t abort_handler_addr = 0;
+    uint32_t abort_handler_opcode = *(uint32_t*)0x0C;
     
-    /* make sure undef handler address is loaded into PC using PC relative LDR */
-    if((undef_handler_opcode & 0xFFFFF000) != 0xE59FF000)
+    /* make sure abort handler address is loaded into PC using PC relative LDR */
+    if((abort_handler_opcode & 0xFFFFF000) != 0xE59FF000)
     {
         return 0;
     }
     
     /* extract offset from LDR */
-    undef_handler_addr = (undef_handler_opcode & 0x00000FFF) + 0x04 + 0x08;
+    abort_handler_addr = (abort_handler_opcode & 0x00000FFF) + 0x0C + 0x08;
     
     /* first install stack etc */
-    gdb_undef_stack = (uint32_t)&gdb_context_buffer[GDB_STACK_SIZE + 17];
+    gdb_bkpt_stack = (uint32_t)&gdb_context_buffer[GDB_STACK_SIZE + 17];
     gdb_context_buffer[17] = 0xDEADBEEF;
 
     /* then patch handler */
-    gdb_orig_undef_handler = (void*)MEM(undef_handler_addr);
-    MEM(undef_handler_addr) = (uint32_t)&gdb_undef_handler;
+    gdb_orig_abort_handler = (void*)MEM(abort_handler_addr);
+    MEM(abort_handler_addr) = (uint32_t)&gdb_abort_handler;
     
-    return 1;
+    return MEM(abort_handler_addr) == (uint32_t)&gdb_abort_handler;
 }
 
 uint32_t gdb_setup()
