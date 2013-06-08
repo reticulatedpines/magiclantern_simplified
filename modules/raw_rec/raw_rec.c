@@ -998,7 +998,9 @@ static void raw_video_rec_task()
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
 
-    int t0 = 0;
+    int writing_time = 0;
+    int idle_time = 0;
+    int last_write_timestamp = 0;
     
     /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
     recording = -1;
@@ -1012,10 +1014,15 @@ static void raw_video_rec_task()
         /* do we have any buffers completely filled with data, that we can save? */
         if (saving_buffer_index != capturing_buffer_index)
         {
-            if (!t0) t0 = get_ms_clock_value();
             void* ptr = buffers[saving_buffer_index].ptr;
             int size_used = buffers[saving_buffer_index].used;
+
+            int t0 = get_ms_clock_value();
+            if (!last_write_timestamp) last_write_timestamp = t0;
+            idle_time += t0 - last_write_timestamp;
             int r = FIO_WriteFile(f, ptr, size_used);
+            last_write_timestamp = get_ms_clock_value();
+            writing_time += last_write_timestamp - t0;
 
             if (r != size_used) /* 4GB limit or card full? */
             {
@@ -1080,17 +1087,23 @@ static void raw_video_rec_task()
         }
 
         /* how fast are we writing? does this speed match our benchmarks? */
-        if (t0)
+        if (writing_time)
         {
-            int t1 = get_ms_clock_value();
-            int speed = written * 10 / (t1 - t0) * 1000 / 1024; // MB/s x10
+            int speed = written * 10 / writing_time * 1000 / 1024; // MB/s x10
+            int idle_percent = idle_time * 100 / (writing_time + idle_time);
             measured_write_speed = speed;
-            if (liveview_display_idle()) bmp_printf( FONT_MED, 30, 90, 
-                "%s: %d MB, %d.%d MB/s ",
-                chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
-                written / 1024,
-                speed/10, speed%10
-            );
+            if (liveview_display_idle())
+            {
+                char msg[50];
+                snprintf(msg, sizeof(msg),
+                    "%s: %d MB, %d.%d MB/s",
+                    chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
+                    written / 1024,
+                    speed/10, speed%10
+                );
+                if (idle_time) STR_APPEND(msg, ", %d%% idle ", idle_percent);
+                bmp_printf( FONT_MED, 30, 90, "%s", msg);
+            }
         }
 
         /* error handling */
