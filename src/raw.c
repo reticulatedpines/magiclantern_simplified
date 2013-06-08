@@ -318,8 +318,8 @@ int raw_update_params()
         #endif
 
         #ifdef CONFIG_50D
-		skip_top    = zoom ? 0 : 26;
-		skip_left   = 74;
+        skip_top    =  26;
+        skip_left   =  zoom ? 64: 74;
         skip_right  = 0;
         skip_bottom = 0;
         #endif
