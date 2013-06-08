@@ -12,10 +12,10 @@ static struct edmac_info src_edmac_info;
 static struct edmac_info dst_edmac_info;
 
 /* pick some free (check using debug menu) EDMAC channels write: 0x00-0x06, 0x10-0x16, 0x20-0x21. read: 0x08-0x0D, 0x18-0x1D,0x28-0x2B */
-#if defined(CONFIG_5D2)
+#if defined(CONFIG_5D2) || defined(CONFIG_50D)
 uint32_t edmac_read_chan = 0x19;
 uint32_t edmac_write_chan = 0x3;
-#elif defined(CONFIG_650D) || defined(CONFIG_EOSM)
+#elif defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
 uint32_t edmac_read_chan = 0x19;
 uint32_t edmac_write_chan = 0x13;
 #else
@@ -48,7 +48,7 @@ void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int sr
     take_semaphore(edmac_memcpy_sem, 0);
     
     /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
-    uint32_t dmaFlags = 0x60000000;
+    uint32_t dmaFlags = 0x20001000;
 
     /* create a memory suite from a already existing (continuous) memory block with given size. */
     uint32_t src_adjusted = ((uint32_t)src & 0x1FFFFFFF) + src_x + src_y * src_width;

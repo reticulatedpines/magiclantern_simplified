@@ -1,3 +1,7 @@
+/*
+ * Just a copy of the 650D stuff. Indented = WRONG
+ */
+
 #include "all_features.h"
 
 //~ #define FEATURE_LV_3RD_PARTY_FLASH // requires props

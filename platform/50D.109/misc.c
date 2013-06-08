@@ -1,4 +1,4 @@
-// misc functions specific to 550D/109
+// misc functions specific to 50D/109
 
 #include <dryos.h>
 #include <property.h>

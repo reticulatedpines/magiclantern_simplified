@@ -5,6 +5,7 @@ CONFIG_STATIC_FONTS=y
 
 ML_ZEBRA_OBJ = zebra-5dc.o
 ML_ENTRY_OBJ = local_entry.o
+ML_PICSTYLE_AUTO = n
 
 ML_SRC_EXCLUDE_OBJS = \
 	boot-hack.o \

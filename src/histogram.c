@@ -43,10 +43,14 @@ void hist_build_raw()
 
     for (int i = os.y0; i < os.y_max; i += 8)
     {
+        int y = BM2RAW_Y(i);
+        if (y < raw_info.active_area.y1 || y > raw_info.active_area.y2) continue;
+        
         for (int j = os.x0; j < os.x_max; j += 8)
         {
             int x = BM2RAW_X(j);
-            int y = BM2RAW_Y(i);
+            if (x < raw_info.active_area.x1 || x > raw_info.active_area.x2) continue;
+            
             int r = raw_red_pixel(x, y);
             int g = raw_green_pixel(x, y);
             int b = raw_blue_pixel(x, y);
@@ -77,13 +81,7 @@ MENU_UPDATE_FUNC(raw_histo_update)
     if (!can_use_raw_overlays_menu())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set picture quality to RAW in Canon menu.");
     else if (raw_histogram_enable)
-    {
-        int raw = pic_quality & 0x60000;
-        if (lv && (raw_lv_is_enabled() || raw))
-            MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram in LiveView and after taking a pic.");
-        else
-            MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram after taking a picture.");
-    }
+        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram in LiveView and after taking a pic.");
 }
 #endif
 
@@ -316,15 +314,20 @@ void hist_draw_image(
 MENU_UPDATE_FUNC(hist_print)
 {
     if (hist_draw)
+    {
         MENU_SET_VALUE(
             "%s%s%s",
             hist_colorspace == 0 ? "Luma" : "RGB",
             hist_log ? ",Log" : ",Lin",
-            hist_warn ? ",clip warn" : ""
+            hist_warn ? ",dots" : ""
         );
+    }
     #ifdef FEATURE_RAW_HISTOGRAM
     if (hist_draw && can_use_raw_overlays_menu())
+    {
         raw_histo_update(entry, info);
+        MENU_APPEND_VALUE(",RAW");
+    }
     #endif
 }
 
@@ -405,7 +408,7 @@ int raw_hist_get_overexposure_percentage(int gray_projection)
     get_yuv422_vram();
     
     /* use some tolerance when checking for overexposure, because white level might vary a little */
-    int white = raw_info.white_level * 90 / 100;
+    int white = raw_info.white_level * 80 / 100;
     int over = 0;
     int total = 0;
     

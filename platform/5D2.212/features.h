@@ -6,4 +6,4 @@
 
 #define FEATURE_AFMA_TUNING
 
-//~ #define FEATURE_SILENT_PIC_RAW // - compatibility mode; define only one of those, not both
+#define FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW

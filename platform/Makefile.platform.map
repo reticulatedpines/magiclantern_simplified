@@ -13,7 +13,8 @@ PLATFORM_MAP = \
 	650D.101 \
 	6D.113 \
 	7D_MASTER.203 \
-	EOSM.106
+	EOSM.106 \
+	700D.111
 
 platform_map = $(filter $(1).%, $(PLATFORM_MAP))
 

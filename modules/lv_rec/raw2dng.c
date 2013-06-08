@@ -142,6 +142,9 @@ int raw_get_pixel(int x, int y) {
  * - Only channels with error greater than 0.2% are corrected.
  */
 
+#define FIXP_ONE 65536
+#define FIXP_RANGE 65536
+
 static int stripes_coeffs[8] = {0};
 static int stripes_correction_needed = 0;
 
@@ -150,14 +153,14 @@ static int stripes_correction_needed = 0;
       typeof ((a)+(b)) _b = (b); \
      _a < _b ? _a : _b; })
 
-#define MIN_DUMB(a,b) ((a) < (b) ? (a) : (b))
-
 #define MAX(a,b) \
    ({ typeof ((a)+(b)) _a = (a); \
        typeof ((a)+(b)) _b = (b); \
      _a > _b ? _a : _b; })
 
 #define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
+
+#define STR_APPEND(orig,fmt,...) ({ int _len = strlen(orig); snprintf(orig + _len, sizeof(orig) - _len, fmt, ## __VA_ARGS__); });
 
 #define PA ((int)(p->a))
 #define PB ((int)(p->b_lo | (p->b_hi << 12)))
@@ -177,44 +180,48 @@ static int stripes_correction_needed = 0;
 #define SET_PG(x) { int v = (x); p->g_lo = v; p->g_hi = v >> 2; }
 #define SET_PH(x) { int v = (x); p->h = v; }
 
-#define RAW_MUL(p, x) MIN((((int)(p) - raw_info.black_level) * (int)(x) / 8192) + raw_info.black_level, 16383)
-#define F2H(x) COERCE(x - (8192-1024), 0, 2047)
-#define H2F(x) ((x) + (8192-1024))
+#define RAW_MUL(p, x) MIN((((int)(p) - raw_info.black_level) * (int)(x) / FIXP_ONE) + raw_info.black_level, 16383)
+#define F2H(ev) COERCE((int)(FIXP_RANGE/2 + ev * FIXP_RANGE/2), 0, FIXP_RANGE-1)
+#define H2F(x) ((double)((x) - FIXP_RANGE/2) / (FIXP_RANGE/2))
 
-static void add_pixel(int hist[8][2048], int num[8], int offset, int pa, int pb, int pc)
+static void add_pixel(int hist[8][FIXP_RANGE], int num[8], int offset, int pa, int pb)
 {
     int a = pa;
     int b = pb;
-    int c = pc;
     
-    if (MIN(MIN(a,b),c) < 8)
+    if (MIN(a,b) < 32)
         return; /* too noisy */
 
-    if (MAX(MAX(a,b),c) > raw_info.white_level / 1.5)
+    if (MAX(a,b) > raw_info.white_level / 1.5)
         return; /* too bright */
+        
+    /**
+     * compute correction factor for b, that makes it as bright as a
+     *
+     * first, work around quantization error (which causes huge spikes on histogram)
+     * by adding a small random noise component
+     * e.g. if raw value is 13, add some uniformly distributed noise,
+     * so the value will be between -12.5 and 13.5.
+     * 
+     * this removes spikes on the histogram, thus canceling bias towards "round" values
+     */
+    double af = a + (rand() % 1024) / 1024.0 - 0.5;
+    double bf = b + (rand() % 1024) / 1024.0 - 0.5;
+    double factor = af / bf;
+    double ev = log2(factor);
     
-    /* a . b . x . x . c */
-    /* assume the transition from a to b to c should be linear (in EV) */
-    double gradient = log2((double)c/a);
-    b = b * pow(2, -gradient/4);
-    
-    /* compute correction factor for b, that brings it back on the a-c line */
-    int factor = a * 8192 / b;    
-    
-    if (factor < 8192-1024 || factor > 8192+1024)
-        return; /* this ain't banding */
-
-    /* add to histogram */
-    int weight = log2(a);
-    hist[offset][F2H(factor)] += weight;
+    /**
+     * add to histogram (for computing the median)
+     */
+    int weight = 1;
+    hist[offset][F2H(ev)] += weight;
     num[offset] += weight;
 }
 
 
 static void detect_vertical_stripes_coeffs()
 {
-    /* could be a little more memory efficient if we limit coefficient range to something like 0.8 - 1.2 */
-    static int hist[8][2048];
+    static int hist[8][FIXP_RANGE];
     static int num[8];
     
     memset(hist, 0, sizeof(hist));
@@ -222,10 +229,10 @@ static void detect_vertical_stripes_coeffs()
 
     /* compute 8 little histograms */
     struct raw_pixblock * row;
-    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.frame_size; row += raw_info.pitch / sizeof(struct raw_pixblock))
+    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(struct raw_pixblock))
     {
         struct raw_pixblock * p;
-        for (p = row; (void*)p < (void*)row + raw_info.pitch;)
+        for (p = row; (void*)p < (void*)row + raw_info.pitch - sizeof(struct raw_pixblock);)
         {
             int pa = PA - raw_info.black_level;
             int pb = PB - raw_info.black_level;
@@ -238,63 +245,117 @@ static void detect_vertical_stripes_coeffs()
             p++;
             int pa2 = PA - raw_info.black_level;
             int pb2 = PB - raw_info.black_level;
-            int pc2 = PC - raw_info.black_level;
-            int pd2 = PD - raw_info.black_level;
-            int pe2 = PE - raw_info.black_level;
-            int pf2 = PF - raw_info.black_level;
+            //~ int pc2 = PC - raw_info.black_level;
+            //~ int pd2 = PD - raw_info.black_level;
+            //~ int pe2 = PE - raw_info.black_level;
+            //~ int pf2 = PF - raw_info.black_level;
             //~ int pg2 = PG - raw_info.black_level;
             //~ int ph2 = PH - raw_info.black_level;
             
-            /* verification: introducing strong banding in one column
-             * should not affect the coefficients from the other columns */
+            /**
+             * verification: introducing strong banding in one column
+             * should not affect the coefficients from the other columns
+             **/
 
             //~ pe = pe * 1.1;
             //~ pe2 = pe2 * 1.1;
             
-            add_pixel(hist, num, 2, pa, pc, pa2);
-            add_pixel(hist, num, 3, pb, pd, pb2);
-            add_pixel(hist, num, 4, pc, pe, pc2);
-            add_pixel(hist, num, 5, pd, pf, pd2);
-            add_pixel(hist, num, 6, pe, pg, pe2);
-            add_pixel(hist, num, 7, pf, ph, pf2);
+            /**
+             * weight according to distance between corrected and reference pixels
+             * e.g. pc is 2px away from pa, but 6px away from pa2, so pa/pc gets stronger weight than pa2/p3
+             * the improvement is visible in horizontal gradients
+             */
+            
+            add_pixel(hist, num, 2, pa, pc);
+            add_pixel(hist, num, 2, pa, pc);
+            add_pixel(hist, num, 2, pa, pc);
+            add_pixel(hist, num, 2, pa2, pc);
+
+            add_pixel(hist, num, 3, pb, pd);
+            add_pixel(hist, num, 3, pb, pd);
+            add_pixel(hist, num, 3, pb, pd);
+            add_pixel(hist, num, 3, pb2, pd);
+
+            add_pixel(hist, num, 4, pa, pe);
+            add_pixel(hist, num, 4, pa, pe);
+            add_pixel(hist, num, 4, pa2, pe);
+            add_pixel(hist, num, 4, pa2, pe);
+
+            add_pixel(hist, num, 5, pb, pf);
+            add_pixel(hist, num, 5, pb, pf);
+            add_pixel(hist, num, 5, pb2, pf);
+            add_pixel(hist, num, 5, pb2, pf);
+
+            add_pixel(hist, num, 6, pa, pg);
+            add_pixel(hist, num, 6, pa2, pg);
+            add_pixel(hist, num, 6, pa2, pg);
+            add_pixel(hist, num, 6, pa2, pg);
+
+            add_pixel(hist, num, 7, pb, ph);
+            add_pixel(hist, num, 7, pb2, ph);
+            add_pixel(hist, num, 7, pb2, ph);
+            add_pixel(hist, num, 7, pb2, ph);
         }
     }
-    
-    /* compute the median correction factor (this will reject outliers) */
+
     int j,k;
+    
+    int max[8] = {0};
+    for (j = 0; j < 8; j++)
+        for (k = 1; k < FIXP_RANGE-1; k++)
+            max[j] = MAX(max[j], hist[j][k]);
+
+    /* compute the median correction factor (this will reject outliers) */
     for (j = 0; j < 8; j++)
     {
+        if (num[j] < raw_info.frame_size / 128) continue;
         int t = 0;
-        for (k = 0; k < 2048; k++)
+        for (k = 0; k < FIXP_RANGE; k++)
         {
             t += hist[j][k];
             if (t >= num[j]/2)
             {
-                int c = H2F(k);
+                int c = pow(2, H2F(k)) * FIXP_ONE;
                 stripes_coeffs[j] = c;
                 break;
             }
         }
     }
 
-    /* make all the coefficients relative to x[0] and x[1] */
-    
-    stripes_coeffs[0] = 8192;
-    stripes_coeffs[1] = 8192;
-    
-    /* 2 and 3 are already OK */
-    
-    stripes_coeffs[4] = stripes_coeffs[4] * stripes_coeffs[2] / 8192;
-    stripes_coeffs[5] = stripes_coeffs[5] * stripes_coeffs[3] / 8192;
+#if 0
+    /* debug graphs */
+    FILE* f = fopen("raw2dng.m", "w");
+    fprintf(f, "h = {}; x = {}; c = \"rgbcmy\"; \n");
+    for (j = 2; j < 8; j++)
+    {
+        fprintf(f, "h{end+1} = [");
+        for (k = 1; k < FIXP_RANGE-1; k++)
+        {
+            fprintf(f, "%d ", hist[j][k]);
+        }
+        fprintf(f, "];\n");
 
-    stripes_coeffs[6] = stripes_coeffs[6] * stripes_coeffs[4] / 8192;
-    stripes_coeffs[7] = stripes_coeffs[7] * stripes_coeffs[5] / 8192;
+        fprintf(f, "x{end+1} = [");
+        for (k = 1; k < FIXP_RANGE-1; k++)
+        {
+            fprintf(f, "%f ", H2F(k) );
+        }
+        fprintf(f, "];\n");
+        fprintf(f, "plot(log2(%d/%d) + [0 0], [0 %d], ['*-' c(%d)]); hold on;\n", stripes_coeffs[j], FIXP_ONE, max[j], j-1);
+    }
+    fprintf(f, "for i = 1:6, plot(x{i}, h{i}, c(i)); hold on; end;");
+    fclose(f);
+    system("octave --persist raw2dng.m");
+#endif
+
+    stripes_coeffs[0] = FIXP_ONE;
+    stripes_coeffs[1] = FIXP_ONE;
 
     /* do we really need stripe correction, or it won't be noticeable? or maybe it's just computation error? */
     stripes_correction_needed = 0;
     for (j = 0; j < 8; j++)
     {
-        double c = (double)stripes_coeffs[j] / 8192.0;
+        double c = (double)stripes_coeffs[j] / FIXP_ONE;
         if (c < 0.998 || c > 1.002)
             stripes_correction_needed = 1;
     }
@@ -305,7 +366,7 @@ static void detect_vertical_stripes_coeffs()
         for (j = 0; j < 8; j++)
         {
             if (stripes_coeffs[j])
-                printf("  %.3f", (double)stripes_coeffs[j] / 8192.0);
+                printf("  %.3f", (double)stripes_coeffs[j] / FIXP_ONE);
             else
                 printf("    1  ");
         }
@@ -315,20 +376,67 @@ static void detect_vertical_stripes_coeffs()
 
 static void apply_vertical_stripes_correction()
 {
+    /**
+     * inexact white level will result in banding in highlights, especially if some channels are clipped
+     * 
+     * so... we'll try to use a better estimation of white level *for this particular purpose*
+     * start with a gross under-estimation, then consider white = max(all pixels)
+     * just in case the exif one is way off
+     * reason: 
+     *   - if there are no pixels above the true white level, it shouldn't hurt;
+     *     worst case, the brightest pixel(s) will be underexposed by 0.1 EV or so
+     *   - if there are, we will choose the true white level
+     */
+     
+    int white = raw_info.white_level * 2 / 3;
+    
     struct raw_pixblock * row;
-    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.frame_size; row += raw_info.pitch / sizeof(struct raw_pixblock))
+    
+    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(struct raw_pixblock))
     {
         struct raw_pixblock * p;
         for (p = row; (void*)p < (void*)row + raw_info.pitch; p++)
         {
-            if (stripes_coeffs[0]) SET_PA(RAW_MUL(PA, stripes_coeffs[0]));
-            if (stripes_coeffs[1]) SET_PB(RAW_MUL(PB, stripes_coeffs[1]));
-            if (stripes_coeffs[2]) SET_PC(RAW_MUL(PC, stripes_coeffs[2]));
-            if (stripes_coeffs[3]) SET_PD(RAW_MUL(PD, stripes_coeffs[3]));
-            if (stripes_coeffs[4]) SET_PE(RAW_MUL(PE, stripes_coeffs[4]));
-            if (stripes_coeffs[5]) SET_PF(RAW_MUL(PF, stripes_coeffs[5]));
-            if (stripes_coeffs[6]) SET_PG(RAW_MUL(PG, stripes_coeffs[6]));
-            if (stripes_coeffs[7]) SET_PH(RAW_MUL(PH, stripes_coeffs[7]));
+            white = MAX(white, PA);
+            white = MAX(white, PB);
+            white = MAX(white, PC);
+            white = MAX(white, PD);
+            white = MAX(white, PE);
+            white = MAX(white, PF);
+            white = MAX(white, PG);
+            white = MAX(white, PH);
+        }
+    }
+
+    //~ printf("white: %d\n", white);
+    
+    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(struct raw_pixblock))
+    {
+        struct raw_pixblock * p;
+        for (p = row; (void*)p < (void*)row + raw_info.pitch; p++)
+        {
+            int pa = PA;
+            int pb = PB;
+            int pc = PC;
+            int pd = PD;
+            int pe = PE;
+            int pf = PF;
+            int pg = PG;
+            int ph = PH;
+            
+            /**
+             * Thou shalt not exceed the white level (the exact one, not the exif one)
+             * otherwise you'll be blessed with banding instead of nice and smooth highlight recovery
+             */
+            
+            if (stripes_coeffs[0] && pa < white) SET_PA(MIN(white, RAW_MUL(pa, stripes_coeffs[0])));
+            if (stripes_coeffs[1] && pb < white) SET_PB(MIN(white, RAW_MUL(pb, stripes_coeffs[1])));
+            if (stripes_coeffs[2] && pc < white) SET_PC(MIN(white, RAW_MUL(pc, stripes_coeffs[2])));
+            if (stripes_coeffs[3] && pd < white) SET_PD(MIN(white, RAW_MUL(pd, stripes_coeffs[3])));
+            if (stripes_coeffs[4] && pe < white) SET_PE(MIN(white, RAW_MUL(pe, stripes_coeffs[4])));
+            if (stripes_coeffs[5] && pf < white) SET_PF(MIN(white, RAW_MUL(pf, stripes_coeffs[5])));
+            if (stripes_coeffs[6] && pg < white) SET_PG(MIN(white, RAW_MUL(pg, stripes_coeffs[6])));
+            if (stripes_coeffs[7] && ph < white) SET_PH(MIN(white, RAW_MUL(ph, stripes_coeffs[7])));
         }
     }
 }

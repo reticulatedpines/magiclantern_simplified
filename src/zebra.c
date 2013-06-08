@@ -837,6 +837,10 @@ int can_use_raw_overlays_menu()
     if (lv && raw_lv_is_enabled())
         return 1;
 
+    int raw = pic_quality & 0x60000;
+    if (lv && !is_movie_mode() && raw)
+        return 1;
+
     return 0;
 }
 
@@ -904,12 +908,66 @@ static void draw_zebras_raw()
     }
 }
 
+static void FAST draw_zebras_raw_lv()
+{
+    if (!raw_update_params()) return;
+
+    uint8_t * const bvram = bmp_vram_real();
+    if (!bvram) return;
+    uint8_t * const bvram_mirror = get_bvram_mirror();
+    if (!bvram_mirror) return;
+
+    int white = raw_info.white_level;
+    if (white > 16383) white = 15000;
+    int underexposed = ev_to_raw(- (raw_info.dynamic_range - 100) / 100.0);
+
+    int off = get_y_skip_offset_for_overlays();
+    for(int i = os.y0 + off; i < os.y_max - off; i += 2 )
+    {
+        uint32_t * const b_row = (uint32_t*)( bvram        + BM_R(i)       );  // 2 pixels
+        uint32_t * const m_row = (uint32_t*)( bvram_mirror + BM_R(i)       );  // 2 pixels
+        
+        uint32_t* bp;  // through bmp vram
+        uint32_t* mp;  // through mirror
+
+        int y = BM2RAW_Y(i);
+        if (y < raw_info.active_area.y1 || y > raw_info.active_area.y2) continue;
+        
+        for (int j = os.x0; j < os.x_max; j += 4)
+        {
+            bp = b_row + j/4;
+            mp = m_row + j/4;
+            
+            #define BP (*bp)
+            #define MP (*mp)
+            
+            if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
+            if ((MP & 0x80808080)) continue;
+            
+            int x = BM2RAW_X(j);
+            
+            if (x < raw_info.active_area.x1 || x > raw_info.active_area.x2) continue;
+            
+            int r = raw_red_pixel(x, y);
+            int g = raw_green_pixel(x, y);
+            int b = raw_blue_pixel(x, y);
+            int m = MAX(MAX(r,g), b);
+            int c = zebra_rgb_solid_color(m <= underexposed, r > white, g > white, b > white);
+
+            MP = BP = c;
+
+            #undef BP
+            #undef MP
+        }
+    }
+}
+
 static MENU_UPDATE_FUNC(raw_zebra_update)
 {
     if (!can_use_raw_overlays_menu())
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Set picture quality to RAW in Canon menu.");
     else if (raw_zebra_enable)
-        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW RGB zebras after taking a picture.");
+        MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW RGB zebras in LiveView and after taking a pic.");
 }
 #endif
 
@@ -1287,9 +1345,10 @@ static void draw_zebras( int Z )
     if (zd)
     {
         #ifdef FEATURE_RAW_ZEBRAS
-        if (raw_zebra_enable && can_use_raw_overlays() && !lv)
+        if (raw_zebra_enable && can_use_raw_overlays())
         {
-            draw_zebras_raw();
+            if (lv) draw_zebras_raw_lv();
+            else draw_zebras_raw();
             return;
         }
         #endif
@@ -2208,16 +2267,19 @@ static MENU_UPDATE_FUNC(zebra_draw_display)
     }
 
     #ifdef FEATURE_RAW_ZEBRAS
-    if (z && can_use_raw_overlays_menu() && !lv)
+    if (z && can_use_raw_overlays_menu())
+    {
         raw_zebra_update(entry, info);
+        if (raw_zebra_enable) MENU_SET_VALUE("RAW RGB");
+    }
     #endif
 }
 
 static MENU_UPDATE_FUNC(zebra_param_not_used_for_raw)
 {
     #ifdef FEATURE_RAW_ZEBRAS
-    if (raw_zebra_enable && can_use_raw_overlays_menu() && !lv)
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Not used for RAW zebras.");
+    if (raw_zebra_enable && can_use_raw_overlays_menu())
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not used for RAW zebras.");
     #endif
 }
 
@@ -2736,12 +2798,16 @@ static void spotmeter_step()
         const int dxr = BM2RAW_DX(dxb);
 
         raw_luma = 0;
-        
+        int raw_count = 0;
         for( y = ycr - dxr ; y <= ycr + dxr ; y++ )
         {
+            if (y < raw_info.active_area.y1 || y > raw_info.active_area.y2) continue;
             for( x = xcr - dxr ; x <= xcr + dxr ; x++ )
             {
+                if (x < raw_info.active_area.x1 || x > raw_info.active_area.x2) continue;
+
                 raw_luma += raw_get_pixel(x, y);
+                raw_count++;
                 
                 /* define this to check if spotmeter reads from the right place;
                  * you should see some gibberish on raw zebras, right inside the spotmeter box */
@@ -2750,8 +2816,8 @@ static void spotmeter_step()
                 #endif
             }
         }
-        const int two_dxr_plus1 = 2 * dxr + 1;
-        raw_luma /= two_dxr_plus1 * two_dxr_plus1;
+        if (!raw_count) return;
+        raw_luma /= raw_count;
         raw_ev = (int) roundf(10.0 * raw_to_ev(raw_luma));
     }
     #endif
@@ -3354,7 +3420,7 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Palette      ",
                 .priv = &falsecolor_palette,
-                .max = COUNT(false_colour)-1,
+                .max = 5,
                 .icon_type = IT_DICE,
                 .choices = CHOICES("Marshall", "SmallHD", "50-55%", "67-72%", "Banding detection", "GreenScreen"),
                 .update = falsecolor_display_palette,
@@ -4070,7 +4136,7 @@ static void draw_zoom_overlay(int dirty)
     lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     busy_vsync(0, 20);
     #endif
-    #if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_650D)
+    #if defined(CONFIG_DIGIC_V)
     lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
     if (lvr != CACHEABLE(YUV422_LV_BUFFER_1) && lvr != CACHEABLE(YUV422_LV_BUFFER_2) && lvr != CACHEABLE(YUV422_LV_BUFFER_3)) return;
     #else
@@ -4228,9 +4294,7 @@ int liveview_display_idle()
 
     #if defined(CONFIG_5D3)
     extern thunk LiveViewLevelApp_handler;
-    #endif
-
-    #if defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+    #elif defined(CONFIG_DIGIC_V)
     extern thunk LiveViewShutterApp_handler;
     #endif
 
@@ -4252,7 +4316,7 @@ int liveview_display_idle()
                   || dialog->handler == (dialog_handler_t) &LiveViewWifiApp_handler
                   #endif
                   //~ for this, check value of get_current_dialog_handler()
-                  #if defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
+                  #if defined(CONFIG_DIGIC_V) && !defined(CONFIG_5D3)
                   || dialog->handler == (dialog_handler_t) &LiveViewShutterApp_handler
                   #endif
               ) &&
@@ -5193,7 +5257,7 @@ livev_hipriority_task( void* unused )
             else
             #endif
             {
-                BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 4 : 2) == 0, k % 2 == 1); )
+                BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 5 : 3) == 0, k % 2 == 1); )
             }
         }
 

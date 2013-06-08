@@ -10,9 +10,6 @@
 #undef RAW_DEBUG_BLACK  /* for checking black level calibration */
 /* see also RAW_ZEBRA_TEST and RAW_SPOTMETER_TEST in zebra.c */
 
-/* can be computed from black level analysis, so we no longer need this */
-#undef CONFIG_DXO_DYNAMIC_RANGE
-
 #ifdef RAW_DEBUG
 #define dbg_printf(fmt,...) { console_printf(fmt, ## __VA_ARGS__); }
 #else
@@ -20,6 +17,7 @@
 #endif
 
 static int shave_right = 0;
+static int dirty = 0;
 
 /*********************** Camera-specific constants ****************************/
 
@@ -28,7 +26,7 @@ static int shave_right = 0;
  * To find it, call("lv_save_raw") and look for an EDMAC channel that becomes active (Debug menu)
  **/
 
-#if defined(CONFIG_5D2) 
+#if defined(CONFIG_5D2) || defined(CONFIG_50D)
 #define RAW_LV_EDMAC 0xC0F04508
 #endif
 
@@ -36,7 +34,7 @@ static int shave_right = 0;
 #define RAW_LV_EDMAC 0xC0F26008
 #endif
 
-#if defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_650D) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_DIGIC_V) || defined(CONFIG_600D) || defined(CONFIG_60D)
 /* probably all new cameras use this address */
 #define RAW_LV_EDMAC 0xC0F26208
 #endif
@@ -50,7 +48,7 @@ static int shave_right = 0;
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_600D) || (defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME))
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
@@ -186,8 +184,16 @@ void raw_buffer_intercept_from_stateobj()
      -887, 10000,     2129, 10000,    6051, 10000
 #endif
 
-
-#if defined(CONFIG_650D) || defined(CONFIG_EOSM) //Same sensor??
+#ifdef CONFIG_50D // these values are in ufraw-0.19.2
+    //~{ "Canon EOS 50D", 0, 0x3d93,
+	//~{ 4920,616,-593,-6493,13964,2784,-1774,3178,7005 } }, 
+    #define CAM_COLORMATRIX1                       \
+     4920, 10000,      616, 10000,    -593, 10000, \
+    -6493, 10000,    12964, 10000,    2784, 10000, \
+    -1774, 10000,     3178, 10000,    7005, 10000
+#endif
+	
+#if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D) //Same sensor??. TODO: Check 700D/100D
     //~ { "Canon EOS 650D", 0, 0x354d,
     //~ { "Canon EOS M", 0, 0,
     //~ { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
@@ -311,8 +317,14 @@ int raw_update_params()
         skip_right  = zoom ? 0 : 2;
         #endif
 
+        #ifdef CONFIG_50D
+        skip_top    =  26;
+        skip_left   =  zoom ? 64: 74;
+        skip_right  = 0;
+        skip_bottom = 0;
+        #endif
 
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
         skip_top    = 28;
         skip_left   = 74;
         skip_right  = 0;
@@ -427,7 +439,17 @@ int raw_update_params()
         skip_top = 50;
         #endif
 
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+/*      
+        #if defined(CONFIG_50D) // NEED Raw dump to get correct values
+        width = 5344;
+        height = 3516;
+        skip_left = 142;
+        skip_right = 0;
+        skip_top = 50;
+        #endif 
+*/
+
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
         width = 5280;
         height = 3528;
         skip_left = 72;
@@ -443,95 +465,49 @@ int raw_update_params()
         return 0;
     }
 
-#ifdef CONFIG_DXO_DYNAMIC_RANGE
-    /**
-     * Dynamic range, from DxO
-     * e.g. http://www.dxomark.com/index.php/Cameras/Camera-Sensor-Database/Canon/EOS-5D-Mark-III
-     * Measurements | Dynamic range | Screen
-     * You can hover over the points to list the measured EV (thanks Audionut).
-     */
-    
-    #ifdef CONFIG_5D3
-    int dynamic_ranges[] = {1097, 1087, 1069, 1041, 994, 923, 830, 748, 648, 552, 464};
-    #endif
-
-    #ifdef CONFIG_5D2
-    int dynamic_ranges[] = {1116, 1112, 1092, 1066, 1005, 909, 813, 711, 567};
-    #endif
-
-    #ifdef CONFIG_6D
-    int dynamic_ranges[] = {1143, 1139, 1122, 1087, 1044, 976, 894, 797, 683, 624, 505};
-    #endif
-
-    #ifdef CONFIG_500D
-    int dynamic_ranges[] = {1104, 1094, 1066, 1007, 933, 848, 737, 625};
-    #endif
-
-    #ifdef CONFIG_550D
-    //int dynamic_ranges[] = {1157, 1154, 1121, 1070, 979, 906, 805, 707}; I took the values Greg recommended
-    int dynamic_ranges[] = {1095, 1092, 1059, 1008, 917, 844, 744, 645};
-    #endif
-
-    #ifdef CONFIG_600D
-    int dynamic_ranges[] = {1146, 1139, 1116, 1061, 980, 898, 806, 728};
-    #endif
-
-    #ifdef CONFIG_650D
-    int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
-    #endif
-
-    #ifdef CONFIG_60D
-    int dynamic_ranges[] = {1091, 1072, 1055, 999, 910, 824, 736, 662};
-    #endif
-
-    #ifdef CONFIG_EOSM
-    int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
-    #endif
-#endif
 /*********************** Portable code ****************************************/
 
-    raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
-
-    int iso = 0;
-    if (lv) iso = FRAME_ISO;
-    if (!iso) iso = lens_info.raw_iso;
-    if (!iso) iso = lens_info.raw_iso_auto;
-#ifdef CONFIG_DXO_DYNAMIC_RANGE
-    int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 72 + (COUNT(dynamic_ranges)-1) * 8);
-    int dr_index = COERCE((iso_rounded - 72) / 8, 0, COUNT(dynamic_ranges)-1);
-    float iso_digital = (iso - iso_rounded) / 8.0f;
-    raw_info.dynamic_range = dynamic_ranges[dr_index];
-    dbg_printf("dynamic range: %d.%02d EV (iso=%d)\n", raw_info.dynamic_range/100, raw_info.dynamic_range%100, raw2iso(iso));
-#else
-    int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 200);
-    float iso_digital = (iso - iso_rounded) / 8.0f;
-#endif
+    static int prev_shave = 0;
+    if (width != raw_info.width || height != raw_info.height || shave_right != prev_shave)
+        dirty = 1;
+    prev_shave = shave_right;
     
+    if (dirty)
+        raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
+
     raw_info.white_level = WHITE_LEVEL;
 
-#ifndef CONFIG_DXO_DYNAMIC_RANGE
-    if (iso_digital <= 0)
+    if (!lv)
     {
         /* at ISO 160, 320 etc, the white level is decreased by -1/3 EV */
-        raw_info.white_level *= powf(2, iso_digital);
+        /* in LiveView, it doesn't change */
+        int iso = 0;
+        if (!iso) iso = lens_info.raw_iso;
+        if (!iso) iso = lens_info.raw_iso_auto;
+        int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 200);
+        float iso_digital = (iso - iso_rounded) / 8.0f;
+        if (iso_digital <= 0)
+            raw_info.white_level *= powf(2, iso_digital);
     }
-#endif
+    else if (!is_movie_mode())
+    {
+        /* in photo mode, LV iso is not equal to photo ISO because of ExpSim *
+         * the digital ISO will not change the raw histogram
+         * but we want the histogram to mimic the CR2 one as close as possible
+         * so we do this by compensating the white level manually
+         * warning: this may exceed 16383!
+         */
+        int shad_gain = shamem_read(0xc0f08030);
+        
+        /* LV histogram seems to be underexposed by 0.15 EV compared to photo one,
+         * so we compensate for that too (4096 -> 3691) */
+        raw_info.white_level = raw_info.white_level * 3691 / shad_gain;
+    }
 
-    raw_info.black_level = autodetect_black_level();
+    int black_aux = INT_MIN;
+    if (!lv || dirty || should_run_polling_action(1000, &black_aux))
+        raw_info.black_level = autodetect_black_level();
     
-#ifdef CONFIG_DXO_DYNAMIC_RANGE
-    if (iso_digital <= 0)
-    {
-        /* at ISO 160, 320 etc, the white level is decreased by -1/3 EV */
-        raw_info.white_level *= powf(2, iso_digital);
-    }
-    else if (iso_digital > 0)
-    {
-        /* at positive digital ISO, the white level doesn't change, but the dynamic range is reduced */
-        raw_info.dynamic_range -= (iso_digital * 100);
-    }
-#endif
-
     dbg_printf("black=%d white=%d\n", raw_info.black_level, raw_info.white_level);
 
     #ifdef RAW_DEBUG_DUMP
@@ -699,13 +675,44 @@ int FAST raw_get_gray_pixel(int x, int y, int gray_projection)
 float FAST raw_to_ev(int raw)
 {
     int raw_max = raw_info.white_level - raw_info.black_level;
+    
+    if (unlikely(raw_info.white_level > 16383) && unlikely(raw > 10000))
+    {
+        /**
+         * Hack for photo mode LV raw overlays (histogram & friends)
+         * to show correct overexposure warnings when ExpSim is done with -1/3 EV digital ISO.
+         * 
+         * Canon implements ExpSim by varying iso/shutter/aperture in full stops, and digital ISO for 1/3 stops.
+         * Digital ISO does not affect the raw histogram, so they add -1/3, 0 or +1/3 EV when developing the raw for LV display
+         * We did the same adjustment by adjusting the white level in raw_update_params.
+         * But when the correction is -1/3 EV, the white level is greater than 16383,
+         * so the overexposure indicators will read a negative EV instead of 0 (they will no longer indicate overexposure).
+         * 
+         * With this hack, we are pushing raw values greater than 10000 towards 0 EV (overexposed) level,
+         * thus keeping the correct horizontal position of the histogram at midtones (raw - 1/3 EV)
+         * and getting correct overexposure indicators for highlights (0 EV).
+         * 
+         * Math:
+         *      at raw=10000 we keep the original white level,
+         *      at raw=15000 or more, white level becomes 15000,
+         *      with linear interpolation, thus stretching the histogram in the brightest half-stop.
+         * 
+         * Feel free to optimize it with fixed point.
+         * 
+         * This hack has no effect in movie mode or outside LV, because white level is normally under 16383.
+         */
+        float k = COERCE((raw - 10000) / 5000.0, 0.0, 1.0);
+        int adjusted_white = raw_info.white_level * (1-k) + 15000 * k;
+        raw_max = adjusted_white - raw_info.black_level;
+    }
+    
     float raw_ev = -log2f(raw_max) + log2f(COERCE(raw - raw_info.black_level, 1, raw_max));
     return raw_ev;
 }
 
 int FAST ev_to_raw(float ev)
 {
-    int raw_max = raw_info.white_level - raw_info.black_level;
+    int raw_max = MIN(raw_info.white_level, 16383) - raw_info.black_level;
     return raw_info.black_level + powf(2, ev) * raw_max;
 }
 
@@ -771,7 +778,6 @@ int autodetect_black_level()
         );
     }
     
-    #ifndef CONFIG_DXO_DYNAMIC_RANGE
     /**
      * A = full well capacity / read-out noise 
      * DR in dB = 20 log10(A)
@@ -784,7 +790,6 @@ int autodetect_black_level()
      
     int black_level = mean + stdev/2;
     raw_info.dynamic_range = (int)roundf((log2f(raw_info.white_level - black_level) - log2f(stdev)) * 100);
-    #endif
 
     // bmp_printf(FONT_MED, 50, 350, "black: mean=%d stdev=%d dr=%d \n", (int)mean, (int)stdev, raw_info.dynamic_range);
 
@@ -1006,4 +1011,9 @@ void raw_force_aspect_ratio_1to1()
         int skip_left = preview_rect_x;
         lv2raw.tx = skip_left - LV2RAW_DX(os.x0) - LV2RAW_DX(offset);
     }
+}
+
+void raw_set_dirty()
+{
+    dirty = 1;
 }

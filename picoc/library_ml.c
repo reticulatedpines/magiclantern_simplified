@@ -35,6 +35,11 @@ static void LibBeeps(struct ParseState *Parser, struct Value *ReturnValue, struc
     beep_times(Param[0]->Val->Integer);
 }
 
+static void LibBeepCustom(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    beep_custom(Param[0]->Val->Integer, Param[1]->Val->Integer, Param[2]->Val->Integer);
+}
+
 static void LibConsoleShow(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     console_show();
@@ -995,6 +1000,7 @@ struct LibraryFunction PlatformLibrary[] =
     {LibSleep,          "void sleep(float seconds);"    },  // sleep X seconds
     {LibBeep,           "void beep();"                  },  // short beep sound
     {LibBeeps,          "void beeps(int num);"          },  // short consecutive beeps
+    {LibBeepCustom,     "void beep_custom(int duration, int frequency, int wait);"},  // beep sound with custom frequency and duration
     {LibConsoleShow,    "void console_show();"          },  // show the script console
     {LibConsoleHide,    "void console_hide();"          },  // hide the script console
     {LibCls,            "void cls();"                   },  // clear the script console

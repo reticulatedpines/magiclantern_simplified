@@ -17,6 +17,8 @@
  * - look in Movie menu
  */
 
+#define CONFIG_CONSOLE
+
 #include <module.h>
 #include <dryos.h>
 #include <property.h>
@@ -31,26 +33,25 @@
 static int raw_video_enabled = 0;
 
 /**
- * resolution should be multiple of 64x32 or 128x16
- * this way, we get frame size multiple of 512, so there's no write speed penalty
- * (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks)
- * mod16 request: http://www.magiclantern.fm/forum/index.php?topic=5839.0
+ * resolution should be multiple of 16 horizontally
+ * see http://www.magiclantern.fm/forum/index.php?topic=5839.0
+ * use roughly 10% increments
  **/
 
-static int resolution_presets_x[] = {  640,  768,  960,  1280,  1344,  1472,  1600,  1728,  1856,  1920,  2048,  2560,  2880,  3584 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","768","960","1280","1344","1472","1600","1728","1856","1920","2048","2560","2880","3584")
+static int resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1600,  1728,  1856,  1920,  2048,  2240,  2560,  2880,  3584 };
+#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1600","1728","1856","1920","2048","2240","2560","2880","3584")
 
-static int aspect_ratio_presets_num[]      = {    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    1};
-static int aspect_ratio_presets_den[]      = {    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    1};
-static const char * aspect_ratio_choices[] = { "3:1","2.67:1","2.50:1","2.39:1","2.35:1","2.20:1","2:1","1.85:1", "16:9","5:3","3:2","4:3","1:1"};
+static int aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    1,    1 };
+static int aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    1,    2 };
+static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1","2.39:1","2.35:1","2.20:1","2:1","1.85:1", "16:9","5:3","3:2","4:3","1:1","1:2"};
 
 //~ static CONFIG_INT("raw.res.x", resolution_index_x, 2);
 //~ static CONFIG_INT("raw.res.y", resolution_index_y, 4);
 //~ static CONFIG_INT("raw.write.spd", measured_write_speed, 0);
 
 /* no config options yet */
-static int resolution_index_x = 9;
-static int aspect_ratio_index = 8;
+static int resolution_index_x = 12;
+static int aspect_ratio_index = 10;
 static int measured_write_speed = 0;
 static int stop_on_buffer_overflow = 1;
 static int sound_rec = 2;
@@ -65,6 +66,8 @@ static int preview_mode = 0;
 #define PREVIEW_CANON (preview_mode == 1)
 #define PREVIEW_ML (preview_mode == 2)
 #define PREVIEW_HACKED (preview_mode == 3)
+
+static int memory_hack = 0;
 
 static int res_x = 0;
 static int res_y = 0;
@@ -113,21 +116,24 @@ static int fullsize_buffer_pos = 0;               /* which of the full size buff
 static int frame_count = 0;                       /* how many frames we have processed */
 static int frame_skips = 0;                       /* how many frames were dropped/skipped */
 static char* movie_filename = 0;                  /* file name for current (or last) movie */
+static char* chunk_filename = 0;                  /* file name for current movie chunk */
+static uint32_t written = 0;                      /* how many KB we have written in this movie */
+static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
+static int idle_time = 0;                         /* time spent by raw_video_rec_task doing something else */
 
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_frame(unsigned char *);
 
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
-    int rounding_mask = res_x % 128 ? 31 : 15;
     if (squeeze != 1.0f)
     {
         /* image should be enlarged vertically in post by a factor equal to "squeeze" */
-        return (int)(roundf(res_x * den / num / squeeze) + rounding_mask) & ~rounding_mask;
+        return (int)(roundf(res_x * den / num / squeeze) + 1) & ~1;
     }
     else
     {
         /* assume square pixels */
-        return (res_x * den / num + rounding_mask) & ~rounding_mask;
+        return (res_x * den / num + 1) & ~1;
     }
 }
 
@@ -145,6 +151,17 @@ static void update_cropping_offsets()
     {
         sx = raw_info.active_area.x1;
     }
+    else if (FRAMING_CENTER && lv_dispsize > 1)
+    {
+        /* try to center the recording window on the YUV frame */
+        int delta_x, delta_y;
+        int ok = focus_box_get_raw_crop_offset(&delta_x, &delta_y);
+        if (ok)
+        {
+            sx = COERCE(sx - delta_x, raw_info.active_area.x1, raw_info.active_area.x2 - res_x);
+            sy = COERCE(sy - delta_y, raw_info.active_area.y1, raw_info.active_area.y2 - res_y);
+        }
+    }
 
     skip_x = sx;
     skip_y = sy;
@@ -157,12 +174,11 @@ static void update_resolution_params()
     int left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
     int right_margin = (raw_info.active_area.x2 + shave_right) / 8 * 8;
     int max = (right_margin - left_margin) & ~15;
-    while (max % 16 || (max * 14/8) % 16) max--;
+    while (max % 16) max--;
     max_res_x = max;
     
     /* max res Y */
-    int rounding_mask_y = res_x % 128 ? 31 : 15;
-    max_res_y = raw_info.jpeg.height & ~rounding_mask_y;
+    max_res_y = raw_info.jpeg.height & ~1;
 
     /* squeeze factor */
     if (video_mode_resolution == 1 && lv_dispsize == 1 && is_movie_mode()) /* 720p, image squeezed */
@@ -182,7 +198,9 @@ static void update_resolution_params()
     res_y = MIN(calc_res_y(res_x, num, den, squeeze_factor), max_res_y);
 
     /* frame size */
-    frame_size = res_x * res_y * 14/8;
+    /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
+    /* should be multiple of 4096 for proper EDMAC alignment */
+    frame_size = (res_x * res_y * 14/8 + 4095) & ~4095;
     
     update_cropping_offsets();
 }
@@ -213,22 +231,23 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     if (minerr < 0.05)
     {
         int h = calc_res_y(res_x, best_num, best_den, squeeze_factor);
-        char* qualifier = h != res_y ? "almost " : "";
+        /* if the difference is 1 pixel, consider it exact */
+        char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         snprintf(msg, sizeof(msg), "%s%d:%d", qualifier, best_num, best_den);
     }
     else if (ratio > 1)
     {
         int r = (int)roundf(ratio * 100);
-        int r2 = (int)roundf(ratio * 1000);
         /* is it 2.35:1 or 2.353:1? */
-        char* qualifier = ABS(r2 - r * 10) >= 1 ? "almost " : "";
+        int h = calc_res_y(res_x, r, 100, squeeze_factor);
+        char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         if (r%100) snprintf(msg, sizeof(msg), "%s%d.%02d:1", qualifier, r/100, r%100);
     }
     else
     {
         int r = (int)roundf((1/ratio) * 100);
-        int r2 = (int)roundf((1/ratio) * 1000);
-        char* qualifier = ABS(r2 - r * 10) >= 1 ? "almost " : "";
+        int h = calc_res_y(res_x, 100, r, squeeze_factor);
+        char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         if (r%100) snprintf(msg, sizeof(msg), "%s1:%d.%02d", qualifier, r/100, r%100);
     }
     return msg;
@@ -312,7 +331,7 @@ static MENU_UPDATE_FUNC(write_speed_update)
     int speed = (res_x * res_y * 14/8 / 1024) * fps / 100 / 1024;
     int ok = speed < measured_write_speed; 
 
-    if ((res_x * res_y * 14/8) % 512)
+    if (frame_size % 512)
     {
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Frame size not multiple of 512 bytes!");
     }
@@ -338,13 +357,13 @@ static void update_shave()
     raw_lv_shave_right(shave_right);
 }
 
-static void refresh_raw_settings()
+static void refresh_raw_settings(int force)
 {
     if (RAW_IS_IDLE && !raw_playing && !raw_previewing)
     {
         /* autodetect the resolution (update 4 times per second) */
         static int aux = INT_MIN;
-        if (should_run_polling_action(250, &aux))
+        if (force || should_run_polling_action(250, &aux))
         {
             raw_update_params();
             update_resolution_params();
@@ -356,7 +375,7 @@ static MENU_UPDATE_FUNC(raw_main_update)
 {
     if (!raw_video_enabled) return;
     
-    refresh_raw_settings();
+    refresh_raw_settings(0);
     
     if (!RAW_IS_IDLE)
     {
@@ -397,7 +416,7 @@ static MENU_UPDATE_FUNC(resolution_update)
         return;
     }
     
-    refresh_raw_settings();
+    refresh_raw_settings(1);
 
     int selected_x = resolution_presets_x[resolution_index_x];
 
@@ -424,13 +443,13 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
         return;
     }
     
-    refresh_raw_settings();
+    refresh_raw_settings(0);
 
     int num = aspect_ratio_presets_num[aspect_ratio_index];
     int den = aspect_ratio_presets_den[aspect_ratio_index];
     int selected_y = calc_res_y(res_x, num, den, squeeze_factor);
     
-    if (selected_y != res_y)
+    if (selected_y > max_res_y + 2)
     {
         char* ratio = guess_aspect_ratio(res_x, res_y * squeeze_factor);
         MENU_SET_VALUE(ratio);
@@ -451,7 +470,7 @@ static unsigned int lv_rec_save_footer(FILE *save_file)
     strcpy((char*)footer.magic, "RAWM");
     footer.xRes = res_x;
     footer.yRes = res_y;
-    footer.frameSize = footer.xRes * footer.yRes * 14/8;
+    footer.frameSize = frame_size;
     footer.frameCount = frame_count - 1; /* last frame is usually gibberish */
     footer.frameSkip = 1;
     
@@ -494,6 +513,7 @@ static unsigned int lv_rec_read_footer(FILE *f)
     res_x = footer.xRes;
     res_y = footer.yRes;
     frame_count = footer.frameCount + 1;
+    frame_size = footer.frameSize;
     // raw_info = footer.raw_info;
     raw_info.white_level = footer.raw_info.white_level;
     raw_info.black_level = footer.raw_info.black_level;
@@ -505,7 +525,13 @@ static int setup_buffers()
 {
     /* allocate the entire memory, but only use large chunks */
     /* yes, this may be a bit wasteful, but at least it works */
+    
+    if (memory_hack) { PauseLiveView(); msleep(200); }
+    
     mem_suite = shoot_malloc_suite(0);
+    
+    if (memory_hack) { ResumeLiveView(); msleep(500); }
+    
     if (!mem_suite) return 0;
     
     /* allocate memory for double buffering */
@@ -531,7 +557,7 @@ static int setup_buffers()
     if (fullsize_buffers[0] == 0) return 0;
     
     /* reuse Canon's buffer */
-    fullsize_buffers[1] = raw_info.buffer;
+    fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
     if (fullsize_buffers[1] == 0) return 0;
 
     /* use all chunks larger than 16MB for recording */
@@ -588,13 +614,12 @@ static void free_buffers()
     mem_suite = 0;
 }
 
-static void show_buffer_status(int adj)
+static void show_buffer_status()
 {
     if (!liveview_display_idle()) return;
     
     int free_buffers = mod(saving_buffer_index - capturing_buffer_index, buffer_count); /* how many free slots do we have? */
     if (free_buffers == 0) free_buffers = buffer_count; /* saving task waiting for capturing task */
-    free_buffers += adj; /* when skipping frames, adj is -1, because capturing_buffer_index was not incremented yet */
     
     /* could use a nicer display, but stars should be fine too */
     char buffer_status[10];
@@ -618,6 +643,8 @@ static unsigned int raw_rec_should_preview(unsigned int ctx);
 
 static void cropmark_draw()
 {
+    if (lv_dispsize > 1) return;
+    
     int x = RAW2BM_X(skip_x);
     int y = RAW2BM_Y(skip_y);
     int w = RAW2BM_DX(res_x);
@@ -689,7 +716,44 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     /* update settings when changing video modes (outside menu) */
     if (RAW_IS_IDLE && !gui_menu_shown())
     {
-        refresh_raw_settings();
+        refresh_raw_settings(0);
+    }
+    
+    /* update status messages */
+    static int auxrec = INT_MIN;
+    if (RAW_IS_RECORDING && liveview_display_idle() && should_run_polling_action(1000, &auxrec))
+    {
+        int fps = fps_get_current_x1000();
+        int t = (frame_count * 1000 + fps/2) / fps;
+        bmp_printf( FONT_MED, 30, 70, 
+            "%02d:%02d, %d frames...",
+            t/60, t%60,
+            frame_count
+        );
+
+        show_buffer_status();
+
+        /* how fast are we writing? does this speed match our benchmarks? */
+        if (writing_time)
+        {
+            int speed = written * 10 / writing_time * 1000 / 1024; // MB/s x10
+            int idle_percent = idle_time * 100 / (writing_time + idle_time);
+            measured_write_speed = speed;
+
+            char msg[50];
+            snprintf(msg, sizeof(msg),
+                "%s: %d MB, %d.%d MB/s",
+                chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
+                written / 1024,
+                speed/10, speed%10
+            );
+            if (idle_time)
+            {
+                if (idle_percent) { STR_APPEND(msg, ", %d%% idle ", idle_percent); }
+                else { STR_APPEND(msg, ", %dms idle ", idle_time); }
+            }
+            bmp_printf( FONT_MED, 30, 90, "%s", msg);
+        }
     }
 
     return 0;
@@ -771,19 +835,17 @@ static int process_frame()
         return 0;
     }
     
+    /* try a sync beep */
+    if (sound_rec == 2 && frame_count == 1)
+    {
+        beep();
+    }
+
     int ans = edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
 
     /* advance to next frame */
     frame_count++;
-    capture_offset += res_x * res_y * 14/8;
-
-    if (liveview_display_idle())
-    {
-        bmp_printf( FONT_MED, 30, 70, 
-            "Capturing frame %d...", 
-            frame_count
-        );
-    }
+    capture_offset += frame_size;
     
     return ans;
 }
@@ -813,7 +875,7 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
     
-    if (capture_offset + res_x * res_y * 14/8 >= buffers[capturing_buffer_index].size)
+    if (capture_offset + frame_size >= buffers[capturing_buffer_index].size)
     {
         /* this buffer is full, try next one */
         int next_buffer = mod(capturing_buffer_index + 1, buffer_count);
@@ -833,20 +895,11 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
                     "Skipping frames...   "
                 );
             }
-            show_buffer_status(-1);
             return 0;
         }
     }
-    else
-    {
-        show_buffer_status(0);
-    }
     
     dma_transfer_in_progress = process_frame();
-
-    /* try a sync beep */
-    if (sound_rec == 2 && frame_count == 1)
-        beep();
 
     return 0;
 }
@@ -916,7 +969,7 @@ static void raw_video_rec_task()
     frame_offset_delta_x = 0;
     frame_offset_delta_y = 0;
     FILE* f = 0;
-    uint32_t written = 0; /* in KB */
+    written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
 
     /* disable canon graphics (gains a little speed) */
@@ -939,7 +992,7 @@ static void raw_video_rec_task()
     /* create output file */
     int chunk = 0;
     movie_filename = get_next_raw_movie_file_name();
-    char* chunk_filename = movie_filename;
+    chunk_filename = movie_filename;
     f = FIO_CreateFileEx(movie_filename);
     if (f == INVALID_PTR)
     {
@@ -972,7 +1025,9 @@ static void raw_video_rec_task()
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
 
-    int t0 = 0;
+    writing_time = 0;
+    idle_time = 0;
+    int last_write_timestamp = 0;
     
     /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
     recording = -1;
@@ -986,10 +1041,14 @@ static void raw_video_rec_task()
         /* do we have any buffers completely filled with data, that we can save? */
         if (saving_buffer_index != capturing_buffer_index)
         {
-            if (!t0) t0 = get_ms_clock_value();
             void* ptr = buffers[saving_buffer_index].ptr;
             int size_used = buffers[saving_buffer_index].used;
+
+            int t0 = get_ms_clock_value();
+            if (!last_write_timestamp) last_write_timestamp = t0;
+            idle_time += t0 - last_write_timestamp;
             int r = FIO_WriteFile(f, ptr, size_used);
+            last_write_timestamp = get_ms_clock_value();
 
             if (r != size_used) /* 4GB limit or card full? */
             {
@@ -1045,26 +1104,13 @@ static void raw_video_rec_task()
                 written_chunk += size_used;
             }
             
+            writing_time += last_write_timestamp - t0;
             saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
         }
         else
         {
             /* to be verified if it is okay to sleep when the buffers are empty */
             msleep(20);
-        }
-
-        /* how fast are we writing? does this speed match our benchmarks? */
-        if (t0)
-        {
-            int t1 = get_ms_clock_value();
-            int speed = written * 10 / (t1 - t0) * 1000 / 1024; // MB/s x10
-            measured_write_speed = speed;
-            if (liveview_display_idle()) bmp_printf( FONT_MED, 30, 90, 
-                "%s: %d MB, %d.%d MB/s ",
-                chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
-                written / 1024,
-                speed/10, speed%10
-            );
         }
 
         /* error handling */
@@ -1100,7 +1146,7 @@ abort:
     /* write remaining frames */
     while (saving_buffer_index != capturing_buffer_index)
     {
-        show_buffer_status(0);
+        show_buffer_status();
         written += FIO_WriteFile(f, buffers[saving_buffer_index].ptr, buffers[saving_buffer_index].used) / 1024;
         saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
     }
@@ -1219,7 +1265,11 @@ static void raw_video_playback_task()
     raw_lv_shave_right(0);
     raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
     
-    buf = shoot_malloc(raw_info.frame_size);
+    /* don't use raw_info.frame_size, use the one from the footer instead
+     * (which should be greater or equal, because of rounding) */
+    ASSERT(raw_info.frame_size <= frame_size);
+    
+    buf = shoot_malloc(frame_size);
     if (!buf)
         goto cleanup;
 
@@ -1229,8 +1279,8 @@ static void raw_video_playback_task()
     {
         bmp_printf(FONT_MED, os.x_max - font_med.width*10, os.y_max - 20, "%d/%d", i+1, frame_count-1);
         bmp_printf(FONT_MED, 0, os.y_max - font_med.height, "%s: %dx%d", movie_filename, res_x, res_y);
-        int r = FIO_ReadFile(f, buf, raw_info.frame_size);
-        if (r != raw_info.frame_size)
+        int r = FIO_ReadFile(f, buf, frame_size);
+        if (r != frame_size)
             break;
         
         if (get_halfshutter_pressed())
@@ -1372,6 +1422,12 @@ static struct menu_entry raw_video_menu[] =
                          "HaCKeD: try to squeeze a little speed by killing LiveView.\n"
             },
             {
+                .name = "Memory hack",
+                .priv = &memory_hack,
+                .max = 1,
+                .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
+            },
+            {
                 .name = "Playback",
                 .select = raw_playback_start,
                 .update = raw_playback_update,
@@ -1461,9 +1517,11 @@ static unsigned int raw_rec_should_preview(unsigned int ctx)
 {
     if (!raw_video_enabled) return 0;
     
+    /* keep x10 mode unaltered, for focusing */
+    if (lv_dispsize == 10) return 0;
+    
     if (PREVIEW_AUTO)
         /* enable preview in x5 mode, since framing doesn't match */
-        /* keep x10 mode unaltered, for focusing */
         return lv_dispsize == 5;
 
     else if (PREVIEW_CANON)
@@ -1480,8 +1538,14 @@ static unsigned int raw_rec_should_preview(unsigned int ctx)
 
 static unsigned int raw_rec_update_preview(unsigned int ctx)
 {
+    static int preview_dirty = 0;
+    
     if (!raw_rec_should_preview(0))
+    {
+        if (preview_dirty)
+            raw_set_dirty();
         return 0;
+    }
 
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
 

@@ -5,6 +5,8 @@ CONFIG_PIC=n
 
 CONFIG_GDB=y
 
+ML_PICSTYLE_AUTO=n
+
 ML_SRC_EXTRA_OBJS = \
 	ml_rpc.o \
 	video_hacks.o \
