@@ -17,6 +17,8 @@
  * - look in Movie menu
  */
 
+#define CONFIG_CONSOLE
+
 #include <module.h>
 #include <dryos.h>
 #include <property.h>
@@ -193,7 +195,8 @@ static void update_resolution_params()
 
     /* frame size */
     /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
-    frame_size = (res_x * res_y * 14/8 + 511) & ~511;
+    /* should be multiple of 4096 for proper EDMAC alignment */
+    frame_size = (res_x * res_y * 14/8 + 4095) & ~4095;
     
     update_cropping_offsets();
 }
@@ -463,7 +466,7 @@ static unsigned int lv_rec_save_footer(FILE *save_file)
     strcpy((char*)footer.magic, "RAWM");
     footer.xRes = res_x;
     footer.yRes = res_y;
-    footer.frameSize = footer.xRes * footer.yRes * 14/8;
+    footer.frameSize = frame_size;
     footer.frameCount = frame_count - 1; /* last frame is usually gibberish */
     footer.frameSkip = 1;
     
@@ -506,6 +509,7 @@ static unsigned int lv_rec_read_footer(FILE *f)
     res_x = footer.xRes;
     res_y = footer.yRes;
     frame_count = footer.frameCount + 1;
+    frame_size = footer.frameSize;
     // raw_info = footer.raw_info;
     raw_info.white_level = footer.raw_info.white_level;
     raw_info.black_level = footer.raw_info.black_level;
@@ -549,7 +553,7 @@ static int setup_buffers()
     if (fullsize_buffers[0] == 0) return 0;
     
     /* reuse Canon's buffer */
-    fullsize_buffers[1] = raw_info.buffer;
+    fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
     if (fullsize_buffers[1] == 0) return 0;
 
     /* use all chunks larger than 16MB for recording */
@@ -801,7 +805,7 @@ static int process_frame()
 
     /* advance to next frame */
     frame_count++;
-    capture_offset += res_x * res_y * 14/8;
+    capture_offset += frame_size;
 
     if (liveview_display_idle())
     {
@@ -839,7 +843,7 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
     
-    if (capture_offset + res_x * res_y * 14/8 >= buffers[capturing_buffer_index].size)
+    if (capture_offset + frame_size >= buffers[capturing_buffer_index].size)
     {
         /* this buffer is full, try next one */
         int next_buffer = mod(capturing_buffer_index + 1, buffer_count);
@@ -1241,7 +1245,11 @@ static void raw_video_playback_task()
     raw_lv_shave_right(0);
     raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
     
-    buf = shoot_malloc(raw_info.frame_size);
+    /* don't use raw_info.frame_size, use the one from the footer instead
+     * (which should be greater or equal, because of rounding) */
+    ASSERT(raw_info.frame_size <= frame_size);
+    
+    buf = shoot_malloc(frame_size);
     if (!buf)
         goto cleanup;
 
@@ -1251,8 +1259,8 @@ static void raw_video_playback_task()
     {
         bmp_printf(FONT_MED, os.x_max - font_med.width*10, os.y_max - 20, "%d/%d", i+1, frame_count-1);
         bmp_printf(FONT_MED, 0, os.y_max - font_med.height, "%s: %dx%d", movie_filename, res_x, res_y);
-        int r = FIO_ReadFile(f, buf, raw_info.frame_size);
-        if (r != raw_info.frame_size)
+        int r = FIO_ReadFile(f, buf, frame_size);
+        if (r != frame_size)
             break;
         
         if (get_halfshutter_pressed())
