@@ -195,7 +195,8 @@ static void update_resolution_params()
 
     /* frame size */
     /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
-    frame_size = (res_x * res_y * 14/8 + 511) & ~511;
+    /* should be multiple of 4096 for proper EDMAC alignment */
+    frame_size = (res_x * res_y * 14/8 + 4095) & ~4095;
     
     update_cropping_offsets();
 }
@@ -552,7 +553,7 @@ static int setup_buffers()
     if (fullsize_buffers[0] == 0) return 0;
     
     /* reuse Canon's buffer */
-    fullsize_buffers[1] = raw_info.buffer;
+    fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
     if (fullsize_buffers[1] == 0) return 0;
 
     /* use all chunks larger than 16MB for recording */
