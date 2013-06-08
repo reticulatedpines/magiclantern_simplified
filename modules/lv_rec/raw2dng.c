@@ -212,9 +212,8 @@ static void add_pixel(int hist[8][FIXP_RANGE], int num[8], int offset, int pa, i
     
     /**
      * add to histogram (for computing the median)
-     * use a slight weight towards highlights, because that's where the banding is worse
      */
-    int weight = log(a);
+    int weight = 1;
     hist[offset][F2H(ev)] += weight;
     num[offset] += weight;
 }
@@ -246,10 +245,10 @@ static void detect_vertical_stripes_coeffs()
             p++;
             int pa2 = PA - raw_info.black_level;
             int pb2 = PB - raw_info.black_level;
-            int pc2 = PC - raw_info.black_level;
-            int pd2 = PD - raw_info.black_level;
-            int pe2 = PE - raw_info.black_level;
-            int pf2 = PF - raw_info.black_level;
+            //~ int pc2 = PC - raw_info.black_level;
+            //~ int pd2 = PD - raw_info.black_level;
+            //~ int pe2 = PE - raw_info.black_level;
+            //~ int pf2 = PF - raw_info.black_level;
             //~ int pg2 = PG - raw_info.black_level;
             //~ int ph2 = PH - raw_info.black_level;
             
@@ -377,7 +376,40 @@ static void detect_vertical_stripes_coeffs()
 
 static void apply_vertical_stripes_correction()
 {
+    /**
+     * inexact white level will result in banding in highlights, especially if some channels are clipped
+     * 
+     * so... we'll try to use a better estimation of white level *for this particular purpose*
+     * start with a gross under-estimation, then consider white = max(all pixels)
+     * just in case the exif one is way off
+     * reason: 
+     *   - if there are no pixels above the true white level, it shouldn't hurt;
+     *     worst case, the brightest pixel(s) will be underexposed by 0.1 EV or so
+     *   - if there are, we will choose the true white level
+     */
+     
+    int white = raw_info.white_level * 2 / 3;
+    
     struct raw_pixblock * row;
+    
+    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.frame_size; row += raw_info.pitch / sizeof(struct raw_pixblock))
+    {
+        struct raw_pixblock * p;
+        for (p = row; (void*)p < (void*)row + raw_info.pitch; p++)
+        {
+            white = MAX(white, PA);
+            white = MAX(white, PB);
+            white = MAX(white, PC);
+            white = MAX(white, PD);
+            white = MAX(white, PE);
+            white = MAX(white, PF);
+            white = MAX(white, PG);
+            white = MAX(white, PH);
+        }
+    }
+
+    //~ printf("white: %d\n", white);
+    
     for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.frame_size; row += raw_info.pitch / sizeof(struct raw_pixblock))
     {
         struct raw_pixblock * p;
@@ -391,15 +423,20 @@ static void apply_vertical_stripes_correction()
             int pf = PF;
             int pg = PG;
             int ph = PH;
-
-            if (stripes_coeffs[0] && pa < raw_info.white_level) SET_PA(RAW_MUL(pa, stripes_coeffs[0]));
-            if (stripes_coeffs[1] && pb < raw_info.white_level) SET_PB(RAW_MUL(pb, stripes_coeffs[1]));
-            if (stripes_coeffs[2] && pc < raw_info.white_level) SET_PC(RAW_MUL(pc, stripes_coeffs[2]));
-            if (stripes_coeffs[3] && pd < raw_info.white_level) SET_PD(RAW_MUL(pd, stripes_coeffs[3]));
-            if (stripes_coeffs[4] && pe < raw_info.white_level) SET_PE(RAW_MUL(pe, stripes_coeffs[4]));
-            if (stripes_coeffs[5] && pf < raw_info.white_level) SET_PF(RAW_MUL(pf, stripes_coeffs[5]));
-            if (stripes_coeffs[6] && pg < raw_info.white_level) SET_PG(RAW_MUL(pg, stripes_coeffs[6]));
-            if (stripes_coeffs[7] && ph < raw_info.white_level) SET_PH(RAW_MUL(ph, stripes_coeffs[7]));
+            
+            /**
+             * Thou shalt not exceed the white level (the exact one, not the exif one)
+             * otherwise you'll be blessed with banding instead of nice and smooth highlight recovery
+             */
+            
+            if (stripes_coeffs[0] && pa < white) SET_PA(MIN(white, RAW_MUL(pa, stripes_coeffs[0])));
+            if (stripes_coeffs[1] && pb < white) SET_PB(MIN(white, RAW_MUL(pb, stripes_coeffs[1])));
+            if (stripes_coeffs[2] && pc < white) SET_PC(MIN(white, RAW_MUL(pc, stripes_coeffs[2])));
+            if (stripes_coeffs[3] && pd < white) SET_PD(MIN(white, RAW_MUL(pd, stripes_coeffs[3])));
+            if (stripes_coeffs[4] && pe < white) SET_PE(MIN(white, RAW_MUL(pe, stripes_coeffs[4])));
+            if (stripes_coeffs[5] && pf < white) SET_PF(MIN(white, RAW_MUL(pf, stripes_coeffs[5])));
+            if (stripes_coeffs[6] && pg < white) SET_PG(MIN(white, RAW_MUL(pg, stripes_coeffs[6])));
+            if (stripes_coeffs[7] && ph < white) SET_PH(MIN(white, RAW_MUL(ph, stripes_coeffs[7])));
         }
     }
 }

@@ -4,9 +4,6 @@
 #define FEATURE_MOVIE_RECORDING_50D
 #define FEATURE_MOVIE_RECORDING_50D_SHUTTER_HACK
 
-// silent pic 
-#define FEATURE_SILENT_PIC_RAW_BURST 
-
 //#define FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW //compiles but not tested
 
 // no audio at all
