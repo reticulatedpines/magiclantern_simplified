@@ -3420,7 +3420,7 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Palette      ",
                 .priv = &falsecolor_palette,
-                .max = COUNT(false_colour)-1,
+                .max = 5,
                 .icon_type = IT_DICE,
                 .choices = CHOICES("Marshall", "SmallHD", "50-55%", "67-72%", "Banding detection", "GreenScreen"),
                 .update = falsecolor_display_palette,
