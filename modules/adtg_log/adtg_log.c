@@ -32,6 +32,15 @@ static void cmos_reg_update(unsigned short cmos_data)
     cmos_regs[reg] = data;
 }
 
+static void cmos_reg_manipulate(unsigned short *cmos_data)
+{
+    /* check for reg */
+    if((*cmos_data & 0xF000) == 0x1000)
+    {
+        //*cmos_data = 0x1800;
+    }
+}
+
 static unsigned int adtg_log_vsync_cbr(unsigned int unused)
 {
     if(!adtg_buf)
@@ -40,7 +49,7 @@ static unsigned int adtg_log_vsync_cbr(unsigned int unused)
     }
     uint32_t old_int = cli();
     
-    if(adtg_buf_pos + 2 > adtg_buf_pos_max)
+    if(adtg_buf_pos + 2 >= adtg_buf_pos_max)
     {
         return;
     }
@@ -60,17 +69,17 @@ static void adtg_log(breakpoint_t *bkpt)
         return;
     }
     
-    //hook_calls++;
-    
     unsigned int cs = bkpt->ctx[0];
     unsigned int *data_buf = bkpt->ctx[1];
     
+    /* log all ADTG writes */
     while(*data_buf != 0xFFFFFFFF)
     {
-        if(adtg_buf_pos + 2 > adtg_buf_pos_max)
+        if(adtg_buf_pos + 2 >= adtg_buf_pos_max)
         {
             return;
         }
+        
         adtg_buf[adtg_buf_pos] = cs;
         adtg_buf_pos++;
         adtg_buf[adtg_buf_pos] = *data_buf;
@@ -81,6 +90,11 @@ static void adtg_log(breakpoint_t *bkpt)
 
 static void cmos_log(breakpoint_t *bkpt)
 {
+    static int loops = 0;
+    
+    loops++;
+    loops &= 0xFFF;
+    
     if(!adtg_buf)
     {
         return;
@@ -88,18 +102,21 @@ static void cmos_log(breakpoint_t *bkpt)
     
     unsigned short *data_buf = bkpt->ctx[0];
     
+    /* log all CMOS writes */
     while(*data_buf != 0xFFFF)
     {
-        if(adtg_buf_pos + 2 > adtg_buf_pos_max)
+        if(adtg_buf_pos + 2 >= adtg_buf_pos_max)
         {
             return;
         }
         adtg_buf[adtg_buf_pos] = 0x00FF0000;
         adtg_buf_pos++;
         adtg_buf[adtg_buf_pos] = *data_buf;
+        adtg_buf_pos++;
         
         cmos_reg_update(*data_buf);
-        adtg_buf_pos++;
+        cmos_reg_manipulate(data_buf);
+        
         data_buf++;
     }
 }
@@ -116,9 +133,10 @@ static void cmos16_log(breakpoint_t *bkpt)
     
     unsigned short *data_buf = bkpt->ctx[0];
     
+    /* log all CMOS writes */
     while(*data_buf != 0xFFFF)
     {
-        if(adtg_buf_pos + 2 > adtg_buf_pos_max)
+        if(adtg_buf_pos + 2 >= adtg_buf_pos_max)
         {
             return;
         }
@@ -133,34 +151,40 @@ static void cmos16_log(breakpoint_t *bkpt)
 void adtg_log_task()
 {
     adtg_buf_pos_max = 128 * 1024;
-    adtg_buf = shoot_malloc(adtg_buf_pos_max * 4);
+    adtg_buf = shoot_malloc(adtg_buf_pos_max * 4 + 0x100);
     
     if(!adtg_buf)
     {   
         return;
     }
     
+    /* set watchpoints at ADTG and CMOS writes */
     gdb_setup();
     breakpoint_t *bkpt1 = gdb_add_watchpoint(ADTG_WRITE_FUNC, 0, &adtg_log);
     breakpoint_t *bkpt2 = gdb_add_watchpoint(CMOS_WRITE_FUNC, 0, &cmos_log);
     breakpoint_t *bkpt3 = gdb_add_watchpoint(CMOS16_WRITE_FUNC, 0, &cmos16_log);
     
+    /* wait for buffer being filled */
     while(adtg_buf_pos + 2 < adtg_buf_pos_max)
     {
-        bmp_printf(FONT_MED, 30, 60, "cmos:");
-        for(int pos = 0; pos < 8; pos+=2)
-        {
-            bmp_printf(FONT_MED, 30, 80 + pos / 2 * font_med.height, "[%d] 0x%03X [%d] 0x%03X", pos, cmos_regs[pos], pos + 1, cmos_regs[pos+1]);
-        }
+        BMP_LOCK(
+            bmp_printf(FONT_MED, 30, 60, "cmos:");
+            for(int pos = 0; pos < 8; pos+=2)
+            {
+                bmp_printf(FONT_MED, 30, 80 + pos / 2 * font_med.height, "[%d] 0x%03X [%d] 0x%03X", pos, cmos_regs[pos], pos + 1, cmos_regs[pos+1]);
+            }
+        )
         msleep(100);
     }
     
+    /* uninstall watchpoints */
     gdb_delete_bkpt(bkpt1);
     gdb_delete_bkpt(bkpt2);
     gdb_delete_bkpt(bkpt3);
     
+    /* dump all stuff */
     char filename[100];
-    snprintf(filename, sizeof(filename), "%s/test.bin", get_dcim_dir());
+    snprintf(filename, sizeof(filename), "%s/adtg.bin", get_dcim_dir());
     FILE* f = FIO_CreateFileEx(filename);
     FIO_WriteFile(f, adtg_buf, adtg_buf_pos * 4); 
     FIO_CloseFile(f);
