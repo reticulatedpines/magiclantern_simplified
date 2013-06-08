@@ -229,7 +229,7 @@ static void detect_vertical_stripes_coeffs()
 
     /* compute 8 little histograms */
     struct raw_pixblock * row;
-    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.frame_size; row += raw_info.pitch / sizeof(struct raw_pixblock))
+    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(struct raw_pixblock))
     {
         struct raw_pixblock * p;
         for (p = row; (void*)p < (void*)row + raw_info.pitch - sizeof(struct raw_pixblock);)
@@ -392,7 +392,7 @@ static void apply_vertical_stripes_correction()
     
     struct raw_pixblock * row;
     
-    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.frame_size; row += raw_info.pitch / sizeof(struct raw_pixblock))
+    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(struct raw_pixblock))
     {
         struct raw_pixblock * p;
         for (p = row; (void*)p < (void*)row + raw_info.pitch; p++)
@@ -410,7 +410,7 @@ static void apply_vertical_stripes_correction()
 
     //~ printf("white: %d\n", white);
     
-    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.frame_size; row += raw_info.pitch / sizeof(struct raw_pixblock))
+    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(struct raw_pixblock))
     {
         struct raw_pixblock * p;
         for (p = row; (void*)p < (void*)row + raw_info.pitch; p++)
