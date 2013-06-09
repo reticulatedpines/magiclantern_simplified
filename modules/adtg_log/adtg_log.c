@@ -142,6 +142,9 @@ static void cmos16_log(breakpoint_t *bkpt)
         adtg_buf_pos++;
         adtg_buf[adtg_buf_pos] = *data_buf;
         adtg_buf_pos++;
+        
+        cmos_reg_update(*data_buf);
+        cmos_reg_manipulate(data_buf);
         data_buf++;
     }
 }
