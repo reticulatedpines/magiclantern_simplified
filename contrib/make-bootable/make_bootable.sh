@@ -18,6 +18,7 @@ if [[ $OSTYPE == darwin* ]]; then   # OS X
 elif [[ $OSTYPE == linux* ]]; then   # Linux
   UNMOUNT='umount'
 fi
+if [[ -z $1 ]]; then
   dev=$(mount | grep EOS_DIGITAL | awk '{print $1}' )
   if [ "x$dev" = "x" ]; then
     echo "The EOS_DIGITAL card should be mounted before running the script."
@@ -29,9 +30,12 @@ fi
     exit
   fi
   $UNMOUNT $dev
+else
+  dev=$1
+fi
 
 # read the boot sector to determine the filesystem version
-DEV64=`dd if=$dev bs=1 skip=3 count=8 2>/dev/null`
+EXFAT=`dd if=$dev bs=1 skip=3 count=8 2>/dev/null`
 DEV32=`dd if=$dev bs=1 skip=82 count=8 2>/dev/null`
 DEV16=`dd if=$dev bs=1 skip=54 count=8 2>/dev/null`
 if [ "$DEV16" != 'FAT16   ' -a "$DEV32" != 'FAT32   ' -a "$EXFAT" != 'EXFAT   ' ]; then
@@ -48,7 +52,7 @@ elif [ "$DEV32" = 'FAT32   ' ]; then
   offset1=71
   offset2=92
   FS='FAT32'
-elif [ "$DEV64" = 'EXFAT   ' ]; then
+elif [ "$EXFAT" = 'EXFAT   ' ]; then
   offset1=130
   offset2=122
   FS='EXFAT'
