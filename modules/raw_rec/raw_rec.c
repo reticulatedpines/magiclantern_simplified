@@ -702,7 +702,10 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
 {
     if (!raw_video_enabled)
         return 0;
-    
+
+    if (!is_movie_mode())
+        return 1;
+
     /* refresh cropmark (faster when panning, slower when idle) */
     static int aux = INT_MIN;
     if (frame_offset_delta_x || frame_offset_delta_y || should_run_polling_action(500, &aux))
@@ -1359,7 +1362,7 @@ static struct menu_entry raw_video_menu[] =
         .max = 1,
         .update = raw_main_update,
         .submenu_width = 710,
-        .depends_on = DEP_LIVEVIEW,
+        .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
         .help = "Record 14-bit RAW video. Press LiveView to start.",
         .children =  (struct menu_entry[]) {
             {
@@ -1445,6 +1448,9 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     if (!raw_video_enabled)
         return 1;
     
+    if (!is_movie_mode())
+        return 1;
+    
     /* keys are only hooked in LiveView */
     if (!liveview_display_idle())
         return 1;
@@ -1518,7 +1524,8 @@ static int preview_dirty = 0;
 static unsigned int raw_rec_should_preview(unsigned int ctx)
 {
     if (!raw_video_enabled) return 0;
-    
+    if (!is_movie_mode()) return 0;
+
     /* keep x10 mode unaltered, for focusing */
     if (lv_dispsize == 10) return 0;
     
