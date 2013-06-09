@@ -177,7 +177,8 @@ static void _module_load_all(void)
             char module_name[MODULE_FILENAME_LENGTH];
 
             /* get filename, remove extension and append _init to get the init symbol */
-
+            console_printf("  [i] found: %s\n", file.name);
+            
             /* ensure the buffer is null terminated */
             memset(module_name, 0x00, sizeof(module_name));
             strncpy(module_name, file.name, MODULE_NAME_LENGTH);
@@ -200,10 +201,26 @@ static void _module_load_all(void)
                 pos++;
             }
             strncpy(module_list[module_cnt].name, module_name, sizeof(module_list[module_cnt].name));
-            snprintf(module_list[module_cnt].status, sizeof(module_list[module_cnt].status), "???");
-            snprintf(module_list[module_cnt].long_status, sizeof(module_list[module_cnt].long_status), "Seems linking failed. Unknown symbols?");
+            
+            /* check for a .dis file that tells the module is disabled */
+            char disable_file[MODULE_FILENAME_LENGTH];
+            snprintf(disable_file, sizeof(disable_file), MODULE_PATH"%s.dis", module_list[module_cnt].name);
+            
+            /* if disable-file is existent, dont load module */
+            if(!config_flag_file_setting_load(disable_file))
+            {
+                module_list[module_cnt].enabled = 1;
+                snprintf(module_list[module_cnt].status, sizeof(module_list[module_cnt].status), "???");
+                snprintf(module_list[module_cnt].long_status, sizeof(module_list[module_cnt].long_status), "Seems linking failed. Unknown symbols?");
+            }
+            else
+            {
+                module_list[module_cnt].enabled = 0;
+                snprintf(module_list[module_cnt].status, sizeof(module_list[module_cnt].status), "Off");
+                snprintf(module_list[module_cnt].long_status, sizeof(module_list[module_cnt].long_status), "Module disabled");
+                console_printf("  [i] %s\n", module_list[module_cnt].long_status);
+            }
 
-            console_printf("  [i] found: %s\n", file.name);
             module_cnt++;
             if (module_cnt >= MODULE_COUNT_MAX)
             {
@@ -218,17 +235,24 @@ static void _module_load_all(void)
     console_printf("Load modules...\n");
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
-        console_printf("  [i] load: %s\n", module_list[mod].filename);
-        snprintf(module_list[mod].long_filename, sizeof(module_list[mod].long_filename), "%s%s", MODULE_PATH, module_list[mod].filename);
-        int32_t ret = tcc_add_file(state, module_list[mod].long_filename);
-
-        /* seems bad, disable it */
-        if(ret < 0)
+        if(module_list[mod].enabled)
         {
-            module_list[mod].valid = 0;
-            snprintf(module_list[mod].status, sizeof(module_list[mod].status), "FileErr");
-            snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Load failed: %s, ret 0x%02X");
-            console_printf("  [E] %s\n", module_list[mod].long_status);
+            console_printf("  [i] load: %s\n", module_list[mod].filename);
+            snprintf(module_list[mod].long_filename, sizeof(module_list[mod].long_filename), "%s%s", MODULE_PATH, module_list[mod].filename);
+            int32_t ret = tcc_add_file(state, module_list[mod].long_filename);
+
+            /* seems bad, disable it */
+            if(ret < 0)
+            {
+                module_list[mod].valid = 0;
+                snprintf(module_list[mod].status, sizeof(module_list[mod].status), "FileErr");
+                snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Load failed: %s, ret 0x%02X");
+                console_printf("  [E] %s\n", module_list[mod].long_status);
+            }
+            else
+            {
+                module_list[mod].valid = 1;
+            }
         }
     }
 
@@ -245,7 +269,7 @@ static void _module_load_all(void)
     /* init modules */
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
-        if(!module_list[mod].valid)
+        if(module_list[mod].enabled && module_list[mod].valid)
         {
             char module_info_name[32];
             console_printf("  [i] Init: '%s'\n", module_list[mod].name);
@@ -731,9 +755,19 @@ static MENU_UPDATE_FUNC(module_menu_update_autoload)
 {
     int mod_number = (int) entry->priv;
 
-    MENU_SET_VALUE("ON");
-    MENU_SET_ICON(MNI_ON, 0);
-    MENU_SET_WARNING(MENU_WARN_ADVICE, module_list[mod_number].long_filename);
+    MENU_SET_VALUE(module_list[mod_number].enabled?"ON":"OFF");
+    MENU_SET_ICON(module_list[mod_number].enabled?MNI_ON:MNI_OFF, 0);
+    MENU_SET_WARNING(MENU_WARN_ADVICE, module_list[mod_number].name);
+}
+
+static MENU_SELECT_FUNC(module_menu_update_select)
+{
+    char disable_file[MODULE_FILENAME_LENGTH];
+    int mod_number = (int) priv;
+    
+    module_list[mod_number].enabled = !module_list[mod_number].enabled;
+    snprintf(disable_file, sizeof(disable_file), MODULE_PATH"%s.dis", module_list[mod_number].name);
+    config_flag_file_setting_save(disable_file, !module_list[mod_number].enabled);
 }
 
 static MENU_UPDATE_FUNC(module_menu_update_parameter)
@@ -973,8 +1007,8 @@ static struct menu_entry module_submenu[] = {
             .icon_type = MNI_ON,
             .max = 1,
             .update = module_menu_update_autoload,
-            .select = module_menu_select_empty,
-            .help = "Load automatically on startup. (Not implemented yet)",
+            .select = module_menu_update_select,
+            .help = "Load automatically on startup.",
         },
         {
             .help = "",

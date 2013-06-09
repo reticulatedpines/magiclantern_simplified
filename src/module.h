@@ -158,6 +158,7 @@ typedef struct
     module_prophandler_t **prop_handlers;
     module_cbr_t *cbr;
     int valid;
+    int enabled;
 } module_entry_t;
 
 
