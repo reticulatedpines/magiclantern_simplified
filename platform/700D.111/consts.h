@@ -189,7 +189,7 @@
 
     // from CFn
     #define AF_BTN_HALFSHUTTER 0
-    #define AF_BTN_STAR 2
+    #define AF_BTN_STAR 3
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x369A4) // dec GuiImageZoomDown and look for a negative counter
 #define IMGPLAY_ZOOM_LEVEL_MAX 14
