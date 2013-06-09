@@ -384,13 +384,13 @@ int raw_hist_get_percentile_level(int percentile, int gray_projection)
     for( i=0 ; i < 16384 ; i++ )
         total += hist[i];
     
-    int thr = total * percentile / 100;  // 50% => median
+    int thr = total * percentile / 100 - 5;  // 50% => median; allow up to 5 stuck pixels
     int n = 0;
     int ans = -1;
     
     for( i=0 ; i < 16384; i++ )
     {
-       n += hist[i];
+        n += hist[i];
         if (n >= thr)
         {
             ans = i;
