@@ -4001,40 +4001,6 @@ static int auto_ettr_check_lv()
     return 1;
 }
 
-static void auto_ettr_step_lv()
-{
-    if (!auto_ettr || !AUTO_ETTR_TRIGGER_PHOTO)
-        return;
-    
-    if (!auto_ettr_check_lv())
-        return;
-    
-    if (get_halfshutter_pressed())
-        return;
-
-    /* only update once per 1.5 seconds, so the exposure has a chance to be updated on the LCD */
-    static int aux = INT_MIN;
-    if (!should_run_polling_action(1500, &aux))
-        return;
-    
-    raw_lv_request();
-    int corr = auto_ettr_get_correction();
-    raw_lv_release();
-    
-    /* only correct if the difference is greater than 0.6 EV */
-    static int settled = 0;
-    if (corr != INT_MIN && ABS(corr) > 60)
-    {
-        auto_ettr_work(corr);
-        settled = 0;
-    }
-    else
-    {
-        settled++;
-        if (settled == 2) beep();
-    }
-}
-
 #if defined(CONFIG_FRAME_SHUTTER_OVERRIDE) && defined(CONFIG_FRAME_ISO_OVERRIDE)
 
 static volatile int auto_ettr_vsync_active = 0;
@@ -4148,7 +4114,69 @@ end:
 
     if (lv && !was_in_lv) { msleep(200); fake_simple_button(BGMT_LV); }
 }
+
+static void auto_ettr_step_lv()
+{
+    if (!auto_ettr || !AUTO_ETTR_TRIGGER_PHOTO)
+        return;
+    
+    if (!auto_ettr_check_lv())
+        return;
+    
+    if (get_halfshutter_pressed())
+        return;
+
+    /* only poll exposure once per second */
+    static int aux = INT_MIN;
+    if (!should_run_polling_action(1000, &aux))
+        return;
+    
+    raw_lv_request();
+    int corr = auto_ettr_get_correction();
+    
+    /* only correct if the image is overexposed by more than 0.2 EV or underexposed by more than 1 EV */
+    if (corr != INT_MIN && (corr < -20 || corr > 100))
+    {
+        auto_ettr_vsync_active = 1;
+        auto_ettr_vsync_delta = 0;
+        int k;
+        for (k = 0; k < 5; k++)
+        {
+            /* see how far we are from the ideal exposure */
+            if (k > 0) corr = auto_ettr_get_correction();
+            if (corr == INT_MIN) break;
+            
+            /* override the liveview parameters via auto_ettr_vsync_cbr (much faster than via properties) */
+            auto_ettr_vsync_delta += corr * 8 / 100;
+
+            /* I'm confident the last iteration was accurate */
+            if (corr >= -20 && corr <= 200)
+                break;
+            
+            /* wait for 3 frames before trying again */
+            auto_ettr_vsync_counter = 0;
+            int count = 0;
+            while (auto_ettr_vsync_counter < 3)
+            {
+                msleep(20);
+                count++;
+                if (count > 100) break;
+            }
+        }
+        auto_ettr_vsync_active = 0;
+
+        /* apply the final correction via properties */
+        auto_ettr_work(auto_ettr_vsync_delta * 100 / 8);
+
+        msleep(500);
+        if (k < 5) beep();
+        msleep(500);
+    }
+    raw_lv_release();
+}
+
 #else
+
 static void auto_ettr_on_request_task(int unused)
 {
     beep();
@@ -4200,6 +4228,40 @@ end:
     beep();
     if (lv && !was_in_lv) fake_simple_button(BGMT_LV);
     auto_ettr_running = 0;
+}
+
+static void auto_ettr_step_lv()
+{
+    if (!auto_ettr || !AUTO_ETTR_TRIGGER_PHOTO)
+        return;
+    
+    if (!auto_ettr_check_lv())
+        return;
+    
+    if (get_halfshutter_pressed())
+        return;
+
+    /* only update once per 1.5 seconds, so the exposure has a chance to be updated on the LCD */
+    static int aux = INT_MIN;
+    if (!should_run_polling_action(1500, &aux))
+        return;
+    
+    raw_lv_request();
+    int corr = auto_ettr_get_correction();
+    raw_lv_release();
+    
+    /* only correct if the image is overexposed by more than 0.2 EV or underexposed by more than 1 EV */
+    static int settled = 0;
+    if (corr != INT_MIN && (corr < -20 || corr > 100))
+    {
+        auto_ettr_work(corr);
+        settled = 0;
+    }
+    else
+    {
+        settled++;
+        if (settled == 2) beep();
+    }
 }
 #endif
 
