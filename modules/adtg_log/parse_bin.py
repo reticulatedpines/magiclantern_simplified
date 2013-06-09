@@ -40,15 +40,15 @@ with open(filename,"rb") as f:
 		if dst == 0xFF000000:
 			reg = dat >> 12
 			val = dat & 0x0FFF
-			str += "[CMOS16]  Reg:    %01X  Data:  %03X  (%4d)  " % (reg, val, dat & 0x0FFF)
+			str += "[CMOS16]  Reg:    %01X  Data:  %03X  (%4d)  " % (reg, val, val)
 			val = nrzi_decode(dat & 0x0FFF)
-			str += "[CMOS16]  Reg:    %01X  Data:  %03X  (%4d)" % (reg, val, dat & 0x0FFF)
+			str += "[CMOS16]  Reg:    %01X  Data:  %03X  (%4d)" % (reg, val, val)
 		elif dst == 0x00FF0000:
 			reg = dat >> 12
 			val = dat & 0x0FFF
-			str += "[CMOS]    Reg:    %01X  Data:  %03X  (%4d)  " % (reg, val, dat & 0x0FFF)
+			str += "[CMOS]    Reg:    %01X  Data:  %03X  (%4d)  " % (reg, val, val)
 			val = nrzi_decode(dat & 0x0FFF)
-			str += "[CMOS]    Reg:    %01X  Data:  %03X  (%4d)" % (reg, val, dat & 0x0FFF)
+			str += "[CMOS]    Reg:    %01X  Data:  %03X  (%4d)" % (reg, val, val)
 		elif dst == 0xFFFFFFFF:
 			str += "[----------- VSYNC ------------]   "
 		else:
