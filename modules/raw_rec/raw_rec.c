@@ -1513,6 +1513,8 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     return 1;
 }
 
+static int preview_dirty = 0;
+
 static unsigned int raw_rec_should_preview(unsigned int ctx)
 {
     if (!raw_video_enabled) return 0;
@@ -1536,17 +1538,22 @@ static unsigned int raw_rec_should_preview(unsigned int ctx)
     return 0;
 }
 
+static unsigned int raw_rec_should_preview_wrap(unsigned int ctx)
+{
+    if (raw_rec_should_preview(ctx))
+        return 1;
+    
+    if (preview_dirty)
+    {
+        raw_set_dirty();
+        preview_dirty = 0;
+    }
+    
+    return 0;
+}
+
 static unsigned int raw_rec_update_preview(unsigned int ctx)
 {
-    static int preview_dirty = 0;
-    
-    if (!raw_rec_should_preview(0))
-    {
-        if (preview_dirty)
-            raw_set_dirty();
-        return 0;
-    }
-
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
 
     raw_previewing = 1;
@@ -1563,6 +1570,8 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
         int used_buffers = buffer_count - free_buffers;
         msleep(free_buffers <= 2 ? 2000 : used_buffers > 1 ? 1000 : 100);
     }
+
+    preview_dirty = 1;
     return 1;
 }
 
@@ -1594,6 +1603,6 @@ MODULE_CBRS_START()
     MODULE_CBR(CBR_VSYNC, raw_rec_vsync_cbr, 0)
     MODULE_CBR(CBR_KEYPRESS, raw_rec_keypress_cbr, 0)
     MODULE_CBR(CBR_SHOOT_TASK, raw_rec_polling_cbr, 0)
-    MODULE_CBR(CBR_DISPLAY_FILTER_ENABLED, raw_rec_should_preview, 0)
+    MODULE_CBR(CBR_DISPLAY_FILTER_ENABLED, raw_rec_should_preview_wrap, 0)
     MODULE_CBR(CBR_DISPLAY_FILTER_UPDATE, raw_rec_update_preview, 0)
 MODULE_CBRS_END()

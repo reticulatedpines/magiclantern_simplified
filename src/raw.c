@@ -18,6 +18,7 @@
 
 static int shave_right = 0;
 static int dirty = 0;
+int raw_get_shave_right() { return shave_right; } /* todo: add it in raw_info structure, at next raw file format update */
 
 /*********************** Camera-specific constants ****************************/
 
@@ -469,11 +470,36 @@ int raw_update_params()
 
     static int prev_shave = 0;
     if (width != raw_info.width || height != raw_info.height || shave_right != prev_shave)
+    {
+        /* raw dimensions changed? force a full update, including preview window */
         dirty = 1;
+    }
     prev_shave = shave_right;
     
+    if (lv_dispsize > 1)
+    {
+        /* in zoom mode: yuv position changed? also force a full update */
+        static int prev_zoom = 0;
+        static int prev_delta_x = 0;
+        static int prev_delta_y = 0;
+        
+        int zoom = lv_dispsize;
+        int delta_x, delta_y;
+        focus_box_get_raw_crop_offset(&delta_x, &delta_y);
+        
+        if (zoom != prev_zoom || delta_x != prev_delta_x || delta_y != prev_delta_y)
+            dirty = 1;
+        
+        prev_zoom = zoom;
+        prev_delta_x = delta_x;
+        prev_delta_y = delta_y;
+    }
+    
     if (dirty)
+    {
         raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
+        dirty = 0;
+    }
 
     raw_info.white_level = WHITE_LEVEL;
 
@@ -557,7 +583,57 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
 
     dbg_printf("active area: x=%d..%d, y=%d..%d\n", raw_info.active_area.x1, raw_info.active_area.x2, raw_info.active_area.y1, raw_info.active_area.y2);
     
-    raw_set_preview_rect(skip_left, skip_top, raw_info.jpeg.width + shave_right, raw_info.jpeg.height);
+    int preview_skip_left = skip_left;
+    int preview_skip_top = skip_top;
+    int preview_width = raw_info.jpeg.width + shave_right;
+    int preview_height = raw_info.jpeg.height;
+    if (lv_dispsize > 1)
+    {
+        int delta_x, delta_y;
+        if (focus_box_get_raw_crop_offset(&delta_x, &delta_y))
+        {
+            /* in 10x, the yuv area is twice as small than in 5x */
+            int zoom_corr = lv_dispsize == 10 ? 2 : 1;
+            
+            /* focus_box_get_raw_crop_offset doesn't know about shaving */
+            delta_x += shave_right/2;
+
+            /**
+             *  |<-----------------raw_info.width--------------------------->|
+             *  |                                                            |
+             *  |               raw_info.jpeg.width                          |
+             *  | |<---------------------------------------------------------|
+             *  |                                                            |
+             *->|-|<--- skip_left                                            |
+             *  | |                                                          |               skip_top
+             *        +-------preview_height                                 |
+             *  .-----:------------------------------------------------------. -----------------v-----------------------------
+             *  | |```:``````````````````````````````````````````````````````| `````````````````^``    ^                  ^
+             *  | |   :    |<-preview_width->|                               |     delta_y             |                  | preview_skip_top
+             *  | |  _V_    _________________                                |        |                |     _____________v___
+             *  | |   |    |                 |                               |        v                |
+             *  | |   |    |                 |     C_raw                     |  ------+--       raw_info.height
+             *  | |   |    |        C_yuv    |                               |  ------+--              |
+             *  | |   |    |                 |                               |        ^                |
+             *  | |  _|_   |_________________|                               |        |                |
+             *  | |   ^                                                      |                         v
+             *  '------------------------------------------------------------' ----------------------------
+             *                      |              |
+             *  |          |        |---delta_x--->|
+             *  |          |
+             *->|----------|<-- preview_skip_left
+             *  |          |
+             * 
+             */
+            /* if the yuv window is on the left side, delta_x is > 0 */
+            preview_skip_left += (raw_info.jpeg.width + shave_right - vram_hd.width / zoom_corr) / 2 - delta_x;
+            preview_skip_top += (raw_info.jpeg.height - vram_hd.height / zoom_corr) / 2 - delta_y;
+            preview_width = vram_hd.width / zoom_corr;
+            preview_height = vram_hd.height / zoom_corr;
+        }
+    }
+    
+    raw_set_preview_rect(preview_skip_left, preview_skip_top, preview_width, preview_height);
 
     dbg_printf("lv2raw sx:%d sy:%d tx:%d ty:%d\n", lv2raw.sx, lv2raw.sy, lv2raw.tx, lv2raw.ty);
     dbg_printf("raw2lv test: (%d,%d) - (%d,%d)\n", RAW2LV_X(raw_info.active_area.x1), RAW2LV_Y(raw_info.active_area.y1), RAW2LV_X(raw_info.active_area.x2), RAW2LV_Y(raw_info.active_area.y2));

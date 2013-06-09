@@ -929,9 +929,11 @@ int focus_box_get_raw_crop_offset(int* delta_x, int* delta_y)
             int here_x = (x1+x2) * scale_x / 200;
             int here_y = (y1+y2) * scale_y / 200;
             
+            here_y += raw_info.active_area.y1 / (lv_dispsize == 5 ? 4 : 8); /* don't ask me why */
+            
             /* we want to be in the center */
-            int dest_x = raw_info.active_area.x1 + MAX(raw_info.jpeg.width, w + 350) / 2;
-            int dest_y = raw_info.active_area.y1 + MAX(raw_info.jpeg.height, h + 350) / 2;
+            int dest_x = raw_info.active_area.x1 + raw_info.jpeg.width / 2;
+            int dest_y = raw_info.active_area.y1 + raw_info.jpeg.height / 2;
             
             /* how far we are from there? */
             *delta_x = dest_x - here_x;
@@ -1055,6 +1057,17 @@ void center_lv_afframe_do()
                 int delta_x, delta_y;
                 if (focus_box_get_raw_crop_offset(&delta_x, &delta_y))
                 {
+                    /* be careful not to change the raw window */
+                    int shave_right = raw_get_shave_right();
+                    int gap_left = (raw_info.jpeg.width + shave_right - vram_hd.width) / 2 - delta_x;
+                    int gap_top  = (raw_info.jpeg.height - vram_hd.height) / 2 - delta_y;
+                    int gap_right = (raw_info.jpeg.width + shave_right - vram_hd.width) / 2 + delta_x;
+                    int gap_bottom  = (raw_info.jpeg.height - vram_hd.height) / 2 + delta_y;
+                    if (gap_left < 200) delta_x -= (200 - gap_left);
+                    if (gap_top < 50) delta_y -= (50 - gap_top);
+                    if (gap_right < 200) delta_x += (200 - gap_right);
+                    if (gap_bottom < 50) delta_y += (50 - gap_bottom);
+                    
                     /* focus box is here */
                     int Xc = Xtl + w/2;
                     int Yc = Ytl + h/2;
