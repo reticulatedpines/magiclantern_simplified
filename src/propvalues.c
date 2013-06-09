@@ -59,8 +59,18 @@ PROP_HANDLER(PROP_DOF_PREVIEW_MAYBE) // len=2
 volatile int lv = 0;
 volatile int lv_paused = 0; // not a property, but related
 
+static volatile int custom_movie_mode = 0;
+void set_custom_movie_mode(int value)
+{
+    custom_movie_mode = value;
+}
+
 bool FAST is_movie_mode()
 {
+    /* e.g. raw video, mjpeg, whatever (these modules would have to call set_custom_movie_mode); */
+    if (custom_movie_mode) 
+        return 1;
+    
     #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
     return lv && lv_movie_select == LVMS_ENABLE_MOVIE
             #ifdef CONFIG_5D2
