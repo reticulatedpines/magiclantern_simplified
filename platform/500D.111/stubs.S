@@ -84,6 +84,7 @@ NSTUB( 0xFF196338, FIO_Open)
 NSTUB( 0xFF196724, FIO_ReadFile )
 NSTUB( 0xFF196608, FIO_RemoveFile )	
 NSTUB( 0xFF1968D4, FIO_WriteFile )
+NSTUB( 0xFF1968B4, FIO_SeekFile )
 NSTUB( 0xFF019044, free )
 NSTUB( 0xFF1A72CC, free_dma_memory )
 NSTUB( 0xFF06B044, FreeMemory ) // release_mem in Indy's IDC
