@@ -3844,9 +3844,9 @@ int auto_ettr_get_correction()
     if (correction <= target + 0.1)
     {
         /* we don't know how much to go back in order to fix the overexposure */
-        /* so we'll use a heuristic: for each 10% of blown out image, go back 1EV */
-        int overexposed = raw_hist_get_overexposure_percentage(gray_proj);
-        correction -= overexposed / 10.0;
+        /* so we'll use a heuristic: for 1% of blown out image, go back 1EV, for 100% go back 10EV */
+        float overexposed = raw_hist_get_overexposure_percentage(gray_proj) / 100.0;
+        correction -= log2f(1 + overexposed);
         auto_ettr_overexposure_warning = 1;
     }
     else auto_ettr_overexposure_warning = 0;
@@ -4054,13 +4054,18 @@ static void auto_ettr_on_request_task(int unused)
         else
             break;
         
-        if (ABS(corr) < 60)
+        if (corr >= -20 && corr <= 200) /* I'm confident the last iteration was accurate */
             break;
         
         if (get_halfshutter_pressed())
             break;
         
-        if (k == 4) beep();
+        if (k == 4)
+        {
+            beep();
+            NotifyBox(2000, "Whoops");
+            goto end;
+        }
     }
     NotifyBoxHide();
 

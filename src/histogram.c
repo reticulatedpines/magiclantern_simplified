@@ -426,7 +426,8 @@ int raw_hist_get_overexposure_percentage(int gray_projection)
         }
     }
     
-    return over * 100 / total;
+    /* percentage x100 */
+    return over * 10000 / total;
 }
 
 #endif
