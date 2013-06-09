@@ -55,12 +55,12 @@ static CONFIG_INT("post.deflicker.level", post_deflicker_target_level, -4);
 #ifdef FEATURE_AUTO_ETTR
 static CONFIG_INT("auto.ettr", auto_ettr, 0);
 static CONFIG_INT("auto.ettr.trigger", auto_ettr_trigger, 1);
-static CONFIG_INT("auto.ettr.ignore", auto_ettr_ignore, 1);
+static CONFIG_INT("auto.ettr.ignore", auto_ettr_ignore, 2);
 static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
 static CONFIG_INT("auto.ettr.max.tv", auto_ettr_max_shutter, 88);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
-#define auto_ettr_percentile (100 - auto_ettr_ignore)
+#define auto_ettr_percentile (1000 - auto_ettr_ignore)
 #endif
 
 #define AUTO_ETTR_TRIGGER_PHOTO (auto_ettr_trigger == 0 || intervalometer_running)
@@ -4312,7 +4312,7 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
     
     if (auto_ettr)
-        MENU_SET_RINFO("%dEV/%d%%", auto_ettr_target_level, auto_ettr_ignore);
+        MENU_SET_RINFO("%dEV/%d.%d%%", auto_ettr_target_level, auto_ettr_ignore/10, auto_ettr_ignore%10);
 
     if (auto_ettr && auto_ettr_trigger)
         MENU_SET_VALUE(auto_ettr_trigger == 1 ? "Press SET" : "HalfS DBC");
@@ -5823,9 +5823,10 @@ static struct menu_entry expo_menus[] = {
                 .name = "Highlight ignore",
                 .priv = &auto_ettr_ignore,
                 .min = 0,
-                .max = 50,
-                .unit = UNIT_PERCENT,
-                .help  = "How many bright pixels are allowed above target level.",
+                .max = 500,
+                .unit = UNIT_PERCENT_x10,
+                .icon_type = IT_PERCENT,
+                .help  = "How many bright pixels are allowed above the target level.",
                 .help2 = "Use this to allow spec(ta)cular highlights to be clipped.",
             },
             {

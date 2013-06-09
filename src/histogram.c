@@ -357,7 +357,7 @@ void hist_highlight(int level)
 
 #ifdef FEATURE_RAW_HISTOGRAM
 
-int raw_hist_get_percentile_level(int percentile, int gray_projection)
+int raw_hist_get_percentile_level(int percentile_x10, int gray_projection)
 {
     if (!raw_update_params()) return -1;
     get_yuv422_vram();
@@ -384,7 +384,7 @@ int raw_hist_get_percentile_level(int percentile, int gray_projection)
     for( i=0 ; i < 16384 ; i++ )
         total += hist[i];
     
-    int thr = total * percentile / 100 - 5;  // 50% => median; allow up to 5 stuck pixels
+    int thr = total * percentile_x10 / 1000 - 5;  // 50% => median; allow up to 5 stuck pixels
     int n = 0;
     int ans = -1;
     
