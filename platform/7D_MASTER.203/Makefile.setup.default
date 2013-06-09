@@ -1,6 +1,6 @@
 #Makefile for 7D firmware 203 master digic
 
-PL_SRC_PROFILE=custom
+ML_SRC_PROFILE=custom
 
 # compile position independent (experimental, not working completely yet)
 CONFIG_PIC=n

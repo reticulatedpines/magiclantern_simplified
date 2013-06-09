@@ -1,6 +1,6 @@
 TOP_DIR?=../..
 ML_SETUP_EXTENSION=platform
-ML_SRC_PROFILE=generic
+ML_SRC_PROFILE?=generic
 
 include $(TOP_DIR)/platform/Makefile.platform.base
 
