@@ -4035,6 +4035,120 @@ static void auto_ettr_step_lv()
     }
 }
 
+#if defined(CONFIG_FRAME_SHUTTER_OVERRIDE) && defined(CONFIG_FRAME_ISO_OVERRIDE)
+
+static volatile int auto_ettr_vsync_active = 0;
+static volatile int auto_ettr_vsync_delta = 0;
+static volatile int auto_ettr_vsync_counter = 0;
+
+/* instead of changing settings via properties, we can override them very quickly */
+int auto_ettr_vsync_cbr()
+{
+    if (auto_ettr_vsync_active)
+    {
+        int delta = auto_ettr_vsync_delta;
+        int current_iso = FRAME_ISO & 0xFF;
+        int current_shutter = FRAME_SHUTTER_TIMER;
+        int altered_iso = current_iso;
+        int altered_shutter = current_shutter;
+
+        int max_iso = MAX_ANALOG_ISO;
+        
+        /* we can't rely on increasing shutter, so try to do everything with ISO first
+         * especially for delta > 0 */
+        while (delta > 0 && altered_iso + 8 <= max_iso)
+        {
+            altered_iso += 8;
+            delta -= 8;
+        }
+
+        while (delta < -8 && altered_iso - 8 >= 72)
+        {
+            altered_iso -= 8;
+            delta += 8;
+        }
+        
+        FRAME_ISO = altered_iso;
+        
+        altered_shutter = (int)roundf(powf(2, delta/8.0) * current_shutter);
+        FRAME_SHUTTER_TIMER = altered_shutter;
+        
+        //~ bmp_printf(FONT_MED, 100, 100, "delta %d iso %d->%d shutter %d->%d",  auto_ettr_vsync_delta, current_iso, altered_iso, current_shutter, altered_shutter);
+        auto_ettr_vsync_counter++;
+        return 1;
+    }
+    return 0;
+}
+
+static void auto_ettr_on_request_task(int unused)
+{
+    beep();
+    
+    int was_in_lv = lv;
+    if (!lv) force_liveview();
+    if (!lv) goto end;
+    if (lv_dispsize != 1) set_lv_zoom(1);
+    if (!auto_ettr_check_lv()) goto end;
+    if (get_halfshutter_pressed())
+    {
+        msleep(500);
+        if (get_halfshutter_pressed()) goto end;
+    }
+
+    NotifyBox(100000, "Auto ETTR...");
+    auto_ettr_vsync_active = 1;
+    auto_ettr_vsync_delta = 0;
+    raw_lv_request();
+    for (int k = 0; k < 10; k++)
+    {
+        /* see how far we are from the ideal exposure */
+        int corr = auto_ettr_get_correction();
+        if (corr == INT_MIN) break;
+        
+        /* override the liveview parameters via auto_ettr_vsync_cbr (much faster than via properties) */
+        auto_ettr_vsync_delta += corr * 8 / 100;
+
+        /* I'm confident the last iteration was accurate */
+        if (corr >= -20 && corr <= 200)
+            break;
+        
+        /* wait for 3 frames before trying again */
+        auto_ettr_vsync_counter = 0;
+        int count = 0;
+        while (auto_ettr_vsync_counter < 3)
+        {
+            msleep(20);
+            count++;
+            if (count > 100)
+            {
+                beep();
+                NotifyBox(2000, "Vsync err");
+                auto_ettr_vsync_delta = 0;
+                goto end;
+            }
+        }
+
+        if (k == 9)
+        {
+            beep();
+            NotifyBox(2000, "Whoops");
+            goto end;
+        }
+    }
+    NotifyBoxHide();
+
+end:
+    beep();
+    auto_ettr_running = 0;
+    auto_ettr_vsync_active = 0;
+    raw_lv_release();
+    
+    /* apply the final correction via properties */
+    auto_ettr_work(auto_ettr_vsync_delta * 100 / 8);
+
+    if (lv && !was_in_lv) { msleep(200); fake_simple_button(BGMT_LV); }
+}
+#else
 static void auto_ettr_on_request_task(int unused)
 {
     beep();
@@ -4087,6 +4201,7 @@ end:
     if (lv && !was_in_lv) fake_simple_button(BGMT_LV);
     auto_ettr_running = 0;
 }
+#endif
 
 int handle_ettr_keys(struct event * event)
 {
