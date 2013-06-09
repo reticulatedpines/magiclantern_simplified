@@ -180,7 +180,7 @@ static int stripes_correction_needed = 0;
 #define SET_PG(x) { int v = (x); p->g_lo = v; p->g_hi = v >> 2; }
 #define SET_PH(x) { int v = (x); p->h = v; }
 
-#define RAW_MUL(p, x) MIN((((int)(p) - raw_info.black_level) * (int)(x) / FIXP_ONE) + raw_info.black_level, 16383)
+#define RAW_MUL(p, x) ((((int)(p) - raw_info.black_level) * (int)(x) / FIXP_ONE) + raw_info.black_level)
 #define F2H(ev) COERCE((int)(FIXP_RANGE/2 + ev * FIXP_RANGE/2), 0, FIXP_RANGE-1)
 #define H2F(x) ((double)((x) - FIXP_RANGE/2) / (FIXP_RANGE/2))
 
@@ -407,8 +407,6 @@ static void apply_vertical_stripes_correction()
             white = MAX(white, PH);
         }
     }
-
-    //~ printf("white: %d\n", white);
     
     for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(struct raw_pixblock))
     {
@@ -429,14 +427,24 @@ static void apply_vertical_stripes_correction()
              * otherwise you'll be blessed with banding instead of nice and smooth highlight recovery
              */
             
-            if (stripes_coeffs[0] && pa < white) SET_PA(MIN(white, RAW_MUL(pa, stripes_coeffs[0])));
-            if (stripes_coeffs[1] && pb < white) SET_PB(MIN(white, RAW_MUL(pb, stripes_coeffs[1])));
-            if (stripes_coeffs[2] && pc < white) SET_PC(MIN(white, RAW_MUL(pc, stripes_coeffs[2])));
-            if (stripes_coeffs[3] && pd < white) SET_PD(MIN(white, RAW_MUL(pd, stripes_coeffs[3])));
-            if (stripes_coeffs[4] && pe < white) SET_PE(MIN(white, RAW_MUL(pe, stripes_coeffs[4])));
-            if (stripes_coeffs[5] && pf < white) SET_PF(MIN(white, RAW_MUL(pf, stripes_coeffs[5])));
-            if (stripes_coeffs[6] && pg < white) SET_PG(MIN(white, RAW_MUL(pg, stripes_coeffs[6])));
-            if (stripes_coeffs[7] && ph < white) SET_PH(MIN(white, RAW_MUL(ph, stripes_coeffs[7])));
+            if (stripes_coeffs[0] && pa && pa < white) SET_PA(MIN(white, RAW_MUL(pa, stripes_coeffs[0])));
+            if (stripes_coeffs[1] && pb && pb < white) SET_PB(MIN(white, RAW_MUL(pb, stripes_coeffs[1])));
+            if (stripes_coeffs[2] && pc && pc < white) SET_PC(MIN(white, RAW_MUL(pc, stripes_coeffs[2])));
+            if (stripes_coeffs[3] && pd && pd < white) SET_PD(MIN(white, RAW_MUL(pd, stripes_coeffs[3])));
+            if (stripes_coeffs[4] && pe && pe < white) SET_PE(MIN(white, RAW_MUL(pe, stripes_coeffs[4])));
+            if (stripes_coeffs[5] && pf && pf < white) SET_PF(MIN(white, RAW_MUL(pf, stripes_coeffs[5])));
+            if (stripes_coeffs[6] && pg && pg < white) SET_PG(MIN(white, RAW_MUL(pg, stripes_coeffs[6])));
+            if (stripes_coeffs[7] && ph && ph < white) SET_PH(MIN(white, RAW_MUL(ph, stripes_coeffs[7])));
+            
+            /* some cameras output bad pixels with raw value = 0; copy the value from a nearby pixel */
+            if (!pa) SET_PA(PC);
+            if (!pb) SET_PB(PD);
+            if (!pc) SET_PC(PE);
+            if (!pd) SET_PD(PF);
+            if (!pe) SET_PE(PG);
+            if (!pf) SET_PF(PD);
+            if (!pg) SET_PG(PE);
+            if (!ph) SET_PH(PF);
         }
     }
 }
