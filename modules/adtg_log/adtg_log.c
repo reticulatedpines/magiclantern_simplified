@@ -23,22 +23,23 @@ unsigned int adtg_buf_pos = 0;
 unsigned int adtg_buf_pos_max = 0;
 
 unsigned short cmos_regs[8];
+static int cmos_delta[8];
 
 static void cmos_reg_update(unsigned short cmos_data)
 {
     unsigned short reg = (cmos_data >> 12) & 0x07;
     unsigned short data = cmos_data & 0x0FFF;
-    
+
     cmos_regs[reg] = data;
 }
 
 static void cmos_reg_manipulate(unsigned short *cmos_data)
 {
-    /* check for reg */
-    if((*cmos_data & 0xF000) == 0x1000)
-    {
-        //*cmos_data = 0x1800;
-    }
+    unsigned short reg = (*cmos_data >> 12) & 0x07;
+    unsigned short data = *cmos_data & 0x0FFF;
+
+    data += cmos_delta[reg];
+    *cmos_data = (data & 0x0FFF) | (reg << 12);
 }
 
 static unsigned int adtg_log_vsync_cbr(unsigned int unused)
@@ -47,7 +48,6 @@ static unsigned int adtg_log_vsync_cbr(unsigned int unused)
     {
         return;
     }
-    uint32_t old_int = cli();
     
     if(adtg_buf_pos + 2 >= adtg_buf_pos_max)
     {
@@ -58,8 +58,6 @@ static unsigned int adtg_log_vsync_cbr(unsigned int unused)
     adtg_buf_pos++;    
     adtg_buf[adtg_buf_pos] = 0xFFFFFFFF;
     adtg_buf_pos++;
-    
-    sei(old_int);
 }
 
 static void adtg_log(breakpoint_t *bkpt)
@@ -167,15 +165,15 @@ void adtg_log_task()
     /* wait for buffer being filled */
     while(adtg_buf_pos + 2 < adtg_buf_pos_max)
     {
-        BMP_LOCK(
-            bmp_printf(FONT_MED, 30, 60, "cmos:");
-            for(int pos = 0; pos < 8; pos+=2)
-            {
-                bmp_printf(FONT_MED, 30, 80 + pos / 2 * font_med.height, "[%d] 0x%03X [%d] 0x%03X", pos, cmos_regs[pos], pos + 1, cmos_regs[pos+1]);
-            }
-        )
+        bmp_printf(FONT_MED, 30, 60, "cmos:");
+        for(int pos = 0; pos < 8; pos+=2)
+        {
+            bmp_printf(FONT_MED, 30, 80 + pos / 2 * font_med.height, "[%d] 0x%03X [%d] 0x%03X", pos, cmos_regs[pos], pos + 1, cmos_regs[pos+1]);
+        }
         msleep(100);
     }
+    
+    beep();
     
     /* uninstall watchpoints */
     gdb_delete_bkpt(bkpt1);
@@ -213,7 +211,68 @@ static struct menu_entry adtg_log_menu[] =
     {
         .name = "ADTG Logging",
         .select = &adtg_log_toggle,
+        .priv = &adtg_buf,
+        .max = 1,
         .help = "Log ADTG writes",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "cmos[0]",
+                .priv = cmos_delta,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .min = -1000,
+                .max = 1000,
+            },
+            {
+                .name = "cmos[1]",
+                .priv = cmos_delta+1,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .min = -1000,
+                .max = 1000,
+            },
+            {
+                .name = "cmos[2]",
+                .priv = cmos_delta+2,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .min = -1000,
+                .max = 1000,
+            },
+            {
+                .name = "cmos[3]",
+                .priv = cmos_delta+3,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .min = -1000,
+                .max = 1000,
+            },
+            {
+                .name = "cmos[4]",
+                .priv = cmos_delta+4,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .min = -1000,
+                .max = 1000,
+            },
+            {
+                .name = "cmos[5]",
+                .priv = cmos_delta+5,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .min = -1000,
+                .max = 1000,
+            },
+            {
+                .name = "cmos[6]",
+                .priv = cmos_delta+6,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .min = -1000,
+                .max = 1000,
+            },
+            {
+                .name = "cmos[7]",
+                .priv = cmos_delta+7,
+                .edit_mode = EM_MANY_VALUES_LV,
+                .min = -1000,
+                .max = 1000,
+            },
+            MENU_EOL,
+        },
     }
 };
 
