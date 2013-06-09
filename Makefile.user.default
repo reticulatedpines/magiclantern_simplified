@@ -37,6 +37,7 @@ AR=$(ARM_BINPATH)/arm-$(ARM_ABI)-ar
 RANLIB=$(ARM_BINPATH)/arm-$(ARM_ABI)-ranlib
 READELF=$(ARM_BINPATH)/arm-$(ARM_ABI)-readelf
 LD_REAL=$(ARM_BINPATH)/arm-$(ARM_ABI)-ld
+STRIP=$(ARM_BINPATH)/arm-$(ARM_ABI)-strip
 
 # You can customize CFLAG here
 HOST_CFLAGS=-g -O3 -W -Wall
