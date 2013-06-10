@@ -12,7 +12,6 @@ struct raw_info raw_info;
 #define CHECK(ok, fmt,...) { if (!ok) FAIL(fmt, ## __VA_ARGS__); }
 
 static void fix_vertical_stripes();
-static void fix_bad_pixels();
 
 int main(int argc, char** argv)
 {
@@ -101,7 +100,6 @@ int main(int argc, char** argv)
         char fn[100];
         snprintf(fn, sizeof(fn), "%s%06d.dng", prefix, i);
         fix_vertical_stripes();
-        fix_bad_pixels();
         save_dng(fn);
     }
     fclose(fi);
@@ -436,37 +434,6 @@ static void apply_vertical_stripes_correction()
             if (stripes_coeffs[5] && pf && pf < white) SET_PF(MIN(white, RAW_MUL(pf, stripes_coeffs[5])));
             if (stripes_coeffs[6] && pg && pg < white) SET_PG(MIN(white, RAW_MUL(pg, stripes_coeffs[6])));
             if (stripes_coeffs[7] && ph && ph < white) SET_PH(MIN(white, RAW_MUL(ph, stripes_coeffs[7])));
-        }
-    }
-}
-
-static void fix_bad_pixels()
-{
-    struct raw_pixblock * row;
-    
-    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(struct raw_pixblock))
-    {
-        struct raw_pixblock * p;
-        for (p = row; (void*)p < (void*)row + raw_info.pitch; p++)
-        {
-            int pa = PA;
-            int pb = PB;
-            int pc = PC;
-            int pd = PD;
-            int pe = PE;
-            int pf = PF;
-            int pg = PG;
-            int ph = PH;
-
-            /* some cameras output bad pixels with raw value = 0; copy the value from a nearby pixel */
-            if (!pa) SET_PA(PC);
-            if (!pb) SET_PB(PD);
-            if (!pc) SET_PC(PA);
-            if (!pd) SET_PD(PB);
-            if (!pe) SET_PE(PC);
-            if (!pf) SET_PF(PD);
-            if (!pg) SET_PG(PE);
-            if (!ph) SET_PH(PF);
         }
     }
 }
