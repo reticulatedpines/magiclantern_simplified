@@ -3835,7 +3835,7 @@ int auto_ettr_get_correction()
     
     /* this is kinda slow, don't run it very often */
     static int aux = INT_MIN;
-    if (!should_run_polling_action(100, &aux) && last_value != INT_MIN)
+    if (!lv && !should_run_polling_action(100, &aux) && last_value != INT_MIN)
         return last_value;
     
     int gray_proj = 
@@ -4019,32 +4019,65 @@ int auto_ettr_vsync_cbr()
         int altered_iso = current_iso;
         int altered_shutter = current_shutter;
 
+        int max_shutter = get_max_shutter_timer();
+        if (current_shutter > max_shutter) max_shutter = current_shutter;
+
+        /* first increase shutter speed, since it gives the cleanest signal */
+        while (delta > 0 && altered_shutter * 2 <= max_shutter)
+        {
+            altered_shutter *= 2;
+            delta -= 8;
+        }
+
         int max_iso = MAX_ANALOG_ISO;
-        
-        /* we can't rely on increasing shutter, so try to do everything with ISO first
-         * especially for delta > 0 */
+
+        /* then try to increase ISO if we need more */
         while (delta > 0 && altered_iso + 8 <= max_iso)
         {
             altered_iso += 8;
             delta -= 8;
         }
 
+        /* then try to decrease ISO until ISO 100, raw 72 (even with HTP, FRAME_ISO goes to 100) */
         while (delta < -8 && altered_iso - 8 >= 72)
         {
             altered_iso -= 8;
             delta += 8;
         }
         
-        FRAME_ISO = altered_iso;
+        /* commit iso */
+        FRAME_ISO = altered_iso | (altered_iso << 8);
+
+        /* adjust shutter with the remaining delta */
+        altered_shutter = COERCE((int)roundf(powf(2, delta/8.0) * (float)altered_shutter), 2, max_shutter);
         
-        altered_shutter = (int)roundf(powf(2, delta/8.0) * current_shutter);
+        /* commit shutter */
         FRAME_SHUTTER_TIMER = altered_shutter;
         
-        //~ bmp_printf(FONT_MED, 100, 100, "delta %d iso %d->%d shutter %d->%d",  auto_ettr_vsync_delta, current_iso, altered_iso, current_shutter, altered_shutter);
+        //~ bmp_printf(FONT_MED, 50, 70, "delta %d iso %d->%d shutter %d->%d max %d ",  auto_ettr_vsync_delta, current_iso, altered_iso, current_shutter, altered_shutter, get_max_shutter_timer());
         auto_ettr_vsync_counter++;
         return 1;
     }
     return 0;
+}
+
+static int auto_ettr_wait_lv_frames(int num_frames)
+{
+    auto_ettr_vsync_counter = 0;
+    int count = 0;
+    while (auto_ettr_vsync_counter < num_frames)
+    {
+        msleep(20);
+        count++;
+        if (count > num_frames * 10)
+        {
+            beep();
+            NotifyBox(2000, "Vsync err");
+            auto_ettr_vsync_delta = 0;
+            return 0;
+        }
+    }
+    return 1;
 }
 
 static void auto_ettr_on_request_task(int unused)
@@ -4062,46 +4095,86 @@ static void auto_ettr_on_request_task(int unused)
         if (get_halfshutter_pressed()) goto end;
     }
 
+#undef AUTO_ETTR_DEBUG
+#ifdef AUTO_ETTR_DEBUG
+    auto_ettr_vsync_active = 1;
+    int raw0 = raw_hist_get_percentile_level(500, GRAY_PROJECTION_GREEN);
+    float ev0 = raw_to_ev(raw0);
+    int y0 = 100 - ev0 * 20;
+    for (int i = 0; i < 100; i++)
+    {
+        int delta = rand() % 160 - 80;
+        auto_ettr_vsync_delta = delta;
+        if (!auto_ettr_wait_lv_frames(2)) break;
+        
+        int raw = raw_hist_get_percentile_level(500, GRAY_PROJECTION_GREEN);
+        float ev = raw_to_ev(raw);
+        int x = 360 + delta * 3;
+        int y = 100 - ev * 24; /* multiplier must be 8 x the one from delta */
+        dot(x-16, y-16, COLOR_BLUE, 3);
+        draw_angled_line(360, y0, 300, 1800-450, COLOR_RED);
+        draw_angled_line(360, y0, 300, -450, COLOR_RED);
+        draw_angled_line(0, 100, 720, 0, COLOR_RED);
+    }
+    auto_ettr_vsync_delta = 0;
+    auto_ettr_wait_lv_frames(100);
+#endif
+
+
     NotifyBox(100000, "Auto ETTR...");
     auto_ettr_vsync_active = 1;
     auto_ettr_vsync_delta = 0;
     raw_lv_request();
-    for (int k = 0; k < 10; k++)
+    
+    for (int i = 0; i < 3; i++)
     {
-        /* see how far we are from the ideal exposure */
-        int corr = auto_ettr_get_correction();
-        if (corr == INT_MIN) break;
-        
-        /* override the liveview parameters via auto_ettr_vsync_cbr (much faster than via properties) */
-        auto_ettr_vsync_delta += corr * 8 / 100;
-
-        /* I'm confident the last iteration was accurate */
-        if (corr >= -20 && corr <= 200)
-            break;
-        
-        /* wait for 3 frames before trying again */
-        auto_ettr_vsync_counter = 0;
-        int count = 0;
-        while (auto_ettr_vsync_counter < 3)
+        for (int k = 0; k < 5; k++)
         {
-            msleep(20);
-            count++;
-            if (count > 100)
+            /* see how far we are from the ideal exposure */
+            int corr = auto_ettr_get_correction();
+            if (corr == INT_MIN) break;
+            
+            /* override the liveview parameters via auto_ettr_vsync_cbr (much faster than via properties) */
+            auto_ettr_vsync_delta += corr * 8 / 100;
+
+            /* I'm confident the last iteration was accurate */
+            if (corr >= -20 && corr <= 200)
+                break;
+            
+            /* wait for 2 frames before trying again */
+            if (!auto_ettr_wait_lv_frames(2)) goto end;
+        }
+
+        /* apply the correction via properties */
+        if (auto_ettr_vsync_delta)
+        {
+            int corr = auto_ettr_vsync_delta * 100 / 8;
+            auto_ettr_vsync_delta = 0;
+            auto_ettr_work(corr);
+        
+            if (ABS(corr) <= 200)
             {
-                beep();
-                NotifyBox(2000, "Vsync err");
-                auto_ettr_vsync_delta = 0;
-                goto end;
+                /* looks like it settled */
+                break;
+            }
+            else
+            {
+                if (i < 3)
+                {
+                    /* here we go again... */
+                    msleep(1000);
+                }
+                else
+                {
+                    /* or... not? */
+                    beep();
+                    NotifyBox(2000, "Whoops");
+                    goto end;
+                }
             }
         }
-
-        if (k == 9)
-        {
-            beep();
-            NotifyBox(2000, "Whoops");
-            goto end;
-        }
     }
+
     NotifyBoxHide();
 
 end:
@@ -4109,9 +4182,6 @@ end:
     auto_ettr_running = 0;
     auto_ettr_vsync_active = 0;
     raw_lv_release();
-    
-    /* apply the final correction via properties */
-    auto_ettr_work(auto_ettr_vsync_delta * 100 / 8);
 
     if (lv && !was_in_lv) { msleep(200); fake_simple_button(BGMT_LV); }
 }
@@ -4154,24 +4224,15 @@ static void auto_ettr_step_lv()
             if (corr >= -20 && corr <= 200)
                 break;
             
-            /* wait for 3 frames before trying again */
-            auto_ettr_vsync_counter = 0;
-            int count = 0;
-            while (auto_ettr_vsync_counter < 3)
-            {
-                msleep(20);
-                count++;
-                if (count > 100) break;
-            }
+            /* wait for 2 frames before trying again */
+            if (!auto_ettr_wait_lv_frames(2)) break;
         }
         auto_ettr_vsync_active = 0;
 
         /* apply the final correction via properties */
         auto_ettr_work(auto_ettr_vsync_delta * 100 / 8);
 
-        msleep(500);
-        if (k < 5) beep();
-        msleep(500);
+        msleep(1000);
     }
     raw_lv_release();
 }
@@ -4279,9 +4340,12 @@ int handle_ettr_keys(struct event * event)
             (auto_ettr_trigger == 2 && detect_double_click(event, BGMT_PRESS_HALFSHUTTER, BGMT_UNPRESS_HALFSHUTTER)) ||
        0)
     {
-        auto_ettr_running = 1;
-        task_create("ettr_task", 0x1c, 0x1000, auto_ettr_on_request_task, (void*) 0);
-        if (auto_ettr_trigger == 1) return 0;
+        if (!auto_ettr_running)
+        {
+            auto_ettr_running = 1;
+            task_create("ettr_task", 0x1c, 0x1000, auto_ettr_on_request_task, (void*) 0);
+            if (auto_ettr_trigger == 1) return 0;
+        }
     }
     return 1;
 }

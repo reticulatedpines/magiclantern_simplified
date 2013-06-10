@@ -369,6 +369,16 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
     return ans;
 }
 
+int get_max_shutter_timer()
+{
+    int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
+    int ntsc = is_current_mode_ntsc();
+    int zoom = lv_dispsize > 1 ? 1 : 0;
+    int crop = video_mode_crop;
+    zoom+=0; crop+=0; ntsc+=0; // bypass warnings
+    return SHUTTER_x1000_TO_TIMER(default_fps);
+}
+
 /* shutter speed in microseconds, from timer value */
 int get_shutter_speed_us_from_timer(int timer)
 {
