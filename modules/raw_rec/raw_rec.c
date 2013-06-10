@@ -705,6 +705,9 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
 {
     if (!raw_video_enabled)
         return 0;
+    
+    if (!is_movie_mode())
+        return 0;
 
     /* refresh cropmark (faster when panning, slower when idle) */
     static int aux = INT_MIN;
@@ -865,7 +868,8 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
     }
 
     if (!raw_video_enabled) return 0;
-    
+    if (!is_movie_mode()) return 0;
+
     hack_liveview();
  
     /* panning window is updated when recording, but also when not recording */
@@ -1229,15 +1233,27 @@ static MENU_SELECT_FUNC(raw_video_toggle)
     if (raw_video_enabled)
     {
         raw_lv_request();
-        set_custom_movie_mode(1);
     }
     else
     {
         raw_lv_release();
         raw_lv_shave_right(0);
-        set_custom_movie_mode(0);
     }
     msleep(50);
+}
+
+static int raw_video_allow_photo = 0;
+
+static MENU_SELECT_FUNC(raw_video_photo_toggle)
+{
+    if (!RAW_IS_IDLE) return;
+    
+    raw_video_allow_photo = !raw_video_allow_photo;
+    
+    if (raw_video_allow_photo)
+        set_custom_movie_mode(1);
+    else
+        set_custom_movie_mode(0);
 }
 
 static void raw_video_playback_task()
@@ -1364,7 +1380,7 @@ static struct menu_entry raw_video_menu[] =
         .max = 1,
         .update = raw_main_update,
         .submenu_width = 710,
-        .depends_on = DEP_LIVEVIEW,
+        .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
         .help = "Record 14-bit RAW video. Press LiveView to start.",
         .children =  (struct menu_entry[]) {
             {
@@ -1433,6 +1449,14 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
             },
             {
+                .name = "Use photo mode",
+                .priv = &raw_video_allow_photo,
+                .select = raw_video_photo_toggle,
+                .max = 1,
+                .help  = "Allow video recording in photo mode (e.g. EOS-M needs this)",
+                .help2 = "Careful, this will mess up the exposure (use expo override)",
+            },
+            {
                 .name = "Playback",
                 .select = raw_playback_start,
                 .update = raw_playback_update,
@@ -1449,7 +1473,10 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
 {
     if (!raw_video_enabled)
         return 1;
-    
+
+    if (!is_movie_mode())
+        return 1;
+
     /* keys are only hooked in LiveView */
     if (!liveview_display_idle())
         return 1;
@@ -1523,6 +1550,7 @@ static int preview_dirty = 0;
 static unsigned int raw_rec_should_preview(unsigned int ctx)
 {
     if (!raw_video_enabled) return 0;
+    if (!is_movie_mode()) return 0;
 
     /* keep x10 mode unaltered, for focusing */
     if (lv_dispsize == 10) return 0;
