@@ -3934,8 +3934,8 @@ static int auto_ettr_work(int corr)
     
     /* cancel ISO rounding errors by adjusting shutter, which goes in smaller increments */
     /* this may choose a shutter speed higher than selected one, at high iso, which may not be desirable */
-    //~ tvr += isor - iso;
-    //~ tvr = round_shutter(tvr, shutter_lim);
+    tvr += isor - iso;
+    tvr = round_shutter(tvr, shutter_lim);
 
     /* apply the new settings */
     lens_set_rawshutter(tvr);
