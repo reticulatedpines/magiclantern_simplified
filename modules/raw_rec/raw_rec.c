@@ -121,7 +121,26 @@ static uint32_t written = 0;                      /* how many KB we have written
 static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
 static int idle_time = 0;                         /* time spent by raw_video_rec_task doing something else */
 
-extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_frame(unsigned char *);
+/* interface to other modules:
+ *
+ *    unsigned int raw_rec_skip_frame(unsigned char *frame_data)
+ *      This function is called on every single raw frame that is received from sensor with a pointer to frame data as parameter.
+ *      If the return value is zero, the frame will get save into the saving buffers, else it is skipped
+ *      Default: Do not skip frame (0)
+ *
+ *    unsigned int raw_rec_save_buffer(unsigned int used, unsigned int buffer_count)
+ *      This function is called whenever the writing loop is checking if it has data to save to card.
+ *      The parameters are the number of used buffers and the total buffer count
+ *      Default: Save buffer (1)
+ *
+ *    unsigned int raw_rec_skip_buffer(unsigned int buffer_index, unsigned int buffer_count);
+ *      Whenever the buffers are full, this function is called with the buffer index that is subject to being dropped, the number of frames in this buffer and the total buffer count.
+ *      If it returns zero, this buffer will not get thrown away, but the next frame will get dropped.
+ *      Default: Do not throw away buffer, but throw away incoming frame (0)
+ */
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_frame(unsigned char *frame_data);
+extern WEAK_FUNC(ret_1) unsigned int raw_rec_save_buffer(unsigned int used, unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_buffer(unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
 
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
@@ -895,6 +914,17 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
             capturing_buffer_index = next_buffer;
             capture_offset = 0;
         }
+        else if (raw_rec_skip_buffer(next_buffer, buffers[next_buffer].size / frame_size, buffer_count))
+        {
+            /* our buffer list wrapped over, but this is intentional as an other module requests this mode of operation */
+            buffers[capturing_buffer_index].used = capture_offset;
+            capturing_buffer_index = next_buffer;
+            capture_offset = 0;
+            
+            /* decrease frame count by the amount saved in skipped buffer */
+            frame_count -= buffers[next_buffer].size / frame_size;
+            saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
+        }
         else
         {
             /* card too slow */
@@ -1047,9 +1077,13 @@ static void raw_video_rec_task()
     {
         if (stop_on_buffer_overflow && frame_skips)
             goto abort;
-
+            
         /* do we have any buffers completely filled with data, that we can save? */
-        if (saving_buffer_index != capturing_buffer_index)
+        int used_buffers = (capturing_buffer_index + buffer_count - saving_buffer_index) % buffer_count;
+        int ext_gating = raw_rec_save_buffer(used_buffers, saving_buffer_index, buffers[saving_buffer_index].size / frame_size, buffer_count);
+
+        /* ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
+        if(used_buffers > 0 && ext_gating)
         {
             void* ptr = buffers[saving_buffer_index].ptr;
             int size_used = buffers[saving_buffer_index].used;
