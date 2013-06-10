@@ -109,6 +109,26 @@ struct t_data_for_exif{
     short metering_mode;
 };
 
+
+#define BE(v)   ((v&0x000000FF)<<24)|((v&0x0000FF00)<<8)|((v&0x00FF0000)>>8)|((v&0xFF000000)>>24)   // Convert to big_endian
+
+#define BADPIX_CFA_INDEX    6   // Index of CFAPattern value in badpixel_opcodes array
+
+static unsigned int badpixel_opcode[] =
+{
+    // *** all values must be in big endian order
+
+    BE(1),              // Count = 1
+
+    BE(4),              // FixBadPixelsConstant = 4
+    BE(0x01030000),     // DNG version = 1.3.0.0
+    BE(1),              // Flags = 1
+    BE(8),              // Opcode length = 8 bytes
+    BE(0),              // Constant = 0
+    BE(0),              // CFAPattern (set in code below)
+};
+
+
 static struct t_data_for_exif exif_data;
 
 #define BE(v)   ((v&0x000000FF)<<24)|((v&0x0000FF00)<<8)|((v&0x00FF0000)>>8)|((v&0xFF000000)>>24)   // Convert to big_endian
@@ -154,7 +174,7 @@ struct dir_entry ifd0[]={
     {0x8769, T_LONG,       1,  0},                                 // EXIF_IFD offset
     {0x9216, T_BYTE,       4,  0x00000001},                        // TIFF/EPStandardID: 1.0.0.0
     {0xC612, T_BYTE,       4,  0x00000301},                        // DNGVersion: 1.3.0.0
-    {0xC613, T_BYTE,       4,  0x00000101},                        // DNGBackwardVersion: 1.1.0.0
+    {0xC613, T_BYTE,       4,  0x00000301},                        // DNGBackwardVersion: 1.1.0.0
     {0xC614, T_ASCII,      32, (int)cam_name},                     // UniqueCameraModel. Filled at header generation.
     {0xC621, T_SRATIONAL,  9,  (int)&camera_sensor.color_matrix1},
     {0xC627, T_RATIONAL,   3,  (int)cam_AnalogBalance},
@@ -168,6 +188,7 @@ struct dir_entry ifd0[]={
 // Index of specific entries in ifd1 below.
 // *** warning - if entries are added or removed these should be updated ***
 #define RAW_DATA_INDEX              6       // tag 0x111
+#define BADPIXEL_OPCODE_INDEX       21      // tag 0xC740
 
 struct dir_entry ifd1[]={
     {0xFE,   T_LONG,       1,  0},                                 // NewSubFileType: Main Image
@@ -191,6 +212,7 @@ struct dir_entry ifd1[]={
     {0xC61F, T_LONG,       2,  (int)&camera_sensor.crop.origin},
     {0xC620, T_LONG,       2,  (int)&camera_sensor.crop.size},
     {0xC68D, T_LONG,       4,  (int)&camera_sensor.dng_active_area},
+    {0xC740, T_UNDEFINED|T_PTR, sizeof(badpixel_opcode),  (int)&badpixel_opcode},
 };
 
 // Index of specific entries in exif_ifd below.
@@ -277,7 +299,25 @@ static void create_dng_header(){
     int extra_offset;
     int raw_offset;
 
-    ifd0[DNG_VERSION_INDEX].offset = BE(0x01010000);
+    ifd0[DNG_VERSION_INDEX].offset = BE(0x01030000);
+    
+    ifd1[BADPIXEL_OPCODE_INDEX].type &= ~T_SKIP;
+        // Set CFAPattern value
+        switch (camera_sensor.cfa_pattern)
+        {
+        case 0x02010100:
+            badpixel_opcode[BADPIX_CFA_INDEX] = BE(1);              // BayerPhase = 1 (top left pixel is green in a green/red row)
+            break;
+        case 0x01020001:
+            badpixel_opcode[BADPIX_CFA_INDEX] = BE(0);              // BayerPhase = 0 (top left pixel is red)
+            break;
+        case 0x01000201:
+            badpixel_opcode[BADPIX_CFA_INDEX] = BE(3);              // BayerPhase = 3 (top left pixel is blue)
+            break;
+        case 0x00010102:
+            badpixel_opcode[BADPIX_CFA_INDEX] = BE(2);              // BayerPhase = 2 (top left pixel is green in a green/blue row)
+            break;
+        }
 
     // filling EXIF fields
     int ifd_count = DIR_SIZE(ifd_list);
