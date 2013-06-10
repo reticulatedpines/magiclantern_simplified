@@ -377,6 +377,9 @@ static MENU_UPDATE_FUNC(raw_main_update)
     
     refresh_raw_settings(0);
 
+    if (auto_power_off_time)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "\"Auto power off\" is enabled in Canon menu. Video may stop.");
+
     if (is_custom_movie_mode() && !is_native_movie_mode())
         MENU_SET_WARNING(MENU_WARN_ADVICE, "You are recording video in photo mode. Be careful.");
 
