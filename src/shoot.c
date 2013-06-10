@@ -3949,12 +3949,31 @@ static void auto_ettr_work(int corr)
 }
 
 static volatile int auto_ettr_running = 0;
+
+static int ettr_pics_took = 0;
 static void auto_ettr_step_task(int corr)
 {
+    lens_wait_readytotakepic(64);
     auto_ettr_work(corr);
-    if (ABS(corr) < 50) { } /* that's ok */
-    else if (auto_ettr_overexposure_warning || ABS(corr) > 800) beep_times(2); /* take two more pics */
-    else beep_times(1); /* take one more pic */
+    if (corr >= -20 && corr <= 70)
+    {
+        /* cool, we got the ideal exposure */
+        beep();
+        ettr_pics_took = 0;
+    }
+    else if (ettr_pics_took >= 3)
+    {
+        /* I give up */
+        beep_times(3);
+        ettr_pics_took = 0;
+    }
+    else
+    {
+        /* take another pic */
+        auto_ettr_running = 0;
+        lens_take_picture(0, AF_DISABLE);
+        ettr_pics_took++;
+    }
     auto_ettr_running = 0;
 }
 
@@ -4386,7 +4405,7 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     else if (lv)
         MENU_SET_HELP("In LiveView, just wait for exposure to settle, then shoot.");
     else
-        MENU_SET_HELP("Take a test picture (underexposed). Next pic will be ETTR.");
+        MENU_SET_HELP("Press shutter once. ML will take a pic and retry if needed.");
 }
 
 static MENU_UPDATE_FUNC(auto_ettr_max_shutter_update)

@@ -5571,10 +5571,7 @@ static int livev_playback = 0;
 static void livev_playback_toggle()
 {
     if (livev_for_playback_running)
-    {
-        beep();
         return;
-    }
     
     livev_playback = !livev_playback;
     if (livev_playback)
