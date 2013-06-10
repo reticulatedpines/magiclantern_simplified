@@ -33,6 +33,7 @@ volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
 //~ int battery_level_bars = 0;
 PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
 volatile PROP_INT(PROP_DATE_FORMAT, date_format);
+volatile PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time)
 
 #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
 int ae_mode_movie = 1;

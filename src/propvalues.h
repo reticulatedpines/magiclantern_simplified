@@ -47,6 +47,7 @@ extern int sound_recording_mode; // 1 = disable?
 extern char artist_name[64];
 extern char copyright_info[64];
 extern int date_format;
+extern int auto_power_off_time;
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi || _ext_monitor_rca)
 #define EXT_MONITOR_RCA (_ext_monitor_rca && !ext_monitor_hdmi)

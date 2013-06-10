@@ -430,8 +430,6 @@ static PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
 #ifdef FEATURE_INTERVALOMETER
 
-static PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time)
-
 static MENU_UPDATE_FUNC(timelapse_calc_display)
 {
     int d = timer_values[interval_timer_index];
