@@ -3872,11 +3872,14 @@ int auto_ettr_get_correction()
 static int expo_lock_get_current_value();
 static int expo_lock_value;
 
-static void auto_ettr_work(int corr)
+/* returns how much of the correction was applied */
+/* ideally should return "corr" or something close */
+static int auto_ettr_work(int corr)
 {
     int tv = lens_info.raw_shutter;
     int iso = lens_info.raw_iso;
-    if (!tv || !iso) return;
+    if (!tv || !iso) return 0;
+    int old_expo = tv - iso;
 
     int delta = -corr * 8 / 100;
 
@@ -3890,7 +3893,7 @@ static void auto_ettr_work(int corr)
             {
                 NotifyBox(2000, "Auto ETTR: Tv <= %s ", lens_format_shutter(tv));
                 prev_tv = tv;
-                return; /* wait for next iteration */
+                return 0; /* wait for next iteration */
             }
             else
             {
@@ -3904,7 +3907,7 @@ static void auto_ettr_work(int corr)
         if (lv && prev_tv != tv && auto_ettr_trigger == 0)
         {
             prev_tv = tv;
-            return; /* small pause when you change exposure manually */
+            return 0; /* small pause when you change exposure manually */
         }
     }
 
@@ -3912,8 +3915,6 @@ static void auto_ettr_work(int corr)
 
     /* can't go slower than 1/fps in movie mode */
     if (is_movie_mode()) shutter_lim = MAX(shutter_lim, shutter_ms_to_raw(1000 / video_mode_fps));
-
-    //~ int old_expo = tv - iso;
 
     /* apply exposure correction */
     tv += delta;
@@ -3932,20 +3933,22 @@ static void auto_ettr_work(int corr)
     int isor = COERCE((iso + 4) / 8 * 8, MIN_ISO, max_auto_iso);
     
     /* cancel ISO rounding errors by adjusting shutter, which goes in smaller increments */
-    tvr += isor - iso;
-    tvr = round_shutter(tvr, shutter_lim);
+    /* this may choose a shutter speed higher than selected one, at high iso, which may not be desirable */
+    //~ tvr += isor - iso;
+    //~ tvr = round_shutter(tvr, shutter_lim);
 
     /* apply the new settings */
     lens_set_rawshutter(tvr);
     lens_set_rawiso(isor);
 
-    //~ int new_expo = tvr - isor;
-    //~ bmp_printf(FONT_MED, 50, 160, "expo old=%d new=%d should be %d     ", old_expo, new_expo, old_expo + delta);
-
     /* don't let expo lock undo our changes */
     expo_lock_value = expo_lock_get_current_value();
     
     prev_tv = lens_info.raw_shutter;
+
+    int new_expo = tvr - isor;
+    //~ bmp_printf(FONT_MED, 50, 160, "expo old=%d new=%d should be %d     ", old_expo, new_expo, old_expo + delta);
+    return - (new_expo - old_expo) * 100/8;
 }
 
 static volatile int auto_ettr_running = 0;
@@ -3954,14 +3957,18 @@ static int ettr_pics_took = 0;
 static void auto_ettr_step_task(int corr)
 {
     lens_wait_readytotakepic(64);
-    auto_ettr_work(corr);
-    if (corr >= -20 && corr <= 70)
+    int applied = auto_ettr_work(corr);
+    
+    int changed_something = ABS(applied) >= 50;
+    int limits_reached = ABS(applied - corr) >= 50;
+    
+    if (!limits_reached && corr >= -20 && corr <= 70)
     {
         /* cool, we got the ideal exposure */
         beep();
         ettr_pics_took = 0;
     }
-    else if (ettr_pics_took >= 3)
+    else if (ettr_pics_took >= 3 || (limits_reached && !changed_something))
     {
         /* I give up */
         beep_times(3);
