@@ -1,5 +1,7 @@
 /*
- *  5D3 1.1.3 consts
+ *  100D 1.0.0 consts
+ *  
+ *  NOTHING FOUND YET
  */
 
 #define CARD_DRIVE ""

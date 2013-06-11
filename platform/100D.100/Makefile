@@ -1,10 +1,10 @@
-#Makefile for 100D firmware [unk]
+#Makefile for 100D firmware 100
 
 TOP_DIR=../..
 include $(TOP_DIR)/Makefile.top
 
 #must be defined first because they are used in Makefile.inc, for $(VERSION) for example
-FW_VERSION=unk
+FW_VERSION=100
 MODEL=100D
 ML_VERSION=unified1 
 

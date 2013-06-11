@@ -2,7 +2,7 @@
  * Entry points into the firmware image.
  *
  * These are the functions that we can call from our tasks
- * in the Canon [unk] firmware for the 100D.
+ * in the Canon 1.1.0 firmware for the 100D.
  *
  *  I've copied the skeleton from the 5D3. This should probably be common
  *  practice for future ports as the 5D3 is updated most often.
@@ -184,6 +184,7 @@ NSTUB(0xFF296974, ptp_register_handler)
     NSTUB(0xff136ea4, _audio_ic_write)
 
 /** ASIF **/
+//~ idk, audio stuff changed like usual. should be mostly right.
 NSTUB(0xFF2AE580, PowerAudioOutput)
 NSTUB(0xFF1127AC, StartASIFDMADAC)
 NSTUB(0xFF1123D8, StartASIFDMAADC)
@@ -199,31 +200,31 @@ NSTUB(0xFFAA199C - RAM_OFFSET, DeleteMemorySuite)
 
 
 /** EDMAC routines */
-NSTUB(0x000125F8, SetEDmac)
-NSTUB(0x00012910, StartEDmac)
+NSTUB(0xFFACC1AC - RAM_OFFSET, SetEDmac)
+NSTUB(0xFFACC558 - RAM_OFFSET, StartEDmac)
 //NSTUB(0x12B38, PopEDmac)
-NSTUB(0x00012AA4, PopEDmac)
-NSTUB(0x00012A5C, AbortEDmac)
-NSTUB(0x000126A4, ConnectWriteEDmac)
-NSTUB(0x00012768, ConnectReadEDmac)
+NSTUB(0xFFACC8C4 - RAM_OFFSET, PopEDmac)
+NSTUB(0xFFACC87C - RAM_OFFSET, AbortEDmac)
+NSTUB(0xFFACC30C - RAM_OFFSET, ConnectWriteEDmac)
+NSTUB(0xFFACC3D0 - RAM_OFFSET, ConnectReadEDmac)
 
 /** keep the old name until all are refcatored **/
-NSTUB(0x00012AFC, EDMAC_RegisterCompleteCBR)
+NSTUB(0xFFACC91C - RAM_OFFSET, EDMAC_RegisterCompleteCBR)
 
 /** register/unregister CBR names **/
-NSTUB(0x00012AFC, RegisterEDmacCompleteCBR)
-NSTUB(0x00012BE4, RegisterEDmacAbortCBR)
-NSTUB(0x00012C78, RegisterEDmacPopCBR)
-NSTUB(0x00012B38, UnregisterEDmacCompleteCBR)
-NSTUB(0x00012C20, UnregisterEDmacAbortCBR)
-NSTUB(0x00012CB4, UnregisterEDmacPopCBR)
+NSTUB(0xFFACC91C - RAM_OFFSET, RegisterEDmacCompleteCBR)
+NSTUB(0xFFACC9B0 - RAM_OFFSET, RegisterEDmacAbortCBR)
+NSTUB(0xFFACCA44 - RAM_OFFSET, RegisterEDmacPopCBR)
+NSTUB(0xFFACC958 - RAM_OFFSET, UnregisterEDmacCompleteCBR)
+NSTUB(0xFFACC9EC - RAM_OFFSET, UnregisterEDmacAbortCBR)
+NSTUB(0xFFACCA80 - RAM_OFFSET, UnregisterEDmacPopCBR)
 
 
-NSTUB(0xFF576634, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
-NSTUB(0xFF5766D0, PackMem_RegisterEDmacPopCBRForMemorySuite)
-NSTUB(0xFF576348, PackMem_SetEDmacForMemorySuite)
-NSTUB(0xFF576564, PackMem_PopEDmacForMemorySuite)
-NSTUB(0xFF57645C, PackMem_StartEDmac)
+NSTUB(0xFF60842C, PackMem_RegisterEDmacCompleteCBRForMemorySuite)
+NSTUB(0xFF6084C8, PackMem_RegisterEDmacPopCBRForMemorySuite)
+NSTUB(0xFF608140, PackMem_SetEDmacForMemorySuite)
+NSTUB(0xFF60835C, PackMem_PopEDmacForMemorySuite)
+NSTUB(0xFF608254, PackMem_StartEDmac)
 
 
 
