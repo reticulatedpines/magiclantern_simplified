@@ -17,6 +17,7 @@ clean::
 
 $(MODULE_OUTPUT): $(MODULE_OBJS)
 	$(call build,MODULE,$(LD_REAL) -r -o $@ $^)
+	$(call build,STRIP,$(STRIP) --strip-debug --strip-unneeded --discard-all --discard-locals $@)
 
 install:: all
 	$(CP) $(PWD)/$(MODULE_OUTPUT) $(INSTALL_MODULES_DIR)/

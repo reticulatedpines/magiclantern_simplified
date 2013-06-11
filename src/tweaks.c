@@ -26,7 +26,6 @@ void MirrorDisplay();
 void ReverseDisplay();
 
 static void upside_down_step();
-static void uniwb_correction_step();
 static void warn_step();
 extern void display_gain_toggle(void* priv, int delta);
 
@@ -1312,10 +1311,6 @@ tweak_task( void* unused)
         preview_contrast_n_saturation_step();
         #endif
         
-        #ifdef FEATURE_UNIWB_CORRECTION
-        uniwb_correction_step();
-        #endif
-        
         #ifdef FEATURE_COLOR_SCHEME
         grayscale_menus_step();
         #endif
@@ -2405,7 +2400,6 @@ static CONFIG_INT("lv.sat", preview_saturation, 0);         // range: -1:2
 CONFIG_INT("bmp.color.scheme", bmp_color_scheme, 0);
 
 static CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
-static CONFIG_INT("uniwb.correction", uniwb_correction, 7);
 
 static int focus_peaking_grayscale_running()
 {
@@ -2530,35 +2524,6 @@ static void preview_contrast_n_saturation_step()
     }
 #endif
 }
-
-#ifdef FEATURE_UNIWB_CORRECTION
-static void uniwb_correction_step()
-{
-    if (ml_shutdown_requested) return;
-    if (!DISPLAY_IS_ON) return;
-    if (!lv && !PLAY_OR_QR_MODE) return;
-
-    // uniwb screen correction
-    int display_wb_register = 0xC0F14174;
-    int desired_wb = 0;
-    int current_wb = (int) shamem_read(display_wb_register);
-    if (uniwb_correction && uniwb_is_active() && !PREVIEW_SATURATION_GRAYSCALE && !focus_peaking_grayscale_running())
-    {
-        int w = (uniwb_correction << 4) & 0xFF;
-        w = (w << 8) | w;
-        w = (w | 0xFFFF0000);
-        desired_wb = w;
-    }
-    else
-    {
-        desired_wb = 0;
-    }
-    if (current_wb != desired_wb)
-    {
-        EngDrvOut(display_wb_register, desired_wb); // both LV+PLAY
-    }
-}
-#endif
 
 #ifdef FEATURE_LV_BRIGHTNESS_CONTRAST
 static void preview_show_contrast_curve()
@@ -3494,7 +3459,7 @@ static struct menu_entry display_menus[] = {
         },*/
     },
     #endif
-    #if defined(CONFIG_KILL_FLICKER) || defined(FEATURE_SCREEN_LAYOUT) || defined(FEATURE_IMAGE_POSITION) || defined(FEATURE_UPSIDE_DOWN) || defined(FEATURE_IMAGE_ORIENTATION) || defined(FEATURE_AUTO_MIRRORING_HACK) || defined(FEATURE_FORCE_HDMI_VGA) || defined(FEATURE_UNIWB_CORRECTION)
+    #if defined(CONFIG_KILL_FLICKER) || defined(FEATURE_SCREEN_LAYOUT) || defined(FEATURE_IMAGE_POSITION) || defined(FEATURE_UPSIDE_DOWN) || defined(FEATURE_IMAGE_ORIENTATION) || defined(FEATURE_AUTO_MIRRORING_HACK) || defined(FEATURE_FORCE_HDMI_VGA)
     {
         .name = "Advanced settings",
         .select         = menu_open_submenu,
@@ -3578,17 +3543,6 @@ static struct menu_entry display_menus[] = {
                     .priv = &hdmi_force_vga, 
                     .max  = 1,
                     .help = "Force low resolution (720x480) on HDMI displays.",
-                },
-            #endif
-            #ifdef FEATURE_UNIWB_CORRECTION
-                {
-                    .name = "UniWB correct",
-                    .priv = &uniwb_correction,
-                    .max = 10,
-                    .choices = (const char *[]) {"OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},
-                    .help = "Removes the green color cast when you use UniWB.",
-                    .edit_mode = EM_MANY_VALUES_LV,
-                    .icon_type = IT_PERCENT_OFF,
                 },
             #endif
             MENU_EOL

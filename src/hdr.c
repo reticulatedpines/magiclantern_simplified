@@ -200,6 +200,13 @@ void hdr_step()
 #endif
 
 #ifdef CONFIG_FRAME_ISO_OVERRIDE
+    #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
+    #ifdef FEATURE_AUTO_ETTR
+    if (auto_ettr_vsync_cbr())
+        return;
+    #endif
+    #endif
+
     if (!hdrv_enabled)
     {
         #ifdef FEATURE_GRADUAL_EXPOSURE
@@ -207,7 +214,7 @@ void hdr_step()
         #endif
         return;
     }
-    
+
     #ifdef FEATURE_HDR_VIDEO
     if (!lv) return;
     if (!is_movie_mode()) return;

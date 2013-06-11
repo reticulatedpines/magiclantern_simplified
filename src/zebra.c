@@ -3141,7 +3141,6 @@ struct menu_entry zebra_menus[] = {
                 .max = 1,
                 .choices = (const char *[]) {"Hide", "Show"},
                 .help = "You can hide zebras when recording.",
-                .update = zebra_param_not_used_for_raw,
             },
             #endif
             #ifdef FEATURE_RAW_ZEBRAS
@@ -5257,7 +5256,13 @@ livev_hipriority_task( void* unused )
             else
             #endif
             {
-                BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 5 : 3) == 0, k % 2 == 1); )
+                BMP_LOCK(
+                    if (lv)
+                        draw_zebra_and_focus(
+                            k % ((focus_peaking ? 5 : 3) * (recording ? 5 : 1)) == 0, /* should redraw zebras? */
+                            k % 2 == 1  /* should redraw focus peaking? */
+                        ); 
+                )
             }
         }
 
@@ -5571,10 +5576,7 @@ static int livev_playback = 0;
 static void livev_playback_toggle()
 {
     if (livev_for_playback_running)
-    {
-        beep();
         return;
-    }
     
     livev_playback = !livev_playback;
     if (livev_playback)

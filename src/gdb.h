@@ -17,7 +17,10 @@
 
 #define GDB_REG_STALL_MAGIC 0xDEADFACE
 
-#define GDB_BKPT_OPCODE 0xe7ffdefe
+//#define GDB_BKPT_OPCODE 0xe7ffdefe
+
+#define GDB_ARMV5_BKPT(imm)   (0xE1200070 | (((imm) & 0xfff0) << 8) | ((imm) & 0xf))
+#define GDB_BKPT_OPCODE GDB_ARMV5_BKPT(0)
 #define GDB_BKPT_COUNT 64
 
 #define GDB_BKPT_FLAG_ENABLED             0x01
@@ -39,8 +42,12 @@ typedef struct
     uint32_t id;
     uint32_t linkId;
     uint32_t address;
+    uint32_t isCached;
     uint32_t flags;
     uint32_t hitcount;
+    
+    /* original opcode will be saved, required for RAM breakpoints */
+    uint32_t origOpcode;
     
     /* original task context at breakpoint */
     uint32_t ctx[17];

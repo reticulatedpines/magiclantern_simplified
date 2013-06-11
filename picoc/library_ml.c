@@ -7,18 +7,6 @@
 #define NO_KEY -1
 #define AF_ON 12345
 
-static char camera_model[32];
-static char firmware_version[32];
-PROP_HANDLER(PROP_CAM_MODEL)
-{
-    snprintf(camera_model, sizeof(camera_model), (const char *)buf);
-}
-
-PROP_HANDLER(PROP_FIRMWARE_VER)
-{
-    snprintf(firmware_version, sizeof(firmware_version), (const char *)buf);
-}
-
 static void LibSleep(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     int ms = (int)roundf(Param[0]->Val->FP * 1000.0f);
