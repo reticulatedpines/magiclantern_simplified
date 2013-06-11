@@ -3141,7 +3141,6 @@ struct menu_entry zebra_menus[] = {
                 .max = 1,
                 .choices = (const char *[]) {"Hide", "Show"},
                 .help = "You can hide zebras when recording.",
-                .update = zebra_param_not_used_for_raw,
             },
             #endif
             #ifdef FEATURE_RAW_ZEBRAS
