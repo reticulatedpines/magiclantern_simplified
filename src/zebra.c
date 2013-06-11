@@ -5257,7 +5257,13 @@ livev_hipriority_task( void* unused )
             else
             #endif
             {
-                BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 5 : 3) == 0, k % 2 == 1); )
+                BMP_LOCK(
+                    if (lv)
+                        draw_zebra_and_focus(
+                            k % ((focus_peaking ? 5 : 3) * (recording ? 5 : 1)) == 0, /* should redraw zebras? */
+                            k % 2 == 1  /* should redraw focus peaking? */
+                        ); 
+                )
             }
         }
 
