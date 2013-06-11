@@ -712,9 +712,10 @@ int module_display_filter_enabled()
         {
             while(cbr->name)
             {
-                if(cbr->type == CBR_DISPLAY_FILTER_ENABLED)
+                if(cbr->type == CBR_DISPLAY_FILTER)
                 {
-                    cbr->ctx = cbr->handler(cbr->ctx);
+                    /* arg=0: should this display filter run? */
+                    cbr->ctx = cbr->handler(0);
                     if (cbr->ctx)
                         return 1;
                 }
@@ -736,12 +737,13 @@ int module_display_filter_update()
         {
             while(cbr->name)
             {
-                if(cbr->type == CBR_DISPLAY_FILTER_UPDATE)
+                if(cbr->type == CBR_DISPLAY_FILTER && cbr->ctx)
                 {
+                    /* arg!=0: draw the filtered image in these buffers */
                     struct display_filter_buffers buffers;
                     display_filter_get_buffers((uint32_t**)&(buffers.src_buf), (uint32_t**)&(buffers.dst_buf));
-                    if (cbr->handler((intptr_t) &buffers) == 1)
-                        return 1;
+                    cbr->handler((intptr_t) &buffers);
+                    break;
                 }
                 cbr++;
             }

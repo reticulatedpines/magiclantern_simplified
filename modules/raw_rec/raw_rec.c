@@ -390,6 +390,7 @@ static void refresh_raw_settings(int force)
         }
     }
 }
+
 static MENU_UPDATE_FUNC(raw_main_update)
 {
     if (!raw_video_enabled) return;
@@ -1608,22 +1609,21 @@ static unsigned int raw_rec_should_preview(unsigned int ctx)
     return 0;
 }
 
-static unsigned int raw_rec_should_preview_wrap(unsigned int ctx)
-{
-    if (raw_rec_should_preview(ctx))
-        return 1;
-    
-    if (preview_dirty)
-    {
-        raw_set_dirty();
-        preview_dirty = 0;
-    }
-    
-    return 0;
-}
-
 static unsigned int raw_rec_update_preview(unsigned int ctx)
 {
+    /* just say whether we can preview or not */
+    if (ctx == 0)
+    {
+        int enabled = raw_rec_should_preview(ctx);
+        if (!enabled && preview_dirty)
+        {
+            /* cleanup the mess, if any */
+            raw_set_dirty();
+            preview_dirty = 0;
+        }
+        return enabled;
+    }
+    
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
 
     raw_previewing = 1;
@@ -1673,6 +1673,5 @@ MODULE_CBRS_START()
     MODULE_CBR(CBR_VSYNC, raw_rec_vsync_cbr, 0)
     MODULE_CBR(CBR_KEYPRESS, raw_rec_keypress_cbr, 0)
     MODULE_CBR(CBR_SHOOT_TASK, raw_rec_polling_cbr, 0)
-    MODULE_CBR(CBR_DISPLAY_FILTER_ENABLED, raw_rec_should_preview_wrap, 0)
-    MODULE_CBR(CBR_DISPLAY_FILTER_UPDATE, raw_rec_update_preview, 0)
+    MODULE_CBR(CBR_DISPLAY_FILTER, raw_rec_update_preview, 0)
 MODULE_CBRS_END()

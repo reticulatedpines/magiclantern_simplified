@@ -28,14 +28,24 @@
 #define CBR_PRE_SHOOT                 1 /* called before image is taken */
 #define CBR_POST_SHOOT                2 /* called after image is taken */
 #define CBR_SHOOT_TASK                3 /* called periodically from shoot task */
-#define CBR_IMAGE_FILTER              4
-#define CBR_SECONDS_CLOCK             5
-#define CBR_VSYNC                     6
+#define CBR_DISPLAY_FILTER            4
+/**
+ * Display filters (things that alter the LiveView image)
+ * 
+ * - ctx=0: should return 1 if the display filter mode should be enabled, 0 if not
+ *          (but must not do any heavy processing!!!)
+ * 
+ * - else: ctx is a (struct display_filter_buffers *), see vram.h
+ *         (contains src_buf and dst_buf)
+ *         in this case, the cbr should paint the new image in dst_buf,
+ *         usually by processing the data from src_buf
+ *
+ * - note: some cameras do not support display filters; in this case, this CBR will not be called
+ */
+#define CBR_SECONDS_CLOCK             5 /* called every second */
+#define CBR_VSYNC                     6 /* called for every LiveView frame; must not do any heavy processing!!! */
 #define CBR_KEYPRESS                  7 /* when a key was pressed, this cbr gets the translated key as ctx */
 #define CBR_KEYPRESS_RAW              8 /* when a key was pressed, this cbr gets the raw (struct event *) as ctx */
-#define CBR_DISPLAY_FILTER_ENABLED    9 /* should return 1 if the display filter mode should be enabled */
-#define CBR_DISPLAY_FILTER_UPDATE     10 /* should update the image displayed; will get (struct display_filter_buffers *) */
-                                         /* and should return 1 if the filter actually ran (so we shouldn't try other filters) */
 
 /* portable key codes. intentionally defines to make numbers hardcoded so changed order wont change the integer number */
 #define MODULE_KEY_PRESS_HALFSHUTTER       ( 1)
