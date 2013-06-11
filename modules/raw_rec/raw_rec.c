@@ -32,6 +32,12 @@
 /* when enabled, it hooks shortcut keys */
 static int raw_video_enabled = 0;
 
+/* camera-specific tricks */
+/* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
+static int cam_eos_m = 0;
+static int cam_5d2 = 0;
+static int cam_50d = 0;
+
 /**
  * resolution should be multiple of 16 horizontally
  * see http://www.magiclantern.fm/forum/index.php?topic=5839.0
@@ -401,7 +407,9 @@ static MENU_UPDATE_FUNC(raw_main_update)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "\"Auto power off\" is enabled in Canon menu. Video may stop.");
 
     if (is_custom_movie_mode() && !is_native_movie_mode())
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "You are recording video in photo mode. Be careful.");
+    {
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "You are recording video in photo mode. Use expo override.");
+    }
 
     if (!RAW_IS_IDLE)
     {
@@ -1271,27 +1279,15 @@ static MENU_SELECT_FUNC(raw_video_toggle)
     if (raw_video_enabled)
     {
         raw_lv_request();
+        if (cam_eos_m) set_custom_movie_mode(1);
     }
     else
     {
         raw_lv_release();
         raw_lv_shave_right(0);
+        if (cam_eos_m) set_custom_movie_mode(0);
     }
     msleep(50);
-}
-
-static int raw_video_allow_photo = 0;
-
-static MENU_SELECT_FUNC(raw_video_photo_toggle)
-{
-    if (!RAW_IS_IDLE) return;
-    
-    raw_video_allow_photo = !raw_video_allow_photo;
-    
-    if (raw_video_allow_photo)
-        set_custom_movie_mode(1);
-    else
-        set_custom_movie_mode(0);
 }
 
 static void raw_video_playback_task()
@@ -1487,14 +1483,6 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
             },
             {
-                .name = "Use photo mode",
-                .priv = &raw_video_allow_photo,
-                .select = raw_video_photo_toggle,
-                .max = 1,
-                .help  = "Allow video recording in photo mode (e.g. EOS-M needs this)",
-                .help2 = "Careful, this will mess up the exposure (use expo override)",
-            },
-            {
                 .name = "Playback",
                 .select = raw_playback_start,
                 .update = raw_playback_update,
@@ -1520,7 +1508,12 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
         return 1;
     
     /* start/stop recording with the LiveView key */
-    if(key == MODULE_KEY_LV || key == MODULE_KEY_REC)
+    int rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
+    
+    /* ... or SET on 5D2/50D */
+    if (cam_50d || cam_5d2) rec_key_pressed = (key == MODULE_KEY_PRESS_SET);
+    
+    if (rec_key_pressed)
     {
         switch(raw_recording_state)
         {
@@ -1647,8 +1640,24 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
 
 static unsigned int raw_rec_init()
 {
+    cam_eos_m = streq(camera_model_short, "EOSM");
+    cam_5d2 = streq(camera_model_short, "5D2");
+    cam_50d = streq(camera_model_short, "50D");
+    
+    for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
+    {
+        /* customize menus for each camera here (e.g. hide what doesn't work) */
+        
+        if (cam_50d && streq(e->name, "Sound"))
+            e->shidden = 1;
+    }
+
+    if (cam_5d2 || cam_50d)
+       raw_video_menu[0].help = "Record 14-bit RAW video. Press SET to start.";
+
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
     fileman_register_type("RAW", "RAW Video", raw_rec_filehandler);
+    
     return 0;
 }
 
