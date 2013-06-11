@@ -1,6 +1,9 @@
 #ifndef _propvalues_h_
 #define _propvalues_h_
 
+extern char camera_model[32];
+extern char firmware_version[32];
+
 extern int lv; // TRUE when LiveView is active
 extern int lv_paused; // only valid if lv is true
 #define LV_PAUSED (lv_paused)

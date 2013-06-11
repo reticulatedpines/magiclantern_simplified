@@ -8,6 +8,18 @@
 #define _propvalues_h_
 #include "property.h"
 
+char camera_model[32];
+char firmware_version[32];
+PROP_HANDLER(PROP_CAM_MODEL)
+{
+    snprintf(camera_model, sizeof(camera_model), (const char *)buf);
+}
+
+PROP_HANDLER(PROP_FIRMWARE_VER)
+{
+    snprintf(firmware_version, sizeof(firmware_version), (const char *)buf);
+}
+
 volatile PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 volatile PROP_INT(PROP_LIVE_VIEW_VIEWTYPE, expsim);
 volatile PROP_INT(PROP_EFIC_TEMP, efic_temp);
