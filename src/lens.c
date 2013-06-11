@@ -654,11 +654,35 @@ void draw_ml_bottombar(int double_buffering, int clear)
                 info->iso_digital_ev < 0 ? COLOR_GREEN1 : info->iso_digital_ev > 0 ? COLOR_RED : COLOR_YELLOW,
                 bg
             );
+            
             char msg[10];
             int iso_equiv_raw = info->iso_equiv_raw;
-            
+
             #ifdef FEATURE_FPS_OVERRIDE
             iso_equiv_raw += fps_get_iso_correction_evx8();
+            #endif
+
+            #ifdef CONFIG_FRAME_ISO_OVERRIDE
+            int lv_iso = (FRAME_ISO & 0xFF) + (get_htp() ? 8 : 0);
+            if (is_movie_mode() && ABS(lv_iso - info->raw_iso) > 5)
+            {
+                /* for some reason, the ISO being used is different from the one reported in properties */
+                iso_equiv_raw += lv_iso - info->raw_iso;
+            }
+
+            #ifdef CONFIG_RAW_LIVEVIEW
+            if (is_movie_mode() && raw_lv_is_enabled())
+            {
+                /* the only ISOs used are the full-stop ones;
+                 * digital gain is only applied to display, not recorded */
+                text_font = FONT(
+                    SHADOW_FONT(FONT_LARGE),
+                    info->raw_iso > MAX_ANALOG_ISO ? COLOR_RED : COLOR_GREEN1,
+                    bg
+                );
+                iso_equiv_raw = (lv_iso+4)/8*8;
+            }
+            #endif
             #endif
             
             int iso = raw2iso(iso_equiv_raw);
