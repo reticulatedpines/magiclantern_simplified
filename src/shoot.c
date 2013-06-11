@@ -3808,7 +3808,7 @@ static int auto_ettr_work(int corr)
             }
             else
             {
-                msleep(500);
+                msleep(1000);
                 bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: Tv <= %s ", lens_format_shutter(tv));
             }
         }
@@ -3879,11 +3879,20 @@ static void auto_ettr_step_task(int corr)
         beep();
         ettr_pics_took = 0;
     }
-    else if (ettr_pics_took >= 3 || (limits_reached && !changed_something))
+    else if (ettr_pics_took >= 3)
     {
         /* I give up */
         beep_times(3);
         ettr_pics_took = 0;
+        msleep(1000);
+        bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: giving up");
+    }
+    else if (limits_reached && !changed_something)
+    {
+        beep_times(3);
+        ettr_pics_took = 0;
+        msleep(1000);
+        bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: expo limits reached");
     }
     else
     {
@@ -4543,6 +4552,8 @@ int expo_value_rounding_ok(int raw, int is_aperture)
 int round_shutter(int tv, int slowest_shutter)
 {
     int tvr;
+    tv = MIN(tv, FASTEST_SHUTTER_SPEED_RAW);
+    tvr = MAX(tv    , slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     tvr = MAX(tv - 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     tvr = MAX(tv + 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     tvr = MAX(tv - 2, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
@@ -4555,6 +4566,7 @@ int round_shutter(int tv, int slowest_shutter)
 int round_aperture(int av)
 {
     int avr;
+    avr = COERCE(av    , lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
     avr = COERCE(av - 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
     avr = COERCE(av + 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
     avr = COERCE(av - 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;

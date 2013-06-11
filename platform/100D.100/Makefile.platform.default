@@ -3,7 +3,7 @@
 
 
 # Definitions for version unkown
-ifeq ($(FW_VERSION),unk)
+ifeq ($(FW_VERSION),100)
 
 #CANON_NAME_FIR=CCF12105.FIR
 
