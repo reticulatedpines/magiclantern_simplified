@@ -24,6 +24,7 @@
  */
 
 #include "shoot.h"
+#include "config-defines.h"
 
 #include "dryos.h"
 #include "bmp.h"
@@ -864,22 +865,6 @@ int handle_mlu_handheld(struct event * event)
 }
 #endif // FEATURE_MLU_HANDHELD
 
-#ifdef FEATURE_LV_FOCUS_BOX_SNAP
-extern int focus_box_lv_jump;
-
-#ifdef FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
-static CONFIG_INT("focus.box.raw.x5.x", focus_box_raw_x5_x, 0);
-static CONFIG_INT("focus.box.raw.x5.y", focus_box_raw_x5_y, 0);
-static CONFIG_INT("focus.box.raw.x5.w", focus_box_raw_x5_w, 0);
-static CONFIG_INT("focus.box.raw.x5.h", focus_box_raw_x5_h, 0);
-#endif
-
-static int center_lv_aff = 0;
-void center_lv_afframe()
-{
-    center_lv_aff = 1;
-}
-
 #ifdef CONFIG_RAW_LIVEVIEW
 int focus_box_get_raw_crop_offset(int* delta_x, int* delta_y)
 {
@@ -933,6 +918,22 @@ int focus_box_get_raw_crop_offset(int* delta_x, int* delta_y)
     return 0;
 }
 #endif
+
+#ifdef FEATURE_LV_FOCUS_BOX_SNAP
+extern int focus_box_lv_jump;
+
+#ifdef FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
+static CONFIG_INT("focus.box.raw.x5.x", focus_box_raw_x5_x, 0);
+static CONFIG_INT("focus.box.raw.x5.y", focus_box_raw_x5_y, 0);
+static CONFIG_INT("focus.box.raw.x5.w", focus_box_raw_x5_w, 0);
+static CONFIG_INT("focus.box.raw.x5.h", focus_box_raw_x5_h, 0);
+#endif
+
+static int center_lv_aff = 0;
+void center_lv_afframe()
+{
+    center_lv_aff = 1;
+}
 
 void center_lv_afframe_do()
 {

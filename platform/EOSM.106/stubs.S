@@ -47,6 +47,8 @@ NSTUB(0xFF4C25A0, DeleteDialogBox)
 NSTUB(0xFFA6CDB0 - RAM_OFFSET, DryosDebugMsg)
 NSTUB(0xFF347460, FIO_CleanupAfterFindNext_maybe) // proper name: FindClose
 NSTUB(0xFF346468, FIO_CloseFile)
+NSTUB(0xFF346398, FIO_SeekFile) //All take forever
+//NSTUB(0xFF3462C8, FIO_SeekFile) //SeekSkipFile - Seems to work too.
 NSTUB(0xFF346CC4, FIO_CreateDirectory)
 NSTUB(0xFF3460C4, FIO_CreateFile)
 NSTUB(0xFF34728C, FIO_FindFirstEx)
@@ -159,6 +161,7 @@ NSTUB(0xFF135034, PowerAudioOutput) //Look for actrlCpowerControl Case 1 Sub
 NSTUB(0xFF10AA18, StartASIFDMADAC)  //~ Needs Patches Or
 //NSTUB(0xFF2BF578, StartASIFDMADAC)  //~ Direct
 //NSTUB(0xFF111D74, StartASIFDMADAC)  //~ SePlayStart
+NSTUB(0xFF134C28 , PowerMicAmp)
 
 NSTUB(0xFF10A644, StartASIFDMAADC)  //~ To Use ACTRL
 
@@ -177,6 +180,7 @@ NSTUB(0xFF10B348, SetNextASIFDACBuffer) // Int16 Regular
 NSTUB(0xFF134458, SetSamplingRate )
 NSTUB(0xFF133070, SetAudioVolumeOut)
 
+NSTUB(0xFF7FB3B8, audio_thresholds)
 NSTUB(0x3E8CC, sounddev )
 NSTUB(0xFF10CD10, sounddev_task )
 
@@ -223,11 +227,23 @@ NSTUB(0xFF0E5808, MVR_NotifyLvFrameTiming)
 NSTUB(0x92E0, CreateMemorySuite) //FFCCEF34
 NSTUB(0x90D8, DeleteMemorySuite) // FFCCED2C
 
+NSTUB(0x1C530, SetEDmac) //FFA85288
+NSTUB(0x1C848, StartEDmac) //FFA855A0
+NSTUB(0x1C9DC, PopEDmac) //From popedmacformemorysuite
+NSTUB(0x1C994, AbortEDmac) //FFCF7BBC 
 NSTUB(0x1C5DC, ConnectWriteEDmac) //FFA85334
 NSTUB(0x1C6A0, ConnectReadEDmac) //FFA853F8
-NSTUB(0x1C530, SetEDmac) //FFA85288
+
+/** keep the old name until all are refcatored **/
 NSTUB(0x1CA34, EDMAC_RegisterCompleteCBR)
-NSTUB(0x1C848, StartEDmac) //FFA855A0
+
+/** register/unregister CBR names **/
+NSTUB(0x1CA34, RegisterEDmacCompleteCBR) //FFCF7C5C 
+NSTUB(0x1CB1C, RegisterEDmacAbortCBR) //FFCF7CF0
+NSTUB(0x1CBB0, RegisterEDmacPopCBR) //FFCF7D84
+NSTUB(0x1CA70, UnregisterEDmacCompleteCBR)
+NSTUB(0x1CB58, UnregisterEDmacAbortCBR) //FFCF7D2C 
+NSTUB(0x1CBEC , UnregisterEDmacPopCBR) //FFCF7DC0 
 
 NSTUB(0xFF5FE6E8, PackMem_SetEDmacForMemorySuite)
 NSTUB(0xFF5FEA70, PackMem_RegisterEDmacPopCBRForMemorySuite)
