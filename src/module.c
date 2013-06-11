@@ -37,7 +37,7 @@ void module_unload_all(void)
     msg_queue_post(module_mq, MSG_MODULE_UNLOAD_ALL); 
 }
 
-static void _module_load_all(void);
+static void _module_load_all(uint32_t);
 static void _module_unload_all(void);
 
 static int module_load_symbols(TCCState *s, char *filename)
@@ -139,7 +139,7 @@ static int module_valid_filename(char* filename)
     return 0;
 }
 
-static void _module_load_all(void)
+static void _module_load_all(uint32_t list_only)
 {
     TCCState *state = NULL;
     uint32_t module_cnt = 0;
@@ -207,18 +207,25 @@ static void _module_load_all(void)
             snprintf(disable_file, sizeof(disable_file), MODULE_PATH"%s.dis", module_list[module_cnt].name);
             
             /* if disable-file is existent, dont load module */
-            if(!config_flag_file_setting_load(disable_file))
-            {
-                module_list[module_cnt].enabled = 1;
-                snprintf(module_list[module_cnt].status, sizeof(module_list[module_cnt].status), "???");
-                snprintf(module_list[module_cnt].long_status, sizeof(module_list[module_cnt].long_status), "Seems linking failed. Unknown symbols?");
-            }
-            else
+            if(config_flag_file_setting_load(disable_file))
             {
                 module_list[module_cnt].enabled = 0;
                 snprintf(module_list[module_cnt].status, sizeof(module_list[module_cnt].status), "Off");
                 snprintf(module_list[module_cnt].long_status, sizeof(module_list[module_cnt].long_status), "Module disabled");
                 console_printf("  [i] %s\n", module_list[module_cnt].long_status);
+            }
+            else if(list_only)
+            {
+                module_list[module_cnt].enabled = 1;
+                snprintf(module_list[module_cnt].status, sizeof(module_list[module_cnt].status), "");
+                snprintf(module_list[module_cnt].long_status, sizeof(module_list[module_cnt].long_status), "Module not loaded");
+                console_printf("  [i] %s\n", module_list[module_cnt].long_status);
+            }
+            else
+            {
+                module_list[module_cnt].enabled = 1;
+                snprintf(module_list[module_cnt].status, sizeof(module_list[module_cnt].status), "???");
+                snprintf(module_list[module_cnt].long_status, sizeof(module_list[module_cnt].long_status), "Seems linking failed. Unknown symbols?");
             }
 
             module_cnt++;
@@ -231,6 +238,13 @@ static void _module_load_all(void)
     } while( FIO_FindNextEx( dirent, &file ) == 0);
     FIO_CleanupAfterFindNext_maybe(dirent);
 
+    /* dont load anything, just return */
+    if(list_only)
+    {
+        tcc_delete(state);
+        return;
+    }
+    
     /* load modules */
     console_printf("Load modules...\n");
     for (uint32_t mod = 0; mod < module_cnt; mod++)
@@ -240,6 +254,7 @@ static void _module_load_all(void)
             console_printf("  [i] load: %s\n", module_list[mod].filename);
             snprintf(module_list[mod].long_filename, sizeof(module_list[mod].long_filename), "%s%s", MODULE_PATH, module_list[mod].filename);
             int32_t ret = tcc_add_file(state, module_list[mod].long_filename);
+            module_list[mod].valid = 1;
 
             /* seems bad, disable it */
             if(ret < 0)
@@ -249,10 +264,6 @@ static void _module_load_all(void)
                 snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Load failed: %s, ret 0x%02X");
                 console_printf("  [E] %s\n", module_list[mod].long_status);
             }
-            else
-            {
-                module_list[mod].valid = 1;
-            }
         }
     }
 
@@ -261,10 +272,19 @@ static void _module_load_all(void)
     if(ret < 0)
     {
         console_printf("  [E] failed to link modules\n");
+        for (uint32_t mod = 0; mod < module_cnt; mod++)
+        {
+            if(module_list[mod].enabled)
+            {
+                module_list[mod].valid = 0;
+                snprintf(module_list[mod].status, sizeof(module_list[mod].status), "Err");
+                snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Linking failed");
+            }
+        }
         tcc_delete(state);
         return;
     }
-
+    
     console_printf("Init modules...\n");
     /* init modules */
     for (uint32_t mod = 0; mod < module_cnt; mod++)
@@ -1168,9 +1188,15 @@ void module_load_task(void* unused)
             FIO_CloseFile(handle);
             
             /* now load modules */
-            _module_load_all();
+            _module_load_all(0);
             module_menu_update();
         }
+    }
+    else
+    {
+        /* only list modules */
+        _module_load_all(1);
+        module_menu_update();
     }
         
     /* main loop, also wait until clean shutdown */
@@ -1183,12 +1209,13 @@ void module_load_task(void* unused)
         switch(msg)
         {
             case MSG_MODULE_LOAD_ALL:
-                _module_load_all();
+                _module_load_all(0);
                 module_menu_update();
                 break;
 
             case MSG_MODULE_UNLOAD_ALL:
                 _module_unload_all();
+                _module_load_all(1);
                 module_menu_update();
                 beep();
                 break;
