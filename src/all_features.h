@@ -233,7 +233,6 @@
 #endif
 
     #define FEATURE_FORCE_HDMI_VGA
-    #define FEATURE_UNIWB_CORRECTION
 
     //~ #define FEATURE_DISPLAY_SHAKE // looks ugly :P
 
