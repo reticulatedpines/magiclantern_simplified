@@ -8,8 +8,10 @@
 #define _propvalues_h_
 #include "property.h"
 
+char camera_model_short[8] = CAMERA_MODEL;
 char camera_model[32];
 char firmware_version[32];
+
 PROP_HANDLER(PROP_CAM_MODEL)
 {
     snprintf(camera_model, sizeof(camera_model), (const char *)buf);
