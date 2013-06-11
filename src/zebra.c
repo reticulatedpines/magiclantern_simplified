@@ -4362,7 +4362,7 @@ static void draw_livev_for_playback()
         livev_for_playback_running = 0;
         return;
     }
-    if (QR_MODE) msleep(100);
+    if (QR_MODE) msleep(300);
 
     get_yuv422_vram(); // just to refresh VRAM params
 
