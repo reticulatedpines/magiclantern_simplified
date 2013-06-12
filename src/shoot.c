@@ -3838,8 +3838,9 @@ int auto_ettr_get_correction()
             //~ bmp_printf(FONT_MED, 0, 80, "overexposure area: %d/100%%\n", (int)(overexposed * 100));
             //~ bmp_printf(FONT_MED, 0, 120, "fail info: (%d %d %d %d) (%d %d %d)", raw_values[0], raw_values[1], raw_values[2], raw_values[3], (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
             float corr = correction - log2f(1 + overexposed);
-            sum += corr * 2;
-            num += 2;
+            int weight = MAX(num, 2);
+            sum += corr * weight;
+            num += weight;
         }
 
         /* use the average value for correction */
@@ -7114,7 +7115,7 @@ shoot_task( void* unused )
 #endif
 
         #ifdef FEATURE_AUTO_ETTR
-        if (lv)
+        if (lv && !recording)
             auto_ettr_step_lv();
         #endif
 
