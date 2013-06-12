@@ -3955,7 +3955,7 @@ static void auto_ettr_step_task(int corr)
     lens_wait_readytotakepic(64);
     int status = auto_ettr_work(corr);
     
-    if (corr >= -20 && corr <= 70)
+    if (corr >= -25 && corr <= 70)
     {
         /* cool, we got the ideal exposure */
         beep();
@@ -4671,9 +4671,8 @@ int round_expo_comp(int ae)
     aer = COERCE(ae - 1, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
     aer = COERCE(ae + 1, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
     aer = COERCE(ae - 2, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    aer = COERCE(ae + 2, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    aer = COERCE(ae + 3, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    aer = COERCE(ae + 4, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
+    aer = COERCE(ae - 3, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
+    aer = COERCE(ae - 4, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
     return 0;
 }
 
