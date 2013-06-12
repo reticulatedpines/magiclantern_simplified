@@ -484,13 +484,21 @@ static unsigned int bolt_rec_init()
 
     menu_add("Movie", bolt_rec_menu, COUNT(bolt_rec_menu));
 
+    if(bolt_rec_enabled)
+    {
+        raw_lv_request();
+    }
+    
     task_create("bolt_rec_plot_task", 0x1e, 0x1000, bolt_rec_plot_task, (void*)0);
     return 0;
 }
 
 static unsigned int bolt_rec_deinit()
 {
-    raw_lv_release();
+    if(bolt_rec_enabled)
+    {
+        raw_lv_release();
+    }
     return 0;
 }
 
