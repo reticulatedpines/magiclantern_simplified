@@ -3974,7 +3974,7 @@ static void auto_ettr_step_task(int corr)
     lens_wait_readytotakepic(64);
     int status = auto_ettr_work(corr);
     
-    if (corr >= -25 && corr <= 70)
+    if (corr >= -45 && corr <= 70)
     {
         /* cool, we got the ideal exposure */
         beep();
