@@ -63,7 +63,11 @@ static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
 #endif
 
-#define AUTO_ETTR_TRIGGER_PHOTO (auto_ettr_trigger == 0 || intervalometer_running)
+#define AUTO_ETTR_TRIGGER_ALWAYS_ON (auto_ettr_trigger == 0 || intervalometer_running)
+#define AUTO_ETTR_TRIGGER_AUTO_SNAP (auto_ettr_trigger == 1)
+#define AUTO_ETTR_TRIGGER_PHOTO (AUTO_ETTR_TRIGGER_ALWAYS_ON || AUTO_ETTR_TRIGGER_AUTO_SNAP)
+#define AUTO_ETTR_TRIGGER_BY_SET (auto_ettr_trigger == 2)
+#define AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK (auto_ettr_trigger == 3)
 
 void move_lv_afframe(int dx, int dy);
 void movie_start();
@@ -3880,7 +3884,7 @@ static int auto_ettr_work_m(int corr)
     }
     else
     {
-        if (lv && prev_tv != tv && auto_ettr_trigger == 0)
+        if (lv && prev_tv != tv && AUTO_ETTR_TRIGGER_ALWAYS_ON)
         {
             prev_tv = tv;
             return 0; /* small pause when you change exposure manually */
@@ -3985,17 +3989,21 @@ static void auto_ettr_step_task(int corr)
     }
     else if (status == -1)
     {
-        beep_times(2);
+        beep_times(3);
         ettr_pics_took = 0;
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: expo limits reached");
     }
-    else
+    else if (AUTO_ETTR_TRIGGER_AUTO_SNAP)
     {
         /* take another pic */
         auto_ettr_running = 0;
         lens_take_picture(0, AF_DISABLE);
         ettr_pics_took++;
+    }
+    else if (AUTO_ETTR_TRIGGER_ALWAYS_ON)
+    {
+        beep_times(2);
     }
     auto_ettr_running = 0;
 }
@@ -4232,7 +4240,7 @@ end:
 
 static void auto_ettr_step_lv()
 {
-    if (!auto_ettr || !AUTO_ETTR_TRIGGER_PHOTO)
+    if (!auto_ettr || !AUTO_ETTR_TRIGGER_ALWAYS_ON)
         return;
     
     if (!auto_ettr_check_lv())
@@ -4338,7 +4346,7 @@ end:
 
 static void auto_ettr_step_lv()
 {
-    if (!auto_ettr || !AUTO_ETTR_TRIGGER_PHOTO)
+    if (!auto_ettr || !AUTO_ETTR_TRIGGER_ALWAYS_ON)
         return;
     
     if (!auto_ettr_check_lv())
@@ -4374,21 +4382,21 @@ static void auto_ettr_step_lv()
 int handle_ettr_keys(struct event * event)
 {
     if (!auto_ettr) return 1;
-    if (!auto_ettr_trigger) return 1;
+    if (AUTO_ETTR_TRIGGER_PHOTO) return 1;
     if (!display_idle()) return 1;
     if (!auto_ettr_check_pre_lv()) return 1;
     if (lv && !auto_ettr_check_in_lv()) return 1;
     
     if (
-            (auto_ettr_trigger == 1 && event->param == BGMT_PRESS_SET) ||
-            (auto_ettr_trigger == 2 && detect_double_click(event, BGMT_PRESS_HALFSHUTTER, BGMT_UNPRESS_HALFSHUTTER)) ||
+            (AUTO_ETTR_TRIGGER_BY_SET && event->param == BGMT_PRESS_SET) ||
+            (AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK && detect_double_click(event, BGMT_PRESS_HALFSHUTTER, BGMT_UNPRESS_HALFSHUTTER)) ||
        0)
     {
         if (!auto_ettr_running)
         {
             auto_ettr_running = 1;
             task_create("ettr_task", 0x1c, 0x1000, auto_ettr_on_request_task, (void*) 0);
-            if (auto_ettr_trigger == 1) return 0;
+            if (AUTO_ETTR_TRIGGER_BY_SET) return 0;
         }
     }
     return 1;
@@ -4426,14 +4434,22 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     if (auto_ettr)
         MENU_SET_RINFO("%dEV/%d.%d%%", auto_ettr_target_level, auto_ettr_ignore/10, auto_ettr_ignore%10);
 
-    if (auto_ettr && auto_ettr_trigger)
-        MENU_SET_VALUE(auto_ettr_trigger == 1 ? "Press SET" : "HalfS DBC");
+    if (auto_ettr)
+        MENU_SET_VALUE(
+            AUTO_ETTR_TRIGGER_ALWAYS_ON ? "Always ON" : 
+            AUTO_ETTR_TRIGGER_AUTO_SNAP ? "Auto Snap" : 
+            AUTO_ETTR_TRIGGER_BY_SET ? "Press SET" : 
+            AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK ? "HalfS DBC" : "err"
+        );
 
-    if (auto_ettr_trigger)
+    if (!AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_HELP("Press the shortcut key to optimize the exposure (ETTR).");
-    else if (lv)
-        MENU_SET_HELP("In LiveView, just wait for exposure to settle, then shoot.");
-    else
+    else if (AUTO_ETTR_TRIGGER_ALWAYS_ON)
+    {
+        if (lv) MENU_SET_HELP("In LiveView, just wait for exposure to settle, then shoot.");
+        else MENU_SET_HELP("Take a test picture (underexposed). Next pic will be ETTR.");
+    }
+    else if (AUTO_ETTR_TRIGGER_AUTO_SNAP)
         MENU_SET_HELP("Press shutter once. ML will take a pic and retry if needed.");
 }
 
@@ -5925,9 +5941,13 @@ static struct menu_entry expo_menus[] = {
             {
                 .name = "Trigger mode",
                 .priv = &auto_ettr_trigger,
-                .max = 2,
-                .choices = CHOICES("Always ON", "Press SET", "HalfS DblClick"),
-                .help = "When should the exposure be adjusted for ETTR",
+                .max = 3,
+                .choices = CHOICES("Always ON", "Auto Snap", "Press SET", "HalfS DblClick"),
+                .help  = "When should the exposure be adjusted for ETTR:",
+                .help2 = "Always ON: when you take a pic, or continuously in LiveView\n"
+                         "Auto Snap: after u take a pic,trigger another pic if needed\n"
+                         "Press SET: meter for ETTR when you press SET (LiveView)\n"
+                         "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n"
             },
             {
                 .name = "Exposure target",
