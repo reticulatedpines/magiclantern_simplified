@@ -215,7 +215,8 @@ struct raw_info raw_info = {
     .dynamic_range = 1100,              // not correct; use numbers from DxO instead
 };
 
-static int autodetect_black_level();
+static int autodetect_black_level(float* black_mean, float* black_stdev);
+static int compute_dynamic_range(float black_mean, float black_stdev, int white_level);
 
 int raw_update_params()
 {
@@ -550,6 +551,13 @@ int raw_update_params()
 
     raw_info.white_level = WHITE_LEVEL;
 
+    static float black_mean, black_stdev;
+
+    int black_aux = INT_MIN;
+    if (!lv || dirty || should_run_polling_action(1000, &black_aux))
+        raw_info.black_level = autodetect_black_level(&black_mean, &black_stdev);
+        
+
     if (!lv)
     {
         /* at ISO 160, 320 etc, the white level is decreased by -1/3 EV */
@@ -560,7 +568,12 @@ int raw_update_params()
         int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 200);
         float iso_digital = (iso - iso_rounded) / 8.0f;
         if (iso_digital <= 0)
+        {
+            raw_info.white_level -= raw_info.black_level;
             raw_info.white_level *= powf(2, iso_digital);
+            raw_info.white_level += raw_info.black_level;
+        }
+        raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev, raw_info.white_level);
     }
     else if (!is_movie_mode())
     {
@@ -572,17 +585,10 @@ int raw_update_params()
          */
         int shad_gain = shamem_read(0xc0f08030);
         
-        /* LV histogram seems to be underexposed by 0.15 EV compared to photo one,
-         * so we compensate for that too (4096 -> 3691) */
-        raw_info.white_level = raw_info.white_level * 3691 / shad_gain;
-    }
+        raw_info.white_level -= raw_info.black_level;
+        raw_info.white_level = raw_info.white_level * 4096 / shad_gain;
+        raw_info.white_level += raw_info.black_level;
 
-    int black_aux = INT_MIN;
-    if (!lv || dirty || should_run_polling_action(1000, &black_aux))
-        raw_info.black_level = autodetect_black_level();
-
-    if (lv && !is_movie_mode())
-    {
         /* in photo LiveView, ISO is not the one selected from Canon menu,
          * so the computed dynamic range has nothing to do with the one from CR2 pics
          * => we will use the DxO values
@@ -595,11 +601,31 @@ int raw_update_params()
         float iso_digital = (iso - iso_rounded) / 8.0f;
         raw_info.dynamic_range = dynamic_ranges[dr_index];
         
-        /* at intermediate ISOs, dynamic range is lowered */
-        /* keep in mind that we have faked the white level so ExpSim histogram matches the CR2 one */
-        raw_info.dynamic_range -= ABS(iso_digital) * 100;
+        if (iso_digital > 0)
+        {
+            /* at ISO 250, 500, 1000, dynamic range is lowered,
+             * because data is amplified but white level stays the same
+             */
+            raw_info.dynamic_range -= iso_digital * 100;
+        }
+        else if (iso_digital < 0)
+        {
+            /* there's also a bit of DR lost at ISO 160, 320 and so on,
+             * probably because of quantization error in shadows
+             * in theory, there shouldn't be any, because raw data and white level are scaled by a constant (I guess)
+             * 
+             * I don't know how to estimate it, so... let it be 0.1 EV
+             * 
+             * this may need a closer look
+             */
+            raw_info.dynamic_range -= 10;
+        }
         
         dbg_printf("dynamic range: %d.%02d EV (iso=%d)\n", raw_info.dynamic_range/100, raw_info.dynamic_range%100, raw2iso(iso));
+    }
+    else /* movie mode, no tricks here */
+    {
+        raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev, raw_info.white_level);
     }
     
     dbg_printf("black=%d white=%d\n", raw_info.black_level, raw_info.white_level);
@@ -898,7 +924,7 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
     *out_stdev = stdev;
 }
 
-int autodetect_black_level()
+static int autodetect_black_level(float* black_mean, float* black_stdev)
 {
     float mean = 0;
     float stdev = 0;
@@ -922,6 +948,34 @@ int autodetect_black_level()
         );
     }
     
+    *black_mean = mean;
+    *black_stdev = stdev;
+
+    return mean;
+}
+
+
+#if RAW_DEBUG_DR
+static int autodetect_white_level()
+{
+    int white = 10000;
+    
+    struct raw_pixblock * start = raw_info.buffer + raw_info.active_area.y1 * raw_info.pitch;
+    struct raw_pixblock * end = raw_info.buffer + raw_info.active_area.y2 * raw_info.pitch;
+
+    for (struct raw_pixblock * p = start; p < end; p += 4)
+    {
+        white = MAX(white, p->a - 500);
+        white = MAX(white, p->h - 500);
+    }
+    bmp_printf(FONT_MED, 50, 50, "White: %d", white);
+    
+    return white;
+}
+#endif
+
+static int compute_dynamic_range(float black_mean, float black_stdev, int white_level)
+{
     /**
      * A = full well capacity / read-out noise 
      * DR in dB = 20 log10(A)
@@ -931,14 +985,21 @@ int autodetect_black_level()
      * This is quite close to DxO measurements (within +/- 0.5 EV), 
      * except at very high ISOs where there seems to be noise reduction applied to raw data
      */
-     
-    int black_level = mean + stdev/2;
-    raw_info.dynamic_range = (int)roundf((log2f(raw_info.white_level - black_level) - log2f(stdev)) * 100);
 
-    // bmp_printf(FONT_MED, 50, 350, "black: mean=%d stdev=%d dr=%d \n", (int)mean, (int)stdev, raw_info.dynamic_range);
+#if RAW_DEBUG_DR
+    int mean = black_mean * 100;
+    int stdev = black_stdev * 100;
+    bmp_printf(FONT_MED, 50, 100, "mean=%d.%02d stdev=%d.%02d white=%d", mean/100, mean%100, stdev/100, stdev%100, white_level);
+    white_level = autodetect_white_level();
+#endif
 
-    /* slight correction for the magenta cast in shadows */
-    return mean + stdev/8;
+    int dr = (int)roundf((log2f(white_level - black_mean) - log2f(black_stdev)) * 100);
+
+#if RAW_DEBUG_DR
+    bmp_printf(FONT_MED, 50, 120, "=> dr=%d.%02d", dr/100, dr%100);
+#endif
+
+    return dr;
 }
 
 void raw_lv_redirect_edmac(void* ptr)
