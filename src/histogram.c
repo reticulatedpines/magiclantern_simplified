@@ -289,7 +289,7 @@ void hist_draw_image(
                 #ifdef FEATURE_AUTO_ETTR
                 int ettr_stops = auto_ettr_get_correction();
                 if (ettr_stops != INT_MIN)
-                    stops_until_overexposure = ettr_stops/10;
+                    stops_until_overexposure = (ettr_stops+5)/10;
                 #endif
                 
                 if (stops_until_overexposure != INT_MIN)
@@ -355,7 +355,7 @@ void hist_highlight(int level)
 
 #ifdef FEATURE_RAW_HISTOGRAM
 
-int raw_hist_get_percentile_level(int percentile_x10, int gray_projection)
+int raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_values, int n, int gray_projection)
 {
     if (!raw_update_params()) return -1;
     get_yuv422_vram();
@@ -381,24 +381,37 @@ int raw_hist_get_percentile_level(int percentile_x10, int gray_projection)
     int i;
     for( i=0 ; i < 16384 ; i++ )
         total += hist[i];
-    
-    int thr = total * percentile_x10 / 1000 - 5;  // 50% => median; allow up to 5 stuck pixels
-    int n = 0;
-    int ans = -1;
-    
-    for( i=0 ; i < 16384; i++ )
+
+    for (int k = 0; k < n; k++)
     {
-        n += hist[i];
-        if (n >= thr)
+        int thr = total * percentiles_x10[k] / 1000 - 5;  // 50% => median; allow up to 5 stuck pixels
+        int n = 0;
+        int ans = -1;
+        
+        for( i=0 ; i < 16384; i++ )
         {
-            ans = i;
-            break;
+            n += hist[i];
+            if (n >= thr)
+            {
+                ans = i;
+                break;
+            }
         }
+        
+        output_raw_values[k] = ans;
     }
 
     SmallFree(hist);
+    return 1;
+}
+
+int raw_hist_get_percentile_level(int percentile_x10, int gray_projection)
+{
+    int ans;
+    raw_hist_get_percentile_levels(&percentile_x10, &ans, 1, gray_projection);
     return ans;
 }
+
 
 int raw_hist_get_overexposure_percentage(int gray_projection)
 {

@@ -61,7 +61,6 @@ static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
 static CONFIG_INT("auto.ettr.max.tv", auto_ettr_max_shutter, 88);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
-#define auto_ettr_percentile (1000 - auto_ettr_ignore)
 #endif
 
 #define AUTO_ETTR_TRIGGER_PHOTO (auto_ettr_trigger == 0 || intervalometer_running)
@@ -3739,7 +3738,6 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
 
 #ifdef FEATURE_AUTO_ETTR
 
-static int auto_ettr_overexposure_warning = 0;
 /* also used for display on histogram */
 int auto_ettr_get_correction()
 {
@@ -3755,27 +3753,72 @@ int auto_ettr_get_correction()
         auto_ettr_clip == 1 ? GRAY_PROJECTION_MAX_RB :
         auto_ettr_clip == 2 ? GRAY_PROJECTION_MEDIAN_RGB : -1;
     
-    int raw = raw_hist_get_percentile_level(auto_ettr_percentile, gray_proj);
-    if (raw < 0)
+    /* compute the raw levels for more percentile values; will help if the image is overexposed */
+    /* if it's not, we'll use only the first value (the one from menu) */
+    int percentiles[4] = {(1000 - auto_ettr_ignore), COERCE(1000 - auto_ettr_ignore*5, 700, 950), 500, 100};
+    int raw_values[4];
+    int ok = raw_hist_get_percentile_levels(percentiles, raw_values, 4, gray_proj);
+    
+    if (ok != 1)
     {
         last_value = INT_MIN;
         return last_value;
     }
     
-    float ev = raw_to_ev(raw);
+    float ev = raw_to_ev(raw_values[0]);
+    
+    static float diff_from_lower_percentiles[3] = {0, 0, 0};
     
     //~ bmp_printf(FONT_MED, 50, 200, "%d ", MEMX(0xc0f08030));
     float target = MIN(auto_ettr_target_level, -0.5);
     float correction = target - ev;
-    if (correction <= target + 0.1)
+    if (ev < -0.1)
     {
-        /* we don't know how much to go back in order to fix the overexposure */
-        /* so we'll use a heuristic: for 1% of blown out image, go back 1EV, for 100% go back 10EV */
-        float overexposed = raw_hist_get_overexposure_percentage(gray_proj) / 100.0;
-        correction -= log2f(1 + overexposed);
-        auto_ettr_overexposure_warning = 1;
+        /* cool, we know exactly how much to correct, we'll return "correction" */
+        
+        /* save data for helping with future overexposed shots */
+        diff_from_lower_percentiles[0] = ev - raw_to_ev(raw_values[1]);
+        diff_from_lower_percentiles[1] = ev - raw_to_ev(raw_values[2]);
+        diff_from_lower_percentiles[2] = ev - raw_to_ev(raw_values[3]);
+        
+        //~ bmp_printf(FONT_MED, 0, 100, "overexposure hints: %d %d %d\n", (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
     }
-    else auto_ettr_overexposure_warning = 0;
+    else
+    {
+        /* image is overexposed */
+        /* and we don't know how much to go back in order to fix the overexposure */
+
+        /* from the previous shot, we know where the highlights were, compared to some lower percentiles */
+        /* let's assume this didn't change; meter at those percentiles and extrapolate the result */
+
+        int corrected = 0;
+        for (int k = 0; k < 3; k++)
+        {
+            if (diff_from_lower_percentiles[k] > 0)
+            {
+                float lower_ev = raw_to_ev(raw_values[k+1]);
+                if (lower_ev < -0.1)
+                {
+                    /* if the scene didn't change, we should be spot on */
+                    /* don't update the correction hints, since we don't know exactly where we are */
+                    ev = lower_ev + diff_from_lower_percentiles[k];
+                    correction = target - ev;
+                    corrected = 1;
+                    //~ bmp_printf(FONT_MED, 0, 100, "overexposure fix: k=%d diff=%d ev=%d corr=%d\n", k, (int)(diff_from_lower_percentiles[k] * 100), (int)(ev * 100), (int)(correction * 100));
+                    break;
+                }
+            }
+        }
+        
+        if (!corrected)
+        {
+            /* no idea, we'll use a heuristic: for 1% of blown out image, go back 1EV, for 100% go back 10EV */
+            float overexposed = raw_hist_get_overexposure_percentage(gray_proj) / 100.0;
+            //~ bmp_printf(FONT_MED, 0, 100, "overexposure area: %d/100%%\n", (int)(overexposed * 100));
+            //~ bmp_printf(FONT_MED, 0, 120, "fail info: (%d %d %d %d) (%d %d %d)", raw_values[0], raw_values[1], raw_values[2], raw_values[3], (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
+            correction -= log2f(1 + overexposed);
+        }
+    }
     
     last_value = (int)(correction * 100);
     return last_value;
