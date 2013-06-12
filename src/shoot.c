@@ -3849,14 +3849,12 @@ int auto_ettr_get_correction()
 static int expo_lock_get_current_value();
 static int expo_lock_value;
 
-/* returns how much of the correction was applied */
-/* ideally should return "corr" or something close */
+/* returns: 0 = nothing changed, 1 = OK, -1 = exposure limits reached */
 static int auto_ettr_work_m(int corr)
 {
     int tv = lens_info.raw_shutter;
     int iso = lens_info.raw_iso;
     if (!tv || !iso) return 0;
-    int old_expo = tv - iso;
 
     int delta = -corr * 8 / 100;
 
@@ -3915,23 +3913,20 @@ static int auto_ettr_work_m(int corr)
     tvr = round_shutter(tvr, shutter_lim);
 
     /* apply the new settings */
-    lens_set_rawshutter(tvr);
-    lens_set_rawiso(isor);
+    int oks = hdr_set_rawshutter(tvr);
+    int oki = hdr_set_rawiso(isor);
 
     /* don't let expo lock undo our changes */
     expo_lock_value = expo_lock_get_current_value();
     
     prev_tv = lens_info.raw_shutter;
 
-    int new_expo = tvr - isor;
-    //~ bmp_printf(FONT_MED, 50, 160, "expo old=%d new=%d should be %d     ", old_expo, new_expo, old_expo + delta);
-    return - (new_expo - old_expo) * 100/8;
+    return oks && oki ? 1 : -1;
 }
 
 static int auto_ettr_work_auto(int corr)
 {
     int ae = lens_info.ae;
-    int old_expo = -ae;
 
     int delta = -corr * 8 / 100;
 
@@ -3939,10 +3934,9 @@ static int auto_ettr_work_auto(int corr)
     ae = round_expo_comp(ae - delta);
 
     /* apply the new settings */
-    lens_set_ae(ae);
+    int ok = hdr_set_ae(ae);
 
-    int new_expo = -ae;
-    return - (new_expo - old_expo) * 100/8;
+    return ok ? 1 : -1;
 }
 
 static int auto_ettr_work(int corr)
@@ -3959,12 +3953,9 @@ static int ettr_pics_took = 0;
 static void auto_ettr_step_task(int corr)
 {
     lens_wait_readytotakepic(64);
-    int applied = auto_ettr_work(corr);
+    int status = auto_ettr_work(corr);
     
-    int changed_something = ABS(applied) >= 50;
-    int limits_reached = ABS(applied - corr) >= 60;
-    
-    if (!limits_reached && corr >= -20 && corr <= 70)
+    if (corr >= -20 && corr <= 70)
     {
         /* cool, we got the ideal exposure */
         beep();
@@ -3978,7 +3969,7 @@ static void auto_ettr_step_task(int corr)
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: giving up");
     }
-    else if (limits_reached && !changed_something)
+    else if (status == -1)
     {
         beep_times(3);
         ettr_pics_took = 0;
