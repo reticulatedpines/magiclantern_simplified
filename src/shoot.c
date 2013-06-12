@@ -3851,7 +3851,7 @@ static int expo_lock_value;
 
 /* returns how much of the correction was applied */
 /* ideally should return "corr" or something close */
-static int auto_ettr_work(int corr)
+static int auto_ettr_work_m(int corr)
 {
     int tv = lens_info.raw_shutter;
     int iso = lens_info.raw_iso;
@@ -3928,6 +3928,31 @@ static int auto_ettr_work(int corr)
     return - (new_expo - old_expo) * 100/8;
 }
 
+static int auto_ettr_work_auto(int corr)
+{
+    int ae = lens_info.ae;
+    int old_expo = -ae;
+
+    int delta = -corr * 8 / 100;
+
+    /* apply exposure correction */
+    ae = round_expo_comp(ae - delta);
+
+    /* apply the new settings */
+    lens_set_ae(ae);
+
+    int new_expo = -ae;
+    return - (new_expo - old_expo) * 100/8;
+}
+
+static int auto_ettr_work(int corr)
+{
+    if (shooting_mode == SHOOTMODE_AV || shooting_mode == SHOOTMODE_TV || shooting_mode == SHOOTMODE_P)
+        return auto_ettr_work_auto(corr);
+    else
+        return auto_ettr_work_m(corr);
+}
+
 static volatile int auto_ettr_running = 0;
 
 static int ettr_pics_took = 0;
@@ -3937,7 +3962,7 @@ static void auto_ettr_step_task(int corr)
     int applied = auto_ettr_work(corr);
     
     int changed_something = ABS(applied) >= 50;
-    int limits_reached = ABS(applied - corr) >= 50;
+    int limits_reached = ABS(applied - corr) >= 60;
     
     if (!limits_reached && corr >= -20 && corr <= 70)
     {
@@ -3973,9 +3998,10 @@ static void auto_ettr_step_task(int corr)
 static void auto_ettr_step()
 {
     if (!auto_ettr) return;
-    if (shooting_mode != SHOOTMODE_M) return;
-    if (lens_info.raw_iso == 0) return;
-    if (lens_info.raw_shutter == 0) return;
+    if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV && shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_MOVIE) return;
+    int is_m = (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE);
+    if (lens_info.raw_iso == 0 && is_m) return;
+    if (lens_info.raw_shutter == 0 && is_m) return;
     if (auto_ettr_running) return;
     if (HDR_ENABLED) return;
     int corr = auto_ettr_get_correction();
@@ -3990,9 +4016,10 @@ static void auto_ettr_step()
 static int auto_ettr_check_pre_lv()
 {
     if (!auto_ettr) return 0;
-    if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_MOVIE) return 0;
-    if (lens_info.raw_iso == 0) return 0;
-    if (lens_info.raw_shutter == 0) return 0;
+    if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV && shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_MOVIE) return 0;
+    int is_m = (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE);
+    if (lens_info.raw_iso == 0 && is_m) return 0;
+    if (lens_info.raw_shutter == 0 && is_m) return 0;
     if (HDR_ENABLED) return 0;
     int raw = is_movie_mode() ? raw_lv_is_enabled() : pic_quality & 0x60000;
     return raw;
@@ -4364,8 +4391,12 @@ int handle_ettr_keys(struct event * event)
 
 static MENU_UPDATE_FUNC(auto_ettr_update)
 {
-    if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_MOVIE)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR only works in M and RAW MOVIE modes.");
+    if (shooting_mode != SHOOTMODE_M && shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_TV && shooting_mode != SHOOTMODE_P && shooting_mode != SHOOTMODE_MOVIE)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR only works in M, Av, Tv, P and RAW MOVIE modes.");
+
+    int is_m = (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_MOVIE);
+    if (lens_info.raw_iso == 0 && is_m)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR requires manual ISO.");
 
     int raw = is_movie_mode() ? raw_lv_is_enabled() : pic_quality & 0x60000;
 
@@ -4639,6 +4670,19 @@ int round_aperture(int av)
     avr = COERCE(av + 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
     avr = COERCE(av + 3, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
     avr = COERCE(av + 4, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    return 0;
+}
+
+int round_expo_comp(int ae)
+{
+    int aer;
+    aer = COERCE(ae    , -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
+    aer = COERCE(ae - 1, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
+    aer = COERCE(ae + 1, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
+    aer = COERCE(ae - 2, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
+    aer = COERCE(ae + 2, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
+    aer = COERCE(ae + 3, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
+    aer = COERCE(ae + 4, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
     return 0;
 }
 
@@ -5872,7 +5916,6 @@ static struct menu_entry expo_menus[] = {
         .update = auto_ettr_update,
         .max = 1,
         .help  = "Auto expose to the right when you shoot RAW.",
-        .depends_on = DEP_MANUAL_ISO,
         .submenu_width = 710,
         .children =  (struct menu_entry[]) {
             {

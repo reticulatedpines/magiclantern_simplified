@@ -565,6 +565,10 @@ int raw_update_params()
         int iso = 0;
         if (!iso) iso = lens_info.raw_iso;
         if (!iso) iso = lens_info.raw_iso_auto;
+        static int last_iso = 0;
+        if (!iso) iso = last_iso;
+        last_iso = iso;
+        if (!iso) return 0;
         int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 200);
         float iso_digital = (iso - iso_rounded) / 8.0f;
         if (iso_digital <= 0)
@@ -596,6 +600,10 @@ int raw_update_params()
         int iso = 0;
         if (!iso) iso = lens_info.raw_iso;
         if (!iso) iso = lens_info.raw_iso_auto;
+        static int last_iso = 0;
+        if (!iso) iso = last_iso;
+        last_iso = iso;
+        if (!iso) return 0;
         int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 72 + (COUNT(dynamic_ranges)-1) * 8);
         int dr_index = COERCE((iso_rounded - 72) / 8, 0, COUNT(dynamic_ranges)-1);
         float iso_digital = (iso - iso_rounded) / 8.0f;
