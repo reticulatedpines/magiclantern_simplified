@@ -474,6 +474,8 @@ int raw_update_params()
      * You can hover over the points to list the measured EV (thanks Audionut).
      * 
      * This is only used in photo LiveView, where we can't compute it
+for 5D3 - i see
+1174, 1165, 1146, 1118, 1071, 1000, 907, 825, 726, 6.29, 542
      */
     
     #ifdef CONFIG_5D3
@@ -507,6 +509,11 @@ int raw_update_params()
 
     #ifdef CONFIG_60D
     int dynamic_ranges[] = {1091, 1072, 1055, 999, 910, 824, 736, 662};
+    #endif
+
+    #ifdef CONFIG_50D
+	// DxO dynamic ranges are: ?, 1140, 1106, 1051, 965, 872, 772, 679 using .58 ev offset
+    int dynamic_ranges[] = {1088, 1082, 1048, 993, 907, 814, 714, 621};
     #endif
 
     #ifdef CONFIG_EOSM
