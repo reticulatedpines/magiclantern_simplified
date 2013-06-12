@@ -466,6 +466,53 @@ int raw_update_params()
         return 0;
     }
 
+     /**
+     * Dynamic range, from DxO
+     * e.g. http://www.dxomark.com/index.php/Cameras/Camera-Sensor-Database/Canon/EOS-5D-Mark-III
+     * Measurements | Dynamic range | Screen
+     * You can hover over the points to list the measured EV (thanks Audionut).
+     * 
+     * This is only used in photo LiveView, where we can't compute it
+     */
+    
+    #ifdef CONFIG_5D3
+    int dynamic_ranges[] = {1097, 1087, 1069, 1041, 994, 923, 830, 748, 648, 552, 464};
+    #endif
+
+    #ifdef CONFIG_5D2
+    int dynamic_ranges[] = {1116, 1112, 1092, 1066, 1005, 909, 813, 711, 567};
+    #endif
+
+    #ifdef CONFIG_6D
+    int dynamic_ranges[] = {1143, 1139, 1122, 1087, 1044, 976, 894, 797, 683, 624, 505};
+    #endif
+
+    #ifdef CONFIG_500D
+    int dynamic_ranges[] = {1104, 1094, 1066, 1007, 933, 848, 737, 625};
+    #endif
+
+    #ifdef CONFIG_550D
+    //int dynamic_ranges[] = {1157, 1154, 1121, 1070, 979, 906, 805, 707}; I took the values Greg recommended
+    int dynamic_ranges[] = {1095, 1092, 1059, 1008, 917, 844, 744, 645};
+    #endif
+
+    #ifdef CONFIG_600D
+    int dynamic_ranges[] = {1146, 1139, 1116, 1061, 980, 898, 806, 728};
+    #endif
+
+    #ifdef CONFIG_650D
+    int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
+    #endif
+
+    #ifdef CONFIG_60D
+    int dynamic_ranges[] = {1091, 1072, 1055, 999, 910, 824, 736, 662};
+    #endif
+
+    #ifdef CONFIG_EOSM
+    int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
+    #endif
+
+
 /*********************** Portable code ****************************************/
 
     static int prev_shave = 0;
@@ -533,6 +580,27 @@ int raw_update_params()
     int black_aux = INT_MIN;
     if (!lv || dirty || should_run_polling_action(1000, &black_aux))
         raw_info.black_level = autodetect_black_level();
+
+    if (lv && !is_movie_mode())
+    {
+        /* in photo LiveView, ISO is not the one selected from Canon menu,
+         * so the computed dynamic range has nothing to do with the one from CR2 pics
+         * => we will use the DxO values
+         */
+        int iso = 0;
+        if (!iso) iso = lens_info.raw_iso;
+        if (!iso) iso = lens_info.raw_iso_auto;
+        int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 72 + (COUNT(dynamic_ranges)-1) * 8);
+        int dr_index = COERCE((iso_rounded - 72) / 8, 0, COUNT(dynamic_ranges)-1);
+        float iso_digital = (iso - iso_rounded) / 8.0f;
+        raw_info.dynamic_range = dynamic_ranges[dr_index];
+        
+        /* at intermediate ISOs, dynamic range is lowered */
+        /* keep in mind that we have faked the white level so ExpSim histogram matches the CR2 one */
+        raw_info.dynamic_range -= ABS(iso_digital) * 100;
+        
+        dbg_printf("dynamic range: %d.%02d EV (iso=%d)\n", raw_info.dynamic_range/100, raw_info.dynamic_range%100, raw2iso(iso));
+    }
     
     dbg_printf("black=%d white=%d\n", raw_info.black_level, raw_info.white_level);
 

@@ -187,7 +187,6 @@ void hist_draw_image(
     const int v = (1200 - raw_info.dynamic_range) * HIST_WIDTH / 1200;
     int underexposed_level = COERCE(v, 0, HIST_WIDTH-1);
     int stops_until_overexposure = 0;
-    if (lv && !is_movie_mode()) underexposed_level = INT_MIN;
     #endif
 
     for( i=0 ; i < HIST_WIDTH ; i++ )
@@ -278,7 +277,6 @@ void hist_draw_image(
         {
             case HIST_METER_DYNAMIC_RANGE:
             {
-                if (lv && !is_movie_mode()) goto _default;
                 int dr = (raw_info.dynamic_range + 5) / 10;
                 snprintf(msg, sizeof(msg), "D%d.%d", dr/10, dr%10);
                 break;
