@@ -3855,6 +3855,7 @@ static int auto_ettr_work_m(int corr)
     int tv = lens_info.raw_shutter;
     int iso = lens_info.raw_iso;
     if (!tv || !iso) return 0;
+    int old_expo = tv - iso;
 
     int delta = -corr * 8 / 100;
 
@@ -3910,6 +3911,7 @@ static int auto_ettr_work_m(int corr)
     /* cancel ISO rounding errors by adjusting shutter, which goes in smaller increments */
     /* this may choose a shutter speed higher than selected one, at high iso, which may not be desirable */
     tvr += isor - iso;
+    int tv0 = tvr;
     tvr = round_shutter(tvr, shutter_lim);
 
     /* apply the new settings */
@@ -3921,12 +3923,21 @@ static int auto_ettr_work_m(int corr)
     
     prev_tv = lens_info.raw_shutter;
 
+    int new_expo = lens_info.raw_shutter - lens_info.raw_iso;
+    
+    if (ABS(new_expo - old_expo) >= 3) /* something changed? consider it OK, better than nothing */
+        return 1;
+    
+    if (tvr > tv0 + 4) /* still underexposed? */
+        return -1;
+    
     return oks && oki ? 1 : -1;
 }
 
 static int auto_ettr_work_auto(int corr)
 {
     int ae = lens_info.ae;
+    int ae0 = ae;
 
     int delta = -corr * 8 / 100;
 
@@ -3935,6 +3946,9 @@ static int auto_ettr_work_auto(int corr)
 
     /* apply the new settings */
     int ok = hdr_set_ae(ae);
+
+    if (ABS(lens_info.ae - ae0) >= 3) /* something changed? consider it OK, better than nothing */
+        return 1;
 
     return ok ? 1 : -1;
 }
@@ -3971,7 +3985,7 @@ static void auto_ettr_step_task(int corr)
     }
     else if (status == -1)
     {
-        beep_times(3);
+        beep_times(2);
         ettr_pics_took = 0;
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: expo limits reached");
