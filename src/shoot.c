@@ -3962,8 +3962,8 @@ static int auto_ettr_work(int corr)
 }
 
 static volatile int auto_ettr_running = 0;
+static volatile int ettr_pics_took = 0;
 
-static int ettr_pics_took = 0;
 static void auto_ettr_step_task(int corr)
 {
     lens_wait_readytotakepic(64);
