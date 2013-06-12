@@ -1016,6 +1016,13 @@ static void fps_setup_timerA(int fps_x1000)
     #endif
 
     int timerA = fps_timer_a_orig;
+    int timerA_max = FPS_TIMER_A_MAX;
+
+    #ifdef CONFIG_DIGIC_V
+    /* try to limit vertical noise lines */
+    timerA_max = timerA * 3/2;
+    #endif
+    
     // {"Low light", "Exact FPS", "180deg shutter", "Jello effect"},
     switch (fps_criteria)
     {
@@ -1048,6 +1055,11 @@ static void fps_setup_timerA(int fps_x1000)
             #ifdef NEW_FPS_METHOD
             fps_timer_b_method = 1;
             #endif
+            
+            #ifdef CONFIG_DIGIC_V
+            /* we need to do the magic from timer A... */
+            timerA_max = FPS_TIMER_A_MAX;
+            #endif
             break;
     }
     
@@ -1071,14 +1083,14 @@ static void fps_setup_timerA(int fps_x1000)
     }
 
     // check hard limits
-    timerA = COERCE(timerA, FPS_TIMER_A_MIN, FPS_TIMER_A_MAX);
+    timerA = COERCE(timerA, FPS_TIMER_A_MIN, timerA_max);
     
     // apply user fine tuning
     int timerA_off = ((int)desired_fps_timer_a_offset) - 1000;
     timerA += timerA_off;
 
     // check hard limits again
-    timerA = COERCE(timerA, FPS_TIMER_A_MIN, FPS_TIMER_A_MAX);
+    timerA = COERCE(timerA, FPS_TIMER_A_MIN, timerA_max);
     
     // keep the same parity as original timer A
     timerA = (timerA & 0xFFFE) | (fps_timer_a_orig & 1);
