@@ -474,8 +474,6 @@ int raw_update_params()
      * You can hover over the points to list the measured EV (thanks Audionut).
      * 
      * This is only used in photo LiveView, where we can't compute it
-for 5D3 - i see
-1174, 1165, 1146, 1118, 1071, 1000, 907, 825, 726, 6.29, 542
      */
     
     #ifdef CONFIG_5D3
