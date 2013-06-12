@@ -3802,10 +3802,16 @@ int auto_ettr_get_correction()
                     /* if the scene didn't change, we should be spot on */
                     /* don't update the correction hints, since we don't know exactly where we are */
                     ev = lower_ev + diff_from_lower_percentiles[k];
-                    correction = target - ev;
-                    corrected = 1;
-                    //~ bmp_printf(FONT_MED, 0, 100, "overexposure fix: k=%d diff=%d ev=%d corr=%d\n", k, (int)(diff_from_lower_percentiles[k] * 100), (int)(ev * 100), (int)(correction * 100));
-                    break;
+                    
+                    /* we need to get a stronger correction than with the overexposed metering */
+                    /* otherwise, the scene probably changed */
+                    if (target - ev < correction)
+                    {
+                        correction = target - ev;
+                        corrected = 1;
+                        //~ bmp_printf(FONT_MED, 0, 100, "overexposure fix: k=%d diff=%d ev=%d corr=%d\n", k, (int)(diff_from_lower_percentiles[k] * 100), (int)(ev * 100), (int)(correction * 100));
+                        break;
+                    }
                 }
             }
         }
