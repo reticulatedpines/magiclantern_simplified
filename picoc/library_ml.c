@@ -7,18 +7,6 @@
 #define NO_KEY -1
 #define AF_ON 12345
 
-static char camera_model[32];
-static char firmware_version[32];
-PROP_HANDLER(PROP_CAM_MODEL)
-{
-    snprintf(camera_model, sizeof(camera_model), (const char *)buf);
-}
-
-PROP_HANDLER(PROP_FIRMWARE_VER)
-{
-    snprintf(firmware_version, sizeof(firmware_version), (const char *)buf);
-}
-
 static void LibSleep(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     int ms = (int)roundf(Param[0]->Val->FP * 1000.0f);
@@ -33,6 +21,11 @@ static void LibBeep(struct ParseState *Parser, struct Value *ReturnValue, struct
 static void LibBeeps(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     beep_times(Param[0]->Val->Integer);
+}
+
+static void LibBeepCustom(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    beep_custom(Param[0]->Val->Integer, Param[1]->Val->Integer, Param[2]->Val->Integer);
 }
 
 static void LibConsoleShow(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -995,6 +988,7 @@ struct LibraryFunction PlatformLibrary[] =
     {LibSleep,          "void sleep(float seconds);"    },  // sleep X seconds
     {LibBeep,           "void beep();"                  },  // short beep sound
     {LibBeeps,          "void beeps(int num);"          },  // short consecutive beeps
+    {LibBeepCustom,     "void beep_custom(int duration, int frequency, int wait);"},  // beep sound with custom frequency and duration
     {LibConsoleShow,    "void console_show();"          },  // show the script console
     {LibConsoleHide,    "void console_hide();"          },  // hide the script console
     {LibCls,            "void cls();"                   },  // clear the script console

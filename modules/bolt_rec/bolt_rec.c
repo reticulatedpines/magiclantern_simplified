@@ -43,6 +43,12 @@
 #define MAX_SCANLINES 20
 #define MAX_WIDTH     6000
 
+/* interface functions required by raw_rec */
+unsigned int raw_rec_cbr_starting();
+unsigned int raw_rec_cbr_stopping();
+unsigned int raw_rec_cbr_skip_frame(unsigned char *frame_data);
+unsigned int raw_rec_cbr_save_buffer(unsigned int used, unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
+unsigned int raw_rec_cbr_skip_buffer(unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
 
 /* recording options */
 unsigned int bolt_rec_enabled = 0;
@@ -50,6 +56,10 @@ unsigned int bolt_rec_post_frames = 10;
 unsigned int bolt_rec_plot_height = 50;
 
 /* state variables */
+unsigned int bolt_rec_buffered = 0;
+unsigned int bolt_rec_saved = 0;
+unsigned int bolt_rec_save_count = 0;
+
 unsigned int bolt_rec_recording = 0;
 unsigned int bolt_rec_post_frames_recorded = 0;
 unsigned int bolt_rec_vsync_calls = 0;
@@ -178,6 +188,15 @@ static void bolt_rec_calculate(unsigned char *buffer)
     /* yet is is hardcoded */
     if(abs_detection || rel_detection)
     {
+        /* when triggering the first time, set the number of frames to save to those in buffer */
+        if(!bolt_rec_recording)
+        {
+            bolt_rec_save_count = bolt_rec_buffered;
+            bolt_rec_saved = 0;
+        }
+        
+        /* plus save this frame */
+        bolt_rec_save_count++;
         bolt_rec_recording = 1;
         bolt_rec_post_frames_recorded = 0;
     }
@@ -188,9 +207,11 @@ static void bolt_rec_calculate(unsigned char *buffer)
             if(bolt_rec_post_frames_recorded < bolt_rec_post_frames)
             {
                 bolt_rec_post_frames_recorded++;
+                bolt_rec_save_count++;
             }
             else
             {
+                /* stop recording, but make sure that the buffered frames get saved */
                 bolt_rec_recording = 0;
             }
         }
@@ -220,29 +241,88 @@ static unsigned int bolt_rec_vsync_cbr(unsigned int unused)
     return 0;
 }
 
-/* public function, is linked with raw_rec */
-int raw_rec_skip_frame(unsigned char *buf)
+unsigned int raw_rec_cbr_starting()
 {
+    /* reset this to disable calculation in vsync */
+    bolt_rec_vsync_calls = 0;
+    
+    /* reset counters as buffers are empty */
+    bolt_rec_buffered = 0;
+    bolt_rec_saved = 0;
+    bolt_rec_save_count = 0;
+    
+    bolt_rec_recording = 0;
+    return 0;
+}
+
+unsigned int raw_rec_cbr_stopping()
+{
+    bolt_rec_rel_max = 0;
+    bolt_rec_abs_max = 0;
+    return 0;
+}
+
+/* public function, is linked with raw_rec */
+unsigned int raw_rec_cbr_skip_frame(unsigned char *buf)
+{
+    /* when bolt_rec is disabled, dont skip any frames */
     if(!bolt_rec_enabled)
     {
         bolt_rec_rel_max = 0;
         bolt_rec_abs_max = 0;
+        bolt_rec_buffered = 0;
         return 0;
     }
 
     bolt_rec_update_resolution();
 
-    /* make sure the vsync function doesnt calculate */
+    /* make sure the vsync function doesn't calculate */
     bolt_rec_vsync_calls = 0;
 
     /* run detection algorithms */
     bolt_rec_calculate(buf);
 
-    return !bolt_rec_recording;
+    bolt_rec_buffered++;
+    
+    /* save all frames into buffers */
+    return 0;
+}
+
+/* dont save any buffer until the detection routines are triggering */
+unsigned int raw_rec_cbr_save_buffer(unsigned int used, unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count)
+{
+    if(!bolt_rec_enabled)
+    {
+        return 1;
+    }
+    
+    /* still have to save some buffered frames? */
+    if(bolt_rec_recording || bolt_rec_saved < bolt_rec_save_count)
+    {
+        bolt_rec_saved += frame_count;
+        bolt_rec_buffered -= frame_count;
+        return 1;
+    }
+    
+    return 0;
+}
+
+/* we always throw away the buffered frames and save the new ones */
+unsigned int raw_rec_cbr_skip_buffer(unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count)
+{
+    if(!bolt_rec_enabled)
+    {
+        return 0;
+    }
+    
+    bolt_rec_buffered -= frame_count;
+    return 1;
 }
 
 static void bolt_rec_plot(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned short *bg_plot, unsigned short *fg_plot, unsigned int start, unsigned int entries, unsigned short trigger, unsigned short max)
 {
+    int max_value = COERCE(max, 1, 16384);
+    
     /* fill background */
     bmp_fill(COLOR_ALMOST_BLACK, x, y, w, h);
 
@@ -256,33 +336,36 @@ static void bolt_rec_plot(unsigned int x, unsigned int y, unsigned int w, unsign
 
         if(bg_plot)
         {
-            draw_line(line_x, line_y, line_x, line_y - (bg_plot[pos] * h / max), COLOR_RED);
+            int val = bg_plot[pos];
+            draw_line(line_x, line_y, line_x, line_y - (COERCE(val, 0, max_value) * h / max_value), COLOR_RED);
         }
         if(fg_plot)
         {
-            draw_line(line_x, line_y, line_x, line_y - (fg_plot[pos] * h / max), COLOR_GREEN1);
+            int val = fg_plot[pos];
+            draw_line(line_x, line_y, line_x, line_y - (COERCE(val, 0, max_value) * h / max_value), COLOR_GREEN1);
         }
     }
 
     /* draw trigger value */
-    unsigned int trigVal = MIN(h,trigger * h / max);
+    unsigned int trigVal = MIN(h,trigger * h / max_value);
     draw_line(x - 1, y + h - trigVal, x + w + 1, y + h - trigVal, COLOR_WHITE);
 }
 
 void bolt_rec_update_plots(int x, int y)
 {
     /* ensure we dont paint outside the screen */
-    if(y + 2 * bolt_rec_plot_height > 480 - 10)
+    if(y + 3 * bolt_rec_plot_height > 480 - 10)
     {
-        y = 480 - 10 - 2 * bolt_rec_plot_height;
+        y = 480 - 10 - 3 * bolt_rec_plot_height;
     }
 
     /* draw a nice border. ToDo: improve using lines */
-    bmp_fill(COLOR_GRAY(60), x - 3, y - 3, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + font_med.height);
-    bmp_fill(COLOR_GRAY(60), x - 4, y - 4, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + font_med.height);
-    bmp_fill(COLOR_GRAY(20), x - 1, y - 1, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + font_med.height);
-    bmp_fill(COLOR_GRAY(20), x - 0, y - 0, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + font_med.height);
-    bmp_fill(COLOR_GRAY(30), x - 2, y - 2, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + font_med.height);
+    int lines = 2;
+    bmp_fill(COLOR_GRAY(60), x - 3, y - 3, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + lines * font_med.height);
+    bmp_fill(COLOR_GRAY(60), x - 4, y - 4, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + lines * font_med.height);
+    bmp_fill(COLOR_GRAY(20), x - 1, y - 1, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + lines * font_med.height);
+    bmp_fill(COLOR_GRAY(20), x - 0, y - 0, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + lines * font_med.height);
+    bmp_fill(COLOR_GRAY(30), x - 2, y - 2, LOG_ENTRIES + 8, 2 * bolt_rec_plot_height + 1 + lines * font_med.height);
 
     /* paint plots */
     bolt_rec_plot(x, y, LOG_ENTRIES, bolt_rec_plot_height, bolt_rec_abs_peak, bolt_rec_abs_avg, bolt_rec_abs_log_pos, LOG_ENTRIES, bolt_rec_abs_trigger, bolt_rec_abs_max);
@@ -292,6 +375,7 @@ void bolt_rec_update_plots(int x, int y)
     bmp_printf(SHADOW_FONT(FONT_SMALL), x + 2, y + 2, "Abs: %s", bolt_rec_abs_enabled?"   ":"OFF");
     bmp_printf(SHADOW_FONT(FONT_SMALL), x + 2, y + bolt_rec_plot_height + 3, "Rel: ", bolt_rec_rel_enabled?"   ":"OFF");
     bmp_printf(SHADOW_FONT(FONT_SMALL), x + 4, y + 2 * bolt_rec_plot_height + 2, "Rec: %s", bolt_rec_recording?"ON ":"OFF");
+    bmp_printf(SHADOW_FONT(FONT_SMALL), x + 4, y + 2 * bolt_rec_plot_height + font_med.height + 2, "Buf: %d  ", bolt_rec_buffered);
 }
 
 static MENU_UPDATE_FUNC(bolt_rec_update_plot_menu)

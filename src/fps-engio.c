@@ -369,6 +369,16 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
     return ans;
 }
 
+int get_max_shutter_timer()
+{
+    int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
+    int ntsc = is_current_mode_ntsc();
+    int zoom = lv_dispsize > 1 ? 1 : 0;
+    int crop = video_mode_crop;
+    zoom+=0; crop+=0; ntsc+=0; // bypass warnings
+    return SHUTTER_x1000_TO_TIMER(default_fps);
+}
+
 /* shutter speed in microseconds, from timer value */
 int get_shutter_speed_us_from_timer(int timer)
 {
@@ -1006,6 +1016,13 @@ static void fps_setup_timerA(int fps_x1000)
     #endif
 
     int timerA = fps_timer_a_orig;
+    int timerA_max = FPS_TIMER_A_MAX;
+
+    #ifdef CONFIG_DIGIC_V
+    /* try to limit vertical noise lines */
+    timerA_max = timerA * 3/2;
+    #endif
+    
     // {"Low light", "Exact FPS", "180deg shutter", "Jello effect"},
     switch (fps_criteria)
     {
@@ -1038,6 +1055,11 @@ static void fps_setup_timerA(int fps_x1000)
             #ifdef NEW_FPS_METHOD
             fps_timer_b_method = 1;
             #endif
+            
+            #ifdef CONFIG_DIGIC_V
+            /* we need to do the magic from timer A... */
+            timerA_max = FPS_TIMER_A_MAX;
+            #endif
             break;
     }
     
@@ -1061,14 +1083,14 @@ static void fps_setup_timerA(int fps_x1000)
     }
 
     // check hard limits
-    timerA = COERCE(timerA, FPS_TIMER_A_MIN, FPS_TIMER_A_MAX);
+    timerA = COERCE(timerA, FPS_TIMER_A_MIN, timerA_max);
     
     // apply user fine tuning
     int timerA_off = ((int)desired_fps_timer_a_offset) - 1000;
     timerA += timerA_off;
 
     // check hard limits again
-    timerA = COERCE(timerA, FPS_TIMER_A_MIN, FPS_TIMER_A_MAX);
+    timerA = COERCE(timerA, FPS_TIMER_A_MIN, timerA_max);
     
     // keep the same parity as original timer A
     timerA = (timerA & 0xFFFE) | (fps_timer_a_orig & 1);

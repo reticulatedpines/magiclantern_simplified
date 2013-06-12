@@ -32,6 +32,12 @@
 /* when enabled, it hooks shortcut keys */
 static int raw_video_enabled = 0;
 
+/* camera-specific tricks */
+/* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
+static int cam_eos_m = 0;
+static int cam_5d2 = 0;
+static int cam_50d = 0;
+
 /**
  * resolution should be multiple of 16 horizontally
  * see http://www.magiclantern.fm/forum/index.php?topic=5839.0
@@ -116,8 +122,33 @@ static int fullsize_buffer_pos = 0;               /* which of the full size buff
 static int frame_count = 0;                       /* how many frames we have processed */
 static int frame_skips = 0;                       /* how many frames were dropped/skipped */
 static char* movie_filename = 0;                  /* file name for current (or last) movie */
+static char* chunk_filename = 0;                  /* file name for current movie chunk */
+static uint32_t written = 0;                      /* how many KB we have written in this movie */
+static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
+static int idle_time = 0;                         /* time spent by raw_video_rec_task doing something else */
 
-extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_frame(unsigned char *);
+/* interface to other modules:
+ *
+ *    unsigned int raw_rec_skip_frame(unsigned char *frame_data)
+ *      This function is called on every single raw frame that is received from sensor with a pointer to frame data as parameter.
+ *      If the return value is zero, the frame will get save into the saving buffers, else it is skipped
+ *      Default: Do not skip frame (0)
+ *
+ *    unsigned int raw_rec_save_buffer(unsigned int used, unsigned int buffer_count)
+ *      This function is called whenever the writing loop is checking if it has data to save to card.
+ *      The parameters are the number of used buffers and the total buffer count
+ *      Default: Save buffer (1)
+ *
+ *    unsigned int raw_rec_skip_buffer(unsigned int buffer_index, unsigned int buffer_count);
+ *      Whenever the buffers are full, this function is called with the buffer index that is subject to being dropped, the number of frames in this buffer and the total buffer count.
+ *      If it returns zero, this buffer will not get thrown away, but the next frame will get dropped.
+ *      Default: Do not throw away buffer, but throw away incoming frame (0)
+ */
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_starting();
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_stopping();
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_frame(unsigned char *frame_data);
+extern WEAK_FUNC(ret_1) unsigned int raw_rec_cbr_save_buffer(unsigned int used, unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_buffer(unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
 
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
@@ -367,12 +398,21 @@ static void refresh_raw_settings(int force)
         }
     }
 }
+
 static MENU_UPDATE_FUNC(raw_main_update)
 {
     if (!raw_video_enabled) return;
     
     refresh_raw_settings(0);
-    
+
+    if (auto_power_off_time)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "\"Auto power off\" is enabled in Canon menu. Video may stop.");
+
+    if (is_custom_movie_mode() && !is_native_movie_mode())
+    {
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "You are recording video in photo mode. Use expo override.");
+    }
+
     if (!RAW_IS_IDLE)
     {
         MENU_SET_VALUE(RAW_IS_RECORDING ? "Recording..." : RAW_IS_PREPARING ? "Starting..." : RAW_IS_FINISHING ? "Stopping..." : "err");
@@ -610,13 +650,12 @@ static void free_buffers()
     mem_suite = 0;
 }
 
-static void show_buffer_status(int adj)
+static void show_buffer_status()
 {
     if (!liveview_display_idle()) return;
     
     int free_buffers = mod(saving_buffer_index - capturing_buffer_index, buffer_count); /* how many free slots do we have? */
     if (free_buffers == 0) free_buffers = buffer_count; /* saving task waiting for capturing task */
-    free_buffers += adj; /* when skipping frames, adj is -1, because capturing_buffer_index was not incremented yet */
     
     /* could use a nicer display, but stars should be fine too */
     char buffer_status[10];
@@ -700,6 +739,9 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     if (!raw_video_enabled)
         return 0;
     
+    if (!is_movie_mode())
+        return 0;
+
     /* refresh cropmark (faster when panning, slower when idle) */
     static int aux = INT_MIN;
     if (frame_offset_delta_x || frame_offset_delta_y || should_run_polling_action(500, &aux))
@@ -714,6 +756,43 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     if (RAW_IS_IDLE && !gui_menu_shown())
     {
         refresh_raw_settings(0);
+    }
+    
+    /* update status messages */
+    static int auxrec = INT_MIN;
+    if (RAW_IS_RECORDING && liveview_display_idle() && should_run_polling_action(1000, &auxrec))
+    {
+        int fps = fps_get_current_x1000();
+        int t = (frame_count * 1000 + fps/2) / fps;
+        bmp_printf( FONT_MED, 30, 70, 
+            "%02d:%02d, %d frames...",
+            t/60, t%60,
+            frame_count
+        );
+
+        show_buffer_status();
+
+        /* how fast are we writing? does this speed match our benchmarks? */
+        if (writing_time)
+        {
+            int speed = written * 10 / writing_time * 1000 / 1024; // MB/s x10
+            int idle_percent = idle_time * 100 / (writing_time + idle_time);
+            measured_write_speed = speed;
+
+            char msg[50];
+            snprintf(msg, sizeof(msg),
+                "%s: %d MB, %d.%d MB/s",
+                chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
+                written / 1024,
+                speed/10, speed%10
+            );
+            if (idle_time)
+            {
+                if (idle_percent) { STR_APPEND(msg, ", %d%% idle ", idle_percent); }
+                else { STR_APPEND(msg, ", %dms idle ", idle_time); }
+            }
+            bmp_printf( FONT_MED, 30, 90, "%s", msg);
+        }
     }
 
     return 0;
@@ -790,7 +869,7 @@ static int process_frame()
     fullsize_buffer_pos = (fullsize_buffer_pos + 1) % 2;
     
     /* dont process this frame if a module wants to skip that */
-    if(raw_rec_skip_frame(fullSizeBuffer))
+    if(raw_rec_cbr_skip_frame(fullSizeBuffer))
     {
         return 0;
     }
@@ -806,14 +885,6 @@ static int process_frame()
     /* advance to next frame */
     frame_count++;
     capture_offset += frame_size;
-
-    if (liveview_display_idle())
-    {
-        bmp_printf( FONT_MED, 30, 70, 
-            "Capturing frame %d...", 
-            frame_count
-        );
-    }
     
     return ans;
 }
@@ -830,7 +901,8 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
     }
 
     if (!raw_video_enabled) return 0;
-    
+    if (!is_movie_mode()) return 0;
+
     hack_liveview();
  
     /* panning window is updated when recording, but also when not recording */
@@ -853,6 +925,17 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
             capturing_buffer_index = next_buffer;
             capture_offset = 0;
         }
+        else if (raw_rec_cbr_skip_buffer(next_buffer, buffers[next_buffer].size / frame_size, buffer_count))
+        {
+            /* our buffer list wrapped over, but this is intentional as an other module requests this mode of operation */
+            buffers[capturing_buffer_index].used = capture_offset;
+            capturing_buffer_index = next_buffer;
+            capture_offset = 0;
+            
+            /* decrease frame count by the amount saved in skipped buffer */
+            frame_count -= buffers[next_buffer].size / frame_size;
+            saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
+        }
         else
         {
             /* card too slow */
@@ -863,13 +946,8 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
                     "Skipping frames...   "
                 );
             }
-            show_buffer_status(-1);
             return 0;
         }
-    }
-    else
-    {
-        show_buffer_status(0);
     }
     
     dma_transfer_in_progress = process_frame();
@@ -942,7 +1020,7 @@ static void raw_video_rec_task()
     frame_offset_delta_x = 0;
     frame_offset_delta_y = 0;
     FILE* f = 0;
-    uint32_t written = 0; /* in KB */
+    written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
 
     /* disable canon graphics (gains a little speed) */
@@ -965,7 +1043,7 @@ static void raw_video_rec_task()
     /* create output file */
     int chunk = 0;
     movie_filename = get_next_raw_movie_file_name();
-    char* chunk_filename = movie_filename;
+    chunk_filename = movie_filename;
     f = FIO_CreateFileEx(movie_filename);
     if (f == INVALID_PTR)
     {
@@ -998,7 +1076,12 @@ static void raw_video_rec_task()
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
 
-    int t0 = 0;
+    /* signal that we are starting */
+    raw_rec_cbr_starting();
+    
+    writing_time = 0;
+    idle_time = 0;
+    int last_write_timestamp = 0;
     
     /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
     recording = -1;
@@ -1008,14 +1091,22 @@ static void raw_video_rec_task()
     {
         if (stop_on_buffer_overflow && frame_skips)
             goto abort;
-
+            
         /* do we have any buffers completely filled with data, that we can save? */
-        if (saving_buffer_index != capturing_buffer_index)
+        int used_buffers = (capturing_buffer_index + buffer_count - saving_buffer_index) % buffer_count;
+        int ext_gating = raw_rec_cbr_save_buffer(used_buffers, saving_buffer_index, buffers[saving_buffer_index].size / frame_size, buffer_count);
+
+        /* ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
+        if(used_buffers > 0 && ext_gating)
         {
-            if (!t0) t0 = get_ms_clock_value();
             void* ptr = buffers[saving_buffer_index].ptr;
             int size_used = buffers[saving_buffer_index].used;
+
+            int t0 = get_ms_clock_value();
+            if (!last_write_timestamp) last_write_timestamp = t0;
+            idle_time += t0 - last_write_timestamp;
             int r = FIO_WriteFile(f, ptr, size_used);
+            last_write_timestamp = get_ms_clock_value();
 
             if (r != size_used) /* 4GB limit or card full? */
             {
@@ -1071,26 +1162,13 @@ static void raw_video_rec_task()
                 written_chunk += size_used;
             }
             
+            writing_time += last_write_timestamp - t0;
             saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
         }
         else
         {
             /* to be verified if it is okay to sleep when the buffers are empty */
             msleep(20);
-        }
-
-        /* how fast are we writing? does this speed match our benchmarks? */
-        if (t0)
-        {
-            int t1 = get_ms_clock_value();
-            int speed = written * 10 / (t1 - t0) * 1000 / 1024; // MB/s x10
-            measured_write_speed = speed;
-            if (liveview_display_idle()) bmp_printf( FONT_MED, 30, 90, 
-                "%s: %d MB, %d.%d MB/s ",
-                chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
-                written / 1024,
-                speed/10, speed%10
-            );
         }
 
         /* error handling */
@@ -1104,7 +1182,10 @@ abort:
             break;
         }
     }
-
+    
+    /* signal that we are stopping */
+    raw_rec_cbr_stopping();
+    
     /* done, this will stop the vsync CBR and the copying task */
     raw_recording_state = RAW_FINISHING;
 
@@ -1126,7 +1207,7 @@ abort:
     /* write remaining frames */
     while (saving_buffer_index != capturing_buffer_index)
     {
-        show_buffer_status(0);
+        show_buffer_status();
         written += FIO_WriteFile(f, buffers[saving_buffer_index].ptr, buffers[saving_buffer_index].used) / 1024;
         saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
     }
@@ -1206,11 +1287,13 @@ static MENU_SELECT_FUNC(raw_video_toggle)
     if (raw_video_enabled)
     {
         raw_lv_request();
+        if (cam_eos_m) set_custom_movie_mode(1);
     }
     else
     {
         raw_lv_release();
         raw_lv_shave_right(0);
+        if (cam_eos_m) set_custom_movie_mode(0);
     }
     msleep(50);
 }
@@ -1339,7 +1422,7 @@ static struct menu_entry raw_video_menu[] =
         .max = 1,
         .update = raw_main_update,
         .submenu_width = 710,
-        .depends_on = DEP_LIVEVIEW,
+        .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
         .help = "Record 14-bit RAW video. Press LiveView to start.",
         .children =  (struct menu_entry[]) {
             {
@@ -1424,13 +1507,21 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
 {
     if (!raw_video_enabled)
         return 1;
-    
+
+    if (!is_movie_mode())
+        return 1;
+
     /* keys are only hooked in LiveView */
     if (!liveview_display_idle())
         return 1;
     
     /* start/stop recording with the LiveView key */
-    if(key == MODULE_KEY_LV || key == MODULE_KEY_REC)
+    int rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
+    
+    /* ... or SET on 5D2/50D */
+    if (cam_50d || cam_5d2) rec_key_pressed = (key == MODULE_KEY_PRESS_SET);
+    
+    if (rec_key_pressed)
     {
         switch(raw_recording_state)
         {
@@ -1493,10 +1584,13 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     return 1;
 }
 
+static int preview_dirty = 0;
+
 static unsigned int raw_rec_should_preview(unsigned int ctx)
 {
     if (!raw_video_enabled) return 0;
-    
+    if (!is_movie_mode()) return 0;
+
     /* keep x10 mode unaltered, for focusing */
     if (lv_dispsize == 10) return 0;
     
@@ -1518,15 +1612,19 @@ static unsigned int raw_rec_should_preview(unsigned int ctx)
 
 static unsigned int raw_rec_update_preview(unsigned int ctx)
 {
-    static int preview_dirty = 0;
-    
-    if (!raw_rec_should_preview(0))
+    /* just say whether we can preview or not */
+    if (ctx == 0)
     {
-        if (preview_dirty)
+        int enabled = raw_rec_should_preview(ctx);
+        if (!enabled && preview_dirty)
+        {
+            /* cleanup the mess, if any */
             raw_set_dirty();
-        return 0;
+            preview_dirty = 0;
+        }
+        return enabled;
     }
-
+    
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
 
     raw_previewing = 1;
@@ -1543,13 +1641,31 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
         int used_buffers = buffer_count - free_buffers;
         msleep(free_buffers <= 2 ? 2000 : used_buffers > 1 ? 1000 : 100);
     }
+
+    preview_dirty = 1;
     return 1;
 }
 
 static unsigned int raw_rec_init()
 {
+    cam_eos_m = streq(camera_model_short, "EOSM");
+    cam_5d2 = streq(camera_model_short, "5D2");
+    cam_50d = streq(camera_model_short, "50D");
+    
+    for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
+    {
+        /* customize menus for each camera here (e.g. hide what doesn't work) */
+        
+        if (cam_50d && streq(e->name, "Sound"))
+            e->shidden = 1;
+    }
+
+    if (cam_5d2 || cam_50d)
+       raw_video_menu[0].help = "Record 14-bit RAW video. Press SET to start.";
+
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
     fileman_register_type("RAW", "RAW Video", raw_rec_filehandler);
+    
     return 0;
 }
 
@@ -1574,6 +1690,5 @@ MODULE_CBRS_START()
     MODULE_CBR(CBR_VSYNC, raw_rec_vsync_cbr, 0)
     MODULE_CBR(CBR_KEYPRESS, raw_rec_keypress_cbr, 0)
     MODULE_CBR(CBR_SHOOT_TASK, raw_rec_polling_cbr, 0)
-    MODULE_CBR(CBR_DISPLAY_FILTER_ENABLED, raw_rec_should_preview, 0)
-    MODULE_CBR(CBR_DISPLAY_FILTER_UPDATE, raw_rec_update_preview, 0)
+    MODULE_CBR(CBR_DISPLAY_FILTER, raw_rec_update_preview, 0)
 MODULE_CBRS_END()

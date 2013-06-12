@@ -3141,7 +3141,6 @@ struct menu_entry zebra_menus[] = {
                 .max = 1,
                 .choices = (const char *[]) {"Hide", "Show"},
                 .help = "You can hide zebras when recording.",
-                .update = zebra_param_not_used_for_raw,
             },
             #endif
             #ifdef FEATURE_RAW_ZEBRAS
@@ -3420,7 +3419,7 @@ struct menu_entry zebra_menus[] = {
             {
                 .name = "Palette      ",
                 .priv = &falsecolor_palette,
-                .max = COUNT(false_colour)-1,
+                .max = 5,
                 .icon_type = IT_DICE,
                 .choices = CHOICES("Marshall", "SmallHD", "50-55%", "67-72%", "Banding detection", "GreenScreen"),
                 .update = falsecolor_display_palette,
@@ -4363,7 +4362,7 @@ static void draw_livev_for_playback()
         livev_for_playback_running = 0;
         return;
     }
-    if (QR_MODE) msleep(100);
+    if (QR_MODE) msleep(300);
 
     get_yuv422_vram(); // just to refresh VRAM params
 
@@ -5257,7 +5256,13 @@ livev_hipriority_task( void* unused )
             else
             #endif
             {
-                BMP_LOCK( if (lv) draw_zebra_and_focus(k % (focus_peaking ? 5 : 3) == 0, k % 2 == 1); )
+                BMP_LOCK(
+                    if (lv)
+                        draw_zebra_and_focus(
+                            k % ((focus_peaking ? 5 : 3) * (recording ? 5 : 1)) == 0, /* should redraw zebras? */
+                            k % 2 == 1  /* should redraw focus peaking? */
+                        ); 
+                )
             }
         }
 
@@ -5571,10 +5576,7 @@ static int livev_playback = 0;
 static void livev_playback_toggle()
 {
     if (livev_for_playback_running)
-    {
-        beep();
         return;
-    }
     
     livev_playback = !livev_playback;
     if (livev_playback)

@@ -53,17 +53,19 @@ def setExfat(device, offset):
         if index in {106, 107, 112}:
             continue
         value = uint8(device[offset+index])
-        checksum = uint32(((checksum << 31) | (checksum >> 1)) + value)
+        checksum = uint32((checksum << 31) | (checksum >> 1) + value)
 
     checksum_chunk = struct.pack('<I', checksum) * 128
-    device[offset+512:offset+1024] = checksum_chunk
+    device[offset+512*11:offset+512*12] = checksum_chunk
 
 def main(argv=None):
     if argv is None:
         argv = sys.argv
 
     device_fd = open(argv[1], 'r+b')
-    device = mmap.mmap(device_fd.fileno(), 0)
+    # Only map the longest boot recod we need to write to (512*24 is
+    # needed for exfat)
+    device = mmap.mmap(device_fd.fileno(), 512*24)
 
     if device[54:62] == b'FAT16   ':
         print('Identified FAT16 partition')

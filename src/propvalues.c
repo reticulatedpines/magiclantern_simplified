@@ -8,6 +8,20 @@
 #define _propvalues_h_
 #include "property.h"
 
+char camera_model_short[8] = CAMERA_MODEL;
+char camera_model[32];
+char firmware_version[32];
+
+PROP_HANDLER(PROP_CAM_MODEL)
+{
+    snprintf(camera_model, sizeof(camera_model), (const char *)buf);
+}
+
+PROP_HANDLER(PROP_FIRMWARE_VER)
+{
+    snprintf(firmware_version, sizeof(firmware_version), (const char *)buf);
+}
+
 volatile PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 volatile PROP_INT(PROP_LIVE_VIEW_VIEWTYPE, expsim);
 volatile PROP_INT(PROP_EFIC_TEMP, efic_temp);
@@ -33,6 +47,7 @@ volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
 //~ int battery_level_bars = 0;
 PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
 volatile PROP_INT(PROP_DATE_FORMAT, date_format);
+volatile PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time)
 
 #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
 int ae_mode_movie = 1;
@@ -59,7 +74,7 @@ PROP_HANDLER(PROP_DOF_PREVIEW_MAYBE) // len=2
 volatile int lv = 0;
 volatile int lv_paused = 0; // not a property, but related
 
-bool FAST is_movie_mode()
+bool FAST is_native_movie_mode()
 {
     #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
     return lv && lv_movie_select == LVMS_ENABLE_MOVIE
@@ -70,6 +85,25 @@ bool FAST is_movie_mode()
     #else
     return shooting_mode == SHOOTMODE_MOVIE;
     #endif
+}
+
+static volatile bool custom_movie_mode = 0;
+void set_custom_movie_mode(int value)
+{
+    custom_movie_mode = value;
+}
+bool is_custom_movie_mode() { return custom_movie_mode; }
+
+bool FAST is_movie_mode()
+{
+    /* e.g. raw video, mjpeg, whatever (these modules would have to call set_custom_movie_mode); */
+    if (custom_movie_mode) 
+        return true;
+    
+    if (is_native_movie_mode())
+        return true;
+    
+    return false;
 }
 
 volatile int shutter_count = 0;

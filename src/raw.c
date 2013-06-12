@@ -18,6 +18,7 @@
 
 static int shave_right = 0;
 static int dirty = 0;
+int raw_get_shave_right() { return shave_right; } /* todo: add it in raw_info structure, at next raw file format update */
 
 /*********************** Camera-specific constants ****************************/
 
@@ -214,7 +215,8 @@ struct raw_info raw_info = {
     .dynamic_range = 1100,              // not correct; use numbers from DxO instead
 };
 
-static int autodetect_black_level();
+static int autodetect_black_level(float* black_mean, float* black_stdev);
+static int compute_dynamic_range(float black_mean, float black_stdev, int white_level);
 
 int raw_update_params()
 {
@@ -465,17 +467,96 @@ int raw_update_params()
         return 0;
     }
 
+     /**
+     * Dynamic range, from DxO
+     * e.g. http://www.dxomark.com/index.php/Cameras/Camera-Sensor-Database/Canon/EOS-5D-Mark-III
+     * Measurements | Dynamic range | Screen
+     * You can hover over the points to list the measured EV (thanks Audionut).
+     * 
+     * This is only used in photo LiveView, where we can't compute it
+     */
+    
+    #ifdef CONFIG_5D3
+    int dynamic_ranges[] = {1097, 1087, 1069, 1041, 994, 923, 830, 748, 648, 552, 464};
+    #endif
+
+    #ifdef CONFIG_5D2
+    int dynamic_ranges[] = {1116, 1112, 1092, 1066, 1005, 909, 813, 711, 567};
+    #endif
+
+    #ifdef CONFIG_6D
+    int dynamic_ranges[] = {1143, 1139, 1122, 1087, 1044, 976, 894, 797, 683, 624, 505};
+    #endif
+
+    #ifdef CONFIG_500D
+    int dynamic_ranges[] = {1104, 1094, 1066, 1007, 933, 848, 737, 625};
+    #endif
+
+    #ifdef CONFIG_550D
+    //int dynamic_ranges[] = {1157, 1154, 1121, 1070, 979, 906, 805, 707}; I took the values Greg recommended
+    int dynamic_ranges[] = {1095, 1092, 1059, 1008, 917, 844, 744, 645};
+    #endif
+
+    #ifdef CONFIG_600D
+    int dynamic_ranges[] = {1146, 1139, 1116, 1061, 980, 898, 806, 728};
+    #endif
+
+    #ifdef CONFIG_650D
+    int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
+    #endif
+
+    #ifdef CONFIG_60D
+    int dynamic_ranges[] = {1091, 1072, 1055, 999, 910, 824, 736, 662};
+    #endif
+
+    #ifdef CONFIG_EOSM
+    int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
+    #endif
+
+
 /*********************** Portable code ****************************************/
 
     static int prev_shave = 0;
     if (width != raw_info.width || height != raw_info.height || shave_right != prev_shave)
+    {
+        /* raw dimensions changed? force a full update, including preview window */
         dirty = 1;
+    }
     prev_shave = shave_right;
     
+    if (lv_dispsize > 1)
+    {
+        /* in zoom mode: yuv position changed? also force a full update */
+        static int prev_zoom = 0;
+        static int prev_delta_x = 0;
+        static int prev_delta_y = 0;
+        
+        int zoom = lv_dispsize;
+        int delta_x, delta_y;
+        focus_box_get_raw_crop_offset(&delta_x, &delta_y);
+        
+        if (zoom != prev_zoom || delta_x != prev_delta_x || delta_y != prev_delta_y)
+            dirty = 1;
+        
+        prev_zoom = zoom;
+        prev_delta_x = delta_x;
+        prev_delta_y = delta_y;
+    }
+    
     if (dirty)
+    {
         raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
+        dirty = 0;
+    }
 
     raw_info.white_level = WHITE_LEVEL;
+
+    static float black_mean, black_stdev;
+
+    int black_aux = INT_MIN;
+    if (!lv || dirty || should_run_polling_action(1000, &black_aux))
+        raw_info.black_level = autodetect_black_level(&black_mean, &black_stdev);
+        
 
     if (!lv)
     {
@@ -484,10 +565,19 @@ int raw_update_params()
         int iso = 0;
         if (!iso) iso = lens_info.raw_iso;
         if (!iso) iso = lens_info.raw_iso_auto;
+        static int last_iso = 0;
+        if (!iso) iso = last_iso;
+        last_iso = iso;
+        if (!iso) return 0;
         int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 200);
         float iso_digital = (iso - iso_rounded) / 8.0f;
         if (iso_digital <= 0)
+        {
+            raw_info.white_level -= raw_info.black_level;
             raw_info.white_level *= powf(2, iso_digital);
+            raw_info.white_level += raw_info.black_level;
+        }
+        raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev, raw_info.white_level);
     }
     else if (!is_movie_mode())
     {
@@ -499,14 +589,52 @@ int raw_update_params()
          */
         int shad_gain = shamem_read(0xc0f08030);
         
-        /* LV histogram seems to be underexposed by 0.15 EV compared to photo one,
-         * so we compensate for that too (4096 -> 3691) */
-        raw_info.white_level = raw_info.white_level * 3691 / shad_gain;
-    }
+        raw_info.white_level -= raw_info.black_level;
+        raw_info.white_level = raw_info.white_level * 4096 / shad_gain;
+        raw_info.white_level += raw_info.black_level;
 
-    int black_aux = INT_MIN;
-    if (!lv || dirty || should_run_polling_action(1000, &black_aux))
-        raw_info.black_level = autodetect_black_level();
+        /* in photo LiveView, ISO is not the one selected from Canon menu,
+         * so the computed dynamic range has nothing to do with the one from CR2 pics
+         * => we will use the DxO values
+         */
+        int iso = 0;
+        if (!iso) iso = lens_info.raw_iso;
+        if (!iso) iso = lens_info.raw_iso_auto;
+        static int last_iso = 0;
+        if (!iso) iso = last_iso;
+        last_iso = iso;
+        if (!iso) return 0;
+        int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 72 + (COUNT(dynamic_ranges)-1) * 8);
+        int dr_index = COERCE((iso_rounded - 72) / 8, 0, COUNT(dynamic_ranges)-1);
+        float iso_digital = (iso - iso_rounded) / 8.0f;
+        raw_info.dynamic_range = dynamic_ranges[dr_index];
+        
+        if (iso_digital > 0)
+        {
+            /* at ISO 250, 500, 1000, dynamic range is lowered,
+             * because data is amplified but white level stays the same
+             */
+            raw_info.dynamic_range -= iso_digital * 100;
+        }
+        else if (iso_digital < 0)
+        {
+            /* there's also a bit of DR lost at ISO 160, 320 and so on,
+             * probably because of quantization error in shadows
+             * in theory, there shouldn't be any, because raw data and white level are scaled by a constant (I guess)
+             * 
+             * I don't know how to estimate it, so... let it be 0.1 EV
+             * 
+             * this may need a closer look
+             */
+            raw_info.dynamic_range -= 10;
+        }
+        
+        dbg_printf("dynamic range: %d.%02d EV (iso=%d)\n", raw_info.dynamic_range/100, raw_info.dynamic_range%100, raw2iso(iso));
+    }
+    else /* movie mode, no tricks here */
+    {
+        raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev, raw_info.white_level);
+    }
     
     dbg_printf("black=%d white=%d\n", raw_info.black_level, raw_info.white_level);
 
@@ -557,7 +685,57 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
 
     dbg_printf("active area: x=%d..%d, y=%d..%d\n", raw_info.active_area.x1, raw_info.active_area.x2, raw_info.active_area.y1, raw_info.active_area.y2);
     
-    raw_set_preview_rect(skip_left, skip_top, raw_info.jpeg.width + shave_right, raw_info.jpeg.height);
+    int preview_skip_left = skip_left;
+    int preview_skip_top = skip_top;
+    int preview_width = raw_info.jpeg.width + shave_right;
+    int preview_height = raw_info.jpeg.height;
+    if (lv_dispsize > 1)
+    {
+        int delta_x, delta_y;
+        if (focus_box_get_raw_crop_offset(&delta_x, &delta_y))
+        {
+            /* in 10x, the yuv area is twice as small than in 5x */
+            int zoom_corr = lv_dispsize == 10 ? 2 : 1;
+            
+            /* focus_box_get_raw_crop_offset doesn't know about shaving */
+            delta_x += shave_right/2;
+
+            /**
+             *  |<-----------------raw_info.width--------------------------->|
+             *  |                                                            |
+             *  |               raw_info.jpeg.width                          |
+             *  | |<---------------------------------------------------------|
+             *  |                                                            |
+             *->|-|<--- skip_left                                            |
+             *  | |                                                          |               skip_top
+             *        +-------preview_height                                 |
+             *  .-----:------------------------------------------------------. -----------------v-----------------------------
+             *  | |```:``````````````````````````````````````````````````````| `````````````````^``    ^                  ^
+             *  | |   :    |<-preview_width->|                               |     delta_y             |                  | preview_skip_top
+             *  | |  _V_    _________________                                |        |                |     _____________v___
+             *  | |   |    |                 |                               |        v                |
+             *  | |   |    |                 |     C_raw                     |  ------+--       raw_info.height
+             *  | |   |    |        C_yuv    |                               |  ------+--              |
+             *  | |   |    |                 |                               |        ^                |
+             *  | |  _|_   |_________________|                               |        |                |
+             *  | |   ^                                                      |                         v
+             *  '------------------------------------------------------------' ----------------------------
+             *                      |              |
+             *  |          |        |---delta_x--->|
+             *  |          |
+             *->|----------|<-- preview_skip_left
+             *  |          |
+             * 
+             */
+            /* if the yuv window is on the left side, delta_x is > 0 */
+            preview_skip_left += (raw_info.jpeg.width + shave_right - vram_hd.width / zoom_corr) / 2 - delta_x;
+            preview_skip_top += (raw_info.jpeg.height - vram_hd.height / zoom_corr) / 2 - delta_y;
+            preview_width = vram_hd.width / zoom_corr;
+            preview_height = vram_hd.height / zoom_corr;
+        }
+    }
+    
+    raw_set_preview_rect(preview_skip_left, preview_skip_top, preview_width, preview_height);
 
     dbg_printf("lv2raw sx:%d sy:%d tx:%d ty:%d\n", lv2raw.sx, lv2raw.sy, lv2raw.tx, lv2raw.ty);
     dbg_printf("raw2lv test: (%d,%d) - (%d,%d)\n", RAW2LV_X(raw_info.active_area.x1), RAW2LV_Y(raw_info.active_area.y1), RAW2LV_X(raw_info.active_area.x2), RAW2LV_Y(raw_info.active_area.y2));
@@ -754,7 +932,7 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
     *out_stdev = stdev;
 }
 
-int autodetect_black_level()
+static int autodetect_black_level(float* black_mean, float* black_stdev)
 {
     float mean = 0;
     float stdev = 0;
@@ -778,6 +956,34 @@ int autodetect_black_level()
         );
     }
     
+    *black_mean = mean;
+    *black_stdev = stdev;
+
+    return mean;
+}
+
+
+#if RAW_DEBUG_DR
+static int autodetect_white_level()
+{
+    int white = 10000;
+    
+    struct raw_pixblock * start = raw_info.buffer + raw_info.active_area.y1 * raw_info.pitch;
+    struct raw_pixblock * end = raw_info.buffer + raw_info.active_area.y2 * raw_info.pitch;
+
+    for (struct raw_pixblock * p = start; p < end; p += 4)
+    {
+        white = MAX(white, p->a - 500);
+        white = MAX(white, p->h - 500);
+    }
+    bmp_printf(FONT_MED, 50, 50, "White: %d", white);
+    
+    return white;
+}
+#endif
+
+static int compute_dynamic_range(float black_mean, float black_stdev, int white_level)
+{
     /**
      * A = full well capacity / read-out noise 
      * DR in dB = 20 log10(A)
@@ -787,14 +993,21 @@ int autodetect_black_level()
      * This is quite close to DxO measurements (within +/- 0.5 EV), 
      * except at very high ISOs where there seems to be noise reduction applied to raw data
      */
-     
-    int black_level = mean + stdev/2;
-    raw_info.dynamic_range = (int)roundf((log2f(raw_info.white_level - black_level) - log2f(stdev)) * 100);
 
-    // bmp_printf(FONT_MED, 50, 350, "black: mean=%d stdev=%d dr=%d \n", (int)mean, (int)stdev, raw_info.dynamic_range);
+#if RAW_DEBUG_DR
+    int mean = black_mean * 100;
+    int stdev = black_stdev * 100;
+    bmp_printf(FONT_MED, 50, 100, "mean=%d.%02d stdev=%d.%02d white=%d", mean/100, mean%100, stdev/100, stdev%100, white_level);
+    white_level = autodetect_white_level();
+#endif
 
-    /* slight correction for the magenta cast in shadows */
-    return mean + stdev/8;
+    int dr = (int)roundf((log2f(white_level - black_mean) - log2f(black_stdev)) * 100);
+
+#if RAW_DEBUG_DR
+    bmp_printf(FONT_MED, 50, 120, "=> dr=%d.%02d", dr/100, dr%100);
+#endif
+
+    return dr;
 }
 
 void raw_lv_redirect_edmac(void* ptr)
