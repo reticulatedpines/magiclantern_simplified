@@ -172,15 +172,9 @@ void menu_help_go_to_label(void* label, int delta)
     int page = 0; // if help page won't be found, will show 404
     if (is_menu_selected("Help")) page = 1; // don't show the 404 page in Help menu :P
     
-    // hack: use config file routines to parse menu index file
-    extern int config_file_size, config_file_pos;
-    extern char* config_file_buf;
-    config_file_buf = (void*)read_entire_file(CARD_DRIVE "ML/doc/menuidx.dat", &config_file_size);
-    config_file_pos = 0;
-    
-    if (!config_file_size) page = -1; // show "help not found" warning
-
-    char line_buf[ 100 ];
+    int size = 0;
+    char* buf = (void*)read_entire_file(CARD_DRIVE "ML/doc/menuidx.dat", &size);
+    if (!buf || !size) page = -1; // show "help not found" warning
     
     // trim spaces
     char label_adj[100];
@@ -191,19 +185,27 @@ void menu_help_go_to_label(void* label, int delta)
     }
     str_make_lowercase(label_adj);
 
-    while( read_line(line_buf, sizeof(line_buf) ) >= 0 )
+    int prev = -1;
+    for (int i = 0; i < size; i++)
     {
-        char* name = line_buf+4;
-        str_make_lowercase(name);
-        int pagenum = atoi(line_buf);
-        if(streq(name, label_adj))
+        if (buf[i] == '\n')
         {
-            page = pagenum;
+            buf[i] = 0;
+            char* line_buf = &buf[prev+1];
+
+            char* name = line_buf+4;
+            str_make_lowercase(name);
+            int pagenum = atoi(line_buf);
+
+            if(streq(name, label_adj))
+                page = pagenum;
+            help_pages = MAX(help_pages, pagenum);
+
+            prev = i;
         }
-        help_pages = MAX(help_pages, pagenum);
     }
-    free_dma_memory(config_file_buf);
-    config_file_buf = 0;
+
+    free_dma_memory(buf);
     
     current_page = page;
     menu_help_active = 1;

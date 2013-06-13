@@ -26,13 +26,6 @@
 #include "version.h"
 #include "bmp.h"
 
-// Don't use isspace since we don't have it
-static inline int
-is_space( char c )
-{
-    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
-}
-
 static struct config *
 config_parse_line(
     const char *        line
@@ -45,12 +38,12 @@ config_parse_line(
 
     // Trim any leading whitespace
     int i = 0;
-    while( line[i] && is_space( line[i] ) )
+    while( line[i] && isspace( line[i] ) )
         i++;
 
     // Copy the name to the name buffer
     while( line[i]
-    && !is_space( line[i] )
+    && !isspace( line[i] )
     && line[i] != '='
     && name_len < MAX_NAME_LEN
     )
@@ -63,11 +56,11 @@ config_parse_line(
     cfg->name[ name_len ] = '\0';
 
     // Skip any white space and = signs
-    while( line[i] && is_space( line[i] ) )
+    while( line[i] && isspace( line[i] ) )
         i++;
     if( line[i++] != '=' )
         goto parse_error;
-    while( line[i] && is_space( line[i] ) )
+    while( line[i] && isspace( line[i] ) )
         i++;
 
     // Copy the value to the value buffer
@@ -75,7 +68,7 @@ config_parse_line(
         cfg->value[ value_len++ ] = line[ i++ ];
 
     // Back up to trim any white space
-    while( value_len > 0 && is_space( cfg->value[ value_len-1 ] ) )
+    while( value_len > 0 && isspace( cfg->value[ value_len-1 ] ) )
         value_len--;
 
     // And nul terminate it
@@ -115,9 +108,10 @@ parse_error:
     return 0;
 }
 
-char* config_file_buf = 0;
-int config_file_size = 0;
-int config_file_pos = 0;
+static char* config_file_buf = 0;
+static int config_file_size = 0;
+static int config_file_pos = 0;
+
 static int get_char_from_config_file(char* out)
 {
     if (config_file_pos >= config_file_size) return 0;
@@ -125,7 +119,7 @@ static int get_char_from_config_file(char* out)
     return 1;
 }
 
-int
+static int
 read_line(
     char *          buf,
     size_t          size

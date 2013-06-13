@@ -113,20 +113,6 @@ __config_##VAR##INDEX = \
 #define CONFIG_ARRAY_ELEMENT( NAME, VAR, INDEX, VALUE ) \
         _CONFIG_ARRAY_ELEMENT( NAME, 0, VAR, INDEX, VALUE )
         
-        
-        
-/* doesn'tworkstation
-
-#define CONFIG_STR( NAME, VAR, VALUE ) \
-        _CONFIG_VAR( NAME, 1, char *, VAR, VALUE )
-
-*/
-
-//~ void config_flag_file_setting_save(char* file, int setting);
-//~ int config_flag_file_setting_load(char* file);
-
-int read_line( char *buf, size_t size );
-
 OS_FUNCTION( 0x0A00001, struct config_var*,	get_config_vars_start );
 OS_FUNCTION( 0x0A00002, struct config_var*,	get_config_vars_end );
 
