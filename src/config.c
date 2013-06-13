@@ -25,13 +25,7 @@
 #include "config.h"
 #include "version.h"
 #include "bmp.h"
-
-// Don't use isspace since we don't have it
-static inline int
-is_space( char c )
-{
-    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
-}
+#include "module.h"
 
 static struct config *
 config_parse_line(
@@ -45,12 +39,12 @@ config_parse_line(
 
     // Trim any leading whitespace
     int i = 0;
-    while( line[i] && is_space( line[i] ) )
+    while( line[i] && isspace( line[i] ) )
         i++;
 
     // Copy the name to the name buffer
     while( line[i]
-    && !is_space( line[i] )
+    && !isspace( line[i] )
     && line[i] != '='
     && name_len < MAX_NAME_LEN
     )
@@ -63,11 +57,11 @@ config_parse_line(
     cfg->name[ name_len ] = '\0';
 
     // Skip any white space and = signs
-    while( line[i] && is_space( line[i] ) )
+    while( line[i] && isspace( line[i] ) )
         i++;
     if( line[i++] != '=' )
         goto parse_error;
-    while( line[i] && is_space( line[i] ) )
+    while( line[i] && isspace( line[i] ) )
         i++;
 
     // Copy the value to the value buffer
@@ -75,7 +69,7 @@ config_parse_line(
         cfg->value[ value_len++ ] = line[ i++ ];
 
     // Back up to trim any white space
-    while( value_len > 0 && is_space( cfg->value[ value_len-1 ] ) )
+    while( value_len > 0 && isspace( cfg->value[ value_len-1 ] ) )
         value_len--;
 
     // And nul terminate it
@@ -115,9 +109,10 @@ parse_error:
     return 0;
 }
 
-char* config_file_buf = 0;
-int config_file_size = 0;
-int config_file_pos = 0;
+static char* config_file_buf = 0;
+static int config_file_size = 0;
+static int config_file_pos = 0;
+
 static int get_char_from_config_file(char* out)
 {
     if (config_file_pos >= config_file_size) return 0;
@@ -125,7 +120,7 @@ static int get_char_from_config_file(char* out)
     return 1;
 }
 
-int
+static int
 read_line(
     char *          buf,
     size_t          size
@@ -362,6 +357,11 @@ static struct config_var* config_var_lookup(int* ptr)
         if (var->value == ptr)
             return var;
     }
+
+#ifdef CONFIG_MODULES
+    return module_config_var_lookup(ptr);
+#endif
+
     return 0;
 }
 
@@ -379,3 +379,98 @@ int config_var_restore_default(int* ptr)
     *(var->value) = var->default_value;
     return 1;
 }
+
+#ifdef CONFIG_MODULES
+
+/** module config files */
+
+static void
+module_config_parse(module_entry_t * module) {
+    char line_buf[ 1000 ];
+
+    while( read_line(line_buf, sizeof(line_buf) ) >= 0 )
+    {
+        // Ignore any line that begins with # or is empty
+        if( line_buf[0] == '#'
+        ||  line_buf[0] == '\0' )
+            continue;
+        
+        struct config * new_config = config_parse_line( line_buf );
+        if( !new_config ) return;
+
+        /* check for all registered config variables from this module */
+        for (module_config_t * mconfig = module->config; mconfig && mconfig->name; mconfig++)
+        {
+            /* check for config variable with the same name */
+            if(streq(new_config->name, mconfig->ref->name))
+                *mconfig->ref->value = atoi(new_config->value);
+        }
+    }
+}
+
+unsigned int module_config_load(char *filename, module_entry_t *module)
+{
+    if (!module->config)
+        return -1;
+    
+    config_file_buf = (void*)read_entire_file(filename, &config_file_size);
+    if (!config_file_buf)
+        return -1;
+    config_file_pos = 0;
+    module_config_parse(module);
+    free_dma_memory(config_file_buf);
+    config_file_buf = 0;
+    return 0;
+}
+
+unsigned int module_config_save(char *filename, module_entry_t *module)
+{
+    if (!module->config)
+        return -1;
+
+    char* msg = alloc_dma_memory(MAX_SIZE);
+    msg[0] = '\0';
+
+    snprintf( msg, MAX_SIZE,
+        "# Config file for module %s (%s)\n\n",
+        module->name, module->filename
+    );
+    
+    int count = 0;
+    for (module_config_t * mconfig = module->config; mconfig && mconfig->name; mconfig++)
+    {
+        if (*(int*)mconfig->ref->value == mconfig->ref->default_value)
+            continue;
+
+        snprintf(msg + strlen(msg), MAX_SIZE - strlen(msg) - 1,
+            "%s = %d\r\n",
+            mconfig->ref->name,
+            *(int*) mconfig->ref->value
+        );
+        
+        count++;
+    }
+    
+    if (count == 0)
+    {
+        /* everything is default, just delete the config file */
+        FIO_RemoveFile(filename);
+        goto finish;
+    }
+    
+    FILE * file = FIO_CreateFileEx( filename );
+    if( file == INVALID_PTR )
+    {
+        free_dma_memory(msg);
+        return -1;
+    }
+    
+    FIO_WriteFile(file, msg, strlen(msg));
+
+    FIO_CloseFile( file );
+finish:
+    free_dma_memory(msg);
+    return 0;
+}
+
+#endif

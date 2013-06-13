@@ -9,6 +9,7 @@
 #define MODULE_PARAMS_PREFIX          __module_params_
 #define MODULE_PROPHANDLERS_PREFIX    __module_prophandlers_
 #define MODULE_CBR_PREFIX             __module_cbr_
+#define MODULE_CONFIG_PREFIX          __module_config_
 
 
 #define MODULE_PROPHANDLER_PREFIX     __module_prophandler_
@@ -90,7 +91,7 @@
 /* update major if older modules will *not* be compatible */
 #define MODULE_MAJOR 1
 /* update minor if older modules will be compatible, but newer module will not run on older magic lantern versions */
-#define MODULE_MINOR 2
+#define MODULE_MINOR 3
 /* update patch if nothing regarding to compatibility changes */
 #define MODULE_PATCH 0
 
@@ -143,6 +144,13 @@ typedef struct
     unsigned int ctx;
 } module_cbr_t;
 
+/* this struct supplies a list of config entries liek CONFIG_INT - optional */
+typedef struct
+{
+    const char *name;
+    const struct config_var *ref;
+} module_config_t;
+
 /* this struct supplies additional information like license, author etc - optional */
 typedef struct
 {
@@ -166,8 +174,10 @@ typedef struct
     module_parminfo_t *params;
     module_prophandler_t **prop_handlers;
     module_cbr_t *cbr;
+    module_config_t *config;
     int valid;
     int enabled;
+    int error;
 } module_entry_t;
 
 
@@ -199,6 +209,13 @@ typedef struct
 #define MODULE_CBRS_START__(prefix,modname)                     module_cbr_t prefix##modname[] = {
 #define MODULE_CBR(cb_type,cbr,context)                         { .name = #cb_type, .symbol = #cbr, .type = cb_type, .handler = cbr, .ctx = context },
 #define MODULE_CBRS_END()                                           { (void *)0, (void *)0, 0, (void *)0, 0 }\
+                                                                };
+                                                            
+#define MODULE_CONFIGS_START()                                  MODULE_CONFIGS_START_(MODULE_CONFIG_PREFIX,MODULE_NAME)
+#define MODULE_CONFIGS_START_(prefix,modname)                   MODULE_CONFIGS_START__(prefix,modname)
+#define MODULE_CONFIGS_START__(prefix,modname)                  module_config_t prefix##modname[] = {
+#define MODULE_CONFIG(cfg)                                      { .name = #cfg, .ref = &__config_##cfg },
+#define MODULE_CONFIGS_END()                                        { (void *)0, (void *)0 }\
                                                                 };
                                                                 
 #define MODULE_PARAMS_START()                                   MODULE_PARAMS_START_(MODULE_PARAMS_PREFIX,MODULE_NAME)
@@ -249,5 +266,8 @@ int module_unload(void *module);
 
 /* execute all callback routines of given type. maybe it will get extended to support varargs */
 int module_exec_cbr(unsigned int type);
+
+int module_set_config_cbr(unsigned int (*load_func)(char *, module_entry_t *), unsigned int (save_func)(char *, module_entry_t *));
+int module_unset_config_cbr();
 
 #endif

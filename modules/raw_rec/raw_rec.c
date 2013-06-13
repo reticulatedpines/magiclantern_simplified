@@ -29,9 +29,6 @@
 #include "edmac.h"
 #include "../file_man/file_man.h"
 
-/* when enabled, it hooks shortcut keys */
-static int raw_video_enabled = 0;
-
 /* camera-specific tricks */
 /* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
 static int cam_eos_m = 0;
@@ -51,30 +48,30 @@ static int aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25
 static int aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    1,    2 };
 static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1","2.39:1","2.35:1","2.20:1","2:1","1.85:1", "16:9","5:3","3:2","4:3","1:1","1:2"};
 
-//~ static CONFIG_INT("raw.res.x", resolution_index_x, 2);
-//~ static CONFIG_INT("raw.res.y", resolution_index_y, 4);
-//~ static CONFIG_INT("raw.write.spd", measured_write_speed, 0);
+/* config variables */
 
-/* no config options yet */
-static int resolution_index_x = 12;
-static int aspect_ratio_index = 10;
-static int measured_write_speed = 0;
-static int stop_on_buffer_overflow = 1;
-static int sound_rec = 2;
+static CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
 
-static int framing_mode = 0;
+static CONFIG_INT("raw.res.x", resolution_index_x, 12);
+static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
+static CONFIG_INT("raw.write.spd", measured_write_speed, 0);
+static CONFIG_INT("raw.skip.frames", allow_frame_skip, 0);
+static CONFIG_INT("raw.sound", sound_rec, 2);
+
+static CONFIG_INT("raw.framing", framing_mode, 0);
 #define FRAMING_CENTER (framing_mode == 0)
 #define FRAMING_LEFT (framing_mode == 1)
 #define FRAMING_PANNING (framing_mode == 2)
 
-static int preview_mode = 0;
+static CONFIG_INT("raw.preview", preview_mode, 0);
 #define PREVIEW_AUTO (preview_mode == 0)
 #define PREVIEW_CANON (preview_mode == 1)
 #define PREVIEW_ML (preview_mode == 2)
 #define PREVIEW_HACKED (preview_mode == 3)
 
-static int memory_hack = 0;
+static CONFIG_INT("raw.memory.hack", memory_hack, 0);
 
+/* state variables */
 static int res_x = 0;
 static int res_y = 0;
 static int max_res_x = 0;
@@ -144,9 +141,11 @@ static int idle_time = 0;                         /* time spent by raw_video_rec
  *      If it returns zero, this buffer will not get thrown away, but the next frame will get dropped.
  *      Default: Do not throw away buffer, but throw away incoming frame (0)
  */
-extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_frame(unsigned char *frame_data);
-extern WEAK_FUNC(ret_1) unsigned int raw_rec_save_buffer(unsigned int used, unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
-extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_buffer(unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_starting();
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_stopping();
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_frame(unsigned char *frame_data);
+extern WEAK_FUNC(ret_1) unsigned int raw_rec_cbr_save_buffer(unsigned int used, unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_buffer(unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
 
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
@@ -867,7 +866,7 @@ static int process_frame()
     fullsize_buffer_pos = (fullsize_buffer_pos + 1) % 2;
     
     /* dont process this frame if a module wants to skip that */
-    if(raw_rec_skip_frame(fullSizeBuffer))
+    if(raw_rec_cbr_skip_frame(fullSizeBuffer))
     {
         return 0;
     }
@@ -908,7 +907,7 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
 
     if (!RAW_IS_RECORDING) return 0;
     if (!raw_lv_settings_still_valid()) { raw_recording_state = RAW_FINISHING; return 0; }
-    if (stop_on_buffer_overflow && frame_skips) return 0;
+    if (!allow_frame_skip && frame_skips) return 0;
 
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
@@ -923,7 +922,7 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
             capturing_buffer_index = next_buffer;
             capture_offset = 0;
         }
-        else if (raw_rec_skip_buffer(next_buffer, buffers[next_buffer].size / frame_size, buffer_count))
+        else if (raw_rec_cbr_skip_buffer(next_buffer, buffers[next_buffer].size / frame_size, buffer_count))
         {
             /* our buffer list wrapped over, but this is intentional as an other module requests this mode of operation */
             buffers[capturing_buffer_index].used = capture_offset;
@@ -938,7 +937,7 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
         {
             /* card too slow */
             frame_skips++;
-            if (!stop_on_buffer_overflow)
+            if (allow_frame_skip)
             {
                 bmp_printf( FONT_MED, 30, 70, 
                     "Skipping frames...   "
@@ -1074,6 +1073,9 @@ static void raw_video_rec_task()
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
 
+    /* signal that we are starting */
+    raw_rec_cbr_starting();
+    
     writing_time = 0;
     idle_time = 0;
     int last_write_timestamp = 0;
@@ -1084,12 +1086,12 @@ static void raw_video_rec_task()
     /* main recording loop */
     while (RAW_IS_RECORDING && lv)
     {
-        if (stop_on_buffer_overflow && frame_skips)
+        if (!allow_frame_skip && frame_skips)
             goto abort;
             
         /* do we have any buffers completely filled with data, that we can save? */
         int used_buffers = (capturing_buffer_index + buffer_count - saving_buffer_index) % buffer_count;
-        int ext_gating = raw_rec_save_buffer(used_buffers, saving_buffer_index, buffers[saving_buffer_index].size / frame_size, buffer_count);
+        int ext_gating = raw_rec_cbr_save_buffer(used_buffers, saving_buffer_index, buffers[saving_buffer_index].size / frame_size, buffer_count);
 
         /* ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
         if(used_buffers > 0 && ext_gating)
@@ -1177,7 +1179,10 @@ abort:
             break;
         }
     }
-
+    
+    /* signal that we are stopping */
+    raw_rec_cbr_stopping();
+    
     /* done, this will stop the vsync CBR and the copying task */
     raw_recording_state = RAW_FINISHING;
 
@@ -1269,25 +1274,35 @@ static MENU_SELECT_FUNC(raw_start_stop)
     }
 }
 
+static void raw_video_enable()
+{
+    raw_video_enabled = 1;
+
+    /* toggle the lv_save_raw flag from raw.c */
+    raw_lv_request();
+
+    /* EOS-M needs this hack. Please don't use it unless there's no other way. */
+    if (cam_eos_m) set_custom_movie_mode(1);
+    
+    msleep(50);
+}
+
+static void raw_video_disable()
+{
+    raw_video_enabled = 0;
+    raw_lv_release();
+    raw_lv_shave_right(0);
+    if (cam_eos_m) set_custom_movie_mode(0);
+}
+
 static MENU_SELECT_FUNC(raw_video_toggle)
 {
     if (!RAW_IS_IDLE) return;
     
-    raw_video_enabled = !raw_video_enabled;
-    
-    /* toggle the lv_save_raw flag from raw.c */
     if (raw_video_enabled)
-    {
-        raw_lv_request();
-        if (cam_eos_m) set_custom_movie_mode(1);
-    }
+        raw_video_disable();
     else
-    {
-        raw_lv_release();
-        raw_lv_shave_right(0);
-        if (cam_eos_m) set_custom_movie_mode(0);
-    }
-    msleep(50);
+        raw_video_enable();
 }
 
 static void raw_video_playback_task()
@@ -1450,10 +1465,9 @@ static struct menu_entry raw_video_menu[] =
             },
             {
                 .name = "Frame skipping",
-                .priv = &stop_on_buffer_overflow,
+                .priv = &allow_frame_skip,
                 .max = 1,
-                .choices = CHOICES("Allow", "OFF"),
-                .icon_type = IT_BOOL_NEG,
+                .choices = CHOICES("OFF", "Allow"),
                 .help = "Enable if you don't mind skipping frames (for slow cards).",
             },
             {
@@ -1658,6 +1672,9 @@ static unsigned int raw_rec_init()
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
     fileman_register_type("RAW", "RAW Video", raw_rec_filehandler);
     
+    if (raw_video_enabled)
+        raw_video_enable();
+    
     return 0;
 }
 
@@ -1684,3 +1701,15 @@ MODULE_CBRS_START()
     MODULE_CBR(CBR_SHOOT_TASK, raw_rec_polling_cbr, 0)
     MODULE_CBR(CBR_DISPLAY_FILTER, raw_rec_update_preview, 0)
 MODULE_CBRS_END()
+
+MODULE_CONFIGS_START()
+    MODULE_CONFIG(raw_video_enabled)
+    MODULE_CONFIG(resolution_index_x)
+    MODULE_CONFIG(aspect_ratio_index)
+    MODULE_CONFIG(measured_write_speed)
+    MODULE_CONFIG(allow_frame_skip)
+    MODULE_CONFIG(sound_rec)
+    MODULE_CONFIG(framing_mode)
+    MODULE_CONFIG(preview_mode)
+    MODULE_CONFIG(memory_hack)
+MODULE_CONFIGS_END()

@@ -315,6 +315,36 @@ delete_config( void * priv, int delta )
     FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/magic.cfg" );
     FIO_RemoveFile( CARD_DRIVE "ML/SETTINGS/MENU.CFG" );
     if (config_autosave) config_autosave_toggle(0, 0);
+
+#ifdef CONFIG_MODULES
+    int is_valid_config_filename(char* filename)
+    {
+        int n = strlen(filename);
+        if ((n > 4) && (streq(filename + n - 4, ".CFG") || streq(filename + n - 4, ".cfg")))
+            return 1;
+        return 0;
+    }
+
+    char* path = CARD_DRIVE "ML/MODULES/";
+    struct fio_file file;
+    struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
+    if( IS_ERROR(dirent) )
+        return;
+
+    do
+    {
+        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
+        if (is_valid_config_filename(file.name))
+        {
+            char fn[0x80];
+            snprintf(fn, sizeof(fn), "%s%s", path, file.name);
+            FIO_RemoveFile(fn);
+        }
+    }
+    while( FIO_FindNextEx( dirent, &file ) == 0);
+    FIO_CleanupAfterFindNext_maybe(dirent);
+#endif
+
     config_deleted = 1;
 }
 
@@ -4447,7 +4477,7 @@ static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag)
         return;
 
     do {
-        if (file.mode & 0x10) continue; // is a directory
+        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
         if (file.name[0] == '.' || file.name[0] == '_') continue;
         if (cropmarks_flag && !is_valid_cropmark_filename(file.name)) continue;
 
