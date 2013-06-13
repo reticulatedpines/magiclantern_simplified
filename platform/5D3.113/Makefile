@@ -4,4 +4,4 @@ MODEL=5D3
 
 include ../Makefile.platform
 
-x: clean build_fir
+#x: clean build_fir

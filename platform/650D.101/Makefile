@@ -3,4 +3,3 @@
 MODEL=650D
 include  ../Makefile.platform
 
-x: clean build_fir

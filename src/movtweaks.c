@@ -254,6 +254,12 @@ void force_liveview()
 #endif
 }
 
+void close_liveview()
+{
+    if (lv)
+        fake_simple_button(BGMT_LV);
+}
+
 static CONFIG_INT("shutter.lock", shutter_lock, 0);
 static CONFIG_UNSIGNED("shutter.lock.value", shutter_lock_value, 0);
 

@@ -201,6 +201,6 @@ int canon_gui_disabled();
 
 extern void menu_open_submenu();
 
-int detect_double_click(struct event * event, int pressed_code, int unpressed_code);
+int detect_double_click(int key, int pressed_code, int unpressed_code);
 
 #endif
