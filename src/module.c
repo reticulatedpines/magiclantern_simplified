@@ -501,6 +501,9 @@ void *module_load(char *filename)
 int module_exec(void *module, char *symbol, int count, ...)
 {
     int ret = -1;
+    if (module == NULL) module = module_state;
+    if (module == NULL) return ret;
+    
     TCCState *state = (TCCState *)module;
     void *start_symbol = NULL;
     va_list args;
@@ -521,7 +524,7 @@ int module_exec(void *module, char *symbol, int count, ...)
         {
             uint32_t (*exec)(uint32_t parm1, ...) = start_symbol;
 
-            uint32_t *parms = malloc(sizeof(uint32_t) * count);
+            uint32_t parms[10];
             for(int parm = 0; parm < count; parm++)
             {
                 parms[parm] = va_arg(args,uint32_t);
@@ -558,12 +561,17 @@ int module_exec(void *module, char *symbol, int count, ...)
                     NotifyBox(2000, "Passing too many parameters to '%s'", symbol );
                     break;
             }
-            free(parms);
         }
     }
     va_end(args);
     return ret;
 }
+
+int module_call(char *symbol, int count, ...)
+{
+    
+}
+
 
 int module_unload(void *module)
 {
