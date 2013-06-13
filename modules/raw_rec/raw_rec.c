@@ -144,9 +144,11 @@ static int idle_time = 0;                         /* time spent by raw_video_rec
  *      If it returns zero, this buffer will not get thrown away, but the next frame will get dropped.
  *      Default: Do not throw away buffer, but throw away incoming frame (0)
  */
-extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_frame(unsigned char *frame_data);
-extern WEAK_FUNC(ret_1) unsigned int raw_rec_save_buffer(unsigned int used, unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
-extern WEAK_FUNC(ret_0) unsigned int raw_rec_skip_buffer(unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_starting();
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_stopping();
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_frame(unsigned char *frame_data);
+extern WEAK_FUNC(ret_1) unsigned int raw_rec_cbr_save_buffer(unsigned int used, unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
+extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_buffer(unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
 
 static int calc_res_y(int res_x, int num, int den, float squeeze)
 {
@@ -867,7 +869,7 @@ static int process_frame()
     fullsize_buffer_pos = (fullsize_buffer_pos + 1) % 2;
     
     /* dont process this frame if a module wants to skip that */
-    if(raw_rec_skip_frame(fullSizeBuffer))
+    if(raw_rec_cbr_skip_frame(fullSizeBuffer))
     {
         return 0;
     }
@@ -923,7 +925,7 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
             capturing_buffer_index = next_buffer;
             capture_offset = 0;
         }
-        else if (raw_rec_skip_buffer(next_buffer, buffers[next_buffer].size / frame_size, buffer_count))
+        else if (raw_rec_cbr_skip_buffer(next_buffer, buffers[next_buffer].size / frame_size, buffer_count))
         {
             /* our buffer list wrapped over, but this is intentional as an other module requests this mode of operation */
             buffers[capturing_buffer_index].used = capture_offset;
@@ -1074,6 +1076,9 @@ static void raw_video_rec_task()
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
 
+    /* signal that we are starting */
+    raw_rec_cbr_starting();
+    
     writing_time = 0;
     idle_time = 0;
     int last_write_timestamp = 0;
@@ -1089,7 +1094,7 @@ static void raw_video_rec_task()
             
         /* do we have any buffers completely filled with data, that we can save? */
         int used_buffers = (capturing_buffer_index + buffer_count - saving_buffer_index) % buffer_count;
-        int ext_gating = raw_rec_save_buffer(used_buffers, saving_buffer_index, buffers[saving_buffer_index].size / frame_size, buffer_count);
+        int ext_gating = raw_rec_cbr_save_buffer(used_buffers, saving_buffer_index, buffers[saving_buffer_index].size / frame_size, buffer_count);
 
         /* ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
         if(used_buffers > 0 && ext_gating)
@@ -1177,7 +1182,10 @@ abort:
             break;
         }
     }
-
+    
+    /* signal that we are stopping */
+    raw_rec_cbr_stopping();
+    
     /* done, this will stop the vsync CBR and the copying task */
     raw_recording_state = RAW_FINISHING;
 

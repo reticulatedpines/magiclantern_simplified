@@ -1,6 +1,9 @@
 /**
- * Camera internals for 60D 1.1.1
+ * Camera internals for 100D 1.0.0
  */
+
+/** proof of concept **/
+#define CONFIG_HELLO_WORLD
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
 /** The 5D3 port is young, but... let's give it a try! **/

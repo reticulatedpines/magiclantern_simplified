@@ -5,12 +5,12 @@
  */
 
 #define CARD_DRIVE ""
-#define CARD_LED_ADDRESS 0xC022C06C // http://magiclantern.wikia.com/wiki/Led_addresses
-#define LEDON 0x138800
-#define LEDOFF 0x838C00
+#define CARD_LED_ADDRESS 0xC022C1FC // http://magiclantern.wikia.com/wiki/Led_addresses
+#define LEDON 0x93D800
+#define LEDOFF 0x83DC00
 
 //~ Format dialog consts
-#define FORMAT_BTN "[Q]"
+#define FORMAT_BTN "[INFO]"
 #define STR_LOC 11
 
 #define CARD_A_MAKER 0x68C8B
@@ -194,9 +194,9 @@
 #define BULB_MIN_EXPOSURE 500
 
 // http://magiclantern.wikia.com/wiki/Fonts
-#define BFNT_CHAR_CODES    0xf7363764
-#define BFNT_BITMAP_OFFSET 0xf7366868
-#define BFNT_BITMAP_DATA   0xf736996c
+#define BFNT_CHAR_CODES    0xffd0fd4c
+#define BFNT_BITMAP_OFFSET 0xffd12d60
+#define BFNT_BITMAP_DATA   0xffd15d74
 
 #define DLG_SIGNATURE 0x6E4944
 
