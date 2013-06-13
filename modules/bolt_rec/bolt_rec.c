@@ -51,9 +51,16 @@ unsigned int raw_rec_cbr_save_buffer(unsigned int used, unsigned int buffer_inde
 unsigned int raw_rec_cbr_skip_buffer(unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
 
 /* recording options */
-unsigned int bolt_rec_enabled = 0;
-unsigned int bolt_rec_post_frames = 10;
-unsigned int bolt_rec_plot_height = 50;
+CONFIG_INT("enabled", bolt_rec_enabled, 0);
+CONFIG_INT("post_frames", bolt_rec_post_frames, 10);
+CONFIG_INT("plot_height", bolt_rec_plot_height, 50);
+
+/* trigger method options */
+CONFIG_INT("scanlines",   bolt_rec_scanlines,   1);
+CONFIG_INT("rel_enabled", bolt_rec_rel_enabled, 1);
+CONFIG_INT("rel_trigger", bolt_rec_rel_trigger, 1000);
+CONFIG_INT("abs_enabled", bolt_rec_abs_enabled, 0);
+CONFIG_INT("abs_trigger", bolt_rec_abs_trigger, 10000);
 
 /* state variables */
 unsigned int bolt_rec_buffered = 0;
@@ -63,13 +70,6 @@ unsigned int bolt_rec_save_count = 0;
 unsigned int bolt_rec_recording = 0;
 unsigned int bolt_rec_post_frames_recorded = 0;
 unsigned int bolt_rec_vsync_calls = 0;
-
-/* trigger method options */
-unsigned int bolt_rec_scanlines = 1;
-unsigned int bolt_rec_rel_enabled = 1;
-unsigned int bolt_rec_rel_trigger = 1000;
-unsigned int bolt_rec_abs_enabled = 0;
-unsigned int bolt_rec_abs_trigger = 10000;
 
 /* trigger method data */
 unsigned short bolt_rec_rel_max = 800;
@@ -519,3 +519,14 @@ MODULE_STRINGS_END()
 MODULE_CBRS_START()
     MODULE_CBR(CBR_VSYNC, bolt_rec_vsync_cbr, 0)
 MODULE_CBRS_END()
+
+MODULE_CONFIGS_START()
+    MODULE_CONFIG(bolt_rec_enabled)
+    MODULE_CONFIG(bolt_rec_post_frames)
+    MODULE_CONFIG(bolt_rec_plot_height)
+    MODULE_CONFIG(bolt_rec_scanlines)
+    MODULE_CONFIG(bolt_rec_rel_enabled)
+    MODULE_CONFIG(bolt_rec_rel_trigger)
+    MODULE_CONFIG(bolt_rec_abs_enabled)
+    MODULE_CONFIG(bolt_rec_abs_trigger)
+MODULE_CONFIGS_END()
