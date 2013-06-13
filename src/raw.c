@@ -510,8 +510,7 @@ int raw_update_params()
     #endif
 
     #ifdef CONFIG_50D
-	// DxO dynamic ranges are: ?, 1140, 1106, 1051, 965, 872, 772, 679 using .58 ev offset
-    int dynamic_ranges[] = {1088, 1082, 1048, 993, 907, 814, 714, 621};
+    int dynamic_ranges[] = {1094, 1060, 1005, 919, 826, 726, 633};
     #endif
 
     #ifdef CONFIG_EOSM
