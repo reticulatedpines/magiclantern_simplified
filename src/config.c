@@ -357,6 +357,11 @@ static struct config_var* config_var_lookup(int* ptr)
         if (var->value == ptr)
             return var;
     }
+
+#ifdef CONFIG_MODULES
+    return module_config_var_lookup(ptr);
+#endif
+
     return 0;
 }
 
@@ -375,6 +380,7 @@ int config_var_restore_default(int* ptr)
     return 1;
 }
 
+#ifdef CONFIG_MODULES
 
 /** module config files */
 
@@ -466,3 +472,5 @@ finish:
     free_dma_memory(msg);
     return 0;
 }
+
+#endif

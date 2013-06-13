@@ -1272,6 +1272,23 @@ int module_unset_config_cbr()
     return 0;
 }
 
+struct config_var* module_config_var_lookup(int* ptr)
+{
+    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    {
+        module_config_t * config = module_list[mod].config;
+        if(module_list[mod].valid && config)
+        {
+            for (module_config_t * mconfig = config; mconfig && mconfig->name; mconfig++)
+            {
+                if (mconfig->ref->value == ptr)
+                    return (struct config_var *) mconfig->ref;
+            }
+        }
+    }
+    return 0;
+}
+
 static void module_init()
 {
     module_unset_config_cbr();
