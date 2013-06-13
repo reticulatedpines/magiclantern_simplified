@@ -7660,9 +7660,9 @@ shoot_task( void* unused )
                 
                 static char msg[60];
                 snprintf(msg, sizeof(msg),
-                                " Intervalometer:%4d \n"
+                                " Intervalometer:%s   \n"
                                 " Pictures taken:%4d ", 
-                                SECONDS_REMAINING,
+                                format_time_hours_minutes_seconds(SECONDS_REMAINING),
                                 intervalometer_pictures_taken);
                 if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after); }
                 #ifdef CONFIG_VXWORKS
