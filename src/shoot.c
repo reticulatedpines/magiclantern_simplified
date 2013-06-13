@@ -63,7 +63,11 @@ static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
 #endif
 
-#define AUTO_ETTR_TRIGGER_PHOTO (auto_ettr_trigger == 0 || intervalometer_running)
+#define AUTO_ETTR_TRIGGER_ALWAYS_ON (auto_ettr_trigger == 0 || intervalometer_running)
+#define AUTO_ETTR_TRIGGER_AUTO_SNAP (auto_ettr_trigger == 1)
+#define AUTO_ETTR_TRIGGER_PHOTO (AUTO_ETTR_TRIGGER_ALWAYS_ON || AUTO_ETTR_TRIGGER_AUTO_SNAP)
+#define AUTO_ETTR_TRIGGER_BY_SET (auto_ettr_trigger == 2)
+#define AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK (auto_ettr_trigger == 3)
 
 void move_lv_afframe(int dx, int dy);
 void movie_start();
@@ -3834,8 +3838,9 @@ int auto_ettr_get_correction()
             //~ bmp_printf(FONT_MED, 0, 80, "overexposure area: %d/100%%\n", (int)(overexposed * 100));
             //~ bmp_printf(FONT_MED, 0, 120, "fail info: (%d %d %d %d) (%d %d %d)", raw_values[0], raw_values[1], raw_values[2], raw_values[3], (int)(diff_from_lower_percentiles[0] * 100), (int)(diff_from_lower_percentiles[1] * 100), (int)(diff_from_lower_percentiles[2] * 100));
             float corr = correction - log2f(1 + overexposed);
-            sum += corr * 2;
-            num += 2;
+            int weight = MAX(num, 2);
+            sum += corr * weight;
+            num += weight;
         }
 
         /* use the average value for correction */
@@ -3855,6 +3860,7 @@ static int auto_ettr_work_m(int corr)
     int tv = lens_info.raw_shutter;
     int iso = lens_info.raw_iso;
     if (!tv || !iso) return 0;
+    int old_expo = tv - iso;
 
     int delta = -corr * 8 / 100;
 
@@ -3879,7 +3885,7 @@ static int auto_ettr_work_m(int corr)
     }
     else
     {
-        if (lv && prev_tv != tv && auto_ettr_trigger == 0)
+        if (lv && prev_tv != tv && AUTO_ETTR_TRIGGER_ALWAYS_ON)
         {
             prev_tv = tv;
             return 0; /* small pause when you change exposure manually */
@@ -3910,6 +3916,7 @@ static int auto_ettr_work_m(int corr)
     /* cancel ISO rounding errors by adjusting shutter, which goes in smaller increments */
     /* this may choose a shutter speed higher than selected one, at high iso, which may not be desirable */
     tvr += isor - iso;
+    int tv0 = tvr;
     tvr = round_shutter(tvr, shutter_lim);
 
     /* apply the new settings */
@@ -3921,12 +3928,21 @@ static int auto_ettr_work_m(int corr)
     
     prev_tv = lens_info.raw_shutter;
 
+    int new_expo = lens_info.raw_shutter - lens_info.raw_iso;
+    
+    if (ABS(new_expo - old_expo) >= 3) /* something changed? consider it OK, better than nothing */
+        return 1;
+    
+    if (tvr > tv0 + 4) /* still underexposed? */
+        return -1;
+    
     return oks && oki ? 1 : -1;
 }
 
 static int auto_ettr_work_auto(int corr)
 {
     int ae = lens_info.ae;
+    int ae0 = ae;
 
     int delta = -corr * 8 / 100;
 
@@ -3935,6 +3951,9 @@ static int auto_ettr_work_auto(int corr)
 
     /* apply the new settings */
     int ok = hdr_set_ae(ae);
+
+    if (ABS(lens_info.ae - ae0) >= 3) /* something changed? consider it OK, better than nothing */
+        return 1;
 
     return ok ? 1 : -1;
 }
@@ -3948,14 +3967,14 @@ static int auto_ettr_work(int corr)
 }
 
 static volatile int auto_ettr_running = 0;
+static volatile int ettr_pics_took = 0;
 
-static int ettr_pics_took = 0;
 static void auto_ettr_step_task(int corr)
 {
     lens_wait_readytotakepic(64);
     int status = auto_ettr_work(corr);
     
-    if (corr >= -25 && corr <= 70)
+    if (corr >= -45 && corr <= 70)
     {
         /* cool, we got the ideal exposure */
         beep();
@@ -3976,12 +3995,16 @@ static void auto_ettr_step_task(int corr)
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: expo limits reached");
     }
-    else
+    else if (AUTO_ETTR_TRIGGER_AUTO_SNAP)
     {
         /* take another pic */
         auto_ettr_running = 0;
         lens_take_picture(0, AF_DISABLE);
         ettr_pics_took++;
+    }
+    else if (AUTO_ETTR_TRIGGER_ALWAYS_ON)
+    {
+        beep_times(2);
     }
     auto_ettr_running = 0;
 }
@@ -4218,7 +4241,7 @@ end:
 
 static void auto_ettr_step_lv()
 {
-    if (!auto_ettr || !AUTO_ETTR_TRIGGER_PHOTO)
+    if (!auto_ettr || !AUTO_ETTR_TRIGGER_ALWAYS_ON)
         return;
     
     if (!auto_ettr_check_lv())
@@ -4324,7 +4347,7 @@ end:
 
 static void auto_ettr_step_lv()
 {
-    if (!auto_ettr || !AUTO_ETTR_TRIGGER_PHOTO)
+    if (!auto_ettr || !AUTO_ETTR_TRIGGER_ALWAYS_ON)
         return;
     
     if (!auto_ettr_check_lv())
@@ -4360,21 +4383,21 @@ static void auto_ettr_step_lv()
 int handle_ettr_keys(struct event * event)
 {
     if (!auto_ettr) return 1;
-    if (!auto_ettr_trigger) return 1;
+    if (AUTO_ETTR_TRIGGER_PHOTO) return 1;
     if (!display_idle()) return 1;
     if (!auto_ettr_check_pre_lv()) return 1;
     if (lv && !auto_ettr_check_in_lv()) return 1;
     
     if (
-            (auto_ettr_trigger == 1 && event->param == BGMT_PRESS_SET) ||
-            (auto_ettr_trigger == 2 && detect_double_click(event, BGMT_PRESS_HALFSHUTTER, BGMT_UNPRESS_HALFSHUTTER)) ||
+            (AUTO_ETTR_TRIGGER_BY_SET && event->param == BGMT_PRESS_SET) ||
+            (AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK && detect_double_click(event, BGMT_PRESS_HALFSHUTTER, BGMT_UNPRESS_HALFSHUTTER)) ||
        0)
     {
         if (!auto_ettr_running)
         {
             auto_ettr_running = 1;
             task_create("ettr_task", 0x1c, 0x1000, auto_ettr_on_request_task, (void*) 0);
-            if (auto_ettr_trigger == 1) return 0;
+            if (AUTO_ETTR_TRIGGER_BY_SET) return 0;
         }
     }
     return 1;
@@ -4412,14 +4435,22 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     if (auto_ettr)
         MENU_SET_RINFO("%dEV/%d.%d%%", auto_ettr_target_level, auto_ettr_ignore/10, auto_ettr_ignore%10);
 
-    if (auto_ettr && auto_ettr_trigger)
-        MENU_SET_VALUE(auto_ettr_trigger == 1 ? "Press SET" : "HalfS DBC");
+    if (auto_ettr)
+        MENU_SET_VALUE(
+            AUTO_ETTR_TRIGGER_ALWAYS_ON ? "Always ON" : 
+            AUTO_ETTR_TRIGGER_AUTO_SNAP ? "Auto Snap" : 
+            AUTO_ETTR_TRIGGER_BY_SET ? "Press SET" : 
+            AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK ? "HalfS DBC" : "err"
+        );
 
-    if (auto_ettr_trigger)
+    if (!AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_HELP("Press the shortcut key to optimize the exposure (ETTR).");
-    else if (lv)
-        MENU_SET_HELP("In LiveView, just wait for exposure to settle, then shoot.");
-    else
+    else if (AUTO_ETTR_TRIGGER_ALWAYS_ON)
+    {
+        if (lv) MENU_SET_HELP("In LiveView, just wait for exposure to settle, then shoot.");
+        else MENU_SET_HELP("Take a test picture (underexposed). Next pic will be ETTR.");
+    }
+    else if (AUTO_ETTR_TRIGGER_AUTO_SNAP)
         MENU_SET_HELP("Press shutter once. ML will take a pic and retry if needed.");
 }
 
@@ -5911,9 +5942,13 @@ static struct menu_entry expo_menus[] = {
             {
                 .name = "Trigger mode",
                 .priv = &auto_ettr_trigger,
-                .max = 2,
-                .choices = CHOICES("Always ON", "Press SET", "HalfS DblClick"),
-                .help = "When should the exposure be adjusted for ETTR",
+                .max = 3,
+                .choices = CHOICES("Always ON", "Auto Snap", "Press SET", "HalfS DblClick"),
+                .help  = "When should the exposure be adjusted for ETTR:",
+                .help2 = "Always ON: when you take a pic, or continuously in LiveView\n"
+                         "Auto Snap: after u take a pic,trigger another pic if needed\n"
+                         "Press SET: meter for ETTR when you press SET (LiveView)\n"
+                         "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n"
             },
             {
                 .name = "Exposure target",
@@ -7080,7 +7115,7 @@ shoot_task( void* unused )
 #endif
 
         #ifdef FEATURE_AUTO_ETTR
-        if (lv)
+        if (lv && !recording)
             auto_ettr_step_lv();
         #endif
 
