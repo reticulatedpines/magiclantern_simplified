@@ -907,7 +907,7 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
 
     if (!RAW_IS_RECORDING) return 0;
     if (!raw_lv_settings_still_valid()) { raw_recording_state = RAW_FINISHING; return 0; }
-    if (allow_frame_skip && frame_skips) return 0;
+    if (!allow_frame_skip && frame_skips) return 0;
 
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
@@ -937,7 +937,7 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
         {
             /* card too slow */
             frame_skips++;
-            if (!allow_frame_skip)
+            if (allow_frame_skip)
             {
                 bmp_printf( FONT_MED, 30, 70, 
                     "Skipping frames...   "
@@ -1086,7 +1086,7 @@ static void raw_video_rec_task()
     /* main recording loop */
     while (RAW_IS_RECORDING && lv)
     {
-        if (allow_frame_skip && frame_skips)
+        if (!allow_frame_skip && frame_skips)
             goto abort;
             
         /* do we have any buffers completely filled with data, that we can save? */
@@ -1467,8 +1467,7 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Frame skipping",
                 .priv = &allow_frame_skip,
                 .max = 1,
-                .choices = CHOICES("Allow", "OFF"),
-                .icon_type = IT_BOOL_NEG,
+                .choices = CHOICES("OFF", "Allow"),
                 .help = "Enable if you don't mind skipping frames (for slow cards).",
             },
             {
