@@ -13,13 +13,20 @@ ifndef CANON_FIR_DIR
 endif
 ifndef ML_INSTALLER_BUILD_FIR
 ifndef CANON_NAME_FIR
-	$(error CANON_NAME_FIR is not defined)
+	$(warning CANON_NAME_FIR is not defined)
 endif
 ifndef UPDATE_NAME_FIR
 	$(error UPDATE_NAME_FIR is not defined)
 endif
+
+ifndef CANON_NAME_FIR
+	$(eval CANON_FIR_PATH = )
+else
+	$(eval CANON_FIR_PATH = $(CANON_FIR_DIR)/$(CANON_NAME_FIR))
+endif
+
 	$(eval ML_INSTALLER_BUILD_FIR = python $(ML_BUILD_FIR_DIR)/build_fir.py -r \
-											$(CANON_FIR_DIR)/$(CANON_NAME_FIR) $(ML_BUILD_FIR_PLATFORM_FILE) $(UPDATE_NAME_FIR))
+											$(CANON_FIR_PATH) $(ML_BUILD_FIR_PLATFORM_FILE) $(UPDATE_NAME_FIR))
 endif
 
 	-$(ML_INSTALLER_BUILD_FIR)
