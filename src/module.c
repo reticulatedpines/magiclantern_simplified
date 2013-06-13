@@ -28,9 +28,6 @@ static struct msg_queue * module_mq = 0;
 #define MSG_MODULE_LOAD_ALL 1
 #define MSG_MODULE_UNLOAD_ALL 2
 
-static unsigned int (*module_config_load) (char *, module_entry_t *) = NULL;
-static unsigned int (*module_config_save) (char *, module_entry_t *) = NULL;
-
 void module_load_all(void)
 { 
     msg_queue_post(module_mq, MSG_MODULE_LOAD_ALL); 
@@ -347,15 +344,6 @@ static void _module_load_all(uint32_t list_only)
         }
     }
     
-    /* if there is a config load/save module, register it */
-    uint32_t load_func = (uint32_t) tcc_get_symbol(state, "module_config_load");
-    uint32_t save_func = (uint32_t) tcc_get_symbol(state, "module_config_save");
-    if(load_func && save_func)
-    {
-        console_printf("Config r/w functions found... 0x%X 0x%X\n", load_func, save_func);
-        module_set_config_cbr(load_func, save_func);
-    }
-    
     console_printf("Load configs...\n");
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
@@ -434,27 +422,6 @@ static void _module_unload_all(void)
     {
         TCCState *state = module_state;
         module_state = NULL;
-        
-        /* save configuration */
-        console_printf("Save configs...\n");
-        for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
-        {
-            if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error)
-            {
-                /* save config */
-                char filename[64];
-                snprintf(filename, sizeof(filename), "%s%s.cfg", MODULE_PATH, module_list[mod].name);
-                
-                uint32_t ret = module_config_save(filename, &module_list[mod]);
-                if(ret)
-                {
-                    console_printf("  [E] Error: %d\n", ret);
-                }
-            }
-        }
-        
-        /* now unset the config file callbacks that may point into modules */
-        module_unset_config_cbr();
         
         /* unregister all property handlers */
         prop_reset_registration();
@@ -1252,26 +1219,6 @@ static struct menu_entry module_menu[] = {
     MODULE_ENTRY(14)
 };
 
-static unsigned int module_config_dummy(char *filename, module_entry_t *module)
-{
-    console_printf("  [i] Dummy: %s\n", filename);
-    return 0;
-}
-
-int module_set_config_cbr(unsigned int (*load_func)(char *, module_entry_t *), unsigned int (save_func)(char *, module_entry_t *))
-{
-    module_config_load = load_func;
-    module_config_save = save_func;
-    return 0;
-}
-
-int module_unset_config_cbr()
-{
-    module_config_load = &module_config_dummy;
-    module_config_save = &module_config_dummy;
-    return 0;
-}
-
 struct config_var* module_config_var_lookup(int* ptr)
 {
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
@@ -1291,7 +1238,6 @@ struct config_var* module_config_var_lookup(int* ptr)
 
 static void module_init()
 {
-    module_unset_config_cbr();
     module_mq = (struct msg_queue *) msg_queue_create("module_mq", 1);
     menu_add("Modules", module_menu, COUNT(module_menu));
     module_menu_update();
