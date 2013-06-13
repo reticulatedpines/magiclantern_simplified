@@ -146,9 +146,18 @@ static void _module_load_all(uint32_t list_only)
     struct fio_file file;
     uint32_t update_properties = 0;
 
+#ifdef CONFIG_MODULE_UNLOAD
     /* ensure all modules are unloaded */
     console_printf("Unloading modules...\n");
     _module_unload_all();
+#endif
+    
+    if (module_state)
+    {
+        console_printf("Modules already loaded.\n");
+        beep();
+        return;
+    }
 
     /* initialize linker */
     state = tcc_new();
@@ -418,6 +427,8 @@ static void _module_load_all(uint32_t list_only)
 
 static void _module_unload_all(void)
 {
+/* unloading is not yet clean, we can end up with tasks running from freed memory or stuff like that */
+#ifdef CONFIG_MODULE_UNLOAD
     if(module_state)
     {
         TCCState *state = module_state;
@@ -451,6 +462,7 @@ static void _module_unload_all(void)
         /* release the global module state */
         tcc_delete(state);
     }
+#endif
 }
 
 void *module_load(char *filename)
@@ -872,7 +884,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
 
     if(module_list[mod_number].valid)
     {
-        if(module_list[mod_number].info->long_name)
+        if(module_list[mod_number].info && module_list[mod_number].info->long_name)
         {
             MENU_SET_NAME(module_list[mod_number].info->long_name);
         }
@@ -1180,11 +1192,13 @@ static struct menu_entry module_menu[] = {
         .select = module_menu_load,
         .help = "Loads modules in "MODULE_PATH,
     },
+#ifdef CONFIG_MODULE_UNLOAD
     {
         .name = "Unload modules now...",
         .select = module_menu_unload,
         .help = "Unload loaded modules",
     },
+#endif
     {
         .name = "Autoload modules on startup",
         .priv = &module_autoload_enabled,
@@ -1245,7 +1259,6 @@ static void module_init()
 
 void module_load_task(void* unused) 
 {
-    /* no clean shutdown hoom implemented yet */
     char *lockstr = "If you can read this, ML crashed last time. To save from faulty modules, autoload gets disabled.";
 
     if(module_autoload_enabled)
@@ -1302,10 +1315,33 @@ void module_load_task(void* unused)
     }
 }
 
+static void module_save_configs()
+{
+        /* save configuration */
+        console_printf("Save configs...\n");
+        for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+        {
+            if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error)
+            {
+               /* save config */
+               char filename[64];
+               snprintf(filename, sizeof(filename), "%s%s.cfg", MODULE_PATH, module_list[mod].name);
+                
+               uint32_t ret = module_config_save(filename, &module_list[mod]);
+               if(ret)
+               {
+                    console_printf("  [E] Error: %d\n", ret);
+               }
+          }
+     }
+}
+
 /* clean shutdown, unlink lockfile */
 int module_shutdown()
 {
     _module_unload_all();
+    
+    module_save_configs();
     
     if(module_autoload_enabled)
     {
