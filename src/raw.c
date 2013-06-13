@@ -505,6 +505,10 @@ int raw_update_params()
     int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
     #endif
 
+    #ifdef CONFIG_700D
+    int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
+    #endif
+
     #ifdef CONFIG_60D
     int dynamic_ranges[] = {1091, 1072, 1055, 999, 910, 824, 736, 662};
     #endif

@@ -290,12 +290,15 @@ void hist_draw_image(
                     stops_until_overexposure = INT_MIN;
 
                 int ettr_stops = INT_MIN;
-                if (module_exec(NULL, "auto_ettr_export_correction", 1, &ettr_stops) == 1)
+	
+		#if defined(CONFIG_MODULES)
+                if (module_exec(NULL, "auto_ettr_export_correction", 1, 		&ettr_stops) == 1)
                     if (ettr_stops != INT_MIN)
                         stops_until_overexposure = (ettr_stops+5)/10;
-                
+                #endif
+		
                 if (stops_until_overexposure != INT_MIN)
-                    snprintf(msg, sizeof(msg), "E%s%d.%d", FMT_FIXEDPOINT1(stops_until_overexposure));
+                    snprintf(msg, sizeof(msg), "E%s%d.%d", 			FMT_FIXEDPOINT1(stops_until_overexposure));
                 else
                     snprintf(msg, sizeof(msg), "OVER");
                 break;
