@@ -28,8 +28,8 @@ static struct msg_queue * module_mq = 0;
 #define MSG_MODULE_LOAD_ALL 1
 #define MSG_MODULE_UNLOAD_ALL 2
 
-unsigned int (*module_config_load) (char *, module_entry_t *) = NULL;
-unsigned int (*module_config_save) (char *, module_entry_t *) = NULL;
+static unsigned int (*module_config_load) (char *, module_entry_t *) = NULL;
+static unsigned int (*module_config_save) (char *, module_entry_t *) = NULL;
 
 void module_load_all(void)
 { 
@@ -348,8 +348,8 @@ static void _module_load_all(uint32_t list_only)
     }
     
     /* if there is a config load/save module, register it */
-    uint32_t load_func = tcc_get_symbol(state, "module_config_load");
-    uint32_t save_func = tcc_get_symbol(state, "module_config_save");
+    uint32_t load_func = (uint32_t) tcc_get_symbol(state, "module_config_load");
+    uint32_t save_func = (uint32_t) tcc_get_symbol(state, "module_config_save");
     if(load_func && save_func)
     {
         console_printf("Config r/w functions found... 0x%X 0x%X\n", load_func, save_func);
@@ -1262,12 +1262,14 @@ int module_set_config_cbr(unsigned int (*load_func)(char *, module_entry_t *), u
 {
     module_config_load = load_func;
     module_config_save = save_func;
+    return 0;
 }
 
 int module_unset_config_cbr()
 {
     module_config_load = &module_config_dummy;
     module_config_save = &module_config_dummy;
+    return 0;
 }
 
 static void module_init()
