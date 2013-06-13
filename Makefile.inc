@@ -70,30 +70,32 @@ docq:
 installdoc:
 	mkdir -p $(INSTALL_DOC_DIR)
 	-$(CP) -v $(DOC_DIR)/cam/* $(INSTALL_DOC_DIR)
-	$(CP) $(TOP_DIR)/README $(INSTALL_ML_DIR)
-	$(CP) $(DOC_DIR)/INSTALL.pdf $(INSTALL_DIR)
-	$(CP) $(DOC_DIR)/UserGuide.pdf $(INSTALL_DIR)
-	$(CP) $(SRC_DIR)/logo.bmp $(INSTALL_ML_DIR)/docs
+	-$(CP) $(TOP_DIR)/README $(INSTALL_ML_DIR)
+	-$(CP) $(DOC_DIR)/INSTALL.pdf $(INSTALL_DIR) || echo "warning Unable to copy INSTALL.pdf"
+	-$(CP) $(DOC_DIR)/UserGuide.pdf $(INSTALL_DIR) || echo "warning Unable to copy UserGuide.pdf"
+	-$(CP) $(SRC_DIR)/logo.bmp $(INSTALL_ML_DIR)/docs || echo "warning Unable to copy logo.bmp"
 
-prepare_zip:
+prepare_zip: FORCE
 	$(eval INSTALL_DIR = zip)
 	$(eval INSTALL_FINISH = )
-	$(call rm_dir $(INSTALL_DIR)/)
+	$(call rm_dir, $(INSTALL_DIR)/)
+	$(warning remove $(INSTALL_DIR))
 	mkdir -p $(INSTALL_DIR)
 
 # zip.txt must be the first item on the list!
-magiclantern-$(VERSION).zip: install
+magiclantern-$(VERSION).zip: install installdoc install_fir
 	-$(call rm_files, $@)
 	chmod -x $(INSTALL_DIR)/autoexec.bin
 	cd $(INSTALL_DIR); zip -z ../$@ < \
 		../$(SRC_DIR)/zip.txt -r .\
+	$(call rm_dir, $(INSTALL_DIR)/)
 
 zip:: | prepare_zip
-zip:: install installdoc clean_install_fir
 zip:: magiclantern-$(VERSION).zip
 
 clean::
 	$(call rm_dir, zip)
+	$(call rm_files, *.zip)
 
 FORCE:
 

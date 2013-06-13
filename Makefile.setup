@@ -30,7 +30,7 @@ endef
 
 define rm_dir
 	@printf "[ RM dir ] %s\n" "$1";
-	@$(RM) -rf $1
+	@-$(RM) -rf $1
 endef
 
 
