@@ -41,7 +41,7 @@ void hist_build_raw()
     memset(&histogram, 0, sizeof(histogram));
     histogram.is_raw = 1;
     
-    int step = lv ? 8 : 2;
+    int step = lv ? 8 : 4;
 
     for (int i = os.y0; i < os.y_max; i += step)
     {

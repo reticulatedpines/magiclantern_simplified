@@ -567,11 +567,6 @@ int module_exec(void *module, char *symbol, int count, ...)
     return ret;
 }
 
-int module_call(char *symbol, int count, ...)
-{
-    
-}
-
 
 int module_unload(void *module)
 {
@@ -1325,23 +1320,23 @@ void module_load_task(void* unused)
 
 static void module_save_configs()
 {
-        /* save configuration */
-        console_printf("Save configs...\n");
-        for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    /* save configuration */
+    console_printf("Save configs...\n");
+    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    {
+        if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error)
         {
-            if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error)
+            /* save config */
+            char filename[64];
+            snprintf(filename, sizeof(filename), "%s%s.cfg", MODULE_PATH, module_list[mod].name);
+
+            uint32_t ret = module_config_save(filename, &module_list[mod]);
+            if(ret)
             {
-               /* save config */
-               char filename[64];
-               snprintf(filename, sizeof(filename), "%s%s.cfg", MODULE_PATH, module_list[mod].name);
-                
-               uint32_t ret = module_config_save(filename, &module_list[mod]);
-               if(ret)
-               {
-                    console_printf("  [E] Error: %d\n", ret);
-               }
-          }
-     }
+                console_printf("  [E] Error: %d\n", ret);
+            }
+        }
+    }
 }
 
 /* clean shutdown, unlink lockfile */
