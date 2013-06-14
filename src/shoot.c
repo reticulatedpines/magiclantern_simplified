@@ -3619,10 +3619,18 @@ static char* xmp_template =
 "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Magic Lantern\">\n"
 " <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n"
 "  <rdf:Description rdf:about=\"\"\n"
+"    xmlns:photoshop=\"http://ns.adobe.com/photoshop/1.0/\"\n"
 "    xmlns:crs=\"http://ns.adobe.com/camera-raw-settings/1.0/\"\n"
+"   photoshop:DateCreated=\"2000-01-01T00:00:00:00\"\n"
+"   photoshop:EmbeddedXMPDigest=\"\"\n"
 "   crs:ProcessVersion=\"6.7\"\n"
 "   crs:Exposure2012=\"%s%d.%05d\"\n"
 "   crs:AlreadyApplied=\"False\">\n"
+"   <dc:subject>\n"
+"    <rdf:Bag>\n"
+"     <rdf:li>ML Post-Deflicker</rdf:li>\n"
+"    </rdf:Bag>\n"
+"   </dc:subject>\n"
 "  </rdf:Description>\n"
 " </rdf:RDF>\n"
 "</x:xmpmeta>\n";
@@ -3646,10 +3654,10 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, 
     if (f == INVALID_PTR) return;
     if (type == 0)
     {
-        /* renato: [...] for ACR should be -4 to +4.  If it is outside the +-4 range then it ignores [...] */
-        /* [...]maximum exposure should be 3.9999 and not 4. */
-        ev = COERCE(ev, -3.9999, 3.9999);
+        /* not sure */
+        ev = COERCE(ev, -5, 5);
         int evi = ev * 100000;
+        
         my_fprintf(f, xmp_template, FMT_FIXEDPOINT5S(evi));
     }
     else if (type == 1)
@@ -3672,7 +3680,7 @@ static void post_deflicker_step()
     if (!post_deflicker) return;
     if (HDR_ENABLED) return;
     
-    int raw = raw_hist_get_percentile_level(post_deflicker_percentile, GRAY_PROJECTION_GREEN);
+    int raw = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN);
     if (raw < 0)
     {
         deflicker_last_correction_x100 = 0;
