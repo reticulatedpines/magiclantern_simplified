@@ -1,13 +1,10 @@
 
-# this is a very simple makefile for modules
-TOP_DIR=../..
-
 # define the module name - make sure name is max 8 characters
 MODULE_NAME=raw_rec
 MODULE_OBJS=raw_rec.o
 
 # include modules environment
-include $(TOP_DIR)/modules/Makefile.modules
+include ../Makefile.modules
 
 all:: raw2dng
 
@@ -29,4 +26,4 @@ raw2dng.exe: $(SRC_DIR)/chdk-dng.c ../lv_rec/raw2dng.c
 	$(call build,MINGW,$(MINGW) raw2dng.o chdk-dng.o -o raw2dng.exe -lm -m32)
 
 clean::
-	$(call build,CLEAN,$(RM) -f raw2dng)
+	$(call rm_files, raw2dng)

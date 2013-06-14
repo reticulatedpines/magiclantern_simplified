@@ -6,40 +6,18 @@
 #http://www.gnu.org/software/make/manual/make.html#Variables_002fRecursion
 
 TOP_DIR=$(PWD)
-include Makefile.top
-include Makefile.user.default
--include Makefile.user
+include Makefile.setup
 
 all: $(SUPPORTED_MODELS)
-	$(MAKE) -C $(PLATFORM_PATH)/all clean
-	$(MAKE) -C $(PLATFORM_PATH)/all x
-	#~ $(MAKE) -C $(PLUGINS_DIR)
 
-60D:
-	$(MAKE) -C $(PLATFORM_PATH)/60D.111
+include $(PLATFORM_PATH)/Makefile.platform.map
 
-550D:
-	$(MAKE) -C $(PLATFORM_PATH)/550D.109
+# This rule is able to run make for specific model (defined in ALL_SUPPORTED_MODELS)
+#60D 550D 600D 1100D 50D 500D 5D2 5DC 40D 5D3 EOSM 650D 6D 7D_MASTER::
+$(ALL_SUPPORTED_MODELS)::
+	$(call call_make_platform)
 
-600D:
-	$(MAKE) -C $(PLATFORM_PATH)/600D.102
-
-1100D:
-	$(MAKE) -C $(PLATFORM_PATH)/1100D.105
-
-50D:
-	$(MAKE) -C $(PLATFORM_PATH)/50D.109
-
-500D:
-	$(MAKE) -C $(PLATFORM_PATH)/500D.111
-
-5D2:
-	$(MAKE) -C $(PLATFORM_PATH)/5D2.212
-
-7D_MASTER:
-	$(MAKE) -C $(PLATFORM_PATH)/7D_MASTER.203
-    
-7D: 7D_MASTER
+7D:: 7D_MASTER
 	$(MAKE) -C $(PLATFORM_PATH)/7D.203
 
 7DFIR: 7D_MASTER 7D
@@ -47,110 +25,32 @@ all: $(SUPPORTED_MODELS)
 	dd if=$(PLATFORM_PATH)/7D_MASTER.203/autoexec.bin of=$(PLATFORM_PATH)/7D_MASTER.203/autoexec.fir bs=288 skip=1 >/dev/null 2>&1
 	./build_fir7.py -r -s $(PLATFORM_PATH)/7D.203/autoexec.fir -m $(PLATFORM_PATH)/7D_MASTER.203/autoexec.fir $(PLATFORM_PATH)/7D.203/7D000203.FIR $(PLATFORM_PATH)/7D.203/MAGIC.FIR >/dev/null
 
-5DC:
-	$(MAKE) -C $(PLATFORM_PATH)/5DC.111
+platform_all_model:
+	$(MAKE) -C $(PLATFORM_PATH) clean-all-model all-model
 
-40D:
-	$(MAKE) -C $(PLATFORM_PATH)/40D.111
+install_platform_all_model: platform_all_model
+	$(MAKE) -C $(PLATFORM_PATH) install-all-model
 
-5D3:
-	$(MAKE) -C $(PLATFORM_PATH)/5D3.113
-
-EOSM:
-	$(MAKE) -C $(PLATFORM_PATH)/EOSM.106
-
-650D:
-	$(MAKE) -C $(PLATFORM_PATH)/650D.101
-
-700D:
-	$(MAKE) -C $(PLATFORM_PATH)/700D.111
-
-6D:
-	$(MAKE) -C $(PLATFORM_PATH)/6D.113
-
-plugins: FORCE
-	$(MAKE) -C $(PLUGINS_DIR)
-
-install: all
-	mkdir -p $(CF_CARD)/ML/
-	mkdir -p $(CF_CARD)/ML/settings/
-	mkdir -p $(CF_CARD)/ML/data/
-	mkdir -p $(CF_CARD)/ML/cropmks/
-	cp $(PLATFORM_PATH)/all/autoexec.bin $(CF_CARD)
-	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/data/
-	cp $(VRAM_DIR)/*.lut $(CF_CARD)/ML/data/
-	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
-	$(UMOUNT) $(CF_CARD)
+install: install_platform_all_model
 
 fir:
-	cd installer/550D.109/; $(MAKE) clean
-	cd installer/60D.111/; $(MAKE) clean
-	cd installer/600D.102/; $(MAKE) clean
-	cd installer/50D.109/; $(MAKE) clean
-	cd installer/500D.111/; $(MAKE) clean
-	cd installer/5D2.212/; $(MAKE) clean
-	cd installer/1100D.105/; $(MAKE) clean
-	cd installer/EOSM.106/; $(MAKE) clean
-	cd installer/650D.101/; $(MAKE) clean
-	cd installer/700D.111/; $(MAKE) clean
-	cd installer/6D.113/; $(MAKE) clean
-	$(MAKE) installer -C installer/550D.109/
-	$(MAKE) installer -C installer/60D.111/
-	$(MAKE) installer -C installer/600D.102/
-	$(MAKE) installer -C installer/50D.109/
-	$(MAKE) installer -C installer/500D.111/
-	$(MAKE) installer -C installer/5D2.212/
-	$(MAKE) installer -C installer/1100D.105/
-	$(MAKE) installer -C installer/EOSM.106/
-	$(MAKE) installer -C installer/650D.101/
-	$(MAKE) installer -C installer/700D.111/
-	$(MAKE) installer -C installer/6D.113/
+	$(MAKE) -C installer clean_and_fir
 
 install_fir: fir
-	cp installer/550D.109/$(UPDATE_NAME) $(CF_CARD)
-	cp installer/60D.111/$(UPDATE_NAME) $(CF_CARD)
-	cp installer/600D.102/$(UPDATE_NAME) $(CF_CARD)
-	cp installer/50D.109/$(UPDATE_NAME) $(CF_CARD)
-	cp installer/500D.111/$(UPDATE_NAME) $(CF_CARD)
-	cp installer/5D2.212/$(UPDATE_NAME) $(CF_CARD)
-	cp installer/1100D.105/$(UPDATE_NAME) $(CF_CARD)
-	cp installer/EOSM.106/$(UPDATE_NAME) $(CF_CARD)
-	cp installer/650D.101/$(UPDATE_NAME) $(CF_CARD)
-	cp installer/700D.111/$(UPDATE_NAME) $(CF_CARD)
-	cp installer/6D.113/$(UPDATE_NAME) $(CF_CARD)
+	$(MAKE) -C installer install_fir
 
-clean:
-	$(call build,CLEAN,$(RM) -f \
-		$(SRC_DIR)/*.o \
-		$(SRC_DIR)/.*.d \
+platform_clean:
+	$(MAKE) -C platform clean
+
+clean: platform_clean doxygen_clean
+	$(call rm_files, \
 		magiclantern.lds \
 		$(LUA_PATH)/*.o \
 		$(LUA_PATH)/.*.d \
 		$(LUA_PATH)/liblua.a \
 		*.pdf)
-	$(RM) -f \
-		$(LUA_PATH)/*.o \
-		$(LUA_PATH)/.*.d \
-		$(LUA_PATH)/liblua.a
-	cd $(PLATFORM_PATH)/550D.109/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/60D.111/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/600D.102/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/7D_MASTER.203/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/7D.203/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/50D.109/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/500D.111/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/5D2.212/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/5D3.113/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/5DC.111/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/1100D.105/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/40D.111/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/EOSM.106/; $(MAKE) clean	
-	cd $(PLATFORM_PATH)/650D.101/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/700D.111/; $(MAKE) clean
-	cd $(PLATFORM_PATH)/6D.113/; $(MAKE) clean	
-	$(MAKE) -C $(PLUGINS_DIR) clean
-	$(RM) -rf  $(BINARIES_PATH)
-	$(RM) -rf doxygen-doc/*
+		@$(RM) -rf  $(BINARIES_PATH)
+
 
 zip: all
 	cd $(PLATFORM_PATH)/all; $(MAKE) docs
@@ -164,6 +64,9 @@ docq:
 
 doxygen:
 	doxygen
+
+doxygen_clean:
+	$(call rm_dir, doxygen-doc)
 
 dropbox: all
 	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/bleeding-edge/

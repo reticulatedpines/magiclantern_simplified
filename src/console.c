@@ -7,6 +7,10 @@
 #include "property.h"
 #include "config.h"
 
+#ifndef CONFIG_CONSOLE
+#error Something went wrong CONFIg_CONSOLE should be defined
+#endif
+
 #undef CONSOLE_DEBUG // logs things to file etc
 
 int console_printf(const char* fmt, ...); // how to replace the normal printf?

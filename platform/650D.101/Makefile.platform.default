@@ -1,0 +1,12 @@
+#Makefile.setup.platform for EOS 650D
+
+ifeq ($(FW_VERSION),101)
+ROMBASEADDR		= 0xFF0C0000
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART	= 0x0007E100
+
+#End of FW_VERSION == 101
+endif

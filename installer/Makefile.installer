@@ -1,0 +1,26 @@
+
+TOP_DIR?=../..
+ML_SETUP_DISABLE_USER_CONFIGS=y
+ML_SETUP_EXTENSION=installer
+ML_SRC_PROFILE=installer
+
+include $(TOP_DIR)/platform/Makefile.platform.base
+
+installer:: build_fir
+
+install:: install_fir
+
+updater: reboot-ins.o
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-nostdlib \
+		-march=armv5te \
+		-e _start \
+		-Ttext 0x800000 \
+		$^ \
+	);
+
+clean::
+	$(call rm_files, updater*)
+
+include $(TOP_DIR)/Makefile.inc

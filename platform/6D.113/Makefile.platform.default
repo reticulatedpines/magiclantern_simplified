@@ -1,0 +1,17 @@
+#Makefile.setup.platform for 6D
+
+ifeq ($(FW_VERSION),113)
+CANON_NAME_FIR=6D000113.FIR
+ROMBASEADDR		= 0xFF0C0000
+
+ifeq ($(ML_SRC_PROFILE),generic)
+# DryOSmemory map 1F2C4000
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART	= 0x00C1C100
+else
+RESTARTSTART	= 0x0009E300
+endif
+
+#End of FW_VERSION == 113
+endif

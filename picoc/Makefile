@@ -20,7 +20,7 @@ test:	all
 	(cd tests; make test)
 
 clean:
-	rm -f $(TARGET) $(OBJS) *~
+	$(call rm_files, $(TARGET) $(OBJS) *~)
 
 count:
 	@echo "Core:"

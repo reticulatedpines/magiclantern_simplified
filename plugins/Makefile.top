@@ -5,6 +5,7 @@ ML_SRC_DIR=$(PLUGIN_BASE_DIR)/../src
 SYMTBLGEN=$(PLUGIN_BASE_DIR)/symtblgen.rb
 
 include $(PLUGIN_BASE_DIR)/../Makefile.user.default
+
 -include $(PLUGIN_BASE_DIR)/../Makefile.user
 
 PLUGIN_MAIN_OBJS = $(PLUGIN_BASE_DIR)/plugin.lds $(PLUGIN_BASE_DIR)/entry.o $(PLUGIN_BASE_DIR)/loader.o $(PLUGIN_OBJS)
@@ -102,7 +103,7 @@ build = \
 
 
 clean:
-	$(call build,CLEAN,$(RM) -f \
+	$(call rm_files, \
 		$(PLUGIN_BASE_DIR)/*.o   \
 		$(PLUGIN_BASE_DIR)/.*.d \
 		$(PLUGIN_BASE_DIR)/.*.a \

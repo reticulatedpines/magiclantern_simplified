@@ -2,7 +2,6 @@
 #define _module_h_
 
 #define MODULE_PATH                   CARD_DRIVE"ML/MODULES/"
-#define MAGIC_SYMBOLS                 CARD_DRIVE"ML/MODULES/MAGIC.SYM"
 
 /* module info structures */
 #define MODULE_INFO_PREFIX            __module_info_
