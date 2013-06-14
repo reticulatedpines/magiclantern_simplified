@@ -441,131 +441,6 @@ ST_FUNC Section *find_section(TCCState *s1, const char *name)
     return new_section(s1, name, SHT_PROGBITS, SHF_ALLOC);
 }
 
-/* update sym->c so that it points to an external symbol in section
-   'section' with value 'value' */
-ST_FUNC void put_extern_sym2(Sym *sym, Section *section, 
-                            addr_t value, unsigned long size,
-                            int can_add_underscore)
-{
-    int sym_type, sym_bind, sh_num, info, other;
-    ElfW(Sym) *esym;
-    const char *name;
-    char buf1[256];
-
-    if (section == NULL)
-        sh_num = SHN_UNDEF;
-    else if (section == SECTION_ABS) 
-        sh_num = SHN_ABS;
-    else
-        sh_num = section->sh_num;
-
-    if ((sym->type.t & VT_BTYPE) == VT_FUNC) {
-        sym_type = STT_FUNC;
-    } else if ((sym->type.t & VT_BTYPE) == VT_VOID) {
-        sym_type = STT_NOTYPE;
-    } else {
-        sym_type = STT_OBJECT;
-    }
-
-    if (sym->type.t & VT_STATIC)
-        sym_bind = STB_LOCAL;
-    else {
-        if (sym->type.t & VT_WEAK)
-            sym_bind = STB_WEAK;
-        else
-            sym_bind = STB_GLOBAL;
-    }
-
-    if (!sym->c) {
-        name = get_tok_str(sym->v, NULL);
-#ifdef CONFIG_TCC_BCHECK
-        if (tcc_state->do_bounds_check) {
-            char buf[32];
-
-            /* XXX: avoid doing that for statics ? */
-            /* if bound checking is activated, we change some function
-               names by adding the "__bound" prefix */
-            switch(sym->v) {
-#ifdef TCC_TARGET_PE
-            /* XXX: we rely only on malloc hooks */
-            case TOK_malloc: 
-            case TOK_free: 
-            case TOK_realloc: 
-            case TOK_memalign: 
-            case TOK_calloc: 
-#endif
-            case TOK_memcpy: 
-            case TOK_memmove:
-            case TOK_memset:
-            case TOK_strlen:
-            case TOK_strcpy:
-            case TOK_alloca:
-                strcpy(buf, "__bound_");
-                strcat(buf, name);
-                name = buf;
-                break;
-            }
-        }
-#endif
-        other = 0;
-
-#ifdef TCC_TARGET_PE
-        if (sym->type.t & VT_EXPORT)
-            other |= 1;
-        if (sym_type == STT_FUNC && sym->type.ref) {
-            int attr = sym->type.ref->r;
-            if (FUNC_EXPORT(attr))
-                other |= 1;
-            if (FUNC_CALL(attr) == FUNC_STDCALL && can_add_underscore) {
-                sprintf(buf1, "_%s@%d", name, FUNC_ARGS(attr) * PTR_SIZE);
-                name = buf1;
-                other |= 2;
-                can_add_underscore = 0;
-            }
-        } else {
-            if (find_elf_sym(tcc_state->dynsymtab_section, name))
-                other |= 4;
-            if (sym->type.t & VT_IMPORT)
-                other |= 4;
-        }
-#endif
-        if (tcc_state->leading_underscore && can_add_underscore) {
-            buf1[0] = '_';
-            pstrcpy(buf1 + 1, sizeof(buf1) - 1, name);
-            name = buf1;
-        }
-        if (sym->asm_label) {
-            name = sym->asm_label;
-        }
-        info = ELFW(ST_INFO)(sym_bind, sym_type);
-        sym->c = add_elf_sym(symtab_section, value, size, info, other, sh_num, name);
-    } else {
-        esym = &((ElfW(Sym) *)symtab_section->data)[sym->c];
-        esym->st_value = value;
-        esym->st_size = size;
-        esym->st_shndx = sh_num;
-    }
-}
-
-ST_FUNC void put_extern_sym(Sym *sym, Section *section, 
-                           addr_t value, unsigned long size)
-{
-    put_extern_sym2(sym, section, value, size, 1);
-}
-
-/* add a new relocation entry to symbol 'sym' in section 's' */
-ST_FUNC void greloc(Section *s, Sym *sym, unsigned long offset, int type)
-{
-    int c = 0;
-    if (sym) {
-        if (0 == sym->c)
-            put_extern_sym(sym, NULL, 0, 0);
-        c = sym->c;
-    }
-    /* now we can add ELF relocation info */
-    put_elf_reloc(symtab_section, s, offset, type, c);
-}
-
 /********************************************************/
 
 static void strcat_vprintf(char *buf, int buf_size, const char *fmt, va_list ap)
@@ -751,159 +626,20 @@ ST_FUNC int tcc_open(TCCState *s1, const char *filename)
 /* compile the C file opened in 'file'. Return non zero if errors. */
 static int tcc_compile(TCCState *s1)
 {
-    Sym *define_start;
-    SValue *pvtop;
-    char buf[512];
-    volatile int section_sym;
-
-#ifdef INC_DEBUG
-    printf("%s: **** new file\n", file->filename);
-#endif
-    preprocess_init(s1);
-
-    cur_text_section = NULL;
-    funcname = "";
-    anon_sym = SYM_FIRST_ANOM; 
-
-    /* file info: full path + filename */
-    section_sym = 0; /* avoid warning */
-    if (s1->do_debug) {
-        section_sym = put_elf_sym(symtab_section, 0, 0, 
-                                  ELFW(ST_INFO)(STB_LOCAL, STT_SECTION), 0, 
-                                  text_section->sh_num, NULL);
-        getcwd(buf, sizeof(buf));
-#ifdef _WIN32
-        normalize_slashes(buf);
-#endif
-        pstrcat(buf, sizeof(buf), "/");
-        put_stabs_r(buf, N_SO, 0, 0, 
-                    text_section->data_offset, text_section, section_sym);
-        put_stabs_r(file->filename, N_SO, 0, 0, 
-                    text_section->data_offset, text_section, section_sym);
-    }
-    /* an elf symbol of type STT_FILE must be put so that STB_LOCAL
-       symbols can be safely used */
-    put_elf_sym(symtab_section, 0, 0, 
-                ELFW(ST_INFO)(STB_LOCAL, STT_FILE), 0, 
-                SHN_ABS, file->filename);
-
-    /* define some often used types */
-    int_type.t = VT_INT;
-
-    char_pointer_type.t = VT_BYTE;
-    mk_pointer(&char_pointer_type);
-
-#if PTR_SIZE == 4
-    size_type.t = VT_INT;
-#else
-    size_type.t = VT_LLONG;
-#endif
-
-    func_old_type.t = VT_FUNC;
-    func_old_type.ref = sym_push(SYM_FIELD, &int_type, FUNC_CDECL, FUNC_OLD);
-#ifdef TCC_TARGET_ARM
-    arm_init_types();
-#endif
-
-#if 0
-    /* define 'void *alloca(unsigned int)' builtin function */
-    {
-        Sym *s1;
-
-        p = anon_sym++;
-        sym = sym_push(p, mk_pointer(VT_VOID), FUNC_CDECL, FUNC_NEW);
-        s1 = sym_push(SYM_FIELD, VT_UNSIGNED | VT_INT, 0, 0);
-        s1->next = NULL;
-        sym->next = s1;
-        sym_push(TOK_alloca, VT_FUNC | (p << VT_STRUCT_SHIFT), VT_CONST, 0);
-    }
-#endif
-
-    define_start = define_stack;
-    nocode_wanted = 1;
-
-    if (setjmp(s1->error_jmp_buf) == 0) {
-        s1->nb_errors = 0;
-        s1->error_set_jmp_enabled = 1;
-
-        ch = file->buf_ptr[0];
-        tok_flags = TOK_FLAG_BOL | TOK_FLAG_BOF;
-        parse_flags = PARSE_FLAG_PREPROCESS | PARSE_FLAG_TOK_NUM;
-        pvtop = vtop;
-        next();
-        decl(VT_CONST);
-        if (tok != TOK_EOF)
-            expect("declaration");
-        if (pvtop != vtop)
-            tcc_warning("internal compiler error: vstack leak? (%d)", vtop - pvtop);
-
-        /* end of translation unit info */
-        if (s1->do_debug) {
-            put_stabs_r(NULL, N_SO, 0, 0, 
-                        text_section->data_offset, text_section, section_sym);
-        }
-    }
-
-    s1->error_set_jmp_enabled = 0;
-
-    /* reset define stack, but leave -Dsymbols (may be incorrect if
-       they are undefined) */
-    free_defines(define_start); 
-
-    gen_inline_functions();
-
-    sym_pop(&global_stack, NULL);
-    sym_pop(&local_stack, NULL);
-
-    return s1->nb_errors != 0 ? -1 : 0;
 }
 
 LIBTCCAPI int tcc_compile_string(TCCState *s, const char *str)
 {
-    int len, ret;
-    len = strlen(str);
-
-    tcc_open_bf(s, "<string>", len);
-    memcpy(file->buffer, str, len);
-    ret = tcc_compile(s);
-    tcc_close();
-    return ret;
 }
 
 /* define a preprocessor symbol. A value can also be provided with the '=' operator */
 LIBTCCAPI void tcc_define_symbol(TCCState *s1, const char *sym, const char *value)
 {
-    int len1, len2;
-    /* default value */
-    if (!value)
-        value = "1";
-    len1 = strlen(sym);
-    len2 = strlen(value);
-
-    /* init file structure */
-    tcc_open_bf(s1, "<define>", len1 + len2 + 1);
-    memcpy(file->buffer, sym, len1);
-    file->buffer[len1] = ' ';
-    memcpy(file->buffer + len1 + 1, value, len2);
-
-    /* parse with define parser */
-    ch = file->buf_ptr[0];
-    next_nomacro();
-    parse_define();
-
-    tcc_close();
 }
 
 /* undefine a preprocessor symbol */
 LIBTCCAPI void tcc_undefine_symbol(TCCState *s1, const char *sym)
 {
-    TokenSym *ts;
-    Sym *s;
-    ts = tok_alloc(sym, strlen(sym));
-    s = define_find(ts->tok);
-    /* undefine symbol by putting an invalid name */
-    if (s)
-        define_undef(s);
 }
 
 /* cleanup all static data used during compilation */
@@ -915,7 +651,7 @@ static void tcc_cleanup(void)
     tcc_state = NULL;
 
     /* free -D defines */
-    free_defines(NULL);
+    //~ free_defines(NULL);
 
     /* free tokens */
     n = tok_ident - TOK_IDENT;
@@ -951,15 +687,15 @@ LIBTCCAPI TCCState *tcc_new(void)
     tcc_set_lib_path(s, CONFIG_TCCDIR);
 #endif
     s->output_type = TCC_OUTPUT_MEMORY;
-    preprocess_new();
+    //~ preprocess_new();
     s->include_stack_ptr = s->include_stack;
 
     /* we add dummy defines for some special macros to speed up tests
        and to have working defined() */
-    define_push(TOK___LINE__, MACRO_OBJ, NULL, NULL);
-    define_push(TOK___FILE__, MACRO_OBJ, NULL, NULL);
-    define_push(TOK___DATE__, MACRO_OBJ, NULL, NULL);
-    define_push(TOK___TIME__, MACRO_OBJ, NULL, NULL);
+    //~ define_push(TOK___LINE__, MACRO_OBJ, NULL, NULL);
+    //~ define_push(TOK___FILE__, MACRO_OBJ, NULL, NULL);
+    //~ define_push(TOK___DATE__, MACRO_OBJ, NULL, NULL);
+    //~ define_push(TOK___TIME__, MACRO_OBJ, NULL, NULL);
 
     /* define __TINYC__ 92X  */
     sscanf(TCC_VERSION, "%d.%d.%d", &a, &b, &c);
@@ -1169,10 +905,12 @@ ST_FUNC int tcc_add_file_internal(TCCState *s1, const char *filename, int flags)
     dynarray_add((void ***)&s1->target_deps, &s1->nb_target_deps,
             tcc_strdup(filename));
 
+#if 0
     if (flags & AFF_PREPROCESS) {
         ret = tcc_preprocess(s1);
         goto the_end;
     }
+#endif
 
     if (!ext[0] || !PATHCMP(ext, "c")) {
         /* C file assumed */
