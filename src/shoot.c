@@ -496,7 +496,9 @@ static MENU_UPDATE_FUNC(intervalometer_display)
         if (auto_power_off_time && auto_power_off_time <= d)
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
         
+        #ifdef CONFIG_MODULES
         module_exec(NULL, "auto_ettr_intervalometer_warning", 2, entry, info);
+        #endif
     }
     else
     {
@@ -6930,7 +6932,9 @@ shoot_task( void* unused )
             intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);
             intervalometer_pictures_taken++;
             
+            #ifdef CONFIG_MODULES
             module_exec(NULL, "auto_ettr_intervalometer_wait", 0);
+            #endif
 
             #ifdef FEATURE_BULB_RAMPING
             if (BULB_EXPOSURE_CONTROL_ACTIVE)
