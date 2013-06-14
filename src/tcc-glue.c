@@ -10,7 +10,7 @@
 #include "libtcc.h"
 
 /* this function is called by the generated code */
-int add(int a, int b)
+static int add(int a, int b)
 {
     return a + b;
 }
@@ -24,60 +24,6 @@ void tcc_init_library(TCCState *s)
 
 int tcc_compile_and_run(char* filename)
 {
-    int exit_code = 0;
-    
-    /* Read the source file */
-    int size;
-    char* source = (char*)read_entire_file(filename, &size);
-    if (!source)
-    {
-        printf("Error loading '%s'\n", filename);
-        exit_code = 1; goto end;
-    }
-
-    TCCState *s;
-    int (*main)(int,int);
-
-    /* create a TCC compilation context */
-    s = tcc_new();
-    if (!s)
-        { exit_code = 1; goto end; }
-    
-    /* do not load standard libraries - we don't have them */
-    tcc_set_options(s, "-nostdinc -nostdlib");
-
-    /* MUST BE CALLED before any compilation */
-    tcc_set_output_type(s, TCC_OUTPUT_MEMORY);
-
-    /* compile our program from string */
-    if (tcc_compile_string(s, source) == -1)
-        { exit_code = 1; goto end; }
-
-    tcc_init_library(s);
-
-    /* relocate the code */
-    if (tcc_relocate(s, TCC_RELOCATE_AUTO) < 0)
-        { exit_code = 1; goto end; }
-
-    /* get entry symbol */
-    main = tcc_get_symbol(s, "main");
-    if (!main)
-    {
-        printf("Could not find main()\n");
-        exit_code = 1; goto end; 
-    }
-    
-    /* http://repo.or.cz/w/tinycc.git/commit/6ed6a36a51065060bd5e9bb516b85ff796e05f30 */
-    clean_d_cache();
-    
-    /* run the code */
-    main(0, 0);
-
-end:
-    /* delete the compilation state and the source code buffer */
-    if (s) tcc_delete(s);
-    if (source) free_dma_memory(source);
-    return exit_code;
 }
 
 void exit(int code) 

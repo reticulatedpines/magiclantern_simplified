@@ -231,7 +231,7 @@ magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
 clean::
 	$(call rm_files, magiclantern.lds)
 
-$(TOP_DIR)/tcc/libtcc.a: FORCE
+$(TOP_DIR)/tcc/libtccx.o: FORCE
 	+$(MAKE) -C $(TOP_DIR)/tcc
 
 # Extract the stdio files that we need
