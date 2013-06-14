@@ -11,6 +11,10 @@
 #include "propvalues.h"
 #include "config.h"
 
+#if defined(CONFIG_MODULES)
+#include "module.h"
+#endif
+
 //#define FEATURE_HDR_EXTENDED
 
 #ifdef FEATURE_HDR_EXTENDED
@@ -195,18 +199,15 @@ void hdr_get_iso_range(int* iso_low, int* iso_high)
 
 void hdr_step()
 {
+#if defined(CONFIG_MODULES)
+    module_exec_cbr(CBR_VSYNC_SETPARAM);
+#endif
+    
 #ifdef FEATURE_SHUTTER_FINE_TUNING
     shutter_finetune_step();
 #endif
 
 #ifdef CONFIG_FRAME_ISO_OVERRIDE
-    #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
-    #ifdef FEATURE_AUTO_ETTR
-    if (auto_ettr_vsync_cbr())
-        return;
-    #endif
-    #endif
-
     if (!hdrv_enabled)
     {
         #ifdef FEATURE_GRADUAL_EXPOSURE
@@ -514,4 +515,58 @@ void hdr_mvr_log(char* mvr_logfile_buffer)
             "HDR video      : ISO %d/%d (%d.%d EV)\n", iso_low, iso_high, ev_x10/10, ev_x10%10
         );
     }
+}
+
+int get_frame_iso()
+{
+    #ifdef FRAME_ISO
+    return FRAME_ISO & 0xFF;
+    #else
+    return 0;
+    #endif
+}
+
+void set_frame_iso(int iso)
+{
+    #ifdef CONFIG_FRAME_ISO_OVERRIDE
+    FRAME_ISO = iso | (iso << 8);
+    #endif
+}
+
+int can_set_frame_iso()
+{
+    #ifdef CONFIG_FRAME_ISO_OVERRIDE
+    return 1;
+    #else
+    return 0;
+    #endif
+}
+
+int get_frame_shutter_timer()
+{
+    #ifdef FRAME_SHUTTER_TIMER
+    return FRAME_SHUTTER_TIMER;
+    #else
+    return 0;
+    #endif
+}
+
+void set_frame_shutter_timer(int timer)
+{
+    #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
+        #ifdef CONFIG_DIGIC_V
+        FRAME_SHUTTER_TIMER = MAX(timer, 2);
+        #else
+        FRAME_SHUTTER_TIMER = MAX(timer, 1);
+        #endif
+    #endif
+}
+
+int can_set_frame_shutter_timer()
+{
+    #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
+    return 1;
+    #else
+    return 0;
+    #endif
 }

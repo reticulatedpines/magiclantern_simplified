@@ -96,6 +96,9 @@ void card_tests()
     {
         if (free_space_raw_a > 10) card_test(0);
         if (free_space_raw_b > 10) card_test(1);
+        
+        /* if it reaches this point, the cards are OK */
+        card_test_enabled = 0;
     }
     
     /* on startup enforce selected card.

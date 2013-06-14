@@ -547,15 +547,11 @@ int handle_common_events_by_feature(struct event * event)
     #if defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE)
     if (handle_lv_play(event) == 0) return 0;
     #endif
-    
-    #ifdef FEATURE_AUTO_ETTR
-    if (handle_ettr_keys(event) == 0) return 0;
-    #endif
 
     return 1;
 }
 
-int detect_double_click(struct event * event, int pressed_code, int unpressed_code)
+int detect_double_click(int key, int pressed_code, int unpressed_code)
 {
     /*       pressed    unpressed   pressed   unpressed */
     /* ____|``````````|__________|``````````|__________ */
@@ -569,7 +565,7 @@ int detect_double_click(struct event * event, int pressed_code, int unpressed_co
     static int tp2 = 0;
     static int last_was_pressed = 0;
 
-    if (event->param == pressed_code && !last_was_pressed)
+    if (key == pressed_code && !last_was_pressed)
     {
         last_was_pressed = 1;
         int t = get_ms_clock_value();
@@ -577,7 +573,7 @@ int detect_double_click(struct event * event, int pressed_code, int unpressed_co
         tu1 = tp2;
         tp2 = t;
     }
-    else if (event->param == unpressed_code && last_was_pressed)
+    else if (key == unpressed_code && last_was_pressed)
     {
         last_was_pressed = 0;
         int tu2 = get_ms_clock_value();

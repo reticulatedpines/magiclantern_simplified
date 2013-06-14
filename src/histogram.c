@@ -40,8 +40,10 @@ void hist_build_raw()
 
     memset(&histogram, 0, sizeof(histogram));
     histogram.is_raw = 1;
+    
+    int step = lv ? 8 : 4;
 
-    for (int i = os.y0; i < os.y_max; i += 8)
+    for (int i = os.y0; i < os.y_max; i += step)
     {
         int y = BM2RAW_Y(i);
         if (y < raw_info.active_area.y1 || y > raw_info.active_area.y2) continue;
@@ -286,11 +288,11 @@ void hist_draw_image(
             {
                 if (!stops_until_overexposure)
                     stops_until_overexposure = INT_MIN;
-                #ifdef FEATURE_AUTO_ETTR
-                int ettr_stops = auto_ettr_get_correction();
-                if (ettr_stops != INT_MIN)
-                    stops_until_overexposure = (ettr_stops+5)/10;
-                #endif
+
+                int ettr_stops = INT_MIN;
+                if (module_exec(NULL, "auto_ettr_export_correction", 1, &ettr_stops) == 1)
+                    if (ettr_stops != INT_MIN)
+                        stops_until_overexposure = (ettr_stops+5)/10;
                 
                 if (stops_until_overexposure != INT_MIN)
                     snprintf(msg, sizeof(msg), "E%s%d.%d", FMT_FIXEDPOINT1(stops_until_overexposure));

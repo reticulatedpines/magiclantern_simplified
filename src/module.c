@@ -8,6 +8,10 @@
 #include "string.h"
 #include "property.h"
 
+/* unloads TCC after linking the modules */
+/* note: this breaks module_exec and ETTR */
+//~ #define CONFIG_TCC_UNLOAD
+
 extern int sscanf(const char *str, const char *format, ...);
 
 
@@ -15,7 +19,12 @@ extern int sscanf(const char *str, const char *format, ...);
 char *module_card_drive = CARD_DRIVE;
 
 static module_entry_t module_list[MODULE_COUNT_MAX];
+
+#ifdef CONFIG_TCC_UNLOAD
+static void* module_code = NULL;
+#else
 static TCCState *module_state = NULL;
+#endif
 
 static struct menu_entry module_submenu[];
 static struct menu_entry module_menu[];
@@ -27,9 +36,6 @@ char *module_lockfile = MODULE_PATH"LOADING.LCK";
 static struct msg_queue * module_mq = 0;
 #define MSG_MODULE_LOAD_ALL 1
 #define MSG_MODULE_UNLOAD_ALL 2
-
-unsigned int (*module_config_load) (char *, module_entry_t *) = NULL;
-unsigned int (*module_config_save) (char *, module_entry_t *) = NULL;
 
 void module_load_all(void)
 { 
@@ -149,9 +155,22 @@ static void _module_load_all(uint32_t list_only)
     struct fio_file file;
     uint32_t update_properties = 0;
 
+#ifdef CONFIG_MODULE_UNLOAD
     /* ensure all modules are unloaded */
     console_printf("Unloading modules...\n");
     _module_unload_all();
+#endif
+
+#ifdef CONFIG_TCC_UNLOAD
+    if (module_code)
+#else
+    if (module_state)
+#endif
+    {
+        console_printf("Modules already loaded.\n");
+        beep();
+        return;
+    }
 
     /* initialize linker */
     state = tcc_new();
@@ -273,8 +292,48 @@ static void _module_load_all(uint32_t list_only)
     }
 
     console_printf("Linking..\n");
+#ifdef CONFIG_TCC_UNLOAD
+    int32_t size = tcc_relocate(state, NULL);
+    int32_t reloc_status = -1;
+    
+    if (size > 0)
+    {
+        /* TCC allocates up to 2x the memory needed (e.g. raw_rec: uses ~17K but TCC reserves 34) */
+        /* raw_rec + file_man + pic_view + ettr: used 37.2K, allocated 74.4K */
+        /** tccrun.c:
+         * / * double the size of the buffer for got and plt entries
+         *  XXX: calculate exact size for them? * /
+         *  offset *= 2;
+         */
+        /* but we can recover it; the space will add up when loading large and/or many modules */
+
+        size = ALIGN32SUP(size);
+        void* buf = (void*) tcc_malloc(size);
+        
+        /* mark the allocated space, so we know how much it was actually used */
+        for (uint32_t* p = buf; p < buf + size; p++)
+            *p = 0x12345678;
+
+        reloc_status = tcc_relocate(state, buf);
+        
+        /* recover unused space */
+        uint32_t* end = buf + size - 4;
+        while ((void*)end > buf && *end == 0x12345678) end--;
+        end++;
+        int new_size = (void*)end - buf;
+        buf = (void*)tcc_realloc(buf, new_size);
+        console_printf("Memory: before %dK, after %dK\n", size/1024, new_size/1024);
+
+        /* http://repo.or.cz/w/tinycc.git/commit/6ed6a36a51065060bd5e9bb516b85ff796e05f30 */
+        clean_d_cache();
+
+        module_code = buf;
+    }
+    if(size < 0 || reloc_status < 0)
+#else
     int32_t ret = tcc_relocate(state, TCC_RELOCATE_AUTO);
     if(ret < 0)
+#endif
     {
         console_printf("  [E] failed to link modules\n");
         for (uint32_t mod = 0; mod < module_cnt; mod++)
@@ -347,15 +406,6 @@ static void _module_load_all(uint32_t list_only)
         }
     }
     
-    /* if there is a config load/save module, register it */
-    uint32_t load_func = tcc_get_symbol(state, "module_config_load");
-    uint32_t save_func = tcc_get_symbol(state, "module_config_save");
-    if(load_func && save_func)
-    {
-        console_printf("Config r/w functions found... 0x%X 0x%X\n", load_func, save_func);
-        module_set_config_cbr(load_func, save_func);
-    }
-    
     console_printf("Load configs...\n");
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
@@ -419,7 +469,12 @@ static void _module_load_all(uint32_t list_only)
         prop_update_registration();
     }
     
+    #ifdef CONFIG_TCC_UNLOAD
+    tcc_delete(state);
+    #else
     module_state = state;
+    #endif
+    
     console_printf("Modules loaded\n");
     
     if(!module_console_enabled)
@@ -430,31 +485,12 @@ static void _module_load_all(uint32_t list_only)
 
 static void _module_unload_all(void)
 {
+/* unloading is not yet clean, we can end up with tasks running from freed memory or stuff like that */
+#ifdef CONFIG_MODULE_UNLOAD
     if(module_state)
     {
         TCCState *state = module_state;
         module_state = NULL;
-        
-        /* save configuration */
-        console_printf("Save configs...\n");
-        for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
-        {
-            if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error)
-            {
-                /* save config */
-                char filename[64];
-                snprintf(filename, sizeof(filename), "%s%s.cfg", MODULE_PATH, module_list[mod].name);
-                
-                uint32_t ret = module_config_save(filename, &module_list[mod]);
-                if(ret)
-                {
-                    console_printf("  [E] Error: %d\n", ret);
-                }
-            }
-        }
-        
-        /* now unset the config file callbacks that may point into modules */
-        module_unset_config_cbr();
         
         /* unregister all property handlers */
         prop_reset_registration();
@@ -484,6 +520,7 @@ static void _module_unload_all(void)
         /* release the global module state */
         tcc_delete(state);
     }
+#endif
 }
 
 void *module_load(char *filename)
@@ -521,7 +558,13 @@ void *module_load(char *filename)
 
 int module_exec(void *module, char *symbol, int count, ...)
 {
+#ifdef CONFIG_TCC_UNLOAD
+    return -1;
+#else
     int ret = -1;
+    if (module == NULL) module = module_state;
+    if (module == NULL) return ret;
+    
     TCCState *state = (TCCState *)module;
     void *start_symbol = NULL;
     va_list args;
@@ -542,7 +585,7 @@ int module_exec(void *module, char *symbol, int count, ...)
         {
             uint32_t (*exec)(uint32_t parm1, ...) = start_symbol;
 
-            uint32_t *parms = malloc(sizeof(uint32_t) * count);
+            uint32_t parms[10];
             for(int parm = 0; parm < count; parm++)
             {
                 parms[parm] = va_arg(args,uint32_t);
@@ -579,17 +622,20 @@ int module_exec(void *module, char *symbol, int count, ...)
                     NotifyBox(2000, "Passing too many parameters to '%s'", symbol );
                     break;
             }
-            free(parms);
         }
     }
     va_end(args);
     return ret;
+#endif
 }
+
 
 int module_unload(void *module)
 {
+#ifndef CONFIG_TCC_UNLOAD
     TCCState *state = (TCCState *)module;
     tcc_delete(state);
+#endif
     return 0;
 }
 
@@ -905,7 +951,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
 
     if(module_list[mod_number].valid)
     {
-        if(module_list[mod_number].info->long_name)
+        if(module_list[mod_number].info && module_list[mod_number].info->long_name)
         {
             MENU_SET_NAME(module_list[mod_number].info->long_name);
         }
@@ -1115,6 +1161,15 @@ static MENU_SELECT_FUNC(module_open_submenu)
     menu_open_submenu();
 }
 
+static MENU_SELECT_FUNC(console_toggle)
+{
+    module_console_enabled = !module_console_enabled;
+    if (module_console_enabled)
+        console_show();
+    else
+        console_hide();
+}
+
 static struct menu_entry module_submenu[] = {
         {
             .name = "Autoload module",
@@ -1213,11 +1268,13 @@ static struct menu_entry module_menu[] = {
         .select = module_menu_load,
         .help = "Loads modules in "MODULE_PATH,
     },
+#ifdef CONFIG_MODULE_UNLOAD
     {
         .name = "Unload modules now...",
         .select = module_menu_unload,
         .help = "Unload loaded modules",
     },
+#endif
     {
         .name = "Autoload modules on startup",
         .priv = &module_autoload_enabled,
@@ -1227,6 +1284,7 @@ static struct menu_entry module_menu[] = {
     {
         .name = "Show console",
         .priv = &module_console_enabled,
+        .select = console_toggle,
         .max = 1,
         .help = "Keep console shown after modules were loaded",
     },
@@ -1252,27 +1310,25 @@ static struct menu_entry module_menu[] = {
     MODULE_ENTRY(14)
 };
 
-static unsigned int module_config_dummy(char *filename, module_entry_t *module)
+struct config_var* module_config_var_lookup(int* ptr)
 {
-    console_printf("  [i] Dummy: %s\n", filename);
+    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    {
+        module_config_t * config = module_list[mod].config;
+        if(module_list[mod].valid && config)
+        {
+            for (module_config_t * mconfig = config; mconfig && mconfig->name; mconfig++)
+            {
+                if (mconfig->ref->value == ptr)
+                    return (struct config_var *) mconfig->ref;
+            }
+        }
+    }
     return 0;
-}
-
-int module_set_config_cbr(unsigned int (*load_func)(char *, module_entry_t *), unsigned int (save_func)(char *, module_entry_t *))
-{
-    module_config_load = load_func;
-    module_config_save = save_func;
-}
-
-int module_unset_config_cbr()
-{
-    module_config_load = &module_config_dummy;
-    module_config_save = &module_config_dummy;
 }
 
 static void module_init()
 {
-    module_unset_config_cbr();
     module_mq = (struct msg_queue *) msg_queue_create("module_mq", 1);
     menu_add("Modules", module_menu, COUNT(module_menu));
     module_menu_update();
@@ -1280,7 +1336,6 @@ static void module_init()
 
 void module_load_task(void* unused) 
 {
-    /* no clean shutdown hoom implemented yet */
     char *lockstr = "If you can read this, ML crashed last time. To save from faulty modules, autoload gets disabled.";
 
     if(module_autoload_enabled)
@@ -1337,10 +1392,33 @@ void module_load_task(void* unused)
     }
 }
 
+static void module_save_configs()
+{
+    /* save configuration */
+    console_printf("Save configs...\n");
+    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    {
+        if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error)
+        {
+            /* save config */
+            char filename[64];
+            snprintf(filename, sizeof(filename), "%s%s.cfg", MODULE_PATH, module_list[mod].name);
+
+            uint32_t ret = module_config_save(filename, &module_list[mod]);
+            if(ret)
+            {
+                console_printf("  [E] Error: %d\n", ret);
+            }
+        }
+    }
+}
+
 /* clean shutdown, unlink lockfile */
 int module_shutdown()
 {
     _module_unload_all();
+    
+    module_save_configs();
     
     if(module_autoload_enabled)
     {

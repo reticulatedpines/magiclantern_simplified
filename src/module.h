@@ -44,9 +44,10 @@
  * - note: some cameras do not support display filters; in this case, this CBR will not be called
  */
 #define CBR_SECONDS_CLOCK             5 /* called every second */
-#define CBR_VSYNC                     6 /* called for every LiveView frame; must not do any heavy processing!!! */
+#define CBR_VSYNC                     6 /* called for every LiveView frame; can do display tricks; must not do any heavy processing!!! */
 #define CBR_KEYPRESS                  7 /* when a key was pressed, this cbr gets the translated key as ctx */
 #define CBR_KEYPRESS_RAW              8 /* when a key was pressed, this cbr gets the raw (struct event *) as ctx */
+#define CBR_VSYNC_SETPARAM            9 /* called from every LiveView frame; can change FRAME_ISO, FRAME_SHUTTER_TIMER, just like for HDR video */
 
 /* portable key codes. intentionally defines to make numbers hardcoded so changed order wont change the integer number */
 #define MODULE_KEY_PRESS_HALFSHUTTER       ( 1)

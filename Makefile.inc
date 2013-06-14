@@ -349,8 +349,8 @@ prepare_zip:
 	mkdir zip/ML || echo "ok"
 	cp $(SRC_DIR)/zip.txt zip
 	cp $(TOP_DIR)/README zip/ML/
-	cp $(DOC_DIR)/INSTALL.pdf zip/
-	cp $(DOC_DIR)/UserGuide.pdf zip/
+	cp $(DOC_DIR)/INSTALL.pdf zip/ || touch zip/INSTALL.pdf
+	cp $(DOC_DIR)/UserGuide.pdf zip/ || touch zip/UserGuide.pdf
 	mkdir zip/ML/logs || echo "ok"
 	mkdir zip/ML/settings || echo "ok"
 	mkdir zip/ML/data || echo "ok"
@@ -364,9 +364,9 @@ prepare_zip:
 	#mkdir zip/ML/plugins || echo "ok"
 	#cp $(PLUGINS_DIR)/*/*.bin zip/ML/plugins/
 	mkdir zip/ML/doc || echo "ok"
-	cp $(DOC_DIR)/cam/* zip/ML/doc/
+	cp $(DOC_DIR)/cam/* zip/ML/doc/ || echo "No cam"
 	cp $(SRC_DIR)/logo.bmp zip/ML/docs
-	make x
+	make x || make all || echo "Target x ignored"
 	cp ../../installer/550D.109/*.fir zip || echo "no FIR"
 	cp ../../installer/60D.111/*.fir zip || echo "no FIR"
 	cp ../../installer/600D.102/*.fir zip || echo "no FIR"
@@ -594,6 +594,7 @@ clean:
 		*.a \
         *.map \
 		$(BIN_FILES) \
+		magiclantern-$(VERSION).zip \
 		magiclantern.lds \
 		magiclantern.sym \
         version.c \
