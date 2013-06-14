@@ -1033,7 +1033,7 @@ static void raw_video_rec_task()
         bmp_printf( FONT_MED, 30, 50, "File create error");
         goto cleanup;
     }
-    FIO_WriteFile(bf, (void*)0x40000000, 32*1024);
+    FIO_WriteFile(bf, (void*)0x40000000, 512*1024);
     FIO_CloseFile(bf);
     
     
@@ -1211,6 +1211,7 @@ abort:
     written += FIO_WriteFile(f, buffers[capturing_buffer_index].ptr, capture_offset) / 1024;
 
     /* remove the backup file, to make sure we can save the footer even if card is full */
+    msleep(500);
     FIO_RemoveFile(backup_filename);
     msleep(500);
 
