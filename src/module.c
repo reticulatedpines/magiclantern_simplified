@@ -13,6 +13,10 @@
 #endif
 #define MAGIC_SYMBOLS                 CARD_DRIVE"ML/MODULES/"CONFIG_MODULES_MODEL_SYM
 
+/* unloads TCC after linking the modules */
+/* note: this breaks module_exec and ETTR */
+//~ #define CONFIG_TCC_UNLOAD
+
 extern int sscanf(const char *str, const char *format, ...);
 
 
@@ -20,7 +24,12 @@ extern int sscanf(const char *str, const char *format, ...);
 char *module_card_drive = CARD_DRIVE;
 
 static module_entry_t module_list[MODULE_COUNT_MAX];
+
+#ifdef CONFIG_TCC_UNLOAD
+static void* module_code = NULL;
+#else
 static TCCState *module_state = NULL;
+#endif
 
 static struct menu_entry module_submenu[];
 static struct menu_entry module_menu[];
@@ -156,8 +165,12 @@ static void _module_load_all(uint32_t list_only)
     console_printf("Unloading modules...\n");
     _module_unload_all();
 #endif
-    
+
+#ifdef CONFIG_TCC_UNLOAD
+    if (module_code)
+#else
     if (module_state)
+#endif
     {
         console_printf("Modules already loaded.\n");
         beep();
@@ -284,8 +297,48 @@ static void _module_load_all(uint32_t list_only)
     }
 
     console_printf("Linking..\n");
+#ifdef CONFIG_TCC_UNLOAD
+    int32_t size = tcc_relocate(state, NULL);
+    size = ALIGN32SUP(size);
+    int32_t reloc_status = -1;
+    
+    if (size > 0)
+    {
+        /* TCC allocates up to 2x the memory needed (e.g. raw_rec: uses ~17K but TCC reserves 34) */
+        /* raw_rec + file_man + pic_view + ettr: used 37.2K, allocated 74.4K */
+        /** tccrun.c:
+         * / * double the size of the buffer for got and plt entries
+         *  XXX: calculate exact size for them? * /
+         *  offset *= 2;
+         */
+        /* but we can recover it; the space will add up when loading large and/or many modules */
+
+        void* buf = (void*) tcc_malloc(size);
+        
+        /* mark the allocated space, so we know how much it was actually used */
+        for (uint32_t* p = buf; p < buf + size; p++)
+            *p = 0x12345678;
+
+        reloc_status = tcc_relocate(state, buf);
+        
+        /* recover unused space */
+        uint32_t* end = buf + size - 4;
+        while ((void*)end > buf && *end == 0x12345678) end--;
+        end++;
+        int new_size = (void*)end - buf;
+        buf = (void*)tcc_realloc(buf, new_size);
+        console_printf("Memory: before %dK, after %dK\n", size/1024, new_size/1024);
+
+        /* http://repo.or.cz/w/tinycc.git/commit/6ed6a36a51065060bd5e9bb516b85ff796e05f30 */
+        clean_d_cache();
+
+        module_code = buf;
+    }
+    if(size < 0 || reloc_status < 0)
+#else
     int32_t ret = tcc_relocate(state, TCC_RELOCATE_AUTO);
     if(ret < 0)
+#endif
     {
         console_printf("  [E] failed to link modules\n");
         for (uint32_t mod = 0; mod < module_cnt; mod++)
@@ -421,7 +474,12 @@ static void _module_load_all(uint32_t list_only)
         prop_update_registration();
     }
     
+    #ifdef CONFIG_TCC_UNLOAD
+    tcc_delete(state);
+    #else
     module_state = state;
+    #endif
+    
     console_printf("Modules loaded\n");
     
     if(!module_console_enabled)
@@ -505,6 +563,9 @@ void *module_load(char *filename)
 
 int module_exec(void *module, char *symbol, int count, ...)
 {
+#ifdef CONFIG_TCC_UNLOAD
+    return -1;
+#else
     int ret = -1;
     if (module == NULL) module = module_state;
     if (module == NULL) return ret;
@@ -570,13 +631,16 @@ int module_exec(void *module, char *symbol, int count, ...)
     }
     va_end(args);
     return ret;
+#endif
 }
 
 
 int module_unload(void *module)
 {
+#ifndef CONFIG_TCC_UNLOAD
     TCCState *state = (TCCState *)module;
     tcc_delete(state);
+#endif
     return 0;
 }
 
