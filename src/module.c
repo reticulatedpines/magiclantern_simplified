@@ -294,7 +294,6 @@ static void _module_load_all(uint32_t list_only)
     console_printf("Linking..\n");
 #ifdef CONFIG_TCC_UNLOAD
     int32_t size = tcc_relocate(state, NULL);
-    size = ALIGN32SUP(size);
     int32_t reloc_status = -1;
     
     if (size > 0)
@@ -308,6 +307,7 @@ static void _module_load_all(uint32_t list_only)
          */
         /* but we can recover it; the space will add up when loading large and/or many modules */
 
+        size = ALIGN32SUP(size);
         void* buf = (void*) tcc_malloc(size);
         
         /* mark the allocated space, so we know how much it was actually used */
@@ -1161,6 +1161,15 @@ static MENU_SELECT_FUNC(module_open_submenu)
     menu_open_submenu();
 }
 
+static MENU_SELECT_FUNC(console_toggle)
+{
+    module_console_enabled = !module_console_enabled;
+    if (module_console_enabled)
+        console_show();
+    else
+        console_hide();
+}
+
 static struct menu_entry module_submenu[] = {
         {
             .name = "Autoload module",
@@ -1275,6 +1284,7 @@ static struct menu_entry module_menu[] = {
     {
         .name = "Show console",
         .priv = &module_console_enabled,
+        .select = console_toggle,
         .max = 1,
         .help = "Keep console shown after modules were loaded",
     },
