@@ -13,6 +13,10 @@
 
 #include "histogram.h"
 
+#if defined(CONFIG_MODULES)
+#include "module.h"
+#endif
+
 
 #if defined(FEATURE_HISTOGRAM)
 
