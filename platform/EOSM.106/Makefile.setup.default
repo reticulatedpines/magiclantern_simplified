@@ -1,0 +1,16 @@
+#Makefile for EOS M
+
+TOP_DIR=../..
+ML_AF_PATTERNS_OBJ = n
+
+ML_SRC_EXTRA_OBJS = \
+	misc.o \
+	dm-spy.o \
+	video_hacks.o \
+	raw.o \
+	chdk-dng.o \
+	tp-spy.o \
+	reloc.o \
+	edmac-memcpy.o
+
+

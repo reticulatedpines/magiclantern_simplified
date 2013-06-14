@@ -1,9 +1,9 @@
 
 # this is a very simple makefile for plugins
 
-TOP ?= .
-include $(TOP)/../../Makefile.user.default
-include $(TOP)/../../Makefile.user
+TOP_DIR=../..
+
+include $(TOP_DIR)/Makefile.setup
 
 CFLAGS=-Os
 
@@ -14,7 +14,7 @@ CFLAGS=-Os
 %.mo: %.o
 	$(LD_REAL) -r -o $@ $^
 
-clean:
-	rm *.o *.mo testplug.mo || true
-
 all: testplug.mo
+
+clean:
+	$(call rm_files, *.o *.mo testplug.mo)
