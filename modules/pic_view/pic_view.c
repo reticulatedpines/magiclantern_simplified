@@ -132,7 +132,7 @@ static int dng_show(char* filename)
     raw_preview_fast();
     shoot_free(buf);
     
-    bmp_printf(FONT_MED, 600, 460, " %dx%d ", raw_info.width, raw_info.height);
+    bmp_printf(FONT_MED, 600, 460, " %dx%d ", raw_info.jpeg.width, raw_info.jpeg.height);
     return 1;
 err:
     shoot_free(buf);
