@@ -1,0 +1,92 @@
+
+#ifndef __trace_h__
+#define __trace_h__
+
+#ifdef __trace_c__
+    #define EXT_WEAK_FUNC(f) 
+#else
+    #define EXT_WEAK_FUNC(f) WEAK_FUNC(f)
+#endif
+
+#define TRACE_MAX_STRING   64
+#define TRACE_MAX_CONTEXT    16
+
+#define TRACE_FMT_TIME_CTR      0x0001 /* write the absolute TSC value as integer */
+#define TRACE_FMT_TIME_CTR_REL  0x0002 /* write the relative TSC since last write value as integer */
+#define TRACE_FMT_TIME_ABS      0x0004 /* write the absolute time as hh:mm:ss.msec*/
+#define TRACE_FMT_TIME_REL      0x0008 /* write the time since start as hh:mm:ss.msec*/
+#define TRACE_FMT_TIME_DELTA    0x0010 /* write the relative time as hh:mm:ss.msec since last entry*/
+#define TRACE_FMT_TIME_BIN      0x0020 /* write the absolute TSC value as binary */
+
+#define TRACE_FMT_META          0x0100 /* on start and stop write some metadata (e.g. day, time, ...) */
+
+#define TRACE_FMT_DEFAULT     (TRACE_FMT_META | TRACE_FMT_TIME_CTR_REL | TRACE_FMT_TIME_REL)
+
+#define TRACE_SEPARATOR_DEFAULT ' '
+
+#define TRACE_TASK_STATE_DEAD     0
+#define TRACE_TASK_STATE_RUNNING  1
+#define TRACE_TASK_STATE_SHUTDOWN 2
+
+#define TRACE_SLEEP_TIME  100
+#define TRACE_BUFFER_SIZE (32*1024)
+
+#define TRACE_ERROR 0xFFFFFFFF
+#define TRACE_OK    0
+
+typedef struct
+{
+    int used;
+    char name[TRACE_MAX_STRING];
+    char file_name[TRACE_MAX_STRING];
+    
+    /* format options */
+    unsigned int format;
+    unsigned char separator;
+    unsigned char sleep_time;
+    
+    /* runtime variables */
+    FILE *file_handle;
+    char *buffer;
+    unsigned int buffer_read_pos;
+    unsigned int buffer_write_pos;
+    unsigned int buffer_size;
+    unsigned int start_tsc;
+    unsigned int last_tsc;
+    
+    /* task status */
+    unsigned int task_state;
+    unsigned int task;
+} trace_entry_t;
+
+/* create a new trace with given short name and filename */
+unsigned int EXT_WEAK_FUNC(ret_0) trace_start(char *name, char *file_name);
+/* free a previously created trace context */
+unsigned int EXT_WEAK_FUNC(ret_0) trace_stop(unsigned int trace, int wait);
+/* setup some custom format options. when separator is a null byte, it will be omitted */
+unsigned int EXT_WEAK_FUNC(ret_0) trace_format(unsigned int context, unsigned int format, unsigned char separator);
+/* write some string into specified trace */
+unsigned int EXT_WEAK_FUNC(ret_0) trace_write(unsigned int context, char *string, ...);
+/* write some binary data into specified trace with an variable length field in front */
+unsigned int EXT_WEAK_FUNC(ret_0) trace_write_binary(unsigned int context, unsigned char *buffer, unsigned int length);
+
+/* internal */
+static unsigned int trace_write_varlength(unsigned int context, unsigned int length);
+
+
+
+/* binary format:
+ *
+ *  TT TT TT TT VL [LL [LL [LL]]]
+ *
+ *  T = Time stamp counter (little endian)
+ *  V = Variable length field: specifies how many extra length bytes follow (0-3)
+ *  L = Length field in little endian
+ *      e.g. 0x0000003 bytes are encoded: "03"
+ *      e.g. 0x0000023 bytes are encoded: "13 02"
+ *      e.g. 0x0006503 bytes are encoded: "23 50 06"
+ *      e.g. 0xA1F7654 bytes are encoded: "34 65 F7 A1"
+ */
+ 
+ 
+#endif
