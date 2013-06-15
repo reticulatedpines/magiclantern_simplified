@@ -2351,8 +2351,13 @@ static void bv_expsim_shift_try_iso(int newiso)
     static int prev_e = 0;
     if (e != prev_e)
     {
-        if (ABS(e) > 2) NotifyBox(2000, "Preview %sexposed by %d.%d EV", e > 0 ? "over" : "under", ABS(e)/10, ABS(e)%10);
+        /*
+        if (ABS(e) > 2)
+        {
+            NotifyBox(2000, "Preview %sexposed by %d.%d EV", e > 0 ? "over" : "under", ABS(e)/10, ABS(e)%10);
+        }
         else NotifyBoxHide();
+        */
     }
     prev_e = e;
 
