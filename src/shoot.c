@@ -2001,6 +2001,9 @@ silent_pic_take_raw(int interactive)
     }
     else
     {
+        if (intervalometer_running)
+            idle_force_powersave_now();
+        
         char* fn = silent_pic_get_name();
         bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
         raw_info.buffer = sp_frames[0];
@@ -6852,8 +6855,8 @@ shoot_task( void* unused )
                 
                 static char msg[60];
                 snprintf(msg, sizeof(msg),
-                                " Intervalometer:%s   \n"
-                                " Pictures taken:%4d ", 
+                                " Intervalometer: %s  \n"
+                                " Pictures taken: %d  ", 
                                 format_time_hours_minutes_seconds(SECONDS_REMAINING),
                                 intervalometer_pictures_taken);
                 if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after); }
@@ -6865,17 +6868,6 @@ shoot_task( void* unused )
 
                 if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after))
                     intervalometer_stop();
-
-                //~ if (bulb_ramping_enabled)
-                //~ {
-                    //~ bramp_temporary_exposure_compensation_update();
-                //~ }
-
-                //~ if (!images_compared && SECONDS_ELAPSED >= 2 && SECONDS_REMAINING >= 2 && image_review_time - SECONDS_ELAPSED >= 1 && bramp_init_done)
-                //~ {
-                    //~ playback_compare_images(0);
-                    //~ images_compared = 1; // do this only once
-                //~ }
                 
                 if (PLAY_MODE && SECONDS_ELAPSED >= image_review_time)
                 {
@@ -6884,7 +6876,7 @@ shoot_task( void* unused )
 
                 if (lens_info.job_state == 0 && liveview_display_idle() && intervalometer_running && !display_turned_off)
                 {
-                    idle_force_powersave_in_1s();
+                    idle_force_powersave_now();
                     display_turned_off = 1; // ... but only once per picture (don't be too aggressive)
                 }
 
@@ -6897,6 +6889,7 @@ shoot_task( void* unused )
                 intervalometer_stop();
 
             if (PLAY_MODE) get_out_of_play_mode(500);
+            
             if (LV_PAUSED) ResumeLiveView();
 
             if (!intervalometer_running) continue; // back to start of shoot_task loop
@@ -6943,18 +6936,8 @@ shoot_task( void* unused )
                 compute_exposure_for_next_shot();
             }
             #endif
-
-            #ifndef CONFIG_VXWORKS
-            if (lv && silent_pic_enabled) // half-press shutter to disable power management
-            {
-                lens_setup_af(AF_DISABLE);
-                SW1(1,10);
-                SW1(0,50);
-                lens_cleanup_af();
-                msleep(300);
-            }
-            #endif
-           
+            
+            idle_force_powersave_now();
         }
         else // intervalometer not running
         #endif // FEATURE_INTERVALOMETER

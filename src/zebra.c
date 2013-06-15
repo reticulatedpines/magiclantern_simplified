@@ -4710,6 +4710,7 @@ int ResumeLiveView()
         ans = 1;
     }
     lv_paused = 0;
+    idle_wakeup_reset_counters(-1357);
     info_led_off();
 #endif
     return ans;
