@@ -8,6 +8,8 @@
 
 static trace_entry_t trace_contexts[TRACE_MAX_CONTEXT];
 
+extern tsc_t get_us_clock_value();
+
 /* general selection of allocation method */
 void *trace_alloc(int size)
 {
@@ -17,6 +19,13 @@ void *trace_alloc(int size)
 void trace_free(void *data)
 {
     free_dma_memory(data);
+}
+
+static void trace_update_timers()
+{
+    uint32_t last_timer = 0;
+    uint32_t timer = *(volatile uint32_t*)0xC0242014;
+    
 }
 
 static void trace_task(trace_entry_t *ctx)
@@ -111,7 +120,7 @@ unsigned int trace_start(char *name, char *file_name)
                 return TRACE_ERROR;
             }
 
-            ctx->start_tsc = get_ms_clock_value();
+            ctx->start_tsc = get_us_clock_value();
             ctx->last_tsc = ctx->start_tsc;
 
             /* make sure task is running */
@@ -196,7 +205,7 @@ unsigned int trace_format(unsigned int context, unsigned int format, unsigned ch
 /* write some string into specified trace */
 unsigned int trace_write(unsigned int context, char *string, ...)
 {
-    unsigned int tsc = get_ms_clock_value();
+    tsc_t tsc = get_us_clock_value();
     char timestamp[64];
     int timestamp_pos = 0;
 	va_list ap;
@@ -206,17 +215,17 @@ unsigned int trace_write(unsigned int context, char *string, ...)
     {
         return TRACE_OK;
     }
-
+    
     /* build timestamp string */
     timestamp[0] = 0;
     if(ctx->format & TRACE_FMT_TIME_CTR)
     {
         /* write raw timestamp counter "000015255" */
-        char tmp[16];
+        char tmp[32];
 
-        snprintf(tmp, sizeof(tmp), "%09d", tsc);
-        strncpy(&timestamp[timestamp_pos], tmp, sizeof(timestamp) - timestamp_pos);
-        timestamp_pos += strlen(tmp);
+        snprintf(tmp, sizeof(tmp), "%08X%08X", (unsigned int)(tsc >> 32), (unsigned int)tsc);
+        memcpy(&timestamp[timestamp_pos], tmp, 17);
+        timestamp_pos += 16;
 
         /* add separator */
         timestamp[timestamp_pos] = ctx->separator;
@@ -225,12 +234,26 @@ unsigned int trace_write(unsigned int context, char *string, ...)
     if(ctx->format & TRACE_FMT_TIME_CTR_REL)
     {
         /* write raw timestamp counter delta to starting time "000015255" */
-        char tmp[16];
+        char tmp[32];
 
-        unsigned int delta = tsc - ctx->start_tsc;
-        snprintf(tmp, sizeof(tmp), "%09d", delta);
-        strncpy(&timestamp[timestamp_pos], tmp, sizeof(timestamp) - timestamp_pos);
-        timestamp_pos += strlen(tmp);
+        tsc_t delta = tsc - ctx->start_tsc;
+        snprintf(tmp, sizeof(tmp), "%08X%08X", (unsigned int)(delta >> 32), (unsigned int)delta);
+        memcpy(&timestamp[timestamp_pos], tmp, 17);
+        timestamp_pos += 16;
+
+        /* add separator */
+        timestamp[timestamp_pos] = ctx->separator;
+        timestamp_pos++;
+    }
+    if(ctx->format & TRACE_FMT_TIME_CTR_DELTA)
+    {
+        /* write raw timestamp counter delta to starting time "000015255" */
+        char tmp[32];
+
+        tsc_t delta = tsc - ctx->last_tsc;
+        snprintf(tmp, sizeof(tmp), "+%08X%08X", (unsigned int)(delta >> 32), (unsigned int)delta);
+        memcpy(&timestamp[timestamp_pos], tmp, 18);
+        timestamp_pos += 17;
 
         /* add separator */
         timestamp[timestamp_pos] = ctx->separator;
@@ -239,15 +262,16 @@ unsigned int trace_write(unsigned int context, char *string, ...)
     if(ctx->format & TRACE_FMT_TIME_REL)
     {
         /* write time since measurement start "0:0:36.309" */
-        char tmp[16];
-        unsigned int delta = tsc - ctx->start_tsc;
-        unsigned int msec = delta % 1000;
-        unsigned int sec_total = delta / 1000;
+        char tmp[32];
+        
+        tsc_t delta = tsc - ctx->start_tsc;
+        unsigned int usec = delta % 1000000ULL;
+        unsigned int sec_total = delta / 1000000ULL;
         unsigned int sec = sec_total % 60;
         unsigned int min = (sec_total / 60) % 60;
         unsigned int hrs = (sec_total / 3600) % 60;
 
-        snprintf(tmp, sizeof(tmp), "%02d:%02d:%02d.%03d", hrs, min, sec, msec);
+        snprintf(tmp, sizeof(tmp), "%02d:%02d:%02d.%06d", hrs, min, sec, usec);
         strncpy(&timestamp[timestamp_pos], tmp, sizeof(timestamp) - timestamp_pos);
         timestamp_pos += strlen(tmp);
 
@@ -255,9 +279,13 @@ unsigned int trace_write(unsigned int context, char *string, ...)
         timestamp[timestamp_pos] = ctx->separator;
         timestamp_pos++;
     }
+    timestamp[timestamp_pos] = 0;
 
+    /* update last tsc */
+    ctx->last_tsc = tsc;
+    
     /* get the minimum length that is needed. string may get longer, but we cannot predict that */
-    int min_len = strlen(string) + timestamp_pos + 1;
+    int min_len = (string?strlen(string):0) + timestamp_pos + 1;
 
     /* yes, we are disabling interrupts here. this is quite bad - should we use a per-context vsprintf-buffer? */
     int old_stat = cli();
@@ -272,8 +300,13 @@ unsigned int trace_write(unsigned int context, char *string, ...)
     int max_len = ctx->buffer_size - ctx->buffer_write_pos;
     va_start( ap, string );
 
-    strncpy(&ctx->buffer[ctx->buffer_write_pos], timestamp, max_len);
-    int len = vsnprintf(&ctx->buffer[ctx->buffer_write_pos + timestamp_pos], max_len - timestamp_pos, string, ap);
+    memcpy(&ctx->buffer[ctx->buffer_write_pos], timestamp, timestamp_pos);
+    int len = 0;
+    
+    if(string)
+    {
+        len = vsnprintf(&ctx->buffer[ctx->buffer_write_pos + timestamp_pos], max_len - timestamp_pos, string, ap);
+    }
 
     /* buffer filled until the end. seems the string was too long */
     if(len >= max_len - timestamp_pos)
@@ -296,7 +329,7 @@ unsigned int trace_write(unsigned int context, char *string, ...)
 /* write some binary data into specified trace with an variable length field in front */
 unsigned int trace_write_binary(unsigned int context, unsigned char *buffer, unsigned int length)
 {
-    unsigned int tsc = get_ms_clock_value();
+    tsc_t tsc = get_us_clock_value();
     trace_entry_t *ctx = &trace_contexts[context];
 
     if(context >= TRACE_MAX_CONTEXT || !ctx->used)
@@ -304,8 +337,8 @@ unsigned int trace_write_binary(unsigned int context, unsigned char *buffer, uns
         return TRACE_ERROR;
     }
 
-    /* var length is max 4 bytes, tsc also. check for enough free space */
-    if((ctx->buffer_write_pos + length + 4 + 4) >= ctx->buffer_size)
+    /* var length is max 4 bytes, tsc 8 bytes. check for enough free space */
+    if((ctx->buffer_write_pos + length + 4 + sizeof(tsc)) >= ctx->buffer_size)
     {
         return TRACE_ERROR;
     }
@@ -314,7 +347,7 @@ unsigned int trace_write_binary(unsigned int context, unsigned char *buffer, uns
     int old_stat = cli();
 
     /* first copy TSC */
-    memcpy(&ctx->buffer[ctx->buffer_write_pos], &tsc, 4);
+    memcpy(&ctx->buffer[ctx->buffer_write_pos], &tsc, sizeof(tsc));
     ctx->buffer_write_pos += 4;
 
     /* next is variable length */

@@ -11,16 +11,17 @@
 #define TRACE_MAX_STRING   64
 #define TRACE_MAX_CONTEXT    16
 
-#define TRACE_FMT_TIME_CTR      0x0001 /* write the absolute TSC value as integer */
-#define TRACE_FMT_TIME_CTR_REL  0x0002 /* write the relative TSC since last write value as integer */
-#define TRACE_FMT_TIME_ABS      0x0004 /* write the absolute time as hh:mm:ss.msec*/
-#define TRACE_FMT_TIME_REL      0x0008 /* write the time since start as hh:mm:ss.msec*/
-#define TRACE_FMT_TIME_DELTA    0x0010 /* write the relative time as hh:mm:ss.msec since last entry*/
-#define TRACE_FMT_TIME_BIN      0x0020 /* write the absolute TSC value as binary */
+#define TRACE_FMT_TIME_CTR        0x0001 /* write the absolute TSC value as integer */
+#define TRACE_FMT_TIME_CTR_REL    0x0002 /* write the relative TSC since last write value as integer */
+#define TRACE_FMT_TIME_CTR_DELTA  0x0004 /* write the relative TSC since last write value as integer */
+#define TRACE_FMT_TIME_ABS        0x0008 /* write the absolute time as hh:mm:ss.msec*/
+#define TRACE_FMT_TIME_REL        0x0010 /* write the time since start as hh:mm:ss.msec*/
+#define TRACE_FMT_TIME_DELTA      0x0020 /* write the relative time as hh:mm:ss.msec since last entry*/
+#define TRACE_FMT_TIME_BIN        0x0040 /* write the absolute TSC value as binary */
 
-#define TRACE_FMT_META          0x0100 /* on start and stop write some metadata (e.g. day, time, ...) */
+#define TRACE_FMT_META            0x0100 /* on start and stop write some metadata (e.g. day, time, ...) */
 
-#define TRACE_FMT_DEFAULT     (TRACE_FMT_META | TRACE_FMT_TIME_CTR_REL | TRACE_FMT_TIME_REL)
+#define TRACE_FMT_DEFAULT        (TRACE_FMT_META | TRACE_FMT_TIME_CTR_REL | TRACE_FMT_TIME_REL)
 
 #define TRACE_SEPARATOR_DEFAULT ' '
 
@@ -33,6 +34,8 @@
 
 #define TRACE_ERROR 0xFFFFFFFF
 #define TRACE_OK    0
+
+typedef unsigned long long tsc_t;
 
 typedef struct
 {
@@ -51,8 +54,8 @@ typedef struct
     unsigned int buffer_read_pos;
     unsigned int buffer_write_pos;
     unsigned int buffer_size;
-    unsigned int start_tsc;
-    unsigned int last_tsc;
+    tsc_t start_tsc;
+    tsc_t last_tsc;
     
     /* task status */
     unsigned int task_state;
