@@ -533,6 +533,7 @@ void unsafe_beep()
     }
 
     while (beep_playing) msleep(20);
+
     #ifdef FEATURE_WAV_RECORDING
     if (audio_recording) return;
     #endif
@@ -549,7 +550,11 @@ void unsafe_beep()
 
 void beep_times(int times)
 {
-    if (!beep_enabled || recording > 0)
+    #ifndef FEATURE_WAV_RECORDING
+    int audio_recording = 0;
+    #endif
+
+    if (!beep_enabled || recording > 0 || audio_recording)
     {
         info_led_blink(times,50,50); // silent warning
         return;
@@ -567,13 +572,17 @@ void beep_times(int times)
 
 void beep()
 {
-    if (recording <= 0) // breaks audio
+    #ifndef FEATURE_WAV_RECORDING
+    int audio_recording = 0;
+    #endif
+
+    if (recording <= 0 && !audio_recording) // breaks audio
         unsafe_beep();
 }
 
 void beep_custom(int duration, int frequency, int wait)
 {
-    if (!beep_enabled || recording > 0)
+    if (!beep_enabled || recording > 0 || audio_recording)
     {
         info_led_blink(1, duration, 10); // silent warning
         return;
@@ -858,7 +867,7 @@ static void record_start(void* priv, int delta)
 {
     if (audio_stop_rec_or_play()) return;
 
-    if (recording && sound_recording_mode != 1)
+    if (recording > 0 && sound_recording_mode != 1)
     {
         NotifyBox(2000, 
             "Cannot record WAV sound \n"
