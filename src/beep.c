@@ -633,7 +633,16 @@ static void beep_task()
     TASK_LOOP
     {
         take_semaphore( beep_sem, 0 );
-        
+
+        /* don't interrupt long recording / wav playback tasks */
+        /* also beep calls should not block while recording, so they get dropped */
+        if (beep_playing)
+            continue;
+        #ifdef FEATURE_WAV_RECORDING
+        if (audio_recording)
+            continue;
+        #endif
+
         if (record_flag)
         {
             #ifdef FEATURE_WAV_RECORDING
