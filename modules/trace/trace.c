@@ -21,13 +21,6 @@ void trace_free(void *data)
     free_dma_memory(data);
 }
 
-static void trace_update_timers()
-{
-    uint32_t last_timer = 0;
-    uint32_t timer = *(volatile uint32_t*)0xC0242014;
-    
-}
-
 static void trace_task(trace_entry_t *ctx)
 {
     ctx->task_state = TRACE_TASK_STATE_RUNNING;
@@ -201,6 +194,51 @@ unsigned int trace_format(unsigned int context, unsigned int format, unsigned ch
     return TRACE_OK;
 }
 
+static unsigned int trace_write_timestamp(trace_entry_t *ctx, int type, tsc_t tsc, char *timestamp, int *timestamp_pos)
+{
+    int pos = *timestamp_pos;
+
+    switch(type)
+    {
+        case TRACE_FMT_TIME_CTR:
+        {
+            /* write raw timestamp counter "000015255" */
+            char tmp[32];
+
+            snprintf(tmp, sizeof(tmp), "%08X%08X", (unsigned int)(tsc >> 32), (unsigned int)tsc);
+            memcpy(&timestamp[pos], tmp, 17);
+            pos += 16;
+            break;
+        }
+        case TRACE_FMT_TIME_ABS:
+        {
+            /* write time since measurement start "0:0:36.309" */
+            char tmp[32];
+            
+            unsigned int usec = tsc % 1000000ULL;
+            unsigned int sec_total = tsc / 1000000ULL;
+            unsigned int sec = sec_total % 60;
+            unsigned int min = (sec_total / 60) % 60;
+            unsigned int hrs = (sec_total / 3600) % 60;
+
+            snprintf(tmp, sizeof(tmp), "%02d:%02d:%02d.%06d", hrs, min, sec, usec);
+            strncpy(&timestamp[pos], tmp, sizeof(timestamp) - pos);
+            pos += strlen(tmp);
+            break;
+        }
+        case TRACE_FMT_TIME_DATE:
+        {
+            break;
+        }
+    }
+    
+    /* add separator */
+    timestamp[pos] = ctx->separator;
+    pos++;
+    timestamp[pos] = 0;
+    
+    *timestamp_pos = pos;
+}
 
 /* write some string into specified trace */
 unsigned int trace_write(unsigned int context, char *string, ...)
@@ -217,69 +255,41 @@ unsigned int trace_write(unsigned int context, char *string, ...)
     }
     
     /* build timestamp string */
-    timestamp[0] = 0;
+    timestamp_pos = 0;
+    timestamp[timestamp_pos] = 0;
+    
     if(ctx->format & TRACE_FMT_TIME_CTR)
     {
-        /* write raw timestamp counter "000015255" */
-        char tmp[32];
-
-        snprintf(tmp, sizeof(tmp), "%08X%08X", (unsigned int)(tsc >> 32), (unsigned int)tsc);
-        memcpy(&timestamp[timestamp_pos], tmp, 17);
-        timestamp_pos += 16;
-
-        /* add separator */
-        timestamp[timestamp_pos] = ctx->separator;
-        timestamp_pos++;
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_CTR, tsc, timestamp, &timestamp_pos);
     }
     if(ctx->format & TRACE_FMT_TIME_CTR_REL)
     {
-        /* write raw timestamp counter delta to starting time "000015255" */
-        char tmp[32];
-
         tsc_t delta = tsc - ctx->start_tsc;
-        snprintf(tmp, sizeof(tmp), "%08X%08X", (unsigned int)(delta >> 32), (unsigned int)delta);
-        memcpy(&timestamp[timestamp_pos], tmp, 17);
-        timestamp_pos += 16;
-
-        /* add separator */
-        timestamp[timestamp_pos] = ctx->separator;
-        timestamp_pos++;
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_CTR, delta, timestamp, &timestamp_pos);
     }
     if(ctx->format & TRACE_FMT_TIME_CTR_DELTA)
     {
-        /* write raw timestamp counter delta to starting time "000015255" */
-        char tmp[32];
-
         tsc_t delta = tsc - ctx->last_tsc;
-        snprintf(tmp, sizeof(tmp), "+%08X%08X", (unsigned int)(delta >> 32), (unsigned int)delta);
-        memcpy(&timestamp[timestamp_pos], tmp, 18);
-        timestamp_pos += 17;
-
-        /* add separator */
-        timestamp[timestamp_pos] = ctx->separator;
-        timestamp_pos++;
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_CTR, delta, timestamp, &timestamp_pos);
+    }
+    if(ctx->format & TRACE_FMT_TIME_ABS)
+    {
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_ABS, tsc, timestamp, &timestamp_pos);
     }
     if(ctx->format & TRACE_FMT_TIME_REL)
     {
-        /* write time since measurement start "0:0:36.309" */
-        char tmp[32];
-        
         tsc_t delta = tsc - ctx->start_tsc;
-        unsigned int usec = delta % 1000000ULL;
-        unsigned int sec_total = delta / 1000000ULL;
-        unsigned int sec = sec_total % 60;
-        unsigned int min = (sec_total / 60) % 60;
-        unsigned int hrs = (sec_total / 3600) % 60;
-
-        snprintf(tmp, sizeof(tmp), "%02d:%02d:%02d.%06d", hrs, min, sec, usec);
-        strncpy(&timestamp[timestamp_pos], tmp, sizeof(timestamp) - timestamp_pos);
-        timestamp_pos += strlen(tmp);
-
-        /* add separator */
-        timestamp[timestamp_pos] = ctx->separator;
-        timestamp_pos++;
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_ABS, delta, timestamp, &timestamp_pos);
     }
-    timestamp[timestamp_pos] = 0;
+    if(ctx->format & TRACE_FMT_TIME_DELTA)
+    {
+        tsc_t delta = tsc - ctx->last_tsc;
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_ABS, delta, timestamp, &timestamp_pos);
+    }
+    if(ctx->format & TRACE_FMT_TIME_DATE)
+    {
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_DATE, tsc, timestamp, &timestamp_pos);
+    }
 
     /* update last tsc */
     ctx->last_tsc = tsc;
@@ -400,6 +410,30 @@ static unsigned int trace_write_varlength(unsigned int context, unsigned int len
 static unsigned int trace_init()
 {
     /* don't initialize anything as other modules may use this module during their init, these could be ran before ours */
+    
+    int ctx = trace_start("trace", "trace.tst");
+    int old_stat = cli();
+    trace_write(ctx, "Tick");
+    trace_write(ctx, "Tick");
+    trace_write(ctx, "Tick");
+    trace_write(ctx, "Tick");
+    trace_write(ctx, "%d", old_stat);
+    trace_write(ctx, "%d", old_stat);
+    trace_write(ctx, "%d", old_stat);
+    trace_write(ctx, "%d%d", old_stat, old_stat);
+    trace_write(ctx, "%d%d", old_stat, old_stat);
+    trace_write(ctx, "%d%d", old_stat, old_stat);
+    tsc_t tsc1 = get_us_clock_value();
+    tsc_t tsc2 = get_us_clock_value();
+    tsc_t tsc3 = get_us_clock_value();
+    tsc_t tsc4 = get_us_clock_value();
+    int delta1 = (tsc2-tsc1) & 0xFFFFFFFF;
+    int delta2 = (tsc3-tsc2) & 0xFFFFFFFF;
+    int delta3 = (tsc4-tsc3) & 0xFFFFFFFF;
+    trace_write(ctx, "%d %d %d", (unsigned int)(delta1), (unsigned int)(delta2), (unsigned int)(delta3));
+    sei(old_stat);
+    trace_stop(ctx, 1);
+    beep();
     return 0;
 }
 
