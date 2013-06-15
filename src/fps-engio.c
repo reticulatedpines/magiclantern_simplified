@@ -145,6 +145,7 @@ static CONFIG_INT("fps.preset", fps_criteria, 0);
 static CONFIG_INT("fps.wav.record", fps_wav_record, 0);
 
 static CONFIG_INT("fps.const.expo", fps_const_expo, 0);
+static CONFIG_INT("fps.sync.shutter", fps_sync_shutter, 0);
 
 #ifdef FEATURE_FPS_RAMPING
 static CONFIG_INT("fps.ramp", fps_ramp, 0);
@@ -678,6 +679,9 @@ static MENU_UPDATE_FUNC(fps_print)
         /* if it can't be disabled automatically (timeout 1 second), show a warning so the user can disable it himself */
         if (SOUND_RECORDING_ENABLED && is_movie_mode() && t > last_inactive + 1000)
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Sound recording must be disabled from Canon menu.");
+
+        if (fps_sync_shutter && !is_movie_mode() && !CONTROL_BV)
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "Enable exposure override to get proper exposure simulation.");
     }
     else
     {
@@ -710,6 +714,9 @@ static MENU_UPDATE_FUNC(desired_fps_print)
             "%d (from %d)",
             desired_fps/1000, (default_fps+500)/1000
         );
+    
+    if (fps_sync_shutter && !is_movie_mode())
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "FPS value is computed from photo shutter speed.");
 }
 
 #if defined(NEW_FPS_METHOD)
@@ -1240,6 +1247,14 @@ static struct menu_entry fps_menu[] = {
             },
             #endif
 
+            {
+                .name = "Sync w. Shutter",
+                .priv = &fps_sync_shutter,
+                .max = 1,
+                .help  = "Sync FPS with shutter speed, for long exposures in LiveView.",
+                .depends_on = DEP_PHOTO_MODE,
+            },
+
             #ifdef FEATURE_FPS_WAV_RECORD
             {
                 .name = "Sound Record",
@@ -1466,6 +1481,12 @@ static void fps_task()
         }
 
         int f = fps_values_x1000[fps_override_index];
+        
+        if (fps_sync_shutter && !is_movie_mode())
+        {
+            int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
+            f = MIN(1000000 / raw2shutter_ms(lens_info.raw_shutter), default_fps);
+        }
         
         #ifdef FEATURE_FPS_RAMPING
         if (FPS_RAMP) // artistic effect - http://www.magiclantern.fm/forum/index.php?topic=2963.0
