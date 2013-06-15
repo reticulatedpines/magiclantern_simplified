@@ -475,7 +475,7 @@ static void auto_ettr_on_request_task_fast()
     NotifyBox(100000, "Auto ETTR...");
     raw_lv_request();
     
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 5; i++)
     {
         if (fps_get_shutter_speed_shift(160) == 0)
         {
@@ -512,14 +512,14 @@ static void auto_ettr_on_request_task_fast()
             int corr = auto_ettr_vsync_delta * 100 / 8;
             auto_ettr_work(corr);
         
-            if (ABS(corr) <= 200)
+            if (corr >= -20 && corr <= 200)
             {
                 /* looks like it settled */
                 break;
             }
             else
             {
-                if (i < 3)
+                if (i < 4)
                 {
                     /* here we go again... */
                     auto_ettr_wait_lv_frames(15);
