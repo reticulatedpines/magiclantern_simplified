@@ -683,8 +683,10 @@ static MENU_UPDATE_FUNC(fps_print)
         if (SOUND_RECORDING_ENABLED && is_movie_mode() && t > last_inactive + 1000)
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Sound recording must be disabled from Canon menu.");
 
+#ifndef CONFIG_FRAME_ISO_OVERRIDE
         if (fps_sync_shutter && !is_movie_mode() && !CONTROL_BV)
             MENU_SET_WARNING(MENU_WARN_ADVICE, "Enable exposure override to get proper exposure simulation.");
+#endif
     }
     else
     {
@@ -1666,17 +1668,33 @@ void fps_expo_iso_step()
 #ifdef CONFIG_FRAME_ISO_OVERRIDE
     
     if (!lv) return;
-    if (!is_movie_mode()) return;
     if (!lens_info.raw_iso) return; // no auto iso
     
+    int mv = is_movie_mode();
+    
     static int dirty = 0;
-    if (!(fps_const_expo && fps_override))
+    if (mv) /* movie mode: only enable when it's selected from menu */
     {
-        if (dirty) set_movie_digital_iso_gain_for_gradual_expo(1024);
-        return;
+        if (!(fps_const_expo && fps_override))
+        {
+            if (dirty) set_movie_digital_iso_gain_for_gradual_expo(1024);
+            return;
+        }
+    }
+    else /* photo mode: always on if FPS is enabled and expo override is disabled */
+    {
+        if (!fps_override)
+            return;
+        
+        if (CONTROL_BV) /* expo override will take care of it */
+            return;
     }
 
-    int unaltered = (int)roundf(1000/raw2shutterf(MAX(lens_info.raw_shutter, 96)));
+    int tv = MAX(lens_info.raw_shutter, 96);
+    #ifdef FRAME_SHUTTER
+    tv = FRAME_SHUTTER & 0xFF;
+    #endif
+    int unaltered = (int)roundf(1000/raw2shutterf(tv));
     int altered_by_fps = get_shutter_reciprocal_x1000(unaltered, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
 
     float gf = 1024.0f * altered_by_fps / unaltered;
@@ -1706,7 +1724,7 @@ void fps_expo_iso_step()
     int g = (int)roundf(COERCE(gf, 1, 1<<20));
     if (g == 1024) g = 1025; // force override 
 
-    set_movie_digital_iso_gain_for_gradual_expo(g);
+    if (mv) set_movie_digital_iso_gain_for_gradual_expo(g);
     dirty = 1;
 #endif
 }
