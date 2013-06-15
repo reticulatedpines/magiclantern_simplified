@@ -674,15 +674,18 @@ void bv_enable()
 
     if (auto_movie) // auto movie mode
     {
-        CONTROL_BV_TV = bv_tv;
-        CONTROL_BV_AV = bv_av;
-        CONTROL_BV_ISO = bv_iso;
+        bv_apply_tv(bv_tv);
+        bv_apply_av(bv_av);
+        bv_apply_iso(bv_iso);
     }
     else // manual movie mode or photo mode, try to sync with Canon values
     {
-        bv_tv = CONTROL_BV_TV = lens_info.raw_shutter && ABS(lens_info.raw_shutter - bv_tv) > 4 ? lens_info.raw_shutter : bv_tv;
-        bv_av = CONTROL_BV_AV = lens_info.raw_aperture ? lens_info.raw_aperture : bv_av;
-        bv_iso = CONTROL_BV_ISO = lens_info.raw_iso ? lens_info.raw_iso - (get_htp() ? 8 : 0) : bv_iso;
+        bv_tv = lens_info.raw_shutter && ABS(lens_info.raw_shutter - bv_tv) > 4 ? lens_info.raw_shutter : bv_tv;
+        bv_av = lens_info.raw_aperture ? lens_info.raw_aperture : bv_av;
+        bv_iso = lens_info.raw_iso ? lens_info.raw_iso - (get_htp() ? 8 : 0) : bv_iso;
+        bv_apply_tv(bv_tv);
+        bv_apply_av(bv_av);
+        bv_apply_iso(bv_iso);
     }
     
     CONTROL_BV_ZERO = 0;
