@@ -150,36 +150,55 @@
 
 #define AE_VALUE 0 // 404
 
+// position for ML ISO disp outside LV
+#define MENU_DISP_ISO_POS_X 527
+#define MENU_DISP_ISO_POS_Y 45
+
+//position for ML MAX ISO
+#define MAX_ISO_POS_X 590
+#define MAX_ISO_POS_Y 28
+
+// for ML hdr display
+#define HDR_STATUS_POS_X 562
+#define HDR_STATUS_POS_Y 100
+
+//for HTP mode on display
+#define HTP_STATUS_POS_X 500
+#define HTP_STATUS_POS_Y 233
+
+//for Mirror Lock Up enabled on display
+#define MLU_STATUS_POS_X 316
+#define MLU_STATUS_POS_Y 310
+
+#define WBS_GM_POS_X 365
+#define WBS_GM_POS_Y 230
+
+#define WBS_POS_X 365
+#define WBS_POS_Y 260
+
+// Audio remote shot position info photo mode
+#define AUDIO_REM_SHOT_POS_X 200
+#define AUDIO_REM_SHOT_POS_Y 386
+
 // position for displaying clock outside LV
-#define DISPLAY_CLOCK_POS_X 400
+#define DISPLAY_CLOCK_POS_X 440
 #define DISPLAY_CLOCK_POS_Y 410
 
-#define MENU_DISP_ISO_POS_X 560
-#define MENU_DISP_ISO_POS_Y 27
+// position for displaying K icon in photo info display
+#define WB_K_ICON_POS_X 192
+#define WB_K_ICON_POS_Y 226
 
-// for HDR status
-#define HDR_STATUS_POS_X 40
-#define HDR_STATUS_POS_Y 458
+// position for displaying K values in photo info display
+#define WB_KELVIN_POS_X 192
+#define WB_KELVIN_POS_Y 260
 
-// for displaying battery
-#define DISPLAY_BATTERY_POS_X 198
-#define DISPLAY_BATTERY_POS_Y 410
-
-// for the yellow ISO range [a-b]
-#define ISO_RANGE_POS_X 568
-#define ISO_RANGE_POS_Y 100
-
-// for kelvin WB
-#define WB_KELVIN_POS_X 195
-#define WB_KELVIN_POS_Y 273
-
-// white balance shift values M2B1 in yellow
-#define WBS_POS_X 363
-#define WBS_POS_Y 230
+// position for displaying card size remain outside LV
+#define DISPLAY_GB_POS_X 305
+#define DISPLAY_GB_POS_Y 410
 
 // for displaying TRAP FOCUS msg outside LV
-#define DISPLAY_TRAP_FOCUS_POS_X 35
-#define DISPLAY_TRAP_FOCUS_POS_Y 358
+#define DISPLAY_TRAP_FOCUS_POS_X 65
+#define DISPLAY_TRAP_FOCUS_POS_Y 360
 #define DISPLAY_TRAP_FOCUS_MSG       "TRAP FOCUS"
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
