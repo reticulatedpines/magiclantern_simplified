@@ -330,7 +330,6 @@ static void do_this_every_second() // called every second
 }
 
 #define TIMER_MAX 1048576
-static struct semaphore * seconds_clock_sem;
 // called every 200ms or on request
 static void
 seconds_clock_update()
@@ -7094,7 +7093,6 @@ TASK_CREATE( "shoot_task", shoot_task, 0, 0x1a, 0x2000 );
 static void shoot_init()
 {
     set_maindial_sem = create_named_semaphore("set_maindial_sem", 1);
-    seconds_clock_sem = create_named_semaphore("seconds_clock_sem", 1);
 
     menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
     menu_add( "Expo", expo_menus, COUNT(expo_menus) );
