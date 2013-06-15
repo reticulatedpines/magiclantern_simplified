@@ -12,12 +12,9 @@
    actually only developer build ML from source, so keep it enabled until its in a more mature state and the next release is coming.
 */
 
+#ifdef FEATURE_FLEXINFO_FULL
 #define FLEXINFO_DEVELOPER_MENU
 #define FLEXINFO_XML_CONFIG
-
-#if defined(CONFIG_60D) || defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D)
-#undef FLEXINFO_DEVELOPER_MENU // squeeze a few K of RAM
-#undef FLEXINFO_XML_CONFIG
 #endif
 
 #define BUF_SIZE 128
