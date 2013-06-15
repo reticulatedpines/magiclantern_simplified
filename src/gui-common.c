@@ -266,18 +266,17 @@ int update_bgmt_av_status(struct event * event) {
     return -1; //Annoying compiler :)
 }
 
+/** AV long/short press management code. **/
 int handle_av_short_for_menu(struct event* event) {
     static int t_press   = 0;
     static int t_unpress = 0;
     unsigned int dt = 0;
-    unsigned int is_idle = (gui_state == GUISTATE_IDLE);
+    unsigned int is_idle = (gui_menu_shown() || gui_state == GUISTATE_IDLE);
     bgmt_av_status = update_bgmt_av_status(event);
-    // We can't detect MLEV_AV_SHOT while in ML menu
-    if(gui_menu_shown()) {
-        t_unpress = 0;
-        t_press = 0;
-    }
-    /** AV long/short press management code. Assumes that the press event is fired only once even if the button is held **/
+
+    /* Assumes that the press event is fired only once 
+     * even if the button is held
+     */
     if(bgmt_av_status == 1) { // AV PRESSED
         t_press = get_ms_clock_value();
         dt = t_press - t_unpress; // Time elapsed since the button was unpressed
@@ -399,7 +398,8 @@ int handle_common_events_by_feature(struct event * event)
     }
 #endif
 
-    idle_wakeup_reset_counters(event->param);
+    if (event->param != GMT_OLC_INFO_CHANGED)
+        idle_wakeup_reset_counters(event->param);
     
     // If we're here, we're dealing with a button press.  Record the timestamp
     // as a record of when the user was last actively pushing buttons.

@@ -1,0 +1,329 @@
+#
+# Magic Lantern Core source files and rules
+#
+
+all:: autoexec.bin
+
+clean::
+	$(call rm_files, *.o *.d autoexec autoexec.bin magiclantern magiclantern.bin)
+
+CFLAGS += \
+	-DCONFIG_MAGICLANTERN=1 \
+	-DCONFIG_$(subst .,_,$(MODEL))=1 \
+	-DRESTARTSTART=$(RESTARTSTART) \
+	-DROMBASEADDR=$(ROMBASEADDR) \
+	-DVERSION=\"$(VERSION)\" \
+	-DCAMERA_MODEL=\"$(MODEL)\" \
+	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG)
+
+ifeq ($(ML_PICSTYLE_AUTO), n)
+ML_PICSTYLE_OBJ = picstyle-noauto.o
+else
+ML_PICSTYLE_OBJ = picstyle.o
+endif
+
+ifeq ($(ML_BITRATE_OBJ), n)
+ML_BITRATE_OBJ =
+else ifndef ML_BITRATE_OBJ
+ML_BITRATE_OBJ = bitrate.o
+endif
+
+ifeq ($(ML_AUDIO_OBJ), n)
+ML_AUDIO_OBJ =
+else ifndef ML_AUDIO_OBJ
+ML_AUDIO_OBJ = audio-ak.o
+endif
+
+ifeq ($(ML_ZEBRA_OBJ), n)
+ML_ZEBRA_OBJ =
+else ifndef ML_ZEBRA_OBJ
+ML_ZEBRA_OBJ = zebra.o
+endif
+
+ifeq ($(ML_BOOTFLAGS_OBJ), n)
+ML_BOOTFLAGS_OBJ =
+else ifndef ML_BOOTFLAGS_OBJ
+ML_BOOTFLAGS_OBJ = bootflags.o
+endif
+
+ifeq ($(ML_AF_PATTERNS_OBJ), n)
+ML_AF_PATTERNS_OBJ = 
+else ifndef ML_AF_PATTERNS_OBJ
+ML_AF_PATTERNS_OBJ = af_patterns.o
+endif
+
+ifeq ($(ML_ENTRY_OBJ), n)
+ML_ENTRY_OBJ =
+else ifndef ML_ENTRY_OBJ
+ML_ENTRY_OBJ = $(SRC_DIR)/entry.o
+endif
+
+ML_SMALL_FONT_OBJS = \
+    font-small2.o \
+    font-med2.o \
+    font-large.o \
+
+ML_STATIC_FONT_OBJS = \
+	font-small.o \
+	font-med.o \
+	font-large.o
+
+ML_DYNAMIC_FONT_OBJS = \
+	font-dyn.o
+
+ifeq ($(ML_SRC_SMALL_FONTS), y)
+ML_STATIC_FONT_OBJS = $(ML_SMALL_FONT_OBJS)
+endif
+
+ML_FONT_OBJS = $(ML_DYNAMIC_FONT_OBJS)
+
+ifeq ($(ML_SRC_STATIC_FONTS), y)
+ML_FONT_OBJS += $(ML_STATIC_FONT_OBJS)
+CFLAGS += -DCONFIG_STATIC_FONTS=1
+endif
+
+ifeq ($(ML_SRC_PROFILE),minimal)
+ML_OBJS-y = \
+	magiclantern.lds \
+	$(ML_ENTRY_OBJ) \
+	minimal.o \
+	$(PLATFORM_DIR)/stubs.o
+
+else ifeq ($(ML_SRC_PROFILE),installer)
+ML_INSTALLER_OBJS = \
+	magiclantern.lds \
+	$(ML_ENTRY_OBJ) \
+	$(PLATFORM_DIR)/stubs.o \
+	version.o \
+	installer.o \
+	ico.o \
+	bmp.o \
+	$(ML_FONT_OBJS) \
+	stdio.o \
+	property.o \
+	propvalues.o \
+	dialog_test.o \
+	bootflags.o \
+	vram.o
+
+ML_OBJS-y += $(ML_INSTALLER_OBJS)
+
+else ifeq ($(ML_SRC_PROFILE),generic)
+
+ML_OBJS-y += \
+	magiclantern.lds \
+	$(ML_ENTRY_OBJ) \
+	$(PLATFORM_DIR)/stubs.o \
+	version.o
+
+ML_SRC_OBJS = \
+	boot-hack.o \
+	ico.o \
+	edmac.o \
+	menu.o \
+	debug.o \
+	cfn.o \
+	gui.o \
+	$(ML_PICSTYLE_OBJ) \
+	exmem.o \
+	bmp.o \
+	$(ML_FONT_OBJS) \
+	config.o \
+	stdio.o \
+	$(ML_BITRATE_OBJ) \
+	tweaks.o \
+	lens.o \
+	property.o \
+	propvalues.o \
+	gui-common.o \
+	chdk-gui_draw.o \
+	movtweaks.o \
+	menuhelp.o \
+	menuindex.o \
+	$(ML_AF_PATTERNS_OBJ) \
+	focus.o \
+	notify_box.o \
+	$(ML_BOOTFLAGS_OBJ) \
+	dialog_test.o \
+	vram.o \
+	aj_port.o \
+	fps-engio.o \
+	shoot.o \
+	hdr.o \
+	lv-img-engio.o \
+	state-object.o \
+	tasks.o \
+	vsync-lite.o \
+	tskmon.o \
+	battery.o \
+	imgconv.o \
+	histogram.o \
+	falsecolor.o \
+	$(ML_AUDIO_OBJ) \
+	$(ML_ZEBRA_OBJ) \
+	beep.o \
+
+ML_OBJS-y += $(ML_SRC_OBJS)
+
+else ifndef ML_OBJS-y
+$(error ML_OBJS-y is not defined)
+endif
+
+ML_OBJS-y += $(ML_SRC_EXTRA_OBJS)
+
+ifdef ML_SRC_EXCLUDE_OBJS
+ML_OBJS-y := $(filter-out $(ML_SRC_EXCLUDE_OBJS), $(ML_OBJS-y))
+endif
+
+include $(TOP_DIR)/src/Makefile.src.config
+
+include $(TOP_DIR)/Makefile.filerules
+
+# Magic Lantern rules
+
+magiclantern: $(ML_OBJS-y) dietlibc.a newlib-libc.a
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-N \
+		$(LFLAGS) \
+		-nostdlib \
+		-mthumb-interwork \
+		-march=armv5te \
+		-T \
+		$^ \
+		-lm \
+		-lgcc \
+        -Xlinker -Map=location.map \
+	)
+
+reboot.o: $(SRC_DIR)/reboot.c $(PLATFORM_DIR)/version.bin magiclantern.bin
+
+clean::
+	$(call rm_files, magiclantern.bin autoexec autoexec.map location.map)
+
+autoexec: reboot.o
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-nostdlib \
+		-march=armv5te \
+		-e _start \
+		-Ttext $(AUTOEXEC_BASE) \
+		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
+	); \
+	$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz
+
+autoexec-fir: reboot.o
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-nostdlib \
+		-march=armv5te \
+		-e _start \
+		-Ttext $(FIR_BASE) \
+		$^ -Xlinker --cref -Xlinker -Map=autoexec.map \
+	);
+
+clean::
+	$(call rm_files, autoexec-fir autoexec-fir.bin)
+
+magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
+	$(call build,CPP,$(CPP) $(CFLAGS) $< | $(GREP) -v '^#' > $@)
+
+clean::
+	$(call rm_files, magiclantern.lds)
+
+$(TOP_DIR)/tcc/libtccx.o: FORCE
+	+$(MAKE) -C $(TOP_DIR)/tcc
+
+# Extract the stdio files that we need
+DIET_OBJ = \
+	strrchr.o \
+	strncpy.o \
+	strlen.o \
+	strncmp.o \
+	strcpy.o \
+	strcmp.o \
+	sigjmp.o \
+	sigprocmask.o \
+	rt_sigprocmask.o \
+	unified.o \
+	errno.o \
+	errno_location.o \
+	sscanf.o \
+	vsscanf.o \
+	__v_scanf.o \
+	sprintf.o \
+	vsprintf.o \
+	strtold.o \
+	strtod.o \
+	memmove.o \
+	strtof.o \
+	strtoull.o \
+	strtol.o \
+	strtoul.o \
+	strchr.o \
+	memcmp.o \
+	atoi.o \
+	atol.o \
+	strstr.o \
+	qsort.o \
+	atof.o \
+
+DIETLIBC_A = $(SRC_DIR)/libs/dietlib-0.33-none-eabi-Os/dietlibc.a
+
+$(DIET_OBJ): $(DIETLIBC_A)
+	$(call build,AR,$(AR) x $? $(DIET_OBJ))
+
+dietlibc.a: $(DIET_OBJ)
+	$(call build,AR,$(AR) cr $@ $^)
+
+# use setjmp from newlib because... the one from dietlibc freezes
+# memcpy/memset are also much faster in newlib
+NEWLIB_OBJ = \
+	lib_a-setjmp.o \
+	lib_a-memcpy.o \
+	lib_a-memcpy-stub.o \
+	lib_a-memccpy.o \
+	lib_a-memset.o \
+
+NEWLIB_LIBC_A = $(SRC_DIR)/libs/arm-none-eabi-O3/libc.a
+
+$(NEWLIB_OBJ): $(NEWLIB_LIBC_A)
+	$(call build,AR,$(AR) x $? $(NEWLIB_OBJ))
+
+newlib-libc.a: $(NEWLIB_OBJ)
+	$(call build,AR,$(AR) cr $@ $^)
+
+clean::
+	$(call rm_files, newlib-libc.a $(NEWLIB_OBJ) dietlibc.a)
+
+$(PLATFORM_DIR)/version.c: FORCE
+	$(call build,"VERSION",echo 'const char build_version[] = "$(VERSION)";') > $@
+	@echo 'const char build_id[] = "'`hg id`'";' >> $@
+	@echo 'const char build_date[] ="'`date -u "+%Y-%m-%d %H:%M:%S"`'";' >> $@
+	@echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
+
+# this must have exactly 0x11C (284) bytes, see reboot.c
+$(PLATFORM_DIR)/version.bin: FORCE
+	$(call build,"VERSION",echo -e '\b\b\b\bMagic Lantern $(VERSION)') > $@
+	@echo 'Mercurial changeset: '`hg id` >> $@
+	@echo 'Built on '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
+	@echo '' >> $@
+	@echo 'Camera  : $(MODEL)' >> $@
+	@echo 'Firmware: $(FW_VERSION)' >> $@
+	@echo -e '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' >> $@
+	@echo -e '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' >> $@
+	@truncate -s 284 $@
+
+$(SRC_DIR)/menuindexentries.h:
+	$(call build,"MENU IDX", if [ -f $(DOC_DIR)/menuindex.txt ]; then \
+		cd $(DOC_DIR); $(PYTHON) menuindex.py; \
+	else \
+		echo "No menuindex.txt not running \"$(PYTHON) menuindex.py\""; \
+	fi)
+
+menuindex.o: $(SRC_DIR)/menuindexentries.h
+
+clean::
+	$(call rm_files, version.c version.bin)
+
+FORCE:

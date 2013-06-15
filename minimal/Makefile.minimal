@@ -1,0 +1,9 @@
+
+TOP_DIR?=../..
+ML_SETUP_EXTENSION=minimal
+ML_SETUP_DISABLE_USER_CONFIGS = y
+ML_SRC_PROFILE=minimal
+
+include $(TOP_DIR)/platform/Makefile.platform.base
+
+include $(TOP_DIR)/Makefile.inc

@@ -108,10 +108,6 @@ static void joypress_task()
 TASK_CREATE( "joypress_task", joypress_task, 0, 0x1a, 0x1000 );
 #endif // FEATURE_JOY_CENTER_ACTIONS
 
-#ifdef CONFIG_GUI_DEBUG
-int event_ctr = 0;
-#endif
-
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
@@ -166,21 +162,6 @@ struct gui_main_struct {
 };
 
 extern struct gui_main_struct gui_main_struct;
-
-#ifdef CONFIG_GUI_DEBUG
-void show_event_codes(struct event * event)
-{
-    if ( event-> type == 0
-            && event->param != 0x69
-            && event->param != 0x11
-            && event->param != 0xf
-            && event->param != 0x54
-       )   //~ block some common events
-    {
-        console_printf("[%d] event->param: 0x%x\n", event_ctr++, event->param);
-    }
-}
-#endif
 
 void ml_gui_main_task()
 {

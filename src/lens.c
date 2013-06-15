@@ -2274,10 +2274,26 @@ void bv_update_lensinfo()
     }
 }
 
+void bv_apply_tv(int tv)
+{
+    CONTROL_BV_TV = COERCE(tv, 0x60, 0x98); // 600D: [LV] ERROR >> Tv:0x10, TvMax:0x98, TvMin:0x60
+}
+
+void bv_apply_av(int av)
+{
+    CONTROL_BV_AV = COERCE(av, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+}
+
+void bv_apply_iso(int iso)
+{
+    CONTROL_BV_ISO = COERCE(iso, 72, MAX_ISO_BV);
+}
+
 int bv_set_rawshutter(unsigned shutter)
 {
     //~ bmp_printf(FONT_MED, 600, 300, "bvsr %d ", shutter);
-    CONTROL_BV_TV = bv_tv = shutter;
+    bv_tv = shutter;
+    bv_apply_tv(bv_tv);
     bv_update_lensinfo();
     bv_expsim_shift();
     //~ NotifyBox(2000, "%d > %d?", raw2shutter_ms(shutter), 1000/video_mode_fps); msleep(400);
@@ -2291,7 +2307,8 @@ int bv_set_rawiso(unsigned iso)
     if (iso >= MIN_ISO && iso <= MAX_ISO_BV)
     {
         if (get_htp()) iso -= 8; // quirk: with exposure override and HTP, image is brighter by 1 stop than with Canon settings
-        CONTROL_BV_ISO = bv_iso = iso; 
+        bv_iso = iso;
+        bv_apply_iso(iso);
         bv_update_lensinfo();
         bv_expsim_shift();
         return 1;
@@ -2305,7 +2322,8 @@ int bv_set_rawaperture(unsigned aperture)
 { 
     if (aperture >= lens_info.raw_aperture_min && aperture <= lens_info.raw_aperture_max) 
     { 
-        CONTROL_BV_AV = bv_av = aperture; 
+        bv_av = aperture; 
+        bv_apply_av(bv_av);
         bv_update_lensinfo();
         bv_expsim_shift();
         return 1; 
@@ -2333,8 +2351,13 @@ static void bv_expsim_shift_try_iso(int newiso)
     static int prev_e = 0;
     if (e != prev_e)
     {
-        if (ABS(e) > 2) NotifyBox(2000, "Preview %sexposed by %d.%d EV", e > 0 ? "over" : "under", ABS(e)/10, ABS(e)%10);
+        /*
+        if (ABS(e) > 2)
+        {
+            NotifyBox(2000, "Preview %sexposed by %d.%d EV", e > 0 ? "over" : "under", ABS(e)/10, ABS(e)%10);
+        }
         else NotifyBoxHide();
+        */
     }
     prev_e = e;
 
@@ -2345,7 +2368,7 @@ static void bv_expsim_shift_try_iso(int newiso)
         newiso -= 8;
     }
 
-    CONTROL_BV_ISO = COERCE(newiso, 72, MAX_ISO_BV);
+    bv_apply_iso(newiso);
     set_photo_digital_iso_gain_for_bv(g);
 }
 static void bv_expsim_shift()
@@ -2365,25 +2388,25 @@ static void bv_expsim_shift()
             if (tv < 96)
             {
                 int delta = 96 - tv;
-                CONTROL_BV_TV = 96;
+                bv_apply_tv(96);
                 bv_expsim_shift_try_iso(bv_iso + delta);
                 return;
             }
             else
             {
-                CONTROL_BV_TV = tv;
-                CONTROL_BV_ISO = bv_iso;
+                bv_apply_tv(tv);
+                bv_apply_iso(bv_iso);
                 return;
             }
         }
         else
         {
-            CONTROL_BV_TV = bv_tv;
+            bv_apply_tv(bv_tv);
 
             if (bv_tv < 96) // shutter speeds slower than 1/31 -> can't be obtained, raise ISO or open up aperture instead
             {
                 int delta = 96 - bv_tv - tv_fps_shift;
-                CONTROL_BV_TV = 96;
+                bv_apply_tv(96);
                 bv_expsim_shift_try_iso(bv_iso + delta);
                 return;
             }
@@ -2394,9 +2417,9 @@ static void bv_expsim_shift()
             }
         }
         // no shifting, make sure we use unaltered values
-        CONTROL_BV_TV = bv_tv;
-        CONTROL_BV_AV = bv_av;
-        CONTROL_BV_ISO = bv_iso;
+        bv_apply_tv(bv_tv);
+        bv_apply_av(bv_av);
+        bv_apply_iso(bv_iso);
     }
     
     return;
@@ -2414,44 +2437,7 @@ static int bv_auto_should_enable()
     if (LVAE_DISP_GAIN) // compatibility problem, disable it
         return 0;
 
-    if (bv_auto == 2) // only enabled when needed
-    {
-        // cameras without manual exposure control
-        #if defined(CONFIG_50D)
-        if (is_movie_mode() && shooting_mode == SHOOTMODE_M) return 1;
-        else return 0;
-        #endif
-        #if defined(CONFIG_500D) || defined(CONFIG_1100D)
-        if (is_movie_mode()) return 1;
-        else return 0;
-        #endif
-
-        // extra ISO values in movie mode
-        if (is_movie_mode() && lens_info.raw_iso==0) 
-            return 0;
-        
-        if (is_movie_mode() && (bv_auto_needed_by_iso || bv_auto_needed_by_shutter || bv_auto_needed_by_aperture)) 
-            return 1;
-        
-        // temporarily cancel it in photo mode
-        //~ if (!is_movie_mode() && get_halfshutter_pressed())
-            //~ return 0;
-        
-        // underexposure bug with manual lenses in M mode
-        #if defined(CONFIG_60D) || defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
-        if (shooting_mode == SHOOTMODE_M && 
-            !is_movie_mode() &&
-            !lens_info.name[0] && 
-            lens_info.raw_iso != 0
-        )
-            return 1;
-        #endif
-        
-        // exposure simulation in Bulb mode
-        if (is_bulb_mode() && get_expsim())
-            return 1;
-    }
-    else if (bv_auto == 1) // always enable (except for situations where it's known to cause problems)
+    if (bv_auto == 1) // always enable (except for situations where it's known to cause problems)
     {
         return 1; // tricky situations were handled before these if's
     }

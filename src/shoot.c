@@ -425,7 +425,7 @@ static MENU_UPDATE_FUNC(timelapse_calc_display)
 
 static MENU_UPDATE_FUNC(interval_timer_display)
 {
-    unsigned int d = timer_values[CURRENT_VALUE];
+    int d = timer_values[CURRENT_VALUE];
     if (!d)
     {
         MENU_SET_NAME("Take pics...");
@@ -487,7 +487,7 @@ static MENU_UPDATE_FUNC(intervalometer_display)
     int p = CURRENT_VALUE;
     if (p)
     {
-        unsigned int d = timer_values[interval_timer_index];
+        int d = timer_values[interval_timer_index];
         MENU_SET_VALUE("ON, %s%s",
             format_time_hours_minutes_seconds(d),
             BULB_EXPOSURE_CONTROL_ACTIVE ? ", BRamp" : ""
@@ -496,7 +496,9 @@ static MENU_UPDATE_FUNC(intervalometer_display)
         if (auto_power_off_time && auto_power_off_time <= d)
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
         
+        #ifdef CONFIG_MODULES
         module_exec(NULL, "auto_ettr_intervalometer_warning", 2, entry, info);
+        #endif
     }
     else
     {
@@ -1533,6 +1535,45 @@ void ensure_movie_mode()
 #endif
 }
 
+#ifdef FEATURE_SILENT_PIC
+
+static void post_deflicker_save_sidecar_file(int type, char* photo_filename, float ev);
+
+static void silent_pic_save_dng(char* filename, void* buffer)
+{
+    bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
+
+    #ifdef FEATURE_POST_DEFLICKER
+    /* this must be computed before saving, because save_dng will scramble the bytes */
+    float correction = 0;
+    if (post_deflicker)
+    {
+        int raw = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN);
+        float ev = raw_to_ev(raw);
+        correction = post_deflicker_target_level - ev;
+
+        int corr_x100 = (int)roundf(correction * 100);
+        bmp_printf(FONT_MED, 0, 80,
+            "Post exposure: %s%d.%02d EV\n",
+            FMT_FIXEDPOINT2S(corr_x100)
+        );
+    }
+    #endif
+
+    if (buffer)
+        raw_info.buffer = buffer;
+
+    save_dng(filename);
+    
+    #ifdef FEATURE_POST_DEFLICKER
+    if (post_deflicker)
+    {
+        post_deflicker_save_sidecar_file(post_deflicker_sidecar_type, filename, correction);
+    }
+    #endif
+}
+#endif
+
 #ifdef FEATURE_SILENT_PIC_RAW
 
 static void
@@ -1552,7 +1593,7 @@ silent_pic_take_raw(int interactive)
     /* save it to card */
     char* fn = silent_pic_get_name();
     bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
-    save_dng(fn);
+    silent_pic_save_dng(fn, 0);
     redraw();
 }
 
@@ -1972,7 +2013,7 @@ silent_pic_take_raw(int interactive)
 
             raw_info.buffer = sp_frames[i % sp_buffer_count];
             raw_preview_fast();
-            save_dng(fn);
+            silent_pic_save_dng(fn, 0);
             
             if ((HALFSHUTTER_PRESSED || !LV_PAUSED) && i > i0)
             {
@@ -1999,10 +2040,11 @@ silent_pic_take_raw(int interactive)
     }
     else
     {
+        if (intervalometer_running)
+            idle_force_powersave_now();
+        
         char* fn = silent_pic_get_name();
-        bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
-        raw_info.buffer = sp_frames[0];
-        save_dng(fn);
+        silent_pic_save_dng(fn, sp_frames[0]);
         redraw();
     }
     
@@ -3646,11 +3688,31 @@ static char* ufraw_template =
 "<OutputType>4</OutputType>\n"
 "</UFRaw>\n";
 
-static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, float ev)
+static void post_deflicker_save_sidecar_file(int type, char* photo_filename, float ev)
 {
-    char fn[100];
-    snprintf(fn, sizeof(fn), "%s/%s%04d.%s", get_dcim_dir(), file_prefix, file_number, type ? "UFR" : "XMP");
-    FILE* f = FIO_CreateFileEx(fn);
+    /* find and strip extension */
+    char* ext = photo_filename + strlen(photo_filename) - 1;
+    while (ext > photo_filename && *ext != '/' && *ext != '.') ext--;
+    if (*ext != '.') return;
+    *ext = 0;
+    
+    /* find and strip base filename (e.g. IMG_1234) */
+    char* p = ext;
+    while (p > photo_filename && *p != '/') p--;
+    if (*p != '/') return;
+    *p = 0;
+    
+    /* path components */
+    char* dir = photo_filename; /* A:/DCIM/100CANON */
+    char* basename = p+1;       /* IMG_1234 */
+    char* extension = ext+1;    /* CR2 */
+    
+    //~ NotifyBox(2000, "'%s'\n'%s'\n'%s'", dir, basename, extension);
+    
+    char sidecar[100];
+    snprintf(sidecar, sizeof(sidecar), "%s/%s.%s", dir, basename, type ? "UFR" : "XMP");
+
+    FILE* f = FIO_CreateFileEx(sidecar);
     if (f == INVALID_PTR) return;
     if (type == 0)
     {
@@ -3664,13 +3726,21 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, 
     {
         char raw[100];
         char jpg[100];
-        snprintf(raw, sizeof(raw), "%s%04d.CR2", file_prefix, file_number);
-        snprintf(jpg, sizeof(jpg), "%s%04d.JPG", file_prefix, file_number);
+        snprintf(raw, sizeof(raw), "%s.%s", basename, extension);
+        snprintf(jpg, sizeof(jpg), "%s.JPG", basename);
         ev = COERCE(ev, -6, 6);
         int evi = ev * 100000;
         my_fprintf(f, ufraw_template, raw, jpg, FMT_FIXEDPOINT5(evi));
     }
     FIO_CloseFile(f);
+}
+
+static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, float ev)
+{
+    char fn[100];
+    snprintf(fn, sizeof(fn), "%s/%s%04d.CR2", get_dcim_dir(), file_prefix, file_number);
+
+    post_deflicker_save_sidecar_file(type, fn, ev);
 }
 
 static int deflicker_last_correction_x100 = 0;
@@ -3708,17 +3778,20 @@ void post_deflicker_show_info()
 
 static MENU_UPDATE_FUNC(post_deflicker_update)
 {
-    if (!can_use_raw_overlays_photo())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
+    if (!silent_pic_enabled)
+    {
+        if (!can_use_raw_overlays_photo())
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
 
-    if (HDR_ENABLED)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
+        if (HDR_ENABLED)
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
 
-    if (image_review_time == 0)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable image review from Canon menu.");
-    
-    if (is_continuous_drive())
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
+        if (image_review_time == 0)
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable image review from Canon menu.");
+        
+        if (is_continuous_drive())
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
+    }
 
     if (post_deflicker)
     {
@@ -6850,8 +6923,8 @@ shoot_task( void* unused )
                 
                 static char msg[60];
                 snprintf(msg, sizeof(msg),
-                                " Intervalometer:%s   \n"
-                                " Pictures taken:%4d ", 
+                                " Intervalometer: %s  \n"
+                                " Pictures taken: %d  ", 
                                 format_time_hours_minutes_seconds(SECONDS_REMAINING),
                                 intervalometer_pictures_taken);
                 if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after); }
@@ -6863,17 +6936,6 @@ shoot_task( void* unused )
 
                 if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after))
                     intervalometer_stop();
-
-                //~ if (bulb_ramping_enabled)
-                //~ {
-                    //~ bramp_temporary_exposure_compensation_update();
-                //~ }
-
-                //~ if (!images_compared && SECONDS_ELAPSED >= 2 && SECONDS_REMAINING >= 2 && image_review_time - SECONDS_ELAPSED >= 1 && bramp_init_done)
-                //~ {
-                    //~ playback_compare_images(0);
-                    //~ images_compared = 1; // do this only once
-                //~ }
                 
                 if (PLAY_MODE && SECONDS_ELAPSED >= image_review_time)
                 {
@@ -6882,7 +6944,7 @@ shoot_task( void* unused )
 
                 if (lens_info.job_state == 0 && liveview_display_idle() && intervalometer_running && !display_turned_off)
                 {
-                    idle_force_powersave_in_1s();
+                    idle_force_powersave_now();
                     display_turned_off = 1; // ... but only once per picture (don't be too aggressive)
                 }
 
@@ -6895,6 +6957,7 @@ shoot_task( void* unused )
                 intervalometer_stop();
 
             if (PLAY_MODE) get_out_of_play_mode(500);
+            
             if (LV_PAUSED) ResumeLiveView();
 
             if (!intervalometer_running) continue; // back to start of shoot_task loop
@@ -6930,7 +6993,9 @@ shoot_task( void* unused )
             intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);
             intervalometer_pictures_taken++;
             
+            #ifdef CONFIG_MODULES
             module_exec(NULL, "auto_ettr_intervalometer_wait", 0);
+            #endif
 
             #ifdef FEATURE_BULB_RAMPING
             if (BULB_EXPOSURE_CONTROL_ACTIVE)
@@ -6939,18 +7004,8 @@ shoot_task( void* unused )
                 compute_exposure_for_next_shot();
             }
             #endif
-
-            #ifndef CONFIG_VXWORKS
-            if (lv && silent_pic_enabled) // half-press shutter to disable power management
-            {
-                lens_setup_af(AF_DISABLE);
-                SW1(1,10);
-                SW1(0,50);
-                lens_cleanup_af();
-                msleep(300);
-            }
-            #endif
-           
+            
+            idle_force_powersave_now();
         }
         else // intervalometer not running
         #endif // FEATURE_INTERVALOMETER

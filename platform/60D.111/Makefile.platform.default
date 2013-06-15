@@ -1,0 +1,19 @@
+#Makefile.setup.platform for 60D
+
+FIRMWARE_ID   = 0x80000286
+
+ifeq ($(FW_VERSION),111)
+CANON_NAME_FIR=60D00111.FIR
+ROMBASEADDR   = 0xFF010000
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART  = 0x0005f000
+
+ifeq ($(ML_SRC_PROFILE),generic)
+RESTARTSTART  = 0x1FE00000
+endif
+
+#End of FW_VERSION == 111
+endif

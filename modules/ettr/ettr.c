@@ -214,12 +214,14 @@ static int auto_ettr_work_m(int corr)
     tvr = round_shutter(tvr, shutter_lim);
 
     /* apply the new settings */
-    int oks = hdr_set_rawshutter(tvr);
+    lens_set_rawiso(isor);              /* for expo overide */
+    lens_set_rawshutter(tvr);
+    int oks = hdr_set_rawshutter(tvr);  /* for confirmation */
     int oki = hdr_set_rawiso(isor);
 
     /* don't let expo lock undo our changes */
     expo_lock_update_value();
-    
+
     prev_tv = lens_info.raw_shutter;
 
     int new_expo = lens_info.raw_shutter - lens_info.raw_iso;
@@ -356,6 +358,8 @@ static volatile int auto_ettr_vsync_counter = 0;
 /* instead of changing settings via properties, we can override them very quickly */
 static unsigned int auto_ettr_vsync_cbr(unsigned int ctx)
 {
+    auto_ettr_vsync_counter++;
+
     if (auto_ettr_vsync_active)
     {
         int delta = auto_ettr_vsync_delta;
@@ -389,7 +393,7 @@ static unsigned int auto_ettr_vsync_cbr(unsigned int ctx)
             altered_iso -= 8;
             delta += 8;
         }
-        
+
         /* commit iso */
         set_frame_iso(altered_iso);
 
@@ -400,9 +404,9 @@ static unsigned int auto_ettr_vsync_cbr(unsigned int ctx)
         set_frame_shutter_timer(altered_shutter);
         
         //~ bmp_printf(FONT_MED, 50, 70, "delta %d iso %d->%d shutter %d->%d max %d ",  auto_ettr_vsync_delta, current_iso, altered_iso, current_shutter, altered_shutter, get_max_shutter_timer());
-        auto_ettr_vsync_counter++;
         return 1;
     }
+    
     return 0;
 }
 
@@ -410,11 +414,13 @@ static int auto_ettr_wait_lv_frames(int num_frames)
 {
     auto_ettr_vsync_counter = 0;
     int count = 0;
+    int frame_duration = 1000000 / fps_get_current_x1000();
     while (auto_ettr_vsync_counter < num_frames)
     {
+        frame_duration = MAX(frame_duration, 1000000 / fps_get_current_x1000());
         msleep(20);
         count++;
-        if (count > num_frames * 10)
+        if (count > num_frames * frame_duration * 2 / 20)
         {
             beep();
             NotifyBox(2000, "Vsync err");
@@ -467,47 +473,56 @@ static void auto_ettr_on_request_task_fast()
 
 
     NotifyBox(100000, "Auto ETTR...");
-    auto_ettr_vsync_active = 1;
-    auto_ettr_vsync_delta = 0;
     raw_lv_request();
     
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 5; i++)
     {
-        for (int k = 0; k < 5; k++)
+        if (fps_get_shutter_speed_shift(160) == 0)
         {
-            /* see how far we are from the ideal exposure */
+            auto_ettr_vsync_active = 1;
+            auto_ettr_vsync_delta = 0;
+            for (int k = 0; k < 5; k++)
+            {
+                /* see how far we are from the ideal exposure */
+                int corr = auto_ettr_get_correction();
+                if (corr == INT_MIN) break;
+                
+                /* override the liveview parameters via auto_ettr_vsync_cbr (much faster than via properties) */
+                auto_ettr_vsync_delta += corr * 8 / 100;
+
+                /* I'm confident the last iteration was accurate */
+                if (corr >= -20 && corr <= 200)
+                    break;
+                
+                /* wait for 2 frames before trying again */
+                if (!auto_ettr_wait_lv_frames(2)) goto end;
+            }
+            auto_ettr_vsync_active = 0;
+        }
+        else /* FPS override is messing up our plans? fall back to the slow method */
+        {
             int corr = auto_ettr_get_correction();
             if (corr == INT_MIN) break;
-            
-            /* override the liveview parameters via auto_ettr_vsync_cbr (much faster than via properties) */
-            auto_ettr_vsync_delta += corr * 8 / 100;
-
-            /* I'm confident the last iteration was accurate */
-            if (corr >= -20 && corr <= 200)
-                break;
-            
-            /* wait for 2 frames before trying again */
-            if (!auto_ettr_wait_lv_frames(2)) goto end;
+            auto_ettr_vsync_delta = corr * 8 / 100;
         }
 
         /* apply the correction via properties */
         if (auto_ettr_vsync_delta)
         {
             int corr = auto_ettr_vsync_delta * 100 / 8;
-            auto_ettr_vsync_delta = 0;
             auto_ettr_work(corr);
         
-            if (ABS(corr) <= 200)
+            if (corr >= -20 && corr <= 200)
             {
                 /* looks like it settled */
                 break;
             }
             else
             {
-                if (i < 3)
+                if (i < 4)
                 {
                     /* here we go again... */
-                    msleep(1000);
+                    auto_ettr_wait_lv_frames(15);
                 }
                 else
                 {
@@ -553,31 +568,38 @@ static void auto_ettr_step_lv_fast()
     /* only correct if the image is overexposed by more than 0.2 EV or underexposed by more than 1 EV */
     if (corr != INT_MIN && (corr < -20 || corr > 100))
     {
-        auto_ettr_vsync_active = 1;
-        auto_ettr_vsync_delta = 0;
-        int k;
-        for (k = 0; k < 5; k++)
+        if (fps_get_shutter_speed_shift(160) == 0)
         {
-            /* see how far we are from the ideal exposure */
-            if (k > 0) corr = auto_ettr_get_correction();
-            if (corr == INT_MIN) break;
-            
-            /* override the liveview parameters via auto_ettr_vsync_cbr (much faster than via properties) */
-            auto_ettr_vsync_delta += corr * 8 / 100;
+            auto_ettr_vsync_active = 1;
+            auto_ettr_vsync_delta = 0;
+            int k;
+            for (k = 0; k < 5; k++)
+            {
+                /* see how far we are from the ideal exposure */
+                if (k > 0) corr = auto_ettr_get_correction();
+                if (corr == INT_MIN) break;
+                
+                /* override the liveview parameters via auto_ettr_vsync_cbr (much faster than via properties) */
+                auto_ettr_vsync_delta += corr * 8 / 100;
 
-            /* I'm confident the last iteration was accurate */
-            if (corr >= -20 && corr <= 200)
-                break;
-            
-            /* wait for 2 frames before trying again */
-            if (!auto_ettr_wait_lv_frames(2)) break;
+                /* I'm confident the last iteration was accurate */
+                if (corr >= -20 && corr <= 200)
+                    break;
+                
+                /* wait for 3 frames before trying again */
+                if (!auto_ettr_wait_lv_frames(2)) break;
+            }
+            auto_ettr_vsync_active = 0;
         }
-        auto_ettr_vsync_active = 0;
+        else /* FPS override is messing up our plans? fall back to the slow method */
+        {
+            auto_ettr_vsync_delta = corr * 8 / 100;
+        }
 
         /* apply the final correction via properties */
         auto_ettr_work(auto_ettr_vsync_delta * 100 / 8);
 
-        msleep(1000);
+        auto_ettr_wait_lv_frames(15);
     }
     raw_lv_release();
 }

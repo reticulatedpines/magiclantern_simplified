@@ -1,0 +1,14 @@
+#Makefile.setup.platform for 5D Mark III
+
+ifeq ($(FW_VERSION),113)
+CANON_NAME_FIR=5D300113.FIR
+
+ROMBASEADDR	= 0xFF0C0000
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART	= 0x00069500
+
+#End of FW_VERSION == 113
+endif
