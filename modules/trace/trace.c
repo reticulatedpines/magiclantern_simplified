@@ -222,8 +222,8 @@ static unsigned int trace_write_timestamp(trace_entry_t *ctx, int type, tsc_t ts
             unsigned int hrs = (sec_total / 3600) % 60;
 
             snprintf(tmp, sizeof(tmp), "%02d:%02d:%02d.%06d", hrs, min, sec, usec);
-            strncpy(&timestamp[pos], tmp, sizeof(timestamp) - pos);
-            pos += strlen(tmp);
+            strcpy(&timestamp[pos], tmp);
+            pos += 15;
             break;
         }
         case TRACE_FMT_TIME_DATE:
