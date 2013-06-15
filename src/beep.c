@@ -582,6 +582,10 @@ void beep()
 
 void beep_custom(int duration, int frequency, int wait)
 {
+    #ifndef FEATURE_WAV_RECORDING
+    int audio_recording = 0;
+    #endif
+
     if (!beep_enabled || recording > 0 || audio_recording)
     {
         info_led_blink(1, duration, 10); // silent warning
