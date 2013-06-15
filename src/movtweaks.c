@@ -630,7 +630,6 @@ void rec_notify_trigger(int rec)
  * 
  * - OFF: Canon default mode.
  * - ON: only values from Expo are used; Canon graphics may display other values.
- * - Auto: ML enables it only when needed. It also syncs it with Canon properties.
  * 
  */
 
@@ -640,12 +639,6 @@ CONFIG_INT("bv.auto", bv_auto, 0);
 
 static MENU_UPDATE_FUNC(bv_display)
 {
-    MENU_SET_VALUE(
-        bv_auto == 2 && CONTROL_BV ? "Auto (ON)" :
-        bv_auto == 2 && !CONTROL_BV ? "Auto (OFF)" :
-        bv_auto == 1 ? "ON" : "OFF"
-    );
-
     extern int zoom_auto_exposure;
 
     if (bv_auto == 1 && !CONTROL_BV) 
@@ -714,7 +707,7 @@ end:
 
 void bv_toggle(void* priv, int delta)
 {
-    menu_numeric_toggle(&bv_auto, delta, 0, 2);
+    menu_numeric_toggle(&bv_auto, delta, 0, 1);
     if (bv_auto) bv_auto_update();
     else bv_disable();
 }
@@ -1185,9 +1178,7 @@ struct menu_entry expo_override_menus[] = {
         .priv = &bv_auto,
         .select     = bv_toggle,
         .update     = bv_display,
-        .max = 2,
-        .icon_type  = IT_DICE_OFF,
-        .choices    = (const char *[]) {"OFF", "ON", "Auto (only when needed)"},
+        .max = 1,
         .help       = "Low-level manual exposure controls (bypasses Canon limits).",
         .help2      = "Useful for long exposures, manual lenses, manual video ctl.",
         .depends_on = DEP_LIVEVIEW,

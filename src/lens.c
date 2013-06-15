@@ -2437,44 +2437,7 @@ static int bv_auto_should_enable()
     if (LVAE_DISP_GAIN) // compatibility problem, disable it
         return 0;
 
-    if (bv_auto == 2) // only enabled when needed
-    {
-        // cameras without manual exposure control
-        #if defined(CONFIG_50D)
-        if (is_movie_mode() && shooting_mode == SHOOTMODE_M) return 1;
-        else return 0;
-        #endif
-        #if defined(CONFIG_500D) || defined(CONFIG_1100D)
-        if (is_movie_mode()) return 1;
-        else return 0;
-        #endif
-
-        // extra ISO values in movie mode
-        if (is_movie_mode() && lens_info.raw_iso==0) 
-            return 0;
-        
-        if (is_movie_mode() && (bv_auto_needed_by_iso || bv_auto_needed_by_shutter || bv_auto_needed_by_aperture)) 
-            return 1;
-        
-        // temporarily cancel it in photo mode
-        //~ if (!is_movie_mode() && get_halfshutter_pressed())
-            //~ return 0;
-        
-        // underexposure bug with manual lenses in M mode
-        #if defined(CONFIG_60D) || defined(CONFIG_5D3) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
-        if (shooting_mode == SHOOTMODE_M && 
-            !is_movie_mode() &&
-            !lens_info.name[0] && 
-            lens_info.raw_iso != 0
-        )
-            return 1;
-        #endif
-        
-        // exposure simulation in Bulb mode
-        if (is_bulb_mode() && get_expsim())
-            return 1;
-    }
-    else if (bv_auto == 1) // always enable (except for situations where it's known to cause problems)
+    if (bv_auto == 1) // always enable (except for situations where it's known to cause problems)
     {
         return 1; // tricky situations were handled before these if's
     }
