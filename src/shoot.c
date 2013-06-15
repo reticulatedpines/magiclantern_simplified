@@ -247,12 +247,15 @@ static const char* format_time_hours_minutes_seconds(int seconds)
 static void seconds_clock_update();
 
 static volatile int seconds_clock = 0;
-int get_seconds_clock() { return seconds_clock; } 
+static volatile int miliseconds_clock = 0;
+static volatile unsigned long long microseconds_clock = 0;
 
-static volatile int ms100_clock = 0;
-int get_ms_clock_value() { seconds_clock_update(); return ms100_clock; }
+int get_seconds_clock() { return seconds_clock; }
+int get_ms_clock_value() { seconds_clock_update(); return miliseconds_clock; }
+unsigned long long get_us_clock_value() { seconds_clock_update(); return microseconds_clock; }
 
-int get_ms_clock_value_fast() { return ms100_clock; } // fast, but less accurate
+int get_ms_clock_value_fast() { return miliseconds_clock; } // fast, but less accurate
+
 
 /**
  * useful for things that shouldn't be done more often than X ms
@@ -281,9 +284,9 @@ int get_ms_clock_value_fast() { return ms100_clock; } // fast, but less accurate
  */
 int should_run_polling_action(int period_ms, int* last_updated_time)
 {
-    if (ms100_clock >= (*last_updated_time) + period_ms)
+    if (miliseconds_clock >= (*last_updated_time) + period_ms)
     {
-        *last_updated_time = ms100_clock;
+        *last_updated_time = miliseconds_clock;
         return 1;
     }
     return 0;
@@ -326,30 +329,31 @@ static void do_this_every_second() // called every second
     #endif
 }
 
+#define TIMER_MAX 1048576
 static struct semaphore * seconds_clock_sem;
 // called every 200ms or on request
 static void
 seconds_clock_update()
 {
-    take_semaphore(seconds_clock_sem, 0);
+    /* do not use semaphores as this code should be very fast */
+    int old_stat = cli();
     
-    static int rollovers = 0;
-    static int prev_t = 0;
-    int t = *(volatile uint32_t*)0xC0242014;
+    static uint32_t prev_timer = 0;
+    uint32_t timer_value = *(volatile uint32_t*)0xC0242014;
     // this timer rolls over every 1048576 ticks
     // and 1000000 ticks = 1 second
     // so 1 rollover is done every 1.05 seconds roughly
     
-    if (t < prev_t)
-        rollovers++;
-    prev_t = t;
+    /* update microsecond timer with simple overflow handling thanks to the timer overflowing at 2^n */
+    uint32_t usec_delta = (timer_value - prev_timer + TIMER_MAX) & (TIMER_MAX - 1);
+    microseconds_clock += usec_delta;
     
-    // float s_clock_f = rollovers * 1048576.0 / 1000000.0 + t / 1048576.0;
-    // not very precise but... should be OK (1.11 seconds error in 24 hours)
-    ms100_clock = rollovers * 16777 / 16 + t * 1000 / 1048576;
-    seconds_clock = ms100_clock / 1000;
+    /* msec and seconds clock derieve from high precision counter */
+    miliseconds_clock = (uint32_t)microseconds_clock / 1000;
+    seconds_clock = miliseconds_clock / 1000;
     
-    give_semaphore(seconds_clock_sem);
+    prev_timer = timer_value;
+    sei(old_stat);
 }
 
 static void
@@ -3120,7 +3124,7 @@ void zoom_focus_ring_engage() // called from shoot_task
     if (!DISPLAY_IS_ON) return;
     int zfr = (zoom_focus_ring && is_manual_focus());
     if (!zfr) return;
-    zoom_focus_ring_disable_time = ms100_clock + 5000;
+    zoom_focus_ring_disable_time = miliseconds_clock + 5000;
     int zoom = zoom_disable_x10 ? 5 : 10;
     set_lv_zoom(zoom);
 }
@@ -3130,7 +3134,7 @@ static void zoom_focus_ring_step()
     if (!zfr) return;
     if (recording) return;
     if (!DISPLAY_IS_ON) return;
-    if (zoom_focus_ring_disable_time && ms100_clock > zoom_focus_ring_disable_time && !get_halfshutter_pressed())
+    if (zoom_focus_ring_disable_time && miliseconds_clock > zoom_focus_ring_disable_time && !get_halfshutter_pressed())
     {
         if (lv_dispsize > 1) set_lv_zoom(1);
         zoom_focus_ring_disable_time = 0;
