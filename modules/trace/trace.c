@@ -72,70 +72,78 @@ static void trace_task(trace_entry_t *ctx)
 unsigned int trace_start(char *name, char *file_name)
 {
     int pos = 0;
+    
+    /* small atomic lock here to stay thread safe */
+    int old_stat = cli();
     for(pos = 0; pos < TRACE_MAX_CONTEXT; pos++)
     {
         if(!trace_contexts[pos].used)
         {
-            trace_entry_t *ctx = &trace_contexts[pos];
-
-            /* init fields */
-            ctx->used = 1;
-            ctx->format = TRACE_FMT_DEFAULT;
-            ctx->separator = TRACE_SEPARATOR_DEFAULT;
-            ctx->sleep_time = TRACE_SLEEP_TIME;
-            ctx->buffer_size = TRACE_BUFFER_SIZE;
-            ctx->buffer_read_pos = 0;
-            ctx->buffer_write_pos = 0;
-
-            /* copy strings */
-            strncpy(ctx->name, name, sizeof(ctx->name));
-            strncpy(ctx->file_name, file_name, sizeof(ctx->file_name));
-
-            /* start worker task */
-            ctx->task_state = TRACE_TASK_STATE_DEAD;
-            ctx->task = (unsigned int)task_create("trace_task", 0x1e, 0x1000, &trace_task, (void *)ctx);
-
-            /* create trace file */
-            FIO_RemoveFile(ctx->file_name);
-            ctx->file_handle = FIO_CreateFileEx(ctx->file_name);
-            if(ctx->file_handle == INVALID_PTR)
-            {
-                ctx->used = 0;
-                return TRACE_ERROR;
-            }
-
-            /* allocate write buffer */
-            ctx->buffer = trace_alloc(ctx->buffer_size);
-            if(!ctx->buffer)
-            {
-                FIO_CloseFile(ctx->file_handle);
-                ctx->used = 0;
-                return TRACE_ERROR;
-            }
-
-            ctx->start_tsc = get_us_clock_value();
-            ctx->last_tsc = ctx->start_tsc;
-
-            /* make sure task is running */
-            for(int loops = 0; loops < 250; loops++)
-            {
-                if(ctx->task_state != TRACE_TASK_STATE_DEAD)
-                {
-                    return pos;
-                }
-                msleep(20);
-            }
-
-            /* timed out, return gracefully */
-            ctx->used = 0;
-            FIO_CloseFile(ctx->file_handle);
-            trace_free(ctx->buffer);
-            ctx->file_handle = NULL;
-            ctx->buffer = NULL;
-
-            return TRACE_ERROR;
+            trace_contexts[pos].used = 1;
+            break;
         }
     }
+    sei(old_stat);
+    
+    if(pos >= TRACE_MAX_CONTEXT)
+    {
+        return TRACE_ERROR;
+    }
+    trace_entry_t *ctx = &trace_contexts[pos];
+
+    /* init fields */
+    ctx->format = TRACE_FMT_DEFAULT;
+    ctx->separator = TRACE_SEPARATOR_DEFAULT;
+    ctx->sleep_time = TRACE_SLEEP_TIME;
+    ctx->buffer_size = TRACE_BUFFER_SIZE;
+    ctx->buffer_read_pos = 0;
+    ctx->buffer_write_pos = 0;
+
+    /* copy strings */
+    strncpy(ctx->name, name, sizeof(ctx->name));
+    strncpy(ctx->file_name, file_name, sizeof(ctx->file_name));
+
+    /* start worker task */
+    ctx->task_state = TRACE_TASK_STATE_DEAD;
+    ctx->task = (unsigned int)task_create("trace_task", 0x18, 0x1000, &trace_task, (void *)ctx);
+
+    /* create trace file */
+    FIO_RemoveFile(ctx->file_name);
+    ctx->file_handle = FIO_CreateFileEx(ctx->file_name);
+    if(ctx->file_handle == INVALID_PTR)
+    {
+        ctx->used = 0;
+        return TRACE_ERROR;
+    }
+
+    /* allocate write buffer */
+    ctx->buffer = trace_alloc(ctx->buffer_size);
+    if(!ctx->buffer)
+    {
+        FIO_CloseFile(ctx->file_handle);
+        ctx->used = 0;
+        return TRACE_ERROR;
+    }
+
+    ctx->start_tsc = get_us_clock_value();
+    ctx->last_tsc = ctx->start_tsc;
+
+    /* make sure task is running */
+    for(int loops = 0; loops < 250; loops++)
+    {
+        if(ctx->task_state != TRACE_TASK_STATE_DEAD)
+        {
+            return pos;
+        }
+        msleep(20);
+    }
+
+    /* timed out, return gracefully */
+    ctx->used = 0;
+    FIO_CloseFile(ctx->file_handle);
+    trace_free(ctx->buffer);
+    ctx->file_handle = NULL;
+    ctx->buffer = NULL;
 
     return TRACE_ERROR;
 }
@@ -411,29 +419,28 @@ static unsigned int trace_init()
 {
     /* don't initialize anything as other modules may use this module during their init, these could be ran before ours */
     
-    int ctx = trace_start("trace", "trace.tst");
-    int old_stat = cli();
-    trace_write(ctx, "Tick");
-    trace_write(ctx, "Tick");
-    trace_write(ctx, "Tick");
-    trace_write(ctx, "Tick");
-    trace_write(ctx, "%d", old_stat);
-    trace_write(ctx, "%d", old_stat);
-    trace_write(ctx, "%d", old_stat);
-    trace_write(ctx, "%d%d", old_stat, old_stat);
-    trace_write(ctx, "%d%d", old_stat, old_stat);
-    trace_write(ctx, "%d%d", old_stat, old_stat);
-    tsc_t tsc1 = get_us_clock_value();
-    tsc_t tsc2 = get_us_clock_value();
-    tsc_t tsc3 = get_us_clock_value();
-    tsc_t tsc4 = get_us_clock_value();
-    int delta1 = (tsc2-tsc1) & 0xFFFFFFFF;
-    int delta2 = (tsc3-tsc2) & 0xFFFFFFFF;
-    int delta3 = (tsc4-tsc3) & 0xFFFFFFFF;
-    trace_write(ctx, "%d %d %d", (unsigned int)(delta1), (unsigned int)(delta2), (unsigned int)(delta3));
-    sei(old_stat);
-    trace_stop(ctx, 1);
-    beep();
+    /* some performance tests */
+    if(0)
+    {
+        int ctx = trace_start("trace", "trace.tst");
+        int old_stat = cli();
+        trace_write(ctx, "Tick");
+        trace_write(ctx, "Tick");
+        trace_write(ctx, "Tick");
+        trace_write(ctx, "Tick");
+        trace_write(ctx, "%d", old_stat);
+        trace_write(ctx, "%d", old_stat);
+        trace_write(ctx, "%d", old_stat);
+        trace_write(ctx, "%d %d", old_stat, old_stat);
+        trace_write(ctx, "%d %d", old_stat, old_stat);
+        trace_write(ctx, "%d %d", old_stat, old_stat);
+        trace_write(ctx, "%s", "Tack");
+        trace_write(ctx, "%s", "Tack");
+        trace_write(ctx, "%s", "Tack");
+        sei(old_stat);
+        trace_stop(ctx, 1);
+        beep();
+    }
     return 0;
 }
 
