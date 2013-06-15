@@ -399,7 +399,8 @@ int handle_common_events_by_feature(struct event * event)
     }
 #endif
 
-    idle_wakeup_reset_counters(event->param);
+    if (event->param != GMT_OLC_INFO_CHANGED)
+        idle_wakeup_reset_counters(event->param);
     
     // If we're here, we're dealing with a button press.  Record the timestamp
     // as a record of when the user was last actively pushing buttons.
