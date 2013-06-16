@@ -139,8 +139,9 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 }
 */
 
-static void vsync_func() // called once per frame.. in theory :)
+static void FAST vsync_func() // called once per frame.. in theory :)
 {
+
     #ifdef CONFIG_RAW_LIVEVIEW
     raw_lv_vsync_cbr(); // in raw.c
     #endif
@@ -188,7 +189,7 @@ static int state_matrix[num_states][num_inputs];
 #endif
 
 static int (*StateTransition)(void*,int,int,int,int) = 0;
-static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, int t)
+static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, int z, int t)
 {
     int old_state = self->current_state;
 
@@ -311,7 +312,6 @@ static int stateobj_lv_spy(struct state_object * self, int x, int input, int z, 
         #endif
     }
     #endif
-
     return ans;
 }
 

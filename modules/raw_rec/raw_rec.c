@@ -851,7 +851,7 @@ static void hack_liveview()
     }
 }
 
-static int process_frame()
+static int FAST process_frame()
 {
     if (!lv) return 0;
     
@@ -886,7 +886,7 @@ static int process_frame()
     return ans;
 }
 
-static unsigned int raw_rec_vsync_cbr(unsigned int unused)
+static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 {
     static int dma_transfer_in_progress = 0;
     /* there may be DMA transfers started in process_frame, finish them */

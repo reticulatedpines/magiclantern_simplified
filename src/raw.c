@@ -1018,7 +1018,7 @@ static int compute_dynamic_range(float black_mean, float black_stdev, int white_
     return dr;
 }
 
-void raw_lv_redirect_edmac(void* ptr)
+void FAST raw_lv_redirect_edmac(void* ptr)
 {
     MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
 }
