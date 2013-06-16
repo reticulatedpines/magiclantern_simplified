@@ -3718,9 +3718,8 @@ static void post_deflicker_save_sidecar_file(int type, char* photo_filename, flo
     FILE* f = FIO_CreateFileEx(sidecar);
     if (f == INVALID_PTR) return;
     if (type == 0)
-    {   
+    {
         /* not sure */
-        ev = COERCE(ev, -10, 10);
         int evi = ev * 100000;
         
         my_fprintf(f, xmp_template, FMT_FIXEDPOINT5S(evi));
