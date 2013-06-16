@@ -3718,11 +3718,7 @@ static void post_deflicker_save_sidecar_file(int type, char* photo_filename, flo
     FILE* f = FIO_CreateFileEx(sidecar);
     if (f == INVALID_PTR) return;
     if (type == 0)
-    {
-        /* not sure */
-        ev = COERCE(ev, -5, 5);
-        int evi = ev * 100000;
-        
+    {   
         my_fprintf(f, xmp_template, FMT_FIXEDPOINT5S(evi));
     }
     else if (type == 1)
@@ -3731,8 +3727,6 @@ static void post_deflicker_save_sidecar_file(int type, char* photo_filename, flo
         char jpg[100];
         snprintf(raw, sizeof(raw), "%s.%s", basename, extension);
         snprintf(jpg, sizeof(jpg), "%s.JPG", basename);
-        ev = COERCE(ev, -6, 6);
-        int evi = ev * 100000;
         my_fprintf(f, ufraw_template, raw, jpg, FMT_FIXEDPOINT5(evi));
     }
     FIO_CloseFile(f);
