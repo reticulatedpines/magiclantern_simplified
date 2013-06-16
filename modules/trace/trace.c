@@ -98,6 +98,8 @@ unsigned int trace_start(char *name, char *file_name)
     ctx->buffer_size = TRACE_BUFFER_SIZE;
     ctx->buffer_read_pos = 0;
     ctx->buffer_write_pos = 0;
+    ctx->max_entries = 1000000;
+    ctx->cur_entries = 0;
 
     /* copy strings */
     strncpy(ctx->name, name, sizeof(ctx->name));
@@ -246,18 +248,18 @@ static unsigned int trace_write_timestamp(trace_entry_t *ctx, int type, tsc_t ts
     timestamp[pos] = 0;
     
     *timestamp_pos = pos;
+    
+    return TRACE_OK;
 }
 
-/* write some string into specified trace */
-unsigned int trace_write(unsigned int context, char *string, ...)
+unsigned int trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list ap)
 {
-    tsc_t tsc = get_us_clock_value();
     char timestamp[64];
     int timestamp_pos = 0;
-	va_list ap;
     trace_entry_t *ctx = &trace_contexts[context];
 
-    if(context >= TRACE_MAX_CONTEXT || !ctx->used)
+    /* make sure ctx is valid, this ctx is used and the writer thread is running */
+    if(context >= TRACE_MAX_CONTEXT || !ctx->used || ctx->task_state != TRACE_TASK_STATE_RUNNING)
     {
         return TRACE_OK;
     }
@@ -311,12 +313,13 @@ unsigned int trace_write(unsigned int context, char *string, ...)
     /* check if the buffer has enough space */
     if((ctx->buffer_write_pos + min_len) >= ctx->buffer_size)
     {
+        /* abort trace as data will be lost */
+        ctx->task_state = TRACE_TASK_STATE_SHUTDOWN;
         sei(old_stat);
         return TRACE_ERROR;
     }
 
     int max_len = ctx->buffer_size - ctx->buffer_write_pos;
-    va_start( ap, string );
 
     memcpy(&ctx->buffer[ctx->buffer_write_pos], timestamp, timestamp_pos);
     int len = 0;
@@ -329,6 +332,8 @@ unsigned int trace_write(unsigned int context, char *string, ...)
     /* buffer filled until the end. seems the string was too long */
     if(len >= max_len - timestamp_pos)
     {
+        /* abort trace as data will be lost */
+        ctx->task_state = TRACE_TASK_STATE_SHUTDOWN;
         sei(old_stat);
         return TRACE_ERROR;
     }
@@ -340,8 +345,39 @@ unsigned int trace_write(unsigned int context, char *string, ...)
     ctx->buffer_write_pos += (len + timestamp_pos + 1);
 
     sei(old_stat);
+    
+    /* reached the maximum allowed number of entries? */
+    ctx->cur_entries++;
+    if(ctx->cur_entries >= ctx->max_entries)
+    {
+        /* finish trace */
+        ctx->task_state = TRACE_TASK_STATE_SHUTDOWN;
+    }
 
     return TRACE_OK;
+}
+
+/* write some string into specified trace */
+unsigned int trace_write(unsigned int context, char *string, ...)
+{
+    va_list ap;
+    
+    va_start(ap, string);
+    unsigned int ret = trace_vwrite(context, get_us_clock_value(), string, ap);
+    va_end(ap);
+    
+    return ret;
+}
+
+unsigned int trace_write_tsc(unsigned int context, tsc_t tsc, char *string, ...)
+{
+    va_list ap;
+    
+    va_start(ap, string);
+    unsigned int ret = trace_vwrite(context, tsc, string, ap);
+    va_end(ap);
+    
+    return ret;
 }
 
 /* write some binary data into specified trace with an variable length field in front */
@@ -350,7 +386,8 @@ unsigned int trace_write_binary(unsigned int context, unsigned char *buffer, uns
     tsc_t tsc = get_us_clock_value();
     trace_entry_t *ctx = &trace_contexts[context];
 
-    if(context >= TRACE_MAX_CONTEXT || !ctx->used)
+    /* make sure ctx is valid, this ctx is used and the writer thread is running */
+    if(context >= TRACE_MAX_CONTEXT || !ctx->used || ctx->task_state != TRACE_TASK_STATE_RUNNING)
     {
         return TRACE_ERROR;
     }
@@ -358,6 +395,8 @@ unsigned int trace_write_binary(unsigned int context, unsigned char *buffer, uns
     /* var length is max 4 bytes, tsc 8 bytes. check for enough free space */
     if((ctx->buffer_write_pos + length + 4 + sizeof(tsc)) >= ctx->buffer_size)
     {
+        /* abort trace as data will be lost */
+        ctx->task_state = TRACE_TASK_STATE_SHUTDOWN;
         return TRACE_ERROR;
     }
 
@@ -414,6 +453,10 @@ static unsigned int trace_write_varlength(unsigned int context, unsigned int len
     return var_length + 1;
 }
 
+unsigned int trace_available()
+{
+    return 1;
+}
 
 static unsigned int trace_init()
 {

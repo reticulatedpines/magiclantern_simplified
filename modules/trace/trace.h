@@ -47,6 +47,8 @@ typedef struct
     unsigned int format;
     unsigned char separator;
     unsigned char sleep_time;
+    unsigned int max_entries;
+    unsigned int cur_entries;
     
     /* runtime variables */
     FILE *file_handle;
@@ -62,6 +64,8 @@ typedef struct
     unsigned int task;
 } trace_entry_t;
 
+/* check if the module is available */
+unsigned int EXT_WEAK_FUNC(ret_0) trace_available();
 /* create a new trace with given short name and filename */
 unsigned int EXT_WEAK_FUNC(ret_0) trace_start(char *name, char *file_name);
 /* free a previously created trace context */
@@ -70,6 +74,8 @@ unsigned int EXT_WEAK_FUNC(ret_0) trace_stop(unsigned int trace, int wait);
 unsigned int EXT_WEAK_FUNC(ret_0) trace_format(unsigned int context, unsigned int format, unsigned char separator);
 /* write some string into specified trace */
 unsigned int EXT_WEAK_FUNC(ret_0) trace_write(unsigned int context, char *string, ...);
+unsigned int EXT_WEAK_FUNC(ret_0) trace_write_tsc(unsigned int context, tsc_t tsc, char *string, ...);
+unsigned int EXT_WEAK_FUNC(ret_0) trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list ap);
 /* write some binary data into specified trace with an variable length field in front */
 unsigned int EXT_WEAK_FUNC(ret_0) trace_write_binary(unsigned int context, unsigned char *buffer, unsigned int length);
 
