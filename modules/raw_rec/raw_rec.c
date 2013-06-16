@@ -391,9 +391,11 @@ static void refresh_raw_settings(int force)
         static int aux = INT_MIN;
         if (force || should_run_polling_action(250, &aux))
         {
-            raw_update_params();
-            update_resolution_params();
-            update_shave();
+            if (raw_update_params())
+            {
+                update_resolution_params();
+                update_shave();
+            }
         }
     }
 }
@@ -733,8 +735,51 @@ static void panning_update()
     update_cropping_offsets();
 }
 
+static void raw_video_enable()
+{
+    /* toggle the lv_save_raw flag from raw.c */
+    raw_lv_request();
+
+    /* EOS-M needs this hack. Please don't use it unless there's no other way. */
+    if (cam_eos_m) set_custom_movie_mode(1);
+    
+    msleep(50);
+}
+
+static void raw_video_disable()
+{
+    raw_lv_release();
+    raw_lv_shave_right(0);
+    if (cam_eos_m) set_custom_movie_mode(0);
+}
+
+static void raw_lv_request_update()
+{
+    static int raw_lv_requested = 0;
+
+    if (raw_video_enabled && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
+    {
+        if (!raw_lv_requested)
+        {
+            raw_video_enable();
+            raw_lv_requested = 1;
+        }
+    }
+    else
+    {
+        if (raw_lv_requested)
+        {
+            raw_video_disable();
+            raw_lv_requested = 0;
+        }
+    }
+}
+
+
 static unsigned int raw_rec_polling_cbr(unsigned int unused)
 {
+    raw_lv_request_update();
+    
     if (!raw_video_enabled)
         return 0;
     
@@ -1277,37 +1322,6 @@ static MENU_SELECT_FUNC(raw_start_stop)
     }
 }
 
-static void raw_video_enable()
-{
-    raw_video_enabled = 1;
-
-    /* toggle the lv_save_raw flag from raw.c */
-    raw_lv_request();
-
-    /* EOS-M needs this hack. Please don't use it unless there's no other way. */
-    if (cam_eos_m) set_custom_movie_mode(1);
-    
-    msleep(50);
-}
-
-static void raw_video_disable()
-{
-    raw_video_enabled = 0;
-    raw_lv_release();
-    raw_lv_shave_right(0);
-    if (cam_eos_m) set_custom_movie_mode(0);
-}
-
-static MENU_SELECT_FUNC(raw_video_toggle)
-{
-    if (!RAW_IS_IDLE) return;
-    
-    if (raw_video_enabled)
-        raw_video_disable();
-    else
-        raw_video_enable();
-}
-
 static void raw_video_playback_task()
 {
     void* buf = NULL;
@@ -1429,7 +1443,6 @@ static struct menu_entry raw_video_menu[] =
     {
         .name = "RAW video",
         .priv = &raw_video_enabled,
-        .select = raw_video_toggle,
         .max = 1,
         .update = raw_main_update,
         .submenu_width = 710,
@@ -1682,9 +1695,6 @@ static unsigned int raw_rec_init()
 
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
     fileman_register_type("RAW", "RAW Video", raw_rec_filehandler);
-    
-    if (raw_video_enabled)
-        raw_video_enable();
     
     return 0;
 }
