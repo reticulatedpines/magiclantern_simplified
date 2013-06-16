@@ -5,8 +5,8 @@
 
 #ifdef CONFIG_EDMAC_MEMCPY
 
-static struct semaphore * edmac_memcpy_sem = 0; /* to allow only one memcpy running at a time */
-static struct semaphore * edmac_read_done_sem = 0; /* to know when memcpy is finished */
+static volatile int edmac_memcpy_busy = 0; /* to allow only one memcpy running at a time */
+static volatile int edmac_read_done = 0;   /* to know when memcpy is finished */
 
 static struct edmac_info src_edmac_info;
 static struct edmac_info dst_edmac_info;
@@ -26,17 +26,9 @@ uint32_t edmac_write_chan = 0x11;
 /* both channels get connected to this... lets call it service. it will just output the data it gets as input */
 uint32_t dmaConnection = 6;
 
-static void edmac_memcpy_init()
-{
-    edmac_memcpy_sem = create_named_semaphore("edmac_memcpy_sem", 1);
-    edmac_read_done_sem = create_named_semaphore("edmac_read_done_sem", 0);
-}
-
-INIT_FUNC("edmac_memcpy", edmac_memcpy_init);
-
 static void edmac_read_complete_cbr (int ctx)
 {
-    give_semaphore(edmac_read_done_sem);
+    edmac_read_done = 1;
 }
 
 static void edmac_write_complete_cbr (int ctx)
@@ -45,7 +37,15 @@ static void edmac_write_complete_cbr (int ctx)
 
 void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h)
 {
-    take_semaphore(edmac_memcpy_sem, 0);
+    if (edmac_memcpy_busy)
+    {
+        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 20, 200, "!!! EDMAC BUSY !!!");
+        beep_custom(1000, 2000, 0);
+    }
+
+    /* fixme: not atomic */
+    while (edmac_memcpy_busy) msleep(10);
+    edmac_memcpy_busy = 1;
     
     /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
     uint32_t dmaFlags = 0x20001000;
@@ -91,7 +91,12 @@ void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int sr
 void edmac_copy_rectangle_adv_finish()
 {
     /* wait until read is finished */
-    take_semaphore(edmac_read_done_sem, 0);
+    if (!edmac_read_done)
+    {
+        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 20, 200, "!!! EDMAC NOT DONE !!!");
+        beep_custom(1000, 2000, 0);
+    }
+    while (!edmac_read_done) msleep(10);
 
     /* set default CBRs again and stop both DMAs */
     UnregisterEDmacCompleteCBR(edmac_read_chan);
@@ -101,7 +106,7 @@ void edmac_copy_rectangle_adv_finish()
     UnregisterEDmacAbortCBR(edmac_write_chan);
     UnregisterEDmacPopCBR(edmac_write_chan);
 
-    give_semaphore(edmac_memcpy_sem);
+    edmac_memcpy_busy = 0;
 }
 
 void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h)
@@ -201,8 +206,8 @@ void* edmac_memcpy_start(void* dst, void* src, size_t length)
     {
         void * ret = memcpy(dst, src, length);
         /* simulate a started copy operation */
-        take_semaphore(edmac_memcpy_sem, 0);
-        give_semaphore(edmac_read_done_sem);
+        edmac_memcpy_busy = 1;
+        edmac_read_done = 1;
         return ret;
     }
     
