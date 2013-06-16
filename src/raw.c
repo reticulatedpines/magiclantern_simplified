@@ -1220,7 +1220,7 @@ void raw_force_aspect_ratio_1to1()
     {
         lv2raw.sy = lv2raw.sx;
         int height = RAW2LV_DY(preview_rect_h);
-        int offset = (vram_lv.height - height) / 2;
+        int offset = (BM2LV_DY(os.y_ex) - height) / 2;
         int skip_top = preview_rect_y;
         lv2raw.ty = skip_top - LV2RAW_DY(os.y0) - LV2RAW_DY(offset);
     }
