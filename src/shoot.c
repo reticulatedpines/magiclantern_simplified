@@ -3664,13 +3664,13 @@ static char* xmp_template =
 "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Magic Lantern\">\n"
 " <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n"
 "  <rdf:Description rdf:about=\"\"\n"
+"    xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
 "    xmlns:photoshop=\"http://ns.adobe.com/photoshop/1.0/\"\n"
 "    xmlns:crs=\"http://ns.adobe.com/camera-raw-settings/1.0/\"\n"
 "   photoshop:DateCreated=\"2050-01-01T00:00:00:00\"\n"
 "   photoshop:EmbeddedXMPDigest=\"\"\n"
 "   crs:ProcessVersion=\"6.7\"\n"
-"   crs:Exposure2012=\"%s%d.%05d\"\n"
-"   crs:AlreadyApplied=\"False\">\n"
+"   crs:Exposure2012=\"%s%d.%05d\">\n"
 "   <dc:subject>\n"
 "    <rdf:Bag>\n"
 "     <rdf:li>ML Post-Deflicker</rdf:li>\n"
@@ -3720,7 +3720,6 @@ static void post_deflicker_save_sidecar_file(int type, char* photo_filename, flo
     if (type == 0)
     {
         /* not sure */
-        ev = COERCE(ev, -5, 5);
         int evi = ev * 100000;
         
         my_fprintf(f, xmp_template, FMT_FIXEDPOINT5S(evi));
