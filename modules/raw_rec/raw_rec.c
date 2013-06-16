@@ -852,6 +852,28 @@ static void lv_unhack(int unused)
 
 static void hack_liveview()
 {
+    if (cam_5d2 || cam_50d)
+    {
+        /* try to fix pink preview in zoom mode (5D2/50D) */
+        if (lv_dispsize > 1 && !RAW_IS_RECORDING && !get_halfshutter_pressed())
+        {
+            /**
+             * This register seems to be raw type on digic 4; digic 5 has it at c0f37014
+             * - default is 5 on 5D2 with lv_save_raw, 0xB without, 4 is lv_af_raw
+             * - don't record this: you will have lots of bad pixels (no big deal if you can remove them)
+             * - don't record lv_af_raw: you will have random colored dots that contain focus info; their position is not fixed, so you can't remove them
+             * - use half-shutter heuristic for clean silent pics
+             * 
+             * Reason for overriding here:
+             * - if you use lv_af_raw, you can no longer restore it when you start recording.
+             * - if you override here, image quality is restored as soon as you stop overriding
+             * - but pink preview is also restored, you can't have both
+             */
+            
+            *(volatile uint32_t*)0xc0f08114 = 0;
+        }
+    }
+    
     if (!PREVIEW_HACKED) return;
     
     int rec = RAW_IS_RECORDING;
