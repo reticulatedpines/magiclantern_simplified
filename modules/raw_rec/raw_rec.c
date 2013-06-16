@@ -1367,6 +1367,7 @@ static void raw_video_playback_task()
     }
 
 cleanup:
+    vram_clear_lv();
     if (f != INVALID_PTR) FIO_CloseFile(f);
     if (buf) shoot_free(buf);
     raw_playing = 0;
