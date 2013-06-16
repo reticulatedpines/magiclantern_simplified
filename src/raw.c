@@ -266,6 +266,14 @@ int raw_update_params()
         
         /* 5D2 uses lv_raw_size >> 16, 5D3 uses lv_raw_height, so this hopefully covers both cases */
         height = MAX((lv_raw_height & 0xFFFF) + 1, ((lv_raw_size >> 16) & 0xFFFF) + 1);
+        
+        /* the raw edmac might be used by something else, and wrong numbers may be still there */
+        /* e.g. 5D2: 1244x1, obviously wrong */
+        if (width < 320 || height < 160)
+        {
+            dbg_printf("LV RAW size too small\n");
+            return 0;
+        }
 
         /** 
          * The RAW file has unused areas, usually black; we need to skip them.
