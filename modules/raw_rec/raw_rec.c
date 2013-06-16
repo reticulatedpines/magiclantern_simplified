@@ -34,6 +34,8 @@
 static int cam_eos_m = 0;
 static int cam_5d2 = 0;
 static int cam_50d = 0;
+static int cam_5d3 = 0;
+static int cam_6d = 0;
 
 /**
  * resolution should be multiple of 16 horizontally
@@ -1659,12 +1661,19 @@ static unsigned int raw_rec_init()
     cam_eos_m = streq(camera_model_short, "EOSM");
     cam_5d2 = streq(camera_model_short, "5D2");
     cam_50d = streq(camera_model_short, "50D");
+    cam_5d3 = streq(camera_model_short, "5D3");
+    cam_6d = streq(camera_model_short, "6D");
     
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
     {
         /* customize menus for each camera here (e.g. hide what doesn't work) */
         
+        /* 50D doesn't have sound and can't even beep */
         if (cam_50d && streq(e->name, "Sound"))
+            e->shidden = 1;
+
+        /* Memory hack confirmed to work only on 5D3 and 6D */
+        if (streq(e->name, "Memory hack") && !(cam_5d3 || cam_6d))
             e->shidden = 1;
     }
 
