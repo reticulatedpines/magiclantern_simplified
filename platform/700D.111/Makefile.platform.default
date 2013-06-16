@@ -5,7 +5,6 @@ CANON_NAME_FIR=5D300113.FIR
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
-# BUT IT IS CURRENTLY WRONG!!
 #
 ROMBASEADDR	    = 0xFF0C0000
 RESTARTSTART	= 0x0007EC00
