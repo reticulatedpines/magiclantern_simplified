@@ -323,11 +323,6 @@ void shutter_btn_rec_do(int rec)
 
 int movie_was_stopped_by_set = 0;
 
-#ifdef FEATURE_EXPO_OVERRIDE
-// at startup don't try to sync with Canon values; use saved values instead
-int bv_startup = 1;
-#endif
-
 void
 movtweak_task_init()
 {
@@ -343,8 +338,7 @@ movtweak_task_init()
     while (!ml_started) msleep(100);
 
 #ifdef FEATURE_EXPO_OVERRIDE
-    bv_auto_update_startup();
-    bv_startup = 0;
+    bv_auto_update();
 #endif
 }
 
