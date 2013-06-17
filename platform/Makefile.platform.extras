@@ -4,7 +4,7 @@ else
 	ML_BUILD_FIR_PLATFORM_FILE = autoexec-fir.bin
 endif
 
-build_fir: magiclantern.bin $(ML_BUILD_FIR_PLATFORM_FILE)
+build_fir: $(ML_BUILD_FIR_PLATFORM_FILE)
 ifndef ML_BUILD_FIR_DIR
 	$(eval ML_BUILD_FIR_DIR=../../../dumper)
 endif
