@@ -855,7 +855,7 @@ static void hack_liveview()
     if (cam_5d2 || cam_50d)
     {
         /* try to fix pink preview in zoom mode (5D2/50D) */
-        if (lv_dispsize > 1 && !RAW_IS_RECORDING && !get_halfshutter_pressed())
+        if (lv_dispsize > 1 && RAW_IS_IDLE && !get_halfshutter_pressed())
         {
             /**
              * This register seems to be raw type on digic 4; digic 5 has it at c0f37014
@@ -1118,6 +1118,7 @@ static void raw_video_rec_task()
     }
     
     /* detect raw parameters (geometry, black level etc) */
+    raw_set_dirty();
     if (!raw_update_params())
     {
         bmp_printf( FONT_MED, 30, 50, "Raw detect error");
