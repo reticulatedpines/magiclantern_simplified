@@ -855,22 +855,36 @@ static void hack_liveview()
     if (cam_5d2 || cam_50d)
     {
         /* try to fix pink preview in zoom mode (5D2/50D) */
-        if (lv_dispsize > 1 && RAW_IS_IDLE && !get_halfshutter_pressed())
+        if (lv_dispsize > 1 && !get_halfshutter_pressed())
         {
-            /**
-             * This register seems to be raw type on digic 4; digic 5 has it at c0f37014
-             * - default is 5 on 5D2 with lv_save_raw, 0xB without, 4 is lv_af_raw
-             * - don't record this: you will have lots of bad pixels (no big deal if you can remove them)
-             * - don't record lv_af_raw: you will have random colored dots that contain focus info; their position is not fixed, so you can't remove them
-             * - use half-shutter heuristic for clean silent pics
-             * 
-             * Reason for overriding here:
-             * - if you use lv_af_raw, you can no longer restore it when you start recording.
-             * - if you override here, image quality is restored as soon as you stop overriding
-             * - but pink preview is also restored, you can't have both
-             */
-            
-            *(volatile uint32_t*)0xc0f08114 = 0;
+            if (RAW_IS_IDLE)
+            {
+                /**
+                 * This register seems to be raw type on digic 4; digic 5 has it at c0f37014
+                 * - default is 5 on 5D2 with lv_save_raw, 0xB without, 4 is lv_af_raw
+                 * - don't record this: you will have lots of bad pixels (no big deal if you can remove them)
+                 * - don't record lv_af_raw: you will have random colored dots that contain focus info; their position is not fixed, so you can't remove them
+                 * - use half-shutter heuristic for clean silent pics
+                 * 
+                 * Reason for overriding here:
+                 * - if you use lv_af_raw, you can no longer restore it when you start recording.
+                 * - if you override here, image quality is restored as soon as you stop overriding
+                 * - but pink preview is also restored, you can't have both
+                 */
+                
+                *(volatile uint32_t*)0xc0f08114 = 0;
+            }
+            else
+            {
+                /**
+                 * While recording, we will have pink image
+                 * Make it grayscale and bring the shadows down a bit
+                 * (these registers will only touch the preview, not the recorded image)
+                 */
+                *(volatile uint32_t*)0xc0f0f070 = 0x01000100;
+                //~ *(volatile uint32_t*)0xc0f0e094 = 0;
+                *(volatile uint32_t*)0xc0f0f1c4 = 0xFFFFFFFF;
+            }
         }
     }
     
