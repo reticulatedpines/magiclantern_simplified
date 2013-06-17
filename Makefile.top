@@ -42,6 +42,8 @@ define call_make_rule
 endef
 
 define call_make_rule_ex
+	$(warning $(1) $(2))
+	$(warning #################)
 	+$(MAKE) -C $(2)/$(call $(1), $(word 1, $(subst _rule_, ,$@))) $(word 2, $(subst _rule_, ,$@))
 endef
 
