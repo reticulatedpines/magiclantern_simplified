@@ -1031,9 +1031,14 @@ void FAST raw_lv_redirect_edmac(void* ptr)
     MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
 }
 
-void raw_lv_shave_right(int offset)
+int raw_lv_shave_right(int offset)
 {
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) /* doesn't work */
+    return 0;
+#else
     shave_right = MAX(offset/8*8, 0);
+    return shave_right;
+#endif
 }
 
 void raw_lv_vsync_cbr()

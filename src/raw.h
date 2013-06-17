@@ -100,7 +100,8 @@ int raw_lv_enabled();
 void raw_lv_redirect_edmac(void* ptr);
 
 /* cut the right part of the LV raw image (makes buffer smaller); may reduce DMA load */
-void raw_lv_shave_right(int offset);
+/* returns the value actually used (or 0 if it doesn't work) */
+int raw_lv_shave_right(int offset);
 
 /* quick check whether the settings from raw_info are still valid (for lv vsync calls) */
 int raw_lv_settings_still_valid();

@@ -380,7 +380,7 @@ static MENU_UPDATE_FUNC(write_speed_update)
 static void update_shave()
 {
     shave_right = FRAMING_LEFT ? (raw_info.width + shave_right - res_x - skip_x) / 8 * 8 : 0;
-    raw_lv_shave_right(shave_right);
+    shave_right = raw_lv_shave_right(shave_right);
 }
 
 static void refresh_raw_settings(int force)
