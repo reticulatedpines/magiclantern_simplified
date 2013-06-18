@@ -2276,6 +2276,12 @@ void bv_apply_tv(int tv)
 
 void bv_apply_av(int av)
 {
+    if (lens_info.raw_aperture_min == 0 && lens_info.raw_aperture_max == 0)
+    {
+        /* if this is 0, exposure override has no effect; use f2.8 as a dummy value */
+        CONTROL_BV_AV = 32;
+        return;
+    }
     CONTROL_BV_AV = COERCE(av, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
 }
 
