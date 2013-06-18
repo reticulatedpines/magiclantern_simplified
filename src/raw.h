@@ -3,6 +3,26 @@
  * 
  **/
 
+/*
+ * Copyright (C) 2013 Magic Lantern Team
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the
+ * Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
+
 /**
 * RAW pixels (document mode, as with dcraw -D -o 0):
 
@@ -100,7 +120,8 @@ int raw_lv_enabled();
 void raw_lv_redirect_edmac(void* ptr);
 
 /* cut the right part of the LV raw image (makes buffer smaller); may reduce DMA load */
-void raw_lv_shave_right(int offset);
+/* returns the value actually used (or 0 if it doesn't work) */
+int raw_lv_shave_right(int offset);
 
 /* quick check whether the settings from raw_info are still valid (for lv vsync calls) */
 int raw_lv_settings_still_valid();

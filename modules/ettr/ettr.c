@@ -153,6 +153,7 @@ static int auto_ettr_work_m(int corr)
 {
     int tv = lens_info.raw_shutter;
     int iso = lens_info.raw_iso;
+    
     if (!tv || !iso) return 0;
     int old_expo = tv - iso;
 
@@ -214,10 +215,13 @@ static int auto_ettr_work_m(int corr)
     tvr = round_shutter(tvr, shutter_lim);
 
     /* apply the new settings */
-    lens_set_rawiso(isor);              /* for expo overide */
-    lens_set_rawshutter(tvr);
-    int oks = hdr_set_rawshutter(tvr);  /* for confirmation */
-    int oki = hdr_set_rawiso(isor);
+    int oki = lens_set_rawiso(isor);    /* for expo overide */
+    int oks = lens_set_rawshutter(tvr);
+    if (!expo_override_active())
+    {
+        oks = hdr_set_rawshutter(tvr);  /* for confirmation and retrying if needed */
+        oki = hdr_set_rawiso(isor);
+    }
 
     /* don't let expo lock undo our changes */
     expo_lock_update_value();
@@ -231,7 +235,7 @@ static int auto_ettr_work_m(int corr)
     
     if (tvr > tv0 + 4) /* still underexposed? */
         return -1;
-    
+
     return oks && oki ? 1 : -1;
 }
 
@@ -256,7 +260,9 @@ static int auto_ettr_work_auto(int corr)
 
 static int auto_ettr_work(int corr)
 {
-    if (shooting_mode == SHOOTMODE_AV || shooting_mode == SHOOTMODE_TV || shooting_mode == SHOOTMODE_P)
+    if (expo_override_active())
+        return auto_ettr_work_m(corr);
+    else if (shooting_mode == SHOOTMODE_AV || shooting_mode == SHOOTMODE_TV || shooting_mode == SHOOTMODE_P)
         return auto_ettr_work_auto(corr);
     else
         return auto_ettr_work_m(corr);

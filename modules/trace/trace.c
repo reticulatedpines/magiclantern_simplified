@@ -8,6 +8,8 @@
 
 static trace_entry_t trace_contexts[TRACE_MAX_CONTEXT];
 
+extern tsc_t get_us_clock_value();
+
 /* general selection of allocation method */
 void *trace_alloc(int size)
 {
@@ -70,70 +72,78 @@ static void trace_task(trace_entry_t *ctx)
 unsigned int trace_start(char *name, char *file_name)
 {
     int pos = 0;
+    
+    /* small atomic lock here to stay thread safe */
+    int old_stat = cli();
     for(pos = 0; pos < TRACE_MAX_CONTEXT; pos++)
     {
         if(!trace_contexts[pos].used)
         {
-            trace_entry_t *ctx = &trace_contexts[pos];
-
-            /* init fields */
-            ctx->used = 1;
-            ctx->format = TRACE_FMT_DEFAULT;
-            ctx->separator = TRACE_SEPARATOR_DEFAULT;
-            ctx->sleep_time = TRACE_SLEEP_TIME;
-            ctx->buffer_size = TRACE_BUFFER_SIZE;
-            ctx->buffer_read_pos = 0;
-            ctx->buffer_write_pos = 0;
-
-            /* copy strings */
-            strncpy(ctx->name, name, sizeof(ctx->name));
-            strncpy(ctx->file_name, file_name, sizeof(ctx->file_name));
-
-            /* start worker task */
-            ctx->task_state = TRACE_TASK_STATE_DEAD;
-            ctx->task = (unsigned int)task_create("trace_task", 0x1e, 0x1000, &trace_task, (void *)ctx);
-
-            /* create trace file */
-            FIO_RemoveFile(ctx->file_name);
-            ctx->file_handle = FIO_CreateFileEx(ctx->file_name);
-            if(ctx->file_handle == INVALID_PTR)
-            {
-                ctx->used = 0;
-                return TRACE_ERROR;
-            }
-
-            /* allocate write buffer */
-            ctx->buffer = trace_alloc(ctx->buffer_size);
-            if(!ctx->buffer)
-            {
-                FIO_CloseFile(ctx->file_handle);
-                ctx->used = 0;
-                return TRACE_ERROR;
-            }
-
-            ctx->start_tsc = get_ms_clock_value();
-            ctx->last_tsc = ctx->start_tsc;
-
-            /* make sure task is running */
-            for(int loops = 0; loops < 250; loops++)
-            {
-                if(ctx->task_state != TRACE_TASK_STATE_DEAD)
-                {
-                    return pos;
-                }
-                msleep(20);
-            }
-
-            /* timed out, return gracefully */
-            ctx->used = 0;
-            FIO_CloseFile(ctx->file_handle);
-            trace_free(ctx->buffer);
-            ctx->file_handle = NULL;
-            ctx->buffer = NULL;
-
-            return TRACE_ERROR;
+            trace_contexts[pos].used = 1;
+            break;
         }
     }
+    sei(old_stat);
+    
+    if(pos >= TRACE_MAX_CONTEXT)
+    {
+        return TRACE_ERROR;
+    }
+    trace_entry_t *ctx = &trace_contexts[pos];
+
+    /* init fields */
+    ctx->format = TRACE_FMT_DEFAULT;
+    ctx->separator = TRACE_SEPARATOR_DEFAULT;
+    ctx->sleep_time = TRACE_SLEEP_TIME;
+    ctx->buffer_size = TRACE_BUFFER_SIZE;
+    ctx->buffer_read_pos = 0;
+    ctx->buffer_write_pos = 0;
+
+    /* copy strings */
+    strncpy(ctx->name, name, sizeof(ctx->name));
+    strncpy(ctx->file_name, file_name, sizeof(ctx->file_name));
+
+    /* start worker task */
+    ctx->task_state = TRACE_TASK_STATE_DEAD;
+    ctx->task = (unsigned int)task_create("trace_task", 0x18, 0x1000, &trace_task, (void *)ctx);
+
+    /* create trace file */
+    FIO_RemoveFile(ctx->file_name);
+    ctx->file_handle = FIO_CreateFileEx(ctx->file_name);
+    if(ctx->file_handle == INVALID_PTR)
+    {
+        ctx->used = 0;
+        return TRACE_ERROR;
+    }
+
+    /* allocate write buffer */
+    ctx->buffer = trace_alloc(ctx->buffer_size);
+    if(!ctx->buffer)
+    {
+        FIO_CloseFile(ctx->file_handle);
+        ctx->used = 0;
+        return TRACE_ERROR;
+    }
+
+    ctx->start_tsc = get_us_clock_value();
+    ctx->last_tsc = ctx->start_tsc;
+
+    /* make sure task is running */
+    for(int loops = 0; loops < 250; loops++)
+    {
+        if(ctx->task_state != TRACE_TASK_STATE_DEAD)
+        {
+            return pos;
+        }
+        msleep(20);
+    }
+
+    /* timed out, return gracefully */
+    ctx->used = 0;
+    FIO_CloseFile(ctx->file_handle);
+    trace_free(ctx->buffer);
+    ctx->file_handle = NULL;
+    ctx->buffer = NULL;
 
     return TRACE_ERROR;
 }
@@ -192,11 +202,56 @@ unsigned int trace_format(unsigned int context, unsigned int format, unsigned ch
     return TRACE_OK;
 }
 
+static unsigned int trace_write_timestamp(trace_entry_t *ctx, int type, tsc_t tsc, char *timestamp, int *timestamp_pos)
+{
+    int pos = *timestamp_pos;
+
+    switch(type)
+    {
+        case TRACE_FMT_TIME_CTR:
+        {
+            /* write raw timestamp counter "000015255" */
+            char tmp[32];
+
+            snprintf(tmp, sizeof(tmp), "%08X%08X", (unsigned int)(tsc >> 32), (unsigned int)tsc);
+            memcpy(&timestamp[pos], tmp, 17);
+            pos += 16;
+            break;
+        }
+        case TRACE_FMT_TIME_ABS:
+        {
+            /* write time since measurement start "0:0:36.309" */
+            char tmp[32];
+            
+            unsigned int usec = tsc % 1000000ULL;
+            unsigned int sec_total = tsc / 1000000ULL;
+            unsigned int sec = sec_total % 60;
+            unsigned int min = (sec_total / 60) % 60;
+            unsigned int hrs = (sec_total / 3600) % 60;
+
+            snprintf(tmp, sizeof(tmp), "%02d:%02d:%02d.%06d", hrs, min, sec, usec);
+            strcpy(&timestamp[pos], tmp);
+            pos += 15;
+            break;
+        }
+        case TRACE_FMT_TIME_DATE:
+        {
+            break;
+        }
+    }
+    
+    /* add separator */
+    timestamp[pos] = ctx->separator;
+    pos++;
+    timestamp[pos] = 0;
+    
+    *timestamp_pos = pos;
+}
 
 /* write some string into specified trace */
 unsigned int trace_write(unsigned int context, char *string, ...)
 {
-    unsigned int tsc = get_ms_clock_value();
+    tsc_t tsc = get_us_clock_value();
     char timestamp[64];
     int timestamp_pos = 0;
 	va_list ap;
@@ -206,58 +261,49 @@ unsigned int trace_write(unsigned int context, char *string, ...)
     {
         return TRACE_OK;
     }
-
+    
     /* build timestamp string */
-    timestamp[0] = 0;
+    timestamp_pos = 0;
+    timestamp[timestamp_pos] = 0;
+    
     if(ctx->format & TRACE_FMT_TIME_CTR)
     {
-        /* write raw timestamp counter "000015255" */
-        char tmp[16];
-
-        snprintf(tmp, sizeof(tmp), "%09d", tsc);
-        strncpy(&timestamp[timestamp_pos], tmp, sizeof(timestamp) - timestamp_pos);
-        timestamp_pos += strlen(tmp);
-
-        /* add separator */
-        timestamp[timestamp_pos] = ctx->separator;
-        timestamp_pos++;
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_CTR, tsc, timestamp, &timestamp_pos);
     }
     if(ctx->format & TRACE_FMT_TIME_CTR_REL)
     {
-        /* write raw timestamp counter delta to starting time "000015255" */
-        char tmp[16];
-
-        unsigned int delta = tsc - ctx->start_tsc;
-        snprintf(tmp, sizeof(tmp), "%09d", delta);
-        strncpy(&timestamp[timestamp_pos], tmp, sizeof(timestamp) - timestamp_pos);
-        timestamp_pos += strlen(tmp);
-
-        /* add separator */
-        timestamp[timestamp_pos] = ctx->separator;
-        timestamp_pos++;
+        tsc_t delta = tsc - ctx->start_tsc;
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_CTR, delta, timestamp, &timestamp_pos);
+    }
+    if(ctx->format & TRACE_FMT_TIME_CTR_DELTA)
+    {
+        tsc_t delta = tsc - ctx->last_tsc;
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_CTR, delta, timestamp, &timestamp_pos);
+    }
+    if(ctx->format & TRACE_FMT_TIME_ABS)
+    {
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_ABS, tsc, timestamp, &timestamp_pos);
     }
     if(ctx->format & TRACE_FMT_TIME_REL)
     {
-        /* write time since measurement start "0:0:36.309" */
-        char tmp[16];
-        unsigned int delta = tsc - ctx->start_tsc;
-        unsigned int msec = delta % 1000;
-        unsigned int sec_total = delta / 1000;
-        unsigned int sec = sec_total % 60;
-        unsigned int min = (sec_total / 60) % 60;
-        unsigned int hrs = (sec_total / 3600) % 60;
-
-        snprintf(tmp, sizeof(tmp), "%02d:%02d:%02d.%03d", hrs, min, sec, msec);
-        strncpy(&timestamp[timestamp_pos], tmp, sizeof(timestamp) - timestamp_pos);
-        timestamp_pos += strlen(tmp);
-
-        /* add separator */
-        timestamp[timestamp_pos] = ctx->separator;
-        timestamp_pos++;
+        tsc_t delta = tsc - ctx->start_tsc;
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_ABS, delta, timestamp, &timestamp_pos);
+    }
+    if(ctx->format & TRACE_FMT_TIME_DELTA)
+    {
+        tsc_t delta = tsc - ctx->last_tsc;
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_ABS, delta, timestamp, &timestamp_pos);
+    }
+    if(ctx->format & TRACE_FMT_TIME_DATE)
+    {
+        trace_write_timestamp(ctx, TRACE_FMT_TIME_DATE, tsc, timestamp, &timestamp_pos);
     }
 
+    /* update last tsc */
+    ctx->last_tsc = tsc;
+    
     /* get the minimum length that is needed. string may get longer, but we cannot predict that */
-    int min_len = strlen(string) + timestamp_pos + 1;
+    int min_len = (string?strlen(string):0) + timestamp_pos + 1;
 
     /* yes, we are disabling interrupts here. this is quite bad - should we use a per-context vsprintf-buffer? */
     int old_stat = cli();
@@ -272,8 +318,13 @@ unsigned int trace_write(unsigned int context, char *string, ...)
     int max_len = ctx->buffer_size - ctx->buffer_write_pos;
     va_start( ap, string );
 
-    strncpy(&ctx->buffer[ctx->buffer_write_pos], timestamp, max_len);
-    int len = vsnprintf(&ctx->buffer[ctx->buffer_write_pos + timestamp_pos], max_len - timestamp_pos, string, ap);
+    memcpy(&ctx->buffer[ctx->buffer_write_pos], timestamp, timestamp_pos);
+    int len = 0;
+    
+    if(string)
+    {
+        len = vsnprintf(&ctx->buffer[ctx->buffer_write_pos + timestamp_pos], max_len - timestamp_pos, string, ap);
+    }
 
     /* buffer filled until the end. seems the string was too long */
     if(len >= max_len - timestamp_pos)
@@ -296,7 +347,7 @@ unsigned int trace_write(unsigned int context, char *string, ...)
 /* write some binary data into specified trace with an variable length field in front */
 unsigned int trace_write_binary(unsigned int context, unsigned char *buffer, unsigned int length)
 {
-    unsigned int tsc = get_ms_clock_value();
+    tsc_t tsc = get_us_clock_value();
     trace_entry_t *ctx = &trace_contexts[context];
 
     if(context >= TRACE_MAX_CONTEXT || !ctx->used)
@@ -304,8 +355,8 @@ unsigned int trace_write_binary(unsigned int context, unsigned char *buffer, uns
         return TRACE_ERROR;
     }
 
-    /* var length is max 4 bytes, tsc also. check for enough free space */
-    if((ctx->buffer_write_pos + length + 4 + 4) >= ctx->buffer_size)
+    /* var length is max 4 bytes, tsc 8 bytes. check for enough free space */
+    if((ctx->buffer_write_pos + length + 4 + sizeof(tsc)) >= ctx->buffer_size)
     {
         return TRACE_ERROR;
     }
@@ -314,7 +365,7 @@ unsigned int trace_write_binary(unsigned int context, unsigned char *buffer, uns
     int old_stat = cli();
 
     /* first copy TSC */
-    memcpy(&ctx->buffer[ctx->buffer_write_pos], &tsc, 4);
+    memcpy(&ctx->buffer[ctx->buffer_write_pos], &tsc, sizeof(tsc));
     ctx->buffer_write_pos += 4;
 
     /* next is variable length */
@@ -367,6 +418,29 @@ static unsigned int trace_write_varlength(unsigned int context, unsigned int len
 static unsigned int trace_init()
 {
     /* don't initialize anything as other modules may use this module during their init, these could be ran before ours */
+    
+    /* some performance tests */
+    if(0)
+    {
+        int ctx = trace_start("trace", "trace.tst");
+        int old_stat = cli();
+        trace_write(ctx, "Tick");
+        trace_write(ctx, "Tick");
+        trace_write(ctx, "Tick");
+        trace_write(ctx, "Tick");
+        trace_write(ctx, "%d", old_stat);
+        trace_write(ctx, "%d", old_stat);
+        trace_write(ctx, "%d", old_stat);
+        trace_write(ctx, "%d %d", old_stat, old_stat);
+        trace_write(ctx, "%d %d", old_stat, old_stat);
+        trace_write(ctx, "%d %d", old_stat, old_stat);
+        trace_write(ctx, "%s", "Tack");
+        trace_write(ctx, "%s", "Tack");
+        trace_write(ctx, "%s", "Tack");
+        sei(old_stat);
+        trace_stop(ctx, 1);
+        beep();
+    }
     return 0;
 }
 

@@ -1611,9 +1611,6 @@ static void lensinfo_set_aperture(int raw)
 }
 
 extern int bv_auto;
-static CONFIG_INT("bv.needed.by.iso", bv_auto_needed_by_iso, 0);
-static CONFIG_INT("bv.needed.by.tv", bv_auto_needed_by_shutter, 0);
-static CONFIG_INT("bv.needed.by.av", bv_auto_needed_by_aperture, 0);
 
 static int iso_ack = -1;
 PROP_HANDLER( PROP_ISO )
@@ -1627,7 +1624,6 @@ PROP_HANDLER( PROP_ISO )
     )
     {
         bv_set_rawiso(buf[0]);
-        bv_auto_needed_by_iso = 0;
     }
     bv_auto_update();
     #endif
@@ -1671,9 +1667,6 @@ PROP_HANDLER( PROP_BV ) // camera-specific
 }
 #endif
 
-#ifdef FEATURE_EXPO_OVERRIDE
-static int shutter_was_set_from_ml = 0;
-#endif
 static int shutter_ack = -1;
 PROP_HANDLER( PROP_SHUTTER )
 {
@@ -1684,7 +1677,7 @@ PROP_HANDLER( PROP_SHUTTER )
     }
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0]  // sync expo override to Canon values
-            && (!shutter_was_set_from_ml || ABS(buf[0] - lens_info.raw_shutter) > 3) // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
+            && (ABS(buf[0] - lens_info.raw_shutter) > 3) // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
                                                        // especially when pressing half-shutter
 
         #ifdef CONFIG_500D
@@ -1697,8 +1690,6 @@ PROP_HANDLER( PROP_SHUTTER )
         )
     {
         bv_set_rawshutter(buf[0]);
-        bv_auto_needed_by_shutter = 0;
-        shutter_was_set_from_ml = 0;
     }
     bv_auto_update();
     #endif
@@ -1719,7 +1710,6 @@ PROP_HANDLER( PROP_APERTURE2 )
     )
     {
         bv_set_rawaperture(COERCE(buf[0], lens_info.raw_aperture_min, lens_info.raw_aperture_max));
-        bv_auto_needed_by_aperture = 0;
     }
     bv_auto_update();
     #endif
@@ -2264,6 +2254,11 @@ extern int bv_iso;
 extern int bv_tv;
 extern int bv_av;
 
+int expo_override_active()
+{
+    return CONTROL_BV;
+}
+
 void bv_update_lensinfo()
 {
     if (CONTROL_BV) // sync lens info and camera properties with overriden values
@@ -2281,6 +2276,12 @@ void bv_apply_tv(int tv)
 
 void bv_apply_av(int av)
 {
+    if (lens_info.raw_aperture_min == 0 && lens_info.raw_aperture_max == 0)
+    {
+        /* if this is 0, exposure override has no effect; use f2.8 as a dummy value */
+        CONTROL_BV_AV = 32;
+        return;
+    }
     CONTROL_BV_AV = COERCE(av, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
 }
 
@@ -2458,45 +2459,37 @@ void bv_auto_update()
     //~ give_semaphore(lens_sem);
     //~ give_semaphore(bv_sem);
 }
-
-void bv_auto_update_startup()
-{
-    bv_auto_update();
-    if (CONTROL_BV) shutter_was_set_from_ml = 1;
-}
 #endif
 
 /** Camera control functions */
 int lens_set_rawaperture( int aperture)
 {
-    bv_auto_needed_by_aperture = !prop_set_rawaperture(aperture); // first try to set via property
+    int ok = prop_set_rawaperture(aperture); // first try to set via property
     #ifdef FEATURE_EXPO_OVERRIDE
     bv_auto_update(); // auto flip between "BV" or "normal"
-    if (bv_auto_should_enable() || CONTROL_BV) return bv_set_rawaperture(aperture);
+    if (CONTROL_BV) return bv_set_rawaperture(aperture);
     #endif
-    return !bv_auto_needed_by_aperture;
+    return ok;
 }
 
 int lens_set_rawiso( int iso )
 {
-    bv_auto_needed_by_iso = !prop_set_rawiso(iso); // first try to set via property
+    int ok = prop_set_rawiso(iso); // first try to set via property
     #ifdef FEATURE_EXPO_OVERRIDE
     bv_auto_update(); // auto flip between "BV" or "normal"
-    if (bv_auto_should_enable() || CONTROL_BV) return bv_set_rawiso(iso);
+    if (CONTROL_BV) return bv_set_rawiso(iso);
     #endif
-    return !bv_auto_needed_by_iso;
+    return ok;
 }
 
 int lens_set_rawshutter( int shutter )
 {
-    //~ bmp_printf(FONT_MED, 500, 300, "lsr %d ...", shutter);
-    bv_auto_needed_by_shutter = !prop_set_rawshutter(shutter); // first try to set via property
-    //~ bmp_printf(FONT_MED, 500, 300, "lsr %d %d  ", shutter, bv_auto_needed_by_shutter);
+    int ok = prop_set_rawshutter(shutter); // first try to set via property
     #ifdef FEATURE_EXPO_OVERRIDE
     bv_auto_update(); // auto flip between "BV" or "normal"
-    if (bv_auto_should_enable() || CONTROL_BV) { shutter_was_set_from_ml = 1; return bv_set_rawshutter(shutter); }
+    if (CONTROL_BV) return bv_set_rawshutter(shutter);
     #endif
-    return !bv_auto_needed_by_shutter;
+    return ok;
 }
 
 

@@ -198,10 +198,14 @@ magiclantern: $(ML_OBJS-y) dietlibc.a newlib-libc.a
 
 reboot.o: $(SRC_DIR)/reboot.c $(PLATFORM_DIR)/version.bin magiclantern.bin
 
+ifndef ML_SRC_REBOOT_OBJ
+ML_SRC_REBOOT_OBJ = reboot.o
+endif
+
 clean::
 	$(call rm_files, magiclantern.bin autoexec autoexec.map location.map)
 
-autoexec: reboot.o
+autoexec: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-nostdlib \
@@ -212,7 +216,7 @@ autoexec: reboot.o
 	); \
 	$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz
 
-autoexec-fir: reboot.o
+autoexec-fir: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-nostdlib \

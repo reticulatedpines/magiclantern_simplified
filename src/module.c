@@ -646,7 +646,7 @@ int module_unload(void *module)
 
 
 /* execute all callback routines of given type. maybe it will get extended to support varargs */
-int module_exec_cbr(unsigned int type)
+int FAST module_exec_cbr(unsigned int type)
 {
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
     {

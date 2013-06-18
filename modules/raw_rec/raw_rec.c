@@ -17,6 +17,27 @@
  * - look in Movie menu
  */
 
+/*
+ * Copyright (C) 2013 Magic Lantern Team
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the
+ * Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
+
+
 #define CONFIG_CONSOLE
 
 #include <module.h>
@@ -34,6 +55,8 @@
 static int cam_eos_m = 0;
 static int cam_5d2 = 0;
 static int cam_50d = 0;
+static int cam_5d3 = 0;
+static int cam_6d = 0;
 
 /**
  * resolution should be multiple of 16 horizontally
@@ -378,7 +401,7 @@ static MENU_UPDATE_FUNC(write_speed_update)
 static void update_shave()
 {
     shave_right = FRAMING_LEFT ? (raw_info.width + shave_right - res_x - skip_x) / 8 * 8 : 0;
-    raw_lv_shave_right(shave_right);
+    shave_right = raw_lv_shave_right(shave_right);
 }
 
 static void refresh_raw_settings(int force)
@@ -389,9 +412,11 @@ static void refresh_raw_settings(int force)
         static int aux = INT_MIN;
         if (force || should_run_polling_action(250, &aux))
         {
-            raw_update_params();
-            update_resolution_params();
-            update_shave();
+            if (raw_update_params())
+            {
+                update_resolution_params();
+                update_shave();
+            }
         }
     }
 }
@@ -731,8 +756,51 @@ static void panning_update()
     update_cropping_offsets();
 }
 
+static void raw_video_enable()
+{
+    /* toggle the lv_save_raw flag from raw.c */
+    raw_lv_request();
+
+    /* EOS-M needs this hack. Please don't use it unless there's no other way. */
+    if (cam_eos_m) set_custom_movie_mode(1);
+    
+    msleep(50);
+}
+
+static void raw_video_disable()
+{
+    raw_lv_release();
+    raw_lv_shave_right(0);
+    if (cam_eos_m) set_custom_movie_mode(0);
+}
+
+static void raw_lv_request_update()
+{
+    static int raw_lv_requested = 0;
+
+    if (raw_video_enabled && (is_movie_mode() || cam_eos_m))  /* exception: EOS-M needs to record in photo mode */
+    {
+        if (!raw_lv_requested)
+        {
+            raw_video_enable();
+            raw_lv_requested = 1;
+        }
+    }
+    else
+    {
+        if (raw_lv_requested)
+        {
+            raw_video_disable();
+            raw_lv_requested = 0;
+        }
+    }
+}
+
+
 static unsigned int raw_rec_polling_cbr(unsigned int unused)
 {
+    raw_lv_request_update();
+    
     if (!raw_video_enabled)
         return 0;
     
@@ -805,6 +873,42 @@ static void lv_unhack(int unused)
 
 static void hack_liveview()
 {
+    if (cam_5d2 || cam_50d)
+    {
+        /* try to fix pink preview in zoom mode (5D2/50D) */
+        if (lv_dispsize > 1 && !get_halfshutter_pressed())
+        {
+            if (RAW_IS_IDLE)
+            {
+                /**
+                 * This register seems to be raw type on digic 4; digic 5 has it at c0f37014
+                 * - default is 5 on 5D2 with lv_save_raw, 0xB without, 4 is lv_af_raw
+                 * - don't record this: you will have lots of bad pixels (no big deal if you can remove them)
+                 * - don't record lv_af_raw: you will have random colored dots that contain focus info; their position is not fixed, so you can't remove them
+                 * - use half-shutter heuristic for clean silent pics
+                 * 
+                 * Reason for overriding here:
+                 * - if you use lv_af_raw, you can no longer restore it when you start recording.
+                 * - if you override here, image quality is restored as soon as you stop overriding
+                 * - but pink preview is also restored, you can't have both
+                 */
+                
+                *(volatile uint32_t*)0xc0f08114 = 0;
+            }
+            else
+            {
+                /**
+                 * While recording, we will have pink image
+                 * Make it grayscale and bring the shadows down a bit
+                 * (these registers will only touch the preview, not the recorded image)
+                 */
+                *(volatile uint32_t*)0xc0f0f070 = 0x01000100;
+                //~ *(volatile uint32_t*)0xc0f0e094 = 0;
+                *(volatile uint32_t*)0xc0f0f1c4 = 0xFFFFFFFF;
+            }
+        }
+    }
+    
     if (!PREVIEW_HACKED) return;
     
     int rec = RAW_IS_RECORDING;
@@ -851,7 +955,7 @@ static void hack_liveview()
     }
 }
 
-static int process_frame()
+static int FAST process_frame()
 {
     if (!lv) return 0;
     
@@ -886,7 +990,7 @@ static int process_frame()
     return ans;
 }
 
-static unsigned int raw_rec_vsync_cbr(unsigned int unused)
+static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 {
     static int dma_transfer_in_progress = 0;
     /* there may be DMA transfers started in process_frame, finish them */
@@ -1049,6 +1153,7 @@ static void raw_video_rec_task()
     }
     
     /* detect raw parameters (geometry, black level etc) */
+    raw_set_dirty();
     if (!raw_update_params())
     {
         bmp_printf( FONT_MED, 30, 50, "Raw detect error");
@@ -1275,37 +1380,6 @@ static MENU_SELECT_FUNC(raw_start_stop)
     }
 }
 
-static void raw_video_enable()
-{
-    raw_video_enabled = 1;
-
-    /* toggle the lv_save_raw flag from raw.c */
-    raw_lv_request();
-
-    /* EOS-M needs this hack. Please don't use it unless there's no other way. */
-    if (cam_eos_m) set_custom_movie_mode(1);
-    
-    msleep(50);
-}
-
-static void raw_video_disable()
-{
-    raw_video_enabled = 0;
-    raw_lv_release();
-    raw_lv_shave_right(0);
-    if (cam_eos_m) set_custom_movie_mode(0);
-}
-
-static MENU_SELECT_FUNC(raw_video_toggle)
-{
-    if (!RAW_IS_IDLE) return;
-    
-    if (raw_video_enabled)
-        raw_video_disable();
-    else
-        raw_video_enable();
-}
-
 static void raw_video_playback_task()
 {
     void* buf = NULL;
@@ -1367,6 +1441,7 @@ static void raw_video_playback_task()
     }
 
 cleanup:
+    vram_clear_lv();
     if (f != INVALID_PTR) FIO_CloseFile(f);
     if (buf) shoot_free(buf);
     raw_playing = 0;
@@ -1426,7 +1501,6 @@ static struct menu_entry raw_video_menu[] =
     {
         .name = "RAW video",
         .priv = &raw_video_enabled,
-        .select = raw_video_toggle,
         .max = 1,
         .update = raw_main_update,
         .submenu_width = 710,
@@ -1658,12 +1732,19 @@ static unsigned int raw_rec_init()
     cam_eos_m = streq(camera_model_short, "EOSM");
     cam_5d2 = streq(camera_model_short, "5D2");
     cam_50d = streq(camera_model_short, "50D");
+    cam_5d3 = streq(camera_model_short, "5D3");
+    cam_6d = streq(camera_model_short, "6D");
     
     for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
     {
         /* customize menus for each camera here (e.g. hide what doesn't work) */
         
+        /* 50D doesn't have sound and can't even beep */
         if (cam_50d && streq(e->name, "Sound"))
+            e->shidden = 1;
+
+        /* Memory hack confirmed to work only on 5D3 and 6D */
+        if (streq(e->name, "Memory hack") && !(cam_5d3 || cam_6d))
             e->shidden = 1;
     }
 
@@ -1672,9 +1753,6 @@ static unsigned int raw_rec_init()
 
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
     fileman_register_type("RAW", "RAW Video", raw_rec_filehandler);
-    
-    if (raw_video_enabled)
-        raw_video_enable();
     
     return 0;
 }

@@ -1,3 +1,23 @@
+/*
+ * Copyright (C) 2013 Magic Lantern Team
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the
+ * Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
+
 #include "dryos.h"
 #include "raw.h"
 #include "property.h"
@@ -266,6 +286,14 @@ int raw_update_params()
         
         /* 5D2 uses lv_raw_size >> 16, 5D3 uses lv_raw_height, so this hopefully covers both cases */
         height = MAX((lv_raw_height & 0xFFFF) + 1, ((lv_raw_size >> 16) & 0xFFFF) + 1);
+        
+        /* the raw edmac might be used by something else, and wrong numbers may be still there */
+        /* e.g. 5D2: 1244x1, obviously wrong */
+        if (width < 320 || height < 160)
+        {
+            dbg_printf("LV RAW size too small\n");
+            return 0;
+        }
 
         /** 
          * The RAW file has unused areas, usually black; we need to skip them.
@@ -502,6 +530,10 @@ int raw_update_params()
     #endif
 
     #ifdef CONFIG_650D
+    int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
+    #endif
+
+    #ifdef CONFIG_700D
     int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
     #endif
 
@@ -1014,14 +1046,19 @@ static int compute_dynamic_range(float black_mean, float black_stdev, int white_
     return dr;
 }
 
-void raw_lv_redirect_edmac(void* ptr)
+void FAST raw_lv_redirect_edmac(void* ptr)
 {
     MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
 }
 
-void raw_lv_shave_right(int offset)
+int raw_lv_shave_right(int offset)
 {
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) /* doesn't work */
+    return 0;
+#else
     shave_right = MAX(offset/8*8, 0);
+    return shave_right;
+#endif
 }
 
 void raw_lv_vsync_cbr()
@@ -1216,7 +1253,7 @@ void raw_force_aspect_ratio_1to1()
     {
         lv2raw.sy = lv2raw.sx;
         int height = RAW2LV_DY(preview_rect_h);
-        int offset = (vram_lv.height - height) / 2;
+        int offset = (BM2LV_DY(os.y_ex) - height) / 2;
         int skip_top = preview_rect_y;
         lv2raw.ty = skip_top - LV2RAW_DY(os.y0) - LV2RAW_DY(offset);
     }
