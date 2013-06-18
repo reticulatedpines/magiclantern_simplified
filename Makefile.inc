@@ -76,8 +76,11 @@ installdoc:
 	-$(CP) $(SRC_DIR)/logo.bmp $(INSTALL_ML_DIR)/docs || echo "warning Unable to copy logo.bmp"
 
 prepare_zip: FORCE
-	$(eval INSTALL_DIR = zip)
+	$(eval INSTALL_DIR = $(PWD)/zip)
 	$(eval INSTALL_FINISH = )
+	$(eval export INSTALL_DIR)
+	$(eval export INSTALL_MODULES_DIR)
+	$(eval export INSTALL_FINISH)
 	$(call rm_dir, $(INSTALL_DIR)/)
 	$(warning remove $(INSTALL_DIR))
 	mkdir -p $(INSTALL_DIR)
