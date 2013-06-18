@@ -29,4 +29,6 @@ PLATFORM_CLEAN_ALL_TARGETS = $(call targets_rules, $(ALL_SUPPORTED_MODELS), clea
 
 PLATFORM_INSTALL_ALL_TARGETS = $(call targets_rules, $(ALL_SUPPORTED_MODELS), install)
 
+PLATFORM_INSTALL_SUPPORTED_TARGETS = $(call targets_rules, $(SUPPORTED_MODELS), install)
+
 call_make_platform = $(call call_make_rule_ex, platform_map, $(PLATFORM_PATH))

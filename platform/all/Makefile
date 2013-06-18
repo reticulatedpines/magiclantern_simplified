@@ -32,3 +32,9 @@ MODEL=$(subst $(space),.,$(SUPPORTED_MODELS))
 ML_MODEL_DIR = all
 
 include  ../Makefile.platform
+
+install:: $(PLATFORM_INSTALL_SUPPORTED_TARGETS) autoexec.bin
+	$(CP) autoexec.bin $(INSTALL_DIR)/
+
+$(PLATFORM_INSTALL_ALL_TARGETS):
+	$(call call_make_platform)
