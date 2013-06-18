@@ -3,18 +3,18 @@
 # and you get an estimate of how many frames you will be able to record.
 
 from __future__ import division
-import os, sys, math, random
+import os, sys, math
+from pylab import *
 
 # buffers = [32*1024*1024] * 4                              # 5D3 1x
 # buffers = [32*1024*1024] * 3 + [22 * 1024 * 1024]         # 5D3 zoom
 # buffers = [32*1024*1024] * 8 + [8 * 1024 * 1024]          # 60D (wow!)
 buffers = [32*1024*1024] * 2 + [8 * 1024 * 1024]            # 550D
-
+ 
 x = 1152;
 y = 464;
 fps = 23.976;
-write_speed = 20.0*1024*1024;
-timing_variation = 0.01;
+write_speed = 21.0*1024*1024;
 
 framesize = x * y * 14/8;
 
@@ -25,44 +25,97 @@ def speed_model(nominal_speed, buffer_size):
     # model fitted from benchmarks from Hoodman 1000x.log - http://www.magiclantern.fm/forum/index.php?topic=5471
     # and confirmed with small tendency of underestimation on 550D SanDisk Extreme 32GB 45MBs.log
     pfit = [-9.1988e-01, 6.5760e-09, 9.4763e-02, -1.1569e-04]
+    
+    # model fitted from 550D SanDisk Extreme 32GB 45MBs.log, favors smaller buffers
+    # pfit = [-1.9838e-02, 3.0481e-09, 5.0033e-02, -5.7829e-05]
+
     speed_factor = pfit[0] + pfit[1] * buffer_size + pfit[2] * math.log(buffer_size, 2) + pfit[3] * math.sqrt(buffer_size)
     if speed_factor < 0: speed_factor = 0
     if speed_factor > 1: speed_factor = 1
     return nominal_speed * speed_factor
 
+def sim(buffers, verbose):
 
-buffers = [math.floor(b / framesize) for b in buffers]
-total = sum(buffers)
-used = 0
+    total = sum(buffers)
+    used = 0
+    f = 0
+    wt = 0
+    t = 0
+    T = []
+    A = []
+    k = 0
+    while used < total and f < 10000:
+        t += 1/fps
+        f += 1
+        used += 1;
 
-f = 0
-wt = 0
-t = 0
-T = []
-A = []
-k = 0
-while used < total and f < 10000:
-    t += 1/fps
-    f += 1
-    used += 1;
+        if used > buffers[k] and t >= wt:
+            if wt:
+                used -= buffers[k]
+                k = (k + 1) % len(buffers)
+            else:
+                wt = t
+            adjusted_speed = speed_model(write_speed, framesize * buffers[k])
+            dt = framesize * buffers[k] / adjusted_speed;
+            wt += dt
+            asmb = adjusted_speed/1024/1024;
+            if verbose: print "[%.2f] saving chunk, f=%d, s=%.2f, dt=%.2f, will finish at %.02f" % (t, f, asmb, dt, wt)
+        
+        if verbose:
+            A.append(used)
+            T.append(t)
 
-    if used > buffers[k] and t >= wt:
-        if wt:
-            used -= buffers[k]
-            k = (k + 1) % len(buffers)
-        else:
-            wt = t
-        adjusted_speed = speed_model(write_speed, framesize * buffers[k])
-        dt = framesize * buffers[k] / adjusted_speed + random.uniform(-timing_variation, timing_variation);
-        wt += dt
-        asmb = adjusted_speed/1024/1024;
-        print "[%.2f] saving chunk, f=%d, s=%.2f, dt=%.2f, will finish at %.02f" % (t, f, asmb, dt, wt)
+    if verbose:
+        print "You may get %d frames." % f
 
-    A.append(used)
-    T.append(t)
+        plot(T,A)
+        show()
+    return f
 
-print "You may get %d frames." % f
+best_frames = 0
+best_buffers = []
 
-from pylab import *
-plot(T,A)
-show()
+def try_sim(buffers):
+    global best_frames, best_buffers
+    frames = sim(buffers, False)
+    print buffers, frames
+    if frames > best_frames:
+        best_frames = frames
+        best_buffers = buffers
+
+def optimize(raw_buffers):
+    
+    for buf_min in range(1, 10):
+        for buf_max in range(buf_min, 50):
+            buffers = []
+            for b in raw_buffers:
+                cap = int(math.floor(b / framesize));
+                while cap:
+                    chunk = min(cap, buf_max)
+                    if chunk >= buf_min:
+                        buffers.append(chunk)
+                        cap -= chunk
+                    else: break
+                
+            # don't sort buffers, use them in the order they were found
+            try_sim(buffers)
+
+            # sort: low to high
+            buffers = [b for b in buffers] # trick to create a new list
+            buffers.sort()
+            try_sim(buffers)
+
+            # sort: high to low
+            buffers = [b for b in buffers]
+            buffers.reverse()
+            try_sim(buffers)
+
+optimize(buffers)
+
+print best_buffers, best_frames
+sim(best_buffers, True)
+print best_buffers, best_frames
+
+greedy_buffers = [int(math.floor(b / framesize)) for b in buffers]
+print "With current ML method:"
+print greedy_buffers, sim(greedy_buffers, False)
