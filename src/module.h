@@ -264,6 +264,7 @@ void module_unload_all(void);
 void *module_load(char *filename);
 int module_exec(void *module, char *symbol, int count, ...);
 int module_unload(void *module);
+unsigned int module_get_symbol(void *module, char *symbol);
 
 /* execute all callback routines of given type. maybe it will get extended to support varargs */
 int module_exec_cbr(unsigned int type);

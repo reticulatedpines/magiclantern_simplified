@@ -560,6 +560,20 @@ void *module_load(char *filename)
     return (void*)state;
 }
 
+unsigned int module_get_symbol(void *module, char *symbol)
+{
+#ifdef CONFIG_TCC_UNLOAD
+    return 0;
+#else
+    if (module == NULL) module = module_state;
+    if (module == NULL) return 0;
+    
+    TCCState *state = (TCCState *)module;
+    
+    return tcc_get_symbol(state, symbol);
+#endif
+}
+
 
 int module_exec(void *module, char *symbol, int count, ...)
 {
@@ -1313,6 +1327,23 @@ static struct menu_entry module_menu[] = {
     MODULE_ENTRY(12)
     MODULE_ENTRY(13)
     MODULE_ENTRY(14)
+    MODULE_ENTRY(15)
+    MODULE_ENTRY(16)
+    MODULE_ENTRY(17)
+    MODULE_ENTRY(18)
+    MODULE_ENTRY(19)
+    MODULE_ENTRY(20)
+    MODULE_ENTRY(21)
+    MODULE_ENTRY(22)
+    MODULE_ENTRY(23)
+    MODULE_ENTRY(24)
+    MODULE_ENTRY(25)
+    MODULE_ENTRY(26)
+    MODULE_ENTRY(27)
+    MODULE_ENTRY(28)
+    MODULE_ENTRY(29)
+    MODULE_ENTRY(30)
+    MODULE_ENTRY(31)
 };
 
 struct config_var* module_config_var_lookup(int* ptr)
