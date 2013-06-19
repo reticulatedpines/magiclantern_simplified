@@ -46,6 +46,7 @@
 #include <bmp.h>
 #include <menu.h>
 #include <config.h>
+#include <math.h>
 #include "../lv_rec/lv_rec.h"
 #include "edmac.h"
 #include "../file_man/file_man.h"
@@ -300,6 +301,15 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     return msg;
 }
 
+static int speed_model(int nominal_speed, int buffer_size)
+{
+    /* model fitted from a log taken with 5D3 in movie mode, favors large buffers */
+    /* log: http://www.magiclantern.fm/forum/index.php?topic=5471.msg38312#msg38312 */
+    float speed_factor = -8.5500e-01f + 4.5050e-09f * buffer_size + 8.7998e-02f * log2f(buffer_size) - 8.5642e-05f * sqrtf(buffer_size);
+    speed_factor = COERCE(speed_factor, 0, 1);
+    return nominal_speed * speed_factor;
+}
+
 /* how many frames it's likely to get at some write speed? */
 static int sim_frames(int write_speed)
 {
@@ -307,6 +317,7 @@ static int sim_frames(int write_speed)
     /* how many frames we can have in RAM */
     int total = 0;
     int used = 0;
+    int writing = 0;
     for (int i = 0; i < buffer_count; i++)
         total += buffers[i].size / frame_size;
 
@@ -324,21 +335,22 @@ static int sim_frames(int write_speed)
         int current_buf_cap = buffers[k].size / frame_size;
 
         /* can we write a chunk? enough data and previous write finished */
-        if (used > current_buf_cap && t >= wt)
+        if (used >= current_buf_cap && t >= wt)
         {
-            if (wt > 0)
-            {
-                /* we just wrote a chunk to card, so we have more free memory now */
-                used -= current_buf_cap;
-                k = (k + 1) % buffer_count;
-            }
-            else
-            {
-                /* first file write starts here */
-                wt = t;
-            }
+            /* we just wrote a chunk to card, so we have more free memory now */
+            used -= writing;
+            
+            /* this chunk is being saved on the card, can't touch it */
+            writing = current_buf_cap;
+            
+            /* advance to next buffer */
+            k = (k + 1) % buffer_count;
+
+            /* first write process starts here */
+            if (wt == 0) wt = t;
+
             /* new write process starts now, wt is when it will finish */
-            wt += (float)(frame_size * current_buf_cap) / write_speed;
+            wt += (float)(frame_size * current_buf_cap) / speed_model(write_speed, frame_size * current_buf_cap);
         }
     }
     return f;
@@ -350,8 +362,8 @@ static char* guess_how_many_frames()
     if (!measured_write_speed) return "";
     if (!buffer_count) return "";
     
-    int write_speed_lo = measured_write_speed * 1024 * 1024 / 10 - 1 * 1024 * 1024;
-    int write_speed_hi = measured_write_speed * 1024 * 1024 / 10 + 1 * 1024 * 1024;
+    int write_speed_lo = measured_write_speed * 1024 * 1024 / 10 - 256 * 1024;
+    int write_speed_hi = measured_write_speed * 1024 * 1024 / 10 + 256 * 1024;
     
     int f_lo = sim_frames(write_speed_lo);
     int f_hi = sim_frames(write_speed_hi);
@@ -359,10 +371,12 @@ static char* guess_how_many_frames()
     static char msg[50];
     if (f_lo < 5000)
     {
+        int write_speed = (write_speed_lo + write_speed_hi) / 2;
+        write_speed = (write_speed * 10 + 512 * 1024) / (1024 * 1024);
         if (f_lo != f_hi)
-            snprintf(msg, sizeof(msg), "Expect %d-%d frames at %d-%dMB/s.", f_lo, f_hi, write_speed_lo / 1024 / 1024, write_speed_hi / 1024 / 1024);
+            snprintf(msg, sizeof(msg), "Expect %d-%d frames at %d.%dMB/s.", f_lo, f_hi, write_speed / 10, write_speed % 10);
         else
-            snprintf(msg, sizeof(msg), "Expect around %d frames at %d-%dMB/s.", f_lo, write_speed_lo / 1024 / 1024, write_speed_hi / 1024 / 1024);
+            snprintf(msg, sizeof(msg), "Expect around %d frames at %d.%dMB/s.", f_lo, write_speed / 10, write_speed % 10);
     }
     else
     {

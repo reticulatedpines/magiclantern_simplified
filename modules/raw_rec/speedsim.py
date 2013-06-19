@@ -24,10 +24,13 @@ print "Write speed: %.1f MB/s; for continuous recording, needs %.1f MB/s. " % (w
 def speed_model(nominal_speed, buffer_size):
     # model fitted from benchmarks from Hoodman 1000x.log - http://www.magiclantern.fm/forum/index.php?topic=5471
     # and confirmed with small tendency of underestimation on 550D SanDisk Extreme 32GB 45MBs.log
-    pfit = [-9.1988e-01, 6.5760e-09, 9.4763e-02, -1.1569e-04]
+    #~ pfit = [-9.1988e-01, 6.5760e-09, 9.4763e-02, -1.1569e-04]
     
     # model fitted from 550D SanDisk Extreme 32GB 45MBs.log, favors smaller buffers
-    # pfit = [-1.9838e-02, 3.0481e-09, 5.0033e-02, -5.7829e-05]
+    #~ pfit = [-1.9838e-02, 3.0481e-09, 5.0033e-02, -5.7829e-05]
+    
+    # 5D3 movie mode, favors large buffers, http://www.magiclantern.fm/forum/index.php?topic=5471.msg38312#msg38312
+    pfit = [-8.5500e-01, 4.5050e-09, 8.7998e-02, -8.5642e-05]
 
     speed_factor = pfit[0] + pfit[1] * buffer_size + pfit[2] * math.log(buffer_size, 2) + pfit[3] * math.sqrt(buffer_size)
     if speed_factor < 0: speed_factor = 0
@@ -38,25 +41,27 @@ def sim(buffers, verbose):
 
     total = sum(buffers)
     used = 0
+    writing = 0
     f = 0
     wt = 0
     t = 0
     T = []
     A = []
     k = 0
+    
     while used < total and f < 10000:
         t += 1/fps
         f += 1
         used += 1;
 
-        if used > buffers[k] and t >= wt:
-            if wt:
-                used -= buffers[k]
-                k = (k + 1) % len(buffers)
-            else:
-                wt = t
+        if used >= buffers[k] and t >= wt:
+            used -= writing
+            writing = buffers[k]
+            k = (k + 1) % len(buffers)
             adjusted_speed = speed_model(write_speed, framesize * buffers[k])
             dt = framesize * buffers[k] / adjusted_speed;
+            if wt == 0:
+                wt = t
             wt += dt
             asmb = adjusted_speed/1024/1024;
             if verbose: print "[%.2f] saving chunk, f=%d, s=%.2f, dt=%.2f, will finish at %.02f" % (t, f, asmb, dt, wt)
@@ -66,6 +71,7 @@ def sim(buffers, verbose):
             T.append(t)
 
     if verbose:
+        print "[%.2f] overflow" % t
         print "You may get %d frames." % f
 
         plot(T,A)
