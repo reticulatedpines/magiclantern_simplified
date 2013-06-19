@@ -3,7 +3,27 @@
 #include "tskmon.h"
 #include "tasks.h"
 
+//#define CONFIG_TSKMON_TRACE
+
 #ifdef CONFIG_TSKMON
+
+#ifdef CONFIG_TSKMON_TRACE
+#include "../modules/trace/trace.h"
+
+extern unsigned int task_max;
+
+static tskmon_trace_t *tskmon_trace_buffer = NULL;
+static uint32_t tskmon_trace_ctx = TRACE_ERROR;
+static uint32_t volatile tskmon_trace_active = 0;
+static uint32_t volatile tskmon_trace_size = 100000;
+static uint32_t volatile tskmon_trace_writepos = 0;
+static uint32_t volatile tskmon_trace_readpos = 0;
+static unsigned int (*tskmon_trace_start)(char *name, char *file_name);
+static unsigned int (*tskmon_trace_stop)(unsigned int trace, int wait);
+static unsigned int (*tskmon_trace_format)(unsigned int context, unsigned int format, unsigned char separator);
+static unsigned int (*tskmon_trace_write)(unsigned int context, char *string, ...);
+static unsigned int (*tskmon_trace_write_tsc)(unsigned int context, uint64_t tsc, char *string, ...);
+#endif /* CONFIG_TSKMON_TRACE */
 
 static struct task *tskmon_last_task = NULL;
 static uint32_t tskmon_last_timer_val = 0;
@@ -15,6 +35,7 @@ static uint32_t tskmon_task_stack_used[TSKMON_MAX_TASKS];
 static uint32_t tskmon_task_stack_check[TSKMON_MAX_TASKS];
 static uint32_t tskmon_idle_task_id = 0;
 static uint32_t tskmon_powermgr_task_id = 0;
+
 
 #ifdef FEATURE_ISR_HOOKS
 static uint32_t tskmon_isr_nesting = 0;
@@ -296,9 +317,32 @@ void tskmon_task_dispatch()
     tskmon_stack_checker(next_task);
     tskmon_update_timers();
     null_pointer_check();
+    
 
     if(next_task->taskId != tskmon_last_task->taskId)
     {
+#ifdef CONFIG_TSKMON_TRACE
+        if(tskmon_trace_active && tskmon_trace_writepos < tskmon_trace_size - 1)
+        {
+            /* write a stop entry for the task being interrupted */
+            tskmon_trace_buffer[tskmon_trace_writepos].tsc = get_us_clock_value();
+            tskmon_trace_buffer[tskmon_trace_writepos].type = TSKMON_TRACE_TASK_STOP;
+            tskmon_trace_buffer[tskmon_trace_writepos].id = tskmon_last_task->taskId & (TSKMON_MAX_TASKS-1);
+            tskmon_trace_buffer[tskmon_trace_writepos].prio = tskmon_last_task->run_prio;
+            tskmon_trace_buffer[tskmon_trace_writepos].flags = TSKMON_TRACE_FLAG_DEFAULT;
+            strncpy(tskmon_trace_buffer[tskmon_trace_writepos].name, tskmon_last_task->name, TSKMON_TRACE_NAME_LEN);
+            tskmon_trace_writepos++;
+            
+            /* write a start entry for the task being continued */
+            tskmon_trace_buffer[tskmon_trace_writepos].tsc = get_us_clock_value();
+            tskmon_trace_buffer[tskmon_trace_writepos].type = TSKMON_TRACE_TASK_START;
+            tskmon_trace_buffer[tskmon_trace_writepos].id = next_task->taskId & (TSKMON_MAX_TASKS-1);
+            tskmon_trace_buffer[tskmon_trace_writepos].prio = next_task->run_prio;
+            tskmon_trace_buffer[tskmon_trace_writepos].flags = TSKMON_TRACE_FLAG_DEFAULT;
+            strncpy(tskmon_trace_buffer[tskmon_trace_writepos].name, next_task->name, TSKMON_TRACE_NAME_LEN);
+            tskmon_trace_writepos++;
+        }
+#endif /* CONFIG_TSKMON_TRACE */
         tskmon_update_runtime(tskmon_last_task, tskmon_active_time);
 
         /* restart timer and update active task */
@@ -310,9 +354,22 @@ void tskmon_task_dispatch()
 
 #ifdef FEATURE_ISR_HOOKS
 
-void tskmon_pre_isr()
+void tskmon_pre_isr(uint32_t isr)
 {
     tskmon_isr_nesting++;
+
+#ifdef CONFIG_TSKMON_TRACE
+        if(tskmon_trace_active && tskmon_trace_writepos < tskmon_trace_size)
+        {
+            tskmon_trace_buffer[tskmon_trace_writepos].tsc = get_us_clock_value();
+            tskmon_trace_buffer[tskmon_trace_writepos].type = TSKMON_TRACE_ISR_START;
+            tskmon_trace_buffer[tskmon_trace_writepos].id = isr;
+            tskmon_trace_buffer[tskmon_trace_writepos].prio = isr;
+            tskmon_trace_buffer[tskmon_trace_writepos].flags = TSKMON_TRACE_FLAG_DEFAULT;
+            tskmon_trace_buffer[tskmon_trace_writepos].name[0] = 0;
+            tskmon_trace_writepos++;
+        }
+#endif /* CONFIG_TSKMON_TRACE */
 
     /* just in case that interrupts are nesting */
     if(tskmon_isr_nesting == 1)
@@ -323,9 +380,22 @@ void tskmon_pre_isr()
     }
 }
 
-void tskmon_post_isr()
+void tskmon_post_isr(uint32_t isr)
 {
     tskmon_isr_nesting--;
+
+#ifdef CONFIG_TSKMON_TRACE
+        if(tskmon_trace_active && tskmon_trace_writepos < tskmon_trace_size)
+        {
+            tskmon_trace_buffer[tskmon_trace_writepos].tsc = get_us_clock_value();
+            tskmon_trace_buffer[tskmon_trace_writepos].type = TSKMON_TRACE_ISR_STOP;
+            tskmon_trace_buffer[tskmon_trace_writepos].id = isr;
+            tskmon_trace_buffer[tskmon_trace_writepos].prio = isr;
+            tskmon_trace_buffer[tskmon_trace_writepos].flags = TSKMON_TRACE_FLAG_DEFAULT;
+            tskmon_trace_buffer[tskmon_trace_writepos].name[0] = 0;
+            tskmon_trace_writepos++;
+        }
+#endif /* CONFIG_TSKMON_TRACE */
 
     /* just in case that interrupts are nesting */
     if(tskmon_isr_nesting == 0)
@@ -362,5 +432,192 @@ void tskmon_init()
     post_isr_hook = &tskmon_post_isr;
 #endif
 }
+
+
+#ifdef CONFIG_TSKMON_TRACE
+/* write a predefined CSV-based trace format. this format is not documented, but still some standard. 
+ * so please dont change that, as some non-public tools already can read that.
+ */
+void tskmon_trace_write_csv()
+{
+    /* write CPU details */
+    tskmon_trace_write_tsc(tskmon_trace_ctx, 0, "0;CPU_DESCR;ARM946E;0");
+    
+    for(int pos = 0; pos < tskmon_trace_writepos; pos++)
+    {
+        /* check all entries that are not preprocessed yet */
+        if(tskmon_trace_buffer[pos].flags != TSKMON_TRACE_FLAG_PREPROCESSED)
+        {
+            uint32_t scheduling = 0;
+            char name_buf[TSKMON_TRACE_NAME_LEN];
+            
+            /* show some info on screen */
+            switch(tskmon_trace_buffer[pos].type)
+            {
+                case TSKMON_TRACE_ISR_START:
+                case TSKMON_TRACE_ISR_STOP:
+                    scheduling = TSKMON_TRACE_INTERRUPT;
+                    snprintf(name_buf, sizeof(name_buf), "OS_VECTOR_%d", tskmon_trace_buffer[pos].id);
+                    bmp_printf(FONT_MED, 10, 20, "checking: isr '%s'                   ", name_buf);
+                    break;
+                    
+                case TSKMON_TRACE_TASK_START:
+                case TSKMON_TRACE_TASK_STOP:
+                    /* all tasks are preemptive i guess */
+                    scheduling = TSKMON_TRACE_PREEMPTIVE;
+                    snprintf(name_buf, sizeof(name_buf), "TASK_%d_%s", tskmon_trace_buffer[pos].id, tskmon_trace_buffer[pos].name);
+                    bmp_printf(FONT_MED, 10, 20, "checking: task '%s'                  ", name_buf);
+                    break;
+            }
+            
+            /* now mark all entries of that task/isr as preprocessed */
+            for(int pos2 = pos; pos2 < tskmon_trace_writepos; pos2++)
+            {
+                /* check for same ID, prio and name. split up into separate ifs to make it a bit more readable. should not result in slower code */
+                if(tskmon_trace_buffer[pos].id == tskmon_trace_buffer[pos2].id)
+                {
+                    if(tskmon_trace_buffer[pos].prio == tskmon_trace_buffer[pos2].prio)
+                    {
+                        if(!strcmp(tskmon_trace_buffer[pos].name, tskmon_trace_buffer[pos2].name))
+                        {
+                            tskmon_trace_buffer[pos2].flags |= TSKMON_TRACE_FLAG_PREPROCESSED;
+                        }
+                    }
+                }
+            }
+            
+            /* write the entries for this task/isr */
+            tskmon_trace_write_tsc(tskmon_trace_ctx, 0, "0;PRIO;%s;%d", name_buf, tskmon_trace_buffer[pos].prio);
+            tskmon_trace_write_tsc(tskmon_trace_ctx, 0, "0;SCHED;%s;%d", name_buf, scheduling);
+        }
+    }
+    
+    /* we dont have any repeating schedule table and all timer values are given in microseconds */
+    tskmon_trace_write_tsc(tskmon_trace_ctx, 0, "0;CycleCount;CycleCount;1");
+    tskmon_trace_write_tsc(tskmon_trace_ctx, 0, "0;TPUS;TPUS;1");
+    
+    /* the absolute timer value isnt important, count relative starting from the first entry */
+    tsc_t reference_tsc = tskmon_trace_buffer[0].tsc;
+
+    for(int pos = 0; pos < tskmon_trace_writepos; pos++)
+    {
+        char *type = "UNK";
+        char *record = "UNK";
+        char name_buf[32];
+        uint32_t ticks = (uint32_t)(tskmon_trace_buffer[pos].tsc - reference_tsc);
+        
+        /* update progress */
+        if((pos % 100) == 0)
+        {
+            bmp_printf(FONT_MED, 10, 20, "writing: %d/%d", pos, tskmon_trace_writepos);
+        }
+        
+        switch(tskmon_trace_buffer[pos].type)
+        {
+            case TSKMON_TRACE_ISR_START:
+                type = "OS_VECTOR";
+                record = "START";
+                snprintf(name_buf, sizeof(name_buf), "%d", tskmon_trace_buffer[pos].id);
+                break;
+                
+            case TSKMON_TRACE_ISR_STOP:
+                type = "OS_VECTOR";
+                record = "STOP";
+                snprintf(name_buf, sizeof(name_buf), "%d", tskmon_trace_buffer[pos].id);
+                break;
+                
+            case TSKMON_TRACE_TASK_START:
+                type = "TASK";
+                record = "START";
+                snprintf(name_buf, sizeof(name_buf), "%d_%s", tskmon_trace_buffer[pos].id, tskmon_trace_buffer[pos].name);
+                break;
+                
+            case TSKMON_TRACE_TASK_STOP:
+                type = "TASK";
+                record = "STOP";
+                snprintf(name_buf, sizeof(name_buf), "%d_%s", tskmon_trace_buffer[pos].id, tskmon_trace_buffer[pos].name);
+                break;
+        }
+        
+        /* try to write the entry. if it fails, try again */
+        if (tskmon_trace_write_tsc(tskmon_trace_ctx, 0, "0;%s;%s_%s;%d", record, type, name_buf, ticks) != TRACE_OK)
+        {
+            /* failed to write, sleep and retry */
+            pos--;
+            msleep(100);
+            continue;
+        }
+    }
+}
+#endif /* CONFIG_TSKMON_TRACE */
+
+void tskmon_trace()
+{
+#ifdef CONFIG_TSKMON_TRACE
+
+    msleep(2000);
+    
+    /* if trace is already running, stop */
+    if(tskmon_trace_active)
+    {
+        tskmon_trace_active = 0;
+        beep();
+        return;
+    }
+
+    /* prepare the trace buffer, get it from shoot mem */
+    tskmon_trace_buffer = shoot_malloc(tskmon_trace_size * sizeof(tskmon_trace_t));
+    if(!tskmon_trace_buffer)
+    {
+        bmp_printf(FONT_MED, 10, 20, "not enough RAM");
+        return;
+    }
+    
+    /* reset read/write pointers into that buffer */
+    tskmon_trace_writepos = 0;
+    tskmon_trace_readpos = 0;
+    
+    /* get the trace writing function pointers */
+    tskmon_trace_start = module_get_symbol(NULL, "trace_start");
+    tskmon_trace_stop = module_get_symbol(NULL, "trace_stop");
+    tskmon_trace_format = module_get_symbol(NULL, "trace_format");
+    tskmon_trace_write = module_get_symbol(NULL, "trace_write");
+    tskmon_trace_write_tsc = module_get_symbol(NULL, "trace_write_tsc");
+    
+    /* check for availability */
+    if(!tskmon_trace_start)
+    {
+        bmp_printf(FONT_MED, 10, 20, "tskmon_trace_start not found");
+        return;
+    }
+    
+    /* create a new trace. use it as simple text file writer */
+    tskmon_trace_ctx = tskmon_trace_start("taskmon", CARD_DRIVE"tskmon.txt");
+    tskmon_trace_format(tskmon_trace_ctx, 0, '\000');
+    
+    /* start tskmon trace */
+    tskmon_trace_active = 1;
+    while(tskmon_trace_active && (tskmon_trace_writepos < tskmon_trace_size))
+    {
+        msleep(200);
+        bmp_printf(FONT_MED, 10, 20, "used: %d/%d", tskmon_trace_writepos, tskmon_trace_size);
+    }
+    
+    /* it stopped for some reason. either buffers are full or someone stopped it by setting this variable to 0 */
+    tskmon_trace_active = 0;
+    
+    /* write the trace to keep the file format separated from acquiring */
+    tskmon_trace_write_csv();
+    
+    /* and clean up */
+    tskmon_trace_stop(tskmon_trace_ctx, 1);
+    
+    shoot_free(tskmon_trace_buffer);
+    bmp_printf(FONT_MED, 10, 20, "DONE");
+    beep();
+    return;
+#endif /* CONFIG_TSKMON_TRACE */
+}
+
 
 #endif
