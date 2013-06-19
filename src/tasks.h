@@ -65,6 +65,22 @@ struct task
 };
 
 
+struct task_attr_str {
+  unsigned int entry;
+  unsigned int args;
+  unsigned int stack;
+  unsigned int size;
+  unsigned int used; // 0x10
+  void* name;
+  unsigned int off_18;
+  unsigned int flags;
+  unsigned char wait_id;
+  unsigned char pri;
+  unsigned char state;
+  unsigned char fpu;
+  unsigned int id;
+}; // size = 0x28
+
 /** Return the head of the running task list */
 extern struct task *
 get_current_task(void);

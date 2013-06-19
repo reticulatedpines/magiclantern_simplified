@@ -12,22 +12,6 @@
 #include "tskmon.h"
 #include "menu.h"
 
-struct task_attr_str {
-  unsigned int entry;
-  unsigned int args;
-  unsigned int stack;
-  unsigned int size;
-  unsigned int used; // 0x10
-  void* name;
-  unsigned int off_18;
-  unsigned int flags;
-  unsigned char wait_id;
-  unsigned char pri;
-  unsigned char state;
-  unsigned char fpu;
-  unsigned int id;
-}; // size = 0x28
-
 extern int is_taskid_valid(int, int, void*);
 extern int get_obj_attr(void*, unsigned char*, int, int);
 
