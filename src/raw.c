@@ -305,7 +305,7 @@ int raw_update_params()
          * Try to use even offsets only, otherwise the colors will be screwed up.
          */
         #ifdef CONFIG_5D2
-        skip_top        = zoom ?   50 :   18;
+        skip_top        = zoom ?   52 : 18;
         skip_left       = 160;
         #endif
         
