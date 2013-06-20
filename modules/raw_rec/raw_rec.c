@@ -52,8 +52,8 @@
 
 #define CONFIG_CONSOLE
 
-#define DEBUG_REDRAW_INTERVAL 50   /* normally 1000; low values like 50 will reduce write speed a lot! */
-#define DEBUG_BUFFERING_GRAPH      /* some funky graphs */
+#define DEBUG_REDRAW_INTERVAL 1000   /* normally 1000; low values like 50 will reduce write speed a lot! */
+#undef DEBUG_BUFFERING_GRAPH      /* some funky graphs */
 
 #include <module.h>
 #include <dryos.h>
