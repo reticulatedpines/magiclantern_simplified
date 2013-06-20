@@ -39,7 +39,7 @@
     #define CONFIG_CONFIG_FILE
     
     /** Show detailed info about tasks and CPU usage */
-    #define CONFIG_TSKMON
+    //~ #define CONFIG_TSKMON
 
 /**
  * Some debug stuff - you should enable it Makefile.user to avoid pushing unwanted changes to the repo
