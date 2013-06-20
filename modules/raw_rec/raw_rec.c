@@ -1,13 +1,25 @@
 /**
  * RAW recording. Similar to lv_rec, with some different internals:
  * 
- * - buffering: group the frames in 32MB contiguous chunks, to maximize writing speed
+ * - buffering strategy:
+ *      - group the frames in contiguous chunks, up to 32MB, to maximize writing speed
+ *        (speed profile depends on buffer size: http://www.magiclantern.fm/forum/index.php?topic=5471 )
+ *      - always write if there's something to write, even if that means using a small buffer
+ *        (this minimizes idle time for the writing task, keeps memory free in the startup phase,
+ *        and has no impact on the sustained write speeds
+ *      - always choose the largest unused chunk => this maximizes the sustained writing speed 
+ *        (small chunks will only be used in extreme situations, to squeeze the last few frames)
+ *      - use any memory chunks that can contain at least one video frame
+ *        (they will only be used when recording is about to stop, so no negative impact in sustained write speed)
+ * 
  * - edmac_copy_rectangle: we can crop the image and trim the black borders!
- * - edmac operation done outside the LV task
+ * - edmac operation done outside the LV task (in background, synchronized)
  * - on buffer overflow, it stops or skips frames (user-selected)
  * - using generic raw routines, no hardcoded stuff (should be easier to port)
  * - only for RAW in a single file (do one thing and do it well)
- * - goal: 1920x1080 on 1000x cards
+ * - goal #1: 1920x1080 on 1000x cards (achieved and exceeded, reports say 1920x1280 continuous!)
+ * - goal #2: maximize number of frames for any given resolution + buffer + card speed configuration
+ *   (see buffering strategy; I believe it's close to optimal, though I have no idea how to write a mathematical proof for it)
  * 
  * Usage:
  * - enable modules in Makefile.user (CONFIG_MODULES = y, CONFIG_TCC = y, CONFIG_PICOC = n, CONFIG_CONSOLE = y)
@@ -39,6 +51,9 @@
 
 
 #define CONFIG_CONSOLE
+
+#define DEBUG_REDRAW_INTERVAL 50   /* normally 1000; low values like 50 will reduce write speed a lot! */
+#define DEBUG_BUFFERING_GRAPH      /* some funky graphs */
 
 #include <module.h>
 #include <dryos.h>
@@ -125,21 +140,28 @@ static int raw_previewing = 0;
 #define RAW_IS_RECORDING (raw_recording_state == RAW_RECORDING)
 #define RAW_IS_FINISHING (raw_recording_state == RAW_FINISHING)
 
-struct buff
+/* one video frame */
+struct frame_slot
 {
-    void* ptr;
-    int size;
-    int used;
+    void* ptr;          /* image data, size=frame_size */
+    int tag;            /* used for identifying contiguous regions */
+    int frame_number;   /* from 0 to n */
+    enum {SLOT_FREE, SLOT_FULL, SLOT_WRITING} status;
 };
 
 static struct memSuite * mem_suite = 0;           /* memory suite for our buffers */
+
 static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
-static struct buff buffers[20];                   /* our recording buffers */
-static int buffer_count = 0;                      /* how many buffers we could allocate */
-static int capturing_buffer_index = 0;            /* in which buffer we are capturing */
-static int saving_buffer_index = 0;               /* from which buffer we are saving to card */
-static int capture_offset = 0;                    /* position of capture pointer inside the buffer (0-32MB) */
 static int fullsize_buffer_pos = 0;               /* which of the full size buffers (double buffering) is currently in use */
+
+static struct frame_slot slots[512];              /* frame slots */
+static int slot_count = 0;                        /* how many frame slots we have */
+static int capture_slot = -1;                     /* in what slot are we capturing now (index) */
+
+static int writing_queue[COUNT(slots)];           /* queue of completed slot indices waiting to be saved */
+static int writing_queue_tail = 0;                /* place captured frames here */
+static int writing_queue_head = 0;                /* extract frames to be written from here */ 
+
 static int frame_count = 0;                       /* how many frames we have processed */
 static int frame_skips = 0;                       /* how many frames were dropped/skipped */
 static char* movie_filename = 0;                  /* file name for current (or last) movie */
@@ -147,6 +169,7 @@ static char* chunk_filename = 0;                  /* file name for current movie
 static uint32_t written = 0;                      /* how many KB we have written in this movie */
 static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
 static int idle_time = 0;                         /* time spent by raw_video_rec_task doing something else */
+static volatile int writing_task_busy = 0;        /* busy: in the middle of a write operation */
 
 /* interface to other modules:
  *
@@ -301,6 +324,8 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     return msg;
 }
 
+#if 0 /* algorithm changed */
+
 static int speed_model(int nominal_speed, int buffer_size)
 {
     /* model fitted from a log taken with 5D3 in movie mode, favors large buffers */
@@ -385,6 +410,7 @@ static char* guess_how_many_frames()
     
     return msg;
 }
+#endif
 
 static MENU_UPDATE_FUNC(write_speed_update)
 {
@@ -398,17 +424,21 @@ static MENU_UPDATE_FUNC(write_speed_update)
     }
     else
     {
+#if 0
         if (!measured_write_speed)
+#endif
             MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
                 "Write speed needed: %d.%d MB/s at %d.%03d fps.",
                 speed/10, speed%10, fps/1000, fps%1000
             );
+#if 0
         else
             MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
                 "%d.%d MB/s at %d.%03dp. %s",
                 speed/10, speed%10, fps/1000, fps%1000,
                 guess_how_many_frames()
             );
+#endif
     }
 }
 
@@ -534,6 +564,18 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
     write_speed_update(entry, info);
 }
 
+static MENU_UPDATE_FUNC(framing_update)
+{
+    if (FRAMING_LEFT)
+    {
+        if (shave_right <= 500)
+        {
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "Force Left: you will not get %s speed improvement.", shave_right ? "noticeable" : "any");
+        }
+    }
+    
+}
+
 /* add a footer to given file handle to  */
 static unsigned int lv_rec_save_footer(FILE *save_file)
 {
@@ -627,55 +669,67 @@ static int setup_buffers()
         chunk = GetNextMemoryChunk(mem_suite, chunk);
     }
     if (fullsize_buffers[0] == 0) return 0;
+
+    //~ console_printf("fullsize buffer %x\n", fullsize_buffers[0]);
     
     /* reuse Canon's buffer */
     fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
     if (fullsize_buffers[1] == 0) return 0;
 
-    /* use all chunks larger than 16MB for recording */
+    /* use all chunks larger than frame_size for recording */
     chunk = GetFirstChunkFromSuite(mem_suite);
-    buffer_count = 0;
-    int total = 0;
-    while(chunk && buffer_count < COUNT(buffers))
+    slot_count = 0;
+    int tag = 0;
+    while(chunk)
     {
         int size = GetSizeOfMemoryChunk(chunk);
-        if (size >= 16*1024*1024)
+        void* ptr = GetMemoryAddressOfMemoryChunk(chunk);
+        if (ptr != fullsize_buffers[0]) /* already used */
         {
-            void* ptr = GetMemoryAddressOfMemoryChunk(chunk);
-            if (ptr != fullsize_buffers[0])
+            /* align at 4K */
+            ptr = (void*)(((intptr_t)ptr + 4095) & ~4095);
+            
+            /* fit as many frames as we can */
+            tag++;
+            while (size >= frame_size + 8192 && slot_count < COUNT(slots))
             {
-                /* make sure our buffers are aligned at 4K */
-                buffers[buffer_count].ptr = (void*)(((intptr_t)ptr + 4095) & ~4095);
-                buffers[buffer_count].size = size - 8192;
-                buffers[buffer_count].used = 0;
-                buffer_count++;
-                total += size;
+                slots[slot_count].ptr = ptr;
+                slots[slot_count].status = SLOT_FREE;
+                slots[slot_count].tag = tag;
+                ptr += frame_size;
+                size -= frame_size;
+                slot_count++;
+                //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
             }
         }
         chunk = GetNextMemoryChunk(mem_suite, chunk);
     }
     
     /* try to recycle the waste */
-    if (waste >= 16*1024*1024 + 8192)
+    if (waste >= frame_size + 8192)
     {
-        buffers[buffer_count].ptr = (void*)(((intptr_t)(fullsize_buffers[0] + buf_size) + 4095) & ~4095);
-        buffers[buffer_count].size = waste - 8192;
-        buffers[buffer_count].used = 0;
-        buffer_count++;
-        total += waste;
+        tag++;
+        int size = waste;
+        void* ptr = (void*)(((intptr_t)(fullsize_buffers[0] + buf_size) + 4095) & ~4095);
+        while (size >= frame_size + 8192 && slot_count < COUNT(slots))
+        {
+            slots[slot_count].ptr = ptr;
+            slots[slot_count].status = SLOT_FREE;
+            slots[slot_count].tag = tag;
+            ptr += frame_size;
+            size -= frame_size;
+            slot_count++;
+            //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
+        }
     }
     
     char msg[100];
-    snprintf(msg, sizeof(msg), "Alloc: ");
-    for (int i = 0; i < buffer_count; i++)
-    {
-        STR_APPEND(msg, "%dM", (buffers[i].size / 1024 + 512) / 1024);
-        if (i < buffer_count-1) STR_APPEND(msg, "+");
-    }
+    snprintf(msg, sizeof(msg), "Alloc: %d frames", slot_count);
     bmp_printf(FONT_MED, 30, 90, msg);
     
-    /* we need at least two buffers */
-    if (buffer_count < 2) return 0;
+    /* we need at least 3 slots */
+    if (slot_count < 3)
+        return 0;
     
     return 1;
 }
@@ -686,29 +740,63 @@ static void free_buffers()
     mem_suite = 0;
 }
 
+static int get_free_slots()
+{
+    int free_slots = 0;
+    for (int i = 0; i < slot_count; i++)
+        if (slots[i].status == SLOT_FREE)
+            free_slots++;
+    return free_slots;
+}
+
+
 static void show_buffer_status()
 {
     if (!liveview_display_idle()) return;
     
-    int free_buffers = mod(saving_buffer_index - capturing_buffer_index, buffer_count); /* how many free slots do we have? */
-    if (free_buffers == 0) free_buffers = buffer_count; /* saving task waiting for capturing task */
-    
-    /* could use a nicer display, but stars should be fine too */
-    char buffer_status[10];
-    for (int i = 0; i < (buffer_count-free_buffers); i++)
-        buffer_status[i] = '*';
-    for (int i = (buffer_count-free_buffers); i < buffer_count; i++)
-        buffer_status[i] = '.';
-    buffer_status[buffer_count] = 0;
+    int scale = MAX(1, 300 / slot_count);
+    int x = 30;
+    int y = 50;
+    for (int i = 0; i < slot_count; i++)
+    {
+        if (i > 0 && slots[i].tag != slots[i-1].tag)
+            x += MAX(2, scale);
 
-    if(frame_skips > 0)
-    {
-        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 30, 50, "Buffer usage: <%s>, %d skipped frames", buffer_status, frame_skips);
+        int color = slots[i].status == SLOT_FREE ? COLOR_BLACK : slots[i].status == SLOT_WRITING ? COLOR_GREEN1 : slots[i].status == SLOT_FULL ? COLOR_LIGHT_BLUE : COLOR_RED;
+        for (int k = 0; k < scale; k++)
+        {
+            draw_line(x, y, x, y+18, color);
+            x++;
+        }
+        
+        if (scale > 1)
+            x++;
     }
-    else
+    
+    if (frame_skips > 0)
     {
-        bmp_printf(FONT_MED, 30, 50, "Buffer usage: <%s>", buffer_status);
+        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), x+10, y, "%d skipped frames", frame_skips);
     }
+
+#ifdef DEBUG_BUFFERING_GRAPH
+    {
+        int free = get_free_slots();
+        int x = frame_count % 720;
+        int ymin = 120;
+        int ymax = 400;
+        int y = ymin + free * (ymax - ymin) / slot_count;
+        dot(x-16, y-16, COLOR_BLACK, 3);
+        static int prev_x = 0;
+        static int prev_y = 0;
+        if (prev_x && prev_y && prev_x < x)
+        {
+            draw_line(prev_x, prev_y, x, y, COLOR_BLACK);
+        }
+        prev_x = x;
+        prev_y = y;
+        bmp_draw_rect(COLOR_BLACK, 0, ymin, 720, ymax-ymin);
+    }
+#endif
 }
 
 static unsigned int raw_rec_should_preview(unsigned int ctx);
@@ -839,7 +927,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     
     /* update status messages */
     static int auxrec = INT_MIN;
-    if (RAW_IS_RECORDING && liveview_display_idle() && should_run_polling_action(1000, &auxrec))
+    if (RAW_IS_RECORDING && liveview_display_idle() && should_run_polling_action(DEBUG_REDRAW_INTERVAL, &auxrec))
     {
         int fps = fps_get_current_x1000();
         int t = (frame_count * 1000 + fps/2) / fps;
@@ -969,15 +1057,100 @@ static void hack_liveview()
     }
 }
 
+
+static int FAST choose_next_capture_slot()
+{
+    /* keep on rolling? */
+    /* O(1) */
+    if (
+        capture_slot >= 0 && 
+        capture_slot + 1 < slot_count && 
+        slots[capture_slot].tag == slots[capture_slot + 1].tag && 
+        slots[capture_slot + 1].status == SLOT_FREE
+       )
+        return capture_slot + 1;
+
+    /* choose a new buffer? */
+    /* choose the largest contiguous free section (contiguous == same tag) */
+    /* O(n), n = slot_count */
+    int len = 0;
+    int prev_tag = -1;
+    int best_len = 0;
+    int best_index = -1;
+    for (int i = 0; i < slot_count; i++)
+    {
+        if (slots[i].status == SLOT_FREE)
+        {
+            if (slots[i].tag == prev_tag)
+            {
+                len++;
+                if (len > best_len)
+                {
+                    best_len = len;
+                    best_index = i - len + 1;
+                }
+            }
+            else
+            {
+                len = 1;
+                prev_tag = slots[i].tag;
+                if (len > best_len)
+                {
+                    best_len = len;
+                    best_index = i;
+                }
+            }
+        }
+        else
+        {
+            len = 0;
+            prev_tag = -1;
+        }
+    }
+    
+    return best_index;
+}
+
 static int FAST process_frame()
 {
-    if (!lv) return 0;
-    
     /* skip the first frame, it will be gibberish */
-    if (frame_count == 0) { frame_count++; return 0; }
+    if (frame_count == 0)
+    {
+        frame_count++;
+        return 0;
+    }
+
+    if (capture_slot >= 0)
+    {
+        /* previous frame completed, we can send it for saving */
+        writing_queue[writing_queue_tail] = capture_slot;
+        writing_queue_tail = mod(writing_queue_tail + 1, COUNT(writing_queue));
+    }
     
+    /* where to save the next frame? */
+    capture_slot = choose_next_capture_slot(capture_slot);
+    
+    if (capture_slot >= 0)
+    {
+        /* okay */
+        slots[capture_slot].frame_number = frame_count;
+        slots[capture_slot].status = SLOT_FULL;
+    }
+    else
+    {
+        /* card too slow */
+        frame_skips++;
+        if (allow_frame_skip)
+        {
+            bmp_printf( FONT_MED, 30, 70, 
+                "Skipping frames...   "
+            );
+        }
+        return 0;
+    }
+
     /* copy current frame to our buffer and crop it to its final size */
-    void* ptr = buffers[capturing_buffer_index].ptr + capture_offset;
+    void* ptr = slots[capture_slot].ptr;
     void* fullSizeBuffer = fullsize_buffers[(fullsize_buffer_pos+1) % 2];
 
     /* advance to next buffer for the upcoming capture */
@@ -995,12 +1168,13 @@ static int FAST process_frame()
         beep();
     }
 
+    //~ console_printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
+
     int ans = edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
 
     /* advance to next frame */
     frame_count++;
-    capture_offset += frame_size;
-    
+
     return ans;
 }
 
@@ -1029,42 +1203,7 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
-    
-    if (capture_offset + frame_size >= buffers[capturing_buffer_index].size)
-    {
-        /* this buffer is full, try next one */
-        int next_buffer = mod(capturing_buffer_index + 1, buffer_count);
-        if (next_buffer != saving_buffer_index)
-        {
-            buffers[capturing_buffer_index].used = capture_offset;
-            capturing_buffer_index = next_buffer;
-            capture_offset = 0;
-        }
-        else if (raw_rec_cbr_skip_buffer(next_buffer, buffers[next_buffer].size / frame_size, buffer_count))
-        {
-            /* our buffer list wrapped over, but this is intentional as an other module requests this mode of operation */
-            buffers[capturing_buffer_index].used = capture_offset;
-            capturing_buffer_index = next_buffer;
-            capture_offset = 0;
-            
-            /* decrease frame count by the amount saved in skipped buffer */
-            frame_count -= buffers[next_buffer].size / frame_size;
-            saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
-        }
-        else
-        {
-            /* card too slow */
-            frame_skips++;
-            if (allow_frame_skip)
-            {
-                bmp_printf( FONT_MED, 30, 70, 
-                    "Skipping frames...   "
-                );
-            }
-            return 0;
-        }
-    }
-    
+
     dma_transfer_in_progress = process_frame();
 
     return 0;
@@ -1123,17 +1262,15 @@ static char* get_wav_file_name(char* movie_filename)
 
 static void raw_video_rec_task()
 {
+    //~ console_show();
     /* init stuff */
     raw_recording_state = RAW_PREPARING;
-    buffer_count = 0;
-    capturing_buffer_index = 0;
-    saving_buffer_index = 0;
+    slot_count = 0;
+    capture_slot = -1;
     fullsize_buffer_pos = 0;
-    capture_offset = 0;
+    writing_task_busy = 0;
     frame_count = 0;
     frame_skips = 0;
-    frame_offset_delta_x = 0;
-    frame_offset_delta_y = 0;
     FILE* f = 0;
     written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
@@ -1202,22 +1339,74 @@ static void raw_video_rec_task()
     /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
     recording = -1;
     
+    int fps = fps_get_current_x1000();
+    
     /* main recording loop */
     while (RAW_IS_RECORDING && lv)
     {
         if (!allow_frame_skip && frame_skips)
             goto abort;
-            
-        /* do we have any buffers completely filled with data, that we can save? */
-        int used_buffers = (capturing_buffer_index + buffer_count - saving_buffer_index) % buffer_count;
-        int ext_gating = raw_rec_cbr_save_buffer(used_buffers, saving_buffer_index, buffers[saving_buffer_index].size / frame_size, buffer_count);
+
+        /* writing queue empty? nothing to do */ 
+        if (writing_queue_head == writing_queue_tail)
+        {
+            msleep(20);
+            continue;
+        }
+        
+        /* group items from the queue in a contiguous block - as many as we can */
+        int first_slot = writing_queue[writing_queue_head];
+        int first_tag = slots[first_slot].tag;
+        int last_grouped = writing_queue_head;
+        
+        for (int i = writing_queue_head; i != writing_queue_tail; i = mod(i+1, COUNT(writing_queue)))
+        {
+            int slot_index = writing_queue[i];
+            if (slots[slot_index].tag == first_tag)
+                last_grouped = i;
+            else
+                break;
+        }
+        
+        /* grouped frames from writing_queue_head to last_grouped (including both ends) */
+        int num_frames = mod(last_grouped - writing_queue_head + 1, COUNT(writing_queue));
+        
+        int free_slots = get_free_slots();
+        
+        /* if we are about to overflow, save a smaller number of frames, so they can be freed quicker */
+        if (measured_write_speed)
+        {
+            /* measured_write_speed unit: 0.1 MB/s */
+            /* FPS unit: 0.001 Hz */
+            /* overflow time unit: 0.1 seconds */
+            int overflow_time = free_slots * 1000 * 10 / fps;
+            int frame_limit = overflow_time * 1024 / 10 * measured_write_speed * 1024 / frame_size / 10;
+            if (frame_limit >= 0 && frame_limit < num_frames)
+            {
+                //~ console_printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
+                num_frames = MAX(1, frame_limit - 2);
+                //~ beep();
+            }
+        }
+
+        int after_last_grouped = mod(writing_queue_head + num_frames, COUNT(writing_queue));
+        
+        void* ptr = slots[first_slot].ptr;
+        int size_used = frame_size * num_frames;
+        
+        /* mark these frames as "writing" */
+        for (int i = writing_queue_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
+        {
+            int slot_index = writing_queue[i];
+            slots[slot_index].status = SLOT_WRITING;
+        }
 
         /* ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
-        if(used_buffers > 0 && ext_gating)
+        int ext_gating = 1;
+        if (ext_gating)
         {
-            void* ptr = buffers[saving_buffer_index].ptr;
-            int size_used = buffers[saving_buffer_index].used;
-
+            writing_task_busy = 1;
+            
             int t0 = get_ms_clock_value();
             if (!last_write_timestamp) last_write_timestamp = t0;
             idle_time += t0 - last_write_timestamp;
@@ -1279,13 +1468,18 @@ static void raw_video_rec_task()
             }
             
             writing_time += last_write_timestamp - t0;
-            saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
+            writing_task_busy = 0;
         }
-        else
+
+        /* mark these frames as "free" so they can be reused */
+        for (int i = writing_queue_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
         {
-            /* to be verified if it is okay to sleep when the buffers are empty */
-            msleep(20);
+            int slot_index = writing_queue[i];
+            slots[slot_index].status = SLOT_FREE;
         }
+        
+        /* remove these frames from the queue */
+        writing_queue_head = after_last_grouped;
 
         /* error handling */
         if (0)
@@ -1294,6 +1488,7 @@ abort:
             bmp_printf( FONT_MED, 30, 90, 
                 "Movie recording stopped automagically"
             );
+            /* this is error beep, not audio sync beep */
             beep_times(2);
             break;
         }
@@ -1321,16 +1516,16 @@ abort:
     );
 
     /* write remaining frames */
-    while (saving_buffer_index != capturing_buffer_index)
+    for (; writing_queue_head != writing_queue_tail; writing_queue_head = mod(writing_queue_head + 1, COUNT(slots)))
     {
+        int slot_index = writing_queue[writing_queue_head];
+        slots[slot_index].status = SLOT_WRITING;
         show_buffer_status();
-        written += FIO_WriteFile(f, buffers[saving_buffer_index].ptr, buffers[saving_buffer_index].used) / 1024;
-        saving_buffer_index = mod(saving_buffer_index + 1, buffer_count);
+        written += FIO_WriteFile(f, slots[slot_index].ptr, frame_size) / 1024;
+        slots[slot_index].status = SLOT_FREE;
     }
-    written += FIO_WriteFile(f, buffers[capturing_buffer_index].ptr, capture_offset) / 1024;
 
     /* remove the backup file, to make sure we can save the footer even if card is full */
-    msleep(500);
     FIO_RemoveFile(backup_filename);
     msleep(500);
 
@@ -1375,6 +1570,10 @@ cleanup:
     if (!written) { FIO_RemoveFile(movie_filename); movie_filename = 0; }
     FIO_RemoveFile(backup_filename);
     free_buffers();
+    
+    #ifdef DEBUG_BUFFERING_GRAPH
+    take_screenshot(0);
+    #endif
     if (canon_gui) canon_gui_enable_front_buffer(0);
     redraw();
     raw_recording_state = RAW_IDLE;
@@ -1562,6 +1761,7 @@ static struct menu_entry raw_video_menu[] =
             {
                 .name = "Framing",
                 .priv = &framing_mode,
+                .update = framing_update,
                 .max = 2,
                 .choices = CHOICES("Center", "Force Left", "Dolly mode"),
                 .help = "Choose how to frame recorded the image.",
@@ -1731,10 +1931,8 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     if (!RAW_IS_IDLE)
     {
         /* be gentle with the CPU, save it for recording (especially if the buffer is almost full) */
-        int free_buffers = mod(saving_buffer_index - capturing_buffer_index, buffer_count);
-        if (free_buffers == 0) free_buffers = buffer_count;
-        int used_buffers = buffer_count - free_buffers;
-        msleep(free_buffers <= 2 ? 2000 : used_buffers > 1 ? 1000 : 100);
+        //~ msleep(free_buffers <= 2 ? 2000 : used_buffers > 1 ? 1000 : 100);
+        msleep(1000);
     }
 
     preview_dirty = 1;
