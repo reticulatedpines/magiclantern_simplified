@@ -1,7 +1,7 @@
 /**
  * RAW recording. Similar to lv_rec, with some different internals:
  * 
- * - buffering: group the frames in 32GB contiguous chunks, to maximize writing speed
+ * - buffering: group the frames in 32MB contiguous chunks, to maximize writing speed
  * - edmac_copy_rectangle: we can crop the image and trim the black borders!
  * - edmac operation done outside the LV task
  * - on buffer overflow, it stops or skips frames (user-selected)
