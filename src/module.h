@@ -18,7 +18,7 @@
 #define STR(x)                        STR_(x)
 #define STR_(x)                       #x
 
-#define MODULE_COUNT_MAX              15
+#define MODULE_COUNT_MAX              32
 #define MODULE_NAME_LENGTH            8
 #define MODULE_FILENAME_LENGTH        64
 #define MODULE_STATUS_LENGTH          64
