@@ -208,6 +208,13 @@ static void fps_read_current_timer_values();
 //~ #define FPS_TIMER_B_MIN (fps_timer_b_orig-100)
 #define FPS_TIMER_B_MIN fps_timer_b_orig // it might go lower than that, but it causes trouble high shutter speeds
 
+#define ZOOM (lv_dispsize > 1)
+#define MV1080 (is_movie_mode() && video_mode_resolution == 0)
+#define MV720 (is_movie_mode() && video_mode_resolution == 1)
+#define MV480 (is_movie_mode() && video_mode_resolution == 2)
+#define MV1080CROP (MV1080 && video_mode_crop)
+#define MV480CROP (MV480 && video_mode_crop)
+
 #if defined(CONFIG_5D2)
     #define TG_FREQ_BASE 24000000
     #define TG_FREQ_SHUTTER (ntsc ? 39300000 : 40000000)
@@ -219,7 +226,7 @@ static void fps_read_current_timer_values();
 #elif defined(CONFIG_5D3)
     #define TG_FREQ_BASE 24000000
     #define TG_FREQ_SHUTTER (ntsc ? 51120000 : 50000000)
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), 500)
+    #define FPS_TIMER_A_MIN (fps_timer_a_orig - (ZOOM ? 20 : MV720 ? 30 : 42))
 #elif defined(CONFIG_EOSM)
     #define TG_FREQ_BASE 32000000
     #define TG_FREQ_SHUTTER (ntsc || !recording ? 56760000 : 50000000)
