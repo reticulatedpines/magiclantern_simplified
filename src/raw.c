@@ -1067,6 +1067,7 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
     int x2 = BM2LV_X(os.x_max);
     x1 = MAX(x1, RAW2LV_X(MAX(raw_info.active_area.x1, preview_rect_x)));
     x2 = MIN(x2, RAW2LV_X(MIN(raw_info.active_area.x2, preview_rect_x + preview_rect_w)));
+    if (x2 < x1) return;
 
     /* cache the LV to RAW transformation for the inner loop to make it faster */
     /* we will always choose a green pixel */
