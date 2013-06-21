@@ -95,7 +95,8 @@ static CONFIG_INT("raw.res.x", resolution_index_x, 12);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
 static CONFIG_INT("raw.write.spd", measured_write_speed, 0);
 static CONFIG_INT("raw.skip.frames", allow_frame_skip, 0);
-static CONFIG_INT("raw.sound", sound_rec, 2);
+//~ static CONFIG_INT("raw.sound", sound_rec, 2);
+#define sound_rec 2
 
 static CONFIG_INT("raw.dolly", dolly_mode, 0);
 #define FRAMING_CENTER (dolly_mode == 0)
@@ -1558,6 +1559,7 @@ static MENU_SELECT_FUNC(raw_start_stop)
     if (!RAW_IS_IDLE)
     {
         raw_recording_state = RAW_FINISHING;
+        if (sound_rec == 2) beep();
     }
     else
     {
@@ -1716,6 +1718,7 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "Useful for video modes with squeezed image (e.g. 720p).",
             },
             */
+            /* gets out of sync
             {
                 .name = "Sound",
                 .priv = &sound_rec,
@@ -1723,13 +1726,7 @@ static struct menu_entry raw_video_menu[] =
                 .choices = CHOICES("OFF", "Separate WAV", "Sync beep"),
                 .help = "Sound recording options.",
             },
-            {
-                .name = "Frame skipping",
-                .priv = &allow_frame_skip,
-                .max = 1,
-                .choices = CHOICES("OFF", "Allow"),
-                .help = "Enable if you don't mind skipping frames (for slow cards).",
-            },
+            */
             {
                 .name = "Preview",
                 .priv = &preview_mode,
@@ -1746,6 +1743,13 @@ static struct menu_entry raw_video_menu[] =
                 .max = 1,
                 .help = "Smooth panning of the recording window (software dolly).",
                 .help2 = "Use arrow keys (joystick) to move the window."
+            },
+            {
+                .name = "Frame skipping",
+                .priv = &allow_frame_skip,
+                .max = 1,
+                .choices = CHOICES("OFF", "Allow"),
+                .help = "Enable if you don't mind skipping frames (for slow cards).",
             },
             {
                 .name = "Memory hack",
@@ -1967,7 +1971,7 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)
     MODULE_CONFIG(allow_frame_skip)
-    MODULE_CONFIG(sound_rec)
+    //~ MODULE_CONFIG(sound_rec)
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
     MODULE_CONFIG(memory_hack)
