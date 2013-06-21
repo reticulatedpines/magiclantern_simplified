@@ -1035,10 +1035,9 @@ void center_lv_afframe_do()
                 if (focus_box_get_raw_crop_offset(&delta_x, &delta_y))
                 {
                     /* be careful not to change the raw window */
-                    int shave_right = raw_get_shave_right();
-                    int gap_left = (raw_info.jpeg.width + shave_right - vram_hd.width) / 2 - delta_x;
+                    int gap_left = (raw_info.jpeg.width - vram_hd.width) / 2 - delta_x;
                     int gap_top  = (raw_info.jpeg.height - vram_hd.height) / 2 - delta_y;
-                    int gap_right = (raw_info.jpeg.width + shave_right - vram_hd.width) / 2 + delta_x;
+                    int gap_right = (raw_info.jpeg.width - vram_hd.width) / 2 + delta_x;
                     int gap_bottom  = (raw_info.jpeg.height - vram_hd.height) / 2 + delta_y;
                     if (gap_left < 200) delta_x -= (200 - gap_left);
                     if (gap_top < 50) delta_y -= (50 - gap_top);

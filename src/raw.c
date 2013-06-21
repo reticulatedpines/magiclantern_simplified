@@ -36,9 +36,7 @@
 #define dbg_printf(fmt,...) {}
 #endif
 
-static int shave_right = 0;
 static int dirty = 0;
-int raw_get_shave_right() { return shave_right; } /* todo: add it in raw_info structure, at next raw file format update */
 
 /*********************** Camera-specific constants ****************************/
 
@@ -361,12 +359,6 @@ int raw_update_params()
         skip_bottom = 4;
         #endif
         
-        if (shave_right)
-        {
-            width -= shave_right;
-            skip_right = MAX(0, skip_right - shave_right);
-        }
-        
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
     }
@@ -552,13 +544,11 @@ int raw_update_params()
 
 /*********************** Portable code ****************************************/
 
-    static int prev_shave = 0;
-    if (width != raw_info.width || height != raw_info.height || shave_right != prev_shave)
+    if (width != raw_info.width || height != raw_info.height)
     {
         /* raw dimensions changed? force a full update, including preview window */
         dirty = 1;
     }
-    prev_shave = shave_right;
     
     if (lv_dispsize > 1)
     {
@@ -723,7 +713,7 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
     
     int preview_skip_left = skip_left;
     int preview_skip_top = skip_top;
-    int preview_width = raw_info.jpeg.width + shave_right;
+    int preview_width = raw_info.jpeg.width;
     int preview_height = raw_info.jpeg.height;
     if (lv_dispsize > 1)
     {
@@ -733,9 +723,6 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
             /* in 10x, the yuv area is twice as small than in 5x */
             int zoom_corr = lv_dispsize == 10 ? 2 : 1;
             
-            /* focus_box_get_raw_crop_offset doesn't know about shaving */
-            delta_x += shave_right/2;
-
             /**
              *  |<-----------------raw_info.width--------------------------->|
              *  |                                                            |
@@ -764,7 +751,7 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
              * 
              */
             /* if the yuv window is on the left side, delta_x is > 0 */
-            preview_skip_left += (raw_info.jpeg.width + shave_right - vram_hd.width / zoom_corr) / 2 - delta_x;
+            preview_skip_left += (raw_info.jpeg.width - vram_hd.width / zoom_corr) / 2 - delta_x;
             preview_skip_top += (raw_info.jpeg.height - vram_hd.height / zoom_corr) / 2 - delta_y;
             preview_width = vram_hd.width / zoom_corr;
             preview_height = vram_hd.height / zoom_corr;
@@ -1051,32 +1038,11 @@ void FAST raw_lv_redirect_edmac(void* ptr)
     MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
 }
 
-int raw_lv_shave_right(int offset)
-{
-#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_550D) || defined(CONFIG_500D) /* doesn't work */
-    return 0;
-#else
-    shave_right = MAX(offset/8*8, 0);
-    return shave_right;
-#endif
-}
-
-void raw_lv_vsync_cbr()
-{
-    if (shave_right)
-    {
-        int edmac_pitch = shamem_read(RAW_LV_EDMAC+8) & 0xFFFF;
-        int pitch_offset = shave_right/8*14;
-        if (pitch_offset >= edmac_pitch) return;
-        MEM(RAW_LV_EDMAC-8+0x1C) = -pitch_offset;
-    }
-}
-
 int raw_lv_settings_still_valid()
 {
     /* should be fast enough for vsync calls */
     int edmac_pitch = shamem_read(RAW_LV_EDMAC+8) & 0xFFFF;
-    if (edmac_pitch != raw_info.pitch + shave_right*14/8) return 0;
+    if (edmac_pitch != raw_info.pitch) return 0;
     return 1;
 }
 
@@ -1185,7 +1151,6 @@ static int old_raw_type = -1;
 static void raw_lv_enable()
 {
     lv_raw_enabled = 1;
-    shave_right = 0;
     call("lv_save_raw", 1);
     
 #ifdef PREFERRED_RAW_TYPE

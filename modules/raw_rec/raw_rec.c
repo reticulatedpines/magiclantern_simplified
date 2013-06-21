@@ -97,10 +97,9 @@ static CONFIG_INT("raw.write.spd", measured_write_speed, 0);
 static CONFIG_INT("raw.skip.frames", allow_frame_skip, 0);
 static CONFIG_INT("raw.sound", sound_rec, 2);
 
-static CONFIG_INT("raw.framing", framing_mode, 0);
-#define FRAMING_CENTER (framing_mode == 0)
-#define FRAMING_LEFT (framing_mode == 1)
-#define FRAMING_PANNING (framing_mode == 2)
+static CONFIG_INT("raw.dolly", dolly_mode, 0);
+#define FRAMING_CENTER (dolly_mode == 0)
+#define FRAMING_PANNING (dolly_mode == 1)
 
 static CONFIG_INT("raw.preview", preview_mode, 0);
 #define PREVIEW_AUTO (preview_mode == 0)
@@ -115,7 +114,6 @@ static int res_x = 0;
 static int res_y = 0;
 static int max_res_x = 0;
 static int max_res_y = 0;
-static int shave_right = 0;
 static float squeeze_factor = 0;
 int frame_size = 0;
 int skip_x = 0;
@@ -218,10 +216,6 @@ static void update_cropping_offsets()
         sx += frame_offset_x;
         sy += frame_offset_y;
     }
-    else if (FRAMING_LEFT)
-    {
-        sx = raw_info.active_area.x1;
-    }
     else if (FRAMING_CENTER && lv_dispsize > 1)
     {
         /* try to center the recording window on the YUV frame */
@@ -243,7 +237,7 @@ static void update_resolution_params()
     /* max res X */
     /* make sure we don't get dead pixels from rounding */
     int left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
-    int right_margin = (raw_info.active_area.x2 + shave_right) / 8 * 8;
+    int right_margin = (raw_info.active_area.x2) / 8 * 8;
     int max = (right_margin - left_margin) & ~15;
     while (max % 16) max--;
     max_res_x = max;
@@ -442,12 +436,6 @@ static MENU_UPDATE_FUNC(write_speed_update)
     }
 }
 
-static void update_shave()
-{
-    shave_right = FRAMING_LEFT ? (raw_info.width + shave_right - res_x - skip_x) / 8 * 8 : 0;
-    shave_right = raw_lv_shave_right(shave_right);
-}
-
 static void refresh_raw_settings(int force)
 {
     if (RAW_IS_IDLE && !raw_playing && !raw_previewing)
@@ -459,7 +447,6 @@ static void refresh_raw_settings(int force)
             if (raw_update_params())
             {
                 update_resolution_params();
-                update_shave();
             }
         }
     }
@@ -564,18 +551,6 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
     write_speed_update(entry, info);
 }
 
-static MENU_UPDATE_FUNC(framing_update)
-{
-    if (FRAMING_LEFT)
-    {
-        if (shave_right <= 500)
-        {
-            MENU_SET_WARNING(MENU_WARN_ADVICE, "Force Left: you will not get %s speed improvement.", shave_right ? "noticeable" : "any");
-        }
-    }
-    
-}
-
 /* add a footer to given file handle to  */
 static unsigned int lv_rec_save_footer(FILE *save_file)
 {
@@ -649,7 +624,7 @@ static int setup_buffers()
     if (!mem_suite) return 0;
     
     /* allocate memory for double buffering */
-    int buf_size = (raw_info.width + shave_right) * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
+    int buf_size = raw_info.width * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
 
     /* find the smallest chunk that we can use for buf_size */
     fullsize_buffers[0] = 0;
@@ -872,7 +847,6 @@ static void raw_video_enable()
 static void raw_video_disable()
 {
     raw_lv_release();
-    raw_lv_shave_right(0);
     if (cam_eos_m) set_custom_movie_mode(0);
 }
 
@@ -1619,8 +1593,6 @@ static void raw_video_playback_task()
     /* read footer information and update global variables, will seek automatically */
     lv_rec_read_footer(f);
 
-    shave_right = 0;
-    raw_lv_shave_right(0);
     raw_set_geometry(res_x, res_y, 0, 0, 0, 0);
     
     /* don't use raw_info.frame_size, use the one from the footer instead
@@ -1759,17 +1731,6 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Enable if you don't mind skipping frames (for slow cards).",
             },
             {
-                .name = "Framing",
-                .priv = &framing_mode,
-                .update = framing_update,
-                .max = 2,
-                .choices = CHOICES("Center", "Force Left", "Dolly mode"),
-                .help = "Choose how to frame recorded the image.",
-                .help2 = "Center: most intuitive, but not the fastest.\n"
-                         "Force Left: we can chop off the right side for higher speed.\n"
-                         "Dolly: smooth panning of the recording window, with arrows."
-            },
-            {
                 .name = "Preview",
                 .priv = &preview_mode,
                 .max = 3,
@@ -1778,6 +1739,13 @@ static struct menu_entry raw_video_menu[] =
                          "Canon: plain old LiveView. Framing is not always correct.\n"
                          "ML Grayscale: looks ugly, but at least framing is correct.\n"
                          "HaCKeD: try to squeeze a little speed by killing LiveView.\n"
+            },
+            {
+                .name = "Digital dolly",
+                .priv = &dolly_mode,
+                .max = 1,
+                .help = "Smooth panning of the recording window (software dolly).",
+                .help2 = "Use arrow keys (joystick) to move the window."
             },
             {
                 .name = "Memory hack",
@@ -2000,7 +1968,7 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(measured_write_speed)
     MODULE_CONFIG(allow_frame_skip)
     MODULE_CONFIG(sound_rec)
-    MODULE_CONFIG(framing_mode)
+    MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
     MODULE_CONFIG(memory_hack)
 MODULE_CONFIGS_END()
