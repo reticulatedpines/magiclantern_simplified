@@ -117,6 +117,7 @@ static int max_res_x = 0;
 static int max_res_y = 0;
 static float squeeze_factor = 0;
 int frame_size = 0;
+int frame_size_real = 0;
 int skip_x = 0;
 int skip_y = 0;
 
@@ -266,7 +267,18 @@ static void update_resolution_params()
     /* frame size */
     /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
     /* should be multiple of 4096 for proper EDMAC alignment */
-    frame_size = (res_x * res_y * 14/8 + 4095) & ~4095;
+    int frame_size_padded = (res_x * res_y * 14/8 + 4095) & ~4095;
+    
+    /* frame size without rounding */
+    /* must be multiple of 4 */
+    frame_size_real = res_x * res_y * 14/8;
+    ASSERT(frame_size_real % 4 == 0);
+    
+    /* needed for EDMAC double-checking; unlikely to happen, but possible */
+    if (frame_size_real == frame_size_padded)
+        frame_size_padded += 4096;
+    
+    frame_size = frame_size_padded;
     
     update_cropping_offsets();
 }
@@ -1086,6 +1098,38 @@ static int FAST choose_next_capture_slot()
     return best_index;
 }
 
+#define FRAME_SENTINEL 0xA5A5A5A5 /* for double-checking EDMAC operations */
+
+static void frame_add_checks(int slot_index)
+{
+    void* ptr = slots[slot_index].ptr;
+    uint32_t* frame_end = ptr + frame_size_real - 4;
+    uint32_t* after_frame = ptr + frame_size_real;
+    *(volatile uint32_t*) frame_end = FRAME_SENTINEL; /* this will be overwritten by EDMAC */
+    *(volatile uint32_t*) after_frame = FRAME_SENTINEL; /* this shalt not be overwritten */
+}
+
+static int frame_check_saved(int slot_index)
+{
+    void* ptr = slots[slot_index].ptr;
+    uint32_t* frame_end = ptr + frame_size_real - 4;
+    uint32_t* after_frame = ptr + frame_size_real;
+    if (*(volatile uint32_t*) after_frame != FRAME_SENTINEL)
+    {
+        /* EDMAC overflow */
+        return -1;
+    }
+    
+    if (*(volatile uint32_t*) frame_end == FRAME_SENTINEL)
+    {
+        /* frame not yet complete */
+        return 0;
+    }
+    
+    /* looks alright */
+    return 1;
+}
+
 static int FAST process_frame()
 {
     /* skip the first frame, it will be gibberish */
@@ -1097,7 +1141,17 @@ static int FAST process_frame()
 
     if (capture_slot >= 0)
     {
-        /* previous frame completed, we can send it for saving */
+        /* previous frame completed */
+        
+        /* check if EDMAC filled it correctly */
+        int check = frame_check_saved(capture_slot);
+        if (check != 1)
+        {
+            bmp_printf( FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 30, 70, check == -1 ? "EDMAC overflow!" : "Frame error!");
+            beep();
+        }
+        
+        /* and we can send it for saving */
         writing_queue[writing_queue_tail] = capture_slot;
         writing_queue_tail = mod(writing_queue_tail + 1, COUNT(writing_queue));
     }
@@ -1110,6 +1164,7 @@ static int FAST process_frame()
         /* okay */
         slots[capture_slot].frame_number = frame_count;
         slots[capture_slot].status = SLOT_FULL;
+        frame_add_checks(capture_slot);
     }
     else
     {
