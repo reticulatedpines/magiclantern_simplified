@@ -179,6 +179,7 @@ static uint32_t written = 0;                      /* how many KB we have written
 static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
 static int idle_time = 0;                         /* time spent by raw_video_rec_task doing something else */
 static volatile int writing_task_busy = 0;        /* busy: in the middle of a write operation */
+static volatile int frame_countdown = 0;          /* for waiting X frames */
 
 /* interface to other modules:
  *
@@ -641,7 +642,14 @@ static int setup_buffers()
     
     mem_suite = shoot_malloc_suite(0);
     
-    if (memory_hack) { ResumeLiveView(); msleep(500); }
+    if (memory_hack) 
+    {
+        ResumeLiveView();
+        msleep(500);
+        while (!raw_update_params())
+            msleep(100);
+        refresh_raw_settings(1);
+    }
     
     if (!mem_suite) return 0;
     
@@ -809,7 +817,7 @@ static void cropmark_draw()
     static int prev_p = 0;
 
     /* window changed? erase the old cropmark */
-    if (prev_x != x || prev_y != y || prev_w != w || prev_h != h || prev_p != p)
+    if ((prev_p != p) ^ (prev_x != x || prev_y != y || prev_w != w || prev_h != h))
     {
         bmp_draw_rect(0, prev_x, prev_y, prev_w, prev_h);
         bmp_draw_rect(0, prev_x-1, prev_y-1, prev_w+2, prev_h+2);
@@ -1230,7 +1238,10 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 
     if (!raw_video_enabled) return 0;
     if (!is_movie_mode()) return 0;
-
+    
+    if (frame_countdown)
+        frame_countdown--;
+    
     hack_liveview();
  
     /* panning window is updated when recording, but also when not recording */
@@ -1314,10 +1325,7 @@ static void raw_video_rec_task()
     FILE* f = 0;
     written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
-
-    /* disable canon graphics (gains a little speed) */
-    int canon_gui = !canon_gui_front_buffer_disabled();
-    canon_gui_disable_front_buffer();
+    int canon_gui = 0;
 
     /* create a backup file, to make sure we can save the file footer even if the card is full */
     char backup_filename[100];
@@ -1343,6 +1351,14 @@ static void raw_video_rec_task()
         goto cleanup;
     }
     
+    /* wait for one frame to be sure everything is refreshed */
+    frame_countdown = 1;
+    for (int i = 0; i < 200; i++)
+    {
+        msleep(20);
+        if (frame_countdown == 0) break;
+    }
+    
     /* detect raw parameters (geometry, black level etc) */
     raw_set_dirty();
     if (!raw_update_params())
@@ -1350,6 +1366,8 @@ static void raw_video_rec_task()
         bmp_printf( FONT_MED, 30, 50, "Raw detect error");
         goto cleanup;
     }
+    
+    update_resolution_params();
 
     /* allocate memory */
     if (!setup_buffers())
@@ -1365,7 +1383,11 @@ static void raw_video_rec_task()
         bmp_printf( FONT_MED, 30, 90, "%s", wavfile);
         WAV_StartRecord(wavfile);
     }
-    
+
+    /* disable canon graphics (gains a little speed) */
+    canon_gui = !canon_gui_front_buffer_disabled();
+    canon_gui_disable_front_buffer();
+
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
 
