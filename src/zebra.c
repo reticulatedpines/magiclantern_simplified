@@ -1425,9 +1425,7 @@ static void draw_zebras( int Z )
 
             return;
         }
-        else 
         #endif
-        if (PLAY_OR_QR_MODE) EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); // disable Canon highlight warning, looks ugly with both on the screen :)
         
         uint8_t * lvram = get_yuv422_vram()->vram;
 
@@ -4367,6 +4365,8 @@ static void draw_livev_for_playback()
     get_yuv422_vram(); // just to refresh VRAM params
 
     info_led_on();
+
+    if (PLAY_OR_QR_MODE) EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); // disable Canon highlight warning, looks ugly with both on the screen :)
 
 BMP_LOCK(
 
