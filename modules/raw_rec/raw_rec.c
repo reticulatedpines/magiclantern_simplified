@@ -110,6 +110,8 @@ static CONFIG_INT("raw.preview", preview_mode, 0);
 
 static CONFIG_INT("raw.memory.hack", memory_hack, 0);
 
+static CONFIG_INT("raw.speculative.start", speculative_start, 0);
+
 /* state variables */
 static int res_x = 0;
 static int res_y = 0;
@@ -144,9 +146,14 @@ static int raw_previewing = 0;
 struct frame_slot
 {
     void* ptr;          /* image data, size=frame_size */
-    int tag;            /* used for identifying contiguous regions */
     int frame_number;   /* from 0 to n */
     enum {SLOT_FREE, SLOT_FULL, SLOT_WRITING} status;
+};
+
+struct write_queue_item
+{
+    int slot_index;     /* index of slot containing one frame */
+    int contig_left;    /* how many frames will be written contiguously after this one */
 };
 
 static struct memSuite * mem_suite = 0;           /* memory suite for our buffers */
@@ -157,8 +164,10 @@ static int fullsize_buffer_pos = 0;               /* which of the full size buff
 static struct frame_slot slots[512];              /* frame slots */
 static int slot_count = 0;                        /* how many frame slots we have */
 static int capture_slot = -1;                     /* in what slot are we capturing now (index) */
+static int contig_left = 0;                       /* how many contiguous slots we have left */
 
-static int writing_queue[COUNT(slots)];           /* queue of completed slot indices waiting to be saved */
+static struct write_queue_item 
+       writing_queue[COUNT(slots)];               /* queue of completed frames (slots) waiting to be saved */
 static int writing_queue_tail = 0;                /* place captured frames here */
 static int writing_queue_head = 0;                /* extract frames to be written from here */ 
 
@@ -667,7 +676,6 @@ static int setup_buffers()
     /* use all chunks larger than frame_size for recording */
     chunk = GetFirstChunkFromSuite(mem_suite);
     slot_count = 0;
-    int tag = 0;
     while(chunk)
     {
         int size = GetSizeOfMemoryChunk(chunk);
@@ -678,12 +686,10 @@ static int setup_buffers()
             ptr = (void*)(((intptr_t)ptr + 4095) & ~4095);
             
             /* fit as many frames as we can */
-            tag++;
             while (size >= frame_size + 8192 && slot_count < COUNT(slots))
             {
                 slots[slot_count].ptr = ptr;
                 slots[slot_count].status = SLOT_FREE;
-                slots[slot_count].tag = tag;
                 ptr += frame_size;
                 size -= frame_size;
                 slot_count++;
@@ -696,14 +702,12 @@ static int setup_buffers()
     /* try to recycle the waste */
     if (waste >= frame_size + 8192)
     {
-        tag++;
         int size = waste;
         void* ptr = (void*)(((intptr_t)(fullsize_buffers[0] + buf_size) + 4095) & ~4095);
         while (size >= frame_size + 8192 && slot_count < COUNT(slots))
         {
             slots[slot_count].ptr = ptr;
             slots[slot_count].status = SLOT_FREE;
-            slots[slot_count].tag = tag;
             ptr += frame_size;
             size -= frame_size;
             slot_count++;
@@ -747,7 +751,7 @@ static void show_buffer_status()
     int y = 50;
     for (int i = 0; i < slot_count; i++)
     {
-        if (i > 0 && slots[i].tag != slots[i-1].tag)
+        if (i > 0 && slots[i].ptr != slots[i-1].ptr + frame_size)
             x += MAX(2, scale);
 
         int color = slots[i].status == SLOT_FREE ? COLOR_BLACK : slots[i].status == SLOT_WRITING ? COLOR_GREEN1 : slots[i].status == SLOT_FULL ? COLOR_LIGHT_BLUE : COLOR_RED;
@@ -1049,28 +1053,27 @@ static int FAST choose_next_capture_slot()
 {
     /* keep on rolling? */
     /* O(1) */
-    if (
-        capture_slot >= 0 && 
-        capture_slot + 1 < slot_count && 
-        slots[capture_slot].tag == slots[capture_slot + 1].tag && 
-        slots[capture_slot + 1].status == SLOT_FREE
-       )
+    if (contig_left > 0)
+    {
+        contig_left--;
         return capture_slot + 1;
+    }
 
     /* choose a new buffer? */
-    /* choose the largest contiguous free section (contiguous == same tag) */
+    /* choose the largest contiguous free section */
     /* O(n), n = slot_count */
     int len = 0;
-    int prev_tag = -1;
+    void* prev_ptr = INVALID_PTR;
     int best_len = 0;
     int best_index = -1;
     for (int i = 0; i < slot_count; i++)
     {
         if (slots[i].status == SLOT_FREE)
         {
-            if (slots[i].tag == prev_tag)
+            if (slots[i].ptr == prev_ptr + frame_size)
             {
                 len++;
+                prev_ptr = slots[i].ptr;
                 if (len > best_len)
                 {
                     best_len = len;
@@ -1080,7 +1083,7 @@ static int FAST choose_next_capture_slot()
             else
             {
                 len = 1;
-                prev_tag = slots[i].tag;
+                prev_ptr = slots[i].ptr;
                 if (len > best_len)
                 {
                     best_len = len;
@@ -1091,9 +1094,11 @@ static int FAST choose_next_capture_slot()
         else
         {
             len = 0;
-            prev_tag = -1;
+            prev_ptr = INVALID_PTR;
         }
     }
+    
+    contig_left = best_len - 1;
     
     return best_index;
 }
@@ -1152,7 +1157,7 @@ static int FAST process_frame()
         }
         
         /* and we can send it for saving */
-        writing_queue[writing_queue_tail] = capture_slot;
+        writing_queue[writing_queue_tail] = (struct write_queue_item) { .slot_index = capture_slot, .contig_left = contig_left };
         writing_queue_tail = mod(writing_queue_tail + 1, COUNT(writing_queue));
     }
     
@@ -1297,6 +1302,7 @@ static void raw_video_rec_task()
     raw_recording_state = RAW_PREPARING;
     slot_count = 0;
     capture_slot = -1;
+    contig_left = 0;
     fullsize_buffer_pos = 0;
     writing_task_busy = 0;
     frame_count = 0;
@@ -1371,35 +1377,79 @@ static void raw_video_rec_task()
     
     int fps = fps_get_current_x1000();
     
+    int last_processed_frame = 0;
+    
     /* main recording loop */
     while (RAW_IS_RECORDING && lv)
     {
         if (!allow_frame_skip && frame_skips)
             goto abort;
+        
+        int w_tail = writing_queue_tail; /* this one can be modified outside the loop, so grab it here, just in case */
+        int w_head = writing_queue_head; /* this one is modified only here, but use it just for the shorter name */
 
         /* writing queue empty? nothing to do */ 
-        if (writing_queue_head == writing_queue_tail)
+        if (w_head == w_tail)
         {
             msleep(20);
             continue;
         }
         
         /* group items from the queue in a contiguous block - as many as we can */
-        int first_slot = writing_queue[writing_queue_head];
-        int first_tag = slots[first_slot].tag;
-        int last_grouped = writing_queue_head;
+        int first_slot = writing_queue[w_head].slot_index;
+        int last_grouped = w_head;
         
-        for (int i = writing_queue_head; i != writing_queue_tail; i = mod(i+1, COUNT(writing_queue)))
+        for (int i = w_head; i != w_tail; i = mod(i+1, COUNT(writing_queue)))
         {
-            int slot_index = writing_queue[i];
-            if (slots[slot_index].tag == first_tag)
+            int slot_index = writing_queue[i].slot_index;
+            int group_pos = mod(i - w_head, COUNT(writing_queue));
+
+            /* TBH, I don't care if these are part of the same group or not,
+             * as long as pointers are ordered correctly */
+            if (slots[slot_index].ptr == slots[first_slot].ptr + frame_size * group_pos)
                 last_grouped = i;
             else
                 break;
         }
         
-        /* grouped frames from writing_queue_head to last_grouped (including both ends) */
-        int num_frames = mod(last_grouped - writing_queue_head + 1, COUNT(writing_queue));
+        int after_last_grouped = mod(last_grouped + 1, COUNT(writing_queue));
+        
+        int speculative_frames = 0;
+        
+        if (speculative_start)
+        {
+            /* Speculative start !!! RISK OF DATA LOSS !!! */
+            
+            /* if the capturing task writes faster than FIO write task,
+             * we can pass the complete chunk to FIO_WriteFile, even if it has only one frame captured,
+             * thus starting to write at full cruise speed from the very first frame */
+
+            /* of course, we can only do this if the writing queue is empty */
+            /* because only in that case we know for sure that recording task will continue the sequence from last_grouped (last item in queue) until the contiguous chunk ends */
+            if (measured_write_speed && after_last_grouped == w_tail)
+            {
+                /* assume it won't go faster than 120% compared to what we have measured */
+                int assumed_speed = measured_write_speed * 12 / 10; /* unit: 0.1 MB/s */
+                int capture_speed = frame_size / 1024 * (fps_get_current_x1000() / 10) / 10 / 1024;
+                
+                if (assumed_speed < capture_speed)
+                {
+                    /* capture task = coelho, fio task = tartaruga */
+                    speculative_frames = writing_queue[last_grouped].contig_left;
+                    
+                    #ifdef DEBUG_BUFFERING_GRAPH
+                    bmp_printf(FONT_MED, 200, 200, "Speculating %d frames ", speculative_frames);
+                    #endif
+                }
+            }
+        }
+        
+        /* grouped frames from w_head to last_grouped (including both ends) */
+        int num_frames = mod(last_grouped - w_head + 1, COUNT(writing_queue));
+        
+        /* can we write a bit more? */
+        int num_frames_safe = num_frames;
+        num_frames += speculative_frames;
         
         int free_slots = get_free_slots();
         
@@ -1410,25 +1460,31 @@ static void raw_video_rec_task()
             /* FPS unit: 0.001 Hz */
             /* overflow time unit: 0.1 seconds */
             int overflow_time = free_slots * 1000 * 10 / fps;
-            int frame_limit = overflow_time * 1024 / 10 * measured_write_speed * 1024 / frame_size / 10;
+            /* better underestimate write speed a little */
+            int frame_limit = overflow_time * 1024 / 10 * (measured_write_speed * 9 / 10) * 1024 / frame_size / 10;
             if (frame_limit >= 0 && frame_limit < num_frames)
             {
                 //~ console_printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
-                num_frames = MAX(1, frame_limit - 2);
+                num_frames = MAX(1, frame_limit - 1);
                 //~ beep();
             }
         }
-
-        int after_last_grouped = mod(writing_queue_head + num_frames, COUNT(writing_queue));
+        
+        num_frames_safe = MIN(num_frames_safe, num_frames);
+        speculative_frames = num_frames - num_frames_safe;
+        
+        /* update for new buffer length */
+        after_last_grouped = mod(w_head + num_frames, COUNT(writing_queue));
         
         void* ptr = slots[first_slot].ptr;
         int size_used = frame_size * num_frames;
         
         /* mark these frames as "writing" */
-        for (int i = writing_queue_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
+        for (int i = w_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
         {
-            int slot_index = writing_queue[i];
-            slots[slot_index].status = SLOT_WRITING;
+            int slot_index = writing_queue[i].slot_index;
+            if (slots[slot_index].status == SLOT_FULL)
+                slots[slot_index].status = SLOT_WRITING;
         }
 
         /* ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
@@ -1502,9 +1558,35 @@ static void raw_video_rec_task()
         }
 
         /* mark these frames as "free" so they can be reused */
-        for (int i = writing_queue_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
+        for (int i = w_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
         {
-            int slot_index = writing_queue[i];
+            if (i == writing_queue_tail)
+            {
+                bmp_printf( FONT_MED, 30, 110, 
+                    "Queue overflow"
+                );
+                beep();
+            }
+            
+            int slot_index = writing_queue[i].slot_index;
+
+            if (frame_check_saved(slot_index) != 1)
+            {
+                bmp_printf( FONT_MED, 30, 110, 
+                    "Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number
+                );
+                beep();
+            }
+            
+            if (slots[slot_index].frame_number != last_processed_frame + 1)
+            {
+                bmp_printf( FONT_MED, 30, 110, 
+                    "Frame order error: slot %d, frame %d, expected ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
+                );
+                beep();
+            }
+            last_processed_frame++;
+
             slots[slot_index].status = SLOT_FREE;
         }
         
@@ -1548,7 +1630,25 @@ abort:
     /* write remaining frames */
     for (; writing_queue_head != writing_queue_tail; writing_queue_head = mod(writing_queue_head + 1, COUNT(slots)))
     {
-        int slot_index = writing_queue[writing_queue_head];
+        int slot_index = writing_queue[writing_queue_head].slot_index;
+
+        if (slots[slot_index].status != SLOT_FULL || frame_check_saved(slot_index) != 1)
+        {
+            bmp_printf( FONT_MED, 30, 110, 
+                "Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number
+            );
+            beep();
+        }
+
+        if (slots[slot_index].frame_number != last_processed_frame + 1)
+        {
+            bmp_printf( FONT_MED, 30, 110, 
+                "Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
+            );
+            beep();
+        }
+        last_processed_frame++;
+
         slots[slot_index].status = SLOT_WRITING;
         show_buffer_status();
         written += FIO_WriteFile(f, slots[slot_index].ptr, frame_size) / 1024;
@@ -1813,6 +1913,13 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
             },
             {
+                .name = "Speculative start",
+                .priv = &speculative_start,
+                .max = 1,
+                .help =  "Early file write commands, before the frames were actually",
+                .help2 = "captured. Starts writing at full cruise speed. Dangerous.",
+            },
+            {
                 .name = "Playback",
                 .select = raw_playback_start,
                 .update = raw_playback_update,
@@ -2030,4 +2137,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
     MODULE_CONFIG(memory_hack)
+    MODULE_CONFIG(speculative_start)
 MODULE_CONFIGS_END()
