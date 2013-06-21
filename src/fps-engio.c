@@ -246,7 +246,7 @@ static void fps_read_current_timer_values();
 	// 1294 - 1363/64
 #elif defined(CONFIG_650D)
     #define TG_FREQ_BASE 32000000
-    #define TG_FREQ_SHUTTER (ntsc || !recording ? 56760000 : 50000000)
+    #define TG_FREQ_SHUTTER (ntsc ? 56760000 : 50000000)
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 500 : 400)
 #elif defined(CONFIG_500D)
     #define TG_FREQ_BASE 32000000    // not 100% sure
@@ -400,7 +400,7 @@ int get_shutter_speed_us_from_timer(int timer)
 
 int get_current_shutter_reciprocal_x1000()
 {
-#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_40D) || (defined(CONFIG_DIGIC_V ) && !defined(CONFIG_5D3))
+#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_40D) || (defined(CONFIG_DIGIC_V ) && !(defined(CONFIG_5D3) || defined(CONFIG_650D)))
     if (!lens_info.raw_shutter) return 0;
     return (int) roundf(powf(2.0f, (lens_info.raw_shutter - 136) / 8.0f) * 1000.0f * 1000.0f);
 #else
