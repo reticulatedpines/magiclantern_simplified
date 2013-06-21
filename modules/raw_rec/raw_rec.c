@@ -1098,6 +1098,10 @@ static int FAST choose_next_capture_slot()
         }
     }
     
+    /* avoid 32MB writes, they are slower (they require two DMA calls) */
+    /* go back a few K and the speed is restored */
+    best_len = MIN(best_len, (32*1024*1024 - 8192) / frame_size);
+    
     contig_left = best_len - 1;
     
     return best_index;
