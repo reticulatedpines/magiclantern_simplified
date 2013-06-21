@@ -754,7 +754,7 @@ static void show_buffer_status()
 {
     if (!liveview_display_idle()) return;
     
-    int scale = MAX(1, 300 / slot_count);
+    int scale = MAX(1, (300 / slot_count + 1) & ~1);
     int x = 30;
     int y = 50;
     for (int i = 0; i < slot_count; i++)
@@ -765,11 +765,11 @@ static void show_buffer_status()
         int color = slots[i].status == SLOT_FREE ? COLOR_BLACK : slots[i].status == SLOT_WRITING ? COLOR_GREEN1 : slots[i].status == SLOT_FULL ? COLOR_LIGHT_BLUE : COLOR_RED;
         for (int k = 0; k < scale; k++)
         {
-            draw_line(x, y, x, y+18, color);
+            draw_line(x, y+5, x, y+17, color);
             x++;
         }
         
-        if (scale > 1)
+        if (scale > 3)
             x++;
     }
     
