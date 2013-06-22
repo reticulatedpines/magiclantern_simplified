@@ -345,11 +345,11 @@ seconds_clock_update()
     
     /* update microsecond timer with simple overflow handling thanks to the timer overflowing at 2^n */
     uint32_t usec_delta = (timer_value - prev_timer + TIMER_MAX) & (TIMER_MAX - 1);
-    microseconds_clock += usec_delta;
+    microseconds_clock += usec_delta;               /* overflow after 584942 years */
     
     /* msec and seconds clock derieve from high precision counter */
-    miliseconds_clock = (uint32_t)(microseconds_clock / 1000);
-    seconds_clock = miliseconds_clock / 1000;
+    miliseconds_clock = microseconds_clock / 1000;  /* overflow after 24 days */
+    seconds_clock = microseconds_clock / 1000000;   /* overflow after 68 years */
     
     prev_timer = timer_value;
     sei(old_stat);
