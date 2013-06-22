@@ -1191,7 +1191,13 @@ static void raw_lv_update()
     if (new_state && !lv_raw_enabled)
     {
         raw_lv_enable();
-        msleep(50);
+        
+        for (int i = 0; i < 20; i++)
+        {
+            if (raw_update_params())
+                break;
+            msleep(50);
+        }
     }
     else if (!new_state && lv_raw_enabled)
     {
