@@ -248,11 +248,11 @@ static void seconds_clock_update();
 
 static volatile int seconds_clock = 0;
 static volatile int miliseconds_clock = 0;
-static volatile unsigned long long microseconds_clock = 0;
+static volatile uint64_t microseconds_clock = 0;
 
 int get_seconds_clock() { return seconds_clock; }
 int get_ms_clock_value() { seconds_clock_update(); return miliseconds_clock; }
-unsigned long long get_us_clock_value() { seconds_clock_update(); return microseconds_clock; }
+uint64_t get_us_clock_value() { seconds_clock_update(); return microseconds_clock; }
 
 int get_ms_clock_value_fast() { return miliseconds_clock; } // fast, but less accurate
 
@@ -348,7 +348,7 @@ seconds_clock_update()
     microseconds_clock += usec_delta;
     
     /* msec and seconds clock derieve from high precision counter */
-    miliseconds_clock = (uint32_t)microseconds_clock / 1000;
+    miliseconds_clock = (uint32_t)(microseconds_clock / 1000);
     seconds_clock = miliseconds_clock / 1000;
     
     prev_timer = timer_value;
