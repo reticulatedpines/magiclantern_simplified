@@ -218,11 +218,11 @@ static void fps_read_current_timer_values();
 #if defined(CONFIG_5D2)
     #define TG_FREQ_BASE 24000000
     #define TG_FREQ_SHUTTER (ntsc ? 39300000 : 40000000)
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 0x262 : 0x228) // trial and error (with digic poke)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 20), ZOOM ? 0x262 : 0x228) // trial and error (with digic poke)
 #elif defined(CONFIG_7D)
     #define TG_FREQ_BASE 24000000
     #define TG_FREQ_SHUTTER (ntsc ? 51120000 : 50000000) // todo, just copied
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 0x262 : 0x228) // todo
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 20), ZOOM ? 0x262 : 0x228) // todo
 #elif defined(CONFIG_5D3)
     #define TG_FREQ_BASE 24000000
     #define TG_FREQ_SHUTTER (ntsc ? 51120000 : 50000000)
@@ -240,25 +240,25 @@ static void fps_read_current_timer_values();
 #elif defined(CONFIG_6D)
     #define TG_FREQ_BASE 25600000
     #define TG_FREQ_SHUTTER (ntsc ? 44000000 : 40000000)
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 708 : 512)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 20), ZOOM ? 708 : 512)
 	#undef FPS_TIMER_B_MIN
 	#define FPS_TIMER_B_MIN MIN(fps_timer_b_orig, 1386)
 	// 1294 - 1363/64
 #elif defined(CONFIG_650D)
     #define TG_FREQ_BASE 32000000
     #define TG_FREQ_SHUTTER (ntsc ? 56760000 : 50000000)
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 20), lv_dispsize > 1 ? 500 : 400)
+    #define FPS_TIMER_A_MIN (fps_timer_a_orig)
 #elif defined(CONFIG_500D)
     #define TG_FREQ_BASE 32000000    // not 100% sure
     #define TG_FREQ_SHUTTER 23188405 // not sure
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 10), lv_dispsize > 1 ? 1400 : video_mode_resolution == 0 ? 1284 : 1348)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 10), ZOOM ? 1400 : video_mode_resolution == 0 ? 1284 : 1348)
 #elif defined(CONFIG_50D)
     #define TG_FREQ_BASE 28800000
     #define TG_FREQ_SHUTTER 41379310 // not sure
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 10), lv_dispsize > 1 ? 630 : 688 )
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 10), ZOOM ? 630 : 688 )
 #else // 550D, 600D, 60D
     #define TG_FREQ_BASE 28800000
-    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (lv_dispsize > 1 ? 0 : 10), lv_dispsize > 1 ? 734 : video_mode_crop ? (video_mode_resolution == 2 ? 400 : 560) : 0x21A)
+    #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 10), ZOOM ? 734 : video_mode_crop ? (video_mode_resolution == 2 ? 400 : 560) : 0x21A)
     #define TG_FREQ_PAL  50000000
     #define TG_FREQ_NTSC_SHUTTER 49440000
     #define TG_FREQ_ZOOM 39230730 // not 100% sure
@@ -287,7 +287,7 @@ static void fps_read_current_timer_values();
     #undef TG_FREQ_BASE
     #define TG_FREQ_BASE 32070000
     #undef FPS_TIMER_A_MIN
-    #define FPS_TIMER_A_MIN (lv_dispsize > 1 ? 940 : 872)
+    #define FPS_TIMER_A_MIN (ZOOM ? 940 : 872)
     #undef FPS_TIMER_B_MIN
     #define FPS_TIMER_B_MIN 1050
     #define SENSOR_TIMING_TABLE MEM(0xce98)

@@ -1,5 +1,5 @@
 /**
- * Camera internals for 60D 1.1.1
+ * Camera internals for 5D3 1.1.3
  */
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */

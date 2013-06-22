@@ -1,6 +1,6 @@
 #include "all_features.h"
 
-//~ #define FEATURE_LV_3RD_PARTY_FLASH // requires props
+#define FEATURE_LV_3RD_PARTY_FLASH // requires props
 #define FEATURE_EYEFI_TRICKS
 
 // Disable all audio stuff
@@ -27,7 +27,7 @@
 
 // Glitchy
 #undef FEATURE_STICKY_DOF
-#undef FEATURE_STICKY_HALFSHUTTER
+//~ #undef FEATURE_STICKY_HALFSHUTTER
 //~ #undef FLEXINFO_DEVELOPER_MENU - disable from flexinfo.h
 
 #define FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY

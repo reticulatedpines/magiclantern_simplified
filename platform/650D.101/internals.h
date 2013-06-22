@@ -47,6 +47,7 @@
 //~ #define CONFIG_AUTO_BRIGHTNESS
 
 /** There is a Q menu in Play mode, with image protect, rate etc **/
+/** But it's a bit different from the other cameras, so let's say it doesn't have **/
 //~ #define CONFIG_Q_MENU_PLAYBACK
 
 /** It has a flip-out display **/
