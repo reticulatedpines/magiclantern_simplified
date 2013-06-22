@@ -111,6 +111,17 @@ int FAST get_y_skip_offset_for_overlays()
     return off;
 }
 
+int FAST get_y_skip_offset_for_histogram()
+{
+    // in playback mode, and skip 16:9 bars for movies, but cover the entire area for photos
+    if (!lv) return is_pure_play_movie_mode() ? os.off_169 : 0;
+
+    // in liveview, try not to overlap top and bottom bars
+    int off = 0;
+    if (lv && is_movie_mode() && video_mode_resolution <= 1) off = os.off_169;
+    return off;
+}
+
 static int is_zoom_mode_so_no_zebras() 
 { 
     if (!lv) return 0;
@@ -734,7 +745,7 @@ hist_build()
     #endif
     
     int mz = nondigic_zoom_overlay_enabled();
-    int off = get_y_skip_offset_for_overlays();
+    int off = get_y_skip_offset_for_histogram();
     int yoffset = 0;
     for( y = os.y0 + off, yoffset = y * vram_lv.pitch; y < os.y_max - off; y += 2, yoffset += vram_lv.pitch )
     {

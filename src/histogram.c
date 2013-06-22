@@ -359,7 +359,7 @@ void hist_highlight(int level)
 
 #ifdef FEATURE_RAW_HISTOGRAM
 
-int raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_values, int n, int gray_projection)
+int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_values, int n, int gray_projection)
 {
     if (!raw_update_params()) return -1;
     get_yuv422_vram();
@@ -368,11 +368,10 @@ int raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_values,
     if (!hist) return -1;
     memset(hist, 0, 16384*4);
 
-    int step = lv ? 4 : 2;
-
-    for (int i = os.y0; i < os.y_max; i += step)
+    int off = get_y_skip_offset_for_histogram();
+    for (int i = os.y0 + off; i < os.y_max - off; i += 2)
     {
-        for (int j = os.x0; j < os.x_max; j += step)
+        for (int j = os.x0; j < os.x_max; j += 2)
         {
             int x = BM2RAW_X(j);
             int y = BM2RAW_Y(i);
@@ -388,7 +387,7 @@ int raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_values,
 
     for (int k = 0; k < n; k++)
     {
-        int thr = total * percentiles_x10[k] / 1000 - 5;  // 50% => median; allow up to 5 stuck pixels
+        int thr = total * percentiles_x10[k] / 1000 - 2;  // 50% => median; allow up to 2 stuck pixels
         int n = 0;
         int ans = -1;
         
