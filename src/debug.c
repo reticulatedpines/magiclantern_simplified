@@ -3117,11 +3117,14 @@ static MENU_UPDATE_FUNC(shuttercount_display)
 #endif
 
 #ifdef FEATURE_SHOW_CMOS_TEMPERATURE
+#define TO_F_10X(Tc)   (320+((9*10*(Tc))/5))
+#define TO_F_UNITS(Tc) ((TO_F_10X(Tc))/10)
+#define TO_F_DECIM(Tc) ((TO_F_10X(Tc))%10)
 static MENU_UPDATE_FUNC(efictemp_display)
 {
     MENU_SET_VALUE(
-        "%d deg C",
-        EFIC_CELSIUS
+        "%d C, %d.%d F",
+        EFIC_CELSIUS, TO_F_UNITS(EFIC_CELSIUS), TO_F_DECIM(EFIC_CELSIUS)
     );
 }
 #endif
