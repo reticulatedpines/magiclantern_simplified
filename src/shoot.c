@@ -1550,7 +1550,7 @@ static void silent_pic_save_dng(char* filename, void* buffer)
     float correction = 0;
     if (post_deflicker)
     {
-        int raw = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN);
+        int raw = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN, 0);
         float ev = raw_to_ev(raw);
         correction = post_deflicker_target_level - ev;
 
@@ -3746,22 +3746,29 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, 
 
 static int deflicker_last_correction_x100 = 0;
 
+static void post_deflicker_save_task(float* correction)
+{
+    post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, file_number, *correction);
+}
+
 static void post_deflicker_step()
 {
     if (!post_deflicker) return;
     if (HDR_ENABLED) return;
     
-    int raw = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN);
+    int raw = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN, 0);
     if (raw < 0)
     {
         deflicker_last_correction_x100 = 0;
         return;
     }
     float ev = raw_to_ev(raw);
-    float correction = post_deflicker_target_level - ev;
+    static float correction;
+    correction = post_deflicker_target_level - ev;
     deflicker_last_correction_x100 = (int)roundf(correction * 100);
     
-    post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, file_number, correction);
+    /* not a really good idea to save files from property task */
+    task_create("deflicker_task", 0x1c, 0x1000, post_deflicker_save_task, (void*) &correction);
 }
 
 /* called from QR zebras */
@@ -3809,7 +3816,9 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
 PROP_HANDLER(PROP_GUI_STATE)
 {
     if (buf[0] == GUISTATE_QR)
+    {
         post_deflicker_step();
+    }
 }
 #endif
 

@@ -53,7 +53,7 @@ static int auto_ettr_get_correction()
     int raw_values[COUNT(percentiles)];
     static float diff_from_lower_percentiles[COUNT(percentiles)-1] = {0};
 
-    int ok = raw_hist_get_percentile_levels(percentiles, raw_values, COUNT(percentiles), gray_proj);
+    int ok = raw_hist_get_percentile_levels(percentiles, raw_values, COUNT(percentiles), gray_proj, 2);
     
     if (ok != 1)
     {
@@ -455,7 +455,7 @@ static void auto_ettr_on_request_task_fast()
 #undef AUTO_ETTR_DEBUG
 #ifdef AUTO_ETTR_DEBUG
     auto_ettr_vsync_active = 1;
-    int raw0 = raw_hist_get_percentile_level(500, GRAY_PROJECTION_GREEN);
+    int raw0 = raw_hist_get_percentile_level(500, GRAY_PROJECTION_GREEN, 2);
     float ev0 = raw_to_ev(raw0);
     int y0 = 100 - ev0 * 20;
     for (int i = 0; i < 100; i++)
@@ -464,7 +464,7 @@ static void auto_ettr_on_request_task_fast()
         auto_ettr_vsync_delta = delta;
         if (!auto_ettr_wait_lv_frames(2)) break;
         
-        int raw = raw_hist_get_percentile_level(500, GRAY_PROJECTION_GREEN);
+        int raw = raw_hist_get_percentile_level(500, GRAY_PROJECTION_GREEN, 2);
         float ev = raw_to_ev(raw);
         int x = 360 + delta * 3;
         int y = 100 - ev * 24; /* multiplier must be 8 x the one from delta */

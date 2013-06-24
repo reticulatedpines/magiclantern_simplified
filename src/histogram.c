@@ -304,7 +304,6 @@ void hist_draw_image(
             }
             
             default:
-            _default:
                 snprintf(msg, sizeof(msg), "RAW");
                 break;
         }
@@ -359,7 +358,15 @@ void hist_highlight(int level)
 
 #ifdef FEATURE_RAW_HISTOGRAM
 
-int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_values, int n, int gray_projection)
+/* speed:
+ * 0 = slowest, but 100% accurate (only for GRAY_PROJECTION_GREEN for now)
+ * 1 = sample at LiveView resolution (720x480)
+ * 2 = LiveView resolution downsampled by 2 on each axis
+ * 3 = LiveView resolution downsampled by 3 on each axis
+ * and so on, until 16
+ */
+
+int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_values, int n, int gray_projection, int speed)
 {
     if (!raw_update_params()) return -1;
     get_yuv422_vram();
@@ -369,14 +376,73 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
     memset(hist, 0, 16384*4);
 
     int off = get_y_skip_offset_for_histogram();
-    for (int i = os.y0 + off; i < os.y_max - off; i += 2)
+    if (speed == 0 && gray_projection == GRAY_PROJECTION_GREEN)
     {
-        for (int j = os.x0; j < os.x_max; j += 2)
+        /* time: 126ms on full raw 5D3 */
+        //~ int t0 = get_ms_clock_value();
+        for (struct raw_pixblock * row = (struct raw_pixblock *) raw_info.buffer + raw_info.active_area.y1 * raw_info.width / 8 + (raw_info.active_area.x1 + 7) / 8; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.active_area.y2; row += 2 * raw_info.width / 8)
         {
-            int x = BM2RAW_X(j);
-            int y = BM2RAW_Y(i);
-            int px = raw_get_gray_pixel(x, y, gray_projection);
-            hist[px & 16383]++;
+            struct raw_pixblock * row2 = row + raw_info.pitch / sizeof(struct raw_pixblock);
+            
+            struct raw_pixblock * p;
+            struct raw_pixblock * q;
+            for (p = row, q = row2; (void*)p < (void*)row + raw_info.jpeg.width * 14/8; p++, q++)
+            {
+                
+                /**    
+                 *  p: abcdefgh abcdefgh
+                 *  q: abcdefgh abcdefgh
+                 * 
+                 *     rgrgrgrg rgrgrgrg
+                 *     gbgbgbgb gbgbgbgb
+                 */
+                
+                //~ int pa = ((int)(p->a));
+                int pb = ((int)(p->b_lo | (p->b_hi << 12)));
+                //~ int pc = ((int)(p->c_lo | (p->c_hi << 10)));
+                int pd = ((int)(p->d_lo | (p->d_hi << 8)));
+                //~ int pe = ((int)(p->e_lo | (p->e_hi << 6)));
+                int pf = ((int)(p->f_lo | (p->f_hi << 4)));
+                //~ int pg = ((int)(p->g_lo | (p->g_hi << 2)));
+                int ph = ((int)(p->h));
+                int qa = ((int)(q->a));
+                //~ int qb = ((int)(q->b_lo | (q->b_hi << 12)));
+                int qc = ((int)(q->c_lo | (q->c_hi << 10)));
+                //~ int qd = ((int)(q->d_lo | (q->d_hi << 8)));
+                int qe = ((int)(q->e_lo | (q->e_hi << 6)));
+                //~ int qf = ((int)(q->f_lo | (q->f_hi << 4)));
+                int qg = ((int)(q->g_lo | (q->g_hi << 2)));
+                //~ int qh = ((int)(q->h));
+
+                hist[pb]++;
+                hist[pd]++;
+                hist[pf]++;
+                hist[ph]++;
+                hist[qa]++;
+                hist[qc]++;
+                hist[qe]++;
+                hist[qg]++;
+                
+                /* to check if we sample only the active area */
+                //~ p->a = rand();
+            }
+        }
+        //~ int t1 = get_ms_clock_value();
+        //~ NotifyBox(5000, "%d ", t1 - t0);
+        //~ save_dng("A:/foo.dng");
+    }
+    else
+    {
+        speed = COERCE(speed, 1, 16);
+        for (int i = os.y0 + off; i < os.y_max - off; i += speed)
+        {
+            for (int j = os.x0; j < os.x_max; j += speed)
+            {
+                int x = BM2RAW_X(j);
+                int y = BM2RAW_Y(i);
+                int px = raw_get_gray_pixel(x, y, gray_projection);
+                hist[px & 16383]++;
+            }
         }
     }
 
@@ -384,10 +450,10 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
     int i;
     for( i=0 ; i < 16384 ; i++ )
         total += hist[i];
-
+    
     for (int k = 0; k < n; k++)
     {
-        int thr = total * percentiles_x10[k] / 1000 - 2;  // 50% => median; allow up to 2 stuck pixels
+        int thr = (uint64_t)total * percentiles_x10[k] / 1000 - 2;  // 50% => median; allow up to 2 stuck pixels
         int n = 0;
         int ans = -1;
         
@@ -408,10 +474,10 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
     return 1;
 }
 
-int raw_hist_get_percentile_level(int percentile_x10, int gray_projection)
+int raw_hist_get_percentile_level(int percentile_x10, int gray_projection, int speed)
 {
     int ans;
-    raw_hist_get_percentile_levels(&percentile_x10, &ans, 1, gray_projection);
+    raw_hist_get_percentile_levels(&percentile_x10, &ans, 1, gray_projection, speed);
     return ans;
 }
 
