@@ -110,8 +110,6 @@ static CONFIG_INT("raw.preview", preview_mode, 0);
 
 static CONFIG_INT("raw.memory.hack", memory_hack, 0);
 
-static CONFIG_INT("raw.speculative.start", speculative_start, 0);
-
 /* state variables */
 static int res_x = 0;
 static int res_y = 0;
@@ -150,12 +148,6 @@ struct frame_slot
     enum {SLOT_FREE, SLOT_FULL, SLOT_WRITING} status;
 };
 
-struct write_queue_item
-{
-    int slot_index;     /* index of slot containing one frame */
-    int contig_left;    /* how many frames will be written contiguously after this one */
-};
-
 static struct memSuite * mem_suite = 0;           /* memory suite for our buffers */
 
 static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
@@ -164,10 +156,8 @@ static int fullsize_buffer_pos = 0;               /* which of the full size buff
 static struct frame_slot slots[512];              /* frame slots */
 static int slot_count = 0;                        /* how many frame slots we have */
 static int capture_slot = -1;                     /* in what slot are we capturing now (index) */
-static int contig_left = 0;                       /* how many contiguous slots we have left */
 
-static struct write_queue_item 
-       writing_queue[COUNT(slots)];               /* queue of completed frames (slots) waiting to be saved */
+static int writing_queue[COUNT(slots)];           /* queue of completed frames (slot indices) waiting to be saved */
 static int writing_queue_tail = 0;                /* place captured frames here */
 static int writing_queue_head = 0;                /* extract frames to be written from here */ 
 
@@ -1061,11 +1051,13 @@ static int FAST choose_next_capture_slot()
 {
     /* keep on rolling? */
     /* O(1) */
-    if (contig_left > 0)
-    {
-        contig_left--;
+    if (
+        capture_slot >= 0 && 
+        capture_slot + 1 < slot_count && 
+        slots[capture_slot + 1].ptr == slots[capture_slot].ptr + frame_size && 
+        slots[capture_slot + 1].status == SLOT_FREE
+       )
         return capture_slot + 1;
-    }
 
     /* choose a new buffer? */
     /* choose the largest contiguous free section */
@@ -1105,12 +1097,11 @@ static int FAST choose_next_capture_slot()
             prev_ptr = INVALID_PTR;
         }
     }
-    
+
+    /* fixme: */
     /* avoid 32MB writes, they are slower (they require two DMA calls) */
     /* go back a few K and the speed is restored */
-    best_len = MIN(best_len, (32*1024*1024 - 8192) / frame_size);
-    
-    contig_left = best_len - 1;
+    //~ best_len = MIN(best_len, (32*1024*1024 - 8192) / frame_size);
     
     return best_index;
 }
@@ -1169,7 +1160,7 @@ static int FAST process_frame()
         }
         
         /* and we can send it for saving */
-        writing_queue[writing_queue_tail] = (struct write_queue_item) { .slot_index = capture_slot, .contig_left = contig_left };
+        writing_queue[writing_queue_tail] = capture_slot;
         writing_queue_tail = mod(writing_queue_tail + 1, COUNT(writing_queue));
     }
     
@@ -1317,7 +1308,6 @@ static void raw_video_rec_task()
     raw_recording_state = RAW_PREPARING;
     slot_count = 0;
     capture_slot = -1;
-    contig_left = 0;
     fullsize_buffer_pos = 0;
     writing_task_busy = 0;
     frame_count = 0;
@@ -1422,12 +1412,12 @@ static void raw_video_rec_task()
         }
         
         /* group items from the queue in a contiguous block - as many as we can */
-        int first_slot = writing_queue[w_head].slot_index;
+        int first_slot = writing_queue[w_head];
         int last_grouped = w_head;
         
         for (int i = w_head; i != w_tail; i = mod(i+1, COUNT(writing_queue)))
         {
-            int slot_index = writing_queue[i].slot_index;
+            int slot_index = writing_queue[i];
             int group_pos = mod(i - w_head, COUNT(writing_queue));
 
             /* TBH, I don't care if these are part of the same group or not,
@@ -1440,42 +1430,8 @@ static void raw_video_rec_task()
         
         int after_last_grouped = mod(last_grouped + 1, COUNT(writing_queue));
         
-        int speculative_frames = 0;
-        
-        if (speculative_start)
-        {
-            /* Speculative start !!! RISK OF DATA LOSS !!! */
-            
-            /* if the capturing task writes faster than FIO write task,
-             * we can pass the complete chunk to FIO_WriteFile, even if it has only one frame captured,
-             * thus starting to write at full cruise speed from the very first frame */
-
-            /* of course, we can only do this if the writing queue is empty */
-            /* because only in that case we know for sure that recording task will continue the sequence from last_grouped (last item in queue) until the contiguous chunk ends */
-            if (measured_write_speed && after_last_grouped == w_tail)
-            {
-                /* assume it won't go faster than 120% compared to what we have measured */
-                int assumed_speed = measured_write_speed * 12 / 10; /* unit: 0.1 MB/s */
-                int capture_speed = frame_size / 1024 * (fps_get_current_x1000() / 10) / 10 / 1024;
-                
-                if (assumed_speed < capture_speed)
-                {
-                    /* capture task = coelho, fio task = tartaruga */
-                    speculative_frames = writing_queue[last_grouped].contig_left;
-                    
-                    #ifdef DEBUG_BUFFERING_GRAPH
-                    bmp_printf(FONT_MED, 200, 200, "Speculating %d frames ", speculative_frames);
-                    #endif
-                }
-            }
-        }
-        
         /* grouped frames from w_head to last_grouped (including both ends) */
         int num_frames = mod(last_grouped - w_head + 1, COUNT(writing_queue));
-        
-        /* can we write a bit more? */
-        int num_frames_safe = num_frames;
-        num_frames += speculative_frames;
         
         int free_slots = get_free_slots();
         
@@ -1496,9 +1452,6 @@ static void raw_video_rec_task()
             }
         }
         
-        num_frames_safe = MIN(num_frames_safe, num_frames);
-        speculative_frames = num_frames - num_frames_safe;
-        
         /* update for new buffer length */
         after_last_grouped = mod(w_head + num_frames, COUNT(writing_queue));
         
@@ -1508,9 +1461,8 @@ static void raw_video_rec_task()
         /* mark these frames as "writing" */
         for (int i = w_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
         {
-            int slot_index = writing_queue[i].slot_index;
-            if (slots[slot_index].status == SLOT_FULL)
-                slots[slot_index].status = SLOT_WRITING;
+            int slot_index = writing_queue[i];
+            slots[slot_index].status = SLOT_WRITING;
         }
 
         /* ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
@@ -1594,7 +1546,7 @@ static void raw_video_rec_task()
                 beep();
             }
             
-            int slot_index = writing_queue[i].slot_index;
+            int slot_index = writing_queue[i];
 
             if (frame_check_saved(slot_index) != 1)
             {
@@ -1604,7 +1556,7 @@ static void raw_video_rec_task()
                 beep();
             }
             
-            if (slots[slot_index].frame_number != last_processed_frame + 1)
+            if (slots[slot_index].frame_number != last_processed_frame + 1 && !allow_frame_skip)
             {
                 bmp_printf( FONT_MED, 30, 110, 
                     "Frame order error: slot %d, frame %d, expected ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
@@ -1656,7 +1608,7 @@ abort:
     /* write remaining frames */
     for (; writing_queue_head != writing_queue_tail; writing_queue_head = mod(writing_queue_head + 1, COUNT(slots)))
     {
-        int slot_index = writing_queue[writing_queue_head].slot_index;
+        int slot_index = writing_queue[writing_queue_head];
 
         if (slots[slot_index].status != SLOT_FULL || frame_check_saved(slot_index) != 1)
         {
@@ -1666,7 +1618,7 @@ abort:
             beep();
         }
 
-        if (slots[slot_index].frame_number != last_processed_frame + 1)
+        if (slots[slot_index].frame_number != last_processed_frame + 1 && !allow_frame_skip)
         {
             bmp_printf( FONT_MED, 30, 110, 
                 "Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
@@ -1939,13 +1891,6 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
             },
             {
-                .name = "Speculative start",
-                .priv = &speculative_start,
-                .max = 1,
-                .help =  "Early file write commands, before the frames were actually",
-                .help2 = "captured. Starts writing at full cruise speed. Dangerous.",
-            },
-            {
                 .name = "Playback",
                 .select = raw_playback_start,
                 .update = raw_playback_update,
@@ -2163,5 +2108,4 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
     MODULE_CONFIG(memory_hack)
-    MODULE_CONFIG(speculative_start)
 MODULE_CONFIGS_END()
