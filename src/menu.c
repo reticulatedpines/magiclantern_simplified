@@ -4113,17 +4113,18 @@ menu_init( void )
     gui_sem = create_named_semaphore( "gui", 0 );
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
-    menu_find_by_name( "Audio",     ICON_ML_AUDIO   )->split_pos = 17;
-    menu_find_by_name( "Expo",      ICON_ML_EXPO    )->split_pos = 14;
-    menu_find_by_name( "Overlay",   ICON_ML_OVERLAY );
-    menu_find_by_name( "Movie",     ICON_ML_MOVIE   )->split_pos = 17;
-    menu_find_by_name( "Shoot",     ICON_ML_SHOOT   );
-    menu_find_by_name( "Focus",     ICON_ML_FOCUS   )->split_pos = 17;
-    menu_find_by_name( "Display",   ICON_ML_DISPLAY )->split_pos = 17;
-    menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
-    menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  )->split_pos = 11;
-    menu_find_by_name( "Debug",     ICON_ML_DEBUG   )->split_pos = 15;
-    menu_find_by_name( "Help",      ICON_ML_INFO    )->split_pos = 13;
+    struct menu * m = NULL;
+    m = menu_find_by_name( "Audio",     ICON_ML_AUDIO   );if (m) m->split_pos = 17;
+    m = menu_find_by_name( "Expo",      ICON_ML_EXPO    );if (m) m->split_pos = 14;
+    m = menu_find_by_name( "Overlay",   ICON_ML_OVERLAY );
+    m = menu_find_by_name( "Movie",     ICON_ML_MOVIE   );if (m) m->split_pos = 17;
+    m = menu_find_by_name( "Shoot",     ICON_ML_SHOOT   );
+    m = menu_find_by_name( "Focus",     ICON_ML_FOCUS   );if (m) m->split_pos = 17;
+    m = menu_find_by_name( "Display",   ICON_ML_DISPLAY );if (m) m->split_pos = 17;
+    m = menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
+    m = menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );if (m) m->split_pos = 11;
+    m = menu_find_by_name( "Debug",     ICON_ML_DEBUG   );if (m) m->split_pos = 15;
+    m = menu_find_by_name( "Help",      ICON_ML_INFO    );if (m) m->split_pos = 13;
 }
 
 /*

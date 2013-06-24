@@ -338,22 +338,25 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
     
     /* no, create file and store data */
     handle = FIO_CreateFileEx(file);
-    while(pos < length)
+    if (handle)
     {
-        uint32_t blocksize = BACKUP_BLOCKSIZE;
+      while(pos < length)
+      {
+         uint32_t blocksize = BACKUP_BLOCKSIZE;
         
-        if(length - pos < blocksize)
-        {
-            blocksize = length - pos;
-        }
+          if(length - pos < blocksize)
+          {
+              blocksize = length - pos;
+          }
         
-        FIO_WriteFile(handle, &((uint8_t*)base)[pos], blocksize);
-        pos += blocksize;
+          FIO_WriteFile(handle, &((uint8_t*)base)[pos], blocksize);
+          pos += blocksize;
         
-        /* to make sure lower prio tasks can also run */
-        msleep(20);
+          /* to make sure lower prio tasks can also run */
+          msleep(20);
+      }
+      FIO_CloseFile(handle);
     }
-    FIO_CloseFile(handle);
 }
 
 static void backup_task()
