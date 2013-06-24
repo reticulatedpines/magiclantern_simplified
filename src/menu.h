@@ -158,6 +158,8 @@ struct menu_entry
         unsigned hidden     : 1; // hidden from main menu
         unsigned jhidden    : 1; // hidden from junkie menu
         unsigned shidden    : 1; // special hide, not toggleable by user
+        
+        unsigned advanced   : 1; // advanced setting in submenus; add a MENU_ADVANCED_TOGGLE if you use it
 
         unsigned edit_mode  : 2;
         unsigned unit       : 4;
@@ -255,6 +257,7 @@ struct menu
         int16_t submenu_height;
         int16_t scroll_pos;
         int split_pos; // the limit between name and value columns
+        char advanced;
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)
@@ -323,6 +326,11 @@ menu_init( void );
 
 #define MENU_PLACEHOLDER(namae) { .name = namae, .priv = (void*) -2, .shidden = 1 }
 #define MENU_IS_PLACEHOLDER(entry) ((intptr_t)(entry)->priv == -2)
+
+#define MENU_ADVANCED_TOGGLE { .select = menu_advanced_toggle, .update = menu_advanced_update }
+
+extern MENU_SELECT_FUNC(menu_advanced_toggle);
+extern MENU_UPDATE_FUNC(menu_advanced_update);
 
 //~ #ifdef CONFIG_VXWORKS
 #define MENU_WARNING_COLOR COLOR_RED

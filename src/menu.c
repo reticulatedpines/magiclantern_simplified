@@ -99,6 +99,7 @@ static int menu_redraw_cancel = 0;
 static int submenu_mode = 0;
 static int edit_mode = 0;
 static int customize_mode = 0;
+static int advanced_mode = 0;       /* cached value; only for submenus for now */
 
 #define SUBMENU_OR_EDIT (submenu_mode || edit_mode)
 
@@ -151,7 +152,12 @@ static int is_visible(struct menu_entry * entry)
        &&
        (
             !HAS_SHIDDEN_FLAG(entry)
-       );
+       )
+       &&
+       (
+            advanced_mode || !entry->advanced
+       )
+       ;
 }
 
 static int g_submenu_width = 0;
@@ -794,6 +800,7 @@ menu_find_by_name(
     new_menu->submenu_height = 0;
     new_menu->split_pos = -12;
     new_menu->scroll_pos = 0;
+    new_menu->advanced = 0;
     // menu points to the last entry or NULL if there are none
     if( menu )
     {
@@ -2313,11 +2320,11 @@ my_menu_rebuild()
 
         struct menu_entry * entry = menu->children;
         
-        if (entry->shidden)
-            continue;
-        
         for(; entry ; entry = entry->next)
         {
+            if (entry->shidden)
+                continue;
+            
             if (entry->starred)
             {
                 if (i >= COUNT(my_menu_placeholders)) // too many starred items
@@ -2908,6 +2915,8 @@ menus_display(
     struct menu * submenu = 0;
     if (submenu_mode)
         submenu = get_current_submenu();
+    
+    advanced_mode = submenu ? submenu->advanced : 1;
 
     if (junkie_mode) junkie_sync_selection();
     
@@ -5145,4 +5154,26 @@ int menu_request_image_backend()
     }
     clrscr();
     return 1;
+}
+
+
+MENU_SELECT_FUNC(menu_advanced_toggle)
+{
+    struct menu * menu = get_selected_menu();
+    struct menu * main_menu = menu;
+    if (submenu_mode)
+    {
+        main_menu = menu;
+        menu = get_current_submenu();
+        if (!menu) menu = main_menu; // no submenu, operate on same item
+    }
+    
+    advanced_mode = menu->advanced = !menu->advanced;
+    menu->scroll_pos = 0;
+}
+MENU_UPDATE_FUNC(menu_advanced_update)
+{
+    MENU_SET_NAME(advanced_mode ? "Simple..." : "Advanced...");
+    MENU_SET_ICON(IT_ACTION, 0);
+    MENU_SET_HELP(advanced_mode ? "Back to 'beginner' mode." : "Advanced options for experts. Use with care.");
 }
