@@ -6938,11 +6938,7 @@ shoot_task( void* unused )
                                 format_time_hours_minutes_seconds(SECONDS_REMAINING),
                                 intervalometer_pictures_taken);
                 if (interval_stop_after) { STR_APPEND(msg, "/ %d", interval_stop_after); }
-                #ifdef CONFIG_VXWORKS
                 bmp_printf(FONT_LARGE, 50, 310, msg);
-                #else
-                bmp_printf(FONT_MED, 50, 310, msg);
-                #endif
 
                 if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after))
                     intervalometer_stop();
