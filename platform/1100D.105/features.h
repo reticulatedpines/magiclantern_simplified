@@ -22,3 +22,5 @@
 
 #define FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY
 #undef FEATURE_SILENT_PIC // todo: port raw stuff
+
+#undef CONFIG_MEMCHECK // conflicts

@@ -24,3 +24,4 @@
 #undef FEATURE_FPS_WAV_RECORD
 #undef FEATURE_VOICE_TAGS
 
+#undef CONFIG_MEMCHECK // conflicts
