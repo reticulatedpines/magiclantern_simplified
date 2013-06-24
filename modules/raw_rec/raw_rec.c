@@ -156,6 +156,7 @@ static int fullsize_buffer_pos = 0;               /* which of the full size buff
 static struct frame_slot slots[512];              /* frame slots */
 static int slot_count = 0;                        /* how many frame slots we have */
 static int capture_slot = -1;                     /* in what slot are we capturing now (index) */
+static volatile int force_new_buffer = 0;         /* if some other task decides it's better to search for a new buffer */
 
 static int writing_queue[COUNT(slots)];           /* queue of completed frames (slot indices) waiting to be saved */
 static int writing_queue_tail = 0;                /* place captured frames here */
@@ -1055,7 +1056,8 @@ static int FAST choose_next_capture_slot()
         capture_slot >= 0 && 
         capture_slot + 1 < slot_count && 
         slots[capture_slot + 1].ptr == slots[capture_slot].ptr + frame_size && 
-        slots[capture_slot + 1].status == SLOT_FREE
+        slots[capture_slot + 1].status == SLOT_FREE &&
+        !force_new_buffer
        )
         return capture_slot + 1;
 
@@ -1103,6 +1105,8 @@ static int FAST choose_next_capture_slot()
     /* go back a few K and the speed is restored */
     //~ best_len = MIN(best_len, (32*1024*1024 - 8192) / frame_size);
     
+    force_new_buffer = 0;
+
     return best_index;
 }
 
@@ -1146,23 +1150,6 @@ static int FAST process_frame()
         frame_count++;
         return 0;
     }
-
-    if (capture_slot >= 0)
-    {
-        /* previous frame completed */
-        
-        /* check if EDMAC filled it correctly */
-        int check = frame_check_saved(capture_slot);
-        if (check != 1)
-        {
-            bmp_printf( FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 30, 70, check == -1 ? "EDMAC overflow!" : "Frame error!");
-            beep();
-        }
-        
-        /* and we can send it for saving */
-        writing_queue[writing_queue_tail] = capture_slot;
-        writing_queue_tail = mod(writing_queue_tail + 1, COUNT(writing_queue));
-    }
     
     /* where to save the next frame? */
     capture_slot = choose_next_capture_slot(capture_slot);
@@ -1173,6 +1160,11 @@ static int FAST process_frame()
         slots[capture_slot].frame_number = frame_count;
         slots[capture_slot].status = SLOT_FULL;
         frame_add_checks(capture_slot);
+
+        /* send it for saving, even if it isn't done yet */
+        /* it's quite unlikely that FIO DMA will be faster than EDMAC */
+        writing_queue[writing_queue_tail] = capture_slot;
+        writing_queue_tail = mod(writing_queue_tail + 1, COUNT(writing_queue));
     }
     else
     {
@@ -1410,9 +1402,19 @@ static void raw_video_rec_task()
             msleep(20);
             continue;
         }
-        
-        /* group items from the queue in a contiguous block - as many as we can */
+
         int first_slot = writing_queue[w_head];
+
+        /* check whether the first frame was filled by EDMAC (it may be sent in advance) */
+        /* probably not needed */
+        int check = frame_check_saved(first_slot);
+        if (check == 0)
+        {
+            msleep(20);
+            continue;
+        }
+
+        /* group items from the queue in a contiguous block - as many as we can */
         int last_grouped = w_head;
         
         for (int i = w_head; i != w_tail; i = mod(i+1, COUNT(writing_queue)))
@@ -1427,8 +1429,6 @@ static void raw_video_rec_task()
             else
                 break;
         }
-        
-        int after_last_grouped = mod(last_grouped + 1, COUNT(writing_queue));
         
         /* grouped frames from w_head to last_grouped (including both ends) */
         int num_frames = mod(last_grouped - w_head + 1, COUNT(writing_queue));
@@ -1452,16 +1452,26 @@ static void raw_video_rec_task()
             }
         }
         
-        /* update for new buffer length */
-        after_last_grouped = mod(w_head + num_frames, COUNT(writing_queue));
-        
+        int after_last_grouped = mod(w_head + num_frames, COUNT(writing_queue));
+
+        /* write queue empty? better search for a new larger buffer */
+        if (after_last_grouped == writing_queue_tail)
+        {
+            force_new_buffer = 1;
+        }
+
         void* ptr = slots[first_slot].ptr;
         int size_used = frame_size * num_frames;
-        
+
         /* mark these frames as "writing" */
         for (int i = w_head; i != after_last_grouped; i = mod(i+1, COUNT(writing_queue)))
         {
             int slot_index = writing_queue[i];
+            if (slots[slot_index].status != SLOT_FULL)
+            {
+                bmp_printf(FONT_LARGE, 30, 70, "Slot check error");
+                beep();
+            }
             slots[slot_index].status = SLOT_WRITING;
         }
 
