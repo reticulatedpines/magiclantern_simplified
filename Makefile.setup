@@ -41,13 +41,24 @@ FLAGS=\
 	-fomit-frame-pointer \
 	-fno-strict-aliasing
 
+TARGET_COMPILER ?= arm-gcc
+
+CFLAGS =
+
+ifeq ($(TARGET_COMPILER), arm-gcc)
+	CFLAGS += -Os -mthumb-interwork \
+				-D__ARM__
+
+LFLAGS += -mthumb-interwork -march=armv5te -nostdlib
+endif
+
 #
 # ToDo: remove 
 #	-Wno-implicit-function-declaration
 #
 # Reason: these warnings make sense! potential crash situations.
 #
-CFLAGS=\
+CFLAGS +=\
 	$(FLAGS) \
 	-Wall \
 	-W \
@@ -75,15 +86,6 @@ AFLAGS=\
 	$(FLAGS)
     
 -LFLAGS=
-
-TARGET_COMPILER ?= arm-gcc
-
-ifeq ($(TARGET_COMPILER), arm-gcc)
-	CFLAGS += -Os -mthumb-interwork \
-				-D__ARM__
-
-LFLAGS += -mthumb-interwork -march=armv5te -nostdlib
-endif
 
 ifdef CONFIG_SMALL_FONTS
 $(error CONFIG_SMALL_FONTS must be renamed to ML_SRC_SMALL_FONTS)
