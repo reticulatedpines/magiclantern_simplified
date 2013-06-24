@@ -24,10 +24,7 @@
  * Boston, MA  02110-1301, USA.
  */
 
-
-#include "arm-mcr.h"
-
-
+#include "compiler.h"
 
 #ifdef CONFIG_VXWORKS
 //~ Calls CreateTaskClass from canon startup task.

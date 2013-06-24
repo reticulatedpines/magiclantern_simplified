@@ -25,7 +25,7 @@
 #ifndef _font_h_
 #define _font_h_
 
-#include "arm-mcr.h"
+#include "compiler.h"
 
 struct font
 {

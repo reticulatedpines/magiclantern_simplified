@@ -181,20 +181,20 @@ include $(TOP_DIR)/Makefile.filerules
 
 # Magic Lantern rules
 
-magiclantern: $(ML_OBJS-y) dietlibc.a newlib-libc.a
+ML_LIBC ?= dietlibc.a newlib-libc.a
+
+magiclantern: $(ML_OBJS-y) $(ML_LIBC)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-N \
 		$(LFLAGS) \
-		-nostdlib \
-		-mthumb-interwork \
-		-march=armv5te \
 		-T \
 		$^ \
 		-lm \
 		-lgcc \
         -Xlinker -Map=location.map \
 	)
+
 
 reboot.o: $(SRC_DIR)/reboot.c $(PLATFORM_DIR)/version.bin magiclantern.bin
 

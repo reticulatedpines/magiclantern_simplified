@@ -49,8 +49,12 @@ static void my_bzero( uint8_t * base, uint32_t size );
 static uint8_t _reloc[ RELOCSIZE ];
 #define RELOCADDR ((uintptr_t) _reloc)
 
+#ifdef __ARM__
 /** Translate a firmware address into a relocated address */
 #define INSTR( addr ) ( *(uint32_t*)( (addr) - ROMBASEADDR + RELOCADDR ) )
+#else
+#define INSTR(addr) (addr)
+#endif /* __ARM__ */
 
 /** Fix a branch instruction in the relocated firmware image */
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
@@ -105,6 +109,7 @@ copy_and_restart( )
     void (*reset)(void) = (void*) ROMBASEADDR;
     reset();
 #else
+#ifdef __ARM__
     // Copy the firmware to somewhere safe in memory
     const uint8_t * const firmware_start = (void*) ROMBASEADDR;
     const uint32_t firmware_len = RELOCSIZE;
@@ -184,6 +189,10 @@ copy_and_restart( )
     // Unreachable
     while(1)
         ;
+
+
+#endif
+
 }
 
 

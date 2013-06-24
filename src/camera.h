@@ -31,7 +31,7 @@
 #ifndef _camera_h_
 #define _camera_h_
 
-#include "arm-mcr.h"
+#include "compiler.h"
 
 struct camera_engine
 {

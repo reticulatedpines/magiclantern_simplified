@@ -1,5 +1,6 @@
 #define PLUGIN_C_FILE // so plugin.h will include all exported function definitions
-#include "arm-mcr.h"
+
+#include "compiler.h"
 #include "plugin.h"
 #include "all_headers.h"
 #include "menu.h"

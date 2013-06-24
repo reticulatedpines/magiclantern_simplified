@@ -24,10 +24,11 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include "arm-mcr.h"
+#include "compiler.h"
 #include "consts.h"
 #include "fw-signature.h"
 
+#ifdef __ARM__
 asm(
     ".text\n"
     ".globl _start\n"
@@ -47,6 +48,8 @@ asm(
     "B       cstart\n"
 );
 
+
+
 /** Include the relocatable shim code */
 extern uint8_t blob_start;
 extern uint8_t blob_end;
@@ -59,6 +62,7 @@ asm(
     "blob_end:\n"
     ".globl blob_end\n"
 );
+#endif /* __ARM__ */
 
 #if SHOULD_CHECK_SIG
 static void busy_wait(int n)
@@ -135,6 +139,7 @@ cstart( void )
     
     
 
+#ifdef __ARM__
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */
 	#if defined(CONFIG_40D) || defined(CONFIG_5DC)
         *(volatile int*) (LEDBLUE) = (LEDON);
@@ -161,12 +166,11 @@ cstart( void )
           This will not help when the offset is oddly misplaced, like the 0x120 fir offset. Why? 
           Because the code above (blob_memcpy) already made totally wrong assumptions about memory addresses.
      */
-    void __attribute__((long_call)) (*copy_and_restart)() = (void*) RESTARTSTART;
-    
-    copy_and_restart();
+    void __attribute__((long_call)) (*copy_and_run_ml)() = (void*) RESTARTSTART;
+#endif /* __ARM__ */
+    copy_and_run_ml();
     
     // Unreachable
     while(1)
         ;
 }
-

@@ -24,7 +24,7 @@
 #ifndef _audio_h_
 #define _audio_h_
 
-#include "arm-mcr.h"
+#include "compiler.h"
 
 /*
  * Audio information structure at 0x7324.

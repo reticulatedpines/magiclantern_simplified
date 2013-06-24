@@ -4,9 +4,7 @@
 #ifndef _reloc_h_
 #define _reloc_h_
 
-#ifdef __ARM__
-#include "arm-mcr.h"
-#endif
+#include "compiler.h"
 
 extern uintptr_t
 reloc(

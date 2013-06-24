@@ -24,7 +24,7 @@
 #ifndef _dryos_dialog_h_
 #define _dryos_dialog_h_
 
-#include "arm-mcr.h"
+#include "compiler.h"
 
 typedef uint32_t gui_event_t; // not used
 

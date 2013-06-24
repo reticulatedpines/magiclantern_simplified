@@ -49,7 +49,6 @@ FLAGS=\
 #
 CFLAGS=\
 	$(FLAGS) \
-	-Os \
 	-Wall \
 	-W \
 	-Wno-unused-parameter \
@@ -63,11 +62,10 @@ CFLAGS=\
 	-fsingle-precision-constant \
 	-fshort-double \
 	-std=gnu99 \
-	-D__ARM__ \
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
 	-I$(PICOC_PATH) \
-	-mthumb-interwork
+
 
 NOT_USED_FLAGS=\
 	-march=armv5te \
@@ -77,6 +75,15 @@ AFLAGS=\
 	$(FLAGS)
     
 -LFLAGS=
+
+TARGET_COMPILER ?= arm-gcc
+
+ifeq ($(TARGET_COMPILER), arm-gcc)
+	CFLAGS += -Os -mthumb-interwork \
+				-D__ARM__
+
+LFLAGS += -mthumb-interwork -march=armv5te -nostdlib
+endif
 
 ifdef CONFIG_SMALL_FONTS
 $(error CONFIG_SMALL_FONTS must be renamed to ML_SRC_SMALL_FONTS)

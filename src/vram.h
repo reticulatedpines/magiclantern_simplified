@@ -24,8 +24,7 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include "arm-mcr.h"
-
+#include "compiler.h"
 
 /** Write the VRAM to a BMP file named "A:/test.bmp" */
 extern void

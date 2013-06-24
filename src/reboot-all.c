@@ -24,7 +24,7 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include "arm-mcr.h"
+#include "compiler.h"
 #include "fw-signature.h"
 
 #undef RESTARTSTART
