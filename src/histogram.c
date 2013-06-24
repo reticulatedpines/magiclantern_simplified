@@ -219,6 +219,7 @@ void hist_draw_image(
 #endif /* defined(FEATURE_FALSE_COLOR) */
         }
 
+#if defined(FEATURE_HISTORGRAM)
         if (hist_warn && i == HIST_WIDTH - 1)
         {
             unsigned int thr = histogram.total_px / 100000; // start at 0.0001 with a tiny dot
@@ -241,7 +242,7 @@ void hist_draw_image(
                 if (over > thr) hist_dot(x_origin + HIST_WIDTH/2, yw, COLOR_RED, bg, hist_dot_radius(over, histogram.total_px), hist_dot_label(over, histogram.total_px));
             }
         }
-        
+#endif
         #ifdef FEATURE_RAW_HISTOGRAM
         /* divide the histogram in 12 equal slices - each slice is 1 EV */
         if (histogram.is_raw)
@@ -270,7 +271,8 @@ void hist_draw_image(
 
     }
     bmp_draw_rect(60, x_origin-1, y_origin-1, HIST_WIDTH+1, hist_height+1);
-    
+
+
     #ifdef FEATURE_RAW_HISTOGRAM
     if (histogram.is_raw)
     {
@@ -314,6 +316,7 @@ void hist_draw_image(
 
 MENU_UPDATE_FUNC(hist_print)
 {
+#if defined(FEATURE_HISTOGRAM)
     if (hist_draw)
     {
         MENU_SET_VALUE(
@@ -323,6 +326,7 @@ MENU_UPDATE_FUNC(hist_print)
             hist_warn ? ",dots" : ""
         );
     }
+#endif
     #ifdef FEATURE_RAW_HISTOGRAM
     if (hist_draw && can_use_raw_overlays_menu())
     {
@@ -336,6 +340,7 @@ MENU_UPDATE_FUNC(hist_print)
 
 MENU_UPDATE_FUNC(hist_warn_display)
 {
+#if defined(FEATURE_HISTOGRAM)
     MENU_SET_VALUE(
         "Clip warning  : %s",
         hist_warn == 0 ? "OFF" :
@@ -345,6 +350,7 @@ MENU_UPDATE_FUNC(hist_warn_display)
         hist_warn == 4 ? "1% px" :
                          "Gradual"
     );
+#endif /* defined(FEATURE_HISTOGRAM) */
 }
 
 

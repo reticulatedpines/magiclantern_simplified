@@ -328,7 +328,13 @@ static CONFIG_INT( "waveform.draw", waveform_draw,
 static CONFIG_INT( "waveform.size", waveform_size,  0 );
 static CONFIG_INT( "waveform.bg",   waveform_bg,    COLOR_ALMOST_BLACK ); // solid black
 
-int histogram_or_small_waveform_enabled() { return (hist_draw || (waveform_draw && !waveform_size)) && get_expsim(); }
+int histogram_or_small_waveform_enabled()
+{
+    return (
+#ifdef FEATURE_HISTOGRAM
+hist_draw ||
+#endif
+ (waveform_draw && !waveform_size)) && get_expsim(); }
 
 static CONFIG_INT( "vectorscope.draw", vectorscope_draw, 0);
 static CONFIG_INT( "vectorscope.gain", vectorscope_gain, 0);
@@ -5186,7 +5192,9 @@ livev_hipriority_task( void* unused )
             while (recording == 1) msleep(100);
             if (!zebra_should_run())
             {
+#ifdef FEATURE_ZEBRA_FAST
                 if (zebra_digic_dirty) digic_zebra_cleanup();
+#endif
                 if (lv && !gui_menu_shown()) redraw();
                 #ifdef CONFIG_ELECTRONIC_LEVEL
                 disable_electronic_level();
@@ -5217,7 +5225,12 @@ livev_hipriority_task( void* unused )
             /* if picture quality is raw, switch the LiveView to raw mode */
             int raw = pic_quality & 0x60000;
             /* only histogram and spotmeter are working in LV raw mode */
-            if (raw && lv_dispsize == 1 && (hist_draw || spotmeter_draw))
+            if (raw && lv_dispsize == 1
+                && (
+#ifdef FEATURE_HISTOGRAM
+                    hist_draw ||
+#endif
+                    spotmeter_draw))
             {
                 raw_lv_request();
                 raw_flag = 1;
@@ -5467,7 +5480,9 @@ void update_disp_mode_bits_from_params()
     uint32_t bits =
         (global_draw & 1      ? 1<<0 : 0) |
         (zebra_draw           ? 1<<1 : 0) |
+#ifdef FEATURE_HISTOGRAM
         (hist_draw            ? 1<<2 : 0) |
+#endif
         (crop_enabled         ? 1<<3 : 0) |
         (waveform_draw        ? 1<<4 : 0) |
         (falsecolor_draw      ? 1<<5 : 0) |
@@ -5497,7 +5512,9 @@ void update_disp_mode_params_from_bits()
 
     int global_draw_0    = bits & (1<<0) ? 1 : 0;
     zebra_draw           = bits & (1<<1) ? 1 : 0;
+#ifdef FEATURE_HISTOGRAM
     hist_draw            = bits & (1<<2) ? 1 : 0;
+#endif
     crop_enabled         = bits & (1<<3) ? 1 : 0;
     waveform_draw        = bits & (1<<4) ? 1 : 0;
     falsecolor_draw      = bits & (1<<5) ? 1 : 0;
