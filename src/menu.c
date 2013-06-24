@@ -86,7 +86,8 @@ static int menu_shown = false;
 static int menu_lv_transparent_mode; // for ISO, kelvin...
 static int config_dirty = 0;
 
-static int menu_flags_dirty = 0;
+static int menu_flags_save_dirty = 0;
+static int menu_flags_load_dirty = 1;
 
 //~ static int menu_hidden_should_display_help = 0;
 static int menu_zebras_mirror_dirty = 0; // to clear zebras from mirror (avoids display artifacts if, for example, you enable false colors in menu, then you disable them, and preview LV)
@@ -981,6 +982,8 @@ menu_add(
     if( !menu )
         return;
     
+    menu_flags_load_dirty = 1;
+    
     int count0 = count; // for submenus
 
     take_semaphore( menu_sem, 0 );
@@ -1100,6 +1103,8 @@ menu_remove(
     struct menu * menu = menu_find_by_name( name, 0);
     if( !menu )
         return;
+    
+    menu_flags_load_dirty = 1;
 
     for(struct menu_entry * entry = menu->children; entry; entry = entry->next)
     {
@@ -2308,6 +2313,9 @@ my_menu_rebuild()
 
         struct menu_entry * entry = menu->children;
         
+        if (entry->shidden)
+            continue;
+        
         for(; entry ; entry = entry->next)
         {
             if (entry->starred)
@@ -3162,7 +3170,7 @@ menu_entry_star_toggle(
         return 0;
 
     entry->starred = !entry->starred;
-    menu_flags_dirty = 1;
+    menu_flags_save_dirty = 1;
     int ok = my_menu_rebuild();
     if (!ok)
     {
@@ -3214,7 +3222,7 @@ menu_entry_customize_toggle(
         menu_entry_showhide_toggle(menu, entry);
     }
 
-    menu_flags_dirty = 1;
+    menu_flags_save_dirty = 1;
     my_menu_dirty = 1;
     menu_make_sure_selection_is_valid();
 }
@@ -4310,7 +4318,6 @@ menu_task( void* unused )
     
     int initial_mode = 0; // shooting mode when menu was opened (if changed, menu should close)
     
-    config_menu_load_flags();
     select_menu_by_icon(menu_first_by_icon);
     menu_make_sure_selection_is_valid();
     
@@ -4329,14 +4336,21 @@ menu_task( void* unused )
             }
 
             // We woke up after 1 second
+            
+            if (menu_flags_load_dirty)
+            {
+                config_menu_load_flags();
+                menu_flags_load_dirty = 0;
+            }
+            
             if( !menu_shown )
             {
                 extern int config_autosave;
-                if (config_autosave && (config_dirty || menu_flags_dirty) && !recording && !ml_shutdown_requested)
+                if (config_autosave && (config_dirty || menu_flags_save_dirty) && !recording && !ml_shutdown_requested)
                 {
                     save_config(0);
                     config_dirty = 0;
-                    menu_flags_dirty = 0;
+                    menu_flags_save_dirty = 0;
                 }
                 
                 continue;
@@ -4768,7 +4782,7 @@ static void config_menu_load_flags()
 
 void config_menu_save_flags()
 {
-    if (!menu_flags_dirty) return;
+    if (!menu_flags_save_dirty) return;
     menu_save_flags(CARD_DRIVE "ML/SETTINGS/MENU.CFG");
 }
 
