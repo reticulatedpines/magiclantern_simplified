@@ -90,9 +90,9 @@
 
 
 /* update major if older modules will *not* be compatible */
-#define MODULE_MAJOR 1
+#define MODULE_MAJOR 2
 /* update minor if older modules will be compatible, but newer module will not run on older magic lantern versions */
-#define MODULE_MINOR 3
+#define MODULE_MINOR 0
 /* update patch if nothing regarding to compatibility changes */
 #define MODULE_PATCH 0
 
