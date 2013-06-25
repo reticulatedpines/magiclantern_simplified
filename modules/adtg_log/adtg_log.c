@@ -21,6 +21,21 @@ unsigned int hook_calls = 0;
 unsigned int *adtg_buf = NULL;
 unsigned int adtg_buf_pos = 0;
 unsigned int adtg_buf_pos_max = 0;
+unsigned int adtg_current_vsync_pos = 0;
+unsigned int adtg_last_vsync_pos = 0;
+
+static uint32_t nrzi_decode( uint32_t in_val )
+{
+    uint32_t val = 0;
+    if (in_val & 0x8000)
+        val |= 0x8000;
+    for (int num = 0; num < 31; num++)
+    {
+        uint32_t old_bit = (val & 1<<(30-num+1)) >> 1;
+        val |= old_bit ^ (in_val & 1<<(30-num));
+    }
+    return val;
+}
 
 unsigned short cmos_regs[8];
 static int cmos_delta[8];
@@ -54,6 +69,9 @@ static unsigned int adtg_log_vsync_cbr(unsigned int unused)
         return;
     }
     
+    adtg_last_vsync_pos = adtg_current_vsync_pos;
+    adtg_current_vsync_pos = adtg_buf_pos;
+    
     adtg_buf[adtg_buf_pos] = 0xFFFFFFFF;
     adtg_buf_pos++;    
     adtg_buf[adtg_buf_pos] = 0xFFFFFFFF;
@@ -70,6 +88,8 @@ static void adtg_log(breakpoint_t *bkpt)
     unsigned int cs = bkpt->ctx[0];
     unsigned int *data_buf = bkpt->ctx[1];
     
+    void* buf0 = data_buf;
+    
     /* log all ADTG writes */
     while(*data_buf != 0xFFFFFFFF)
     {
@@ -77,11 +97,23 @@ static void adtg_log(breakpoint_t *bkpt)
         {
             return;
         }
+
+/* shutter override
+        uint32_t dat = *data_buf;
+        int reg = dat >> 16;
+        int val = dat & 0xFFFF;
+        if (reg == 0x8060)
+        {
+            *data_buf = 0x80600479;
+            NotifyBox(1000, "%x ", buf0);
+        }
+*/
         
         adtg_buf[adtg_buf_pos] = cs;
         adtg_buf_pos++;
         adtg_buf[adtg_buf_pos] = *data_buf;
         adtg_buf_pos++;
+
         data_buf++;
     }
 }
@@ -168,10 +200,38 @@ void adtg_log_task()
     /* wait for buffer being filled */
     while(adtg_buf_pos + 2 < adtg_buf_pos_max)
     {
-        bmp_printf(FONT_MED, 30, 60, "cmos:");
-        for(int pos = 0; pos < 8; pos+=2)
+        bmp_printf(FONT_MED, 10, 20, "cmos:");
+        for(int pos = 0; pos < 8; pos++)
         {
-            bmp_printf(FONT_MED, 30, 80 + pos / 2 * font_med.height, "[%d] 0x%03X [%d] 0x%03X", pos, cmos_regs[pos], pos + 1, cmos_regs[pos+1]);
+            bmp_printf(FONT_MED, 10, 40 + pos * font_med.height, "[%d] 0x%03X ", pos, cmos_regs[pos]);
+        }
+
+        int x = 200;
+        int y = 30;
+        bmp_printf(FONT_MED, x, y-10, "adtg:");
+        for (int pos = adtg_last_vsync_pos + 2; pos < adtg_current_vsync_pos; pos += 2)
+        {
+            uint32_t dst = adtg_buf[pos];
+            uint32_t dat = adtg_buf[pos+1];
+            if (dst == 0xFF000000) /* CMOS16 */
+            {
+            }
+            else if (dst == 0x00FF0000) /* CMOS */
+            {
+            }
+            else
+            {
+                int reg = dat >> 16;
+                int val = dat & 0xFFFF;
+                bmp_printf(FONT_SMALL, x, y += font_small.height,
+                    "[ADTG%d] %04X -> %04X (%X)", dst & 0x0F, reg, val, nrzi_decode(val)
+                );
+                if (y > 400)
+                {
+                    y = 30;
+                    x += 250;
+                }
+            }
         }
         msleep(100);
     }
