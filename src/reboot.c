@@ -48,8 +48,6 @@ asm(
     "B       cstart\n"
 );
 
-
-
 /** Include the relocatable shim code */
 extern uint8_t blob_start;
 extern uint8_t blob_end;

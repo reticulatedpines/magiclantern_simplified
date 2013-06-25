@@ -189,10 +189,7 @@ copy_and_restart( )
     // Unreachable
     while(1)
         ;
-
-
 #endif
-
 }
 
 
@@ -338,7 +335,7 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
     
     /* no, create file and store data */
     handle = FIO_CreateFileEx(file);
-    if (handle)
+    if (handle != INVALID_PTR)
     {
       while(pos < length)
       {

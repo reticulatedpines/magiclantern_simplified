@@ -272,7 +272,6 @@ void hist_draw_image(
     }
     bmp_draw_rect(60, x_origin-1, y_origin-1, HIST_WIDTH+1, hist_height+1);
 
-
     #ifdef FEATURE_RAW_HISTOGRAM
     if (histogram.is_raw)
     {

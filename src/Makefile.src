@@ -195,7 +195,6 @@ magiclantern: $(ML_OBJS-y) $(ML_LIBC)
         -Xlinker -Map=location.map \
 	)
 
-
 reboot.o: $(SRC_DIR)/reboot.c $(PLATFORM_DIR)/version.bin magiclantern.bin
 
 ifndef ML_SRC_REBOOT_OBJ
