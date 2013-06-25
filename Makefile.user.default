@@ -25,20 +25,22 @@ GCC_VERSION=4.7.3
 ARM_PATH=~/gcc-arm-none-eabi-4_7-2012q4
 ARM_BINPATH=$(ARM_PATH)/bin
 
+CROSS_COMPILE=$(ARM_BINPATH)/arm-$(ARM_ABI)-
+
 ifeq ($(OS),Windows_NT)
-CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION).exe
+CC=$(CROSS_COMPILE)gcc-$(GCC_VERSION).exe
 else
-CC=$(ARM_BINPATH)/arm-$(ARM_ABI)-gcc-$(GCC_VERSION)
+CC=$(CROSS_COMPILE)gcc-$(GCC_VERSION)
 endif
 
 LD=$(CC)
-OBJCOPY=$(ARM_BINPATH)/arm-$(ARM_ABI)-objcopy
-OBJDUMP=$(ARM_BINPATH)/arm-$(ARM_ABI)-objdump
-AR=$(ARM_BINPATH)/arm-$(ARM_ABI)-ar
-RANLIB=$(ARM_BINPATH)/arm-$(ARM_ABI)-ranlib
-READELF=$(ARM_BINPATH)/arm-$(ARM_ABI)-readelf
-LD_REAL=$(ARM_BINPATH)/arm-$(ARM_ABI)-ld
-STRIP=$(ARM_BINPATH)/arm-$(ARM_ABI)-strip
+OBJCOPY=$(CROSS_COMPILE)objcopy
+OBJDUMP=$(CROSS_COMPILE)objdump
+AR=$(CROSS_COMPILE)ar
+RANLIB=$(CROSS_COMPILE)ranlib
+READELF=$(CROSS_COMPILE)readelf
+LD_REAL=$(CROSS_COMPILE)ld
+STRIP=$(CROSS_COMPILE)strip
 
 # You can customize CFLAG here
 HOST_CFLAGS=-g -O3 -W -Wall
