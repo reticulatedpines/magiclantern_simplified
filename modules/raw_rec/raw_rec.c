@@ -93,7 +93,7 @@ static CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
 
 static CONFIG_INT("raw.res.x", resolution_index_x, 12);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
-static CONFIG_INT("raw.write.spd", measured_write_speed, 0);
+static CONFIG_INT("raw.write.speed", measured_write_speed, 0);
 static CONFIG_INT("raw.skip.frames", allow_frame_skip, 0);
 //~ static CONFIG_INT("raw.sound", sound_rec, 2);
 #define sound_rec 2
@@ -356,8 +356,8 @@ static char* guess_how_many_frames()
     if (!measured_write_speed) return "";
     if (!chunk_list[0]) return "";
     
-    int write_speed_lo = measured_write_speed * 1024 * 1024 / 10 - 512 * 1024;
-    int write_speed_hi = measured_write_speed * 1024 * 1024 / 10 + 512 * 1024;
+    int write_speed_lo = measured_write_speed * 1024 / 100 * 1024 - 512 * 1024;
+    int write_speed_hi = measured_write_speed * 1024 / 100 * 1024 + 512 * 1024;
     
     int f_lo = predict_frames(write_speed_lo);
     int f_hi = predict_frames(write_speed_hi);
@@ -383,7 +383,7 @@ static char* guess_how_many_frames()
 static MENU_UPDATE_FUNC(write_speed_update)
 {
     int fps = fps_get_current_x1000();
-    int speed = (res_x * res_y * 14/8 / 1024) * fps / 100 / 1024;
+    int speed = (res_x * res_y * 14/8 / 1024) * fps / 10 / 1024;
     int ok = speed < measured_write_speed; 
 
     if (frame_size % 512)
@@ -754,7 +754,7 @@ static void show_buffer_status()
         prev_y = y;
         bmp_draw_rect(COLOR_BLACK, 0, ymin, 720, ymax-ymin);
         
-        int xp = predict_frames(measured_write_speed * 1024 * 1024 / 10) % 720;
+        int xp = predict_frames(measured_write_speed * 1024 / 100 * 1024) % 720;
         draw_line(xp, ymax, xp, ymin, COLOR_RED);
     }
 #endif
@@ -891,7 +891,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     {
         int fps = fps_get_current_x1000();
         int t = (frame_count * 1000 + fps/2) / fps;
-        int predicted = predict_frames(measured_write_speed * 1024 * 1024 / 10);
+        int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
         if (predicted < 10000)
             bmp_printf( FONT_MED, 30, 70, 
                 "%02d:%02d, %d frames / %d expected  ",
@@ -911,9 +911,10 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
         /* how fast are we writing? does this speed match our benchmarks? */
         if (writing_time)
         {
-            int speed = written * 10 / writing_time * 1000 / 1024; // MB/s x10
+            int speed = written * 100 / writing_time * 1000 / 1024; // MB/s x100
             int idle_percent = idle_time * 100 / (writing_time + idle_time);
             measured_write_speed = speed;
+            speed /= 10;
 
             char msg[50];
             snprintf(msg, sizeof(msg),
@@ -1417,17 +1418,16 @@ static void raw_video_rec_task()
         /* if we are about to overflow, save a smaller number of frames, so they can be freed quicker */
         if (measured_write_speed)
         {
-            /* measured_write_speed unit: 0.1 MB/s */
+            /* measured_write_speed unit: 0.01 MB/s */
             /* FPS unit: 0.001 Hz */
             /* overflow time unit: 0.1 seconds */
             int overflow_time = free_slots * 1000 * 10 / fps;
             /* better underestimate write speed a little */
-            int frame_limit = overflow_time * 1024 / 10 * (measured_write_speed * 9 / 10) * 1024 / frame_size / 10;
+            int frame_limit = overflow_time * 1024 / 10 * (measured_write_speed * 9 / 100) * 1024 / frame_size / 10;
             if (frame_limit >= 0 && frame_limit < num_frames)
             {
                 //~ console_printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
-                num_frames = MAX(1, frame_limit - 1);
-                //~ beep();
+                num_frames = MAX(1, frame_limit - 2);
             }
         }
         
