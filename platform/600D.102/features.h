@@ -7,5 +7,3 @@
 #undef FEATURE_AUTO_BURST_PICQ // not working on 600D
 
 #define FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY
-
-#undef CONFIG_MEMCHECK // conflicts

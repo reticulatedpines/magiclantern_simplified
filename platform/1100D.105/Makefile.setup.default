@@ -1,5 +1,6 @@
 # compile position independent (experimental)
 CONFIG_PIC=n
+CONFIG_MEMCHECK=n
 
 CONFIG_RELOC=y
 
