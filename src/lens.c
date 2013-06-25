@@ -549,9 +549,9 @@ void draw_ml_bottombar(int double_buffering, int clear)
       if (is_movie_mode()) // check 180 degree rule
       {
            shutter_degrees = 360 * video_mode_fps / shutter_reciprocal;
-           if (ABS(shutter_degrees - 180) < 10)
+           if (ABS(shutter_degrees - 180) < 20)
               fgs = FONT(FONT_LARGE,COLOR_GREEN1,bg);
-           else if (shutter_degrees > 190)
+           else if (shutter_degrees > 250)
               fgs = FONT(FONT_LARGE,COLOR_RED,bg);
            else if (shutter_degrees < 45)
               fgs = FONT(FONT_LARGE,COLOR_RED,bg);
