@@ -2323,6 +2323,7 @@ shutter_toggle(void* priv, int sign)
         if (priv == (void*)-1 && (new_i == 0 || i + sign != new_i)) // wrapped around
             break;
         i = new_i;
+        if (codes_shutter[i] == 0) continue;
         if (lens_set_rawshutter(codes_shutter[i])) break;
     }
 }
