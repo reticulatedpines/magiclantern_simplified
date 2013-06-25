@@ -384,7 +384,8 @@ static MENU_UPDATE_FUNC(write_speed_update)
 {
     int fps = fps_get_current_x1000();
     int speed = (res_x * res_y * 14/8 / 1024) * fps / 10 / 1024;
-    int ok = speed < measured_write_speed; 
+    int ok = speed < measured_write_speed;
+    speed /= 10;
 
     if (frame_size % 512)
     {
