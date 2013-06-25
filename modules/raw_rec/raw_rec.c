@@ -152,6 +152,7 @@ static struct memSuite * mem_suite = 0;           /* memory suite for our buffer
 
 static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
 static int fullsize_buffer_pos = 0;               /* which of the full size buffers (double buffering) is currently in use */
+static int chunk_list[20];                       /* list of free memory chunk sizes, used for frame estimations */
 
 static struct frame_slot slots[512];              /* frame slots */
 static int slot_count = 0;                        /* how many frame slots we have */
@@ -332,74 +333,34 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     return msg;
 }
 
-#if 0 /* algorithm changed */
-
-static int speed_model(int nominal_speed, int buffer_size)
+static int predict_frames(int write_speed)
 {
-    /* model fitted from a log taken with 5D3 in movie mode, favors large buffers */
-    /* log: http://www.magiclantern.fm/forum/index.php?topic=5471.msg38312#msg38312 */
-    float speed_factor = -8.5500e-01f + 4.5050e-09f * buffer_size + 8.7998e-02f * log2f(buffer_size) - 8.5642e-05f * sqrtf(buffer_size);
-    speed_factor = COERCE(speed_factor, 0, 1);
-    return nominal_speed * speed_factor;
-}
-
-/* how many frames it's likely to get at some write speed? */
-static int sim_frames(int write_speed)
-{
-
-    /* how many frames we can have in RAM */
-    int total = 0;
-    int used = 0;
-    int writing = 0;
-    for (int i = 0; i < buffer_count; i++)
-        total += buffers[i].size / frame_size;
-
-    int f = 0;
-    int k = 0;
-    float wt = 0;
-    float fps = fps_get_current_x1000() / 1000.0;
-    float t = 0;
-    while (used < total && f < 10000)
-    {
-        t += 1/fps;
-        f++;
-        used++;
-        
-        int current_buf_cap = buffers[k].size / frame_size;
-
-        /* can we write a chunk? enough data and previous write finished */
-        if (used >= current_buf_cap && t >= wt)
-        {
-            /* we just wrote a chunk to card, so we have more free memory now */
-            used -= writing;
-            
-            /* this chunk is being saved on the card, can't touch it */
-            writing = current_buf_cap;
-            
-            /* advance to next buffer */
-            k = (k + 1) % buffer_count;
-
-            /* first write process starts here */
-            if (wt == 0) wt = t;
-
-            /* new write process starts now, wt is when it will finish */
-            wt += (float)(frame_size * current_buf_cap) / speed_model(write_speed, frame_size * current_buf_cap);
-        }
-    }
-    return f;
+    int fps = fps_get_current_x1000();
+    int capture_speed = frame_size / 1000 * fps;
+    int buffer_fill_speed = capture_speed - write_speed;
+    if (buffer_fill_speed <= 0)
+        return INT_MAX;
+    
+    int total_slots = 0;
+    for (int i = 0; i < COUNT(chunk_list); i++)
+        total_slots += chunk_list[i] / frame_size;
+    
+    float buffer_fill_time = total_slots * frame_size / (float) buffer_fill_speed;
+    int frames = buffer_fill_time * fps / 1000;
+    return frames;
 }
 
 /* how many frames can we record with current settings, without dropping? */
 static char* guess_how_many_frames()
 {
     if (!measured_write_speed) return "";
-    if (!buffer_count) return "";
+    if (!chunk_list[0]) return "";
     
-    int write_speed_lo = measured_write_speed * 1024 * 1024 / 10 - 256 * 1024;
-    int write_speed_hi = measured_write_speed * 1024 * 1024 / 10 + 256 * 1024;
+    int write_speed_lo = measured_write_speed * 1024 * 1024 / 10 - 512 * 1024;
+    int write_speed_hi = measured_write_speed * 1024 * 1024 / 10 + 512 * 1024;
     
-    int f_lo = sim_frames(write_speed_lo);
-    int f_hi = sim_frames(write_speed_hi);
+    int f_lo = predict_frames(write_speed_lo);
+    int f_hi = predict_frames(write_speed_hi);
     
     static char msg[50];
     if (f_lo < 5000)
@@ -418,7 +379,6 @@ static char* guess_how_many_frames()
     
     return msg;
 }
-#endif
 
 static MENU_UPDATE_FUNC(write_speed_update)
 {
@@ -432,21 +392,17 @@ static MENU_UPDATE_FUNC(write_speed_update)
     }
     else
     {
-#if 0
         if (!measured_write_speed)
-#endif
             MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
                 "Write speed needed: %d.%d MB/s at %d.%03d fps.",
                 speed/10, speed%10, fps/1000, fps%1000
             );
-#if 0
         else
             MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
                 "%d.%d MB/s at %d.%03dp. %s",
                 speed/10, speed%10, fps/1000, fps%1000,
                 guess_how_many_frames()
             );
-#endif
     }
 }
 
@@ -629,6 +585,8 @@ static int setup_buffers()
     /* allocate the entire memory, but only use large chunks */
     /* yes, this may be a bit wasteful, but at least it works */
     
+    memset(chunk_list, 0, sizeof(chunk_list));
+    
     if (memory_hack) { PauseLiveView(); msleep(200); }
     
     mem_suite = shoot_malloc_suite(0);
@@ -671,6 +629,9 @@ static int setup_buffers()
     /* reuse Canon's buffer */
     fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
     if (fullsize_buffers[1] == 0) return 0;
+    
+    chunk_list[0] = waste;
+    int chunk_index = 1;
 
     /* use all chunks larger than frame_size for recording */
     chunk = GetFirstChunkFromSuite(mem_suite);
@@ -681,6 +642,13 @@ static int setup_buffers()
         void* ptr = GetMemoryAddressOfMemoryChunk(chunk);
         if (ptr != fullsize_buffers[0]) /* already used */
         {
+            /* write it down for future frame predictions */
+            if (chunk_index < COUNT(chunk_list) && size > 8192)
+            {
+                chunk_list[chunk_index] = size - 8192;
+                chunk_index++;
+            }
+
             /* align at 4K */
             ptr = (void*)(((intptr_t)ptr + 4095) & ~4095);
             
@@ -740,7 +708,6 @@ static int get_free_slots()
     return free_slots;
 }
 
-
 static void show_buffer_status()
 {
     if (!liveview_display_idle()) return;
@@ -786,6 +753,9 @@ static void show_buffer_status()
         prev_x = x;
         prev_y = y;
         bmp_draw_rect(COLOR_BLACK, 0, ymin, 720, ymax-ymin);
+        
+        int xp = predict_frames(measured_write_speed * 1024 * 1024 / 10) % 720;
+        draw_line(xp, ymax, xp, ymin, COLOR_RED);
     }
 #endif
 }
@@ -921,11 +891,20 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     {
         int fps = fps_get_current_x1000();
         int t = (frame_count * 1000 + fps/2) / fps;
-        bmp_printf( FONT_MED, 30, 70, 
-            "%02d:%02d, %d frames...",
-            t/60, t%60,
-            frame_count
-        );
+        int predicted = predict_frames(measured_write_speed * 1024 * 1024 / 10);
+        if (predicted < 10000)
+            bmp_printf( FONT_MED, 30, 70, 
+                "%02d:%02d, %d frames / %d expected  ",
+                t/60, t%60,
+                frame_count,
+                predicted
+            );
+        else
+            bmp_printf( FONT_MED, 30, 70, 
+                "%02d:%02d, %d frames, continuous OK  ",
+                t/60, t%60,
+                frame_count
+            );
 
         show_buffer_status();
 
@@ -1586,7 +1565,7 @@ static void raw_video_rec_task()
         {
 abort:
             bmp_printf( FONT_MED, 30, 90, 
-                "Movie recording stopped automagically"
+                "Movie recording stopped automagically     "
             );
             /* this is error beep, not audio sync beep */
             beep_times(2);
@@ -1611,7 +1590,7 @@ abort:
     }
 
     bmp_printf( FONT_MED, 30, 70, 
-        "Frames captured: %d    ", 
+        "Frames captured: %d               ", 
         frame_count - 1
     );
 
