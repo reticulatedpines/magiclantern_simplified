@@ -227,6 +227,8 @@ static void fps_read_current_timer_values();
     #define TG_FREQ_BASE 24000000
     #define TG_FREQ_SHUTTER (ntsc ? 51120000 : 50000000)
     #define FPS_TIMER_A_MIN (fps_timer_a_orig - (ZOOM ? 20 : MV720 ? 30 : 42))
+    #undef FPS_TIMER_B_MIN
+    #define FPS_TIMER_B_MIN (fps_timer_b_orig - (ZOOM ? 44 : MV720 ? 0 : 70)) /* you can push LiveView until 68fps (timer_b_orig - 50), but good luck recording that */
 #elif defined(CONFIG_EOSM)
     #define TG_FREQ_BASE 32000000
     #define TG_FREQ_SHUTTER (ntsc || !recording ? 56760000 : 50000000)
@@ -355,6 +357,8 @@ int get_current_tg_freq()
     desired_fps_timer_a_offset = new_timer_a - fps_timer_a_orig + 1000;
 }*/
 
+#ifndef FRAME_SHUTTER_BLANKING_WRITE
+
 static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, int Tb, int Tb0)
 {
     int default_fps = calc_fps_x1000(Ta0, Tb0);
@@ -376,6 +380,7 @@ static int get_shutter_reciprocal_x1000(int shutter_r_x1000, int Ta, int Ta0, in
     
     return ans;
 }
+#endif
 
 int get_max_shutter_timer()
 {
@@ -398,13 +403,81 @@ int get_shutter_speed_us_from_timer(int timer)
     return timer * 1000000 / (TG_FREQ_SHUTTER/1000);
 }
 
+#ifdef FRAME_SHUTTER_BLANKING_READ
+static uint32_t nrzi_decode( uint32_t in_val )
+{
+    uint32_t val = 0;
+    if (in_val & 0x8000)
+        val |= 0x8000;
+    for (int num = 0; num < 31; num++)
+    {
+        uint32_t old_bit = (val & 1<<(30-num+1)) >> 1;
+        val |= old_bit ^ (in_val & 1<<(30-num));
+    }
+    return val;
+}
+#endif
+
+#ifdef FRAME_SHUTTER_BLANKING_WRITE
+static uint32_t nrzi_encode( uint32_t in_val )
+{
+    uint32_t out_val = 0;
+    uint32_t old_bit = 0;
+    for (int num = 0; num < 32; num++)
+    {
+        uint32_t bit = in_val & 1<<(30-num) ? 1 : 0;
+        if (bit != old_bit)
+            out_val |= (1 << (30-num));
+        old_bit = bit;
+    }
+    return out_val;
+}
+
+/* Low Light mode: scale shutter speed with FPS (keep shutter angle constant) */
+/* All other modes: keep shutter speed constant */
+void fps_override_shutter_blanking()
+{
+    if (!fps_override)
+        return;
+
+    /* already overriden? */
+    if (FRAME_SHUTTER_BLANKING_READ != *FRAME_SHUTTER_BLANKING_WRITE)
+        return;
+
+    /* sensor duty cycle: range 0 ... timer B */
+    int current_blanking = nrzi_decode(FRAME_SHUTTER_BLANKING_READ);
+    int current_exposure = fps_timer_b_orig - current_blanking;
+
+    int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
+    int current_fps = fps_get_current_x1000();
+    
+    float frame_duration_orig = 1000.0 / default_fps;
+    float frame_duration_current = 1000.0 / current_fps;
+    
+    float orig_shutter = frame_duration_orig * current_exposure / fps_timer_b_orig;
+    float new_shutter = fps_criteria ? orig_shutter : orig_shutter * default_fps / current_fps;
+
+    int new_exposure = new_shutter * fps_timer_b / frame_duration_current;
+    int new_blanking = COERCE(fps_timer_b - new_exposure, 2, fps_timer_b - 10);
+    
+    *FRAME_SHUTTER_BLANKING_WRITE = nrzi_encode(new_blanking);
+}
+#endif
+
 int get_current_shutter_reciprocal_x1000()
 {
-#if defined(CONFIG_500D) || defined(CONFIG_50D) || defined(CONFIG_7D) || defined(CONFIG_40D) || (defined(CONFIG_DIGIC_V ) && !(defined(CONFIG_5D3) || defined(CONFIG_650D)))
-    if (!lens_info.raw_shutter) return 0;
-    return (int) roundf(powf(2.0f, (lens_info.raw_shutter - 136) / 8.0f) * 1000.0f * 1000.0f);
-#else
-
+#ifdef FRAME_SHUTTER_BLANKING_READ
+    #ifdef FRAME_SHUTTER_BLANKING_WRITE
+    int blanking = nrzi_decode(*FRAME_SHUTTER_BLANKING_WRITE);   /* prefer to use the overriden value */
+    #else
+    int blanking = nrzi_decode(FRAME_SHUTTER_BLANKING_READ);
+    #endif
+    int max = fps_timer_b;
+    float frame_duration = 1000.0 / fps_get_current_x1000();
+    float shutter = frame_duration * (max - blanking) / max;
+    return (int)(1.0 / shutter * 1000);
+    
+#elif defined(FRAME_SHUTTER_TIMER)
     int timer = FRAME_SHUTTER_TIMER;
 
     #ifdef FEATURE_SHUTTER_FINE_TUNING
@@ -451,6 +524,10 @@ int get_current_shutter_reciprocal_x1000()
     // This function returns 1/EA and does all calculations on integer numbers, so actual computations differ slightly.
 
     return get_shutter_reciprocal_x1000(shutter_r_x1000, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
+#else
+    // fallback to APEX units
+    if (!lens_info.raw_shutter) return 0;
+    return (int) roundf(powf(2.0f, (lens_info.raw_shutter - 136) / 8.0f) * 1000.0f * 1000.0f);
 #endif
 }
 
@@ -459,12 +536,22 @@ int fps_get_shutter_speed_shift(int raw_shutter)
 {
     if (fps_timer_a == fps_timer_a_orig && fps_timer_b == fps_timer_b_orig)
         return 0;
-    
+
+#ifdef FRAME_SHUTTER_BLANKING_WRITE
+    if (fps_criteria == 0)
+    {
+        int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
+        int current_fps = fps_get_current_x1000();
+        return (int)roundf(8.0f * log2f((float)default_fps / (float)current_fps));
+    }
+    else return 0;
+#else
     // consider that shutter speed is 1/30, to simplify things (that's true in low light)
     int unaltered = (int)roundf(1000/raw2shutterf(MAX(raw_shutter, 96)));
     int altered_by_fps = get_shutter_reciprocal_x1000(unaltered, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
     
-    return (int)roundf(8.0f * log2f((float)unaltered / (float)altered_by_fps));    
+    return (int)roundf(8.0f * log2f((float)unaltered / (float)altered_by_fps));
+#endif
 }
 
 //--------------------------------------------------------
@@ -862,6 +949,7 @@ static void fps_enable_disable(void* priv, int delta)
     if (fps_override) fps_needs_updating = 1;
 }
 
+#ifndef FRAME_SHUTTER_BLANKING_WRITE
 static MENU_UPDATE_FUNC(shutter_range_print)
 {
     // EA = (E0 + (1/Fb - 1/F0)) * Ta / Ta0
@@ -884,7 +972,7 @@ static MENU_UPDATE_FUNC(shutter_range_print)
     if (tv_high >= 10000) MENU_APPEND_VALUE("1/%d", tv_high_r);
     else MENU_APPEND_VALUE("%d.%02d\"", tv_high_s_x10/100, tv_high_s_x10%100);
 }
-
+#endif
 
 static MENU_UPDATE_FUNC(fps_timer_print)
 {
@@ -1180,7 +1268,7 @@ static struct menu_entry fps_menu[] = {
                 .choices = (const char *[]) {
                     "Low light", 
                     "Exact FPS", 
-                    #ifdef NEW_FPS_METHOD
+                    #if defined(NEW_FPS_METHOD) || defined(FRAME_SHUTTER_BLANKING_WRITE)
                     "High FPS",
                     "High Jello",
                     #else
@@ -1192,18 +1280,23 @@ static struct menu_entry fps_menu[] = {
                 .max = 3,
                 .select = fps_criteria_change,
                 .help = "Changing FPS has side effects - choose what's best for you:",
-                .help2 = 
+                .help2 =
+                        #ifdef FRAME_SHUTTER_BLANKING_WRITE
+                        "Low light: slow shutter speeds. Shutter angle is constant.\n"
+                        #else
                         "Low light: at low FPS, use 1/FPS (360 deg) shutter speeds.\n"
+                        #endif
                         "Exact FPS: for 24.000 instead of 23.976 and similar.\n"
-                        #ifdef NEW_FPS_METHOD
+                        #if defined(NEW_FPS_METHOD) || defined(FRAME_SHUTTER_BLANKING_WRITE)
                         "High FPS: best for slight overcranking (eg 35fps from 30).\n"
-                        "High Jello: for slit-scan effect (2-5 fps and fast shutter).\n"
+                        "High Jello: slit-scan effect (use 2-5 fps and fast shutter).\n"
                         #else
                         "Low Jello, 180d: for 1/2fps shutter speed (1/20 at 10fps).\n" 
                         "HiJello, FastTv: jello effects and fast shutters (2-5 fps).\n"
                         #endif
             },
 #endif
+            #ifndef FRAME_SHUTTER_BLANKING_WRITE
             {
                 .name = "Shutter range",
                 .update = shutter_range_print,
@@ -1213,6 +1306,7 @@ static struct menu_entry fps_menu[] = {
                 .help2 = "You can fine-tune this, but don't expect miracles.",
                 .advanced = 1,
             },
+            #endif
             {
                 .name = "FPS timer A",
                 .update = fps_timer_print,
@@ -1246,6 +1340,7 @@ static struct menu_entry fps_menu[] = {
             },
 
             #ifdef CONFIG_FRAME_ISO_OVERRIDE
+            #ifndef FRAME_SHUTTER_BLANKING_WRITE
             {
                 .name = "Constant expo",
                 .priv = &fps_const_expo,
@@ -1255,6 +1350,7 @@ static struct menu_entry fps_menu[] = {
                 .help2 = "This works by lowering ISO => you may get pink highlights.",
                 .depends_on = DEP_MANUAL_ISO | DEP_MOVIE_MODE,
             },
+            #endif
             #endif
 
             {
@@ -1639,6 +1735,9 @@ int handle_fps_events(struct event * event)
 
 int fps_get_iso_correction_evx8()
 {
+#ifdef FRAME_SHUTTER_BLANKING_WRITE
+    return 0;
+#else
     if (!fps_override) return 0;
     if (!fps_const_expo) return 0;
     if (!is_movie_mode()) return 0;
@@ -1648,12 +1747,13 @@ int fps_get_iso_correction_evx8()
     int altered_by_fps = get_shutter_reciprocal_x1000(unaltered, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
     float gf = 1.0f * altered_by_fps / unaltered;
     return log2f(gf)*8;
+#endif
 }
 
 void fps_expo_iso_step()
 {
 #ifdef CONFIG_FRAME_ISO_OVERRIDE
-    
+#ifndef FRAME_SHUTTER_BLANKING_WRITE
     if (!lv) return;
     if (!lens_info.raw_iso) return; // no auto iso
     
@@ -1713,6 +1813,7 @@ void fps_expo_iso_step()
 
     if (mv) set_movie_digital_iso_gain_for_gradual_expo(g);
     dirty = 1;
+#endif
 #endif
 }
 

@@ -61,6 +61,11 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
         *(uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
 #endif
 
+#ifdef FRAME_SHUTTER_BLANKING_WRITE
+    if (class == 145) /* 5D3-specific? */
+        fps_override_shutter_blanking();
+#endif
+
     return;
 }
 

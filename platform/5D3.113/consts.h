@@ -243,6 +243,10 @@
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0xe))
 #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
+#define FRAME_SHUTTER_BLANKING_ZOOM   (*(uint16_t*)0x40451848) // ADTG register 805e
+#define FRAME_SHUTTER_BLANKING_NOZOOM (*(uint16_t*)0x4045184C) // ADTG register 8060
+#define FRAME_SHUTTER_BLANKING_READ   (lv_dispsize > 1 ? FRAME_SHUTTER_BLANKING_NOZOOM : FRAME_SHUTTER_BLANKING_ZOOM) /* when reading, use the other mode, as it contains the original value (not overriden) */
+#define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x3c268
