@@ -1314,8 +1314,8 @@ static void raw_video_rec_task()
         goto cleanup;
     }
     
-    /* wait for one frame to be sure everything is refreshed */
-    frame_countdown = 1;
+    /* wait for two frames to be sure everything is refreshed */
+    frame_countdown = 2;
     for (int i = 0; i < 200; i++)
     {
         msleep(20);
