@@ -48,7 +48,32 @@ clean: platform_clean doxygen_clean
 		$(LUA_PATH)/*.o \
 		$(LUA_PATH)/.*.d \
 		$(LUA_PATH)/liblua.a \
+		doc/Cropmarks550D.png \
+		doc/credits.tex \
+		doc/install-body.tex \
+		doc/install.wiki \
+		doc/menuindex.txt \
+		doc/userguide.rst \
+		doc/INSTALL.aux \
+		doc/INSTALL.log \
+		doc/INSTALL.out \
+		doc/INSTALL.pdf \
+		doc/INSTALL.rst \
+		doc/INSTALL.tex \
+		doc/INSTALL.toc \
+		doc/UserGuide-cam.aux \
+		doc/UserGuide-cam.log \
+		doc/UserGuide-cam.out \
+		doc/UserGuide-cam.pdf \
+		doc/UserGuide-cam.tex \
+		doc/UserGuide.aux \
+		doc/UserGuide.log \
+		doc/UserGuide.out \
+		doc/UserGuide.pdf \
+		doc/UserGuide.tex \
+		doc/UserGuide.toc \
 		*.pdf)
+	$(call rm_dir, doc/cam)
 		@$(RM) -rf  $(BINARIES_PATH)
 
 
