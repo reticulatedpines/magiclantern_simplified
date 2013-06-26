@@ -74,7 +74,7 @@ clean: platform_clean doxygen_clean
 		doc/UserGuide.toc \
 		*.pdf)
 	$(call rm_dir, doc/cam)
-		@$(RM) -rf  $(BINARIES_PATH)
+	$(call rm_dir, $(BINARIES_PATH))
 
 
 zip: all
