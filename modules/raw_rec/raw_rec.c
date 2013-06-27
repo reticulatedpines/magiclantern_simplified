@@ -65,6 +65,7 @@
 #include "../lv_rec/lv_rec.h"
 #include "edmac.h"
 #include "../file_man/file_man.h"
+#include "cache_hacks.h"
 
 /* camera-specific tricks */
 /* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
@@ -109,6 +110,7 @@ static CONFIG_INT("raw.preview", preview_mode, 0);
 #define PREVIEW_HACKED (preview_mode == 3)
 
 static CONFIG_INT("raw.memory.hack", memory_hack, 0);
+static CONFIG_INT("raw.small.hacks", small_hacks, 0);
 
 /* state variables */
 static int res_x = 0;
@@ -936,15 +938,32 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     return 0;
 }
 
-static void lv_unhack(int unused)
+
+/* todo: reference counting, like with raw_lv_request */
+static void cache_require(int lock)
 {
-    while (!RAW_IS_IDLE) msleep(100);
-    call("aewb_enableaewb", 1);
-    PauseLiveView();
-    ResumeLiveView();
+    static int cache_was_unlocked = 0;
+    if (lock)
+    {
+        if (!cache_locked())
+        {
+            cache_was_unlocked = 1;
+            icache_lock();
+        }
+    }
+    else
+    {
+        if (cache_was_unlocked)
+        {
+            icache_unlock();
+            cache_was_unlocked = 0;
+        }
+    }
 }
 
-static void hack_liveview()
+static void unhack_liveview_vsync(int unused);
+
+static void hack_liveview_vsync()
 {
     if (cam_5d2 || cam_50d)
     {
@@ -993,12 +1012,6 @@ static void hack_liveview()
     {
         if (frame_count == 0)
             should_hack = 1;
-        /*
-        if (frame_count % 10 == 0)
-            should_hack = 1;
-        else if (frame_count % 10 == 9)
-            should_unhack = 1;
-        */
     }
     else if (prev_rec)
     {
@@ -1008,7 +1021,6 @@ static void hack_liveview()
     
     if (should_hack)
     {
-        call("aewb_enableaewb", 0);
         int y = 100;
         for (int channel = 0; channel < 32; channel++)
         {
@@ -1024,10 +1036,73 @@ static void hack_liveview()
     }
     else if (should_unhack)
     {
-        task_create("lv_unhack", 0x1e, 0x1000, lv_unhack, (void*)0);
+        task_create("lv_unhack", 0x1e, 0x1000, unhack_liveview_vsync, (void*)0);
     }
 }
 
+/* this is a separate task */
+static void unhack_liveview_vsync(int unused)
+{
+    while (!RAW_IS_IDLE) msleep(100);
+    PauseLiveView();
+    ResumeLiveView();
+}
+
+static void hack_liveview(int unhack)
+{
+    if (small_hacks)
+    {
+        /* disable canon graphics (gains a little speed) */
+        static int canon_gui_was_enabled;
+        if (!unhack)
+        {
+            canon_gui_was_enabled = !canon_gui_front_buffer_disabled();
+            canon_gui_disable_front_buffer();
+        }
+        else if (canon_gui_was_enabled)
+        {
+            canon_gui_enable_front_buffer(0);
+            canon_gui_was_enabled = 0;
+        }
+
+        /* disable auto exposure and auto white balance */
+        call("aewb_enableaewb", unhack ? 1 : 0);  /* for new cameras */
+        call("lv_ae",           unhack ? 1 : 0);  /* for old cameras */
+        call("lv_wb",           unhack ? 1 : 0);
+        
+        /* change dialog refresh timer from 50ms to 1024ms */
+        uint32_t dialog_refresh_timer_addr = /* in StartDialogRefreshTimer */
+            cam_50d ? 0xffa84e00 :
+            cam_5d2 ? 0xffaac640 :
+            cam_5d3 ? 0xff4acda4 :
+            /* ... */
+            0;
+        uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
+        uint32_t dialog_refresh_timer_new_instr  = 0xe3a00b02; /* change to mov r0, #2048 */
+
+        if (*(volatile uint32_t*)dialog_refresh_timer_addr != dialog_refresh_timer_orig_instr)
+        {
+            /* something's wrong */
+            NotifyBox(1000, "Hack error at %x:\nexpected %x, got %x", dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, *(volatile uint32_t*)dialog_refresh_timer_addr);
+            beep_custom(1000, 2000, 1);
+            dialog_refresh_timer_addr = 0;
+        }
+
+        if (dialog_refresh_timer_addr)
+        {
+            if (!unhack) /* hack */
+            {
+                cache_require(1);
+                cache_fake(dialog_refresh_timer_addr, dialog_refresh_timer_new_instr, TYPE_ICACHE);
+            }
+            else /* unhack */
+            {
+                cache_fake(dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, TYPE_ICACHE);
+                cache_require(0);
+            }
+        }
+    }
+}
 
 static int FAST choose_next_capture_slot()
 {
@@ -1206,7 +1281,7 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     if (frame_countdown)
         frame_countdown--;
     
-    hack_liveview();
+    hack_liveview_vsync();
  
     /* panning window is updated when recording, but also when not recording */
     panning_update();
@@ -1288,7 +1363,6 @@ static void raw_video_rec_task()
     FILE* f = 0;
     written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
-    int canon_gui = 0;
 
     /* create a backup file, to make sure we can save the file footer even if the card is full */
     char backup_filename[100];
@@ -1346,10 +1420,8 @@ static void raw_video_rec_task()
         bmp_printf( FONT_MED, 30, 90, "%s", wavfile);
         WAV_StartRecord(wavfile);
     }
-
-    /* disable canon graphics (gains a little speed) */
-    canon_gui = !canon_gui_front_buffer_disabled();
-    canon_gui_disable_front_buffer();
+    
+    hack_liveview(0);
 
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
@@ -1672,7 +1744,7 @@ cleanup:
     #ifdef DEBUG_BUFFERING_GRAPH
     take_screenshot(0);
     #endif
-    if (canon_gui) canon_gui_enable_front_buffer(0);
+    hack_liveview(1);
     redraw();
     raw_recording_state = RAW_IDLE;
 }
@@ -1879,6 +1951,12 @@ static struct menu_entry raw_video_menu[] =
                 .priv = &memory_hack,
                 .max = 1,
                 .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
+            },
+            {
+                .name = "Small hacks",
+                .priv = &small_hacks,
+                .max = 1,
+                .help  = "Slow down Canon GUI, disable auto exposure, white balance...",
             },
             {
                 .name = "Playback",
@@ -2098,4 +2176,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
     MODULE_CONFIG(memory_hack)
+    MODULE_CONFIG(small_hacks)
 MODULE_CONFIGS_END()
