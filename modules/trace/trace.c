@@ -23,35 +23,41 @@ void trace_free(void *data)
 
 static void trace_task(trace_entry_t *ctx)
 {
+    char *write_buf = trace_alloc(ctx->buffer_size);
     ctx->task_state = TRACE_TASK_STATE_RUNNING;
 
     while((ctx->task_state == TRACE_TASK_STATE_RUNNING) || (ctx->buffer_read_pos < ctx->buffer_write_pos))
     {
         if(ctx->buffer_read_pos < ctx->buffer_write_pos)
         {
-            /* write as much as possible at once */
-            int written = FIO_WriteFile(ctx->file_handle, &ctx->buffer[ctx->buffer_read_pos], ctx->buffer_write_pos - ctx->buffer_read_pos);
+            /* changed: get all data into write buffer */
+            int old_stat = cli();
+            unsigned int used = ctx->buffer_write_pos - ctx->buffer_read_pos;
+            memcpy(write_buf, &ctx->buffer[ctx->buffer_read_pos], used);
+          
+            ctx->buffer_read_pos = 0;
+            ctx->buffer_write_pos = 0;
+            sei(old_stat);
 
-            /* check for writing errors */
-            if(written > 0)
+            unsigned int total = 0;
+            while(total < used)
             {
-                /* locked section to update pointers */
-                ctx->buffer_read_pos += written;
+                /* write as much as possible at once */
+                int written = FIO_WriteFile(ctx->file_handle, &write_buf[total], used - total);
 
-                int old_stat = cli();
-                if(ctx->buffer_read_pos == ctx->buffer_write_pos)
+                /* check for writing errors */
+                if(written > 0)
                 {
-                    ctx->buffer_read_pos = 0;
-                    ctx->buffer_write_pos = 0;
+                    total += written;
                 }
-                sei(old_stat);
-            }
-            else
-            {
-                FIO_CloseFile(ctx->file_handle);
-                trace_free(ctx->buffer);
-                ctx->task_state = TRACE_TASK_STATE_DEAD;
-                return;
+                else
+                {
+                    FIO_CloseFile(ctx->file_handle);
+                    trace_free(ctx->buffer);
+                    trace_free(write_buf);
+                    ctx->task_state = TRACE_TASK_STATE_DEAD;
+                    return;
+                }
             }
         }
         else
@@ -63,6 +69,8 @@ static void trace_task(trace_entry_t *ctx)
     /* we are doing the cleanup in this task */
     FIO_CloseFile(ctx->file_handle);
     trace_free(ctx->buffer);
+    trace_free(write_buf);
+    
     ctx->file_handle = NULL;
     ctx->buffer = NULL;
     ctx->task_state = TRACE_TASK_STATE_DEAD;
@@ -268,6 +276,13 @@ unsigned int trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list
     timestamp_pos = 0;
     timestamp[timestamp_pos] = 0;
     
+    if(ctx->format & TRACE_FMT_COMMENT)
+    {
+        timestamp[timestamp_pos++] = '/';
+        timestamp[timestamp_pos++] = '*';
+        timestamp[timestamp_pos++] = ' ';
+        timestamp[timestamp_pos] = '\000';
+    }  
     if(ctx->format & TRACE_FMT_TIME_CTR)
     {
         trace_write_timestamp(ctx, TRACE_FMT_TIME_CTR, tsc, timestamp, &timestamp_pos);
@@ -300,6 +315,14 @@ unsigned int trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list
     {
         trace_write_timestamp(ctx, TRACE_FMT_TIME_DATE, tsc, timestamp, &timestamp_pos);
     }
+    if(ctx->format & TRACE_FMT_COMMENT)
+    {
+        timestamp[timestamp_pos++] = ' ';
+        timestamp[timestamp_pos++] = '*';
+        timestamp[timestamp_pos++] = '/';
+        timestamp[timestamp_pos++] = ' ';
+        timestamp[timestamp_pos] = '\000';
+    }  
 
     /* update last tsc */
     ctx->last_tsc = tsc;
