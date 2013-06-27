@@ -109,6 +109,7 @@ static CONFIG_INT("raw.preview", preview_mode, 0);
 #define PREVIEW_ML (preview_mode == 2)
 #define PREVIEW_HACKED (preview_mode == 3)
 
+static CONFIG_INT("raw.warm.up", warm_up, 0);
 static CONFIG_INT("raw.memory.hack", memory_hack, 0);
 static CONFIG_INT("raw.small.hacks", small_hacks, 0);
 
@@ -1947,6 +1948,14 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Enable if you don't mind skipping frames (for slow cards).",
             },
             {
+                .name = "Card warm-up",
+                .priv = &warm_up,
+                .max = 7,
+                .choices = CHOICES("OFF", "16 MB", "32 MB", "64 MB", "128 MB", "256 MB", "512 MB", "1 GB"),
+                .help  = "Write a large file on the card at camera startup.",
+                .help2 = "Some cards seem to get a bit faster after this.",
+            },
+            {
                 .name = "Memory hack",
                 .priv = &memory_hack,
                 .max = 1,
@@ -2138,7 +2147,20 @@ static unsigned int raw_rec_init()
 
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
     fileman_register_type("RAW", "RAW Video", raw_rec_filehandler);
-    
+
+    /* some cards may like this */
+    if (warm_up)
+    {
+        NotifyBox(100000, "Card warming up...");
+        char warmup_filename[100];
+        snprintf(warmup_filename, sizeof(warmup_filename), "%s/warmup.raw", get_dcim_dir());
+        FILE* f = FIO_CreateFileEx(warmup_filename);
+        FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));
+        FIO_CloseFile(f);
+        FIO_RemoveFile(warmup_filename);
+        NotifyBoxHide();
+    }
+
     return 0;
 }
 
@@ -2177,4 +2199,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(preview_mode)
     MODULE_CONFIG(memory_hack)
     MODULE_CONFIG(small_hacks)
+    MODULE_CONFIG(warm_up)
 MODULE_CONFIGS_END()
