@@ -107,7 +107,7 @@ static char dng_artist_name[64]             = "";
 static char dng_copyright[64]               = "";
 static const short cam_PreviewBitsPerSample[]  = {8,8,8};
 static const int cam_Resolution[]              = {180,1};
-static int cam_AsShotNeutral[]          = {1000,1000,1000,1000,1000,1000};
+static int cam_AsShotNeutral[]          = {1000000,1000000,1000000,1000000,1000000,1000000};
 static char cam_datetime[20]            = "";                   // DateTimeOriginal
 static char cam_subsectime[4]           = "";                   // DateTimeOriginal (milliseconds component)
 static int cam_shutter[2]               = { 0, 1000000 };       // Shutter speed
@@ -203,6 +203,8 @@ struct dir_entry ifd0[]={
     {0xC62B, T_RATIONAL,   1,  (int)cam_BaselineNoise},
     {0xC62C, T_RATIONAL,   1,  (int)cam_BaselineSharpness},
     {0xC62E, T_RATIONAL,   1,  (int)cam_LinearResponseLimit},
+    {0xC65A, T_SHORT,      1, 17},                                 // CalibrationIlluminant1 Standard Light A
+    {0xC65B, T_SHORT,      1, 21},                                 // CalibrationIlluminant2 D65
 };
 
 // Index of specific entries in ifd1 below.
@@ -564,8 +566,8 @@ PROP_HANDLER(PROP_CAM_MODEL)
 
 int save_dng(char* filename)
 {
-    cam_AsShotNeutral[2] = 2477; /* 5D3 6000K */
-    cam_AsShotNeutral[4] = 1462;
+    cam_AsShotNeutral[0] = 473635; /* Daylight */
+    cam_AsShotNeutral[4] = 624000;
     
     #ifdef RAW_DEBUG_BLACK
     raw_info.active_area.x1 = 0;
