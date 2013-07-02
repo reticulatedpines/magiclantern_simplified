@@ -11,6 +11,8 @@
 import os, re, time, sys
 import urllib
 
+from mkdoc_utils import system_or_exit
+
 def include(o, filename, start=0):
     f = open(filename).readlines();
     for l in f[start:]:
@@ -138,37 +140,37 @@ def add_menu_items_to_contents(file):
     f.write(txt)
     f.close()
 
-os.system(r"sed -i -e s/.*{{.*}}.*//g userguide.rst")
+system_or_exit(r"sed -i -e s/.*{{.*}}.*//g userguide.rst")
 
-os.system("pandoc -f rst -t latex -o credits.tex CREDITS.txt")
+system_or_exit("pandoc -f rst -t latex -o credits.tex CREDITS.txt")
 
 fixwikilinks("userguide.rst")
 #~ labelhack("userguide.rst")
 #~ add_menu_items_to_contents("userguide.rst")
-#os.system("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
-os.system(r"sed -i -e 's/^#.*$//g' userguide.rst")
-os.system("rst2latex.py userguide.rst --output-encoding=utf8 --template=ug-template-cam.tex --table-style booktabs > UserGuide-cam.tex")
-#~ os.system(r"sed -i -e 's/\\{\\{.*\\}\\}//g' UserGuide-cam.tex")
+#system_or_exit("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
+system_or_exit(r"sed -i -e 's/^#.*$//g' userguide.rst")
+system_or_exit("rst2latex.py userguide.rst --output-encoding=utf8 --template=ug-template-cam.tex --table-style booktabs > UserGuide-cam.tex")
+#~ system_or_exit(r"sed -i -e 's/\\{\\{.*\\}\\}//g' UserGuide-cam.tex")
 sub("UserGuide-cam.tex", r"\\subsubsection", r"\\newpage\\subsubsection")
 sub("UserGuide-cam.tex", r"\\subsection", r"\\newpage\\subsection")
 
-os.system(r"sed -i -e 's/width=10cm/width=7cm/g' UserGuide-cam.tex") # hack for liveview screen
+system_or_exit(r"sed -i -e 's/width=10cm/width=7cm/g' UserGuide-cam.tex") # hack for liveview screen
 
-os.system(r"sed -i -e 's/⬜/$\\square$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/⨂/$\\otimes$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/⨀/$\\odot$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/〰/$\\wave$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/↷/$\\curvearrowright$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/↶/$\\curvearrowleft$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/⤿/$\\rcurvearrowup$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/⤸/$\\lcurvearrowdown$/g' UserGuide-cam.tex")
+system_or_exit(r"sed -i -e 's/⬜/$\\square$/g' UserGuide-cam.tex")
+system_or_exit(r"sed -i -e 's/⨂/$\\otimes$/g' UserGuide-cam.tex")
+system_or_exit(r"sed -i -e 's/⨀/$\\odot$/g' UserGuide-cam.tex")
+system_or_exit(r"sed -i -e 's/〰/$\\wave$/g' UserGuide-cam.tex")
+system_or_exit(r"sed -i -e 's/↷/$\\curvearrowright$/g' UserGuide-cam.tex")
+system_or_exit(r"sed -i -e 's/↶/$\\curvearrowleft$/g' UserGuide-cam.tex")
+system_or_exit(r"sed -i -e 's/⤿/$\\rcurvearrowup$/g' UserGuide-cam.tex")
+system_or_exit(r"sed -i -e 's/⤸/$\\lcurvearrowdown$/g' UserGuide-cam.tex")
 
-os.system(r"sed -i -e 's/<->/$\\leftrightarrow$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/->/$\\rightarrow$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/=>/$\\Rightarrow$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/>=/$\\ge$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/<=/$\\le$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/kOhm/$\\textrm k\\Omega$/g' UserGuide-cam.tex")
+system_or_exit(r"sed -i -e 's/<->/$\\leftrightarrow$/g' UserGuide-cam.tex")
+system_or_exit(r"sed -i -e 's/->/$\\rightarrow$/g' UserGuide-cam.tex")
+system_or_exit(r"sed -i -e 's/=>/$\\Rightarrow$/g' UserGuide-cam.tex")
+system_or_exit(r"sed -i -e 's/>=/$\\ge$/g' UserGuide-cam.tex")
+system_or_exit(r"sed -i -e 's/<=/$\\le$/g' UserGuide-cam.tex")
+system_or_exit(r"sed -i -e 's/kOhm/$\\textrm k\\Omega$/g' UserGuide-cam.tex")
 
 replace("UserGuide-cam.tex", r"""\newpage\subsection*{\phantomsection%
   Movie mode%""", r"""\subsection*{\phantomsection%
@@ -181,10 +183,10 @@ replace("UserGuide-cam.tex", r"""\newpage\subsection*{\phantomsection%
 
 
 
-#~ os.system(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide-cam.tex")
+#~ system_or_exit(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide-cam.tex")
 os.system("lualatex -interaction=batchmode UserGuide-cam.tex")
 #~ os.system("lualatex -interaction=batchmode UserGuide-cam.tex")
-#os.system(r"sed -i 's/\\{\\{clr\\}\\}//g' userguide-body.tex")
+#system_or_exit(r"sed -i 's/\\{\\{clr\\}\\}//g' userguide-body.tex")
 #os.system("pdflatex -interaction=batchmode UserGuide-cam.tex")
 #os.system("pdflatex -interaction=batchmode UserGuide-cam.tex")
 
@@ -291,10 +293,10 @@ def convert_page(k):
     imr = remap_rgb(im,M)
     #print imr
     save_img(imr[1:481,0:720],M,bmp)
-    os.system("ruby ../src/convertrle.rb %s" % bmp)
-    os.system("rm %s" % bmp)
-    os.system("rm %s" % png)
-    os.system("mv %s.rle %s" % (bmp, bmh))
+    system_or_exit("ruby ../src/convertrle.rb %s" % bmp)
+    system_or_exit("rm %s" % bmp)
+    system_or_exit("rm %s" % png)
+    system_or_exit("mv %s.rle %s" % (bmp, bmh))
 
 for i in range(1,1000):
     convert_page(i)

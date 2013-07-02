@@ -9,6 +9,8 @@
 import os, re, time, string
 import urllib
 
+from mkdoc_utils import system_or_exit
+
 def include(o, filename, start=0):
     f = open(filename).readlines();
     for l in f[start:]:
@@ -80,8 +82,7 @@ def add_menu_items_to_contents(file):
     f.write(txt)
     f.close()
 
-
-os.system("montage ../data/cropmks/CineSco2.bmp ../data/cropmks/CrssMtr2.bmp ../data/cropmks/Passport.bmp  ../data/cropmks/PhiPhoto.bmp -tile 4x1 -geometry 300x200+5+5 Cropmarks550D.png")
+system_or_exit("montage ../data/cropmks/CineSco2.bmp ../data/cropmks/CrssMtr2.bmp ../data/cropmks/Passport.bmp  ../data/cropmks/PhiPhoto.bmp -tile 4x1 -geometry 300x200+5+5 Cropmarks550D.png")
 
 f = open("FEATURES.txt").readlines();
 m = open("MANUAL.txt").readlines();
@@ -108,47 +109,46 @@ include(o, "MENUEND.txt");
 include_indent(o, "FAQ.txt");
 o.close()
 
-os.system(r"sed -i -e s/.*{{.*}}.*//g userguide.rst")
-os.system("pandoc -f rst -t latex -o credits.tex CREDITS.txt")
+system_or_exit(r"sed -i -e s/.*{{.*}}.*//g userguide.rst")
+system_or_exit("pandoc -f rst -t latex -o credits.tex CREDITS.txt")
 
 fixwikilinks("userguide.rst")
 labelhack("userguide.rst")
 add_menu_items_to_contents("userguide.rst")
-os.system(r"sed -i -e 's/^#//g' userguide.rst")
-#os.system("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
-os.system("rst2latex.py userguide.rst --output-encoding=utf8 --template=ug-template.tex --table-style booktabs > UserGuide.tex")
+system_or_exit(r"sed -i -e 's/^#//g' userguide.rst")
+#system_or_exit("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
+system_or_exit("rst2latex.py userguide.rst --output-encoding=utf8 --template=ug-template.tex --table-style booktabs > UserGuide.tex")
+system_or_exit(r"sed -i -e 's/⬜/$\\square$/g' UserGuide.tex")
+system_or_exit(r"sed -i -e 's/⨂/$\\otimes$/g' UserGuide.tex")
+system_or_exit(r"sed -i -e 's/⨀/$\\odot$/g' UserGuide.tex")
+system_or_exit(r"sed -i -e 's/〰/$\\wave$/g' UserGuide.tex")
+system_or_exit(r"sed -i -e 's/↷/$\\curvearrowright$/g' UserGuide.tex")
+system_or_exit(r"sed -i -e 's/↶/$\\curvearrowleft$/g' UserGuide.tex")
+system_or_exit(r"sed -i -e 's/⤿/$\\rcurvearrowup$/g' UserGuide.tex")
+system_or_exit(r"sed -i -e 's/⤸/$\\lcurvearrowdown$/g' UserGuide.tex")
 
-os.system(r"sed -i -e 's/⬜/$\\square$/g' UserGuide.tex")
-os.system(r"sed -i -e 's/⨂/$\\otimes$/g' UserGuide.tex")
-os.system(r"sed -i -e 's/⨀/$\\odot$/g' UserGuide.tex")
-os.system(r"sed -i -e 's/〰/$\\wave$/g' UserGuide.tex")
-os.system(r"sed -i -e 's/↷/$\\curvearrowright$/g' UserGuide.tex")
-os.system(r"sed -i -e 's/↶/$\\curvearrowleft$/g' UserGuide.tex")
-os.system(r"sed -i -e 's/⤿/$\\rcurvearrowup$/g' UserGuide.tex")
-os.system(r"sed -i -e 's/⤸/$\\lcurvearrowdown$/g' UserGuide.tex")
+system_or_exit(r"sed -i -e 's/<->/$\\leftrightarrow$/g' UserGuide.tex")
+system_or_exit(r"sed -i -e 's/->/$\\rightarrow$/g' UserGuide.tex")
+system_or_exit(r"sed -i -e 's/=>/$\\Rightarrow$/g' UserGuide.tex")
+system_or_exit(r"sed -i -e 's/>=/$\\ge$/g' UserGuide.tex")
+system_or_exit(r"sed -i -e 's/<=/$\\le$/g' UserGuide.tex")
+system_or_exit(r"sed -i -e 's/kOhm/$\\textrm k\\Omega$/g' UserGuide.tex")
 
-os.system(r"sed -i -e 's/<->/$\\leftrightarrow$/g' UserGuide.tex")
-os.system(r"sed -i -e 's/->/$\\rightarrow$/g' UserGuide.tex")
-os.system(r"sed -i -e 's/=>/$\\Rightarrow$/g' UserGuide.tex")
-os.system(r"sed -i -e 's/>=/$\\ge$/g' UserGuide.tex")
-os.system(r"sed -i -e 's/<=/$\\le$/g' UserGuide.tex")
-os.system(r"sed -i -e 's/kOhm/$\\textrm k\\Omega$/g' UserGuide.tex")
-
-#~ os.system(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide.tex")
+#~ system_or_exit(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide.tex")
 os.system("pdflatex -interaction=batchmode UserGuide.tex")
 os.system("pdflatex -interaction=batchmode UserGuide.tex")
-#os.system(r"sed -i 's/\\{\\{clr\\}\\}//g' userguide-body.tex")
+#system_or_exit(r"sed -i 's/\\{\\{clr\\}\\}//g' userguide-body.tex")
 #os.system("pdflatex UserGuide.tex")
 #os.system("pdflatex UserGuide.tex")
 
-os.system("cp INSTALL.txt INSTALL.rst")
-os.system("pandoc -f rst -t mediawiki -s -o install.wiki INSTALL.rst")
+system_or_exit("cp INSTALL.txt INSTALL.rst")
+system_or_exit("pandoc -f rst -t mediawiki -s -o install.wiki INSTALL.rst")
 
 #sub("INSTALL.rst", r"\[\[Video:[^]]+\]\]", "`Video installation tutorial <http://vimeo.com/18035870>`_ by saw0media")
 
 fixwikilinks("INSTALL.rst")
-os.system("pandoc -f rst -t latex -o install-body.tex INSTALL.rst")
-os.system("rst2latex.py INSTALL.rst --output-encoding=utf8 --template=ins-template.tex > INSTALL.tex")
-os.system(r"sed -i -e 's/\\{\\{clr\\}\\}//g' INSTALL.tex")
+system_or_exit("pandoc -f rst -t latex -o install-body.tex INSTALL.rst")
+system_or_exit("rst2latex.py INSTALL.rst --output-encoding=utf8 --template=ins-template.tex > INSTALL.tex")
+system_or_exit(r"sed -i -e 's/\\{\\{clr\\}\\}//g' INSTALL.tex")
 os.system("pdflatex -interaction=batchmode INSTALL.tex")
 os.system("pdflatex -interaction=batchmode INSTALL.tex")
