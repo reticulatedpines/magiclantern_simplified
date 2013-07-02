@@ -180,16 +180,16 @@ def fix_newlines_in_blockquote():
     WL = []
     inside = False
     for x in wl:
-        if x == "<blockquote>": 
+        if x == "<blockquote>":
             inside = True
             x += "\n"
-        elif x == "</blockquote>": 
+        elif x == "</blockquote>":
             inside = False
         else:
             if inside:
                 x = x.replace("\n\n", "<br />\n\n")
         WL.append(x)
-    
+
     f = open("userguide.wiki", "w")
     print >> f, string.join(WL, "")
     f.close()

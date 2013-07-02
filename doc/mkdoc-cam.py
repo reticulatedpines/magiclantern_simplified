@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Render the user guide in BMP format (with RLE compression)
 # in order to use it as a help system in the camera menu.
-# Outputs: a lot of files in cam/ subdirectory 
+# Outputs: a lot of files in cam/ subdirectory
 # (page-%03d.bmp for each page, and menuidx.dat)
 
 # Author: Alex Dumitrache <broscutamaker@gmail.com>
@@ -67,7 +67,7 @@ def fixwikilinks(file):
         x = m.groups()[0]
         x = x.replace("_", " ")
         txt = txt.replace(origstr, "`%s <http://magiclantern.wikia.com/wiki/%s>`_" % (x, urllib.quote(x)))
-        
+
     #~ sub("INSTALL.rst", , ")
 
     f = open(file,"w")
@@ -83,7 +83,7 @@ def labelhack(file): # bug in rst2latex? it forgets to place labels in tex sourc
         if m:
             label = m.groups()[0]
             txt += r""".. raw:: latex
-    
+
     \subsubsection*{}\label{%s}
 """ % label.lower().replace("/"," ").replace("   ", " ").replace("  ", " ").replace(" ", "-").replace(".", "-")
     f = open(file,"w")
@@ -93,18 +93,18 @@ def labelhack(file): # bug in rst2latex? it forgets to place labels in tex sourc
 nonewlineitems = [
     'WBShift','Aperture','PictureStyle',"REC PicStyle",
     'Focus delay', 'Focus A', 'Rack Focus', "Focus StepD", "Focus Dist",
-    'Hyperfocal', 'DOF Near', 'DOF Far', 
+    'Hyperfocal', 'DOF Near', 'DOF Far',
     "LiveView Zoom", "Crop Factor Display",
-    'Screenshot', 
+    'Screenshot',
     'Config', "config",
     "Don't click",
     "Mirror",
     "Waveform",
-    'Movie REC', 'Movie Restart', 
-    'Analog Gain', "DigitalGain", 'AGC', 'Zoom in PLAY', 
+    'Movie REC', 'Movie Restart',
+    'Analog Gain', "DigitalGain", 'AGC', 'Zoom in PLAY',
     "Turn off", "Battery remaining",
-    "MOV Exposure Lock", "Light Adjust", "Cropmarks (PLAY)", 
-    "Lock Shutter", "Force HDMI", 
+    "MOV Exposure Lock", "Light Adjust", "Cropmarks (PLAY)",
+    "Lock Shutter", "Force HDMI",
     "Free Memory", "EFIC temperature", "Shutter Count", "Battery remaining"
     "LV button", "Quick Erase", "Shutter Lock", "Shutter Button"]
 def should_add_newline(l):
@@ -122,7 +122,7 @@ def add_menu_items_to_contents(file):
         if m and should_add_newline(l):
             txt += r"""
 .. raw:: latex
-      
+
     \newpage
 
 """
@@ -131,7 +131,7 @@ def add_menu_items_to_contents(file):
             item = m.groups()[0]
             txt += r"""
   .. raw:: latex
-      
+
       \addcontentsline{toc}{subsubsection}{%s}
 """ % item.replace("**","").replace("_", r"\_")
     f = open(file,"w")
@@ -179,7 +179,7 @@ replace("UserGuide-cam.tex", r"""\newpage\subsection*{\phantomsection%
   PLAY mode shortcuts%""");
 
 
-  
+
 
 #~ os.system(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide-cam.tex")
 os.system("lualatex -interaction=batchmode UserGuide-cam.tex")
@@ -225,7 +225,7 @@ def read_rgb(f):
     assert c==3
     lw = w/16
     lh = h/16
-    
+
     for c in range(3):
         for i in range(16):
             for j in range(16):
@@ -240,17 +240,17 @@ rgb2ind_cache = {}
 def rgb2ind(rgb, mf):
     trgb = tuple(rgb)
     if trgb in rgb2ind_cache: return rgb2ind_cache[trgb]
-    
+
     dif = mf - rgb*ones((256,1))
     dif = (dif**2).sum(1)
-    
+
     dif[0] = 1e10
     dif[3] = 1e10
     dif[0x14] = 1e10
     ind = argmin(dif[:80]) # only first 80 entries are safe
-        
+
     rgb2ind_cache[trgb] = ind
-    
+
     return ind
 
 def remap_rgb(im,M):
@@ -284,7 +284,7 @@ def convert_page(k):
         raise SystemExit
     bmp = "cam/page-%03d.bmp" % k
     bmh = "cam/page-%03d.bmh" % k
-    
+
     print "remapping %s..." % png
     im = flipud(imread(png))
     if im.max() <= 1: im *= 255

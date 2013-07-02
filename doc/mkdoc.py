@@ -41,7 +41,7 @@ def fixwikilinks(file):
             txt = txt.replace(origstr, "")
         else:
             txt = txt.replace(origstr, "`%s <http://magiclantern.wikia.com/wiki/%s>`_" % (x, urllib.quote(x)))
-    
+
     #~ sub("INSTALL.rst", , ")
 
     f = open(file,"w")
@@ -57,7 +57,7 @@ def labelhack(file): # bug in rst2latex? it forgets to place labels in tex sourc
         if m:
             label = m.groups()[0]
             txt += r""".. raw:: latex
-    
+
     \subsubsection*{}\label{%s}%%
 """ % label.lower().replace("/"," ").replace("   ", " ").replace("  ", " ").replace(" ", "-").replace(".", "-")
     f = open(file,"w")
@@ -73,7 +73,7 @@ def add_menu_items_to_contents(file):
             item = m.groups()[0]
             txt += r"""
   .. raw:: latex
-      
+
       \addcontentsline{toc}{subsubsection}{%s}
 """ % item.replace("**","").replace("_", r"\_")
     f = open(file,"w")
@@ -152,4 +152,3 @@ os.system("rst2latex.py INSTALL.rst --output-encoding=utf8 --template=ins-templa
 os.system(r"sed -i -e 's/\\{\\{clr\\}\\}//g' INSTALL.tex")
 os.system("pdflatex -interaction=batchmode INSTALL.tex")
 os.system("pdflatex -interaction=batchmode INSTALL.tex")
-
