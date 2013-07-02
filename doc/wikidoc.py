@@ -8,11 +8,7 @@ from getpass import getpass
 from twill.commands import *
 from twill import get_browser
 
-def include(o, filename, start=0):
-    f = open(filename).readlines();
-    for l in f[start:]:
-        o.write(l)
-    o.write("\n");
+from mkdoc_utils import include
 
 def sub(file, fr, to):
     txt = open(file).read()

@@ -10,14 +10,9 @@ import os, re, time, string
 import urllib
 
 from mkdoc_utils import system_or_exit
+from mkdoc_utils import include
 
 rst2latex = os.getenv("RST2LATEX", "rst2latex.py")
-
-def include(o, filename, start=0):
-    f = open(filename).readlines();
-    for l in f[start:]:
-        o.write(l)
-    o.write("\n");
 
 def include_indent(o, filename, start=0):
     f = open(filename).readlines();
