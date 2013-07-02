@@ -301,7 +301,7 @@ clean::
 	$(call rm_files, newlib-libc.a $(NEWLIB_OBJ) dietlibc.a)
 
 $(PLATFORM_DIR)/version.c: FORCE
-	$(call build,"VERSION",echo 'const char build_version[] = "$(VERSION)";') > $@
+	$(call build,"VERSION",echo "const char build_version[] = \"$(VERSION)\";") > $@
 	@echo 'const char build_id[] = "'`hg id`'";' >> $@
 	@echo 'const char build_date[] ="'`date -u "+%Y-%m-%d %H:%M:%S"`'";' >> $@
 	@echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
