@@ -11,6 +11,8 @@ import urllib
 
 from mkdoc_utils import system_or_exit
 
+rst2latex = os.getenv("RST2LATEX", "rst2latex.py")
+
 def include(o, filename, start=0):
     f = open(filename).readlines();
     for l in f[start:]:
@@ -117,7 +119,7 @@ labelhack("userguide.rst")
 add_menu_items_to_contents("userguide.rst")
 system_or_exit(r"sed -i -e 's/^#//g' userguide.rst")
 #system_or_exit("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
-system_or_exit("rst2latex.py userguide.rst --output-encoding=utf8 --template=ug-template.tex --table-style booktabs > UserGuide.tex")
+system_or_exit("%s userguide.rst --output-encoding=utf8 --template=ug-template.tex --table-style booktabs > UserGuide.tex" % (rst2latex,))
 system_or_exit(r"sed -i -e 's/⬜/$\\square$/g' UserGuide.tex")
 system_or_exit(r"sed -i -e 's/⨂/$\\otimes$/g' UserGuide.tex")
 system_or_exit(r"sed -i -e 's/⨀/$\\odot$/g' UserGuide.tex")
@@ -148,7 +150,7 @@ system_or_exit("pandoc -f rst -t mediawiki -s -o install.wiki INSTALL.rst")
 
 fixwikilinks("INSTALL.rst")
 system_or_exit("pandoc -f rst -t latex -o install-body.tex INSTALL.rst")
-system_or_exit("rst2latex.py INSTALL.rst --output-encoding=utf8 --template=ins-template.tex > INSTALL.tex")
+system_or_exit("%s INSTALL.rst --output-encoding=utf8 --template=ins-template.tex > INSTALL.tex" % (rst2latex,))
 system_or_exit(r"sed -i -e 's/\\{\\{clr\\}\\}//g' INSTALL.tex")
 os.system("pdflatex -interaction=batchmode INSTALL.tex")
 os.system("pdflatex -interaction=batchmode INSTALL.tex")

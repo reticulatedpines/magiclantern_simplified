@@ -60,12 +60,12 @@ ptpinstall: autoexec.bin
 	diff autoexec.bin autoexec.test
 
 docs:
-	cd $(DOC_DIR) && $(PYTHON) mkdoc.py
-	cd $(DOC_DIR) && $(PYTHON) mkdoc-cam.py
+	cd $(DOC_DIR) && RST2LATEX=$(RST2LATEX) $(PYTHON) mkdoc.py
+	cd $(DOC_DIR) && RST2LATEX=$(RST2LATEX) $(PYTHON) mkdoc-cam.py
 
 docq:
-	cd $(DOC_DIR) && $(PYTHON) mkdoc.py
-	cd $(DOC_DIR) && $(PYTHON) mkdoc-cam.py quick
+	cd $(DOC_DIR) && RST2LATEX=$(RST2LATEX) $(PYTHON) mkdoc.py
+	cd $(DOC_DIR) && RST2LATEX=$(RST2LATEX) $(PYTHON) mkdoc-cam.py quick
 
 installdoc:
 	mkdir -p $(INSTALL_DOC_DIR)

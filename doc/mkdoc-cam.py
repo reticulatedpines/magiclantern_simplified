@@ -13,6 +13,8 @@ import urllib
 
 from mkdoc_utils import system_or_exit
 
+rst2latex = os.getenv("RST2LATEX", "rst2latex.py")
+
 def include(o, filename, start=0):
     f = open(filename).readlines();
     for l in f[start:]:
@@ -149,7 +151,7 @@ fixwikilinks("userguide.rst")
 #~ add_menu_items_to_contents("userguide.rst")
 #system_or_exit("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
 system_or_exit(r"sed -i -e 's/^#.*$//g' userguide.rst")
-system_or_exit("rst2latex.py userguide.rst --output-encoding=utf8 --template=ug-template-cam.tex --table-style booktabs > UserGuide-cam.tex")
+system_or_exit("%s userguide.rst --output-encoding=utf8 --template=ug-template-cam.tex --table-style booktabs > UserGuide-cam.tex" % (rst2latex,))
 #~ system_or_exit(r"sed -i -e 's/\\{\\{.*\\}\\}//g' UserGuide-cam.tex")
 sub("UserGuide-cam.tex", r"\\subsubsection", r"\\newpage\\subsubsection")
 sub("UserGuide-cam.tex", r"\\subsection", r"\\newpage\\subsection")
