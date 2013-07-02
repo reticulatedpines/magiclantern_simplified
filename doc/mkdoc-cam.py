@@ -16,12 +16,6 @@ from mkdoc_utils import include
 
 rst2latex = os.getenv("RST2LATEX", "rst2latex.py")
 
-def include_indent(o, filename, start=0):
-    f = open(filename).readlines();
-    for l in f[start:]:
-        o.write(l.replace("~", "`").replace("--", "~~").replace("~-", "~~").replace("==", "--").replace("-=", "--"))
-    o.write("\n");
-
 o = open("userguide.rst", "w")
 print >> o, """Magic Lantern v2.3
 ==================================
