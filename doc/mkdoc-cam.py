@@ -13,6 +13,7 @@ import urllib
 
 from mkdoc_utils import system_or_exit
 from mkdoc_utils import include
+from mkdoc_utils import sed_sub_tex_spec_chars
 
 rst2latex = os.getenv("RST2LATEX", "rst2latex.py")
 
@@ -147,21 +148,7 @@ sub("UserGuide-cam.tex", r"\\subsection", r"\\newpage\\subsection")
 
 system_or_exit(r"sed -i -e 's/width=10cm/width=7cm/g' UserGuide-cam.tex") # hack for liveview screen
 
-system_or_exit(r"sed -i -e 's/⬜/$\\square$/g' UserGuide-cam.tex")
-system_or_exit(r"sed -i -e 's/⨂/$\\otimes$/g' UserGuide-cam.tex")
-system_or_exit(r"sed -i -e 's/⨀/$\\odot$/g' UserGuide-cam.tex")
-system_or_exit(r"sed -i -e 's/〰/$\\wave$/g' UserGuide-cam.tex")
-system_or_exit(r"sed -i -e 's/↷/$\\curvearrowright$/g' UserGuide-cam.tex")
-system_or_exit(r"sed -i -e 's/↶/$\\curvearrowleft$/g' UserGuide-cam.tex")
-system_or_exit(r"sed -i -e 's/⤿/$\\rcurvearrowup$/g' UserGuide-cam.tex")
-system_or_exit(r"sed -i -e 's/⤸/$\\lcurvearrowdown$/g' UserGuide-cam.tex")
-
-system_or_exit(r"sed -i -e 's/<->/$\\leftrightarrow$/g' UserGuide-cam.tex")
-system_or_exit(r"sed -i -e 's/->/$\\rightarrow$/g' UserGuide-cam.tex")
-system_or_exit(r"sed -i -e 's/=>/$\\Rightarrow$/g' UserGuide-cam.tex")
-system_or_exit(r"sed -i -e 's/>=/$\\ge$/g' UserGuide-cam.tex")
-system_or_exit(r"sed -i -e 's/<=/$\\le$/g' UserGuide-cam.tex")
-system_or_exit(r"sed -i -e 's/kOhm/$\\textrm k\\Omega$/g' UserGuide-cam.tex")
+sed_sub_tex_spec_chars("UserGuide-cam.tex")
 
 replace("UserGuide-cam.tex", r"""\newpage\subsection*{\phantomsection%
   Movie mode%""", r"""\subsection*{\phantomsection%

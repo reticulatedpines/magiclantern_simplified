@@ -11,6 +11,7 @@ import urllib
 
 from mkdoc_utils import system_or_exit
 from mkdoc_utils import include
+from mkdoc_utils import sed_sub_tex_spec_chars
 
 rst2latex = os.getenv("RST2LATEX", "rst2latex.py")
 
@@ -115,21 +116,7 @@ add_menu_items_to_contents("userguide.rst")
 system_or_exit(r"sed -i -e 's/^#//g' userguide.rst")
 #system_or_exit("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
 system_or_exit("%s userguide.rst --output-encoding=utf8 --template=ug-template.tex --table-style booktabs > UserGuide.tex" % (rst2latex,))
-system_or_exit(r"sed -i -e 's/⬜/$\\square$/g' UserGuide.tex")
-system_or_exit(r"sed -i -e 's/⨂/$\\otimes$/g' UserGuide.tex")
-system_or_exit(r"sed -i -e 's/⨀/$\\odot$/g' UserGuide.tex")
-system_or_exit(r"sed -i -e 's/〰/$\\wave$/g' UserGuide.tex")
-system_or_exit(r"sed -i -e 's/↷/$\\curvearrowright$/g' UserGuide.tex")
-system_or_exit(r"sed -i -e 's/↶/$\\curvearrowleft$/g' UserGuide.tex")
-system_or_exit(r"sed -i -e 's/⤿/$\\rcurvearrowup$/g' UserGuide.tex")
-system_or_exit(r"sed -i -e 's/⤸/$\\lcurvearrowdown$/g' UserGuide.tex")
-
-system_or_exit(r"sed -i -e 's/<->/$\\leftrightarrow$/g' UserGuide.tex")
-system_or_exit(r"sed -i -e 's/->/$\\rightarrow$/g' UserGuide.tex")
-system_or_exit(r"sed -i -e 's/=>/$\\Rightarrow$/g' UserGuide.tex")
-system_or_exit(r"sed -i -e 's/>=/$\\ge$/g' UserGuide.tex")
-system_or_exit(r"sed -i -e 's/<=/$\\le$/g' UserGuide.tex")
-system_or_exit(r"sed -i -e 's/kOhm/$\\textrm k\\Omega$/g' UserGuide.tex")
+sed_sub_tex_spec_chars("UserGuide.tex")
 
 #~ system_or_exit(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide.tex")
 os.system("pdflatex -interaction=batchmode UserGuide.tex")
