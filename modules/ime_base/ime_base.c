@@ -17,6 +17,9 @@
 unsigned int ime_base_method = 0;
 unsigned int ime_base_method_count = 0;
 
+
+static char text_buffer[100];
+
 t_ime_handler ime_base_methods[IME_MAX_METHODS];
 
 /* this function has to be public so that other modules can register file types for viewing this file */
@@ -35,11 +38,14 @@ unsigned int ime_base_register(t_ime_handler *handler)
     return 0;
 }
 
-unsigned int ime_base_start ( char *text, int max_length, int codepage, int charset, t_ime_update_cbr update, int x, int y, int w, int h )
+unsigned int ime_base_start (char *caption, char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h )
 {
     if(ime_base_method < ime_base_method_count)
     {
-        return ime_base_methods[ime_base_method].start(text, max_length, codepage, charset, update, x, y, w, h);
+        unsigned int ret = 0;
+        
+        ret = ime_base_methods[ime_base_method].start(caption, text, max_length, codepage, charset, update_cbr, done_cbr, x, y, w, h);
+        return ret;
     }
     
     strncpy(text, "No IME available", max_length);
@@ -72,24 +78,25 @@ static MENU_SELECT_FUNC(ime_base_method_select)
 
 IME_UPDATE_FUNC(ime_base_test_update)
 {
-    bmp_printf(FONT_MED, 30, 90, "ime_base: CBR: <%s>, %d, %d", text, caret_pos, selection_length);
+    //bmp_printf(FONT_MED, 30, 90, "ime_base: CBR: <%s>, %d, %d", text, caret_pos, selection_length);
     return IME_OK;
 }
 
-static void ime_base_test_task(int unused)
+IME_DONE_FUNC(ime_base_test_done)
 {
-    char buffer[100];
-    
-    strcpy(buffer, "test");
-    
-    int ret = ime_base_start(buffer, sizeof(buffer), IME_UTF8, IME_CHARSET_ANY, &ime_base_test_update, 0, 0, 0, 0);
-    bmp_printf(FONT_MED, 30, 120, "ime_base: ret: <%s>, %d", buffer, ret);
-    msleep(2000);
+    for(int loops = 0; loops < 50; loops++)
+    {
+        bmp_printf(FONT_MED, 30, 120, "ime_base: done: <%s>, %d", text, status);
+        msleep(100);
+    }
+    return IME_OK;
 }
 
 static MENU_SELECT_FUNC(ime_base_test)
 {
-    task_create("ime_base_test_task", 0x1c, 0x1000, ime_base_test_task, (void*)0);
+    strcpy(text_buffer, "test");
+    
+    ime_base_start("Enter something:", text_buffer, sizeof(text_buffer), IME_UTF8, IME_CHARSET_ANY, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
 
 static MENU_SELECT_FUNC(ime_base_config)
