@@ -578,6 +578,12 @@ breakpoint_t *gdb_add_watchpoint(uint32_t address, uint32_t linkedAddress, void 
     breakpoint_t *bp1 = NULL;
     breakpoint_t *bp2 = NULL;
     
+    /* if installation failed, dont add anything */
+    if(!gdb_installed)
+    {
+        return NULL;
+    }
+    
     /* no link address given? try to use next instruction */
     if(linkedAddress == 0)
     {
@@ -612,6 +618,12 @@ breakpoint_t *gdb_add_watchpoint(uint32_t address, uint32_t linkedAddress, void 
 */
 breakpoint_t * gdb_add_bkpt(uint32_t address, uint32_t flags)
 {
+    /* if installation failed, dont add anything */
+    if(!gdb_installed)
+    {
+        return NULL;
+    }
+
     int pos = 0;
 
     for(pos = 0; pos < GDB_BKPT_COUNT; pos++)

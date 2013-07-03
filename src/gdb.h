@@ -4,7 +4,7 @@
 
 #define GDB_TRANSMIT_BUFFER_SIZE 1024
 #define GDB_STRING_BUFFER_SIZE 1024
-#define GDB_STACK_SIZE 64 /* words */
+#define GDB_STACK_SIZE 256 /* words */
 
 #define GDB_SIGNAL_HUP   1//, "SIGHUP", "Hangup")
 #define GDB_SIGNAL_INT   2//, "SIGINT", "Interrupt")

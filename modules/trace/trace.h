@@ -18,6 +18,7 @@
 #define TRACE_FMT_TIME_REL        0x0010 /* write the time since start as hh:mm:ss.msec*/
 #define TRACE_FMT_TIME_DELTA      0x0020 /* write the relative time as hh:mm:ss.msec since last entry*/
 #define TRACE_FMT_TIME_DATE       0x0040 /* write the time of day */
+#define TRACE_FMT_COMMENT         0x1000 /* headers are C like comments */
 
 #define TRACE_FMT_META            0x0100 /* on start and stop write some metadata (e.g. day, time, ...) */
 
@@ -29,8 +30,8 @@
 #define TRACE_TASK_STATE_RUNNING  1
 #define TRACE_TASK_STATE_SHUTDOWN 2
 
-#define TRACE_SLEEP_TIME  100
-#define TRACE_BUFFER_SIZE (32*1024)
+#define TRACE_SLEEP_TIME  20
+#define TRACE_BUFFER_SIZE (512*1024)
 
 #define TRACE_ERROR 0xFFFFFFFF
 #define TRACE_OK    0
