@@ -14,13 +14,11 @@
 
 #include "ime_base.h"
 
-unsigned int ime_base_method = 0;
-unsigned int ime_base_method_count = 0;
+static unsigned int ime_base_method = 0;
+static unsigned int ime_base_method_count = 0;
+static char ime_base_test_text[100];
+static t_ime_handler ime_base_methods[IME_MAX_METHODS];
 
-
-static char text_buffer[100];
-
-t_ime_handler ime_base_methods[IME_MAX_METHODS];
 
 /* this function has to be public so that other modules can register file types for viewing this file */
 unsigned int ime_base_register(t_ime_handler *handler)
@@ -92,11 +90,29 @@ IME_DONE_FUNC(ime_base_test_done)
     return IME_OK;
 }
 
-static MENU_SELECT_FUNC(ime_base_test)
+static MENU_SELECT_FUNC(ime_base_test_any)
 {
-    strcpy(text_buffer, "test");
-    
-    ime_base_start("Enter something:", text_buffer, sizeof(text_buffer), IME_UTF8, IME_CHARSET_ANY, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
+    ime_base_start("Any charset", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_ANY, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
+}
+static MENU_SELECT_FUNC(ime_base_test_alpha)
+{
+    ime_base_start("Alpha", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_ALPHA, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
+}
+static MENU_SELECT_FUNC(ime_base_test_num)
+{
+    ime_base_start("Numeric", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_NUMERIC, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
+}
+static MENU_SELECT_FUNC(ime_base_test_alnum)
+{
+    ime_base_start("Alphanumeric", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, (IME_CHARSET_ALPHA | IME_CHARSET_NUMERIC), &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
+}
+static MENU_SELECT_FUNC(ime_base_test_punct)
+{
+    ime_base_start("Punctuation", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_PUNCTUATION, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
+}
+static MENU_SELECT_FUNC(ime_base_test_math)
+{
+    ime_base_start("Math", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_MATH, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
 
 static MENU_SELECT_FUNC(ime_base_config)
@@ -125,8 +141,28 @@ static struct menu_entry ime_base_menu[] =
                 .select = &ime_base_config,
             },
             {
-                .name = "Test method",
-                .select = &ime_base_test,
+                .name = "Test: All chars",
+                .select = &ime_base_test_any,
+            },
+            {
+                .name = "Test: Alpha",
+                .select = &ime_base_test_alpha,
+            },
+            {
+                .name = "Test: Numeric",
+                .select = &ime_base_test_num,
+            },
+            {
+                .name = "Test: Alphanumeric",
+                .select = &ime_base_test_alnum,
+            },
+            {
+                .name = "Test: Punctuation",
+                .select = &ime_base_test_punct,
+            },
+            {
+                .name = "Test: Math",
+                .select = &ime_base_test_math,
             },
             MENU_EOL,
         },
@@ -135,6 +171,7 @@ static struct menu_entry ime_base_menu[] =
 
 static unsigned int ime_base_init()
 {
+    strcpy(ime_base_test_text, "test");
     menu_add("IME", ime_base_menu, COUNT(ime_base_menu));
     return 0;
 }
