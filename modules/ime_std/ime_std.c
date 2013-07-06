@@ -431,7 +431,7 @@ static unsigned int ime_std_start(char *caption, char *text, int max_length, int
 static t_ime_handler ime_std_descriptor = 
 {
     .name = "ime_std",
-    .description = "Dummy input method",
+    .description = "Standard input method",
     .start = &ime_std_start,
     .configure = &ime_std_config,
 };
@@ -455,7 +455,7 @@ MODULE_INFO_START()
 MODULE_INFO_END()
 
 MODULE_STRINGS_START()
-    MODULE_STRING("Description", "IME dummy module")
+    MODULE_STRING("Description", "IME Standard module")
     MODULE_STRING("License", "GPL")
     MODULE_STRING("Author", "g3gg0")
 MODULE_STRINGS_END()
