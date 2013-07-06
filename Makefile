@@ -77,8 +77,7 @@ clean: platform_clean doxygen_clean
 	$(call rm_dir, $(BINARIES_PATH))
 
 
-zip: all
-	cd $(PLATFORM_PATH)/all; $(MAKE) docs
+zip: all docs
 	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 
 docs:
@@ -146,9 +145,8 @@ changelog:
 	echo "" >> ChangeLog.txt
 	COLUMNS=80 hg diff --stat -r $(call HG_CHANGESET_BEFORE_DATE, today - 30 days) -r $(call HG_CHANGESET_BEFORE_DATE, today - 2 days) | $(DIFFSTAT_FILTER) >> ChangeLog.txt ;
  
-nightly: changelog clean all 
+nightly: changelog clean zip
 	mkdir -p $(NIGHTLY_DIR)
-	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 	cd $(PLATFORM_PATH)/all; mv *.zip $(NIGHTLY_DIR)
 	touch build.log
 	mv build.log $(NIGHTLY_DIR)
