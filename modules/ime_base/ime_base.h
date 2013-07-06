@@ -14,13 +14,12 @@
 #define IME_CHARSET_NUMERIC     0x02
 #define IME_CHARSET_PUNCTUATION 0x04
 #define IME_CHARSET_SPECIAL     0x08
+#define IME_CHARSET_MATH        0x10
+#define IME_CHARSET_MAIL        0x20
+#define IME_CHARSET_FILENAME    0x40
 
 /* all characters are allowed, passing parameter 0x00 will also map to this */
-#define IME_CHARSET_ANY         0x0F
-
-/* special subsets */
-#define IME_CHARSET_MAIL        0x10
-#define IME_CHARSET_FILENAME    0x20
+#define IME_CHARSET_ANY         0xFFFFFFFF
 
 /* return codes */
 #define IME_OK           0

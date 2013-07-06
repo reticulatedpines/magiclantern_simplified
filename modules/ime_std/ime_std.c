@@ -20,11 +20,19 @@ extern int menu_redraw_blocked;
 unsigned char *ime_std_string = NULL;
 unsigned char *ime_std_caption = NULL;
 
-int ime_std_char_x = 20;
+int ime_std_char_x = 30;
 int ime_std_char_y = 200;
-int ime_std_char_w = 680;
+int ime_std_char_w = 650;
 int ime_std_char_h = 280;
+int ime_std_str_x = 30;
+int ime_std_str_y = 100;
+int ime_std_str_w = 650;
+int ime_std_caption_x = 27;
+int ime_std_caption_y = 20;
 
+    
+
+unsigned int ime_std_max_length = 0;
 unsigned int ime_std_active = 0;
 unsigned int ime_std_valid = 0;
 /* currently selected character */
@@ -32,6 +40,7 @@ unsigned int ime_std_selection = 0;
 /* which string position to change */
 unsigned int ime_std_caret_pos = 0;
 unsigned int ime_std_current_sel = 0;
+unsigned int ime_std_charset_type = 0;
 
 /* should that be located in files? */
 unsigned char ime_std_charset_alpha_upper[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
@@ -48,8 +57,9 @@ unsigned int ime_std_charcount = sizeof(ime_std_charset_alpha_upper);
 unsigned char *ime_std_charset = ime_std_charset_alpha_upper;
 
 /* number of characters in specific sets */
-unsigned char *ime_std_charsets[] = { (ime_std_charset_alpha_upper), (ime_std_charset_alpha_lower), (ime_std_charset_numeric), (ime_std_charset_punctuation), (ime_std_charset_math), (ime_std_charset_mail), ime_std_charset_func };
-unsigned int ime_std_charcounts[] = { sizeof(ime_std_charset_alpha_upper), sizeof(ime_std_charset_alpha_lower), sizeof(ime_std_charset_numeric), sizeof(ime_std_charset_punctuation), sizeof(ime_std_charset_math), sizeof(ime_std_charset_mail), sizeof(ime_std_charset_func) };
+unsigned int ime_std_charset_types[] = { IME_CHARSET_ALPHA | IME_CHARSET_FILENAME, IME_CHARSET_ALPHA, IME_CHARSET_NUMERIC, IME_CHARSET_PUNCTUATION, IME_CHARSET_MATH, IME_CHARSET_MAIL};
+unsigned char *ime_std_charsets[] = { ime_std_charset_alpha_upper, ime_std_charset_alpha_lower, ime_std_charset_numeric, ime_std_charset_punctuation, ime_std_charset_math, ime_std_charset_mail, ime_std_charset_func };
+int ime_std_charcounts[] = { sizeof(ime_std_charset_alpha_upper), sizeof(ime_std_charset_alpha_lower), sizeof(ime_std_charset_numeric), sizeof(ime_std_charset_punctuation), sizeof(ime_std_charset_math), sizeof(ime_std_charset_mail), sizeof(ime_std_charset_func) };
 unsigned char *ime_std_charsetnames[] = { (unsigned char *)"upper", (unsigned char *)"lower", (unsigned char *)"num", (unsigned char *)"punct", (unsigned char *)"math", (unsigned char *)"mail" };
 
 unsigned int ime_std_font = FONT_LARGE;
@@ -78,7 +88,7 @@ static void ime_std_draw_charset(unsigned int charset, unsigned int font, int ch
         last_char = MIN(visible_chars, ime_std_charcounts[charset] - 1);
     }
     
-    if(h > fontspec_font(font)->height)
+    if((unsigned int)h > fontspec_font(font)->height)
     {
         bmp_fill(selected?COLOR_GRAY(0):COLOR_GRAY(20), x, y, fontspec_font(font)->width * visible_chars + border, fontspec_font(font)->height + border);
      
@@ -91,15 +101,15 @@ static void ime_std_draw_charset(unsigned int charset, unsigned int font, int ch
             
             if(selected_char == CHAR_OK)
             {
-                strcpy(buf, "OK ");
+                strcpy(buf, " OK ");
             }
             else if(selected_char == CHAR_CANCEL)
             {
-                strcpy(buf, "Cancel ");
+                strcpy(buf, " Cancel ");
             }
             else if(selected_char == CHAR_DEL)
             {
-                strcpy(buf, "Del ");
+                strcpy(buf, " Del ");
             }
             else
             {
@@ -108,12 +118,15 @@ static void ime_std_draw_charset(unsigned int charset, unsigned int font, int ch
             }
             
             /* print character or string */
-            bmp_printf(SHADOW_FONT(font), x_pos, y + border/2, "%s", buf);
             
             /* print the selection caret over this character/string */
             if(selected && (first_char + pos == charnum))
             {
-                bmp_printf(SHADOW_FONT(font), x_pos, y + border/2, "_");
+                bmp_printf(FONT(font,COLOR_BLACK, COLOR_ORANGE), x_pos, y + border/2, "%s", buf);
+            }
+            else
+            {
+                bmp_printf(SHADOW_FONT(font), x_pos, y + border/2, "%s", buf);
             }
             
             /* advance to next position */
@@ -125,6 +138,7 @@ static void ime_std_draw_charset(unsigned int charset, unsigned int font, int ch
 static void ime_std_draw()
 {
     char selected[10];
+    int color_bg = COLOR_GRAY(10);
     
     if(ime_std_selection < ime_std_charcount)
     {
@@ -136,45 +150,55 @@ static void ime_std_draw()
         sprintf(selected, "??");
     }
     
-    /* unsiform background */
-    bmp_fill(COLOR_GRAY(10), 0, 0, 720, 480);
-    
-    /* some nice borders */
-    for(int width = 0; width < 5; width++)
-    {
-        draw_line(0+width, 0+width, 720-width, 0+width, COLOR_GRAY(20));
-        draw_line(0+width, 0+width, 0+width, 480-width, COLOR_GRAY(20));
-        draw_line(720-width, 0+width, 720-width, 480-width, COLOR_GRAY(2));
-        draw_line(0+width, 480-width, 720-width, 480-width, COLOR_GRAY(2));
-    }
-    
-    int str_pos_x = 27;
-    int str_pos_y = 67;
-    
-    /* draw a dark background for the text line */
-    bmp_fill(COLOR_GRAY(0), str_pos_x, str_pos_y, 600 - str_pos_x, font_large.height + 3);
+    BMP_LOCK
+    (
+        bmp_draw_to_idle(1);
+            
+        /* uniform background */
+        bmp_fill(color_bg, 0, 0, 720, 480);
+        
+        /* some nice borders */
+        for(int width = 0; width < 5; width++)
+        {
+            draw_line(0+width, 0+width, 720-width, 0+width, COLOR_GRAY(20));
+            draw_line(0+width, 0+width, 0+width, 480-width, COLOR_GRAY(20));
+            draw_line(720-width, 0+width, 720-width, 480-width, COLOR_GRAY(2));
+            draw_line(0+width, 480-width, 720-width, 480-width, COLOR_GRAY(2));
+        }
+        
+        if(ime_std_caption)
+        {
+            bfnt_printf(ime_std_caption_x, ime_std_caption_y, COLOR_WHITE, color_bg, "%s", ime_std_caption);
+            draw_line(ime_std_caption_x, ime_std_caption_y + 40, ime_std_str_w + ime_std_str_x, ime_std_caption_y + 40, COLOR_ORANGE);
+            draw_line(ime_std_caption_x + 5, ime_std_caption_y + 40 + 3, ime_std_str_w + ime_std_str_x + 5, ime_std_caption_y + 40 + 3, COLOR_ORANGE);
+        }
+        
+        /* draw a dark background for the text line */
+        bmp_fill(COLOR_GRAY(0), ime_std_str_x, ime_std_str_y, ime_std_str_w, font_large.height + 6);
 
-    /* white border around that dark background */
-    draw_line(str_pos_x, str_pos_y, 600, str_pos_y, COLOR_GRAY(50));
-    draw_line(str_pos_x, str_pos_y, str_pos_x, str_pos_y + font_large.height + 6, COLOR_GRAY(50));
-    draw_line(600, str_pos_y, 600, str_pos_y + font_large.height + 6, COLOR_GRAY(50));
-    draw_line(str_pos_x, str_pos_y + font_large.height + 6, 600, str_pos_y + font_large.height + 6, COLOR_GRAY(50));
-    
-    /* now the text */
-    if(ime_std_caption)
-    {
-        bmp_printf(SHADOW_FONT(FONT_LARGE), 20, 15, "%s", ime_std_caption);
-    }
-    bmp_printf(FONT_LARGE, str_pos_x + 3, str_pos_y + 3, "Text: \"%s\"", ime_std_string);
-    bmp_printf(SHADOW_FONT(FONT_LARGE), str_pos_x + 3 + font_large.width * (7+ime_std_caret_pos), str_pos_y + 3, "_");
+        /* orange rectangle around that dark text box background */
+        bmp_draw_rect(COLOR_ORANGE, ime_std_str_x, ime_std_str_y, ime_std_str_w, font_large.height + 6);
+        
+        /* now the text and right after the caret */
+        bmp_printf(FONT_LARGE, ime_std_str_x + 3, ime_std_str_y + 3, "%s", ime_std_string);
+        bmp_printf(SHADOW_FONT(FONT(FONT_LARGE,COLOR_BLACK, COLOR_ORANGE)), ime_std_str_x + 3 + font_large.width * ime_std_caret_pos, ime_std_str_y + 3, "_");
 
-    //bmp_fill(COLOR_GRAY(10), ime_std_char_x, ime_std_char_y, ime_std_char_w, ime_std_char_h);
-
-    for(int set = 0; set < COUNT(ime_std_charcounts); set++)
-    {
-        int offset_y = fontspec_font(ime_std_font)->height * set;
-        ime_std_draw_charset(set, ime_std_font, ime_std_selection, set == ime_std_charsetnum, ime_std_char_x, ime_std_char_y + offset_y, ime_std_char_w, ime_std_char_h - offset_y);
-    }
+        /* orange rectangle around that dark characters box background */
+        bmp_fill(COLOR_GRAY(20), ime_std_char_x - 1, ime_std_char_y - 1, ime_std_char_w + 2, fontspec_font(ime_std_font)->height * COUNT(ime_std_charcounts) + 4);
+        bmp_draw_rect(COLOR_ORANGE, ime_std_char_x - 1, ime_std_char_y - 1, ime_std_char_w + 2, fontspec_font(ime_std_font)->height * COUNT(ime_std_charcounts) + 4);
+        
+        for(int set = 0; set < COUNT(ime_std_charcounts); set++)
+        {
+            int offset_y = fontspec_font(ime_std_font)->height * set;
+            if(ime_std_charset_types[set] & ime_std_charset_type)
+            {
+                ime_std_draw_charset(set, ime_std_font, ime_std_selection, set == ime_std_charsetnum, ime_std_char_x + 2, ime_std_char_y + offset_y, ime_std_char_w - 1, ime_std_char_h - offset_y);
+            }
+        }
+        
+        bmp_draw_to_idle(0);
+        bmp_idle_copy(1,0);
+    )
 }
 
 static int ime_std_select_charset(int charset)
@@ -185,7 +209,7 @@ static int ime_std_select_charset(int charset)
         ime_std_charcount = ime_std_charcounts[charset];
         
         /* make sure that the currently selected character position is available */
-        if(ime_std_selection > ime_std_charcount)
+        if(ime_std_selection >= ime_std_charcount)
         {
             ime_std_selection = ime_std_charcount - 1;
         }
@@ -255,33 +279,30 @@ static unsigned int ime_std_keypress_cbr(unsigned int key)
                 
                 if(selected_char == CHAR_DEL)
                 {
-                    /* todo: real backspace/delete */
-                    ime_std_caret_pos--;
-                    ime_std_string[ime_std_caret_pos] = '\000';
+                    /* backspace/del was pressed */
+                    //ime_std_caret_pos--;
+                    strncpy(&ime_std_string[ime_std_caret_pos], &ime_std_string[ime_std_caret_pos+1], ime_std_max_length - ime_std_caret_pos);
                 }
                 else if(selected_char == CHAR_OK)
                 {
-                    /* for now just cancel/return */
+                    /* ok was pressed, set return code and return */
                     ime_std_ret = IME_OK;
                     ime_std_active = 0;
                 }
                 else if(selected_char == CHAR_CANCEL)
                 {
-                    /* for now just cancel/return */
+                    /* cancel was pressed, set return code and return */
                     ime_std_ret = IME_CANCEL;
                     ime_std_active = 0;
                 }
                 else
                 {
-                    ime_std_string[ime_std_caret_pos] = selected_char;
-                    ime_std_caret_pos++;
+                    if(ime_std_caret_pos < ime_std_max_length)
+                    {
+                        ime_std_string[ime_std_caret_pos] = selected_char;
+                        ime_std_caret_pos++;
+                    }
                 }
-            }
-            else if(ime_std_selection < ime_std_charcount + 1)
-            {
-            }
-            else
-            {
             }
             break;
             
@@ -330,6 +351,8 @@ static unsigned int ime_std_start(char *caption, char *text, int max_length, int
     ime_std_update_cbr = update_cbr;
     ime_std_done_cbr = done_cbr;
     ime_std_active = 1;
+    ime_std_max_length = max_length;
+    ime_std_charset_type = charset;
     
     for(int pos = strlen(ime_std_string); pos < max_length; pos++)
     {
