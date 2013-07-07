@@ -100,11 +100,11 @@ static void ime_rot_update(ime_rot_ctx_t *ctx)
 
 static void ime_rot_draw_wheel(ime_rot_ctx_t *ctx)
 {
-    int charnum = ctx->selection;
+    int char_pos = ctx->selection;
     int visible_chars = MIN(ctx->charset_charcount, 15);
 
-    int first_char = (int)(charnum - visible_chars / 2);
-    int last_char = (int)(charnum + visible_chars / 2);
+    int first_char = (int)(char_pos - visible_chars / 2);
+    int last_char = (int)(char_pos + visible_chars / 2);
     
     /* display only a window with the nearest characters around selection */
     if(last_char >= ime_rot_charcounts[ctx->charsetnum] - 1)
@@ -121,7 +121,7 @@ static void ime_rot_draw_wheel(ime_rot_ctx_t *ctx)
     
     int pos = 0;
     
-    for(int charnum = first_char; charnum <= last_char; charnum++)
+    for(int char_pos = first_char; char_pos <= last_char; char_pos++)
     {
         int sine = 0;
         int cosine = 0;
@@ -129,13 +129,9 @@ static void ime_rot_draw_wheel(ime_rot_ctx_t *ctx)
         cordic((-PI/2 + PI * (float)pos / (float)(visible_chars-1)) * MUL, &sine, &cosine, CORDIC_NTAB);
         pos++;
         
-        int x = ime_rot_wheel_x + ime_rot_wheel_w * sine / MUL;
-        int y = ime_rot_wheel_y - ime_rot_wheel_h * cosine / MUL;
-        
-        draw_line(ime_rot_wheel_x, ime_rot_wheel_y, x, y, COLOR_GRAY(20));
         
         char buf[16];
-        unsigned char selected_char = ime_rot_charsets[ctx->charsetnum][charnum];
+        unsigned char selected_char = ime_rot_charsets[ctx->charsetnum][char_pos];
         
         if(selected_char == CHAR_OK)
         {
@@ -160,14 +156,33 @@ static void ime_rot_draw_wheel(ime_rot_ctx_t *ctx)
         for (char* c = buf; *c; c++)
             width += bfnt_char_get_width(*c);
             
-        if(ctx->selection == charnum)
+        int x = ime_rot_wheel_x + ime_rot_wheel_w * sine / MUL - width/2;
+        int y = ime_rot_wheel_y - ime_rot_wheel_h * cosine / MUL - 25;
+        
+        int line_x = ime_rot_wheel_x + (ime_rot_wheel_w - 40) * sine / MUL;
+        int line_y = ime_rot_wheel_y - (ime_rot_wheel_h - 40) * cosine / MUL;
+        
+        if(ctx->selection == char_pos)
         {
-            bfnt_printf(x - width/2 + 3, y + 3, COLOR_BLACK, COLOR_BLACK, "%s", buf);
-            bfnt_printf(x - width/2, y, COLOR_ORANGE, COLOR_BLACK, "%s", buf);
+            /* black box around character */
+            bmp_fill(COLOR_BLACK, x - 3, y - 3, width + 6, 50);
+            
+            /* some kind of arrow towards the character */
+            for(int bold = -2; bold <= 2; bold++)
+            {
+                draw_line(ime_rot_wheel_x, ime_rot_wheel_y, line_x, line_y, COLOR_ORANGE);
+                draw_line(ime_rot_wheel_x+bold, ime_rot_wheel_y, line_x, line_y, COLOR_ORANGE);
+                draw_line(ime_rot_wheel_x+bold, ime_rot_wheel_y+bold, line_x, line_y, COLOR_ORANGE);
+                draw_line(ime_rot_wheel_x, ime_rot_wheel_y+bold, line_x, line_y, COLOR_ORANGE);
+            }
+            
+            /* print character */
+            bfnt_printf(x, y, COLOR_ORANGE, COLOR_BLACK, "%s", buf);
         }
         else
         {
-            bfnt_printf(x - width/2, y, COLOR_GRAY(40), COLOR_BLACK, "%s", buf);
+            draw_line(ime_rot_wheel_x, ime_rot_wheel_y, line_x, line_y, COLOR_GRAY(20));
+            bfnt_printf(x, y, COLOR_GRAY(40), COLOR_BLACK, "%s", buf);
         }
     }
 }
