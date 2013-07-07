@@ -36,28 +36,29 @@
    
    'selection_length' specifies how many characters starting from caret_pos are selected. 0 if none (plain cursor)
  */
-typedef unsigned int (*t_ime_update_cbr)(char *text, int caret_pos, int selection_length);
-#define IME_UPDATE_FUNC(func) unsigned int func(char *text, int caret_pos, int selection_length)
+typedef unsigned int (*t_ime_update_cbr)(void *ctx, unsigned char *text, int caret_pos, int selection_length);
+#define IME_UPDATE_FUNC(func) unsigned int func(void *ctx, unsigned char *text, int caret_pos, int selection_length)
 
 /* this callback is called when the dialog box was accepted or cancelled
    when the string was entered, status will be IME_OK.
    if the user aborted input, status will be IME_CANCEL.
  */
-typedef unsigned int (*t_ime_done_cbr)(unsigned int status, char *text);
-#define IME_DONE_FUNC(func) unsigned int func(unsigned int status, char *text)
+typedef unsigned int (*t_ime_done_cbr)(void *ctx, unsigned int status, unsigned char *text);
+#define IME_DONE_FUNC(func) unsigned int func(void *ctx, unsigned int status, unsigned char *text)
 
 /* call this function to start the IME system - this is asynchronous if done_cbr is != NULL.
    it will call 'update' if (update != NULL) periodically or on any update_cbr (caret pos or string) and done_cbr when the dialog is finished.
-   return value will be IME_OK if the dialog was started
-   in case of any other error (e.g. unavailability of some resource) it will return IME_ERR_UNAVAIL or IME_ERR_UNKNOWN.
+   return the context of the dialog if it was started. this is a paramete for future functions and used to identify the exact dialog.
+   
+   in case of any other error (e.g. unavailability of some resource) it will return NULL.
    if an error occured, the error message will be placed in the 'text' pointer given, so make sure you use a separate buffer.
    
    when the IME method supports this feature (i.e. non-fullscreen methods) the parameters x, y, w, h specify where the caller
    placed its text field that should not be overwritten. your update cbr must handle displaying the string in this case. 
    if you dont care about this, pass all values as zero. 
  */
-extern unsigned int ime_base_start (char *caption, char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h );
-typedef unsigned int (*t_ime_start) (char *caption, char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h );
+extern void * ime_base_start (unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h );
+typedef void * (*t_ime_start) (unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h );
 
 /* this structure is passed when registering */
 typedef struct 

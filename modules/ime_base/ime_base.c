@@ -16,7 +16,7 @@
 
 static unsigned int ime_base_method = 0;
 static unsigned int ime_base_method_count = 0;
-static char ime_base_test_text[100];
+static unsigned char ime_base_test_text[100];
 static t_ime_handler ime_base_methods[IME_MAX_METHODS];
 
 
@@ -36,18 +36,15 @@ unsigned int ime_base_register(t_ime_handler *handler)
     return 0;
 }
 
-unsigned int ime_base_start (char *caption, char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h )
+void *ime_base_start (unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h )
 {
     if(ime_base_method < ime_base_method_count)
     {
-        unsigned int ret = 0;
-        
-        ret = ime_base_methods[ime_base_method].start(caption, text, max_length, codepage, charset, update_cbr, done_cbr, x, y, w, h);
-        return ret;
+        return ime_base_methods[ime_base_method].start(caption, text, max_length, codepage, charset, update_cbr, done_cbr, x, y, w, h);
     }
     
     strncpy(text, "No IME available", max_length);
-    return IME_ERR_UNAVAIL;
+    return NULL;
 }
 
 static MENU_UPDATE_FUNC(ime_base_method_update)
@@ -114,6 +111,10 @@ static MENU_SELECT_FUNC(ime_base_test_math)
 {
     ime_base_start("Math", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_MATH, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
+static MENU_SELECT_FUNC(ime_base_test_file)
+{
+    ime_base_start("Filename", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_FILENAME, NULL, &ime_base_test_done, 0, 0, 0, 0);
+}
 
 static MENU_SELECT_FUNC(ime_base_config)
 {
@@ -163,6 +164,10 @@ static struct menu_entry ime_base_menu[] =
             {
                 .name = "Test: Math",
                 .select = &ime_base_test_math,
+            },
+            {
+                .name = "Test: File",
+                .select = &ime_base_test_file,
             },
             MENU_EOL,
         },
