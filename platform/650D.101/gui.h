@@ -50,7 +50,8 @@
 #define BGMT_PRESS_HALFSHUTTER 0x4e
 #define BGMT_UNPRESS_HALFSHUTTER 0x4f
 
-    #define BGMT_PRESS_FULLSHUTTER 0xdeadbeef // Not found ??
+    #define BGMT_PRESS_FULLSHUTTER 0x50 
+    #define BGMT_UNPRESS_FULLSHUTTER 0x51
 
 #define GMT_GUICMD_PRESS_BUTTON_SOMETHING 0x52 // unhandled buttons?
 
