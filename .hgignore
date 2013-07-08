@@ -31,6 +31,7 @@ tags
 *.wav
 *.i
 *.log
+*.pyc
 location.map
 autoexec.map
 platform/*.OLD
@@ -45,8 +46,9 @@ toolchain/stamps
 platform/*/autoexec
 platform/*/magiclantern
 platform/*/magiclantern.lds
-platform/*/magiclantern.sym
+platform/*/*.sym
 platform/all/autoexec-all
+platform/all/autoexec-fir
 doc/*.aux
 doc/*.out
 doc/*.pdf
@@ -78,4 +80,6 @@ doxygen-doc/*
 modules/*/*.mo
 modules/raw_rec/raw2dng
 modules/raw_rec/raw2dng.exe
+tcc/localsyms
+
 syntax: regexp
