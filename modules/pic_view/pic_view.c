@@ -122,8 +122,8 @@ static int dng_show(char* filename)
     
     if (!raw_info.width) goto err;
     if (!raw_info.height) goto err;
-    
-    raw_set_geometry(raw_info.width, raw_info.height, raw_info.active_area.x1, raw_info.active_area.y1, raw_info.width - raw_info.active_area.x2, raw_info.height - raw_info.active_area.y2);
+
+    raw_set_geometry(raw_info.width, raw_info.height, raw_info.active_area.x1, raw_info.width - raw_info.active_area.x2, raw_info.active_area.y1, raw_info.height - raw_info.active_area.y2);
     raw_force_aspect_ratio_1to1();
 
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
@@ -131,11 +131,13 @@ static int dng_show(char* filename)
     vram_clear_lv();
     raw_preview_fast();
     shoot_free(buf);
+    raw_set_dirty();
     
     bmp_printf(FONT_MED, 600, 460, " %dx%d ", raw_info.jpeg.width, raw_info.jpeg.height);
     return 1;
 err:
     shoot_free(buf);
+    raw_set_dirty();
     return 0;
 }
 
