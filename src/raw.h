@@ -139,6 +139,9 @@ int focus_box_get_raw_crop_offset(int* delta_x, int* delta_y); /* this is in sho
 /* called from state-object.c */
 void raw_lv_vsync_cbr();
 
+/* units: EV x100 */
+int get_dxo_dynamic_range(int raw_iso);
+
 /* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
 struct raw_info {
     int api_version;            // increase this when changing the structure

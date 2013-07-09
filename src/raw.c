@@ -233,6 +233,60 @@ struct raw_info raw_info = {
     .dynamic_range = 1100,              // not correct; use numbers from DxO instead
 };
 
+ /**
+ * Dynamic range, from DxO
+ * e.g. http://www.dxomark.com/index.php/Cameras/Camera-Sensor-Database/Canon/EOS-5D-Mark-III
+ * Measurements | Dynamic range | Screen
+ * You can hover over the points to list the measured EV (thanks Audionut).
+ * 
+ * This is only used in photo LiveView, where we can't compute it
+ */
+
+#ifdef CONFIG_5D3
+static int dynamic_ranges[] = {1097, 1087, 1069, 1041, 994, 923, 830, 748, 648, 552, 464};
+#endif
+
+#ifdef CONFIG_5D2
+static int dynamic_ranges[] = {1116, 1112, 1092, 1066, 1005, 909, 813, 711, 567};
+#endif
+
+#ifdef CONFIG_6D
+static int dynamic_ranges[] = {1143, 1139, 1122, 1087, 1044, 976, 894, 797, 683, 624, 505};
+#endif
+
+#ifdef CONFIG_500D
+static int dynamic_ranges[] = {1104, 1094, 1066, 1007, 933, 848, 737, 625};
+#endif
+
+#ifdef CONFIG_550D
+//static int dynamic_ranges[] = {1157, 1154, 1121, 1070, 979, 906, 805, 707}; I took the values Greg recommended
+static int dynamic_ranges[] = {1095, 1092, 1059, 1008, 917, 844, 744, 645};
+#endif
+
+#ifdef CONFIG_600D
+static int dynamic_ranges[] = {1146, 1139, 1116, 1061, 980, 898, 806, 728};
+#endif
+
+#ifdef CONFIG_650D
+static int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
+#endif
+
+#ifdef CONFIG_700D
+static int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
+#endif
+
+#ifdef CONFIG_60D
+static int dynamic_ranges[] = {1091, 1072, 1055, 999, 910, 824, 736, 662};
+#endif
+
+#ifdef CONFIG_50D
+static int dynamic_ranges[] = {1094, 1060, 1005, 919, 826, 726, 633};
+#endif
+
+#ifdef CONFIG_EOSM
+static int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
+#endif
+
 static int autodetect_black_level(float* black_mean, float* black_stdev);
 static int compute_dynamic_range(float black_mean, float black_stdev, int white_level);
 
@@ -487,60 +541,6 @@ int raw_update_params()
         return 0;
     }
 
-     /**
-     * Dynamic range, from DxO
-     * e.g. http://www.dxomark.com/index.php/Cameras/Camera-Sensor-Database/Canon/EOS-5D-Mark-III
-     * Measurements | Dynamic range | Screen
-     * You can hover over the points to list the measured EV (thanks Audionut).
-     * 
-     * This is only used in photo LiveView, where we can't compute it
-     */
-    
-    #ifdef CONFIG_5D3
-    int dynamic_ranges[] = {1097, 1087, 1069, 1041, 994, 923, 830, 748, 648, 552, 464};
-    #endif
-
-    #ifdef CONFIG_5D2
-    int dynamic_ranges[] = {1116, 1112, 1092, 1066, 1005, 909, 813, 711, 567};
-    #endif
-
-    #ifdef CONFIG_6D
-    int dynamic_ranges[] = {1143, 1139, 1122, 1087, 1044, 976, 894, 797, 683, 624, 505};
-    #endif
-
-    #ifdef CONFIG_500D
-    int dynamic_ranges[] = {1104, 1094, 1066, 1007, 933, 848, 737, 625};
-    #endif
-
-    #ifdef CONFIG_550D
-    //int dynamic_ranges[] = {1157, 1154, 1121, 1070, 979, 906, 805, 707}; I took the values Greg recommended
-    int dynamic_ranges[] = {1095, 1092, 1059, 1008, 917, 844, 744, 645};
-    #endif
-
-    #ifdef CONFIG_600D
-    int dynamic_ranges[] = {1146, 1139, 1116, 1061, 980, 898, 806, 728};
-    #endif
-
-    #ifdef CONFIG_650D
-    int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
-    #endif
-
-    #ifdef CONFIG_700D
-    int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
-    #endif
-
-    #ifdef CONFIG_60D
-    int dynamic_ranges[] = {1091, 1072, 1055, 999, 910, 824, 736, 662};
-    #endif
-
-    #ifdef CONFIG_50D
-    int dynamic_ranges[] = {1094, 1060, 1005, 919, 826, 726, 633};
-    #endif
-
-    #ifdef CONFIG_EOSM
-    int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
-    #endif
-
 
 /*********************** Portable code ****************************************/
 
@@ -630,30 +630,8 @@ int raw_update_params()
         if (!iso) iso = last_iso;
         last_iso = iso;
         if (!iso) return 0;
-        int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 72 + (COUNT(dynamic_ranges)-1) * 8);
-        int dr_index = COERCE((iso_rounded - 72) / 8, 0, COUNT(dynamic_ranges)-1);
-        float iso_digital = (iso - iso_rounded) / 8.0f;
-        raw_info.dynamic_range = dynamic_ranges[dr_index];
         
-        if (iso_digital > 0)
-        {
-            /* at ISO 250, 500, 1000, dynamic range is lowered,
-             * because data is amplified but white level stays the same
-             */
-            raw_info.dynamic_range -= iso_digital * 100;
-        }
-        else if (iso_digital < 0)
-        {
-            /* there's also a bit of DR lost at ISO 160, 320 and so on,
-             * probably because of quantization error in shadows
-             * in theory, there shouldn't be any, because raw data and white level are scaled by a constant (I guess)
-             * 
-             * I don't know how to estimate it, so... let it be 0.1 EV
-             * 
-             * this may need a closer look
-             */
-            raw_info.dynamic_range -= 10;
-        }
+        raw_info.dynamic_range = get_dxo_dynamic_range(iso);
         
         dbg_printf("dynamic range: %d.%02d EV (iso=%d)\n", raw_info.dynamic_range/100, raw_info.dynamic_range%100, raw2iso(iso));
     }
@@ -669,6 +647,7 @@ int raw_update_params()
     dump_seg(raw_info.buffer, MAX(raw_info.frame_size, 1000000), CARD_DRIVE"raw.buf");
     dbg_printf("saving DNG...\n");
     save_dng(CARD_DRIVE"raw.dng");
+    reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     dbg_printf("done\n");
     #endif
     
@@ -788,7 +767,7 @@ int FAST raw_green_pixel(int x, int y)
 int FAST raw_blue_pixel(int x, int y)
 {
     struct raw_pixblock * buf = raw_info.buffer;
-    y = (y/2) * 2 + 1;
+    y = (y/2) * 2 - 1;
     int i = ((y * raw_info.width + x) / 8);
     return buf[i].h;
 }
@@ -978,7 +957,7 @@ static int autodetect_black_level(float* black_mean, float* black_stdev)
             &mean, &stdev
         );
     }
-    
+
     *black_mean = mean;
     *black_stdev = stdev;
 
@@ -1242,4 +1221,35 @@ void raw_force_aspect_ratio_1to1()
 void raw_set_dirty()
 {
     dirty = 1;
+}
+
+int get_dxo_dynamic_range(int raw_iso)
+{
+    int iso = raw_iso;
+    int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 72 + (COUNT(dynamic_ranges)-1) * 8);
+    int dr_index = COERCE((iso_rounded - 72) / 8, 0, COUNT(dynamic_ranges)-1);
+    float iso_digital = (iso - iso_rounded) / 8.0f;
+    int dr = dynamic_ranges[dr_index];
+    
+    if (iso_digital > 0)
+    {
+        /* at ISO 250, 500, 1000, dynamic range is lowered,
+         * because data is amplified but white level stays the same
+         */
+        dr -= iso_digital * 100;
+    }
+    else if (iso_digital < 0)
+    {
+        /* there's also a bit of DR lost at ISO 160, 320 and so on,
+         * probably because of quantization error in shadows
+         * in theory, there shouldn't be any, because raw data and white level are scaled by a constant (I guess)
+         * 
+         * I don't know how to estimate it, so... let it be 0.1 EV
+         * 
+         * this may need a closer look
+         */
+        dr -= 10;
+    }
+    
+    return dr;
 }
