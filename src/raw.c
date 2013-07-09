@@ -550,21 +550,27 @@ int raw_update_params()
         dirty = 1;
     }
     
+    /* zoom mode changed? refresh params */
+    {
+        static int prev_zoom = 0;
+        int zoom = lv_dispsize;
+        if (zoom != prev_zoom)
+            dirty = 1;
+        prev_zoom = zoom;
+    }
+
+    /* in zoom mode: yuv position changed? force a refresh */
     if (lv_dispsize > 1)
     {
-        /* in zoom mode: yuv position changed? also force a full update */
-        static int prev_zoom = 0;
         static int prev_delta_x = 0;
         static int prev_delta_y = 0;
-        
-        int zoom = lv_dispsize;
+
         int delta_x, delta_y;
         focus_box_get_raw_crop_offset(&delta_x, &delta_y);
-        
-        if (zoom != prev_zoom || delta_x != prev_delta_x || delta_y != prev_delta_y)
+
+        if (delta_x != prev_delta_x || delta_y != prev_delta_y)
             dirty = 1;
-        
-        prev_zoom = zoom;
+
         prev_delta_x = delta_x;
         prev_delta_y = delta_y;
     }
