@@ -11,11 +11,11 @@ def getdate(r):
 	return datetime.strptime(d, "%Y-%m-%d")
 	
 os.system("hg update %s" % a)
-os.system("python mkdoc.py")
+execfile("mkdoc.py")
 os.system("cp UserGuide.tex UserGuide-old.tex")
 
 os.system("hg update %s" % b)
-os.system("python mkdoc.py")
+execfile("mkdoc.py")
 
 os.system("latexdiff UserGuide-old.tex UserGuide.tex > UserGuide-diff.tex")
 

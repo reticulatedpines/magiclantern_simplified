@@ -193,7 +193,7 @@ if len(sys.argv) > 1:
 
 os.system("rm cam/*")
 os.system("mkdir cam")
-os.system("python menuindex.py")
+execfile("menuindex.py")
 
 print 'pdf to png...'
 os.system("pdftoppm -r 152.2 -png UserGuide-cam.pdf cam/page")
