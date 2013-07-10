@@ -1,6 +1,8 @@
 #Makefile.setup.platform for 1100D
 
 # Definitions for version 105
+ML_MODULES_SYM_NAME=t3_$(FW_VERSION).sym
+
 ifeq ($(FW_VERSION),105)
 
 CANON_NAME_FIR=CCF12105.FIR
