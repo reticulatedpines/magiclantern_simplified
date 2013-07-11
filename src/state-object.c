@@ -287,12 +287,12 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
     
     #if defined(CONFIG_7D_MASTER) || defined(CONFIG_7D)
     if (self == LV_STATE && input==3 && old_state == 3)
-    {
         vignetting_correction_apply_lvmgr(x);
-        #if !defined(CONFIG_7D_MASTER)
+    #endif
+    
+    #if !defined(CONFIG_7D_MASTER) && defined(CONFIG_7D)
+    if (self == LV_STATE && input==5 && old_state == 5)
         vsync_func();
-        #endif
-    }
     #endif
 
     #ifdef EVF_STATE
@@ -377,7 +377,9 @@ static int stateobj_start_spy(struct state_object * stateobj, void* spy)
     // double check if all states use the same transition function (they do, in theory)
     else if ((void*)StateTransition != (void*)stateobj->StateTransition_maybe)
     {
+        #ifndef CONFIG_7D_MASTER
         beep();
+        #endif
         return 1;
     }
     

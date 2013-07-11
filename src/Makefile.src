@@ -165,6 +165,8 @@ ML_SRC_OBJS = \
 
 ML_OBJS-y += $(ML_SRC_OBJS)
 
+include $(TOP_DIR)/src/Makefile.src.config
+
 else ifndef ML_OBJS-y
 $(error ML_OBJS-y is not defined)
 endif
@@ -174,8 +176,6 @@ ML_OBJS-y += $(ML_SRC_EXTRA_OBJS)
 ifdef ML_SRC_EXCLUDE_OBJS
 ML_OBJS-y := $(filter-out $(ML_SRC_EXCLUDE_OBJS), $(ML_OBJS-y))
 endif
-
-include $(TOP_DIR)/src/Makefile.src.config
 
 include $(TOP_DIR)/Makefile.filerules
 
