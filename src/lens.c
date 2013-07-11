@@ -1993,8 +1993,6 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
     if (max_job_state == 0 && state != 0)
         max_job_state = state;
     
-    ASSERT((int)state <= max_job_state);
-    
     if (max_job_state && (int)state == max_job_state)
     {
         mirror_locked = 0;
