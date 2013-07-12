@@ -5326,6 +5326,8 @@ static struct menu_entry expo_menus[] = {
         .works_best_in = DEP_M_MODE,
     },
     #endif
+
+    MENU_PLACEHOLDER("Dual ISO"),
 };
 
 
