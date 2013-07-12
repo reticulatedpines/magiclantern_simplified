@@ -33,6 +33,7 @@ struct raw_info raw_info;
 #define CHECK(ok, fmt,...) { if (!ok) FAIL(fmt, ## __VA_ARGS__); }
 
 static void fix_vertical_stripes();
+static void hdr_process();
 
 int main(int argc, char** argv)
 {
@@ -76,8 +77,9 @@ int main(int argc, char** argv)
     printf("Resolution  : %d x %d\n", lv_rec_footer.xRes, lv_rec_footer.yRes);
     printf("Frames      : %d\n", lv_rec_footer.frameCount);
     printf("Frame size  : %d bytes\n", lv_rec_footer.frameSize);
-    printf("Frame skip  : %d\n", lv_rec_footer.frameSkip);
     printf("FPS         : %d.%03d\n", lv_rec_footer.sourceFpsx1000/1000, lv_rec_footer.sourceFpsx1000%1000);
+    printf("Black level : %d\n", lv_rec_footer.raw_info.black_level);
+    printf("White level : %d\n", lv_rec_footer.raw_info.white_level);
     
     char* raw = malloc(lv_rec_footer.frameSize);
     CHECK(raw, "malloc");
@@ -121,6 +123,7 @@ int main(int argc, char** argv)
         char fn[100];
         snprintf(fn, sizeof(fn), "%s%06d.dng", prefix, i);
         fix_vertical_stripes();
+        hdr_process();
         set_framerate(lv_rec_footer.sourceFpsx1000);
         save_dng(fn);
     }
@@ -144,6 +147,22 @@ int raw_get_pixel(int x, int y) {
         case 5: return p->f_lo | (p->f_hi << 4);
         case 6: return p->g_lo | (p->g_hi << 2);
         case 7: return p->h;
+    }
+    return p->a;
+}
+
+int raw_set_pixel(int x, int y, int value)
+{
+    struct raw_pixblock * p = (void*)raw_info.buffer + y * raw_info.pitch + (x/8)*14;
+    switch (x%8) {
+        case 0: p->a = value; break;
+        case 1: p->b_lo = value; p->b_hi = value >> 12; break;
+        case 2: p->c_lo = value; p->c_hi = value >> 10; break;
+        case 3: p->d_lo = value; p->d_hi = value >> 8; break;
+        case 4: p->e_lo = value; p->e_hi = value >> 6; break;
+        case 5: p->f_lo = value; p->f_hi = value >> 4; break;
+        case 6: p->g_lo = value; p->g_hi = value >> 2; break;
+        case 7: p->h = value; break;
     }
     return p->a;
 }
@@ -460,6 +479,385 @@ static void apply_vertical_stripes_correction()
     }
 }
 
+/** HDR video interpolation */
+
+/* quick check to see if this looks like a HDR frame */
+static int hdr_check()
+{
+    int black = raw_info.black_level;
+    int white = raw_info.white_level;
+
+    int w = raw_info.width;
+    int h = raw_info.height;
+
+    static double raw2ev[16384];
+    
+    int i;
+    for (i = 0; i < 16384; i++)
+        raw2ev[i] = log2(MAX(1, i - black));
+
+    int x, y;
+    double avg_ev[4] = {0, 0, 0, 0};
+    int num[4] = {0, 0, 0, 0};
+    for (y = 2; y < h-2; y ++)
+    {
+        for (x = 2; x < w-2; x ++)
+        {
+            int p = raw_get_pixel(x, y);
+            int p2 = raw_get_pixel(x, y+2);
+            if (p < white && p2 < white)
+            {
+                avg_ev[y%4] += raw2ev[p];
+                num[y%4]++;
+            }
+        }
+    }
+
+    double min_ev = 100;
+    double max_ev = 0;
+    for (i = 0; i < 4; i++)
+    {
+        avg_ev[i] /= num[i];
+        min_ev = MIN(min_ev, avg_ev[i]);
+        max_ev = MAX(max_ev, avg_ev[i]);
+    }
+    
+    if (max_ev - min_ev > 0.5)
+        return 1;
+    
+    return 0;
+}
+
+static int hdr_interpolate()
+{
+    int black = raw_info.black_level;
+    int white = raw_info.white_level;
+
+    int w = raw_info.width;
+    int h = raw_info.height;
+
+    int x, y;
+
+    /* for fast EV - raw conversion */
+    static int raw2ev[16384];   /* EV x1000 */
+    static int ev2raw[14000];
+    
+    int i;
+    for (i = 0; i < 16384; i++)
+        raw2ev[i] = (int)round(log2(MAX(1, i - black)) * 1000.0);
+    for (i = 0; i < 14000; i++)
+        ev2raw[i] = COERCE(black + pow(2, (i/1000.0)), black, white);
+
+    /* first we need to know which lines are dark and which are bright */
+    /* the pattern is not always the same, so we need to autodetect it */
+
+    /* it may look like this */                       /* or like this */
+    /*
+               ab cd ef gh  ab cd ef gh               ab cd ef gh  ab cd ef gh
+                                       
+            0  RG RG RG RG  RG RG RG RG            0  rg rg rg rg  rg rg rg rg
+            1  gb gb gb gb  gb gb gb gb            1  gb gb gb gb  gb gb gb gb
+            2  rg rg rg rg  rg rg rg rg            2  RG RG RG RG  RG RG RG RG
+            3  GB GB GB GB  GB GB GB GB            3  GB GB GB GB  GB GB GB GB
+            4  RG RG RG RG  RG RG RG RG            4  rg rg rg rg  rg rg rg rg
+            5  gb gb gb gb  gb gb gb gb            5  gb gb gb gb  gb gb gb gb
+            6  rg rg rg rg  rg rg rg rg            6  RG RG RG RG  RG RG RG RG
+            7  GB GB GB GB  GB GB GB GB            7  GB GB GB GB  GB GB GB GB
+            8  RG RG RG RG  RG RG RG RG            8  rg rg rg rg  rg rg rg rg
+    */
+
+    double acc_bright[4] = {0, 0, 0, 0};
+    for (y = 2; y < h-2; y ++)
+    {
+        for (x = 2; x < w-2; x ++)
+        {
+            acc_bright[y % 4] += raw_get_pixel(x, y);
+        }
+    }
+    double avg_bright = (acc_bright[0] + acc_bright[1] + acc_bright[2] + acc_bright[3]) / 4;
+    int is_bright[4] = { acc_bright[0] > avg_bright, acc_bright[1] > avg_bright, acc_bright[2] > avg_bright, acc_bright[3] > avg_bright};
+
+    printf("\nISO pattern    : %c%c%c%c\n", is_bright[0] ? 'B' : 'd', is_bright[1] ? 'B' : 'd', is_bright[2] ? 'B' : 'd', is_bright[3] ? 'B' : 'd');
+    
+    if (is_bright[0] + is_bright[1] + is_bright[2] + is_bright[3] != 2)
+    {
+        printf("Bright/dark detection error\n");
+        return 0;
+    }
+
+    if (is_bright[0] == is_bright[2] || is_bright[1] == is_bright[3])
+    {
+        printf("Interlacing method not supported\n");
+        return 0;
+    }
+
+    /* dark and bright exposures, interpolated */
+    short* dark   = malloc(w * h * sizeof(short));
+    CHECK(dark, "malloc");
+    short* bright = malloc(w * h * sizeof(short));
+    CHECK(bright, "malloc");
+
+    memset(dark, 0, w * h * sizeof(short));
+    memset(bright, 0, w * h * sizeof(short));
+
+    #define BRIGHT_ROW (is_bright[y % 4])
+
+    #define EV_MEAN2(a,b) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383]) / 2]
+    #define EV_MEAN3(a,b,c) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383] + raw2ev[c & 16383]) / 3]
+
+    //~ #define EV_MEAN2(a,b) (a+b)/2
+    //~ #define EV_MEAN3(a,b,c) (a+b+c)/3
+
+    for (y = 2; y < h-2; y ++)
+    {
+        short* native = BRIGHT_ROW ? bright : dark;
+        short* interp = BRIGHT_ROW ? dark : bright;
+        int is_rg = (y % 2 == 0); /* RG or GB? */
+        
+        for (x = 2; x < w-2; x += 2)
+        {
+        
+            /* red/blue: interpolate from (x,y+2) and (x,y-2) */
+            /* green: interpolate from (x+1,y+1),(x-1,y+1),(x,y-2) or (x+1,y-1),(x-1,y-1),(x,y+2), whichever has the correct brightness */
+            
+            int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;
+            
+            if (is_rg)
+            {
+                int ra = raw_get_pixel(x, y-2);
+                int rb = raw_get_pixel(x, y+2);
+                int ri = (ra < white && rb < white) ? EV_MEAN2(ra, rb) : white;
+                
+                int ga = raw_get_pixel(x+1+1, y+s);
+                int gb = raw_get_pixel(x+1-1, y+s);
+                int gc = raw_get_pixel(x+1, y-2*s);
+                int gi = (ga < white && gb < white && gc < white) ? EV_MEAN3(ga, gb, gc) : white;
+
+                interp[x   + y * w] = ri;
+                interp[x+1 + y * w] = gi;
+            }
+            else
+            {
+                int ba = raw_get_pixel(x+1  , y-2);
+                int bb = raw_get_pixel(x+1  , y+2);
+                int bi = (ba < white && bb < white) ? EV_MEAN2(ba, bb) : white;
+
+                int ga = raw_get_pixel(x+1, y+s);
+                int gb = raw_get_pixel(x-1, y+s);
+                int gc = raw_get_pixel(x, y-2*s);
+                int gi = (ga < white && gb < white && gc < white) ? EV_MEAN3(ga, gb, gc) : white;
+
+                interp[x   + y * w] = gi;
+                interp[x+1 + y * w] = bi;
+            }
+
+            native[x   + y * w] = raw_get_pixel(x, y);
+            native[x+1 + y * w] = raw_get_pixel(x+1, y);
+        }
+    }
+    
+    /* border interpolation */
+    for (y = 0; y < 2; y ++)
+    {
+        short* native = BRIGHT_ROW ? bright : dark;
+        short* interp = BRIGHT_ROW ? dark : bright;
+        
+        for (x = 0; x < w; x ++)
+        {
+            interp[x + y * w] = raw_get_pixel(x, y+2);
+            native[x + y * w] = raw_get_pixel(x, y);
+        }
+    }
+
+    for (y = h-2; y < h; y ++)
+    {
+        short* native = BRIGHT_ROW ? bright : dark;
+        short* interp = BRIGHT_ROW ? dark : bright;
+        
+        for (x = 0; x < w; x ++)
+        {
+            interp[x + y * w] = raw_get_pixel(x, y-2);
+            native[x + y * w] = raw_get_pixel(x, y);
+        }
+    }
+
+    for (y = 2; y < h; y ++)
+    {
+        short* native = BRIGHT_ROW ? bright : dark;
+        short* interp = BRIGHT_ROW ? dark : bright;
+        
+        for (x = 0; x < 2; x ++)
+        {
+            interp[x + y * w] = raw_get_pixel(x, y-2);
+            native[x + y * w] = raw_get_pixel(x, y);
+        }
+
+        for (x = w-2; x < w; x ++)
+        {
+            interp[x + y * w] = raw_get_pixel(x, y-2);
+            native[x + y * w] = raw_get_pixel(x, y);
+        }
+    }
+
+    /* guess ISO - find the factor for matching the bright and dark images */
+    /* the exact value is not critical, so we can use some very simple math instead of robust statistics or linear least squares */
+    double factor = 0;
+    int num = 0;
+    for (y = 0; y < h; y ++)
+    {
+        for (x = 0; x < w; x ++)
+        {
+            int b = bright[x + y*w];
+            int d = dark[x + y*w];
+            if (b < white && d < white && b > black+128 && d > black+128)
+            {
+                factor += (raw2ev[b] - raw2ev[d]) / 1000.0;
+                num++;
+            }
+        }
+    }
+    factor /= num;
+    int corr = factor * 1000;
+    factor = pow(2, factor);
+
+    if (factor < 1.2 || !isfinite(factor))
+    {
+        printf("Doesn't look like interlaced ISO\n");
+        goto err;
+    }
+    
+    printf("ISO difference : %.2f EV (%d)\n", log2(factor), (int)round(factor*100));
+
+#if 1 /* for debugging only */
+    save_dng("normal.dng");
+    for (y = 0; y < h; y ++)
+        for (x = 0; x < w; x ++)
+            raw_set_pixel(x, y, bright[x + y*w]);
+    save_dng("bright.dng");
+    for (y = 0; y < h; y ++)
+        for (x = 0; x < w; x ++)
+            raw_set_pixel(x, y, dark[x + y*w]);
+    save_dng("dark.dng");
+#endif
+
+    /* mix the two images */
+    /* highlights:  keep data from dark image only */
+    /* shadows:     keep data from bright image only */
+    /* midtones:    mix data from both, to bring back the resolution */
+    
+    /* estimate ISO overlap */
+    /*
+      ISO 100:       ###...........  (11 stops)
+      ISO 1600:  ####..........      (10 stops)
+      Combined:  XX##..............  (14 stops)
+    */
+    double clipped_ev = log2(factor);
+    double lowiso_dr = 11;
+    double overlap = lowiso_dr - clipped_ev;
+
+    /* you get better colors, less noise, but a little more jagged edges if we underestimate the overlap amount */
+    /* maybe expose a tuning factor? (preference towards resolution or colors) */
+    overlap -= MIN(2, overlap - 2);
+    
+    printf("ISO overlap    : %.1f EV (approx)\n", overlap);
+    
+    if (overlap < 0.5)
+    {
+        printf("Overlap error\n");
+        goto err;
+    }
+    else if (overlap < 2)
+    {
+        printf("Overlap too small, use a smaller ISO difference for better results.\n");
+    }
+
+    /* mixing curve */
+    /* todo: full-resolution recovery (need very accurate black correction first) */
+    double max_ev = log2(white - black);
+    static int mix_curve[16384];
+    for (i = 0; i < 16384; i++)
+    {
+        double ev = log2(MAX(i - black, 1));
+        double c = -cos(MAX(MIN(ev-(max_ev-overlap),overlap),0)*M_PI/overlap);
+        double k = (c+1)/2;
+
+        mix_curve[i] = FIXP_ONE * k;
+    }
+
+#if 0
+    FILE* f = fopen("mix-curve.m", "w");
+    fprintf(f, "x = 0:16383; \n");
+
+    fprintf(f, "ev = [");
+    for (i = 0; i < 16384; i++)
+        fprintf(f, "%f ", log2(MAX(i - black, 1)));
+    fprintf(f, "];\n");
+    
+    fprintf(f, "k = [");
+    for (i = 0; i < 16384; i++)
+        fprintf(f, "%d ", mix_curve[i]);
+    fprintf(f, "];\n");
+    
+    fprintf(f, "plot(ev, k);\n");
+    fclose(f);
+    
+    system("octave --persist mix-curve.m");
+#endif
+
+    int hot_pixels = 0;
+
+    for (y = 0; y < h; y ++)
+    {
+        for (x = 0; x < w; x ++)
+        {
+            /* bright and dark source pixels  */
+            /* they may be real or interpolated */
+            int b0 = bright[x + y*w];
+            int d = dark[x + y*w];
+            
+            /* go from linear to EV space */
+            int bev = raw2ev[b0 & 16383];
+            int dev = raw2ev[d & 16383];
+            
+            /* darken bright pixel so it looks like its darker sibling  */
+            bev -= corr;
+            
+            /* blending factor */
+            int k = mix_curve[b0 & 16383];
+            
+            /* beware of hot pixels */
+            int is_hot = (k > 0 && b0 < white && dev > bev + 2000);
+            if (is_hot)
+            {
+                hot_pixels++;
+                k = 0;
+            }
+            
+            /* mix bright and dark exposures */
+            int mixed = COERCE((bev*(FIXP_ONE-k) + dev*k) / FIXP_ONE, 0, 14000-1);
+
+            /* for full resolution, but with horizontal banding */
+            //~ if (k > 0 && k < FIXP_ONE)
+                //~ mixed = BRIGHT_ROW ? bev : dev;
+
+            /* back to linear space and commit */
+            raw_set_pixel(x, y, ev2raw[mixed]);
+        }
+    }
+
+    if (hot_pixels)
+        printf("Hot pixels     : %d\n", hot_pixels);
+
+    free(dark);
+    free(bright);
+    return 1;
+
+err:
+    free(dark);
+    free(bright);
+    return 0;
+}
+
 static void fix_vertical_stripes()
 {
     /* for speed: only detect correction factors from the first frame */
@@ -474,5 +872,22 @@ static void fix_vertical_stripes()
     if (stripes_correction_needed)
     {
         apply_vertical_stripes_correction();
+    }
+}
+
+
+static void hdr_process()
+{
+    static int first_time = 1;
+    static int hdr_needed = 0;
+    if (first_time)
+    {
+        hdr_needed = hdr_check();
+        first_time = 0;
+    }
+    
+    if (hdr_needed)
+    {
+        hdr_interpolate();
     }
 }
