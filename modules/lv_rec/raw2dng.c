@@ -480,6 +480,7 @@ static void apply_vertical_stripes_correction()
 }
 
 /** HDR video interpolation */
+/** Technical details: https://dl.dropboxusercontent.com/u/4124919/bleeding-edge/isoless/dual_iso.pdf */
 
 /* quick check to see if this looks like a HDR frame */
 static int hdr_check()

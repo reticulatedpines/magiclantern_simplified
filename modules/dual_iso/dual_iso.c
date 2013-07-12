@@ -2,6 +2,8 @@
  * Dual ISO trick
  * Codenames: ISO-less mode, Nikon mode.
  * 
+ * Technical details: https://dl.dropboxusercontent.com/u/4124919/bleeding-edge/isoless/dual_iso.pdf
+ * 
  * 5D3 and 7D only.
  * Requires a camera with two analog amplifiers (cameras with 8-channel readout seem to have this).
  * 

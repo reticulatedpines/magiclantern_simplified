@@ -1,3 +1,9 @@
+/**
+ * Post-process CR2 images obtained with the Dual ISO module
+ * (deinterlace, blend the two exposures, output a 16-bit DNG with much cleaner shadows)
+ * 
+ * Technical details: https://dl.dropboxusercontent.com/u/4124919/bleeding-edge/isoless/dual_iso.pdf
+ */
 /*
  * Copyright (C) 2013 Magic Lantern Team
  * 
