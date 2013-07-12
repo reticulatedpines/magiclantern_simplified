@@ -1,6 +1,9 @@
 /**
  * Dual ISO trick
- * Codenames: ISO-less mode, Nikon mode. 5D3 only for now, with potential for 7D.
+ * Codenames: ISO-less mode, Nikon mode.
+ * 
+ * 5D3 and 7D only.
+ * Requires a camera with two analog amplifiers (cameras with 8-channel readout seem to have this).
  * 
  * Samples half of sensor lines at ISO 100 and the other half at ISO 1600 (or other user-defined values)
  * This trick cleans up shadow noise, resulting in a dynamic range improvement of around 3 stops on 5D3,
@@ -45,7 +48,13 @@
 static CONFIG_INT("isoless.hdr", isoless_hdr, 0);
 static CONFIG_INT("isoless.iso", isoless_recovery_iso, 4);
 
+extern WEAK_FUNC(ret_0) int raw_lv_is_enabled();
+extern WEAK_FUNC(ret_0) int get_dxo_dynamic_range();
+
 /* camera-specific constants */
+
+int is_7d = 0;
+
 uint32_t FRAME_CMOS_ISO_START = 0;
 uint32_t FRAME_CMOS_ISO_COUNT = 0;
 uint32_t FRAME_CMOS_ISO_SIZE = 0;
@@ -54,24 +63,56 @@ uint32_t PHOTO_CMOS_ISO_START = 0;
 uint32_t PHOTO_CMOS_ISO_COUNT = 0;
 uint32_t PHOTO_CMOS_ISO_SIZE = 0;
 
+uint32_t CMOS_ISO_BITS = 0;
+uint32_t CMOS_FLAG_BITS = 0;
+uint32_t CMOS_EXPECTED_FLAG = 0;
+
+#define CMOS_ISO_MASK ((1 << CMOS_ISO_BITS) - 1)
+#define CMOS_FLAG_MASK ((1 << CMOS_FLAG_BITS) - 1)
+
+/* 7D: transfer data to/from master memory */
+extern WEAK_FUNC(ret_0) uint32_t BulkOutIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t*, uint32_t, uint32_t), uint32_t cb_parm);
+extern WEAK_FUNC(ret_0) uint32_t BulkInIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t*, uint32_t, uint32_t), uint32_t cb_parm);
+
+static void bulk_cb(uint32_t *parm, uint32_t address, uint32_t length)
+{
+    *parm = 0;
+}
+
 static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* backup)
 {
+        /* for 7D */
+        int start_addr_0 = start_addr;
+        static uint8_t * local_buf = 0;
+        
+        if (is_7d) /* start_addr is on master */
+        {
+            /* with static alloc, it sometimes works and sometimes not */
+            /* with this seems to be OK */
+            /* fixme: memory leaks on error paths */
+            local_buf = alloc_dma_memory(size * count);
+            volatile uint32_t wait = 1;
+            BulkInIPCTransfer(0, local_buf, size * count, start_addr, &bulk_cb, (uint32_t) &wait);
+            while(wait) msleep(20);
+            start_addr = (uint32_t) local_buf + 2; /* our numbers are aligned at 16 bits, but not at 32 */
+        }
+    
         /* sanity check first */
         
         int prev_iso = 0;
         for (int i = 0; i < count; i++)
         {
             uint16_t raw = *(uint16_t*)(start_addr + i * size);
-            int flag = raw & 0xF;
-            int iso1 = (raw >> 4) & 0xF;
-            int iso2 = (raw >> 8) & 0xF;
-            int reg = (raw >> 12) & 0xF;
-            
+            uint32_t flag = raw & CMOS_FLAG_MASK;
+            int iso1 = (raw >> CMOS_FLAG_BITS) & CMOS_ISO_MASK;
+            int iso2 = (raw >> (CMOS_FLAG_BITS + CMOS_ISO_BITS)) & CMOS_ISO_MASK;
+            int reg  = (raw >> 12) & 0xF;
+
             if (reg != 0)
                 return 1;
             
-            if (flag != 3)
-                return 2; /* important? no idea */
+            if (flag != CMOS_EXPECTED_FLAG)
+                return 2;
             
             if (iso1 != iso2)
                 return 3;
@@ -82,7 +123,7 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
             prev_iso = iso1;
         }
         
-        if (prev_iso < 10)
+        if (prev_iso < 10 && !is_7d)
             return 5;
         
         /* backup old values */
@@ -97,12 +138,20 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
         {
             uint16_t raw = *(uint16_t*)(start_addr + i * size);
             int my_raw = backup[COERCE(isoless_recovery_iso, 0, count-1)];
-            int my_iso2 = (my_raw >> 8) & 0xF;
 
-            raw &= ~(0xF << 8);
-            raw |= (my_iso2 << 8);
+            int my_iso2 = (my_raw >> (CMOS_FLAG_BITS + CMOS_ISO_BITS)) & CMOS_ISO_MASK;
+            raw &= ~(CMOS_ISO_MASK << (CMOS_FLAG_BITS + CMOS_ISO_BITS));
+            raw |= (my_iso2 << (CMOS_FLAG_BITS + CMOS_ISO_BITS));
             
             *(uint16_t*)(start_addr + i * size) = raw;
+        }
+
+        if (is_7d) /* commit the changes on master */
+        {
+            volatile uint32_t wait = 1;
+            BulkOutIPCTransfer(0, (uint8_t*)start_addr - 2, size * count, start_addr_0, &bulk_cb, (uint32_t) &wait);
+            while(wait) msleep(20);
+            free(local_buf);
         }
 
         /* success */
@@ -111,10 +160,31 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
 
 static int isoless_disable(uint32_t start_addr, int size, int count, uint16_t* backup)
 {
+    /* for 7D */
+    int start_addr_0 = start_addr;
+    static uint8_t * local_buf = 0;
+    
+    if (is_7d) /* start_addr is on master */
+    {
+        local_buf = alloc_dma_memory(size * count);
+        volatile uint32_t wait = 1;
+        BulkInIPCTransfer(0, local_buf, size * count, start_addr, &bulk_cb, (uint32_t) &wait);
+        while(wait) msleep(20);
+        start_addr = (uint32_t) local_buf + 2;
+    }
+
     /* just restore saved values */
     for (int i = 0; i < count; i++)
     {
         *(uint16_t*)(start_addr + i * size) = backup[i];
+    }
+
+    if (is_7d) /* commit the changes on master */
+    {
+        volatile uint32_t wait = 1;
+        BulkOutIPCTransfer(0, (uint8_t*)start_addr - 2, size * count, start_addr_0, &bulk_cb, (uint32_t) &wait);
+        while(wait) msleep(20);
+        free(local_buf);
     }
 
     /* success */
@@ -156,14 +226,14 @@ static unsigned int isoless_refresh(unsigned int ctx)
 
     if (isoless_hdr && raw)
     {
-        if (!enabled_ph)
+        if (!enabled_ph && PHOTO_CMOS_ISO_START)
         {
             enabled_ph = 1;
             int err = isoless_enable(PHOTO_CMOS_ISO_START, PHOTO_CMOS_ISO_SIZE, PHOTO_CMOS_ISO_COUNT, backup_ph);
             if (err) { NotifyBox(10000, "ISOless PH err(%d)", err); enabled_ph = 0; }
         }
         
-        if (!enabled_lv && lv && mv)
+        if (!enabled_lv && lv && mv && FRAME_CMOS_ISO_START)
         {
             enabled_lv = 1;
             int err = isoless_enable(FRAME_CMOS_ISO_START, FRAME_CMOS_ISO_SIZE, FRAME_CMOS_ISO_COUNT, backup_lv);
@@ -240,10 +310,15 @@ static MENU_UPDATE_FUNC(isoless_check)
     if (iso1 == iso2)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Both ISOs are identical, nothing to do.");
 
-    int raw = is_movie_mode() ? raw_lv_is_enabled() : ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF));
+    if (!get_dxo_dynamic_range(72))
+        MENU_SET_WARNING(MENU_WARN_ADVICE, "No dynamic range info available.");
+
+    int mvi = is_movie_mode() && FRAME_CMOS_ISO_START;
+
+    int raw = mvi ? raw_lv_is_enabled() : ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF));
 
     if (!raw)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "[%s] You must shoot RAW in order to use this.", is_movie_mode() ? "MOVIE" : "PHOTO");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "[%s] You must shoot RAW in order to use this.", mvi ? "MOVIE" : "PHOTO");
 }
 
 static MENU_UPDATE_FUNC(isoless_dr_update)
@@ -253,7 +328,10 @@ static MENU_UPDATE_FUNC(isoless_dr_update)
     
     isoless_check(entry, info);
     if (info->warning_level)
+    {
+        MENU_SET_VALUE("N/A");
         return;
+    }
     
     int iso_hi = MAX(iso1, iso2);
     int iso_lo = MIN(iso1, iso2);
@@ -278,7 +356,10 @@ static MENU_UPDATE_FUNC(isoless_overlap_update)
     
     isoless_check(entry, info);
     if (info->warning_level)
+    {
+        MENU_SET_VALUE("N/A");
         return;
+    }
     
     int iso_diff = (iso_hi - iso_lo) / 8;
     int dr_lo = (get_dxo_dynamic_range(iso_lo)+50)/100;
@@ -294,7 +375,8 @@ static MENU_UPDATE_FUNC(isoless_update)
     
     int iso1 = 72 + isoless_recovery_iso * 8;
     int iso2 = lens_info.raw_iso/8*8;
-    
+    MENU_SET_VALUE("%d/%d", raw2iso(iso2), raw2iso(iso1));
+
     isoless_check(entry, info);
     if (info->warning_level)
         return;
@@ -309,7 +391,6 @@ static MENU_UPDATE_FUNC(isoless_update)
     int dr_total = dr_gained - dr_lost;
     dr_total /= 10;
     
-    MENU_SET_VALUE("%d/%d", raw2iso(iso2), raw2iso(iso1));
     MENU_SET_RINFO("DR+%d.%d", dr_total/10, dr_total%10);
 }
 
@@ -363,9 +444,25 @@ static unsigned int isoless_init()
         PHOTO_CMOS_ISO_START = 0x40451120; // CMOS register 0000 - for photo mode, ISO 100
         PHOTO_CMOS_ISO_COUNT =          8; // from ISO 100 to 12800
         PHOTO_CMOS_ISO_SIZE  =         18; // distance between ISO 100 and ISO 200 addresses, in bytes
+
+        CMOS_ISO_BITS = 4;
+        CMOS_FLAG_BITS = 4;
+        CMOS_EXPECTED_FLAG = 3;
+    }
+    else if (streq(camera_model_short, "7D"))
+    {
+        is_7d = 1;
+        
+        PHOTO_CMOS_ISO_START = 0x406944f4; // CMOS register 0000 - for photo mode, ISO 100
+        PHOTO_CMOS_ISO_COUNT =          6; // from ISO 100 to 3200
+        PHOTO_CMOS_ISO_SIZE  =         14; // distance between ISO 100 and ISO 200 addresses, in bytes
+
+        CMOS_ISO_BITS = 3;
+        CMOS_FLAG_BITS = 2;
+        CMOS_EXPECTED_FLAG = 0;
     }
     
-    if (FRAME_CMOS_ISO_START && PHOTO_CMOS_ISO_START)
+    if (FRAME_CMOS_ISO_START || PHOTO_CMOS_ISO_START)
     {
         menu_add("Expo", isoless_menu, COUNT(isoless_menu));
     }
