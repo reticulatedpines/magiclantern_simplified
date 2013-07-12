@@ -601,6 +601,11 @@ int is_pure_play_movie_mode() // no other dialogs active (such as delete)
 
 int is_pure_play_photo_or_movie_mode() { return is_pure_play_photo_mode() || is_pure_play_movie_mode(); }
 
+int is_play_or_qr_mode()
+{
+    return PLAY_OR_QR_MODE;
+}
+
 #ifdef FEATURE_SET_MAINDIAL
 
 static void print_set_maindial_hint(int set)
