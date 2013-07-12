@@ -879,14 +879,19 @@ static void draw_zebras_raw()
 
     for (int i = os.y0; i < os.y_max; i ++)
     {
+        int y = BM2RAW_Y(i);
+
         for (int j = os.x0; j < os.x_max; j ++)
         {
             int x = BM2RAW_X(j);
-            int y = BM2RAW_Y(i);
-            int r = raw_red_pixel(x, y);
-            int g = raw_green_pixel(x, y);
-            int b = raw_blue_pixel(x, y);
-        
+
+            /* for dual ISO: use dark lines for overexposure and bright lines for underexposure */
+            /* impact on normal ISOs should be minimal */
+            int r = raw_red_pixel_dark(x, y);
+            int g = raw_green_pixel_dark(x, y);
+            int b = raw_blue_pixel_dark(x, y);
+            int u = raw_green_pixel_bright(x, y);
+
             /* define this to check if color channels are identified correctly */
             #undef RAW_ZEBRA_TEST
             
@@ -904,8 +909,7 @@ static void draw_zebras_raw()
             }
             #endif
             
-            int m = MAX(MAX(r,g), b);
-            int c = zebra_rgb_solid_color(m <= underexposed, r > white, g > white, b > white);
+            int c = zebra_rgb_solid_color(u <= underexposed, r > white, g > white, b > white);
             if (c)
             {
                 uint8_t* bp = (uint8_t*) &bvram[BM(j,i)];
@@ -941,19 +945,19 @@ static void FAST draw_zebras_raw_lv()
     int off = get_y_skip_offset_for_overlays();
     for(int i = os.y0 + off; i < os.y_max - off; i += 2 )
     {
-        uint32_t * const b_row = (uint32_t*)( bvram        + BM_R(i)       );  // 2 pixels
-        uint32_t * const m_row = (uint32_t*)( bvram_mirror + BM_R(i)       );  // 2 pixels
+        uint64_t * const b_row = (uint32_t*)( bvram        + BM_R(i)       );  // 2 pixels
+        uint64_t * const m_row = (uint32_t*)( bvram_mirror + BM_R(i)       );  // 2 pixels
         
-        uint32_t* bp;  // through bmp vram
-        uint32_t* mp;  // through mirror
+        uint64_t* bp;  // through bmp vram
+        uint64_t* mp;  // through mirror
 
         int y = BM2RAW_Y(i);
         if (y < raw_info.active_area.y1 || y > raw_info.active_area.y2) continue;
         
-        for (int j = os.x0; j < os.x_max; j += 4)
+        for (int j = os.x0; j < os.x_max; j += 8)
         {
-            bp = b_row + j/4;
-            mp = m_row + j/4;
+            bp = b_row + j/8;
+            mp = m_row + j/8;
             
             #define BP (*bp)
             #define MP (*mp)
@@ -965,11 +969,14 @@ static void FAST draw_zebras_raw_lv()
             
             if (x < raw_info.active_area.x1 || x > raw_info.active_area.x2) continue;
             
-            int r = raw_red_pixel(x, y);
-            int g = raw_green_pixel(x, y);
-            int b = raw_blue_pixel(x, y);
-            int m = MAX(MAX(r,g), b);
-            int c = zebra_rgb_solid_color(m <= underexposed, r > white, g > white, b > white);
+            /* for dual ISO: use dark lines for overexposure and bright lines for underexposure */
+            int r = raw_red_pixel_dark(x, y);
+            int g = raw_green_pixel_dark(x, y);
+            int b = raw_blue_pixel_dark(x, y);
+            int u = raw_green_pixel_bright(x, y);
+
+            uint64_t c = zebra_rgb_solid_color(u <= underexposed, r > white, g > white, b > white);
+            c = c | (c << 32);
 
             MP = BP = c;
 

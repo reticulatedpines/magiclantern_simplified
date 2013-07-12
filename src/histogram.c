@@ -53,9 +53,9 @@ void hist_build_raw()
             int x = BM2RAW_X(j);
             if (x < raw_info.active_area.x1 || x > raw_info.active_area.x2) continue;
             
-            int r = raw_red_pixel(x, y);
-            int g = raw_green_pixel(x, y);
-            int b = raw_blue_pixel(x, y);
+            int r = raw_red_pixel_dark(x, y);
+            int g = raw_green_pixel_dark(x, y);
+            int b = raw_blue_pixel_dark(x, y);
 
             /* only show a 12-bit hisogram, since the rest is just noise */
             int ir = COERCE((raw_to_ev(r) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
@@ -441,11 +441,13 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
         speed = COERCE(speed, 1, 16);
         for (int i = os.y0 + off; i < os.y_max - off; i += speed)
         {
+            int y = BM2RAW_Y(i);
             for (int j = os.x0; j < os.x_max; j += speed)
             {
                 int x = BM2RAW_X(j);
-                int y = BM2RAW_Y(i);
-                int px = raw_get_gray_pixel(x, y, gray_projection);
+                int px1 = raw_get_gray_pixel(x, y, gray_projection);
+                int px2 = raw_get_gray_pixel(x, y+2, gray_projection);
+                int px = MIN(px1, px2);
                 hist[px & 16383]++;
             }
         }
@@ -501,11 +503,13 @@ int raw_hist_get_overexposure_percentage(int gray_projection)
     
     for (int i = os.y0; i < os.y_max; i += step)
     {
+        int y = BM2RAW_Y(i);
         for (int j = os.x0; j < os.x_max; j += step)
         {
             int x = BM2RAW_X(j);
-            int y = BM2RAW_Y(i);
-            int px = raw_get_gray_pixel(x, y, gray_projection);
+            int px1 = raw_get_gray_pixel(x, y, gray_projection);
+            int px2 = raw_get_gray_pixel(x, y+2, gray_projection);
+            int px = MIN(px1, px2);
             if (px >= white) over++;
             total++;
         }

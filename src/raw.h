@@ -96,6 +96,15 @@ int raw_get_gray_pixel(int x, int y, int gray_projection);
 #define GRAY_PROJECTION_MAX_RB 5
 #define GRAY_PROJECTION_MEDIAN_RGB 6
 
+/* for dual ISO: get pixel from a specific exposure, bright or dark (autodetected on the fly) */
+int raw_red_pixel_dark(int x, int y);
+int raw_green_pixel_dark(int x, int y);
+int raw_blue_pixel_dark(int x, int y);
+int raw_red_pixel_bright(int x, int y);
+int raw_green_pixel_bright(int x, int y);
+int raw_blue_pixel_bright(int x, int y);
+
+
 /* input: 0 - 16384 (valid range: from black level to white level) */
 /* output: -14 ... 0 */
 float raw_to_ev(int raw);

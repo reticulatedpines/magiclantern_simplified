@@ -778,6 +778,55 @@ int FAST raw_blue_pixel(int x, int y)
     return buf[i].h;
 }
 
+int FAST raw_red_pixel_dark(int x, int y)
+{
+    struct raw_pixblock * buf = raw_info.buffer;
+    y = (y/2) * 2;
+    int i = ((y * raw_info.width + x) / 8);
+    return MIN(buf[i].a, buf[i - raw_info.width*2/8].a);
+}
+
+int FAST raw_green_pixel_dark(int x, int y)
+{
+    struct raw_pixblock * buf = raw_info.buffer;
+    y = (y/2) * 2;
+    int i = ((y * raw_info.width + x) / 8);
+    return MIN(buf[i].h, buf[i - raw_info.width*2/8].h);
+}
+
+int FAST raw_blue_pixel_dark(int x, int y)
+{
+    struct raw_pixblock * buf = raw_info.buffer;
+    y = (y/2) * 2 - 1;
+    int i = ((y * raw_info.width + x) / 8);
+    return MIN(buf[i].h, buf[i - raw_info.width*2/8].h);
+}
+
+int FAST raw_red_pixel_bright(int x, int y)
+{
+    struct raw_pixblock * buf = raw_info.buffer;
+    y = (y/2) * 2;
+    int i = ((y * raw_info.width + x) / 8);
+    return MAX(buf[i].a, buf[i - raw_info.width*2/8].a);
+}
+
+int FAST raw_green_pixel_bright(int x, int y)
+{
+    struct raw_pixblock * buf = raw_info.buffer;
+    y = (y/2) * 2;
+    int i = ((y * raw_info.width + x) / 8);
+    return MAX(buf[i].h, buf[i - raw_info.width*2/8].h);
+}
+
+int FAST raw_blue_pixel_bright(int x, int y)
+{
+    struct raw_pixblock * buf = raw_info.buffer;
+    y = (y/2) * 2 - 1;
+    int i = ((y * raw_info.width + x) / 8);
+    return MAX(buf[i].h, buf[i - raw_info.width*2/8].h);
+}
+
+
 int FAST raw_get_pixel(int x, int y) {
     struct raw_pixblock * p = (void*)raw_info.buffer + y * raw_info.pitch + (x/8)*14;
     switch (x%8) {
@@ -942,16 +991,25 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
 
 static int autodetect_black_level(float* black_mean, float* black_stdev)
 {
-    float mean = 0;
-    float stdev = 0;
+    /* also handle black level for dual ISO */
+    float mean1 = 0;
+    float stdev1 = 0;
+    float mean2 = 0;
+    float stdev2 = 0;
     
     if (raw_info.active_area.x1 > 10) /* use the left black bar for black calibration */
     {
         autodetect_black_level_calc(
             4, raw_info.active_area.x1 - 4,
             raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 
-            3, 5,
-            &mean, &stdev
+            3, 4,
+            &mean1, &stdev1
+        );
+        autodetect_black_level_calc(
+            4, raw_info.active_area.x1 - 4,
+            raw_info.active_area.y1 + 22, raw_info.active_area.y2 - 20, 
+            3, 4,
+            &mean2, &stdev2
         );
     }
     else /* use the top black bar for black calibration */
@@ -959,15 +1017,22 @@ static int autodetect_black_level(float* black_mean, float* black_stdev)
         autodetect_black_level_calc(
             raw_info.active_area.x1 + 20, raw_info.active_area.x2 - 20, 
             4, raw_info.active_area.y1 - 4,
-            5, 3,
-            &mean, &stdev
+            5, 4,
+            &mean1, &stdev1
+        );
+        autodetect_black_level_calc(
+            raw_info.active_area.x1 + 20, raw_info.active_area.x2 - 20, 
+            6, raw_info.active_area.y1 - 4,
+            5, 4,
+            &mean2, &stdev2
         );
     }
+    
+    /* does it look like dual ISO? take the DR from the cleanest half */
+    *black_mean = (mean1 + mean2) / 2;
+    *black_stdev = MIN(stdev1, stdev2);
 
-    *black_mean = mean;
-    *black_stdev = stdev;
-
-    return mean;
+    return *black_mean;
 }
 
 
