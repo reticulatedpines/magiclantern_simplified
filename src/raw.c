@@ -280,7 +280,7 @@ static int dynamic_ranges[] = {1091, 1072, 1055, 999, 910, 824, 736, 662};
 #endif
 
 #ifdef CONFIG_50D
-static int dynamic_ranges[] = {1094, 1060, 1005, 919, 826, 726, 633};
+static int dynamic_ranges[] = {1100, 1094, 1060, 1005, 919, 826, 726, 633};
 #endif
 
 #ifdef CONFIG_EOSM
