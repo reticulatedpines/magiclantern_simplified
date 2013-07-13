@@ -284,7 +284,7 @@ static int black_subtract(int left_margin, int top_margin)
     save_dng("untouched.dng");
 #endif
 
-    printf("Black frame    : %d left, %d top\n", left_margin, top_margin);
+    printf("Black borders  : %d left, %d top\n", left_margin, top_margin);
 
     int w = raw_info.width;
     int h = raw_info.height;
@@ -531,7 +531,7 @@ static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_d
             for (k = 0; k < num; k++)
                 aux[k] = bright[order[k+i]];
             int m = median_short(aux, num);
-            if (m > black + 32 && m < white)
+            if (m > black + 32 && m < white - 1000)
             {
                 medians_x[num_medians] = ref - black;
                 medians_y[num_medians] = m - black;
