@@ -762,7 +762,11 @@ void set_lv_zoom(int zoom)
     if (is_movie_mode() && video_mode_crop) return;
     zoom = COERCE(zoom, 1, 10);
     if (zoom > 1 && zoom < 10) zoom = 5;
+    
+    ui_lock(UILOCK_EVERYTHING);
     prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+    msleep(200);
+    ui_lock(UILOCK_NONE);
 }
 
 int get_mlu_delay(int raw)
@@ -3046,62 +3050,29 @@ static void zoom_x5_x10_toggle(void* priv, int delta)
     }
 }
 
-static void zoom_lv_face_step()
+static void zoom_halfshutter_step()
 {
 #ifdef CONFIG_LIVEVIEW
     if (!lv) return;
     if (recording) return;
-    /*if (face_zoom_request && lv_dispsize == 1 && !recording)
-    {
-        if (lvaf_mode == 2 && wait_for_lv_err_msg(200)) // zoom request in face detect mode; temporary switch to live focus mode
-        {
-            int afmode = 1;
-            int afx = afframe[2];
-            int afy = afframe[3];
-            prop_request_change(PROP_LVAF_MODE, &afmode, 4);
-            msleep(100);
-            afframe[2] = afx;
-            afframe[3] = afy;
-            prop_request_change(PROP_LV_AFFRAME, afframe, 0);
-            msleep(1);
-            set_lv_zoom(5);
-            msleep(1);
-        }
-        else if (lvaf_mode == 1) // back from temporary live focus mode
-        {
-            int afmode = 2;
-            prop_request_change(PROP_LVAF_MODE, &afmode, 4);
-            msleep(100);
-            face_zoom_request = 0;
-            //~ bmp_printf(FONT_LARGE, 10, 50, "       ");
-        }
-        else // cancel zoom request
-        {
-            msleep(100);
-            face_zoom_request = 0;
-            //~ bmp_printf(FONT_LARGE, 10, 50, "Zoom :(");
-        }
-    }*/
     
     if (zoom_halfshutter && is_manual_focus())
     {
         int hs = get_halfshutter_pressed();
         if (hs && lv_dispsize == 1)
         {
-            msleep(200);
+            msleep(100);
             if (hs && lv_dispsize == 1)
             {
                 zoom_was_triggered_by_halfshutter = 1;
                 int zoom = zoom_disable_x10 ? 5 : 10;
                 set_lv_zoom(zoom);
-                msleep(100);
             }
         }
         if (!hs && lv_dispsize > 1 && zoom_was_triggered_by_halfshutter)
         {
             zoom_was_triggered_by_halfshutter = 0;
             set_lv_zoom(1);
-            msleep(100);
         }
     }
 #endif
@@ -6452,7 +6423,7 @@ shoot_task( void* unused )
             zoom_focus_ring_engage();
             zoom_focus_ring_flag = 0;
         }
-        zoom_lv_face_step();
+        zoom_halfshutter_step();
         zoom_focus_ring_step();
         #endif
         
