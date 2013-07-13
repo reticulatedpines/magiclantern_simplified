@@ -25,6 +25,7 @@
 #include "lv_rec.h"
 #include <raw.h>
 #include <chdk-dng.h>
+#include "qsort.h"  /* much faster than standard C qsort */
 
 lv_rec_file_footer_t lv_rec_footer;
 struct raw_info raw_info;
@@ -448,6 +449,7 @@ static void apply_vertical_stripes_correction()
         }
     }
     
+    int black = raw_info.black_level;
     for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(struct raw_pixblock))
     {
         struct raw_pixblock * p;
@@ -465,16 +467,18 @@ static void apply_vertical_stripes_correction()
             /**
              * Thou shalt not exceed the white level (the exact one, not the exif one)
              * otherwise you'll be blessed with banding instead of nice and smooth highlight recovery
+             * 
+             * At very dark levels, you will introduce roundoff errors, so don't correct there
              */
             
-            if (stripes_coeffs[0] && pa && pa < white) SET_PA(MIN(white, RAW_MUL(pa, stripes_coeffs[0])));
-            if (stripes_coeffs[1] && pb && pb < white) SET_PB(MIN(white, RAW_MUL(pb, stripes_coeffs[1])));
-            if (stripes_coeffs[2] && pc && pc < white) SET_PC(MIN(white, RAW_MUL(pc, stripes_coeffs[2])));
-            if (stripes_coeffs[3] && pd && pd < white) SET_PD(MIN(white, RAW_MUL(pd, stripes_coeffs[3])));
-            if (stripes_coeffs[4] && pe && pe < white) SET_PE(MIN(white, RAW_MUL(pe, stripes_coeffs[4])));
-            if (stripes_coeffs[5] && pf && pf < white) SET_PF(MIN(white, RAW_MUL(pf, stripes_coeffs[5])));
-            if (stripes_coeffs[6] && pg && pg < white) SET_PG(MIN(white, RAW_MUL(pg, stripes_coeffs[6])));
-            if (stripes_coeffs[7] && ph && ph < white) SET_PH(MIN(white, RAW_MUL(ph, stripes_coeffs[7])));
+            if (stripes_coeffs[0] && pa && pa < white && pa > black + 64) SET_PA(MIN(white, RAW_MUL(pa, stripes_coeffs[0])));
+            if (stripes_coeffs[1] && pb && pb < white && pa > black + 64) SET_PB(MIN(white, RAW_MUL(pb, stripes_coeffs[1])));
+            if (stripes_coeffs[2] && pc && pc < white && pa > black + 64) SET_PC(MIN(white, RAW_MUL(pc, stripes_coeffs[2])));
+            if (stripes_coeffs[3] && pd && pd < white && pa > black + 64) SET_PD(MIN(white, RAW_MUL(pd, stripes_coeffs[3])));
+            if (stripes_coeffs[4] && pe && pe < white && pa > black + 64) SET_PE(MIN(white, RAW_MUL(pe, stripes_coeffs[4])));
+            if (stripes_coeffs[5] && pf && pf < white && pa > black + 64) SET_PF(MIN(white, RAW_MUL(pf, stripes_coeffs[5])));
+            if (stripes_coeffs[6] && pg && pg < white && pa > black + 64) SET_PG(MIN(white, RAW_MUL(pg, stripes_coeffs[6])));
+            if (stripes_coeffs[7] && ph && ph < white && pa > black + 64) SET_PH(MIN(white, RAW_MUL(ph, stripes_coeffs[7])));
         }
     }
 }
@@ -527,6 +531,110 @@ static int hdr_check()
         return 1;
     
     return 0;
+}
+
+static int median_short(short* x, int n)
+{
+    short* aux = malloc(n * sizeof(x[0]));
+    CHECK(aux, "malloc");
+    memcpy(aux, x, n * sizeof(aux[0]));
+    //~ qsort(aux, n, sizeof(aux[0]), compare_short);
+    #define short_lt(a,b) ((*a)<(*b))
+    QSORT(short, aux, n, short_lt);
+    int ans = aux[n/2];
+    free(aux);
+    return ans;
+}
+
+static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_delta)
+{
+    /* guess ISO - find the factor and the offset for matching the bright and dark images */
+    /* method: for each X (dark image) level, compute median of corresponding Y (bright image) values */
+    /* then do a straight line fitting */
+
+    int black = raw_info.black_level;
+    int white = raw_info.white_level;
+
+    int w = raw_info.width;
+    int h = raw_info.height;
+    
+    int* order = malloc(w * h * sizeof(order[0]));
+    CHECK(order, "malloc");
+    
+    int i, j, k;
+    for (i = 0; i < w * h; i++)
+        order[i] = i;
+
+    /* sort the low ISO tones and process them as RLE */
+    #define darkidx_lt(a,b) (dark[(*a)]<dark[(*b)])
+    QSORT(int, order, w*h, darkidx_lt);
+    
+    int* medians_x = malloc(white * sizeof(medians_x[0]));
+    int* medians_y = malloc(white * sizeof(medians_y[0]));
+    int num_medians = 0;
+
+    for (i = 0; i < w*h; )
+    {
+        int ref = dark[order[i]];
+        for (j = i+1; j < w*h && dark[order[j]] == ref; j++);
+
+        /* same dark value from i to j (without j) */
+        int num = (j - i);
+        short* aux = malloc(num * sizeof(aux[0]));
+        for (k = 0; k < num; k++)
+            aux[k] = bright[order[k+i]];
+        int m = median_short(aux, num);
+        if (ref > black + 32 && m > black + 32 && m < white)
+        {
+            medians_x[num_medians] = ref - black;
+            medians_y[num_medians] = m - black;
+            num_medians++;
+            //~ printf("%d %d %d\n", ref, num, m);
+        }
+        free(aux);
+        
+        i = j;
+    }
+    
+    /**
+     * plain least squares
+     * y = ax + b
+     * a = (mean(xy) - mean(x)mean(y)) / (mean(x^2) - mean(x)^2)
+     * b = mean(y) - a mean(x)
+     */
+    
+    double mx, my, mxy, mx2;
+    for (i = 0; i < num_medians; i++)
+    {
+        mx += medians_x[i];
+        my += medians_y[i];
+        mxy += medians_x[i] * medians_y[i];
+        mx2 += medians_x[i] * medians_x[i];
+    }
+    mx /= num_medians;
+    my /= num_medians;
+    mxy /= num_medians;
+    mx2 /= num_medians;
+    double a = (mxy - mx*my) / (mx2 - mx*mx);
+    double b = my - a * mx;
+
+    free(medians_x);
+    free(medians_y);
+    free(order);
+
+    double factor = a;
+    if (factor < 1.2 || !isfinite(factor))
+    {
+        printf("Doesn't look like interlaced ISO\n");
+        return 0;
+    }
+    
+    printf("ISO difference : %.2f EV (%d)\n", log2(factor), (int)round(factor*100));
+    printf("Black delta    : %d\n", (int)round(b / a));
+    
+    *corr_ev = log2(factor);
+    *black_delta = -(int)round(b / a);
+    return 1;
 }
 
 static int hdr_interpolate()
@@ -700,36 +808,14 @@ static int hdr_interpolate()
         }
     }
 
-    /* guess ISO - find the factor for matching the bright and dark images */
-    /* the exact value is not critical, so we can use some very simple math instead of robust statistics or linear least squares */
-    double factor = 0;
-    int num = 0;
-    for (y = 0; y < h; y ++)
-    {
-        for (x = 0; x < w; x ++)
-        {
-            int b = bright[x + y*w];
-            int d = dark[x + y*w];
-            if (b < white && d < white && b > black+128 && d > black+128)
-            {
-                factor += (raw2ev[b] - raw2ev[d]) / 1000.0;
-                num++;
-            }
-        }
-    }
-    factor /= num;
-    int corr = factor * 1000;
-    factor = pow(2, factor);
+    /* estimate ISO and black difference between bright and dark exposures */
+    float corr_ev = 0;
+    int black_delta = 0;
+    int ok = estimate_iso(dark, bright, &corr_ev, &black_delta);
+    if (!ok) goto err;
+    int corr = (int)roundf(corr_ev * 1000);
 
-    if (factor < 1.2 || !isfinite(factor))
-    {
-        printf("Doesn't look like interlaced ISO\n");
-        goto err;
-    }
-    
-    printf("ISO difference : %.2f EV (%d)\n", log2(factor), (int)round(factor*100));
-
-#if 1 /* for debugging only */
+#if 0 /* for debugging only */
     save_dng("normal.dng");
     for (y = 0; y < h; y ++)
         for (x = 0; x < w; x ++)
@@ -752,7 +838,7 @@ static int hdr_interpolate()
       ISO 1600:  ####..........      (10 stops)
       Combined:  XX##..............  (14 stops)
     */
-    double clipped_ev = log2(factor);
+    double clipped_ev = corr_ev;
     double lowiso_dr = 11;
     double overlap = lowiso_dr - clipped_ev;
 
@@ -772,17 +858,23 @@ static int hdr_interpolate()
         printf("Overlap too small, use a smaller ISO difference for better results.\n");
     }
 
-    /* mixing curve */
-    /* todo: full-resolution recovery (need very accurate black correction first) */
+    /* mixing curves */
     double max_ev = log2(white - black);
     static int mix_curve[16384];
+    static int fullres_curve[16384];
     for (i = 0; i < 16384; i++)
     {
         double ev = log2(MAX(i - black, 1));
         double c = -cos(MAX(MIN(ev-(max_ev-overlap),overlap),0)*M_PI/overlap);
         double k = (c+1)/2;
+        double f = 1 - pow(c, 4);
+        
+        /* this looks very ugly at iso > 1600 */
+        if (corr_ev > 4.5)
+            f = 0;
 
         mix_curve[i] = FIXP_ONE * k;
+        fullres_curve[i] = FIXP_ONE * f;
     }
 
 #if 0
@@ -814,7 +906,7 @@ static int hdr_interpolate()
             /* bright and dark source pixels  */
             /* they may be real or interpolated */
             int b0 = bright[x + y*w];
-            int d = dark[x + y*w];
+            int d = dark[x + y*w] - black_delta;
             
             /* go from linear to EV space */
             int bev = raw2ev[b0 & 16383];
@@ -823,26 +915,34 @@ static int hdr_interpolate()
             /* darken bright pixel so it looks like its darker sibling  */
             bev -= corr;
             
-            /* blending factor */
+            /* blending factors */
             int k = mix_curve[b0 & 16383];
-            
+            int f = fullres_curve[b0 & 16383];
+
             /* beware of hot pixels */
             int is_hot = (k > 0 && b0 < white && dev > bev + 2000);
             if (is_hot)
             {
                 hot_pixels++;
-                k = 0;
+                k = f = 0;
             }
-            
+
             /* mix bright and dark exposures */
-            int mixed = COERCE((bev*(FIXP_ONE-k) + dev*k) / FIXP_ONE, 0, 14000-1);
-
-            /* for full resolution, but with horizontal banding */
-            //~ if (k > 0 && k < FIXP_ONE)
-                //~ mixed = BRIGHT_ROW ? bev : dev;
-
+            double mixed = (bev*(FIXP_ONE-k) + dev*k) / FIXP_ONE;
+            
+            /* recover the full resolution where possible */
+            double fullres = BRIGHT_ROW ? bev : dev;
+            
+            /* blend "mixed" and "full-res" images smoothly to avoid banding*/
+            int output = (mixed*(FIXP_ONE-f) + fullres*f) / FIXP_ONE;
+            
+            /* safeguard */
+            output = COERCE(output, 0, 14000-1);
+            
             /* back to linear space and commit */
-            raw_set_pixel(x, y, ev2raw[mixed]);
+            raw_set_pixel(x, y, ev2raw[output] + black_delta/8);
+            
+            /* fixme: why black_delta/8? it looks good for the Batman shot, but why? */
         }
     }
 
