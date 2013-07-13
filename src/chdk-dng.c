@@ -118,6 +118,7 @@ static int cam_exp_bias[2]              = { 0, 96 };
 static int cam_max_av[2]                = { 0, 96 };
 static int cam_focal_length[2]          = { 0, 1000 };
 static char* software_ver = "Magic Lantern";
+static int cam_FrameRate[]          = {25000,1000};
 
 struct t_data_for_exif{
     short iso;
@@ -205,6 +206,7 @@ struct dir_entry ifd0[]={
     {0xC62E, T_RATIONAL,   1,  (int)cam_LinearResponseLimit},
     {0xC65A, T_SHORT,      1, 17},                                 // CalibrationIlluminant1 Standard Light A
     {0xC65B, T_SHORT,      1, 21},                                 // CalibrationIlluminant2 D65
+    {0xC764, T_SRATIONAL,  1,  (int)cam_FrameRate},
 };
 
 // Index of specific entries in ifd1 below.
@@ -314,6 +316,13 @@ static void add_to_buf(void* var, int size)
 static void add_val_to_buf(int val, int size)
 {
     add_to_buf(&val,size);
+}
+
+
+void set_framerate(int fpsx1000)
+{
+    cam_FrameRate[0] = fpsx1000;
+    cam_FrameRate[1] = 1000;
 }
 
 static void create_dng_header(){
