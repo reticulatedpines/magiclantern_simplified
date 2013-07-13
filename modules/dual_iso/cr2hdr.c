@@ -528,7 +528,7 @@ static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_d
         for (k = 0; k < num; k++)
             aux[k] = bright[order[k+i]];
         int m = median_short(aux, num);
-        if (ref > black + 32 && m > black + 32 && m < white)
+        if (ref > black + 32 && m > black + 32 && m < white && num > 1000)
         {
             medians_x[num_medians] = ref - black;
             medians_y[num_medians] = m - black;

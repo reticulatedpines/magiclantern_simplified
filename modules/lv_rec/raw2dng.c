@@ -584,18 +584,37 @@ static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_d
         for (k = 0; k < num; k++)
             aux[k] = bright[order[k+i]];
         int m = median_short(aux, num);
-        if (ref > black + 32 && m > black + 32 && m < white)
+        if (ref > black + 32 && m > black + 32 && m < white && num > 1000)
         {
             medians_x[num_medians] = ref - black;
             medians_y[num_medians] = m - black;
             num_medians++;
-            //~ printf("%d %d %d\n", ref, num, m);
+            //printf("%d %d %d\n", ref, num, m);
         }
         free(aux);
         
         i = j;
     }
+
+#if 0
+    FILE* f = fopen("iso-curve.m", "w");
+
+    fprintf(f, "x = [");
+    for (i = 0; i < num_medians; i++)
+        fprintf(f, "%d ", medians_x[i]);
+    fprintf(f, "];\n");
     
+    fprintf(f, "y = [");
+    for (i = 0; i < num_medians; i++)
+        fprintf(f, "%d ", medians_y[i]);
+    fprintf(f, "];\n");
+
+    fprintf(f, "plot(x, y);\n");
+    fclose(f);
+    
+    system("octave --persist iso-curve.m");
+#endif
+
     /**
      * plain least squares
      * y = ax + b
@@ -639,6 +658,8 @@ static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_d
 
 static int hdr_interpolate()
 {
+    static int first_frame = 1;
+
     int black = raw_info.black_level;
     int white = raw_info.white_level;
 
@@ -686,7 +707,10 @@ static int hdr_interpolate()
     double avg_bright = (acc_bright[0] + acc_bright[1] + acc_bright[2] + acc_bright[3]) / 4;
     int is_bright[4] = { acc_bright[0] > avg_bright, acc_bright[1] > avg_bright, acc_bright[2] > avg_bright, acc_bright[3] > avg_bright};
 
-    printf("\nISO pattern    : %c%c%c%c\n", is_bright[0] ? 'B' : 'd', is_bright[1] ? 'B' : 'd', is_bright[2] ? 'B' : 'd', is_bright[3] ? 'B' : 'd');
+    if (first_frame)
+        printf("\nISO pattern    : %c%c%c%c\n", is_bright[0] ? 'B' : 'd', is_bright[1] ? 'B' : 'd', is_bright[2] ? 'B' : 'd', is_bright[3] ? 'B' : 'd');
+    else
+        printf(" [HDR %c%c%c%c]", is_bright[0] ? 'B' : 'd', is_bright[1] ? 'B' : 'd', is_bright[2] ? 'B' : 'd', is_bright[3] ? 'B' : 'd');
     
     if (is_bright[0] + is_bright[1] + is_bright[2] + is_bright[3] != 2)
     {
@@ -809,10 +833,15 @@ static int hdr_interpolate()
     }
 
     /* estimate ISO and black difference between bright and dark exposures */
-    float corr_ev = 0;
-    int black_delta = 0;
-    int ok = estimate_iso(dark, bright, &corr_ev, &black_delta);
-    if (!ok) goto err;
+    static float corr_ev = 0;
+    static int black_delta = 0;
+    
+    /* only do the math for first frame, for speed reasons */
+    if (first_frame)
+    {
+        int ok = estimate_iso(dark, bright, &corr_ev, &black_delta);
+        if (!ok) goto err;
+    }
     int corr = (int)roundf(corr_ev * 1000);
 
 #if 0 /* for debugging only */
@@ -846,7 +875,8 @@ static int hdr_interpolate()
     /* maybe expose a tuning factor? (preference towards resolution or colors) */
     overlap -= MIN(2, overlap - 2);
     
-    printf("ISO overlap    : %.1f EV (approx)\n", overlap);
+    if (first_frame)
+        printf("ISO overlap    : %.1f EV (approx)\n", overlap);
     
     if (overlap < 0.5)
     {
@@ -947,8 +977,14 @@ static int hdr_interpolate()
     }
 
     if (hot_pixels)
-        printf("Hot pixels     : %d\n", hot_pixels);
+    {
+        if (first_frame)
+            printf("Hot pixels     : %d", hot_pixels);
+        else
+            printf(" [%d hot pixels]  ", hot_pixels);
+    }
 
+    first_frame = 0;
     free(dark);
     free(bright);
     return 1;
