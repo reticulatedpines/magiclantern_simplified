@@ -94,6 +94,27 @@ uint32_t CMOS_EXPECTED_FLAG = 0;
 #define CMOS_ISO_MASK ((1 << CMOS_ISO_BITS) - 1)
 #define CMOS_FLAG_MASK ((1 << CMOS_FLAG_BITS) - 1)
 
+int isoless_recovery_iso_index()
+{
+    /* CHOICES("-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV", "+1 EV", "+2 EV", "+3 EV", "+4 EV", "+5 EV", "+6 EV", "100", "200", "400", "800", "1600", "3200", "6400", "12800") */
+
+    int max_index = MAX(FRAME_CMOS_ISO_COUNT, PHOTO_CMOS_ISO_COUNT) - 1;
+    
+    /* absolute mode */
+    if (isoless_recovery_iso >= 0)
+        return COERCE(isoless_recovery_iso, 0, max_index);
+    
+    /* relative mode */
+
+    /* auto ISO? idk, fall back to 100 */
+    if (lens_info.raw_iso == 0)
+        return 0;
+    
+    int delta = isoless_recovery_iso < -6 ? isoless_recovery_iso + 6 : isoless_recovery_iso + 7;
+    int canon_iso_index = (lens_info.iso_analog_raw - 72) / 8;
+    return COERCE(canon_iso_index + delta, 0, max_index);
+}
+
 /* 7D: transfer data to/from master memory */
 extern WEAK_FUNC(ret_0) uint32_t BulkOutIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t*, uint32_t, uint32_t), uint32_t cb_parm);
 extern WEAK_FUNC(ret_0) uint32_t BulkInIPCTransfer(int type, uint8_t *buffer, int length, uint32_t master_addr, void (*cb)(uint32_t*, uint32_t, uint32_t), uint32_t cb_parm);
@@ -161,7 +182,7 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
         for (int i = 0; i < count; i++)
         {
             uint16_t raw = *(uint16_t*)(start_addr + i * size);
-            int my_raw = backup[COERCE(isoless_recovery_iso, 0, count-1)];
+            int my_raw = backup[COERCE(isoless_recovery_iso_index(), 0, count-1)];
 
             int my_iso2 = (my_raw >> (CMOS_FLAG_BITS + CMOS_ISO_BITS)) & CMOS_ISO_MASK;
             raw &= ~(CMOS_ISO_MASK << (CMOS_FLAG_BITS + CMOS_ISO_BITS));
@@ -235,7 +256,7 @@ static unsigned int isoless_refresh(unsigned int ctx)
     if (PHOTO_CMOS_ISO_COUNT > COUNT(backup_lv)) return 0;
     
     static int prev_sig = 0;
-    int sig = isoless_recovery_iso + (lvi << 16) + (mv << 17) + (raw << 18) + (isoless_hdr << 24) + (isoless_alternate << 25) + file_number;
+    int sig = isoless_recovery_iso + (lvi << 16) + (mv << 17) + (raw << 18) + (isoless_hdr << 24) + (isoless_alternate << 25) + file_number + lens_info.raw_iso * 1234;
     int setting_changed = (sig != prev_sig);
     prev_sig = sig;
     
@@ -328,7 +349,7 @@ static unsigned int isoless_playback_fix(unsigned int ctx)
 
 static MENU_UPDATE_FUNC(isoless_check)
 {
-    int iso1 = 72 + isoless_recovery_iso * 8;
+    int iso1 = 72 + isoless_recovery_iso_index() * 8;
     int iso2 = lens_info.raw_iso/8*8;
     
     if (!iso2)
@@ -350,7 +371,7 @@ static MENU_UPDATE_FUNC(isoless_check)
 
 static MENU_UPDATE_FUNC(isoless_dr_update)
 {
-    int iso1 = 72 + isoless_recovery_iso * 8;
+    int iso1 = 72 + isoless_recovery_iso_index() * 8;
     int iso2 = lens_info.raw_iso/8*8;
     
     isoless_check(entry, info);
@@ -375,7 +396,7 @@ static MENU_UPDATE_FUNC(isoless_dr_update)
 
 static MENU_UPDATE_FUNC(isoless_overlap_update)
 {
-    int iso1 = 72 + isoless_recovery_iso * 8;
+    int iso1 = 72 + isoless_recovery_iso_index() * 8;
     int iso2 = (lens_info.raw_iso+3)/8*8;
 
     int iso_hi = MAX(iso1, iso2);
@@ -400,7 +421,7 @@ static MENU_UPDATE_FUNC(isoless_update)
     if (!isoless_hdr)
         return;
     
-    int iso1 = 72 + isoless_recovery_iso * 8;
+    int iso1 = 72 + isoless_recovery_iso_index() * 8;
     int iso2 = lens_info.raw_iso/8*8;
     MENU_SET_VALUE("%d/%d", raw2iso(iso2), raw2iso(iso1));
 
@@ -435,11 +456,12 @@ static struct menu_entry isoless_menu[] =
             {
                 .name = "Recovery ISO",
                 .priv = &isoless_recovery_iso,
-                .max = 6,
+                .min = -12,
+                .max = 7,
                 .unit = UNIT_ISO,
-                .choices = CHOICES("100", "200", "400", "800", "1600", "3200", "6400"),
+                .choices = CHOICES("-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV", "+1 EV", "+2 EV", "+3 EV", "+4 EV", "+5 EV", "+6 EV", "100", "200", "400", "800", "1600", "3200", "6400", "12800"),
                 .help  = "ISO for half of the scanlines (usually to recover shadows).",
-                .help2 = "Select the primary ISO from Canon menu.",
+                .help2 = "Can be absolute or relative to primary ISO from Canon menu.",
             },
             {
                 .name = "Dynamic range gained",
