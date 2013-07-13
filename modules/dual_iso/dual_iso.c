@@ -69,9 +69,11 @@
 
 static CONFIG_INT("isoless.hdr", isoless_hdr, 0);
 static CONFIG_INT("isoless.iso", isoless_recovery_iso, 4);
+static CONFIG_INT("isoless.alt", isoless_alternate, 0);
 
 extern WEAK_FUNC(ret_0) int raw_lv_is_enabled();
 extern WEAK_FUNC(ret_0) int get_dxo_dynamic_range();
+extern WEAK_FUNC(ret_0) int is_play_or_qr_mode();
 
 /* camera-specific constants */
 
@@ -218,6 +220,9 @@ static int isoless_disable(uint32_t start_addr, int size, int count, uint16_t* b
 /* Refresh the parameters whenever you change something from menu */
 static unsigned int isoless_refresh(unsigned int ctx)
 {
+    if (!job_state_ready_to_take_pic())
+        return;
+    
     static uint16_t backup_lv[20];
     static uint16_t backup_ph[20];
     static int enabled_lv = 0;
@@ -230,7 +235,7 @@ static unsigned int isoless_refresh(unsigned int ctx)
     if (PHOTO_CMOS_ISO_COUNT > COUNT(backup_lv)) return 0;
     
     static int prev_sig = 0;
-    int sig = isoless_recovery_iso + (lvi << 16) + (mv << 17) + (raw << 18) + (isoless_hdr << 24);
+    int sig = isoless_recovery_iso + (lvi << 16) + (mv << 17) + (raw << 18) + (isoless_hdr << 24) + (isoless_alternate << 25) + file_number;
     int setting_changed = (sig != prev_sig);
     prev_sig = sig;
     
@@ -248,7 +253,7 @@ static unsigned int isoless_refresh(unsigned int ctx)
 
     if (isoless_hdr && raw)
     {
-        if (!enabled_ph && PHOTO_CMOS_ISO_START)
+        if (!enabled_ph && PHOTO_CMOS_ISO_START && ((file_number % 2) || !isoless_alternate))
         {
             enabled_ph = 1;
             int err = isoless_enable(PHOTO_CMOS_ISO_START, PHOTO_CMOS_ISO_SIZE, PHOTO_CMOS_ISO_COUNT, backup_ph);
@@ -450,6 +455,12 @@ static struct menu_entry isoless_menu[] =
                 .help  = "[READ-ONLY] How much of midtones will get better resolution",
                 .help2 = "Highlights/shadows will be half res, with aliasing/moire.",
             },
+            {
+                .name = "Alternate frames only",
+                .priv = &isoless_alternate,
+                .max = 1,
+                .help = "Shoot one image with the hack, one without.",
+            },
             MENU_EOL,
         },
     },
@@ -512,11 +523,12 @@ MODULE_STRINGS_START()
 MODULE_STRINGS_END()
 
 MODULE_CBRS_START()
-    MODULE_CBR(CBR_SECONDS_CLOCK, isoless_refresh, 0)
+    MODULE_CBR(CBR_SHOOT_TASK, isoless_refresh, 0)
     MODULE_CBR(CBR_SECONDS_CLOCK, isoless_playback_fix, 0)
 MODULE_CBRS_END()
 
 MODULE_CONFIGS_START()
     MODULE_CONFIG(isoless_hdr)
     MODULE_CONFIG(isoless_recovery_iso)
+    MODULE_CONFIG(isoless_alternate)
 MODULE_CONFIGS_END()
