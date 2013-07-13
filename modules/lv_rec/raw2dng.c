@@ -580,18 +580,21 @@ static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_d
 
         /* same dark value from i to j (without j) */
         int num = (j - i);
-        short* aux = malloc(num * sizeof(aux[0]));
-        for (k = 0; k < num; k++)
-            aux[k] = bright[order[k+i]];
-        int m = median_short(aux, num);
-        if (ref > black + 32 && m > black + 32 && m < white && num > 1000)
+        
+        if (num > 1000 && ref > black + 32)
         {
-            medians_x[num_medians] = ref - black;
-            medians_y[num_medians] = m - black;
-            num_medians++;
-            //printf("%d %d %d\n", ref, num, m);
+            short* aux = malloc(num * sizeof(aux[0]));
+            for (k = 0; k < num; k++)
+                aux[k] = bright[order[k+i]];
+            int m = median_short(aux, num);
+            if (m > black + 32 && m < white)
+            {
+                medians_x[num_medians] = ref - black;
+                medians_y[num_medians] = m - black;
+                num_medians++;
+            }
+            free(aux);
         }
-        free(aux);
         
         i = j;
     }
@@ -622,7 +625,7 @@ static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_d
      * b = mean(y) - a mean(x)
      */
     
-    double mx, my, mxy, mx2;
+    double mx = 0, my = 0, mxy = 0, mx2 = 0;
     for (i = 0; i < num_medians; i++)
     {
         mx += medians_x[i];
@@ -648,11 +651,12 @@ static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_d
         return 0;
     }
     
-    printf("ISO difference : %.2f EV (%d)\n", log2(factor), (int)round(factor*100));
-    printf("Black delta    : %d\n", (int)round(b / a));
-    
     *corr_ev = log2(factor);
     *black_delta = -(int)round(b / a);
+
+    printf("ISO difference : %.2f EV (%d)\n", log2(factor), (int)round(factor*100));
+    printf("Black delta    : %d\n", *black_delta);
+
     return 1;
 }
 

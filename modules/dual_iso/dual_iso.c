@@ -221,7 +221,7 @@ static int isoless_disable(uint32_t start_addr, int size, int count, uint16_t* b
 static unsigned int isoless_refresh(unsigned int ctx)
 {
     if (!job_state_ready_to_take_pic())
-        return;
+        return 0;
     
     static uint16_t backup_lv[20];
     static uint16_t backup_ph[20];
