@@ -8,7 +8,8 @@
 int video_mode[6];
 PROP_HANDLER(PROP_VIDEO_MODE)
 {
-    memcpy(video_mode, buf, 20);
+    ASSERT(len <= sizeof(video_mode));
+    memcpy(video_mode, buf, len);
 }
 
 unsigned int is_crop_hack_supported() {
@@ -19,15 +20,12 @@ unsigned int is_crop_hack_supported() {
 }
 
 void movie_crop_hack_enable() {
-    int video_mode_patched[6];
-
     if(recording || video_mode_resolution != 0 || video_mode_crop) {
         return;
     }
     video_mode[0] = 0xc;
     video_mode[4] = 2;
     prop_request_change(PROP_VIDEO_MODE, video_mode, 0);
-    NotifyBox(1000,"[ON ] DONE");
 }
 
 
@@ -67,7 +65,6 @@ static struct menu_entry crop_hack_menus[] = {
         .update = movie_crop_hack_display,
         .select = movie_crop_hack_toggle,
         .max = 1,
-        .choices = (const char *[]) {"OFF", "ON"},
         .help   = "Enables 600D movie crop-mode",
         .depends_on = DEP_MOVIE_MODE,
     },
