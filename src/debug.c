@@ -4630,10 +4630,6 @@ void config_menu_init()
     menu_add( "Debug", debug_menus, COUNT(debug_menus) );
 
     movie_tweak_menu_init();
-
-    #ifdef FEATURE_CROP_MODE_HACK
-    crop_mode_hack_init();
-    #endif
 }
 
 void spy_event(struct event * event)

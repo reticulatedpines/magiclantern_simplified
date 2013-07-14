@@ -5,7 +5,7 @@
 
 #ifdef FEATURE_CROP_MODE_HACK
 
-int video_mode[6];
+static int video_mode[10];
 PROP_HANDLER(PROP_VIDEO_MODE)
 {
     ASSERT(len <= sizeof(video_mode));
@@ -55,7 +55,6 @@ static MENU_UPDATE_FUNC(movie_crop_hack_display)
     } else if(video_mode_resolution != 0) {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Crop video mode works in 1080p only");
     }
-    MENU_SET_VALUE(video_mode_crop?"ON":"OFF");
 }
 
 
@@ -65,6 +64,7 @@ static struct menu_entry crop_hack_menus[] = {
         .update = movie_crop_hack_display,
         .select = movie_crop_hack_toggle,
         .max = 1,
+	.priv = &video_mode_crop,
         .help   = "Enables 600D movie crop-mode",
         .depends_on = DEP_MOVIE_MODE,
     },
@@ -74,5 +74,7 @@ void crop_mode_hack_init()
 {
     menu_add( "Movie", crop_hack_menus, COUNT(crop_hack_menus) );
 }
+
+INIT_FUNC(__FILE__, crop_mode_hack_init);
 
 #endif
