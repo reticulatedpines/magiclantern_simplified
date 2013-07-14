@@ -3,6 +3,8 @@
 #include "menu.h"
 #include "property.h"
 
+#include "crop-mode-hack.h"
+
 #ifdef FEATURE_CROP_MODE_HACK
 
 static int video_mode[10];
@@ -19,23 +21,24 @@ unsigned int is_crop_hack_supported() {
     return 1;
 }
 
-void movie_crop_hack_enable() {
+unsigned int movie_crop_hack_enable() {
     if(!is_crop_hack_supported() || video_mode_crop) {
-        return;
+        return 0;
     }
     video_mode[0] = 0xc;
     video_mode[4] = 2;
     prop_request_change(PROP_VIDEO_MODE, video_mode, 0);
+    return 1;
 }
 
-
-void movie_crop_hack_disable() {
+unsigned int movie_crop_hack_disable() {
     if(!is_crop_hack_supported() || !video_mode_crop) {
-        return;
+        return 0;
     }
     video_mode[0] = 0;
     video_mode[4] = 0;
     prop_request_change(PROP_VIDEO_MODE, video_mode, 0);
+    return 1;
 }
 
 
@@ -58,7 +61,6 @@ static MENU_UPDATE_FUNC(movie_crop_hack_display)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Crop video mode works in 1080p only");
     }
 }
-
 
 static struct menu_entry crop_hack_menus[] = {
     {
