@@ -4616,11 +4616,6 @@ int handle_ml_menu_erase(struct event * event)
 {
     if (dofpreview) return 1; // don't open menu when DOF preview is locked
     
-#ifdef CONFIG_EOSM
-    //~ if (recording)
-        //~ return 1;
-#endif
-    
     if (event->param == BGMT_TRASH)
     {
         if (gui_menu_shown() || gui_state == GUISTATE_IDLE)
