@@ -20,7 +20,7 @@ unsigned int is_crop_hack_supported() {
 }
 
 void movie_crop_hack_enable() {
-    if(recording || video_mode_resolution != 0 || video_mode_crop) {
+    if(!is_crop_hack_supported() || video_mode_crop) {
         return;
     }
     video_mode[0] = 0xc;
@@ -30,7 +30,7 @@ void movie_crop_hack_enable() {
 
 
 void movie_crop_hack_disable() {
-    if(recording || video_mode_resolution != 0 || !video_mode_crop) {
+    if(!is_crop_hack_supported() || !video_mode_crop) {
         return;
     }
     video_mode[0] = 0;
@@ -41,10 +41,12 @@ void movie_crop_hack_disable() {
 
 static void movie_crop_hack_toggle(void* priv, int sign)
 {
-    if(!video_mode_crop) {
-        movie_crop_hack_enable();
-    } else {
-        movie_crop_hack_disable();
+    if(is_crop_hack_supported()) {
+        if(!video_mode_crop) {
+            movie_crop_hack_enable();
+        } else {
+            movie_crop_hack_disable();
+        }
     }
 }
 
