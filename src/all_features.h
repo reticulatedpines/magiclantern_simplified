@@ -139,6 +139,8 @@
     //~ #define FEATURE_MOVIE_RECORDING_50D_SHUTTER_HACK
     //~ #define FEATURE_LVAE_EXPO_LOCK
 
+    // 650D / EOSM hacks
+    //~ #define FEATURE_CROP_MODE_HACK
 /** Shoot menu **/
 
 #ifdef CONFIG_PROP_REQUEST_CHANGE

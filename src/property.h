@@ -354,9 +354,7 @@
 // buf[0]: 0 if 1080p, 1 if 720p, 2 if 480p
 // buf[1]: 14 if 1080p (20fps), 1e if 720p or 480p (30fps)
 // buf[2]: a if 1080p (1/2 of 20fps??), f if 720p or 480p (1/2 of 30fps??)
-#endif
-
-#ifndef CONFIG_500D
+#else
 #define PROP_VIDEO_MODE 0x80000039 
 // buf[0]: 8 if crop else 0
 // buf[1]: 0 if full hd, 1 if 720p, 2 if 680p

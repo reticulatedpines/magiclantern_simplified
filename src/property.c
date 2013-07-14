@@ -278,7 +278,7 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
 	}
 	#endif
     
-    #ifdef CONFIG_DIGIC_V
+    #if defined(CONFIG_DIGIC_V) && defined(CONFIG_FULLFRAME)
     if (property == PROP_VIDEO_MODE) // corrupted video headers on 5D3
         return;
     #endif
