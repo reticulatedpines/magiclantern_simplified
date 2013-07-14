@@ -281,20 +281,21 @@ int handle_av_short_for_menu(struct event* event) {
 
     /* Assumes that the press event is fired only once 
      * even if the button is held
-     */
+     */ 
     if(bgmt_av_status == 1) { // AV PRESSED
         t_press = get_ms_clock_value();
         dt = t_press - t_unpress; // Time elapsed since the button was unpressed
-        if(dt < 500) { // Ignore if happened less than half a second ago (anti-bump)
+        if(dt < 200) { // Ignore if happened less than 200ms ago (anti-bump)
             t_press = 0; 
         } 
     } else if (bgmt_av_status == 0) { // AV UNPRESSED
         t_unpress = get_ms_clock_value();
         dt = t_unpress - t_press; // Time elapsed since the AV button was pressed
-        if (dt < 200 && is_idle) { // 200ms  -> short press
+        if (dt < 500 && is_idle) { // 500ms  -> short press
             fake_simple_button(BGMT_TRASH);
         }
     }
+    //NotifyBox(1000, "AV DEBUG: S %d I %d DT %d", bgmt_av_status, is_idle, dt);
     return 1;
 } 
 #endif //CONFIG_MENU_WITH_AV
