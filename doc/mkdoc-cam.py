@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Render the user guide in BMP format (with RLE compression)
 # in order to use it as a help system in the camera menu.
-# Outputs: a lot of files in cam/ subdirectory 
+# Outputs: a lot of files in cam/ subdirectory
 # (page-%03d.bmp for each page, and menuidx.dat)
 
 # Author: Alex Dumitrache <broscutamaker@gmail.com>
@@ -11,17 +11,11 @@
 import os, re, time, sys
 import urllib
 
-def include(o, filename, start=0):
-    f = open(filename).readlines();
-    for l in f[start:]:
-        o.write(l)
-    o.write("\n");
+from mkdoc_utils import system_or_exit
+from mkdoc_utils import include
+from mkdoc_utils import sed_sub_tex_spec_chars
 
-def include_indent(o, filename, start=0):
-    f = open(filename).readlines();
-    for l in f[start:]:
-        o.write(l.replace("~", "`").replace("--", "~~").replace("~-", "~~").replace("==", "--").replace("-=", "--"))
-    o.write("\n");
+rst2latex = os.getenv("RST2LATEX", "rst2latex.py")
 
 o = open("userguide.rst", "w")
 print >> o, """Magic Lantern v2.3
@@ -67,7 +61,7 @@ def fixwikilinks(file):
         x = m.groups()[0]
         x = x.replace("_", " ")
         txt = txt.replace(origstr, "`%s <http://magiclantern.wikia.com/wiki/%s>`_" % (x, urllib.quote(x)))
-        
+
     #~ sub("INSTALL.rst", , ")
 
     f = open(file,"w")
@@ -83,7 +77,7 @@ def labelhack(file): # bug in rst2latex? it forgets to place labels in tex sourc
         if m:
             label = m.groups()[0]
             txt += r""".. raw:: latex
-    
+
     \subsubsection*{}\label{%s}
 """ % label.lower().replace("/"," ").replace("   ", " ").replace("  ", " ").replace(" ", "-").replace(".", "-")
     f = open(file,"w")
@@ -93,18 +87,18 @@ def labelhack(file): # bug in rst2latex? it forgets to place labels in tex sourc
 nonewlineitems = [
     'WBShift','Aperture','PictureStyle',"REC PicStyle",
     'Focus delay', 'Focus A', 'Rack Focus', "Focus StepD", "Focus Dist",
-    'Hyperfocal', 'DOF Near', 'DOF Far', 
+    'Hyperfocal', 'DOF Near', 'DOF Far',
     "LiveView Zoom", "Crop Factor Display",
-    'Screenshot', 
+    'Screenshot',
     'Config', "config",
     "Don't click",
     "Mirror",
     "Waveform",
-    'Movie REC', 'Movie Restart', 
-    'Analog Gain', "DigitalGain", 'AGC', 'Zoom in PLAY', 
+    'Movie REC', 'Movie Restart',
+    'Analog Gain', "DigitalGain", 'AGC', 'Zoom in PLAY',
     "Turn off", "Battery remaining",
-    "MOV Exposure Lock", "Light Adjust", "Cropmarks (PLAY)", 
-    "Lock Shutter", "Force HDMI", 
+    "MOV Exposure Lock", "Light Adjust", "Cropmarks (PLAY)",
+    "Lock Shutter", "Force HDMI",
     "Free Memory", "EFIC temperature", "Shutter Count", "Battery remaining"
     "LV button", "Quick Erase", "Shutter Lock", "Shutter Button"]
 def should_add_newline(l):
@@ -122,7 +116,7 @@ def add_menu_items_to_contents(file):
         if m and should_add_newline(l):
             txt += r"""
 .. raw:: latex
-      
+
     \newpage
 
 """
@@ -131,44 +125,30 @@ def add_menu_items_to_contents(file):
             item = m.groups()[0]
             txt += r"""
   .. raw:: latex
-      
+
       \addcontentsline{toc}{subsubsection}{%s}
 """ % item.replace("**","").replace("_", r"\_")
     f = open(file,"w")
     f.write(txt)
     f.close()
 
-os.system(r"sed -i -e s/.*{{.*}}.*//g userguide.rst")
+system_or_exit(r"sed -i -e s/.*{{.*}}.*//g userguide.rst")
 
-os.system("pandoc -f rst -t latex -o credits.tex CREDITS.txt")
+system_or_exit("pandoc -f rst -t latex -o credits.tex CREDITS.txt")
 
 fixwikilinks("userguide.rst")
 #~ labelhack("userguide.rst")
 #~ add_menu_items_to_contents("userguide.rst")
-#os.system("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
-os.system(r"sed -i -e 's/^#.*$//g' userguide.rst")
-os.system("rst2latex.py userguide.rst --output-encoding=utf8 --template=ug-template-cam.tex --table-style booktabs > UserGuide-cam.tex")
-#~ os.system(r"sed -i -e 's/\\{\\{.*\\}\\}//g' UserGuide-cam.tex")
+#system_or_exit("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
+system_or_exit(r"sed -i -e 's/^#.*$//g' userguide.rst")
+system_or_exit("%s userguide.rst --output-encoding=utf8 --template=ug-template-cam.tex --table-style booktabs > UserGuide-cam.tex" % (rst2latex,))
+#~ system_or_exit(r"sed -i -e 's/\\{\\{.*\\}\\}//g' UserGuide-cam.tex")
 sub("UserGuide-cam.tex", r"\\subsubsection", r"\\newpage\\subsubsection")
 sub("UserGuide-cam.tex", r"\\subsection", r"\\newpage\\subsection")
 
-os.system(r"sed -i -e 's/width=10cm/width=7cm/g' UserGuide-cam.tex") # hack for liveview screen
+system_or_exit(r"sed -i -e 's/width=10cm/width=7cm/g' UserGuide-cam.tex") # hack for liveview screen
 
-os.system(r"sed -i -e 's/⬜/$\\square$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/⨂/$\\otimes$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/⨀/$\\odot$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/〰/$\\wave$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/↷/$\\curvearrowright$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/↶/$\\curvearrowleft$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/⤿/$\\rcurvearrowup$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/⤸/$\\lcurvearrowdown$/g' UserGuide-cam.tex")
-
-os.system(r"sed -i -e 's/<->/$\\leftrightarrow$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/->/$\\rightarrow$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/=>/$\\Rightarrow$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/>=/$\\ge$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/<=/$\\le$/g' UserGuide-cam.tex")
-os.system(r"sed -i -e 's/kOhm/$\\textrm k\\Omega$/g' UserGuide-cam.tex")
+sed_sub_tex_spec_chars("UserGuide-cam.tex")
 
 replace("UserGuide-cam.tex", r"""\newpage\subsection*{\phantomsection%
   Movie mode%""", r"""\subsection*{\phantomsection%
@@ -179,12 +159,12 @@ replace("UserGuide-cam.tex", r"""\newpage\subsection*{\phantomsection%
   PLAY mode shortcuts%""");
 
 
-  
 
-#~ os.system(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide-cam.tex")
+
+#~ system_or_exit(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide-cam.tex")
 os.system("lualatex -interaction=batchmode UserGuide-cam.tex")
 #~ os.system("lualatex -interaction=batchmode UserGuide-cam.tex")
-#os.system(r"sed -i 's/\\{\\{clr\\}\\}//g' userguide-body.tex")
+#system_or_exit(r"sed -i 's/\\{\\{clr\\}\\}//g' userguide-body.tex")
 #os.system("pdflatex -interaction=batchmode UserGuide-cam.tex")
 #os.system("pdflatex -interaction=batchmode UserGuide-cam.tex")
 
@@ -225,7 +205,7 @@ def read_rgb(f):
     assert c==3
     lw = w/16
     lh = h/16
-    
+
     for c in range(3):
         for i in range(16):
             for j in range(16):
@@ -240,17 +220,17 @@ rgb2ind_cache = {}
 def rgb2ind(rgb, mf):
     trgb = tuple(rgb)
     if trgb in rgb2ind_cache: return rgb2ind_cache[trgb]
-    
+
     dif = mf - rgb*ones((256,1))
     dif = (dif**2).sum(1)
-    
+
     dif[0] = 1e10
     dif[3] = 1e10
     dif[0x14] = 1e10
     ind = argmin(dif[:80]) # only first 80 entries are safe
-        
+
     rgb2ind_cache[trgb] = ind
-    
+
     return ind
 
 def remap_rgb(im,M):
@@ -284,17 +264,17 @@ def convert_page(k):
         raise SystemExit
     bmp = "cam/page-%03d.bmp" % k
     bmh = "cam/page-%03d.bmh" % k
-    
+
     print "remapping %s..." % png
     im = flipud(imread(png))
     if im.max() <= 1: im *= 255
     imr = remap_rgb(im,M)
     #print imr
     save_img(imr[1:481,0:720],M,bmp)
-    os.system("ruby ../src/convertrle.rb %s" % bmp)
-    os.system("rm %s" % bmp)
-    os.system("rm %s" % png)
-    os.system("mv %s.rle %s" % (bmp, bmh))
+    system_or_exit("ruby ../src/convertrle.rb %s" % bmp)
+    system_or_exit("rm %s" % bmp)
+    system_or_exit("rm %s" % png)
+    system_or_exit("mv %s.rle %s" % (bmp, bmh))
 
 for i in range(1,1000):
     convert_page(i)

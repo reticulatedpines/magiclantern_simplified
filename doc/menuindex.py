@@ -1,6 +1,6 @@
 import os,sys,string
 
-try: 
+try:
     f = open("menuindex.txt").readlines()
 except:
     print "Could not open menuindex.txt, will not rewrite help index files"
@@ -32,13 +32,13 @@ for l in f[1:]:
 
     if type == "subsubsection": # each menu entry is a subsection
         item = name.split(":")[0]
-        
+
         if " and " in item:
             and_terms = item.split(" and ")
             for t in and_terms:
                 print >> o, "%03d %s" % (page, t.strip())
             continue
-            
+
         item = item.split(" / ")[0]
         item = item.split(" (")[0]
         item = item.split(" X sec")[0]

@@ -8,11 +8,7 @@ from getpass import getpass
 from twill.commands import *
 from twill import get_browser
 
-def include(o, filename, start=0):
-    f = open(filename).readlines();
-    for l in f[start:]:
-        o.write(l)
-    o.write("\n");
+from mkdoc_utils import include
 
 def sub(file, fr, to):
     txt = open(file).read()
@@ -180,16 +176,16 @@ def fix_newlines_in_blockquote():
     WL = []
     inside = False
     for x in wl:
-        if x == "<blockquote>": 
+        if x == "<blockquote>":
             inside = True
             x += "\n"
-        elif x == "</blockquote>": 
+        elif x == "</blockquote>":
             inside = False
         else:
             if inside:
                 x = x.replace("\n\n", "<br />\n\n")
         WL.append(x)
-    
+
     f = open("userguide.wiki", "w")
     print >> f, string.join(WL, "")
     f.close()
