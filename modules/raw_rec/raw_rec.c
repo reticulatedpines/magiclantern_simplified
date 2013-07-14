@@ -1248,12 +1248,6 @@ static int FAST process_frame()
     {
         return 0;
     }
-    
-    /* try a sync beep */
-    if (sound_rec == 2 && frame_count == 1)
-    {
-        beep();
-    }
 
     //~ console_printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
@@ -1426,6 +1420,12 @@ static void raw_video_rec_task()
 
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
+
+    /* try a sync beep (not very precise, but better than nothing) */
+    if (sound_rec == 2 && frame_count == 1)
+    {
+        beep();
+    }
 
     /* signal that we are starting */
     raw_rec_cbr_starting();
