@@ -3,7 +3,7 @@
 #include "dryos.h"
 #include "bmp.h"
 #include "cache_hacks.h"
-#include "arm-mcr.h"
+#include "compiler.h"
 
 /** Some small engio API **/
 #define REG_PRINT_CHAR 0xCF123000

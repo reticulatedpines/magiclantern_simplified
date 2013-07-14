@@ -49,8 +49,12 @@ static void my_bzero( uint8_t * base, uint32_t size );
 static uint8_t _reloc[ RELOCSIZE ];
 #define RELOCADDR ((uintptr_t) _reloc)
 
+#ifdef __ARM__
 /** Translate a firmware address into a relocated address */
 #define INSTR( addr ) ( *(uint32_t*)( (addr) - ROMBASEADDR + RELOCADDR ) )
+#else
+#define INSTR(addr) (addr)
+#endif /* __ARM__ */
 
 /** Fix a branch instruction in the relocated firmware image */
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
@@ -105,6 +109,7 @@ copy_and_restart( )
     void (*reset)(void) = (void*) ROMBASEADDR;
     reset();
 #else
+#ifdef __ARM__
     // Copy the firmware to somewhere safe in memory
     const uint8_t * const firmware_start = (void*) ROMBASEADDR;
     const uint32_t firmware_len = RELOCSIZE;
@@ -184,6 +189,7 @@ copy_and_restart( )
     // Unreachable
     while(1)
         ;
+#endif
 }
 
 
@@ -329,22 +335,25 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
     
     /* no, create file and store data */
     handle = FIO_CreateFileEx(file);
-    while(pos < length)
+    if (handle != INVALID_PTR)
     {
-        uint32_t blocksize = BACKUP_BLOCKSIZE;
+      while(pos < length)
+      {
+         uint32_t blocksize = BACKUP_BLOCKSIZE;
         
-        if(length - pos < blocksize)
-        {
-            blocksize = length - pos;
-        }
+          if(length - pos < blocksize)
+          {
+              blocksize = length - pos;
+          }
         
-        FIO_WriteFile(handle, &((uint8_t*)base)[pos], blocksize);
-        pos += blocksize;
+          FIO_WriteFile(handle, &((uint8_t*)base)[pos], blocksize);
+          pos += blocksize;
         
-        /* to make sure lower prio tasks can also run */
-        msleep(20);
+          /* to make sure lower prio tasks can also run */
+          msleep(20);
+      }
+      FIO_CloseFile(handle);
     }
-    FIO_CloseFile(handle);
 }
 
 static void backup_task()

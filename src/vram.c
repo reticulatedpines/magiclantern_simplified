@@ -451,94 +451,63 @@ void lut_init()
 
 #include "bmp.h"
 
-void* get_lcd_422_buf()
+
+static inline void * get_yuv422buffer(int offset)
 {
     #if defined(CONFIG_1100D) || defined(CONFIG_6D)
     return (void*)CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR); // Good enough
     #else
-    switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
+    if (YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_1)
+       offset += 0;
+    else if (YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_2)
+       offset += 1;
+    else
+       offset += 2;
+
+    switch (offset)
     {
-        case YUV422_LV_BUFFER_1:
-            return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
-        case YUV422_LV_BUFFER_2:
-            return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
-        case YUV422_LV_BUFFER_3:
-            return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
+        case 0:
+        case 3:
+        default:
+           return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
+
+        case 1:
+        case 4:
+           return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
+        case 2:
+        case 5:
+           return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
     }
-    return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
     #endif
+}
+
+
+void* get_lcd_422_buf()
+{
+    return get_yuv422buffer(0);
 }
 
 static int fastrefresh_direction = 0;
 
+static unsigned old_buffer_pos = 0;
+
 void guess_fastrefresh_direction() {
-    static unsigned old_pos = YUV422_LV_BUFFER_1;
-    if (old_pos == YUV422_LV_BUFFER_DISPLAY_ADDR) return;
-    if (old_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_2) fastrefresh_direction = 1;
-    if (old_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_3) fastrefresh_direction = 0;
-    old_pos = YUV422_LV_BUFFER_DISPLAY_ADDR;
+    if (old_buffer_pos == YUV422_LV_BUFFER_DISPLAY_ADDR) return;
+    if (old_buffer_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_2) fastrefresh_direction = 1;
+    if (old_buffer_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_3) fastrefresh_direction = 0;
+    old_buffer_pos = YUV422_LV_BUFFER_DISPLAY_ADDR;
 }
 
 
 void* get_fastrefresh_422_buf()
 {
-    #if defined(CONFIG_1100D) || defined(CONFIG_6D)
-    return (void*)CACHEABLE(shamem_read(REG_EDMAC_WRITE_LV_ADDR)); // EDMAC holds the soon-to-be-displayed region
-    #else
-    if (fastrefresh_direction) {
-        switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
-        {
-            case YUV422_LV_BUFFER_1:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
-            case YUV422_LV_BUFFER_2:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
-            case YUV422_LV_BUFFER_3:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
-        }
-        return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
-    } else {
-        switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
-        {
-            case YUV422_LV_BUFFER_1:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
-            case YUV422_LV_BUFFER_2:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
-            case YUV422_LV_BUFFER_3:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
-        }
-        return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
-
-    }
-    #endif
+    return get_yuv422buffer(fastrefresh_direction ? 1 : 2);
 }
 
 // Unfortunately this doesn't work on every 1100D model yet :(
 static void* get_fastrefresh_422_other_buf()
 {
-    if (!fastrefresh_direction) {
-        switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
-        {
-            case YUV422_LV_BUFFER_1:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
-            case YUV422_LV_BUFFER_2:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
-            case YUV422_LV_BUFFER_3:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
-        }
-        return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
-    } else {
-        switch (YUV422_LV_BUFFER_DISPLAY_ADDR)
-        {
-            case YUV422_LV_BUFFER_1:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_3);
-            case YUV422_LV_BUFFER_2:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_1);
-            case YUV422_LV_BUFFER_3:
-                return (void*)CACHEABLE(YUV422_LV_BUFFER_2);
-        }
-        return (void*)CACHEABLE(YUV422_LV_BUFFER_1); // fall back to default
-
-    }
+    return get_yuv422buffer(fastrefresh_direction ? 2 : 1);
 }
 
 #ifdef CONFIG_500D
@@ -730,6 +699,7 @@ static struct menu_entry vram_menus[] = {
 void vram_init()
 {
     menu_add("VRAM", vram_menus, COUNT(vram_menus));
+    old_buffer_pos = YUV422_LV_BUFFER_1;
 }
 
 INIT_FUNC(__FILE__, vram_init);

@@ -50,4 +50,16 @@
 /** Compute the number of entries in a static array */
 #define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
 
+#ifdef __ARM__
+#include "arm-mcr.h"
+#elif __GNUC__
+typedef void (*thunk)(void);
+
+#include <features.h>
+#include <stdint.h>
+#include <limits.h>
+#include <sys/types.h>
+
+#endif
+
 #endif

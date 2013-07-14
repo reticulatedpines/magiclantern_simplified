@@ -31,7 +31,7 @@
 #define _dryos_h_
 
 #include "config-defines.h"
-#include "arm-mcr.h"
+#include "compiler.h"
 #include "dialog.h"
 #ifndef PLUGIN_CLIENT
 #include "gui.h"

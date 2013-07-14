@@ -41,15 +41,25 @@ FLAGS=\
 	-fomit-frame-pointer \
 	-fno-strict-aliasing
 
+TARGET_COMPILER ?= arm-gcc
+
+CFLAGS =
+
+ifeq ($(TARGET_COMPILER), arm-gcc)
+	CFLAGS += -Os -mthumb-interwork \
+				-D__ARM__
+
+LFLAGS += -mthumb-interwork -march=armv5te -nostdlib
+endif
+
 #
 # ToDo: remove 
 #	-Wno-implicit-function-declaration
 #
 # Reason: these warnings make sense! potential crash situations.
 #
-CFLAGS=\
+CFLAGS +=\
 	$(FLAGS) \
-	-Os \
 	-Wall \
 	-W \
 	-Wno-unused-parameter \
@@ -63,11 +73,10 @@ CFLAGS=\
 	-fsingle-precision-constant \
 	-fshort-double \
 	-std=gnu99 \
-	-D__ARM__ \
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
 	-I$(PICOC_PATH) \
-	-mthumb-interwork
+
 
 NOT_USED_FLAGS=\
 	-march=armv5te \

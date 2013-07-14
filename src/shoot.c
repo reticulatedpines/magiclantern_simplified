@@ -329,6 +329,10 @@ static void do_this_every_second() // called every second
     #endif
 }
 
+#ifndef TIMER_GET_VALUE
+#define TIMER_GET_VALUE() *(volatile uint32_t*)0xC0242014
+#endif
+
 #define TIMER_MAX 1048576
 // called every 200ms or on request
 static void
@@ -338,7 +342,7 @@ seconds_clock_update()
     int old_stat = cli();
     
     static uint32_t prev_timer = 0;
-    uint32_t timer_value = *(volatile uint32_t*)0xC0242014;
+    uint32_t timer_value = TIMER_GET_VALUE();
     // this timer rolls over every 1048576 ticks
     // and 1000000 ticks = 1 second
     // so 1 rollover is done every 1.05 seconds roughly
@@ -6396,9 +6400,11 @@ shoot_task( void* unused )
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);
         #endif
-        
+
+#ifdef FEATURE_LCD_SENSOR_REMOTE
         if (lcd_release_running)
             priority_feature_enabled = 1;
+#endif
 
         #ifdef FEATURE_WHITE_BALANCE
         if (kelvin_auto_flag)

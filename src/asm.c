@@ -3,7 +3,7 @@
  * todo: make it a module
  */
 
-#include "arm-mcr.h"
+#include "compiler.h"
 
 static uint32_t ror(uint32_t word, uint32_t count)
 {

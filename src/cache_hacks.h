@@ -1,6 +1,9 @@
 #ifndef _CACHE_HACKS_H_
 #define _CACHE_HACKS_H_
 
+#ifdef __ARM__
+
+
 /*
  * Canon cameras appear to use the ARMv5 946E.
  * (Confirmed on: 550D, ... )
@@ -482,4 +485,5 @@ static uint32_t cache_fake(uint32_t address, uint32_t data, uint32_t type)
 #endif
 }
 
+#endif /* __ARM__ */
 #endif
