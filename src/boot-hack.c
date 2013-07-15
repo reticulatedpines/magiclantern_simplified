@@ -38,6 +38,8 @@
 #include "cache_hacks.h"
 #endif
 
+#include "boot-hack.h"
+
 /** These are called when new tasks are created */
 static void my_task_dispatch_hook( struct context ** );
 static int my_init_task(int a, int b, int c, int d);
@@ -309,9 +311,9 @@ static void nop( void ) { }
 void menu_init( void ) __attribute__((weak,alias("nop")));
 void debug_init( void ) __attribute__((weak,alias("nop")));
 
-int magic_off = 0; // Set to 1 to disable ML
-int magic_off_request = 0;
-int magic_is_off() 
+unsigned short int magic_off = 0; // Set to 1 to disable ML
+unsigned short int magic_off_request = 0;
+unsigned short int magic_is_off() 
 {
     return magic_off; 
 }

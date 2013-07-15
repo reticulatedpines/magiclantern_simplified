@@ -63,7 +63,6 @@ CFLAGS +=\
 	-Wall \
 	-W \
 	-Wno-unused-parameter \
-	-Wno-implicit-function-declaration \
 	-Wno-unused-function \
 	-Wno-missing-field-initializers \
 	-Wno-format \

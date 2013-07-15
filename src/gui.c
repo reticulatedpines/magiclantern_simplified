@@ -32,6 +32,8 @@
 #include <consts.h>
 #include <lens.h>
 #include <config-defines.h>
+#include <boot-hack.h>
+
 /**
  * Supported cameras [E] Means it's enabled
  * [E] 1100D: counter_0x0c <-> msg_queue_0x30
