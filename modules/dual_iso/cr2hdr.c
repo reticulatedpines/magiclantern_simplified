@@ -125,7 +125,7 @@ int main(int argc, char** argv)
         printf("\nInput file     : %s\n", filename);
 
         char dcraw_cmd[100];
-        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -v -i '%s' > tmp.txt", filename);
+        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -v -i -t 0 '%s' > tmp.txt", filename);
         int exit_code = system(dcraw_cmd);
         CHECK(exit_code == 0, "%s", filename);
         
@@ -156,7 +156,7 @@ int main(int argc, char** argv)
         int left_margin = raw_width - out_width;
         int top_margin = raw_height - out_height;
 
-        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -4 -E -c '%s' > tmp.pgm", filename);
+        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -4 -E -c -t 0 '%s' > tmp.pgm", filename);
         exit_code = system(dcraw_cmd);
         CHECK(exit_code == 0, "%s", filename);
         
