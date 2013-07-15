@@ -299,50 +299,89 @@ static unsigned int isoless_playback_fix(unsigned int ctx)
 
     uint32_t* lv = (uint32_t*)get_yuv422_vram()->vram;
 
-    int avg[4] = {0,0,0,0};
-    int num = 0;
-    for(int y = os.y0; y < os.y_max; y ++ )
+    /* try to guess the period of alternating lines */
+    int avg[5];
+    int best_score = 0;
+    int period = 0;
+    int max_i = 0;
+    int min_i = 0;
+    int max_b = 0;
+    int min_b = 0;
+    for (int rep = 2; rep <= 5; rep++)
     {
-        for (int x = os.x0; x < os.x_max; x += 2)
+        /* compute average brightness for each line group */
+        for (int i = 0; i < rep; i++)
+            avg[i] = 0;
+        
+        int num = 0;
+        for(int y = os.y0; y < os.y_max; y ++ )
         {
-            uint32_t uyvy = lv[BM2LV(x,y)/4];
-            int luma = (((((uyvy) >> 24) & 0xFF) + (((uyvy) >> 8) & 0xFF)) >> 1);
-            avg[y%8] += luma;
-            num++;
+            for (int x = os.x0; x < os.x_max; x += 2)
+            {
+                uint32_t uyvy = lv[BM2LV(x,y)/4];
+                int luma = (((((uyvy) >> 24) & 0xFF) + (((uyvy) >> 8) & 0xFF)) >> 1);
+                avg[y % rep] += luma;
+                num++;
+            }
+        }
+        
+        /* choose the group with max contrast */
+        int min = INT_MAX;
+        int max = INT_MIN;
+        int mini = 0;
+        int maxi = 0;
+        for (int i = 0; i < rep; i++)
+        {
+            avg[i] = avg[i] * rep / num;
+            if (avg[i] < min)
+            {
+                min = avg[i];
+                mini = i;
+            }
+            if (avg[i] > max)
+            {
+                max = avg[i];
+                maxi = i;
+            }
+        }
+
+        int score = max - min;
+        if (score > best_score)
+        {
+            period = rep;
+            best_score = score;
+            min_i = mini;
+            max_i = maxi;
+            max_b = max;
+            min_b = min;
         }
     }
-    for (int i = 0; i < COUNT(avg); i++)
-        avg[i] /= num;
+    
+    if (best_score < 5)
+        return 0;
 
-    int idx[4] = {0,1,2,3};
-    for (int i = 0; i < 3; i++)
-        for (int j = i+1; j < 4; j++)
-            if (avg[idx[i]] > avg[idx[j]])
-                { int aux = idx[i]; idx[i] = idx[j]; idx[j] = aux; }
-    int lo1 = avg[idx[0]];
-    int lo2 = avg[idx[1]];
-    int hi1 = avg[idx[2]];
-    int hi2 = avg[idx[3]];
+    /* alternate between bright and dark exposures */
+    static int show_bright = 0;
+    show_bright = !show_bright;
+    
+    /* one exposure too bright or too dark? no point in showing it */
+    int forced = 0;
+    if (min_b < 10)
+        show_bright = 1, forced = 1;
+    if (max_b > 245)
+        show_bright = 0, forced = 1;
 
-    if (ABS(lo1 - lo2) > 3) return 0;
-    if (ABS(hi1 - hi2) > 3) return 0;
-    if (ABS(hi1 - lo2) < 5) return 0;
-    
-    int is_bright[4] = {avg[0] >= hi1, avg[1] >= hi1, avg[2] >= hi1, avg[3] >= hi1};
-    
-    bmp_printf(FONT_MED, 0, 0, "%d%d%d%d", is_bright[0], is_bright[1], is_bright[2], is_bright[3]);
-    
-    /* replace bright lines with dark ones */
+    bmp_printf(FONT_MED, 0, 0, "%s%s", show_bright ? "Bright" : "Dark", forced ? " only" : "");
+
+    /* only keep one line from each group (not optimal for resolution, but doesn't have banding) */
     for(int y = os.y0; y < os.y_max; y ++ )
     {
-        if (is_bright[y%4])
-        {
-            uint32_t* bright = &(lv[BM2LV_R(y)/4]);
-            int dark_y = !is_bright[(y+1)%4] ? y+1 : !is_bright[(y-1)%4] ? y-1 : -1;
-            if (dark_y < 0) continue;
-            uint32_t* dark = &(lv[BM2LV_R(dark_y)/4]);
-            memcpy(bright, dark, vram_lv.pitch);
-        }
+        uint32_t* bright = &(lv[BM2LV_R(y)/4]);
+        int dark_y = y/period*period + (show_bright ? max_i : min_i);
+        if (dark_y < 0) continue;
+        if (y == dark_y) continue;
+        uint32_t* dark = &(lv[BM2LV_R(dark_y)/4]);
+        memcpy(bright, dark, vram_lv.pitch);
     }
     return 0;
 }
