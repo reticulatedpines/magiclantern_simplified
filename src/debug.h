@@ -108,6 +108,10 @@ dm_event_dispatch(
 extern void
 debug_init( void );
 
+void debug_init_stuff( void );
+
+void request_crash_log(int type); 
+
 #define DEBUG_LOG_THIS(x) {     \
 dm_set_print_level(255,0); dm_set_store_level(255,0); \
 dm_set_print_level(21,30); dm_set_store_level(21,30); \

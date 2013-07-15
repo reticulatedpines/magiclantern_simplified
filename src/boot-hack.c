@@ -39,6 +39,7 @@
 #endif
 
 #include "boot-hack.h"
+#include "reloc.h"
 
 /** These are called when new tasks are created */
 static void my_task_dispatch_hook( struct context ** );
@@ -641,7 +642,7 @@ int init_task_patched(int a, int b, int c, int d)
         0,      // with no virtual offset
         ROM_ITASK_START,
         ROM_ITASK_END,
-        init_task_reloc_buf
+        (uintptr_t) init_task_reloc_buf
     );
 
     int (*new_CreateTaskMain)(void) = (void*)reloc(
@@ -649,7 +650,7 @@ int init_task_patched(int a, int b, int c, int d)
         0,      // with no virtual offset
         ROM_CREATETASK_MAIN_START,
         ROM_CREATETASK_MAIN_END,
-        CreateTaskMain_reloc_buf
+        (uintptr_t) CreateTaskMain_reloc_buf
     );
     
     const uintptr_t init_task_offset = (intptr_t)new_init_task - (intptr_t)init_task_reloc_buf - (intptr_t)ROM_ITASK_START;

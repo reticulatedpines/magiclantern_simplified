@@ -206,6 +206,14 @@ bfnt_printf(
            ...
            );
 
+void bfnt_puts(
+        char* s, 
+        int x, 
+        int y, 
+        int fg, 
+        int bg
+        );
+
 extern void
 con_printf(
         uint32_t fontspec,
