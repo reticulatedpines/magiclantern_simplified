@@ -23,7 +23,7 @@
 #include "string.h"
 
 #include "../lv_rec/lv_rec.h"
-#include "../../src/raw.h"
+#include <raw.h>
 
 #define T_BYTE      1
 #define T_ASCII     2

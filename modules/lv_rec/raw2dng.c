@@ -23,7 +23,8 @@
 #include "string.h"
 #include "math.h"
 #include "lv_rec.h"
-#include "../../src/raw.h"
+#include <raw.h>
+#include <chdk-dng.h>
 
 lv_rec_file_footer_t lv_rec_footer;
 struct raw_info raw_info;
@@ -32,7 +33,6 @@ struct raw_info raw_info;
 #define CHECK(ok, fmt,...) { if (!ok) FAIL(fmt, ## __VA_ARGS__); }
 
 static void fix_vertical_stripes();
-extern void set_framerate();
 
 int main(int argc, char** argv)
 {

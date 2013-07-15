@@ -55,6 +55,7 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #endif
 
 #include "raw.h"
+#include "chdk-dng.h"
 
 /* adaptations from CHDK to ML */
 #define camera_sensor raw_info
