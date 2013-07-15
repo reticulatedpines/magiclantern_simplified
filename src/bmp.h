@@ -206,7 +206,8 @@ bfnt_printf(
            ...
            );
 
-void bfnt_puts(
+int 
+bfnt_puts(
         char* s, 
         int x, 
         int y, 
