@@ -487,8 +487,8 @@ static void apply_vertical_stripes_correction()
 /** Technical details: https://dl.dropboxusercontent.com/u/4124919/bleeding-edge/isoless/dual_iso.pdf */
 
 /* choose interpolation method (define only one of these) */
-#define INTERP_MEAN_2RB_3G
-#undef INTERP_MEDIAN_6
+#undef INTERP_MEAN_2RB_3G
+#define INTERP_MEDIAN_6
 
 /* quick check to see if this looks like a HDR frame */
 static int hdr_check()
@@ -688,9 +688,6 @@ static int median6(int a, int b, int c, int d, int e, int f)
 #define INTERP_METHOD_NAME "mean2rb3g"
 #define EV_MEAN2(a,b) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383]) / 2]
 #define EV_MEAN3(a,b,c) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383] + raw2ev[c & 16383]) / 3]
-
-#define EV_MEAN2(a,b) (a+b)/2
-#define EV_MEAN3(a,b,c) (a+b+c)/3
 #endif
 
 static int hdr_interpolate()
