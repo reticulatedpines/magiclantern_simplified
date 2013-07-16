@@ -294,6 +294,9 @@ static unsigned int isoless_refresh(unsigned int ctx)
 
 static unsigned int isoless_playback_fix(unsigned int ctx)
 {
+    if (is_7d)
+        return 0; /* seems to cause problems, figure out why */
+    
     if (!isoless_hdr) return 0;
     if (!is_play_or_qr_mode()) return 0;
 
