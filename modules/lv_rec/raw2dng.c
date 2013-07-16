@@ -486,6 +486,10 @@ static void apply_vertical_stripes_correction()
 /** HDR video interpolation */
 /** Technical details: https://dl.dropboxusercontent.com/u/4124919/bleeding-edge/isoless/dual_iso.pdf */
 
+/* choose interpolation method (define only one of these) */
+#define INTERP_MEAN_2RB_3G
+#undef INTERP_MEDIAN_6
+
 /* quick check to see if this looks like a HDR frame */
 static int hdr_check()
 {
@@ -660,6 +664,35 @@ static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_d
     return 1;
 }
 
+#ifdef INTERP_MEDIAN_6
+#define INTERP_METHOD_NAME "median6"
+#define interp6 median6
+/* median of 6 numbers */
+static int median6(int a, int b, int c, int d, int e, int f)
+{
+    int x[6] = {a,b,c,d,e,f};
+
+    /* compute median */
+    int aux;
+    int i,j;
+    for (i = 0; i < 5; i++)
+        for (j = i+1; j < 6; j++)
+            if (x[i] > x[j])
+                aux = x[i], x[i] = x[j], x[j] = aux;
+    int median = (x[2] + x[3]) / 2;
+    return median;
+}
+#endif
+
+#ifdef INTERP_MEAN_2RB_3G
+#define INTERP_METHOD_NAME "mean2rb3g"
+#define EV_MEAN2(a,b) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383]) / 2]
+#define EV_MEAN3(a,b,c) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383] + raw2ev[c & 16383]) / 3]
+
+#define EV_MEAN2(a,b) (a+b)/2
+#define EV_MEAN3(a,b,c) (a+b+c)/3
+#endif
+
 static int hdr_interpolate()
 {
     static int first_frame = 1;
@@ -739,12 +772,10 @@ static int hdr_interpolate()
 
     #define BRIGHT_ROW (is_bright[y % 4])
 
-    #define EV_MEAN2(a,b) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383]) / 2]
-    #define EV_MEAN3(a,b,c) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383] + raw2ev[c & 16383]) / 3]
+    if (first_frame)
+        printf("Interpolation  : %s\n", INTERP_METHOD_NAME);
 
-    //~ #define EV_MEAN2(a,b) (a+b)/2
-    //~ #define EV_MEAN3(a,b,c) (a+b+c)/3
-
+#ifdef INTERP_MEAN_2RB_3G
     for (y = 2; y < h-2; y ++)
     {
         short* native = BRIGHT_ROW ? bright : dark;
@@ -792,6 +823,40 @@ static int hdr_interpolate()
             native[x+1 + y * w] = raw_get_pixel(x+1, y);
         }
     }
+#else
+    for (y = 2; y < h-2; y ++)
+    {
+        short* native = BRIGHT_ROW ? bright : dark;
+        short* interp = BRIGHT_ROW ? dark : bright;
+        
+        for (x = 2; x < w-2; x ++)
+        {
+            int ra = raw_get_pixel(x, y-2);
+            int rb = raw_get_pixel(x, y+2);
+            int ral = raw_get_pixel(x-2, y-2);
+            int rbl = raw_get_pixel(x-2, y+2);
+            int rar = raw_get_pixel(x+2, y-2);
+            int rbr = raw_get_pixel(x+2, y+2);
+
+            int ri = ev2raw[
+                interp6(
+                    raw2ev[ra & 16383], 
+                    raw2ev[rb & 16383],
+                    raw2ev[ral & 16383],
+                    raw2ev[rbl & 16383],
+                    raw2ev[rar & 16383],
+                    raw2ev[rbr & 16383]
+                )
+            ];
+
+            if (ra >= white || rb >= white || ral >= white || rbl >= white || rar >= white || rbr >= white)
+                ri = white;
+            
+            interp[x   + y * w] = ri;
+            native[x   + y * w] = raw_get_pixel(x, y);
+        }
+    }
+#endif
     
     /* border interpolation */
     for (y = 0; y < 2; y ++)
@@ -906,7 +971,7 @@ static int hdr_interpolate()
         /* this looks very ugly at iso > 1600 */
         if (corr_ev > 4.5)
             f = 0;
-
+        
         mix_curve[i] = FIXP_ONE * k;
         fullres_curve[i] = FIXP_ONE * f;
     }

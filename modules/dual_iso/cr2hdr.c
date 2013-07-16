@@ -24,6 +24,13 @@
  * Boston, MA  02110-1301, USA.
  */
 
+/* choose interpolation method (define only one of these) */
+#undef INTERP_MEAN_2RB_3G
+#undef INTERP_MEAN_6
+#undef INTERP_MEAN_4_OUT_OF_6
+#undef INTERP_MEAN_5_OUT_OF_6
+#define INTERP_MEDIAN_6
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -604,6 +611,105 @@ static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_d
     return 1;
 }
 
+#ifdef INTERP_MEAN_5_OUT_OF_6
+#define interp6 mean5outof6
+#define INTERP_METHOD_NAME "mean5/6"
+
+/* mean of 5 numbers out of 6 (with one outlier removed) */
+static int mean5outof6(int a, int b, int c, int d, int e, int f)
+{
+    int x[6] = {a,b,c,d,e,f};
+
+    /* compute median */
+    int aux;
+    int i,j;
+    for (i = 0; i < 5; i++)
+        for (j = i+1; j < 6; j++)
+            if (x[i] > x[j])
+                aux = x[i], x[i] = x[j], x[j] = aux;
+    int median = (x[2] + x[3]) / 2;
+    
+    /* remove 1 outlier */
+    int l = 0;
+    int r = 5;
+    if (median - x[l] > x[r] - median) l++;
+    else r--;
+    
+    /* mean of remaining numbers */
+    int sum = 0;
+    for (i = l; i <= r; i++)
+        sum += x[i];
+    return sum / (r - l + 1);
+}
+#endif
+
+#ifdef INTERP_MEAN_4_OUT_OF_6
+#define INTERP_METHOD_NAME "mean4/6"
+#define interp6 mean4outof6
+/* mean of 4 numbers out of 6 (with two outliers removed) */
+static int mean4outof6(int a, int b, int c, int d, int e, int f)
+{
+    int x[6] = {a,b,c,d,e,f};
+
+    /* compute median */
+    int aux;
+    int i,j;
+    for (i = 0; i < 5; i++)
+        for (j = i+1; j < 6; j++)
+            if (x[i] > x[j])
+                aux = x[i], x[i] = x[j], x[j] = aux;
+    int median = (x[2] + x[3]) / 2;
+    
+    /* remove 2 outliers */
+    int l = 0;
+    int r = 5;
+    if (median - x[l] > x[r] - median) l++;
+    else r--;
+    if (median - x[l] > x[r] - median) l++;
+    else r--;
+    
+    /* mean of remaining numbers */
+    int sum = 0;
+    for (i = l; i <= r; i++)
+        sum += x[i];
+    return sum / (r - l + 1);
+}
+#endif
+
+#ifdef INTERP_MEAN_6
+#define INTERP_METHOD_NAME "mean6"
+#define interp6 mean6
+static int mean6(int a, int b, int c, int d, int e, int f)
+{
+    return (a + b + c + d + e + f) / 6;
+}
+#endif
+
+#ifdef INTERP_MEDIAN_6
+#define INTERP_METHOD_NAME "median6"
+#define interp6 median6
+/* median of 6 numbers */
+static int median6(int a, int b, int c, int d, int e, int f)
+{
+    int x[6] = {a,b,c,d,e,f};
+
+    /* compute median */
+    int aux;
+    int i,j;
+    for (i = 0; i < 5; i++)
+        for (j = i+1; j < 6; j++)
+            if (x[i] > x[j])
+                aux = x[i], x[i] = x[j], x[j] = aux;
+    int median = (x[2] + x[3]) / 2;
+    return median;
+}
+#endif
+
+#ifdef INTERP_MEAN_2RB_3G
+#define INTERP_METHOD_NAME "mean2rb3g"
+#define EV_MEAN2(a,b) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383]) / 2]
+#define EV_MEAN3(a,b,c) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383] + raw2ev[c & 16383]) / 3]
+#endif
 
 #define EV_RESOLUTION 2000
 
@@ -706,13 +812,10 @@ static int hdr_interpolate()
     memset(bright, 0, w * h * sizeof(short));
 
     #define BRIGHT_ROW (is_bright[y % 4])
+    
+    printf("Interpolation  : %s\n", INTERP_METHOD_NAME);
 
-    #define EV_MEAN2(a,b) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383]) / 2]
-    #define EV_MEAN3(a,b,c) ev2raw[(raw2ev[a & 16383] + raw2ev[b & 16383] + raw2ev[c & 16383]) / 3]
-
-    //~ #define EV_MEAN2(a,b) (a+b)/2
-    //~ #define EV_MEAN3(a,b,c) (a+b+c)/3
-
+#ifdef INTERP_MEAN_2RB_3G
     for (y = 2; y < h-2; y ++)
     {
         short* native = BRIGHT_ROW ? bright : dark;
@@ -760,7 +863,40 @@ static int hdr_interpolate()
             native[x+1 + y * w] = raw_get_pixel16(x+1, y);
         }
     }
+#else
+    for (y = 2; y < h-2; y ++)
+    {
+        short* native = BRIGHT_ROW ? bright : dark;
+        short* interp = BRIGHT_ROW ? dark : bright;
+        
+        for (x = 2; x < w-2; x ++)
+        {
+            int ra = raw_get_pixel16(x, y-2);
+            int rb = raw_get_pixel16(x, y+2);
+            int ral = raw_get_pixel16(x-2, y-2);
+            int rbl = raw_get_pixel16(x-2, y+2);
+            int rar = raw_get_pixel16(x+2, y-2);
+            int rbr = raw_get_pixel16(x+2, y+2);
 
+            int ri = ev2raw[
+                interp6(
+                    raw2ev[ra & 16383], 
+                    raw2ev[rb & 16383],
+                    raw2ev[ral & 16383],
+                    raw2ev[rbl & 16383],
+                    raw2ev[rar & 16383],
+                    raw2ev[rbr & 16383]
+                )
+            ];
+
+            if (ra >= white || rb >= white || ral >= white || rbl >= white || rar >= white || rbr >= white)
+                ri = white;
+            
+            interp[x   + y * w] = ri;
+            native[x   + y * w] = raw_get_pixel16(x, y);
+        }
+    }
+#endif
     /* border interpolation */
     for (y = 0; y < 3; y ++)
     {
@@ -804,13 +940,6 @@ static int hdr_interpolate()
         }
     }
 
-    /* estimate ISO and black difference between bright and dark exposures */
-    float corr_ev = 0;
-    int black_delta = 0;
-    int ok = estimate_iso(dark, bright, &corr_ev, &black_delta);
-    if (!ok) goto err;
-    int corr = (int)roundf(corr_ev * EV_RESOLUTION);
-
 #if 0 /* for debugging only */
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     save_dng("normal.dng");
@@ -827,6 +956,14 @@ static int hdr_interpolate()
     reverse_bytes_order(raw_info.buffer, raw_info.frame_size);
     save_dng("dark.dng");
 #endif
+
+    /* estimate ISO and black difference between bright and dark exposures */
+    float corr_ev = 0;
+    int black_delta = 0;
+    int ok = estimate_iso(dark, bright, &corr_ev, &black_delta);
+    if (!ok) goto err;
+    int corr = (int)roundf(corr_ev * EV_RESOLUTION);
+
 
     /* mix the two images */
     /* highlights:  keep data from dark image only */
@@ -873,7 +1010,7 @@ static int hdr_interpolate()
         /* this looks very ugly at iso > 1600 */
         if (corr_ev > 4.5)
             f = 0;
-
+        
         mix_curve[i] = FIXP_ONE * k;
         fullres_curve[i] = FIXP_ONE * f;
     }
