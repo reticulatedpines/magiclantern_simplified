@@ -132,7 +132,7 @@ int main(int argc, char** argv)
         printf("\nInput file     : %s\n", filename);
 
         char dcraw_cmd[100];
-        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -v -i -t 0 '%s' > tmp.txt", filename);
+        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -v -i -t 0 \"%s\" > tmp.txt", filename);
         int exit_code = system(dcraw_cmd);
         CHECK(exit_code == 0, "%s", filename);
         
@@ -163,7 +163,7 @@ int main(int argc, char** argv)
         int left_margin = raw_width - out_width;
         int top_margin = raw_height - out_height;
 
-        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -4 -E -c -t 0 '%s' > tmp.pgm", filename);
+        snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -4 -E -c -t 0 \"%s\" > tmp.pgm", filename);
         exit_code = system(dcraw_cmd);
         CHECK(exit_code == 0, "%s", filename);
         
@@ -245,7 +245,7 @@ int main(int argc, char** argv)
             raw_info.white_level /= 4;
 
             char exif_cmd[100];
-            snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile '%s' '%s' -overwrite_original", filename, out_filename);
+            snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -tagsFromFile \"%s\" \"%s\" -overwrite_original", filename, out_filename);
             int r = system(exif_cmd);
             if (r != 0)
                 printf("Exiftool didn't work\n");
