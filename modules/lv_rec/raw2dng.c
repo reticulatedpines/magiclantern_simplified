@@ -668,7 +668,7 @@ static int estimate_iso(short* dark, short* bright, float* corr_ev, int* black_d
 #define INTERP_METHOD_NAME "median6"
 #define interp6 median6
 /* median of 6 numbers */
-static int median6(int a, int b, int c, int d, int e, int f)
+static int median6(int a, int b, int c, int d, int e, int f, int white)
 {
     int x[6] = {a,b,c,d,e,f};
 
@@ -679,6 +679,8 @@ static int median6(int a, int b, int c, int d, int e, int f)
         for (j = i+1; j < 6; j++)
             if (x[i] > x[j])
                 aux = x[i], x[i] = x[j], x[j] = aux;
+    if ((x[2] >= white) || (x[3] >= white))
+        return white;
     int median = (x[2] + x[3]) / 2;
     return median;
 }
@@ -842,12 +844,10 @@ static int hdr_interpolate()
                     raw2ev[ral & 16383],
                     raw2ev[rbl & 16383],
                     raw2ev[rar & 16383],
-                    raw2ev[rbr & 16383]
+                    raw2ev[rbr & 16383],
+                    raw2ev[white]
                 )
             ];
-
-            if (ra >= white || rb >= white || ral >= white || rbl >= white || rar >= white || rbr >= white)
-                ri = white;
             
             interp[x   + y * w] = ri;
             native[x   + y * w] = raw_get_pixel(x, y);
